@@ -1355,10 +1355,12 @@ html.is-mobile #tank-hud {
   html.is-mobile #btn-view,
   html.is-mobile #btn-melee,
   html.is-mobile #btn-crouch { display: none !important; }
-  /* Make look-zone smaller and translucent so it doesn't dominate landscape */
+  /* Hard-cap look-zone so it never dominates landscape (audit #27) */
   html.is-mobile #mobile-look-zone {
-    width: min(18vh, 100px) !important;
-    height: min(18vh, 100px) !important;
+    width: 110px !important;
+    height: 110px !important;
+    max-width: 110px !important;
+    max-height: 110px !important;
     bottom: 250px !important;
     opacity: 0.45;
   }

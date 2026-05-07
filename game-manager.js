@@ -6339,14 +6339,15 @@ const GameManager = (function () {
     const resEl = document.getElementById('hud-resources');
     if (resEl) {
       const r = Economy.getResources();
+      // Letter codes (cross-platform safe; emoji tofu on Linux/old Android)
       resEl.innerHTML =
-        '<span style="color:#8B6914">🪵' + r.wood + '</span> ' +
-        '<span style="color:#aaa">⚙️' + r.metal + '</span> ' +
-        '<span style="color:#00ccff">🔌' + r.electronics + '</span> ' +
-        '<span style="color:#ff8800">⛽' + r.fuel + '</span> ' +
-        '<span style="color:#999">🪨' + r.stone + '</span> ' +
-        '<span style="color:#aacc44">🍞' + r.food + '</span> ' +
-        '| <span style="color:#ffcc00">💰' + Economy.getCurrency() + '</span>';
+        '<span style="color:#8B6914" title="Wood">W' + r.wood + '</span> ' +
+        '<span style="color:#aaa" title="Metal">M' + r.metal + '</span> ' +
+        '<span style="color:#00ccff" title="Electronics">E' + r.electronics + '</span> ' +
+        '<span style="color:#ff8800" title="Fuel">F' + r.fuel + '</span> ' +
+        '<span style="color:#999" title="Stone">S' + r.stone + '</span> ' +
+        '<span style="color:#aacc44" title="Food">Fd' + r.food + '</span> ' +
+        '| <span style="color:#ffcc00" title="Currency">$' + Economy.getCurrency() + '</span>';
     }
 
     const modeEl = document.getElementById('hud-mode');

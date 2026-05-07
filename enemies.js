@@ -1953,6 +1953,22 @@ const Enemies = (() => {
     // Update enemy grenades
     updateEnemyGrenades(delta, playerPos);
 
+    // Corpse cap: if too many corpses linger, accelerate fade on oldest to keep perf stable
+    var _corpseCount = 0;
+    for (var _ci = 0; _ci < enemies.length; _ci++) {
+      var _ce = enemies[_ci];
+      if (_ce && !_ce.alive && _ce.deathTimer > 0) _corpseCount++;
+    }
+    if (_corpseCount > 20) {
+      var _accel = 1 + (_corpseCount - 20) * 0.5;
+      for (var _cj = 0; _cj < enemies.length; _cj++) {
+        var _ce2 = enemies[_cj];
+        if (_ce2 && !_ce2.alive && _ce2.deathTimer > 0.4) {
+          _ce2.deathTimer -= delta * _accel;
+        }
+      }
+    }
+
     // Spawn reinforcements from queue (drip every 1.5-3.5s for denser waves)
     if (spawnQueue.length > 0) {
       spawnTimer -= delta;
@@ -2509,9 +2525,13 @@ const Enemies = (() => {
         if (parts[6]) parts[6].rotation.x =  e.legAngle * 0.5;
         // Torso bob
         if (parts[0]) parts[0].rotation.z = Math.sin(e.legAngle) * 0.04;
-        // Wounded limp — extra side-to-side wobble at low HP
+        // Wounded limp — readable wobble + subtle red rim-tint at low HP
         if (e.hp < e.maxHp * 0.3 && e.mesh && e.mesh.userData.woundedVariant !== 'crawling') {
-          e.mesh.rotation.z = Math.sin(e.legAngle * 0.6) * 0.03;
+          e.mesh.rotation.z = Math.sin(e.legAngle * 0.6) * 0.06;
+          var _woundedParts = e.mesh.userData.parts;
+          if (_woundedParts && _woundedParts[0] && _woundedParts[0].material && _woundedParts[0].material.color) {
+            _woundedParts[0].material.color.r = Math.min(1, _woundedParts[0].material.color.r + 0.04);
+          }
           // Drip wound smoke periodically so wounded enemies are visually obvious
           e._woundSmokeT = (e._woundSmokeT || 0) + delta;
           if (e._woundSmokeT >= 0.45 && typeof Tracers !== 'undefined' && Tracers.spawnSmoke) {
@@ -2779,7 +2799,7 @@ const Enemies = (() => {
               }
               if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playExplosion();
               if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(e.mesh.position, 3);
-              e.hp = 0; e.alive = false; e.deathTimer = 14.0;
+              e.hp = 0; e.alive = false; e.deathTimer = 6.0;
               e._deathTiltX = -1.5; e._deathPopY = 2;
             }
             // Bomber beep warning: flash body red
@@ -3600,7 +3620,7 @@ const Enemies = (() => {
 
     if (enemy.hp <= 0) {
       enemy.alive      = false;
-      enemy.deathTimer = 14.0;
+      enemy.deathTimer = 6.0;
       // Spatial death grunt
       if (typeof window !== 'undefined' && window.AudioSystem && window.AudioSystem.playEnemyDeath && _playerPos && enemy.mesh) {
         var _ddx = enemy.mesh.position.x - _playerPos.x;
