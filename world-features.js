@@ -710,10 +710,25 @@ const WorldFeatures = (function () {
     bed.position.set(cx, surfaceY - depth, cz);
     _scene.add(bed);
 
+    // Side walls so the water body doesn't look like a floating sheet
+    var sideMat = new THREE.MeshLambertMaterial({ color: 0x3D7FB3, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+    var walls = [];
+    function _addWall(w, h, px, py, pz, ry) {
+      var wmesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), sideMat.clone());
+      wmesh.position.set(px, py, pz);
+      if (ry !== undefined) wmesh.rotation.y = ry;
+      _scene.add(wmesh);
+      walls.push(wmesh);
+    }
+    _addWall(radiusX * 2, depth, cx, surfaceY - depth/2, cz - radiusZ, 0);
+    _addWall(radiusX * 2, depth, cx, surfaceY - depth/2, cz + radiusZ, Math.PI);
+    _addWall(radiusZ * 2, depth, cx + radiusX, surfaceY - depth/2, cz, -Math.PI/2);
+    _addWall(radiusZ * 2, depth, cx - radiusX, surfaceY - depth/2, cz, Math.PI/2);
+
     var body = {
       cx: cx, cz: cz, rx: radiusX, rz: radiusZ,
       surfaceY: surfaceY, depth: depth,
-      mesh: mesh, bed: bed, time: 0
+      mesh: mesh, bed: bed, walls: walls, time: 0
     };
     _waterBodies.push(body);
 
@@ -823,6 +838,13 @@ const WorldFeatures = (function () {
       if (_scene) {
         _scene.remove(_waterBodies[i].mesh);
         _scene.remove(_waterBodies[i].bed);
+        if (_waterBodies[i].walls) {
+          for (var wj = 0; wj < _waterBodies[i].walls.length; wj++) {
+            _scene.remove(_waterBodies[i].walls[wj]);
+            _waterBodies[i].walls[wj].geometry.dispose();
+            _waterBodies[i].walls[wj].material.dispose();
+          }
+        }
       }
       _waterBodies[i].mesh.geometry.dispose();
       _waterBodies[i].mesh.material.dispose();

@@ -18,7 +18,7 @@ const ApiClient = (function () {
   let _inflight = new Map();
   let _backendDown = false; // circuit breaker — set after first connection failure
   let _backendCheckedAt = 0;
-  const BACKEND_RETRY_MS = 15000; // retry every 15s after going down (was 60s)
+  const BACKEND_RETRY_MS = 60000; // retry every 60s after going down — stay silent in offline mode
   let _healthProbe = null;  // global probe lock so only 1 request hits the wire initially
 
   function _ensureAnonId() {

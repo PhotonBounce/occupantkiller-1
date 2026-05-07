@@ -10,7 +10,7 @@ window.Jukebox = (function () {
   let _mp3Audio = null;
   let _mp3Tracks = [];
   let _mp3Idx = 0;
-  let _mp3Volume = 0.25;
+  let _mp3Volume = 0.12;
   let _mp3Muted = false;
   let _mp3Playing = false;
   let _mode = 'mp3'; // 'mp3' | 'procedural'
@@ -78,12 +78,10 @@ window.Jukebox = (function () {
     a.src = trk.src;
     a.load();
     var p = a.play();
+    _mp3Playing = true;
+    _emit();
     if (p && typeof p.then === 'function') {
-      p.then(function () { _mp3Playing = true; _emit(); })
-       .catch(function (e) { _mp3Playing = false; _emit(); });
-    } else {
-      _mp3Playing = true;
-      _emit();
+      p.catch(function (e) { _mp3Playing = false; _emit(); });
     }
     return true;
   }
@@ -124,7 +122,7 @@ window.Jukebox = (function () {
   ];
 
   let _ctx = null, _master = null, _tickInterval = null;
-  let _currentIdx = 0, _playing = false, _volume = 0.35, _muted = false;
+  let _currentIdx = 0, _playing = false, _volume = 0.17, _muted = false;
   let _beat = 0;
 
   function _ensureCtx() {

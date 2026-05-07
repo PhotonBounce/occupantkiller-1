@@ -136,7 +136,7 @@ canvas {
 
 #top-bar {
   position: absolute;
-  top: 52px;
+  top: 64px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -853,11 +853,15 @@ canvas {
 
 #info-panel-left {
   position: absolute;
-  bottom: 100px;
+  bottom: 120px;
   left: 16px;
   font-size: 11px;
   color: #aaa;
   line-height: 1.6;
+  background: rgba(0,0,0,0.45);
+  padding: 4px 10px;
+  border-radius: 4px;
+  pointer-events: none;
 }
 #hud-npcs     { color: #88cc44; }
 #hud-missions { color: #ffaa00; }
@@ -1071,9 +1075,8 @@ canvas {
 
 #mobile-actions {
   position: absolute;
-  bottom: 20px;
+  bottom: 200px;
   right: 20px;
-  bottom: max(20px, env(safe-area-inset-bottom));
   right: max(20px, env(safe-area-inset-right));
   display: grid;
   grid-template-columns: repeat(3, auto);
@@ -1255,19 +1258,21 @@ html.is-mobile #skill-hud-btn {
 }
 
 html.is-mobile #top-bar {
-  top: calc(var(--mobile-safe-top) + 20px);
+  top: calc(var(--mobile-safe-top) + 36px);
 }
 
 html.is-mobile #extended-top-bar {
   padding-top: var(--mobile-safe-top);
+  padding-bottom: 2px;
+  font-size: 10px;
 }
 
 html.is-mobile #resource-bar {
-  top: calc(var(--mobile-safe-top) + 56px);
+  top: calc(var(--mobile-safe-top) + 58px);
 }
 
 html.is-mobile #tactical-compass {
-  top: calc(var(--mobile-safe-top) + 84px);
+  top: calc(var(--mobile-safe-top) + 46px);
 }
 
 html.is-mobile #hud-okc-bar {
@@ -1323,13 +1328,13 @@ html.is-mobile #tank-hud {
   html.is-mobile #joystick-thumb { width: 54px; height: 54px; left: 38px; top: 38px; }
   html.is-mobile #mobile-look-zone {
     right: max(14px, env(safe-area-inset-right));
-    bottom: 260px;
-    width: min(34vh, 200px);
-    height: min(34vh, 200px);
+    bottom: 270px;
+    width: min(22vh, 120px);
+    height: min(22vh, 120px);
   }
   html.is-mobile #mobile-actions {
     right: max(14px, env(safe-area-inset-right));
-    bottom: max(14px, env(safe-area-inset-bottom));
+    bottom: 190px;
     grid-template-columns: repeat(3, auto);
     gap: 6px;
   }
@@ -1340,22 +1345,21 @@ html.is-mobile #tank-hud {
     bottom: auto;
     top: calc(var(--mobile-safe-top) + 84px);
     right: max(14px, env(safe-area-inset-right));
-    grid-template-columns: repeat(2, 40px);
-    gap: 4px;
+    grid-template-columns: repeat(2, 36px);
+    gap: 3px;
   }
-  html.is-mobile .utility-btn { width: 40px; height: 40px; font-size: 16px; }
+  html.is-mobile .utility-btn { width: 36px; height: 36px; font-size: 14px; }
   /* Hide rarely-used buttons on mobile landscape — accessible via inventory/pause overlay */
   html.is-mobile #btn-build,
   html.is-mobile #btn-night,
-  html.is-mobile #btn-gyro,
   html.is-mobile #btn-view,
   html.is-mobile #btn-melee,
   html.is-mobile #btn-crouch { display: none !important; }
   /* Make look-zone smaller and translucent so it doesn't dominate landscape */
   html.is-mobile #mobile-look-zone {
-    width: min(22vh, 130px) !important;
-    height: min(22vh, 130px) !important;
-    bottom: 240px !important;
+    width: min(18vh, 100px) !important;
+    height: min(18vh, 100px) !important;
+    bottom: 250px !important;
     opacity: 0.45;
   }
   html.is-mobile #joystick-zone {
@@ -1479,11 +1483,11 @@ html.is-mobile #tank-hud {
   html.is-mobile #joystick-zone { width: 110px; height: 110px; }
   html.is-mobile #joystick-base { width: 110px; height: 110px; }
   html.is-mobile #joystick-thumb { width: 46px; height: 46px; left: 32px; top: 32px; }
-  html.is-mobile #mobile-look-zone { width: 110px; height: 110px; bottom: 230px; }
+  html.is-mobile #mobile-look-zone { width: 100px; height: 100px; bottom: 240px; }
   html.is-mobile .mobile-btn { width: 46px; height: 46px; font-size: 18px; }
   html.is-mobile .mobile-btn.sm { width: 36px; height: 36px; font-size: 14px; }
   html.is-mobile .fire-btn { width: 56px; height: 56px; font-size: 22px; }
-  html.is-mobile #mobile-actions { gap: 5px; }
+  html.is-mobile #mobile-actions { gap: 5px; bottom: 180px; }
   html.is-mobile #top-bar,
   html.is-mobile #resource-bar,
   html.is-mobile #tactical-compass,
@@ -1701,23 +1705,23 @@ html.is-mobile #tank-hud {
   .fire-btn { width: 68px; height: 68px; font-size: 26px; }
   #mobile-actions {
     right: 12px;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    bottom: 200px;
     gap: 8px;
   }
   #mobile-utility {
     right: 12px;
     bottom: 288px;
-    grid-template-columns: repeat(3, 46px);
+    grid-template-columns: repeat(3, 40px);
   }
   .utility-btn {
-    width: 46px;
-    height: 46px;
-    font-size: 17px;
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
   }
   #mobile-look-zone {
-    width: min(48vw, 180px);
-    height: min(48vw, 180px);
-    bottom: 280px;
+    width: min(28vw, 120px);
+    height: min(28vw, 120px);
+    bottom: 290px;
   }
   #top-bar {
     font-size: 11px;
@@ -1735,12 +1739,21 @@ html.is-mobile #tank-hud {
     bottom: 86px;
   }
   html.is-mobile #bottom-bar {
-    width: min(78vw, 360px);
-    bottom: calc(var(--mobile-safe-bottom) + 6px);
-    gap: 8px;
+    width: min(72vw, 320px);
+    bottom: calc(var(--mobile-safe-bottom) + 2px);
+    gap: 4px;
+    padding: 2px 6px;
   }
-  html.is-mobile #health-bar-container { width: 84px; }
-  html.is-mobile #ammo-display { font-size: 18px; }
+  html.is-mobile #health-bar-container { width: 72px; height: 8px; }
+  html.is-mobile #health-label,
+  html.is-mobile #ammo-label,
+  html.is-mobile #grenade-label { font-size: 8px; }
+  html.is-mobile #health-value { font-size: 9px; }
+  html.is-mobile #ammo-display { font-size: 14px; }
+  html.is-mobile #ammo-reserve { font-size: 9px; }
+  html.is-mobile #weapon-name-display { font-size: 10px; }
+  html.is-mobile #grenade-display { font-size: 14px; }
+  html.is-mobile #weapon-section { min-width: 80px; }
   html.is-mobile #minimap-canvas {
     width: 78px;
     height: 78px;

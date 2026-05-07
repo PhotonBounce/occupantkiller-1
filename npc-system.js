@@ -2078,6 +2078,18 @@ function buildCivilianMesh(npc) {
           }
         }
       }
+      // Friendly death scream
+      try {
+        if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playScream && npc.position) {
+          var _pPos = (typeof player !== 'undefined' && player.position) ? player.position : npc.position;
+          var _sdx = npc.position.x - _pPos.x;
+          var _sdz = npc.position.z - _pPos.z;
+          var _sDist = Math.sqrt(_sdx*_sdx + _sdz*_sdz);
+          var _scamY = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : 0;
+          var _srelA = Math.atan2(_sdx, _sdz) - _scamY;
+          window.AudioSystem.playScream(true, _sDist, Math.sin(_srelA));
+        }
+      } catch (e) {}
       killNPC(npc);
     }
   }

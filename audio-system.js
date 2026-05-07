@@ -472,6 +472,32 @@ window.AudioSystem = (function () {
     thudN.connect(thudF); thudF.connect(thudG); thudG.connect(masterGain);
   }
 
+  function playScream(isFriendly, distance, panX) {
+    if (!enabled || !ctx) return;
+    resume();
+    var dist = Math.max(2, Math.min(80, distance || 10));
+    var falloff = 1 - (dist / 80);
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    var g = ctx.createGain();
+    // Friendly = higher pitch (terror), enemy = lower (agony)
+    var base = isFriendly ? 520 : 280;
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(base + Math.random() * 60, now);
+    osc.frequency.exponentialRampToValueAtTime(base * 0.35, now + 0.35 + Math.random() * 0.15);
+    g.gain.setValueAtTime(0.14 * falloff, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    var pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    if (pan) {
+      pan.pan.value = Math.max(-1, Math.min(1, panX || 0));
+      osc.connect(g); g.connect(pan); pan.connect(masterGain);
+    } else {
+      osc.connect(g); g.connect(masterGain);
+    }
+    osc.start(now);
+    osc.stop(now + 0.5);
+  }
+
   function playFootstep(surfaceType) {
     if (!enabled || !ctx) return;
     resume();
@@ -836,7 +862,7 @@ window.AudioSystem = (function () {
 
     // ── Base wind layer (all stages) ──
     // Gentle lowpassed white noise — always present
-    _ambientNoise(10, 'lowpass', 400, 0.7, 0.025);
+    _ambientNoise(10, 'lowpass', 400, 0.7, 0.012);
 
     if (theme === 'grassland') {
       // ── Grassland ──────────────────────────────────────
@@ -850,7 +876,7 @@ window.AudioSystem = (function () {
     } else if (theme === 'urban') {
       // ── Urban ──────────────────────────────────────────
       // Low city rumble
-      _ambientNoise(8, 'lowpass', 120, 0.7, 0.045);
+      _ambientNoise(8, 'lowpass', 120, 0.7, 0.020);
       // Creaking metal: narrow bandpass tone, slow LFO
       _ambientTone(320, 'sawtooth', 0.12, 0.006);
       // Distant artillery: periodic booms
@@ -868,7 +894,7 @@ window.AudioSystem = (function () {
     } else if (theme === 'industrial') {
       // ── Industrial ─────────────────────────────────────
       // Machine hum: low sawtooth drone
-      _ambientOsc(55, 'sawtooth', 0.04);
+      _ambientOsc(55, 'sawtooth', 0.015);
       // Steam hiss: high bandpassed noise
       _ambientNoise(6, 'bandpass', 6000, 3, 0.012);
       // Metal clanking: periodic sharp transients
@@ -893,7 +919,7 @@ window.AudioSystem = (function () {
       waveLfo.type = 'sine'; waveLfo.frequency.value = 0.15;
       var waveAmp = ctx.createGain(); waveAmp.gain.value = 0.06;
       waveLfo.connect(waveAmp.gain);
-      var waveVol = ctx.createGain(); waveVol.gain.value = 0.08;
+      var waveVol = ctx.createGain(); waveVol.gain.value = 0.04;
       waveSrc.connect(waveFilter); waveFilter.connect(waveAmp);
       waveAmp.connect(waveVol); waveVol.connect(masterGain);
       waveSrc.start ? void 0 : waveSrc.start(); // already started by createNoise
@@ -908,7 +934,7 @@ window.AudioSystem = (function () {
     } else if (theme === 'wasteland') {
       // ── Wasteland ──────────────────────────────────────
       // Low ominous drone
-      _ambientOsc(42, 'sine', 0.05);
+      _ambientOsc(42, 'sine', 0.018);
       // Eerie detuned wind: narrow bandpass noise
       _ambientNoise(8, 'bandpass', 800, 4, 0.02);
       // Geiger crackle: rapid tiny clicks via high-freq LFO-gated noise
@@ -964,7 +990,7 @@ window.AudioSystem = (function () {
       desertLfo.type = 'sine'; desertLfo.frequency.value = 0.08;
       var desertAmp = ctx.createGain(); desertAmp.gain.value = 0.04;
       desertLfo.connect(desertAmp.gain);
-      var desertVol = ctx.createGain(); desertVol.gain.value = 0.06;
+      var desertVol = ctx.createGain(); desertVol.gain.value = 0.03;
       desertSrc.connect(desertFilter); desertFilter.connect(desertAmp);
       desertAmp.connect(desertVol); desertVol.connect(masterGain);
       desertLfo.start();
@@ -1100,7 +1126,7 @@ window.AudioSystem = (function () {
           bassOsc.type = 'sawtooth';
           var bassNotes = [55, 65, 55, 73]; // Am pentatonic bass
           bassOsc.frequency.value = bassNotes[Math.floor(beat / 8) % bassNotes.length];
-          bassGain.gain.setValueAtTime(0.15, now);
+          bassGain.gain.setValueAtTime(0.08, now);
           bassGain.gain.exponentialRampToValueAtTime(0.001, now + beatTime * 3);
           var bassFilter = ctx.createBiquadFilter();
           bassFilter.type = 'lowpass';
@@ -1871,6 +1897,7 @@ window.AudioSystem = (function () {
     playPickup: playPickup,
     playDeath: playDeath,
     playEnemyDeath: playEnemyDeath,
+    playScream: playScream,
     playFootstep: playFootstep,
     playEnemyFootstep: playEnemyFootstep,
     startEngine: startEngine,

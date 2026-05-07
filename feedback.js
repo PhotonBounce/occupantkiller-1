@@ -610,14 +610,21 @@ const Feedback = (function () {
       document.body.appendChild(_tipEl);
     }
     _tipEl.textContent = text;
+    _tipEl.style.display = 'block';
     _tipEl.style.opacity = '1';
     if (_tipFadeTimer) clearTimeout(_tipFadeTimer);
-    _tipFadeTimer = setTimeout(function () { if (_tipEl) _tipEl.style.opacity = '0'; }, 4000);
+    _tipFadeTimer = setTimeout(function () {
+      if (_tipEl) { _tipEl.style.opacity = '0'; }
+    }, 4000);
+    // Hard cap: fully hide after fade completes
+    setTimeout(function () {
+      if (_tipEl) { _tipEl.style.display = 'none'; _tipEl.style.opacity = '0'; }
+    }, 5000);
   }
 
   function dismissTip(id) {
     if (_tipFadeTimer) clearTimeout(_tipFadeTimer);
-    if (_tipEl) _tipEl.style.opacity = '0';
+    if (_tipEl) { _tipEl.style.opacity = '0'; _tipEl.style.display = 'none'; }
     if (id) {
       _shownTips[id] = true;
       try { localStorage.setItem('ok_tips_shown', JSON.stringify(_shownTips)); } catch (e) {}

@@ -1761,7 +1761,7 @@ const Enemies = (() => {
   }
 
   // ── Spawn an assault group ─────────────────────────────────
-  function spawnAssaultGroup(groupId, sc) {
+  function spawnAssaultGroup(groupId, sc, playerPos) {
     // AI Smart Learning: bias spawn angle toward player's vulnerable direction
     var baseAngle = (groupId / NUM_ASSAULT_GROUPS) * Math.PI * 2 + Math.random() * 0.5;
     if (_aiStrategy && _aiStrategy.attackFromVulnerable && _aiStrategy.preferredSpawnAngle && groupId === 0) {
@@ -1774,7 +1774,9 @@ const Enemies = (() => {
     }
     var spawnDistMod = (_aiStrategy && _aiStrategy.spawnDistanceMult) || 1.0;
     const dist = (ARENA_SIZE * 0.44 + Math.random() * 6) * spawnDistMod;
-    const center = new THREE.Vector3(Math.cos(baseAngle) * dist, 0, Math.sin(baseAngle) * dist);
+    var spawnCx = playerPos ? playerPos.x : 0;
+    var spawnCz = playerPos ? playerPos.z : 0;
+    const center = new THREE.Vector3(spawnCx + Math.cos(baseAngle) * dist, 0, spawnCz + Math.sin(baseAngle) * dist);
 
     const group = createAssaultGroup(groupId, center);
 
@@ -1828,7 +1830,7 @@ const Enemies = (() => {
   // ── Initialise a wave ─────────────────────────────────────
   var _stageId = 1;
 
-  function startWave(w, sc, stageMultiplier, aiStrategy, stageId, battlePlan) {
+  function startWave(w, sc, stageMultiplier, aiStrategy, stageId, battlePlan, playerPos) {
     wave      = w;
     scene     = sc;
     stageMult = stageMultiplier || 1;
@@ -1851,9 +1853,9 @@ const Enemies = (() => {
 
     // ── Stage-scaled assault group count (more groups in later stages) ──
     var planGroupDelta = battlePlan && isFinite(battlePlan.groupDelta) ? battlePlan.groupDelta : 0;
-    var stageGroupCount = Math.min(8, Math.max(2, NUM_ASSAULT_GROUPS + Math.floor((_stageId || 1) / 3) + planGroupDelta));
+    var stageGroupCount = Math.max(2, NUM_ASSAULT_GROUPS + Math.floor((_stageId || 1) / 3) + planGroupDelta);
     for (let g = 0; g < stageGroupCount; g++) {
-      spawnAssaultGroup(g, sc);
+      spawnAssaultGroup(g, sc, playerPos);
     }
 
     if (battlePlan && battlePlan.initialTypes && battlePlan.initialTypes.length) {
@@ -1877,7 +1879,7 @@ const Enemies = (() => {
     const extraCount = Math.max(4, Math.floor(baseExtra * (1 + (stageMult - 1) * 0.5) * extraMultiplier));
     spawnQueue  = Array.from({ length: extraCount }, () => pickTypeForPlan(w, battlePlan));
     var spawnIntervalMultiplier = battlePlan && isFinite(battlePlan.spawnIntervalMultiplier) ? battlePlan.spawnIntervalMultiplier : 1;
-    spawnTimer  = (Math.max(1, 5 - stageNum * 0.3) + Math.random() * 3) * spawnIntervalMultiplier;
+    spawnTimer  = (Math.max(0.3, 2.0 - stageNum * 0.15) + Math.random() * 1.5) * spawnIntervalMultiplier;
   }
 
   // ── Per-frame update ──────────────────────────────────────
@@ -1955,8 +1957,13 @@ const Enemies = (() => {
     if (spawnQueue.length > 0) {
       spawnTimer -= delta;
       if (spawnTimer <= 0) {
-        spawnOne(spawnQueue.pop());
-        spawnTimer = 1.5 + Math.random() * 2.0;
+        var aliveNow = getAliveCount();
+        var burst = (aliveNow < 5) ? 2 : 1;
+        for (var bi = 0; bi < burst && spawnQueue.length > 0; bi++) {
+          spawnOne(spawnQueue.pop());
+        }
+        spawnTimer = 0.5 + Math.random() * 0.8;
+        if (aliveNow < 3) spawnTimer *= 0.4;
       }
     }
 
@@ -2005,10 +2012,7 @@ const Enemies = (() => {
           e._deathPopY -= 12 * delta; // gravity on corpse
           e.mesh.position.y += e._deathPopY * delta;
         }
-        // Sink into ground in final phase
-        if (e.deathTimer < 0.8) {
-          e.mesh.position.y -= delta * 1.0;
-        }
+        // Keep corpse at ground level (no sink to avoid z-fighting flicker)
         if (e.deathTimer <= 0) {
           // Clean up sniper laser line
           if (e._laserLine) {
@@ -2506,8 +2510,8 @@ const Enemies = (() => {
         // Torso bob
         if (parts[0]) parts[0].rotation.z = Math.sin(e.legAngle) * 0.04;
         // Wounded limp — extra side-to-side wobble at low HP
-        if (e.hp < e.maxHp * 0.3 && e.mesh) {
-          e.mesh.rotation.z = Math.sin(e.legAngle * 0.6) * 0.10;
+        if (e.hp < e.maxHp * 0.3 && e.mesh && e.mesh.userData.woundedVariant !== 'crawling') {
+          e.mesh.rotation.z = Math.sin(e.legAngle * 0.6) * 0.03;
           // Drip wound smoke periodically so wounded enemies are visually obvious
           e._woundSmokeT = (e._woundSmokeT || 0) + delta;
           if (e._woundSmokeT >= 0.45 && typeof Tracers !== 'undefined' && Tracers.spawnSmoke) {
@@ -2775,7 +2779,7 @@ const Enemies = (() => {
               }
               if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playExplosion();
               if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(e.mesh.position, 3);
-              e.hp = 0; e.alive = false; e.deathTimer = 2.0;
+              e.hp = 0; e.alive = false; e.deathTimer = 14.0;
               e._deathTiltX = -1.5; e._deathPopY = 2;
             }
             // Bomber beep warning: flash body red
@@ -3596,7 +3600,7 @@ const Enemies = (() => {
 
     if (enemy.hp <= 0) {
       enemy.alive      = false;
-      enemy.deathTimer = 2.0;
+      enemy.deathTimer = 14.0;
       // Spatial death grunt
       if (typeof window !== 'undefined' && window.AudioSystem && window.AudioSystem.playEnemyDeath && _playerPos && enemy.mesh) {
         var _ddx = enemy.mesh.position.x - _playerPos.x;
@@ -3605,6 +3609,7 @@ const Enemies = (() => {
         var _camY = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : 0;
         var _relA = Math.atan2(_ddx, _ddz) - _camY;
         window.AudioSystem.playEnemyDeath(_dDist, Math.sin(_relA));
+        try { if (window.AudioSystem.playScream) window.AudioSystem.playScream(false, _dDist, Math.sin(_relA)); } catch (e) {}
       }
       // Bass-heavy "dying" gurgle layered on top
       try { if (window.AudioSystem && window.AudioSystem.playEnemyDying) window.AudioSystem.playEnemyDying(); } catch (eED) {}
@@ -3801,8 +3806,8 @@ const Enemies = (() => {
         if (nd <= radius) {
           var nFalloff = 1 - (nd / radius) * 0.5;
           var nDmg = amount * nFalloff;
-          npc.hp = Math.max(0, npc.hp - nDmg);
-          if (npc.hp <= 0) {
+          npc.health = Math.max(0, npc.health - nDmg);
+          if (npc.health <= 0) {
             npc.alive = false;
             if (typeof GameManager !== 'undefined' && GameManager.notifyNPCDeath) GameManager.notifyNPCDeath(npc);
           }

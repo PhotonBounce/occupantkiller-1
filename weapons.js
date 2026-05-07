@@ -2405,7 +2405,18 @@ const Weapons = (() => {
       // Apply equipped skin (if any) to the freshly built mesh
       try { if (weaponSkins[i]) applySkinToMesh(m, weaponSkins[i]); } catch (e) {}
       // Scale down viewmodels so they don't occlude viewport (issue #15)
-      m.scale.set(0.72, 0.72, 0.72);
+      var _wepScale = 0.62;
+      if (WEAPONS[i].type === 'PISTOL') _wepScale = 0.55;
+      else if (['LMG','HMG','HMG_HEAVY','MACHINEGUN','MINIGUN'].indexOf(WEAPONS[i].type) >= 0) _wepScale = 0.52;
+      m.scale.set(_wepScale, _wepScale, _wepScale);
+      // Compute per-weapon muzzle flash offset from mesh bounds so flash aligns with barrel
+      try {
+        const bbox = new THREE.Box3().setFromObject(m);
+        const cx = (bbox.min.x + bbox.max.x) * 0.5;
+        const by = bbox.min.y;
+        const fz = bbox.min.z;
+        m.userData.muzzlePos = new THREE.Vector3(cx, by + 0.02, fz - 0.02);
+      } catch (e) {}
       gunMeshes.push(m);
       m.visible = (i === currentIdx);
       camera.add(m);
@@ -2502,8 +2513,8 @@ const Weapons = (() => {
     if (typeof WeaponDetails !== 'undefined' && WeaponDetails.init) {
       WeaponDetails.init(scene, camera);
     }
-    // Muzzle flash: 5x smaller footprint, elongated forward for realism
-    const geo = new THREE.PlaneGeometry(0.06, 0.10);
+    // Muzzle flash: compact footprint (30% of original size)
+    const geo = new THREE.PlaneGeometry(0.03, 0.048);
     const mat = new THREE.MeshBasicMaterial({
       color:       0xffdd44,
       transparent: true,
@@ -2514,6 +2525,10 @@ const Weapons = (() => {
     muzzleFlash = new THREE.Mesh(geo, mat);
     muzzleFlash.position.set(0.17, -0.11, -0.62);
     camera.add(muzzleFlash);
+    // Align muzzle flash to current weapon barrel if bounds already computed
+    if (gunMeshes[currentIdx] && gunMeshes[currentIdx].userData.muzzlePos) {
+      muzzleFlash.position.copy(gunMeshes[currentIdx].userData.muzzlePos);
+    }
 
     // Dynamic point light for muzzle flash illumination
     _muzzleLight = new THREE.PointLight(0xff8833, 0, 8);
@@ -2549,7 +2564,7 @@ const Weapons = (() => {
     muzzleFlash.material.opacity = 1 * _mfm;
     muzzleFlash.rotation.z = Math.random() * Math.PI * 2;
     muzzleFlash.scale.setScalar(_mfm);
-    muzzleTimer = 0.06;
+    muzzleTimer = 0.10;
     // Flash point light burst
     if (_muzzleLight) _muzzleLight.intensity = 2.5 * _mfm;
     // Trigger lingering smoke puff
@@ -2581,6 +2596,7 @@ const Weapons = (() => {
   let recoilOffset = 0;
   let recoilOffsetY = 0;
   let recoilOffsetZ = 0;
+  let _chSpread = 0;
   let switchAnimTimer = 0;  // weapon switch bob animation
   const SWITCH_ANIM_DUR_DEFAULT = 0.22;
   const SWITCH_SPEED_BY_TYPE = {
@@ -2686,6 +2702,10 @@ const Weapons = (() => {
     }
     currentIdx = idx;
     if (gunMeshes[currentIdx]) gunMeshes[currentIdx].visible = true;
+    // Align muzzle flash to new weapon barrel so flash doesn't float detached
+    if (muzzleFlash && gunMeshes[currentIdx] && gunMeshes[currentIdx].userData.muzzlePos) {
+      muzzleFlash.position.copy(gunMeshes[currentIdx].userData.muzzlePos);
+    }
     recoilOffset = 0;
     recoilOffsetY = 0;
     recoilOffsetZ = 0;
@@ -2889,6 +2909,16 @@ const Weapons = (() => {
       _projRaycaster.far = p.speed * delta + 0.5;
       const hits = _projRaycaster.intersectObjects(enemyMeshes, true);
       if (hits.length > 0) hit = true;
+      // Friendly fire: projectiles can also hit NPCs
+      if (!hit && typeof NPCSystem !== 'undefined' && NPCSystem.getAll) {
+        var npcs = NPCSystem.getAll();
+        for (var ni = 0; ni < npcs.length; ni++) {
+          var npc = npcs[ni];
+          if (!npc || !npc.alive || !npc.position || !npc.mesh) continue;
+          var npcDist = npc.position.distanceTo(p.mesh.position);
+          if (npcDist < 1.5) { hit = true; break; }
+        }
+      }
 
       // Check terrain collision via VoxelWorld
       if (!hit && typeof VoxelWorld !== 'undefined') {
@@ -3236,6 +3266,8 @@ const Weapons = (() => {
       HUD.setAmmo(st.clip, st.reserve);
       showMuzzle();
       recoilOffset = 0.05;
+      _chSpread = Math.min(1, wep.spread * 10 + _chSpread * 0.3);
+      if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       const pellets = 8;
       for (let p = 0; p < pellets; p++) {
         spreadVec.set(
@@ -3270,6 +3302,8 @@ const Weapons = (() => {
       HUD.setAmmo(st.clip, st.reserve);
       showMuzzle();
       recoilOffset = 0.02;
+      _chSpread = Math.min(1, 0.15 + _chSpread * 0.3);
+      if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       // Cone disable: find enemy drones in front of camera
       if (typeof DroneSystem !== 'undefined' && DroneSystem.getEnemyDrones) {
         const origin = camera.getWorldPosition(new THREE.Vector3());
@@ -3366,6 +3400,8 @@ const Weapons = (() => {
     const hits = raycaster.intersectObjects(targets, true);
     showMuzzle();
     recoilOffset = 0.02;
+    _chSpread = Math.min(1, wep.spread * 8 + _chSpread * 0.3);
+    if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
 
     // Bullet drop: for long-range weapons, distant hits drift downward
     var _dropTypes = { SNIPER: 0.5, AMR: 0.3, ASSAULT: 1.0, NATO: 0.9, LMG: 1.2, HMG: 1.0 };
@@ -3547,14 +3583,20 @@ const Weapons = (() => {
     // Muzzle flash fade
     if (muzzleTimer > 0) {
       muzzleTimer -= delta;
-      if (muzzleFlash) muzzleFlash.material.opacity = Math.max(0, muzzleTimer / 0.06);
-      if (_muzzleLight) _muzzleLight.intensity = Math.max(0, (muzzleTimer / 0.06) * 2.5);
+      if (muzzleFlash) muzzleFlash.material.opacity = Math.max(0, muzzleTimer / 0.10);
+      if (_muzzleLight) _muzzleLight.intensity = Math.max(0, (muzzleTimer / 0.10) * 2.5);
     }
-    // Weapon flashlight: on for suitable weapons, off for melee/launchers/smoke/etc
+    // Weapon flashlight: on for suitable weapons, auto-off in daylight
     if (_weaponFlashlight) {
       var cw = cur();
       var hasLight = cw && ['MELEE','MINE','SMOKE','FLASHBANG','EXPLOSIVE'].indexOf(cw.type) < 0;
-      var targetInt = (_flashlightOn && hasLight) ? 2.5 : 0;
+      var isBright = false;
+      try {
+        if (typeof TimeSystem !== 'undefined' && TimeSystem.getInfo) {
+          isBright = TimeSystem.getInfo().phase === 'day';
+        }
+      } catch (e) {}
+      var targetInt = (_flashlightOn && hasLight && !isBright) ? 2.5 : 0;
       _weaponFlashlight.intensity += (targetInt - _weaponFlashlight.intensity) * Math.min(1, delta * 8);
     }
     // Lingering muzzle smoke puff: drift up & fade
@@ -3577,6 +3619,10 @@ const Weapons = (() => {
     if (recoilOffsetZ < 0) recoilOffsetZ = Math.min(0, recoilOffsetZ + delta * 12 * 0.04);
     if (recoilOffsetY > 0) recoilOffsetY = Math.max(0, recoilOffsetY - delta * 12 * 0.02);
     if (recoilOffset > 0) recoilOffset = Math.max(0, recoilOffset - delta * 0.3);
+    if (_chSpread > 0) {
+      _chSpread = Math.max(0, _chSpread - delta * 1.2);
+      if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
+    }
 
     // Smooth ADS FOV transition
     if (_camera) {
@@ -4350,6 +4396,7 @@ const Weapons = (() => {
     getWeaponSkin:          getWeaponSkin,
     applySkinToMesh:        applySkinToMesh,
     markBlooded:            markBlooded,
+    refreshHud:             refreshWeaponHud,
     // AP Ammo (premium): more penetration, larger damage on hit
     addAPAmmo: function (n) {
       try { window._apAmmo = (window._apAmmo || 0) + (n | 0); } catch (e) {}

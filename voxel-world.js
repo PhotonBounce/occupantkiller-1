@@ -933,7 +933,7 @@ window.VoxelWorld = (function () {
     const oz = chunk.cz * CHUNK_SIZE;
 
     // AO darkening factors: index = occlusion level (0=full shadow, 3=no shadow)
-    const AO_CURVE = [0.45, 0.65, 0.82, 1.0];
+    const AO_CURVE = [0.32, 0.55, 0.78, 1.0];
 
     for (let ly = 0; ly < CHUNK_HEIGHT; ly++) {
       for (let lz = 0; lz < CHUNK_SIZE; lz++) {

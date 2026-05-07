@@ -1066,10 +1066,10 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         let stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
-        let bgColor = stageCfg && stageCfg.bgColor !== undefined ? stageCfg.bgColor : 0xFFD700;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
-        _scene.background = new THREE.Color(bgColor);
-        _scene.fog = new THREE.Fog(fogColor, 14, isMobile ? 55 : 80);
+        // Fog color must match background to avoid visible horizon seam (audit #17)
+        _scene.background = new THREE.Color(fogColor);
+        _scene.fog = new THREE.Fog(fogColor, 18, isMobile ? 55 : 120);
 
         // If running in compatibility mode, show a warning overlay
         if (_rendererProfile === 'compatibility') {
@@ -2767,6 +2767,8 @@ const GameManager = (function () {
     if (window.AudioSystem.playMusic) window.AudioSystem.playMusic('battle');
     if (window.AudioSystem.resetFirstBlood) window.AudioSystem.resetFirstBlood();
     gameState = STATE.PLAYING;
+    // Reset input tips so fresh session shows tutorials again
+    try { if (typeof Feedback !== 'undefined' && Feedback.resetTips) Feedback.resetTips(); } catch (_e) {}
     player.hp = player.maxHp;
     player.score = 0;
     player.kills = 0;
@@ -2909,6 +2911,7 @@ const GameManager = (function () {
     HUD.setKills(0);
     HUD.setStage(STAGES[0].id, STAGES[0].name);
     HUD.setWeapon(Weapons.getCurrentName(), Weapons.getCurrentIdx());
+    if (Weapons.refreshHud) Weapons.refreshHud();
     if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : (player.grenades || 0));
 
     // Delay pointer lock slightly so the button click doesn't interfere
@@ -2918,6 +2921,7 @@ const GameManager = (function () {
 
     // Announce first stage then show drone selection
     HUD.announceStage(STAGES[0].id, STAGES[0].name, STAGES[0].description, STAGES[0].objective);
+    if (window.AudioSystem.stopAmbientLoop) window.AudioSystem.stopAmbientLoop();
     if (_waveStartTimer) clearTimeout(_waveStartTimer);
     _waveStartTimer = setTimeout(function () {
       showDroneSelection(function () { beginWave(1); });
@@ -3243,7 +3247,7 @@ const GameManager = (function () {
     }
 
     // Pass AI strategy to enemies for adaptive behavior
-    Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id);
+    Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, null, player.position);
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -3884,7 +3888,7 @@ const GameManager = (function () {
     }
     // Apply aim joystick rotation (right-side digital joystick)
     if (isMobile && touch.aimActive && (touch.aimX !== 0 || touch.aimY !== 0)) {
-      CameraSystem.handleMouseMove(touch.aimX * 5.0, touch.aimY * 5.0);
+      CameraSystem.handleMouseMove(touch.aimX * 14.0, touch.aimY * 14.0);
       // Don't zero aimX/aimY — joystick holds its position like an analog stick
     }
     // Apply gyro look rotation (additive to touch / aim joystick)
@@ -5059,6 +5063,7 @@ const GameManager = (function () {
       hideDroneControlsHUD();
       if (DroneSystem.isPossessing()) DroneSystem.release();
       if (window.AudioSystem.stopMusic) window.AudioSystem.stopMusic();
+      if (window.AudioSystem.stopAmbientLoop) window.AudioSystem.stopAmbientLoop();
       Weapons.exitZoom();
       MLSystem.onDeath();
       // Track death in progression
@@ -6233,7 +6238,7 @@ const GameManager = (function () {
                 var d = dailies[di2];
                 var pct = Math.min(100, Math.round((d.progress / d.target) * 100));
                 var color = d.completed ? '#44ff44' : '#ccc';
-                dHTML += '<div style="color:' + color + '">' + (d.completed ? '&#10003;' : '&#9744;') + ' ' + d.name + ': ' + d.progress + '/' + d.target + ' (' + pct + '%)</div>';
+                dHTML += '<div style="color:' + color + '">' + (d.completed ? '✅ ' : '<span style="display:inline-block;width:10px;height:10px;border:1px solid #888;margin-right:4px;vertical-align:middle"></span>') + d.name + ': ' + d.progress + '/' + d.target + ' (' + pct + '%)</div>';
               }
               dailyList.innerHTML = dHTML;
             }
@@ -6335,13 +6340,13 @@ const GameManager = (function () {
     if (resEl) {
       const r = Economy.getResources();
       resEl.innerHTML =
-        '<span style="color:#8B6914">W' + r.wood + '</span> ' +
-        '<span style="color:#aaa">M' + r.metal + '</span> ' +
-        '<span style="color:#00ccff">E' + r.electronics + '</span> ' +
-        '<span style="color:#ff8800">F' + r.fuel + '</span> ' +
-        '<span style="color:#999">S' + r.stone + '</span> ' +
-        '<span style="color:#aacc44">Fd' + r.food + '</span> ' +
-        '| <span style="color:#ffcc00">$' + Economy.getCurrency() + '</span>';
+        '<span style="color:#8B6914">🪵' + r.wood + '</span> ' +
+        '<span style="color:#aaa">⚙️' + r.metal + '</span> ' +
+        '<span style="color:#00ccff">🔌' + r.electronics + '</span> ' +
+        '<span style="color:#ff8800">⛽' + r.fuel + '</span> ' +
+        '<span style="color:#999">🪨' + r.stone + '</span> ' +
+        '<span style="color:#aacc44">🍞' + r.food + '</span> ' +
+        '| <span style="color:#ffcc00">💰' + Economy.getCurrency() + '</span>';
     }
 
     const modeEl = document.getElementById('hud-mode');
@@ -6492,16 +6497,16 @@ const GameManager = (function () {
       joystickThumb.style.left = (baseSize / 2 - thumbSize / 2) + 'px';
       joystickThumb.style.top  = (baseSize / 2 - thumbSize / 2) + 'px';
     }
-    joystickZone.addEventListener('touchend', function (e) {
+    function _onMoveTouchEnd(e) {
       for (let i = 0; i < e.changedTouches.length; i++) {
         if (e.changedTouches[i].identifier === touch.moveTouchId) resetJoystick();
       }
-    }, { passive: true });
-    joystickZone.addEventListener('touchcancel', function (e) {
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === touch.moveTouchId) resetJoystick();
-      }
-    }, { passive: true });
+    }
+    joystickZone.addEventListener('touchend', _onMoveTouchEnd, { passive: true });
+    joystickZone.addEventListener('touchcancel', _onMoveTouchEnd, { passive: true });
+    // Global release so lifting outside zone doesn't leave joystick stuck
+    document.addEventListener('touchend', _onMoveTouchEnd, { passive: true });
+    document.addEventListener('touchcancel', _onMoveTouchEnd, { passive: true });
 
     // ── Aim Joystick (right side, mirrors move joystick) ──
     const aimZone  = document.getElementById('aim-joystick-zone');
@@ -6549,16 +6554,16 @@ const GameManager = (function () {
         aimThumb.style.left = (aimBaseSize / 2 - aimThumbSize / 2) + 'px';
         aimThumb.style.top  = (aimBaseSize / 2 - aimThumbSize / 2) + 'px';
       }
-      aimZone.addEventListener('touchend', function (e) {
+      function _onAimTouchEnd(e) {
         for (let i = 0; i < e.changedTouches.length; i++) {
           if (e.changedTouches[i].identifier === touch.aimTouchId) resetAimJoystick();
         }
-      }, { passive: true });
-      aimZone.addEventListener('touchcancel', function (e) {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === touch.aimTouchId) resetAimJoystick();
-        }
-      }, { passive: true });
+      }
+      aimZone.addEventListener('touchend', _onAimTouchEnd, { passive: true });
+      aimZone.addEventListener('touchcancel', _onAimTouchEnd, { passive: true });
+      // Global release: if finger lifts outside aim zone, still reset (prevents stuck joystick)
+      document.addEventListener('touchend', _onAimTouchEnd, { passive: true });
+      document.addEventListener('touchcancel', _onAimTouchEnd, { passive: true });
     }
 
     // Fire button
@@ -6725,7 +6730,7 @@ const GameManager = (function () {
         gameState = STATE.PAUSED;
         var invOv = document.getElementById('inventory-overlay');
         if (invOv) {
-          if (typeof showInventory === 'function') showInventory();
+          try { if (typeof showInventory === 'function') showInventory(); } catch (e) {}
           invOv.style.display = 'flex';
         } else {
           showOverlay('pause');
@@ -6818,7 +6823,7 @@ const GameManager = (function () {
     if (!invOverlay) return;
     if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
       gameState = STATE.PAUSED;
-      showInventory();
+      try { showInventory(); } catch (e) {}
       invOverlay.style.display = 'flex';
       _releaseMouseForUI();
       updateMobileControlsVisibility();
@@ -6850,6 +6855,7 @@ const GameManager = (function () {
     hideOverlays();
     showOverlay('start');
     gameState = STATE.MENU;
+    if (window.AudioSystem.stopAmbientLoop) window.AudioSystem.stopAmbientLoop();
     updateMobileControlsVisibility();
   }
 

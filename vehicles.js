@@ -1618,7 +1618,8 @@ const VehicleSystem = (function () {
       Math.sin(pitch),
       -Math.cos(yaw) * Math.cos(pitch)
     ).normalize();
-    spawnTurretProjectile(v.position, _vTmp1, v.damage);
+    _vTmp2.copy(v.position).addScaledVector(_vTmp1, 2.0);
+    spawnTurretProjectile(_vTmp2, _vTmp1, v.damage);
     if (typeof AudioSystem !== 'undefined') AudioSystem.playGunshot('hmg');
   }
 
@@ -1659,7 +1660,7 @@ const VehicleSystem = (function () {
     _scene.add(shellMesh);
     turretProjectiles.push({
       mesh: shellMesh, dir: _vTmp1.clone(), speed: TANK_CANNON_PROJ_SPEED,
-      damage: v.damage, life: 4.0, isCannonShell: true, _spawnImmunity: 0.08,
+      damage: v.damage, life: 4.0, isCannonShell: true, _spawnImmunity: 0.15,
     });
 
     // Screen shake for cannon blast
@@ -1843,7 +1844,8 @@ const VehicleSystem = (function () {
     if (!_scene || v.fireCooldown > 0 || v.damage <= 0) return;
     v.fireCooldown = v.fireRate;
     _vTmp1.copy(targetPos).sub(v.position).normalize();
-    spawnTurretProjectile(v.position, _vTmp1, v.damage);
+    _vTmp2.copy(v.position).addScaledVector(_vTmp1, 2.0);
+    spawnTurretProjectile(_vTmp2, _vTmp1, v.damage);
     if (typeof AudioSystem !== 'undefined') AudioSystem.playGunshot('hmg');
   }
 
@@ -1882,7 +1884,7 @@ const VehicleSystem = (function () {
     _scene.add(mesh);
     turretProjectiles.push({
       mesh: mesh, dir: dir.clone(), speed: TURRET_PROJ_SPEED,
-      damage: damage, life: 3.0, _spawnImmunity: 0.08,
+      damage: damage, life: 3.0, _spawnImmunity: 0.15,
     });
   }
 

@@ -286,7 +286,7 @@ const HUD = (() => {
     // Keep stage name faintly visible so players always know which level they're in
     _stageFadeTimer = setTimeout(function () {
       if (el.stage) el.stage.style.transition = 'opacity 2s ease-out';
-      if (el.stage) el.stage.style.opacity = '0.55';
+      if (el.stage) el.stage.style.opacity = '0.35';
     }, 6000);
   }
 
@@ -840,7 +840,7 @@ const HUD = (() => {
     // Grid (rotates with player)
     ctx.save();
     ctx.translate(MM_HALF, MM_HALF);
-    ctx.rotate(-pyaw);
+    ctx.rotate(pyaw);
     ctx.strokeStyle = 'rgba(0,255,0,0.1)';
     ctx.lineWidth = 0.5;
     for (let g = -80; g <= 80; g += 20) {
@@ -853,8 +853,8 @@ const HUD = (() => {
     function toMM(wx, wz) {
       var dx = wx - px;
       var dz = wz - pz;
-      var cos = Math.cos(-pyaw);
-      var sin = Math.sin(-pyaw);
+      var cos = Math.cos(pyaw);
+      var sin = Math.sin(pyaw);
       return {
         x: MM_HALF + (dx * cos - dz * sin) * MM_SCALE,
         y: MM_HALF + (dx * sin + dz * cos) * MM_SCALE,
@@ -898,7 +898,7 @@ const HUD = (() => {
               var fwdX = -Math.sin(e.mesh.rotation.y);
               var fwdZ = -Math.cos(e.mesh.rotation.y);
               // Apply same map-rotation as toMM
-              var fcos = Math.cos(-pyaw), fsin = Math.sin(-pyaw);
+              var fcos = Math.cos(pyaw), fsin = Math.sin(pyaw);
               var rx = fwdX * fcos - fwdZ * fsin;
               var ry = fwdX * fsin + fwdZ * fcos;
               ctx.strokeStyle = col;
@@ -993,7 +993,7 @@ const HUD = (() => {
     ctx.textAlign = 'center';
     var dirs = [{label:'N', a:0}, {label:'E', a:Math.PI/2}, {label:'S', a:Math.PI}, {label:'W', a:-Math.PI/2}];
     for (var ci = 0; ci < dirs.length; ci++) {
-      var ca = dirs[ci].a - pyaw;
+      var ca = dirs[ci].a + pyaw;
       var cx = MM_HALF + Math.sin(ca) * (MM_HALF - 10);
       var cy = MM_HALF - Math.cos(ca) * (MM_HALF - 10);
       ctx.fillText(dirs[ci].label, cx, cy + 3);
@@ -1468,7 +1468,7 @@ const HUD = (() => {
     tacMapCtx.fillStyle = '#00ff44';
     tacMapCtx.save();
     tacMapCtx.translate(cx, cy);
-    tacMapCtx.rotate(-pyaw);
+    tacMapCtx.rotate(pyaw);
     tacMapCtx.beginPath(); tacMapCtx.moveTo(0, -8); tacMapCtx.lineTo(-5, 6); tacMapCtx.lineTo(5, 6); tacMapCtx.closePath(); tacMapCtx.fill();
     tacMapCtx.restore();
   }
@@ -1580,7 +1580,7 @@ const HUD = (() => {
     if (!_objectiveEl) {
       _objectiveEl = document.createElement('div');
       _objectiveEl.id = 'objective-marker';
-      _objectiveEl.style.cssText = 'position:fixed;top:12%;left:50%;transform:translateX(-50%);color:#ffcc44;font-size:14px;font-weight:bold;text-shadow:0 0 6px #886600;pointer-events:none;z-index:180;transition:opacity 0.5s;';
+      _objectiveEl.style.cssText = 'position:fixed;top:12%;left:50%;transform:translateX(-50%);color:#ffcc44;font-size:14px;font-weight:bold;text-shadow:0 0 6px #886600;pointer-events:none;z-index:220;transition:opacity 0.5s;';
       document.body.appendChild(_objectiveEl);
     }
     _objectiveEl.textContent = '📍 ' + text;
