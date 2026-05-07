@@ -838,7 +838,7 @@ canvas {
 
 #resource-bar {
   position: absolute;
-  top: 72px;
+  top: 96px;
   left: 50%;
   transform: translateX(-50%);
   width: auto;
