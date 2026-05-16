@@ -166,35 +166,7 @@ window.AudioSystem = (function () {
   }
 
   // Distant mortar/artillery boom - low rumble for ambient war atmosphere
-  function playDistantBoom() {
-    if (!enabled || !ctx) return;
-    resume();
-    var now = ctx.currentTime;
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(50, now);
-    osc.frequency.exponentialRampToValueAtTime(22, now + 1.4);
-    gain.gain.setValueAtTime(0.0, now);
-    gain.gain.linearRampToValueAtTime(0.09, now + 0.15);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
-    osc.connect(gain);
-    gain.connect(masterGain);
-    osc.start(now);
-    osc.stop(now + 1.4);
-    // Low-pass filtered noise rumble
-    var noise = createNoise(1.2);
-    var lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 180;
-    var ng = ctx.createGain();
-    ng.gain.setValueAtTime(0.0, now);
-    ng.gain.linearRampToValueAtTime(0.06, now + 0.18);
-    ng.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-    noise.connect(lp);
-    lp.connect(ng);
-    ng.connect(masterGain);
-  }
+
 
   function playFlashbang() {
     if (!enabled || !ctx) return;
@@ -860,9 +832,7 @@ window.AudioSystem = (function () {
     resume();
     stopAmbientLoop();
 
-    // ── Base wind layer (all stages) ──
-    // Gentle lowpassed white noise — always present
-    _ambientNoise(10, 'lowpass', 400, 0.7, 0.012);
+
 
     if (theme === 'grassland') {
       // ── Grassland ──────────────────────────────────────
@@ -873,40 +843,9 @@ window.AudioSystem = (function () {
       // Rustling: bandpassed noise pulsing via LFO
       _ambientNoise(6, 'bandpass', 2200, 1.5, 0.015);
 
-    } else if (theme === 'urban') {
-      // ── Urban ──────────────────────────────────────────
-      // Low city rumble
-      _ambientNoise(8, 'lowpass', 120, 0.7, 0.020);
-      // Creaking metal: narrow bandpass tone, slow LFO
-      _ambientTone(320, 'sawtooth', 0.12, 0.006);
-      // Distant artillery: periodic booms
-      _ambientPeriodicShot(4000, 3000, function (now) {
-        var n = createNoise(0.4);
-        var f = ctx.createBiquadFilter();
-        f.type = 'lowpass'; f.frequency.setValueAtTime(300, now);
-        f.frequency.exponentialRampToValueAtTime(60, now + 0.4);
-        var g = ctx.createGain();
-        g.gain.setValueAtTime(0.07, now);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-        n.connect(f); f.connect(g); g.connect(masterGain);
-      });
 
-    } else if (theme === 'industrial') {
-      // ── Industrial ─────────────────────────────────────
-      // Machine hum: low sawtooth drone
-      _ambientOsc(55, 'sawtooth', 0.015);
-      // Steam hiss: high bandpassed noise
-      _ambientNoise(6, 'bandpass', 6000, 3, 0.012);
-      // Metal clanking: periodic sharp transients
-      _ambientPeriodicShot(2500, 2000, function (now) {
-        var osc = ctx.createOscillator();
-        osc.type = 'square'; osc.frequency.value = 1800 + Math.random() * 600;
-        var g = ctx.createGain();
-        g.gain.setValueAtTime(0.06, now);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-        osc.connect(g); g.connect(masterGain);
-        osc.start(now); osc.stop(now + 0.07);
-      });
+
+
 
     } else if (theme === 'coastal') {
       // ── Coastal ────────────────────────────────────────
@@ -931,23 +870,7 @@ window.AudioSystem = (function () {
       // Wind is already in base layer, boost it slightly for coast
       _ambientNoise(8, 'bandpass', 350, 0.5, 0.02);
 
-    } else if (theme === 'wasteland') {
-      // ── Wasteland ──────────────────────────────────────
-      // Low ominous drone
-      _ambientOsc(42, 'sine', 0.018);
-      // Eerie detuned wind: narrow bandpass noise
-      _ambientNoise(8, 'bandpass', 800, 4, 0.02);
-      // Geiger crackle: rapid tiny clicks via high-freq LFO-gated noise
-      _ambientPeriodicShot(200, 300, function (now) {
-        if (Math.random() > 0.3) return; // sparse crackle
-        var osc = ctx.createOscillator();
-        osc.type = 'square'; osc.frequency.value = 8000 + Math.random() * 4000;
-        var g = ctx.createGain();
-        g.gain.setValueAtTime(0.03, now);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.008);
-        osc.connect(g); g.connect(masterGain);
-        osc.start(now); osc.stop(now + 0.01);
-      });
+
 
     } else if (theme === 'cityscape') {
       // ── Cityscape ──────────────────────────────────────
