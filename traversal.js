@@ -129,21 +129,28 @@ function tryMountZipline(playerPos, getBlock) {
     const checkZ = Math.floor(playerPos.z + forwardDir.z * CFG.MANTLE_RANGE);
     const playerBlockY = Math.floor(playerPos.y);
 
-    // find top of wall (check up to MANTLE_HEIGHT blocks above player feet)
-    for (let dy = 0; dy <= CFG.MANTLE_HEIGHT; dy++) {
-      const blockBelow = getBlock(checkX, playerBlockY + dy, checkZ);
-      const blockAbove = getBlock(checkX, playerBlockY + dy + 1, checkZ);
+    // Only allow mantling if the block is at least 1 high and no more than MANTLE_HEIGHT above feet
+    let found = false;
+    let mantleDy = -1;
+    for (let dy = 1; dy <= CFG.MANTLE_HEIGHT; dy++) {
+      const blockBelow = getBlock(checkX, playerBlockY + dy - 1, checkZ);
+      const blockAbove = getBlock(checkX, playerBlockY + dy, checkZ);
       if (blockBelow && !blockAbove) {
-        state.mantling = true;
-        state.mantleTimer = CFG.MANTLE_DURATION;
-        state.mantleStartY = playerPos.y;
-        state.mantleTargetY = playerBlockY + dy + 1.5;
-        state.mantleFwdX = forwardDir.x;
-        state.mantleFwdZ = forwardDir.z;
-        state.mantleStartX = playerPos.x;
-        state.mantleStartZ = playerPos.z;
-        return true;
+        found = true;
+        mantleDy = dy - 1;
+        break;
       }
+    }
+    if (found) {
+      state.mantling = true;
+      state.mantleTimer = CFG.MANTLE_DURATION;
+      state.mantleStartY = playerPos.y;
+      state.mantleTargetY = playerBlockY + mantleDy + 1.5;
+      state.mantleFwdX = forwardDir.x;
+      state.mantleFwdZ = forwardDir.z;
+      state.mantleStartX = playerPos.x;
+      state.mantleStartZ = playerPos.z;
+      return true;
     }
     return false;
   }
