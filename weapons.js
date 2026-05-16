@@ -3265,8 +3265,12 @@ const Weapons = (() => {
       st.clip--;
       HUD.setAmmo(st.clip, st.reserve);
       showMuzzle();
+      if (typeof Tracers !== 'undefined' && Tracers.spawnMuzzleFlash && m && m.userData && m.userData.muzzlePos) {
+        Tracers.spawnMuzzleFlash(m.userData.muzzlePos, 1.2 + Math.random()*0.3);
+        Tracers.spawnSmoke(m.userData.muzzlePos);
+      }
       recoilOffset = 0.05;
-      _chSpread = Math.min(1, wep.spread * 10 + _chSpread * 0.3);
+      _chSpread = Math.min(1, wep.spread * 12 + _chSpread * 0.22);
       if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       const pellets = 8;
       for (let p = 0; p < pellets; p++) {
@@ -3301,8 +3305,12 @@ const Weapons = (() => {
       st.clip--;
       HUD.setAmmo(st.clip, st.reserve);
       showMuzzle();
+      if (typeof Tracers !== 'undefined' && Tracers.spawnMuzzleFlash && m && m.userData && m.userData.muzzlePos) {
+        Tracers.spawnMuzzleFlash(m.userData.muzzlePos, 1.0 + Math.random()*0.2);
+        Tracers.spawnSmoke(m.userData.muzzlePos);
+      }
       recoilOffset = 0.02;
-      _chSpread = Math.min(1, 0.15 + _chSpread * 0.3);
+      _chSpread = Math.min(1, 0.18 + _chSpread * 0.22);
       if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       // Cone disable: find enemy drones in front of camera
       if (typeof DroneSystem !== 'undefined' && DroneSystem.getEnemyDrones) {
@@ -3399,8 +3407,12 @@ const Weapons = (() => {
     raycaster.far = Infinity;
     const hits = raycaster.intersectObjects(targets, true);
     showMuzzle();
+    if (typeof Tracers !== 'undefined' && Tracers.spawnMuzzleFlash && m && m.userData && m.userData.muzzlePos) {
+      Tracers.spawnMuzzleFlash(m.userData.muzzlePos, 1.1 + Math.random()*0.2);
+      Tracers.spawnSmoke(m.userData.muzzlePos);
+    }
     recoilOffset = 0.02;
-    _chSpread = Math.min(1, wep.spread * 8 + _chSpread * 0.3);
+    _chSpread = Math.min(1, wep.spread * 10 + _chSpread * 0.22);
     if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
 
     // Bullet drop: for long-range weapons, distant hits drift downward
