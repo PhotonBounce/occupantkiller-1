@@ -2,6 +2,10 @@
 if (typeof window !== 'undefined' && typeof window.Weapons === 'undefined') {
   window.Weapons = {};
 }
+// Ensure AudioSystem is always defined for direct references
+if (typeof AudioSystem === 'undefined' && typeof window !== 'undefined' && window.AudioSystem) {
+  AudioSystem = window.AudioSystem;
+}
 /**
  * weapons.js – 23-weapon Ukrainian war arsenal with melee, projectiles, grenades, fire & scope zoom
  * Switch with keys 1-0, Q/E scroll. Weapons 0 (shovel) and 1 (pistol) start unlocked.
@@ -3409,7 +3413,8 @@ const Weapons = (() => {
     raycaster.far = Infinity;
     const hits = raycaster.intersectObjects(targets, true);
     showMuzzle();
-    var _m = m || (gunMeshes && gunMeshes[currentIdx]);
+    // Defensive: ensure m is always defined
+    var _m = (typeof m !== 'undefined' && m) ? m : (gunMeshes && gunMeshes[currentIdx]);
     if (typeof Tracers !== 'undefined' && Tracers.spawnMuzzleFlash && _m && _m.userData && _m.userData.muzzlePos) {
       Tracers.spawnMuzzleFlash(_m.userData.muzzlePos, 1.1 + Math.random()*0.2);
       Tracers.spawnSmoke(_m.userData.muzzlePos);

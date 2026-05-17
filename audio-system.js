@@ -1800,6 +1800,36 @@ window.AudioSystem = (function () {
     ns.start(now); ns.stop(now + 0.45);
   }
 
+  // Distant mortar/artillery boom - low rumble for ambient war atmosphere
+  function playDistantBoom() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    // Deep, distant boom: low sine + filtered noise
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(48, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 1.2);
+    gain.gain.setValueAtTime(0.13, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.start(now);
+    osc.stop(now + 1.2);
+    // Noise burst overlay for rumble
+    var noise = createNoise(0.9);
+    var noiseGain = ctx.createGain();
+    var noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.value = 180;
+    noiseGain.gain.setValueAtTime(0.07, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(masterGain);
+  }
+
   return {
     init: init,
     resume: resume,
@@ -1884,4 +1914,8 @@ window.AudioSystem = (function () {
 })();
 if (typeof window !== 'undefined' && window.AudioSystem) {
   console.log('[AudioSystem] Assigned to window. Keys:', Object.keys(window.AudioSystem));
+}
+// Ensure AudioSystem is always available as a global variable
+if (typeof AudioSystem === 'undefined' && typeof window !== 'undefined' && window.AudioSystem) {
+  AudioSystem = window.AudioSystem;
 }

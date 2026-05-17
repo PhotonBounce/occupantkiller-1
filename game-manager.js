@@ -1,7 +1,39 @@
+  // ── Browser Boot Timeout Handler ──
+  let _bootTimeout = null;
+  function _showBootTimeoutError() {
+    var overlay = document.getElementById('error-overlay');
+    var preloader = document.getElementById('boot-preloader');
+    if (preloader) preloader.style.display = 'none';
+    if (overlay) {
+      overlay.style.display = 'block';
+      overlay.innerHTML = 'STARTUP ERROR:\nGame failed to load in time. This may be due to a slow device, browser extension, or network issue.<br><br>' +
+        '<button id="retry-btn" style="margin-top:18px;padding:8px 24px;font-size:15px;background:#222;color:#ffd700;border:1px solid #ffd700;border-radius:6px;cursor:pointer">Retry</button>';
+      var btn = document.getElementById('retry-btn');
+      if (btn) btn.onclick = function() { window.location.reload(); };
+    }
+  }
+  function _startBootTimeout() {
+    if (_bootTimeout) clearTimeout(_bootTimeout);
+    _bootTimeout = setTimeout(_showBootTimeoutError, 15000);
+  }
+  function _clearBootTimeout() {
+    if (_bootTimeout) { clearTimeout(_bootTimeout); _bootTimeout = null; }
+  }
+
+  // Start boot timeout on DOMContentLoaded
+  if (typeof window !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', _startBootTimeout);
+    } else {
+      _startBootTimeout();
+    }
+  }
 /* ───────────────────────────────────────────────────────────────────────
    GAME MANAGER — central orchestrator for all hybrid game systems
    ─────────────────────────────────────────────────────────────────────── */
 const GameManager = (function () {
+  // Overlay state for drone controls HUD
+  var _droneControlsVisible = false;
   // QA automation override: set by test script before any game code runs
   if (typeof window !== 'undefined' && window.__QA_MODE === undefined) window.__QA_MODE = false;
   'use strict';
@@ -1061,8 +1093,9 @@ const GameManager = (function () {
 
   /* ── Init ────────────────────────────────────────────────────────── */
   function init() {
+    _clearBootTimeout(); // Boot succeeded, clear timeout
     try {
-        _renderer = createRendererWithFallback();
+      _renderer = createRendererWithFallback();
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         let stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
@@ -2326,74 +2359,7 @@ const GameManager = (function () {
     try { var _lz = document.getElementById('mobile-look-zone'); if (_lz) _lz.classList.remove('look-active'); } catch (_e) {}
   }
 
-  /* ── Drone Selection Flow ────────────────────────────────────────── */
-  var _droneSelectionCallback = null;
-  var _droneControlsVisible = false;
 
-  function showDroneSelection(onComplete) {
-    // In QA mode, skip drone selection entirely
-    if (typeof window !== 'undefined' && window.__QA_MODE) {
-      if (onComplete) onComplete();
-      return;
-    }
-    // If user already chose a drone (or "none") on the unified start screen, honor it.
-    if (typeof window !== 'undefined' && typeof window.__chosenDroneType === 'string') {
-      var preChoice = window.__chosenDroneType;
-      window.__chosenDroneType = ''; // consume so it doesn't repeat next time
-      if (preChoice === '') {
-        if (onComplete) onComplete();
-        return;
-      }
-      // Launch drone immediately, no second screen
-      var d = launchAndPossessDrone(preChoice);
-      if (d && typeof HUD !== 'undefined' && HUD.notifyPickup) {
-        var nm = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER' };
-        HUD.notifyPickup('\uD83D\uDEE9 ' + (nm[preChoice] || 'DRONE') + ' LAUNCHED! [T] VIEW [F] EXIT', '#00ccff');
-      }
-      if (onComplete) setTimeout(onComplete, 800);
-      return;
-    }
-    _droneSelectionCallback = onComplete;
-    var overlay = document.getElementById('overlay-drone-select');
-    if (!overlay) { if (onComplete) onComplete(); return; }
-
-    // Show the overlay
-    hideOverlays();
-    overlay.style.display = 'flex';
-
-    // Remove old listeners by cloning
-    var options = overlay.querySelectorAll('.drone-option');
-    for (var i = 0; i < options.length; i++) {
-      var opt = options[i];
-      var clone = opt.cloneNode(true);
-      opt.parentNode.replaceChild(clone, opt);
-    }
-
-    // Re-query and attach listeners
-    var freshOptions = overlay.querySelectorAll('.drone-option');
-    for (var j = 0; j < freshOptions.length; j++) {
-      (function (el) {
-        el.addEventListener('click', function () {
-          var droneType = el.getAttribute('data-drone');
-          selectAndLaunchDrone(droneType);
-        });
-      })(freshOptions[j]);
-    }
-
-    // Skip button
-    var skipBtn = document.getElementById('drone-skip-btn');
-    if (skipBtn) {
-      var skipClone = skipBtn.cloneNode(true);
-      skipBtn.parentNode.replaceChild(skipClone, skipBtn);
-      skipClone.addEventListener('click', function () {
-        overlay.style.display = 'none';
-        gameState = STATE.PLAYING;
-        requestPointerLock();
-        if (_droneSelectionCallback) _droneSelectionCallback();
-        _droneSelectionCallback = null;
-      });
-    }
-  }
 
   function getNearestFriendlyDrone(maxDist) {
     if (typeof DroneSystem === 'undefined' || !DroneSystem.getAll) return null;

@@ -1,3 +1,7 @@
+// Ensure AudioSystem is always defined for direct references
+if (typeof AudioSystem === 'undefined' && typeof window !== 'undefined' && window.AudioSystem) {
+  AudioSystem = window.AudioSystem;
+}
 /* ───────────────────────────────────────────────────────────────────────
    VEHICLE SYSTEM — ground & air vehicles, turret rovers
    ─────────────────────────────────────────────────────────────────────── */

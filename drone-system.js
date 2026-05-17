@@ -581,13 +581,20 @@ const DroneSystem = (function () {
       }
     }
 
+    // Defensive: ensure AudioSystem motor stubs always exist for QA/headless
+    if (typeof window !== 'undefined') {
+      if (!window.AudioSystem) window.AudioSystem = {};
+      if (typeof window.AudioSystem.startDroneMotor !== 'function') window.AudioSystem.startDroneMotor = function(){};
+      if (typeof window.AudioSystem.updateDroneMotor !== 'function') window.AudioSystem.updateDroneMotor = function(){};
+      if (typeof window.AudioSystem.stopDroneMotor !== 'function') window.AudioSystem.stopDroneMotor = function(){};
+    }
     // Drone motor sound — start/update/stop based on nearest drone
-        if (typeof window.AudioSystem !== 'undefined') {
+    if (typeof window.AudioSystem !== 'undefined') {
       if (nearestDroneDist < 40) {
-                if (!_droneMotorActive) { window.AudioSystem.startDroneMotor(); _droneMotorActive = true; }
-                window.AudioSystem.updateDroneMotor(nearestDroneDist);
+        if (!_droneMotorActive) { window.AudioSystem.startDroneMotor(); _droneMotorActive = true; }
+        window.AudioSystem.updateDroneMotor(nearestDroneDist);
       } else if (_droneMotorActive) {
-                window.AudioSystem.stopDroneMotor();
+        window.AudioSystem.stopDroneMotor();
         _droneMotorActive = false;
       }
     }

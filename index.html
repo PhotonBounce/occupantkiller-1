@@ -2,16 +2,47 @@
 <html lang="en">
 <head>
     <script>
-      // Global stub to prevent early undefined errors
-      if (typeof window !== 'undefined' && typeof window.AudioSystem === 'undefined') {
-        window.AudioSystem = {
-          init: function() {}, resume: function() {},
-          playGunshot: function(){}, playExplosion: function(){}, playMusic: function(){},
-          stopMusic: function(){}, playReload: function(){}, playPickup: function(){},
-          playDeath: function(){}, playFootstep: function(){}, playHit: function(){},
-          // Add more stubs as needed
-        };
-      }
+      // AudioSystem stub block — must be FIRST in <head> to guarantee global presence
+      (function() {
+          // FULL AudioSystem stub block (alphabetized, all exports from audio-system.js)
+          var stub = {
+            init: function(){}, resume: function(){},
+            isEnabled: function(){}, isMusicPlaying: function(){},
+            playAchievementUnlock: function(){},
+            playAmbientWind: function(){},
+            playBark: function(){}, playBountyComplete: function(){}, playBirdCaw: function(){}, playBrickShatter: function(){},
+            playBulletSnap: function(){},
+            playCriticalHit: function(){},
+            playDeath: function(){}, playDistantBoom: function(){}, playDryFire: function(){},
+            playEnemyAlert: function(){}, playEnemyBark: function(){}, playEnemyDeath: function(){}, playEnemyDying: function(){}, playEnemyFootstep: function(){}, playEnemyWound: function(){},
+            playExplosion: function(){},
+            playFirstBlood: function(){}, playFlashbang: function(){}, playFootstep: function(){}, playFortificationBuild: function(){},
+            playGeigerTick: function(){}, playGrappleHook: function(){}, playGrenadeBounce: function(){}, playGunshot: function(){},
+            playHeadshotDing: function(){}, playHeartbeat: function(){}, playHit: function(){}, playHitPitched: function(){},
+            playImpact: function(){},
+            playKillConfirm: function(){}, playKnifeThrow: function(){},
+            playLandingThud: function(){}, playLevelComplete: function(){}, playLevelUp: function(){}, playLowAmmo: function(){},
+            playMine: function(){}, playMortarFire: function(){}, playMultiKill: function(){}, playMusic: function(){},
+            playPickup: function(){}, playPlayerWound: function(){}, playReadyChime: function(){}, playReload: function(){},
+            playRicochet: function(){}, playRollDodge: function(){}, playScream: function(){}, playSmoke: function(){},
+            playSpatialGunshot: function(){}, playTankCannon: function(){}, playTurretTraverse: function(){},
+            playVehicleEngine: function(){}, playVehicleIdle: function(){}, playWallRun: function(){}, playWaveStart: function(){},
+            playWeaponSwitch: function(){},
+            resetFirstBlood: function(){},
+            setMusicIntensity: function(){}, setMusicVolume: function(){}, setVolume: function(){},
+            startAmbientLoop: function(){}, startDroneMotor: function(){}, startEngine: function(){}, startFireCrackle: function(){},
+            stopAmbientLoop: function(){}, stopDroneMotor: function(){}, stopEngine: function(){}, stopFireCrackle: function(){}, stopMusic: function(){},
+            toggle: function(){}, updateDroneMotor: function(){}, updateEngine: function(){},
+          };
+        if (typeof window !== 'undefined' && typeof window.AudioSystem === 'undefined') {
+          window.AudioSystem = stub;
+          console.log('[AudioSystem STUB] assigned to window');
+        }
+        if (typeof globalThis !== 'undefined' && typeof globalThis.AudioSystem === 'undefined') {
+          globalThis.AudioSystem = stub;
+          console.log('[AudioSystem STUB] assigned to globalThis');
+        }
+      })();
     </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -39,7 +70,9 @@
       <div id="btn-loading-text" style="font-size:14px;color:#ccc;letter-spacing:2px">LOADING...</div>
     </div>
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-    <div id="error-overlay" style="display:none;position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);color:#fff;font-family:monospace;font-size:18px;padding:40px 20px 20px 20px;overflow:auto;"></div>
+    <div id="error-overlay" style="display:none;position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);color:#fff;font-family:monospace;font-size:18px;padding:40px 20px 20px 20px;overflow:auto;">
+      <!-- Retry button injected by JS if needed -->
+    </div>
     <div id="conn-status" style="position:fixed;top:4px;right:8px;z-index:9999;font-family:monospace;font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(34,34,34,0.7);color:#fff;border:1px solid rgba(68,68,68,0.5);">Srv <span id="conn-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle;"></span></div>
     <script src="page-prelude.js?v=20260429b"></script>
   <!-- Skill/Perk Progression HUD -->
@@ -585,33 +618,7 @@
     <button class="btn" id="pause-quit-btn" style="margin-top:8px;border-color:#888;color:#888">✕ [Q]UIT TO MENU</button>
   </div>
 
-  <!-- Drone Selection Overlay (shown before wave 1) -->
-  <div id="overlay-drone-select" class="overlay" style="display:none">
-    <h1 style="color:#00ccff;font-size:28px">\uD83D\uDEE9 DRONE OPERATIONS</h1>
-    <p style="color:#aaa;font-size:13px;margin:4px 0">Choose a drone to launch before the assault, or skip to fight on foot.</p>
-    <div style="display:flex;gap:14px;justify-content:center;margin:18px 0;flex-wrap:wrap">
-      <div class="drone-option" data-drone="fpv_attack" style="background:rgba(0,0,0,0.7);border:1px solid #ff4444;border-radius:8px;padding:14px 18px;min-width:160px;cursor:pointer;text-align:center;transition:all 0.2s">
-        <div style="font-size:32px;margin-bottom:6px">\uD83C\uDFAF</div>
-        <div style="color:#ff4444;font-weight:bold;font-size:15px">FPV ATTACK</div>
-        <div style="color:#888;font-size:11px;margin:6px 0;line-height:1.4">Kamikaze drone. High speed,<br>dive into enemy targets.</div>
-        <div style="color:#ff8888;font-size:10px">Speed: \u2605\u2605\u2605\u2605\u2606 | DMG: \u2605\u2605\u2605\u2605\u2606</div>
-      </div>
-      <div class="drone-option" data-drone="surveillance" style="background:rgba(0,0,0,0.7);border:1px solid #00ccff;border-radius:8px;padding:14px 18px;min-width:160px;cursor:pointer;text-align:center;transition:all 0.2s">
-        <div style="font-size:32px;margin-bottom:6px">\uD83D\uDC41</div>
-        <div style="color:#00ccff;font-weight:bold;font-size:15px">SURVEILLANCE</div>
-        <div style="color:#888;font-size:11px;margin:6px 0;line-height:1.4">Scout the battlefield. Mark<br>enemy positions &amp; nests.</div>
-        <div style="color:#88ddff;font-size:10px">Speed: \u2605\u2605\u2606\u2606\u2606 | Battery: \u2605\u2605\u2605\u2605\u2605</div>
-      </div>
-      <div class="drone-option" data-drone="bomb" style="background:rgba(0,0,0,0.7);border:1px solid #ffaa00;border-radius:8px;padding:14px 18px;min-width:160px;cursor:pointer;text-align:center;transition:all 0.2s">
-        <div style="font-size:32px;margin-bottom:6px">\uD83D\uDCA3</div>
-        <div style="color:#ffaa00;font-weight:bold;font-size:15px">BOMBER</div>
-        <div style="color:#888;font-size:11px;margin:6px 0;line-height:1.4">Heavy payload. Fly over targets<br>and drop munitions.</div>
-        <div style="color:#ffcc66;font-size:10px">Speed: \u2605\u2605\u2606\u2606\u2606 | DMG: \u2605\u2605\u2605\u2605\u2605</div>
-      </div>
-    </div>
-    <button class="btn" id="drone-skip-btn" style="border-color:#888;color:#888;font-size:12px;padding:6px 18px;margin-top:6px">\u23ED SKIP \u2014 Fight On Foot</button>
-    <div style="color:#555;font-size:10px;margin-top:10px">TIP: Destroy enemy drone nests (\uD83D\uDFE5 on minimap) to stop reinforcements!</div>
-  </div>
+
 
   <!-- Drone Controls HUD (shown while piloting) -->
   <div id="drone-controls-hud" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);border:1px solid #00ccff;border-radius:8px;padding:10px 18px;z-index:120;text-align:center;pointer-events:none">

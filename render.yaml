@@ -2,7 +2,7 @@ services:
   - type: web
     name: occupantkiller
     runtime: node
-    buildCommand: "echo 'No build required — static server'"
+    buildCommand: "npm install"
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
