@@ -696,8 +696,9 @@ const WorldFeatures = (function () {
     // Water surface plane
     var geo = new THREE.PlaneGeometry(radiusX * 2, radiusZ * 2, 4, 4);
     var mesh = new THREE.Mesh(geo, _waterMat.clone());
+    // FIX: Pool should sit flush with ground, not float
     var surfaceY = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
-      ? VoxelWorld.getTerrainHeight(cx, cz) - 0.3 : 2;
+      ? VoxelWorld.getTerrainHeight(cx, cz) - 0.6 : 0.2;
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.set(cx, surfaceY, cz);
     _scene.add(mesh);
@@ -732,14 +733,37 @@ const WorldFeatures = (function () {
     };
     _waterBodies.push(body);
 
-    // Spawn fish in water body
-    var fishCount = Math.max(2, Math.floor(radiusX * radiusZ / 12));
+    // Ensure fish always spawn and are visible
+    var fishCount = Math.max(3, Math.floor(radiusX * radiusZ / 10));
     for (var i = 0; i < fishCount; i++) {
       spawnFish(body);
     }
 
     return body;
   }
+
+  // --- Procedural stray cats and dogs ---
+  // Call this after water/terrain is ready
+  function spawnStrayAnimals(count, area) {
+    if (!_scene || typeof window.NPCSystem === 'undefined' || !window.NPCSystem.createWildlifeNPC) return;
+    count = count || 6;
+    area = area || { x: 0, z: 0, r: 18 };
+    for (var i = 0; i < count; i++) {
+      var t = Math.random() < 0.5 ? 'dog' : 'cat';
+      var ang = Math.random() * Math.PI * 2;
+      var dist = area.r * (0.5 + Math.random() * 0.5);
+      var px = area.x + Math.cos(ang) * dist;
+      var pz = area.z + Math.sin(ang) * dist;
+      var py = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
+        ? VoxelWorld.getTerrainHeight(px, pz) : 0.2;
+      var npc = window.NPCSystem.createWildlifeNPC(t, px, py, pz);
+      if (_scene && npc && npc.mesh) _scene.add(npc.mesh);
+    }
+  }
+
+  // Expose for game-manager
+  window.WorldFeatures = window.WorldFeatures || {};
+  window.WorldFeatures.spawnStrayAnimals = spawnStrayAnimals;
 
   function spawnFish(waterBody) {
     if (!_scene || !_fishGeo) return;

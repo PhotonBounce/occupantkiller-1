@@ -1,3 +1,36 @@
+    // ── Drone Selection Overlay ──
+    var _droneSelectionCallback = null;
+
+    function showDroneSelection(callback) {
+      if (typeof window !== 'undefined') window.showDroneSelection = showDroneSelection;
+      // If a drone type is pre-selected (e.g. for QA or automation), skip overlay
+      if (window.__chosenDroneType) {
+        selectAndLaunchDrone(window.__chosenDroneType);
+        if (typeof callback === 'function') callback();
+        return;
+      }
+      // Otherwise, show the overlay and wait for user selection
+      var overlay = document.getElementById('overlay-drone-select');
+      if (!overlay) {
+        // Fallback: if overlay missing, just launch default drone
+        selectAndLaunchDrone('recon');
+        if (typeof callback === 'function') callback();
+        return;
+      }
+      overlay.style.display = 'flex';
+      _droneSelectionCallback = callback;
+      // Set up button handlers if not already set
+      var btns = overlay.querySelectorAll('[data-drone-type]');
+      btns.forEach(function(btn) {
+        if (!btn._droneHandlerAttached) {
+          btn.addEventListener('click', function() {
+            var type = btn.getAttribute('data-drone-type');
+            selectAndLaunchDrone(type);
+          });
+          btn._droneHandlerAttached = true;
+        }
+      });
+    }
   // ── Browser Boot Timeout Handler ──
   let _bootTimeout = null;
   function _showBootTimeoutError() {
@@ -2400,6 +2433,7 @@ const GameManager = (function () {
   }
 
   function selectAndLaunchDrone(droneType) {
+    if (typeof window !== 'undefined') window.selectAndLaunchDrone = selectAndLaunchDrone;
     var overlay = document.getElementById('overlay-drone-select');
     if (overlay) overlay.style.display = 'none';
 

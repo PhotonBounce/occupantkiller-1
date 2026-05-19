@@ -61,7 +61,7 @@
       <div id="boot-progress-bar-track" style="width:min(420px,80vw);height:14px;background:#111;border:1px solid #333;border-radius:7px;overflow:hidden">
         <div id="boot-progress-bar-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#ff4444,#ffaa00);transition:width 0.18s ease"></div>
       </div>
-      <div id="boot-progress-label" style="font-size:11px;color:#888;margin-top:10px;letter-spacing:1px">0% — initializing</div>
+      <div id="boot-progress-label" style="font-size:11px;color:#888;margin-top:10px;letter-spacing:1px">0% — Initializing…</div>
       <div id="boot-progress-detail" style="font-size:10px;color:#444;margin-top:4px;height:14px">&nbsp;</div>
     </div>
     <!-- ── Button Loading Overlay ── -->
@@ -75,6 +75,19 @@
     </div>
     <div id="conn-status" style="position:fixed;top:4px;right:8px;z-index:9999;font-family:monospace;font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(34,34,34,0.7);color:#fff;border:1px solid rgba(68,68,68,0.5);">Srv <span id="conn-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle;"></span></div>
     <script src="page-prelude.js?v=20260429b"></script>
+    <script>
+    // Loader percentage updater — always show and update percent
+    window.__bootProgress = function(pct, label, detail) {
+      var bar = document.getElementById('boot-progress-bar-fill');
+      var lbl = document.getElementById('boot-progress-label');
+      var det = document.getElementById('boot-progress-detail');
+      if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      if (lbl) lbl.textContent = (pct|0) + '% — ' + (label || 'Loading…');
+      if (det) det.textContent = detail || '\u00A0';
+    };
+    // Ensure loader always shows percent at boot
+    window.__bootProgress(0, 'Initializing…', '');
+    </script>
   <!-- Skill/Perk Progression HUD -->
   <div id="skill-hud-overlay" style="display:none;position:fixed;top:10%;left:50%;transform:translateX(-50%);z-index:300;"></div>
   <button id="skill-hud-btn" style="position:fixed;top:4px;left:8px;background:rgba(0,0,0,0.5);border:1px solid rgba(68,170,255,0.5);color:#aaccff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer">🧠 SKILLS</button>

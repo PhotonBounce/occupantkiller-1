@@ -223,7 +223,8 @@
       if (window._pendingWildlifeSpawns) {
         for (const pos of window._pendingWildlifeSpawns) {
           // Randomly pick wildlife type
-          const types = [WILDLIFE_TYPE.BIRD, WILDLIFE_TYPE.DOG, WILDLIFE_TYPE.CAT];
+          // Only spawn birds here; cats/dogs are handled by WorldFeatures.spawnStrayAnimals
+          const types = [WILDLIFE_TYPE.BIRD];
           for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
             const t = types[Math.floor(Math.random() * types.length)];
             const offset = new THREE.Vector3(
