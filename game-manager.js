@@ -2,6 +2,7 @@
     var _droneSelectionCallback = null;
 
     function showDroneSelection(callback) {
+      // Export to window for global access (always)
       if (typeof window !== 'undefined') window.showDroneSelection = showDroneSelection;
       // If a drone type is pre-selected (e.g. for QA or automation), skip overlay
       if (window.__chosenDroneType) {
@@ -2433,7 +2434,13 @@ const GameManager = (function () {
   }
 
   function selectAndLaunchDrone(droneType) {
+    // Export to window for global access (always)
     if (typeof window !== 'undefined') window.selectAndLaunchDrone = selectAndLaunchDrone;
+    // Ensure global export on script load (not just on first call)
+    if (typeof window !== 'undefined') {
+      window.showDroneSelection = showDroneSelection;
+      window.selectAndLaunchDrone = selectAndLaunchDrone;
+    }
     var overlay = document.getElementById('overlay-drone-select');
     if (overlay) overlay.style.display = 'none';
 
