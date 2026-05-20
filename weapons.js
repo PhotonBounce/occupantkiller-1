@@ -3269,7 +3269,7 @@ const Weapons = (() => {
       st.clip--;
       HUD.setAmmo(st.clip, st.reserve);
       showMuzzle();
-      var _m = m || (gunMeshes && gunMeshes[currentIdx]);
+      var _m = (gunMeshes && gunMeshes[currentIdx]);
       if (typeof Tracers !== 'undefined' && Tracers.spawnMuzzleFlash && _m && _m.userData && _m.userData.muzzlePos) {
         Tracers.spawnMuzzleFlash(_m.userData.muzzlePos, 1.2 + Math.random()*0.3);
         Tracers.spawnSmoke(_m.userData.muzzlePos);
@@ -3310,7 +3310,7 @@ const Weapons = (() => {
       st.clip--;
       HUD.setAmmo(st.clip, st.reserve);
       showMuzzle();
-      var _m = m || (gunMeshes && gunMeshes[currentIdx]);
+      var _m = (gunMeshes && gunMeshes[currentIdx]);
       if (typeof Tracers !== 'undefined' && Tracers.spawnMuzzleFlash && _m && _m.userData && _m.userData.muzzlePos) {
         Tracers.spawnMuzzleFlash(_m.userData.muzzlePos, 1.0 + Math.random()*0.2);
         Tracers.spawnSmoke(_m.userData.muzzlePos);
