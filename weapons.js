@@ -3271,7 +3271,7 @@ const Weapons = (() => {
       showMuzzle();
       var _m = (gunMeshes && gunMeshes[currentIdx]);
       if (typeof Tracers !== 'undefined' && Tracers.spawnMuzzleFlash && _m && _m.userData && _m.userData.muzzlePos) {
-        Tracers.spawnMuzzleFlash(_m.userData.muzzlePos, 1.2 + Math.random()*0.3);
+        Tracers.spawnMuzzleFlash(_m.userData.muzzlePos, 0.4 + Math.random()*0.1); // 66% less glare
         Tracers.spawnSmoke(_m.userData.muzzlePos);
       }
       recoilOffset = 0.05;
@@ -3312,7 +3312,7 @@ const Weapons = (() => {
       showMuzzle();
       var _m = (gunMeshes && gunMeshes[currentIdx]);
       if (typeof Tracers !== 'undefined' && Tracers.spawnMuzzleFlash && _m && _m.userData && _m.userData.muzzlePos) {
-        Tracers.spawnMuzzleFlash(_m.userData.muzzlePos, 1.0 + Math.random()*0.2);
+        Tracers.spawnMuzzleFlash(_m.userData.muzzlePos, 0.33 + Math.random()*0.07); // 66% less glare
         Tracers.spawnSmoke(_m.userData.muzzlePos);
       }
       recoilOffset = 0.02;
