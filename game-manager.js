@@ -7626,6 +7626,7 @@ const GameManager = (function () {
     getCamera:       function () { return _camera; },
     getCurrentWave:  function () { return currentWave; },
     getCurrentStage: function () { return currentStage; },
+
     getStageInfo:    function () { return STAGES[currentStage]; },
     isSprinting:     function () { return player.sprinting; },
     _activateStreak: _activateStreak,
@@ -7679,6 +7680,9 @@ const GameManager = (function () {
         }
       }
     },
+    // --- CRITICAL: Export drone selection functions for browser QA ---
+    showDroneSelection: showDroneSelection,
+    selectAndLaunchDrone: selectAndLaunchDrone,
   };
 })();
 
@@ -7692,3 +7696,10 @@ if (typeof window !== 'undefined') {
   }
 }
 if (typeof globalThis !== 'undefined') globalThis.GameManager = GameManager;
+
+// Ensure drone selection functions are always exported globally for browser QA
+if (typeof window !== 'undefined') {
+  window.showDroneSelection = GameManager.showDroneSelection;
+  window.selectAndLaunchDrone = GameManager.selectAndLaunchDrone;
+  console.log('[QA] window.showDroneSelection and selectAndLaunchDrone assigned');
+}
