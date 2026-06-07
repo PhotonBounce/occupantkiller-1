@@ -5,8 +5,9 @@
       // Export to window for global access (always)
       if (typeof window !== 'undefined') window.showDroneSelection = showDroneSelection;
       // If a drone type is pre-selected (e.g. for QA or automation), skip overlay
-      if (window.__chosenDroneType) {
-        selectAndLaunchDrone(window.__chosenDroneType);
+      if (window.__QA_MODE || window.__chosenDroneType) {
+        // Only skip overlay if QA or automation is set
+        selectAndLaunchDrone(window.__chosenDroneType || 'recon');
         if (typeof callback === 'function') callback();
         return;
       }
@@ -37,7 +38,10 @@
   function _showBootTimeoutError() {
     var overlay = document.getElementById('error-overlay');
     var preloader = document.getElementById('boot-preloader');
-    if (preloader) preloader.style.display = 'none';
+    window.__gameBootReady = true;
+    setTimeout(function() {
+      if (preloader && window.__gameBootReady) preloader.style.display = 'none';
+    }, 200);
     if (overlay) {
       overlay.style.display = 'block';
       overlay.innerHTML = 'STARTUP ERROR:\nGame failed to load in time. This may be due to a slow device, browser extension, or network issue.<br><br>' +
@@ -1075,6 +1079,8 @@ const GameManager = (function () {
       VehicleSystem.setVehicleKey('d', VehicleSystem.isInVehicle() && rightActive);
       VehicleSystem.setVehicleKey('up', VehicleSystem.isInVehicle() && !!touch.jumping);
       VehicleSystem.setVehicleKey('down', VehicleSystem.isInVehicle() && !!touch.sprinting);
+      VehicleSystem.setVehicleKey('fire', VehicleSystem.isInVehicle() && !!touch.firing);
+      VehicleSystem.setVehicleKey('mgFire', VehicleSystem.isInVehicle() && !!touch.firing);
     }
   }
 
@@ -1453,6 +1459,12 @@ const GameManager = (function () {
       _updateLoopStarted = true;
       prevTime = performance.now();
       update();
+      // Hide loader after first frame rendered
+      setTimeout(function() {
+        var preloader = document.getElementById('boot-preloader');
+        window.__gameBootReady = true;
+        if (preloader) preloader.style.display = 'none';
+      }, 400);
     }
 
     return { scene: _scene, camera: _camera, renderer: _renderer };
@@ -2188,8 +2200,8 @@ const GameManager = (function () {
           if (t.identifier === touch.lookTouchId) {
             const dx = t.clientX - touch._lookPrevX;
             const dy = t.clientY - touch._lookPrevY;
-            touch.lookX = dx;
-            touch.lookY = dy;
+            touch.lookX += dx;
+            touch.lookY += dy;
             touch._lookPrevX = t.clientX;
             touch._lookPrevY = t.clientY;
           }
@@ -2203,8 +2215,8 @@ const GameManager = (function () {
           if (t.identifier === touch.lookTouchId) {
             const dx = t.clientX - touch._lookPrevX;
             const dy = t.clientY - touch._lookPrevY;
-            touch.lookX = dx;
-            touch.lookY = dy;
+            touch.lookX += dx;
+            touch.lookY += dy;
             touch._lookPrevX = t.clientX;
             touch._lookPrevY = t.clientY;
           }
@@ -3883,10 +3895,6 @@ const GameManager = (function () {
 
   /* ── Player Movement ─────────────────────────────────────────────── */
   function updatePlayer(delta) {
-    // Skip if in drone or vehicle
-    if (DroneSystem.isPossessing() || VehicleSystem.isInVehicle()) return;
-    if (CameraSystem.getMode() === CameraSystem.MODE.STRATEGIC) return;
-
     // Apply touch look rotation (drag on look zone)
     if (isMobile && (touch.lookX !== 0 || touch.lookY !== 0)) {
       CameraSystem.handleMouseMove(touch.lookX * 4.0, touch.lookY * 4.0);
@@ -3904,6 +3912,10 @@ const GameManager = (function () {
       touch.gyroDX = 0;
       touch.gyroDY = 0;
     }
+
+    // Skip if in drone or vehicle
+    if (DroneSystem.isPossessing() || VehicleSystem.isInVehicle()) return;
+    if (CameraSystem.getMode() === CameraSystem.MODE.STRATEGIC) return;
     // Gyro auto-assist: when gyro is on, gently pull crosshair toward nearest enemy
     if (isMobile && touch.gyroEnabled && touch.gyroAutoAssist && typeof Enemies !== 'undefined' && Enemies.getAll) {
       var _gaList = Enemies.getAll();
@@ -6461,9 +6473,6 @@ const GameManager = (function () {
 
     const joystickZone  = document.getElementById('joystick-zone');
     const joystickThumb = document.getElementById('joystick-thumb');
-    const baseSize      = joystickZone.offsetWidth || 140;
-    const thumbSize     = joystickThumb.offsetWidth || 60;
-    const maxDist       = (baseSize - thumbSize) / 2;
 
     // Joystick touch handling
     joystickZone.addEventListener('touchstart', function (e) {
@@ -6472,8 +6481,11 @@ const GameManager = (function () {
       touch.moveTouchId = t.identifier;
       touch.moveActive = true;
       const rect = joystickZone.getBoundingClientRect();
-      touch.moveStartX = rect.left + baseSize / 2;
-      touch.moveStartY = rect.top + baseSize / 2;
+      const currentBaseSize = rect.width || 110;
+      const currentThumbSize = joystickThumb.offsetWidth || 46;
+      touch.moveStartX = rect.left + currentBaseSize / 2;
+      touch.moveStartY = rect.top + currentBaseSize / 2;
+      touch.moveMaxDist = (currentBaseSize - currentThumbSize) / 2;
     }, { passive: false });
 
     joystickZone.addEventListener('touchmove', function (e) {
@@ -6483,6 +6495,7 @@ const GameManager = (function () {
         if (t.identifier === touch.moveTouchId) {
           let dx = t.clientX - touch.moveStartX;
           let dy = t.clientY - touch.moveStartY;
+          const maxDist = touch.moveMaxDist || 32;
           let dist = Math.sqrt(dx * dx + dy * dy);
           if (dist > maxDist) {
             dx = dx / dist * maxDist;
@@ -6491,8 +6504,11 @@ const GameManager = (function () {
           }
           touch.moveX = dx / maxDist;
           touch.moveY = dy / maxDist;
-          joystickThumb.style.left = (baseSize / 2 - thumbSize / 2 + dx) + 'px';
-          joystickThumb.style.top  = (baseSize / 2 - thumbSize / 2 + dy) + 'px';
+          const rect = joystickZone.getBoundingClientRect();
+          const currentBaseSize = rect.width || 110;
+          const currentThumbSize = joystickThumb.offsetWidth || 46;
+          joystickThumb.style.left = (currentBaseSize / 2 - currentThumbSize / 2 + dx) + 'px';
+          joystickThumb.style.top  = (currentBaseSize / 2 - currentThumbSize / 2 + dy) + 'px';
         }
       }
     }, { passive: false });
@@ -6502,8 +6518,11 @@ const GameManager = (function () {
       touch.moveActive = false;
       touch.moveX = 0;
       touch.moveY = 0;
-      joystickThumb.style.left = (baseSize / 2 - thumbSize / 2) + 'px';
-      joystickThumb.style.top  = (baseSize / 2 - thumbSize / 2) + 'px';
+      const rect = joystickZone.getBoundingClientRect();
+      const currentBaseSize = rect.width || 110;
+      const currentThumbSize = joystickThumb.offsetWidth || 46;
+      joystickThumb.style.left = (currentBaseSize / 2 - currentThumbSize / 2) + 'px';
+      joystickThumb.style.top  = (currentBaseSize / 2 - currentThumbSize / 2) + 'px';
     }
     function _onMoveTouchEnd(e) {
       for (let i = 0; i < e.changedTouches.length; i++) {
@@ -6520,18 +6539,17 @@ const GameManager = (function () {
     const aimZone  = document.getElementById('aim-joystick-zone');
     const aimThumb = document.getElementById('aim-joystick-thumb');
     if (aimZone && aimThumb) {
-      const aimBaseSize = aimZone.offsetWidth || 160;
-      const aimThumbSize = aimThumb.offsetWidth || 68;
-      const aimMaxDist = (aimBaseSize - aimThumbSize) / 2;
-
       aimZone.addEventListener('touchstart', function (e) {
         e.preventDefault();
         const t = e.changedTouches[0];
         touch.aimTouchId = t.identifier;
         touch.aimActive = true;
         const rect = aimZone.getBoundingClientRect();
-        touch.aimStartX = rect.left + aimBaseSize / 2;
-        touch.aimStartY = rect.top + aimBaseSize / 2;
+        const currentBaseSize = rect.width || 110;
+        const currentThumbSize = aimThumb.offsetWidth || 46;
+        touch.aimStartX = rect.left + currentBaseSize / 2;
+        touch.aimStartY = rect.top + currentBaseSize / 2;
+        touch.aimMaxDist = (currentBaseSize - currentThumbSize) / 2;
       }, { passive: false });
 
       aimZone.addEventListener('touchmove', function (e) {
@@ -6541,15 +6559,19 @@ const GameManager = (function () {
           if (t.identifier === touch.aimTouchId) {
             let dx = t.clientX - touch.aimStartX;
             let dy = t.clientY - touch.aimStartY;
+            const maxDist = touch.aimMaxDist || 32;
             let dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist > aimMaxDist) {
-              dx = dx / dist * aimMaxDist;
-              dy = dy / dist * aimMaxDist;
+            if (dist > maxDist) {
+              dx = dx / dist * maxDist;
+              dy = dy / dist * maxDist;
             }
-            touch.aimX = dx / aimMaxDist;
-            touch.aimY = dy / aimMaxDist;
-            aimThumb.style.left = (aimBaseSize / 2 - aimThumbSize / 2 + dx) + 'px';
-            aimThumb.style.top  = (aimBaseSize / 2 - aimThumbSize / 2 + dy) + 'px';
+            touch.aimX = dx / maxDist;
+            touch.aimY = dy / maxDist;
+            const rect = aimZone.getBoundingClientRect();
+            const currentBaseSize = rect.width || 110;
+            const currentThumbSize = aimThumb.offsetWidth || 46;
+            aimThumb.style.left = (currentBaseSize / 2 - currentThumbSize / 2 + dx) + 'px';
+            aimThumb.style.top  = (currentBaseSize / 2 - currentThumbSize / 2 + dy) + 'px';
           }
         }
       }, { passive: false });
@@ -6559,8 +6581,11 @@ const GameManager = (function () {
         touch.aimActive = false;
         touch.aimX = 0;
         touch.aimY = 0;
-        aimThumb.style.left = (aimBaseSize / 2 - aimThumbSize / 2) + 'px';
-        aimThumb.style.top  = (aimBaseSize / 2 - aimThumbSize / 2) + 'px';
+        const rect = aimZone.getBoundingClientRect();
+        const currentBaseSize = rect.width || 110;
+        const currentThumbSize = aimThumb.offsetWidth || 46;
+        aimThumb.style.left = (currentBaseSize / 2 - currentThumbSize / 2) + 'px';
+        aimThumb.style.top  = (currentBaseSize / 2 - currentThumbSize / 2) + 'px';
       }
       function _onAimTouchEnd(e) {
         for (let i = 0; i < e.changedTouches.length; i++) {

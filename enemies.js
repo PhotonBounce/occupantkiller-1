@@ -3882,7 +3882,10 @@ const Enemies = (() => {
     blowDisguise,
     tagAttacker,
     getSurrenderCount,
-    spawnSingle: function (typeName, pos, opts) { spawnOne(typeName, -1, pos, opts); },
+    spawnSingle: function (typeName, pos, opts) {
+      var idx = spawnOne(typeName, -1, pos, opts);
+      return enemies[idx];
+    },
     spawnReinforcement: function (x, z, count) {
       count = count || 2;
       var types = ['CONSCRIPT', 'CONSCRIPT', 'RIFLEMAN', 'GRENADIER'];

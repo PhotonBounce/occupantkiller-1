@@ -251,7 +251,7 @@ const Weapons = (() => {
   function cur()      { return WEAPONS[currentIdx]; }
   function curState() { return states[currentIdx]; }
 
-  const _LAUNCHER_TYPES = { AT:1, ATGM:1, AT_HEAVY:1, AT_LIGHT:1, AA:1 };
+  const _LAUNCHER_TYPES = { AT:1, ATGM:1, AT_HEAVY:1, AT_LIGHT:1, AA:1, GRENADE:1, THERMOBARIC:1, SMOKE:1, FLASHBANG:1, EXPLOSIVE:1, MINE:1, INCENDIARY:1 };
   function _isLauncherType(t) { return !!_LAUNCHER_TYPES[t]; }
 
   function refreshWeaponHud() {
@@ -3155,6 +3155,9 @@ const Weapons = (() => {
   function tryFire(camera, targets, delta, onHit, newPress) {
     const wep = cur();
     const st  = curState();
+    // Defensive: ensure targets is always a valid array of THREE.js objects
+    if (!Array.isArray(targets)) targets = [];
+    else targets = targets.filter(obj => obj && typeof obj === 'object' && typeof obj.isObject3D === 'boolean');
     _firedThisFrame = false;
     st.fireCooldown -= delta;
     if (st.reloading) return;
@@ -3200,7 +3203,10 @@ const Weapons = (() => {
         camera.getWorldDirection(_wTmp2)
       );
       raycaster.far = meleeRange;
-      const hits = raycaster.intersectObjects(targets, true);
+      let hits = [];
+      try {
+        hits = raycaster.intersectObjects(targets, true);
+      } catch (e) { hits = []; }
       if (hits.length > 0) {
         onHit(hits[0], meleeDmg);
       } else if (typeof VoxelWorld !== 'undefined') {
@@ -3346,7 +3352,10 @@ const Weapons = (() => {
       // Also damage enemy electronics (DRONE_OP, EW_OPERATOR) via raycast
       raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
       raycaster.far = 45;
-      const hits = raycaster.intersectObjects(targets, true);
+      let hits = [];
+      try {
+        hits = raycaster.intersectObjects(targets, true);
+      } catch (e) { hits = []; }
       if (hits.length > 0) {
         var h = hits[0];
         // Check if target is a drone operator or EW type
@@ -3411,7 +3420,10 @@ const Weapons = (() => {
       raycaster.setFromCamera(spreadVec, camera);
     }
     raycaster.far = Infinity;
-    const hits = raycaster.intersectObjects(targets, true);
+    let hits = [];
+    try {
+      hits = raycaster.intersectObjects(targets, true);
+    } catch (e) { hits = []; }
     showMuzzle();
     // Defensive: ensure m is always defined
     var _m = (typeof m !== 'undefined' && m) ? m : (gunMeshes && gunMeshes[currentIdx]);

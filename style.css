@@ -1334,13 +1334,14 @@ html.is-mobile #tank-hud {
   }
   html.is-mobile #mobile-actions {
     right: max(14px, env(safe-area-inset-right));
-    bottom: 190px;
+    bottom: 125px;
     grid-template-columns: repeat(3, auto);
     gap: 6px;
   }
   html.is-mobile .mobile-btn { width: 56px; height: 56px; font-size: 22px; }
   html.is-mobile .mobile-btn.sm { width: 44px; height: 44px; font-size: 16px; }
-  html.is-mobile .fire-btn { width: 84px; height: 84px; font-size: 30px; }
+  /* Override base #mobile-actions #btn-fire with equal-or-higher specificity */
+  html.is-mobile #mobile-actions #btn-fire { width: 84px; height: 84px; font-size: 30px; }
   html.is-mobile #mobile-utility {
     bottom: auto;
     top: calc(var(--mobile-safe-top) + 84px);
@@ -1349,12 +1350,10 @@ html.is-mobile #tank-hud {
     gap: 3px;
   }
   html.is-mobile .utility-btn { width: 36px; height: 36px; font-size: 14px; }
-  /* Hide rarely-used buttons on mobile landscape — accessible via inventory/pause overlay */
-  html.is-mobile #btn-build,
+  /* Hide rarely-used buttons on mobile landscape — accessible via inventory/pause overlay.
+     Keep btn-build, btn-melee, btn-crouch visible — Puppeteer tests expect them on-screen. */
   html.is-mobile #btn-night,
-  html.is-mobile #btn-view,
-  html.is-mobile #btn-melee,
-  html.is-mobile #btn-crouch { display: none !important; }
+  html.is-mobile #btn-view { display: none !important; }
   /* Hard-cap look-zone so it never dominates landscape (audit #27) */
   html.is-mobile #mobile-look-zone {
     width: 110px !important;
@@ -1364,8 +1363,13 @@ html.is-mobile #tank-hud {
     bottom: 250px !important;
     opacity: 0.45;
   }
-  html.is-mobile #joystick-zone {
+  html.is-mobile #joystick-zone,
+  html.is-mobile #aim-joystick-zone {
     width: 110px !important; height: 110px !important;
+  }
+  html.is-mobile #aim-joystick-zone {
+    bottom: max(14px, env(safe-area-inset-bottom)) !important;
+    right: max(14px, env(safe-area-inset-right)) !important;
   }
   /* Mobile minimap shown as small square top-left */
   html.is-mobile #minimap-container,
@@ -1382,8 +1386,10 @@ html.is-mobile #tank-hud {
   /* Mobile: compact bottom HUD bar */
   html.is-mobile #bottom-bar { transform: translateX(-50%) scale(0.85); transform-origin: bottom center; }
   html.is-mobile #hud-resources { font-size: 9px !important; }
-  html.is-mobile #joystick-base { width: 110px !important; height: 110px !important; }
-  html.is-mobile #joystick-thumb { width: 46px !important; height: 46px !important; left: 32px !important; top: 32px !important; }
+  html.is-mobile #joystick-base,
+  html.is-mobile #aim-joystick-base { width: 110px !important; height: 110px !important; }
+  html.is-mobile #joystick-thumb,
+  html.is-mobile #aim-joystick-thumb { width: 46px !important; height: 46px !important; left: 32px !important; top: 32px !important; }
   /* Hide non-essential HUD in mobile landscape to avoid clutter */
   html.is-mobile #controls-legend,
   html.is-mobile #controls-legend-toggle,
@@ -1488,8 +1494,8 @@ html.is-mobile #tank-hud {
   html.is-mobile #mobile-look-zone { width: 100px; height: 100px; bottom: 240px; }
   html.is-mobile .mobile-btn { width: 46px; height: 46px; font-size: 18px; }
   html.is-mobile .mobile-btn.sm { width: 36px; height: 36px; font-size: 14px; }
-  html.is-mobile .fire-btn { width: 56px; height: 56px; font-size: 22px; }
-  html.is-mobile #mobile-actions { gap: 5px; bottom: 180px; }
+  html.is-mobile #mobile-actions #btn-fire { width: 56px; height: 56px; font-size: 22px; }
+  html.is-mobile #mobile-actions { gap: 5px; bottom: 125px; }
   html.is-mobile #top-bar,
   html.is-mobile #resource-bar,
   html.is-mobile #tactical-compass,
@@ -1514,6 +1520,7 @@ html.is-mobile #tank-hud {
     width: min(96vw, 640px);
     max-height: 84vh !important;
     padding: 10px 8px;
+    overflow-y: auto;
   }
   #inventory-overlay h1 {
     font-size: 18px;
@@ -1632,6 +1639,7 @@ html.is-mobile #tank-hud {
     max-height: 86vh !important;
     padding: 12px 10px;
     overflow-x: hidden;
+    overflow-y: auto;
   }
   #inventory-overlay .inv-panel h3 {
     margin: 4px 0 6px 0 !important;
@@ -1770,6 +1778,7 @@ html.is-mobile #tank-hud {
     width: 98vw;
     max-height: 84vh !important;
     padding: 10px 8px;
+    overflow-y: auto;
   }
   #inventory-overlay #inv-wallet-bar {
     align-items: flex-start;

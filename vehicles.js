@@ -705,7 +705,13 @@ const VehicleSystem = (function () {
       detachPlayerBody();
       _occupiedVehicle = null;
       _hijackState = null;
-      // Clear stuck fire keys so exiting while firing doesn't auto-fire on re-entry (audit #33)
+      // Clear stuck keys so exiting doesn't carry over inputs on re-entry (audit #33)
+      _vKeys.w = false;
+      _vKeys.a = false;
+      _vKeys.s = false;
+      _vKeys.d = false;
+      _vKeys.up = false;
+      _vKeys.down = false;
       _vKeys.fire = false;
       _vKeys.mgFire = false;
       // Clear vehicle camera target so FPS camera doesn't stay locked to vehicle
@@ -1665,6 +1671,7 @@ const VehicleSystem = (function () {
     turretProjectiles.push({
       mesh: shellMesh, dir: _vTmp1.clone(), speed: TANK_CANNON_PROJ_SPEED,
       damage: v.damage, life: 4.0, isCannonShell: true, _spawnImmunity: 0.15,
+      spawnPos: _vTmp2.clone(),
     });
 
     // Screen shake for cannon blast
@@ -1741,6 +1748,7 @@ const VehicleSystem = (function () {
       mesh: bulletMesh, dir: _vTmp1.clone(), speed: TANK_MG_PROJ_SPEED,
       damage: stats.mgDamage || 15, life: 2.0, isCannonShell: false,
       _spawnImmunity: 0.08,
+      spawnPos: _vTmp2.clone(),
     });
 
     // Tracer every 3rd shot
@@ -1889,6 +1897,7 @@ const VehicleSystem = (function () {
     turretProjectiles.push({
       mesh: mesh, dir: dir.clone(), speed: TURRET_PROJ_SPEED,
       damage: damage, life: 3.0, _spawnImmunity: 0.15,
+      spawnPos: _vTmp2.clone(),
     });
   }
 
@@ -1934,10 +1943,10 @@ const VehicleSystem = (function () {
         }
       }
 
-      // Check terrain collision (skip during spawn immunity so projectiles don't die on own muzzle voxel)
+      // Check terrain collision (skip during spawn immunity or if too close to spawn position to prevent self-collision)
       let terrainHit = null;
       if (!hit && typeof VoxelWorld !== 'undefined') {
-        if (p._spawnImmunity > 0) {
+        if (p._spawnImmunity > 0 || (p.spawnPos && p.mesh.position.distanceTo(p.spawnPos) < 3.0)) {
           p._spawnImmunity -= delta;
         } else {
           _vTmp2.copy(p.mesh.position);

@@ -17,7 +17,7 @@ const MissionSystem = (function () {
 
   /* ── Templates ───────────────────────────────────────────────────── */
   const TEMPLATES = {
-            // NEW: Bradley IFV Assault — drive M2A3 Bradley, clear forest ambush
+            // Bradley IFV Assault — drive M2A3 Bradley, clear forest ambush
             //   M242 Bushmaster 25mm chain gun (200 rpm cyclic, dual-feed HE/AP)
             //   M240C 7.62mm coax. Press B to enter/exit. WASD drive, mouse aim turret.
             bradley_mission: {
@@ -28,13 +28,14 @@ const MissionSystem = (function () {
                 var killTarget = 18 + Math.floor(Math.random() * 7); // 18-24
                 var spawned = 0;
                 var spawnPositions = [];
+                var spawnedEnemyIds = [];
                 try {
                   // Find the player position via active camera
                   var playerPos = new THREE.Vector3(0, 0, 0);
                   try {
-                    if (typeof GameManager !== 'undefined' && GameManager.getCamera) {
-                      var c = GameManager.getCamera();
-                      if (c) playerPos.copy(c.position);
+                    if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+                      var p = GameManager.getPlayer();
+                      if (p && p.position) playerPos.copy(p.position);
                     }
                   } catch (e) {}
                   // Forest ambush ahead of player (~80-130 units away)
@@ -56,8 +57,11 @@ const MissionSystem = (function () {
                       try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ey = VoxelWorld.getTerrainHeight(ex, ez) || 0; } catch (e2) {}
                       try {
                         var tp = types[Math.floor(Math.random() * types.length)];
-                        Enemies.spawnSingle(tp, { x: ex, y: ey + 1, z: ez });
-                        spawned++;
+                        var spawnedEnemy = Enemies.spawnSingle(tp, { x: ex, y: ey + 1, z: ez });
+                        if (spawnedEnemy) {
+                          spawnedEnemyIds.push(spawnedEnemy.id);
+                          spawned++;
+                        }
                         spawnPositions.push({ x: ex, z: ez });
                       } catch (eS) {}
                     }
@@ -81,72 +85,210 @@ const MissionSystem = (function () {
                   killTarget: killTarget,
                   kills: 0,
                   spawned: spawned,
+                  spawnedEnemyIds: spawnedEnemyIds,
                   spawnPositions: spawnPositions,
-                  startTime: Date.now()
+                  startTime: Date.now(),
+                  objectiveText: 'Clear forest ambush ahead...',
                 };
               },
               check(mission) {
-                if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnPositions) {
-                  return mission.kills >= mission.killTarget;
+                if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) {
+                  return false;
                 }
-                // Count alive enemies inside the original forest cluster bbox
-                var positions = mission.spawnPositions;
-                if (!positions.length) return false;
-                var minX = positions[0].x, maxX = positions[0].x;
-                var minZ = positions[0].z, maxZ = positions[0].z;
-                for (var i = 1; i < positions.length; i++) {
-                  if (positions[i].x < minX) minX = positions[i].x;
-                  if (positions[i].x > maxX) maxX = positions[i].x;
-                  if (positions[i].z < minZ) minZ = positions[i].z;
-                  if (positions[i].z > maxZ) maxZ = positions[i].z;
+                var aliveCount = 0;
+                var allEnemies = Enemies.getAll();
+                for (var id of mission.spawnedEnemyIds) {
+                  var found = allEnemies.find(e => e && e.id === id);
+                  if (found && found.alive) {
+                    aliveCount++;
+                  }
                 }
-                minX -= 6; maxX += 6; minZ -= 6; maxZ += 6;
-                var alive = 0;
-                var all = Enemies.getAll();
-                for (var k = 0; k < all.length; k++) {
-                  var e = all[k];
-                  if (!e || e.dead || !e.mesh) continue;
-                  var p = e.mesh.position;
-                  if (p.x >= minX && p.x <= maxX && p.z >= minZ && p.z <= maxZ) alive++;
-                }
-                mission.alive = alive;
-                return mission.spawned > 0 && alive === 0;
+                mission.kills = mission.spawned - aliveCount;
+                mission.objectiveText = `Clear forest ambush: ${mission.kills}/${mission.spawned} killed`;
+                return mission.spawned > 0 && aliveCount === 0;
               },
             },
-        // NEW: Airborne Assault (Hostomel)
+        // Airborne Assault (Hostomel)
         airborne_assault: {
           name: 'Airborne Assault',
           description: 'Repel Russian airborne troops and secure the landing zone.',
           tier: 4,
           generate() {
+            var playerPos = new THREE.Vector3(0, 0, 0);
+            try {
+              if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+                var p = GameManager.getPlayer();
+                if (p && p.position) playerPos.copy(p.position);
+              }
+            } catch(e){}
+            var zones = [];
+            for (var i = 0; i < 2; i++) {
+              var angle = Math.random() * Math.PI * 2;
+              var dist = 30 + Math.random() * 20;
+              zones.push({
+                x: playerPos.x + Math.sin(angle) * dist,
+                z: playerPos.z + Math.cos(angle) * dist
+              });
+            }
             return {
               type: 'airborne_assault',
-              waves: 3 + Math.floor(Math.random() * 2),
+              waves: 3,
               completedWaves: 0,
-              landingZones: [
-                { x: -20, z: 30 },
-                { x: 15, z: -25 }
-              ],
-              reinforcements: true
+              landingZones: zones,
+              spawnedEnemyIds: [],
+              waveTimer: 1.0,
+              state: 'waiting',
+              objectiveText: 'Prepare for airborne assault...',
             };
+          },
+          update(mission, delta) {
+            if (mission.completedWaves >= mission.waves) return;
+
+            if (mission.state === 'waiting') {
+              mission.waveTimer -= delta;
+              if (mission.waveTimer <= 0) {
+                mission.state = 'spawning';
+              } else {
+                mission.objectiveText = `Next paratrooper wave in ${Math.ceil(mission.waveTimer)}s...`;
+              }
+            }
+
+            if (mission.state === 'spawning') {
+              var zone = mission.landingZones[mission.completedWaves % mission.landingZones.length];
+              var count = 5 + mission.completedWaves * 2;
+              var types = ['CONSCRIPT', 'STORMER', 'ARMORED'];
+              mission.spawnedEnemyIds = [];
+              for (var i = 0; i < count; i++) {
+                var tp = types[Math.floor(Math.random() * types.length)];
+                var ex = zone.x + (Math.random() - 0.5) * 8;
+                var ez = zone.z + (Math.random() - 0.5) * 8;
+                var ey = 0;
+                try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ey = VoxelWorld.getTerrainHeight(ex, ez) || 0; } catch (e) {}
+                try {
+                  var spawnedEnemy = Enemies.spawnSingle(tp, { x: ex, y: ey + 1, z: ez });
+                  if (spawnedEnemy) {
+                    mission.spawnedEnemyIds.push(spawnedEnemy.id);
+                  }
+                } catch (e) {}
+              }
+              mission.state = 'active';
+              if (typeof HUD !== 'undefined' && HUD.showToast) {
+                HUD.showToast(`🪂 WAVE ${mission.completedWaves + 1} PARATROOPERS INBOUND!`, 4000, '#ff4444');
+              }
+            }
+
+            if (mission.state === 'active') {
+              if (typeof Enemies === 'undefined' || !Enemies.getAll) return;
+              var aliveCount = 0;
+              var allEnemies = Enemies.getAll();
+              for (var id of mission.spawnedEnemyIds) {
+                var found = allEnemies.find(e => e && e.id === id);
+                if (found && found.alive) {
+                  aliveCount++;
+                }
+              }
+              mission.objectiveText = `Repel airborne assault: Wave ${mission.completedWaves + 1}/${mission.waves} (${aliveCount} hostiles alive)`;
+              if (aliveCount === 0) {
+                mission.completedWaves++;
+                if (mission.completedWaves < mission.waves) {
+                  mission.state = 'waiting';
+                  mission.waveTimer = 6.0;
+                  if (typeof HUD !== 'undefined' && HUD.showToast) {
+                    HUD.showToast(`✓ WAVE ${mission.completedWaves} REPELLED! Next drop imminent.`, 4000, '#88ff88');
+                  }
+                }
+              }
+            }
           },
           check(mission) { return mission.completedWaves >= mission.waves; },
         },
-        // NEW: Urban Breakout (Kyiv)
+        // Urban Breakout (Kyiv)
         urban_breakout: {
           name: 'Urban Breakout',
           description: 'Break out of encirclement and reach friendly lines.',
           tier: 5,
           generate() {
+            var playerPos = new THREE.Vector3(0, 0, 0);
+            try {
+              if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+                var p = GameManager.getPlayer();
+                if (p && p.position) playerPos.copy(p.position);
+              }
+            } catch(e){}
+            var angle = Math.random() * Math.PI * 2;
+            var dist = 100 + Math.random() * 40;
+            var dest = new THREE.Vector3(
+              playerPos.x + Math.sin(angle) * dist,
+              0,
+              playerPos.z + Math.cos(angle) * dist
+            );
+            try {
+              if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+                dest.y = VoxelWorld.getTerrainHeight(dest.x, dest.z) || 0;
+              }
+            } catch (e) {}
             return {
               type: 'urban_breakout',
-              breakoutPoints: [
-                { x: 40, z: -10 },
-                { x: -35, z: 25 }
-              ],
+              destination: dest,
               reached: false,
-              timeLimit: 180
+              timeLimit: 180,
+              ambushSpawned: false,
+              distanceToDest: Math.round(dist),
+              objectiveText: 'Break out of encirclement!',
             };
+          },
+          update(mission, delta) {
+            var playerPos = new THREE.Vector3(0, 0, 0);
+            try {
+              if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+                var p = GameManager.getPlayer();
+                if (p && p.position) playerPos.copy(p.position);
+              }
+            } catch(e){}
+            
+            var d = playerPos.distanceTo(mission.destination);
+            mission.distanceToDest = Math.round(d);
+            mission.timeLimit -= delta;
+
+            if (d < 15) {
+              mission.reached = true;
+              if (typeof HUD !== 'undefined' && HUD.showToast) {
+                HUD.showToast('✓ BROKEN OUT! You reached friendly lines.', 4000, '#88ff88');
+              }
+            } else if (mission.timeLimit <= 0) {
+              mission.timeLimit = 60;
+              if (typeof Enemies !== 'undefined' && Enemies.spawnReinforcement) {
+                Enemies.spawnReinforcement(playerPos.x, playerPos.z, 4);
+              }
+              if (typeof HUD !== 'undefined' && HUD.showToast) {
+                HUD.showToast('⚠ TIME EXPIRED! Reinforcements incoming!', 5000, '#ff3333');
+              }
+            }
+
+            if (!mission.ambushSpawned && d < 60 && d > 30) {
+              mission.ambushSpawned = true;
+              var ambushPos = new THREE.Vector3().lerpVectors(playerPos, mission.destination, 0.5);
+              try {
+                if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+                  var types = ['CONSCRIPT', 'STORMER', 'ARMORED', 'GRENADIER'];
+                  for (var i = 0; i < 6; i++) {
+                    var tp = types[Math.floor(Math.random() * types.length)];
+                    var ax = ambushPos.x + (Math.random() - 0.5) * 12;
+                    var az = ambushPos.z + (Math.random() - 0.5) * 12;
+                    var ay = 0;
+                    if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+                      ay = VoxelWorld.getTerrainHeight(ax, az) || 0;
+                    }
+                    Enemies.spawnSingle(tp, { x: ax, y: ay + 1, z: az });
+                  }
+                }
+              } catch(e){}
+              if (typeof HUD !== 'undefined' && HUD.showToast) {
+                HUD.showToast('⚠ ROADBLOCK AMBUSH! Clear the path!', 5000, '#ffaa00');
+              }
+            }
+
+            mission.objectiveText = `Breakout: Reach (${Math.round(mission.destination.x)}, ${Math.round(mission.destination.z)}) — Distance: ${mission.distanceToDest}m (Time: ${Math.round(mission.timeLimit)}s)`;
           },
           check(mission) { return mission.reached; },
         },
@@ -165,9 +307,11 @@ const MissionSystem = (function () {
           currentAmount: 0,
         };
       },
-      check(mission) { return mission.currentAmount >= mission.targetAmount; },
+      check(mission) {
+        mission.objectiveText = `Gather ${mission.resource.toUpperCase()}: ${mission.currentAmount}/${mission.targetAmount}`;
+        return mission.currentAmount >= mission.targetAmount;
+      },
     },
-
     expand: {
       name: 'Base Expansion',
       description: 'Build {count} new structure(s).',
@@ -181,10 +325,11 @@ const MissionSystem = (function () {
       },
       check(mission) {
         var cur = (typeof Building !== 'undefined' && Building.getStructures) ? Building.getStructures().length : 0;
+        var built = cur - mission.startCount;
+        mission.objectiveText = `Build structures: ${built}/${mission.targetCount}`;
         return cur >= mission.startCount + mission.targetCount;
       },
     },
-
     recon: {
       name: 'Drone Reconnaissance',
       description: 'Scout {count} locations with a recon drone.',
@@ -206,9 +351,11 @@ const MissionSystem = (function () {
           targetCount: 3,
         };
       },
-      check(mission) { return mission.scoutedCount >= mission.targetCount; },
+      check(mission) {
+        mission.objectiveText = `Drone Recon: ${mission.scoutedCount}/${mission.targetCount} scouted`;
+        return mission.scoutedCount >= mission.targetCount;
+      },
     },
-
     defense: {
       name: 'Defensive Survival',
       description: 'Survive {waves} enemy waves without losing your base.',
@@ -221,56 +368,175 @@ const MissionSystem = (function () {
           baseHealthStart: 100,
         };
       },
-      check(mission) { return mission.completedWaves >= mission.targetWaves; },
+      check(mission) {
+        mission.objectiveText = `Survival: Complete Wave ${mission.completedWaves}/${mission.targetWaves}`;
+        return mission.completedWaves >= mission.targetWaves;
+      },
     },
-
     escort: {
       name: 'Logistics Escort',
       description: 'Escort supply convoy to destination safely.',
       tier: 3,
       generate() {
+        var playerPos = new THREE.Vector3(0, 0, 0);
+        try {
+          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+            var p = GameManager.getPlayer();
+            if (p && p.position) playerPos.copy(p.position);
+          }
+        } catch(e){}
+        var angle = Math.random() * Math.PI * 2;
+        var dist = 90 + Math.random() * 40;
+        var dest = new THREE.Vector3(
+          playerPos.x + Math.sin(angle) * dist,
+          0,
+          playerPos.z + Math.cos(angle) * dist
+        );
+        try {
+          if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+            dest.y = VoxelWorld.getTerrainHeight(dest.x, dest.z) || 0;
+          }
+        } catch (e) {}
         return {
           type: MISSION_TYPE.ESCORT,
-          destination: new THREE.Vector3(
-            -30 + Math.random() * 60,
-            0,
-            -30 + Math.random() * 60
-          ),
+          destination: dest,
           convoyHealth: 100,
           arrived: false,
+          escortNpcId: null,
+          spawned: false,
+          ambushSpawned1: false,
+          ambushSpawned2: false,
+          objectiveText: 'Locating escort NPC...',
         };
+      },
+      update(mission, delta) {
+        if (mission.arrived || mission.convoyHealth <= 0) return;
+
+        var playerPos = new THREE.Vector3(0, 0, 0);
+        try {
+          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+            var p = GameManager.getPlayer();
+            if (p && p.position) playerPos.copy(p.position);
+          }
+        } catch(e){}
+
+        if (!mission.spawned) {
+          mission.spawned = true;
+          try {
+            if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
+              var ex = playerPos.x + 4;
+              var ez = playerPos.z + 4;
+              var ey = playerPos.y;
+              try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ey = VoxelWorld.getTerrainHeight(ex, ez) || 0; } catch (e2) {}
+              var npc = NPCSystem.spawn(ex, ey + 1, ez, 'veteran');
+              if (npc) {
+                npc.job = 'guard';
+                npc.guardPos = playerPos.clone();
+                mission.escortNpcId = npc.id;
+              }
+            }
+          } catch(e3){}
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast('🛡 ESCORT STARTED — Protect the logistics officer and lead them to the destination.', 5000, '#a0c878');
+          }
+        }
+
+        if (mission.escortNpcId === null) return;
+
+        var escortNpc = null;
+        try {
+          if (typeof NPCSystem !== 'undefined' && NPCSystem.getById) {
+            escortNpc = NPCSystem.getById(mission.escortNpcId);
+          }
+        } catch(eFind){}
+
+        if (!escortNpc || !escortNpc.alive || escortNpc.health <= 0) {
+          mission.convoyHealth = 0;
+          mission.objectiveText = 'Escort Logistics NPC: FAILED (Escort killed)';
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast('❌ ESCORT FAILED! The logistics officer was killed.', 5000, '#ff3333');
+          }
+          return;
+        }
+
+        mission.convoyHealth = Math.round(escortNpc.health);
+        var npcPos = escortNpc.position;
+        var pDist = npcPos.distanceTo(playerPos);
+        var dDist = npcPos.distanceTo(mission.destination);
+
+        var waiting = false;
+        if (pDist > 12) {
+          escortNpc.guardPos.copy(npcPos);
+          waiting = true;
+        } else {
+          escortNpc.guardPos.copy(playerPos);
+        }
+
+        if (dDist < 12) {
+          mission.arrived = true;
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast('✓ ESCORT SUCCESSFUL! Destination reached.', 5000, '#88ff88');
+          }
+        }
+
+        if (!mission.ambushSpawned1 && dDist < 80 && dDist > 55) {
+          mission.ambushSpawned1 = true;
+          spawnAmbushNear(npcPos, 4);
+        }
+        if (!mission.ambushSpawned2 && dDist < 45 && dDist > 25) {
+          mission.ambushSpawned2 = true;
+          spawnAmbushNear(npcPos, 5);
+        }
+
+        var statusText = waiting ? ' (Waiting for player)' : '';
+        mission.objectiveText = `Escort Logistics NPC: ${mission.convoyHealth}% HP — Lead to (${Math.round(mission.destination.x)}, ${Math.round(mission.destination.z)}) — Distance: ${Math.round(dDist)}m${statusText}`;
+
+        function spawnAmbushNear(center, enemyCount) {
+          try {
+            if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+              var types = ['CONSCRIPT', 'STORMER', 'RIFLEMAN'];
+              for (var i = 0; i < enemyCount; i++) {
+                var tp = types[Math.floor(Math.random() * types.length)];
+                var ax = center.x + (Math.random() - 0.5) * 15 + 10;
+                var az = center.z + (Math.random() - 0.5) * 15 + 10;
+                var ay = 0;
+                if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+                  ay = VoxelWorld.getTerrainHeight(ax, az) || 0;
+                }
+                Enemies.spawnSingle(tp, { x: ax, y: ay + 1, z: az });
+              }
+            }
+          } catch(e){}
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast('⚠ ESCORT AMBUSH INBOUND!', 4000, '#ffcc00');
+          }
+        }
       },
       check(mission) { return mission.arrived && mission.convoyHealth > 0; },
     },
-
-    // ── INFILTRATE: Player starts disguised as a Russian occupant.
-    //    Walk among them undetected; when ready, ambush and kill the
-    //    designated number of high-value targets. Disguise is blown the
-    //    instant the player damages anyone — survive the resulting alarm.
     infiltrate: {
       name: 'Infiltrate the Occupants',
       description: 'You are inserted in a Russian uniform. Walk among them, then eliminate {kills} occupants. Disguise breaks when you attack — survive the response.',
       tier: 4,
       generate() {
-        const kills = 8 + Math.floor(Math.random() * 5); // 8–12
+        const kills = 8 + Math.floor(Math.random() * 5);
         return {
           type: MISSION_TYPE.INFILTRATE,
           targetKills: kills,
           kills: 0,
           disguiseBlown: false,
           completed: false,
-          // Bonus objective: stealth-kill at least 3 before disguise is blown
           stealthKills: 0,
           stealthBonus: 3,
         };
       },
-      check(mission) { return mission.kills >= mission.targetKills; },
+      check(mission) {
+        var blown = (typeof Enemies !== 'undefined' && Enemies.isDisguiseBlown) ? Enemies.isDisguiseBlown() : false;
+        var status = blown ? '⚠ COMPROMISED' : '🕵 DISGUISED';
+        mission.objectiveText = `Infiltration (${status}): ${mission.kills}/${mission.targetKills} eliminated`;
+        return mission.kills >= mission.targetKills;
+      },
     },
-
-    // ── CLEAR_BUILDING: Player enters a marked apartment block and
-    //    eliminates every Russian occupant inside.  Enemies are spawned
-    //    on each floor's hallway when the mission starts.  Mission
-    //    completes when no enemies remain inside the building bbox.
     clear_building: {
       name: 'Clear the Building',
       description: 'Russian occupants have holed up inside an apartment block. Enter and eliminate every hostile on every floor.',
@@ -283,12 +549,11 @@ const MissionSystem = (function () {
             if (list && list.length) building = list[Math.floor(Math.random() * list.length)];
           }
         } catch (e) {}
-        // Fallback: synthesize a small bbox at world origin if no apartments
         if (!building) {
           building = { kind: 'apartment', x: -9, z: -5, w: 18, d: 10, baseY: 0, floorH: 3, floors: 4, cx: 0, cz: 0 };
         }
-        // Spawn 2 enemies per floor in the hallway center.
         var spawned = 0;
+        var spawnedEnemyIds = [];
         try {
           if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
             var types = ['CONSCRIPT', 'RIFLEMAN', 'GRENADIER'];
@@ -297,9 +562,12 @@ const MissionSystem = (function () {
                 var tp = types[Math.floor(Math.random() * types.length)];
                 var px = building.x + 4 + Math.floor(Math.random() * (building.w - 8));
                 var pz = building.cz + (n === 0 ? -1 : 1);
-                var py = building.baseY + f * building.floorH + 1; // stand on slab
-                Enemies.spawnSingle(tp, { x: px + 0.5, z: pz + 0.5, y: py });
-                spawned++;
+                var py = building.baseY + f * building.floorH + 1;
+                var spawnedEnemy = Enemies.spawnSingle(tp, { x: px + 0.5, z: pz + 0.5, y: py });
+                if (spawnedEnemy) {
+                  spawnedEnemyIds.push(spawnedEnemy.id);
+                  spawned++;
+                }
               }
             }
           }
@@ -308,31 +576,24 @@ const MissionSystem = (function () {
           type: MISSION_TYPE.CLEAR_BUILDING,
           building: building,
           spawned: spawned,
+          spawnedEnemyIds: spawnedEnemyIds,
           remaining: spawned,
           completed: false,
         };
       },
       check(mission) {
-        // Count enemies whose mesh.position lies inside the building bbox.
-        if (typeof Enemies === 'undefined' || !Enemies.getAll) return mission.spawned === 0;
-        var b = mission.building;
-        var minX = b.x, maxX = b.x + b.w;
-        var minZ = b.z, maxZ = b.z + b.d;
-        var minY = b.baseY - 1;
-        var maxY = b.baseY + b.floors * b.floorH + 1;
-        var alive = 0;
-        var all = Enemies.getAll();
-        for (var i = 0; i < all.length; i++) {
-          var e = all[i];
-          if (!e || e.dead || !e.mesh) continue;
-          var p = e.mesh.position;
-          if (p.x >= minX && p.x <= maxX && p.z >= minZ && p.z <= maxZ &&
-              p.y >= minY && p.y <= maxY) alive++;
+        if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) return mission.spawned === 0;
+        var aliveCount = 0;
+        var allEnemies = Enemies.getAll();
+        for (var id of mission.spawnedEnemyIds) {
+          var found = allEnemies.find(e => e && e.id === id);
+          if (found && found.alive) {
+            aliveCount++;
+          }
         }
-        mission.remaining = alive;
-        // Completion requires the player to have actually entered (i.e. at
-        // least one enemy was spawned) and the building is now empty.
-        return mission.spawned > 0 && alive === 0;
+        mission.remaining = aliveCount;
+        mission.objectiveText = `Clear Building: ${mission.spawned - aliveCount}/${mission.spawned} cleared`;
+        return mission.spawned > 0 && aliveCount === 0;
       },
     },
   };
@@ -400,28 +661,50 @@ const MissionSystem = (function () {
     for (let i = activeMissions.length - 1; i >= 0; i--) {
       const m = activeMissions[i];
       const template = TEMPLATES[m.type];
-      if (template && template.check(m.data)) {
-        m.status = 'completed';
-        completedMissions.push(m);
-        activeMissions.splice(i, 1);
-
-        // INFILTRATE: turn off disguise on completion.
-        try {
-          if (m.type === MISSION_TYPE.INFILTRATE && typeof Enemies !== 'undefined' && Enemies.setPlayerDisguised) {
-            Enemies.setPlayerDisguised(false);
-            if (typeof HUD !== 'undefined' && HUD.showToast) {
-              const stealth = m.data.stealthKills || 0;
-              const bonus = stealth >= (m.data.stealthBonus || 0) ? ' +STEALTH BONUS' : '';
-              HUD.showToast(`✓ INFILTRATION COMPLETE (${stealth} stealth kills)${bonus}`, 4000, '#88ff88');
-            }
+      if (template) {
+        if (template.update) {
+          try {
+            template.update(m.data, delta);
+          } catch (eUpd) {
+            console.error('Failed to update mission:', m.type, eUpd);
           }
-        } catch (eIC) {}
+        }
+        if (template.check(m.data)) {
+          m.status = 'completed';
+          completedMissions.push(m);
+          activeMissions.splice(i, 1);
 
-        // Reward
-        var reward = (typeof Economy !== 'undefined' && Economy.missionReward) ? Economy.missionReward(m.tier) : 0;
-        if (typeof RankSystem !== 'undefined' && RankSystem.onMissionComplete) RankSystem.onMissionComplete(m.tier);
+          // INFILTRATE: turn off disguise on completion.
+          try {
+            if (m.type === MISSION_TYPE.INFILTRATE && typeof Enemies !== 'undefined' && Enemies.setPlayerDisguised) {
+              Enemies.setPlayerDisguised(false);
+              if (typeof HUD !== 'undefined' && HUD.showToast) {
+                const stealth = m.data.stealthKills || 0;
+                const bonus = stealth >= (m.data.stealthBonus || 0) ? ' +STEALTH BONUS' : '';
+                HUD.showToast(`✓ INFILTRATION COMPLETE (${stealth} stealth kills)${bonus}`, 4000, '#88ff88');
+              }
+            }
+          } catch (eIC) {}
 
-        if (_onComplete) _onComplete(m, reward);
+          // Reward
+          var reward = (typeof Economy !== 'undefined' && Economy.missionReward) ? Economy.missionReward(m.tier) : 0;
+          if (typeof RankSystem !== 'undefined' && RankSystem.onMissionComplete) RankSystem.onMissionComplete(m.tier);
+
+          if (_onComplete) _onComplete(m, reward);
+        }
+      }
+    }
+    // Update objective HUD
+    if (typeof HUD !== 'undefined') {
+      if (activeMissions.length > 0) {
+        const latest = activeMissions[activeMissions.length - 1];
+        if (latest.data && latest.data.objectiveText) {
+          HUD.showObjective(latest.data.objectiveText);
+        } else {
+          HUD.showObjective(latest.name);
+        }
+      } else {
+        HUD.hideObjective();
       }
     }
   }
