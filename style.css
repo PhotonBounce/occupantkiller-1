@@ -824,7 +824,8 @@ canvas {
   left: 0;
   width: 100%;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 22px;
   padding: 4px 120px 4px 16px;
   font-size: 11px;
   letter-spacing: 1px;
