@@ -362,6 +362,9 @@ const DroneSystem = (function () {
     if (!drone) return false;
     _possessedDrone = drone;
     drone.aiControlled = false;
+    // EYE/FPV is the default view on possess — hide the drone's own mesh up-front
+    // so its lens/body never flashes in the centre of the screen for one frame.
+    if (drone.mesh) drone.mesh.visible = false;
     if (typeof CameraSystem !== 'undefined') {
       if (CameraSystem.setDroneViewMode) CameraSystem.setDroneViewMode('eye');
       CameraSystem.setMode(CameraSystem.MODE.DRONE);

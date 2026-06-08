@@ -303,7 +303,12 @@ const CameraSystem = (function () {
   function getRTSTarget() { return rtsTarget.clone(); }
 
   /* ── Drone Camera ────────────────────────────────────────────────── */
-  function setDroneTarget(obj) { _droneObj = obj; }
+  function setDroneTarget(obj) {
+    // Restore visibility of the previously-possessed drone (it may have been
+    // hidden for EYE/FPV view) before switching targets or releasing.
+    if (_droneObj && _droneObj !== obj) _droneObj.visible = true;
+    _droneObj = obj;
+  }
 
   function setDroneViewMode(mode) {
     if (mode === DRONE_VIEW.EYE || mode === DRONE_VIEW.CHASE) {
@@ -321,12 +326,17 @@ const CameraSystem = (function () {
   function updateDrone(delta) {
     if (!_droneObj) return;
     if (_droneViewMode === DRONE_VIEW.CHASE) {
+      // Third-person: the drone is visible ahead of the camera.
+      if (!_droneObj.visible) _droneObj.visible = true;
       _tmpVec3a.set(0, DRONE_CHASE_HEIGHT, DRONE_CHASE_DIST);
       _tmpVec3a.applyQuaternion(_droneObj.quaternion);
       _tmpVec3b.copy(_droneObj.position).add(_tmpVec3a);
       _camera.position.lerp(_tmpVec3b, Math.min(1, 10 * delta));
       _camera.lookAt(_droneObj.position);
     } else {
+      // EYE/FPV: camera sits inside the drone — hide its own mesh so the
+      // lens/body doesn't fill the centre of the screen.
+      if (_droneObj.visible) _droneObj.visible = false;
       _camera.position.copy(_droneObj.position);
       const euler = _tmpEuler.set(pitch, yaw, 0, 'YXZ');
       _camera.quaternion.setFromEuler(euler);
