@@ -13,6 +13,7 @@ window.Jukebox = (function () {
   let _mp3Volume = 0.12;
   let _mp3Muted = false;
   let _mp3Playing = false;
+  let _mp3FailStreak = 0;  // consecutive load failures — guards against infinite skip loop
   let _mode = 'mp3'; // 'mp3' | 'procedural'
   let _autoplay = true;
 
@@ -59,6 +60,18 @@ window.Jukebox = (function () {
   }
 
   function _onMp3Error() {
+    _mp3FailStreak++;
+    // If every track has failed in a row (e.g. missing files, or a browser with
+    // no MP3 codec such as headless Chromium), stop hammering and fall back to the
+    // procedural player instead of looping forever and spamming the console.
+    if (_mp3FailStreak >= _mp3Tracks.length) {
+      console.warn('[JUKEBOX] MP3 playback unavailable (' + _mp3FailStreak +
+        ' failures) — falling back to procedural music');
+      _mp3Playing = false;
+      if (_autoplay) _playProcedural(_currentIdx);
+      else _emit();
+      return;
+    }
     console.warn('[JUKEBOX] MP3 load error, skipping to next');
     if (_autoplay && _mp3Tracks.length > 1) {
       _mp3Idx = (_mp3Idx + 1) % _mp3Tracks.length;
@@ -81,7 +94,8 @@ window.Jukebox = (function () {
     _mp3Playing = true;
     _emit();
     if (p && typeof p.then === 'function') {
-      p.catch(function (e) { _mp3Playing = false; _emit(); });
+      p.then(function () { _mp3FailStreak = 0; })
+       .catch(function (e) { _mp3Playing = false; _emit(); });
     }
     return true;
   }
