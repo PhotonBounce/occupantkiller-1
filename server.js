@@ -160,20 +160,24 @@ server = http.createServer((req, res) => {
     // Gzip compress text-based assets (with cache)
     const acceptEncoding = req.headers['accept-encoding'] || '';
     if (COMPRESSIBLE.has(mime) && acceptEncoding.indexOf('gzip') !== -1) {
-      if (_gzCache[filePath]) {
+      // Serve cached gzip only if the source file hasn't changed since (guard
+      // against stale assets when a file is edited without restarting the
+      // server — the entry stores the uncompressed byte length to detect this).
+      const cached = _gzCache[filePath];
+      if (cached && cached.srcLen === data.length) {
         headers['Content-Encoding'] = 'gzip';
         headers['Vary'] = 'Accept-Encoding';
         res.writeHead(200, headers);
-        return res.end(_gzCache[filePath]);
+        return res.end(cached.buf);
       }
       zlib.gzip(data, (gzErr, compressed) => {
         if (gzErr) {
           res.writeHead(200, headers);
           return res.end(data);
         }
-        // Cache for future requests
-        if (Object.keys(_gzCache).length < CACHE_MAX) {
-          _gzCache[filePath] = compressed;
+        // Cache for future requests (keep length so we can invalidate on change)
+        if (cached || Object.keys(_gzCache).length < CACHE_MAX) {
+          _gzCache[filePath] = { srcLen: data.length, buf: compressed };
         }
         headers['Content-Encoding'] = 'gzip';
         headers['Vary'] = 'Accept-Encoding';
