@@ -1453,6 +1453,10 @@ html.is-mobile #tank-hud {
   html.is-mobile #server-status,
   html.is-mobile #grenade-keyhint { display: none !important; }
 
+  /* Mobile: swap the drone keyboard-hint row for touch-friendly hints */
+  html.is-mobile #drone-key-hints { display: none !important; }
+  html.is-mobile #drone-touch-hints { display: block !important; }
+
   /* Mobile-landscape: shrink overlay text/buttons so the START button is reachable
      without endless scrolling. Default desktop sizes (52px h1, 16px p, 24px-margin
      buttons) push the primary CTA hundreds of px below the viewport on a phone. */

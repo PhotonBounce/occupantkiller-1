@@ -636,7 +636,7 @@
   <!-- Drone Controls HUD (shown while piloting) -->
   <div id="drone-controls-hud" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);border:1px solid #00ccff;border-radius:8px;padding:10px 18px;z-index:120;text-align:center;pointer-events:none">
     <div style="color:#00ccff;font-weight:bold;font-size:13px;margin-bottom:4px">\uD83D\uDEE9 DRONE ACTIVE <span id="drone-type-label" style="color:#fff"></span></div>
-    <div style="display:flex;gap:16px;justify-content:center;font-size:11px;color:#ccc">
+    <div id="drone-key-hints" style="display:flex;gap:16px;justify-content:center;font-size:11px;color:#ccc">
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">W</kbd><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">A</kbd><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">S</kbd><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">D</kbd> Move</span>
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">SPACE</kbd> Up</span>
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">SHIFT</kbd> Down</span>
@@ -645,6 +645,7 @@
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">T</kbd> View</span>
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">F</kbd> Exit Drone</span>
     </div>
+    <div id="drone-touch-hints" style="display:none;font-size:11px;color:#ccc">Left stick · Move &nbsp;|&nbsp; Right stick · Look &nbsp;|&nbsp; 🔫 Attack &nbsp;|&nbsp; 👁 View &nbsp;|&nbsp; ✕ Exit Drone</div>
     <div style="margin-top:5px;font-size:11px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <span style="color:#00ccff">\uD83D\uDD0B <span id="drone-battery-display">100</span>%</span>
       <span style="color:#ff4444">\u2764 <span id="drone-hp-display">100</span>%</span>
