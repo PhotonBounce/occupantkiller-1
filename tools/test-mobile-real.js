@@ -243,14 +243,16 @@ const VIEWPORTS = [
               offScreenY.push({ id: b.id || b.textContent.trim().slice(0, 24), y: Math.round(br.y), h: Math.round(br.height), bottom: Math.round(br.bottom) });
             }
           }
-          // Restore
-          for (const [o, d] of prev) o.style.display = d;
+          // Restore siblings but KEEP the audited overlay visible so the
+          // screenshot below actually captures it (previously every overlay
+          // shot was taken after restoring display:none — looked blank).
+          for (const [o, d] of prev) { if (o !== ov) o.style.display = d; }
           return { display: cs.display, w: Math.round(r.width), h: Math.round(r.height), visBtns, offScreenX, offScreenY };
         }, ovId, vp.w, vp.h);
         if (audit.missing) continue;
         console.log('  ' + ovId + ':', JSON.stringify(audit));
         await page.screenshot({ path: path.join(SHOT, vp.name + '-ov-' + ovId + '.png') });
-        // Restore visibility for screenshots — re-show
+        // Cleanup: hide the audited overlay again before the next iteration.
         await page.evaluate((id) => {
           const o = document.getElementById(id);
           if (o) o.style.display = 'none';
