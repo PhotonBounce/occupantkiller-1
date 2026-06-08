@@ -3845,7 +3845,21 @@ const Weapons = (() => {
             if (hs2 !== null && hs2 > _hBestScore) { _hBestScore = hs2; _hBest = he; }
           }
         }
-        HUD.showLockOn(!!_hBest);
+        if (_hBest) {
+          // Project the locked target to screen space so the HUD can draw a
+          // tracking bracket directly over it (instead of a static caption).
+          var _hTgtPos = _hBest.mesh ? _hBest.mesh.position : _hBest.position;
+          var _hProj = _hTgtPos.clone().project(_camera);
+          if (_hProj.z < 1) {
+            var _hsx = (_hProj.x * 0.5 + 0.5) * window.innerWidth;
+            var _hsy = (-_hProj.y * 0.5 + 0.5) * window.innerHeight;
+            HUD.showLockOn(true, _hsx, _hsy);
+          } else {
+            HUD.showLockOn(true); // target behind camera — fall back to caption
+          }
+        } else {
+          HUD.showLockOn(false);
+        }
       } else {
         HUD.showLockOn(false);
       }

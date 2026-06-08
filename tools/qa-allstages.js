@@ -51,7 +51,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       } catch (e) {}
       return { stage: gm.getCurrentStage(), name: st && st.name, nan };
     }, s);
-    await sleep(2500);
+    await sleep(1200);
     const shot = path.join(OUT, `stage-${String(s).padStart(2, '0')}-${(info.name || '').replace(/[^a-z0-9]/gi, '').slice(0, 12)}.png`);
     await page.screenshot({ path: shot, type: 'png' });
     const newErrs = errors.slice(before);

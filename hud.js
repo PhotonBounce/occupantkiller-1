@@ -578,16 +578,45 @@ const HUD = (() => {
     });
   }
 
-  // Lock-on indicator for guided ATGM / AA
-  var _lockOnEl = null;
-  function showLockOn(locked) {
+  // Lock-on indicator for guided ATGM / AA.
+  // showLockOn(locked, x, y): when x/y screen coords are supplied, a tracking
+  // bracket is drawn over the locked target; otherwise it falls back to a
+  // centred "SEEKER LOCK" caption.
+  var _lockOnEl = null;       // centred caption (fallback / label)
+  var _lockBracketEl = null;  // target-tracking bracket
+  function _ensureLockEls() {
     if (!_lockOnEl) {
       _lockOnEl = document.createElement('div');
       _lockOnEl.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#ff3030;font-size:18px;font-family:monospace;font-weight:bold;text-shadow:0 0 6px #ff0000;pointer-events:none;z-index:165;opacity:0;transition:opacity 0.15s;letter-spacing:2px;';
       document.body.appendChild(_lockOnEl);
     }
-    _lockOnEl.textContent = locked ? 'SEEKER LOCK' : '';
-    _lockOnEl.style.opacity = locked ? '1' : '0';
+    if (!_lockBracketEl) {
+      _lockBracketEl = document.createElement('div');
+      // 4 corner brackets + centre dot + label, drawn via borders.
+      _lockBracketEl.style.cssText = 'position:fixed;width:64px;height:64px;pointer-events:none;z-index:166;opacity:0;transition:opacity 0.1s,left 0.05s linear,top 0.05s linear;transform:translate(-50%,-50%);';
+      _lockBracketEl.innerHTML =
+        '<div style="position:absolute;top:0;left:0;width:16px;height:16px;border-top:3px solid #ff2020;border-left:3px solid #ff2020;box-shadow:0 0 4px #ff0000"></div>' +
+        '<div style="position:absolute;top:0;right:0;width:16px;height:16px;border-top:3px solid #ff2020;border-right:3px solid #ff2020;box-shadow:0 0 4px #ff0000"></div>' +
+        '<div style="position:absolute;bottom:0;left:0;width:16px;height:16px;border-bottom:3px solid #ff2020;border-left:3px solid #ff2020;box-shadow:0 0 4px #ff0000"></div>' +
+        '<div style="position:absolute;bottom:0;right:0;width:16px;height:16px;border-bottom:3px solid #ff2020;border-right:3px solid #ff2020;box-shadow:0 0 4px #ff0000"></div>' +
+        '<div style="position:absolute;top:50%;left:50%;width:4px;height:4px;margin:-2px 0 0 -2px;background:#ff2020;border-radius:50%;box-shadow:0 0 4px #ff0000"></div>' +
+        '<div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);color:#ff3030;font:bold 10px monospace;letter-spacing:2px;text-shadow:0 0 4px #ff0000;white-space:nowrap">LOCK</div>';
+      document.body.appendChild(_lockBracketEl);
+    }
+  }
+  function showLockOn(locked, x, y) {
+    _ensureLockEls();
+    if (locked && typeof x === 'number' && typeof y === 'number') {
+      // Track the target with the bracket; keep caption hidden.
+      _lockBracketEl.style.left = x + 'px';
+      _lockBracketEl.style.top = y + 'px';
+      _lockBracketEl.style.opacity = '1';
+      _lockOnEl.style.opacity = '0';
+    } else {
+      _lockBracketEl.style.opacity = '0';
+      _lockOnEl.textContent = locked ? 'SEEKER LOCK' : '';
+      _lockOnEl.style.opacity = locked ? '1' : '0';
+    }
   }
 
   // Range readout under crosshair when ADS-aimed at enemy
