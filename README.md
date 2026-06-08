@@ -1,7 +1,7 @@
 # Occupant Killer — 3D FPS
 
 A browser-based first-person shooter built with [Three.js](https://threejs.org/) r137.  
-Fight through **12 stages** of increasingly dangerous occupants across Ukraine and beyond.
+Fight through **18 stages** of increasingly dangerous occupants across Ukraine and beyond.
 
 ## Quick Start
 
@@ -34,7 +34,7 @@ Open `http://localhost:3000` in Chrome, Firefox, or Edge.
 
 ## Game Features
 
-- **12 stages** (Hostomel Airport → Kremlin Showdown), 7-10 waves each
+- **18 stages** (Hostomel Airport → Refinery Strike), 7-10 waves each
 - **30+ enemy types** — infantry, snipers, medics, tanks, drones, mechs, 9 unique bosses
 - **Extensive weapon arsenal** with attachments, recoil patterns, and ammo types
 - **Vehicles** — transport, combat, turret rover (drivable + AI patrols)

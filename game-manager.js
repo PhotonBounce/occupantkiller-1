@@ -1134,6 +1134,12 @@ const GameManager = (function () {
   /* ── Init ────────────────────────────────────────────────────────── */
   function init() {
     _clearBootTimeout(); // Boot succeeded, clear timeout
+    // Keep the start-screen badge in sync with the real stage count so it
+    // never drifts from STAGES (was hardcoded "12" while STAGES has grown).
+    try {
+      var _badge = document.getElementById('level-badge');
+      if (_badge) _badge.textContent = 'HYBRID VOXEL WARFARE · ' + STAGES.length + ' STAGES';
+    } catch (_e) {}
     try {
       _renderer = createRendererWithFallback();
         // Create scene — dynamic background/fog per stage
