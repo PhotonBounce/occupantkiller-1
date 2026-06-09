@@ -216,6 +216,12 @@ const Weapons = (() => {
       spread: 0.025, auto: true, type: 'JAMMER', recoilY: 0.005, recoilX: 0.002,
       description: 'EMP pulse rifle. Disables enemy drones and damages electronics in a forward cone.',
     },
+    {
+      id: 'AXE', name: 'Combat Axe', damage: 75,
+      fireRate: 0.45, clipSize: 0, maxReserve: 0, reloadTime: 0,
+      spread: 0, auto: false, type: 'MELEE', recoilY: 0, recoilX: 0,
+      description: 'Heavy chopping axe. Brutal close-quarters melee with high single-hit damage.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -703,6 +709,62 @@ const Weapons = (() => {
       rivet.position.set(0.16 + i * 0.022, -0.135, -0.665);
       g.add(rivet);
     }
+
+    return g;
+  }
+
+  function buildAxeMesh() {
+    // Combat/fire axe: wooden haft held diagonally with a steel head (bit +
+    // poll) at the forward end.
+    const g = new THREE.Group();
+    const woodMat  = new THREE.MeshLambertMaterial({ color: 0x6e4a26 });
+    const wrapMat  = new THREE.MeshLambertMaterial({ color: 0x2a1c10 });
+    const headMat  = new THREE.MeshPhongMaterial({ color: 0x3a3a40, shininess: 70, specular: 0x6a6a77 });
+    const edgeMat  = new THREE.MeshPhongMaterial({ color: 0xd0d0d8, shininess: 130, specular: 0xbbbbbb });
+
+    // Haft runs along Z (grip near camera → head forward)
+    const haft = new THREE.Mesh(new THREE.CylinderGeometry(0.0135, 0.016, 0.40, 10), woodMat);
+    haft.rotation.x = Math.PI / 2;
+    haft.position.set(0.16, -0.13, -0.45);
+    g.add(haft);
+
+    // Grip wrap near the camera end
+    const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.10, 8), wrapMat);
+    wrap.rotation.x = Math.PI / 2;
+    wrap.position.set(0.16, -0.13, -0.30);
+    g.add(wrap);
+
+    // Eye / socket where the head mounts the haft
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.05, 0.05), headMat);
+    eye.position.set(0.16, -0.13, -0.635);
+    g.add(eye);
+
+    // Axe bit (blade) — extruded fan shape flaring out to a curved edge
+    const bw = 0.012, top = 0.052, bot = 0.062;
+    const shape = new THREE.Shape();
+    shape.moveTo(0, top);
+    shape.lineTo(0.085, 0.085);        // upper edge tip
+    shape.lineTo(0.10, 0);             // mid (cutting edge front)
+    shape.lineTo(0.085, -0.085);       // lower edge tip
+    shape.lineTo(0, -bot);
+    shape.closePath();
+    const bitGeo = new THREE.ExtrudeGeometry(shape, { depth: bw, bevelEnabled: false });
+    bitGeo.center();
+    const bit = new THREE.Mesh(bitGeo, headMat);
+    // Stand the bit vertically at the head, cutting edge facing forward (-Z)
+    bit.rotation.y = Math.PI / 2;
+    bit.position.set(0.205, -0.13, -0.635);
+    g.add(bit);
+
+    // Sharpened edge strip along the cutting face
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.155, 0.012), edgeMat);
+    edge.position.set(0.252, -0.13, -0.635);
+    g.add(edge);
+
+    // Poll (back hammer face) behind the eye
+    const poll = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.04, 0.035), headMat);
+    poll.position.set(0.135, -0.13, -0.635);
+    g.add(poll);
 
     return g;
   }
@@ -2386,7 +2448,7 @@ const Weapons = (() => {
     buildClaymoreMesh, buildSmokeMesh, buildFlashbangMesh,
     buildAk12Mesh, buildP90Mesh, buildAt4Mesh, buildGlockMesh,
     buildKs23Mesh, buildAgs17Mesh, buildVssMesh, buildStingerMesh,
-    buildThrowKnifeMesh, buildC4Mesh, buildDroneJammerMesh
+    buildThrowKnifeMesh, buildC4Mesh, buildDroneJammerMesh, buildAxeMesh
   ];
 
   // Ensure meshBuilders matches WEAPONS length
