@@ -2992,6 +2992,8 @@ const GameManager = (function () {
       // deploy mid-fight (Q/F) — the game no longer forces a drone-pilot view
       // at stage start (that read as "starting in drone perspective").
       beginWave(1);
+      // First-run onboarding (core controls + goal). Shows once ever.
+      try { if (typeof Feedback !== 'undefined' && Feedback.startOnboarding) Feedback.startOnboarding(); } catch (_e) {}
     }, 3200);
 
     // Generate an initial mission
@@ -3265,6 +3267,8 @@ const GameManager = (function () {
       // deploy mid-fight (Q/F) — the game no longer forces a drone-pilot view
       // at stage start (that read as "starting in drone perspective").
       beginWave(1);
+      // First-run onboarding (core controls + goal). Shows once ever.
+      try { if (typeof Feedback !== 'undefined' && Feedback.startOnboarding) Feedback.startOnboarding(); } catch (_e) {}
     }, 3200);
     } catch (err) {
       console.error('[nextStage] error:', err);

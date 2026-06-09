@@ -656,6 +656,62 @@ const Feedback = (function () {
     try { localStorage.removeItem('ok_tips_shown'); } catch (e) {}
   }
 
+  /* ── First-run onboarding: teach the core loop in the first ~15s ──────
+     The #1 retention lever (research): a new player must learn move/aim/fire/
+     reload + the goal immediately. Shows once ever (localStorage), auto-advances,
+     and is skippable. Self-contained so it can't break gameplay. */
+  var _obEl = null, _obTimer = null, _obIdx = 0, _obSteps = null, _obActive = false;
+  function _isMobileDoc() {
+    return typeof document !== 'undefined' && document.documentElement &&
+      document.documentElement.classList && document.documentElement.classList.contains('is-mobile');
+  }
+  function _obShow(step) {
+    if (!_obEl) {
+      _obEl = document.createElement('div');
+      _obEl.id = 'onboarding-prompt';
+      _obEl.style.cssText = 'position:fixed;bottom:21%;left:50%;transform:translateX(-50%);z-index:255;pointer-events:none;text-align:center;font-family:"Segoe UI",system-ui,sans-serif;background:linear-gradient(180deg,rgba(8,12,20,0.92),rgba(8,12,20,0.7));border:1px solid rgba(90,200,255,0.5);border-radius:10px;padding:10px 22px;box-shadow:0 4px 18px rgba(0,0,0,0.6);transition:opacity 0.3s;';
+      document.body.appendChild(_obEl);
+    }
+    _obEl.innerHTML =
+      '<div style="font-size:17px;font-weight:800;color:#5cdcff;letter-spacing:1px;text-shadow:0 1px 4px #000">' + step.main + '</div>' +
+      (step.sub ? '<div style="font-size:11px;color:#cfe6ff;margin-top:2px">' + step.sub + '</div>' : '');
+    _obEl.style.display = 'block';
+    _obEl.style.opacity = '1';
+  }
+  function _obNext() {
+    if (!_obActive) return;
+    _obIdx++;
+    if (!_obSteps || _obIdx >= _obSteps.length) { _obEnd(); return; }
+    _obShow(_obSteps[_obIdx]);
+    _obTimer = setTimeout(_obNext, _obSteps[_obIdx].ms || 3200);
+  }
+  function _obEnd() {
+    _obActive = false;
+    if (_obTimer) { clearTimeout(_obTimer); _obTimer = null; }
+    if (_obEl) { _obEl.style.opacity = '0'; setTimeout(function () { if (_obEl) _obEl.style.display = 'none'; }, 350); }
+  }
+  function startOnboarding(force) {
+    try { if (!force && localStorage.getItem('ok_onboarded')) return; } catch (e) {}
+    try { localStorage.setItem('ok_onboarded', '1'); } catch (e) {}
+    if (_obActive) return;
+    _obSteps = _isMobileDoc() ? [
+      { main: '👈  LEFT STICK — MOVE', sub: 'Drag the left thumb-stick to walk', ms: 3400 },
+      { main: '👉  RIGHT SIDE — LOOK / AIM', sub: 'Swipe anywhere on the right to aim', ms: 3600 },
+      { main: '🔫  FIRE BUTTON — SHOOT', sub: 'Tap & hold the fire button', ms: 3400 },
+      { main: '🎯  CLEAR THE OCCUPANTS', sub: 'Eliminate every enemy to win the wave', ms: 3800 },
+    ] : [
+      { main: '⌨  W A S D  —  MOVE', sub: 'Arrow keys work too', ms: 3000 },
+      { main: '🖱  MOUSE  —  AIM', sub: 'Click the screen to lock the cursor', ms: 3000 },
+      { main: '🖱  LEFT-CLICK  —  FIRE', sub: 'Hold to keep firing', ms: 3400 },
+      { main: '🔄  R  —  RELOAD   ·   SHIFT — SPRINT', sub: '', ms: 3200 },
+      { main: '🎯  ELIMINATE THE OCCUPANTS', sub: 'Clear every enemy to advance. Good hunting.', ms: 4000 },
+    ];
+    _obIdx = 0; _obActive = true;
+    _obShow(_obSteps[0]);
+    _obTimer = setTimeout(_obNext, _obSteps[0].ms || 3200);
+  }
+  function isOnboarding() { return _obActive; }
+
   return {
     CFG, ACHIEVEMENTS,
     init, clear, update,
@@ -692,7 +748,7 @@ const Feedback = (function () {
     showEnvironmentWarning,
     radioChatter,
     // Contextual tips
-    checkTips, resetTips, showTip, dismissTip,
+    checkTips, resetTips, showTip, dismissTip, startOnboarding, isOnboarding,
   };
 })();
 if (typeof window !== 'undefined') window.Feedback = Feedback;
