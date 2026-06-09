@@ -2771,7 +2771,7 @@ const Weapons = (() => {
       if (CombatExtras.isBlindFiring && CombatExtras.isBlindFiring()) CombatExtras.toggleBlindFire();
     }
     currentIdx = idx;
-    if (gunMeshes[currentIdx]) gunMeshes[currentIdx].visible = true;
+    if (gunMeshes[currentIdx]) gunMeshes[currentIdx].visible = !_holstered;
     // Align muzzle flash to new weapon barrel so flash doesn't float detached
     if (muzzleFlash && gunMeshes[currentIdx] && gunMeshes[currentIdx].userData.muzzlePos) {
       muzzleFlash.position.copy(gunMeshes[currentIdx].userData.muzzlePos);
@@ -2793,6 +2793,23 @@ const Weapons = (() => {
     }
     HUD.showReload(st.reloading);
   }
+
+  // Holster (hide) the first-person weapon while the player is piloting a drone
+  // or driving a vehicle — otherwise the gun (a camera child) floats in the
+  // drone/vehicle view ("flying with a machine gun").
+  var _holstered = false;
+  function setHolstered(hidden) {
+    hidden = !!hidden;
+    if (_holstered === hidden) return;
+    _holstered = hidden;
+    if (gunMeshes[currentIdx]) gunMeshes[currentIdx].visible = !hidden;
+    if (muzzleFlash) muzzleFlash.visible = !hidden;
+    if (_muzzleSmoke && hidden) _muzzleSmoke.visible = false;
+    if (typeof WeaponDetails !== 'undefined' && WeaponDetails.setHidden) {
+      try { WeaponDetails.setHidden(hidden); } catch (e) {}
+    }
+  }
+  function isHolstered() { return _holstered; }
 
   function switchNext() {
     const ids = [];
@@ -4434,6 +4451,8 @@ const Weapons = (() => {
     getClipSize,
     getDamage,
     switchTo,
+    setHolstered,
+    isHolstered,
     switchNext,
     switchPrev,
     unlockWeapon,

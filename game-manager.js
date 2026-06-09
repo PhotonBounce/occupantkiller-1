@@ -5660,6 +5660,9 @@ const GameManager = (function () {
       if (Weapons.setPlayerSpeed) Weapons.setPlayerSpeed(player.velocity.length());
       // Hold breath: Shift while zoomed and not moving steadies scope
       if (Weapons.setHoldBreath) Weapons.setHoldBreath(Weapons.isZoomed() && keys['ShiftLeft'] && player.velocity.length() < 0.5);
+      // Holster the FP weapon while piloting a drone or driving a vehicle so it
+      // doesn't float in that view ("flying with a machine gun").
+      if (Weapons.setHolstered) Weapons.setHolstered(DroneSystem.isPossessing() || VehicleSystem.isInVehicle());
       Weapons.update(delta);
 
       // ── Dynamic crosshair spread: widens with movement, sprint, jump, recent fire ──
