@@ -522,6 +522,9 @@
 
     <!-- Challenge mode selector (on start screen - referenced below) -->
     <!-- Mission objective tracker -->
+    <!-- Mission Board open button -->
+    <button id="mission-board-btn" style="position:fixed;left:12px;top:132px;z-index:205;background:linear-gradient(180deg,rgba(40,32,12,0.85),rgba(24,18,8,0.85));border:1px solid rgba(255,200,60,0.5);color:#ffd24a;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:700;font-family:'Segoe UI',system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4)" title="Open the Mission Board — choose & start an operation">📋 MISSIONS</button>
+
     <div id="mission-tracker" style="display:none;position:fixed;top:110px;right:12px;background:rgba(0,0,0,0.7);border:1px solid rgba(255,200,0,0.3);padding:8px 12px;border-radius:6px;z-index:200;font-family:monospace;font-size:11px;pointer-events:none;color:#ccc;max-width:250px">
       <div style="color:#ffcc00;font-weight:bold;margin-bottom:4px" id="mission-tracker-title">📍 MISSION</div>
       <div id="mission-tracker-objectives"></div>
@@ -1761,6 +1764,13 @@ document.addEventListener('DOMContentLoaded', function () {
     e.stopPropagation();
     GameManager.toggleGodMode();
     updateGodModeButtons();
+  });
+
+  // Mission Board — choose & start an operation ("start this mission" button)
+  var _mbBtn = document.getElementById('mission-board-btn');
+  if (_mbBtn) _mbBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (GameManager.toggleMissionBoard) GameManager.toggleMissionBoard();
   });
 
   // ── Populate weapons grids & role indicator ────────────

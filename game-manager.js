@@ -7668,6 +7668,76 @@ const GameManager = (function () {
     content.innerHTML = html;
   }
 
+  /* ── Mission Board: deliberately choose & START a mission ───────────── */
+  var _missionBoardEl = null;
+  var _MISSION_ICONS = {
+    gather: '📦', expand: '🏗', recon: '🛰', defense: '🛡', escort: '🚐',
+    infiltrate: '🕵', clear_building: '🏚', assassinate: '🎯', sabotage: '💥',
+  };
+  function _openMissionBoard() {
+    if (typeof MissionSystem === 'undefined' || !MissionSystem.TEMPLATES) return;
+    if (!_missionBoardEl) {
+      _missionBoardEl = document.createElement('div');
+      _missionBoardEl.id = 'mission-board';
+      _missionBoardEl.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:520;width:min(560px,92vw);max-height:80vh;overflow-y:auto;background:linear-gradient(180deg,rgba(12,16,22,0.97),rgba(8,11,16,0.97));border:1px solid rgba(255,200,60,0.45);border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.7);padding:16px 18px;font-family:"Segoe UI",system-ui,sans-serif;color:#eee;';
+      document.body.appendChild(_missionBoardEl);
+    }
+    var T = MissionSystem.TEMPLATES;
+    var active = (MissionSystem.getActive && MissionSystem.getActive()) || [];
+    var activeName = active[0] && active[0].name;
+    var rows = '';
+    Object.keys(T).forEach(function (key) {
+      var t = T[key];
+      if (!t || !t.name) return;
+      var icon = _MISSION_ICONS[key] || '📋';
+      var tier = t.tier || 1;
+      var stars = '★'.repeat(tier) + '☆'.repeat(Math.max(0, 3 - tier));
+      var isActive = activeName === t.name;
+      rows +=
+        '<div style="display:flex;align-items:center;gap:12px;padding:10px;margin:6px 0;background:rgba(255,255,255,0.03);border:1px solid ' + (isActive ? 'rgba(120,255,140,0.5)' : 'rgba(255,255,255,0.07)') + ';border-radius:8px">' +
+          '<div style="font-size:24px;flex:0 0 28px;text-align:center">' + icon + '</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-weight:700;color:#ffd24a;font-size:14px">' + t.name + (isActive ? ' <span style="color:#7dff8c;font-size:10px">● ACTIVE</span>' : '') + '</div>' +
+            '<div style="font-size:11px;color:#bcd;line-height:1.35">' + (t.description || '') + '</div>' +
+            '<div style="font-size:10px;color:#caa84a;margin-top:2px">Difficulty ' + stars + '</div>' +
+          '</div>' +
+          '<button data-mission="' + key + '" class="mb-start-btn" style="flex:0 0 auto;background:' + (isActive ? '#2a3a2a' : 'linear-gradient(180deg,#3a7a3a,#2a5a2a)') + ';color:#dfffdf;border:1px solid rgba(120,255,140,0.5);border-radius:6px;padding:7px 12px;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:0.5px">' + (isActive ? 'RESTART' : '▶ START') + '</button>' +
+        '</div>';
+    });
+    _missionBoardEl.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<div style="font-size:17px;font-weight:800;color:#ffd24a;letter-spacing:1px">📋 MISSION BOARD</div>' +
+        '<button id="mb-close" style="background:none;border:1px solid #555;color:#ccc;border-radius:6px;padding:3px 10px;cursor:pointer">✕ CLOSE</button>' +
+      '</div>' +
+      '<div style="font-size:11px;color:#9ab;margin-bottom:8px">Choose an operation to begin. The active mission shows in your objective banner.</div>' +
+      rows;
+    _missionBoardEl.style.display = 'block';
+    gameState = STATE.PAUSED;
+    _releaseMouseForUI();
+    // wire buttons
+    _missionBoardEl.querySelectorAll('.mb-start-btn').forEach(function (btn) {
+      btn.onclick = function () {
+        var key = btn.getAttribute('data-mission');
+        try { MissionSystem.generateMission(key); } catch (e) {}
+        try {
+          var t = MissionSystem.TEMPLATES[key];
+          if (t && HUD.notifyPickup) HUD.notifyPickup('📋 MISSION STARTED: ' + t.name, '#ffd24a');
+        } catch (e) {}
+        _closeMissionBoard();
+      };
+    });
+    var closeBtn = document.getElementById('mb-close');
+    if (closeBtn) closeBtn.onclick = _closeMissionBoard;
+  }
+  function _closeMissionBoard() {
+    if (_missionBoardEl) _missionBoardEl.style.display = 'none';
+    if (gameState === STATE.PAUSED) { gameState = STATE.PLAYING; requestPointerLock(); }
+  }
+  function _toggleMissionBoard() {
+    if (_missionBoardEl && _missionBoardEl.style.display === 'block') _closeMissionBoard();
+    else _openMissionBoard();
+  }
+
   /** Activate a killstreak reward */
   function _activateStreak(index) {
     if (typeof Perks === 'undefined') return;
@@ -7770,6 +7840,8 @@ const GameManager = (function () {
     _activateStreak: _activateStreak,
     _openPerksMenu: _openPerksMenu,
     _openJournal: _openJournal,
+    toggleMissionBoard: _toggleMissionBoard,
+    openMissionBoard: _openMissionBoard,
     healPlayer: healPlayer,
     addArmor: addArmor,
     addStimBuff: addStimBuff,
