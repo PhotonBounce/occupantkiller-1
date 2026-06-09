@@ -1664,6 +1664,25 @@ const Enemies = (() => {
     if (spawnPos && typeof spawnPos.y === 'number') {
       // Caller forced Y (e.g. CLEAR_BUILDING placing on specific apartment floor)
       sy = spawnPos.y;
+      // Anti-embed for forced-Y (building) spawns: keep the floor Y but nudge
+      // HORIZONTALLY to clear air if the body lands inside an interior wall/
+      // column — an embedded occupant can't be shot and can't move
+      // ("embedded in buildings, not killable").
+      var _vwf = window.VoxelWorld;
+      if (_vwf && _vwf.isSolid && (_vwf.isSolid(sx, sy + 1, sz) || _vwf.isSolid(sx, sy, sz))) {
+        var _ok = false;
+        for (var _fa = 0; _fa < 12 && !_ok; _fa++) {
+          var _fang = _fa * Math.PI / 6;
+          for (var _fr = 1; _fr <= 4 && !_ok; _fr++) {
+            var _fx = sx + Math.cos(_fang) * _fr;
+            var _fz = sz + Math.sin(_fang) * _fr;
+            // need: solid floor under foot, clear air at body height
+            if (_vwf.isSolid(_fx, sy - 1, _fz) && !_vwf.isSolid(_fx, sy, _fz) && !_vwf.isSolid(_fx, sy + 1, _fz)) {
+              sx = _fx; sz = _fz; _ok = true;
+            }
+          }
+        }
+      }
     } else {
       sy = (typeof window.VoxelWorld !== 'undefined' && window.VoxelWorld.getTopSolidY)
       ? window.VoxelWorld.getTopSolidY(sx, sz)

@@ -652,8 +652,17 @@ const MissionSystem = (function () {
   }
 
   function generateRandom() {
-    const types = Object.keys(TEMPLATES);
-    return generateMission(types[Math.floor(Math.random() * types.length)]);
+    // Weighted pool so the marquee building-clearing content (and combat
+    // missions) surface reliably — it was 1-of-7 uniform RNG, so the
+    // 'clear the building' mission was rarely seen ("missing").
+    const weighted = [
+      'clear_building', 'clear_building', 'clear_building',
+      'defense', 'defense', 'recon', 'recon',
+      'gather', 'expand', 'escort', 'infiltrate',
+    ];
+    let pick = weighted[Math.floor(Math.random() * weighted.length)];
+    if (!TEMPLATES[pick]) pick = Object.keys(TEMPLATES)[0];
+    return generateMission(pick);
   }
 
   /* ── Update / Check ──────────────────────────────────────────────── */
