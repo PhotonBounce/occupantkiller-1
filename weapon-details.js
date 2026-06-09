@@ -58,25 +58,27 @@ const WeaponDetails = (() => {
 
   function initMaterials() {
     if (M._ready) return;
-    // ── Metals ──
-    M.gunMetal   = new THREE.MeshPhongMaterial({ color: 0x2a2a2e, shininess: 120, specular: 0x666677 });
-    M.blueSteel  = new THREE.MeshPhongMaterial({ color: 0x1e2030, shininess: 150, specular: 0x8888bb });
-    M.parkerized = new THREE.MeshPhongMaterial({ color: 0x3a3a3c, shininess: 40,  specular: 0x333344 });
-    M.stainless  = new THREE.MeshPhongMaterial({ color: 0x999999, shininess: 180, specular: 0xdddddd });
-    M.chrome     = new THREE.MeshPhongMaterial({ color: 0xcccccc, shininess: 250, specular: 0xffffff });
-    M.nickel     = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, shininess: 160, specular: 0xcccccc });
-    M.brass      = new THREE.MeshPhongMaterial({ color: 0xb8860b, shininess: 140, specular: 0xffdd88 });
-    M.darkMetal  = new THREE.MeshPhongMaterial({ color: 0x1a1a1e, shininess: 100, specular: 0x555566 });
-    M.blackOxide = new THREE.MeshPhongMaterial({ color: 0x111114, shininess: 80,  specular: 0x444455 });
-    // ── Wood ──
-    M.walnut     = new THREE.MeshPhongMaterial({ color: 0x5a3a1a, shininess: 45, specular: 0x332211 });
-    M.birch      = new THREE.MeshPhongMaterial({ color: 0x8a7a5a, shininess: 35, specular: 0x443322 });
-    M.darkWood   = new THREE.MeshPhongMaterial({ color: 0x3a2a18, shininess: 30, specular: 0x221100 });
+    // ── Metals ── PBR (MeshStandardMaterial) so they pick up scene.environment
+    // reflections for a realistic gunmetal look. Only first-person weapons use
+    // these materials, so the cost stays off the world/enemy render path.
+    M.gunMetal   = new THREE.MeshStandardMaterial({ color: 0x2a2a2e, metalness: 0.88, roughness: 0.42 });
+    M.blueSteel  = new THREE.MeshStandardMaterial({ color: 0x1e2030, metalness: 0.95, roughness: 0.30 });
+    M.parkerized = new THREE.MeshStandardMaterial({ color: 0x3a3a3c, metalness: 0.72, roughness: 0.58 });
+    M.stainless  = new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.92, roughness: 0.28 });
+    M.chrome     = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 1.00, roughness: 0.12 });
+    M.nickel     = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.95, roughness: 0.22 });
+    M.brass      = new THREE.MeshStandardMaterial({ color: 0xb8860b, metalness: 0.90, roughness: 0.32 });
+    M.darkMetal  = new THREE.MeshStandardMaterial({ color: 0x1a1a1e, metalness: 0.82, roughness: 0.48 });
+    M.blackOxide = new THREE.MeshStandardMaterial({ color: 0x111114, metalness: 0.76, roughness: 0.54 });
+    // ── Wood ── (non-metal, matte)
+    M.walnut     = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, metalness: 0.0, roughness: 0.66 });
+    M.birch      = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, metalness: 0.0, roughness: 0.70 });
+    M.darkWood   = new THREE.MeshStandardMaterial({ color: 0x3a2a18, metalness: 0.0, roughness: 0.72 });
     // ── Polymer / Rubber ──
-    M.polymer    = new THREE.MeshPhongMaterial({ color: 0x1a1a1e, shininess: 60, specular: 0x333344 });
-    M.rubber     = new THREE.MeshPhongMaterial({ color: 0x0e0e0e, shininess: 8,  specular: 0x111111 });
-    M.fde        = new THREE.MeshPhongMaterial({ color: 0x9a8a6a, shininess: 30, specular: 0x554433 });
-    M.odGreen    = new THREE.MeshPhongMaterial({ color: 0x4a5a3a, shininess: 25, specular: 0x222211 });
+    M.polymer    = new THREE.MeshStandardMaterial({ color: 0x1a1a1e, metalness: 0.10, roughness: 0.50 });
+    M.rubber     = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, metalness: 0.0,  roughness: 0.88 });
+    M.fde        = new THREE.MeshStandardMaterial({ color: 0x9a8a6a, metalness: 0.05, roughness: 0.68 });
+    M.odGreen    = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, metalness: 0.10, roughness: 0.64 });
     // ── Glass / Optics ──
     M.lensBlue   = new THREE.MeshPhongMaterial({ color: 0x224488, shininess: 250, specular: 0xffffff, transparent: true, opacity: 0.35 });
     M.lensAmber  = new THREE.MeshPhongMaterial({ color: 0xaa6622, shininess: 250, specular: 0xffffff, transparent: true, opacity: 0.3 });

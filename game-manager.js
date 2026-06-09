@@ -1209,6 +1209,36 @@ const GameManager = (function () {
     if (_scene) _scene.add(sunLight);
     else console.warn('Skipped sunLight add: _scene is null');
 
+    // ── Procedural environment map → realistic PBR weapon reflections ──
+    // Built once from a sky/ground gradient canvas and PMREM-filtered. Only the
+    // first-person weapon uses PBR materials, so this stays cheap. Skipped on
+    // mobile / low-end to protect frame rate.
+    if (_renderer && _scene && !isMobile && _rendererProfile !== 'compatibility') {
+      try {
+        var _envCanvas = document.createElement('canvas');
+        _envCanvas.width = 128; _envCanvas.height = 64;
+        var _ectx = _envCanvas.getContext('2d');
+        var _grad = _ectx.createLinearGradient(0, 0, 0, 64);
+        _grad.addColorStop(0.00, '#9bb7d4'); // sky
+        _grad.addColorStop(0.45, '#c9d4dc'); // horizon haze
+        _grad.addColorStop(0.55, '#7a6b58'); // ground (near)
+        _grad.addColorStop(1.00, '#2e2820'); // ground (far)
+        _ectx.fillStyle = _grad; _ectx.fillRect(0, 0, 128, 64);
+        var _sun = _ectx.createRadialGradient(96, 15, 0, 96, 15, 22);
+        _sun.addColorStop(0, 'rgba(255,250,230,0.95)');
+        _sun.addColorStop(1, 'rgba(255,250,230,0)');
+        _ectx.fillStyle = _sun; _ectx.fillRect(0, 0, 128, 64);
+        var _envTex = new THREE.CanvasTexture(_envCanvas);
+        _envTex.mapping = THREE.EquirectangularReflectionMapping;
+        var _pmrem = new THREE.PMREMGenerator(_renderer);
+        if (_pmrem.compileEquirectangularShader) _pmrem.compileEquirectangularShader();
+        var _envRT = _pmrem.fromEquirectangular(_envTex);
+        _scene.environment = _envRT.texture;
+        _envTex.dispose();
+        _pmrem.dispose();
+      } catch (eEnv) { /* reflections are optional polish */ }
+    }
+
     hemiLight = new THREE.HemisphereLight(0xFFD700, 0x0057B8, 0.6);
     if (_scene) _scene.add(hemiLight);
     else console.warn('Skipped hemiLight add: _scene is null');
