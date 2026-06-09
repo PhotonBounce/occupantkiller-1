@@ -1344,11 +1344,17 @@ html.is-mobile #tank-hud {
   /* Override base #mobile-actions #btn-fire with equal-or-higher specificity */
   html.is-mobile #mobile-actions #btn-fire { width: 84px; height: 84px; font-size: 30px; }
   html.is-mobile #mobile-utility {
+    /* Single horizontal strip along the top-right edge — keeps the secondary
+       utility buttons clear of the bottom-right primary action cluster (they
+       were overlapping in two columns). */
     bottom: auto;
-    top: calc(var(--mobile-safe-top) + 84px);
-    right: max(14px, env(safe-area-inset-right));
-    grid-template-columns: repeat(2, 36px);
-    gap: 3px;
+    top: max(6px, env(safe-area-inset-top));
+    right: 64px;
+    left: auto;
+    display: flex;
+    flex-direction: row;
+    grid-template-columns: none;
+    gap: 5px;
   }
   html.is-mobile .utility-btn { width: 36px; height: 36px; font-size: 14px; }
   /* Hide rarely-used buttons on mobile landscape — accessible via inventory/pause overlay.
