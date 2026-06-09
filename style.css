@@ -1355,17 +1355,33 @@ html.is-mobile #tank-hud {
      Keep btn-build, btn-melee, btn-crouch visible — Puppeteer tests expect them on-screen. */
   html.is-mobile #btn-night,
   html.is-mobile #btn-view { display: none !important; }
-  /* Hard-cap look-zone so it never dominates landscape (audit #27) */
+  /* Look zone = the whole right side of the screen (standard mobile-FPS
+     swipe-to-aim area). Invisible + low z-index so the action buttons sit on
+     top and still receive taps; dragging anywhere else on the right looks. */
   html.is-mobile #mobile-look-zone {
-    width: 110px !important;
-    height: 110px !important;
-    max-width: 110px !important;
-    max-height: 110px !important;
-    bottom: 250px !important;
-    opacity: 0.45;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: auto !important;
+    width: 58vw !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    opacity: 1 !important;
+    z-index: 4 !important;
   }
+  html.is-mobile #mobile-look-zone .mobile-look-label,
+  html.is-mobile #mobile-look-zone .mobile-look-reticle { display: none !important; }
+  /* Controls sit ABOVE the look zone so taps hit buttons, drags hit look. */
+  html.is-mobile #mobile-actions,
+  html.is-mobile #mobile-utility,
   html.is-mobile #joystick-zone,
-  html.is-mobile #aim-joystick-zone {
+  html.is-mobile #btn-pause { z-index: 30 !important; }
+  html.is-mobile #joystick-zone {
     width: 110px !important; height: 110px !important;
   }
   html.is-mobile #aim-joystick-zone {
@@ -1452,6 +1468,15 @@ html.is-mobile #tank-hud {
   html.is-mobile #uav-indicator,
   html.is-mobile #server-status,
   html.is-mobile #grenade-keyhint { display: none !important; }
+
+  /* Mobile control declutter: remove the redundant aim-joystick (the look-zone
+     drag already aims), the in-combat jukebox bar, and niche utility buttons.
+     17+ on-screen controls → a clean essential set. */
+  html.is-mobile #aim-joystick-zone,
+  html.is-mobile #mobile-jukebox-bar,
+  html.is-mobile #btn-view,
+  html.is-mobile #btn-night,
+  html.is-mobile #btn-gyro { display: none !important; }
 
   /* Mobile: swap the drone keyboard-hint row for touch-friendly hints */
   html.is-mobile #drone-key-hints { display: none !important; }
