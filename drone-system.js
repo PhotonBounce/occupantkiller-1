@@ -574,12 +574,17 @@ const DroneSystem = (function () {
         }
       });
 
-      // Track nearest drone distance for motor sound
+      // Track nearest drone distance for motor sound — but only the drone the
+      // player is piloting or hostile drones overhead should buzz. Idle friendly
+      // companion drones were creating an ever-present mechanical hum.
       if (typeof CameraSystem !== 'undefined') {
-        var cam = CameraSystem.getCamera ? CameraSystem.getCamera() : null;
-        if (cam) {
-          var dd = drone.position.distanceTo(cam.position);
-          if (dd < nearestDroneDist) nearestDroneDist = dd;
+        var motorRelevant = (drone === _possessedDrone) || drone.faction === 'russian';
+        if (motorRelevant) {
+          var cam = CameraSystem.getCamera ? CameraSystem.getCamera() : null;
+          if (cam) {
+            var dd = drone.position.distanceTo(cam.position);
+            if (dd < nearestDroneDist) nearestDroneDist = dd;
+          }
         }
       }
     }
