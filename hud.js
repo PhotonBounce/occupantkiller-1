@@ -1620,6 +1620,29 @@ const HUD = (() => {
     if (_objectiveEl) _objectiveEl.style.opacity = '0';
   }
 
+  // ── Persistent PRIMARY OBJECTIVE banner ──────────────────────────
+  // A single, always-visible, prominent statement of "what to do right now".
+  // Research on browser-FPS churn: an unclear first goal is the #1 cause of
+  // early drop-off. Cached so it's cheap to call every frame.
+  let _primObjEl = null;
+  let _primObjLast = '';
+  function setPrimaryObjective(main, sub) {
+    var key = (main || '') + '|' + (sub || '');
+    if (key === _primObjLast) return;
+    _primObjLast = key;
+    if (!_primObjEl) {
+      _primObjEl = document.createElement('div');
+      _primObjEl.id = 'primary-objective';
+      _primObjEl.style.cssText = 'position:fixed;top:92px;left:50%;transform:translateX(-50%);z-index:60;pointer-events:none;text-align:center;font-family:"Segoe UI",system-ui,sans-serif;background:linear-gradient(180deg,rgba(10,12,16,0.85),rgba(10,12,16,0.5));border:1px solid rgba(255,200,60,0.35);border-radius:8px;padding:4px 16px;box-shadow:0 2px 12px rgba(0,0,0,0.5)';
+      document.body.appendChild(_primObjEl);
+    }
+    if (!main) { _primObjEl.style.display = 'none'; return; }
+    _primObjEl.style.display = 'block';
+    _primObjEl.innerHTML =
+      '<div style="font-size:14px;font-weight:700;color:#ffd24a;letter-spacing:1px;text-shadow:0 1px 3px #000">' + escapeHTML(main) + '</div>' +
+      (sub ? '<div style="font-size:11px;color:#bfe6ff;letter-spacing:0.5px;margin-top:1px">' + escapeHTML(sub) + '</div>' : '');
+  }
+
   // ── B22: Kill Streak Banner ──────────────────────────────────────
   function showStreakBanner(streakName, count) {
     var el = document.getElementById('streak-banner');
@@ -1892,7 +1915,7 @@ const HUD = (() => {
     showDeathStats, updateOKC,
     // ── B22: New HUD ──
     showBossBar, hideBossBar,
-    updateXPBar, showObjective, hideObjective,
+    updateXPBar, showObjective, hideObjective, setPrimaryObjective,
     showStreakBanner, showBossIntro, addDamageLog,
     showGrenadeWarning, updateStageProgress,
     showDamageFlash,

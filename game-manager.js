@@ -5907,6 +5907,22 @@ const GameManager = (function () {
       HUD.setWeapon(Weapons.getCurrentName(), Weapons.getCurrentIdx());
       HUD.showReload(Weapons.isReloading());
       HUD.setEnemies(Enemies.getAliveCount());
+      // ── Prominent primary objective (clarity = retention) ──
+      if (HUD.setPrimaryObjective) {
+        var _poStg = STAGES[currentStage];
+        var _poWaves = _poStg ? _poStg.wavesPerStage : 7;
+        var _poAlive = Enemies.getAliveCount();
+        var _poMission = (typeof MissionSystem !== 'undefined' && MissionSystem.getActive) ? MissionSystem.getActive() : null;
+        if (_poMission && _poMission.length > 0 && _poMission[0] && _poMission[0].status === 'active') {
+          HUD.setPrimaryObjective('🎯 ' + (_poMission[0].name || 'MISSION'),
+            (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' enemies left');
+        } else if (_poAlive > 0) {
+          HUD.setPrimaryObjective('⚔ ELIMINATE THE OCCUPANTS',
+            (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' left');
+        } else {
+          HUD.setPrimaryObjective('✓ AREA SECURED', 'Next wave incoming — hold the line');
+        }
+      }
       // Wave progress bar: pct of wave cleared based on initial enemy count
       if (HUD.setWaveProgress && player._waveStartCount > 0) {
         var _alv = Enemies.getAliveCount();
