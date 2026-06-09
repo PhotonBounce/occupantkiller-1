@@ -3656,6 +3656,30 @@ const Enemies = (() => {
           bloodDecals.push({ mesh: decal, material: decalMat, life: 30, maxLife: 30 });
         } catch (eD) {}
       }
+      // Heavier blood spray on the killing blow (on top of the wound spray
+      // already emitted by the damage path above) — "even more on death".
+      if (scene && enemy.mesh) {
+        var _deathBurst = 18 + Math.floor(Math.random() * 10);
+        for (var _db = 0; _db < _deathBurst; _db++) {
+          var _dsz = 0.14 + Math.random() * 0.22;
+          var _dm = new THREE.Mesh(_bloodGeo, Math.random() < 0.5 ? _bloodMatLight : _bloodMatDark);
+          _dm.scale.setScalar(_dsz);
+          _dm.position.copy(enemy.mesh.position);
+          _dm.position.y += 0.6 + Math.random() * 0.9;
+          scene.add(_dm);
+          bloodParticles.push({
+            mesh: _dm, _origScale: _dsz,
+            velocity: new THREE.Vector3((Math.random() - 0.5) * 9, 3 + Math.random() * 5, (Math.random() - 0.5) * 9),
+            life: 2.2 + Math.random() * 1.8, gravity: 12,
+          });
+        }
+        // Safety cap: bound total blood particles so mass deaths can't spike
+        // particle count on low-end PCs (retire the oldest).
+        while (bloodParticles.length > 260) {
+          var _old = bloodParticles.shift();
+          if (_old && _old.mesh) { scene.remove(_old.mesh); }
+        }
+      }
       // Death topple: random tilt direction
       var tiltX = (Math.random() > 0.5 ? 1 : -1) * (1.0 + Math.random() * 0.5);
       enemy._deathTiltX = tiltX;
