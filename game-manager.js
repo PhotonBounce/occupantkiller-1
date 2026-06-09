@@ -1186,7 +1186,9 @@ const GameManager = (function () {
     // (Scene was already created with stage-specific bg/fog above; no re-init needed)
 
     // Create camera
-    _camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, isMobile ? 140 : 200);
+    // Near plane lowered 0.1 -> 0.02 so the close first-person weapon model
+    // isn't sliced open by near-clipping (player was seeing inside the guns).
+    _camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.02, isMobile ? 140 : 200);
 
     // Lighting — Ukrainian theme
     ambLight = new THREE.AmbientLight(0x888866, 0.8);
