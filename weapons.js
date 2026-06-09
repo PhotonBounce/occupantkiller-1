@@ -1027,29 +1027,29 @@ const Weapons = (() => {
       new THREE.BoxGeometry(0.04, 0.04, 0.52),
       new THREE.MeshLambertMaterial({ color: 0x333333 })
     );
-    barrel.position.set(0.18, -0.14, -0.48);
+    barrel.position.set(0.24, -0.18, -0.48);
     const brake = new THREE.Mesh(
       new THREE.BoxGeometry(0.054, 0.054, 0.05),
       new THREE.MeshLambertMaterial({ color: 0x222222 })
     );
-    brake.position.set(0.18, -0.14, -0.76);
+    brake.position.set(0.24, -0.18, -0.76);
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.07, 0.08, 0.28),
       new THREE.MeshLambertMaterial({ color: 0x443a28 })
     );
-    body.position.set(0.18, -0.15, -0.24);
+    body.position.set(0.24, -0.19, -0.24);
     // Drum magazine
     const drum = new THREE.Mesh(
       new THREE.CylinderGeometry(0.06, 0.06, 0.065, 12),
       new THREE.MeshLambertMaterial({ color: 0x2a2218 })
     );
     drum.rotation.x = Math.PI / 2;
-    drum.position.set(0.18, -0.22, -0.24);
+    drum.position.set(0.24, -0.26, -0.24);
     const grip = new THREE.Mesh(
       new THREE.BoxGeometry(0.046, 0.10, 0.06),
       new THREE.MeshLambertMaterial({ color: 0x221a0a })
     );
-    grip.position.set(0.18, -0.22, -0.17);
+    grip.position.set(0.24, -0.26, -0.17);
     g.add(barrel, brake, body, drum, grip);
     return g;
   }
@@ -1154,31 +1154,31 @@ const Weapons = (() => {
       new THREE.BoxGeometry(0.048, 0.048, 0.65),
       new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
     );
-    barrel.position.set(0.17, -0.13, -0.54);
+    barrel.position.set(0.25, -0.19, -0.54);
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.10, 0.10, 0.32),
       new THREE.MeshLambertMaterial({ color: 0x3a3a28 })
     );
-    body.position.set(0.17, -0.14, -0.22);
+    body.position.set(0.25, -0.20, -0.22);
     const drum = new THREE.Mesh(
       new THREE.CylinderGeometry(0.068, 0.068, 0.072, 12),
       new THREE.MeshLambertMaterial({ color: 0x2a2a18 })
     );
     drum.rotation.x = Math.PI / 2;
-    drum.position.set(0.17, -0.21, -0.22);
+    drum.position.set(0.25, -0.27, -0.22);
     const grip = new THREE.Mesh(
       new THREE.BoxGeometry(0.046, 0.10, 0.056),
       new THREE.MeshLambertMaterial({ color: 0x1a1a0a })
     );
-    grip.position.set(0.17, -0.22, -0.16);
+    grip.position.set(0.25, -0.28, -0.16);
     const bipL = new THREE.Mesh(
       new THREE.BoxGeometry(0.012, 0.14, 0.012),
       new THREE.MeshLambertMaterial({ color: 0x222222 })
     );
-    bipL.position.set(0.14, -0.18, -0.48);
+    bipL.position.set(0.22, -0.24, -0.48);
     bipL.rotation.z = 0.25;
     const bipR = bipL.clone();
-    bipR.position.set(0.20, -0.18, -0.48);
+    bipR.position.set(0.28, -0.24, -0.48);
     bipR.rotation.z = -0.25;
     g.add(barrel, body, drum, grip, bipL, bipR);
     return g;

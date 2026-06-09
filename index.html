@@ -769,7 +769,13 @@
   <!-- Inventory / Pause overlay (unified) -->
   <div id="inventory-overlay" class="overlay" style="display:none;justify-content:flex-start;overflow-y:auto;padding:8px 0">
     <div class="overlay-content" style="max-width:700px;max-height:90vh;overflow-y:auto">
-      <h1>⏸ PAUSED / INVENTORY</h1>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h1 style="margin:0;">⏸ PAUSED / INVENTORY</h1>
+        <div>
+          <button class="btn" id="inv-resume-btn" onclick="document.getElementById('btn-pause').dispatchEvent(new Event('touchstart'))" style="font-size:12px;padding:4px 12px;margin-right:8px;">▶ RESUME</button>
+          <button class="btn" id="inv-quit-btn" onclick="if(typeof quitToMenu === 'function') quitToMenu();" style="font-size:12px;padding:4px 12px;border-color:#888;color:#888;">⏹ QUIT</button>
+        </div>
+      </div>
 
       <!-- Wallet / OKC Bar -->
       <div id="inv-wallet-bar" style="display:flex;justify-content:space-between;align-items:center;background:rgba(130,71,229,0.15);border:1px solid #8247e5;border-radius:6px;padding:8px 12px;margin:8px 0">

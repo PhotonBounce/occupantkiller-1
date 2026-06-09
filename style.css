@@ -112,7 +112,6 @@ canvas {
 .crosshair-line {
   position: absolute;
   background: rgba(255,255,255,0.85);
-  transition: transform 0.08s ease-out;
 }
 .cl-top    { width: 2px; height: 8px; left: 9px; top: -2px; }
 .cl-bottom { width: 2px; height: 8px; left: 9px; bottom: -2px; }
@@ -248,6 +247,7 @@ canvas {
   height: 30px;
   opacity: 0;
   pointer-events: none;
+  z-index: 1000;
 }
 #hit-marker.visible {
   opacity: 1;
@@ -496,6 +496,14 @@ canvas {
   20%  { opacity: 1; transform: translate(-50%, -50%); }
   70%  { opacity: 1; }
   100% { opacity: 0; }
+}
+html.is-mobile #wave-announce { top: 28%; width: 90%; }
+html.is-mobile #wave-announce.visible { animation: fadeInOutMobile 2.5s forwards; }
+@keyframes fadeInOutMobile {
+  0%   { opacity: 0; transform: translate(-50%, -55%) scale(0.75); }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(0.75); }
+  70%  { opacity: 1; transform: translate(-50%, -50%) scale(0.75); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.75); }
 }
 /* Headshot indicator */
 #headshot-notif {
@@ -1284,12 +1292,12 @@ html.is-mobile #bottom-bar {
   left: 50%;
   width: min(72vw, 520px);
   transform: translateX(-50%);
-  bottom: calc(var(--mobile-safe-bottom) + 4px);
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.48);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(3px);
+  bottom: calc(var(--mobile-safe-bottom) + 2px);
+  padding: 2px 4px;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
   align-items: center;
 }
 
