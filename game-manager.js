@@ -5244,6 +5244,40 @@ const GameManager = (function () {
   var _fpsSamples = 0;
   var _perfCheckTimer = 0;
   var _qualityReduced = false;
+  var _perfLevel = 0;            // current auto-optimization tier (0 = full quality)
+  var _PERF_MAX_LEVEL = 3;
+  var _lowFpsStreak = 0;         // consecutive low-FPS windows before stepping down
+  // Apply a quality tier. Each tier trades fidelity for frame rate; tiers are
+  // cumulative and only ever step down so an old PC settles into a smooth level.
+  function _applyPerfLevel(level, fps) {
+    _perfLevel = level;
+    _qualityReduced = level > 0;
+    try {
+      if (level >= 1) {
+        // Mild: cap render resolution to 1x.
+        if (_renderer) _renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.0));
+        if (_scene && _scene.fog) _scene.fog.far = Math.min(_scene.fog.far, isMobile ? 55 : 90);
+      }
+      if (level >= 2) {
+        // Medium: drop shadows + reflections, pull the fog in.
+        if (sunLight) sunLight.castShadow = false;
+        if (_scene) _scene.environment = null;        // weapon reflections off
+        if (_scene && _scene.fog) _scene.fog.far = Math.min(_scene.fog.far, 60);
+        if (_renderer) _renderer.shadowMap.enabled = false;
+      }
+      if (level >= 3) {
+        // Aggressive: render below native res + minimal draw distance.
+        if (_renderer) _renderer.setPixelRatio(0.7);
+        if (_scene && _scene.fog) _scene.fog.far = Math.min(_scene.fog.far, 45);
+        _lowEndVFX = true;                            // systems can read this to thin particles
+      }
+      if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+        HUD.notifyPickup('⚙ Graphics auto-tuned for performance (L' + level + ')', '#88ccff');
+      }
+      if (typeof console !== 'undefined') console.log('[PERF] auto-optimize -> level ' + level + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ')');
+    } catch (e) {}
+  }
+  var _lowEndVFX = false;
 
   function update() {
     requestAnimationFrame(update);
@@ -5259,17 +5293,21 @@ const GameManager = (function () {
     // Slow-mo: scale delta by slow-mo rate (triggered on multikills / wave clears)
     if (typeof Feedback !== 'undefined' && Feedback.getSlowMoRate) delta *= Feedback.getSlowMoRate();
 
-    // Adaptive quality: measure FPS, reduce quality if below 30
+    // ── Adaptive auto-optimization (tiered) ──────────────────────────
+    // Steps quality DOWN one level at a time while the average FPS stays low,
+    // so older / low-end PCs get a playable frame rate automatically. Each
+    // level is applied once; we never thrash back up (avoids oscillation).
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
-    if (_perfCheckTimer > 3 && _fpsSamples > 10) {
+    if (_perfCheckTimer > 2 && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
-      if (avgFps < 25 && !_qualityReduced && _renderer) {
-        _qualityReduced = true;
-        _renderer.setPixelRatio(1);
-        if (_scene && _scene.fog) _scene.fog.far = 50;
-        if (sunLight) sunLight.castShadow = false;
+      // Require sustained low FPS (2 consecutive windows ≈ 4s) before stepping
+      // down, so a one-off stage-load hitch doesn't downgrade a capable PC.
+      if (avgFps < 38) { _lowFpsStreak++; } else { _lowFpsStreak = 0; }
+      if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
+        _applyPerfLevel(_perfLevel + 1, avgFps);
+        _lowFpsStreak = 0;
       }
       _fpsAccum = 0;
       _fpsSamples = 0;
