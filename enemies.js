@@ -824,6 +824,7 @@ const Enemies = (() => {
   let spawnQueue = [];   // array of type-name strings
   let spawnTimer = 0;
   let allDead    = false;
+  let _infantryClearTimer = 0; // grace timer once ground enemies are clear but drones linger
   let stageMult  = 1;    // stage difficulty multiplier
   let _playerPos = null; // cached player position for spawning
   let _playerStealth = false; // player stealth state
@@ -1837,6 +1838,7 @@ const Enemies = (() => {
     _stageId  = stageId || 1;
     enemies   = [];
     allDead   = false;
+    _infantryClearTimer = 0;
     assaultGroups.length = 0;
     _aiStrategy = aiStrategy || null;
 
@@ -3214,10 +3216,36 @@ const Enemies = (() => {
       }
     }
 
-    // Wave complete? (alive counter tracks living enemies; null entries are cleaned corpses)
+    // Wave complete? Ground enemies (the `alive` counter) AND any enemy drones
+    // (a separate system, spawned from wave 2+) must both be cleared — a wave
+    // was completing while enemy drones still flew ("enemies still there").
+    // Safety: if only drones linger, force-clear them after a grace period so
+    // the wave can never hang.
     if (spawnQueue.length === 0 && alive === 0 && !allDead) {
-      allDead = true;
-      onEnemyDied(true);
+      var _enemyDronesAlive = 0;
+      try {
+        if (typeof DroneSystem !== 'undefined' && DroneSystem.getEnemyDronesList) {
+          _enemyDronesAlive = (DroneSystem.getEnemyDronesList() || []).length;
+        }
+      } catch (eED2) {}
+      if (_enemyDronesAlive === 0) {
+        _infantryClearTimer = 0;
+        allDead = true;
+        onEnemyDied(true);
+      } else {
+        _infantryClearTimer += delta;
+        if (_infantryClearTimer > 12) {
+          // Ground forces have been clear for a while — sweep the stragglers.
+          try {
+            var _eds = DroneSystem.getEnemyDronesList() || [];
+            for (var _edi = _eds.length - 1; _edi >= 0; _edi--) {
+              if (_eds[_edi] && DroneSystem.shootDownDrone) DroneSystem.shootDownDrone(_eds[_edi].id);
+            }
+          } catch (eED3) {}
+        }
+      }
+    } else {
+      _infantryClearTimer = 0;
     }
   }
 
