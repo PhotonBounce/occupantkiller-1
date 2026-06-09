@@ -445,10 +445,14 @@ const WeaponDetails = (() => {
     group.traverse(function (child) {
       if (!child.isMesh || !child.material) return;
       var mat = child.material;
-      // Skip already-good PhongMaterial or BasicMaterial (emissives, transparents)
-      if (mat.type === 'MeshPhongMaterial' && mat.shininess >= 30) return;
+      // Convert ALL opaque Lambert/Phong gun parts to reflective PBR so every
+      // surface (including the post-build micro-detail + connector passes)
+      // picks up the scene environment map. Preserve emissive (Basic LEDs/
+      // lasers), glass/optics (transparent), and already-PBR materials.
       if (mat.type === 'MeshBasicMaterial') return;
-      if (mat.type !== 'MeshLambertMaterial') return;
+      if (mat.transparent) return;
+      if (mat.type === 'MeshStandardMaterial') return;
+      if (mat.type !== 'MeshLambertMaterial' && mat.type !== 'MeshPhongMaterial') return;
 
       var hex = mat.color ? mat.color.getHex() : 0x333333;
       var r = (hex >> 16) & 0xFF, g = (hex >> 8) & 0xFF, b = hex & 0xFF;
@@ -956,6 +960,7 @@ const WeaponDetails = (() => {
     update: update,
     clear: clear,
     enhanceMesh: enhanceMesh,
+    upgradeMaterials: upgradeMaterials,
     onFire: onFire,
     getZoomFov: getZoomFov,
     getAdsOffset: getAdsOffset,

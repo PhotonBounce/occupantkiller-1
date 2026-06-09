@@ -2469,6 +2469,10 @@ const Weapons = (() => {
       try { WD.autoDetail(m, WEAPONS[i]); } catch (e) {}
       // Weld visual gaps so parts don't look detached / floating in air
       try { _unifyWeaponMesh(m); } catch (e) {}
+      // FINAL reflectivity pass — autoDetail/unify added micro-meshes AFTER the
+      // first material upgrade, leaving them flat. Re-run so every gun part is
+      // reflective PBR (skips glass/emissive/already-PBR internally).
+      try { if (typeof WeaponDetails !== 'undefined' && WeaponDetails.upgradeMaterials) WeaponDetails.upgradeMaterials(m); } catch (e) {}
       // Apply equipped skin (if any) to the freshly built mesh
       try { if (weaponSkins[i]) applySkinToMesh(m, weaponSkins[i]); } catch (e) {}
       // Scale down viewmodels so they don't occlude viewport (issue #15)
