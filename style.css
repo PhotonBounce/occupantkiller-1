@@ -2142,3 +2142,27 @@ html.is-mobile #tank-hud {
 /* Dynamic crosshair styles are now inline above #crosshair */
 
 #swim-indicator { backdrop-filter: blur(2px); }
+
+/* ── Desktop combat-HUD declutter ──────────────────────────────────────
+   The top-right utility/meta buttons read as a cluttered "cockpit" during
+   combat. Hide the two fully-redundant ones (Jukebox = J key, Premium =
+   inventory tab 4) and make the rest recede (smaller + semi-transparent)
+   until hovered, so the action reads cleanly. Mobile already hides these. */
+html:not(.is-mobile) #jukebox-btn,
+html:not(.is-mobile) #premium-btn { display: none !important; }
+html:not(.is-mobile) #hud-god-mode-btn,
+html:not(.is-mobile) #lottery-btn,
+html:not(.is-mobile) #mortar-btn,
+html:not(.is-mobile) #bradley-btn {
+  opacity: 0.32;
+  transform: scale(0.85);
+  transform-origin: top right;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+html:not(.is-mobile) #hud-god-mode-btn:hover,
+html:not(.is-mobile) #lottery-btn:hover,
+html:not(.is-mobile) #mortar-btn:hover,
+html:not(.is-mobile) #bradley-btn:hover {
+  opacity: 1;
+  transform: scale(1);
+}
