@@ -2461,6 +2461,36 @@ const Enemies = (() => {
           }
         }
 
+        // ── Squad separation (anti-swarm) ──────────────────────────────
+        // Push apart from nearby squadmates so a squad spreads into a spaced
+        // formation/arc instead of stacking into a blob ("swarm"). Cheap: only
+        // checks the enemy's own squad members (a small set), so it stays off
+        // the O(n²) path — important for low-end PCs.
+        if (e.groupId >= 0 && e.groupId < assaultGroups.length && assaultGroups[e.groupId]) {
+          var _sgrp = assaultGroups[e.groupId];
+          var _sepX = 0, _sepZ = 0, _sepN = 0;
+          var _minSpace = 2.2;
+          for (var _smi = 0; _smi < _sgrp.members.length; _smi++) {
+            var _other = enemies[_sgrp.members[_smi]];
+            if (!_other || _other === e || !_other.alive || !_other.mesh) continue;
+            var _sdx = e.mesh.position.x - _other.mesh.position.x;
+            var _sdz = e.mesh.position.z - _other.mesh.position.z;
+            var _sd2 = _sdx * _sdx + _sdz * _sdz;
+            if (_sd2 > 0.0001 && _sd2 < _minSpace * _minSpace) {
+              var _sd = Math.sqrt(_sd2);
+              var _push = (_minSpace - _sd) / _minSpace;
+              _sepX += (_sdx / _sd) * _push;
+              _sepZ += (_sdz / _sd) * _push;
+              _sepN++;
+            }
+          }
+          if (_sepN > 0) {
+            dir.x += _sepX * 0.8;
+            dir.z += _sepZ * 0.8;
+            if (dir.lengthSq() > 0.0001) { dir.y = 0; dir.normalize(); }
+          }
+        }
+
         var speedMult = 1;
         if (e._officerBuffSpd) { speedMult *= e._officerBuffSpd; e._officerBuffSpd = 0; }
         if (e._rallyBuff && !e._officerBuffDmg) { speedMult *= e._rallyBuff; } // rally also boosts speed
