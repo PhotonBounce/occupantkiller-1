@@ -1669,6 +1669,24 @@ const Enemies = (() => {
       ? window.VoxelWorld.getTopSolidY(sx, sz)
       : ((typeof window.VoxelWorld !== 'undefined' && window.VoxelWorld.getTerrainHeight)
         ? window.VoxelWorld.getTerrainHeight(sx, sz) + 1 : 0);
+      // Anti-embed: never spawn with the body inside solid building geometry
+      // (an embedded enemy can't be shot — bullets hit the wall — and can't
+      // path out). If the standing column is blocked, nudge to clear ground.
+      var _vw = window.VoxelWorld;
+      if (_vw && _vw.isSolid && (_vw.isSolid(sx, sy + 1, sz) || _vw.isSolid(sx, sy + 2, sz))) {
+        var _found = false;
+        for (var _na = 0; _na < 8 && !_found; _na++) {
+          var _ang = _na * Math.PI / 4;
+          for (var _rr = 3; _rr <= 9 && !_found; _rr += 3) {
+            var _nx = sx + Math.cos(_ang) * _rr;
+            var _nz = sz + Math.sin(_ang) * _rr;
+            var _ny = _vw.getTopSolidY ? _vw.getTopSolidY(_nx, _nz) : sy;
+            if (!_vw.isSolid(_nx, _ny + 1, _nz) && !_vw.isSolid(_nx, _ny + 2, _nz)) {
+              sx = _nx; sz = _nz; sy = _ny; _found = true;
+            }
+          }
+        }
+      }
     }
     const mesh  = buildMesh(typeCfg);
     // Attach rank-based weapon visual to enemy mesh
