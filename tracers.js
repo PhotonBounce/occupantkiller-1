@@ -85,8 +85,8 @@ const Tracers = (() => {
 
   function spawnMuzzleFlash(pos, dir) {
     if (!_scene) return;
-    // Visible flash size — big enough to see, small enough to not block view
-    var flashSize = 0.22 + Math.random() * 0.10;
+    // Visible flash size — 67% smaller per design feedback (was blocking view)
+    var flashSize = (0.22 + Math.random() * 0.10) * 0.33;
     var flashColor = Math.random() < 0.5 ? 0xffdd44 : 0xffaa22;
     var flashMat = new THREE.MeshBasicMaterial({
       color: flashColor, transparent: true, opacity: 0.95,

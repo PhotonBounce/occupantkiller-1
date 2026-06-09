@@ -2564,24 +2564,27 @@ const Weapons = (() => {
 
   function showMuzzle() {
     if (!muzzleFlash) return;
+    // 67% smaller muzzle flash per design feedback (was covering too much view).
+    var _MF_SCALE = 0.33;
     var _mfm = getMuzzleFlashMult(currentIdx);
-    muzzleFlash.material.opacity = 1 * _mfm;
+    if (_mfm == null || isNaN(_mfm)) _mfm = 1; // guard: most weapons leave muzzleFlashMult undefined
+    muzzleFlash.material.opacity = Math.min(1, _mfm);
     muzzleFlash.rotation.z = Math.random() * Math.PI * 2;
-    muzzleFlash.scale.setScalar(_mfm);
+    muzzleFlash.scale.setScalar(_mfm * _MF_SCALE);
     muzzleTimer = 0.10;
-    // Flash point light burst
-    if (_muzzleLight) _muzzleLight.intensity = 2.5 * _mfm;
-    // Trigger lingering smoke puff
+    // Flash point light burst (also dimmed so the glare doesn't wash the screen)
+    if (_muzzleLight) _muzzleLight.intensity = 2.5 * _mfm * 0.5;
+    // Trigger lingering smoke puff (smaller too)
     if (_muzzleSmoke) {
       _muzzleSmoke.visible = true;
-      _muzzleSmoke.material.opacity = 0.55;
+      _muzzleSmoke.material.opacity = 0.45;
       _muzzleSmoke.position.set(
         0.17 + (Math.random() - 0.5) * 0.02,
         -0.10,
         -0.60 + (Math.random() - 0.5) * 0.02
       );
       _muzzleSmoke.rotation.z = Math.random() * Math.PI * 2;
-      _muzzleSmoke.scale.setScalar(0.6 + Math.random() * 0.2);
+      _muzzleSmoke.scale.setScalar((0.6 + Math.random() * 0.2) * 0.5);
       _muzzleSmokeTimer = _MUZZLE_SMOKE_LIFE;
     }
     // Shell casing eject for hitscan/shotgun weapons
@@ -3341,7 +3344,14 @@ const Weapons = (() => {
             dr.disabled = true;
             dr.disabledTimer = 6.0;        // 6 seconds disabled
             dr.hp = Math.max(0, (dr.hp || 30) - wep.damage); // also damage drone HP
-            if (dr.hp <= 0 && DroneSystem.destroyDrone) DroneSystem.destroyDrone(dr.id);
+            // Use shootDownDrone(id) — it resolves the id to the drone object
+            // and cleans up the enemy list. Calling destroyDrone(dr.id) passed a
+            // number where a drone object was expected → "Cannot create property
+            // 'alive' on number" fatal crash mid-combat.
+            if (dr.hp <= 0) {
+              if (DroneSystem.shootDownDrone) DroneSystem.shootDownDrone(dr.id);
+              else if (DroneSystem.destroyDrone) DroneSystem.destroyDrone(dr);
+            }
             hitCount++;
           }
         }

@@ -2164,6 +2164,8 @@ const GameManager = (function () {
 
     document.addEventListener('pointerlockchange', function () {
       if (!document.pointerLockElement && gameState === STATE.PLAYING) {
+        // Ignore transient lock loss right after starting/resuming (slow PCs).
+        if (performance.now() < _pointerLockGraceUntil) return;
         if (!isMobile) {
           // Unified menu: route to inventory-overlay (pause + inventory + shop in one).
           // Avoids the "4 different menus" complaint.
@@ -2349,8 +2351,13 @@ const GameManager = (function () {
   }
 
   /* ── Pointer lock helpers ────────────────────────────────────────── */
+  // After (re)entering play we ask for pointer lock; a slow PC may take a beat
+  // to actually grant it. Ignore spurious "lock lost" events during this grace
+  // window so the pause/inventory menu doesn't auto-pop right when the game starts.
+  var _pointerLockGraceUntil = 0;
   function requestPointerLock() {
     if (isMobile) return;   // Touch controls replace pointer lock on mobile
+    _pointerLockGraceUntil = performance.now() + 1600;
     if (!_renderer || !_renderer.domElement) return;
 
     var canvas = _renderer.domElement;
@@ -4384,7 +4391,8 @@ const GameManager = (function () {
         if (typeof CombatExtras !== 'undefined') {
           CombatExtras.registerShot();
           var isAutoWep = ['ASSAULT', 'NATO', 'NATO_HEAVY', 'LMG', 'HMG', 'SMG', 'HMG_HEAVY', 'MACHINEGUN', 'MINIGUN'].indexOf(weaponType) >= 0;
-          CombatExtras.addHeat(isAutoWep);
+          // God mode: never overheat.
+          if (!player.godMode) CombatExtras.addHeat(isAutoWep);
         }
         // Spawn bullet tracer
         if (typeof Tracers !== 'undefined' && weaponType !== 'MELEE' && weaponType !== 'SILENT') {

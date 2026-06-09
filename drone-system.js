@@ -1022,6 +1022,11 @@ const DroneSystem = (function () {
   }
 
   function destroyDrone(drone) {
+    // Defensive: accept a drone id as well as a drone object so a stray
+    // destroyDrone(id) call can never crash with "Cannot create property
+    // 'alive' on number".
+    if (typeof drone === 'number') drone = drones.find(d => d.id === drone);
+    if (!drone || typeof drone !== 'object') return;
     drone.alive = false;
     drone.active = false;
     if (drone === _possessedDrone) release();
