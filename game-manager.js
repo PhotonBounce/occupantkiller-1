@@ -2988,7 +2988,10 @@ const GameManager = (function () {
     if (window.AudioSystem.stopAmbientLoop) window.AudioSystem.stopAmbientLoop();
     if (_waveStartTimer) clearTimeout(_waveStartTimer);
     _waveStartTimer = setTimeout(function () {
-      showDroneSelection(function () { beginWave(1); });
+      // Start the wave ON FOOT. Drones are an optional tool the player can
+      // deploy mid-fight (Q/F) — the game no longer forces a drone-pilot view
+      // at stage start (that read as "starting in drone perspective").
+      beginWave(1);
     }, 3200);
 
     // Generate an initial mission
@@ -3258,7 +3261,10 @@ const GameManager = (function () {
     HUD.announceStage(stageDef.id, stageDef.name, stageDef.description, stageDef.objective);
     if (_waveStartTimer) clearTimeout(_waveStartTimer);
     _waveStartTimer = setTimeout(function () {
-      showDroneSelection(function () { beginWave(1); });
+      // Start the wave ON FOOT. Drones are an optional tool the player can
+      // deploy mid-fight (Q/F) — the game no longer forces a drone-pilot view
+      // at stage start (that read as "starting in drone perspective").
+      beginWave(1);
     }, 3200);
     } catch (err) {
       console.error('[nextStage] error:', err);
