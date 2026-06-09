@@ -641,65 +641,66 @@ const Weapons = (() => {
   })();
 
   function buildShovelMesh() {
+    // MPL-50 entrenching tool: wooden shaft held diagonally with a real
+    // pentagonal spade blade at the forward end (previously a stick + flat box).
     const g = new THREE.Group();
-    // Wooden handle — tapered, longer
-    const handle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.012, 0.016, 0.50, 8),
-      new THREE.MeshLambertMaterial({ color: 0x6B4226 })
-    );
-    handle.position.set(0.18, -0.18, -0.25);
-    g.add(handle);
+    const woodMat   = new THREE.MeshLambertMaterial({ color: 0x7a5230 });
+    const darkWood  = new THREE.MeshLambertMaterial({ color: 0x4a3018 });
+    const steelMat  = new THREE.MeshPhongMaterial({ color: 0x9a9aa0, shininess: 80,  specular: 0x6a6a77 });
+    const edgeMat   = new THREE.MeshPhongMaterial({ color: 0xcfcfd6, shininess: 120, specular: 0xaaaaaa });
+    const collarMat = new THREE.MeshLambertMaterial({ color: 0x55555a });
 
-    // Grip wrap (darker rubber/leather tape near top)
-    const grip = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.017, 0.017, 0.08, 8),
-      new THREE.MeshLambertMaterial({ color: 0x2a1a0a })
-    );
-    grip.position.set(0.18, 0.03, -0.25);
-    g.add(grip);
+    // Shaft runs along Z (grip near camera → blade forward)
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.016, 0.34, 10), woodMat);
+    shaft.rotation.x = Math.PI / 2;
+    shaft.position.set(0.16, -0.13, -0.46);
+    g.add(shaft);
 
-    // T-handle crossbar at top
-    const crossbar = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.01, 0.01, 0.06, 6),
-      new THREE.MeshLambertMaterial({ color: 0x6B4226 })
-    );
-    crossbar.position.set(0.18, 0.07, -0.25);
-    crossbar.rotation.z = Math.PI / 2;
-    g.add(crossbar);
+    // Rounded grip knob at the near end
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.021, 8, 8), woodMat);
+    knob.position.set(0.16, -0.13, -0.29);
+    g.add(knob);
 
-    // Steel blade — wider spade shape
-    const blade = new THREE.Mesh(
-      new THREE.BoxGeometry(0.13, 0.14, 0.008),
-      new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 60, specular: 0x555555 })
-    );
-    blade.position.set(0.18, -0.46, -0.27);
-    blade.rotation.x = -0.25;
-    g.add(blade);
+    // Darker hand-grip wrap
+    const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.07, 8), darkWood);
+    wrap.rotation.x = Math.PI / 2;
+    wrap.position.set(0.16, -0.13, -0.355);
+    g.add(wrap);
 
-    // Blade edge (sharpened lighter steel strip)
-    const edge = new THREE.Mesh(
-      new THREE.BoxGeometry(0.13, 0.015, 0.009),
-      new THREE.MeshPhongMaterial({ color: 0xbbbbbb, shininess: 90, specular: 0x999999 })
-    );
-    edge.position.set(0.18, -0.535, -0.28);
-    edge.rotation.x = -0.25;
-    g.add(edge);
-
-    // Steel collar where blade meets handle
-    const collar = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.018, 0.018, 0.03, 8),
-      new THREE.MeshLambertMaterial({ color: 0x555555 })
-    );
-    collar.position.set(0.18, -0.38, -0.26);
+    // Steel collar / ferrule where the shaft meets the blade socket
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.018, 0.045, 10), collarMat);
+    collar.rotation.x = Math.PI / 2;
+    collar.position.set(0.16, -0.13, -0.605);
     g.add(collar);
 
-    // Rivet dots on blade (2 rivets)
+    // ── Spade blade: extruded pentagon (flat top, tapering to a point) ──
+    const bw = 0.058, bh = 0.062;
+    const shape = new THREE.Shape();
+    shape.moveTo(-bw, bh);
+    shape.lineTo(bw, bh);
+    shape.lineTo(bw, -bh * 0.25);
+    shape.lineTo(0, -bh * 1.75);     // pointed digging tip
+    shape.lineTo(-bw, -bh * 0.25);
+    shape.closePath();
+    const bladeGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.009, bevelEnabled: false });
+    bladeGeo.center();
+    const blade = new THREE.Mesh(bladeGeo, steelMat);
+    // Stand the spade at the front of the shaft, point hanging down, tilted so
+    // the scoop face angles up toward the player.
+    blade.rotation.x = -0.35;
+    blade.position.set(0.16, -0.165, -0.685);
+    g.add(blade);
+
+    // Sharpened edge strip along the lower point
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.012, 0.011), edgeMat);
+    edge.rotation.x = -0.35;
+    edge.position.set(0.16, -0.235, -0.70);
+    g.add(edge);
+
+    // Socket rivets on the blade
     for (let i = -1; i <= 1; i += 2) {
-      const rivet = new THREE.Mesh(
-        new THREE.SphereGeometry(0.005, 4, 4),
-        new THREE.MeshLambertMaterial({ color: 0x444444 })
-      );
-      rivet.position.set(0.18 + i * 0.03, -0.41, -0.263);
+      const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.005, 5, 5), collarMat);
+      rivet.position.set(0.16 + i * 0.022, -0.135, -0.665);
       g.add(rivet);
     }
 
