@@ -2629,6 +2629,51 @@ const Weapons = (() => {
     ks23:   () => _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'fixed', mag: 'none', barLen: 0.40, barR: 0.018, recvLen: 0.22, sights: true }),
     // heavy MG
     dshk:   () => _rifle({ hg: 'tube', stock: 'fixed', mag: 'box', magColor: _pal.gm, muzzle: 'brake', barLen: 0.52, barR: 0.018, recvLen: 0.30, bipod: true, belt: true }),
+    // ── custom shapes ──
+    p90: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.05, 0.075, 0.22, _pal.poly()), X, Y, -0.22));           // bullpup shell
+      g.add(_P(_B(0.045, 0.03, 0.20, _pal.blk()), X, Y + 0.055, -0.24));    // top-mounted flat magazine
+      g.add(_P(_T(0.011, 0.10, _pal.steel(), 12), X, Y + 0.005, -0.40));    // short barrel
+      g.add(_P(_B(0.03, 0.042, 0.05, _pal.blk()), X, Y + 0.062, -0.13));    // rear reflex optic
+      g.add(_P(_B(0.03, 0.07, 0.04, _pal.poly()), X, Y - 0.05, -0.20));     // integrated grip
+      g.add(_P(_B(0.025, 0.05, 0.03, _pal.poly()), X, Y - 0.04, -0.32));    // front finger grip
+      return g;
+    },
+    ags17: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.07, 0.09, 0.18, _pal.gm()), X, Y, -0.20));              // receiver block
+      g.add(_P(_T(0.022, 0.20, _pal.blk(), 14), X, Y + 0.02, -0.42));       // fat short barrel
+      const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 18), _pal.blk()); drum.rotation.z = Math.PI / 2; g.add(_P(drum, X + 0.04, Y - 0.02, -0.15)); // side drum
+      g.add(_P(_B(0.10, 0.02, 0.03, _pal.blk()), X, Y + 0.02, -0.02));      // rear spade bar
+      g.add(_P(_B(0.012, 0.06, 0.012, _pal.blk()), X - 0.042, Y - 0.02, -0.02));
+      g.add(_P(_B(0.012, 0.06, 0.012, _pal.blk()), X + 0.042, Y - 0.02, -0.02));
+      const l1 = _P(_B(0.01, 0.16, 0.01, _pal.blk()), X, Y - 0.11, -0.30); l1.rotation.x = 0.4;
+      const l2 = _P(_B(0.01, 0.16, 0.01, _pal.blk()), X - 0.05, Y - 0.11, -0.02); l2.rotation.z = 0.3;
+      const l3 = _P(_B(0.01, 0.16, 0.01, _pal.blk()), X + 0.05, Y - 0.11, -0.02); l3.rotation.z = -0.3;
+      g.add(l1, l2, l3);
+      return g;
+    },
+    crossbow: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.035, 0.04, 0.40, _pal.blk()), X, Y, -0.26));            // stock rail
+      g.add(_P(_B(0.34, 0.02, 0.03, _pal.gm()), X, Y + 0.01, -0.46));       // bow limbs (wide in X)
+      g.add(_P(_B(0.30, 0.006, 0.006, _M(0xc8c8c8, 0.2, 0.5)), X, Y + 0.01, -0.40)); // string
+      g.add(_P(_B(0.02, 0.03, 0.12, _pal.wood()), X, Y + 0.012, -0.32));    // bolt track
+      g.add(_P(_T(0.016, 0.10, _pal.blk(), 12), X, Y + 0.05, -0.20));       // scope
+      const gp = _P(_B(0.03, 0.075, 0.04, _pal.poly()), X, Y - 0.05, -0.14); gp.rotation.x = 0.3; g.add(gp);
+      g.add(_P(_B(0.045, 0.065, 0.07, _pal.blk()), X, Y, -0.04));           // butt
+      return g;
+    },
+    dronejammer: function () {
+      const g = _rifle({ hg: 'rail', stock: 'tube', mag: 'straight', muzzle: 'none', rail: true, recvColor: _pal.blk, barLen: 0.20 });
+      const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.05, 0.012, 0.05, _pal.gm()), X, Y + 0.07, -0.42));      // emitter pad
+      g.add(_P(_B(0.006, 0.11, 0.006, _pal.steel()), X, Y + 0.13, -0.42));  // central antenna
+      const a2 = _P(_B(0.006, 0.09, 0.006, _pal.steel()), X - 0.02, Y + 0.12, -0.40); a2.rotation.z = 0.25; g.add(a2);
+      const a3 = _P(_B(0.006, 0.09, 0.006, _pal.steel()), X + 0.02, Y + 0.12, -0.40); a3.rotation.z = -0.25; g.add(a3);
+      return g;
+    },
   };
 
   const meshBuilders = [
@@ -2637,11 +2682,11 @@ const Weapons = (() => {
     NB.javelin, NB.rpg7, NB.igla, NB.gp25,
     NB.scarh, NB.dshk, buildMolotovMesh,
     NB.mg3, NB.mp5, NB.barrett, buildMinigunMesh,
-    buildCrossbowMesh, NB.shmel, NB.izh43,
+    NB.crossbow, NB.shmel, NB.izh43,
     buildClaymoreMesh, buildSmokeMesh, buildFlashbangMesh,
-    NB.ak12, buildP90Mesh, NB.at4, NB.glock,
-    NB.ks23, buildAgs17Mesh, NB.vss, NB.stinger,
-    buildThrowKnifeMesh, buildC4Mesh, buildDroneJammerMesh, buildAxeMesh
+    NB.ak12, NB.p90, NB.at4, NB.glock,
+    NB.ks23, NB.ags17, NB.vss, NB.stinger,
+    buildThrowKnifeMesh, buildC4Mesh, NB.dronejammer, buildAxeMesh
   ];
 
   // Ensure meshBuilders matches WEAPONS length
