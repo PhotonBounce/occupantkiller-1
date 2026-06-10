@@ -1449,8 +1449,10 @@ const GameManager = (function () {
     }
     player.position.set(sx, spawnH + player.height, sz);
 
-    // Spawn organized assault groups (4 squads of 4-5 armed NPCs)
-    NPCSystem.spawnAssaultGroups();
+    // Spawn organized assault groups (4 squads of 4-5 armed NPCs) — BRIGADE
+    // role only. Lone Wolf previously got the same 22-NPC army, which deleted
+    // every nearby enemy before the player could engage (zero threat).
+    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
 
     // Spawn starter vehicle fleet on roads (road-level positions)
     var roadWPs = (window.VoxelWorld.getRoadWaypoints ? window.VoxelWorld.getRoadWaypoints() : []);
@@ -2941,8 +2943,9 @@ const GameManager = (function () {
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
 
-    // Respawn organized assault groups for the real gameplay start path.
-    NPCSystem.spawnAssaultGroups();
+    // Respawn organized assault groups for the real gameplay start path
+    // (BRIGADE role only — Lone Wolf fights solo).
+    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads for first stage
     var _rwps = (window.VoxelWorld.getRoadWaypoints ? window.VoxelWorld.getRoadWaypoints() : []);
@@ -3223,9 +3226,9 @@ const GameManager = (function () {
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
 
-    // Respawn organized assault groups on new terrain
+    // Respawn organized assault groups on new terrain (BRIGADE role only)
     NPCSystem.clear();
-    NPCSystem.spawnAssaultGroups();
+    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads
     var _nsWps = (VoxelWorld.getRoadWaypoints ? VoxelWorld.getRoadWaypoints() : []);
@@ -7106,10 +7109,23 @@ const GameManager = (function () {
 
   /* ── Role / Stealth / Weapons-grid helpers ────────────────────────── */
   function setRole(r) {
+    var prev = player.role;
     player.role = (r === 'brigade') ? 'brigade' : 'lonewolf';
     updateRoleIndicator();
     HUD.notifyPickup(player.role === 'brigade' ? '🎖 ASSAULT BRIGADE' : '🐺 LONE WOLF',
       player.role === 'brigade' ? '#00aaff' : '#ffaa00');
+    // Apply the role for real: BRIGADE fields the allied assault squads,
+    // LONE WOLF fights solo. Previously this only changed the badge and the
+    // 22-NPC army spawned either way, erasing all combat threat.
+    try {
+      if (typeof NPCSystem !== 'undefined' && prev !== player.role) {
+        if (player.role === 'brigade') {
+          if (NPCSystem.getCount && NPCSystem.getCount() < 4 && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
+        } else if (NPCSystem.clear) {
+          NPCSystem.clear();
+        }
+      }
+    } catch (eRole) {}
   }
 
   function updateRoleIndicator() {
