@@ -100,6 +100,7 @@ const GameManager = (function () {
   var _gmTmp3 = new THREE.Vector3();
   var _gmNewPos = new THREE.Vector3();
   var _waveStartTimer = null;
+  var _defeatReason = null; // custom defeat banner (e.g. 'KYIV HAS FALLEN'); null = 'YOU DIED'
   var _hudSlowTimer = 0; // throttle slow HUD updates (dailies, bounties, prestige)
   var _musicIntTimer = 0; // throttle music intensity calc
   var _buildMatHud = null; // cached DOM ref for build materials HUD
@@ -1424,7 +1425,11 @@ const GameManager = (function () {
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
         if (gameState === STATE.PLAYING) {
-          MissionSystem.generateRandom();
+          if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
+            MissionSystem.generateMission('kyiv_defense');
+          } else {
+            MissionSystem.generateRandom();
+          }
           var active = MissionSystem.getActive();
           if (active && active.length > 0) {
             HUD.notifyPickup('📋 NEW MISSION: ' + active[active.length - 1].name, '#ffcc00');
@@ -3006,8 +3011,13 @@ const GameManager = (function () {
       try { if (typeof Feedback !== 'undefined' && Feedback.startOnboarding) Feedback.startOnboarding(); } catch (_e) {}
     }, 3200);
 
-    // Generate an initial mission
-    MissionSystem.generateRandom();
+    // Generate an initial mission. Capital defense (Kyiv) always runs its
+    // signature mission instead of a random one.
+    if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
+      MissionSystem.generateMission('kyiv_defense');
+    } else {
+      MissionSystem.generateRandom();
+    }
     } catch (err) {
       console.error('Failed to initialize game:', err);
     }
@@ -3417,6 +3427,16 @@ const GameManager = (function () {
       if (w === 4) ConvoySystem.spawnConvoy(w, { route: 'east', tanks: 2, btrs: 1 });
       if (w === 7) ConvoySystem.spawnConvoy(w, { route: 'west', tanks: 3, btrs: 1 });
       if (w === 1) HUD.notifyPickup('🚀 GRAB AN NLAW — STOP THE COLUMNS!', '#ffcc44');
+      // Resupply: AT weapons carry 1+3 rockets — drop ammo crates at the
+      // defended line each wave so launchers stay fed.
+      if (typeof Pickups !== 'undefined' && Pickups.spawn) {
+        var _dz = ConvoySystem.getDefenseZone();
+        for (var _ai = 0; _ai < 3; _ai++) {
+          var _aa = (_ai / 3) * Math.PI * 2;
+          var _ax = _dz.x + Math.cos(_aa) * 5, _az = _dz.z + Math.sin(_aa) * 5;
+          Pickups.spawn(new THREE.Vector3(_ax, VoxelWorld.getTerrainHeight(_ax, _az) + 1, _az), 'AMMO');
+        }
+      }
     }
 
     // Spawn enemy vehicles on later waves (Russian armored assault)
@@ -5195,6 +5215,10 @@ const GameManager = (function () {
         var deathAngle = Math.atan2(attackerPos.x - player.position.x, attackerPos.z - player.position.z);
         MLSystem.trackDeathContext(deathType, deathAngle);
       }
+      // Defeat banner: custom reason (capital fell) or the default
+      var _dtEl = document.getElementById('dead-title');
+      if (_dtEl) _dtEl.textContent = _defeatReason || 'YOU DIED';
+      _defeatReason = null;
       showOverlay('dead');
 
       var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
@@ -5982,8 +6006,29 @@ const GameManager = (function () {
             _wpT = _md.landingZones[(_md.completedWaves || 0) % _md.landingZones.length];
           }
         }
+        // Capital defense: waypoint tracks the nearest column leader so the
+        // player always knows where the armor is coming from.
+        if (!_wpT && typeof ConvoySystem !== 'undefined' && ConvoySystem.hasActiveConvoy && ConvoySystem.hasActiveConvoy()) {
+          _wpT = ConvoySystem.getLeadPosition(player.position);
+        }
         HUD.setMissionWaypoint(_wpT);
         HUD.updateMissionWaypoint(_camera);
+      }
+      // ── Capital defense (Battle of Kyiv): city bar + defeat check ──
+      var _cdStg = STAGES[currentStage];
+      if (_cdStg && _cdStg.capitalDefense && typeof ConvoySystem !== 'undefined') {
+        if (HUD.setCityIntegrity) HUD.setCityIntegrity(ConvoySystem.getCityHP());
+        if (ConvoySystem.isCityLost() && gameState === STATE.PLAYING && !player.godMode) {
+          // The capital fell — same defeat flow as player death, but Last
+          // Stand can't save a fallen city.
+          _defeatReason = 'KYIV HAS FALLEN';
+          player.hp = 0;
+          player._usedLastStand = true;
+          player.shieldTimer = 0;
+          onPlayerHit(1, null); // routes through the standard death handling
+        }
+      } else if (HUD.setCityIntegrity) {
+        HUD.setCityIntegrity(null);
       }
       // Wave progress bar: pct of wave cleared based on initial enemy count
       if (HUD.setWaveProgress && player._waveStartCount > 0) {

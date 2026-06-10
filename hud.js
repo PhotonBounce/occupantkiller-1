@@ -1635,7 +1635,7 @@ const HUD = (() => {
       _objectiveEl.id = 'objective-marker';
       /* Sits below the primary-objective banner (top:92px, ~50px tall) so the
          mission progress line never overlaps the stage header or the banner. */
-      _objectiveEl.style.cssText = 'position:fixed;top:148px;left:50%;transform:translateX(-50%);color:#ffcc44;font-size:13px;font-weight:bold;text-shadow:0 1px 4px #000;pointer-events:none;z-index:220;transition:opacity 0.5s;';
+      _objectiveEl.style.cssText = 'position:fixed;top:172px;left:50%;transform:translateX(-50%);color:#ffcc44;font-size:13px;font-weight:bold;text-shadow:0 1px 4px #000;pointer-events:none;z-index:220;transition:opacity 0.5s;';
       document.body.appendChild(_objectiveEl);
     }
     _objectiveEl.textContent = '📍 ' + text;
@@ -1727,6 +1727,34 @@ const HUD = (() => {
       el.style.opacity = '0';
       el.style.transform = 'translateX(-50%) scale(1)';
     }, 2500);
+  }
+
+  // ── City integrity bar (Battle of Kyiv capital defense) ──────────
+  // Thin bar under the primary-objective banner: KYIV [██████░░] 80%
+  let _cityEl = null, _cityLast = -1;
+  function setCityIntegrity(pct) {
+    if (pct == null) { if (_cityEl) _cityEl.style.display = 'none'; _cityLast = -1; return; }
+    pct = Math.max(0, Math.min(100, Math.round(pct)));
+    if (pct === _cityLast) return;
+    _cityLast = pct;
+    if (!_cityEl) {
+      _cityEl = document.createElement('div');
+      _cityEl.id = 'city-integrity';
+      _cityEl.style.cssText = 'position:fixed;top:142px;left:50%;transform:translateX(-50%);z-index:60;pointer-events:none;width:200px;text-align:center;font-family:monospace';
+      _cityEl.innerHTML =
+        '<div style="font-size:10px;letter-spacing:2px;color:#ffd24a;text-shadow:0 1px 3px #000">🏛 KYIV <span id="ci-pct"></span></div>' +
+        '<div style="height:6px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,210,74,0.4);border-radius:3px;overflow:hidden">' +
+        '<div id="ci-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#ffd24a,#88cc44);transition:width 0.4s"></div></div>';
+      document.body.appendChild(_cityEl);
+    }
+    _cityEl.style.display = 'block';
+    var fill = _cityEl.querySelector('#ci-fill');
+    var label = _cityEl.querySelector('#ci-pct');
+    if (fill) {
+      fill.style.width = pct + '%';
+      fill.style.background = pct > 50 ? 'linear-gradient(90deg,#ffd24a,#88cc44)' : (pct > 25 ? '#ffaa00' : '#ff4444');
+    }
+    if (label) label.textContent = pct + '%';
   }
 
   // ── Boss Intro Banner ────────────────────────────────────────────
@@ -1984,7 +2012,7 @@ const HUD = (() => {
     // ── B22: New HUD ──
     showBossBar, hideBossBar,
     updateXPBar, showObjective, hideObjective, setPrimaryObjective,
-    setMissionWaypoint, updateMissionWaypoint,
+    setMissionWaypoint, updateMissionWaypoint, setCityIntegrity,
     showStreakBanner, showBossIntro, addDamageLog,
     showGrenadeWarning, updateStageProgress,
     showDamageFlash,

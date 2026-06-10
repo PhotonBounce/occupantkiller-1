@@ -373,6 +373,29 @@ const MissionSystem = (function () {
         return mission.completedWaves >= mission.targetWaves;
       },
     },
+    kyiv_defense: {
+      name: 'Defend the Capital',
+      description: 'Feb 2022. Stop every Russian armored column before it breaches the Maidan line. Kyiv must not fall.',
+      tier: 5,
+      generate() {
+        return {
+          type: 'kyiv_defense',
+          targetWaves: 8,
+          completedWaves: 0,
+          objectiveText: 'Hold the line — columns inbound',
+        };
+      },
+      update(mission) {
+        try {
+          var w = (typeof GameManager !== 'undefined' && GameManager.getCurrentWave) ? GameManager.getCurrentWave() : 1;
+          mission.completedWaves = Math.max(mission.completedWaves, w - 1);
+          var hp = (typeof ConvoySystem !== 'undefined') ? ConvoySystem.getCityHP() : 100;
+          mission.objectiveText = 'Defend Kyiv: wave ' + w + '/' + mission.targetWaves + ' — city integrity ' + hp + '%';
+        } catch (e) {}
+      },
+      check(mission) { return mission.completedWaves >= mission.targetWaves; },
+      failed() { return (typeof ConvoySystem !== 'undefined') && ConvoySystem.isCityLost(); },
+    },
     escort: {
       name: 'Logistics Escort',
       description: 'Escort supply convoy to destination safely.',
