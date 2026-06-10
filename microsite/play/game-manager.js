@@ -100,6 +100,7 @@ const GameManager = (function () {
   var _gmTmp3 = new THREE.Vector3();
   var _gmNewPos = new THREE.Vector3();
   var _waveStartTimer = null;
+  var _defeatReason = null; // custom defeat banner (e.g. 'KYIV HAS FALLEN'); null = 'YOU DIED'
   var _hudSlowTimer = 0; // throttle slow HUD updates (dailies, bounties, prestige)
   var _musicIntTimer = 0; // throttle music intensity calc
   var _buildMatHud = null; // cached DOM ref for build materials HUD
@@ -737,7 +738,7 @@ const GameManager = (function () {
     },
     {
       id:           13,
-      name:         'SIEGE OF KYIV',
+      name:         'BATTLE OF KYIV',
       theme:        'urban',
       wavesPerStage: 8,
       difficulty:   1.5,
@@ -747,9 +748,10 @@ const GameManager = (function () {
       sunIntensity: 0.55,
       exposure:     0.75,
       tankFocus:    true,
+      capitalDefense: true,  // armored columns + city-integrity objective + Bayraktar support
       hintWeapons:  ['NLAW','FGM148Javelin','RPG7','StugnaP'],
-      description:  'Feb 2022. Ambush the Russian armored convoy on the road to Kyiv. NLAW and Javelin teams hold the line.',
-      objective:    'Ambush the convoy. Tanks spawn from wave 1. Use AT weapons. 8 waves.',
+      description:  'Feb 2022. Russian armored columns push down the boulevard toward Maidan. NLAW teams and Bayraktar strikes hold the capital.',
+      objective:    'DEFEND KYIV: stop every armored column before it breaches the line. City integrity must survive 8 waves.',
     },
     {
       id:           14,
@@ -1423,7 +1425,11 @@ const GameManager = (function () {
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
         if (gameState === STATE.PLAYING) {
-          MissionSystem.generateRandom();
+          if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
+            MissionSystem.generateMission('kyiv_defense');
+          } else {
+            MissionSystem.generateRandom();
+          }
           var active = MissionSystem.getActive();
           if (active && active.length > 0) {
             HUD.notifyPickup('📋 NEW MISSION: ' + active[active.length - 1].name, '#ffcc00');
@@ -1449,8 +1455,10 @@ const GameManager = (function () {
     }
     player.position.set(sx, spawnH + player.height, sz);
 
-    // Spawn organized assault groups (4 squads of 4-5 armed NPCs)
-    NPCSystem.spawnAssaultGroups();
+    // Spawn organized assault groups (4 squads of 4-5 armed NPCs) — BRIGADE
+    // role only. Lone Wolf previously got the same 22-NPC army, which deleted
+    // every nearby enemy before the player could engage (zero threat).
+    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
 
     // Spawn starter vehicle fleet on roads (road-level positions)
     var roadWPs = (window.VoxelWorld.getRoadWaypoints ? window.VoxelWorld.getRoadWaypoints() : []);
@@ -2838,6 +2846,11 @@ const GameManager = (function () {
     player.kills = 0;
     currentWave = 0;
     currentStage = 0;
+    // QA-only stage jump (headless harness): start directly at a given stage
+    // index, e.g. window.__QA_START_STAGE = 12 for Battle of Kyiv.
+    if (typeof window !== 'undefined' && window.__QA_MODE && typeof window.__QA_START_STAGE === 'number') {
+      currentStage = Math.max(0, Math.min(STAGES.length - 1, window.__QA_START_STAGE));
+    }
     player.velocity.set(0, 0, 0);
     player.armor = 0;
     player.lastDamageTime = 10; // Start high so health regen kicks in immediately at game start
@@ -2914,8 +2927,9 @@ const GameManager = (function () {
       Progression.refreshDailies();
     }
 
-    // Apply first stage
-    applyStage(0);
+    // Apply the starting stage (normally 0; the QA stage-jump hook may have
+    // overridden currentStage above)
+    applyStage(currentStage);
 
     const spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
     player.position.set(0, spawnH + player.height, 0);
@@ -2941,8 +2955,9 @@ const GameManager = (function () {
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
 
-    // Respawn organized assault groups for the real gameplay start path.
-    NPCSystem.spawnAssaultGroups();
+    // Respawn organized assault groups for the real gameplay start path
+    // (BRIGADE role only — Lone Wolf fights solo).
+    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads for first stage
     var _rwps = (window.VoxelWorld.getRoadWaypoints ? window.VoxelWorld.getRoadWaypoints() : []);
@@ -2973,7 +2988,7 @@ const GameManager = (function () {
     HUD.setScore(0);
     HUD.setWave(0);
     HUD.setKills(0);
-    HUD.setStage(STAGES[0].id, STAGES[0].name);
+    HUD.setStage(STAGES[currentStage].id, STAGES[currentStage].name);
     HUD.setWeapon(Weapons.getCurrentName(), Weapons.getCurrentIdx());
     if (Weapons.refreshHud) Weapons.refreshHud();
     if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : (player.grenades || 0));
@@ -2983,8 +2998,8 @@ const GameManager = (function () {
       requestPointerLock();
     }, 100);
 
-    // Announce first stage then show drone selection
-    HUD.announceStage(STAGES[0].id, STAGES[0].name, STAGES[0].description, STAGES[0].objective);
+    // Announce the starting stage then show drone selection
+    HUD.announceStage(STAGES[currentStage].id, STAGES[currentStage].name, STAGES[currentStage].description, STAGES[currentStage].objective);
     if (window.AudioSystem.stopAmbientLoop) window.AudioSystem.stopAmbientLoop();
     if (_waveStartTimer) clearTimeout(_waveStartTimer);
     _waveStartTimer = setTimeout(function () {
@@ -2996,8 +3011,13 @@ const GameManager = (function () {
       try { if (typeof Feedback !== 'undefined' && Feedback.startOnboarding) Feedback.startOnboarding(); } catch (_e) {}
     }, 3200);
 
-    // Generate an initial mission
-    MissionSystem.generateRandom();
+    // Generate an initial mission. Capital defense (Kyiv) always runs its
+    // signature mission instead of a random one.
+    if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
+      MissionSystem.generateMission('kyiv_defense');
+    } else {
+      MissionSystem.generateRandom();
+    }
     } catch (err) {
       console.error('Failed to initialize game:', err);
     }
@@ -3085,6 +3105,12 @@ const GameManager = (function () {
     // Generate level terrain and features
     window.VoxelWorld.generateLevel(stageIndex);
 
+    // Capital defense (Kyiv): fresh city integrity + defense zone at Maidan.
+    if (typeof ConvoySystem !== 'undefined') {
+      ConvoySystem.reset();
+      if (stageDef.capitalDefense) ConvoySystem.setDefenseZone(0, 1, 12);
+    }
+
     // Update scene colors
     _scene.background = new THREE.Color(stageDef.bgColor);
     _scene.fog = new THREE.Fog(stageDef.fogColor, 18, 105);
@@ -3123,7 +3149,7 @@ const GameManager = (function () {
 
     // Start stage-specific environmental VFX
     if (typeof StageVFX !== 'undefined' && StageVFX.startStageEffects) {
-      StageVFX.startStageEffects(stageDef.theme);
+      StageVFX.startStageEffects(stageDef.theme, { warzone: !!stageDef.capitalDefense });
     }
 
     // Spawn water bodies per stage
@@ -3223,9 +3249,9 @@ const GameManager = (function () {
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
 
-    // Respawn organized assault groups on new terrain
+    // Respawn organized assault groups on new terrain (BRIGADE role only)
     NPCSystem.clear();
-    NPCSystem.spawnAssaultGroups();
+    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads
     var _nsWps = (VoxelWorld.getRoadWaypoints ? VoxelWorld.getRoadWaypoints() : []);
@@ -3320,8 +3346,13 @@ const GameManager = (function () {
       return;
     }
 
-    // Pass AI strategy to enemies for adaptive behavior
-    Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, null, player.position);
+    // Pass AI strategy to enemies for adaptive behavior.
+    // Capital defense (Kyiv): infantry is just the column escort — thin it out
+    // so the armored convoy is the main course.
+    var _battlePlan = (stageDef && stageDef.capitalDefense)
+      ? { groupDelta: -1, extraMultiplier: 0.6 }
+      : null;
+    Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -3386,14 +3417,41 @@ const GameManager = (function () {
       }
     }
 
+    // ═══ Capital defense (Battle of Kyiv): armored COLUMNS instead of the
+    // generic scattered vehicle spawns. Columns advance down the boulevard
+    // toward the defended Maidan zone via ConvoySystem. ═══
+    var capitalDefense = !!(stageDef && stageDef.capitalDefense);
+    if (capitalDefense && typeof ConvoySystem !== 'undefined') {
+      ConvoySystem.spawnConvoy(w, { route: 'north' });
+      // Waves 4 and 7: second column on a flanking axis
+      if (w === 4) ConvoySystem.spawnConvoy(w, { route: 'east', tanks: 2, btrs: 1 });
+      if (w === 7) ConvoySystem.spawnConvoy(w, { route: 'west', tanks: 3, btrs: 1 });
+      if (w === 1) HUD.notifyPickup('🚀 GRAB AN NLAW — STOP THE COLUMNS!', '#ffcc44');
+      // Air support: a Bayraktar TB2 comes on station with the wave (auto-
+      // engages armor with MAM-L; respects its own 90s rearm cooldown).
+      if (typeof DroneSystem !== 'undefined' && DroneSystem.callBayraktar) {
+        DroneSystem.callBayraktar();
+      }
+      // Resupply: AT weapons carry 1+3 rockets — drop ammo crates at the
+      // defended line each wave so launchers stay fed.
+      if (typeof Pickups !== 'undefined' && Pickups.spawn) {
+        var _dz = ConvoySystem.getDefenseZone();
+        for (var _ai = 0; _ai < 3; _ai++) {
+          var _aa = (_ai / 3) * Math.PI * 2;
+          var _ax = _dz.x + Math.cos(_aa) * 5, _az = _dz.z + Math.sin(_aa) * 5;
+          Pickups.spawn(new THREE.Vector3(_ax, VoxelWorld.getTerrainHeight(_ax, _az) + 1, _az), 'AMMO');
+        }
+      }
+    }
+
     // Spawn enemy vehicles on later waves (Russian armored assault)
     // tankFocus stages (e.g. Siege of Kyiv) get heavy armor from wave 1
-    var tankFocus = !!(stageDef && stageDef.tankFocus);
+    var tankFocus = !!(stageDef && stageDef.tankFocus) && !capitalDefense;
     var armorMinWave = tankFocus ? 1 : 3;
     var transportMinWave = tankFocus ? 2 : 5;
     var extraTanks = tankFocus ? 1 + Math.min(3, Math.floor(w / 2)) : 0;
 
-    if (w >= armorMinWave) {
+    if (w >= armorMinWave && !capitalDefense) {
       var enemySpawnAngle = Math.random() * Math.PI * 2;
       var enemySpawnDist = 35 + Math.random() * 10;
       var evx = Math.cos(enemySpawnAngle) * enemySpawnDist;
@@ -3402,7 +3460,7 @@ const GameManager = (function () {
       VehicleSystem.spawnEnemy(evx, evy, evz, 'combat');
       HUD.notifyPickup('⚠ ENEMY ARMOR SPOTTED!', '#ff4444');
     }
-    if (w >= transportMinWave) {
+    if (w >= transportMinWave && !capitalDefense) {
       var evAngle2 = Math.random() * Math.PI * 2;
       var evDist2 = 30 + Math.random() * 10;
       var evx2 = Math.cos(evAngle2) * evDist2;
@@ -5162,6 +5220,10 @@ const GameManager = (function () {
         var deathAngle = Math.atan2(attackerPos.x - player.position.x, attackerPos.z - player.position.z);
         MLSystem.trackDeathContext(deathType, deathAngle);
       }
+      // Defeat banner: custom reason (capital fell) or the default
+      var _dtEl = document.getElementById('dead-title');
+      if (_dtEl) _dtEl.textContent = _defeatReason || 'YOU DIED';
+      _defeatReason = null;
       showOverlay('dead');
 
       var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
@@ -5809,6 +5871,7 @@ const GameManager = (function () {
         HUD._updateNPCTextPositions(NPCSystem.getAll(), _camera, _renderer);
       }
       DroneSystem.update(delta);
+      if (typeof ConvoySystem !== 'undefined') ConvoySystem.update(delta);
       if (typeof EnemyArtillery !== 'undefined') EnemyArtillery.update(delta);
       VehicleSystem.update(delta);
       Automation.update(delta);
@@ -5918,14 +5981,59 @@ const GameManager = (function () {
         var _poAlive = Enemies.getAliveCount();
         var _poMission = (typeof MissionSystem !== 'undefined' && MissionSystem.getActive) ? MissionSystem.getActive() : null;
         if (_poMission && _poMission.length > 0 && _poMission[0] && _poMission[0].status === 'active') {
-          HUD.setPrimaryObjective('🎯 ' + (_poMission[0].name || 'MISSION'),
-            (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' enemies left');
+          // Sub-line = the mission's live progress text (e.g. "Survival: Wave
+          // 0/3") — far more actionable than generic wave info while a mission
+          // is active. Falls back to wave info when no objectiveText exists.
+          var _poProg = (_poMission[0].data && _poMission[0].data.objectiveText) ? _poMission[0].data.objectiveText
+            : ((_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' enemies left');
+          HUD.setPrimaryObjective('🎯 ' + (_poMission[0].name || 'MISSION'), _poProg);
         } else if (_poAlive > 0) {
           HUD.setPrimaryObjective('⚔ ELIMINATE THE OCCUPANTS',
             (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' left');
         } else {
           HUD.setPrimaryObjective('✓ AREA SECURED', 'Next wave incoming — hold the line');
         }
+      }
+      // ── Mission waypoint: project the active mission's target into the
+      // world so players navigate by marker, not raw coordinates ──
+      if (HUD.setMissionWaypoint && HUD.updateMissionWaypoint) {
+        var _wpT = null;
+        if (_poMission && _poMission.length > 0 && _poMission[0] && _poMission[0].status === 'active') {
+          var _md = _poMission[0].data || {};
+          if (_md.destination) _wpT = _md.destination;                      // escort
+          else if (_md.building) _wpT = { x: _md.building.cx != null ? _md.building.cx : _md.building.x, y: _md.building.baseY || 0, z: _md.building.cz != null ? _md.building.cz : _md.building.z }; // clear_building
+          else if (_md.targetPoints && _md.scoutedPoints) {                 // recon: next unscouted
+            for (var _wi = 0; _wi < _md.targetPoints.length; _wi++) {
+              if (!_md.scoutedPoints[_wi]) { _wpT = _md.targetPoints[_wi]; break; }
+            }
+          }
+          else if (_md.landingZones && _md.landingZones.length) {           // airborne: current LZ
+            _wpT = _md.landingZones[(_md.completedWaves || 0) % _md.landingZones.length];
+          }
+        }
+        // Capital defense: waypoint tracks the nearest column leader so the
+        // player always knows where the armor is coming from.
+        if (!_wpT && typeof ConvoySystem !== 'undefined' && ConvoySystem.hasActiveConvoy && ConvoySystem.hasActiveConvoy()) {
+          _wpT = ConvoySystem.getLeadPosition(player.position);
+        }
+        HUD.setMissionWaypoint(_wpT);
+        HUD.updateMissionWaypoint(_camera);
+      }
+      // ── Capital defense (Battle of Kyiv): city bar + defeat check ──
+      var _cdStg = STAGES[currentStage];
+      if (_cdStg && _cdStg.capitalDefense && typeof ConvoySystem !== 'undefined') {
+        if (HUD.setCityIntegrity) HUD.setCityIntegrity(ConvoySystem.getCityHP());
+        if (ConvoySystem.isCityLost() && gameState === STATE.PLAYING && !player.godMode) {
+          // The capital fell — same defeat flow as player death, but Last
+          // Stand can't save a fallen city.
+          _defeatReason = 'KYIV HAS FALLEN';
+          player.hp = 0;
+          player._usedLastStand = true;
+          player.shieldTimer = 0;
+          onPlayerHit(1, null); // routes through the standard death handling
+        }
+      } else if (HUD.setCityIntegrity) {
+        HUD.setCityIntegrity(null);
       }
       // Wave progress bar: pct of wave cleared based on initial enemy count
       if (HUD.setWaveProgress && player._waveStartCount > 0) {
@@ -7082,10 +7190,23 @@ const GameManager = (function () {
 
   /* ── Role / Stealth / Weapons-grid helpers ────────────────────────── */
   function setRole(r) {
+    var prev = player.role;
     player.role = (r === 'brigade') ? 'brigade' : 'lonewolf';
     updateRoleIndicator();
     HUD.notifyPickup(player.role === 'brigade' ? '🎖 ASSAULT BRIGADE' : '🐺 LONE WOLF',
       player.role === 'brigade' ? '#00aaff' : '#ffaa00');
+    // Apply the role for real: BRIGADE fields the allied assault squads,
+    // LONE WOLF fights solo. Previously this only changed the badge and the
+    // 22-NPC army spawned either way, erasing all combat threat.
+    try {
+      if (typeof NPCSystem !== 'undefined' && prev !== player.role) {
+        if (player.role === 'brigade') {
+          if (NPCSystem.getCount && NPCSystem.getCount() < 4 && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
+        } else if (NPCSystem.clear) {
+          NPCSystem.clear();
+        }
+      }
+    } catch (eRole) {}
   }
 
   function updateRoleIndicator() {
@@ -7883,6 +8004,10 @@ const GameManager = (function () {
           if (hudEl) hudEl.style.display = 'block';
           gameState = STATE.PLAYING;
           if (typeof GameManager.startGame === 'function') GameManager.startGame();
+          // startGame schedules its own beginWave(1) (3.2s announce delay);
+          // cancel it — QA starts the wave immediately below, and letting both
+          // fire double-spawned every wave-1 (incl. duplicate Kyiv convoys).
+          if (_waveStartTimer) { clearTimeout(_waveStartTimer); _waveStartTimer = null; }
           if (typeof GameManager.beginWave === 'function') GameManager.beginWave(1);
           if (typeof HUD !== 'undefined' && HUD.show) HUD.show();
         } catch (e) {

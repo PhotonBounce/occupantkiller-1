@@ -288,7 +288,7 @@ const MissionSystem = (function () {
               }
             }
 
-            mission.objectiveText = `Breakout: Reach (${Math.round(mission.destination.x)}, ${Math.round(mission.destination.z)}) — Distance: ${mission.distanceToDest}m (Time: ${Math.round(mission.timeLimit)}s)`;
+            mission.objectiveText = `Breakout: reach the ◆ waypoint — ${mission.distanceToDest}m (${Math.round(mission.timeLimit)}s left)`;
           },
           check(mission) { return mission.reached; },
         },
@@ -373,6 +373,29 @@ const MissionSystem = (function () {
         return mission.completedWaves >= mission.targetWaves;
       },
     },
+    kyiv_defense: {
+      name: 'Defend the Capital',
+      description: 'Feb 2022. Stop every Russian armored column before it breaches the Maidan line. Kyiv must not fall.',
+      tier: 5,
+      generate() {
+        return {
+          type: 'kyiv_defense',
+          targetWaves: 8,
+          completedWaves: 0,
+          objectiveText: 'Hold the line — columns inbound',
+        };
+      },
+      update(mission) {
+        try {
+          var w = (typeof GameManager !== 'undefined' && GameManager.getCurrentWave) ? GameManager.getCurrentWave() : 1;
+          mission.completedWaves = Math.max(mission.completedWaves, w - 1);
+          var hp = (typeof ConvoySystem !== 'undefined') ? ConvoySystem.getCityHP() : 100;
+          mission.objectiveText = 'Defend Kyiv: wave ' + w + '/' + mission.targetWaves + ' — city integrity ' + hp + '%';
+        } catch (e) {}
+      },
+      check(mission) { return mission.completedWaves >= mission.targetWaves; },
+      failed() { return (typeof ConvoySystem !== 'undefined') && ConvoySystem.isCityLost(); },
+    },
     escort: {
       name: 'Logistics Escort',
       description: 'Escort supply convoy to destination safely.',
@@ -433,6 +456,12 @@ const MissionSystem = (function () {
                 npc.job = 'guard';
                 npc.guardPos = playerPos.clone();
                 mission.escortNpcId = npc.id;
+                // The officer must survive the trip through a hostile field —
+                // ambient enemies previously shredded them in seconds, failing
+                // the mission before the player could react. Triple HP and let
+                // the scripted ambushes be the real threat.
+                npc.maxHealth = (npc.maxHealth || npc.health || 100) * 3;
+                npc.health = npc.maxHealth;
               }
             }
           } catch(e3){}
@@ -459,7 +488,7 @@ const MissionSystem = (function () {
           return;
         }
 
-        mission.convoyHealth = Math.round(escortNpc.health);
+        mission.convoyHealth = Math.round((escortNpc.health / (escortNpc.maxHealth || 100)) * 100);
         var npcPos = escortNpc.position;
         var pDist = npcPos.distanceTo(playerPos);
         var dDist = npcPos.distanceTo(mission.destination);
@@ -488,8 +517,8 @@ const MissionSystem = (function () {
           spawnAmbushNear(npcPos, 5);
         }
 
-        var statusText = waiting ? ' (Waiting for player)' : '';
-        mission.objectiveText = `Escort Logistics NPC: ${mission.convoyHealth}% HP — Lead to (${Math.round(mission.destination.x)}, ${Math.round(mission.destination.z)}) — Distance: ${Math.round(dDist)}m${statusText}`;
+        var statusText = waiting ? ' (Waiting for you — stay within 12m)' : '';
+        mission.objectiveText = `Escort officer (${mission.convoyHealth}% HP) to the ◆ waypoint — ${Math.round(dDist)}m${statusText}`;
 
         function spawnAmbushNear(center, enemyCount) {
           try {
@@ -513,6 +542,7 @@ const MissionSystem = (function () {
         }
       },
       check(mission) { return mission.arrived && mission.convoyHealth > 0; },
+      failed(mission) { return !mission.arrived && mission.spawned && mission.convoyHealth <= 0; },
     },
     infiltrate: {
       name: 'Infiltrate the Occupants',
@@ -678,6 +708,21 @@ const MissionSystem = (function () {
             console.error('Failed to update mission:', m.type, eUpd);
           }
         }
+        // Mission failure: templates may define failed(data). Without this,
+        // a failed mission (e.g. escort officer killed) sat in the active
+        // list forever showing FAILED and was never replaced.
+        if (template.failed && template.failed(m.data)) {
+          m.status = 'failed';
+          activeMissions.splice(i, 1);
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast('❌ MISSION FAILED: ' + m.name + ' — a new operation will come in shortly', 4500, '#ff5555');
+          }
+          // Replace it after a short breather, like the success path does.
+          setTimeout(function () {
+            try { if (activeMissions.length === 0) generateRandom(); } catch (eGR) {}
+          }, 8000);
+          continue;
+        }
         if (template.check(m.data)) {
           m.status = 'completed';
           completedMissions.push(m);
@@ -703,15 +748,15 @@ const MissionSystem = (function () {
         }
       }
     }
-    // Update objective HUD
+    // Update objective HUD. The primary-objective banner already shows the
+    // FIRST active mission's name + live progress, so only surface the yellow
+    // marker for a SECOND concurrent mission — otherwise it duplicated the
+    // banner text and collided with the stage header.
     if (typeof HUD !== 'undefined') {
-      if (activeMissions.length > 0) {
+      if (activeMissions.length > 1) {
         const latest = activeMissions[activeMissions.length - 1];
-        if (latest.data && latest.data.objectiveText) {
-          HUD.showObjective(latest.data.objectiveText);
-        } else {
-          HUD.showObjective(latest.name);
-        }
+        const txt = (latest.data && latest.data.objectiveText) ? latest.data.objectiveText : latest.name;
+        HUD.showObjective(txt);
       } else {
         HUD.hideObjective();
       }

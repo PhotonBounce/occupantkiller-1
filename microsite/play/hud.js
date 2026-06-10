@@ -680,6 +680,30 @@ const HUD = (() => {
     headshotTimer = setTimeout(() => el.headshotNotif.classList.remove('visible'), 1200);
   }
 
+  // ── Stacking toast notifications ─────────────────────────────────
+  // 53 call sites across missions/combat assumed HUD.showToast existed
+  // (escort/ambush/paratrooper/Bradley announcements) but it was never
+  // implemented, so all of them silently no-oped. Toasts stack above the
+  // ammo bar and auto-fade after their duration.
+  let _toastBox = null;
+  function showToast(text, durationMs, color) {
+    if (!_toastBox) {
+      _toastBox = document.createElement('div');
+      _toastBox.id = 'toast-stack';
+      _toastBox.style.cssText = 'position:fixed;bottom:170px;left:50%;transform:translateX(-50%);z-index:230;display:flex;flex-direction:column-reverse;gap:6px;align-items:center;pointer-events:none;max-width:80vw';
+      document.body.appendChild(_toastBox);
+    }
+    const t = document.createElement('div');
+    t.style.cssText = 'background:rgba(10,12,16,0.88);border:1px solid ' + (color || '#ffcc00') + ';color:' + (color || '#ffcc00') +
+      ';padding:6px 16px;border-radius:6px;font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000;box-shadow:0 2px 10px rgba(0,0,0,0.5);transition:opacity 0.5s;white-space:pre-wrap;text-align:center';
+    t.textContent = text;
+    _toastBox.appendChild(t);
+    while (_toastBox.children.length > 4) _toastBox.removeChild(_toastBox.firstChild);
+    const ms = (typeof durationMs === 'number' && durationMs > 300) ? durationMs : 3500;
+    setTimeout(function () { t.style.opacity = '0'; }, ms - 450);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, ms);
+  }
+
   function notifyPickup(text, color) {
     el.pickupNotif.textContent  = text;
     el.pickupNotif.style.color  = color;
@@ -1609,7 +1633,9 @@ const HUD = (() => {
     if (!_objectiveEl) {
       _objectiveEl = document.createElement('div');
       _objectiveEl.id = 'objective-marker';
-      _objectiveEl.style.cssText = 'position:fixed;top:12%;left:50%;transform:translateX(-50%);color:#ffcc44;font-size:14px;font-weight:bold;text-shadow:0 0 6px #886600;pointer-events:none;z-index:220;transition:opacity 0.5s;';
+      /* Sits below the primary-objective banner (top:92px, ~50px tall) so the
+         mission progress line never overlaps the stage header or the banner. */
+      _objectiveEl.style.cssText = 'position:fixed;top:172px;left:50%;transform:translateX(-50%);color:#ffcc44;font-size:13px;font-weight:bold;text-shadow:0 1px 4px #000;pointer-events:none;z-index:220;transition:opacity 0.5s;';
       document.body.appendChild(_objectiveEl);
     }
     _objectiveEl.textContent = '📍 ' + text;
@@ -1618,6 +1644,48 @@ const HUD = (() => {
 
   function hideObjective() {
     if (_objectiveEl) _objectiveEl.style.opacity = '0';
+  }
+
+  // ── 3D mission waypoint marker ────────────────────────────────────
+  // Projects a world position into screen space as a gold diamond with a
+  // distance readout; clamps to the screen edge with an arrow when the
+  // target is off-screen or behind the camera. Call updateMissionWaypoint
+  // every frame with the camera; pass null target to hide.
+  let _wpEl = null, _wpTarget = null, _wpVec = null;
+  function setMissionWaypoint(pos) { _wpTarget = pos || null; if (!pos && _wpEl) _wpEl.style.display = 'none'; }
+  function updateMissionWaypoint(camera) {
+    if (!_wpTarget || !camera) { if (_wpEl) _wpEl.style.display = 'none'; return; }
+    if (!_wpEl) {
+      _wpEl = document.createElement('div');
+      _wpEl.id = 'mission-waypoint';
+      _wpEl.style.cssText = 'position:fixed;z-index:215;pointer-events:none;text-align:center;font-family:monospace;transform:translate(-50%,-50%);text-shadow:0 1px 4px #000';
+      _wpEl.innerHTML = '<div style="font-size:18px;color:#ffd24a">◆</div><div id="mwp-dist" style="font-size:11px;color:#ffd24a;font-weight:bold;margin-top:-3px"></div>';
+      document.body.appendChild(_wpEl);
+    }
+    if (!_wpVec) _wpVec = new THREE.Vector3();
+    _wpVec.set(_wpTarget.x, (_wpTarget.y || 0) + 3, _wpTarget.z);
+    const camPos = camera.getWorldPosition(new THREE.Vector3());
+    const dist = Math.round(camPos.distanceTo(_wpVec));
+    _wpVec.project(camera);
+    const behind = _wpVec.z > 1;
+    let sx = (_wpVec.x * 0.5 + 0.5) * window.innerWidth;
+    let sy = (-_wpVec.y * 0.5 + 0.5) * window.innerHeight;
+    if (behind) { sx = window.innerWidth - sx; sy = window.innerHeight * 0.9; }
+    const m = 28; // edge margin
+    const clamped = behind || sx < m || sx > window.innerWidth - m || sy < m || sy > window.innerHeight - m;
+    sx = Math.max(m, Math.min(window.innerWidth - m, sx));
+    sy = Math.max(m, Math.min(window.innerHeight - m, sy));
+    _wpEl.style.display = 'block';
+    _wpEl.style.left = sx + 'px';
+    _wpEl.style.top = sy + 'px';
+    _wpEl.firstChild.textContent = clamped ? '➤' : '◆';
+    // rotate the edge arrow to point toward the target
+    if (clamped) {
+      const ang = Math.atan2(sy - window.innerHeight / 2, sx - window.innerWidth / 2);
+      _wpEl.firstChild.style.transform = 'rotate(' + ang + 'rad)';
+    } else { _wpEl.firstChild.style.transform = 'none'; }
+    const dEl = _wpEl.querySelector('#mwp-dist');
+    if (dEl) dEl.textContent = dist + 'm';
   }
 
   // ── Persistent PRIMARY OBJECTIVE banner ──────────────────────────
@@ -1659,6 +1727,34 @@ const HUD = (() => {
       el.style.opacity = '0';
       el.style.transform = 'translateX(-50%) scale(1)';
     }, 2500);
+  }
+
+  // ── City integrity bar (Battle of Kyiv capital defense) ──────────
+  // Thin bar under the primary-objective banner: KYIV [██████░░] 80%
+  let _cityEl = null, _cityLast = -1;
+  function setCityIntegrity(pct) {
+    if (pct == null) { if (_cityEl) _cityEl.style.display = 'none'; _cityLast = -1; return; }
+    pct = Math.max(0, Math.min(100, Math.round(pct)));
+    if (pct === _cityLast) return;
+    _cityLast = pct;
+    if (!_cityEl) {
+      _cityEl = document.createElement('div');
+      _cityEl.id = 'city-integrity';
+      _cityEl.style.cssText = 'position:fixed;top:142px;left:50%;transform:translateX(-50%);z-index:60;pointer-events:none;width:200px;text-align:center;font-family:monospace';
+      _cityEl.innerHTML =
+        '<div style="font-size:10px;letter-spacing:2px;color:#ffd24a;text-shadow:0 1px 3px #000">🏛 KYIV <span id="ci-pct"></span></div>' +
+        '<div style="height:6px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,210,74,0.4);border-radius:3px;overflow:hidden">' +
+        '<div id="ci-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#ffd24a,#88cc44);transition:width 0.4s"></div></div>';
+      document.body.appendChild(_cityEl);
+    }
+    _cityEl.style.display = 'block';
+    var fill = _cityEl.querySelector('#ci-fill');
+    var label = _cityEl.querySelector('#ci-pct');
+    if (fill) {
+      fill.style.width = pct + '%';
+      fill.style.background = pct > 50 ? 'linear-gradient(90deg,#ffd24a,#88cc44)' : (pct > 25 ? '#ffaa00' : '#ff4444');
+    }
+    if (label) label.textContent = pct + '%';
   }
 
   // ── Boss Intro Banner ────────────────────────────────────────────
@@ -1895,7 +1991,7 @@ const HUD = (() => {
     setWaveProgress,
     setHealth, setAmmo, setWeapon, showReload,
     flashHit, flashDamage, flashHeal, showBloodDrops,
-    showHeadshot, notifyPickup, setCrosshairSpread, setCrosshairTarget, setRangeReadout, setSprintIntensity, setGrenadeWarning, setHandGrenades, showGrenadeSection, showLockOn,
+    showHeadshot, notifyPickup, showToast, setCrosshairSpread, setCrosshairTarget, setRangeReadout, setSprintIntensity, setGrenadeWarning, setHandGrenades, showGrenadeSection, showLockOn,
     announceWave, announceStage,
     addKill, showHitDirection, showHitDirectionScaled, updateMinimap,
     updateCompass, setCompassThreats, showStreak, showBleed, showProne, showJam,
@@ -1916,6 +2012,7 @@ const HUD = (() => {
     // ── B22: New HUD ──
     showBossBar, hideBossBar,
     updateXPBar, showObjective, hideObjective, setPrimaryObjective,
+    setMissionWaypoint, updateMissionWaypoint, setCityIntegrity,
     showStreakBanner, showBossIntro, addDamageLog,
     showGrenadeWarning, updateStageProgress,
     showDamageFlash,

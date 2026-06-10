@@ -863,7 +863,9 @@ html.is-mobile #wave-announce.visible { animation: fadeInOutMobile 2.5s forwards
 #info-panel-left {
   position: absolute;
   bottom: 120px;
-  left: 16px;
+  /* right of #target-assist (left:16px + 180px wide + padding) — both panels
+     sat at the exact same spot and rendered as garbled overlapping text */
+  left: 212px;
   font-size: 11px;
   color: #aaa;
   line-height: 1.6;
@@ -1308,6 +1310,17 @@ html.is-mobile #weapon-section {
   transform: scale(0.85);
   transform-origin: bottom center;
 }
+
+/* Desktop keyboard hints must NEVER show on mobile — hide in ALL orientations
+   (previously these were only hidden inside the landscape media query, so they
+   leaked through in portrait, e.g. "G to throw" before the device is rotated). */
+html.is-mobile #grenade-keyhint,
+html.is-mobile #controls-hint,
+html.is-mobile #drone-key-hints,
+html.is-mobile #drone-action-hint,
+html.is-mobile #drone-nest-hint,
+html.is-mobile #quick-start-hint,
+html.is-mobile #controls-legend-toggle { display: none !important; }
 
 html.is-mobile #health-bar-container { width: 104px; }
 html.is-mobile #health-value,

@@ -780,10 +780,12 @@ const Weapons = (() => {
     const slideBody = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.028, 0.135), new THREE.MeshLambertMaterial({ color: met }));
     slideBody.position.set(0.18, -0.125, -0.285);
     // Barrel (inside slide)
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.016, 0.145), new THREE.MeshLambertMaterial({ color: 0x222226 }));
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.145, 12), new THREE.MeshLambertMaterial({ color: 0x222226 }));
+    barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0.18, -0.132, -0.29);
     // Muzzle crown
-    const muzzle = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.020, 0.008), new THREE.MeshLambertMaterial({ color: 0x1a1a1e }));
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.010, 12), new THREE.MeshLambertMaterial({ color: 0x1a1a1e }));
+    muzzle.rotation.x = Math.PI / 2;
     muzzle.position.set(0.18, -0.130, -0.365);
     // Rear serrations (grip lines) — keep only 4, avoid floating/overlapping
     for (let i = 0; i < 4; i++) {
@@ -909,7 +911,8 @@ const Weapons = (() => {
     const gasBlock = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.028, 0.020), new THREE.MeshLambertMaterial({ color: bk }));
     gasBlock.position.set(0.18, -0.128, -0.53);
     // ── Barrel ──
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.020, 0.380), new THREE.MeshLambertMaterial({ color: frm }));
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0105, 0.0105, 0.380, 14), new THREE.MeshLambertMaterial({ color: frm }));
+    barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0.18, -0.140, -0.44);
     // ── Muzzle brake (slotted, refined) ──
     const brake = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.028, 0.040), new THREE.MeshLambertMaterial({ color: dk }));
@@ -1058,7 +1061,8 @@ const Weapons = (() => {
     const g = new THREE.Group();
     const bk = 0x2a2a2e, wd = 0x3a2a18, frm = 0x333336;
     // ── Barrel (long, thin) ──
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.020, 0.55), new THREE.MeshLambertMaterial({ color: bk }));
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0105, 0.0105, 0.55, 14), new THREE.MeshLambertMaterial({ color: bk }));
+    barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0.17, -0.13, -0.54);
     // Barrel fluting (visual grooves)
     // Barrel fluting — keep 3 for realism
@@ -1669,34 +1673,64 @@ const Weapons = (() => {
   }
 
   function buildMp5Mesh() {
+    // H&K MP5: tubular receiver, slim slotted handguard, short shrouded barrel,
+    // curved 30-rd magazine, retractable stock rails + butt, cocking-tube on top.
     const g = new THREE.Group();
-    const barrel = new THREE.Mesh(
-      new THREE.BoxGeometry(0.03, 0.03, 0.22),
-      new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-    );
-    barrel.position.set(0.18, -0.14, -0.38);
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.06, 0.07, 0.20),
-      new THREE.MeshLambertMaterial({ color: 0x222222 })
-    );
-    body.position.set(0.18, -0.14, -0.22);
-    const mag = new THREE.Mesh(
-      new THREE.BoxGeometry(0.035, 0.12, 0.04),
-      new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-    );
-    mag.position.set(0.18, -0.24, -0.22);
-    mag.rotation.x = 0.08;
-    const stock = new THREE.Mesh(
-      new THREE.BoxGeometry(0.05, 0.04, 0.10),
-      new THREE.MeshLambertMaterial({ color: 0x222222 })
-    );
-    stock.position.set(0.18, -0.14, -0.08);
-    const grip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.035, 0.07, 0.035),
-      new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-    );
-    grip.position.set(0.18, -0.22, -0.16);
-    g.add(barrel, body, mag, stock, grip);
+    const X = 0.18, Y = -0.14;
+    const black = new THREE.MeshLambertMaterial({ color: 0x202023 });
+    const dark = new THREE.MeshLambertMaterial({ color: 0x16161a });
+    const steel = new THREE.MeshPhongMaterial({ color: 0x35353a, shininess: 60 });
+
+    // Receiver tube (round)
+    const recv = new THREE.Mesh(new THREE.CylinderGeometry(0.029, 0.029, 0.20, 16), black);
+    recv.rotation.x = Math.PI / 2; recv.position.set(X, Y, -0.24);
+    // Cocking-tube housing on top-left (signature MP5 line)
+    const cock = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.24, 12), steel);
+    cock.rotation.x = Math.PI / 2; cock.position.set(X - 0.018, Y + 0.026, -0.30);
+    // Cocking handle knob
+    const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.016, 10), steel);
+    knob.rotation.z = Math.PI / 2; knob.position.set(X - 0.032, Y + 0.026, -0.235);
+
+    // Short barrel + shroud
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0085, 0.0085, 0.14, 12), steel);
+    barrel.rotation.x = Math.PI / 2; barrel.position.set(X, Y + 0.004, -0.40);
+    const shroud = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.09, 14), black);
+    shroud.rotation.x = Math.PI / 2; shroud.position.set(X, Y + 0.004, -0.37);
+
+    // Slim slotted handguard (tri-lug style)
+    const hand = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.022, 0.12, 14), dark);
+    hand.rotation.x = Math.PI / 2; hand.position.set(X, Y - 0.002, -0.31);
+
+    // Curved 30-rd magazine — three short angled segments for the banana curve
+    const magMat = dark;
+    const m1 = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.05, 0.030), magMat);
+    m1.position.set(X, Y - 0.045, -0.205); m1.rotation.x = 0.10;
+    const m2 = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.05, 0.028), magMat);
+    m2.position.set(X, Y - 0.092, -0.196); m2.rotation.x = 0.26;
+    const m3 = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.030, 0.026), magMat);
+    m3.position.set(X, Y - 0.128, -0.181); m3.rotation.x = 0.42;
+
+    // Pistol grip + trigger housing
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.030, 0.030, 0.085), black);
+    lower.position.set(X, Y - 0.028, -0.165);
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.062, 0.034), dark);
+    grip.position.set(X, Y - 0.072, -0.145); grip.rotation.x = -0.22;
+
+    // Retractable stock: two side rails + butt pad
+    const railL = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.13, 8), steel);
+    railL.rotation.x = Math.PI / 2; railL.position.set(X - 0.014, Y + 0.004, -0.09);
+    const railR = railL.clone(); railR.position.x = X + 0.014;
+    const butt = new THREE.Mesh(new THREE.BoxGeometry(0.044, 0.052, 0.018), black);
+    butt.position.set(X, Y, -0.028);
+
+    // Drum rear sight + hooded front
+    const rearDrum = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.012, 14), black);
+    rearDrum.rotation.z = Math.PI / 2; rearDrum.position.set(X, Y + 0.034, -0.17);
+    const frontHood = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.016, 12), black);
+    frontHood.rotation.x = Math.PI / 2; frontHood.position.set(X, Y + 0.034, -0.345);
+
+    g.add(recv, cock, knob, barrel, shroud, hand, m1, m2, m3,
+          lower, grip, railL, railR, butt, rearDrum, frontHood);
     return g;
   }
 
@@ -2039,10 +2073,12 @@ const Weapons = (() => {
     const slideBody = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.024, 0.135), new THREE.MeshPhongMaterial({ color: bk, shininess: 60 }));
     slideBody.position.set(0.17, -0.122, -0.255);
     // Barrel inside
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.014, 0.14), new THREE.MeshLambertMaterial({ color: 0x2a2a2e }));
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0072, 0.0072, 0.14, 12), new THREE.MeshLambertMaterial({ color: 0x2a2a2e }));
+    barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0.17, -0.128, -0.26);
     // Muzzle
-    const muzzle = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.018, 0.006), new THREE.MeshLambertMaterial({ color: 0x111114 }));
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.008, 12), new THREE.MeshLambertMaterial({ color: 0x111114 }));
+    muzzle.rotation.x = Math.PI / 2;
     muzzle.position.set(0.17, -0.126, -0.325);
     // Front sight (Glock-style dot)
     const fs = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.008, 0.004), new THREE.MeshLambertMaterial({ color: bk }));
@@ -2438,17 +2474,231 @@ const Weapons = (() => {
     return g;
   }
 
+  // ════════════════════════════════════════════════════════════════════
+  //  CLEAN SILHOUETTE BUILDERS (NB)  —  few well-aligned parts, game coords
+  //  (muzzle toward -Z, receiver back at z=-0.10, base x=0.17, y=-0.125).
+  //  Each marks userData.selfContained so enhanceMesh skips generic furniture.
+  // ════════════════════════════════════════════════════════════════════
+  function _M(c, m, r) { return new THREE.MeshStandardMaterial({ color: c, metalness: m == null ? 0.5 : m, roughness: r == null ? 0.5 : r }); }
+  function _B(w, h, d, mat) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); }
+  function _T(r, len, mat, seg) { const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, seg || 16), mat); o.rotation.x = Math.PI / 2; return o; }
+  function _CONE(r, len, mat, seg) { const o = new THREE.Mesh(new THREE.ConeGeometry(r, len, seg || 16), mat); o.rotation.x = -Math.PI / 2; return o; }
+  function _P(o, x, y, z) { o.position.set(x, y, z); return o; }
+  const _pal = {
+    gm: () => _M(0x2b2d31, 0.55, 0.45), blk: () => _M(0x191a1d, 0.45, 0.5),
+    steel: () => _M(0x52555b, 0.7, 0.35), wood: () => _M(0x4a3018, 0.1, 0.85),
+    plum: () => _M(0x5a2a1f, 0.18, 0.7), poly: () => _M(0x202024, 0.25, 0.62),
+    tan: () => _M(0x8a7345, 0.2, 0.7), olive: () => _M(0x30332a, 0.3, 0.62),
+    tube: () => _M(0x39402f, 0.4, 0.6),
+  };
+
+  // Parametric rifle/SMG/MG/sniper. o = { recvLen, barLen, barR, hg, hgColor,
+  // hgLen, mag, magColor, stock, stockColor, muzzle, rail, scope, bipod, belt,
+  // recvColor, sights }
+  function _rifle(o) {
+    o = o || {};
+    const g = new THREE.Group(); g.userData.selfContained = true;
+    const X = 0.17, Y = -0.125;
+    const recvLen = o.recvLen || 0.26, barLen = o.barLen || 0.30, barR = o.barR || 0.012;
+    const recv = o.recvColor ? o.recvColor() : _pal.gm();
+    const recvBack = -0.10, recvFront = recvBack - recvLen, recvCz = recvBack - recvLen / 2;
+    g.add(_P(_B(0.05, 0.072, recvLen, recv), X, Y, recvCz));               // receiver runs along Z
+    // barrel + muzzle
+    const muzZ = recvFront - barLen;
+    g.add(_P(_T(barR, barLen, _pal.steel(), 12), X, Y + 0.008, recvFront - barLen / 2));
+    if (o.muzzle === 'brake') g.add(_P(_T(barR * 1.7, 0.05, _pal.gm(), 12), X, Y + 0.008, muzZ + 0.02));
+    else if (o.muzzle === 'flash') g.add(_P(_T(barR * 1.55, 0.05, _pal.blk(), 8), X, Y + 0.008, muzZ + 0.02));
+    else if (o.muzzle === 'supp') g.add(_P(_T(barR * 2.3, 0.16, _pal.blk(), 16), X, Y + 0.008, recvFront - 0.08));
+    // handguard (runs along Z over the barrel breech)
+    const hgLen = o.hgLen || 0.14, hgZ = recvFront - hgLen / 2 + 0.01;
+    if (o.hg === 'wood') { const wc = o.hgColor || _pal.wood; g.add(_P(_B(0.05, 0.05, hgLen, wc()), X, Y, hgZ)); g.add(_P(_B(0.03, 0.024, hgLen, wc()), X, Y + 0.042, hgZ)); }
+    else if (o.hg === 'tube') { g.add(_P(_T(0.026, hgLen, (o.hgColor || _pal.blk)(), 16), X, Y + 0.004, hgZ)); }
+    else if (o.hg === 'rail') { g.add(_P(_B(0.044, 0.044, hgLen, (o.hgColor || _pal.blk)()), X, Y, hgZ)); }
+    // top rail / iron sights
+    if (o.rail) g.add(_P(_B(0.02, 0.016, recvLen * 0.8, _pal.blk()), X, Y + 0.05, recvCz));
+    if (o.sights !== false) {
+      g.add(_P(_B(0.012, 0.032, 0.012, _pal.gm()), X, Y + 0.05, muzZ + 0.06));
+      g.add(_P(_B(0.022, 0.022, 0.018, _pal.gm()), X, Y + 0.05, recvFront - 0.01));
+    }
+    // magazine (hangs down from the receiver/barrel junction)
+    const mz = recvFront + 0.03;
+    if (o.mag === 'curved') {
+      const mc = o.magColor || _pal.olive;
+      const m1 = _P(_B(0.03, 0.07, 0.045, mc()), X, Y - 0.05, mz); m1.rotation.x = -0.12;
+      const m2 = _P(_B(0.03, 0.07, 0.04, mc()), X, Y - 0.10, mz - 0.022); m2.rotation.x = -0.34;
+      const m3 = _P(_B(0.028, 0.05, 0.036, mc()), X, Y - 0.145, mz - 0.052); m3.rotation.x = -0.52;
+      g.add(m1, m2, m3);
+    } else if (o.mag === 'straight') { g.add(_P(_B(0.03, 0.125, 0.045, (o.magColor || _pal.olive)()), X, Y - 0.088, mz)); }
+    else if (o.mag === 'drum') { g.add(_P(_T(0.06, 0.05, (o.magColor || _pal.blk)(), 18), X, Y - 0.07, mz)); }
+    else if (o.mag === 'box') { g.add(_P(_B(0.06, 0.075, 0.085, (o.magColor || _pal.olive)()), X, Y - 0.07, mz)); }
+    // pistol grip
+    if (o.grip !== false) { const gp = _P(_B(0.032, 0.085, 0.04, _pal.poly()), X, Y - 0.06, recvBack - 0.03); gp.rotation.x = 0.32; g.add(gp); }
+    // stock (runs along Z behind the receiver)
+    if (o.stock === 'wood') { const sc = o.stockColor || _pal.wood; g.add(_P(_B(0.045, 0.05, 0.10, sc()), X, Y - 0.005, recvBack + 0.06)); g.add(_P(_B(0.05, 0.075, 0.05, sc()), X, Y - 0.01, recvBack + 0.135)); }
+    else if (o.stock === 'tube') { g.add(_P(_T(0.017, 0.10, _pal.gm(), 12), X, Y + 0.004, recvBack + 0.05)); g.add(_P(_B(0.048, 0.07, 0.045, _pal.poly()), X, Y, recvBack + 0.11)); }
+    else if (o.stock === 'fixed') { g.add(_P(_B(0.048, 0.075, 0.12, (o.stockColor || _pal.blk)()), X, Y, recvBack + 0.07)); }
+    else if (o.stock === 'skel') { g.add(_P(_B(0.016, 0.016, 0.11, (o.stockColor || _pal.wood)()), X, Y + 0.028, recvBack + 0.06)); g.add(_P(_B(0.016, 0.016, 0.13, (o.stockColor || _pal.wood)()), X, Y - 0.05, recvBack + 0.07)); g.add(_P(_B(0.04, 0.075, 0.05, (o.stockColor || _pal.wood)()), X, Y - 0.012, recvBack + 0.135)); }
+    // scope
+    if (o.scope) { g.add(_P(_T(0.018, 0.17, _pal.blk(), 14), X, Y + 0.078, recvCz)); g.add(_P(_B(0.022, 0.05, 0.03, _pal.blk()), X, Y + 0.046, recvCz + 0.04)); g.add(_P(_B(0.022, 0.05, 0.03, _pal.blk()), X, Y + 0.046, recvCz - 0.04)); }
+    // bolt / charging handle on the right of the receiver — cycles back on each
+    // shot via WeaponDetails.onFire (anim.bolt), like the real reciprocating handle.
+    const bolt = new THREE.Group(); bolt.name = '_bolt';
+    bolt.add(_P(_B(0.018, 0.012, 0.035, _pal.steel()), X + 0.032, Y + 0.018, recvCz - 0.02));
+    bolt.add(_P(_B(0.012, 0.012, 0.012, _pal.blk()), X + 0.044, Y + 0.018, recvCz - 0.02));
+    g.add(bolt);
+    g.userData._anim = { bolt: bolt, boltHome: bolt.position.z };
+    // bipod
+    if (o.bipod) { const l1 = _P(_B(0.008, 0.10, 0.008, _pal.blk()), X - 0.03, Y - 0.06, muzZ + 0.08); l1.rotation.z = 0.3; const l2 = l1.clone(); l2.position.x = X + 0.03; l2.rotation.z = -0.3; g.add(l1, l2); }
+    // belt feed (MG)
+    if (o.belt) g.add(_P(_B(0.045, 0.02, 0.06, _pal.gm()), X - 0.03, Y - 0.03, recvFront + 0.04));
+    return g;
+  }
+
+  function _pistol(o) {
+    o = o || {};
+    const g = new THREE.Group(); g.userData.selfContained = true;
+    const X = 0.17, Y = -0.125;
+    const slideMat = o.slide ? o.slide() : _pal.gm();
+    const z = -0.30, len = o.len || 0.16;
+    // Slide assembly grouped for recoil animation (cycles back on each shot,
+    // driven by WeaponDetails.triggerSlideAnim via userData._anim.slide).
+    const slide = new THREE.Group(); slide.name = '_slide';
+    slide.add(_P(_B(0.034, 0.04, len, slideMat), X, Y + 0.02, z));               // slide body
+    slide.add(_P(_B(0.014, 0.008, 0.014, slideMat), X, Y + 0.043, z + len / 2 - 0.01)); // rear sight
+    slide.add(_P(_B(0.008, 0.008, 0.008, slideMat), X, Y + 0.043, z - len / 2 + 0.01)); // front sight
+    g.add(slide);
+    g.userData._anim = { slide: slide, slideHome: slide.position.z };
+    g.add(_P(_B(0.03, 0.02, len - 0.015, _pal.poly()), X, Y - 0.008, z));  // frame
+    g.add(_P(_T(0.008, 0.03, _pal.steel(), 12), X, Y + 0.02, z - len / 2 - 0.01)); // muzzle (fixed barrel)
+    const gp = _P(_B(0.03, 0.085, 0.036, o.grip ? o.grip() : _pal.poly()), X, Y - 0.07, z + 0.045); gp.rotation.x = 0.18; g.add(gp);
+    g.add(_P(_B(0.026, 0.006, 0.05, _pal.poly()), X, Y - 0.045, z + 0.02));  // guard bottom (Z)
+    g.add(_P(_B(0.026, 0.03, 0.008, _pal.poly()), X, Y - 0.03, z - 0.005));  // guard front
+    g.add(_P(_B(0.01, 0.014, 0.006, _M(0x888888)), X, Y - 0.035, z + 0.015)); // trigger
+    if (o.supp) g.add(_P(_T(0.018, 0.10, _pal.blk(), 14), X, Y + 0.02, z - len / 2 - 0.05)); // suppressor
+    return g;
+  }
+
+  // Shoulder-fired launcher / MANPADS / ATGM. o = { len, r, tube, rear, warhead,
+  // hs (heat shields), optic, sight, clu (command unit), cluColor, grip2 }
+  function _launcher(o) {
+    o = o || {};
+    const g = new THREE.Group(); g.userData.selfContained = true;
+    const X = 0.17, Y = -0.115;
+    const len = o.len || 0.55, r = o.r || 0.03, tube = (o.tube || _pal.tube)();
+    const cz = -0.24, front = cz - len / 2, back = cz + len / 2;
+    g.add(_P(_T(r, len, tube, 18), X, Y, cz));
+    if (o.rear === 'cone') { const c = _CONE(r * 1.5, 0.10, tube, 18); c.rotation.x = Math.PI / 2; g.add(_P(c, X, Y, back + 0.04)); }
+    if (o.warhead) { const wm = _M(0x4a4233, 0.4, 0.6); g.add(_P(_T(0.034, 0.10, wm, 16), X, Y, front - 0.05)); g.add(_P(_CONE(0.034, 0.09, wm, 16), X, Y, front - 0.135)); }
+    if (o.hs) { g.add(_P(_T(r * 1.45, 0.08, _pal.wood(), 16), X, Y, cz - 0.08)); g.add(_P(_T(r * 1.45, 0.08, _pal.wood(), 16), X, Y, cz + 0.06)); }
+    if (o.optic) { g.add(_P(_B(0.05, 0.05, 0.07, _pal.blk()), X, Y + 0.055, cz + 0.02)); }
+    else if (o.sight) { g.add(_P(_B(0.016, 0.05, 0.016, _pal.blk()), X, Y + 0.052, front + 0.10)); }
+    if (o.clu) { g.add(_P(_B(0.085, 0.10, 0.10, (o.cluColor || _pal.tan)()), X, Y + 0.005, back - 0.06)); }
+    const gp = _P(_B(0.035, 0.085, 0.04, _pal.poly()), X, Y - 0.07, cz + 0.04); gp.rotation.x = 0.12; g.add(gp);
+    if (o.grip2) { const g2 = _P(_B(0.03, 0.07, 0.035, _pal.poly()), X, Y - 0.055, cz - 0.10); g2.rotation.x = -0.12; g.add(g2); }
+    return g;
+  }
+
+  // Double-barrel break shotgun (IZH-43): two stacked barrels + wood furniture.
+  function _doubleShotgun() {
+    const g = new THREE.Group(); g.userData.selfContained = true;
+    const X = 0.17, Y = -0.125;
+    g.add(_P(_B(0.05, 0.06, 0.14, _pal.gm()), X, Y, -0.20));                 // breech/receiver
+    g.add(_P(_T(0.013, 0.40, _pal.steel(), 12), X, Y + 0.012, -0.46));        // top barrel
+    g.add(_P(_T(0.013, 0.40, _pal.steel(), 12), X, Y - 0.012, -0.46));        // bottom barrel
+    g.add(_P(_B(0.04, 0.05, 0.13, _pal.wood()), X, Y - 0.01, -0.36));         // forend
+    g.add(_P(_B(0.045, 0.07, 0.16, _pal.wood()), X, Y - 0.02, 0.01));         // wood stock
+    const gp = _P(_B(0.03, 0.06, 0.04, _pal.wood()), X, Y - 0.05, -0.08); gp.rotation.x = 0.3; g.add(gp);
+    g.add(_P(_B(0.012, 0.018, 0.012, _pal.gm()), X, Y + 0.03, -0.64));        // bead sight
+    return g;
+  }
+
+  const NB = {
+    ak:     () => _rifle({ hg: 'wood', hgColor: _pal.plum, stock: 'wood', stockColor: _pal.plum, mag: 'curved', magColor: _pal.plum, muzzle: 'brake', recvLen: 0.24, barR: 0.013 }),
+    ak12:   () => _rifle({ hg: 'rail', stock: 'tube', mag: 'curved', muzzle: 'brake', rail: true, recvColor: _pal.blk }),
+    m4:     () => _rifle({ hg: 'tube', stock: 'tube', mag: 'straight', muzzle: 'flash', rail: true, recvColor: _pal.blk, barR: 0.011 }),
+    scarh:  () => _rifle({ hg: 'rail', hgColor: _pal.tan, stock: 'fixed', stockColor: _pal.tan, mag: 'curved', muzzle: 'flash', rail: true, recvColor: () => _M(0x6a5836, 0.4, 0.55), barLen: 0.32 }),
+    rpk:    () => _rifle({ hg: 'wood', stock: 'wood', mag: 'curved', muzzle: 'brake', barLen: 0.40, bipod: true, recvLen: 0.26 }),
+    pkm:    () => _rifle({ hg: 'tube', stock: 'wood', mag: 'box', muzzle: 'flash', barLen: 0.42, bipod: true, belt: true, recvLen: 0.28 }),
+    mg3:    () => _rifle({ hg: 'tube', stock: 'fixed', mag: 'box', magColor: _pal.gm, muzzle: 'flash', barLen: 0.42, bipod: true, belt: true, recvColor: _pal.blk }),
+    svd:    () => _rifle({ hg: 'wood', stock: 'skel', mag: 'curved', scope: true, muzzle: 'flash', barLen: 0.42, barR: 0.010, recvLen: 0.26 }),
+    vss:    () => _rifle({ hg: 'tube', stock: 'skel', mag: 'curved', scope: true, muzzle: 'supp', barLen: 0.12, recvLen: 0.22 }),
+    mp5:    () => _rifle({ hg: 'tube', stock: 'tube', mag: 'curved', barLen: 0.14, recvLen: 0.20, sights: true }),
+    barrett:() => _rifle({ hg: 'rail', stock: 'fixed', mag: 'straight', scope: true, muzzle: 'brake', barLen: 0.50, barR: 0.015, recvLen: 0.32, bipod: true }),
+    makarov:() => _pistol({ slide: _pal.blk, len: 0.13 }),
+    glock:  () => _pistol({ len: 0.16 }),
+    // launchers
+    rpg7:   () => _launcher({ len: 0.60, r: 0.030, rear: 'cone', warhead: true, hs: true, sight: true, grip2: true }),
+    at4:    () => _launcher({ len: 0.58, r: 0.034, tube: () => _M(0x55563f, 0.3, 0.6), sight: true }),
+    nlaw:   () => _launcher({ len: 0.52, r: 0.036, tube: () => _M(0x5a5b42, 0.3, 0.6), optic: true }),
+    igla:   () => _launcher({ len: 0.54, r: 0.034, tube: () => _M(0x3a4030, 0.35, 0.6), grip2: true, sight: true }),
+    stinger:() => _launcher({ len: 0.50, r: 0.038, tube: () => _M(0x4a4636, 0.35, 0.6), optic: true, grip2: true }),
+    shmel:  () => _launcher({ len: 0.50, r: 0.032, tube: () => _M(0x3f4a36, 0.35, 0.6), sight: true }),
+    javelin:() => _launcher({ len: 0.40, r: 0.050, tube: _pal.tan, clu: true, cluColor: _pal.tan, grip2: true }),
+    stugna: () => _launcher({ len: 0.46, r: 0.045, tube: _pal.olive, optic: true, clu: true, cluColor: _pal.olive, grip2: true }),
+    gp25:   () => _launcher({ len: 0.18, r: 0.022, tube: _pal.gm, sight: true }),
+    // shotguns
+    izh43:  () => _doubleShotgun(),
+    ks23:   () => _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'fixed', mag: 'none', barLen: 0.40, barR: 0.018, recvLen: 0.22, sights: true }),
+    // heavy MG
+    dshk:   () => _rifle({ hg: 'tube', stock: 'fixed', mag: 'box', magColor: _pal.gm, muzzle: 'brake', barLen: 0.52, barR: 0.018, recvLen: 0.30, bipod: true, belt: true }),
+    // ── custom shapes ──
+    p90: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.05, 0.075, 0.22, _pal.poly()), X, Y, -0.22));           // bullpup shell
+      g.add(_P(_B(0.045, 0.03, 0.20, _pal.blk()), X, Y + 0.055, -0.24));    // top-mounted flat magazine
+      g.add(_P(_T(0.011, 0.10, _pal.steel(), 12), X, Y + 0.005, -0.40));    // short barrel
+      g.add(_P(_B(0.03, 0.042, 0.05, _pal.blk()), X, Y + 0.062, -0.13));    // rear reflex optic
+      g.add(_P(_B(0.03, 0.07, 0.04, _pal.poly()), X, Y - 0.05, -0.20));     // integrated grip
+      g.add(_P(_B(0.025, 0.05, 0.03, _pal.poly()), X, Y - 0.04, -0.32));    // front finger grip
+      return g;
+    },
+    ags17: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.07, 0.09, 0.18, _pal.gm()), X, Y, -0.20));              // receiver block
+      g.add(_P(_T(0.022, 0.20, _pal.blk(), 14), X, Y + 0.02, -0.42));       // fat short barrel
+      const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 18), _pal.blk()); drum.rotation.z = Math.PI / 2; g.add(_P(drum, X + 0.04, Y - 0.02, -0.15)); // side drum
+      g.add(_P(_B(0.10, 0.02, 0.03, _pal.blk()), X, Y + 0.02, -0.02));      // rear spade bar
+      g.add(_P(_B(0.012, 0.06, 0.012, _pal.blk()), X - 0.042, Y - 0.02, -0.02));
+      g.add(_P(_B(0.012, 0.06, 0.012, _pal.blk()), X + 0.042, Y - 0.02, -0.02));
+      const l1 = _P(_B(0.01, 0.16, 0.01, _pal.blk()), X, Y - 0.11, -0.30); l1.rotation.x = 0.4;
+      const l2 = _P(_B(0.01, 0.16, 0.01, _pal.blk()), X - 0.05, Y - 0.11, -0.02); l2.rotation.z = 0.3;
+      const l3 = _P(_B(0.01, 0.16, 0.01, _pal.blk()), X + 0.05, Y - 0.11, -0.02); l3.rotation.z = -0.3;
+      g.add(l1, l2, l3);
+      return g;
+    },
+    crossbow: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.035, 0.04, 0.40, _pal.blk()), X, Y, -0.26));            // stock rail
+      g.add(_P(_B(0.34, 0.02, 0.03, _pal.gm()), X, Y + 0.01, -0.46));       // bow limbs (wide in X)
+      g.add(_P(_B(0.30, 0.006, 0.006, _M(0xc8c8c8, 0.2, 0.5)), X, Y + 0.01, -0.40)); // string
+      g.add(_P(_B(0.02, 0.03, 0.12, _pal.wood()), X, Y + 0.012, -0.32));    // bolt track
+      g.add(_P(_T(0.016, 0.10, _pal.blk(), 12), X, Y + 0.05, -0.20));       // scope
+      const gp = _P(_B(0.03, 0.075, 0.04, _pal.poly()), X, Y - 0.05, -0.14); gp.rotation.x = 0.3; g.add(gp);
+      g.add(_P(_B(0.045, 0.065, 0.07, _pal.blk()), X, Y, -0.04));           // butt
+      return g;
+    },
+    dronejammer: function () {
+      const g = _rifle({ hg: 'rail', stock: 'tube', mag: 'straight', muzzle: 'none', rail: true, recvColor: _pal.blk, barLen: 0.20 });
+      const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.05, 0.012, 0.05, _pal.gm()), X, Y + 0.07, -0.42));      // emitter pad
+      g.add(_P(_B(0.006, 0.11, 0.006, _pal.steel()), X, Y + 0.13, -0.42));  // central antenna
+      const a2 = _P(_B(0.006, 0.09, 0.006, _pal.steel()), X - 0.02, Y + 0.12, -0.40); a2.rotation.z = 0.25; g.add(a2);
+      const a3 = _P(_B(0.006, 0.09, 0.006, _pal.steel()), X + 0.02, Y + 0.12, -0.40); a3.rotation.z = -0.25; g.add(a3);
+      return g;
+    },
+  };
+
   const meshBuilders = [
-    buildGatlingMesh, buildShovelMesh, buildMakarovMesh, buildAkMesh, buildRpkMesh,
-    buildSvdMesh, buildPkmMesh, buildNlawMesh, buildStugnaMesh, buildM4Mesh,
-    buildJavelinMesh, buildRpg7Mesh, buildIglaMesh, buildGp25Mesh,
-    buildScarHMesh, buildDshkMesh, buildMolotovMesh,
-    buildMg3Mesh, buildMp5Mesh, buildBarrettMesh, buildMinigunMesh,
-    buildCrossbowMesh, buildFlamethrowerMesh, buildDoubleBarrelMesh,
+    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.ak, NB.rpk,
+    NB.svd, NB.pkm, NB.nlaw, NB.stugna, NB.m4,
+    NB.javelin, NB.rpg7, NB.igla, NB.gp25,
+    NB.scarh, NB.dshk, buildMolotovMesh,
+    NB.mg3, NB.mp5, NB.barrett, buildMinigunMesh,
+    NB.crossbow, NB.shmel, NB.izh43,
     buildClaymoreMesh, buildSmokeMesh, buildFlashbangMesh,
-    buildAk12Mesh, buildP90Mesh, buildAt4Mesh, buildGlockMesh,
-    buildKs23Mesh, buildAgs17Mesh, buildVssMesh, buildStingerMesh,
-    buildThrowKnifeMesh, buildC4Mesh, buildDroneJammerMesh, buildAxeMesh
+    NB.ak12, NB.p90, NB.at4, NB.glock,
+    NB.ks23, NB.ags17, NB.vss, NB.stinger,
+    buildThrowKnifeMesh, buildC4Mesh, NB.dronejammer, buildAxeMesh
   ];
 
   // Ensure meshBuilders matches WEAPONS length
@@ -2464,11 +2714,18 @@ const Weapons = (() => {
       if (typeof WeaponDetails !== 'undefined' && WeaponDetails.enhanceMesh) {
         WeaponDetails.enhanceMesh(m, WEAPONS[i], i);
       }
-      // Universal weapon-detail pass — rivets, screws, serial stamp, vents, stippled wear.
-      // Adds 30+ micro-meshes per weapon for realistic surface detail.
-      try { WD.autoDetail(m, WEAPONS[i]); } catch (e) {}
+      // Universal barrel-rounding: convert square, axis-aligned, thin-and-long
+      // box meshes (barrels, gas tubes, cleaning rods) into cylinders so guns
+      // read as real round-barreled weapons instead of square bars.
+      try { _roundifyBarrels(m); } catch (e) {}
+      // Universal weapon-detail pass — DISABLED by default. It scattered random
+      // micro-meshes using an inflated bounding box, flinging tiny boxes off the
+      // weapon (visible as floating debris, esp. on pistols/SMGs). The base mesh
+      // builders are already richly detailed, so this pass cost more than it gave.
+      // Re-enable per-session with window.__enableAutoDetail = true if ever fixed.
+      if (typeof window !== 'undefined' && window.__enableAutoDetail) { try { WD.autoDetail(m, WEAPONS[i]); } catch (e) {} }
       // Weld visual gaps so parts don't look detached / floating in air
-      try { _unifyWeaponMesh(m); } catch (e) {}
+      if (!(typeof window !== 'undefined' && window.__noUnify)) { try { _unifyWeaponMesh(m); } catch (e) {} }
       // FINAL reflectivity pass — autoDetail/unify added micro-meshes AFTER the
       // first material upgrade, leaving them flat. Re-run so every gun part is
       // reflective PBR (skips glass/emissive/already-PBR internally).
@@ -2492,6 +2749,33 @@ const Weapons = (() => {
       m.visible = (i === currentIdx);
       camera.add(m);
     }
+  }
+
+  // Universal barrel-rounding pass. Walks the weapon and converts any square,
+  // axis-aligned, thin-and-long BoxGeometry (barrels, gas tubes, cleaning rods)
+  // into a matching cylinder so guns stop looking like they have square barrels.
+  // Conservative filters keep flat parts (rails, flutes), wide parts (handguards,
+  // receivers, stocks) and pre-rotated parts untouched.
+  function _roundifyBarrels(g) {
+    if (!g) return;
+    g.traverse(function (o) {
+      if (!o.isMesh || !o.geometry || o.geometry.type !== 'BoxGeometry') return;
+      const p = o.geometry.parameters;
+      if (!p || p.width == null || p.height == null || p.depth == null) return;
+      const w = p.width, h = p.height, d = p.depth;
+      const cross = Math.max(w, h);
+      // square-ish cross-section, thin, at least 4x longer than wide
+      if (cross > 0.026) return;
+      if (Math.abs(w - h) > 0.006) return;
+      if (d < cross * 4) return;
+      // only axis-aligned boxes (long axis is local Z); skip anything rotated
+      if (Math.abs(o.rotation.x) > 0.02 || Math.abs(o.rotation.y) > 0.02 || Math.abs(o.rotation.z) > 0.02) return;
+      const r = cross * 0.5;
+      const cyl = new THREE.CylinderGeometry(r, r, d, 12);
+      cyl.rotateX(Math.PI / 2); // align cylinder's Y axis with the box's long Z axis
+      if (o.geometry.dispose) o.geometry.dispose();
+      o.geometry = cyl;
+    });
   }
 
   // Post-process a built weapon mesh: detect children that are visually orphaned
@@ -2667,6 +2951,7 @@ const Weapons = (() => {
   }
 
   // ── Recoil / reload animation state ───────────────────────
+  let _lastDryHint = 0; // throttle for the out-of-ammo hint toast
   let recoilOffset = 0;
   let recoilOffsetY = 0;
   let recoilOffsetZ = 0;
@@ -3638,8 +3923,15 @@ const Weapons = (() => {
     var effClip = effectiveClipSize(currentIdx);
     if (st.reloading || st.clip === effClip) return;
     if (st.reserve <= 0) {
-      // No ammo — dry fire click
+      // No ammo — dry fire click + actionable hint (throttled to one per 8s)
       if (typeof AudioSystem !== 'undefined' && AudioSystem.playDryFire) AudioSystem.playDryFire();
+      var _now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+      if (!_lastDryHint || _now - _lastDryHint > 8000) {
+        _lastDryHint = _now;
+        if (typeof HUD !== 'undefined' && HUD.showToast) {
+          HUD.showToast('🔫 OUT OF AMMO — grab a yellow AMMO drop from fallen enemies, or switch weapons (scroll / 1-9)', 4500, '#ffcc00');
+        }
+      }
       return;
     }
     st.reloading   = true;
