@@ -19,3 +19,12 @@ contracts/node_modules/
 # Server logs
 srv.log
 srverr.log
+
+# Capture outputs (large, regenerable) — gallery ships under microsite/, not here
+tools/screenshots/
+tools/_*.js
+changes.diff
+.claude/
+
+# Microsite build artifact (distributed via GitHub Releases, not committed to history)
+occupantkiller-microsite.zip

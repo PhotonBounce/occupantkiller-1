@@ -1,0 +1,63 @@
+/* Static data for the OccupantKiller microsite — mirrors the live build. */
+window.OK_DATA = {
+  weapons: [
+    {n:'Gatling Machine Gun', c:'Heavy', cat:'special'},
+    {n:'M134 Minigun', c:'Heavy', cat:'special'},
+    {n:'DShK', c:'Heavy MG', cat:'special'},
+    {n:'AGS-17 Grenade MG', c:'Heavy', cat:'special'},
+    {n:'AK-74M', c:'Assault Rifle', cat:'rifle'},
+    {n:'AK-12', c:'Assault Rifle', cat:'rifle'},
+    {n:'M4A1', c:'Assault Rifle', cat:'rifle'},
+    {n:'FN SCAR-H', c:'Battle Rifle', cat:'rifle'},
+    {n:'RPK-74', c:'Light MG', cat:'rifle'},
+    {n:'PKM', c:'Light MG', cat:'rifle'},
+    {n:'MG3 Machine Gun', c:'Light MG', cat:'rifle'},
+    {n:'MP5 SMG', c:'SMG', cat:'rifle'},
+    {n:'FN P90', c:'SMG', cat:'rifle'},
+    {n:'SVD Dragunov', c:'Sniper', cat:'sniper'},
+    {n:'Barrett M82', c:'Anti-Materiel', cat:'sniper'},
+    {n:'VSS Vintorez', c:'Suppressed Sniper', cat:'sniper'},
+    {n:'IZH-43 Shotgun', c:'Shotgun', cat:'rifle'},
+    {n:'KS-23 Shotgun', c:'Heavy Shotgun', cat:'rifle'},
+    {n:'Makarov PM', c:'Sidearm', cat:'rifle'},
+    {n:'Glock 17', c:'Sidearm', cat:'rifle'},
+    {n:'NLAW', c:'ATGM Launcher', cat:'launcher'},
+    {n:'Stugna-P', c:'ATGM Launcher', cat:'launcher'},
+    {n:'FGM-148 Javelin', c:'ATGM Launcher', cat:'launcher'},
+    {n:'RPG-7', c:'Rocket Launcher', cat:'launcher'},
+    {n:'AT4 Launcher', c:'Rocket Launcher', cat:'launcher'},
+    {n:'RPO-A Shmel', c:'Thermobaric', cat:'launcher'},
+    {n:'GP-25 Grenade Launcher', c:'Underbarrel GL', cat:'launcher'},
+    {n:'Igla MANPADS', c:'AA Missile', cat:'launcher'},
+    {n:'FIM-92 Stinger', c:'AA Missile', cat:'launcher'},
+    {n:'Tactical Crossbow', c:'Silent', cat:'special'},
+    {n:'Molotov Cocktail', c:'Incendiary', cat:'special'},
+    {n:'M18 Claymore Mine', c:'Explosive Trap', cat:'special'},
+    {n:'C4 Explosive', c:'Demolition', cat:'special'},
+    {n:'Smoke Grenade', c:'Utility', cat:'special'},
+    {n:'M84 Flashbang', c:'Utility', cat:'special'},
+    {n:'Drone Jammer Rifle', c:'EW / Anti-Drone', cat:'special'},
+    {n:'Army Shovel (МПЛ-50)', c:'Melee', cat:'melee'},
+    {n:'Combat Axe', c:'Melee', cat:'melee'},
+    {n:'Throwing Knife', c:'Melee / Ranged', cat:'melee'}
+  ],
+  // 1B OKC distribution
+  distribution: [
+    {k:'playToEarn', pct:50, label:'Play-to-Earn Reward Pool', amount:'500M', vest:'8-year halving', color:'#44ff88'},
+    {k:'treasury',   pct:20, label:'DAO Treasury',             amount:'200M', vest:'4-year linear', color:'#44aaff'},
+    {k:'liquidity',  pct:12, label:'Liquidity & Market Making',amount:'120M', vest:'Unlocked at TGE', color:'#ffaa00'},
+    {k:'team',       pct:10, label:'Team & Founders',          amount:'100M', vest:'12mo cliff, 36mo', color:'#ff4444'},
+    {k:'donations',  pct:5,  label:'Ukraine Army Donations',   amount:'50M',  vest:'5% of proceeds', color:'#ffcc00'},
+    {k:'advisors',   pct:2,  label:'Advisors & Partners',      amount:'20M',  vest:'6mo cliff, 24mo', color:'#88cc44'},
+    {k:'airdrops',   pct:1,  label:'Community Airdrops',       amount:'10M',  vest:'Discretionary', color:'#ff8800'}
+  ],
+  packs: [
+    {label:'Starter',  usd:5,   total:'5,000',   bonus:0},
+    {label:'Grunt',    usd:10,  total:'10,500',  bonus:5},
+    {label:'Squad',    usd:25,  total:'27,500',  bonus:10},
+    {label:'Platoon',  usd:50,  total:'57,500',  bonus:15},
+    {label:'Company',  usd:100, total:'125,000', bonus:25},
+    {label:'Battalion',usd:250, total:'337,500', bonus:35},
+    {label:'Brigade',  usd:500, total:'750,000', bonus:50}
+  ]
+};
