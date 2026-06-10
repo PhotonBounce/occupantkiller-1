@@ -496,6 +496,18 @@ const WeaponDetails = (() => {
     // 1. Upgrade every Lambert child → Phong with reflections
     upgradeMaterials(group);
 
+    // Self-contained builders (the clean silhouette rebuild) already include
+    // their own sights, magazine, stock, grip and furniture. Skip the entire
+    // generic geometry pass — that pass is what scattered screws/pins/sling
+    // points/laser modules and floated parts off shorter weapons. Keep the
+    // material upgrade above and record metadata so nothing downstream breaks.
+    if (group.userData && group.userData.selfContained) {
+      group.userData._anim = group.userData._anim || {};
+      group.userData._weaponType = type;
+      group.userData._weaponId = id;
+      return;
+    }
+
     var isFirearm = type !== 'MELEE' && THROWN.indexOf(type) < 0;
     var isRifle   = RIFLE.indexOf(type) >= 0 || SMG.indexOf(type) >= 0;
     var isSniper  = SNIPER.indexOf(type) >= 0;
