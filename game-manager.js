@@ -5918,8 +5918,12 @@ const GameManager = (function () {
         var _poAlive = Enemies.getAliveCount();
         var _poMission = (typeof MissionSystem !== 'undefined' && MissionSystem.getActive) ? MissionSystem.getActive() : null;
         if (_poMission && _poMission.length > 0 && _poMission[0] && _poMission[0].status === 'active') {
-          HUD.setPrimaryObjective('🎯 ' + (_poMission[0].name || 'MISSION'),
-            (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' enemies left');
+          // Sub-line = the mission's live progress text (e.g. "Survival: Wave
+          // 0/3") — far more actionable than generic wave info while a mission
+          // is active. Falls back to wave info when no objectiveText exists.
+          var _poProg = (_poMission[0].data && _poMission[0].data.objectiveText) ? _poMission[0].data.objectiveText
+            : ((_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' enemies left');
+          HUD.setPrimaryObjective('🎯 ' + (_poMission[0].name || 'MISSION'), _poProg);
         } else if (_poAlive > 0) {
           HUD.setPrimaryObjective('⚔ ELIMINATE THE OCCUPANTS',
             (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' left');

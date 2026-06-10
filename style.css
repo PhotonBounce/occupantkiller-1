@@ -863,7 +863,9 @@ html.is-mobile #wave-announce.visible { animation: fadeInOutMobile 2.5s forwards
 #info-panel-left {
   position: absolute;
   bottom: 120px;
-  left: 16px;
+  /* right of #target-assist (left:16px + 180px wide + padding) — both panels
+     sat at the exact same spot and rendered as garbled overlapping text */
+  left: 212px;
   font-size: 11px;
   color: #aaa;
   line-height: 1.6;

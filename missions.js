@@ -703,15 +703,15 @@ const MissionSystem = (function () {
         }
       }
     }
-    // Update objective HUD
+    // Update objective HUD. The primary-objective banner already shows the
+    // FIRST active mission's name + live progress, so only surface the yellow
+    // marker for a SECOND concurrent mission — otherwise it duplicated the
+    // banner text and collided with the stage header.
     if (typeof HUD !== 'undefined') {
-      if (activeMissions.length > 0) {
+      if (activeMissions.length > 1) {
         const latest = activeMissions[activeMissions.length - 1];
-        if (latest.data && latest.data.objectiveText) {
-          HUD.showObjective(latest.data.objectiveText);
-        } else {
-          HUD.showObjective(latest.name);
-        }
+        const txt = (latest.data && latest.data.objectiveText) ? latest.data.objectiveText : latest.name;
+        HUD.showObjective(txt);
       } else {
         HUD.hideObjective();
       }

@@ -1609,7 +1609,9 @@ const HUD = (() => {
     if (!_objectiveEl) {
       _objectiveEl = document.createElement('div');
       _objectiveEl.id = 'objective-marker';
-      _objectiveEl.style.cssText = 'position:fixed;top:12%;left:50%;transform:translateX(-50%);color:#ffcc44;font-size:14px;font-weight:bold;text-shadow:0 0 6px #886600;pointer-events:none;z-index:220;transition:opacity 0.5s;';
+      /* Sits below the primary-objective banner (top:92px, ~50px tall) so the
+         mission progress line never overlaps the stage header or the banner. */
+      _objectiveEl.style.cssText = 'position:fixed;top:148px;left:50%;transform:translateX(-50%);color:#ffcc44;font-size:13px;font-weight:bold;text-shadow:0 1px 4px #000;pointer-events:none;z-index:220;transition:opacity 0.5s;';
       document.body.appendChild(_objectiveEl);
     }
     _objectiveEl.textContent = '📍 ' + text;
