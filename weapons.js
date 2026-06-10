@@ -2566,6 +2566,40 @@ const Weapons = (() => {
     return g;
   }
 
+  // Shoulder-fired launcher / MANPADS / ATGM. o = { len, r, tube, rear, warhead,
+  // hs (heat shields), optic, sight, clu (command unit), cluColor, grip2 }
+  function _launcher(o) {
+    o = o || {};
+    const g = new THREE.Group(); g.userData.selfContained = true;
+    const X = 0.17, Y = -0.115;
+    const len = o.len || 0.55, r = o.r || 0.03, tube = (o.tube || _pal.tube)();
+    const cz = -0.24, front = cz - len / 2, back = cz + len / 2;
+    g.add(_P(_T(r, len, tube, 18), X, Y, cz));
+    if (o.rear === 'cone') { const c = _CONE(r * 1.5, 0.10, tube, 18); c.rotation.x = Math.PI / 2; g.add(_P(c, X, Y, back + 0.04)); }
+    if (o.warhead) { const wm = _M(0x4a4233, 0.4, 0.6); g.add(_P(_T(0.034, 0.10, wm, 16), X, Y, front - 0.05)); g.add(_P(_CONE(0.034, 0.09, wm, 16), X, Y, front - 0.135)); }
+    if (o.hs) { g.add(_P(_T(r * 1.45, 0.08, _pal.wood(), 16), X, Y, cz - 0.08)); g.add(_P(_T(r * 1.45, 0.08, _pal.wood(), 16), X, Y, cz + 0.06)); }
+    if (o.optic) { g.add(_P(_B(0.05, 0.05, 0.07, _pal.blk()), X, Y + 0.055, cz + 0.02)); }
+    else if (o.sight) { g.add(_P(_B(0.016, 0.05, 0.016, _pal.blk()), X, Y + 0.052, front + 0.10)); }
+    if (o.clu) { g.add(_P(_B(0.085, 0.10, 0.10, (o.cluColor || _pal.tan)()), X, Y + 0.005, back - 0.06)); }
+    const gp = _P(_B(0.035, 0.085, 0.04, _pal.poly()), X, Y - 0.07, cz + 0.04); gp.rotation.x = 0.12; g.add(gp);
+    if (o.grip2) { const g2 = _P(_B(0.03, 0.07, 0.035, _pal.poly()), X, Y - 0.055, cz - 0.10); g2.rotation.x = -0.12; g.add(g2); }
+    return g;
+  }
+
+  // Double-barrel break shotgun (IZH-43): two stacked barrels + wood furniture.
+  function _doubleShotgun() {
+    const g = new THREE.Group(); g.userData.selfContained = true;
+    const X = 0.17, Y = -0.125;
+    g.add(_P(_B(0.05, 0.06, 0.14, _pal.gm()), X, Y, -0.20));                 // breech/receiver
+    g.add(_P(_T(0.013, 0.40, _pal.steel(), 12), X, Y + 0.012, -0.46));        // top barrel
+    g.add(_P(_T(0.013, 0.40, _pal.steel(), 12), X, Y - 0.012, -0.46));        // bottom barrel
+    g.add(_P(_B(0.04, 0.05, 0.13, _pal.wood()), X, Y - 0.01, -0.36));         // forend
+    g.add(_P(_B(0.045, 0.07, 0.16, _pal.wood()), X, Y - 0.02, 0.01));         // wood stock
+    const gp = _P(_B(0.03, 0.06, 0.04, _pal.wood()), X, Y - 0.05, -0.08); gp.rotation.x = 0.3; g.add(gp);
+    g.add(_P(_B(0.012, 0.018, 0.012, _pal.gm()), X, Y + 0.03, -0.64));        // bead sight
+    return g;
+  }
+
   const NB = {
     ak:     () => _rifle({ hg: 'wood', hgColor: _pal.plum, stock: 'wood', stockColor: _pal.plum, mag: 'curved', magColor: _pal.plum, muzzle: 'brake', recvLen: 0.24, barR: 0.013 }),
     ak12:   () => _rifle({ hg: 'rail', stock: 'tube', mag: 'curved', muzzle: 'brake', rail: true, recvColor: _pal.blk }),
@@ -2580,18 +2614,33 @@ const Weapons = (() => {
     barrett:() => _rifle({ hg: 'rail', stock: 'fixed', mag: 'straight', scope: true, muzzle: 'brake', barLen: 0.50, barR: 0.015, recvLen: 0.32, bipod: true }),
     makarov:() => _pistol({ slide: _pal.blk, len: 0.13 }),
     glock:  () => _pistol({ len: 0.16 }),
+    // launchers
+    rpg7:   () => _launcher({ len: 0.60, r: 0.030, rear: 'cone', warhead: true, hs: true, sight: true, grip2: true }),
+    at4:    () => _launcher({ len: 0.58, r: 0.034, tube: () => _M(0x55563f, 0.3, 0.6), sight: true }),
+    nlaw:   () => _launcher({ len: 0.52, r: 0.036, tube: () => _M(0x5a5b42, 0.3, 0.6), optic: true }),
+    igla:   () => _launcher({ len: 0.54, r: 0.034, tube: () => _M(0x3a4030, 0.35, 0.6), grip2: true, sight: true }),
+    stinger:() => _launcher({ len: 0.50, r: 0.038, tube: () => _M(0x4a4636, 0.35, 0.6), optic: true, grip2: true }),
+    shmel:  () => _launcher({ len: 0.50, r: 0.032, tube: () => _M(0x3f4a36, 0.35, 0.6), sight: true }),
+    javelin:() => _launcher({ len: 0.40, r: 0.050, tube: _pal.tan, clu: true, cluColor: _pal.tan, grip2: true }),
+    stugna: () => _launcher({ len: 0.46, r: 0.045, tube: _pal.olive, optic: true, clu: true, cluColor: _pal.olive, grip2: true }),
+    gp25:   () => _launcher({ len: 0.18, r: 0.022, tube: _pal.gm, sight: true }),
+    // shotguns
+    izh43:  () => _doubleShotgun(),
+    ks23:   () => _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'fixed', mag: 'none', barLen: 0.40, barR: 0.018, recvLen: 0.22, sights: true }),
+    // heavy MG
+    dshk:   () => _rifle({ hg: 'tube', stock: 'fixed', mag: 'box', magColor: _pal.gm, muzzle: 'brake', barLen: 0.52, barR: 0.018, recvLen: 0.30, bipod: true, belt: true }),
   };
 
   const meshBuilders = [
     buildGatlingMesh, buildShovelMesh, NB.makarov, NB.ak, NB.rpk,
-    NB.svd, NB.pkm, buildNlawMesh, buildStugnaMesh, NB.m4,
-    buildJavelinMesh, buildRpg7Mesh, buildIglaMesh, buildGp25Mesh,
-    NB.scarh, buildDshkMesh, buildMolotovMesh,
+    NB.svd, NB.pkm, NB.nlaw, NB.stugna, NB.m4,
+    NB.javelin, NB.rpg7, NB.igla, NB.gp25,
+    NB.scarh, NB.dshk, buildMolotovMesh,
     NB.mg3, NB.mp5, NB.barrett, buildMinigunMesh,
-    buildCrossbowMesh, buildFlamethrowerMesh, buildDoubleBarrelMesh,
+    buildCrossbowMesh, NB.shmel, NB.izh43,
     buildClaymoreMesh, buildSmokeMesh, buildFlashbangMesh,
-    NB.ak12, buildP90Mesh, buildAt4Mesh, NB.glock,
-    buildKs23Mesh, buildAgs17Mesh, NB.vss, buildStingerMesh,
+    NB.ak12, buildP90Mesh, NB.at4, NB.glock,
+    NB.ks23, buildAgs17Mesh, NB.vss, NB.stinger,
     buildThrowKnifeMesh, buildC4Mesh, buildDroneJammerMesh, buildAxeMesh
   ];
 
