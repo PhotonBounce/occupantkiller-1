@@ -2470,6 +2470,10 @@ const Weapons = (() => {
       if (typeof WeaponDetails !== 'undefined' && WeaponDetails.enhanceMesh) {
         WeaponDetails.enhanceMesh(m, WEAPONS[i], i);
       }
+      // Universal barrel-rounding: convert square, axis-aligned, thin-and-long
+      // box meshes (barrels, gas tubes, cleaning rods) into cylinders so guns
+      // read as real round-barreled weapons instead of square bars.
+      try { _roundifyBarrels(m); } catch (e) {}
       // Universal weapon-detail pass — DISABLED by default. It scattered random
       // micro-meshes using an inflated bounding box, flinging tiny boxes off the
       // weapon (visible as floating debris, esp. on pistols/SMGs). The base mesh
@@ -2501,6 +2505,33 @@ const Weapons = (() => {
       m.visible = (i === currentIdx);
       camera.add(m);
     }
+  }
+
+  // Universal barrel-rounding pass. Walks the weapon and converts any square,
+  // axis-aligned, thin-and-long BoxGeometry (barrels, gas tubes, cleaning rods)
+  // into a matching cylinder so guns stop looking like they have square barrels.
+  // Conservative filters keep flat parts (rails, flutes), wide parts (handguards,
+  // receivers, stocks) and pre-rotated parts untouched.
+  function _roundifyBarrels(g) {
+    if (!g) return;
+    g.traverse(function (o) {
+      if (!o.isMesh || !o.geometry || o.geometry.type !== 'BoxGeometry') return;
+      const p = o.geometry.parameters;
+      if (!p || p.width == null || p.height == null || p.depth == null) return;
+      const w = p.width, h = p.height, d = p.depth;
+      const cross = Math.max(w, h);
+      // square-ish cross-section, thin, at least 4x longer than wide
+      if (cross > 0.026) return;
+      if (Math.abs(w - h) > 0.006) return;
+      if (d < cross * 4) return;
+      // only axis-aligned boxes (long axis is local Z); skip anything rotated
+      if (Math.abs(o.rotation.x) > 0.02 || Math.abs(o.rotation.y) > 0.02 || Math.abs(o.rotation.z) > 0.02) return;
+      const r = cross * 0.5;
+      const cyl = new THREE.CylinderGeometry(r, r, d, 12);
+      cyl.rotateX(Math.PI / 2); // align cylinder's Y axis with the box's long Z axis
+      if (o.geometry.dispose) o.geometry.dispose();
+      o.geometry = cyl;
+    });
   }
 
   // Post-process a built weapon mesh: detect children that are visually orphaned
