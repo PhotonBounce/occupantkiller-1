@@ -797,7 +797,7 @@ const WeaponDetails = (() => {
     // Bolt cycling (Feature 27)
     if (_boltActive && anim.bolt) {
       _boltTimer -= delta;
-      var home = anim.boltHome || -0.27;
+      var home = (anim.boltHome != null) ? anim.boltHome : -0.27;
       if (_boltTimer > 0.028) {
         anim.bolt.position.z = home + (0.055 - _boltTimer) * 60 * 0.015;
       } else if (_boltTimer > 0) {

@@ -2540,6 +2540,13 @@ const Weapons = (() => {
     else if (o.stock === 'skel') { g.add(_P(_B(0.016, 0.016, 0.11, (o.stockColor || _pal.wood)()), X, Y + 0.028, recvBack + 0.06)); g.add(_P(_B(0.016, 0.016, 0.13, (o.stockColor || _pal.wood)()), X, Y - 0.05, recvBack + 0.07)); g.add(_P(_B(0.04, 0.075, 0.05, (o.stockColor || _pal.wood)()), X, Y - 0.012, recvBack + 0.135)); }
     // scope
     if (o.scope) { g.add(_P(_T(0.018, 0.17, _pal.blk(), 14), X, Y + 0.078, recvCz)); g.add(_P(_B(0.022, 0.05, 0.03, _pal.blk()), X, Y + 0.046, recvCz + 0.04)); g.add(_P(_B(0.022, 0.05, 0.03, _pal.blk()), X, Y + 0.046, recvCz - 0.04)); }
+    // bolt / charging handle on the right of the receiver — cycles back on each
+    // shot via WeaponDetails.onFire (anim.bolt), like the real reciprocating handle.
+    const bolt = new THREE.Group(); bolt.name = '_bolt';
+    bolt.add(_P(_B(0.018, 0.012, 0.035, _pal.steel()), X + 0.032, Y + 0.018, recvCz - 0.02));
+    bolt.add(_P(_B(0.012, 0.012, 0.012, _pal.blk()), X + 0.044, Y + 0.018, recvCz - 0.02));
+    g.add(bolt);
+    g.userData._anim = { bolt: bolt, boltHome: bolt.position.z };
     // bipod
     if (o.bipod) { const l1 = _P(_B(0.008, 0.10, 0.008, _pal.blk()), X - 0.03, Y - 0.06, muzZ + 0.08); l1.rotation.z = 0.3; const l2 = l1.clone(); l2.position.x = X + 0.03; l2.rotation.z = -0.3; g.add(l1, l2); }
     // belt feed (MG)
@@ -2553,15 +2560,20 @@ const Weapons = (() => {
     const X = 0.17, Y = -0.125;
     const slideMat = o.slide ? o.slide() : _pal.gm();
     const z = -0.30, len = o.len || 0.16;
-    g.add(_P(_B(0.034, 0.04, len, slideMat), X, Y + 0.02, z));             // slide (runs along Z)
+    // Slide assembly grouped for recoil animation (cycles back on each shot,
+    // driven by WeaponDetails.triggerSlideAnim via userData._anim.slide).
+    const slide = new THREE.Group(); slide.name = '_slide';
+    slide.add(_P(_B(0.034, 0.04, len, slideMat), X, Y + 0.02, z));               // slide body
+    slide.add(_P(_B(0.014, 0.008, 0.014, slideMat), X, Y + 0.043, z + len / 2 - 0.01)); // rear sight
+    slide.add(_P(_B(0.008, 0.008, 0.008, slideMat), X, Y + 0.043, z - len / 2 + 0.01)); // front sight
+    g.add(slide);
+    g.userData._anim = { slide: slide, slideHome: slide.position.z };
     g.add(_P(_B(0.03, 0.02, len - 0.015, _pal.poly()), X, Y - 0.008, z));  // frame
-    g.add(_P(_T(0.008, 0.03, _pal.steel(), 12), X, Y + 0.02, z - len / 2 - 0.01)); // muzzle
+    g.add(_P(_T(0.008, 0.03, _pal.steel(), 12), X, Y + 0.02, z - len / 2 - 0.01)); // muzzle (fixed barrel)
     const gp = _P(_B(0.03, 0.085, 0.036, o.grip ? o.grip() : _pal.poly()), X, Y - 0.07, z + 0.045); gp.rotation.x = 0.18; g.add(gp);
     g.add(_P(_B(0.026, 0.006, 0.05, _pal.poly()), X, Y - 0.045, z + 0.02));  // guard bottom (Z)
     g.add(_P(_B(0.026, 0.03, 0.008, _pal.poly()), X, Y - 0.03, z - 0.005));  // guard front
     g.add(_P(_B(0.01, 0.014, 0.006, _M(0x888888)), X, Y - 0.035, z + 0.015)); // trigger
-    g.add(_P(_B(0.014, 0.008, 0.014, slideMat), X, Y + 0.043, z + len / 2 - 0.01)); // rear sight
-    g.add(_P(_B(0.008, 0.008, 0.008, slideMat), X, Y + 0.043, z - len / 2 + 0.01)); // front sight
     if (o.supp) g.add(_P(_T(0.018, 0.10, _pal.blk(), 14), X, Y + 0.02, z - len / 2 - 0.05)); // suppressor
     return g;
   }
