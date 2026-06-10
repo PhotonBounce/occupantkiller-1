@@ -2464,11 +2464,14 @@ const Weapons = (() => {
       if (typeof WeaponDetails !== 'undefined' && WeaponDetails.enhanceMesh) {
         WeaponDetails.enhanceMesh(m, WEAPONS[i], i);
       }
-      // Universal weapon-detail pass — rivets, screws, serial stamp, vents, stippled wear.
-      // Adds 30+ micro-meshes per weapon for realistic surface detail.
-      try { WD.autoDetail(m, WEAPONS[i]); } catch (e) {}
+      // Universal weapon-detail pass — DISABLED by default. It scattered random
+      // micro-meshes using an inflated bounding box, flinging tiny boxes off the
+      // weapon (visible as floating debris, esp. on pistols/SMGs). The base mesh
+      // builders are already richly detailed, so this pass cost more than it gave.
+      // Re-enable per-session with window.__enableAutoDetail = true if ever fixed.
+      if (typeof window !== 'undefined' && window.__enableAutoDetail) { try { WD.autoDetail(m, WEAPONS[i]); } catch (e) {} }
       // Weld visual gaps so parts don't look detached / floating in air
-      try { _unifyWeaponMesh(m); } catch (e) {}
+      if (!(typeof window !== 'undefined' && window.__noUnify)) { try { _unifyWeaponMesh(m); } catch (e) {} }
       // FINAL reflectivity pass — autoDetail/unify added micro-meshes AFTER the
       // first material upgrade, leaving them flat. Re-run so every gun part is
       // reflective PBR (skips glass/emissive/already-PBR internally).
