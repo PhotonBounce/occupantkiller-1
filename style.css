@@ -1309,6 +1309,17 @@ html.is-mobile #weapon-section {
   transform-origin: bottom center;
 }
 
+/* Desktop keyboard hints must NEVER show on mobile — hide in ALL orientations
+   (previously these were only hidden inside the landscape media query, so they
+   leaked through in portrait, e.g. "G to throw" before the device is rotated). */
+html.is-mobile #grenade-keyhint,
+html.is-mobile #controls-hint,
+html.is-mobile #drone-key-hints,
+html.is-mobile #drone-action-hint,
+html.is-mobile #drone-nest-hint,
+html.is-mobile #quick-start-hint,
+html.is-mobile #controls-legend-toggle { display: none !important; }
+
 html.is-mobile #health-bar-container { width: 104px; }
 html.is-mobile #health-value,
 html.is-mobile #ammo-reserve { font-size: 11px; }
