@@ -433,6 +433,12 @@ const MissionSystem = (function () {
                 npc.job = 'guard';
                 npc.guardPos = playerPos.clone();
                 mission.escortNpcId = npc.id;
+                // The officer must survive the trip through a hostile field —
+                // ambient enemies previously shredded them in seconds, failing
+                // the mission before the player could react. Triple HP and let
+                // the scripted ambushes be the real threat.
+                npc.maxHealth = (npc.maxHealth || npc.health || 100) * 3;
+                npc.health = npc.maxHealth;
               }
             }
           } catch(e3){}
@@ -459,7 +465,7 @@ const MissionSystem = (function () {
           return;
         }
 
-        mission.convoyHealth = Math.round(escortNpc.health);
+        mission.convoyHealth = Math.round((escortNpc.health / (escortNpc.maxHealth || 100)) * 100);
         var npcPos = escortNpc.position;
         var pDist = npcPos.distanceTo(playerPos);
         var dDist = npcPos.distanceTo(mission.destination);
@@ -513,6 +519,7 @@ const MissionSystem = (function () {
         }
       },
       check(mission) { return mission.arrived && mission.convoyHealth > 0; },
+      failed(mission) { return !mission.arrived && mission.spawned && mission.convoyHealth <= 0; },
     },
     infiltrate: {
       name: 'Infiltrate the Occupants',
@@ -677,6 +684,21 @@ const MissionSystem = (function () {
           } catch (eUpd) {
             console.error('Failed to update mission:', m.type, eUpd);
           }
+        }
+        // Mission failure: templates may define failed(data). Without this,
+        // a failed mission (e.g. escort officer killed) sat in the active
+        // list forever showing FAILED and was never replaced.
+        if (template.failed && template.failed(m.data)) {
+          m.status = 'failed';
+          activeMissions.splice(i, 1);
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast('❌ MISSION FAILED: ' + m.name + ' — a new operation will come in shortly', 4500, '#ff5555');
+          }
+          // Replace it after a short breather, like the success path does.
+          setTimeout(function () {
+            try { if (activeMissions.length === 0) generateRandom(); } catch (eGR) {}
+          }, 8000);
+          continue;
         }
         if (template.check(m.data)) {
           m.status = 'completed';
