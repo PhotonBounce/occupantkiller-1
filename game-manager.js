@@ -737,7 +737,7 @@ const GameManager = (function () {
     },
     {
       id:           13,
-      name:         'SIEGE OF KYIV',
+      name:         'BATTLE OF KYIV',
       theme:        'urban',
       wavesPerStage: 8,
       difficulty:   1.5,
@@ -747,9 +747,10 @@ const GameManager = (function () {
       sunIntensity: 0.55,
       exposure:     0.75,
       tankFocus:    true,
+      capitalDefense: true,  // armored columns + city-integrity objective + Bayraktar support
       hintWeapons:  ['NLAW','FGM148Javelin','RPG7','StugnaP'],
-      description:  'Feb 2022. Ambush the Russian armored convoy on the road to Kyiv. NLAW and Javelin teams hold the line.',
-      objective:    'Ambush the convoy. Tanks spawn from wave 1. Use AT weapons. 8 waves.',
+      description:  'Feb 2022. Russian armored columns push down the boulevard toward Maidan. NLAW teams and Bayraktar strikes hold the capital.',
+      objective:    'DEFEND KYIV: stop every armored column before it breaches the line. City integrity must survive 8 waves.',
     },
     {
       id:           14,
@@ -2840,6 +2841,11 @@ const GameManager = (function () {
     player.kills = 0;
     currentWave = 0;
     currentStage = 0;
+    // QA-only stage jump (headless harness): start directly at a given stage
+    // index, e.g. window.__QA_START_STAGE = 12 for Battle of Kyiv.
+    if (typeof window !== 'undefined' && window.__QA_MODE && typeof window.__QA_START_STAGE === 'number') {
+      currentStage = Math.max(0, Math.min(STAGES.length - 1, window.__QA_START_STAGE));
+    }
     player.velocity.set(0, 0, 0);
     player.armor = 0;
     player.lastDamageTime = 10; // Start high so health regen kicks in immediately at game start
@@ -2916,8 +2922,9 @@ const GameManager = (function () {
       Progression.refreshDailies();
     }
 
-    // Apply first stage
-    applyStage(0);
+    // Apply the starting stage (normally 0; the QA stage-jump hook may have
+    // overridden currentStage above)
+    applyStage(currentStage);
 
     const spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
     player.position.set(0, spawnH + player.height, 0);
@@ -2976,7 +2983,7 @@ const GameManager = (function () {
     HUD.setScore(0);
     HUD.setWave(0);
     HUD.setKills(0);
-    HUD.setStage(STAGES[0].id, STAGES[0].name);
+    HUD.setStage(STAGES[currentStage].id, STAGES[currentStage].name);
     HUD.setWeapon(Weapons.getCurrentName(), Weapons.getCurrentIdx());
     if (Weapons.refreshHud) Weapons.refreshHud();
     if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : (player.grenades || 0));
@@ -2986,8 +2993,8 @@ const GameManager = (function () {
       requestPointerLock();
     }, 100);
 
-    // Announce first stage then show drone selection
-    HUD.announceStage(STAGES[0].id, STAGES[0].name, STAGES[0].description, STAGES[0].objective);
+    // Announce the starting stage then show drone selection
+    HUD.announceStage(STAGES[currentStage].id, STAGES[currentStage].name, STAGES[currentStage].description, STAGES[currentStage].objective);
     if (window.AudioSystem.stopAmbientLoop) window.AudioSystem.stopAmbientLoop();
     if (_waveStartTimer) clearTimeout(_waveStartTimer);
     _waveStartTimer = setTimeout(function () {
@@ -3087,6 +3094,12 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     window.VoxelWorld.generateLevel(stageIndex);
+
+    // Capital defense (Kyiv): fresh city integrity + defense zone at Maidan.
+    if (typeof ConvoySystem !== 'undefined') {
+      ConvoySystem.reset();
+      if (stageDef.capitalDefense) ConvoySystem.setDefenseZone(0, 1, 12);
+    }
 
     // Update scene colors
     _scene.background = new THREE.Color(stageDef.bgColor);
@@ -3323,8 +3336,13 @@ const GameManager = (function () {
       return;
     }
 
-    // Pass AI strategy to enemies for adaptive behavior
-    Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, null, player.position);
+    // Pass AI strategy to enemies for adaptive behavior.
+    // Capital defense (Kyiv): infantry is just the column escort — thin it out
+    // so the armored convoy is the main course.
+    var _battlePlan = (stageDef && stageDef.capitalDefense)
+      ? { groupDelta: -1, extraMultiplier: 0.6 }
+      : null;
+    Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -3389,14 +3407,26 @@ const GameManager = (function () {
       }
     }
 
+    // ═══ Capital defense (Battle of Kyiv): armored COLUMNS instead of the
+    // generic scattered vehicle spawns. Columns advance down the boulevard
+    // toward the defended Maidan zone via ConvoySystem. ═══
+    var capitalDefense = !!(stageDef && stageDef.capitalDefense);
+    if (capitalDefense && typeof ConvoySystem !== 'undefined') {
+      ConvoySystem.spawnConvoy(w, { route: 'north' });
+      // Waves 4 and 7: second column on a flanking axis
+      if (w === 4) ConvoySystem.spawnConvoy(w, { route: 'east', tanks: 2, btrs: 1 });
+      if (w === 7) ConvoySystem.spawnConvoy(w, { route: 'west', tanks: 3, btrs: 1 });
+      if (w === 1) HUD.notifyPickup('🚀 GRAB AN NLAW — STOP THE COLUMNS!', '#ffcc44');
+    }
+
     // Spawn enemy vehicles on later waves (Russian armored assault)
     // tankFocus stages (e.g. Siege of Kyiv) get heavy armor from wave 1
-    var tankFocus = !!(stageDef && stageDef.tankFocus);
+    var tankFocus = !!(stageDef && stageDef.tankFocus) && !capitalDefense;
     var armorMinWave = tankFocus ? 1 : 3;
     var transportMinWave = tankFocus ? 2 : 5;
     var extraTanks = tankFocus ? 1 + Math.min(3, Math.floor(w / 2)) : 0;
 
-    if (w >= armorMinWave) {
+    if (w >= armorMinWave && !capitalDefense) {
       var enemySpawnAngle = Math.random() * Math.PI * 2;
       var enemySpawnDist = 35 + Math.random() * 10;
       var evx = Math.cos(enemySpawnAngle) * enemySpawnDist;
@@ -3405,7 +3435,7 @@ const GameManager = (function () {
       VehicleSystem.spawnEnemy(evx, evy, evz, 'combat');
       HUD.notifyPickup('⚠ ENEMY ARMOR SPOTTED!', '#ff4444');
     }
-    if (w >= transportMinWave) {
+    if (w >= transportMinWave && !capitalDefense) {
       var evAngle2 = Math.random() * Math.PI * 2;
       var evDist2 = 30 + Math.random() * 10;
       var evx2 = Math.cos(evAngle2) * evDist2;
@@ -5812,6 +5842,7 @@ const GameManager = (function () {
         HUD._updateNPCTextPositions(NPCSystem.getAll(), _camera, _renderer);
       }
       DroneSystem.update(delta);
+      if (typeof ConvoySystem !== 'undefined') ConvoySystem.update(delta);
       if (typeof EnemyArtillery !== 'undefined') EnemyArtillery.update(delta);
       VehicleSystem.update(delta);
       Automation.update(delta);
@@ -7923,6 +7954,10 @@ const GameManager = (function () {
           if (hudEl) hudEl.style.display = 'block';
           gameState = STATE.PLAYING;
           if (typeof GameManager.startGame === 'function') GameManager.startGame();
+          // startGame schedules its own beginWave(1) (3.2s announce delay);
+          // cancel it — QA starts the wave immediately below, and letting both
+          // fire double-spawned every wave-1 (incl. duplicate Kyiv convoys).
+          if (_waveStartTimer) { clearTimeout(_waveStartTimer); _waveStartTimer = null; }
           if (typeof GameManager.beginWave === 'function') GameManager.beginWave(1);
           if (typeof HUD !== 'undefined' && HUD.show) HUD.show();
         } catch (e) {

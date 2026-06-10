@@ -939,6 +939,7 @@ const Enemies = (() => {
     10:{ bias: 0.60, pool: ['KADYROVITE','WAGNER','COMMISSAR','MORTAR','ARMORED'] },                 // Donbas — entrenched
     11:{ bias: 0.60, pool: ['TANK','THERMOBARIC','ASSAULT_MECH','HEAVY_SNIPER','BTR'] },            // Belgorod — mechanized
     12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR'] },    // Kremlin — everything
+    13:{ bias: 0.60, pool: ['CONSCRIPT','STORMER','PARATROOP','DRONE_OP','SPETSNAZ'] },             // Kyiv — column escort infantry (armor comes from ConvoySystem)
   };
 
   // ── Choose a type appropriate for the current wave + stage ──
@@ -1789,6 +1790,9 @@ const Enemies = (() => {
       _guardPost:    (opts && opts.guardPost)    ? { x: opts.guardPost.x, y: opts.guardPost.y || 0, z: opts.guardPost.z } : null,
       _guardRadius:  (opts && opts.guardRadius)  ? opts.guardRadius : 0,
       _garrisonRole: (opts && opts.garrisonRole) ? opts.garrisonRole : null,
+      // ── Convoy membership (Battle of Kyiv): { id, slot } — steering is
+      // delegated to ConvoySystem.getMoveTarget for these units ──
+      _convoy:       (opts && opts.convoy) ? opts.convoy : null,
       _patrolTimer:  0,
       _patrolAngle:  Math.random() * Math.PI * 2,
       _alertedTimer: 0,   // counts down after losing sight; returns to post when 0
@@ -2362,6 +2366,12 @@ const Enemies = (() => {
           }
         }
       }
+      // ── Convoy steering (Battle of Kyiv): column units always drive their
+      // route — never chase, never wander. Firing logic stays independent. ──
+      if (e._convoy && typeof ConvoySystem !== 'undefined' && ConvoySystem.getMoveTarget) {
+        var _ct = ConvoySystem.getMoveTarget(e);
+        if (_ct) { moveTarget = _ct; targetDist = e.mesh.position.distanceTo(_ct); }
+      }
       if (!moveTarget) {
         // Tactical patrol: enemies patrol toward strategic objectives instead of wandering
         if (!e._wanderTarget || e.mesh.position.distanceTo(e._wanderTarget) < 2) {
@@ -2398,7 +2408,7 @@ const Enemies = (() => {
       // ── Cover-seeking AI ────────────────────────────────────────
       // Wounded enemies or retreating groups seek cover behind solid blocks
       var seekingCover = false;
-      if (e.playerSpotted && e.hp < e.maxHp * 0.5 && e.typeCfg.rangedDmg > 0) {
+      if (!e._convoy && e.playerSpotted && e.hp < e.maxHp * 0.5 && e.typeCfg.rangedDmg > 0) {
         // Wounded ranged enemy seeks cover
         if (!e._coverTarget || e._coverTimer <= 0) {
           e._coverTarget = findCoverPosition(e.mesh.position, playerPos);
@@ -2415,7 +2425,7 @@ const Enemies = (() => {
       // ── Movement toward target with obstacle avoidance + strategic flanking ──
       // Enemies with ranged weapons hold position at firing distance instead of rushing
       var engageDist = 1.0; // default: close to melee
-      if (e.playerSpotted && !targetIsNPC && e.typeCfg.rangedDmg > 0) {
+      if (!e._convoy && e.playerSpotted && !targetIsNPC && e.typeCfg.rangedDmg > 0) {
         // Ranged enemies stop at their preferred engagement distance
         var typeName = e.typeCfg.name;
         if (typeName === 'SNIPER' || typeName === 'HEAVY_SNIPER') engageDist = 25;
