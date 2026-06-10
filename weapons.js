@@ -2951,6 +2951,7 @@ const Weapons = (() => {
   }
 
   // ── Recoil / reload animation state ───────────────────────
+  let _lastDryHint = 0; // throttle for the out-of-ammo hint toast
   let recoilOffset = 0;
   let recoilOffsetY = 0;
   let recoilOffsetZ = 0;
@@ -3922,8 +3923,15 @@ const Weapons = (() => {
     var effClip = effectiveClipSize(currentIdx);
     if (st.reloading || st.clip === effClip) return;
     if (st.reserve <= 0) {
-      // No ammo — dry fire click
+      // No ammo — dry fire click + actionable hint (throttled to one per 8s)
       if (typeof AudioSystem !== 'undefined' && AudioSystem.playDryFire) AudioSystem.playDryFire();
+      var _now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+      if (!_lastDryHint || _now - _lastDryHint > 8000) {
+        _lastDryHint = _now;
+        if (typeof HUD !== 'undefined' && HUD.showToast) {
+          HUD.showToast('🔫 OUT OF AMMO — grab a yellow AMMO drop from fallen enemies, or switch weapons (scroll / 1-9)', 4500, '#ffcc00');
+        }
+      }
       return;
     }
     st.reloading   = true;

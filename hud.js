@@ -680,6 +680,30 @@ const HUD = (() => {
     headshotTimer = setTimeout(() => el.headshotNotif.classList.remove('visible'), 1200);
   }
 
+  // ── Stacking toast notifications ─────────────────────────────────
+  // 53 call sites across missions/combat assumed HUD.showToast existed
+  // (escort/ambush/paratrooper/Bradley announcements) but it was never
+  // implemented, so all of them silently no-oped. Toasts stack above the
+  // ammo bar and auto-fade after their duration.
+  let _toastBox = null;
+  function showToast(text, durationMs, color) {
+    if (!_toastBox) {
+      _toastBox = document.createElement('div');
+      _toastBox.id = 'toast-stack';
+      _toastBox.style.cssText = 'position:fixed;bottom:170px;left:50%;transform:translateX(-50%);z-index:230;display:flex;flex-direction:column-reverse;gap:6px;align-items:center;pointer-events:none;max-width:80vw';
+      document.body.appendChild(_toastBox);
+    }
+    const t = document.createElement('div');
+    t.style.cssText = 'background:rgba(10,12,16,0.88);border:1px solid ' + (color || '#ffcc00') + ';color:' + (color || '#ffcc00') +
+      ';padding:6px 16px;border-radius:6px;font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000;box-shadow:0 2px 10px rgba(0,0,0,0.5);transition:opacity 0.5s;white-space:pre-wrap;text-align:center';
+    t.textContent = text;
+    _toastBox.appendChild(t);
+    while (_toastBox.children.length > 4) _toastBox.removeChild(_toastBox.firstChild);
+    const ms = (typeof durationMs === 'number' && durationMs > 300) ? durationMs : 3500;
+    setTimeout(function () { t.style.opacity = '0'; }, ms - 450);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, ms);
+  }
+
   function notifyPickup(text, color) {
     el.pickupNotif.textContent  = text;
     el.pickupNotif.style.color  = color;
@@ -1939,7 +1963,7 @@ const HUD = (() => {
     setWaveProgress,
     setHealth, setAmmo, setWeapon, showReload,
     flashHit, flashDamage, flashHeal, showBloodDrops,
-    showHeadshot, notifyPickup, setCrosshairSpread, setCrosshairTarget, setRangeReadout, setSprintIntensity, setGrenadeWarning, setHandGrenades, showGrenadeSection, showLockOn,
+    showHeadshot, notifyPickup, showToast, setCrosshairSpread, setCrosshairTarget, setRangeReadout, setSprintIntensity, setGrenadeWarning, setHandGrenades, showGrenadeSection, showLockOn,
     announceWave, announceStage,
     addKill, showHitDirection, showHitDirectionScaled, updateMinimap,
     updateCompass, setCompassThreats, showStreak, showBleed, showProne, showJam,
