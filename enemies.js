@@ -1892,7 +1892,11 @@ const Enemies = (() => {
 
     // ── Stage-scaled assault group count (more groups in later stages) ──
     var planGroupDelta = battlePlan && isFinite(battlePlan.groupDelta) ? battlePlan.groupDelta : 0;
-    var stageGroupCount = Math.max(2, NUM_ASSAULT_GROUPS + Math.floor((_stageId || 1) / 3) + planGroupDelta);
+    // Lone Wolf has no allied NPC army, so waves sized for squad-supported
+    // combat would swarm a solo player — scale group count down ~40%.
+    var _soloScale = 1;
+    try { if (typeof GameManager !== 'undefined' && GameManager.getPlayer && GameManager.getPlayer().role !== 'brigade') _soloScale = 0.6; } catch (eSS) {}
+    var stageGroupCount = Math.max(2, Math.round((NUM_ASSAULT_GROUPS + Math.floor((_stageId || 1) / 3) + planGroupDelta) * _soloScale));
     for (let g = 0; g < stageGroupCount; g++) {
       spawnAssaultGroup(g, sc, playerPos);
     }
