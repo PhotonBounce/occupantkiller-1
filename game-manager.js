@@ -5944,6 +5944,9 @@ const GameManager = (function () {
               if (!_md.scoutedPoints[_wi]) { _wpT = _md.targetPoints[_wi]; break; }
             }
           }
+          else if (_md.landingZones && _md.landingZones.length) {           // airborne: current LZ
+            _wpT = _md.landingZones[(_md.completedWaves || 0) % _md.landingZones.length];
+          }
         }
         HUD.setMissionWaypoint(_wpT);
         HUD.updateMissionWaypoint(_camera);

@@ -288,7 +288,7 @@ const MissionSystem = (function () {
               }
             }
 
-            mission.objectiveText = `Breakout: Reach (${Math.round(mission.destination.x)}, ${Math.round(mission.destination.z)}) — Distance: ${mission.distanceToDest}m (Time: ${Math.round(mission.timeLimit)}s)`;
+            mission.objectiveText = `Breakout: reach the ◆ waypoint — ${mission.distanceToDest}m (${Math.round(mission.timeLimit)}s left)`;
           },
           check(mission) { return mission.reached; },
         },
