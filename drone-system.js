@@ -17,6 +17,7 @@ const DroneSystem = (function () {
     SURVEILLANCE: 'surveillance',
     KAMIKAZE:     'kamikaze',
     INCENDIARY:   'incendiary',
+    BAYRAKTAR:    'bayraktar',
     ENEMY_BOMBER: 'enemy_bomber',
     ENEMY_FPV:    'enemy_fpv',
     ENEMY_OBSERVER: 'enemy_observer',
@@ -29,10 +30,14 @@ const DroneSystem = (function () {
     surveillance:   { speed: 6,  health: 50,  battery: 300, damage: 0,   range: 100 },
     kamikaze:       { speed: 25, health: 8,   battery: 20,  damage: 120, range: 35 },
     incendiary:     { speed: 10, health: 25,  battery: 60,  damage: 60,  range: 70 },
+    bayraktar:      { speed: 14, health: 120, battery: 240, damage: 0,   range: 300 }, // TB2: fixed-wing striker, armed with MAM-L
     enemy_bomber:   { speed: 7,  health: 35,  battery: 80,  damage: 150, range: 50 },
     enemy_fpv:      { speed: 22, health: 10,  battery: 30,  damage: 100, range: 40 },
     enemy_observer: { speed: 5,  health: 45,  battery: 200, damage: 0,   range: 120 },
   };
+  const TB2_ALT = 35;        // loiter altitude
+  const TB2_ORBIT_R = 40;    // orbit radius around loiter center
+  const TB2_MISSILES = 4;    // MAM-L payload
 
   /* ── Faction helpers ────────────────────────────────────────────── */
   function factionForType(type) {
@@ -166,6 +171,43 @@ const DroneSystem = (function () {
     const group = new THREE.Group();
     const stats = DRONE_STATS[type];
     const faction = factionForType(type);
+
+    // ── Bayraktar TB2: large fixed-wing strike UAV (not a quadcopter) ──
+    if (type === DRONE_TYPE.BAYRAKTAR) {
+      const gray = new THREE.MeshLambertMaterial({ color: 0x9aa3ad });
+      const dark = new THREE.MeshLambertMaterial({ color: 0x4a525c });
+      // Fuselage (slender, bulged sensor nose)
+      const fus = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.4, 3.6), gray);
+      group.add(fus);
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), dark);
+      nose.position.set(0, -0.08, -1.85); group.add(nose);
+      // High-aspect straight wing
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.1, 0.7), gray);
+      wing.position.set(0, 0.12, -0.3); group.add(wing);
+      // Signature inverted-V tail booms
+      const tailL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 1.0), gray);
+      tailL.position.set(-0.55, 0.28, 1.7); tailL.rotation.z = 0.5; group.add(tailL);
+      const tailR = tailL.clone(); tailR.position.x = 0.55; tailR.rotation.z = -0.5; group.add(tailR);
+      // Pusher prop disc at the rear
+      const prop = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.04, 10), dark);
+      prop.rotation.x = Math.PI / 2; prop.position.set(0, 0, 1.95); group.add(prop);
+      // MAM-L pylons under the wings (visual missiles; hidden as they fire)
+      for (let mi = 0; mi < TB2_MISSILES; mi++) {
+        const side = mi % 2 === 0 ? -1 : 1;
+        const off = 1.0 + Math.floor(mi / 2) * 1.1;
+        const mam = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.7, 8), dark);
+        mam.rotation.x = Math.PI / 2;
+        mam.position.set(side * off, -0.12, -0.3);
+        mam.userData.mamIndex = mi;
+        group.add(mam);
+      }
+      // Ukrainian roundels on the wingtips
+      const roundel = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.02, 12),
+        new THREE.MeshBasicMaterial({ color: 0x0057B8 }));
+      roundel.position.set(-3.0, 0.19, -0.3); group.add(roundel);
+      const roundel2 = roundel.clone(); roundel2.position.x = 3.0; group.add(roundel2);
+      return group;
+    }
 
     // Body color by faction and type
     let bodyColor;
@@ -514,7 +556,142 @@ const DroneSystem = (function () {
 
   /* ── Update All Drones ───────────────────────────────────────────── */
   var _droneMotorActive = false;
+  /* ── Bayraktar TB2: fixed-wing orbit + MAM-L auto-engage ──────────── */
+  var _mamls = [];   // in-flight guided missiles { pos, vel, target, life, mesh }
+
+  function _tb2PickTarget(drone) {
+    if (typeof Enemies === 'undefined' || !Enemies.getAll) return null;
+    var all = Enemies.getAll();
+    var best = null, bestScore = -1;
+    for (var i = 0; i < all.length; i++) {
+      var e = all[i];
+      if (!e || !e.alive || !e.mesh || e._tb2Locked) continue;
+      var tn = e.typeCfg && e.typeCfg.name;
+      if (tn !== 'TANK' && tn !== 'BTR') continue;
+      var d = e.mesh.position.distanceTo(drone.position);
+      if (d > drone.range) continue;
+      // prefer tanks, prefer convoy column leaders, prefer closer
+      var score = (tn === 'TANK' ? 200 : 100) + (e._convoy && e._convoy.slot === 0 ? 80 : 0) - d * 0.2;
+      if (score > bestScore) { bestScore = score; best = e; }
+    }
+    return best;
+  }
+
+  function updateBayraktar(drone, delta) {
+    // Banked orbit around the loiter center at constant altitude
+    if (!drone.loiterCenter) drone.loiterCenter = drone.position.clone();
+    drone.orbitAngle = (drone.orbitAngle || 0) + (drone.speed / TB2_ORBIT_R) * delta;
+    var tx = drone.loiterCenter.x + Math.cos(drone.orbitAngle) * TB2_ORBIT_R;
+    var tz = drone.loiterCenter.z + Math.sin(drone.orbitAngle) * TB2_ORBIT_R;
+    var ty = TB2_ALT;
+    drone.velocity.set(tx - drone.position.x, (ty - drone.position.y) * 0.5, tz - drone.position.z);
+    if (drone.velocity.lengthSq() > 0.01) {
+      drone.velocity.normalize().multiplyScalar(drone.speed);
+    }
+    // Face along the velocity, bank into the turn
+    drone.rotation.y = Math.atan2(-drone.velocity.x, -drone.velocity.z);
+    drone.rotation.z = 0.35; // constant bank in the orbit
+    // Auto-engage: one MAM-L every few seconds while armor is in range
+    drone.fireTimer = (drone.fireTimer || 0) - delta;
+    if (drone.missiles > 0 && drone.fireTimer <= 0) {
+      var tgt = _tb2PickTarget(drone);
+      if (tgt) {
+        drone.fireTimer = 6;
+        drone.missiles--;
+        tgt._tb2Locked = true; // one missile per target at a time
+        _launchMaml(drone, tgt);
+        // hide one pylon missile on the model
+        try {
+          var idx = TB2_MISSILES - 1 - drone.missiles;
+          drone.mesh.traverse(function (c) { if (c.userData && c.userData.mamIndex === idx) c.visible = false; });
+        } catch (e) {}
+        try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛩 TB2 — MAM-L AWAY', 2200, '#7fd0ff'); } catch (e2) {}
+      }
+    }
+    // Winchester (out of missiles): leave the AO and despawn
+    if (drone.missiles <= 0 && !drone._rtb && _mamls.length === 0) {
+      drone._rtb = true;
+      drone.loiterCenter = new THREE.Vector3(drone.position.x + 400, TB2_ALT + 30, drone.position.z + 400);
+      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛩 TB2 WINCHESTER — returning to base', 3000, '#9ab'); } catch (e) {}
+      setTimeout(function () { try { destroyDrone(drone.id); } catch (e2) {} }, 12000);
+    }
+  }
+
+  function _launchMaml(drone, target) {
+    var geo = new THREE.CylinderGeometry(0.07, 0.07, 0.6, 8);
+    var mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xffe0a0 }));
+    mesh.position.copy(drone.position);
+    if (_scene) _scene.add(mesh);
+    _mamls.push({
+      pos: drone.position.clone(),
+      vel: new THREE.Vector3(0, -8, 0),
+      target: target,
+      life: 12,
+      mesh: mesh,
+    });
+  }
+
+  function _updateMamls(delta) {
+    for (var i = _mamls.length - 1; i >= 0; i--) {
+      var m = _mamls[i];
+      m.life -= delta;
+      var tgtAlive = m.target && m.target.alive && m.target.mesh;
+      if (tgtAlive) {
+        // steer toward the target (same lerp-style homing as AT weapons)
+        var want = m.target.mesh.position.clone().sub(m.pos).normalize().multiplyScalar(40);
+        m.vel.lerp(want, Math.min(1, 2.2 * delta));
+      }
+      m.pos.addScaledVector(m.vel, delta);
+      m.mesh.position.copy(m.pos);
+      m.mesh.lookAt(m.pos.clone().add(m.vel));
+      var hit = tgtAlive && m.pos.distanceTo(m.target.mesh.position) < 2.5;
+      var ground = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
+        ? m.pos.y <= VoxelWorld.getTerrainHeight(m.pos.x, m.pos.z) : m.pos.y <= 0;
+      if (hit || ground || m.life <= 0) {
+        if (tgtAlive) m.target._tb2Locked = false;
+        if (hit) {
+          // Top-attack: direct full damage (bypasses horizontal hull armor
+          // by design — the missile dives onto the turret roof) + splash.
+          try { Enemies.damage(m.target, 1200, false, 'ATGM'); } catch (e) {}
+          try { if (Enemies.damageInRadius) Enemies.damageInRadius(m.pos, 3, 150); } catch (e2) {}
+        }
+        try { createDroneExplosion(m.pos); } catch (e3) {}
+        try { if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion(); } catch (e4) {}
+        if (_scene && m.mesh) _scene.remove(m.mesh);
+        _mamls.splice(i, 1);
+      }
+    }
+  }
+
+  /* ── Call-in: Bayraktar on station (90s cooldown) ─────────────────── */
+  var _tb2Cooldown = 0; // timestamp (ms) when next call is allowed
+  function callBayraktar(centerOverride) {
+    var now = Date.now();
+    if (now < _tb2Cooldown) {
+      var waitS = Math.ceil((_tb2Cooldown - now) / 1000);
+      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛩 TB2 rearming — ' + waitS + 's', 2500, '#9ab'); } catch (e) {}
+      return false;
+    }
+    var gm = (typeof GameManager !== 'undefined') ? GameManager : null;
+    var player = gm && gm.getPlayer ? gm.getPlayer() : null;
+    var pos = player && player.position ? player.position : _fallbackPlayerPos;
+    var center = centerOverride || null;
+    if (!center && typeof ConvoySystem !== 'undefined' && ConvoySystem.getDefenseZone) {
+      var dz = ConvoySystem.getDefenseZone();
+      center = new THREE.Vector3(dz.x, TB2_ALT, dz.z);
+    }
+    if (!center) center = new THREE.Vector3(pos.x, TB2_ALT, pos.z);
+    var tb2 = spawn(pos.x - 60, TB2_ALT, pos.z - 60, DRONE_TYPE.BAYRAKTAR);
+    tb2.aiControlled = true;          // drains battery, flies itself
+    tb2.loiterCenter = center;
+    tb2.missiles = TB2_MISSILES;
+    _tb2Cooldown = now + 90000;
+    try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛩 BAYRAKTAR ON STATION — ' + TB2_MISSILES + ' MAM-L ready', 4000, '#7fd0ff'); } catch (e) {}
+    return tb2.id;
+  }
+
   function update(delta) {
+    _updateMamls(delta);
     var nearestDroneDist = Infinity;
     for (const drone of drones) {
       if (!drone.alive || !drone.active) continue;
@@ -542,6 +719,8 @@ const DroneSystem = (function () {
         } else {
           updateEnemyDrone(drone, delta);
         }
+      } else if (drone.type === DRONE_TYPE.BAYRAKTAR) {
+        updateBayraktar(drone, delta);
       } else {
         // Friendly autonomous drones: hunt + attack enemies (FPV/BOMB/KAMIKAZE) or scout (RECON/SURVEILLANCE)
         updateAIDrone(drone, delta);
@@ -1254,6 +1433,7 @@ const DroneSystem = (function () {
     update,
     markTarget,
     callRecon,
+    callBayraktar,
     dropPayload,
     fireAttack,
     setPatrol,

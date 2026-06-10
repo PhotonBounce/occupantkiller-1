@@ -3427,6 +3427,11 @@ const GameManager = (function () {
       if (w === 4) ConvoySystem.spawnConvoy(w, { route: 'east', tanks: 2, btrs: 1 });
       if (w === 7) ConvoySystem.spawnConvoy(w, { route: 'west', tanks: 3, btrs: 1 });
       if (w === 1) HUD.notifyPickup('🚀 GRAB AN NLAW — STOP THE COLUMNS!', '#ffcc44');
+      // Air support: a Bayraktar TB2 comes on station with the wave (auto-
+      // engages armor with MAM-L; respects its own 90s rearm cooldown).
+      if (typeof DroneSystem !== 'undefined' && DroneSystem.callBayraktar) {
+        DroneSystem.callBayraktar();
+      }
       // Resupply: AT weapons carry 1+3 rockets — drop ammo crates at the
       // defended line each wave so launchers stay fed.
       if (typeof Pickups !== 'undefined' && Pickups.spawn) {
