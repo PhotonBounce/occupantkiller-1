@@ -780,10 +780,12 @@ const Weapons = (() => {
     const slideBody = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.028, 0.135), new THREE.MeshLambertMaterial({ color: met }));
     slideBody.position.set(0.18, -0.125, -0.285);
     // Barrel (inside slide)
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.016, 0.145), new THREE.MeshLambertMaterial({ color: 0x222226 }));
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.145, 12), new THREE.MeshLambertMaterial({ color: 0x222226 }));
+    barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0.18, -0.132, -0.29);
     // Muzzle crown
-    const muzzle = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.020, 0.008), new THREE.MeshLambertMaterial({ color: 0x1a1a1e }));
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.010, 12), new THREE.MeshLambertMaterial({ color: 0x1a1a1e }));
+    muzzle.rotation.x = Math.PI / 2;
     muzzle.position.set(0.18, -0.130, -0.365);
     // Rear serrations (grip lines) — keep only 4, avoid floating/overlapping
     for (let i = 0; i < 4; i++) {
@@ -909,7 +911,8 @@ const Weapons = (() => {
     const gasBlock = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.028, 0.020), new THREE.MeshLambertMaterial({ color: bk }));
     gasBlock.position.set(0.18, -0.128, -0.53);
     // ── Barrel ──
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.020, 0.380), new THREE.MeshLambertMaterial({ color: frm }));
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0105, 0.0105, 0.380, 14), new THREE.MeshLambertMaterial({ color: frm }));
+    barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0.18, -0.140, -0.44);
     // ── Muzzle brake (slotted, refined) ──
     const brake = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.028, 0.040), new THREE.MeshLambertMaterial({ color: dk }));
@@ -1058,7 +1061,8 @@ const Weapons = (() => {
     const g = new THREE.Group();
     const bk = 0x2a2a2e, wd = 0x3a2a18, frm = 0x333336;
     // ── Barrel (long, thin) ──
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.020, 0.55), new THREE.MeshLambertMaterial({ color: bk }));
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0105, 0.0105, 0.55, 14), new THREE.MeshLambertMaterial({ color: bk }));
+    barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0.17, -0.13, -0.54);
     // Barrel fluting (visual grooves)
     // Barrel fluting — keep 3 for realism
@@ -2039,10 +2043,12 @@ const Weapons = (() => {
     const slideBody = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.024, 0.135), new THREE.MeshPhongMaterial({ color: bk, shininess: 60 }));
     slideBody.position.set(0.17, -0.122, -0.255);
     // Barrel inside
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.014, 0.14), new THREE.MeshLambertMaterial({ color: 0x2a2a2e }));
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0072, 0.0072, 0.14, 12), new THREE.MeshLambertMaterial({ color: 0x2a2a2e }));
+    barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0.17, -0.128, -0.26);
     // Muzzle
-    const muzzle = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.018, 0.006), new THREE.MeshLambertMaterial({ color: 0x111114 }));
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.008, 12), new THREE.MeshLambertMaterial({ color: 0x111114 }));
+    muzzle.rotation.x = Math.PI / 2;
     muzzle.position.set(0.17, -0.126, -0.325);
     // Front sight (Glock-style dot)
     const fs = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.008, 0.004), new THREE.MeshLambertMaterial({ color: bk }));

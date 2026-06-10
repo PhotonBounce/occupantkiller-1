@@ -504,7 +504,10 @@ const WeaponDetails = (() => {
     var isLauncher = LAUNCH.indexOf(type) >= 0;
 
     // 2. Iron sights on non-scoped firearms (Features 11, 12)
-    if (isFirearm && !weaponDef.hasScope && !isLauncher) {
+    // NOT on pistols: the generic sights sit at rifle-length z (-0.55), which is
+    // far ahead of a pistol's muzzle (~-0.32) and renders as a floating rod.
+    // Pistol builders already include their own correctly-placed sights.
+    if (isFirearm && !weaponDef.hasScope && !isLauncher && !isPistol) {
       group.add(frontSight(0.17, -0.08, -0.55));
       group.add(rearSight(0.17, -0.08, -0.17));
     }
