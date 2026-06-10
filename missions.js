@@ -488,8 +488,8 @@ const MissionSystem = (function () {
           spawnAmbushNear(npcPos, 5);
         }
 
-        var statusText = waiting ? ' (Waiting for player)' : '';
-        mission.objectiveText = `Escort Logistics NPC: ${mission.convoyHealth}% HP — Lead to (${Math.round(mission.destination.x)}, ${Math.round(mission.destination.z)}) — Distance: ${Math.round(dDist)}m${statusText}`;
+        var statusText = waiting ? ' (Waiting for you — stay within 12m)' : '';
+        mission.objectiveText = `Escort officer (${mission.convoyHealth}% HP) to the ◆ waypoint — ${Math.round(dDist)}m${statusText}`;
 
         function spawnAmbushNear(center, enemyCount) {
           try {

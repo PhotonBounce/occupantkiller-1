@@ -1622,6 +1622,48 @@ const HUD = (() => {
     if (_objectiveEl) _objectiveEl.style.opacity = '0';
   }
 
+  // ── 3D mission waypoint marker ────────────────────────────────────
+  // Projects a world position into screen space as a gold diamond with a
+  // distance readout; clamps to the screen edge with an arrow when the
+  // target is off-screen or behind the camera. Call updateMissionWaypoint
+  // every frame with the camera; pass null target to hide.
+  let _wpEl = null, _wpTarget = null, _wpVec = null;
+  function setMissionWaypoint(pos) { _wpTarget = pos || null; if (!pos && _wpEl) _wpEl.style.display = 'none'; }
+  function updateMissionWaypoint(camera) {
+    if (!_wpTarget || !camera) { if (_wpEl) _wpEl.style.display = 'none'; return; }
+    if (!_wpEl) {
+      _wpEl = document.createElement('div');
+      _wpEl.id = 'mission-waypoint';
+      _wpEl.style.cssText = 'position:fixed;z-index:215;pointer-events:none;text-align:center;font-family:monospace;transform:translate(-50%,-50%);text-shadow:0 1px 4px #000';
+      _wpEl.innerHTML = '<div style="font-size:18px;color:#ffd24a">◆</div><div id="mwp-dist" style="font-size:11px;color:#ffd24a;font-weight:bold;margin-top:-3px"></div>';
+      document.body.appendChild(_wpEl);
+    }
+    if (!_wpVec) _wpVec = new THREE.Vector3();
+    _wpVec.set(_wpTarget.x, (_wpTarget.y || 0) + 3, _wpTarget.z);
+    const camPos = camera.getWorldPosition(new THREE.Vector3());
+    const dist = Math.round(camPos.distanceTo(_wpVec));
+    _wpVec.project(camera);
+    const behind = _wpVec.z > 1;
+    let sx = (_wpVec.x * 0.5 + 0.5) * window.innerWidth;
+    let sy = (-_wpVec.y * 0.5 + 0.5) * window.innerHeight;
+    if (behind) { sx = window.innerWidth - sx; sy = window.innerHeight * 0.9; }
+    const m = 28; // edge margin
+    const clamped = behind || sx < m || sx > window.innerWidth - m || sy < m || sy > window.innerHeight - m;
+    sx = Math.max(m, Math.min(window.innerWidth - m, sx));
+    sy = Math.max(m, Math.min(window.innerHeight - m, sy));
+    _wpEl.style.display = 'block';
+    _wpEl.style.left = sx + 'px';
+    _wpEl.style.top = sy + 'px';
+    _wpEl.firstChild.textContent = clamped ? '➤' : '◆';
+    // rotate the edge arrow to point toward the target
+    if (clamped) {
+      const ang = Math.atan2(sy - window.innerHeight / 2, sx - window.innerWidth / 2);
+      _wpEl.firstChild.style.transform = 'rotate(' + ang + 'rad)';
+    } else { _wpEl.firstChild.style.transform = 'none'; }
+    const dEl = _wpEl.querySelector('#mwp-dist');
+    if (dEl) dEl.textContent = dist + 'm';
+  }
+
   // ── Persistent PRIMARY OBJECTIVE banner ──────────────────────────
   // A single, always-visible, prominent statement of "what to do right now".
   // Research on browser-FPS churn: an unclear first goal is the #1 cause of
@@ -1918,6 +1960,7 @@ const HUD = (() => {
     // ── B22: New HUD ──
     showBossBar, hideBossBar,
     updateXPBar, showObjective, hideObjective, setPrimaryObjective,
+    setMissionWaypoint, updateMissionWaypoint,
     showStreakBanner, showBossIntro, addDamageLog,
     showGrenadeWarning, updateStageProgress,
     showDamageFlash,

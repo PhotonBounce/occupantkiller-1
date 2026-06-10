@@ -5931,6 +5931,23 @@ const GameManager = (function () {
           HUD.setPrimaryObjective('✓ AREA SECURED', 'Next wave incoming — hold the line');
         }
       }
+      // ── Mission waypoint: project the active mission's target into the
+      // world so players navigate by marker, not raw coordinates ──
+      if (HUD.setMissionWaypoint && HUD.updateMissionWaypoint) {
+        var _wpT = null;
+        if (_poMission && _poMission.length > 0 && _poMission[0] && _poMission[0].status === 'active') {
+          var _md = _poMission[0].data || {};
+          if (_md.destination) _wpT = _md.destination;                      // escort
+          else if (_md.building) _wpT = { x: _md.building.cx != null ? _md.building.cx : _md.building.x, y: _md.building.baseY || 0, z: _md.building.cz != null ? _md.building.cz : _md.building.z }; // clear_building
+          else if (_md.targetPoints && _md.scoutedPoints) {                 // recon: next unscouted
+            for (var _wi = 0; _wi < _md.targetPoints.length; _wi++) {
+              if (!_md.scoutedPoints[_wi]) { _wpT = _md.targetPoints[_wi]; break; }
+            }
+          }
+        }
+        HUD.setMissionWaypoint(_wpT);
+        HUD.updateMissionWaypoint(_camera);
+      }
       // Wave progress bar: pct of wave cleared based on initial enemy count
       if (HUD.setWaveProgress && player._waveStartCount > 0) {
         var _alv = Enemies.getAliveCount();
