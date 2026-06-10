@@ -1673,34 +1673,64 @@ const Weapons = (() => {
   }
 
   function buildMp5Mesh() {
+    // H&K MP5: tubular receiver, slim slotted handguard, short shrouded barrel,
+    // curved 30-rd magazine, retractable stock rails + butt, cocking-tube on top.
     const g = new THREE.Group();
-    const barrel = new THREE.Mesh(
-      new THREE.BoxGeometry(0.03, 0.03, 0.22),
-      new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-    );
-    barrel.position.set(0.18, -0.14, -0.38);
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.06, 0.07, 0.20),
-      new THREE.MeshLambertMaterial({ color: 0x222222 })
-    );
-    body.position.set(0.18, -0.14, -0.22);
-    const mag = new THREE.Mesh(
-      new THREE.BoxGeometry(0.035, 0.12, 0.04),
-      new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-    );
-    mag.position.set(0.18, -0.24, -0.22);
-    mag.rotation.x = 0.08;
-    const stock = new THREE.Mesh(
-      new THREE.BoxGeometry(0.05, 0.04, 0.10),
-      new THREE.MeshLambertMaterial({ color: 0x222222 })
-    );
-    stock.position.set(0.18, -0.14, -0.08);
-    const grip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.035, 0.07, 0.035),
-      new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-    );
-    grip.position.set(0.18, -0.22, -0.16);
-    g.add(barrel, body, mag, stock, grip);
+    const X = 0.18, Y = -0.14;
+    const black = new THREE.MeshLambertMaterial({ color: 0x202023 });
+    const dark = new THREE.MeshLambertMaterial({ color: 0x16161a });
+    const steel = new THREE.MeshPhongMaterial({ color: 0x35353a, shininess: 60 });
+
+    // Receiver tube (round)
+    const recv = new THREE.Mesh(new THREE.CylinderGeometry(0.029, 0.029, 0.20, 16), black);
+    recv.rotation.x = Math.PI / 2; recv.position.set(X, Y, -0.24);
+    // Cocking-tube housing on top-left (signature MP5 line)
+    const cock = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.24, 12), steel);
+    cock.rotation.x = Math.PI / 2; cock.position.set(X - 0.018, Y + 0.026, -0.30);
+    // Cocking handle knob
+    const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.016, 10), steel);
+    knob.rotation.z = Math.PI / 2; knob.position.set(X - 0.032, Y + 0.026, -0.235);
+
+    // Short barrel + shroud
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0085, 0.0085, 0.14, 12), steel);
+    barrel.rotation.x = Math.PI / 2; barrel.position.set(X, Y + 0.004, -0.40);
+    const shroud = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.09, 14), black);
+    shroud.rotation.x = Math.PI / 2; shroud.position.set(X, Y + 0.004, -0.37);
+
+    // Slim slotted handguard (tri-lug style)
+    const hand = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.022, 0.12, 14), dark);
+    hand.rotation.x = Math.PI / 2; hand.position.set(X, Y - 0.002, -0.31);
+
+    // Curved 30-rd magazine — three short angled segments for the banana curve
+    const magMat = dark;
+    const m1 = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.05, 0.030), magMat);
+    m1.position.set(X, Y - 0.045, -0.205); m1.rotation.x = 0.10;
+    const m2 = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.05, 0.028), magMat);
+    m2.position.set(X, Y - 0.092, -0.196); m2.rotation.x = 0.26;
+    const m3 = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.030, 0.026), magMat);
+    m3.position.set(X, Y - 0.128, -0.181); m3.rotation.x = 0.42;
+
+    // Pistol grip + trigger housing
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.030, 0.030, 0.085), black);
+    lower.position.set(X, Y - 0.028, -0.165);
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.062, 0.034), dark);
+    grip.position.set(X, Y - 0.072, -0.145); grip.rotation.x = -0.22;
+
+    // Retractable stock: two side rails + butt pad
+    const railL = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.13, 8), steel);
+    railL.rotation.x = Math.PI / 2; railL.position.set(X - 0.014, Y + 0.004, -0.09);
+    const railR = railL.clone(); railR.position.x = X + 0.014;
+    const butt = new THREE.Mesh(new THREE.BoxGeometry(0.044, 0.052, 0.018), black);
+    butt.position.set(X, Y, -0.028);
+
+    // Drum rear sight + hooded front
+    const rearDrum = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.012, 14), black);
+    rearDrum.rotation.z = Math.PI / 2; rearDrum.position.set(X, Y + 0.034, -0.17);
+    const frontHood = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.016, 12), black);
+    frontHood.rotation.x = Math.PI / 2; frontHood.position.set(X, Y + 0.034, -0.345);
+
+    g.add(recv, cock, knob, barrel, shroud, hand, m1, m2, m3,
+          lower, grip, railL, railR, butt, rearDrum, frontHood);
     return g;
   }
 

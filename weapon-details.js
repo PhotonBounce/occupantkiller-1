@@ -502,18 +502,29 @@ const WeaponDetails = (() => {
     var isPistol  = PISTOL.indexOf(type) >= 0;
     var isHmg     = HMG.indexOf(type) >= 0;
     var isLauncher = LAUNCH.indexOf(type) >= 0;
+    var isCrossbow = id === 'CROSSBOW';
+
+    // Front attachments (front sight, muzzle brake, front sling) were positioned
+    // at a hardcoded rifle-length z (~-0.55/-0.62). On shorter weapons (SMGs,
+    // pistols, crossbow) that floats well ahead of the actual muzzle as debris.
+    // Compute the weapon's true front from its bounding box and anchor there.
+    var _bb = new THREE.Box3().setFromObject(group);
+    var _frontZ = _bb.isEmpty() ? -0.55 : _bb.min.z;
+    var _topY   = _bb.isEmpty() ? -0.08 : _bb.max.y;
+    var _muzzleZ = _frontZ - 0.005;     // just past the muzzle
+    var _fsightZ = _frontZ + 0.04;      // front sight sits a touch behind the muzzle
 
     // 2. Iron sights on non-scoped firearms (Features 11, 12)
     // NOT on pistols: the generic sights sit at rifle-length z (-0.55), which is
     // far ahead of a pistol's muzzle (~-0.32) and renders as a floating rod.
     // Pistol builders already include their own correctly-placed sights.
-    if (isFirearm && !weaponDef.hasScope && !isLauncher && !isPistol) {
-      group.add(frontSight(0.17, -0.08, -0.55));
-      group.add(rearSight(0.17, -0.08, -0.17));
+    if (isFirearm && !weaponDef.hasScope && !isLauncher && !isPistol && !isCrossbow) {
+      group.add(frontSight(0.17, _topY + 0.012, _fsightZ));
+      group.add(rearSight(0.17, _topY + 0.012, -0.17));
     }
 
     // 3. Trigger + trigger guard (Features 13, 14)
-    if (isFirearm && !isLauncher) {
+    if (isFirearm && !isLauncher && !isCrossbow) {
       var trig = trigger(0.17, -0.195, -0.21);
       group.add(trig);
       group.add(triggerGuard(0.17, -0.19, -0.21));
@@ -554,9 +565,9 @@ const WeaponDetails = (() => {
       group.add(dustCover(0.20, -0.11, -0.25));
     }
 
-    // 9. Muzzle brake (Feature 20)
+    // 9. Muzzle brake (Feature 20) — anchored at the weapon's real muzzle
     if (isRifle || isSniper) {
-      group.add(muzzleBrake(0.17, -0.13, -0.62));
+      group.add(muzzleBrake(0.17, -0.13, _muzzleZ));
     }
 
     // 10. Picatinny rail (Feature 21)
@@ -578,7 +589,7 @@ const WeaponDetails = (() => {
 
     // 12. Sling points (Feature 24)
     if (isRifle || isSniper || isHmg) {
-      group.add(slingPoint(0.17, -0.16, -0.54));
+      group.add(slingPoint(0.17, -0.16, Math.min(-0.30, _frontZ + 0.06)));
       group.add(slingPoint(0.17, -0.16, -0.07));
     }
 
