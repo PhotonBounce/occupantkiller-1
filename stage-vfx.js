@@ -461,7 +461,7 @@ var StageVFX = (function () {
     _createSharedAssets();
   }
 
-  function startStageEffects(theme) {
+  function startStageEffects(theme, opts) {
     if (!_scene || !groupMesh) return; // not initialized yet
     // Clear previous effects
     _clearParticles();
@@ -469,6 +469,7 @@ var StageVFX = (function () {
     _flashTimer = 0;
     _flashActive = false;
     _activeTheme = theme;
+    _warzone = !!(opts && opts.warzone);
 
     switch (theme) {
       case 'industrial': _setupIndustrial(); break;
@@ -479,9 +480,33 @@ var StageVFX = (function () {
       case 'urban':      _setupUrban();      break;
       case 'desert':     _setupDesert();     break;
     }
+    if (_warzone) _setupWarzone();
     // Spawn ambient world props for all themes
     clearAmbientProps();
     spawnAmbientProps();
+  }
+
+  // ── Warzone layer (Battle of Kyiv): diesel-smoke columns rising on the
+  // northern horizon (the burning convoy approach) + periodic orange
+  // artillery flashes handled in update() ──
+  var _warzone = false;
+  function _setupWarzone() {
+    _addSpawner(function () {
+      var p = _getParticle(_geo.box, _mat.smoke);
+      if (!p) return;
+      var col = Math.floor(Math.random() * 4); // 4 fixed smoke columns
+      p.mesh.position.set(
+        -30 + col * 20 + (Math.random() - 0.5) * 4,
+        2 + Math.random() * 3,
+        95 + Math.random() * 25
+      );
+      p.velocity.set((Math.random() - 0.5) * 0.4, 1.2 + Math.random() * 1.4, (Math.random() - 0.5) * 0.4);
+      p.life = 1.0;
+      p.maxLife = 5 + Math.random() * 4;
+      p.spin = (Math.random() - 0.5) * 1.5;
+      active.push(p);
+    }, 0.5);
+    _flashTimer = 5 + Math.random() * 8;
   }
 
   function update(delta) {
@@ -504,33 +529,33 @@ var StageVFX = (function () {
     // Update ambient world props (fire glow, flickering lights)
     updateAmbientProps(delta);
 
-    // Wasteland green flash logic
-    if (_activeTheme === 'wasteland') {
+    // Periodic horizon flash: wasteland radiation (green) or warzone
+    // artillery (orange, on the northern approach, with distant rumble)
+    if (_activeTheme === 'wasteland' || _warzone) {
+      var _isArty = _warzone && _activeTheme !== 'wasteland';
       _flashTimer -= delta;
       if (_flashTimer <= 0 && !_flashActive) {
         _flashActive = true;
         _flashTimer = 0.15; // flash duration
         if (!_flashLight) {
-          _flashLight = new THREE.PointLight(0x44ff44, 0, 80);
-          _flashLight.position.set(
-            (Math.random() - 0.5) * 40,
-            10,
-            (Math.random() - 0.5) * 40
-          );
+          _flashLight = new THREE.PointLight(_isArty ? 0xff8844 : 0x44ff44, 0, 80);
           groupMesh.add(_flashLight);
         }
+        _flashLight.color.setHex(_isArty ? 0xff8844 : 0x44ff44);
         _flashLight.intensity = 3.0;
-        _flashLight.position.set(
-          (Math.random() - 0.5) * 40,
-          8 + Math.random() * 5,
-          (Math.random() - 0.5) * 40
-        );
+        if (_isArty) {
+          // artillery lands along the convoy approach to the north
+          _flashLight.position.set((Math.random() - 0.5) * 60, 6 + Math.random() * 6, 80 + Math.random() * 40);
+          try { if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion(0.25); } catch (e) {}
+        } else {
+          _flashLight.position.set((Math.random() - 0.5) * 40, 8 + Math.random() * 5, (Math.random() - 0.5) * 40);
+        }
       }
       if (_flashActive) {
         _flashTimer -= delta;
         if (_flashTimer <= 0) {
           _flashActive = false;
-          _flashTimer = 6 + Math.random() * 10;
+          _flashTimer = _isArty ? (4 + Math.random() * 7) : (6 + Math.random() * 10);
           if (_flashLight) _flashLight.intensity = 0;
         }
       }

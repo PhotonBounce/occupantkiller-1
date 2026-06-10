@@ -4438,6 +4438,33 @@ window.VoxelWorld = (function () {
       // Drone nests along enemy approach corridor
       generateDroneNest(36, -40);
       generateDroneNest(-36, -40);
+      // ── Capital-defense line (Battle of Kyiv) ──
+      // Checkpoints flanking the boulevard just north of the Maidan zone
+      generateCheckpoint(-8, 16, true);
+      generateCheckpoint(3, 16, true);
+      // Anti-tank hedgehog ring guarding the defended plaza (manual ring —
+      // the generic generator scatters randomly)
+      (function () {
+        var ringR = 14;
+        for (var ai = 0; ai < 8; ai++) {
+          var aa = (ai / 8) * Math.PI * 2;
+          var hx = Math.round(Math.cos(aa) * ringR);
+          var hz = Math.round(1 + Math.sin(aa) * ringR);
+          var hh = getTerrainHeight(hx, hz);
+          if (hh <= 1) continue;
+          setBlock(hx, hh, hz, BLOCK.METAL);
+          setBlock(hx, hh + 1, hz, BLOCK.METAL);
+          setBlock(hx - 1, hh, hz, BLOCK.METAL);
+          setBlock(hx + 1, hh, hz, BLOCK.METAL);
+          setBlock(hx, hh, hz - 1, BLOCK.METAL);
+          setBlock(hx, hh, hz + 1, BLOCK.METAL);
+        }
+      })();
+      // Burned-out civilian cars along the northern approach (cover)
+      generateWreckedCar(-5, 34);
+      generateWreckedCar(4, 48);
+      generateWreckedCar(-3, 62);
+      generateWreckedCar(6, 78);
     } else if (level.id === 'MARIUPOL') {
       // Azovstal steelworks — industrial hellscape
       generateIndustrialComplex(0, 0);

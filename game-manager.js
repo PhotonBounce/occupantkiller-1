@@ -3149,7 +3149,7 @@ const GameManager = (function () {
 
     // Start stage-specific environmental VFX
     if (typeof StageVFX !== 'undefined' && StageVFX.startStageEffects) {
-      StageVFX.startStageEffects(stageDef.theme);
+      StageVFX.startStageEffects(stageDef.theme, { warzone: !!stageDef.capitalDefense });
     }
 
     // Spawn water bodies per stage
