@@ -1410,6 +1410,14 @@ const GameManager = (function () {
     // Mission completion callback — with replenishment
     MissionSystem.onMissionComplete(function (mission, reward) {
       HUD.notifyPickup('MISSION COMPLETE: ' + mission.name + ' +' + (reward || 0), '#00FF88');
+      // Release drone when a recon/drone mission finishes
+      try {
+        if ((mission.type === 'recon' || mission.type === 'drone_strike') &&
+            typeof DroneSystem !== 'undefined' && DroneSystem.isPossessing()) {
+          DroneSystem.release();
+          if (HUD.showToast) HUD.showToast('🛬 RECON COMPLETE — returning to ground combat', 3000, '#44ff88');
+        }
+      } catch (_edr) {}
       if (reward > 0 && typeof Marketplace !== 'undefined') {
         if (Marketplace.awardCustomOKC) {
           Marketplace.awardCustomOKC(reward, 'mission_complete', {
@@ -1425,10 +1433,12 @@ const GameManager = (function () {
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
         if (gameState === STATE.PLAYING) {
+          var _newM;
           if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
-            MissionSystem.generateMission('kyiv_defense');
+            _newM = MissionSystem.generateMission('kyiv_defense');
           } else {
-            MissionSystem.generateRandom();
+            _newM = MissionSystem.generateRandom();
+            _autoReconDroneForMission(_newM);
           }
           var active = MissionSystem.getActive();
           if (active && active.length > 0) {
@@ -2498,6 +2508,26 @@ const GameManager = (function () {
     return drone;
   }
 
+  // Auto-possess a drone when a mission requires it (recon/drone_strike types).
+  // Called after generateMission/generateRandom — 2s delay so toast appears first.
+  function _autoReconDroneForMission(mission) {
+    if (!mission) return;
+    if (mission.type !== 'recon' && mission.type !== 'drone_strike') return;
+    setTimeout(function () {
+      try {
+        if (gameState !== STATE.PLAYING) return;
+        if (typeof DroneSystem === 'undefined' || DroneSystem.isPossessing()) return;
+        var dr = launchAndPossessDrone('fpv_attack');
+        if (dr && HUD && HUD.showToast) {
+          HUD.showToast(
+            '🚁 DRONE MISSION — Fly to all marked recon points. Press [F] to exit drone when done.',
+            5500, '#00ccff'
+          );
+        }
+      } catch (_e) {}
+    }, 2000);
+  }
+
   function selectAndLaunchDrone(droneType) {
     // Export to window for global access (always)
     if (typeof window !== 'undefined') window.selectAndLaunchDrone = selectAndLaunchDrone;
@@ -3016,7 +3046,8 @@ const GameManager = (function () {
     if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
       MissionSystem.generateMission('kyiv_defense');
     } else {
-      MissionSystem.generateRandom();
+      var _initMission = MissionSystem.generateRandom();
+      _autoReconDroneForMission(_initMission);
     }
     } catch (err) {
       console.error('Failed to initialize game:', err);
