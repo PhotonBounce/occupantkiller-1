@@ -107,6 +107,39 @@ function check(name, ok, detail) {
   check('city bar reflects damage', new RegExp(String(s5.after.hp)).test(s5.barText), s5.barText);
   await p.screenshot({ path: path.join(OUT, 'qa-breach.jpg'), type: 'jpeg', quality: 84 });
 
+  // ── Victory path: clear wave 1 → wave 2 begins with a fresh convoy ──
+  // (Fast-forwards game time with extra Enemies.update calls: the headless
+  // renderer runs ~0.2fps, so the reinforcement spawnQueue would otherwise
+  // take many real minutes to drain.)
+  const s5b = await p.evaluate(() => new Promise(done => {
+    const w0 = GameManager.getCurrentWave();
+    let waveDone = false;
+    const ff = setInterval(() => {
+      if (waveDone) return; // stop killing the moment the wave clears — wave 2's fresh convoy must survive for the assertion
+      for (const e of Enemies.getAll()) { if (e && e.alive) Enemies.damage(e, 9999999, true); }
+      const dl = DroneSystem.getEnemyDronesList ? DroneSystem.getEnemyDronesList() : [];
+      for (const d of dl) { try { DroneSystem.shootDownDrone(d.id); } catch (e) {} }
+      for (let i = 0; i < 4; i++) {
+        if (waveDone) break;
+        try { Enemies.update(1.5, GameManager.getPlayer().position, function () {}, function (wd) { if (wd) { waveDone = true; try { GameManager.onWaveComplete(); } catch (e) {} } }); } catch (e) {}
+      }
+    }, 800);
+    const watch = setInterval(() => {
+      if (GameManager.getCurrentWave() > w0) {
+        clearInterval(ff); clearInterval(watch);
+        setTimeout(() => done({ w0, wNow: GameManager.getCurrentWave(),
+          convoys: ConvoySystem.getConvoys().length,
+          cityHP: ConvoySystem.getCityHP(),
+          missionText: (MissionSystem.getActive()[0] || { data: {} }).data.objectiveText }), 12000);
+      }
+    }, 1000);
+    setTimeout(() => { clearInterval(ff); clearInterval(watch); done({ timeout: true, w0, wNow: GameManager.getCurrentWave() }); }, 150000);
+  }));
+  check('wave 1 clears -> wave 2 begins', !s5b.timeout && s5b.wNow > s5b.w0, JSON.stringify(s5b));
+  check('wave 2 spawns a fresh convoy', s5b.convoys >= 1, 'convoys=' + s5b.convoys);
+  check('city HP persists across waves', s5b.cityHP > 0, 'hp=' + s5b.cityHP);
+  await p.screenshot({ path: path.join(OUT, 'qa-wave2.jpg'), type: 'jpeg', quality: 84 });
+
   // ── Defeat: drain to 0 → KYIV HAS FALLEN ──
   const s6 = await p.evaluate(() => new Promise(done => {
     try { if (window.GameManager.isGodMode()) window.GameManager.toggleGodMode(); } catch (e) {}
