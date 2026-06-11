@@ -3,134 +3,278 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>OCCUPANT KILLER — Hybrid Voxel Warfare | Play-to-Earn FPS</title>
-<meta name="description" content="OccupantKiller is a browser-based hybrid voxel warfare FPS set in the Ukraine conflict. 39 authentic weapons, drone warfare, armored vehicles, and a play-to-earn OKC token economy. Play free in your browser." />
-<meta name="keywords" content="occupant killer, voxel fps, browser shooter, play to earn, OKC token, ukraine war game, drone warfare" />
+<title>OCCUPANT KILLER — Hybrid Voxel Warfare | Play Free in Browser</title>
+<meta name="description" content="OccupantKiller is a browser-native tactical FPS set in the Ukraine conflict. 39 authentic weapons, FPV drone warfare, armored vehicles, building-clearing missions, and a play-to-earn $OKC economy. Play free — no download." />
+<meta name="keywords" content="occupant killer, voxel fps, browser fps, free browser game, ukraine war game, drone warfare fps, play to earn fps, OKC token, 3D shooter browser" />
 <meta property="og:title" content="OCCUPANT KILLER — Hybrid Voxel Warfare" />
-<meta property="og:description" content="39 authentic weapons. Drone warfare. Armored vehicles. Play-to-earn OKC economy. Free in your browser." />
+<meta property="og:description" content="39 authentic weapons. FPV drones. Armored vehicles. Room-to-room clearing. Play free in your browser — earn $OKC." />
 <meta property="og:image" content="gallery/cover.jpg" />
 <meta property="og:type" content="website" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0a0a'/><text y='25' x='6' font-size='24' fill='%23ff4444'>▲</text></svg>" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="OCCUPANT KILLER — Hybrid Voxel Warfare" />
+<meta name="twitter:description" content="39 authentic weapons. FPV drones. Armored vehicles. Free in your browser." />
+<meta name="twitter:image" content="gallery/cover.jpg" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0a0a'/><text y='25' x='5' font-size='24' fill='%23ff4444'>▲</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/site.css" />
 </head>
 <body>
-<div class="scanlines"></div>
-<div class="grid-bg"></div>
 
-<!-- ───────────── NAV ───────────── -->
-<header class="nav">
-  <a class="brand" href="#top"><span class="brand-mark">▲</span> OCCUPANT<span class="hl">KILLER</span></a>
-  <nav class="nav-links">
+<!-- fx layers -->
+<div class="scanlines" aria-hidden="true"></div>
+<div class="grid-bg"   aria-hidden="true"></div>
+
+<!-- ═══════════════════════════════════════════
+     NAV
+════════════════════════════════════════════ -->
+<header class="nav" role="banner">
+  <a class="brand" href="#top" aria-label="OccupantKiller home">
+    <span class="brand-mark" aria-hidden="true">▲</span>
+    OCCUPANT<em>KILLER</em>
+  </a>
+  <nav class="nav-links" role="navigation" aria-label="Main">
     <a href="#features">Combat</a>
     <a href="#arsenal">Arsenal</a>
+    <a href="#missions">Missions</a>
     <a href="#gallery">Gallery</a>
-    <a href="#token">Tokenomics</a>
+    <a href="#token">$OKC</a>
     <a href="#roadmap">Roadmap</a>
-    <a class="btn-play-sm" href="play/index.html">▶ PLAY FREE</a>
+    <a href="#play" class="btn-play-sm">▶ PLAY FREE</a>
   </nav>
+  <button class="nav-hamburger" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
 </header>
 
-<!-- ───────────── HERO ───────────── -->
-<section id="top" class="hero">
+<!-- ═══════════════════════════════════════════
+     HERO
+════════════════════════════════════════════ -->
+<section id="top" class="hero" aria-label="Hero">
+  <canvas id="heroCanvas" aria-hidden="true"></canvas>
+  <div class="scan-line" aria-hidden="true"></div>
+
   <div class="hero-inner">
-    <div class="badge">⬢ HYBRID VOXEL WARFARE · 18 STAGES · 39 WEAPONS</div>
-    <h1>OCCUPANT<span class="hl">KILLER</span></h1>
-    <p class="tag">A browser-native tactical FPS forged in the Ukraine conflict. Clear occupied apartments room-by-room, dominate the skies with FPV drones, command armor, and earn <b class="gold">$OKC</b> for every occupier you push out.</p>
+    <div class="hero-badge">HYBRID VOXEL WARFARE · 18 STAGES · 39 WEAPONS</div>
+
+    <h1>
+      <span class="glitch-wrap" data-text="OCCUPANT">
+        <span class="glitch-inner">OCCUPANT</span>
+      </span><br>
+      <span class="hl glitch-wrap" data-text="KILLER">
+        <span class="glitch-inner">KILLER</span>
+      </span>
+    </h1>
+
+    <p class="hero-tag">
+      A browser-native tactical FPS forged in the <b>Ukraine conflict</b>. Clear occupied apartments
+      room-by-room, dominate the skies with <b>FPV drones</b>, command <b>Bradley IFVs</b>,
+      and earn <b class="gold">$OKC</b> for every occupier you push out.
+      <br><br><b>No download. No install. Open the browser and start the fight.</b>
+    </p>
+
     <div class="cta-row">
-      <a class="btn-play" href="play/index.html">▶ PLAY IN BROWSER — FREE</a>
-      <a class="btn-ghost" href="#gallery">VIEW GALLERY</a>
+      <a class="btn-play" href="#play">▶ PLAY IN BROWSER — FREE</a>
+      <a class="btn-ghost" href="#gallery">📷 VIEW 1,040 SCREENSHOTS</a>
     </div>
+
     <div class="hero-stats">
-      <div><span class="num" data-count="39">39</span><label>Authentic Weapons</label></div>
-      <div><span class="num" data-count="18">18</span><label>Combat Stages</label></div>
-      <div><span class="num gold" data-count="1">1B</span><label>$OKC Supply</label></div>
-      <div><span class="num grn" data-count="100">100%</span><label>Browser-Based</label></div>
+      <div class="stat-item">
+        <span class="num" data-count="39">39</span>
+        <label>Authentic Weapons</label>
+      </div>
+      <div class="stat-item">
+        <span class="num gold" data-count="18">18</span>
+        <label>Combat Stages</label>
+      </div>
+      <div class="stat-item">
+        <span class="num grn" data-count="1040">1040+</span>
+        <label>Live Screenshots</label>
+      </div>
+      <div class="stat-item">
+        <span class="num" data-count="100">100%</span>
+        <label>Browser-Based</label>
+      </div>
     </div>
   </div>
-  <div class="hero-shot"><img id="heroShot" src="gallery/cover.jpg" alt="OccupantKiller gameplay" /></div>
-</section>
 
-<!-- ───────────── FEATURES ───────────── -->
-<section id="features" class="section">
-  <h2 class="sec-title">THE BATTLEFIELD</h2>
-  <p class="sec-sub">Every system below ships in the live build — no roadmap promises, fully playable today.</p>
-  <div class="cards">
-    <div class="card"><div class="ic">🏢</div><h3>Room-to-Room Clearing</h3><p>Breach hollow voxel apartments, sweep every floor, and flush out embedded occupiers. Building-clearing missions reward precision over spray.</p></div>
-    <div class="card"><div class="ic">🚁</div><h3>FPV Drone Warfare</h3><p>Possess recon and strike drones for top-down attack runs, or shoot down enemy quadcopters before they drop payloads on your squad.</p></div>
-    <div class="card"><div class="ic">🛡️</div><h3>Armored Vehicles</h3><p>Crew the Bradley IFV, man mounted DShK guns, and push armor through contested streets with NPC gunners at your side.</p></div>
-    <div class="card"><div class="ic">🎯</div><h3>Real Ballistics & Heat</h3><p>Weapon overheating, jamming, reloads, bleed-out wounds, friendly-fire consequences, and PBR-reflective gun models.</p></div>
-    <div class="card"><div class="ic">🌧️</div><h3>Dynamic Day / Night & Weather</h3><p>Fight through dawn raids, midnight ambushes, rain and storms — each shifting lighting, visibility, and enemy behavior.</p></div>
-    <div class="card"><div class="ic">🪙</div><h3>Play-to-Earn $OKC</h3><p>Every cleared wave, mission, and stage mints on-chain rewards. 5% of all proceeds pledged to Ukraine Army donations.</p></div>
+  <div class="hero-right">
+    <div class="hero-shot">
+      <img id="heroShot" src="gallery/cover.jpg" alt="OccupantKiller gameplay — on-foot combat in voxel city" />
+    </div>
   </div>
 </section>
 
-<!-- ───────────── ARSENAL ───────────── -->
-<section id="arsenal" class="section alt">
-  <h2 class="sec-title">39-WEAPON ARSENAL</h2>
-  <p class="sec-sub">Authentic hardware from both sides of the line — assault rifles, MANPADS, ATGMs, drones jammers, and melee.</p>
-  <div id="weaponGrid" class="weapon-grid"></div>
+<!-- ═══════════════════════════════════════════
+     UKRAINE PLEDGE
+════════════════════════════════════════════ -->
+<div class="ukraine-bar" role="complementary" aria-label="Ukraine pledge">
+  <span class="flag" aria-hidden="true">🇺🇦</span>
+  <span><b>5% of all $OKC top-up proceeds</b> are donated directly to the <b>Armed Forces of Ukraine</b>. Every purchase is a contribution.</span>
+  <span class="flag" aria-hidden="true">🇺🇦</span>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FEATURES
+════════════════════════════════════════════ -->
+<section id="features" class="section" aria-labelledby="featTitle">
+  <h2 class="sec-title" id="featTitle">THE BATTLEFIELD</h2>
+  <p class="sec-sub">Every system below ships in the live build — no roadmap promises, fully playable today in your browser.</p>
+  <div class="cards" id="featGrid"></div>
 </section>
 
-<!-- ───────────── GALLERY ───────────── -->
-<section id="gallery" class="section">
-  <h2 class="sec-title">COMBAT GALLERY</h2>
-  <p class="sec-sub"><span id="galCount">1000+</span> real in-engine screenshots — every weapon, every feature, captured live.</p>
-  <div class="gal-filters" id="galFilters"></div>
-  <div id="galleryGrid" class="gallery-grid"></div>
+<!-- ═══════════════════════════════════════════
+     ARSENAL
+════════════════════════════════════════════ -->
+<section id="arsenal" class="section alt" aria-labelledby="arsenalTitle">
+  <h2 class="sec-title" id="arsenalTitle">39-WEAPON ARSENAL</h2>
+  <p class="sec-sub">Authentic hardware from both sides of the line — assault rifles, ATGMs, MANPADS, drone jammers, and melee weapons. Each fully modelled with PBR reflections.</p>
+  <div class="cat-tabs" id="weaponTabs" role="tablist" aria-label="Weapon categories"></div>
+  <div id="weaponGrid" class="weapon-grid" role="list"></div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     MISSIONS
+════════════════════════════════════════════ -->
+<section id="missions" class="section" aria-labelledby="missionTitle">
+  <h2 class="sec-title" id="missionTitle">MISSION TYPES</h2>
+  <p class="sec-sub">Six distinct combat scenarios across 18 stages — every deployment demands a different approach.</p>
+  <div class="mission-grid" id="missionGrid"></div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     GALLERY
+════════════════════════════════════════════ -->
+<section id="gallery" class="section alt" aria-labelledby="galTitle">
+  <h2 class="sec-title" id="galTitle">COMBAT GALLERY</h2>
+  <p class="sec-sub">
+    <span id="galCount">1,040</span> real in-engine screenshots — every weapon, every mission type,
+    every feature — captured live from the running game. Click any image to enlarge.
+  </p>
+  <div class="gal-filters" id="galFilters" role="group" aria-label="Filter gallery"></div>
+  <div id="galleryGrid" class="gallery-grid" role="list"></div>
   <button id="galMore" class="btn-ghost wide">LOAD MORE ▾</button>
 </section>
 
-<!-- ───────────── TOKENOMICS ───────────── -->
-<section id="token" class="section alt">
-  <h2 class="sec-title">$OKC TOKENOMICS</h2>
-  <p class="sec-sub">A 1-billion fixed-supply reward token with an 8-year halving emission and deflationary burn sinks.</p>
+<!-- ═══════════════════════════════════════════
+     TOKENOMICS
+════════════════════════════════════════════ -->
+<section id="token" class="section" aria-labelledby="tokenTitle">
+  <h2 class="sec-title" id="tokenTitle">$OKC TOKENOMICS</h2>
+  <p class="sec-sub">A 1-billion fixed-supply play-to-earn reward token with an 8-year halving emission schedule and deflationary burn sinks built into every in-game purchase.</p>
+
   <div class="token-wrap">
     <div class="token-chart">
-      <svg id="donut" viewBox="0 0 42 42" class="donut"></svg>
-      <div class="token-legend" id="tokenLegend"></div>
+      <div class="donut-wrap">
+        <svg id="donut" viewBox="0 0 42 42" class="donut" aria-hidden="true"></svg>
+        <div class="donut-center">
+          <span class="dc-num">1B</span>
+          <span class="dc-lbl">OKC SUPPLY</span>
+        </div>
+      </div>
+      <div class="token-legend" id="tokenLegend" role="list"></div>
     </div>
     <div class="token-facts">
       <div class="fact"><label>Total Supply</label><b>1,000,000,000 OKC</b></div>
       <div class="fact"><label>Initial Peg</label><b>1 OKC = $0.001 · 1,000 OKC / $1</b></div>
-      <div class="fact"><label>Emission</label><b>200,000 OKC/day · halves every 12 mo</b></div>
-      <div class="fact"><label>Emission Floor</label><b>12,500 OKC/day (year 5+)</b></div>
-      <div class="fact"><label>Burn Sinks</label><b>15–30% burned on unlocks, ammo & premium</b></div>
-      <div class="fact gold"><label>Ukraine Pledge</label><b>5% of all proceeds → Army donations</b></div>
+      <div class="fact"><label>Initial Emission</label><b>200,000 OKC / day</b></div>
+      <div class="fact"><label>Halving Cadence</label><b>Every 12 months</b></div>
+      <div class="fact"><label>Emission Floor</label><b>12,500 OKC / day (Year 5+)</b></div>
+      <div class="fact"><label>Burn Sinks</label><b>15–30% burned on unlocks &amp; premium</b></div>
+      <div class="fact gold"><label>🇺🇦 Ukraine Pledge</label><b>5% of all proceeds donated</b></div>
     </div>
   </div>
+
+  <h3 class="mini-title">EMISSION SCHEDULE</h3>
+  <table class="emission-table" aria-label="Emission schedule">
+    <thead><tr><th>PERIOD</th><th>DAILY EMISSION</th><th>CUMULATIVE MINTED</th></tr></thead>
+    <tbody id="emissionTable"></tbody>
+  </table>
+
   <h3 class="mini-title">TOP-UP PACKS</h3>
   <div id="packGrid" class="pack-grid"></div>
-  <p class="disclaimer">$OKC is an in-game utility/reward token. Figures reflect the current build configuration and are subject to change before TGE. Not financial advice.</p>
+  <p class="disclaimer">$OKC is an in-game utility and reward token. Current figures reflect build configuration and are subject to change before TGE. Not financial advice.</p>
 </section>
 
-<!-- ───────────── ROADMAP ───────────── -->
-<section id="roadmap" class="section">
-  <h2 class="sec-title">ROADMAP</h2>
-  <div class="timeline">
-    <div class="tl done"><span>SHIPPED</span><h4>Core Combat Build</h4><p>39 weapons, drones, vehicles, 18 stages, building-clearing missions, mobile controls, auto-optimization.</p></div>
-    <div class="tl done"><span>SHIPPED</span><h4>$OKC Economy v1</h4><p>Token supply, emission schedule, fiat top-up packs, burn sinks, donation pledge wired in-game.</p></div>
-    <div class="tl now"><span>IN PROGRESS</span><h4>On-Chain TGE</h4><p>Liquidity pool, wallet connect, on-chain reward claims, and DAO treasury activation.</p></div>
-    <div class="tl"><span>NEXT</span><h4>Multiplayer Co-op</h4><p>Squad-based co-op clearing and competitive PvP skirmish modes.</p></div>
+<!-- ═══════════════════════════════════════════
+     ROADMAP
+════════════════════════════════════════════ -->
+<section id="roadmap" class="section alt" aria-labelledby="roadmapTitle">
+  <h2 class="sec-title" id="roadmapTitle">ROADMAP</h2>
+  <p class="sec-sub">What's live, what's in progress, and where we're headed next.</p>
+  <div class="timeline" id="timeline"></div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     PLAY EMBED
+════════════════════════════════════════════ -->
+<section id="play" class="play-section" aria-labelledby="playTitle">
+  <div class="play-header">
+    <h2 id="playTitle">▶ PLAY IN YOUR BROWSER</h2>
+    <p>No login. No download. Click the window below and start fighting — WASD to move, mouse to aim, left-click to fire.</p>
+    <div class="cta-row" style="justify-content:center">
+      <a class="btn-play" href="play/index.html" target="_blank" rel="noopener">OPEN FULLSCREEN ↗</a>
+      <a class="btn-ghost" href="https://github.com/lindapot-art/occupantkiller" target="_blank" rel="noopener">★ GITHUB</a>
+    </div>
+  </div>
+  <div class="play-frame-wrap">
+    <iframe
+      id="gameFrame"
+      src="play/index.html"
+      title="OccupantKiller — playable game"
+      allow="fullscreen; autoplay"
+      loading="lazy"
+    ></iframe>
+  </div>
+  <div class="play-hint">
+    WASD — MOVE &nbsp;·&nbsp; MOUSE — AIM &nbsp;·&nbsp; LMB — FIRE &nbsp;·&nbsp; R — RELOAD &nbsp;·&nbsp;
+    G — GOD MODE &nbsp;·&nbsp; TAB — MISSIONS &nbsp;·&nbsp; ESC — PAUSE
   </div>
 </section>
 
-<!-- ───────────── PLAY CTA ───────────── -->
-<section class="cta-final">
+<!-- ═══════════════════════════════════════════
+     DEPLOY CTA
+════════════════════════════════════════════ -->
+<section class="cta-final" aria-label="Call to action">
   <h2>DEPLOY NOW</h2>
-  <p>No download. No install. Open the browser and start the fight.</p>
-  <a class="btn-play big" href="play/index.html">▶ PLAY OCCUPANT KILLER</a>
+  <p>No download. No install. Open the browser and start the fight.<br>
+  Every kill earns <span class="gold">$OKC</span>. Every cleared wave brings Ukraine closer to victory.</p>
+  <a class="btn-play big" href="play/index.html" target="_blank" rel="noopener">▶ PLAY OCCUPANT KILLER — FREE</a>
 </section>
 
-<footer class="foot">
-  <p>© <span id="yr"></span> OCCUPANT KILLER · Hybrid Voxel Warfare. All in-engine footage. $OKC is a utility token — not financial advice.</p>
+<!-- ═══════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════ -->
+<footer class="foot" role="contentinfo">
+  <div class="foot-links">
+    <a href="play/index.html" target="_blank" rel="noopener">▶ Play Free</a>
+    <a href="https://github.com/lindapot-art/occupantkiller" target="_blank" rel="noopener">★ GitHub</a>
+    <a href="#gallery">📷 Gallery</a>
+    <a href="#token">$OKC</a>
+    <a href="#roadmap">Roadmap</a>
+  </div>
+  <p>© <span id="yr"></span> OCCUPANT KILLER — Hybrid Voxel Warfare.<br>
+  All screenshots captured live from the in-engine build. $OKC is a utility token — not financial advice.<br>
+  <span style="color:var(--blue)">🇺🇦 5% of top-up proceeds donated to the Armed Forces of Ukraine.</span></p>
 </footer>
 
-<!-- lightbox -->
-<div id="lightbox" class="lightbox" onclick="this.classList.remove('on')"><img id="lbImg" src="" alt="" /></div>
+<!-- ═══════════════════════════════════════════
+     LIGHTBOX
+════════════════════════════════════════════ -->
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <div class="lb-wrap">
+    <button id="lbPrev" class="lb-arrow" aria-label="Previous image">‹</button>
+    <div style="position:relative">
+      <button id="lbClose" class="lb-close" aria-label="Close">✕</button>
+      <img id="lbImg" class="lb-img" src="" alt="" />
+      <div id="lbCaption" class="lb-caption"></div>
+    </div>
+    <button id="lbNext" class="lb-arrow" aria-label="Next image">›</button>
+  </div>
+</div>
 
 <script src="assets/data.js"></script>
 <script src="assets/site.js"></script>
+<script src="assets/particles.js"></script>
 </body>
 </html>
