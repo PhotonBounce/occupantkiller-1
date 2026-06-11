@@ -205,7 +205,7 @@ const GameManager = (function () {
     sprinting:  false,
     height:     1.7,
     stealth:    false,        // invisibility toggle
-    role:       'lonewolf',   // 'brigade' or 'lonewolf'
+    role:       'brigade',    // 'brigade' or 'lonewolf'
     godMode: false,       // God Mode: all weapons, invincible, invisible
     prone:      false,        // prone stance for accuracy
     bleeding:   false,        // bleed DOT status

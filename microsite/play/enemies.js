@@ -3297,6 +3297,22 @@ const Enemies = (() => {
       }
     }
 
+    // ── Boss-bar housekeeping: tanks/BTRs/bosses re-show the bar every frame
+    // while alive, but it was only HIDDEN through the player-kill path — a
+    // unit killed by the TB2, a city breach, or splash left a stale full-red
+    // BOSS bar frozen on screen. Hide it whenever no bar-worthy unit lives. ──
+    if (typeof HUD !== 'undefined' && HUD.hideBossBar) {
+      var _barWorthy = false;
+      for (var _bwi = 0; _bwi < enemies.length; _bwi++) {
+        var _bwe = enemies[_bwi];
+        if (_bwe && _bwe.alive && (_bwe.isBoss || _bwe.type === 'BOSS' ||
+            (_bwe.typeCfg && (_bwe.typeCfg.name === 'TANK' || _bwe.typeCfg.name === 'BTR')))) {
+          _barWorthy = true; break;
+        }
+      }
+      if (!_barWorthy) HUD.hideBossBar();
+    }
+
     // Wave complete? Ground enemies (the `alive` counter) AND any enemy drones
     // (a separate system, spawned from wave 2+) must both be cleared — a wave
     // was completing while enemy drones still flew ("enemies still there").
