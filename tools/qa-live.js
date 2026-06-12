@@ -8,7 +8,7 @@ const puppeteer = require('puppeteer');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const URL = 'https://lindapot-art.github.io/occupantkiller/';
-const WEAPON_COUNT = 113;
+const WEAPON_COUNT = 117;
 
 (async () => {
   console.log(`\nQA: ${URL}`);
@@ -181,7 +181,7 @@ const WEAPON_COUNT = 113;
     const totalIssues = errors.length + meshReport.length + notFound404s.length;
     console.log('\n' + '═'.repeat(60));
     if (totalIssues === 0) {
-      console.log('  ✓ PASS — no errors detected across all 113 weapons');
+      console.log('  ✓ PASS — no errors detected across all 117 weapons');
     } else {
       console.log(`  ✗ FAIL — ${totalIssues} issue(s) found`);
     }

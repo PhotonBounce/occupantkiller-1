@@ -715,6 +715,34 @@ const Weapons = (() => {
       homing: true, blastRadius: 22,
       description: "Russian Kh-101 air-launched cruise missile. Stealthy composite airframe, terrain-following guidance, 400kg warhead. Russia fires these from Tu-95MS and Tu-160 bombers targeting Ukrainian cities, power grid, and infrastructure. Ukraine intercepts ~50% with Patriots and F-16s, but mass salvos overwhelm defences. Range 5,000km.",
     },
+    {
+      id: 'CAESAR155', name: 'CAESAR 155mm SPH (Call Fire)', damage: 1100,
+      fireRate: 5.0, clipSize: 2, maxReserve: 6, reloadTime: 8.0,
+      spread: 0.010, auto: false, type: 'EXPLOSIVE', recoilY: 0.010, recoilX: 0.002,
+      blastRadius: 13,
+      description: "French CAESAR (CAmion Équipé d'un Système d'ARtillerie) 155mm/L52 self-propelled howitzer mounted on a 6×6 truck. France donated 18 to Ukraine in 2022 — their wheeled design allows 80km/h road speed, shoot-and-scoot in under 90 seconds. Range 42km with Excalibur GPS rounds. Proved devastating against Russian command posts and logistics.",
+    },
+    {
+      id: 'BRIMSTONE2', name: 'Brimstone 2 (UK Precision ATGM)', damage: 380,
+      fireRate: 2.5, clipSize: 3, maxReserve: 9, reloadTime: 6.0,
+      spread: 0.003, auto: false, type: 'AT_LIGHT', recoilY: 0.005, recoilX: 0.001,
+      homing: true, blastRadius: 5,
+      description: "MBDA Brimstone 2 — British precision anti-armor missile with dual-mode millimetre-wave radar and semi-active laser homing. UK donated Brimstones to Ukraine in 2022. Highly accurate against moving armored vehicles; can be ripple-fired in salvo to defeat multiple targets simultaneously. Tandem HEAT warhead defeats ERA. Range 12km air-launched.",
+    },
+    {
+      id: 'IRISTSLM', name: 'IRIS-T SLM (German Air Defense)', damage: 600,
+      fireRate: 3.0, clipSize: 4, maxReserve: 8, reloadTime: 7.0,
+      spread: 0.003, auto: false, type: 'AT_HEAVY', recoilY: 0.006, recoilX: 0.001,
+      homing: true, blastRadius: 8,
+      description: "Diehl Defence IRIS-T SLM (Surface Launched Medium range) — Germany delivered the first system to Ukraine in October 2022. Fires IRIS-T missiles at up to 40km range and 20km altitude, defeating drones, cruise missiles, and aircraft. Claimed ~96% intercept rate against Shahed drones. Each system can simultaneously engage multiple targets with active radar seekers.",
+    },
+    {
+      id: 'ATACMS', name: 'MGM-140 ATACMS (US Ballistic Missile)', damage: 1800,
+      fireRate: 0.0, clipSize: 1, maxReserve: 2, reloadTime: 12.0,
+      spread: 0.002, auto: false, type: 'EXPLOSIVE', recoilY: 0.0, recoilX: 0.0,
+      homing: true, blastRadius: 18,
+      description: "US Army Tactical Missile System — fires from standard HIMARS or M270 MLRS launchers. Ukraine secretly received ATACMS in late 2023; used them to strike Russian air bases in Crimea and Berdyansk port (sank landing ships). M39 variant carries 950 M74 submunitions; M57 variant has 227kg unitary warhead. Range 300km — reaches deep into Russian-controlled territory.",
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -4748,7 +4776,7 @@ const Weapons = (() => {
 
     // ── AK-74M (Russia's standard 5.45mm service rifle) ──────────────
     ak74m: function () {
-      return _rifle({ hg: 'wood', hgColor: _pal.poly, stock: 'fold', mag: 'curved',
+      return _rifle({ hg: 'wood', hgColor: _pal.poly, stock: 'skel', mag: 'curved',
         magColor: _pal.poly, muzzle: 'brake', recvLen: 0.22, barLen: 0.16,
         barR: 0.009, recvColor: _pal.gm });
     },
@@ -4869,6 +4897,145 @@ const Weapons = (() => {
       g.add(_P(_T(0.025, 0.006, _pal.blk(), 10), X, Y, -0.665));
       return g;
     },
+
+    // ── CAESAR 155mm SPH (French wheeled howitzer) ───────────────────
+    caesar155: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.07;
+      // Truck cab (boxy, olive)
+      g.add(_P(_B(0.055, 0.040, 0.055, _pal.olive()), X, Y + 0.012, 0.04));
+      // Windscreen (dark glass strip)
+      g.add(_P(_B(0.054, 0.016, 0.005, _pal.blk()), X, Y + 0.036, 0.012));
+      // Gun platform (wider mounting deck behind cab)
+      g.add(_P(_B(0.060, 0.012, 0.090, _pal.gm()), X, Y - 0.004, -0.06));
+      // Main 155mm barrel (long, L52)
+      g.add(_P(_T(0.014, 0.62, _pal.steel(), 10), X, Y + 0.016, -0.38));
+      // Muzzle brake (double baffle)
+      g.add(_P(_B(0.028, 0.022, 0.022, _pal.steel()), X, Y + 0.016, -0.68));
+      g.add(_P(_B(0.028, 0.022, 0.010, _pal.steel()), X, Y + 0.016, -0.64));
+      // Breech block (boxy, rear of barrel)
+      g.add(_P(_B(0.030, 0.030, 0.055, _pal.gm()), X, Y + 0.016, 0.00));
+      // Equilibrators (two cylinders each side of barrel)
+      g.add(_P(_T(0.008, 0.08, _pal.steel(), 8), X + 0.022, Y + 0.006, -0.10));
+      g.add(_P(_T(0.008, 0.08, _pal.steel(), 8), X - 0.022, Y + 0.006, -0.10));
+      // Wheels (4 visible — front pair and rear pair)
+      const wMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+      const wGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.010, 10);
+      for (var wi = 0; wi < 2; wi++) {
+        const wz = wi === 0 ? 0.060 : -0.040;
+        const wF = new THREE.Mesh(wGeo, wMat); wF.rotation.z = Math.PI/2; wF.position.set(X + 0.036, Y - 0.026, wz); g.add(wF);
+        const wR = new THREE.Mesh(wGeo, wMat); wR.rotation.z = Math.PI/2; wR.position.set(X - 0.036, Y - 0.026, wz); g.add(wR);
+      }
+      // Hydraulic jack (deployed stabiliser leg)
+      g.add(_P(_B(0.006, 0.040, 0.006, _pal.steel()), X + 0.038, Y - 0.030, -0.065));
+      // French flag decal (small tri-colour on cab side — just coloured blocks)
+      g.add(_P(_B(0.003, 0.010, 0.018, 0x002395), X + 0.029, Y + 0.012, 0.040));
+      g.add(_P(_B(0.003, 0.010, 0.006, 0xffffff), X + 0.029, Y + 0.012, 0.052));
+      g.add(_P(_B(0.003, 0.010, 0.006, 0xed2939), X + 0.029, Y + 0.012, 0.058));
+      return g;
+    },
+
+    // ── Brimstone 2 missile (UK dual-mode precision) ─────────────────
+    brimstone2: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.08;
+      // Main body (slim, shorter than Kh-101)
+      g.add(_P(_T(0.016, 0.44, _pal.gm(), 8), X, Y, -0.16));
+      // Wider mid-section (warhead)
+      g.add(_P(_T(0.020, 0.12, _pal.gm(), 8), X, Y, -0.08));
+      // Nose cone (flat-faceted seeker head)
+      g.add(_P(_T(0.016, 0.055, 0x282828, 8), X, Y, -0.40));
+      // Seeker dome (mmW radar — darker tip)
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(0.016, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshLambertMaterial({ color: 0x1a1a1a }));
+      dome.rotation.x = Math.PI / 2; dome.position.set(X, Y, -0.44); g.add(dome);
+      // Pop-out wings (2 pairs — mid-body and tail)
+      for (var wi = 0; wi < 2; wi++) {
+        const wz = wi === 0 ? -0.14 : 0.10;
+        const wL = _P(_B(0.070, 0.004, 0.032, _pal.gm()), X + 0.037, Y, wz); wL.rotation.z = -0.08; g.add(wL);
+        const wR = _P(_B(0.070, 0.004, 0.032, _pal.gm()), X - 0.037, Y, wz); wR.rotation.z = 0.08; g.add(wR);
+      }
+      // Tail fins (4 × cruciform control fins)
+      const finAngles = [0, Math.PI/2, Math.PI, -Math.PI/2];
+      for (var fi = 0; fi < 4; fi++) {
+        const fin = _P(_B(0.028, 0.003, 0.022, _pal.steel()), X, Y, 0.14);
+        fin.rotation.z = finAngles[fi];
+        fin.position.x += Math.cos(finAngles[fi]) * 0.020;
+        fin.position.y += Math.sin(finAngles[fi]) * 0.020;
+        g.add(fin);
+      }
+      // Rocket motor nozzle
+      g.add(_P(_T(0.010, 0.014, _pal.blk(), 8), X, Y, 0.22));
+      return g;
+    },
+
+    // ── IRIS-T SLM launcher (German SAM system) ──────────────────────
+    iristslm: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.07;
+      // Launch vehicle body (boxy TRAKKER truck hull)
+      g.add(_P(_B(0.050, 0.032, 0.075, _pal.olive()), X, Y, -0.02));
+      // Cab front
+      g.add(_P(_B(0.046, 0.028, 0.030, _pal.gm()), X, Y + 0.006, 0.055));
+      // Missile launcher module (raised rectangular box on back)
+      g.add(_P(_B(0.046, 0.024, 0.060, _pal.gm()), X, Y + 0.032, -0.025));
+      // 4 × launch tubes (quad-pack visible ends)
+      const tubeMat = new THREE.MeshLambertMaterial({ color: 0x2a2c2a });
+      for (var ti = 0; ti < 4; ti++) {
+        const tx = X + (ti % 2 === 0 ? 0.011 : -0.011);
+        const ty = Y + 0.038 + (ti < 2 ? 0.010 : -0.002);
+        g.add(_P(_T(0.010, 0.065, tubeMat, 6), tx, ty, -0.024));
+      }
+      // Radar mast (folded down — boxy radar antenna at top)
+      g.add(_P(_B(0.006, 0.045, 0.006, _pal.steel()), X, Y + 0.058, 0.015));
+      g.add(_P(_B(0.022, 0.006, 0.018, _pal.gm()), X, Y + 0.082, 0.015));
+      // Truck wheels
+      const wMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+      const wGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.008, 10);
+      for (var wi = 0; wi < 2; wi++) {
+        const wz = wi === 0 ? 0.048 : -0.040;
+        const wF = new THREE.Mesh(wGeo, wMat); wF.rotation.z = Math.PI/2; wF.position.set(X + 0.032, Y - 0.022, wz); g.add(wF);
+        const wR = new THREE.Mesh(wGeo, wMat); wR.rotation.z = Math.PI/2; wR.position.set(X - 0.032, Y - 0.022, wz); g.add(wR);
+      }
+      return g;
+    },
+
+    // ── MGM-140 ATACMS ballistic missile ─────────────────────────────
+    atacms: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.07;
+      // Main body (chunky ballistic missile — wider than cruise missiles)
+      g.add(_P(_T(0.030, 0.72, _pal.gm(), 10), X, Y, -0.26));
+      // Wider warhead section (front third)
+      g.add(_P(_T(0.034, 0.28, _pal.gm(), 10), X, Y, -0.44));
+      // Ogive nose (conical — ATACMS has blunt ogive)
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.034, 0.10, 10),
+        new THREE.MeshLambertMaterial({ color: _pal.gm() }));
+      nose.rotation.x = Math.PI / 2; nose.position.set(X, Y, -0.62); g.add(nose);
+      // Nose tip (guidance section — darker)
+      g.add(_P(_T(0.012, 0.030, _pal.blk(), 8), X, Y, -0.68));
+      // 4 × large wrap-around fins (distinctive ATACMS feature)
+      const finMat = new THREE.MeshLambertMaterial({ color: _pal.gm() });
+      for (var fi = 0; fi < 4; fi++) {
+        const ang = (fi / 4) * Math.PI * 2;
+        const fin = _P(_B(0.055, 0.004, 0.070, finMat), X, Y, 0.07);
+        fin.rotation.z = ang;
+        fin.position.x += Math.cos(ang) * 0.032;
+        fin.position.y += Math.sin(ang) * 0.032;
+        g.add(fin);
+      }
+      // Rocket motor (wide nozzle at rear)
+      g.add(_P(_T(0.022, 0.022, 0x3a1800, 10), X, Y, 0.15));
+      // Aft skirt (aerodynamic boat-tail)
+      g.add(_P(_T(0.026, 0.055, _pal.blk(), 10), X, Y, 0.10));
+      // Stencilled serial number band (two black rings)
+      g.add(_P(_T(0.031, 0.008, _pal.blk(), 10), X, Y, -0.10));
+      g.add(_P(_T(0.031, 0.008, _pal.blk(), 10), X, Y, 0.02));
+      return g;
+    },
+
   };
 
   const meshBuilders = [
@@ -4918,6 +5085,8 @@ const Weapons = (() => {
     NB.rpg32, NB.g36c, NB.vasilek, NB.b10,
     // 4 more (AK-74M, Switchblade 600, PzH 2000, Kh-101)
     NB.ak74m, NB.switchblade600, NB.pzh2000, NB.kh101,
+    // 4 more (CAESAR 155mm, Brimstone 2, IRIS-T SLM, ATACMS)
+    NB.caesar155, NB.brimstone2, NB.iristslm, NB.atacms,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

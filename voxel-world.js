@@ -4243,6 +4243,145 @@ window.VoxelWorld = (function () {
     setBlock(apX + 3, apY + 5, apZ + 1, BLOCK.CONCRETE);
   }
 
+  // ── FF. Patriot PAC-3 battery (US-supplied air defense, 2023) ────────
+  // Ukraine's Patriot shot down the first-ever Kinzhal hypersonic missile
+  // on May 4 2023. Battery: AN/MPQ-65 radar, 2x M903 launchers, C2 post.
+  {
+    var ptX = ox - 50, ptZ = oz + 15;
+    var ptY = gh(ptX, ptZ);
+    // Perimeter sandbag revetment
+    for (var pbx = 0; pbx < 16; pbx++) {
+      setBlock(ptX + pbx, ptY + 1, ptZ,      BLOCK.SANDBAG);
+      setBlock(ptX + pbx, ptY + 2, ptZ,      BLOCK.SANDBAG);
+      setBlock(ptX + pbx, ptY + 1, ptZ + 12, BLOCK.SANDBAG);
+      setBlock(ptX + pbx, ptY + 2, ptZ + 12, BLOCK.SANDBAG);
+    }
+    for (var pbz = 0; pbz <= 12; pbz++) {
+      setBlock(ptX,      ptY + 1, ptZ + pbz, BLOCK.SANDBAG);
+      setBlock(ptX,      ptY + 2, ptZ + pbz, BLOCK.SANDBAG);
+      setBlock(ptX + 15, ptY + 1, ptZ + pbz, BLOCK.SANDBAG);
+      setBlock(ptX + 15, ptY + 2, ptZ + pbz, BLOCK.SANDBAG);
+    }
+    // Concrete operations pad inside berm
+    for (var ppx = 1; ppx < 15; ppx++) {
+      for (var ppz = 1; ppz <= 11; ppz++) {
+        setBlock(ptX + ppx, ptY, ptZ + ppz, BLOCK.CONCRETE);
+      }
+    }
+    // AN/MPQ-65 radar truck body
+    for (var ry = 1; ry <= 3; ry++) {
+      for (var rrz = 0; rrz < 4; rrz++) {
+        setBlock(ptX + 2, ptY + ry, ptZ + 2 + rrz, BLOCK.METAL);
+        setBlock(ptX + 3, ptY + ry, ptZ + 2 + rrz, BLOCK.METAL);
+        setBlock(ptX + 4, ptY + ry, ptZ + 2 + rrz, BLOCK.METAL);
+      }
+    }
+    // Phased-array radar face (ELECTRONICS block)
+    setBlock(ptX + 2, ptY + 4, ptZ + 3, BLOCK.ELECTRONICS);
+    setBlock(ptX + 3, ptY + 4, ptZ + 3, BLOCK.ELECTRONICS);
+    setBlock(ptX + 4, ptY + 4, ptZ + 3, BLOCK.ELECTRONICS);
+    setBlock(ptX + 3, ptY + 5, ptZ + 3, BLOCK.ELECTRONICS);
+    // Radar mast
+    setBlock(ptX + 3, ptY + 6, ptZ + 3, BLOCK.METAL);
+    setBlock(ptX + 3, ptY + 7, ptZ + 3, BLOCK.METAL);
+    // M903 Launching Station 1 — angled toward north threat axis
+    for (var la = 1; la <= 2; la++) {
+      setBlock(ptX + 7, ptY + la, ptZ + 2, BLOCK.METAL);
+      setBlock(ptX + 8, ptY + la, ptZ + 2, BLOCK.METAL);
+    }
+    setBlock(ptX + 7, ptY + 3, ptZ + 1, BLOCK.METAL);
+    setBlock(ptX + 8, ptY + 3, ptZ + 1, BLOCK.METAL);
+    setBlock(ptX + 7, ptY + 4, ptZ,     BLOCK.METAL);
+    setBlock(ptX + 8, ptY + 4, ptZ,     BLOCK.METAL);
+    // M903 Launching Station 2
+    for (var lb = 1; lb <= 2; lb++) {
+      setBlock(ptX + 7, ptY + lb, ptZ + 9,  BLOCK.METAL);
+      setBlock(ptX + 8, ptY + lb, ptZ + 9,  BLOCK.METAL);
+    }
+    setBlock(ptX + 7, ptY + 3, ptZ + 10, BLOCK.METAL);
+    setBlock(ptX + 8, ptY + 3, ptZ + 10, BLOCK.METAL);
+    setBlock(ptX + 7, ptY + 4, ptZ + 11, BLOCK.METAL);
+    setBlock(ptX + 8, ptY + 4, ptZ + 11, BLOCK.METAL);
+    // AN/MSQ-132 Command Post
+    for (var cy = 1; cy <= 3; cy++) {
+      for (var cpz = 0; cpz < 3; cpz++) {
+        setBlock(ptX + 11, ptY + cy, ptZ + 4 + cpz, BLOCK.METAL);
+        setBlock(ptX + 12, ptY + cy, ptZ + 4 + cpz, BLOCK.METAL);
+        setBlock(ptX + 13, ptY + cy, ptZ + 4 + cpz, BLOCK.METAL);
+      }
+    }
+    // Ukrainian flag on command post
+    setBlock(ptX + 12, ptY + 4, ptZ + 5, BLOCK.METAL);
+    setBlock(ptX + 12, ptY + 5, ptZ + 5, BLOCK.FLAG);
+    // Power generator
+    setBlock(ptX + 2, ptY + 1, ptZ + 9, BLOCK.METAL);
+    setBlock(ptX + 2, ptY + 2, ptZ + 9, BLOCK.METAL);
+    setBlock(ptX + 3, ptY + 1, ptZ + 9, BLOCK.METAL);
+    setBlock(ptX + 3, ptY + 2, ptZ + 9, BLOCK.METAL);
+    // Spare PAC-3 missile canisters (stacked near launcher)
+    setBlock(ptX + 6, ptY + 1, ptZ + 2, BLOCK.CRATE);
+    setBlock(ptX + 6, ptY + 1, ptZ + 3, BLOCK.CRATE);
+    setBlock(ptX + 6, ptY + 2, ptZ + 2, BLOCK.CRATE);
+  }
+
+  // ── GG. Anti-tank ditch (outer Kyiv defense ring, north approach) ────
+  // Ukrainian engineers dug AT ditches across all roads and fields north
+  // of Kyiv in Feb-March 2022 to stop Russian BMP and T-72 columns.
+  {
+    var dtX = ox - 20, dtZ = oz + 90;
+    var dtY = gh(dtX, dtZ);
+    // Main ditch (40 wide x 3 deep x 5 north-south — impassable to vehicles)
+    for (var dtx = 0; dtx < 40; dtx++) {
+      for (var ddy = 0; ddy <= 2; ddy++) {
+        for (var ddz = 0; ddz < 5; ddz++) {
+          setBlock(dtX + dtx, dtY - ddy, dtZ + ddz, BLOCK.AIR);
+        }
+      }
+      // South berm (defender side — spoil earth piled high)
+      setBlock(dtX + dtx, dtY + 1, dtZ + 5, BLOCK.DIRT);
+      setBlock(dtX + dtx, dtY + 2, dtZ + 5, BLOCK.DIRT);
+      if (dtx % 2 === 0) setBlock(dtX + dtx, dtY + 3, dtZ + 5, BLOCK.DIRT);
+      // North berm (attacker side — smaller mound)
+      setBlock(dtX + dtx, dtY + 1, dtZ - 1, BLOCK.DIRT);
+    }
+    // Infantry crossing points (2-block CONCRETE causeways)
+    for (var xz = 1; xz < 4; xz++) {
+      setBlock(dtX + 8,  dtY, dtZ + xz, BLOCK.CONCRETE);
+      setBlock(dtX + 9,  dtY, dtZ + xz, BLOCK.CONCRETE);
+      setBlock(dtX + 28, dtY, dtZ + xz, BLOCK.CONCRETE);
+      setBlock(dtX + 29, dtY, dtZ + xz, BLOCK.CONCRETE);
+    }
+    // Czech hedgehog obstacles flanking the ditch
+    for (var dhx = 0; dhx < 8; dhx++) {
+      setBlock(dtX - 2 + dhx, dtY + 1, dtZ - 2, BLOCK.METAL);
+      setBlock(dtX + 32 + dhx, dtY + 1, dtZ - 2, BLOCK.METAL);
+    }
+    // Mine-warning posts on enemy approach (north face)
+    setBlock(dtX + 5,  dtY + 1, dtZ - 4, BLOCK.FENCE);
+    setBlock(dtX + 5,  dtY + 2, dtZ - 4, BLOCK.SIGN);
+    setBlock(dtX + 15, dtY + 1, dtZ - 4, BLOCK.FENCE);
+    setBlock(dtX + 15, dtY + 2, dtZ - 4, BLOCK.SIGN);
+    setBlock(dtX + 25, dtY + 1, dtZ - 4, BLOCK.FENCE);
+    setBlock(dtX + 25, dtY + 2, dtZ - 4, BLOCK.SIGN);
+    // CONCRETE firing position bunker behind south berm
+    setBlock(dtX + 18, dtY + 1, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 18, dtY + 2, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 18, dtY + 3, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 19, dtY + 1, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 19, dtY + 2, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 19, dtY + 3, dtZ + 7, BLOCK.CONCRETE);
+    // Ukrainian flags on south berm
+    setBlock(dtX + 4,  dtY + 1, dtZ + 6, BLOCK.FENCE);
+    setBlock(dtX + 4,  dtY + 2, dtZ + 6, BLOCK.FLAG);
+    setBlock(dtX + 20, dtY + 1, dtZ + 6, BLOCK.FENCE);
+    setBlock(dtX + 20, dtY + 2, dtZ + 6, BLOCK.FLAG);
+    // Pre-registered artillery craters north of ditch
+    setBlock(dtX + 7,  dtY, dtZ - 8,  BLOCK.RUBBLE);
+    setBlock(dtX + 14, dtY, dtZ - 12, BLOCK.RUBBLE);
+    setBlock(dtX + 22, dtY, dtZ - 7,  BLOCK.RUBBLE);
+    setBlock(dtX + 30, dtY, dtZ - 10, BLOCK.RUBBLE);
+  }
+
   // IDEA 21: Evacuation bus/civilian vehicles
   function generateEvacVehicles(count) {
     for (let v = 0; v < count; v++) {
