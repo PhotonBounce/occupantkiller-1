@@ -3145,6 +3145,37 @@ window.VoxelWorld = (function () {
     setBlock(lbx, lby + 30, lbz, BLOCK.LIGHT);
     setBlock(lbx, lby + 31, lbz, BLOCK.METAL);
 
+    // ── C2. NSC Olimpiysky Stadium (x=-8, z=-80) — south of Maidan ──────
+    // Ukraine's national stadium, 70,000 capacity. Hosted Euro 2012.
+    var stx = ox - 8, stz = oz - 80;
+    var stby = gh(stx, stz);
+    // Outer stadium bowl (oval ring structure, concrete)
+    for (var stA = 0; stA < 16; stA++) {
+      var stAng = (stA / 16) * Math.PI * 2;
+      var stEx = Math.round(Math.cos(stAng) * 20);
+      var stEz = Math.round(Math.sin(stAng) * 14);
+      for (var stH = 1; stH <= 8; stH++) {
+        setBlock(stx + stEx, stby + stH, stz + stEz, BLOCK.CONCRETE);
+        setBlock(stx + stEx + Math.round(Math.cos(stAng)), stby + stH, stz + stEz + Math.round(Math.sin(stAng)), BLOCK.CONCRETE);
+      }
+    }
+    // Iconic roof arch — steel arches over the long axis
+    for (var archX2 = -22; archX2 <= 22; archX2++) {
+      var archH2 = Math.round(10 - (archX2 * archX2) / 55.0);
+      if (archH2 >= 6) {
+        setBlock(stx + archX2, stby + archH2, stz - 14, BLOCK.METAL);
+        setBlock(stx + archX2, stby + archH2, stz + 14, BLOCK.METAL);
+      }
+    }
+    // Field interior (grass)
+    for (var fx2 = -16; fx2 <= 16; fx2++) {
+      for (var fz2 = -10; fz2 <= 10; fz2++) {
+        if ((fx2 * fx2) / 256.0 + (fz2 * fz2) / 100.0 < 1.0) {
+          setBlock(stx + fx2, stby, stz + fz2, BLOCK.GRASS);
+        }
+      }
+    }
+
     // ── D. Extended Khreshchatyk south (more city behind player) ─────────
     for (var ks = oz - 80; ks < oz - 45; ks++) {
       for (var kx = ox - 5; kx <= ox + 5; kx++) {

@@ -413,6 +413,32 @@ const Weapons = (() => {
       spread: 0.022, auto: true, type: 'RIFLE', recoilY: 0.030, recoilX: 0.012,
       description: 'AKM — the mass-produced AK-47 variant. 7.62×39mm round. What most Russian conscripts and older units carry. Captured examples are primary loot on the Kyiv front.',
     },
+    {
+      id: 'AN94', name: 'AN-94 Abakan (5.45mm)', damage: 33,
+      fireRate: 0.080, clipSize: 30, maxReserve: 120, reloadTime: 2.4,
+      spread: 0.015, auto: true, type: 'RIFLE', recoilY: 0.018, recoilX: 0.006,
+      description: 'Russian AN-94 Abakan. 2-round hyperburst at 1800rpm before cycling. Used by Russian Spetsnaz and elite units in Ukraine. Unusual pulley-delay mechanism.',
+    },
+    {
+      id: 'M67_GRENADE', name: 'M67 Frag Grenade (NATO)', damage: 210,
+      fireRate: 1.8, clipSize: 3, maxReserve: 9, reloadTime: 1.5,
+      spread: 0, auto: false, type: 'GRENADE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 6,
+      description: 'US M67 spherical fragmentation grenade. NATO standard issue. Over a million delivered to Ukraine. Lethal radius ~5m, casualty radius ~15m.',
+    },
+    {
+      id: 'SWITCHBLADE300', name: 'Switchblade 300 (loitering)', damage: 320,
+      fireRate: 10.0, clipSize: 1, maxReserve: 2, reloadTime: 8.0,
+      spread: 0, auto: false, type: 'AT_LIGHT', recoilY: 0.008, recoilX: 0.002,
+      blastRadius: 4, homing: true,
+      description: 'AeroVironment Switchblade 300. US "kamikaze" loitering munition. Tube-launched, electrically propelled, anti-personnel warhead. Over 700 sent to Ukraine.',
+    },
+    {
+      id: 'SAIGA12', name: 'Saiga-12 Combat Shotgun', damage: 130,
+      fireRate: 0.42, clipSize: 10, maxReserve: 40, reloadTime: 2.8,
+      spread: 0.080, auto: false, type: 'SHOTGUN', recoilY: 0.055, recoilX: 0.018,
+      description: 'Russian Saiga-12 semi-automatic shotgun based on AK action. 12-gauge, box magazine. Used by both sides as an improvised close-quarters weapon and for drone interdiction.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -3368,14 +3394,94 @@ const Weapons = (() => {
 
     // ── AKM / AK-47 (7.62×39mm) ──────────────────────────────────────
     akm: function () {
+      // 7.62×39mm: slightly thicker barrel, brown wood furniture, slant brake
       return _rifle({
-        body:    { w: 0.038, h: 0.055, d: 0.34, col: 0x2d2d2d },
-        barrel:  { r: 0.009, len: 0.34, col: _pal.steel() },
-        stock:   'wood',   // wooden stock (not folding)
-        mag:     'curved', // 7.62 banana mag (more curved than 5.45)
-        muzzle:  'slant',  // AKM slant compensator
-        hg:      'wood',   // wooden handguard
-        sights:  true,
+        hg: 'wood', hgColor: _pal.wood,
+        stock: 'wood', stockColor: _pal.wood,
+        mag: 'curved', magColor: _pal.olive,
+        muzzle: 'brake',
+        recvLen: 0.26, barR: 0.014, barLen: 0.32,
+        recvColor: () => 0x2a2a1e,
+      });
+    },
+
+    // ── AN-94 Abakan ─────────────────────────────────────────────────
+    an94: function () {
+      // Unusual geometry: offset barrel, side-fold stock, prominent muzzle device
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.115;
+      // Receiver (slightly longer than AK, offset barrel channel)
+      g.add(_P(_B(0.044, 0.065, 0.28, _pal.blk()), X, Y, -0.20));
+      // Barrel (offset right/up — Abakan has unusual barrel layout)
+      g.add(_P(_T(0.011, 0.32, _pal.steel(), 12), X + 0.006, Y + 0.006, -0.38));
+      // Distinctive large muzzle device (asymmetric compensator)
+      g.add(_P(_B(0.028, 0.028, 0.048, _pal.blk()), X + 0.006, Y + 0.006, -0.55));
+      // Side-folding stock (folded — compact position)
+      g.add(_P(_B(0.008, 0.060, 0.080, 0x1a1a14), X + 0.034, Y + 0.002, -0.09));
+      // Curved pistol grip (distinctive shape)
+      g.add(_P(_B(0.022, 0.055, 0.030, _pal.poly()), X, Y - 0.038, -0.08));
+      g.add(_P(_B(0.018, 0.032, 0.022, _pal.poly()), X, Y - 0.058, -0.065));
+      // Curved 30-round magazine
+      const m1 = _P(_B(0.028, 0.068, 0.040, _pal.olive()), X, Y - 0.060, -0.22); m1.rotation.x = -0.10; g.add(m1);
+      const m2 = _P(_B(0.026, 0.060, 0.036, _pal.olive()), X, Y - 0.108, -0.244); m2.rotation.x = -0.28; g.add(m2);
+      // Handguard
+      g.add(_P(_B(0.040, 0.044, 0.130, _pal.poly()), X, Y, -0.30));
+      // Front sight post
+      g.add(_P(_B(0.006, 0.026, 0.008, _pal.blk()), X, Y + 0.040, -0.52));
+      return g;
+    },
+
+    // ── M67 Fragmentation Grenade ─────────────────────────────────────
+    m67_grenade: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.10, Y = -0.06;
+      // Spherical body (approximate with scaled sphere + cylinder base)
+      const bodyMat = new THREE.MeshLambertMaterial({ color: 0x2a3a1e });
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.025, 10, 8), bodyMat);
+      body.position.set(X, Y, -0.12); g.add(body);
+      // Body band (equator seam)
+      g.add(_P(_T(0.027, 0.004, 0x223320, 10), X, Y, -0.12));
+      // Fuze assembly on top
+      g.add(_P(_T(0.010, 0.022, _pal.blk(), 8), X, Y + 0.025, -0.120));
+      g.add(_P(_B(0.014, 0.012, 0.020, _pal.blk()), X, Y + 0.038, -0.120));
+      // Safety spoon (flat lever on side)
+      g.add(_P(_B(0.006, 0.028, 0.006, _pal.steel()), X + 0.016, Y + 0.022, -0.120));
+      // Pull ring
+      g.add(_P(_T(0.008, 0.002, _pal.steel(), 8), X + 0.026, Y + 0.038, -0.120));
+      return g;
+    },
+
+    // ── Switchblade 300 loitering munition ───────────────────────────
+    switchblade300: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.13, Y = -0.05;
+      // Launch tube (cylindrical, OD green, narrow)
+      g.add(_P(_T(0.020, 0.32, 0x3a4a28, 12), X, Y, -0.20));
+      // Deployed wing stubs (pop-out delta wings, mid-body)
+      g.add(_P(_B(0.075, 0.004, 0.028, 0x2a3a1e), X, Y, -0.16));   // left+right wing span
+      g.add(_P(_B(0.055, 0.004, 0.020, 0x2a3a1e), X, Y, -0.20));   // rear stabilizer
+      // EO/IR seeker nose dome
+      g.add(_P(_T(0.016, 0.025, 0x1a1a1e, 8), X, Y, -0.055));
+      // Sensor window
+      g.add(_P(_T(0.009, 0.008, 0x223344, 6), X, Y, -0.042));
+      // Canard fins (tiny front control surfaces)
+      g.add(_P(_B(0.040, 0.003, 0.016, 0x2a3a1e), X, Y, -0.08));
+      // Battery/warhead module (mid-body slightly fatter section)
+      g.add(_P(_T(0.022, 0.06, 0x2d3d20, 10), X, Y, -0.14));
+      // Propeller at rear
+      g.add(_P(_B(0.060, 0.004, 0.006, 0x444434), X, Y, -0.34));
+      return g;
+    },
+
+    // ── Saiga-12 combat shotgun ───────────────────────────────────────
+    saiga12: function () {
+      return _rifle({
+        hg: 'tube', hgColor: _pal.blk,
+        stock: 'fixed', stockColor: _pal.blk,
+        mag: 'box', magColor: _pal.blk,
+        muzzle: 'brake',
+        recvLen: 0.22, barR: 0.016, barLen: 0.22,
+        recvColor: _pal.blk,
       });
     },
 
@@ -3431,6 +3537,8 @@ const Weapons = (() => {
     NB.f1_grenade, NB.maxim1910, NB.bm21_grad, NB.tavor_x95,
     // 4 more (TOW BGM-71, RPG-29, Starstreak, AKM)
     NB.tow_bgm71, NB.rpg29, NB.starstreak, NB.akm,
+    // 4 more (AN-94, M67, Switchblade 300, Saiga-12)
+    NB.an94, NB.m67_grenade, NB.switchblade300, NB.saiga12,
   ];
 
   // Ensure meshBuilders matches WEAPONS length
