@@ -4241,7 +4241,6 @@ window.VoxelWorld = (function () {
     setBlock(apX + 1, apY + 5, apZ + 1, BLOCK.CONCRETE);
     setBlock(apX + 2, apY + 5, apZ + 1, BLOCK.CONCRETE);
     setBlock(apX + 3, apY + 5, apZ + 1, BLOCK.CONCRETE);
-  }
 
   // ── FF. Patriot PAC-3 battery (US-supplied air defense, 2023) ────────
   // Ukraine's Patriot shot down the first-ever Kinzhal hypersonic missile
@@ -4380,6 +4379,7 @@ window.VoxelWorld = (function () {
     setBlock(dtX + 14, dtY, dtZ - 12, BLOCK.RUBBLE);
     setBlock(dtX + 22, dtY, dtZ - 7,  BLOCK.RUBBLE);
     setBlock(dtX + 30, dtY, dtZ - 10, BLOCK.RUBBLE);
+  }
   }
 
   // IDEA 21: Evacuation bus/civilian vehicles
