@@ -1468,9 +1468,11 @@ const GameManager = (function () {
     // Spawn organized assault groups (4 squads of 4-5 armed NPCs) — BRIGADE
     // role only. Lone Wolf previously got the same 22-NPC army, which deleted
     // every nearby enemy before the player could engage (zero threat).
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
     if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
 
     // Spawn starter vehicle fleet on roads (road-level positions)
+    VehicleSystem.clear(); // prevent duplication if forceStartGame is called multiple times
     var roadWPs = (window.VoxelWorld.getRoadWaypoints ? window.VoxelWorld.getRoadWaypoints() : []);
     var _rp0 = roadWPs.length > 2 ? roadWPs[2] : new THREE.Vector3(8, 0, 20);
     var _rp1 = roadWPs.length > 6 ? roadWPs[6] : new THREE.Vector3(12, 0, 20);
@@ -2987,6 +2989,7 @@ const GameManager = (function () {
 
     // Respawn organized assault groups for the real gameplay start path
     // (BRIGADE role only — Lone Wolf fights solo).
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
     if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads for first stage
@@ -3282,6 +3285,7 @@ const GameManager = (function () {
 
     // Respawn organized assault groups on new terrain (BRIGADE role only)
     NPCSystem.clear();
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
     if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads
@@ -3387,6 +3391,11 @@ const GameManager = (function () {
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
+    // Announce enemy's randomly chosen formation as an intel report
+    var _enemyForms = ['WEDGE', 'LINE', 'COLUMN', 'STAGGERED'];
+    var _eFLabel = ['▲ WEDGE', '━ LINE', '| COLUMN', '⋮ STAGGERED'];
+    var _efi = (w + stageDef.id + Math.floor(Math.random() * 2)) % _enemyForms.length;
+    if (HUD.notifyPickup) HUD.notifyPickup('INTEL: Enemy formation — ' + _eFLabel[_efi], '#ff8800');
     // Track initial wave enemy count for progress bar
     player._waveStartCount = Enemies.getAliveCount();
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
@@ -5070,6 +5079,7 @@ const GameManager = (function () {
   function onPlayerHit(dmg, attackerPos) {
     if (gameState !== STATE.PLAYING) return; // can't take damage when dead/paused
     if (player.godMode) return; // God mode: immune to damage
+    if (DroneSystem.isPossessing()) return; // player body is passive while piloting drone
     // Shield absorbs damage
     if (player.shieldTimer > 0) {
       HUD.notifyPickup('🛡 SHIELDED!', '#ffd700');

@@ -821,6 +821,33 @@ const DroneSystem = (function () {
       yaw,
       -drone.velocity.x * 0.02
     );
+
+    // FPV auto-explode on contact: if within 1.5m of any enemy, kamikaze
+    if (drone.type === DRONE_TYPE.FPV_ATTACK) {
+      var _hitEnemy = false;
+      if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+        var _eAll = Enemies.getAll();
+        for (var _ei = 0; _ei < _eAll.length; _ei++) {
+          var _ee = _eAll[_ei];
+          if (!_ee || !_ee.alive || !_ee.mesh) continue;
+          var _edx = _ee.mesh.position.x - drone.position.x;
+          var _edy = _ee.mesh.position.y - drone.position.y;
+          var _edz = _ee.mesh.position.z - drone.position.z;
+          if ((_edx*_edx + _edy*_edy + _edz*_edz) < 2.25) { _hitEnemy = true; break; }
+        }
+      }
+      if (!_hitEnemy && typeof VehicleSystem !== 'undefined' && VehicleSystem.getAll) {
+        var _vAll = VehicleSystem.getAll();
+        for (var _vi = 0; _vi < _vAll.length; _vi++) {
+          var _vv = _vAll[_vi];
+          if (!_vv || !_vv.mesh || !_vv.alive) continue;
+          if (drone.position.distanceTo(_vv.mesh.position) < 2.5) { _hitEnemy = true; break; }
+        }
+      }
+      if (_hitEnemy) {
+        fireAttack(drone.id);
+      }
+    }
   }
 
   function updateAIDrone(drone, delta) {

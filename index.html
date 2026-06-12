@@ -583,6 +583,19 @@
         </section>
 
         <section class="start-section start-section-wide">
+          <div class="start-section-title">🪖 SQUAD FORMATION</div>
+          <div id="formation-select" class="start-section-row">
+            <button class="btn pill formation-btn active-formation" data-formation="wedge" style="border-color:#0af;color:#0af">▲ WEDGE</button>
+            <button class="btn pill formation-btn" data-formation="line" style="border-color:#888;color:#888">━ LINE</button>
+            <button class="btn pill formation-btn" data-formation="diamond" style="border-color:#888;color:#888">◆ DIAMOND</button>
+            <button class="btn pill formation-btn" data-formation="column" style="border-color:#888;color:#888">| COLUMN</button>
+            <button class="btn pill formation-btn" data-formation="echelon_l" style="border-color:#888;color:#888">◁ ECHELON-L</button>
+            <button class="btn pill formation-btn" data-formation="echelon_r" style="border-color:#888;color:#888">▷ ECHELON-R</button>
+          </div>
+          <p id="formation-desc" class="start-section-desc">Wedge: V-shape assault — pointman leads, squad fans out behind. Enemy picks formation randomly.</p>
+        </section>
+
+        <section class="start-section start-section-wide">
           <div class="start-section-title">🎮 CHALLENGE MODE</div>
           <div id="challenge-select" class="start-section-row">
             <button class="btn pill challenge-btn" data-mode="" style="border-color:#888;color:#888">🎮 Normal</button>
@@ -1189,6 +1202,46 @@ document.addEventListener('DOMContentLoaded', function () {
       })(btns[i]);
     }
     setActiveDrone('');
+  })();
+
+  // ── Formation selection ────────────────────────────────
+  (function () {
+    var formDescs = {
+      wedge:     'WEDGE — V-shape assault. Pointman leads, squad fans out. Best for open terrain advances.',
+      line:      'LINE — Skirmish line. Maximum firepower to the front. Best for holding ground.',
+      diamond:   'DIAMOND — All-around defense. Leader center, squad covers all directions.',
+      column:    'COLUMN — Single file. Stealthy movement through narrow terrain and urban corridors.',
+      echelon_l: 'ECHELON LEFT — Squad offsets left-rear. Covers right flank during advance.',
+      echelon_r: 'ECHELON RIGHT — Squad offsets right-rear. Covers left flank during advance.',
+    };
+    var fbtn = document.querySelectorAll('.formation-btn');
+    var fdesc = document.getElementById('formation-desc');
+    function setActiveFormation(val) {
+      window.__chosenFormation = val || 'wedge';
+      for (var i = 0; i < fbtn.length; i++) {
+        var v = fbtn[i].getAttribute('data-formation') || '';
+        if (v === window.__chosenFormation) {
+          fbtn[i].style.boxShadow = '0 0 12px #0af';
+          fbtn[i].style.background = 'rgba(0,170,255,0.12)';
+          fbtn[i].style.borderColor = '#0af';
+          fbtn[i].style.color = '#0af';
+        } else {
+          fbtn[i].style.boxShadow = '';
+          fbtn[i].style.background = '';
+          fbtn[i].style.borderColor = '#888';
+          fbtn[i].style.color = '#888';
+        }
+      }
+      if (fdesc) fdesc.textContent = formDescs[window.__chosenFormation] || formDescs.wedge;
+    }
+    for (var i = 0; i < fbtn.length; i++) {
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          setActiveFormation(btn.getAttribute('data-formation') || 'wedge');
+        });
+      })(fbtn[i]);
+    }
+    setActiveFormation('wedge');
   })();
 
   // ── Button wiring ──────────────────────────────────────

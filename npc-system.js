@@ -1107,6 +1107,15 @@ function buildCivilianMesh(npc) {
     }
   }
 
+  /* ── Player-selected formation (set via UI before wave start) ───── */
+  var _playerFormation = FORMATION.WEDGE; // default
+
+  function setPlayerFormation(f) {
+    if (FORMATION[f.toUpperCase()] || Object.values(FORMATION).includes(f)) {
+      _playerFormation = f;
+    }
+  }
+
   /* ── Spawn Friendly Assault Groups ──────────────────────────────── */
   function spawnAssaultGroups() {
     friendlyGroups.length = 0;
@@ -1120,8 +1129,8 @@ function buildCivilianMesh(npc) {
       const lz = Math.sin(leaderAngle) * leaderDist;
       const lh = (typeof VoxelWorld !== 'undefined') ? (VoxelWorld.getTopSolidY ? VoxelWorld.getTopSolidY(lx, lz) : VoxelWorld.getTerrainHeight(lx, lz) + 1) : 0;
 
-      // Use professional Ukrainian army formation with proper spacing
-      var tpl = FORMATION_TEMPLATES[FORMATION.WEDGE];
+      // Use player-selected formation (or default WEDGE)
+      var tpl = FORMATION_TEMPLATES[_playerFormation] || FORMATION_TEMPLATES[FORMATION.WEDGE];
       var _formOffsets = tpl ? tpl.slice() : [[0, 0], [1, 0], [-1, 1], [1, 1], [-1, -1], [1, -1]];
 
       // Leader (specialist)
@@ -2335,5 +2344,7 @@ function buildCivilianMesh(npc) {
     getUpgrades,
     // Squad commands
     commandSquad,
+    setPlayerFormation,
+    getPlayerFormation: function () { return _playerFormation; },
   };
 })();

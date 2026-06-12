@@ -1500,13 +1500,24 @@ const VehicleSystem = (function () {
       }
     }
 
-    // Fallback: Random point within PATROL_RADIUS of spawn
+    // Fallback: Random point within PATROL_RADIUS of spawn — slope-checked to avoid mountains
     v._onRoad = false;
     const home = v.spawnPos;
-    const angle = Math.random() * Math.PI * 2;
-    const dist  = 8 + Math.random() * PATROL_RADIUS;
-    const wx = Math.max(-PATROL_BOUND, Math.min(PATROL_BOUND, home.x + Math.cos(angle) * dist));
-    const wz = Math.max(-PATROL_BOUND, Math.min(PATROL_BOUND, home.z + Math.sin(angle) * dist));
+    var currentH = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
+      ? VoxelWorld.getTerrainHeight(home.x, home.z) : 0;
+    var bestWx = home.x, bestWz = home.z, bestSlope = Infinity;
+    for (var _si = 0; _si < 6; _si++) {
+      var _sa = Math.random() * Math.PI * 2;
+      var _sd = 8 + Math.random() * PATROL_RADIUS;
+      var _cx = Math.max(-PATROL_BOUND, Math.min(PATROL_BOUND, home.x + Math.cos(_sa) * _sd));
+      var _cz = Math.max(-PATROL_BOUND, Math.min(PATROL_BOUND, home.z + Math.sin(_sa) * _sd));
+      var _ch = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
+        ? VoxelWorld.getTerrainHeight(_cx, _cz) : currentH;
+      var _slope = Math.abs(_ch - currentH);
+      if (_slope < bestSlope) { bestWx = _cx; bestWz = _cz; bestSlope = _slope; }
+      if (_slope < 2) break; // good enough — flat terrain found
+    }
+    const wx = bestWx, wz = bestWz;
     if (v.waypoint) v.waypoint.set(wx, 0, wz);
     else v.waypoint = new THREE.Vector3(wx, 0, wz);
     v.waypointTimer = 8 + Math.random() * 10; // timeout to force new waypoint

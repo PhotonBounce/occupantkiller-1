@@ -1855,9 +1855,10 @@ const Enemies = (() => {
     }
 
     // Spawn each member at their formation offset
+    // Note: no y in fpos — spawnOne computes terrain height via getTopSolidY
     for (var fi = 0; fi < _formOrder.length; fi++) {
       var foff = getFormationWorldPos(group, fi, _formOrder.length);
-      var fpos = new THREE.Vector3(center.x + foff.x, center.y, center.z + foff.z);
+      var fpos = { x: center.x + foff.x, z: center.z + foff.z };
       var fidx = spawnOne(_formOrder[fi].type, groupId, fpos);
       enemies[fidx].squadRole = _formOrder[fi].role;
       group.members.push(fidx);
