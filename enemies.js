@@ -940,6 +940,11 @@ const Enemies = (() => {
     11:{ bias: 0.60, pool: ['TANK','THERMOBARIC','ASSAULT_MECH','HEAVY_SNIPER','BTR'] },            // Belgorod — mechanized
     12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR'] },    // Kremlin — everything
     13:{ bias: 0.60, pool: ['CONSCRIPT','STORMER','PARATROOP','DRONE_OP','SPETSNAZ'] },             // Kyiv — column escort infantry (armor comes from ConvoySystem)
+    14:{ bias: 0.55, pool: ['DRONE_OP','BTR','SNIPER_ELITE','BOMBER','MORTAR'] },                   // Snake Island — naval assault wave
+    15:{ bias: 0.55, pool: ['PARATROOP','DRONE_OP','SPETSNAZ','KAMIKAZE_DRONE','SNIPER_ELITE'] },   // Saky Airbase — airborne raiders
+    16:{ bias: 0.60, pool: ['TANK','ARMORED','BTR','HEAVY_SNIPER','MORTAR'] },                      // Vuhledar — tank graveyard columns
+    17:{ bias: 0.55, pool: ['ENGINEER','MORTAR','STORMER','BTR','COMMISSAR'] },                     // Antonov Bridge — supply line guards
+    18:{ bias: 0.70, pool: ['KAMIKAZE_DRONE','DRONE_OP','EW_OPERATOR','SPETSNAZ','ENGINEER'] },     // Refinery — drone-heavy industrial
   };
 
   // ── Choose a type appropriate for the current wave + stage ──

@@ -1268,12 +1268,24 @@ const HUD = (() => {
     vehicleHudEl.style.display = 'block';
     const icon = VEHICLE_ICONS[vehicle.type] || '🚗';
     vhTypeEl.textContent = icon + ' ' + vehicle.type.toUpperCase().replace('_', ' ');
-    if (vehicle.flying) {
-      vhControlsEl.textContent = 'WASD · Fly | SPACE · Ascend | SHIFT · Descend | G · Exit | T · View | LMB · Fire';
-    } else if (vehicle.damage > 0) {
-      vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View | LMB · Fire Turret';
+    var isMobileCtx = typeof isMobile !== 'undefined' ? isMobile
+      : (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+    if (isMobileCtx) {
+      if (vehicle.flying) {
+        vhControlsEl.textContent = '🕹 LEFT · Fly | ⬆ Jump · Rise | ⬇ Crouch · Sink | 🚫 Exit btn | 👁 View btn | 🔫 Fire btn';
+      } else if (vehicle.damage > 0) {
+        vhControlsEl.textContent = '🕹 LEFT · Drive | 🚫 Exit btn | 👁 View btn | 🔫 Fire btn';
+      } else {
+        vhControlsEl.textContent = '🕹 LEFT · Drive | 🚫 Exit btn | 👁 View btn';
+      }
     } else {
-      vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View';
+      if (vehicle.flying) {
+        vhControlsEl.textContent = 'WASD · Fly | SPACE · Ascend | SHIFT · Descend | G · Exit | T · View | LMB · Fire';
+      } else if (vehicle.damage > 0) {
+        vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View | LMB · Fire Turret';
+      } else {
+        vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View';
+      }
     }
   }
 
