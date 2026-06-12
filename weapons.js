@@ -386,6 +386,33 @@ const Weapons = (() => {
       spread: 0.018, auto: true, type: 'RIFLE', recoilY: 0.022, recoilX: 0.008,
       description: 'Israeli bullpup assault rifle. Supplied to Ukrainian units through various channels. Compact (590mm overall), very reliable in urban environments.',
     },
+    {
+      id: 'TOW_BGM71', name: 'BGM-71 TOW ATGM', damage: 950,
+      fireRate: 5.5, clipSize: 1, maxReserve: 3, reloadTime: 7.0,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.045, recoilX: 0.012,
+      blastRadius: 6, homing: true, hasScope: true,
+      description: 'US Tube-launched Optically tracked Wire-guided ATGM. Thousands supplied to Ukraine. BGM-71F warhead penetrates 900mm RHA. Range 3750m, in service since 1970.',
+    },
+    {
+      id: 'RPG29', name: 'RPG-29 Vampir (tandem)', damage: 680,
+      fireRate: 4.0, clipSize: 1, maxReserve: 2, reloadTime: 5.0,
+      spread: 0.008, auto: false, type: 'AT_LIGHT', recoilY: 0.075, recoilX: 0.024,
+      blastRadius: 5,
+      description: 'Russian RPG-29 Vampir. 105mm tandem HEAT warhead defeats ERA-equipped tanks. Two-piece tube design. Used by Russian forces and Syrian Army; some captured by Ukraine.',
+    },
+    {
+      id: 'STARSTREAK', name: 'Starstreak HVM (UK)', damage: 750,
+      fireRate: 4.2, clipSize: 1, maxReserve: 3, reloadTime: 5.5,
+      spread: 0, auto: false, type: 'AA', recoilY: 0.040, recoilX: 0.012,
+      blastRadius: 4, homing: true, hasScope: true,
+      description: 'UK Thales Starstreak high-velocity missile. Fires 3 laser-guided tungsten darts at Mach 3.5. Supplied to Ukraine for drone/helicopter defense in 2022.',
+    },
+    {
+      id: 'AKM', name: 'AKM/AK-47 (7.62×39mm)', damage: 32,
+      fireRate: 0.095, clipSize: 30, maxReserve: 120, reloadTime: 2.3,
+      spread: 0.022, auto: true, type: 'RIFLE', recoilY: 0.030, recoilX: 0.012,
+      description: 'AKM — the mass-produced AK-47 variant. 7.62×39mm round. What most Russian conscripts and older units carry. Captured examples are primary loot on the Kyiv front.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -3273,6 +3300,85 @@ const Weapons = (() => {
       return g;
     },
 
+    // ── BGM-71 TOW ATGM ──────────────────────────────────────────────
+    tow_bgm71: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Launch tube (square cross-section, OD green)
+      g.add(_P(_B(0.055, 0.055, 0.48, 0x2d3d1f), X, Y, -0.30));
+      // AN/TAS-4 thermal sight (boxy, right side of tube)
+      g.add(_P(_B(0.038, 0.050, 0.075, _pal.blk()), X - 0.052, Y + 0.012, -0.24));
+      g.add(_P(_T(0.012, 0.010, 0x223322, 8), X - 0.075, Y + 0.020, -0.24)); // lens
+      // Wire spool (at rear, cylindrical drum)
+      g.add(_P(_T(0.030, 0.035, 0x4a4a3a, 10), X, Y - 0.012, -0.54));
+      // Bipod legs (front folded down)
+      g.add(_P(_B(0.005, 0.065, 0.008, _pal.blk()), X - 0.022, Y - 0.032, -0.18));
+      g.add(_P(_B(0.005, 0.065, 0.008, _pal.blk()), X + 0.022, Y - 0.032, -0.18));
+      // Traversing handle (rear pistol grip)
+      g.add(_P(_B(0.016, 0.042, 0.022, 0x1a1a0a), X, Y - 0.022, -0.56));
+      // Missile nose (warhead cap protruding front)
+      g.add(_P(_T(0.022, 0.050, 0x3a4830, 8), X, Y, -0.05));
+      return g;
+    },
+
+    // ── RPG-29 Vampir ────────────────────────────────────────────────
+    rpg29: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Two-section main tube (larger diameter than RPG-7, front+rear halves)
+      g.add(_P(_T(0.034, 0.30, 0x5c5c3a, 12), X, Y, -0.15));
+      g.add(_P(_T(0.030, 0.26, 0x4c4c32, 12), X, Y, -0.45));
+      // Tandem warhead (two-stage nose: precursor + main charge)
+      g.add(_P(_T(0.038, 0.055, 0x3a3a28, 10), X, Y, -0.01));
+      g.add(_P(_T(0.028, 0.030, 0x2a2a18, 8), X, Y, 0.045));
+      // Rear nozzle / exhaust
+      g.add(_P(_T(0.020, 0.028, _pal.blk(), 8), X, Y, -0.71));
+      // Trigger/pistol grip housing (center)
+      g.add(_P(_B(0.015, 0.038, 0.032, _pal.blk()), X, Y - 0.030, -0.32));
+      // Front grip handle
+      g.add(_P(_B(0.012, 0.035, 0.018, 0x1a1a0a), X, Y - 0.026, -0.18));
+      // PGO-7V optical sight (right side)
+      g.add(_P(_B(0.024, 0.032, 0.070, _pal.blk()), X + 0.044, Y + 0.014, -0.30));
+      g.add(_P(_T(0.010, 0.008, 0x223322, 6), X + 0.063, Y + 0.018, -0.30));
+      return g;
+    },
+
+    // ── Starstreak HVM ───────────────────────────────────────────────
+    starstreak: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.085;
+      // Shoulder-launch tube (hexagonal, olive drab)
+      g.add(_P(_T(0.028, 0.38, 0x2a3c20, 10), X, Y, -0.24));
+      // Aiming unit (distinctive three-window target acquisition unit, front-top)
+      g.add(_P(_B(0.048, 0.038, 0.065, _pal.blk()), X, Y + 0.034, -0.16));
+      // Three sensor windows on aiming unit
+      for (let sw = 0; sw < 3; sw++) {
+        g.add(_P(_B(0.010, 0.014, 0.006, 0x224433), X - 0.012 + sw * 0.012, Y + 0.042, -0.195));
+      }
+      // Gripstock (rear handle assembly)
+      g.add(_P(_B(0.060, 0.016, 0.035, 0x1a1a0a), X, Y - 0.022, -0.41));
+      // Missile fin/dart assembly visible at rear
+      g.add(_P(_T(0.018, 0.025, 0x3a3a28, 6), X, Y, -0.44));
+      // Fire button cover (hinged guard, top right)
+      g.add(_P(_B(0.012, 0.010, 0.018, 0x555544), X + 0.020, Y + 0.030, -0.38));
+      // Shoulder pad
+      g.add(_P(_B(0.044, 0.020, 0.012, 0x2a2a1a), X, Y, -0.46));
+      return g;
+    },
+
+    // ── AKM / AK-47 (7.62×39mm) ──────────────────────────────────────
+    akm: function () {
+      return _rifle({
+        body:    { w: 0.038, h: 0.055, d: 0.34, col: 0x2d2d2d },
+        barrel:  { r: 0.009, len: 0.34, col: _pal.steel() },
+        stock:   'wood',   // wooden stock (not folding)
+        mag:     'curved', // 7.62 banana mag (more curved than 5.45)
+        muzzle:  'slant',  // AKM slant compensator
+        hg:      'wood',   // wooden handguard
+        sights:  true,
+      });
+    },
+
     // ── IWI Tavor X95 bullpup ─────────────────────────────────────────
     tavor_x95: function () {
       const g = new THREE.Group(); g.userData.selfContained = true;
@@ -3323,6 +3429,8 @@ const Weapons = (() => {
     NB.zu23_2, NB.fpv_drone, NB.kornet, NB.rpg26, NB.himars,
     // 4 more (F-1 grenade, Maxim M1910, BM-21 Grad, Tavor X95)
     NB.f1_grenade, NB.maxim1910, NB.bm21_grad, NB.tavor_x95,
+    // 4 more (TOW BGM-71, RPG-29, Starstreak, AKM)
+    NB.tow_bgm71, NB.rpg29, NB.starstreak, NB.akm,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

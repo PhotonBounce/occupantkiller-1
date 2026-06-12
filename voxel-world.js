@@ -3045,6 +3045,74 @@ window.VoxelWorld = (function () {
     setBlock(rdx + 14, rdby + 13, rdz + 5, BLOCK.LIGHT);    // yellow
     setBlock(rdx + 15, rdby + 13, rdz + 5, BLOCK.LIGHT);
 
+    // ── B2. Saint Michael's Golden-Domed Monastery (NW, x=-26, z=-42) ──
+    // Blue-walled monastery with golden domes — northwest of Maidan
+    var smx = ox - 26, smz = oz - 42;
+    var smby = gh(smx, smz);
+    for (var smbx = 0; smbx < 14; smbx++) {
+      for (var smbz = 0; smbz < 10; smbz++) {
+        for (var smby2 = 1; smby2 <= 9; smby2++) {
+          var smIsWall = smbx === 0 || smbx === 13 || smbz === 0 || smbz === 9 || smby2 === 9;
+          if (smIsWall) setBlock(smx + smbx, smby + smby2, smz + smbz, BLOCK.CONCRETE); // blue-ish (concrete)
+          else if (smby2 >= 3 && smby2 <= 6 && smbx % 4 === 1 && (smbz === 0 || smbz === 9)) {
+            setBlock(smx + smbx, smby + smby2, smz + smbz, BLOCK.GLASS);
+          }
+        }
+      }
+    }
+    // 7 golden domes across the roof
+    var smDomes = [[1,4],[3,4],[5,4],[7,4],[9,4],[11,4],[7,8]];
+    for (var sdm = 0; sdm < smDomes.length; sdm++) {
+      var sdmX = smx + smDomes[sdm][0], sdmZ = smz + smDomes[sdm][1];
+      var sdmY = smby + 9;
+      setBlock(sdmX, sdmY,     sdmZ, BLOCK.STONE);
+      setBlock(sdmX, sdmY + 1, sdmZ, BLOCK.LIGHT);
+      setBlock(sdmX - 1, sdmY + 1, sdmZ, BLOCK.LIGHT);
+      setBlock(sdmX + 1, sdmY + 1, sdmZ, BLOCK.LIGHT);
+      setBlock(sdmX, sdmY + 1, sdmZ - 1, BLOCK.LIGHT);
+      setBlock(sdmX, sdmY + 1, sdmZ + 1, BLOCK.LIGHT);
+      setBlock(sdmX, sdmY + 2, sdmZ, BLOCK.METAL); // cross finial
+    }
+
+    // ── B3. Rodina-Mat (Motherland Statue, x=50, z=52) — 22 blocks ──
+    // The 62m titanium statue east of Lavra — iconic Kyiv skyline landmark
+    var rmx = ox + 50, rmz = oz + 52;
+    var rmby = gh(rmx, rmz);
+    // Pedestal base (wide, concrete, 5 high)
+    for (var rpx = -4; rpx <= 4; rpx++) {
+      for (var rpz = -4; rpz <= 4; rpz++) {
+        for (var rpy = 1; rpy <= 5; rpy++) {
+          var rpIsOuter = Math.abs(rpx) === 4 || Math.abs(rpz) === 4 || rpy === 5;
+          if (rpIsOuter) setBlock(rmx + rpx, rmby + rpy, rmz + rpz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Figure legs and torso (narrow column above pedestal)
+    for (var rfh = 6; rfh <= 18; rfh++) {
+      var rfW = rfh < 10 ? 2 : rfh < 15 ? 1 : 1;
+      for (var rfx = -rfW; rfx <= rfW; rfx++) {
+        for (var rfz = -rfW; rfz <= rfW; rfz++) {
+          if (Math.abs(rfx) === rfW || Math.abs(rfz) === rfW) {
+            setBlock(rmx + rfx, rmby + rfh, rmz + rfz, BLOCK.METAL);
+          }
+        }
+      }
+    }
+    // Raised sword arm (extending east + up from torso at height ~14)
+    for (var rsh = 0; rsh <= 6; rsh++) {
+      setBlock(rmx + 2 + rsh, rmby + 16 - rsh, rmz, BLOCK.METAL);
+    }
+    // Shield arm (west side)
+    for (var rsw = 0; rsw <= 3; rsw++) {
+      setBlock(rmx - 2 - rsw, rmby + 14 + rsw, rmz, BLOCK.REINFORCED);
+    }
+    // Head (top, small block cluster)
+    setBlock(rmx, rmby + 19, rmz, BLOCK.CONCRETE);
+    setBlock(rmx, rmby + 20, rmz, BLOCK.CONCRETE);
+    setBlock(rmx - 1, rmby + 20, rmz, BLOCK.CONCRETE);
+    setBlock(rmx + 1, rmby + 20, rmz, BLOCK.CONCRETE);
+    setBlock(rmx, rmby + 21, rmz, BLOCK.METAL); // spire tip
+
     // ── C. Pechersk Lavra Bell Tower (x=22, z=46) — 30 blocks tall ───────
     // The Great Bell Tower of the Kyiv-Pechersk Lavra monastery
     var lbx = ox + 22, lbz = oz + 46;

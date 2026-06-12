@@ -102,8 +102,8 @@ async function waitFor(page, expr, tries = 80) {
     ];
     let angleIdx = 0;
 
-    // Cycle through all 65 weapons
-    const ALL_WEAPONS = Array.from({ length: 65 }, (_, i) => i);
+    // Cycle through all 69 weapons
+    const ALL_WEAPONS = Array.from({ length: 69 }, (_, i) => i);
     let shotCount = 0;
     let waveNum = 1;
     let weaponCycle = 0;
@@ -171,7 +171,7 @@ async function waitFor(page, expr, tries = 80) {
       shotCount++;
 
       if (shotCount % 50 === 0) {
-        console.log(`  ${shotCount}/${TARGET} shots — wave ${waveNum}, weapon ${(weaponCycle-1) % 65}/${65}, ${aliveCount} enemies alive`);
+        console.log(`  ${shotCount}/${TARGET} shots — wave ${waveNum}, weapon ${(weaponCycle-1) % 69}/${69}, ${aliveCount} enemies alive`);
       }
       await sleep(3600); // 4000ms total (200ms fire + 3600ms wait)
     }
