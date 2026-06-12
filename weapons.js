@@ -4679,8 +4679,8 @@ const Weapons = (() => {
     // ── HK G36C (5.56mm NATO carbine, German aid to Ukraine) ─────────
     g36c: function () {
       return _rifle({ hg: 'rail', hgColor: _pal.poly, stock: 'skel', mag: 'curved',
-        magColor: 0x3a3c32, muzzle: 'flash', recvLen: 0.19, recvH: 0.044, barLen: 0.09,
-        barR: 0.010, recvColor: 0x2c2e26 });
+        magColor: _pal.olive, muzzle: 'flash', recvLen: 0.19, recvH: 0.044, barLen: 0.09,
+        barR: 0.010, recvColor: _pal.poly });
     },
 
     // ── 2B9 Vasilek (82mm automatic mortar, 4-round clip) ────────────
