@@ -3477,6 +3477,94 @@ window.VoxelWorld = (function () {
     setBlock(mx + 2, mby + 2, mz - 1, BLOCK.METAL);
     setBlock(mx + 2, mby + 3, mz - 1, BLOCK.LIGHT);  // blue metro light
     setBlock(mx + 3, mby + 3, mz - 1, BLOCK.LIGHT);
+
+    // ── L. Kyiv Funicular — upper and lower stations (x=-28, z=-55) ──
+    // The cable funicular connects Podil (lower city) to the Upper city.
+    // Built 1905, it runs up the steep Volodymyrska Hill.
+    var fuX = ox - 28, fuZ = oz - 55;
+    var fuYup = gh(fuX, fuZ) + 1;
+    // Upper station building (concrete, 5×4×5)
+    for (var fux = 0; fux < 5; fux++) {
+      for (var fuz = 0; fuz < 4; fuz++) {
+        for (var fuy = 1; fuy <= 5; fuy++) {
+          var fuWall = fux === 0 || fux === 4 || fuz === 0 || fuz === 3 || fuy === 5;
+          if (fuWall) setBlock(fuX + fux, fuYup + fuy, fuZ + fuz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Glass windows on upper station
+    setBlock(fuX + 1, fuYup + 2, fuZ,     BLOCK.GLASS);
+    setBlock(fuX + 2, fuYup + 2, fuZ,     BLOCK.GLASS);
+    setBlock(fuX + 3, fuYup + 2, fuZ,     BLOCK.GLASS);
+    // Roof tiles
+    for (var frx = 0; frx < 5; frx++) {
+      for (var frz = 0; frz < 4; frz++) {
+        setBlock(fuX + frx, fuYup + 6, fuZ + frz, BLOCK.ROOFTILE);
+      }
+    }
+    // Lower station (8 blocks downslope along z — simulate the hill slope)
+    var flX = fuX - 2, flZ = fuZ + 8;
+    var fuYlo = Math.max(fuYup - 3, gh(flX, flZ) + 1);
+    for (var flx = 0; flx < 5; flx++) {
+      for (var flz = 0; flz < 4; flz++) {
+        for (var fly = 1; fly <= 4; fly++) {
+          var flWall = flx === 0 || flx === 4 || flz === 0 || flz === 3 || fly === 4;
+          if (flWall) setBlock(flX + flx, fuYlo + fly, flZ + flz, BLOCK.BRICK);
+        }
+      }
+    }
+    setBlock(flX + 1, fuYlo + 2, flZ,     BLOCK.GLASS);
+    setBlock(flX + 2, fuYlo + 2, flZ,     BLOCK.GLASS);
+    // Cable support posts (METAL, spaced 4 apart up the slope)
+    for (var fp = 0; fp < 3; fp++) {
+      var fpZ = fuZ + 4 + fp * 4;
+      var fpY = gh(fuX + 1, fpZ);
+      setBlock(fuX + 1, fpY + 1, fpZ, BLOCK.METAL);
+      setBlock(fuX + 1, fpY + 2, fpZ, BLOCK.METAL);
+      setBlock(fuX + 1, fpY + 3, fpZ, BLOCK.METAL);
+    }
+    // Track rails (ASPHALT strip connecting upper and lower stations)
+    for (var ftr = 0; ftr < 10; ftr++) {
+      var ftrZ = fuZ + ftr;
+      var ftrY = gh(fuX + 2, ftrZ);
+      setBlock(fuX + 1, ftrY, ftrZ, BLOCK.ASPHALT);
+      setBlock(fuX + 3, ftrY, ftrZ, BLOCK.ASPHALT);
+    }
+
+    // ── M. Friendly T-64BV tank behind defensive trench ────────────
+    // The T-64BV was Ukraine's primary MBT during the Kyiv defense.
+    // Kontakt-1 ERA (explosive reactive armour) brick modules on hull sides.
+    var t64x = ox + 4, t64z = oz + 6;
+    var t64y = gh(t64x, t64z);
+    // Hull (T-64 is shorter and wider than T-72: 8 long × 4 wide × 2 high)
+    for (var t4hx = 0; t4hx < 8; t4hx++) {
+      for (var t4hz = 0; t4hz < 4; t4hz++) {
+        for (var t4hy = 1; t4hy <= 2; t4hy++) {
+          var t4outer = t4hx === 0 || t4hx === 7 || t4hz === 0 || t4hz === 3 || t4hy === 2;
+          if (t4outer) setBlock(t64x + t4hx, t64y + t4hy, t64z + t4hz, BLOCK.METAL);
+        }
+      }
+    }
+    // Turret (T-64 has a distinctive low, rounded turret)
+    for (var t4tx = 2; t4tx <= 5; t4tx++) {
+      for (var t4tz = 0; t4tz <= 3; t4tz++) {
+        setBlock(t64x + t4tx, t64y + 3, t64z + t4tz, BLOCK.METAL);
+      }
+    }
+    // Commander hatch
+    setBlock(t64x + 3, t64y + 4, t64z + 1, BLOCK.METAL);
+    // 125mm gun barrel (pointing north, toward enemy)
+    setBlock(t64x + 7, t64y + 3, t64z + 1, BLOCK.METAL);
+    setBlock(t64x + 8, t64y + 3, t64z + 1, BLOCK.METAL);
+    setBlock(t64x + 9, t64y + 3, t64z + 1, BLOCK.METAL);
+    // Kontakt-1 ERA bricks on hull sides (REINFORCED blocks in row — distinctive boxes)
+    for (var eraX = 1; eraX <= 6; eraX++) {
+      setBlock(t64x + eraX, t64y + 2, t64z - 1, BLOCK.REINFORCED);  // left skirt
+      setBlock(t64x + eraX, t64y + 2, t64z + 4, BLOCK.REINFORCED);  // right skirt
+    }
+    // Ukrainian flag on turret side (blue = CONCRETE, yellow = LIGHT)
+    setBlock(t64x + 4, t64y + 3, t64z - 1, BLOCK.CONCRETE); // blue stripe
+    setBlock(t64x + 5, t64y + 3, t64z - 1, BLOCK.LIGHT);    // yellow stripe
   }
 
   // IDEA 21: Evacuation bus/civilian vehicles

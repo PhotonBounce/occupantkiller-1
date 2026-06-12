@@ -299,13 +299,13 @@ const Weapons = (() => {
     {
       id: 'SPIKE_LR', name: 'Spike LR ATGM', damage: 1100,
       fireRate: 3.0, clipSize: 1, maxReserve: 4, reloadTime: 4.5,
-      spread: 0.0, auto: false, type: 'LAUNCH', recoilY: 0.02, recoilX: 0.0,
+      spread: 0.0, auto: false, type: 'ATGM', recoilY: 0.02, recoilX: 0.0,
       description: 'Israeli fire-and-forget anti-tank guided missile. Used extensively by Ukraine. Lock-on top-attack mode defeats ERA. Range 200-4000m.',
     },
     {
       id: 'MILAN', name: 'MILAN ATGM', damage: 850,
       fireRate: 4.0, clipSize: 1, maxReserve: 3, reloadTime: 5.0,
-      spread: 0.0, auto: false, type: 'LAUNCH', recoilY: 0.015, recoilX: 0.0,
+      spread: 0.0, auto: false, type: 'ATGM', recoilY: 0.015, recoilX: 0.0,
       description: 'Franco-German wire-guided anti-tank missile. Germany, France and Belgium supplied hundreds to Ukraine. Tandem warhead, SACLOS guidance.',
     },
     {
@@ -438,6 +438,33 @@ const Weapons = (() => {
       fireRate: 0.42, clipSize: 10, maxReserve: 40, reloadTime: 2.8,
       spread: 0.080, auto: false, type: 'SHOTGUN', recoilY: 0.055, recoilX: 0.018,
       description: 'Russian Saiga-12 semi-automatic shotgun based on AK action. 12-gauge, box magazine. Used by both sides as an improvised close-quarters weapon and for drone interdiction.',
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'RPG18', name: 'RPG-18 Mukha (64mm disposable)', damage: 340,
+      fireRate: 3.0, clipSize: 1, maxReserve: 2, reloadTime: 3.5,
+      spread: 0.015, auto: false, type: 'AT_LIGHT', recoilY: 0.072, recoilX: 0.024,
+      blastRadius: 3.0,
+      description: 'Soviet 64mm single-shot disposable AT rocket. Both sides carry these in their webbing. Light, simple, plentiful — the default close-range AT option for Russian conscripts and Ukrainian TDF alike.',
+    },
+    {
+      id: 'PODNOS82', name: '2B14 Podnos 82mm Mortar', damage: 850,
+      fireRate: 5.5, clipSize: 1, maxReserve: 8, reloadTime: 4.0,
+      spread: 0.055, auto: false, type: 'EXPLOSIVE', recoilY: 0.006, recoilX: 0.002,
+      blastRadius: 9,
+      description: '82mm infantry mortar. The most common single artillery piece in the Ukraine trench war — both sides fire thousands of rounds daily. Drop-in-tube operation, 3km max range, 4 rounds/min.',
+    },
+    {
+      id: 'OTS14', name: 'OTs-14 Groza (Spetsnaz bullpup)', damage: 26,
+      fireRate: 0.068, clipSize: 30, maxReserve: 120, reloadTime: 2.2,
+      spread: 0.020, auto: true, type: 'ASSAULT', recoilY: 0.012, recoilX: 0.005,
+      description: 'Russian OTs-14 Groza bullpup. 9×39mm subsonic with integral suppressor and GP-25 underbarrel grenade launcher. Used by FSB and Spetsnaz in Ukraine. Nearly inaudible at distance.',
+    },
+    {
+      id: 'PP19', name: 'PP-19 Bizon (64-round helical)', damage: 16,
+      fireRate: 0.058, clipSize: 64, maxReserve: 192, reloadTime: 3.2,
+      spread: 0.025, auto: true, type: 'SMG', recoilY: 0.008, recoilX: 0.003,
+      description: 'Russian PP-19 Bizon. 9mm with distinctive 64-round helical (screw) magazine under the barrel. Used by Russian MVD, OMON and vehicle crews in Ukraine. Excellent CQB capacity.',
     },
   ];
 
@@ -3510,6 +3537,100 @@ const Weapons = (() => {
       g.add(_P(_B(0.028, 0.028, 0.022, 0x2a2a2a), X, Y, -0.005));
       return g;
     },
+
+    // ── RPG-18 Mukha (64mm disposable AT tube) ───────────────────────
+    rpg18: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Main tube (thin cylinder, telescoping — show deployed)
+      g.add(_P(_T(0.022, 0.38, 0x6a6a4a, 12), X, Y, -0.22));
+      // Forward shoulder section (slightly wider)
+      g.add(_P(_T(0.026, 0.12, 0x5a5a3a, 10), X, Y, -0.08));
+      // Nose cap (64mm HEAT warhead)
+      g.add(_P(_T(0.020, 0.040, 0x3a3a28, 8), X, Y, 0.012));
+      // Nose ogive tip
+      g.add(_P(_T(0.010, 0.024, 0x2a2a18, 6), X, Y, 0.050));
+      // Rear nozzle/exhaust cap
+      g.add(_P(_T(0.016, 0.028, _pal.blk(), 8), X, Y, -0.42));
+      // Trigger/firing mechanism (small box under center)
+      g.add(_P(_B(0.012, 0.022, 0.020, _pal.blk()), X, Y - 0.024, -0.22));
+      // Front flip-up sight
+      g.add(_P(_B(0.004, 0.016, 0.004, _pal.blk()), X, Y + 0.026, -0.10));
+      // Rear iron sight
+      g.add(_P(_B(0.012, 0.010, 0.004, _pal.blk()), X, Y + 0.026, -0.32));
+      return g;
+    },
+
+    // ── 2B14 Podnos 82mm Mortar ──────────────────────────────────────
+    podnos82: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.10;
+      // Baseplate (wide flat square plate)
+      g.add(_P(_B(0.090, 0.008, 0.090, 0x3a3a2a), X, Y + 0.002, -0.15));
+      // Bipod V-legs
+      const legMat = _pal.blk();
+      const legL = _P(_B(0.008, 0.055, 0.006, legMat), X - 0.022, Y - 0.018, -0.18);
+      legL.rotation.z = 0.22; g.add(legL);
+      const legR = _P(_B(0.008, 0.055, 0.006, legMat), X + 0.022, Y - 0.018, -0.18);
+      legR.rotation.z = -0.22; g.add(legR);
+      // Traversing joint at top of bipod
+      g.add(_P(_T(0.010, 0.014, _pal.steel(), 8), X, Y + 0.030, -0.18));
+      // Mortar tube at ~45° elevation
+      const tube = _P(_T(0.016, 0.35, 0x4a4a3a, 12), X, Y + 0.048, -0.20);
+      tube.rotation.x = Math.PI / 4 + 0.1;
+      g.add(tube);
+      // Muzzle bell (slightly wider)
+      const muz = _P(_T(0.020, 0.025, _pal.steel(), 10), X, Y + 0.055, -0.085);
+      muz.rotation.x = Math.PI / 4 + 0.1;
+      g.add(muz);
+      return g;
+    },
+
+    // ── OTs-14 Groza (Spetsnaz bullpup with integral suppressor) ─────
+    ots14: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.105;
+      // Compact bullpup body
+      g.add(_P(_B(0.038, 0.058, 0.28, _pal.blk()), X, Y, -0.15));
+      // Integral suppressor (large cylindrical can — characteristic of Groza)
+      g.add(_P(_T(0.018, 0.22, _pal.blk(), 12), X, Y + 0.008, -0.30));
+      // Suppressor end cap (wider than tube)
+      g.add(_P(_T(0.022, 0.018, _pal.blk(), 10), X, Y + 0.008, -0.42));
+      // Under-barrel GP-25 grenade launcher (short tube below barrel)
+      g.add(_P(_T(0.012, 0.16, 0x2a2a18, 10), X, Y - 0.022, -0.24));
+      g.add(_P(_T(0.016, 0.020, 0x1a1a10, 8), X, Y - 0.022, -0.33));
+      // Pistol grip (rear)
+      g.add(_P(_B(0.020, 0.046, 0.026, _pal.poly()), X, Y - 0.032, -0.05));
+      // Curved 9×39mm magazine
+      g.add(_P(_B(0.022, 0.060, 0.038, _pal.olive()), X, Y - 0.058, -0.16));
+      // Front sight (folding post over suppressor)
+      g.add(_P(_B(0.006, 0.018, 0.006, _pal.blk()), X, Y + 0.040, -0.38));
+      return g;
+    },
+
+    // ── PP-19 Bizon (helical magazine SMG) ───────────────────────────
+    pp19: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.095;
+      // Main receiver (AK-derived, compact)
+      g.add(_P(_B(0.042, 0.058, 0.22, _pal.blk()), X, Y, -0.15));
+      // Barrel (short, protruding)
+      g.add(_P(_T(0.010, 0.22, _pal.steel(), 12), X, Y + 0.006, -0.30));
+      // Muzzle device (threaded crown)
+      g.add(_P(_T(0.014, 0.028, _pal.blk(), 8), X, Y + 0.006, -0.42));
+      // Helical 64-round magazine (fat cylinder under barrel — the Bizon's trademark)
+      g.add(_P(_T(0.020, 0.20, 0x1a1a18, 12), X, Y - 0.020, -0.22));
+      const mc = new THREE.Mesh(new THREE.SphereGeometry(0.020, 8, 6),
+        new THREE.MeshLambertMaterial({ color: 0x1a1a18 }));
+      mc.position.set(X, Y - 0.020, -0.32); g.add(mc);
+      // Side-fold stock (AKS-style wire)
+      g.add(_P(_B(0.006, 0.052, 0.080, 0x1a1a14), X + 0.030, Y + 0.002, -0.08));
+      // Pistol grip
+      g.add(_P(_B(0.020, 0.046, 0.024, _pal.poly()), X, Y - 0.034, -0.05));
+      // Front sight post
+      g.add(_P(_B(0.006, 0.022, 0.006, _pal.blk()), X, Y + 0.040, -0.38));
+      return g;
+    },
   };
 
   const meshBuilders = [
@@ -3539,6 +3660,8 @@ const Weapons = (() => {
     NB.tow_bgm71, NB.rpg29, NB.starstreak, NB.akm,
     // 4 more (AN-94, M67, Switchblade 300, Saiga-12)
     NB.an94, NB.m67_grenade, NB.switchblade300, NB.saiga12,
+    // 4 more (RPG-18, Podnos 82mm mortar, OTs-14 Groza, PP-19 Bizon)
+    NB.rpg18, NB.podnos82, NB.ots14, NB.pp19,
   ];
 
   // Ensure meshBuilders matches WEAPONS length
