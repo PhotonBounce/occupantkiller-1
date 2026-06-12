@@ -495,6 +495,33 @@ const Weapons = (() => {
       blastRadius: 4, homing: false,
       description: 'DJI Mavic-3 commercial drone carrying a VOG-25 grenade in a 3D-printed clamp. Ukrainian innovation now responsible for more trench casualties than artillery in some sectors. Cheap, available, and terrifying.',
     },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'BAYRAKTAR', name: 'Bayraktar TB2 (Strike Drone)', damage: 1800,
+      fireRate: 14.0, clipSize: 1, maxReserve: 2, reloadTime: 16.0,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.004, recoilX: 0.001,
+      blastRadius: 10, homing: true,
+      description: 'Turkish Bayraktar TB2 UCAV. Ukraine had 35 by Feb 2022. Armed with MAM-L smart munition. Dominated the 2022 Kyiv defense — viral footage worldwide. Now countered by Russian EW but still operational in modified roles.',
+    },
+    {
+      id: 'TOS1A', name: 'TOS-1A Buratino (Thermobaric MLRS)', damage: 2500,
+      fireRate: 16.0, clipSize: 1, maxReserve: 1, reloadTime: 18.0,
+      spread: 0.008, auto: false, type: 'THERMOBARIC', recoilY: 0.005, recoilX: 0.002,
+      blastRadius: 16, homing: false,
+      description: 'Russian TOS-1A Solntsepyok. 220mm thermobaric MLRS on T-72 chassis. 24-round ripple creates 40,000m² fireball. Ukraine captured several in 2022. The most horrific area-denial weapon in the war.',
+    },
+    {
+      id: 'DP27', name: 'DP-27/28 "Degtyarev" LMG', damage: 26,
+      fireRate: 0.095, clipSize: 47, maxReserve: 141, reloadTime: 4.0,
+      spread: 0.038, auto: true, type: 'LMG', recoilY: 0.022, recoilX: 0.010,
+      description: 'Soviet WW2-era DP-27 light machine gun. Still filmed in Ukraine trenches 2022-2025 — both sides dip into old reserve stocks. 47-round pan magazine sits on top. Nicknamed "gramophone" or "record player."',
+    },
+    {
+      id: 'SV98', name: 'SV-98 Precision Sniper Rifle', damage: 185,
+      fireRate: 1.5, clipSize: 10, maxReserve: 30, reloadTime: 4.5,
+      spread: 0.002, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.045, recoilX: 0.012,
+      description: 'Russian SV-98 bolt-action 7.62×54mmR. Used by Russian snipers for methodical counter-sniper work in static trench lines. More accurate than SVD but slower. Deployed from dedicated hides at 800-1000m.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -3773,6 +3800,105 @@ const Weapons = (() => {
       g.add(_P(_B(0.004, 0.004, 0.004, 0x00cc44), X - 0.010, Y + 0.012, -0.158));
       return g;
     },
+
+    // ── Bayraktar TB2 Ground Control Station handset ──────────────────
+    bayraktar: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.07;
+      // GCS body (thicker game controller / handheld terminal)
+      g.add(_P(_B(0.090, 0.055, 0.030, 0x2a3020), X, Y, -0.185));
+      // Screen (drone video feed — slightly blue-tinted)
+      g.add(_P(_B(0.070, 0.038, 0.004, 0x080e1a), X, Y + 0.004, -0.204));
+      // Drone silhouette on screen (tiny T-shape = TB2 top view)
+      g.add(_P(_B(0.028, 0.003, 0.004, 0x1a4488), X, Y + 0.010, -0.205));  // wings
+      g.add(_P(_B(0.003, 0.016, 0.004, 0x1a4488), X, Y + 0.002, -0.205));  // fuselage
+      // Left joystick grip
+      g.add(_P(_B(0.014, 0.036, 0.022, _pal.poly()), X - 0.036, Y - 0.020, -0.185));
+      g.add(_P(_T(0.006, 0.014, _pal.blk(), 6), X - 0.036, Y + 0.014, -0.185));
+      // Right joystick grip
+      g.add(_P(_B(0.014, 0.036, 0.022, _pal.poly()), X + 0.036, Y - 0.020, -0.185));
+      g.add(_P(_T(0.006, 0.014, _pal.blk(), 6), X + 0.036, Y + 0.014, -0.185));
+      // Turkish flag sticker (red block on right side)
+      g.add(_P(_B(0.010, 0.006, 0.004, 0xcc2222), X + 0.028, Y + 0.022, -0.200));
+      // Antenna (right side, thin post)
+      g.add(_P(_T(0.003, 0.042, _pal.blk(), 6), X + 0.038, Y + 0.048, -0.185));
+      // Launch authorise button (red top-centre)
+      const authBtn = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.006, 6),
+        new THREE.MeshLambertMaterial({ color: 0xcc2200 }));
+      authBtn.position.set(X, Y + 0.032, -0.205); g.add(authBtn);
+      return g;
+    },
+
+    // ── TOS-1A Buratino thermobaric fire control unit ─────────────────
+    tos1a: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.07;
+      // Ruggedised fire control unit (orange-red safety colour)
+      g.add(_P(_B(0.080, 0.052, 0.028, 0x8a3308), X, Y, -0.170));
+      // Screen (target area map, dark green)
+      g.add(_P(_B(0.056, 0.034, 0.004, 0x0a0e08), X, Y + 0.004, -0.186));
+      // Grid lines on screen
+      g.add(_P(_B(0.056, 0.001, 0.003, 0x1a3a0a), X, Y + 0.008, -0.186));
+      g.add(_P(_B(0.001, 0.034, 0.003, 0x1a3a0a), X, Y + 0.004, -0.186));
+      // Large red fire-mission button (prominent, safety guard ring)
+      const fBtn = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.008, 8),
+        new THREE.MeshLambertMaterial({ color: 0xff3300 }));
+      fBtn.position.set(X + 0.028, Y + 0.020, -0.190); g.add(fBtn);
+      g.add(_P(_T(0.018, 0.004, 0x5a2a08, 8), X + 0.028, Y + 0.022, -0.190));
+      // Rubber side grips
+      g.add(_P(_B(0.006, 0.044, 0.024, 0x1a1a10), X - 0.044, Y, -0.170));
+      g.add(_P(_B(0.006, 0.044, 0.024, 0x1a1a10), X + 0.044, Y, -0.170));
+      // "TOS" marking on face (yellow lines)
+      g.add(_P(_B(0.016, 0.002, 0.002, 0xdddd22), X - 0.022, Y + 0.020, -0.188));
+      g.add(_P(_B(0.002, 0.012, 0.002, 0xdddd22), X - 0.022, Y + 0.014, -0.188));
+      return g;
+    },
+
+    // ── DP-27/28 Degtyarev LMG with 47-round pan magazine ────────────
+    dp27: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.11;
+      // Flat low receiver (DP-28 has very slim profile)
+      g.add(_P(_B(0.042, 0.048, 0.28, 0x3a3228), X, Y, -0.20));
+      // Long barrel with cooling fins (distinctive jacketted barrel)
+      g.add(_P(_T(0.012, 0.52, _pal.steel(), 12), X, Y + 0.004, -0.49));
+      for (let rf = 0; rf < 7; rf++) {
+        g.add(_P(_T(0.014, 0.006, 0x4a4842, 10), X, Y + 0.004, -0.26 - rf * 0.050));
+      }
+      // Muzzle (plain open)
+      g.add(_P(_T(0.014, 0.018, _pal.blk(), 8), X, Y + 0.004, -0.75));
+      // Gas cylinder (long piston rod below barrel — characteristic DP feature)
+      g.add(_P(_T(0.009, 0.32, 0x5a5850, 10), X, Y - 0.020, -0.35));
+      // DISTINCTIVE flat 47-round pan magazine on TOP of receiver
+      const panM = new THREE.MeshLambertMaterial({ color: 0x2a2822 });
+      const pan = new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.044, 0.024, 18), panM);
+      pan.rotation.x = Math.PI / 2; pan.position.set(X, Y + 0.042, -0.22); g.add(pan);
+      const panRim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.044, 0.005, 6, 18), _pal.blk());
+      panRim.rotation.x = Math.PI / 2; panRim.position.set(X, Y + 0.042, -0.22); g.add(panRim);
+      // Bipod legs (V-shape at gas block, folded forward)
+      const bl = _P(_B(0.006, 0.046, 0.008, _pal.blk()), X - 0.022, Y - 0.022, -0.38);
+      bl.rotation.z = 0.25; g.add(bl);
+      const br2 = _P(_B(0.006, 0.046, 0.008, _pal.blk()), X + 0.022, Y - 0.022, -0.38);
+      br2.rotation.z = -0.25; g.add(br2);
+      // Wooden pistol grip and buttstock
+      g.add(_P(_B(0.020, 0.044, 0.025, _pal.wood()), X, Y - 0.030, -0.06));
+      g.add(_P(_B(0.032, 0.038, 0.115, _pal.wood()), X, Y - 0.006, 0.014));
+      return g;
+    },
+
+    // ── SV-98 bolt-action precision sniper ───────────────────────────
+    sv98: function () {
+      return _rifle({
+        hg: 'rail', hgColor: _pal.tan,
+        stock: 'fixed', stockColor: () => _M(0x2a2820, 0.25, 0.7),
+        mag: 'box', magColor: _pal.blk,
+        muzzle: 'brake',
+        rail: true, scope: true, bipod: true,
+        recvLen: 0.30, barR: 0.013, barLen: 0.55,
+        recvColor: () => _M(0x282624, 0.4, 0.5),
+      });
+    },
   };
 
   const meshBuilders = [
@@ -3806,6 +3932,8 @@ const Weapons = (() => {
     NB.rpg18, NB.podnos82, NB.ots14, NB.pp19,
     // 4 more (FAB-500 glide bomb, M777 howitzer, Strela-2, commercial drop drone)
     NB.fab500, NB.m777, NB.strela2, NB.dropdrone,
+    // 4 more (Bayraktar TB2, TOS-1A, DP-27, SV-98)
+    NB.bayraktar, NB.tos1a, NB.dp27, NB.sv98,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

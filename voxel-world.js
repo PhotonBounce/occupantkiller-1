@@ -3621,6 +3621,76 @@ window.VoxelWorld = (function () {
       }
     }
 
+    // ── P. Shipping container barrier wall at city entrance (z=20) ──
+    // Ukraine stacked steel shipping containers across major roads into Kyiv
+    // (Khreshchatyk, Peremohy Ave) as hardened vehicle barriers.
+    var ctZ = oz + 20;
+    var ctSegments = [
+      { x: ox - 15, w: 4 }, { x: ox - 10, w: 3 },
+      { x: ox - 2,  w: 5 }, // road gap — narrowed but passable
+      { x: ox + 4,  w: 3 }, { x: ox + 8,  w: 4 },
+    ];
+    for (var cti = 0; cti < ctSegments.length; cti++) {
+      var ct = ctSegments[cti];
+      var ctBy = gh(ct.x, ctZ);
+      // Ground-level container (3 blocks high, 2 deep)
+      for (var ctx = 0; ctx < ct.w; ctx++) {
+        for (var ctz = 0; ctz < 2; ctz++) {
+          for (var cty = 1; cty <= 3; cty++) {
+            var ctOuter = ctx === 0 || ctx === ct.w - 1 || ctz === 0 || ctz === 1 || cty === 3;
+            if (ctOuter) setBlock(ct.x + ctx, ctBy + cty, ctZ + ctz, BLOCK.METAL);
+          }
+        }
+      }
+      // Stacked second container (offset segments for stagger effect)
+      if (cti % 2 === 1) {
+        for (var ctx2 = 0; ctx2 < ct.w; ctx2++) {
+          for (var ctz2 = 0; ctz2 < 2; ctz2++) {
+            for (var cty2 = 4; cty2 <= 6; cty2++) {
+              var ctOuter2 = ctx2 === 0 || ctx2 === ct.w - 1 || ctz2 === 0 || ctz2 === 1 || cty2 === 6;
+              if (ctOuter2) setBlock(ct.x + ctx2, ctBy + cty2, ctZ + ctz2, BLOCK.METAL);
+            }
+          }
+        }
+      }
+      // Sandbag fill between containers at ground
+      for (var sbc = 0; sbc < ct.w; sbc++) {
+        setBlock(ct.x + sbc, ctBy + 1, ctZ + 2, BLOCK.SANDBAG);
+      }
+    }
+
+    // ── Q. Rooftop MG nests (north-facing, covering approach road) ──
+    // Ukrainian TDF placed MG teams on rooftops of Maidan-area buildings
+    // to provide elevated fire coverage of Khreshchatyk / approach roads.
+    var mgRooftops = [
+      { x: ox + 12, z: oz - 4 },
+      { x: ox - 12, z: oz + 2 },
+    ];
+    for (var mri = 0; mri < mgRooftops.length; mri++) {
+      var mgr = mgRooftops[mri];
+      // Find a rooftop height (assume building ~7 blocks)
+      var mgrY = gh(mgr.x, mgr.z) + 7;
+      // Sandbag parapet (3-side U-shape, open south for access)
+      for (var psx = -1; psx <= 1; psx++) {
+        setBlock(mgr.x + psx, mgrY + 1, mgr.z - 1, BLOCK.SANDBAG); // north face
+        setBlock(mgr.x + psx, mgrY + 2, mgr.z - 1, BLOCK.SANDBAG);
+      }
+      setBlock(mgr.x - 1, mgrY + 1, mgr.z,     BLOCK.SANDBAG); // west side
+      setBlock(mgr.x - 1, mgrY + 2, mgr.z,     BLOCK.SANDBAG);
+      setBlock(mgr.x + 1, mgrY + 1, mgr.z,     BLOCK.SANDBAG); // east side
+      setBlock(mgr.x + 1, mgrY + 2, mgr.z,     BLOCK.SANDBAG);
+      // Floor slab (CONCRETE)
+      setBlock(mgr.x - 1, mgrY, mgr.z - 1, BLOCK.CONCRETE);
+      setBlock(mgr.x,     mgrY, mgr.z - 1, BLOCK.CONCRETE);
+      setBlock(mgr.x + 1, mgrY, mgr.z - 1, BLOCK.CONCRETE);
+      setBlock(mgr.x - 1, mgrY, mgr.z,     BLOCK.CONCRETE);
+      setBlock(mgr.x,     mgrY, mgr.z,     BLOCK.CONCRETE);
+      setBlock(mgr.x + 1, mgrY, mgr.z,     BLOCK.CONCRETE);
+      // MG (METAL block on makeshift mount)
+      setBlock(mgr.x, mgrY + 1, mgr.z,     BLOCK.METAL); // gun body
+      setBlock(mgr.x, mgrY + 2, mgr.z,     BLOCK.METAL); // elevated mount
+    }
+
     // ── M. Friendly T-64BV tank behind defensive trench ────────────
     // The T-64BV was Ukraine's primary MBT during the Kyiv defense.
     // Kontakt-1 ERA (explosive reactive armour) brick modules on hull sides.
