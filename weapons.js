@@ -293,7 +293,7 @@ const Weapons = (() => {
     {
       id: 'RGD5', name: 'RGD-5 Frag Grenade', damage: 180,
       fireRate: 1.2, clipSize: 4, maxReserve: 12, reloadTime: 1.0,
-      spread: 0.0, auto: false, type: 'THROW', recoilY: 0.0, recoilX: 0.0,
+      spread: 0.0, auto: false, type: 'GRENADE', recoilY: 0.0, recoilX: 0.0,
       description: 'Soviet fragmentation grenade. Standard issue across former Soviet armies. Effective blast radius ~15m. Both sides use these extensively.',
     },
     {

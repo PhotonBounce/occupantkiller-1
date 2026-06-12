@@ -3466,6 +3466,20 @@ const GameManager = (function () {
     var capitalDefense = !!(stageDef && stageDef.capitalDefense);
     if (capitalDefense && typeof ConvoySystem !== 'undefined') {
       ConvoySystem.spawnConvoy(w, { route: 'north' });
+      // Waves 3+: flanking infantry squads from the sides of the approach
+      if (w >= 3 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+        var _flankSide = (w % 2 === 0) ? 1 : -1;
+        var _flankPositions = [
+          { x: _flankSide * 38, z: 60 }, { x: _flankSide * 42, z: 80 },
+          { x: _flankSide * 36, z: 100 },
+        ];
+        for (var _fi = 0; _fi < _flankPositions.length; _fi++) {
+          var _fp = _flankPositions[_fi];
+          var _fType = (_fi === 0) ? 'ASSAULT' : (_fi === 1 ? 'RIFLEMAN' : 'GRENADIER');
+          Enemies.spawnSingle(_fType, new THREE.Vector3(_fp.x, 0, _fp.z));
+        }
+        if (w === 3) HUD.notifyPickup('⚠ FLANKING ASSAULT — PROTECT YOUR SIDES!', '#ff4444');
+      }
       // Waves 4 and 7: second column on a flanking axis
       if (w === 4) ConvoySystem.spawnConvoy(w, { route: 'east', tanks: 2, btrs: 1 });
       if (w === 7) ConvoySystem.spawnConvoy(w, { route: 'west', tanks: 3, btrs: 1 });
@@ -3474,6 +3488,24 @@ const GameManager = (function () {
       // engages armor with MAM-L; respects its own 90s rearm cooldown).
       if (typeof DroneSystem !== 'undefined' && DroneSystem.callBayraktar) {
         DroneSystem.callBayraktar();
+      }
+      // Building snipers — enemy sharpshooters occupy the apartment rooftops
+      // along the approach corridor (Irpin/Bucha suburb blocks, z=135-195).
+      // Spawn 2-3 snipers per wave from wave 2 onwards, positioned on
+      // the tops of the residential buildings added in generateKyivCityExtension.
+      if (w >= 2 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+        var _kyivBuildingPos = [
+          { x: -14, z: 137 }, { x:  8, z: 139 }, { x: -14, z: 158 },
+          { x:  8, z: 160 },  { x: -12, z: 180 }, { x: 10, z: 182 },
+        ];
+        var _snipersThisWave = Math.min(2 + Math.floor(w / 2), 4);
+        for (var _si = 0; _si < _snipersThisWave; _si++) {
+          var _sb = _kyivBuildingPos[(_si + w) % _kyivBuildingPos.length];
+          // Spawn on top of building (y computed by terrain+building height ~y+5)
+          var _sby = (VoxelWorld.getTopSolidY ? VoxelWorld.getTopSolidY(_sb.x, _sb.z) : VoxelWorld.getTerrainHeight(_sb.x, _sb.z) + 5);
+          Enemies.spawnSingle('SNIPER', new THREE.Vector3(_sb.x, _sby, _sb.z));
+        }
+        if (w === 2) HUD.notifyPickup('⚠ SNIPERS IN BUILDINGS — CLEAR THE ROOFTOPS!', '#ff6622');
       }
       // Resupply: AT weapons carry 1+3 rockets — drop ammo crates at the
       // defended line each wave so launchers stay fed.
