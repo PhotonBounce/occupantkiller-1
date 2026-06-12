@@ -1469,7 +1469,7 @@ const GameManager = (function () {
     // role only. Lone Wolf previously got the same 22-NPC army, which deleted
     // every nearby enemy before the player could engage (zero threat).
     if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
-    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
+    if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
 
     // Spawn starter vehicle fleet on roads (road-level positions)
     VehicleSystem.clear(); // prevent duplication if forceStartGame is called multiple times
@@ -2984,7 +2984,7 @@ const GameManager = (function () {
     VehicleSystem.clear();
     DroneSystem.clear();
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
-    NPCSystem.clear();
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined') Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
@@ -2996,7 +2996,7 @@ const GameManager = (function () {
     // Respawn organized assault groups for the real gameplay start path
     // (BRIGADE role only — Lone Wolf fights solo).
     if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
-    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
+    if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads for first stage
     var _rwps = (window.VoxelWorld.getRoadWaypoints ? window.VoxelWorld.getRoadWaypoints() : []);
@@ -3296,9 +3296,9 @@ const GameManager = (function () {
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
 
     // Respawn organized assault groups on new terrain (BRIGADE role only)
-    NPCSystem.clear();
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
-    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
+    if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads
     var _nsWps = (VoxelWorld.getRoadWaypoints ? VoxelWorld.getRoadWaypoints() : []);
