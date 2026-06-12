@@ -1107,6 +1107,81 @@ function buildCivilianMesh(npc) {
     }
   }
 
+  /* ── Ukrainian Army Squad Formations ────────────────────────────── */
+  // Based on NATO-standard infantry squad tactics used by Ukrainian forces
+  const FORMATION = Object.freeze({
+    WEDGE:   'wedge',   // arrow — advancing through open terrain
+    LINE:    'line',    // skirmish line — maximum firepower to front
+    ECHELON_L:'echelon_l', // echelon left — cover right flank
+    ECHELON_R:'echelon_r', // echelon right — cover left flank
+    DIAMOND: 'diamond', // all-around defense — leader center
+    COLUMN:  'column',  // single file — movement through narrow terrain
+  });
+
+  // Formation templates: offsets relative to leader (x = lateral, z = depth/back)
+  // Units: meters. Ukrainian squads maintain 4-6m spacing in combat.
+  const FORMATION_TEMPLATES = {
+    [FORMATION.WEDGE]: [
+      { x: 0,   z: 0 },    // 0 leader — point
+      { x: -4,  z: -4 },   // 1 left-rear guard
+      { x: 4,   z: -4 },   // 2 right-rear guard
+      { x: -6,  z: -8 },   // 3 left-far
+      { x: 6,   z: -8 },   // 4 right-far
+      { x: 0,   z: -10 },  // 5 tail (medic / rear security)
+    ],
+    [FORMATION.LINE]: [
+      { x: 0,   z: 0 },    // 0 center
+      { x: -5,  z: 0 },    // 1 left
+      { x: 5,   z: 0 },    // 2 right
+      { x: -10, z: 0 },    // 3 far-left
+      { x: 10,  z: 0 },    // 4 far-right
+      { x: 0,   z: -4 },   // 5 rear support (medic)
+    ],
+    [FORMATION.ECHELON_L]: [
+      { x: 0,   z: 0 },    // 0 lead
+      { x: -4,  z: -4 },   // 1
+      { x: -8,  z: -8 },   // 2
+      { x: -12, z: -12 },  // 3
+      { x: -16, z: -16 },  // 4
+      { x: 4,   z: -4 },   // 5 cover (medic)
+    ],
+    [FORMATION.ECHELON_R]: [
+      { x: 0,   z: 0 },    // 0 lead
+      { x: 4,   z: -4 },   // 1
+      { x: 8,   z: -8 },   // 2
+      { x: 12,  z: -12 },  // 3
+      { x: 16,  z: -16 },  // 4
+      { x: -4,  z: -4 },   // 5 cover (medic)
+    ],
+    [FORMATION.DIAMOND]: [
+      { x: 0,   z: 0 },    // 0 center (leader)
+      { x: -4,  z: 0 },    // 1 left
+      { x: 4,   z: 0 },    // 2 right
+      { x: 0,   z: -5 },   // 3 front
+      { x: 0,   z: 5 },    // 4 rear (medic)
+      { x: -3,  z: -3 },   // 5 front-left
+    ],
+    [FORMATION.COLUMN]: [
+      { x: 0,   z: 0 },    // 0 lead
+      { x: 0,   z: -4 },   // 1
+      { x: 0,   z: -8 },   // 2
+      { x: 0,   z: -12 },  // 3
+      { x: 0,   z: -16 },  // 4
+      { x: 0,   z: -20 },  // 5 tail
+    ],
+  };
+
+  function _getFormationForState(state, inCombat) {
+    switch (state) {
+      case FGROUP_STATE.ADVANCING:  return FORMATION.WEDGE;
+      case FGROUP_STATE.ENGAGING:   return inCombat ? FORMATION.LINE : FORMATION.WEDGE;
+      case FGROUP_STATE.DEFENDING:  return FORMATION.DIAMOND;
+      case FGROUP_STATE.RETREATING: return FORMATION.COLUMN;
+      case FGROUP_STATE.REGROUPING: return FORMATION.DIAMOND;
+      default: return FORMATION.WEDGE;
+    }
+  }
+
   /* ── Player-selected formation (set via UI before wave start) ───── */
   var _playerFormation = FORMATION.WEDGE; // default
 
@@ -1304,81 +1379,6 @@ function buildCivilianMesh(npc) {
           }
         }
       }
-    }
-  }
-
-  /* ── Ukrainian Army Squad Formations ────────────────────────────── */
-  // Based on NATO-standard infantry squad tactics used by Ukrainian forces
-  const FORMATION = Object.freeze({
-    WEDGE:   'wedge',   // arrow — advancing through open terrain
-    LINE:    'line',    // skirmish line — maximum firepower to front
-    ECHELON_L:'echelon_l', // echelon left — cover right flank
-    ECHELON_R:'echelon_r', // echelon right — cover left flank
-    DIAMOND: 'diamond', // all-around defense — leader center
-    COLUMN:  'column',  // single file — movement through narrow terrain
-  });
-
-  // Formation templates: offsets relative to leader (x = lateral, z = depth/back)
-  // Units: meters. Ukrainian squads maintain 4-6m spacing in combat.
-  const FORMATION_TEMPLATES = {
-    [FORMATION.WEDGE]: [
-      { x: 0,   z: 0 },    // 0 leader — point
-      { x: -4,  z: -4 },   // 1 left-rear guard
-      { x: 4,   z: -4 },   // 2 right-rear guard
-      { x: -6,  z: -8 },   // 3 left-far
-      { x: 6,   z: -8 },   // 4 right-far
-      { x: 0,   z: -10 },  // 5 tail (medic / rear security)
-    ],
-    [FORMATION.LINE]: [
-      { x: 0,   z: 0 },    // 0 center
-      { x: -5,  z: 0 },    // 1 left
-      { x: 5,   z: 0 },    // 2 right
-      { x: -10, z: 0 },    // 3 far-left
-      { x: 10,  z: 0 },    // 4 far-right
-      { x: 0,   z: -4 },   // 5 rear support (medic)
-    ],
-    [FORMATION.ECHELON_L]: [
-      { x: 0,   z: 0 },    // 0 lead
-      { x: -4,  z: -4 },   // 1
-      { x: -8,  z: -8 },   // 2
-      { x: -12, z: -12 },  // 3
-      { x: -16, z: -16 },  // 4
-      { x: 4,   z: -4 },   // 5 cover (medic)
-    ],
-    [FORMATION.ECHELON_R]: [
-      { x: 0,   z: 0 },    // 0 lead
-      { x: 4,   z: -4 },   // 1
-      { x: 8,   z: -8 },   // 2
-      { x: 12,  z: -12 },  // 3
-      { x: 16,  z: -16 },  // 4
-      { x: -4,  z: -4 },   // 5 cover (medic)
-    ],
-    [FORMATION.DIAMOND]: [
-      { x: 0,   z: 0 },    // 0 center (leader)
-      { x: -4,  z: 0 },    // 1 left
-      { x: 4,   z: 0 },    // 2 right
-      { x: 0,   z: -5 },   // 3 front
-      { x: 0,   z: 5 },    // 4 rear (medic)
-      { x: -3,  z: -3 },   // 5 front-left
-    ],
-    [FORMATION.COLUMN]: [
-      { x: 0,   z: 0 },    // 0 lead
-      { x: 0,   z: -4 },   // 1
-      { x: 0,   z: -8 },   // 2
-      { x: 0,   z: -12 },  // 3
-      { x: 0,   z: -16 },  // 4
-      { x: 0,   z: -20 },  // 5 tail
-    ],
-  };
-
-  function _getFormationForState(state, inCombat) {
-    switch (state) {
-      case FGROUP_STATE.ADVANCING:  return FORMATION.WEDGE;
-      case FGROUP_STATE.ENGAGING:   return inCombat ? FORMATION.LINE : FORMATION.WEDGE;
-      case FGROUP_STATE.DEFENDING:  return FORMATION.DIAMOND;
-      case FGROUP_STATE.RETREATING: return FORMATION.COLUMN;
-      case FGROUP_STATE.REGROUPING: return FORMATION.DIAMOND;
-      default: return FORMATION.WEDGE;
     }
   }
 
