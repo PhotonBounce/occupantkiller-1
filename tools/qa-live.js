@@ -26,6 +26,11 @@ const WEAPON_COUNT = 113;
 
   try {
     const p = await br.newPage();
+    const notFound404s = [];
+    p.on('response', r => {
+      if (r.status() >= 400 && !r.url().match(/favicon\.ico/i))
+        notFound404s.push(r.url());
+    });
     p.on('pageerror',  e => errors.push({ phase: 'runtime', msg: e.message }));
     p.on('requestfailed', r => {
       if (!r.url().match(/favicon/i))
@@ -33,7 +38,8 @@ const WEAPON_COUNT = 113;
     });
     p.on('console', m => {
       if (m.type() === 'error') {
-        if (m.text().includes('favicon')) return; // harmless
+        // Suppress vague "Failed to load resource" — tracked via response handler above
+        if (m.text().includes('Failed to load resource')) return;
         errors.push({ phase: 'console', msg: m.text() });
       }
       if (m.type() === 'warning') warnings.push(m.text());
@@ -155,6 +161,9 @@ const WEAPON_COUNT = 113;
     console.log(`\nConsole errors:   ${consoleErrs.length}`);
     consoleErrs.slice(0,20).forEach(e => console.log(`  ✗ ${e.msg.slice(0,120)}`));
 
+    console.log(`\nMissing assets (non-favicon 404s): ${notFound404s.length}`);
+    notFound404s.forEach(u => console.log(`  ✗ 404: ${u}`));
+
     console.log(`\nNetwork errors:   ${networkErrs.length}`);
     networkErrs.forEach(e => console.log(`  ✗ ${e.msg.slice(0,120)}`));
 
@@ -169,7 +178,7 @@ const WEAPON_COUNT = 113;
 
     console.log(`\nWarnings:         ${warnings.length}`);
 
-    const totalIssues = errors.length + meshReport.length;
+    const totalIssues = errors.length + meshReport.length + notFound404s.length;
     console.log('\n' + '═'.repeat(60));
     if (totalIssues === 0) {
       console.log('  ✓ PASS — no errors detected across all 113 weapons');
