@@ -1,6 +1,6 @@
 /**
  * screenshot-hostomel.js — 500 screenshots of Hostomel Airport level
- * God mode, all 50 weapons cycled, 4-second intervals, 8 camera angles.
+ * God mode, all 56 weapons cycled, 4-second intervals, 8 camera angles.
  * Saves to microsite/gallery/ starting from the next sequential number.
  */
 const puppeteer = require('puppeteer');
@@ -65,7 +65,7 @@ async function waitFor(page, expr, tries = 80) {
     });
     console.log('Stage loaded:', hostomelConfirm);
 
-    // Enable god mode, unlock all 50 weapons
+    // Enable god mode, unlock all 56 weapons
     await p.evaluate(() => {
       try {
         var pl = GameManager.getPlayer && GameManager.getPlayer();
@@ -102,8 +102,8 @@ async function waitFor(page, expr, tries = 80) {
     ];
     let angleIdx = 0;
 
-    // Cycle through all 50 weapons
-    const ALL_WEAPONS = Array.from({ length: 50 }, (_, i) => i);
+    // Cycle through all 56 weapons
+    const ALL_WEAPONS = Array.from({ length: 56 }, (_, i) => i);
     let shotCount = 0;
     let waveNum = 1;
     let weaponCycle = 0;
@@ -171,7 +171,7 @@ async function waitFor(page, expr, tries = 80) {
       shotCount++;
 
       if (shotCount % 50 === 0) {
-        console.log(`  ${shotCount}/${TARGET} shots — wave ${waveNum}, weapon ${(weaponCycle-1) % 50}/${50}, ${aliveCount} enemies alive`);
+        console.log(`  ${shotCount}/${TARGET} shots — wave ${waveNum}, weapon ${(weaponCycle-1) % 56}/${56}, ${aliveCount} enemies alive`);
       }
       await sleep(3600); // 4000ms total (200ms fire + 3600ms wait)
     }
