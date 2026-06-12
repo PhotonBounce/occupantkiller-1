@@ -690,12 +690,12 @@ const HUD = (() => {
     if (!_toastBox) {
       _toastBox = document.createElement('div');
       _toastBox.id = 'toast-stack';
-      _toastBox.style.cssText = 'position:fixed;bottom:170px;left:50%;transform:translateX(-50%);z-index:230;display:flex;flex-direction:column-reverse;gap:6px;align-items:center;pointer-events:none;max-width:80vw';
+      _toastBox.style.cssText = 'position:fixed;bottom:58px;left:50%;transform:translateX(-50%);z-index:230;display:flex;flex-direction:column-reverse;gap:4px;align-items:center;pointer-events:none;max-width:60vw';
       document.body.appendChild(_toastBox);
     }
     const t = document.createElement('div');
-    t.style.cssText = 'background:rgba(10,12,16,0.88);border:1px solid ' + (color || '#ffcc00') + ';color:' + (color || '#ffcc00') +
-      ';padding:6px 16px;border-radius:6px;font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000;box-shadow:0 2px 10px rgba(0,0,0,0.5);transition:opacity 0.5s;white-space:pre-wrap;text-align:center';
+    t.style.cssText = 'background:rgba(0,0,0,0.55);border-left:2px solid ' + (color || '#ffcc00') + ';color:' + (color || '#ffcc00') +
+      ';padding:3px 10px;border-radius:3px;font-family:"Segoe UI",system-ui,sans-serif;font-size:11px;font-weight:600;text-shadow:0 1px 2px #000;transition:opacity 0.4s;white-space:nowrap;text-align:left;max-width:55vw;overflow:hidden;text-overflow:ellipsis';
     t.textContent = text;
     _toastBox.appendChild(t);
     while (_toastBox.children.length > 4) _toastBox.removeChild(_toastBox.firstChild);

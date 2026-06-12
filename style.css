@@ -480,43 +480,45 @@ canvas {
 /* Wave announcement */
 #wave-announce {
   position: absolute;
-  top: 50%;
+  bottom: 13%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   text-align: center;
   pointer-events: none;
   display: none;
   z-index: 100;
+  max-width: 70vw;
 }
 #wave-announce.visible { display: block; animation: fadeInOut 2s forwards; }
-#wave-announce h2 { font-size: 40px; color: #ffaa00; text-shadow: 0 0 20px #ffaa00; letter-spacing: 4px; }
-#wave-announce p  { font-size: 16px; color: #fff; margin-top: 8px; }
+#wave-announce h2 { font-size: 22px; color: #ffaa00; text-shadow: 0 0 10px rgba(255,170,0,0.7); letter-spacing: 3px; margin: 0; }
+#wave-announce p  { font-size: 12px; color: #ccc; margin-top: 4px; }
 @keyframes fadeInOut {
-  0%   { opacity: 0; transform: translate(-50%, -55%); }
-  20%  { opacity: 1; transform: translate(-50%, -50%); }
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  20%  { opacity: 1; transform: translateX(-50%) translateY(0); }
   70%  { opacity: 1; }
   100% { opacity: 0; }
 }
-html.is-mobile #wave-announce { top: 28%; width: 90%; }
+html.is-mobile #wave-announce { bottom: 16%; width: 90%; }
 html.is-mobile #wave-announce.visible { animation: fadeInOutMobile 2.5s forwards; }
 @keyframes fadeInOutMobile {
-  0%   { opacity: 0; transform: translate(-50%, -55%) scale(0.75); }
-  20%  { opacity: 1; transform: translate(-50%, -50%) scale(0.75); }
-  70%  { opacity: 1; transform: translate(-50%, -50%) scale(0.75); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.75); }
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  20%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
 }
-/* Headshot indicator */
+/* Headshot indicator — small, top-center, away from crosshair */
 #headshot-notif {
   position: absolute;
-  top: 58px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 13px;
+  font-weight: 700;
   color: #ff8800;
-  letter-spacing: 5px;
+  letter-spacing: 3px;
   opacity: 0;
   pointer-events: none;
+  text-shadow: 0 1px 4px #000;
 }
 #headshot-notif.visible {
   animation: headshotFade 1.2s forwards;
@@ -530,13 +532,17 @@ html.is-mobile #wave-announce.visible { animation: fadeInOutMobile 2.5s forwards
 /* Pickup notification */
 #pickup-notif {
   position: absolute;
-  bottom: 110px;
-  right: 24px;
-  font-size: 18px;
-  font-weight: bold;
+  bottom: 58px;
+  right: 16px;
+  font-size: 12px;
+  font-weight: 600;
   opacity: 0;
   pointer-events: none;
-  text-shadow: 0 0 8px currentColor;
+  text-shadow: 0 1px 3px #000;
+  background: rgba(0,0,0,0.45);
+  border-left: 2px solid currentColor;
+  padding: 2px 8px;
+  border-radius: 2px;
 }
 #pickup-notif.visible {
   animation: pickupFade 1.6s forwards;
