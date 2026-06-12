@@ -549,6 +549,34 @@ const Weapons = (() => {
       spread: 0.003, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.055, recoilX: 0.016,
       description: 'Russian OSV-96 12.7×108mm anti-material rifle. Folding stock for vehicle transport. Used to defeat light armour, crew-served weapons, and enemy snipers at 1500m+. Both sides deploy heavy anti-material rifles to neutralise each other\'s entrenched positions.',
     },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'NEPTUNE', name: 'Neptune R-360 Anti-Ship Missile', damage: 8000,
+      fireRate: 20.0, clipSize: 1, maxReserve: 1, reloadTime: 25.0,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.003, recoilX: 0.001,
+      blastRadius: 22, homing: true,
+      description: 'Ukrainian R-360 Neptune subsonic cruise missile. Two Neptune missiles sank the Russian cruiser Moskva on 13 April 2022 — the largest warship sunk in combat since the Falklands. Sea-skimming at 10m altitude, 280km range. Coastal defense system converted to land strike.',
+    },
+    {
+      id: 'METIS_M1', name: 'Metis-M1 (9M131) ATGM', damage: 620,
+      fireRate: 5.5, clipSize: 1, maxReserve: 4, reloadTime: 6.0,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.040, recoilX: 0.010,
+      blastRadius: 5, homing: true, hasScope: true,
+      description: 'Russian 9M131 Metis-M1 ATGM. Successor to 9M115 Metis. Tandem warhead on tripod-mounted launcher. Portable two-man system. Used extensively by Russian motorised rifle companies in Ukraine for direct AT fire. Wire-guided with 1.5km range.',
+    },
+    {
+      id: 'M249SAW', name: 'M249 SAW (FN Minimi 5.56mm)', damage: 24,
+      fireRate: 0.068, clipSize: 200, maxReserve: 600, reloadTime: 5.5,
+      spread: 0.032, auto: true, type: 'LMG', recoilY: 0.018, recoilX: 0.008,
+      description: 'US M249 Squad Automatic Weapon / FN Minimi. 5.56×45mm belt or STANAG mag. Supplied by US to Ukraine as part of equipment packages. 850rpm cyclic. Standard NATO squad fire support weapon — lighter than PKM but high sustained fire rate.',
+    },
+    {
+      id: 'RPG30', name: 'RPG-30 Kryuk (precursor rocket)', damage: 520,
+      fireRate: 3.8, clipSize: 1, maxReserve: 2, reloadTime: 4.5,
+      spread: 0.006, auto: false, type: 'AT_LIGHT', recoilY: 0.072, recoilX: 0.022,
+      blastRadius: 4.5,
+      description: 'Russian RPG-30 "Hook". Unique dual-tube design: fires a small precursor rocket to trigger ERA, then the main 105mm tandem warhead follows. Specifically designed to defeat Kontakt-5 and Trophy active protection systems. Issued to Russian forces in Ukraine.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -3174,8 +3202,8 @@ const Weapons = (() => {
     },
 
     // ── HK MP7A2 ──────────────────────────────────────────────────────
-    mp7: () => _rifle({ hg: 'rail', hgColor: _pal.blk, stock: 'fold', mag: 'box',
-      magColor: _pal.blk, muzzle: 'suppressor', recvLen: 0.13, recvH: 0.040, barLen: 0.14,
+    mp7: () => _rifle({ hg: 'rail', hgColor: _pal.blk, stock: 'skel', mag: 'box',
+      magColor: _pal.blk, muzzle: 'flash', recvLen: 0.13, recvH: 0.040, barLen: 0.14,
       barR: 0.009, recvColor: _pal.blk }),
 
     // ── Kord 12.7mm HMG ──────────────────────────────────────────────
@@ -4019,6 +4047,120 @@ const Weapons = (() => {
         recvColor: _pal.blk,
       });
     },
+
+    // ── Neptune R-360 (coastal battery fire-control console) ────────
+    neptune: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Ruggedised military console body
+      g.add(_P(_B(0.070, 0.050, 0.090, 0x1e2228), X, Y, 0.0));
+      // Targeting screen (sea-blue radar display)
+      const sc = _P(_B(0.054, 0.038, 0.002, 0x0a2840), X, Y + 0.006, -0.045);
+      sc.rotation.x = -0.2; g.add(sc);
+      // Radar sweep arc on screen
+      const arc = _P(_B(0.040, 0.002, 0.025, 0x00cc88), X, Y + 0.012, -0.044);
+      arc.rotation.x = -0.2; g.add(arc);
+      // TARGET LOCKED indicator
+      const tgt = _P(_B(0.018, 0.006, 0.001, 0xff2200), X + 0.010, Y + 0.020, -0.044);
+      tgt.rotation.x = -0.2; g.add(tgt);
+      // Fire panel (3 buttons on top — ARM, CONFIRM, FIRE)
+      const btnColors = [0x224488, 0xff8800, 0xff0000];
+      for (let b = 0; b < 3; b++) {
+        const btn = new THREE.Mesh(
+          new THREE.SphereGeometry(0.006, 6, 6),
+          new THREE.MeshLambertMaterial({ color: btnColors[b] }));
+        btn.position.set(X - 0.016 + b * 0.016, Y + 0.028, 0.010); g.add(btn);
+      }
+      // Cable / communications port
+      g.add(_P(_T(0.004, 0.040, _pal.blk(), 6), X + 0.030, Y - 0.010, 0.010));
+      // Ukrainian trident embossed on console face
+      g.add(_P(_B(0.012, 0.018, 0.001, 0x4488cc), X, Y + 0.010, 0.046));
+      return g;
+    },
+
+    // ── Metis-M1 ATGM (launcher + sight unit) ───────────────────────
+    metis_m1: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Launch tube (rectangular cross-section, tan colour)
+      g.add(_P(_B(0.040, 0.036, 0.38, _pal.tan), X, Y, -0.22));
+      // Forward grip (folding)
+      g.add(_P(_B(0.012, 0.040, 0.016, 0x2a2820), X - 0.002, Y - 0.030, -0.28));
+      // Thermal sight unit (box on top)
+      g.add(_P(_B(0.030, 0.028, 0.065, 0x282a26), X, Y + 0.034, -0.15));
+      // Sight lens (circular, front-facing)
+      const lens = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.010, 0.010, 0.006, 8),
+        new THREE.MeshLambertMaterial({ color: 0x1a2a40, transparent: true, opacity: 0.8 }));
+      lens.rotation.x = Math.PI / 2; lens.position.set(X, Y + 0.034, -0.186); g.add(lens);
+      // Missile tube end-cap (distinctive squared shape)
+      g.add(_P(_B(0.042, 0.038, 0.012, 0x404038), X, Y, -0.43));
+      // Firing grip / trigger assembly
+      g.add(_P(_B(0.014, 0.038, 0.020, 0x1a1c18), X, Y - 0.016, -0.10));
+      // Front ring clamp
+      g.add(_P(_B(0.044, 0.040, 0.010, 0x3a3c38), X, Y, -0.38));
+      // Sling attachment point
+      g.add(_P(_B(0.006, 0.012, 0.020, _pal.blk()), X + 0.022, Y + 0.010, -0.30));
+      return g;
+    },
+
+    // ── M249 SAW / FN Minimi belt-fed LMG ───────────────────────────
+    m249saw: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Receiver (flat top rail, M249 profile)
+      g.add(_P(_B(0.040, 0.044, 0.28, 0x2c2e2a), X, Y, -0.18));
+      // Top rail
+      g.add(_P(_B(0.038, 0.008, 0.26, 0x242624), X, Y + 0.028, -0.18));
+      // Barrel (heavy, fluted — M249 has quick-detach barrel)
+      g.add(_P(_T(0.013, 0.50, _pal.steel(), 12), X, Y, -0.55));
+      // Muzzle flash hider (birdcage type)
+      g.add(_P(_T(0.016, 0.024, _pal.blk(), 6), X, Y, -0.82));
+      // Bipod (characteristic M249 bipod attached to gas block)
+      const bL = _P(_B(0.006, 0.050, 0.010, _pal.blk()), X - 0.020, Y - 0.030, -0.42);
+      bL.rotation.z = 0.20; g.add(bL);
+      const bR = _P(_B(0.006, 0.050, 0.010, _pal.blk()), X + 0.020, Y - 0.030, -0.42);
+      bR.rotation.z = -0.20; g.add(bR);
+      // 200-round ammo box (dangling on left side — STANAG-style plastic box)
+      g.add(_P(_B(0.020, 0.040, 0.058, 0x1e2820), X - 0.032, Y - 0.022, -0.14));
+      // Feed tray cover
+      g.add(_P(_B(0.040, 0.010, 0.090, 0x282a26), X, Y + 0.032, -0.12));
+      // Carry handle / barrel grab
+      g.add(_P(_B(0.006, 0.030, 0.080, 0x242422), X, Y + 0.050, -0.35));
+      // Pistol grip
+      g.add(_P(_B(0.018, 0.045, 0.022, 0x1a1c18), X, Y - 0.032, -0.02));
+      // Collapsible stock
+      g.add(_P(_B(0.024, 0.030, 0.085, 0x282a26), X, Y - 0.010, 0.060));
+      return g;
+    },
+
+    // ── RPG-30 (dual-tube precursor system) ─────────────────────────
+    rpg30: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Main 105mm tube (wider bore)
+      g.add(_P(_T(0.028, 0.50, 0x2c2e28, 12), X, Y, -0.28));
+      // Main warhead (PG-30 tandem — blunter nose than RPG-7)
+      const wh = new THREE.Mesh(
+        new THREE.ConeGeometry(0.028, 0.10, 10),
+        new THREE.MeshLambertMaterial({ color: 0x4a3a1a }));
+      wh.rotation.x = -Math.PI / 2; wh.position.set(X, Y, -0.55); g.add(wh);
+      // Distinctive SECOND smaller precursor tube (parallel, upper left)
+      g.add(_P(_T(0.014, 0.32, 0x3a3830, 10), X - 0.030, Y + 0.026, -0.20));
+      // Precursor warhead (smaller cone)
+      const pre = new THREE.Mesh(
+        new THREE.ConeGeometry(0.014, 0.055, 8),
+        new THREE.MeshLambertMaterial({ color: 0x3a2a10 }));
+      pre.rotation.x = -Math.PI / 2; pre.position.set(X - 0.030, Y + 0.026, -0.38); g.add(pre);
+      // Grip (rear section, trigger assembly)
+      g.add(_P(_B(0.018, 0.048, 0.025, 0x1c1e1a), X, Y - 0.018, -0.08));
+      // Front and rear sights
+      g.add(_P(_B(0.003, 0.018, 0.003, _pal.blk()), X, Y + 0.032, -0.38));
+      g.add(_P(_B(0.003, 0.014, 0.003, _pal.blk()), X, Y + 0.030, -0.12));
+      // Strap loops
+      g.add(_P(_B(0.006, 0.012, 0.008, _pal.blk()), X + 0.030, Y, -0.25));
+      return g;
+    },
   };
 
   const meshBuilders = [
@@ -4056,6 +4198,8 @@ const Weapons = (() => {
     NB.bayraktar, NB.tos1a, NB.dp27, NB.sv98,
     // 4 more (Lancet-3, Storm Shadow, AS Val, OSV-96)
     NB.lancet3, NB.stormshadow, NB.asval, NB.osv96,
+    // 4 more (Neptune R-360, Metis-M1 ATGM, M249 SAW, RPG-30)
+    NB.neptune, NB.metis_m1, NB.m249saw, NB.rpg30,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

@@ -3759,6 +3759,79 @@ window.VoxelWorld = (function () {
     setBlock(msx + 5, msY + 1, msz + 1, BLOCK.SANDBAG);
     setBlock(msx + 5, msY + 1, msz + 2, BLOCK.SANDBAG);
 
+    // ── T. Hedgehog obstacles (welded rail sections) ─────────────────
+    // Thousands of steel "hedgehog" or "Czech hedgehog" anti-tank traps
+    // were welded from railway rails and placed throughout Kyiv suburbs.
+    var hhPositions = [
+      { x: ox - 8, z: oz + 10 }, { x: ox - 5, z: oz + 11 },
+      { x: ox + 5, z: oz + 10 }, { x: ox + 8, z: oz + 12 },
+      { x: ox - 10, z: oz + 8 }, { x: ox + 10, z: oz + 9 },
+      { x: ox - 6, z: oz + 13 }, { x: ox + 6, z: oz + 13 },
+    ];
+    for (var hhi = 0; hhi < hhPositions.length; hhi++) {
+      var hh = hhPositions[hhi];
+      var hhY = gh(hh.x, hh.z);
+      // Cross-shaped METAL base block
+      setBlock(hh.x, hhY + 1, hh.z, BLOCK.METAL);
+      // The "arms" radiating in 4 horizontal directions simulate the X cross
+      setBlock(hh.x - 1, hhY + 1, hh.z,     BLOCK.METAL);
+      setBlock(hh.x + 1, hhY + 1, hh.z,     BLOCK.METAL);
+      setBlock(hh.x,     hhY + 1, hh.z - 1, BLOCK.METAL);
+      setBlock(hh.x,     hhY + 1, hh.z + 1, BLOCK.METAL);
+      // Vertical spike through center
+      setBlock(hh.x, hhY + 2, hh.z, BLOCK.METAL);
+    }
+
+    // ── U. Artillery battery position (M777 / D-30 emplacement) ─────
+    // Ukrainian artillery batteries were dug in behind berms on the
+    // northern approaches to provide indirect fire support.
+    var abx = ox - 16, abz = oz - 20;
+    var abY = gh(abx, abz);
+    // Earth berm (DIRT + SANDBAG) protecting gun crew
+    for (var abw = 0; abw < 8; abw++) {
+      setBlock(abx + abw, abY + 1, abz - 2, BLOCK.DIRT);
+      setBlock(abx + abw, abY + 2, abz - 2, BLOCK.DIRT);
+      setBlock(abx + abw, abY + 3, abz - 2, BLOCK.SANDBAG);
+      // Side berms
+      if (abw < 3 || abw > 5) {
+        setBlock(abx + abw, abY + 1, abz + 1, BLOCK.DIRT);
+        setBlock(abx + abw, abY + 2, abz + 1, BLOCK.DIRT);
+      }
+    }
+    setBlock(abx - 1, abY + 1, abz - 2, BLOCK.DIRT);
+    setBlock(abx + 8, abY + 1, abz - 2, BLOCK.DIRT);
+    setBlock(abx - 1, abY + 2, abz - 2, BLOCK.DIRT);
+    setBlock(abx + 8, abY + 2, abz - 2, BLOCK.DIRT);
+    // Gun trail / baseplate (METAL rectangle representing gun base)
+    setBlock(abx + 2, abY + 1, abz,     BLOCK.METAL);
+    setBlock(abx + 3, abY + 1, abz,     BLOCK.METAL);
+    setBlock(abx + 4, abY + 1, abz,     BLOCK.METAL);
+    setBlock(abx + 5, abY + 1, abz,     BLOCK.METAL);
+    // Barrel pointing toward enemy (METAL column along z-axis)
+    setBlock(abx + 3, abY + 2, abz,     BLOCK.METAL);
+    setBlock(abx + 4, abY + 2, abz,     BLOCK.METAL);
+    setBlock(abx + 3, abY + 2, abz - 4, BLOCK.METAL);
+    setBlock(abx + 4, abY + 2, abz - 4, BLOCK.METAL);
+    setBlock(abx + 3, abY + 2, abz - 5, BLOCK.METAL);
+    setBlock(abx + 4, abY + 2, abz - 5, BLOCK.METAL);
+    // Ammo crates beside gun (WOOD blocks)
+    setBlock(abx + 1, abY + 1, abz + 2, BLOCK.WOOD);
+    setBlock(abx + 6, abY + 1, abz + 2, BLOCK.WOOD);
+    setBlock(abx + 2, abY + 1, abz + 2, BLOCK.WOOD);
+    setBlock(abx + 5, abY + 1, abz + 2, BLOCK.WOOD);
+    // Crew shelter (2 × 2 × 2 CONCRETE foxhole behind battery)
+    for (var csx = 0; csx < 2; csx++) {
+      setBlock(abx + csx, abY + 1, abz + 3, BLOCK.CONCRETE);
+      setBlock(abx + csx, abY + 2, abz + 3, BLOCK.CONCRETE);
+      setBlock(abx + csx, abY + 1, abz + 4, BLOCK.CONCRETE);
+      setBlock(abx + csx, abY + 2, abz + 4, BLOCK.CONCRETE);
+    }
+    // Ukrainian flag on antenna pole
+    setBlock(abx + 7, abY + 1, abz + 2, BLOCK.METAL);
+    setBlock(abx + 7, abY + 2, abz + 2, BLOCK.METAL);
+    setBlock(abx + 7, abY + 3, abz + 2, BLOCK.METAL);
+    setBlock(abx + 7, abY + 4, abz + 2, BLOCK.FLAG);
+
     // ── M. Friendly T-64BV tank behind defensive trench ────────────
     // The T-64BV was Ukraine's primary MBT during the Kyiv defense.
     // Kontakt-1 ERA (explosive reactive armour) brick modules on hull sides.
