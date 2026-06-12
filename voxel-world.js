@@ -3531,6 +3531,96 @@ window.VoxelWorld = (function () {
       setBlock(fuX + 3, ftrY, ftrZ, BLOCK.ASPHALT);
     }
 
+    // ── N. Kyiv TV Tower (struck March 2022, northeast of Maidan) ───
+    // Tall lattice tower near Babyn Yar — iconic skyline feature.
+    // The adjacent broadcast infrastructure was hit by a Russian missile
+    // on 1 March 2022, killing 5 people near Babyn Yar Memorial.
+    var tvx = ox + 22, tvz = oz - 60;
+    var tvby = gh(tvx, tvz);
+    // Tripod base legs (concrete, 3 legs at 120° each)
+    for (var tvLi = 0; tvLi < 3; tvLi++) {
+      var tvAng = (tvLi / 3) * Math.PI * 2;
+      var tvLx = tvx + Math.round(Math.cos(tvAng) * 3);
+      var tvLz = tvz + Math.round(Math.sin(tvAng) * 3);
+      for (var tvLh = 1; tvLh <= 5; tvLh++) {
+        setBlock(tvLx, tvby + tvLh, tvLz, BLOCK.CONCRETE);
+      }
+    }
+    // Central column from top of tripod
+    for (var tvCy = 6; tvCy <= 12; tvCy++) {
+      setBlock(tvx, tvby + tvCy, tvz, BLOCK.CONCRETE);
+    }
+    // Main lattice shaft (METAL, with cross-brace rings every 4 blocks)
+    for (var tvH = 13; tvH <= 38; tvH++) {
+      setBlock(tvx, tvby + tvH, tvz, BLOCK.METAL);
+      if (tvH % 4 === 1) {
+        setBlock(tvx - 1, tvby + tvH, tvz, BLOCK.METAL);
+        setBlock(tvx + 1, tvby + tvH, tvz, BLOCK.METAL);
+        setBlock(tvx, tvby + tvH, tvz - 1, BLOCK.METAL);
+        setBlock(tvx, tvby + tvH, tvz + 1, BLOCK.METAL);
+      }
+    }
+    // Broadcast deck at height 32 (3×3 platform)
+    for (var tvDx = -1; tvDx <= 1; tvDx++) {
+      for (var tvDz = -1; tvDz <= 1; tvDz++) {
+        setBlock(tvx + tvDx, tvby + 32, tvz + tvDz, BLOCK.METAL);
+      }
+    }
+    // Top spire (above deck)
+    for (var tvSp = 39; tvSp <= 44; tvSp++) {
+      setBlock(tvx, tvby + tvSp, tvz, BLOCK.METAL);
+    }
+    // Aviation warning lights (FIRE = red beacon — realistic aviation marking)
+    setBlock(tvx, tvby + 26, tvz, BLOCK.FIRE);
+    setBlock(tvx, tvby + 44, tvz, BLOCK.FIRE);
+    // Blast damage (missile strike rubble at base, north side)
+    setBlock(tvx + 2, tvby + 1, tvz - 3, BLOCK.RUBBLE);
+    setBlock(tvx - 1, tvby + 1, tvz - 4, BLOCK.RUBBLE);
+    setBlock(tvx + 1, tvby + 2, tvz - 3, BLOCK.RUBBLE);
+    setBlock(tvx + 3, tvby + 1, tvz - 2, BLOCK.RUBBLE);
+
+    // ── O. Damaged apartment blocks in approach corridor (flanks) ───
+    // Multi-story residential buildings partially collapsed from shelling.
+    // Offset from the road (x±12-16) so they flank the approach.
+    var aptLayout = [
+      { x: ox - 15, z: oz + 28 }, { x: ox + 12, z: oz + 42 },
+      { x: ox - 16, z: oz + 58 }, { x: ox + 11, z: oz + 74 },
+    ];
+    for (var aI = 0; aI < aptLayout.length; aI++) {
+      var apos = aptLayout[aI];
+      var apy = gh(apos.x, apos.z);
+      var btype = (aI % 2 === 0) ? BLOCK.CONCRETE : BLOCK.BRICK;
+      // 5-story block (10 wide × 5 deep × 14 high)
+      for (var abx = 0; abx < 10; abx++) {
+        for (var abz = 0; abz < 5; abz++) {
+          for (var aby = 1; aby <= 14; aby++) {
+            // Upper floors randomly missing (shell damage)
+            if (aby > 9 && Math.random() < 0.45) continue;
+            var isWall = abx === 0 || abx === 9 || abz === 0 || abz === 4;
+            var isFloor = (aby === 4 || aby === 8 || aby === 12);
+            if (!isWall && !isFloor) continue;
+            // Window openings (leave AIR every 3 columns, on alternating floor levels)
+            if (isWall && (aby === 2 || aby === 5 || aby === 9 || aby === 12) && abx % 3 === 1) continue;
+            // Upper-floor damage: mix of rubble blocks
+            var blk2 = btype;
+            if (aby > 8 && Math.random() < 0.38) blk2 = BLOCK.RUBBLE;
+            setBlock(apos.x + abx, apy + aby, apos.z + abz, blk2);
+          }
+        }
+      }
+      // Rubble scatter at base
+      for (var rdx2 = -1; rdx2 <= 10; rdx2++) {
+        for (var rdz2 = -1; rdz2 <= 5; rdz2++) {
+          if (Math.random() < 0.18) setBlock(apos.x + rdx2, apy + 1, apos.z + rdz2, BLOCK.RUBBLE);
+        }
+      }
+      // Fire pockets in even-indexed buildings
+      if (aI % 2 === 0) {
+        setBlock(apos.x + 3, apy + 7, apos.z, BLOCK.FIRE);
+        setBlock(apos.x + 6, apy + 11, apos.z, BLOCK.FIRE);
+      }
+    }
+
     // ── M. Friendly T-64BV tank behind defensive trench ────────────
     // The T-64BV was Ukraine's primary MBT during the Kyiv defense.
     // Kontakt-1 ERA (explosive reactive armour) brick modules on hull sides.

@@ -466,6 +466,35 @@ const Weapons = (() => {
       spread: 0.025, auto: true, type: 'SMG', recoilY: 0.008, recoilX: 0.003,
       description: 'Russian PP-19 Bizon. 9mm with distinctive 64-round helical (screw) magazine under the barrel. Used by Russian MVD, OMON and vehicle crews in Ukraine. Excellent CQB capacity.',
     },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'FAB500', name: 'FAB-500 Glide Bomb (UMPK kit)', damage: 5000,
+      fireRate: 20.0, clipSize: 1, maxReserve: 1, reloadTime: 22.0,
+      spread: 0.010, auto: false, type: 'EXPLOSIVE', recoilY: 0.003, recoilX: 0.001,
+      blastRadius: 18, homing: false,
+      description: 'Russian 500kg gravity bomb with UMPK glide-navigation kit. Released from Su-34/35 at 80km stand-off. Impossible to intercept with Ukrainian SAMs. Demolished Avdiivka, Bakhmut, Kherson. One bomb levels an apartment block.',
+    },
+    {
+      id: 'M777', name: 'M777 155mm Howitzer (Call Fire)', damage: 1400,
+      fireRate: 11.0, clipSize: 1, maxReserve: 3, reloadTime: 13.0,
+      spread: 0.018, auto: false, type: 'AT_HEAVY', recoilY: 0.006, recoilX: 0.002,
+      blastRadius: 12, homing: false,
+      description: 'US M777A2 155mm ultra-light towed howitzer. 120+ supplied to Ukraine. Fires Excalibur GPS-guided rounds to 40km. NATO standard 155mm — the backbone of Ukrainian counteroffensive firepower since 2022.',
+    },
+    {
+      id: 'STRELA2', name: 'Strela-2M (SA-7 MANPADS)', damage: 420,
+      fireRate: 4.8, clipSize: 1, maxReserve: 2, reloadTime: 5.0,
+      spread: 0, auto: false, type: 'AA', recoilY: 0.038, recoilX: 0.010,
+      blastRadius: 3.5, homing: true,
+      description: 'Soviet 1st-generation shoulder-launched MANPADS. Older than Igla/Stinger but vastly more numerous — both sides draw from Soviet-era depots. Infrared heat-seeking. Effective against helicopters and low-altitude aircraft.',
+    },
+    {
+      id: 'DROPDRONE', name: 'Commercial Drop Drone (VOG-25)', damage: 180,
+      fireRate: 6.0, clipSize: 2, maxReserve: 6, reloadTime: 4.5,
+      spread: 0.04, auto: false, type: 'EXPLOSIVE', recoilY: 0.003, recoilX: 0.001,
+      blastRadius: 4, homing: false,
+      description: 'DJI Mavic-3 commercial drone carrying a VOG-25 grenade in a 3D-printed clamp. Ukrainian innovation now responsible for more trench casualties than artillery in some sectors. Cheap, available, and terrifying.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -3631,6 +3660,119 @@ const Weapons = (() => {
       g.add(_P(_B(0.006, 0.022, 0.006, _pal.blk()), X, Y + 0.040, -0.38));
       return g;
     },
+
+    // ── FAB-500M62 Glide Bomb with UMPK kit ──────────────────────────
+    fab500: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.12, Y = -0.08;
+      // Main bomb body (thick cylinder — 500kg iron bomb)
+      g.add(_P(_T(0.034, 0.52, 0x2a2a1e, 14), X, Y, -0.28));
+      // Ogive nose
+      const noseMat = new THREE.MeshLambertMaterial({ color: 0x1a1a14 });
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.034, 0.085, 14), noseMat);
+      nose.rotation.x = -Math.PI / 2; nose.position.set(X, Y, -0.04); g.add(nose);
+      // Tail section (narrower)
+      g.add(_P(_T(0.026, 0.10, 0x1a1a14, 10), X, Y, -0.57));
+      // UMPK folded navigation wings (mid-body, flat rectangles)
+      g.add(_P(_B(0.130, 0.005, 0.062, 0x3a3a28), X, Y + 0.002, -0.22));
+      // UMPK electronics box on top (guidance kit)
+      g.add(_P(_B(0.018, 0.016, 0.055, 0x1a1a0a), X, Y + 0.053, -0.24));
+      // Tail fins (two crossed planes)
+      g.add(_P(_B(0.062, 0.005, 0.048, 0x2a2a1e), X, Y + 0.002, -0.56));
+      g.add(_P(_B(0.005, 0.062, 0.048, 0x2a2a1e), X, Y + 0.002, -0.56));
+      // Wing-tip control surfaces (ailerons)
+      g.add(_P(_B(0.010, 0.014, 0.024, _pal.blk()), X - 0.068, Y + 0.002, -0.22));
+      g.add(_P(_B(0.010, 0.014, 0.024, _pal.blk()), X + 0.068, Y + 0.002, -0.22));
+      // Nose fuze arming wire
+      g.add(_P(_T(0.002, 0.040, _pal.steel(), 4), X + 0.016, Y + 0.010, -0.05));
+      return g;
+    },
+
+    // ── M777 155mm Howitzer (laser rangefinder / fire control) ───────
+    m777: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.08;
+      // Binocular body (rangefinder/laser designator for calling fire)
+      g.add(_P(_B(0.068, 0.040, 0.028, 0x4a5230), X, Y, -0.18));
+      // Left and right objective lenses
+      g.add(_P(_T(0.012, 0.012, 0x1a2a1a, 8), X - 0.024, Y + 0.002, -0.196));
+      g.add(_P(_T(0.012, 0.012, 0x1a2a1a, 8), X + 0.024, Y + 0.002, -0.196));
+      // Eyepiece housing (rear, slightly different shape)
+      g.add(_P(_B(0.060, 0.036, 0.022, 0x3a4228), X, Y, -0.162));
+      // Eyepiece cups
+      g.add(_P(_T(0.010, 0.008, 0x0a0a0a, 6), X - 0.020, Y + 0.002, -0.154));
+      g.add(_P(_T(0.010, 0.008, 0x0a0a0a, 6), X + 0.020, Y + 0.002, -0.154));
+      // Laser rangefinder unit (top)
+      g.add(_P(_B(0.020, 0.012, 0.016, 0x1a1a0a), X, Y + 0.028, -0.18));
+      // Laser emission window (small glass block)
+      g.add(_P(_B(0.010, 0.006, 0.006, 0x223344), X - 0.012, Y + 0.028, -0.190));
+      // Handle / grip (bottom centre)
+      g.add(_P(_B(0.024, 0.038, 0.018, _pal.poly()), X, Y - 0.038, -0.175));
+      // Ranging knob (top right)
+      g.add(_P(_T(0.005, 0.010, _pal.steel(), 6), X + 0.026, Y + 0.028, -0.175));
+      // NATO yellow artillery callsign sticker
+      g.add(_P(_B(0.018, 0.008, 0.004, 0xcccc44), X - 0.018, Y + 0.018, -0.195));
+      return g;
+    },
+
+    // ── Strela-2M (SA-7 GRAIL MANPADS) ───────────────────────────────
+    strela2: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.085;
+      // Main launch tube (older design — thicker, less refined than Igla)
+      g.add(_P(_T(0.026, 0.42, 0x4a5030, 10), X, Y, -0.26));
+      // Seeker head (nose, Strela-2 has large blunt IR seeker dome)
+      g.add(_P(_T(0.032, 0.065, 0x2a2a1e, 10), X, Y, -0.035));
+      // Glass IR seeker dome (semi-transparent sphere)
+      const domeM = new THREE.MeshLambertMaterial({ color: 0x1a2830, transparent: true, opacity: 0.75 });
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), domeM);
+      dome.position.set(X, Y, 0.030); g.add(dome);
+      // Shoulder rest / gripstock
+      g.add(_P(_B(0.055, 0.016, 0.038, 0x1a1a10), X, Y - 0.020, -0.44));
+      // Trigger/pistol grip
+      g.add(_P(_B(0.014, 0.040, 0.022, 0x1a1a0a), X, Y - 0.030, -0.22));
+      // IFF transponder block (side)
+      g.add(_P(_B(0.010, 0.016, 0.022, 0x222211), X + 0.028, Y + 0.004, -0.30));
+      // Rear stabilising fin stubs
+      g.add(_P(_B(0.040, 0.004, 0.022, 0x3a4030), X, Y, -0.46));
+      g.add(_P(_B(0.004, 0.040, 0.022, 0x3a4030), X, Y, -0.46));
+      // Cooling unit (grey cylinder, left side mid-tube) — cools seeker before use
+      g.add(_P(_T(0.010, 0.030, 0x666655, 8), X - 0.028, Y, -0.20));
+      return g;
+    },
+
+    // ── Commercial Drop Drone (DJI Mavic-style + VOG-25 grenade) ─────
+    dropdrone: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.13, Y = -0.05;
+      // Central body (DJI Mavic wedge shape)
+      g.add(_P(_B(0.038, 0.018, 0.044, 0x222224), X, Y, -0.14));
+      // Camera gimbal housing (front underside)
+      g.add(_P(_B(0.020, 0.016, 0.010, 0x333336), X, Y - 0.001, -0.178));
+      // Camera lens
+      const cam = new THREE.Mesh(new THREE.SphereGeometry(0.007, 6, 4),
+        new THREE.MeshLambertMaterial({ color: 0x111122 }));
+      cam.position.set(X, Y - 0.001, -0.185); g.add(cam);
+      // Rear arms (folded back — Mavic fold pattern)
+      g.add(_P(_B(0.006, 0.006, 0.040, 0x222224), X - 0.018, Y, -0.122));
+      g.add(_P(_B(0.006, 0.006, 0.040, 0x222224), X + 0.018, Y, -0.122));
+      // Front arms (folded forward, shorter)
+      g.add(_P(_B(0.040, 0.006, 0.006, 0x222224), X, Y, -0.130));
+      // Motor pods (4 tips)
+      for (let i = 0; i < 4; i++) {
+        const ax = (i < 2 ? -1 : 1) * 0.040, az = (i % 2 === 0 ? -0.122 : -0.108);
+        g.add(_P(_T(0.008, 0.014, _pal.steel(), 6), X + ax, Y + 0.010, az));
+        g.add(_P(_T(0.018, 0.002, 0xddddcc, 6), X + ax, Y + 0.018, az));
+      }
+      // VOG-25 grenade in 3D-printed clamp (hanging under body)
+      g.add(_P(_T(0.012, 0.038, 0x3a3a28, 8), X, Y - 0.030, -0.14));
+      g.add(_P(_T(0.015, 0.008, 0x2a2a20, 6), X, Y - 0.030, -0.118));
+      // Clamp bracket
+      g.add(_P(_B(0.022, 0.005, 0.004, 0x444444), X, Y - 0.016, -0.132));
+      // Battery indicator LED (tiny coloured dot on top)
+      g.add(_P(_B(0.004, 0.004, 0.004, 0x00cc44), X - 0.010, Y + 0.012, -0.158));
+      return g;
+    },
   };
 
   const meshBuilders = [
@@ -3662,6 +3804,8 @@ const Weapons = (() => {
     NB.an94, NB.m67_grenade, NB.switchblade300, NB.saiga12,
     // 4 more (RPG-18, Podnos 82mm mortar, OTs-14 Groza, PP-19 Bizon)
     NB.rpg18, NB.podnos82, NB.ots14, NB.pp19,
+    // 4 more (FAB-500 glide bomb, M777 howitzer, Strela-2, commercial drop drone)
+    NB.fab500, NB.m777, NB.strela2, NB.dropdrone,
   ];
 
   // Ensure meshBuilders matches WEAPONS length
