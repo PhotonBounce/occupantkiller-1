@@ -2878,10 +2878,13 @@ const GameManager = (function () {
     player.kills = 0;
     currentWave = 0;
     currentStage = 0;
-    // QA-only stage jump (headless harness): start directly at a given stage
-    // index, e.g. window.__QA_START_STAGE = 12 for Battle of Kyiv.
-    if (typeof window !== 'undefined' && window.__QA_MODE && typeof window.__QA_START_STAGE === 'number') {
-      currentStage = Math.max(0, Math.min(STAGES.length - 1, window.__QA_START_STAGE));
+    // Stage jump: QA harness override or player map selection from start menu
+    if (typeof window !== 'undefined') {
+      if (window.__QA_MODE && typeof window.__QA_START_STAGE === 'number') {
+        currentStage = Math.max(0, Math.min(STAGES.length - 1, window.__QA_START_STAGE));
+      } else if (typeof window.__chosenStartStage === 'number') {
+        currentStage = Math.max(0, Math.min(STAGES.length - 1, window.__chosenStartStage));
+      }
     }
     player.velocity.set(0, 0, 0);
     player.armor = 0;

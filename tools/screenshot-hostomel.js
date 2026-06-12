@@ -1,7 +1,6 @@
 /**
- * screenshot-kyiv.js — 500 screenshots of Kyiv Defense level combat
- * Jumps to the capitalDefense stage, enables god mode, runs 8 waves
- * with convoy tanks + infantry, rotates view and cycles AT weapons.
+ * screenshot-hostomel.js — 500 screenshots of Hostomel Airport level
+ * God mode, all 50 weapons cycled, 4-second intervals, 8 camera angles.
  * Saves to microsite/gallery/ starting from the next sequential number.
  */
 const puppeteer = require('puppeteer');
@@ -43,113 +42,97 @@ async function waitFor(page, expr, tries = 80) {
     const pageErrs = [];
     p.on('pageerror', e => pageErrs.push(e.message.slice(0, 80)));
 
-    // __QA_START_STAGE = 12 loads Battle of Kyiv (0-based index 12 = id 13)
+    // __QA_START_STAGE = 0 loads Hostomel Airport (0-based index 0 = stage id 1)
     await p.evaluateOnNewDocument(() => {
       window.__QA_MODE = true;
-      window.__QA_START_STAGE = 12;
+      window.__QA_START_STAGE = 0;
     });
     await p.goto('http://localhost:3000', { waitUntil: 'domcontentloaded', timeout: 40000 });
     await waitFor(p, () => typeof GameManager !== 'undefined' && typeof Weapons !== 'undefined');
     console.log('Game loaded');
 
-    // Start game — __QA_START_STAGE already set, so Kyiv loads directly
     await p.evaluate(() => {
       Object.defineProperty(document, 'pointerLockElement', { get: () => document.body, configurable: true });
       window.forceStartGame();
     });
-    await sleep(3000); // extra time for Kyiv terrain generation
+    await sleep(3500); // extra time for Hostomel airport terrain generation
 
-    // Verify we're on the Kyiv stage (getCurrentStage returns 0-based index)
-    const kyivConfirm = await p.evaluate(() => {
+    const hostomelConfirm = await p.evaluate(() => {
       try {
         var idx = typeof GameManager !== 'undefined' && GameManager.getCurrentStage ? GameManager.getCurrentStage() : -1;
-        return { stageIdx: idx, isKyiv: idx === 12 };
+        return { stageIdx: idx, isHostomel: idx === 0 };
       } catch(e) { return { err: e.message }; }
     });
-    console.log('Stage loaded:', kyivConfirm);
+    console.log('Stage loaded:', hostomelConfirm);
 
-    // Enable god mode, unlock all weapons
+    // Enable god mode, unlock all 50 weapons
     await p.evaluate(() => {
       try {
         var pl = GameManager.getPlayer && GameManager.getPlayer();
         if (pl) { pl.godMode = true; pl.hp = 9999; }
-        if (typeof Weapons !== 'undefined') {
-          var wc = Weapons.getWeaponCount ? Weapons.getWeaponCount() : 47;
-          for (var i = 0; i < wc; i++) { try { Weapons.unlock(i); } catch(e) {} }
-        }
-        if (typeof ConvoySystem !== 'undefined') ConvoySystem.reset();
+        var wc = Weapons.getWeaponCount ? Weapons.getWeaponCount() : 50;
+        for (var i = 0; i < wc; i++) { try { Weapons.unlock(i); } catch(e) {} }
         GameManager.setState('playing');
       } catch(e) {}
     });
     await sleep(500);
 
-    // Spawn initial convoy wave from 3 directions
+    // Spawn VDV airborne wave (Hostomel assault)
     await p.evaluate(() => {
       try {
-        if (typeof ConvoySystem !== 'undefined') {
-          ConvoySystem.spawnConvoy(1, { route: 'north', tanks: 3, btrs: 2 });
-          ConvoySystem.spawnConvoy(1, { route: 'east',  tanks: 2, btrs: 1 });
-        }
         if (typeof Enemies !== 'undefined' && Enemies.startWave) {
-          Enemies.startWave(1, window._scene || null, 1.5, {}, 13, { groupDelta: -1, extraMultiplier: 0.8 }, {x:0,y:0,z:0});
+          Enemies.startWave(1, window._scene || null, 1.0, {}, 1,
+            { groupDelta: 0, extraMultiplier: 1.0 }, { x: 0, y: 0, z: 40 });
         }
-        // Switch to NLAW for anti-tank shots
-        try { Weapons.switchTo(Weapons.getWeaponCount ? [7, 8, 10, 11, 39, 40].find(i => i < Weapons.getWeaponCount()) : 7); } catch(e) {}
+        try { Weapons.switchTo(0); } catch(e) {}
       } catch(e) {}
     });
     await sleep(1000);
 
-    // Cycle through ALL 50 weapons (indices 0-49)
+    // Camera angles (varied to show the airport environment)
+    const ANGLES = [
+      { yaw: 0,    pitch: -0.1  },  // straight north (toward runways)
+      { yaw: 0.5,  pitch: -0.05 },  // NE toward hangars
+      { yaw: -0.5, pitch: -0.05 },  // NW toward An-225 hangar
+      { yaw: 0,    pitch: -0.25 },  // sky (looking for drones)
+      { yaw: 1.0,  pitch: 0.05  },  // east flank
+      { yaw: -1.0, pitch: 0.05  },  // west flank
+      { yaw: 3.14, pitch: -0.1  },  // south (behind player)
+      { yaw: 0.25, pitch: 0.1   },  // look down / ground
+    ];
+    let angleIdx = 0;
+
+    // Cycle through all 50 weapons
     const ALL_WEAPONS = Array.from({ length: 50 }, (_, i) => i);
     let shotCount = 0;
     let waveNum = 1;
     let weaponCycle = 0;
 
-    // Camera angle cycling for variety
-    const ANGLES = [
-      { yaw: 0, pitch: -0.1 },    // straight ahead
-      { yaw: 0.4, pitch: -0.05 }, // slight right
-      { yaw: -0.4, pitch: -0.05 },// slight left
-      { yaw: 0, pitch: -0.2 },    // slightly up
-      { yaw: 0.8, pitch: 0.05 },  // wide right
-      { yaw: -0.8, pitch: 0.05 }, // wide left
-      { yaw: 1.6, pitch: -0.1 },  // 180° look back
-      { yaw: 0, pitch: 0.1 },     // look down slightly
-    ];
-    let angleIdx = 0;
-
-    console.log('Starting screenshot loop...');
+    console.log('Starting screenshot loop (Hostomel, 4s intervals)...');
 
     while (shotCount < TARGET) {
-      // Refresh enemies every 30 shots or when too few remain
+      // Refresh enemies when fewer than 4 remain
       const aliveCount = await p.evaluate(() => {
-        try { return Enemies.getAliveCount() + (typeof ConvoySystem !== 'undefined' ? ConvoySystem.getConvoys().length * 3 : 0); }
+        try { return Enemies.getAliveCount(); }
         catch(e) { return 5; }
       });
 
       if (aliveCount < 4) {
         waveNum++;
-        console.log(`Wave ${waveNum} — spawning fresh enemies`);
+        console.log(`Wave ${waveNum} — spawning VDV reinforcements`);
         await p.evaluate((wn) => {
           try {
-            if (typeof ConvoySystem !== 'undefined') {
-              const routes = ['north', 'east', 'west'];
-              ConvoySystem.spawnConvoy(wn, { route: routes[wn % 3], tanks: 2 + Math.floor(wn / 2), btrs: 1 });
-              if (wn % 3 === 0) ConvoySystem.spawnConvoy(wn, { route: 'south', tanks: 2, btrs: 1 });
-            }
             if (typeof Enemies !== 'undefined' && Enemies.startWave) {
-              Enemies.startWave(wn, window._scene || null, 1.5 + wn * 0.1, {}, 13,
-                { groupDelta: -1, extraMultiplier: 0.8 }, { x: 0, y: 0, z: 0 });
-            }
-            if (wn === 4 && typeof DroneSystem !== 'undefined' && DroneSystem.callBayraktar) {
-              DroneSystem.callBayraktar();
+              var spawnZ = 40 + (wn % 3) * 20;
+              Enemies.startWave(wn, window._scene || null, 1.0 + wn * 0.1, {}, 1,
+                { groupDelta: 0, extraMultiplier: 0.9 }, { x: 0, y: 0, z: spawnZ });
             }
           } catch(e) {}
         }, waveNum);
         await sleep(1500);
       }
 
-      // Rotate camera angle every 5 shots for visual variety
+      // Rotate camera every 5 shots
       if (shotCount % 5 === 0) {
         const ang = ANGLES[angleIdx % ANGLES.length];
         angleIdx++;
@@ -171,7 +154,7 @@ async function waitFor(page, expr, tries = 80) {
         await sleep(300);
       }
 
-      // Fire (simulate mousedown + mouseup)
+      // Fire
       await p.evaluate(() => {
         try {
           document.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true }));
@@ -180,8 +163,8 @@ async function waitFor(page, expr, tries = 80) {
       });
       await sleep(200);
 
-      // Take screenshot at 4-second intervals
-      const fname = `K${String(shotCount + 1).padStart(4, '0')}-kyiv-w${waveNum}.jpg`;
+      // Screenshot at 4-second intervals
+      const fname = `H${String(shotCount + 1).padStart(4, '0')}-hostomel-w${waveNum}.jpg`;
       const fpath = path.join(GALLERY, `G${String(idx).padStart(4,'0')}-${fname}`);
       await p.screenshot({ path: fpath, type: 'jpeg', quality: 82 });
       idx++;
@@ -190,10 +173,10 @@ async function waitFor(page, expr, tries = 80) {
       if (shotCount % 50 === 0) {
         console.log(`  ${shotCount}/${TARGET} shots — wave ${waveNum}, weapon ${(weaponCycle-1) % 50}/${50}, ${aliveCount} enemies alive`);
       }
-      await sleep(3600); // 4000ms total (200 fire delay + 3600 wait = 4s intervals
+      await sleep(3600); // 4000ms total (200ms fire + 3600ms wait)
     }
 
-    console.log(`\n✅ Kyiv: ${shotCount} screenshots saved. PageErrors: ${pageErrs.length}`);
+    console.log(`\n✅ Hostomel: ${shotCount} screenshots saved. PageErrors: ${pageErrs.length}`);
     if (pageErrs.length) console.log('Errors:', pageErrs.slice(0, 5).join('\n'));
 
   } finally {

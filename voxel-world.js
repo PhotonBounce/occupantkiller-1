@@ -2984,6 +2984,201 @@ window.VoxelWorld = (function () {
     }
   }
 
+  // ── Kyiv City Extension: landmarks, suburbs, river, approach ──────────
+  function generateKyivCityExtension(ox, oz) {
+    function gh(x, z) { return getTerrainHeight(x, z); }
+
+    // ── A. St. Sophia Cathedral (NW of Maidan, x=-12, z=-32) ─────────────
+    // Iconic 11th-century cathedral with 13 golden domes
+    var sfx = ox - 12, sfz = oz - 32;
+    for (var sbx = 0; sbx < 12; sbx++) {
+      for (var sbz = 0; sbz < 10; sbz++) {
+        for (var sby = 1; sby <= 8; sby++) {
+          var isSwall = sbx === 0 || sbx === 11 || sbz === 0 || sbz === 9 || sby === 8;
+          if (isSwall) setBlock(sfx + sbx, gh(sfx, sfz) + sby, sfz + sbz, BLOCK.STONE);
+          else if (sby >= 3 && sby <= 6 && sbx % 3 === 1 && (sbz === 0 || sbz === 9)) {
+            setBlock(sfx + sbx, gh(sfx, sfz) + sby, sfz + sbz, BLOCK.GLASS);
+          }
+        }
+      }
+    }
+    // Golden domes (5 on main cathedral, LIGHT block = gold)
+    var sfDomes = [[5, 4, 12], [2, 2, 10], [9, 2, 10], [2, 7, 10], [9, 7, 10]];
+    for (var di = 0; di < sfDomes.length; di++) {
+      var ddx = sfDomes[di][0], ddz = sfDomes[di][1], ddH = sfDomes[di][2];
+      var dby = gh(sfx, sfz) + ddH;
+      setBlock(sfx + ddx, dby,     sfz + ddz, BLOCK.CONCRETE);
+      setBlock(sfx + ddx, dby + 1, sfz + ddz, BLOCK.LIGHT);
+      setBlock(sfx + ddx, dby + 2, sfz + ddz, BLOCK.LIGHT);
+      setBlock(sfx + ddx - 1, dby + 1, sfz + ddz, BLOCK.LIGHT);
+      setBlock(sfx + ddx + 1, dby + 1, sfz + ddz, BLOCK.LIGHT);
+      setBlock(sfx + ddx, dby + 1, sfz + ddz - 1, BLOCK.LIGHT);
+      setBlock(sfx + ddx, dby + 1, sfz + ddz + 1, BLOCK.LIGHT);
+      setBlock(sfx + ddx, dby + 3, sfz + ddz, BLOCK.METAL);
+    }
+
+    // ── B. Verkhovna Rada (Parliament, east side x=38, z=10) ─────────────
+    var rdx = ox + 38, rdz = oz + 10;
+    var rdby = gh(rdx, rdz);
+    for (var rbx = 0; rbx < 28; rbx++) {
+      for (var rbz = 0; rbz < 12; rbz++) {
+        for (var rby = 1; rby <= 10; rby++) {
+          var isRwall = rbx === 0 || rbx === 27 || rbz === 0 || rbz === 11 || rby === 10;
+          if (isRwall) setBlock(rdx + rbx, rdby + rby, rdz + rbz, BLOCK.STONE);
+          else if (rby >= 3 && rby <= 7 && rbx % 3 === 0 && (rbz === 0 || rbz === 11)) {
+            setBlock(rdx + rbx, rdby + rby, rdz + rbz, BLOCK.GLASS);
+          }
+        }
+      }
+    }
+    // Classical colonnade
+    for (var col = 0; col < 7; col++) {
+      var colX = rdx + 3 + col * 4;
+      for (var coly = 1; coly <= 8; coly++) setBlock(colX, rdby + coly, rdz - 1, BLOCK.STONE);
+    }
+    // Ukrainian flag on Rada
+    setBlock(rdx + 13, rdby + 11, rdz + 5, BLOCK.METAL);
+    setBlock(rdx + 13, rdby + 12, rdz + 5, BLOCK.METAL);
+    setBlock(rdx + 13, rdby + 13, rdz + 5, BLOCK.METAL);
+    setBlock(rdx + 14, rdby + 12, rdz + 5, BLOCK.CONCRETE); // blue
+    setBlock(rdx + 15, rdby + 12, rdz + 5, BLOCK.CONCRETE);
+    setBlock(rdx + 14, rdby + 13, rdz + 5, BLOCK.LIGHT);    // yellow
+    setBlock(rdx + 15, rdby + 13, rdz + 5, BLOCK.LIGHT);
+
+    // ── C. Pechersk Lavra Bell Tower (x=22, z=46) — 30 blocks tall ───────
+    // The Great Bell Tower of the Kyiv-Pechersk Lavra monastery
+    var lbx = ox + 22, lbz = oz + 46;
+    var lby = gh(lbx, lbz);
+    for (var lth = 1; lth <= 28; lth++) {
+      var ltW = lth < 8 ? 4 : lth < 20 ? 3 : 2;
+      for (var ltx = -ltW; ltx <= ltW; ltx++) {
+        for (var ltz = -ltW; ltz <= ltW; ltz++) {
+          if (Math.abs(ltx) === ltW || Math.abs(ltz) === ltW) {
+            setBlock(lbx + ltx, lby + lth, lbz + ltz, BLOCK.STONE);
+          }
+        }
+      }
+      // Bell openings at floor 18-22
+      if (lth >= 18 && lth <= 22) {
+        setBlock(lbx - 2, lby + lth, lbz, BLOCK.AIR);
+        setBlock(lbx + 2, lby + lth, lbz, BLOCK.AIR);
+        setBlock(lbx, lby + lth, lbz - 2, BLOCK.AIR);
+        setBlock(lbx, lby + lth, lbz + 2, BLOCK.AIR);
+      }
+    }
+    // Baroque golden dome on top
+    for (var brd = -2; brd <= 2; brd++) {
+      for (var brdz = -2; brdz <= 2; brdz++) {
+        if (brd * brd + brdz * brdz <= 5) {
+          setBlock(lbx + brd, lby + 29, lbz + brdz, BLOCK.LIGHT);
+        }
+      }
+    }
+    setBlock(lbx, lby + 30, lbz, BLOCK.LIGHT);
+    setBlock(lbx, lby + 31, lbz, BLOCK.METAL);
+
+    // ── D. Extended Khreshchatyk south (more city behind player) ─────────
+    for (var ks = oz - 80; ks < oz - 45; ks++) {
+      for (var kx = ox - 5; kx <= ox + 5; kx++) {
+        setBlock(kx, gh(kx, ks), ks, BLOCK.ASPHALT);
+      }
+      if ((ks + 80) % 3 === 0) setBlock(ox, gh(ox, ks), ks, BLOCK.WHITE_TILE);
+    }
+    // City blocks south of Maidan
+    generateUkrainianApartment(ox - 22, oz - 72, 9);
+    generateUkrainianApartment(ox - 22, oz - 56, 9);
+    generateUkrainianApartment(ox + 12, oz - 70, 9);
+    generateUkrainianApartment(ox + 12, oz - 54, 9);
+    // More east blocks (Pechersk district)
+    generateUkrainianApartment(ox + 35, oz - 40, 6);
+    generateUkrainianApartment(ox + 35, oz - 22, 12);
+    generateUkrainianApartment(ox + 35, oz - 4, 9);
+
+    // ── E. Dnipro River (east side, water channel x=60-76) ───────────────
+    for (var drz = oz - 80; drz <= oz + 50; drz++) {
+      for (var drx = ox + 60; drx <= ox + 76; drx++) {
+        var dry = gh(drx, drz);
+        setBlock(drx, dry, drz, BLOCK.WATER);
+      }
+      // Riverbanks (dirt/grass)
+      setBlock(ox + 59, gh(ox + 59, drz), drz, BLOCK.DIRT);
+      setBlock(ox + 77, gh(ox + 77, drz), drz, BLOCK.DIRT);
+    }
+
+    // ── F. Irpin/Bucha suburban housing (z=130-195) ──────────────────────
+    var subLayout = [
+      [ox - 18, oz + 135], [ox + 6,  oz + 137], [ox - 18, oz + 156],
+      [ox + 6,  oz + 158], [ox - 16, oz + 178], [ox + 8,  oz + 180],
+    ];
+    for (var si = 0; si < subLayout.length; si++) {
+      var sx = subLayout[si][0], sz = subLayout[si][1];
+      var shy = gh(sx, sz);
+      for (var sbbx = 0; sbbx < 8; sbbx++) {
+        for (var sbbz = 0; sbbz < 6; sbbz++) {
+          for (var sbby = 1; sbby <= 4; sbby++) {
+            if (sbbx === 0 || sbbx === 7 || sbbz === 0 || sbbz === 5 || sbby === 4) {
+              setBlock(sx + sbbx, shy + sbby, sz + sbbz, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+      // Roof
+      for (var srx = 0; srx < 8; srx++) {
+        for (var srz = 0; srz < 6; srz++) setBlock(sx + srx, shy + 5, sz + srz, BLOCK.ROOFTILE);
+      }
+      // Yard gate
+      setBlock(sx + 3, shy, sz, BLOCK.FENCE);
+      setBlock(sx + 4, shy, sz, BLOCK.FENCE);
+    }
+    // Road through the suburbs
+    for (var subRz = oz + 125; subRz <= oz + 200; subRz++) {
+      for (var subRx = ox - 2; subRx <= ox + 2; subRx++) {
+        setBlock(subRx, gh(subRx, subRz), subRz, BLOCK.ASPHALT);
+      }
+      if (subRz % 3 === 0) setBlock(ox, gh(ox, subRz), subRz, BLOCK.WHITE_TILE);
+      _roadWaypoints.push(new THREE.Vector3(ox, gh(ox, subRz) + 0.5, subRz));
+    }
+
+    // ── G. Irpin River crossing (z=240-252, water channel) ───────────────
+    for (var irx = ox - 35; irx <= ox + 35; irx++) {
+      for (var irw = 0; irw < 10; irw++) {
+        var iry = gh(irx, oz + 242 + irw);
+        setBlock(irx, iry, oz + 242 + irw, BLOCK.WATER);
+      }
+      // Banks
+      setBlock(irx, gh(irx, oz + 241), oz + 241, BLOCK.DIRT);
+      setBlock(irx, gh(irx, oz + 252), oz + 252, BLOCK.DIRT);
+    }
+    // Romanivska Bridge (partially destroyed — 2022)
+    for (var brx = ox - 3; brx <= ox + 3; brx++) {
+      for (var brz = oz + 240; brz <= oz + 254; brz++) {
+        var bry = gh(brx, brz);
+        if (brz >= oz + 244 && brz <= oz + 250) {
+          setBlock(brx, bry + 1, brz, BLOCK.BRIDGE);
+          setBlock(brx, bry + 2, brz, BLOCK.BRIDGE);
+        }
+      }
+      // Destroyed span (collapsed section)
+      setBlock(brx, gh(brx, oz + 247), oz + 247, BLOCK.RUBBLE);
+      setBlock(brx, gh(brx, oz + 248), oz + 248, BLOCK.RUBBLE);
+    }
+
+    // ── H. Extended highway approach north of Irpin (z=255-400) ─────────
+    for (var ehz = oz + 255; ehz <= oz + 400; ehz++) {
+      for (var ehx = ox - 3; ehx <= ox + 3; ehx++) {
+        setBlock(ehx, gh(ehx, ehz), ehz, BLOCK.ASPHALT);
+      }
+      if (ehz % 3 === 0) setBlock(ox, gh(ox, ehz), ehz, BLOCK.WHITE_TILE);
+      if (ehz % 8 === 0) {
+        setBlock(ox - 5, gh(ox - 5, ehz) + 1, ehz, BLOCK.PARK_TREE);
+        setBlock(ox - 5, gh(ox - 5, ehz) + 2, ehz, BLOCK.PARK_TREE);
+        setBlock(ox + 5, gh(ox + 5, ehz) + 1, ehz, BLOCK.PARK_TREE);
+        setBlock(ox + 5, gh(ox + 5, ehz) + 2, ehz, BLOCK.PARK_TREE);
+      }
+      _roadWaypoints.push(new THREE.Vector3(ox, gh(ox, ehz) + 0.5, ehz));
+    }
+  }
+
   // IDEA 21: Evacuation bus/civilian vehicles
   function generateEvacVehicles(count) {
     for (let v = 0; v < count; v++) {
@@ -4004,105 +4199,223 @@ window.VoxelWorld = (function () {
 
   /* ── Prebuilt: Full Hostomel Airport Complex ───────────────────── */
   function generateHostomelAirport(ox, oz) {
-    const levelSamples = [
-      getTerrainHeight(ox - 32, oz),
-      getTerrainHeight(ox, oz),
-      getTerrainHeight(ox + 32, oz),
-      getTerrainHeight(ox - 8, oz + 20),
-      getTerrainHeight(ox + 16, oz + 22),
-    ];
-    const airportBaseY = Math.round(levelSamples.reduce((sum, value) => sum + value, 0) / levelSamples.length);
+    // ─── Flatten entire airport footprint ────────────────────────────────
+    var lSamples = [];
+    for (var ls = -6; ls <= 6; ls++) {
+      lSamples.push(getTerrainHeight(ox + ls * 11, oz));
+      lSamples.push(getTerrainHeight(ox, oz + ls * 9));
+    }
+    var base = Math.round(lSamples.reduce(function(a, b) { return a + b; }, 0) / lSamples.length);
+    levelArea(ox - 72, ox + 72, oz - 52, oz + 64, base, BLOCK.DIRT, BLOCK.DIRT);
+    var by = base;
+    function sf(x, z, blk) { setBlock(x, by, z, blk); }
 
-    // Flatten the whole airport footprint before stamping the runway, hangars, and terminal.
-    levelArea(ox - 44, ox + 44, oz - 32, oz + 34, airportBaseY, BLOCK.DIRT, BLOCK.DIRT);
-
-    // Main runway (extended, 80 blocks long x 8 wide)
-    generateRunway(ox - 40, oz, 80, 8);
-
-    // Parallel taxiway
-    for (let x = ox - 35; x < ox + 35; x++) {
-      for (let w = 0; w < 4; w++) {
-        const ty = getTerrainHeight(x, oz + 14);
-        setBlock(x, ty, oz + 14 + w, BLOCK.ASPHALT);
+    // ─── 1. MAIN RUNWAY (130 long × 6 wide) ─────────────────────────────
+    for (var rx = ox - 65; rx <= ox + 65; rx++) {
+      for (var rw = -3; rw <= 2; rw++) { sf(rx, oz + rw, BLOCK.ASPHALT); }
+      if (Math.abs(rx - ox) % 4 < 2) setBlock(rx, by, oz, BLOCK.WHITE_TILE);
+      if (rx >= ox - 65 && rx <= ox - 58 || rx >= ox + 58 && rx <= ox + 65) {
+        for (var tb = -3; tb <= 2; tb++) {
+          if ((tb + 3) % 2 === 0) setBlock(rx, by, oz + tb, BLOCK.WHITE_TILE);
+        }
       }
     }
 
-    // Full terminal building
-    generateHostomelTerminal(ox - 12, oz + 20);
+    // ─── 2. PARALLEL SECONDARY RUNWAY (110 × 4) ─────────────────────────
+    for (var rx2 = ox - 55; rx2 <= ox + 55; rx2++) {
+      for (var rw2 = 0; rw2 <= 3; rw2++) { sf(rx2, oz + 14 + rw2, BLOCK.ASPHALT); }
+      if (Math.abs(rx2 - ox) % 3 === 0) setBlock(rx2, by, oz + 16, BLOCK.WHITE_TILE);
+    }
 
-    // Control tower (tall, 8 floors)
-    const ctOx = ox + 16, ctOz = oz + 22;
-    const ctH = getTerrainHeight(ctOx, ctOz);
-    // Tower shaft
-    for (let y = 1; y <= 12; y++) {
-      for (let x = 0; x < 3; x++) {
-        for (let z = 0; z < 3; z++) {
-          if (x === 0 || x === 2 || z === 0 || z === 2) {
-            setBlock(ctOx + x, ctH + y, ctOz + z, BLOCK.REINFORCED);
-          } else {
-            setBlock(ctOx + x, ctH + y, ctOz + z, BLOCK.AIR);
+    // ─── 3. EAST/WEST TAXIWAYS (runways → apron) ────────────────────────
+    for (var tz = oz; tz <= oz + 38; tz++) {
+      for (var tw = 0; tw < 4; tw++) {
+        sf(ox + 52 + tw, tz, BLOCK.ASPHALT);
+        sf(ox - 55 + tw, tz, BLOCK.ASPHALT);
+      }
+    }
+
+    // ─── 4. CONCRETE APRON ───────────────────────────────────────────────
+    for (var ax = ox - 52; ax <= ox + 54; ax++) {
+      for (var az = oz + 20; az <= oz + 40; az++) { sf(ax, az, BLOCK.CONCRETE); }
+    }
+    for (var st = 0; st < 9; st++) {
+      var stx = ox - 48 + st * 12;
+      for (var stz = oz + 21; stz <= oz + 24; stz++) {
+        sf(stx, stz, BLOCK.WHITE_TILE); sf(stx + 1, stz, BLOCK.WHITE_TILE);
+      }
+    }
+
+    // ─── 5. MAIN PASSENGER TERMINAL (40×14×7) ───────────────────────────
+    var tmx = ox - 17, tmz = oz + 42;
+    for (var tbx = 0; tbx < 40; tbx++) {
+      for (var tbz = 0; tbz < 14; tbz++) {
+        for (var tby = 1; tby <= 7; tby++) {
+          var isTwall = (tbx === 0 || tbx === 39 || tbz === 0 || tbz === 13 || tby === 7);
+          if (isTwall) {
+            setBlock(tmx + tbx, by + tby, tmz + tbz, BLOCK.CONCRETE);
+          } else if (tby >= 2 && tby <= 6 && tbx % 4 === 1 && (tbz === 0 || tbz === 13)) {
+            setBlock(tmx + tbx, by + tby, tmz + tbz, BLOCK.GLASS);
           }
         }
       }
     }
-    // Observation deck at top (glass)
-    for (let x = -1; x < 4; x++) {
-      for (let z = -1; z < 4; z++) {
-        setBlock(ctOx + x, ctH + 13, ctOz + z, BLOCK.REINFORCED);
-        if (x === -1 || x === 3 || z === -1 || z === 3) {
-          setBlock(ctOx + x, ctH + 14, ctOz + z, BLOCK.GLASS);
-          setBlock(ctOx + x, ctH + 15, ctOz + z, BLOCK.GLASS);
-        }
-        setBlock(ctOx + x, ctH + 16, ctOz + z, BLOCK.METAL);
-      }
+    for (var tfx = 1; tfx < 39; tfx++) {
+      for (var tfz = 1; tfz < 13; tfz++) { setBlock(tmx + tfx, by, tmz + tfz, BLOCK.LINOLEUM); }
     }
-    // Radar dome on top
-    setBlock(ctOx + 1, ctH + 17, ctOz + 1, BLOCK.METAL);
-    setBlock(ctOx + 1, ctH + 18, ctOz + 1, BLOCK.ELECTRONICS);
+    for (var cx2 = tmx + 8; cx2 <= tmx + 32; cx2++) {
+      setBlock(cx2, by + 8, tmz, BLOCK.GLASS);
+      setBlock(cx2, by + 8, tmz - 1, BLOCK.GLASS);
+    }
+    for (var dri = 0; dri < 4; dri++) {
+      var drx = tmx + 8 + dri * 8;
+      setBlock(drx, by + 1, tmz, BLOCK.AIR); setBlock(drx, by + 2, tmz, BLOCK.AIR);
+      setBlock(drx + 1, by + 1, tmz, BLOCK.AIR); setBlock(drx + 1, by + 2, tmz, BLOCK.AIR);
+    }
 
-    // Hangars (3 large)
-    for (let hi = 0; hi < 3; hi++) {
-      const hx = ox - 30 + hi * 20;
-      const hz = oz - 8;
-      const hH = getTerrainHeight(hx, hz);
-      // Hangar building 10x8x6
-      for (let y = 1; y <= 6; y++) {
-        for (let x = 0; x < 10; x++) {
-          setBlock(hx + x, hH + y, hz, BLOCK.METAL);
-          setBlock(hx + x, hH + y, hz + 7, BLOCK.METAL);
-          if (x === 0 || x === 9) {
-            for (let z = 0; z < 8; z++) {
-              setBlock(hx + x, hH + y, hz + z, BLOCK.METAL);
-            }
+    // ─── 6. AN-225 MRIYA MEGA HANGAR (32×22×14) ─────────────────────────
+    // The Antonov An-225 was destroyed here on 27 Feb 2022.
+    var hgx = ox - 70, hgz = oz + 40;
+    for (var hbx = 0; hbx < 32; hbx++) {
+      for (var hbz = 0; hbz < 22; hbz++) {
+        for (var hby = 1; hby <= 14; hby++) {
+          if (hbx === 0 || hbx === 31 || hbz === 0 || hbz === 21 || hby === 14) {
+            setBlock(hgx + hbx, by + hby, hgz + hbz, BLOCK.METAL);
           }
         }
       }
-      // Hangar roof
-      for (let x = 0; x < 10; x++) {
-        for (let z = 0; z < 8; z++) {
-          setBlock(hx + x, hH + 7, hz + z, BLOCK.SHINGLE);
+    }
+    for (var hrx = 1; hrx < 31; hrx++) {
+      for (var hrz = 1; hrz < 21; hrz++) { setBlock(hgx + hrx, by + 14, hgz + hrz, BLOCK.SHINGLE); }
+    }
+    for (var hdx = 3; hdx < 29; hdx++) {
+      for (var hdy = 1; hdy <= 12; hdy++) { setBlock(hgx + hdx, by + hdy, hgz, BLOCK.AIR); }
+    }
+    for (var hfx = 1; hfx < 31; hfx++) {
+      for (var hfz = 1; hfz < 21; hfz++) { setBlock(hgx + hfx, by, hgz + hfz, BLOCK.CONCRETE); }
+    }
+    // AN-225 wreckage (fuselage + wings + fire at nose)
+    for (var fn = 0; fn < 26; fn++) {
+      setBlock(hgx + 3 + fn, by + 1, hgz + 10, BLOCK.RUBBLE);
+      setBlock(hgx + 3 + fn, fn < 20 ? by + 3 : by + 2, hgz + 10, BLOCK.RUBBLE);
+    }
+    for (var wn = 0; wn < 14; wn++) {
+      setBlock(hgx + 10, by + 1, hgz + 4 + wn, BLOCK.RUBBLE);
+      setBlock(hgx + 10, by + 2, hgz + 4 + wn, BLOCK.RUBBLE);
+    }
+    for (var np = -1; np <= 1; np++) {
+      setBlock(hgx + 4, by + 1, hgz + 10 + np, BLOCK.FIRE);
+      setBlock(hgx + 5, by + 2, hgz + 10 + np, BLOCK.FIRE);
+    }
+
+    // ─── 7. FIVE CARGO HANGARS (south of runways) ───────────────────────
+    for (var hni = 0; hni < 5; hni++) {
+      var sHx = ox - 60 + hni * 26, sHz = oz - 24;
+      for (var shby = 1; shby <= 7; shby++) {
+        for (var shbx = 0; shbx < 12; shbx++) {
+          setBlock(sHx + shbx, by + shby, sHz, BLOCK.METAL);
+          setBlock(sHx + shbx, by + shby, sHz + 9, BLOCK.METAL);
+          if (shbx === 0 || shbx === 11) {
+            for (var shz = 0; shz < 10; shz++) setBlock(sHx + shbx, by + shby, sHz + shz, BLOCK.METAL);
+          }
+        }
+        for (var srx = 0; srx < 12; srx++) {
+          for (var srz = 0; srz < 10; srz++) setBlock(sHx + srx, by + 8, sHz + srz, BLOCK.SHINGLE);
         }
       }
-      // Hangar bay door (open)
-      for (let dx = 2; dx < 8; dx++) {
-        for (let dy = 1; dy <= 4; dy++) {
-          setBlock(hx + dx, hH + dy, hz, BLOCK.AIR);
+      for (var shdx = 2; shdx < 10; shdx++) {
+        for (var shdy = 1; shdy <= 5; shdy++) setBlock(sHx + shdx, by + shdy, sHz + 9, BLOCK.AIR);
+      }
+      for (var shfx = 1; shfx < 11; shfx++) {
+        for (var shfz = 1; shfz < 9; shfz++) setBlock(sHx + shfx, by, sHz + shfz, BLOCK.CONCRETE);
+      }
+    }
+
+    // ─── 8. CONTROL TOWER (4×4 shaft, 22 high + 8×8 cab) ───────────────
+    var ctX = ox + 28, ctZ = oz + 44;
+    for (var cty = 1; cty <= 22; cty++) {
+      for (var ctx = 0; ctx < 4; ctx++) {
+        for (var ctz = 0; ctz < 4; ctz++) {
+          if (ctx === 0 || ctx === 3 || ctz === 0 || ctz === 3) {
+            setBlock(ctX + ctx, by + cty, ctZ + ctz, BLOCK.REINFORCED);
+          }
         }
       }
-      // Hangar floor
-      for (let x = 0; x < 10; x++) {
-        for (let z = 0; z < 8; z++) {
-          setBlock(hx + x, hH, hz + z, BLOCK.CONCRETE);
+    }
+    for (var odx = -2; odx < 6; odx++) {
+      for (var odz = -2; odz < 6; odz++) {
+        setBlock(ctX + odx, by + 23, ctZ + odz, BLOCK.REINFORCED);
+        if (odx === -2 || odx === 5 || odz === -2 || odz === 5) {
+          setBlock(ctX + odx, by + 24, ctZ + odz, BLOCK.GLASS);
+          setBlock(ctX + odx, by + 25, ctZ + odz, BLOCK.GLASS);
+          setBlock(ctX + odx, by + 26, ctZ + odz, BLOCK.REINFORCED);
+        }
+      }
+    }
+    setBlock(ctX + 1, by + 27, ctZ + 1, BLOCK.METAL);
+    setBlock(ctX + 1, by + 28, ctZ + 1, BLOCK.ELECTRONICS);
+    setBlock(ctX + 2, by + 28, ctZ + 2, BLOCK.METAL);
+    setBlock(ctX, by + 28, ctZ + 2, BLOCK.METAL);
+
+    // ─── 9. VDV HELICOPTER PADS (3 circular pads, south of runways) ─────
+    // Mi-8 assault landing zones from Feb 24, 2022
+    var padPos = [[ox - 28, oz - 40], [ox, oz - 42], [ox + 28, oz - 40]];
+    for (var pi = 0; pi < 3; pi++) {
+      var ppx = padPos[pi][0], ppz = padPos[pi][1];
+      for (var pdx = -7; pdx <= 7; pdx++) {
+        for (var pdz = -7; pdz <= 7; pdz++) {
+          var dd = pdx * pdx + pdz * pdz;
+          if (dd <= 49) sf(ppx + pdx, ppz + pdz, BLOCK.ASPHALT);
+          if (dd >= 44 && dd <= 51) setBlock(ppx + pdx, by, ppz + pdz, BLOCK.WHITE_TILE);
+        }
+      }
+      for (var hi2 = -3; hi2 <= 3; hi2++) {
+        sf(ppx - 2, ppz + hi2, BLOCK.WHITE_TILE); sf(ppx + 2, ppz + hi2, BLOCK.WHITE_TILE);
+      }
+      sf(ppx - 1, ppz, BLOCK.WHITE_TILE); sf(ppx, ppz, BLOCK.WHITE_TILE); sf(ppx + 1, ppz, BLOCK.WHITE_TILE);
+    }
+
+    // ─── 10. PERIMETER FENCE ─────────────────────────────────────────────
+    for (var pfx = ox - 70; pfx <= ox + 70; pfx++) {
+      setBlock(pfx, by, oz - 50, BLOCK.FENCE); setBlock(pfx, by + 1, oz - 50, BLOCK.FENCE);
+      setBlock(pfx, by, oz + 62, BLOCK.FENCE); setBlock(pfx, by + 1, oz + 62, BLOCK.FENCE);
+    }
+    for (var pfz = oz - 50; pfz <= oz + 62; pfz++) {
+      setBlock(ox - 70, by, pfz, BLOCK.FENCE); setBlock(ox - 70, by + 1, pfz, BLOCK.FENCE);
+      setBlock(ox + 70, by, pfz, BLOCK.FENCE); setBlock(ox + 70, by + 1, pfz, BLOCK.FENCE);
+    }
+    // Main gate (north approach)
+    for (var go = -4; go <= 4; go++) {
+      setBlock(ox + go, by, oz - 50, BLOCK.ASPHALT);
+      setBlock(ox + go, by + 1, oz - 50, BLOCK.AIR);
+      setBlock(ox + go, by + 2, oz - 50, BLOCK.AIR);
+    }
+    for (var gph = 1; gph <= 3; gph++) {
+      for (var gpx = -8; gpx <= -5; gpx++) setBlock(ox + gpx, by + gph, oz - 50, BLOCK.CONCRETE);
+      for (var gpx2 = 5; gpx2 <= 8; gpx2++) setBlock(ox + gpx2, by + gph, oz - 50, BLOCK.CONCRETE);
+    }
+
+    // ─── 11. FUEL DEPOT ──────────────────────────────────────────────────
+    for (var fdi = 0; fdi < 4; fdi++) {
+      for (var fdj = 0; fdj < 3; fdj++) {
+        setBlock(ox + 38 + fdi * 3, by + 1, oz + 52 + fdj * 3, BLOCK.FUEL_BARREL);
+      }
+    }
+    for (var ftbx = 0; ftbx < 10; ftbx++) {
+      for (var ftbz = 0; ftbz < 8; ftbz++) {
+        if (ftbx === 0 || ftbx === 9 || ftbz === 0 || ftbz === 7) {
+          setBlock(ox + 35 + ftbx, by + 1, oz + 49 + ftbz, BLOCK.METAL);
+          setBlock(ox + 35 + ftbx, by + 2, oz + 49 + ftbz, BLOCK.METAL);
         }
       }
     }
 
-    // Apron/parking area (concrete pads between runway and terminal)
-    for (let x = ox - 20; x < ox + 20; x++) {
-      for (let z = oz + 8; z < oz + 18; z++) {
-        const apH = getTerrainHeight(x, z);
-        setBlock(x, apH, z, BLOCK.CONCRETE);
-      }
+    // ─── 12. ROAD WAYPOINTS ──────────────────────────────────────────────
+    for (var wpx = ox - 60; wpx <= ox + 60; wpx += 10) {
+      _roadWaypoints.push(new THREE.Vector3(wpx, by + 0.5, oz));
+    }
+    for (var wpz2 = oz - 45; wpz2 <= oz + 55; wpz2 += 10) {
+      _roadWaypoints.push(new THREE.Vector3(ox, by + 0.5, wpz2));
     }
   }
 
@@ -4403,12 +4716,14 @@ window.VoxelWorld = (function () {
     ]);
     if (level.id === 'HOSTOMEL') {
       generateHostomelAirport(0, 0);
-      generateUkrainianApartment(-35, -30, 6);
-      generateUkrainianApartment(-35, -50, 12);
-      generateUkrainianApartment(25, -35, 6);
-      // Enemy drone nests around the airport perimeter
-      generateDroneNest(40, 25);
-      generateDroneNest(-38, 20);
+      // Residential blocks east of the airport (town of Hostomel)
+      generateUkrainianApartment(80, -30, 6);
+      generateUkrainianApartment(80, -50, 9);
+      generateUkrainianApartment(80, -68, 6);
+      generateUkrainianApartment(95, -40, 9);
+      // Enemy drone nests — placed outside the airport perimeter fence
+      generateDroneNest(80, -20);
+      generateDroneNest(-80, -18);
     } else if (level.id === 'AVDIIVKA') {
       generateUkrainianApartment(-20, -20, 6);
       generateUkrainianApartment(-20, -42, 12);
@@ -4435,6 +4750,7 @@ window.VoxelWorld = (function () {
       // Real-map recreation: Maidan Nezalezhnosti / Khreshchatyk approach
       // where Russian armored columns were stopped on the road into Kyiv
       generateKyivMaidanSquare(0, 0);
+      generateKyivCityExtension(0, 0);
       // Drone nests along enemy approach corridor
       generateDroneNest(36, -40);
       generateDroneNest(-36, -40);
