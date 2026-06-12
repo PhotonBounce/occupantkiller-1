@@ -3178,6 +3178,88 @@ window.VoxelWorld = (function () {
       _roadWaypoints.push(new THREE.Vector3(ox, gh(ox, ehz) + 0.5, ehz));
     }
 
+    // ── I0. Trench / defensive fighting positions at player line (z=12-18) ─
+    // Ukrainian TDF dug in here during the Kyiv defense — sandbag parapets
+    // and firing bays overlooking the northern approach road.
+    for (var tsx = ox - 16; tsx <= ox + 16; tsx++) {
+      var tsy = gh(tsx, oz + 14);
+      // Main parapet wall (sandbags front face)
+      if (tsx !== ox - 1 && tsx !== ox && tsx !== ox + 1) { // gap for player position
+        setBlock(tsx, tsy + 1, oz + 14, BLOCK.SANDBAG);
+        setBlock(tsx, tsy + 2, oz + 14, BLOCK.SANDBAG);
+      }
+      // Firing step (concrete floor behind sandbag)
+      setBlock(tsx, tsy,     oz + 15, BLOCK.CONCRETE);
+      setBlock(tsx, tsy,     oz + 16, BLOCK.CONCRETE);
+      // Back wall
+      if (tsx % 5 === 0) {
+        setBlock(tsx, tsy + 1, oz + 17, BLOCK.SANDBAG);
+        setBlock(tsx, tsy + 2, oz + 17, BLOCK.SANDBAG);
+      }
+    }
+    // Traverse walls (divide trench into bays to limit blast propagation)
+    for (var bay = -3; bay <= 3; bay += 3) {
+      var basx = ox + bay * 4;
+      var bayY = gh(basx, oz + 15);
+      for (var bayZ = 14; bayZ <= 17; bayZ++) {
+        setBlock(basx, bayY + 1, oz + bayZ, BLOCK.SANDBAG);
+        setBlock(basx, bayY + 2, oz + bayZ, BLOCK.SANDBAG);
+      }
+    }
+
+    // ── I1. ZU-23-2 anti-aircraft emplacement near Maidan ────────────
+    // Ukrainian forces placed ZU-23-2s on rooftops and at street positions
+    // to shoot down low-flying helicopters and Shahed drones.
+    var zuX = ox - 22, zuZ = oz + 8;
+    var zuY = gh(zuX, zuZ);
+    // Sandbag ring (radius ~3)
+    for (var zuA = 0; zuA < 8; zuA++) {
+      var zuAx = zuX + Math.round(Math.cos(zuA * Math.PI / 4) * 3);
+      var zuAz = zuZ + Math.round(Math.sin(zuA * Math.PI / 4) * 3);
+      setBlock(zuAx, gh(zuAx, zuAz) + 1, zuAz, BLOCK.SANDBAG);
+      setBlock(zuAx, gh(zuAx, zuAz) + 2, zuAz, BLOCK.SANDBAG);
+    }
+    // Gun pad (concrete circle inside)
+    for (var zpx = -2; zpx <= 2; zpx++) {
+      for (var zpz = -2; zpz <= 2; zpz++) {
+        if (zpx * zpx + zpz * zpz <= 5) {
+          setBlock(zuX + zpx, zuY, zuZ + zpz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // ZU-23-2 gun body (METAL block representation)
+    setBlock(zuX, zuY + 1, zuZ, BLOCK.METAL);
+    setBlock(zuX, zuY + 1, zuZ - 1, BLOCK.METAL);
+    setBlock(zuX, zuY + 1, zuZ - 2, BLOCK.METAL); // barrel
+
+    // ── I2. Artillery craters in the approach corridor ───────────────
+    // Russian Grad/Uragan strikes left scattered impact craters along
+    // the Kyiv-Hostomel highway approach.
+    var craterPositions = [
+      { x: ox - 6, z: oz + 55 },  { x: ox + 12, z: oz + 63 },
+      { x: ox - 14, z: oz + 72 }, { x: ox + 4, z: oz + 85 },
+      { x: ox - 3,  z: oz + 94 }, { x: ox + 16, z: oz + 103 },
+      { x: ox - 10, z: oz + 115 },{ x: ox + 8,  z: oz + 122 },
+    ];
+    for (var cri = 0; cri < craterPositions.length; cri++) {
+      var cp = craterPositions[cri];
+      var crY = gh(cp.x, cp.z);
+      // Rubble/debris ring around crater
+      for (var crx2 = -3; crx2 <= 3; crx2++) {
+        for (var crz2 = -3; crz2 <= 3; crz2++) {
+          var cdist = Math.sqrt(crx2 * crx2 + crz2 * crz2);
+          if (cdist > 1.8 && cdist <= 3.0) {
+            var crBlock = (Math.abs(crx2 + crz2) % 3 === 0) ? BLOCK.RUBBLE : BLOCK.DIRT;
+            setBlock(cp.x + crx2, crY + 1, cp.z + crz2, crBlock);
+          }
+        }
+      }
+      // Scorch center
+      setBlock(cp.x, crY, cp.z, BLOCK.RUBBLE);
+      // Occasional still-burning spot (every other crater)
+      if (cri % 2 === 0) setBlock(cp.x, crY + 1, cp.z, BLOCK.FIRE);
+    }
+
     // ── I. Czech hedgehog anti-tank barriers along the approach ─────────
     // Iconic concrete/metal X-shaped barriers placed by Ukraine across entry roads
     var hedgehogPositions = [

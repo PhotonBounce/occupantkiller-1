@@ -335,7 +335,7 @@ const Weapons = (() => {
     {
       id: 'FPV_DRONE', name: 'FPV Kamikaze Drone', damage: 400,
       fireRate: 8.0, clipSize: 1, maxReserve: 3, reloadTime: 6.5,
-      spread: 0, auto: false, type: 'LAUNCH', recoilY: 0.015, recoilX: 0.004,
+      spread: 0, auto: false, type: 'AT_LIGHT', recoilY: 0.015, recoilX: 0.004,
       blastRadius: 5, homing: false,
       description: 'First-person-view quadcopter with RKG-3 grenade or PG-7 warhead. Most prolific weapon in 2024-2025 Ukraine war. Guided by FPV goggles to target.',
     },
@@ -356,9 +356,35 @@ const Weapons = (() => {
     {
       id: 'HIMARS', name: 'M142 HIMARS (GMLRS Strike)', damage: 3000,
       fireRate: 12.0, clipSize: 1, maxReserve: 1, reloadTime: 14.0,
-      spread: 0, auto: false, type: 'LAUNCH', recoilY: 0.010, recoilX: 0.003,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.010, recoilX: 0.003,
       blastRadius: 25, homing: true,
       description: 'US M142 High Mobility Artillery Rocket System. GMLRS precision rocket to 84km. Decisive NATO weapon destroying Russian depots and supply lines across Ukraine.',
+    },
+    {
+      id: 'F1_GRENADE', name: 'F-1 "Limonka" Grenade', damage: 220,
+      fireRate: 1.8, clipSize: 3, maxReserve: 9, reloadTime: 1.5,
+      spread: 0, auto: false, type: 'GRENADE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 6,
+      description: 'Soviet F-1 fragmentation grenade ("Limonka" = little lemon). Heavier frag pattern than RGD-5 — lethal radius ~5m. Both sides stockpile thousands.',
+    },
+    {
+      id: 'MAXIM1910', name: 'Maxim M1910 (7.62mm)', damage: 28,
+      fireRate: 0.10, clipSize: 250, maxReserve: 500, reloadTime: 7.0,
+      spread: 0.025, auto: true, type: 'LMG', recoilY: 0.025, recoilX: 0.008,
+      description: 'WW1-era water-cooled machine gun still seen in Ukraine. Belt-fed, tripod-mounted. Filmed in combat in 2022-2024. Soviet/Russian mil doctrine: "never throw anything away."',
+    },
+    {
+      id: 'BM21_GRAD', name: 'BM-21 Grad MLRS (Call Fire)', damage: 2800,
+      fireRate: 14.0, clipSize: 1, maxReserve: 1, reloadTime: 16.0,
+      spread: 0.02, auto: false, type: 'AT_HEAVY', recoilY: 0.008, recoilX: 0.002,
+      blastRadius: 28, homing: false,
+      description: 'Soviet BM-21 Grad 40-round 122mm MLRS. Russia\'s most used artillery system in Ukraine — responsible for the majority of casualties. Wide-area saturation fire.',
+    },
+    {
+      id: 'TAVOR_X95', name: 'IWI Tavor X95 (5.56mm)', damage: 29,
+      fireRate: 0.085, clipSize: 30, maxReserve: 120, reloadTime: 2.2,
+      spread: 0.018, auto: true, type: 'RIFLE', recoilY: 0.022, recoilX: 0.008,
+      description: 'Israeli bullpup assault rifle. Supplied to Ukrainian units through various channels. Compact (590mm overall), very reliable in urban environments.',
     },
   ];
 
@@ -3174,6 +3200,104 @@ const Weapons = (() => {
       g.add(_P(_B(0.016, 0.016, 0.003, 0xcccccc), X - 0.010, Y + 0.018, -0.208));
       return g;
     },
+
+    // ── F-1 "Limonka" Frag Grenade ────────────────────────────────────
+    f1_grenade: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.10, Y = -0.06;
+      // Oval/lemon body (two cylinders stacked for bulge)
+      g.add(_P(_T(0.022, 0.028, 0x3a4a28, 10), X, Y, -0.12));
+      g.add(_P(_T(0.020, 0.018, 0x3a4a28, 10), X, Y, -0.09));
+      g.add(_P(_T(0.020, 0.018, 0x3a4a28, 10), X, Y, -0.150));
+      // Segmented/grooved body (fragmentation pattern cast in)
+      for (let s = 0; s < 4; s++) {
+        g.add(_P(_T(0.023, 0.003, 0x2a3820, 10), X, Y, -0.098 - s * 0.010));
+      }
+      // Fuze assembly on top
+      g.add(_P(_T(0.010, 0.024, _pal.blk(), 8), X, Y + 0.018, -0.090));
+      g.add(_P(_B(0.014, 0.010, 0.020, _pal.blk()), X, Y + 0.030, -0.090));
+      // Safety pin ring (small torus from two segments)
+      g.add(_P(_T(0.010, 0.003, _pal.steel(), 8), X + 0.014, Y + 0.035, -0.090));
+      // Safety lever (spoon)
+      g.add(_P(_B(0.005, 0.022, 0.006, _pal.steel()), X + 0.014, Y + 0.022, -0.090));
+      return g;
+    },
+
+    // ── Maxim M1910 water-cooled MG ───────────────────────────────────
+    maxim1910: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Receiver box (large, squarish)
+      g.add(_P(_B(0.075, 0.070, 0.32, 0x3a3228), X, Y, -0.22));
+      // Water jacket (cylindrical barrel shroud — the iconic Maxim feature)
+      g.add(_P(_T(0.025, 0.38, 0x4a4640, 12), X, Y + 0.008, -0.40));
+      // Corrugated cooling rings on water jacket
+      for (let i = 0; i < 10; i++) {
+        g.add(_P(_T(0.027, 0.005, 0x2a2a26, 10), X, Y + 0.008, -0.24 - i * 0.040));
+      }
+      // Muzzle flash hider
+      g.add(_P(_T(0.022, 0.036, _pal.blk(), 8), X, Y + 0.008, -0.60));
+      // Water filler cap on top of jacket
+      g.add(_P(_T(0.012, 0.014, 0x5a5650, 8), X, Y + 0.034, -0.38));
+      // Trigger/grip area
+      g.add(_P(_B(0.016, 0.048, 0.026, 0x2a2216), X - 0.018, Y - 0.020, -0.08));
+      g.add(_P(_B(0.016, 0.048, 0.026, 0x2a2216), X + 0.018, Y - 0.020, -0.08));
+      // Rear spade grip cross bar
+      g.add(_P(_B(0.060, 0.012, 0.014, _pal.blk()), X, Y + 0.002, -0.07));
+      // Feed block (right side, for cloth belt)
+      g.add(_P(_B(0.020, 0.040, 0.055, 0x3a3228), X + 0.052, Y, -0.15));
+      return g;
+    },
+
+    // ── BM-21 Grad MLRS (call-for-fire device) ───────────────────────
+    bm21_grad: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.07;
+      // Artillery fire control tablet (ruggedized, olive green)
+      g.add(_P(_B(0.095, 0.062, 0.024, 0x2a3420), X, Y, -0.17));
+      // Screen (military map display, dark green)
+      g.add(_P(_B(0.074, 0.044, 0.004, 0x0d1a0a), X, Y + 0.003, -0.194));
+      // Map grid lines (two lighter strips)
+      g.add(_P(_B(0.074, 0.002, 0.003, 0x1a3a14), X, Y + 0.008, -0.194));
+      g.add(_P(_B(0.074, 0.002, 0.003, 0x1a3a14), X, Y - 0.004, -0.194));
+      // Side carry handle
+      g.add(_P(_B(0.012, 0.008, 0.028, _pal.blk()), X - 0.052, Y + 0.024, -0.17));
+      // Battery pack (rear)
+      g.add(_P(_B(0.090, 0.058, 0.020, 0x222822), X, Y, -0.150));
+      // Fire mission button (red, with guard)
+      const gradBtn = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.006, 6),
+        new THREE.MeshLambertMaterial({ color: 0xdd1111 }));
+      gradBtn.position.set(X + 0.028, Y + 0.024, -0.196); g.add(gradBtn);
+      // Red star decal (Soviet)
+      g.add(_P(_B(0.012, 0.012, 0.003, 0xcc1111), X - 0.012, Y + 0.020, -0.195));
+      return g;
+    },
+
+    // ── IWI Tavor X95 bullpup ─────────────────────────────────────────
+    tavor_x95: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Bullpup body (magazine behind trigger — compact)
+      g.add(_P(_B(0.040, 0.060, 0.34, 0x3a3a3a), X, Y, -0.17));
+      // Barrel (short, protruding from very front)
+      g.add(_P(_T(0.010, 0.22, _pal.steel(), 10), X, Y + 0.010, -0.38));
+      // Muzzle device
+      g.add(_P(_T(0.014, 0.028, _pal.blk(), 8), X, Y + 0.010, -0.50));
+      // Polymer grip (forward)
+      g.add(_P(_B(0.022, 0.042, 0.018, 0x2a2a2a), X, Y - 0.024, -0.28));
+      // Box magazine (behind trigger position, bottom of stock)
+      g.add(_P(_B(0.022, 0.052, 0.036, 0x1a1a18), X, Y - 0.026, -0.09));
+      // Optical top rail
+      g.add(_P(_B(0.030, 0.008, 0.200, _pal.blk()), X, Y + 0.036, -0.18));
+      // Holographic sight (standard on Israeli units)
+      g.add(_P(_B(0.026, 0.024, 0.030, 0x2a2a2a), X, Y + 0.040, -0.26));
+      g.add(_P(_B(0.014, 0.014, 0.004, 0x113311, 8), X, Y + 0.044, -0.278)); // lens
+      // Thumb hole stock cutout
+      g.add(_P(_B(0.018, 0.028, 0.060, 0x3a3a3a), X, Y + 0.006, -0.04));
+      // IDF-style folding buttstock stub
+      g.add(_P(_B(0.028, 0.028, 0.022, 0x2a2a2a), X, Y, -0.005));
+      return g;
+    },
   };
 
   const meshBuilders = [
@@ -3197,6 +3321,8 @@ const Weapons = (() => {
     NB.rgd5, NB.spike_lr, NB.milan, NB.mp7, NB.kord, NB.browning_m2,
     // 5 new war weapons (ZU-23-2, FPV drone, Kornet, RPG-26, HIMARS)
     NB.zu23_2, NB.fpv_drone, NB.kornet, NB.rpg26, NB.himars,
+    // 4 more (F-1 grenade, Maxim M1910, BM-21 Grad, Tavor X95)
+    NB.f1_grenade, NB.maxim1910, NB.bm21_grad, NB.tavor_x95,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

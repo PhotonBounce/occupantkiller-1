@@ -3507,6 +3507,34 @@ const GameManager = (function () {
         }
         if (w === 2) HUD.notifyPickup('⚠ SNIPERS IN BUILDINGS — CLEAR THE ROOFTOPS!', '#ff6622');
       }
+      // Wave 5+: FPV drone operators appear on building rooftops
+      // (DRONE_OP type — operator controls an FPV swarm, priority target)
+      if (w >= 5 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+        var _dronePosRooftops = [
+          { x: ox - 14, z: 137 }, { x: ox + 8,  z: 160 },
+          { x: ox - 16, z: 178 }, { x: ox + 10, z: 139 },
+        ];
+        var _droneOpsCount = Math.min(1 + Math.floor((w - 5) / 2), 3);
+        for (var _doi = 0; _doi < _droneOpsCount; _doi++) {
+          var _dp = _dronePosRooftops[(_doi + w) % _dronePosRooftops.length];
+          var _dpy = (VoxelWorld.getTopSolidY ? VoxelWorld.getTopSolidY(_dp.x, _dp.z) : VoxelWorld.getTerrainHeight(_dp.x, _dp.z) + 5);
+          try { Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_dp.x, _dpy, _dp.z)); } catch(e) {}
+        }
+        if (w === 5) HUD.notifyPickup('⚡ FPV DRONE OPERATORS SPOTTED — ELIMINATE THEM!', '#ff8800');
+      }
+      // Wave 6+: Grad/Uragan artillery salvo warning — area denial for ~8s
+      if (w >= 6 && typeof HUD !== 'undefined') {
+        HUD.notifyPickup('💥 INCOMING GRAD SALVO — TAKE COVER!', '#ff2222');
+        // Spawn rubble/fire at random spots in the approach corridor
+        if (typeof VoxelWorld !== 'undefined' && VoxelWorld.setBlock) {
+          for (var _gs = 0; _gs < 4; _gs++) {
+            var _gx = (Math.random() - 0.5) * 20;
+            var _gz = 40 + Math.random() * 80;
+            var _gy = VoxelWorld.getTerrainHeight(_gx, _gz);
+            try { VoxelWorld.setBlock(Math.round(_gx), _gy + 1, Math.round(_gz), window.BLOCK ? window.BLOCK.FIRE : 37); } catch(e) {}
+          }
+        }
+      }
       // Resupply: AT weapons carry 1+3 rockets — drop ammo crates at the
       // defended line each wave so launchers stay fed.
       if (typeof Pickups !== 'undefined' && Pickups.spawn) {
