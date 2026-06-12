@@ -688,6 +688,33 @@ const Weapons = (() => {
       blastRadius: 5,
       description: 'Soviet B-10 82mm recoilless rifle from 1954. Smooth-bore with breech counterblast. Both sides dug B-10s from 60-year-old arsenals during 2022 equipment shortages. Shoulder-fired or wheel-carriage mounted. Still effective against APCs and fortified positions at 400m.',
     },
+    {
+      id: 'AK74M', name: 'AK-74M (5.45×39mm)', damage: 26,
+      fireRate: 0.079, clipSize: 30, maxReserve: 120, reloadTime: 2.0,
+      spread: 0.014, auto: true, type: 'RIFLE', recoilY: 0.017, recoilX: 0.005,
+      description: "Russia's standard-issue service rifle since 1991. 5.45mm intermediate cartridge, side-folding polymer stock, muzzle brake that nearly eliminates climb. The AK-74M is carried by virtually every Russian soldier in Ukraine — the most common opposing weapon on the battlefield.",
+    },
+    {
+      id: 'SWITCHBLADE600', name: 'Switchblade 600 (anti-armor loitering munition)', damage: 680,
+      fireRate: 5.0, clipSize: 1, maxReserve: 2, reloadTime: 8.0,
+      spread: 0.003, auto: false, type: 'AT_LIGHT', recoilY: 0.005, recoilX: 0.001,
+      homing: true, blastRadius: 6,
+      description: "AeroVironment Switchblade 600 — US-supplied anti-armor kamikaze drone. Much larger than the 300 variant, purpose-built to defeat armored vehicles. Deploys from a tube, wings unfold mid-air, operator guides to target via live video feed. Warhead equivalent to a Javelin. Provided to Ukraine under US military aid packages from 2022.",
+    },
+    {
+      id: 'PZH2000', name: 'Panzerhaubitze 2000 (155mm SPH)', damage: 1200,
+      fireRate: 6.0, clipSize: 3, maxReserve: 9, reloadTime: 9.0,
+      spread: 0.012, auto: false, type: 'EXPLOSIVE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 14,
+      description: "German/Dutch PzH 2000 self-propelled howitzer. 155mm/L52 barrel with autoloader — 3 rounds in under 10 seconds. Germany and Netherlands donated ~20 units to Ukraine in 2022; proved devastating against Russian logistics and troop concentrations. Max range 40km with base bleed ammunition.",
+    },
+    {
+      id: 'KH101', name: 'Kh-101 Cruise Missile', damage: 2400,
+      fireRate: 0.0, clipSize: 1, maxReserve: 1, reloadTime: 12.0,
+      spread: 0.002, auto: false, type: 'AT_HEAVY', recoilY: 0.0, recoilX: 0.0,
+      homing: true, blastRadius: 22,
+      description: "Russian Kh-101 air-launched cruise missile. Stealthy composite airframe, terrain-following guidance, 400kg warhead. Russia fires these from Tu-95MS and Tu-160 bombers targeting Ukrainian cities, power grid, and infrastructure. Ukraine intercepts ~50% with Patriots and F-16s, but mass salvos overwhelm defences. Range 5,000km.",
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -4719,6 +4746,98 @@ const Weapons = (() => {
       return g;
     },
 
+    // ── AK-74M (Russia's standard 5.45mm service rifle) ──────────────
+    ak74m: function () {
+      return _rifle({ hg: 'wood', hgColor: _pal.poly, stock: 'fold', mag: 'curved',
+        magColor: _pal.poly, muzzle: 'brake', recvLen: 0.22, barLen: 0.16,
+        barR: 0.009, recvColor: _pal.gm });
+    },
+
+    // ── Switchblade 600 (anti-armor loitering munition) ──────────────
+    switchblade600: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.09;
+      // Launch tube (larger than SB300 — stores the whole drone)
+      g.add(_P(_T(0.038, 0.52, _pal.olive(), 10), X, Y, -0.22));
+      // Tube end cap (sealed before launch)
+      g.add(_P(_T(0.040, 0.010, _pal.blk(), 10), X, Y, -0.49));
+      // Carry handle / grip rail
+      g.add(_P(_B(0.012, 0.022, 0.10, _pal.blk()), X, Y + 0.038, -0.18));
+      // Folded wing nubs visible through vents (2 each side)
+      g.add(_P(_B(0.042, 0.006, 0.018, _pal.blk()), X, Y, -0.12));
+      g.add(_P(_B(0.042, 0.006, 0.018, _pal.blk()), X, Y, -0.30));
+      // Launch trigger assembly (rear grip)
+      g.add(_P(_B(0.022, 0.055, 0.028, _pal.blk()), X, Y - 0.042, 0.04));
+      const tg = new THREE.Mesh(
+        new THREE.TorusGeometry(0.012, 0.003, 5, 10, Math.PI),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      tg.rotation.x = Math.PI / 2; tg.position.set(X, Y - 0.048, 0.04); g.add(tg);
+      // Shoulder brace (folding, rear)
+      g.add(_P(_B(0.048, 0.014, 0.030, _pal.gm()), X, Y + 0.002, 0.10));
+      // Status LED strip
+      g.add(_P(_B(0.006, 0.004, 0.060, 0x002200), X + 0.020, Y + 0.012, -0.22));
+      return g;
+    },
+
+    // ── PzH 2000 (155mm self-propelled howitzer) ──────────────────────
+    pzh2000: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.15, Y = -0.08;
+      // Turret body (large boxy superstructure)
+      g.add(_P(_B(0.10, 0.065, 0.12, _pal.olive()), X, Y, -0.02));
+      // Barrel — long 155mm/L52 (very long for howitzer)
+      g.add(_P(_T(0.020, 0.80, _pal.steel(), 10), X, Y + 0.014, -0.46));
+      // Muzzle brake (double-baffle, prominent)
+      g.add(_P(_B(0.042, 0.028, 0.042, _pal.steel()), X, Y + 0.014, -0.87));
+      g.add(_P(_T(0.023, 0.006, _pal.blk(), 10), X, Y + 0.014, -0.91));
+      // Autoloader hump on rear of turret
+      g.add(_P(_B(0.068, 0.048, 0.060, _pal.olive()), X, Y + 0.030, 0.08));
+      // Hatch rings on top (commander + loader)
+      const hA = new THREE.Mesh(new THREE.TorusGeometry(0.016, 0.003, 5, 12),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      hA.position.set(X - 0.020, Y + 0.048, -0.01); g.add(hA);
+      const hB = new THREE.Mesh(new THREE.TorusGeometry(0.014, 0.003, 5, 12),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      hB.position.set(X + 0.020, Y + 0.048, 0.04); g.add(hB);
+      // Gun shield / mantlet
+      g.add(_P(_B(0.062, 0.058, 0.018, _pal.gm()), X, Y + 0.014, -0.08));
+      // Side grab handle
+      g.add(_P(_B(0.006, 0.006, 0.040, _pal.steel()), X + 0.056, Y + 0.010, -0.05));
+      return g;
+    },
+
+    // ── Kh-101 cruise missile (Russian air-launched) ──────────────────
+    kh101: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.07;
+      // Main body (long, narrow, stealthy faceted airframe)
+      g.add(_P(_T(0.022, 0.76, _pal.gm(), 8), X, Y, -0.32));
+      // Slightly wider centre section (warhead section)
+      g.add(_P(_T(0.028, 0.22, _pal.gm(), 8), X, Y, -0.16));
+      // Nose cone (pointed, composite)
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.022, 0.09, 8),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      nose.rotation.x = Math.PI / 2; nose.position.set(X, Y, -0.74); g.add(nose);
+      // Folded pop-out wings (2 mid-body, swept)
+      const wL = _P(_B(0.12, 0.004, 0.050, _pal.gm()), X + 0.062, Y, -0.25);
+      wL.rotation.z = -0.10; g.add(wL);
+      const wR = _P(_B(0.12, 0.004, 0.050, _pal.gm()), X - 0.062, Y, -0.25);
+      wR.rotation.z = 0.10; g.add(wR);
+      // Tail fins (cruciform, 4 × small)
+      const finAngles = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+      for (var fi = 0; fi < 4; fi++) {
+        const fin = _P(_B(0.040, 0.004, 0.028, _pal.steel()), X, Y, 0.06);
+        fin.rotation.z = finAngles[fi]; fin.position.x += Math.cos(finAngles[fi]) * 0.026;
+        fin.position.y += Math.sin(finAngles[fi]) * 0.026; g.add(fin);
+      }
+      // Turbojet intake (bottom, rectangular)
+      g.add(_P(_B(0.022, 0.014, 0.020, _pal.blk()), X, Y - 0.030, -0.10));
+      // Engine nozzle (rear)
+      g.add(_P(_T(0.014, 0.018, 0x441a00, 8), X, Y, 0.13));
+      return g;
+    },
+
     // ── B-10 Recoilless Rifle (82mm, Soviet 1954) ────────────────────
     b10: function () {
       const g = new THREE.Group(); g.userData.selfContained = true;
@@ -4797,6 +4916,8 @@ const Weapons = (() => {
     NB.aiax, NB.malyutka, NB.verba, NB.rgn86,
     // 4 more (RPG-32 Hashim, HK G36C, 2B9 Vasilek auto-mortar, B-10 RCL)
     NB.rpg32, NB.g36c, NB.vasilek, NB.b10,
+    // 4 more (AK-74M, Switchblade 600, PzH 2000, Kh-101)
+    NB.ak74m, NB.switchblade600, NB.pzh2000, NB.kh101,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

@@ -4151,6 +4151,96 @@ window.VoxelWorld = (function () {
     setBlock(ftX - 2, ftY + 1, ftZ + 2, BLOCK.WOOD);
     setBlock(ftX + 4, ftY + 1, ftZ + 1, BLOCK.WOOD);
     setBlock(ftX + 4, ftY + 1, ftZ + 4, BLOCK.WOOD);
+
+    // ── DD. HIMARS firing position (M270/MLRS battery) ────────────────
+    // Ukraine's HIMARS batteries operate from concealed positions and
+    // displace immediately after firing ("shoot-and-scoot"). This shows
+    // a hasty rearm position with sandbag revetments and ammo pods.
+    var hmX = ox - 30, hmZ = oz - 32;
+    var hmY = gh(hmX, hmZ);
+    // Earthen revetment berm (U-shaped, opens toward the enemy / north)
+    for (var hrx = 0; hrx < 10; hrx++) {
+      setBlock(hmX + hrx, hmY + 1, hmZ + 5, BLOCK.DIRT);
+      setBlock(hmX + hrx, hmY + 2, hmZ + 5, BLOCK.DIRT);
+      setBlock(hmX + hrx, hmY + 3, hmZ + 5, BLOCK.SANDBAG);
+    }
+    setBlock(hmX - 1, hmY + 1, hmZ + 3, BLOCK.DIRT);
+    setBlock(hmX - 1, hmY + 2, hmZ + 3, BLOCK.DIRT);
+    setBlock(hmX - 1, hmY + 1, hmZ + 4, BLOCK.DIRT);
+    setBlock(hmX - 1, hmY + 2, hmZ + 4, BLOCK.DIRT);
+    setBlock(hmX + 10, hmY + 1, hmZ + 3, BLOCK.DIRT);
+    setBlock(hmX + 10, hmY + 2, hmZ + 3, BLOCK.DIRT);
+    setBlock(hmX + 10, hmY + 1, hmZ + 4, BLOCK.DIRT);
+    setBlock(hmX + 10, hmY + 2, hmZ + 4, BLOCK.DIRT);
+    // HIMARS truck body (cab + rocket pod frame — METAL on CONCRETE pad)
+    for (var hcx = 0; hcx < 2; hcx++) {
+      setBlock(hmX + 2 + hcx, hmY + 1, hmZ + 1, BLOCK.METAL);
+      setBlock(hmX + 2 + hcx, hmY + 1, hmZ + 2, BLOCK.METAL);
+      setBlock(hmX + 2 + hcx, hmY + 2, hmZ + 1, BLOCK.METAL);
+      setBlock(hmX + 2 + hcx, hmY + 2, hmZ + 2, BLOCK.METAL);
+    }
+    // Rocket pod (elevated block on top — distinctive HIMARS silhouette)
+    for (var rpx = 0; rpx < 4; rpx++) {
+      setBlock(hmX + 2 + rpx, hmY + 3, hmZ + 1, BLOCK.METAL);
+      setBlock(hmX + 2 + rpx, hmY + 3, hmZ + 2, BLOCK.METAL);
+    }
+    // Spare M31 GMLRS pod crates beside launcher (WOOD)
+    setBlock(hmX + 7, hmY + 1, hmZ + 1, BLOCK.WOOD);
+    setBlock(hmX + 7, hmY + 1, hmZ + 2, BLOCK.WOOD);
+    setBlock(hmX + 8, hmY + 1, hmZ + 1, BLOCK.WOOD);
+    // Comms antenna (METAL pole + FLAG)
+    setBlock(hmX + 1, hmY + 1, hmZ + 3, BLOCK.METAL);
+    setBlock(hmX + 1, hmY + 2, hmZ + 3, BLOCK.METAL);
+    setBlock(hmX + 1, hmY + 3, hmZ + 3, BLOCK.METAL);
+    setBlock(hmX + 1, hmY + 4, hmZ + 3, BLOCK.FLAG);
+    // Camouflage net frames (WOOD poles forming overhead frame)
+    setBlock(hmX + 3, hmY + 4, hmZ,     BLOCK.WOOD);
+    setBlock(hmX + 6, hmY + 4, hmZ,     BLOCK.WOOD);
+
+    // ── EE. Shelled apartment block (civilian infrastructure strike) ───
+    // Russia systematically targeted residential high-rises in Kyiv
+    // suburbs. This shows a partially collapsed 9-storey block with
+    // fire damage, exposed concrete skeleton, and refugee rubble.
+    var apX = ox + 30, apZ = oz - 18;
+    var apY = gh(apX, apZ);
+    // Standing facade (BRICK walls, large cross-section — 8×10 footprint)
+    for (var apx = 0; apx < 8; apx++) {
+      for (var apz = 0; apz < 3; apz++) {
+        for (var apy = 1; apy <= 9; apy++) {
+          var isWall = apx === 0 || apx === 7 || apz === 0 || apz === 2;
+          // Collapse damage: upper floors lose blocks randomly
+          if (apy > 5 && ((apx + apz + apy) % 3 === 0)) continue;
+          if (isWall) setBlock(apX + apx, apY + apy, apZ + apz, BLOCK.BRICK);
+        }
+      }
+    }
+    // Blown-out windows (AIR gaps in wall at each floor)
+    for (var wf = 1; wf <= 9; wf++) {
+      if (wf % 2 === 0) {
+        setBlock(apX + 2, apY + wf, apZ,     BLOCK.AIR);
+        setBlock(apX + 5, apY + wf, apZ,     BLOCK.AIR);
+      } else {
+        setBlock(apX + 3, apY + wf, apZ + 2, BLOCK.AIR);
+      }
+    }
+    // Collapsed section (right side floors 6-9 — pancaked down)
+    for (var clf = 6; clf <= 9; clf++) {
+      setBlock(apX + 6, apY + clf, apZ + 1, BLOCK.RUBBLE);
+      setBlock(apX + 7, apY + clf, apZ + 1, BLOCK.RUBBLE);
+    }
+    // Fire in upper floors (missile strike entry point)
+    setBlock(apX + 4, apY + 7, apZ + 1, BLOCK.FIRE);
+    setBlock(apX + 5, apY + 8, apZ + 1, BLOCK.FIRE);
+    setBlock(apX + 3, apY + 6, apZ,     BLOCK.FIRE);
+    // Debris field at base (concrete and brick chunks)
+    for (var dbx = 0; dbx < 8; dbx++) {
+      setBlock(apX + dbx, apY + 1, apZ + 3, BLOCK.RUBBLE);
+      if (dbx % 2 === 0) setBlock(apX + dbx, apY + 1, apZ + 4, BLOCK.RUBBLE);
+    }
+    // Exposed rebar floor slabs (CONCRETE visible through breach)
+    setBlock(apX + 1, apY + 5, apZ + 1, BLOCK.CONCRETE);
+    setBlock(apX + 2, apY + 5, apZ + 1, BLOCK.CONCRETE);
+    setBlock(apX + 3, apY + 5, apZ + 1, BLOCK.CONCRETE);
   }
 
   // IDEA 21: Evacuation bus/civilian vehicles
