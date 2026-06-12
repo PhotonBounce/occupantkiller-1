@@ -522,6 +522,33 @@ const Weapons = (() => {
       spread: 0.002, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.045, recoilX: 0.012,
       description: 'Russian SV-98 bolt-action 7.62×54mmR. Used by Russian snipers for methodical counter-sniper work in static trench lines. More accurate than SVD but slower. Deployed from dedicated hides at 800-1000m.',
     },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'LANCET3', name: 'Lancet-3 (Zala loitering munition)', damage: 520,
+      fireRate: 9.0, clipSize: 1, maxReserve: 2, reloadTime: 7.0,
+      spread: 0, auto: false, type: 'AT_LIGHT', recoilY: 0.004, recoilX: 0.001,
+      blastRadius: 5, homing: true,
+      description: 'Russian Zala Lancet-3 loitering munition. Distinctive X-wing design at nose and tail. 3kg warhead with fragmentation/shaped-charge option. Camera-guided via operator. Responsible for destroying hundreds of Ukrainian howitzers, tanks, and radar systems 2023-2025.',
+    },
+    {
+      id: 'STORMSHADOW', name: 'Storm Shadow/SCALP-EG Cruise Missile', damage: 6000,
+      fireRate: 20.0, clipSize: 1, maxReserve: 1, reloadTime: 22.0,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.002, recoilX: 0.001,
+      blastRadius: 18, homing: true,
+      description: 'UK/French Matra Storm Shadow / SCALP-EG standoff cruise missile. 450kg BROACH warhead penetrates hardened bunkers. Range >250km. Air-launched from Su-24M. UK delivery 2023 transformed Ukrainian deep-strike capability — hit Kerch Bridge, Crimea HQs, Sevastopol fleet.',
+    },
+    {
+      id: 'ASVAL', name: 'AS Val (9×39mm suppressed)', damage: 42,
+      fireRate: 0.080, clipSize: 20, maxReserve: 80, reloadTime: 2.5,
+      spread: 0.014, auto: true, type: 'RIFLE', recoilY: 0.016, recoilX: 0.006,
+      description: 'Russian AS Val assault rifle with integral suppressor. Fires subsonic 9×39mm SP-5/SP-6 armour-piercing rounds. Issued to GRU Spetsnaz and elite Rosgvardia. Integral suppressor is non-removable. Used by Russian special forces in Kyiv suburb raids February-March 2022.',
+    },
+    {
+      id: 'OSV96', name: 'OSV-96 12.7mm Anti-Material', damage: 240,
+      fireRate: 2.0, clipSize: 5, maxReserve: 20, reloadTime: 5.0,
+      spread: 0.003, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.055, recoilX: 0.016,
+      description: 'Russian OSV-96 12.7×108mm anti-material rifle. Folding stock for vehicle transport. Used to defeat light armour, crew-served weapons, and enemy snipers at 1500m+. Both sides deploy heavy anti-material rifles to neutralise each other\'s entrenched positions.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -3899,6 +3926,99 @@ const Weapons = (() => {
         recvColor: () => _M(0x282624, 0.4, 0.5),
       });
     },
+
+    // ── Lancet-3 loitering munition ──────────────────────────────────
+    lancet3: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Main fuselage (cylindrical, 380mm body)
+      g.add(_P(_T(0.016, 0.36, 0x1c1e1a, 10), X, Y, -0.24));
+      // Ogive warhead nose
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.016, 0.08, 8),
+        new THREE.MeshLambertMaterial({ color: 0x2a2c28 }));
+      nose.rotation.x = -Math.PI / 2; nose.position.set(X, Y, -0.47); g.add(nose);
+      // Distinctive X-wing fins at NOSE (4 swept wings)
+      for (let i = 0; i < 4; i++) {
+        const wf = _P(_B(0.002, 0.038, 0.040, 0x2a2c28), X, Y, -0.44);
+        wf.rotation.z = (Math.PI / 4) + i * (Math.PI / 2); g.add(wf);
+      }
+      // X-wing fins at TAIL (same distinctive pattern)
+      for (let i = 0; i < 4; i++) {
+        const wt = _P(_B(0.002, 0.040, 0.045, 0x2a2c28), X, Y, -0.06);
+        wt.rotation.z = (Math.PI / 4) + i * (Math.PI / 2); g.add(wt);
+      }
+      // Electric propulsion unit (pusher prop at tail)
+      g.add(_P(_T(0.012, 0.025, _pal.steel(), 8), X, Y, 0.04));
+      // Camera/seeker dome (transparent-tinted)
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(0.014, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshLambertMaterial({ color: 0x4060a0, transparent: true, opacity: 0.7 }));
+      dome.rotation.x = -Math.PI / 2; dome.position.set(X, Y - 0.012, -0.45); g.add(dome);
+      // Operator handle / launch tube section
+      g.add(_P(_B(0.018, 0.014, 0.07, _pal.blk()), X, Y + 0.024, -0.22));
+      return g;
+    },
+
+    // ── Storm Shadow cruise missile (operator GCS) ───────────────────
+    stormshadow: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Laptop-style GCS body
+      g.add(_P(_B(0.06, 0.045, 0.085, 0x2a2c30), X, Y, 0.0));
+      // Screen lid (angled open)
+      const lid = _P(_B(0.058, 0.042, 0.001, 0x111318), X, Y + 0.020, -0.042);
+      lid.rotation.x = -0.4; g.add(lid);
+      // Screen glow (blue mission display)
+      const scrn = _P(_B(0.050, 0.034, 0.002, 0x1a4a8c), X, Y + 0.022, -0.043);
+      scrn.rotation.x = -0.4; g.add(scrn);
+      // Keyboard keys (2 rows)
+      for (let kx = 0; kx < 5; kx++) {
+        g.add(_P(_B(0.009, 0.005, 0.009, 0x1a1c20), X - 0.022 + kx * 0.011, Y - 0.004, 0.022));
+        g.add(_P(_B(0.009, 0.005, 0.009, 0x1a1c20), X - 0.022 + kx * 0.011, Y - 0.004, 0.033));
+      }
+      // Missile profile silhouette on screen
+      const msil = _P(_B(0.030, 0.002, 0.015, 0x4080ff), X, Y + 0.028, -0.040);
+      msil.rotation.x = -0.4; g.add(msil);
+      // NATO badge sticker
+      g.add(_P(_B(0.014, 0.014, 0.001, 0x003087), X + 0.025, Y + 0.020, -0.001));
+      // Joystick nub
+      const jnub = new THREE.Mesh(
+        new THREE.SphereGeometry(0.006, 6, 6),
+        new THREE.MeshLambertMaterial({ color: 0x111111 }));
+      jnub.position.set(X - 0.020, Y + 0.000, 0.005); g.add(jnub);
+      // STRIKE button (red)
+      const sbtn = new THREE.Mesh(
+        new THREE.SphereGeometry(0.005, 6, 6),
+        new THREE.MeshLambertMaterial({ color: 0xdd1111 }));
+      sbtn.position.set(X + 0.025, Y - 0.001, 0.015); g.add(sbtn);
+      return g;
+    },
+
+    // ── AS Val suppressed assault rifle ─────────────────────────────
+    asval: function () {
+      return _rifle({
+        hg: 'wood', hgColor: () => _M(0x1c1e1c, 0.3, 0.7),
+        stock: 'skel', stockColor: _pal.blk,
+        mag: 'curved', magColor: _pal.blk,
+        muzzle: 'supp',
+        recvLen: 0.26, barR: 0.011, barLen: 0.18,
+        recvColor: _pal.blk, sights: false,
+      });
+    },
+
+    // ── OSV-96 12.7mm anti-material rifle ───────────────────────────
+    osv96: function () {
+      return _rifle({
+        hg: 'rail', hgColor: _pal.steel,
+        stock: 'tube', stockColor: _pal.blk,
+        mag: 'box', magColor: _pal.blk,
+        muzzle: 'brake',
+        rail: true, scope: true, bipod: true,
+        recvLen: 0.38, barR: 0.018, barLen: 0.62,
+        recvColor: _pal.blk,
+      });
+    },
   };
 
   const meshBuilders = [
@@ -3934,6 +4054,8 @@ const Weapons = (() => {
     NB.fab500, NB.m777, NB.strela2, NB.dropdrone,
     // 4 more (Bayraktar TB2, TOS-1A, DP-27, SV-98)
     NB.bayraktar, NB.tos1a, NB.dp27, NB.sv98,
+    // 4 more (Lancet-3, Storm Shadow, AS Val, OSV-96)
+    NB.lancet3, NB.stormshadow, NB.asval, NB.osv96,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

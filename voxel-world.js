@@ -3691,6 +3691,74 @@ window.VoxelWorld = (function () {
       setBlock(mgr.x, mgrY + 2, mgr.z,     BLOCK.METAL); // elevated mount
     }
 
+    // ── R. Dragon's teeth anti-tank obstacles (z=14-16) ─────────────
+    // Kyiv approach roads were blocked with concrete pyramid obstacles —
+    // "dragon's teeth" — to channel armour into kill zones.
+    var dtZ = oz + 15;
+    for (var dtx = ox - 18; dtx <= ox + 18; dtx += 3) {
+      if (Math.abs(dtx - ox) < 3) continue; // road gap
+      var dtY = gh(dtx, dtZ);
+      // Pyramid pair (two CONCRETE staggered peaks simulate the zigzag pattern)
+      setBlock(dtx,     dtY + 1, dtZ,     BLOCK.CONCRETE);
+      setBlock(dtx,     dtY + 2, dtZ,     BLOCK.CONCRETE);
+      setBlock(dtx + 1, dtY + 1, dtZ + 1, BLOCK.CONCRETE);
+      setBlock(dtx + 1, dtY + 2, dtZ + 1, BLOCK.CONCRETE);
+      setBlock(dtx,     dtY + 1, dtZ + 2, BLOCK.CONCRETE);
+    }
+    // Second staggered row 2m behind
+    for (var dtx2 = ox - 17; dtx2 <= ox + 17; dtx2 += 3) {
+      if (Math.abs(dtx2 - ox) < 2) continue;
+      var dtY2 = gh(dtx2, dtZ + 3);
+      setBlock(dtx2, dtY2 + 1, dtZ + 3, BLOCK.CONCRETE);
+      setBlock(dtx2, dtY2 + 2, dtZ + 3, BLOCK.CONCRETE);
+    }
+
+    // ── S. Kyiv metro station entrance (Arsenalna-style, deepest station) ──
+    // Ukrainian civilians spent weeks sheltering in Kyiv metro during the siege.
+    // Build an above-ground entrance kiosk on the city block.
+    var msx = ox + 8, msz = oz - 8;
+    var msY = gh(msx, msz);
+    // Red-brick entrance pavilion (classic Soviet metro kiosk)
+    for (var msb = 0; msb < 5; msb++) {
+      for (var msbz = 0; msbz < 5; msbz++) {
+        // Walls only
+        if (msb === 0 || msb === 4 || msbz === 0 || msbz === 4) {
+          for (var msh = 1; msh <= 4; msh++) {
+            setBlock(msx + msb, msY + msh, msz + msbz, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    // Roof (concrete slab)
+    for (var mrx = 0; mrx < 5; mrx++) {
+      for (var mrz = 0; mrz < 5; mrz++) {
+        setBlock(msx + mrx, msY + 5, msz + mrz, BLOCK.CONCRETE);
+      }
+    }
+    // Entrance opening (remove 2 blocks from south wall — facade facing street)
+    setBlock(msx + 2, msY + 1, msz + 4, BLOCK.AIR);
+    setBlock(msx + 2, msY + 2, msz + 4, BLOCK.AIR);
+    // Down-escalator portal (dark interior floor — glass tiles light it)
+    setBlock(msx + 2, msY + 1, msz + 3, BLOCK.GLASS);
+    setBlock(msx + 2, msY + 1, msz + 2, BLOCK.WHITE_TILE);
+    // Blue metro "M" sign pillars
+    setBlock(msx + 1, msY + 5, msz + 2, BLOCK.METAL);
+    setBlock(msx + 3, msY + 5, msz + 2, BLOCK.METAL);
+    setBlock(msx + 2, msY + 6, msz + 2, BLOCK.METAL);
+    // Civilian shelter sign (flag)
+    setBlock(msx + 2, msY + 7, msz + 2, BLOCK.FLAG);
+    // Sandbag protection ring around entrance
+    for (var sb2 = -1; sb2 <= 5; sb2++) {
+      setBlock(msx + sb2, msY + 1, msz - 1, BLOCK.SANDBAG);
+      setBlock(msx + sb2, msY + 1, msz + 5, BLOCK.SANDBAG);
+    }
+    setBlock(msx - 1, msY + 1, msz,     BLOCK.SANDBAG);
+    setBlock(msx - 1, msY + 1, msz + 1, BLOCK.SANDBAG);
+    setBlock(msx - 1, msY + 1, msz + 2, BLOCK.SANDBAG);
+    setBlock(msx + 5, msY + 1, msz,     BLOCK.SANDBAG);
+    setBlock(msx + 5, msY + 1, msz + 1, BLOCK.SANDBAG);
+    setBlock(msx + 5, msY + 1, msz + 2, BLOCK.SANDBAG);
+
     // ── M. Friendly T-64BV tank behind defensive trench ────────────
     // The T-64BV was Ukraine's primary MBT during the Kyiv defense.
     // Kontakt-1 ERA (explosive reactive armour) brick modules on hull sides.
