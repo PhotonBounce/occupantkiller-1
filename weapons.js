@@ -605,6 +605,33 @@ const Weapons = (() => {
       spread: 0.018, auto: true, type: 'HMG', recoilY: 0.035, recoilX: 0.014,
       description: 'German Flakpanzer Gepard twin 35mm AA autocannon. Germany supplied 30+ to Ukraine — first time Germany sent heavy weapons. Proved devastating against Shahed drones, helicopters, and low-flying jets. Oerlikon KDA 35mm at 550rpm per barrel. Effective ceiling 3000m.',
     },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'PTRD41', name: 'PTRD-41 Anti-Tank Rifle (14.5mm)', damage: 200,
+      fireRate: 2.2, clipSize: 1, maxReserve: 20, reloadTime: 3.0,
+      spread: 0.004, auto: false, type: 'SNIPER', hasScope: false, recoilY: 0.060, recoilX: 0.020,
+      description: 'Soviet PTRD-41 semi-auto 14.5×114mm anti-tank rifle designed in 1941. Still filmed in Ukraine 2022-2025 — both sides unboxed WWII-era reserves. Devastating against unarmoured vehicles, engine blocks, crew-served weapons, and body armour at 500m+.',
+    },
+    {
+      id: 'KONKURS', name: '9M113 Konkurs ATGM', damage: 780,
+      fireRate: 5.0, clipSize: 1, maxReserve: 4, reloadTime: 6.5,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.042, recoilX: 0.012,
+      blastRadius: 6, homing: true, hasScope: true,
+      description: 'Soviet 9M113 Konkurs (AT-5 Spandrel) ATGM. Semi-automatic SACLOS wire-guided missile mounted on BMP-1P, BMP-2, and Konkurs-M vehicle mounts. One of the most common ATGMs in the Russian arsenal. Tandem warhead variant penetrates 750mm RHA behind ERA.',
+    },
+    {
+      id: 'M32MGL', name: 'M32A1 MGL (6-shot Grenade Launcher)', damage: 195,
+      fireRate: 1.2, clipSize: 6, maxReserve: 24, reloadTime: 6.0,
+      spread: 0.025, auto: false, type: 'GRENADE', recoilY: 0.028, recoilX: 0.010,
+      blastRadius: 5.5,
+      description: 'Milkor M32A1 multi-shot 40mm grenade launcher. US supplied to Ukraine for fire support. Revolver-action fires 6 rounds of 40×46mm HE, smoke, or illumination in rapid succession. Range 350m point target, 800m area. Used by Ukrainian TDF rapid reaction units.',
+    },
+    {
+      id: 'PPSH41', name: 'PPSh-41 (7.62mm Submachine Gun)', damage: 22,
+      fireRate: 0.050, clipSize: 71, maxReserve: 213, reloadTime: 4.0,
+      spread: 0.040, auto: true, type: 'SMG', recoilY: 0.020, recoilX: 0.009,
+      description: 'Soviet PPSh-41 submachine gun. Iconic WWII weapon filmed in combat in Ukraine in 2022-2024. Both sides drew from 80-year-old arsenal reserves in the equipment shortages of early 2022. 71-round drum at 900rpm — terrifying in close quarters despite its age.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -4319,6 +4346,141 @@ const Weapons = (() => {
       g.add(_P(_B(0.006, 0.012, 0.008, _pal.blk()), X + 0.030, Y, -0.25));
       return g;
     },
+
+    // ── PTRD-41 anti-tank rifle (14.5mm bolt-action) ─────────────────
+    ptrd41: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Very long, thin receiver (PTRD is almost entirely barrel, ~2m overall)
+      g.add(_P(_B(0.022, 0.028, 0.38, 0x2c2e28), X, Y, -0.22));
+      // Extremely long heavy barrel (14.5mm bore — much thicker than sniper)
+      g.add(_P(_T(0.016, 0.72, _pal.steel(), 12), X, Y + 0.002, -0.66));
+      // Muzzle brake (large 3-port brake characteristic of PTRD)
+      g.add(_P(_T(0.022, 0.055, _pal.steel(), 8), X, Y + 0.002, -1.04));
+      g.add(_P(_B(0.028, 0.014, 0.008, _pal.blk()), X, Y + 0.002, -1.02));
+      g.add(_P(_B(0.028, 0.014, 0.008, _pal.blk()), X, Y + 0.002, -1.00));
+      // Muzzle block/crown
+      g.add(_P(_T(0.018, 0.010, _pal.blk(), 8), X, Y + 0.002, -1.07));
+      // Pistol grip (simple wood)
+      g.add(_P(_B(0.018, 0.048, 0.022, _pal.wood()), X, Y - 0.028, -0.06));
+      // Fixed wood stock (straight, no pistol grip — WW2 style)
+      g.add(_P(_B(0.028, 0.030, 0.14, _pal.wood()), X, Y - 0.010, 0.065));
+      // Recoil pad (rubber, distinctive for 14.5mm)
+      g.add(_P(_B(0.032, 0.036, 0.012, 0x1a1a1a), X, Y - 0.010, 0.142));
+      // Single-shot loading port (no magazine — pure bolt-action)
+      g.add(_P(_B(0.010, 0.008, 0.022, 0x1c1c1c), X + 0.012, Y + 0.008, -0.10));
+      // Bipod (long for stability — attached at forestock)
+      const bL2 = _P(_B(0.006, 0.060, 0.010, _pal.blk()), X - 0.025, Y - 0.038, -0.45);
+      bL2.rotation.z = 0.20; g.add(bL2);
+      const bR2 = _P(_B(0.006, 0.060, 0.010, _pal.blk()), X + 0.025, Y - 0.038, -0.45);
+      bR2.rotation.z = -0.20; g.add(bR2);
+      // Rear sight
+      g.add(_P(_B(0.003, 0.020, 0.003, _pal.blk()), X, Y + 0.022, -0.08));
+      return g;
+    },
+
+    // ── 9M113 Konkurs ATGM (tripod launcher) ────────────────────────
+    konkurs: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Launch tube (square cross-section, NATO tan)
+      g.add(_P(_B(0.044, 0.040, 0.42, _pal.tan), X, Y, -0.24));
+      // Missile tube protective end-cap (rear)
+      g.add(_P(_B(0.046, 0.042, 0.012, 0x3a3830), X, Y, -0.46));
+      // Sight unit (9Sh119M periscope box, prominent on top)
+      g.add(_P(_B(0.035, 0.035, 0.070, 0x282a26), X, Y + 0.040, -0.12));
+      // Periscope lens (front of sight)
+      const lens = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.011, 0.011, 0.006, 8),
+        new THREE.MeshLambertMaterial({ color: 0x1a2840, transparent: true, opacity: 0.8 }));
+      lens.rotation.x = Math.PI / 2; lens.position.set(X, Y + 0.040, -0.158); g.add(lens);
+      // Grip assembly (pistol grip style under tube)
+      g.add(_P(_B(0.016, 0.044, 0.024, 0x1e2018), X, Y - 0.026, -0.10));
+      // Trigger guard
+      g.add(_P(_B(0.020, 0.006, 0.028, 0x1e2018), X, Y - 0.038, -0.09));
+      // Tube front support / gas deflector
+      g.add(_P(_B(0.048, 0.016, 0.016, 0x3a3c38), X, Y - 0.016, -0.40));
+      // Wire spool housing (Konkurs is wire-guided — visible spool at rear)
+      g.add(_P(_T(0.020, 0.018, 0x2a2c28, 10), X + 0.024, Y + 0.012, -0.44));
+      // Tripod legs (3 legs at 120°)
+      for (let lt = 0; lt < 3; lt++) {
+        const la = _P(_B(0.006, 0.070, 0.008, _pal.blk()), X, Y - 0.042, -0.20);
+        la.rotation.z = (lt * 2.094) - 0.3; g.add(la);
+      }
+      return g;
+    },
+
+    // ── M32A1 MGL (6-shot revolver grenade launcher) ─────────────────
+    m32mgl: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Receiver body (compact, wider than rifle due to cylinder)
+      g.add(_P(_B(0.050, 0.048, 0.18, 0x1c1e1a), X, Y, -0.08));
+      // Cylinder (6-chamber revolver — the visual centrepiece)
+      const cyl = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.038, 0.038, 0.048, 12),
+        new THREE.MeshLambertMaterial({ color: 0x222420 }));
+      cyl.rotation.x = Math.PI / 2; cyl.position.set(X, Y, -0.095); g.add(cyl);
+      // Cylinder chambers visible (6 holes)
+      for (let ch = 0; ch < 6; ch++) {
+        const ca = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.010, 0.010, 0.050, 6),
+          new THREE.MeshLambertMaterial({ color: 0x0a0c0a }));
+        ca.rotation.x = Math.PI / 2;
+        ca.position.set(X + Math.cos(ch * Math.PI / 3) * 0.024,
+          Y + Math.sin(ch * Math.PI / 3) * 0.024, -0.095); g.add(ca);
+      }
+      // Short barrel (40mm smooth bore)
+      g.add(_P(_T(0.022, 0.28, 0x282a26, 10), X, Y, -0.25));
+      // Muzzle (plain, no device)
+      g.add(_P(_T(0.024, 0.010, _pal.blk(), 8), X, Y, -0.40));
+      // Folding stock (telescoping wire — Milkor design)
+      const st = _P(_B(0.020, 0.022, 0.11, 0x1a1c18), X, Y - 0.008, 0.075);
+      g.add(st);
+      g.add(_P(_B(0.028, 0.012, 0.006, 0x1a1c18), X, Y - 0.008, 0.128));
+      // Pistol grip
+      g.add(_P(_B(0.018, 0.044, 0.022, 0x282a26), X, Y - 0.032, 0.004));
+      // Foregrip (vertical)
+      g.add(_P(_B(0.018, 0.038, 0.020, 0x1c1e1a), X, Y - 0.030, -0.28));
+      // Top rail
+      g.add(_P(_B(0.038, 0.007, 0.15, 0x111312), X, Y + 0.030, -0.04));
+      return g;
+    },
+
+    // ── PPSh-41 (WW2 submachine gun, 71-round drum) ──────────────────
+    ppsh41: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Distinctive rounded receiver + barrel shroud (perforated)
+      g.add(_P(_T(0.026, 0.45, 0x2a2c28, 12), X, Y, -0.29));
+      // Barrel shroud perforations (4 ring slots)
+      for (let ps = 0; ps < 4; ps++) {
+        g.add(_P(_B(0.058, 0.006, 0.020, 0x181a16), X, Y, -0.18 - ps * 0.055));
+      }
+      // Muzzle compensator (slanted, iconic PPSh feature)
+      const comp = _P(_B(0.032, 0.022, 0.030, _pal.steel()), X, Y + 0.008, -0.51);
+      comp.rotation.z = 0.15; g.add(comp);
+      // DISTINCTIVE 71-round drum magazine (large circular)
+      const drum = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.052, 0.052, 0.032, 20),
+        new THREE.MeshLambertMaterial({ color: 0x1e201c }));
+      drum.rotation.x = Math.PI / 2; drum.position.set(X, Y - 0.010, -0.12); g.add(drum);
+      const drumRim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.052, 0.004, 6, 20),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      drumRim.rotation.x = Math.PI / 2; drumRim.position.set(X, Y - 0.010, -0.12); g.add(drumRim);
+      // Drum feed neck
+      g.add(_P(_T(0.014, 0.028, 0x282a26, 8), X, Y + 0.014, -0.12));
+      // Wood pistol grip (Soviet brown wood)
+      g.add(_P(_B(0.020, 0.046, 0.026, 0x5a3c1a), X, Y - 0.030, -0.03));
+      // Wood stock (straight, one-piece)
+      g.add(_P(_B(0.028, 0.030, 0.14, 0x5a3c1a), X, Y - 0.010, 0.07));
+      // Rear sight (flip-type)
+      g.add(_P(_B(0.003, 0.018, 0.003, _pal.blk()), X, Y + 0.028, -0.06));
+      // Front sight post
+      g.add(_P(_B(0.003, 0.016, 0.003, _pal.blk()), X, Y + 0.030, -0.48));
+      return g;
+    },
   };
 
   const meshBuilders = [
@@ -4360,6 +4522,8 @@ const Weapons = (() => {
     NB.neptune, NB.metis_m1, NB.m249saw, NB.rpg30,
     // 4 more (Shahed-136, AGM-88 HARM, RGO-78 grenade, Gepard 35mm)
     NB.shahed136, NB.agm88harm, NB.rgo78, NB.gepard35,
+    // 4 more (PTRD-41, Konkurs ATGM, M32A1 MGL, PPSh-41)
+    NB.ptrd41, NB.konkurs, NB.m32mgl, NB.ppsh41,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

@@ -3759,6 +3759,57 @@ window.VoxelWorld = (function () {
     setBlock(msx + 5, msY + 1, msz + 1, BLOCK.SANDBAG);
     setBlock(msx + 5, msY + 1, msz + 2, BLOCK.SANDBAG);
 
+    // ── X. CONCRETE pillbox / sniper OP on elevated position ────────
+    // Ukrainian snipers used rooftop concrete OPs to observe approach roads.
+    // Small fortified observation post with loophole and flag.
+    var opX = ox + 18, opZ = oz - 6;
+    var opY = gh(opX, opZ) + 6; // elevated on existing building height
+    // 3×3 pillbox (concrete walls, open top for observation)
+    for (var px = 0; px < 3; px++) {
+      for (var pz = 0; pz < 3; pz++) {
+        if (px === 0 || px === 2 || pz === 0 || pz === 2) {
+          setBlock(opX + px, opY + 1, opZ + pz, BLOCK.CONCRETE);
+          setBlock(opX + px, opY + 2, opZ + pz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Loophole (opening facing north = enemy direction)
+    setBlock(opX + 1, opY + 1, opZ, BLOCK.AIR); // viewport
+    // Sandbag fill on remaining open top
+    setBlock(opX + 1, opY + 3, opZ + 1, BLOCK.SANDBAG);
+    // Ukrainian flag pole
+    setBlock(opX + 2, opY + 3, opZ + 2, BLOCK.METAL);
+    setBlock(opX + 2, opY + 4, opZ + 2, BLOCK.FLAG);
+
+    // ── Y. Civilian car roadblock (burnt cars across road) ───────────
+    // Ukraine placed civilian cars — often burnt — across roads as a
+    // low-tech barrier to slow Russian vehicle advances in suburbs.
+    var cbZ = oz + 30;
+    var carPositions = [
+      { x: ox - 6 }, { x: ox - 3 }, { x: ox + 3 }, { x: ox + 6 },
+    ];
+    for (var ci = 0; ci < carPositions.length; ci++) {
+      var cbx = carPositions[ci].x;
+      var cbY = gh(cbx, cbZ);
+      // Car body (METAL, burnt)
+      setBlock(cbx,     cbY + 1, cbZ,     BLOCK.METAL);
+      setBlock(cbx + 1, cbY + 1, cbZ,     BLOCK.METAL);
+      setBlock(cbx,     cbY + 1, cbZ + 1, BLOCK.METAL);
+      setBlock(cbx + 1, cbY + 1, cbZ + 1, BLOCK.METAL);
+      setBlock(cbx,     cbY + 2, cbZ,     BLOCK.METAL);
+      setBlock(cbx + 1, cbY + 2, cbZ,     BLOCK.METAL);
+      setBlock(cbx,     cbY + 2, cbZ + 1, BLOCK.METAL);
+      setBlock(cbx + 1, cbY + 2, cbZ + 1, BLOCK.METAL);
+      // Fire in some cars
+      if (ci % 2 === 0) {
+        setBlock(cbx,     cbY + 3, cbZ,     BLOCK.FIRE);
+        setBlock(cbx + 1, cbY + 3, cbZ + 1, BLOCK.FIRE);
+      }
+      // Rubble scatter
+      setBlock(cbx - 1, cbY + 1, cbZ,     BLOCK.RUBBLE);
+      setBlock(cbx + 2, cbY + 1, cbZ + 1, BLOCK.RUBBLE);
+    }
+
     // ── V. Destroyed Russian BMP-2 wreck (in approach corridor) ─────
     // Burnt-out Russian IFVs and tanks were left on Kyiv approach roads
     // as monuments to the failed assault and defensive fire success.
