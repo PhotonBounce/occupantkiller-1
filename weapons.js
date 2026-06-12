@@ -272,6 +272,24 @@ const Weapons = (() => {
       spread: 0.032, auto: true, type: 'LMG', recoilY: 0.018, recoilX: 0.010,
       description: 'NATO 7.62mm belt-fed machine gun. Supplied to Ukraine. Reliable sustained-fire platform.',
     },
+    {
+      id: 'PKPECHENEG', name: 'PKP Pecheneg (7.62mm MG)', damage: 34,
+      fireRate: 0.085, clipSize: 100, maxReserve: 400, reloadTime: 5.0,
+      spread: 0.028, auto: true, type: 'LMG', recoilY: 0.016, recoilX: 0.008,
+      description: 'Improved Russian PKM variant with fixed heavy barrel and integral bipod. Used extensively by Russian forces in Ukraine.',
+    },
+    {
+      id: 'SPG9', name: 'SPG-9 Kopye (73mm)', damage: 550,
+      fireRate: 5.0, clipSize: 1, maxReserve: 5, reloadTime: 5.5,
+      spread: 0.006, auto: false, type: 'AT', blastRadius: 4.2, recoilY: 0.055, recoilX: 0.020,
+      description: 'Soviet 73mm recoilless rifle. Tripod-mounted or vehicle-mounted. Widely used by both Ukrainian and Russian forces for AT and bunker-busting.',
+    },
+    {
+      id: 'HK416', name: 'HK416 A5', damage: 31,
+      fireRate: 0.080, clipSize: 30, maxReserve: 150, reloadTime: 2.4,
+      spread: 0.020, auto: true, type: 'ASSAULT', recoilY: 0.013, recoilX: 0.005,
+      description: 'German assault rifle supplied to Ukraine via Germany and other NATO partners. Piston-driven, highly reliable in harsh conditions.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -700,6 +718,7 @@ const Weapons = (() => {
     // MPL-50 entrenching tool: wooden shaft held diagonally with a real
     // pentagonal spade blade at the forward end (previously a stick + flat box).
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const woodMat   = new THREE.MeshLambertMaterial({ color: 0x7a5230 });
     const darkWood  = new THREE.MeshLambertMaterial({ color: 0x4a3018 });
     const steelMat  = new THREE.MeshPhongMaterial({ color: 0x9a9aa0, shininess: 80,  specular: 0x6a6a77 });
@@ -767,6 +786,7 @@ const Weapons = (() => {
     // Combat/fire axe: wooden haft held diagonally with a steel head (bit +
     // poll) at the forward end.
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const woodMat  = new THREE.MeshLambertMaterial({ color: 0x6e4a26 });
     const wrapMat  = new THREE.MeshLambertMaterial({ color: 0x2a1c10 });
     const headMat  = new THREE.MeshPhongMaterial({ color: 0x3a3a40, shininess: 70, specular: 0x6a6a77 });
@@ -2768,6 +2788,29 @@ const Weapons = (() => {
       rear: 'cone', sight: true, grip2: true, hs: true }),
     m240b: () => _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'fixed', mag: 'box', magColor: _pal.gm,
       muzzle: 'flash', barLen: 0.48, barR: 0.015, recvLen: 0.30, bipod: true, belt: true, recvColor: _pal.blk }),
+    // ── 3 new weapons (PKP, SPG-9, HK416) ─────────────────────
+    pkpecheneg: () => _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'fixed', mag: 'box', magColor: _pal.gm,
+      muzzle: 'flash', barLen: 0.50, barR: 0.016, recvLen: 0.30, bipod: true, belt: true, recvColor: _pal.blk }),
+    spg9: function () {
+      // Recoilless rifle: wide rear blast tube, pistol grip, small sight
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      const tubeMat = () => _M(0x5a5845, 0.35, 0.6);
+      g.add(_P(_T(0.040, 0.72, tubeMat, 14), X, Y + 0.008, -0.36)); // main tube
+      g.add(_P(_T(0.030, 0.14, () => _M(0x3a3830), 12), X, Y + 0.008, -0.74)); // rear blast diffuser (cone flared end)
+      // Rear blast cone flare
+      const rear = new THREE.Mesh(new THREE.ConeGeometry(0.048, 0.08, 12), _M(0x2a2820));
+      rear.rotation.x = Math.PI / 2; rear.position.set(X, Y + 0.008, -0.75); g.add(rear);
+      // Pistol grip
+      const gp = _P(_B(0.028, 0.085, 0.034, _pal.poly()), X, Y - 0.052, -0.30); gp.rotation.x = 0.20; g.add(gp);
+      // Trigger group box
+      g.add(_P(_B(0.030, 0.028, 0.040, _pal.blk()), X, Y - 0.015, -0.30));
+      // Simple folding sight post
+      g.add(_P(_B(0.005, 0.040, 0.005, _pal.steel()), X + 0.04, Y + 0.055, -0.28));
+      g.add(_P(_B(0.030, 0.005, 0.005, _pal.steel()), X + 0.04, Y + 0.055, -0.28));
+      return g;
+    },
+    hk416: () => _rifle({ hg: 'rail', hgColor: _pal.blk, stock: 'tube', mag: 'curved',
+      muzzle: 'flash', rail: true, recvLen: 0.24, barLen: 0.30, barR: 0.012, recvColor: _pal.blk }),
     fort500: function () {
       const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
       g.add(_P(_B(0.05, 0.072, 0.28, _pal.blk()), X, Y, -0.24));             // receiver
@@ -2797,6 +2840,8 @@ const Weapons = (() => {
     NB.aks74u, NB.m72law, NB.panzerfaust3, NB.nsvhmg, NB.fort500,
     // 3 more Ukraine-conflict weapons
     NB.malyuk, NB.carlgustaf, NB.m240b,
+    // 3 new additions (PKP Pecheneg, SPG-9, HK416)
+    NB.pkpecheneg, NB.spg9, NB.hk416,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

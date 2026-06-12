@@ -4605,6 +4605,99 @@ window.VoxelWorld = (function () {
         setBlock(-13, spBase + 1, 5, BLOCK.SANDBAG);
         setBlock(-15, spBase + 2, 3, BLOCK.SANDBAG); // raised center parapet for prone firing
       })();
+      // ── Mirror observation post on the right flank ───────────────
+      (function () {
+        var opBase = getTerrainHeight(15, 4) + 9;
+        for (var opx = 13; opx <= 17; opx++) {
+          for (var opz = 3; opz <= 6; opz++) {
+            setBlock(opx, opBase, opz, BLOCK.CONCRETE);
+          }
+        }
+        for (var opi = 13; opi <= 17; opi++) {
+          setBlock(opi, opBase + 1, 3, BLOCK.SANDBAG);
+        }
+        setBlock(13, opBase + 1, 4, BLOCK.SANDBAG);
+        setBlock(13, opBase + 1, 5, BLOCK.SANDBAG);
+        setBlock(17, opBase + 1, 4, BLOCK.SANDBAG);
+        setBlock(17, opBase + 1, 5, BLOCK.SANDBAG);
+        setBlock(15, opBase + 2, 3, BLOCK.SANDBAG);
+      })();
+      // ── Tank hull-down berms — dug-in firing positions for vehicles ──
+      // Two berms flanking the center, z=28-30, vehicles crest the berm to fire
+      (function () {
+        var sides = [[-12, 29], [12, 29], [-12, 45], [12, 45]];
+        for (var bmi = 0; bmi < sides.length; bmi++) {
+          var bmx = sides[bmi][0], bmz = sides[bmi][1];
+          var bmh = getTerrainHeight(bmx, bmz);
+          // Build a 3×3 raised earth mound
+          for (var dx = -1; dx <= 1; dx++) {
+            for (var dz = 0; dz <= 2; dz++) {
+              setBlock(bmx + dx, bmh,     bmz + dz, BLOCK.DIRT);
+              setBlock(bmx + dx, bmh + 1, bmz + dz, BLOCK.SANDBAG);
+            }
+          }
+          // Hull-down lip (one extra row higher at front)
+          for (var dx2 = -1; dx2 <= 1; dx2++) {
+            setBlock(bmx + dx2, bmh + 2, bmz, BLOCK.SANDBAG);
+          }
+        }
+      })();
+      // ── Third fortified line at z=67-70 ──────────────────────────
+      // Mixed concrete wall with METAL reinforced corners
+      (function () {
+        for (var tl = -15; tl <= 15; tl++) {
+          if (Math.abs(tl) <= 3) continue;
+          var tlh = getTerrainHeight(tl, 68);
+          setBlock(tl, tlh,     68, BLOCK.CONCRETE);
+          setBlock(tl, tlh + 1, 68, BLOCK.CONCRETE);
+          setBlock(tl, tlh + 2, 68, BLOCK.CONCRETE);
+          setBlock(tl, tlh,     70, BLOCK.SANDBAG);
+          setBlock(tl, tlh + 1, 70, BLOCK.SANDBAG);
+        }
+        // METAL corner bastions for extra protection
+        for (var tlz = 66; tlz <= 72; tlz++) {
+          var tlhL = getTerrainHeight(-15, tlz);
+          setBlock(-15, tlhL,     tlz, BLOCK.METAL);
+          setBlock(-15, tlhL + 1, tlz, BLOCK.METAL);
+          var tlhR = getTerrainHeight(15, tlz);
+          setBlock(15, tlhR,     tlz, BLOCK.METAL);
+          setBlock(15, tlhR + 1, tlz, BLOCK.METAL);
+        }
+      })();
+      // ── Additional defensive positions at third line ─────────────
+      generateDefensivePosition(-12, 67);
+      generateDefensivePosition(12, 67);
+      // ── Minefield markers (METAL spikes) scattered across wide approach ──
+      // Danger zone: z=80-110, both flanks beyond x=±10
+      (function () {
+        var minePositions = [
+          [-14, 82], [14, 85], [-16, 91], [18, 94], [-12, 103],
+          [16, 88], [-18, 97], [12, 108], [-13, 115], [17, 112],
+        ];
+        for (var mi = 0; mi < minePositions.length; mi++) {
+          var mx = minePositions[mi][0], mz = minePositions[mi][1];
+          var mh = getTerrainHeight(mx, mz);
+          setBlock(mx, mh, mz, BLOCK.METAL);
+          setBlock(mx, mh + 1, mz, BLOCK.METAL); // stake
+        }
+      })();
+      // ── Fourth deep fallback line at z=96-98 ─────────────────────
+      (function () {
+        for (var fl = -12; fl <= 12; fl++) {
+          if (Math.abs(fl) <= 2) continue;
+          var flh = getTerrainHeight(fl, 97);
+          setBlock(fl, flh,     97, BLOCK.SANDBAG);
+          setBlock(fl, flh + 1, 97, BLOCK.SANDBAG);
+          setBlock(fl, flh,     99, BLOCK.DIRT);
+          setBlock(fl, flh + 1, 99, BLOCK.SANDBAG);
+        }
+      })();
+      generateDefensivePosition(-8, 96);
+      generateDefensivePosition(8, 96);
+      // ── Wrecked supply trucks — additional cover in approach zone ─
+      generateWreckedCar(-9, 74);
+      generateWreckedCar(8, 80);
+      generateWreckedCar(-6, 92);
     } else if (level.id === 'MARIUPOL') {
       // Azovstal steelworks — industrial hellscape
       generateIndustrialComplex(0, 0);
