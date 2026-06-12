@@ -577,6 +577,34 @@ const Weapons = (() => {
       blastRadius: 4.5,
       description: 'Russian RPG-30 "Hook". Unique dual-tube design: fires a small precursor rocket to trigger ERA, then the main 105mm tandem warhead follows. Specifically designed to defeat Kontakt-5 and Trophy active protection systems. Issued to Russian forces in Ukraine.',
     },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'SHAHED136', name: 'Shahed-136 / Geranium-2 Drone', damage: 1200,
+      fireRate: 12.0, clipSize: 1, maxReserve: 3, reloadTime: 10.0,
+      spread: 0, auto: false, type: 'INCENDIARY', recoilY: 0.002, recoilX: 0.001,
+      blastRadius: 8, homing: true,
+      description: 'Iranian Shahed-136 loitering munition — designated Geranium-2 by Russia. Delta-wing suicide drone used in mass swarm attacks on Ukrainian cities 2022-2025. Visible on radar but cheap enough to overwhelm air defense. Kyiv residents hear the distinctive lawn-mower engine at night.',
+    },
+    {
+      id: 'AGM88HARM', name: 'AGM-88 HARM (Anti-Radiation Missile)', damage: 3500,
+      fireRate: 16.0, clipSize: 1, maxReserve: 2, reloadTime: 18.0,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.003, recoilX: 0.001,
+      blastRadius: 14, homing: true,
+      description: 'US AGM-88 High-speed Anti-Radiation Missile. Homes on radar emissions. Ukraine adapted its MiG-29s to fire HARM in 2022, destroying dozens of Russian Buk and S-300 batteries. Range 150km at Mach 2. Pivotal in degrading Russian radar coverage over Ukraine.',
+    },
+    {
+      id: 'RGO78', name: 'RGO-78 Defensive Frag Grenade', damage: 230,
+      fireRate: 1.8, clipSize: 3, maxReserve: 9, reloadTime: 1.5,
+      spread: 0, auto: false, type: 'GRENADE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 6,
+      description: 'Russian RGO-78 defensive fragmentation grenade. Dual-pattern fragmentation liner — both inner and outer shells fragment, doubling coverage vs RGD-5. Standard issue Russian ground forces. Found in vast quantities at abandoned Russian positions around Kyiv.',
+    },
+    {
+      id: 'GEPARD35', name: 'Gepard Flakpanzer (35mm AA)', damage: 90,
+      fireRate: 0.040, clipSize: 340, maxReserve: 680, reloadTime: 8.0,
+      spread: 0.018, auto: true, type: 'HMG', recoilY: 0.035, recoilX: 0.014,
+      description: 'German Flakpanzer Gepard twin 35mm AA autocannon. Germany supplied 30+ to Ukraine — first time Germany sent heavy weapons. Proved devastating against Shahed drones, helicopters, and low-flying jets. Oerlikon KDA 35mm at 550rpm per barrel. Effective ceiling 3000m.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -4134,6 +4162,136 @@ const Weapons = (() => {
       return g;
     },
 
+    // ── Shahed-136 / Geranium-2 suicide drone ───────────────────────
+    shahed136: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Fuselage (rectangular, very low profile)
+      g.add(_P(_B(0.026, 0.016, 0.30, 0x2a2e22), X, Y, -0.18));
+      // Warhead nose (blunt cone, forward)
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.013, 0.055, 7),
+        new THREE.MeshLambertMaterial({ color: 0x3a3a2a }));
+      nose.rotation.x = -Math.PI / 2; nose.position.set(X, Y, -0.36); g.add(nose);
+      // DISTINCTIVE delta wings (swept back, triangular)
+      const wMat = new THREE.MeshLambertMaterial({ color: 0x303428 });
+      const wShape = [
+        new THREE.Vector2(0, 0), new THREE.Vector2(-0.10, 0.10),
+        new THREE.Vector2(-0.10, 0.12), new THREE.Vector2(0, 0.004),
+      ];
+      // Left delta wing
+      for (let s = 0; s < 2; s++) {
+        const wSide = _P(_B(0.001, 0.065, 0.18, 0x383c2c), X + (s === 0 ? -0.020 : 0.020), Y, -0.12);
+        wSide.rotation.z = s === 0 ? 0.45 : -0.45; g.add(wSide);
+      }
+      // Tail: small vertical fins
+      g.add(_P(_B(0.002, 0.030, 0.028, 0x303028), X, Y + 0.020, 0.04));
+      g.add(_P(_B(0.002, 0.030, 0.028, 0x303028), X, Y - 0.020, 0.04));
+      // Pusher propeller (rear-mounted)
+      g.add(_P(_T(0.010, 0.020, _pal.steel(), 6), X, Y, 0.09));
+      // Prop blades (2-blade)
+      g.add(_P(_B(0.002, 0.004, 0.070, _pal.blk()), X, Y, 0.10));
+      // Operator tracking screen (ruggedised military tablet)
+      const scrn = _P(_B(0.050, 0.040, 0.006, 0x111418), X, Y + 0.002, 0.20);
+      scrn.rotation.x = -0.3; g.add(scrn);
+      // Red "LAUNCH" indicator on screen
+      g.add(_P(_B(0.016, 0.010, 0.001, 0xcc1100), X, Y + 0.014, 0.195));
+      return g;
+    },
+
+    // ── AGM-88 HARM cockpit GCS ─────────────────────────────────────
+    agm88harm: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // EW console body (flat panel)
+      g.add(_P(_B(0.072, 0.048, 0.080, 0x1c1e22), X, Y, 0.0));
+      // Radar frequency display (green-on-black like early EW units)
+      const rd = _P(_B(0.058, 0.035, 0.002, 0x001408), X, Y + 0.006, -0.041);
+      rd.rotation.x = -0.15; g.add(rd);
+      // Frequency lock bars (target radar signatures)
+      for (let f = 0; f < 5; f++) {
+        const h = 0.004 + (f % 3) * 0.008;
+        g.add(_P(_B(0.006, h, 0.002, 0x00ff44), X - 0.020 + f * 0.010, Y + 0.010, -0.040));
+      }
+      // LOCK indicator
+      g.add(_P(_B(0.020, 0.008, 0.001, 0xffcc00), X + 0.010, Y + 0.020, -0.040));
+      // Physical radar horn (small directional antenna on top)
+      g.add(_P(_T(0.012, 0.028, 0x404044, 6), X, Y + 0.032, -0.010));
+      // Frequency band selector knob
+      const knob = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.006, 0.006, 0.012, 8),
+        new THREE.MeshLambertMaterial({ color: 0x181a1e }));
+      knob.position.set(X - 0.025, Y - 0.006, 0.010); g.add(knob);
+      // FIRE button
+      const fbtn = new THREE.Mesh(
+        new THREE.SphereGeometry(0.006, 6, 6),
+        new THREE.MeshLambertMaterial({ color: 0xff2200 }));
+      fbtn.position.set(X + 0.025, Y - 0.002, 0.015); g.add(fbtn);
+      return g;
+    },
+
+    // ── RGO-78 defensive grenade ────────────────────────────────────
+    rgo78: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.12;
+      // Slightly larger than RGD-5, olive drab body
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(0.026, 10, 8),
+        new THREE.MeshLambertMaterial({ color: 0x2e3428 }));
+      body.position.set(X, Y, -0.04); g.add(body);
+      // Segmentation lines (dual fragmentation pattern — waist ring)
+      const band = new THREE.Mesh(
+        new THREE.TorusGeometry(0.026, 0.003, 6, 16),
+        new THREE.MeshLambertMaterial({ color: 0x1e2418 }));
+      band.rotation.x = Math.PI / 2; band.position.set(X, Y, -0.04); g.add(band);
+      // Fuze body (top cylinder)
+      g.add(_P(_T(0.009, 0.040, 0x282a24, 8), X, Y + 0.030, -0.04));
+      // Spoon / lever
+      g.add(_P(_B(0.004, 0.032, 0.006, _pal.steel()), X + 0.012, Y + 0.014, -0.04));
+      // Safety pin ring
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.007, 0.002, 6, 8),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      ring.position.set(X + 0.014, Y + 0.044, -0.04); g.add(ring);
+      return g;
+    },
+
+    // ── Gepard 35mm AA (operator sight + joystick controller) ───────
+    gepard35: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Gunner console body (German angular military design)
+      g.add(_P(_B(0.068, 0.052, 0.085, 0x282c28), X, Y, 0.0));
+      // Radar tracking display (circular sweep, German grey)
+      const disp = _P(_B(0.052, 0.040, 0.002, 0x101810), X, Y + 0.006, -0.043);
+      disp.rotation.x = -0.15; g.add(disp);
+      // Radar arc (green sweep)
+      const arc = _P(_B(0.040, 0.002, 0.030, 0x00aa44), X, Y + 0.012, -0.042);
+      arc.rotation.x = -0.15; g.add(arc);
+      // Target blip
+      const blip = new THREE.Mesh(
+        new THREE.SphereGeometry(0.004, 5, 5),
+        new THREE.MeshLambertMaterial({ color: 0x00ff44 }));
+      blip.position.set(X + 0.008, Y + 0.016, -0.041); g.add(blip);
+      // Dual joystick handles (German twin-handle design)
+      for (let jx = 0; jx < 2; jx++) {
+        const jh = _P(_B(0.014, 0.028, 0.016, 0x1a1c1a), X - 0.018 + jx * 0.036, Y - 0.014, 0.020);
+        g.add(jh);
+        const jt = new THREE.Mesh(
+          new THREE.SphereGeometry(0.007, 6, 6),
+          new THREE.MeshLambertMaterial({ color: 0x111311 }));
+        jt.position.set(X - 0.018 + jx * 0.036, Y + 0.010, 0.020); g.add(jt);
+      }
+      // FIRE buttons (red, one per joystick)
+      const fb1 = new THREE.Mesh(new THREE.SphereGeometry(0.004, 5, 5), new THREE.MeshLambertMaterial({ color: 0xff1100 }));
+      const fb2 = new THREE.Mesh(new THREE.SphereGeometry(0.004, 5, 5), new THREE.MeshLambertMaterial({ color: 0xff1100 }));
+      fb1.position.set(X - 0.018, Y + 0.014, 0.020); g.add(fb1);
+      fb2.position.set(X + 0.018, Y + 0.014, 0.020); g.add(fb2);
+      // Iron Cross / Bundeswehr sticker (subtle)
+      g.add(_P(_B(0.010, 0.010, 0.001, 0x111111), X, Y + 0.020, -0.001));
+      return g;
+    },
+
     // ── RPG-30 (dual-tube precursor system) ─────────────────────────
     rpg30: function () {
       const g = new THREE.Group(); g.userData.selfContained = true;
@@ -4200,6 +4358,8 @@ const Weapons = (() => {
     NB.lancet3, NB.stormshadow, NB.asval, NB.osv96,
     // 4 more (Neptune R-360, Metis-M1 ATGM, M249 SAW, RPG-30)
     NB.neptune, NB.metis_m1, NB.m249saw, NB.rpg30,
+    // 4 more (Shahed-136, AGM-88 HARM, RGO-78 grenade, Gepard 35mm)
+    NB.shahed136, NB.agm88harm, NB.rgo78, NB.gepard35,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

@@ -3759,6 +3759,79 @@ window.VoxelWorld = (function () {
     setBlock(msx + 5, msY + 1, msz + 1, BLOCK.SANDBAG);
     setBlock(msx + 5, msY + 1, msz + 2, BLOCK.SANDBAG);
 
+    // ── V. Destroyed Russian BMP-2 wreck (in approach corridor) ─────
+    // Burnt-out Russian IFVs and tanks were left on Kyiv approach roads
+    // as monuments to the failed assault and defensive fire success.
+    var bmpX = ox + 3, bmpZ = oz + 24;
+    var bmpY = gh(bmpX, bmpZ);
+    // Burnt hull (METAL, dark from fire)
+    for (var bhx = 0; bhx < 5; bhx++) {
+      for (var bhz = 0; bhz < 3; bhz++) {
+        if (bhx === 0 || bhx === 4 || bhz === 0 || bhz === 2) {
+          setBlock(bmpX + bhx, bmpY + 1, bmpZ + bhz, BLOCK.METAL);
+        }
+      }
+      setBlock(bmpX + bhx, bmpY + 1, bmpZ + 1, BLOCK.RUBBLE);
+    }
+    // Turret remnant (skewed off to one side — knocked off by explosion)
+    setBlock(bmpX + 2, bmpY + 2, bmpZ,     BLOCK.METAL);
+    setBlock(bmpX + 3, bmpY + 2, bmpZ - 1, BLOCK.METAL);
+    setBlock(bmpX + 4, bmpY + 2, bmpZ - 1, BLOCK.METAL);
+    // Barrel (still pointing forward)
+    setBlock(bmpX + 5, bmpY + 2, bmpZ - 1, BLOCK.METAL);
+    setBlock(bmpX + 6, bmpY + 2, bmpZ - 1, BLOCK.METAL);
+    // Fire pockets
+    setBlock(bmpX + 1, bmpY + 2, bmpZ + 1, BLOCK.FIRE);
+    setBlock(bmpX + 3, bmpY + 2, bmpZ + 1, BLOCK.FIRE);
+    // Rubble scatter around (from detonation)
+    for (var rs = 0; rs < 6; rs++) {
+      var rsx = bmpX + Math.floor(rs * 2.3 % 7) - 2;
+      var rsz = bmpZ + Math.floor(rs * 1.7 % 5) - 1;
+      if (rsx !== bmpX + rs % 5) setBlock(rsx, gh(rsx, rsz) + 1, rsz, BLOCK.RUBBLE);
+    }
+
+    // ── W. Field hospital / CCP (casualty collection point) ─────────
+    // Ukrainian military medics set up aid stations in church basements
+    // and apartments — marked with red crosses for Geneva Convention.
+    var fhX = ox - 14, fhZ = oz - 14;
+    var fhY = gh(fhX, fhZ);
+    // White tent structure (WHITE_TILE for the tarp walls)
+    for (var fhw = 0; fhw < 4; fhw++) {
+      setBlock(fhX + fhw, fhY + 1, fhZ,     BLOCK.WHITE_TILE);
+      setBlock(fhX + fhw, fhY + 2, fhZ,     BLOCK.WHITE_TILE);
+      setBlock(fhX + fhw, fhY + 1, fhZ + 3, BLOCK.WHITE_TILE);
+      setBlock(fhX + fhw, fhY + 2, fhZ + 3, BLOCK.WHITE_TILE);
+    }
+    setBlock(fhX,     fhY + 1, fhZ + 1, BLOCK.WHITE_TILE);
+    setBlock(fhX,     fhY + 2, fhZ + 1, BLOCK.WHITE_TILE);
+    setBlock(fhX + 3, fhY + 1, fhZ + 1, BLOCK.WHITE_TILE);
+    setBlock(fhX + 3, fhY + 2, fhZ + 1, BLOCK.WHITE_TILE);
+    setBlock(fhX,     fhY + 1, fhZ + 2, BLOCK.WHITE_TILE);
+    setBlock(fhX,     fhY + 2, fhZ + 2, BLOCK.WHITE_TILE);
+    setBlock(fhX + 3, fhY + 1, fhZ + 2, BLOCK.WHITE_TILE);
+    setBlock(fhX + 3, fhY + 2, fhZ + 2, BLOCK.WHITE_TILE);
+    // Roof (white)
+    for (var frx = 0; frx < 4; frx++) {
+      for (var frz = 0; frz < 4; frz++) {
+        setBlock(fhX + frx, fhY + 3, fhZ + frz, BLOCK.WHITE_TILE);
+      }
+    }
+    // Red cross on roof (FIRE blocks — bright red)
+    setBlock(fhX + 1, fhY + 4, fhZ + 1, BLOCK.FIRE); // center
+    setBlock(fhX + 2, fhY + 4, fhZ + 1, BLOCK.FIRE); // arm
+    setBlock(fhX + 1, fhY + 4, fhZ + 2, BLOCK.FIRE); // arm
+    setBlock(fhX + 2, fhY + 4, fhZ + 2, BLOCK.FIRE); // center
+    // Entrance (open south wall)
+    setBlock(fhX + 1, fhY + 1, fhZ + 3, BLOCK.AIR);
+    setBlock(fhX + 2, fhY + 1, fhZ + 3, BLOCK.AIR);
+    // Sandbag protection (half-ring on south)
+    setBlock(fhX - 1, fhY + 1, fhZ + 3, BLOCK.SANDBAG);
+    setBlock(fhX + 4, fhY + 1, fhZ + 3, BLOCK.SANDBAG);
+    setBlock(fhX,     fhY + 1, fhZ + 4, BLOCK.SANDBAG);
+    setBlock(fhX + 1, fhY + 1, fhZ + 4, BLOCK.SANDBAG);
+    setBlock(fhX + 2, fhY + 1, fhZ + 4, BLOCK.SANDBAG);
+    setBlock(fhX + 3, fhY + 1, fhZ + 4, BLOCK.SANDBAG);
+
     // ── T. Hedgehog obstacles (welded rail sections) ─────────────────
     // Thousands of steel "hedgehog" or "Czech hedgehog" anti-tank traps
     // were welded from railway rails and placed throughout Kyiv suburbs.
