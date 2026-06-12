@@ -326,6 +326,40 @@ const Weapons = (() => {
       spread: 0.028, auto: true, type: 'HMG', recoilY: 0.042, recoilX: 0.014,
       description: 'American .50-caliber heavy machine gun. Iconic NATO HMG mounted on HMMWVs, M113s and M2A2 Bradleys supplied to Ukraine. "Ma Deuce" — in service since 1933.',
     },
+    {
+      id: 'ZU_23_2', name: 'ZU-23-2 (23mm AA Autocannon)', damage: 85,
+      fireRate: 0.075, clipSize: 50, maxReserve: 200, reloadTime: 5.0,
+      spread: 0.022, auto: true, type: 'HMG', recoilY: 0.055, recoilX: 0.018,
+      description: 'Soviet twin 23×152mm autocannon. Both sides improvised this AA gun on trucks as a ground assault weapon. Devastating against infantry, light vehicles and drones.',
+    },
+    {
+      id: 'FPV_DRONE', name: 'FPV Kamikaze Drone', damage: 400,
+      fireRate: 8.0, clipSize: 1, maxReserve: 3, reloadTime: 6.5,
+      spread: 0, auto: false, type: 'LAUNCH', recoilY: 0.015, recoilX: 0.004,
+      blastRadius: 5, homing: false,
+      description: 'First-person-view quadcopter with RKG-3 grenade or PG-7 warhead. Most prolific weapon in 2024-2025 Ukraine war. Guided by FPV goggles to target.',
+    },
+    {
+      id: 'KORNET', name: '9M133 Kornet ATGM', damage: 1050,
+      fireRate: 4.5, clipSize: 1, maxReserve: 3, reloadTime: 5.8,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.060, recoilX: 0.018,
+      blastRadius: 7, homing: true, hasScope: true,
+      description: 'Russian laser-guided ATGM. Dual tandem warhead defeats ERA-equipped T-80/T-90. Used by Russian forces to destroy Ukrainian armour; some captured units used by Ukraine.',
+    },
+    {
+      id: 'RPG26', name: 'RPG-26 Aglen (disposable)', damage: 390,
+      fireRate: 3.2, clipSize: 1, maxReserve: 2, reloadTime: 3.8,
+      spread: 0.012, auto: false, type: 'AT_LIGHT', recoilY: 0.070, recoilX: 0.022,
+      blastRadius: 3.5,
+      description: 'Single-shot disposable 72.5mm rocket launcher. Used by both sides throughout the war. Lighter and simpler than RPG-7 — fire and discard the tube.',
+    },
+    {
+      id: 'HIMARS', name: 'M142 HIMARS (GMLRS Strike)', damage: 3000,
+      fireRate: 12.0, clipSize: 1, maxReserve: 1, reloadTime: 14.0,
+      spread: 0, auto: false, type: 'LAUNCH', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 25, homing: true,
+      description: 'US M142 High Mobility Artillery Rocket System. GMLRS precision rocket to 84km. Decisive NATO weapon destroying Russian depots and supply lines across Ukraine.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -3010,6 +3044,136 @@ const Weapons = (() => {
       g.add(_P(_B(0.005, 0.022, 0.005, _pal.blk()), X, Y + 0.050, -0.86));
       return g;
     },
+
+    // ── ZU-23-2 (twin 23mm AA autocannon) ────────────────────────────
+    zu23_2: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Receiver/breech housing (wide, flat)
+      g.add(_P(_B(0.090, 0.055, 0.28, _pal.blk()), X, Y, -0.20));
+      // Twin barrels — upper and lower, slightly separated
+      g.add(_P(_T(0.014, 0.52, _pal.steel(), 12), X, Y + 0.024, -0.50));
+      g.add(_P(_T(0.014, 0.52, _pal.steel(), 12), X, Y - 0.012, -0.50));
+      // Muzzle brakes on both barrels
+      g.add(_P(_B(0.018, 0.018, 0.030, _pal.blk()), X, Y + 0.024, -0.76));
+      g.add(_P(_B(0.018, 0.018, 0.030, _pal.blk()), X, Y - 0.012, -0.76));
+      // Ammo drum/box (left side of receiver)
+      g.add(_P(_B(0.028, 0.055, 0.090, 0x3a3a28), X - 0.058, Y, -0.18));
+      // Ammo drum (right side)
+      g.add(_P(_B(0.028, 0.055, 0.090, 0x3a3a28), X + 0.058, Y, -0.18));
+      // Gunshield (protective plate in front)
+      g.add(_P(_B(0.100, 0.072, 0.010, _pal.blk()), X, Y + 0.008, -0.37));
+      // Ring sight (AA lead ring)
+      g.add(_P(_T(0.020, 0.005, _pal.steel(), 16), X, Y + 0.064, -0.42));
+      // Spade grip handles
+      g.add(_P(_B(0.008, 0.060, 0.010, _pal.blk()), X - 0.028, Y - 0.020, -0.06));
+      g.add(_P(_B(0.008, 0.060, 0.010, _pal.blk()), X + 0.028, Y - 0.020, -0.06));
+      return g;
+    },
+
+    // ── FPV Kamikaze Drone ────────────────────────────────────────────
+    fpv_drone: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.06;
+      // Central body frame
+      g.add(_P(_B(0.040, 0.020, 0.040, _pal.blk()), X, Y, -0.15));
+      // 4 motor arms (diagonal, extending outward)
+      g.add(_P(_B(0.060, 0.008, 0.010, _pal.blk()), X - 0.032, Y + 0.002, -0.13));
+      g.add(_P(_B(0.060, 0.008, 0.010, _pal.blk()), X + 0.032, Y + 0.002, -0.13));
+      g.add(_P(_B(0.010, 0.008, 0.060, _pal.blk()), X, Y + 0.002, -0.12));
+      g.add(_P(_B(0.010, 0.008, 0.060, _pal.blk()), X, Y + 0.002, -0.18));
+      // Motor nodes at arm tips
+      g.add(_P(_T(0.010, 0.016, _pal.steel(), 8), X - 0.062, Y + 0.010, -0.13));
+      g.add(_P(_T(0.010, 0.016, _pal.steel(), 8), X + 0.062, Y + 0.010, -0.13));
+      g.add(_P(_T(0.010, 0.016, _pal.steel(), 8), X, Y + 0.010, -0.245));
+      g.add(_P(_T(0.010, 0.016, _pal.steel(), 8), X, Y + 0.010, -0.066));
+      // Propeller discs (flat torus approximated by thin flat cylinders)
+      g.add(_P(_T(0.022, 0.003, 0xdddddd, 8), X - 0.062, Y + 0.018, -0.13));
+      g.add(_P(_T(0.022, 0.003, 0xdddddd, 8), X + 0.062, Y + 0.018, -0.13));
+      g.add(_P(_T(0.022, 0.003, 0xdddddd, 8), X, Y + 0.018, -0.245));
+      g.add(_P(_T(0.022, 0.003, 0xdddddd, 8), X, Y + 0.018, -0.066));
+      // Explosive warhead (cylinder underneath)
+      g.add(_P(_T(0.016, 0.042, 0xcc6600, 10), X, Y - 0.026, -0.15));
+      // FPV camera (small sphere at front)
+      const camMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+      const cam = new THREE.Mesh(new THREE.SphereGeometry(0.009, 6, 4), camMat);
+      cam.position.set(X, Y + 0.005, -0.175); g.add(cam);
+      // Antenna (thin stick)
+      g.add(_P(_T(0.003, 0.050, _pal.blk(), 6), X + 0.015, Y + 0.030, -0.14));
+      return g;
+    },
+
+    // ── 9M133 Kornet ATGM ────────────────────────────────────────────
+    kornet: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.08;
+      // Launch tube (long rectangular box, Russian green)
+      g.add(_P(_B(0.055, 0.055, 0.52, 0x2d3d1f), X, Y, -0.36));
+      // Thermal sight CLU (left side of launcher, box)
+      g.add(_P(_B(0.028, 0.050, 0.095, _pal.blk()), X - 0.046, Y + 0.010, -0.20));
+      // Sight lens (circular)
+      g.add(_P(_T(0.014, 0.010, 0x334455, 8), X - 0.060, Y + 0.018, -0.20));
+      // Rear fuze cap
+      g.add(_P(_T(0.024, 0.020, _pal.blk(), 8), X, Y, -0.62));
+      // Warhead nose dome
+      g.add(_P(_T(0.026, 0.040, 0x3d4830, 8), X, Y, -0.12));
+      // Folded carry handle
+      g.add(_P(_B(0.040, 0.008, 0.055, _pal.blk()), X, Y + 0.035, -0.30));
+      // Bipod legs
+      g.add(_P(_B(0.006, 0.055, 0.006, _pal.blk()), X - 0.020, Y - 0.028, -0.44));
+      g.add(_P(_B(0.006, 0.055, 0.006, _pal.blk()), X + 0.020, Y - 0.028, -0.44));
+      // Rear pistol grip
+      g.add(_P(_B(0.014, 0.038, 0.020, 0x1a1a0a), X, Y - 0.018, -0.60));
+      return g;
+    },
+
+    // ── RPG-26 Aglen (disposable) ─────────────────────────────────────
+    rpg26: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Main tube (shorter than RPG-7, cylindrical)
+      g.add(_P(_T(0.028, 0.46, 0x5c5c3a, 12), X, Y, -0.28));
+      // Warhead nose (slightly wider cone-like)
+      g.add(_P(_T(0.032, 0.065, 0x3a3a28, 10), X, Y, -0.005));
+      // Nose cap ogive
+      g.add(_P(_T(0.018, 0.040, 0x2a2a18, 8), X, Y, 0.040));
+      // Rear exhaust nozzle (narrowed end)
+      g.add(_P(_T(0.018, 0.032, _pal.blk(), 8), X, Y, -0.56));
+      // Sling attachment (small loop left side)
+      g.add(_P(_B(0.004, 0.020, 0.006, _pal.blk()), X - 0.032, Y, -0.30));
+      // Trigger mechanism housing
+      g.add(_P(_B(0.014, 0.030, 0.028, _pal.blk()), X, Y - 0.030, -0.32));
+      // Shoulder pad (rubber buffer, flat plate)
+      g.add(_P(_B(0.040, 0.022, 0.010, 0x2a2a2a), X, Y, -0.50));
+      // Front sight (flip-up pin)
+      g.add(_P(_B(0.004, 0.018, 0.004, _pal.blk()), X, Y + 0.030, -0.09));
+      return g;
+    },
+
+    // ── M142 HIMARS (fire-control unit) ──────────────────────────────
+    himars: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.08;
+      // Fire control unit body (laptop-sized box, OD green)
+      g.add(_P(_B(0.100, 0.068, 0.026, 0x3a4a2a), X, Y, -0.18));
+      // Screen face (dark, slight lighter border)
+      g.add(_P(_B(0.080, 0.050, 0.004, 0x0a1a2a), X, Y + 0.004, -0.205));
+      // Keypad area (lower half of screen face)
+      g.add(_P(_B(0.080, 0.014, 0.004, 0x1a2a1a), X, Y - 0.012, -0.205));
+      // GPS antenna stub (top right)
+      g.add(_P(_T(0.006, 0.040, _pal.blk(), 6), X + 0.042, Y + 0.056, -0.18));
+      // Handle/grip bar
+      g.add(_P(_B(0.090, 0.010, 0.018, _pal.blk()), X, Y - 0.038, -0.18));
+      // Side connector panel
+      g.add(_P(_B(0.006, 0.044, 0.020, _pal.blk()), X - 0.054, Y, -0.17));
+      // Launch confirm button (red)
+      const btnMat = new THREE.MeshLambertMaterial({ color: 0xcc2222 });
+      const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.006, 6), btnMat);
+      btn.position.set(X + 0.030, Y + 0.022, -0.208); g.add(btn);
+      // US Army star decal (small flat star)
+      g.add(_P(_B(0.016, 0.016, 0.003, 0xcccccc), X - 0.010, Y + 0.018, -0.208));
+      return g;
+    },
   };
 
   const meshBuilders = [
@@ -3031,6 +3195,8 @@ const Weapons = (() => {
     NB.pkpecheneg, NB.spg9, NB.hk416,
     // 6 more authentic war weapons
     NB.rgd5, NB.spike_lr, NB.milan, NB.mp7, NB.kord, NB.browning_m2,
+    // 5 new war weapons (ZU-23-2, FPV drone, Kornet, RPG-26, HIMARS)
+    NB.zu23_2, NB.fpv_drone, NB.kornet, NB.rpg26, NB.himars,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

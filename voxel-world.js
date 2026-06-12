@@ -3177,6 +3177,125 @@ window.VoxelWorld = (function () {
       }
       _roadWaypoints.push(new THREE.Vector3(ox, gh(ox, ehz) + 0.5, ehz));
     }
+
+    // ── I. Czech hedgehog anti-tank barriers along the approach ─────────
+    // Iconic concrete/metal X-shaped barriers placed by Ukraine across entry roads
+    var hedgehogPositions = [
+      { x: ox - 7,  z: oz + 22 }, { x: ox + 7,  z: oz + 24 },
+      { x: ox - 9,  z: oz + 30 }, { x: ox + 9,  z: oz + 32 },
+      { x: ox - 7,  z: oz + 38 }, { x: ox + 7,  z: oz + 40 },
+      { x: ox - 10, z: oz + 48 }, { x: ox + 10, z: oz + 50 },
+      { x: ox - 8,  z: oz + 60 }, { x: ox + 8,  z: oz + 62 },
+    ];
+    for (var hi = 0; hi < hedgehogPositions.length; hi++) {
+      var hgp = hedgehogPositions[hi];
+      var hgy = gh(hgp.x, hgp.z);
+      // Horizontal beam
+      setBlock(hgp.x - 1, hgy + 1, hgp.z, BLOCK.REINFORCED);
+      setBlock(hgp.x,     hgy + 1, hgp.z, BLOCK.REINFORCED);
+      setBlock(hgp.x + 1, hgy + 1, hgp.z, BLOCK.REINFORCED);
+      // Vertical post
+      setBlock(hgp.x, hgy + 2, hgp.z, BLOCK.REINFORCED);
+      // Diagonal cross-beam (z axis)
+      setBlock(hgp.x, hgy + 1, hgp.z - 1, BLOCK.REINFORCED);
+      setBlock(hgp.x, hgy + 1, hgp.z + 1, BLOCK.REINFORCED);
+      // Sandbag pile at base
+      setBlock(hgp.x - 1, hgy + 1, hgp.z + 1, BLOCK.SANDBAG);
+      setBlock(hgp.x + 1, hgy + 1, hgp.z - 1, BLOCK.SANDBAG);
+    }
+
+    // ── J. Wrecked Russian vehicles in approach corridor ─────────────
+    // Destroyed T-72 and BTR-82A hulks from the Kyiv offensive, 2022
+    // These serve as obstacles and cover for the player
+    function spawnWreckedTank(wx, wz) {
+      var wy = gh(wx, wz);
+      // Hull (T-72 style, 8 long × 4 wide × 2 high)
+      for (var thx = 0; thx < 8; thx++) {
+        for (var thz = 0; thz < 4; thz++) {
+          for (var thy = 1; thy <= 2; thy++) {
+            var isOuter = thx === 0 || thx === 7 || thz === 0 || thz === 3 || thy === 2;
+            if (isOuter) setBlock(wx + thx, wy + thy, wz + thz, BLOCK.METAL);
+          }
+        }
+      }
+      // Turret (shifted right + raised)
+      for (var ttx = 2; ttx <= 5; ttx++) {
+        for (var ttz = 0; ttz <= 3; ttz++) {
+          setBlock(wx + ttx, wy + 3, wz + ttz, BLOCK.METAL);
+          if (ttx === 3 && ttz === 1) setBlock(wx + ttx, wy + 4, wz + ttz, BLOCK.METAL); // commander hatch
+        }
+      }
+      // Gun barrel (blasted off, broken)
+      setBlock(wx + 5, wy + 3, wz + 1, BLOCK.METAL);
+      setBlock(wx + 6, wy + 3, wz + 1, BLOCK.METAL);
+      // Rubble/blast damage around the wreck
+      for (var rbx2 = -1; rbx2 <= 9; rbx2++) {
+        for (var rbz2 = -1; rbz2 <= 5; rbz2++) {
+          if ((rbx2 === -1 || rbx2 === 9) || (rbz2 === -1 || rbz2 === 5)) {
+            if (Math.abs(rbx2 + rbz2) % 3 === 0) {
+              setBlock(wx + rbx2, wy + 1, wz + rbz2, BLOCK.RUBBLE);
+            }
+          }
+        }
+      }
+      // Fire from engine compartment (rear)
+      setBlock(wx + 7, wy + 2, wz + 1, BLOCK.FIRE);
+      setBlock(wx + 7, wy + 3, wz + 1, BLOCK.FIRE);
+    }
+
+    function spawnWreckedBTR(wx, wz) {
+      var wy = gh(wx, wz);
+      // BTR-82A hull (6 long × 3 wide × 2 high, more rounded than tank)
+      for (var btrx = 0; btrx < 6; btrx++) {
+        for (var btrz = 0; btrz < 3; btrz++) {
+          for (var btry = 1; btry <= 2; btry++) {
+            var isOuter2 = btrx === 0 || btrx === 5 || btrz === 0 || btrz === 2 || btry === 2;
+            if (isOuter2) setBlock(wx + btrx, wy + btry, wz + btrz, BLOCK.METAL);
+          }
+        }
+      }
+      // Small turret (23mm cannon mount)
+      setBlock(wx + 3, wy + 3, wz + 1, BLOCK.METAL);
+      setBlock(wx + 4, wy + 3, wz + 1, BLOCK.METAL);
+      // Rubble and scorch marks
+      setBlock(wx + 2, wy + 1, wz - 1, BLOCK.RUBBLE);
+      setBlock(wx + 4, wy + 1, wz + 3, BLOCK.RUBBLE);
+      setBlock(wx + 5, wy + 2, wz + 1, BLOCK.FIRE);
+    }
+
+    // Place wrecks at historically-authentic positions along the Kyiv approach
+    spawnWreckedTank(ox + 10, oz + 32);    // blocking right lane at hedgehog line
+    spawnWreckedTank(ox - 18, oz + 68);   // overturned on roadside
+    spawnWreckedTank(ox + 12, oz + 98);   // mid-corridor choke point
+    spawnWreckedBTR(ox - 12, oz + 45);    // BTR-82A in left lane
+    spawnWreckedBTR(ox + 6,  oz + 78);    // second BTR near apartment blocks
+    spawnWreckedBTR(ox - 8,  oz + 112);   // near entrance to Irpin suburbs
+
+    // ── K. Arsenalna metro station entrance (deepest in world) ──────
+    // In real Kyiv this is on Khreshchatyk — here near Maidan (x=8, z=-18)
+    var mx = ox + 8, mz = oz - 18;
+    var mby = gh(mx, mz);
+    // Staircase surround (concrete walls)
+    for (var msx = 0; msx < 6; msx++) {
+      setBlock(mx + msx, mby + 1, mz,     BLOCK.CONCRETE);
+      setBlock(mx + msx, mby + 1, mz + 4, BLOCK.CONCRETE);
+    }
+    setBlock(mx,     mby + 1, mz + 1, BLOCK.CONCRETE);
+    setBlock(mx,     mby + 1, mz + 2, BLOCK.CONCRETE);
+    setBlock(mx,     mby + 1, mz + 3, BLOCK.CONCRETE);
+    setBlock(mx + 5, mby + 1, mz + 1, BLOCK.CONCRETE);
+    setBlock(mx + 5, mby + 1, mz + 2, BLOCK.CONCRETE);
+    setBlock(mx + 5, mby + 1, mz + 3, BLOCK.CONCRETE);
+    // Staircase steps (descending into ground)
+    setBlock(mx + 1, mby,     mz + 1, BLOCK.WHITE_TILE);
+    setBlock(mx + 2, mby,     mz + 2, BLOCK.WHITE_TILE);
+    setBlock(mx + 3, mby,     mz + 2, BLOCK.WHITE_TILE);
+    setBlock(mx + 4, mby,     mz + 3, BLOCK.WHITE_TILE);
+    // "M" metro sign post
+    setBlock(mx + 2, mby + 1, mz - 1, BLOCK.METAL);
+    setBlock(mx + 2, mby + 2, mz - 1, BLOCK.METAL);
+    setBlock(mx + 2, mby + 3, mz - 1, BLOCK.LIGHT);  // blue metro light
+    setBlock(mx + 3, mby + 3, mz - 1, BLOCK.LIGHT);
   }
 
   // IDEA 21: Evacuation bus/civilian vehicles
