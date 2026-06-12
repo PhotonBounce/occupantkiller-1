@@ -4058,6 +4058,99 @@ window.VoxelWorld = (function () {
     // Ukrainian flag on turret side (blue = CONCRETE, yellow = LIGHT)
     setBlock(t64x + 4, t64y + 3, t64z - 1, BLOCK.CONCRETE); // blue stripe
     setBlock(t64x + 5, t64y + 3, t64z - 1, BLOCK.LIGHT);    // yellow stripe
+
+    // ── BB. Blown Irpin bridge (deliberate demolition, March 2022) ────
+    // Ukraine blew the Irpin river bridges to slow Russian armored advance.
+    // The main Irpin bridge was destroyed by Ukrainian sappers on March 1.
+    var bdX = ox + 28, bdZ = oz + 48;
+    var bdY = gh(bdX, bdZ);
+    // Surviving bridge abutment on south side (CONCRETE stump)
+    for (var bax = 0; bax < 5; bax++) {
+      setBlock(bdX + bax, bdY + 1, bdZ,     BLOCK.CONCRETE);
+      setBlock(bdX + bax, bdY + 2, bdZ,     BLOCK.CONCRETE);
+      setBlock(bdX + bax, bdY + 3, bdZ,     BLOCK.CONCRETE);
+    }
+    // Blown central span — collapsed girder (METAL debris in water/mud)
+    for (var bms = 0; bms < 6; bms++) {
+      setBlock(bdX + bms, bdY,     bdZ + 3 + bms, BLOCK.METAL);
+      setBlock(bdX + bms, bdY - 1, bdZ + 3 + bms, BLOCK.METAL);
+    }
+    // Rebar splinters sticking up from collapse
+    setBlock(bdX + 1, bdY + 1, bdZ + 4, BLOCK.METAL);
+    setBlock(bdX + 3, bdY + 1, bdZ + 6, BLOCK.METAL);
+    setBlock(bdX + 4, bdY + 2, bdZ + 5, BLOCK.METAL);
+    // North abutment stump (still standing)
+    for (var bnx = 0; bnx < 5; bnx++) {
+      setBlock(bdX + bnx, bdY + 1, bdZ + 10, BLOCK.CONCRETE);
+      setBlock(bdX + bnx, bdY + 2, bdZ + 10, BLOCK.CONCRETE);
+    }
+    // Water fill under bridge (indicates river/mud at collapse point)
+    for (var bwx = 0; bwx < 5; bwx++) {
+      for (var bwz = 1; bwz < 10; bwz++) {
+        setBlock(bdX + bwx, bdY - 1, bdZ + bwz, BLOCK.WATER);
+      }
+    }
+    // Rubble from the blast on south bank
+    for (var brr = 0; brr < 5; brr++) {
+      setBlock(bdX - 1 + brr, bdY + 1, bdZ + 1, BLOCK.RUBBLE);
+      setBlock(bdX - 1 + brr, bdY + 1, bdZ + 2, BLOCK.RUBBLE);
+    }
+
+    // ── CC. Supply truck graveyard (Russian convoy wreckage) ──────────
+    // Russia's 64-km convoy north of Kyiv was halted and destroyed by
+    // Ukrainian forces (TB2 strikes, NLAW teams, and fuel shortages).
+    // Multiple supply trucks and fuel tankers burnt out on the Hostomel road.
+    var sgX = ox - 22, sgZ = oz + 52;
+    var sgY = gh(sgX, sgZ);
+    // 3 destroyed supply trucks in a row along the road
+    var truckOffsets = [0, 8, 16];
+    for (var tri = 0; tri < truckOffsets.length; tri++) {
+      var txz = sgZ + truckOffsets[tri];
+      var txy = gh(sgX, txz);
+      // Truck cab (METAL, 2×2)
+      setBlock(sgX,     txy + 1, txz,     BLOCK.METAL);
+      setBlock(sgX + 1, txy + 1, txz,     BLOCK.METAL);
+      setBlock(sgX,     txy + 1, txz + 1, BLOCK.METAL);
+      setBlock(sgX + 1, txy + 1, txz + 1, BLOCK.METAL);
+      setBlock(sgX,     txy + 2, txz,     BLOCK.METAL);
+      setBlock(sgX + 1, txy + 2, txz,     BLOCK.METAL);
+      setBlock(sgX,     txy + 2, txz + 1, BLOCK.METAL);
+      setBlock(sgX + 1, txy + 2, txz + 1, BLOCK.METAL);
+      // Truck bed (METAL, 2×4 longer)
+      for (var tbz = 2; tbz < 6; tbz++) {
+        setBlock(sgX,     txy + 1, txz + tbz, BLOCK.METAL);
+        setBlock(sgX + 1, txy + 1, txz + tbz, BLOCK.METAL);
+        setBlock(sgX,     txy + 2, txz + tbz, BLOCK.METAL);
+        setBlock(sgX + 1, txy + 2, txz + tbz, BLOCK.METAL);
+      }
+      // Fire (middle trucks burning; first one fully burnt out)
+      if (tri > 0) {
+        setBlock(sgX,     txy + 3, txz + 1, BLOCK.FIRE);
+        setBlock(sgX + 1, txy + 3, txz + 3, BLOCK.FIRE);
+      }
+      // Rubble of scattered cargo
+      setBlock(sgX - 1, txy + 1, txz + 2, BLOCK.RUBBLE);
+      setBlock(sgX + 2, txy + 1, txz + 3, BLOCK.RUBBLE);
+      setBlock(sgX - 1, txy + 1, txz + 4, BLOCK.RUBBLE);
+    }
+    // Burnt fuel tanker (cylindrical shape — wider METAL box)
+    var ftX = sgX + 4, ftZ = sgZ + 6;
+    var ftY = gh(ftX, ftZ);
+    for (var ftx = 0; ftx < 3; ftx++) {
+      for (var ftz = 0; ftz < 7; ftz++) {
+        setBlock(ftX + ftx, ftY + 1, ftZ + ftz, BLOCK.METAL);
+        if (ftz < 6) setBlock(ftX + ftx, ftY + 2, ftZ + ftz, BLOCK.METAL);
+      }
+    }
+    // Tanker still burning (catastrophic fuel fire)
+    setBlock(ftX,     ftY + 3, ftZ + 2, BLOCK.FIRE);
+    setBlock(ftX + 1, ftY + 3, ftZ + 3, BLOCK.FIRE);
+    setBlock(ftX + 2, ftY + 3, ftZ + 4, BLOCK.FIRE);
+    // Scattered WOOD cargo crates (food/ammo supply)
+    setBlock(ftX - 2, ftY + 1, ftZ,     BLOCK.WOOD);
+    setBlock(ftX - 2, ftY + 1, ftZ + 2, BLOCK.WOOD);
+    setBlock(ftX + 4, ftY + 1, ftZ + 1, BLOCK.WOOD);
+    setBlock(ftX + 4, ftY + 1, ftZ + 4, BLOCK.WOOD);
   }
 
   // IDEA 21: Evacuation bus/civilian vehicles

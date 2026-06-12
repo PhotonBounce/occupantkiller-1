@@ -660,6 +660,34 @@ const Weapons = (() => {
       blastRadius: 5,
       description: "Russian RGN-86 offensive fragmentation grenade. Plastic body with shrapnel liner, fitted with UDZ impact-inertial fuze — detonates on impact OR after 3.2-4 seconds. Standard companion to RGO-78 defensive grenade. Both found throughout abandoned Russian positions around Kyiv in March 2022.",
     },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'RPG32', name: 'RPG-32 Hashim (reusable AT launcher)', damage: 580,
+      fireRate: 4.0, clipSize: 1, maxReserve: 3, reloadTime: 5.2,
+      spread: 0.007, auto: false, type: 'AT_LIGHT', recoilY: 0.068, recoilX: 0.022,
+      blastRadius: 4.8,
+      description: 'Russian/Jordanian RPG-32 Hashim. Reusable launcher body with interchangeable 72.5mm or 105mm warhead modules — unlike most single-use RPGs. Tandem warhead defeats ERA. Adopted by Russia and Jordan 2012; used in Ukraine by Russian forces and shared with allied groups.',
+    },
+    {
+      id: 'G36C', name: 'HK G36C (5.56mm NATO)', damage: 28,
+      fireRate: 0.082, clipSize: 30, maxReserve: 120, reloadTime: 2.1,
+      spread: 0.016, auto: true, type: 'RIFLE', recoilY: 0.020, recoilX: 0.007,
+      description: 'Heckler & Koch G36C compact carbine. Germany supplied G36 variants to Ukraine as part of aid packages from Bundeswehr stocks. Gas-operated rotating bolt, distinctive transparent magazine. Used alongside STANAG-standard firearms by Ukrainian special operations forces.',
+    },
+    {
+      id: 'VASILEK', name: '2B9 Vasilek (82mm Auto Mortar)', damage: 700,
+      fireRate: 2.8, clipSize: 4, maxReserve: 20, reloadTime: 6.0,
+      spread: 0.015, auto: false, type: 'EXPLOSIVE', recoilY: 0.015, recoilX: 0.005,
+      blastRadius: 9,
+      description: 'Soviet 2B9 Vasilek automatic 82mm mortar. Semi-auto feed via 4-round clips at 100rpm max. Can fire like artillery in flat-trajectory direct fire mode (unique among mortars). Both sides use from ageing stocks. Tripod + wheeled carriage — visible at dug-in positions throughout the Donbas.',
+    },
+    {
+      id: 'B10', name: 'B-10 Recoilless Rifle (82mm)', damage: 420,
+      fireRate: 3.5, clipSize: 1, maxReserve: 5, reloadTime: 5.0,
+      spread: 0.010, auto: false, type: 'AT', recoilY: 0.055, recoilX: 0.015,
+      blastRadius: 5,
+      description: 'Soviet B-10 82mm recoilless rifle from 1954. Smooth-bore with breech counterblast. Both sides dug B-10s from 60-year-old arsenals during 2022 equipment shortages. Shoulder-fired or wheel-carriage mounted. Still effective against APCs and fortified positions at 400m.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -4610,6 +4638,118 @@ const Weapons = (() => {
       g.add(_P(_B(0.003, 0.016, 0.003, _pal.blk()), X, Y + 0.030, -0.48));
       return g;
     },
+
+    // ── RPG-32 Hashim (dual-calibre reusable AT launcher) ────────────
+    rpg32: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Main launch tube — fibreglass/composite (sand tan)
+      g.add(_P(_T(0.028, 0.55, _pal.tan(), 12), X, Y, -0.27));
+      // Front sight / optical mount rail (above tube)
+      g.add(_P(_B(0.060, 0.012, 0.008, _pal.blk()), X, Y + 0.032, -0.08));
+      // 105mm warhead capsule (removable front module — wider than tube)
+      const wHead = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.038, 0.028, 0.14, 10),
+        new THREE.MeshLambertMaterial({ color: 0x3a3c30 }));
+      wHead.rotation.x = Math.PI / 2; wHead.position.set(X, Y, -0.53); g.add(wHead);
+      // Piezo contact fuze tip (cone)
+      const tip = new THREE.Mesh(
+        new THREE.ConeGeometry(0.012, 0.038, 8),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      tip.rotation.x = Math.PI / 2; tip.position.set(X, Y, -0.64); g.add(tip);
+      // Tandem warhead seam ring
+      g.add(_P(_T(0.030, 0.006, _pal.steel(), 10), X, Y, -0.47));
+      // Backblast cone (rear counterblast vent, open funnel)
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(0.042, 0.065, 10),
+        new THREE.MeshLambertMaterial({ color: _pal.tan() }));
+      cone.rotation.x = -Math.PI / 2; cone.position.set(X, Y, 0.035); g.add(cone);
+      // Pistol grip
+      g.add(_P(_B(0.022, 0.062, 0.028, _pal.blk()), X, Y - 0.048, -0.06));
+      // Trigger guard
+      const tg = new THREE.Mesh(
+        new THREE.TorusGeometry(0.014, 0.003, 5, 10, Math.PI),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      tg.rotation.x = Math.PI / 2; tg.position.set(X, Y - 0.052, -0.06); g.add(tg);
+      // Shoulder rest pad (folding, rear of tube)
+      g.add(_P(_B(0.050, 0.018, 0.040, 0x4a4c40), X, Y + 0.002, 0.10));
+      return g;
+    },
+
+    // ── HK G36C (5.56mm NATO carbine, German aid to Ukraine) ─────────
+    g36c: function () {
+      return _rifle({ hg: 'rail', hgColor: _pal.poly, stock: 'skel', mag: 'curved',
+        magColor: 0x3a3c32, muzzle: 'flash', recvLen: 0.19, recvH: 0.044, barLen: 0.09,
+        barR: 0.010, recvColor: 0x2c2e26 });
+    },
+
+    // ── 2B9 Vasilek (82mm automatic mortar, 4-round clip) ────────────
+    vasilek: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.08;
+      // Main barrel (smooth-bore, long)
+      g.add(_P(_T(0.022, 0.68, _pal.steel(), 10), X, Y + 0.04, -0.30));
+      // Breech block (boxy, bottom-load)
+      g.add(_P(_B(0.056, 0.058, 0.10, 0x3a3c38), X, Y, -0.02));
+      // 4-round clip feed from right side
+      for (let r = 0; r < 4; r++) {
+        const round = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.014, 0.014, 0.092, 8),
+          new THREE.MeshLambertMaterial({ color: 0x8a7c40 }));
+        round.rotation.x = Math.PI / 2;
+        round.position.set(X + 0.034 - r * 0.024, Y + 0.004, 0.02 - r * 0.005); g.add(round);
+      }
+      // Clip carrier frame
+      g.add(_P(_B(0.008, 0.018, 0.092, _pal.steel()), X + 0.040, Y + 0.004, 0.02));
+      // Bipod legs (spread V)
+      const bpL = _P(_B(0.006, 0.068, 0.007, _pal.steel()), X + 0.022, Y - 0.040, -0.48);
+      bpL.rotation.z = -0.30; g.add(bpL);
+      const bpR = _P(_B(0.006, 0.068, 0.007, _pal.steel()), X - 0.022, Y - 0.040, -0.48);
+      bpR.rotation.z = 0.30; g.add(bpR);
+      // Wheel carriage axle (distinctive — can be towed)
+      g.add(_P(_T(0.006, 0.18, _pal.steel(), 6), X, Y - 0.048, 0.06));
+      const wL = new THREE.Mesh(new THREE.TorusGeometry(0.034, 0.006, 6, 12),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      wL.rotation.y = Math.PI / 2; wL.position.set(X + 0.090, Y - 0.048, 0.06); g.add(wL);
+      const wR = new THREE.Mesh(new THREE.TorusGeometry(0.034, 0.006, 6, 12),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      wR.rotation.y = Math.PI / 2; wR.position.set(X - 0.090, Y - 0.048, 0.06); g.add(wR);
+      // Muzzle opening indicator
+      g.add(_P(_T(0.025, 0.005, _pal.blk(), 10), X, Y + 0.04, -0.655));
+      return g;
+    },
+
+    // ── B-10 Recoilless Rifle (82mm, Soviet 1954) ────────────────────
+    b10: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.08;
+      // Smooth-bore barrel
+      g.add(_P(_T(0.022, 0.72, _pal.steel(), 10), X, Y, -0.30));
+      // Breech body (large boxy block — horizontal sliding breech)
+      g.add(_P(_B(0.062, 0.052, 0.12, 0x3c3e3a), X, Y, 0.04));
+      // Counterblast venturi (rear cone — prominent feature of RCL rifles)
+      const venL = new THREE.Mesh(
+        new THREE.ConeGeometry(0.036, 0.09, 10),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      venL.rotation.x = -Math.PI / 2; venL.position.set(X, Y, 0.13); g.add(venL);
+      // Carrying handles (two, top-mounted)
+      const hA = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.004, 5, 10, Math.PI),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      hA.position.set(X, Y + 0.024, -0.10); g.add(hA);
+      const hB = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.004, 5, 10, Math.PI),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      hB.position.set(X, Y + 0.024, -0.35); g.add(hB);
+      // Bipod
+      const bpA = _P(_B(0.006, 0.072, 0.007, _pal.steel()), X + 0.024, Y - 0.040, -0.48);
+      bpA.rotation.z = -0.28; g.add(bpA);
+      const bpB = _P(_B(0.006, 0.072, 0.007, _pal.steel()), X - 0.024, Y - 0.040, -0.48);
+      bpB.rotation.z = 0.28; g.add(bpB);
+      // Rear sighting assembly (telescopic sight mount)
+      g.add(_P(_B(0.015, 0.048, 0.015, 0x282a28), X + 0.038, Y + 0.010, -0.02));
+      // Muzzle face
+      g.add(_P(_T(0.025, 0.006, _pal.blk(), 10), X, Y, -0.665));
+      return g;
+    },
   };
 
   const meshBuilders = [
@@ -4655,6 +4795,8 @@ const Weapons = (() => {
     NB.ptrd41, NB.konkurs, NB.m32mgl, NB.ppsh41,
     // 4 more (AI AXMC, Malyutka Sagger, Verba MANPADS, RGN-86)
     NB.aiax, NB.malyutka, NB.verba, NB.rgn86,
+    // 4 more (RPG-32 Hashim, HK G36C, 2B9 Vasilek auto-mortar, B-10 RCL)
+    NB.rpg32, NB.g36c, NB.vasilek, NB.b10,
   ];
 
   // Ensure meshBuilders matches WEAPONS length
