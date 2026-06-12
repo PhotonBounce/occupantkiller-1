@@ -3759,6 +3759,74 @@ window.VoxelWorld = (function () {
     setBlock(msx + 5, msY + 1, msz + 1, BLOCK.SANDBAG);
     setBlock(msx + 5, msY + 1, msz + 2, BLOCK.SANDBAG);
 
+    // ── Z. Artillery/missile impact craters (approach field) ─────────
+    // Russian TOS-1A, Grad, and Iskander strikes left craters throughout
+    // the Kyiv northern approaches at Hostomel, Bucha, and Irpin.
+    var craterPositions = [
+      { x: ox + 12, z: oz + 35 }, { x: ox - 8, z: oz + 40 },
+      { x: ox + 20, z: oz + 32 }, { x: ox - 18, z: oz + 45 },
+      { x: ox + 5,  z: oz + 42 },
+    ];
+    for (var cri = 0; cri < craterPositions.length; cri++) {
+      var cr = craterPositions[cri];
+      var crY = gh(cr.x, cr.z);
+      // Crater hole (AIR replacing ground blocks)
+      setBlock(cr.x,     crY, cr.z,     BLOCK.AIR);
+      setBlock(cr.x + 1, crY, cr.z,     BLOCK.AIR);
+      setBlock(cr.x,     crY, cr.z + 1, BLOCK.AIR);
+      // Ejected earth rim (DIRT mound around edge)
+      setBlock(cr.x - 1, crY + 1, cr.z,     BLOCK.DIRT);
+      setBlock(cr.x + 2, crY + 1, cr.z,     BLOCK.DIRT);
+      setBlock(cr.x,     crY + 1, cr.z - 1, BLOCK.DIRT);
+      setBlock(cr.x + 1, crY + 1, cr.z + 2, BLOCK.DIRT);
+      // Rubble scatter
+      setBlock(cr.x - 1, crY + 1, cr.z + 2, BLOCK.RUBBLE);
+      setBlock(cr.x + 2, crY + 1, cr.z - 1, BLOCK.RUBBLE);
+    }
+
+    // ── AA. Military checkpoint gate (controlled access point) ───────
+    // Ukrainian Territorial Defense Forces set up checkpoint gates
+    // with concrete barriers and guard booths on all approach roads.
+    var cpX = ox, cpZ = oz + 36;
+    var cpY = gh(cpX, cpZ);
+    // Concrete barriers either side of road (left flank)
+    for (var cb = 0; cb < 3; cb++) {
+      setBlock(cpX - 8 + cb, cpY + 1, cpZ, BLOCK.CONCRETE);
+      setBlock(cpX - 8 + cb, cpY + 2, cpZ, BLOCK.CONCRETE);
+    }
+    // Right flank concrete barriers
+    for (var cb2 = 0; cb2 < 3; cb2++) {
+      setBlock(cpX + 6 + cb2, cpY + 1, cpZ, BLOCK.CONCRETE);
+      setBlock(cpX + 6 + cb2, cpY + 2, cpZ, BLOCK.CONCRETE);
+    }
+    // Guard booth (BRICK, 3×3)
+    for (var gbx = 0; gbx < 3; gbx++) {
+      for (var gbz = 0; gbz < 3; gbz++) {
+        if (gbx === 0 || gbx === 2 || gbz === 0 || gbz === 2) {
+          setBlock(cpX - 12 + gbx, cpY + 1, cpZ + gbz, BLOCK.BRICK);
+          setBlock(cpX - 12 + gbx, cpY + 2, cpZ + gbz, BLOCK.BRICK);
+        }
+      }
+    }
+    // Booth roof
+    for (var grx = 0; grx < 3; grx++) {
+      for (var grz = 0; grz < 3; grz++) {
+        setBlock(cpX - 12 + grx, cpY + 3, cpZ + grz, BLOCK.CONCRETE);
+      }
+    }
+    // Barrier pole across road (METAL, single block span)
+    setBlock(cpX - 5, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX - 4, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX - 3, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX - 2, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX - 1, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX,     cpY + 2, cpZ, BLOCK.METAL);
+    // Sandbag protection for guards
+    setBlock(cpX - 11, cpY + 1, cpZ + 4, BLOCK.SANDBAG);
+    setBlock(cpX - 10, cpY + 1, cpZ + 4, BLOCK.SANDBAG);
+    // Ukrainian flag at checkpoint
+    setBlock(cpX - 10, cpY + 4, cpZ + 1, BLOCK.FLAG);
+
     // ── X. CONCRETE pillbox / sniper OP on elevated position ────────
     // Ukrainian snipers used rooftop concrete OPs to observe approach roads.
     // Small fortified observation post with loophole and flag.

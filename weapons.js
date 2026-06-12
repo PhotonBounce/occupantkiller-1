@@ -632,6 +632,34 @@ const Weapons = (() => {
       spread: 0.040, auto: true, type: 'SMG', recoilY: 0.020, recoilX: 0.009,
       description: 'Soviet PPSh-41 submachine gun. Iconic WWII weapon filmed in combat in Ukraine in 2022-2024. Both sides drew from 80-year-old arsenal reserves in the equipment shortages of early 2022. 71-round drum at 900rpm — terrifying in close quarters despite its age.',
     },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'AIAX', name: 'AI AXMC .338 Lapua Precision Rifle', damage: 210,
+      fireRate: 1.2, clipSize: 10, maxReserve: 30, reloadTime: 5.0,
+      spread: 0.002, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.048, recoilX: 0.014,
+      description: 'Accuracy International AXMC multi-calibre chassis rifle in .338 Lapua Magnum. British precision rifle used by Ukrainian snipers including the famous "UA Ghost" team. Effective range 1400m. Modular system allows calibre change in the field between 7.62mm, .308, and .338.',
+    },
+    {
+      id: 'MALYUTKA', name: '9M14 Malyutka (AT-3 Sagger) ATGM', damage: 500,
+      fireRate: 7.0, clipSize: 1, maxReserve: 3, reloadTime: 8.0,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.030, recoilX: 0.008,
+      blastRadius: 5, homing: true, hasScope: true,
+      description: 'Soviet 9M14 Malyutka (AT-3 Sagger) — first mass-produced ATGM, from 1960. Manually guided via joystick. Both sides used thousands from ageing reserves. Famously used to devastating effect in the 1973 Arab-Israeli War. Still lethal against older armour in Ukraine.',
+    },
+    {
+      id: 'VERBA', name: '9K333 Verba MANPADS', damage: 560,
+      fireRate: 4.5, clipSize: 1, maxReserve: 3, reloadTime: 5.5,
+      spread: 0, auto: false, type: 'AA', recoilY: 0.038, recoilX: 0.010,
+      blastRadius: 4, homing: true, hasScope: true,
+      description: "Russian 9K333 Verba (Willow) MANPADS. Russia's newest surface-to-air missile system as of 2022. Three-channel seeker (UV + near-IR + mid-IR) defeats all known flare countermeasures. Issued to Russian AA units and some special forces. Captured examples analyzed by Western intelligence.",
+    },
+    {
+      id: 'RGN86', name: 'RGN-86 Offensive Grenade', damage: 175,
+      fireRate: 1.8, clipSize: 3, maxReserve: 9, reloadTime: 1.5,
+      spread: 0, auto: false, type: 'GRENADE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 5,
+      description: "Russian RGN-86 offensive fragmentation grenade. Plastic body with shrapnel liner, fitted with UDZ impact-inertial fuze — detonates on impact OR after 3.2-4 seconds. Standard companion to RGO-78 defensive grenade. Both found throughout abandoned Russian positions around Kyiv in March 2022.",
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -4447,6 +4475,107 @@ const Weapons = (() => {
       return g;
     },
 
+    // ── AI AXMC .338 Lapua precision sniper ─────────────────────────
+    aiax: function () {
+      return _rifle({
+        hg: 'rail', hgColor: _pal.blk,
+        stock: 'tube', stockColor: () => _M(0x1a1e20, 0.3, 0.6),
+        mag: 'box', magColor: _pal.blk,
+        muzzle: 'brake',
+        rail: true, scope: true, bipod: true,
+        recvLen: 0.34, barR: 0.015, barLen: 0.58,
+        recvColor: () => _M(0x1e2022, 0.4, 0.5),
+      });
+    },
+
+    // ── 9M14 Malyutka (Sagger) manual ATGM ──────────────────────────
+    malyutka: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Suitcase-style carrying/launch box (distinctive black box)
+      g.add(_P(_B(0.065, 0.042, 0.095, 0x1c1e1a), X, Y, 0.0));
+      // Launch rail on top (extends up at slight angle)
+      const rail = _P(_B(0.008, 0.005, 0.080, 0x2a2c28), X, Y + 0.028, -0.010);
+      rail.rotation.x = 0.15; g.add(rail);
+      // Missile (small, seated on rail — 9M14 is tiny)
+      g.add(_P(_T(0.010, 0.14, 0x2e3028, 8), X, Y + 0.036, -0.010));
+      const misNose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.010, 0.035, 7),
+        new THREE.MeshLambertMaterial({ color: 0x3a2a10 }));
+      misNose.rotation.x = -Math.PI / 2; misNose.position.set(X, Y + 0.036, -0.096); g.add(misNose);
+      // Wings (4 small fins at 45°)
+      for (let mf = 0; mf < 4; mf++) {
+        const fin = _P(_B(0.002, 0.018, 0.016, 0x2a2c28), X, Y + 0.036, 0.060);
+        fin.rotation.z = (Math.PI / 4) + mf * (Math.PI / 2); g.add(fin);
+      }
+      // Joystick controller (thumb stick, iconic Sagger feature)
+      const js = _P(_B(0.014, 0.032, 0.016, 0x181a18), X - 0.022, Y - 0.004, 0.030);
+      g.add(js);
+      const jst = new THREE.Mesh(
+        new THREE.SphereGeometry(0.005, 5, 5),
+        new THREE.MeshLambertMaterial({ color: 0x0a0a0a }));
+      jst.position.set(X - 0.022, Y + 0.022, 0.030); g.add(jst);
+      // Wire spool (prominent on front)
+      g.add(_P(_T(0.016, 0.014, 0x282a26, 8), X + 0.020, Y + 0.010, -0.048));
+      // Sight telescope (small, on right side)
+      g.add(_P(_T(0.008, 0.055, 0x1e201e, 8), X + 0.028, Y + 0.010, -0.005));
+      return g;
+    },
+
+    // ── 9K333 Verba MANPADS ──────────────────────────────────────────
+    verba: function () {
+      // Newer than Igla — sleeker tube, more ergonomic grip assembly
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Launch tube (lighter grey than older Strela/Igla systems)
+      g.add(_P(_T(0.030, 0.68, 0x3a3c38, 14), X, Y, -0.34));
+      // Grip/trigger section (modern ergonomic pistol grip shape)
+      g.add(_P(_B(0.028, 0.058, 0.055, 0x282a26), X, Y - 0.018, -0.10));
+      // Battery/coolant unit (distinctive modern box at grip)
+      g.add(_P(_B(0.032, 0.030, 0.045, 0x1e201c), X, Y - 0.044, -0.10));
+      // IFF identification unit (modern digital box, not on older systems)
+      g.add(_P(_B(0.030, 0.020, 0.060, 0x242622), X, Y + 0.036, -0.20));
+      // Seeker dome (3-channel — slightly larger than Igla/Strela)
+      const dom = new THREE.Mesh(
+        new THREE.SphereGeometry(0.018, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshLambertMaterial({ color: 0x1a2835, transparent: true, opacity: 0.75 }));
+      dom.rotation.x = -Math.PI / 2; dom.position.set(X, Y, -0.70); g.add(dom);
+      // Rear exhaust / blast shield
+      g.add(_P(_T(0.034, 0.018, 0x2a2a28, 10), X, Y, 0.00));
+      // Shoulder rest pad (modern ergonomic design)
+      g.add(_P(_B(0.055, 0.016, 0.026, 0x1a1c1a), X, Y, -0.14));
+      // Front sight
+      g.add(_P(_B(0.004, 0.020, 0.004, _pal.blk()), X, Y + 0.038, -0.58));
+      return g;
+    },
+
+    // ── RGN-86 offensive grenade ─────────────────────────────────────
+    rgn86: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.12;
+      // Slightly smaller and rounder than RGO — offensive (less fragmentation)
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(0.023, 10, 8),
+        new THREE.MeshLambertMaterial({ color: 0x2e3028 }));
+      body.scale.y = 1.15; body.position.set(X, Y, -0.04); g.add(body);
+      // Smooth plastic shell (no seam ring on RGN unlike RGO)
+      // Fuze body
+      g.add(_P(_T(0.008, 0.036, 0x242622, 8), X, Y + 0.028, -0.04));
+      // UDZ impact fuze cap (distinctive dome-shaped top)
+      const fcap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.008, 7, 5),
+        new THREE.MeshLambertMaterial({ color: 0x1a1c18 }));
+      fcap.position.set(X, Y + 0.050, -0.04); g.add(fcap);
+      // Spoon/safety lever
+      g.add(_P(_B(0.003, 0.028, 0.005, _pal.steel()), X + 0.010, Y + 0.014, -0.04));
+      // Safety ring pull
+      const ring2 = new THREE.Mesh(
+        new THREE.TorusGeometry(0.006, 0.0018, 5, 7),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      ring2.position.set(X + 0.012, Y + 0.044, -0.04); g.add(ring2);
+      return g;
+    },
+
     // ── PPSh-41 (WW2 submachine gun, 71-round drum) ──────────────────
     ppsh41: function () {
       const g = new THREE.Group(); g.userData.selfContained = true;
@@ -4524,6 +4653,8 @@ const Weapons = (() => {
     NB.shahed136, NB.agm88harm, NB.rgo78, NB.gepard35,
     // 4 more (PTRD-41, Konkurs ATGM, M32A1 MGL, PPSh-41)
     NB.ptrd41, NB.konkurs, NB.m32mgl, NB.ppsh41,
+    // 4 more (AI AXMC, Malyutka Sagger, Verba MANPADS, RGN-86)
+    NB.aiax, NB.malyutka, NB.verba, NB.rgn86,
   ];
 
   // Ensure meshBuilders matches WEAPONS length
