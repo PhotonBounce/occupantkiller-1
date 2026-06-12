@@ -253,6 +253,25 @@ const Weapons = (() => {
       spread: 0.09, auto: false, type: 'SHOTGUN', recoilY: 0.038, recoilX: 0.016,
       description: 'Ukrainian-made pump-action shotgun. Domestic production — armed the Territorial Defense.',
     },
+    // ── 3 additional Ukraine-conflict weapons ─────────────────
+    {
+      id: 'MALYUK', name: 'Malyuk (Vulcan) Bullpup', damage: 28,
+      fireRate: 0.075, clipSize: 30, maxReserve: 180, reloadTime: 2.0,
+      spread: 0.026, auto: true, type: 'ASSAULT', recoilY: 0.014, recoilX: 0.006,
+      description: 'Ukrainian-designed bullpup assault rifle. Compact, ergonomic, domestically produced for the UAF.',
+    },
+    {
+      id: 'CARLGUSTAF', name: 'Carl Gustaf M3 (MAAWS)', damage: 750,
+      fireRate: 3.2, clipSize: 1, maxReserve: 4, reloadTime: 4.5,
+      spread: 0.005, auto: false, type: 'AT', blastRadius: 4.8, recoilY: 0.062, recoilX: 0.024,
+      description: '84mm recoilless rifle supplied by US, Sweden, and others. Versatile platform for armor, bunkers, and area denial.',
+    },
+    {
+      id: 'M240B', name: 'M240B GPMG (7.62mm)', damage: 32,
+      fireRate: 0.095, clipSize: 100, maxReserve: 400, reloadTime: 4.2,
+      spread: 0.032, auto: true, type: 'LMG', recoilY: 0.018, recoilX: 0.010,
+      description: 'NATO 7.62mm belt-fed machine gun. Supplied to Ukraine. Reliable sustained-fire platform.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -2732,6 +2751,23 @@ const Weapons = (() => {
     panzerfaust3: () => _launcher({ len: 0.55, r: 0.033, tube: () => _M(0x504e3a, 0.3, 0.6), rear: 'cone', sight: true, grip2: true }),
     nsvhmg: () => _rifle({ hg: 'tube', stock: 'fixed', mag: 'box', magColor: _pal.gm, muzzle: 'brake',
       barLen: 0.55, barR: 0.020, recvLen: 0.32, bipod: true, belt: true, recvColor: _pal.blk }),
+    // ── 3 additional Ukraine-conflict weapons ─────────────────
+    malyuk: function () {
+      // Bullpup: action at rear, long barrel out front
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.055, 0.088, 0.30, _pal.blk()), X, Y, -0.17));              // combined receiver+stock shell
+      g.add(_P(_T(0.013, 0.40, _pal.steel(), 12), X, Y + 0.012, -0.37));       // long barrel
+      g.add(_P(_B(0.046, 0.024, 0.20, () => _M(0x1a1a1a)), X, Y - 0.014, -0.29)); // underbarrel rail/forend
+      const mag = _P(_B(0.030, 0.092, 0.022, _pal.plum()), X, Y - 0.058, -0.05); mag.rotation.x = -0.14; g.add(mag);
+      const gp = _P(_B(0.030, 0.080, 0.038, _pal.poly()), X, Y - 0.063, -0.11); gp.rotation.x = 0.17; g.add(gp);
+      g.add(_P(_B(0.035, 0.046, 0.060, _pal.blk()), X, Y + 0.060, -0.04));     // built-in optic housing
+      g.add(_P(_T(0.016, 0.038, _pal.steel(), 8), X, Y + 0.012, -0.58));        // muzzle device
+      return g;
+    },
+    carlgustaf: () => _launcher({ len: 0.64, r: 0.046, tube: () => _M(0x4a4a3a, 0.3, 0.6),
+      rear: 'cone', sight: true, grip2: true, hs: true }),
+    m240b: () => _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'fixed', mag: 'box', magColor: _pal.gm,
+      muzzle: 'flash', barLen: 0.48, barR: 0.015, recvLen: 0.30, bipod: true, belt: true, recvColor: _pal.blk }),
     fort500: function () {
       const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
       g.add(_P(_B(0.05, 0.072, 0.28, _pal.blk()), X, Y, -0.24));             // receiver
@@ -2759,6 +2795,8 @@ const Weapons = (() => {
     buildThrowKnifeMesh, buildC4Mesh, NB.dronejammer, buildAxeMesh,
     // 5 Ukraine-war additions
     NB.aks74u, NB.m72law, NB.panzerfaust3, NB.nsvhmg, NB.fort500,
+    // 3 more Ukraine-conflict weapons
+    NB.malyuk, NB.carlgustaf, NB.m240b,
   ];
 
   // Ensure meshBuilders matches WEAPONS length

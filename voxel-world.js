@@ -4536,6 +4536,75 @@ window.VoxelWorld = (function () {
       // the player can use it as a backstop firing position
       generateDefensivePosition(-20, 26);
       generateDefensivePosition(18, 26);
+      // ── Second fallback defense line at z=37-40 ──────────────
+      // Sandbag wall with shooting gaps, flanked by concrete extensions
+      (function () {
+        for (var sl = -13; sl <= 13; sl++) {
+          if (Math.abs(sl) <= 3) continue; // keep center lane open
+          var slh = getTerrainHeight(sl, 38);
+          setBlock(sl, slh,     38, BLOCK.SANDBAG);
+          setBlock(sl, slh + 1, 38, BLOCK.SANDBAG);
+          setBlock(sl, slh + 2, 38, BLOCK.CONCRETE);
+          setBlock(sl, slh,     40, BLOCK.SANDBAG);
+          setBlock(sl, slh + 1, 40, BLOCK.SANDBAG);
+        }
+        for (var sl2 = 37; sl2 <= 42; sl2++) {
+          var slhL = getTerrainHeight(-13, sl2);
+          setBlock(-13, slhL, sl2, BLOCK.CONCRETE);
+          setBlock(-13, slhL + 1, sl2, BLOCK.CONCRETE);
+          var slhR = getTerrainHeight(13, sl2);
+          setBlock(13, slhR, sl2, BLOCK.CONCRETE);
+          setBlock(13, slhR + 1, sl2, BLOCK.CONCRETE);
+        }
+      })();
+      // ── Anti-tank earthwork ditch at z=56-57 ─────────────────
+      // Berm of DIRT + SANDBAG on the south (player) side
+      (function () {
+        for (var dd = -14; dd <= 14; dd++) {
+          var ddh = getTerrainHeight(dd, 56);
+          // Carve two-block ditch
+          setBlock(dd, ddh, 56, 0);
+          setBlock(dd, ddh, 57, 0);
+          // Defensive berm facing enemy approach
+          setBlock(dd, ddh,     55, BLOCK.DIRT);
+          setBlock(dd, ddh + 1, 55, BLOCK.SANDBAG);
+          setBlock(dd, ddh + 2, 55, BLOCK.SANDBAG);
+        }
+      })();
+      // ── Outer defensive infantry positions ───────────────────
+      generateDefensivePosition(-18, 40);
+      generateDefensivePosition(18, 40);
+      generateDefensivePosition(0, 46);
+      // ── Additional bomb craters in the deep approach corridor ─
+      (function () {
+        var deepCraters = [[3, 118], [-5, 130], [7, 142], [-2, 152], [5, 163], [-8, 176]];
+        for (var dc = 0; dc < deepCraters.length; dc++) {
+          var dcx = deepCraters[dc][0], dcz = deepCraters[dc][1];
+          for (var dcr = -1; dcr <= 1; dcr++) {
+            for (var dcz2 = -1; dcz2 <= 1; dcz2++) {
+              setBlock(dcx + dcr, 1, dcz + dcz2, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
+      // ── Elevated sniper platform on the roof of the left flank building ──
+      (function () {
+        var spBase = getTerrainHeight(-15, 4) + 9;
+        for (var spx = -17; spx <= -13; spx++) {
+          for (var spz = 3; spz <= 6; spz++) {
+            setBlock(spx, spBase, spz, BLOCK.CONCRETE);
+          }
+        }
+        // Sandbag parapet on three sides (open toward enemy north)
+        for (var pi = -17; pi <= -13; pi++) {
+          setBlock(pi, spBase + 1, 3, BLOCK.SANDBAG);
+        }
+        setBlock(-17, spBase + 1, 4, BLOCK.SANDBAG);
+        setBlock(-17, spBase + 1, 5, BLOCK.SANDBAG);
+        setBlock(-13, spBase + 1, 4, BLOCK.SANDBAG);
+        setBlock(-13, spBase + 1, 5, BLOCK.SANDBAG);
+        setBlock(-15, spBase + 2, 3, BLOCK.SANDBAG); // raised center parapet for prone firing
+      })();
     } else if (level.id === 'MARIUPOL') {
       // Azovstal steelworks — industrial hellscape
       generateIndustrialComplex(0, 0);
