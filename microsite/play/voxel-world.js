@@ -4460,11 +4460,82 @@ window.VoxelWorld = (function () {
           setBlock(hx, hh, hz + 1, BLOCK.METAL);
         }
       })();
-      // Burned-out civilian cars along the northern approach (cover)
+      // Sandbag walls across the boulevard at the defense line (z=18..22)
+      // — two rows of concrete sandbagging covering the approach axis
+      (function () {
+        for (var sx = -9; sx <= 9; sx++) {
+          if (Math.abs(sx) <= 4) continue; // leave center lane open for player
+          var sy = getTerrainHeight(sx, 20);
+          setBlock(sx, sy,     20, BLOCK.CONCRETE);
+          setBlock(sx, sy + 1, 20, BLOCK.CONCRETE);
+          setBlock(sx, sy + 2, 20, BLOCK.CONCRETE);
+          // second row
+          setBlock(sx, sy,     22, BLOCK.CONCRETE);
+          setBlock(sx, sy + 1, 22, BLOCK.CONCRETE);
+        }
+        // Flanking sandbag corners (good cover angles)
+        for (var sz2 = 18; sz2 <= 24; sz2++) {
+          var sy2 = getTerrainHeight(-9, sz2);
+          setBlock(-9, sy2,     sz2, BLOCK.CONCRETE);
+          setBlock(-9, sy2 + 1, sz2, BLOCK.CONCRETE);
+          sy2 = getTerrainHeight(9, sz2);
+          setBlock(9, sy2,     sz2, BLOCK.CONCRETE);
+          setBlock(9, sy2 + 1, sz2, BLOCK.CONCRETE);
+        }
+      })();
+      // Overturned bus barricades — solid cover on both flanks
+      (function () {
+        for (var bx2 = -22; bx2 <= -16; bx2++) {
+          var by2 = getTerrainHeight(bx2, 19);
+          setBlock(bx2, by2,     19, BLOCK.METAL);
+          setBlock(bx2, by2 + 1, 19, BLOCK.METAL);
+          setBlock(bx2, by2 + 2, 19, BLOCK.METAL);
+          setBlock(bx2, by2 + 3, 19, BLOCK.METAL);
+        }
+        for (var bx3 = 16; bx3 <= 22; bx3++) {
+          var by3 = getTerrainHeight(bx3, 19);
+          setBlock(bx3, by3,     19, BLOCK.METAL);
+          setBlock(bx3, by3 + 1, 19, BLOCK.METAL);
+          setBlock(bx3, by3 + 2, 19, BLOCK.METAL);
+          setBlock(bx3, by3 + 3, 19, BLOCK.METAL);
+        }
+      })();
+      // Burned-out civilian cars along the northern approach (cover) +
+      // more wrecks deeper in the approach corridor for wave cover
       generateWreckedCar(-5, 34);
       generateWreckedCar(4, 48);
       generateWreckedCar(-3, 62);
       generateWreckedCar(6, 78);
+      generateWreckedCar(-7, 90);
+      generateWreckedCar(3, 105);
+      // Bomb craters along the approach
+      (function () {
+        var craterPositions = [[-4, 55], [6, 70], [-6, 85], [2, 100]];
+        for (var ci2 = 0; ci2 < craterPositions.length; ci2++) {
+          var cx2 = craterPositions[ci2][0], cz2 = craterPositions[ci2][1];
+          for (var cr = 0; cr < 3; cr++) {
+            for (var crz = -1; crz <= 1; crz++) {
+              setBlock(cx2 + cr - 1, 1, cz2 + crz, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
+      // Ukrainian flag pole at the defended zone (Maidan is the symbolic heart)
+      (function () {
+        var fy = getTerrainHeight(12, 6);
+        for (var fp = 0; fp < 8; fp++) setBlock(12, fy + 1 + fp, 6, BLOCK.METAL);
+        // Blue lower half, yellow upper half of flag
+        setBlock(13, fy + 6, 6, BLOCK.CONCRETE);   // blue (sky)
+        setBlock(14, fy + 6, 6, BLOCK.CONCRETE);
+        setBlock(15, fy + 6, 6, BLOCK.CONCRETE);
+        setBlock(13, fy + 7, 6, BLOCK.LIGHT);       // yellow (wheat) — LIGHT block = gold
+        setBlock(14, fy + 7, 6, BLOCK.LIGHT);
+        setBlock(15, fy + 7, 6, BLOCK.LIGHT);
+      })();
+      // Artillery battery hidden behind the Hotel Ukraina building —
+      // the player can use it as a backstop firing position
+      generateDefensivePosition(-20, 26);
+      generateDefensivePosition(18, 26);
     } else if (level.id === 'MARIUPOL') {
       // Azovstal steelworks — industrial hellscape
       generateIndustrialComplex(0, 0);

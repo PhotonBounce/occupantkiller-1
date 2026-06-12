@@ -222,6 +222,37 @@ const Weapons = (() => {
       spread: 0, auto: false, type: 'MELEE', recoilY: 0, recoilX: 0,
       description: 'Heavy chopping axe. Brutal close-quarters melee with high single-hit damage.',
     },
+    // ── 5 Ukraine-war iconic weapons ──────────────────────────
+    {
+      id: 'AKS74U', name: 'AKS-74U (Krinkov)', damage: 24,
+      fireRate: 0.072, clipSize: 30, maxReserve: 150, reloadTime: 1.9,
+      spread: 0.030, auto: true, type: 'ASSAULT', recoilY: 0.016, recoilX: 0.007,
+      description: 'Compact AK carbine. Used by both sides — ubiquitous in trench warfare.',
+    },
+    {
+      id: 'M72LAW', name: 'M72 LAW', damage: 420,
+      fireRate: 2.2, clipSize: 1, maxReserve: 3, reloadTime: 3.8,
+      spread: 0.006, auto: false, type: 'AT_LIGHT', blastRadius: 3.8, recoilY: 0.058, recoilX: 0.020,
+      description: 'Lightweight disposable AT rocket from the US/NATO. One-shot, then drop it.',
+    },
+    {
+      id: 'PANZERFAUST3', name: 'Panzerfaust 3', damage: 650,
+      fireRate: 2.8, clipSize: 1, maxReserve: 2, reloadTime: 4.2,
+      spread: 0.004, auto: false, type: 'AT', blastRadius: 4.5, recoilY: 0.060, recoilX: 0.022,
+      description: 'German AT rocket donated to Ukraine. Tandem-charge warhead defeats ERA.',
+    },
+    {
+      id: 'NSVHMG', name: 'NSV/Utyes 12.7mm', damage: 55,
+      fireRate: 0.13, clipSize: 50, maxReserve: 150, reloadTime: 5.5,
+      spread: 0.040, auto: true, type: 'HMG_HEAVY', recoilY: 0.032, recoilX: 0.016,
+      description: 'Soviet 12.7mm HMG used extensively by Russian forces. Heavier than DShK, more stable.',
+    },
+    {
+      id: 'FORT500', name: 'Fort-500 (Ukrainian)', damage: 160,
+      fireRate: 0.70, clipSize: 5, maxReserve: 20, reloadTime: 2.8,
+      spread: 0.09, auto: false, type: 'SHOTGUN', recoilY: 0.038, recoilX: 0.016,
+      description: 'Ukrainian-made pump-action shotgun. Domestic production — armed the Territorial Defense.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -1603,6 +1634,7 @@ const Weapons = (() => {
 
   function buildMolotovMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Bottle body
     const bottle = new THREE.Mesh(
       new THREE.CylinderGeometry(0.03, 0.035, 0.18, 8),
@@ -1773,6 +1805,7 @@ const Weapons = (() => {
 
   function buildMinigunMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // 6 rotating barrels
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
@@ -1891,6 +1924,7 @@ const Weapons = (() => {
   // ── Claymore Mine mesh ──
   function buildClaymoreMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Curved body
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.12, 0.08, 0.06),
@@ -1920,6 +1954,7 @@ const Weapons = (() => {
   // ── Smoke Grenade mesh ──
   function buildSmokeMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const body = new THREE.Mesh(
       new THREE.CylinderGeometry(0.025, 0.025, 0.10, 8),
       new THREE.MeshLambertMaterial({ color: 0x556655 })
@@ -1950,6 +1985,7 @@ const Weapons = (() => {
   // ── Flashbang mesh ──
   function buildFlashbangMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const body = new THREE.Mesh(
       new THREE.CylinderGeometry(0.022, 0.022, 0.08, 8),
       new THREE.MeshPhongMaterial({ color: 0x444444, shininess: 60 })
@@ -2287,6 +2323,7 @@ const Weapons = (() => {
   // ── Throwing Knife mesh ──
   function buildThrowKnifeMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const blade = new THREE.Mesh(
       new THREE.BoxGeometry(0.008, 0.003, 0.12),
       new THREE.MeshPhongMaterial({ color: 0xcccccc, shininess: 80 })
@@ -2305,6 +2342,7 @@ const Weapons = (() => {
   // ── C4 mesh ──
   function buildC4Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const block = new THREE.Mesh(
       new THREE.BoxGeometry(0.08, 0.04, 0.12),
       new THREE.MeshLambertMaterial({ color: 0x556644 })
@@ -2334,6 +2372,7 @@ const Weapons = (() => {
   // ── Gatling Machine Gun mesh (6 rotating barrels, heavy housing) ──
   function buildGatlingMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // 6 rotating barrels
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
@@ -2686,6 +2725,25 @@ const Weapons = (() => {
       const a3 = _P(_B(0.006, 0.09, 0.006, _pal.steel()), X + 0.02, Y + 0.12, -0.40); a3.rotation.z = -0.25; g.add(a3);
       return g;
     },
+    // ── 5 Ukraine-war weapons ──────────────────────────────────
+    aks74u: () => _rifle({ hg: 'wood', hgColor: _pal.plum, stock: 'tube', mag: 'curved', magColor: _pal.plum,
+      muzzle: 'flash', recvLen: 0.18, barLen: 0.14, barR: 0.012, recvColor: _pal.blk }),
+    m72law: () => _launcher({ len: 0.50, r: 0.028, tube: () => _M(0x5a4a2f, 0.3, 0.65), sight: true }),
+    panzerfaust3: () => _launcher({ len: 0.55, r: 0.033, tube: () => _M(0x504e3a, 0.3, 0.6), rear: 'cone', sight: true, grip2: true }),
+    nsvhmg: () => _rifle({ hg: 'tube', stock: 'fixed', mag: 'box', magColor: _pal.gm, muzzle: 'brake',
+      barLen: 0.55, barR: 0.020, recvLen: 0.32, bipod: true, belt: true, recvColor: _pal.blk }),
+    fort500: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.05, 0.072, 0.28, _pal.blk()), X, Y, -0.24));             // receiver
+      g.add(_P(_T(0.020, 0.38, _pal.steel(), 14), X, Y + 0.004, -0.42));     // barrel
+      g.add(_P(_T(0.018, 0.26, _pal.blk(), 12), X, Y - 0.016, -0.36));       // magazine tube under barrel
+      g.add(_P(_B(0.048, 0.075, 0.11, _pal.wood()), X, Y - 0.005, -0.04));   // stock
+      const gp = _P(_B(0.030, 0.082, 0.038, _pal.poly()), X, Y - 0.062, -0.14); gp.rotation.x = 0.30; g.add(gp);
+      g.add(_P(_B(0.030, 0.012, 0.038, _pal.blk()), X, Y - 0.030, -0.22));   // trigger guard base
+      g.add(_P(_B(0.010, 0.030, 0.010, _pal.blk()), X, Y - 0.032, -0.19));   // trigger
+      g.add(_P(_B(0.012, 0.014, 0.012, _pal.gm()), X, Y + 0.050, -0.54));    // front bead sight
+      return g;
+    },
   };
 
   const meshBuilders = [
@@ -2698,7 +2756,9 @@ const Weapons = (() => {
     buildClaymoreMesh, buildSmokeMesh, buildFlashbangMesh,
     NB.ak12, NB.p90, NB.at4, NB.glock,
     NB.ks23, NB.ags17, NB.vss, NB.stinger,
-    buildThrowKnifeMesh, buildC4Mesh, NB.dronejammer, buildAxeMesh
+    buildThrowKnifeMesh, buildC4Mesh, NB.dronejammer, buildAxeMesh,
+    // 5 Ukraine-war additions
+    NB.aks74u, NB.m72law, NB.panzerfaust3, NB.nsvhmg, NB.fort500,
   ];
 
   // Ensure meshBuilders matches WEAPONS length
