@@ -2984,6 +2984,1402 @@ window.VoxelWorld = (function () {
     }
   }
 
+  function generateKyivCityExtension(ox, oz) {
+    function gh(x, z) { return getTerrainHeight(x, z); }
+
+    // ── A. St. Sophia Cathedral (NW of Maidan, x=-12, z=-32) ─────────────
+    // Iconic 11th-century cathedral with 13 golden domes
+    var sfx = ox - 12, sfz = oz - 32;
+    for (var sbx = 0; sbx < 12; sbx++) {
+      for (var sbz = 0; sbz < 10; sbz++) {
+        for (var sby = 1; sby <= 8; sby++) {
+          var isSwall = sbx === 0 || sbx === 11 || sbz === 0 || sbz === 9 || sby === 8;
+          if (isSwall) setBlock(sfx + sbx, gh(sfx, sfz) + sby, sfz + sbz, BLOCK.STONE);
+          else if (sby >= 3 && sby <= 6 && sbx % 3 === 1 && (sbz === 0 || sbz === 9)) {
+            setBlock(sfx + sbx, gh(sfx, sfz) + sby, sfz + sbz, BLOCK.GLASS);
+          }
+        }
+      }
+    }
+    // Golden domes (5 on main cathedral, LIGHT block = gold)
+    var sfDomes = [[5, 4, 12], [2, 2, 10], [9, 2, 10], [2, 7, 10], [9, 7, 10]];
+    for (var di = 0; di < sfDomes.length; di++) {
+      var ddx = sfDomes[di][0], ddz = sfDomes[di][1], ddH = sfDomes[di][2];
+      var dby = gh(sfx, sfz) + ddH;
+      setBlock(sfx + ddx, dby,     sfz + ddz, BLOCK.CONCRETE);
+      setBlock(sfx + ddx, dby + 1, sfz + ddz, BLOCK.LIGHT);
+      setBlock(sfx + ddx, dby + 2, sfz + ddz, BLOCK.LIGHT);
+      setBlock(sfx + ddx - 1, dby + 1, sfz + ddz, BLOCK.LIGHT);
+      setBlock(sfx + ddx + 1, dby + 1, sfz + ddz, BLOCK.LIGHT);
+      setBlock(sfx + ddx, dby + 1, sfz + ddz - 1, BLOCK.LIGHT);
+      setBlock(sfx + ddx, dby + 1, sfz + ddz + 1, BLOCK.LIGHT);
+      setBlock(sfx + ddx, dby + 3, sfz + ddz, BLOCK.METAL);
+    }
+
+    // ── B. Verkhovna Rada (Parliament, east side x=38, z=10) ─────────────
+    var rdx = ox + 38, rdz = oz + 10;
+    var rdby = gh(rdx, rdz);
+    for (var rbx = 0; rbx < 28; rbx++) {
+      for (var rbz = 0; rbz < 12; rbz++) {
+        for (var rby = 1; rby <= 10; rby++) {
+          var isRwall = rbx === 0 || rbx === 27 || rbz === 0 || rbz === 11 || rby === 10;
+          if (isRwall) setBlock(rdx + rbx, rdby + rby, rdz + rbz, BLOCK.STONE);
+          else if (rby >= 3 && rby <= 7 && rbx % 3 === 0 && (rbz === 0 || rbz === 11)) {
+            setBlock(rdx + rbx, rdby + rby, rdz + rbz, BLOCK.GLASS);
+          }
+        }
+      }
+    }
+    // Classical colonnade
+    for (var col = 0; col < 7; col++) {
+      var colX = rdx + 3 + col * 4;
+      for (var coly = 1; coly <= 8; coly++) setBlock(colX, rdby + coly, rdz - 1, BLOCK.STONE);
+    }
+    // Ukrainian flag on Rada
+    setBlock(rdx + 13, rdby + 11, rdz + 5, BLOCK.METAL);
+    setBlock(rdx + 13, rdby + 12, rdz + 5, BLOCK.METAL);
+    setBlock(rdx + 13, rdby + 13, rdz + 5, BLOCK.METAL);
+    setBlock(rdx + 14, rdby + 12, rdz + 5, BLOCK.CONCRETE); // blue
+    setBlock(rdx + 15, rdby + 12, rdz + 5, BLOCK.CONCRETE);
+    setBlock(rdx + 14, rdby + 13, rdz + 5, BLOCK.LIGHT);    // yellow
+    setBlock(rdx + 15, rdby + 13, rdz + 5, BLOCK.LIGHT);
+
+    // ── B2. Saint Michael's Golden-Domed Monastery (NW, x=-26, z=-42) ──
+    // Blue-walled monastery with golden domes — northwest of Maidan
+    var smx = ox - 26, smz = oz - 42;
+    var smby = gh(smx, smz);
+    for (var smbx = 0; smbx < 14; smbx++) {
+      for (var smbz = 0; smbz < 10; smbz++) {
+        for (var smby2 = 1; smby2 <= 9; smby2++) {
+          var smIsWall = smbx === 0 || smbx === 13 || smbz === 0 || smbz === 9 || smby2 === 9;
+          if (smIsWall) setBlock(smx + smbx, smby + smby2, smz + smbz, BLOCK.CONCRETE); // blue-ish (concrete)
+          else if (smby2 >= 3 && smby2 <= 6 && smbx % 4 === 1 && (smbz === 0 || smbz === 9)) {
+            setBlock(smx + smbx, smby + smby2, smz + smbz, BLOCK.GLASS);
+          }
+        }
+      }
+    }
+    // 7 golden domes across the roof
+    var smDomes = [[1,4],[3,4],[5,4],[7,4],[9,4],[11,4],[7,8]];
+    for (var sdm = 0; sdm < smDomes.length; sdm++) {
+      var sdmX = smx + smDomes[sdm][0], sdmZ = smz + smDomes[sdm][1];
+      var sdmY = smby + 9;
+      setBlock(sdmX, sdmY,     sdmZ, BLOCK.STONE);
+      setBlock(sdmX, sdmY + 1, sdmZ, BLOCK.LIGHT);
+      setBlock(sdmX - 1, sdmY + 1, sdmZ, BLOCK.LIGHT);
+      setBlock(sdmX + 1, sdmY + 1, sdmZ, BLOCK.LIGHT);
+      setBlock(sdmX, sdmY + 1, sdmZ - 1, BLOCK.LIGHT);
+      setBlock(sdmX, sdmY + 1, sdmZ + 1, BLOCK.LIGHT);
+      setBlock(sdmX, sdmY + 2, sdmZ, BLOCK.METAL); // cross finial
+    }
+
+    // ── B3. Rodina-Mat (Motherland Statue, x=50, z=52) — 22 blocks ──
+    // The 62m titanium statue east of Lavra — iconic Kyiv skyline landmark
+    var rmx = ox + 50, rmz = oz + 52;
+    var rmby = gh(rmx, rmz);
+    // Pedestal base (wide, concrete, 5 high)
+    for (var rpx = -4; rpx <= 4; rpx++) {
+      for (var rpz = -4; rpz <= 4; rpz++) {
+        for (var rpy = 1; rpy <= 5; rpy++) {
+          var rpIsOuter = Math.abs(rpx) === 4 || Math.abs(rpz) === 4 || rpy === 5;
+          if (rpIsOuter) setBlock(rmx + rpx, rmby + rpy, rmz + rpz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Figure legs and torso (narrow column above pedestal)
+    for (var rfh = 6; rfh <= 18; rfh++) {
+      var rfW = rfh < 10 ? 2 : rfh < 15 ? 1 : 1;
+      for (var rfx = -rfW; rfx <= rfW; rfx++) {
+        for (var rfz = -rfW; rfz <= rfW; rfz++) {
+          if (Math.abs(rfx) === rfW || Math.abs(rfz) === rfW) {
+            setBlock(rmx + rfx, rmby + rfh, rmz + rfz, BLOCK.METAL);
+          }
+        }
+      }
+    }
+    // Raised sword arm (extending east + up from torso at height ~14)
+    for (var rsh = 0; rsh <= 6; rsh++) {
+      setBlock(rmx + 2 + rsh, rmby + 16 - rsh, rmz, BLOCK.METAL);
+    }
+    // Shield arm (west side)
+    for (var rsw = 0; rsw <= 3; rsw++) {
+      setBlock(rmx - 2 - rsw, rmby + 14 + rsw, rmz, BLOCK.REINFORCED);
+    }
+    // Head (top, small block cluster)
+    setBlock(rmx, rmby + 19, rmz, BLOCK.CONCRETE);
+    setBlock(rmx, rmby + 20, rmz, BLOCK.CONCRETE);
+    setBlock(rmx - 1, rmby + 20, rmz, BLOCK.CONCRETE);
+    setBlock(rmx + 1, rmby + 20, rmz, BLOCK.CONCRETE);
+    setBlock(rmx, rmby + 21, rmz, BLOCK.METAL); // spire tip
+
+    // ── C. Pechersk Lavra Bell Tower (x=22, z=46) — 30 blocks tall ───────
+    // The Great Bell Tower of the Kyiv-Pechersk Lavra monastery
+    var lbx = ox + 22, lbz = oz + 46;
+    var lby = gh(lbx, lbz);
+    for (var lth = 1; lth <= 28; lth++) {
+      var ltW = lth < 8 ? 4 : lth < 20 ? 3 : 2;
+      for (var ltx = -ltW; ltx <= ltW; ltx++) {
+        for (var ltz = -ltW; ltz <= ltW; ltz++) {
+          if (Math.abs(ltx) === ltW || Math.abs(ltz) === ltW) {
+            setBlock(lbx + ltx, lby + lth, lbz + ltz, BLOCK.STONE);
+          }
+        }
+      }
+      // Bell openings at floor 18-22
+      if (lth >= 18 && lth <= 22) {
+        setBlock(lbx - 2, lby + lth, lbz, BLOCK.AIR);
+        setBlock(lbx + 2, lby + lth, lbz, BLOCK.AIR);
+        setBlock(lbx, lby + lth, lbz - 2, BLOCK.AIR);
+        setBlock(lbx, lby + lth, lbz + 2, BLOCK.AIR);
+      }
+    }
+    // Baroque golden dome on top
+    for (var brd = -2; brd <= 2; brd++) {
+      for (var brdz = -2; brdz <= 2; brdz++) {
+        if (brd * brd + brdz * brdz <= 5) {
+          setBlock(lbx + brd, lby + 29, lbz + brdz, BLOCK.LIGHT);
+        }
+      }
+    }
+    setBlock(lbx, lby + 30, lbz, BLOCK.LIGHT);
+    setBlock(lbx, lby + 31, lbz, BLOCK.METAL);
+
+    // ── C2. NSC Olimpiysky Stadium (x=-8, z=-80) — south of Maidan ──────
+    // Ukraine's national stadium, 70,000 capacity. Hosted Euro 2012.
+    var stx = ox - 8, stz = oz - 80;
+    var stby = gh(stx, stz);
+    // Outer stadium bowl (oval ring structure, concrete)
+    for (var stA = 0; stA < 16; stA++) {
+      var stAng = (stA / 16) * Math.PI * 2;
+      var stEx = Math.round(Math.cos(stAng) * 20);
+      var stEz = Math.round(Math.sin(stAng) * 14);
+      for (var stH = 1; stH <= 8; stH++) {
+        setBlock(stx + stEx, stby + stH, stz + stEz, BLOCK.CONCRETE);
+        setBlock(stx + stEx + Math.round(Math.cos(stAng)), stby + stH, stz + stEz + Math.round(Math.sin(stAng)), BLOCK.CONCRETE);
+      }
+    }
+    // Iconic roof arch — steel arches over the long axis
+    for (var archX2 = -22; archX2 <= 22; archX2++) {
+      var archH2 = Math.round(10 - (archX2 * archX2) / 55.0);
+      if (archH2 >= 6) {
+        setBlock(stx + archX2, stby + archH2, stz - 14, BLOCK.METAL);
+        setBlock(stx + archX2, stby + archH2, stz + 14, BLOCK.METAL);
+      }
+    }
+    // Field interior (grass)
+    for (var fx2 = -16; fx2 <= 16; fx2++) {
+      for (var fz2 = -10; fz2 <= 10; fz2++) {
+        if ((fx2 * fx2) / 256.0 + (fz2 * fz2) / 100.0 < 1.0) {
+          setBlock(stx + fx2, stby, stz + fz2, BLOCK.GRASS);
+        }
+      }
+    }
+
+    // ── D. Extended Khreshchatyk south (more city behind player) ─────────
+    for (var ks = oz - 80; ks < oz - 45; ks++) {
+      for (var kx = ox - 5; kx <= ox + 5; kx++) {
+        setBlock(kx, gh(kx, ks), ks, BLOCK.ASPHALT);
+      }
+      if ((ks + 80) % 3 === 0) setBlock(ox, gh(ox, ks), ks, BLOCK.WHITE_TILE);
+    }
+    // City blocks south of Maidan
+    generateUkrainianApartment(ox - 22, oz - 72, 9);
+    generateUkrainianApartment(ox - 22, oz - 56, 9);
+    generateUkrainianApartment(ox + 12, oz - 70, 9);
+    generateUkrainianApartment(ox + 12, oz - 54, 9);
+    // More east blocks (Pechersk district)
+    generateUkrainianApartment(ox + 35, oz - 40, 6);
+    generateUkrainianApartment(ox + 35, oz - 22, 12);
+    generateUkrainianApartment(ox + 35, oz - 4, 9);
+
+    // ── E. Dnipro River (east side, water channel x=60-76) ───────────────
+    for (var drz = oz - 80; drz <= oz + 50; drz++) {
+      for (var drx = ox + 60; drx <= ox + 76; drx++) {
+        var dry = gh(drx, drz);
+        setBlock(drx, dry, drz, BLOCK.WATER);
+      }
+      // Riverbanks (dirt/grass)
+      setBlock(ox + 59, gh(ox + 59, drz), drz, BLOCK.DIRT);
+      setBlock(ox + 77, gh(ox + 77, drz), drz, BLOCK.DIRT);
+    }
+
+    // ── F. Irpin/Bucha suburban housing (z=130-195) ──────────────────────
+    var subLayout = [
+      [ox - 18, oz + 135], [ox + 6,  oz + 137], [ox - 18, oz + 156],
+      [ox + 6,  oz + 158], [ox - 16, oz + 178], [ox + 8,  oz + 180],
+    ];
+    for (var si = 0; si < subLayout.length; si++) {
+      var sx = subLayout[si][0], sz = subLayout[si][1];
+      var shy = gh(sx, sz);
+      for (var sbbx = 0; sbbx < 8; sbbx++) {
+        for (var sbbz = 0; sbbz < 6; sbbz++) {
+          for (var sbby = 1; sbby <= 4; sbby++) {
+            if (sbbx === 0 || sbbx === 7 || sbbz === 0 || sbbz === 5 || sbby === 4) {
+              setBlock(sx + sbbx, shy + sbby, sz + sbbz, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+      // Roof
+      for (var srx = 0; srx < 8; srx++) {
+        for (var srz = 0; srz < 6; srz++) setBlock(sx + srx, shy + 5, sz + srz, BLOCK.ROOFTILE);
+      }
+      // Yard gate
+      setBlock(sx + 3, shy, sz, BLOCK.FENCE);
+      setBlock(sx + 4, shy, sz, BLOCK.FENCE);
+    }
+    // Road through the suburbs
+    for (var subRz = oz + 125; subRz <= oz + 200; subRz++) {
+      for (var subRx = ox - 2; subRx <= ox + 2; subRx++) {
+        setBlock(subRx, gh(subRx, subRz), subRz, BLOCK.ASPHALT);
+      }
+      if (subRz % 3 === 0) setBlock(ox, gh(ox, subRz), subRz, BLOCK.WHITE_TILE);
+      _roadWaypoints.push(new THREE.Vector3(ox, gh(ox, subRz) + 0.5, subRz));
+    }
+
+    // ── G. Irpin River crossing (z=240-252, water channel) ───────────────
+    for (var irx = ox - 35; irx <= ox + 35; irx++) {
+      for (var irw = 0; irw < 10; irw++) {
+        var iry = gh(irx, oz + 242 + irw);
+        setBlock(irx, iry, oz + 242 + irw, BLOCK.WATER);
+      }
+      // Banks
+      setBlock(irx, gh(irx, oz + 241), oz + 241, BLOCK.DIRT);
+      setBlock(irx, gh(irx, oz + 252), oz + 252, BLOCK.DIRT);
+    }
+    // Romanivska Bridge (partially destroyed — 2022)
+    for (var brx = ox - 3; brx <= ox + 3; brx++) {
+      for (var brz = oz + 240; brz <= oz + 254; brz++) {
+        var bry = gh(brx, brz);
+        if (brz >= oz + 244 && brz <= oz + 250) {
+          setBlock(brx, bry + 1, brz, BLOCK.BRIDGE);
+          setBlock(brx, bry + 2, brz, BLOCK.BRIDGE);
+        }
+      }
+      // Destroyed span (collapsed section)
+      setBlock(brx, gh(brx, oz + 247), oz + 247, BLOCK.RUBBLE);
+      setBlock(brx, gh(brx, oz + 248), oz + 248, BLOCK.RUBBLE);
+    }
+
+    // ── H. Extended highway approach north of Irpin (z=255-400) ─────────
+    for (var ehz = oz + 255; ehz <= oz + 400; ehz++) {
+      for (var ehx = ox - 3; ehx <= ox + 3; ehx++) {
+        setBlock(ehx, gh(ehx, ehz), ehz, BLOCK.ASPHALT);
+      }
+      if (ehz % 3 === 0) setBlock(ox, gh(ox, ehz), ehz, BLOCK.WHITE_TILE);
+      if (ehz % 8 === 0) {
+        setBlock(ox - 5, gh(ox - 5, ehz) + 1, ehz, BLOCK.PARK_TREE);
+        setBlock(ox - 5, gh(ox - 5, ehz) + 2, ehz, BLOCK.PARK_TREE);
+        setBlock(ox + 5, gh(ox + 5, ehz) + 1, ehz, BLOCK.PARK_TREE);
+        setBlock(ox + 5, gh(ox + 5, ehz) + 2, ehz, BLOCK.PARK_TREE);
+      }
+      _roadWaypoints.push(new THREE.Vector3(ox, gh(ox, ehz) + 0.5, ehz));
+    }
+
+    // ── I0. Trench / defensive fighting positions at player line (z=12-18) ─
+    // Ukrainian TDF dug in here during the Kyiv defense — sandbag parapets
+    // and firing bays overlooking the northern approach road.
+    for (var tsx = ox - 16; tsx <= ox + 16; tsx++) {
+      var tsy = gh(tsx, oz + 14);
+      // Main parapet wall (sandbags front face)
+      if (tsx !== ox - 1 && tsx !== ox && tsx !== ox + 1) { // gap for player position
+        setBlock(tsx, tsy + 1, oz + 14, BLOCK.SANDBAG);
+        setBlock(tsx, tsy + 2, oz + 14, BLOCK.SANDBAG);
+      }
+      // Firing step (concrete floor behind sandbag)
+      setBlock(tsx, tsy,     oz + 15, BLOCK.CONCRETE);
+      setBlock(tsx, tsy,     oz + 16, BLOCK.CONCRETE);
+      // Back wall
+      if (tsx % 5 === 0) {
+        setBlock(tsx, tsy + 1, oz + 17, BLOCK.SANDBAG);
+        setBlock(tsx, tsy + 2, oz + 17, BLOCK.SANDBAG);
+      }
+    }
+    // Traverse walls (divide trench into bays to limit blast propagation)
+    for (var bay = -3; bay <= 3; bay += 3) {
+      var basx = ox + bay * 4;
+      var bayY = gh(basx, oz + 15);
+      for (var bayZ = 14; bayZ <= 17; bayZ++) {
+        setBlock(basx, bayY + 1, oz + bayZ, BLOCK.SANDBAG);
+        setBlock(basx, bayY + 2, oz + bayZ, BLOCK.SANDBAG);
+      }
+    }
+
+    // ── I1. ZU-23-2 anti-aircraft emplacement near Maidan ────────────
+    // Ukrainian forces placed ZU-23-2s on rooftops and at street positions
+    // to shoot down low-flying helicopters and Shahed drones.
+    var zuX = ox - 22, zuZ = oz + 8;
+    var zuY = gh(zuX, zuZ);
+    // Sandbag ring (radius ~3)
+    for (var zuA = 0; zuA < 8; zuA++) {
+      var zuAx = zuX + Math.round(Math.cos(zuA * Math.PI / 4) * 3);
+      var zuAz = zuZ + Math.round(Math.sin(zuA * Math.PI / 4) * 3);
+      setBlock(zuAx, gh(zuAx, zuAz) + 1, zuAz, BLOCK.SANDBAG);
+      setBlock(zuAx, gh(zuAx, zuAz) + 2, zuAz, BLOCK.SANDBAG);
+    }
+    // Gun pad (concrete circle inside)
+    for (var zpx = -2; zpx <= 2; zpx++) {
+      for (var zpz = -2; zpz <= 2; zpz++) {
+        if (zpx * zpx + zpz * zpz <= 5) {
+          setBlock(zuX + zpx, zuY, zuZ + zpz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // ZU-23-2 gun body (METAL block representation)
+    setBlock(zuX, zuY + 1, zuZ, BLOCK.METAL);
+    setBlock(zuX, zuY + 1, zuZ - 1, BLOCK.METAL);
+    setBlock(zuX, zuY + 1, zuZ - 2, BLOCK.METAL); // barrel
+
+    // ── I2. Artillery craters in the approach corridor ───────────────
+    // Russian Grad/Uragan strikes left scattered impact craters along
+    // the Kyiv-Hostomel highway approach.
+    var craterPositions = [
+      { x: ox - 6, z: oz + 55 },  { x: ox + 12, z: oz + 63 },
+      { x: ox - 14, z: oz + 72 }, { x: ox + 4, z: oz + 85 },
+      { x: ox - 3,  z: oz + 94 }, { x: ox + 16, z: oz + 103 },
+      { x: ox - 10, z: oz + 115 },{ x: ox + 8,  z: oz + 122 },
+    ];
+    for (var cri = 0; cri < craterPositions.length; cri++) {
+      var cp = craterPositions[cri];
+      var crY = gh(cp.x, cp.z);
+      // Rubble/debris ring around crater
+      for (var crx2 = -3; crx2 <= 3; crx2++) {
+        for (var crz2 = -3; crz2 <= 3; crz2++) {
+          var cdist = Math.sqrt(crx2 * crx2 + crz2 * crz2);
+          if (cdist > 1.8 && cdist <= 3.0) {
+            var crBlock = (Math.abs(crx2 + crz2) % 3 === 0) ? BLOCK.RUBBLE : BLOCK.DIRT;
+            setBlock(cp.x + crx2, crY + 1, cp.z + crz2, crBlock);
+          }
+        }
+      }
+      // Scorch center
+      setBlock(cp.x, crY, cp.z, BLOCK.RUBBLE);
+      // Occasional still-burning spot (every other crater)
+      if (cri % 2 === 0) setBlock(cp.x, crY + 1, cp.z, BLOCK.FIRE);
+    }
+
+    // ── I. Czech hedgehog anti-tank barriers along the approach ─────────
+    // Iconic concrete/metal X-shaped barriers placed by Ukraine across entry roads
+    var hedgehogPositions = [
+      { x: ox - 7,  z: oz + 22 }, { x: ox + 7,  z: oz + 24 },
+      { x: ox - 9,  z: oz + 30 }, { x: ox + 9,  z: oz + 32 },
+      { x: ox - 7,  z: oz + 38 }, { x: ox + 7,  z: oz + 40 },
+      { x: ox - 10, z: oz + 48 }, { x: ox + 10, z: oz + 50 },
+      { x: ox - 8,  z: oz + 60 }, { x: ox + 8,  z: oz + 62 },
+    ];
+    for (var hi = 0; hi < hedgehogPositions.length; hi++) {
+      var hgp = hedgehogPositions[hi];
+      var hgy = gh(hgp.x, hgp.z);
+      // Horizontal beam
+      setBlock(hgp.x - 1, hgy + 1, hgp.z, BLOCK.REINFORCED);
+      setBlock(hgp.x,     hgy + 1, hgp.z, BLOCK.REINFORCED);
+      setBlock(hgp.x + 1, hgy + 1, hgp.z, BLOCK.REINFORCED);
+      // Vertical post
+      setBlock(hgp.x, hgy + 2, hgp.z, BLOCK.REINFORCED);
+      // Diagonal cross-beam (z axis)
+      setBlock(hgp.x, hgy + 1, hgp.z - 1, BLOCK.REINFORCED);
+      setBlock(hgp.x, hgy + 1, hgp.z + 1, BLOCK.REINFORCED);
+      // Sandbag pile at base
+      setBlock(hgp.x - 1, hgy + 1, hgp.z + 1, BLOCK.SANDBAG);
+      setBlock(hgp.x + 1, hgy + 1, hgp.z - 1, BLOCK.SANDBAG);
+    }
+
+    // ── J. Wrecked Russian vehicles in approach corridor ─────────────
+    // Destroyed T-72 and BTR-82A hulks from the Kyiv offensive, 2022
+    // These serve as obstacles and cover for the player
+    function spawnWreckedTank(wx, wz) {
+      var wy = gh(wx, wz);
+      // Hull (T-72 style, 8 long × 4 wide × 2 high)
+      for (var thx = 0; thx < 8; thx++) {
+        for (var thz = 0; thz < 4; thz++) {
+          for (var thy = 1; thy <= 2; thy++) {
+            var isOuter = thx === 0 || thx === 7 || thz === 0 || thz === 3 || thy === 2;
+            if (isOuter) setBlock(wx + thx, wy + thy, wz + thz, BLOCK.METAL);
+          }
+        }
+      }
+      // Turret (shifted right + raised)
+      for (var ttx = 2; ttx <= 5; ttx++) {
+        for (var ttz = 0; ttz <= 3; ttz++) {
+          setBlock(wx + ttx, wy + 3, wz + ttz, BLOCK.METAL);
+          if (ttx === 3 && ttz === 1) setBlock(wx + ttx, wy + 4, wz + ttz, BLOCK.METAL); // commander hatch
+        }
+      }
+      // Gun barrel (blasted off, broken)
+      setBlock(wx + 5, wy + 3, wz + 1, BLOCK.METAL);
+      setBlock(wx + 6, wy + 3, wz + 1, BLOCK.METAL);
+      // Rubble/blast damage around the wreck
+      for (var rbx2 = -1; rbx2 <= 9; rbx2++) {
+        for (var rbz2 = -1; rbz2 <= 5; rbz2++) {
+          if ((rbx2 === -1 || rbx2 === 9) || (rbz2 === -1 || rbz2 === 5)) {
+            if (Math.abs(rbx2 + rbz2) % 3 === 0) {
+              setBlock(wx + rbx2, wy + 1, wz + rbz2, BLOCK.RUBBLE);
+            }
+          }
+        }
+      }
+      // Fire from engine compartment (rear)
+      setBlock(wx + 7, wy + 2, wz + 1, BLOCK.FIRE);
+      setBlock(wx + 7, wy + 3, wz + 1, BLOCK.FIRE);
+    }
+
+    function spawnWreckedBTR(wx, wz) {
+      var wy = gh(wx, wz);
+      // BTR-82A hull (6 long × 3 wide × 2 high, more rounded than tank)
+      for (var btrx = 0; btrx < 6; btrx++) {
+        for (var btrz = 0; btrz < 3; btrz++) {
+          for (var btry = 1; btry <= 2; btry++) {
+            var isOuter2 = btrx === 0 || btrx === 5 || btrz === 0 || btrz === 2 || btry === 2;
+            if (isOuter2) setBlock(wx + btrx, wy + btry, wz + btrz, BLOCK.METAL);
+          }
+        }
+      }
+      // Small turret (23mm cannon mount)
+      setBlock(wx + 3, wy + 3, wz + 1, BLOCK.METAL);
+      setBlock(wx + 4, wy + 3, wz + 1, BLOCK.METAL);
+      // Rubble and scorch marks
+      setBlock(wx + 2, wy + 1, wz - 1, BLOCK.RUBBLE);
+      setBlock(wx + 4, wy + 1, wz + 3, BLOCK.RUBBLE);
+      setBlock(wx + 5, wy + 2, wz + 1, BLOCK.FIRE);
+    }
+
+    // Place wrecks at historically-authentic positions along the Kyiv approach
+    spawnWreckedTank(ox + 10, oz + 32);    // blocking right lane at hedgehog line
+    spawnWreckedTank(ox - 18, oz + 68);   // overturned on roadside
+    spawnWreckedTank(ox + 12, oz + 98);   // mid-corridor choke point
+    spawnWreckedBTR(ox - 12, oz + 45);    // BTR-82A in left lane
+    spawnWreckedBTR(ox + 6,  oz + 78);    // second BTR near apartment blocks
+    spawnWreckedBTR(ox - 8,  oz + 112);   // near entrance to Irpin suburbs
+
+    // ── K. Arsenalna metro station entrance (deepest in world) ──────
+    // In real Kyiv this is on Khreshchatyk — here near Maidan (x=8, z=-18)
+    var mx = ox + 8, mz = oz - 18;
+    var mby = gh(mx, mz);
+    // Staircase surround (concrete walls)
+    for (var msx = 0; msx < 6; msx++) {
+      setBlock(mx + msx, mby + 1, mz,     BLOCK.CONCRETE);
+      setBlock(mx + msx, mby + 1, mz + 4, BLOCK.CONCRETE);
+    }
+    setBlock(mx,     mby + 1, mz + 1, BLOCK.CONCRETE);
+    setBlock(mx,     mby + 1, mz + 2, BLOCK.CONCRETE);
+    setBlock(mx,     mby + 1, mz + 3, BLOCK.CONCRETE);
+    setBlock(mx + 5, mby + 1, mz + 1, BLOCK.CONCRETE);
+    setBlock(mx + 5, mby + 1, mz + 2, BLOCK.CONCRETE);
+    setBlock(mx + 5, mby + 1, mz + 3, BLOCK.CONCRETE);
+    // Staircase steps (descending into ground)
+    setBlock(mx + 1, mby,     mz + 1, BLOCK.WHITE_TILE);
+    setBlock(mx + 2, mby,     mz + 2, BLOCK.WHITE_TILE);
+    setBlock(mx + 3, mby,     mz + 2, BLOCK.WHITE_TILE);
+    setBlock(mx + 4, mby,     mz + 3, BLOCK.WHITE_TILE);
+    // "M" metro sign post
+    setBlock(mx + 2, mby + 1, mz - 1, BLOCK.METAL);
+    setBlock(mx + 2, mby + 2, mz - 1, BLOCK.METAL);
+    setBlock(mx + 2, mby + 3, mz - 1, BLOCK.LIGHT);  // blue metro light
+    setBlock(mx + 3, mby + 3, mz - 1, BLOCK.LIGHT);
+
+    // ── L. Kyiv Funicular — upper and lower stations (x=-28, z=-55) ──
+    // The cable funicular connects Podil (lower city) to the Upper city.
+    // Built 1905, it runs up the steep Volodymyrska Hill.
+    var fuX = ox - 28, fuZ = oz - 55;
+    var fuYup = gh(fuX, fuZ) + 1;
+    // Upper station building (concrete, 5×4×5)
+    for (var fux = 0; fux < 5; fux++) {
+      for (var fuz = 0; fuz < 4; fuz++) {
+        for (var fuy = 1; fuy <= 5; fuy++) {
+          var fuWall = fux === 0 || fux === 4 || fuz === 0 || fuz === 3 || fuy === 5;
+          if (fuWall) setBlock(fuX + fux, fuYup + fuy, fuZ + fuz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Glass windows on upper station
+    setBlock(fuX + 1, fuYup + 2, fuZ,     BLOCK.GLASS);
+    setBlock(fuX + 2, fuYup + 2, fuZ,     BLOCK.GLASS);
+    setBlock(fuX + 3, fuYup + 2, fuZ,     BLOCK.GLASS);
+    // Roof tiles
+    for (var frx = 0; frx < 5; frx++) {
+      for (var frz = 0; frz < 4; frz++) {
+        setBlock(fuX + frx, fuYup + 6, fuZ + frz, BLOCK.ROOFTILE);
+      }
+    }
+    // Lower station (8 blocks downslope along z — simulate the hill slope)
+    var flX = fuX - 2, flZ = fuZ + 8;
+    var fuYlo = Math.max(fuYup - 3, gh(flX, flZ) + 1);
+    for (var flx = 0; flx < 5; flx++) {
+      for (var flz = 0; flz < 4; flz++) {
+        for (var fly = 1; fly <= 4; fly++) {
+          var flWall = flx === 0 || flx === 4 || flz === 0 || flz === 3 || fly === 4;
+          if (flWall) setBlock(flX + flx, fuYlo + fly, flZ + flz, BLOCK.BRICK);
+        }
+      }
+    }
+    setBlock(flX + 1, fuYlo + 2, flZ,     BLOCK.GLASS);
+    setBlock(flX + 2, fuYlo + 2, flZ,     BLOCK.GLASS);
+    // Cable support posts (METAL, spaced 4 apart up the slope)
+    for (var fp = 0; fp < 3; fp++) {
+      var fpZ = fuZ + 4 + fp * 4;
+      var fpY = gh(fuX + 1, fpZ);
+      setBlock(fuX + 1, fpY + 1, fpZ, BLOCK.METAL);
+      setBlock(fuX + 1, fpY + 2, fpZ, BLOCK.METAL);
+      setBlock(fuX + 1, fpY + 3, fpZ, BLOCK.METAL);
+    }
+    // Track rails (ASPHALT strip connecting upper and lower stations)
+    for (var ftr = 0; ftr < 10; ftr++) {
+      var ftrZ = fuZ + ftr;
+      var ftrY = gh(fuX + 2, ftrZ);
+      setBlock(fuX + 1, ftrY, ftrZ, BLOCK.ASPHALT);
+      setBlock(fuX + 3, ftrY, ftrZ, BLOCK.ASPHALT);
+    }
+
+    // ── N. Kyiv TV Tower (struck March 2022, northeast of Maidan) ───
+    // Tall lattice tower near Babyn Yar — iconic skyline feature.
+    // The adjacent broadcast infrastructure was hit by a Russian missile
+    // on 1 March 2022, killing 5 people near Babyn Yar Memorial.
+    var tvx = ox + 22, tvz = oz - 60;
+    var tvby = gh(tvx, tvz);
+    // Tripod base legs (concrete, 3 legs at 120° each)
+    for (var tvLi = 0; tvLi < 3; tvLi++) {
+      var tvAng = (tvLi / 3) * Math.PI * 2;
+      var tvLx = tvx + Math.round(Math.cos(tvAng) * 3);
+      var tvLz = tvz + Math.round(Math.sin(tvAng) * 3);
+      for (var tvLh = 1; tvLh <= 5; tvLh++) {
+        setBlock(tvLx, tvby + tvLh, tvLz, BLOCK.CONCRETE);
+      }
+    }
+    // Central column from top of tripod
+    for (var tvCy = 6; tvCy <= 12; tvCy++) {
+      setBlock(tvx, tvby + tvCy, tvz, BLOCK.CONCRETE);
+    }
+    // Main lattice shaft (METAL, with cross-brace rings every 4 blocks)
+    for (var tvH = 13; tvH <= 38; tvH++) {
+      setBlock(tvx, tvby + tvH, tvz, BLOCK.METAL);
+      if (tvH % 4 === 1) {
+        setBlock(tvx - 1, tvby + tvH, tvz, BLOCK.METAL);
+        setBlock(tvx + 1, tvby + tvH, tvz, BLOCK.METAL);
+        setBlock(tvx, tvby + tvH, tvz - 1, BLOCK.METAL);
+        setBlock(tvx, tvby + tvH, tvz + 1, BLOCK.METAL);
+      }
+    }
+    // Broadcast deck at height 32 (3×3 platform)
+    for (var tvDx = -1; tvDx <= 1; tvDx++) {
+      for (var tvDz = -1; tvDz <= 1; tvDz++) {
+        setBlock(tvx + tvDx, tvby + 32, tvz + tvDz, BLOCK.METAL);
+      }
+    }
+    // Top spire (above deck)
+    for (var tvSp = 39; tvSp <= 44; tvSp++) {
+      setBlock(tvx, tvby + tvSp, tvz, BLOCK.METAL);
+    }
+    // Aviation warning lights (FIRE = red beacon — realistic aviation marking)
+    setBlock(tvx, tvby + 26, tvz, BLOCK.FIRE);
+    setBlock(tvx, tvby + 44, tvz, BLOCK.FIRE);
+    // Blast damage (missile strike rubble at base, north side)
+    setBlock(tvx + 2, tvby + 1, tvz - 3, BLOCK.RUBBLE);
+    setBlock(tvx - 1, tvby + 1, tvz - 4, BLOCK.RUBBLE);
+    setBlock(tvx + 1, tvby + 2, tvz - 3, BLOCK.RUBBLE);
+    setBlock(tvx + 3, tvby + 1, tvz - 2, BLOCK.RUBBLE);
+
+    // ── O. Damaged apartment blocks in approach corridor (flanks) ───
+    // Multi-story residential buildings partially collapsed from shelling.
+    // Offset from the road (x±12-16) so they flank the approach.
+    var aptLayout = [
+      { x: ox - 15, z: oz + 28 }, { x: ox + 12, z: oz + 42 },
+      { x: ox - 16, z: oz + 58 }, { x: ox + 11, z: oz + 74 },
+    ];
+    for (var aI = 0; aI < aptLayout.length; aI++) {
+      var apos = aptLayout[aI];
+      var apy = gh(apos.x, apos.z);
+      var btype = (aI % 2 === 0) ? BLOCK.CONCRETE : BLOCK.BRICK;
+      // 5-story block (10 wide × 5 deep × 14 high)
+      for (var abx = 0; abx < 10; abx++) {
+        for (var abz = 0; abz < 5; abz++) {
+          for (var aby = 1; aby <= 14; aby++) {
+            // Upper floors randomly missing (shell damage)
+            if (aby > 9 && Math.random() < 0.45) continue;
+            var isWall = abx === 0 || abx === 9 || abz === 0 || abz === 4;
+            var isFloor = (aby === 4 || aby === 8 || aby === 12);
+            if (!isWall && !isFloor) continue;
+            // Window openings (leave AIR every 3 columns, on alternating floor levels)
+            if (isWall && (aby === 2 || aby === 5 || aby === 9 || aby === 12) && abx % 3 === 1) continue;
+            // Upper-floor damage: mix of rubble blocks
+            var blk2 = btype;
+            if (aby > 8 && Math.random() < 0.38) blk2 = BLOCK.RUBBLE;
+            setBlock(apos.x + abx, apy + aby, apos.z + abz, blk2);
+          }
+        }
+      }
+      // Rubble scatter at base
+      for (var rdx2 = -1; rdx2 <= 10; rdx2++) {
+        for (var rdz2 = -1; rdz2 <= 5; rdz2++) {
+          if (Math.random() < 0.18) setBlock(apos.x + rdx2, apy + 1, apos.z + rdz2, BLOCK.RUBBLE);
+        }
+      }
+      // Fire pockets in even-indexed buildings
+      if (aI % 2 === 0) {
+        setBlock(apos.x + 3, apy + 7, apos.z, BLOCK.FIRE);
+        setBlock(apos.x + 6, apy + 11, apos.z, BLOCK.FIRE);
+      }
+    }
+
+    // ── P. Shipping container barrier wall at city entrance (z=20) ──
+    // Ukraine stacked steel shipping containers across major roads into Kyiv
+    // (Khreshchatyk, Peremohy Ave) as hardened vehicle barriers.
+    var ctZ = oz + 20;
+    var ctSegments = [
+      { x: ox - 15, w: 4 }, { x: ox - 10, w: 3 },
+      { x: ox - 2,  w: 5 }, // road gap — narrowed but passable
+      { x: ox + 4,  w: 3 }, { x: ox + 8,  w: 4 },
+    ];
+    for (var cti = 0; cti < ctSegments.length; cti++) {
+      var ct = ctSegments[cti];
+      var ctBy = gh(ct.x, ctZ);
+      // Ground-level container (3 blocks high, 2 deep)
+      for (var ctx = 0; ctx < ct.w; ctx++) {
+        for (var ctz = 0; ctz < 2; ctz++) {
+          for (var cty = 1; cty <= 3; cty++) {
+            var ctOuter = ctx === 0 || ctx === ct.w - 1 || ctz === 0 || ctz === 1 || cty === 3;
+            if (ctOuter) setBlock(ct.x + ctx, ctBy + cty, ctZ + ctz, BLOCK.METAL);
+          }
+        }
+      }
+      // Stacked second container (offset segments for stagger effect)
+      if (cti % 2 === 1) {
+        for (var ctx2 = 0; ctx2 < ct.w; ctx2++) {
+          for (var ctz2 = 0; ctz2 < 2; ctz2++) {
+            for (var cty2 = 4; cty2 <= 6; cty2++) {
+              var ctOuter2 = ctx2 === 0 || ctx2 === ct.w - 1 || ctz2 === 0 || ctz2 === 1 || cty2 === 6;
+              if (ctOuter2) setBlock(ct.x + ctx2, ctBy + cty2, ctZ + ctz2, BLOCK.METAL);
+            }
+          }
+        }
+      }
+      // Sandbag fill between containers at ground
+      for (var sbc = 0; sbc < ct.w; sbc++) {
+        setBlock(ct.x + sbc, ctBy + 1, ctZ + 2, BLOCK.SANDBAG);
+      }
+    }
+
+    // ── Q. Rooftop MG nests (north-facing, covering approach road) ──
+    // Ukrainian TDF placed MG teams on rooftops of Maidan-area buildings
+    // to provide elevated fire coverage of Khreshchatyk / approach roads.
+    var mgRooftops = [
+      { x: ox + 12, z: oz - 4 },
+      { x: ox - 12, z: oz + 2 },
+    ];
+    for (var mri = 0; mri < mgRooftops.length; mri++) {
+      var mgr = mgRooftops[mri];
+      // Find a rooftop height (assume building ~7 blocks)
+      var mgrY = gh(mgr.x, mgr.z) + 7;
+      // Sandbag parapet (3-side U-shape, open south for access)
+      for (var psx = -1; psx <= 1; psx++) {
+        setBlock(mgr.x + psx, mgrY + 1, mgr.z - 1, BLOCK.SANDBAG); // north face
+        setBlock(mgr.x + psx, mgrY + 2, mgr.z - 1, BLOCK.SANDBAG);
+      }
+      setBlock(mgr.x - 1, mgrY + 1, mgr.z,     BLOCK.SANDBAG); // west side
+      setBlock(mgr.x - 1, mgrY + 2, mgr.z,     BLOCK.SANDBAG);
+      setBlock(mgr.x + 1, mgrY + 1, mgr.z,     BLOCK.SANDBAG); // east side
+      setBlock(mgr.x + 1, mgrY + 2, mgr.z,     BLOCK.SANDBAG);
+      // Floor slab (CONCRETE)
+      setBlock(mgr.x - 1, mgrY, mgr.z - 1, BLOCK.CONCRETE);
+      setBlock(mgr.x,     mgrY, mgr.z - 1, BLOCK.CONCRETE);
+      setBlock(mgr.x + 1, mgrY, mgr.z - 1, BLOCK.CONCRETE);
+      setBlock(mgr.x - 1, mgrY, mgr.z,     BLOCK.CONCRETE);
+      setBlock(mgr.x,     mgrY, mgr.z,     BLOCK.CONCRETE);
+      setBlock(mgr.x + 1, mgrY, mgr.z,     BLOCK.CONCRETE);
+      // MG (METAL block on makeshift mount)
+      setBlock(mgr.x, mgrY + 1, mgr.z,     BLOCK.METAL); // gun body
+      setBlock(mgr.x, mgrY + 2, mgr.z,     BLOCK.METAL); // elevated mount
+    }
+
+    // ── R. Dragon's teeth anti-tank obstacles (z=14-16) ─────────────
+    // Kyiv approach roads were blocked with concrete pyramid obstacles —
+    // "dragon's teeth" — to channel armour into kill zones.
+    var dtZ = oz + 15;
+    for (var dtx = ox - 18; dtx <= ox + 18; dtx += 3) {
+      if (Math.abs(dtx - ox) < 3) continue; // road gap
+      var dtY = gh(dtx, dtZ);
+      // Pyramid pair (two CONCRETE staggered peaks simulate the zigzag pattern)
+      setBlock(dtx,     dtY + 1, dtZ,     BLOCK.CONCRETE);
+      setBlock(dtx,     dtY + 2, dtZ,     BLOCK.CONCRETE);
+      setBlock(dtx + 1, dtY + 1, dtZ + 1, BLOCK.CONCRETE);
+      setBlock(dtx + 1, dtY + 2, dtZ + 1, BLOCK.CONCRETE);
+      setBlock(dtx,     dtY + 1, dtZ + 2, BLOCK.CONCRETE);
+    }
+    // Second staggered row 2m behind
+    for (var dtx2 = ox - 17; dtx2 <= ox + 17; dtx2 += 3) {
+      if (Math.abs(dtx2 - ox) < 2) continue;
+      var dtY2 = gh(dtx2, dtZ + 3);
+      setBlock(dtx2, dtY2 + 1, dtZ + 3, BLOCK.CONCRETE);
+      setBlock(dtx2, dtY2 + 2, dtZ + 3, BLOCK.CONCRETE);
+    }
+
+    // ── S. Kyiv metro station entrance (Arsenalna-style, deepest station) ──
+    // Ukrainian civilians spent weeks sheltering in Kyiv metro during the siege.
+    // Build an above-ground entrance kiosk on the city block.
+    var msx = ox + 8, msz = oz - 8;
+    var msY = gh(msx, msz);
+    // Red-brick entrance pavilion (classic Soviet metro kiosk)
+    for (var msb = 0; msb < 5; msb++) {
+      for (var msbz = 0; msbz < 5; msbz++) {
+        // Walls only
+        if (msb === 0 || msb === 4 || msbz === 0 || msbz === 4) {
+          for (var msh = 1; msh <= 4; msh++) {
+            setBlock(msx + msb, msY + msh, msz + msbz, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    // Roof (concrete slab)
+    for (var mrx = 0; mrx < 5; mrx++) {
+      for (var mrz = 0; mrz < 5; mrz++) {
+        setBlock(msx + mrx, msY + 5, msz + mrz, BLOCK.CONCRETE);
+      }
+    }
+    // Entrance opening (remove 2 blocks from south wall — facade facing street)
+    setBlock(msx + 2, msY + 1, msz + 4, BLOCK.AIR);
+    setBlock(msx + 2, msY + 2, msz + 4, BLOCK.AIR);
+    // Down-escalator portal (dark interior floor — glass tiles light it)
+    setBlock(msx + 2, msY + 1, msz + 3, BLOCK.GLASS);
+    setBlock(msx + 2, msY + 1, msz + 2, BLOCK.WHITE_TILE);
+    // Blue metro "M" sign pillars
+    setBlock(msx + 1, msY + 5, msz + 2, BLOCK.METAL);
+    setBlock(msx + 3, msY + 5, msz + 2, BLOCK.METAL);
+    setBlock(msx + 2, msY + 6, msz + 2, BLOCK.METAL);
+    // Civilian shelter sign (flag)
+    setBlock(msx + 2, msY + 7, msz + 2, BLOCK.FLAG);
+    // Sandbag protection ring around entrance
+    for (var sb2 = -1; sb2 <= 5; sb2++) {
+      setBlock(msx + sb2, msY + 1, msz - 1, BLOCK.SANDBAG);
+      setBlock(msx + sb2, msY + 1, msz + 5, BLOCK.SANDBAG);
+    }
+    setBlock(msx - 1, msY + 1, msz,     BLOCK.SANDBAG);
+    setBlock(msx - 1, msY + 1, msz + 1, BLOCK.SANDBAG);
+    setBlock(msx - 1, msY + 1, msz + 2, BLOCK.SANDBAG);
+    setBlock(msx + 5, msY + 1, msz,     BLOCK.SANDBAG);
+    setBlock(msx + 5, msY + 1, msz + 1, BLOCK.SANDBAG);
+    setBlock(msx + 5, msY + 1, msz + 2, BLOCK.SANDBAG);
+
+    // ── Z. Artillery/missile impact craters (approach field) ─────────
+    // Russian TOS-1A, Grad, and Iskander strikes left craters throughout
+    // the Kyiv northern approaches at Hostomel, Bucha, and Irpin.
+    var craterPositions = [
+      { x: ox + 12, z: oz + 35 }, { x: ox - 8, z: oz + 40 },
+      { x: ox + 20, z: oz + 32 }, { x: ox - 18, z: oz + 45 },
+      { x: ox + 5,  z: oz + 42 },
+    ];
+    for (var cri = 0; cri < craterPositions.length; cri++) {
+      var cr = craterPositions[cri];
+      var crY = gh(cr.x, cr.z);
+      // Crater hole (AIR replacing ground blocks)
+      setBlock(cr.x,     crY, cr.z,     BLOCK.AIR);
+      setBlock(cr.x + 1, crY, cr.z,     BLOCK.AIR);
+      setBlock(cr.x,     crY, cr.z + 1, BLOCK.AIR);
+      // Ejected earth rim (DIRT mound around edge)
+      setBlock(cr.x - 1, crY + 1, cr.z,     BLOCK.DIRT);
+      setBlock(cr.x + 2, crY + 1, cr.z,     BLOCK.DIRT);
+      setBlock(cr.x,     crY + 1, cr.z - 1, BLOCK.DIRT);
+      setBlock(cr.x + 1, crY + 1, cr.z + 2, BLOCK.DIRT);
+      // Rubble scatter
+      setBlock(cr.x - 1, crY + 1, cr.z + 2, BLOCK.RUBBLE);
+      setBlock(cr.x + 2, crY + 1, cr.z - 1, BLOCK.RUBBLE);
+    }
+
+    // ── AA. Military checkpoint gate (controlled access point) ───────
+    // Ukrainian Territorial Defense Forces set up checkpoint gates
+    // with concrete barriers and guard booths on all approach roads.
+    var cpX = ox, cpZ = oz + 36;
+    var cpY = gh(cpX, cpZ);
+    // Concrete barriers either side of road (left flank)
+    for (var cb = 0; cb < 3; cb++) {
+      setBlock(cpX - 8 + cb, cpY + 1, cpZ, BLOCK.CONCRETE);
+      setBlock(cpX - 8 + cb, cpY + 2, cpZ, BLOCK.CONCRETE);
+    }
+    // Right flank concrete barriers
+    for (var cb2 = 0; cb2 < 3; cb2++) {
+      setBlock(cpX + 6 + cb2, cpY + 1, cpZ, BLOCK.CONCRETE);
+      setBlock(cpX + 6 + cb2, cpY + 2, cpZ, BLOCK.CONCRETE);
+    }
+    // Guard booth (BRICK, 3×3)
+    for (var gbx = 0; gbx < 3; gbx++) {
+      for (var gbz = 0; gbz < 3; gbz++) {
+        if (gbx === 0 || gbx === 2 || gbz === 0 || gbz === 2) {
+          setBlock(cpX - 12 + gbx, cpY + 1, cpZ + gbz, BLOCK.BRICK);
+          setBlock(cpX - 12 + gbx, cpY + 2, cpZ + gbz, BLOCK.BRICK);
+        }
+      }
+    }
+    // Booth roof
+    for (var grx = 0; grx < 3; grx++) {
+      for (var grz = 0; grz < 3; grz++) {
+        setBlock(cpX - 12 + grx, cpY + 3, cpZ + grz, BLOCK.CONCRETE);
+      }
+    }
+    // Barrier pole across road (METAL, single block span)
+    setBlock(cpX - 5, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX - 4, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX - 3, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX - 2, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX - 1, cpY + 2, cpZ, BLOCK.METAL);
+    setBlock(cpX,     cpY + 2, cpZ, BLOCK.METAL);
+    // Sandbag protection for guards
+    setBlock(cpX - 11, cpY + 1, cpZ + 4, BLOCK.SANDBAG);
+    setBlock(cpX - 10, cpY + 1, cpZ + 4, BLOCK.SANDBAG);
+    // Ukrainian flag at checkpoint
+    setBlock(cpX - 10, cpY + 4, cpZ + 1, BLOCK.FLAG);
+
+    // ── X. CONCRETE pillbox / sniper OP on elevated position ────────
+    // Ukrainian snipers used rooftop concrete OPs to observe approach roads.
+    // Small fortified observation post with loophole and flag.
+    var opX = ox + 18, opZ = oz - 6;
+    var opY = gh(opX, opZ) + 6; // elevated on existing building height
+    // 3×3 pillbox (concrete walls, open top for observation)
+    for (var px = 0; px < 3; px++) {
+      for (var pz = 0; pz < 3; pz++) {
+        if (px === 0 || px === 2 || pz === 0 || pz === 2) {
+          setBlock(opX + px, opY + 1, opZ + pz, BLOCK.CONCRETE);
+          setBlock(opX + px, opY + 2, opZ + pz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Loophole (opening facing north = enemy direction)
+    setBlock(opX + 1, opY + 1, opZ, BLOCK.AIR); // viewport
+    // Sandbag fill on remaining open top
+    setBlock(opX + 1, opY + 3, opZ + 1, BLOCK.SANDBAG);
+    // Ukrainian flag pole
+    setBlock(opX + 2, opY + 3, opZ + 2, BLOCK.METAL);
+    setBlock(opX + 2, opY + 4, opZ + 2, BLOCK.FLAG);
+
+    // ── Y. Civilian car roadblock (burnt cars across road) ───────────
+    // Ukraine placed civilian cars — often burnt — across roads as a
+    // low-tech barrier to slow Russian vehicle advances in suburbs.
+    var cbZ = oz + 30;
+    var carPositions = [
+      { x: ox - 6 }, { x: ox - 3 }, { x: ox + 3 }, { x: ox + 6 },
+    ];
+    for (var ci = 0; ci < carPositions.length; ci++) {
+      var cbx = carPositions[ci].x;
+      var cbY = gh(cbx, cbZ);
+      // Car body (METAL, burnt)
+      setBlock(cbx,     cbY + 1, cbZ,     BLOCK.METAL);
+      setBlock(cbx + 1, cbY + 1, cbZ,     BLOCK.METAL);
+      setBlock(cbx,     cbY + 1, cbZ + 1, BLOCK.METAL);
+      setBlock(cbx + 1, cbY + 1, cbZ + 1, BLOCK.METAL);
+      setBlock(cbx,     cbY + 2, cbZ,     BLOCK.METAL);
+      setBlock(cbx + 1, cbY + 2, cbZ,     BLOCK.METAL);
+      setBlock(cbx,     cbY + 2, cbZ + 1, BLOCK.METAL);
+      setBlock(cbx + 1, cbY + 2, cbZ + 1, BLOCK.METAL);
+      // Fire in some cars
+      if (ci % 2 === 0) {
+        setBlock(cbx,     cbY + 3, cbZ,     BLOCK.FIRE);
+        setBlock(cbx + 1, cbY + 3, cbZ + 1, BLOCK.FIRE);
+      }
+      // Rubble scatter
+      setBlock(cbx - 1, cbY + 1, cbZ,     BLOCK.RUBBLE);
+      setBlock(cbx + 2, cbY + 1, cbZ + 1, BLOCK.RUBBLE);
+    }
+
+    // ── V. Destroyed Russian BMP-2 wreck (in approach corridor) ─────
+    // Burnt-out Russian IFVs and tanks were left on Kyiv approach roads
+    // as monuments to the failed assault and defensive fire success.
+    var bmpX = ox + 3, bmpZ = oz + 24;
+    var bmpY = gh(bmpX, bmpZ);
+    // Burnt hull (METAL, dark from fire)
+    for (var bhx = 0; bhx < 5; bhx++) {
+      for (var bhz = 0; bhz < 3; bhz++) {
+        if (bhx === 0 || bhx === 4 || bhz === 0 || bhz === 2) {
+          setBlock(bmpX + bhx, bmpY + 1, bmpZ + bhz, BLOCK.METAL);
+        }
+      }
+      setBlock(bmpX + bhx, bmpY + 1, bmpZ + 1, BLOCK.RUBBLE);
+    }
+    // Turret remnant (skewed off to one side — knocked off by explosion)
+    setBlock(bmpX + 2, bmpY + 2, bmpZ,     BLOCK.METAL);
+    setBlock(bmpX + 3, bmpY + 2, bmpZ - 1, BLOCK.METAL);
+    setBlock(bmpX + 4, bmpY + 2, bmpZ - 1, BLOCK.METAL);
+    // Barrel (still pointing forward)
+    setBlock(bmpX + 5, bmpY + 2, bmpZ - 1, BLOCK.METAL);
+    setBlock(bmpX + 6, bmpY + 2, bmpZ - 1, BLOCK.METAL);
+    // Fire pockets
+    setBlock(bmpX + 1, bmpY + 2, bmpZ + 1, BLOCK.FIRE);
+    setBlock(bmpX + 3, bmpY + 2, bmpZ + 1, BLOCK.FIRE);
+    // Rubble scatter around (from detonation)
+    for (var rs = 0; rs < 6; rs++) {
+      var rsx = bmpX + Math.floor(rs * 2.3 % 7) - 2;
+      var rsz = bmpZ + Math.floor(rs * 1.7 % 5) - 1;
+      if (rsx !== bmpX + rs % 5) setBlock(rsx, gh(rsx, rsz) + 1, rsz, BLOCK.RUBBLE);
+    }
+
+    // ── W. Field hospital / CCP (casualty collection point) ─────────
+    // Ukrainian military medics set up aid stations in church basements
+    // and apartments — marked with red crosses for Geneva Convention.
+    var fhX = ox - 14, fhZ = oz - 14;
+    var fhY = gh(fhX, fhZ);
+    // White tent structure (WHITE_TILE for the tarp walls)
+    for (var fhw = 0; fhw < 4; fhw++) {
+      setBlock(fhX + fhw, fhY + 1, fhZ,     BLOCK.WHITE_TILE);
+      setBlock(fhX + fhw, fhY + 2, fhZ,     BLOCK.WHITE_TILE);
+      setBlock(fhX + fhw, fhY + 1, fhZ + 3, BLOCK.WHITE_TILE);
+      setBlock(fhX + fhw, fhY + 2, fhZ + 3, BLOCK.WHITE_TILE);
+    }
+    setBlock(fhX,     fhY + 1, fhZ + 1, BLOCK.WHITE_TILE);
+    setBlock(fhX,     fhY + 2, fhZ + 1, BLOCK.WHITE_TILE);
+    setBlock(fhX + 3, fhY + 1, fhZ + 1, BLOCK.WHITE_TILE);
+    setBlock(fhX + 3, fhY + 2, fhZ + 1, BLOCK.WHITE_TILE);
+    setBlock(fhX,     fhY + 1, fhZ + 2, BLOCK.WHITE_TILE);
+    setBlock(fhX,     fhY + 2, fhZ + 2, BLOCK.WHITE_TILE);
+    setBlock(fhX + 3, fhY + 1, fhZ + 2, BLOCK.WHITE_TILE);
+    setBlock(fhX + 3, fhY + 2, fhZ + 2, BLOCK.WHITE_TILE);
+    // Roof (white)
+    for (var frx = 0; frx < 4; frx++) {
+      for (var frz = 0; frz < 4; frz++) {
+        setBlock(fhX + frx, fhY + 3, fhZ + frz, BLOCK.WHITE_TILE);
+      }
+    }
+    // Red cross on roof (FIRE blocks — bright red)
+    setBlock(fhX + 1, fhY + 4, fhZ + 1, BLOCK.FIRE); // center
+    setBlock(fhX + 2, fhY + 4, fhZ + 1, BLOCK.FIRE); // arm
+    setBlock(fhX + 1, fhY + 4, fhZ + 2, BLOCK.FIRE); // arm
+    setBlock(fhX + 2, fhY + 4, fhZ + 2, BLOCK.FIRE); // center
+    // Entrance (open south wall)
+    setBlock(fhX + 1, fhY + 1, fhZ + 3, BLOCK.AIR);
+    setBlock(fhX + 2, fhY + 1, fhZ + 3, BLOCK.AIR);
+    // Sandbag protection (half-ring on south)
+    setBlock(fhX - 1, fhY + 1, fhZ + 3, BLOCK.SANDBAG);
+    setBlock(fhX + 4, fhY + 1, fhZ + 3, BLOCK.SANDBAG);
+    setBlock(fhX,     fhY + 1, fhZ + 4, BLOCK.SANDBAG);
+    setBlock(fhX + 1, fhY + 1, fhZ + 4, BLOCK.SANDBAG);
+    setBlock(fhX + 2, fhY + 1, fhZ + 4, BLOCK.SANDBAG);
+    setBlock(fhX + 3, fhY + 1, fhZ + 4, BLOCK.SANDBAG);
+
+    // ── T. Hedgehog obstacles (welded rail sections) ─────────────────
+    // Thousands of steel "hedgehog" or "Czech hedgehog" anti-tank traps
+    // were welded from railway rails and placed throughout Kyiv suburbs.
+    var hhPositions = [
+      { x: ox - 8, z: oz + 10 }, { x: ox - 5, z: oz + 11 },
+      { x: ox + 5, z: oz + 10 }, { x: ox + 8, z: oz + 12 },
+      { x: ox - 10, z: oz + 8 }, { x: ox + 10, z: oz + 9 },
+      { x: ox - 6, z: oz + 13 }, { x: ox + 6, z: oz + 13 },
+    ];
+    for (var hhi = 0; hhi < hhPositions.length; hhi++) {
+      var hh = hhPositions[hhi];
+      var hhY = gh(hh.x, hh.z);
+      // Cross-shaped METAL base block
+      setBlock(hh.x, hhY + 1, hh.z, BLOCK.METAL);
+      // The "arms" radiating in 4 horizontal directions simulate the X cross
+      setBlock(hh.x - 1, hhY + 1, hh.z,     BLOCK.METAL);
+      setBlock(hh.x + 1, hhY + 1, hh.z,     BLOCK.METAL);
+      setBlock(hh.x,     hhY + 1, hh.z - 1, BLOCK.METAL);
+      setBlock(hh.x,     hhY + 1, hh.z + 1, BLOCK.METAL);
+      // Vertical spike through center
+      setBlock(hh.x, hhY + 2, hh.z, BLOCK.METAL);
+    }
+
+    // ── U. Artillery battery position (M777 / D-30 emplacement) ─────
+    // Ukrainian artillery batteries were dug in behind berms on the
+    // northern approaches to provide indirect fire support.
+    var abx = ox - 16, abz = oz - 20;
+    var abY = gh(abx, abz);
+    // Earth berm (DIRT + SANDBAG) protecting gun crew
+    for (var abw = 0; abw < 8; abw++) {
+      setBlock(abx + abw, abY + 1, abz - 2, BLOCK.DIRT);
+      setBlock(abx + abw, abY + 2, abz - 2, BLOCK.DIRT);
+      setBlock(abx + abw, abY + 3, abz - 2, BLOCK.SANDBAG);
+      // Side berms
+      if (abw < 3 || abw > 5) {
+        setBlock(abx + abw, abY + 1, abz + 1, BLOCK.DIRT);
+        setBlock(abx + abw, abY + 2, abz + 1, BLOCK.DIRT);
+      }
+    }
+    setBlock(abx - 1, abY + 1, abz - 2, BLOCK.DIRT);
+    setBlock(abx + 8, abY + 1, abz - 2, BLOCK.DIRT);
+    setBlock(abx - 1, abY + 2, abz - 2, BLOCK.DIRT);
+    setBlock(abx + 8, abY + 2, abz - 2, BLOCK.DIRT);
+    // Gun trail / baseplate (METAL rectangle representing gun base)
+    setBlock(abx + 2, abY + 1, abz,     BLOCK.METAL);
+    setBlock(abx + 3, abY + 1, abz,     BLOCK.METAL);
+    setBlock(abx + 4, abY + 1, abz,     BLOCK.METAL);
+    setBlock(abx + 5, abY + 1, abz,     BLOCK.METAL);
+    // Barrel pointing toward enemy (METAL column along z-axis)
+    setBlock(abx + 3, abY + 2, abz,     BLOCK.METAL);
+    setBlock(abx + 4, abY + 2, abz,     BLOCK.METAL);
+    setBlock(abx + 3, abY + 2, abz - 4, BLOCK.METAL);
+    setBlock(abx + 4, abY + 2, abz - 4, BLOCK.METAL);
+    setBlock(abx + 3, abY + 2, abz - 5, BLOCK.METAL);
+    setBlock(abx + 4, abY + 2, abz - 5, BLOCK.METAL);
+    // Ammo crates beside gun (WOOD blocks)
+    setBlock(abx + 1, abY + 1, abz + 2, BLOCK.WOOD);
+    setBlock(abx + 6, abY + 1, abz + 2, BLOCK.WOOD);
+    setBlock(abx + 2, abY + 1, abz + 2, BLOCK.WOOD);
+    setBlock(abx + 5, abY + 1, abz + 2, BLOCK.WOOD);
+    // Crew shelter (2 × 2 × 2 CONCRETE foxhole behind battery)
+    for (var csx = 0; csx < 2; csx++) {
+      setBlock(abx + csx, abY + 1, abz + 3, BLOCK.CONCRETE);
+      setBlock(abx + csx, abY + 2, abz + 3, BLOCK.CONCRETE);
+      setBlock(abx + csx, abY + 1, abz + 4, BLOCK.CONCRETE);
+      setBlock(abx + csx, abY + 2, abz + 4, BLOCK.CONCRETE);
+    }
+    // Ukrainian flag on antenna pole
+    setBlock(abx + 7, abY + 1, abz + 2, BLOCK.METAL);
+    setBlock(abx + 7, abY + 2, abz + 2, BLOCK.METAL);
+    setBlock(abx + 7, abY + 3, abz + 2, BLOCK.METAL);
+    setBlock(abx + 7, abY + 4, abz + 2, BLOCK.FLAG);
+
+    // ── M. Friendly T-64BV tank behind defensive trench ────────────
+    // The T-64BV was Ukraine's primary MBT during the Kyiv defense.
+    // Kontakt-1 ERA (explosive reactive armour) brick modules on hull sides.
+    var t64x = ox + 4, t64z = oz + 6;
+    var t64y = gh(t64x, t64z);
+    // Hull (T-64 is shorter and wider than T-72: 8 long × 4 wide × 2 high)
+    for (var t4hx = 0; t4hx < 8; t4hx++) {
+      for (var t4hz = 0; t4hz < 4; t4hz++) {
+        for (var t4hy = 1; t4hy <= 2; t4hy++) {
+          var t4outer = t4hx === 0 || t4hx === 7 || t4hz === 0 || t4hz === 3 || t4hy === 2;
+          if (t4outer) setBlock(t64x + t4hx, t64y + t4hy, t64z + t4hz, BLOCK.METAL);
+        }
+      }
+    }
+    // Turret (T-64 has a distinctive low, rounded turret)
+    for (var t4tx = 2; t4tx <= 5; t4tx++) {
+      for (var t4tz = 0; t4tz <= 3; t4tz++) {
+        setBlock(t64x + t4tx, t64y + 3, t64z + t4tz, BLOCK.METAL);
+      }
+    }
+    // Commander hatch
+    setBlock(t64x + 3, t64y + 4, t64z + 1, BLOCK.METAL);
+    // 125mm gun barrel (pointing north, toward enemy)
+    setBlock(t64x + 7, t64y + 3, t64z + 1, BLOCK.METAL);
+    setBlock(t64x + 8, t64y + 3, t64z + 1, BLOCK.METAL);
+    setBlock(t64x + 9, t64y + 3, t64z + 1, BLOCK.METAL);
+    // Kontakt-1 ERA bricks on hull sides (REINFORCED blocks in row — distinctive boxes)
+    for (var eraX = 1; eraX <= 6; eraX++) {
+      setBlock(t64x + eraX, t64y + 2, t64z - 1, BLOCK.REINFORCED);  // left skirt
+      setBlock(t64x + eraX, t64y + 2, t64z + 4, BLOCK.REINFORCED);  // right skirt
+    }
+    // Ukrainian flag on turret side (blue = CONCRETE, yellow = LIGHT)
+    setBlock(t64x + 4, t64y + 3, t64z - 1, BLOCK.CONCRETE); // blue stripe
+    setBlock(t64x + 5, t64y + 3, t64z - 1, BLOCK.LIGHT);    // yellow stripe
+
+    // ── BB. Blown Irpin bridge (deliberate demolition, March 2022) ────
+    // Ukraine blew the Irpin river bridges to slow Russian armored advance.
+    // The main Irpin bridge was destroyed by Ukrainian sappers on March 1.
+    var bdX = ox + 28, bdZ = oz + 48;
+    var bdY = gh(bdX, bdZ);
+    // Surviving bridge abutment on south side (CONCRETE stump)
+    for (var bax = 0; bax < 5; bax++) {
+      setBlock(bdX + bax, bdY + 1, bdZ,     BLOCK.CONCRETE);
+      setBlock(bdX + bax, bdY + 2, bdZ,     BLOCK.CONCRETE);
+      setBlock(bdX + bax, bdY + 3, bdZ,     BLOCK.CONCRETE);
+    }
+    // Blown central span — collapsed girder (METAL debris in water/mud)
+    for (var bms = 0; bms < 6; bms++) {
+      setBlock(bdX + bms, bdY,     bdZ + 3 + bms, BLOCK.METAL);
+      setBlock(bdX + bms, bdY - 1, bdZ + 3 + bms, BLOCK.METAL);
+    }
+    // Rebar splinters sticking up from collapse
+    setBlock(bdX + 1, bdY + 1, bdZ + 4, BLOCK.METAL);
+    setBlock(bdX + 3, bdY + 1, bdZ + 6, BLOCK.METAL);
+    setBlock(bdX + 4, bdY + 2, bdZ + 5, BLOCK.METAL);
+    // North abutment stump (still standing)
+    for (var bnx = 0; bnx < 5; bnx++) {
+      setBlock(bdX + bnx, bdY + 1, bdZ + 10, BLOCK.CONCRETE);
+      setBlock(bdX + bnx, bdY + 2, bdZ + 10, BLOCK.CONCRETE);
+    }
+    // Water fill under bridge (indicates river/mud at collapse point)
+    for (var bwx = 0; bwx < 5; bwx++) {
+      for (var bwz = 1; bwz < 10; bwz++) {
+        setBlock(bdX + bwx, bdY - 1, bdZ + bwz, BLOCK.WATER);
+      }
+    }
+    // Rubble from the blast on south bank
+    for (var brr = 0; brr < 5; brr++) {
+      setBlock(bdX - 1 + brr, bdY + 1, bdZ + 1, BLOCK.RUBBLE);
+      setBlock(bdX - 1 + brr, bdY + 1, bdZ + 2, BLOCK.RUBBLE);
+    }
+
+    // ── CC. Supply truck graveyard (Russian convoy wreckage) ──────────
+    // Russia's 64-km convoy north of Kyiv was halted and destroyed by
+    // Ukrainian forces (TB2 strikes, NLAW teams, and fuel shortages).
+    // Multiple supply trucks and fuel tankers burnt out on the Hostomel road.
+    var sgX = ox - 22, sgZ = oz + 52;
+    var sgY = gh(sgX, sgZ);
+    // 3 destroyed supply trucks in a row along the road
+    var truckOffsets = [0, 8, 16];
+    for (var tri = 0; tri < truckOffsets.length; tri++) {
+      var txz = sgZ + truckOffsets[tri];
+      var txy = gh(sgX, txz);
+      // Truck cab (METAL, 2×2)
+      setBlock(sgX,     txy + 1, txz,     BLOCK.METAL);
+      setBlock(sgX + 1, txy + 1, txz,     BLOCK.METAL);
+      setBlock(sgX,     txy + 1, txz + 1, BLOCK.METAL);
+      setBlock(sgX + 1, txy + 1, txz + 1, BLOCK.METAL);
+      setBlock(sgX,     txy + 2, txz,     BLOCK.METAL);
+      setBlock(sgX + 1, txy + 2, txz,     BLOCK.METAL);
+      setBlock(sgX,     txy + 2, txz + 1, BLOCK.METAL);
+      setBlock(sgX + 1, txy + 2, txz + 1, BLOCK.METAL);
+      // Truck bed (METAL, 2×4 longer)
+      for (var tbz = 2; tbz < 6; tbz++) {
+        setBlock(sgX,     txy + 1, txz + tbz, BLOCK.METAL);
+        setBlock(sgX + 1, txy + 1, txz + tbz, BLOCK.METAL);
+        setBlock(sgX,     txy + 2, txz + tbz, BLOCK.METAL);
+        setBlock(sgX + 1, txy + 2, txz + tbz, BLOCK.METAL);
+      }
+      // Fire (middle trucks burning; first one fully burnt out)
+      if (tri > 0) {
+        setBlock(sgX,     txy + 3, txz + 1, BLOCK.FIRE);
+        setBlock(sgX + 1, txy + 3, txz + 3, BLOCK.FIRE);
+      }
+      // Rubble of scattered cargo
+      setBlock(sgX - 1, txy + 1, txz + 2, BLOCK.RUBBLE);
+      setBlock(sgX + 2, txy + 1, txz + 3, BLOCK.RUBBLE);
+      setBlock(sgX - 1, txy + 1, txz + 4, BLOCK.RUBBLE);
+    }
+    // Burnt fuel tanker (cylindrical shape — wider METAL box)
+    var ftX = sgX + 4, ftZ = sgZ + 6;
+    var ftY = gh(ftX, ftZ);
+    for (var ftx = 0; ftx < 3; ftx++) {
+      for (var ftz = 0; ftz < 7; ftz++) {
+        setBlock(ftX + ftx, ftY + 1, ftZ + ftz, BLOCK.METAL);
+        if (ftz < 6) setBlock(ftX + ftx, ftY + 2, ftZ + ftz, BLOCK.METAL);
+      }
+    }
+    // Tanker still burning (catastrophic fuel fire)
+    setBlock(ftX,     ftY + 3, ftZ + 2, BLOCK.FIRE);
+    setBlock(ftX + 1, ftY + 3, ftZ + 3, BLOCK.FIRE);
+    setBlock(ftX + 2, ftY + 3, ftZ + 4, BLOCK.FIRE);
+    // Scattered WOOD cargo crates (food/ammo supply)
+    setBlock(ftX - 2, ftY + 1, ftZ,     BLOCK.WOOD);
+    setBlock(ftX - 2, ftY + 1, ftZ + 2, BLOCK.WOOD);
+    setBlock(ftX + 4, ftY + 1, ftZ + 1, BLOCK.WOOD);
+    setBlock(ftX + 4, ftY + 1, ftZ + 4, BLOCK.WOOD);
+
+    // ── DD. HIMARS firing position (M270/MLRS battery) ────────────────
+    // Ukraine's HIMARS batteries operate from concealed positions and
+    // displace immediately after firing ("shoot-and-scoot"). This shows
+    // a hasty rearm position with sandbag revetments and ammo pods.
+    var hmX = ox - 30, hmZ = oz - 32;
+    var hmY = gh(hmX, hmZ);
+    // Earthen revetment berm (U-shaped, opens toward the enemy / north)
+    for (var hrx = 0; hrx < 10; hrx++) {
+      setBlock(hmX + hrx, hmY + 1, hmZ + 5, BLOCK.DIRT);
+      setBlock(hmX + hrx, hmY + 2, hmZ + 5, BLOCK.DIRT);
+      setBlock(hmX + hrx, hmY + 3, hmZ + 5, BLOCK.SANDBAG);
+    }
+    setBlock(hmX - 1, hmY + 1, hmZ + 3, BLOCK.DIRT);
+    setBlock(hmX - 1, hmY + 2, hmZ + 3, BLOCK.DIRT);
+    setBlock(hmX - 1, hmY + 1, hmZ + 4, BLOCK.DIRT);
+    setBlock(hmX - 1, hmY + 2, hmZ + 4, BLOCK.DIRT);
+    setBlock(hmX + 10, hmY + 1, hmZ + 3, BLOCK.DIRT);
+    setBlock(hmX + 10, hmY + 2, hmZ + 3, BLOCK.DIRT);
+    setBlock(hmX + 10, hmY + 1, hmZ + 4, BLOCK.DIRT);
+    setBlock(hmX + 10, hmY + 2, hmZ + 4, BLOCK.DIRT);
+    // HIMARS truck body (cab + rocket pod frame — METAL on CONCRETE pad)
+    for (var hcx = 0; hcx < 2; hcx++) {
+      setBlock(hmX + 2 + hcx, hmY + 1, hmZ + 1, BLOCK.METAL);
+      setBlock(hmX + 2 + hcx, hmY + 1, hmZ + 2, BLOCK.METAL);
+      setBlock(hmX + 2 + hcx, hmY + 2, hmZ + 1, BLOCK.METAL);
+      setBlock(hmX + 2 + hcx, hmY + 2, hmZ + 2, BLOCK.METAL);
+    }
+    // Rocket pod (elevated block on top — distinctive HIMARS silhouette)
+    for (var rpx = 0; rpx < 4; rpx++) {
+      setBlock(hmX + 2 + rpx, hmY + 3, hmZ + 1, BLOCK.METAL);
+      setBlock(hmX + 2 + rpx, hmY + 3, hmZ + 2, BLOCK.METAL);
+    }
+    // Spare M31 GMLRS pod crates beside launcher (WOOD)
+    setBlock(hmX + 7, hmY + 1, hmZ + 1, BLOCK.WOOD);
+    setBlock(hmX + 7, hmY + 1, hmZ + 2, BLOCK.WOOD);
+    setBlock(hmX + 8, hmY + 1, hmZ + 1, BLOCK.WOOD);
+    // Comms antenna (METAL pole + FLAG)
+    setBlock(hmX + 1, hmY + 1, hmZ + 3, BLOCK.METAL);
+    setBlock(hmX + 1, hmY + 2, hmZ + 3, BLOCK.METAL);
+    setBlock(hmX + 1, hmY + 3, hmZ + 3, BLOCK.METAL);
+    setBlock(hmX + 1, hmY + 4, hmZ + 3, BLOCK.FLAG);
+    // Camouflage net frames (WOOD poles forming overhead frame)
+    setBlock(hmX + 3, hmY + 4, hmZ,     BLOCK.WOOD);
+    setBlock(hmX + 6, hmY + 4, hmZ,     BLOCK.WOOD);
+
+    // ── EE. Shelled apartment block (civilian infrastructure strike) ───
+    // Russia systematically targeted residential high-rises in Kyiv
+    // suburbs. This shows a partially collapsed 9-storey block with
+    // fire damage, exposed concrete skeleton, and refugee rubble.
+    var apX = ox + 30, apZ = oz - 18;
+    var apY = gh(apX, apZ);
+    // Standing facade (BRICK walls, large cross-section — 8×10 footprint)
+    for (var apx = 0; apx < 8; apx++) {
+      for (var apz = 0; apz < 3; apz++) {
+        for (var apy = 1; apy <= 9; apy++) {
+          var isWall = apx === 0 || apx === 7 || apz === 0 || apz === 2;
+          // Collapse damage: upper floors lose blocks randomly
+          if (apy > 5 && ((apx + apz + apy) % 3 === 0)) continue;
+          if (isWall) setBlock(apX + apx, apY + apy, apZ + apz, BLOCK.BRICK);
+        }
+      }
+    }
+    // Blown-out windows (AIR gaps in wall at each floor)
+    for (var wf = 1; wf <= 9; wf++) {
+      if (wf % 2 === 0) {
+        setBlock(apX + 2, apY + wf, apZ,     BLOCK.AIR);
+        setBlock(apX + 5, apY + wf, apZ,     BLOCK.AIR);
+      } else {
+        setBlock(apX + 3, apY + wf, apZ + 2, BLOCK.AIR);
+      }
+    }
+    // Collapsed section (right side floors 6-9 — pancaked down)
+    for (var clf = 6; clf <= 9; clf++) {
+      setBlock(apX + 6, apY + clf, apZ + 1, BLOCK.RUBBLE);
+      setBlock(apX + 7, apY + clf, apZ + 1, BLOCK.RUBBLE);
+    }
+    // Fire in upper floors (missile strike entry point)
+    setBlock(apX + 4, apY + 7, apZ + 1, BLOCK.FIRE);
+    setBlock(apX + 5, apY + 8, apZ + 1, BLOCK.FIRE);
+    setBlock(apX + 3, apY + 6, apZ,     BLOCK.FIRE);
+    // Debris field at base (concrete and brick chunks)
+    for (var dbx = 0; dbx < 8; dbx++) {
+      setBlock(apX + dbx, apY + 1, apZ + 3, BLOCK.RUBBLE);
+      if (dbx % 2 === 0) setBlock(apX + dbx, apY + 1, apZ + 4, BLOCK.RUBBLE);
+    }
+    // Exposed rebar floor slabs (CONCRETE visible through breach)
+    setBlock(apX + 1, apY + 5, apZ + 1, BLOCK.CONCRETE);
+    setBlock(apX + 2, apY + 5, apZ + 1, BLOCK.CONCRETE);
+    setBlock(apX + 3, apY + 5, apZ + 1, BLOCK.CONCRETE);
+
+  // ── FF. Patriot PAC-3 battery (US-supplied air defense, 2023) ────────
+  // Ukraine's Patriot shot down the first-ever Kinzhal hypersonic missile
+  // on May 4 2023. Battery: AN/MPQ-65 radar, 2x M903 launchers, C2 post.
+  {
+    var ptX = ox - 50, ptZ = oz + 15;
+    var ptY = gh(ptX, ptZ);
+    // Perimeter sandbag revetment
+    for (var pbx = 0; pbx < 16; pbx++) {
+      setBlock(ptX + pbx, ptY + 1, ptZ,      BLOCK.SANDBAG);
+      setBlock(ptX + pbx, ptY + 2, ptZ,      BLOCK.SANDBAG);
+      setBlock(ptX + pbx, ptY + 1, ptZ + 12, BLOCK.SANDBAG);
+      setBlock(ptX + pbx, ptY + 2, ptZ + 12, BLOCK.SANDBAG);
+    }
+    for (var pbz = 0; pbz <= 12; pbz++) {
+      setBlock(ptX,      ptY + 1, ptZ + pbz, BLOCK.SANDBAG);
+      setBlock(ptX,      ptY + 2, ptZ + pbz, BLOCK.SANDBAG);
+      setBlock(ptX + 15, ptY + 1, ptZ + pbz, BLOCK.SANDBAG);
+      setBlock(ptX + 15, ptY + 2, ptZ + pbz, BLOCK.SANDBAG);
+    }
+    // Concrete operations pad inside berm
+    for (var ppx = 1; ppx < 15; ppx++) {
+      for (var ppz = 1; ppz <= 11; ppz++) {
+        setBlock(ptX + ppx, ptY, ptZ + ppz, BLOCK.CONCRETE);
+      }
+    }
+    // AN/MPQ-65 radar truck body
+    for (var ry = 1; ry <= 3; ry++) {
+      for (var rrz = 0; rrz < 4; rrz++) {
+        setBlock(ptX + 2, ptY + ry, ptZ + 2 + rrz, BLOCK.METAL);
+        setBlock(ptX + 3, ptY + ry, ptZ + 2 + rrz, BLOCK.METAL);
+        setBlock(ptX + 4, ptY + ry, ptZ + 2 + rrz, BLOCK.METAL);
+      }
+    }
+    // Phased-array radar face (ELECTRONICS block)
+    setBlock(ptX + 2, ptY + 4, ptZ + 3, BLOCK.ELECTRONICS);
+    setBlock(ptX + 3, ptY + 4, ptZ + 3, BLOCK.ELECTRONICS);
+    setBlock(ptX + 4, ptY + 4, ptZ + 3, BLOCK.ELECTRONICS);
+    setBlock(ptX + 3, ptY + 5, ptZ + 3, BLOCK.ELECTRONICS);
+    // Radar mast
+    setBlock(ptX + 3, ptY + 6, ptZ + 3, BLOCK.METAL);
+    setBlock(ptX + 3, ptY + 7, ptZ + 3, BLOCK.METAL);
+    // M903 Launching Station 1 — angled toward north threat axis
+    for (var la = 1; la <= 2; la++) {
+      setBlock(ptX + 7, ptY + la, ptZ + 2, BLOCK.METAL);
+      setBlock(ptX + 8, ptY + la, ptZ + 2, BLOCK.METAL);
+    }
+    setBlock(ptX + 7, ptY + 3, ptZ + 1, BLOCK.METAL);
+    setBlock(ptX + 8, ptY + 3, ptZ + 1, BLOCK.METAL);
+    setBlock(ptX + 7, ptY + 4, ptZ,     BLOCK.METAL);
+    setBlock(ptX + 8, ptY + 4, ptZ,     BLOCK.METAL);
+    // M903 Launching Station 2
+    for (var lb = 1; lb <= 2; lb++) {
+      setBlock(ptX + 7, ptY + lb, ptZ + 9,  BLOCK.METAL);
+      setBlock(ptX + 8, ptY + lb, ptZ + 9,  BLOCK.METAL);
+    }
+    setBlock(ptX + 7, ptY + 3, ptZ + 10, BLOCK.METAL);
+    setBlock(ptX + 8, ptY + 3, ptZ + 10, BLOCK.METAL);
+    setBlock(ptX + 7, ptY + 4, ptZ + 11, BLOCK.METAL);
+    setBlock(ptX + 8, ptY + 4, ptZ + 11, BLOCK.METAL);
+    // AN/MSQ-132 Command Post
+    for (var cy = 1; cy <= 3; cy++) {
+      for (var cpz = 0; cpz < 3; cpz++) {
+        setBlock(ptX + 11, ptY + cy, ptZ + 4 + cpz, BLOCK.METAL);
+        setBlock(ptX + 12, ptY + cy, ptZ + 4 + cpz, BLOCK.METAL);
+        setBlock(ptX + 13, ptY + cy, ptZ + 4 + cpz, BLOCK.METAL);
+      }
+    }
+    // Ukrainian flag on command post
+    setBlock(ptX + 12, ptY + 4, ptZ + 5, BLOCK.METAL);
+    setBlock(ptX + 12, ptY + 5, ptZ + 5, BLOCK.FLAG);
+    // Power generator
+    setBlock(ptX + 2, ptY + 1, ptZ + 9, BLOCK.METAL);
+    setBlock(ptX + 2, ptY + 2, ptZ + 9, BLOCK.METAL);
+    setBlock(ptX + 3, ptY + 1, ptZ + 9, BLOCK.METAL);
+    setBlock(ptX + 3, ptY + 2, ptZ + 9, BLOCK.METAL);
+    // Spare PAC-3 missile canisters (stacked near launcher)
+    setBlock(ptX + 6, ptY + 1, ptZ + 2, BLOCK.CRATE);
+    setBlock(ptX + 6, ptY + 1, ptZ + 3, BLOCK.CRATE);
+    setBlock(ptX + 6, ptY + 2, ptZ + 2, BLOCK.CRATE);
+  }
+
+  // ── GG. Anti-tank ditch (outer Kyiv defense ring, north approach) ────
+  // Ukrainian engineers dug AT ditches across all roads and fields north
+  // of Kyiv in Feb-March 2022 to stop Russian BMP and T-72 columns.
+  {
+    var dtX = ox - 20, dtZ = oz + 90;
+    var dtY = gh(dtX, dtZ);
+    // Main ditch (40 wide x 3 deep x 5 north-south — impassable to vehicles)
+    for (var dtx = 0; dtx < 40; dtx++) {
+      for (var ddy = 0; ddy <= 2; ddy++) {
+        for (var ddz = 0; ddz < 5; ddz++) {
+          setBlock(dtX + dtx, dtY - ddy, dtZ + ddz, BLOCK.AIR);
+        }
+      }
+      // South berm (defender side — spoil earth piled high)
+      setBlock(dtX + dtx, dtY + 1, dtZ + 5, BLOCK.DIRT);
+      setBlock(dtX + dtx, dtY + 2, dtZ + 5, BLOCK.DIRT);
+      if (dtx % 2 === 0) setBlock(dtX + dtx, dtY + 3, dtZ + 5, BLOCK.DIRT);
+      // North berm (attacker side — smaller mound)
+      setBlock(dtX + dtx, dtY + 1, dtZ - 1, BLOCK.DIRT);
+    }
+    // Infantry crossing points (2-block CONCRETE causeways)
+    for (var xz = 1; xz < 4; xz++) {
+      setBlock(dtX + 8,  dtY, dtZ + xz, BLOCK.CONCRETE);
+      setBlock(dtX + 9,  dtY, dtZ + xz, BLOCK.CONCRETE);
+      setBlock(dtX + 28, dtY, dtZ + xz, BLOCK.CONCRETE);
+      setBlock(dtX + 29, dtY, dtZ + xz, BLOCK.CONCRETE);
+    }
+    // Czech hedgehog obstacles flanking the ditch
+    for (var dhx = 0; dhx < 8; dhx++) {
+      setBlock(dtX - 2 + dhx, dtY + 1, dtZ - 2, BLOCK.METAL);
+      setBlock(dtX + 32 + dhx, dtY + 1, dtZ - 2, BLOCK.METAL);
+    }
+    // Mine-warning posts on enemy approach (north face)
+    setBlock(dtX + 5,  dtY + 1, dtZ - 4, BLOCK.FENCE);
+    setBlock(dtX + 5,  dtY + 2, dtZ - 4, BLOCK.SIGN);
+    setBlock(dtX + 15, dtY + 1, dtZ - 4, BLOCK.FENCE);
+    setBlock(dtX + 15, dtY + 2, dtZ - 4, BLOCK.SIGN);
+    setBlock(dtX + 25, dtY + 1, dtZ - 4, BLOCK.FENCE);
+    setBlock(dtX + 25, dtY + 2, dtZ - 4, BLOCK.SIGN);
+    // CONCRETE firing position bunker behind south berm
+    setBlock(dtX + 18, dtY + 1, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 18, dtY + 2, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 18, dtY + 3, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 19, dtY + 1, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 19, dtY + 2, dtZ + 7, BLOCK.CONCRETE);
+    setBlock(dtX + 19, dtY + 3, dtZ + 7, BLOCK.CONCRETE);
+    // Ukrainian flags on south berm
+    setBlock(dtX + 4,  dtY + 1, dtZ + 6, BLOCK.FENCE);
+    setBlock(dtX + 4,  dtY + 2, dtZ + 6, BLOCK.FLAG);
+    setBlock(dtX + 20, dtY + 1, dtZ + 6, BLOCK.FENCE);
+    setBlock(dtX + 20, dtY + 2, dtZ + 6, BLOCK.FLAG);
+    // Pre-registered artillery craters north of ditch
+    setBlock(dtX + 7,  dtY, dtZ - 8,  BLOCK.RUBBLE);
+    setBlock(dtX + 14, dtY, dtZ - 12, BLOCK.RUBBLE);
+    setBlock(dtX + 22, dtY, dtZ - 7,  BLOCK.RUBBLE);
+    setBlock(dtX + 30, dtY, dtZ - 10, BLOCK.RUBBLE);
+  }
+  }
   // IDEA 21: Evacuation bus/civilian vehicles
   function generateEvacVehicles(count) {
     for (let v = 0; v < count; v++) {
@@ -4454,6 +5850,7 @@ window.VoxelWorld = (function () {
       // Real-map recreation: Maidan Nezalezhnosti / Khreshchatyk approach
       // where Russian armored columns were stopped on the road into Kyiv
       generateKyivMaidanSquare(0, 0);
+      generateKyivCityExtension(0, 0);
       // Drone nests along enemy approach corridor
       generateDroneNest(36, -40);
       generateDroneNest(-36, -40);
