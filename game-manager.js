@@ -345,10 +345,10 @@ const GameManager = (function () {
         for (let i = 0; i < 6; i++) {
           const aa = (i / 6) * Math.PI * 2;
           const ad = 8 + Math.random() * 4;
-          Enemies.spawnSingle('STORMER', new THREE.Vector3(
-            player.position.x + Math.cos(aa) * ad, 0,
-            player.position.z + Math.sin(aa) * ad
-          ));
+          Enemies.spawnSingle('STORMER', {
+            x: player.position.x + Math.cos(aa) * ad,
+            z: player.position.z + Math.sin(aa) * ad
+          });
         }
         break;
       case 'SNIPER_DUEL':
@@ -356,10 +356,10 @@ const GameManager = (function () {
         for (let i = 0; i < 3; i++) {
           const sa = Math.random() * Math.PI * 2;
           const sd = 18 + Math.random() * 8;
-          Enemies.spawnSingle('SNIPER', new THREE.Vector3(
-            player.position.x + Math.cos(sa) * sd, 0,
-            player.position.z + Math.sin(sa) * sd
-          ));
+          Enemies.spawnSingle('SNIPER', {
+            x: player.position.x + Math.cos(sa) * sd,
+            z: player.position.z + Math.sin(sa) * sd
+          });
         }
         Weapons.addAmmo(20);
         break;
@@ -368,10 +368,10 @@ const GameManager = (function () {
         for (let i = 0; i < 4; i++) {
           const fa = Math.random() * Math.PI * 2;
           const fd = 15 + Math.random() * 6;
-          Enemies.spawnSingle('ARMORED', new THREE.Vector3(
-            player.position.x + Math.cos(fa) * fd, 0,
-            player.position.z + Math.sin(fa) * fd
-          ));
+          Enemies.spawnSingle('ARMORED', {
+            x: player.position.x + Math.cos(fa) * fd,
+            z: player.position.z + Math.sin(fa) * fd
+          });
         }
         break;
       case 'AIR_SUPPORT':
@@ -418,10 +418,10 @@ const GameManager = (function () {
           const ta = Math.PI + (Math.random() - 0.5) * 1.0; // behind player
           const yaw = CameraSystem.getYaw();
           const td = 5 + Math.random() * 5;
-          Enemies.spawnSingle('STORMER', new THREE.Vector3(
-            player.position.x + Math.cos(yaw + ta) * td, 0,
-            player.position.z + Math.sin(yaw + ta) * td
-          ));
+          Enemies.spawnSingle('STORMER', {
+            x: player.position.x + Math.cos(yaw + ta) * td,
+            z: player.position.z + Math.sin(yaw + ta) * td
+          });
         }
         break;
     }
@@ -1627,9 +1627,24 @@ const GameManager = (function () {
                 HUD.notifyPickup('\ud83d\udca3 PLANTING CHARGE...', '#ff8800');
                 fHandled = true;
               } else if (mt.config.id === 'RESCUE') {
-                MissionTypes.interact('FREE_POW', { dt: 0.5 });
-                HUD.notifyPickup('\ud83d\udd13 FREEING POW...', '#88ff88');
-                fHandled = true;
+                // RESCUE: proximity check uses nearest unfreed POW position, not zone center
+                var _mtr = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+                var _nearPowDist = 999;
+                if (_mtr && _mtr.pows) {
+                  for (var _mpi = 0; _mpi < _mtr.pows.length; _mpi++) {
+                    var _mp = _mtr.pows[_mpi];
+                    if (_mp.freed) continue;
+                    var _mdx2 = player.position.x - _mp.x, _mdz2 = player.position.z - _mp.z;
+                    _nearPowDist = Math.min(_nearPowDist, _mdx2 * _mdx2 + _mdz2 * _mdz2);
+                  }
+                }
+                if (_nearPowDist < 25) { // 5m radius
+                  var _fr = MissionTypes.interact('FREE_POW', { dt: 0.5 });
+                  if (!(_fr && _fr.noTarget)) {
+                    HUD.notifyPickup('\ud83d\udd13 FREEING POW...', '#88ff88');
+                  }
+                  fHandled = true;
+                }
               } else if (mt.config.id === 'DEFUSE') {
                 MissionTypes.interact('DEFUSE_BOMB', { dt: 0.5 });
                 HUD.notifyPickup('\u23f1\ufe0f DEFUSING...', '#ffcc00');

@@ -342,10 +342,10 @@ const GameManager = (function () {
         for (let i = 0; i < 6; i++) {
           const aa = (i / 6) * Math.PI * 2;
           const ad = 8 + Math.random() * 4;
-          Enemies.spawnSingle('STORMER', new THREE.Vector3(
-            player.position.x + Math.cos(aa) * ad, 0,
-            player.position.z + Math.sin(aa) * ad
-          ));
+          Enemies.spawnSingle('STORMER', {
+            x: player.position.x + Math.cos(aa) * ad,
+            z: player.position.z + Math.sin(aa) * ad
+          });
         }
         break;
       case 'SNIPER_DUEL':
@@ -353,10 +353,10 @@ const GameManager = (function () {
         for (let i = 0; i < 3; i++) {
           const sa = Math.random() * Math.PI * 2;
           const sd = 18 + Math.random() * 8;
-          Enemies.spawnSingle('SNIPER', new THREE.Vector3(
-            player.position.x + Math.cos(sa) * sd, 0,
-            player.position.z + Math.sin(sa) * sd
-          ));
+          Enemies.spawnSingle('SNIPER', {
+            x: player.position.x + Math.cos(sa) * sd,
+            z: player.position.z + Math.sin(sa) * sd
+          });
         }
         Weapons.addAmmo(20);
         break;
@@ -365,10 +365,10 @@ const GameManager = (function () {
         for (let i = 0; i < 4; i++) {
           const fa = Math.random() * Math.PI * 2;
           const fd = 15 + Math.random() * 6;
-          Enemies.spawnSingle('ARMORED', new THREE.Vector3(
-            player.position.x + Math.cos(fa) * fd, 0,
-            player.position.z + Math.sin(fa) * fd
-          ));
+          Enemies.spawnSingle('ARMORED', {
+            x: player.position.x + Math.cos(fa) * fd,
+            z: player.position.z + Math.sin(fa) * fd
+          });
         }
         break;
       case 'AIR_SUPPORT':
@@ -415,10 +415,10 @@ const GameManager = (function () {
           const ta = Math.PI + (Math.random() - 0.5) * 1.0; // behind player
           const yaw = CameraSystem.getYaw();
           const td = 5 + Math.random() * 5;
-          Enemies.spawnSingle('STORMER', new THREE.Vector3(
-            player.position.x + Math.cos(yaw + ta) * td, 0,
-            player.position.z + Math.sin(yaw + ta) * td
-          ));
+          Enemies.spawnSingle('STORMER', {
+            x: player.position.x + Math.cos(yaw + ta) * td,
+            z: player.position.z + Math.sin(yaw + ta) * td
+          });
         }
         break;
     }
@@ -3395,11 +3395,9 @@ const GameManager = (function () {
     if (w === stageDef.wavesPerStage) {
       var bossType = (typeof EnemyTypes !== 'undefined' && EnemyTypes.getBossForStage)
         ? EnemyTypes.getBossForStage(stageDef.id) : 'BOSS';
-      Enemies.spawnSingle(bossType, new THREE.Vector3(
-        player.position.x + (Math.random() - 0.5) * 20,
-        0,
-        player.position.z + 30 + Math.random() * 10
-      ));
+      var _bx = player.position.x + (Math.random() - 0.5) * 20;
+      var _bz = player.position.z + 30 + Math.random() * 10;
+      Enemies.spawnSingle(bossType, { x: _bx, z: _bz });
       HUD.notifyPickup('⚠ BOSS INCOMING: ' + (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType] ? EnemyTypes.TYPES[bossType].name : 'COMMANDER'), '#ff0000');
     }
 
@@ -3443,7 +3441,7 @@ const GameManager = (function () {
           var flushDist = 20 + Math.random() * 10;
           var flushX = campPos.x + Math.cos(flushAngle) * flushDist;
           var flushZ = campPos.z + Math.sin(flushAngle) * flushDist;
-          Enemies.spawnSingle('STORMER', new THREE.Vector3(flushX, 0, flushZ));
+          Enemies.spawnSingle('STORMER', { x: flushX, z: flushZ });
         }
       }
     }

@@ -160,9 +160,32 @@ const MissionTypes = (function () {
           }
         } catch (_eHVT) {}
         break;
-      case 'RESCUE':
-        missionProgress = { freed: 0, escorted: 0, freeing: false, freeProgress: 0 };
+      case 'RESCUE': {
+        // Place powCount POW positions in an arc around the zone — guards spawn at each
+        var _pows = [];
+        var _powCount = type.powCount || 3;
+        for (var _pi = 0; _pi < _powCount; _pi++) {
+          var _pa = (_pi / _powCount) * Math.PI * 2;
+          var _px = (activeMission.zoneX || 0) + Math.cos(_pa) * 7;
+          var _pz = (activeMission.zoneZ || 0) + Math.sin(_pa) * 7;
+          _pows.push({ x: _px, z: _pz, freed: false, freeProgress: 0 });
+          // Spawn 1-2 guards at each POW site
+          if (typeof window !== 'undefined' && window.Enemies && window.Enemies.spawnSingle) {
+            try {
+              var _gy = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight)
+                ? window.VoxelWorld.getTerrainHeight(_px, _pz) : 0;
+              window.Enemies.spawnSingle('STORMER', { x: _px + 2, z: _pz + 2 }, {
+                guardPost: { x: _px, y: _gy, z: _pz }, guardRadius: 6
+              });
+            } catch (_eg) {}
+          }
+        }
+        missionProgress = { freed: 0, freeing: false, freeProgress: 0, pows: _pows, activePow: -1 };
+        if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) {
+          window.HUD.showToast('🔓 RESCUE: Approach each POW and hold [F] to free them.', 5000, '#88ff88');
+        }
         break;
+      }
       case 'DEFUSE':
         missionProgress = { located: 0, defused: 0, defusing: false, defuseProgress: 0, detonationTimer: type.detonationTimer };
         break;
@@ -322,13 +345,28 @@ const MissionTypes = (function () {
         result.hvtLocated = missionProgress.hvtLocated;
         break;
 
-      case 'RESCUE':
+      case 'RESCUE': {
+        // Find nearest unfreed POW to player
+        var _nearPow = -1, _nearDist = 25; // 5m radius
+        if (missionProgress.pows) {
+          for (var _rpi = 0; _rpi < missionProgress.pows.length; _rpi++) {
+            var _rp = missionProgress.pows[_rpi];
+            if (_rp.freed) continue;
+            var _rpDx = playerPos.x - _rp.x, _rpDz = playerPos.z - _rp.z;
+            var _rpD = _rpDx * _rpDx + _rpDz * _rpDz;
+            if (_rpD < _nearDist) { _nearDist = _rpD; _nearPow = _rpi; }
+          }
+        }
+        missionProgress.activePow = _nearPow;
         result.freed = missionProgress.freed;
+        result.activePow = _nearPow;
+        result.pows = missionProgress.pows;
         if (missionProgress.freed >= cfg.powCount) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
         }
         break;
+      }
 
       case 'DEFUSE':
         missionProgress.detonationTimer -= dt;
@@ -421,13 +459,20 @@ const MissionTypes = (function () {
         break;
       case 'FREE_POW':
         if (m.type === 'RESCUE') {
-          missionProgress.freeProgress += data.dt / m.config.freeTime;
-          if (missionProgress.freeProgress >= 1) {
+          var _ap = missionProgress.activePow;
+          if (_ap < 0 || !missionProgress.pows || !missionProgress.pows[_ap] || missionProgress.pows[_ap].freed) {
+            return { freeing: false, noTarget: true };
+          }
+          missionProgress.pows[_ap].freeProgress = (missionProgress.pows[_ap].freeProgress || 0) + data.dt / m.config.freeTime;
+          if (missionProgress.pows[_ap].freeProgress >= 1) {
+            missionProgress.pows[_ap].freed = true;
             missionProgress.freed++;
-            missionProgress.freeProgress = 0;
+            if (typeof window !== 'undefined' && window.HUD && window.HUD.notifyPickup) {
+              window.HUD.notifyPickup('✅ POW FREED (' + missionProgress.freed + '/' + m.config.powCount + ')', '#88ff88');
+            }
             return { freed: missionProgress.freed };
           }
-          return { freeing: true, progress: missionProgress.freeProgress };
+          return { freeing: true, progress: missionProgress.pows[_ap].freeProgress };
         }
         break;
       case 'ESCORT_POW':
