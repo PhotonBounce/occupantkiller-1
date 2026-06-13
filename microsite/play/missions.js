@@ -342,15 +342,24 @@ const MissionSystem = (function () {
     },
     recon: {
       name: 'Drone Reconnaissance',
-      description: 'Scout {count} locations with a recon drone.',
+      description: 'Scout 3 locations with a recon drone. Fly drone within 10m of each target.',
       tier: 2,
       generate() {
+        var _playerPos = new THREE.Vector3(0, 0, 0);
+        try {
+          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+            var _p = GameManager.getPlayer();
+            if (_p && _p.position) _playerPos.copy(_p.position);
+          }
+        } catch (e) {}
         const points = [];
         for (let i = 0; i < 3; i++) {
+          var _angle = (i / 3) * Math.PI * 2 + Math.random() * 0.8;
+          var _dist = 30 + Math.random() * 40;
           points.push(new THREE.Vector3(
-            -40 + Math.random() * 80,
+            _playerPos.x + Math.cos(_angle) * _dist,
             10 + Math.random() * 10,
-            -40 + Math.random() * 80
+            _playerPos.z + Math.sin(_angle) * _dist
           ));
         }
         return {
@@ -359,12 +368,18 @@ const MissionSystem = (function () {
           scoutedPoints: points.map(function () { return false; }),
           scoutedCount: 0,
           targetCount: 3,
+          timeLimit: 180,
         };
       },
+      update(mission, delta) {
+        if (mission.scoutedCount < mission.targetCount) mission.timeLimit -= (delta || 0);
+      },
       check(mission) {
-        mission.objectiveText = `Drone Recon: ${mission.scoutedCount}/${mission.targetCount} scouted`;
+        var secs = Math.max(0, Math.ceil(mission.timeLimit));
+        mission.objectiveText = 'Drone Recon: ' + mission.scoutedCount + '/' + mission.targetCount + ' scouted (' + secs + 's)';
         return mission.scoutedCount >= mission.targetCount;
       },
+      failed(mission) { return mission.timeLimit <= 0 && mission.scoutedCount < mission.targetCount; },
     },
     defense: {
       name: 'Defensive Survival',
@@ -661,6 +676,7 @@ const MissionSystem = (function () {
     activeMissions.length = 0;
     completedMissions.length = 0;
     missionCount = 0;
+    activeSideObj = null;
   }
 
   /* ── Generate Mission ────────────────────────────────────────────── */
@@ -710,7 +726,8 @@ const MissionSystem = (function () {
     const weighted = [
       'clear_building', 'clear_building', 'clear_building',
       'defense', 'defense', 'recon', 'recon',
-      'gather', 'expand', 'escort', 'infiltrate',
+      'escort', 'escort', 'infiltrate', 'infiltrate',
+      'urban_breakout', 'urban_breakout', 'bradley_mission',
     ];
     let pick = weighted[Math.floor(Math.random() * weighted.length)];
     if (!TEMPLATES[pick]) pick = Object.keys(TEMPLATES)[0];

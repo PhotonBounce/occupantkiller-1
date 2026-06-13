@@ -237,6 +237,9 @@ const GameManager = (function () {
     waveHits: 0,
     waveHeadshots: 0,
     waveDamageTaken: 0,
+    waveMeleeKills: 0,
+    waveFirstKillTime: 999,
+    waveMaxExplosiveKill: 0,
     distanceWalked: 0,
     _lastPos: null,
     playStartTime: 0,
@@ -2924,6 +2927,9 @@ const GameManager = (function () {
     player.waveHits = 0;
     player.waveHeadshots = 0;
     player.waveDamageTaken = 0;
+    player.waveMeleeKills = 0;
+    player.waveFirstKillTime = 999;
+    player.waveMaxExplosiveKill = 0;
     player.distanceWalked = 0;
     player._lastPos = null;
     player.playStartTime = performance.now();
@@ -3341,6 +3347,19 @@ const GameManager = (function () {
     // Update HUD
     HUD.setStage(stageDef.id, stageDef.name);
     HUD.setWave(0);
+
+    // Clear stale missions from prior stage and seed a fresh stage-appropriate one
+    if (typeof MissionSystem !== 'undefined' && MissionSystem.init) MissionSystem.init();
+    if (typeof MissionSystem !== 'undefined' && !stageDef.droneOnly) {
+      if (stageDef.capitalDefense) {
+        MissionSystem.generateMission('kyiv_defense');
+      } else if (stageDef.id === 1) {
+        MissionSystem.generateMission('airborne_assault');
+      } else {
+        var _nsM = MissionSystem.generateRandom();
+        _autoReconDroneForMission(_nsM);
+      }
+    }
 
     hideOverlays();
     gameState = STATE.PLAYING;
@@ -3823,12 +3842,52 @@ const GameManager = (function () {
       if (currentWave >= 7) Progression.unlockJournalEntry('entry_mortar');
     }
 
-    // Reset wave stats (AFTER all tracking above)
+    // ── B28: Side objective check (must run BEFORE stats reset) ──
+    if (typeof MissionSystem !== 'undefined' && MissionSystem.checkSideObjective) {
+      var waveElapsed2 = (performance.now() - player.waveStartTime) / 1000;
+      var _ammoPercent = 50;
+      try {
+        var _wst = Weapons.getState(); var _wdef = Weapons.getCurrent();
+        if (_wst && _wdef && (_wdef.clipSize + _wdef.maxReserve) > 0)
+          _ammoPercent = Math.round((_wst.clip + _wst.reserve) / (_wdef.clipSize + _wdef.maxReserve) * 100);
+      } catch (e) {}
+      var sideResult = MissionSystem.checkSideObjective({
+        damageTaken: player.waveDamageTaken,
+        kills: player.waveKills,
+        headshots: player.waveHeadshots,
+        waveTime: waveElapsed2,
+        shotsFired: player.waveShots,
+        shotsHit: player.waveHits,
+        hpAtEnd: player.hp,
+        ammoPercent: _ammoPercent,
+        meleeKills: player.waveMeleeKills || 0,
+        firstKillTime: player.waveFirstKillTime || 0,
+        maxExplosiveKill: player.waveMaxExplosiveKill || 0,
+      });
+      if (sideResult && sideResult.completed) {
+        if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
+          Marketplace.awardCustomOKC(sideResult.reward, 'side_objective', {
+            name: sideResult.name || 'side-objective', wave: currentWave,
+          }).then(function () {
+            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+          });
+        } else if (typeof Marketplace !== 'undefined') {
+          Marketplace.addOKC(sideResult.reward);
+        }
+        HUD.notifyPickup('⭐ SIDE OBJ COMPLETE: ' + sideResult.name + ' (+' + sideResult.reward + ' OKC)', '#ffdd00');
+      }
+      if (MissionSystem.generateSideObjective) MissionSystem.generateSideObjective();
+    }
+
+    // Reset wave stats (AFTER side objective check so objectives have accurate data)
     player.waveKills = 0;
     player.waveShots = 0;
     player.waveHits = 0;
     player.waveHeadshots = 0;
     player.waveDamageTaken = 0;
+    player.waveMeleeKills = 0;
+    player.waveFirstKillTime = 999;
+    player.waveMaxExplosiveKill = 0;
 
     // ── Weapon unlock on wave clear: 1 new weapon per wave ──
     var newWep = Weapons.unlockNext();
@@ -3857,7 +3916,7 @@ const GameManager = (function () {
 
     // ── B27: Economy wave hooks ──
     if (typeof Economy !== 'undefined') {
-      Economy.produce(); // production cycle per wave
+      Economy.produce();
       if (Economy.processInvestments) Economy.processInvestments();
       if (Economy.triggerRandomEvent && Math.random() < 0.3) {
         Economy.triggerRandomEvent();
@@ -3865,30 +3924,6 @@ const GameManager = (function () {
         if (evt) HUD.notifyPickup('📢 ' + evt.name, '#ffaa00');
       }
       if (Economy.refreshBlackMarket) Economy.refreshBlackMarket();
-    }
-
-    // ── B28: Side objective check ──
-    if (typeof MissionSystem !== 'undefined' && MissionSystem.checkSideObjective) {
-      var waveElapsed2 = (performance.now() - player.waveStartTime) / 1000;
-      var sideResult = MissionSystem.checkSideObjective({
-        damageTaken: player.waveDamageTaken, kills: player.waveKills,
-        headshots: player.waveHeadshots, time: waveElapsed2,
-        accuracy: player.waveShots > 0 ? player.waveHits / player.waveShots : 0,
-        hp: player.hp, ammoRatio: 0.5, spotted: false, explosiveMulti: 0,
-      });
-      if (sideResult && sideResult.completed) {
-        if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
-          Marketplace.awardCustomOKC(sideResult.reward, 'side_objective', {
-            name: sideResult.name || 'side-objective', wave: currentWave,
-          }).then(function () {
-            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
-          });
-        } else if (typeof Marketplace !== 'undefined') {
-          Marketplace.addOKC(sideResult.reward);
-        }
-        HUD.notifyPickup('⭐ SIDE OBJ COMPLETE: ' + sideResult.name + ' (+' + sideResult.reward + ' OKC)', '#ffdd00');
-      }
-      if (MissionSystem.generateSideObjective) MissionSystem.generateSideObjective();
     }
 
     // ── B31: Achievement checks on wave clear ──
@@ -4717,6 +4752,7 @@ const GameManager = (function () {
       }
       player.kills++;
       player.waveKills++;
+      if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
       // Kill milestone banners — celebrate round numbers of total kills
       try {
         var _kMile = player.kills;
@@ -5942,6 +5978,11 @@ const GameManager = (function () {
         HUD._updateNPCTextPositions(NPCSystem.getAll(), _camera, _renderer);
       }
       DroneSystem.update(delta);
+      // Recon mission: check if possessed drone is near a scout target
+      if (typeof MissionSystem !== 'undefined' && MissionSystem.onDroneScout && DroneSystem.getPossessed) {
+        var _posDrone = DroneSystem.getPossessed();
+        if (_posDrone && _posDrone.alive && _posDrone.position) MissionSystem.onDroneScout(_posDrone.position);
+      }
       if (typeof ConvoySystem !== 'undefined') ConvoySystem.update(delta);
       if (typeof EnemyArtillery !== 'undefined') EnemyArtillery.update(delta);
       VehicleSystem.update(delta);

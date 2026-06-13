@@ -364,12 +364,18 @@ const MissionSystem = (function () {
           scoutedPoints: points.map(function () { return false; }),
           scoutedCount: 0,
           targetCount: 3,
+          timeLimit: 180,
         };
       },
+      update(mission, delta) {
+        if (mission.scoutedCount < mission.targetCount) mission.timeLimit -= (delta || 0);
+      },
       check(mission) {
-        mission.objectiveText = `Drone Recon: ${mission.scoutedCount}/${mission.targetCount} scouted`;
+        var secs = Math.max(0, Math.ceil(mission.timeLimit));
+        mission.objectiveText = 'Drone Recon: ' + mission.scoutedCount + '/' + mission.targetCount + ' scouted (' + secs + 's)';
         return mission.scoutedCount >= mission.targetCount;
       },
+      failed(mission) { return mission.timeLimit <= 0 && mission.scoutedCount < mission.targetCount; },
     },
     defense: {
       name: 'Defensive Survival',
