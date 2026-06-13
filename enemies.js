@@ -3024,6 +3024,11 @@ const Enemies = (() => {
           case 'BOSS_DONBAS':
           case 'BOSS_BELGOROD':
           case 'BOSS_KREMLIN':
+          case 'BOSS_KYIV':
+          case 'BOSS_SNAKE_ISLAND':
+          case 'BOSS_SAKY':
+          case 'BOSS_VUHLEDAR':
+          case 'BOSS_ANTONOV':
             etResult = EnemyTypes.updateBoss(e, playerPos, delta, wave || 1);
             if (etResult) {
               if (etResult.summon) {
