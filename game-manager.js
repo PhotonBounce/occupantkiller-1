@@ -3859,7 +3859,8 @@ const GameManager = (function () {
     }
     // Spawn a random mission type every 3 waves
     // ASSAULT_DUGOUTS excluded — it pre-spawns 16 extra garrison enemies which spikes difficulty mid-wave.
-    if (w % 3 === 0 && typeof MissionTypes !== 'undefined') {
+    // Only start if no scripted mission already active (avoids silently overwriting in-progress missions).
+    if (w % 3 === 0 && typeof MissionTypes !== 'undefined' && !MissionTypes.getActive()) {
       var _mSafeTypes = ['DEMOLITION', 'CAPTURE_ZONE', 'ASSASSINATION', 'RESCUE', 'DEFUSE'];
       var mType = _mSafeTypes[Math.floor(Math.random() * _mSafeTypes.length)];
       MissionTypes.startMission(mType, player.position.x + (Math.random() - 0.5) * 40, player.position.z + (Math.random() - 0.5) * 40);
@@ -6867,7 +6868,7 @@ const GameManager = (function () {
                     _objTxt = 'POWs freed: ' + (missionResult.freed || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.powCount : 3);
                     break;
                   case 'DEFUSE':
-                    _objTxt = 'Bombs defused: ' + (missionResult.defused || 0) + '/3 · Detonation in ' + Math.ceil(missionResult.detonationTimer || 0) + 's';
+                    _objTxt = 'Bombs defused: ' + (missionResult.defused || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.bombCount : 3) + ' · Detonation in ' + Math.ceil(missionResult.detonationTimer || 0) + 's';
                     break;
                   case 'ASSAULT_DUGOUTS':
                     _objTxt = 'Dugouts: ' + (missionResult.dugoutsCleared || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.dugoutCount : 4);
