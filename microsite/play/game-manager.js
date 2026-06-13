@@ -3405,6 +3405,7 @@ const GameManager = (function () {
     player._waveStartCount = 0; // reset before any early-return path (droneOnly etc.)
     player.waveStartTime = performance.now();
     player._secondWindTriggered = false;
+    if (typeof MissionSystem !== 'undefined' && MissionSystem.generateSideObjective && !MissionSystem.getSideObjective()) MissionSystem.generateSideObjective();
     const stageDef = STAGES[currentStage];
     const mlDiff = MLSystem.getDifficultyMult();
 
@@ -3445,6 +3446,9 @@ const GameManager = (function () {
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
+    // Announce side objective so player knows what bonus to aim for this wave
+    var _sideObj = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
+    if (_sideObj && HUD.notifyPickup) HUD.notifyPickup('⭐ SIDE OBJ: ' + _sideObj.name + ' — ' + _sideObj.desc + ' (+' + _sideObj.reward + ' OKC)', '#ffcc00');
 
     // ═══ Stage Boss on final wave ═══
     if (w === stageDef.wavesPerStage) {
@@ -6112,8 +6116,9 @@ const GameManager = (function () {
             : ((_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' enemies left');
           HUD.setPrimaryObjective('🎯 ' + (_poMission[0].name || 'MISSION'), _poProg);
         } else if (_poAlive > 0) {
-          HUD.setPrimaryObjective('⚔ ELIMINATE THE OCCUPANTS',
-            (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' left');
+          var _poSide = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
+          var _poBase = (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' left';
+          HUD.setPrimaryObjective('⚔ ELIMINATE THE OCCUPANTS', _poSide ? _poBase + ' · ⭐ ' + _poSide.name : _poBase);
         } else {
           HUD.setPrimaryObjective('✓ AREA SECURED', 'Next wave incoming — hold the line');
         }
@@ -6133,6 +6138,9 @@ const GameManager = (function () {
           }
           else if (_md.landingZones && _md.landingZones.length) {           // airborne: current LZ
             _wpT = _md.landingZones[(_md.completedWaves || 0) % _md.landingZones.length];
+          }
+          else if (_md.spawnPositions && _md.spawnPositions.length) {     // bradley: ambush center
+            _wpT = _md.spawnPositions[Math.floor(_md.spawnPositions.length / 2)];
           }
         }
         // MissionTypes scripted missions (RESCUE, DEFUSE, DEMOLITION, etc.)
