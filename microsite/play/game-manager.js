@@ -3450,11 +3450,13 @@ const GameManager = (function () {
 
     // Respawn organized assault groups on new terrain (BRIGADE role only)
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
     if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
 
     // ── Urban stages: spawn Ukrainian civilian/infantry NPCs inside buildings ──
     if (stageDef && (stageDef.theme === 'urban' || stageDef.theme === 'cityscape') &&
-        typeof VoxelWorld !== 'undefined' && VoxelWorld.getBuildings) {
+        typeof VoxelWorld !== 'undefined' && VoxelWorld.getBuildings &&
+        typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
       var _urbBuildings = VoxelWorld.getBuildings();
       for (var _ubi = 0; _ubi < _urbBuildings.length; _ubi++) {
         var _ubb = _urbBuildings[_ubi];
@@ -3597,6 +3599,11 @@ const GameManager = (function () {
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
+    // Announce enemy's randomly chosen formation as an intel report
+    var _enemyForms = ['WEDGE', 'LINE', 'COLUMN', 'STAGGERED'];
+    var _eFLabel = ['▲ WEDGE', '━ LINE', '| COLUMN', '⋮ STAGGERED'];
+    var _efi = (w + stageDef.id + Math.floor(Math.random() * 2)) % _enemyForms.length;
+    if (HUD.notifyPickup) HUD.notifyPickup('INTEL: Enemy formation — ' + _eFLabel[_efi], '#ff8800');
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
     // Announce side objective so player knows what bonus to aim for this wave
     var _sideObj = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
@@ -3666,6 +3673,20 @@ const GameManager = (function () {
     var capitalDefense = !!(stageDef && stageDef.capitalDefense);
     if (capitalDefense && typeof ConvoySystem !== 'undefined') {
       ConvoySystem.spawnConvoy(w, { route: 'north' });
+      // Waves 3+: flanking infantry squads from the sides of the approach
+      if (w >= 3 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+        var _flankSide = (w % 2 === 0) ? 1 : -1;
+        var _flankPositions = [
+          { x: _flankSide * 38, z: 60 }, { x: _flankSide * 42, z: 80 },
+          { x: _flankSide * 36, z: 100 },
+        ];
+        for (var _fi = 0; _fi < _flankPositions.length; _fi++) {
+          var _fp = _flankPositions[_fi];
+          var _fType = (_fi === 0) ? 'STORMER' : (_fi === 1 ? 'CONSCRIPT' : 'ENGINEER');
+          Enemies.spawnSingle(_fType, { x: _fp.x, z: _fp.z });
+        }
+        if (w === 3) HUD.notifyPickup('⚠ FLANKING ASSAULT — PROTECT YOUR SIDES!', '#ff4444');
+      }
       // Waves 4 and 7: second column on a flanking axis
       if (w === 4) ConvoySystem.spawnConvoy(w, { route: 'east', tanks: 2, btrs: 1 });
       if (w === 7) ConvoySystem.spawnConvoy(w, { route: 'west', tanks: 3, btrs: 1 });
@@ -3674,6 +3695,47 @@ const GameManager = (function () {
       // engages armor with MAM-L; respects its own 90s rearm cooldown).
       if (typeof DroneSystem !== 'undefined' && DroneSystem.callBayraktar) {
         DroneSystem.callBayraktar();
+      }
+      // Building snipers — enemy sharpshooters occupy the apartment rooftops
+      // along the approach corridor. Spawn 2-4 snipers per wave from wave 2+.
+      if (w >= 2 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+        var _kyivBuildingPos = [
+          { x: -14, z: 137 }, { x:  8, z: 139 }, { x: -14, z: 158 },
+          { x:  8, z: 160 },  { x: -12, z: 180 }, { x: 10, z: 182 },
+        ];
+        var _snipersThisWave = Math.min(2 + Math.floor(w / 2), 4);
+        for (var _si = 0; _si < _snipersThisWave; _si++) {
+          var _sb = _kyivBuildingPos[(_si + w) % _kyivBuildingPos.length];
+          var _sby = (VoxelWorld.getTopSolidY ? VoxelWorld.getTopSolidY(_sb.x, _sb.z) : VoxelWorld.getTerrainHeight(_sb.x, _sb.z) + 5);
+          Enemies.spawnSingle('SNIPER', new THREE.Vector3(_sb.x, _sby, _sb.z));
+        }
+        if (w === 2) HUD.notifyPickup('⚠ SNIPERS IN BUILDINGS — CLEAR THE ROOFTOPS!', '#ff6622');
+      }
+      // Wave 5+: FPV drone operators appear on building rooftops
+      if (w >= 5 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+        var _dronePosRooftops = [
+          { x: -14, z: 137 }, { x: 8,  z: 160 },
+          { x: -16, z: 178 }, { x: 10, z: 139 },
+        ];
+        var _droneOpsCount = Math.min(1 + Math.floor((w - 5) / 2), 3);
+        for (var _doi = 0; _doi < _droneOpsCount; _doi++) {
+          var _dp = _dronePosRooftops[(_doi + w) % _dronePosRooftops.length];
+          var _dpy = (VoxelWorld.getTopSolidY ? VoxelWorld.getTopSolidY(_dp.x, _dp.z) : VoxelWorld.getTerrainHeight(_dp.x, _dp.z) + 5);
+          try { Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_dp.x, _dpy, _dp.z)); } catch(e) {}
+        }
+        if (w === 5) HUD.notifyPickup('⚡ FPV DRONE OPERATORS SPOTTED — ELIMINATE THEM!', '#ff8800');
+      }
+      // Wave 6+: Grad/Uragan artillery salvo warning — area denial for ~8s
+      if (w >= 6 && typeof HUD !== 'undefined') {
+        HUD.notifyPickup('💥 INCOMING GRAD SALVO — TAKE COVER!', '#ff2222');
+        if (typeof VoxelWorld !== 'undefined' && VoxelWorld.setBlock) {
+          for (var _gs = 0; _gs < 4; _gs++) {
+            var _gx = (Math.random() - 0.5) * 20;
+            var _gz = 40 + Math.random() * 80;
+            var _gy = VoxelWorld.getTerrainHeight(_gx, _gz);
+            try { VoxelWorld.setBlock(Math.round(_gx), _gy + 1, Math.round(_gz), window.BLOCK ? window.BLOCK.FIRE : 37); } catch(e) {}
+          }
+        }
       }
       // Resupply: AT weapons carry 1+3 rockets — drop ammo crates at the
       // defended line each wave so launchers stay fed.
@@ -3945,6 +4007,7 @@ const GameManager = (function () {
       else if (_sid === 15) HUD.notifyPickup('📡 GRAB A JAMMER RIFLE — HEAVY DRONE PRESENCE!', '#ff6600');
       else if (_sid === 16) HUD.notifyPickup('⚰ TANK GRAVEYARD — USE MINES AND ANTI-TANK WEAPONS!', '#ff8800');
       else if (_sid === 17) HUD.notifyPickup('🎯 ARTILLERY DUELS — PRECISION WEAPONS REQUIRED. WATCH YOUR RANGE!', '#ffcc44');
+      else if (_sid === 18) HUD.notifyPickup('💥 FPV DRONE ARMED — FLY INTO THE REFINERY. NO SECOND CHANCES!', '#ff6600');
     }
     // Belgorod (id 11): extra BTR spawn at wave 1 to reflect armored counter-attack
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 11 && !capitalDefense && typeof VehicleSystem !== 'undefined') {

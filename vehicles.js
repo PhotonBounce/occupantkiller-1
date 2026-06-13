@@ -449,7 +449,11 @@ const VehicleSystem = (function () {
   function attachPlayerBody(vehicle) {
     if (!_scene) return;
     if (_playerBodyMesh) {
-      _scene.remove(_playerBodyMesh);
+      if (_playerBodyMesh.parent) _playerBodyMesh.parent.remove(_playerBodyMesh);
+      _playerBodyMesh.traverse(function (c) {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) c.material.dispose();
+      });
       _playerBodyMesh = null;
     }
     _playerBodyMesh = buildPlayerBodyMesh();
