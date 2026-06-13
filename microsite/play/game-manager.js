@@ -7944,6 +7944,7 @@ const GameManager = (function () {
   var _MISSION_ICONS = {
     gather: '📦', expand: '🏗', recon: '🛰', defense: '🛡', escort: '🚐',
     infiltrate: '🕵', clear_building: '🏚', assassinate: '🎯', sabotage: '💥',
+    airborne_assault: '🪂', urban_breakout: '🏃', bradley_mission: '🚛', kyiv_defense: '🏛',
   };
   function _openMissionBoard() {
     if (typeof MissionSystem === 'undefined' || !MissionSystem.TEMPLATES) return;
