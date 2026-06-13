@@ -281,7 +281,7 @@ const GameManager = (function () {
     { id: 'SNIPER_DUEL',   label: '🎯 SNIPER DUEL!',           color: '#ffaa00', chance: 0.08 },
     { id: 'ARMOR_PUSH',    label: '🛡 ENEMY ARMOR PUSH!',      color: '#cc0000', chance: 0.07 },
     { id: 'AIR_SUPPORT',   label: '✈ FRIENDLY AIR SUPPORT!',   color: '#00aaff', chance: 0.08 },
-    { id: 'DRONE_SWARM',   label: '🤖 ENEMY DRONE SWARM!',     color: '#ff4488', chance: 0.07 },
+    { id: 'DRONE_SWARM',   label: '🤖 FPV DRONE SUPPORT!',      color: '#44ffcc', chance: 0.07 },
     { id: 'CHEMICAL',       label: '☣ CHEMICAL ATTACK!',       color: '#aaff00', chance: 0.05 },
     { id: 'EMP',            label: '⚡ EMP BLAST!',             color: '#4400ff', chance: 0.04 },
     { id: 'TUNNEL_BREACH',  label: '🕳 TUNNEL BREACH!',        color: '#884400', chance: 0.06 },
@@ -301,13 +301,14 @@ const GameManager = (function () {
 
     switch (event.id) {
       case 'ARTILLERY':
-        // Damage enemies in a random area
+        // Damage enemies in a random area + screen shake
         for (let i = 0; i < 5; i++) {
           const bx = player.position.x + (Math.random() - 0.5) * 30;
           const bz = player.position.z + (Math.random() - 0.5) * 30;
           const bh = window.VoxelWorld.getTerrainHeight(bx, bz);
           Enemies.damageInRadius(new THREE.Vector3(bx, bh, bz), 5, 40);
         }
+        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.06, 0.8);
         break;
       case 'SUPPLY_DROP':
         // Drop pickups near player
@@ -320,12 +321,13 @@ const GameManager = (function () {
         }
         break;
       case 'MORTAR':
-        // Single large explosion near enemies
+        // Single large explosion near enemies + screen shake
         const all = Enemies.getAll();
         if (all.length > 0) {
           const target = all[Math.floor(Math.random() * all.length)];
           if (target.alive && target.mesh) {
             Enemies.damageInRadius(target.mesh.position, 8, 80);
+            if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.1, 0.6);
           }
         }
         break;
@@ -407,9 +409,10 @@ const GameManager = (function () {
         }
         break;
       case 'EMP':
-        // EMP: disables enemy drones temporarily, damages drone ops
+        // EMP: destroys kamikaze drones, severely damages drone operators
         Enemies.getAll().forEach(function (e) {
-          if (e.typeName === 'DRONE_OP') Enemies.damage(e, 30);
+          if (e.typeName === 'DRONE_OP') Enemies.damage(e, 80);
+          else if (e.typeName === 'KAMIKAZE_DRONE') Enemies.damage(e, 999);
         });
         break;
       case 'TUNNEL_BREACH':
