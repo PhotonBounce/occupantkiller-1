@@ -133,14 +133,77 @@ const MissionTypes = (function () {
         missionProgress = { holdTimer: 0, inZone: false };
         break;
       case 'ASSASSINATION':
-        missionProgress = { hvtLocated: false, hvtDead: false, hvtHP: type.hvtHP };
+        missionProgress = { hvtLocated: false, hvtDead: false, hvtHP: type.hvtHP, hvtEnemyId: null };
+        try {
+          if (typeof window !== 'undefined' && window.Enemies && window.Enemies.spawnSingle) {
+            var _hvtY = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight)
+              ? window.VoxelWorld.getTerrainHeight(activeMission.zoneX, activeMission.zoneZ) : 0;
+            var _hvt = window.Enemies.spawnSingle('OFFICER',
+              { x: activeMission.zoneX, y: _hvtY + 1, z: activeMission.zoneZ });
+            if (_hvt) {
+              _hvt.hp = type.hvtHP; _hvt.maxHp = type.hvtHP;
+              missionProgress.hvtEnemyId = _hvt.id;
+            }
+            var _bgCount = type.bodyguardCount || 4;
+            for (var _bg = 0; _bg < _bgCount; _bg++) {
+              var _bga = (_bg / _bgCount) * Math.PI * 2;
+              var _bgx = activeMission.zoneX + Math.cos(_bga) * (5 + Math.random() * 3);
+              var _bgz = activeMission.zoneZ + Math.sin(_bga) * (5 + Math.random() * 3);
+              var _bgy = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight)
+                ? window.VoxelWorld.getTerrainHeight(_bgx, _bgz) : 0;
+              window.Enemies.spawnSingle('STORMER', { x: _bgx, y: _bgy + 1, z: _bgz },
+                { guardPost: { x: activeMission.zoneX, y: _hvtY, z: activeMission.zoneZ }, guardRadius: 10 });
+            }
+            if (window.HUD && window.HUD.showToast) {
+              window.HUD.showToast('🎯 HVT LOCATED — Eliminate the Russian Officer and bodyguards.', 5000, '#ff4444');
+            }
+          }
+        } catch (_eHVT) {}
         break;
-      case 'RESCUE':
-        missionProgress = { freed: 0, escorted: 0, freeing: false, freeProgress: 0 };
+      case 'RESCUE': {
+        // Place powCount POW positions in an arc around the zone — guards spawn at each
+        var _pows = [];
+        var _powCount = type.powCount || 3;
+        for (var _pi = 0; _pi < _powCount; _pi++) {
+          var _pa = (_pi / _powCount) * Math.PI * 2;
+          var _px = (activeMission.zoneX || 0) + Math.cos(_pa) * 7;
+          var _pz = (activeMission.zoneZ || 0) + Math.sin(_pa) * 7;
+          _pows.push({ x: _px, z: _pz, freed: false, freeProgress: 0 });
+          // Spawn 1-2 guards at each POW site
+          if (typeof window !== 'undefined' && window.Enemies && window.Enemies.spawnSingle) {
+            try {
+              var _gy = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight)
+                ? window.VoxelWorld.getTerrainHeight(_px, _pz) : 0;
+              window.Enemies.spawnSingle('STORMER', { x: _px + 2, z: _pz + 2 }, {
+                guardPost: { x: _px, y: _gy, z: _pz }, guardRadius: 6
+              });
+            } catch (_eg) {}
+          }
+        }
+        missionProgress = { freed: 0, freeing: false, freeProgress: 0, pows: _pows, activePow: -1 };
+        if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) {
+          window.HUD.showToast('🔓 RESCUE: Approach each POW and hold [F] to free them.', 5000, '#88ff88');
+        }
         break;
-      case 'DEFUSE':
-        missionProgress = { located: 0, defused: 0, defusing: false, defuseProgress: 0, detonationTimer: type.detonationTimer };
+      }
+      case 'DEFUSE': {
+        // Place bombCount bombs at distinct positions around the zone
+        var _bombs = [];
+        var _bombCount = type.bombCount || 3;
+        for (var _bi = 0; _bi < _bombCount; _bi++) {
+          var _ba = (_bi / _bombCount) * Math.PI * 2 + 0.3;
+          _bombs.push({
+            x: (activeMission.zoneX || 0) + Math.cos(_ba) * 8,
+            z: (activeMission.zoneZ || 0) + Math.sin(_ba) * 8,
+            defused: false, defuseProgress: 0
+          });
+        }
+        missionProgress = { located: 0, defused: 0, defusing: false, detonationTimer: type.detonationTimer, bombs: _bombs, activeBomb: -1 };
+        if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) {
+          window.HUD.showToast('⏱️ DEFUSE: Locate 3 bombs and hold [F] to defuse each. ' + type.detonationTimer + 's until detonation!', 6000, '#ffcc00');
+        }
         break;
+      }
       case 'ASSAULT_DUGOUTS':
         missionProgress = {
           dugoutsCleared: 0, reachedFirst: false, holdTimer: 0,
@@ -176,7 +239,7 @@ const MissionTypes = (function () {
                 var oz = dz + Math.sin(ang2) * rad2;
                 // First defender = sentry at center; others split GUARD/PATROL
                 var role = (gi === 0) ? 'SENTRY' : ((gi % 2 === 0) ? 'GUARD' : 'PATROL');
-                var unitType = (gi === 0) ? 'RIFLEMAN' : 'CONSCRIPT'; // sentry slightly tougher
+                var unitType = (gi === 0) ? 'STORMER' : 'CONSCRIPT';
                 try {
                   window.Enemies.spawnSingle(unitType, { x: ox, z: oz }, {
                     guardPost: { x: dx, y: dy, z: dz },
@@ -227,7 +290,19 @@ const MissionTypes = (function () {
         const inZone = dx * dx + dz * dz < cfg.zoneRadius * cfg.zoneRadius;
         missionProgress.inZone = inZone;
         if (inZone) {
-          missionProgress.holdTimer += dt;
+          var contested = false;
+          if (cfg.contestPause && typeof window !== 'undefined' && window.Enemies && window.Enemies.getAll) {
+            var _zEnemies = window.Enemies.getAll();
+            for (var _zi = 0; _zi < _zEnemies.length; _zi++) {
+              var _ze = _zEnemies[_zi];
+              if (!_ze || !_ze.alive || !_ze.mesh) continue;
+              var _zdx = _ze.mesh.position.x - m.zoneX;
+              var _zdz = _ze.mesh.position.z - m.zoneZ;
+              if (_zdx * _zdx + _zdz * _zdz < cfg.zoneRadius * cfg.zoneRadius) { contested = true; break; }
+            }
+          }
+          if (!contested) missionProgress.holdTimer += dt;
+          result.contested = contested;
         }
         result.holdProgress = missionProgress.holdTimer / cfg.holdTime;
         result.inZone = inZone;
@@ -239,6 +314,15 @@ const MissionTypes = (function () {
       }
 
       case 'DEMOLITION':
+        if (missionProgress.planted && !missionProgress.escaped) {
+          var _demDx = playerPos.x - m.zoneX, _demDz = playerPos.z - m.zoneZ;
+          if (_demDx * _demDx + _demDz * _demDz > 625) { // 25 units away
+            missionProgress.escaped = true;
+            if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) {
+              window.HUD.showToast('💥 CHARGE DETONATED — BLAST ZONE CLEARED!', 4000, '#ff8800');
+            }
+          }
+        }
         if (missionProgress.planted && missionProgress.escaped) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
@@ -248,6 +332,26 @@ const MissionTypes = (function () {
         break;
 
       case 'ASSASSINATION':
+        // Auto-locate: entering zone radius * 2 reveals HVT
+        if (!missionProgress.hvtLocated) {
+          var _aDx = playerPos.x - m.zoneX, _aDz = playerPos.z - m.zoneZ;
+          var _aZr = (cfg.zoneRadius || 8) * 2;
+          if (_aDx * _aDx + _aDz * _aDz < _aZr * _aZr) missionProgress.hvtLocated = true;
+        }
+        // Track HVT alive status by enemy ID
+        if (missionProgress.hvtEnemyId !== null && typeof window !== 'undefined' && window.Enemies && window.Enemies.getAll) {
+          var _hvtList = window.Enemies.getAll();
+          var _hvtRef = null;
+          for (var _hi = 0; _hi < _hvtList.length; _hi++) {
+            if (_hvtList[_hi] && _hvtList[_hi].id === missionProgress.hvtEnemyId) { _hvtRef = _hvtList[_hi]; break; }
+          }
+          if (_hvtRef) {
+            missionProgress.hvtHP = _hvtRef.hp;
+            missionProgress.hvtLocated = true;
+          } else {
+            missionProgress.hvtDead = true;
+          }
+        }
         if (missionProgress.hvtDead) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
@@ -256,28 +360,66 @@ const MissionTypes = (function () {
         result.hvtLocated = missionProgress.hvtLocated;
         break;
 
-      case 'RESCUE':
+      case 'RESCUE': {
+        // Find nearest unfreed POW to player
+        var _nearPow = -1, _nearDist = 25; // 5m radius
+        if (missionProgress.pows) {
+          for (var _rpi = 0; _rpi < missionProgress.pows.length; _rpi++) {
+            var _rp = missionProgress.pows[_rpi];
+            if (_rp.freed) continue;
+            var _rpDx = playerPos.x - _rp.x, _rpDz = playerPos.z - _rp.z;
+            var _rpD = _rpDx * _rpDx + _rpDz * _rpDz;
+            if (_rpD < _nearDist) { _nearDist = _rpD; _nearPow = _rpi; }
+          }
+        }
+        missionProgress.activePow = _nearPow;
         result.freed = missionProgress.freed;
-        result.escorted = missionProgress.escorted;
-        if (missionProgress.escorted >= cfg.powCount) {
+        result.activePow = _nearPow;
+        result.pows = missionProgress.pows;
+        if (missionProgress.freed >= cfg.powCount) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
         }
         break;
+      }
 
-      case 'DEFUSE':
+      case 'DEFUSE': {
         missionProgress.detonationTimer -= dt;
         if (missionProgress.detonationTimer <= 0) {
+          // All undefused bombs blow up — deal blast damage to player
+          if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) {
+            window.HUD.showToast('💥 BOMBS DETONATED!', 4000, '#ff2222');
+          }
           m.state = 'FAILED';
           return { ...result, state: 'FAILED', reason: 'DETONATION' };
         }
+        // Find nearest undefused bomb
+        var _nearBomb = -1, _nearBombD = 36; // 6m radius
+        if (missionProgress.bombs) {
+          for (var _dbi = 0; _dbi < missionProgress.bombs.length; _dbi++) {
+            var _db = missionProgress.bombs[_dbi];
+            if (_db.defused) continue;
+            var _dbDx = playerPos.x - _db.x, _dbDz = playerPos.z - _db.z;
+            var _dbD = _dbDx * _dbDx + _dbDz * _dbDz;
+            if (_dbD < _nearBombD) { _nearBombD = _dbD; _nearBomb = _dbi; }
+          }
+        }
+        missionProgress.activeBomb = _nearBomb;
+        // Auto-locate: entering 6m of any bomb marks it located
+        if (_nearBomb >= 0 && missionProgress.located <= _nearBomb) missionProgress.located = _nearBomb + 1;
         result.defused = missionProgress.defused;
         result.detonationTimer = missionProgress.detonationTimer;
+        result.activeBomb = _nearBomb;
+        result.bombs = missionProgress.bombs;
+        // Expose active bomb's defuse progress for HUD display
+        result.defuseProgress = (_nearBomb >= 0 && missionProgress.bombs[_nearBomb])
+          ? (missionProgress.bombs[_nearBomb].defuseProgress || 0) : 0;
         if (missionProgress.defused >= cfg.bombCount) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
         }
         break;
+      }
 
       case 'ASSAULT_DUGOUTS':
         result.dugoutsCleared = missionProgress.dugoutsCleared;
@@ -355,13 +497,20 @@ const MissionTypes = (function () {
         break;
       case 'FREE_POW':
         if (m.type === 'RESCUE') {
-          missionProgress.freeProgress += data.dt / m.config.freeTime;
-          if (missionProgress.freeProgress >= 1) {
+          var _ap = missionProgress.activePow;
+          if (_ap < 0 || !missionProgress.pows || !missionProgress.pows[_ap] || missionProgress.pows[_ap].freed) {
+            return { freeing: false, noTarget: true };
+          }
+          missionProgress.pows[_ap].freeProgress = (missionProgress.pows[_ap].freeProgress || 0) + data.dt / m.config.freeTime;
+          if (missionProgress.pows[_ap].freeProgress >= 1) {
+            missionProgress.pows[_ap].freed = true;
             missionProgress.freed++;
-            missionProgress.freeProgress = 0;
+            if (typeof window !== 'undefined' && window.HUD && window.HUD.notifyPickup) {
+              window.HUD.notifyPickup('✅ POW FREED (' + missionProgress.freed + '/' + m.config.powCount + ')', '#88ff88');
+            }
             return { freed: missionProgress.freed };
           }
-          return { freeing: true, progress: missionProgress.freeProgress };
+          return { freeing: true, progress: missionProgress.pows[_ap].freeProgress };
         }
         break;
       case 'ESCORT_POW':
@@ -372,13 +521,20 @@ const MissionTypes = (function () {
         break;
       case 'DEFUSE_BOMB':
         if (m.type === 'DEFUSE') {
-          missionProgress.defuseProgress += data.dt / m.config.defuseTime;
-          if (missionProgress.defuseProgress >= 1) {
+          var _ab = missionProgress.activeBomb;
+          if (_ab < 0 || !missionProgress.bombs || !missionProgress.bombs[_ab] || missionProgress.bombs[_ab].defused) {
+            return { defusing: false, noTarget: true };
+          }
+          missionProgress.bombs[_ab].defuseProgress = (missionProgress.bombs[_ab].defuseProgress || 0) + data.dt / m.config.defuseTime;
+          if (missionProgress.bombs[_ab].defuseProgress >= 1) {
+            missionProgress.bombs[_ab].defused = true;
             missionProgress.defused++;
-            missionProgress.defuseProgress = 0;
+            if (typeof window !== 'undefined' && window.HUD && window.HUD.notifyPickup) {
+              window.HUD.notifyPickup('✅ BOMB DEFUSED (' + missionProgress.defused + '/' + m.config.bombCount + ')', '#88ff88');
+            }
             return { defused: missionProgress.defused };
           }
-          return { defusing: true, progress: missionProgress.defuseProgress };
+          return { defusing: true, progress: missionProgress.bombs[_ab].defuseProgress };
         }
         break;
       case 'CLEAR_DUGOUT':

@@ -1601,13 +1601,41 @@ const GameManager = (function () {
                 HUD.notifyPickup('\ud83d\udca3 PLANTING CHARGE...', '#ff8800');
                 fHandled = true;
               } else if (mt.config.id === 'RESCUE') {
-                MissionTypes.interact('FREE_POW', { dt: 0.5 });
-                HUD.notifyPickup('\ud83d\udd13 FREEING POW...', '#88ff88');
-                fHandled = true;
+                var _mtr = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+                var _nearPowDist = 999;
+                if (_mtr && _mtr.pows) {
+                  for (var _mpi = 0; _mpi < _mtr.pows.length; _mpi++) {
+                    var _mp = _mtr.pows[_mpi];
+                    if (_mp.freed) continue;
+                    var _mdx2 = player.position.x - _mp.x, _mdz2 = player.position.z - _mp.z;
+                    _nearPowDist = Math.min(_nearPowDist, _mdx2 * _mdx2 + _mdz2 * _mdz2);
+                  }
+                }
+                if (_nearPowDist < 25) {
+                  var _fr = MissionTypes.interact('FREE_POW', { dt: 0.5 });
+                  if (!(_fr && _fr.noTarget)) {
+                    HUD.notifyPickup('\ud83d\udd13 FREEING POW...', '#88ff88');
+                  }
+                  fHandled = true;
+                }
               } else if (mt.config.id === 'DEFUSE') {
-                MissionTypes.interact('DEFUSE_BOMB', { dt: 0.5 });
-                HUD.notifyPickup('\u23f1\ufe0f DEFUSING...', '#ffcc00');
-                fHandled = true;
+                var _mtp = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+                var _nearBombDist = 999;
+                if (_mtp && _mtp.bombs) {
+                  for (var _dmi = 0; _dmi < _mtp.bombs.length; _dmi++) {
+                    var _dm = _mtp.bombs[_dmi];
+                    if (_dm.defused) continue;
+                    var _ddx = player.position.x - _dm.x, _ddz = player.position.z - _dm.z;
+                    _nearBombDist = Math.min(_nearBombDist, _ddx * _ddx + _ddz * _ddz);
+                  }
+                }
+                if (_nearBombDist < 36) {
+                  var _dr = MissionTypes.interact('DEFUSE_BOMB', { dt: 0.5 });
+                  if (!(_dr && _dr.noTarget)) {
+                    HUD.notifyPickup('\u23f1\ufe0f DEFUSING...', '#ffcc00');
+                  }
+                  fHandled = true;
+                }
               }
             }
             } // end mt && mt.config
@@ -3346,6 +3374,7 @@ const GameManager = (function () {
       if (gameState !== STATE.PLAYING && gameState !== STATE.BUILD_MODE) return;
     }
     currentWave = w;
+    player._waveStartCount = 0; // reset before any early-return path (droneOnly etc.)
     player.waveStartTime = performance.now();
     player._secondWindTriggered = false;
     const stageDef = STAGES[currentStage];
@@ -3387,8 +3416,6 @@ const GameManager = (function () {
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
-    // Track initial wave enemy count for progress bar
-    player._waveStartCount = Enemies.getAliveCount();
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
 
     // ═══ Stage Boss on final wave ═══
@@ -3685,6 +3712,9 @@ const GameManager = (function () {
     if (typeof CombatExtras !== 'undefined') {
       CombatExtras.reset();
     }
+    // Capture total after ALL spawning for correct progress bar denominator
+    player._waveStartCount = Enemies.getAliveCount();
+    HUD.announceWave(w, player._waveStartCount, stageDef.wavesPerStage);
   }
 
   function onWaveComplete() {
@@ -6040,6 +6070,37 @@ const GameManager = (function () {
             _wpT = _md.landingZones[(_md.completedWaves || 0) % _md.landingZones.length];
           }
         }
+        // MissionTypes scripted missions (RESCUE, DEFUSE, DEMOLITION, etc.)
+        if (!_wpT && typeof MissionTypes !== 'undefined' && MissionTypes.getActive && MissionTypes.getActive()) {
+          var _mt = MissionTypes.getActive();
+          if (_mt.config && _mt.config.id === 'RESCUE') {
+            var _mpProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+            if (_mpProg && _mpProg.pows) {
+              for (var _wpi = 0; _wpi < _mpProg.pows.length; _wpi++) {
+                if (!_mpProg.pows[_wpi].freed) {
+                  var _wpow = _mpProg.pows[_wpi];
+                  _wpT = { x: _wpow.x, y: VoxelWorld.getTerrainHeight(_wpow.x, _wpow.z), z: _wpow.z };
+                  break;
+                }
+              }
+            }
+          }
+          if (!_wpT && _mt.config && _mt.config.id === 'DEFUSE') {
+            var _mfProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+            if (_mfProg && _mfProg.bombs) {
+              for (var _wbi = 0; _wbi < _mfProg.bombs.length; _wbi++) {
+                if (!_mfProg.bombs[_wbi].defused) {
+                  var _wbomb = _mfProg.bombs[_wbi];
+                  _wpT = { x: _wbomb.x, y: VoxelWorld.getTerrainHeight(_wbomb.x, _wbomb.z), z: _wbomb.z };
+                  break;
+                }
+              }
+            }
+          }
+          if (!_wpT && typeof _mt.zoneX === 'number' && typeof _mt.zoneZ === 'number') {
+            _wpT = { x: _mt.zoneX, y: VoxelWorld.getTerrainHeight(_mt.zoneX, _mt.zoneZ), z: _mt.zoneZ };
+          }
+        }
         // Capital defense: waypoint tracks the nearest column leader so the
         // player always knows where the armor is coming from.
         if (!_wpT && typeof ConvoySystem !== 'undefined' && ConvoySystem.hasActiveConvoy && ConvoySystem.hasActiveConvoy()) {
@@ -6456,6 +6517,18 @@ const GameManager = (function () {
                 mTimer.textContent = '⏱ ' + Math.ceil(missionResult.timeRemaining) + 's';
               }
             } else if (missionResult.state === 'COMPLETE') {
+              var _completingMission = MissionTypes.getActive();
+              var _completingType = _completingMission ? _completingMission.config.id : null;
+              // DEMOLITION: detonate charge — blast kills nearby enemies
+              if (_completingType === 'DEMOLITION' && _completingMission && typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+                var _demCfg = _completingMission.config;
+                var _demY = VoxelWorld.getTerrainHeight(_completingMission.zoneX, _completingMission.zoneZ);
+                Enemies.damageInRadius(
+                  new THREE.Vector3(_completingMission.zoneX, _demY, _completingMission.zoneZ),
+                  _demCfg.blastRadius || 15, _demCfg.blastDamage || 500
+                );
+                if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.08, 0.6);
+              }
               var reward = MissionTypes.completeMission();
               if (reward) {
                 HUD.notifyPickup('✅ MISSION COMPLETE! +' + reward.okc + ' OKC +' + reward.xp + ' XP', '#44ff88');
@@ -6473,7 +6546,15 @@ const GameManager = (function () {
               }
               mTracker.style.display = 'none';
             } else if (missionResult.state === 'FAILED') {
-              HUD.notifyPickup('❌ MISSION FAILED: ' + (missionResult.reason || ''), '#ff4444');
+              var _failMsg = { TIME_UP: 'Time ran out', DETONATION: 'Bomb detonated', VIP_DEAD: 'VIP eliminated' }[missionResult.reason] || (missionResult.reason || 'Mission failed');
+              HUD.notifyPickup('❌ MISSION FAILED: ' + _failMsg, '#ff4444');
+              if (missionResult.reason === 'DETONATION' && !player.godMode) {
+                var _defCfg = MissionTypes.getActive() ? MissionTypes.getActive().config : null;
+                var _defDmg = (_defCfg && _defCfg.blastDamage) ? _defCfg.blastDamage : 200;
+                player.hp = Math.max(1, player.hp - _defDmg);
+                HUD.setHealth(player.hp, player.maxHp);
+                if (CameraSystem.shake) CameraSystem.shake(0.15, 1.2);
+              }
               mTracker.style.display = 'none';
             }
           }
