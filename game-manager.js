@@ -6434,6 +6434,9 @@ const GameManager = (function () {
           else if (_md.landingZones && _md.landingZones.length) {           // airborne: current LZ
             _wpT = _md.landingZones[(_md.completedWaves || 0) % _md.landingZones.length];
           }
+          else if (_md.spawnPositions && _md.spawnPositions.length) {     // bradley: ambush center
+            _wpT = _md.spawnPositions[Math.floor(_md.spawnPositions.length / 2)];
+          }
         }
         // MissionTypes scripted missions (DEMOLITION, CAPTURE_ZONE, ASSASSINATION, RESCUE, DEFUSE):
         // zone coordinates are zoneX/zoneZ on the active mission — point waypoint there.
