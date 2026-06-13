@@ -156,7 +156,7 @@ const MissionSystem = (function () {
             if (mission.state === 'spawning') {
               var zone = mission.landingZones[mission.completedWaves % mission.landingZones.length];
               var count = 5 + mission.completedWaves * 2;
-              var types = ['CONSCRIPT', 'STORMER', 'ARMORED'];
+              var types = ['PARATROOP', 'PARATROOP', 'CONSCRIPT', 'STORMER'];
               mission.spawnedEnemyIds = [];
               for (var i = 0; i < count; i++) {
                 var tp = types[Math.floor(Math.random() * types.length)];
