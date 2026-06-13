@@ -3415,6 +3415,19 @@ const GameManager = (function () {
     gameState = STATE.PLAYING;
     requestPointerLock();
 
+    // Clear stale missions from prior stage and seed a fresh stage-appropriate one
+    if (typeof MissionSystem !== 'undefined' && MissionSystem.init) MissionSystem.init();
+    if (typeof MissionSystem !== 'undefined') {
+      if (stageDef.capitalDefense) {
+        MissionSystem.generateMission('kyiv_defense');
+      } else if (stageDef.id === 1) {
+        MissionSystem.generateMission('airborne_assault');
+      } else {
+        var _nsM = MissionSystem.generateRandom();
+        _autoReconDroneForMission(_nsM);
+      }
+    }
+
     // Announce new stage then show drone selection
     HUD.announceStage(stageDef.id, stageDef.name, stageDef.description, stageDef.objective);
     if (_waveStartTimer) clearTimeout(_waveStartTimer);
