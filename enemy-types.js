@@ -588,12 +588,15 @@ const EnemyTypes = (function () {
       result.rageMode = true;
       enemy._rageMult = 1.5; // faster attacks
     }
-    // Summon reinforcements every 15s
+    // Summon reinforcements using boss-specific interval + types when available
+    const typeCfg = TYPES[enemy.typeName] || TYPES[enemy.typeCfg && enemy.typeCfg.name] || null;
+    const summonInterval = (typeCfg && typeCfg.summonInterval) ? typeCfg.summonInterval : 15;
     enemy._summonTimer = (enemy._summonTimer || 0) + dt;
-    if (enemy._summonTimer >= 15) {
+    if (enemy._summonTimer >= summonInterval) {
       enemy._summonTimer = 0;
       result.summon = true;
-      result.summonCount = 2 + Math.floor(wave / 3);
+      result.summonCount = (typeCfg && typeCfg.summonCount) ? typeCfg.summonCount : (2 + Math.floor(wave / 3));
+      result.summonTypes = (typeCfg && typeCfg.summonTypes && typeCfg.summonTypes.length) ? typeCfg.summonTypes : null;
     }
     return result;
   }

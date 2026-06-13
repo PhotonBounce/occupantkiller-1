@@ -3032,8 +3032,11 @@ const Enemies = (() => {
             etResult = EnemyTypes.updateBoss(e, playerPos, delta, wave || 1);
             if (etResult) {
               if (etResult.summon) {
+                var _sTypes = etResult.summonTypes;
                 for (var si = 0; si < etResult.summonCount; si++) {
-                  spawnQueue.push(pickTypeForWave(wave || 1));
+                  // Use boss-specific companion type if available, else fallback to wave pool
+                  var _sType = _sTypes ? _sTypes[si % _sTypes.length] : pickTypeForWave(wave || 1);
+                  spawnQueue.push(_sType);
                 }
               }
               // B22: Update boss health bar (use actual maxHp, not generic getBossHP)
