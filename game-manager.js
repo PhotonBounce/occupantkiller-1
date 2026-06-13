@@ -3483,6 +3483,7 @@ const GameManager = (function () {
       if (gameState !== STATE.PLAYING && gameState !== STATE.BUILD_MODE) return;
     }
     currentWave = w;
+    player._waveStartCount = 0; // reset before any early-return path (droneOnly etc.)
     // Remove flag meshes from previous wave (they accumulate otherwise)
     for (var _rfi = 0; _rfi < _rfFlagObjects.length; _rfi++) { if (_scene) _scene.remove(_rfFlagObjects[_rfi]); }
     _rfFlagObjects.length = 0;
