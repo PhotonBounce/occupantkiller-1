@@ -387,11 +387,13 @@ const GameManager = (function () {
         break;
       case 'DRONE_SWARM':
         // Spawn extra drones for the player
-        for (let i = 0; i < 2; i++) {
-          const dx = player.position.x + (Math.random() - 0.5) * 10;
-          const dz = player.position.z + (Math.random() - 0.5) * 10;
-          const dh = window.VoxelWorld.getTerrainHeight(dx, dz) + 8;
-          DroneSystem.spawn(dx, dh, dz, i === 0 ? 'fpv_attack' : 'bomb');
+        if (typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+          for (let i = 0; i < 2; i++) {
+            const dx = player.position.x + (Math.random() - 0.5) * 10;
+            const dz = player.position.z + (Math.random() - 0.5) * 10;
+            const dh = window.VoxelWorld.getTerrainHeight(dx, dz) + 8;
+            DroneSystem.spawn(dx, dh, dz, i === 0 ? 'fpv_attack' : 'bomb');
+          }
         }
         break;
       case 'CHEMICAL':
