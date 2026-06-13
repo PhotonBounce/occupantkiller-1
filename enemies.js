@@ -3039,9 +3039,12 @@ const Enemies = (() => {
                   spawnQueue.push(_sType);
                 }
               }
-              // B22: Update boss health bar (use actual maxHp, not generic getBossHP)
+              // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
-                HUD.showBossBar(e.typeCfg.name || 'BOSS', e.hp, e.maxHp);
+                var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
+                  EnemyTypes.TYPES[e.typeName] && EnemyTypes.TYPES[e.typeName].name)
+                  ? EnemyTypes.TYPES[e.typeName].name : (e.typeCfg.name || 'BOSS');
+                HUD.showBossBar(_bossDisplayName, e.hp, e.maxHp);
               }
             }
             break;
@@ -3356,8 +3359,9 @@ const Enemies = (() => {
       var _barWorthy = false;
       for (var _bwi = 0; _bwi < enemies.length; _bwi++) {
         var _bwe = enemies[_bwi];
-        if (_bwe && _bwe.alive && (_bwe.isBoss || _bwe.type === 'BOSS' ||
-            (_bwe.typeCfg && (_bwe.typeCfg.name === 'TANK' || _bwe.typeCfg.name === 'BTR')))) {
+        if (_bwe && _bwe.alive && (_bwe.isBoss ||
+            (_bwe.typeCfg && (_bwe.typeCfg.role === 'boss' ||
+             _bwe.typeCfg.name === 'TANK' || _bwe.typeCfg.name === 'BTR')))) {
           _barWorthy = true; break;
         }
       }
