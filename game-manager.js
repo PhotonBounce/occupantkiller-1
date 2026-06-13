@@ -6836,7 +6836,8 @@ const GameManager = (function () {
               }
               mTracker.style.display = 'none';
             } else if (missionResult.state === 'FAILED') {
-              HUD.notifyPickup('❌ MISSION FAILED: ' + (missionResult.reason || ''), '#ff4444');
+              var _failMsg = { TIME_UP: 'Time ran out', DETONATION: 'Bomb detonated', VIP_DEAD: 'VIP eliminated' }[missionResult.reason] || (missionResult.reason || 'Mission failed');
+              HUD.notifyPickup('❌ MISSION FAILED: ' + _failMsg, '#ff4444');
               mTracker.style.display = 'none';
             }
           }

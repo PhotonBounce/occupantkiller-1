@@ -362,7 +362,7 @@ const MissionSystem = (function () {
     },
     defense: {
       name: 'Defensive Survival',
-      description: 'Survive enemy waves without letting any Russian column breach the perimeter.',
+      description: 'Survive multiple enemy assault waves. Each completed wave counts toward the objective.',
       tier: 3,
       generate() {
         return {
