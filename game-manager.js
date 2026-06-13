@@ -778,6 +778,7 @@ const GameManager = (function () {
       sunColor:     0xfff0d0,
       sunIntensity: 0.95,
       exposure:     0.95,
+      hintWeapons:  ['Drone Jammer Rifle','Igla MANPADS','Strela-2M (SA-7 MANPADS)'],
       description:  'Aug 2022. Crimea. Light up the Saky airbase — every parked Su-24 is a war crime grounded.',
       objective:    'Airbase raid. Heavy bomber drone presence. Jammer rifle recommended. 7 waves.',
     },
@@ -798,6 +799,7 @@ const GameManager = (function () {
       objective:    'Tank graveyard. Mines and AT weapons are your friends. 8 waves of armor.',
     },
     {
+      hintWeapons:  ['SV-98 Precision Sniper Rifle','Barrett M82','SVD Dragunov'],
       id:           17,
       name:         'ANTONOV BRIDGE STRIKE',
       theme:        'urban',
@@ -3432,6 +3434,10 @@ const GameManager = (function () {
     // Track initial wave enemy count for progress bar
     player._waveStartCount = Enemies.getAliveCount();
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
+    // Show recommended weapons hint on wave 1 if stage defines them
+    if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
+      HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
+    }
 
     // ═══ Stage Boss on final wave ═══
     if (w === stageDef.wavesPerStage) {
