@@ -1598,7 +1598,8 @@ const GameManager = (function () {
             if (mt && mt.config) {
             var mtDx = player.position.x - (mt.zoneX || 0);
             var mtDz = player.position.z - (mt.zoneZ || 0);
-            if (mtDx * mtDx + mtDz * mtDz < 64) {
+            // 196 = 14m² — wide enough to cover DEFUSE bombs (placed at radius 8) + 6m interact range
+            if (mtDx * mtDx + mtDz * mtDz < 196) {
               if (mt.config.id === 'DEMOLITION') {
                 MissionTypes.interact('PLANT_CHARGE', { dt: 0.5 });
                 HUD.notifyPickup('\ud83d\udca3 PLANTING CHARGE...', '#ff8800');
