@@ -582,8 +582,8 @@ const EnemyTypes = (function () {
   function updateBoss(enemy, playerPos, dt, wave) {
     if (!enemy.alive) return null;
     const result = {};
-    // Rage mode at < 50% HP
-    const bossMaxHP = TYPES.BOSS.hp + (wave - 1) * 50;
+    // Rage mode at < 50% HP — use actual maxHp so stage bosses phase correctly
+    const bossMaxHP = enemy.maxHp || (TYPES.BOSS.hp + (wave - 1) * 50);
     if (enemy.hp < bossMaxHP * 0.5) {
       result.rageMode = true;
       enemy._rageMult = 1.5; // faster attacks
