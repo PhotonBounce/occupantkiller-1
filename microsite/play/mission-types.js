@@ -470,7 +470,7 @@ const MissionTypes = (function () {
     switch (action) {
       case 'PLANT_CHARGE':
         if (m.type === 'DEMOLITION' && !missionProgress.planted) {
-          missionProgress.plantProgress += data.dt / m.config.plantTime;
+          missionProgress.plantProgress = Math.min(1, missionProgress.plantProgress + data.dt / m.config.plantTime);
           if (missionProgress.plantProgress >= 1) { missionProgress.planted = true; }
           return { planting: true, progress: missionProgress.plantProgress };
         }
@@ -501,7 +501,7 @@ const MissionTypes = (function () {
           if (_ap < 0 || !missionProgress.pows || !missionProgress.pows[_ap] || missionProgress.pows[_ap].freed) {
             return { freeing: false, noTarget: true };
           }
-          missionProgress.pows[_ap].freeProgress = (missionProgress.pows[_ap].freeProgress || 0) + data.dt / m.config.freeTime;
+          missionProgress.pows[_ap].freeProgress = Math.min(1, (missionProgress.pows[_ap].freeProgress || 0) + data.dt / m.config.freeTime);
           if (missionProgress.pows[_ap].freeProgress >= 1) {
             missionProgress.pows[_ap].freed = true;
             missionProgress.freed++;
@@ -525,7 +525,7 @@ const MissionTypes = (function () {
           if (_ab < 0 || !missionProgress.bombs || !missionProgress.bombs[_ab] || missionProgress.bombs[_ab].defused) {
             return { defusing: false, noTarget: true };
           }
-          missionProgress.bombs[_ab].defuseProgress = (missionProgress.bombs[_ab].defuseProgress || 0) + data.dt / m.config.defuseTime;
+          missionProgress.bombs[_ab].defuseProgress = Math.min(1, (missionProgress.bombs[_ab].defuseProgress || 0) + data.dt / m.config.defuseTime);
           if (missionProgress.bombs[_ab].defuseProgress >= 1) {
             missionProgress.bombs[_ab].defused = true;
             missionProgress.defused++;
