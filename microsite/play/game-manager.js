@@ -6592,6 +6592,8 @@ const GameManager = (function () {
                 HUD.setHealth(player.hp, player.maxHp);
                 if (CameraSystem.shake) CameraSystem.shake(0.15, 1.2);
               }
+              // Clear the failed mission so future wave-3 checks can spawn a new one
+              MissionTypes.cancelMission();
               mTracker.style.display = 'none';
             }
           }
