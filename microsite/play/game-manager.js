@@ -3089,6 +3089,7 @@ const GameManager = (function () {
     Pickups.clear();
     VehicleSystem.clear();
     DroneSystem.clear();
+    if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
@@ -3101,7 +3102,7 @@ const GameManager = (function () {
 
     // Respawn organized assault groups for the real gameplay start path
     // (BRIGADE role only — Lone Wolf fights solo).
-    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
+    if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads for first stage
     var _rwps = (window.VoxelWorld.getRoadWaypoints ? window.VoxelWorld.getRoadWaypoints() : []);
@@ -3155,16 +3156,18 @@ const GameManager = (function () {
       try { if (typeof Feedback !== 'undefined' && Feedback.startOnboarding) Feedback.startOnboarding(); } catch (_e) {}
     }, 3200);
 
-    // Generate an initial mission. Stage 1 always opens with airborne_assault;
-    // capital defense (Kyiv) uses its signature kyiv_defense mission.
+    // Generate an initial mission. Stage-specific signature missions take priority.
+    // droneOnly stages (stage 18 Refinery) handle missions entirely via RefineryStrike.
     var _initStageDef = STAGES[currentStage];
-    if (_initStageDef && _initStageDef.capitalDefense) {
-      MissionSystem.generateMission('kyiv_defense');
-    } else if (_initStageDef && _initStageDef.id === 1) {
-      MissionSystem.generateMission('airborne_assault');
-    } else {
-      var _initMission = MissionSystem.generateRandom();
-      _autoReconDroneForMission(_initMission);
+    if (!(_initStageDef && _initStageDef.droneOnly)) {
+      if (_initStageDef && _initStageDef.capitalDefense) {
+        MissionSystem.generateMission('kyiv_defense');
+      } else if (_initStageDef && _initStageDef.id === 1) {
+        MissionSystem.generateMission('airborne_assault');
+      } else {
+        var _initMission = MissionSystem.generateRandom();
+        _autoReconDroneForMission(_initMission);
+      }
     }
     } catch (err) {
       console.error('Failed to initialize game:', err);
