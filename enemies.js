@@ -927,8 +927,8 @@ const Enemies = (() => {
   // ── Stage-specific enemy composition tables ────────────────
   // Each stage has a signature enemy pool + a chance to pull from it
   var STAGE_ROSTER = {
-    1: { bias: 0.40, pool: ['CONSCRIPT','CONSCRIPT','CONSCRIPT','STORMER','ENGINEER'] },            // Hostomel — green conscripts
-    2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','ENGINEER'] },               // Avdiivka — industrial defenders
+    1: { bias: 0.40, pool: ['CONSCRIPT','PARATROOP','CONSCRIPT','STORMER','ENGINEER'] },            // Hostomel — VDV paratroopers + conscripts
+    2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','SNIPER'] },                // Avdiivka — defenders + snipers as per objective
     3: { bias: 0.50, pool: ['STORMER','STORMER','ARMORED','SABOTEUR','WAGNER'] },                   // Bakhmut — Wagner meat-grinder
     4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','PARATROOP','STORMER','SNIPER'] },                 // Kherson — river crossing snipers
     5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER'] },       // Mariupol — CQB in steelworks

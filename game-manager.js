@@ -3233,8 +3233,36 @@ const GameManager = (function () {
         [{ cx: 0, cz: 25, rx: 30, rz: 5, d: 2.5 }, { cx: -25, cz: -20, rx: 7, rz: 6, d: 1.2 }],
         // Stage 3 — Kherson: Dnipro river edge
         [{ cx: 0, cz: 40, rx: 50, rz: 8, d: 3 }, { cx: 35, cz: -15, rx: 8, rz: 6, d: 1.5 }],
+        // Stage 4 — Mariupol: flooded steelworks trenches
+        [{ cx: -10, cz: 20, rx: 8, rz: 4, d: 1 }, { cx: 18, cz: -12, rx: 5, rz: 5, d: 0.8 }],
+        // Stage 5 — Crimea: coastal sea inlet
+        [{ cx: 0, cz: 55, rx: 60, rz: 10, d: 3 }, { cx: -40, cz: 20, rx: 12, rz: 8, d: 2 }],
+        // Stage 6 — Chornobyl: contaminated cooling ponds
+        [{ cx: 30, cz: 30, rx: 15, rz: 10, d: 2.5 }, { cx: -20, cz: 15, rx: 8, rz: 8, d: 1.5 }],
+        // Stage 7 — Moscow outskirts: Moscow River
+        [{ cx: 0, cz: 60, rx: 70, rz: 8, d: 3 }],
+        // Stage 8 — Sevastopol: harbour inlet
+        [{ cx: 0, cz: 50, rx: 55, rz: 12, d: 4 }, { cx: -35, cz: 0, rx: 10, rz: 6, d: 2 }],
+        // Stage 9 — Donbas: mine drainage ponds
+        [{ cx: 20, cz: -25, rx: 7, rz: 5, d: 1.2 }, { cx: -15, cz: 30, rx: 6, rz: 4, d: 1 }],
+        // Stage 10 — Belgorod: small lakes
+        [{ cx: 30, cz: 20, rx: 10, rz: 8, d: 2 }, { cx: -25, cz: -20, rx: 7, rz: 7, d: 1.5 }],
+        // Stage 11 — Kremlin: Moskva River
+        [{ cx: 0, cz: 65, rx: 75, rz: 10, d: 4 }],
+        // Stage 12 — Kyiv: Dnipro/canal strip
+        [{ cx: 0, cz: 50, rx: 45, rz: 7, d: 2.5 }, { cx: 30, cz: -10, rx: 6, rz: 4, d: 1 }],
+        // Stage 13 — Snake Island: surrounding sea
+        [{ cx: 0, cz: 60, rx: 80, rz: 15, d: 5 }, { cx: -50, cz: 0, rx: 12, rz: 8, d: 3 }],
+        // Stage 14 — Saky: coastal lagoon
+        [{ cx: 0, cz: 50, rx: 50, rz: 10, d: 3 }, { cx: 30, cz: -10, rx: 8, rz: 5, d: 1.5 }],
+        // Stage 15 — Vuhledar: none (wasteland)
+        [],
+        // Stage 16 — Antonov: Dnipro crossing
+        [{ cx: 0, cz: 45, rx: 55, rz: 8, d: 3 }],
+        // Stage 17 — Refinery: drainage canal
+        [{ cx: 15, cz: 30, rx: 10, rz: 5, d: 1.5 }, { cx: -20, cz: -15, rx: 6, rz: 4, d: 1 }],
       ];
-      var wc = waterConfigs[stageIndex] || waterConfigs[0];
+      var wc = waterConfigs[stageIndex] || [];
       for (var wi = 0; wi < wc.length; wi++) {
         WorldFeatures.spawnWaterBody(wc[wi].cx, wc[wi].cz, wc[wi].rx, wc[wi].rz, wc[wi].d);
       }
@@ -3809,6 +3837,22 @@ const GameManager = (function () {
         var lmY = VoxelWorld.getTerrainHeight(lmX, lmZ);
         WorldFeatures.placeMine(lmX, lmY, lmZ, 'enemy');
       }
+    }
+    // Hostomel (id 1): VDV paratroop landing + anti-air warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 1) {
+      HUD.notifyPickup('⚡ VDV PARATROOPERS LANDING — DESTROY THE ANTI-AIR GUNS!', '#ffcc44');
+    }
+    // Avdiivka (id 2): sniper warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 2) {
+      HUD.notifyPickup('⚠ SNIPERS IN THE RUINS — KEEP MOVING, USE COVER!', '#ffaa44');
+    }
+    // Bakhmut (id 3): Wagner multi-directional assault warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 3) {
+      HUD.notifyPickup('☠ WAGNER MERCENARIES — COMING FROM ALL SIDES!', '#ff4444');
+    }
+    // Kherson (id 4): river/armor warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 4) {
+      HUD.notifyPickup('🌊 DNIPRO CROSSING — LURE ENEMY ARMOR INTO THE RIVER!', '#44aaff');
     }
     // Snake Island (id 14): warn about Moskva bombardment at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 14) {

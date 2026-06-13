@@ -5927,6 +5927,10 @@ window.VoxelWorld = (function () {
       // Enemy drone nests — placed outside the airport perimeter fence
       generateDroneNest(80, -20);
       generateDroneNest(-80, -18);
+      // Russian VDV anti-air gun emplacements flanking the runway
+      generateAntiAirPosition(-30, 35);
+      generateAntiAirPosition(30, 35);
+      generateAntiAirPosition(0, 55);
     } else if (level.id === 'AVDIIVKA') {
       generateUkrainianApartment(-20, -20, 6);
       generateUkrainianApartment(-20, -42, 12);
