@@ -39,7 +39,8 @@ const MissionSystem = (function () {
                     }
                   } catch (e) {}
                   // Forest ambush ahead of player (~80-130 units away)
-                  var fwdAngle = Math.random() * Math.PI * 2;
+                  var fwdAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw)
+                    ? CameraSystem.getYaw() : Math.random() * Math.PI * 2;
                   var fwd = new THREE.Vector3(Math.sin(fwdAngle), 0, Math.cos(fwdAngle));
                   var center = playerPos.clone().add(fwd.clone().multiplyScalar(105));
                   if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
