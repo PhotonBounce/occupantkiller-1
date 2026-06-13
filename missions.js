@@ -22,7 +22,7 @@ const MissionSystem = (function () {
             //   M240C 7.62mm coax. Press B to enter/exit. WASD drive, mouse aim turret.
             bradley_mission: {
               name: 'Bradley IFV Assault',
-              description: 'Drive the M2A3 Bradley. Use the M242 Bushmaster 25mm chain gun and M240 coax to clear Russian occupants ambushing from the woods.',
+              description: 'Forest ambush ahead. Bradley IFV recommended — 25mm Bushmaster and M240 coax will tear through their lines. Clear every occupant.',
               tier: 5,
               generate() {
                 var killTarget = 18 + Math.floor(Math.random() * 7); // 18-24
