@@ -3780,10 +3780,11 @@ const GameManager = (function () {
         WorldFeatures.placeMine(lmX, lmY, lmZ, 'enemy');
       }
     }
-    // Spawn radiation zones on wave 6+
-    if (w === 6 && typeof WorldFeatures !== 'undefined') {
+    // Spawn radiation zones in Chornobyl stage (ID 7) on wave 6
+    if (w === 6 && typeof WorldFeatures !== 'undefined' && STAGES[currentStage] && STAGES[currentStage].id === 7) {
       WorldFeatures.addRadiationZone(player.position.x + 30, player.position.z + 30, 8);
-      HUD.notifyPickup('☢ RADIATION ZONE DETECTED!', '#00ff00');
+      WorldFeatures.addRadiationZone(player.position.x - 25, player.position.z + 15, 6);
+      HUD.notifyPickup('☢ CHORNOBYL RADIATION ZONES ACTIVE!', '#00ff00');
     }
     // Reset combat extras per wave
     if (typeof CombatExtras !== 'undefined') {
