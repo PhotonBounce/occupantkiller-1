@@ -1740,13 +1740,16 @@ const GameManager = (function () {
                 if (targetVehicle.faction === 'enemy') {
                   // Start animated hijack of enemy vehicle
                   VehicleSystem.startHijack(targetVehicle.id);
+                  _removeEnemyTankClone(targetVehicle);
                   HUD.notifyPickup('🚗 HIJACKING… Hold steady!', '#ff4444');
                 } else if (targetVehicle.occupied) {
                   // Commandeer friendly vehicle (faster)
                   VehicleSystem.startHijack(targetVehicle.id);
+                  _removeEnemyTankClone(targetVehicle);
                   HUD.notifyPickup('🚗 COMMANDEERING…', '#ffaa00');
                 } else {
                   VehicleSystem.enter(targetVehicle.id);
+                  _removeEnemyTankClone(targetVehicle);
                   // Show tank HUD if entering a tank
                   if (targetVehicle.isTank) showTankHUD();
                   HUD.notifyPickup('🚗 ENTERED VEHICLE', '#44ff44');
@@ -2595,12 +2598,13 @@ const GameManager = (function () {
       try {
         if (gameState !== STATE.PLAYING) return;
         if (typeof DroneSystem === 'undefined' || DroneSystem.isPossessing()) return;
-        var dr = launchAndPossessDrone('recon');
+        var _dmType = (mission.type === 'drone_strike') ? 'bomb' : 'fpv_attack';
+        var dr = launchAndPossessDrone(_dmType);
         if (dr && HUD && HUD.showToast) {
-          HUD.showToast(
-            '🚁 RECON DRONE — Fly to all marked ◆ points. Press [F] to exit when done.',
-            5500, '#00ccff'
-          );
+          var _dmHint = (mission.type === 'drone_strike')
+            ? '💣 DRONE STRIKE — Fly over targets and [LMB] to drop bomb. [F] to exit.'
+            : '🚁 DRONE MISSION — Fly to all marked recon points. Press [F] to exit drone when done.';
+          HUD.showToast(_dmHint, 5500, '#00ccff');
         }
       } catch (_e) {}
     }, 2000);
@@ -2819,6 +2823,24 @@ const GameManager = (function () {
         }
       } else {
         nestHint.style.display = 'none';
+      }
+    }
+  }
+
+  /* ── Remove Enemies-module TANK clone artifact when entering a VehicleSystem vehicle ── */
+  function _removeEnemyTankClone(vehicle) {
+    if (!vehicle || !vehicle.mesh) return;
+    if (typeof Enemies === 'undefined' || !Enemies.getAll) return;
+    var _all = Enemies.getAll();
+    for (var _rci = 0; _rci < _all.length; _rci++) {
+      var _rce = _all[_rci];
+      if (!_rce || !_rce.alive || !_rce.typeCfg) continue;
+      if (_rce.typeCfg.name !== 'TANK' && _rce.typeCfg.name !== 'BTR') continue;
+      if (!_rce.mesh) continue;
+      if (_rce.mesh.position.distanceTo(vehicle.mesh.position) < 14) {
+        _rce.alive = false;
+        _rce.mesh.visible = false;
+        if (scene) scene.remove(_rce.mesh);
       }
     }
   }
@@ -3243,6 +3265,16 @@ const GameManager = (function () {
     } catch (_e) {
       // noop
     }
+  }
+
+  function continueGame() {
+    startGame();
+    // Cancel the delayed beginWave(1) that startGame() schedules so it doesn't
+    // double-fire when nextStage() calls beginWave(1) immediately below.
+    if (_waveStartTimer) { clearTimeout(_waveStartTimer); _waveStartTimer = null; }
+    loadGame(); // restores currentStage (completed stage) + currentWave + player stats
+    // nextStage increments currentStage to the NEXT stage and calls beginWave(1)
+    nextStage();
   }
 
   /* ── Stage Management ───────────────────────────────────────────── */
@@ -3891,17 +3923,35 @@ const GameManager = (function () {
         }
       }
 
+      // Ukrainian Baba Yaga fire-dropper — wave 4+, every other wave
+      if (w >= 4 && w % 2 === 0 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+        var byPos = _nestSpawnPos(88);
+        var byDrone = DroneSystem.spawn(byPos.x, droneSpawnH + 8, byPos.z, 'baba_yaga');
+        if (byDrone && typeof HUD !== 'undefined' && HUD.notifyPickup) {
+          HUD.notifyPickup('🔥 BABA YAGA DEPLOYED — heavy thermite fire-dropper! [F] to possess, [LMB] to drop', '#ff8800');
+        }
+      }
+
+      // Enemy surveillance observer drones — wave 2+
+      if (w >= 2 && Math.random() < nestMult * 0.7) {
+        var obsP = _nestSpawnPos(5);
+        DroneSystem.spawnEnemyDrone(obsP.x, droneSpawnH + 8, obsP.z, 'enemy_observer');
+      }
+
       if (w >= 4 && Math.random() < nestMult) {
         var bp = _nestSpawnPos(1);
         DroneSystem.spawnEnemyDrone(bp.x, droneSpawnH + 5, bp.z, 'enemy_bomber');
         var fp2 = _nestSpawnPos(2);
         DroneSystem.spawnEnemyDrone(fp2.x, droneSpawnH, fp2.z, 'enemy_fpv');
+        var fp3 = _nestSpawnPos(3);
+        DroneSystem.spawnEnemyDrone(fp3.x, droneSpawnH, fp3.z, 'enemy_fpv');
       }
 
       if (w >= 6 && Math.random() < nestMult) {
-        for (var ei = 0; ei < 2; ei++) {
+        for (var ei = 0; ei < 3; ei++) {
           var ep = _nestSpawnPos(ei);
-          DroneSystem.spawnEnemyDrone(ep.x, droneSpawnH + ei * 3, ep.z, ei === 0 ? 'enemy_bomber' : 'enemy_fpv');
+          DroneSystem.spawnEnemyDrone(ep.x, droneSpawnH + ei * 3, ep.z,
+            ei === 0 ? 'enemy_bomber' : 'enemy_fpv');
         }
       }
 
@@ -4775,8 +4825,9 @@ const GameManager = (function () {
             DroneSystem.fireAttack(drone.id);
           } else if (drone.type === 'bomb' && drone.hasPayload) {
             DroneSystem.dropPayload(drone.id);
-          } else if (drone.type === 'incendiary' && drone.hasPayload) {
+          } else if ((drone.type === 'incendiary' || drone.type === 'baba_yaga') && drone.hasPayload) {
             DroneSystem.dropFire(drone.id);
+            if (drone.type === 'baba_yaga') HUD.notifyPickup('🔥 THERMITE DROPPED!', '#ff8800');
           }
         }
         mouseNewPress = false;
@@ -5734,35 +5785,30 @@ const GameManager = (function () {
   var _qualityReduced = false;
   var _perfLevel = 0;            // current auto-optimization tier (0 = full quality)
   var _PERF_MAX_LEVEL = 3;
-  var _lowFpsStreak = 0;         // consecutive low-FPS windows before stepping down
-  // Apply a quality tier. Each tier trades fidelity for frame rate; tiers are
-  // cumulative and only ever step down so an old PC settles into a smooth level.
+  var _lowFpsStreak = 0;
+  var _highFpsStreak = 0;
+  var _baseFogFar = isMobile ? 55 : 120;
+  var _baseShadowsEnabled = true;
+  var _basePixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.1 : 1.5);
+
   function _applyPerfLevel(level, fps) {
-    _perfLevel = level;
-    _qualityReduced = level > 0;
+    _perfLevel = Math.max(0, Math.min(level, _PERF_MAX_LEVEL));
+    _qualityReduced = _perfLevel > 0;
     try {
-      if (level >= 1) {
-        // Mild: cap render resolution to 1x.
-        if (_renderer) _renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.0));
-        if (_scene && _scene.fog) _scene.fog.far = Math.min(_scene.fog.far, isMobile ? 55 : 90);
-      }
-      if (level >= 2) {
-        // Medium: drop shadows + reflections, pull the fog in.
-        if (sunLight) sunLight.castShadow = false;
-        if (_scene) _scene.environment = null;        // weapon reflections off
-        if (_scene && _scene.fog) _scene.fog.far = Math.min(_scene.fog.far, 60);
-        if (_renderer) _renderer.shadowMap.enabled = false;
-      }
-      if (level >= 3) {
-        // Aggressive: render below native res + minimal draw distance.
-        if (_renderer) _renderer.setPixelRatio(0.7);
-        if (_scene && _scene.fog) _scene.fog.far = Math.min(_scene.fog.far, 45);
-        _lowEndVFX = true;                            // systems can read this to thin particles
-      }
+      var pr, fogFar, shadows;
+      if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled; _lowEndVFX = false; }
+      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = true; _lowEndVFX = false; }
+      else if (_perfLevel === 2) { pr = 1.0; fogFar = 60; shadows = false; _lowEndVFX = false; }
+      else                       { pr = 0.7; fogFar = 45; shadows = false; _lowEndVFX = true; }
+      if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
+      if (sunLight) sunLight.castShadow = shadows;
+      if (_perfLevel >= 2 && _scene) _scene.environment = null;
+      if (_scene && _scene.fog) _scene.fog.far = fogFar;
+      var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW'][_perfLevel] || 'L' + _perfLevel;
       if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
-        HUD.notifyPickup('⚙ Graphics auto-tuned for performance (L' + level + ')', '#88ccff');
+        HUD.notifyPickup('⚙ Quality: ' + _qlabel + ' (auto-calibrated, FPS≈' + (fps ? fps.toFixed(0) : '?') + ')', '#88ccff');
       }
-      if (typeof console !== 'undefined') console.log('[PERF] auto-optimize -> level ' + level + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ')');
+      console.log('[PERF] quality -> ' + _qlabel + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ')');
     } catch (e) {}
   }
   var _lowEndVFX = false;
@@ -5781,21 +5827,22 @@ const GameManager = (function () {
     // Slow-mo: scale delta by slow-mo rate (triggered on multikills / wave clears)
     if (typeof Feedback !== 'undefined' && Feedback.getSlowMoRate) delta *= Feedback.getSlowMoRate();
 
-    // ── Adaptive auto-optimization (tiered) ──────────────────────────
-    // Steps quality DOWN one level at a time while the average FPS stays low,
-    // so older / low-end PCs get a playable frame rate automatically. Each
-    // level is applied once; we never thrash back up (avoids oscillation).
+    // ── Adaptive auto-quality calibration (bi-directional) ───────────
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
     if (_perfCheckTimer > 2 && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
-      // Require sustained low FPS (2 consecutive windows ≈ 4s) before stepping
-      // down, so a one-off stage-load hitch doesn't downgrade a capable PC.
-      if (avgFps < 38) { _lowFpsStreak++; } else { _lowFpsStreak = 0; }
+      if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
+      else if (avgFps > 65) { _highFpsStreak++; _lowFpsStreak = 0; }
+      else { _lowFpsStreak = 0; _highFpsStreak = 0; }
       if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
+      }
+      if (_highFpsStreak >= 3 && _perfLevel > 0) {
+        _applyPerfLevel(_perfLevel - 1, avgFps);
+        _highFpsStreak = 0;
       }
       _fpsAccum = 0;
       _fpsSamples = 0;
@@ -8595,6 +8642,7 @@ const GameManager = (function () {
     loadGame,
     saveGame,
     deleteSave,
+    continueGame,
     notifyExplosiveKills,
     notifyNPCDeath,
     nextStage,

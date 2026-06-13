@@ -972,7 +972,7 @@ const Enemies = (() => {
     8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER'] }, // Moscow — elite FSB
     9: { bias: 0.55, pool: ['BTR','DRONE_OP','HEAVY_SNIPER','STORMER','MORTAR'] },                  // Sevastopol — naval base
     10:{ bias: 0.60, pool: ['KADYROVITE','WAGNER','COMMISSAR','MORTAR','ARMORED'] },                 // Donbas — entrenched
-    11:{ bias: 0.60, pool: ['TANK','THERMOBARIC','ASSAULT_MECH','HEAVY_SNIPER','BTR'] },            // Belgorod — mechanized
+    11:{ bias: 0.60, pool: ['SPETSNAZ','THERMOBARIC','ASSAULT_MECH','HEAVY_SNIPER','BTR'] },          // Belgorod — mechanized (VehicleSystem handles tank visuals)
     12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR'] },    // Kremlin — everything
     13:{ bias: 0.60, pool: ['CONSCRIPT','STORMER','PARATROOP','DRONE_OP','SPETSNAZ'] },             // Kyiv — column escort infantry (armor comes from ConvoySystem)
     14:{ bias: 0.55, pool: ['DRONE_OP','BTR','SABOTEUR','BOMBER','MORTAR'] },                      // Snake Island — naval commandos + bombardment

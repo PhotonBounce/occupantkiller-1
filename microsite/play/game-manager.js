@@ -1696,13 +1696,16 @@ const GameManager = (function () {
               if (targetVehicle.faction === 'enemy') {
                 // Start animated hijack of enemy vehicle
                 VehicleSystem.startHijack(targetVehicle.id);
+                _removeEnemyTankClone(targetVehicle);
                 HUD.notifyPickup('🚗 HIJACKING… Hold steady!', '#ff4444');
               } else if (targetVehicle.occupied) {
                 // Commandeer friendly vehicle (faster)
                 VehicleSystem.startHijack(targetVehicle.id);
+                _removeEnemyTankClone(targetVehicle);
                 HUD.notifyPickup('🚗 COMMANDEERING…', '#ffaa00');
               } else {
                 VehicleSystem.enter(targetVehicle.id);
+                _removeEnemyTankClone(targetVehicle);
                 // Show tank HUD if entering a tank
                 if (targetVehicle.isTank) showTankHUD();
                 HUD.notifyPickup('🚗 ENTERED VEHICLE', '#44ff44');
@@ -2550,12 +2553,13 @@ const GameManager = (function () {
       try {
         if (gameState !== STATE.PLAYING) return;
         if (typeof DroneSystem === 'undefined' || DroneSystem.isPossessing()) return;
-        var dr = launchAndPossessDrone('fpv_attack');
+        var _dmType = (mission.type === 'drone_strike') ? 'bomb' : 'fpv_attack';
+        var dr = launchAndPossessDrone(_dmType);
         if (dr && HUD && HUD.showToast) {
-          HUD.showToast(
-            '🚁 DRONE MISSION — Fly to all marked recon points. Press [F] to exit drone when done.',
-            5500, '#00ccff'
-          );
+          var _dmHint = (mission.type === 'drone_strike')
+            ? '💣 DRONE STRIKE — Fly over targets and [LMB] to drop bomb. [F] to exit.'
+            : '🚁 DRONE MISSION — Fly to all marked recon points. Press [F] to exit drone when done.';
+          HUD.showToast(_dmHint, 5500, '#00ccff');
         }
       } catch (_e) {}
     }, 2000);
@@ -2768,6 +2772,24 @@ const GameManager = (function () {
         }
       } else {
         nestHint.style.display = 'none';
+      }
+    }
+  }
+
+  /* ── Remove Enemies-module TANK clone artifact when entering a VehicleSystem vehicle ── */
+  function _removeEnemyTankClone(vehicle) {
+    if (!vehicle || !vehicle.mesh) return;
+    if (typeof Enemies === 'undefined' || !Enemies.getAll) return;
+    var _all = Enemies.getAll();
+    for (var _rci = 0; _rci < _all.length; _rci++) {
+      var _rce = _all[_rci];
+      if (!_rce || !_rce.alive || !_rce.typeCfg) continue;
+      if (_rce.typeCfg.name !== 'TANK' && _rce.typeCfg.name !== 'BTR') continue;
+      if (!_rce.mesh) continue;
+      if (_rce.mesh.position.distanceTo(vehicle.mesh.position) < 14) {
+        _rce.alive = false;
+        _rce.mesh.visible = false;
+        if (scene) scene.remove(_rce.mesh);
       }
     }
   }
@@ -3166,6 +3188,16 @@ const GameManager = (function () {
     } catch (_e) {
       // noop
     }
+  }
+
+  function continueGame() {
+    startGame();
+    // Cancel the delayed beginWave(1) that startGame() schedules so it doesn't
+    // double-fire when nextStage() calls beginWave(1) immediately below.
+    if (_waveStartTimer) { clearTimeout(_waveStartTimer); _waveStartTimer = null; }
+    loadGame(); // restores currentStage (completed stage) + currentWave + player stats
+    // nextStage increments currentStage to the NEXT stage and calls beginWave(1)
+    nextStage();
   }
 
   /* ── Stage Management ───────────────────────────────────────────── */
@@ -3683,17 +3715,36 @@ const GameManager = (function () {
         }
       }
 
+      // Ukrainian Baba Yaga fire-dropper — wave 4+, every other wave
+      if (w >= 4 && w % 2 === 0 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+        var byPos = _nestSpawnPos(88);
+        var byDrone = DroneSystem.spawn(byPos.x, droneSpawnH + 8, byPos.z, 'baba_yaga');
+        if (byDrone && typeof HUD !== 'undefined' && HUD.notifyPickup) {
+          HUD.notifyPickup('🔥 BABA YAGA DEPLOYED — heavy thermite fire-dropper! [F] to possess, [LMB] to drop', '#ff8800');
+        }
+      }
+
+      // Enemy surveillance observer drones — wave 2+
+      if (w >= 2 && Math.random() < nestMult * 0.7) {
+        var obsP = _nestSpawnPos(5);
+        DroneSystem.spawnEnemyDrone(obsP.x, droneSpawnH + 8, obsP.z, 'enemy_observer');
+      }
+
       if (w >= 4 && Math.random() < nestMult) {
         var bp = _nestSpawnPos(1);
         DroneSystem.spawnEnemyDrone(bp.x, droneSpawnH + 5, bp.z, 'enemy_bomber');
         var fp2 = _nestSpawnPos(2);
         DroneSystem.spawnEnemyDrone(fp2.x, droneSpawnH, fp2.z, 'enemy_fpv');
+        // Second FPV for better enemy drone presence
+        var fp3 = _nestSpawnPos(3);
+        DroneSystem.spawnEnemyDrone(fp3.x, droneSpawnH, fp3.z, 'enemy_fpv');
       }
 
       if (w >= 6 && Math.random() < nestMult) {
-        for (var ei = 0; ei < 2; ei++) {
+        for (var ei = 0; ei < 3; ei++) {
           var ep = _nestSpawnPos(ei);
-          DroneSystem.spawnEnemyDrone(ep.x, droneSpawnH + ei * 3, ep.z, ei === 0 ? 'enemy_bomber' : 'enemy_fpv');
+          DroneSystem.spawnEnemyDrone(ep.x, droneSpawnH + ei * 3, ep.z,
+            ei === 0 ? 'enemy_bomber' : 'enemy_fpv');
         }
       }
 
@@ -3748,10 +3799,52 @@ const GameManager = (function () {
         WorldFeatures.placeMine(lmX, lmY, lmZ, 'enemy');
       }
     }
-    // Spawn radiation zones on wave 6+
-    if (w === 6 && typeof WorldFeatures !== 'undefined') {
+    // Spawn radiation zones on wave 6 — CHORNOBYL ONLY (stage 7)
+    if (w === 6 && typeof WorldFeatures !== 'undefined' && STAGES[currentStage] && STAGES[currentStage].id === 7) {
       WorldFeatures.addRadiationZone(player.position.x + 30, player.position.z + 30, 8);
-      HUD.notifyPickup('☢ RADIATION ZONE DETECTED!', '#00ff00');
+      WorldFeatures.addRadiationZone(player.position.x - 25, player.position.z + 15, 6);
+      HUD.notifyPickup('☢ CHORNOBYL RADIATION ZONES ACTIVE!', '#00ff00');
+    }
+    // Stage-specific wave-1 flavor notifications (parity with main game-manager)
+    if (w === 1 && STAGES[currentStage]) {
+      var _sid = STAGES[currentStage].id;
+      if (_sid === 1) HUD.notifyPickup('⚡ VDV PARATROOPERS LANDING — HOLD THE AIRFIELD!', '#ffcc44');
+      else if (_sid === 2) HUD.notifyPickup('⚠ SNIPERS IN THE RUINS — KEEP MOVING, USE COVER!', '#ffaa44');
+      else if (_sid === 3) HUD.notifyPickup('☠ WAGNER MERCENARIES — COMING FROM ALL SIDES!', '#ff4444');
+      else if (_sid === 4) HUD.notifyPickup('🌊 DNIPRO CROSSING — LURE ENEMY ARMOR INTO THE RIVER!', '#44aaff');
+      else if (_sid === 5) HUD.notifyPickup('🔥 STEELWORKS INFERNO — FIRE DEALS CONSTANT DAMAGE!', '#ff6600');
+      else if (_sid === 6) HUD.notifyPickup('⚓ NAVAL MARINES AND DRONE STRIKES — HOLD THE KERCH CROSSING!', '#4477ff');
+      else if (_sid === 7) HUD.notifyPickup('☢ RADIATION ACTIVE — CONSTANT EXPOSURE, WATCH YOUR HP!', '#00ff44');
+      else if (_sid === 8) HUD.notifyPickup('🛡 FSB ELITE & ROSGVARDIYA — MAXIMUM RESISTANCE!', '#cc44ff');
+      else if (_sid === 9) HUD.notifyPickup('💥 SHIP ARTILLERY INCOMING — DESTROY THE FLEET!', '#4488ff');
+      else if (_sid === 10) HUD.notifyPickup('☠ DONBAS STRONGHOLD — THERMOBARIC WEAPONS CLEAR TRENCHES!', '#ff4444');
+      else if (_sid === 11) HUD.notifyPickup('⚠ HEAVY ARMORED COUNTER-ATTACK — GRAB ANTI-TANK WEAPONS!', '#ff8800');
+      else if (_sid === 12) HUD.notifyPickup('🏛 KREMLIN — EVERY ENEMY TYPE. MAXIMUM DIFFICULTY. HOLD THE LINE!', '#ff3300');
+      else if (_sid === 13) HUD.notifyPickup('🇺🇦 DEFEND KYIV — STOP THE ARMORED COLUMNS AT ALL COSTS!', '#0057b7');
+      else if (_sid === 14) HUD.notifyPickup('⚓ MOSKVA IS SHELLING — SHELTER AND HOLD THE ISLAND!', '#4477ff');
+      else if (_sid === 15) HUD.notifyPickup('📡 GRAB A JAMMER RIFLE — HEAVY DRONE PRESENCE!', '#ff6600');
+      else if (_sid === 16) HUD.notifyPickup('⚰ TANK GRAVEYARD — USE MINES AND ANTI-TANK WEAPONS!', '#ff8800');
+      else if (_sid === 17) HUD.notifyPickup('🎯 ARTILLERY DUELS — PRECISION WEAPONS REQUIRED. WATCH YOUR RANGE!', '#ffcc44');
+    }
+    // Belgorod (id 11): extra BTR spawn at wave 1 to reflect armored counter-attack
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 11 && !capitalDefense && typeof VehicleSystem !== 'undefined') {
+      var _bgrA = Math.random() * Math.PI * 2;
+      var _bgrD = 35 + Math.random() * 10;
+      var _bgrX = Math.cos(_bgrA) * _bgrD;
+      var _bgrZ = Math.sin(_bgrA) * _bgrD;
+      VehicleSystem.spawnEnemy(_bgrX, VoxelWorld.getTerrainHeight(_bgrX, _bgrZ), _bgrZ, 'combat');
+    }
+    // Saky airbase (id 15): extra kamikaze drone surge at wave start (periodic handled in update loop)
+    if (STAGES[currentStage] && STAGES[currentStage].id === 15) {
+      var _sakySurge = 1 + Math.floor(w / 2);
+      for (var _sdi = 0; _sdi < _sakySurge; _sdi++) {
+        var _saA = Math.random() * Math.PI * 2;
+        var _saD = 28 + _sdi * 5 + Math.random() * 5;
+        var _saX = player.position.x + Math.cos(_saA) * _saD;
+        var _saZ = player.position.z + Math.sin(_saA) * _saD;
+        var _saY = VoxelWorld.getTerrainHeight(_saX, _saZ) + 7;
+        if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_saX, _saY, _saZ));
+      }
     }
     // Reset combat extras per wave
     if (typeof CombatExtras !== 'undefined') {
@@ -4474,8 +4567,9 @@ const GameManager = (function () {
             DroneSystem.fireAttack(drone.id);
           } else if (drone.type === 'bomb' && drone.hasPayload) {
             DroneSystem.dropPayload(drone.id);
-          } else if (drone.type === 'incendiary' && drone.hasPayload) {
+          } else if ((drone.type === 'incendiary' || drone.type === 'baba_yaga') && drone.hasPayload) {
             DroneSystem.dropFire(drone.id);
+            if (drone.type === 'baba_yaga') HUD.notifyPickup('🔥 THERMITE DROPPED!', '#ff6600');
           }
         }
         mouseNewPress = false;
@@ -5444,35 +5538,31 @@ const GameManager = (function () {
   var _qualityReduced = false;
   var _perfLevel = 0;            // current auto-optimization tier (0 = full quality)
   var _PERF_MAX_LEVEL = 3;
-  var _lowFpsStreak = 0;         // consecutive low-FPS windows before stepping down
-  // Apply a quality tier. Each tier trades fidelity for frame rate; tiers are
-  // cumulative and only ever step down so an old PC settles into a smooth level.
+  var _lowFpsStreak = 0;
+  var _highFpsStreak = 0;
+  var _baseFogFar = isMobile ? 55 : 120;   // saved at first fog init
+  var _baseShadowsEnabled = true;
+  var _basePixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.1 : 1.5);
+
+  // Absolute (non-cumulative) quality apply — safe to call in any direction
   function _applyPerfLevel(level, fps) {
-    _perfLevel = level;
-    _qualityReduced = level > 0;
+    _perfLevel = Math.max(0, Math.min(level, _PERF_MAX_LEVEL));
+    _qualityReduced = _perfLevel > 0;
     try {
-      if (level >= 1) {
-        // Mild: cap render resolution to 1x.
-        if (_renderer) _renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.0));
-        if (_scene && _scene.fog) _scene.fog.far = Math.min(_scene.fog.far, isMobile ? 55 : 90);
-      }
-      if (level >= 2) {
-        // Medium: drop shadows + reflections, pull the fog in.
-        if (sunLight) sunLight.castShadow = false;
-        if (_scene) _scene.environment = null;        // weapon reflections off
-        if (_scene && _scene.fog) _scene.fog.far = Math.min(_scene.fog.far, 60);
-        if (_renderer) _renderer.shadowMap.enabled = false;
-      }
-      if (level >= 3) {
-        // Aggressive: render below native res + minimal draw distance.
-        if (_renderer) _renderer.setPixelRatio(0.7);
-        if (_scene && _scene.fog) _scene.fog.far = Math.min(_scene.fog.far, 45);
-        _lowEndVFX = true;                            // systems can read this to thin particles
-      }
+      var pr, fogFar, shadows;
+      if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled; _lowEndVFX = false; }
+      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = true; _lowEndVFX = false; }
+      else if (_perfLevel === 2) { pr = 1.0; fogFar = 60; shadows = false; _lowEndVFX = false; }
+      else                       { pr = 0.7; fogFar = 45; shadows = false; _lowEndVFX = true; }
+      if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
+      if (sunLight) sunLight.castShadow = shadows;
+      if (_perfLevel >= 2 && _scene) _scene.environment = null;
+      if (_scene && _scene.fog) _scene.fog.far = fogFar;
+      var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW'][_perfLevel] || 'L' + _perfLevel;
       if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
-        HUD.notifyPickup('⚙ Graphics auto-tuned for performance (L' + level + ')', '#88ccff');
+        HUD.notifyPickup('⚙ Quality: ' + _qlabel + ' (auto-calibrated, FPS≈' + (fps ? fps.toFixed(0) : '?') + ')', '#88ccff');
       }
-      if (typeof console !== 'undefined') console.log('[PERF] auto-optimize -> level ' + level + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ')');
+      console.log('[PERF] quality -> ' + _qlabel + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ')');
     } catch (e) {}
   }
   var _lowEndVFX = false;
@@ -5491,21 +5581,24 @@ const GameManager = (function () {
     // Slow-mo: scale delta by slow-mo rate (triggered on multikills / wave clears)
     if (typeof Feedback !== 'undefined' && Feedback.getSlowMoRate) delta *= Feedback.getSlowMoRate();
 
-    // ── Adaptive auto-optimization (tiered) ──────────────────────────
-    // Steps quality DOWN one level at a time while the average FPS stays low,
-    // so older / low-end PCs get a playable frame rate automatically. Each
-    // level is applied once; we never thrash back up (avoids oscillation).
+    // ── Adaptive auto-quality calibration (bi-directional) ───────────
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
     if (_perfCheckTimer > 2 && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
-      // Require sustained low FPS (2 consecutive windows ≈ 4s) before stepping
-      // down, so a one-off stage-load hitch doesn't downgrade a capable PC.
-      if (avgFps < 38) { _lowFpsStreak++; } else { _lowFpsStreak = 0; }
+      // Step DOWN: sustained < 38 FPS for 2 windows (~4s)
+      if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
+      else if (avgFps > 65) { _highFpsStreak++; _lowFpsStreak = 0; }
+      else { _lowFpsStreak = 0; _highFpsStreak = 0; }
       if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
+      }
+      // Step UP: sustained > 65 FPS for 3 windows (~6s) if quality was reduced
+      if (_highFpsStreak >= 3 && _perfLevel > 0) {
+        _applyPerfLevel(_perfLevel - 1, avgFps);
+        _highFpsStreak = 0;
       }
       _fpsAccum = 0;
       _fpsSamples = 0;
@@ -5646,6 +5739,71 @@ const GameManager = (function () {
           }
         }
       }
+      // ── ANTONOV BRIDGE: Enemy long-range artillery strikes (stage 17) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 17 && gameState === STATE.PLAYING) {
+        player._antonovArtillTimer = (player._antonovArtillTimer || 0) + delta;
+        if (player._antonovArtillTimer >= 16.0 + Math.random() * 10) {
+          player._antonovArtillTimer = 0;
+          if (!player.godMode && Math.random() < 0.5) {
+            var artillDmg = 7 + Math.floor(Math.random() * 14);
+            player.hp = Math.max(1, player.hp - artillDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff8800, 0.35);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.9);
+            if (HUD.notifyPickup) HUD.notifyPickup('🔥 Enemy artillery strike!', '#ff8800');
+          }
+        }
+      }
+
+      // ── SNAKE ISLAND: Naval bombardment from Moskva (stage 14) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 14 && gameState === STATE.PLAYING) {
+        player._snakeBombardTimer = (player._snakeBombardTimer || 0) + delta;
+        if (player._snakeBombardTimer >= 9.0 + Math.random() * 5) {
+          player._snakeBombardTimer = 0;
+          if (!player.godMode) {
+            var snakeDmg = 6 + Math.floor(Math.random() * 12);
+            player.hp = Math.max(1, player.hp - snakeDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0x2244aa, 0.35);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.8);
+            if (HUD.notifyPickup) HUD.notifyPickup('⚓ Moskva bombardment!', '#4477ff');
+          }
+        }
+      }
+
+      // ── SAKY AIRBASE: Periodic kamikaze drone waves (stage 15) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 15 && gameState === STATE.PLAYING) {
+        player._sakyDroneTimer = (player._sakyDroneTimer || 0) + delta;
+        if (player._sakyDroneTimer >= 18.0 + Math.random() * 10) {
+          player._sakyDroneTimer = 0;
+          if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+            var _sdAngle2 = Math.random() * Math.PI * 2;
+            var _sdDist2  = 30 + Math.random() * 15;
+            var _sdX2 = player.position.x + Math.cos(_sdAngle2) * _sdDist2;
+            var _sdZ2 = player.position.z + Math.sin(_sdAngle2) * _sdDist2;
+            var _sdY2 = VoxelWorld.getTerrainHeight(_sdX2, _sdZ2) + 8;
+            Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_sdX2, _sdY2, _sdZ2));
+            if (HUD.notifyPickup) HUD.notifyPickup('⚠ KAMIKAZE DRONE INCOMING!', '#ff6600');
+          }
+        }
+      }
+
+      // ── SEVASTOPOL: Ship artillery bombardment (stage 9) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 9 && gameState === STATE.PLAYING) {
+        player._sevaNavalTimer = (player._sevaNavalTimer || 0) + delta;
+        if (player._sevaNavalTimer >= 14.0 + Math.random() * 8) {
+          player._sevaNavalTimer = 0;
+          if (!player.godMode) {
+            var sevaDmg = 7 + Math.floor(Math.random() * 14);
+            player.hp = Math.max(1, player.hp - sevaDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0x3355cc, 0.35);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.9);
+            if (HUD.notifyPickup) HUD.notifyPickup('💥 Ship artillery!', '#4488ff');
+          }
+        }
+      }
+
       // B23: Multikill timer decay
       if (player.multikillTimer > 0) {
         player.multikillTimer -= delta;
@@ -8213,6 +8371,7 @@ const GameManager = (function () {
     loadGame,
     saveGame,
     deleteSave,
+    continueGame,
     notifyExplosiveKills,
     notifyNPCDeath,
     nextStage,

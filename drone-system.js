@@ -17,6 +17,7 @@ const DroneSystem = (function () {
     SURVEILLANCE: 'surveillance',
     KAMIKAZE:     'kamikaze',
     INCENDIARY:   'incendiary',
+    BABA_YAGA:    'baba_yaga',
     BAYRAKTAR:    'bayraktar',
     ENEMY_BOMBER: 'enemy_bomber',
     ENEMY_FPV:    'enemy_fpv',
@@ -30,6 +31,7 @@ const DroneSystem = (function () {
     surveillance:   { speed: 6,  health: 50,  battery: 300, damage: 0,   range: 100 },
     kamikaze:       { speed: 25, health: 8,   battery: 20,  damage: 120, range: 35 },
     incendiary:     { speed: 10, health: 25,  battery: 60,  damage: 60,  range: 70 },
+    baba_yaga:      { speed: 5,  health: 100, battery: 150, damage: 90,  range: 60 },
     bayraktar:      { speed: 14, health: 120, battery: 240, damage: 0,   range: 300 }, // TB2: fixed-wing striker, armed with MAM-L
     enemy_bomber:   { speed: 7,  health: 35,  battery: 80,  damage: 150, range: 50 },
     enemy_fpv:      { speed: 22, health: 10,  battery: 30,  damage: 100, range: 40 },
@@ -209,6 +211,44 @@ const DroneSystem = (function () {
       return group;
     }
 
+    // ── Baba Yaga: large Ukrainian heavy-lift fire-dropper hexacopter ──
+    if (type === DRONE_TYPE.BABA_YAGA) {
+      var byMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+      var byBody = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 0.7), byMat);
+      group.add(byBody);
+      var byYellow = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.08),
+        new THREE.MeshLambertMaterial({ color: 0xFFD700 }));
+      byYellow.position.set(0, 0.1, 0); group.add(byYellow);
+      var byYellow2 = byYellow.clone(); byYellow2.rotation.y = Math.PI / 2; group.add(byYellow2);
+      for (var byi = 0; byi < 6; byi++) {
+        var byAngle = (byi / 6) * Math.PI * 2;
+        var byArm = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.38),
+          new THREE.MeshLambertMaterial({ color: 0x333333 }));
+        byArm.position.set(Math.cos(byAngle) * 0.42 * 0.7, 0.04, Math.sin(byAngle) * 0.42 * 0.7);
+        byArm.rotation.y = byAngle + Math.PI / 2;
+        group.add(byArm);
+        var byRotor = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.02, 8),
+          new THREE.MeshBasicMaterial({ color: 0x889900, transparent: true, opacity: 0.5 }));
+        byRotor.position.set(Math.cos(byAngle) * 0.62, 0.08, Math.sin(byAngle) * 0.62);
+        byRotor.userData.isRotor = true;
+        group.add(byRotor);
+      }
+      for (var byci = 0; byci < 5; byci++) {
+        var byCa = (byci / 5) * Math.PI * 2;
+        var byCan = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.22, 8),
+          new THREE.MeshLambertMaterial({ color: byci === 0 ? 0xff4400 : 0xcc2200 }));
+        byCan.position.set(Math.cos(byCa) * 0.2, -0.2, Math.sin(byCa) * 0.2);
+        byCan.userData.isPayload = true;
+        byCan.userData.canisterIndex = byci;
+        group.add(byCan);
+      }
+      var byGlow = new THREE.PointLight(0xff6600, 2.0, 5);
+      byGlow.position.set(0, -0.2, 0);
+      group.add(byGlow);
+      group.castShadow = true;
+      return group;
+    }
+
     // Body color by faction and type
     let bodyColor;
     if (faction === 'russian') {
@@ -341,7 +381,9 @@ const DroneSystem = (function () {
       mesh:     null,
       alive:    true,
       active:   true,  // powered on
-      hasPayload: type === DRONE_TYPE.BOMB || type === DRONE_TYPE.ENEMY_BOMBER || type === DRONE_TYPE.INCENDIARY,
+      hasPayload: type === DRONE_TYPE.BOMB || type === DRONE_TYPE.ENEMY_BOMBER || type === DRONE_TYPE.INCENDIARY || type === DRONE_TYPE.BABA_YAGA,
+      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5 : undefined,
+      _babaDropCooldown: 0,
 
       // AI patrol (for surveillance drones)
       patrolPoints: [],
@@ -985,6 +1027,38 @@ const DroneSystem = (function () {
         return;
       }
 
+      // BABA YAGA: slow heavy hexacopter, drops thermite on enemy clusters on cooldown
+      if (drone.type === DRONE_TYPE.BABA_YAGA && nearestEnemy && nearestDsq < rangeSq) {
+        drone._babaDropCooldown = (drone._babaDropCooldown || 0) - delta;
+        var bydx = nearestEnemy.mesh.position.x - drone.position.x;
+        var bydz = nearestEnemy.mesh.position.z - drone.position.z;
+        var byxz = Math.sqrt(bydx * bydx + bydz * bydz);
+        var byAlt = nearestEnemy.mesh.position.y + 10;
+        drone.velocity.y = (byAlt - drone.position.y) * 0.8;
+        if (byxz > 5) {
+          drone.velocity.x = (bydx / byxz) * drone.speed;
+          drone.velocity.z = (bydz / byxz) * drone.speed;
+        } else if (drone.hasPayload && drone._babaDropCooldown <= 0) {
+          drone.velocity.x *= 0.5;
+          drone.velocity.z *= 0.5;
+          drone._babaDropCooldown = 4.5;
+          var byDropPos = new THREE.Vector3(drone.position.x, nearestEnemy.mesh.position.y, drone.position.z);
+          if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) Enemies.damageInRadius(byDropPos, 7, drone.damage);
+          if (typeof Tracers !== 'undefined') {
+            if (Tracers.spawnFire) Tracers.spawnFire(byDropPos, 7);
+            if (Tracers.spawnExplosion) Tracers.spawnExplosion(byDropPos, 4);
+          }
+          var _byHide = false;
+          drone.mesh.children.forEach(function(c) { if (!_byHide && c.userData.isPayload && c.visible) { c.visible = false; _byHide = true; } });
+          drone.payloadCount = (drone.payloadCount || 1) - 1;
+          if (drone.payloadCount <= 0) drone.hasPayload = false;
+          if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playGunshot) window.AudioSystem.playGunshot('launcher');
+          if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('🔥 BABA YAGA DROPS THERMITE!', '#ff6600');
+        }
+        if (drone.velocity.length() > 0.1) drone.mesh.rotation.y = Math.atan2(drone.velocity.x, drone.velocity.z);
+        return;
+      }
+
       // RECON / SURVEILLANCE without enemies in range: tag visible enemies on mission system if available
       if ((drone.type === DRONE_TYPE.RECON || drone.type === DRONE_TYPE.SURVEILLANCE) && nearestEnemy) {
         if (typeof MissionSystem !== 'undefined' && MissionSystem.onDroneScout) {
@@ -1090,9 +1164,18 @@ const DroneSystem = (function () {
 
   function dropFire(droneId) {
     const drone = drones.find(d => d.id === droneId);
-    if (!drone || drone.type !== DRONE_TYPE.INCENDIARY || !drone.hasPayload) return false;
-    drone.hasPayload = false;
-    drone.mesh.children.forEach(function(ch) { if (ch.userData.isPayload) ch.visible = false; });
+    if (!drone || (drone.type !== DRONE_TYPE.INCENDIARY && drone.type !== DRONE_TYPE.BABA_YAGA) || !drone.hasPayload) return false;
+    if (drone.type === DRONE_TYPE.BABA_YAGA) {
+      drone.payloadCount = (drone.payloadCount || 1) - 1;
+      if (drone.payloadCount <= 0) drone.hasPayload = false;
+      var _byHid = false;
+      drone.mesh.children.forEach(function(ch) {
+        if (!_byHid && ch.userData.isPayload && ch.visible) { ch.visible = false; _byHid = true; }
+      });
+    } else {
+      drone.hasPayload = false;
+      drone.mesh.children.forEach(function(ch) { if (ch.userData.isPayload) ch.visible = false; });
+    }
     const dropPos = drone.position.clone();
     dropPos.y -= 1;
     // Fire damage to enemies
