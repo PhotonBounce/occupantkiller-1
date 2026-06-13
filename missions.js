@@ -689,6 +689,7 @@ const MissionSystem = (function () {
       'clear_building', 'clear_building', 'clear_building',
       'defense', 'defense', 'recon', 'recon',
       'gather', 'expand', 'escort', 'infiltrate',
+      'urban_breakout', 'urban_breakout', 'bradley_mission',
     ];
     let pick = weighted[Math.floor(Math.random() * weighted.length)];
     if (!TEMPLATES[pick]) pick = Object.keys(TEMPLATES)[0];
