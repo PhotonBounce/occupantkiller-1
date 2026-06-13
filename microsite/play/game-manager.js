@@ -1601,9 +1601,8 @@ const GameManager = (function () {
             // 196 = 14m² — wide enough to cover DEFUSE bombs (placed at radius 8) + 6m interact range
             if (mtDx * mtDx + mtDz * mtDz < 196) {
               if (mt.config.id === 'DEMOLITION') {
-                MissionTypes.interact('PLANT_CHARGE', { dt: 0.5 });
-                HUD.notifyPickup('\ud83d\udca3 PLANTING CHARGE...', '#ff8800');
-                fHandled = true;
+                HUD.notifyPickup('\ud83d\udca3 HOLD [F] TO PLANT CHARGE...', '#ff8800');
+                fHandled = true; // actual planting progress runs in hold-F update loop
               } else if (mt.config.id === 'RESCUE') {
                 var _mtr = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
                 var _nearPowDist = 999;
@@ -6509,7 +6508,12 @@ const GameManager = (function () {
           var _hfDx = player.position.x - (_hfMt.zoneX || 0);
           var _hfDz = player.position.z - (_hfMt.zoneZ || 0);
           if (_hfDx * _hfDx + _hfDz * _hfDz < 196) {
-            if (_hfMt.config.id === 'RESCUE') {
+            if (_hfMt.config.id === 'DEMOLITION') {
+              var _hfPlant = MissionTypes.interact('PLANT_CHARGE', { dt: delta });
+              if (player._hfNotifCd <= 0) {
+                if (_hfPlant && _hfPlant.planting) { HUD.notifyPickup('💣 PLANTING... ' + Math.round((_hfPlant.progress || 0) * 100) + '%', '#ff8800'); player._hfNotifCd = 0.25; }
+              }
+            } else if (_hfMt.config.id === 'RESCUE') {
               var _hfProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
               var _hfNearPow = 999;
               if (_hfProg && _hfProg.pows) {
