@@ -227,7 +227,19 @@ const MissionTypes = (function () {
         const inZone = dx * dx + dz * dz < cfg.zoneRadius * cfg.zoneRadius;
         missionProgress.inZone = inZone;
         if (inZone) {
-          missionProgress.holdTimer += dt;
+          var contested = false;
+          if (cfg.contestPause && typeof window !== 'undefined' && window.Enemies && window.Enemies.getAll) {
+            var _zEnemies = window.Enemies.getAll();
+            for (var _zi = 0; _zi < _zEnemies.length; _zi++) {
+              var _ze = _zEnemies[_zi];
+              if (!_ze || !_ze.alive || !_ze.mesh) continue;
+              var _zdx = _ze.mesh.position.x - m.zoneX;
+              var _zdz = _ze.mesh.position.z - m.zoneZ;
+              if (_zdx * _zdx + _zdz * _zdz < cfg.zoneRadius * cfg.zoneRadius) { contested = true; break; }
+            }
+          }
+          if (!contested) missionProgress.holdTimer += dt;
+          result.contested = contested;
         }
         result.holdProgress = missionProgress.holdTimer / cfg.holdTime;
         result.inZone = inZone;

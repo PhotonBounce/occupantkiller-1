@@ -3842,9 +3842,10 @@ const GameManager = (function () {
       Progression.trackStat('wavesCleared', 0); // track at begin; increment at complete
     }
     // Spawn a random mission type every 3 waves
+    // ASSAULT_DUGOUTS excluded — it pre-spawns 16 extra garrison enemies which spikes difficulty mid-wave.
     if (w % 3 === 0 && typeof MissionTypes !== 'undefined') {
-      var mTypes = Object.keys(MissionTypes.TYPES);
-      var mType = mTypes[Math.floor(Math.random() * mTypes.length)];
+      var _mSafeTypes = ['DEMOLITION', 'CAPTURE_ZONE', 'ASSASSINATION', 'RESCUE', 'DEFUSE'];
+      var mType = _mSafeTypes[Math.floor(Math.random() * _mSafeTypes.length)];
       MissionTypes.startMission(mType, player.position.x + (Math.random() - 0.5) * 40, player.position.z + (Math.random() - 0.5) * 40);
       HUD.notifyPickup('📍 NEW MISSION: ' + MissionTypes.TYPES[mType].name, '#ffcc00');
     }
@@ -6377,8 +6378,9 @@ const GameManager = (function () {
             : ((_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' enemies left');
           HUD.setPrimaryObjective('🎯 ' + (_poMission[0].name || 'MISSION'), _poProg);
         } else if (_poAlive > 0) {
-          HUD.setPrimaryObjective('⚔ ELIMINATE THE OCCUPANTS',
-            (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' left');
+          var _poSide = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
+          var _poBase = (_poStg ? _poStg.name + ' · ' : '') + 'Wave ' + currentWave + '/' + _poWaves + ' · ' + _poAlive + ' left';
+          HUD.setPrimaryObjective('⚔ ELIMINATE THE OCCUPANTS', _poSide ? _poBase + ' · ⭐ ' + _poSide.name : _poBase);
         } else {
           HUD.setPrimaryObjective('✓ AREA SECURED', 'Next wave incoming — hold the line');
         }
@@ -6816,12 +6818,13 @@ const GameManager = (function () {
                 mTimer.textContent = '⏱ ' + Math.ceil(missionResult.timeRemaining) + 's';
               }
             } else if (missionResult.state === 'COMPLETE') {
+              var _completingType = MissionTypes.getActive() ? MissionTypes.getActive().config.id : null;
               var reward = MissionTypes.completeMission();
               if (reward) {
                 HUD.notifyPickup('✅ MISSION COMPLETE! +' + reward.okc + ' OKC +' + reward.xp + ' XP', '#44ff88');
                 if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
                   Marketplace.awardCustomOKC(reward.okc, 'mission_type_complete', {
-                    missionType: MissionTypes.getActive() ? MissionTypes.getActive().config.id : null,
+                    missionType: _completingType,
                   }).then(function () {
                     if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
                   });
