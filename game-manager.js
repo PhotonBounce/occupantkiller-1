@@ -3880,7 +3880,8 @@ const GameManager = (function () {
     // Spawn a random mission type every 3 waves
     // ASSAULT_DUGOUTS excluded — it pre-spawns 16 extra garrison enemies which spikes difficulty mid-wave.
     // Only start if no scripted mission already active (avoids silently overwriting in-progress missions).
-    if (w % 3 === 0 && typeof MissionTypes !== 'undefined' && !MissionTypes.getActive()) {
+    // Skip for capitalDefense (Kyiv) — convoy columns are already the priority objective.
+    if (w % 3 === 0 && typeof MissionTypes !== 'undefined' && !MissionTypes.getActive() && !capitalDefense) {
       var _mSafeTypes = ['DEMOLITION', 'CAPTURE_ZONE', 'ASSASSINATION', 'RESCUE', 'DEFUSE'];
       var mType = _mSafeTypes[Math.floor(Math.random() * _mSafeTypes.length)];
       MissionTypes.startMission(mType, player.position.x + (Math.random() - 0.5) * 40, player.position.z + (Math.random() - 0.5) * 40);
