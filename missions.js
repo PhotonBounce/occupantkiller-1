@@ -860,112 +860,7 @@ const MissionSystem = (function () {
     return activeSideObj;
   }
 
-  /* ── 2. Mission Chains ───────────────────────────────────────────── */
-  const MISSION_CHAINS = [
-            // Bradley IFV Forest Road Mission
-            {
-              id: 'bradley_forest',
-              name: 'Bradley Forest Road',
-              stages: [
-                { name: 'Convoy Start', type: 'bradley_mission', desc: 'Defend the convoy while riding the Bradley IFV through a Ukrainian forest road.' },
-                { name: 'Ambush Defense', type: MISSION_TYPE.DEFENSE, desc: 'Repel ambushes and protect the convoy.' },
-                { name: 'Breakout', type: MISSION_TYPE.ESCORT, desc: 'Escort survivors to safety after exiting the vehicle.' }
-              ]
-            },
-        // Hostomel Airport Assault (campaign & skirmish)
-        {
-          id: 'hostomel_airport',
-          name: 'Hostomel Airport Assault',
-          stages: [
-            { name: 'Repel Airborne', type: 'airborne_assault', desc: 'Defend against Russian VDV landings' },
-            { name: 'Secure Runway', type: MISSION_TYPE.DEFENSE, desc: 'Hold the runway for reinforcements' },
-            { name: 'Counterattack', type: MISSION_TYPE.ESCORT, desc: 'Lead a counterattack to clear the airport' }
-          ]
-        },
-        // Kyiv Siege: First Day (campaign)
-        {
-          id: 'kyiv_siege_day1',
-          name: 'Kyiv Siege: First Day',
-          stages: [
-            { name: 'Urban Defense', type: MISSION_TYPE.DEFENSE, desc: 'Hold defensive lines in Kyiv suburbs' },
-            { name: 'Breakout', type: 'urban_breakout', desc: 'Break out of partial encirclement' },
-            { name: 'Rescue Civilians', type: MISSION_TYPE.ESCORT, desc: 'Escort civilians to safety' }
-          ]
-        },
-    {
-      id: 'operation_viper',
-      name: 'Operation Viper',
-      stages: [
-        { name: 'Recon',        type: MISSION_TYPE.RECON,    desc: 'Scout enemy stronghold locations' },
-        { name: 'Assassinate',  type: MISSION_TYPE.DEFENSE,  desc: 'Eliminate the garrison commander' },
-        { name: 'Extract',      type: MISSION_TYPE.ESCORT,   desc: 'Extract intel to base safely' },
-      ],
-    },
-    {
-      id: 'supply_line',
-      name: 'Supply Line',
-      stages: [
-        { name: 'Gather Resources', type: MISSION_TYPE.GATHER,  desc: 'Collect supplies for the convoy' },
-        { name: 'Defend Convoy',     type: MISSION_TYPE.DEFENSE, desc: 'Protect the supply convoy from ambush' },
-        { name: 'Deliver Supplies',  type: MISSION_TYPE.ESCORT,  desc: 'Deliver supplies to the forward base' },
-      ],
-    },
-    {
-      id: 'liberation',
-      name: 'Liberation',
-      stages: [
-        { name: 'Capture Zone',       type: MISSION_TYPE.EXPAND,   desc: 'Seize the occupied territory' },
-        { name: 'Eliminate Garrison',  type: MISSION_TYPE.DEFENSE,  desc: 'Wipe out remaining enemy forces' },
-        { name: 'Rebuild',            type: MISSION_TYPE.EXPAND,   desc: 'Reconstruct the liberated zone' },
-      ],
-    },
-    {
-      id: 'deep_strike',
-      name: 'Deep Strike',
-      stages: [
-        { name: 'Scout',          type: MISSION_TYPE.RECON,    desc: 'Locate the target bridge' },
-        { name: 'Demolish Bridge', type: MISSION_TYPE.DEFENSE, desc: 'Plant charges and defend the site' },
-        { name: 'Escape',         type: MISSION_TYPE.ESCORT,   desc: 'Escape the blast zone before reinforcements arrive' },
-      ],
-    },
-  ];
-
-  let activeChain = null;
-  let chainProgress = 0;
-
-  function startChain(chainId) {
-    var chain = MISSION_CHAINS.find(function (c) { return c.id === chainId; });
-    if (!chain) return null;
-    activeChain = chain;
-    chainProgress = 0;
-    var stage = chain.stages[0];
-    return generateMission(stage.type);
-  }
-
-  function advanceChain() {
-    if (!activeChain) return null;
-    chainProgress++;
-    if (chainProgress >= activeChain.stages.length) {
-      var finished = { chain: activeChain.name, completed: true };
-      activeChain = null;
-      chainProgress = 0;
-      return finished;
-    }
-    var stage = activeChain.stages[chainProgress];
-    return generateMission(stage.type);
-  }
-
-  function getChainProgress() {
-    if (!activeChain) return null;
-    return {
-      chain: activeChain,
-      current: chainProgress,
-      total: activeChain.stages.length,
-      stage: activeChain.stages[chainProgress] || null,
-    };
-  }
-
-  /* ── 3. Dynamic Mission Difficulty ───────────────────────────────── */
+  /* ── 2. Dynamic Mission Difficulty ───────────────────────────────── */
   function scaleMission(mission, playerLevel) {
     var factor = 1 + (playerLevel - 1) * 0.15;
     var d = mission.data;
@@ -1026,11 +921,6 @@ const MissionSystem = (function () {
     generateSideObjective,
     checkSideObjective,
     getSideObjective,
-    /* Mission Chains */
-    MISSION_CHAINS,
-    startChain,
-    advanceChain,
-    getChainProgress,
     /* Dynamic Difficulty */
     scaleMission,
     /* Mission Timer */

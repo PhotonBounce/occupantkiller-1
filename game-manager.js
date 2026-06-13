@@ -659,7 +659,7 @@ const GameManager = (function () {
       exposure:     0.9,
       hintWeapons:  ['M142 HIMARS (GMLRS Strike)','RPG-7','C4 Explosive'],
       description:  'Assault the Kerch Strait bridge. Cut off their supply line.',
-      objective:    'Blow the Crimea Bridge. Heavy naval bombardment incoming. 7 waves.',
+      objective:    'Repel naval marines at the Kerch Strait crossing. Drone strikes and naval bombardment incoming. 7 waves.',
     },
     {
       id:           7,
@@ -704,7 +704,7 @@ const GameManager = (function () {
       exposure:     0.85,
       hintWeapons:  ['M142 HIMARS (GMLRS Strike)','RPG-7','NLAW'],
       description:  'Destroy the Black Sea Fleet at Sevastopol. Sink them all.',
-      objective:    'Naval base assault. Ship artillery rains down. Destroy all fleet defenders.',
+      objective:    'Naval base assault. Ship artillery rains down. Destroy all fleet defenders. 7 waves.',
     },
     {
       id:           10,
@@ -1450,7 +1450,7 @@ const GameManager = (function () {
       }
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
-        if (gameState === STATE.PLAYING) {
+        if (gameState === STATE.PLAYING && !(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
           var _newM;
           if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
             _newM = MissionSystem.generateMission('kyiv_defense');
@@ -3101,13 +3101,16 @@ const GameManager = (function () {
     }, 3200);
 
     // Generate an initial mission. Stage-specific signature missions take priority.
-    if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
-      MissionSystem.generateMission('kyiv_defense');
-    } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
-      MissionSystem.generateMission('airborne_assault');
-    } else {
-      var _initMission = MissionSystem.generateRandom();
-      _autoReconDroneForMission(_initMission);
+    // droneOnly stages (stage 18 Refinery) handle missions entirely via RefineryStrike.
+    if (!(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
+      if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
+        MissionSystem.generateMission('kyiv_defense');
+      } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
+        MissionSystem.generateMission('airborne_assault');
+      } else {
+        var _initMission = MissionSystem.generateRandom();
+        _autoReconDroneForMission(_initMission);
+      }
     }
     } catch (err) {
       console.error('Failed to initialize game:', err);
@@ -3417,7 +3420,7 @@ const GameManager = (function () {
 
     // Clear stale missions from prior stage and seed a fresh stage-appropriate one
     if (typeof MissionSystem !== 'undefined' && MissionSystem.init) MissionSystem.init();
-    if (typeof MissionSystem !== 'undefined') {
+    if (typeof MissionSystem !== 'undefined' && !stageDef.droneOnly) {
       if (stageDef.capitalDefense) {
         MissionSystem.generateMission('kyiv_defense');
       } else if (stageDef.id === 1) {
@@ -3907,7 +3910,7 @@ const GameManager = (function () {
     }
     // Belgorod (id 11): heavy counter-attack warning + extra armor at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 11) {
-      HUD.notifyPickup('⚠ HEAVY ARMORED COUNTER-ATTACK — GRAB AT WEAPONS!', '#ff8800');
+      HUD.notifyPickup('⚠ HEAVY ARMORED COUNTER-ATTACK — GRAB ANTI-TANK WEAPONS!', '#ff8800');
       // Extra BTR spawn from wave 1 to reflect "tanks and mech infantry counter-attack"
       if (!capitalDefense && typeof VehicleSystem !== 'undefined') {
         var _bgrA = Math.random() * Math.PI * 2;
@@ -3935,9 +3938,9 @@ const GameManager = (function () {
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 5) {
       HUD.notifyPickup('🔥 STEELWORKS INFERNO — FIRE DEALS CONSTANT DAMAGE!', '#ff6600');
     }
-    // Crimea Bridge (id 6): naval bombardment warning at wave 1
+    // Crimea Bridge (id 6): naval marines + drone warning at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 6) {
-      HUD.notifyPickup('⚓ NAVAL BOMBARDMENT INCOMING — BLOW THE BRIDGE!', '#4477ff');
+      HUD.notifyPickup('⚓ NAVAL MARINES AND DRONE STRIKES — HOLD THE KERCH CROSSING!', '#4477ff');
     }
     // Chornobyl (id 7): radiation warning at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 7) {
@@ -3962,6 +3965,14 @@ const GameManager = (function () {
     // Antonov (id 17): long-range artillery duel warning at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 17) {
       HUD.notifyPickup('🎯 ARTILLERY DUELS — PRECISION WEAPONS REQUIRED. WATCH YOUR RANGE!', '#ffcc44');
+    }
+    // Vuhledar (id 16): tank graveyard warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 16) {
+      HUD.notifyPickup('⚰ TANK GRAVEYARD — USE MINES AND ANTI-TANK WEAPONS!', '#ff8800');
+    }
+    // Refinery (id 18): FPV drone mission start at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 18) {
+      HUD.notifyPickup('💥 FPV DRONE ARMED — FLY INTO THE REFINERY. NO SECOND CHANCES!', '#ff6600');
     }
     // Spawn radiation zones in Chornobyl stage (ID 7) on wave 6
     if (w === 6 && typeof WorldFeatures !== 'undefined' && STAGES[currentStage] && STAGES[currentStage].id === 7) {
