@@ -6493,7 +6493,34 @@ const GameManager = (function () {
         // zone coordinates are zoneX/zoneZ on the active mission — point waypoint there.
         if (!_wpT && typeof MissionTypes !== 'undefined' && MissionTypes.getActive && MissionTypes.getActive()) {
           var _mt = MissionTypes.getActive();
-          if (typeof _mt.zoneX === 'number' && typeof _mt.zoneZ === 'number') {
+          // RESCUE: point to nearest unfreed POW
+          if (_mt.config && _mt.config.id === 'RESCUE') {
+            var _mpProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+            if (_mpProg && _mpProg.pows) {
+              for (var _wpi = 0; _wpi < _mpProg.pows.length; _wpi++) {
+                if (!_mpProg.pows[_wpi].freed) {
+                  var _wpow = _mpProg.pows[_wpi];
+                  _wpT = { x: _wpow.x, y: VoxelWorld.getTerrainHeight(_wpow.x, _wpow.z), z: _wpow.z };
+                  break;
+                }
+              }
+            }
+          }
+          // DEFUSE: point to nearest undefused bomb
+          if (!_wpT && _mt.config && _mt.config.id === 'DEFUSE') {
+            var _mfProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+            if (_mfProg && _mfProg.bombs) {
+              for (var _wbi = 0; _wbi < _mfProg.bombs.length; _wbi++) {
+                if (!_mfProg.bombs[_wbi].defused) {
+                  var _wbomb = _mfProg.bombs[_wbi];
+                  _wpT = { x: _wbomb.x, y: VoxelWorld.getTerrainHeight(_wbomb.x, _wbomb.z), z: _wbomb.z };
+                  break;
+                }
+              }
+            }
+          }
+          // All other types: fall back to zone center
+          if (!_wpT && typeof _mt.zoneX === 'number' && typeof _mt.zoneZ === 'number') {
             _wpT = { x: _mt.zoneX, y: VoxelWorld.getTerrainHeight(_mt.zoneX, _mt.zoneZ), z: _mt.zoneZ };
           }
         }
