@@ -4721,7 +4721,7 @@ window.VoxelWorld = (function () {
       generateDroneNest(35, 35);
       generateDroneNest(-35, -35);
     } else if (level.id === 'ANTONOV') {
-      // Bridge strike — bridge, fortifications, supply dumps
+      // Bridge strike — bridge, fortifications, supply dumps, residential flanks
       generateBridge(0, 0, 50, 6);
       generateBridgeFortification(15, 0);
       generateBridgeFortification(-15, 0);
@@ -4729,6 +4729,15 @@ window.VoxelWorld = (function () {
       generateFuelDepot(25, -25);
       generateCheckpoint(30, 0, true);
       generateCheckpoint(-30, 0, true);
+      // Residential blocks flanking the bridge approach (Kherson city context)
+      generateUkrainianApartment(-45, -20, 9);
+      generateUkrainianApartment(-45, 10, 6);
+      generateUkrainianApartment(32, -18, 9);
+      generateUkrainianApartment(32, 12, 6);
+      generateUkrainianApartment(-18, -48, 9);
+      generateUkrainianApartment(10, -48, 6);
+      generateBurningRuin(-46, -40);
+      generateBurningRuin(33, -38);
       generateDroneNest(40, 40);
     } else if (level.id === 'REFINERY') {
       // Oil refinery — fuel tanks, industrial towers, pipelines
