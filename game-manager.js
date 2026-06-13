@@ -6947,8 +6947,9 @@ const GameManager = (function () {
               // DEMOLITION: detonate charge — blast kills nearby enemies
               if (_completingType === 'DEMOLITION' && _completingMission && typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
                 var _demCfg = _completingMission.config;
+                var _demY = VoxelWorld.getTerrainHeight(_completingMission.zoneX, _completingMission.zoneZ);
                 Enemies.damageInRadius(
-                  new THREE.Vector3(_completingMission.zoneX, 0, _completingMission.zoneZ),
+                  new THREE.Vector3(_completingMission.zoneX, _demY, _completingMission.zoneZ),
                   _demCfg.blastRadius || 15, _demCfg.blastDamage || 500
                 );
                 if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.08, 0.6);
@@ -6972,6 +6973,14 @@ const GameManager = (function () {
             } else if (missionResult.state === 'FAILED') {
               var _failMsg = { TIME_UP: 'Time ran out', DETONATION: 'Bomb detonated', VIP_DEAD: 'VIP eliminated' }[missionResult.reason] || (missionResult.reason || 'Mission failed');
               HUD.notifyPickup('❌ MISSION FAILED: ' + _failMsg, '#ff4444');
+              // DEFUSE detonation: bombs explode — deal blast damage to player
+              if (missionResult.reason === 'DETONATION' && !player.godMode) {
+                var _defCfg = MissionTypes.getActive() ? MissionTypes.getActive().config : null;
+                var _defDmg = (_defCfg && _defCfg.blastDamage) ? _defCfg.blastDamage : 200;
+                player.hp = Math.max(1, player.hp - _defDmg);
+                HUD.setHealth(player.hp, player.maxHp);
+                if (CameraSystem.shake) CameraSystem.shake(0.15, 1.2);
+              }
               mTracker.style.display = 'none';
             }
           }
