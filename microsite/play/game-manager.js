@@ -331,13 +331,15 @@ const GameManager = (function () {
         break;
       case 'REINFORCEMENT':
         // Spawn extra friendly NPCs
-        for (let i = 0; i < 3; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const dist = 4 + Math.random() * 6;
-          const nx = player.position.x + Math.cos(angle) * dist;
-          const nz = player.position.z + Math.sin(angle) * dist;
-          const nh = window.VoxelWorld.getTerrainHeight(nx, nz);
-          NPCSystem.spawn(nx, nh, nz, 'infantry');
+        if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
+          for (let i = 0; i < 3; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 4 + Math.random() * 6;
+            const nx = player.position.x + Math.cos(angle) * dist;
+            const nz = player.position.z + Math.sin(angle) * dist;
+            const nh = window.VoxelWorld.getTerrainHeight(nx, nz);
+            NPCSystem.spawn(nx, nh, nz, 'infantry');
+          }
         }
         break;
       case 'AMBUSH':
