@@ -3596,7 +3596,7 @@ const GameManager = (function () {
           var flushDist = 20 + Math.random() * 10;
           var flushX = campPos.x + Math.cos(flushAngle) * flushDist;
           var flushZ = campPos.z + Math.sin(flushAngle) * flushDist;
-          Enemies.spawnSingle('STORMER', new THREE.Vector3(flushX, 0, flushZ));
+          Enemies.spawnSingle('STORMER', { x: flushX, z: flushZ });
         }
       }
     }
@@ -3617,7 +3617,7 @@ const GameManager = (function () {
         for (var _fi = 0; _fi < _flankPositions.length; _fi++) {
           var _fp = _flankPositions[_fi];
           var _fType = (_fi === 0) ? 'STORMER' : (_fi === 1 ? 'CONSCRIPT' : 'ENGINEER');
-          Enemies.spawnSingle(_fType, new THREE.Vector3(_fp.x, 0, _fp.z));
+          Enemies.spawnSingle(_fType, { x: _fp.x, z: _fp.z });
         }
         if (w === 3) HUD.notifyPickup('⚠ FLANKING ASSAULT — PROTECT YOUR SIDES!', '#ff4444');
       }
