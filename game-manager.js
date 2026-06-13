@@ -6926,9 +6926,14 @@ const GameManager = (function () {
                   case 'ASSASSINATION':
                     _objTxt = missionResult.hvtLocated ? ('HVT HP: ' + Math.max(0, Math.round(missionResult.hvtHP || 0))) : 'Locate and engage HVT in zone';
                     break;
-                  case 'RESCUE':
-                    _objTxt = 'POWs freed: ' + (missionResult.freed || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.powCount : 3);
+                  case 'RESCUE': {
+                    var _powTot = MissionTypes.getActive() ? MissionTypes.getActive().config.powCount : 3;
+                    var _powNear = (missionResult.activePow >= 0) ? ' — approach POW ' + (missionResult.activePow + 1) + ' and hold [F]' : ' — find a POW (approach within 5m)';
+                    var _powFreeing = (missionResult.activePow >= 0 && missionResult.pows && missionResult.pows[missionResult.activePow])
+                      ? (missionResult.pows[missionResult.activePow].freeProgress > 0 ? ' [freeing: ' + Math.round(missionResult.pows[missionResult.activePow].freeProgress * 100) + '%]' : '') : '';
+                    _objTxt = 'POWs freed: ' + (missionResult.freed || 0) + '/' + _powTot + _powFreeing + _powNear;
                     break;
+                  }
                   case 'DEFUSE': {
                     var _bombTot = MissionTypes.getActive() ? MissionTypes.getActive().config.bombCount : 3;
                     var _defProg = missionResult.defuseProgress > 0 ? ' [defusing: ' + Math.round(missionResult.defuseProgress * 100) + '%]' : '';

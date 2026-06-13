@@ -411,6 +411,9 @@ const MissionTypes = (function () {
         result.detonationTimer = missionProgress.detonationTimer;
         result.activeBomb = _nearBomb;
         result.bombs = missionProgress.bombs;
+        // Expose active bomb's defuse progress for HUD display
+        result.defuseProgress = (_nearBomb >= 0 && missionProgress.bombs[_nearBomb])
+          ? (missionProgress.bombs[_nearBomb].defuseProgress || 0) : 0;
         if (missionProgress.defused >= cfg.bombCount) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
