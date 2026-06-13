@@ -3626,8 +3626,8 @@ const GameManager = (function () {
       // (DRONE_OP type — operator controls an FPV swarm, priority target)
       if (w >= 5 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
         var _dronePosRooftops = [
-          { x: ox - 14, z: 137 }, { x: ox + 8,  z: 160 },
-          { x: ox - 16, z: 178 }, { x: ox + 10, z: 139 },
+          { x: -14, z: 137 }, { x: 8,  z: 160 },
+          { x: -16, z: 178 }, { x: 10, z: 139 },
         ];
         var _droneOpsCount = Math.min(1 + Math.floor((w - 5) / 2), 3);
         for (var _doi = 0; _doi < _droneOpsCount; _doi++) {
