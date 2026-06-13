@@ -3077,10 +3077,13 @@ const GameManager = (function () {
       try { if (typeof Feedback !== 'undefined' && Feedback.startOnboarding) Feedback.startOnboarding(); } catch (_e) {}
     }, 3200);
 
-    // Generate an initial mission. Capital defense (Kyiv) always runs its
-    // signature mission instead of a random one.
-    if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
+    // Generate an initial mission. Stage 1 always opens with airborne_assault;
+    // capital defense (Kyiv) uses its signature kyiv_defense mission.
+    var _initStageDef = STAGES[currentStage];
+    if (_initStageDef && _initStageDef.capitalDefense) {
       MissionSystem.generateMission('kyiv_defense');
+    } else if (_initStageDef && _initStageDef.id === 1) {
+      MissionSystem.generateMission('airborne_assault');
     } else {
       var _initMission = MissionSystem.generateRandom();
       _autoReconDroneForMission(_initMission);
