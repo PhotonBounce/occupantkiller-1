@@ -1443,10 +1443,12 @@ const GameManager = (function () {
       }
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
-        if (gameState === STATE.PLAYING) {
+        if (gameState === STATE.PLAYING && !(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
           var _newM;
           if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
             _newM = MissionSystem.generateMission('kyiv_defense');
+          } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
+            _newM = MissionSystem.generateMission('airborne_assault');
           } else {
             _newM = MissionSystem.generateRandom();
             _autoReconDroneForMission(_newM);
@@ -1479,7 +1481,10 @@ const GameManager = (function () {
     // Spawn organized assault groups (4 squads of 4-5 armed NPCs) — BRIGADE
     // role only. Lone Wolf previously got the same 22-NPC army, which deleted
     // every nearby enemy before the player could engage (zero threat).
-    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
+    if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
+
+    VehicleSystem.clear(); // prevent vehicle duplication on repeated startGame calls
 
     // Spawn starter vehicle fleet on roads (road-level positions)
     var roadWPs = (window.VoxelWorld.getRoadWaypoints ? window.VoxelWorld.getRoadWaypoints() : []);
@@ -1678,7 +1683,11 @@ const GameManager = (function () {
 
         // Vehicle enter/exit/hijack
         if (e.code === 'KeyG') {
-          if (VehicleSystem.isHijacking()) {
+          // Bradley IFV: check exit first so pilot can always dismount.
+          if (typeof Bradley !== 'undefined' && Bradley.isActive && Bradley.isActive()) {
+            Bradley.exit();
+            HUD.notifyPickup('🚛 DISMOUNTED BRADLEY', '#a0c878');
+          } else if (VehicleSystem.isHijacking()) {
             // Cancel hijack if pressing G again during hijack
             VehicleSystem.cancelHijack();
             HUD.notifyPickup('❌ HIJACK CANCELLED', '#ff4444');
@@ -1690,29 +1699,45 @@ const GameManager = (function () {
               player.position.y += player.height;
             }
           } else {
-            const nearby = VehicleSystem.getNearby(player.position, 5);
-            if (nearby.length > 0) {
-              const targetVehicle = nearby[0];
-              if (targetVehicle.faction === 'enemy') {
-                // Start animated hijack of enemy vehicle
-                VehicleSystem.startHijack(targetVehicle.id);
-                _removeEnemyTankClone(targetVehicle);
-                HUD.notifyPickup('🚗 HIJACKING… Hold steady!', '#ff4444');
-              } else if (targetVehicle.occupied) {
-                // Commandeer friendly vehicle (faster)
-                VehicleSystem.startHijack(targetVehicle.id);
-                _removeEnemyTankClone(targetVehicle);
-                HUD.notifyPickup('🚗 COMMANDEERING…', '#ffaa00');
-              } else {
-                VehicleSystem.enter(targetVehicle.id);
-                _removeEnemyTankClone(targetVehicle);
-                // Show tank HUD if entering a tank
-                if (targetVehicle.isTank) showTankHUD();
-                HUD.notifyPickup('🚗 ENTERED VEHICLE', '#44ff44');
+            // Check Bradley proximity before falling to VehicleSystem
+            var _bradleyMounted = false;
+            if (typeof Bradley !== 'undefined' && Bradley.getVehicle) {
+              var _bv = Bradley.getVehicle();
+              if (_bv && _bv.group) {
+                var _bdx = player.position.x - _bv.group.position.x;
+                var _bdz = player.position.z - _bv.group.position.z;
+                if (_bdx * _bdx + _bdz * _bdz < 49) { // 7m
+                  Bradley.enter();
+                  HUD.notifyPickup('🚛 MOUNTED BRADLEY — M242 Bushmaster ready', '#a0c878');
+                  _bradleyMounted = true;
+                }
               }
-            } else {
-              // No nearby vehicle: fall back to throwing a hand grenade
-              throwHandGrenade();
+            }
+            if (!_bradleyMounted) {
+              const nearby = VehicleSystem.getNearby(player.position, 5);
+              if (nearby.length > 0) {
+                const targetVehicle = nearby[0];
+                if (targetVehicle.faction === 'enemy') {
+                  // Start animated hijack of enemy vehicle
+                  VehicleSystem.startHijack(targetVehicle.id);
+                  _removeEnemyTankClone(targetVehicle);
+                  HUD.notifyPickup('🚗 HIJACKING… Hold steady!', '#ff4444');
+                } else if (targetVehicle.occupied) {
+                  // Commandeer friendly vehicle (faster)
+                  VehicleSystem.startHijack(targetVehicle.id);
+                  _removeEnemyTankClone(targetVehicle);
+                  HUD.notifyPickup('🚗 COMMANDEERING…', '#ffaa00');
+                } else {
+                  VehicleSystem.enter(targetVehicle.id);
+                  _removeEnemyTankClone(targetVehicle);
+                  // Show tank HUD if entering a tank
+                  if (targetVehicle.isTank) showTankHUD();
+                  HUD.notifyPickup('🚗 ENTERED VEHICLE', '#44ff44');
+                }
+              } else {
+                // No nearby vehicle: fall back to throwing a hand grenade
+                throwHandGrenade();
+              }
             }
           }
         }
@@ -2602,6 +2627,12 @@ const GameManager = (function () {
     hud.style.display = 'block';
     _droneControlsVisible = true;
 
+    // Toggle key vs touch hint rows based on device
+    var keyHints = document.getElementById('drone-key-hints');
+    var touchHints = document.getElementById('drone-touch-hints');
+    if (keyHints)   keyHints.style.display   = isMobile ? 'none' : 'flex';
+    if (touchHints) touchHints.style.display = isMobile ? 'block' : 'none';
+
     var typeLabel = document.getElementById('drone-type-label');
     var actionText = document.getElementById('drone-action-text');
     var actionHint = document.getElementById('drone-action-hint');
@@ -2799,8 +2830,29 @@ const GameManager = (function () {
 
   function showTankHUD() {
     var hud = document.getElementById('tank-hud');
-    if (hud) hud.style.display = 'block';
+    if (!hud) return;
+    hud.style.display = 'block';
     _tankHUDVisible = true;
+    var ctrl = hud.querySelector('.tank-hud-controls');
+    if (ctrl) {
+      if (isMobile) {
+        ctrl.innerHTML =
+          '<span>🕹 LEFT · Drive</span>' +
+          '<span>🎯 RIGHT · Aim Turret</span>' +
+          '<span class="tank-hud-cannon">🔴 Fire btn · Cannon</span>' +
+          '<span class="tank-hud-mg">🟡 MG btn · Machine Gun</span>' +
+          '<span>👁 View btn</span>' +
+          '<span>🚫 Exit btn</span>';
+      } else {
+        ctrl.innerHTML =
+          '<span><kbd>WASD</kbd> Drive</span>' +
+          '<span><kbd>MOUSE</kbd> Aim Turret</span>' +
+          '<span class="tank-hud-cannon"><kbd>LMB</kbd> Cannon</span>' +
+          '<span class="tank-hud-mg"><kbd>RMB</kbd> Machine Gun</span>' +
+          '<span><kbd>T</kbd> Toggle View</span>' +
+          '<span><kbd>G</kbd> Exit</span>';
+      }
+    }
   }
 
   function hideTankHUD() {
