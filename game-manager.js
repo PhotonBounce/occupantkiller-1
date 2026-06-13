@@ -3622,7 +3622,8 @@ const GameManager = (function () {
         // Vuhledar: minefield tank graveyard — hint mines + AT weapons
         HUD.notifyPickup('💣 MINEFIELD ACTIVE — USE NLAW/STUGNA + PLACE MINES!', '#ffcc44');
         // Seed the approach corridor with enemy mines to simulate the real minefield
-        if (typeof WorldFeatures !== 'undefined' && WorldFeatures.placeMine) {
+        if (typeof WorldFeatures !== 'undefined' && WorldFeatures.placeMine &&
+            typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
           for (var _vm = 0; _vm < 12; _vm++) {
             var _va = (_vm / 12) * Math.PI * 2;
             var _vd = 18 + (_vm % 3) * 6 + Math.random() * 4;
