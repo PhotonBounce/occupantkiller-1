@@ -419,13 +419,13 @@ const GameManager = (function () {
         break;
       case 'TUNNEL_BREACH':
         // Enemies emerge from underground behind the player
+        var _tbYaw = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : Math.random() * Math.PI * 2;
         for (let i = 0; i < 4; i++) {
           const ta = Math.PI + (Math.random() - 0.5) * 1.0; // behind player
-          const yaw = CameraSystem.getYaw();
           const td = 5 + Math.random() * 5;
           Enemies.spawnSingle('STORMER', {
-            x: player.position.x + Math.cos(yaw + ta) * td,
-            z: player.position.z + Math.sin(yaw + ta) * td
+            x: player.position.x + Math.cos(_tbYaw + ta) * td,
+            z: player.position.z + Math.sin(_tbYaw + ta) * td
           });
         }
         break;
