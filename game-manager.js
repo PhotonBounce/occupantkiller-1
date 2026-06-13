@@ -3611,7 +3611,24 @@ const GameManager = (function () {
       VehicleSystem.spawnEnemy(ctx, cty, ctz, 'combat');
     }
     if (tankFocus && w === 1) {
-      HUD.notifyPickup('🚀 GRAB AN NLAW OR JAVELIN — STOP THE CONVOY!', '#ffcc44');
+      var _tStageId = stageDef ? stageDef.id : 0;
+      if (_tStageId === 16) {
+        // Vuhledar: minefield tank graveyard — hint mines + AT weapons
+        HUD.notifyPickup('💣 MINEFIELD ACTIVE — USE NLAW/STUGNA + PLACE MINES!', '#ffcc44');
+        // Seed the approach corridor with enemy mines to simulate the real minefield
+        if (typeof WorldFeatures !== 'undefined' && WorldFeatures.placeMine) {
+          for (var _vm = 0; _vm < 12; _vm++) {
+            var _va = (_vm / 12) * Math.PI * 2;
+            var _vd = 18 + (_vm % 3) * 6 + Math.random() * 4;
+            var _vx = Math.cos(_va) * _vd;
+            var _vz = Math.sin(_va) * _vd;
+            var _vy = VoxelWorld.getTerrainHeight(_vx, _vz);
+            WorldFeatures.placeMine(_vx, _vy, _vz, 'enemy');
+          }
+        }
+      } else {
+        HUD.notifyPickup('🚀 GRAB AN NLAW OR JAVELIN — STOP THE ARMOR!', '#ffcc44');
+      }
     }
 
     // ═══ Building Garrison — enemies occupy buildings each wave ═══
@@ -3778,6 +3795,40 @@ const GameManager = (function () {
         var lmZ = player.position.z + Math.sin(lmAngle) * lmDist;
         var lmY = VoxelWorld.getTerrainHeight(lmX, lmZ);
         WorldFeatures.placeMine(lmX, lmY, lmZ, 'enemy');
+      }
+    }
+    // Snake Island (id 14): warn about Moskva bombardment at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 14) {
+      HUD.notifyPickup('⚓ MOSKVA IS SHELLING — SHELTER AND HOLD THE ISLAND!', '#4477ff');
+    }
+    // Sevastopol (id 9): ship artillery warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 9) {
+      HUD.notifyPickup('💥 SHIP ARTILLERY INCOMING — DESTROY THE FLEET!', '#4488ff');
+    }
+    // Belgorod (id 11): heavy counter-attack warning + extra armor at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 11) {
+      HUD.notifyPickup('⚠ HEAVY ARMORED COUNTER-ATTACK — GRAB AT WEAPONS!', '#ff8800');
+      // Extra BTR spawn from wave 1 to reflect "tanks and mech infantry counter-attack"
+      if (!capitalDefense && typeof VehicleSystem !== 'undefined') {
+        var _bgrA = Math.random() * Math.PI * 2;
+        var _bgrD = 35 + Math.random() * 10;
+        var _bgrX = Math.cos(_bgrA) * _bgrD;
+        var _bgrZ = Math.sin(_bgrA) * _bgrD;
+        VehicleSystem.spawnEnemy(_bgrX, VoxelWorld.getTerrainHeight(_bgrX, _bgrZ), _bgrZ, 'combat');
+      }
+    }
+    // Saky airbase (id 15): extra drone spawns each wave + jammer hint at wave 1
+    if (STAGES[currentStage] && STAGES[currentStage].id === 15) {
+      if (w === 1) HUD.notifyPickup('📡 GRAB A JAMMER RIFLE — HEAVY DRONE PRESENCE!', '#ff6600');
+      // Spawn 1+floor(w/2) extra KAMIKAZE_DRONEs at the airbase perimeter
+      var _sakySurge = 1 + Math.floor(w / 2);
+      for (var _sdi = 0; _sdi < _sakySurge; _sdi++) {
+        var _sa = Math.random() * Math.PI * 2;
+        var _sd = 28 + _sdi * 5 + Math.random() * 5;
+        var _sx = player.position.x + Math.cos(_sa) * _sd;
+        var _sz = player.position.z + Math.sin(_sa) * _sd;
+        var _sy = VoxelWorld.getTerrainHeight(_sx, _sz) + 7;
+        if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_sx, _sy, _sz));
       }
     }
     // Spawn radiation zones in Chornobyl stage (ID 7) on wave 6
@@ -5655,6 +5706,56 @@ const GameManager = (function () {
           }
         }
       }
+
+      // ── SNAKE ISLAND: Naval bombardment from Moskva (stage 14) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 14 && gameState === STATE.PLAYING) {
+        player._snakeBombardTimer = (player._snakeBombardTimer || 0) + delta;
+        if (player._snakeBombardTimer >= 9.0 + Math.random() * 5) {
+          player._snakeBombardTimer = 0;
+          if (!player.godMode) {
+            var snakeDmg = 6 + Math.floor(Math.random() * 12);
+            player.hp = Math.max(1, player.hp - snakeDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0x2244aa, 0.35);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.8);
+            if (HUD.notifyPickup) HUD.notifyPickup('⚓ Moskva bombardment!', '#4477ff');
+          }
+        }
+      }
+
+      // ── SAKY AIRBASE: Periodic kamikaze drone waves (stage 15) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 15 && gameState === STATE.PLAYING) {
+        player._sakyDroneTimer = (player._sakyDroneTimer || 0) + delta;
+        if (player._sakyDroneTimer >= 18.0 + Math.random() * 10) {
+          player._sakyDroneTimer = 0;
+          if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+            var _sdAngle = Math.random() * Math.PI * 2;
+            var _sdDist  = 30 + Math.random() * 15;
+            var _sdX = player.position.x + Math.cos(_sdAngle) * _sdDist;
+            var _sdZ = player.position.z + Math.sin(_sdAngle) * _sdDist;
+            var _sdY = VoxelWorld.getTerrainHeight(_sdX, _sdZ) + 8;
+            Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_sdX, _sdY, _sdZ));
+            if (HUD.notifyPickup) HUD.notifyPickup('⚠ KAMIKAZE DRONE INCOMING!', '#ff6600');
+          }
+        }
+      }
+
+      // ── SEVASTOPOL: Ship artillery bombardment (stage 9) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 9 && gameState === STATE.PLAYING) {
+        player._sevaNavalTimer = (player._sevaNavalTimer || 0) + delta;
+        if (player._sevaNavalTimer >= 14.0 + Math.random() * 8) {
+          player._sevaNavalTimer = 0;
+          if (!player.godMode) {
+            var sevaDmg = 7 + Math.floor(Math.random() * 14);
+            player.hp = Math.max(1, player.hp - sevaDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0x3355cc, 0.35);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.9);
+            if (HUD.notifyPickup) HUD.notifyPickup('💥 Ship artillery!', '#4488ff');
+          }
+        }
+      }
+
       // B23: Multikill timer decay
       if (player.multikillTimer > 0) {
         player.multikillTimer -= delta;
@@ -7064,6 +7165,26 @@ const GameManager = (function () {
     });
     bindTapButton('btn-vehicle', function () { tapVirtualKey('KeyG'); });
     bindTapButton('btn-build', function () { tapVirtualKey('KeyB'); });
+    // Build-opt tap: select template directly on mobile
+    document.querySelectorAll('.build-opt[data-template]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        if (gameState !== STATE.BUILD_MODE) return;
+        if (typeof Building !== 'undefined' && Building.selectTemplate) Building.selectTemplate(el.dataset.template);
+        document.querySelectorAll('.build-opt').forEach(function (o) { o.classList.remove('selected'); });
+        el.classList.add('selected');
+      });
+    });
+    // Mobile: relabel build-opt key hints to bare names
+    if (isMobile) {
+      var _bOpts = [['barracks','Barracks'],['factory','Factory'],['turret','Turret'],
+        ['droneHangar','Drone Hangar'],['commandCenter','Command Center'],['wall','Wall'],['dugout','Dugout']];
+      _bOpts.forEach(function (pair) {
+        var el = document.querySelector('.build-opt[data-template="' + pair[0] + '"]');
+        if (el) el.textContent = pair[1];
+      });
+      var binfo = document.querySelector('#build-hud .build-info');
+      if (binfo) binfo.textContent = 'TAP · Select | Fire · Place | 🔨 · Exit';
+    }
     bindTapButton('btn-view', function () {
       if (DroneSystem.isPossessing()) {
         toggleDroneRemoteView();

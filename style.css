@@ -910,6 +910,18 @@ html.is-mobile #wave-announce.visible { animation: fadeInOutMobile 2.5s forwards
 .build-opt {
   color: #ccc;
   font-size: 10px;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+.build-opt:hover {
+  background: rgba(255,255,255,0.1);
+}
+.build-opt.selected {
+  background: rgba(100,200,100,0.3);
+  color: #8eff8e;
+  font-weight: bold;
 }
 .build-info {
   margin-top: 8px;
