@@ -6426,6 +6426,14 @@ const GameManager = (function () {
             _wpT = _md.landingZones[(_md.completedWaves || 0) % _md.landingZones.length];
           }
         }
+        // MissionTypes scripted missions (DEMOLITION, CAPTURE_ZONE, ASSASSINATION, RESCUE, DEFUSE):
+        // zone coordinates are zoneX/zoneZ on the active mission — point waypoint there.
+        if (!_wpT && typeof MissionTypes !== 'undefined' && MissionTypes.getActive && MissionTypes.getActive()) {
+          var _mt = MissionTypes.getActive();
+          if (typeof _mt.zoneX === 'number' && typeof _mt.zoneZ === 'number') {
+            _wpT = { x: _mt.zoneX, y: VoxelWorld.getTerrainHeight(_mt.zoneX, _mt.zoneZ), z: _mt.zoneZ };
+          }
+        }
         // Capital defense: waypoint tracks the nearest column leader so the
         // player always knows where the armor is coming from.
         if (!_wpT && typeof ConvoySystem !== 'undefined' && ConvoySystem.hasActiveConvoy && ConvoySystem.hasActiveConvoy()) {
@@ -6840,6 +6848,32 @@ const GameManager = (function () {
               var mTimer = document.getElementById('mission-tracker-timer');
               if (mTimer && missionResult.timeRemaining !== undefined) {
                 mTimer.textContent = '⏱ ' + Math.ceil(missionResult.timeRemaining) + 's';
+              }
+              // Per-type objective sub-line
+              var mObj = document.getElementById('mission-tracker-objectives');
+              if (mObj) {
+                var _objTxt = '';
+                switch (missionResult.type) {
+                  case 'CAPTURE_ZONE':
+                    _objTxt = 'Hold zone: ' + Math.round((missionResult.holdProgress || 0) * 100) + '%' + (missionResult.contested ? ' ⚔ CONTESTED' : '');
+                    break;
+                  case 'DEMOLITION':
+                    _objTxt = missionResult.planted ? '✓ Charge planted — move 25m clear!' : 'Plant charge: ' + Math.round((missionResult.plantProgress || 0) * 100) + '%';
+                    break;
+                  case 'ASSASSINATION':
+                    _objTxt = missionResult.hvtLocated ? ('HVT HP: ' + Math.max(0, Math.round(missionResult.hvtHP || 0))) : 'Locate and engage HVT in zone';
+                    break;
+                  case 'RESCUE':
+                    _objTxt = 'POWs freed: ' + (missionResult.freed || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.powCount : 3);
+                    break;
+                  case 'DEFUSE':
+                    _objTxt = 'Bombs defused: ' + (missionResult.defused || 0) + '/3 · Detonation in ' + Math.ceil(missionResult.detonationTimer || 0) + 's';
+                    break;
+                  case 'ASSAULT_DUGOUTS':
+                    _objTxt = 'Dugouts: ' + (missionResult.dugoutsCleared || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.dugoutCount : 4);
+                    break;
+                }
+                mObj.textContent = _objTxt;
               }
             } else if (missionResult.state === 'COMPLETE') {
               var _completingType = MissionTypes.getActive() ? MissionTypes.getActive().config.id : null;

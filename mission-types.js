@@ -251,6 +251,15 @@ const MissionTypes = (function () {
       }
 
       case 'DEMOLITION':
+        if (missionProgress.planted && !missionProgress.escaped) {
+          var _demDx = playerPos.x - m.zoneX, _demDz = playerPos.z - m.zoneZ;
+          if (_demDx * _demDx + _demDz * _demDz > 625) { // 25 units away
+            missionProgress.escaped = true;
+            if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) {
+              window.HUD.showToast('💥 CHARGE DETONATED — BLAST ZONE CLEARED!', 4000, '#ff8800');
+            }
+          }
+        }
         if (missionProgress.planted && missionProgress.escaped) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
@@ -270,8 +279,7 @@ const MissionTypes = (function () {
 
       case 'RESCUE':
         result.freed = missionProgress.freed;
-        result.escorted = missionProgress.escorted;
-        if (missionProgress.escorted >= cfg.powCount) {
+        if (missionProgress.freed >= cfg.powCount) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
         }
