@@ -470,6 +470,16 @@ const MissionSystem = (function () {
               }
             }
           } catch(e3){}
+          // If NPCSystem was unavailable or spawn returned null, fail fast
+          // instead of stalling forever in "Locating escort NPC..."
+          if (mission.escortNpcId === null) {
+            mission.convoyHealth = 0;
+            mission.objectiveText = 'Escort Logistics NPC: FAILED (Could not spawn officer)';
+            if (typeof HUD !== 'undefined' && HUD.showToast) {
+              HUD.showToast('❌ ESCORT FAILED — officer could not be located.', 4000, '#ff3333');
+            }
+            return;
+          }
           if (typeof HUD !== 'undefined' && HUD.showToast) {
             HUD.showToast('🛡 ESCORT STARTED — Protect the logistics officer and lead them to the destination.', 5000, '#a0c878');
           }
