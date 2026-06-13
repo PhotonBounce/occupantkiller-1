@@ -3485,7 +3485,12 @@ const GameManager = (function () {
     currentWave = w;
     player._waveStartCount = 0; // reset before any early-return path (droneOnly etc.)
     // Remove flag meshes from previous wave (they accumulate otherwise)
-    for (var _rfi = 0; _rfi < _rfFlagObjects.length; _rfi++) { if (_scene) _scene.remove(_rfFlagObjects[_rfi]); }
+    for (var _rfi = 0; _rfi < _rfFlagObjects.length; _rfi++) {
+      var _rfm = _rfFlagObjects[_rfi];
+      if (_scene) _scene.remove(_rfm);
+      if (_rfm && _rfm.geometry) _rfm.geometry.dispose();
+      if (_rfm && _rfm.material) _rfm.material.dispose();
+    }
     _rfFlagObjects.length = 0;
     player.waveStartTime = performance.now();
     player._secondWindTriggered = false;
