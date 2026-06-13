@@ -6221,6 +6221,26 @@ window.VoxelWorld = (function () {
       generateWreckedCar(-9, 74);
       generateWreckedCar(8, 80);
       generateWreckedCar(-6, 92);
+      // ── Extended Kyiv residential districts (supplement CityExtension) ──
+      // Western corridor (Shevchenkivskyi district)
+      generateUkrainianApartment(-45, -25, 9);
+      generateUkrainianApartment(-45, 5, 12);
+      generateUkrainianApartment(-45, 35, 9);
+      generateUkrainianApartment(-60, -10, 6);
+      generateUkrainianApartment(-60, 20, 9);
+      // Northern approach boulevard flanking buildings
+      generateUkrainianApartment(-22, 55, 9);
+      generateUkrainianApartment(18, 55, 12);
+      generateUkrainianApartment(-22, 80, 6);
+      generateUkrainianApartment(18, 80, 9);
+      // Deep north (Obolon district — Soviet-era tall blocks)
+      generateUkrainianApartment(-30, 110, 12);
+      generateUkrainianApartment(0, 115, 9);
+      generateUkrainianApartment(25, 110, 12);
+      // Burning ruins from Russian bombardment
+      generateBurningRuin(-48, -50);
+      generateBurningRuin(42, -52);
+      generateBurningRuin(-5, 95);
     } else if (level.id === 'MARIUPOL') {
       // Azovstal steelworks — industrial hellscape
       generateIndustrialComplex(0, 0);

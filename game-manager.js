@@ -3472,6 +3472,25 @@ const GameManager = (function () {
     if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
     if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
 
+    // ── Urban stages: spawn Ukrainian civilian/infantry NPCs inside buildings ──
+    if (stageDef && (stageDef.theme === 'urban' || stageDef.theme === 'cityscape') &&
+        typeof VoxelWorld !== 'undefined' && VoxelWorld.getBuildings &&
+        typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
+      var _urbBuildings = VoxelWorld.getBuildings();
+      for (var _ubi = 0; _ubi < _urbBuildings.length; _ubi++) {
+        var _ubb = _urbBuildings[_ubi];
+        if (!_ubb || _ubb.kind !== 'apartment') continue;
+        var _ubCount = 1 + Math.floor(Math.random() * 2);
+        for (var _ubni = 0; _ubni < _ubCount; _ubni++) {
+          var _ubFloor = Math.floor(Math.random() * Math.min(_ubb.floors, 3));
+          var _ubY = _ubb.baseY + _ubFloor * (_ubb.floorH || 3) + 1;
+          var _ubX = _ubb.x + 3 + Math.floor(Math.random() * Math.max(1, (_ubb.w || 18) - 6));
+          var _ubZ = (_ubb.cz || (_ubb.z + 5)) + (Math.random() < 0.5 ? -2 : 2);
+          NPCSystem.spawn(_ubX, _ubY, _ubZ, Math.random() < 0.4 ? 'civilian' : 'infantry');
+        }
+      }
+    }
+
     // Respawn vehicle fleet on roads
     var _nsWps = (VoxelWorld.getRoadWaypoints ? VoxelWorld.getRoadWaypoints() : []);
     var _nsp0 = _nsWps.length > 2 ? _nsWps[2] : new THREE.Vector3(8, 0, 20);

@@ -1343,17 +1343,14 @@ document.addEventListener('DOMContentLoaded', function () {
       try {
         var save = JSON.parse(localStorage.getItem('ok_save'));
         document.getElementById('continue-stage').textContent = (save.stage || 0) + 1;
-        document.getElementById('continue-wave').textContent = (save.wave || 0) + 1;
+        document.getElementById('continue-wave').textContent = 1;
         contBtn.style.display = '';
       } catch (e) { contBtn.style.display = 'none'; }
     }
     contBtn.addEventListener('click', function () {
       window.showLoading('LOADING SAVE...');
       setTimeout(function() {
-        GameManager.startGame();
-        GameManager.loadGame();
-        GameManager.hideOverlays();
-        GameManager.beginWave();
+        GameManager.continueGame();
         GameManager.requestPointerLock();
         window.hideLoading();
       }, 800);

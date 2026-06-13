@@ -4536,6 +4536,37 @@ window.VoxelWorld = (function () {
       // the player can use it as a backstop firing position
       generateDefensivePosition(-20, 26);
       generateDefensivePosition(18, 26);
+      // ── Extended Kyiv residential districts ──
+      // Western residential corridor (Shevchenkivskyi district style)
+      generateUkrainianApartment(-45, -25, 9);
+      generateUkrainianApartment(-45, 5, 12);
+      generateUkrainianApartment(-45, 35, 9);
+      generateUkrainianApartment(-60, -10, 6);
+      generateUkrainianApartment(-60, 20, 9);
+      // Eastern residential corridor (Pecherskyi district style)
+      generateUkrainianApartment(38, -20, 12);
+      generateUkrainianApartment(38, 10, 9);
+      generateUkrainianApartment(38, 38, 6);
+      generateUkrainianApartment(55, -5, 9);
+      generateUkrainianApartment(55, 25, 12);
+      // Northern approach boulevard flanking buildings
+      generateUkrainianApartment(-22, 55, 9);
+      generateUkrainianApartment(18, 55, 12);
+      generateUkrainianApartment(-22, 80, 6);
+      generateUkrainianApartment(18, 80, 9);
+      // Deep north (Obolon district) — tall Soviet-era blocks
+      generateUkrainianApartment(-30, 110, 12);
+      generateUkrainianApartment(0, 115, 9);
+      generateUkrainianApartment(25, 110, 12);
+      // Cross-street blocks (Lesia Ukrainka / Baseina area)
+      generateUkrainianApartment(-28, -45, 9);
+      generateUkrainianApartment(22, -45, 12);
+      generateUkrainianApartment(-28, -70, 6);
+      generateUkrainianApartment(22, -70, 9);
+      // Burning ruins from Russian bombardment
+      generateBurningRuin(-48, -50);
+      generateBurningRuin(42, -52);
+      generateBurningRuin(-5, 95);
     } else if (level.id === 'MARIUPOL') {
       // Azovstal steelworks — industrial hellscape
       generateIndustrialComplex(0, 0);
