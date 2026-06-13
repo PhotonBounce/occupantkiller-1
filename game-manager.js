@@ -1646,9 +1646,24 @@ const GameManager = (function () {
                   fHandled = true;
                 }
               } else if (mt.config.id === 'DEFUSE') {
-                MissionTypes.interact('DEFUSE_BOMB', { dt: 0.5 });
-                HUD.notifyPickup('\u23f1\ufe0f DEFUSING...', '#ffcc00');
-                fHandled = true;
+                // DEFUSE: proximity check against nearest undefused bomb position
+                var _mtp = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+                var _nearBombDist = 999;
+                if (_mtp && _mtp.bombs) {
+                  for (var _dmi = 0; _dmi < _mtp.bombs.length; _dmi++) {
+                    var _dm = _mtp.bombs[_dmi];
+                    if (_dm.defused) continue;
+                    var _ddx = player.position.x - _dm.x, _ddz = player.position.z - _dm.z;
+                    _nearBombDist = Math.min(_nearBombDist, _ddx * _ddx + _ddz * _ddz);
+                  }
+                }
+                if (_nearBombDist < 36) { // 6m radius
+                  var _dr = MissionTypes.interact('DEFUSE_BOMB', { dt: 0.5 });
+                  if (!(_dr && _dr.noTarget)) {
+                    HUD.notifyPickup('\u23f1\ufe0f DEFUSING...', '#ffcc00');
+                  }
+                  fHandled = true;
+                }
               }
             }
             } // end mt && mt.config

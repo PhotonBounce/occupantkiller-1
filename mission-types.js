@@ -186,9 +186,24 @@ const MissionTypes = (function () {
         }
         break;
       }
-      case 'DEFUSE':
-        missionProgress = { located: 0, defused: 0, defusing: false, defuseProgress: 0, detonationTimer: type.detonationTimer };
+      case 'DEFUSE': {
+        // Place bombCount bombs at distinct positions around the zone
+        var _bombs = [];
+        var _bombCount = type.bombCount || 3;
+        for (var _bi = 0; _bi < _bombCount; _bi++) {
+          var _ba = (_bi / _bombCount) * Math.PI * 2 + 0.3;
+          _bombs.push({
+            x: (activeMission.zoneX || 0) + Math.cos(_ba) * 8,
+            z: (activeMission.zoneZ || 0) + Math.sin(_ba) * 8,
+            defused: false, defuseProgress: 0
+          });
+        }
+        missionProgress = { located: 0, defused: 0, defusing: false, detonationTimer: type.detonationTimer, bombs: _bombs, activeBomb: -1 };
+        if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) {
+          window.HUD.showToast('⏱️ DEFUSE: Locate 3 bombs and hold [F] to defuse each. ' + type.detonationTimer + 's until detonation!', 6000, '#ffcc00');
+        }
         break;
+      }
       case 'ASSAULT_DUGOUTS':
         missionProgress = {
           dugoutsCleared: 0, reachedFirst: false, holdTimer: 0,
@@ -368,20 +383,40 @@ const MissionTypes = (function () {
         break;
       }
 
-      case 'DEFUSE':
+      case 'DEFUSE': {
         missionProgress.detonationTimer -= dt;
         if (missionProgress.detonationTimer <= 0) {
+          // All undefused bombs blow up — deal blast damage to player
+          if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) {
+            window.HUD.showToast('💥 BOMBS DETONATED!', 4000, '#ff2222');
+          }
           m.state = 'FAILED';
           return { ...result, state: 'FAILED', reason: 'DETONATION' };
         }
+        // Find nearest undefused bomb
+        var _nearBomb = -1, _nearBombD = 36; // 6m radius
+        if (missionProgress.bombs) {
+          for (var _dbi = 0; _dbi < missionProgress.bombs.length; _dbi++) {
+            var _db = missionProgress.bombs[_dbi];
+            if (_db.defused) continue;
+            var _dbDx = playerPos.x - _db.x, _dbDz = playerPos.z - _db.z;
+            var _dbD = _dbDx * _dbDx + _dbDz * _dbDz;
+            if (_dbD < _nearBombD) { _nearBombD = _dbD; _nearBomb = _dbi; }
+          }
+        }
+        missionProgress.activeBomb = _nearBomb;
+        // Auto-locate: entering 6m of any bomb marks it located
+        if (_nearBomb >= 0 && missionProgress.located <= _nearBomb) missionProgress.located = _nearBomb + 1;
         result.defused = missionProgress.defused;
         result.detonationTimer = missionProgress.detonationTimer;
-        result.defuseProgress = missionProgress.defuseProgress || 0;
+        result.activeBomb = _nearBomb;
+        result.bombs = missionProgress.bombs;
         if (missionProgress.defused >= cfg.bombCount) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
         }
         break;
+      }
 
       case 'ASSAULT_DUGOUTS':
         result.dugoutsCleared = missionProgress.dugoutsCleared;
@@ -483,13 +518,20 @@ const MissionTypes = (function () {
         break;
       case 'DEFUSE_BOMB':
         if (m.type === 'DEFUSE') {
-          missionProgress.defuseProgress += data.dt / m.config.defuseTime;
-          if (missionProgress.defuseProgress >= 1) {
+          var _ab = missionProgress.activeBomb;
+          if (_ab < 0 || !missionProgress.bombs || !missionProgress.bombs[_ab] || missionProgress.bombs[_ab].defused) {
+            return { defusing: false, noTarget: true };
+          }
+          missionProgress.bombs[_ab].defuseProgress = (missionProgress.bombs[_ab].defuseProgress || 0) + data.dt / m.config.defuseTime;
+          if (missionProgress.bombs[_ab].defuseProgress >= 1) {
+            missionProgress.bombs[_ab].defused = true;
             missionProgress.defused++;
-            missionProgress.defuseProgress = 0;
+            if (typeof window !== 'undefined' && window.HUD && window.HUD.notifyPickup) {
+              window.HUD.notifyPickup('✅ BOMB DEFUSED (' + missionProgress.defused + '/' + m.config.bombCount + ')', '#88ff88');
+            }
             return { defused: missionProgress.defused };
           }
-          return { defusing: true, progress: missionProgress.defuseProgress };
+          return { defusing: true, progress: missionProgress.bombs[_ab].defuseProgress };
         }
         break;
       case 'CLEAR_DUGOUT':
