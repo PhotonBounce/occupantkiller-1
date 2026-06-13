@@ -3546,11 +3546,13 @@ const GameManager = (function () {
     if (w === stageDef.wavesPerStage) {
       var bossType = (typeof EnemyTypes !== 'undefined' && EnemyTypes.getBossForStage)
         ? EnemyTypes.getBossForStage(stageDef.id) : 'BOSS';
-      Enemies.spawnSingle(bossType, new THREE.Vector3(
-        player.position.x + (Math.random() - 0.5) * 20,
-        0,
-        player.position.z + 30 + Math.random() * 10
-      ));
+      var _bx = player.position.x + (Math.random() - 0.5) * 20;
+      var _bz = player.position.z + 30 + Math.random() * 10;
+      Enemies.spawnSingle(bossType, {
+        x: _bx,
+        z: _bz,
+        // omit y so spawnOne() resolves terrain height itself
+      });
       HUD.notifyPickup('⚠ BOSS INCOMING: ' + (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType] ? EnemyTypes.TYPES[bossType].name : 'COMMANDER'), '#ff0000');
     }
 
