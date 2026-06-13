@@ -3899,6 +3899,21 @@ const GameManager = (function () {
         }
       }
 
+      // Ukrainian surveillance drone — wave 2+ (matches enemy observer timing)
+      if (w >= 2 && w % 3 === 1 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+        var survPos = _nestSpawnPos(77);
+        var survDrone = DroneSystem.spawn(survPos.x, droneSpawnH + 10, survPos.z, 'surveillance');
+        if (survDrone && typeof HUD !== 'undefined' && HUD.notifyPickup) {
+          HUD.notifyPickup('👁 UKRAINIAN SURVEILLANCE DRONE — [F] to possess, marks enemy positions', '#44aaff');
+        }
+      }
+
+      // Ukrainian FPV attack — wave 3+ (additional fire support beyond game-start drones)
+      if (w >= 3 && Math.random() < 0.6 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+        var ufpvPos = _nestSpawnPos(55);
+        DroneSystem.spawn(ufpvPos.x, droneSpawnH, ufpvPos.z, 'fpv_attack');
+      }
+
       // Ukrainian Baba Yaga fire-dropper — wave 4+, every other wave
       if (w >= 4 && w % 2 === 0 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
         var byPos = _nestSpawnPos(88);
