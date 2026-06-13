@@ -4194,6 +4194,13 @@ const GameManager = (function () {
       if (MissionSystem.generateSideObjective) MissionSystem.generateSideObjective();
     }
 
+    // Snapshot wave stats before resetting (used by shop display and B31 achievements)
+    var _snapWaveKills = player.waveKills;
+    var _snapWaveShots = player.waveShots;
+    var _snapWaveHits = player.waveHits;
+    var _snapWaveDmg = player.waveDamageTaken;
+    var _snapWaveTime = Math.round((performance.now() - (player.waveStartTime || performance.now())) / 1000);
+
     // Reset wave stats (AFTER all tracking above)
     player.waveKills = 0;
     player.waveShots = 0;
@@ -4246,7 +4253,7 @@ const GameManager = (function () {
       Progression.checkAchievement('SURVIVOR', currentWave);
       Progression.checkAchievement('SLAYER', player.kills);
       Progression.checkAchievement('HEADHUNTER', player.totalHeadshots);
-      if (player.waveDamageTaken === 0) Progression.checkAchievement('IRONMAN', 1);
+      if (_snapWaveDmg === 0) Progression.checkAchievement('IRONMAN', 1);
       if (typeof Marketplace !== 'undefined') Progression.checkAchievement('WEALTHY', Marketplace.getOKC());
       Progression.checkAchievement('LEGENDARY', player.level);
       if (Progression.addSeasonXP) Progression.addSeasonXP(50 + currentWave * 10);
@@ -4353,15 +4360,12 @@ const GameManager = (function () {
     var shopBal = document.getElementById('shop-balance');
     var shopNext = document.getElementById('shop-next-wave');
     var shopEnemies = document.getElementById('shop-next-enemies');
-    if (shopKills) shopKills.textContent = 'Kills: ' + (player.waveKills || 0);
+    if (shopKills) shopKills.textContent = 'Kills: ' + (_snapWaveKills || 0);
     if (shopAcc) {
-      var acc = player.waveShots > 0 ? Math.round((player.waveHits / player.waveShots) * 100) : 0;
+      var acc = _snapWaveShots > 0 ? Math.round((_snapWaveHits / _snapWaveShots) * 100) : 0;
       shopAcc.textContent = 'Accuracy: ' + acc + '%';
     }
-    if (shopTime) {
-      var wt = Math.round((performance.now() - (player.waveStartTime || performance.now())) / 1000);
-      shopTime.textContent = 'Time: ' + wt + 's';
-    }
+    if (shopTime) shopTime.textContent = 'Time: ' + _snapWaveTime + 's';
     if (shopBal && typeof Economy !== 'undefined') shopBal.textContent = '\u{1F4B0} ' + Economy.getCurrency() + ' OKC';
     if (shopNext) shopNext.textContent = 'Wave ' + (currentWave + 1);
     if (shopEnemies) {

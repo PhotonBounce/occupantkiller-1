@@ -3146,6 +3146,10 @@ const GameManager = (function () {
     }
   }
 
+  function notifyExplosiveKills(n) {
+    if (player && n > 0) player.waveMaxExplosiveKill = Math.max(player.waveMaxExplosiveKill || 0, n);
+  }
+
   function notifyNPCDeath(npc) {
     // Friendly fire casualty — show feedback and track morale
     if (HUD.notifyPickup) {
@@ -3882,6 +3886,13 @@ const GameManager = (function () {
       if (MissionSystem.generateSideObjective) MissionSystem.generateSideObjective();
     }
 
+    // Snapshot wave stats before resetting (used by shop display and B31 achievements)
+    var _snapWaveKills = player.waveKills;
+    var _snapWaveShots = player.waveShots;
+    var _snapWaveHits = player.waveHits;
+    var _snapWaveDmg = player.waveDamageTaken;
+    var _snapWaveTime = Math.round((performance.now() - (player.waveStartTime || performance.now())) / 1000);
+
     // Reset wave stats (AFTER side objective check so objectives have accurate data)
     player.waveKills = 0;
     player.waveShots = 0;
@@ -3934,7 +3945,7 @@ const GameManager = (function () {
       Progression.checkAchievement('SURVIVOR', currentWave);
       Progression.checkAchievement('SLAYER', player.kills);
       Progression.checkAchievement('HEADHUNTER', player.totalHeadshots);
-      if (player.waveDamageTaken === 0) Progression.checkAchievement('IRONMAN', 1);
+      if (_snapWaveDmg === 0) Progression.checkAchievement('IRONMAN', 1);
       if (typeof Marketplace !== 'undefined') Progression.checkAchievement('WEALTHY', Marketplace.getOKC());
       Progression.checkAchievement('LEGENDARY', player.level);
       if (Progression.addSeasonXP) Progression.addSeasonXP(50 + currentWave * 10);
@@ -4041,15 +4052,12 @@ const GameManager = (function () {
     var shopBal = document.getElementById('shop-balance');
     var shopNext = document.getElementById('shop-next-wave');
     var shopEnemies = document.getElementById('shop-next-enemies');
-    if (shopKills) shopKills.textContent = 'Kills: ' + (player.waveKills || 0);
+    if (shopKills) shopKills.textContent = 'Kills: ' + (_snapWaveKills || 0);
     if (shopAcc) {
-      var acc = player.waveShots > 0 ? Math.round((player.waveHits / player.waveShots) * 100) : 0;
+      var acc = _snapWaveShots > 0 ? Math.round((_snapWaveHits / _snapWaveShots) * 100) : 0;
       shopAcc.textContent = 'Accuracy: ' + acc + '%';
     }
-    if (shopTime) {
-      var wt = Math.round((performance.now() - (player.waveStartTime || performance.now())) / 1000);
-      shopTime.textContent = 'Time: ' + wt + 's';
-    }
+    if (shopTime) shopTime.textContent = 'Time: ' + _snapWaveTime + 's';
     if (shopBal && typeof Economy !== 'undefined') shopBal.textContent = '\u{1F4B0} ' + Economy.getCurrency() + ' OKC';
     if (shopNext) shopNext.textContent = 'Wave ' + (currentWave + 1);
     if (shopEnemies) {
@@ -4983,6 +4991,7 @@ const GameManager = (function () {
           if (player.killStreak >= 4) Feedback.unlockAchievement('MULTI_KILL');
           if (Weapons.getCurrentIdx() === 0) {
             Progression.trackStat('meleeKills', 1);
+            player.waveMeleeKills++;
             if (Progression.getStats().meleeKills >= 10) Feedback.unlockAchievement('MELEE_MASTER');
           }
         }
@@ -7548,7 +7557,14 @@ const GameManager = (function () {
         if (window.AudioSystem && window.AudioSystem.playExplosion) {
           try { window.AudioSystem.playExplosion(); } catch (e) {}
         }
-        if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) Enemies.damageInRadius(pos, 6.5, 110);
+        if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+          var _gRes = Enemies.damageInRadius(pos, 6.5, 110);
+          if (player && Array.isArray(_gRes)) {
+            var _gKills = 0;
+            for (var _gi = 0; _gi < _gRes.length; _gi++) if (_gRes[_gi].remaining <= 0) _gKills++;
+            if (_gKills > 0) player.waveMaxExplosiveKill = Math.max(player.waveMaxExplosiveKill || 0, _gKills);
+          }
+        }
         if (CameraSystem.shake) CameraSystem.shake(0.35, 0.4);
         if (!player.godMode) {
           var dx = player.position.x - pos.x, dy = player.position.y - pos.y, dz = player.position.z - pos.z;
@@ -8186,6 +8202,7 @@ const GameManager = (function () {
     loadGame,
     saveGame,
     deleteSave,
+    notifyExplosiveKills,
     notifyNPCDeath,
     nextStage,
     update,
