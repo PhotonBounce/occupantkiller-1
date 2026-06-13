@@ -93,9 +93,8 @@ const MissionSystem = (function () {
                 };
               },
               check(mission) {
-                if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) {
-                  return false;
-                }
+                if (mission.spawned === 0) { mission.objectiveText = 'Clear forest ambush: complete'; return true; }
+                if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) return false;
                 var aliveCount = 0;
                 var allEnemies = Enemies.getAll();
                 for (var id of mission.spawnedEnemyIds) {
@@ -106,7 +105,7 @@ const MissionSystem = (function () {
                 }
                 mission.kills = mission.spawned - aliveCount;
                 mission.objectiveText = `Clear forest ambush: ${mission.kills}/${mission.spawned} killed`;
-                return mission.spawned > 0 && aliveCount === 0;
+                return aliveCount === 0;
               },
             },
         // Airborne Assault (Hostomel)
