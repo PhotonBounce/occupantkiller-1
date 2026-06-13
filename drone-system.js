@@ -774,6 +774,10 @@ const DroneSystem = (function () {
       // Ground collision
       const terrainH = (typeof window.VoxelWorld !== 'undefined' ? window.VoxelWorld.getTerrainHeight(drone.position.x, drone.position.z) : 0) + 1;
       if (drone.position.y < terrainH) {
+        if (drone.type === DRONE_TYPE.FPV_ATTACK) {
+          fireAttack(drone.id);
+          continue;
+        }
         drone.position.y = terrainH;
         if (!drone.active) {
           destroyDrone(drone);
@@ -1151,14 +1155,18 @@ const DroneSystem = (function () {
     drone.mesh.children.forEach(child => {
       if (child.userData.isPayload) child.visible = false;
     });
-    // Create explosion at drop point
+    // Bomb falls to ground level before exploding
     const dropPos = drone.position.clone();
-    dropPos.y -= 1; // Drop below drone
+    if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+      dropPos.y = VoxelWorld.getTerrainHeight(Math.round(dropPos.x), Math.round(dropPos.z)) + 0.5;
+    } else {
+      dropPos.y -= 1;
+    }
     if (typeof Enemies !== 'undefined') {
-      Enemies.damageInRadius(dropPos, 5, drone.damage);
+      Enemies.damageInRadius(dropPos, 6, drone.damage);
     }
     createDroneExplosion(dropPos);
-        if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playGunshot('launcher');
+    if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playGunshot('launcher');
     return { position: dropPos, damage: drone.damage };
   }
 
