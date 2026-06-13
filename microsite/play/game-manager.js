@@ -3326,8 +3326,36 @@ const GameManager = (function () {
         [{ cx: 0, cz: 25, rx: 30, rz: 5, d: 2.5 }, { cx: -25, cz: -20, rx: 7, rz: 6, d: 1.2 }],
         // Stage 3 — Kherson: Dnipro river edge
         [{ cx: 0, cz: 40, rx: 50, rz: 8, d: 3 }, { cx: 35, cz: -15, rx: 8, rz: 6, d: 1.5 }],
+        // Stage 4 — Mariupol: flooded steelworks trenches
+        [{ cx: -10, cz: 20, rx: 8, rz: 4, d: 1 }, { cx: 18, cz: -12, rx: 5, rz: 5, d: 0.8 }],
+        // Stage 5 — Crimea: coastal sea inlet
+        [{ cx: 0, cz: 55, rx: 60, rz: 10, d: 3 }, { cx: -40, cz: 20, rx: 12, rz: 8, d: 2 }],
+        // Stage 6 — Chornobyl: contaminated cooling ponds
+        [{ cx: 30, cz: 30, rx: 15, rz: 10, d: 2.5 }, { cx: -20, cz: 15, rx: 8, rz: 8, d: 1.5 }],
+        // Stage 7 — Moscow outskirts: Moscow River
+        [{ cx: 0, cz: 60, rx: 70, rz: 8, d: 3 }],
+        // Stage 8 — Sevastopol: harbour inlet
+        [{ cx: 0, cz: 50, rx: 55, rz: 12, d: 4 }, { cx: -35, cz: 0, rx: 10, rz: 6, d: 2 }],
+        // Stage 9 — Donbas: mine drainage ponds
+        [{ cx: 20, cz: -25, rx: 7, rz: 5, d: 1.2 }, { cx: -15, cz: 30, rx: 6, rz: 4, d: 1 }],
+        // Stage 10 — Belgorod: small lakes
+        [{ cx: 30, cz: 20, rx: 10, rz: 8, d: 2 }, { cx: -25, cz: -20, rx: 7, rz: 7, d: 1.5 }],
+        // Stage 11 — Kremlin: Moskva River
+        [{ cx: 0, cz: 65, rx: 75, rz: 10, d: 4 }],
+        // Stage 12 — Kyiv: Dnipro/canal strip
+        [{ cx: 0, cz: 50, rx: 45, rz: 7, d: 2.5 }, { cx: 30, cz: -10, rx: 6, rz: 4, d: 1 }],
+        // Stage 13 — Snake Island: surrounding sea
+        [{ cx: 0, cz: 60, rx: 80, rz: 15, d: 5 }, { cx: -50, cz: 0, rx: 12, rz: 8, d: 3 }],
+        // Stage 14 — Saky: coastal lagoon
+        [{ cx: 0, cz: 50, rx: 50, rz: 10, d: 3 }, { cx: 30, cz: -10, rx: 8, rz: 5, d: 1.5 }],
+        // Stage 15 — Vuhledar: none (wasteland)
+        [],
+        // Stage 16 — Antonov: Dnipro crossing
+        [{ cx: 0, cz: 45, rx: 55, rz: 8, d: 3 }],
+        // Stage 17 — Refinery: drainage canal
+        [{ cx: 15, cz: 30, rx: 10, rz: 5, d: 1.5 }, { cx: -20, cz: -15, rx: 6, rz: 4, d: 1 }],
       ];
-      var wc = waterConfigs[stageIndex] || waterConfigs[0];
+      var wc = waterConfigs[stageIndex] || [];
       for (var wi = 0; wi < wc.length; wi++) {
         WorldFeatures.spawnWaterBody(wc[wi].cx, wc[wi].cz, wc[wi].rx, wc[wi].rz, wc[wi].d);
       }
@@ -3358,13 +3386,19 @@ const GameManager = (function () {
       [6, 7, 8, 9, 10, 11, 12, 13], // Stage 2→3: NLAW thru SCAR-H
       [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29], // Stage 3→4: DShK thru Glock
       [30, 31, 32, 33, 34, 35],  // Stage 4→5: KS-23 thru C4
-      [],  // Stage 5→6
-      [],  // Stage 6→7
-      [],  // Stage 7→8
-      [],  // Stage 8→9
-      [],  // Stage 9→10
-      [],  // Stage 10→11
-      [],  // Stage 11→12
+      [36, 37, 38, 39, 40, 41],  // Stage 5→6: Drone Jammer thru Panzerfaust
+      [42, 43, 44, 45, 46, 47],  // Stage 6→7: NSV thru PKP Pecheneg
+      [48, 49, 50, 51, 52, 53],  // Stage 7→8: SPG-9 thru Spike LR
+      [54, 55, 56, 57, 58, 59],  // Stage 8→9: Kord thru RPG-29
+      [60, 61, 62, 63, 64, 65],  // Stage 9→10: HIMARS thru BGM-71 TOW
+      [66, 67, 68, 69, 70, 71],  // Stage 10→11: RPG-29 thru Switchblade 300
+      [72, 73, 74, 75, 76, 77],  // Stage 11→12: Saiga thru FAB-500
+      [78, 79, 80, 81, 82, 83],  // Stage 12→13: M777 thru DP-27
+      [84, 85, 86, 87, 88, 89],  // Stage 13→14: SV-98 thru Neptune
+      [90, 91, 92, 93, 94, 95],  // Stage 14→15: Metis-M1 thru RGO
+      [96, 97, 98, 99, 100, 101], // Stage 15→16: Gepard thru AI AXMC
+      [102, 103, 104, 105, 106],  // Stage 16→17: Malyutka thru RPG-32
+      [107, 108, 109, 110, 111, 112, 113, 114, 115, 116], // Stage 17→18: Vasilek thru ATACMS
     ];
     var rewards = stageUnlocks[currentStage] || [];
     for (var ri = 0; ri < rewards.length; ri++) {
