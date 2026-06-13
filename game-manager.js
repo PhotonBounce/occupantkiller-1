@@ -2749,8 +2749,29 @@ const GameManager = (function () {
 
   function showTankHUD() {
     var hud = document.getElementById('tank-hud');
-    if (hud) hud.style.display = 'block';
+    if (!hud) return;
+    hud.style.display = 'block';
     _tankHUDVisible = true;
+    var ctrl = hud.querySelector('.tank-hud-controls');
+    if (ctrl) {
+      if (isMobile) {
+        ctrl.innerHTML =
+          '<span>🕹 LEFT · Drive</span>' +
+          '<span>🎯 RIGHT · Aim Turret</span>' +
+          '<span class="tank-hud-cannon">🔴 Fire btn · Cannon</span>' +
+          '<span class="tank-hud-mg">🟡 MG btn · Machine Gun</span>' +
+          '<span>👁 View btn</span>' +
+          '<span>🚫 Exit btn</span>';
+      } else {
+        ctrl.innerHTML =
+          '<span><kbd>WASD</kbd> Drive</span>' +
+          '<span><kbd>MOUSE</kbd> Aim Turret</span>' +
+          '<span class="tank-hud-cannon"><kbd>LMB</kbd> Cannon</span>' +
+          '<span class="tank-hud-mg"><kbd>RMB</kbd> Machine Gun</span>' +
+          '<span><kbd>T</kbd> Toggle View</span>' +
+          '<span><kbd>G</kbd> Exit</span>';
+      }
+    }
   }
 
   function hideTankHUD() {
