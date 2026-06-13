@@ -72,6 +72,7 @@
 const GameManager = (function () {
   // Overlay state for drone controls HUD
   var _droneControlsVisible = false;
+  var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
   // QA automation override: set by test script before any game code runs
   if (typeof window !== 'undefined' && window.__QA_MODE === undefined) window.__QA_MODE = false;
   'use strict';
@@ -2983,10 +2984,13 @@ const GameManager = (function () {
     player.kills = 0;
     currentWave = 0;
     currentStage = 0;
-    // QA-only stage jump (headless harness): start directly at a given stage
-    // index, e.g. window.__QA_START_STAGE = 12 for Battle of Kyiv.
-    if (typeof window !== 'undefined' && window.__QA_MODE && typeof window.__QA_START_STAGE === 'number') {
-      currentStage = Math.max(0, Math.min(STAGES.length - 1, window.__QA_START_STAGE));
+    // Stage jump: QA harness override or player map selection from start menu
+    if (typeof window !== 'undefined') {
+      if (window.__QA_MODE && typeof window.__QA_START_STAGE === 'number') {
+        currentStage = Math.max(0, Math.min(STAGES.length - 1, window.__QA_START_STAGE));
+      } else if (typeof window.__chosenStartStage === 'number') {
+        currentStage = Math.max(0, Math.min(STAGES.length - 1, window.__chosenStartStage));
+      }
     }
     player.velocity.set(0, 0, 0);
     player.armor = 0;
@@ -3086,7 +3090,7 @@ const GameManager = (function () {
     VehicleSystem.clear();
     DroneSystem.clear();
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
-    NPCSystem.clear();
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined') Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
@@ -3408,8 +3412,8 @@ const GameManager = (function () {
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
 
     // Respawn organized assault groups on new terrain (BRIGADE role only)
-    NPCSystem.clear();
-    if (player.role === 'brigade') NPCSystem.spawnAssaultGroups();
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
+    if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
 
     // ── Urban stages: spawn Ukrainian civilian/infantry NPCs inside buildings ──
     if (stageDef && (stageDef.theme === 'urban' || stageDef.theme === 'cityscape') &&
@@ -3506,6 +3510,14 @@ const GameManager = (function () {
     }
     currentWave = w;
     player._waveStartCount = 0; // reset before any early-return path (droneOnly etc.)
+    // Remove flag meshes from previous wave (they accumulate otherwise)
+    for (var _rfi = 0; _rfi < _rfFlagObjects.length; _rfi++) {
+      var _rfm = _rfFlagObjects[_rfi];
+      if (_scene) _scene.remove(_rfm);
+      if (_rfm && _rfm.geometry) _rfm.geometry.dispose();
+      if (_rfm && _rfm.material) _rfm.material.dispose();
+    }
+    _rfFlagObjects.length = 0;
     player.waveStartTime = performance.now();
     player._secondWindTriggered = false;
     if (typeof MissionSystem !== 'undefined' && MissionSystem.generateSideObjective && !MissionSystem.getSideObjective()) MissionSystem.generateSideObjective();
@@ -3732,26 +3744,26 @@ const GameManager = (function () {
           new THREE.MeshLambertMaterial({ color: 0x888888 })
         );
         pole.position.set(fp.x, poleH * 0.5, fp.z);
-        _scene.add(pole);
+        _scene.add(pole); _rfFlagObjects.push(pole);
         var clothW = 0.9, clothH = 0.5;
         var clothGeo = new THREE.PlaneGeometry(clothW, clothH, 4, 2);
         var clothMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
         var cloth = new THREE.Mesh(clothGeo, clothMat);
         cloth.position.set(fp.x + clothW * 0.5, poleH - clothH * 0.5, fp.z);
-        _scene.add(cloth);
+        _scene.add(cloth); _rfFlagObjects.push(cloth);
         // Stripe overlays (simplified tricolor)
         var stripeB = new THREE.Mesh(
           new THREE.PlaneGeometry(clothW, clothH * 0.33, 2, 1),
           new THREE.MeshBasicMaterial({ color: 0x0033aa, side: THREE.DoubleSide })
         );
         stripeB.position.set(fp.x + clothW * 0.5, poleH - clothH * 0.83, fp.z + 0.01);
-        _scene.add(stripeB);
+        _scene.add(stripeB); _rfFlagObjects.push(stripeB);
         var stripeR = new THREE.Mesh(
           new THREE.PlaneGeometry(clothW, clothH * 0.33, 2, 1),
           new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide })
         );
         stripeR.position.set(fp.x + clothW * 0.5, poleH - clothH * 0.17, fp.z + 0.01);
-        _scene.add(stripeR);
+        _scene.add(stripeR); _rfFlagObjects.push(stripeR);
       }
     })();
 
