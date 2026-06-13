@@ -3535,8 +3535,6 @@ const GameManager = (function () {
     if (HUD.notifyPickup) HUD.notifyPickup('INTEL: Enemy formation — ' + _eFLabel[_efi], '#ff8800');
     var _sideObj = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
     if (_sideObj && HUD.notifyPickup) HUD.notifyPickup('⭐ SIDE OBJ: ' + _sideObj.name + ' — ' + _sideObj.desc + ' (+' + _sideObj.reward + ' OKC)', '#ffcc00');
-    // Track initial wave enemy count for progress bar
-    player._waveStartCount = Enemies.getAliveCount();
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
     // Show recommended weapons hint on wave 1 if stage defines them
     if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
@@ -4011,6 +4009,8 @@ const GameManager = (function () {
     if (typeof CombatExtras !== 'undefined') {
       CombatExtras.reset();
     }
+    // Capture total after ALL spawning (garrison, convoys, stage-specific) for correct progress bar denominator
+    player._waveStartCount = Enemies.getAliveCount();
   }
 
   function onWaveComplete() {
