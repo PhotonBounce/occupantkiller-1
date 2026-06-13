@@ -5932,18 +5932,37 @@ window.VoxelWorld = (function () {
       generateAntiAirPosition(30, 35);
       generateAntiAirPosition(0, 55);
     } else if (level.id === 'AVDIIVKA') {
+      // Coking plant district — dense apartment blocks (west/east flanks)
       generateUkrainianApartment(-20, -20, 6);
       generateUkrainianApartment(-20, -42, 12);
       generateUkrainianApartment(10, -25, 6);
       generateUkrainianApartment(10, -47, 12);
+      generateUkrainianApartment(-38, -15, 9);
+      generateUkrainianApartment(-38, -38, 6);
+      generateUkrainianApartment(30, -20, 9);
+      generateUkrainianApartment(30, -42, 6);
+      generateUkrainianApartment(-20, 10, 6);
+      generateUkrainianApartment(10, 15, 9);
+      generateBurningRuin(-22, -60);
+      generateBurningRuin(12, -62);
       generateDroneNest(35, -35);
       generateDroneNest(-35, -55);
       generateDroneNest(30, 15);
     } else if (level.id === 'BAKHMUT') {
+      // Total destruction — bombed apartments, rubble streets
       generateUkrainianApartment(-25, -20, 6);
       generateUkrainianApartment(-25, -42, 6);
       generateUkrainianApartment(15, -15, 12);
       generateUkrainianApartment(15, -37, 6);
+      generateUkrainianApartment(-42, -25, 9);
+      generateUkrainianApartment(-42, -48, 6);
+      generateUkrainianApartment(33, -18, 6);
+      generateUkrainianApartment(33, -40, 9);
+      generateUkrainianApartment(-10, 12, 6);
+      generateUkrainianApartment(12, 18, 9);
+      generateBurningRuin(-28, -60);
+      generateBurningRuin(16, -55);
+      generateBurningRuin(-5, -65);
       generateDroneNest(40, -30);
       generateDroneNest(-40, -10);
       generateDroneNest(20, 30);
@@ -6293,13 +6312,22 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, 0);
       generateDroneNest(-40, 0);
     } else if (level.id === 'DONBAS') {
-      // Mining country — trenches, slag heaps, industrial ruins
+      // Mining country — trenches, slag heaps, industrial ruins, urban fringes
       generateTrenchNetwork(0, 0);
       generateMinefield(-20, -20);
       generateMinefield(20, 20);
       generateIndustrialComplex(-30, 30);
       generateSaltMine(30, -30);
       generatePowerLines(0, 0, 6);
+      // Urban fringe: workers' apartment blocks flanking the industrial zones
+      generateUkrainianApartment(-48, -20, 9);
+      generateUkrainianApartment(-48, 5, 6);
+      generateUkrainianApartment(35, -18, 9);
+      generateUkrainianApartment(35, 8, 6);
+      generateUkrainianApartment(-15, -50, 9);
+      generateUkrainianApartment(10, -50, 6);
+      generateBurningRuin(-50, -40);
+      generateBurningRuin(36, -38);
       generateDroneNest(40, -40);
       generateDroneNest(-40, 40);
     } else if (level.id === 'BELGOROD') {
