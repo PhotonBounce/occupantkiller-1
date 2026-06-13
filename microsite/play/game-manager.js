@@ -6635,7 +6635,7 @@ const GameManager = (function () {
                 HUD.notifyPickup('✅ MISSION COMPLETE! +' + reward.okc + ' OKC +' + reward.xp + ' XP', '#44ff88');
                 if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
                   Marketplace.awardCustomOKC(reward.okc, 'mission_type_complete', {
-                    missionType: MissionTypes.getActive() ? MissionTypes.getActive().config.id : null,
+                    missionType: _completingType,
                   }).then(function () {
                     if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
                   });
