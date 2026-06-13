@@ -235,6 +235,7 @@ const MissionSystem = (function () {
               ambushSpawned: false,
               distanceToDest: Math.round(dist),
               objectiveText: 'Break out of encirclement!',
+              timerExpiries: 0,
             };
           },
           update(mission, delta) {
@@ -256,12 +257,21 @@ const MissionSystem = (function () {
                 HUD.showToast('✓ BROKEN OUT! You reached friendly lines.', 4000, '#88ff88');
               }
             } else if (mission.timeLimit <= 0) {
-              mission.timeLimit = 60;
-              if (typeof Enemies !== 'undefined' && Enemies.spawnReinforcement) {
-                Enemies.spawnReinforcement(playerPos.x, playerPos.z, 4);
-              }
-              if (typeof HUD !== 'undefined' && HUD.showToast) {
-                HUD.showToast('⚠ TIME EXPIRED! Reinforcements incoming!', 5000, '#ff3333');
+              mission.timerExpiries = (mission.timerExpiries || 0) + 1;
+              if (mission.timerExpiries >= 3) {
+                // Mission fails after 3 expiries — mark as failed and stop update
+                mission.timeLimit = -999;
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('❌ BREAKOUT FAILED — encirclement holds.', 5000, '#ff3333');
+                }
+              } else {
+                mission.timeLimit = 60;
+                if (typeof Enemies !== 'undefined' && Enemies.spawnReinforcement) {
+                  Enemies.spawnReinforcement(playerPos.x, playerPos.z, 4);
+                }
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('⚠ TIME EXPIRED! Reinforcements incoming!', 5000, '#ff3333');
+                }
               }
             }
 
@@ -291,6 +301,7 @@ const MissionSystem = (function () {
             mission.objectiveText = `Breakout: reach the ◆ waypoint — ${mission.distanceToDest}m (${Math.round(mission.timeLimit)}s left)`;
           },
           check(mission) { return mission.reached; },
+          failed(mission) { return !mission.reached && mission.timeLimit === -999; },
         },
     gather: {
       name: 'Intel Sweep',
