@@ -6501,6 +6501,8 @@ const GameManager = (function () {
       }
 
       // Hold-F mission interact: per-frame continuous progress for RESCUE/DEFUSE
+      if (!player._hfNotifCd) player._hfNotifCd = 0;
+      player._hfNotifCd = Math.max(0, player._hfNotifCd - delta);
       if (keys && keys['KeyF'] && typeof MissionTypes !== 'undefined' && MissionTypes.getActive && MissionTypes.getActive()) {
         var _hfMt = MissionTypes.getActive();
         if (_hfMt && _hfMt.config) {
@@ -6520,8 +6522,10 @@ const GameManager = (function () {
               }
               if (_hfNearPow < 25) {
                 var _hfr = MissionTypes.interact('FREE_POW', { dt: delta });
-                if (_hfr && _hfr.freeing) HUD.notifyPickup('🔓 FREEING... ' + Math.round((_hfr.progress || 0) * 100) + '%', '#88ff88');
-                else if (_hfr && _hfr.freed) HUD.notifyPickup('✅ POW FREED!', '#44ff88');
+                if (player._hfNotifCd <= 0) {
+                  if (_hfr && _hfr.freeing) { HUD.notifyPickup('🔓 FREEING... ' + Math.round((_hfr.progress || 0) * 100) + '%', '#88ff88'); player._hfNotifCd = 0.25; }
+                  else if (_hfr && _hfr.freed) HUD.notifyPickup('✅ POW FREED!', '#44ff88');
+                }
               }
             } else if (_hfMt.config.id === 'DEFUSE') {
               var _hfBProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
@@ -6536,8 +6540,10 @@ const GameManager = (function () {
               }
               if (_hfNearBomb < 36) {
                 var _hfdr = MissionTypes.interact('DEFUSE_BOMB', { dt: delta });
-                if (_hfdr && _hfdr.defusing) HUD.notifyPickup('⏱️ DEFUSING... ' + Math.round((_hfdr.progress || 0) * 100) + '%', '#ffcc00');
-                else if (_hfdr && _hfdr.defused) HUD.notifyPickup('✅ BOMB DEFUSED!', '#44ff88');
+                if (player._hfNotifCd <= 0) {
+                  if (_hfdr && _hfdr.defusing) { HUD.notifyPickup('⏱️ DEFUSING... ' + Math.round((_hfdr.progress || 0) * 100) + '%', '#ffcc00'); player._hfNotifCd = 0.25; }
+                  else if (_hfdr && _hfdr.defused) HUD.notifyPickup('✅ BOMB DEFUSED!', '#44ff88');
+                }
               }
             }
           }
