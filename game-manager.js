@@ -3401,6 +3401,7 @@ const GameManager = (function () {
     if (typeof Feedback !== 'undefined' && Feedback.clear) Feedback.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
+    if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
 
     // Respawn organized assault groups on new terrain (BRIGADE role only)
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
@@ -6299,6 +6300,11 @@ const GameManager = (function () {
         HUD._updateNPCTextPositions(NPCSystem.getAll(), _camera, _renderer);
       }
       DroneSystem.update(delta);
+      // Recon mission: check if possessed drone is near a scout target
+      if (typeof MissionSystem !== 'undefined' && MissionSystem.onDroneScout && DroneSystem.getPossessed) {
+        var _posDrone = DroneSystem.getPossessed();
+        if (_posDrone && _posDrone.alive && _posDrone.position) MissionSystem.onDroneScout(_posDrone.position);
+      }
       if (typeof ConvoySystem !== 'undefined') ConvoySystem.update(delta);
       if (typeof EnemyArtillery !== 'undefined') EnemyArtillery.update(delta);
       VehicleSystem.update(delta);
