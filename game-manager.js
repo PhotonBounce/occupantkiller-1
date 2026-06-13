@@ -1670,7 +1670,11 @@ const GameManager = (function () {
 
         // Vehicle enter/exit/hijack
         if (e.code === 'KeyG') {
-          if (VehicleSystem.isHijacking()) {
+          // Bradley IFV: check exit first so pilot can always dismount.
+          if (typeof Bradley !== 'undefined' && Bradley.isActive && Bradley.isActive()) {
+            Bradley.exit();
+            HUD.notifyPickup('🚛 DISMOUNTED BRADLEY', '#a0c878');
+          } else if (VehicleSystem.isHijacking()) {
             // Cancel hijack if pressing G again during hijack
             VehicleSystem.cancelHijack();
             HUD.notifyPickup('❌ HIJACK CANCELLED', '#ff4444');
@@ -1682,26 +1686,42 @@ const GameManager = (function () {
               player.position.y += player.height;
             }
           } else {
-            const nearby = VehicleSystem.getNearby(player.position, 5);
-            if (nearby.length > 0) {
-              const targetVehicle = nearby[0];
-              if (targetVehicle.faction === 'enemy') {
-                // Start animated hijack of enemy vehicle
-                VehicleSystem.startHijack(targetVehicle.id);
-                HUD.notifyPickup('🚗 HIJACKING… Hold steady!', '#ff4444');
-              } else if (targetVehicle.occupied) {
-                // Commandeer friendly vehicle (faster)
-                VehicleSystem.startHijack(targetVehicle.id);
-                HUD.notifyPickup('🚗 COMMANDEERING…', '#ffaa00');
-              } else {
-                VehicleSystem.enter(targetVehicle.id);
-                // Show tank HUD if entering a tank
-                if (targetVehicle.isTank) showTankHUD();
-                HUD.notifyPickup('🚗 ENTERED VEHICLE', '#44ff44');
+            // Check Bradley proximity before falling to VehicleSystem
+            var _bradleyMounted = false;
+            if (typeof Bradley !== 'undefined' && Bradley.getVehicle) {
+              var _bv = Bradley.getVehicle();
+              if (_bv && _bv.group) {
+                var _bdx = player.position.x - _bv.group.position.x;
+                var _bdz = player.position.z - _bv.group.position.z;
+                if (_bdx * _bdx + _bdz * _bdz < 49) { // 7m
+                  Bradley.enter();
+                  HUD.notifyPickup('🚛 MOUNTED BRADLEY — M242 Bushmaster ready', '#a0c878');
+                  _bradleyMounted = true;
+                }
               }
-            } else {
-              // No nearby vehicle: fall back to throwing a hand grenade
-              throwHandGrenade();
+            }
+            if (!_bradleyMounted) {
+              const nearby = VehicleSystem.getNearby(player.position, 5);
+              if (nearby.length > 0) {
+                const targetVehicle = nearby[0];
+                if (targetVehicle.faction === 'enemy') {
+                  // Start animated hijack of enemy vehicle
+                  VehicleSystem.startHijack(targetVehicle.id);
+                  HUD.notifyPickup('🚗 HIJACKING… Hold steady!', '#ff4444');
+                } else if (targetVehicle.occupied) {
+                  // Commandeer friendly vehicle (faster)
+                  VehicleSystem.startHijack(targetVehicle.id);
+                  HUD.notifyPickup('🚗 COMMANDEERING…', '#ffaa00');
+                } else {
+                  VehicleSystem.enter(targetVehicle.id);
+                  // Show tank HUD if entering a tank
+                  if (targetVehicle.isTank) showTankHUD();
+                  HUD.notifyPickup('🚗 ENTERED VEHICLE', '#44ff44');
+                }
+              } else {
+                // No nearby vehicle: fall back to throwing a hand grenade
+                throwHandGrenade();
+              }
             }
           }
         }
@@ -6081,7 +6101,7 @@ const GameManager = (function () {
             _ctThreats.push({
               bearing: _bear, d2: _cd2,
               spotted: !!_ce.playerSpotted,
-              boss: (_ce.typeCfg && _ce.typeCfg.name === 'BOSS')
+              boss: (_ce.typeName === 'BOSS' || (_ce.typeName && _ce.typeName.startsWith('BOSS_')))
             });
           }
           // Keep nearest 5 (or all bosses + nearest)

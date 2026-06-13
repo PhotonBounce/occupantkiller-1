@@ -76,7 +76,7 @@ const MissionSystem = (function () {
                       Bradley.spawnAt(new THREE.Vector3(bx, by, bz));
                     }
                     if (typeof HUD !== 'undefined' && HUD.showToast) {
-                      HUD.showToast('🚛 BRADLEY READY — Press B to mount. M242 Bushmaster 25mm + M240 coax.', 5000, '#a0c878');
+                      HUD.showToast('🚛 BRADLEY SPAWNED — Press G to mount. M242 Bushmaster 25mm + M240 coax.', 5000, '#a0c878');
                     }
                   } catch (eBR) {}
                 } catch (eAll) {}
