@@ -850,6 +850,7 @@ const GameManager = (function () {
 
   /* ── Last-kill camera tracking ───────────────────────────────── */
   var _lastKillPos = null;  // position of most recent enemy kill
+  var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
 
   /* ── Suppression System (near-miss visual response) ──────────── */
   var _suppressionLevel = 0;  // 0→1
@@ -3481,6 +3482,9 @@ const GameManager = (function () {
       if (gameState !== STATE.PLAYING && gameState !== STATE.BUILD_MODE) return;
     }
     currentWave = w;
+    // Remove flag meshes from previous wave (they accumulate otherwise)
+    for (var _rfi = 0; _rfi < _rfFlagObjects.length; _rfi++) { if (_scene) _scene.remove(_rfFlagObjects[_rfi]); }
+    _rfFlagObjects.length = 0;
     player.waveStartTime = performance.now();
     player._secondWindTriggered = false;
     if (typeof MissionSystem !== 'undefined' && MissionSystem.generateSideObjective && !MissionSystem.getSideObjective()) MissionSystem.generateSideObjective();
@@ -3794,26 +3798,26 @@ const GameManager = (function () {
           new THREE.MeshLambertMaterial({ color: 0x888888 })
         );
         pole.position.set(fp.x, poleH * 0.5, fp.z);
-        _scene.add(pole);
+        _scene.add(pole); _rfFlagObjects.push(pole);
         var clothW = 0.9, clothH = 0.5;
         var clothGeo = new THREE.PlaneGeometry(clothW, clothH, 4, 2);
         var clothMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
         var cloth = new THREE.Mesh(clothGeo, clothMat);
         cloth.position.set(fp.x + clothW * 0.5, poleH - clothH * 0.5, fp.z);
-        _scene.add(cloth);
+        _scene.add(cloth); _rfFlagObjects.push(cloth);
         // Stripe overlays (simplified tricolor)
         var stripeB = new THREE.Mesh(
           new THREE.PlaneGeometry(clothW, clothH * 0.33, 2, 1),
           new THREE.MeshBasicMaterial({ color: 0x0033aa, side: THREE.DoubleSide })
         );
         stripeB.position.set(fp.x + clothW * 0.5, poleH - clothH * 0.83, fp.z + 0.01);
-        _scene.add(stripeB);
+        _scene.add(stripeB); _rfFlagObjects.push(stripeB);
         var stripeR = new THREE.Mesh(
           new THREE.PlaneGeometry(clothW, clothH * 0.33, 2, 1),
           new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide })
         );
         stripeR.position.set(fp.x + clothW * 0.5, poleH - clothH * 0.17, fp.z + 0.01);
-        _scene.add(stripeR);
+        _scene.add(stripeR); _rfFlagObjects.push(stripeR);
       }
     })();
 
