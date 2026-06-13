@@ -929,11 +929,11 @@ const Enemies = (() => {
   var STAGE_ROSTER = {
     1: { bias: 0.40, pool: ['CONSCRIPT','PARATROOP','CONSCRIPT','STORMER','ENGINEER'] },            // Hostomel — VDV paratroopers + conscripts
     2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','SNIPER'] },                // Avdiivka — defenders + snipers as per objective
-    3: { bias: 0.50, pool: ['STORMER','STORMER','ARMORED','SABOTEUR','WAGNER'] },                   // Bakhmut — Wagner meat-grinder
-    4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','PARATROOP','STORMER','SNIPER'] },                 // Kherson — river crossing snipers
+    3: { bias: 0.50, pool: ['STORMER','MORTAR','ARMORED','SABOTEUR','WAGNER'] },                    // Bakhmut — Wagner meat-grinder + heavy mortar
+    4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor drowned in Dnipro
     5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER'] },       // Mariupol — CQB in steelworks
-    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — air+sea
-    7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','FLAMETHROWER'] },               // Chornobyl — feral+mutant
+    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','STORMER','SNIPER','SNIPER_ELITE'] },       // Crimea — air+sea naval marines
+    7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+mutant+Spetsnaz (objective says "Spetsnaz")
     8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER'] }, // Moscow — elite FSB
     9: { bias: 0.55, pool: ['BTR','DRONE_OP','HEAVY_SNIPER','STORMER','MORTAR'] },                  // Sevastopol — naval base
     10:{ bias: 0.60, pool: ['KADYROVITE','WAGNER','COMMISSAR','MORTAR','ARMORED'] },                 // Donbas — entrenched

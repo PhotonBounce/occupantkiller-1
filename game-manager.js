@@ -1451,6 +1451,8 @@ const GameManager = (function () {
           var _newM;
           if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
             _newM = MissionSystem.generateMission('kyiv_defense');
+          } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
+            _newM = MissionSystem.generateMission('airborne_assault');
           } else {
             _newM = MissionSystem.generateRandom();
             _autoReconDroneForMission(_newM);
@@ -3092,10 +3094,11 @@ const GameManager = (function () {
       try { if (typeof Feedback !== 'undefined' && Feedback.startOnboarding) Feedback.startOnboarding(); } catch (_e) {}
     }, 3200);
 
-    // Generate an initial mission. Capital defense (Kyiv) always runs its
-    // signature mission instead of a random one.
+    // Generate an initial mission. Stage-specific signature missions take priority.
     if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
       MissionSystem.generateMission('kyiv_defense');
+    } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
+      MissionSystem.generateMission('airborne_assault');
     } else {
       var _initMission = MissionSystem.generateRandom();
       _autoReconDroneForMission(_initMission);
