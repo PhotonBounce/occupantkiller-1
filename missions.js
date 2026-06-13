@@ -643,6 +643,7 @@ const MissionSystem = (function () {
     activeMissions.length = 0;
     completedMissions.length = 0;
     missionCount = 0;
+    activeSideObj = null;
   }
 
   /* ── Generate Mission ────────────────────────────────────────────── */
