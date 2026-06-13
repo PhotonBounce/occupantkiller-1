@@ -2572,6 +2572,12 @@ const GameManager = (function () {
     hud.style.display = 'block';
     _droneControlsVisible = true;
 
+    // Toggle key vs touch hint rows based on device
+    var keyHints = document.getElementById('drone-key-hints');
+    var touchHints = document.getElementById('drone-touch-hints');
+    if (keyHints)   keyHints.style.display   = isMobile ? 'none' : 'flex';
+    if (touchHints) touchHints.style.display = isMobile ? 'block' : 'none';
+
     var typeLabel = document.getElementById('drone-type-label');
     var actionText = document.getElementById('drone-action-text');
     var actionHint = document.getElementById('drone-action-hint');
