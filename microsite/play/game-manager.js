@@ -3102,6 +3102,7 @@ const GameManager = (function () {
 
     // Respawn organized assault groups for the real gameplay start path
     // (BRIGADE role only — Lone Wolf fights solo).
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
     if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
 
     // Respawn vehicle fleet on roads for first stage
@@ -3447,6 +3448,7 @@ const GameManager = (function () {
     if (typeof Feedback !== 'undefined' && Feedback.clear) Feedback.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
+    if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
 
     // Respawn organized assault groups on new terrain (BRIGADE role only)
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();

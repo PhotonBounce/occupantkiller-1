@@ -3108,6 +3108,7 @@ const GameManager = (function () {
     Pickups.clear();
     VehicleSystem.clear();
     DroneSystem.clear();
+    if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
