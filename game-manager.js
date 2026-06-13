@@ -579,6 +579,7 @@ const GameManager = (function () {
       sunColor:     0xff8833,
       sunIntensity: 0.85,
       exposure:     0.9,
+      hintWeapons:  ['AK-74M','RPG-7','NLAW'],
       description:  'Stop the airborne assault at Hostomel Airport.',
       objective:    'Destroy all enemy VDV paratroopers and anti-air guns. Survive 7 waves.',
     },
@@ -593,6 +594,7 @@ const GameManager = (function () {
       sunColor:     0xccccdd,
       sunIntensity: 0.7,
       exposure:     0.8,
+      hintWeapons:  ['SVD Dragunov','NLAW','FGM-148 Javelin'],
       description:  'Industrial ruins of Avdiivka. Defend the coking plant.',
       objective:    'Hold the coking plant against VDV and armored assaults. Watch for snipers.',
     },
@@ -607,6 +609,7 @@ const GameManager = (function () {
       sunColor:     0xccccdd,
       sunIntensity: 0.65,
       exposure:     0.7,
+      hintWeapons:  ['AK-74M','PKM','RPO-A Shmel'],
       description:  'Total destruction in Bakhmut. The city is a graveyard.',
       objective:    'Navigate the ruins. Wagner mercenaries attack from all angles. Clear 7 waves.',
     },
@@ -621,6 +624,7 @@ const GameManager = (function () {
       sunColor:     0xffcc55,
       sunIntensity: 0.9,
       exposure:     0.9,
+      hintWeapons:  ['NLAW','FGM-148 Javelin','Stugna-P'],
       description:  'Cross the Dnipro at Kherson. Liberate the bridgehead.',
       objective:    'Secure the Dnipro crossing. Drown enemy armor in the river. 7 waves.',
     },
@@ -635,6 +639,7 @@ const GameManager = (function () {
       sunColor:     0xff6622,
       sunIntensity: 0.5,
       exposure:     0.65,
+      hintWeapons:  ['M4A1','PKM','RPO-A Shmel'],
       description:  'Fight through the burning Azovstal steelworks. No retreat.',
       objective:    'Survive the steelworks inferno. Fire deals constant damage. Clear all 7 waves.',
     },
@@ -649,6 +654,7 @@ const GameManager = (function () {
       sunColor:     0xffddaa,
       sunIntensity: 0.95,
       exposure:     0.9,
+      hintWeapons:  ['M142 HIMARS (GMLRS Strike)','RPG-7','C4 Explosive'],
       description:  'Assault the Kerch Strait bridge. Cut off their supply line.',
       objective:    'Blow the Crimea Bridge. Heavy naval bombardment incoming. 7 waves.',
     },
@@ -663,6 +669,7 @@ const GameManager = (function () {
       sunColor:     0xaacc44,
       sunIntensity: 0.55,
       exposure:     0.75,
+      hintWeapons:  ['Barrett M82','AK-74M','RPO-A Shmel'],
       description:  'The irradiated exclusion zone. Radiation adds periodic damage.',
       objective:    'Survive Chornobyl. Radiation, mutants, and Spetsnaz. Avoid the red zones.',
     },
@@ -677,6 +684,7 @@ const GameManager = (function () {
       sunColor:     0xeeeeff,
       sunIntensity: 0.4,
       exposure:     0.6,
+      hintWeapons:  ['Barrett M82','M2HB Browning .50cal','FGM-148 Javelin'],
       description:  'The armored push into Moscow\'s outer ring. FSB elite and Rosgvardiya defend the suburbs.',
       objective:    'Break through the outer Moscow defensive ring. 9 waves of elite defenders.',
     },
@@ -691,6 +699,7 @@ const GameManager = (function () {
       sunColor:     0xddccaa,
       sunIntensity: 0.85,
       exposure:     0.85,
+      hintWeapons:  ['M142 HIMARS (GMLRS Strike)','RPG-7','NLAW'],
       description:  'Destroy the Black Sea Fleet at Sevastopol. Sink them all.',
       objective:    'Naval base assault. Ship artillery rains down. Destroy all fleet defenders.',
     },
@@ -705,6 +714,7 @@ const GameManager = (function () {
       sunColor:     0xdd6633,
       sunIntensity: 0.6,
       exposure:     0.7,
+      hintWeapons:  ['RPO-A Shmel','TOS-1A Buratino (Thermobaric MLRS)','M142 HIMARS (GMLRS Strike)'],
       description:  'Liberate the last occupied stronghold in Donbas.',
       objective:    'Break the Donbas line. Thermobaric weapons and mechs. 8 waves.',
     },
@@ -719,6 +729,7 @@ const GameManager = (function () {
       sunColor:     0xffaa44,
       sunIntensity: 0.75,
       exposure:     0.85,
+      hintWeapons:  ['NLAW','FGM148Javelin','M142 HIMARS (GMLRS Strike)'],
       description:  'Cross into enemy territory. Take the fight to them.',
       objective:    'Invade Belgorod. Tanks and mechanized infantry counter-attack hard. 8 waves.',
     },
@@ -733,6 +744,7 @@ const GameManager = (function () {
       sunColor:     0xff3322,
       sunIntensity: 0.3,
       exposure:     0.5,
+      hintWeapons:  ['FGM-148 Javelin','M142 HIMARS (GMLRS Strike)','Barrett M82'],
       description:  'The ultimate battle for peace. Storm the Kremlin. End the war.',
       objective:    'Final assault. Every enemy type. Maximum difficulty. Survive 10 waves.',
     },
@@ -764,6 +776,7 @@ const GameManager = (function () {
       sunColor:     0xddddff,
       sunIntensity: 0.65,
       exposure:     0.8,
+      hintWeapons:  ['Igla MANPADS','RPG-7','NLAW'],
       description:  'Feb 24, 2022. Russian warship Moskva approaches Snake Island. Reply: "Russian warship, go fuck yourself."',
       objective:    'Hold Snake Island against naval bombardment. Only 6 waves — make them count.',
     },
@@ -3888,6 +3901,38 @@ const GameManager = (function () {
         if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_sx, _sy, _sz));
       }
     }
+    // Mariupol (id 5): fire hazard warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 5) {
+      HUD.notifyPickup('🔥 STEELWORKS INFERNO — FIRE DEALS CONSTANT DAMAGE!', '#ff6600');
+    }
+    // Crimea Bridge (id 6): naval bombardment warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 6) {
+      HUD.notifyPickup('⚓ NAVAL BOMBARDMENT INCOMING — BLOW THE BRIDGE!', '#4477ff');
+    }
+    // Chornobyl (id 7): radiation warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 7) {
+      HUD.notifyPickup('☢ RADIATION ACTIVE — AVOID THE RED ZONES!', '#00ff44');
+    }
+    // Outer Moscow (id 8): elite defenders warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 8) {
+      HUD.notifyPickup('🛡 FSB ELITE & ROSGVARDIYA — MAXIMUM RESISTANCE!', '#cc44ff');
+    }
+    // Donbas (id 10): thermobaric weapons reminder at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 10) {
+      HUD.notifyPickup('☠ DONBAS STRONGHOLD — THERMOBARIC WEAPONS CLEAR TRENCHES!', '#ff4444');
+    }
+    // Kremlin (id 12): final battle warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 12) {
+      HUD.notifyPickup('🏛 KREMLIN — EVERY ENEMY TYPE. MAXIMUM DIFFICULTY. HOLD THE LINE!', '#ff3300');
+    }
+    // Kyiv (id 13): defend the capital at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 13) {
+      HUD.notifyPickup('🇺🇦 DEFEND KYIV — STOP THE ARMORED COLUMNS AT ALL COSTS!', '#0057b7');
+    }
+    // Antonov (id 17): long-range artillery duel warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 17) {
+      HUD.notifyPickup('🎯 ARTILLERY DUELS — PRECISION WEAPONS REQUIRED. WATCH YOUR RANGE!', '#ffcc44');
+    }
     // Spawn radiation zones in Chornobyl stage (ID 7) on wave 6
     if (w === 6 && typeof WorldFeatures !== 'undefined' && STAGES[currentStage] && STAGES[currentStage].id === 7) {
       WorldFeatures.addRadiationZone(player.position.x + 30, player.position.z + 30, 8);
@@ -5748,6 +5793,22 @@ const GameManager = (function () {
             if (HUD.showDamageFlash) HUD.showDamageFlash(0xff3300, 0.4);
             if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(1.0);
             if (HUD.notifyPickup) HUD.notifyPickup('💥 Mortar barrage!', '#ff3300');
+          }
+        }
+      }
+
+      // ── ANTONOV BRIDGE: Enemy long-range artillery strikes (stage 17) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 17 && gameState === STATE.PLAYING) {
+        player._antonovArtillTimer = (player._antonovArtillTimer || 0) + delta;
+        if (player._antonovArtillTimer >= 16.0 + Math.random() * 10) {
+          player._antonovArtillTimer = 0;
+          if (!player.godMode && Math.random() < 0.5) {
+            var artillDmg = 7 + Math.floor(Math.random() * 14);
+            player.hp = Math.max(1, player.hp - artillDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff8800, 0.35);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.9);
+            if (HUD.notifyPickup) HUD.notifyPickup('🔥 Enemy artillery strike!', '#ff8800');
           }
         }
       }
