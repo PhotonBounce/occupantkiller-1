@@ -3927,7 +3927,14 @@ const GameManager = (function () {
     if (w % 3 === 0 && typeof MissionTypes !== 'undefined' && !MissionTypes.getActive() && !capitalDefense) {
       var _mSafeTypes = ['DEMOLITION', 'CAPTURE_ZONE', 'ASSASSINATION', 'RESCUE', 'DEFUSE'];
       var mType = _mSafeTypes[Math.floor(Math.random() * _mSafeTypes.length)];
-      MissionTypes.startMission(mType, player.position.x + (Math.random() - 0.5) * 40, player.position.z + (Math.random() - 0.5) * 40);
+      var _mzX = player.position.x + (Math.random() - 0.5) * 40;
+      var _mzZ = player.position.z + (Math.random() - 0.5) * 40;
+      for (var _mzTry = 0; _mzTry < 7 && typeof VoxelWorld !== 'undefined' && VoxelWorld.getBlock &&
+           VoxelWorld.getBlock(Math.floor(_mzX), VoxelWorld.getTerrainHeight(_mzX, _mzZ), Math.floor(_mzZ)) === 8; _mzTry++) {
+        _mzX = player.position.x + (Math.random() - 0.5) * 40;
+        _mzZ = player.position.z + (Math.random() - 0.5) * 40;
+      }
+      MissionTypes.startMission(mType, _mzX, _mzZ);
       HUD.notifyPickup('📍 NEW MISSION: ' + MissionTypes.TYPES[mType].name, '#ffcc00');
     }
     // Spawn supply airdrop every 4 waves

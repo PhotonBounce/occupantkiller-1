@@ -3680,10 +3680,20 @@ const GameManager = (function () {
       Progression.trackStat('wavesCleared', 0); // track at begin; increment at complete
     }
     // Spawn a random mission type every 3 waves
-    if (w % 3 === 0 && typeof MissionTypes !== 'undefined') {
-      var mTypes = Object.keys(MissionTypes.TYPES);
-      var mType = mTypes[Math.floor(Math.random() * mTypes.length)];
-      MissionTypes.startMission(mType, player.position.x + (Math.random() - 0.5) * 40, player.position.z + (Math.random() - 0.5) * 40);
+    // ASSAULT_DUGOUTS excluded — it pre-spawns 16 extra garrison enemies which spikes difficulty mid-wave.
+    // Only start if no scripted mission already active (avoids silently overwriting in-progress missions).
+    // Skip for capitalDefense (Kyiv) — convoy columns are already the priority objective.
+    if (w % 3 === 0 && typeof MissionTypes !== 'undefined' && !MissionTypes.getActive() && !capitalDefense) {
+      var _mSafeTypes = ['DEMOLITION', 'CAPTURE_ZONE', 'ASSASSINATION', 'RESCUE', 'DEFUSE'];
+      var mType = _mSafeTypes[Math.floor(Math.random() * _mSafeTypes.length)];
+      var _mzX = player.position.x + (Math.random() - 0.5) * 40;
+      var _mzZ = player.position.z + (Math.random() - 0.5) * 40;
+      for (var _mzTry = 0; _mzTry < 7 && typeof VoxelWorld !== 'undefined' && VoxelWorld.getBlock &&
+           VoxelWorld.getBlock(Math.floor(_mzX), VoxelWorld.getTerrainHeight(_mzX, _mzZ), Math.floor(_mzZ)) === 8; _mzTry++) {
+        _mzX = player.position.x + (Math.random() - 0.5) * 40;
+        _mzZ = player.position.z + (Math.random() - 0.5) * 40;
+      }
+      MissionTypes.startMission(mType, _mzX, _mzZ);
       HUD.notifyPickup('📍 NEW MISSION: ' + MissionTypes.TYPES[mType].name, '#ffcc00');
     }
     // Spawn supply airdrop every 4 waves

@@ -155,7 +155,7 @@ const MissionTypes = (function () {
                 { guardPost: { x: activeMission.zoneX, y: _hvtY, z: activeMission.zoneZ }, guardRadius: 10 });
             }
             if (window.HUD && window.HUD.showToast) {
-              window.HUD.showToast('🎯 HVT LOCATED — Eliminate the Russian Officer and bodyguards.', 5000, '#ff4444');
+              window.HUD.showToast('🎯 ASSASSINATION: Locate and eliminate the Russian Officer in the marked zone.', 5000, '#ff4444');
             }
           }
         } catch (_eHVT) {}
@@ -337,6 +337,10 @@ const MissionTypes = (function () {
           var _aDx = playerPos.x - m.zoneX, _aDz = playerPos.z - m.zoneZ;
           var _aZr = (cfg.zoneRadius || 8) * 2;
           if (_aDx * _aDx + _aDz * _aDz < _aZr * _aZr) missionProgress.hvtLocated = true;
+        }
+        // If HVT never spawned (OFFICER type unavailable for this stage), treat as already eliminated
+        if (missionProgress.hvtEnemyId === null && !missionProgress.hvtDead) {
+          missionProgress.hvtDead = true;
         }
         // Track HVT alive status by enemy ID
         if (missionProgress.hvtEnemyId !== null && typeof window !== 'undefined' && window.Enemies && window.Enemies.getAll) {
