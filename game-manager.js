@@ -6958,7 +6958,7 @@ const GameManager = (function () {
                     break;
                   case 'RESCUE': {
                     var _powTot = MissionTypes.getActive() ? MissionTypes.getActive().config.powCount : 3;
-                    var _powNear = (missionResult.activePow >= 0) ? ' — approach POW ' + (missionResult.activePow + 1) + ' and hold [F]' : ' — find a POW (approach within 5m)';
+                    var _powNear = (missionResult.activePow >= 0) ? ' — hold [F] to free POW ' + (missionResult.activePow + 1) : ' — find a POW (approach within 5m)';
                     var _powFreeing = (missionResult.activePow >= 0 && missionResult.pows && missionResult.pows[missionResult.activePow])
                       ? (missionResult.pows[missionResult.activePow].freeProgress > 0 ? ' [freeing: ' + Math.round(missionResult.pows[missionResult.activePow].freeProgress * 100) + '%]' : '') : '';
                     _objTxt = 'POWs freed: ' + (missionResult.freed || 0) + '/' + _powTot + _powFreeing + _powNear;

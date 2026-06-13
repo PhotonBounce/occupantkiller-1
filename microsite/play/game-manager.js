@@ -6519,6 +6519,40 @@ const GameManager = (function () {
               if (mTimer && missionResult.timeRemaining !== undefined) {
                 mTimer.textContent = '⏱ ' + Math.ceil(missionResult.timeRemaining) + 's';
               }
+              // Per-type objective sub-line
+              var mObj = document.getElementById('mission-tracker-objectives');
+              if (mObj) {
+                var _objTxt = '';
+                switch (missionResult.type) {
+                  case 'CAPTURE_ZONE':
+                    _objTxt = 'Hold zone: ' + Math.round((missionResult.holdProgress || 0) * 100) + '%' + (missionResult.contested ? ' ⚔ CONTESTED' : '');
+                    break;
+                  case 'DEMOLITION':
+                    _objTxt = missionResult.planted ? '✓ Charge planted — move 25m clear!' : 'Plant charge: ' + Math.round((missionResult.plantProgress || 0) * 100) + '%';
+                    break;
+                  case 'ASSASSINATION':
+                    _objTxt = missionResult.hvtLocated ? ('HVT HP: ' + Math.max(0, Math.round(missionResult.hvtHP || 0))) : 'Locate and engage HVT in zone';
+                    break;
+                  case 'RESCUE': {
+                    var _powTot = MissionTypes.getActive() ? MissionTypes.getActive().config.powCount : 3;
+                    var _powNear = (missionResult.activePow >= 0) ? ' — hold [F] to free POW ' + (missionResult.activePow + 1) : ' — find a POW (approach within 5m)';
+                    var _powFreeing = (missionResult.activePow >= 0 && missionResult.pows && missionResult.pows[missionResult.activePow])
+                      ? (missionResult.pows[missionResult.activePow].freeProgress > 0 ? ' [freeing: ' + Math.round(missionResult.pows[missionResult.activePow].freeProgress * 100) + '%]' : '') : '';
+                    _objTxt = 'POWs freed: ' + (missionResult.freed || 0) + '/' + _powTot + _powFreeing + _powNear;
+                    break;
+                  }
+                  case 'DEFUSE': {
+                    var _bombTot = MissionTypes.getActive() ? MissionTypes.getActive().config.bombCount : 3;
+                    var _defProg = missionResult.defuseProgress > 0 ? ' [defusing: ' + Math.round(missionResult.defuseProgress * 100) + '%]' : '';
+                    _objTxt = 'Bombs defused: ' + (missionResult.defused || 0) + '/' + _bombTot + _defProg + ' · Detonation in ' + Math.ceil(missionResult.detonationTimer || 0) + 's';
+                    break;
+                  }
+                  case 'ASSAULT_DUGOUTS':
+                    _objTxt = 'Dugouts: ' + (missionResult.dugoutsCleared || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.dugoutCount : 4);
+                    break;
+                }
+                mObj.textContent = _objTxt;
+              }
             } else if (missionResult.state === 'COMPLETE') {
               var _completingMission = MissionTypes.getActive();
               var _completingType = _completingMission ? _completingMission.config.id : null;
