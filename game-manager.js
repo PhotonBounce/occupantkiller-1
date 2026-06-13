@@ -273,12 +273,13 @@ const GameManager = (function () {
 
   /* ── Battlefield Events ─────────────────────────────────────────── */
   const BATTLE_EVENTS = [
-    { id: 'ARTILLERY',     label: '💥 ARTILLERY BARRAGE!',      color: '#ff4444', chance: 0.20 },
-    { id: 'SUPPLY_DROP',   label: '📦 SUPPLY DROP INCOMING!',   color: '#44ff88', chance: 0.18 },
-    { id: 'MORTAR',        label: '💣 MORTAR STRIKE!',          color: '#ff8800', chance: 0.12 },
-    { id: 'REINFORCEMENT', label: '🛡 ALLIED REINFORCEMENTS!',  color: '#4488ff', chance: 0.10 },
-    { id: 'AMBUSH',        label: '⚠ ENEMY AMBUSH!',           color: '#ff2222', chance: 0.10 },
-    { id: 'SNIPER_DUEL',   label: '🎯 SNIPER DUEL!',           color: '#ffaa00', chance: 0.08 },
+    // Probabilities must sum to <= 1.0 so all events can fire (cumulative selection)
+    { id: 'ARTILLERY',     label: '💥 ARTILLERY BARRAGE!',      color: '#ff4444', chance: 0.15 },
+    { id: 'SUPPLY_DROP',   label: '📦 SUPPLY DROP INCOMING!',   color: '#44ff88', chance: 0.13 },
+    { id: 'MORTAR',        label: '💣 MORTAR STRIKE!',          color: '#ff8800', chance: 0.10 },
+    { id: 'REINFORCEMENT', label: '🛡 ALLIED REINFORCEMENTS!',  color: '#4488ff', chance: 0.09 },
+    { id: 'AMBUSH',        label: '⚠ ENEMY AMBUSH!',           color: '#ff2222', chance: 0.09 },
+    { id: 'SNIPER_DUEL',   label: '🎯 SNIPER DUEL!',           color: '#ffaa00', chance: 0.07 },
     { id: 'ARMOR_PUSH',    label: '🛡 ENEMY ARMOR PUSH!',      color: '#cc0000', chance: 0.07 },
     { id: 'AIR_SUPPORT',   label: '✈ FRIENDLY AIR SUPPORT!',   color: '#00aaff', chance: 0.08 },
     { id: 'DRONE_SWARM',   label: '🤖 FPV DRONE SUPPORT!',      color: '#44ffcc', chance: 0.07 },
@@ -1627,9 +1628,8 @@ const GameManager = (function () {
             // 196 = 14m² — wide enough to cover DEFUSE bombs (placed at radius 8) + 6m interact range
             if (mtDx * mtDx + mtDz * mtDz < 196) {
               if (mt.config.id === 'DEMOLITION') {
-                MissionTypes.interact('PLANT_CHARGE', { dt: 0.5 });
-                HUD.notifyPickup('\ud83d\udca3 PLANTING CHARGE...', '#ff8800');
-                fHandled = true;
+                HUD.notifyPickup('\ud83d\udca3 HOLD [F] TO PLANT CHARGE...', '#ff8800');
+                fHandled = true; // actual planting progress runs in hold-F update loop
               } else if (mt.config.id === 'RESCUE') {
                 // RESCUE: proximity check uses nearest unfreed POW position, not zone center
                 var _mtr = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
@@ -6933,7 +6933,12 @@ const GameManager = (function () {
           var _hfDx = player.position.x - (_hfMt.zoneX || 0);
           var _hfDz = player.position.z - (_hfMt.zoneZ || 0);
           if (_hfDx * _hfDx + _hfDz * _hfDz < 196) {
-            if (_hfMt.config.id === 'RESCUE') {
+            if (_hfMt.config.id === 'DEMOLITION') {
+              var _hfPlant = MissionTypes.interact('PLANT_CHARGE', { dt: delta });
+              if (player._hfNotifCd <= 0) {
+                if (_hfPlant && _hfPlant.planting) { HUD.notifyPickup('💣 PLANTING... ' + Math.round((_hfPlant.progress || 0) * 100) + '%', '#ff8800'); player._hfNotifCd = 0.25; }
+              }
+            } else if (_hfMt.config.id === 'RESCUE') {
               var _hfProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
               var _hfNearPow = 999;
               if (_hfProg && _hfProg.pows) {
