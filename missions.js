@@ -627,7 +627,9 @@ const MissionSystem = (function () {
         };
       },
       check(mission) {
-        if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) return mission.spawned === 0;
+        // No enemies were spawned (system unavailable at generate time) — auto-complete rather than stall
+        if (mission.spawned === 0) { mission.objectiveText = 'Clear Building: complete'; return true; }
+        if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) return false;
         var aliveCount = 0;
         var allEnemies = Enemies.getAll();
         for (var id of mission.spawnedEnemyIds) {
@@ -638,7 +640,7 @@ const MissionSystem = (function () {
         }
         mission.remaining = aliveCount;
         mission.objectiveText = `Clear Building: ${mission.spawned - aliveCount}/${mission.spawned} cleared`;
-        return mission.spawned > 0 && aliveCount === 0;
+        return aliveCount === 0;
       },
     },
   };
