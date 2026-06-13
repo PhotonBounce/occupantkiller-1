@@ -3036,10 +3036,9 @@ const Enemies = (() => {
                   spawnQueue.push(pickTypeForWave(wave || 1));
                 }
               }
-              // B22: Update boss health bar
+              // B22: Update boss health bar (use actual maxHp, not generic getBossHP)
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
-                var bossMaxHp = EnemyTypes.getBossHP(wave || 1);
-                HUD.showBossBar(e.typeCfg.name || 'BOSS', e.hp, bossMaxHp);
+                HUD.showBossBar(e.typeCfg.name || 'BOSS', e.hp, e.maxHp);
               }
             }
             break;
