@@ -674,7 +674,7 @@ const GameManager = (function () {
       exposure:     0.75,
       hintWeapons:  ['Barrett M82','AK-74M','RPO-A Shmel'],
       description:  'The irradiated exclusion zone. Radiation adds periodic damage.',
-      objective:    'Survive Chornobyl. Radiation, mutants, and Spetsnaz. Avoid the red zones.',
+      objective:    'Survive Chornobyl. Constant radiation drains HP — watch your health bar. Spetsnaz and feral threats. 7 waves.',
     },
     {
       id:           8,
@@ -3928,7 +3928,7 @@ const GameManager = (function () {
     }
     // Chornobyl (id 7): radiation warning at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 7) {
-      HUD.notifyPickup('☢ RADIATION ACTIVE — AVOID THE RED ZONES!', '#00ff44');
+      HUD.notifyPickup('☢ RADIATION ACTIVE — CONSTANT EXPOSURE, WATCH YOUR HP!', '#00ff44');
     }
     // Outer Moscow (id 8): elite defenders warning at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 8) {
