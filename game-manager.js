@@ -4049,6 +4049,8 @@ const GameManager = (function () {
     }
     // Capture total after ALL spawning (garrison, convoys, stage-specific) for correct progress bar denominator
     player._waveStartCount = Enemies.getAliveCount();
+    // Re-announce with correct enemy count now that all spawning is complete
+    HUD.announceWave(w, player._waveStartCount, stageDef.wavesPerStage);
   }
 
   function onWaveComplete() {
