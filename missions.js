@@ -22,7 +22,7 @@ const MissionSystem = (function () {
             //   M240C 7.62mm coax. Press B to enter/exit. WASD drive, mouse aim turret.
             bradley_mission: {
               name: 'Bradley IFV Assault',
-              description: 'Drive the M2A3 Bradley. Use the M242 Bushmaster 25mm chain gun and M240 coax to clear {kills} Russian occupants ambushing from the woods.',
+              description: 'Drive the M2A3 Bradley. Use the M242 Bushmaster 25mm chain gun and M240 coax to clear Russian occupants ambushing from the woods.',
               tier: 5,
               generate() {
                 var killTarget = 18 + Math.floor(Math.random() * 7); // 18-24
@@ -293,46 +293,41 @@ const MissionSystem = (function () {
           check(mission) { return mission.reached; },
         },
     gather: {
-      name: 'Resource Gathering',
-      description: 'Collect {amount} {resource} from the world.',
+      name: 'Intel Sweep',
+      description: 'Eliminate Russian occupants to gather battlefield intelligence.',
       tier: 1,
       generate() {
-        const resources = ['wood', 'metal', 'stone'];
-        const res = resources[Math.floor(Math.random() * resources.length)];
-        const amount = 20 + Math.floor(Math.random() * 40);
+        const amount = 15 + Math.floor(Math.random() * 20);
         return {
           type: MISSION_TYPE.GATHER,
-          resource: res,
           targetAmount: amount,
           currentAmount: 0,
         };
       },
       check(mission) {
-        mission.objectiveText = `Gather ${mission.resource.toUpperCase()}: ${mission.currentAmount}/${mission.targetAmount}`;
+        mission.objectiveText = `Eliminate: ${mission.currentAmount}/${mission.targetAmount}`;
         return mission.currentAmount >= mission.targetAmount;
       },
     },
     expand: {
-      name: 'Base Expansion',
-      description: 'Build {count} new structure(s).',
+      name: 'Hold the Line',
+      description: 'Defend your position through multiple full waves without retreating.',
       tier: 2,
       generate() {
         return {
           type: MISSION_TYPE.EXPAND,
-          targetCount: 1 + Math.floor(Math.random() * 2),
-          startCount: (typeof Building !== 'undefined' && Building.getStructures) ? Building.getStructures().length : 0,
+          targetCount: 2 + Math.floor(Math.random() * 2),
+          completedWaves: 0,
         };
       },
       check(mission) {
-        var cur = (typeof Building !== 'undefined' && Building.getStructures) ? Building.getStructures().length : 0;
-        var built = cur - mission.startCount;
-        mission.objectiveText = `Build structures: ${built}/${mission.targetCount}`;
-        return cur >= mission.startCount + mission.targetCount;
+        mission.objectiveText = `Survive waves: ${mission.completedWaves}/${mission.targetCount}`;
+        return mission.completedWaves >= mission.targetCount;
       },
     },
     recon: {
       name: 'Drone Reconnaissance',
-      description: 'Scout {count} locations with a recon drone.',
+      description: 'Scout 3 locations with a recon drone. Fly drone within 10m of each target.',
       tier: 2,
       generate() {
         var _playerPos = new THREE.Vector3(0, 0, 0);
@@ -367,7 +362,7 @@ const MissionSystem = (function () {
     },
     defense: {
       name: 'Defensive Survival',
-      description: 'Survive {waves} enemy waves without losing your base.',
+      description: 'Survive enemy waves without letting any Russian column breach the perimeter.',
       tier: 3,
       generate() {
         return {
@@ -555,7 +550,7 @@ const MissionSystem = (function () {
     },
     infiltrate: {
       name: 'Infiltrate the Occupants',
-      description: 'You are inserted in a Russian uniform. Walk among them, then eliminate {kills} occupants. Disguise breaks when you attack — survive the response.',
+      description: 'You are inserted in a Russian uniform. Walk among them, then eliminate the target occupants. Disguise breaks when you attack — survive the response.',
       tier: 4,
       generate() {
         const kills = 8 + Math.floor(Math.random() * 5);
@@ -784,13 +779,13 @@ const MissionSystem = (function () {
 
   function onWaveCompleted() {
     for (const m of activeMissions) {
-      if (m.data.type === MISSION_TYPE.DEFENSE) {
+      if (m.data.type === MISSION_TYPE.DEFENSE || m.data.type === MISSION_TYPE.EXPAND) {
         m.data.completedWaves++;
       }
     }
   }
 
-  // INFILTRATE: called every time the player kills a Russian occupant.
+  // INFILTRATE / GATHER: called every time the player kills a Russian occupant.
   function onEnemyKilled() {
     for (const m of activeMissions) {
       if (m.data.type === MISSION_TYPE.INFILTRATE) {
@@ -799,6 +794,9 @@ const MissionSystem = (function () {
         const blown = (typeof Enemies !== 'undefined' && Enemies.isDisguiseBlown) ? Enemies.isDisguiseBlown() : true;
         if (!blown) m.data.stealthKills++;
         else m.data.disguiseBlown = true;
+      }
+      if (m.data.type === MISSION_TYPE.GATHER) {
+        m.data.currentAmount++;
       }
     }
   }
@@ -832,7 +830,7 @@ const MissionSystem = (function () {
     { id: 'knife_only',     name: 'Knife Only',        desc: 'Use only melee weapons',                     reward: 400, check: function (s) { return s.kills > 0 && s.meleeKills === s.kills; } },
     { id: 'pacifist_start', name: 'Pacifist Start',    desc: 'Don\'t kill for the first 15 seconds',       reward: 150, check: function (s) { return s.firstKillTime >= 15; } },
     { id: 'conserve_ammo',  name: 'Conserve Ammo',     desc: 'Finish wave with >50% ammo remaining',       reward: 200, check: function (s) { return s.ammoPercent > 50; } },
-    { id: 'ghost',          name: 'Ghost',             desc: 'Don\'t get spotted for 30 seconds',          reward: 300, check: function (s) { return s.undetectedTime >= 30; } },
+    { id: 'quick_draw',     name: 'Quick Draw',        desc: 'Get first kill within 5 seconds',             reward: 250, check: function (s) { return s.firstKillTime > 0 && s.firstKillTime <= 5; } },
     { id: 'collateral',     name: 'Collateral',        desc: 'Kill 3+ enemies with one explosive',         reward: 350, check: function (s) { return s.maxExplosiveKill >= 3; } },
     { id: 'marksman',       name: 'Marksman',          desc: '>80% accuracy this wave',                    reward: 250, check: function (s) { return s.shotsFired > 0 && (s.shotsHit / s.shotsFired) > 0.8; } },
     { id: 'survivor',       name: 'Survivor',          desc: 'Finish wave with less than 20 HP',           reward: 200, check: function (s) { return s.hpAtEnd < 20 && s.hpAtEnd > 0; } },

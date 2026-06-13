@@ -5721,7 +5721,12 @@ const Weapons = (() => {
           window.AudioSystem.playExplosion();
         }
         // Explosion effect
-        Enemies.damageInRadius(p.mesh.position, p.radius, p.damage);
+        var _wExplRes = Enemies.damageInRadius(p.mesh.position, p.radius, p.damage);
+        if (typeof GameManager !== 'undefined' && GameManager.notifyExplosiveKills && Array.isArray(_wExplRes)) {
+          var _wExplK = 0;
+          for (var _wei = 0; _wei < _wExplRes.length; _wei++) if (_wExplRes[_wei].remaining <= 0) _wExplK++;
+          if (_wExplK > 0) GameManager.notifyExplosiveKills(_wExplK);
+        }
         // Destroy terrain blocks in blast radius
         if (typeof VoxelWorld !== 'undefined') {
           const cx = Math.round(p.mesh.position.x);

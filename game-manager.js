@@ -239,6 +239,7 @@ const GameManager = (function () {
     waveDamageTaken: 0,
     waveMeleeKills: 0,
     waveFirstKillTime: 999,
+    waveMaxExplosiveKill: 0,
     distanceWalked: 0,
     _lastPos: null,
     playStartTime: 0,
@@ -583,7 +584,7 @@ const GameManager = (function () {
       exposure:     0.9,
       hintWeapons:  ['AK-74M','RPG-7','NLAW'],
       description:  'Stop the airborne assault at Hostomel Airport.',
-      objective:    'Destroy all enemy VDV paratroopers and anti-air guns. Survive 7 waves.',
+      objective:    'Repel VDV paratroopers and secure Hostomel Airport. Survive 7 waves.',
     },
     {
       id:           2,
@@ -598,7 +599,7 @@ const GameManager = (function () {
       exposure:     0.8,
       hintWeapons:  ['SVD Dragunov','NLAW','FGM-148 Javelin'],
       description:  'Industrial ruins of Avdiivka. Defend the coking plant.',
-      objective:    'Hold the coking plant against VDV and armored assaults. Watch for snipers.',
+      objective:    'Hold the coking plant against ground assault and armor. Watch for snipers in the ruins.',
     },
     {
       id:           3,
@@ -2950,6 +2951,7 @@ const GameManager = (function () {
     player.waveDamageTaken = 0;
     player.waveMeleeKills = 0;
     player.waveFirstKillTime = 999;
+    player.waveMaxExplosiveKill = 0;
     player.distanceWalked = 0;
     player._lastPos = null;
     player.playStartTime = performance.now();
@@ -3163,6 +3165,10 @@ const GameManager = (function () {
     } catch (_e) {
       // noop (private mode, quota exceeded, etc.)
     }
+  }
+
+  function notifyExplosiveKills(n) {
+    if (player && n > 0) player.waveMaxExplosiveKill = Math.max(player.waveMaxExplosiveKill || 0, n);
   }
 
   function notifyNPCDeath(npc) {
@@ -3863,7 +3869,7 @@ const GameManager = (function () {
     }
     // Hostomel (id 1): VDV paratroop landing + anti-air warning at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 1) {
-      HUD.notifyPickup('⚡ VDV PARATROOPERS LANDING — DESTROY THE ANTI-AIR GUNS!', '#ffcc44');
+      HUD.notifyPickup('⚡ VDV PARATROOPERS LANDING — HOLD THE AIRFIELD!', '#ffcc44');
     }
     // Avdiivka (id 2): sniper warning at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 2) {
@@ -4070,7 +4076,7 @@ const GameManager = (function () {
         meleeKills: player.waveMeleeKills,
         firstKillTime: player.waveFirstKillTime,
         undetectedTime: 0,
-        maxExplosiveKill: 0,
+        maxExplosiveKill: player.waveMaxExplosiveKill,
       });
       if (sideResult && sideResult.completed) {
         if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
@@ -4095,6 +4101,7 @@ const GameManager = (function () {
     player.waveDamageTaken = 0;
     player.waveMeleeKills = 0;
     player.waveFirstKillTime = 999;
+    player.waveMaxExplosiveKill = 0;
 
     // ── Weapon unlock on wave clear: 1 new weapon per wave ──
     var newWep = Weapons.unlockNext();
@@ -7693,7 +7700,14 @@ const GameManager = (function () {
         if (window.AudioSystem && window.AudioSystem.playExplosion) {
           try { window.AudioSystem.playExplosion(); } catch (e) {}
         }
-        if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) Enemies.damageInRadius(pos, 6.5, 110);
+        if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+          var _gRes = Enemies.damageInRadius(pos, 6.5, 110);
+          if (player && Array.isArray(_gRes)) {
+            var _gKills = 0;
+            for (var _gi = 0; _gi < _gRes.length; _gi++) if (_gRes[_gi].remaining <= 0) _gKills++;
+            if (_gKills > 0) player.waveMaxExplosiveKill = Math.max(player.waveMaxExplosiveKill || 0, _gKills);
+          }
+        }
         if (CameraSystem.shake) CameraSystem.shake(0.35, 0.4);
         if (!player.godMode) {
           var dx = player.position.x - pos.x, dy = player.position.y - pos.y, dz = player.position.z - pos.z;
@@ -8194,7 +8208,7 @@ const GameManager = (function () {
   /* ── Mission Board: deliberately choose & START a mission ───────────── */
   var _missionBoardEl = null;
   var _MISSION_ICONS = {
-    gather: '📦', expand: '🏗', recon: '🛰', defense: '🛡', escort: '🚐',
+    gather: '🔍', expand: '⚔', recon: '🛰', defense: '🛡', escort: '🚐',
     infiltrate: '🕵', clear_building: '🏚', assassinate: '🎯', sabotage: '💥',
   };
   function _openMissionBoard() {
@@ -8330,6 +8344,7 @@ const GameManager = (function () {
     loadGame,
     saveGame,
     deleteSave,
+    notifyExplosiveKills,
     notifyNPCDeath,
     nextStage,
     update,
