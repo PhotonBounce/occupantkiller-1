@@ -494,10 +494,7 @@ window.Bradley = (function () {
 
   // ── Input ──────────────────────────────────────────────────
   function _onKeyDown(ev) {
-    if (ev.code === 'KeyB' && !ev.repeat) {
-      if (_active) exit(); else enter();
-      return;
-    }
+    // Enter/exit is handled by game-manager.js KeyG handler — no redundant KeyB here.
     if (!_active) return;
     if (ev.code === 'KeyW') _key.w = true;
     else if (ev.code === 'KeyS') _key.s = true;
