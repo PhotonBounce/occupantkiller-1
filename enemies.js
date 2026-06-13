@@ -967,7 +967,7 @@ const Enemies = (() => {
     3: { bias: 0.50, pool: ['STORMER','MORTAR','ARMORED','SABOTEUR','WAGNER'] },                    // Bakhmut — Wagner meat-grinder + heavy mortar
     4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor drowned in Dnipro
     5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER'] },       // Mariupol — CQB in steelworks
-    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','STORMER','SNIPER','SNIPER_ELITE'] },       // Crimea — air+sea naval marines
+    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','STORMER','SNIPER','ARMORED'] },           // Crimea — naval marines: drones + assault infantry + armor
     7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+mutant+Spetsnaz (objective says "Spetsnaz")
     8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER'] }, // Moscow — elite FSB
     9: { bias: 0.55, pool: ['BTR','DRONE_OP','HEAVY_SNIPER','STORMER','MORTAR'] },                  // Sevastopol — naval base
@@ -975,10 +975,10 @@ const Enemies = (() => {
     11:{ bias: 0.60, pool: ['TANK','THERMOBARIC','ASSAULT_MECH','HEAVY_SNIPER','BTR'] },            // Belgorod — mechanized
     12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR'] },    // Kremlin — everything
     13:{ bias: 0.60, pool: ['CONSCRIPT','STORMER','PARATROOP','DRONE_OP','SPETSNAZ'] },             // Kyiv — column escort infantry (armor comes from ConvoySystem)
-    14:{ bias: 0.55, pool: ['DRONE_OP','BTR','SNIPER_ELITE','BOMBER','MORTAR'] },                   // Snake Island — naval assault wave
+    14:{ bias: 0.55, pool: ['DRONE_OP','BTR','SABOTEUR','BOMBER','MORTAR'] },                      // Snake Island — naval commandos + bombardment
     15:{ bias: 0.55, pool: ['PARATROOP','DRONE_OP','SPETSNAZ','KAMIKAZE_DRONE','SNIPER_ELITE'] },   // Saky Airbase — airborne raiders
     16:{ bias: 0.60, pool: ['TANK','ARMORED','BTR','HEAVY_SNIPER','MORTAR'] },                      // Vuhledar — tank graveyard columns
-    17:{ bias: 0.55, pool: ['ENGINEER','MORTAR','STORMER','BTR','COMMISSAR'] },                     // Antonov Bridge — supply line guards
+    17:{ bias: 0.55, pool: ['SNIPER','MORTAR','HEAVY_SNIPER','BTR','COMMISSAR'] },                  // Antonov Bridge — precision snipers + artillery (precision weapons required)
     18:{ bias: 0.70, pool: ['KAMIKAZE_DRONE','DRONE_OP','EW_OPERATOR','SPETSNAZ','ENGINEER'] },     // Refinery — drone-heavy industrial
   };
 
@@ -1310,8 +1310,8 @@ const Enemies = (() => {
     group.add(flagWhite, flagBlue, flagRed);
 
     // ── Balaclava (face covering) for elite/special units ──
-    if (typeCfg.name === 'OFFICER' || typeCfg.name === 'SABOTEUR' ||
-        typeCfg.name === 'SNIPER_ELITE' || typeCfg.name === 'WAGNER') {
+    if (typeName === 'OFFICER' || typeName === 'SABOTEUR' ||
+        typeName === 'SNIPER_ELITE' || typeName === 'WAGNER') {
       const bala = new THREE.Mesh(
         new THREE.BoxGeometry(0.36 * s, 0.18 * s, 0.36 * s),
         new THREE.MeshLambertMaterial({ color: 0x111111 })
@@ -1618,8 +1618,8 @@ const Enemies = (() => {
     grip.position.set(0.35 * s, 0.65 * s, 0.02 * s);
     mesh.add(grip);
     // ── Optic (Kobra/PSO) for officers, snipers, elites ──
-    const hasOptic = (typeCfg.name === 'OFFICER' || typeCfg.name === 'SNIPER' ||
-                      typeCfg.name === 'SNIPER_ELITE' || typeCfg.name === 'SABOTEUR');
+    const hasOptic = (typeName === 'OFFICER' || typeName === 'SNIPER' ||
+                      typeName === 'SNIPER_ELITE' || typeName === 'SABOTEUR');
     if (hasOptic) {
       const optic = new THREE.Mesh(
         new THREE.BoxGeometry(0.04 * s, 0.06 * s, 0.10 * s),
@@ -1636,7 +1636,7 @@ const Enemies = (() => {
       mesh.add(lens);
     }
     // ── Bipod for snipers / MGs ──
-    if (typeCfg.name === 'SNIPER_ELITE' || typeCfg.name === 'BOSS' || typeCfg.name === 'ARMORED') {
+    if (typeName === 'SNIPER_ELITE' || typeName === 'BOSS' || typeName === 'ARMORED') {
       const bipodL = new THREE.Mesh(
         new THREE.BoxGeometry(0.005 * s, 0.10 * s, 0.005 * s),
         new THREE.MeshLambertMaterial({ color: 0x222222 })
@@ -2912,7 +2912,7 @@ const Enemies = (() => {
         var etResult = null;
         // Sync shorthand position props for EnemyTypes functions
         e.x = e.mesh.position.x; e.y = e.mesh.position.y; e.z = e.mesh.position.z;
-        switch (e.typeCfg.name) {
+        switch (e.typeName) {
           case 'BOMBER':
             etResult = EnemyTypes.updateBomber(e, playerPos, delta);
             if (etResult && etResult.detonate) {
@@ -3288,14 +3288,14 @@ const Enemies = (() => {
           if (!drone.alive || !drone.active) continue;
           var droneDist = e.mesh.position.distanceTo(drone.position);
           // Enemies shoot at drones within 18 range, DRONE_OP type has 30 range
-          var droneEngageRange = e.typeCfg.name === 'DRONE_OP' ? 30 : 18;
+          var droneEngageRange = e.typeName === 'DRONE_OP' ? 30 : 18;
           if (droneDist < droneEngageRange) {
             if (!e._droneFireTimer) e._droneFireTimer = 0;
             e._droneFireTimer -= delta;
             if (e._droneFireTimer <= 0) {
               // Accuracy depends on distance and enemy type
-              var droneHitChance = e.typeCfg.name === 'DRONE_OP' ? 0.35 :
-                                   e.typeCfg.name === 'SNIPER' ? 0.25 : 0.12;
+              var droneHitChance = e.typeName === 'DRONE_OP' ? 0.35 :
+                                   e.typeName === 'SNIPER' ? 0.25 : 0.12;
               if (Math.random() < droneHitChance) {
                 DroneSystem.damageDrone(drone.id, e.attackDmg * 0.6);
               }
@@ -3361,7 +3361,7 @@ const Enemies = (() => {
         var _bwe = enemies[_bwi];
         if (_bwe && _bwe.alive && (_bwe.isBoss ||
             (_bwe.typeCfg && (_bwe.typeCfg.role === 'boss' ||
-             _bwe.typeCfg.name === 'TANK' || _bwe.typeCfg.name === 'BTR')))) {
+             _bwe.typeName === 'TANK' || _bwe.typeName === 'BTR')))) {
           _barWorthy = true; break;
         }
       }
@@ -3692,7 +3692,7 @@ const Enemies = (() => {
     }
 
     // Shield bearer: route damage through EnemyTypes shield check
-    if (typeof EnemyTypes !== 'undefined' && enemy.typeCfg && enemy.typeCfg.name === 'SHIELD_BEARER') {
+    if (typeof EnemyTypes !== 'undefined' && enemy.typeName === 'SHIELD_BEARER') {
       var fromAngle = 0;
       if (_playerPos) {
         fromAngle = Math.atan2(_playerPos.x - enemy.mesh.position.x, _playerPos.z - enemy.mesh.position.z);
@@ -3704,7 +3704,7 @@ const Enemies = (() => {
       }
     }
     // Tank armor: route damage through directional armor reduction
-    if (typeof EnemyTypes !== 'undefined' && enemy.typeCfg && enemy.typeCfg.name === 'TANK') {
+    if (typeof EnemyTypes !== 'undefined' && enemy.typeName === 'TANK') {
       var tankAngle = 0;
       if (_playerPos) {
         tankAngle = Math.atan2(_playerPos.x - enemy.mesh.position.x, _playerPos.z - enemy.mesh.position.z);

@@ -133,7 +133,32 @@ const MissionTypes = (function () {
         missionProgress = { holdTimer: 0, inZone: false };
         break;
       case 'ASSASSINATION':
-        missionProgress = { hvtLocated: false, hvtDead: false, hvtHP: type.hvtHP };
+        missionProgress = { hvtLocated: false, hvtDead: false, hvtHP: type.hvtHP, hvtEnemyId: null };
+        try {
+          if (typeof window !== 'undefined' && window.Enemies && window.Enemies.spawnSingle) {
+            var _hvtY = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight)
+              ? window.VoxelWorld.getTerrainHeight(activeMission.zoneX, activeMission.zoneZ) : 0;
+            var _hvt = window.Enemies.spawnSingle('OFFICER',
+              { x: activeMission.zoneX, y: _hvtY + 1, z: activeMission.zoneZ });
+            if (_hvt) {
+              _hvt.hp = type.hvtHP; _hvt.maxHp = type.hvtHP;
+              missionProgress.hvtEnemyId = _hvt.id;
+            }
+            var _bgCount = type.bodyguardCount || 4;
+            for (var _bg = 0; _bg < _bgCount; _bg++) {
+              var _bga = (_bg / _bgCount) * Math.PI * 2;
+              var _bgx = activeMission.zoneX + Math.cos(_bga) * (5 + Math.random() * 3);
+              var _bgz = activeMission.zoneZ + Math.sin(_bga) * (5 + Math.random() * 3);
+              var _bgy = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight)
+                ? window.VoxelWorld.getTerrainHeight(_bgx, _bgz) : 0;
+              window.Enemies.spawnSingle('STORMER', { x: _bgx, y: _bgy + 1, z: _bgz },
+                { guardPost: { x: activeMission.zoneX, y: _hvtY, z: activeMission.zoneZ }, guardRadius: 10 });
+            }
+            if (window.HUD && window.HUD.showToast) {
+              window.HUD.showToast('🎯 HVT LOCATED — Eliminate the Russian Officer and bodyguards.', 5000, '#ff4444');
+            }
+          }
+        } catch (_eHVT) {}
         break;
       case 'RESCUE':
         missionProgress = { freed: 0, escorted: 0, freeing: false, freeProgress: 0 };
@@ -269,6 +294,26 @@ const MissionTypes = (function () {
         break;
 
       case 'ASSASSINATION':
+        // Auto-locate: entering zone radius * 2 reveals HVT
+        if (!missionProgress.hvtLocated) {
+          var _aDx = playerPos.x - m.zoneX, _aDz = playerPos.z - m.zoneZ;
+          var _aZr = (cfg.zoneRadius || 8) * 2;
+          if (_aDx * _aDx + _aDz * _aDz < _aZr * _aZr) missionProgress.hvtLocated = true;
+        }
+        // Track HVT alive status by enemy ID
+        if (missionProgress.hvtEnemyId !== null && typeof window !== 'undefined' && window.Enemies && window.Enemies.getAll) {
+          var _hvtList = window.Enemies.getAll();
+          var _hvtRef = null;
+          for (var _hi = 0; _hi < _hvtList.length; _hi++) {
+            if (_hvtList[_hi] && _hvtList[_hi].id === missionProgress.hvtEnemyId) { _hvtRef = _hvtList[_hi]; break; }
+          }
+          if (_hvtRef) {
+            missionProgress.hvtHP = _hvtRef.hp;
+            missionProgress.hvtLocated = true;
+          } else {
+            missionProgress.hvtDead = true;
+          }
+        }
         if (missionProgress.hvtDead) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };
@@ -293,6 +338,7 @@ const MissionTypes = (function () {
         }
         result.defused = missionProgress.defused;
         result.detonationTimer = missionProgress.detonationTimer;
+        result.defuseProgress = missionProgress.defuseProgress || 0;
         if (missionProgress.defused >= cfg.bombCount) {
           m.state = 'COMPLETE';
           return { ...result, state: 'COMPLETE' };

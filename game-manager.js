@@ -2542,10 +2542,10 @@ const GameManager = (function () {
       try {
         if (gameState !== STATE.PLAYING) return;
         if (typeof DroneSystem === 'undefined' || DroneSystem.isPossessing()) return;
-        var dr = launchAndPossessDrone('fpv_attack');
+        var dr = launchAndPossessDrone('recon');
         if (dr && HUD && HUD.showToast) {
           HUD.showToast(
-            '🚁 DRONE MISSION — Fly to all marked recon points. Press [F] to exit drone when done.',
+            '🚁 RECON DRONE — Fly to all marked ◆ points. Press [F] to exit when done.',
             5500, '#00ccff'
           );
         }
@@ -5276,18 +5276,6 @@ const GameManager = (function () {
       }
       if (HUD.showStreak) HUD.showStreak(player.killStreak, streakMult);
 
-      // Wire enemy kill to MissionTypes ASSASSINATION tracking
-      if (typeof MissionTypes !== 'undefined' && MissionTypes.getActive && MissionTypes.getActive()) {
-        var mt = MissionTypes.getActive();
-        if (mt.config && mt.config.id === 'ASSASSINATION' && enemy.mesh) {
-          var mtDx = enemy.mesh.position.x - mt.zoneX;
-          var mtDz = enemy.mesh.position.z - mt.zoneZ;
-          if (mtDx * mtDx + mtDz * mtDz < 400) {
-            MissionTypes.interact('DAMAGE_HVT', { damage: dmg });
-          }
-        }
-      }
-
       // Dog tag collection (every kill drops a dog tag)
       player.dogTags++;
       if (player.dogTags % 10 === 0) {
@@ -6867,9 +6855,12 @@ const GameManager = (function () {
                   case 'RESCUE':
                     _objTxt = 'POWs freed: ' + (missionResult.freed || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.powCount : 3);
                     break;
-                  case 'DEFUSE':
-                    _objTxt = 'Bombs defused: ' + (missionResult.defused || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.bombCount : 3) + ' · Detonation in ' + Math.ceil(missionResult.detonationTimer || 0) + 's';
+                  case 'DEFUSE': {
+                    var _bombTot = MissionTypes.getActive() ? MissionTypes.getActive().config.bombCount : 3;
+                    var _defProg = missionResult.defuseProgress > 0 ? ' [defusing: ' + Math.round(missionResult.defuseProgress * 100) + '%]' : '';
+                    _objTxt = 'Bombs defused: ' + (missionResult.defused || 0) + '/' + _bombTot + _defProg + ' · Detonation in ' + Math.ceil(missionResult.detonationTimer || 0) + 's';
                     break;
+                  }
                   case 'ASSAULT_DUGOUTS':
                     _objTxt = 'Dugouts: ' + (missionResult.dugoutsCleared || 0) + '/' + (MissionTypes.getActive() ? MissionTypes.getActive().config.dugoutCount : 4);
                     break;
@@ -6877,7 +6868,17 @@ const GameManager = (function () {
                 mObj.textContent = _objTxt;
               }
             } else if (missionResult.state === 'COMPLETE') {
-              var _completingType = MissionTypes.getActive() ? MissionTypes.getActive().config.id : null;
+              var _completingMission = MissionTypes.getActive();
+              var _completingType = _completingMission ? _completingMission.config.id : null;
+              // DEMOLITION: detonate charge — blast kills nearby enemies
+              if (_completingType === 'DEMOLITION' && _completingMission && typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+                var _demCfg = _completingMission.config;
+                Enemies.damageInRadius(
+                  new THREE.Vector3(_completingMission.zoneX, 0, _completingMission.zoneZ),
+                  _demCfg.blastRadius || 15, _demCfg.blastDamage || 500
+                );
+                if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.08, 0.6);
+              }
               var reward = MissionTypes.completeMission();
               if (reward) {
                 HUD.notifyPickup('✅ MISSION COMPLETE! +' + reward.okc + ' OKC +' + reward.xp + ' XP', '#44ff88');
