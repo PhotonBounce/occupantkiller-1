@@ -1615,11 +1615,8 @@ const GameManager = (function () {
                     _nearPowDist = Math.min(_nearPowDist, _mdx2 * _mdx2 + _mdz2 * _mdz2);
                   }
                 }
-                if (_nearPowDist < 25) {
-                  var _fr = MissionTypes.interact('FREE_POW', { dt: 0.5 });
-                  if (!(_fr && _fr.noTarget)) {
-                    HUD.notifyPickup('\ud83d\udd13 FREEING POW...', '#88ff88');
-                  }
+                if (_nearPowDist < 25) { // prompt on keydown; hold runs in update loop
+                  HUD.notifyPickup('\ud83d\udd13 HOLD [F] TO FREE POW...', '#88ff88');
                   fHandled = true;
                 }
               } else if (mt.config.id === 'DEFUSE') {
@@ -1633,11 +1630,8 @@ const GameManager = (function () {
                     _nearBombDist = Math.min(_nearBombDist, _ddx * _ddx + _ddz * _ddz);
                   }
                 }
-                if (_nearBombDist < 36) {
-                  var _dr = MissionTypes.interact('DEFUSE_BOMB', { dt: 0.5 });
-                  if (!(_dr && _dr.noTarget)) {
-                    HUD.notifyPickup('\u23f1\ufe0f DEFUSING...', '#ffcc00');
-                  }
+                if (_nearBombDist < 36) { // prompt on keydown; hold runs in update loop
+                  HUD.notifyPickup('\u23f1\ufe0f HOLD [F] TO DEFUSE...', '#ffcc00');
                   fHandled = true;
                 }
               }
@@ -6504,6 +6498,50 @@ const GameManager = (function () {
         // Adrenaline indicator
         var adrInd = document.getElementById('adrenaline-indicator');
         if (adrInd) adrInd.style.display = (Perks.getSpeedMult() > 1.1) ? 'block' : 'none';
+      }
+
+      // Hold-F mission interact: per-frame continuous progress for RESCUE/DEFUSE
+      if (keys && keys['KeyF'] && typeof MissionTypes !== 'undefined' && MissionTypes.getActive && MissionTypes.getActive()) {
+        var _hfMt = MissionTypes.getActive();
+        if (_hfMt && _hfMt.config) {
+          var _hfDx = player.position.x - (_hfMt.zoneX || 0);
+          var _hfDz = player.position.z - (_hfMt.zoneZ || 0);
+          if (_hfDx * _hfDx + _hfDz * _hfDz < 196) {
+            if (_hfMt.config.id === 'RESCUE') {
+              var _hfProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+              var _hfNearPow = 999;
+              if (_hfProg && _hfProg.pows) {
+                for (var _hfi = 0; _hfi < _hfProg.pows.length; _hfi++) {
+                  if (_hfProg.pows[_hfi].freed) continue;
+                  var _hfpdx = player.position.x - _hfProg.pows[_hfi].x;
+                  var _hfpdz = player.position.z - _hfProg.pows[_hfi].z;
+                  _hfNearPow = Math.min(_hfNearPow, _hfpdx * _hfpdx + _hfpdz * _hfpdz);
+                }
+              }
+              if (_hfNearPow < 25) {
+                var _hfr = MissionTypes.interact('FREE_POW', { dt: delta });
+                if (_hfr && _hfr.freeing) HUD.notifyPickup('🔓 FREEING... ' + Math.round((_hfr.progress || 0) * 100) + '%', '#88ff88');
+                else if (_hfr && _hfr.freed) HUD.notifyPickup('✅ POW FREED!', '#44ff88');
+              }
+            } else if (_hfMt.config.id === 'DEFUSE') {
+              var _hfBProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
+              var _hfNearBomb = 999;
+              if (_hfBProg && _hfBProg.bombs) {
+                for (var _hfbi = 0; _hfbi < _hfBProg.bombs.length; _hfbi++) {
+                  if (_hfBProg.bombs[_hfbi].defused) continue;
+                  var _hfbdx = player.position.x - _hfBProg.bombs[_hfbi].x;
+                  var _hfbdz = player.position.z - _hfBProg.bombs[_hfbi].z;
+                  _hfNearBomb = Math.min(_hfNearBomb, _hfbdx * _hfbdx + _hfbdz * _hfbdz);
+                }
+              }
+              if (_hfNearBomb < 36) {
+                var _hfdr = MissionTypes.interact('DEFUSE_BOMB', { dt: delta });
+                if (_hfdr && _hfdr.defusing) HUD.notifyPickup('⏱️ DEFUSING... ' + Math.round((_hfdr.progress || 0) * 100) + '%', '#ffcc00');
+                else if (_hfdr && _hfdr.defused) HUD.notifyPickup('✅ BOMB DEFUSED!', '#44ff88');
+              }
+            }
+          }
+        }
       }
 
       // Mission types update
