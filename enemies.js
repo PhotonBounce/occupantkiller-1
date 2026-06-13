@@ -4092,7 +4092,7 @@ const Enemies = (() => {
     },
     spawnReinforcement: function (x, z, count) {
       count = count || 2;
-      var types = ['CONSCRIPT', 'CONSCRIPT', 'RIFLEMAN', 'GRENADIER'];
+      var types = ['CONSCRIPT', 'CONSCRIPT', 'STORMER', 'ENGINEER'];
       for (var ri = 0; ri < count; ri++) {
         var tp = types[Math.floor(Math.random() * types.length)];
         spawnOne(tp, -1, { x: x + (Math.random() - 0.5) * 8, z: z + (Math.random() - 0.5) * 8 });

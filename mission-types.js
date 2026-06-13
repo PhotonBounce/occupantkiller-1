@@ -176,7 +176,7 @@ const MissionTypes = (function () {
                 var oz = dz + Math.sin(ang2) * rad2;
                 // First defender = sentry at center; others split GUARD/PATROL
                 var role = (gi === 0) ? 'SENTRY' : ((gi % 2 === 0) ? 'GUARD' : 'PATROL');
-                var unitType = (gi === 0) ? 'RIFLEMAN' : 'CONSCRIPT'; // sentry slightly tougher
+                var unitType = (gi === 0) ? 'STORMER' : 'CONSCRIPT';
                 try {
                   window.Enemies.spawnSingle(unitType, { x: ox, z: oz }, {
                     guardPost: { x: dx, y: dy, z: dz },

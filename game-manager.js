@@ -237,6 +237,8 @@ const GameManager = (function () {
     waveHits: 0,
     waveHeadshots: 0,
     waveDamageTaken: 0,
+    waveMeleeKills: 0,
+    waveFirstKillTime: 999,
     distanceWalked: 0,
     _lastPos: null,
     playStartTime: 0,
@@ -716,7 +718,7 @@ const GameManager = (function () {
       exposure:     0.7,
       hintWeapons:  ['RPO-A Shmel','TOS-1A Buratino (Thermobaric MLRS)','M142 HIMARS (GMLRS Strike)'],
       description:  'Liberate the last occupied stronghold in Donbas.',
-      objective:    'Break the Donbas line. Thermobaric weapons and mechs. 8 waves.',
+      objective:    'Break the Donbas line. Kadyrovites, Wagner, mortar teams, and suppressive trench fire. 8 waves.',
     },
     {
       id:           11,
@@ -2946,6 +2948,8 @@ const GameManager = (function () {
     player.waveHits = 0;
     player.waveHeadshots = 0;
     player.waveDamageTaken = 0;
+    player.waveMeleeKills = 0;
+    player.waveFirstKillTime = 999;
     player.distanceWalked = 0;
     player._lastPos = null;
     player.playStartTime = performance.now();
@@ -3437,6 +3441,7 @@ const GameManager = (function () {
     currentWave = w;
     player.waveStartTime = performance.now();
     player._secondWindTriggered = false;
+    if (typeof MissionSystem !== 'undefined' && MissionSystem.generateSideObjective && !MissionSystem.getSideObjective()) MissionSystem.generateSideObjective();
     const stageDef = STAGES[currentStage];
     const mlDiff = MLSystem.getDifficultyMult();
 
@@ -3481,6 +3486,8 @@ const GameManager = (function () {
     var _eFLabel = ['▲ WEDGE', '━ LINE', '| COLUMN', '⋮ STAGGERED'];
     var _efi = (w + stageDef.id + Math.floor(Math.random() * 2)) % _enemyForms.length;
     if (HUD.notifyPickup) HUD.notifyPickup('INTEL: Enemy formation — ' + _eFLabel[_efi], '#ff8800');
+    var _sideObj = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
+    if (_sideObj && HUD.notifyPickup) HUD.notifyPickup('⭐ SIDE OBJ: ' + _sideObj.name + ' — ' + _sideObj.desc + ' (+' + _sideObj.reward + ' OKC)', '#ffcc00');
     // Track initial wave enemy count for progress bar
     player._waveStartCount = Enemies.getAliveCount();
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
@@ -3561,7 +3568,7 @@ const GameManager = (function () {
         ];
         for (var _fi = 0; _fi < _flankPositions.length; _fi++) {
           var _fp = _flankPositions[_fi];
-          var _fType = (_fi === 0) ? 'ASSAULT' : (_fi === 1 ? 'RIFLEMAN' : 'GRENADIER');
+          var _fType = (_fi === 0) ? 'STORMER' : (_fi === 1 ? 'CONSCRIPT' : 'ENGINEER');
           Enemies.spawnSingle(_fType, new THREE.Vector3(_fp.x, 0, _fp.z));
         }
         if (w === 3) HUD.notifyPickup('⚠ FLANKING ASSAULT — PROTECT YOUR SIDES!', '#ff4444');
@@ -4042,12 +4049,52 @@ const GameManager = (function () {
       if (currentWave >= 7) Progression.unlockJournalEntry('entry_mortar');
     }
 
+    // ── B28: Side objective check (must run BEFORE stats reset) ──
+    if (typeof MissionSystem !== 'undefined' && MissionSystem.checkSideObjective) {
+      var waveElapsed2 = (performance.now() - player.waveStartTime) / 1000;
+      var _ammoPercent = 50;
+      try {
+        var _wst = Weapons.getState(); var _wdef = Weapons.getCurrent();
+        if (_wst && _wdef && (_wdef.clipSize + _wdef.maxReserve) > 0)
+          _ammoPercent = Math.round((_wst.clip + _wst.reserve) / (_wdef.clipSize + _wdef.maxReserve) * 100);
+      } catch (e) {}
+      var sideResult = MissionSystem.checkSideObjective({
+        damageTaken: player.waveDamageTaken,
+        kills: player.waveKills,
+        headshots: player.waveHeadshots,
+        waveTime: waveElapsed2,
+        shotsFired: player.waveShots,
+        shotsHit: player.waveHits,
+        hpAtEnd: player.hp,
+        ammoPercent: _ammoPercent,
+        meleeKills: player.waveMeleeKills,
+        firstKillTime: player.waveFirstKillTime,
+        undetectedTime: 0,
+        maxExplosiveKill: 0,
+      });
+      if (sideResult && sideResult.completed) {
+        if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
+          Marketplace.awardCustomOKC(sideResult.reward, 'side_objective', {
+            name: sideResult.name || 'side-objective', wave: currentWave,
+          }).then(function () {
+            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+          });
+        } else if (typeof Marketplace !== 'undefined') {
+          Marketplace.addOKC(sideResult.reward);
+        }
+        HUD.notifyPickup('⭐ SIDE OBJ COMPLETE: ' + sideResult.name + ' (+' + sideResult.reward + ' OKC)', '#ffdd00');
+      }
+      if (MissionSystem.generateSideObjective) MissionSystem.generateSideObjective();
+    }
+
     // Reset wave stats (AFTER all tracking above)
     player.waveKills = 0;
     player.waveShots = 0;
     player.waveHits = 0;
     player.waveHeadshots = 0;
     player.waveDamageTaken = 0;
+    player.waveMeleeKills = 0;
+    player.waveFirstKillTime = 999;
 
     // ── Weapon unlock on wave clear: 1 new weapon per wave ──
     var newWep = Weapons.unlockNext();
@@ -4084,30 +4131,6 @@ const GameManager = (function () {
         if (evt) HUD.notifyPickup('📢 ' + evt.name, '#ffaa00');
       }
       if (Economy.refreshBlackMarket) Economy.refreshBlackMarket();
-    }
-
-    // ── B28: Side objective check ──
-    if (typeof MissionSystem !== 'undefined' && MissionSystem.checkSideObjective) {
-      var waveElapsed2 = (performance.now() - player.waveStartTime) / 1000;
-      var sideResult = MissionSystem.checkSideObjective({
-        damageTaken: player.waveDamageTaken, kills: player.waveKills,
-        headshots: player.waveHeadshots, time: waveElapsed2,
-        accuracy: player.waveShots > 0 ? player.waveHits / player.waveShots : 0,
-        hp: player.hp, ammoRatio: 0.5, spotted: false, explosiveMulti: 0,
-      });
-      if (sideResult && sideResult.completed) {
-        if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
-          Marketplace.awardCustomOKC(sideResult.reward, 'side_objective', {
-            name: sideResult.name || 'side-objective', wave: currentWave,
-          }).then(function () {
-            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
-          });
-        } else if (typeof Marketplace !== 'undefined') {
-          Marketplace.addOKC(sideResult.reward);
-        }
-        HUD.notifyPickup('⭐ SIDE OBJ COMPLETE: ' + sideResult.name + ' (+' + sideResult.reward + ' OKC)', '#ffdd00');
-      }
-      if (MissionSystem.generateSideObjective) MissionSystem.generateSideObjective();
     }
 
     // ── B31: Achievement checks on wave clear ──
@@ -4936,6 +4959,7 @@ const GameManager = (function () {
       }
       player.kills++;
       player.waveKills++;
+      if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
       // Kill milestone banners — celebrate round numbers of total kills
       try {
         var _kMile = player.kills;
@@ -5163,6 +5187,7 @@ const GameManager = (function () {
           if (player.killStreak >= 4) Feedback.unlockAchievement('MULTI_KILL');
           if (Weapons.getCurrentIdx() === 0) {
             Progression.trackStat('meleeKills', 1);
+            player.waveMeleeKills++;
             if (Progression.getStats().meleeKills >= 10) Feedback.unlockAchievement('MELEE_MASTER');
           }
         }
