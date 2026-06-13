@@ -335,12 +335,21 @@ const MissionSystem = (function () {
       description: 'Scout {count} locations with a recon drone.',
       tier: 2,
       generate() {
+        var _playerPos = new THREE.Vector3(0, 0, 0);
+        try {
+          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+            var _p = GameManager.getPlayer();
+            if (_p && _p.position) _playerPos.copy(_p.position);
+          }
+        } catch (e) {}
         const points = [];
         for (let i = 0; i < 3; i++) {
+          var _angle = (i / 3) * Math.PI * 2 + Math.random() * 0.8;
+          var _dist = 30 + Math.random() * 40;
           points.push(new THREE.Vector3(
-            -40 + Math.random() * 80,
+            _playerPos.x + Math.cos(_angle) * _dist,
             10 + Math.random() * 10,
-            -40 + Math.random() * 80
+            _playerPos.z + Math.sin(_angle) * _dist
           ));
         }
         return {
@@ -688,7 +697,7 @@ const MissionSystem = (function () {
     const weighted = [
       'clear_building', 'clear_building', 'clear_building',
       'defense', 'defense', 'recon', 'recon',
-      'gather', 'expand', 'escort', 'infiltrate',
+      'escort', 'escort', 'infiltrate', 'infiltrate',
       'urban_breakout', 'urban_breakout', 'bradley_mission',
     ];
     let pick = weighted[Math.floor(Math.random() * weighted.length)];
