@@ -906,7 +906,7 @@ const DroneSystem = (function () {
           var _fpvdx = _fpve.mesh.position.x - drone.position.x;
           var _fpvdy = _fpve.mesh.position.y - drone.position.y;
           var _fpvdz = _fpve.mesh.position.z - drone.position.z;
-          if (_fpvdx*_fpvdx + _fpvdy*_fpvdy + _fpvdz*_fpvdz < 2.25) { _fpvHit = true; break; }
+          if (_fpvdx*_fpvdx + _fpvdy*_fpvdy + _fpvdz*_fpvdz < 6.25) { _fpvHit = true; break; } // 2.5 unit radius
         }
       }
       if (!_fpvHit && typeof VehicleSystem !== 'undefined' && VehicleSystem.getAll) {
