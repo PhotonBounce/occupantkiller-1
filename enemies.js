@@ -2952,6 +2952,12 @@ const Enemies = (() => {
           case 'MORTAR':
             etResult = EnemyTypes.updateMortar(e, playerPos, delta);
             if (etResult && etResult.fire && onPlayerHit) {
+              var _mTgt = new THREE.Vector3(etResult.targetX, 0, etResult.targetZ);
+              if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+                _mTgt.y = VoxelWorld.getTerrainHeight(etResult.targetX, etResult.targetZ);
+              }
+              if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_mTgt, etResult.radius * 0.5);
+              if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.6);
               var mDist = Math.sqrt(
                 Math.pow(playerPos.x - etResult.targetX, 2) +
                 Math.pow(playerPos.z - etResult.targetZ, 2)

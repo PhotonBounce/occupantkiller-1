@@ -4130,6 +4130,63 @@ const GameManager = (function () {
         Enemies.spawnSingle('MORTAR', new THREE.Vector3(_mortX, VoxelWorld.getTerrainHeight(_mortX, _mortZ), _mortZ));
       }
     }
+    // Mariupol siege (id 5): shield-and-engineer breach squads storm ruins each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 5 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _marCount = Math.min(4, 2 + Math.floor(w / 2));
+      for (var _mari = 0; _mari < _marCount; _mari++) {
+        var _marA = (_mari / _marCount) * Math.PI * 2 + Math.random() * 0.4;
+        var _marD = 20 + Math.random() * 10;
+        var _marX = player.position.x + Math.cos(_marA) * _marD;
+        var _marZ = player.position.z + Math.sin(_marA) * _marD;
+        Enemies.spawnSingle(w >= 5 ? 'SHIELD_BEARER' : 'STORMER', new THREE.Vector3(_marX, VoxelWorld.getTerrainHeight(_marX, _marZ), _marZ));
+      }
+      if (w >= 3) {
+        var _marEngA = Math.random() * Math.PI * 2;
+        var _marEngX = player.position.x + Math.cos(_marEngA) * 28;
+        var _marEngZ = player.position.z + Math.sin(_marEngA) * 28;
+        Enemies.spawnSingle('ENGINEER', new THREE.Vector3(_marEngX, VoxelWorld.getTerrainHeight(_marEngX, _marEngZ), _marEngZ));
+      }
+    }
+    // Moscow FSB (id 8): Rosgvardiya response teams deploy each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 8 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _moscCount = Math.min(5, 2 + Math.floor(w / 2));
+      for (var _mosci = 0; _mosci < _moscCount; _mosci++) {
+        var _moscA = (_mosci / _moscCount) * Math.PI * 2 + Math.random() * 0.3;
+        var _moscD = 22 + Math.random() * 12;
+        var _moscX = player.position.x + Math.cos(_moscA) * _moscD;
+        var _moscZ = player.position.z + Math.sin(_moscA) * _moscD;
+        Enemies.spawnSingle(w >= 6 ? 'SPETSNAZ' : (w >= 3 ? 'RIOT' : 'STORMER'), new THREE.Vector3(_moscX, VoxelWorld.getTerrainHeight(_moscX, _moscZ), _moscZ));
+      }
+      if (w >= 4) {
+        var _moscSniA = Math.random() * Math.PI * 2;
+        var _moscSniX = player.position.x + Math.cos(_moscSniA) * 35;
+        var _moscSniZ = player.position.z + Math.sin(_moscSniA) * 35;
+        Enemies.spawnSingle('SNIPER_ELITE', new THREE.Vector3(_moscSniX, VoxelWorld.getTerrainHeight(_moscSniX, _moscSniZ), _moscSniZ));
+      }
+    }
+    // Donbas trenches (id 10): trench-clearing assault each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 10 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _donCount = Math.min(5, 2 + Math.floor(w / 2));
+      for (var _doni = 0; _doni < _donCount; _doni++) {
+        var _donA = Math.random() * Math.PI * 2;
+        var _donD = 18 + Math.random() * 14;
+        var _donX = player.position.x + Math.cos(_donA) * _donD;
+        var _donZ = player.position.z + Math.sin(_donA) * _donD;
+        Enemies.spawnSingle(w >= 5 ? 'KADYROVITE' : 'CONSCRIPT', new THREE.Vector3(_donX, VoxelWorld.getTerrainHeight(_donX, _donZ), _donZ));
+      }
+      if (w >= 3) {
+        var _donThermA = Math.random() * Math.PI * 2;
+        var _donThermX = player.position.x + Math.cos(_donThermA) * 30;
+        var _donThermZ = player.position.z + Math.sin(_donThermA) * 30;
+        Enemies.spawnSingle('THERMOBARIC', new THREE.Vector3(_donThermX, VoxelWorld.getTerrainHeight(_donThermX, _donThermZ), _donThermZ));
+      }
+      if (w >= 5) {
+        var _donMortA = Math.random() * Math.PI * 2;
+        var _donMortX = player.position.x + Math.cos(_donMortA) * 36;
+        var _donMortZ = player.position.z + Math.sin(_donMortA) * 36;
+        Enemies.spawnSingle('MORTAR', new THREE.Vector3(_donMortX, VoxelWorld.getTerrainHeight(_donMortX, _donMortZ), _donMortZ));
+      }
+    }
     // Chornobyl (id 7): irradiated stalkers emerge from the hot zone each wave
     if (STAGES[currentStage] && STAGES[currentStage].id === 7 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
       var _chnCount = Math.min(3, 1 + Math.floor(w / 3));
