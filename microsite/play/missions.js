@@ -44,7 +44,7 @@ const MissionSystem = (function () {
                   var fwd = new THREE.Vector3(Math.sin(fwdAngle), 0, Math.cos(fwdAngle));
                   var center = playerPos.clone().add(fwd.clone().multiplyScalar(105));
                   if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-                    var types = ['CONSCRIPT', 'RIFLEMAN', 'GRENADIER', 'RIFLEMAN'];
+                    var types = ['CONSCRIPT', 'STORMER', 'ENGINEER', 'SNIPER'];
                     for (var i = 0; i < killTarget; i++) {
                       // Scatter across an 80x40 forest strip
                       var ux = (Math.random() - 0.5) * 80;
@@ -279,7 +279,7 @@ const MissionSystem = (function () {
               var ambushPos = new THREE.Vector3().lerpVectors(playerPos, mission.destination, 0.5);
               try {
                 if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-                  var types = ['CONSCRIPT', 'STORMER', 'ARMORED', 'GRENADIER'];
+                  var types = ['CONSCRIPT', 'STORMER', 'ARMORED', 'SPETSNAZ'];
                   for (var i = 0; i < 6; i++) {
                     var tp = types[Math.floor(Math.random() * types.length)];
                     var ax = ambushPos.x + (Math.random() - 0.5) * 12;
@@ -558,7 +558,7 @@ const MissionSystem = (function () {
         function spawnAmbushNear(center, enemyCount) {
           try {
             if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-              var types = ['CONSCRIPT', 'STORMER', 'RIFLEMAN'];
+              var types = ['CONSCRIPT', 'STORMER', 'SNIPER'];
               for (var i = 0; i < enemyCount; i++) {
                 var tp = types[Math.floor(Math.random() * types.length)];
                 var ax = center.x + (Math.random() - 0.5) * 15 + 10;
@@ -621,7 +621,7 @@ const MissionSystem = (function () {
         var spawnedEnemyIds = [];
         try {
           if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-            var types = ['CONSCRIPT', 'RIFLEMAN', 'GRENADIER'];
+            var types = ['CONSCRIPT', 'STORMER', 'ARMORED'];
             for (var f = 0; f < building.floors; f++) {
               for (var n = 0; n < 2; n++) {
                 var tp = types[Math.floor(Math.random() * types.length)];
