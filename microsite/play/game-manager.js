@@ -4032,6 +4032,25 @@ const GameManager = (function () {
       else if (_sid === 17) HUD.notifyPickup('🎯 ARTILLERY DUELS — PRECISION WEAPONS REQUIRED. WATCH YOUR RANGE!', '#ffcc44');
       else if (_sid === 18) HUD.notifyPickup('💥 FPV DRONE ARMED — FLY INTO THE REFINERY. NO SECOND CHANCES!', '#ff6600');
     }
+    // Hostomel (id 1): VDV paratroopers drop from altitude each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 1 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _vdvCount = Math.min(3, 1 + Math.floor(w / 2));
+      for (var _vi = 0; _vi < _vdvCount; _vi++) {
+        var _vA = Math.random() * Math.PI * 2;
+        var _vD = 20 + Math.random() * 15;
+        var _vX = player.position.x + Math.cos(_vA) * _vD;
+        var _vZ = player.position.z + Math.sin(_vA) * _vD;
+        var _vY = VoxelWorld.getTerrainHeight(_vX, _vZ) + 14 + Math.random() * 6;
+        Enemies.spawnSingle('PARATROOP', new THREE.Vector3(_vX, _vY, _vZ));
+      }
+      if (w >= 4) {
+        // Later waves add a drone operator directing the drop
+        var _voA = Math.random() * Math.PI * 2;
+        var _voX = player.position.x + Math.cos(_voA) * 28;
+        var _voZ = player.position.z + Math.sin(_voA) * 28;
+        Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_voX, VoxelWorld.getTerrainHeight(_voX, _voZ), _voZ));
+      }
+    }
     // Belgorod (id 11): extra BTR spawn at wave 1 to reflect armored counter-attack
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 11 && !capitalDefense && typeof VehicleSystem !== 'undefined') {
       var _bgrA = Math.random() * Math.PI * 2;

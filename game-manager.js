@@ -4071,6 +4071,25 @@ const GameManager = (function () {
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 9) {
       HUD.notifyPickup('💥 SHIP ARTILLERY INCOMING — DESTROY THE FLEET!', '#4488ff');
     }
+    // Hostomel (id 1): VDV paratroopers drop from altitude each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 1 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _vdvCount = Math.min(3, 1 + Math.floor(w / 2));
+      for (var _vi = 0; _vi < _vdvCount; _vi++) {
+        var _vA = Math.random() * Math.PI * 2;
+        var _vD = 20 + Math.random() * 15;
+        var _vX = player.position.x + Math.cos(_vA) * _vD;
+        var _vZ = player.position.z + Math.sin(_vA) * _vD;
+        var _vY = VoxelWorld.getTerrainHeight(_vX, _vZ) + 14 + Math.random() * 6;
+        Enemies.spawnSingle('PARATROOP', new THREE.Vector3(_vX, _vY, _vZ));
+      }
+      if (w >= 4) {
+        // Later waves add a drone operator directing the drop
+        var _voA = Math.random() * Math.PI * 2;
+        var _voX = player.position.x + Math.cos(_voA) * 28;
+        var _voZ = player.position.z + Math.sin(_voA) * 28;
+        Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_voX, VoxelWorld.getTerrainHeight(_voX, _voZ), _voZ));
+      }
+    }
     // Belgorod (id 11): heavy counter-attack warning + extra armor at wave 1
     if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 11) {
       HUD.notifyPickup('⚠ HEAVY ARMORED COUNTER-ATTACK — GRAB ANTI-TANK WEAPONS!', '#ff8800');
