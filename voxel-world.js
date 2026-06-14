@@ -2986,6 +2986,15 @@ window.VoxelWorld = (function () {
     for (var wpz = -40; wpz <= 20; wpz += 6) {
       _roadWaypoints.push(new THREE.Vector3(bx, gh(bx, bz + wpz) + 0.5, bz + wpz));
     }
+
+    // ── 16. Northern approach corridor — suburban apartment blocks ────────────
+    // Lines the convoy approach (z=30..100) with residential blocks on both sides.
+    var _approachSlots = [30, 50, 70, 90];
+    for (var _ai = 0; _ai < _approachSlots.length; _ai++) {
+      var _az = bz + _approachSlots[_ai];
+      generateUkrainianApartment(bx - 22, _az, 5 + (_ai % 2));
+      generateUkrainianApartment(bx + 8,  _az, 5 + ((1 - _ai) % 2 + 1));
+    }
   }
 
   // ── Kyiv City Extension: landmarks, suburbs, river, approach ──────────
