@@ -36,13 +36,16 @@ window.Bradley = (function () {
   var _coaxCool = 0;            // 0.085s = 700 rpm
   var _firingBush = false, _firingCoax = false;
   var _heAp = 0;                // alt 0=HE, 1=AP
+  var _rapidFire = false;       // arcade ~800 rpm "gatling" mode (enabled per-stage)
+  var _rapidShot = 0;           // shot counter to throttle screen shake in rapid mode
   // Visual extras
   var _casings = [];
   var _projectiles = [];        // bushmaster shells (visible tracer + impact)
   // Input state
   var _key = { w: false, s: false, a: false, d: false };
 
-  var BUSH_RPM_INTERVAL = 0.30;   // 200 rpm cyclic
+  var BUSH_RPM_INTERVAL = 0.30;   // 200 rpm cyclic (authentic)
+  var BUSH_RPM_RAPID    = 0.075;  // ~800 rpm arcade "gatling" mode
   var COAX_RPM_INTERVAL = 0.085;  // ~700 rpm
   var BUSH_DMG_HE = 70, BUSH_AOE = 2.6;
   var BUSH_DMG_AP = 95;
@@ -187,6 +190,9 @@ window.Bradley = (function () {
   }
 
   function spawnAt(pos) {
+    // Resilient to call-order: if init() hasn't wired the scene yet (e.g. a
+    // mission spawns the Bradley before the boot step runs), grab it live.
+    if (!_scene && typeof window !== 'undefined' && window.GameManager && GameManager.getScene) _scene = GameManager.getScene();
     if (!_scene) return null;
     if (_vehicle) try { _scene.remove(_vehicle.group); } catch (e) {}
     return _spawnVehicle(pos);
@@ -266,6 +272,8 @@ window.Bradley = (function () {
   function isActive() { return _active; }
   function getHealth() { return _vehicle ? _vehicle.hp : 0; }
   function getVehicle() { return _vehicle; }
+  function setRapidFire(on) { _rapidFire = !!on; }
+  function getRapidFire() { return _rapidFire; }
 
   // ── Damage hook (called by external systems) ──
   function takeDamage(amount) {
@@ -299,7 +307,7 @@ window.Bradley = (function () {
 
   function _fireBushmaster() {
     if (_bushCool > 0 || !_vehicle) return;
-    _bushCool = BUSH_RPM_INTERVAL;
+    _bushCool = _rapidFire ? BUSH_RPM_RAPID : BUSH_RPM_INTERVAL;
     var origin = _muzzleWorld();
     var dir = _aimDirWorld();
     var isHE = (_heAp++ % 2 === 0);
@@ -324,6 +332,14 @@ window.Bradley = (function () {
         }
       } catch (e) {}
     }
+    // Rake the treeline: fell destructible trees along the line of fire
+    try {
+      if (window.WorldFeatures && WorldFeatures.findTreeNear && WorldFeatures.damageTree) {
+        var _probe = origin.clone().add(dir.clone().multiplyScalar(16 + Math.random() * 64));
+        var _tree = WorldFeatures.findTreeNear(_probe.x, _probe.y, _probe.z, 3.5);
+        if (_tree) WorldFeatures.damageTree(_tree, isHE ? 30 : 18);
+      }
+    } catch (e) {}
     // Audio
     try {
       if (window.AudioSystem && window.AudioSystem.playExplosion) window.AudioSystem.playExplosion(0.35, false);
@@ -332,6 +348,14 @@ window.Bradley = (function () {
     _ejectCasing(true);
     // Recoil flick
     _vehicle.gunMount.rotation.x += 0.04;
+    // Rapid "gatling" mode: punchy feedback — throttled shake + extra muzzle glow
+    if (_rapidFire) {
+      _rapidShot++;
+      if ((_rapidShot % 3) === 0) {
+        try { if (window.Feedback && window.Feedback.screenShake) window.Feedback.screenShake(0.25); } catch (e) {}
+      }
+      try { if (window.Tracers && window.Tracers.spawnMuzzleFlash) window.Tracers.spawnMuzzleFlash(origin.clone(), dir.clone()); } catch (e) {}
+    }
   }
 
   function _fireCoax() {
@@ -486,7 +510,7 @@ window.Bradley = (function () {
 
   function clear() {
     if (_vehicle) try { _scene.remove(_vehicle.group); } catch (e) {}
-    _vehicle = null; _active = false;
+    _vehicle = null; _active = false; _rapidFire = false;
     for (var i = 0; i < _casings.length; i++) try { _scene.remove(_casings[i].mesh); } catch (e) {}
     _casings.length = 0;
     try { if (window.GameManager) window.GameManager.__bradleyCam = null; } catch (e) {}
@@ -543,11 +567,14 @@ window.Bradley = (function () {
 
   function init(scene, camera, controls) {
     _scene = scene; _gameCam = camera; _controls = controls;
-    _vehicle = null; _active = false;
+    // Don't null _vehicle here — clear() owns teardown. A mission may spawn the
+    // Bradley before this boot step runs; wiping it here would lose that vehicle.
+    _active = false;
     _casings.length = 0; _projectiles.length = 0;
     _key.w = _key.s = _key.a = _key.d = false;
     _firingBush = _firingCoax = false;
     _bushCool = _coaxCool = 0;
+    _rapidFire = false; _rapidShot = 0;
     _bind();
   }
 
@@ -555,6 +582,6 @@ window.Bradley = (function () {
     init: init, update: update, clear: clear,
     spawnAt: spawnAt, enter: enter, exit: exit,
     isActive: isActive, getHealth: getHealth, getVehicle: getVehicle,
-    takeDamage: takeDamage
+    takeDamage: takeDamage, setRapidFire: setRapidFire, getRapidFire: getRapidFire
   };
 })();

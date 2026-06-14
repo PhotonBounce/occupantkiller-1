@@ -853,6 +853,22 @@ const GameManager = (function () {
       description:  'Pilot a one-way FPV drone deep into a Russian oil refinery. No respawns at the wheel — only at the launch pad.',
       objective:    'FPV drone mission. Fly into the refinery. Blow the fuel tanks. One wave, one chance.',
     },
+    {
+      id:           19,
+      name:         'TREELINE ASSAULT',
+      theme:        'grassland',
+      wavesPerStage: 1,
+      difficulty:   1.6,
+      fogColor:     0x4a5a3a,
+      bgColor:      0x4a5a3a,
+      sunColor:     0xffcc55,
+      sunIntensity: 0.9,
+      exposure:     0.9,
+      bradleyAssault: true,
+      hintWeapons:  ['M2A2 Bradley (25mm Bushmaster)','M240 Coax','TOW-2'],
+      description:  '47th Mechanized Brigade. A Russian platoon is dug into the treeline. Mount the Bradley and rake the woods with the 25mm.',
+      objective:    'Drive the Bradley. Rake the treeline with the 25mm Bushmaster. Clear every occupant from the woods.',
+    },
   ];
 
   let currentStage = 0;  // 0-based index into STAGES
@@ -1437,6 +1453,11 @@ const GameManager = (function () {
     // Mission completion callback — with replenishment
     MissionSystem.onMissionComplete(function (mission, reward) {
       HUD.notifyPickup('MISSION COMPLETE: ' + mission.name + ' +' + (reward || 0), '#00FF88');
+      // Bradley Treeline Assault set-piece: clearing the woods ambush = stage clear.
+      if (mission.type === 'bradley_assault') {
+        try { if (typeof Bradley !== 'undefined' && Bradley.setRapidFire) Bradley.setRapidFire(false); } catch (_ebr) {}
+        try { onWaveComplete(); } catch (_ewc) {}
+      }
       // Release drone when a recon/drone mission finishes
       try {
         if ((mission.type === 'recon' || mission.type === 'drone_strike') &&
@@ -1459,7 +1480,7 @@ const GameManager = (function () {
       }
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
-        if (gameState === STATE.PLAYING && !(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
+        if (gameState === STATE.PLAYING && !(STAGES[currentStage] && (STAGES[currentStage].droneOnly || STAGES[currentStage].bradleyAssault))) {
           var _newM;
           if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
             _newM = MissionSystem.generateMission('kyiv_defense');
@@ -3181,7 +3202,7 @@ const GameManager = (function () {
     // Generate an initial mission. Stage-specific signature missions take priority.
     // droneOnly stages (stage 18 Refinery) handle missions entirely via RefineryStrike.
     var _initStageDef = STAGES[currentStage];
-    if (!(_initStageDef && _initStageDef.droneOnly)) {
+    if (!(_initStageDef && (_initStageDef.droneOnly || _initStageDef.bradleyAssault))) {
       if (_initStageDef && _initStageDef.capitalDefense) {
         MissionSystem.generateMission('kyiv_defense');
       } else if (_initStageDef && _initStageDef.id === 1) {
@@ -3526,7 +3547,7 @@ const GameManager = (function () {
 
     // Clear stale missions from prior stage and seed a fresh stage-appropriate one
     if (typeof MissionSystem !== 'undefined' && MissionSystem.init) MissionSystem.init();
-    if (typeof MissionSystem !== 'undefined' && !stageDef.droneOnly) {
+    if (typeof MissionSystem !== 'undefined' && !stageDef.droneOnly && !stageDef.bradleyAssault) {
       if (stageDef.capitalDefense) {
         MissionSystem.generateMission('kyiv_defense');
       } else if (stageDef.id === 1) {
@@ -3593,6 +3614,24 @@ const GameManager = (function () {
     // Show AI adaptation notification
     if (aiStrategy.adaptationLevel > 0 && HUD.notifyPickup) {
       HUD.notifyPickup(aiStrategy.adaptationMessage, '#ff00ff');
+    }
+
+    // ═══ bradleyAssault stages (Treeline Assault) ═══
+    // Skip normal wave spawning; the bradley_assault mission builds the woods,
+    // spawns the dug-in ambush + the Bradley, and clears the stage when wiped out.
+    if (stageDef.bradleyAssault) {
+      window.AudioSystem.playWaveStart();
+      HUD.setWave(w, stageDef.wavesPerStage);
+      HUD.announceWave(w, 0, stageDef.wavesPerStage);
+      if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
+      if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
+        HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
+      }
+      if (typeof MissionSystem !== 'undefined' && MissionSystem.generateMission) {
+        MissionSystem.generateMission('bradley_assault');
+      }
+      if (typeof Bradley !== 'undefined' && Bradley.setRapidFire) Bradley.setRapidFire(true);
+      return;
     }
 
     // ═══ DroneOnly stages (e.g. Refinery Strike) ═══

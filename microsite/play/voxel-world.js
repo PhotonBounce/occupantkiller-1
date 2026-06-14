@@ -1229,6 +1229,7 @@ window.VoxelWorld = (function () {
     { id: 'VUHLEDAR',  name: 'Vuhledar Tank Graveyard', desc: 'Bury the 155th in the minefield', theme: 'wasteland', wavesPerLevel: 8, difficulty: 1.9, fogColor: 0x4a4030, tankFocus: true },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677 },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'TREELINE',  name: 'Treeline Assault',      desc: 'Drive the Bradley, rake the woods', theme: 'grassland', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0xD4A017, bradleyAssault: true, spawnCandidates: [{ x: 0, z: -12 }], spawnLookTarget: { x: 0, z: 30 } },
   ];
 
   const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar'];

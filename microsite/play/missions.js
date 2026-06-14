@@ -108,6 +108,109 @@ const MissionSystem = (function () {
                 return aliveCount === 0;
               },
             },
+            // Bradley Treeline Assault — set-piece for stage 19. Drive the M2A2 Bradley
+            // with the rapid-fire 25mm and rake a Russian platoon dug into a destructible
+            // treeline, the way Ukraine's 47th Mech Brigade clears woodlines.
+            bradley_assault: {
+              name: 'Treeline Assault',
+              description: '47th Brigade — Russian infantry is dug into the woods ahead. Mount the Bradley and rake the treeline with the 25mm.',
+              tier: 6,
+              generate() {
+                var killTarget = 42 + Math.floor(Math.random() * 14); // 42-55
+                var spawned = 0;
+                var spawnPositions = [];
+                var spawnedEnemyIds = [];
+                try {
+                  var playerPos = new THREE.Vector3(0, 0, 0);
+                  try {
+                    if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+                      var p = GameManager.getPlayer();
+                      if (p && p.position) playerPos.copy(p.position);
+                    }
+                  } catch (e) {}
+                  // Treeline corridor ahead of the player (~95 units out).
+                  var fwdAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw)
+                    ? CameraSystem.getYaw() : Math.random() * Math.PI * 2;
+                  var fwd = new THREE.Vector3(Math.sin(fwdAngle), 0, Math.cos(fwdAngle));
+                  var center = playerPos.clone().add(fwd.clone().multiplyScalar(95));
+                  function _terrainY(x, z) {
+                    try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) return VoxelWorld.getTerrainHeight(x, z) || 0; } catch (e2) {}
+                    return 0;
+                  }
+                  // Build a destructible treeline: 3 staggered rows the 25mm can fell.
+                  try {
+                    if (typeof WorldFeatures !== 'undefined' && WorldFeatures.spawnTree) {
+                      for (var row = 0; row < 3; row++) {
+                        for (var tcol = -8; tcol <= 8; tcol++) {
+                          if (Math.random() < 0.25) continue; // gaps in the line
+                          var lux = tcol * 5 + (Math.random() - 0.5) * 3;
+                          var luz = row * 9 + (Math.random() - 0.5) * 4;
+                          var lrx = lux * fwd.z + luz * fwd.x;
+                          var lrz = -lux * fwd.x + luz * fwd.z;
+                          var tx = center.x + lrx;
+                          var tz = center.z + lrz;
+                          WorldFeatures.spawnTree(tx, _terrainY(tx, tz), tz);
+                        }
+                      }
+                    }
+                  } catch (eTL) {}
+                  // Dig the platoon into the treeline.
+                  if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+                    var types = ['CONSCRIPT', 'STORMER', 'ENGINEER', 'SNIPER', 'WAGNER', 'SPETSNAZ'];
+                    for (var i = 0; i < killTarget; i++) {
+                      var ux = (Math.random() - 0.5) * 80;
+                      var uz = (Math.random() - 0.5) * 28;
+                      var rx = ux * fwd.z + uz * fwd.x;
+                      var rz = -ux * fwd.x + uz * fwd.z;
+                      var ex = center.x + rx;
+                      var ez = center.z + rz;
+                      try {
+                        var tp = types[Math.floor(Math.random() * types.length)];
+                        var spawnedEnemy = Enemies.spawnSingle(tp, { x: ex, y: _terrainY(ex, ez) + 1, z: ez });
+                        if (spawnedEnemy) {
+                          spawnedEnemyIds.push(spawnedEnemy.id);
+                          spawned++;
+                        }
+                        spawnPositions.push({ x: ex, z: ez });
+                      } catch (eS) {}
+                    }
+                  }
+                  // Roll out the Bradley right beside the player.
+                  try {
+                    if (typeof Bradley !== 'undefined' && Bradley.spawnAt) {
+                      var bx = playerPos.x + 4, bz = playerPos.z;
+                      Bradley.spawnAt(new THREE.Vector3(bx, _terrainY(bx, bz), bz));
+                    }
+                    if (typeof HUD !== 'undefined' && HUD.showToast) {
+                      HUD.showToast('🚛 BRADLEY — Press B to mount. 25mm Bushmaster (RAPID). Rake the treeline.', 6000, '#a0c878');
+                    }
+                  } catch (eBR) {}
+                } catch (eAll) {}
+                return {
+                  type: 'bradley_assault',
+                  killTarget: killTarget,
+                  kills: 0,
+                  spawned: spawned,
+                  spawnedEnemyIds: spawnedEnemyIds,
+                  spawnPositions: spawnPositions,
+                  startTime: Date.now(),
+                  objectiveText: '47th Brigade — clear the treeline...',
+                };
+              },
+              check(mission) {
+                if (mission.spawned === 0) { mission.objectiveText = 'Clear the treeline: complete'; return true; }
+                if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) return false;
+                var aliveCount = 0;
+                var allEnemies = Enemies.getAll();
+                for (var id of mission.spawnedEnemyIds) {
+                  var found = allEnemies.find(e => e && e.id === id);
+                  if (found && found.alive) aliveCount++;
+                }
+                mission.kills = mission.spawned - aliveCount;
+                mission.objectiveText = `47th Brigade — clear the treeline: ${mission.kills}/${mission.spawned}`;
+                return aliveCount === 0;
+              },
+            },
         // Airborne Assault (Hostomel)
         airborne_assault: {
           name: 'Airborne Assault',
