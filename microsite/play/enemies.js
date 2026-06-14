@@ -3038,17 +3038,27 @@ const Enemies = (() => {
           case 'BOSS_DONBAS':
           case 'BOSS_BELGOROD':
           case 'BOSS_KREMLIN':
+          case 'BOSS_KYIV':
+          case 'BOSS_SNAKE_ISLAND':
+          case 'BOSS_SAKY':
+          case 'BOSS_VUHLEDAR':
+          case 'BOSS_ANTONOV':
             etResult = EnemyTypes.updateBoss(e, playerPos, delta, wave || 1);
             if (etResult) {
               if (etResult.summon) {
+                var _sTypes = etResult.summonTypes;
                 for (var si = 0; si < etResult.summonCount; si++) {
-                  spawnQueue.push(pickTypeForWave(wave || 1));
+                  // Use boss-specific companion type if available, else fallback to wave pool
+                  var _sType = _sTypes ? _sTypes[si % _sTypes.length] : pickTypeForWave(wave || 1);
+                  spawnQueue.push(_sType);
                 }
               }
-              // B22: Update boss health bar
+              // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
-                var bossMaxHp = EnemyTypes.getBossHP(wave || 1);
-                HUD.showBossBar(e.typeCfg.name || 'BOSS', e.hp, bossMaxHp);
+                var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
+                  EnemyTypes.TYPES[e.typeCfg.name] && EnemyTypes.TYPES[e.typeCfg.name].name)
+                  ? EnemyTypes.TYPES[e.typeCfg.name].name : (e.typeCfg.name || 'BOSS');
+                HUD.showBossBar(_bossDisplayName, e.hp, e.maxHp);
               }
             }
             break;
