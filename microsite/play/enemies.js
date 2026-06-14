@@ -940,10 +940,10 @@ const Enemies = (() => {
     11:{ bias: 0.60, pool: ['SPETSNAZ','THERMOBARIC','ASSAULT_MECH','HEAVY_SNIPER','BTR'] },          // Belgorod — mechanized (VehicleSystem handles tank visuals)
     12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR'] },    // Kremlin — everything
     13:{ bias: 0.60, pool: ['CONSCRIPT','STORMER','PARATROOP','DRONE_OP','SPETSNAZ'] },             // Kyiv — column escort infantry (armor comes from ConvoySystem)
-    14:{ bias: 0.55, pool: ['STORMER','DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER'] },          // Snake Island — naval marines + coastal drones
-    15:{ bias: 0.55, pool: ['DRONE_OP','KAMIKAZE_DRONE','EW_OPERATOR','ENGINEER','SNIPER_ELITE'] }, // Saky Airbase — drone-heavy air base security
-    16:{ bias: 0.60, pool: ['TANK','ARMORED','BTR','HEAVY_SNIPER','MORTAR'] },                     // Vuhledar — tank graveyard, armored columns (per objective)
-    17:{ bias: 0.55, pool: ['MORTAR','HEAVY_SNIPER','SNIPER_ELITE','EW_OPERATOR','ARMORED'] },      // Antonov Bridge — long-range artillery duels
+    14:{ bias: 0.55, pool: ['DRONE_OP','BTR','SABOTEUR','BOMBER','MORTAR'] },                      // Snake Island — naval commandos + bombardment
+    15:{ bias: 0.55, pool: ['PARATROOP','DRONE_OP','SPETSNAZ','KAMIKAZE_DRONE','SNIPER_ELITE'] },   // Saky Airbase — airborne raiders
+    16:{ bias: 0.60, pool: ['TANK','ARMORED','BTR','HEAVY_SNIPER','MORTAR'] },                      // Vuhledar — tank graveyard columns
+    17:{ bias: 0.55, pool: ['SNIPER','MORTAR','HEAVY_SNIPER','BTR','COMMISSAR'] },                  // Antonov Bridge — precision snipers + artillery (precision weapons required)
     18:{ bias: 0.70, pool: ['KAMIKAZE_DRONE','DRONE_OP','EW_OPERATOR','SPETSNAZ','ENGINEER'] },     // Refinery — drone-heavy industrial guards
   };
 
