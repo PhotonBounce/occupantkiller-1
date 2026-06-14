@@ -3726,6 +3726,8 @@ const GameManager = (function () {
           { x: -15, z: -33 }, { x: 21, z: -33 },
           { x: -15, z: -17 }, { x: 21, z: -17 },
           { x: -15, z: -1  }, { x: 52, z:  16 },
+          { x: -13, z:  39 }, { x: 17, z:  39 }, // approach corridor (z=30)
+          { x: -13, z:  59 }, { x: 17, z:  59 }, // approach corridor (z=50)
         ];
         var _snipersThisWave = Math.min(2 + Math.floor(w / 2), 4);
         for (var _si = 0; _si < _snipersThisWave; _si++) {
