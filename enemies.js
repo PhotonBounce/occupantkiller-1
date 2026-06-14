@@ -1310,8 +1310,8 @@ const Enemies = (() => {
     group.add(flagWhite, flagBlue, flagRed);
 
     // ── Balaclava (face covering) for elite/special units ──
-    if (typeName === 'OFFICER' || typeName === 'SABOTEUR' ||
-        typeName === 'SNIPER_ELITE' || typeName === 'WAGNER') {
+    if (typeCfg.name === 'OFFICER' || typeCfg.name === 'SABOTEUR' ||
+        typeCfg.name === 'SNIPER_ELITE' || typeCfg.name === 'WAGNER') {
       const bala = new THREE.Mesh(
         new THREE.BoxGeometry(0.36 * s, 0.18 * s, 0.36 * s),
         new THREE.MeshLambertMaterial({ color: 0x111111 })
@@ -1618,8 +1618,8 @@ const Enemies = (() => {
     grip.position.set(0.35 * s, 0.65 * s, 0.02 * s);
     mesh.add(grip);
     // ── Optic (Kobra/PSO) for officers, snipers, elites ──
-    const hasOptic = (typeName === 'OFFICER' || typeName === 'SNIPER' ||
-                      typeName === 'SNIPER_ELITE' || typeName === 'SABOTEUR');
+    const hasOptic = (typeCfg.name === 'OFFICER' || typeCfg.name === 'SNIPER' ||
+                      typeCfg.name === 'SNIPER_ELITE' || typeCfg.name === 'SABOTEUR');
     if (hasOptic) {
       const optic = new THREE.Mesh(
         new THREE.BoxGeometry(0.04 * s, 0.06 * s, 0.10 * s),
@@ -1636,7 +1636,7 @@ const Enemies = (() => {
       mesh.add(lens);
     }
     // ── Bipod for snipers / MGs ──
-    if (typeName === 'SNIPER_ELITE' || typeName === 'BOSS' || typeName === 'ARMORED') {
+    if (typeCfg.name === 'SNIPER_ELITE' || typeCfg.name === 'BOSS' || typeCfg.name === 'ARMORED') {
       const bipodL = new THREE.Mesh(
         new THREE.BoxGeometry(0.005 * s, 0.10 * s, 0.005 * s),
         new THREE.MeshLambertMaterial({ color: 0x222222 })
