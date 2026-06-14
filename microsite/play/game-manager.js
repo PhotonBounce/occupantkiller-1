@@ -4130,6 +4130,57 @@ const GameManager = (function () {
         Enemies.spawnSingle('MORTAR', new THREE.Vector3(_mortX, VoxelWorld.getTerrainHeight(_mortX, _mortZ), _mortZ));
       }
     }
+    // Chornobyl (id 7): irradiated stalkers emerge from the hot zone each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 7 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _chnCount = Math.min(3, 1 + Math.floor(w / 3));
+      for (var _chi = 0; _chi < _chnCount; _chi++) {
+        var _chA = Math.random() * Math.PI * 2;
+        var _chD = 22 + Math.random() * 12;
+        var _chX = player.position.x + Math.cos(_chA) * _chD;
+        var _chZ = player.position.z + Math.sin(_chA) * _chD;
+        Enemies.spawnSingle(w >= 5 ? 'SPETSNAZ' : 'STORMER', new THREE.Vector3(_chX, VoxelWorld.getTerrainHeight(_chX, _chZ), _chZ));
+      }
+      if (w >= 4) {
+        var _chEwA = Math.random() * Math.PI * 2;
+        var _chEwX = player.position.x + Math.cos(_chEwA) * 30;
+        var _chEwZ = player.position.z + Math.sin(_chEwA) * 30;
+        Enemies.spawnSingle('EW_OPERATOR', new THREE.Vector3(_chEwX, VoxelWorld.getTerrainHeight(_chEwX, _chEwZ), _chEwZ));
+      }
+    }
+    // Sevastopol naval base (id 9): naval marines storm ashore each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 9 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _sevCount = Math.min(4, 2 + Math.floor(w / 2));
+      for (var _sevi = 0; _sevi < _sevCount; _sevi++) {
+        var _sevA = Math.random() * Math.PI * 2;
+        var _sevD = 20 + Math.random() * 12;
+        var _sevX = player.position.x + Math.cos(_sevA) * _sevD;
+        var _sevZ = player.position.z + Math.sin(_sevA) * _sevD;
+        Enemies.spawnSingle(w >= 5 ? 'SPETSNAZ' : 'STORMER', new THREE.Vector3(_sevX, VoxelWorld.getTerrainHeight(_sevX, _sevZ), _sevZ));
+      }
+      if (w >= 3) {
+        var _sevSnA = Math.random() * Math.PI * 2;
+        var _sevSnX = player.position.x + Math.cos(_sevSnA) * 35;
+        var _sevSnZ = player.position.z + Math.sin(_sevSnA) * 35;
+        Enemies.spawnSingle('HEAVY_SNIPER', new THREE.Vector3(_sevSnX, VoxelWorld.getTerrainHeight(_sevSnX, _sevSnZ), _sevSnZ));
+      }
+    }
+    // Kremlin (id 12): Kremlin Guard surge each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 12 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _krCount = Math.min(5, 2 + Math.floor(w / 2));
+      for (var _kri = 0; _kri < _krCount; _kri++) {
+        var _krA = (_kri / _krCount) * Math.PI * 2 + Math.random() * 0.3;
+        var _krD = 22 + Math.random() * 12;
+        var _krX = player.position.x + Math.cos(_krA) * _krD;
+        var _krZ = player.position.z + Math.sin(_krA) * _krD;
+        Enemies.spawnSingle(w >= 6 ? 'HEAVY_SNIPER' : 'SPETSNAZ', new THREE.Vector3(_krX, VoxelWorld.getTerrainHeight(_krX, _krZ), _krZ));
+      }
+      if (w >= 4) {
+        var _krCommA = Math.random() * Math.PI * 2;
+        var _krCommX = player.position.x + Math.cos(_krCommA) * 28;
+        var _krCommZ = player.position.z + Math.sin(_krCommA) * 28;
+        Enemies.spawnSingle('COMMISSAR', new THREE.Vector3(_krCommX, VoxelWorld.getTerrainHeight(_krCommX, _krCommZ), _krCommZ));
+      }
+    }
     // Snake Island (id 14): Russian naval marines land each wave
     if (STAGES[currentStage] && STAGES[currentStage].id === 14 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
       var _snkCount = Math.min(4, 1 + Math.floor(w / 2));
