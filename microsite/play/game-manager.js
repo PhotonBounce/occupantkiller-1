@@ -4255,6 +4255,29 @@ const GameManager = (function () {
         Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_snX2, VoxelWorld.getTerrainHeight(_snX2, _snZ2), _snZ2));
       }
     }
+    // Belgorod offensive (id 11): mechanized territorial counter-attack each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 11 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _bgrInfCount = Math.min(4, 1 + Math.floor(w / 2));
+      for (var _bgri = 0; _bgri < _bgrInfCount; _bgri++) {
+        var _bgriA = Math.random() * Math.PI * 2;
+        var _bgriD = 20 + Math.random() * 12;
+        var _bgriX = player.position.x + Math.cos(_bgriA) * _bgriD;
+        var _bgriZ = player.position.z + Math.sin(_bgriA) * _bgriD;
+        Enemies.spawnSingle(w >= 5 ? 'ARMORED' : 'STORMER', new THREE.Vector3(_bgriX, VoxelWorld.getTerrainHeight(_bgriX, _bgriZ), _bgriZ));
+      }
+      if (w >= 3) {
+        var _bgrEngA = Math.random() * Math.PI * 2;
+        var _bgrEngX = player.position.x + Math.cos(_bgrEngA) * 30;
+        var _bgrEngZ = player.position.z + Math.sin(_bgrEngA) * 30;
+        Enemies.spawnSingle('ENGINEER', new THREE.Vector3(_bgrEngX, VoxelWorld.getTerrainHeight(_bgrEngX, _bgrEngZ), _bgrEngZ));
+      }
+      if (w >= 5) {
+        var _bgrMortA = Math.random() * Math.PI * 2;
+        var _bgrMortX = player.position.x + Math.cos(_bgrMortA) * 38;
+        var _bgrMortZ = player.position.z + Math.sin(_bgrMortA) * 38;
+        Enemies.spawnSingle('MORTAR', new THREE.Vector3(_bgrMortX, VoxelWorld.getTerrainHeight(_bgrMortX, _bgrMortZ), _bgrMortZ));
+      }
+    }
     // Avdiivka (id 2): assault squads probe the frontline each wave
     if (STAGES[currentStage] && STAGES[currentStage].id === 2 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
       var _avdCount = Math.min(3, 1 + Math.floor(w / 3));
