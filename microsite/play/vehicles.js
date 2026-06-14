@@ -1520,7 +1520,16 @@ const VehicleSystem = (function () {
     // Initialize patrol state on first call
     if (!v.spawnPos) {
       v.spawnPos = v.position.clone();
+      // Hold position briefly after spawn so player can tell friendly vehicles apart
+      v._spawnHold = v._spawnHold === undefined ? 3.0 : v._spawnHold;
       pickWaypoint(v);
+    }
+
+    // Spawn-hold: freeze for a few seconds so AI vehicle doesn't look like it "pops out" of player tank
+    if (v._spawnHold > 0) {
+      v._spawnHold -= delta;
+      v.velocity.set(0, 0, 0);
+      return;
     }
 
     // Decrement waypoint timeout
