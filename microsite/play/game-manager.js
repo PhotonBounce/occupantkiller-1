@@ -6151,6 +6151,38 @@ const GameManager = (function () {
         }
       }
 
+      // ── AVDIIVKA: Sniper fire from ruins (stage 2) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 2 && gameState === STATE.PLAYING) {
+        player._avdiivkaSniperTimer = (player._avdiivkaSniperTimer || 0) + delta;
+        if (player._avdiivkaSniperTimer >= 20.0 + Math.random() * 15) {
+          player._avdiivkaSniperTimer = 0;
+          if (!player.godMode && Math.random() < 0.35) {
+            var avdDmg = 5 + Math.floor(Math.random() * 12);
+            player.hp = Math.max(1, player.hp - avdDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xffdd00, 0.3);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.5);
+            if (HUD.notifyPickup) HUD.notifyPickup('☠ SNIPER FIRE — FIND COVER!', '#ffaa00');
+          }
+        }
+      }
+
+      // ── BELGOROD: Russian Grad rocket strikes (stage 11) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 11 && gameState === STATE.PLAYING) {
+        player._belgorodGradTimer = (player._belgorodGradTimer || 0) + delta;
+        if (player._belgorodGradTimer >= 14.0 + Math.random() * 8) {
+          player._belgorodGradTimer = 0;
+          if (!player.godMode && Math.random() < 0.50) {
+            var bgDmg = 12 + Math.floor(Math.random() * 22);
+            player.hp = Math.max(1, player.hp - bgDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff4400, 0.45);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(1.2);
+            if (HUD.notifyPickup) HUD.notifyPickup('🚀 GRAD ROCKET STRIKE!', '#ff4400');
+          }
+        }
+      }
+
       // B23: Multikill timer decay
       if (player.multikillTimer > 0) {
         player.multikillTimer -= delta;
