@@ -3846,12 +3846,22 @@ const GameManager = (function () {
         var garrisonTypes = ['CONSCRIPT','STORMER','SNIPER'];
         if (w >= 5) garrisonTypes.push('ARMORED','FLAMETHROWER');
         if (w >= 8) garrisonTypes.push('SPETSNAZ','KADYROVITE');
+        // Window positions on front face (x offsets 2,8,14 are open air every other)
+        var _winXOffsets = [2, 8, 14];
         for (var gf = 0; gf < garrisonSize; gf++) {
           var floorY = bld.baseY + gf * bld.floorH + 1;
-          // 2 enemies per floor, placed in rooms
+          // 2 enemies per floor — 1 at a window opening for visibility, 1 deeper
           for (var gr = 0; gr < 2; gr++) {
-            var gpx = bld.x + 3 + Math.floor(Math.random() * (bld.w - 6));
-            var gpz = bld.cz + (gr === 0 ? -2 : 2);
+            var gpx, gpz;
+            if (gr === 0) {
+              // At an open window on front wall — visible from outside
+              var _wo = _winXOffsets[(gf + w) % _winXOffsets.length];
+              gpx = bld.x + _wo;
+              gpz = bld.z + 1; // just inside front wall
+            } else {
+              gpx = bld.x + 3 + Math.floor(Math.random() * (bld.w - 6));
+              gpz = bld.cz + (Math.random() < 0.5 ? -2 : 2);
+            }
             var gtype = garrisonTypes[Math.floor(Math.random() * garrisonTypes.length)];
             Enemies.spawnSingle(gtype, new THREE.Vector3(gpx + 0.5, floorY, gpz + 0.5), {
               guardPost: { x: gpx + 0.5, y: floorY, z: gpz + 0.5 },

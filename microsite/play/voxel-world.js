@@ -1898,14 +1898,18 @@ window.VoxelWorld = (function () {
         setBlock(ox + ddx, baseY + 2, oz + hallZ2 + 1, BLOCK.AIR);
       }
 
-      // ─── Windows (exterior) ───
+      // ─── Windows (exterior) — alternate open/glass for war-zone look ───
+      var _winIdx = 0;
       for (let x = 2; x < W - 2; x += 3) {
+        var _isOpen = (_winIdx % 2 === 0);  // every other window blown out = open
+        var _winBlock = _isOpen ? BLOCK.AIR : BLOCK.GLASS;
         // Front windows (south)
-        setBlock(ox + x, baseY + 1, oz, BLOCK.GLASS);
-        if (FH > 2) setBlock(ox + x, baseY + 2, oz, BLOCK.GLASS);
+        setBlock(ox + x, baseY + 1, oz, _winBlock);
+        if (FH > 2) setBlock(ox + x, baseY + 2, oz, _winBlock);
         // Back windows (north)
-        setBlock(ox + x, baseY + 1, oz + D - 1, BLOCK.GLASS);
-        if (FH > 2) setBlock(ox + x, baseY + 2, oz + D - 1, BLOCK.GLASS);
+        setBlock(ox + x, baseY + 1, oz + D - 1, _winBlock);
+        if (FH > 2) setBlock(ox + x, baseY + 2, oz + D - 1, _winBlock);
+        _winIdx++;
       }
       // Side windows
       for (let z = 2; z < D - 2; z += 3) {
