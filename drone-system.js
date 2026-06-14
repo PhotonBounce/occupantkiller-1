@@ -899,7 +899,7 @@ const DroneSystem = (function () {
           var _edx = _ee.mesh.position.x - drone.position.x;
           var _edy = _ee.mesh.position.y - drone.position.y;
           var _edz = _ee.mesh.position.z - drone.position.z;
-          if ((_edx*_edx + _edy*_edy + _edz*_edz) < 2.25) { _hitEnemy = true; break; }
+          if ((_edx*_edx + _edy*_edy + _edz*_edz) < 6.25) { _hitEnemy = true; break; } // 2.5 unit radius
         }
       }
       if (!_hitEnemy && typeof VehicleSystem !== 'undefined' && VehicleSystem.getAll) {
