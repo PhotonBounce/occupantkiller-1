@@ -4255,6 +4255,94 @@ const GameManager = (function () {
         Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_snX2, VoxelWorld.getTerrainHeight(_snX2, _snZ2), _snZ2));
       }
     }
+    // Avdiivka (id 2): assault squads probe the frontline each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 2 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _avdCount = Math.min(3, 1 + Math.floor(w / 3));
+      for (var _avdi = 0; _avdi < _avdCount; _avdi++) {
+        var _avdA = Math.random() * Math.PI * 2;
+        var _avdD = 20 + Math.random() * 10;
+        var _avdX = player.position.x + Math.cos(_avdA) * _avdD;
+        var _avdZ = player.position.z + Math.sin(_avdA) * _avdD;
+        Enemies.spawnSingle(w >= 4 ? 'ARMORED' : 'STORMER', new THREE.Vector3(_avdX, VoxelWorld.getTerrainHeight(_avdX, _avdZ), _avdZ));
+      }
+    }
+    // Kherson (id 4): river-crossing assault — BTR + amphibious infantry
+    if (STAGES[currentStage] && STAGES[currentStage].id === 4 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _khsCount = Math.min(3, 1 + Math.floor(w / 3));
+      for (var _khsi = 0; _khsi < _khsCount; _khsi++) {
+        var _khsA = Math.random() * Math.PI * 2;
+        var _khsD = 22 + Math.random() * 12;
+        var _khsX = player.position.x + Math.cos(_khsA) * _khsD;
+        var _khsZ = player.position.z + Math.sin(_khsA) * _khsD;
+        Enemies.spawnSingle('STORMER', new THREE.Vector3(_khsX, VoxelWorld.getTerrainHeight(_khsX, _khsZ), _khsZ));
+      }
+      if (w >= 4) {
+        var _khsBtrA = Math.random() * Math.PI * 2;
+        var _khsBtrX = player.position.x + Math.cos(_khsBtrA) * 30;
+        var _khsBtrZ = player.position.z + Math.sin(_khsBtrA) * 30;
+        Enemies.spawnSingle('BTR', new THREE.Vector3(_khsBtrX, VoxelWorld.getTerrainHeight(_khsBtrX, _khsBtrZ), _khsBtrZ));
+      }
+    }
+    // Crimea (id 6): naval infantry land from the coast each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 6 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _criCount = Math.min(4, 2 + Math.floor(w / 3));
+      for (var _crii = 0; _crii < _criCount; _crii++) {
+        var _criA = Math.random() * Math.PI * 2;
+        var _criD = 22 + Math.random() * 12;
+        var _criX = player.position.x + Math.cos(_criA) * _criD;
+        var _criZ = player.position.z + Math.sin(_criA) * _criD;
+        Enemies.spawnSingle(w >= 5 ? 'PARATROOP' : 'STORMER', new THREE.Vector3(_criX, VoxelWorld.getTerrainHeight(_criX, _criZ), _criZ));
+      }
+      if (w >= 3) {
+        var _criDrA = Math.random() * Math.PI * 2;
+        var _criDrX = player.position.x + Math.cos(_criDrA) * 28;
+        var _criDrZ = player.position.z + Math.sin(_criDrA) * 28;
+        Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_criDrX, VoxelWorld.getTerrainHeight(_criDrX, _criDrZ) + 5, _criDrZ));
+      }
+    }
+    // Vuhledar tank graveyard (id 16): armor columns advance each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 16 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _vuhTankA = Math.random() * Math.PI * 2;
+      var _vuhTankX = player.position.x + Math.cos(_vuhTankA) * 30;
+      var _vuhTankZ = player.position.z + Math.sin(_vuhTankA) * 30;
+      Enemies.spawnSingle(w >= 5 ? 'HEAVY_ARMOR' : 'TANK', new THREE.Vector3(_vuhTankX, VoxelWorld.getTerrainHeight(_vuhTankX, _vuhTankZ), _vuhTankZ));
+      if (w >= 3) {
+        var _vuhBtrA = _vuhTankA + Math.PI * 0.5 + Math.random() * 0.4;
+        var _vuhBtrX = player.position.x + Math.cos(_vuhBtrA) * 26;
+        var _vuhBtrZ = player.position.z + Math.sin(_vuhBtrA) * 26;
+        Enemies.spawnSingle('BTR', new THREE.Vector3(_vuhBtrX, VoxelWorld.getTerrainHeight(_vuhBtrX, _vuhBtrZ), _vuhBtrZ));
+      }
+      if (w >= 5) {
+        var _vuhMortA = Math.random() * Math.PI * 2;
+        var _vuhMortX = player.position.x + Math.cos(_vuhMortA) * 38;
+        var _vuhMortZ = player.position.z + Math.sin(_vuhMortA) * 38;
+        Enemies.spawnSingle('MORTAR', new THREE.Vector3(_vuhMortX, VoxelWorld.getTerrainHeight(_vuhMortX, _vuhMortZ), _vuhMortZ));
+      }
+    }
+    // Antonov Airport (id 17): paratroopers drop + saboteurs infiltrate each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 17 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _antCount = Math.min(4, 2 + Math.floor(w / 2));
+      for (var _anti = 0; _anti < _antCount; _anti++) {
+        var _antA = Math.random() * Math.PI * 2;
+        var _antD = 25 + Math.random() * 12;
+        var _antX = player.position.x + Math.cos(_antA) * _antD;
+        var _antZ = player.position.z + Math.sin(_antA) * _antD;
+        var _antY = VoxelWorld.getTerrainHeight(_antX, _antZ) + 18;
+        Enemies.spawnSingle('PARATROOP', new THREE.Vector3(_antX, _antY, _antZ));
+      }
+      if (w >= 3) {
+        var _antSabA = Math.random() * Math.PI * 2;
+        var _antSabX = player.position.x + Math.cos(_antSabA) * 20;
+        var _antSabZ = player.position.z + Math.sin(_antSabA) * 20;
+        Enemies.spawnSingle('SABOTEUR', new THREE.Vector3(_antSabX, VoxelWorld.getTerrainHeight(_antSabX, _antSabZ), _antSabZ));
+      }
+      if (w >= 5) {
+        var _antEwA = Math.random() * Math.PI * 2;
+        var _antEwX = player.position.x + Math.cos(_antEwA) * 32;
+        var _antEwZ = player.position.z + Math.sin(_antEwA) * 32;
+        Enemies.spawnSingle('EW_OPERATOR', new THREE.Vector3(_antEwX, VoxelWorld.getTerrainHeight(_antEwX, _antEwZ), _antEwZ));
+      }
+    }
     // Reset combat extras per wave
     if (typeof CombatExtras !== 'undefined') {
       CombatExtras.reset();
