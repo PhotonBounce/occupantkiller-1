@@ -6290,6 +6290,11 @@ const GameManager = (function () {
         player._bombardTimer = (player._bombardTimer || 0) + delta;
         if (player._bombardTimer >= 12.0 + Math.random() * 6) {
           player._bombardTimer = 0;
+          var _navExX = player.position.x + (Math.random()-0.5)*12;
+          var _navExZ = player.position.z + (Math.random()-0.5)*12;
+          var _navExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_navExX, _navExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_navExX, _navExY, _navExZ), 6);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode) {
             var bombDmg = 5 + Math.floor(Math.random() * 10);
             player.hp = Math.max(1, player.hp - bombDmg);
@@ -6306,6 +6311,11 @@ const GameManager = (function () {
         player._mortarTimer = (player._mortarTimer || 0) + delta;
         if (player._mortarTimer >= 15.0 + Math.random() * 10) {
           player._mortarTimer = 0;
+          var _mtExX = player.position.x + (Math.random()-0.5)*10;
+          var _mtExZ = player.position.z + (Math.random()-0.5)*10;
+          var _mtExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_mtExX, _mtExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_mtExX, _mtExY, _mtExZ), 4);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode && Math.random() < 0.35) {
             var mortarDmg = 8 + Math.floor(Math.random() * 15);
             player.hp = Math.max(1, player.hp - mortarDmg);
@@ -6322,6 +6332,11 @@ const GameManager = (function () {
         player._antonovArtillTimer = (player._antonovArtillTimer || 0) + delta;
         if (player._antonovArtillTimer >= 16.0 + Math.random() * 10) {
           player._antonovArtillTimer = 0;
+          var _antArtExX = player.position.x + (Math.random()-0.5)*14;
+          var _antArtExZ = player.position.z + (Math.random()-0.5)*14;
+          var _antArtExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_antArtExX, _antArtExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_antArtExX, _antArtExY, _antArtExZ), 5);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode && Math.random() < 0.5) {
             var artillDmg = 7 + Math.floor(Math.random() * 14);
             player.hp = Math.max(1, player.hp - artillDmg);
@@ -6350,6 +6365,11 @@ const GameManager = (function () {
         player._snakeBombardTimer = (player._snakeBombardTimer || 0) + delta;
         if (player._snakeBombardTimer >= 9.0 + Math.random() * 5) {
           player._snakeBombardTimer = 0;
+          var _mskExX = player.position.x + (Math.random()-0.5)*14;
+          var _mskExZ = player.position.z + (Math.random()-0.5)*14;
+          var _mskExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_mskExX, _mskExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_mskExX, _mskExY, _mskExZ), 6);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode) {
             var snakeDmg = 6 + Math.floor(Math.random() * 12);
             player.hp = Math.max(1, player.hp - snakeDmg);
@@ -6383,6 +6403,11 @@ const GameManager = (function () {
         player._sevaNavalTimer = (player._sevaNavalTimer || 0) + delta;
         if (player._sevaNavalTimer >= 14.0 + Math.random() * 8) {
           player._sevaNavalTimer = 0;
+          var _sevaExX = player.position.x + (Math.random()-0.5)*14;
+          var _sevaExZ = player.position.z + (Math.random()-0.5)*14;
+          var _sevaExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_sevaExX, _sevaExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_sevaExX, _sevaExY, _sevaExZ), 6);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode) {
             var sevaDmg = 7 + Math.floor(Math.random() * 14);
             player.hp = Math.max(1, player.hp - sevaDmg);
@@ -6399,6 +6424,11 @@ const GameManager = (function () {
         player._bakhmutArtillTimer = (player._bakhmutArtillTimer || 0) + delta;
         if (player._bakhmutArtillTimer >= 12.0 + Math.random() * 8) {
           player._bakhmutArtillTimer = 0;
+          var _baExX = player.position.x + (Math.random()-0.5)*14;
+          var _baExZ = player.position.z + (Math.random()-0.5)*14;
+          var _baExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_baExX, _baExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_baExX, _baExY, _baExZ), 5);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode && Math.random() < 0.4) {
             var baDmg = 5 + Math.floor(Math.random() * 12);
             player.hp = Math.max(1, player.hp - baDmg);
@@ -6415,6 +6445,11 @@ const GameManager = (function () {
         player._vuhMineTimer = (player._vuhMineTimer || 0) + delta;
         if (player._vuhMineTimer >= 18.0 + Math.random() * 10) {
           player._vuhMineTimer = 0;
+          var _vuhExX = player.position.x + (Math.random()-0.5)*6;
+          var _vuhExZ = player.position.z + (Math.random()-0.5)*6;
+          var _vuhExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_vuhExX, _vuhExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_vuhExX, _vuhExY, _vuhExZ), 3);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode && Math.random() < 0.3) {
             var vuhDmg = 10 + Math.floor(Math.random() * 18);
             player.hp = Math.max(1, player.hp - vuhDmg);
@@ -6445,6 +6480,11 @@ const GameManager = (function () {
         player._khersonMineTimer = (player._khersonMineTimer || 0) + delta;
         if (player._khersonMineTimer >= 25.0 + Math.random() * 15) {
           player._khersonMineTimer = 0;
+          var _khExX = player.position.x + (Math.random()-0.5)*8;
+          var _khExZ = player.position.z + (Math.random()-0.5)*8;
+          var _khExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_khExX, _khExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_khExX, _khExY, _khExZ), 3);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode && Math.random() < 0.40) {
             var khDmg = 8 + Math.floor(Math.random() * 15);
             player.hp = Math.max(1, player.hp - khDmg);
@@ -6461,6 +6501,14 @@ const GameManager = (function () {
         player._donbasThermTimer = (player._donbasThermTimer || 0) + delta;
         if (player._donbasThermTimer >= 20.0 + Math.random() * 12) {
           player._donbasThermTimer = 0;
+          var _dbX1 = player.position.x + (Math.random()-0.5)*18;
+          var _dbZ1 = player.position.z + (Math.random()-0.5)*18;
+          var _dbY1 = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_dbX1, _dbZ1) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+            Tracers.spawnExplosion(new THREE.Vector3(_dbX1, _dbY1, _dbZ1), 9);
+            Tracers.spawnExplosion(new THREE.Vector3(_dbX1+(Math.random()-0.5)*8, _dbY1, _dbZ1+(Math.random()-0.5)*8), 5);
+          }
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode && Math.random() < 0.45) {
             var dbDmg = 15 + Math.floor(Math.random() * 25);
             player.hp = Math.max(1, player.hp - dbDmg);
@@ -6477,6 +6525,11 @@ const GameManager = (function () {
         player._kyivTankTimer = (player._kyivTankTimer || 0) + delta;
         if (player._kyivTankTimer >= 20.0 + Math.random() * 12) {
           player._kyivTankTimer = 0;
+          var _kyExX = player.position.x + (Math.random()-0.5)*10;
+          var _kyExZ = player.position.z + (Math.random()-0.5)*10;
+          var _kyExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_kyExX, _kyExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_kyExX, _kyExY, _kyExZ), 4);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
           if (!player.godMode && Math.random() < 0.40) {
             var kyTkDmg = 8 + Math.floor(Math.random() * 15);
             player.hp = Math.max(1, player.hp - kyTkDmg);
@@ -6509,13 +6562,21 @@ const GameManager = (function () {
         player._belgorodGradTimer = (player._belgorodGradTimer || 0) + delta;
         if (player._belgorodGradTimer >= 14.0 + Math.random() * 8) {
           player._belgorodGradTimer = 0;
-          if (!player.godMode && Math.random() < 0.50) {
+          var _bgFireChance = Math.random();
+          var _bgExX = player.position.x + (Math.random()-0.5)*16;
+          var _bgExZ = player.position.z + (Math.random()-0.5)*16;
+          var _bgExY = typeof VoxelWorld !== 'undefined' ? VoxelWorld.getTerrainHeight(_bgExX, _bgExZ) : 0;
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(_bgExX, _bgExY, _bgExZ), 7);
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
+          if (!player.godMode && _bgFireChance < 0.50) {
             var bgDmg = 12 + Math.floor(Math.random() * 22);
             player.hp = Math.max(1, player.hp - bgDmg);
             HUD.setHealth(player.hp, player.maxHp);
             if (HUD.showDamageFlash) HUD.showDamageFlash(0xff4400, 0.45);
             if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(1.2);
             if (HUD.notifyPickup) HUD.notifyPickup('🚀 GRAD ROCKET STRIKE!', '#ff4400');
+          } else if (!player.godMode) {
+            if (HUD.notifyPickup) HUD.notifyPickup('🚀 Grad salvo — near miss!', '#ff6600');
           }
         }
       }
