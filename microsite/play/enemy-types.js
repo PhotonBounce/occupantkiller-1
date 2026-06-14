@@ -590,18 +590,21 @@ const EnemyTypes = (function () {
   function updateBoss(enemy, playerPos, dt, wave) {
     if (!enemy.alive) return null;
     const result = {};
-    // Rage mode at < 50% HP
-    const bossMaxHP = TYPES.BOSS.hp + (wave - 1) * 50;
+    // Rage mode at < 50% HP — use actual maxHp so stage bosses phase correctly
+    const bossMaxHP = enemy.maxHp || (TYPES.BOSS.hp + (wave - 1) * 50);
     if (enemy.hp < bossMaxHP * 0.5) {
       result.rageMode = true;
       enemy._rageMult = 1.5; // faster attacks
     }
-    // Summon reinforcements every 15s
+    // Summon reinforcements using boss-specific interval + types when available
+    const typeCfg = TYPES[enemy.typeName] || TYPES[enemy.typeCfg && enemy.typeCfg.name] || null;
+    const summonInterval = (typeCfg && typeCfg.summonInterval) ? typeCfg.summonInterval : 15;
     enemy._summonTimer = (enemy._summonTimer || 0) + dt;
-    if (enemy._summonTimer >= 15) {
+    if (enemy._summonTimer >= summonInterval) {
       enemy._summonTimer = 0;
       result.summon = true;
-      result.summonCount = 2 + Math.floor(wave / 3);
+      result.summonCount = (typeCfg && typeCfg.summonCount) ? typeCfg.summonCount : (2 + Math.floor(wave / 3));
+      result.summonTypes = (typeCfg && typeCfg.summonTypes && typeCfg.summonTypes.length) ? typeCfg.summonTypes : null;
     }
     return result;
   }
@@ -643,6 +646,7 @@ const EnemyTypes = (function () {
     15: 'BOSS_SAKY',         // Black Sea Aviation General
     16: 'BOSS_VUHLEDAR',     // Tank Corps Colonel
     17: 'BOSS_ANTONOV',      // Logistics Rear Admiral
+    // 18 (Refinery FPV) is droneOnly/single-wave — no boss needed
   };
 
   /**
