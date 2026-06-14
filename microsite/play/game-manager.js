@@ -4651,8 +4651,8 @@ const GameManager = (function () {
       }
 
       const nextStageDef = STAGES[currentStage + 1];
-      var _scnn = document.getElementById('stageclear-next-name');   if (_scnn) _scnn.textContent = nextStageDef.name;
-      var _scnl = document.getElementById('stageclear-next-label');  if (_scnl) _scnl.style.display = '';
+      var _scnn = document.getElementById('stageclear-next-name');   if (_scnn) _scnn.textContent = nextStageDef ? nextStageDef.name : 'VICTORY';
+      var _scnl = document.getElementById('stageclear-next-label');  if (_scnl) _scnl.style.display = nextStageDef ? '' : 'none';
       // Defensive: ensure no lingering auto-countdown can bypass stage clear
       if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
       return;
@@ -5724,7 +5724,7 @@ const GameManager = (function () {
           WAGNER: 'SCARH',        KADYROVITE: 'AK74',     COMMISSAR: 'MAKAROV',
           SABOTEUR: 'GP25',       SHIELD_BEARER: 'MAKAROV', MORTAR: 'AK74',
           SNIPER_ELITE: 'BARRETTM82', HEAVY_SNIPER: 'BARRETTM82',
-          SPETSNAZ: 'AK12',      FLAMETHROWER: 'FLAMETHROWER',
+          FLAMETHROWER: 'FLAMETHROWER',
           BTR: 'PKM',             PARATROOP: 'AK74',      DRONE_OP: 'MAKAROV',
           EW_OPERATOR: 'MAKAROV', WAR_DOG: null,          BOMBER: null,
           KAMIKAZE_DRONE: null,   THERMOBARIC: 'RPG7',    ASSAULT_MECH: 'PKM',
@@ -6677,7 +6677,7 @@ const GameManager = (function () {
             _ctThreats.push({
               bearing: _bear, d2: _cd2,
               spotted: !!_ce.playerSpotted,
-              boss: (_ce.typeCfg && _ce.typeCfg.name === 'BOSS')
+              boss: (_ce.typeName === 'BOSS' || (_ce.typeName && _ce.typeName.startsWith('BOSS_')))
             });
           }
           // Keep nearest 5 (or all bosses + nearest)
