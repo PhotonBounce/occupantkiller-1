@@ -1838,10 +1838,19 @@ const Enemies = (() => {
       { type: 'STORMER',  role: SQUAD_ROLE.POINTMAN },
     ];
     // Stage-specific pointman type
-    if (stageNum === 3)       _formOrder[2].type = 'WAGNER';
+    if      (stageNum === 3)  _formOrder[2].type = 'WAGNER';
+    else if (stageNum === 5)  _formOrder[2].type = 'SHIELD_BEARER';
+    else if (stageNum === 7)  _formOrder[2].type = 'SABOTEUR';
     else if (stageNum === 8)  _formOrder[2].type = 'SPETSNAZ';
+    else if (stageNum === 9)  _formOrder[2].type = 'BTR';
     else if (stageNum === 10) _formOrder[2].type = 'KADYROVITE';
+    else if (stageNum === 11) _formOrder[2].type = 'THERMOBARIC';
     else if (stageNum === 12) _formOrder[2].type = 'SPETSNAZ';
+    else if (stageNum === 14) _formOrder[2].type = 'DRONE_OP';
+    else if (stageNum === 15) _formOrder[2].type = 'KAMIKAZE_DRONE';
+    else if (stageNum === 16) _formOrder[2].type = 'ARMORED';
+    else if (stageNum === 17) _formOrder[2].type = 'HEAVY_SNIPER';
+    else if (stageNum === 18) _formOrder[2].type = 'DRONE_OP';
 
     var roster = STAGE_ROSTER[stageNum];
     var rifleCt = 2 + Math.floor(Math.random() * 3) + Math.floor(stageNum / 4);
