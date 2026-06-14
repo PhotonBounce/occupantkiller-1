@@ -4184,6 +4184,23 @@ const GameManager = (function () {
       WorldFeatures.addRadiationZone(player.position.x - 25, player.position.z + 15, 6);
       HUD.notifyPickup('☢ CHORNOBYL RADIATION ZONES ACTIVE!', '#00ff00');
     }
+    // Bakhmut (id 3): Wagner surrounds from all angles each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 3 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _wagnCount = Math.min(4, 2 + Math.floor(w / 3));
+      for (var _wi = 0; _wi < _wagnCount; _wi++) {
+        var _wa = (_wi / _wagnCount) * Math.PI * 2 + Math.random() * 0.4;
+        var _wd = 25 + Math.random() * 10;
+        var _wx = player.position.x + Math.cos(_wa) * _wd;
+        var _wz = player.position.z + Math.sin(_wa) * _wd;
+        Enemies.spawnSingle(w >= 4 ? 'WAGNER' : 'STORMER', new THREE.Vector3(_wx, VoxelWorld.getTerrainHeight(_wx, _wz), _wz));
+      }
+      if (w >= 5) {
+        var _mortA = Math.random() * Math.PI * 2;
+        var _mortX = player.position.x + Math.cos(_mortA) * 32;
+        var _mortZ = player.position.z + Math.sin(_mortA) * 32;
+        Enemies.spawnSingle('MORTAR', new THREE.Vector3(_mortX, VoxelWorld.getTerrainHeight(_mortX, _mortZ), _mortZ));
+      }
+    }
     // Snake Island (id 14): Russian naval marines land each wave
     if (STAGES[currentStage] && STAGES[currentStage].id === 14 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
       var _snkCount = Math.min(4, 1 + Math.floor(w / 2));

@@ -967,7 +967,7 @@ const Enemies = (() => {
     3: { bias: 0.50, pool: ['STORMER','MORTAR','ARMORED','SABOTEUR','WAGNER'] },                    // Bakhmut — Wagner meat-grinder + heavy mortar
     4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor drowned in Dnipro
     5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER'] },       // Mariupol — CQB in steelworks
-    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','STORMER','SNIPER','ARMORED'] },           // Crimea — naval marines: drones + assault infantry + armor
+    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — naval marines landing + air+sea drones
     7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+mutant+Spetsnaz (objective says "Spetsnaz")
     8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER'] }, // Moscow — elite FSB
     9: { bias: 0.55, pool: ['BTR','DRONE_OP','HEAVY_SNIPER','STORMER','MORTAR'] },                  // Sevastopol — naval base
