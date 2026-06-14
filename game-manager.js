@@ -2232,11 +2232,17 @@ const GameManager = (function () {
         if (!isMobile && (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE)
             && !document.pointerLockElement) {
           requestPointerLock();
-          return; // Don't fire on the lock-acquiring click
+          // When possessing a drone, also register the click as fire — don't eat it
+          if (typeof DroneSystem !== 'undefined' && DroneSystem.isPossessing && DroneSystem.isPossessing()) {
+            mouseDown = true;
+            mouseNewPress = true;
+          } else {
+            return; // Don't fire on the lock-acquiring click
+          }
+        } else {
+          mouseDown = true;
+          mouseNewPress = true;
         }
-
-        mouseDown = true;
-        mouseNewPress = true;
 
         if (gameState === STATE.BUILD_MODE) {
           handleBuildClick();

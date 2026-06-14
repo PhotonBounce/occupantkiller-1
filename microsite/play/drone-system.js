@@ -1194,14 +1194,18 @@ const DroneSystem = (function () {
       drone.mesh.children.forEach(function(ch) { if (ch.userData.isPayload) ch.visible = false; });
     }
     const dropPos = drone.position.clone();
-    dropPos.y -= 1;
+    if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+      dropPos.y = VoxelWorld.getTerrainHeight(Math.round(dropPos.x), Math.round(dropPos.z)) + 0.5;
+    } else {
+      dropPos.y -= 1;
+    }
     // Fire damage to enemies
     if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
-      Enemies.damageInRadius(dropPos, 6, drone.damage);
+      Enemies.damageInRadius(dropPos, 8, drone.damage);
     }
     // Spawn fire VFX
     if (typeof Tracers !== 'undefined') {
-      if (Tracers.spawnFire) Tracers.spawnFire(dropPos, 6);
+      if (Tracers.spawnFire) Tracers.spawnFire(dropPos, 8);
       if (Tracers.spawnExplosion) Tracers.spawnExplosion(dropPos, 3);
     }
     // Terrain fire: set blocks to fire type temporarily
