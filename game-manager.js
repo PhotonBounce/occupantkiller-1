@@ -5612,20 +5612,28 @@ const GameManager = (function () {
       // Enemy weapon drop: 20% chance, drops weapon ammo pickup
       if (Math.random() < 0.20) {
         var _ENEMY_WEAPONS = {
-          CONSCRIPT: 'MAKAROV', STORMER: 'AK74', ARMORED: 'PKM',
-          MEDIC: 'MAKAROV', OFFICER: 'MAKAROV', SNIPER: 'SVD',
-          ENGINEER: 'AK74', SPETSNAZ: 'AK74', RIOT: 'MAKAROV',
-          TANK: 'PKM', HEAVY_ARMOR: 'RPK74', BOSS: 'PKM',
+          CONSCRIPT: 'MAKAROV',   STORMER: 'AK74',        ARMORED: 'PKM',
+          MEDIC: 'MAKAROV',       OFFICER: 'MAKAROV',     SNIPER: 'SVD',
+          ENGINEER: 'AK74',       SPETSNAZ: 'AK12',       RIOT: 'MAKAROV',
+          TANK: 'PKM',            HEAVY_ARMOR: 'RPK74',   BOSS: 'PKM',
+          WAGNER: 'SCARH',        KADYROVITE: 'AK74',     COMMISSAR: 'MAKAROV',
+          SABOTEUR: 'GP25',       SHIELD_BEARER: 'MAKAROV', MORTAR: 'AK74',
+          SNIPER_ELITE: 'BARRETTM82', HEAVY_SNIPER: 'BARRETTM82',
+          FLAMETHROWER: 'FLAMETHROWER',
+          BTR: 'PKM',             PARATROOP: 'AK74',      DRONE_OP: 'MAKAROV',
+          EW_OPERATOR: 'MAKAROV', WAR_DOG: null,          BOMBER: null,
+          KAMIKAZE_DRONE: null,   THERMOBARIC: 'RPG7',    ASSAULT_MECH: 'PKM',
         };
         var enemyTypeName = (enemy.typeCfg && enemy.typeCfg.name) || 'CONSCRIPT';
-        var dropWeaponId = _ENEMY_WEAPONS[enemyTypeName] || 'AK74';
+        var dropWeaponId = (enemyTypeName in _ENEMY_WEAPONS) ? _ENEMY_WEAPONS[enemyTypeName] : 'AK74';
+        if (!dropWeaponId) dropWeaponId = null;
         // Find weapon index by ID
         var dropIdx = -1;
         var wCount = Weapons.getWeaponCount();
         for (var dwi = 0; dwi < wCount; dwi++) {
           if (Weapons.getWeaponId(dwi) === dropWeaponId) { dropIdx = dwi; break; }
         }
-        if (dropIdx >= 0) {
+        if (dropIdx >= 0 && dropWeaponId) {
           Pickups.spawn(enemy.mesh.position, 'WEAPON', { weaponIdx: dropIdx, weaponId: dropWeaponId });
         }
       }
