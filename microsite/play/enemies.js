@@ -615,6 +615,41 @@ const Enemies = (() => {
       attackDmg: 100, attackRate: 1.0, scoreValue: 25000, dropChance: 1.0,
       role: 'boss', range: 20, rangedDmg: 250, rangedRate: 2.5, accuracy: 0.7,
     },
+    BOSS_KYIV: {
+      name: 'BOSS_KYIV', hpBase: 1800, speedBase: 1.8, scale: 2.2,
+      camoVariant: 'dark', bodyColor: 0x8b0000, headColor: 0xd0b090,
+      limbColor: 0x660000, helmetColor: 0x440000, eyeColor: 0xff2200,
+      attackDmg: 70, attackRate: 1.2, scoreValue: 8000, dropChance: 1.0,
+      role: 'boss', range: 18, rangedDmg: 70, rangedRate: 1.5, accuracy: 0.55,
+    },
+    BOSS_SNAKE_ISLAND: {
+      name: 'BOSS_SNAKE_ISLAND', hpBase: 2000, speedBase: 1.2, scale: 2.4,
+      camoVariant: 'dark', bodyColor: 0x1a3a5a, headColor: 0xd0b090,
+      limbColor: 0x112244, helmetColor: 0x0a1a33, eyeColor: 0x00aaff,
+      attackDmg: 80, attackRate: 1.5, scoreValue: 7000, dropChance: 1.0,
+      role: 'boss', range: 25, rangedDmg: 80, rangedRate: 2.0, accuracy: 0.55,
+    },
+    BOSS_SAKY: {
+      name: 'BOSS_SAKY', hpBase: 1600, speedBase: 2.0, scale: 2.0,
+      camoVariant: 'dark', bodyColor: 0x2a2a4a, headColor: 0xd0b090,
+      limbColor: 0x1a1a33, helmetColor: 0x111122, eyeColor: 0x4466ff,
+      attackDmg: 65, attackRate: 1.0, scoreValue: 9000, dropChance: 1.0,
+      role: 'boss', range: 20, rangedDmg: 65, rangedRate: 1.5, accuracy: 0.6,
+    },
+    BOSS_VUHLEDAR: {
+      name: 'BOSS_VUHLEDAR', hpBase: 2200, speedBase: 1.4, scale: 2.6,
+      camoVariant: 'dark', bodyColor: 0x3a2800, headColor: 0xd0b090,
+      limbColor: 0x281800, helmetColor: 0x1a0e00, eyeColor: 0xff4400,
+      attackDmg: 90, attackRate: 1.3, scoreValue: 10000, dropChance: 1.0,
+      role: 'boss', range: 22, rangedDmg: 90, rangedRate: 2.0, accuracy: 0.5,
+    },
+    BOSS_ANTONOV: {
+      name: 'BOSS_ANTONOV', hpBase: 1400, speedBase: 1.6, scale: 2.0,
+      camoVariant: 'dark', bodyColor: 0x2a4a2a, headColor: 0xd0b090,
+      limbColor: 0x1a3318, helmetColor: 0x112211, eyeColor: 0x44ff44,
+      attackDmg: 55, attackRate: 1.0, scoreValue: 11000, dropChance: 1.0,
+      role: 'boss', range: 16, rangedDmg: 55, rangedRate: 1.2, accuracy: 0.55,
+    },
   };
 
   // ── Cover-Seeking Helper ────────────────────────────────────
@@ -1359,6 +1394,9 @@ const Enemies = (() => {
     // ~6% of basic infantry get one of: donkey rider, wheelchair, crutches, crawling.
     // Skips bosses, mechs, vehicles, dogs, drones, kamikaze, snipers.
     var _wvSkip = { BOSS:1, BOSS_MARIUPOL:1, BOSS_CRIMEA:1, BOSS_CHORNOBYL:1,
+      BOSS_MOSCOW:1, BOSS_SEVASTOPOL:1, BOSS_DONBAS:1, BOSS_BELGOROD:1,
+      BOSS_KREMLIN:1, BOSS_KYIV:1, BOSS_SNAKE_ISLAND:1, BOSS_SAKY:1,
+      BOSS_VUHLEDAR:1, BOSS_ANTONOV:1,
       WAR_DOG:1, KAMIKAZE_DRONE:1, ASSAULT_MECH:1, TANK:1, BTR:1,
       MORTAR:1, HEAVY_SNIPER:1, SNIPER_ELITE:1, SNIPER:1, BOMBER:1,
       EW_OPERATOR:1, DRONE_OP:1 };
