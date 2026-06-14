@@ -4401,7 +4401,7 @@ const GameManager = (function () {
       var _vuhTankA = Math.random() * Math.PI * 2;
       var _vuhTankX = player.position.x + Math.cos(_vuhTankA) * 30;
       var _vuhTankZ = player.position.z + Math.sin(_vuhTankA) * 30;
-      Enemies.spawnSingle(w >= 5 ? 'HEAVY_ARMOR' : 'TANK', new THREE.Vector3(_vuhTankX, VoxelWorld.getTerrainHeight(_vuhTankX, _vuhTankZ), _vuhTankZ));
+      Enemies.spawnSingle(w >= 6 ? 'ASSAULT_MECH' : 'TANK', new THREE.Vector3(_vuhTankX, VoxelWorld.getTerrainHeight(_vuhTankX, _vuhTankZ), _vuhTankZ));
       if (w >= 3) {
         var _vuhBtrA = _vuhTankA + Math.PI * 0.5 + Math.random() * 0.4;
         var _vuhBtrX = player.position.x + Math.cos(_vuhBtrA) * 26;
@@ -5783,7 +5783,7 @@ const GameManager = (function () {
           CONSCRIPT: 'MAKAROV',   STORMER: 'AK74',        ARMORED: 'PKM',
           MEDIC: 'MAKAROV',       OFFICER: 'MAKAROV',     SNIPER: 'SVD',
           ENGINEER: 'AK74',       SPETSNAZ: 'AK12',       RIOT: 'MAKAROV',
-          TANK: 'PKM',            HEAVY_ARMOR: 'RPK74',   BOSS: 'PKM',
+          TANK: 'PKM',            ASSAULT_MECH: 'PKM',    BOSS: 'PKM',
           WAGNER: 'SCARH',        KADYROVITE: 'AK74',     COMMISSAR: 'MAKAROV',
           SABOTEUR: 'GP25',       SHIELD_BEARER: 'MAKAROV', MORTAR: 'AK74',
           SNIPER_ELITE: 'BARRETTM82', HEAVY_SNIPER: 'BARRETTM82',
