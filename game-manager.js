@@ -6213,6 +6213,118 @@ const GameManager = (function () {
         }
       }
 
+      // ── KHERSON: River mines (stage 4) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 4 && gameState === STATE.PLAYING) {
+        player._khersonMineTimer = (player._khersonMineTimer || 0) + delta;
+        if (player._khersonMineTimer >= 25.0 + Math.random() * 15) {
+          player._khersonMineTimer = 0;
+          if (!player.godMode && Math.random() < 0.40) {
+            var khDmg = 8 + Math.floor(Math.random() * 15);
+            player.hp = Math.max(1, player.hp - khDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0x2255ff, 0.35);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.7);
+            if (HUD.notifyPickup) HUD.notifyPickup('💧 RIVER MINE — WATCH THE WATER!', '#2266ff');
+          }
+        }
+      }
+
+      // ── MARIUPOL: Azovstal siege bombardment (stage 5) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 5 && gameState === STATE.PLAYING) {
+        player._mariupolSiegeTimer = (player._mariupolSiegeTimer || 0) + delta;
+        if (player._mariupolSiegeTimer >= 15.0 + Math.random() * 12) {
+          player._mariupolSiegeTimer = 0;
+          if (!player.godMode && Math.random() < 0.40) {
+            var mariDmg = 6 + Math.floor(Math.random() * 15);
+            player.hp = Math.max(1, player.hp - mariDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff5500, 0.35);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.85);
+            if (HUD.notifyPickup) HUD.notifyPickup('💥 AZOVSTAL UNDER SIEGE FIRE!', '#ff5500');
+          }
+        }
+      }
+
+      // ── CRIMEA BRIDGE: Naval bombardment (stage 6) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 6 && gameState === STATE.PLAYING) {
+        player._crimeaBombardTimer = (player._crimeaBombardTimer || 0) + delta;
+        if (player._crimeaBombardTimer >= 12.0 + Math.random() * 8) {
+          player._crimeaBombardTimer = 0;
+          if (!player.godMode && Math.random() < 0.45) {
+            var crbDmg = 8 + Math.floor(Math.random() * 16);
+            player.hp = Math.max(1, player.hp - crbDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0x2244cc, 0.4);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.95);
+            if (HUD.notifyPickup) HUD.notifyPickup('⚓ NAVAL BOMBARDMENT!', '#3366ff');
+          }
+        }
+      }
+
+      // ── MOSCOW FINALE: City defense artillery (stage 8) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 8 && gameState === STATE.PLAYING) {
+        player._moscowArtillTimer = (player._moscowArtillTimer || 0) + delta;
+        if (player._moscowArtillTimer >= 12.0 + Math.random() * 10) {
+          player._moscowArtillTimer = 0;
+          if (!player.godMode && Math.random() < 0.45) {
+            var mosDmg = 10 + Math.floor(Math.random() * 20);
+            player.hp = Math.max(1, player.hp - mosDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff2200, 0.45);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(1.0);
+            if (HUD.notifyPickup) HUD.notifyPickup('💥 MOSCOW DEFENSE ARTILLERY!', '#ff3300');
+          }
+        }
+      }
+
+      // ── DONBAS: Thermobaric strike (stage 10) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 10 && gameState === STATE.PLAYING) {
+        player._donbasThermTimer = (player._donbasThermTimer || 0) + delta;
+        if (player._donbasThermTimer >= 20.0 + Math.random() * 12) {
+          player._donbasThermTimer = 0;
+          if (!player.godMode && Math.random() < 0.45) {
+            var dbDmg = 15 + Math.floor(Math.random() * 25);
+            player.hp = Math.max(1, player.hp - dbDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff2200, 0.55);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(1.3);
+            if (HUD.notifyPickup) HUD.notifyPickup('☢ THERMOBARIC STRIKE — EVACUATE!', '#ff2200');
+          }
+        }
+      }
+
+      // ── KREMLIN SHOWDOWN: Defense rocket barrage (stage 12) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 12 && gameState === STATE.PLAYING) {
+        player._kremlinRocketTimer = (player._kremlinRocketTimer || 0) + delta;
+        if (player._kremlinRocketTimer >= 10.0 + Math.random() * 7) {
+          player._kremlinRocketTimer = 0;
+          if (!player.godMode && Math.random() < 0.55) {
+            var krDmg = 12 + Math.floor(Math.random() * 20);
+            player.hp = Math.max(1, player.hp - krDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff0000, 0.5);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(1.2);
+            if (HUD.notifyPickup) HUD.notifyPickup('🚀 KREMLIN DEFENSE ROCKET!', '#ff0000');
+          }
+        }
+      }
+
+      // ── KYIV: Russian tank fire (stage 13) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 13 && gameState === STATE.PLAYING) {
+        player._kyivTankTimer = (player._kyivTankTimer || 0) + delta;
+        if (player._kyivTankTimer >= 20.0 + Math.random() * 12) {
+          player._kyivTankTimer = 0;
+          if (!player.godMode && Math.random() < 0.40) {
+            var kyTkDmg = 8 + Math.floor(Math.random() * 15);
+            player.hp = Math.max(1, player.hp - kyTkDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff4400, 0.35);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.8);
+            if (HUD.notifyPickup) HUD.notifyPickup('🔥 RUSSIAN TANK FIRE!', '#ff5500');
+          }
+        }
+      }
+
       // ── AVDIIVKA: Sniper fire from ruins (stage 2) ──
       if (STAGES[currentStage] && STAGES[currentStage].id === 2 && gameState === STATE.PLAYING) {
         player._avdiivkaSniperTimer = (player._avdiivkaSniperTimer || 0) + delta;
