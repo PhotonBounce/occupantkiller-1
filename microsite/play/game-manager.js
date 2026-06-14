@@ -593,6 +593,7 @@ const GameManager = (function () {
       exposure:     0.9,
       description:  'Stop the airborne assault at Hostomel Airport.',
       objective:    'Destroy all enemy VDV paratroopers and anti-air guns. Survive 7 waves.',
+      hintWeapons:  ['AK74','GP25','IGLA'],
     },
     {
       id:           2,
@@ -607,6 +608,7 @@ const GameManager = (function () {
       exposure:     0.8,
       description:  'Industrial ruins of Avdiivka. Defend the coking plant.',
       objective:    'Hold the coking plant against VDV and armored assaults. Watch for snipers.',
+      hintWeapons:  ['RPG7','DOUBLEBARREL','SVD'],
     },
     {
       id:           3,
@@ -621,6 +623,7 @@ const GameManager = (function () {
       exposure:     0.7,
       description:  'Total destruction in Bakhmut. The city is a graveyard.',
       objective:    'Navigate the ruins. Wagner mercenaries attack from all angles. Clear 7 waves.',
+      hintWeapons:  ['SCARH','CLAYMORE','FLASHBANG'],
     },
     {
       id:           4,
@@ -635,6 +638,7 @@ const GameManager = (function () {
       exposure:     0.9,
       description:  'Cross the Dnipro at Kherson. Liberate the bridgehead.',
       objective:    'Secure the Dnipro crossing. Drown enemy armor in the river. 7 waves.',
+      hintWeapons:  ['NLAW','AT4','RPG7'],
     },
     {
       id:           5,
@@ -649,6 +653,7 @@ const GameManager = (function () {
       exposure:     0.65,
       description:  'Fight through the burning Azovstal steelworks. No retreat.',
       objective:    'Survive the steelworks inferno. Fire deals constant damage. Clear all 7 waves.',
+      hintWeapons:  ['FLAMETHROWER','NLAW','CLAYMORE'],
     },
     {
       id:           6,
@@ -663,6 +668,7 @@ const GameManager = (function () {
       exposure:     0.9,
       description:  'Assault the Kerch Strait bridge. Cut off their supply line.',
       objective:    'Blow the Crimea Bridge. Heavy naval bombardment incoming. 7 waves.',
+      hintWeapons:  ['IGLA','BARRETTM82','PKM'],
     },
     {
       id:           7,
@@ -677,6 +683,7 @@ const GameManager = (function () {
       exposure:     0.75,
       description:  'The irradiated exclusion zone. Radiation adds periodic damage.',
       objective:    'Survive Chornobyl. Radiation, mutants, and Spetsnaz. Avoid the red zones.',
+      hintWeapons:  ['FLAMETHROWER','CLAYMORE','AK12'],
     },
     {
       id:           8,
@@ -691,6 +698,7 @@ const GameManager = (function () {
       exposure:     0.6,
       description:  'The final push to the Kremlin. End it here.',
       objective:    'Push through Moscow defenses. Kill the Kremlin boss. 9 waves.',
+      hintWeapons:  ['BARRETTM82','P90','FLASHBANG'],
     },
     {
       id:           9,
@@ -705,6 +713,7 @@ const GameManager = (function () {
       exposure:     0.85,
       description:  'Destroy the Black Sea Fleet at Sevastopol. Sink them all.',
       objective:    'Naval base assault. Ship artillery rains down. Destroy all fleet defenders.',
+      hintWeapons:  ['NLAW','IGLA','RPG7'],
     },
     {
       id:           10,
@@ -719,6 +728,7 @@ const GameManager = (function () {
       exposure:     0.7,
       description:  'Liberate the last occupied stronghold in Donbas.',
       objective:    'Break the Donbas line. Thermobaric weapons and mechs. 8 waves.',
+      hintWeapons:  ['NLAW','AT4','FLAMETHROWER'],
     },
     {
       id:           11,
@@ -733,6 +743,7 @@ const GameManager = (function () {
       exposure:     0.85,
       description:  'Cross into enemy territory. Take the fight to them.',
       objective:    'Invade Belgorod. Tanks and mechanized infantry counter-attack hard. 8 waves.',
+      hintWeapons:  ['NLAW','JAVELIN','STUGNA'],
     },
     {
       id:           12,
@@ -747,6 +758,7 @@ const GameManager = (function () {
       exposure:     0.5,
       description:  'The ultimate battle for peace. Storm the Kremlin. End the war.',
       objective:    'Final assault. Every enemy type. Maximum difficulty. Survive 10 waves.',
+      hintWeapons:  ['JAVELIN','BARRETTM82','FLAMETHROWER'],
     },
     {
       id:           13,
@@ -778,6 +790,7 @@ const GameManager = (function () {
       exposure:     0.8,
       description:  'Feb 24, 2022. Russian warship Moskva approaches Snake Island. Reply: "Russian warship, go fuck yourself."',
       objective:    'Hold Snake Island against naval bombardment. Only 6 waves — make them count.',
+      hintWeapons:  ['IGLA','RPG7','PKM'],
     },
     {
       id:           15,
@@ -792,6 +805,7 @@ const GameManager = (function () {
       exposure:     0.95,
       description:  'Aug 2022. Crimea. Light up the Saky airbase — every parked Su-24 is a war crime grounded.',
       objective:    'Airbase raid. Heavy bomber drone presence. Jammer rifle recommended. 7 waves.',
+      hintWeapons:  ['IGLA','BARRETTM82','PKM'],
     },
     {
       id:           16,
@@ -822,6 +836,7 @@ const GameManager = (function () {
       exposure:     0.85,
       description:  'Jul-Aug 2022. HIMARS season. Cut the Antonov Bridge supply line and trap the Russian forces in Kherson.',
       objective:    'Bridge strike. Long-range artillery duels. Precision weapons matter. 7 waves.',
+      hintWeapons:  ['BARRETTM82','STUGNA','SVD'],
     },
     {
       id:           18,
@@ -3891,9 +3906,36 @@ const GameManager = (function () {
         return { x: player.position.x + Math.cos(a) * d, z: player.position.z + Math.sin(a) * d };
       }
 
-      if (Math.random() < nestMult) {
-        var fp = _nestSpawnPos(0);
-        DroneSystem.spawnEnemyDrone(fp.x, droneSpawnH, fp.z, 'enemy_fpv');
+      // Enemy FPVs — w2: 1-2, w3+: guaranteed pair
+      DroneSystem.spawnEnemyDrone(_nestSpawnPos(0).x, droneSpawnH, _nestSpawnPos(0).z, 'enemy_fpv');
+      if (w >= 3 || Math.random() < nestMult * 0.5) {
+        var fp2e = _nestSpawnPos(6);
+        DroneSystem.spawnEnemyDrone(fp2e.x, droneSpawnH, fp2e.z, 'enemy_fpv');
+      }
+
+      // Enemy surveillance observer drones — wave 2+, reliable
+      if (Math.random() < nestMult * 0.85) {
+        var obsP = _nestSpawnPos(5);
+        DroneSystem.spawnEnemyDrone(obsP.x, droneSpawnH + 8, obsP.z, 'enemy_observer');
+      }
+
+      // Enemy bomber + extra FPVs — wave 4+
+      if (w >= 4 && Math.random() < nestMult) {
+        var bp = _nestSpawnPos(1);
+        DroneSystem.spawnEnemyDrone(bp.x, droneSpawnH + 5, bp.z, 'enemy_bomber');
+        var fp3 = _nestSpawnPos(2);
+        DroneSystem.spawnEnemyDrone(fp3.x, droneSpawnH, fp3.z, 'enemy_fpv');
+        var fp4 = _nestSpawnPos(3);
+        DroneSystem.spawnEnemyDrone(fp4.x, droneSpawnH, fp4.z, 'enemy_fpv');
+      }
+
+      // Heavy enemy drone wave — wave 6+
+      if (w >= 6 && Math.random() < nestMult) {
+        for (var ei = 0; ei < 4; ei++) {
+          var ep = _nestSpawnPos(ei);
+          DroneSystem.spawnEnemyDrone(ep.x, droneSpawnH + ei * 2, ep.z,
+            ei === 0 ? 'enemy_bomber' : (ei === 3 ? 'enemy_observer' : 'enemy_fpv'));
+        }
       }
 
       // Ukrainian incendiary drone (friendly fire-support) — wave 3+
@@ -3905,8 +3947,8 @@ const GameManager = (function () {
         }
       }
 
-      // Ukrainian surveillance drone — wave 2+ (matches enemy observer timing)
-      if (w >= 2 && w % 3 === 1 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+      // Ukrainian surveillance drone — wave 2+, every other wave (more reliable than before)
+      if (w >= 2 && w % 2 === 0 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
         var survPos = _nestSpawnPos(77);
         var survDrone = DroneSystem.spawn(survPos.x, droneSpawnH + 10, survPos.z, 'surveillance');
         if (survDrone && typeof HUD !== 'undefined' && HUD.notifyPickup) {
@@ -3914,10 +3956,15 @@ const GameManager = (function () {
         }
       }
 
-      // Ukrainian FPV attack — wave 3+ (additional fire support beyond game-start drones)
-      if (w >= 3 && Math.random() < 0.6 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+      // Ukrainian FPV attack — wave 3+ (guaranteed)
+      if (w >= 3 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
         var ufpvPos = _nestSpawnPos(55);
         DroneSystem.spawn(ufpvPos.x, droneSpawnH, ufpvPos.z, 'fpv_attack');
+        // Second FPV on later waves
+        if (w >= 5) {
+          var ufpvPos2 = _nestSpawnPos(56);
+          DroneSystem.spawn(ufpvPos2.x, droneSpawnH, ufpvPos2.z, 'fpv_attack');
+        }
       }
 
       // Ukrainian Baba Yaga fire-dropper — wave 4+, every other wave
@@ -3929,28 +3976,10 @@ const GameManager = (function () {
         }
       }
 
-      // Enemy surveillance observer drones — wave 2+
-      if (w >= 2 && Math.random() < nestMult * 0.7) {
-        var obsP = _nestSpawnPos(5);
-        DroneSystem.spawnEnemyDrone(obsP.x, droneSpawnH + 8, obsP.z, 'enemy_observer');
-      }
-
-      if (w >= 4 && Math.random() < nestMult) {
-        var bp = _nestSpawnPos(1);
-        DroneSystem.spawnEnemyDrone(bp.x, droneSpawnH + 5, bp.z, 'enemy_bomber');
-        var fp2 = _nestSpawnPos(2);
-        DroneSystem.spawnEnemyDrone(fp2.x, droneSpawnH, fp2.z, 'enemy_fpv');
-        // Second FPV for better enemy drone presence
-        var fp3 = _nestSpawnPos(3);
-        DroneSystem.spawnEnemyDrone(fp3.x, droneSpawnH, fp3.z, 'enemy_fpv');
-      }
-
-      if (w >= 6 && Math.random() < nestMult) {
-        for (var ei = 0; ei < 3; ei++) {
-          var ep = _nestSpawnPos(ei);
-          DroneSystem.spawnEnemyDrone(ep.x, droneSpawnH + ei * 3, ep.z,
-            ei === 0 ? 'enemy_bomber' : 'enemy_fpv');
-        }
+      // Ukrainian bomb drone — wave 5+
+      if (w >= 5 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+        var bombPos = _nestSpawnPos(42);
+        DroneSystem.spawn(bombPos.x, droneSpawnH + 3, bombPos.z, 'bomb');
       }
 
       if (aliveNests > 0) {
@@ -4069,6 +4098,23 @@ const GameManager = (function () {
         var _saZ = player.position.z + Math.sin(_saA) * _saD;
         var _saY = VoxelWorld.getTerrainHeight(_saX, _saZ) + 7;
         if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_saX, _saY, _saZ));
+      }
+    }
+    // Snake Island (id 14): Russian naval marines land each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 14 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _snkCount = Math.min(4, 1 + Math.floor(w / 2));
+      for (var _sni = 0; _sni < _snkCount; _sni++) {
+        var _snA = Math.random() * Math.PI * 2;
+        var _snD = 22 + Math.random() * 12;
+        var _snX = player.position.x + Math.cos(_snA) * _snD;
+        var _snZ = player.position.z + Math.sin(_snA) * _snD;
+        Enemies.spawnSingle('STORMER', new THREE.Vector3(_snX, VoxelWorld.getTerrainHeight(_snX, _snZ), _snZ));
+      }
+      if (w >= 3) {
+        var _snA2 = Math.random() * Math.PI * 2;
+        var _snX2 = player.position.x + Math.cos(_snA2) * 30;
+        var _snZ2 = player.position.z + Math.sin(_snA2) * 30;
+        Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_snX2, VoxelWorld.getTerrainHeight(_snX2, _snZ2), _snZ2));
       }
     }
     // Reset combat extras per wave

@@ -3935,9 +3935,36 @@ const GameManager = (function () {
         return { x: player.position.x + Math.cos(a) * d, z: player.position.z + Math.sin(a) * d };
       }
 
-      if (Math.random() < nestMult) {
-        var fp = _nestSpawnPos(0);
-        DroneSystem.spawnEnemyDrone(fp.x, droneSpawnH, fp.z, 'enemy_fpv');
+      // Enemy FPVs — w2: 1-2, w3+: guaranteed pair
+      DroneSystem.spawnEnemyDrone(_nestSpawnPos(0).x, droneSpawnH, _nestSpawnPos(0).z, 'enemy_fpv');
+      if (w >= 3 || Math.random() < nestMult * 0.5) {
+        var fp2e = _nestSpawnPos(6);
+        DroneSystem.spawnEnemyDrone(fp2e.x, droneSpawnH, fp2e.z, 'enemy_fpv');
+      }
+
+      // Enemy surveillance observer drones — wave 2+, reliable
+      if (Math.random() < nestMult * 0.85) {
+        var obsP = _nestSpawnPos(5);
+        DroneSystem.spawnEnemyDrone(obsP.x, droneSpawnH + 8, obsP.z, 'enemy_observer');
+      }
+
+      // Enemy bomber + extra FPVs — wave 4+
+      if (w >= 4 && Math.random() < nestMult) {
+        var bp = _nestSpawnPos(1);
+        DroneSystem.spawnEnemyDrone(bp.x, droneSpawnH + 5, bp.z, 'enemy_bomber');
+        var fp3 = _nestSpawnPos(2);
+        DroneSystem.spawnEnemyDrone(fp3.x, droneSpawnH, fp3.z, 'enemy_fpv');
+        var fp4 = _nestSpawnPos(3);
+        DroneSystem.spawnEnemyDrone(fp4.x, droneSpawnH, fp4.z, 'enemy_fpv');
+      }
+
+      // Heavy enemy drone wave — wave 6+
+      if (w >= 6 && Math.random() < nestMult) {
+        for (var ei = 0; ei < 4; ei++) {
+          var ep = _nestSpawnPos(ei);
+          DroneSystem.spawnEnemyDrone(ep.x, droneSpawnH + ei * 2, ep.z,
+            ei === 0 ? 'enemy_bomber' : (ei === 3 ? 'enemy_observer' : 'enemy_fpv'));
+        }
       }
 
       // Ukrainian incendiary drone (friendly fire-support) — wave 3+
@@ -3949,8 +3976,8 @@ const GameManager = (function () {
         }
       }
 
-      // Ukrainian surveillance drone — wave 2+ (matches enemy observer timing)
-      if (w >= 2 && w % 3 === 1 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+      // Ukrainian surveillance drone — wave 2+, every other wave (more reliable than before)
+      if (w >= 2 && w % 2 === 0 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
         var survPos = _nestSpawnPos(77);
         var survDrone = DroneSystem.spawn(survPos.x, droneSpawnH + 10, survPos.z, 'surveillance');
         if (survDrone && typeof HUD !== 'undefined' && HUD.notifyPickup) {
@@ -3958,10 +3985,15 @@ const GameManager = (function () {
         }
       }
 
-      // Ukrainian FPV attack — wave 3+ (additional fire support beyond game-start drones)
-      if (w >= 3 && Math.random() < 0.6 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+      // Ukrainian FPV attack — wave 3+ (guaranteed)
+      if (w >= 3 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
         var ufpvPos = _nestSpawnPos(55);
         DroneSystem.spawn(ufpvPos.x, droneSpawnH, ufpvPos.z, 'fpv_attack');
+        // Second FPV on later waves
+        if (w >= 5) {
+          var ufpvPos2 = _nestSpawnPos(56);
+          DroneSystem.spawn(ufpvPos2.x, droneSpawnH, ufpvPos2.z, 'fpv_attack');
+        }
       }
 
       // Ukrainian Baba Yaga fire-dropper — wave 4+, every other wave
@@ -3973,27 +4005,10 @@ const GameManager = (function () {
         }
       }
 
-      // Enemy surveillance observer drones — wave 2+
-      if (w >= 2 && Math.random() < nestMult * 0.7) {
-        var obsP = _nestSpawnPos(5);
-        DroneSystem.spawnEnemyDrone(obsP.x, droneSpawnH + 8, obsP.z, 'enemy_observer');
-      }
-
-      if (w >= 4 && Math.random() < nestMult) {
-        var bp = _nestSpawnPos(1);
-        DroneSystem.spawnEnemyDrone(bp.x, droneSpawnH + 5, bp.z, 'enemy_bomber');
-        var fp2 = _nestSpawnPos(2);
-        DroneSystem.spawnEnemyDrone(fp2.x, droneSpawnH, fp2.z, 'enemy_fpv');
-        var fp3 = _nestSpawnPos(3);
-        DroneSystem.spawnEnemyDrone(fp3.x, droneSpawnH, fp3.z, 'enemy_fpv');
-      }
-
-      if (w >= 6 && Math.random() < nestMult) {
-        for (var ei = 0; ei < 3; ei++) {
-          var ep = _nestSpawnPos(ei);
-          DroneSystem.spawnEnemyDrone(ep.x, droneSpawnH + ei * 3, ep.z,
-            ei === 0 ? 'enemy_bomber' : 'enemy_fpv');
-        }
+      // Ukrainian bomb drone — wave 5+
+      if (w >= 5 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+        var bombPos = _nestSpawnPos(42);
+        DroneSystem.spawn(bombPos.x, droneSpawnH + 3, bombPos.z, 'bomb');
       }
 
       if (aliveNests > 0) {
@@ -4161,6 +4176,23 @@ const GameManager = (function () {
       WorldFeatures.addRadiationZone(player.position.x + 30, player.position.z + 30, 8);
       WorldFeatures.addRadiationZone(player.position.x - 25, player.position.z + 15, 6);
       HUD.notifyPickup('☢ CHORNOBYL RADIATION ZONES ACTIVE!', '#00ff00');
+    }
+    // Snake Island (id 14): Russian naval marines land each wave
+    if (STAGES[currentStage] && STAGES[currentStage].id === 14 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+      var _snkCount = Math.min(4, 1 + Math.floor(w / 2));
+      for (var _sni = 0; _sni < _snkCount; _sni++) {
+        var _snA = Math.random() * Math.PI * 2;
+        var _snD = 22 + Math.random() * 12;
+        var _snX = player.position.x + Math.cos(_snA) * _snD;
+        var _snZ = player.position.z + Math.sin(_snA) * _snD;
+        Enemies.spawnSingle('STORMER', new THREE.Vector3(_snX, VoxelWorld.getTerrainHeight(_snX, _snZ), _snZ));
+      }
+      if (w >= 3) {
+        var _snA2 = Math.random() * Math.PI * 2;
+        var _snX2 = player.position.x + Math.cos(_snA2) * 30;
+        var _snZ2 = player.position.z + Math.sin(_snA2) * 30;
+        Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_snX2, VoxelWorld.getTerrainHeight(_snX2, _snZ2), _snZ2));
+      }
     }
     // Reset combat extras per wave
     if (typeof CombatExtras !== 'undefined') {

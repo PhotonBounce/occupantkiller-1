@@ -928,18 +928,23 @@ const Enemies = (() => {
   // Each stage has a signature enemy pool + a chance to pull from it
   var STAGE_ROSTER = {
     1: { bias: 0.50, pool: ['PARATROOP','PARATROOP','CONSCRIPT','DRONE_OP','STORMER'] },             // Hostomel — VDV airborne assault
-    2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','ENGINEER'] },               // Avdiivka — industrial defenders
-    3: { bias: 0.50, pool: ['STORMER','STORMER','ARMORED','SABOTEUR','WAGNER'] },                   // Bakhmut — Wagner meat-grinder
-    4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','PARATROOP','STORMER','SNIPER'] },                 // Kherson — river crossing snipers
+    2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','SNIPER'] },                 // Avdiivka — industrial defenders + snipers (per objective)
+    3: { bias: 0.50, pool: ['STORMER','MORTAR','ARMORED','SABOTEUR','WAGNER'] },                    // Bakhmut — Wagner meat-grinder + heavy mortar
+    4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor (lure them into river)
     5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER'] },       // Mariupol — CQB in steelworks
-    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — air+sea
-    7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','FLAMETHROWER'] },               // Chornobyl — feral+mutant
+    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — air+sea (naval marines + drones)
+    7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+Spetsnaz (per objective)
     8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER'] }, // Moscow — elite FSB
     9: { bias: 0.55, pool: ['BTR','DRONE_OP','HEAVY_SNIPER','STORMER','MORTAR'] },                  // Sevastopol — naval base
     10:{ bias: 0.60, pool: ['KADYROVITE','WAGNER','COMMISSAR','MORTAR','ARMORED'] },                 // Donbas — entrenched
     11:{ bias: 0.60, pool: ['SPETSNAZ','THERMOBARIC','ASSAULT_MECH','HEAVY_SNIPER','BTR'] },          // Belgorod — mechanized (VehicleSystem handles tank visuals)
     12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR'] },    // Kremlin — everything
     13:{ bias: 0.60, pool: ['CONSCRIPT','STORMER','PARATROOP','DRONE_OP','SPETSNAZ'] },             // Kyiv — column escort infantry (armor comes from ConvoySystem)
+    14:{ bias: 0.55, pool: ['STORMER','DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER'] },          // Snake Island — naval marines + coastal drones
+    15:{ bias: 0.55, pool: ['DRONE_OP','KAMIKAZE_DRONE','EW_OPERATOR','ENGINEER','SNIPER_ELITE'] }, // Saky Airbase — drone-heavy air base security
+    16:{ bias: 0.60, pool: ['ARMORED','MORTAR','SABOTEUR','STORMER','SNIPER'] },                    // Vuhledar — tank escort infantry in mine fields
+    17:{ bias: 0.55, pool: ['MORTAR','HEAVY_SNIPER','SNIPER_ELITE','EW_OPERATOR','ARMORED'] },      // Antonov Bridge — long-range artillery duels
+    18:{ bias: 0.70, pool: ['KAMIKAZE_DRONE','DRONE_OP','EW_OPERATOR','SPETSNAZ','ENGINEER'] },     // Refinery — drone-heavy industrial guards
   };
 
   // ── Choose a type appropriate for the current wave + stage ──
