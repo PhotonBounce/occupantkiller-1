@@ -6148,6 +6148,52 @@ const GameManager = (function () {
         }
       }
 
+      // ── BAKHMUT: Wagner artillery barrage (stage 3) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 3 && gameState === STATE.PLAYING) {
+        player._bakhmutArtillTimer = (player._bakhmutArtillTimer || 0) + delta;
+        if (player._bakhmutArtillTimer >= 12.0 + Math.random() * 8) {
+          player._bakhmutArtillTimer = 0;
+          if (!player.godMode && Math.random() < 0.4) {
+            var baDmg = 5 + Math.floor(Math.random() * 12);
+            player.hp = Math.max(1, player.hp - baDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff6600, 0.3);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.8);
+            if (HUD.notifyPickup) HUD.notifyPickup('💥 Wagner artillery barrage!', '#ff6600');
+          }
+        }
+      }
+
+      // ── VUHLEDAR: Mine detonation hazard (stage 16) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 16 && gameState === STATE.PLAYING) {
+        player._vuhMineTimer = (player._vuhMineTimer || 0) + delta;
+        if (player._vuhMineTimer >= 18.0 + Math.random() * 10) {
+          player._vuhMineTimer = 0;
+          if (!player.godMode && Math.random() < 0.3) {
+            var vuhDmg = 10 + Math.floor(Math.random() * 18);
+            player.hp = Math.max(1, player.hp - vuhDmg);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff8800, 0.5);
+            if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(1.1);
+            if (HUD.notifyPickup) HUD.notifyPickup('💣 MINEFIELD — MOVE CAREFULLY!', '#ff8800');
+          }
+        }
+      }
+
+      // ── REFINERY: Oil fire exposure (stage 18) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 18 && gameState === STATE.PLAYING) {
+        player._refineryFireTimer = (player._refineryFireTimer || 0) + delta;
+        if (player._refineryFireTimer >= 5.0 + Math.random() * 3) {
+          player._refineryFireTimer = 0;
+          if (!player.godMode && Math.random() < 0.3) {
+            player.hp = Math.max(1, player.hp - 4);
+            HUD.setHealth(player.hp, player.maxHp);
+            if (HUD.showDamageFlash) HUD.showDamageFlash(0xff4400, 0.25);
+            if (HUD.notifyPickup) HUD.notifyPickup('🔥 Burning refinery — watch your health!', '#ff4400');
+          }
+        }
+      }
+
       // B23: Multikill timer decay
       if (player.multikillTimer > 0) {
         player.multikillTimer -= delta;
