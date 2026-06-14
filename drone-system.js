@@ -906,7 +906,7 @@ const DroneSystem = (function () {
         var _vAll = VehicleSystem.getAll();
         for (var _vi = 0; _vi < _vAll.length; _vi++) {
           var _vv = _vAll[_vi];
-          if (!_vv || !_vv.mesh || !_vv.alive) continue;
+          if (!_vv || !_vv.mesh || !_vv.alive || _vv.faction !== 'enemy') continue;
           if (drone.position.distanceTo(_vv.mesh.position) < 2.5) { _hitEnemy = true; break; }
         }
       }
