@@ -565,24 +565,44 @@ const DroneSystem = (function () {
         drone.velocity.y = (dy / dist3D) * speed;
         drone.velocity.z = (dz / dist3D) * speed;
       } else {
-        // Impact! Explode and damage player
+        // Impact! Full kamikaze explosion
+        var impactPos = drone.position.clone();
+        // Blast radius damage to player + nearby enemies
         if (gm) {
           var p = gm.getPlayer();
-          if (p && !p.godMode) p.hp -= drone.damage;
+          if (p && !p.godMode) {
+            var d2p = impactPos.distanceTo(p.position);
+            if (d2p < 5) {
+              var blastDmg = Math.round(drone.damage * (1 - d2p / 5));
+              p.hp = Math.max(0, p.hp - blastDmg);
+              if (typeof HUD !== 'undefined') {
+                if (HUD.setHealth) HUD.setHealth(p.hp, p.maxHp);
+                if (HUD.showDamageFlash) HUD.showDamageFlash(0xff4400, 0.7);
+                if (HUD.notifyPickup) HUD.notifyPickup('💥 ENEMY FPV HIT!', '#ff4400');
+              }
+            }
+          }
         }
-        // Terrain destruction at impact
-        var ix = Math.floor(drone.position.x);
-        var iy = Math.floor(drone.position.y);
-        var iz = Math.floor(drone.position.z);
+        // Area damage to enemies caught in blast
+        if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+          Enemies.damageInRadius(impactPos, 4, drone.damage * 0.5);
+        }
+        // Explosion visuals
+        if (typeof Tracers !== 'undefined') {
+          if (Tracers.spawnExplosion) Tracers.spawnExplosion(impactPos, 4);
+          else if (Tracers.spawnSmoke) Tracers.spawnSmoke(impactPos);
+        }
+        if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.7);
+        // Terrain crater
+        var ix = Math.floor(impactPos.x);
+        var iy = Math.floor(impactPos.y);
+        var iz = Math.floor(impactPos.z);
         if (typeof window.VoxelWorld !== 'undefined' && window.VoxelWorld.setBlock) {
           for (var bx = -1; bx <= 1; bx++) {
             for (var bz = -1; bz <= 1; bz++) {
               window.VoxelWorld.setBlock(ix + bx, iy, iz + bz, 0);
             }
           }
-        }
-        if (typeof Tracers !== 'undefined' && Tracers.spawnSmoke) {
-          Tracers.spawnSmoke(drone.position);
         }
         destroyDrone(drone);
         return;

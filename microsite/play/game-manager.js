@@ -3719,34 +3719,35 @@ const GameManager = (function () {
       if (typeof DroneSystem !== 'undefined' && DroneSystem.callBayraktar) {
         DroneSystem.callBayraktar();
       }
-      // Building snipers — enemy sharpshooters occupy the apartment rooftops
-      // along the approach corridor. Spawn 2-4 snipers per wave from wave 2+.
+      // Building snipers — enemy sharpshooters on Soviet apartment rooftops
+      // (buildings at x=-15,z=-33/-17/-1 and x=+21,z=-33/-17)
       if (w >= 2 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
         var _kyivBuildingPos = [
-          { x: -14, z: 137 }, { x:  8, z: 139 }, { x: -14, z: 158 },
-          { x:  8, z: 160 },  { x: -12, z: 180 }, { x: 10, z: 182 },
+          { x: -15, z: -33 }, { x: 21, z: -33 },
+          { x: -15, z: -17 }, { x: 21, z: -17 },
+          { x: -15, z: -1  }, { x: 52, z:  16 },
         ];
         var _snipersThisWave = Math.min(2 + Math.floor(w / 2), 4);
         for (var _si = 0; _si < _snipersThisWave; _si++) {
           var _sb = _kyivBuildingPos[(_si + w) % _kyivBuildingPos.length];
-          var _sby = (VoxelWorld.getTopSolidY ? VoxelWorld.getTopSolidY(_sb.x, _sb.z) : VoxelWorld.getTerrainHeight(_sb.x, _sb.z) + 5);
+          var _sby = (VoxelWorld.getTopSolidY ? VoxelWorld.getTopSolidY(_sb.x, _sb.z) : VoxelWorld.getTerrainHeight(_sb.x, _sb.z) + 18);
           Enemies.spawnSingle('SNIPER', new THREE.Vector3(_sb.x, _sby, _sb.z));
         }
-        if (w === 2) HUD.notifyPickup('⚠ SNIPERS IN BUILDINGS — CLEAR THE ROOFTOPS!', '#ff6622');
+        if (w === 2) HUD.notifyPickup('⚠ SNIPERS ON ROOFTOPS — CLEAR THE APARTMENT BLOCKS!', '#ff6622');
       }
       // Wave 5+: FPV drone operators appear on building rooftops
       if (w >= 5 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
         var _dronePosRooftops = [
-          { x: -14, z: 137 }, { x: 8,  z: 160 },
-          { x: -16, z: 178 }, { x: 10, z: 139 },
+          { x: -15, z: -33 }, { x: 21, z: -17 },
+          { x: -15, z: -17 }, { x: 21, z: -33 },
         ];
         var _droneOpsCount = Math.min(1 + Math.floor((w - 5) / 2), 3);
         for (var _doi = 0; _doi < _droneOpsCount; _doi++) {
           var _dp = _dronePosRooftops[(_doi + w) % _dronePosRooftops.length];
-          var _dpy = (VoxelWorld.getTopSolidY ? VoxelWorld.getTopSolidY(_dp.x, _dp.z) : VoxelWorld.getTerrainHeight(_dp.x, _dp.z) + 5);
+          var _dpy = (VoxelWorld.getTopSolidY ? VoxelWorld.getTopSolidY(_dp.x, _dp.z) : VoxelWorld.getTerrainHeight(_dp.x, _dp.z) + 18);
           try { Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_dp.x, _dpy, _dp.z)); } catch(e) {}
         }
-        if (w === 5) HUD.notifyPickup('⚡ FPV DRONE OPERATORS SPOTTED — ELIMINATE THEM!', '#ff8800');
+        if (w === 5) HUD.notifyPickup('⚡ FPV DRONE OPERATORS ON THE ROOFTOPS — ELIMINATE THEM!', '#ff8800');
       }
       // Wave 6+: Grad/Uragan artillery salvo warning — area denial for ~8s
       if (w >= 6 && typeof HUD !== 'undefined') {
