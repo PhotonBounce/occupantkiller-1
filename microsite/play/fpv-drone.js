@@ -363,12 +363,12 @@ var FPVDrone = (function () {
       'position:fixed;bottom:260px;left:52px;font-family:monospace;font-size:9px;',
       'color:rgba(255,136,0,0.45);pointer-events:none;z-index:210;line-height:20px;',
     ].join('');
-    hint.textContent = '[X] LANCET';
+    hint.textContent = '[Alt+X] LANCET';
     document.body.appendChild(hint);
 
     /* Restock on new wave */
     window.addEventListener('keydown', function (e) {
-      if (e.code === 'KeyX' && !e.ctrlKey && !e.altKey) {
+      if (e.code === 'KeyX' && e.altKey && !e.ctrlKey) {
         e.preventDefault();
         _launch();
       }

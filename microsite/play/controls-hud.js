@@ -28,28 +28,28 @@ var ControlsHUD = (function () {
         ['R',               'Reload'],
         ['G',               'Throw grenade'],
         ['F',               'Silent takedown (backstab)'],
-        ['Z  (hold)',       'Binoculars — mark enemies'],
+        ['Alt+Z  (hold)',   'Binoculars — mark enemies'],
       ]
     },
     { group: 'TACTICAL EQUIPMENT',
       keys: [
-        ['Q',               'Smoke grenade (3 stock)'],
-        ['H',               'Field medic pack (2 stock)'],
-        ['C',               'Place Claymore mine (2 stock)'],
+        [';',               'Smoke grenade (3 stock)'],
+        ['Alt+H',           'Field medic pack (2 stock)'],
+        ["'",               "Place Claymore mine (2 stock)"],
       ]
     },
     { group: 'SUPPORT STRIKES',
       keys: [
         ['F5',              'CAS airstrike — 10-bomb run (1 per wave)'],
-        ['X',               'Lancet FPV drone — autonomous homing (1 per wave)'],
+        ['Alt+X',           'Lancet FPV drone — autonomous homing (1 per wave)'],
       ]
     },
     { group: 'HUD & VISION',
       keys: [
-        ['Y',               'Toggle tactical minimap'],
+        ['\\',              'Toggle tactical minimap'],
         ['M',               'Deploy mortar (top-down aim cam)'],
-        ['N',               'Night vision goggles (toggle)'],
-        ['Tab',             'This controls panel'],
+        ['Alt+N',           'Night vision goggles (toggle)'],
+        ['/',               'This controls panel'],
         ['ESC / Enter',     'Dismiss overlays'],
       ]
     },
@@ -109,7 +109,7 @@ var ControlsHUD = (function () {
         '<div id="ch-title">CONTROLS REFERENCE</div>',
         '<div id="ch-sub">OCCUPANT KILLER · TACTICAL EDITION</div>',
         '<div id="ch-grid">' + groupsHTML + '</div>',
-        '<div id="ch-close">[ TAB / ESC / CLICK TO CLOSE ]</div>',
+        '<div id="ch-close">[ / / ESC / CLICK TO CLOSE ]</div>',
       '</div>',
     ].join('');
 
@@ -136,7 +136,7 @@ var ControlsHUD = (function () {
     _overlay = _build();
 
     window.addEventListener('keydown', function (e) {
-      if (e.code === 'Tab') {
+      if (e.code === 'Slash') {
         e.preventDefault();
         if (_visible) _hide(); else _show();
       }

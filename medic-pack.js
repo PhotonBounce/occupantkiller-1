@@ -164,12 +164,12 @@ var MedicPack = (function () {
       'position:fixed;bottom:210px;left:52px;font-family:monospace;font-size:9px;',
       'color:rgba(68,255,136,0.45);pointer-events:none;z-index:210;line-height:20px;',
     ].join('');
-    hint.textContent = '[H] MEDIC';
+    hint.textContent = '[Alt+H] MEDIC';
     document.body.appendChild(hint);
 
     /* Key handler */
     window.addEventListener('keydown', function (e) {
-      if (e.code === 'KeyH' && !e.ctrlKey && !e.altKey) {
+      if (e.code === 'KeyH' && e.altKey && !e.ctrlKey) {
         e.preventDefault();
         _startHeal();
       }

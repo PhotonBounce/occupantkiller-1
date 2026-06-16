@@ -199,7 +199,7 @@ var NightVision = (function () {
 
     /* Key handler */
     window.addEventListener('keydown', function (e) {
-      if (e.code === 'KeyN' && !e.ctrlKey && !e.altKey) {
+      if (e.code === 'KeyN' && e.altKey && !e.ctrlKey) {
         e.preventDefault();
         _active = !_active;
         _boostScene(_active);

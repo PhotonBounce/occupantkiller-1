@@ -269,12 +269,12 @@ var SmokeGrenadeSystem = (function () {
       'color:rgba(170,210,255,0.45);pointer-events:none;z-index:210;',
       'line-height:20px;',
     ].join('');
-    hint.textContent = '[Q] SMOKE';
+    hint.textContent = '[;] SMOKE';
     document.body.appendChild(hint);
 
     /* Key handler */
     window.addEventListener('keydown', function (e) {
-      if (e.code === 'KeyQ' && !e.ctrlKey && !e.altKey) {
+      if (e.code === 'Semicolon' && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         _throw();
       }

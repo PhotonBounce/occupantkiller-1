@@ -236,12 +236,12 @@ var ClaymoreSystem = (function () {
       'position:fixed;bottom:235px;left:52px;font-family:monospace;font-size:9px;',
       'color:rgba(255,200,68,0.45);pointer-events:none;z-index:210;line-height:20px;',
     ].join('');
-    hint.textContent = '[C] CLAYMORE';
+    hint.textContent = "[\'] CLAYMORE";
     document.body.appendChild(hint);
 
     /* Key handler */
     window.addEventListener('keydown', function (e) {
-      if (e.code === 'KeyC' && !e.ctrlKey && !e.altKey) {
+      if (e.code === 'Quote' && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         _place();
       }

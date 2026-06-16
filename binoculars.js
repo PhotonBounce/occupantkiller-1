@@ -205,18 +205,18 @@ var Binoculars = (function () {
       'position:fixed;top:46px;right:80px;font-family:monospace;font-size:9px;',
       'color:rgba(68,255,136,0.35);pointer-events:none;z-index:210;letter-spacing:0.1em;',
     ].join('');
-    hint.textContent = '[Z] BINO';
+    hint.textContent = '[Alt+Z] BINO';
     document.body.appendChild(hint);
 
     /* Key handlers */
     window.addEventListener('keydown', function (e) {
-      if (e.code === 'KeyZ' && !e.ctrlKey && !e.altKey && !_held) {
+      if (e.code === 'KeyZ' && e.altKey && !e.ctrlKey && !_held) {
         _held = true;
         _setSens(true);
       }
     });
     window.addEventListener('keyup', function (e) {
-      if (e.code === 'KeyZ') {
+      if (e.code === 'KeyZ' && e.altKey) {
         _held = false;
         _setSens(false);
       }

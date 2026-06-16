@@ -227,7 +227,7 @@ var MinimapSystem = (function () {
       'color:rgba(68,170,255,0.55);letter-spacing:0.12em;',
       'margin-bottom:3px;',
     ].join('');
-    label.textContent = 'TACTICAL MAP  [Y]';
+    label.textContent = 'TACTICAL MAP  [\\]';
     _wrapper.appendChild(label);
 
     /* Canvas */
@@ -244,7 +244,7 @@ var MinimapSystem = (function () {
 
     /* Toggle with Y key (M is taken by mortar deploy) */
     _keyHandler = function (e) {
-      if (e.code === 'KeyY' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+      if (e.code === 'Backslash' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
         _visible = !_visible;
       }
     };
