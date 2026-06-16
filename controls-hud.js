@@ -46,7 +46,8 @@ var ControlsHUD = (function () {
     },
     { group: 'HUD & VISION',
       keys: [
-        ['M',               'Toggle tactical minimap'],
+        ['Y',               'Toggle tactical minimap'],
+        ['M',               'Deploy mortar (top-down aim cam)'],
         ['N',               'Night vision goggles (toggle)'],
         ['Tab',             'This controls panel'],
         ['ESC / Enter',     'Dismiss overlays'],
