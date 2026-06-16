@@ -42,6 +42,7 @@ var ControlsHUD = (function () {
     { group: 'SUPPORT STRIKES',
       keys: [
         ['F5',              'CAS airstrike — 10-bomb run (1 per wave)'],
+        ['F6',              'Napalm strike — 10 pods walk 60u ahead, 3.5s burn zones (1 per wave)'],
         ['F7',              'Incendiary rounds — 8 shots ignite targets + fire DOT (2 stock)'],
         ['Alt+X',           'Lancet FPV drone — autonomous homing (1 per wave)'],
         ['F8',              'Recon UAV — thermal scout, marks enemies on minimap (1 per wave)'],
