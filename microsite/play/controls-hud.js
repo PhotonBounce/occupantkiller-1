@@ -71,6 +71,7 @@ var ControlsHUD = (function () {
         ['Alt+B',           'Black hole — 6s singularity pulls enemies to core, 20 dmg/s (1 per wave)'],
         ['Alt+J',           'Time bomb — 8s fuse charge, 6u AOE 200 dmg on detonation (2 per wave)'],
         ['Alt+F',           'Force blast — 10u shockwave knocks enemies back 4.5u + 50 dmg (2/wave, 18s CD)'],
+        ['Alt+M',           'Target painter — mark enemy for ×2 damage for 8s (2 per wave)'],
       ]
     },
     { group: 'VEHICLES',
