@@ -120,10 +120,19 @@ var MinimapSystem = (function () {
           var rp = _rotPt(ex, ez, yaw);
           var cx = h + rp.x / CFG.SCALE;
           var cy = h - rp.y / CFG.SCALE;
+          var uavSpotted = window._uavSpottedEnemies && window._uavSpottedEnemies.has(e);
+          var dotR = uavSpotted ? 4 : 2.5;
           ctx.beginPath();
-          ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
-          ctx.fillStyle = CFG.ENEMY_COLOR;
+          ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
+          ctx.fillStyle = uavSpotted ? ('#ff8800') : CFG.ENEMY_COLOR;
           ctx.fill();
+          if (uavSpotted) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, dotR + 2.5, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,136,0,0.45)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
         }
       }
     } catch(err) {}

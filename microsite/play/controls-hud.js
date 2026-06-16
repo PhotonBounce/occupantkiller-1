@@ -42,6 +42,8 @@ var ControlsHUD = (function () {
       keys: [
         ['F5',              'CAS airstrike — 10-bomb run (1 per wave)'],
         ['Alt+X',           'Lancet FPV drone — autonomous homing (1 per wave)'],
+        ['F8',              'Recon UAV — thermal scout, marks enemies on minimap (1 per wave)'],
+        ['[',               'Breach & Clear — 2.5s cinematic slow-mo + enemy stagger (2 stock)'],
       ]
     },
     { group: 'HUD & VISION',
