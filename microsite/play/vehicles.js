@@ -812,17 +812,29 @@ const VehicleSystem = (function () {
         updateAIVehicle(v, delta);
       }
 
-      // Apply velocity
+      // Apply velocity (remember the pre-move spot so we can block wall-climbs)
+      var _vOldX = v.position.x, _vOldZ = v.position.z, _vOldY = v.position.y;
       v.position.addScaledVector(v.velocity, delta);
 
       // Gravity for non-flying vehicles — prevent going airborne
       if (!v.flying) {
         v.velocity.y -= 25 * delta; // stronger gravity
-        const terrainH = VoxelWorld.getTerrainHeight(v.position.x, v.position.z);
+        let terrainH = VoxelWorld.getTerrainHeight(v.position.x, v.position.z);
+        // ── Max-slope clamp: ground vehicles cannot scale cliffs, walls or building
+        // faces. If the new spot rises too steeply versus how far we moved horizontally
+        // (steeper than ~55°), block the move — the vehicle bumps the obstacle and
+        // stays on drivable ground instead of teleporting up the vertical surface
+        // (which looked like the vehicle "flying" up walls / climbing buildings).
+        var _vdx = v.position.x - _vOldX, _vdz = v.position.z - _vOldZ;
+        var _vHoriz = Math.sqrt(_vdx * _vdx + _vdz * _vdz);
+        var _vRise = terrainH - _vOldY;
+        if (_vRise > 0.4 && _vRise > _vHoriz * 1.5) {
+          v.position.x = _vOldX; v.position.z = _vOldZ;
+          v.velocity.x *= 0.15; v.velocity.z *= 0.15;
+          terrainH = VoxelWorld.getTerrainHeight(_vOldX, _vOldZ);
+        }
         // Hard clamp to terrain. Ground vehicles have NO suspension physics —
-        // they always sit on the ground. Previously we only snapped UP from
-        // below; now we also snap DOWN from above so explosions, prop bumps,
-        // or stale spawn altitudes cannot leave them "flying around".
+        // they always sit on the ground (snap up from below AND down from above).
         if (v.position.y !== terrainH) {
           v.position.y = terrainH;
         }

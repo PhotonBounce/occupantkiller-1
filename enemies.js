@@ -706,7 +706,7 @@ const Enemies = (() => {
 
   // ── Assault Group System ────────────────────────────────
   // 5 enemy assault groups, Russian army "штурмовая группа" style
-  const NUM_ASSAULT_GROUPS = 8;
+  const NUM_ASSAULT_GROUPS = 5;  // fewer, clearer assault formations (was 8 — felt like a 360° blob)
   const assaultGroups = [];
   var _aliveMembersBuf = [];  // reusable buffer for alive member indices
 
@@ -1891,7 +1891,7 @@ const Enemies = (() => {
     else if (stageNum === 18) _formOrder[2].type = 'DRONE_OP';
 
     var roster = STAGE_ROSTER[stageNum];
-    var rifleCt = 2 + Math.floor(Math.random() * 3) + Math.floor(stageNum / 4);
+    var rifleCt = 1 + Math.floor(Math.random() * 2) + Math.floor(stageNum / 5);  // smaller squads (was 2 + rand(3) + stage/4)
     for (var ri = 0; ri < rifleCt; ri++) {
       var rtyp;
       if (roster && Math.random() < 0.5) {
@@ -1953,8 +1953,18 @@ const Enemies = (() => {
     // combat would swarm a solo player — scale group count down ~40%.
     var _soloScale = 1;
     try { if (typeof GameManager !== 'undefined' && GameManager.getPlayer && GameManager.getPlayer().role !== 'brigade') _soloScale = 0.6; } catch (eSS) {}
-    var stageGroupCount = Math.max(2, Math.round((NUM_ASSAULT_GROUPS + Math.floor((_stageId || 1) / 3) + planGroupDelta) * _soloScale));
+    // Low-spec/mobile: thin out wave sizes. Concurrent enemy part-meshes are the
+    // dominant mobile draw-call cost (and their AI the dominant CPU cost) once the
+    // terrain is culled — fewer simultaneous occupants keeps the fight playable.
+    var _lowSpecScale = (typeof window !== 'undefined' && window.__OK_LOWSPEC) ? 0.5 : 1;
+    var stageGroupCount = Math.max(2, Math.round((NUM_ASSAULT_GROUPS + Math.floor((_stageId || 1) / 3) + planGroupDelta) * _soloScale * _lowSpecScale));
+    // Cap the INITIAL on-field force so even late stages don't dump 35-50 enemies at
+    // once (the "overwhelming blob"). Groups beyond the cap simply don't spawn up front;
+    // the drip queue below keeps reinforcements coming as enemies fall — a steady,
+    // readable fight. At least 2 groups always spawn so there's an opening engagement.
+    var _initialCap = (typeof window !== 'undefined' && window.__OK_LOWSPEC) ? 14 : 24;
     for (let g = 0; g < stageGroupCount; g++) {
+      if (g >= 2 && enemies.length >= _initialCap) break;
       spawnAssaultGroup(g, sc, playerPos);
     }
 
@@ -1976,7 +1986,7 @@ const Enemies = (() => {
     var stageNum = (typeof _stageId === 'number') ? _stageId : 1;
     const baseExtra = 18 + (w - 1) * 8 + stageNum * 3;
     var extraMultiplier = battlePlan && isFinite(battlePlan.extraMultiplier) ? battlePlan.extraMultiplier : 1;
-    const extraCount = Math.max(4, Math.floor(baseExtra * (1 + (stageMult - 1) * 0.5) * extraMultiplier));
+    const extraCount = Math.max(4, Math.floor(baseExtra * (1 + (stageMult - 1) * 0.5) * extraMultiplier * _lowSpecScale));
     spawnQueue  = Array.from({ length: extraCount }, () => pickTypeForPlan(w, battlePlan));
     var spawnIntervalMultiplier = battlePlan && isFinite(battlePlan.spawnIntervalMultiplier) ? battlePlan.spawnIntervalMultiplier : 1;
     spawnTimer  = (Math.max(0.3, 2.0 - stageNum * 0.15) + Math.random() * 1.5) * spawnIntervalMultiplier;
@@ -2069,17 +2079,22 @@ const Enemies = (() => {
       }
     }
 
-    // Spawn reinforcements from queue (drip every 1.5-3.5s for denser waves)
+    // Spawn reinforcements from queue, but cap the number ALIVE ON THE FIELD so the
+    // battle stays readable (a steady, regulated flow instead of a 50-enemy blob).
+    // The queue still drains over the wave — it just paces in as enemies fall.
     if (spawnQueue.length > 0) {
       spawnTimer -= delta;
       if (spawnTimer <= 0) {
-        var aliveNow = getAliveCount();
-        var burst = (aliveNow < 5) ? 2 : 1;
-        for (var bi = 0; bi < burst && spawnQueue.length > 0; bi++) {
-          spawnOne(spawnQueue.pop());
+        var MAX_ALIVE = (typeof window !== 'undefined' && window.__OK_LOWSPEC) ? 14 : 24;
+        var onField = getAliveCount() - spawnQueue.length;   // alive enemies actually on the field
+        if (onField < MAX_ALIVE) {
+          var burst = (onField < 5) ? 2 : 1;
+          for (var bi = 0; bi < burst && spawnQueue.length > 0 && (onField + bi) < MAX_ALIVE; bi++) {
+            spawnOne(spawnQueue.pop());
+          }
         }
         spawnTimer = 0.5 + Math.random() * 0.8;
-        if (aliveNow < 3) spawnTimer *= 0.4;
+        if (onField < 3) spawnTimer *= 0.4;
       }
     }
 

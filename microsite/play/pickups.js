@@ -150,8 +150,9 @@ const Pickups = (() => {
       const dz = p.group.position.z - playerPos.z;
       const dy = Math.abs(p.group.position.y - playerPos.y);
       const distSq = dx * dx + dz * dz;
-      // Magnet glide: drift toward player within MAGNET_DIST (skip weapon drops to avoid auto-grab unintended weapons)
-      if (p.type !== 'WEAPON' && distSq < MAGNET_DIST_SQ && distSq > COLLECT_DIST_SQ && dy < 3) {
+      // Magnet glide: drift toward player within MAGNET_DIST. Weapons included now —
+      // dropped enemy guns should be easy to grab (only NEW ones auto-equip; dupes add ammo).
+      if (distSq < MAGNET_DIST_SQ && distSq > COLLECT_DIST_SQ && dy < 3) {
         const pull = 6 * delta * (1 - Math.sqrt(distSq) / MAGNET_DIST);
         p.group.position.x -= dx * pull;
         p.group.position.z -= dz * pull;

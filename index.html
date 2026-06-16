@@ -598,16 +598,29 @@
         <section class="start-section start-section-wide">
           <div class="start-section-title">🗺 SELECT MAP</div>
           <div id="map-select" class="start-section-row" style="flex-wrap:wrap;gap:6px">
-            <button class="btn pill map-btn active-map" data-stage="0"  style="border-color:#0af;color:#0af">✈ HOSTOMEL</button>
-            <button class="btn pill map-btn"            data-stage="12" style="border-color:#888;color:#888">🏛 KYIV</button>
-            <button class="btn pill map-btn"            data-stage="1"  style="border-color:#888;color:#888">🔥 AVDIIVKA</button>
-            <button class="btn pill map-btn"            data-stage="2"  style="border-color:#888;color:#888">💀 BAKHMUT</button>
-            <button class="btn pill map-btn"            data-stage="4"  style="border-color:#888;color:#888">⚙ MARIUPOL</button>
-            <button class="btn pill map-btn"            data-stage="5"  style="border-color:#888;color:#888">🌊 CRIMEA</button>
-            <button class="btn pill map-btn"            data-stage="6"  style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
-            <button class="btn pill map-btn"            data-stage="18" style="border-color:#888;color:#888">🚛 TREELINE</button>
+            <button class="btn pill map-btn active-map" data-stage="0"  style="border-color:#0af;color:#0af">0 ✈ HOSTOMEL</button>
+            <button class="btn pill map-btn" data-stage="1"  style="border-color:#888;color:#888">1 🔥 AVDIIVKA</button>
+            <button class="btn pill map-btn" data-stage="2"  style="border-color:#888;color:#888">2 💀 BAKHMUT</button>
+            <button class="btn pill map-btn" data-stage="3"  style="border-color:#888;color:#888">3 🌉 KHERSON</button>
+            <button class="btn pill map-btn" data-stage="4"  style="border-color:#888;color:#888">4 ⚙ MARIUPOL</button>
+            <button class="btn pill map-btn" data-stage="5"  style="border-color:#888;color:#888">5 🌊 CRIMEA</button>
+            <button class="btn pill map-btn" data-stage="6"  style="border-color:#888;color:#888">6 ☢ CHORNOBYL</button>
+            <button class="btn pill map-btn" data-stage="7"  style="border-color:#888;color:#888">7 🏙 MOSCOW</button>
+            <button class="btn pill map-btn" data-stage="8"  style="border-color:#888;color:#888">8 ⚓ SEVASTOPOL</button>
+            <button class="btn pill map-btn" data-stage="9"  style="border-color:#888;color:#888">9 ⛏ DONBAS</button>
+            <button class="btn pill map-btn" data-stage="10" style="border-color:#888;color:#888">10 💥 BELGOROD</button>
+            <button class="btn pill map-btn" data-stage="11" style="border-color:#888;color:#888">11 🏰 KREMLIN</button>
+            <button class="btn pill map-btn" data-stage="12" style="border-color:#888;color:#888">12 🏛 KYIV</button>
+            <button class="btn pill map-btn" data-stage="13" style="border-color:#888;color:#888">13 🐍 SNAKE IS.</button>
+            <button class="btn pill map-btn" data-stage="14" style="border-color:#888;color:#888">14 🛩 SAKY</button>
+            <button class="btn pill map-btn" data-stage="15" style="border-color:#888;color:#888">15 🛡 VUHLEDAR</button>
+            <button class="btn pill map-btn" data-stage="16" style="border-color:#888;color:#888">16 🌁 ANTONOV</button>
+            <button class="btn pill map-btn" data-stage="17" style="border-color:#888;color:#888">17 🛸 REFINERY</button>
+            <button class="btn pill map-btn" data-stage="18" style="border-color:#888;color:#888">18 🚛 TREELINE</button>
           </div>
           <p id="map-desc" class="start-section-desc">Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
+          <button id="launch-selected-map" class="btn pill" style="margin-top:8px;border-color:#0af;color:#0af;font-weight:700;letter-spacing:0.5px">▶ LAUNCH SELECTED MAP</button>
+          <p class="start-section-desc" style="opacity:0.6;font-size:10px;margin-top:4px">All 19 maps unlocked for testing — pick any map and launch directly.</p>
         </section>
 
         <section class="start-section start-section-wide">
@@ -1072,6 +1085,13 @@
 <script src="missions.js?v=20260429b"></script>
 <script src="pickups.js?v=20260429b"></script>
 <script src="hud.js?v=20260429b"></script>
+<script src="hud-extras.js?v=20260615a"></script>
+<script src="hud-extras2.js?v=20260615b"></script>
+<script src="hud-extras3.js?v=20260615c"></script>
+<script src="hud-extras4.js?v=20260615f"></script>
+<script src="match-stats.js?v=20260615g"></script>
+<script src="fx-extras.js?v=20260615d"></script>
+<script src="extras-panel.js?v=20260615e"></script>
 <script src="weapon-details.js?v=20260429b"></script>
 <script src="weapons.js?v=20260429b"></script>
 <script src="enemies.js?v=20260429b"></script>
@@ -1310,14 +1330,25 @@ document.addEventListener('DOMContentLoaded', function () {
   (function () {
     window.__chosenStartStage = 0;
     var mapDescs = {
-      '0':  'Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.',
-      '12': 'Battle of Kyiv — Defend Maidan Nezalezhnosti and Khreshchatyk. The armored column from Bucha must not reach the capital. Feb–Apr 2022.',
-      '1':  'Avdiivka Sector — Industrial coke plant ruins. Year-long grinding battle for every block.',
-      '2':  'Bakhmut Ruins — Total urban destruction. Wagner mercenary assault from all directions.',
-      '4':  'Mariupol Steelworks — Azovstal last stand. Fire deals constant damage. No retreat.',
-      '5':  'Crimea Bridge — Strike the strategic crossing before it can be reinforced.',
-      '6':  'Chornobyl Zone — Irradiated exclusion zone. Abandoned buildings, radiation damage.',
-      '18': 'Treeline Assault — Drive the M2A2 Bradley (47th Mech Bde). Rake a dug-in Russian platoon out of the woods with the rapid-fire 25mm Bushmaster. Set-piece — one objective, no survival waves.',
+      '0':  '0 · Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.',
+      '1':  '1 · Avdiivka Sector — Industrial coke-plant ruins. Year-long grinding battle for every block.',
+      '2':  '2 · Bakhmut Ruins — Total urban destruction. Wagner mercenary assault from all directions.',
+      '3':  '3 · Kherson Crossing — Fight across the Dnipro. Hold the riverbank against the counter-assault.',
+      '4':  '4 · Mariupol Steelworks — Azovstal last stand. Fire deals constant damage. No retreat.',
+      '5':  '5 · Crimea Bridge — Strike the Kerch Strait crossing before it can be reinforced.',
+      '6':  '6 · Chornobyl Zone — Irradiated exclusion zone. Abandoned buildings, radiation damage.',
+      '7':  '7 · Outer Moscow — Carry the fight into the Russian capital’s outskirts.',
+      '8':  '8 · Sevastopol Naval Base — Raid the Black Sea Fleet anchorage.',
+      '9':  '9 · Donbas Final Push — Retake the eastern oblasts, block by block.',
+      '10': '10 · Belgorod Offensive — Cross-border push into Russian territory.',
+      '11': '11 · Kremlin Showdown — The final assault at the seat of power.',
+      '12': '12 · Battle of Kyiv — Defend Maidan & Khreshchatyk. The Bucha armored column must not reach the capital.',
+      '13': '13 · Snake Island Defense — Hold the Black Sea outpost. “Russian warship, go…”',
+      '14': '14 · Saky Airbase Strike — Hit the Crimean airfield; destroy parked aircraft.',
+      '15': '15 · Vuhledar Tank Graveyard — Ambush and shatter the Russian armored assault.',
+      '16': '16 · Antonov Bridge Strike — Strike the Kherson crossing.',
+      '17': '17 · Refinery Strike — FPV-drone-only set-piece. Pilot kamikaze drones into the target.',
+      '18': '18 · Treeline Assault — Drive the M2A2 Bradley (47th Mech Bde). Rake a dug-in Russian platoon out of the woods with the rapid-fire 25mm Bushmaster. Set-piece — no survival waves.',
     };
     var mapBtns = document.querySelectorAll('.map-btn');
     function setActiveMap(stage) {
@@ -1343,6 +1374,14 @@ document.addEventListener('DOMContentLoaded', function () {
       })(mapBtns[mi]);
     }
     setActiveMap('0');
+    // One-click launch of the currently-selected map (no scrolling to the main button).
+    var launchBtn = document.getElementById('launch-selected-map');
+    if (launchBtn) {
+      launchBtn.addEventListener('click', function () {
+        var sb = document.getElementById('start-btn');
+        if (sb) sb.click();
+      });
+    }
   })();
 
   // ── Custom mission start buttons ───────────────────────

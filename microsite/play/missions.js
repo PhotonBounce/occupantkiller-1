@@ -116,7 +116,10 @@ const MissionSystem = (function () {
               description: '47th Brigade — Russian infantry is dug into the woods ahead. Mount the Bradley and rake the treeline with the 25mm.',
               tier: 6,
               generate() {
-                var killTarget = 42 + Math.floor(Math.random() * 14); // 42-55
+                var killTarget = 42 + Math.floor(Math.random() * 14); // 42-55 (desktop set-piece)
+                // Mobile/low-spec: halve the ambush force so the Bradley showcase stays
+                // readable and performant on weak GPUs (you still have a 25mm tank).
+                if (typeof window !== 'undefined' && window.__OK_LOWSPEC) killTarget = Math.round(killTarget * 0.5); // ~21-27
                 var spawned = 0;
                 var spawnPositions = [];
                 var spawnedEnemyIds = [];

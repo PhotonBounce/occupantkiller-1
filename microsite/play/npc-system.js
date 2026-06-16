@@ -573,8 +573,9 @@ function buildCivilianMesh(npc) {
 
     npc.mesh = (rank === NPC_RANK.CIVILIAN) ? buildCivilianMesh(npc) : buildNPCMesh(npc);
     npc.mesh.position.copy(npc.position);
-    // Tactical flashlight for armed NPCs (~40% chance)
-    if (weaponDef && Math.random() < 0.4) {
+    // Tactical flashlight for armed NPCs (~40% chance) — skipped on low-spec/mobile,
+    // where per-NPC spotlights are the single biggest fragment cost (tiled GPUs).
+    if (weaponDef && !(typeof window !== 'undefined' && window.__OK_LOWSPEC) && Math.random() < 0.4) {
       var npcLight = new THREE.SpotLight(0xffffee, 1.2, 18, Math.PI / 4, 0.5, 1.2);
       npcLight.position.set(0, 1.6, 0.3);
       npcLight.target.position.set(0, 1.6, 5);
@@ -1110,11 +1111,13 @@ function buildCivilianMesh(npc) {
   /* ── Spawn Friendly Assault Groups ──────────────────────────────── */
   function spawnAssaultGroups() {
     friendlyGroups.length = 0;
-    for (let g = 0; g < NUM_FRIENDLY_GROUPS; g++) {
+    // Fewer allied squads so the field isn't crowded (was NUM_FRIENDLY_GROUPS=4 → ~22 allies).
+    var _friendlyGroups = (typeof window !== 'undefined' && window.__OK_LOWSPEC) ? 2 : 3;
+    for (let g = 0; g < _friendlyGroups; g++) {
       const group = createFriendlyGroup(g);
 
       // Group composition: 1 specialist (leader), 1 medic, 2-3 infantry
-      const leaderAngle = (g / NUM_FRIENDLY_GROUPS) * Math.PI * 2 + 0.4;
+      const leaderAngle = (g / _friendlyGroups) * Math.PI * 2 + 0.4;
       const leaderDist = 4 + Math.random() * 4;
       const lx = Math.cos(leaderAngle) * leaderDist;
       const lz = Math.sin(leaderAngle) * leaderDist;
@@ -1144,8 +1147,8 @@ function buildCivilianMesh(npc) {
       group.members.push(medic.id);
       group.hasMedic = true;
 
-      // 3-4 infantry (Ukrainian squad = 8-10 soldiers; we use 5-6 for performance)
-      const infantryCount = 3 + Math.floor(Math.random() * 2);
+      // Infantry (smaller squads to keep the field readable; was 3 + rand2)
+      const infantryCount = 2 + Math.floor(Math.random() * 2);
       for (let i = 0; i < infantryCount; i++) {
         const ix = lx + (Math.random() - 0.5) * 4;
         const iz = lz + (Math.random() - 0.5) * 4;

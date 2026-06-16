@@ -1280,6 +1280,10 @@ html.is-mobile #extended-top-bar {
 
 html.is-mobile #resource-bar {
   top: calc(var(--mobile-safe-top) + 58px);
+  /* Declutter mobile combat: the wood/metal/energy/etc. counter row is a long, busy
+     string and isn't needed mid-fight. Build mode shows costs via #build-materials-hud,
+     and resource totals stay in the inventory. Revert by removing this display:none. */
+  display: none;
 }
 
 html.is-mobile #tactical-compass {
@@ -1382,15 +1386,16 @@ html.is-mobile #tank-hud {
      Keep btn-build, btn-melee, btn-crouch visible — Puppeteer tests expect them on-screen. */
   html.is-mobile #btn-night,
   html.is-mobile #btn-view { display: none !important; }
-  /* Look zone = the whole right side of the screen (standard mobile-FPS
-     swipe-to-aim area). Invisible + low z-index so the action buttons sit on
-     top and still receive taps; dragging anywhere else on the right looks. */
+  /* Look zone = the WHOLE screen (standard mobile-FPS swipe-to-aim area).
+     Invisible + low z-index so the joystick and action buttons sit on top and
+     still receive taps; dragging anywhere not on a control looks/aims. Covering
+     the full width (not just the right) makes "drag to look" far easier to find. */
   html.is-mobile #mobile-look-zone {
     top: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
-    left: auto !important;
-    width: 58vw !important;
+    left: 0 !important;
+    width: auto !important;
     height: auto !important;
     max-width: none !important;
     max-height: none !important;

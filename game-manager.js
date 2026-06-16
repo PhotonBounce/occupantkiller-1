@@ -927,6 +927,12 @@ const GameManager = (function () {
   if (isMobile) {
     try { document.documentElement.classList.add('is-mobile'); } catch (e) {}
   }
+  // Low-spec rendering flag, read by decorative systems to skip expensive extras
+  // (per-NPC tactical-flashlight spotlights, per-shot muzzle/explosion point lights,
+  // etc.). Mobile defaults to low-spec; the adaptive governor can also flip it on
+  // for weak desktops. Set this as early as possible — before any enemy/NPC spawns —
+  // so those systems see it the moment they build meshes.
+  try { window.__OK_LOWSPEC = !!isMobile; } catch (e) {}
 
   /* ── Input State ─────────────────────────────────────────────────── */
   const keys = {};
@@ -1310,6 +1316,12 @@ const GameManager = (function () {
       if (_scene) _scene.add(_skyDome);
       else console.warn('Skipped skyDome add: _scene is null');
     })();
+
+    // ── Boot at a device-appropriate quality tier ──────────────────────
+    // Pick an initial tier from the device class so weak hardware starts light
+    // instead of rendering ULTRA for ~12s while the adaptive governor ramps down.
+    // Silent (no toast) — this is calibration, not a user-visible quality change.
+    try { _applyPerfLevel(_computeInitialPerfLevel(), 0, true); } catch (_ePerf) {}
 
     // ── Init all sub-systems ─────────────────────────────────
     // Lightweight progress reporter so the boot preloader keeps moving
@@ -2403,8 +2415,9 @@ const GameManager = (function () {
             }
             touch.lookTouchId = null;
             touch.lookActive = false;
-            touch.lookX = 0;
-            touch.lookY = 0;
+            // Intentionally do NOT zero touch.lookX/lookY here: the per-frame consumer
+            // applies then clears them. Zeroing on release discarded the final drag
+            // delta whenever no frame ran mid-drag — i.e. look input lost at low FPS.
             try { lookZone.classList.remove('look-active'); } catch (_e) {}
           }
         }
@@ -5817,8 +5830,8 @@ const GameManager = (function () {
         if (typeof Tracers !== 'undefined' && Tracers.spawnSparks) Tracers.spawnSparks(enemy.mesh.position);
       }
 
-      // Enemy weapon drop: 20% chance, drops weapon ammo pickup
-      if (Math.random() < 0.20) {
+      // Enemy weapon drop: enemies drop their own weapon as collectible loot (~40%).
+      if (Math.random() < 0.40) {
         var _ENEMY_WEAPONS = {
           CONSCRIPT: 'MAKAROV',   STORMER: 'AK74',        ARMORED: 'PKM',
           MEDIC: 'MAKAROV',       OFFICER: 'MAKAROV',     SNIPER: 'SVD',
@@ -6176,27 +6189,81 @@ const GameManager = (function () {
   var _baseShadowsEnabled = true;
   var _basePixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.1 : 1.5);
 
-  function _applyPerfLevel(level, fps) {
+  var _cullDistance = 9999;   // mobile draw-distance cull radius (world units); ∞ on desktop
+  // Pick a sane starting tier from the device class so weak hardware doesn't boot
+  // at ULTRA and crawl down over ~12s of stutter. Mobile starts reduced; very weak
+  // phones (low RAM / few cores) or the WebGL "compatibility" fallback start lower.
+  function _computeInitialPerfLevel() {
+    if (!isMobile) return (_rendererProfile === 'compatibility') ? 2 : 0;
+    var mem = navigator.deviceMemory || 4;        // GB, Chrome-only (≈4 on midrange)
+    var cores = navigator.hardwareConcurrency || 4;
+    var weak = (mem <= 3) || (cores <= 4) || _rendererProfile === 'compatibility';
+    return weak ? 3 : 2;                           // LOW for weak phones, MEDIUM otherwise
+  }
+  function _applyPerfLevel(level, fps, silent) {
     _perfLevel = Math.max(0, Math.min(level, _PERF_MAX_LEVEL));
     _qualityReduced = _perfLevel > 0;
     try {
-      var pr, fogFar, shadows;
-      if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled; _lowEndVFX = false; }
-      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = true; _lowEndVFX = false; }
-      else if (_perfLevel === 2) { pr = 1.0; fogFar = 60; shadows = false; _lowEndVFX = false; }
-      else                       { pr = 0.7; fogFar = 45; shadows = false; _lowEndVFX = true; }
+      var pr, fogFar, shadows, cull;
+      // Mobile never gets real-time shadows at any tier (tiled GPUs choke on them).
+      if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled && !isMobile; _lowEndVFX = false; cull = isMobile ? 95 : 9999; }
+      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 58 : 90; shadows = false; _lowEndVFX = false; cull = isMobile ? 82 : 9999; }
+      else if (_perfLevel === 2) { pr = 1.0; fogFar = isMobile ? 52 : 60; shadows = false; _lowEndVFX = true; cull = 70; }
+      else                       { pr = 0.7; fogFar = 44; shadows = false; _lowEndVFX = true; cull = 56; }
+      _cullDistance = cull;
+      // Decorative-light/VFX kill switch: always on for mobile; weak desktops join at tier >= 2.
+      var _nowLowSpec = isMobile || _perfLevel >= 2;
+      // Leaving low-spec (e.g. a weak desktop recovering tiers): un-hide any terrain
+      // chunks the distance-cull hid, so they can't stay permanently invisible once
+      // the per-frame cull stops running.
+      if (!_nowLowSpec && window.__OK_LOWSPEC && window.VoxelWorld && VoxelWorld.cullChunks && _camera) {
+        try { VoxelWorld.cullChunks(_camera.position.x, _camera.position.z, 999999); } catch (_eRC) {}
+      }
+      window.__OK_LOWSPEC = _nowLowSpec;
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
       if (sunLight) sunLight.castShadow = shadows;
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
       if (_scene && _scene.fog) _scene.fog.far = fogFar;
       var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW'][_perfLevel] || 'L' + _perfLevel;
-      if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+      if (!silent && typeof HUD !== 'undefined' && HUD.notifyPickup) {
         HUD.notifyPickup('⚙ Quality: ' + _qlabel + ' (auto-calibrated, FPS≈' + (fps ? fps.toFixed(0) : '?') + ')', '#88ccff');
       }
-      console.log('[PERF] quality -> ' + _qlabel + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ')');
+      console.log('[PERF] quality -> ' + _qlabel + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ', cull=' + cull + ')');
     } catch (e) {}
   }
   var _lowEndVFX = false;
+  // Throttled mobile draw-distance cull: hide enemy meshes past the cull radius
+  // (which sits just beyond the fog wall, so culled units are already invisible).
+  // Removes their ~50-mesh draw cost. Only toggles meshes WE culled, so it never
+  // fights stealth/death-fade visibility logic elsewhere. Rendering-only — AI,
+  // collisions and AoE damage all run off positions and are unaffected.
+  var _cullTick = 0;
+  function _mobileDistanceCull() {
+    if (!window.__OK_LOWSPEC || !_camera) return;
+    var cull = _cullDistance || 70, cull2 = cull * cull;
+    var cx = _camera.position.x, cz = _camera.position.z;
+    // Terrain chunk cull — the biggest draw-call win on mobile (~1000 chunk meshes
+    // down to the ~30 near the player; the rest are fogged out and invisible anyway).
+    try { if (window.VoxelWorld && VoxelWorld.cullChunks) VoxelWorld.cullChunks(cx, cz, cull); } catch (_e) {}
+    // Enemy mesh cull
+    if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+      var list;
+      try { list = Enemies.getAll(); } catch (_e) { list = null; }
+      if (list) {
+        for (var i = 0; i < list.length; i++) {
+          var e = list[i];
+          if (!e || !e.mesh) continue;
+          var dx = e.mesh.position.x - cx, dz = e.mesh.position.z - cz;
+          var far = (dx * dx + dz * dz) > cull2;
+          if (far) {
+            if (!e._distCulled && e.mesh.visible) { e.mesh.visible = false; e._distCulled = true; }
+          } else if (e._distCulled) {
+            e.mesh.visible = true; e._distCulled = false;
+          }
+        }
+      }
+    }
+  }
 
   function update() {
     requestAnimationFrame(update);
@@ -6219,13 +6286,18 @@ const GameManager = (function () {
     if (_perfCheckTimer > 2 && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
       if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
-      else if (avgFps > 65) { _highFpsStreak++; _lowFpsStreak = 0; }
+      else if (avgFps > 52) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
-      if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
-        _applyPerfLevel(_perfLevel + 1, avgFps);
+      // Severe stutter (< 24 fps): drop two tiers at once instead of waiting for a
+      // streak — a struggling device should bail out of heavy settings immediately.
+      var _dropBy = (avgFps < 24) ? 2 : (_lowFpsStreak >= 2 ? 1 : 0);
+      if (_dropBy && _perfLevel < _PERF_MAX_LEVEL) {
+        _applyPerfLevel(_perfLevel + _dropBy, avgFps);
         _lowFpsStreak = 0;
       }
-      if (_highFpsStreak >= 3 && _perfLevel > 0) {
+      // Recover slowly when there's headroom, but never bring a phone back below
+      // tier 1 (keeps shadows/env off — ULTRA settings re-introduce mobile stutter).
+      if (_highFpsStreak >= 3 && _perfLevel > (isMobile ? 1 : 0)) {
         _applyPerfLevel(_perfLevel - 1, avgFps);
         _highFpsStreak = 0;
       }
@@ -6244,6 +6316,8 @@ const GameManager = (function () {
     if (HUD.refreshIndicators) HUD.refreshIndicators();
 
     if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
+      // Mobile/low-spec draw-distance cull (throttled to every 4th frame).
+      if (window.__OK_LOWSPEC && ((++_cullTick & 3) === 0)) _mobileDistanceCull();
       // Core systems
       TimeSystem.update(delta);
       WeatherSystem.update(delta);
@@ -6955,13 +7029,20 @@ const GameManager = (function () {
           if (HUD.showShield) HUD.showShield(true);
           HUD.notifyPickup('🛡 SHIELD ACTIVE! 5s', '#ffd700');
         } else if (type === 'WEAPON' && data) {
-          // Enemy weapon drop: unlock + give one clip of ammo
+          // Enemy weapon drop: unlock + give ammo. Auto-equip the FIRST time you grab a
+          // given weapon so new acquisitions are obvious; dupes just top up its ammo.
           var wIdx = data.weaponIdx;
-          if (!Weapons.isUnlocked(wIdx)) Weapons.unlockWeapon(wIdx);
+          var wWasNew = !Weapons.isUnlocked(wIdx);
+          if (wWasNew) Weapons.unlockWeapon(wIdx);
           var wDef = Weapons.getWeaponDef(wIdx);
           if (wDef) {
             Weapons.addAmmo(wDef.clipSize || 30);
-            HUD.notifyPickup('🔫 ' + (wDef.name || data.weaponId) + ' +' + (wDef.clipSize || 30) + ' ammo', '#ff8800');
+            if (wWasNew) {
+              if (typeof Weapons.switchTo === 'function') Weapons.switchTo(wIdx);
+              HUD.notifyPickup('🔫 NEW WEAPON: ' + (wDef.name || data.weaponId) + '!', '#ffcc00');
+            } else {
+              HUD.notifyPickup('🔫 ' + (wDef.name || data.weaponId) + ' +' + (wDef.clipSize || 30) + ' ammo', '#ff8800');
+            }
           }
         }
       });
@@ -7949,6 +8030,19 @@ const GameManager = (function () {
   function setupMobileControls() {
     if (_mobileControlsReady) return;
     _mobileControlsReady = true;
+
+    // One-time touch-controls hint — the look area is invisible, so first-time
+    // players don't realise they can drag to aim. Show it once, then remember.
+    try {
+      if (!localStorage.getItem('okc_mob_hint_v1')) {
+        setTimeout(function () {
+          if (window.HUD && HUD.showToast) {
+            HUD.showToast('📱 Drag anywhere to LOOK · tap to SHOOT · left stick to MOVE', 5500, '#5cc8ff');
+          }
+          try { localStorage.setItem('okc_mob_hint_v1', '1'); } catch (_e) {}
+        }, 1400);
+      }
+    } catch (_e) {}
 
     const joystickZone  = document.getElementById('joystick-zone');
     const joystickThumb = document.getElementById('joystick-thumb');

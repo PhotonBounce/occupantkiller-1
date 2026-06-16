@@ -28,3 +28,28 @@ changes.diff
 
 # Microsite build artifact (distributed via GitHub Releases, not committed to history)
 occupantkiller-microsite.zip
+
+# Android build artifacts (111MB, generated)
+apk-build/
+
+# Android packages (too large for git)
+*.apk
+*.aab
+
+# --- generated / artifact junk (keep out of the repo) ---
+tools/screenshots/
+tools/*.log
+tools/_*_stamp.txt
+tools/hpmock/
+*.zip
+.wp-env.json
+# stray web deploy bundles (belong in the web repo, not the game repo)
+photon-deploy/
+photon-homepage/
+photon-homepage-plugin/
+photon-apps/
+photon-bounce-homepage-update/
+wp-integration/
+tools/*.jpg
+tools/*.png
+tools/*.jpeg

@@ -1132,6 +1132,31 @@ window.VoxelWorld = (function () {
   }
 
   let _rebuildBudget = 4; // max chunks to rebuild per frame (runtime edits only)
+  // Distance-cull terrain chunk meshes (low-spec/mobile). Chunks beyond the radius
+  // are hidden — they sit past the fog wall anyway, so it's invisible to the player
+  // but removes ~1000 terrain draw calls + their triangles. Purely visual: terrain
+  // height, collisions and block raycasts all read the voxel data array, not meshes.
+  function cullChunks(camX, camZ, dist) {
+    if (!dist || dist <= 0 || typeof chunks !== 'object' || !chunks.values) return;
+    const keep = dist + 24;               // pad ~one chunk half-diagonal so edge chunks stay
+    const keep2 = keep * keep;
+    const half = CHUNK_SIZE * BLOCK_SIZE * 0.5;
+    for (const chunk of chunks.values()) {
+      const m = chunk.mesh;
+      if (!m) continue;
+      const dx = (m.position.x + half) - camX;
+      const dz = (m.position.z + half) - camZ;
+      const far = (dx * dx + dz * dz) > keep2;
+      if (far) {
+        if (m.visible) m.visible = false;
+        if (chunk.waterMesh && chunk.waterMesh.visible) chunk.waterMesh.visible = false;
+      } else {
+        if (!m.visible) m.visible = true;
+        if (chunk.waterMesh && !chunk.waterMesh.visible) chunk.waterMesh.visible = true;
+      }
+    }
+  }
+
   function updateDirtyChunks() {
     let count = 0;
     if (typeof chunks !== 'object' || !chunks.values) {
@@ -3188,6 +3213,90 @@ window.VoxelWorld = (function () {
         }
       }
     }
+
+    // ── J. Major Kyiv landmarks & churches — extended skyline (#7–#20) ────
+    // Reusable builders for the additional landmarks (gold domes = BLOCK.LIGHT).
+    function kbox(bx, bz, w, d, h, wall, glassEvery) {
+      var by = gh(bx, bz);
+      for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { for (var y = 1; y <= h; y++) {
+        var edge = x === 0 || x === w - 1 || z === 0 || z === d - 1 || y === h;
+        if (edge) setBlock(bx + x, by + y, bz + z, wall);
+        else if (glassEvery && y >= 2 && y <= h - 2 && x % glassEvery === 1 && (z === 0 || z === d - 1)) setBlock(bx + x, by + y, bz + z, BLOCK.GLASS);
+      } } }
+      return by;
+    }
+    function kdome(cx, cz, topY, mat) {
+      mat = mat || BLOCK.LIGHT;
+      setBlock(cx, topY, cz, BLOCK.STONE);
+      setBlock(cx, topY + 1, cz, mat); setBlock(cx - 1, topY + 1, cz, mat); setBlock(cx + 1, topY + 1, cz, mat);
+      setBlock(cx, topY + 1, cz - 1, mat); setBlock(cx, topY + 1, cz + 1, mat);
+      setBlock(cx, topY + 2, cz, mat); setBlock(cx, topY + 3, cz, BLOCK.METAL);
+    }
+    function kdomes(bx, bz, by, coords) { for (var i = 0; i < coords.length; i++) kdome(bx + coords[i][0], bz + coords[i][1], by + (coords[i][2] || 0), coords[i][3]); }
+
+    // 7. St. Volodymyr's Cathedral — neo-Byzantine, seven domes (west of centre).
+    (function () { var x = ox - 46, z = oz - 22, by = kbox(x, z, 14, 10, 9, BLOCK.STONE, 3);
+      kdomes(x, z, by + 9, [[3, 3], [7, 3], [11, 3], [3, 7], [11, 7], [7, 5, 2]]); })();
+
+    // 8. St. Andrew's Church — baroque, one great dome + four cupolas (hilltop).
+    (function () { var x = ox - 40, z = oz - 52, by = kbox(x, z, 8, 8, 11, BLOCK.STONE, 3);
+      kdome(x + 4, z + 4, by + 12); kdomes(x, z, by + 9, [[1, 1], [7, 1], [1, 7], [7, 7]]); })();
+
+    // 9. Golden Gate (Zoloti Vorota) — 11th-c. stone gate + gilded gatechurch.
+    (function () { var x = ox - 22, z = oz - 16, by = gh(x, z);
+      for (var gx = 0; gx < 9; gx++) { for (var gy = 1; gy <= 7; gy++) { if (gx === 0 || gx === 8 || gy === 7) { setBlock(x + gx, by + gy, z, BLOCK.STONE); setBlock(x + gx, by + gy, z + 3, BLOCK.STONE); } } }
+      kdome(x + 4, z + 1, by + 8); })();
+
+    // 10. House with Chimaeras — Art Nouveau (opposite the Presidential Office).
+    (function () { var x = ox + 16, z = oz + 2, by = kbox(x, z, 10, 8, 7, BLOCK.CONCRETE, 2);
+      setBlock(x + 5, by + 8, z + 4, BLOCK.METAL); })();
+
+    // 11. Mariyinskyi Palace — Baroque royal palace (turquoise & white).
+    (function () { var x = ox + 28, z = oz + 26; kbox(x, z, 18, 8, 6, BLOCK.STONE, 3); })();
+
+    // 12. National Opera of Ukraine — Neo-Renaissance.
+    (function () { var x = ox - 34, z = oz - 6, by = kbox(x, z, 16, 10, 8, BLOCK.STONE, 3);
+      for (var c = 0; c < 6; c++) setBlock(x + 2 + c * 2, by + 9, z + 5, BLOCK.STONE); })();
+
+    // 13. Independence Monument — gilded Berehynia column on Maidan.
+    (function () { var x = ox + 2, z = oz - 8, by = gh(x, z);
+      for (var y = 1; y <= 16; y++) setBlock(x, by + y, z, BLOCK.STONE);
+      setBlock(x, by + 17, z, BLOCK.LIGHT); setBlock(x, by + 18, z, BLOCK.LIGHT);
+      setBlock(x - 1, by + 17, z, BLOCK.LIGHT); setBlock(x + 1, by + 17, z, BLOCK.LIGHT);
+      setBlock(x, by + 19, z, BLOCK.METAL); })();
+
+    // 14. Arch of Freedom of the Ukrainian People (former Friendship Arch).
+    (function () { var x = ox + 42, z = oz + 34, by = gh(x, z);
+      for (var a = -8; a <= 8; a++) { var h = Math.round(12 - (a * a) / 8); if (h >= 1) { setBlock(x + a, by + h, z, BLOCK.METAL); setBlock(x + a, by + h, z + 1, BLOCK.METAL); } } })();
+
+    // 15. Kyiv TV Tower — 385 m free-standing lattice, tallest in Ukraine.
+    (function () { var x = ox - 52, z = oz - 64, by = gh(x, z);
+      for (var y = 1; y <= 40; y++) { var w = y < 12 ? 3 : y < 22 ? 2 : 1;
+        setBlock(x - w, by + y, z, BLOCK.METAL); setBlock(x + w, by + y, z, BLOCK.METAL);
+        setBlock(x, by + y, z - w, BLOCK.METAL); setBlock(x, by + y, z + w, BLOCK.METAL); }
+      setBlock(x, by + 41, z, BLOCK.METAL); setBlock(x, by + 43, z, BLOCK.LIGHT); })();
+
+    // 16. St. Nicholas Roman Catholic Cathedral — Gothic twin spires.
+    (function () { var x = ox - 48, z = oz + 18, by = kbox(x, z, 10, 14, 8, BLOCK.STONE, 4);
+      for (var s = 0; s < 2; s++) { var sx = x + (s ? 8 : 1);
+        for (var y = 9; y <= 16; y++) setBlock(sx, by + y, z + 2, BLOCK.STONE);
+        setBlock(sx, by + 17, z + 2, BLOCK.METAL); } })();
+
+    // 17. Dormition Cathedral — Great Church of the Pechersk Lavra, gold domes.
+    (function () { var x = ox + 30, z = oz + 40, by = kbox(x, z, 12, 10, 9, BLOCK.CONCRETE, 3);
+      kdomes(x, z, by + 9, [[3, 3], [9, 3], [3, 7], [9, 7], [6, 5, 2]]); })();
+
+    // 18. St. Cyril's Church — 12th-century, single gilded dome.
+    (function () { var x = ox - 52, z = oz - 34, by = kbox(x, z, 8, 10, 8, BLOCK.STONE, 3);
+      kdome(x + 4, z + 5, by + 9); })();
+
+    // 19. Besarabsky Market — historic covered market hall (glass roof).
+    (function () { var x = ox - 16, z = oz - 56, by = kbox(x, z, 14, 12, 6, BLOCK.BRICK, 2);
+      for (var rx = 1; rx < 13; rx++) { for (var rz = 1; rz < 11; rz++) { if ((rx + rz) % 2 === 0) setBlock(x + rx, by + 6, z + rz, BLOCK.GLASS); } } })();
+
+    // 20. National Museum of the History of Ukraine — classical colonnade.
+    (function () { var x = ox + 8, z = oz - 40, by = kbox(x, z, 12, 8, 7, BLOCK.STONE, 3);
+      for (var c = 0; c < 5; c++) setBlock(x + 2 + c * 2, by + 8, z, BLOCK.STONE); })();
 
     // ── D. Extended Khreshchatyk south (more city behind player) ─────────
     for (var ks = oz - 80; ks < oz - 45; ks++) {
@@ -6222,6 +6331,7 @@ window.VoxelWorld = (function () {
     getTopSolidY: typeof getTopSolidY === 'function' ? getTopSolidY : function (x, z) { return (typeof getTerrainHeight === 'function' ? getTerrainHeight(x, z) : 0) + 1; },
     raycastBlock: typeof raycastBlock === 'function' ? raycastBlock : function () { return null; },
     updateDirtyChunks: typeof updateDirtyChunks === 'function' ? updateDirtyChunks : function () {},
+    cullChunks: typeof cullChunks === 'function' ? cullChunks : function () {},
     rebuildAll: typeof rebuildAll === 'function' ? rebuildAll : function () {},
     scatterResources,
     worldToChunk,

@@ -106,10 +106,10 @@ const Tracers = (() => {
     flash2.lookAt(_tTmp);
     flash2.rotation.z = flash.rotation.z + Math.PI / 2;
     _scene.add(flash2);
-    // Bright point light for illumination
-    var light = new THREE.PointLight(0xffaa22, 2.5, 6);
-    light.position.copy(flash.position);
-    _scene.add(light);
+    // Bright point light for illumination — skipped on low-spec (per-shot light churn
+    // forces shader recompiles + fragment cost on mobile; the flash sprites remain).
+    var light = (typeof window !== 'undefined' && window.__OK_LOWSPEC) ? null : new THREE.PointLight(0xffaa22, 2.5, 6);
+    if (light) { light.position.copy(flash.position); _scene.add(light); }
     flashes.push({ mesh: flash, light: light, life: 0.14, mesh2: flash2 });
   }
 
@@ -145,10 +145,9 @@ const Tracers = (() => {
         isFire: isFire, _baseSize: size,
       });
     }
-    // Central flash light
-    const light = new THREE.PointLight(0xff6600, 5, radius * 4);
-    light.position.copy(pos);
-    _scene.add(light);
+    // Central flash light — skipped on low-spec (keeps the particle burst, drops the light).
+    const light = (typeof window !== 'undefined' && window.__OK_LOWSPEC) ? null : new THREE.PointLight(0xff6600, 5, radius * 4);
+    if (light) { light.position.copy(pos); _scene.add(light); }
     flashes.push({ mesh: null, light: light, life: 0.2 });
     // Shake camera — falls off with distance from player so distant booms feel distant
     if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) {
