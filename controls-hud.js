@@ -45,6 +45,7 @@ var ControlsHUD = (function () {
         ['Alt+X',           'Lancet FPV drone — autonomous homing (1 per wave)'],
         ['F8',              'Recon UAV — thermal scout, marks enemies on minimap (1 per wave)'],
         ['[',               'Breach & Clear — 2.5s cinematic slow-mo + enemy stagger (2 stock)'],
+        ['Alt+T',           'Place gun turret — auto-targets enemies in 28u (2 max, 1 per wave)'],
       ]
     },
     { group: 'HUD & VISION',
@@ -61,6 +62,7 @@ var ControlsHUD = (function () {
         ['Alt+S',           'Call in VOLKOV — AI squadmate follows + fights (1 per wave)'],
         ['Alt+A',           'Equip armor plate — absorbs 75 HP (2 stock, 8s CD)'],
         ['Alt+E',           'Signal flare — 30s illumination, boosts enemy detection'],
+        ['Alt+G',           'OVERKILL — activate when kill meter full: ×3 damage for 3.5s'],
       ]
     },
     { group: 'VEHICLES',
