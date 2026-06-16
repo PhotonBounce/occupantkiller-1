@@ -72,6 +72,7 @@ var ControlsHUD = (function () {
         ['Alt+J',           'Time bomb — 8s fuse charge, 6u AOE 200 dmg on detonation (2 per wave)'],
         ['Alt+F',           'Force blast — 10u shockwave knocks enemies back 4.5u + 50 dmg (2/wave, 18s CD)'],
         ['Alt+M',           'Target painter — mark enemy for ×2 damage for 8s (2 per wave)'],
+        ['Alt+C',           'Cryo grenade — freeze enemies in 7u for 4s, ice-blue emissive (2/wave, 20s CD)'],
       ]
     },
     { group: 'VEHICLES',
