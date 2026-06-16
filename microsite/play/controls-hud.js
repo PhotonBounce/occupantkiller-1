@@ -61,6 +61,7 @@ var ControlsHUD = (function () {
     },
     { group: 'SQUAD & SURVIVAL',
       keys: [
+        ['Alt+D',           'Supply drop — parachute crate with random bonus (HP/ammo/stock) (1 per wave)'],
         ['Alt+S',           'Call in VOLKOV — AI squadmate follows + fights (1 per wave)'],
         ['Alt+A',           'Equip armor plate — absorbs 75 HP (2 stock, 8s CD)'],
         ['Alt+E',           'Signal flare — 30s illumination, boosts enemy detection'],
