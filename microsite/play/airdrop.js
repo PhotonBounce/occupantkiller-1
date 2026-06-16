@@ -298,7 +298,7 @@ var AirdropSystem = (function () {
     requestAnimationFrame(_tick);
   }
 
-  return { init: init, update: update };
+  return { init: init, update: update, getActiveDrop: function () { return _activeDrop; } };
 })();
 
 window.AirdropSystem = AirdropSystem;

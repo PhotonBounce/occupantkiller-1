@@ -273,7 +273,7 @@ var DogTagSystem = (function () {
     requestAnimationFrame(_tick);
   }
 
-  return { init: init, update: update, spawn: _spawn };
+  return { init: init, update: update, spawn: _spawn, getTags: function () { return _tags; } };
 })();
 
 window.DogTagSystem = DogTagSystem;
