@@ -68,6 +68,7 @@ var ControlsHUD = (function () {
         ['Alt+G',           'OVERKILL — activate when kill meter full: ×3 damage for 3.5s'],
         ['F9',              'Ghost camo — 10s active invisibility, enemies lose target lock (1 per wave)'],
         ['Alt+L',           'Lightning strike — 300 dmg bolt on aimed enemy + chain ×2 (1 per wave)'],
+        ['Alt+B',           'Black hole — 6s singularity pulls enemies to core, 20 dmg/s (1 per wave)'],
       ]
     },
     { group: 'VEHICLES',
