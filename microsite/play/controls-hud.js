@@ -36,6 +36,7 @@ var ControlsHUD = (function () {
         [';',               'Smoke grenade (3 stock)'],
         ['Alt+H',           'Field medic pack (2 stock)'],
         ["'",               "Place Claymore mine (2 stock)"],
+        [']',               'Flashbang grenade — stuns + blinds (2 stock)'],
       ]
     },
     { group: 'SUPPORT STRIKES',
