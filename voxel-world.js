@@ -3228,10 +3228,28 @@ window.VoxelWorld = (function () {
     }
     function kdome(cx, cz, topY, mat) {
       mat = mat || BLOCK.LIGHT;
+      // stone drum
       setBlock(cx, topY, cz, BLOCK.STONE);
-      setBlock(cx, topY + 1, cz, mat); setBlock(cx - 1, topY + 1, cz, mat); setBlock(cx + 1, topY + 1, cz, mat);
-      setBlock(cx, topY + 1, cz - 1, mat); setBlock(cx, topY + 1, cz + 1, mat);
-      setBlock(cx, topY + 2, cz, mat); setBlock(cx, topY + 3, cz, BLOCK.METAL);
+      setBlock(cx - 1, topY, cz, BLOCK.STONE); setBlock(cx + 1, topY, cz, BLOCK.STONE);
+      setBlock(cx, topY, cz - 1, BLOCK.STONE); setBlock(cx, topY, cz + 1, BLOCK.STONE);
+      // onion bulb — wide base tapering up to a point
+      var bulb = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]];
+      for (var bi = 0; bi < bulb.length; bi++) setBlock(cx + bulb[bi][0], topY + 1, cz + bulb[bi][1], mat);
+      setBlock(cx, topY + 2, cz, mat);
+      setBlock(cx - 1, topY + 2, cz, mat); setBlock(cx + 1, topY + 2, cz, mat);
+      setBlock(cx, topY + 2, cz - 1, mat); setBlock(cx, topY + 2, cz + 1, mat);
+      setBlock(cx, topY + 3, cz, mat);
+      // gilded Orthodox cross finial
+      setBlock(cx, topY + 4, cz, BLOCK.STONE);
+      setBlock(cx, topY + 5, cz, BLOCK.METAL);
+      setBlock(cx - 1, topY + 5, cz, BLOCK.METAL); setBlock(cx + 1, topY + 5, cz, BLOCK.METAL);
+      setBlock(cx, topY + 6, cz, BLOCK.METAL);
+    }
+    function kflag(x, by, z) {
+      // Ukrainian flag — blue over yellow on a metal pole.
+      for (var fy = 1; fy <= 4; fy++) setBlock(x, by + fy, z, BLOCK.METAL);
+      setBlock(x + 1, by + 4, z, BLOCK.CONCRETE); setBlock(x + 2, by + 4, z, BLOCK.CONCRETE);
+      setBlock(x + 1, by + 3, z, BLOCK.LIGHT); setBlock(x + 2, by + 3, z, BLOCK.LIGHT);
     }
     function kdomes(bx, bz, by, coords) { for (var i = 0; i < coords.length; i++) kdome(bx + coords[i][0], bz + coords[i][1], by + (coords[i][2] || 0), coords[i][3]); }
 
@@ -3298,6 +3316,23 @@ window.VoxelWorld = (function () {
     // 20. National Museum of the History of Ukraine — classical colonnade.
     (function () { var x = ox + 8, z = oz - 40, by = kbox(x, z, 12, 8, 7, BLOCK.STONE, 3);
       for (var c = 0; c < 5; c++) setBlock(x + 2 + c * 2, by + 8, z, BLOCK.STONE); })();
+
+    // 21. Vydubychi Monastery — 11th-c. riverside complex, gold domes.
+    (function () { var x = ox + 52, z = oz - 10, by = kbox(x, z, 10, 8, 7, BLOCK.STONE, 3);
+      kdomes(x, z, by + 7, [[3, 3], [7, 3], [5, 5, 2]]); kflag(x + 5, by + 7, z + 1); })();
+
+    // 22. Florivsky (Pokrovsky) Convent — Podil district, white-walled.
+    (function () { var x = ox - 44, z = oz - 66, by = kbox(x, z, 12, 9, 7, BLOCK.CONCRETE, 3);
+      kdomes(x, z, by + 7, [[3, 3], [9, 3], [6, 6, 2]]); })();
+
+    // 23. National Philharmonic of Ukraine — European Square, classical.
+    (function () { var x = ox + 12, z = oz - 24, by = kbox(x, z, 14, 9, 7, BLOCK.STONE, 3);
+      for (var c = 0; c < 6; c++) setBlock(x + 2 + c * 2, by + 8, z, BLOCK.STONE);
+      kflag(x + 6, by + 7, z + 1); })();
+
+    // Ukrainian flags raised over St. Volodymyr's and St. Andrew's cathedrals.
+    kflag(ox - 40, gh(ox - 46, oz - 22) + 9, oz - 22);
+    kflag(ox - 34, gh(ox - 40, oz - 52) + 11, oz - 52);
 
     // ── D. Extended Khreshchatyk south (more city behind player) ─────────
     for (var ks = oz - 80; ks < oz - 45; ks++) {
