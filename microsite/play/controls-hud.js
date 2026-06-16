@@ -64,6 +64,7 @@ var ControlsHUD = (function () {
         ['Alt+A',           'Equip armor plate — absorbs 75 HP (2 stock, 8s CD)'],
         ['Alt+E',           'Signal flare — 30s illumination, boosts enemy detection'],
         ['Alt+G',           'OVERKILL — activate when kill meter full: ×3 damage for 3.5s'],
+        ['F9',              'Ghost camo — 10s active invisibility, enemies lose target lock (1 per wave)'],
       ]
     },
     { group: 'VEHICLES',
