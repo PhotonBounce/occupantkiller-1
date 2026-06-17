@@ -84,6 +84,8 @@ var ControlsHUD = (function () {
         ['Alt+W',           'War cry — terrifies enemies in 20u for 3s, they flee + yellow panic glow (1/wave, 18s CD)'],
         ['Alt+Y',           'Sniper scope — toggle 6× zoom (FOV 75→20°), canvas scope overlay + mil-dot + range HUD'],
         ['F10',             'Inferno wall — 4 staggered canisters form a perpendicular fire wall 22u ahead (1/wave, 20s CD)'],
+        ['F11',             'Shield bubble — 5s energy dome r=3.5u, 25 dmg/s to enemies inside + knockback (1/wave)'],
+        ['F12',             '☢ TACTICAL NUKE — 2.5s warning, mushroom cloud, 40u AOE 800 dmg, 6s radioactive fallout (1/wave)'],
       ]
     },
     { group: 'VEHICLES',
