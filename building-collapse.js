@@ -130,7 +130,7 @@ var BuildingCollapse = (function () {
 
     /* Big dust burst + shake at the start. */
     _dust(b.x + Math.floor(w / 2), topY, b.z + Math.floor(d / 2), 3.0);
-    try { if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.5, 0.4); } catch (e) {}
+    try { if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.6); } catch (e) {}
     _floorsLost.set(b, lost + 1);
   }
 
