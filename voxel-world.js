@@ -1255,7 +1255,7 @@ window.VoxelWorld = (function () {
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677 },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'TREELINE',  name: 'Treeline Assault',      desc: 'Drive the Bradley, rake the woods', theme: 'grassland', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0xD4A017, bradleyAssault: true, spawnCandidates: [{ x: 0, z: -12 }], spawnLookTarget: { x: 0, z: 30 } },
-    { id: 'SIEGE',     name: 'Siege of Moscow',       desc: 'Storm the Kremlin & Red Square', theme: 'cityscape', wavesPerLevel: 10, difficulty: 5.2, fogColor: 0x1a1a22, spawnCandidates: [{ x: 30, z: 20 }, { x: 26, z: 22 }, { x: 34, z: 22 }, { x: 30, z: 24 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'SIEGE',     name: 'Siege of Moscow',       desc: 'Storm the Kremlin & Red Square', theme: 'cityscape', wavesPerLevel: 10, difficulty: 5.2, fogColor: 0x1a1a22, spawnCandidates: [{ x: 24, z: -4 }, { x: 20, z: -8 }, { x: 28, z: -6 }, { x: 24, z: -10 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
   const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar'];
