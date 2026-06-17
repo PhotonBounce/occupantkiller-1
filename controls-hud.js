@@ -77,6 +77,7 @@ var ControlsHUD = (function () {
         ['Alt+R',           'Railgun — hyper-velocity piercing beam, 250 dmg every enemy in line, 60u range (1/wave)'],
         ['Alt+V',           'Vortex cannon — 60° forward cone blast, pushes + stuns enemies 1.5s, 40 dmg (2/wave, 16s CD)'],
         ['Alt+P',           'EMP pulse — 15u area disables all enemy AI for 5s, electric arcs + blue strobe (2/wave, 25s CD)'],
+        ['Alt+I',           'Adrenaline shot — +40 HP burst + 4 HP/s regen for 8s, warm heartbeat vignette (1/wave)'],
       ]
     },
     { group: 'VEHICLES',
