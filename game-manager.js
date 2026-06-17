@@ -868,6 +868,21 @@ const GameManager = (function () {
       description:  '47th Mechanized Brigade. A Russian platoon is dug into the treeline. Mount the Bradley and rake the woods with the 25mm.',
       objective:    'Drive the Bradley. Rake the treeline with the 25mm Bushmaster. Clear every occupant from the woods.',
     },
+    {
+      id:           20,
+      name:         'SIEGE OF MOSCOW',
+      theme:        'cityscape',
+      wavesPerStage: 10,
+      difficulty:   5.2,
+      fogColor:     0x1a1a22,
+      bgColor:      0x1a1a22,
+      sunColor:     0xff4422,
+      sunIntensity: 0.35,
+      exposure:     0.55,
+      hintWeapons:  ['FGM-148 Javelin','M142 HIMARS (GMLRS Strike)','Barrett M82','M2HB Browning .50cal'],
+      description:  'The siege of the capital. Ukrainian fighters storm Red Square — the Kremlin walls, St Basil\'s and the Senate. Raise the flag and end the war.',
+      objective:    'STORM MOSCOW: fight across Red Square, breach the Kremlin walls, clear every defender. Survive 10 waves.',
+    },
   ];
 
   let currentStage = 0;  // 0-based index into STAGES

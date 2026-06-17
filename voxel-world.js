@@ -1255,6 +1255,7 @@ window.VoxelWorld = (function () {
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677 },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'TREELINE',  name: 'Treeline Assault',      desc: 'Drive the Bradley, rake the woods', theme: 'grassland', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0xD4A017, bradleyAssault: true, spawnCandidates: [{ x: 0, z: -12 }], spawnLookTarget: { x: 0, z: 30 } },
+    { id: 'SIEGE',     name: 'Siege of Moscow',       desc: 'Storm the Kremlin & Red Square', theme: 'cityscape', wavesPerLevel: 10, difficulty: 5.2, fogColor: 0x1a1a22, spawnCandidates: [{ x: 30, z: 20 }, { x: 26, z: 22 }, { x: 34, z: 22 }, { x: 30, z: 24 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
   const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar'];
@@ -4540,6 +4541,199 @@ window.VoxelWorld = (function () {
   }
   }
 
+  // ── Moscow City Extension: the Kremlin, St Basil's, Red Square ───────
+  // "Siege of Moscow" — Ukrainian fighters have reached the capital. Built
+  // from the same proven voxel kit as the Kyiv extension. The Kremlin's
+  // towers fly Ukrainian flags; the war ends here.
+  function generateMoscowCityExtension(ox, oz) {
+    function gh(x, z) { return getTerrainHeight(x, z); }
+
+    // Red-brick box with optional glass windows (Kremlin/GUM walls).
+    function mbox(bx, bz, w, d, h, wall, glassEvery) {
+      var by = gh(bx, bz);
+      for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { for (var y = 1; y <= h; y++) {
+        var edge = x === 0 || x === w - 1 || z === 0 || z === d - 1 || y === h;
+        if (edge) setBlock(bx + x, by + y, bz + z, wall);
+        else if (glassEvery && y >= 2 && y <= h - 2 && x % glassEvery === 1 && (z === 0 || z === d - 1)) setBlock(bx + x, by + y, bz + z, BLOCK.GLASS);
+      } } }
+      return by;
+    }
+
+    // Colourful onion dome (St Basil's). mat = bulb colour material.
+    function monion(cx, cz, topY, mat, drumH) {
+      drumH = drumH || 2;
+      // drum
+      for (var dy = 0; dy < drumH; dy++) {
+        setBlock(cx, topY - dy, cz, BLOCK.STONE);
+        setBlock(cx - 1, topY - dy, cz, BLOCK.STONE); setBlock(cx + 1, topY - dy, cz, BLOCK.STONE);
+        setBlock(cx, topY - dy, cz - 1, BLOCK.STONE); setBlock(cx, topY - dy, cz + 1, BLOCK.STONE);
+      }
+      // onion bulb — wide base tapering to a point, in the dome's colour
+      var bulb = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]];
+      for (var bi = 0; bi < bulb.length; bi++) setBlock(cx + bulb[bi][0], topY + 1, cz + bulb[bi][1], mat);
+      setBlock(cx, topY + 2, cz, mat);
+      setBlock(cx - 1, topY + 2, cz, mat); setBlock(cx + 1, topY + 2, cz, mat);
+      setBlock(cx, topY + 2, cz - 1, mat); setBlock(cx, topY + 2, cz + 1, mat);
+      setBlock(cx, topY + 3, cz, mat);
+      // gilded Orthodox cross finial
+      setBlock(cx, topY + 4, cz, BLOCK.STONE);
+      setBlock(cx, topY + 5, cz, BLOCK.LIGHT);
+      setBlock(cx - 1, topY + 5, cz, BLOCK.LIGHT); setBlock(cx + 1, topY + 5, cz, BLOCK.LIGHT);
+      setBlock(cx, topY + 6, cz, BLOCK.LIGHT);
+    }
+
+    // Kremlin wall tower — brick body, green tented roof, ruby star finial.
+    function mtower(cx, cz, h) {
+      var by = gh(cx, cz);
+      for (var y = 1; y <= h; y++) {
+        for (var tx = -1; tx <= 1; tx++) { for (var tz = -1; tz <= 1; tz++) {
+          if (tx === 0 && tz === 0 && y < h) continue; // hollow shaft
+          setBlock(cx + tx, by + y, cz + tz, BLOCK.BRICK);
+        } }
+      }
+      // green tented roof (METAL drum tapering to a point)
+      setBlock(cx - 1, by + h + 1, cz, BLOCK.METAL); setBlock(cx + 1, by + h + 1, cz, BLOCK.METAL);
+      setBlock(cx, by + h + 1, cz - 1, BLOCK.METAL); setBlock(cx, by + h + 1, cz + 1, BLOCK.METAL);
+      setBlock(cx, by + h + 2, cz, BLOCK.METAL);
+      setBlock(cx, by + h + 3, cz, BLOCK.METAL);
+      // ruby star (red brick + gilded glow)
+      setBlock(cx, by + h + 4, cz, BLOCK.BRICK);
+      setBlock(cx, by + h + 5, cz, BLOCK.LIGHT);
+      return by;
+    }
+
+    // Ukrainian flag — blue over yellow on a metal pole (raised over the Kremlin).
+    function mflag(x, by, z) {
+      for (var fy = 1; fy <= 4; fy++) setBlock(x, by + fy, z, BLOCK.METAL);
+      setBlock(x + 1, by + 4, z, BLOCK.GLASS); setBlock(x + 2, by + 4, z, BLOCK.GLASS);   // blue band
+      setBlock(x + 1, by + 3, z, BLOCK.LIGHT); setBlock(x + 2, by + 3, z, BLOCK.LIGHT);   // yellow band
+    }
+
+    // ── A. The Kremlin wall — red-brick fortress with swallowtail merlons ─
+    // Rectangle: west x=ox-30, east x=ox+10, north z=oz-18, south z=oz+18.
+    var kwW = ox - 30, kwE = ox + 10, kwN = oz - 18, kwS = oz + 18, KWH = 6;
+    function wallRun(x1, z1, x2, z2) {
+      var dx = x2 - x1, dz = z2 - z1;
+      var steps = Math.max(Math.abs(dx), Math.abs(dz));
+      for (var s = 0; s <= steps; s++) {
+        var wx = x1 + Math.round(dx * s / steps);
+        var wz = z1 + Math.round(dz * s / steps);
+        var wy = gh(wx, wz);
+        for (var y = 1; y <= KWH; y++) setBlock(wx, wy + y, wz, BLOCK.BRICK);
+        // swallowtail merlons — every 2nd block gets a tooth
+        if (s % 2 === 0) setBlock(wx, wy + KWH + 1, wz, BLOCK.BRICK);
+      }
+    }
+    wallRun(kwW, kwN, kwE, kwN);   // north
+    wallRun(kwW, kwS, kwE, kwS);   // south
+    wallRun(kwW, kwN, kwW, kwS);   // west
+    wallRun(kwE, kwN, kwE, kwS);   // east (faces Red Square)
+
+    // Corner + gate towers; Spasskaya at the middle of the east wall.
+    mtower(kwW, kwN, 10); mtower(kwE, kwN, 10);
+    mtower(kwW, kwS, 10); mtower(kwE, kwS, 10);
+    var spasskZ = oz;            // Spasskaya Tower — the famous clock gate
+    var spY = mtower(kwE, spasskZ, 14);
+    setBlock(kwE, spY + 9, spasskZ - 1, BLOCK.GLASS);   // clock faces
+    setBlock(kwE, spY + 9, spasskZ + 1, BLOCK.GLASS);
+    // Ukrainian flags raised over the Kremlin towers — the objective.
+    mflag(kwE, spY + 14, spasskZ);
+    mflag(kwW, gh(kwW, kwN) + 10, kwN);
+    mflag(kwE, gh(kwE, kwS) + 10, kwS);
+
+    // ── B. Kremlin Senate — neoclassical, green dome + tricolour-turned-flag
+    (function () { var x = ox - 22, z = oz - 6, by = mbox(x, z, 14, 10, 8, BLOCK.STONE, 3);
+      // green dome (METAL) on the centre
+      monion(x + 7, z + 5, by + 9, BLOCK.METAL, 3);
+      mflag(x + 7, by + 9 + 6, z + 5); })();
+
+    // ── C. Grand Kremlin Palace — long yellow-white riverfront facade ────
+    (function () { var x = ox - 30, z = oz + 8, by = mbox(x, z, 22, 8, 7, BLOCK.STONE, 2);
+      for (var c = 0; c < 9; c++) setBlock(x + 2 + c * 2, by + 8, z, BLOCK.STONE); })();
+
+    // ── D. St Basil's Cathedral — the showpiece: 9 colourful onion domes ─
+    // Sits on Red Square just off the Kremlin's SE corner.
+    (function () {
+      var bx = ox + 26, bz = oz + 12;
+      var by = mbox(bx, bz, 9, 9, 7, BLOCK.BRICK, 0);
+      // Central tent tower (tallest), then 8 chapels around it.
+      // Tent spire
+      for (var ty = 8; ty <= 15; ty++) {
+        var tw = ty < 12 ? 1 : 0;
+        setBlock(bx + 4, by + ty, bz + 4, BLOCK.BRICK);
+        if (tw) { setBlock(bx + 3, by + ty, bz + 4, BLOCK.BRICK); setBlock(bx + 5, by + ty, bz + 4, BLOCK.BRICK);
+                  setBlock(bx + 4, by + ty, bz + 3, BLOCK.BRICK); setBlock(bx + 4, by + ty, bz + 5, BLOCK.BRICK); }
+      }
+      monion(bx + 4, bz + 4, by + 16, BLOCK.LIGHT, 1);   // gilded central
+      // 8 surrounding domes, each a different colour for the iconic swirl.
+      var domes = [
+        [1, 1, BLOCK.BLUE_TILE],  [7, 1, BLOCK.LIGHT],
+        [1, 7, BLOCK.BRICK],      [7, 7, BLOCK.ROOFTILE],
+        [4, 0, BLOCK.METAL],      [0, 4, BLOCK.BLUE_TILE],
+        [8, 4, BLOCK.ROOFTILE],   [4, 8, BLOCK.GLASS],
+      ];
+      for (var i = 0; i < domes.length; i++) {
+        monion(bx + domes[i][0], bz + domes[i][1], by + 9, domes[i][2], 2);
+      }
+    })();
+
+    // ── E. Red Square — open cobbled plaza between Kremlin wall and GUM ──
+    for (var rqx = ox + 12; rqx <= ox + 40; rqx++) {
+      for (var rqz = oz - 16; rqz <= oz + 16; rqz++) {
+        var rqy = gh(rqx, rqz);
+        setBlock(rqx, rqy, rqz, (rqx + rqz) % 2 === 0 ? BLOCK.STONE : BLOCK.CONCRETE);
+      }
+    }
+
+    // ── F. Lenin's Mausoleum — low red-and-black stepped pyramid ─────────
+    (function () { var x = ox + 12, z = oz - 3, by = gh(x, z);
+      for (var step = 0; step < 3; step++) {
+        var sw = 8 - step * 2, sd = 6 - step * 2;
+        for (var sx = 0; sx < sw; sx++) { for (var sz = 0; sz < sd; sz++) {
+          setBlock(x + step + sx, by + 1 + step, z + step + sz, step === 2 ? BLOCK.STONE : BLOCK.BRICK);
+        } }
+      } })();
+
+    // ── G. GUM department store — long ornate glass-arcade facade ────────
+    (function () { var x = ox + 40, z = oz - 16, by = mbox(x, z, 4, 32, 7, BLOCK.STONE, 0);
+      for (var az = 1; az < 31; az++) { if (az % 2 === 1) { setBlock(x, by + 3, z + az, BLOCK.GLASS); setBlock(x, by + 5, z + az, BLOCK.GLASS); } } })();
+
+    // ── H. Cathedral of Christ the Saviour — huge gilded central dome ────
+    (function () { var x = ox - 56, z = oz + 4, by = mbox(x, z, 14, 14, 10, BLOCK.WHITE_TILE, 3);
+      monion(x + 7, z + 7, by + 11, BLOCK.LIGHT, 4);                 // giant gold dome
+      var c = [[3, 3], [11, 3], [3, 11], [11, 11]];
+      for (var i = 0; i < c.length; i++) monion(x + c[i][0], z + c[i][1], by + 10, BLOCK.LIGHT, 2); })();
+
+    // ── I. Moscow State University — a Stalinist "Seven Sister" spire ────
+    (function () { var x = ox - 74, z = oz - 50, by = gh(x, z);
+      for (var tier = 0; tier < 5; tier++) {
+        var tw = 10 - tier * 2, base = by + tier * 7;
+        for (var tx = 0; tx < tw; tx++) { for (var tz = 0; tz < tw; tz++) {
+          var edge = tx === 0 || tx === tw - 1 || tz === 0 || tz === tw - 1;
+          for (var yy = 1; yy <= 7; yy++) if (edge || yy === 7) setBlock(x + (5 - tw / 2 | 0) + tx, base + yy, z + (5 - tw / 2 | 0) + tz, BLOCK.STONE);
+        } }
+      }
+      // central spire + star
+      var sx = x + 5, sz = z + 5, stop = by + 35;
+      for (var sy = 1; sy <= 8; sy++) setBlock(sx, stop + sy, sz, BLOCK.METAL);
+      setBlock(sx, stop + 9, sz, BLOCK.LIGHT); })();
+
+    // ── J. Ostankino-style TV tower — tall tapering needle (north skyline)
+    (function () { var x = ox - 10, z = oz - 74, by = gh(x, z);
+      for (var y = 1; y <= 46; y++) { var w = y < 14 ? 2 : y < 30 ? 1 : 0;
+        setBlock(x, by + y, z, BLOCK.CONCRETE);
+        if (w >= 1) { setBlock(x - w, by + y, z, BLOCK.CONCRETE); setBlock(x + w, by + y, z, BLOCK.CONCRETE);
+                      setBlock(x, by + y, z - w, BLOCK.CONCRETE); setBlock(x, by + y, z + w, BLOCK.CONCRETE); } }
+      setBlock(x, by + 47, z, BLOCK.METAL); setBlock(x, by + 49, z, BLOCK.LIGHT); })();
+
+    // ── K. The Moskva River — water channel along the south wall ─────────
+    for (var mrz = oz + 24; mrz <= oz + 32; mrz++) {
+      for (var mrx = ox - 60; mrx <= ox + 44; mrx++) {
+        setBlock(mrx, gh(mrx, mrz), mrz, BLOCK.WATER);
+      }
+    }
+  }
+
   // IDEA 21: Evacuation bus/civilian vehicles
   function generateEvacVehicles(count) {
     for (let v = 0; v < count; v++) {
@@ -6501,7 +6695,8 @@ window.VoxelWorld = (function () {
       generateDroneNest(35, 35);
       generateDroneNest(-35, -35);
     } else if (level.id === 'KREMLIN') {
-      // The final showdown — Red Square inspired, heavily fortified
+      // The final showdown — the actual Kremlin, St Basil's & Red Square
+      generateMoscowCityExtension(0, 0);
       generateUkrainianApartment(-25, -25, 12);
       generateUkrainianApartment(25, -25, 12);
       generateUkrainianApartment(-25, 25, 12);
@@ -6581,6 +6776,28 @@ window.VoxelWorld = (function () {
       generateControlTower(0, 30);
       generateAmmoDepot(30, 0);
       generateBurningRuin(-10, 10);
+    } else if (level.id === 'SIEGE') {
+      // SIEGE OF MOSCOW — Ukrainian fighters storm the capital. The full
+      // Kremlin, St Basil's & Red Square, ringed by Russian defenders.
+      generateMoscowCityExtension(0, 0);
+      // Russian last-ditch defensive ring around the Kremlin walls.
+      generateDefensivePosition(-44, 0);
+      generateDefensivePosition(44, 0);
+      generateDefensivePosition(0, -44);
+      generateArtilleryBattery(34, 34);
+      generateArtilleryBattery(-34, 34);
+      generateAntiAirPosition(0, -38);
+      generateCheckpoint(44, 22, true);
+      generateCheckpoint(44, -22, true);
+      generateRazorWireField(40, 0);
+      // Ukrainian assault staging south of Red Square (player approach).
+      generateUkrainianApartment(48, -10, 9);
+      generateUkrainianApartment(48, 12, 6);
+      generateBurningRuin(38, 40);
+      generateBurningRuin(-50, 40);
+      generateDroneNest(60, 30);
+      generateDroneNest(-60, 30);
+      generateDroneNest(0, 60);
     }
     // ── War-zone ruined homes & commercial buildings (every stage) ──
     // Real Ukraine war reference: Mariupol, Bakhmut, Avdiivka districts
