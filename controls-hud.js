@@ -81,6 +81,7 @@ var ControlsHUD = (function () {
         ['Alt+Q',           'Quantum shift — phase teleport 12u forward, ghost afterimage trail (2/wave, 12s CD)'],
         ['Alt+O',           'Orbital laser — 2.5s charge + massive beam strike 30u ahead, 5u AOE 400 dmg (1/wave)'],
         ['Alt+U',           'Berserker mode — 4s invincibility + +35% outgoing dmg, gold rage vignette (1/wave)'],
+        ['Alt+W',           'War cry — terrifies enemies in 20u for 3s, they flee + yellow panic glow (1/wave, 18s CD)'],
       ]
     },
     { group: 'VEHICLES',
