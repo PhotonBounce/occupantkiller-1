@@ -1556,6 +1556,14 @@ window.VoxelWorld = (function () {
   let _levelSpawnPoint = { x: 0, y: 0, z: 0 };
 
   function hasStableSpawnFooting(x, z, groundY) {
+    const ix = Math.round(x), iz = Math.round(z);
+    // Reject spawning in water (coastal/island maps like Sevastopol & Snake
+    // Island): the player would spawn submerged and drown before they can
+    // move — and that death isn't prevented by god mode toggling in late.
+    if (typeof BLOCK !== 'undefined') {
+      const footY = Math.floor(groundY) + 1;
+      if (getBlock(ix, footY, iz) === BLOCK.WATER || getBlock(ix, footY + 1, iz) === BLOCK.WATER) return false;
+    }
     for (let dx = -2; dx <= 2; dx++) {
       for (let dz = -2; dz <= 2; dz++) {
         const localY = getTerrainHeight(x + dx, z + dz);
@@ -1654,6 +1662,21 @@ window.VoxelWorld = (function () {
     }
 
     if (best) return best;
+
+    // No preferred/fallback candidate was clear — spiral outward to find the
+    // nearest dry, clear spot. Critical for small island/naval maps where the
+    // fixed candidate list can all land in water (→ spawn-drown).
+    for (let r = 4; r <= 64; r += 4) {
+      for (let a = 0; a < 16; a++) {
+        const ang = (a / 16) * Math.PI * 2;
+        const cx = Math.round(Math.cos(ang) * r);
+        const cz = Math.round(Math.sin(ang) * r);
+        const gy = getTerrainHeight(cx, cz);
+        if (isSpawnAreaClear(cx, cz, gy, level && level.spawnLookTarget)) {
+          return { x: cx, y: gy, z: cz };
+        }
+      }
+    }
 
     const fallbackGround = getTerrainHeight(0, 0);
     return { x: 0, y: fallbackGround, z: 0 };
