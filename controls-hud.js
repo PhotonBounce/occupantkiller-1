@@ -82,6 +82,7 @@ var ControlsHUD = (function () {
         ['Alt+O',           'Orbital laser — 2.5s charge + massive beam strike 30u ahead, 5u AOE 400 dmg (1/wave)'],
         ['Alt+U',           'Berserker mode — 4s invincibility + +35% outgoing dmg, gold rage vignette (1/wave)'],
         ['Alt+W',           'War cry — terrifies enemies in 20u for 3s, they flee + yellow panic glow (1/wave, 18s CD)'],
+        ['Alt+Y',           'Sniper scope — toggle 6× zoom (FOV 75→20°), canvas scope overlay + mil-dot + range HUD'],
       ]
     },
     { group: 'VEHICLES',
