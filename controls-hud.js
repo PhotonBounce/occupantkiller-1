@@ -83,6 +83,7 @@ var ControlsHUD = (function () {
         ['Alt+U',           'Berserker mode — 4s invincibility + +35% outgoing dmg, gold rage vignette (1/wave)'],
         ['Alt+W',           'War cry — terrifies enemies in 20u for 3s, they flee + yellow panic glow (1/wave, 18s CD)'],
         ['Alt+Y',           'Sniper scope — toggle 6× zoom (FOV 75→20°), canvas scope overlay + mil-dot + range HUD'],
+        ['F10',             'Inferno wall — 4 staggered canisters form a perpendicular fire wall 22u ahead (1/wave, 20s CD)'],
       ]
     },
     { group: 'VEHICLES',
