@@ -4710,6 +4710,33 @@ window.VoxelWorld = (function () {
                       setBlock(x, by + y, z - w, BLOCK.CONCRETE); setBlock(x, by + y, z + w, BLOCK.CONCRETE); } }
       setBlock(x, by + 47, z, BLOCK.METAL); setBlock(x, by + 49, z, BLOCK.LIGHT); })();
 
+    // ── L. Presidential office — ornate chamber deep inside the Kremlin ──
+    // The lair of the Undying President (boss). Gilded walls, a great desk,
+    // flanking standards, red carpet. Doorway faces Red Square (east).
+    (function () {
+      var pox = ox - 4, poz = oz - 4, by = gh(pox, poz);
+      var PW = 11, PD = 9, PH = 6;
+      for (var x = 0; x < PW; x++) { for (var z = 0; z < PD; z++) { for (var y = 1; y <= PH; y++) {
+        var edge = x === 0 || x === PW - 1 || z === 0 || z === PD - 1 || y === PH;
+        // doorway in the east wall (x = PW-1), centred
+        if (x === PW - 1 && z >= 3 && z <= 5 && y <= 4) continue;
+        if (edge) setBlock(pox + x, by + y, poz + z, (y === PH) ? BLOCK.STONE : BLOCK.BRICK);
+        else if (y >= 2 && y <= PH - 2 && (x % 4 === 2) && (z === 0)) setBlock(pox + x, by + y, poz + z, BLOCK.LIGHT); // gilded wall trim
+      } } }
+      // Red-carpet floor
+      for (var cx = 1; cx < PW - 1; cx++) { for (var cz = 1; cz < PD - 1; cz++) setBlock(pox + cx, by, poz + cz, BLOCK.BRICK); }
+      // Great desk at the far (west) end
+      for (var dx = 3; dx <= 7; dx++) { setBlock(pox + dx, by + 1, poz + 2, BLOCK.WOOD); setBlock(pox + dx, by + 2, poz + 2, BLOCK.WOOD); }
+      setBlock(pox + 3, by + 3, poz + 2, BLOCK.LIGHT); setBlock(pox + 7, by + 3, poz + 2, BLOCK.LIGHT); // gilded desk trim
+      // High-backed chair behind the desk
+      setBlock(pox + 5, by + 1, poz + 1, BLOCK.WOOD); setBlock(pox + 5, by + 2, poz + 1, BLOCK.WOOD); setBlock(pox + 5, by + 3, poz + 1, BLOCK.WOOD);
+      // Two gilded standards flanking the desk
+      for (var fy = 1; fy <= 5; fy++) { setBlock(pox + 1, by + fy, poz + 2, BLOCK.METAL); setBlock(pox + 9, by + fy, poz + 2, BLOCK.METAL); }
+      setBlock(pox + 1, by + 5, poz + 3, BLOCK.LIGHT); setBlock(pox + 9, by + 5, poz + 3, BLOCK.LIGHT);
+      // Gilded chandelier at the centre of the ceiling
+      setBlock(pox + 5, by + PH - 1, poz + 4, BLOCK.LIGHT);
+    })();
+
     // ── K. The Moskva River — water channel along the south wall ─────────
     for (var mrz = oz + 24; mrz <= oz + 32; mrz++) {
       for (var mrx = ox - 60; mrx <= ox + 44; mrx++) {

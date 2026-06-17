@@ -615,6 +615,16 @@ const Enemies = (() => {
       attackDmg: 100, attackRate: 1.0, scoreValue: 25000, dropChance: 1.0,
       role: 'boss', range: 20, rangedDmg: 250, rangedRate: 2.5, accuracy: 0.7,
     },
+    // The bald zombie president — final boss inside the Kremlin's
+    // presidential office (Siege of Moscow). Dark-purple suit, red tie.
+    BOSS_PRESIDENT: {
+      name: 'BOSS_PRESIDENT', hpBase: 6500, speedBase: 1.6, scale: 2.9,
+      suitBoss: true, zombie: true,
+      bodyColor: 0x2e1840, headColor: 0x9fb08a, limbColor: 0x1a1228,
+      tieColor: 0xcc0000, shirtColor: 0xe8e8e8, eyeColor: 0x6cff2e,
+      attackDmg: 120, attackRate: 1.0, scoreValue: 40000, dropChance: 1.0,
+      role: 'boss', range: 22, rangedDmg: 220, rangedRate: 2.0, accuracy: 0.66,
+    },
     BOSS_KYIV: {
       name: 'BOSS_KYIV', hpBase: 1800, speedBase: 1.8, scale: 2.2,
       camoVariant: 'dark', bodyColor: 0x8b0000, headColor: 0xd0b090,
@@ -1107,9 +1117,104 @@ const Enemies = (() => {
     return _texCache[key];
   }
 
+  // ── Suit-wearing boss (the bald zombie president in the Kremlin) ──
+  // A big undead figure in a dark-purple suit + red tie, bald sickly head,
+  // toxic glowing eyes. Used for BOSS_PRESIDENT (Siege of Moscow finale).
+  function buildSuitBoss(typeCfg) {
+    const group = new THREE.Group();
+    const s     = typeCfg.scale;
+    const M     = function (c) { return new THREE.MeshLambertMaterial({ color: c }); };
+    const suit  = typeCfg.bodyColor;                 // dark purple
+    const trous = typeCfg.limbColor || 0x1a1228;     // darker purple/near-black
+    const skin  = typeCfg.headColor;                 // sickly zombie skin
+    const tieC  = typeCfg.tieColor  || 0xcc0000;     // red tie
+    const shirt = typeCfg.shirtColor || 0xe8e8e8;    // white shirt
+
+    // ── Torso: broad suit jacket ──
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.62 * s, 0.74 * s, 0.34 * s), M(suit));
+    torso.position.y = 0.92 * s;
+    group.add(torso);
+    // Shoulders bulked out (heavy-set boss)
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.78 * s, 0.20 * s, 0.36 * s), M(suit));
+    shoulders.position.y = 1.20 * s;
+    group.add(shoulders);
+    // White shirt V at the collar
+    const shirtV = new THREE.Mesh(new THREE.BoxGeometry(0.20 * s, 0.40 * s, 0.05 * s), M(shirt));
+    shirtV.position.set(0, 1.02 * s, 0.175 * s);
+    group.add(shirtV);
+    // Red tie down the chest
+    const tieKnot = new THREE.Mesh(new THREE.BoxGeometry(0.08 * s, 0.08 * s, 0.05 * s), M(tieC));
+    tieKnot.position.set(0, 1.16 * s, 0.19 * s);
+    const tie = new THREE.Mesh(new THREE.BoxGeometry(0.10 * s, 0.40 * s, 0.04 * s), M(tieC));
+    tie.position.set(0, 0.92 * s, 0.19 * s);
+    group.add(tieKnot, tie);
+    // Suit lapels
+    const lapL = new THREE.Mesh(new THREE.BoxGeometry(0.12 * s, 0.36 * s, 0.04 * s), M(suit));
+    lapL.position.set(-0.13 * s, 1.04 * s, 0.18 * s); lapL.rotation.z = 0.18;
+    const lapR = lapL.clone(); lapR.position.x = 0.13 * s; lapR.rotation.z = -0.18;
+    group.add(lapL, lapR);
+
+    // ── Bald head (sickly skin, NO helmet/hair) ──
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.38 * s, 0.40 * s, 0.38 * s), M(skin));
+    head.position.y = 1.52 * s;
+    group.add(head);
+    // Slight brow / sunken zombie jaw shading
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.34 * s, 0.10 * s, 0.34 * s), M((skin & 0xfefefe) >> 1));
+    jaw.position.y = 1.36 * s;
+    group.add(jaw);
+    // Ears
+    const earL = new THREE.Mesh(new THREE.BoxGeometry(0.05 * s, 0.12 * s, 0.10 * s), M(skin));
+    earL.position.set(-0.20 * s, 1.50 * s, 0);
+    const earR = earL.clone(); earR.position.x = 0.20 * s;
+    group.add(earL, earR);
+    // Toxic glowing eyes
+    const eyeGeo = new THREE.SphereGeometry(0.05 * s, 6, 6);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: typeCfg.eyeColor });
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.09 * s, 1.55 * s, 0.20 * s);
+    const eyeR = eyeL.clone(); eyeR.position.x = 0.09 * s;
+    group.add(eyeL, eyeR);
+
+    // ── Arms: suit sleeves + skin hands ──
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.20 * s, 0.58 * s, 0.20 * s), M(suit));
+    armL.position.set(-0.42 * s, 0.90 * s, 0);
+    const armR = armL.clone(); armR.position.x = 0.42 * s;
+    group.add(armL, armR);
+    const handL = new THREE.Mesh(new THREE.BoxGeometry(0.18 * s, 0.16 * s, 0.18 * s), M(skin));
+    handL.position.set(-0.42 * s, 0.58 * s, 0);
+    const handR = handL.clone(); handR.position.x = 0.42 * s;
+    group.add(handL, handR);
+
+    // ── Legs: suit trousers + black shoes ──
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.24 * s, 0.60 * s, 0.24 * s), M(trous));
+    legL.position.set(-0.16 * s, 0.30 * s, 0);
+    const legR = legL.clone(); legR.position.x = 0.16 * s;
+    group.add(legL, legR);
+    const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.26 * s, 0.12 * s, 0.34 * s), M(0x0a0a0a));
+    shoeL.position.set(-0.16 * s, 0.06 * s, 0.06 * s);
+    const shoeR = shoeL.clone(); shoeR.position.x = 0.16 * s;
+    group.add(shoeL, shoeR);
+
+    // ── Invisible hitbox (raycaster target) ──
+    const hitbox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8 * s, 2.0 * s, 0.5 * s),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
+    );
+    hitbox.position.y = 0.95 * s;
+    group.add(hitbox);
+
+    group.userData.headMesh = head;
+    group.userData.hitbox   = hitbox;
+    group.userData.parts    = [torso, shoulders, shirtV, tieKnot, tie, lapL, lapR, head, jaw,
+                               earL, earR, eyeL, eyeR, armL, armR, handL, handR,
+                               legL, legR, shoeL, shoeR, hitbox];
+    group.userData.faction  = 'occupant';
+    return group;
+  }
+
   // ── Build humanoid mesh scaled to typeCfg ─────────────────
   // Full EMR camo uniforms, white Z on helmet, white armband
   function buildMesh(typeCfg) {
+    if (typeCfg.suitBoss) return buildSuitBoss(typeCfg);
     const group = new THREE.Group();
     const s     = typeCfg.scale;
 
@@ -1396,7 +1501,7 @@ const Enemies = (() => {
     var _wvSkip = { BOSS:1, BOSS_MARIUPOL:1, BOSS_CRIMEA:1, BOSS_CHORNOBYL:1,
       BOSS_MOSCOW:1, BOSS_SEVASTOPOL:1, BOSS_DONBAS:1, BOSS_BELGOROD:1,
       BOSS_KREMLIN:1, BOSS_KYIV:1, BOSS_SNAKE_ISLAND:1, BOSS_SAKY:1,
-      BOSS_VUHLEDAR:1, BOSS_ANTONOV:1,
+      BOSS_VUHLEDAR:1, BOSS_ANTONOV:1, BOSS_PRESIDENT:1,
       WAR_DOG:1, KAMIKAZE_DRONE:1, ASSAULT_MECH:1, TANK:1, BTR:1,
       MORTAR:1, HEAVY_SNIPER:1, SNIPER_ELITE:1, SNIPER:1, BOMBER:1,
       EW_OPERATOR:1, DRONE_OP:1 };
@@ -3058,6 +3163,7 @@ const Enemies = (() => {
           case 'BOSS_SAKY':
           case 'BOSS_VUHLEDAR':
           case 'BOSS_ANTONOV':
+          case 'BOSS_PRESIDENT':
             etResult = EnemyTypes.updateBoss(e, playerPos, delta, wave || 1);
             if (etResult) {
               if (etResult.summon) {

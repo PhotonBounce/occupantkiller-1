@@ -198,6 +198,24 @@ const EnemyTypes = (function () {
       summonTypes: ['SPETSNAZ', 'ASSAULT_MECH', 'THERMOBARIC', 'SWARM_OP'], summonCount: 5, summonInterval: 15
     },
 
+    // Siege of Moscow finale — the bald zombie president in the Kremlin's
+    // presidential office. Dark-purple suit, red tie, toxic-green eyes.
+    BOSS_PRESIDENT: {
+      id: 'BOSS_PRESIDENT', name: 'The Undying President', tier: 5,
+      hp: 6500, speed: 1.6, damage: 120, attackRange: 22,
+      color: 0x2e1840, scale: 2.9, xpReward: 4000,
+      suitBoss: true, zombie: true,
+      abilities: ['summon_reinforcements', 'rage_mode', 'nuclear_briefcase', 'body_doubles', 'bunker_shield'],
+      lootTable: ['LEGENDARY_WEAPON', 'LEGENDARY_WEAPON', 'XP_BOOST', 'VICTORY_TOKEN'],
+      spawnMessage: '☣ THE UNDYING PRESIDENT RISES IN THE KREMLIN!',
+      behavior: 'boss',
+      phaseThresholds: [0.75, 0.5, 0.25], // 4-phase fight
+      shieldHP: 1000, shieldRegenRate: 5,
+      nukeDamage: 220, nukeRadius: 12, nukeInterval: 18,
+      rageThreshold: 0.3, rageDamageMult: 2.5, rageSpeedMult: 2.2,
+      summonTypes: ['SPETSNAZ', 'WAGNER', 'KADYROVITE', 'THERMOBARIC'], summonCount: 5, summonInterval: 14
+    },
+
     // Feature 17: Suicide Bomber
     BOMBER: {
       id: 'BOMBER', name: 'Suicide Bomber', tier: 2,
@@ -639,6 +657,7 @@ const EnemyTypes = (function () {
     16: 'BOSS_VUHLEDAR',      // Tank Corps Colonel
     17: 'BOSS_ANTONOV',       // Logistics Rear Admiral
     // 18 (Refinery FPV) is droneOnly/single-wave — no boss needed
+    20: 'BOSS_PRESIDENT',     // Siege of Moscow — the bald zombie president in the Kremlin
   };
 
   /**
