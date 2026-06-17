@@ -75,6 +75,7 @@ var ControlsHUD = (function () {
         ['Alt+C',           'Cryo grenade — freeze enemies in 7u for 4s, ice-blue emissive (2/wave, 20s CD)'],
         ['Alt+K',           'Cluster bomb — 5 scatter bomblets, each 3u AOE 80 dmg, staggered 0.2s (2/wave, 22s CD)'],
         ['Alt+R',           'Railgun — hyper-velocity piercing beam, 250 dmg every enemy in line, 60u range (1/wave)'],
+        ['Alt+V',           'Vortex cannon — 60° forward cone blast, pushes + stuns enemies 1.5s, 40 dmg (2/wave, 16s CD)'],
       ]
     },
     { group: 'VEHICLES',
