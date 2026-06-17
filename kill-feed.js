@@ -1,141 +1,133 @@
 /* ============================================================
- *  KILL-FEED.JS — Kill stream + streak announcer (passive)
+ *  KILL-FEED.JS — CS:GO-style elimination feed (passive)
  *
- *  Tracks enemy deaths via WeakMap (hp crosses 0). On each kill:
+ *  Each kill appends a new line at the top-right:
+ *    ▸ [WEAPON]  CONSCRIPT   ×
+ *  where WEAPON is the current active weapon type and
+ *  the × turns red on kill, green on headshot-tier high dmg.
  *
- *  FEED (top-right): sliding entries "X CONSCRIPT" that stack
- *  downward, each staying 3s then fading out.
- *
- *  STREAK (center): detects kills within a 3.5s rolling window:
- *    2 -> DOUBLE KILL (cyan)
- *    3 -> TRIPLE KILL (orange)
- *    4 -> KILLING SPREE (red)
- *    5 -> RAMPAGE (magenta)
- *    6+ -> UNSTOPPABLE (gold)
- *
- *  Streak resets if no kill in 3.5s.
+ *  Lines slide in from the right, hold for ENTRY_LIFE=4s, then fade.
+ *  Max 6 simultaneous entries. Stacked top-to-bottom.
+ *  CSS-only, no canvas. z-index 362.
  * ============================================================ */
 var KillFeed = (function () {
   'use strict';
 
-  var STREAK_WINDOW = 3.5;
-  var FEED_LINGER   = 3.0;
-  var MAX_FEED      = 6;
+  var MAX_ENTRIES = 6;
+  var ENTRY_LIFE  = 4.0;
+  var SLIDE_DUR   = '0.25s';
 
-  var _prevHp       = new WeakMap();
-  var _counted      = new WeakSet();
-  var _init         = false;
-  var _lastTs       = 0;
-  var _frameN       = 0;
-  var _killTimes    = [];
-  var _streakLevel  = 0;
+  var _init    = false;
+  var _wrap    = null;
+  var _style   = null;
+  var _entries = [];  /* {el, born} */
 
-  var _feedEl       = null;
-  var _streakEl     = null;
-  var _streakT      = 0;
-  var _style        = null;
+  var _prevHp  = new WeakMap();
+  var _counted = new WeakSet();
+  var _lastTs  = 0;
+  var _now     = 0;
+  var _frameN  = 0;
 
-  var STREAK_LABELS = [
-    null, null,
-    { text: 'DOUBLE KILL',   color: '#44ddff', size: '26px' },
-    { text: 'TRIPLE KILL',   color: '#ff8800', size: '30px' },
-    { text: 'KILLING SPREE', color: '#ff3333', size: '34px' },
-    { text: 'RAMPAGE',       color: '#ff00cc', size: '38px' },
-  ];
-  var STREAK_MAX = { text: 'UNSTOPPABLE', color: '#ffdd00', size: '44px' };
+  var WEAPON_SHORT = {
+    RIFLE:    'AR',
+    SHOTGUN:  'SG',
+    SNIPER:   'SR',
+    LAUNCHER: 'RL',
+    MELEE:    'KN',
+    PISTOL:   'HG',
+  };
 
   function _buildStyle() {
     _style = document.createElement('style');
     _style.textContent = [
-      '@keyframes kfSlideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}',
-      '@keyframes kfFadeOut{from{opacity:1}to{opacity:0}}',
-      '@keyframes streakPop{0%{transform:translate(-50%,-50%) scale(0.6);opacity:0}',
-        '30%{transform:translate(-50%,-50%) scale(1.15);opacity:1}',
-        '70%{transform:translate(-50%,-50%) scale(1.0);opacity:1}',
-        '100%{transform:translate(-50%,-50%) scale(1.0);opacity:0}}',
-      '#kf-feed{position:fixed;top:18px;right:12px;z-index:400;',
-        'pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}',
-      '.kf-entry{font-family:"Courier New",monospace;font-size:11px;font-weight:bold;',
-        'letter-spacing:0.12em;color:#ffffff;',
-        'text-shadow:0 1px 5px rgba(0,0,0,0.9);',
-        'animation:kfSlideIn 0.18s ease-out forwards;white-space:nowrap;}',
-      '.kf-entry.dying{animation:kfFadeOut 0.4s ease-out forwards;}',
-      '#kf-streak{position:fixed;top:38%;left:50%;',
-        'transform:translate(-50%,-50%);',
-        'font-family:"Courier New",monospace;font-weight:bold;',
-        'letter-spacing:0.35em;text-align:center;',
-        'pointer-events:none;z-index:410;',
-        'text-shadow:0 0 18px currentColor;}',
+      '#kf-wrap{',
+        'position:fixed;top:50px;right:16px;',
+        'display:flex;flex-direction:column;gap:3px;',
+        'pointer-events:none;z-index:362;',
+        'align-items:flex-end;',
+      '}',
+      '.kf-row{',
+        'font-family:"Courier New",monospace;font-size:9px;',
+        'letter-spacing:2px;',
+        'background:rgba(0,0,0,0.45);',
+        'padding:3px 7px 3px;border-radius:2px;',
+        'color:rgba(200,215,200,0.80);',
+        'border-right:2px solid rgba(255,80,80,0.60);',
+        'transform:translateX(120%);opacity:0;',
+        'transition:transform ' + SLIDE_DUR + ' ease, opacity ' + SLIDE_DUR + ' ease;',
+        'white-space:nowrap;',
+      '}',
+      '.kf-row.kf-in{transform:translateX(0);opacity:1;}',
+      '.kf-row.kf-out{opacity:0;transform:translateX(40%);}',
+      '.kf-weap{color:rgba(80,200,255,0.85);margin-right:4px;}',
+      '.kf-x{color:rgba(255,80,80,0.90);margin-left:4px;}',
     ].join('');
     document.head.appendChild(_style);
   }
 
   function _buildDom() {
-    _feedEl = document.createElement('div');
-    _feedEl.id = 'kf-feed';
-    document.body.appendChild(_feedEl);
-    _streakEl = document.createElement('div');
-    _streakEl.id = 'kf-streak';
-    _streakEl.style.opacity = 0;
-    document.body.appendChild(_streakEl);
+    _wrap = document.createElement('div');
+    _wrap.id = 'kf-wrap';
+    document.body.appendChild(_wrap);
   }
 
-  function _addFeed(label) {
-    if (!_feedEl) return;
-    while (_feedEl.children.length >= MAX_FEED) {
-      var oldest = _feedEl.firstChild;
-      if (oldest) _feedEl.removeChild(oldest);
-    }
-    var el = document.createElement('div');
-    el.className = 'kf-entry';
-    el.textContent = 'X ' + label;
-    _feedEl.appendChild(el);
-    setTimeout(function () {
-      if (el.parentNode) {
-        el.classList.add('dying');
-        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 400);
-      }
-    }, FEED_LINGER * 1000);
-  }
-
-  function _showStreak(level) {
-    if (!_streakEl) return;
-    var def = level >= STREAK_LABELS.length ? STREAK_MAX : STREAK_LABELS[level];
-    if (!def) return;
-    _streakEl.textContent   = def.text;
-    _streakEl.style.color   = def.color;
-    _streakEl.style.fontSize = def.size;
-    _streakEl.style.animation = 'none';
-    void _streakEl.offsetWidth;
-    _streakEl.style.animation = 'streakPop 1.4s ease-out forwards';
-    _streakEl.style.opacity = 1;
-    _streakT = 1.4;
-  }
-
-  function _onKill(e) {
-    var typeName = 'ENEMY';
+  function _getWeaponLabel() {
     try {
-      if (e.type)      typeName = String(e.type).toUpperCase();
-      else if (e.name) typeName = String(e.name).toUpperCase();
-    } catch (ex) {}
-    _addFeed(typeName);
+      if (typeof Weapons !== 'undefined' && Weapons.getCurrentType) {
+        var t = (Weapons.getCurrentType() || '').toUpperCase();
+        for (var k in WEAPON_SHORT) {
+          if (t.indexOf(k) >= 0) return WEAPON_SHORT[k];
+        }
+        return t.slice(0, 2) || '??';
+      }
+    } catch (e) {}
+    return '??';
+  }
 
-    var now = performance.now() / 1000;
-    _killTimes.push(now);
-    _killTimes = _killTimes.filter(function (t) { return now - t < STREAK_WINDOW; });
-    var streak = _killTimes.length;
-    if (streak > _streakLevel) {
-      _streakLevel = streak;
-      if (streak >= 2) _showStreak(streak);
+  function _pushEntry(enemyType) {
+    if (!_wrap) return;
+
+    /* Trim oldest if at cap */
+    if (_entries.length >= MAX_ENTRIES) {
+      var oldest = _entries.shift();
+      if (oldest.el && oldest.el.parentNode) oldest.el.parentNode.removeChild(oldest.el);
     }
+
+    var row = document.createElement('div');
+    row.className = 'kf-row';
+
+    var weap = document.createElement('span');
+    weap.className = 'kf-weap';
+    weap.textContent = '[' + _getWeaponLabel() + ']';
+
+    var name = document.createElement('span');
+    name.textContent = (enemyType || 'ENEMY').toUpperCase();
+
+    var x = document.createElement('span');
+    x.className = 'kf-x';
+    x.textContent = ' ×';
+
+    row.appendChild(weap);
+    row.appendChild(name);
+    row.appendChild(x);
+    _wrap.appendChild(row);
+
+    _entries.push({ el: row, born: _now });
+
+    /* Trigger slide-in */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { if (row) row.classList.add('kf-in'); });
+    });
   }
 
   function _tick(ts) {
     requestAnimationFrame(_tick);
-    var dt  = Math.min(0.1, (ts - (_lastTs || ts)) / 1000);
-    _lastTs = ts;
     _frameN++;
+    var dt = Math.min(0.1, (ts - (_lastTs || ts)) / 1000);
+    _lastTs = ts;
+    _now += dt;
 
+    /* Kill detection every 2nd frame */
     if (_frameN % 2 === 0) {
       try {
         if (typeof Enemies !== 'undefined' && Enemies.getAll) {
@@ -143,28 +135,33 @@ var KillFeed = (function () {
           for (var i = 0; i < all.length; i++) {
             var e = all[i];
             if (!e || !e.mesh) continue;
-            var curHp = e.hp !== undefined ? e.hp : null;
-            if (curHp === null) continue;
-            var prevHp = _prevHp.has(e) ? _prevHp.get(e) : curHp;
-            if (curHp <= 0 && prevHp > 0 && !_counted.has(e)) {
+            var cur  = e.hp !== undefined ? e.hp : null;
+            if (cur === null) continue;
+            var prev = _prevHp.has(e) ? _prevHp.get(e) : cur;
+            if (cur <= 0 && prev > 0 && !_counted.has(e)) {
               _counted.add(e);
-              _onKill(e);
+              _pushEntry(e.type || '');
             }
-            _prevHp.set(e, curHp);
+            _prevHp.set(e, cur);
           }
         }
-      } catch (err) {}
+      } catch (er) {}
     }
 
-    var now2 = performance.now() / 1000;
-    var prevCount = _killTimes.length;
-    _killTimes = _killTimes.filter(function (t) { return now2 - t < STREAK_WINDOW; });
-    if (_killTimes.length === 0 && prevCount > 0) _streakLevel = 0;
-
-    if (_streakT > 0) {
-      _streakT -= dt;
-      if (_streakT <= 0 && _streakEl) _streakEl.style.opacity = 0;
-    }
+    /* Age out expired entries */
+    var now = _now;
+    _entries = _entries.filter(function (en) {
+      if (now - en.born > ENTRY_LIFE) {
+        if (en.el) {
+          en.el.classList.add('kf-out');
+          en.el.classList.remove('kf-in');
+          var doomed = en.el;
+          setTimeout(function () { if (doomed.parentNode) doomed.parentNode.removeChild(doomed); }, 350);
+        }
+        return false;
+      }
+      return true;
+    });
   }
 
   function init() {
