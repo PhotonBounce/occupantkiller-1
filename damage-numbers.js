@@ -1,167 +1,181 @@
 /* ============================================================
- *  DAMAGE-NUMBERS.JS — Floating damage text (passive)
+ *  DAMAGE-NUMBERS.JS — Floating damage digits at enemy positions (passive)
  *
- *  Tracks every enemy's HP each frame via WeakMap. On any HP
- *  drop, projects the enemy's 3D position to screen coords
- *  (camera.project) and spawns a rising div showing the damage.
+ *  Each time an enemy takes a HP hit within 0.35s of the last shot,
+ *  a floating number appears at their screen position and drifts up.
  *
- *  Color tiers:
- *    white  — < 50 dmg (normal hit)
- *    orange — 50-149 dmg (heavy hit)
- *    red    — ≥ 150 dmg (critical / power weapon)
- *    gold   — if enemy died this hit (LETHAL)
+ *  Number styles:
+ *    Normal hit  → white, 14px, life 0.65s
+ *    Crit (>60 dmg) → yellow, 18px, bold, life 0.80s
+ *    Kill shot   → "KILL" in red, 16px, life 0.90s
  *
- *  Numbers rise 55px and fade over 0.70s via CSS animation.
- *  Max 25 active floaters (oldest removed on overflow).
+ *  Max 20 simultaneous numbers. Canvas z-index 453 (above hit-marker).
  * ============================================================ */
 var DamageNumbers = (function () {
   'use strict';
 
-  var MAX_FLOATERS  = 25;
-  var ANIM_DUR      = 0.70;
+  var MAX_NUMS   = 20;
+  var CRIT_DMG   = 60;
+  var DRIFT_VY   = -45;   /* px/s upward drift */
+  var JITTER     = 18;    /* horizontal spread px */
+  var SHOT_WIN   = 0.35;  /* shot attribution window seconds */
 
-  var _prevHp       = new WeakMap();
-  var _init         = false;
-  var _lastTs       = 0;
-  var _cam          = null;
-  var _floaters     = [];   /* DOM elements currently animating */
-  var _style        = null;
+  var _canvas  = null;
+  var _ctx     = null;
+  var _init    = false;
+  var _frameN  = 0;
+  var _lastTs  = 0;
+  var _cam     = null;
+  var _nums    = [];
 
-  /* ── Inject keyframe CSS ───────────────────── */
-  function _buildStyle() {
-    _style = document.createElement('style');
-    _style.textContent = [
-      '@keyframes dnRise{',
-        'from{transform:translate(-50%,0);opacity:1;}',
-        'to  {transform:translate(-50%,-55px);opacity:0;}',
-      '}',
-      '.dn-num{',
-        'position:fixed;pointer-events:none;z-index:500;',
-        'font-family:"Courier New",monospace;font-weight:bold;',
-        'font-size:13px;letter-spacing:0.08em;',
-        'text-shadow:0 1px 4px rgba(0,0,0,0.85);',
-        'animation:dnRise ' + ANIM_DUR + 's ease-out forwards;',
-        'white-space:nowrap;',
-      '}',
-    ].join('');
-    document.head.appendChild(_style);
-  }
+  var _prevHp  = new WeakMap();
+  var _counted = new WeakSet();
+  var _prevClip = null;
+  var _lastShotT = -999;
 
-  /* ── Get (or cache) the camera ─────────────── */
   function _getCamera() {
     if (!_cam) {
-      try { _cam = window.GameManager && GameManager.getCamera ? GameManager.getCamera() : null; } catch (e) {}
+      try { _cam = (typeof GameManager !== 'undefined' && GameManager.getCamera) ? GameManager.getCamera() : null; } catch (e) {}
     }
     return _cam;
   }
 
-  /* ── Project 3D world pos → screen px ──────── */
-  function _toScreen(wx, wy, wz) {
+  function _buildCanvas() {
+    _canvas = document.createElement('canvas');
+    _canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:453;';
+    document.body.appendChild(_canvas);
+    _ctx = _canvas.getContext('2d');
+    _resize();
+    window.addEventListener('resize', _resize);
+  }
+
+  function _resize() {
+    if (!_canvas) return;
+    _canvas.width  = window.innerWidth;
+    _canvas.height = window.innerHeight;
+  }
+
+  function _projectEnemy(e) {
     var cam = _getCamera();
     if (!cam || typeof THREE === 'undefined') return null;
     try {
-      var v = new THREE.Vector3(wx, wy, wz);
+      var v = new THREE.Vector3(e.mesh.position.x, e.mesh.position.y + 1.2, e.mesh.position.z);
       v.project(cam);
-      /* v.z > 1 means behind camera */
       if (v.z > 1) return null;
-      var sx = (v.x * 0.5 + 0.5) * window.innerWidth;
-      var sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
-      /* Clamp to viewport */
-      if (sx < 20 || sx > window.innerWidth - 20) return null;
-      if (sy < 10 || sy > window.innerHeight - 10) return null;
+      var sx = (v.x * 0.5 + 0.5) * _canvas.width;
+      var sy = (-v.y * 0.5 + 0.5) * _canvas.height;
+      if (sx < -60 || sx > _canvas.width + 60 || sy < -60 || sy > _canvas.height + 60) return null;
       return { x: sx, y: sy };
-    } catch (e) { return null; }
+    } catch (e2) { return null; }
   }
 
-  /* ── Spawn a floating number ───────────────── */
-  function _spawn(damage, killed, wx, wy, wz) {
-    var sc = _toScreen(wx, wy + 1.8, wz);
-    if (!sc) return;
+  function _spawnNum(x, y, text, style) {
+    if (_nums.length >= MAX_NUMS) _nums.shift();
+    var life = style === 'kill' ? 0.90 : (style === 'crit' ? 0.80 : 0.65);
+    _nums.push({
+      x: x + (Math.random() - 0.5) * JITTER,
+      y: y,
+      vy: DRIFT_VY + (Math.random() - 0.5) * 10,
+      text: text,
+      style: style,
+      life: life,
+      total: life,
+    });
+  }
 
-    /* Evict oldest if over cap */
-    if (_floaters.length >= MAX_FLOATERS) {
-      var old = _floaters.shift();
-      if (old && old.parentNode) old.parentNode.removeChild(old);
-    }
+  function _drawNum(n) {
+    var t = n.life / n.total;
+    var alpha = t > 0.8 ? 1 : t / 0.8;
+    var ctx = _ctx;
+    ctx.save();
+    ctx.globalAlpha = alpha;
 
-    var el   = document.createElement('div');
-    el.className = 'dn-num';
-
-    /* Color + text */
-    var text  = Math.round(damage).toString();
-    var color;
-    if (killed) {
-      text  = '★ ' + text;
-      color = '#ffdd00';
-    } else if (damage >= 150) {
-      color = '#ff4444';
-    } else if (damage >= 50) {
-      color = '#ff9933';
+    var sz, col, weight;
+    if (n.style === 'kill') {
+      sz = 16; col = 'rgba(255,60,60,1)'; weight = 'bold';
+    } else if (n.style === 'crit') {
+      sz = 18; col = 'rgba(255,210,50,1)'; weight = 'bold';
     } else {
-      color = '#ffffff';
+      sz = 14; col = 'rgba(240,240,240,1)'; weight = 'normal';
     }
-    el.style.color = color;
-    el.textContent = text;
 
-    /* Add slight X jitter so stacked hits don't overlap */
-    var jitterX = (Math.random() - 0.5) * 30;
-    el.style.left = (sc.x + jitterX) + 'px';
-    el.style.top  = sc.y + 'px';
-
-    /* Slightly larger for big hits */
-    if (damage >= 150) el.style.fontSize = '16px';
-    if (killed)        el.style.fontSize = '15px';
-
-    document.body.appendChild(el);
-    _floaters.push(el);
-
-    /* Auto-remove after animation */
-    setTimeout(function () {
-      if (el.parentNode) el.parentNode.removeChild(el);
-      var idx = _floaters.indexOf(el);
-      if (idx >= 0) _floaters.splice(idx, 1);
-    }, ANIM_DUR * 1000 + 50);
+    ctx.font = weight + ' ' + sz + 'px "Courier New",monospace';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = n.style === 'kill' ? 'rgba(255,0,0,0.7)' : (n.style === 'crit' ? 'rgba(255,180,0,0.7)' : 'rgba(0,0,0,0.8)');
+    ctx.shadowBlur = n.style === 'normal' ? 4 : 10;
+    ctx.fillStyle = col;
+    ctx.fillText(n.text, n.x, n.y);
+    ctx.restore();
   }
 
-  /* ── rAF tick ──────────────────────────────── */
-  var _frameN = 0;
   function _tick(ts) {
     requestAnimationFrame(_tick);
-    var dt  = Math.min(0.1, (ts - (_lastTs || ts)) / 1000);
-    _lastTs = ts;
     _frameN++;
+    var dt = Math.min(0.08, (ts - (_lastTs || ts)) / 1000);
+    _lastTs = ts;
+    var now = ts / 1000;
 
-    /* Only scan enemies every 2 frames — plenty for 60fps visual */
-    if (_frameN % 2 !== 0) return;
-
-    try {
-      if (typeof Enemies === 'undefined' || !Enemies.getAll) return;
-      var all = Enemies.getAll();
-      for (var i = 0; i < all.length; i++) {
-        var e = all[i];
-        if (!e || !e.mesh) continue;
-
-        var curHp  = e.hp !== undefined ? e.hp : null;
-        if (curHp === null) continue;
-
-        var prevHp = _prevHp.has(e) ? _prevHp.get(e) : curHp;
-        var drop   = prevHp - curHp;
-
-        if (drop >= 1) {
-          var killed = (curHp <= 0 && prevHp > 0);
-          _spawn(drop, killed, e.mesh.position.x, e.mesh.position.y, e.mesh.position.z);
+    /* Shot detection */
+    if (_frameN % 2 === 0) {
+      try {
+        if (typeof Weapons !== 'undefined' && Weapons.getState) {
+          var st = Weapons.getState();
+          var isMelee = (typeof Weapons.getCurrentType === 'function' && (Weapons.getCurrentType() || '').toUpperCase().indexOf('MELEE') >= 0);
+          if (!isMelee && st && _prevClip !== null && st.clip < _prevClip) {
+            var fired = _prevClip - st.clip;
+            if (fired >= 1 && fired <= 5) _lastShotT = now;
+          }
+          _prevClip = st ? st.clip : _prevClip;
         }
+      } catch (e) {}
 
-        _prevHp.set(e, curHp);
-      }
-    } catch (err) {}
+      /* Enemy HP tracking */
+      try {
+        if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+          var all = Enemies.getAll();
+          for (var i = 0; i < all.length; i++) {
+            var e = all[i];
+            if (!e || !e.mesh) continue;
+            var cur  = e.hp !== undefined ? e.hp : null;
+            if (cur === null) continue;
+            var prev = _prevHp.has(e) ? _prevHp.get(e) : cur;
+
+            if (prev > cur && now - _lastShotT < SHOT_WIN) {
+              var dmg = Math.round(prev - cur);
+              var sc  = _projectEnemy(e);
+              if (sc) {
+                if (cur <= 0 && !_counted.has(e)) {
+                  _counted.add(e);
+                  _spawnNum(sc.x, sc.y, 'KILL', 'kill');
+                } else if (dmg >= CRIT_DMG) {
+                  _spawnNum(sc.x, sc.y, '' + dmg, 'crit');
+                } else if (dmg > 0) {
+                  _spawnNum(sc.x, sc.y, '' + dmg, 'normal');
+                }
+              }
+            }
+            _prevHp.set(e, cur);
+          }
+        }
+      } catch (er) {}
+    }
+
+    /* Render */
+    if (!_ctx) return;
+    _ctx.clearRect(0, 0, _canvas.width, _canvas.height);
+    for (var j = _nums.length - 1; j >= 0; j--) {
+      var n = _nums[j];
+      n.life -= dt;
+      if (n.life <= 0) { _nums.splice(j, 1); continue; }
+      n.y += n.vy * dt;
+      _drawNum(n);
+    }
   }
 
-  /* ── Init ──────────────────────────────────── */
   function init() {
     if (_init) return;
     _init = true;
-    _buildStyle();
+    _buildCanvas();
     requestAnimationFrame(_tick);
   }
 
