@@ -20,7 +20,10 @@ const URL       = process.argv[2] || 'http://localhost:3000';
 const GOD_SHOTS = parseInt(process.argv[3] || '50', 10);   // shots per stage in god mode
 const REG_SHOTS = parseInt(process.argv[4] || '25', 10);   // shots per stage in regular mode
 const MODES     = (process.argv[5] || 'god,regular').split(',').map(s => s.trim()).filter(Boolean);
-const SHOT_MS   = parseInt(process.env.SHOT_MS || '3000', 10);  // 3-second cadence
+// Per-shot processing (render + readback) on software-WebGL already exceeds ~3s,
+// so captures are naturally >=3s apart; keep only a small settle delay so the
+// game advances between frames without adding dead time.
+const SHOT_MS   = parseInt(process.env.SHOT_MS || '600', 10);
 
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const ROOT  = path.join(__dirname, 'screenshots', `megasweep-${stamp}`);
@@ -41,7 +44,9 @@ function log(...a) { console.log('[MEGASWEEP]', ...a); }
     args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--ignore-gpu-blocklist'],
   });
   const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 720 });
+  // Small viewport — software-WebGL screenshot cost scales with pixel count;
+  // 640x360 is ~4x cheaper than 1280x720 and still clearly QA-viewable.
+  await page.setViewport({ width: 640, height: 360 });
 
   let curStageLabel = 'boot';
   const pushErr = (kind, txt) => {
@@ -159,12 +164,32 @@ function log(...a) { console.log('[MEGASWEEP]', ...a); }
 
       let deadStreak = 0;
       for (let k = 0; k < shots; k++) {
-        // Rotate weapon each shot so every weapon appears.
-        try { await page.evaluate((idx) => { if (window.Weapons && Weapons.switchTo && Weapons.getWeaponCount) Weapons.switchTo(idx % Weapons.getWeaponCount()); }, k); } catch (e) {}
-        await fireWeapon();
-        const st = await probe();
+        // ONE combined round-trip: rotate weapon, fire a tap, return probe.
+        let st = { state: '?', wave: '?', enemies: -1, hp: -1, weapon: '?', nan: false };
+        try {
+          st = await page.evaluate((idx) => {
+            const out = { state: '?', wave: '?', enemies: -1, hp: -1, weapon: '?', nan: false };
+            try {
+              if (window.Weapons && Weapons.switchTo && Weapons.getWeaponCount) Weapons.switchTo(idx % Weapons.getWeaponCount());
+              const cv = document.querySelector('canvas');
+              if (cv) { const r = cv.getBoundingClientRect(); const o = { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0 };
+                cv.dispatchEvent(new MouseEvent('mousedown', o)); document.dispatchEvent(new MouseEvent('mousedown', o)); }
+              const gm = window.GameManager;
+              out.state = gm.getState ? gm.getState() : '?';
+              out.wave  = gm.getCurrentWave ? gm.getCurrentWave() : '?';
+              if (window.Enemies && Enemies.getAll) out.enemies = Enemies.getAll().filter(e => e && e.hp > 0).length;
+              if (window.player) out.hp = window.player.hp;
+              if (window.Weapons && Weapons.getCurrentType) out.weapon = Weapons.getCurrentType();
+              const c = gm.getCamera ? gm.getCamera().position : null, p = window.player ? window.player.position : null;
+              if (c && p) out.nan = [c.x, c.y, c.z, p.x, p.y, p.z].some(v => !Number.isFinite(v));
+            } catch (e) {}
+            return out;
+          }, k);
+        } catch (e) {}
         const file = path.join(dir, `${pad(k, 3)}.jpg`);
-        try { await page.screenshot({ path: file, type: 'jpeg', quality: 80 }); shotTotal++; } catch (e) { errorLog.push(`[${curStageLabel}] SHOT_FAIL ${k}: ${e.message}`); }
+        try { await page.screenshot({ path: file, type: 'jpeg', quality: 68, optimizeForSpeed: true, captureBeyondViewport: false }); shotTotal++; } catch (e) { errorLog.push(`[${curStageLabel}] SHOT_FAIL ${k}: ${e.message}`); }
+        // release fire
+        try { await page.evaluate(() => { const o = { bubbles: true, cancelable: true, button: 0 }; const cv = document.querySelector('canvas'); if (cv) cv.dispatchEvent(new MouseEvent('mouseup', o)); document.dispatchEvent(new MouseEvent('mouseup', o)); }); } catch (e) {}
         manifest.push({ mode, stage: s, stageId, shot: k, file: path.relative(ROOT, file), state: st.state, wave: st.wave, enemies: st.enemies, hp: st.hp, weapon: st.weapon, nan: st.nan });
         if (st.nan) errorLog.push(`[${curStageLabel}] NaN in camera/player at shot ${k}`);
         // Throttled progress flush so monitoring + crash-recovery work mid-stage.
@@ -173,7 +198,7 @@ function log(...a) { console.log('[MEGASWEEP]', ...a); }
         if (!god && (st.state === 'gameover' || st.state === 'dead' || st.hp === 0)) {
           deadStreak++; if (deadStreak >= 2) { log(`  regular stage ${s}: player down at shot ${k}, advancing`); break; }
         } else deadStreak = 0;
-        await sleep(Math.max(0, SHOT_MS - 220));
+        await sleep(SHOT_MS);
       }
       // Flush manifest periodically so progress survives a crash.
       fs.writeFileSync(path.join(ROOT, 'manifest.json'), JSON.stringify(manifest, null, 0));
