@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <script>
-      // AudioSystem stub block — must be FIRST in <head> to guarantee global presence
+      // AudioSystem stub block â€” must be FIRST in <head> to guarantee global presence
       (function() {
           // FULL AudioSystem stub block (alphabetized, all exports from audio-system.js)
           var stub = {
@@ -50,21 +50,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
-  <title>OccupantKiller — Hybrid Voxel Warfare</title>
+  <title>OccupantKiller â€” Hybrid Voxel Warfare</title>
   <link rel="stylesheet" href="style.css?v=20260429b" />
 </head>
   <body>
-    <!-- ── Boot Preloader (gates GameManager.init until everything is ready) ── -->
+    <!-- â”€â”€ Boot Preloader (gates GameManager.init until everything is ready) â”€â”€ -->
     <div id="boot-preloader" style="position:fixed;inset:0;z-index:99998;background:#0a0a0a;color:#aaa;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;text-align:center;padding:24px">
       <div style="font-size:32px;letter-spacing:6px;color:#ff4444;text-shadow:0 0 20px #ff4444;margin-bottom:6px">OCCUPANT KILLER</div>
       <div style="font-size:12px;color:#666;margin-bottom:24px;letter-spacing:2px">LOADING ASSETS</div>
       <div id="boot-progress-bar-track" style="width:min(420px,80vw);height:14px;background:#111;border:1px solid #333;border-radius:7px;overflow:hidden">
         <div id="boot-progress-bar-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#ff4444,#ffaa00);transition:width 0.18s ease"></div>
       </div>
-      <div id="boot-progress-label" style="font-size:11px;color:#888;margin-top:10px;letter-spacing:1px">0% — Initializing…</div>
+      <div id="boot-progress-label" style="font-size:11px;color:#888;margin-top:10px;letter-spacing:1px">0% â€” Initializingâ€¦</div>
       <div id="boot-progress-detail" style="font-size:10px;color:#444;margin-top:4px;height:14px">&nbsp;</div>
     </div>
-    <!-- ── Button Loading Overlay ── -->
+    <!-- â”€â”€ Button Loading Overlay â”€â”€ -->
     <div id="btn-loading-overlay" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,0.75);flex-direction:column;align-items:center;justify-content:center;font-family:monospace;text-align:center;padding:24px">
       <div style="width:48px;height:48px;border:4px solid #333;border-top-color:#ff4444;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:16px"></div>
       <div id="btn-loading-text" style="font-size:14px;color:#ccc;letter-spacing:2px">LOADING...</div>
@@ -76,21 +76,21 @@
     <div id="conn-status" style="position:fixed;top:4px;right:8px;z-index:9999;font-family:monospace;font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(34,34,34,0.7);color:#fff;border:1px solid rgba(68,68,68,0.5);">Srv <span id="conn-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle;"></span></div>
     <script src="page-prelude.js?v=20260429b"></script>
     <script>
-    // Loader percentage updater — always show and update percent
+    // Loader percentage updater â€” always show and update percent
     window.__bootProgress = function(pct, label, detail) {
       var bar = document.getElementById('boot-progress-bar-fill');
       var lbl = document.getElementById('boot-progress-label');
       var det = document.getElementById('boot-progress-detail');
       if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
-      if (lbl) lbl.textContent = (pct|0) + '% — ' + (label || 'Loading…');
+      if (lbl) lbl.textContent = (pct|0) + '% â€” ' + (label || 'Loadingâ€¦');
       if (det) det.textContent = detail || '\u00A0';
     };
     // Ensure loader always shows percent at boot
-    window.__bootProgress(0, 'Initializing…', '');
+    window.__bootProgress(0, 'Initializingâ€¦', '');
     </script>
   <!-- Skill/Perk Progression HUD -->
   <div id="skill-hud-overlay" style="display:none;position:fixed;top:10%;left:50%;transform:translateX(-50%);z-index:300;"></div>
-  <button id="skill-hud-btn" style="position:fixed;top:4px;left:8px;background:rgba(0,0,0,0.5);border:1px solid rgba(68,170,255,0.5);color:#aaccff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer">🧠 SKILLS</button>
+  <button id="skill-hud-btn" style="position:fixed;top:4px;left:8px;background:rgba(0,0,0,0.5);border:1px solid rgba(68,170,255,0.5);color:#aaccff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer">ðŸ§  SKILLS</button>
 <div id="game-container">
 
   <!-- Three.js canvas is appended here by JS -->
@@ -108,16 +108,16 @@
     <div id="flashbang-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;opacity:0;pointer-events:none;z-index:200;transition:opacity 0.05s"></div>
     <div id="scope-overlay"></div>
 
-    <!-- ── Targeting Assistant (on-weapon digital readout) ── -->
+    <!-- â”€â”€ Targeting Assistant (on-weapon digital readout) â”€â”€ -->
     <div id="target-assist" style="display:none;">
       <div id="ta-header">TGT ASSIST</div>
       <div id="ta-entries"></div>
     </div>
 
-    <!-- ── Extended top info bar ───────────────────────────── -->
+    <!-- â”€â”€ Extended top info bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div id="extended-top-bar">
       <span id="hud-time">07:00 DAY | Day 1 | Spring</span>
-      <span id="hud-rank">⬜ Recruit (0%)</span>
+      <span id="hud-rank">â¬œ Recruit (0%)</span>
       <span id="hud-mode">FPS</span>
     </div>
 
@@ -129,7 +129,7 @@
       <span id="enemies-display">ENEMIES: 0</span>
     </div>
 
-    <!-- ── Resource bar ────────────────────────────────────── -->
+    <!-- â”€â”€ Resource bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div id="resource-bar">
       <span id="hud-resources"><span style="color:#8B6914">W50</span> <span style="color:#aaa">M30</span> <span style="color:#00ccff">E10</span> <span style="color:#ff8800">F20</span> <span style="color:#999">S40</span> <span style="color:#aacc44">Fd60</span> | <span style="color:#ffcc00">$500</span></span>
     </div>
@@ -158,25 +158,25 @@
 
       <div id="weapon-section">
         <div id="weapon-label">WEAPON</div>
-        <div id="weapon-name-display">Army Shovel (МПЛ-50)</div>
+        <div id="weapon-name-display">Army Shovel (ÐœÐŸÐ›-50)</div>
         <div id="weapon-slots"></div>
       </div>
     </div>
 
-    <!-- ── NPC & mission info (bottom-left) ────────────────── -->
+    <!-- â”€â”€ NPC & mission info (bottom-left) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div id="info-panel-left">
       <div id="hud-npcs">NPCs: 0 | Morale: 0%</div>
-      <div id="hud-missions">📋 No active missions</div>
+      <div id="hud-missions">ðŸ“‹ No active missions</div>
     </div>
 
-    <div id="reload-indicator">RELOADING…</div>
+    <div id="reload-indicator">RELOADINGâ€¦</div>
     <div id="headshot-notif">HEADSHOT!</div>
     <div id="pickup-notif"></div>
     <div id="wave-announce"></div>
 
-    <!-- ── Build mode HUD ──────────────────────────────────── -->
+    <!-- â”€â”€ Build mode HUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div id="build-hud" style="display:none">
-      <div class="build-title">🔨 BUILD MODE</div>
+      <div class="build-title">ðŸ”¨ BUILD MODE</div>
       <div class="build-templates">
         <span class="build-opt">[F1] Barracks</span>
         <span class="build-opt">[F2] Factory</span>
@@ -186,34 +186,34 @@
         <span class="build-opt">[F6] Wall</span>
         <span class="build-opt">[F7] Dugout</span>
       </div>
-      <div class="build-info">LMB · Place | RMB · Remove | B · Exit Build</div>
+      <div class="build-info">LMB Â· Place | RMB Â· Remove | B Â· Exit Build</div>
     </div>
 
-    <!-- Controls legend (top-right, collapsible with ?) ─────────────────────── -->
+    <!-- Controls legend (top-right, collapsible with ?) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <button id="controls-legend-toggle" style="position:absolute;top:30px;right:12px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.25);color:#ccc;width:22px;height:22px;border-radius:50%;font-size:12px;font-family:monospace;z-index:211;cursor:pointer;padding:0;line-height:20px;text-align:center" title="Toggle controls (?)">?</button>
     <div id="controls-legend" style="display:none">
-      <div>V · Camera Mode</div>
-      <div>B · Build Mode</div>
-      <div>F · Possess Drone</div>
-      <div>G · Enter Vehicle</div>
-      <div>` · Stealth Mode</div>
-      <div>, · Toggle Music</div>
-      <div>I / TAB · Inventory</div>
-      <div>J · Marketplace</div>
-      <div>Z · Prone</div>
-      <div>X · Bandage</div>
-      <div>N · Airdrop</div>
-      <div>L · Night Vision</div>
-      <div>LMB+Shovel · Mine</div>
-      <div>RMB+Shovel · Build</div>
-      <div>Q/E · Lean</div>
-      <div>V (hold) · Inspect</div>
-      <div>C · Ammo Type</div>
-      <div>H · Bandage Perk</div>
-      <div>K · Killstreak</div>
-      <div>M · Ping Mark</div>
-      <div>P · Perks Menu</div>
-      <div>Y · War Journal</div>
+      <div>V Â· Camera Mode</div>
+      <div>B Â· Build Mode</div>
+      <div>F Â· Possess Drone</div>
+      <div>G Â· Enter Vehicle</div>
+      <div>` Â· Stealth Mode</div>
+      <div>, Â· Toggle Music</div>
+      <div>I / TAB Â· Inventory</div>
+      <div>J Â· Marketplace</div>
+      <div>Z Â· Prone</div>
+      <div>X Â· Bandage</div>
+      <div>N Â· Airdrop</div>
+      <div>L Â· Night Vision</div>
+      <div>LMB+Shovel Â· Mine</div>
+      <div>RMB+Shovel Â· Build</div>
+      <div>Q/E Â· Lean</div>
+      <div>V (hold) Â· Inspect</div>
+      <div>C Â· Ammo Type</div>
+      <div>H Â· Bandage Perk</div>
+      <div>K Â· Killstreak</div>
+      <div>M Â· Ping Mark</div>
+      <div>P Â· Perks Menu</div>
+      <div>Y Â· War Journal</div>
     </div>
 
     <!-- Stealth indicator -->
@@ -224,7 +224,7 @@
 
     <!-- Objective pointer (nearest enemy / wave direction) -->
     <div id="objective-pointer" style="display:none;position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:200;pointer-events:none;font-family:monospace;text-align:center">
-      <div id="objective-arrow" style="font-size:28px;color:#ff4444;text-shadow:0 0 10px rgba(255,0,0,0.6);transition:transform 0.15s">⬇</div>
+      <div id="objective-arrow" style="font-size:28px;color:#ff4444;text-shadow:0 0 10px rgba(255,0,0,0.6);transition:transform 0.15s">â¬‡</div>
       <div id="objective-label" style="font-size:10px;color:#ff8888;margin-top:-4px;text-shadow:0 0 6px rgba(255,0,0,0.4)">ENEMY</div>
       <div id="objective-dist" style="font-size:9px;color:#aaa"></div>
     </div>
@@ -233,13 +233,13 @@
     <div id="streak-display" style="display:none;position:fixed;top:108px;left:50%;transform:translateX(-50%);font-size:14px;font-weight:bold;font-family:monospace;z-index:200;pointer-events:none;text-shadow:0 0 8px rgba(255,100,0,0.6)"></div>
 
     <!-- Bleed indicator -->
-    <div id="bleed-indicator" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(255,0,0,0.2);border:1px solid #ff2222;color:#ff4444;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">🩸 BLEEDING — Press X</div>
+    <div id="bleed-indicator" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(255,0,0,0.2);border:1px solid #ff2222;color:#ff4444;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">ðŸ©¸ BLEEDING â€” Press X</div>
 
     <!-- Prone indicator -->
-    <div id="prone-indicator" style="display:none;position:fixed;bottom:95px;left:50%;transform:translateX(-50%);background:rgba(100,100,100,0.2);border:1px solid #888;color:#aaa;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">🔽 PRONE</div>
+    <div id="prone-indicator" style="display:none;position:fixed;bottom:95px;left:50%;transform:translateX(-50%);background:rgba(100,100,100,0.2);border:1px solid #888;color:#aaa;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">ðŸ”½ PRONE</div>
 
     <!-- Weapon jam indicator -->
-    <div id="jam-indicator" style="display:none;position:fixed;bottom:145px;left:50%;transform:translateX(-50%);background:rgba(255,200,0,0.2);border:1px solid #ffcc00;color:#ffcc00;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace;animation:blink 0.5s infinite">🔧 JAMMED — Press R</div>
+    <div id="jam-indicator" style="display:none;position:fixed;bottom:145px;left:50%;transform:translateX(-50%);background:rgba(255,200,0,0.2);border:1px solid #ffcc00;color:#ffcc00;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace;animation:blink 0.5s infinite">ðŸ”§ JAMMED â€” Press R</div>
 
     <!-- Role indicator -->
     <div id="role-indicator" style="position:fixed;top:52px;right:12px;color:#aaa;font-size:12px;z-index:200;pointer-events:none;background:rgba(0,0,0,0.5);padding:2px 8px;border-radius:4px"></div>
@@ -261,17 +261,17 @@
 
     <!-- Vehicle HUD overlay (shown when in vehicle) -->
     <div id="vehicle-hud" style="display:none">
-      <div id="vehicle-hud-type">🚗 TRANSPORT</div>
+      <div id="vehicle-hud-type">ðŸš— TRANSPORT</div>
       <div id="vehicle-hud-health-row">
         <span>HULL</span>
         <div id="vehicle-health-bar-bg"><div id="vehicle-health-bar"></div></div>
         <span id="vehicle-health-val">200/200</span>
       </div>
       <div id="vehicle-hud-speed">0 km/h</div>
-      <div id="vehicle-hud-controls">WASD · Drive | SPACE · Up | SHIFT · Down | G · Exit | T · View | LMB · Fire</div>
+      <div id="vehicle-hud-controls">WASD Â· Drive | SPACE Â· Up | SHIFT Â· Down | G Â· Exit | T Â· View | LMB Â· Fire</div>
       <div id="vehicle-hijack-bar" style="display:none">
         <div id="vehicle-hijack-fill"></div>
-        <span id="vehicle-hijack-text">HIJACKING…</span>
+        <span id="vehicle-hijack-text">HIJACKINGâ€¦</span>
       </div>
     </div>
 
@@ -282,18 +282,18 @@
 
     <!-- Night vision overlay -->
     <div id="night-vision-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,40,0,0.3);border:3px solid rgba(0,255,0,0.15);z-index:195;pointer-events:none;mix-blend-mode:screen">
-      <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);color:#00ff44;font-size:11px;font-family:monospace;opacity:0.6">🔦 NIGHT VISION [L]</div>
+      <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);color:#00ff44;font-size:11px;font-family:monospace;opacity:0.6">ðŸ”¦ NIGHT VISION [L]</div>
     </div>
 
     <!-- OKC / Wallet HUD element -->
     <div id="hud-okc-bar" style="position:fixed;top:108px;left:50%;transform:translateX(-50%);display:flex;gap:12px;font-size:11px;font-family:monospace;z-index:200;pointer-events:none">
-      <span id="hud-okc" style="color:#ffd700">🪙 0 OKC</span>
-      <span id="hud-wallet-status" style="color:#8247e5">🦊 —</span>
+      <span id="hud-okc" style="color:#ffd700">ðŸª™ 0 OKC</span>
+      <span id="hud-wallet-status" style="color:#8247e5">ðŸ¦Š â€”</span>
       <span id="hud-premium-tag" style="color:#8247e5;display:none"></span>
     </div>
 
     <!-- Weather indicator -->
-    <div id="weather-indicator" style="position:fixed;top:58px;left:12px;color:#aaa;font-size:11px;font-family:monospace;z-index:200;pointer-events:none">☀ Clear</div>
+    <div id="weather-indicator" style="position:fixed;top:58px;left:12px;color:#aaa;font-size:11px;font-family:monospace;z-index:200;pointer-events:none">â˜€ Clear</div>
 
     <!-- Interaction prompt -->
     <div id="interaction-prompt" style="display:none;position:fixed;bottom:200px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 16px;border-radius:6px;font-size:13px;font-family:monospace;z-index:200;pointer-events:none;text-align:center"></div>
@@ -308,48 +308,48 @@
     <div id="shield-indicator" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:188;box-shadow:inset 0 0 40px 15px rgba(255,215,0,0.15);border:2px solid rgba(255,215,0,0.2)"></div>
 
     <!-- Inventory Button (always visible) -->
-    <button id="inventory-btn" style="position:fixed;top:4px;right:72px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Open Inventory (I key)">📦 INV</button>
+    <button id="inventory-btn" style="position:fixed;top:4px;right:72px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Open Inventory (I key)">ðŸ“¦ INV</button>
 
     <!-- In-game God Mode toggle (always visible) -->
-    <button id="hud-god-mode-btn" style="position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">⚡ GOD</button>
+    <button id="hud-god-mode-btn" style="position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">âš¡ GOD</button>
 
     <!-- Jukebox (MP3 + Procedural) -->
-    <button id="jukebox-btn" style="position:fixed;top:4px;right:224px;background:rgba(0,0,0,0.5);border:1px solid rgba(0,90,255,0.5);color:#ffd500;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #005abd" title="Jukebox — Game Music (J key)">🎵 JUKEBOX</button>
-    <button id="lottery-btn" style="position:fixed;top:4px;right:332px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,213,0,0.5);color:#ffd500;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Slot machine — daily spin">🎰 SLOTS</button>
-    <button id="premium-btn" style="position:fixed;top:4px;right:418px;background:rgba(0,0,0,0.5);border:1px solid rgba(120,255,180,0.5);color:#7fffaa;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Premium time tiers (more OKC + XP)">⭐ PREMIUM</button>
-    <button id="gyro-btn" style="position:fixed;top:4px;right:514px;background:rgba(0,0,0,0.5);border:1px solid rgba(80,200,255,0.5);color:#88ddff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Toggle mobile gyro aim">🎮 GYRO</button>
-    <button id="mortar-btn" style="position:fixed;top:4px;right:608px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,160,80,0.5);color:#ffaa66;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Deploy mortar (M key) — bird's-eye aim">🎯 MORTAR</button>
-    <button id="bradley-btn" style="position:fixed;top:4px;right:712px;background:rgba(0,0,0,0.5);border:1px solid rgba(160,200,120,0.5);color:#a0c878;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Enter/exit M2A3 Bradley IFV (B key) — Bushmaster 25mm">🚛 BRADLEY</button>
+    <button id="jukebox-btn" style="position:fixed;top:4px;right:224px;background:rgba(0,0,0,0.5);border:1px solid rgba(0,90,255,0.5);color:#ffd500;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #005abd" title="Jukebox â€” Game Music (J key)">ðŸŽµ JUKEBOX</button>
+    <button id="lottery-btn" style="position:fixed;top:4px;right:332px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,213,0,0.5);color:#ffd500;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Slot machine â€” daily spin">ðŸŽ° SLOTS</button>
+    <button id="premium-btn" style="position:fixed;top:4px;right:418px;background:rgba(0,0,0,0.5);border:1px solid rgba(120,255,180,0.5);color:#7fffaa;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Premium time tiers (more OKC + XP)">â­ PREMIUM</button>
+    <button id="gyro-btn" style="position:fixed;top:4px;right:514px;background:rgba(0,0,0,0.5);border:1px solid rgba(80,200,255,0.5);color:#88ddff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Toggle mobile gyro aim">ðŸŽ® GYRO</button>
+    <button id="mortar-btn" style="position:fixed;top:4px;right:608px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,160,80,0.5);color:#ffaa66;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Deploy mortar (M key) â€” bird's-eye aim">ðŸŽ¯ MORTAR</button>
+    <button id="bradley-btn" style="position:fixed;top:4px;right:712px;background:rgba(0,0,0,0.5);border:1px solid rgba(160,200,120,0.5);color:#a0c878;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Enter/exit M2A3 Bradley IFV (B key) â€” Bushmaster 25mm">ðŸš› BRADLEY</button>
     <div id="jukebox-panel" style="display:none;position:fixed;top:36px;right:12px;width:300px;background:linear-gradient(180deg,rgba(0,30,80,0.95) 0%,rgba(20,20,30,0.95) 50%,rgba(80,50,0,0.95) 100%);border:2px solid #ffd500;border-radius:8px;padding:10px;font-size:11px;font-family:monospace;z-index:215;color:#fff;box-shadow:0 0 20px rgba(0,90,255,0.4),0 0 30px rgba(255,213,0,0.3)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid rgba(255,213,0,0.4);padding-bottom:6px">
-        <div style="font-weight:bold;color:#ffd500;font-size:12px">🎵 JUKEBOX 🇺🇦</div>
-        <button id="jukebox-close" style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;line-height:1">✕</button>
+        <div style="font-weight:bold;color:#ffd500;font-size:12px">ðŸŽµ JUKEBOX ðŸ‡ºðŸ‡¦</div>
+        <button id="jukebox-close" style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;line-height:1">âœ•</button>
       </div>
       <div style="display:flex;gap:4px;margin-bottom:8px">
-        <button id="jukebox-mode-mp3" class="jbx-mode" style="flex:1;padding:4px 0;background:rgba(0,90,255,0.3);border:1px solid #ffd500;color:#ffd500;cursor:pointer;border-radius:3px;font-size:10px">🎵 MP3</button>
-        <button id="jukebox-mode-proc" class="jbx-mode" style="flex:1;padding:4px 0;background:rgba(0,0,0,0.4);border:1px solid #555;color:#fff;cursor:pointer;border-radius:3px;font-size:10px">🎛 PROC</button>
-        <button id="jukebox-autoplay" style="flex:1;padding:4px 0;background:rgba(0,0,0,0.4);border:1px solid #555;color:#fff;cursor:pointer;border-radius:3px;font-size:10px">🔁 ON</button>
+        <button id="jukebox-mode-mp3" class="jbx-mode" style="flex:1;padding:4px 0;background:rgba(0,90,255,0.3);border:1px solid #ffd500;color:#ffd500;cursor:pointer;border-radius:3px;font-size:10px">ðŸŽµ MP3</button>
+        <button id="jukebox-mode-proc" class="jbx-mode" style="flex:1;padding:4px 0;background:rgba(0,0,0,0.4);border:1px solid #555;color:#fff;cursor:pointer;border-radius:3px;font-size:10px">ðŸŽ› PROC</button>
+        <button id="jukebox-autoplay" style="flex:1;padding:4px 0;background:rgba(0,0,0,0.4);border:1px solid #555;color:#fff;cursor:pointer;border-radius:3px;font-size:10px">ðŸ” ON</button>
       </div>
       <div id="jukebox-now" style="font-size:11px;margin-bottom:6px;line-height:1.4">
-        <div id="jukebox-title" style="color:#ffd500">— stopped —</div>
+        <div id="jukebox-title" style="color:#ffd500">â€” stopped â€”</div>
         <div id="jukebox-artist" style="color:#88aaff;font-size:9px"></div>
       </div>
       <div style="display:flex;gap:4px;margin-bottom:8px">
-        <button id="jukebox-prev" class="jbx-ctrl" style="flex:1;padding:6px 0;background:rgba(0,0,0,0.4);border:1px solid #555;color:#fff;cursor:pointer;border-radius:3px">⏮</button>
-        <button id="jukebox-play" class="jbx-ctrl" style="flex:2;padding:6px 0;background:rgba(0,90,255,0.3);border:1px solid #ffd500;color:#ffd500;cursor:pointer;border-radius:3px;font-weight:bold">▶ PLAY</button>
-        <button id="jukebox-next" class="jbx-ctrl" style="flex:1;padding:6px 0;background:rgba(0,0,0,0.4);border:1px solid #555;color:#fff;cursor:pointer;border-radius:3px">⏭</button>
+        <button id="jukebox-prev" class="jbx-ctrl" style="flex:1;padding:6px 0;background:rgba(0,0,0,0.4);border:1px solid #555;color:#fff;cursor:pointer;border-radius:3px">â®</button>
+        <button id="jukebox-play" class="jbx-ctrl" style="flex:2;padding:6px 0;background:rgba(0,90,255,0.3);border:1px solid #ffd500;color:#ffd500;cursor:pointer;border-radius:3px;font-weight:bold">â–¶ PLAY</button>
+        <button id="jukebox-next" class="jbx-ctrl" style="flex:1;padding:6px 0;background:rgba(0,0,0,0.4);border:1px solid #555;color:#fff;cursor:pointer;border-radius:3px">â­</button>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:10px">
         <span>VOL</span>
         <input id="jukebox-vol" type="range" min="0" max="100" value="50" style="flex:1;accent-color:#ffd500">
       </div>
       <div id="jukebox-list" style="max-height:200px;overflow-y:auto;border-top:1px solid rgba(255,213,0,0.3);padding-top:6px"></div>
-      <div style="font-size:9px;color:#888;margin-top:6px;text-align:center;font-style:italic">Slava Ukraini! 🇺🇦</div>
+      <div style="font-size:9px;color:#888;margin-top:6px;text-align:center;font-style:italic">Slava Ukraini! ðŸ‡ºðŸ‡¦</div>
     </div>
 
     <!-- Build Materials HUD (shown when holding shovel) -->
     <div id="build-materials-hud" style="display:none;position:fixed;bottom:85px;right:12px;background:rgba(0,0,0,0.6);border:1px solid rgba(139,105,20,0.4);padding:6px 10px;border-radius:4px;font-size:10px;font-family:monospace;z-index:200;pointer-events:none;color:#ccc">
-      <div style="color:#8B6914;font-weight:bold;margin-bottom:3px">⛏ MATERIALS</div>
+      <div style="color:#8B6914;font-weight:bold;margin-bottom:3px">â› MATERIALS</div>
       <div id="build-mat-list"></div>
       <div style="color:#888;font-size:9px;margin-top:3px">RMB to place</div>
     </div>
@@ -360,16 +360,16 @@
     </div>
 
     <!-- Slide indicator (Feature 3) -->
-    <div id="slide-indicator" style="display:none;position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:rgba(0,150,255,0.2);border:1px solid #0088ff;color:#00aaff;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">⚡ SLIDING</div>
+    <div id="slide-indicator" style="display:none;position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:rgba(0,150,255,0.2);border:1px solid #0088ff;color:#00aaff;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">âš¡ SLIDING</div>
 
     <!-- Focus mode indicator (Feature 9) -->
     <div id="focus-indicator" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);border:2px solid rgba(0,255,255,0.3);border-radius:50%;width:200px;height:200px;z-index:195;pointer-events:none;box-shadow:0 0 40px rgba(0,255,255,0.15) inset"></div>
 
     <!-- Revenge marker (Feature 10) -->
-    <div id="revenge-marker" style="display:none;position:fixed;top:50%;right:30px;transform:translateY(-50%);color:#ff4444;font-size:14px;font-family:monospace;z-index:200;pointer-events:none;text-shadow:0 0 8px rgba(255,0,0,0.6)">⚠ REVENGE →</div>
+    <div id="revenge-marker" style="display:none;position:fixed;top:50%;right:30px;transform:translateY(-50%);color:#ff4444;font-size:14px;font-family:monospace;z-index:200;pointer-events:none;text-shadow:0 0 8px rgba(255,0,0,0.6)">âš  REVENGE â†’</div>
 
     <!-- Dual wield indicator (Feature 11) -->
-    <div id="dual-wield-indicator" style="display:none;position:fixed;bottom:195px;left:50%;transform:translateX(-50%);background:rgba(255,200,0,0.2);border:1px solid #ffcc00;color:#ffcc00;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">🔫🔫 DUAL WIELD</div>
+    <div id="dual-wield-indicator" style="display:none;position:fixed;bottom:195px;left:50%;transform:translateX(-50%);background:rgba(255,200,0,0.2);border:1px solid #ffcc00;color:#ffcc00;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">ðŸ”«ðŸ”« DUAL WIELD</div>
 
     <!-- Weapon heat bar (Feature 15) -->
     <div id="heat-bar-container" style="position:fixed;bottom:56px;left:50%;transform:translateX(-50%);width:120px;height:4px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,100,0,0.3);border-radius:2px;z-index:200;pointer-events:none;overflow:hidden">
@@ -380,7 +380,7 @@
     <div id="ammo-type-indicator" style="position:fixed;bottom:42px;left:50%;transform:translateX(-50%);color:#aaa;font-size:10px;font-family:monospace;z-index:200;pointer-events:none">STANDARD</div>
 
     <!-- Last stand indicator (Feature 8) -->
-    <div id="laststand-indicator" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#ff0000;font-size:20px;font-weight:bold;font-family:monospace;z-index:200;pointer-events:none;text-shadow:0 0 15px rgba(255,0,0,0.8);animation:blink 0.5s infinite">💀 LAST STAND — GET A KILL!</div>
+    <div id="laststand-indicator" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#ff0000;font-size:20px;font-weight:bold;font-family:monospace;z-index:200;pointer-events:none;text-shadow:0 0 15px rgba(255,0,0,0.8);animation:blink 0.5s infinite">ðŸ’€ LAST STAND â€” GET A KILL!</div>
 
     <!-- Combat log (Feature 42) -->
     <div id="combat-log" style="position:fixed;bottom:130px;left:12px;width:280px;max-height:140px;overflow:hidden;font-size:10px;font-family:monospace;z-index:200;pointer-events:none;color:#aaa"></div>
@@ -393,7 +393,7 @@
 
     <!-- Supply request menu (Feature 46) -->
     <div id="supply-menu" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);border:1px solid #44ff88;padding:20px;border-radius:8px;z-index:260;font-family:monospace;color:#fff;text-align:center;pointer-events:auto">
-      <div style="color:#44ff88;font-size:14px;margin-bottom:12px">📦 SUPPLY REQUEST</div>
+      <div style="color:#44ff88;font-size:14px;margin-bottom:12px">ðŸ“¦ SUPPLY REQUEST</div>
       <button class="supply-btn" data-type="AMMO" style="display:block;width:100%;margin:4px 0;padding:6px;background:rgba(255,200,0,0.1);border:1px solid #ffcc00;color:#ffcc00;cursor:pointer;font-family:monospace;border-radius:4px">[1] AMMO CRATE</button>
       <button class="supply-btn" data-type="HEALTH" style="display:block;width:100%;margin:4px 0;padding:6px;background:rgba(0,255,50,0.1);border:1px solid #22ff55;color:#22ff55;cursor:pointer;font-family:monospace;border-radius:4px">[2] MEDICAL SUPPLIES</button>
       <button class="supply-btn" data-type="ARMOR" style="display:block;width:100%;margin:4px 0;padding:6px;background:rgba(68,136,255,0.1);border:1px solid #4488ff;color:#4488ff;cursor:pointer;font-family:monospace;border-radius:4px">[3] ARMOR PLATES</button>
@@ -402,22 +402,22 @@
 
     <!-- Field promotion popup (Feature 47) -->
     <div id="field-promotion" style="display:none;position:fixed;top:30%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);border:2px solid #ffd700;padding:20px;border-radius:8px;z-index:260;font-family:monospace;color:#ffd700;text-align:center;pointer-events:auto">
-      <div style="font-size:16px;margin-bottom:10px">⭐ FIELD PROMOTION!</div>
+      <div style="font-size:16px;margin-bottom:10px">â­ FIELD PROMOTION!</div>
       <div style="color:#aaa;font-size:11px;margin-bottom:12px">Choose your bonus:</div>
-      <button class="promo-btn" data-perk="damage" style="display:block;width:100%;margin:4px 0;padding:6px;background:rgba(255,0,0,0.1);border:1px solid #ff4444;color:#ff4444;cursor:pointer;font-family:monospace;border-radius:4px">⚔ +10% DAMAGE</button>
-      <button class="promo-btn" data-perk="speed" style="display:block;width:100%;margin:4px 0;padding:6px;background:rgba(0,200,255,0.1);border:1px solid #00ccff;color:#00ccff;cursor:pointer;font-family:monospace;border-radius:4px">🏃 +10% SPEED</button>
-      <button class="promo-btn" data-perk="armor" style="display:block;width:100%;margin:4px 0;padding:6px;background:rgba(68,136,255,0.1);border:1px solid #4488ff;color:#4488ff;cursor:pointer;font-family:monospace;border-radius:4px">🛡 +10% ARMOR</button>
+      <button class="promo-btn" data-perk="damage" style="display:block;width:100%;margin:4px 0;padding:6px;background:rgba(255,0,0,0.1);border:1px solid #ff4444;color:#ff4444;cursor:pointer;font-family:monospace;border-radius:4px">âš” +10% DAMAGE</button>
+      <button class="promo-btn" data-perk="speed" style="display:block;width:100%;margin:4px 0;padding:6px;background:rgba(0,200,255,0.1);border:1px solid #00ccff;color:#00ccff;cursor:pointer;font-family:monospace;border-radius:4px">ðŸƒ +10% SPEED</button>
+      <button class="promo-btn" data-perk="armor" style="display:block;width:100%;margin:4px 0;padding:6px;background:rgba(68,136,255,0.1);border:1px solid #4488ff;color:#4488ff;cursor:pointer;font-family:monospace;border-radius:4px">ðŸ›¡ +10% ARMOR</button>
     </div>
 
     <!-- Achievement popup (Feature 44) -->
     <div id="achievement-popup" style="display:none;position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);border:2px solid #ffd700;padding:10px 24px;border-radius:6px;z-index:260;font-family:monospace;text-align:center;pointer-events:none">
-      <div style="color:#ffd700;font-size:13px">🏆 ACHIEVEMENT UNLOCKED</div>
+      <div style="color:#ffd700;font-size:13px">ðŸ† ACHIEVEMENT UNLOCKED</div>
       <div id="achievement-name" style="color:#fff;font-size:15px;font-weight:bold;margin-top:4px"></div>
     </div>
 
     <!-- Wave stats screen (Feature 50) -->
     <div id="wave-stats" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);border:1px solid #ffcc00;padding:20px 30px;border-radius:8px;z-index:255;font-family:monospace;color:#fff;text-align:center;pointer-events:none">
-      <div style="color:#ffcc00;font-size:16px;margin-bottom:10px">📊 WAVE STATS</div>
+      <div style="color:#ffcc00;font-size:16px;margin-bottom:10px">ðŸ“Š WAVE STATS</div>
       <div id="wave-stats-content" style="font-size:12px;line-height:1.8;text-align:left"></div>
     </div>
 
@@ -425,36 +425,36 @@
     <div id="fog-of-war" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 50% 50%, transparent 30%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.8) 100%);z-index:193;pointer-events:none"></div>
 
     <!-- Radiation warning (Feature 37) -->
-    <div id="radiation-warning" style="display:none;position:fixed;top:50%;right:15px;transform:translateY(-50%);color:#00ff00;font-size:12px;font-family:monospace;z-index:200;pointer-events:none;text-shadow:0 0 6px rgba(0,255,0,0.6)">☢ RADIATION</div>
+    <div id="radiation-warning" style="display:none;position:fixed;top:50%;right:15px;transform:translateY(-50%);color:#00ff00;font-size:12px;font-family:monospace;z-index:200;pointer-events:none;text-shadow:0 0 6px rgba(0,255,0,0.6)">â˜¢ RADIATION</div>
 
     <!-- Wall run indicator (Feature 2) -->
-    <div id="wallrun-indicator" style="display:none;position:fixed;bottom:220px;left:50%;transform:translateX(-50%);background:rgba(0,200,200,0.2);border:1px solid #00cccc;color:#00ffff;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">🏃 WALL RUN</div>
+    <div id="wallrun-indicator" style="display:none;position:fixed;bottom:220px;left:50%;transform:translateX(-50%);background:rgba(0,200,200,0.2);border:1px solid #00cccc;color:#00ffff;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">ðŸƒ WALL RUN</div>
 
     <!-- Tactical sprint indicator (Feature 7) -->
-    <div id="tacsprint-indicator" style="display:none;position:fixed;bottom:245px;left:50%;transform:translateX(-50%);background:rgba(255,100,0,0.2);border:1px solid #ff6600;color:#ff8800;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">⚡ TAC SPRINT</div>
+    <div id="tacsprint-indicator" style="display:none;position:fixed;bottom:245px;left:50%;transform:translateX(-50%);background:rgba(255,100,0,0.2);border:1px solid #ff6600;color:#ff8800;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">âš¡ TAC SPRINT</div>
 
-    <!-- ═══════ NEW FEATURE HUD ELEMENTS (59 features) ═══════ -->
+    <!-- â•â•â•â•â•â•â• NEW FEATURE HUD ELEMENTS (59 features) â•â•â•â•â•â•â• -->
 
     <!-- Lean indicator -->
-    <div id="lean-indicator" style="display:none;position:fixed;top:50%;left:12px;transform:translateY(-50%);color:#00ccff;font-size:12px;font-family:monospace;z-index:200;pointer-events:none">↕ LEANING</div>
+    <div id="lean-indicator" style="display:none;position:fixed;top:50%;left:12px;transform:translateY(-50%);color:#00ccff;font-size:12px;font-family:monospace;z-index:200;pointer-events:none">â†• LEANING</div>
 
     <!-- Weapon inspect overlay -->
-    <div id="inspect-overlay" style="display:none;position:fixed;bottom:150px;left:50%;transform:translateX(-50%);color:#aaa;font-size:11px;font-family:monospace;z-index:200;pointer-events:none">🔍 INSPECTING WEAPON</div>
+    <div id="inspect-overlay" style="display:none;position:fixed;bottom:150px;left:50%;transform:translateX(-50%);color:#aaa;font-size:11px;font-family:monospace;z-index:200;pointer-events:none">ðŸ” INSPECTING WEAPON</div>
 
     <!-- Bayonet charge indicator -->
-    <div id="bayonet-indicator" style="display:none;position:fixed;bottom:270px;left:50%;transform:translateX(-50%);background:rgba(255,0,0,0.2);border:1px solid #ff0000;color:#ff2222;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">🔪 BAYONET CHARGE!</div>
+    <div id="bayonet-indicator" style="display:none;position:fixed;bottom:270px;left:50%;transform:translateX(-50%);background:rgba(255,0,0,0.2);border:1px solid #ff0000;color:#ff2222;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">ðŸ”ª BAYONET CHARGE!</div>
 
     <!-- Maintenance indicator -->
-    <div id="maintenance-indicator" style="display:none;position:fixed;bottom:295px;left:50%;transform:translateX(-50%);background:rgba(100,100,0,0.2);border:1px solid #aaaa00;color:#cccc00;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">🔧 MAINTAINING WEAPON...</div>
+    <div id="maintenance-indicator" style="display:none;position:fixed;bottom:295px;left:50%;transform:translateX(-50%);background:rgba(100,100,0,0.2);border:1px solid #aaaa00;color:#cccc00;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">ðŸ”§ MAINTAINING WEAPON...</div>
 
     <!-- Overheat warning -->
-    <div id="overheat-indicator" style="display:none;position:fixed;bottom:320px;left:50%;transform:translateX(-50%);background:rgba(255,50,0,0.3);border:1px solid #ff3300;color:#ff4400;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace;animation:blink 0.3s infinite">🔥 OVERHEATED!</div>
+    <div id="overheat-indicator" style="display:none;position:fixed;bottom:320px;left:50%;transform:translateX(-50%);background:rgba(255,50,0,0.3);border:1px solid #ff3300;color:#ff4400;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace;animation:blink 0.3s infinite">ðŸ”¥ OVERHEATED!</div>
 
     <!-- Blind fire indicator -->
-    <div id="blindfire-indicator" style="display:none;position:fixed;bottom:345px;left:50%;transform:translateX(-50%);background:rgba(150,150,150,0.2);border:1px solid #999;color:#bbb;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">🔫 BLIND FIRE</div>
+    <div id="blindfire-indicator" style="display:none;position:fixed;bottom:345px;left:50%;transform:translateX(-50%);background:rgba(150,150,150,0.2);border:1px solid #999;color:#bbb;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">ðŸ”« BLIND FIRE</div>
 
     <!-- Swimming indicator -->
-    <div id="swim-indicator" style="display:none;position:fixed;bottom:150px;left:50%;transform:translateX(-50%);background:rgba(0,100,200,0.3);border:1px solid #0066cc;color:#0099ff;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">🏊 SWIMMING</div>
+    <div id="swim-indicator" style="display:none;position:fixed;bottom:150px;left:50%;transform:translateX(-50%);background:rgba(0,100,200,0.3);border:1px solid #0066cc;color:#0099ff;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">ðŸŠ SWIMMING</div>
 
     <!-- Breath meter (swimming) -->
     <div id="breath-bar-container" style="display:none;position:fixed;bottom:180px;left:50%;transform:translateX(-50%);width:100px;height:6px;background:rgba(0,0,0,0.5);border:1px solid rgba(0,150,255,0.4);border-radius:3px;z-index:200;pointer-events:none;overflow:hidden">
@@ -462,11 +462,11 @@
     </div>
 
     <!-- Mantle indicator -->
-    <div id="mantle-indicator" style="display:none;position:fixed;bottom:370px;left:50%;transform:translateX(-50%);color:#00ff88;font-size:11px;font-family:monospace;z-index:200;pointer-events:none">⬆ MANTLING</div>
+    <div id="mantle-indicator" style="display:none;position:fixed;bottom:370px;left:50%;transform:translateX(-50%);color:#00ff88;font-size:11px;font-family:monospace;z-index:200;pointer-events:none">â¬† MANTLING</div>
 
     <!-- Killstreak panel (right side) -->
     <div id="killstreak-panel" style="display:none;position:fixed;right:12px;top:40%;transform:translateY(-50%);background:rgba(0,0,0,0.8);border:1px solid #ff6600;padding:8px 12px;border-radius:6px;z-index:250;font-family:monospace;color:#fff;font-size:11px;pointer-events:auto">
-      <div style="color:#ff6600;font-weight:bold;margin-bottom:6px">⚡ KILLSTREAKS</div>
+      <div style="color:#ff6600;font-weight:bold;margin-bottom:6px">âš¡ KILLSTREAKS</div>
       <div id="killstreak-list"></div>
       <div style="color:#666;font-size:9px;margin-top:4px">Click to activate | K to toggle</div>
     </div>
@@ -480,14 +480,14 @@
 
     <!-- Perks selection menu -->
     <div id="perks-menu" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.92);border:2px solid #ffcc00;padding:20px;border-radius:10px;z-index:500;font-family:monospace;color:#fff;min-width:400px;pointer-events:auto">
-      <div style="text-align:center;color:#ffcc00;font-size:16px;margin-bottom:12px">🎖 PERKS (Choose up to 3)</div>
+      <div style="text-align:center;color:#ffcc00;font-size:16px;margin-bottom:12px">ðŸŽ– PERKS (Choose up to 3)</div>
       <div id="perks-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
       <div style="text-align:center;margin-top:12px;color:#666;font-size:10px">Press P to close</div>
     </div>
 
     <!-- Daily challenges display -->
     <div id="daily-challenges" style="display:none;position:fixed;top:90px;left:12px;background:rgba(0,0,0,0.7);border:1px solid rgba(0,200,255,0.3);padding:8px 12px;border-radius:6px;z-index:200;font-family:monospace;font-size:10px;pointer-events:none;color:#ccc;max-width:220px">
-      <div style="color:#00ccff;font-weight:bold;margin-bottom:4px">📋 DAILY CHALLENGES</div>
+      <div style="color:#00ccff;font-weight:bold;margin-bottom:4px">ðŸ“‹ DAILY CHALLENGES</div>
       <div id="daily-challenges-list"></div>
     </div>
 
@@ -502,144 +502,144 @@
 
     <!-- Stats panel (press TAB to see) -->
     <div id="stats-panel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.92);border:2px solid #4488ff;padding:20px;border-radius:10px;z-index:500;font-family:monospace;color:#fff;min-width:500px;pointer-events:auto">
-      <div style="text-align:center;color:#4488ff;font-size:16px;margin-bottom:12px">📊 CAREER STATISTICS</div>
+      <div style="text-align:center;color:#4488ff;font-size:16px;margin-bottom:12px">ðŸ“Š CAREER STATISTICS</div>
       <div id="stats-content" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:12px;line-height:1.8"></div>
       <div style="text-align:center;margin-top:12px;color:#666;font-size:10px">Press ESC to close</div>
     </div>
 
     <!-- War Journal panel -->
     <div id="journal-panel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.92);border:2px solid #8B6914;padding:20px;border-radius:10px;z-index:500;font-family:monospace;color:#fff;min-width:500px;max-height:70vh;overflow-y:auto;pointer-events:auto">
-      <div style="text-align:center;color:#8B6914;font-size:16px;margin-bottom:12px">📓 WAR JOURNAL</div>
+      <div style="text-align:center;color:#8B6914;font-size:16px;margin-bottom:12px">ðŸ““ WAR JOURNAL</div>
       <div id="journal-content" style="font-size:12px;line-height:1.6"></div>
       <div style="text-align:center;margin-top:12px;color:#666;font-size:10px">Press Y to close</div>
     </div>
 
     <!-- Leaderboard panel -->
     <div id="leaderboard-panel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.92);border:2px solid #ffd700;padding:20px;border-radius:10px;z-index:500;font-family:monospace;color:#fff;min-width:450px;pointer-events:auto">
-      <div style="text-align:center;color:#ffd700;font-size:16px;margin-bottom:12px">🏆 LEADERBOARD</div>
+      <div style="text-align:center;color:#ffd700;font-size:16px;margin-bottom:12px">ðŸ† LEADERBOARD</div>
       <div id="leaderboard-content" style="font-size:12px;line-height:1.8"></div>
     </div>
 
     <!-- Challenge mode selector (on start screen - referenced below) -->
     <!-- Mission objective tracker -->
     <!-- Mission Board open button -->
-    <button id="mission-board-btn" style="position:fixed;left:12px;top:132px;z-index:205;background:linear-gradient(180deg,rgba(40,32,12,0.85),rgba(24,18,8,0.85));border:1px solid rgba(255,200,60,0.5);color:#ffd24a;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:700;font-family:'Segoe UI',system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4)" title="Open the Mission Board — choose & start an operation">📋 MISSIONS</button>
+    <button id="mission-board-btn" style="position:fixed;left:12px;top:132px;z-index:205;background:linear-gradient(180deg,rgba(40,32,12,0.85),rgba(24,18,8,0.85));border:1px solid rgba(255,200,60,0.5);color:#ffd24a;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:700;font-family:'Segoe UI',system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4)" title="Open the Mission Board â€” choose & start an operation">ðŸ“‹ MISSIONS</button>
 
     <div id="mission-tracker" style="display:none;position:fixed;top:110px;right:12px;background:rgba(0,0,0,0.7);border:1px solid rgba(255,200,0,0.3);padding:8px 12px;border-radius:6px;z-index:200;font-family:monospace;font-size:11px;pointer-events:none;color:#ccc;max-width:250px">
-      <div style="color:#ffcc00;font-weight:bold;margin-bottom:4px" id="mission-tracker-title">📍 MISSION</div>
+      <div style="color:#ffcc00;font-weight:bold;margin-bottom:4px" id="mission-tracker-title">ðŸ“ MISSION</div>
       <div id="mission-tracker-objectives"></div>
       <div id="mission-tracker-timer" style="color:#ff6644;margin-top:4px"></div>
     </div>
 
     <!-- Landmine counter -->
-    <div id="mine-counter" style="display:none;position:fixed;bottom:395px;left:50%;transform:translateX(-50%);color:#44aa44;font-size:10px;font-family:monospace;z-index:200;pointer-events:none">💣 Mines: 0</div>
+    <div id="mine-counter" style="display:none;position:fixed;bottom:395px;left:50%;transform:translateX(-50%);color:#44aa44;font-size:10px;font-family:monospace;z-index:200;pointer-events:none">ðŸ’£ Mines: 0</div>
 
     <!-- Adrenaline active indicator -->
-    <div id="adrenaline-indicator" style="display:none;position:fixed;bottom:420px;left:50%;transform:translateX(-50%);background:rgba(255,100,0,0.3);border:1px solid #ff6600;color:#ff8800;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">⚡ ADRENALINE RUSH!</div>
+    <div id="adrenaline-indicator" style="display:none;position:fixed;bottom:420px;left:50%;transform:translateX(-50%);background:rgba(255,100,0,0.3);border:1px solid #ff6600;color:#ff8800;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">âš¡ ADRENALINE RUSH!</div>
 
     <!-- UAV active indicator -->
-    <div id="uav-indicator" style="display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,255,0,0.15);border:1px solid #00ff44;color:#00ff44;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">📡 UAV ACTIVE</div>
+    <div id="uav-indicator" style="display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,255,0,0.15);border:1px solid #00ff44;color:#00ff44;padding:3px 14px;border-radius:4px;font-size:12px;z-index:200;pointer-events:none;font-family:monospace">ðŸ“¡ UAV ACTIVE</div>
   </div>
 
   <!-- Start screen -->
   <div id="overlay-start" class="overlay">
     <div class="start-card">
-      <!-- ── Hero header ─────────────────────────────────── -->
+      <!-- â”€â”€ Hero header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <header class="start-hero">
-        <div id="level-badge">HYBRID VOXEL WARFARE · 18 STAGES</div>
+        <div id="level-badge">HYBRID VOXEL WARFARE Â· 18 STAGES</div>
         <h1>OCCUPANT KILLER</h1>
         <p class="start-tagline">Ukraine. Voxel world. Build. Command. Fight.</p>
       </header>
 
-      <!-- ── Primary CTAs ────────────────────────────────── -->
+      <!-- â”€â”€ Primary CTAs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div class="start-cta-row">
-        <button class="btn btn-primary" id="quick-start-btn" style="display:none">▶ QUICK START</button>
-        <button class="btn btn-primary" id="start-btn">▶ START MISSION</button>
-        <button class="btn btn-continue" id="continue-btn" style="display:none">📂 CONTINUE · Stage <span id="continue-stage">1</span> · Wave <span id="continue-wave">1</span></button>
+        <button class="btn btn-primary" id="quick-start-btn" style="display:none">â–¶ QUICK START</button>
+        <button class="btn btn-primary" id="start-btn">â–¶ START MISSION</button>
+        <button class="btn btn-continue" id="continue-btn" style="display:none">ðŸ“‚ CONTINUE Â· Stage <span id="continue-stage">1</span> Â· Wave <span id="continue-wave">1</span></button>
       </div>
       <p id="quick-start-hint" style="display:none;color:#777;font-size:11px;margin:4px 0 12px;text-align:center">First time? Quick Start jumps straight in. <a href="#" id="show-advanced-start" style="color:#88ccff">Show loadout options</a></p>
 
-      <!-- ── Loadout grid (advanced) ─────────────────────── -->
+      <!-- â”€â”€ Loadout grid (advanced) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div id="advanced-start-section" class="start-grid">
 
         <section class="start-section">
-          <div class="start-section-title">🎖 ROLE</div>
+          <div class="start-section-title">ðŸŽ– ROLE</div>
           <div id="start-role-select" class="start-section-row">
-            <button class="btn pill" id="start-role-brigade" style="border-color:#0af;color:#0af">🎖 ASSAULT BRIGADE</button>
-            <button class="btn pill" id="start-role-lonewolf" style="border-color:#fa0;color:#fa0">🐺 LONE WOLF</button>
+            <button class="btn pill" id="start-role-brigade" style="border-color:#0af;color:#0af">ðŸŽ– ASSAULT BRIGADE</button>
+            <button class="btn pill" id="start-role-lonewolf" style="border-color:#fa0;color:#fa0">ðŸº LONE WOLF</button>
           </div>
           <p id="start-role-desc" class="start-section-desc">Brigade: fight alongside your squad. Lone Wolf: observe &amp; engage freestyle.</p>
         </section>
 
         <section class="start-section">
-          <div class="start-section-title">🚁 DRONE</div>
+          <div class="start-section-title">ðŸš DRONE</div>
           <div id="start-drone-row" class="start-section-row">
-            <button class="btn pill start-drone-btn" data-drone="" style="border-color:#888;color:#888">🚶 None</button>
-            <button class="btn pill start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444">🎯 FPV Attack</button>
-            <button class="btn pill start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff">👁 Surveillance</button>
-            <button class="btn pill start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00">💣 Bomber</button>
+            <button class="btn pill start-drone-btn" data-drone="" style="border-color:#888;color:#888">ðŸš¶ None</button>
+            <button class="btn pill start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444">ðŸŽ¯ FPV Attack</button>
+            <button class="btn pill start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff">ðŸ‘ Surveillance</button>
+            <button class="btn pill start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00">ðŸ’£ Bomber</button>
           </div>
-          <p id="start-drone-desc" class="start-section-desc">No drone — fight on foot (default).</p>
+          <p id="start-drone-desc" class="start-section-desc">No drone â€” fight on foot (default).</p>
         </section>
 
         <section class="start-section start-section-wide">
-          <div class="start-section-title">🎮 CHALLENGE MODE</div>
+          <div class="start-section-title">ðŸŽ® CHALLENGE MODE</div>
           <div id="challenge-select" class="start-section-row">
-            <button class="btn pill challenge-btn" data-mode="" style="border-color:#888;color:#888">🎮 Normal</button>
-            <button class="btn pill challenge-btn" data-mode="HARDCORE" style="border-color:#ff4444;color:#ff4444">💀 Hardcore</button>
-            <button class="btn pill challenge-btn" data-mode="SPEEDRUN" style="border-color:#00ccff;color:#00ccff">⏱ Speedrun</button>
-            <button class="btn pill challenge-btn" data-mode="PACIFIST" style="border-color:#88ff88;color:#88ff88">🕊 Pacifist</button>
-            <button class="btn pill challenge-btn" data-mode="ONE_SHOT" style="border-color:#ffcc00;color:#ffcc00">🎱 One Shot</button>
-            <button class="btn pill challenge-btn" data-mode="SNIPER_ONLY" style="border-color:#44ff88;color:#44ff88">🔭 Sniper</button>
-            <button class="btn pill challenge-btn" data-mode="NIGHT_OPS" style="border-color:#6644ff;color:#6644ff">🌙 Night Ops</button>
+            <button class="btn pill challenge-btn" data-mode="" style="border-color:#888;color:#888">ðŸŽ® Normal</button>
+            <button class="btn pill challenge-btn" data-mode="HARDCORE" style="border-color:#ff4444;color:#ff4444">ðŸ’€ Hardcore</button>
+            <button class="btn pill challenge-btn" data-mode="SPEEDRUN" style="border-color:#00ccff;color:#00ccff">â± Speedrun</button>
+            <button class="btn pill challenge-btn" data-mode="PACIFIST" style="border-color:#88ff88;color:#88ff88">ðŸ•Š Pacifist</button>
+            <button class="btn pill challenge-btn" data-mode="ONE_SHOT" style="border-color:#ffcc00;color:#ffcc00">ðŸŽ± One Shot</button>
+            <button class="btn pill challenge-btn" data-mode="SNIPER_ONLY" style="border-color:#44ff88;color:#44ff88">ðŸ”­ Sniper</button>
+            <button class="btn pill challenge-btn" data-mode="NIGHT_OPS" style="border-color:#6644ff;color:#6644ff">ðŸŒ™ Night Ops</button>
           </div>
           <p id="challenge-desc" class="start-section-desc"></p>
         </section>
 
         <section class="start-section start-section-wide">
-          <div class="start-section-title">🗺 SELECT MAP <span style="opacity:0.5;font-size:10px;font-weight:400">(all 19 unlocked for testing)</span></div>
+          <div class="start-section-title">ðŸ—º SELECT MAP <span style="opacity:0.5;font-size:10px;font-weight:400">(all 19 unlocked for testing)</span></div>
           <div id="map-select" class="start-section-row" style="flex-wrap:wrap;gap:6px">
-            <button class="btn pill map-btn active-map" data-stage="0"  style="border-color:#0af;color:#0af">0 ✈ HOSTOMEL</button>
-            <button class="btn pill map-btn" data-stage="1"  style="border-color:#888;color:#888">1 🔥 AVDIIVKA</button>
-            <button class="btn pill map-btn" data-stage="2"  style="border-color:#888;color:#888">2 💀 BAKHMUT</button>
-            <button class="btn pill map-btn" data-stage="3"  style="border-color:#888;color:#888">3 🌉 KHERSON</button>
-            <button class="btn pill map-btn" data-stage="4"  style="border-color:#888;color:#888">4 ⚙ MARIUPOL</button>
-            <button class="btn pill map-btn" data-stage="5"  style="border-color:#888;color:#888">5 🌊 CRIMEA</button>
-            <button class="btn pill map-btn" data-stage="6"  style="border-color:#888;color:#888">6 ☢ CHORNOBYL</button>
-            <button class="btn pill map-btn" data-stage="7"  style="border-color:#888;color:#888">7 🏙 MOSCOW</button>
-            <button class="btn pill map-btn" data-stage="8"  style="border-color:#888;color:#888">8 ⚓ SEVASTOPOL</button>
-            <button class="btn pill map-btn" data-stage="9"  style="border-color:#888;color:#888">9 ⛏ DONBAS</button>
-            <button class="btn pill map-btn" data-stage="10" style="border-color:#888;color:#888">10 💥 BELGOROD</button>
-            <button class="btn pill map-btn" data-stage="11" style="border-color:#888;color:#888">11 🏰 KREMLIN</button>
-            <button class="btn pill map-btn" data-stage="12" style="border-color:#888;color:#888">12 🏛 KYIV</button>
-            <button class="btn pill map-btn" data-stage="13" style="border-color:#888;color:#888">13 🐍 SNAKE IS.</button>
-            <button class="btn pill map-btn" data-stage="14" style="border-color:#888;color:#888">14 🛩 SAKY</button>
-            <button class="btn pill map-btn" data-stage="15" style="border-color:#888;color:#888">15 🛡 VUHLEDAR</button>
-            <button class="btn pill map-btn" data-stage="16" style="border-color:#888;color:#888">16 🌁 ANTONOV</button>
-            <button class="btn pill map-btn" data-stage="17" style="border-color:#888;color:#888">17 🛸 REFINERY</button>
-            <button class="btn pill map-btn" data-stage="18" style="border-color:#888;color:#888">18 🚛 TREELINE</button>
+            <button class="btn pill map-btn active-map" data-stage="0"  style="border-color:#0af;color:#0af">0 âœˆ HOSTOMEL</button>
+            <button class="btn pill map-btn" data-stage="1"  style="border-color:#888;color:#888">1 ðŸ”¥ AVDIIVKA</button>
+            <button class="btn pill map-btn" data-stage="2"  style="border-color:#888;color:#888">2 ðŸ’€ BAKHMUT</button>
+            <button class="btn pill map-btn" data-stage="3"  style="border-color:#888;color:#888">3 ðŸŒ‰ KHERSON</button>
+            <button class="btn pill map-btn" data-stage="4"  style="border-color:#888;color:#888">4 âš™ MARIUPOL</button>
+            <button class="btn pill map-btn" data-stage="5"  style="border-color:#888;color:#888">5 ðŸŒŠ CRIMEA</button>
+            <button class="btn pill map-btn" data-stage="6"  style="border-color:#888;color:#888">6 â˜¢ CHORNOBYL</button>
+            <button class="btn pill map-btn" data-stage="7"  style="border-color:#888;color:#888">7 ðŸ™ MOSCOW</button>
+            <button class="btn pill map-btn" data-stage="8"  style="border-color:#888;color:#888">8 âš“ SEVASTOPOL</button>
+            <button class="btn pill map-btn" data-stage="9"  style="border-color:#888;color:#888">9 â› DONBAS</button>
+            <button class="btn pill map-btn" data-stage="10" style="border-color:#888;color:#888">10 ðŸ’¥ BELGOROD</button>
+            <button class="btn pill map-btn" data-stage="11" style="border-color:#888;color:#888">11 ðŸ° KREMLIN</button>
+            <button class="btn pill map-btn" data-stage="12" style="border-color:#888;color:#888">12 ðŸ› KYIV</button>
+            <button class="btn pill map-btn" data-stage="13" style="border-color:#888;color:#888">13 ðŸ SNAKE IS.</button>
+            <button class="btn pill map-btn" data-stage="14" style="border-color:#888;color:#888">14 ðŸ›© SAKY</button>
+            <button class="btn pill map-btn" data-stage="15" style="border-color:#888;color:#888">15 ðŸ›¡ VUHLEDAR</button>
+            <button class="btn pill map-btn" data-stage="16" style="border-color:#888;color:#888">16 ðŸŒ ANTONOV</button>
+            <button class="btn pill map-btn" data-stage="17" style="border-color:#888;color:#888">17 ðŸ›¸ REFINERY</button>
+            <button class="btn pill map-btn" data-stage="18" style="border-color:#888;color:#888">18 ðŸš› TREELINE</button>
           </div>
-          <p id="map-desc" class="start-section-desc">0 · Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
-          <button id="launch-selected-map" class="btn pill" style="margin-top:8px;border-color:#0af;color:#0af;font-weight:700;letter-spacing:0.5px">▶ LAUNCH SELECTED MAP</button>
+          <p id="map-desc" class="start-section-desc">0 Â· Hostomel Airport â€” Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
+          <button id="launch-selected-map" class="btn pill" style="margin-top:8px;border-color:#0af;color:#0af;font-weight:700;letter-spacing:0.5px">â–¶ LAUNCH SELECTED MAP</button>
         </section>
 
         <section class="start-section start-section-wide">
-          <div class="start-section-title">⚔ STARTER WEAPONS</div>
+          <div class="start-section-title">âš” STARTER WEAPONS</div>
           <div id="start-weapons-grid"></div>
         </section>
 
         <section class="start-section">
-          <div class="start-section-title">⚡ CHEATS</div>
+          <div class="start-section-title">âš¡ CHEATS</div>
           <div id="god-mode-select" class="start-section-row">
-            <button class="btn pill" id="god-mode-btn" style="border-color:#ff0;color:#ff0;text-shadow:0 0 6px #ff0">⚡ GOD MODE</button>
+            <button class="btn pill" id="god-mode-btn" style="border-color:#ff0;color:#ff0;text-shadow:0 0 6px #ff0">âš¡ GOD MODE</button>
           </div>
-          <p id="god-mode-desc" class="start-section-desc" style="display:none">All weapons · Infinite health · Invisible to enemies</p>
+          <p id="god-mode-desc" class="start-section-desc" style="display:none">All weapons Â· Infinite health Â· Invisible to enemies</p>
         </section>
 
         <section id="start-wallet-row" class="start-section" style="display:none">
-          <div class="start-section-title">🦊 WALLET</div>
+          <div class="start-section-title">ðŸ¦Š WALLET</div>
           <div class="start-section-row">
-            <button class="btn pill" id="start-connect-wallet" style="border-color:#8247e5;color:#8247e5">🦊 Connect MetaMask</button>
+            <button class="btn pill" id="start-connect-wallet" style="border-color:#8247e5;color:#8247e5">ðŸ¦Š Connect MetaMask</button>
           </div>
           <p id="start-wallet-status" class="start-section-desc"></p>
         </section>
@@ -648,17 +648,17 @@
     </div>
 
     <div id="controls-hint">
-      WASD · MOVE &nbsp;|&nbsp; MOUSE · AIM &nbsp;|&nbsp; LMB · FIRE &nbsp;|&nbsp; R · RELOAD &nbsp;|&nbsp; 1-0 · WEAPON &nbsp;|&nbsp; SHIFT · SPRINT &nbsp;|&nbsp; SPACE · JUMP<br/>
-      V · CAMERA MODE &nbsp;|&nbsp; B · BUILD &nbsp;|&nbsp; F · DRONE &nbsp;|&nbsp; G · VEHICLE &nbsp;|&nbsp; Q/E · SCROLL WEAPONS &nbsp;|&nbsp; TAB · INVENTORY &nbsp;|&nbsp; ESC · PAUSE
+      WASD Â· MOVE &nbsp;|&nbsp; MOUSE Â· AIM &nbsp;|&nbsp; LMB Â· FIRE &nbsp;|&nbsp; R Â· RELOAD &nbsp;|&nbsp; 1-0 Â· WEAPON &nbsp;|&nbsp; SHIFT Â· SPRINT &nbsp;|&nbsp; SPACE Â· JUMP<br/>
+      V Â· CAMERA MODE &nbsp;|&nbsp; B Â· BUILD &nbsp;|&nbsp; F Â· DRONE &nbsp;|&nbsp; G Â· VEHICLE &nbsp;|&nbsp; Q/E Â· SCROLL WEAPONS &nbsp;|&nbsp; TAB Â· INVENTORY &nbsp;|&nbsp; ESC Â· PAUSE
     </div>
   </div>
 
-  <!-- Pause screen (legacy fallback — redirects to unified inventory overlay) -->
+  <!-- Pause screen (legacy fallback â€” redirects to unified inventory overlay) -->
   <div id="overlay-pause" class="overlay" style="display:none">
     <h1>PAUSED</h1>
     <p>Game paused. Press <kbd>R</kbd> to resume or <kbd>Q</kbd> to quit.</p>
-    <button class="btn" id="pause-resume-btn">▶ [R]ESUME</button>
-    <button class="btn" id="pause-quit-btn" style="margin-top:8px;border-color:#888;color:#888">✕ [Q]UIT TO MENU</button>
+    <button class="btn" id="pause-resume-btn">â–¶ [R]ESUME</button>
+    <button class="btn" id="pause-quit-btn" style="margin-top:8px;border-color:#888;color:#888">âœ• [Q]UIT TO MENU</button>
   </div>
 
 
@@ -675,7 +675,7 @@
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">T</kbd> View</span>
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">F</kbd> Exit Drone</span>
     </div>
-    <div id="drone-touch-hints" style="display:none;font-size:11px;color:#ccc">Left stick · Move &nbsp;|&nbsp; Right stick · Look &nbsp;|&nbsp; 🔫 Attack &nbsp;|&nbsp; 👁 View &nbsp;|&nbsp; ✕ Exit Drone</div>
+    <div id="drone-touch-hints" style="display:none;font-size:11px;color:#ccc">Left stick Â· Move &nbsp;|&nbsp; Right stick Â· Look &nbsp;|&nbsp; ðŸ”« Attack &nbsp;|&nbsp; ðŸ‘ View &nbsp;|&nbsp; âœ• Exit Drone</div>
     <div style="margin-top:5px;font-size:11px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <span style="color:#00ccff">\uD83D\uDD0B <span id="drone-battery-display">100</span>%</span>
       <span style="color:#ff4444">\u2764 <span id="drone-hp-display">100</span>%</span>
@@ -706,7 +706,7 @@
     <div class="tank-range-mark tank-range-mark-far">400m</div>
   </div>
 
-  <!-- Tank HUD (bottom center — ammo, reload, controls) -->
+  <!-- Tank HUD (bottom center â€” ammo, reload, controls) -->
   <div id="tank-hud">
     <div class="tank-hud-title">TANK COMMANDER</div>
     <div class="tank-hud-controls">
@@ -741,7 +741,7 @@
     <div id="dead-grade" style="margin-top:10px;font-size:48px;font-weight:bold;text-shadow:0 0 20px currentColor;line-height:1"></div>
     <div id="dead-pb" style="margin-top:6px;font-size:12px;color:#ffd700;line-height:1.4"></div>
     <div id="dead-leaderboard" style="margin-top:8px;font-size:10px;color:#ffd700;line-height:1.5"></div>
-    <button class="btn" id="restart-btn">↺ TRY AGAIN</button>
+    <button class="btn" id="restart-btn">â†º TRY AGAIN</button>
   </div>
 
   <!-- Wave clear screen with intermission shop -->
@@ -752,17 +752,17 @@
     <div id="wave-shop" style="display:flex;gap:12px;justify-content:center;margin:12px 0;flex-wrap:wrap">
       <div style="background:rgba(0,0,0,0.6);border:1px solid #444;border-radius:6px;padding:10px 14px;min-width:140px;text-align:center">
         <p style="color:#aaa;font-size:11px;margin:0 0 6px">SUPPLIES</p>
-        <button class="btn shop-buy-btn" data-item="health" style="font-size:11px;padding:4px 10px;border-color:#44ff88;color:#44ff88;display:block;width:100%;margin:4px 0">❤️ Health +50 · 40 OKC</button>
-        <button class="btn shop-buy-btn" data-item="armor" style="font-size:11px;padding:4px 10px;border-color:#4fc3f7;color:#4fc3f7;display:block;width:100%;margin:4px 0">🛡️ Armor Pack · 60 OKC</button>
-        <button class="btn shop-buy-btn" data-item="ammo" style="font-size:11px;padding:4px 10px;border-color:#ffcc00;color:#ffcc00;display:block;width:100%;margin:4px 0">🔫 Full Ammo · 30 OKC</button>
-        <button class="btn shop-buy-btn" data-item="stim" style="font-size:11px;padding:4px 10px;border-color:#ff8a65;color:#ff8a65;display:block;width:100%;margin:4px 0">💉 Stim Pack · 50 OKC</button>
+        <button class="btn shop-buy-btn" data-item="health" style="font-size:11px;padding:4px 10px;border-color:#44ff88;color:#44ff88;display:block;width:100%;margin:4px 0">â¤ï¸ Health +50 Â· 40 OKC</button>
+        <button class="btn shop-buy-btn" data-item="armor" style="font-size:11px;padding:4px 10px;border-color:#4fc3f7;color:#4fc3f7;display:block;width:100%;margin:4px 0">ðŸ›¡ï¸ Armor Pack Â· 60 OKC</button>
+        <button class="btn shop-buy-btn" data-item="ammo" style="font-size:11px;padding:4px 10px;border-color:#ffcc00;color:#ffcc00;display:block;width:100%;margin:4px 0">ðŸ”« Full Ammo Â· 30 OKC</button>
+        <button class="btn shop-buy-btn" data-item="stim" style="font-size:11px;padding:4px 10px;border-color:#ff8a65;color:#ff8a65;display:block;width:100%;margin:4px 0">ðŸ’‰ Stim Pack Â· 50 OKC</button>
       </div>
       <div style="background:rgba(0,0,0,0.6);border:1px solid #444;border-radius:6px;padding:10px 14px;min-width:160px;text-align:center">
         <p style="color:#aaa;font-size:11px;margin:0 0 6px">WAVE STATS</p>
         <p id="shop-kills" style="color:#ff4444;font-size:13px;margin:2px 0">Kills: 0</p>
         <p id="shop-accuracy" style="color:#ffcc00;font-size:13px;margin:2px 0">Accuracy: 0%</p>
         <p id="shop-time" style="color:#4fc3f7;font-size:13px;margin:2px 0">Time: 0s</p>
-        <p id="shop-balance" style="color:#44ff88;font-size:15px;font-weight:bold;margin:8px 0">💰 0 OKC</p>
+        <p id="shop-balance" style="color:#44ff88;font-size:15px;font-weight:bold;margin:8px 0">ðŸ’° 0 OKC</p>
       </div>
       <div style="background:rgba(0,0,0,0.6);border:1px solid #444;border-radius:6px;padding:10px 14px;min-width:140px;text-align:center">
         <p style="color:#aaa;font-size:11px;margin:0 0 6px">NEXT WAVE</p>
@@ -771,19 +771,19 @@
         <p id="shop-auto-timer" style="color:#888;font-size:11px;margin:8px 0">Auto-start in <span id="shop-countdown">5</span>s</p>
       </div>
     </div>
-    <p style="font-size:10px;color:#888;margin:4px 0 0">Tap anywhere or press SPACE to skip →</p>
-    <button class="btn" id="next-wave-btn">NEXT WAVE →</button>
+    <p style="font-size:10px;color:#888;margin:4px 0 0">Tap anywhere or press SPACE to skip â†’</p>
+    <button class="btn" id="next-wave-btn">NEXT WAVE â†’</button>
   </div>
 
   <!-- Stage clear screen -->
   <div id="overlay-stageclear" class="overlay" style="display:none">
     <h1 style="color:#44ff88">STAGE CLEAR!</h1>
-    <p class="stat">STAGE <span id="stageclear-num">1</span> — <span id="stageclear-name">AVDIIVKA SECTOR</span></p>
+    <p class="stat">STAGE <span id="stageclear-num">1</span> â€” <span id="stageclear-name">AVDIIVKA SECTOR</span></p>
     <p class="stat">SCORE: <span id="stageclear-score">0</span> <span style="color:#44ff88;font-size:14px">(+1000 bonus)</span></p>
     <p class="stat">KILLS: <span id="stageclear-kills">0</span></p>
     <p class="subtitle" id="stageclear-heal" style="color:#44ff88"></p>
     <p class="subtitle" id="stageclear-next-label">Next: <span id="stageclear-next-name">BAKHMUT RUINS</span></p>
-    <button class="btn" id="next-stage-btn" style="border-color:#44ff88;color:#44ff88">NEXT STAGE →</button>
+    <button class="btn" id="next-stage-btn" style="border-color:#44ff88;color:#44ff88">NEXT STAGE â†’</button>
   </div>
 
   <!-- Win screen -->
@@ -800,50 +800,50 @@
   <div id="inventory-overlay" class="overlay" style="display:none;justify-content:flex-start;overflow-y:auto;padding:8px 0">
     <div class="overlay-content" style="max-width:700px;max-height:90vh;overflow-y:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h1 style="margin:0;">⏸ PAUSED / INVENTORY</h1>
+        <h1 style="margin:0;">â¸ PAUSED / INVENTORY</h1>
         <div>
-          <button class="btn" id="inv-resume-btn" onclick="document.getElementById('btn-pause').dispatchEvent(new Event('touchstart'))" style="font-size:12px;padding:4px 12px;margin-right:8px;">▶ RESUME</button>
-          <button class="btn" id="inv-quit-btn" onclick="if(typeof quitToMenu === 'function') quitToMenu();" style="font-size:12px;padding:4px 12px;border-color:#888;color:#888;">⏹ QUIT</button>
+          <button class="btn" id="inv-resume-btn" onclick="document.getElementById('btn-pause').dispatchEvent(new Event('touchstart'))" style="font-size:12px;padding:4px 12px;margin-right:8px;">â–¶ RESUME</button>
+          <button class="btn" id="inv-quit-btn" onclick="if(typeof quitToMenu === 'function') quitToMenu();" style="font-size:12px;padding:4px 12px;border-color:#888;color:#888;">â¹ QUIT</button>
         </div>
       </div>
 
       <!-- Wallet / OKC Bar -->
       <div id="inv-wallet-bar" style="display:flex;justify-content:space-between;align-items:center;background:rgba(130,71,229,0.15);border:1px solid #8247e5;border-radius:6px;padding:8px 12px;margin:8px 0">
-        <div id="inv-okc-display" style="color:#ffd700;font-size:14px;font-weight:bold">🪙 0 OKC</div>
+        <div id="inv-okc-display" style="color:#ffd700;font-size:14px;font-weight:bold">ðŸª™ 0 OKC</div>
         <div id="inv-wallet-info" style="font-size:12px;color:#8247e5">
-          <button class="btn" id="inv-connect-wallet-btn" style="font-size:11px;padding:3px 10px;border-color:#8247e5;color:#8247e5;display:inline-block">🦊 Connect Wallet</button>
+          <button class="btn" id="inv-connect-wallet-btn" style="font-size:11px;padding:3px 10px;border-color:#8247e5;color:#8247e5;display:inline-block">ðŸ¦Š Connect Wallet</button>
         </div>
-        <div id="inv-pol-display" style="color:#8247e5;font-size:13px;display:none">💎 0.00 POL</div>
+        <div id="inv-pol-display" style="color:#8247e5;font-size:13px;display:none">ðŸ’Ž 0.00 POL</div>
       </div>
 
       <!-- Tab Navigation (desktop hotkeys: 1=Inventory 2=Shop 3=Sell 4=Premium 5=Assets) -->
       <div id="inv-tabs" style="display:flex;gap:4px;margin:8px 0">
-        <button class="btn inv-tab active" data-tab="inventory" data-hotkey="Digit1" style="font-size:11px;padding:4px 10px;border-color:#fff;color:#fff;flex:1">📦 [1] Inventory</button>
-        <button class="btn inv-tab" data-tab="shop" data-hotkey="Digit2" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">🛒 [2] Shop</button>
-        <button class="btn inv-tab" data-tab="sell" data-hotkey="Digit3" style="font-size:11px;padding:4px 10px;border-color:#ff8844;color:#ff8844;flex:1">💰 [3] Sell</button>
-        <button class="btn inv-tab" data-tab="premium" data-hotkey="Digit4" style="font-size:11px;padding:4px 10px;border-color:#8247e5;color:#8247e5;flex:1">⭐ [4] Premium</button>
-        <button class="btn inv-tab" data-tab="assets" data-hotkey="Digit5" style="font-size:11px;padding:4px 10px;border-color:#00ffcc;color:#00ffcc;flex:1">🎨 [5] Assets</button>
-        <button class="btn inv-tab" data-tab="crypto" data-hotkey="Digit6" style="font-size:11px;padding:4px 10px;border-color:#ffd500;color:#ffd500;flex:1">🔗 [6] Crypto</button>
+        <button class="btn inv-tab active" data-tab="inventory" data-hotkey="Digit1" style="font-size:11px;padding:4px 10px;border-color:#fff;color:#fff;flex:1">ðŸ“¦ [1] Inventory</button>
+        <button class="btn inv-tab" data-tab="shop" data-hotkey="Digit2" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">ðŸ›’ [2] Shop</button>
+        <button class="btn inv-tab" data-tab="sell" data-hotkey="Digit3" style="font-size:11px;padding:4px 10px;border-color:#ff8844;color:#ff8844;flex:1">ðŸ’° [3] Sell</button>
+        <button class="btn inv-tab" data-tab="premium" data-hotkey="Digit4" style="font-size:11px;padding:4px 10px;border-color:#8247e5;color:#8247e5;flex:1">â­ [4] Premium</button>
+        <button class="btn inv-tab" data-tab="assets" data-hotkey="Digit5" style="font-size:11px;padding:4px 10px;border-color:#00ffcc;color:#00ffcc;flex:1">ðŸŽ¨ [5] Assets</button>
+        <button class="btn inv-tab" data-tab="crypto" data-hotkey="Digit6" style="font-size:11px;padding:4px 10px;border-color:#ffd500;color:#ffd500;flex:1">ðŸ”— [6] Crypto</button>
       </div>
 
-      <!-- ── TAB: Inventory ──────────────────────────────── -->
+      <!-- â”€â”€ TAB: Inventory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div id="inv-panel-inventory" class="inv-panel">
         <!-- Role Select -->
         <div id="pause-role-select" style="margin:8px 0">
           <span style="color:#aaa;font-size:13px">ROLE:</span>
-          <button class="btn" id="role-brigade-btn" style="font-size:12px;padding:4px 12px;border-color:#0af;color:#0af;display:inline-block;margin:0 4px">🎖 ASSAULT BRIGADE</button>
-          <button class="btn" id="role-lonewolf-btn" style="font-size:12px;padding:4px 12px;border-color:#fa0;color:#fa0;display:inline-block;margin:0 4px">🐺 LONE WOLF</button>
+          <button class="btn" id="role-brigade-btn" style="font-size:12px;padding:4px 12px;border-color:#0af;color:#0af;display:inline-block;margin:0 4px">ðŸŽ– ASSAULT BRIGADE</button>
+          <button class="btn" id="role-lonewolf-btn" style="font-size:12px;padding:4px 12px;border-color:#fa0;color:#fa0;display:inline-block;margin:0 4px">ðŸº LONE WOLF</button>
         </div>
 
         <!-- Materials / Resources Section -->
         <div id="materials-section" style="background:rgba(0,0,0,0.4);border:1px solid #555;border-radius:6px;padding:10px;margin:10px 0">
-          <h3 style="margin:0 0 8px 0;color:#ffcc00;font-size:14px">📦 COLLECTED MATERIALS</h3>
+          <h3 style="margin:0 0 8px 0;color:#ffcc00;font-size:14px">ðŸ“¦ COLLECTED MATERIALS</h3>
           <div id="materials-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:13px"></div>
           <div id="currency-display" style="margin-top:8px;font-size:14px;color:#ffd700;text-align:center"></div>
         </div>
 
         <!-- Weapon Switching Section -->
-        <h3 style="margin:10px 0 6px 0;color:#ff8844;font-size:14px">🔫 WEAPONS (click to equip)</h3>
+        <h3 style="margin:10px 0 6px 0;color:#ff8844;font-size:14px">ðŸ”« WEAPONS (click to equip)</h3>
         <div id="inventory-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0;"></div>
         <div id="pause-weapons-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px auto;max-width:500px;font-size:11px"></div>
 
@@ -851,79 +851,79 @@
         <div id="player-stats" style="text-align:left;font-size:14px;margin:10px 0;background:rgba(0,0,0,0.3);padding:8px;border-radius:4px"></div>
       </div>
 
-      <!-- ── TAB: Shop ───────────────────────────────────── -->
+      <!-- â”€â”€ TAB: Shop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div id="inv-panel-shop" class="inv-panel" style="display:none">
-        <h3 style="color:#ffd700;font-size:14px;margin:6px 0">🛒 ITEM SHOP</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Buy items with OKC or POL. 10% of POL purchases go to 🇺🇦 Ukraine defense fund.</p>
+        <h3 style="color:#ffd700;font-size:14px;margin:6px 0">ðŸ›’ ITEM SHOP</h3>
+        <p style="color:#888;font-size:11px;margin-bottom:8px">Buy items with OKC or POL. 10% of POL purchases go to ðŸ‡ºðŸ‡¦ Ukraine defense fund.</p>
         <div id="shop-items-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
-        <h3 style="color:#ffd700;font-size:14px;margin:12px 0 6px 0">💱 CURRENCY EXCHANGE</h3>
+        <h3 style="color:#ffd700;font-size:14px;margin:12px 0 6px 0">ðŸ’± CURRENCY EXCHANGE</h3>
         <div style="display:flex;gap:8px;margin:6px 0">
-          <button class="btn" id="convert-okc-gold-btn" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">100 OKC → 1000 Gold</button>
-          <button class="btn" id="convert-gold-okc-btn" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">1000 Gold → 100 OKC</button>
+          <button class="btn" id="convert-okc-gold-btn" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">100 OKC â†’ 1000 Gold</button>
+          <button class="btn" id="convert-gold-okc-btn" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">1000 Gold â†’ 100 OKC</button>
         </div>
       </div>
 
-      <!-- ── TAB: Sell ───────────────────────────────────── -->
+      <!-- â”€â”€ TAB: Sell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div id="inv-panel-sell" class="inv-panel" style="display:none">
-        <h3 style="color:#ff8844;font-size:14px;margin:6px 0">💰 SELL WEAPONS &amp; AMMO</h3>
+        <h3 style="color:#ff8844;font-size:14px;margin:6px 0">ðŸ’° SELL WEAPONS &amp; AMMO</h3>
         <p style="color:#888;font-size:11px;margin-bottom:8px">Sell surplus weapons for OKC or POL crypto. Starter weapons cannot be sold.</p>
         <div id="sell-weapons-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
-        <h3 style="color:#ff8844;font-size:14px;margin:12px 0 6px 0">📦 SELL AMMO</h3>
+        <h3 style="color:#ff8844;font-size:14px;margin:12px 0 6px 0">ðŸ“¦ SELL AMMO</h3>
         <div id="sell-ammo-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
       </div>
 
-      <!-- ── TAB: Premium ────────────────────────────────── -->
+      <!-- â”€â”€ TAB: Premium â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div id="inv-panel-premium" class="inv-panel" style="display:none">
-        <h3 style="color:#8247e5;font-size:14px;margin:6px 0">⭐ PREMIUM SUBSCRIPTIONS</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Boost your OKC earnings, unlock exclusive content, and get shop discounts! 10% of POL goes to 🇺🇦 Ukraine.</p>
+        <h3 style="color:#8247e5;font-size:14px;margin:6px 0">â­ PREMIUM SUBSCRIPTIONS</h3>
+        <p style="color:#888;font-size:11px;margin-bottom:8px">Boost your OKC earnings, unlock exclusive content, and get shop discounts! 10% of POL goes to ðŸ‡ºðŸ‡¦ Ukraine.</p>
         <div id="premium-status" style="background:rgba(130,71,229,0.1);border:1px solid #8247e5;border-radius:6px;padding:8px;margin:6px 0;font-size:12px;color:#8247e5;display:none"></div>
         <div id="premium-tiers-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0"></div>
       </div>
 
-      <!-- ── TAB: Assets ─────────────────────────────────── -->
+      <!-- â”€â”€ TAB: Assets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div id="inv-panel-assets" class="inv-panel" style="display:none">
-        <h3 style="color:#00ffcc;font-size:14px;margin:6px 0">🎨 GAME ASSETS</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Exclusive skins, emotes, titles &amp; trails. Buy with OKC or POL. 10% of POL goes to 🇺🇦 Ukraine.</p>
+        <h3 style="color:#00ffcc;font-size:14px;margin:6px 0">ðŸŽ¨ GAME ASSETS</h3>
+        <p style="color:#888;font-size:11px;margin-bottom:8px">Exclusive skins, emotes, titles &amp; trails. Buy with OKC or POL. 10% of POL goes to ðŸ‡ºðŸ‡¦ Ukraine.</p>
         <div id="assets-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
       </div>
 
-      <!-- ── TAB: Crypto / Blockchain ─────────────────────── -->
+      <!-- â”€â”€ TAB: Crypto / Blockchain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div id="inv-panel-crypto" class="inv-panel" style="display:none">
-        <h3 style="color:#ffd500;font-size:14px;margin:6px 0">🔗 BLOCKCHAIN &amp; NFT GUIDE</h3>
+        <h3 style="color:#ffd500;font-size:14px;margin:6px 0">ðŸ”— BLOCKCHAIN &amp; NFT GUIDE</h3>
         <div style="background:rgba(0,0,0,0.4);border:1px solid #ffd500;border-radius:6px;padding:10px;margin:8px 0;font-size:12px;line-height:1.6;color:#ddd">
-          <div style="color:#ffd500;font-weight:bold;margin-bottom:4px">🪙 What is OKC?</div>
-          <div style="margin-bottom:10px">OKC (Occupant Killer Coin) is the in-game currency you earn by destroying blocks, killing enemies, and completing waves. Every bullet that shatters terrain earns you <b>+1 OKC</b>. Save up OKC to buy weapons, skins, and premium boosts — or convert it to on-chain tokens later.</div>
+          <div style="color:#ffd500;font-weight:bold;margin-bottom:4px">ðŸª™ What is OKC?</div>
+          <div style="margin-bottom:10px">OKC (Occupant Killer Coin) is the in-game currency you earn by destroying blocks, killing enemies, and completing waves. Every bullet that shatters terrain earns you <b>+1 OKC</b>. Save up OKC to buy weapons, skins, and premium boosts â€” or convert it to on-chain tokens later.</div>
 
-          <div style="color:#8247e5;font-weight:bold;margin-bottom:4px">💎 What is POL?</div>
+          <div style="color:#8247e5;font-weight:bold;margin-bottom:4px">ðŸ’Ž What is POL?</div>
           <div style="margin-bottom:10px">POL (Polygon) is the real blockchain currency used for NFT minting and premium purchases. When you connect your MetaMask wallet, you can convert OKC to POL at a fixed rate, or spend POL directly on exclusive Veteran NFTs and weapon skins.</div>
 
-          <div style="color:#00ffcc;font-weight:bold;margin-bottom:4px">🎨 What are NFTs here?</div>
-          <div style="margin-bottom:10px">Veteran NFTs are soulbound tokens that prove your combat record — kills, prestige level, and medals — forever on the Polygon blockchain. Weapons NFTs let you own unique gun skins that persist across devices. 10% of every POL purchase goes to the <b>🇺🇦 Ukrainian defense wallet</b>.</div>
+          <div style="color:#00ffcc;font-weight:bold;margin-bottom:4px">ðŸŽ¨ What are NFTs here?</div>
+          <div style="margin-bottom:10px">Veteran NFTs are soulbound tokens that prove your combat record â€” kills, prestige level, and medals â€” forever on the Polygon blockchain. Weapons NFTs let you own unique gun skins that persist across devices. 10% of every POL purchase goes to the <b>ðŸ‡ºðŸ‡¦ Ukrainian defense wallet</b>.</div>
 
-          <div style="color:#ff8844;font-weight:bold;margin-bottom:4px">🦊 How do I connect?</div>
-          <div style="margin-bottom:10px">Click <b>Connect Wallet</b> above. You need the MetaMask browser extension (or any WalletConnect-compatible app). Make sure you're on the <b>Polygon Mainnet</b>. No wallet? No problem — you can still earn OKC and play everything for free.</div>
+          <div style="color:#ff8844;font-weight:bold;margin-bottom:4px">ðŸ¦Š How do I connect?</div>
+          <div style="margin-bottom:10px">Click <b>Connect Wallet</b> above. You need the MetaMask browser extension (or any WalletConnect-compatible app). Make sure you're on the <b>Polygon Mainnet</b>. No wallet? No problem â€” you can still earn OKC and play everything for free.</div>
 
-          <div style="color:#0af;font-weight:bold;margin-bottom:4px">🔄 Conversion Flow</div>
-          <div style="margin-bottom:4px">1. Earn OKC in-game (bullets → blocks → OKC)<br>2. Connect wallet on Polygon<br>3. Convert OKC → POL (or OKC → Gold)<br>4. Mint Veteran NFT or buy Weapon Skin NFT<br>5. Trade on OpenSea or keep forever</div>
+          <div style="color:#0af;font-weight:bold;margin-bottom:4px">ðŸ”„ Conversion Flow</div>
+          <div style="margin-bottom:4px">1. Earn OKC in-game (bullets â†’ blocks â†’ OKC)<br>2. Connect wallet on Polygon<br>3. Convert OKC â†’ POL (or OKC â†’ Gold)<br>4. Mint Veteran NFT or buy Weapon Skin NFT<br>5. Trade on OpenSea or keep forever</div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#888;margin-top:4px">Contracts: OKC_Token · OccupantVeteranNFT · OccupantWeaponsNFT · OccupantMarket</div>
+        <div style="text-align:center;font-size:10px;color:#888;margin-top:4px">Contracts: OKC_Token Â· OccupantVeteranNFT Â· OccupantWeaponsNFT Â· OccupantMarket</div>
       </div>
 
-      <!-- ── Ukraine Donation Info ────────────────────────── -->
+      <!-- â”€â”€ Ukraine Donation Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div id="ukraine-donation-banner" style="background:linear-gradient(90deg,rgba(0,87,183,0.2),rgba(255,215,0,0.2));border:1px solid #ffd700;border-radius:6px;padding:8px;margin:10px 0;text-align:center">
-        <div style="font-size:13px;color:#ffd700">🇺🇦 10% of all POL proceeds go to Ukrainian defense</div>
-        <div style="font-size:10px;color:#aaa;margin-top:2px">Wallet: 0x165C…e14</div>
+        <div style="font-size:13px;color:#ffd700">ðŸ‡ºðŸ‡¦ 10% of all POL proceeds go to Ukrainian defense</div>
+        <div style="font-size:10px;color:#aaa;margin-top:2px">Wallet: 0x165Câ€¦e14</div>
       </div>
 
-      <!-- Pause Controls — sticky footer so resume/quit are always reachable on mobile -->
+      <!-- Pause Controls â€” sticky footer so resume/quit are always reachable on mobile -->
       <div id="inv-sticky-footer" style="position:sticky;bottom:0;background:linear-gradient(0deg,rgba(10,10,10,0.97) 60%,transparent);padding:8px 0 4px;margin-top:12px;z-index:5;text-align:center">
-        <button class="btn" id="stealth-toggle-btn" style="border-color:#0f6;color:#0f6;font-size:11px;padding:4px 10px">👻 [S] STEALTH</button>
-        <button class="btn" id="pause-god-mode-btn" style="font-size:11px;padding:4px 10px;border-color:#ff0;color:#ff0;display:inline-block;margin:0 4px;text-shadow:0 0 8px #ff0">⚡ [G] GOD</button>
+        <button class="btn" id="stealth-toggle-btn" style="border-color:#0f6;color:#0f6;font-size:11px;padding:4px 10px">ðŸ‘» [S] STEALTH</button>
+        <button class="btn" id="pause-god-mode-btn" style="font-size:11px;padding:4px 10px;border-color:#ff0;color:#ff0;display:inline-block;margin:0 4px;text-shadow:0 0 8px #ff0">âš¡ [G] GOD</button>
         <div style="margin-top:6px">
-          <button class="btn" id="resume-btn" style="border-color:#fff;color:#fff;font-size:16px;padding:10px 28px;width:100%;max-width:400px">▶ RESUME GAME</button>
+          <button class="btn" id="resume-btn" style="border-color:#fff;color:#fff;font-size:16px;padding:10px 28px;width:100%;max-width:400px">â–¶ RESUME GAME</button>
         </div>
-        <button class="btn" id="quit-btn" style="margin-top:4px;border-color:#888;color:#888;font-size:11px;padding:4px 10px">✕ QUIT TO MENU</button>
-        <p style="color:#555;font-size:10px;margin:4px 0 0">Desktop: <kbd>R</kbd> resume · <kbd>Q</kbd> quit · <kbd>1-6</kbd> tabs</p>
+        <button class="btn" id="quit-btn" style="margin-top:4px;border-color:#888;color:#888;font-size:11px;padding:4px 10px">âœ• QUIT TO MENU</button>
+        <p style="color:#555;font-size:10px;margin:4px 0 0">Desktop: <kbd>R</kbd> resume Â· <kbd>Q</kbd> quit Â· <kbd>1-6</kbd> tabs</p>
       </div>
     </div>
   </div>
@@ -937,14 +937,14 @@
     </div>
 
     <div id="mobile-utility" class="mobile-ctrl">
-      <button id="btn-aim" class="mobile-btn utility-btn emphasis" title="Aim / Alt Fire">◎</button>
-      <button id="btn-use" class="mobile-btn utility-btn" title="Use / Interact / Drone">✋</button>
-      <button id="btn-vehicle" class="mobile-btn utility-btn" title="Enter Vehicle">🚗</button>
-      <button id="btn-build" class="mobile-btn utility-btn" title="Build Mode">🔨</button>
-      <button id="btn-view" class="mobile-btn utility-btn" title="Switch Camera">👁</button>
-      <button id="btn-night" class="mobile-btn utility-btn" title="Night Vision">🌙</button>
-      <button id="btn-gyro" class="mobile-btn utility-btn" title="Gyro Aim">🎯</button>
-      <button id="btn-inventory-mobile" class="mobile-btn utility-btn" title="Inventory">🎒</button>
+      <button id="btn-aim" class="mobile-btn utility-btn emphasis" title="Aim / Alt Fire">â—Ž</button>
+      <button id="btn-use" class="mobile-btn utility-btn" title="Use / Interact / Drone">âœ‹</button>
+      <button id="btn-vehicle" class="mobile-btn utility-btn" title="Enter Vehicle">ðŸš—</button>
+      <button id="btn-build" class="mobile-btn utility-btn" title="Build Mode">ðŸ”¨</button>
+      <button id="btn-view" class="mobile-btn utility-btn" title="Switch Camera">ðŸ‘</button>
+      <button id="btn-night" class="mobile-btn utility-btn" title="Night Vision">ðŸŒ™</button>
+      <button id="btn-gyro" class="mobile-btn utility-btn" title="Gyro Aim">ðŸŽ¯</button>
+      <button id="btn-inventory-mobile" class="mobile-btn utility-btn" title="Inventory">ðŸŽ’</button>
     </div>
 
     <!-- Right aim joystick -->
@@ -956,29 +956,29 @@
 
     <!-- Action buttons (right side, above aim joystick) -->
     <div id="mobile-actions" class="mobile-ctrl">
-      <button id="btn-fire" class="mobile-btn fire-btn">🔫</button>
-      <button id="btn-reload" class="mobile-btn">🔄</button>
-      <button id="btn-jump" class="mobile-btn">⬆</button>
-      <button id="btn-sprint" class="mobile-btn">🏃</button>
-      <button id="btn-crouch" class="mobile-btn sm" title="Crouch / Prone">⬇</button>
-      <button id="btn-melee" class="mobile-btn sm" title="Melee">🔪</button>
-      <button id="btn-grenade" class="mobile-btn sm" title="Grenade">💣</button>
-      <button id="btn-weapon-prev" class="mobile-btn sm">◀</button>
-      <button id="btn-weapon-next" class="mobile-btn sm">▶</button>
+      <button id="btn-fire" class="mobile-btn fire-btn">ðŸ”«</button>
+      <button id="btn-reload" class="mobile-btn">ðŸ”„</button>
+      <button id="btn-jump" class="mobile-btn">â¬†</button>
+      <button id="btn-sprint" class="mobile-btn">ðŸƒ</button>
+      <button id="btn-crouch" class="mobile-btn sm" title="Crouch / Prone">â¬‡</button>
+      <button id="btn-melee" class="mobile-btn sm" title="Melee">ðŸ”ª</button>
+      <button id="btn-grenade" class="mobile-btn sm" title="Grenade">ðŸ’£</button>
+      <button id="btn-weapon-prev" class="mobile-btn sm">â—€</button>
+      <button id="btn-weapon-next" class="mobile-btn sm">â–¶</button>
     </div>
 
     <!-- Mobile Jukebox Bar (compact) -->
     <div id="mobile-jukebox-bar" class="mobile-ctrl" style="position:absolute;top:calc(var(--mobile-safe-top) + 46px);left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:rgba(0,0,0,0.5);border:1px solid rgba(255,213,0,0.3);border-radius:20px;padding:4px 10px;z-index:235">
-      <button id="mb-jbx-mute" class="mobile-btn" style="width:32px;height:32px;font-size:14px;background:none;border:none">🔊</button>
+      <button id="mb-jbx-mute" class="mobile-btn" style="width:32px;height:32px;font-size:14px;background:none;border:none">ðŸ”Š</button>
       <input id="mb-jbx-vol" type="range" min="0" max="100" value="25" style="width:80px;accent-color:#ffd500">
-      <button id="mb-jbx-prev" class="mobile-btn" style="width:32px;height:32px;font-size:14px;background:none;border:none">⏮</button>
-      <button id="mb-jbx-play" class="mobile-btn" style="width:32px;height:32px;font-size:14px;background:none;border:none">▶</button>
-      <button id="mb-jbx-next" class="mobile-btn" style="width:32px;height:32px;font-size:14px;background:none;border:none">⏭</button>
-      <span id="mb-jbx-now" style="font-size:9px;color:#ffd500;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:monospace">—</span>
+      <button id="mb-jbx-prev" class="mobile-btn" style="width:32px;height:32px;font-size:14px;background:none;border:none">â®</button>
+      <button id="mb-jbx-play" class="mobile-btn" style="width:32px;height:32px;font-size:14px;background:none;border:none">â–¶</button>
+      <button id="mb-jbx-next" class="mobile-btn" style="width:32px;height:32px;font-size:14px;background:none;border:none">â­</button>
+      <span id="mb-jbx-now" style="font-size:9px;color:#ffd500;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:monospace">â€”</span>
     </div>
 
     <!-- Inventory/Pause button -->
-    <button id="btn-pause" class="mobile-btn pause-btn">⏸</button>
+    <button id="btn-pause" class="mobile-btn pause-btn">â¸</button>
 
     <!-- Look zone for tap-to-shoot (covers right half of screen) -->
     <div id="mobile-look-zone" class="mobile-ctrl">
@@ -989,7 +989,7 @@
 
   <!-- Portrait orientation warning (mobile only) -->
   <div id="orientation-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.96);color:#fff;z-index:99998;align-items:center;justify-content:center;flex-direction:column;font-family:monospace;text-align:center;padding:20px">
-    <div style="font-size:64px;animation:rotateHint 2s ease-in-out infinite">📱↻</div>
+    <div style="font-size:64px;animation:rotateHint 2s ease-in-out infinite">ðŸ“±â†»</div>
     <div style="font-size:22px;margin-top:20px;font-weight:bold;color:#ffd700">ROTATE YOUR DEVICE</div>
     <div style="font-size:14px;margin-top:10px;color:#aaa;max-width:300px">This game is designed for landscape mode. Please rotate your device horizontally.</div>
     <button id="orientation-fullscreen-btn" style="margin-top:20px;padding:10px 20px;background:#ffd700;border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer">Enter Fullscreen</button>
@@ -999,7 +999,7 @@
 <!-- Three.js r137 (local copy, patched for CVE XSS < 0.137.0) -->
 <script src="three.min.js?v=20260429b"></script>
 
-<!-- ethers v6 (CDN — used by blockchain.js for contract calls).
+<!-- ethers v6 (CDN â€” used by blockchain.js for contract calls).
      async + onerror so a slow/blocked CDN can't stall game boot.
      blockchain.js only references window.ethers inside async functions,
      so missing ethers only breaks web3 features, not gameplay. -->
@@ -1097,6 +1097,7 @@
 <script src="kill-feed.js?v=20260616d"></script>
 <script src="hit-marker.js?v=20260616d"></script>
 <script src="enemy-healthbars.js?v=20260616d"></script>
+<script src="wave-complete.js?v=20260616d"></script>
 <script src="controls-hud.js?v=20260616d"></script>
 <script src="weapon-details.js?v=20260429b"></script>
 <script src="weapons.js?v=20260429b"></script>
@@ -1153,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   'use strict';
 
-  // ── Boot Preloader ────────────────────────────────────
+  // â”€â”€ Boot Preloader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   var __bootStages = [
     { pct: 5,  label: 'parsing scripts' },
     { pct: 25, label: 'checking modules' },
@@ -1167,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var lab  = document.getElementById('boot-progress-label');
     var det  = document.getElementById('boot-progress-detail');
     if (fill) fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
-    if (lab)  lab.textContent = Math.round(pct) + '% — ' + (label || '');
+    if (lab)  lab.textContent = Math.round(pct) + '% â€” ' + (label || '');
     if (det)  det.textContent = detail || '\u00a0';
   }
   function hideBootPreloader() {
@@ -1199,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var a = attempts || 0;
     var missing = checkModules();
     var loadedCount = REQUIRED_MODULES.length - missing.length;
-    var modulePct = 5 + Math.round((loadedCount / REQUIRED_MODULES.length) * 20); // 5 → 25
+    var modulePct = 5 + Math.round((loadedCount / REQUIRED_MODULES.length) * 20); // 5 â†’ 25
     setBootProgress(modulePct, 'checking modules', missing.length ? 'waiting: ' + missing.slice(0,3).join(', ') : 'all modules loaded');
 
     if (missing.length === 0 && typeof window.GameManager.init === 'function') {
@@ -1257,14 +1258,14 @@ document.addEventListener('DOMContentLoaded', function () {
   setBootProgress(5, 'parsing scripts', '');
   bootWhenReady(0);
 
-  // ── Inline drone choice on start screen (replaces second drone-select overlay) ──
+  // â”€â”€ Inline drone choice on start screen (replaces second drone-select overlay) â”€â”€
   (function () {
     window.__chosenDroneType = ''; // empty = none
     var droneDescs = {
-      '': 'No drone — fight on foot (default)',
-      fpv_attack: 'FPV Attack — kamikaze drone, dives into targets',
-      surveillance: 'Surveillance — scout battlefield, mark enemies',
-      bomb: 'Bomber — heavy payload, drop munitions on targets'
+      '': 'No drone â€” fight on foot (default)',
+      fpv_attack: 'FPV Attack â€” kamikaze drone, dives into targets',
+      surveillance: 'Surveillance â€” scout battlefield, mark enemies',
+      bomb: 'Bomber â€” heavy payload, drop munitions on targets'
     };
     var btns = document.querySelectorAll('.start-drone-btn');
     var desc = document.getElementById('start-drone-desc');
@@ -1292,8 +1293,8 @@ document.addEventListener('DOMContentLoaded', function () {
     setActiveDrone('');
   })();
 
-  // ── Button wiring ──────────────────────────────────────
-  // ── Quick-start for new players ───────────────────────
+  // â”€â”€ Button wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ Quick-start for new players â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   (function () {
     var hasPlayed = localStorage.getItem('ok_has_played');
     var advSection = document.getElementById('advanced-start-section');
@@ -1352,13 +1353,13 @@ document.addEventListener('DOMContentLoaded', function () {
     GameManager.beginWave(GameManager.getCurrentWave() + 1);
   });
 
-  // ── Wave Shop purchase logic ──────────────────────────────
+  // â”€â”€ Wave Shop purchase logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   (function () {
     var shopItems = {
-      health: { cost: 40, label: '❤️ Health +50', apply: function () { GameManager.healPlayer(50); } },
-      armor:  { cost: 60, label: '🛡️ Armor Pack', apply: function () { GameManager.addArmor(50); } },
-      ammo:   { cost: 30, label: '🔫 Full Ammo', apply: function () { if (typeof Weapons !== 'undefined' && Weapons.refillAllAmmo) Weapons.refillAllAmmo(); } },
-      stim:   { cost: 50, label: '💉 Stim Pack', apply: function () { GameManager.addStimBuff(30); } },
+      health: { cost: 40, label: 'â¤ï¸ Health +50', apply: function () { GameManager.healPlayer(50); } },
+      armor:  { cost: 60, label: 'ðŸ›¡ï¸ Armor Pack', apply: function () { GameManager.addArmor(50); } },
+      ammo:   { cost: 30, label: 'ðŸ”« Full Ammo', apply: function () { if (typeof Weapons !== 'undefined' && Weapons.refillAllAmmo) Weapons.refillAllAmmo(); } },
+      stim:   { cost: 50, label: 'ðŸ’‰ Stim Pack', apply: function () { GameManager.addStimBuff(30); } },
     };
     var btns = document.querySelectorAll('.shop-buy-btn');
     for (var i = 0; i < btns.length; i++) {
@@ -1369,12 +1370,12 @@ document.addEventListener('DOMContentLoaded', function () {
           if (!item) return;
           if (typeof Economy !== 'undefined' && Economy.spendCurrency(item.cost)) {
             item.apply();
-            btn.textContent = '✅ PURCHASED';
+            btn.textContent = 'âœ… PURCHASED';
             btn.style.borderColor = '#666';
             btn.style.color = '#666';
             btn.disabled = true;
             var balEl = document.getElementById('shop-balance');
-            if (balEl) balEl.textContent = '💰 ' + Economy.getCurrency() + ' OKC';
+            if (balEl) balEl.textContent = 'ðŸ’° ' + Economy.getCurrency() + ' OKC';
           } else {
             btn.style.borderColor = '#ff4444';
             btn.style.color = '#ff4444';
@@ -1458,7 +1459,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   })();
 
-  // ── Role selection ──────────────────────────────────────
+  // â”€â”€ Role selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   document.getElementById('start-role-brigade').addEventListener('click', function () {
     GameManager.setRole('brigade');
   });
@@ -1472,12 +1473,12 @@ document.addEventListener('DOMContentLoaded', function () {
     GameManager.setRole('lonewolf');
   });
 
-  // ── Stealth toggle (pause menu) ────────────────────────
+  // â”€â”€ Stealth toggle (pause menu) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   document.getElementById('stealth-toggle-btn').addEventListener('click', function () {
     GameManager.toggleStealth();
   });
 
-  // ── Desktop keyboard shortcuts for the unified menu ─────
+  // â”€â”€ Desktop keyboard shortcuts for the unified menu â”€â”€â”€â”€â”€
   // Active only while the inventory/pause overlay is visible. Mobile users
   // get touch buttons instead. Avoids the "no way to navigate without mouse"
   // complaint while pointer is captured by another process.
@@ -1563,16 +1564,16 @@ document.addEventListener('DOMContentLoaded', function () {
     observer.observe(pauseOv, { attributes: true, attributeFilter: ['style'] });
   })();
 
-  // ── Inventory Button (in-game HUD) ────────────────────────
+  // â”€â”€ Inventory Button (in-game HUD) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   document.getElementById('inventory-btn').addEventListener('click', function () {
     GameManager.toggleInventory();
   });
 
-  // ── Jukebox UI wiring ─────────────────────────────────────
+  // â”€â”€ Jukebox UI wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   (function () {
     if (typeof Jukebox === 'undefined') return;
 
-    // ── Game HUD Panel ──
+    // â”€â”€ Game HUD Panel â”€â”€
     var btn   = document.getElementById('jukebox-btn');
     var panel = document.getElementById('jukebox-panel');
     var closeBtn = document.getElementById('jukebox-close');
@@ -1587,7 +1588,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var modeProcBtn= document.getElementById('jukebox-mode-proc');
     var autoBtn    = document.getElementById('jukebox-autoplay');
 
-    // ── Inventory Mini Panel ──
+    // â”€â”€ Inventory Mini Panel â”€â”€
     var invPlayBtn  = document.getElementById('inv-jbx-play');
     var invPrevBtn  = document.getElementById('inv-jbx-prev');
     var invNextBtn  = document.getElementById('inv-jbx-next');
@@ -1609,8 +1610,8 @@ document.addEventListener('DOMContentLoaded', function () {
       for (var i = 0; i < tracks.length; i++) {
         var t = tracks[i];
         var active = cur && (cur.id === t.id || cur.title === t.title);
-        var flag = t.flag ? '🇺🇦 ' : '';
-        var meta = t.bpm ? (t.artist + ' · ' + t.bpm + ' BPM') : (t.artist || '');
+        var flag = t.flag ? 'ðŸ‡ºðŸ‡¦ ' : '';
+        var meta = t.bpm ? (t.artist + ' Â· ' + t.bpm + ' BPM') : (t.artist || '');
         html += '<div class="jbx-row" data-idx="' + i + '" style="padding:5px 6px;cursor:pointer;border-radius:3px;margin-bottom:2px;' +
                 (active ? 'background:rgba(255,213,0,0.15);border-left:3px solid #ffd500' : 'border-left:3px solid transparent') +
                 '">' +
@@ -1634,13 +1635,13 @@ document.addEventListener('DOMContentLoaded', function () {
     function refreshAll() {
       var cur = Jukebox.getCurrent();
       var isPlaying = Jukebox.isPlaying();
-      var label = cur ? cur.title : '— stopped —';
+      var label = cur ? cur.title : 'â€” stopped â€”';
       var sub   = cur ? cur.artist : '';
 
       // HUD panel
       titleEl.textContent  = label;
       artistEl.textContent = sub;
-      playBtn.textContent  = isPlaying ? '⏸ STOP' : '▶ PLAY';
+      playBtn.textContent  = isPlaying ? 'â¸ STOP' : 'â–¶ PLAY';
       if (modeMp3Btn) {
         var isMp3 = Jukebox.getMode() === 'mp3';
         modeMp3Btn.style.borderColor  = isMp3 ? '#ffd500' : '#555';
@@ -1649,17 +1650,17 @@ document.addEventListener('DOMContentLoaded', function () {
         modeProcBtn.style.color       = !isMp3 ? '#ffd500' : '#fff';
       }
       if (autoBtn) {
-        autoBtn.textContent = Jukebox.getAutoplay() ? '🔁 ON' : '⏹ OFF';
+        autoBtn.textContent = Jukebox.getAutoplay() ? 'ðŸ” ON' : 'â¹ OFF';
         autoBtn.style.borderColor = Jukebox.getAutoplay() ? '#ffd500' : '#555';
         autoBtn.style.color = Jukebox.getAutoplay() ? '#ffd500' : '#fff';
       }
       buildList(listEl);
 
       // Inventory mini
-      if (invNowEl) invNowEl.textContent = label + (sub ? ' — ' + sub : '');
-      if (invPlayBtn) invPlayBtn.textContent = isPlaying ? '⏸ STOP' : '▶ PLAY';
-      if (invModeBtn) invModeBtn.textContent = Jukebox.getMode() === 'mp3' ? '🎵 MP3' : '🎛 PROC';
-      if (invAutoBtn) invAutoBtn.textContent = Jukebox.getAutoplay() ? '🔁 ON' : '⏹ OFF';
+      if (invNowEl) invNowEl.textContent = label + (sub ? ' â€” ' + sub : '');
+      if (invPlayBtn) invPlayBtn.textContent = isPlaying ? 'â¸ STOP' : 'â–¶ PLAY';
+      if (invModeBtn) invModeBtn.textContent = Jukebox.getMode() === 'mp3' ? 'ðŸŽµ MP3' : 'ðŸŽ› PROC';
+      if (invAutoBtn) invAutoBtn.textContent = Jukebox.getAutoplay() ? 'ðŸ” ON' : 'â¹ OFF';
       buildList(invListEl);
     }
 
@@ -1700,10 +1701,10 @@ document.addEventListener('DOMContentLoaded', function () {
       mbMute.addEventListener('click', function () {
         _mbMuted = !_mbMuted;
         Jukebox.mute(_mbMuted);
-        mbMute.textContent = _mbMuted ? '🔇' : '🔊';
+        mbMute.textContent = _mbMuted ? 'ðŸ”‡' : 'ðŸ”Š';
       });
     }
-    if (mbVol) mbVol.addEventListener('input', function () { Jukebox.setVolume(parseInt(mbVol.value, 10) / 100); _mbMuted = false; mbMute.textContent = '🔊'; });
+    if (mbVol) mbVol.addEventListener('input', function () { Jukebox.setVolume(parseInt(mbVol.value, 10) / 100); _mbMuted = false; mbMute.textContent = 'ðŸ”Š'; });
     if (mbPrev) mbPrev.addEventListener('click', function () { Jukebox.prev(); });
     if (mbPlay) mbPlay.addEventListener('click', function () { Jukebox.toggle(); });
     if (mbNext) mbNext.addEventListener('click', function () { Jukebox.next(); });
@@ -1713,9 +1714,9 @@ document.addEventListener('DOMContentLoaded', function () {
       _origRefresh();
       var cur2 = Jukebox.getCurrent();
       var isPlaying2 = Jukebox.isPlaying();
-      if (mbNow) mbNow.textContent = cur2 ? cur2.title : '—';
-      if (mbPlay) mbPlay.textContent = isPlaying2 ? '⏸' : '▶';
-      if (mbMute) mbMute.textContent = Jukebox.getVolume && Jukebox.getVolume() > 0 ? '🔊' : '🔇';
+      if (mbNow) mbNow.textContent = cur2 ? cur2.title : 'â€”';
+      if (mbPlay) mbPlay.textContent = isPlaying2 ? 'â¸' : 'â–¶';
+      if (mbMute) mbMute.textContent = Jukebox.getVolume && Jukebox.getVolume() > 0 ? 'ðŸ”Š' : 'ðŸ”‡';
     };
     Jukebox.onChange(refreshAll);
 
@@ -1731,7 +1732,7 @@ document.addEventListener('DOMContentLoaded', function () {
     refreshAll();
   })();
 
-  // ── Lottery / Premium / Gyro / Mortar button wiring ────────
+  // â”€â”€ Lottery / Premium / Gyro / Mortar button wiring â”€â”€â”€â”€â”€â”€â”€â”€
   (function () {
     var lotBtn = document.getElementById('lottery-btn');
     if (lotBtn) lotBtn.addEventListener('click', function () {
@@ -1782,8 +1783,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var s = window.Premium.getState();
         var html = '<div style="width:420px;background:linear-gradient(180deg,#0a1a2a 0%,#1a3a5a 100%);border:3px solid #7fffaa;border-radius:12px;padding:18px;box-shadow:0 0 40px rgba(127,255,170,0.4)">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
-            '<div style="font-size:16px;color:#7fffaa">⭐ PREMIUM TIME</div>' +
-            '<button id="prem-close" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer">✕</button>' +
+            '<div style="font-size:16px;color:#7fffaa">â­ PREMIUM TIME</div>' +
+            '<button id="prem-close" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer">âœ•</button>' +
           '</div>' +
           '<div style="font-size:11px;color:#bbb;margin-bottom:10px">Active: ' +
             (s.active ? ('<span style="color:#7fffaa">' + s.label + ' (' + Math.round(s.remainingMs / 3600000) + 'h left)</span>') : '<span style="color:#888">none</span>') +
@@ -1793,7 +1794,7 @@ document.addEventListener('DOMContentLoaded', function () {
           html += '<div class="prem-row" data-tier="' + t.id + '" style="background:rgba(0,0,0,0.4);border:1px solid #2a4a6a;border-radius:6px;padding:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer">' +
             '<div>' +
               '<div style="color:#ffd500;font-weight:bold">' + t.label + '</div>' +
-              '<div style="color:#aaa;font-size:9px">+' + Math.round((t.coinMult - 1) * 100) + '% OKC · +' + Math.round((t.xpMult - 1) * 100) + '% XP · +' + t.loginBonusOKC + ' OKC daily</div>' +
+              '<div style="color:#aaa;font-size:9px">+' + Math.round((t.coinMult - 1) * 100) + '% OKC Â· +' + Math.round((t.xpMult - 1) * 100) + '% XP Â· +' + t.loginBonusOKC + ' OKC daily</div>' +
             '</div>' +
             '<div style="color:#7fffaa;font-weight:bold">' + t.priceOKC + ' OKC</div>' +
           '</div>';
@@ -1808,10 +1809,10 @@ document.addEventListener('DOMContentLoaded', function () {
             var tid = this.getAttribute('data-tier');
             window.Premium.purchase(tid, function (res) {
               if (res && res.ok) {
-                if (window.HUD && window.HUD.showToast) window.HUD.showToast('✅ Premium activated', 2500, '#7fffaa');
+                if (window.HUD && window.HUD.showToast) window.HUD.showToast('âœ… Premium activated', 2500, '#7fffaa');
                 ov.style.display = 'none';
               } else {
-                if (window.HUD && window.HUD.showToast) window.HUD.showToast('❌ ' + ((res && res.reason) || 'failed'), 2500, '#ff8888');
+                if (window.HUD && window.HUD.showToast) window.HUD.showToast('âŒ ' + ((res && res.reason) || 'failed'), 2500, '#ff8888');
               }
             });
           });
@@ -1822,7 +1823,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   })();
 
-  // ── God Mode toggle ────────────────────────────────────
+  // â”€â”€ God Mode toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function updateGodModeButtons() {
     var active = GameManager.isGodMode();
     // Start screen button
@@ -1832,14 +1833,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (startBtn) {
       startBtn.style.borderColor = active ? '#0f0' : '#ff0';
       startBtn.style.color = active ? '#0f0' : '#ff0';
-      startBtn.textContent = active ? '⚡ GOD MODE: ON' : '⚡ GOD MODE';
+      startBtn.textContent = active ? 'âš¡ GOD MODE: ON' : 'âš¡ GOD MODE';
     }
     // Pause screen button
     var pauseBtn = document.getElementById('pause-god-mode-btn');
     if (pauseBtn) {
       pauseBtn.style.borderColor = active ? '#0f0' : '#ff0';
       pauseBtn.style.color = active ? '#0f0' : '#ff0';
-      pauseBtn.textContent = active ? '⚡ GOD MODE: ON' : '⚡ GOD MODE';
+      pauseBtn.textContent = active ? 'âš¡ GOD MODE: ON' : 'âš¡ GOD MODE';
     }
     // In-game HUD button
     var hudBtn = document.getElementById('hud-god-mode-btn');
@@ -1847,7 +1848,7 @@ document.addEventListener('DOMContentLoaded', function () {
       hudBtn.style.borderColor = active ? '#0f0' : 'rgba(255,255,0,0.5)';
       hudBtn.style.color = active ? '#0f0' : '#ff0';
       hudBtn.style.textShadow = active ? '0 0 6px #0f0' : '0 0 6px #ff0';
-      hudBtn.textContent = active ? '⚡ GOD: ON' : '⚡ GOD';
+      hudBtn.textContent = active ? 'âš¡ GOD: ON' : 'âš¡ GOD';
     }
   }
   document.getElementById('god-mode-btn').addEventListener('click', function () {
@@ -1865,19 +1866,19 @@ document.addEventListener('DOMContentLoaded', function () {
     updateGodModeButtons();
   });
 
-  // Mission Board — choose & start an operation ("start this mission" button)
+  // Mission Board â€” choose & start an operation ("start this mission" button)
   var _mbBtn = document.getElementById('mission-board-btn');
   if (_mbBtn) _mbBtn.addEventListener('click', function (e) {
     e.stopPropagation();
     if (GameManager.toggleMissionBoard) GameManager.toggleMissionBoard();
   });
 
-  // ── Populate weapons grids & role indicator ────────────
+  // â”€â”€ Populate weapons grids & role indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   GameManager.populateWeaponsGrid('start-weapons-grid');
   GameManager.populateWeaponsGrid('pause-weapons-grid');
   GameManager.updateRoleIndicator();
 
-  // ── Challenge Mode selection wiring ────────────────────
+  // â”€â”€ Challenge Mode selection wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   var challengeBtns = document.querySelectorAll('.challenge-btn');
   var challengeDesc = document.getElementById('challenge-desc');
   for (var ci = 0; ci < challengeBtns.length; ci++) {
@@ -1901,29 +1902,29 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ── Map selection (testing: all 19 maps, ungated) ──────────
+  // â”€â”€ Map selection (testing: all 19 maps, ungated) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   (function () {
     if (typeof window.__chosenStartStage !== 'number') window.__chosenStartStage = 0;
     var mapDescs = {
-      '0':  '0 · Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.',
-      '1':  '1 · Avdiivka Sector — Industrial coke-plant ruins. Year-long grinding battle.',
-      '2':  '2 · Bakhmut Ruins — Total urban destruction. Wagner assault from all directions.',
-      '3':  '3 · Kherson Crossing — Fight across the Dnipro. Hold the riverbank.',
-      '4':  '4 · Mariupol Steelworks — Azovstal last stand. Fire damage. No retreat.',
-      '5':  '5 · Crimea Bridge — Strike the Kerch Strait crossing before reinforcement.',
-      '6':  '6 · Chornobyl Zone — Irradiated exclusion zone. Radiation damage.',
-      '7':  '7 · Outer Moscow — Carry the fight into the Russian capital’s outskirts.',
-      '8':  '8 · Sevastopol Naval Base — Raid the Black Sea Fleet anchorage.',
-      '9':  '9 · Donbas Final Push — Retake the eastern oblasts, block by block.',
-      '10': '10 · Belgorod Offensive — Cross-border push into Russian territory.',
-      '11': '11 · Kremlin Showdown — The final assault at the seat of power.',
-      '12': '12 · Battle of Kyiv — Defend Maidan & Khreshchatyk from the Bucha column.',
-      '13': '13 · Snake Island Defense — Hold the Black Sea outpost.',
-      '14': '14 · Saky Airbase Strike — Hit the Crimean airfield; destroy parked aircraft.',
-      '15': '15 · Vuhledar Tank Graveyard — Ambush and shatter the armored assault.',
-      '16': '16 · Antonov Bridge Strike — Strike the Kherson crossing.',
-      '17': '17 · Refinery Strike — FPV-drone-only set-piece.',
-      '18': '18 · Treeline Assault — Drive the M2A2 Bradley. Rake the woods. Set-piece.',
+      '0':  '0 Â· Hostomel Airport â€” Stop the Russian VDV airborne assault. Feb 24, 2022.',
+      '1':  '1 Â· Avdiivka Sector â€” Industrial coke-plant ruins. Year-long grinding battle.',
+      '2':  '2 Â· Bakhmut Ruins â€” Total urban destruction. Wagner assault from all directions.',
+      '3':  '3 Â· Kherson Crossing â€” Fight across the Dnipro. Hold the riverbank.',
+      '4':  '4 Â· Mariupol Steelworks â€” Azovstal last stand. Fire damage. No retreat.',
+      '5':  '5 Â· Crimea Bridge â€” Strike the Kerch Strait crossing before reinforcement.',
+      '6':  '6 Â· Chornobyl Zone â€” Irradiated exclusion zone. Radiation damage.',
+      '7':  '7 Â· Outer Moscow â€” Carry the fight into the Russian capitalâ€™s outskirts.',
+      '8':  '8 Â· Sevastopol Naval Base â€” Raid the Black Sea Fleet anchorage.',
+      '9':  '9 Â· Donbas Final Push â€” Retake the eastern oblasts, block by block.',
+      '10': '10 Â· Belgorod Offensive â€” Cross-border push into Russian territory.',
+      '11': '11 Â· Kremlin Showdown â€” The final assault at the seat of power.',
+      '12': '12 Â· Battle of Kyiv â€” Defend Maidan & Khreshchatyk from the Bucha column.',
+      '13': '13 Â· Snake Island Defense â€” Hold the Black Sea outpost.',
+      '14': '14 Â· Saky Airbase Strike â€” Hit the Crimean airfield; destroy parked aircraft.',
+      '15': '15 Â· Vuhledar Tank Graveyard â€” Ambush and shatter the armored assault.',
+      '16': '16 Â· Antonov Bridge Strike â€” Strike the Kherson crossing.',
+      '17': '17 Â· Refinery Strike â€” FPV-drone-only set-piece.',
+      '18': '18 Â· Treeline Assault â€” Drive the M2A2 Bradley. Rake the woods. Set-piece.',
     };
     var mapBtns = document.querySelectorAll('.map-btn');
     function setActiveMap(stage) {
@@ -1944,7 +1945,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (launchBtn) launchBtn.addEventListener('click', function () { var sb = document.getElementById('start-btn'); if (sb) sb.click(); });
   })();
 
-  // ── Wallet Connect wiring ─────────────────────────────
+  // â”€â”€ Wallet Connect wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function updateWalletUI() {
     var startStatus = document.getElementById('start-wallet-status');
     var invConnect  = document.getElementById('inv-connect-wallet-btn');
@@ -1953,15 +1954,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (Blockchain.isConnected()) {
       var addr = Blockchain.getShortAddr();
       var bal  = Blockchain.getBalance();
-      if (startStatus) startStatus.textContent = '✅ ' + addr + ' | ' + bal + ' POL';
-      if (invConnect) { invConnect.textContent = '✅ ' + addr; invConnect.style.borderColor = '#0f0'; invConnect.style.color = '#0f0'; }
-      if (invPol) { invPol.textContent = '💎 ' + bal + ' POL'; invPol.style.display = 'inline'; }
-      if (hudWallet) hudWallet.textContent = '🦊 ' + addr;
+      if (startStatus) startStatus.textContent = 'âœ… ' + addr + ' | ' + bal + ' POL';
+      if (invConnect) { invConnect.textContent = 'âœ… ' + addr; invConnect.style.borderColor = '#0f0'; invConnect.style.color = '#0f0'; }
+      if (invPol) { invPol.textContent = 'ðŸ’Ž ' + bal + ' POL'; invPol.style.display = 'inline'; }
+      if (hudWallet) hudWallet.textContent = 'ðŸ¦Š ' + addr;
     } else {
       if (startStatus) startStatus.textContent = '';
-      if (invConnect) { invConnect.textContent = '🦊 Connect Wallet'; invConnect.style.borderColor = '#8247e5'; invConnect.style.color = '#8247e5'; }
+      if (invConnect) { invConnect.textContent = 'ðŸ¦Š Connect Wallet'; invConnect.style.borderColor = '#8247e5'; invConnect.style.color = '#8247e5'; }
       if (invPol) invPol.style.display = 'none';
-      if (hudWallet) hudWallet.textContent = '🦊 —';
+      if (hudWallet) hudWallet.textContent = 'ðŸ¦Š â€”';
     }
   }
 
@@ -1982,7 +1983,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(updateWalletUI, 500);
   });
 
-  // ── Marketplace Tab wiring ────────────────────────────
+  // â”€â”€ Marketplace Tab wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   var invTabs = document.querySelectorAll('.inv-tab');
   invTabs.forEach(function (tab) {
     tab.addEventListener('click', function () {
@@ -1996,7 +1997,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ── Currency Exchange ─────────────────────────────────
+  // â”€â”€ Currency Exchange â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   document.getElementById('convert-okc-gold-btn').addEventListener('click', function () {
     var result = Marketplace.convertOKCToGold(100);
     if (result > 0) { GameManager.refreshMarketplaceUI('shop'); }
