@@ -73,6 +73,7 @@ var ControlsHUD = (function () {
         ['Alt+F',           'Force blast — 10u shockwave knocks enemies back 4.5u + 50 dmg (2/wave, 18s CD)'],
         ['Alt+M',           'Target painter — mark enemy for ×2 damage for 8s (2 per wave)'],
         ['Alt+C',           'Cryo grenade — freeze enemies in 7u for 4s, ice-blue emissive (2/wave, 20s CD)'],
+        ['Alt+K',           'Cluster bomb — 5 scatter bomblets, each 3u AOE 80 dmg, staggered 0.2s (2/wave, 22s CD)'],
       ]
     },
     { group: 'VEHICLES',
