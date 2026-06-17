@@ -887,6 +887,32 @@ const GameManager = (function () {
 
   let currentStage = 0;  // 0-based index into STAGES
 
+  // Find a dry (non-water) spawn x/z near origin. On water maps (Sevastopol,
+  // Snake Island) spawning at (0,0) puts the player underwater → instant
+  // drown. getTerrainHeight returns the seabed, so the water sits ABOVE it —
+  // we must scan the column above the surface, not just the surface block.
+  function findDrySpawnXZ() {
+    var VW = window.VoxelWorld;
+    if (!VW || !VW.getBlock || !VW.getTerrainHeight) return { x: 0, z: 0, h: 0 };
+    var WATER = 8;
+    function wet(x, z) {
+      var h = Math.floor(VW.getTerrainHeight(x, z));
+      for (var dy = -1; dy <= 3; dy++) {
+        if (VW.getBlock(Math.floor(x), h + dy, Math.floor(z)) === WATER) return true;
+      }
+      return false;
+    }
+    if (!wet(0, 0)) return { x: 0, z: 0, h: VW.getTerrainHeight(0, 0) };
+    for (var r = 3; r <= 70; r += 3) {
+      for (var a = 0; a < 16; a++) {
+        var ang = (a / 16) * Math.PI * 2;
+        var x = Math.round(Math.cos(ang) * r), z = Math.round(Math.sin(ang) * r);
+        if (!wet(x, z)) return { x: x, z: z, h: VW.getTerrainHeight(x, z) };
+      }
+    }
+    return { x: 0, z: 0, h: VW.getTerrainHeight(0, 0) };
+  }
+
   /* ── Last-kill camera tracking ───────────────────────────────── */
   var _lastKillPos = null;  // position of most recent enemy kill
   var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
@@ -1525,22 +1551,9 @@ const GameManager = (function () {
       }, 10000);
     });
 
-    // Set player spawn on terrain — search outward if (0,0) lands in water
-    var sx = 0, sz = 0, spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
-    var BLOCK_WATER = 8;
-    function _isWaterCol(x, z, h) {
-      var b = window.VoxelWorld.getBlock ? window.VoxelWorld.getBlock(Math.floor(x), Math.floor(h), Math.floor(z)) : 0;
-      return b === BLOCK_WATER;
-    }
-    if (_isWaterCol(sx, sz, spawnH)) {
-      var _spiral = [[0,3],[3,0],[0,-3],[-3,0],[5,5],[-5,5],[5,-5],[-5,-5],[0,8],[8,0],[0,-8],[-8,0]];
-      for (var _si = 0; _si < _spiral.length; _si++) {
-        var tx = _spiral[_si][0], tz = _spiral[_si][1];
-        var th = window.VoxelWorld.getTerrainHeight(tx, tz);
-        if (!_isWaterCol(tx, tz, th)) { sx = tx; sz = tz; spawnH = th; break; }
-      }
-    }
-    player.position.set(sx, spawnH + player.height, sz);
+    // Set player spawn on DRY terrain — relocate off water (Sevastopol, Snake Is.)
+    var _ds = findDrySpawnXZ();
+    player.position.set(_ds.x, _ds.h + player.height, _ds.z);
 
     // Spawn organized assault groups (4 squads of 4-5 armed NPCs) — BRIGADE
     // role only. Lone Wolf previously got the same 22-NPC army, which deleted
@@ -3149,8 +3162,9 @@ const GameManager = (function () {
     // overridden currentStage above)
     applyStage(currentStage);
 
-    const spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
-    player.position.set(0, spawnH + player.height, 0);
+    var _dsStart = findDrySpawnXZ();
+    const spawnH = _dsStart.h;
+    player.position.set(_dsStart.x, spawnH + player.height, _dsStart.z);
 
     Weapons.reset();
     if (player.godMode) {
@@ -3500,9 +3514,10 @@ const GameManager = (function () {
     player.hp = Math.min(player.maxHp, player.hp + Math.ceil(missingHp * 0.5));
     HUD.setHealth(player.hp, player.maxHp);
 
-    // Reset player position on new terrain
-    const spawnH = VoxelWorld.getTerrainHeight(0, 0);
-    player.position.set(0, spawnH + player.height, 0);
+    // Reset player position on new (possibly water) terrain — find dry ground
+    var _dsReset = findDrySpawnXZ();
+    const spawnH = _dsReset.h;
+    player.position.set(_dsReset.x, spawnH + player.height, _dsReset.z);
     player.velocity.set(0, 0, 0);
 
     // Clear enemies, pickups, and module state from old stage
