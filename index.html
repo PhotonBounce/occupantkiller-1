@@ -51,6 +51,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
   <title>OccupantKiller — Hybrid Voxel Warfare</title>
+  <script>
+    /* Performance Mode: skip heavy cosmetic full-screen FX layers. Auto-on for low-core CPUs; user-toggleable + persisted. */
+    window.__OK_PERF = (function(){ try { var v = localStorage.getItem('ok_perf_mode'); if (v==='1') return true; if (v==='0') return false; return (navigator.hardwareConcurrency||8) <= 4; } catch(e){ return false; } })();
+  </script>
   <link rel="stylesheet" href="style.css?v=20260429b" />
 </head>
   <body>
@@ -702,6 +706,7 @@
           <div class="start-section-title">⚡ CHEATS</div>
           <div id="god-mode-select" class="start-section-row">
             <button class="btn pill" id="god-mode-btn" style="border-color:#ff0;color:#ff0;text-shadow:0 0 6px #ff0">⚡ GOD MODE</button>
+            <button class="btn pill" id="perf-mode-btn" style="border-color:#888;color:#888" title="Disable heavy cosmetic effects for higher FPS (reloads)">⚡ PERFORMANCE: OFF</button>
           </div>
           <p id="god-mode-desc" class="start-section-desc" style="display:none">All weapons · Infinite health · Invisible to enemies</p>
         </section>
@@ -1124,13 +1129,11 @@
 <script src="morale.js?v=20260616b"></script>
 <script src="compass.js?v=20260616c"></script>
 <script src="kill-feed.js?v=20260616c"></script>
-<script src="breach-clear.js?v=20260616c"></script>
 <script src="recon-uav.js?v=20260616c"></script>
 <script src="flashbang.js?v=20260616c"></script>
 <script src="blood-decals.js?v=20260616c"></script>
 <script src="squadmate.js?v=20260616c"></script>
 <script src="shockwave.js?v=20260616c"></script>
-<script src="threat-indicator.js?v=20260616c"></script>
 <script src="armor-plates.js?v=20260616c"></script>
 <script src="signal-flare.js?v=20260616c"></script>
 <script src="turret.js?v=20260616c"></script>
@@ -1163,31 +1166,15 @@
 <script src="inferno-wall.js?v=20260616d"></script>
 <script src="shield-bubble.js?v=20260616d"></script>
 <script src="tactical-nuke.js?v=20260616d"></script>
-<script src="damage-numbers.js?v=20260616d"></script>
-<script src="ambient-wind.js?v=20260616d"></script>
 <script src="objective-tracker.js?v=20260616d"></script>
-<script src="blood-splatter.js?v=20260616d"></script>
-<script src="scope-glint.js?v=20260616d"></script>
-<script src="enemy-health-bars.js?v=20260616d"></script>
 <script src="wave-intro-card.js?v=20260616d"></script>
 <script src="ammo-warning.js?v=20260616d"></script>
-<script src="combo-burst.js?v=20260616d"></script>
-<script src="weather-embers.js?v=20260616d"></script>
-<script src="muzzle-flash-screen.js?v=20260616d"></script>
-<script src="xp-popup.js?v=20260616d"></script>
 <script src="tactical-hud-frame.js?v=20260616d"></script>
-<script src="directional-damage-indicator.js?v=20260616d"></script>
 <script src="boss-warning.js?v=20260616d"></script>
-<script src="health-pickup-flash.js?v=20260616d"></script>
-<script src="tactical-scanline.js?v=20260616d"></script>
-<script src="weapon-switch-flash.js?v=20260616d"></script>
-<script src="velocity-lines.js?v=20260616d"></script>
 <script src="precision-shot-award.js?v=20260616d"></script>
 <script src="kill-combo-announce.js?v=20260616d"></script>
-<script src="critical-enemy-glow.js?v=20260616d"></script>
 <script src="hit-marker.js?v=20260616d"></script>
 <script src="enemy-healthbars.js?v=20260616d"></script>
-<script src="wave-complete.js?v=20260616d"></script>
 <script src="kill-announcer.js?v=20260616d"></script>
 <script src="radar-minimap.js?v=20260616d"></script>
 <script src="screen-blood.js?v=20260616d"></script>
@@ -1199,7 +1186,6 @@
 <script src="session-score.js?v=20260616d"></script>
 <script src="accuracy-tracker.js?v=20260616d"></script>
 <script src="ambient-particles.js?v=20260616d"></script>
-<script src="spawn-warning.js?v=20260616d"></script>
 <script src="low-ammo-warning.js?v=20260616d"></script>
 <script src="kill-distance.js?v=20260616d"></script>
 <script src="footstep-dust.js?v=20260616d"></script>
@@ -1212,7 +1198,6 @@
 <script src="reload-bar.js?v=20260616d"></script>
 <script src="performance-medal.js?v=20260616d"></script>
 <script src="explosion-ring.js?v=20260616d"></script>
-<script src="suppression-effect.js?v=20260616d"></script>
 <script src="cinematic-letterbox.js?v=20260616d"></script>
 <script src="battle-rating.js?v=20260616d"></script>
 <script src="wave-scoreboard.js?v=20260616d"></script>
@@ -1220,21 +1205,14 @@
 <script src="low-hp-breathing.js?v=20260616d"></script>
 <script src="kill-milestone.js?v=20260616d"></script>
 <script src="stats-overlay.js?v=20260616d"></script>
-<script src="neural-scan.js?v=20260616d"></script>
-<script src="radar-ring.js?v=20260616d"></script>
 <script src="threat-lock-indicator.js?v=20260616d"></script>
 <script src="kill-streak-timer.js?v=20260616d"></script>
 <script src="npc-bark-label.js?v=20260616d"></script>
-<script src="concussion-warp.js?v=20260616d"></script>
 <script src="wave-countdown.js?v=20260616d"></script>
-<script src="kill-aura.js?v=20260616d"></script>
 <script src="stage-name-splash.js?v=20260616d"></script>
 <script src="compass-strip.js?v=20260616d"></script>
-<script src="threat-lines.js?v=20260616d"></script>
 <script src="damage-log.js?v=20260616d"></script>
-<script src="proximity-alarm.js?v=20260616d"></script>
 <script src="survivor-clock.js?v=20260616d"></script>
-<script src="flash-bang-effect.js?v=20260616d"></script>
 <script src="building-collapse.js?v=20260616d"></script>
 <script src="grenade-arc-preview.js?v=20260616d"></script>
     <script src="dynamic-crosshair.js?v=20260616d"></script>
@@ -1285,6 +1263,18 @@
   if (typeof window !== 'undefined' && typeof AudioSystem !== 'undefined') {
     window.AudioSystem = AudioSystem;
   }
+</script>
+
+<!-- Cosmetic FX layers — skipped in Performance Mode to cut full-screen-canvas overdraw (27 layers) -->
+<script>
+(function(){
+  if (window.__OK_PERF) { try{console.log('[PERF] '+27+' cosmetic FX layers disabled for performance');}catch(e){} }
+  else { var FX=["ambient-wind.js","blood-splatter.js","breach-clear.js","combo-burst.js","concussion-warp.js","critical-enemy-glow.js","damage-numbers.js","directional-damage-indicator.js","enemy-health-bars.js","flash-bang-effect.js","health-pickup-flash.js","kill-aura.js","muzzle-flash-screen.js","neural-scan.js","proximity-alarm.js","radar-ring.js","scope-glint.js","spawn-warning.js","suppression-effect.js","tactical-scanline.js","threat-indicator.js","threat-lines.js","velocity-lines.js","wave-complete.js","weapon-switch-flash.js","weather-embers.js","xp-popup.js"]; for (var i=0;i<FX.length;i++){ var s=document.createElement('script'); s.src=FX[i]+'?v=20260616d'; s.async=false; document.head.appendChild(s); } }
+  // Wire the Performance Mode toggle button if present (start menu).
+  function upd(){ var b=document.getElementById('perf-mode-btn'); if(!b)return; var on=!!window.__OK_PERF; b.textContent=on?'⚡ PERFORMANCE: ON':'⚡ PERFORMANCE: OFF'; b.style.borderColor=on?'#0f8':'#888'; b.style.color=on?'#0f8':'#888'; }
+  function wire(){ var b=document.getElementById('perf-mode-btn'); if(b&&!b.__wired){ b.__wired=1; b.addEventListener('click',function(){ try{ localStorage.setItem('ok_perf_mode', window.__OK_PERF?'0':'1'); }catch(e){} location.reload(); }); upd(); } }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',wire); else wire();
+})();
 </script>
 
 <!-- Boot -->
