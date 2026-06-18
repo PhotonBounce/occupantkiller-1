@@ -80,7 +80,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "favicon.ico"
+      "icon": "app-icon.ico"
     },
     "nsis": {
       "oneClick": false,

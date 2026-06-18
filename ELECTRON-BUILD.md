@@ -51,6 +51,7 @@ directory is user-choosable).
 
 ## Notes / optional polish
 - `asar` is **off** so `server.js` serves loose files reliably.
-- `favicon.ico` is small (~1 KB). For a crisp installer/taskbar icon, drop a
-  256×256 `build/icon.ico` and point `build.win.icon` at it before building.
+- **Installer/taskbar icon**: `app-icon.ico` (multi-res 256/128/64/48/32/16),
+  generated from the game's own 1024×1024 Android app icon
+  (`apk-build/resources/icon.png`). `build.win.icon` already points at it.
 - Bump `version` in `package.json` to change the installer filename/version.
