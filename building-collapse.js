@@ -48,23 +48,35 @@ var BuildingCollapse = (function () {
     return t !== (B.AIR !== undefined ? B.AIR : 0) && t !== B.WATER;
   }
 
-  /* Hook Tracers.spawnExplosion to listen for ordnance impacts. */
+  /* Hook Tracers.spawnExplosion to listen for ordnance impacts.
+   * Real signature is spawnExplosion(posVector3, radius) — earlier this hook
+   * wrongly assumed (x,y,z,size), so size was always undefined and the collapse
+   * never fired from real explosions (only via the test() backdoor). */
   function _hook() {
     try {
       if (_hooked) return;
       if (typeof Tracers === 'undefined' || !Tracers.spawnExplosion) return;
       _origExpl = Tracers.spawnExplosion.bind(Tracers);
-      Tracers.spawnExplosion = function (x, y, z, size) {
-        _origExpl(x, y, z, size);
-        try { _onExplosion(x, y, z, size); } catch (e) {}
+      Tracers.spawnExplosion = function (pos, radius) {
+        _origExpl(pos, radius);
+        try {
+          var x, y, z, size;
+          if (pos && typeof pos === 'object') { x = pos.x; y = pos.y; z = pos.z; size = radius; }
+          else { x = pos; y = radius; z = arguments[2]; size = arguments[3]; } // legacy (x,y,z,size) callers
+          _onExplosion(x, y, z, size);
+        } catch (e) {}
       };
       _hooked = true;
     } catch (e) {}
   }
 
-  /* Spawn dust without re-triggering ourselves (size < BIG_SIZE = ignored). */
+  /* Spawn dust via the original (pos, radius) signature without re-triggering us. */
   function _dust(x, y, z, size) {
-    try { if (_origExpl) _origExpl(x, y, z, size); } catch (e) {}
+    try {
+      if (!_origExpl) return;
+      if (typeof THREE !== 'undefined') _origExpl(new THREE.Vector3(x, y, z), size);
+      else _origExpl({ x: x, y: y, z: z }, size);
+    } catch (e) {}
   }
 
   function _onExplosion(x, y, z, size) {
@@ -165,7 +177,7 @@ var BuildingCollapse = (function () {
     _frameN++;
     _lastTs = ts;
 
-    if (!_hooked && _frameN % 45 === 0) _hook();
+    if (!_hooked) _hook();  // retry every frame until Tracers is ready (cheap: early-returns once hooked)
 
     for (var i = _collapses.length - 1; i >= 0; i--) {
       var done = false;

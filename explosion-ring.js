@@ -146,9 +146,15 @@ var ExplosionRing = (function () {
       if (typeof Tracers === 'undefined' || !Tracers.spawnExplosion) return;
       if (Tracers._explosionRingHooked) return;
       var _orig = Tracers.spawnExplosion.bind(Tracers);
-      Tracers.spawnExplosion = function (x, y, z, size) {
-        _orig(x, y, z, size);
-        _onExplosion(x, y, z, size);
+      // Real signature is spawnExplosion(posVector3, radius) — not (x,y,z,size).
+      Tracers.spawnExplosion = function (pos, radius) {
+        _orig(pos, radius);
+        try {
+          var x, y, z, size;
+          if (pos && typeof pos === 'object') { x = pos.x; y = pos.y; z = pos.z; size = radius; }
+          else { x = pos; y = radius; z = arguments[2]; size = arguments[3]; }
+          _onExplosion(x, y, z, size);
+        } catch (e) {}
       };
       Tracers._explosionRingHooked = true;
     } catch (e) {}
@@ -160,8 +166,8 @@ var ExplosionRing = (function () {
     var dt  = Math.min(0.1, (ts - (_lastTs || ts)) / 1000);
     _lastTs = ts;
 
-    /* Try hooking every 60 frames until successful */
-    if (_frameN % 60 === 0) _hookTracers();
+    /* Hook ASAP — retry every frame until Tracers is ready (self-guards once hooked) */
+    if (typeof Tracers === 'undefined' || !Tracers._explosionRingHooked) _hookTracers();
 
     /* Fallback: large HP drop on player → trigger rings at screen center */
     try {
