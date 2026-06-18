@@ -79,13 +79,19 @@ function log(...a) { console.log('[MEGASWEEP]', ...a); }
     await page.evaluate(() => { try { if (window.GameManager && GameManager.getState && GameManager.getState() !== 'menu') location.reload(); } catch (e) {} });
     await page.goto(URL, { waitUntil: 'networkidle0', timeout: 60000 });
     await page.waitForFunction(() => typeof window.GameManager !== 'undefined', { timeout: 20000 });
-    await page.evaluate((s) => {
+    await page.evaluate((args) => {
+      const s = args.s, wantGod = args.god;
       window.__QA_MODE = true;
       window.__QA_START_STAGE = s;
       window.__chosenStartStage = s;
       if (window.forceStartGame) window.forceStartGame();
       else if (window.GameManager && GameManager.forceStartGame) GameManager.forceStartGame();
-    }, stageIdx);
+      // Enable god mode in the SAME tick for god runs so the player is invincible
+      // from spawn — otherwise heavy-artillery maps (e.g. Sevastopol) kill the
+      // stationary bot in the ~1.5s before god mode would otherwise engage,
+      // producing false "dead" readings.
+      try { if (wantGod && GameManager.isGodMode && !GameManager.isGodMode() && GameManager.toggleGodMode) GameManager.toggleGodMode(); } catch (e) {}
+    }, { s: stageIdx, god });
 
     // Wait until playing.
     for (let i = 0; i < 40; i++) {
