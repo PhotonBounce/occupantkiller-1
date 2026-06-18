@@ -52,8 +52,8 @@
   <meta name="theme-color" content="#000000" />
   <title>OccupantKiller â€” Hybrid Voxel Warfare</title>
   <script>
-    /* Performance Mode: skip heavy cosmetic full-screen FX layers. Auto-on for low-core CPUs; user-toggleable + persisted. */
-    window.__OK_PERF = (function(){ try { var v = localStorage.getItem('ok_perf_mode'); if (v==='1') return true; if (v==='0') return false; return (navigator.hardwareConcurrency||8) <= 4; } catch(e){ return false; } })();
+    /* Performance Mode: skip heavy cosmetic full-screen FX layers. Default ON (game is heavy); eye-candy is opt-in via the ⚡ PERFORMANCE toggle; persisted. */
+    window.__OK_PERF = (function(){ try { var v = localStorage.getItem('ok_perf_mode'); if (v==='0') return false; if (v==='1') return true; return true; } catch(e){ return true; } })();
   </script>
   <link rel="stylesheet" href="style.css?v=20260429b" />
 </head>
