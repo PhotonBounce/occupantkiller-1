@@ -3949,10 +3949,6 @@ const Enemies = (() => {
     var _dodgeCfg = enemy.typeCfg;
     if (_dodgeCfg && _dodgeCfg.abilities && _dodgeCfg.abilities.indexOf('tactical_dodge') !== -1 && _dodgeCfg.dodgeChance) {
       if (!isHeadshot && Math.random() < _dodgeCfg.dodgeChance) {
-        // Dodge! Show floating "DODGE" text via Feedback system if available
-        if (typeof Feedback !== 'undefined' && Feedback.spawnDamageNumber && enemy.mesh) {
-          Feedback.spawnDamageNumber(enemy.mesh.position, 'DODGE', false, '#88ddff');
-        }
         if (typeof HUD !== 'undefined' && HUD.showToast && !enemy._dodgeWarnCool) {
           HUD.showToast('🕶️ COLONEL DODGED!', 800, '#88ddff');
           enemy._dodgeWarnCool = 4;

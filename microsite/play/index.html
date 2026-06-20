@@ -890,6 +890,8 @@
         <button class="btn shop-buy-btn" data-item="armor" style="font-size:11px;padding:4px 10px;border-color:#4fc3f7;color:#4fc3f7;display:block;width:100%;margin:4px 0">🛡️ Armor Pack · 60 OKC</button>
         <button class="btn shop-buy-btn" data-item="ammo" style="font-size:11px;padding:4px 10px;border-color:#ffcc00;color:#ffcc00;display:block;width:100%;margin:4px 0">🔫 Full Ammo · 30 OKC</button>
         <button class="btn shop-buy-btn" data-item="stim" style="font-size:11px;padding:4px 10px;border-color:#ff8a65;color:#ff8a65;display:block;width:100%;margin:4px 0">💉 Stim Pack · 50 OKC</button>
+        <button class="btn shop-buy-btn" data-item="grenades" style="font-size:11px;padding:4px 10px;border-color:#ff8800;color:#ff8800;display:block;width:100%;margin:4px 0">💣 Grenade Pack ×5 · 25 OKC</button>
+        <button class="btn shop-buy-btn" data-item="maxhp" style="font-size:11px;padding:4px 10px;border-color:#ff66aa;color:#ff66aa;display:block;width:100%;margin:4px 0">❤️‍🔥 Max HP +25 · 80 OKC</button>
       </div>
       <div style="background:rgba(0,0,0,0.6);border:1px solid #444;border-radius:6px;padding:10px 14px;min-width:160px;text-align:center">
         <p style="color:#aaa;font-size:11px;margin:0 0 6px">WAVE STATS</p>
@@ -1522,10 +1524,27 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Wave Shop purchase logic ──────────────────────────────
   (function () {
     var shopItems = {
-      health: { cost: 40, label: '❤️ Health +50', apply: function () { GameManager.healPlayer(50); } },
-      armor:  { cost: 60, label: '🛡️ Armor Pack', apply: function () { GameManager.addArmor(50); } },
-      ammo:   { cost: 30, label: '🔫 Full Ammo', apply: function () { if (typeof Weapons !== 'undefined' && Weapons.refillAllAmmo) Weapons.refillAllAmmo(); } },
-      stim:   { cost: 50, label: '💉 Stim Pack', apply: function () { GameManager.addStimBuff(30); } },
+      health:   { cost: 40, label: '❤️ Health +50', apply: function () { GameManager.healPlayer(50); } },
+      armor:    { cost: 60, label: '🛡️ Armor Pack', apply: function () { GameManager.addArmor(50); } },
+      ammo:     { cost: 30, label: '🔫 Full Ammo', apply: function () { if (typeof Weapons !== 'undefined' && Weapons.refillAllAmmo) Weapons.refillAllAmmo(); } },
+      stim:     { cost: 50, label: '💉 Stim Pack', apply: function () { GameManager.addStimBuff(30); } },
+      grenades: { cost: 25, label: '💣 Grenade Pack ×5', apply: function () {
+        var p = GameManager.getPlayer && GameManager.getPlayer();
+        if (p) {
+          p.grenades = Math.min(99, (p.grenades || 0) + 5);
+          if (typeof HUD !== 'undefined' && HUD.setHandGrenades) HUD.setHandGrenades(p.grenades);
+          if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💣 +5 Grenades', '#ff8800');
+        }
+      }},
+      maxhp:    { cost: 80, label: '❤️‍🔥 Max HP +25', apply: function () {
+        var p = GameManager.getPlayer && GameManager.getPlayer();
+        if (p) {
+          p.maxHp = (p.maxHp || 100) + 25;
+          p.hp = Math.min(p.hp + 25, p.maxHp);
+          if (typeof HUD !== 'undefined' && HUD.setHealth) HUD.setHealth(p.hp, p.maxHp);
+          if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('❤️ Max HP +25', '#ff66aa');
+        }
+      }},
     };
     var btns = document.querySelectorAll('.shop-buy-btn');
     for (var i = 0; i < btns.length; i++) {
