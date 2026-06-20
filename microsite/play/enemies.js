@@ -3630,6 +3630,66 @@ const Enemies = (() => {
                   })(rti, _bossPos8);
                 }
               }
+              // fortify (BOSS_DONBAS) — barrier activation/expiry notifications
+              if (etResult.fortify) {
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛡️ WARLORD FORTIFIES! BREAK THE BARRIER!', 2500, '#882288');
+              }
+              if (etResult.fortifyExpired) {
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('⚡ BARRIER EXPIRED — HIT HIM NOW!', 1500, '#ffaa00');
+              }
+              // armor_plates (BOSS_BELGOROD) — heavy armor activation window
+              if (etResult.armorPlates) {
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛡️ IRON GENERAL REINFORCED! AIM FOR THE REAR!', 3000, '#334433');
+              }
+              if (etResult.armorPlatesExpired) {
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 ARMOR CRACKED — VULNERABLE!', 1500, '#88ff44');
+              }
+              // torpedo_salvo (BOSS_SEVASTOPOL) — 5 staggered underwater blasts in fan
+              if (etResult.torpedoSalvo) {
+                (function(_ts, _bpTs) {
+                  var _tsSpread = _ts.spread || 10;
+                  var _tsAngle = Math.atan2(_bpTs.z - (e.mesh ? e.mesh.position.z : 0), _bpTs.x - (e.mesh ? e.mesh.position.x : 0));
+                  if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🌊 TORPEDO SALVO — HIT THE DECK!', 1800, '#2255aa');
+                  for (var tsi = 0; tsi < (_ts.count || 5); tsi++) {
+                    (function(_ti, _ta, _td, _tr) {
+                      setTimeout(function() {
+                        var _fanOff = (_ti - 2) * 0.35;
+                        var _tAngle = _ta + _fanOff;
+                        var _tDist = 8 + Math.random() * _tsSpread;
+                        var _tv = new THREE.Vector3(
+                          _bpTs.x + Math.cos(_tAngle) * _tDist,
+                          0.2,
+                          _bpTs.z + Math.sin(_tAngle) * _tDist
+                        );
+                        if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_tv, 2.2);
+                        if (typeof onPlayerHit === 'function') {
+                          var _txd = playerPos.x - _tv.x, _tzd = playerPos.z - _tv.z;
+                          var _tdd = Math.sqrt(_txd*_txd + _tzd*_tzd);
+                          if (_tdd < _tr) onPlayerHit(Math.round(_td * Math.max(0, 1 - _tdd / _tr)), _tv);
+                        }
+                        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.4, 0.18);
+                      }, 350 + _ti * 280);
+                    })(tsi, _tsAngle, _ts.damage, _ts.radius);
+                  }
+                })(etResult.torpedoSalvo, playerPos);
+              }
+              // shield_bash (generic BOSS) — melee slam knocks player back
+              if (etResult.shieldBash) {
+                (function(_sb) {
+                  if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 SHIELD BASH!', 900, '#cc3300');
+                  if (typeof onPlayerHit === 'function') onPlayerHit(_sb.damage, e.mesh ? e.mesh.position : playerPos);
+                  if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(1.0, 0.4);
+                  // Apply pushback via GameManager if available
+                  if (typeof GameManager !== 'undefined' && GameManager.applyKnockback) {
+                    var _sbDir = new THREE.Vector3(
+                      playerPos.x - (e.mesh ? e.mesh.position.x : playerPos.x),
+                      0.4,
+                      playerPos.z - (e.mesh ? e.mesh.position.z : playerPos.z)
+                    ).normalize();
+                    GameManager.applyKnockback(_sbDir, _sb.pushback || 8);
+                  }
+                })(etResult.shieldBash);
+              }
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
@@ -4275,6 +4335,29 @@ const Enemies = (() => {
       }
     }
     if (enemy._dodgeWarnCool) enemy._dodgeWarnCool = Math.max(0, enemy._dodgeWarnCool - 0.016);
+    // Fortify barrier (BOSS_DONBAS) — absorbs damage until depleted
+    if (enemy._fortifyActive && enemy._fortifyShieldHP > 0) {
+      enemy._fortifyShieldHP -= amount;
+      if (typeof HUD !== 'undefined' && HUD.showToast && !enemy._fortifyHitCool) {
+        HUD.showToast('🛡️ BARRIER ABSORBS!', 600, '#aa44ff');
+        enemy._fortifyHitCool = 1.5;
+      }
+      if (enemy._fortifyHitCool) enemy._fortifyHitCool = Math.max(0, enemy._fortifyHitCool - 0.016);
+      if (enemy._fortifyShieldHP <= 0) {
+        enemy._fortifyActive = false;
+        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 BARRIER BROKEN!', 1500, '#cc66ff');
+        var _fortifyOverflow = -enemy._fortifyShieldHP;
+        enemy._fortifyShieldHP = 0;
+        if (_fortifyOverflow <= 0) return enemy.hp;
+        amount = _fortifyOverflow;
+      } else {
+        return enemy.hp;
+      }
+    }
+    // Armor plates (BOSS_BELGOROD) — 60% damage reduction during active window
+    if (enemy._armorPlatesActive) {
+      amount = Math.max(1, Math.round(amount * 0.4));
+    }
     // Reset regen cooldown timer (BOSS_CHORNOBYL) on any damage
     if (enemy._regenTimer !== undefined) enemy._regenTimer = 0;
 

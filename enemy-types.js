@@ -934,6 +934,81 @@ const EnemyTypes = (function () {
         result.repairTeam = { count: typeCfg.repairTeamCount || 2 };
       }
     }
+
+    // fortify (BOSS_DONBAS) — periodic absorbing barrier that eats incoming damage
+    var hasFortify = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('fortify') !== -1;
+    if (hasFortify) {
+      if (enemy._fortifyTimer === undefined) enemy._fortifyTimer = 12;
+      enemy._fortifyTimer += dt;
+      if (enemy._fortifyActive) {
+        enemy._fortifyDuration = (enemy._fortifyDuration || 0) - dt;
+        if (enemy._fortifyDuration <= 0) {
+          enemy._fortifyActive = false;
+          enemy._fortifyShieldHP = 0;
+          result.fortifyExpired = true;
+        }
+      } else if (enemy._fortifyTimer >= 25) {
+        enemy._fortifyTimer = 0;
+        enemy._fortifyShieldHP = typeCfg.shieldHP || 300;
+        enemy._fortifyActive = true;
+        enemy._fortifyDuration = 8;
+        result.fortify = { shieldHP: enemy._fortifyShieldHP };
+      }
+    }
+
+    // armor_plates (BOSS_BELGOROD) — timed heavy armor period
+    var hasArmorPlates = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('armor_plates') !== -1;
+    if (hasArmorPlates) {
+      if (enemy._armorPlatesTimer === undefined) enemy._armorPlatesTimer = 10;
+      enemy._armorPlatesTimer += dt;
+      if (enemy._armorPlatesActive) {
+        enemy._armorPlatesDuration = (enemy._armorPlatesDuration || 0) - dt;
+        if (enemy._armorPlatesDuration <= 0) {
+          enemy._armorPlatesActive = false;
+          result.armorPlatesExpired = true;
+        }
+      } else if (enemy._armorPlatesTimer >= 20) {
+        enemy._armorPlatesTimer = 0;
+        enemy._armorPlatesActive = true;
+        enemy._armorPlatesDuration = 10;
+        result.armorPlates = {
+          reduction: (typeCfg.armorFront || 0.6)
+        };
+      }
+    }
+
+    // torpedo_salvo (BOSS_SEVASTOPOL) — spread of 5 torpedo blasts toward player
+    var hasTorpedo = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('torpedo_salvo') !== -1;
+    if (hasTorpedo) {
+      if (enemy._torpedoTimer === undefined) enemy._torpedoTimer = 6;
+      enemy._torpedoTimer += dt;
+      if (enemy._torpedoTimer >= 10) {
+        enemy._torpedoTimer = 0;
+        result.torpedoSalvo = {
+          count: 5,
+          damage: 80,
+          radius: 5,
+          spread: 10,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
+
+    // shield_bash (generic BOSS) — melee slam when player is close
+    var hasShieldBash = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('shield_bash') !== -1;
+    if (hasShieldBash) {
+      if (enemy._shieldBashTimer === undefined) enemy._shieldBashTimer = 4;
+      enemy._shieldBashTimer += dt;
+      var _sbDx = enemy.mesh ? (enemy.mesh.position.x - playerPos.x) : 99;
+      var _sbDz = enemy.mesh ? (enemy.mesh.position.z - playerPos.z) : 99;
+      var _sbDist = Math.sqrt(_sbDx*_sbDx + _sbDz*_sbDz);
+      if (enemy._shieldBashTimer >= 8 && _sbDist < 6) {
+        enemy._shieldBashTimer = 0;
+        result.shieldBash = { damage: 60, pushback: 8 };
+      }
+    }
+
     return result;
   }
 

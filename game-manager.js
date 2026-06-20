@@ -9494,6 +9494,13 @@ const GameManager = (function () {
     return true;
   }
 
+  function applyKnockback(dir, force) {
+    if (!player || !player.velocity) return;
+    player.velocity.x += dir.x * force;
+    player.velocity.y += Math.max(0.4, dir.y) * force * 0.5;
+    player.velocity.z += dir.z * force;
+  }
+
   /* ── Public API ──────────────────────────────────────────────────── */
   return {
     STATE,
@@ -9549,6 +9556,7 @@ const GameManager = (function () {
     addAirstrikeToken: addAirstrikeToken,
     getAirstrikeTokens: getAirstrikeTokens,
     useAirstrikeToken: useAirstrikeToken,
+    applyKnockback: applyKnockback,
     addSuppression: addSuppression,
     requestFullscreenAndLockLandscape: requestFullscreenAndLockLandscape,
     setMouseSensitivity: setMouseSensitivity,
