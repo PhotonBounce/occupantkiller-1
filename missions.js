@@ -659,6 +659,115 @@ const MissionSystem = (function () {
         return aliveCount === 0;
       },
     },
+    // "Blow the Lid" — drone strike on Russian oil refinery (based on real June 2026 Ukrainian strikes)
+    // All-drone mission: FPV suicide drones + bombers, no infantry
+    blow_the_lid: {
+      name: 'Blow the Lid',
+      description: 'OPERATION: BLOW THE LID\n' +
+        'June 2026 — Ukrainian FPV swarms and Shahed-style bombers struck the Saratov oil refinery,\n' +
+        'blowing the pressure lid off a storage tank in a massive fireball seen for 40km.\n' +
+        'Your mission: fly drones into the refinery complex. No boots on ground.\n' +
+        'Destroy 3 fuel storage targets. Blow. The. Lid.',
+      tier: 5,
+      generate() {
+        var playerPos = new THREE.Vector3(0, 0, 0);
+        try {
+          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+            var p = GameManager.getPlayer(); if (p && p.position) playerPos.copy(p.position);
+          }
+        } catch(e){}
+        var angle = Math.random() * Math.PI * 2;
+        var dist = 55 + Math.random() * 20;
+        var cx = playerPos.x + Math.sin(angle) * dist;
+        var cz = playerPos.z + Math.cos(angle) * dist;
+        var baseY = 0;
+        try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) baseY = VoxelWorld.getTerrainHeight(cx, cz) || 0; } catch(e){}
+        var targets = [
+          { x: cx,      z: cz,      y: baseY, destroyed: false, label: 'Tank Alpha (main storage)' },
+          { x: cx + 9,  z: cz + 6,  y: baseY, destroyed: false, label: 'Tank Bravo (pressure vessel)' },
+          { x: cx - 7,  z: cz - 9,  y: baseY, destroyed: false, label: 'Refinery Column (distillation)' },
+        ];
+        if (typeof HUD !== 'undefined' && HUD.showToast) {
+          HUD.showToast('🛸 BLOW THE LID — 3 oil targets marked. Fly drones in. No ground troops!', 7000, '#ff8800');
+        }
+        // Chain explosion sequence to simulate refinery igniting
+        var scene = window._gameScene;
+        var delay1 = 4000 + Math.random() * 2000;
+        setTimeout(function() {
+          try {
+            if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+              WorldFeatures.applyExplosionDamage(cx, baseY + 4, cz, 8, 120);
+            }
+            if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
+              AudioSystem.playExplosion({ x: cx, y: baseY + 4, z: cz }, 1.0);
+            }
+          } catch(e){}
+        }, delay1);
+        return {
+          type: 'blow_the_lid', targets: targets,
+          destroyed: 0, refCenter: { x: cx, y: baseY, z: cz },
+          chainFired: false, state: 'active',
+          objectiveText: '🛸 BLOW THE LID: approach targets to drone-strike — 0/3 destroyed',
+        };
+      },
+      update(mission, delta) {
+        if (mission.state !== 'active') return;
+        var playerPos = new THREE.Vector3(0, 0, 0);
+        try {
+          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+            var p = GameManager.getPlayer(); if (p && p.position) playerPos.copy(p.position);
+          }
+        } catch(e){}
+        for (var i = 0; i < mission.targets.length; i++) {
+          var t = mission.targets[i];
+          if (t.destroyed) continue;
+          var dx = playerPos.x - t.x, dz = playerPos.z - t.z;
+          if (dx * dx + dz * dz < 625) { // within 25 units
+            t.destroyed = true;
+            mission.destroyed++;
+            var tx = t.x, ty = t.y, tz = t.z;
+            try {
+              if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+                WorldFeatures.applyExplosionDamage(tx, ty + 3, tz, 10 + i * 3, 180 + i * 40);
+              }
+              if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
+                AudioSystem.playExplosion({ x: tx, y: ty + 3, z: tz }, 1.4);
+              }
+            } catch(eEx){}
+            if (typeof HUD !== 'undefined' && HUD.showToast) {
+              HUD.showToast('💥 ' + t.label + ' DESTROYED — UKRAINE STRIKES BACK!', 3500, '#ff6600');
+            }
+            // Big chain explosion when 2nd or 3rd target hit
+            if (mission.destroyed >= 2 && !mission.chainFired) {
+              mission.chainFired = true;
+              var rc = mission.refCenter;
+              setTimeout(function() {
+                try {
+                  if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+                    WorldFeatures.applyExplosionDamage(rc.x, rc.y + 10, rc.z, 22, 400);
+                    WorldFeatures.applyExplosionDamage(rc.x + 5, rc.y + 6, rc.z + 4, 15, 300);
+                  }
+                  if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
+                    AudioSystem.playExplosion({ x: rc.x, y: rc.y + 10, z: rc.z }, 2.0);
+                  }
+                  if (typeof HUD !== 'undefined' && HUD.showToast) {
+                    HUD.showToast('🔥🔥 THE LID BLOWS! REFINERY ENGULFED! UKRAINE CONFIRMS STRIKE!', 8000, '#ffaa00');
+                  }
+                } catch(e){}
+              }, 1200);
+            }
+          }
+        }
+        mission.objectiveText = '🛸 BLOW THE LID: ' + mission.destroyed + '/3 targets destroyed — approach each to strike';
+        if (mission.destroyed >= 3) {
+          mission.state = 'done';
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast('✅ BLOW THE LID — MISSION COMPLETE! All 3 refinery targets destroyed!', 7000, '#ffdd00');
+          }
+        }
+      },
+      check(mission) { return mission.state === 'done'; },
+    },
   };
 
   /* ── State ───────────────────────────────────────────────────────── */
@@ -724,6 +833,7 @@ const MissionSystem = (function () {
       'defense', 'defense', 'recon', 'recon',
       'escort', 'escort', 'infiltrate', 'infiltrate',
       'urban_breakout', 'urban_breakout', 'bradley_mission',
+      'blow_the_lid', 'airborne_assault',
     ];
     let pick = weighted[Math.floor(Math.random() * weighted.length)];
     if (!TEMPLATES[pick]) pick = Object.keys(TEMPLATES)[0];

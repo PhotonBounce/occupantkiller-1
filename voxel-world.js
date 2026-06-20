@@ -2071,6 +2071,101 @@ window.VoxelWorld = (function () {
     }
   }
 
+  // Kremlin Presidential Palace — used in the KREMLIN final stage
+  function generateKremlinPalace(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var pw = 30, pd = 22, ph = 9; // main palace footprint and height
+    var hx = Math.round(-pw / 2), hz = Math.round(-pd / 2);
+    // Main palace block (hollow, BRICK walls)
+    for (var py = 0; py < ph; py++) {
+      for (var px = 0; px < pw; px++) {
+        for (var pz = 0; pz < pd; pz++) {
+          var isWall = (px === 0 || px === pw - 1 || pz === 0 || pz === pd - 1);
+          var isRoof = (py === ph - 1);
+          var isFloor = (py === 0);
+          if (isWall || isRoof || isFloor) {
+            setBlock(ox + hx + px, h + py + 1, oz + hz + pz, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    // Plaster interior walls visible through doorways
+    for (var iy = 1; iy < ph - 1; iy++) {
+      for (var iz = 2; iz < pd - 2; iz += 4) {
+        setBlock(ox + hx + 1, h + iy + 1, oz + hz + iz, BLOCK.PLASTER);
+        setBlock(ox + hx + pw - 2, h + iy + 1, oz + hz + iz, BLOCK.PLASTER);
+      }
+    }
+    // Grand windows along facade (front and back)
+    for (var wy = 2; wy < ph - 1; wy += 3) {
+      for (var wz = 3; wz < pd - 3; wz += 5) {
+        setBlock(ox + hx, h + wy + 1, oz + hz + wz, BLOCK.GLASS);
+        setBlock(ox + hx, h + wy + 2, oz + hz + wz, BLOCK.GLASS);
+        setBlock(ox + hx + pw - 1, h + wy + 1, oz + hz + wz, BLOCK.GLASS);
+        setBlock(ox + hx + pw - 1, h + wy + 2, oz + hz + wz, BLOCK.GLASS);
+      }
+    }
+    // Front entrance arch — clear a wide doorway
+    var frontZ = oz + hz;
+    for (var dh = 0; dh < 4; dh++) {
+      for (var dw = -2; dw <= 2; dw++) {
+        setBlock(ox + dw, h + dh + 1, frontZ, BLOCK.AIR);
+      }
+    }
+    // Classical columns along front facade
+    for (var col = -10; col <= 10; col += 5) {
+      for (var cy = 0; cy < ph + 2; cy++) {
+        setBlock(ox + col, h + cy + 1, oz + hz - 2, BLOCK.CONCRETE);
+        setBlock(ox + col + 1, h + cy + 1, oz + hz - 2, BLOCK.CONCRETE);
+      }
+      // Column capital
+      for (var ccx = -1; ccx <= 2; ccx++) {
+        setBlock(ox + col + ccx, h + ph + 3, oz + hz - 2, BLOCK.CONCRETE);
+        setBlock(ox + col + ccx, h + ph + 3, oz + hz - 3, BLOCK.CONCRETE);
+      }
+    }
+    // Corner towers (3×3 footprint, taller than palace)
+    var towerH = ph + 5;
+    var corners = [[-pw/2, -pd/2], [pw/2 - 3, -pd/2], [-pw/2, pd/2 - 3], [pw/2 - 3, pd/2 - 3]];
+    corners.forEach(function(c) {
+      var tx = Math.round(ox + c[0]), tz = Math.round(oz + c[1]);
+      for (var ty = 0; ty < towerH; ty++) {
+        for (var tbx = 0; tbx <= 3; tbx++) {
+          for (var tbz = 0; tbz <= 3; tbz++) {
+            var isEdge = (tbx === 0 || tbx === 3 || tbz === 0 || tbz === 3);
+            if (isEdge || ty === towerH - 1) {
+              setBlock(tx + tbx, h + ty + 1, tz + tbz, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+      // Tower spire
+      setBlock(tx + 1, h + towerH + 1, tz + 1, BLOCK.METAL);
+      setBlock(tx + 1, h + towerH + 2, tz + 1, BLOCK.METAL);
+    });
+    // Central golden dome (the iconic Kremlin dome)
+    var domeR = 5;
+    for (var dy = 0; dy < 8; dy++) {
+      var r = Math.round(domeR * Math.cos((dy / 8) * Math.PI * 0.5));
+      for (var dx = -r; dx <= r; dx++) {
+        for (var dz2 = -r; dz2 <= r; dz2++) {
+          if (dx * dx + dz2 * dz2 <= r * r + 1) {
+            var blockT = (dy < 2) ? BLOCK.CONCRETE : BLOCK.METAL;
+            setBlock(ox + dx, h + ph + dy + 1, oz + dz2, blockT);
+          }
+        }
+      }
+    }
+    // Dome spire / flag
+    setBlock(ox, h + ph + 9, oz, BLOCK.METAL);
+    setBlock(ox, h + ph + 10, oz, BLOCK.METAL);
+    setBlock(ox, h + ph + 11, oz, BLOCK.FLAG);
+    // Red star on front gable
+    setBlock(ox, h + ph + 2, oz + hz - 1, BLOCK.FIRE);
+    // Register building
+    _buildings.push({ kind: 'kremlin_palace', x: ox + hx, z: oz + hz, w: pw, d: pd, baseY: h, floorH: 3, floors: 3, cx: ox, cz: oz });
+  }
+
   // IDEA 3: Railway tracks
   function generateRailway(startX, startZ, length, horizontal) {
     for (let i = 0; i < length; i++) {
@@ -6356,24 +6451,25 @@ window.VoxelWorld = (function () {
       generateDroneNest(35, 35);
       generateDroneNest(-35, -35);
     } else if (level.id === 'KREMLIN') {
-      // The final showdown — Red Square inspired, heavily fortified
-      generateUkrainianApartment(-25, -25, 12);
-      generateUkrainianApartment(25, -25, 12);
-      generateUkrainianApartment(-25, 25, 12);
-      generateUkrainianApartment(25, 25, 12);
+      // The final showdown — Kremlin presidential palace at center with zombie president boss
+      generateKremlinPalace(0, 0);
+      generateUkrainianApartment(-30, -28, 12);
+      generateUkrainianApartment(30, -28, 12);
+      generateUkrainianApartment(-30, 28, 12);
+      generateUkrainianApartment(30, 28, 12);
       generateRazorWireField(0, 0);
-      generateCheckpoint(0, 40, false);
-      generateCheckpoint(0, -40, false);
-      generateCheckpoint(40, 0, true);
-      generateCheckpoint(-40, 0, true);
-      generateArtilleryBattery(30, 30);
-      generateArtilleryBattery(-30, -30);
-      generateAntiAirPosition(0, 0);
-      generateCommandPost(0, 0);
-      generateDroneNest(45, 0);
-      generateDroneNest(-45, 0);
-      generateDroneNest(0, 45);
-      generateDroneNest(0, -45);
+      generateCheckpoint(0, 44, false);
+      generateCheckpoint(0, -44, false);
+      generateCheckpoint(44, 0, true);
+      generateCheckpoint(-44, 0, true);
+      generateArtilleryBattery(35, 35);
+      generateArtilleryBattery(-35, -35);
+      generateAntiAirPosition(20, -20);
+      generateAntiAirPosition(-20, 20);
+      generateDroneNest(48, 0);
+      generateDroneNest(-48, 0);
+      generateDroneNest(0, 48);
+      generateDroneNest(0, -48);
     } else if (level.id === 'SNAKE') {
       // Snake Island — small rocky outpost, lighthouse, coastal guns
       generateCommTower(0, 0);

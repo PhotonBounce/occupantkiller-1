@@ -610,10 +610,11 @@ const Enemies = (() => {
     },
     BOSS_KREMLIN: {
       name: 'BOSS_KREMLIN', hpBase: 5000, speedBase: 1.5, scale: 3.0,
-      camoVariant: 'dark', bodyColor: 0xcc0000, headColor: 0xd0b090,
-      limbColor: 0xaa0000, helmetColor: 0x880000, eyeColor: 0xff0000,
+      camoVariant: 'dark', bodyColor: 0x3a0a6a, headColor: 0x8aaa78,
+      limbColor: 0x280850, helmetColor: 0x1a0538, eyeColor: 0xff0000,
       attackDmg: 100, attackRate: 1.0, scoreValue: 25000, dropChance: 1.0,
       role: 'boss', range: 20, rangedDmg: 250, rangedRate: 2.5, accuracy: 0.7,
+      baldHead: true, zombie: true,
     },
     BOSS_KYIV: {
       name: 'BOSS_KYIV', hpBase: 1800, speedBase: 1.8, scale: 2.2,
@@ -966,12 +967,12 @@ const Enemies = (() => {
   // Each stage has a signature enemy pool + a chance to pull from it
   var STAGE_ROSTER = {
     1: { bias: 0.50, pool: ['PARATROOP','PARATROOP','CONSCRIPT','DRONE_OP','STORMER'] },             // Hostomel — VDV airborne assault
-    2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','SNIPER'] },                 // Avdiivka — industrial defenders + snipers (per objective)
+    2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','SNIPER'] },                // Avdiivka — defenders + snipers as per objective
     3: { bias: 0.50, pool: ['STORMER','MORTAR','ARMORED','SABOTEUR','WAGNER'] },                    // Bakhmut — Wagner meat-grinder + heavy mortar
-    4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor (lure them into river)
+    4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor drowned in Dnipro
     5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER'] },       // Mariupol — CQB in steelworks
-    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — air+sea (naval marines + drones)
-    7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+Spetsnaz (per objective)
+    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — naval marines landing + air+sea drones
+    7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+mutant+Spetsnaz (objective says "Spetsnaz")
     8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER'] }, // Moscow — elite FSB
     9: { bias: 0.55, pool: ['BTR','DRONE_OP','HEAVY_SNIPER','STORMER','MORTAR'] },                  // Sevastopol — naval base
     10:{ bias: 0.60, pool: ['KADYROVITE','WAGNER','COMMISSAR','MORTAR','ARMORED'] },                 // Donbas — entrenched
@@ -982,7 +983,7 @@ const Enemies = (() => {
     15:{ bias: 0.55, pool: ['PARATROOP','DRONE_OP','SPETSNAZ','KAMIKAZE_DRONE','SNIPER_ELITE'] },   // Saky Airbase — airborne raiders
     16:{ bias: 0.60, pool: ['TANK','ARMORED','BTR','HEAVY_SNIPER','MORTAR'] },                      // Vuhledar — tank graveyard columns
     17:{ bias: 0.55, pool: ['SNIPER','MORTAR','HEAVY_SNIPER','BTR','COMMISSAR'] },                  // Antonov Bridge — precision snipers + artillery (precision weapons required)
-    18:{ bias: 0.70, pool: ['KAMIKAZE_DRONE','DRONE_OP','EW_OPERATOR','SPETSNAZ','ENGINEER'] },     // Refinery — drone-heavy industrial guards
+    18:{ bias: 0.70, pool: ['KAMIKAZE_DRONE','DRONE_OP','EW_OPERATOR','SPETSNAZ','ENGINEER'] },     // Refinery — drone-heavy industrial
   };
 
   // ── Choose a type appropriate for the current wave + stage ──
@@ -1167,7 +1168,17 @@ const Enemies = (() => {
     );
     helmetCw.position.set(0, 1.55 * s, -0.22 * s);
     const helmet = helmetShell; // backward-compat reference
-    group.add(helmetShell, helmetCrown, helmetBrim, helmetNape, helmetCw);
+    if (!typeCfg.baldHead) {
+      group.add(helmetShell, helmetCrown, helmetBrim, helmetNape, helmetCw);
+    } else {
+      // Bald zombie president — no helmet, just a shiny pate
+      const baldPate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.30 * s, 0.03 * s, 0.28 * s),
+        new THREE.MeshLambertMaterial({ color: 0xaabb98 })
+      );
+      baldPate.position.set(0, 1.58 * s, 0);
+      group.add(baldPate);
+    }
 
     // ── Legs (camo textured, darker variant) ──────────────
     const legCamo = getCachedTex('camo_dark', function() {
@@ -1321,6 +1332,45 @@ const Enemies = (() => {
       );
       bala.position.y = 1.36 * s;
       group.add(bala);
+    }
+
+    // ── Zombie Boss (BOSS_KREMLIN) — dark purple suit, red tie, decay patches ──
+    if (typeCfg.zombie) {
+      // Suit jacket overlay (covers camo torso)
+      const suitJacket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.58 * s, 0.74 * s, 0.32 * s),
+        new THREE.MeshLambertMaterial({ color: typeCfg.bodyColor })
+      );
+      suitJacket.position.y = 0.86 * s;
+      group.add(suitJacket);
+      // White dress shirt visible at collar
+      const shirt = new THREE.Mesh(
+        new THREE.BoxGeometry(0.20 * s, 0.10 * s, 0.34 * s),
+        new THREE.MeshLambertMaterial({ color: 0xeeeedd })
+      );
+      shirt.position.set(0, 1.22 * s, 0);
+      group.add(shirt);
+      // Red power tie
+      const tie = new THREE.Mesh(
+        new THREE.BoxGeometry(0.07 * s, 0.42 * s, 0.05 * s),
+        new THREE.MeshLambertMaterial({ color: 0xcc0000 })
+      );
+      tie.position.set(0, 0.85 * s, 0.17 * s);
+      group.add(tie);
+      // Suit trousers (dark purple legs)
+      const trouserMat = new THREE.MeshLambertMaterial({ color: 0x2a0850 });
+      const trouserL = new THREE.Mesh(new THREE.BoxGeometry(0.22 * s, 0.56 * s, 0.22 * s), trouserMat);
+      trouserL.position.set(-0.14 * s, 0.28 * s, 0);
+      const trouserR = trouserL.clone();
+      trouserR.position.set(0.14 * s, 0.28 * s, 0);
+      group.add(trouserL, trouserR);
+      // Zombie decay patches on face
+      const decayMat = new THREE.MeshLambertMaterial({ color: 0x2a4422 });
+      [[-0.11, 1.45, 0.17], [0.09, 1.38, 0.17], [0.0, 1.52, 0.14]].forEach(function(pos) {
+        const d = new THREE.Mesh(new THREE.BoxGeometry(0.09 * s, 0.07 * s, 0.02 * s), decayMat);
+        d.position.set(pos[0] * s, pos[1] * s, pos[2] * s);
+        group.add(d);
+      });
     }
 
     // Eye glow
@@ -1910,9 +1960,10 @@ const Enemies = (() => {
     }
 
     // Spawn each member at their formation offset
+    // Note: no y in fpos — spawnOne computes terrain height via getTopSolidY
     for (var fi = 0; fi < _formOrder.length; fi++) {
       var foff = getFormationWorldPos(group, fi, _formOrder.length);
-      var fpos = new THREE.Vector3(center.x + foff.x, center.y, center.z + foff.z);
+      var fpos = { x: center.x + foff.x, z: center.z + foff.z };
       var fidx = spawnOne(_formOrder[fi].type, groupId, fpos);
       enemies[fidx].squadRole = _formOrder[fi].role;
       group.members.push(fidx);
@@ -2933,7 +2984,7 @@ const Enemies = (() => {
         var etResult = null;
         // Sync shorthand position props for EnemyTypes functions
         e.x = e.mesh.position.x; e.y = e.mesh.position.y; e.z = e.mesh.position.z;
-        switch (e.typeCfg.name) {
+        switch (e.typeName) {
           case 'BOMBER':
             etResult = EnemyTypes.updateBomber(e, playerPos, delta);
             if (etResult && etResult.detonate) {
@@ -3070,8 +3121,8 @@ const Enemies = (() => {
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
-                  EnemyTypes.TYPES[e.typeCfg.name] && EnemyTypes.TYPES[e.typeCfg.name].name)
-                  ? EnemyTypes.TYPES[e.typeCfg.name].name : (e.typeCfg.name || 'BOSS');
+                  EnemyTypes.TYPES[e.typeName] && EnemyTypes.TYPES[e.typeName].name)
+                  ? EnemyTypes.TYPES[e.typeName].name : (e.typeCfg.name || 'BOSS');
                 HUD.showBossBar(_bossDisplayName, e.hp, e.maxHp);
               }
             }
@@ -3316,14 +3367,14 @@ const Enemies = (() => {
           if (!drone.alive || !drone.active) continue;
           var droneDist = e.mesh.position.distanceTo(drone.position);
           // Enemies shoot at drones within 18 range, DRONE_OP type has 30 range
-          var droneEngageRange = e.typeCfg.name === 'DRONE_OP' ? 30 : 18;
+          var droneEngageRange = e.typeName === 'DRONE_OP' ? 30 : 18;
           if (droneDist < droneEngageRange) {
             if (!e._droneFireTimer) e._droneFireTimer = 0;
             e._droneFireTimer -= delta;
             if (e._droneFireTimer <= 0) {
               // Accuracy depends on distance and enemy type
-              var droneHitChance = e.typeCfg.name === 'DRONE_OP' ? 0.35 :
-                                   e.typeCfg.name === 'SNIPER' ? 0.25 : 0.12;
+              var droneHitChance = e.typeName === 'DRONE_OP' ? 0.35 :
+                                   e.typeName === 'SNIPER' ? 0.25 : 0.12;
               if (Math.random() < droneHitChance) {
                 DroneSystem.damageDrone(drone.id, e.attackDmg * 0.6);
               }
@@ -3387,8 +3438,9 @@ const Enemies = (() => {
       var _barWorthy = false;
       for (var _bwi = 0; _bwi < enemies.length; _bwi++) {
         var _bwe = enemies[_bwi];
-        if (_bwe && _bwe.alive && (_bwe.isBoss || _bwe.type === 'BOSS' ||
-            (_bwe.typeCfg && (_bwe.typeCfg.name === 'TANK' || _bwe.typeCfg.name === 'BTR')))) {
+        if (_bwe && _bwe.alive && (_bwe.isBoss ||
+            (_bwe.typeCfg && (_bwe.typeCfg.role === 'boss' ||
+             _bwe.typeName === 'TANK' || _bwe.typeName === 'BTR')))) {
           _barWorthy = true; break;
         }
       }
@@ -3719,7 +3771,7 @@ const Enemies = (() => {
     }
 
     // Shield bearer: route damage through EnemyTypes shield check
-    if (typeof EnemyTypes !== 'undefined' && enemy.typeCfg && enemy.typeCfg.name === 'SHIELD_BEARER') {
+    if (typeof EnemyTypes !== 'undefined' && enemy.typeName === 'SHIELD_BEARER') {
       var fromAngle = 0;
       if (_playerPos) {
         fromAngle = Math.atan2(_playerPos.x - enemy.mesh.position.x, _playerPos.z - enemy.mesh.position.z);
@@ -3731,7 +3783,7 @@ const Enemies = (() => {
       }
     }
     // Tank armor: route damage through directional armor reduction
-    if (typeof EnemyTypes !== 'undefined' && enemy.typeCfg && enemy.typeCfg.name === 'TANK') {
+    if (typeof EnemyTypes !== 'undefined' && enemy.typeName === 'TANK') {
       var tankAngle = 0;
       if (_playerPos) {
         tankAngle = Math.atan2(_playerPos.x - enemy.mesh.position.x, _playerPos.z - enemy.mesh.position.z);
@@ -4127,7 +4179,7 @@ const Enemies = (() => {
     },
     spawnReinforcement: function (x, z, count) {
       count = count || 2;
-      var types = ['CONSCRIPT', 'CONSCRIPT', 'STORMER', 'ARMORED'];
+      var types = ['CONSCRIPT', 'CONSCRIPT', 'STORMER', 'ENGINEER'];
       for (var ri = 0; ri < count; ri++) {
         var tp = types[Math.floor(Math.random() * types.length)];
         spawnOne(tp, -1, { x: x + (Math.random() - 0.5) * 8, z: z + (Math.random() - 0.5) * 8 });

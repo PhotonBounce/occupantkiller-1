@@ -184,18 +184,19 @@ const EnemyTypes = (function () {
     },
 
     BOSS_KREMLIN: {
-      id: 'BOSS_KREMLIN', name: 'The Tyrant', tier: 5,
+      id: 'BOSS_KREMLIN', name: 'The Zombie President', tier: 5,
       hp: 5000, speed: 1.5, damage: 100, attackRange: 20,
-      color: 0xcc0000, scale: 3.0, xpReward: 2500,
+      color: 0x3a0a6a, scale: 3.0, xpReward: 2500,
       abilities: ['summon_reinforcements', 'rage_mode', 'nuclear_briefcase', 'body_doubles', 'bunker_shield'],
       lootTable: ['LEGENDARY_WEAPON', 'LEGENDARY_WEAPON', 'XP_BOOST', 'VICTORY_TOKEN'],
-      spawnMessage: '👑 THE TYRANT MAKES HIS LAST STAND!',
+      spawnMessage: '🧟 THE ZOMBIE PRESIDENT SHAMBLES FROM THE KREMLIN!',
       behavior: 'boss',
-      phaseThresholds: [0.75, 0.5, 0.25], // 4-phase fight
+      phaseThresholds: [0.75, 0.5, 0.25],
       shieldHP: 800, shieldRegenRate: 5,
       nukeDamage: 250, nukeRadius: 12, nukeInterval: 20,
       rageThreshold: 0.25, rageDamageMult: 2.5, rageSpeedMult: 2.0,
-      summonTypes: ['SPETSNAZ', 'ASSAULT_MECH', 'THERMOBARIC', 'SWARM_OP'], summonCount: 5, summonInterval: 15
+      summonTypes: ['SPETSNAZ', 'ASSAULT_MECH', 'THERMOBARIC', 'SWARM_OP'], summonCount: 5, summonInterval: 15,
+      zombie: true, baldHead: true
     },
 
     // Feature 17: Suicide Bomber

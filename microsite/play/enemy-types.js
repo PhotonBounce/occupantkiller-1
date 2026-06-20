@@ -126,22 +126,7 @@ const EnemyTypes = (function () {
     },
 
     // Stage 12: KREMLIN SHOWDOWN — The Tyrant, final boss of the game
-    BOSS_KREMLIN: {
-      id: 'BOSS_KREMLIN', name: 'The Tyrant', tier: 5,
-      hp: 5000, speed: 1.5, damage: 100, attackRange: 20,
-      color: 0xcc0000, scale: 3.0, xpReward: 2500,
-      abilities: ['summon_reinforcements', 'rage_mode', 'nuclear_briefcase', 'body_doubles', 'bunker_shield'],
-      lootTable: ['LEGENDARY_WEAPON', 'LEGENDARY_WEAPON', 'XP_BOOST', 'VICTORY_TOKEN'],
-      spawnMessage: '👑 THE TYRANT MAKES HIS LAST STAND!',
-      behavior: 'boss',
-      phaseThresholds: [0.75, 0.5, 0.25], // 4-phase fight
-      shieldHP: 800, shieldRegenRate: 5,
-      nukeDamage: 250, nukeRadius: 12, nukeInterval: 20,
-      rageThreshold: 0.25, rageDamageMult: 2.5, rageSpeedMult: 2.0,
-      summonTypes: ['SPETSNAZ', 'ASSAULT_MECH', 'THERMOBARIC', 'SWARM_OP'], summonCount: 5, summonInterval: 15
-    },
-
-    // Stage 13: BATTLE OF KYIV
+    // Stage 13-17 unique bosses
     BOSS_KYIV: {
       id: 'BOSS_KYIV', name: 'Kyiv Column Commander', tier: 4,
       hp: 1800, speed: 1.8, damage: 70, attackRange: 18,
@@ -153,8 +138,6 @@ const EnemyTypes = (function () {
       phaseThresholds: [0.6, 0.3],
       summonTypes: ['CONSCRIPT', 'STORMER', 'PARATROOP'], summonCount: 4, summonInterval: 12
     },
-
-    // Stage 14: SNAKE ISLAND
     BOSS_SNAKE_ISLAND: {
       id: 'BOSS_SNAKE_ISLAND', name: 'Moskva Warship Captain', tier: 4,
       hp: 2000, speed: 1.2, damage: 80, attackRange: 25,
@@ -166,8 +149,6 @@ const EnemyTypes = (function () {
       phaseThresholds: [0.7, 0.4],
       summonTypes: ['BTR', 'DRONE_OP', 'SNIPER_ELITE'], summonCount: 3, summonInterval: 14
     },
-
-    // Stage 15: SAKY AIRBASE
     BOSS_SAKY: {
       id: 'BOSS_SAKY', name: 'Black Sea Aviation General', tier: 4,
       hp: 1600, speed: 2.0, damage: 65, attackRange: 20,
@@ -179,8 +160,6 @@ const EnemyTypes = (function () {
       phaseThresholds: [0.65, 0.35],
       summonTypes: ['KAMIKAZE_DRONE', 'PARATROOP', 'SPETSNAZ'], summonCount: 4, summonInterval: 10
     },
-
-    // Stage 16: VUHLEDAR
     BOSS_VUHLEDAR: {
       id: 'BOSS_VUHLEDAR', name: 'Tank Corps Colonel', tier: 4,
       hp: 2200, speed: 1.4, damage: 90, attackRange: 22,
@@ -192,8 +171,6 @@ const EnemyTypes = (function () {
       phaseThresholds: [0.6, 0.3],
       summonTypes: ['TANK', 'BTR', 'HEAVY_SNIPER'], summonCount: 3, summonInterval: 16
     },
-
-    // Stage 17: ANTONOV BRIDGE
     BOSS_ANTONOV: {
       id: 'BOSS_ANTONOV', name: 'Logistics Rear Admiral', tier: 4,
       hp: 1400, speed: 1.6, damage: 55, attackRange: 16,
@@ -204,6 +181,22 @@ const EnemyTypes = (function () {
       behavior: 'boss',
       phaseThresholds: [0.65, 0.35],
       summonTypes: ['ENGINEER', 'MORTAR', 'BTR'], summonCount: 3, summonInterval: 12
+    },
+
+    BOSS_KREMLIN: {
+      id: 'BOSS_KREMLIN', name: 'The Zombie President', tier: 5,
+      hp: 5000, speed: 1.5, damage: 100, attackRange: 20,
+      color: 0x3a0a6a, scale: 3.0, xpReward: 2500,
+      abilities: ['summon_reinforcements', 'rage_mode', 'nuclear_briefcase', 'body_doubles', 'bunker_shield'],
+      lootTable: ['LEGENDARY_WEAPON', 'LEGENDARY_WEAPON', 'XP_BOOST', 'VICTORY_TOKEN'],
+      spawnMessage: '🧟 THE ZOMBIE PRESIDENT SHAMBLES FROM THE KREMLIN!',
+      behavior: 'boss',
+      phaseThresholds: [0.75, 0.5, 0.25],
+      shieldHP: 800, shieldRegenRate: 5,
+      nukeDamage: 250, nukeRadius: 12, nukeInterval: 20,
+      rageThreshold: 0.25, rageDamageMult: 2.5, rageSpeedMult: 2.0,
+      summonTypes: ['SPETSNAZ', 'ASSAULT_MECH', 'THERMOBARIC', 'SWARM_OP'], summonCount: 5, summonInterval: 15,
+      zombie: true, baldHead: true
     },
 
     // Feature 17: Suicide Bomber
@@ -633,19 +626,19 @@ const EnemyTypes = (function () {
 
   /* ── Stage-Specific Boss Selection ─────────── */
   const STAGE_BOSS_MAP = {
-    5:  'BOSS_MARIUPOL',    // Azovstal Forge Master
-    6:  'BOSS_CRIMEA',      // Kerch Bridge Admiral
-    7:  'BOSS_CHORNOBYL',   // Irradiated Stalker
-    8:  'BOSS_MOSCOW',      // FSB Black Colonel
-    9:  'BOSS_SEVASTOPOL',  // Black Sea Fleet Commander
-    10: 'BOSS_DONBAS',      // Donbas Warlord
-    11: 'BOSS_BELGOROD',     // Belgorod Iron General
-    12: 'BOSS_KREMLIN',      // The Tyrant
-    13: 'BOSS_KYIV',         // Kyiv Column Commander
-    14: 'BOSS_SNAKE_ISLAND', // Moskva Warship Captain
-    15: 'BOSS_SAKY',         // Black Sea Aviation General
-    16: 'BOSS_VUHLEDAR',     // Tank Corps Colonel
-    17: 'BOSS_ANTONOV',      // Logistics Rear Admiral
+    5:  'BOSS_MARIUPOL',      // Azovstal Forge Master
+    6:  'BOSS_CRIMEA',        // Kerch Bridge Admiral
+    7:  'BOSS_CHORNOBYL',     // Irradiated Stalker
+    8:  'BOSS_MOSCOW',        // FSB Black Colonel
+    9:  'BOSS_SEVASTOPOL',    // Black Sea Fleet Commander
+    10: 'BOSS_DONBAS',        // Donbas Warlord
+    11: 'BOSS_BELGOROD',      // Belgorod Iron General
+    12: 'BOSS_KREMLIN',       // The Tyrant
+    13: 'BOSS_KYIV',          // Kyiv Column Commander
+    14: 'BOSS_SNAKE_ISLAND',  // Moskva Warship Captain
+    15: 'BOSS_SAKY',          // Black Sea Aviation General
+    16: 'BOSS_VUHLEDAR',      // Tank Corps Colonel
+    17: 'BOSS_ANTONOV',       // Logistics Rear Admiral
     // 18 (Refinery FPV) is droneOnly/single-wave — no boss needed
   };
 

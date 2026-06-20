@@ -610,10 +610,11 @@ const Enemies = (() => {
     },
     BOSS_KREMLIN: {
       name: 'BOSS_KREMLIN', hpBase: 5000, speedBase: 1.5, scale: 3.0,
-      camoVariant: 'dark', bodyColor: 0xcc0000, headColor: 0xd0b090,
-      limbColor: 0xaa0000, helmetColor: 0x880000, eyeColor: 0xff0000,
+      camoVariant: 'dark', bodyColor: 0x3a0a6a, headColor: 0x8aaa78,
+      limbColor: 0x280850, helmetColor: 0x1a0538, eyeColor: 0xff0000,
       attackDmg: 100, attackRate: 1.0, scoreValue: 25000, dropChance: 1.0,
       role: 'boss', range: 20, rangedDmg: 250, rangedRate: 2.5, accuracy: 0.7,
+      baldHead: true, zombie: true,
     },
     BOSS_KYIV: {
       name: 'BOSS_KYIV', hpBase: 1800, speedBase: 1.8, scale: 2.2,
@@ -1167,7 +1168,17 @@ const Enemies = (() => {
     );
     helmetCw.position.set(0, 1.55 * s, -0.22 * s);
     const helmet = helmetShell; // backward-compat reference
-    group.add(helmetShell, helmetCrown, helmetBrim, helmetNape, helmetCw);
+    if (!typeCfg.baldHead) {
+      group.add(helmetShell, helmetCrown, helmetBrim, helmetNape, helmetCw);
+    } else {
+      // Bald zombie president — no helmet, just a shiny pate
+      const baldPate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.30 * s, 0.03 * s, 0.28 * s),
+        new THREE.MeshLambertMaterial({ color: 0xaabb98 })
+      );
+      baldPate.position.set(0, 1.58 * s, 0);
+      group.add(baldPate);
+    }
 
     // ── Legs (camo textured, darker variant) ──────────────
     const legCamo = getCachedTex('camo_dark', function() {
@@ -1321,6 +1332,45 @@ const Enemies = (() => {
       );
       bala.position.y = 1.36 * s;
       group.add(bala);
+    }
+
+    // ── Zombie Boss (BOSS_KREMLIN) — dark purple suit, red tie, decay patches ──
+    if (typeCfg.zombie) {
+      // Suit jacket overlay (covers camo torso)
+      const suitJacket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.58 * s, 0.74 * s, 0.32 * s),
+        new THREE.MeshLambertMaterial({ color: typeCfg.bodyColor })
+      );
+      suitJacket.position.y = 0.86 * s;
+      group.add(suitJacket);
+      // White dress shirt visible at collar
+      const shirt = new THREE.Mesh(
+        new THREE.BoxGeometry(0.20 * s, 0.10 * s, 0.34 * s),
+        new THREE.MeshLambertMaterial({ color: 0xeeeedd })
+      );
+      shirt.position.set(0, 1.22 * s, 0);
+      group.add(shirt);
+      // Red power tie
+      const tie = new THREE.Mesh(
+        new THREE.BoxGeometry(0.07 * s, 0.42 * s, 0.05 * s),
+        new THREE.MeshLambertMaterial({ color: 0xcc0000 })
+      );
+      tie.position.set(0, 0.85 * s, 0.17 * s);
+      group.add(tie);
+      // Suit trousers (dark purple legs)
+      const trouserMat = new THREE.MeshLambertMaterial({ color: 0x2a0850 });
+      const trouserL = new THREE.Mesh(new THREE.BoxGeometry(0.22 * s, 0.56 * s, 0.22 * s), trouserMat);
+      trouserL.position.set(-0.14 * s, 0.28 * s, 0);
+      const trouserR = trouserL.clone();
+      trouserR.position.set(0.14 * s, 0.28 * s, 0);
+      group.add(trouserL, trouserR);
+      // Zombie decay patches on face
+      const decayMat = new THREE.MeshLambertMaterial({ color: 0x2a4422 });
+      [[-0.11, 1.45, 0.17], [0.09, 1.38, 0.17], [0.0, 1.52, 0.14]].forEach(function(pos) {
+        const d = new THREE.Mesh(new THREE.BoxGeometry(0.09 * s, 0.07 * s, 0.02 * s), decayMat);
+        d.position.set(pos[0] * s, pos[1] * s, pos[2] * s);
+        group.add(d);
+      });
     }
 
     // Eye glow

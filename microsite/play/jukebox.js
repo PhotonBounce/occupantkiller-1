@@ -17,6 +17,14 @@ window.Jukebox = (function () {
   let _mode = 'mp3'; // 'mp3' | 'procedural'
   let _autoplay = true;
 
+  // Fisher-Yates shuffle — randomize track order so every session starts differently
+  function _shuffleArray(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+  }
+
   // Fetch music manifest — tries static JSON first (works on GitHub Pages), then server endpoint
   function _loadMp3Manifest() {
     if (typeof fetch === 'undefined') return;
@@ -26,6 +34,8 @@ window.Jukebox = (function () {
       .then(function (data) {
         if (Array.isArray(data) && data.length) {
           _mp3Tracks = data;
+          _shuffleArray(_mp3Tracks);  // shuffle on load so each session starts at a random song
+          _mp3Idx = 0;
           _emit();
         }
       })
@@ -36,6 +46,8 @@ window.Jukebox = (function () {
           { filename: 'No Occupants.mp3', title: 'No Occupants', artist: 'OccupantKiller OST', src: 'gamemusic/No%20Occupants.mp3' },
           { filename: 'Russian Soldier.mp3', title: 'Russian Soldier', artist: 'OccupantKiller OST', src: 'gamemusic/Russian%20Soldier.mp3' },
         ];
+        _shuffleArray(_mp3Tracks);  // shuffle fallback list too
+        _mp3Idx = 0;
         _emit();
       });
   }
