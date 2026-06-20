@@ -1002,6 +1002,28 @@ window.AudioSystem = (function () {
     if (masterGain) masterGain.gain.value = volume;
   }
 
+  // Low health heartbeat-style warning
+  function playLowHealth() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    // Two quick "thump thump" pulses like a racing heartbeat
+    for (var pi = 0; pi < 2; pi++) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      var t = now + pi * 0.28;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(80, t);
+      osc.frequency.exponentialRampToValueAtTime(55, t + 0.12);
+      gain.gain.setValueAtTime(0.22, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start(t);
+      osc.stop(t + 0.18);
+    }
+  }
+
   // ── Background Music System (procedural) ──────────────
   let _musicPlaying = false;
   let _musicNodes = [];
@@ -1939,6 +1961,7 @@ window.AudioSystem = (function () {
     playLandingThud: playLandingThud,
     playBulletSnap: playBulletSnap,
     playImpact: playImpact,
+    playLowHealth: playLowHealth,
   };
 })();
 if (typeof window !== 'undefined' && window.AudioSystem) {

@@ -706,8 +706,75 @@
     <h1>PAUSED</h1>
     <p>Game paused. Press <kbd>R</kbd> to resume or <kbd>Q</kbd> to quit.</p>
     <button class="btn" id="pause-resume-btn">▶ [R]ESUME</button>
+    <button class="btn" id="pause-settings-btn" style="margin-top:8px;border-color:#66aacc;color:#66aacc">⚙ SETTINGS</button>
     <button class="btn" id="pause-quit-btn" style="margin-top:8px;border-color:#888;color:#888">✕ [Q]UIT TO MENU</button>
   </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:900;background:rgba(0,0,0,0.82);display:none;align-items:center;justify-content:center">
+    <div style="background:#0d1520;border:1px solid #336688;border-radius:10px;padding:32px 40px;min-width:320px;max-width:480px;width:90%">
+      <h2 style="margin:0 0 24px;color:#88ccff;font-size:20px;letter-spacing:2px;text-align:center">⚙ SETTINGS</h2>
+      <div style="margin-bottom:20px">
+        <label style="color:#aaa;font-size:13px;display:block;margin-bottom:6px">MOUSE SENSITIVITY
+          <span id="sens-value-label" style="color:#fff;float:right">1.0×</span>
+        </label>
+        <input type="range" id="settings-sens" min="0.1" max="5.0" step="0.1" value="1.0"
+          style="width:100%;accent-color:#88ccff;cursor:pointer">
+      </div>
+      <div style="margin-bottom:28px">
+        <label style="color:#aaa;font-size:13px;display:block;margin-bottom:6px">AUDIO VOLUME
+          <span id="vol-value-label" style="color:#fff;float:right">50%</span>
+        </label>
+        <input type="range" id="settings-vol" min="0" max="1.0" step="0.05" value="0.5"
+          style="width:100%;accent-color:#88ccff;cursor:pointer">
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button id="settings-close-btn" style="background:#223344;color:#88ccff;border:1px solid #336688;border-radius:6px;padding:10px 28px;font-size:14px;cursor:pointer;letter-spacing:1px">BACK</button>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function() {
+    var modal = document.getElementById('settings-modal');
+    var sensSlider = document.getElementById('settings-sens');
+    var volSlider  = document.getElementById('settings-vol');
+    var sensLabel  = document.getElementById('sens-value-label');
+    var volLabel   = document.getElementById('vol-value-label');
+
+    function openSettings() {
+      // Sync sliders to current game values
+      if (window.GameManager) {
+        sensSlider.value = GameManager.getMouseSensitivity ? GameManager.getMouseSensitivity() : 1.0;
+        volSlider.value  = GameManager.getAudioVolume  ? GameManager.getAudioVolume()  : 0.5;
+      }
+      sensLabel.textContent = parseFloat(sensSlider.value).toFixed(1) + '×';
+      volLabel.textContent  = Math.round(parseFloat(volSlider.value) * 100) + '%';
+      modal.style.display = 'flex';
+    }
+
+    function closeSettings() {
+      modal.style.display = 'none';
+    }
+
+    sensSlider.addEventListener('input', function() {
+      sensLabel.textContent = parseFloat(sensSlider.value).toFixed(1) + '×';
+      if (window.GameManager && GameManager.setMouseSensitivity) GameManager.setMouseSensitivity(sensSlider.value);
+    });
+
+    volSlider.addEventListener('input', function() {
+      volLabel.textContent = Math.round(parseFloat(volSlider.value) * 100) + '%';
+      if (window.GameManager && GameManager.setAudioVolume) GameManager.setAudioVolume(volSlider.value);
+    });
+
+    document.getElementById('settings-close-btn').addEventListener('click', closeSettings);
+
+    var pauseSettingsBtn = document.getElementById('pause-settings-btn');
+    if (pauseSettingsBtn) pauseSettingsBtn.addEventListener('click', openSettings);
+
+    // Close on backdrop click
+    modal.addEventListener('click', function(e) { if (e.target === modal) closeSettings(); });
+  })();
+  </script>
 
 
 

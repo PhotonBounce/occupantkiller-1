@@ -3137,6 +3137,65 @@ const Enemies = (() => {
                   spawnQueue.push(_sType);
                 }
               }
+              // Nuclear briefcase strike (BOSS_KREMLIN)
+              if (etResult.nuclearStrike) {
+                var _nk = etResult.nuclearStrike;
+                var _nkTargetPos = { x: _nk.targetX, y: _nk.targetY, z: _nk.targetZ };
+                var _nkDmg = _nk.damage;
+                var _nkRad = _nk.radius;
+                // Warning toast + camera shake on launch
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('☢️ NUCLEAR LAUNCH — SEEK COVER!', 3000, '#ff2200');
+                }
+                if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.45, 0.6);
+                // Detonation after 3-second flight time
+                (function(_pos, _dmg, _rad) {
+                  setTimeout(function() {
+                    var _nkVec = new THREE.Vector3(_pos.x, _pos.y, _pos.z);
+                    // Primary explosion VFX
+                    if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+                      Tracers.spawnExplosion(_nkVec, _rad * 0.7);
+                      // Secondary blast wave
+                      for (var ni = 0; ni < 5; ni++) {
+                        Tracers.spawnExplosion(new THREE.Vector3(
+                          _pos.x + (Math.random()-0.5)*_rad,
+                          _pos.y,
+                          _pos.z + (Math.random()-0.5)*_rad
+                        ), _rad * 0.4);
+                      }
+                    }
+                    // Voxel building damage
+                    if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+                      WorldFeatures.applyExplosionDamage(_pos.x, _pos.y, _pos.z, _rad * 0.6, _dmg);
+                    }
+                    // Damage player with distance falloff (uses live playerPos captured by closure)
+                    if (typeof onPlayerHit === 'function') {
+                      var _pdx = playerPos.x - _pos.x;
+                      var _pdz = playerPos.z - _pos.z;
+                      var _pdist = Math.sqrt(_pdx*_pdx + _pdz*_pdz);
+                      if (_pdist < _rad * 1.5) {
+                        var _falloff = Math.max(0, 1 - _pdist / (_rad * 1.5));
+                        onPlayerHit(Math.round(_dmg * _falloff), _nkVec);
+                      }
+                    }
+                    // Heavy detonation shake
+                    if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(1.8, 1.4);
+                  }, 3000);
+                })(_nkTargetPos, _nkDmg, _nkRad);
+              }
+              // Bunker shield state changes (BOSS_KREMLIN)
+              if (etResult.bunkerShieldOn) {
+                e._invincible = true;
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('🛡️ BUNKER SHIELD ACTIVE — FIND COVER!', 2500, '#00aaff');
+                }
+              }
+              if (etResult.bunkerShieldOff) {
+                e._invincible = false;
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('⚡ SHIELD DOWN — FIRE!', 1500, '#ffcc00');
+                }
+              }
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
@@ -3767,6 +3826,8 @@ const Enemies = (() => {
   // ── Apply damage, return remaining HP ─────────────────────
   function damage(enemy, amount, isHeadshot, weaponType) {
     if (!enemy.alive) return 0;
+    // Bunker shield invincibility (BOSS_KREMLIN)
+    if (enemy._invincible) return enemy.hp;
 
     // INFILTRATION: any damage dealt by player blows the disguise instantly.
     if (_playerDisguised && !_disguiseBlown) {

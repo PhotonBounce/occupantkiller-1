@@ -88,6 +88,26 @@ const GameManager = (function () {
     WIN:         'win',
   });
 
+  /* ── Persistent Settings (saved to localStorage) ──────────────── */
+  var _mouseSensitivity = (function() {
+    var v = parseFloat(localStorage.getItem('ok_sensitivity'));
+    return (isNaN(v) || v <= 0) ? 1.0 : v;
+  })();
+  var _audioVolume = (function() {
+    var v = parseFloat(localStorage.getItem('ok_volume'));
+    return (isNaN(v) || v < 0) ? 0.5 : v;
+  })();
+
+  function setMouseSensitivity(v) {
+    _mouseSensitivity = Math.max(0.1, Math.min(5.0, parseFloat(v) || 1.0));
+    localStorage.setItem('ok_sensitivity', _mouseSensitivity);
+  }
+  function setAudioVolume(v) {
+    _audioVolume = Math.max(0, Math.min(1.0, parseFloat(v) || 0.5));
+    localStorage.setItem('ok_volume', _audioVolume);
+    if (typeof AudioSystem !== 'undefined' && AudioSystem.setVolume) AudioSystem.setVolume(_audioVolume);
+  }
+
   /* ── Core State ──────────────────────────────────────────────────── */
   let gameState     = STATE.MENU;
   let _scene        = null;
@@ -1368,7 +1388,11 @@ const GameManager = (function () {
     _bootStep('tracers');
 
     // Audio, Weather & ML systems
-    _safeInit('audio', function () { if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init(); });
+    _safeInit('audio', function () {
+      if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init();
+      // Apply saved volume after init
+      if (window.AudioSystem && window.AudioSystem.setVolume) window.AudioSystem.setVolume(_audioVolume);
+    });
     _safeInit('weather', function () { if (WeatherSystem && typeof WeatherSystem.init === 'function') WeatherSystem.init(_scene, _camera); });
     _safeInit('ml', function () { if (MLSystem && typeof MLSystem.init === 'function') MLSystem.init(); });
     _safeInit('stagevfx', function () { if (typeof StageVFX !== 'undefined' && StageVFX && typeof StageVFX.init === 'function') StageVFX.init(_scene); });
@@ -2304,7 +2328,8 @@ const GameManager = (function () {
     document.addEventListener('mousemove', function (e) {
       if (document.pointerLockElement) {
         var stunScale = GameManager._flashbangStun > 0 ? 0.15 : 1;
-        CameraSystem.handleMouseMove(e.movementX * stunScale, e.movementY * stunScale);
+        var sensScale = stunScale * _mouseSensitivity;
+        CameraSystem.handleMouseMove(e.movementX * sensScale, e.movementY * sensScale);
       }
     });
 
@@ -9294,6 +9319,10 @@ const GameManager = (function () {
     addStimBuff: addStimBuff,
     addSuppression: addSuppression,
     requestFullscreenAndLockLandscape: requestFullscreenAndLockLandscape,
+    setMouseSensitivity: setMouseSensitivity,
+    setAudioVolume:      setAudioVolume,
+    getMouseSensitivity: function() { return _mouseSensitivity; },
+    getAudioVolume:      function() { return _audioVolume; },
     // Test helpers for headless Puppeteer (bypasses pointer lock requirement)
     _testFireStart:  function () { mouseDown = true; mouseNewPress = true; },
     _testFireStop:   function () { mouseDown = false; mouseNewPress = false; },

@@ -599,6 +599,43 @@ const EnemyTypes = (function () {
       result.summonCount = (typeCfg && typeCfg.summonCount) ? typeCfg.summonCount : (2 + Math.floor(wave / 3));
       result.summonTypes = (typeCfg && typeCfg.summonTypes && typeCfg.summonTypes.length) ? typeCfg.summonTypes : null;
     }
+    // Nuclear briefcase ability (BOSS_KREMLIN)
+    var hasNuke = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('nuclear_briefcase') !== -1;
+    if (hasNuke) {
+      var nukeInterval = typeCfg.nukeInterval || 20;
+      // Start at half interval so first strike isn't instant
+      if (enemy._nukeTimer === undefined) enemy._nukeTimer = nukeInterval * 0.5;
+      enemy._nukeTimer += dt;
+      if (enemy._nukeTimer >= nukeInterval) {
+        enemy._nukeTimer = 0;
+        result.nuclearStrike = {
+          damage:  typeCfg.nukeDamage  || 250,
+          radius:  typeCfg.nukeRadius  || 12,
+          targetX: playerPos.x,
+          targetY: playerPos.y,
+          targetZ: playerPos.z
+        };
+      }
+    }
+    // Bunker shield — periodic invincibility when ability is present
+    var hasShield = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('bunker_shield') !== -1;
+    if (hasShield) {
+      enemy._shieldCooldown = (enemy._shieldCooldown || 0) - dt;
+      enemy._shieldActive   = (enemy._shieldActive  || false);
+      if (!enemy._shieldActive && enemy._shieldCooldown <= 0) {
+        enemy._shieldActive   = true;
+        enemy._shieldTimer    = 4;      // 4s of invincibility
+        enemy._shieldCooldown = 25;     // 25s between phases
+        result.bunkerShieldOn = true;
+      }
+      if (enemy._shieldActive) {
+        enemy._shieldTimer -= dt;
+        if (enemy._shieldTimer <= 0) {
+          enemy._shieldActive = false;
+          result.bunkerShieldOff = true;
+        }
+      }
+    }
     return result;
   }
 
