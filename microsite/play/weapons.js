@@ -6749,6 +6749,10 @@ const Weapons = (() => {
         if (mesh) { mesh.rotation.x = _sprintLowerRotX; mesh.rotation.z = 0; }
         HUD.showReload(false);
         HUD.setAmmo(st.clip, st.reserve);
+        // Reload-ready audio cue (distinctive chambered click)
+        if (typeof AudioSystem !== 'undefined' && AudioSystem.playReloadReady) {
+          AudioSystem.playReloadReady();
+        }
       }
     }
   }

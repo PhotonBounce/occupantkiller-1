@@ -306,6 +306,10 @@ const GameManager = (function () {
     { id: 'CHEMICAL',       label: '☣ CHEMICAL ATTACK!',       color: '#aaff00', chance: 0.05 },
     { id: 'EMP',            label: '⚡ EMP BLAST!',             color: '#4400ff', chance: 0.04 },
     { id: 'TUNNEL_BREACH',  label: '🕳 TUNNEL BREACH!',        color: '#884400', chance: 0.06 },
+    { id: 'PARTISAN_HELP', label: '🤝 PARTISANS JOIN THE FIGHT!', color: '#88ff44', chance: 0.06 },
+    { id: 'OWN_GOAL',      label: '😂 RUSSIAN FRIENDLY FIRE!',    color: '#ffff00', chance: 0.04 },
+    { id: 'INTEL_BREACH',  label: '📡 INTEL BREACH — ENEMY POS!', color: '#00ffcc', chance: 0.05 },
+    { id: 'MEDIC_EVAC',    label: '🏥 MEDIC TEAM INBOUND!',        color: '#ff88aa', chance: 0.05 },
   ];
 
   function triggerBattlefieldEvent() {
@@ -450,6 +454,79 @@ const GameManager = (function () {
             x: player.position.x + Math.cos(_tbYaw + ta) * td,
             z: player.position.z + Math.sin(_tbYaw + ta) * td
           });
+        }
+        break;
+      case 'PARTISAN_HELP':
+        // Local partisans spawn and fight alongside player — variety pack
+        if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
+          for (let i = 0; i < 4; i++) {
+            const _pa = Math.random() * Math.PI * 2;
+            const _pd = 5 + Math.random() * 8;
+            const _px2 = player.position.x + Math.cos(_pa) * _pd;
+            const _pz2 = player.position.z + Math.sin(_pa) * _pd;
+            const _ph = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_px2, _pz2) : 0;
+            NPCSystem.spawn(_px2, _ph, _pz2, ['infantry', 'specialist', 'medic'][Math.floor(Math.random() * 3)]);
+          }
+        }
+        if (typeof Economy !== 'undefined') Economy.addCurrency(30);
+        break;
+      case 'OWN_GOAL':
+        // Russian units fire on their own — causes explosions near enemy clusters
+        var _ogAll = Enemies.getAll();
+        var _ogKilled = 0;
+        for (let i = 0; i < Math.min(_ogAll.length, 8); i++) {
+          if (_ogAll[i].alive && _ogAll[i].mesh) {
+            var _ogPos = _ogAll[i].mesh.position;
+            if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_ogPos.clone(), 3);
+            Enemies.damageInRadius(_ogPos, 5, 70);
+            if (!_ogAll[i].alive) _ogKilled++;
+          }
+        }
+        if (_ogKilled > 0) {
+          HUD.showToast('😂 ' + _ogKilled + ' killed by own side!', 2500, '#ffff00');
+          player.score += _ogKilled * 15;
+        }
+        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.08, 1.0);
+        break;
+      case 'INTEL_BREACH':
+        // Reveal all enemy positions on minimap for 30s (mimic UAV briefly)
+        if (typeof Perks !== 'undefined' && Perks.activateStreak) {
+          // Temporarily mark all enemies as spotted for minimap
+          var _ibAll = Enemies.getAll();
+          for (let i = 0; i < _ibAll.length; i++) {
+            if (_ibAll[i].alive) {
+              _ibAll[i]._intelRevealed = true;
+              _ibAll[i].playerSpotted = true;
+            }
+          }
+          setTimeout(function() {
+            var _ibAll2 = Enemies.getAll();
+            for (let i = 0; i < _ibAll2.length; i++) {
+              if (_ibAll2[i]._intelRevealed) {
+                _ibAll2[i]._intelRevealed = false;
+                // Don't clear playerSpotted if they're genuinely tracking player
+              }
+            }
+          }, 30000);
+        }
+        HUD.showToast('📡 ALL ENEMY POSITIONS REVEALED (30s)', 3000, '#00ffcc');
+        break;
+      case 'MEDIC_EVAC':
+        // Medic team arrives: heal player + spawn healing pickups
+        {
+          var _mevHeal = Math.min(40, player.maxHp - player.hp);
+          player.hp = Math.min(player.hp + 40, player.maxHp);
+          if (HUD.setHealth) HUD.setHealth(player.hp, player.maxHp);
+          // Also spawn 2 medkits nearby
+          for (let i = 0; i < 2; i++) {
+            const _mx = player.position.x + (Math.random()-0.5) * 6;
+            const _mz = player.position.z + (Math.random()-0.5) * 6;
+            const _mh = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_mx, _mz) : 0;
+            if (typeof Pickups !== 'undefined' && Pickups.spawn) {
+              Pickups.spawn(new THREE.Vector3(_mx, _mh, _mz), 'MEDKIT');
+            }
+          }
+          if (_mevHeal > 0) HUD.notifyPickup('🏥 MEDIC: +' + _mevHeal + ' HP', '#ff88aa');
         }
         break;
     }

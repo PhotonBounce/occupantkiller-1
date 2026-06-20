@@ -374,6 +374,24 @@ window.AudioSystem = (function () {
     });
   }
 
+  function playReloadReady() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    // Two-tone "chambered" click: high tick then low tick 60ms later
+    [[300, 0], [200, 0.06]].forEach(function(pair) {
+      var osc = ctx.createOscillator();
+      var g = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(pair[0], now + pair[1]);
+      osc.frequency.exponentialRampToValueAtTime(pair[0] * 0.5, now + pair[1] + 0.04);
+      g.gain.setValueAtTime(0.07, now + pair[1]);
+      g.gain.exponentialRampToValueAtTime(0.001, now + pair[1] + 0.05);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(now + pair[1]); osc.stop(now + pair[1] + 0.06);
+    });
+  }
+
   function playPickup() {
     if (!enabled || !ctx) return;
     resume();
@@ -1898,6 +1916,7 @@ window.AudioSystem = (function () {
     playHit: playHit,
     playHitPitched: playHitPitched,
     playReload: playReload,
+    playReloadReady: playReloadReady,
     playPickup: playPickup,
     playDeath: playDeath,
     playEnemyDeath: playEnemyDeath,
