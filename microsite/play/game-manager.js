@@ -957,6 +957,21 @@ const GameManager = (function () {
   var _lastKillPos = null;  // position of most recent enemy kill
   var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
 
+  /* ── Smoke Zone System ─────────────────────────────────────── */
+  var _activeSmokeZones = []; // [{x, z, radius, timer}]
+  window._activeSmokeZones = _activeSmokeZones; // exposed for enemies.js detection
+
+  function addSmokeZone(x, z, radius, duration) {
+    _activeSmokeZones.push({ x: x, z: z, radius: radius || 6, timer: duration || 18 });
+  }
+
+  function updateSmokeZones(delta) {
+    for (var si = _activeSmokeZones.length - 1; si >= 0; si--) {
+      _activeSmokeZones[si].timer -= delta;
+      if (_activeSmokeZones[si].timer <= 0) _activeSmokeZones.splice(si, 1);
+    }
+  }
+
   /* ── Suppression System (near-miss visual response) ──────────── */
   var _suppressionLevel = 0;  // 0→1
   var _suppressionDecay = 0.5; // per second
@@ -1524,6 +1539,22 @@ const GameManager = (function () {
       }
       // ── B29: Destructible environment — explosive weapons destroy blocks ──
       var wType = Weapons.getCurrentType();
+      // Smoke grenade: create a detection-blocking smoke zone at impact
+      if (wType === 'SMOKE') {
+        addSmokeZone(x, z, Weapons.getBlastRadius() || 6, 18);
+        if (typeof Tracers !== 'undefined' && Tracers.spawnSmoke) {
+          for (var _si2 = 0; _si2 < 12; _si2++) {
+            (function(_sii) {
+              setTimeout(function() {
+                try {
+                  Tracers.spawnSmoke(new THREE.Vector3(x + (Math.random()-0.5)*4, y + 0.3, z + (Math.random()-0.5)*4));
+                } catch(e) {}
+              }, _sii * 200);
+            })(_si2);
+          }
+        }
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💨 SMOKE DEPLOYED — enemies blinded!', '#888888');
+      }
       var isExpl = ['AT', 'ATGM', 'AT_HEAVY', 'AT_LIGHT', 'GRENADE', 'INCENDIARY', 'THERMOBARIC'].indexOf(wType) >= 0;
       if (isExpl && typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
         var bRadius = Weapons.getBlastRadius() || 3;
@@ -5354,8 +5385,9 @@ const GameManager = (function () {
     CameraSystem.update(delta, player.position, isMoving, player.onGround);
     // Update kill cam override (blocks mouse-look while active)
     if (CameraSystem.updateKillCam) CameraSystem.updateKillCam(delta);
-    // Update suppression visual
+    // Update suppression visual and smoke zones
     updateSuppression(delta);
+    updateSmokeZones(delta);
 
     // Player footstep sounds
     if (isMoving && player.onGround && typeof AudioSystem !== 'undefined') {

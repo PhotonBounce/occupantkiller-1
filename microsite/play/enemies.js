@@ -2338,7 +2338,19 @@ const Enemies = (() => {
       if (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) {
         weatherVisionMod = WeatherSystem.getModifiers().visionRange || 1.0;
       }
-      const effectiveDetectionRange = DETECTION_RANGE * weatherVisionMod;
+      // Smoke zone: player hiding in active smoke dramatically reduces detection range
+      var _smokeVisionMod = 1.0;
+      if (window._activeSmokeZones && window._activeSmokeZones.length > 0 && _playerPos) {
+        for (var _szi = 0; _szi < window._activeSmokeZones.length; _szi++) {
+          var _sz = window._activeSmokeZones[_szi];
+          var _szDx = _playerPos.x - _sz.x, _szDz = _playerPos.z - _sz.z;
+          if (Math.sqrt(_szDx*_szDx + _szDz*_szDz) < _sz.radius) {
+            _smokeVisionMod = 0.12; // 88% detection range reduction through smoke
+            break;
+          }
+        }
+      }
+      const effectiveDetectionRange = DETECTION_RANGE * weatherVisionMod * _smokeVisionMod;
       // ── DISGUISE: Russian uniform fools enemies until disguise is blown.
       //    Even disguised, point-blank stares (<1.5m) and active fire break it.
       const _disguisedSafe = _playerDisguised && !_disguiseBlown;
