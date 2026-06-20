@@ -3396,7 +3396,9 @@ const GameManager = (function () {
 
     // Start stage-specific environmental VFX
     if (typeof StageVFX !== 'undefined' && StageVFX.startStageEffects) {
-      StageVFX.startStageEffects(stageDef.theme, { warzone: !!stageDef.capitalDefense });
+      // cityscape = war-torn city (Moscow/Kremlin) — always gets smoke + artillery flash
+      var _warzoneAtmo = !!stageDef.capitalDefense || stageDef.theme === 'cityscape';
+      StageVFX.startStageEffects(stageDef.theme, { warzone: _warzoneAtmo });
     }
 
     // Spawn water bodies per stage

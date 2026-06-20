@@ -361,6 +361,45 @@ var StageVFX = (function () {
       p.scaleEnd = 3.0;
       active.push(p);
     }, 1.0);
+
+    // Burning vehicle smoke — mid-range thick black columns
+    _addSpawner(function () {
+      var p = _getParticle(_geo.smokePlane, _mat.smoke);
+      if (!p) return;
+      // Fixed burning vehicle spots scattered near the player
+      var col = Math.floor(Math.random() * 5);
+      var offsets = [[-18, 12], [22, -8], [-8, 28], [15, 20], [-25, -18]];
+      var o = offsets[col];
+      p.mesh.position.set(o[0] + (Math.random() - 0.5) * 2, 1 + Math.random() * 1, o[1] + (Math.random() - 0.5) * 2);
+      p.velocity.set((Math.random() - 0.5) * 0.3, 2.0 + Math.random() * 1.5, (Math.random() - 0.5) * 0.3);
+      p.life = 1.0;
+      p.maxLife = 4 + Math.random() * 3;
+      p.spin = (Math.random() - 0.5) * 2;
+      p.scaleStart = 0.6;
+      p.scaleEnd = 2.5;
+      active.push(p);
+    }, 0.35);
+
+    // Orange ember sparks from burning buildings
+    _addSpawner(function () {
+      var p = _getParticle(_geo.box, _mat.ember);
+      if (!p) return;
+      p.mesh.position.set(
+        (Math.random() - 0.5) * 40,
+        2 + Math.random() * 6,
+        (Math.random() - 0.5) * 40
+      );
+      p.velocity.set(
+        (Math.random() - 0.5) * 1.5,
+        0.8 + Math.random() * 1.2,
+        (Math.random() - 0.5) * 1.5
+      );
+      p.life = 1.0;
+      p.maxLife = 1.5 + Math.random() * 1.5;
+      p.gravity = -0.3;
+      p.spin = (Math.random() - 0.5) * 4;
+      active.push(p);
+    }, 0.08);
   }
 
   function _setupGrassland() {

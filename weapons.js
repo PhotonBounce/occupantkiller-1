@@ -6953,7 +6953,7 @@ const Weapons = (() => {
   }
   function _curStats() { return _stats(currentIdx); }
   function effectiveClipSize(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.clipSize   : 0; }
-  function effectiveReloadTime(idx){ var s = _stats(idx == null ? currentIdx : idx); return s ? s.reloadTime : 0; }
+  function effectiveReloadTime(idx){ var s = _stats(idx == null ? currentIdx : idx); if (!s) return 0; var t = s.reloadTime; if (typeof Perks !== 'undefined' && Perks.getReloadMult) t *= Perks.getReloadMult(); return t; }
   function effectiveFireRate(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.fireRate   : 0; }
   function effectiveDamage(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.damage     : 0; }
   function effectiveSpread(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.spread     : 0; }

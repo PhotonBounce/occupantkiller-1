@@ -917,27 +917,98 @@ const DroneSystem = (function () {
 
   function updatePossessedDrone(drone, delta) {
     const yaw = (typeof CameraSystem !== 'undefined') ? CameraSystem.getYaw() : 0;
-    const pitch = (typeof CameraSystem !== 'undefined') ? CameraSystem.getPitch() : 0;
 
-    // Movement in drone's local space
     _dTmpFwd.set(-Math.sin(yaw), 0, -Math.cos(yaw));
     _dTmpRight.set(Math.cos(yaw), 0, -Math.sin(yaw));
 
-    drone.velocity.set(0, 0, 0);
+    var isFPV = (drone.type === DRONE_TYPE.FPV_ATTACK || drone.type === DRONE_TYPE.KAMIKAZE);
+    var isBomber = (drone.type === DRONE_TYPE.BOMB || drone.type === DRONE_TYPE.BABA_YAGA || drone.type === DRONE_TYPE.BAYRAKTAR);
 
-    if (_droneKeys.w) drone.velocity.addScaledVector(_dTmpFwd, drone.speed);
-    if (_droneKeys.s) drone.velocity.addScaledVector(_dTmpFwd, -drone.speed);
-    if (_droneKeys.a) drone.velocity.addScaledVector(_dTmpRight, -drone.speed);
-    if (_droneKeys.d) drone.velocity.addScaledVector(_dTmpRight, drone.speed);
-    if (_droneKeys.up) drone.velocity.y = drone.speed * 0.6;
-    if (_droneKeys.down) drone.velocity.y = -drone.speed * 0.6;
+    if (isFPV) {
+      // ── FPV momentum: inertia + drag for authentic racing-drone feel ──
+      // 8% velocity remains after 1 second — snappy but not instant stop
+      var fpvDrag = Math.pow(0.08, delta);
+      drone.velocity.x *= fpvDrag;
+      drone.velocity.z *= fpvDrag;
+      drone.velocity.y *= Math.pow(0.18, delta);
 
-    // Tilt based on velocity
-    drone.mesh.rotation.set(
-      drone.velocity.z * 0.02,
-      yaw,
-      -drone.velocity.x * 0.02
-    );
+      var accel = drone.speed * 3.0;
+      if (_droneKeys.w) { drone.velocity.x += _dTmpFwd.x * accel * delta;        drone.velocity.z += _dTmpFwd.z * accel * delta; }
+      if (_droneKeys.s) { drone.velocity.x -= _dTmpFwd.x * accel * 0.6 * delta;  drone.velocity.z -= _dTmpFwd.z * accel * 0.6 * delta; }
+      if (_droneKeys.a) { drone.velocity.x -= _dTmpRight.x * accel * delta;       drone.velocity.z -= _dTmpRight.z * accel * delta; }
+      if (_droneKeys.d) { drone.velocity.x += _dTmpRight.x * accel * delta;       drone.velocity.z += _dTmpRight.z * accel * delta; }
+      if (_droneKeys.up)   drone.velocity.y += accel * 0.7 * delta;
+      if (_droneKeys.down) drone.velocity.y -= accel * 0.7 * delta;
+
+      // Clamp to drone.speed (allow brief burst overshoot via unclamped accel frame)
+      var hMagSq = drone.velocity.x * drone.velocity.x + drone.velocity.z * drone.velocity.z;
+      if (hMagSq > drone.speed * drone.speed) {
+        var sc = drone.speed / Math.sqrt(hMagSq);
+        drone.velocity.x *= sc; drone.velocity.z *= sc;
+      }
+      drone.velocity.y = Math.max(-drone.speed * 0.8, Math.min(drone.speed * 0.8, drone.velocity.y));
+
+      // Visual tilt — lerped banking: nose pitches into velocity, rolls laterally
+      if (drone._tiltX === undefined) { drone._tiltX = 0; drone._tiltZ = 0; }
+      var localFwd   = drone.velocity.x * _dTmpFwd.x   + drone.velocity.z * _dTmpFwd.z;
+      var localRight = drone.velocity.x * _dTmpRight.x + drone.velocity.z * _dTmpRight.z;
+      var lRate = 1 - Math.pow(0.03, delta);
+      drone._tiltX += (-localFwd   * 0.055 - drone._tiltX) * lRate;
+      drone._tiltZ += ( localRight * 0.075 - drone._tiltZ) * lRate;
+      drone.mesh.rotation.set(drone._tiltX, yaw, drone._tiltZ);
+      // Store roll for camera banking (FPV camera tilts with the drone)
+      drone.mesh.userData.fpvRoll = drone._tiltZ;
+      // Motor vibration shake — increases with speed
+      var hSpd = Math.sqrt(drone.velocity.x*drone.velocity.x + drone.velocity.z*drone.velocity.z);
+      if (hSpd > 2 && typeof CameraSystem !== 'undefined' && CameraSystem.shake) {
+        CameraSystem.shake(hSpd * 0.0003, 0.04);
+      }
+
+    } else if (isBomber) {
+      // ── Bomber: slower speed, altitude-hold autopilot, gentle banking ──
+      if (drone._heldAlt === undefined) drone._heldAlt = drone.position.y;
+
+      var bSpd = drone.speed * 0.65;
+      drone.velocity.set(0, 0, 0);
+      if (_droneKeys.w) drone.velocity.addScaledVector(_dTmpFwd,   bSpd);
+      if (_droneKeys.s) drone.velocity.addScaledVector(_dTmpFwd,  -bSpd * 0.45);
+      if (_droneKeys.a) drone.velocity.addScaledVector(_dTmpRight, -bSpd * 0.5);
+      if (_droneKeys.d) drone.velocity.addScaledVector(_dTmpRight,  bSpd * 0.5);
+
+      if (_droneKeys.up) {
+        drone.velocity.y = bSpd * 0.35;
+        drone._heldAlt = drone.position.y + bSpd * 0.35 * delta;
+      } else if (_droneKeys.down) {
+        drone.velocity.y = -bSpd * 0.35;
+        drone._heldAlt = drone.position.y - bSpd * 0.35 * delta;
+      } else {
+        // Altitude-hold autopilot — returns gently to last held altitude
+        drone.velocity.y = (drone._heldAlt - drone.position.y) * 1.8;
+      }
+
+      // Gentle banking: roll into lateral movement, slight nose-down on forward flight
+      drone.mesh.rotation.set(
+        -drone.velocity.z * 0.012,
+        yaw,
+         drone.velocity.x * 0.010
+      );
+
+    } else {
+      // ── Surveillance/Recon: slow, stable hover quadcopter ──────────
+      drone.velocity.set(0, 0, 0);
+      var rSpd = drone.speed * 0.45;
+      if (_droneKeys.w) drone.velocity.addScaledVector(_dTmpFwd,   rSpd);
+      if (_droneKeys.s) drone.velocity.addScaledVector(_dTmpFwd,  -rSpd);
+      if (_droneKeys.a) drone.velocity.addScaledVector(_dTmpRight, -rSpd);
+      if (_droneKeys.d) drone.velocity.addScaledVector(_dTmpRight,  rSpd);
+      if (_droneKeys.up)   drone.velocity.y = rSpd * 0.55;
+      if (_droneKeys.down) drone.velocity.y = -rSpd * 0.55;
+      drone.mesh.rotation.set(
+        drone.velocity.z * 0.012,
+        yaw,
+       -drone.velocity.x * 0.012
+      );
+    }
 
     // FPV voxel building collision — explode on any solid block
     if (drone.type === DRONE_TYPE.FPV_ATTACK || drone.type === DRONE_TYPE.KAMIKAZE) {

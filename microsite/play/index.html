@@ -280,9 +280,18 @@
       <div id="stamina-bar" style="width:100%;height:100%;background:linear-gradient(90deg,#ffcc00,#ffee66);border-radius:3px;transition:width 0.15s"></div>
     </div>
 
-    <!-- Night vision overlay -->
-    <div id="night-vision-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,40,0,0.3);border:3px solid rgba(0,255,0,0.15);z-index:195;pointer-events:none;mix-blend-mode:screen">
-      <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);color:#00ff44;font-size:11px;font-family:monospace;opacity:0.6">🔦 NIGHT VISION [L]</div>
+    <!-- Night vision overlay — multi-layer NVG phosphor effect -->
+    <div id="night-vision-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:195;pointer-events:none">
+      <!-- NVG tube vignette: bright phosphor center fades to near-black at edges -->
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 68% 78% at 50% 50%,rgba(0,70,0,0.22) 0%,rgba(0,50,0,0.38) 50%,rgba(0,8,0,0.92) 100%);mix-blend-mode:screen"></div>
+      <!-- Green phosphor tint -->
+      <div style="position:absolute;inset:0;background:rgba(0,30,0,0.28);mix-blend-mode:screen"></div>
+      <!-- CRT scanlines — 1px dark line every 3px -->
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(0,0,0,0.22) 0,rgba(0,0,0,0.22) 1px,transparent 1px,transparent 3px);pointer-events:none"></div>
+      <!-- Circular tube hard edge — masks extreme corners to black -->
+      <div style="position:absolute;inset:0;background:radial-gradient(circle 44vh at 50% 50%,transparent 40vh,rgba(0,0,0,0.96) 46vh)"></div>
+      <!-- NVG indicator -->
+      <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);color:#00ff44;font-size:11px;font-family:monospace;opacity:0.55">NVG ON [L]</div>
     </div>
 
     <!-- OKC / Wallet HUD element -->
