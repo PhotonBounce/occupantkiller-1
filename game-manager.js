@@ -1539,6 +1539,14 @@ const GameManager = (function () {
       }
       // ── B29: Destructible environment — explosive weapons destroy blocks ──
       var wType = Weapons.getCurrentType();
+      // Flashbang grenade: stun nearby enemies for 4s via the existing stunInRadius system
+      if (wType === 'FLASHBANG') {
+        var _fbRadius = Weapons.getBlastRadius() || 8;
+        if (typeof Enemies !== 'undefined' && Enemies.stunInRadius) {
+          Enemies.stunInRadius(new THREE.Vector3(x, y, z), _fbRadius, 4.0);
+        }
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💥 FLASHBANG — enemies stunned!', '#ffff44');
+      }
       // Smoke grenade: create a detection-blocking smoke zone at impact
       if (wType === 'SMOKE') {
         addSmokeZone(x, z, Weapons.getBlastRadius() || 6, 18);
