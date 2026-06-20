@@ -659,6 +659,7 @@ const DroneSystem = (function () {
 
   /* ── Update All Drones ───────────────────────────────────────────── */
   var _droneMotorActive = false;
+  var _droneMotorType = null;
   /* ── Bayraktar TB2: fixed-wing orbit + MAM-L auto-engage ──────────── */
   var _mamls = [];   // in-flight guided missiles { pos, vel, target, life, mesh }
 
@@ -796,6 +797,7 @@ const DroneSystem = (function () {
   function update(delta) {
     _updateMamls(delta);
     var nearestDroneDist = Infinity;
+    var nearestDroneType = null;
     for (const drone of drones) {
       if (!drone.alive || !drone.active) continue;
 
@@ -869,7 +871,7 @@ const DroneSystem = (function () {
           var cam = CameraSystem.getCamera ? CameraSystem.getCamera() : null;
           if (cam) {
             var dd = drone.position.distanceTo(cam.position);
-            if (dd < nearestDroneDist) nearestDroneDist = dd;
+            if (dd < nearestDroneDist) { nearestDroneDist = dd; nearestDroneType = drone.type; }
           }
         }
       }
@@ -882,14 +884,22 @@ const DroneSystem = (function () {
       if (typeof window.AudioSystem.updateDroneMotor !== 'function') window.AudioSystem.updateDroneMotor = function(){};
       if (typeof window.AudioSystem.stopDroneMotor !== 'function') window.AudioSystem.stopDroneMotor = function(){};
     }
-    // Drone motor sound — start/update/stop based on nearest drone
+    // Drone motor sound — start/update/stop based on nearest drone.
+    // Distinct engine signature per real-world model (Shahed moped buzz, FPV
+    // scream, Baba Yaga thrum, etc.) — restart the motor if the model changes.
     if (typeof window.AudioSystem !== 'undefined') {
       if (nearestDroneDist < 40) {
-        if (!_droneMotorActive) { window.AudioSystem.startDroneMotor(); _droneMotorActive = true; }
+        if (!_droneMotorActive || _droneMotorType !== nearestDroneType) {
+          if (_droneMotorActive) window.AudioSystem.stopDroneMotor();
+          window.AudioSystem.startDroneMotor(nearestDroneType);
+          _droneMotorActive = true;
+          _droneMotorType = nearestDroneType;
+        }
         window.AudioSystem.updateDroneMotor(nearestDroneDist);
       } else if (_droneMotorActive) {
         window.AudioSystem.stopDroneMotor();
         _droneMotorActive = false;
+        _droneMotorType = null;
       }
     }
 

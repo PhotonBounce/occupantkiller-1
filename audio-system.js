@@ -702,22 +702,50 @@ window.AudioSystem = (function () {
   }
 
   // Drone motor buzz — continuous oscillator pair, call update to change volume
-  var _droneOsc1 = null, _droneOsc2 = null, _droneGain = null;
-  function startDroneMotor() {
+  var _droneOsc1 = null, _droneOsc2 = null, _droneGain = null, _droneMotorBaseGain = 0.04;
+  // Per-model engine signatures — modeled on real drone acoustics.
+  // base/detune = oscillator Hz, band = bandpass centre, q = resonance,
+  // gain = base loudness, o1/o2 = waveforms.
+  var _DRONE_VOICES = {
+    // Ukrainian FPV racing quad — high-pitched aggressive scream
+    fpv_attack:   { base: 240, detune: 247, band: 900, q: 3,   gain: 0.05, o1: 'sawtooth', o2: 'square' },
+    kamikaze:     { base: 260, detune: 268, band: 1000, q: 3,  gain: 0.055, o1: 'sawtooth', o2: 'square' },
+    // DJI Mavic-style recon quad — quiet smooth hum
+    recon:        { base: 200, detune: 204, band: 520, q: 2,   gain: 0.03, o1: 'sawtooth', o2: 'triangle' },
+    surveillance: { base: 190, detune: 193, band: 480, q: 2,   gain: 0.03, o1: 'sawtooth', o2: 'triangle' },
+    // Bomber quad (octocopter dropping munitions) — medium buzz
+    bomb:         { base: 165, detune: 170, band: 420, q: 2.2, gain: 0.045, o1: 'sawtooth', o2: 'square' },
+    incendiary:   { base: 160, detune: 165, band: 410, q: 2.2, gain: 0.045, o1: 'sawtooth', o2: 'square' },
+    // Baba Yaga heavy agricultural hexacopter — deep heavy thrum
+    baba_yaga:    { base: 120, detune: 124, band: 300, q: 1.8, gain: 0.06, o1: 'sawtooth', o2: 'square' },
+    // Bayraktar TB2 — distant Rotax prop drone
+    bayraktar:    { base: 140, detune: 143, band: 360, q: 2,   gain: 0.035, o1: 'sawtooth', o2: 'triangle' },
+    // Russian Shahed-136 — the infamous "flying moped / lawnmower" 2-stroke buzz
+    enemy_bomber: { base: 95,  detune: 99,  band: 260, q: 4,   gain: 0.07, o1: 'sawtooth', o2: 'square' },
+    // Russian Lancet loitering munition — sharp small-prop whine
+    enemy_fpv:    { base: 220, detune: 226, band: 820, q: 3.5, gain: 0.05, o1: 'sawtooth', o2: 'square' },
+    // Russian Orlan-10 recon — small 2-stroke drone, lower hum
+    enemy_observer: { base: 130, detune: 134, band: 340, q: 2.5, gain: 0.04, o1: 'sawtooth', o2: 'triangle' },
+  };
+  var _DRONE_DEFAULT_VOICE = { base: 180, detune: 183, band: 400, q: 2, gain: 0.04, o1: 'sawtooth', o2: 'square' };
+
+  function startDroneMotor(droneType) {
     if (!enabled || !ctx || _droneOsc1) return;
     resume();
+    var v = _DRONE_VOICES[droneType] || _DRONE_DEFAULT_VOICE;
+    _droneMotorBaseGain = v.gain;
     _droneOsc1 = ctx.createOscillator();
-    _droneOsc1.type = 'sawtooth';
-    _droneOsc1.frequency.value = 180;
+    _droneOsc1.type = v.o1;
+    _droneOsc1.frequency.value = v.base;
     _droneOsc2 = ctx.createOscillator();
-    _droneOsc2.type = 'square';
-    _droneOsc2.frequency.value = 183; // slight detune for buzz
+    _droneOsc2.type = v.o2;
+    _droneOsc2.frequency.value = v.detune; // slight detune for buzz
     _droneGain = ctx.createGain();
-    _droneGain.gain.value = 0.04;
+    _droneGain.gain.value = v.gain;
     var filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.value = 400;
-    filter.Q.value = 2;
+    filter.frequency.value = v.band;
+    filter.Q.value = v.q;
     _droneOsc1.connect(filter);
     _droneOsc2.connect(filter);
     filter.connect(_droneGain);
@@ -728,7 +756,8 @@ window.AudioSystem = (function () {
   function updateDroneMotor(distance) {
     if (!_droneGain) return;
     if (!isFinite(distance) || distance > 40) { _droneGain.gain.value = 0; return; }
-    _droneGain.gain.value = _safeAudio(Math.max(0.005, 0.06 * (1 - distance / 40)));
+    var peak = (_droneMotorBaseGain || 0.04) * 1.5;
+    _droneGain.gain.value = _safeAudio(Math.max(0.005, peak * (1 - distance / 40)));
   }
   function stopDroneMotor() {
     if (_droneOsc1) { try { _droneOsc1.stop(); } catch(e){} _droneOsc1 = null; }
