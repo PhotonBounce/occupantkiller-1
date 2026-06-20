@@ -3271,6 +3271,48 @@ const Enemies = (() => {
                   }
                 } catch(_) {}
               }
+              // Flashbang salvo (BOSS_MOSCOW)
+              if (etResult.flashbangSalvo) {
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('🕶️ FLASHBANG SALVO!', 1500, '#ffffff');
+                }
+                // Apply flashbang effect on player (stun vision + HUD flash)
+                if (window.GameManager && window.GameManager._flashbangStun !== undefined) {
+                  window.GameManager._flashbangStun = Math.min(4, (window.GameManager._flashbangStun || 0) + 1.8);
+                }
+                if (typeof AudioSystem !== 'undefined' && AudioSystem.playFlashbang) AudioSystem.playFlashbang();
+                // VFX: spawn a couple of flash explosions near player
+                var _fbPos = new THREE.Vector3(etResult.flashbangSalvo.targetX, 1.5, etResult.flashbangSalvo.targetZ);
+                if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_fbPos, 1.2);
+              }
+              // Cruise missile (BOSS_SEVASTOPOL) — big 4-second inbound warning
+              if (etResult.cruiseMissile) {
+                var _cm = etResult.cruiseMissile;
+                var _cmPos = { x: _cm.targetX, z: _cm.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('🚀 CRUISE MISSILE INBOUND — 4 SECONDS!', 3500, '#ff4400');
+                }
+                if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.3, 0.5);
+                (function(_p, _d, _r) {
+                  setTimeout(function() {
+                    var _cv = new THREE.Vector3(_p.x, 0.5, _p.z);
+                    // Huge explosion
+                    if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+                      Tracers.spawnExplosion(_cv, _r * 0.8);
+                      Tracers.spawnExplosion(new THREE.Vector3(_p.x + (Math.random()-0.5)*_r*0.5, 1, _p.z + (Math.random()-0.5)*_r*0.5), _r * 0.4);
+                    }
+                    if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+                      WorldFeatures.applyExplosionDamage(_p.x, 0, _p.z, _r * 0.7, _d);
+                    }
+                    if (typeof onPlayerHit === 'function') {
+                      var _mx = playerPos.x - _p.x, _mz = playerPos.z - _p.z;
+                      var _md = Math.sqrt(_mx*_mx + _mz*_mz);
+                      if (_md < _r * 1.8) onPlayerHit(Math.round(_d * Math.max(0, 1 - _md/(_r*1.8))), _cv);
+                    }
+                    if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(2.0, 1.5);
+                  }, 4000);
+                })(_cmPos, _cm.damage, _cm.radius);
+              }
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
@@ -3903,6 +3945,23 @@ const Enemies = (() => {
     if (!enemy.alive) return 0;
     // Bunker shield invincibility (BOSS_KREMLIN)
     if (enemy._invincible) return enemy.hp;
+    // Tactical dodge (BOSS_MOSCOW and other nimble bosses)
+    var _dodgeCfg = enemy.typeCfg;
+    if (_dodgeCfg && _dodgeCfg.abilities && _dodgeCfg.abilities.indexOf('tactical_dodge') !== -1 && _dodgeCfg.dodgeChance) {
+      if (!isHeadshot && Math.random() < _dodgeCfg.dodgeChance) {
+        // Dodge! Show floating "DODGE" text via Feedback system if available
+        if (typeof Feedback !== 'undefined' && Feedback.spawnDamageNumber && enemy.mesh) {
+          Feedback.spawnDamageNumber(enemy.mesh.position, 'DODGE', false, '#88ddff');
+        }
+        if (typeof HUD !== 'undefined' && HUD.showToast && !enemy._dodgeWarnCool) {
+          HUD.showToast('🕶️ COLONEL DODGED!', 800, '#88ddff');
+          enemy._dodgeWarnCool = 4;
+        }
+        if (enemy._dodgeWarnCool) enemy._dodgeWarnCool -= 0.016; // rough dt
+        return enemy.hp;
+      }
+    }
+    if (enemy._dodgeWarnCool) enemy._dodgeWarnCool = Math.max(0, enemy._dodgeWarnCool - 0.016);
     // Reset regen cooldown timer (BOSS_CHORNOBYL) on any damage
     if (enemy._regenTimer !== undefined) enemy._regenTimer = 0;
 

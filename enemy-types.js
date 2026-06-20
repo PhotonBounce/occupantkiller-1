@@ -693,6 +693,31 @@ const EnemyTypes = (function () {
         };
       }
     }
+    // Flashbang salvo (BOSS_MOSCOW) — blinds player on interval
+    var hasFlash = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('flashbang_salvo') !== -1;
+    if (hasFlash && typeCfg.flashbangInterval) {
+      if (enemy._flashTimer === undefined) enemy._flashTimer = typeCfg.flashbangInterval * 0.7;
+      enemy._flashTimer += dt;
+      if (enemy._flashTimer >= typeCfg.flashbangInterval) {
+        enemy._flashTimer = 0;
+        result.flashbangSalvo = { targetX: playerPos.x, targetZ: playerPos.z };
+      }
+    }
+    // Cruise missile (BOSS_SEVASTOPOL) — big delayed single impact
+    var hasMissile = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('cruise_missile') !== -1;
+    if (hasMissile && typeCfg.missileInterval) {
+      if (enemy._missileTimer === undefined) enemy._missileTimer = typeCfg.missileInterval * 0.5;
+      enemy._missileTimer += dt;
+      if (enemy._missileTimer >= typeCfg.missileInterval) {
+        enemy._missileTimer = 0;
+        result.cruiseMissile = {
+          damage: typeCfg.missileDamage || 150,
+          radius: typeCfg.missileRadius || 7,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
     return result;
   }
 
