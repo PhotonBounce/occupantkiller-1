@@ -10,7 +10,18 @@ name: Deploy to GitHub Pages
 #   Settings → Pages → Build and deployment → Source → "GitHub Actions"
 #   (direct link: https://github.com/PhotonBounce/occupantkiller-1/settings/pages)
 # Until that's done this workflow skips the deploy with a warning (stays green).
-# After it's done, every push here publishes automatically.
+# After it's done, every push to main publishes automatically.
+#
+# ── WHY DEPLOY ONLY RUNS ON main ───────────────────────────────────────────
+# The auto-created `github-pages` environment restricts deployments to the
+# default branch (main). A deploy job that references that environment from a
+# feature branch (claude/**, copilot/**) is REJECTED by environment branch
+# protection in ~1s before any step runs — a hard CI failure we can't skip
+# from the workflow. So the deploy job is gated to main; feature branches run
+# only the (harmless) gate check. To enable per-branch PREVIEW deploys, the
+# repo owner can one-time add a branch pattern under
+#   Settings → Environments → github-pages → Deployment branches and tags
+# and then loosen the `if:` on the deploy job below.
 #
 # Live URL once deployed: https://photonbounce.github.io/occupantkiller-1/
 # (root game = /, microsite copy = /microsite/play/, QA gallery = /qa-gallery/)
@@ -65,7 +76,9 @@ jobs:
   # going to deploy — not on every push from a feature branch.
   deploy:
     needs: gate
-    if: needs.gate.outputs.ready == 'true'
+    # Only deploy from main — the github-pages environment rejects feature
+    # branches (see header). On branches this job is skipped, keeping CI green.
+    if: needs.gate.outputs.ready == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
