@@ -4985,7 +4985,7 @@ const GameManager = (function () {
       shopBtns[si].style.color = '';
     }
     // Restore button text
-    var btnTexts = { health: '\u2764\uFE0F Health +50 \u00B7 40 OKC', armor: '\uD83D\uDEE1\uFE0F Armor Pack \u00B7 60 OKC', ammo: '\uD83D\uDD2B Full Ammo \u00B7 30 OKC', stim: '\uD83D\uDC89 Stim Pack \u00B7 50 OKC' };
+    var btnTexts = { health: '\u2764\uFE0F Health +50 \u00B7 40 OKC', armor: '\uD83D\uDEE1\uFE0F Armor Pack \u00B7 60 OKC', ammo: '\uD83D\uDD2B Full Ammo \u00B7 30 OKC', stim: '\uD83D\uDC89 Stim Pack \u00B7 50 OKC', dmgboost: '\uD83D\uDD25 Damage +25% \u00B7 60 OKC', airstrike_tok: '\u2708 Airstrike Token \u00B7 90 OKC' };
     for (var si2 = 0; si2 < shopBtns.length; si2++) {
       var itemId = shopBtns[si2].getAttribute('data-item');
       if (btnTexts[itemId]) shopBtns[si2].textContent = btnTexts[itemId];
