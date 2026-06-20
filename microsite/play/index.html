@@ -701,6 +701,18 @@
     </div>
   </div>
 
+  <!-- Death flash overlay — red vignette that fades to black on player death -->
+  <div id="death-flash" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:800;pointer-events:none;background:radial-gradient(ellipse 120% 120% at 50% 50%,rgba(200,0,0,0.0) 0%,rgba(180,0,0,0.7) 60%,rgba(0,0,0,1.0) 100%)"></div>
+  <style>
+    @keyframes deathFlash {
+      0%   { opacity:0 }
+      12%  { opacity:1 }
+      40%  { opacity:0.85 }
+      100% { opacity:1 }
+    }
+    #death-flash.active { animation: deathFlash 1.15s ease-out forwards; }
+  </style>
+
   <!-- Pause screen (legacy fallback — redirects to unified inventory overlay) -->
   <div id="overlay-pause" class="overlay" style="display:none">
     <h1>PAUSED</h1>

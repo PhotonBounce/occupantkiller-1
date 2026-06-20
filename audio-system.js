@@ -1962,7 +1962,36 @@ window.AudioSystem = (function () {
     playBulletSnap: playBulletSnap,
     playImpact: playImpact,
     playLowHealth: playLowHealth,
+    playFlatline: playFlatline,
   };
+
+  // EKG flatline — played on player death before death overlay
+  function playFlatline() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    // Short beeps (last heartbeats) followed by continuous flatline tone
+    var beats = [0, 0.22, 0.44];
+    beats.forEach(function(t) {
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0, now + t);
+      g.gain.linearRampToValueAtTime(0.18, now + t + 0.02);
+      g.gain.setValueAtTime(0.18, now + t + 0.06);
+      g.gain.exponentialRampToValueAtTime(0.001, now + t + 0.12);
+      o.connect(g); g.connect(masterGain);
+      o.start(now + t); o.stop(now + t + 0.14);
+    });
+    // Flatline drone (1000ms)
+    var fl = ctx.createOscillator();
+    var fg = ctx.createGain();
+    fl.type = 'sine'; fl.frequency.value = 1000;
+    fg.gain.setValueAtTime(0.08, now + 0.7);
+    fg.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+    fl.connect(fg); fg.connect(masterGain);
+    fl.start(now + 0.7); fl.stop(now + 1.9);
+  }
 })();
 if (typeof window !== 'undefined' && window.AudioSystem) {
   console.log('[AudioSystem] Assigned to window. Keys:', Object.keys(window.AudioSystem));

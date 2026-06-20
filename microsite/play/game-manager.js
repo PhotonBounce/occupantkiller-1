@@ -6136,12 +6136,27 @@ const GameManager = (function () {
       var _dtEl = document.getElementById('dead-title');
       if (_dtEl) _dtEl.textContent = _defeatReason || 'YOU DIED';
       _defeatReason = null;
-      showOverlay('dead');
 
-      var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
-      var _dsc = document.getElementById('dead-score');  if (_dsc) _dsc.textContent = player.score;
-      var _dk = document.getElementById('dead-kills');   if (_dk) _dk.textContent = player.kills;
-      var _dw = document.getElementById('dead-wave');    if (_dw) _dw.textContent = currentWave;
+      // Dramatic death flash — red vignette → black before overlay appears
+      var _deathFlashEl = document.getElementById('death-flash');
+      if (_deathFlashEl) {
+        _deathFlashEl.style.display = 'block';
+        _deathFlashEl.classList.remove('active');
+        // Force reflow so animation re-triggers
+        void _deathFlashEl.offsetWidth;
+        _deathFlashEl.classList.add('active');
+      }
+      // Flatline audio cue
+      if (window.AudioSystem && window.AudioSystem.playFlatline) window.AudioSystem.playFlatline();
+
+      // Delay death overlay by 1.2s for dramatic effect
+      setTimeout(function() {
+        if (_deathFlashEl) { _deathFlashEl.classList.remove('active'); _deathFlashEl.style.display = 'none'; }
+        showOverlay('dead');
+        var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
+        var _dsc = document.getElementById('dead-score');  if (_dsc) _dsc.textContent = player.score;
+        var _dk = document.getElementById('dead-kills');   if (_dk) _dk.textContent = player.kills;
+        var _dw = document.getElementById('dead-wave');    if (_dw) _dw.textContent = currentWave;
 
       // ── Gameplay Tip Overlay on Death ──
       var tips = [
@@ -6219,6 +6234,7 @@ const GameManager = (function () {
           distance: Math.round(player.distanceWalked),
         });
       }
+      }, 1200); // end of death overlay setTimeout
     }
   }
 
