@@ -6179,14 +6179,16 @@ const Weapons = (() => {
       }
     }
 
+    var _skillSpreadMod = (typeof SkillSystem !== 'undefined' && SkillSystem.getSpreadMod) ? SkillSystem.getSpreadMod() : 1.0;
+    var _effectiveSpread = wep.spread * _skillSpreadMod;
     spreadVec.set(
-      (Math.random() - 0.5) * wep.spread * 2,
-      (Math.random() - 0.5) * wep.spread * 2
+      (Math.random() - 0.5) * _effectiveSpread * 2,
+      (Math.random() - 0.5) * _effectiveSpread * 2
     );
     if (_aimSnapDir) {
       raycaster.ray.origin.copy(camera.getWorldPosition(new THREE.Vector3()));
       raycaster.ray.direction.copy(_aimSnapDir).add(
-        new THREE.Vector3((Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread)
+        new THREE.Vector3((Math.random()-0.5)*_effectiveSpread, (Math.random()-0.5)*_effectiveSpread, (Math.random()-0.5)*_effectiveSpread)
       ).normalize();
     } else {
       raycaster.setFromCamera(spreadVec, camera);
