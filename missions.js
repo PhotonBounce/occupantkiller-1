@@ -17,20 +17,23 @@ const MissionSystem = (function () {
 
   /* ── Templates ───────────────────────────────────────────────────── */
   const TEMPLATES = {
-            // Bradley IFV Assault — drive M2A3 Bradley, clear forest ambush
-            //   M242 Bushmaster 25mm chain gun (200 rpm cyclic, dual-feed HE/AP)
-            //   M240C 7.62mm coax. Press B to enter/exit. WASD drive, mouse aim turret.
+            // ── Bradley IFV Assault (Ukrainian Treeline Doctrine) ──────────────────
+            // Ukrainian doctrine observed in 47th Mechanized Brigade + 33rd Mech:
+            //   1. Halt outside treeline at 400-600m — fire TOW at AT teams / AFVs first
+            //   2. Suppress treeline with 25mm HE-T (M792) rounds at 300m walking fire
+            //   3. Close to 150m and switch to AP-T (M791) for hard cover
+            //   4. Dismount infantry to clear remaining positions
+            // Press G to mount | T: TOW missile | LMB: M242 25mm | RMB: Coax | WASD drive | B exit
             bradley_mission: {
-              name: 'Bradley IFV Assault',
-              description: 'Forest ambush ahead. Bradley IFV recommended — 25mm Bushmaster and M240 coax will tear through their lines. Clear every occupant.',
+              name: 'Bradley Treeline Assault',
+              description: 'Ukrainian doctrine: halt at 500m, TOW suppression first. Then advance and sweep the treeline with 25mm Bushmaster. Dismount and clear.',
               tier: 5,
               generate() {
-                var killTarget = 18 + Math.floor(Math.random() * 7); // 18-24
+                var killTarget = 20 + Math.floor(Math.random() * 8); // 20-27 enemies
                 var spawned = 0;
-                var spawnPositions = [];
                 var spawnedEnemyIds = [];
+                var spawnPositions = [];
                 try {
-                  // Find the player position via active camera
                   var playerPos = new THREE.Vector3(0, 0, 0);
                   try {
                     if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
@@ -38,49 +41,70 @@ const MissionSystem = (function () {
                       if (p && p.position) playerPos.copy(p.position);
                     }
                   } catch (e) {}
-                  // Forest ambush ahead of player (~80-130 units away)
+
                   var fwdAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw)
                     ? CameraSystem.getYaw() : Math.random() * Math.PI * 2;
                   var fwd = new THREE.Vector3(Math.sin(fwdAngle), 0, Math.cos(fwdAngle));
-                  var center = playerPos.clone().add(fwd.clone().multiplyScalar(105));
+                  var right = new THREE.Vector3(fwd.z, 0, -fwd.x);
+
+                  // PHASE 1: AT teams at 450-600m (TOW priority targets)
+                  // Real doctrine: Bradleys engage Russian AT assets at max standoff before closing
+                  var atTypes = ['SPETSNAZ', 'ENGINEER', 'STORMER'];
+                  var numAT = 4 + Math.floor(Math.random() * 3);
                   if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-                    var types = ['CONSCRIPT', 'STORMER', 'ENGINEER', 'SNIPER'];
-                    for (var i = 0; i < killTarget; i++) {
-                      // Scatter across an 80x40 forest strip
-                      var ux = (Math.random() - 0.5) * 80;
-                      var uz = (Math.random() - 0.5) * 40;
-                      // Rotate the strip to face the player axis
-                      var rx = ux * fwd.z + uz * fwd.x;
-                      var rz = -ux * fwd.x + uz * fwd.z;
-                      var ex = center.x + rx;
-                      var ez = center.z + rz;
-                      var ey = 0;
-                      try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ey = VoxelWorld.getTerrainHeight(ex, ez) || 0; } catch (e2) {}
+                    for (var a = 0; a < numAT; a++) {
+                      var atDist = 450 + Math.random() * 150; // 450-600m
+                      var atLat  = (Math.random() - 0.5) * 60;
+                      var ax = playerPos.x + fwd.x * atDist + right.x * atLat;
+                      var az = playerPos.z + fwd.z * atDist + right.z * atLat;
+                      var ay = 0;
+                      try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ay = VoxelWorld.getTerrainHeight(ax, az) || 0; } catch (e2) {}
                       try {
-                        var tp = types[Math.floor(Math.random() * types.length)];
-                        var spawnedEnemy = Enemies.spawnSingle(tp, { x: ex, y: ey + 1, z: ez });
-                        if (spawnedEnemy) {
-                          spawnedEnemyIds.push(spawnedEnemy.id);
-                          spawned++;
-                        }
-                        spawnPositions.push({ x: ex, z: ez });
+                        var atType = atTypes[Math.floor(Math.random() * atTypes.length)];
+                        var se = Enemies.spawnSingle(atType, { x: ax, y: ay + 1, z: az });
+                        if (se) { spawnedEnemyIds.push(se.id); spawned++; spawnPositions.push({ x: ax, z: az }); }
                       } catch (eS) {}
                     }
                   }
-                  // Auto-spawn the Bradley right next to the player and announce
+
+                  // PHASE 2: Infantry line inside treeline at 100-250m wide strip at 300-480m
+                  // These are the treeline defenders — suppressed and then swept by Bushmaster
+                  var treeTypes = ['CONSCRIPT', 'STORMER', 'CONSCRIPT', 'CONSCRIPT', 'BOMBER'];
+                  var numTree = killTarget - numAT;
+                  if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+                    for (var t = 0; t < numTree; t++) {
+                      var tDist = 300 + Math.random() * 180; // 300-480m
+                      var tLat  = (Math.random() - 0.5) * 100; // 100m wide treeline
+                      var tx = playerPos.x + fwd.x * tDist + right.x * tLat;
+                      var tz = playerPos.z + fwd.z * tDist + right.z * tLat;
+                      var ty = 0;
+                      try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ty = VoxelWorld.getTerrainHeight(tx, tz) || 0; } catch (e2) {}
+                      try {
+                        var tType = treeTypes[Math.floor(Math.random() * treeTypes.length)];
+                        var se2 = Enemies.spawnSingle(tType, { x: tx, y: ty + 1, z: tz });
+                        if (se2) { spawnedEnemyIds.push(se2.id); spawned++; spawnPositions.push({ x: tx, z: tz }); }
+                      } catch (eS2) {}
+                    }
+                  }
+
+                  // Spawn Bradley right next to player and announce with doctrine brief
                   try {
                     if (typeof Bradley !== 'undefined' && Bradley.spawnAt) {
-                      var bx = playerPos.x + 4;
-                      var bz = playerPos.z;
+                      var bx = playerPos.x + fwd.x * 4 - right.x * 2;
+                      var bz = playerPos.z + fwd.z * 4 - right.z * 2;
                       var by = 0;
                       try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) by = VoxelWorld.getTerrainHeight(bx, bz) || 0; } catch (e3) {}
                       Bradley.spawnAt(new THREE.Vector3(bx, by, bz));
                     }
-                    if (typeof HUD !== 'undefined' && HUD.showToast) {
-                      HUD.showToast('🚛 BRADLEY SPAWNED — Press G to mount. M242 Bushmaster 25mm + M240 coax.', 5000, '#a0c878');
-                    }
+                    setTimeout(function() {
+                      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F69B} BRADLEY IFV READY — Press G to mount', 4000, '#a0c878'); } catch (e) {}
+                    }, 400);
+                    setTimeout(function() {
+                      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F3AF} DOCTRINE: T = TOW missiles first (AT teams at 500m) → then LMB Bushmaster sweep', 6500, '#ffcc44'); } catch (e) {}
+                    }, 4800);
                   } catch (eBR) {}
                 } catch (eAll) {}
+
                 return {
                   type: 'bradley_mission',
                   killTarget: killTarget,
@@ -89,22 +113,31 @@ const MissionSystem = (function () {
                   spawnedEnemyIds: spawnedEnemyIds,
                   spawnPositions: spawnPositions,
                   startTime: Date.now(),
-                  objectiveText: 'Clear forest ambush ahead...',
+                  phase: 1,  // 1=TOW, 2=Bushmaster, 3=clear
+                  objectiveText: 'PHASE 1: Engage AT teams with TOW at 500m',
                 };
               },
               check(mission) {
-                if (mission.spawned === 0) { mission.objectiveText = 'Clear forest ambush: complete'; return true; }
+                if (mission.spawned === 0) { mission.objectiveText = 'Treeline clear — Bradley mission complete'; return true; }
                 if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) return false;
                 var aliveCount = 0;
                 var allEnemies = Enemies.getAll();
                 for (var id of mission.spawnedEnemyIds) {
-                  var found = allEnemies.find(e => e && e.id === id);
-                  if (found && found.alive) {
-                    aliveCount++;
-                  }
+                  var found = allEnemies.find(function(e) { return e && e.id === id; });
+                  if (found && found.alive) aliveCount++;
                 }
                 mission.kills = mission.spawned - aliveCount;
-                mission.objectiveText = `Clear forest ambush: ${mission.kills}/${mission.spawned} killed`;
+                // Phase progression hints
+                var pct = mission.kills / mission.spawned;
+                if (pct >= 0.4 && mission.phase === 1) {
+                  mission.phase = 2;
+                  try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F525} PHASE 2: Advance and sweep treeline with 25mm Bushmaster', 5000, '#ff8833'); } catch(e) {}
+                }
+                if (pct >= 0.75 && mission.phase === 2) {
+                  mission.phase = 3;
+                  try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F4A5} PHASE 3: Dismount and clear remaining positions', 4000, '#ff5555'); } catch(e) {}
+                }
+                mission.objectiveText = 'Treeline assault: ' + mission.kills + '/' + mission.spawned + ' killed (Phase ' + mission.phase + ')';
                 return aliveCount === 0;
               },
             },
