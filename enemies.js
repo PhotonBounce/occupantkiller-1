@@ -867,6 +867,9 @@ const Enemies = (() => {
   let _disguiseBlown = false;   // becomes true once player attacks anyone
   let _aiStrategy = null; // ML counter-strategy for this wave
   let _adaptiveMult = 1.0; // B25: adaptive difficulty multiplier
+  // Corpses that stay in-world as permanent walkable obstacles (max 60)
+  let _persistentCorpses = [];
+  if (typeof window !== 'undefined') window._corpseObstacles = _persistentCorpses;
 
   const ARENA_SIZE = 24;
   const DETECTION_RANGE = 14;   // enemies detect player within this range
@@ -2137,12 +2140,22 @@ const Enemies = (() => {
             if (scene) scene.remove(e._laserLine);
             e._laserLine = null;
           }
-          disposeMeshTree(e.mesh);
-          if (scene) scene.remove(e.mesh);
           if (e.hpBar) {
             disposeMeshTree(e.hpBar.group);
             if (scene) scene.remove(e.hpBar.group);
             e.hpBar = null;
+          }
+          // Freeze corpse flat on the ground and keep as walkable obstacle
+          if (e.mesh) {
+            e.mesh.rotation.x = -Math.PI / 2;
+            e.mesh.rotation.z = (e.mesh.rotation.z || 0) + (Math.random() - 0.5) * 0.4;
+            e.mesh.position.y = e._groundY !== undefined ? e._groundY : e.mesh.position.y;
+            _persistentCorpses.push({ x: e.mesh.position.x, y: e.mesh.position.y, z: e.mesh.position.z, mesh: e.mesh });
+            // Cap: oldest corpse beyond limit gets removed from scene
+            if (_persistentCorpses.length > 60) {
+              var _oldest = _persistentCorpses.shift();
+              if (_oldest.mesh && scene) { disposeMeshTree(_oldest.mesh); scene.remove(_oldest.mesh); }
+            }
           }
           enemies[i] = null;
           _cacheFrame = -1; // force cache rebuild
@@ -2936,6 +2949,7 @@ const Enemies = (() => {
               if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playExplosion();
               if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(e.mesh.position, 3);
               e.hp = 0; e.alive = false; e.deathTimer = 6.0;
+              if (e.mesh) e._groundY = e.mesh.position.y - (e.height || 1.8);
               e._deathTiltX = -1.5; e._deathPopY = 2;
             }
             // Bomber beep warning: flash body red
@@ -3816,6 +3830,8 @@ const Enemies = (() => {
     if (enemy.hp <= 0) {
       enemy.alive      = false;
       enemy.deathTimer = 6.0;
+      // Record ground Y now so frozen corpse snaps to ground when timer expires
+      if (enemy.mesh) enemy._groundY = enemy.mesh.position.y - (enemy.height || 1.8);
       // Spatial death grunt
       if (typeof window !== 'undefined' && window.AudioSystem && window.AudioSystem.playEnemyDeath && _playerPos && enemy.mesh) {
         var _ddx = enemy.mesh.position.x - _playerPos.x;
@@ -3984,6 +4000,12 @@ const Enemies = (() => {
       if (dec.material && dec.material.dispose) dec.material.dispose();
     });
     bloodDecals.length = 0;
+
+    // Remove all persistent frozen corpses from scene
+    _persistentCorpses.forEach(function (pc) {
+      if (pc.mesh && scene) { disposeMeshTree(pc.mesh); scene.remove(pc.mesh); }
+    });
+    _persistentCorpses.length = 0;
 
     // Clean up spawn dust puffs
     _spawnDusts.forEach(sd => {
