@@ -3292,6 +3292,11 @@ const GameManager = (function () {
     // Generate level terrain and features
     window.VoxelWorld.generateLevel(stageIndex);
 
+    // Roadside war-scene set dressing (civilian + destroyed military vehicles)
+    if (typeof CityProps !== 'undefined' && CityProps.populate) {
+      try { CityProps.populate(_scene, stageIndex, stageDef); } catch (eCP) { if (typeof console !== 'undefined') console.warn('CityProps.populate failed:', eCP); }
+    }
+
     // Capital defense (Kyiv): fresh city integrity + defense zone at Maidan.
     if (typeof ConvoySystem !== 'undefined') {
       ConvoySystem.reset();

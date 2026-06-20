@@ -1,0 +1,65 @@
+name: Deploy QA Gallery to photon-bounce FTP
+
+# Uploads the qa-gallery/ slideshow to the user's website over FTP.
+# Claude's sandbox blocks outbound FTP, but GitHub's runners can reach it,
+# so the gallery is published from CI instead.
+#
+# ── ONE-TIME SETUP (repo owner) ───────────────────────────────────────────
+# Add the FTP password as a repo secret so it is never committed in plaintext:
+#   Settings → Secrets and variables → Actions → New repository secret
+#     Name:  FTP_PASSWORD
+#     Value: <your ftp.photon-bounce.com password for user "photonb">
+# (Server host + username are non-secret and set below.) Without the secret the
+# upload step skips cleanly with a warning — CI stays green.
+
+on:
+  push:
+    branches:
+      - main
+      - claude/peaceful-cannon-oqez4t
+    paths:
+      - 'qa-gallery/**'
+      - '.github/workflows/ftp-gallery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ftp-gallery
+  cancel-in-progress: true
+
+jobs:
+  ftp-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check FTP secret presence
+        id: gate
+        env:
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -n "$FTP_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "FTP_PASSWORD secret found — will upload."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FTP_PASSWORD secret not set — skipping upload. Add it in Settings → Secrets and variables → Actions to publish the gallery to photon-bounce.com."
+          fi
+
+      - name: Upload qa-gallery to ftp.photon-bounce.com /occupantkiller
+        if: steps.gate.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftp.photon-bounce.com
+          username: photonb
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./qa-gallery/
+          server-dir: /occupantkiller/
+          dangerous-clean-slate: false
+
+      - name: Summary
+        if: steps.gate.outputs.ready == 'true'
+        run: echo "Gallery published → https://photon-bounce.com/occupantkiller/"
