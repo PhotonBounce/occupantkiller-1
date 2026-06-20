@@ -4,6 +4,14 @@ name: Deploy to GitHub Pages
 # The game is 100% static (no backend needed — api-client.js degrades
 # gracefully when offline), so Pages can serve it directly.
 #
+# ── ONE-TIME SETUP (repo owner) ────────────────────────────────────────────
+# GitHub's built-in Actions token CANNOT enable Pages on a fork (it gets 403),
+# so Pages must be turned on once by hand:
+#   Settings → Pages → Build and deployment → Source → "GitHub Actions"
+#   (direct link: https://github.com/PhotonBounce/occupantkiller-1/settings/pages)
+# Until that's done this workflow skips the deploy with a warning (stays green).
+# After it's done, every push here publishes automatically.
+#
 # Live URL once deployed: https://photonbounce.github.io/occupantkiller-1/
 # (root game = /, microsite copy = /microsite/play/, QA gallery = /qa-gallery/)
 
@@ -25,39 +33,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  enable-pages:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Enable GitHub Pages (idempotent)
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ github.repository }}/pages" \
-            -d '{"build_type":"workflow"}')
-          echo "Pages enable HTTP status: $STATUS"
-          # 201 = created, 409 = already exists — both are success
-          if [ "$STATUS" = "201" ]; then
-            echo "GitHub Pages successfully enabled."
-          elif [ "$STATUS" = "409" ]; then
-            echo "GitHub Pages already enabled."
-          else
-            echo "Unexpected status $STATUS — continuing anyway."
-          fi
-
   deploy:
-    needs: enable-pages
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
+      - name: Check whether Pages is enabled
+        id: gate
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/pages")
+          if [ "$CODE" = "200" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "GitHub Pages is enabled — proceeding to deploy."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GitHub Pages is not enabled yet (API returned $CODE). Enable it once at Settings → Pages → Source: 'GitHub Actions' (https://github.com/${{ github.repository }}/settings/pages), then re-run this workflow. Skipping deploy for now."
+          fi
+
       - name: Checkout
+        if: steps.gate.outputs.ready == 'true'
         uses: actions/checkout@v4
 
       - name: Assemble lean site (game files only)
+        if: steps.gate.outputs.ready == 'true'
         run: |
           mkdir -p _site
           # Copy the whole tree EXCEPT heavy, non-game directories so the
@@ -90,13 +93,20 @@ jobs:
           ls -1 _site | head -40
 
       - name: Setup Pages
+        if: steps.gate.outputs.ready == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
+        if: steps.gate.outputs.ready == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: '_site'
 
       - name: Deploy to GitHub Pages
         id: deployment
+        if: steps.gate.outputs.ready == 'true'
         uses: actions/deploy-pages@v4
+
+      - name: Summary
+        if: steps.gate.outputs.ready == 'true'
+        run: echo "Game published → ${{ steps.deployment.outputs.page_url }}"
