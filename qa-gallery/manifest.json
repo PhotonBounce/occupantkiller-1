@@ -1,0 +1,128 @@
+[
+  {
+    "file": "shots/00-hostomel-airport.jpg",
+    "stage": 0,
+    "name": "HOSTOMEL AIRPORT",
+    "theme": "grassland",
+    "props": 9
+  },
+  {
+    "file": "shots/01-avdiivka-sector.jpg",
+    "stage": 1,
+    "name": "AVDIIVKA SECTOR",
+    "theme": "urban",
+    "props": 16
+  },
+  {
+    "file": "shots/02-bakhmut-ruins.jpg",
+    "stage": 2,
+    "name": "BAKHMUT RUINS",
+    "theme": "urban",
+    "props": 16
+  },
+  {
+    "file": "shots/03-kherson-crossing.jpg",
+    "stage": 3,
+    "name": "KHERSON CROSSING",
+    "theme": "grassland",
+    "props": 9
+  },
+  {
+    "file": "shots/04-mariupol-steelworks.jpg",
+    "stage": 4,
+    "name": "MARIUPOL STEELWORKS",
+    "theme": "industrial",
+    "props": 14
+  },
+  {
+    "file": "shots/05-crimea-bridge.jpg",
+    "stage": 5,
+    "name": "CRIMEA BRIDGE",
+    "theme": "coastal",
+    "props": 9
+  },
+  {
+    "file": "shots/06-chornobyl-zone.jpg",
+    "stage": 6,
+    "name": "CHORNOBYL ZONE",
+    "theme": "wasteland",
+    "props": 9
+  },
+  {
+    "file": "shots/07-outer-moscow.jpg",
+    "stage": 7,
+    "name": "OUTER MOSCOW",
+    "theme": "cityscape",
+    "props": 9
+  },
+  {
+    "file": "shots/08-sevastopol-naval-base.jpg",
+    "stage": 8,
+    "name": "SEVASTOPOL NAVAL BASE",
+    "theme": "coastal",
+    "props": 9
+  },
+  {
+    "file": "shots/09-donbas-final-push.jpg",
+    "stage": 9,
+    "name": "DONBAS FINAL PUSH",
+    "theme": "urban",
+    "props": 16
+  },
+  {
+    "file": "shots/10-belgorod-offensive.jpg",
+    "stage": 10,
+    "name": "BELGOROD OFFENSIVE",
+    "theme": "grassland",
+    "props": 9
+  },
+  {
+    "file": "shots/11-kremlin-showdown.jpg",
+    "stage": 11,
+    "name": "KREMLIN SHOWDOWN",
+    "theme": "cityscape",
+    "props": 9
+  },
+  {
+    "file": "shots/12-battle-of-kyiv.jpg",
+    "stage": 12,
+    "name": "BATTLE OF KYIV",
+    "theme": "urban",
+    "props": 16
+  },
+  {
+    "file": "shots/13-snake-island-defense.jpg",
+    "stage": 13,
+    "name": "SNAKE ISLAND DEFENSE",
+    "theme": "coastal",
+    "props": 9
+  },
+  {
+    "file": "shots/14-saky-airbase-strike.jpg",
+    "stage": 14,
+    "name": "SAKY AIRBASE STRIKE",
+    "theme": "coastal",
+    "props": 9
+  },
+  {
+    "file": "shots/15-vuhledar-tank-graveyard.jpg",
+    "stage": 15,
+    "name": "VUHLEDAR TANK GRAVEYARD",
+    "theme": "wasteland",
+    "props": 9
+  },
+  {
+    "file": "shots/16-antonov-bridge-strike.jpg",
+    "stage": 16,
+    "name": "ANTONOV BRIDGE STRIKE",
+    "theme": "urban",
+    "props": 16
+  },
+  {
+    "file": "shots/17-refinery-strike-fpv-drone.jpg",
+    "stage": 17,
+    "name": "REFINERY STRIKE — FPV DRONE",
+    "theme": "industrial",
+    "props": 0
+  }
+]
