@@ -5479,6 +5479,12 @@ const GameManager = (function () {
       baseDmg = Math.round(baseDmg * Perks.getDeadEyeMult());
       HUD.notifyPickup('🎯 DEAD EYE CRIT!', '#ff4400');
     }
+    // Marksman proc — previous headshot grants +30% to this shot
+    if (typeof Perks !== 'undefined' && Perks.getMarksmanMult() > 1.0) {
+      baseDmg = Math.round(baseDmg * Perks.getMarksmanMult());
+      Perks.consumeMarksman();
+      HUD.notifyPickup('🔭 MARKSMAN!', '#4488ff');
+    }
     // Prestige damage bonus
     if (typeof Progression !== 'undefined') {
       var pBonuses = Progression.getPrestigeBonuses();
@@ -5519,6 +5525,7 @@ const GameManager = (function () {
       player.score += 50;
       player.totalHeadshots++;
       player.waveHeadshots++;
+      if (typeof Perks !== 'undefined' && Perks.onHeadshot) Perks.onHeadshot();
     }
 
     if (remaining <= 0) {
@@ -8605,7 +8612,8 @@ const GameManager = (function () {
     _scene.add(nade);
     var fwd = _camera.getWorldDirection(new THREE.Vector3());
     var vel = new THREE.Vector3(fwd.x * 18, 6 + fwd.y * 14, fwd.z * 18);
-    _handGrenades.push({ mesh: nade, vel: vel, fuse: 2.5, spin: new THREE.Vector3(8, 6, 4) });
+    var _nadeFuse = 2.5 - (typeof Perks !== 'undefined' && Perks.getGrenadeFuseSub ? Perks.getGrenadeFuseSub() : 0);
+    _handGrenades.push({ mesh: nade, vel: vel, fuse: _nadeFuse, spin: new THREE.Vector3(8, 6, 4) });
     if (!player.godMode) player.grenades = Math.max(0, player.grenades - 1);
     if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : player.grenades);
     _handGrenadeCooldown = 0.45;
@@ -8650,7 +8658,8 @@ const GameManager = (function () {
           try { window.AudioSystem.playExplosion(); } catch (e) {}
         }
         if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
-          var _gRes = Enemies.damageInRadius(pos, 6.5, 110);
+          var _explMult = (typeof Perks !== 'undefined' && Perks.getExplosiveDamageMult) ? Perks.getExplosiveDamageMult() : 1.0;
+          var _gRes = Enemies.damageInRadius(pos, 6.5, Math.round(110 * _explMult));
           if (player && Array.isArray(_gRes)) {
             var _gKills = 0;
             for (var _gi = 0; _gi < _gRes.length; _gi++) if (_gRes[_gi].remaining <= 0) _gKills++;
