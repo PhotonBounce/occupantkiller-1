@@ -2854,8 +2854,14 @@ const Enemies = (() => {
             var rageMod = e._rageMult || 1.0;
             e._rangedTimer = e.typeCfg.rangedRate * fireRateMod / rageMod;
 
-            // Chance to throw grenade instead of shooting (8% when dist 8-20)
-            if (distToPlayer > 8 && distToPlayer < 20 && Math.random() < 0.08) {
+            // Grenade chance scales with wave number; elite types throw more
+            var _grenBase = Math.min(0.18, 0.04 + wave * 0.012);
+            var _grenTN = e.typeCfg ? e.typeCfg.name : '';
+            var _grenElite = (_grenTN === 'SPETSNAZ' || _grenTN === 'OFFICER' ||
+                              _grenTN === 'STORMER'  || _grenTN === 'SABOTEUR' ||
+                              _grenTN === 'WAGNER')  ? 0.10 : 0;
+            var _grenChance = _grenBase + _grenElite;
+            if (distToPlayer > 8 && distToPlayer < 22 && Math.random() < _grenChance) {
               throwEnemyGrenade(e.mesh.position, playerPos);
               triggerBark(e, 'grenade');
             } else {

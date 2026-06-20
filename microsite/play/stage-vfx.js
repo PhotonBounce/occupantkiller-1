@@ -666,21 +666,27 @@ var StageVFX = (function () {
   var _ambientProps = [];  // { mesh, type, timer }
 
   function spawnAmbientProps() {
-    // Smoke columns at random positions near spawn area
-    for (var i = 0; i < 4; i++) {
-      var sx = (Math.random() - 0.5) * 80;
-      var sz = (Math.random() - 0.5) * 80;
-      var smokeLight = new THREE.PointLight(0xff6600, 0.5, 8);
-      smokeLight.position.set(sx, 2, sz);
+    var fireCount = _warzone ? 8 : 4;
+    var fireRange = _warzone ? 100 : 80;
+    var fireIntensity = _warzone ? 1.2 : 0.5;
+    var fireRadius = _warzone ? 14 : 8;
+    // Burning vehicle / building fire glows
+    for (var i = 0; i < fireCount; i++) {
+      var sx = (Math.random() - 0.5) * fireRange;
+      var sz = (Math.random() - 0.5) * fireRange;
+      var fireColor = _warzone ? (Math.random() < 0.6 ? 0xff4400 : 0xff8800) : 0xff6600;
+      var smokeLight = new THREE.PointLight(fireColor, fireIntensity, fireRadius);
+      smokeLight.position.set(sx, 1.5 + Math.random() * 2, sz);
       if (groupMesh) groupMesh.add(smokeLight);
       _ambientProps.push({ mesh: smokeLight, type: 'fire-glow', timer: Math.random() * 6.28 });
     }
-    // Flickering window lights
-    for (var j = 0; j < 6; j++) {
+    // Flickering window lights — fewer in warzone (most buildings dark/destroyed)
+    var winCount = _warzone ? 3 : 6;
+    for (var j = 0; j < winCount; j++) {
       var lx = (Math.random() - 0.5) * 60;
       var ly = 3 + Math.random() * 8;
       var lz = (Math.random() - 0.5) * 60;
-      var windowLight = new THREE.PointLight(0xffcc66, 0.3, 6);
+      var windowLight = new THREE.PointLight(_warzone ? 0xff6633 : 0xffcc66, _warzone ? 0.5 : 0.3, 6);
       windowLight.position.set(lx, ly, lz);
       if (groupMesh) groupMesh.add(windowLight);
       _ambientProps.push({ mesh: windowLight, type: 'flicker', timer: Math.random() * 6.28 });
