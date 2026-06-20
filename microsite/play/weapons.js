@@ -48,6 +48,7 @@ const Weapons = (() => {
       id: 'SVD', name: 'SVD Dragunov', damage: 115,
       fireRate: 0.85, clipSize: 10, maxReserve: 40, reloadTime: 3.5,
       spread: 0.004, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.040, recoilX: 0.010,
+      critChance: 0.20, critMult: 2.0,
     },
     {
       id: 'PKM', name: 'PKM', damage: 18,
@@ -122,6 +123,7 @@ const Weapons = (() => {
       id: 'BARRETTM82', name: 'Barrett M82', damage: 250,
       fireRate: 1.5, clipSize: 10, maxReserve: 30, reloadTime: 4.0,
       spread: 0.002, auto: false, type: 'AMR', hasScope: true, recoilY: 0.045, recoilX: 0.012,
+      critChance: 0.25, critMult: 2.5,
     },
     {
       id: 'MINIGUN', name: 'M134 Minigun', damage: 12,
@@ -132,6 +134,7 @@ const Weapons = (() => {
       id: 'CROSSBOW', name: 'Tactical Crossbow', damage: 130,
       fireRate: 1.2, clipSize: 1, maxReserve: 15, reloadTime: 1.8,
       spread: 0.006, auto: false, type: 'SILENT', recoilY: 0, recoilX: 0,
+      critChance: 0.30, critMult: 2.0,
     },
     {
       id: 'FLAMETHROWER', name: 'RPO-A Shmel', damage: 200,
@@ -194,6 +197,7 @@ const Weapons = (() => {
       id: 'VSS', name: 'VSS Vintorez', damage: 42,
       fireRate: 0.12, clipSize: 20, maxReserve: 80, reloadTime: 2.5,
       spread: 0.010, auto: true, type: 'SILENT', hasScope: true, recoilY: 0.012, recoilX: 0.005,
+      critChance: 0.12, critMult: 1.8,
     },
     {
       id: 'STINGER', name: 'FIM-92 Stinger', damage: 700,
@@ -204,6 +208,7 @@ const Weapons = (() => {
       id: 'THROWKNIFE', name: 'Throwing Knife', damage: 90,
       fireRate: 0.5, clipSize: 1, maxReserve: 8, reloadTime: 0.3,
       spread: 0.008, auto: false, type: 'SILENT', recoilY: 0, recoilX: 0,
+      critChance: 0.35, critMult: 2.5,
     },
     {
       id: 'C4', name: 'C4 Explosive', damage: 500,

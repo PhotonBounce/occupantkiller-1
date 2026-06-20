@@ -3801,8 +3801,9 @@ const GameManager = (function () {
     // Infantry guarantee: if wave spawned zero ground enemies, force-spawn a minimum squad
     setTimeout(function() {
       try {
+        var _droneTypes = ['DRONE_OP', 'KAMIKAZE_DRONE', 'SWARM_OP', 'EW_OPERATOR'];
         var alive = Enemies.getAll ? Enemies.getAll().filter(function(e) {
-          return e && e.alive && e.type && e.type.indexOf('drone') === -1 && !e.isDrone;
+          return e && e.alive && e.type && _droneTypes.indexOf(e.type) === -1 && !e.isDrone;
         }) : [];
         console.log('[Wave ' + w + '] Infantry alive after wave start: ' + alive.length + ' / total alive: ' + (Enemies.getAliveCount ? Enemies.getAliveCount() : '?'));
         if (alive.length === 0) {
@@ -5606,6 +5607,13 @@ const GameManager = (function () {
     if (typeof Progression !== 'undefined') {
       var pBonuses = Progression.getPrestigeBonuses();
       baseDmg = Math.round(baseDmg * pBonuses.damageMult);
+    }
+    // Per-weapon crit roll — precision weapons only, independent of headshot
+    var _wepCfgCrit = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent() : null;
+    if (_wepCfgCrit && _wepCfgCrit.critChance && !isHeadshot && Math.random() < _wepCfgCrit.critChance) {
+      baseDmg = Math.round(baseDmg * (_wepCfgCrit.critMult || 2.0));
+      HUD.notifyPickup('💥 CRITICAL HIT! ×' + (_wepCfgCrit.critMult || 2).toFixed(1), '#ff6600');
+      if (typeof AudioSystem !== 'undefined' && AudioSystem.playCriticalHit) AudioSystem.playCriticalHit();
     }
     const dmg = isHeadshot ? baseDmg * 2 : baseDmg;
 
