@@ -7256,7 +7256,8 @@ const GameManager = (function () {
         var mmNPCs = (typeof NPCSystem !== 'undefined' && NPCSystem.getAll) ? NPCSystem.getAll() : [];
         var mmVehicles = (typeof VehicleSystem !== 'undefined' && VehicleSystem.getAll) ? VehicleSystem.getAll() : [];
         var mmDrones = (typeof DroneSystem !== 'undefined' && DroneSystem.getAll) ? DroneSystem.getAll() : [];
-        HUD.updateMinimap(player.position.x, player.position.z, CameraSystem.getYaw(), mmEnemies, mmNPCs, mmVehicles, mmDrones);
+        var mmOpts = { uav: (typeof Perks !== 'undefined' && Perks.isUAVActive && Perks.isUAVActive()) };
+        HUD.updateMinimap(player.position.x, player.position.z, CameraSystem.getYaw(), mmEnemies, mmNPCs, mmVehicles, mmDrones, null, mmOpts);
       }
 
       // Targeting assistant (on-weapon enemy readout)
@@ -9218,11 +9219,50 @@ const GameManager = (function () {
     if (CameraSystem.shake) CameraSystem.shake(0.4, 0.5);
 
     if (streak.id === 'ARTILLERY' || streak.id === 'AIRSTRIKE') {
-      // Damage enemies in area around player's aim point
       var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
-      var target = player.position.clone().add(fwd.multiplyScalar(30));
-      Enemies.damageInRadius(target, streak.radius || 15, streak.damage || 200);
-      if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(target, (streak.radius || 15) * 0.3);
+      var artTarget = player.position.clone().add(fwd.multiplyScalar(30));
+      var artRadius = streak.radius || 15;
+      var artDmg = streak.damage || 200;
+      var artShells = streak.id === 'AIRSTRIKE' ? 8 : 5;
+      if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 FIRE FOR EFFECT!', 2000, '#ff6600');
+      // Staggered shell impacts over 2 seconds
+      for (var ai = 0; ai < artShells; ai++) {
+        (function(_i, _cx, _cz) {
+          setTimeout(function() {
+            var shellPos = new THREE.Vector3(
+              _cx + (Math.random()-0.5) * artRadius,
+              0.5,
+              _cz + (Math.random()-0.5) * artRadius
+            );
+            Enemies.damageInRadius(shellPos, artRadius * 0.45, artDmg / artShells * 1.4);
+            if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+              Tracers.spawnExplosion(shellPos, artRadius * 0.22);
+            }
+            if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+              WorldFeatures.applyExplosionDamage(shellPos.x, shellPos.y, shellPos.z, artRadius * 0.3, artDmg * 0.5);
+            }
+            if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.5, 0.4);
+          }, 400 + _i * 220);
+        })(ai, artTarget.x, artTarget.z);
+      }
+    } else if (streak.id === 'UAV') {
+      // UAV scan: show enemies on minimap for 15s with pulsing indicator
+      if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📡 UAV ONLINE — SCANNING', 2000, '#00ffcc');
+      // Reveal all enemy positions in HUD via a sweep animation
+      (function() {
+        var sweepEl = document.getElementById('uav-sweep');
+        if (!sweepEl) {
+          sweepEl = document.createElement('div');
+          sweepEl.id = 'uav-sweep';
+          sweepEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:150;background:radial-gradient(ellipse 120% 120% at 50% 50%,rgba(0,255,150,0.06) 0%,transparent 70%);animation:uavSweep 1s ease-out forwards';
+          var style = document.createElement('style');
+          style.textContent = '@keyframes uavSweep{0%{opacity:0}20%{opacity:1}100%{opacity:0}}';
+          document.head.appendChild(style);
+          document.body.appendChild(sweepEl);
+        }
+        sweepEl.style.animation = 'none';
+        setTimeout(function() { sweepEl.style.animation = 'uavSweep 1s ease-out forwards'; }, 16);
+      })();
     } else if (streak.id === 'NUKE') {
       // Kill all enemies
       var allEn = Enemies.getAll();

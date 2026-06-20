@@ -690,12 +690,12 @@ const HUD = (() => {
     if (!_toastBox) {
       _toastBox = document.createElement('div');
       _toastBox.id = 'toast-stack';
-      _toastBox.style.cssText = 'position:fixed;bottom:170px;left:50%;transform:translateX(-50%);z-index:230;display:flex;flex-direction:column-reverse;gap:6px;align-items:center;pointer-events:none;max-width:80vw';
+      _toastBox.style.cssText = 'position:fixed;bottom:58px;left:50%;transform:translateX(-50%);z-index:230;display:flex;flex-direction:column-reverse;gap:4px;align-items:center;pointer-events:none;max-width:60vw';
       document.body.appendChild(_toastBox);
     }
     const t = document.createElement('div');
-    t.style.cssText = 'background:rgba(10,12,16,0.88);border:1px solid ' + (color || '#ffcc00') + ';color:' + (color || '#ffcc00') +
-      ';padding:6px 16px;border-radius:6px;font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000;box-shadow:0 2px 10px rgba(0,0,0,0.5);transition:opacity 0.5s;white-space:pre-wrap;text-align:center';
+    t.style.cssText = 'background:rgba(0,0,0,0.55);border-left:2px solid ' + (color || '#ffcc00') + ';color:' + (color || '#ffcc00') +
+      ';padding:3px 10px;border-radius:3px;font-family:"Segoe UI",system-ui,sans-serif;font-size:11px;font-weight:600;text-shadow:0 1px 2px #000;transition:opacity 0.4s;white-space:nowrap;text-align:left;max-width:55vw;overflow:hidden;text-overflow:ellipsis';
     t.textContent = text;
     _toastBox.appendChild(t);
     while (_toastBox.children.length > 4) _toastBox.removeChild(_toastBox.firstChild);
@@ -863,7 +863,7 @@ const HUD = (() => {
   function setMinimapJammed(jammed) { _minimapJammed = !!jammed; }
   function setCompassJammed(jammed) { _compassJammed = !!jammed; }
 
-  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups) {
+  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups, opts) {
     if (!minimapCtx) return;
     const ctx = minimapCtx;
     ctx.clearRect(0, 0, MM_SIZE, MM_SIZE);
@@ -886,8 +886,9 @@ const HUD = (() => {
     ctx.arc(MM_HALF, MM_HALF, MM_HALF - 2, 0, Math.PI * 2);
     ctx.clip();
 
+    var _uavOn = opts && opts.uav;
     // Background
-    ctx.fillStyle = 'rgba(10,15,10,0.85)';
+    ctx.fillStyle = _uavOn ? 'rgba(0,20,15,0.90)' : 'rgba(10,15,10,0.85)';
     ctx.fillRect(0, 0, MM_SIZE, MM_SIZE);
 
     // Grid (rotates with player)
@@ -1050,6 +1051,34 @@ const HUD = (() => {
       var cx = MM_HALF + Math.sin(ca) * (MM_HALF - 10);
       var cy = MM_HALF - Math.cos(ca) * (MM_HALF - 10);
       ctx.fillText(dirs[ci].label, cx, cy + 3);
+    }
+
+    // UAV: rotating sweep line + teal enemy highlighting
+    if (_uavOn) {
+      var _uavAngle = (performance.now() * 0.002) % (Math.PI * 2);
+      // Sweep arc (fading green sector behind sweep line)
+      ctx.save();
+      ctx.translate(MM_HALF, MM_HALF);
+      var _grad = ctx.createConicalGradient ? null : null; // not standard — use arc fill
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, MM_HALF - 2, _uavAngle - 1.1, _uavAngle, false);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0,255,180,0.10)';
+      ctx.fill();
+      // Sweep line
+      ctx.strokeStyle = 'rgba(0,255,150,0.7)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(_uavAngle) * (MM_HALF - 2), Math.sin(_uavAngle) * (MM_HALF - 2));
+      ctx.stroke();
+      ctx.restore();
+      // UAV label
+      ctx.fillStyle = 'rgba(0,255,150,0.75)';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('UAV', 6, MM_SIZE - 6);
     }
 
     ctx.restore();
@@ -1268,12 +1297,24 @@ const HUD = (() => {
     vehicleHudEl.style.display = 'block';
     const icon = VEHICLE_ICONS[vehicle.type] || '🚗';
     vhTypeEl.textContent = icon + ' ' + vehicle.type.toUpperCase().replace('_', ' ');
-    if (vehicle.flying) {
-      vhControlsEl.textContent = 'WASD · Fly | SPACE · Ascend | SHIFT · Descend | G · Exit | T · View | LMB · Fire';
-    } else if (vehicle.damage > 0) {
-      vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View | LMB · Fire Turret';
+    var isMobileCtx = typeof isMobile !== 'undefined' ? isMobile
+      : (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+    if (isMobileCtx) {
+      if (vehicle.flying) {
+        vhControlsEl.textContent = '🕹 LEFT · Fly | ⬆ Jump · Rise | ⬇ Crouch · Sink | 🚫 Exit btn | 👁 View btn | 🔫 Fire btn';
+      } else if (vehicle.damage > 0) {
+        vhControlsEl.textContent = '🕹 LEFT · Drive | 🚫 Exit btn | 👁 View btn | 🔫 Fire btn';
+      } else {
+        vhControlsEl.textContent = '🕹 LEFT · Drive | 🚫 Exit btn | 👁 View btn';
+      }
     } else {
-      vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View';
+      if (vehicle.flying) {
+        vhControlsEl.textContent = 'WASD · Fly | SPACE · Ascend | SHIFT · Descend | G · Exit | T · View | LMB · Fire';
+      } else if (vehicle.damage > 0) {
+        vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View | LMB · Fire Turret';
+      } else {
+        vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View';
+      }
     }
   }
 

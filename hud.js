@@ -863,7 +863,7 @@ const HUD = (() => {
   function setMinimapJammed(jammed) { _minimapJammed = !!jammed; }
   function setCompassJammed(jammed) { _compassJammed = !!jammed; }
 
-  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups) {
+  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups, opts) {
     if (!minimapCtx) return;
     const ctx = minimapCtx;
     ctx.clearRect(0, 0, MM_SIZE, MM_SIZE);
@@ -886,8 +886,9 @@ const HUD = (() => {
     ctx.arc(MM_HALF, MM_HALF, MM_HALF - 2, 0, Math.PI * 2);
     ctx.clip();
 
+    var _uavOn = opts && opts.uav;
     // Background
-    ctx.fillStyle = 'rgba(10,15,10,0.85)';
+    ctx.fillStyle = _uavOn ? 'rgba(0,20,15,0.90)' : 'rgba(10,15,10,0.85)';
     ctx.fillRect(0, 0, MM_SIZE, MM_SIZE);
 
     // Grid (rotates with player)
@@ -1050,6 +1051,34 @@ const HUD = (() => {
       var cx = MM_HALF + Math.sin(ca) * (MM_HALF - 10);
       var cy = MM_HALF - Math.cos(ca) * (MM_HALF - 10);
       ctx.fillText(dirs[ci].label, cx, cy + 3);
+    }
+
+    // UAV: rotating sweep line + teal enemy highlighting
+    if (_uavOn) {
+      var _uavAngle = (performance.now() * 0.002) % (Math.PI * 2);
+      // Sweep arc (fading green sector behind sweep line)
+      ctx.save();
+      ctx.translate(MM_HALF, MM_HALF);
+      var _grad = ctx.createConicalGradient ? null : null; // not standard — use arc fill
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, MM_HALF - 2, _uavAngle - 1.1, _uavAngle, false);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0,255,180,0.10)';
+      ctx.fill();
+      // Sweep line
+      ctx.strokeStyle = 'rgba(0,255,150,0.7)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(_uavAngle) * (MM_HALF - 2), Math.sin(_uavAngle) * (MM_HALF - 2));
+      ctx.stroke();
+      ctx.restore();
+      // UAV label
+      ctx.fillStyle = 'rgba(0,255,150,0.75)';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('UAV', 6, MM_SIZE - 6);
     }
 
     ctx.restore();
