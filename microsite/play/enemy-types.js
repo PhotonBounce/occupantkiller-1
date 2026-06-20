@@ -774,6 +774,166 @@ const EnemyTypes = (function () {
         };
       }
     }
+    // call_armor (BOSS_KYIV) — calls in armored vehicle support
+    var hasCallArmor = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('call_armor') !== -1;
+    if (hasCallArmor) {
+      var caInterval = typeCfg.callArmorInterval || 20;
+      if (enemy._callArmorTimer === undefined) enemy._callArmorTimer = caInterval * 0.7;
+      enemy._callArmorTimer += dt;
+      if (enemy._callArmorTimer >= caInterval) {
+        enemy._callArmorTimer = 0;
+        result.callArmor = { count: 2, types: typeCfg.summonTypes || ['BTR', 'TANK'] };
+      }
+    }
+    // artillery_strike (BOSS_KYIV) — targeted artillery on player
+    var hasArtilleryStrike = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('artillery_strike') !== -1;
+    if (hasArtilleryStrike) {
+      var asInterval = typeCfg.artilleryStrikeInterval || 15;
+      if (enemy._artilleryStrikeTimer === undefined) enemy._artilleryStrikeTimer = asInterval * 0.6;
+      enemy._artilleryStrikeTimer += dt;
+      if (enemy._artilleryStrikeTimer >= asInterval) {
+        enemy._artilleryStrikeTimer = 0;
+        result.artilleryStrike = {
+          damage: typeCfg.artilleryStrikeDmg || 100,
+          radius: typeCfg.artilleryStrikeRadius || 6,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // conscript_wave (BOSS_KYIV) — floods the zone with conscripts
+    var hasConscriptWave = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('conscript_wave') !== -1;
+    if (hasConscriptWave) {
+      var cwInterval = typeCfg.conscriptWaveInterval || 25;
+      if (enemy._conscriptWaveTimer === undefined) enemy._conscriptWaveTimer = cwInterval * 0.5;
+      enemy._conscriptWaveTimer += dt;
+      if (enemy._conscriptWaveTimer >= cwInterval) {
+        enemy._conscriptWaveTimer = 0;
+        result.conscriptWave = { count: typeCfg.conscriptWaveCount || 5 };
+      }
+    }
+    // depth_charge (BOSS_SNAKE_ISLAND) — drops AoE blasts in a wide pattern
+    var hasDepthCharge = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('depth_charge') !== -1;
+    if (hasDepthCharge) {
+      var dcInterval = typeCfg.depthChargeInterval || 12;
+      if (enemy._depthChargeTimer === undefined) enemy._depthChargeTimer = dcInterval * 0.6;
+      enemy._depthChargeTimer += dt;
+      if (enemy._depthChargeTimer >= dcInterval) {
+        enemy._depthChargeTimer = 0;
+        result.depthCharge = {
+          damage: typeCfg.depthChargeDmg || 90,
+          radius: typeCfg.depthChargeRadius || 8,
+          count: 4,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // marine_drop (BOSS_SNAKE_ISLAND) — air-drops marines at strategic positions
+    var hasMarineDrop = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('marine_drop') !== -1;
+    if (hasMarineDrop) {
+      var mdInterval = typeCfg.marineDropInterval || 18;
+      if (enemy._marineDropTimer === undefined) enemy._marineDropTimer = mdInterval * 0.8;
+      enemy._marineDropTimer += dt;
+      if (enemy._marineDropTimer >= mdInterval) {
+        enemy._marineDropTimer = 0;
+        result.marineDrop = { count: typeCfg.marineDropCount || 3 };
+      }
+    }
+    // airstrike_call (BOSS_SAKY) — carpet bombing run across player position
+    var hasAirstrikeCall = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('airstrike_call') !== -1;
+    if (hasAirstrikeCall) {
+      var acInterval = typeCfg.airstrikeInterval || 18;
+      if (enemy._airstrikeCallTimer === undefined) enemy._airstrikeCallTimer = acInterval * 0.5;
+      enemy._airstrikeCallTimer += dt;
+      if (enemy._airstrikeCallTimer >= acInterval) {
+        enemy._airstrikeCallTimer = 0;
+        result.airstrikeCall = {
+          damage: typeCfg.airstrikeDmg || 110,
+          radius: typeCfg.airstrikeRadius || 5,
+          bombCount: 6,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // scramble_jets (BOSS_SAKY) — strafing run dealing rapid light damage
+    var hasScrambleJets = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('scramble_jets') !== -1;
+    if (hasScrambleJets) {
+      var sjInterval = typeCfg.scrambleInterval || 14;
+      if (enemy._scrambleJetsTimer === undefined) enemy._scrambleJetsTimer = sjInterval * 0.7;
+      enemy._scrambleJetsTimer += dt;
+      if (enemy._scrambleJetsTimer >= sjInterval) {
+        enemy._scrambleJetsTimer = 0;
+        result.scrambleJets = {
+          damage: typeCfg.scrambleDmg || 30,
+          strafePasses: 3,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // tank_column (BOSS_VUHLEDAR) — summons a column of tanks
+    var hasTankColumn = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('tank_column') !== -1;
+    if (hasTankColumn) {
+      var tcInterval = typeCfg.tankColumnInterval || 22;
+      if (enemy._tankColumnTimer === undefined) enemy._tankColumnTimer = tcInterval * 0.6;
+      enemy._tankColumnTimer += dt;
+      if (enemy._tankColumnTimer >= tcInterval) {
+        enemy._tankColumnTimer = 0;
+        result.tankColumn = { count: typeCfg.tankColumnCount || 2 };
+      }
+    }
+    // artillery_prep (BOSS_VUHLEDAR) — preparatory bombardment before infantry advance
+    var hasArtilleryPrep = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('artillery_prep') !== -1;
+    if (hasArtilleryPrep) {
+      var apInterval = typeCfg.artilleryPrepInterval || 16;
+      if (enemy._artilleryPrepTimer === undefined) enemy._artilleryPrepTimer = apInterval * 0.5;
+      enemy._artilleryPrepTimer += dt;
+      if (enemy._artilleryPrepTimer >= apInterval) {
+        enemy._artilleryPrepTimer = 0;
+        result.artilleryPrep = {
+          damage: typeCfg.artilleryPrepDmg || 80,
+          radius: typeCfg.artilleryPrepRadius || 7,
+          shellCount: 7,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // minefield_advance (BOSS_VUHLEDAR) — scatter proximity mines around player
+    var hasMinefieldAdvance = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('minefield_advance') !== -1;
+    if (hasMinefieldAdvance) {
+      var mfInterval = typeCfg.minefieldInterval || 20;
+      if (enemy._minefieldTimer === undefined) enemy._minefieldTimer = mfInterval * 0.4;
+      enemy._minefieldTimer += dt;
+      if (enemy._minefieldTimer >= mfInterval) {
+        enemy._minefieldTimer = 0;
+        result.minefieldAdvance = {
+          mineCount: typeCfg.mineCount || 6,
+          mineDamage: typeCfg.mineDamage || 85,
+          spreadRadius: 12,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // supply_drop (BOSS_ANTONOV) — boss heals nearby enemy allies
+    var hasSupplyDrop = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('supply_drop') !== -1;
+    if (hasSupplyDrop) {
+      var sdInterval = typeCfg.supplyDropInterval || 18;
+      if (enemy._supplyDropTimer === undefined) enemy._supplyDropTimer = sdInterval * 0.7;
+      enemy._supplyDropTimer += dt;
+      if (enemy._supplyDropTimer >= sdInterval) {
+        enemy._supplyDropTimer = 0;
+        result.supplyDrop = { healAmount: typeCfg.supplyHealAmount || 80, healRadius: 15 };
+      }
+    }
+    // repair_team (BOSS_ANTONOV) — spawns combat engineers to repair/heal
+    var hasRepairTeam = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('repair_team') !== -1;
+    if (hasRepairTeam) {
+      var rtInterval = typeCfg.repairTeamInterval || 24;
+      if (enemy._repairTeamTimer === undefined) enemy._repairTeamTimer = rtInterval * 0.8;
+      enemy._repairTeamTimer += dt;
+      if (enemy._repairTeamTimer >= rtInterval) {
+        enemy._repairTeamTimer = 0;
+        result.repairTeam = { count: typeCfg.repairTeamCount || 2 };
+      }
+    }
     return result;
   }
 

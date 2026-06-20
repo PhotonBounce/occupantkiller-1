@@ -3414,6 +3414,222 @@ const Enemies = (() => {
                   })(msi, _msPos, _ms.damage);
                 }
               }
+              // call_armor (BOSS_KYIV) — summons armored vehicles near boss
+              if (etResult.callArmor) {
+                var _ca = etResult.callArmor;
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛡️ ARMOR CALLED IN!', 2000, '#880000');
+                var _bossPos4 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
+                for (var cai = 0; cai < (_ca.count || 2); cai++) {
+                  (function(_cai2, _bp4, _types) {
+                    setTimeout(function() {
+                      var _t = _types[Math.floor(Math.random() * _types.length)];
+                      var _sp = new THREE.Vector3(_bp4.x + (Math.random()-0.5)*16, 0, _bp4.z + (Math.random()-0.5)*16);
+                      if (typeof spawnOne === 'function') spawnOne(_t, -1, _sp);
+                    }, _cai2 * 600);
+                  })(cai, _bossPos4, _ca.types || ['BTR']);
+                }
+              }
+              // artillery_strike (BOSS_KYIV) — targeted strike with 3s warning
+              if (etResult.artilleryStrike) {
+                var _as2 = etResult.artilleryStrike;
+                var _as2Pos = { x: _as2.targetX, z: _as2.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 ARTILLERY STRIKE — 3 SECONDS!', 2500, '#882200');
+                for (var asi = 0; asi < 5; asi++) {
+                  (function(_ai, _ap, _ad, _ar) {
+                    setTimeout(function() {
+                      var _av = new THREE.Vector3(_ap.x + (Math.random()-0.5)*_ar*2, 0.5, _ap.z + (Math.random()-0.5)*_ar*2);
+                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_av, _ar*0.3);
+                      if (typeof onPlayerHit === 'function') {
+                        var _adx = playerPos.x - _av.x, _adz = playerPos.z - _av.z;
+                        var _add = Math.sqrt(_adx*_adx + _adz*_adz);
+                        if (_add < _ar*1.5) onPlayerHit(Math.round(_ad * Math.max(0, 1 - _add/(_ar*1.5))), _av);
+                      }
+                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.6, 0.3);
+                    }, 3000 + _ai * 300);
+                  })(asi, _as2Pos, _as2.damage, _as2.radius);
+                }
+              }
+              // conscript_wave (BOSS_KYIV) — floods zone with conscripts
+              if (etResult.conscriptWave) {
+                var _cw = etResult.conscriptWave;
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🪖 CONSCRIPTS INBOUND!', 1800, '#664422');
+                var _bossPos5 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
+                for (var cwi = 0; cwi < (_cw.count || 5); cwi++) {
+                  (function(_cwi2, _bp5) {
+                    setTimeout(function() {
+                      var _cwSp = new THREE.Vector3(_bp5.x + (Math.random()-0.5)*20, 0, _bp5.z + (Math.random()-0.5)*20);
+                      if (typeof spawnOne === 'function') spawnOne('CONSCRIPT', -1, _cwSp);
+                    }, _cwi2 * 250);
+                  })(cwi, _bossPos5);
+                }
+              }
+              // depth_charge (BOSS_SNAKE_ISLAND) — 4 AoE blasts in expanding ring
+              if (etResult.depthCharge) {
+                var _dc2 = etResult.depthCharge;
+                var _dcPos = { x: _dc2.targetX, z: _dc2.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💣 DEPTH CHARGES DROPPING!', 1800, '#113355');
+                for (var dci = 0; dci < (_dc2.count || 4); dci++) {
+                  (function(_dci2, _dp, _dd, _dr) {
+                    setTimeout(function() {
+                      var _angle = (_dci2 / 4) * Math.PI * 2;
+                      var _dist = 4 + _dci2 * 2;
+                      var _dv = new THREE.Vector3(_dp.x + Math.cos(_angle)*_dist, 0.5, _dp.z + Math.sin(_angle)*_dist);
+                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_dv, _dr*0.35);
+                      if (typeof onPlayerHit === 'function') {
+                        var _ddx = playerPos.x - _dv.x, _ddz = playerPos.z - _dv.z;
+                        var _ddd = Math.sqrt(_ddx*_ddx + _ddz*_ddz);
+                        if (_ddd < _dr) onPlayerHit(Math.round(_dd * Math.max(0, 1 - _ddd/_dr)), _dv);
+                      }
+                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.8, 0.35);
+                    }, 400 + _dci2 * 350);
+                  })(dci, _dcPos, _dc2.damage, _dc2.radius);
+                }
+              }
+              // marine_drop (BOSS_SNAKE_ISLAND) — airdrop marines
+              if (etResult.marineDrop) {
+                var _md3 = etResult.marineDrop;
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('⚓ MARINES LANDING!', 1800, '#1a3a5a');
+                var _bossPos6 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
+                for (var mdi = 0; mdi < (_md3.count || 3); mdi++) {
+                  (function(_mdi2, _bp6) {
+                    setTimeout(function() {
+                      var _marineSp = new THREE.Vector3(_bp6.x + (Math.random()-0.5)*18, 0, _bp6.z + (Math.random()-0.5)*18);
+                      var _marineType = Math.random() < 0.5 ? 'SPETSNAZ' : 'PARATROOP';
+                      if (typeof spawnOne === 'function') spawnOne(_marineType, -1, _marineSp);
+                    }, _mdi2 * 500);
+                  })(mdi, _bossPos6);
+                }
+              }
+              // airstrike_call (BOSS_SAKY) — carpet bomb run across player position
+              if (etResult.airstrikeCall) {
+                var _asc = etResult.airstrikeCall;
+                var _ascPos = { x: _asc.targetX, z: _asc.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('✈ AIRSTRIKE INBOUND — 4 SECONDS!', 3500, '#2a2a4a');
+                for (var asci = 0; asci < (_asc.bombCount || 6); asci++) {
+                  (function(_bi, _abp, _ad2, _ar2) {
+                    setTimeout(function() {
+                      var _bv = new THREE.Vector3(_abp.x + (_bi - 3) * 4, 0.5, _abp.z + (Math.random()-0.5)*6);
+                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_bv, _ar2*0.4);
+                      if (typeof onPlayerHit === 'function') {
+                        var _abx = playerPos.x - _bv.x, _abz = playerPos.z - _bv.z;
+                        var _abd = Math.sqrt(_abx*_abx + _abz*_abz);
+                        if (_abd < _ar2*1.2) onPlayerHit(Math.round(_ad2 * Math.max(0, 1 - _abd/(_ar2*1.2))), _bv);
+                      }
+                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.65, 0.3);
+                    }, 4000 + _bi * 250);
+                  })(asci, _ascPos, _asc.damage, _asc.radius);
+                }
+              }
+              // scramble_jets (BOSS_SAKY) — strafing run deals rapid light damage
+              if (etResult.scrambleJets) {
+                var _sj = etResult.scrambleJets;
+                var _sjPos = { x: _sj.targetX, z: _sj.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛩 JETS STRAFING!', 1500, '#223344');
+                for (var sji = 0; sji < (_sj.strafePasses || 3) * 3; sji++) {
+                  (function(_si2, _ssp, _sbd) {
+                    setTimeout(function() {
+                      var _ssv = new THREE.Vector3(_ssp.x + (Math.random()-0.5)*14, 0.5, _ssp.z + (Math.random()-0.5)*8);
+                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_ssv, 1.2);
+                      if (typeof onPlayerHit === 'function') {
+                        var _ssx = playerPos.x - _ssv.x, _ssz = playerPos.z - _ssv.z;
+                        if (Math.sqrt(_ssx*_ssx + _ssz*_ssz) < 4) onPlayerHit(_sbd, _ssv);
+                      }
+                    }, 2000 + _si2 * 180);
+                  })(sji, _sjPos, _sj.damage);
+                }
+              }
+              // tank_column (BOSS_VUHLEDAR) — spawns tanks near the boss
+              if (etResult.tankColumn) {
+                var _tc = etResult.tankColumn;
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🚂 TANK COLUMN ADVANCING!', 2000, '#3a2800');
+                var _bossPos7 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
+                for (var tci = 0; tci < (_tc.count || 2); tci++) {
+                  (function(_tci2, _bp7) {
+                    setTimeout(function() {
+                      var _tankSp = new THREE.Vector3(_bp7.x + (Math.random()-0.5)*14, 0, _bp7.z + (Math.random()-0.5)*14);
+                      if (typeof spawnOne === 'function') spawnOne('TANK', -1, _tankSp);
+                    }, _tci2 * 700);
+                  })(tci, _bossPos7);
+                }
+              }
+              // artillery_prep (BOSS_VUHLEDAR) — heavy bombardment before infantry push
+              if (etResult.artilleryPrep) {
+                var _ap2 = etResult.artilleryPrep;
+                var _apPos = { x: _ap2.targetX, z: _ap2.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💢 ARTILLERY PREP — INCOMING!', 2000, '#554400');
+                for (var api = 0; api < (_ap2.shellCount || 7); api++) {
+                  (function(_ai3, _app, _apd, _apr) {
+                    setTimeout(function() {
+                      var _apv = new THREE.Vector3(_app.x + (Math.random()-0.5)*_apr*2, 0.5, _app.z + (Math.random()-0.5)*_apr*2);
+                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_apv, _apr*0.3);
+                      if (typeof onPlayerHit === 'function') {
+                        var _apx2 = playerPos.x - _apv.x, _apz2 = playerPos.z - _apv.z;
+                        var _apd2 = Math.sqrt(_apx2*_apx2 + _apz2*_apz2);
+                        if (_apd2 < _apr*1.5) onPlayerHit(Math.round(_apd * Math.max(0, 1 - _apd2/(_apr*1.5))), _apv);
+                      }
+                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.55, 0.25);
+                    }, 2500 + _ai3 * 260);
+                  })(api, _apPos, _ap2.damage, _ap2.radius);
+                }
+              }
+              // minefield_advance (BOSS_VUHLEDAR) — scatters proximity mines
+              if (etResult.minefieldAdvance) {
+                var _mf = etResult.minefieldAdvance;
+                var _mfPos = { x: _mf.targetX, z: _mf.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('⚠ MINES DEPLOYED!', 2000, '#445500');
+                for (var mfi = 0; mfi < (_mf.mineCount || 6); mfi++) {
+                  (function(_mfi2, _mfp, _mfd) {
+                    setTimeout(function() {
+                      var _mfAngle = Math.random() * Math.PI * 2;
+                      var _mfDist = 5 + Math.random() * _mf.spreadRadius;
+                      var _mfv = new THREE.Vector3(_mfp.x + Math.cos(_mfAngle)*_mfDist, 0.5, _mfp.z + Math.sin(_mfAngle)*_mfDist);
+                      // Mines detonate 1.5s after placement if player is nearby
+                      setTimeout(function() {
+                        if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_mfv, 2.5);
+                        if (typeof onPlayerHit === 'function') {
+                          var _mfx = playerPos.x - _mfv.x, _mfz = playerPos.z - _mfv.z;
+                          if (Math.sqrt(_mfx*_mfx + _mfz*_mfz) < 4) onPlayerHit(_mfd, _mfv);
+                        }
+                        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.4, 0.2);
+                      }, 1500);
+                    }, _mfi2 * 300);
+                  })(mfi, _mfPos, _mf.mineDamage);
+                }
+              }
+              // supply_drop (BOSS_ANTONOV) — heals nearby enemy allies
+              if (etResult.supplyDrop) {
+                var _supDrop = etResult.supplyDrop;
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📦 SUPPLY DROP — ENEMIES HEALING!', 2000, '#2a4a2a');
+                // Heal all nearby enemies
+                var _healPos = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
+                for (var _sei = 0; _sei < enemies.length; _sei++) {
+                  var _se = enemies[_sei];
+                  if (!_se || _se.dead || !_se.mesh) continue;
+                  var _sedx = _se.mesh.position.x - _healPos.x, _sedz = _se.mesh.position.z - _healPos.z;
+                  if (Math.sqrt(_sedx*_sedx + _sedz*_sedz) <= (_supDrop.healRadius || 15)) {
+                    _se.hp = Math.min(_se.maxHp || _se.hp, _se.hp + (_supDrop.healAmount || 80));
+                  }
+                }
+                if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+                  var _sdVfx = e.mesh ? e.mesh.position.clone() : new THREE.Vector3(0,5,0);
+                  _sdVfx.y = 5;
+                  Tracers.spawnExplosion(_sdVfx, 1.0);
+                }
+              }
+              // repair_team (BOSS_ANTONOV) — spawns engineers
+              if (etResult.repairTeam) {
+                var _rt = etResult.repairTeam;
+                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🔧 REPAIR TEAM DEPLOYED!', 1800, '#335533');
+                var _bossPos8 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
+                for (var rti = 0; rti < (_rt.count || 2); rti++) {
+                  (function(_rti2, _bp8) {
+                    setTimeout(function() {
+                      var _rtSp = new THREE.Vector3(_bp8.x + (Math.random()-0.5)*10, 0, _bp8.z + (Math.random()-0.5)*10);
+                      if (typeof spawnOne === 'function') spawnOne('ENGINEER', -1, _rtSp);
+                    }, _rti2 * 500);
+                  })(rti, _bossPos8);
+                }
+              }
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
