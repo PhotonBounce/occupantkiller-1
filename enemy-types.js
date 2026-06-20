@@ -718,6 +718,21 @@ const EnemyTypes = (function () {
         };
       }
     }
+    // Artillery call (BOSS_DONBAS) — rapid barrage of close shells
+    var hasArtCall = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('artillery_call') !== -1;
+    if (hasArtCall && typeCfg.artilleryInterval) {
+      if (enemy._artCallTimer === undefined) enemy._artCallTimer = typeCfg.artilleryInterval * 0.4;
+      enemy._artCallTimer += dt;
+      if (enemy._artCallTimer >= typeCfg.artilleryInterval) {
+        enemy._artCallTimer = 0;
+        result.artilleryCall = {
+          damage: typeCfg.artilleryDamage || 120,
+          radius: typeCfg.artilleryRadius || 5,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
     return result;
   }
 

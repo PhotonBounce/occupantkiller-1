@@ -3313,6 +3313,33 @@ const Enemies = (() => {
                   }, 4000);
                 })(_cmPos, _cm.damage, _cm.radius);
               }
+              // Artillery call (BOSS_DONBAS) — rapid volley at player with 2s warning
+              if (etResult.artilleryCall) {
+                var _ac = etResult.artilleryCall;
+                var _acPos = { x: _ac.targetX, z: _ac.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('💀 ARTILLERY CALLED — MOVE!', 2000, '#553322');
+                }
+                var _acShells = 5;
+                for (var aci = 0; aci < _acShells; aci++) {
+                  (function(_i2, _p2, _d2, _r2) {
+                    setTimeout(function() {
+                      var _sv = new THREE.Vector3(
+                        _p2.x + (Math.random()-0.5) * _r2 * 2.5,
+                        0.5,
+                        _p2.z + (Math.random()-0.5) * _r2 * 2.5
+                      );
+                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_sv, _r2 * 0.3);
+                      if (typeof onPlayerHit === 'function') {
+                        var _apx = playerPos.x - _sv.x, _apz = playerPos.z - _sv.z;
+                        var _apd = Math.sqrt(_apx*_apx + _apz*_apz);
+                        if (_apd < _r2 * 1.5) onPlayerHit(Math.round(_d2 * Math.max(0, 1 - _apd/(_r2*1.5))), _sv);
+                      }
+                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.55, 0.3);
+                    }, 2000 + _i2 * 280);
+                  })(aci, _acPos, _ac.damage, _ac.radius);
+                }
+              }
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
