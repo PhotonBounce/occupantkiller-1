@@ -2007,6 +2007,16 @@ const GameManager = (function () {
           if (bfInd) bfInd.style.display = blindOn ? 'block' : 'none';
         }
 
+        // X key — use airstrike token if available
+        if (e.code === 'KeyX' && gameState === STATE.PLAYING) {
+          if (_airstrikeTokens > 0) {
+            useAirstrikeToken();
+            HUD.notifyPickup('✈ TOKEN USED (' + _airstrikeTokens + ' left)', '#aaddff');
+          } else {
+            HUD.notifyPickup('✈ NO AIRSTRIKE TOKENS', '#888888');
+          }
+        }
+
         // ── B30: Combat Roll (double-tap A/D or Alt+A/D) ──
         if ((e.code === 'KeyA' || e.code === 'KeyD') && keys['AltLeft'] && typeof CombatExtras !== 'undefined' && CombatExtras.tryRoll) {
           var rollDir = new THREE.Vector3();
@@ -4869,6 +4879,22 @@ const GameManager = (function () {
       var nextCount = 3 + currentWave * 2;
       shopEnemies.textContent = nextCount + ' enemies incoming';
     }
+    // Show next wave enemy types preview
+    var shopNextThreat = document.getElementById('shop-next-threat');
+    if (shopNextThreat && typeof EnemyTypes !== 'undefined' && EnemyTypes.WAVE_COMPOSITIONS) {
+      var _nwComp = EnemyTypes.WAVE_COMPOSITIONS[Math.min(currentWave + 1, 24)];
+      if (_nwComp && _nwComp.types) {
+        var _threatIcons = { CONSCRIPT: '🪖', STORMER: '⚔', ARMORED: '🛡', SNIPER_ELITE: '🎯', BOMBER: '💣', TANK: '🚂', DRONE_OP: '📡', BTR: '🚗', SPETSNAZ: '🕶', MEDIC: '➕', WAGNER: '☠', BOSS: '👑', FLAMETHROWER: '🔥', KADYROVITE: '🐍', COMMISSAR: '📣', MORTAR: '💥', PARATROOP: '🪂', WAR_DOG: '🐕', KAMIKAZE_DRONE: '🚁', OFFICER: '🎖' };
+        var _seen = [];
+        for (var _ti = 0; _ti < _nwComp.types.length && _seen.length < 5; _ti++) {
+          var _tp = _nwComp.types[_ti];
+          if (_tp !== 'BOSS') { var _ic = _threatIcons[_tp] || '⚠'; if (_seen.indexOf(_ic) === -1) _seen.push(_ic); }
+        }
+        shopNextThreat.textContent = _seen.join(' ');
+      } else {
+        shopNextThreat.textContent = '';
+      }
+    }
     // Reset shop buttons
     var shopBtns = document.querySelectorAll('.shop-buy-btn');
     for (var si = 0; si < shopBtns.length; si++) {
@@ -5116,6 +5142,16 @@ const GameManager = (function () {
     // Decay stim timer
     if (player._stimTimer && player._stimTimer > 0) {
       player._stimTimer -= delta;
+    }
+
+    // Damage boost decay
+    if (_dmgBoostTimer > 0) {
+      _dmgBoostTimer -= delta;
+      if (_dmgBoostTimer <= 0) {
+        _dmgBoostMult = 1.0;
+        _dmgBoostTimer = 0;
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('🔥 Damage boost expired', '#888');
+      }
     }
 
     // ── B24: Crouch height + slide + cover detection ──
@@ -5467,7 +5503,7 @@ const GameManager = (function () {
     MLSystem.trackCombatEngagement(engageRange < 10);
 
     const isHeadshot = hit.object === enemy.mesh.userData.headMesh;
-    let baseDmg = Weapons.getDamage();
+    let baseDmg = Math.round(Weapons.getDamage() * _dmgBoostMult);
 
     // ═══ NEW: Apply ammo type and perk damage modifiers ═══
     if (typeof CombatExtras !== 'undefined') {
@@ -9342,6 +9378,39 @@ const GameManager = (function () {
     if (HUD.notifyPickup) HUD.notifyPickup('💉 Speed Boost ' + duration + 's', '#ff8a65');
   }
 
+  var _dmgBoostMult = 1.0;
+  var _dmgBoostTimer = 0;
+  function addDamageBoost(pct, duration) {
+    _dmgBoostMult = 1 + pct;
+    _dmgBoostTimer = duration;
+  }
+  function getDamageBoostMult() { return _dmgBoostMult; }
+
+  var _airstrikeTokens = 0;
+  function addAirstrikeToken() { _airstrikeTokens++; }
+  function getAirstrikeTokens() { return _airstrikeTokens; }
+  function useAirstrikeToken() {
+    if (_airstrikeTokens <= 0) return false;
+    _airstrikeTokens--;
+    // Fire an airstrike at player's aimed position
+    if (!_camera) return true;
+    var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
+    var target = player.position.clone().add(fwd.multiplyScalar(35));
+    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('✈ AIRSTRIKE ON THE WAY!', 2500, '#aaddff');
+    for (var _ati = 0; _ati < 7; _ati++) {
+      (function(_i3, _tx, _tz) {
+        setTimeout(function() {
+          var _asp = new THREE.Vector3(_tx + (Math.random()-0.5)*16, 0.5, _tz + (Math.random()-0.5)*8);
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_asp, 3.5);
+          if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) Enemies.damageInRadius(_asp, 8, 220);
+          if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) WorldFeatures.applyExplosionDamage(_asp.x, _asp.y, _asp.z, 2.5, 100);
+          if (CameraSystem.shake) CameraSystem.shake(0.6, 0.3);
+        }, 2500 + _i3 * 220);
+      })(_ati, target.x, target.z);
+    }
+    return true;
+  }
+
   /* ── Public API ──────────────────────────────────────────────────── */
   return {
     STATE,
@@ -9392,6 +9461,11 @@ const GameManager = (function () {
     healPlayer: healPlayer,
     addArmor: addArmor,
     addStimBuff: addStimBuff,
+    addDamageBoost: addDamageBoost,
+    getDamageBoostMult: getDamageBoostMult,
+    addAirstrikeToken: addAirstrikeToken,
+    getAirstrikeTokens: getAirstrikeTokens,
+    useAirstrikeToken: useAirstrikeToken,
     addSuppression: addSuppression,
     requestFullscreenAndLockLandscape: requestFullscreenAndLockLandscape,
     setMouseSensitivity: setMouseSensitivity,
