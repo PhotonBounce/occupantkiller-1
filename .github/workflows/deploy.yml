@@ -33,14 +33,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # ── Job 1: gate ──────────────────────────────────────────────────────────
+  # Checks whether Pages is enabled WITHOUT touching the github-pages
+  # environment, so the workflow never fails due to environment protection
+  # rules on feature branches.
+  gate:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
     steps:
       - name: Check whether Pages is enabled
-        id: gate
+        id: check
         run: |
           CODE=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Accept: application/vnd.github+json" \
@@ -55,12 +58,23 @@ jobs:
             echo "::warning::GitHub Pages is not enabled yet (API returned $CODE). Enable it once at Settings → Pages → Source: 'GitHub Actions' (https://github.com/${{ github.repository }}/settings/pages), then re-run this workflow. Skipping deploy for now."
           fi
 
+  # ── Job 2: deploy ────────────────────────────────────────────────────────
+  # Only runs when Pages is confirmed enabled. Putting the environment
+  # declaration here (rather than on the gate job) means the github-pages
+  # environment protection rules are only evaluated when we're actually
+  # going to deploy — not on every push from a feature branch.
+  deploy:
+    needs: gate
+    if: needs.gate.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Checkout
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/checkout@v4
 
       - name: Assemble lean site (game files only)
-        if: steps.gate.outputs.ready == 'true'
         run: |
           mkdir -p _site
           # Copy the whole tree EXCEPT heavy, non-game directories so the
@@ -93,20 +107,16 @@ jobs:
           ls -1 _site | head -40
 
       - name: Setup Pages
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: '_site'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/deploy-pages@v4
 
       - name: Summary
-        if: steps.gate.outputs.ready == 'true'
         run: echo "Game published → ${{ steps.deployment.outputs.page_url }}"
