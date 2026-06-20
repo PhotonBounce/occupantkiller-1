@@ -6180,7 +6180,9 @@ const Weapons = (() => {
     }
 
     var _skillSpreadMod = (typeof SkillSystem !== 'undefined' && SkillSystem.getSpreadMod) ? SkillSystem.getSpreadMod() : 1.0;
-    var _effectiveSpread = wep.spread * _skillSpreadMod;
+    // Weather accuracy mod: lower accuracy = more spread (reciprocal)
+    var _weatherAcc = (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) ? (WeatherSystem.getModifiers().accuracyMod || 1.0) : 1.0;
+    var _effectiveSpread = wep.spread * _skillSpreadMod * (2.0 - _weatherAcc);
     spreadVec.set(
       (Math.random() - 0.5) * _effectiveSpread * 2,
       (Math.random() - 0.5) * _effectiveSpread * 2

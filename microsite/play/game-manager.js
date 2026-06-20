@@ -1564,17 +1564,21 @@ const GameManager = (function () {
           if (HUD.showToast) HUD.showToast('🛬 RECON COMPLETE — returning to ground combat', 3000, '#44ff88');
         }
       } catch (_edr) {}
-      if (reward > 0 && typeof Marketplace !== 'undefined') {
-        if (Marketplace.awardCustomOKC) {
-          Marketplace.awardCustomOKC(reward, 'mission_complete', {
-            missionName: mission && mission.name ? mission.name : null,
-            missionType: mission && mission.type ? mission.type : null,
-          }).then(function () {
-            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
-          });
-        } else {
-          Marketplace.addOKC(reward);
+      if (reward > 0) {
+        if (typeof Economy !== 'undefined' && Economy.addCurrency) Economy.addCurrency(reward);
+        if (typeof Marketplace !== 'undefined') {
+          if (Marketplace.awardCustomOKC) {
+            Marketplace.awardCustomOKC(reward, 'mission_complete', {
+              missionName: mission && mission.name ? mission.name : null,
+              missionType: mission && mission.type ? mission.type : null,
+            }).then(function () {
+              if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+            });
+          } else {
+            Marketplace.addOKC(reward);
+          }
         }
+        if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
       }
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
@@ -7894,8 +7898,10 @@ const GameManager = (function () {
                 } else if (typeof Marketplace !== 'undefined') {
                   Marketplace.addOKC(reward.okc);
                 }
+                if (typeof Economy !== 'undefined' && Economy.addCurrency) Economy.addCurrency(reward.okc);
                 if (typeof RankSystem !== 'undefined') RankSystem.addXP(reward.xp);
                 if (typeof Progression !== 'undefined') Progression.trackStat('wavesCleared', 0); // mission tracking
+                if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
               }
               mTracker.style.display = 'none';
             } else if (missionResult.state === 'FAILED') {
