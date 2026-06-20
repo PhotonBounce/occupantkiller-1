@@ -636,6 +636,63 @@ const EnemyTypes = (function () {
         }
       }
     }
+    // Body doubles — spawn decoy bosses at 25% HP (once per fight)
+    var hasDoubles = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('body_doubles') !== -1;
+    if (hasDoubles && !enemy._doublesSpawned && enemy.hp < bossMaxHP * 0.25) {
+      enemy._doublesSpawned = true;
+      var bossPos = enemy.mesh ? enemy.mesh.position : null;
+      result.bodyDoubles = {
+        count: 2,
+        x: bossPos ? bossPos.x : playerPos.x,
+        z: bossPos ? bossPos.z : playerPos.z
+      };
+    }
+    // Flame aura — passive fire ring that damages player when nearby
+    var hasFlame = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('flame_aura') !== -1;
+    if (hasFlame && typeCfg.burnDPS && typeCfg.burnRadius) {
+      var dx = enemy.mesh ? (enemy.mesh.position.x - playerPos.x) : 99;
+      var dz = enemy.mesh ? (enemy.mesh.position.z - playerPos.z) : 99;
+      var distToPlayer = Math.sqrt(dx*dx + dz*dz);
+      if (distToPlayer < typeCfg.burnRadius) {
+        result.flameBurn = { dps: typeCfg.burnDPS, dist: distToPlayer, radius: typeCfg.burnRadius };
+      }
+    }
+    // Radiation aura + regeneration — BOSS_CHORNOBYL
+    var hasRad = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('radiation_aura') !== -1;
+    if (hasRad && typeCfg.radDPS && typeCfg.radRadius) {
+      var rdx = enemy.mesh ? (enemy.mesh.position.x - playerPos.x) : 99;
+      var rdz = enemy.mesh ? (enemy.mesh.position.z - playerPos.z) : 99;
+      var radDist = Math.sqrt(rdx*rdx + rdz*rdz);
+      if (radDist < typeCfg.radRadius) {
+        result.radBurn = { dps: typeCfg.radDPS, dist: radDist, radius: typeCfg.radRadius };
+      }
+    }
+    var hasRegen = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('regeneration') !== -1;
+    if (hasRegen && typeCfg.regenRate) {
+      // Track last damage time on enemy
+      if (!enemy._regenTimer) enemy._regenTimer = 0;
+      // Only regen if haven't been hit for 3s and not at max HP
+      enemy._regenTimer += dt;
+      if (enemy._regenTimer > 3 && enemy.hp < bossMaxHP) {
+        var regenAmt = typeCfg.regenRate * dt;
+        enemy.hp = Math.min(bossMaxHP, enemy.hp + regenAmt);
+        result.regen = true;
+      }
+    }
+    // Naval barrage (BOSS_CRIMEA) — periodic shell salvo at player position
+    var hasBarrage = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('naval_barrage') !== -1;
+    if (hasBarrage && typeCfg.barrageInterval) {
+      enemy._barrageTimer = (enemy._barrageTimer || typeCfg.barrageInterval * 0.6) + dt;
+      if (enemy._barrageTimer >= typeCfg.barrageInterval) {
+        enemy._barrageTimer = 0;
+        result.navalBarrage = {
+          damage: typeCfg.barrageDamage || 80,
+          radius: typeCfg.barrageRadius || 6,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
     return result;
   }
 

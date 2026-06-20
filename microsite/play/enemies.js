@@ -3196,6 +3196,81 @@ const Enemies = (() => {
                   HUD.showToast('⚡ SHIELD DOWN — FIRE!', 1500, '#ffcc00');
                 }
               }
+              // Body doubles (BOSS_KREMLIN) — spawn decoy bosses at 25% HP
+              if (etResult.bodyDoubles) {
+                var _bd = etResult.bodyDoubles;
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('☠️ BODY DOUBLES DEPLOYED — IDENTIFY THE REAL TARGET!', 4000, '#cc44ff');
+                }
+                for (var bdi = 0; bdi < _bd.count; bdi++) {
+                  var _bdAngle = (bdi / _bd.count) * Math.PI * 2;
+                  var _bdPos = { x: _bd.x + Math.cos(_bdAngle) * 8, z: _bd.z + Math.sin(_bdAngle) * 8 };
+                  // Spawn as generic BOSS (no nuclear/shield abilities) with reduced HP
+                  var _bdIdx = spawnOne('BOSS', -1, _bdPos);
+                  if (_bdIdx >= 0 && enemies[_bdIdx]) {
+                    enemies[_bdIdx].hp = Math.round(e.maxHp * 0.18);
+                    enemies[_bdIdx].maxHp = Math.round(e.maxHp * 0.18);
+                  }
+                }
+              }
+              // Flame aura (BOSS_MARIUPOL) — continuous burn when player is nearby
+              if (etResult.flameBurn && typeof onPlayerHit === 'function') {
+                var _fb = etResult.flameBurn;
+                var _fbFalloff = Math.max(0, 1 - _fb.dist / _fb.radius);
+                onPlayerHit(_fb.dps * delta * _fbFalloff, e.mesh ? e.mesh.position : null);
+                // Spawn fire particles at intervals
+                if (typeof Tracers !== 'undefined' && Tracers.spawnFire && Math.random() < delta * 3) {
+                  Tracers.spawnFire(e.mesh.position, 0.5, 0.8);
+                }
+              }
+              // Radiation aura (BOSS_CHORNOBYL) — continuous radiation when nearby
+              if (etResult.radBurn && typeof onPlayerHit === 'function') {
+                var _rb = etResult.radBurn;
+                var _rbFalloff = Math.max(0, 1 - _rb.dist / _rb.radius);
+                onPlayerHit(_rb.dps * delta * _rbFalloff, e.mesh ? e.mesh.position : null);
+                if (typeof HUD !== 'undefined' && HUD.showToast && !e._radWarnCooldown) {
+                  HUD.showToast('☢️ RADIATION EXPOSURE!', 1200, '#44ff22');
+                  e._radWarnCooldown = 5;
+                }
+              }
+              if (e._radWarnCooldown) e._radWarnCooldown -= delta;
+              // Naval barrage (BOSS_CRIMEA) — staggered shells at player position
+              if (etResult.navalBarrage) {
+                var _nba = etResult.navalBarrage;
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('⚓ NAVAL BARRAGE INCOMING!', 2000, '#2244aa');
+                }
+                for (var nbi = 0; nbi < 4; nbi++) {
+                  (function(_ti, _nx, _nz, _ndmg, _nrad) {
+                    setTimeout(function() {
+                      var _nPos = new THREE.Vector3(
+                        _nx + (Math.random()-0.5) * _nrad * 1.2,
+                        0.5,
+                        _nz + (Math.random()-0.5) * _nrad * 1.2
+                      );
+                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_nPos, _nrad * 0.3);
+                      if (typeof onPlayerHit === 'function') {
+                        var _npx = playerPos.x - _nPos.x, _npz = playerPos.z - _nPos.z;
+                        var _nd = Math.sqrt(_npx*_npx + _npz*_npz);
+                        if (_nd < _nrad * 1.5) onPlayerHit(Math.round(_ndmg * Math.max(0, 1 - _nd/(_nrad*1.5))), _nPos);
+                      }
+                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.6, 0.4);
+                    }, 600 + _ti * 350);
+                  })(nbi, _nba.targetX, _nba.targetZ, _nba.damage, _nba.radius);
+                }
+              }
+              // Reset regen timer when boss takes damage (handled via external damage flag)
+              if (etResult.regen && e.mesh && e.mesh.material) {
+                // Subtle green glow on regeneration (if material accessible)
+                try {
+                  if (e.mesh.userData.parts) {
+                    e.mesh.userData.parts.forEach(function(p) {
+                      if (p.material) p.material.emissive && p.material.emissive.setHex(0x00aa00);
+                    });
+                    e._regenGlowTimer = 0.3;
+                  }
+                } catch(_) {}
+              }
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
@@ -3828,6 +3903,8 @@ const Enemies = (() => {
     if (!enemy.alive) return 0;
     // Bunker shield invincibility (BOSS_KREMLIN)
     if (enemy._invincible) return enemy.hp;
+    // Reset regen cooldown timer (BOSS_CHORNOBYL) on any damage
+    if (enemy._regenTimer !== undefined) enemy._regenTimer = 0;
 
     // INFILTRATION: any damage dealt by player blows the disguise instantly.
     if (_playerDisguised && !_disguiseBlown) {
