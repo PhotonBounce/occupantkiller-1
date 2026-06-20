@@ -174,8 +174,8 @@ const Perks = (function () {
       if (_mkMsg && typeof HUD !== 'undefined' && HUD.showToast) {
         HUD.showToast(_mkMsg, 2000, multiKillCount >= 4 ? '#cc4400' : '#aa2200');
       }
-      if (typeof AudioSystem !== 'undefined' && AudioSystem.playUI) {
-        AudioSystem.playUI('multikill');
+      if (typeof AudioSystem !== 'undefined' && AudioSystem.playMultiKill) {
+        AudioSystem.playMultiKill(multiKillCount);
       }
     }
 

@@ -5742,7 +5742,17 @@ const GameManager = (function () {
       }
       // Perk: kill tracking & killstreaks
       if (typeof Perks !== 'undefined') {
+        var _streaksBefore = Perks.getAvailableStreaks().length;
         Perks.onKill();
+        // Notify new killstreak earned
+        var _streaksAfter = Perks.getAvailableStreaks().length;
+        if (_streaksAfter > _streaksBefore) {
+          var _newStreak = Perks.getAvailableStreaks()[_streaksAfter - 1];
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast(_newStreak.icon + ' KILLSTREAK: ' + _newStreak.name + ' READY!', 3000, '#ff8800');
+          }
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
+        }
         // Scavenger auto-loot
         var scavRange = Perks.getScavengerRange();
         if (scavRange > 0) {
