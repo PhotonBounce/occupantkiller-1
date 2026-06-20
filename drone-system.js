@@ -1701,8 +1701,7 @@ const DroneSystem = (function () {
 
       case 'mark_target':
         _lastMarkPos = drone.position.clone();
-        markTarget(drone.position.clone());
-        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📍 TARGET MARKED', 2000, '#ffff00');
+        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📍 TARGET MARKED — switch to Call Artillery', 2500, '#ffff00');
         break;
 
       case 'call_artillery':
@@ -1817,29 +1816,39 @@ const DroneSystem = (function () {
 
   function applySupplyDrop(player) {
     var maxHp = player.maxHp || 100;
-    var maxArmor = player.maxArmor || 100;
-    player.hp = Math.min(maxHp, (player.hp || 0) + 50);
-    if (player.hp <= 0) player.hp = 50;
-    player.armor = Math.min(maxArmor, (player.armor || 0) + 50);
+    var wasDowned = (player.hp || 0) <= 0;
+    player.hp = Math.min(maxHp, Math.max(0, player.hp || 0) + 50);
+    if (wasDowned) player.hp = Math.max(player.hp, 50); // self-revive
+    player.armor = Math.min(100, (player.armor || 0) + 50);
     if (typeof HUD !== 'undefined') {
       if (HUD.setHealth) HUD.setHealth(player.hp, maxHp);
-      if (HUD.setArmor) HUD.setArmor(player.armor);
-      if (HUD.notifyPickup) HUD.notifyPickup('📦 SUPPLY RECEIVED — +50HP +50ARMOR', '#00ff88');
+      if (HUD.updateArmor) HUD.updateArmor(player.armor / 100);
+      if (HUD.notifyPickup) HUD.notifyPickup(wasDowned ? '📦 REVIVED BY SUPPLY DROP — +50HP +50ARMOR' : '📦 SUPPLY RECEIVED — +50HP +50ARMOR', '#00ff88');
     }
-    if (typeof Weapons !== 'undefined' && Weapons.refillAll) Weapons.refillAll();
+    if (typeof Weapons !== 'undefined' && Weapons.refillAllAmmo) Weapons.refillAllAmmo();
   }
 
   /* ── Call Reinforcements ──────────────────────────────────────────── */
   function callReinforcements(pos) {
-    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🪖 REINFORCEMENTS CALLED!', 2000, '#00aaff');
     try {
-      if (typeof NPCSystem !== 'undefined' && NPCSystem.spawnFriendly) {
+      if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
+        var spawned = 0;
         for (var i = 0; i < 3; i++) {
-          var offset = new THREE.Vector3((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10);
-          NPCSystem.spawnFriendly('soldier', pos.clone().add(offset));
+          var ox = (Math.random() - 0.5) * 10;
+          var oz = (Math.random() - 0.5) * 10;
+          var sx = pos.x + ox, sz = pos.z + oz;
+          var sy = pos.y;
+          if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+            sy = VoxelWorld.getTerrainHeight(Math.round(sx), Math.round(sz)) + 0.5;
+          }
+          NPCSystem.spawn(sx, sy, sz, 'veteran');
+          spawned++;
         }
+        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🪖 REINFORCEMENTS DEPLOYED (' + spawned + ')', 2000, '#00aaff');
+      } else {
+        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🪖 NO REINFORCEMENTS AVAILABLE', 1800, '#ff8844');
       }
-    } catch (e) {}
+    } catch (e) { console.error('[Drone] callReinforcements failed:', e); }
   }
 
   /* ── Recon Actions ────────────────────────────────────────────────── */
