@@ -1186,6 +1186,7 @@ const GameManager = (function () {
       _renderer = createRendererWithFallback();
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
+        window._gameScene = _scene; // CollapsePhysics + WorldFeatures use this without circular dep
         let stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
