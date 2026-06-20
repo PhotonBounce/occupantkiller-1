@@ -3340,6 +3340,80 @@ const Enemies = (() => {
                   })(aci, _acPos, _ac.damage, _ac.radius);
                 }
               }
+              // Rocket salvo (BOSS_BELGOROD) — burst of rockets spread around player
+              if (etResult.rocketSalvo) {
+                var _rs = etResult.rocketSalvo;
+                var _rsPos = { x: _rs.targetX, z: _rs.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('🚀 ROCKET SALVO INCOMING!', 1500, '#884422');
+                }
+                for (var rsi = 0; rsi < _rs.count; rsi++) {
+                  (function(_ri, _rp, _rd) {
+                    setTimeout(function() {
+                      var _rv = new THREE.Vector3(
+                        _rp.x + (Math.random()-0.5) * 10,
+                        0.5,
+                        _rp.z + (Math.random()-0.5) * 10
+                      );
+                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_rv, 2.2);
+                      if (typeof onPlayerHit === 'function') {
+                        var _rrx = playerPos.x - _rv.x, _rrz = playerPos.z - _rv.z;
+                        var _rrd = Math.sqrt(_rrx*_rrx + _rrz*_rrz);
+                        if (_rrd < 6) onPlayerHit(Math.round(_rd * Math.max(0, 1 - _rrd/6)), _rv);
+                      }
+                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.7, 0.25);
+                    }, 300 + _ri * 200);
+                  })(rsi, _rsPos, _rs.damage);
+                }
+              }
+              // Drone swarm (BOSS_SAKY) — spawns several kamikaze enemies near boss
+              if (etResult.droneSwarm) {
+                var _ds = etResult.droneSwarm;
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('🚁 DRONE SWARM DEPLOYED!', 2000, '#226644');
+                }
+                var _bossPos3 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
+                for (var dsi = 0; dsi < (_ds.count || 4); dsi++) {
+                  (function(_di, _bp) {
+                    setTimeout(function() {
+                      var _spawnType = 'FPV_ATTACK';
+                      var _swarmPos = new THREE.Vector3(
+                        _bp.x + (Math.random()-0.5) * 12,
+                        _bp.y + 3 + Math.random() * 4,
+                        _bp.z + (Math.random()-0.5) * 12
+                      );
+                      if (typeof spawnOne === 'function') spawnOne(_spawnType, -1, _swarmPos);
+                    }, _di * 400);
+                  })(dsi, _bossPos3);
+                }
+              }
+              // Mortar screen (BOSS_ANTONOV) — dense mortar barrage scattered around player
+              if (etResult.mortarScreen) {
+                var _ms = etResult.mortarScreen;
+                var _msPos = { x: _ms.targetX, z: _ms.targetZ };
+                if (typeof HUD !== 'undefined' && HUD.showToast) {
+                  HUD.showToast('💥 MORTAR SCREEN — TAKE COVER!', 2000, '#776633');
+                }
+                var _msShelCount = 9;
+                for (var msi = 0; msi < _msShelCount; msi++) {
+                  (function(_mi, _mp, _md2) {
+                    setTimeout(function() {
+                      var _mv = new THREE.Vector3(
+                        _mp.x + (Math.random()-0.5) * 18,
+                        0.5,
+                        _mp.z + (Math.random()-0.5) * 18
+                      );
+                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_mv, 2.0);
+                      if (typeof onPlayerHit === 'function') {
+                        var _mxd = playerPos.x - _mv.x, _mzd = playerPos.z - _mv.z;
+                        var _mdd = Math.sqrt(_mxd*_mxd + _mzd*_mzd);
+                        if (_mdd < 5) onPlayerHit(Math.round(_md2 * Math.max(0, 1 - _mdd/5)), _mv);
+                      }
+                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.5, 0.2);
+                    }, 200 + _mi * 220);
+                  })(msi, _msPos, _ms.damage);
+                }
+              }
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&

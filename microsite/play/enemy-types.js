@@ -733,6 +733,47 @@ const EnemyTypes = (function () {
         };
       }
     }
+    // Rocket salvo (BOSS_BELGOROD) — burst of rockets at player in quick succession
+    var hasRockets = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('rocket_salvo') !== -1;
+    if (hasRockets && typeCfg.rocketInterval) {
+      if (enemy._rocketTimer === undefined) enemy._rocketTimer = typeCfg.rocketInterval * 0.5;
+      enemy._rocketTimer += dt;
+      if (enemy._rocketTimer >= typeCfg.rocketInterval) {
+        enemy._rocketTimer = 0;
+        result.rocketSalvo = {
+          damage: typeCfg.rocketSalvoDmg || 130,
+          count:  typeCfg.rocketSalvoCount || 6,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
+    // Drone swarm (BOSS_SAKY) — deploys kamikaze drones to hunt player
+    var hasDroneSwarm = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('drone_swarm') !== -1;
+    if (hasDroneSwarm) {
+      var swarmInterval = 22;
+      if (enemy._droneSwarmTimer === undefined) enemy._droneSwarmTimer = swarmInterval * 0.6;
+      enemy._droneSwarmTimer += dt;
+      if (enemy._droneSwarmTimer >= swarmInterval) {
+        enemy._droneSwarmTimer = 0;
+        result.droneSwarm = { count: 4 };
+      }
+    }
+    // Mortar screen (BOSS_ANTONOV) — dense mortar barrage around player position
+    var hasMortarScreen = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('mortar_screen') !== -1;
+    if (hasMortarScreen) {
+      var msInterval = 14;
+      if (enemy._mortarScreenTimer === undefined) enemy._mortarScreenTimer = msInterval * 0.5;
+      enemy._mortarScreenTimer += dt;
+      if (enemy._mortarScreenTimer >= msInterval) {
+        enemy._mortarScreenTimer = 0;
+        result.mortarScreen = {
+          damage: 70,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
     return result;
   }
 
