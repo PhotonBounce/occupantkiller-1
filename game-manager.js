@@ -2094,19 +2094,21 @@ const GameManager = (function () {
           toggleInventory();
         }
 
-        // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9)
-        if (e.code === 'Digit1') Weapons.switchTo(0);
-        if (e.code === 'Digit2') Weapons.switchTo(1);
-        if (e.code === 'Digit3') Weapons.switchTo(2);
-        if (e.code === 'Digit4' && gameState === STATE.PLAYING) Weapons.switchTo(3);
-        if (e.code === 'Digit5' && gameState === STATE.PLAYING) Weapons.switchTo(4);
-        if (e.code === 'Digit6' && gameState === STATE.PLAYING) Weapons.switchTo(5);
-        if (e.code === 'Digit7' && gameState === STATE.PLAYING) Weapons.switchTo(6);
-        if (e.code === 'Digit8') Weapons.switchTo(7);
-        if (e.code === 'Digit9') Weapons.switchTo(8);
-        if (e.code === 'Digit0') Weapons.switchTo(9);
-        if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
-        if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
+        // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9) — blocked during drone possession
+        if (!DroneSystem.isPossessing()) {
+          if (e.code === 'Digit1') Weapons.switchTo(0);
+          if (e.code === 'Digit2') Weapons.switchTo(1);
+          if (e.code === 'Digit3') Weapons.switchTo(2);
+          if (e.code === 'Digit4' && gameState === STATE.PLAYING) Weapons.switchTo(3);
+          if (e.code === 'Digit5' && gameState === STATE.PLAYING) Weapons.switchTo(4);
+          if (e.code === 'Digit6' && gameState === STATE.PLAYING) Weapons.switchTo(5);
+          if (e.code === 'Digit7' && gameState === STATE.PLAYING) Weapons.switchTo(6);
+          if (e.code === 'Digit8') Weapons.switchTo(7);
+          if (e.code === 'Digit9') Weapons.switchTo(8);
+          if (e.code === 'Digit0') Weapons.switchTo(9);
+          if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
+          if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
+        }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
 
         // Build mode: template selection
@@ -2308,8 +2310,12 @@ const GameManager = (function () {
 
     document.addEventListener('wheel', function (e) {
       if (gameState === STATE.PLAYING) {
-        if (e.deltaY > 0) Weapons.switchNext();
-        else if (e.deltaY < 0) Weapons.switchPrev();
+        if (DroneSystem.isPossessing()) {
+          DroneSystem.cyclePayload(e.deltaY > 0 ? 1 : -1);
+        } else {
+          if (e.deltaY > 0) Weapons.switchNext();
+          else if (e.deltaY < 0) Weapons.switchPrev();
+        }
       } else {
         CameraSystem.handleWheel(e.deltaY);
       }
@@ -2665,6 +2671,8 @@ const GameManager = (function () {
     }
   }
 
+  var _payloadBarBound = false;
+
   function showDroneControlsHUD(droneType) {
     var hud = document.getElementById('drone-controls-hud');
     if (!hud) return;
@@ -2683,27 +2691,35 @@ const GameManager = (function () {
     var payloadDisp = document.getElementById('drone-payload-display');
     var modeEl = document.getElementById('drone-view-mode');
 
-    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON' };
+    var names = {
+      fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER',
+      recon: 'RECON', incendiary: 'INCENDIARY', baba_yaga: 'BABA YAGA',
+      bayraktar: 'BAYRAKTAR TB2', kamikaze: 'KAMIKAZE',
+    };
     if (typeLabel) typeLabel.textContent = '\u2014 ' + (names[droneType] || droneType.toUpperCase());
     if (modeEl) modeEl.textContent = 'EYE';
 
-    if (droneType === 'fpv_attack') {
-      if (actionText) actionText.textContent = 'Kamikaze Dive';
-      if (actionHint) actionHint.style.display = '';
-      if (payloadDisp) payloadDisp.style.display = 'none';
-    } else if (droneType === 'bomb') {
-      if (actionText) actionText.textContent = 'Drop Bomb';
-      if (actionHint) actionHint.style.display = '';
-      if (payloadDisp) payloadDisp.style.display = '';
-    } else {
-      if (actionHint) actionHint.style.display = 'none';
-      if (payloadDisp) payloadDisp.style.display = 'none';
+    var hasFire = droneType === 'fpv_attack' || droneType === 'bomb' || droneType === 'incendiary' || droneType === 'baba_yaga' || droneType === 'kamikaze';
+    var actionLabels = { fpv_attack: 'Kamikaze', bomb: 'Drop Bomb', incendiary: 'Drop Fire', baba_yaga: 'Drop Thermite', kamikaze: 'Strike', surveillance: 'Use Payload', recon: 'Use Payload' };
+    if (actionText) actionText.textContent = actionLabels[droneType] || 'Action';
+    if (actionHint) actionHint.style.display = hasFire || droneType === 'surveillance' || droneType === 'recon' ? '' : 'none';
+    if (payloadDisp) payloadDisp.style.display = 'none';
+
+    // Wire payload \u25c4 \u25ba buttons once
+    if (!_payloadBarBound) {
+      _payloadBarBound = true;
+      var btnPL = document.getElementById('drone-payload-prev');
+      var btnPR = document.getElementById('drone-payload-next');
+      if (btnPL) btnPL.addEventListener('click', function(e) { e.stopPropagation(); DroneSystem.cyclePayload(-1); });
+      if (btnPR) btnPR.addEventListener('click', function(e) { e.stopPropagation(); DroneSystem.cyclePayload(1); });
     }
   }
 
   function hideDroneControlsHUD() {
     var hud = document.getElementById('drone-controls-hud');
     if (hud) hud.style.display = 'none';
+    var bar = document.getElementById('drone-payload-bar');
+    if (bar) bar.style.display = 'none';
     _droneControlsVisible = false;
   }
 
@@ -2821,12 +2837,29 @@ const GameManager = (function () {
       }
     }
     if (payloadEl) {
-      if (drone.type === 'bomb') {
+      if (drone.hasPayload) {
         payloadEl.style.display = '';
-        payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
-        payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';
+        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD READY';
+        payloadEl.style.color = '#ffaa00';
+      } else if (drone.type === 'bomb' || drone.type === 'incendiary' || drone.type === 'baba_yaga') {
+        payloadEl.style.display = '';
+        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD DROPPED';
+        payloadEl.style.color = '#666';
       } else {
         payloadEl.style.display = 'none';
+      }
+    }
+
+    // Payload selector bar \u2014 show when possessing any drone with payload options
+    var payloadBar = document.getElementById('drone-payload-bar');
+    var payloadLabel = document.getElementById('drone-payload-label');
+    if (payloadBar) {
+      var activePL = DroneSystem.getActivePayload ? DroneSystem.getActivePayload() : null;
+      if (activePL) {
+        payloadBar.style.display = 'flex';
+        if (payloadLabel) payloadLabel.textContent = (activePL.icon || '') + ' ' + activePL.name;
+      } else {
+        payloadBar.style.display = 'none';
       }
     }
 
@@ -3646,6 +3679,31 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
+
+    // Infantry guarantee: if wave spawned zero ground enemies, force-spawn a minimum squad
+    setTimeout(function() {
+      try {
+        var alive = Enemies.getAll ? Enemies.getAll().filter(function(e) {
+          return e && e.alive && e.type && e.type.indexOf('drone') === -1 && !e.isDrone;
+        }) : [];
+        console.log('[Wave ' + w + '] Infantry alive after wave start: ' + alive.length + ' / total alive: ' + (Enemies.getAliveCount ? Enemies.getAliveCount() : '?'));
+        if (alive.length === 0) {
+          console.warn('[Wave ' + w + '] NO INFANTRY SPAWNED — forcing minimum squad');
+          var _gTypes = ['CONSCRIPT', 'RIFLEMAN', 'STORMER'];
+          var _spawnCount = 3 + w;
+          for (var _gi = 0; _gi < _spawnCount; _gi++) {
+            var _gt = _gTypes[_gi % _gTypes.length];
+            var _ga = (_gi / _spawnCount) * Math.PI * 2;
+            var _gr = 20 + Math.random() * 10;
+            Enemies.spawnSingle(_gt, {
+              x: player.position.x + Math.cos(_ga) * _gr,
+              z: player.position.z + Math.sin(_ga) * _gr
+            });
+          }
+        }
+      } catch (e) { console.error('[Wave] infantry-guarantee check failed:', e); }
+    }, 800);
+
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -5181,17 +5239,7 @@ const GameManager = (function () {
     // Drone combat: LMB triggers drone action
     if (DroneSystem.isPossessing()) {
       if (mouseDown || touch.firing) {
-        const drone = DroneSystem.getPossessed();
-        if (drone) {
-          if (drone.type === 'fpv_attack') {
-            DroneSystem.fireAttack(drone.id);
-          } else if (drone.type === 'bomb' && drone.hasPayload) {
-            DroneSystem.dropPayload(drone.id);
-          } else if ((drone.type === 'incendiary' || drone.type === 'baba_yaga') && drone.hasPayload) {
-            DroneSystem.dropFire(drone.id);
-            if (drone.type === 'baba_yaga') HUD.notifyPickup('🔥 THERMITE DROPPED!', '#ff8800');
-          }
-        }
+        DroneSystem.useActivePayload();
         mouseNewPress = false;
       }
       return;
@@ -8141,13 +8189,15 @@ const GameManager = (function () {
     const btnNext = document.getElementById('btn-weapon-next');
     btnPrev.addEventListener('touchstart', function (e) {
       e.preventDefault();
-      Weapons.switchPrev();
+      if (DroneSystem.isPossessing()) { DroneSystem.cyclePayload(-1); }
+      else { Weapons.switchPrev(); }
       btnPrev.classList.add('active');
     }, { passive: false });
     btnPrev.addEventListener('touchend', function () { btnPrev.classList.remove('active'); });
     btnNext.addEventListener('touchstart', function (e) {
       e.preventDefault();
-      Weapons.switchNext();
+      if (DroneSystem.isPossessing()) { DroneSystem.cyclePayload(1); }
+      else { Weapons.switchNext(); }
       btnNext.classList.add('active');
     }, { passive: false });
     btnNext.addEventListener('touchend', function () { btnNext.classList.remove('active'); });

@@ -41,6 +41,42 @@ const DroneSystem = (function () {
   const TB2_ORBIT_R = 40;    // orbit radius around loiter center
   const TB2_MISSILES = 4;    // MAM-L payload
 
+  // Real-world drone payload definitions — per drone type
+  const DRONE_PAYLOADS = {
+    fpv_attack: [
+      { id: 'fpv_charge',    name: 'FPV Charge',    icon: '💥', damage: 80,  radius: 4, desc: 'Standard warhead' },
+      { id: 'fpv_ap',        name: 'Armor-Piercing', icon: '🎯', damage: 120, radius: 2, desc: 'Penetrates armor' },
+      { id: 'fpv_thermobar', name: 'Thermobaric',    icon: '🔥', damage: 60,  radius: 8, desc: 'Wide pressure wave' },
+    ],
+    kamikaze: [
+      { id: 'kamikaze_std', name: 'Impact Warhead', icon: '💥', damage: 120, radius: 3, desc: 'Self-destruct on contact' },
+    ],
+    bomb: [
+      { id: 'std_bomb',   name: 'Standard Drop',    icon: '💣', damage: 200, radius: 6,  survivalChance: 0.3, desc: 'High explosive' },
+      { id: 'cluster',    name: 'Cluster Munition', icon: '💥', damage: 60,  radius: 3,  survivalChance: 0.5, desc: '×3 submunitions scatter' },
+      { id: 'incendiary', name: 'Incendiary',        icon: '🔥', damage: 80,  radius: 8,  survivalChance: 0.4, desc: 'Fire spread' },
+      { id: 'emp_bomb',   name: 'EMP Payload',       icon: '⚡', damage: 30,  radius: 10, survivalChance: 0.6, desc: 'Disables vehicles' },
+    ],
+    incendiary: [
+      { id: 'napalm',   name: 'Napalm Drop',     icon: '🔥', damage: 60, radius: 8, desc: 'Area fire denial' },
+      { id: 'wp_round', name: 'White Phosphor',  icon: '☁️', damage: 45, radius: 6, desc: 'WP smoke + burn' },
+    ],
+    baba_yaga: [
+      { id: 'grenade_drop', name: 'Grenade Drop', icon: '💣', damage: 90,  radius: 4, desc: '×6 anti-personnel' },
+      { id: 'therm_drop',   name: 'Thermal Drop', icon: '🔥', damage: 120, radius: 6, desc: '×4 thermite charges' },
+    ],
+    surveillance: [
+      { id: 'mark_target',    name: 'Mark Target',         icon: '📍', desc: 'Paint position for strikes' },
+      { id: 'call_artillery', name: 'Call Artillery',       icon: '🔫', desc: '3 shells splash in 3s' },
+      { id: 'call_troops',    name: 'Reinforcements',       icon: '🪖', desc: 'Spawn 3 friendly soldiers' },
+      { id: 'supply_drop',    name: 'Supply Drop',          icon: '📦', desc: '+50HP +50Armor +Ammo' },
+    ],
+    recon: [
+      { id: 'photo_recon',  name: 'Photo Recon',  icon: '📸', desc: 'Reveal enemies 40m radius' },
+      { id: 'thermal_scan', name: 'Thermal Scan', icon: '🌡️', desc: 'Mark all enemies 100m' },
+    ],
+  };
+
   /* ── Faction helpers ────────────────────────────────────────────── */
   function factionForType(type) {
     if (type === DRONE_TYPE.ENEMY_BOMBER || type === DRONE_TYPE.ENEMY_FPV || type === DRONE_TYPE.ENEMY_OBSERVER) return 'russian';
@@ -53,6 +89,8 @@ const DroneSystem = (function () {
   let _camera = null;
   let nextId = 1;
   let _possessedDrone = null;
+  var _possessedPayloadIdx = 0;
+  var _lastMarkPos = null;
   var _explosionIntervals = [];
   var _activeExplosions = [];
   var _droneCacheDirty = true;
@@ -384,6 +422,8 @@ const DroneSystem = (function () {
       hasPayload: type === DRONE_TYPE.BOMB || type === DRONE_TYPE.ENEMY_BOMBER || type === DRONE_TYPE.INCENDIARY || type === DRONE_TYPE.BABA_YAGA,
       payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5 : undefined,
       _babaDropCooldown: 0,
+      // Bomber survival chance after payload drop (real-world based)
+      _survivalChance: type === DRONE_TYPE.BOMB ? 0.3 : (type === DRONE_TYPE.BAYRAKTAR ? 0.7 : 0.0),
 
       // AI patrol (for surveillance drones)
       patrolPoints: [],
@@ -445,6 +485,7 @@ const DroneSystem = (function () {
     const drone = drones.find(d => d.id === droneId && d.alive && d.active);
     if (!drone) return false;
     _possessedDrone = drone;
+    _possessedPayloadIdx = 0;
     drone.aiControlled = false;
     // EYE/FPV is the default view on possess — hide the drone's own mesh up-front
     // so its lens/body never flashes in the centre of the screen for one frame.
@@ -888,6 +929,21 @@ const DroneSystem = (function () {
       -drone.velocity.x * 0.02
     );
 
+    // FPV voxel building collision — explode on any solid block
+    if (drone.type === DRONE_TYPE.FPV_ATTACK || drone.type === DRONE_TYPE.KAMIKAZE) {
+      try {
+        if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getBlock) {
+          var _nx = Math.round(drone.position.x + drone.velocity.x * 0.05);
+          var _ny = Math.round(drone.position.y + drone.velocity.y * 0.05);
+          var _nz = Math.round(drone.position.z + drone.velocity.z * 0.05);
+          if (VoxelWorld.getBlock(_nx, _ny, _nz) !== 0) {
+            fireAttack(drone.id);
+            return;
+          }
+        }
+      } catch (_ve) {}
+    }
+
     // FPV auto-explode on contact: if within 1.5m of any enemy, kamikaze
     if (drone.type === DRONE_TYPE.FPV_ATTACK) {
       var _hitEnemy = false;
@@ -1187,6 +1243,14 @@ const DroneSystem = (function () {
     }
     createDroneExplosion(dropPos);
     if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playGunshot('launcher');
+    // Bomber survival probability — real-war based (30% default for heavy bombers)
+    var survChance = drone._survivalChance || 0.0;
+    if (Math.random() < survChance) {
+      if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('✈️ BOMBER SURVIVED — RETURNING', 2500, '#00ff88');
+    } else {
+      // Drone lost — destroy it
+      destroyDrone(drone);
+    }
     return { position: dropPos, damage: drone.damage };
   }
 
@@ -1562,6 +1626,245 @@ const DroneSystem = (function () {
     return _droneUpgrades[droneId] ? _droneUpgrades[droneId].slice() : [];
   }
 
+  /* ── Drone Payload System ─────────────────────────────────────────── */
+  function cyclePayload(dir) {
+    if (!_possessedDrone) return;
+    var payloads = DRONE_PAYLOADS[_possessedDrone.type];
+    if (!payloads || payloads.length < 2) return;
+    _possessedPayloadIdx = (_possessedPayloadIdx + dir + payloads.length) % payloads.length;
+    _updatePayloadHUD();
+  }
+
+  function getActivePayload() {
+    if (!_possessedDrone) return null;
+    var payloads = DRONE_PAYLOADS[_possessedDrone.type];
+    if (!payloads || payloads.length === 0) return null;
+    return payloads[Math.min(_possessedPayloadIdx, payloads.length - 1)];
+  }
+
+  function _updatePayloadHUD() {
+    var p = getActivePayload();
+    var lbl = document.getElementById('drone-payload-label');
+    if (lbl && p) lbl.textContent = (p.icon || '') + ' ' + p.name;
+    var bar = document.getElementById('drone-payload-bar');
+    if (bar) bar.style.display = p ? 'flex' : 'none';
+  }
+
+  function useActivePayload() {
+    if (!_possessedDrone) return;
+    var p = getActivePayload();
+    if (!p) return;
+    var drone = _possessedDrone;
+    var origDmg = drone.damage;
+
+    switch (p.id) {
+      case 'fpv_charge':
+      case 'fpv_ap':
+      case 'fpv_thermobar':
+      case 'kamikaze_std':
+        if (p.damage) drone.damage = p.damage;
+        fireAttack(drone.id);
+        drone.damage = origDmg;
+        break;
+
+      case 'std_bomb':
+      case 'cluster':
+      case 'emp_bomb':
+        if (!drone.hasPayload) { _showNoPayload(); break; }
+        if (p.damage) drone.damage = p.damage;
+        var surv = p.survivalChance || 0;
+        drone._survivalChance = surv;
+        dropPayload(drone.id);
+        drone.damage = origDmg;
+        break;
+
+      case 'incendiary':
+      case 'napalm':
+      case 'wp_round':
+      case 'grenade_drop':
+      case 'therm_drop':
+        if (!drone.hasPayload) { _showNoPayload(); break; }
+        if (p.damage) drone.damage = p.damage;
+        dropFire(drone.id);
+        drone.damage = origDmg;
+        break;
+
+      case 'mark_target':
+        _lastMarkPos = drone.position.clone();
+        markTarget(drone.position.clone());
+        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📍 TARGET MARKED', 2000, '#ffff00');
+        break;
+
+      case 'call_artillery':
+        callArtilleryStrike(_lastMarkPos || drone.position.clone());
+        break;
+
+      case 'call_troops':
+        callReinforcements(drone.position.clone());
+        break;
+
+      case 'supply_drop':
+        dropSupply(drone);
+        break;
+
+      case 'photo_recon':
+        doPhotoRecon(drone.position.clone());
+        break;
+
+      case 'thermal_scan':
+        doThermalScan(drone.position.clone());
+        break;
+    }
+  }
+
+  function _showNoPayload() {
+    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('⚠️ NO PAYLOAD', 1500, '#ff4444');
+  }
+
+  /* ── Artillery Call-in (surveillance) ────────────────────────────── */
+  function callArtilleryStrike(pos) {
+    if (!pos) return;
+    if (typeof HUD !== 'undefined' && HUD.showToast) {
+      HUD.showToast('🔥 ARTILLERY ON THE WAY — SPLASH IN 3s', 3000, '#ff6600');
+    }
+    for (var i = 0; i < 3; i++) {
+      (function(shellIdx) {
+        setTimeout(function() {
+          var sp = pos.clone().add(new THREE.Vector3(
+            (Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 6
+          ));
+          if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+            sp.y = VoxelWorld.getTerrainHeight(Math.round(sp.x), Math.round(sp.z)) + 0.5;
+          }
+          if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) Enemies.damageInRadius(sp, 7, 180);
+          createDroneExplosion(sp);
+          try {
+            if (typeof VoxelWorld !== 'undefined' && VoxelWorld.setBlock) {
+              var cx = Math.round(sp.x), cy = Math.round(sp.y), cz = Math.round(sp.z);
+              for (var bx = -2; bx <= 2; bx++) for (var bz = -2; bz <= 2; bz++) {
+                if (bx * bx + bz * bz <= 5) {
+                  VoxelWorld.setBlock(cx + bx, cy, cz + bz, 0);
+                  VoxelWorld.setBlock(cx + bx, cy - 1, cz + bz, 16);
+                }
+              }
+            }
+          } catch (e) {}
+          if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playGunshot) window.AudioSystem.playGunshot('launcher');
+        }, 3000 + shellIdx * 800);
+      })(i);
+    }
+  }
+
+  /* ── Supply Drop (surveillance / friendly drones) ────────────────── */
+  function dropSupply(drone) {
+    if (!_scene || !drone) return;
+    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📦 SUPPLY DROP INBOUND!', 2000, '#00ff88');
+    var startPos = drone.position.clone();
+    var targetY = 1;
+    if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+      targetY = VoxelWorld.getTerrainHeight(Math.round(startPos.x), Math.round(startPos.z)) + 0.5;
+    }
+    var crateGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+    var crateMat = new THREE.MeshLambertMaterial({ color: 0x00ff44, emissive: new THREE.Color(0x004400) });
+    var crate = new THREE.Mesh(crateGeo, crateMat);
+    crate.position.copy(startPos);
+    var chuteGeo = new THREE.ConeGeometry(1.5, 2, 8);
+    var chuteMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+    var chute = new THREE.Mesh(chuteGeo, chuteMat);
+    chute.position.set(0, 1.5, 0);
+    crate.add(chute);
+    _scene.add(crate);
+    var elapsed = 0;
+    var fallDur = Math.max(0.8, (startPos.y - targetY) / 8);
+    var _dropIv = setInterval(function() {
+      elapsed += 0.05;
+      var t = Math.min(elapsed / fallDur, 1);
+      crate.position.y = startPos.y - (startPos.y - targetY) * t;
+      if (t >= 1) {
+        clearInterval(_dropIv);
+        chute.visible = false;
+        var _collectTimer = setInterval(function() {
+          try {
+            var player = window.GameManager && window.GameManager.getPlayer && window.GameManager.getPlayer();
+            if (!player || !player.position) return;
+            var dx = player.position.x - crate.position.x;
+            var dz = player.position.z - crate.position.z;
+            if (Math.sqrt(dx * dx + dz * dz) < 8) {
+              applySupplyDrop(player);
+              clearInterval(_collectTimer);
+              _scene.remove(crate);
+              crateGeo.dispose(); crateMat.dispose();
+            }
+          } catch (e) {}
+        }, 300);
+        setTimeout(function() {
+          clearInterval(_collectTimer);
+          if (_scene) _scene.remove(crate);
+        }, 30000);
+      }
+    }, 50);
+  }
+
+  function applySupplyDrop(player) {
+    var maxHp = player.maxHp || 100;
+    var maxArmor = player.maxArmor || 100;
+    player.hp = Math.min(maxHp, (player.hp || 0) + 50);
+    if (player.hp <= 0) player.hp = 50;
+    player.armor = Math.min(maxArmor, (player.armor || 0) + 50);
+    if (typeof HUD !== 'undefined') {
+      if (HUD.setHealth) HUD.setHealth(player.hp, maxHp);
+      if (HUD.setArmor) HUD.setArmor(player.armor);
+      if (HUD.notifyPickup) HUD.notifyPickup('📦 SUPPLY RECEIVED — +50HP +50ARMOR', '#00ff88');
+    }
+    if (typeof Weapons !== 'undefined' && Weapons.refillAll) Weapons.refillAll();
+  }
+
+  /* ── Call Reinforcements ──────────────────────────────────────────── */
+  function callReinforcements(pos) {
+    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🪖 REINFORCEMENTS CALLED!', 2000, '#00aaff');
+    try {
+      if (typeof NPCSystem !== 'undefined' && NPCSystem.spawnFriendly) {
+        for (var i = 0; i < 3; i++) {
+          var offset = new THREE.Vector3((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10);
+          NPCSystem.spawnFriendly('soldier', pos.clone().add(offset));
+        }
+      }
+    } catch (e) {}
+  }
+
+  /* ── Recon Actions ────────────────────────────────────────────────── */
+  function doPhotoRecon(pos) {
+    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📸 RECON COMPLETE — 40m REVEAL', 2000, '#00aaff');
+    try {
+      if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+        Enemies.getAll().forEach(function(e) {
+          if (!e || !e.alive || !e.mesh) return;
+          var dx = e.mesh.position.x - pos.x, dz = e.mesh.position.z - pos.z;
+          if (dx * dx + dz * dz < 1600) {
+            e._revealedByRecon = true;
+            setTimeout(function() { e._revealedByRecon = false; }, 15000);
+          }
+        });
+      }
+    } catch (e) {}
+  }
+
+  function doThermalScan(pos) {
+    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🌡️ THERMAL SCAN — ENEMIES MARKED', 3000, '#ff6600');
+    try {
+      if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+        Enemies.getAll().forEach(function(e) {
+          if (!e || !e.alive || !e.mesh) return;
+          var dx = e.mesh.position.x - pos.x, dz = e.mesh.position.z - pos.z;
+          if (dx * dx + dz * dz < 10000) {
+            e._thermalMarked = true;
+            setTimeout(function() { e._thermalMarked = false; }, 20000);
+          }
+        });
+      }
+    } catch (e) {}
+  }
+
   return {
     DRONE_TYPE,
     DRONE_STATS,
@@ -1576,8 +1879,15 @@ const DroneSystem = (function () {
     markTarget,
     callRecon,
     callBayraktar,
+    DRONE_PAYLOADS,
     dropPayload,
+    dropFire,
     fireAttack,
+    cyclePayload,
+    getActivePayload,
+    useActivePayload,
+    callArtilleryStrike,
+    dropSupply,
     setPatrol,
     damageDrone,
     destroyDrone,
