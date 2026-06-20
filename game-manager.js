@@ -3689,7 +3689,7 @@ const GameManager = (function () {
         console.log('[Wave ' + w + '] Infantry alive after wave start: ' + alive.length + ' / total alive: ' + (Enemies.getAliveCount ? Enemies.getAliveCount() : '?'));
         if (alive.length === 0) {
           console.warn('[Wave ' + w + '] NO INFANTRY SPAWNED — forcing minimum squad');
-          var _gTypes = ['CONSCRIPT', 'RIFLEMAN', 'STORMER'];
+          var _gTypes = ['CONSCRIPT', 'STORMER', 'ENGINEER'];
           var _spawnCount = 3 + w;
           for (var _gi = 0; _gi < _spawnCount; _gi++) {
             var _gt = _gTypes[_gi % _gTypes.length];

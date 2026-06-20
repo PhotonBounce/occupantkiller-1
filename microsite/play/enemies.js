@@ -1961,14 +1961,22 @@ const Enemies = (() => {
 
     // Spawn each member at their formation offset
     // Note: no y in fpos — spawnOne computes terrain height via getTopSolidY
+    // Each spawn is wrapped so one bad mesh build can't abort the whole squad
+    // (root cause of "no infantry in game" — a single throw killed the loop).
     for (var fi = 0; fi < _formOrder.length; fi++) {
-      var foff = getFormationWorldPos(group, fi, _formOrder.length);
-      var fpos = { x: center.x + foff.x, z: center.z + foff.z };
-      var fidx = spawnOne(_formOrder[fi].type, groupId, fpos);
-      enemies[fidx].squadRole = _formOrder[fi].role;
-      group.members.push(fidx);
-      if (_formOrder[fi].type === 'OFFICER') group.hasOfficer = true;
-      if (_formOrder[fi].type === 'MEDIC') group.hasMedic = true;
+      try {
+        var foff = getFormationWorldPos(group, fi, _formOrder.length);
+        var fpos = { x: center.x + foff.x, z: center.z + foff.z };
+        var fidx = spawnOne(_formOrder[fi].type, groupId, fpos);
+        if (fidx >= 0 && enemies[fidx]) {
+          enemies[fidx].squadRole = _formOrder[fi].role;
+          group.members.push(fidx);
+          if (_formOrder[fi].type === 'OFFICER') group.hasOfficer = true;
+          if (_formOrder[fi].type === 'MEDIC') group.hasMedic = true;
+        }
+      } catch (eSpawn) {
+        console.error('[Enemies] spawnOne failed for type', _formOrder[fi] && _formOrder[fi].type, '-', eSpawn);
+      }
     }
 
     assaultGroups.push(group);
@@ -2008,8 +2016,13 @@ const Enemies = (() => {
     try { if (typeof GameManager !== 'undefined' && GameManager.getPlayer && GameManager.getPlayer().role !== 'brigade') _soloScale = 0.6; } catch (eSS) {}
     var stageGroupCount = Math.max(2, Math.round((NUM_ASSAULT_GROUPS + Math.floor((_stageId || 1) / 3) + planGroupDelta) * _soloScale));
     for (let g = 0; g < stageGroupCount; g++) {
-      spawnAssaultGroup(g, sc, playerPos);
+      try {
+        spawnAssaultGroup(g, sc, playerPos);
+      } catch (eGroup) {
+        console.error('[Enemies] spawnAssaultGroup', g, 'failed -', eGroup);
+      }
     }
+    console.log('[Enemies] startWave', w, 'stage', _stageId, '— spawned', enemies.length, 'enemies across', stageGroupCount, 'groups');
 
     if (battlePlan && battlePlan.initialTypes && battlePlan.initialTypes.length) {
       for (var pi = 0; pi < battlePlan.initialTypes.length; pi++) {
