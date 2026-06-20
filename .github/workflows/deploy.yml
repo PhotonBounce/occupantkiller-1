@@ -1,10 +1,18 @@
 name: Deploy to GitHub Pages
 
+# Publishes the playable browser game to GitHub Pages.
+# The game is 100% static (no backend needed — api-client.js degrades
+# gracefully when offline), so Pages can serve it directly.
+#
+# Live URL once deployed: https://photonbounce.github.io/occupantkiller-1/
+# (root game = /, microsite copy = /microsite/play/, QA gallery = /qa-gallery/)
+
 on:
   push:
     branches:
       - main
       - 'copilot/**'
+      - 'claude/**'
   workflow_dispatch:
 
 permissions:
@@ -49,13 +57,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Assemble lean site (game files only)
+        run: |
+          mkdir -p _site
+          # Copy the whole tree EXCEPT heavy, non-game directories so the
+          # published Pages site stays well under the 1 GB limit and deploys
+          # fast. tools/ (581 MB of QA output) and microsite/gallery
+          # (135 MB of images) are the big ones — neither is needed to play.
+          rsync -a \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.devcontainer' \
+            --exclude '.vscode' \
+            --exclude '_site' \
+            --exclude 'tools' \
+            --exclude 'backend' \
+            --exclude 'contracts' \
+            --exclude 'admin' \
+            --exclude 'reference' \
+            --exclude 'memories' \
+            --exclude 'supergame_extracted' \
+            --exclude 'node_modules' \
+            --exclude 'microsite/gallery' \
+            --exclude '*.zip' \
+            --exclude '*.db' \
+            --exclude '*.log' \
+            ./ _site/
+          touch _site/.nojekyll
+          echo "── Published site size ──"
+          du -sh _site
+          echo "── Top-level entries ──"
+          ls -1 _site | head -40
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: '_site'
 
       - name: Deploy to GitHub Pages
         id: deployment
