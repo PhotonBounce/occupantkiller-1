@@ -1056,6 +1056,19 @@ const GameManager = (function () {
     var topY = (typeof window.VoxelWorld.getTopSolidY === 'function')
       ? window.VoxelWorld.getTopSolidY(player.position.x, player.position.z)
       : window.VoxelWorld.getTerrainHeight(player.position.x, player.position.z) + 1;
+    // Step up over persistent frozen corpses (max radius 0.8, adds 0.55 height)
+    if (window._corpseObstacles && window._corpseObstacles.length > 0) {
+      var _px2 = player.position.x, _pz2 = player.position.z;
+      for (var _ci = 0; _ci < window._corpseObstacles.length; _ci++) {
+        var _co = window._corpseObstacles[_ci];
+        var _cdx = _px2 - _co.x, _cdz = _pz2 - _co.z;
+        if (_cdx * _cdx + _cdz * _cdz < 0.64) {
+          var _corpseTop = _co.y + 0.55;
+          if (_corpseTop > topY) topY = _corpseTop;
+          break;
+        }
+      }
+    }
     var terrainY = topY + player.height;
     var gap = player.position.y - terrainY;
 
@@ -1173,6 +1186,7 @@ const GameManager = (function () {
       _renderer = createRendererWithFallback();
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
+        window._gameScene = _scene; // CollapsePhysics + WorldFeatures use this without circular dep
         let stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
@@ -1403,6 +1417,10 @@ const GameManager = (function () {
     });
     Weapons.setOnTerrainShot(function (x, y, z, blockType) {
       onTerrainDestroyed(x, y, z, blockType);
+      // Red Faction-style: unsupported column above falls as debris
+      if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.onBlockDestroyed) {
+        try { CollapsePhysics.onBlockDestroyed(_scene, x, y, z); } catch (eCP) {}
+      }
       // ── B29: Destructible environment — explosive weapons destroy blocks ──
       var wType = Weapons.getCurrentType();
       var isExpl = ['AT', 'ATGM', 'AT_HEAVY', 'AT_LIGHT', 'GRENADE', 'INCENDIARY', 'THERMOBARIC'].indexOf(wType) >= 0;
@@ -3120,6 +3138,7 @@ const GameManager = (function () {
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined') Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
+    if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.clear) CollapsePhysics.clear(_scene);
     if (typeof Flags !== 'undefined' && Flags.clear) Flags.clear();
     if (typeof Environment !== 'undefined' && Environment.clear) Environment.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
@@ -3295,6 +3314,11 @@ const GameManager = (function () {
     // Generate level terrain and features
     window.VoxelWorld.generateLevel(stageIndex);
 
+    // Roadside war-scene set dressing (civilian + destroyed military vehicles)
+    if (typeof CityProps !== 'undefined' && CityProps.populate) {
+      try { CityProps.populate(_scene, stageIndex, stageDef); } catch (eCP) { if (typeof console !== 'undefined') console.warn('CityProps.populate failed:', eCP); }
+    }
+
     // Capital defense (Kyiv): fresh city integrity + defense zone at Maidan.
     if (typeof ConvoySystem !== 'undefined') {
       ConvoySystem.reset();
@@ -3465,6 +3489,7 @@ const GameManager = (function () {
     if (typeof Tracers !== 'undefined' && Tracers.clear) Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
     if (typeof Environment !== 'undefined' && Environment.clear) Environment.clear();
+    if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.clear) CollapsePhysics.clear(_scene);
     if (typeof WorldFeatures !== 'undefined' && WorldFeatures.clear) WorldFeatures.clear();
     if (typeof CombatExtras !== 'undefined' && CombatExtras.reset) CombatExtras.reset();
     if (typeof Traversal !== 'undefined' && Traversal.reset) Traversal.reset();
@@ -7190,6 +7215,7 @@ const GameManager = (function () {
       try { if (window.Mortar  && Mortar.update)  Mortar.update(delta); } catch (eMU) {}
       try { if (window.Bradley && Bradley.update) Bradley.update(delta); } catch (eBV) {}
       try { if (window.Gyro    && Gyro.update)    Gyro.update(delta); } catch (eGU) {}
+      try { if (window.CollapsePhysics && CollapsePhysics.update) CollapsePhysics.update(_scene, delta); } catch (eCPU) {}
 
       // ═══ NEW FEATURE SYSTEM UPDATES (59 features) ═══
 
