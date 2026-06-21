@@ -9,6 +9,10 @@
 
 const Enemies = (() => {
 
+  const _isMobileEn = (function() {
+    try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
+  })();
+
   const MAX_CLIMBABLE_HEIGHT = 2; // Max terrain height difference enemies can climb
   const bloodParticles = [];
   // Persistent blood-pool decals on the ground (fade out over time)
@@ -2214,8 +2218,8 @@ const Enemies = (() => {
             e.mesh.rotation.z = (e.mesh.rotation.z || 0) + (Math.random() - 0.5) * 0.4;
             e.mesh.position.y = e._groundY !== undefined ? e._groundY : e.mesh.position.y;
             _persistentCorpses.push({ x: e.mesh.position.x, y: e.mesh.position.y, z: e.mesh.position.z, mesh: e.mesh });
-            // Cap: oldest corpse beyond limit gets removed from scene
-            if (_persistentCorpses.length > 60) {
+            // Cap: oldest corpse beyond limit gets removed from scene (mobile: 15; desktop: 60).
+            if (_persistentCorpses.length > (_isMobileEn ? 15 : 60)) {
               var _oldest = _persistentCorpses.shift();
               if (_oldest.mesh && scene) { disposeMeshTree(_oldest.mesh); scene.remove(_oldest.mesh); }
             }
@@ -4558,9 +4562,8 @@ const Enemies = (() => {
             life: 2.2 + Math.random() * 1.8, gravity: 12,
           });
         }
-        // Safety cap: bound total blood particles so mass deaths can't spike
-        // particle count on low-end PCs (retire the oldest).
-        while (bloodParticles.length > 260) {
+        // Safety cap: bound total blood particles (mobile: 50; desktop: 260).
+        while (bloodParticles.length > (_isMobileEn ? 50 : 260)) {
           var _old = bloodParticles.shift();
           if (_old && _old.mesh) { scene.remove(_old.mesh); }
         }
