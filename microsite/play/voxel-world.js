@@ -1231,7 +1231,7 @@ window.VoxelWorld = (function () {
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
-  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy','Poltava','Kursk'];
+  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy','Poltava','Kursk','Lviv','Kramatorsk'];
 
   function getLevelDef(index) {
     if (index >= 0 && index < LEVELS.length) return LEVELS[index];
@@ -5936,6 +5936,156 @@ window.VoxelWorld = (function () {
     setBlock(ox + 9,  h + 2, oz + 4, BLOCK.METAL);
     setBlock(ox + 10, h + 3, oz + 4, BLOCK.RUBBLE); // battle damage
     _buildings.push({ kind: 'landmark_kursk_border', x: ox - 4, z: oz - 4, w: 22, d: 14, baseY: h, floorH: 4, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Lviv National Academic Opera and Ballet Theatre — built 1897-1900, neo-rococo
+  // Most famous building in western Ukraine; UNESCO heritage zone; major NATO weapons transit hub 2022-2024
+  function generateLvivOperaHouse(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main hall — PLASTER U-shape body 21×11
+    for (var by = 0; by < 10; by++) {
+      for (var bx = -10; bx <= 10; bx++) {
+        for (var bz = -5; bz <= 5; bz++) {
+          var edge = (Math.abs(bx) === 10 || Math.abs(bz) === 5);
+          if (edge || by === 0 || by === 9) setBlock(ox + bx, base + by, oz + bz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Central rotunda dome over auditorium
+    for (var dr = 0; dr < 5; dr++) {
+      _lmRing(ox, base + 10 + dr, oz, 5 - dr, BLOCK.ROOFTILE);
+    }
+    setBlock(ox, base + 15, oz, BLOCK.LIGHT);
+    // 8 ornate STONE columns on south facade portico
+    var colX = [-8, -6, -4, -2, 2, 4, 6, 8];
+    for (var ci = 0; ci < colX.length; ci++) {
+      for (var cy = 0; cy < 12; cy++) setBlock(ox + colX[ci], base + cy, oz + 6, BLOCK.STONE);
+    }
+    // Triangular pediment
+    for (var pi = -8; pi <= 8; pi++) {
+      var pHt = 4 - Math.floor(Math.abs(pi) / 3);
+      for (var ph = 0; ph < pHt; ph++) setBlock(ox + pi, base + 12 + ph, oz + 6, BLOCK.STONE);
+    }
+    // GLASS windows on main facade
+    for (var wi = -7; wi <= 7; wi += 3) {
+      setBlock(ox + wi, base + 4, oz + 5, BLOCK.GLASS);
+      setBlock(ox + wi, base + 5, oz + 5, BLOCK.GLASS);
+      setBlock(ox + wi, base + 6, oz + 5, BLOCK.GLASS);
+    }
+    // Side wings (flanking)
+    for (var wy = 0; wy < 7; wy++) {
+      for (var wz = -8; wz <= -6; wz++) {
+        setBlock(ox - 10, base + wy, oz + wz, BLOCK.PLASTER);
+        setBlock(ox + 10, base + wy, oz + wz, BLOCK.PLASTER);
+      }
+    }
+    // Grand entrance steps
+    for (var st = 0; st < 3; st++) {
+      for (var sx = -6 + st; sx <= 6 - st; sx++) {
+        setBlock(ox + sx, base + st, oz + 7 + (2 - st), BLOCK.STONE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_lviv_opera', x: ox - 10, z: oz - 5, w: 21, d: 16, baseY: h, floorH: 10, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Lviv High Castle (Vysokyi Zamok) — 14th-century, rebuilt 1360s under Casimir III
+  // Ruined hilltop fortress, highest point in old Lviv, overlooks entire Rynok Square and Old Town
+  function generateLvivHighCastle(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Raised earthwork mound
+    _lmDisc(ox, base,     oz, 9, BLOCK.DIRT);
+    _lmDisc(ox, base + 1, oz, 7, BLOCK.DIRT);
+    _lmDisc(ox, base + 2, oz, 5, BLOCK.STONE);
+    _lmDisc(ox, base + 3, oz, 4, BLOCK.STONE);
+    // Ruined perimeter wall — 3/4 circle (partially destroyed)
+    for (var wa = 0; wa < 270; wa += 10) {
+      var wrad = wa * Math.PI / 180;
+      var wrx = Math.round(Math.cos(wrad) * 6), wrz = Math.round(Math.sin(wrad) * 6);
+      var wallH = 5 + (wa % 20 === 0 ? 2 : 0);
+      for (var wy = 0; wy < wallH; wy++) setBlock(ox + wrx, base + 4 + wy, oz + wrz, BLOCK.STONE);
+    }
+    // Main keep remnant — square tower (ruined top)
+    for (var ty = 0; ty < 10; ty++) {
+      for (var tx = -2; tx <= 2; tx++) {
+        for (var tz = -2; tz <= 2; tz++) {
+          if ((Math.abs(tx) === 2 || Math.abs(tz) === 2) && ty < 10 - (Math.abs(tx) + Math.abs(tz)) / 2) {
+            setBlock(ox + tx, base + 4 + ty, oz + tz, BLOCK.STONE);
+          }
+        }
+      }
+    }
+    // Rubble at base
+    for (var ri = -4; ri <= 4; ri += 2) {
+      setBlock(ox + ri, base + 4, oz + 7, BLOCK.RUBBLE);
+      setBlock(ox + 7,  base + 4, oz + ri, BLOCK.RUBBLE);
+    }
+    _buildings.push({ kind: 'landmark_lviv_high_castle', x: ox - 9, z: oz - 9, w: 18, d: 18, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Kramatorsk Railway Station — April 8 2022 Tochka-U missile strike
+  // 59 civilians killed (7 children), 110 wounded while evacuating to western Ukraine
+  // The Tochka-U had "FOR THE CHILDREN" ("ЗА ДЕТЕЙ") stenciled on it — ICC war crime verdict
+  function generateKramatorskStation(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main CONCRETE Socialist Realism terminal — long wide building
+    for (var by = 0; by < 10; by++) {
+      for (var bx = -14; bx <= 14; bx++) {
+        for (var bz = -5; bz <= 5; bz++) {
+          var edge = (Math.abs(bx) === 14 || Math.abs(bz) === 5);
+          if (edge || by === 0 || by === 9) setBlock(ox + bx, base + by, oz + bz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Central portico rise (taller section above entrance)
+    for (var py = 9; py < 14; py++) {
+      for (var px = -5; px <= 5; px++) {
+        for (var pz = -4; pz <= 4; pz++) {
+          if (Math.abs(px) === 5 || Math.abs(pz) === 4 || py === 13) {
+            setBlock(ox + px, base + py, oz + pz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // STONE columns on main facade (6 columns)
+    for (var ci = -4; ci <= 4; ci += 2) {
+      for (var cy = 0; cy < 12; cy++) setBlock(ox + ci, base + cy, oz + 6, BLOCK.STONE);
+    }
+    // GLASS windows
+    for (var wi = -12; wi <= 12; wi += 4) {
+      setBlock(ox + wi, base + 4, oz + 4, BLOCK.GLASS);
+      setBlock(ox + wi, base + 5, oz + 4, BLOCK.GLASS);
+      setBlock(ox + wi, base + 6, oz + 4, BLOCK.GLASS);
+    }
+    // Platform canopy (METAL roof extending south)
+    for (var cx2 = -12; cx2 <= 12; cx2++) {
+      for (var cz2 = 6; cz2 <= 18; cz2++) {
+        if (Math.abs(cx2) === 12 || cz2 === 6 || cz2 === 18) setBlock(ox + cx2, base + 6, oz + cz2, BLOCK.METAL);
+      }
+    }
+    // Missile strike crater — south of entrance (April 8 2022)
+    var crX = ox + 5, crZ = oz + 22;
+    var crH = getTerrainHeight(crX, crZ) || h;
+    for (var cra = 0; cra < 360; cra += 15) {
+      var crad = cra * Math.PI / 180;
+      var crR = 4 + (cra % 30 === 0 ? 1 : 0);
+      var crdx = Math.round(Math.cos(crad) * crR), crdz = Math.round(Math.sin(crad) * crR);
+      setBlock(crX + crdx, crH,     crZ + crdz, BLOCK.RUBBLE);
+      setBlock(crX + crdx, crH - 1, crZ + crdz, BLOCK.RUBBLE);
+    }
+    // Memorial LIGHT beacon at impact site
+    setBlock(crX, crH + 1, crZ, BLOCK.STONE);
+    setBlock(crX, crH + 2, crZ, BLOCK.STONE);
+    setBlock(crX, crH + 3, crZ, BLOCK.STONE);
+    setBlock(crX, crH + 4, crZ, BLOCK.LIGHT);
+    // Rail tracks
+    for (var rt = 0; rt < 30; rt++) {
+      setBlock(ox - 4, base, oz + 20 + rt, BLOCK.METAL);
+      setBlock(ox + 4, base, oz + 20 + rt, BLOCK.METAL);
+    }
+    _buildings.push({ kind: 'landmark_kramatorsk_station', x: ox - 14, z: oz - 5, w: 29, d: 30, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
   }
 
   // LANDMARK: Golden Gate (Zoloti Vorota) — 11th-century Byzantine city gate, reconstructed 1982
@@ -11673,6 +11823,119 @@ window.VoxelWorld = (function () {
         generateDroneNest(-48, 48);
         generateDroneNest(0, 48);                     // Extra nests for contested airspace
         generateDroneNest(0, -48);
+      } else if (cityName === 'Lviv') {
+        // Lviv — cultural capital of western Ukraine; UNESCO Old Town; major NATO weapons transit hub
+        // Hit by long-range Russian Kalibr/Kinzhal strikes targeting infrastructure 2022-2024
+        // Gate city for EU-supplied weapons (Leopard tanks, Patriot systems unloaded here)
+        generateLvivOperaHouse(-15, -15);             // Lviv National Opera (1900, neo-rococo crown jewel)
+        generateLvivHighCastle(30, 10);               // Vysokyi Zamok medieval fortress ruins on hilltop
+        generateChurch(-30, -8);                      // Latin Cathedral (1370s Gothic, oldest in Lviv)
+        generateChurch(18, -10);                      // Church of the Assumption (1591 Renaissance)
+        generateChurch(-20, 20);                      // Dominican Church (baroque 1763)
+        generateLuxuryVilla(0, -30, 16, 10);          // Lviv Regional Administration (neoclassical)
+        generateLuxuryVilla(-28, -18, 12, 8);         // Potocki Palace (1880 French Classicism)
+        generateSovietAdminBuilding(5, -18);          // Rynok Square / city hall area
+        generateUkrainianApartment(-40, -38, 8);
+        generateUkrainianApartment(-40, -58, 6);
+        generateUkrainianApartment(30, -42, 8);
+        generateUkrainianApartment(30, -62, 6);
+        generateUkrainianApartment(-18, -65, 5);
+        generateUkrainianApartment(18, -65, 5);
+        generateUkrainianApartment(-55, -15, 5);
+        generateUkrainianApartment(45, -18, 5);
+        generateTrainStation(35, 35);                 // Lviv Railway Station (1904 Vienna Secession architecture)
+        generateRailway(18, 22, 40, false);
+        generateBridge(0, 25, 28, 4);                 // Poltva River (encased beneath city)
+        generateIndustrialComplex(-35, -42);          // Lviv Bus Plant (LAZ) — weapons transit depot
+        generateIndustrialComplex(32, -45);           // Lviv Arsenal / arms storage facility
+        generateIndustrialComplex(-42, 40);           // Lviv oil refinery sector
+        generateGrainSilo(-42, -25);
+        generateWaterTower(-45, 18);
+        generateCommTower(-5, -48);
+        generatePowerLines(0, 0, 4);
+        // Air defense (Lviv covered by NATO-donated Patriot / NASAMS protecting the transit hub)
+        generateAntiAirPosition(-35, 42);
+        generateAntiAirPosition(32, -42);
+        generateAntiAirPosition(-50, -50);
+        generateArtilleryBattery(-46, -52);
+        generateArtilleryBattery(44, 46);
+        generateBunker(-22, 22);
+        generateBunker(22, -22);
+        generateTrenchNetwork(-15, 15);
+        generateTrenchNetwork(15, -15);
+        // Strike damage from long-range Russian missiles targeting infrastructure
+        generateBurningRuin(-22, -22);
+        generateBurningRuin(20, 22);
+        generateBurningRuin(-45, -35);
+        generateBurningRuin(40, -32);
+        generateCraters(10);
+        generateWreckedTank(-14, -26);
+        generateWreckedAPC(18, 18);
+        generateWreckedConvoy(-36, 24);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Kramatorsk') {
+        // Kramatorsk — Donetsk Oblast administrative center (moved from Russian-held Donetsk)
+        // April 8 2022: Tochka-U missile strike on railway station killed 59 civilians evacuating
+        // Now front-line HQ city; Ukrainian army Eastern Command headquarters based here
+        generateKramatorskStation(0, -30);            // Railway station (April 2022 massacre site / memorial)
+        generateIndustrialComplex(-30, 20);           // NKMZ heavy machine-building plant (largest in Ukraine)
+        generateIndustrialComplex(28, 18);            // Kramatorsk Steel Works
+        generateIndustrialComplex(-38, -30);          // Tank repair depot / Eastern Command workshops
+        generateSovietAdminBuilding(0, -15);          // Donetsk Oblast Administration (relocated here 2014)
+        generateChurch(-25, -8);                      // Cathedral of the Assumption (brick, 19th century)
+        generateChurch(20, -12);                      // Church of the Holy Trinity (east bank)
+        generateLuxuryVilla(-8, -20, 14, 9);          // Eastern Military Command HQ building
+        generateUkrainianApartment(-38, -35, 9);
+        generateUkrainianApartment(-38, -55, 7);
+        generateUkrainianApartment(30, -38, 9);
+        generateUkrainianApartment(30, -58, 7);
+        generateUkrainianApartment(-18, -65, 6);
+        generateUkrainianApartment(18, -65, 6);
+        generateUkrainianApartment(-52, -15, 5);
+        generateUkrainianApartment(42, -18, 5);
+        generateGrainSilo(-42, -22);
+        generateGrainSilo(35, -24);
+        generateWaterTower(-44, 18);
+        generateCommTower(-5, -45);
+        generatePowerLines(0, 0, 4);
+        generateRailway(0, -10, 38, false);           // Kramatorsk–Sloviansk–Kharkiv rail line
+        generateBridge(0, 22, 30, 4);                 // Kazennyi Torets River bridge
+        // Heavy military presence — Ukrainian Eastern Command HQ
+        generateArtilleryBattery(-46, -50);
+        generateArtilleryBattery(44, 44);
+        generateArtilleryBattery(-22, 40);            // Counter-battery radars + Caesars
+        generateAmmoDepot(-30, 12);
+        generateAmmoDepot(28, 10);
+        generateFieldHospital(-35, 32);               // Field hospital (receiving frontline casualties)
+        generateAntiAirPosition(-32, -38);
+        generateAntiAirPosition(30, 38);
+        generateBunker(-20, 20);
+        generateBunker(20, -20);
+        generateBunker(-38, -18);
+        generateBunker(38, 16);
+        generateTrenchNetwork(-14, 14);
+        generateTrenchNetwork(14, -14);
+        generateDefensivePosition(-10, 10);
+        generateDefensivePosition(10, -10);
+        // Strike damage (Russian missile strikes on city 2022-2024)
+        generateBurningRuin(-20, -20);
+        generateBurningRuin(18, 20);
+        generateBurningRuin(-42, -30);
+        generateBurningRuin(38, -28);
+        generateBurningRuin(0, -55);
+        generateWreckedTank(-12, -24);
+        generateWreckedTank(24, 24);
+        generateWreckedAPC(18, 18);
+        generateWreckedConvoy(-34, 24);
+        generateCraters(20);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+        generateDroneNest(0, 48);
       } else {
         // Generic proc city (Mariupol/Vuhledar repeats, or any future addition)
         generateUkrainianApartment(-25, -25, 6);
