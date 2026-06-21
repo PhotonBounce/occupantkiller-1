@@ -22,10 +22,14 @@ const Perks = (function () {
         // NEW: Artillery Strike
         ARTILLERY_STRIKE: {
           id: 'ARTILLERY_STRIKE', name: 'Artillery Strike', icon: '💥',
-          desc: 'Call in an artillery barrage on a target area. 120s cooldown.',
+          desc: 'Call in an artillery barrage on your position. 120s cooldown.',
           effect: function () {
-            if (typeof VFX !== 'undefined' && VFX.artilleryBarrage) {
-              VFX.artilleryBarrage();
+            if (typeof DroneSystem !== 'undefined' && DroneSystem.callArtilleryStrike) {
+              // Fire at player position (pulled from GameManager if available)
+              var gm = (typeof GameManager !== 'undefined') ? GameManager : null;
+              var pl = gm && gm.getPlayer ? gm.getPlayer() : null;
+              var pos = pl && pl.position ? pl.position.clone() : new THREE.Vector3(0, 0, 0);
+              DroneSystem.callArtilleryStrike(pos);
             }
           },
           cooldown: 120
