@@ -1843,10 +1843,15 @@ const Enemies = (() => {
     if (typeCfg.role === 'medic') squadRole = SQUAD_ROLE.MEDIC;
     else if (typeCfg.role === 'officer') squadRole = SQUAD_ROLE.OFFICER;
 
-    // Boss intro: dramatic banner + screen shake when a boss-role enemy spawns
+    // Boss intro: dramatic banner + screen shake when a boss-role enemy spawns.
+    // Prefer the dramatic display name from EnemyTypes (e.g. "The Zombie President")
+    // over the internal ID (e.g. "BOSS_KREMLIN").
     if (typeCfg.role === 'boss') {
       try {
-        if (typeof HUD !== 'undefined' && HUD.showBossIntro) HUD.showBossIntro(typeCfg.name || typeName);
+        var _introName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
+          EnemyTypes.TYPES[typeName] && EnemyTypes.TYPES[typeName].name)
+          ? EnemyTypes.TYPES[typeName].name : (typeCfg.name || typeName);
+        if (typeof HUD !== 'undefined' && HUD.showBossIntro) HUD.showBossIntro(_introName);
         if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.4, 0.6);
         if (typeof Feedback !== 'undefined' && Feedback.triggerSlowMo) Feedback.triggerSlowMo(0.55, 0.25);
       } catch (eBI) {}
