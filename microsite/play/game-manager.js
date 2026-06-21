@@ -1310,7 +1310,8 @@ const GameManager = (function () {
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
         _scene.background = new THREE.Color(fogColor);
-        _scene.fog = new THREE.Fog(fogColor, 18, isMobile ? 55 : 120);
+        // Mobile: tighter fog near (12) makes objects fade sooner, cutting GPU triangle count.
+        _scene.fog = new THREE.Fog(fogColor, isMobile ? 12 : 18, isMobile ? 55 : 120);
 
         // If running in compatibility mode, show a warning overlay
         if (_rendererProfile === 'compatibility') {
@@ -6445,7 +6446,8 @@ const GameManager = (function () {
   var _lowFpsStreak = 0;
   var _highFpsStreak = 0;
   var _baseFogFar = isMobile ? 55 : 120;
-  var _baseShadowsEnabled = true;
+  // Mobile renderer is always created without shadows; never re-enable them.
+  var _baseShadowsEnabled = !isMobile;
   var _basePixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.1 : 1.5);
 
   function _applyPerfLevel(level, fps) {
@@ -6454,9 +6456,10 @@ const GameManager = (function () {
     try {
       var pr, fogFar, shadows;
       if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled; _lowEndVFX = false; }
-      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = true; _lowEndVFX = false; }
-      else if (_perfLevel === 2) { pr = 1.0; fogFar = 60; shadows = false; _lowEndVFX = false; }
-      else                       { pr = 0.7; fogFar = 45; shadows = false; _lowEndVFX = true; }
+      // Level 1: slightly reduced pixel ratio + tighter fog; no shadows on mobile.
+      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = !isMobile; _lowEndVFX = false; }
+      else if (_perfLevel === 2) { pr = isMobile ? 0.9 : 1.0; fogFar = isMobile ? 45 : 60; shadows = false; _lowEndVFX = false; }
+      else                       { pr = isMobile ? 0.75 : 0.7; fogFar = isMobile ? 35 : 45; shadows = false; _lowEndVFX = true; }
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
       if (sunLight) sunLight.castShadow = shadows;
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
@@ -6497,7 +6500,11 @@ const GameManager = (function () {
       if (avgFps < _fpsDrop) { _lowFpsStreak++; _highFpsStreak = 0; }
       else if (avgFps > _fpsRecover) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
-      if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
+      // Fast-drop: mobile critically-low FPS (<20) skips the streak check and downgrades immediately.
+      if (isMobile && avgFps < 20 && _perfLevel < _PERF_MAX_LEVEL) {
+        _applyPerfLevel(_perfLevel + 1, avgFps);
+        _lowFpsStreak = 0;
+      } else if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
       }
