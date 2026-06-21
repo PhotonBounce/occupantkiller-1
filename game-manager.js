@@ -3844,11 +3844,11 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     // Mobile enemy cap: reduce group count to keep frame rate manageable.
-    // On mobile, even medium waves can saturate the GPU with 60+ enemies AI updating.
+    // Scale reduction by adaptive quality level — low-end devices get fewest enemies.
     if (isMobile) {
       if (!_battlePlan) _battlePlan = {};
-      // Cut group count by ~40% on mobile; this stacks with _soloScale inside Enemies.startWave
-      _battlePlan.groupDelta = (_battlePlan.groupDelta || 0) - 3;
+      var _mobileGroupCut = _perfLevel >= 3 ? -5 : (_perfLevel >= 2 ? -4 : -3);
+      _battlePlan.groupDelta = (_battlePlan.groupDelta || 0) + _mobileGroupCut;
     }
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
 
