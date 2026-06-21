@@ -3632,6 +3632,9 @@ const GameManager = (function () {
       var _ws = document.getElementById('win-score');  if (_ws) _ws.textContent = player.score;
       var _wk = document.getElementById('win-kills');  if (_wk) _wk.textContent = player.kills;
       var _wst = document.getElementById('win-stages'); if (_wst) _wst.textContent = STAGES.length;
+      var _winHS2 = document.getElementById('win-headshots'); if (_winHS2) _winHS2.textContent = player.totalHeadshots || 0;
+      var _winAcc2 = document.getElementById('win-accuracy'); if (_winAcc2) _winAcc2.textContent = player.totalShots > 0 ? Math.round((player.totalHits / player.totalShots) * 100) : 0;
+      var _winDmg2 = document.getElementById('win-damage'); if (_winDmg2) _winDmg2.textContent = Math.round(player.totalDamageTaken || 0);
       return;
     }
 

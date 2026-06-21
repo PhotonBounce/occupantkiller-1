@@ -492,7 +492,7 @@ const DroneSystem = (function () {
     if (drone.mesh) drone.mesh.visible = false;
     if (typeof CameraSystem !== 'undefined') {
       if (CameraSystem.setDroneViewMode) CameraSystem.setDroneViewMode('eye');
-      CameraSystem.setMode(CameraSystem.MODE.DRONE);
+      if (CameraSystem.setMode && CameraSystem.MODE) CameraSystem.setMode(CameraSystem.MODE.DRONE);
       CameraSystem.setDroneTarget(drone.mesh);
       // Force camera to follow drone immediately
       if (CameraSystem.getCamera && CameraSystem.getDroneViewMode && CameraSystem.getMode) {
@@ -512,7 +512,7 @@ const DroneSystem = (function () {
       if (typeof CameraSystem !== 'undefined') {
         if (CameraSystem.setDroneTarget) CameraSystem.setDroneTarget(null);
         if (CameraSystem.setDroneViewMode) CameraSystem.setDroneViewMode('eye');
-        CameraSystem.setMode(CameraSystem.MODE.FIRST_PERSON);
+        if (CameraSystem.setMode && CameraSystem.MODE) CameraSystem.setMode(CameraSystem.MODE.FIRST_PERSON);
       }
     }
   }
@@ -782,7 +782,7 @@ const DroneSystem = (function () {
     var center = centerOverride || null;
     if (!center && typeof ConvoySystem !== 'undefined' && ConvoySystem.getDefenseZone) {
       var dz = ConvoySystem.getDefenseZone();
-      center = new THREE.Vector3(dz.x, TB2_ALT, dz.z);
+      if (dz) center = new THREE.Vector3(dz.x, TB2_ALT, dz.z);
     }
     if (!center) center = new THREE.Vector3(pos.x, TB2_ALT, pos.z);
     var tb2 = spawn(pos.x - 60, TB2_ALT, pos.z - 60, DRONE_TYPE.BAYRAKTAR);
