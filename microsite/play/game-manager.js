@@ -3911,6 +3911,10 @@ const GameManager = (function () {
         // omit y so spawnOne() resolves terrain height itself
       });
       HUD.notifyPickup('⚠ BOSS INCOMING: ' + (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType] ? EnemyTypes.TYPES[bossType].name : 'COMMANDER'), '#ff0000');
+      // Escalate to intense 140-BPM battle theme for boss fight
+      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playBossMusic) {
+        window.AudioSystem.playBossMusic();
+      }
     }
 
     // ═══ Blood Moon effect on final 2 waves ═══

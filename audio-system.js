@@ -1253,6 +1253,17 @@ window.AudioSystem = (function () {
     }
   }
 
+  // Force the 140 BPM "intense assault" battle theme for boss fights.
+  // Switches immediately so the music escalates when the boss spawns.
+  function playBossMusic() {
+    var bossTheme = 2; // theme index 2 = 140 BPM intense assault
+    var idx = _musicThemes.indexOf(bossTheme);
+    if (idx >= 0) _musicThemeIdx = idx;
+    playMusic('battle');
+    // Also max out volume for added drama
+    if (_musicGain) _musicGain.gain.value = Math.min(1.0, _musicVolume * 1.6);
+  }
+
   function setMusicIntensity(intensity) {
     // intensity: 0.0 (calm) to 1.0 (maximum combat)
     if (!_musicPlaying || !_musicGain) return;
@@ -2012,6 +2023,7 @@ window.AudioSystem = (function () {
     stopAmbientLoop: stopAmbientLoop,
     playWaveStart: playWaveStart,
     playMusic: playMusic,
+    playBossMusic: playBossMusic,
     stopMusic: stopMusic,
     setMusicVolume: setMusicVolume,
     setMusicIntensity: setMusicIntensity,
