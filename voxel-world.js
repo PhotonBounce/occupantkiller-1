@@ -7112,39 +7112,159 @@ window.VoxelWorld = (function () {
       generateDroneNest(48, -48);
       generateDroneNest(-48, -48);
     } else if (level.id === 'VUHLEDAR') {
-      // Tank graveyard — extra wrecks, minefields, craters
-      generateDestroyedVehicles(30);
-      generateWreckedTank(-15, -15);
-      generateWreckedTank(15, 15);
-      generateWreckedTank(-15, 15);
-      generateWreckedTank(15, -15);
-      generateWreckedAPC(0, -20);
-      generateWreckedAPC(0, 20);
+      // Vuhledar — Russia's worst defeat. The 155th Marine Brigade lost 300+ tanks
+      // in minefield corridors. Nicknamed "the Russian tank graveyard."
+      // Sprawling tank wreckage field
+      generateDestroyedVehicles(30);       // Random destroyed vehicle scatter
+      generateDestroyedTank(-15, -15);     // Named tank kills
+      generateDestroyedTank(15, 15);
+      generateDestroyedTank(-15, 15);
+      generateDestroyedTank(15, -15);
+      generateDestroyedTank(-30, 0);
+      generateDestroyedTank(30, 0);
+      generateDestroyedTank(0, -30);
+      generateDestroyedTank(0, 30);
+      generateWreckedTank(-22, -22);       // More wrecks
+      generateWreckedTank(22, 22);
+      generateWreckedTank(-25, 10);
+      generateWreckedTank(22, -12);
+      generateWreckedAPC(-10, -28);
+      generateWreckedAPC(12, 28);
+      generateWreckedAPC(-28, -5);
+      generateWreckedAPC(25, 5);
+      generateWreckedConvoy(-32, 20);      // Ambushed column
+      generateWreckedConvoy(30, -22);
+      generateWreckedTruck(-38, 5);
+      generateWreckedTruck(35, -8);
+      // Massive minefield network (what stopped the 155th Brigade)
       generateMinefield(-25, -25);
       generateMinefield(25, 25);
-      generateCraters(10);
+      generateMinefield(-28, 12);
+      generateMinefield(25, -14);
+      generateMinefield(0, -38);
+      generateMinefield(0, 35);
+      generateMinefield(-42, -10);
+      generateMinefield(40, 12);
+      generateMinefieldSigns(16);          // Warning signs scattered throughout
+      // Craters from failed armor pushes
+      generateCraters(18);
+      // Ukrainian defensive trenches (held the high ground successfully)
       generateTrenchNetwork(0, 0);
-      generateDroneNest(35, 35);
-      generateDroneNest(-35, -35);
+      generateTrenchNetwork(-18, 18);
+      generateTrenchNetwork(18, -18);
+      generateMortarPit(-25, 0);
+      generateMortarPit(22, 0);
+      generateMortarPit(0, -25);
+      generateMortarPit(0, 22);
+      generateSniperNest(-38, -38);
+      generateSniperNest(35, -38);
+      generateSniperNest(-38, 35);
+      generateSniperNest(35, 35);
+      generateBunker(-20, 20);
+      generateBunker(20, -20);
+      generateBunker(-40, 0);
+      generateBunker(38, 0);
+      // Ukrainian observation posts (they had great line of sight from hills)
+      generateWatchtower(0, -42);
+      generateWatchtower(-42, 0);
+      generateWatchtower(0, 40);
+      generateWatchtower(40, 0);
+      generateObservationPost(-30, -30);
+      generateObservationPost(28, 30);
+      // Vuhledar town (mining community on the ridge)
+      generateUkrainianApartment(-45, -20, 6);
+      generateUkrainianApartment(-45, 5, 6);
+      generateUkrainianApartment(38, -22, 6);
+      generateUkrainianApartment(38, 8, 6);
+      generateBurningRuin(-42, -42);
+      generateBurningRuin(40, -40);
+      generateBurningRuin(-10, -52);
+      generateBurningRuin(12, 50);
+      generateDefensivePosition(-15, 28);
+      generateDefensivePosition(12, 28);
+      generateCheckpoint(0, 48, false);
+      generateCheckpoint(0, -48, false);
+      generateCheckpoint(45, 0, true);
+      generateCheckpoint(-45, 0, true);
+      generateAntiAirPosition(-32, 35);
+      generateAntiAirPosition(30, -35);
+      generateAmmoDepot(-28, 28);
+      generateAmmoDepot(25, -30);
+      generateDroneNest(48, 0);
+      generateDroneNest(-48, 0);
+      generateDroneNest(0, 48);
+      generateDroneNest(0, -48);
     } else if (level.id === 'ANTONOV') {
-      // Bridge strike — bridge, fortifications, supply dumps, residential flanks
-      generateBridge(0, 0, 50, 6);
-      generateBridgeFortification(15, 0);
-      generateBridgeFortification(-15, 0);
-      generateAmmoDepot(-25, 25);
-      generateFuelDepot(25, -25);
-      generateCheckpoint(30, 0, true);
-      generateCheckpoint(-30, 0, true);
-      // Residential blocks flanking the bridge approach (Kherson city context)
-      generateUkrainianApartment(-45, -20, 9);
-      generateUkrainianApartment(-45, 10, 6);
-      generateUkrainianApartment(32, -18, 9);
-      generateUkrainianApartment(32, 12, 6);
-      generateUkrainianApartment(-18, -48, 9);
-      generateUkrainianApartment(10, -48, 6);
-      generateBurningRuin(-46, -40);
-      generateBurningRuin(33, -38);
-      generateDroneNest(40, 40);
+      // Antonov Bridge / Kherson Oblast — HIMARS supply line interdiction
+      // The bridge over the Dnipro was struck repeatedly to cut Russian supplies
+      // Main bridge (scaled from ~2km to game units)
+      generateBridge(0, 0, 60, 8);             // Main Antonov highway bridge
+      generateBridge(-8, 0, 60, 4);            // Rail bridge alongside
+      generateCollapsedBridge(20, 0);           // Already-bombed section
+      generateBridgeFortification(25, 0);
+      generateBridgeFortification(-25, 0);
+      generateBridgeFortification(0, 30);       // Mid-bridge AA emplacement
+      // Supply staging area (Russian logistics hub north side)
+      generateAmmoDepot(-30, 30);
+      generateAmmoDepot(30, 30);
+      generateFuelDepot(0, 45);
+      generateFuelDepot(-35, 45);
+      generateFuelDepot(32, 42);
+      generateAmmoDumpBerm(-22, 50);
+      generateWreckedConvoy(15, 48);            // Destroyed supply trucks
+      generateWreckedTruck(-18, 45);
+      generateWreckedTruck(22, 52);
+      // South (Ukrainian) side: Kherson city outskirts
+      generateCheckpoint(32, -15, true);
+      generateCheckpoint(-32, -15, true);
+      generateCheckpoint(0, -40, false);
+      generateUkrainianApartment(-48, -22, 9);
+      generateUkrainianApartment(-48, 8, 6);
+      generateUkrainianApartment(35, -20, 9);
+      generateUkrainianApartment(35, 10, 6);
+      generateUkrainianApartment(-18, -52, 9);
+      generateUkrainianApartment(12, -52, 6);
+      generateUkrainianApartment(-50, -45, 6);
+      generateUkrainianApartment(38, -45, 6);
+      generateChurch(-28, -10);                // Kherson south bank cathedral
+      generateGrainSilo(-42, 25);              // Port grain elevator
+      generateIndustrialComplex(-38, -30);     // Kherson port facility
+      // Bridge defense fortifications
+      generateAntiAirPosition(-35, 35);
+      generateAntiAirPosition(32, 35);
+      generateAntiAirPosition(-42, 0);
+      generateAntiAirPosition(40, 0);
+      generateDefensivePosition(-20, 20);
+      generateDefensivePosition(18, 22);
+      generateDefensivePosition(-15, -15);
+      generateDefensivePosition(12, -15);
+      generateMortarPit(-28, 40);
+      generateMortarPit(25, 42);
+      generateSniperNest(-40, -10);             // Sniper nests covering the bridge
+      generateSniperNest(38, -12);
+      generateSniperNest(0, -35);
+      generateWatchtower(-5, -28);              // Observation post toward bridge
+      generateWatchtower(-22, 25);
+      generateWatchtower(20, 28);
+      generateRadarTower(-42, 38);
+      generateCommTower(0, 55);
+      // Surrounding battle damage
+      generateBurningRuin(-48, -42);
+      generateBurningRuin(35, -40);
+      generateBurningRuin(-10, 38);
+      generateBurningRuin(12, 40);
+      generateWreckedTank(-22, -30);
+      generateWreckedAPC(20, -32);
+      generateWreckedCar(-5, -50);
+      generateWreckedCar(8, -48);
+      generatePowerLines(0, 0, 4);
+      generateBillboard(-30, -20);
+      generateBillboard(28, 22);
+      // Drone nests (both sides of the crossing)
+      generateDroneNest(48, 48);
+      generateDroneNest(-48, 48);
+      generateDroneNest(48, -48);
+      generateDroneNest(-48, -48);
     } else if (level.id === 'REFINERY') {
       // Oil refinery — fuel tanks, industrial towers, pipelines
       generateFuelDepot(0, 0);

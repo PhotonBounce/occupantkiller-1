@@ -9609,6 +9609,8 @@ const GameManager = (function () {
 
     getStageInfo:    function () { return STAGES[currentStage]; },
     isSprinting:     function () { return player.sprinting; },
+    getPerfLevel:    function () { return _perfLevel; },
+    isLowEndVFX:     function () { return _lowEndVFX || _perfLevel >= 2; },
     _activateStreak: _activateStreak,
     _openPerksMenu: _openPerksMenu,
     _openJournal: _openJournal,
