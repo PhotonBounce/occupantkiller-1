@@ -6598,15 +6598,86 @@ window.VoxelWorld = (function () {
       generateAntiTankHedgehogs(8);
       generateDroneNest(35, 35);
     } else if (level.id === 'CHORNOBYL') {
-      // Irradiated exclusion zone — abandoned, broken, cratered
-      generateBrokenTrees(20);
-      generateCraters(8);
-      generateRuins(6);
-      generateBunker(-20, -20);
+      // Chornobyl Exclusion Zone — 30km dead zone, ghost city of Pripyat, irradiated reactor
+      // Reactor No. 4 / New Safe Confinement area (center)
+      generateIndustrialComplex(0, 0);          // Reactor building (scaled)
+      generateIndustrialComplex(-12, 8);        // Turbine hall
+      generateIndustrialComplex(12, -8);        // Reactor 3 (sister unit)
+      generateCommTower(0, -20);               // Chornobyl TV tower
+      generateRadarTower(-20, -15);            // Duga radar (massive over-horizon)
+      generateRadarTower(20, -15);             // Second Duga mast
+      generateWaterTower(-30, 0);              // Cooling water tower
+      generateWaterTower(30, 0);
+      // Pripyat ghost city — abandoned in 1986, nature taking over
+      // City center: residential blocks with trees growing through them
+      generateUkrainianApartment(-30, -25, 9);  // Pripyat microrayon 5 (9-storey)
+      generateUkrainianApartment(-30, -45, 9);
+      generateUkrainianApartment(22, -28, 9);   // Microrayon 4 (east side)
+      generateUkrainianApartment(22, -48, 6);
+      generateUkrainianApartment(-48, -15, 6);  // Outer blocks
+      generateUkrainianApartment(38, -15, 6);
+      generateUkrainianApartment(-15, -60, 6);
+      generateUkrainianApartment(10, -60, 6);
+      generateApartmentBlock(-15, -12, 5);      // Hotel Polissya (city center hotel)
+      generateApartmentBlock(15, -10, 5);       // Energetik culture palace
+      generateLuxuryVilla(-5, -5, 12, 10);      // Pripyat Executive Committee (city hall)
+      generateChurch(-25, -5);                  // Pripyat orthodox church (still standing)
+      generateChurch(22, 8);                    // Chornobyl town church
+      // Amusement park (never opened — famous for rusty Ferris wheel)
+      generateWatchtower(18, 25);               // Ferris wheel (scaled as watchtower)
+      generateWatchtower(-18, 25);
+      // Abandoned exclusion zone infrastructure
+      generateBrokenTrees(25);                  // Irradiated forest ("Red Forest")
+      generateCraters(12);                      // Liquidator vehicle craters
+      generateRuins(10);                        // Collapsed structures
+      generateRuinedHouse(-38, -38);
+      generateRuinedHouse(32, -42);
+      generateRuinedHouse(-20, 35);
+      generateRuinedHouse(18, 38);
+      generateRuinedCommercial(-10, -38);
+      generateRuinedCommercial(8, -35);
+      generateRuinedCommercial(-30, 30);
+      generateCollapsedBridge(-8, -25);         // Road bridge buried under vegetation
+      generateBurningRuin(-40, -50);            // Fires from current combat
+      generateBurningRuin(35, -50);
+      generateBurningRuin(0, 40);
+      // Military infrastructure (Russians used this as staging ground Feb 2022)
+      generateBunker(-22, -22);
       generateBunker(20, 20);
-      generateWatchtower(0, -30);
-      generateWatchtower(0, 30);
-      generateDroneNest(40, -40);
+      generateBunker(-22, 20);
+      generateBunker(20, -22);
+      generateBunker(-42, 0);
+      generateBunker(40, 0);
+      generateWatchtower(0, -42);
+      generateWatchtower(0, 40);
+      generateWatchtower(-42, -40);
+      generateWatchtower(40, 40);
+      generateTrenchNetwork(-18, 18);           // Russian dug-in positions
+      generateTrenchNetwork(18, -18);
+      generateMortarPit(-30, 10);
+      generateMortarPit(28, -12);
+      generateDefensivePosition(-12, 30);
+      generateDefensivePosition(10, 30);
+      generateCheckpoint(0, 50, false);
+      generateCheckpoint(0, -50, false);
+      generateCheckpoint(48, 0, true);
+      generateCheckpoint(-48, 0, true);
+      generateAntiAirPosition(-35, 35);
+      generateAntiAirPosition(32, -35);
+      generateAmmoDepot(-32, -10);
+      generateAmmoDepot(28, 12);
+      generateFuelDepot(0, -35);
+      // Wrecked liquidator vehicles + Russian armor
+      generateWreckedTank(-12, -30);
+      generateWreckedAPC(12, 28);
+      generateWreckedConvoy(-35, 25);
+      generateWreckedTruck(30, -22);
+      generateDestroyedVehicles(15);            // Russian vehicles irradiated/abandoned
+      generatePowerLines(0, 0, 5);              // Exclusion zone power infrastructure
+      generateRailway(-10, -20, 30, true);      // Chornobyl railway spur
+      generateDroneNest(48, -48);
+      generateDroneNest(-48, -48);
+      generateDroneNest(48, 48);
     } else if (level.id === 'MOSCOW') {
       // ── MOSCOW OUTSKIRTS — real street grid density ──────────────────────
       // Based on Moscow's concentric ring road layout:
