@@ -2609,6 +2609,224 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_christ_saviour', x: ox - s, z: oz - s, w: 2 * s + 1, d: 2 * s + 1, baseY: h, floorH: 4, floors: 3, cx: ox, cz: oz });
   }
 
+  // ── CHORNOBYL: New Safe Confinement (reactor sarcophagus arch) ─────────
+  // The vast silver steel arch sealing Reactor No. 4 — a barrel-vault hangar.
+  function generateChornobylSarcophagus(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    // Concrete reactor base under the arch
+    for (var bx = -9; bx <= 9; bx++) {
+      for (var bz = -8; bz <= 8; bz++) {
+        for (var by = 0; by < 5; by++) {
+          var shell = (bx === -9 || bx === 9 || bz === -8 || bz === 8 || by === 0 || by === 4);
+          if (shell) setBlock(ox + bx, h + by + 1, oz + bz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // The great arch — semicircular METAL ribs swept along z (a half-cylinder)
+    var R = 11;
+    for (var z = -9; z <= 9; z++) {
+      var ribFull = (((z + 9) % 3) === 0); // solid ribs every 3 blocks, ribbon between
+      for (var deg = 0; deg <= 180; deg += 4) {
+        var rad = deg * Math.PI / 180;
+        var ax = Math.round(ox + Math.cos(rad) * R);
+        var ay = Math.round(h + 1 + Math.sin(rad) * R);
+        if (ribFull) {
+          setBlock(ax, ay, oz + z, BLOCK.METAL);
+          // double-skin the rib for thickness
+          var ax2 = Math.round(ox + Math.cos(rad) * (R - 1));
+          var ay2 = Math.round(h + 1 + Math.sin(rad) * (R - 1));
+          setBlock(ax2, ay2, oz + z, BLOCK.METAL);
+        } else if (deg % 12 === 0) {
+          setBlock(ax, ay, oz + z, BLOCK.METAL); // longitudinal ties
+        }
+      }
+    }
+    // Closed end walls (north + south) — metal cladding with vent louvers
+    for (var deg2 = 0; deg2 <= 180; deg2 += 4) {
+      var rd = deg2 * Math.PI / 180;
+      for (var rr = 0; rr <= R; rr++) {
+        var ex = Math.round(ox + Math.cos(rd) * rr);
+        var ey = Math.round(h + 1 + Math.sin(rd) * rr);
+        var blk = (deg2 % 16 === 0) ? BLOCK.GLASS : BLOCK.METAL;
+        setBlock(ex, ey, oz - 9, blk);
+        setBlock(ex, ey, oz + 9, BLOCK.METAL);
+      }
+    }
+    // Ventilation stack beside the hall (the classic red-white chimney)
+    for (var sy = 0; sy < 22; sy++) {
+      setBlock(ox + 13, h + sy + 1, oz, ((sy >> 1) & 1) ? BLOCK.BANNER : BLOCK.WHITE_TILE);
+    }
+    setBlock(ox + 13, h + 23, oz, BLOCK.LIGHT);
+    _buildings.push({ kind: 'landmark_sarcophagus', x: ox - 11, z: oz - 9, w: 23, d: 19, baseY: h, floorH: 5, floors: 2, cx: ox, cz: oz });
+  }
+
+  // ── CHORNOBYL (Pripyat): the abandoned amusement-park Ferris wheel ──────
+  function generatePripyatFerrisWheel(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var cy = h + 12;       // hub height
+    var R = 9;             // wheel radius
+    // A-frame support legs (in the X-Y plane, straddling the hub)
+    for (var ly = 0; ly < 12; ly++) {
+      var spread = Math.round((1 - ly / 12) * 5);
+      setBlock(ox - spread, h + ly + 1, oz - 1, BLOCK.METAL);
+      setBlock(ox + spread, h + ly + 1, oz - 1, BLOCK.METAL);
+      setBlock(ox - spread, h + ly + 1, oz + 1, BLOCK.METAL);
+      setBlock(ox + spread, h + ly + 1, oz + 1, BLOCK.METAL);
+    }
+    // Hub
+    setBlock(ox, cy, oz, BLOCK.METAL);
+    // Wheel rim + spokes + gondolas (vertical circle at z = oz)
+    var cabins = 8;
+    for (var i = 0; i < 48; i++) {
+      var a = (i / 48) * Math.PI * 2;
+      var wx = Math.round(ox + Math.cos(a) * R);
+      var wy = Math.round(cy + Math.sin(a) * R);
+      setBlock(wx, wy, oz, BLOCK.METAL);          // rim
+      var wx2 = Math.round(ox + Math.cos(a) * (R - 1));
+      var wy2 = Math.round(cy + Math.sin(a) * (R - 1));
+      setBlock(wx2, wy2, oz, BLOCK.METAL);        // inner rim
+    }
+    for (var s = 0; s < cabins; s++) {
+      var sa = (s / cabins) * Math.PI * 2;
+      // spoke
+      for (var sp = 1; sp < R; sp++) {
+        setBlock(Math.round(ox + Math.cos(sa) * sp), Math.round(cy + Math.sin(sa) * sp), oz, BLOCK.METAL);
+      }
+      // yellow gondola hanging just outside the rim
+      var gx = Math.round(ox + Math.cos(sa) * (R + 1));
+      var gy = Math.round(cy + Math.sin(sa) * (R + 1));
+      setBlock(gx, gy, oz - 1, BLOCK.BUS);
+      setBlock(gx, gy, oz + 1, BLOCK.BUS);
+      setBlock(gx, gy, oz, BLOCK.BUS);
+      setBlock(gx, gy - 1, oz, BLOCK.BUS);
+    }
+    _buildings.push({ kind: 'landmark_ferris_wheel', x: ox - R, z: oz - 2, w: 2 * R + 1, d: 5, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── CHORNOBYL: Duga over-the-horizon radar ("Russian Woodpecker") ──────
+  // Colossal lattice wall of horizontal antenna elements on tall masts.
+  function generateDugaRadar(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var halfLen = 22, wallH = 38;
+    // Vertical lattice masts every 4 blocks
+    for (var x = -halfLen; x <= halfLen; x += 4) {
+      for (var y = 0; y < wallH; y++) {
+        setBlock(ox + x, h + y + 1, oz, BLOCK.METAL);
+        setBlock(ox + x, h + y + 1, oz + 2, BLOCK.METAL); // depth (twin plane)
+      }
+    }
+    // Horizontal antenna elements (the iconic stacked rows)
+    for (var ry = 4; ry < wallH; ry += 4) {
+      for (var rx = -halfLen; rx <= halfLen; rx++) {
+        setBlock(ox + rx, h + ry + 1, oz, BLOCK.METAL);
+      }
+    }
+    // Cross-bracing diagonals (sparse, for the lattice look)
+    for (var bx = -halfLen; bx < halfLen; bx += 4) {
+      for (var d = 0; d < 4; d++) {
+        setBlock(ox + bx + d, h + d + 4 + 1, oz + 1, BLOCK.METAL);
+      }
+    }
+    // Connect the twin planes top + bottom
+    for (var cx2 = -halfLen; cx2 <= halfLen; cx2 += 8) {
+      setBlock(ox + cx2, h + wallH, oz + 1, BLOCK.METAL);
+      setBlock(ox + cx2, h + 1, oz + 1, BLOCK.METAL);
+    }
+    _buildings.push({ kind: 'landmark_duga', x: ox - halfLen, z: oz - 1, w: 2 * halfLen + 1, d: 4, baseY: h, floorH: wallH, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── MARIUPOL: Drama Theatre ────────────────────────────────────────────
+  // Neoclassical theatre with a grand columned portico + pediment. A white
+  // memorial plaza recalls the "ДЕТИ" (CHILDREN) sign laid before the strike.
+  function generateMariupolDramaTheatre(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var bw = 22, bd = 14, bh = 10;
+    var hx = -Math.floor(bw / 2), hz = -Math.floor(bd / 2);
+    // Theatre body (white neoclassical block)
+    for (var py = 0; py < bh; py++) {
+      for (var px = 0; px < bw; px++) {
+        for (var pz = 0; pz < bd; pz++) {
+          var isWall = (px === 0 || px === bw - 1 || pz === 0 || pz === bd - 1);
+          if (isWall || py === 0 || py === bh - 1) setBlock(ox + hx + px, h + py + 1, oz + hz + pz, BLOCK.WHITE_TILE);
+        }
+      }
+    }
+    // Tall windows
+    for (var wy = 3; wy < bh - 1; wy += 3) {
+      for (var wx2 = 3; wx2 < bw - 3; wx2 += 3) {
+        setBlock(ox + hx + wx2, h + wy + 1, oz + hz, BLOCK.GLASS);
+        setBlock(ox + hx + wx2, h + wy + 1, oz + hz + bd - 1, BLOCK.GLASS);
+      }
+    }
+    // Grand portico: row of columns across the south front
+    var frontZ = oz + hz - 2;
+    for (var col = -8; col <= 8; col += 4) {
+      for (var cyy = 0; cyy < bh + 1; cyy++) setBlock(ox + col, h + cyy + 1, frontZ, BLOCK.CONCRETE);
+    }
+    // Architrave + triangular pediment over the columns
+    for (var ax = -9; ax <= 9; ax++) setBlock(ox + ax, h + bh + 1, frontZ, BLOCK.WHITE_TILE);
+    for (var pr = 0; pr < 5; pr++) {
+      for (var pxx = -(4 - pr); pxx <= (4 - pr); pxx++) {
+        setBlock(ox + pxx, h + bh + 2 + pr, frontZ, BLOCK.WHITE_TILE);
+      }
+    }
+    // Roof ridge / low attic
+    for (var rx = hx + 2; rx <= hx + bw - 3; rx++) setBlock(ox + rx, h + bh + 1, oz, BLOCK.ROOFTILE);
+    // Memorial plaza in front with the white "ДЕТИ" lettering on the ground
+    var plazaZ = oz + hz - 8;
+    for (var qx = -10; qx <= 10; qx++) {
+      for (var qz = -3; qz <= 2; qz++) setBlock(ox + qx, h + 1, plazaZ + qz, BLOCK.CONCRETE);
+    }
+    // Block letters Д Е Т И (5 tall, laid flat) in WHITE_TILE on the plaza
+    var lz0 = plazaZ - 2;
+    function _mark(lx, lz) { setBlock(ox + lx, h + 2, lz0 + lz, BLOCK.WHITE_TILE); }
+    // Д
+    _mark(-9,0);_mark(-8,0);_mark(-7,0);_mark(-9,1);_mark(-7,1);_mark(-9,2);_mark(-7,2);_mark(-9,3);_mark(-8,3);_mark(-7,3);_mark(-9,4);_mark(-7,4);
+    // Е
+    _mark(-5,0);_mark(-4,0);_mark(-3,0);_mark(-5,1);_mark(-5,2);_mark(-4,2);_mark(-5,3);_mark(-5,4);_mark(-4,4);_mark(-3,4);
+    // Т
+    _mark(-1,0);_mark(0,0);_mark(1,0);_mark(0,1);_mark(0,2);_mark(0,3);_mark(0,4);
+    // И
+    _mark(3,0);_mark(3,1);_mark(3,2);_mark(3,3);_mark(3,4);_mark(5,0);_mark(5,1);_mark(5,2);_mark(5,3);_mark(5,4);_mark(4,2);
+    _buildings.push({ kind: 'landmark_drama_theatre', x: ox + hx, z: oz + hz, w: bw, d: bd, baseY: h, floorH: 3, floors: 3, cx: ox, cz: oz });
+  }
+
+  // ── SEVASTOPOL: Defense Panorama (round neoclassical rotunda museum) ────
+  function generateSevastopolPanorama(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var R = 9, wallH = 9;
+    // Round drum wall
+    for (var y = 0; y < wallH; y++) {
+      _lmRing(ox, h + y + 1, oz, R, BLOCK.WHITE_TILE);
+    }
+    // Floor
+    _lmDisc(ox, h + 1, oz, R, BLOCK.STONE);
+    // Encircling colonnade just outside the wall
+    for (var a = 0; a < 360; a += 30) {
+      var rad = a * Math.PI / 180;
+      var cxp = Math.round(ox + Math.cos(rad) * (R + 1));
+      var czp = Math.round(oz + Math.sin(rad) * (R + 1));
+      for (var cyy = 0; cyy < wallH; cyy++) setBlock(cxp, h + cyy + 1, czp, BLOCK.CONCRETE);
+    }
+    // Windows around the drum
+    for (var a2 = 0; a2 < 360; a2 += 30) {
+      var rad2 = a2 * Math.PI / 180;
+      setBlock(Math.round(ox + Math.cos(rad2) * R), h + 4, Math.round(oz + Math.sin(rad2) * R), BLOCK.GLASS);
+      setBlock(Math.round(ox + Math.cos(rad2) * R), h + 5, Math.round(oz + Math.sin(rad2) * R), BLOCK.GLASS);
+    }
+    // Shallow green dome roof (conical)
+    var domeProfile = [9, 8, 6, 4, 2, 1];
+    for (var di = 0; di < domeProfile.length; di++) {
+      _lmDisc(ox, h + wallH + 1 + di, oz, domeProfile[di], di < 2 ? BLOCK.STREET_SIGN : BLOCK.METAL);
+    }
+    setBlock(ox, h + wallH + 1 + domeProfile.length, oz, BLOCK.FLAG);
+    // Entrance portico
+    for (var dw = -1; dw <= 1; dw++) {
+      for (var dh = 0; dh < 4; dh++) setBlock(ox + dw, h + dh + 1, oz - R, BLOCK.DOOR);
+    }
+    _buildings.push({ kind: 'landmark_panorama', x: ox - R, z: oz - R, w: 2 * R + 1, d: 2 * R + 1, baseY: h, floorH: 4, floors: 2, cx: ox, cz: oz });
+  }
+
   // IDEA 3: Railway tracks
   function generateRailway(startX, startZ, length, horizontal) {
     for (let i = 0; i < length; i++) {
@@ -7052,6 +7270,8 @@ window.VoxelWorld = (function () {
       generateUkrainianApartment(12, -48, 6);
       generateUkrainianApartment(-40, 28, 6);
       generateUkrainianApartment(38, 28, 6);
+      // Mariupol Drama Theatre — neoclassical theatre + "ДЕТИ" memorial plaza
+      generateMariupolDramaTheatre(-2, -38);
       // Extensive burning ruins (the city was 90%+ destroyed)
       generateBurningRuin(-20, -20);
       generateBurningRuin(20, 20);
@@ -7181,12 +7401,11 @@ window.VoxelWorld = (function () {
     } else if (level.id === 'CHORNOBYL') {
       // Chornobyl Exclusion Zone — 30km dead zone, ghost city of Pripyat, irradiated reactor
       // Reactor No. 4 / New Safe Confinement area (center)
-      generateIndustrialComplex(0, 0);          // Reactor building (scaled)
-      generateIndustrialComplex(-12, 8);        // Turbine hall
-      generateIndustrialComplex(12, -8);        // Reactor 3 (sister unit)
-      generateCommTower(0, -20);               // Chornobyl TV tower
-      generateRadarTower(-20, -15);            // Duga radar (massive over-horizon)
-      generateRadarTower(20, -15);             // Second Duga mast
+      generateChornobylSarcophagus(0, 0);       // New Safe Confinement steel arch over Reactor 4
+      generateIndustrialComplex(-14, 10);       // Turbine hall
+      generateIndustrialComplex(14, -10);       // Reactor 3 (sister unit)
+      generateCommTower(0, -22);               // Chornobyl TV tower
+      generateDugaRadar(-24, -16);             // Duga over-the-horizon radar wall
       generateWaterTower(-30, 0);              // Cooling water tower
       generateWaterTower(30, 0);
       // Pripyat ghost city — abandoned in 1986, nature taking over
@@ -7204,8 +7423,8 @@ window.VoxelWorld = (function () {
       generateLuxuryVilla(-5, -5, 12, 10);      // Pripyat Executive Committee (city hall)
       generateChurch(-25, -5);                  // Pripyat orthodox church (still standing)
       generateChurch(22, 8);                    // Chornobyl town church
-      // Amusement park (never opened — famous for rusty Ferris wheel)
-      generateWatchtower(18, 25);               // Ferris wheel (scaled as watchtower)
+      // Amusement park (never opened — famous for the rusty yellow Ferris wheel)
+      generatePripyatFerrisWheel(18, 28);       // Pripyat amusement-park Ferris wheel
       generateWatchtower(-18, 25);
       // Abandoned exclusion zone infrastructure
       generateBrokenTrees(25);                  // Irradiated forest ("Red Forest")
@@ -7409,6 +7628,7 @@ window.VoxelWorld = (function () {
       generateLuxuryVilla(8, -8, 10, 8);       // Naval admiralty offices
       generateChurch(-25, 5);                  // Cathedral of SS Peter and Paul
       generateChurch(22, 12);                  // Vladimir Cathedral (famous in Sevastopol)
+      generateSevastopolPanorama(15, 38);      // Defense of Sevastopol Panorama — round rotunda museum
       // Ammo + fuel
       generateAmmoDepot(30, 30);
       generateAmmoDepot(-28, -8);
