@@ -6040,7 +6040,17 @@ window.VoxelWorld = (function () {
       generateAntiAirPosition(30, 35);
       generateAntiAirPosition(0, 55);
     } else if (level.id === 'AVDIIVKA') {
-      // Coking plant district — dense apartment blocks (west/east flanks)
+      // Avdiivka Coke and Chemical Plant — industrial fortress, most fortified Ukrainian position
+      // The coking plant (AKHZ) was Europe's largest — defended for 2+ years
+      // Industrial core: the AKHZ plant itself
+      generateIndustrialComplex(0, 0);          // AKHZ main coke battery
+      generateIndustrialComplex(-18, -20);      // By-product plant
+      generateIndustrialComplex(18, -20);       // Coal crushing facility
+      generateGrainSilo(-30, -10);              // Industrial silo tower
+      generateGrainSilo(28, -8);
+      generatePowerLines(0, 0, 6);              // High-voltage industrial lines
+      generateRailway(-10, -30, 40, false);     // Coke transport railway
+      // City residential blocks (east + west of the plant)
       generateUkrainianApartment(-20, -20, 6);
       generateUkrainianApartment(-20, -42, 12);
       generateUkrainianApartment(10, -25, 6);
@@ -6051,13 +6061,64 @@ window.VoxelWorld = (function () {
       generateUkrainianApartment(30, -42, 6);
       generateUkrainianApartment(-20, 10, 6);
       generateUkrainianApartment(10, 15, 9);
+      generateUkrainianApartment(-50, -25, 6);
+      generateUkrainianApartment(42, -28, 6);
+      generateUkrainianApartment(-15, -58, 6);
+      generateUkrainianApartment(12, -60, 6);
+      // Avdiivka-specific worker homes (pre-war residential texture)
+      generateAvdiivkaHome(-32, -55, 1);
+      generateAvdiivkaHome(-32, -68, 2);
+      generateAvdiivkaHome(28, -55, 0);
+      generateAvdiivkaHome(28, -68, 1);
+      generateAvdiivkaHome(-50, -42, 2);
+      generateAvdiivkaHome(42, -42, 0);
+      // Fortification network (AKHZ was a prepared fortress)
+      generateTrenchNetwork(-15, 10);
+      generateTrenchNetwork(15, 10);
+      generateTrenchNetwork(0, -55);
+      generateMortarPit(-25, 20);
+      generateMortarPit(22, 20);
+      generateBunker(-35, 5);
+      generateBunker(32, 5);
+      generateSniperNest(-40, -25);
+      generateSniperNest(38, -22);
+      generateDefensivePosition(-10, 20);
+      generateDefensivePosition(8, 22);
+      generateDefensivePosition(-45, -50);
+      generateDefensivePosition(42, -50);
+      generateCheckpoint(-5, 28, false);       // North checkpoint (Supply road)
+      generateCheckpoint(-5, -65, false);      // South perimeter
+      generateCheckpoint(50, -15, true);       // East flank
+      generateCheckpoint(-50, -15, true);      // West flank
+      generateAntiAirPosition(-40, 20);
+      generateAntiAirPosition(38, 22);
+      // Battle damage
       generateBurningRuin(-22, -60);
       generateBurningRuin(12, -62);
-      generateDroneNest(35, -35);
-      generateDroneNest(-35, -55);
-      generateDroneNest(30, 15);
+      generateBurningRuin(-5, -30);
+      generateBurningRuin(24, 12);
+      generateBurningRuin(-42, -42);
+      generateBurningRuin(40, -40);
+      generateRuinedHouse(-45, -58);
+      generateRuinedHouse(38, -58);
+      generateRuinedCommercial(-10, -68);
+      generateWreckedTank(-12, -48);
+      generateWreckedAPC(15, -38);
+      generateWreckedConvoy(-38, -45);
+      generateWreckedTruck(35, -50);
+      // Ammo
+      generateAmmoDepot(-30, 5);
+      generateAmmoDepot(28, 8);
+      generateAmmoCache(-5, -62);
+      // Drone nests (the plant's observation towers become drone launch points)
+      generateDroneNest(48, -42);
+      generateDroneNest(-48, -55);
+      generateDroneNest(30, 22);
+      generateDroneNest(-30, 22);
     } else if (level.id === 'BAKHMUT') {
-      // Total destruction — bombed apartments, rubble streets
+      // Bakhmut — the most destroyed city in modern warfare history
+      // Once a city of 70,000 — now rubble after 224+ days of siege
+      // Apartment blocks stand as shattered shells (some standing, many ruins)
       generateUkrainianApartment(-25, -20, 6);
       generateUkrainianApartment(-25, -42, 6);
       generateUkrainianApartment(15, -15, 12);
@@ -6068,18 +6129,115 @@ window.VoxelWorld = (function () {
       generateUkrainianApartment(33, -40, 9);
       generateUkrainianApartment(-10, 12, 6);
       generateUkrainianApartment(12, 18, 9);
+      generateUkrainianApartment(-48, 5, 6);
+      generateUkrainianApartment(45, 12, 6);
+      generateUkrainianApartment(-12, -62, 6);
+      generateUkrainianApartment(18, -62, 6);
+      // Massive ruin field — every block has burning wreckage
       generateBurningRuin(-28, -60);
       generateBurningRuin(16, -55);
       generateBurningRuin(-5, -65);
-      generateDroneNest(40, -30);
-      generateDroneNest(-40, -10);
-      generateDroneNest(20, 30);
+      generateBurningRuin(38, -48);
+      generateBurningRuin(-45, -35);
+      generateBurningRuin(-20, 5);
+      generateBurningRuin(28, 8);
+      generateBurningRuin(0, -45);
+      generateBurningRuin(-38, 18);
+      generateBurningRuin(40, 22);
+      generateRuinedHouse(-35, -58);
+      generateRuinedHouse(25, -62);
+      generateRuinedHouse(-18, -32);
+      generateRuinedHouse(30, -28);
+      generateRuinedHouse(-45, 8);
+      generateRuinedCommercial(-8, -50);
+      generateRuinedCommercial(10, -48);
+      generateRuinedCommercial(-28, 20);
+      generateCollapsedBridge(0, -35);          // Bakhmutka River bridge
+      generateCollapsedBridge(-15, -38);
+      // Wagner Group trench / assault positions (they took the city)
+      generateTrenchNetwork(0, -25);
+      generateTrenchNetwork(-20, 20);
+      generateMortarPit(-30, -30);
+      generateMortarPit(22, -30);
+      generateMortarPit(38, -55);
+      generateBunker(-20, -68);
+      generateBunker(20, -70);
+      generateSniperNest(-35, -15);
+      generateSniperNest(30, -15);
+      generateSniperNest(0, -55);
+      generateDefensivePosition(-48, -48);
+      generateDefensivePosition(45, -45);
+      generateDefensivePosition(0, 30);
+      generateAmmoDepot(38, 28);
+      generateAmmoDepot(-40, 25);
+      generateAmmoDepot(-48, -55);
+      // Railway (Bakhmut is a railway junction city)
+      generateRailway(-20, -30, 35, true);
+      generateRailway(0, 10, 30, false);
+      generateWreckedTank(-18, -28);
+      generateWreckedTank(22, -32);
+      generateWreckedAPC(-35, -15);
+      generateWreckedConvoy(30, -20);
+      generateWreckedTruck(-5, -62);
+      generateWreckedBus(-38, -40);
+      // Drone nests
+      generateDroneNest(48, -38);
+      generateDroneNest(-48, -18);
+      generateDroneNest(25, 35);
+      generateDroneNest(-25, 35);
     } else if (level.id === 'KHERSON') {
-      generateUkrainianApartment(-30, -25, 12);
-      generateUkrainianApartment(-30, -47, 6);
-      generateUkrainianApartment(20, -30, 6);
-      generateDroneNest(35, -40);
-      generateDroneNest(-35, -55);
+      // Kherson city — Dnipro river port, Soviet housing estates, occupation frontline
+      // City center: admin buildings + apartment blocks flanking the main boulevard
+      generateLuxuryVilla(-5, -10, 14, 10);    // Kherson Oblast Admin HQ
+      generateLuxuryVilla(10, -8, 10, 8);     // Regional government offices
+      generateUkrainianApartment(-30, -25, 12); // North residential block
+      generateUkrainianApartment(-30, -47, 9);  // North-west apartments
+      generateUkrainianApartment(20, -30, 9);   // East residential
+      generateUkrainianApartment(20, -52, 6);   // Far east block
+      generateUkrainianApartment(-15, -55, 6);  // South block
+      generateUkrainianApartment(5, -58, 9);    // South-east apartments
+      generateUkrainianApartment(-45, -15, 6);  // West fringe
+      generateUkrainianApartment(38, -15, 6);   // East fringe
+      // Port/docks district (Dnipro riverbank features)
+      generateIndustrialComplex(-35, -55);      // Port warehouses
+      generateGrainSilo(-42, -30);              // Kherson grain terminal
+      generateGrainSilo(30, -55);               // Second grain silo
+      generateRailway(-20, -45, 25, true);      // Port railway spur
+      // Churches (Kherson has several orthodox parishes)
+      generateChurch(-22, -8);
+      generateChurch(30, -22);
+      // Urban infrastructure
+      generateWaterTower(-48, -38);
+      generateWaterTower(42, -40);
+      generatePowerLines(0, 0, 4);
+      generateFieldHospital(8, 10);             // Humanitarian corridor medical post
+      // Military occupation features
+      generateCheckpoint(0, -62, false);        // South road checkpoint (toward Skadovsk)
+      generateCheckpoint(0, 12, false);         // North Dnipro approach
+      generateCheckpoint(44, -30, true);        // East road to Crimea
+      generateDefensivePosition(-20, 5);
+      generateDefensivePosition(22, 0);
+      generateDefensivePosition(0, -65);
+      generateArtilleryBattery(-40, -60);
+      generateArtilleryBattery(38, 10);
+      generateAntiAirPosition(-30, 8);
+      generateAntiAirPosition(32, -58);
+      generateBarbedWire(0, 0, 30, false);
+      generateAntiTankHedgehogs(10);
+      // Battle damage
+      generateBurningRuin(-18, -22);
+      generateBurningRuin(12, -45);
+      generateBurningRuin(-38, -48);
+      generateWreckedTank(-10, -35);
+      generateWreckedAPC(15, -18);
+      generateWreckedConvoy(35, -38);
+      generateWreckedCar(-25, -60);
+      generateWreckedCar(28, -65);
+      generateBillboard(-35, -30);
+      generateBillboard(25, -42);
+      generateDroneNest(44, -50);
+      generateDroneNest(-42, -58);
+      generateDroneNest(0, 15);
     } else if (level.id === 'KYIV') {
       // Real-map recreation: Maidan Nezalezhnosti / Khreshchatyk approach
       // where Russian armored columns were stopped on the road into Kyiv
@@ -6369,15 +6527,68 @@ window.VoxelWorld = (function () {
       generateBurningRuin(42, -52);
       generateBurningRuin(-5, 95);
     } else if (level.id === 'MARIUPOL') {
-      // Azovstal steelworks — industrial hellscape
-      generateIndustrialComplex(0, 0);
+      // Mariupol / Azovstal Steelworks — total industrial destruction, urban holocaust
+      // The Azovstal plant: massive sprawling steel mill (multiple industrial complexes)
+      generateIndustrialComplex(0, 0);          // Azovstal main blast furnace
+      generateIndustrialComplex(-20, -15);      // Coking plant
+      generateIndustrialComplex(22, -18);       // Rolling mill
+      generateIndustrialComplex(-18, 18);       // Port industrial zone
+      generateIndustrialComplex(20, 20);        // Steel casting hall
+      // Civilian city: bombed into rubble
+      generateUkrainianApartment(-38, -30, 9);  // Western residential — half-destroyed
+      generateUkrainianApartment(-38, -5, 6);
+      generateUkrainianApartment(35, -32, 9);
+      generateUkrainianApartment(35, -5, 6);
+      generateUkrainianApartment(-15, -48, 9);
+      generateUkrainianApartment(12, -48, 6);
+      generateUkrainianApartment(-40, 28, 6);
+      generateUkrainianApartment(38, 28, 6);
+      // Extensive burning ruins (the city was 90%+ destroyed)
       generateBurningRuin(-20, -20);
       generateBurningRuin(20, 20);
       generateBurningRuin(-15, 25);
+      generateBurningRuin(25, -38);
+      generateBurningRuin(-35, 18);
+      generateBurningRuin(8, -55);
+      generateBurningRuin(-42, -48);
+      generateBurningRuin(40, -48);
+      generateBurningRuin(0, 38);
+      generateBurningRuin(-28, 38);
+      generateRuinedHouse(-32, -42);
+      generateRuinedHouse(30, -44);
+      generateRuinedHouse(-12, 42);
+      generateRuinedCommercial(-8, -38);
+      generateRuinedCommercial(10, 35);
+      // Port and railway (Mariupol is a major steel export port)
+      generateGrainSilo(-45, -20);              // Port silo
+      generateRailway(-10, -30, 40, false);     // Steel railway to port
+      generateBridge(0, 40, 30, 4);             // Port bridge
+      generateCollapsedBridge(15, -45);         // Bombed crossing
+      // Russian siege infrastructure
       generateArtilleryBattery(30, -30);
+      generateArtilleryBattery(-30, 35);
+      generateArtilleryBattery(40, -10);
       generateAmmoDepot(-30, 30);
-      generateDroneNest(40, 40);
-      generateDroneNest(-40, -40);
+      generateAmmoDepot(32, 42);
+      generateFuelDepot(-40, 0);
+      generateAmmoDumpBerm(28, -15);
+      generateDefensivePosition(0, -55);
+      generateDefensivePosition(-48, 15);
+      generateDefensivePosition(45, 12);
+      generateAntiAirPosition(-30, -42);
+      generateAntiAirPosition(32, 42);
+      // Wrecked military hardware
+      generateWreckedTank(-10, -28);
+      generateWreckedTank(25, 30);
+      generateWreckedAPC(-28, -35);
+      generateWreckedConvoy(35, -55);
+      generateWreckedTruck(-44, -28);
+      generateWreckedBus(18, -52);
+      // Drone nests
+      generateDroneNest(48, 48);
+      generateDroneNest(-48, -48);
+      generateDroneNest(48, -48);
+      generateDroneNest(-48, 48);
     } else if (level.id === 'CRIMEA') {
       // Crimea Bridge — long span over water
       generateBridge(0, 0, 60, 6);
@@ -6510,83 +6721,396 @@ window.VoxelWorld = (function () {
       generateDroneNest(48, -48);
       generateDroneNest(-48, -48);
     } else if (level.id === 'SEVASTOPOL') {
-      // Naval base — docks, cranes, coastal fortifications
-      generateBridge(0, 20, 40, 5);
+      // Sevastopol Black Sea Fleet HQ — massive naval base, coastal city, fortifications
+      // Naval infrastructure (Inkerman Bay / Severnaya Bay docks)
+      generateBridge(0, 20, 40, 5);            // Severnaya Bay bridge
       generateBridgeFortification(0, 40);
-      generateIndustrialComplex(-30, -30);
-      generateAmmoDepot(30, 30);
+      generateBridgeFortification(-15, 35);
+      generateIndustrialComplex(-30, -30);     // Shipyard dry docks
+      generateIndustrialComplex(28, -28);      // Naval repair facility
+      generateIndustrialComplex(-25, 28);      // Submarine pen
+      generateRadarTower(-10, -15);            // Naval radar
+      generateRadarTower(12, -20);             // Air defense radar
+      generateCommTower(-30, 15);              // Fleet communications
+      // Coastal fortifications
       generateAntiAirPosition(-25, 25);
-      generateDroneNest(40, 0);
-      generateDroneNest(-40, 0);
+      generateAntiAirPosition(30, 20);
+      generateAntiAirPosition(-38, -15);
+      generateAntiAirPosition(35, -40);
+      generateDefensivePosition(-20, -40);
+      generateDefensivePosition(22, -42);
+      generateDefensivePosition(-40, 20);
+      generateDefensivePosition(40, 5);
+      generateBridgeFortification(-35, -35);   // Balaklava coastal battery area
+      generateCheckpoint(0, 48, false);        // North road Simferopol highway
+      generateCheckpoint(0, -48, false);       // South coastal road
+      generateCheckpoint(44, 0, true);         // East approach
+      generateCheckpoint(-44, 0, true);        // West bays road
+      // City buildings (Sevastopol has Soviet housing + historic center)
+      generateUkrainianApartment(-35, -45, 9);
+      generateUkrainianApartment(-35, -22, 6);
+      generateUkrainianApartment(30, -48, 9);
+      generateUkrainianApartment(30, -25, 6);
+      generateUkrainianApartment(-15, -55, 6);
+      generateUkrainianApartment(10, -55, 6);
+      generateLuxuryVilla(-8, -8, 12, 10);     // Fleet HQ command building
+      generateLuxuryVilla(8, -8, 10, 8);       // Naval admiralty offices
+      generateChurch(-25, 5);                  // Cathedral of SS Peter and Paul
+      generateChurch(22, 12);                  // Vladimir Cathedral (famous in Sevastopol)
+      // Ammo + fuel
+      generateAmmoDepot(30, 30);
+      generateAmmoDepot(-28, -8);
+      generateAmmoDumpBerm(38, -20);
+      generateFuelDepot(0, -38);
+      generateArtilleryBattery(42, 28);
+      generateArtilleryBattery(-42, -42);
+      // Wrecked vehicles
+      generateWreckedConvoy(18, -35);
+      generateWreckedTank(-15, -28);
+      generateWreckedAPC(25, 18);
+      generateWreckedTruck(-30, 35);
+      generateBillboard(-20, -30);
+      generateBillboard(20, 30);
+      generatePowerLines(0, 0, 5);
+      // Drone nests at bay entrances
+      generateDroneNest(48, 0);
+      generateDroneNest(-48, 0);
+      generateDroneNest(0, -48);
+      generateDroneNest(0, 48);
     } else if (level.id === 'DONBAS') {
-      // Mining country — trenches, slag heaps, industrial ruins, urban fringes
+      // Donbas final push — mining heartland, trench warfare, urban fringe towns
+      // Industrial core: coal mines, salt mines, slag heaps
+      generateSaltMine(30, -30);          // Soledar salt mine (Putin's prize)
+      generateIndustrialComplex(-30, 30); // Donetsk coal processing
+      generateIndustrialComplex(25, 28);  // Steel mill (Alchevsk)
+      generateIndustrialComplex(-28, -28);// Coke plant
+      generateGrainSilo(-42, -30);        // Agricultural silo
+      generateGrainSilo(40, 32);
+      generatePowerLines(0, 0, 6);        // High-voltage power grid
+      generateRailway(0, -20, 45, false); // Donbas railway network
+      generateRailway(-25, 0, 40, true);  // East-west rail line
+      // Deep trench networks (Wagner/VDV prepared positions)
       generateTrenchNetwork(0, 0);
+      generateTrenchNetwork(-20, 20);
+      generateTrenchNetwork(22, -18);
+      generateTrenchNetwork(-35, -15);
+      generateTrenchNetwork(32, 18);
+      generateMortarPit(-15, 12);
+      generateMortarPit(18, -15);
+      generateMortarPit(-38, 22);
+      generateMortarPit(35, -28);
+      // Minefields (extensive Donbas mining history + military)
       generateMinefield(-20, -20);
       generateMinefield(20, 20);
-      generateIndustrialComplex(-30, 30);
-      generateSaltMine(30, -30);
-      generatePowerLines(0, 0, 6);
-      // Urban fringe: workers' apartment blocks flanking the industrial zones
+      generateMinefield(-40, 10);
+      generateMinefield(38, -12);
+      generateMinefieldSigns(12);
+      // Urban fringe: workers' towns (Toretsk, Marinka, Novomykhailivka)
       generateUkrainianApartment(-48, -20, 9);
       generateUkrainianApartment(-48, 5, 6);
       generateUkrainianApartment(35, -18, 9);
       generateUkrainianApartment(35, 8, 6);
       generateUkrainianApartment(-15, -50, 9);
       generateUkrainianApartment(10, -50, 6);
+      generateUkrainianApartment(-48, -45, 6);
+      generateUkrainianApartment(38, -45, 6);
+      generateUkrainianApartment(-15, 45, 6);
+      generateUkrainianApartment(12, 45, 6);
+      generateRuinedHouse(-38, -50);
+      generateRuinedHouse(32, -52);
+      generateRuinedHouse(-18, 48);
+      generateRuinedCommercial(12, 48);
+      generateRuinedCommercial(-42, 30);
+      // Fortification ring (entrench-everything doctrine)
+      generateBunker(-30, -35);
+      generateBunker(28, -38);
+      generateBunker(-32, 38);
+      generateBunker(30, 40);
+      generateSniperNest(-50, 0);
+      generateSniperNest(48, 0);
+      generateSniperNest(0, -52);
+      generateSniperNest(0, 48);
+      generateDefensivePosition(-22, 0);
+      generateDefensivePosition(20, 0);
+      generateDefensivePosition(0, -22);
+      generateDefensivePosition(0, 22);
+      generateAntiAirPosition(-42, -42);
+      generateAntiAirPosition(40, 40);
+      generateCheckpoint(0, 55, false);
+      generateCheckpoint(0, -55, false);
+      generateCheckpoint(52, 0, true);
+      generateCheckpoint(-52, 0, true);
+      generateArtilleryBattery(-40, -45);
+      generateArtilleryBattery(38, 42);
+      generateAmmoDepot(-35, 0);
+      generateAmmoDepot(32, 0);
+      generateFuelDepot(-12, -42);
+      generateFuelDepot(10, 40);
+      // Battle damage
       generateBurningRuin(-50, -40);
       generateBurningRuin(36, -38);
-      generateDroneNest(40, -40);
-      generateDroneNest(-40, 40);
+      generateBurningRuin(-18, -32);
+      generateBurningRuin(20, 30);
+      generateBurningRuin(0, -50);
+      generateWreckedTank(-25, -30);
+      generateWreckedTank(22, 32);
+      generateWreckedAPC(-42, 25);
+      generateWreckedConvoy(38, -22);
+      generateWreckedTruck(-10, -55);
+      generateWreckedBus(8, 52);
+      generateBillboard(-30, -18);
+      generateBillboard(28, 20);
+      generateDroneNest(48, -48);
+      generateDroneNest(-48, 48);
+      generateDroneNest(48, 48);
+      generateDroneNest(-48, -48);
     } else if (level.id === 'BELGOROD') {
-      // Border offensive — fortifications, razor wire, bunkers
+      // Belgorod Oblast offensive — Russian border region, the fight taken to the aggressor
+      // Russian border villages, military depots, border crossing fortifications
+      // City outskirts: Russian provincial town (Belgorod city fringe)
+      generateLuxuryVilla(-5, -8, 12, 9);    // Oblast admin building
+      generateLuxuryVilla(8, -8, 10, 8);     // Security forces HQ
+      generateUkrainianApartment(-30, -25, 9);
+      generateUkrainianApartment(-30, -45, 6);
+      generateUkrainianApartment(28, -28, 9);
+      generateUkrainianApartment(28, -48, 6);
+      generateUkrainianApartment(-15, -55, 6);
+      generateUkrainianApartment(12, -55, 6);
+      generateChurch(-22, -5);               // Russian orthodox church (prominent in Belgorod)
+      generateChurch(20, 8);
+      // Border crossing fortification (heavy defensive build-up)
       generateRazorWireField(0, 0);
+      generateRazorWireMaze(-20, 0, 6);
+      generateRazorWireMaze(20, 0, 6);
+      generateBarbedWire(0, 0, 40, true);
+      generateBarbedWire(0, 0, 40, false);
+      generateAntiTankHedgehogs(18);
       generateBunker(-20, -20);
       generateBunker(20, 20);
       generateBunker(-20, 20);
       generateBunker(20, -20);
-      generateAntiTankHedgehogs(12);
-      generateCheckpoint(0, 30, true);
-      generateCheckpoint(0, -30, true);
-      generateDroneNest(35, 35);
-      generateDroneNest(-35, -35);
-    } else if (level.id === 'KREMLIN') {
-      // The final showdown — Kremlin presidential palace at center with zombie president boss
-      generateKremlinPalace(0, 0);
-      generateUkrainianApartment(-30, -28, 12);
-      generateUkrainianApartment(30, -28, 12);
-      generateUkrainianApartment(-30, 28, 12);
-      generateUkrainianApartment(30, 28, 12);
-      generateRazorWireField(0, 0);
+      generateBunker(-38, 0);
+      generateBunker(38, 0);
+      generateBunker(0, -38);
+      generateBunker(0, 38);
+      // Checkpoints (Grayvoron / Shebekino border crossing routes)
       generateCheckpoint(0, 44, false);
       generateCheckpoint(0, -44, false);
-      generateCheckpoint(44, 0, true);
-      generateCheckpoint(-44, 0, true);
+      generateCheckpoint(42, 0, true);
+      generateCheckpoint(-42, 0, true);
+      // Russian military staging areas (major artillery grouping northwest of Belgorod)
+      generateArtilleryBattery(-38, -38);
+      generateArtilleryBattery(36, 36);
+      generateArtilleryBattery(-38, 36);
+      generateArtilleryBattery(36, -38);
+      generateAmmoDepot(-28, 0);
+      generateAmmoDepot(25, 0);
+      generateAmmoDepot(0, -30);
+      generateAmmoDumpBerm(0, 30);
+      generateFuelDepot(-40, 20);
+      generateFuelDepot(38, -22);
+      // Command infrastructure
+      generateRadarTower(-48, -15);
+      generateRadarTower(45, 18);
+      generateCommandPost(-42, 42);
+      generateCommandPost(40, -40);
+      generateFieldHospital(0, -48);
+      // Trench network (Russia dug in for fear of cross-border raids)
+      generateTrenchNetwork(-18, 18);
+      generateTrenchNetwork(18, -18);
+      generateMortarPit(-30, 10);
+      generateMortarPit(28, -12);
+      generateSniperNest(-45, 0);
+      generateSniperNest(42, 0);
+      generateDefensivePosition(-12, 30);
+      generateDefensivePosition(10, 30);
+      generateAntiAirPosition(-28, -30);
+      generateAntiAirPosition(25, 30);
+      // Battle damage from partisan raids and drone strikes
+      generateBurningRuin(-20, -32);
+      generateBurningRuin(18, 30);
+      generateBurningRuin(-38, 0);
+      generateBurningRuin(35, 5);
+      generateWreckedTank(-15, -28);
+      generateWreckedAPC(12, 25);
+      generateWreckedConvoy(-35, 28);
+      generateWreckedTruck(30, -32);
+      generateMinefield(-35, -18);
+      generateMinefield(32, 20);
+      generateCraters(8);
+      generateBillboard(-25, -18);
+      generateBillboard(22, 20);
+      generateDroneNest(48, 48);
+      generateDroneNest(-48, -48);
+      generateDroneNest(48, -48);
+      generateDroneNest(-48, 48);
+    } else if (level.id === 'KREMLIN') {
+      // KREMLIN SHOWDOWN — Final stage. The full Red Square / Moscow city center under assault.
+      // The zombie president boss spawns from inside the Kremlin palace.
+      generateKremlinPalace(0, 0);
+      // Kremlin walls: Red Square buildings (GUM, State Duma, Historical Museum)
+      generateLuxuryVilla(-18, -10, 12, 8);   // GUM department store replica
+      generateLuxuryVilla(18, -10, 10, 8);    // State Historical Museum
+      generateLuxuryVilla(0, -20, 16, 10);    // State Duma / government bloc
+      generateLuxuryVilla(-12, 15, 10, 8);    // Kremlin admin wing
+      generateLuxuryVilla(12, 15, 10, 8);     // Presidential admin building
+      // Inner ring: Stalinka apartment blocks surrounding Red Square
+      generateUkrainianApartment(-30, -28, 14);
+      generateUkrainianApartment(30, -28, 14);
+      generateUkrainianApartment(-30, 28, 14);
+      generateUkrainianApartment(30, 28, 14);
+      generateUkrainianApartment(-48, 0, 10);
+      generateUkrainianApartment(48, 0, 10);
+      generateUkrainianApartment(0, -48, 10);
+      generateUkrainianApartment(0, 48, 10);
+      // Orthodox churches (Moscow has many — Kremlin grounds have Assumption Cathedral etc.)
+      generateChurch(-22, 20);                // Assumption Cathedral (within Kremlin)
+      generateChurch(22, 20);                 // Archangel Cathedral
+      generateChurch(-38, -15);              // Church of St. George (outer)
+      generateChurch(38, -15);               // Cathedral of Christ the Saviour area
+      // Massive defensive fortification — last stand of the occupant
+      generateRazorWireField(0, 0);
+      generateRazorWireMaze(-25, 0, 5);
+      generateRazorWireMaze(25, 0, 5);
+      generateAntiTankHedgehogs(20);
+      generateBarbedWire(0, 0, 35, false);
+      generateBarbedWire(0, 0, 35, true);
+      generateCheckpoint(0, 52, false);
+      generateCheckpoint(0, -52, false);
+      generateCheckpoint(52, 0, true);
+      generateCheckpoint(-52, 0, true);
+      generateDefensivePosition(-22, -22);
+      generateDefensivePosition(22, -22);
+      generateDefensivePosition(-22, 22);
+      generateDefensivePosition(22, 22);
+      generateDefensivePosition(-40, 0);
+      generateDefensivePosition(40, 0);
+      generateDefensivePosition(0, -40);
+      generateDefensivePosition(0, 40);
+      generateBunker(-35, 35);
+      generateBunker(35, -35);
+      generateBunker(-35, -35);
+      generateBunker(35, 35);
+      // Elite artillery + AA (regime's last defense)
       generateArtilleryBattery(35, 35);
       generateArtilleryBattery(-35, -35);
+      generateArtilleryBattery(35, -35);
+      generateArtilleryBattery(-35, 35);
       generateAntiAirPosition(20, -20);
       generateAntiAirPosition(-20, 20);
-      generateDroneNest(48, 0);
-      generateDroneNest(-48, 0);
-      generateDroneNest(0, 48);
-      generateDroneNest(0, -48);
+      generateAntiAirPosition(25, 42);
+      generateAntiAirPosition(-25, -42);
+      generateRadarTower(-48, 30);
+      generateRadarTower(48, -30);
+      generateCommTower(0, -35);              // Kremlin command comms
+      // Ammo/fuel for the final stand
+      generateAmmoDepot(42, 22);
+      generateAmmoDepot(-42, -22);
+      generateAmmoDumpBerm(28, -45);
+      generateFuelDepot(-28, 45);
+      generateCommandPost(-42, 42);           // General's command post
+      generateCommandPost(42, -42);
+      // Battle damage — some areas already hit
+      generateBurningRuin(-25, -38);
+      generateBurningRuin(25, 38);
+      generateBurningRuin(0, -55);
+      generateWreckedTank(-18, -35);
+      generateWreckedTank(20, 30);
+      generateWreckedAPC(-38, 18);
+      generateWreckedConvoy(36, -18);
+      generateWreckedTruck(-5, 52);
+      // Propaganda / Z-symbol billboards
+      generateBillboard(-30, -45);
+      generateBillboard(30, 45);
+      generateBillboard(-48, -48);
+      generateBillboard(48, 48);
+      // Drone nests (all 4 corners + cardinal points)
+      generateDroneNest(56, 0);
+      generateDroneNest(-56, 0);
+      generateDroneNest(0, 56);
+      generateDroneNest(0, -56);
+      generateDroneNest(40, 40);
+      generateDroneNest(-40, -40);
     } else if (level.id === 'SNAKE') {
-      // Snake Island — small rocky outpost, lighthouse, coastal guns
-      generateCommTower(0, 0);
+      // Snake Island — iconic Black Sea outpost ("Russian warship, go fuck yourself!")
+      // Small rocky outcrop: lighthouse, gun positions, communications relay
+      generateCommTower(0, 0);          // Strategic comms relay (reason Russia wanted it)
+      generateCommTower(8, 12);         // Backup antenna mast
+      generateRadarTower(-8, -12);      // Coastal radar
       generateDefensivePosition(-15, -15);
       generateDefensivePosition(15, 15);
+      generateDefensivePosition(-10, 15);
+      generateDefensivePosition(10, -15);
+      generateAntiAirPosition(-20, 5);  // Man-portable AA (MANPADS)
+      generateAntiAirPosition(18, -8);
       generateAmmoDepot(-10, 10);
       generateAmmoDepot(10, -10);
-      generateDroneNest(20, 20);
-      generateDroneNest(-20, -20);
+      generateAmmoCache(0, -20);        // Cache of shoulder-launched weapons
+      generateAmmoCache(-5, 18);
+      generateBunker(-18, 0);           // Garrison bunker for the 13 defenders
+      generateBunker(16, 5);
+      generateWatchtower(0, -25);       // Watch post toward the fleet approach
+      generateWatchtower(-22, 8);
+      generateCheckpoint(0, 20, false); // Only road access from landing zone
+      generateBarbedWire(0, 0, 18, true);
+      generateBarbedWire(0, 0, 18, false);
+      // Battle damage from the Russian naval bombardment
+      generateBurningRuin(12, 18);
+      generateBurningRuin(-14, -18);
+      generateWreckedTruck(-8, 22);
+      generateDroneNest(25, 25);
+      generateDroneNest(-25, -25);
+      generateDroneNest(25, -25);
     } else if (level.id === 'SAKY') {
-      // Airbase — runway, control tower, hangars
-      generateRunway(0, 0, 80, 10);
-      generateControlTower(10, 15);
-      generateIndustrialComplex(-20, -20);
-      generateAmmoDepot(20, 20);
-      generateAntiAirPosition(-30, 30);
-      generateDroneNest(40, 0);
-      generateDroneNest(-40, 0);
+      // Saky Airbase, Crimea — Russia's largest military air base in Crimea
+      // Ukraine struck this in August 2022 — Su-24, Su-30 fighters destroyed on ground
+      generateRunway(0, 0, 80, 10);           // Main runway 2100m (scaled)
+      generateRunway(-10, 30, 50, 6);         // Secondary taxiway
+      generateControlTower(10, 15);            // ATC tower
+      generateRadarTower(-30, -25);            // Air defense radar
+      generateRadarTower(30, -25);             // Early warning radar
+      generateCommTower(0, -40);              // Base communications
+      // Aircraft hangars (hardened shelters — HAS)
+      generateIndustrialComplex(-22, -22);     // Hardened aircraft shelter A
+      generateIndustrialComplex(22, -22);      // Hardened aircraft shelter B
+      generateIndustrialComplex(-22, 22);      // Maintenance hangar
+      generateIndustrialComplex(22, 22);       // Fueling complex
+      // Fuel & ammo dumps (multiple ones — that's what exploded in Aug 2022)
+      generateFuelDepot(-40, 0);              // Aviation fuel depot
+      generateFuelDepot(40, 0);              // Reserve fuel depot
+      generateFuelDepot(0, -50);             // Bulk fuel storage
+      generateAmmoDepot(30, -40);            // Aviation ordnance storage
+      generateAmmoDepot(-30, -40);           // Missile depot
+      generateAmmoDumpBerm(35, 40);          // Bunkered ammo cache
+      // Air defense systems
+      generateAntiAirPosition(-35, 30);
+      generateAntiAirPosition(35, 30);
+      generateAntiAirPosition(-48, -10);
+      generateAntiAirPosition(48, -10);
+      // Barracks / support buildings
+      generateLuxuryVilla(-15, 35, 12, 8);    // Officers' quarters
+      generateLuxuryVilla(15, 35, 10, 8);     // Enlisted barracks
+      generateLuxuryVilla(0, 48, 14, 10);     // Command center
+      generateFieldHospital(-28, 42);
+      // Security checkpoints around the base perimeter
+      generateCheckpoint(0, 55, false);
+      generateCheckpoint(0, -55, false);
+      generateCheckpoint(52, 0, true);
+      generateCheckpoint(-52, 0, true);
+      generateBarbedWire(0, 0, 50, true);     // Perimeter fence north-south
+      generateBarbedWire(0, 0, 50, false);    // Perimeter fence east-west
+      // Battle damage (Kerch/SCALP missile strikes)
+      generateBurningRuin(18, -28);
+      generateBurningRuin(-18, -28);
+      generateBurningRuin(0, -35);
+      generateBurningRuin(40, 5);
+      generateWreckedAPC(-40, 15);
+      generateWreckedTruck(38, -45);
+      generateWreckedConvoy(-42, -38);
+      generateDroneNest(48, 48);
+      generateDroneNest(-48, 48);
+      generateDroneNest(48, -48);
+      generateDroneNest(-48, -48);
     } else if (level.id === 'VUHLEDAR') {
       // Tank graveyard — extra wrecks, minefields, craters
       generateDestroyedVehicles(30);

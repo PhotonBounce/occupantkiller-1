@@ -3842,6 +3842,13 @@ const GameManager = (function () {
     var _battlePlan = (stageDef && stageDef.capitalDefense)
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
+    // Mobile enemy cap: reduce group count to keep frame rate manageable.
+    // On mobile, even medium waves can saturate the GPU with 60+ enemies AI updating.
+    if (isMobile) {
+      if (!_battlePlan) _battlePlan = {};
+      // Cut group count by ~40% on mobile; this stacks with _soloScale inside Enemies.startWave
+      _battlePlan.groupDelta = (_battlePlan.groupDelta || 0) - 3;
+    }
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
 
     // Infantry guarantee: if wave spawned zero ground enemies, force-spawn a minimum squad
