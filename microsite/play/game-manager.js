@@ -4311,7 +4311,7 @@ const GameManager = (function () {
     // Only start if no scripted mission already active (avoids silently overwriting in-progress missions).
     // Skip for capitalDefense (Kyiv) — convoy columns are already the priority objective.
     if (w % 3 === 0 && typeof MissionTypes !== 'undefined' && !MissionTypes.getActive() && !capitalDefense) {
-      var _mSafeTypes = ['DEMOLITION', 'CAPTURE_ZONE', 'ASSASSINATION', 'RESCUE', 'DEFUSE'];
+      var _mSafeTypes = ['DEMOLITION', 'CAPTURE_ZONE', 'ASSASSINATION', 'RESCUE', 'DEFUSE', 'ESCORT'];
       var mType = _mSafeTypes[Math.floor(Math.random() * _mSafeTypes.length)];
       var _mzX = player.position.x + (Math.random() - 0.5) * 40;
       var _mzZ = player.position.z + (Math.random() - 0.5) * 40;

@@ -1231,7 +1231,7 @@ window.VoxelWorld = (function () {
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
-  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar'];
+  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv'];
 
   function getLevelDef(index) {
     if (index >= 0 && index < LEVELS.length) return LEVELS[index];
@@ -5221,6 +5221,232 @@ window.VoxelWorld = (function () {
     setBlock(ox + 4, surfH, oz, BLOCK.AIR);
     setBlock(ox + 4, surfH + 1, oz, BLOCK.AIR);
     setBlock(ox + 4, surfH + 2, oz, BLOCK.AIR);
+  }
+
+  // LANDMARK: Derzhprom (Palace of Industry) — Kharkiv, constructivist icon, 1928
+  // One of the first Soviet skyscrapers: 3 main blocks 13 stories each, linked by glass skywalks.
+  // Now Ukraine's government HQ in Kharkiv — repeatedly targeted by Russian bombs 2022-24.
+  function generateDerzhprom(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Central block — tallest (13 floors CONCRETE)
+    for (var cy = 0; cy < 13; cy++) {
+      for (var cx = -3; cx <= 3; cx++) {
+        for (var cz = -5; cz <= 5; cz++) {
+          if (cx === -3 || cx === 3 || cz === -5 || cz === 5 || cy === 12) {
+            setBlock(ox + cx, base + cy, oz + cz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // GLASS windows — every 2 floors, 3 wide on N/S faces
+    for (var wf = 0; wf < 12; wf += 2) {
+      for (var wx = -2; wx <= 2; wx++) {
+        setBlock(ox + wx, base + wf, oz - 5, BLOCK.GLASS);
+        setBlock(ox + wx, base + wf, oz + 5, BLOCK.GLASS);
+        setBlock(ox - 3, base + wf, oz + wx, BLOCK.GLASS);
+        setBlock(ox + 3, base + wf, oz + wx, BLOCK.GLASS);
+      }
+    }
+    // Left wing (8 floors, offset west)
+    for (var ly = 0; ly < 8; ly++) {
+      for (var lx = -9; lx <= -4; lx++) {
+        for (var lz = -4; lz <= 4; lz++) {
+          if (lx === -9 || lx === -4 || lz === -4 || lz === 4 || ly === 7) {
+            setBlock(ox + lx, base + ly, oz + lz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Right wing (8 floors, offset east)
+    for (var ry = 0; ry < 8; ry++) {
+      for (var rx = 4; rx <= 9; rx++) {
+        for (var rz = -4; rz <= 4; rz++) {
+          if (rx === 4 || rx === 9 || rz === -4 || rz === 4 || ry === 7) {
+            setBlock(ox + rx, base + ry, oz + rz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Connecting skybridge at floor 8 (METAL walkway between central and wings)
+    for (var sb = -9; sb <= 9; sb++) {
+      setBlock(ox + sb, base + 8, oz, BLOCK.METAL);
+      setBlock(ox + sb, base + 9, oz, BLOCK.GLASS);
+    }
+    // Battle damage — Russian airstrike caved in the SW corner (2022)
+    for (var bd = 0; bd < 5; bd++) {
+      setBlock(ox - 9 + bd, base + 5 + bd, oz - 4, BLOCK.RUBBLE);
+      setBlock(ox - 9 + bd, base + 5 + bd, oz - 3, BLOCK.AIR);
+    }
+    _buildings.push({ kind: 'landmark_derzhprom', x: ox - 9, z: oz - 5, w: 19, d: 11, baseY: h, floorH: 4, floors: 4, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Odessa National Opera and Ballet Theatre — 1887 neo-baroque masterpiece
+  // Horseshoe interior, ornate facade, gilded dome. UNESCO-protected. 3km from front line.
+  function generateOdessaOperaHouse(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main auditorium hall — horseshoe PLASTER box, 14×10, 6 floors
+    for (var wy = 0; wy < 10; wy++) {
+      for (var wx2 = -7; wx2 <= 7; wx2++) {
+        for (var wz2 = -5; wz2 <= 5; wz2++) {
+          if (wx2 === -7 || wx2 === 7 || wz2 === -5 || wz2 === 5 || wy === 9) {
+            setBlock(ox + wx2, base + wy, oz + wz2, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Grand facade columns — 6 STONE pillars across the front (south face)
+    for (var pc = -6; pc <= 6; pc += 3) {
+      for (var ph = 0; ph < 10; ph++) setBlock(ox + pc, base + ph, oz - 6, BLOCK.STONE);
+      for (var ph2 = 0; ph2 < 10; ph2++) setBlock(ox + pc, base + ph2, oz - 7, BLOCK.STONE);
+    }
+    // Pediment triangular gable above columns
+    for (var pg = 0; pg <= 6; pg++) {
+      var pgW = 6 - pg;
+      for (var pgx = -pgW; pgx <= pgW; pgx++) {
+        setBlock(ox + pgx, base + 10 + pg, oz - 6, BLOCK.PLASTER);
+      }
+    }
+    // Side GLASS windows (arched, 2 per floor on E+W faces)
+    for (var wfl2 = 1; wfl2 < 9; wfl2 += 3) {
+      setBlock(ox - 7, base + wfl2, oz - 2, BLOCK.GLASS);
+      setBlock(ox - 7, base + wfl2 + 1, oz - 2, BLOCK.GLASS);
+      setBlock(ox - 7, base + wfl2, oz + 2, BLOCK.GLASS);
+      setBlock(ox - 7, base + wfl2 + 1, oz + 2, BLOCK.GLASS);
+      setBlock(ox + 7, base + wfl2, oz - 2, BLOCK.GLASS);
+      setBlock(ox + 7, base + wfl2 + 1, oz - 2, BLOCK.GLASS);
+      setBlock(ox + 7, base + wfl2, oz + 2, BLOCK.GLASS);
+      setBlock(ox + 7, base + wfl2 + 1, oz + 2, BLOCK.GLASS);
+    }
+    // Gilded dome (LIGHT-block dome on top center)
+    var dProfile = [5, 4, 3, 2, 1];
+    for (var di = 0; di < dProfile.length; di++) {
+      _lmDisc(ox, base + 10 + di, oz, dProfile[di], di === 0 ? BLOCK.CONCRETE : BLOCK.LIGHT);
+    }
+    setBlock(ox, base + 16, oz, BLOCK.LIGHT);
+    // Entrance steps (south)
+    for (var es = 0; es < 3; es++) {
+      for (var ex = -4 + es; ex <= 4 - es; ex++) {
+        setBlock(ox + ex, h + es, oz - 8 - es, BLOCK.STONE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_odessa_opera', x: ox - 7, z: oz - 7, w: 15, d: 13, baseY: h, floorH: 4, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Zaporizhzhia Nuclear Power Plant (ZNPP) — Europe's largest NPP
+  // 6 VVER-1000 reactor blocks in a row, captured by Russia March 2022, shelled repeatedly.
+  // Famous for: nuclear standoff, firefight at plant gates, ongoing occupation risk.
+  function generateZaporizhzhiaNPP(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Turbine hall — long CONCRETE structure housing all 6 units, 36 blocks long × 8 wide × 8 high
+    for (var ty = 0; ty < 8; ty++) {
+      for (var tx = -18; tx <= 18; tx++) {
+        for (var tz = -4; tz <= 4; tz++) {
+          if (tx === -18 || tx === 18 || tz === -4 || tz === 4 || ty === 7) {
+            setBlock(ox + tx, base + ty, oz + tz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // 6 Reactor containment domes spaced 6 units apart (REINFORCED cylinder + CONCRETE dome)
+    var reactorX = [-15, -9, -3, 3, 9, 15];
+    for (var ri2 = 0; ri2 < 6; ri2++) {
+      var rx2 = ox + reactorX[ri2];
+      // Containment cylinder (3 floors, radius 2)
+      for (var ry2 = 0; ry2 < 6; ry2++) {
+        _lmRing(rx2, base + 8 + ry2, oz, 3, BLOCK.REINFORCED);
+      }
+      // Dome cap (CONCRETE disc shrinking profile)
+      _lmDisc(rx2, base + 14, oz, 3, BLOCK.CONCRETE);
+      _lmDisc(rx2, base + 15, oz, 2, BLOCK.CONCRETE);
+      _lmDisc(rx2, base + 16, oz, 1, BLOCK.CONCRETE);
+      // Cooling water pipes on south side
+      setBlock(rx2, base + 4, oz + 5, BLOCK.METAL);
+      setBlock(rx2, base + 5, oz + 5, BLOCK.METAL);
+    }
+    // Cooling towers (2 hyperbolic towers, west end of site)
+    _lmRing(ox - 22, base, oz, 4, BLOCK.CONCRETE);
+    for (var ct2 = 0; ct2 < 12; ct2++) {
+      var ctR = Math.max(2, 4 - Math.floor(ct2 * 0.3));
+      _lmRing(ox - 22, base + ct2, oz, ctR, BLOCK.CONCRETE);
+    }
+    _lmDisc(ox - 22, base + 13, oz, 3, BLOCK.CONCRETE);
+    _lmRing(ox + 22, base, oz, 4, BLOCK.CONCRETE);
+    for (var ct3 = 0; ct3 < 12; ct3++) {
+      var ctR2 = Math.max(2, 4 - Math.floor(ct3 * 0.3));
+      _lmRing(ox + 22, base + ct3, oz, ctR2, BLOCK.CONCRETE);
+    }
+    _lmDisc(ox + 22, base + 13, oz, 3, BLOCK.CONCRETE);
+    // Perimeter security fence (FENCE blocks, full rectangle)
+    for (var fx = -25; fx <= 25; fx++) {
+      setBlock(ox + fx, base, oz - 8, BLOCK.FENCE);
+      setBlock(ox + fx, base, oz + 8, BLOCK.FENCE);
+    }
+    for (var fz = -8; fz <= 8; fz++) {
+      setBlock(ox - 25, base, oz + fz, BLOCK.FENCE);
+      setBlock(ox + 25, base, oz + fz, BLOCK.FENCE);
+    }
+    // Warning: radiation sign (LIGHT blocks at main gate)
+    setBlock(ox, base + 1, oz + 9, BLOCK.LIGHT);
+    _buildings.push({ kind: 'landmark_znpp', x: ox - 25, z: oz - 8, w: 51, d: 17, baseY: h, floorH: 5, floors: 3, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Mykolaiv Shipyard (Black Sea Shipbuilding Plant)
+  // Built Soviet warships and submarines; now heavily bombed. Distinctive large drydocks + gantry cranes.
+  function generateMykolaivShipyard(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main assembly hall — large industrial shed (20×12, 10 floors)
+    for (var sy = 0; sy < 10; sy++) {
+      for (var sx = -10; sx <= 10; sx++) {
+        for (var sz = -6; sz <= 6; sz++) {
+          if (sx === -10 || sx === 10 || sz === -6 || sz === 6 || sy === 9) {
+            setBlock(ox + sx, base + sy, oz + sz, BLOCK.METAL);
+          }
+        }
+      }
+    }
+    // Sawtooth roof (industrial clerestory windows on S side)
+    for (var sr = -9; sr <= 9; sr += 4) {
+      for (var sh = 0; sh < 3; sh++) {
+        setBlock(ox + sr, base + 10 + sh, oz - 6, BLOCK.GLASS);
+        setBlock(ox + sr, base + 10 + sh, oz + 6, BLOCK.GLASS);
+      }
+    }
+    // Drydock pits (2 parallel trenches cut into terrain, STONE lined)
+    for (var dk = -8; dk <= 8; dk++) {
+      for (var dd = 0; dd < 4; dd++) {
+        setBlock(ox + dk, h - dd, oz - 10, BLOCK.STONE);
+        setBlock(ox + dk, h - dd, oz + 10, BLOCK.STONE);
+      }
+    }
+    // Gantry crane towers (METAL, 15 blocks high with horizontal arm)
+    var craneX = [-8, 8];
+    for (var ci = 0; ci < 2; ci++) {
+      for (var cry = 0; cry < 15; cry++) setBlock(ox + craneX[ci], base + cry, oz, BLOCK.METAL);
+      // Horizontal jib arm
+      for (var cra = -4; cra <= 4; cra++) setBlock(ox + craneX[ci] + cra, base + 14, oz, BLOCK.METAL);
+      setBlock(ox + craneX[ci], base + 15, oz, BLOCK.LIGHT); // Warning light
+    }
+    // Administration building (3-storey CONCRETE, west)
+    for (var ay = 0; ay < 6; ay++) {
+      for (var ax = -14; ax <= -11; ax++) {
+        setBlock(ax + (ox + 14), base + ay, oz + 2, BLOCK.CONCRETE);
+        setBlock(ax + (ox + 14), base + ay, oz - 2, BLOCK.CONCRETE);
+      }
+      setBlock(ox - 14, base + ay, oz + 2, BLOCK.CONCRETE);
+      setBlock(ox - 14, base + ay, oz - 2, BLOCK.CONCRETE);
+      setBlock(ox - 11, base + ay, oz + 2, BLOCK.CONCRETE);
+      setBlock(ox - 11, base + ay, oz - 2, BLOCK.CONCRETE);
+    }
+    // Battle damage — Russian cruise missile strikes (2022)
+    setBlock(ox + 5, base + 8, oz - 5, BLOCK.RUBBLE);
+    setBlock(ox + 6, base + 8, oz - 5, BLOCK.RUBBLE);
+    setBlock(ox + 7, base + 7, oz - 4, BLOCK.RUBBLE);
+    setBlock(ox + 6, base + 7, oz - 4, BLOCK.AIR);
+    _buildings.push({ kind: 'landmark_mykolaiv_shipyard', x: ox - 14, z: oz - 12, w: 29, d: 24, baseY: h, floorH: 5, floors: 2, cx: ox, cz: oz });
   }
 
   // LANDMARK: Golden Gate (Zoloti Vorota) — 11th-century Byzantine city gate, reconstructed 1982
@@ -10448,6 +10674,186 @@ window.VoxelWorld = (function () {
         generateDroneNest(-45, -45);
         generateDroneNest(45, -45);
         generateDroneNest(-45, 45);
+      } else if (cityName === 'Kharkiv') {
+        // Kharkiv — Ukraine's second city, closest major city to the Russian border
+        // Bombarded from Feb 2022, Freedom Square hit multiple times
+        // Derzhprom (Palace of Industry) — constructivist icon on Freedom Square, Europe's largest square
+        generateDerzhprom(-5, -5);                 // Heart of Freedom Square (Maidan Svobody)
+        generateLuxuryVilla(12, -8, 12, 10);       // Kharkiv City Administration (Soviet neoclassical)
+        generateLuxuryVilla(-20, -10, 10, 8);      // Oblast State Administration (bombed facade)
+        generateUkrainianApartment(-30, -30, 12);  // Saltivka microdistrict (most bombed in Europe 2022)
+        generateUkrainianApartment(-30, -52, 12);
+        generateUkrainianApartment(22, -32, 12);
+        generateUkrainianApartment(22, -52, 9);
+        generateUkrainianApartment(-15, -65, 9);
+        generateUkrainianApartment(12, -65, 9);
+        generateUkrainianApartment(-48, -18, 9);
+        generateUkrainianApartment(42, -18, 9);
+        generateUkrainianApartment(-50, -40, 6);
+        generateUkrainianApartment(38, -42, 6);
+        generateChurch(-22, -5);                   // Assumption Cathedral (bombed 2022)
+        generateChurch(20, 5);                     // Annunciation Cathedral
+        generateTrainStation(35, 30);              // Kharkiv Central Railway Station
+        generateIndustrialComplex(-35, -35);       // Turboatom turbine plant (defense industry)
+        generateIndustrialComplex(30, -30);        // Morozov Design Bureau (tank plant)
+        generateWaterTower(-42, 15);
+        generateWaterTower(40, -12);
+        generateGrainSilo(-38, -55);
+        generateGrainSilo(32, -58);
+        generateCommTower(0, -40);                 // Kharkiv TV tower
+        generateSovietAdminBuilding(0, -25);
+        generatePowerLines(0, 0, 5);
+        generateRailway(-20, 0, 45, true);
+        generateRailway(0, -20, 40, false);
+        generateArtilleryBattery(-40, -50);
+        generateArtilleryBattery(38, 40);
+        generateBunker(-20, 20);
+        generateBunker(20, -20);
+        generateTrenchNetwork(-15, 15);
+        generateTrenchNetwork(15, -15);
+        generateBurningRuin(-18, -18);
+        generateBurningRuin(15, 18);
+        generateBurningRuin(-40, -35);
+        generateBurningRuin(35, -35);
+        generateWreckedTank(-12, -22);
+        generateWreckedAPC(18, 15);
+        generateWreckedConvoy(-35, 22);
+        generateCraters(12);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Odessa') {
+        // Odessa — major Black Sea port, UNESCO heritage center, cultural capital
+        // Famous: opera house, Potemkin Steps, catacombs; struck by Iranian Shaheds
+        generateOdessaOperaHouse(0, -5);           // Odessa National Opera House — 1887 neo-baroque
+        generateLuxuryVilla(-10, -12, 12, 10);     // Odessa City Hall (neoclassical)
+        generateLuxuryVilla(12, -15, 10, 8);       // Regional Administration
+        generateUkrainianApartment(-30, -28, 9);
+        generateUkrainianApartment(-30, -48, 6);
+        generateUkrainianApartment(25, -30, 9);
+        generateUkrainianApartment(25, -50, 6);
+        generateUkrainianApartment(-15, -58, 5);
+        generateUkrainianApartment(12, -58, 5);
+        generateUkrainianApartment(-48, -15, 5);
+        generateUkrainianApartment(42, -15, 5);
+        generateLighthouse(30, 25);                // Vorontsov Lighthouse (Black Sea harbor)
+        generateChurch(-22, -5);                   // Odessa Cathedral (Preobrazhensky)
+        generateChurch(20, 8);                     // Assumption Church
+        generateTrainStation(-30, 30);             // Odessa Central Station (Moorish style)
+        generatePortCrane(40, 15);                 // Commercial Port of Odessa crane
+        generatePortCrane(45, 5);
+        generateNavalBarracks(-35, -30);           // Black Sea Fleet (former) base
+        generateBridge(-5, 35, 25, 3);             // Odessa harbor viaduct
+        generateIndustrialComplex(-38, -42);       // Port freight terminal
+        generateGrainSilo(-42, -22);               // Odessa grain export terminal
+        generateWaterTower(40, -35);
+        generatePowerLines(0, 0, 4);
+        generateBurningRuin(-18, -22);
+        generateBurningRuin(15, 20);
+        generateBurningRuin(35, -30);
+        generateWreckedCar(-8, -35);
+        generateWreckedCar(5, -40);
+        generateWreckedConvoy(-30, 18);
+        generateCraters(8);
+        generateAntiAirPosition(-35, 35);          // Patriot/NASAMS batteries
+        generateAntiAirPosition(32, -35);
+        generateBunker(-20, 22);
+        generateBunker(18, -22);
+        generateCheckpoint(0, 48, false);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(0, 48);
+      } else if (cityName === 'Zaporizhzhia') {
+        // Zaporizhzhia — industrial city, Europe's largest NPP nearby (occupied by Russia)
+        // The ZNPP (Enerhodar) is 50km south; city itself was bombarded nightly in 2022
+        generateZaporizhzhiaNPP(0, 0);             // ZNPP — 6 reactor units (iconic site)
+        generateCoolingTower(-30, -20);            // NPP cooling towers (pair)
+        generateCoolingTower(30, -20);
+        generateIndustrialComplex(-20, -30);       // Zaporizhstal steel plant
+        generateIndustrialComplex(20, 25);         // Motor Sich aircraft engine plant
+        generateIndustrialComplex(-35, 18);        // Dniprospetsstal specialty steel
+        generateUkrainianApartment(-40, -38, 12);  // Zaporizhzhia city residential blocks
+        generateUkrainianApartment(-40, -58, 9);
+        generateUkrainianApartment(28, -40, 9);
+        generateUkrainianApartment(28, -58, 6);
+        generateUkrainianApartment(-20, -68, 6);
+        generateUkrainianApartment(15, -68, 6);
+        generateUkrainianApartment(-48, -15, 5);
+        generateUkrainianApartment(40, -18, 5);
+        generateSovietAdminBuilding(0, -22);       // City hall (Maydan Nezalezhnosti sq.)
+        generateChurch(-25, -8);
+        generateChurch(22, 5);
+        generateBridge(0, 30, 40, 5);              // Dnieper river bridge (Preobrazhensky Bri.)
+        generateCollapsedBridge(15, 35);           // Road closure for NPP security zone
+        generateTrainStation(-30, 35);
+        generateRailway(-15, 20, 40, false);
+        generateGrainSilo(-38, -42);
+        generateWaterTower(38, 30);
+        generatePowerLines(0, 0, 6);
+        generateArtilleryBattery(-40, -50);
+        generateArtilleryBattery(38, 42);
+        generateAntiAirPosition(-32, 38);
+        generateAntiAirPosition(30, -38);
+        generateBunker(-18, 18);
+        generateBunker(18, -18);
+        generateCheckpoint(0, 50, false);
+        generateBurningRuin(-22, -22);
+        generateBurningRuin(18, 20);
+        generateBurningRuin(35, -30);
+        generateWreckedTank(-15, -28);
+        generateWreckedConvoy(35, 22);
+        generateCraters(10);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Mykolaiv') {
+        // Mykolaiv — shipbuilding city on Southern Bug River; shelled nightly March–Nov 2022
+        // Famous for: Black Sea Shipbuilding Plant, destroyed Mykolaiv Region Administration (direct hit)
+        generateMykolaivShipyard(0, 0);            // BSZ Black Sea Shipbuilding Plant
+        generatePortCrane(20, -10);                // Shipyard gantry crane
+        generatePortCrane(28, -5);
+        generateNavalBarracks(-25, -30);           // Naval base (77th Naval Brigade)
+        generateSubmarineDock(-15, -45);           // Ship construction drydock
+        generateLuxuryVilla(-5, -15, 12, 10);     // Mykolaiv Oblast Administration (crater+facade blown)
+        generateLuxuryVilla(12, -18, 10, 8);      // City Hall (Mayor Kim's HQ)
+        generateUkrainianApartment(-30, -30, 9);
+        generateUkrainianApartment(-30, -50, 6);
+        generateUkrainianApartment(22, -32, 9);
+        generateUkrainianApartment(22, -50, 6);
+        generateUkrainianApartment(-15, -60, 5);
+        generateUkrainianApartment(12, -60, 5);
+        generateUkrainianApartment(-48, -12, 5);
+        generateUkrainianApartment(42, -15, 5);
+        generateChurch(-22, -5);                   // Mykolaiv Cathedral
+        generateChurch(20, 8);
+        generateBridge(0, 25, 35, 5);             // Inhulska crossing (Southern Bug)
+        generateTrainStation(-32, 28);
+        generateRailway(-18, 15, 40, false);
+        generateGrainSilo(-38, -22);               // Grain port (Southern Ukraine grain hub)
+        generateGrainSilo(35, -25);
+        generateIndustrialComplex(-35, -38);       // Mykolaiv engine plant
+        generateWaterTower(40, 20);
+        generatePowerLines(0, 0, 4);
+        generateArtilleryBattery(-40, -45);
+        generateArtilleryBattery(38, 40);
+        generateAntiAirPosition(-30, 35);
+        generateAntiAirPosition(28, -35);
+        generateBunker(-18, 18);
+        generateBunker(18, -18);
+        generateBurningRuin(-20, -20);
+        generateBurningRuin(15, 18);
+        generateBurningRuin(-38, -30);
+        generateBurningRuin(35, -28);
+        generateWreckedTank(-12, -25);
+        generateWreckedAPC(18, 12);
+        generateWreckedConvoy(-35, 20);
+        generateCraters(10);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
       } else {
         // Generic proc city (Mariupol/Vuhledar repeats, or any future addition)
         generateUkrainianApartment(-25, -25, 6);
