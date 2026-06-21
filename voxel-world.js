@@ -6590,13 +6590,85 @@ window.VoxelWorld = (function () {
       generateDroneNest(48, -48);
       generateDroneNest(-48, 48);
     } else if (level.id === 'CRIMEA') {
-      // Crimea Bridge — long span over water
-      generateBridge(0, 0, 60, 6);
+      // Kerch Strait Bridge — 19km span connecting Russia to occupied Crimea
+      // Attacked twice: truck bomb (Oct 2022) and sea drones (Jul 2023)
+      generateBridge(0, 0, 60, 6);             // Main road span
+      generateBridge(-10, 0, 60, 4);           // Railway span running parallel
+      generateBridge(20, 0, 40, 5);            // Taman approach viaduct
+      generateCollapsedBridge(-5, -20);        // Damaged span from 2022 attack
+      generateCollapsedBridge(8, 25);          // Damaged section from 2023 sea-drone attack
+      // Bridge fortifications and access control
       generateBridgeFortification(10, 10);
       generateBridgeFortification(-10, -10);
+      generateBridgeFortification(0, -35);     // Crimean (Kerch) end
+      generateBridgeFortification(0, 35);      // Taman (Russian) end
+      generateBridgeFortification(-15, 20);
       generateCheckpoint(25, 0, true);
-      generateAntiTankHedgehogs(8);
-      generateDroneNest(35, 35);
+      generateCheckpoint(-20, -45, false);     // Kerch end gate
+      generateCheckpoint(0, 48, false);        // Taman end gate
+      generateAntiTankHedgehogs(18);
+      // Kerch city (Crimean side — ancient fortress city, now occupied)
+      generateUkrainianApartment(-35, -20, 6);
+      generateUkrainianApartment(30, -25, 6);
+      generateUkrainianApartment(-32, -42, 5);
+      generateUkrainianApartment(28, -42, 5);
+      generateUkrainianApartment(0, -48, 6);
+      generateLuxuryVilla(-8, -15, 10, 8);      // Kerch administrative buildings
+      generateLuxuryVilla(8, -15, 8, 8);
+      generateChurch(-20, -8);                  // Ancient Kerch Orthodox Cathedral
+      generateChurch(18, -12);
+      generateWaterTower(-38, -8);
+      generateIndustrialComplex(-42, -42);      // Kerch Port industrial zone
+      generateIndustrialComplex(38, -38);       // Crimean ferry terminal
+      // Taman side (Russian) logistics and fuel
+      generateFuelDepot(-30, 38);
+      generateFuelDepot(28, 38);
+      generateAmmoDepot(-35, 0);
+      generateAmmoDepot(32, 0);
+      generateAmmoDumpBerm(-25, 42);
+      // AA batteries (bridge was a priority air-defense target)
+      generateAntiAirPosition(-42, 20);
+      generateAntiAirPosition(40, 18);
+      generateAntiAirPosition(0, -42);
+      generateAntiAirPosition(-20, 42);
+      generateAntiAirPosition(20, -42);
+      // Radar and communications
+      generateRadarTower(-25, -28);
+      generateRadarTower(22, 30);
+      generateCommTower(0, -38);
+      // Military defensive ring around bridge approaches
+      generateDefensivePosition(-25, 8);
+      generateDefensivePosition(25, -8);
+      generateDefensivePosition(0, 22);
+      generateBunker(-15, -30);
+      generateBunker(14, -30);
+      generateBunker(-15, 30);
+      generateBunker(14, 30);
+      generateWatchtower(-42, -42);
+      generateWatchtower(40, -42);
+      generateWatchtower(-42, 42);
+      generateWatchtower(40, 42);
+      // Battle damage — multiple strikes on bridge infrastructure
+      generateBurningRuin(-18, 18);
+      generateBurningRuin(15, -18);
+      generateCraters(8);
+      generateWreckedTank(-12, -25);
+      generateWreckedAPC(10, 22);
+      generateWreckedTruck(-28, 12);
+      generateWreckedConvoy(22, -30);
+      generateDestroyedVehicles(10);
+      // Artillery batteries defending the strait
+      generateArtilleryBattery(-38, 38);
+      generateArtilleryBattery(36, -38);
+      // Russian propaganda billboards on bridge approaches
+      generateBillboard(-8, -52);
+      generateBillboard(6, -52);
+      generateBillboard(-10, 52);
+      generateBillboard(8, 52);
+      generateDroneNest(48, 48);
+      generateDroneNest(-48, 48);
+      generateDroneNest(48, -48);
+      generateDroneNest(-48, -48);
     } else if (level.id === 'CHORNOBYL') {
       // Chornobyl Exclusion Zone — 30km dead zone, ghost city of Pripyat, irradiated reactor
       // Reactor No. 4 / New Safe Confinement area (center)
@@ -7337,15 +7409,93 @@ window.VoxelWorld = (function () {
       generateDroneNest(48, -48);
       generateDroneNest(-48, -48);
     } else if (level.id === 'REFINERY') {
-      // Oil refinery — fuel tanks, industrial towers, pipelines
+      // Russian-held oil refinery — Lukoil/Gazprom facility in occupied territory
+      // Drone strikes by Ukraine repeatedly hit refineries throughout 2023-2024
+      // Central processing units (distillation towers, cracking units)
+      generateIndustrialComplex(0, 0);          // Primary distillation unit
+      generateIndustrialComplex(15, -15);       // Cracking unit 2
+      generateIndustrialComplex(-15, 15);       // Processing unit 3
+      generateIndustrialComplex(20, 15);        // Hydrodesulfurization block
+      generateIndustrialComplex(-18, -18);      // Catalytic converter block
+      // Fuel storage farm (distinctive white cylindrical tanks)
       generateFuelDepot(0, 0);
       generateFuelDepot(20, 20);
       generateFuelDepot(-20, -20);
-      generateIndustrialComplex(15, -15);
-      generateIndustrialComplex(-15, 15);
+      generateFuelDepot(32, 0);
+      generateFuelDepot(-32, 0);
+      generateFuelDepot(0, 32);
+      generateFuelDepot(0, -32);
+      generateFuelDepot(28, -28);
+      generateFuelDepot(-28, 28);
+      // Control and communications towers (flare stacks, monitoring masts)
       generateControlTower(0, 30);
+      generateControlTower(-15, 30);
+      generateControlTower(15, 30);
+      generateCommTower(0, -30);
+      generateRadarTower(-30, -15);
+      generateRadarTower(28, 15);
+      generateWaterTower(-28, 25);             // Cooling water towers
+      generateWaterTower(25, -28);
+      generateWaterTower(-10, -35);
+      // Ammo/supply dumps (Russian forces fortified the facility)
       generateAmmoDepot(30, 0);
+      generateAmmoDepot(-28, 12);
+      generateAmmoDepot(22, -32);
+      generateAmmoDumpBerm(-22, 32);
+      // Anti-air — refineries are prime drone/air strike targets
+      generateAntiAirPosition(-38, -25);
+      generateAntiAirPosition(38, 22);
+      generateAntiAirPosition(-20, 38);
+      generateAntiAirPosition(18, -40);
+      // Perimeter security — checkpoints, defensive positions, bunkers
+      generateCheckpoint(0, 44, false);
+      generateCheckpoint(0, -44, false);
+      generateCheckpoint(44, 0, true);
+      generateCheckpoint(-44, 0, true);
+      generateDefensivePosition(-30, 0);
+      generateDefensivePosition(30, 0);
+      generateDefensivePosition(0, -30);
+      generateDefensivePosition(0, 30);
+      generateDefensivePosition(-22, -22);
+      generateDefensivePosition(22, 22);
+      generateBunker(-38, -38);
+      generateBunker(38, -38);
+      generateBunker(-38, 38);
+      generateBunker(38, 38);
+      generateWatchtower(-48, -25);
+      generateWatchtower(48, 22);
+      generateWatchtower(-25, 48);
+      generateWatchtower(22, -48);
+      generateBarbedWire(0, 0, 30, true);
+      generateBarbedWire(0, 0, 30, false);
+      generateAntiTankHedgehogs(15);
+      // Artillery defending the refinery perimeter
+      generateArtilleryBattery(-42, 15);
+      generateArtilleryBattery(40, -18);
+      // Battle damage — Ukrainian drone strikes hit multiple tank farms and towers
       generateBurningRuin(-10, 10);
+      generateBurningRuin(12, -12);
+      generateBurningRuin(-25, -5);
+      generateBurningRuin(22, 8);
+      generateBurningRuin(0, -22);
+      generateCraters(10);
+      generateRuins(6);
+      generateWreckedTank(-18, -30);
+      generateWreckedTank(16, 28);
+      generateWreckedAPC(-28, 18);
+      generateWreckedConvoy(30, -20);
+      generateDestroyedVehicles(12);
+      // Worker/guard facilities (Soviet-era refinery industrial compound)
+      generateApartmentBlock(-35, -48, 4);     // Worker barracks/housing
+      generateApartmentBlock(32, -48, 4);
+      generateLuxuryVilla(-8, -48, 10, 8);     // Administrative HQ building
+      // Power and rail infrastructure
+      generatePowerLines(0, 0, 5);
+      generateRailway(-15, 0, 40, false);      // Loading rail yard
+      generateDroneNest(48, 48);
+      generateDroneNest(-48, 48);
+      generateDroneNest(48, -48);
+      generateDroneNest(-48, -48);
     }
     // ── War-zone ruined homes & commercial buildings (every stage) ──
     // Real Ukraine war reference: Mariupol, Bakhmut, Avdiivka districts
