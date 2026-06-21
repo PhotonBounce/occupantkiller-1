@@ -1224,10 +1224,10 @@ window.VoxelWorld = (function () {
     { id: 'BELGOROD',  name: 'Belgorod Offensive',    desc: 'Cross into enemy territory',   theme: 'grassland', wavesPerLevel: 8, difficulty: 4.6, fogColor: 0xD4A017, spawnCandidates: [{ x: -15, z: -12 }, { x: 15, z: -12 }, { x: 0, z: -20 }, { x: -30, z: -5 }, { x: 30, z: -5 }, { x: -12, z: 15 }, { x: 12, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KREMLIN',   name: 'Kremlin Showdown',      desc: 'The final battle for peace',   theme: 'cityscape', wavesPerLevel: 10, difficulty: 5.0, fogColor: 0x111118, spawnCandidates: [{ x: -18, z: 52 }, { x: 18, z: 52 }, { x: -32, z: 22 }, { x: 32, z: 22 }, { x: 0, z: 55 }, { x: -32, z: -10 }, { x: 32, z: -10 }, { x: 0, z: -25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KYIV',      name: 'Siege of Kyiv',         desc: 'Ambush the Russian armored convoy', theme: 'urban', wavesPerLevel: 8, difficulty: 1.5, fogColor: 0x6a7080, tankFocus: true, spawnCandidates: [{ x: 0, z: -24 }, { x: -8, z: -24 }, { x: 8, z: -24 }, { x: -4, z: -28 }, { x: 4, z: -28 }], spawnLookTarget: { x: 0, z: 22 } },
-    { id: 'SNAKE',     name: 'Snake Island Defense',  desc: '"Russian warship, go fuck yourself."', theme: 'coastal', wavesPerLevel: 6, difficulty: 1.4, fogColor: 0x4a6680 },
-    { id: 'SAKY',      name: 'Saky Airbase Strike',   desc: 'Crimea airbase — ground every Su-24', theme: 'coastal', wavesPerLevel: 7, difficulty: 1.7, fogColor: 0x886644 },
-    { id: 'VUHLEDAR',  name: 'Vuhledar Tank Graveyard', desc: 'Bury the 155th in the minefield', theme: 'wasteland', wavesPerLevel: 8, difficulty: 1.9, fogColor: 0x4a4030, tankFocus: true },
-    { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677 },
+    { id: 'SNAKE',     name: 'Snake Island Defense',  desc: '"Russian warship, go fuck yourself."', theme: 'coastal', wavesPerLevel: 6, difficulty: 1.4, fogColor: 0x4a6680, spawnCandidates: [{ x: -16, z: 0 }, { x: 16, z: 0 }, { x: 0, z: 16 }, { x: 0, z: -20 }, { x: -12, z: 12 }, { x: 12, z: -12 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'SAKY',      name: 'Saky Airbase Strike',   desc: 'Crimea airbase — ground every Su-24', theme: 'coastal', wavesPerLevel: 7, difficulty: 1.7, fogColor: 0x886644, spawnCandidates: [{ x: -30, z: -20 }, { x: -20, z: -30 }, { x: 0, z: -35 }, { x: 30, z: -20 }, { x: -35, z: 10 }, { x: 35, z: 10 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'VUHLEDAR',  name: 'Vuhledar Tank Graveyard', desc: 'Bury the 155th in the minefield', theme: 'wasteland', wavesPerLevel: 8, difficulty: 1.9, fogColor: 0x4a4030, tankFocus: true, spawnCandidates: [{ x: -15, z: 12 }, { x: 15, z: 12 }, { x: 0, z: 20 }, { x: -25, z: 5 }, { x: 25, z: 5 }, { x: 0, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -3374,6 +3374,160 @@ window.VoxelWorld = (function () {
     }
     for (var ex = -4; ex <= 4; ex++) setBlock(ox + ex, base + 8, oz + bD + 1, BLOCK.CONCRETE);
     _buildings.push({ kind: 'landmark_kherson_cathedral', x: ox - bW, z: oz - bD, w: bW * 2 + 1, d: bD * 2 + 2, baseY: h, floorH: 6, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Kherson Fortress — 18th-century star-shaped fortification (Staryi Bazar district)
+  function generateKhersonFortress(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var R = 11;
+    // Perimeter curtain walls — BRICK, 5 high
+    for (var wx = -R; wx <= R; wx++) {
+      for (var wy = 0; wy < 5; wy++) {
+        setBlock(ox + wx, base + wy, oz - R, BLOCK.BRICK);
+        setBlock(ox + wx, base + wy, oz + R, BLOCK.BRICK);
+      }
+    }
+    for (var wz = -R; wz <= R; wz++) {
+      for (var wy2 = 0; wy2 < 5; wy2++) {
+        setBlock(ox - R, base + wy2, oz + wz, BLOCK.BRICK);
+        setBlock(ox + R, base + wy2, oz + wz, BLOCK.BRICK);
+      }
+    }
+    // Merlons atop wall
+    for (var mx = -R; mx <= R; mx += 2) {
+      setBlock(ox + mx, base + 5, oz - R, BLOCK.BRICK);
+      setBlock(ox + mx, base + 5, oz + R, BLOCK.BRICK);
+    }
+    for (var mz = -R; mz <= R; mz += 2) {
+      setBlock(ox - R, base + 5, oz + mz, BLOCK.BRICK);
+      setBlock(ox + R, base + 5, oz + mz, BLOCK.BRICK);
+    }
+    // Corner bastions — solid STONE towers, 8 high, 3×3
+    var corners = [[-R, -R], [R, -R], [-R, R], [R, R]];
+    for (var ci = 0; ci < corners.length; ci++) {
+      for (var cy = 0; cy < 8; cy++) {
+        for (var ctx = -1; ctx <= 1; ctx++) {
+          for (var ctz = -1; ctz <= 1; ctz++) {
+            var isEdge = Math.abs(ctx) === 1 || Math.abs(ctz) === 1;
+            if (isEdge || cy === 0 || cy === 7)
+              setBlock(ox + corners[ci][0] + ctx, base + cy, oz + corners[ci][1] + ctz, BLOCK.STONE);
+          }
+        }
+      }
+    }
+    // South gate opening (wide enough to enter)
+    for (var gy = 0; gy < 4; gy++) {
+      for (var gx2 = -2; gx2 <= 2; gx2++) setBlock(ox + gx2, base + gy, oz + R, BLOCK.AIR);
+    }
+    // Inner ruins — rubble patches, broken walls
+    _lmDisc(ox - 5, base, oz + 3, 3, BLOCK.RUBBLE);
+    _lmDisc(ox + 4, base, oz - 4, 2, BLOCK.RUBBLE);
+    // Central stone well
+    for (var wel = 0; wel < 2; wel++) {
+      setBlock(ox + 1, base + wel, oz,     BLOCK.STONE);
+      setBlock(ox - 1, base + wel, oz,     BLOCK.STONE);
+      setBlock(ox,     base + wel, oz + 1, BLOCK.STONE);
+      setBlock(ox,     base + wel, oz - 1, BLOCK.STONE);
+    }
+    // Ukrainian flag at north-east tower
+    setBlock(ox + R - 1, base + 9, oz - R + 1, BLOCK.FLAG);
+    _buildings.push({ kind: 'landmark_kherson_fortress', x: ox - R - 1, z: oz - R - 1, w: R * 2 + 3, d: R * 2 + 3, baseY: h, floorH: 5, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Kherson Port Terminal — Dnipro river commercial port
+  function generateKhersonPortTerminal(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Concrete quay wall running east–west, 3 high
+    for (var qx = -14; qx <= 14; qx++) {
+      for (var qy = 0; qy < 3; qy++) {
+        setBlock(ox + qx, base + qy, oz,     BLOCK.CONCRETE);
+        setBlock(ox + qx, base + qy, oz - 1, BLOCK.CONCRETE);
+      }
+    }
+    // Warehouse A (east side)
+    for (var ay = 0; ay < 8; ay++) {
+      for (var ax = 4; ax <= 13; ax++) {
+        for (var az = 2; az <= 8; az++) {
+          if (ax === 4 || ax === 13 || az === 2 || az === 8)
+            setBlock(ox + ax, base + ay, oz + az, BLOCK.CONCRETE);
+          else if (ay === 7) setBlock(ox + ax, base + ay, oz + az, BLOCK.METAL);
+        }
+      }
+    }
+    // Warehouse B (west side)
+    for (var by2 = 0; by2 < 8; by2++) {
+      for (var bx3 = -13; bx3 <= -4; bx3++) {
+        for (var bz3 = 2; bz3 <= 8; bz3++) {
+          if (bx3 === -13 || bx3 === -4 || bz3 === 2 || bz3 === 8)
+            setBlock(ox + bx3, base + by2, oz + bz3, BLOCK.CONCRETE);
+          else if (by2 === 7) setBlock(ox + bx3, base + by2, oz + bz3, BLOCK.METAL);
+        }
+      }
+    }
+    // Gantry crane legs + crossbar
+    for (var gl = 0; gl < 13; gl++) {
+      setBlock(ox - 2, base + gl, oz - 3, BLOCK.METAL);
+      setBlock(ox + 2, base + gl, oz - 3, BLOCK.METAL);
+    }
+    for (var gbx = -5; gbx <= 5; gbx++) setBlock(ox + gbx, base + 13, oz - 3, BLOCK.METAL);
+    // Boom arm slanting up
+    for (var bm2 = 0; bm2 < 5; bm2++) setBlock(ox + 5 + bm2, base + 13 + bm2, oz - 3, BLOCK.METAL);
+    // Oil/grain storage silos (3 cylinders)
+    for (var si = 0; si < 3; si++) {
+      var six = ox - 8 + si * 8;
+      for (var sy = 0; sy < 8; sy++) _lmDisc(six, base + sy, oz + 13, 3, BLOCK.CONCRETE);
+    }
+    _buildings.push({ kind: 'landmark_kherson_port', x: ox - 14, z: oz - 3, w: 29, d: 18, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Snake Island Border Guard Barracks — Ukrainian garrison building
+  function generateSnakeIslandBarracks(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // 2-story CONCRETE building 12×6
+    for (var y = 0; y < 8; y++) {
+      for (var x = -6; x <= 5; x++) {
+        for (var z = -3; z <= 2; z++) {
+          var isWall = x === -6 || x === 5 || z === -3 || z === 2;
+          if (isWall || y === 0 || y === 4 || y === 7)
+            setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Windows on north and south faces
+    for (var wfl = 0; wfl < 2; wfl++) {
+      for (var wx2 = -4; wx2 <= 3; wx2 += 3) {
+        setBlock(ox + wx2, base + wfl * 4 + 2, oz - 3, BLOCK.GLASS);
+        setBlock(ox + wx2, base + wfl * 4 + 2, oz + 2, BLOCK.GLASS);
+      }
+    }
+    // Entrance door south face
+    for (var dy = 0; dy < 3; dy++) {
+      setBlock(ox - 1, base + 1 + dy, oz - 3, BLOCK.AIR);
+      setBlock(ox,     base + 1 + dy, oz - 3, BLOCK.AIR);
+    }
+    // Rooftop satellite dish
+    setBlock(ox + 3, base + 8,  oz,     BLOCK.METAL);
+    setBlock(ox + 3, base + 9,  oz,     BLOCK.METAL);
+    setBlock(ox + 2, base + 9,  oz,     BLOCK.METAL);
+    setBlock(ox + 4, base + 9,  oz,     BLOCK.METAL);
+    setBlock(ox + 3, base + 9,  oz - 1, BLOCK.METAL);
+    // Ukrainian flag on roof
+    setBlock(ox - 3, base + 8,  oz, BLOCK.METAL);
+    setBlock(ox - 3, base + 9,  oz, BLOCK.METAL);
+    setBlock(ox - 3, base + 10, oz, BLOCK.FLAG);
+    // Sandbag positions around the building
+    for (var sb2 = -7; sb2 <= -6; sb2++) {
+      setBlock(ox + sb2, base,     oz - 4, BLOCK.DIRT);
+      setBlock(ox + sb2, base + 1, oz - 4, BLOCK.DIRT);
+    }
+    for (var sb3 = 6; sb3 <= 7; sb3++) {
+      setBlock(ox + sb3, base,     oz + 3, BLOCK.DIRT);
+      setBlock(ox + sb3, base + 1, oz + 3, BLOCK.DIRT);
+    }
+    _buildings.push({ kind: 'landmark_snake_barracks', x: ox - 7, z: oz - 4, w: 13, d: 7, baseY: h, floorH: 4, floors: 2, cx: ox, cz: oz });
   }
 
   // ── MOSCOW CITY (MIBC) — modern glass skyscraper generators ──────────────
@@ -8400,9 +8554,11 @@ window.VoxelWorld = (function () {
       generateDroneNest(44, -50);
       generateDroneNest(-42, -58);
       generateDroneNest(0, 15);
-      // Kherson landmarks: railway station + cathedral
-      generateKhersonStation(-30, 22);     // Kherson Railway Station (NW city)
-      generateKhersonCathedral(25, -18);   // Pokrovska Cathedral (city centre)
+      // Kherson landmarks: railway station, cathedral, fortress, port
+      generateKhersonStation(-30, 22);          // Kherson Railway Station (NW city)
+      generateKhersonCathedral(25, -18);        // Pokrovska Cathedral (city centre)
+      generateKhersonFortress(18, -52);         // 18th-century star fort (old town SE)
+      generateKhersonPortTerminal(-5, -80);     // Dnipro river commercial port (south)
     } else if (level.id === 'KYIV') {
       // Real-map recreation: Maidan Nezalezhnosti / Khreshchatyk approach
       // where Russian armored columns were stopped on the road into Kyiv
@@ -9386,7 +9542,8 @@ window.VoxelWorld = (function () {
       generateDroneNest(-25, -25);
       generateDroneNest(25, -25);
       // Snake Island fort ruins (historic fortification + lighthouse)
-      generateSnakeIslandFort(0, 0);     // Ottoman/Russian fortress ruins surrounding the island
+      generateSnakeIslandFort(0, 0);              // Ottoman/Russian fortress ruins surrounding the island
+      generateSnakeIslandBarracks(-14, -22);      // Ukrainian border guard barracks (13 defenders' post)
     } else if (level.id === 'SAKY') {
       // Saky Airbase, Crimea — Russia's largest military air base in Crimea
       // Ukraine struck this in August 2022 — Su-24, Su-30 fighters destroyed on ground
