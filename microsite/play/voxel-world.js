@@ -1231,7 +1231,7 @@ window.VoxelWorld = (function () {
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
-  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy'];
+  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy','Poltava','Kursk'];
 
   function getLevelDef(index) {
     if (index >= 0 && index < LEVELS.length) return LEVELS[index];
@@ -5829,6 +5829,113 @@ window.VoxelWorld = (function () {
     }
     _lmOnionDome(btx, h + 17, oz, 2, BLOCK.BUS);
     _buildings.push({ kind: 'landmark_chernihiv_cathedral', x: ox - 11, z: oz - 10, w: 22, d: 20, baseY: h, floorH: 5, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Poltava Battle Panorama Museum (1909) — commemorating the 1709 battle
+  // Circular neo-baroque rotunda building housing a 360° panorama painting.
+  // Russia struck the nearby military training center Sep 2024 — 51 soldiers killed.
+  function generatePoltavaPanorama(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var R = 7, wallH = 10;
+    // Cylindrical PLASTER rotunda body
+    for (var py = 0; py < wallH; py++) {
+      for (var a = 0; a < 360; a += 6) {
+        var rad = a * Math.PI / 180;
+        var wx = Math.round(Math.cos(rad) * R), wz = Math.round(Math.sin(rad) * R);
+        setBlock(ox + wx, h + py + 1, oz + wz, BLOCK.PLASTER);
+      }
+    }
+    // GLASS windows evenly around upper band
+    for (var a2 = 0; a2 < 360; a2 += 30) {
+      var r2 = a2 * Math.PI / 180;
+      var gx = Math.round(Math.cos(r2) * R), gz = Math.round(Math.sin(r2) * R);
+      setBlock(ox + gx, h + 6, oz + gz, BLOCK.GLASS);
+      setBlock(ox + gx, h + 7, oz + gz, BLOCK.GLASS);
+    }
+    // ROOFTILE conical dome
+    for (var dr = 0; dr < 4; dr++) {
+      var dR = R - dr - 1;
+      if (dR < 0) break;
+      _lmRing(ox, h + wallH + dr, oz, dR, BLOCK.ROOFTILE);
+    }
+    _lmDisc(ox, h + wallH + 4, oz, 1, BLOCK.ROOFTILE);
+    setBlock(ox, h + wallH + 5, oz, BLOCK.LIGHT); // lantern on top
+    // 6 decorative STONE columns on south facade
+    for (var ci = -2; ci <= 2; ci++) {
+      for (var cy = 0; cy < wallH + 2; cy++) setBlock(ox + ci, h + cy + 1, oz + R + 2, BLOCK.STONE);
+    }
+    // Triangular pediment
+    for (var pi = -3; pi <= 3; pi++) {
+      var pHt = 3 - Math.abs(pi);
+      for (var ph = 0; ph < pHt; ph++) setBlock(ox + pi, h + wallH + 1 + ph, oz + R + 1, BLOCK.STONE);
+    }
+    // Wide entrance steps
+    for (var st = 0; st < 3; st++) {
+      for (var sx = -3 + st; sx <= 3 - st; sx++) {
+        setBlock(ox + sx, h + st + 1, oz + R + 2 + (2 - st), BLOCK.STONE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_poltava_panorama', x: ox - R - 1, z: oz - R - 1, w: (R+1)*2, d: (R+1)*2, baseY: h, floorH: wallH, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Kursk Oblast Border Crossing Post — captured by Ukraine Aug 6, 2024
+  // Operation Spider Web / Kursk Incursion: first time since WWII a foreign army
+  // held Russian territory. Ukrainian forces captured FSB border guard stations.
+  function generateKurskBorderPost(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    // FSB guardhouse — squat CONCRETE blockhouse
+    for (var py = 0; py < 4; py++) {
+      for (var px = -4; px <= 4; px++) {
+        for (var pz = -3; pz <= 3; pz++) {
+          var edge = (Math.abs(px) === 4 || Math.abs(pz) === 3);
+          if (edge || py === 0 || py === 3) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Guard tower — tall CONCRETE column on NE corner
+    for (var ty = 0; ty < 10; ty++) {
+      for (var tx = -1; tx <= 1; tx++) {
+        for (var tz = -1; tz <= 1; tz++) {
+          if (Math.abs(tx) === 1 || Math.abs(tz) === 1 || ty === 0 || ty === 9) {
+            setBlock(ox + 6 + tx, h + ty + 1, oz - 4 + tz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Observation slit (windows on guard tower)
+    setBlock(ox + 6, h + 7, oz - 3, BLOCK.GLASS);
+    setBlock(ox + 6, h + 7, oz - 5, BLOCK.GLASS);
+    setBlock(ox + 7, h + 7, oz - 4, BLOCK.GLASS);
+    // Road barrier — red-white striped METAL pole
+    for (var bx = 8; bx <= 16; bx++) setBlock(ox + bx, h + 3, oz, BLOCK.METAL);
+    setBlock(ox + 8, h + 1, oz, BLOCK.METAL);
+    setBlock(ox + 8, h + 2, oz, BLOCK.METAL);
+    // Dragon's teeth (Russian anti-tank obstacles) — STONE prisms along the border
+    var dragonPositions = [[-6, 6], [-3, 6], [0, 6], [3, 6], [6, 6],
+                           [-6, 8], [-3, 8], [0, 8], [3, 8], [6, 8]];
+    for (var di = 0; di < dragonPositions.length; di++) {
+      var dx = ox + dragonPositions[di][0], dz = oz + dragonPositions[di][1];
+      var dh = getTerrainHeight(dx, dz) || h;
+      setBlock(dx, dh + 1, dz, BLOCK.STONE);
+      setBlock(dx, dh + 2, dz, BLOCK.STONE);
+    }
+    // Ukrainian flag on captured flagpole (occupants defeated!)
+    var fpH = getTerrainHeight(ox - 2, oz - 6) || h;
+    for (var fp = 0; fp < 8; fp++) setBlock(ox - 2, fpH + fp + 1, oz - 6, BLOCK.METAL);
+    // Blue lower, yellow upper — Ukrainian flag
+    setBlock(ox - 1, fpH + 7, oz - 6, BLOCK.CONCRETE); // blue
+    setBlock(ox,     fpH + 7, oz - 6, BLOCK.CONCRETE);
+    setBlock(ox + 1, fpH + 7, oz - 6, BLOCK.CONCRETE);
+    setBlock(ox - 1, fpH + 8, oz - 6, BLOCK.LIGHT);    // yellow
+    setBlock(ox,     fpH + 8, oz - 6, BLOCK.LIGHT);
+    setBlock(ox + 1, fpH + 8, oz - 6, BLOCK.LIGHT);
+    // Wrecked Russian BTR-82 at checkpoint (abandoned in the Ukrainian advance)
+    setBlock(ox + 10, h + 1, oz + 4, BLOCK.METAL);
+    setBlock(ox + 10, h + 2, oz + 4, BLOCK.METAL);
+    setBlock(ox + 11, h + 2, oz + 4, BLOCK.METAL);
+    setBlock(ox + 9,  h + 2, oz + 4, BLOCK.METAL);
+    setBlock(ox + 10, h + 3, oz + 4, BLOCK.RUBBLE); // battle damage
+    _buildings.push({ kind: 'landmark_kursk_border', x: ox - 4, z: oz - 4, w: 22, d: 14, baseY: h, floorH: 4, floors: 1, cx: ox, cz: oz });
   }
 
   // LANDMARK: Golden Gate (Zoloti Vorota) — 11th-century Byzantine city gate, reconstructed 1982
@@ -11457,6 +11564,115 @@ window.VoxelWorld = (function () {
         generateDroneNest(-48, -48);
         generateDroneNest(48, -48);
         generateDroneNest(-48, 48);
+      } else if (cityName === 'Poltava') {
+        // Poltava — historic Ukrainian city, Battle of Poltava 1709 (Peter I vs Charles XII)
+        // Sept 3 2024: devastating Russian missile strike on Military Institute of Communications
+        // killed 55 Ukrainian officers — one of the deadliest single strikes of the war
+        // Landmarks: Round Panorama museum, 19th-century neoclassical center, Corpus church
+        generatePoltavaPanorama(-12, -18);            // Round Panorama (1909 Poltava Battle museum)
+        generateChurch(-28, -8);                      // Corpus Christi Cathedral (baroque, 1695)
+        generateChurch(22, -12);                      // Church of the Exaltation of the Cross
+        generateLuxuryVilla(0, -30, 16, 10);          // Poltava Regional Administration (neoclassical)
+        generateSovietAdminBuilding(0, -15);          // Lenin Square / Corpus city hall
+        generateUkrainianApartment(-35, -35, 8);
+        generateUkrainianApartment(-35, -55, 6);
+        generateUkrainianApartment(28, -38, 8);
+        generateUkrainianApartment(28, -58, 6);
+        generateUkrainianApartment(-15, -62, 5);
+        generateUkrainianApartment(15, -62, 5);
+        generateUkrainianApartment(-50, -15, 5);
+        generateUkrainianApartment(42, -18, 5);
+        generateIndustrialComplex(-32, -40);          // Military Institute of Communications (struck Sept 2024)
+        generateIndustrialComplex(30, -42);           // Kremenchuk road — machine building plant
+        generateIndustrialComplex(-38, 38);           // Oil refinery (Kremenchuk, nearby)
+        generateTrainStation(32, 32);                 // Poltava-Kyivska railway station
+        generateRailway(16, 20, 36, false);
+        generateBridge(0, 22, 30, 4);                 // Vorskla river crossing
+        generateGrainSilo(-40, -25);
+        generateWaterTower(-42, 18);
+        generateCommTower(-5, -45);
+        generatePowerLines(0, 0, 4);
+        // Military targets (Sept 2024 strike context)
+        generateArtilleryBattery(-44, -50);
+        generateArtilleryBattery(42, 44);
+        generateAntiAirPosition(-32, 40);             // Air defense — Poltava had Patriot nearby
+        generateAntiAirPosition(30, -40);
+        generateBunker(-20, 20);
+        generateBunker(20, -20);
+        generateTrenchNetwork(-14, 14);
+        generateTrenchNetwork(14, -14);
+        generateBurningRuin(-20, -20);                // Strike aftermath
+        generateBurningRuin(18, 20);
+        generateBurningRuin(-42, -32);
+        generateBurningRuin(38, -30);
+        generateWreckedTank(-12, -24);
+        generateWreckedAPC(16, 16);
+        generateWreckedConvoy(-34, 22);
+        generateCraters(18);                          // Missile strike craters
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Kursk') {
+        // Kursk Oblast (Russia) — Ukraine's surprise cross-border incursion Aug 6, 2024
+        // Operation "Spider Web" / Kursk Incursion: first time since WWII a foreign army
+        // seized and held Russian territory — up to 1200 km² at peak (Aug 14 2024)
+        // Key site: Sudzha town (pop 5,000), captured gas metering station, border crossing
+        generateKurskBorderPost(-15, 10);             // FSB Border Crossing (Sudzha sector)
+        generateKurskBorderPost(22, -18);             // Second captured border post
+        generateChurch(-25, -10);                     // Sudzha Orthodox church (damaged in fighting)
+        generateSovietAdminBuilding(0, -20);          // Sudzha town administration (occupied)
+        generateLuxuryVilla(-8, -30, 12, 8);          // Russian regional governor's dacha area
+        generateUkrainianApartment(-30, -32, 7);
+        generateUkrainianApartment(-30, -50, 5);
+        generateUkrainianApartment(25, -35, 7);
+        generateUkrainianApartment(25, -55, 5);
+        generateUkrainianApartment(-14, -60, 5);
+        generateUkrainianApartment(14, -60, 5);
+        generateUkrainianApartment(-48, -12, 5);
+        generateUkrainianApartment(40, -14, 5);
+        generateIndustrialComplex(-32, -38);          // Sudzha gas measuring station (key objective)
+        generateIndustrialComplex(28, -40);           // Kursk Nuclear Plant support facilities
+        generateGrainSilo(-38, -20);
+        generateGrainSilo(35, -22);
+        generateTrainStation(32, 30);                 // Sudzha rail junction (supply line cut)
+        generateRailway(16, 18, 36, false);
+        generateBridge(0, 20, 26, 4);                 // Seym River crossing (major tactical objective)
+        generateWaterTower(-40, 16);
+        generateCommTower(-5, -42);
+        // Heavy military presence — both Russian defenses and Ukrainian advance
+        generateArtilleryBattery(-44, -48);           // Russian artillery positions (overrun)
+        generateArtilleryBattery(40, 42);             // Ukrainian captured guns
+        generateArtilleryBattery(-20, 38);            // Ukrainian counterfire battery
+        generateAmmoDepot(-28, 12);                   // Captured Russian ammo dump
+        generateAntiAirPosition(-30, 36);
+        generateAntiAirPosition(28, -36);
+        generateBunker(-18, 18);
+        generateBunker(18, -18);
+        generateBunker(-36, -18);                     // Russian border fortifications
+        generateBunker(36, 14);
+        generateTrenchNetwork(-12, 12);               // Russian border trench system (breached)
+        generateTrenchNetwork(12, -12);
+        generateTrenchNetwork(-28, -28);
+        generateDefensivePosition(-8, 8);
+        generateDefensivePosition(8, -8);
+        generateBurningRuin(-18, -18);                // Sudzha civilian structures
+        generateBurningRuin(16, 18);
+        generateBurningRuin(-40, -28);
+        generateBurningRuin(36, -26);
+        generateWreckedTank(-10, -20);                // Russian T-72/T-80 losses at border
+        generateWreckedTank(22, 22);
+        generateWreckedAPC(16, 16);
+        generateWreckedAPC(-24, -10);
+        generateWreckedConvoy(-32, 18);               // Russian resupply convoy destroyed
+        generateWreckedConvoy(28, -25);
+        generateCraters(20);                          // Intense artillery exchange both sides
+        generateDroneNest(48, 48);                    // FPV drone corridor (Sudzha fight)
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+        generateDroneNest(0, 48);                     // Extra nests for contested airspace
+        generateDroneNest(0, -48);
       } else {
         // Generic proc city (Mariupol/Vuhledar repeats, or any future addition)
         generateUkrainianApartment(-25, -25, 6);
