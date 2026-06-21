@@ -615,6 +615,7 @@
             <button class="btn pill map-btn"            data-stage="5"  style="border-color:#888;color:#888">🌊 CRIMEA</button>
             <button class="btn pill map-btn"            data-stage="6"  style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
             <button class="btn pill map-btn"            data-stage="7"  style="border-color:#cc44ff;color:#cc44ff">🏙 MOSCOW</button>
+            <button class="btn pill map-btn"            data-stage="11" style="border-color:#ff3333;color:#ff3333">☭ KREMLIN</button>
           </div>
           <p id="map-desc" class="start-section-desc">Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
         </section>
@@ -661,6 +662,14 @@
                 <div style="color:#aaa;font-size:11px;margin-top:2px">Elite FSB guards and Rosgvardiya response teams defend the city ring. 9 waves of maximum resistance.</div>
               </div>
               <button class="btn pill mission-start-btn" data-stage="7" data-formation="wedge" style="border-color:#cc44ff;color:#cc44ff;white-space:nowrap;flex-shrink:0">▶ START</button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;background:rgba(50,0,0,0.4);border:1px solid #882222;border-radius:6px;padding:8px 12px">
+              <div style="flex:1">
+                <div style="color:#ff3333;font-weight:bold;font-size:12px">☭ KREMLIN — THE ZOMBIE PRESIDENT (FINALE)</div>
+                <div style="color:#aaa;font-size:11px;margin-top:2px">Red Square last stand. Fight past St. Basil's Cathedral to the Kremlin palace and end the war against the 5000-HP zombie tyrant himself.</div>
+              </div>
+              <button class="btn pill mission-start-btn" data-stage="11" data-formation="diamond" style="border-color:#ff3333;color:#ff3333;white-space:nowrap;flex-shrink:0">▶ START</button>
             </div>
 
             <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
@@ -1426,6 +1435,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '5':  'Crimea Bridge — Strike the strategic crossing before it can be reinforced.',
       '6':  'Chornobyl Zone — Irradiated exclusion zone. Abandoned buildings, radiation damage.',
       '7':  'Outer Moscow Ring — FSB elite and Rosgvardiya defend the suburbs. 9 waves of maximum resistance.',
+      '11': 'Kremlin Showdown — The final battle on Red Square. St. Basil\'s Cathedral and the Kremlin palace frame the fight against The Zombie President. 10 waves.',
     };
     var mapBtns = document.querySelectorAll('.map-btn');
     function setActiveMap(stage) {
