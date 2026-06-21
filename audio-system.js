@@ -1084,7 +1084,8 @@ window.AudioSystem = (function () {
     _musicThemeDuration = 0;
 
     if (style === 'battle' || !style) {
-      // Select the current shuffled battle theme
+      // Always start from a fresh random position in the shuffled array
+      _musicThemeIdx = Math.floor(Math.random() * _musicThemes.length);
       var theme = _musicThemes[_musicThemeIdx];
       // Theme 0: Fast march (original) — 110 BPM kick/snare/hat + bass
       // Theme 1: Tense ominous — 90 BPM, sparse kick, heavy bass drone

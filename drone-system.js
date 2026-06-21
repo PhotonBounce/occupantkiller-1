@@ -419,8 +419,9 @@ const DroneSystem = (function () {
       mesh:     null,
       alive:    true,
       active:   true,  // powered on
-      hasPayload: type === DRONE_TYPE.BOMB || type === DRONE_TYPE.ENEMY_BOMBER || type === DRONE_TYPE.INCENDIARY || type === DRONE_TYPE.BABA_YAGA,
-      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5 : undefined,
+      hasPayload: type === DRONE_TYPE.BOMB || type === DRONE_TYPE.ENEMY_BOMBER || type === DRONE_TYPE.INCENDIARY || type === DRONE_TYPE.BABA_YAGA || type === DRONE_TYPE.FPV_ATTACK,
+      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5 : (type === DRONE_TYPE.FPV_ATTACK ? 99 : undefined),
+      missiles: (type === DRONE_TYPE.BAYRAKTAR) ? TB2_MISSILES : undefined,
       _babaDropCooldown: 0,
       // Bomber survival chance after payload drop (real-world based)
       _survivalChance: type === DRONE_TYPE.BOMB ? 0.3 : (type === DRONE_TYPE.BAYRAKTAR ? 0.7 : 0.0),
@@ -1751,7 +1752,9 @@ const DroneSystem = (function () {
       case 'std_bomb':
       case 'cluster':
       case 'emp_bomb':
-        if (!drone.hasPayload) { _showNoPayload(); break; }
+        var _gm = typeof GameManager !== 'undefined' && GameManager.isGodMode && GameManager.isGodMode();
+        if (!drone.hasPayload && !_gm) { _showNoPayload(); break; }
+        if (_gm) { drone.hasPayload = true; if (drone.payloadCount !== undefined) drone.payloadCount = 99; }
         if (p.damage) drone.damage = p.damage;
         var surv = p.survivalChance || 0;
         drone._survivalChance = surv;
@@ -1764,6 +1767,8 @@ const DroneSystem = (function () {
       case 'wp_round':
       case 'grenade_drop':
       case 'therm_drop':
+        var _gm2 = typeof GameManager !== 'undefined' && GameManager.isGodMode && GameManager.isGodMode();
+        if (_gm2) { drone.hasPayload = true; if (drone.payloadCount !== undefined) drone.payloadCount = 99; }
         if (!drone.hasPayload) { _showNoPayload(); break; }
         if (p.damage) drone.damage = p.damage;
         dropFire(drone.id);

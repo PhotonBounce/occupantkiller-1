@@ -1218,7 +1218,7 @@ window.VoxelWorld = (function () {
     { id: 'MARIUPOL',  name: 'Mariupol Steelworks',  desc: 'Fight through Azovstal',      theme: 'industrial', wavesPerLevel: 7, difficulty: 2.2, fogColor: 0x1a1a20 },
     { id: 'CRIMEA',    name: 'Crimea Bridge',        desc: 'Cut the supply line',         theme: 'coastal',   wavesPerLevel: 7, difficulty: 2.5, fogColor: 0x5577aa },
     { id: 'CHORNOBYL', name: 'Chornobyl Zone',       desc: 'Irradiated exclusion zone',   theme: 'wasteland', wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x3a3520 },
-    { id: 'MOSCOW',    name: 'Moscow Finale',        desc: 'End it at the Kremlin',       theme: 'cityscape', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x222228 },
+    { id: 'MOSCOW',    name: 'Moscow Finale',        desc: 'End it at the Kremlin',       theme: 'cityscape', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x222228, spawnCandidates: [{ x: 0, z: -35 }, { x: -30, z: 0 }, { x: 30, z: 0 }, { x: 0, z: 35 }, { x: -25, z: -25 }, { x: 25, z: -25 }, { x: -25, z: 25 }, { x: 25, z: 25 }, { x: -45, z: 0 }, { x: 45, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SEVASTOPOL', name: 'Sevastopol Naval Base', desc: 'Destroy the Black Sea Fleet', theme: 'coastal',  wavesPerLevel: 7, difficulty: 3.8, fogColor: 0x3355aa },
     { id: 'DONBAS',    name: 'Donbas Final Push',     desc: 'Liberate the last stronghold', theme: 'urban',   wavesPerLevel: 8, difficulty: 4.2, fogColor: 0x2a2020 },
     { id: 'BELGOROD',  name: 'Belgorod Offensive',    desc: 'Cross into enemy territory',   theme: 'grassland', wavesPerLevel: 8, difficulty: 4.6, fogColor: 0xD4A017 },
@@ -3374,6 +3374,664 @@ window.VoxelWorld = (function () {
     }
     for (var ex = -4; ex <= 4; ex++) setBlock(ox + ex, base + 8, oz + bD + 1, BLOCK.CONCRETE);
     _buildings.push({ kind: 'landmark_kherson_cathedral', x: ox - bW, z: oz - bD, w: bW * 2 + 1, d: bD * 2 + 2, baseY: h, floorH: 6, floors: 2, cx: ox, cz: oz });
+  }
+
+  // ── MOSCOW CITY (MIBC) — modern glass skyscraper generators ──────────────
+
+  // Helper: glass curtain-wall tower shell (columns every 4 floors, glass infill)
+  function _glassShell(ox, oz, hW, hD, h0, h1) {
+    for (var y = h0; y < h1; y++) {
+      var isFloor = (y % 4 === 0);
+      for (var x = -hW; x <= hW; x++) {
+        for (var z = -hD; z <= hD; z++) {
+          if (x === -hW || x === hW || z === -hD || z === hD) {
+            setBlock(ox + x, y, oz + z, isFloor ? BLOCK.CONCRETE : BLOCK.GLASS);
+          }
+        }
+      }
+      setBlock(ox - hW, y, oz - hD, BLOCK.CONCRETE);
+      setBlock(ox + hW, y, oz - hD, BLOCK.CONCRETE);
+      setBlock(ox - hW, y, oz + hD, BLOCK.CONCRETE);
+      setBlock(ox + hW, y, oz + hD, BLOCK.CONCRETE);
+    }
+  }
+
+  // LANDMARK: Mercury City Tower — slim diamond-plan glass needle (tallest in MIBC)
+  function generateMercuryTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var H = 55;
+    // Diamond cross-section: rotated square, 4×4 diagonal footprint
+    for (var y = 0; y < H; y++) {
+      var taper = Math.floor(y / 14); // taper every 14 floors
+      var r = Math.max(2, 4 - taper);
+      var isFloor = (y % 4 === 0);
+      for (var x = -r; x <= r; x++) {
+        for (var z = -(r - Math.abs(x)); z <= (r - Math.abs(x)); z++) {
+          if (Math.abs(x) + Math.abs(z) === r || y === 0)
+            setBlock(ox + x, base + y, oz + z, isFloor ? BLOCK.CONCRETE : BLOCK.GLASS);
+        }
+      }
+    }
+    // Needle spire
+    for (var s = 0; s < 6; s++) setBlock(ox, base + H + s, oz, BLOCK.METAL);
+    _buildings.push({ kind: 'landmark_mercury_tower', x: ox - 4, z: oz - 4, w: 9, d: 9, baseY: h, floorH: 4, floors: 14, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Federation Towers — twin rectangular glass slabs (East + West)
+  function generateFederationTowers(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // West tower: 6×4 × 50H
+    _glassShell(ox - 5, oz, 3, 2, base, base + 50);
+    for (var rwx = -8; rwx <= -2; rwx++) setBlock(ox + rwx, base + 50, oz, BLOCK.CONCRETE);
+    setBlock(ox - 5, base + 51, oz, BLOCK.METAL); setBlock(ox - 5, base + 52, oz, BLOCK.METAL);
+    // East tower: 5×3 × 52H (slightly taller)
+    _glassShell(ox + 5, oz, 2, 2, base, base + 52);
+    for (var rex = 3; rex <= 7; rex++) setBlock(ox + rex, base + 52, oz, BLOCK.CONCRETE);
+    setBlock(ox + 5, base + 53, oz, BLOCK.METAL); setBlock(ox + 5, base + 54, oz, BLOCK.METAL);
+    // Shared glass podium connecting both towers
+    for (var py = 0; py < 5; py++) {
+      for (var px = -8; px <= 7; px++) {
+        if (px === -8 || px === 7) setBlock(ox + px, base + py, oz, BLOCK.CONCRETE);
+        else if (py === 0 || py === 4) setBlock(ox + px, base + py, oz, BLOCK.CONCRETE);
+        else setBlock(ox + px, base + py, oz, BLOCK.GLASS);
+      }
+    }
+    _buildings.push({ kind: 'landmark_federation', x: ox - 8, z: oz - 2, w: 16, d: 5, baseY: h, floorH: 4, floors: 13, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: OKO Tower — wide glass slab with dramatic diagonal-sliced top
+  function generateOkoTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var H = 46;
+    _glassShell(ox, oz, 5, 3, base, base + H);
+    // Diagonal sliced top: starts full width, narrows diagonally
+    for (var ds = 0; ds < 10; ds++) {
+      for (var dx = -(5 - ds); dx <= (5 - ds); dx++) {
+        setBlock(ox + dx, base + H + ds, oz - 3, BLOCK.GLASS);
+        setBlock(ox + dx, base + H + ds, oz + 3, BLOCK.GLASS);
+      }
+    }
+    // Roof cap
+    for (var rx = -5; rx <= 5; rx++) setBlock(ox + rx, base + H, oz, BLOCK.CONCRETE);
+    _buildings.push({ kind: 'landmark_oko_tower', x: ox - 5, z: oz - 3, w: 11, d: 7, baseY: h, floorH: 4, floors: 11, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Evolution Tower — twisted glass tower (rotates ~90° from base to top)
+  function generateEvolutionTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var H = 44;
+    for (var y = 0; y < H; y++) {
+      // Offset walls gradually (1 block shift every 11 floors = 4 × 90° over full height)
+      var twist = Math.floor(y / 5.5); // 0..7
+      var xOff = (twist < 4) ? twist : 8 - twist; // 0→4→0 zigzag = full rotation
+      var zOff = (twist < 4) ? 0 : twist - 4;      // stays 0 first half, then shifts
+      var isFloor = (y % 4 === 0);
+      var block = isFloor ? BLOCK.CONCRETE : BLOCK.GLASS;
+      var W = 4, D = 3;
+      for (var x = -W; x <= W; x++) {
+        setBlock(ox + x + xOff, base + y, oz - D + zOff, block);
+        setBlock(ox + x + xOff, base + y, oz + D + zOff, block);
+      }
+      for (var z = -D; z <= D; z++) {
+        setBlock(ox - W + xOff, base + y, oz + z + zOff, block);
+        setBlock(ox + W + xOff, base + y, oz + z + zOff, block);
+      }
+    }
+    setBlock(ox + 2, base + H + 1, oz + 1, BLOCK.METAL);
+    _buildings.push({ kind: 'landmark_evolution', x: ox - 4, z: oz - 3, w: 12, d: 10, baseY: h, floorH: 4, floors: 11, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Neva Towers — pair of cylindrical glass towers side by side
+  function generateNevaTowers(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // South cylinder: radius 3, 42 high
+    for (var sy = 0; sy < 42; sy++) {
+      var isFloor = (sy % 4 === 0);
+      _lmRing(ox - 5, base + sy, oz, 3, isFloor ? BLOCK.CONCRETE : BLOCK.GLASS);
+    }
+    _lmDisc(ox - 5, base + 42, oz, 3, BLOCK.CONCRETE);
+    // North cylinder: radius 3, 38 high
+    for (var ny = 0; ny < 38; ny++) {
+      var isFloor2 = (ny % 4 === 0);
+      _lmRing(ox + 5, base + ny, oz, 3, isFloor2 ? BLOCK.CONCRETE : BLOCK.GLASS);
+    }
+    _lmDisc(ox + 5, base + 38, oz, 3, BLOCK.CONCRETE);
+    // Connecting sky bridge
+    for (var bx = -2; bx <= 2; bx++) {
+      setBlock(ox + bx, base + 30, oz, BLOCK.GLASS);
+      setBlock(ox + bx, base + 31, oz, BLOCK.GLASS);
+    }
+    _buildings.push({ kind: 'landmark_neva_towers', x: ox - 8, z: oz - 3, w: 16, d: 6, baseY: h, floorH: 4, floors: 10, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Eurasia Tower — tapered glass needle with gold crown
+  function generateEurasiaTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var H = 38;
+    for (var y = 0; y < H; y++) {
+      var taper = y < H / 2 ? 0 : Math.floor((y - H / 2) / 6);
+      var W = Math.max(1, 4 - taper), D = Math.max(1, 3 - taper);
+      var isFloor = (y % 4 === 0);
+      for (var x = -W; x <= W; x++) {
+        for (var z = -D; z <= D; z++) {
+          if (x === -W || x === W || z === -D || z === D || y === 0)
+            setBlock(ox + x, base + y, oz + z, isFloor ? BLOCK.CONCRETE : BLOCK.GLASS);
+        }
+      }
+    }
+    // Gold crown bands
+    for (var cs = 0; cs < 4; cs++) setBlock(ox, base + H + cs, oz, BLOCK.METAL);
+    _buildings.push({ kind: 'landmark_eurasia', x: ox - 4, z: oz - 3, w: 9, d: 7, baseY: h, floorH: 4, floors: 9, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: City of Capitals — stepped glass complex (two stepped towers on shared podium)
+  function generateCityOfCapitals(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Shared podium: 14×8×5 GLASS
+    _glassShell(ox, oz, 7, 4, base, base + 5);
+    for (var px = -7; px <= 7; px++) for (var pz = -4; pz <= 4; pz++) setBlock(ox + px, base + 5, oz + pz, BLOCK.CONCRETE);
+    // East tower: 5×3 × 32H stepped at top
+    _glassShell(ox + 4, oz, 2, 2, base + 5, base + 32);
+    for (var ex = 2; ex <= 6; ex++) setBlock(ox + ex, base + 32, oz, BLOCK.CONCRETE);
+    _glassShell(ox + 4, oz, 1, 1, base + 32, base + 40);
+    // West tower: 5×3 × 28H
+    _glassShell(ox - 4, oz, 2, 2, base + 5, base + 28);
+    for (var wx2 = -6; wx2 <= -2; wx2++) setBlock(ox + wx2, base + 28, oz, BLOCK.CONCRETE);
+    _glassShell(ox - 4, oz, 1, 1, base + 28, base + 34);
+    _buildings.push({ kind: 'landmark_capital_city', x: ox - 7, z: oz - 4, w: 15, d: 9, baseY: h, floorH: 4, floors: 10, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Moscow River (Moskva) — embankment strip with blue water channel
+  function generateMoskovaRiver(ox, oz, length) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    for (var i = 0; i < length; i++) {
+      // Embankment walls (STONE)
+      setBlock(ox + i, h, oz,         BLOCK.STONE);
+      setBlock(ox + i, h, oz + 1,     BLOCK.STONE);
+      setBlock(ox + i, h, oz + 10,    BLOCK.STONE);
+      setBlock(ox + i, h, oz + 11,    BLOCK.STONE);
+      // River channel: BLUE_TILE
+      for (var rz = 2; rz <= 9; rz++) {
+        setBlock(ox + i, h - 1, oz + rz, BLOCK.BLUE_TILE);
+        setBlock(ox + i, h,     oz + rz, BLOCK.BLUE_TILE);
+      }
+    }
+  }
+
+  // ── CITY ARCHITECTURE BATCH 6: Recognisable real-world landmark buildings ──
+
+  // LANDMARK: Azovstal Iron & Steel Works — Mariupol's blast furnace complex
+  function generateAzovsteelWorks(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main furnace building: 16W × 10D × 10H METAL shell
+    for (var y = 0; y < 10; y++) {
+      for (var x = -8; x <= 7; x++) {
+        for (var z = -5; z <= 4; z++) {
+          if (y === 0 || x === -8 || x === 7 || z === -5 || z === 4)
+            setBlock(ox + x, base + y, oz + z, BLOCK.METAL);
+        }
+      }
+    }
+    // 3 blast furnace stacks: ring shell, 20 high, FIRE top
+    var furnPos = [[-5, 0], [0, 0], [5, 0]];
+    for (var fi = 0; fi < furnPos.length; fi++) {
+      var fx = furnPos[fi][0], fz = furnPos[fi][1];
+      for (var fy = 0; fy < 20; fy++) {
+        for (var fa = 0; fa < 360; fa += 90) {
+          var fr = fa * Math.PI / 180;
+          var fbx = Math.round(fx + Math.cos(fr)); var fbz = Math.round(fz + Math.sin(fr));
+          setBlock(ox + fbx, base + 10 + fy, oz + fbz, BLOCK.BRICK);
+        }
+        setBlock(ox + fx - 1, base + 10 + fy, oz + fz - 1, BLOCK.BRICK);
+        setBlock(ox + fx + 1, base + 10 + fy, oz + fz - 1, BLOCK.BRICK);
+        setBlock(ox + fx - 1, base + 10 + fy, oz + fz + 1, BLOCK.BRICK);
+        setBlock(ox + fx + 1, base + 10 + fy, oz + fz + 1, BLOCK.BRICK);
+      }
+      setBlock(ox + fx, base + 30, oz + fz, BLOCK.FIRE);
+      _lmRing(ox + fx, base + 28, oz + fz, 2, BLOCK.CONCRETE);
+    }
+    // Access walkway between stacks
+    for (var bx = -4; bx <= 4; bx++) setBlock(ox + bx, base + 18, oz, BLOCK.METAL);
+    // Rubble / scorch at ground
+    for (var rx = -9; rx <= 8; rx += 3) {
+      if (Math.random() < 0.5) setBlock(ox + rx, base, oz - 6, BLOCK.RUBBLE);
+    }
+    _buildings.push({ kind: 'landmark_azovstal', x: ox - 8, z: oz - 5, w: 16, d: 10, baseY: h, floorH: 5, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Port Cargo Crane — steel gantry crane (Mariupol / Sevastopol quayside)
+  function generatePortCrane(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Portal legs
+    for (var cy = 0; cy < 14; cy++) {
+      setBlock(ox - 5, base + cy, oz,     BLOCK.METAL);
+      setBlock(ox - 5, base + cy, oz + 1, BLOCK.METAL);
+      setBlock(ox + 5, base + cy, oz,     BLOCK.METAL);
+      setBlock(ox + 5, base + cy, oz + 1, BLOCK.METAL);
+    }
+    // Top girder
+    for (var gx = -6; gx <= 6; gx++) {
+      setBlock(ox + gx, base + 14, oz,     BLOCK.METAL);
+      setBlock(ox + gx, base + 14, oz + 1, BLOCK.METAL);
+    }
+    // Boom arm
+    for (var bm = 0; bm <= 8; bm++) {
+      setBlock(ox + 6 + bm, base + 14 + bm, oz,     BLOCK.METAL);
+      setBlock(ox + 6 + bm, base + 14 + bm, oz + 1, BLOCK.METAL);
+    }
+    // Counterweight
+    for (var cm = 0; cm <= 3; cm++) setBlock(ox - 6 - cm, base + 14 + cm, oz, BLOCK.METAL);
+    // Operator cab
+    for (var cby = 0; cby < 3; cby++) {
+      setBlock(ox + 5, base + 11 + cby, oz,     BLOCK.GLASS);
+      setBlock(ox + 5, base + 11 + cby, oz + 1, BLOCK.GLASS);
+      setBlock(ox + 6, base + 11 + cby, oz,     BLOCK.GLASS);
+      setBlock(ox + 6, base + 11 + cby, oz + 1, BLOCK.GLASS);
+    }
+    // Concrete quay
+    for (var qx = -7; qx <= 7; qx++) for (var qz = -1; qz <= 2; qz++)
+      setBlock(ox + qx, h, oz + qz, BLOCK.CONCRETE);
+    _buildings.push({ kind: 'landmark_port_crane', x: ox - 6, z: oz - 1, w: 14, d: 4, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Soviet Admin/City Hall — 5-floor columned facade (Mariupol/Bakhmut style)
+  function generateSovietAdminBuilding(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var bW = 9, bD = 5, bH = 16;
+    for (var y = 0; y < bH; y++) {
+      for (var x = -bW; x <= bW; x++) {
+        for (var z = -bD; z <= bD; z++) {
+          if (y === 0 || x === -bW || x === bW || z === -bD || z === bD)
+            setBlock(ox + x, base + y, oz + z, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Floor ledges
+    for (var fl = 4; fl < bH; fl += 4) {
+      for (var flx = -bW - 1; flx <= bW + 1; flx++) setBlock(ox + flx, base + fl, oz - bD, BLOCK.CONCRETE);
+    }
+    // South colonnade
+    for (var col = -6; col <= 6; col += 3) {
+      for (var coly = 1; coly < 8; coly++) setBlock(ox + col, base + coly, oz + bD + 1, BLOCK.CONCRETE);
+    }
+    for (var entx = -7; entx <= 7; entx++) setBlock(ox + entx, base + 8, oz + bD + 1, BLOCK.CONCRETE);
+    // Windows
+    for (var wfl = 0; wfl < 3; wfl++) {
+      for (var wx = -7; wx <= 7; wx += 3) {
+        setBlock(ox + wx, base + wfl * 4 + 2, oz + bD, BLOCK.GLASS);
+        setBlock(ox + wx, base + wfl * 4 + 3, oz + bD, BLOCK.GLASS);
+      }
+    }
+    // Entrance opening
+    for (var ey = 1; ey <= 3; ey++) {
+      setBlock(ox - 1, base + ey, oz + bD, BLOCK.AIR);
+      setBlock(ox,     base + ey, oz + bD, BLOCK.AIR);
+    }
+    // Roof flag
+    setBlock(ox, base + bH + 1, oz, BLOCK.FLAG);
+    _buildings.push({ kind: 'landmark_soviet_admin', x: ox - bW, z: oz - bD, w: bW * 2 + 1, d: bD * 2 + 1, baseY: h, floorH: 4, floors: 4, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Airport Control Tower — slim tower with glass cab (Hostomel/Saky style)
+  function generateAirportControlTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Base building: 8×6×4 CONCRETE
+    for (var by = 0; by < 4; by++) {
+      for (var bx = -4; bx <= 3; bx++) for (var bz = -3; bz <= 2; bz++) {
+        if (by === 0 || bx === -4 || bx === 3 || bz === -3 || bz === 2)
+          setBlock(ox + bx, base + by, oz + bz, BLOCK.CONCRETE);
+      }
+    }
+    // Shaft: 2×2 CONCRETE, 20 high
+    for (var sy = 1; sy < 22; sy++) {
+      setBlock(ox - 1, base + sy, oz - 1, BLOCK.CONCRETE);
+      setBlock(ox,     base + sy, oz - 1, BLOCK.CONCRETE);
+      setBlock(ox - 1, base + sy, oz,     BLOCK.CONCRETE);
+      setBlock(ox,     base + sy, oz,     BLOCK.CONCRETE);
+    }
+    // Observation deck ring
+    for (var dx = -3; dx <= 2; dx++) {
+      setBlock(ox + dx, base + 22, oz - 3, BLOCK.CONCRETE);
+      setBlock(ox + dx, base + 22, oz + 2, BLOCK.CONCRETE);
+    }
+    for (var dz = -2; dz <= 1; dz++) {
+      setBlock(ox - 3, base + 22, oz + dz, BLOCK.CONCRETE);
+      setBlock(ox + 2, base + 22, oz + dz, BLOCK.CONCRETE);
+    }
+    // Glass cab: 4×4×4
+    for (var cy = 0; cy < 4; cy++) {
+      for (var ccx = -2; ccx <= 1; ccx++) for (var ccz = -2; ccz <= 1; ccz++) {
+        if (ccx === -2 || ccx === 1 || ccz === -2 || ccz === 1 || cy === 0 || cy === 3)
+          setBlock(ox + ccx, base + 22 + cy, oz + ccz, BLOCK.GLASS);
+      }
+    }
+    // Antenna mast
+    for (var am = 0; am < 6; am++) setBlock(ox, base + 26 + am, oz, BLOCK.METAL);
+    _buildings.push({ kind: 'landmark_control_tower', x: ox - 4, z: oz - 3, w: 8, d: 6, baseY: h, floorH: 10, floors: 3, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Aircraft Hangar — giant sliding-door hangar (Hostomel/Antonov style)
+  function generateAircraftHangar(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var hW = 15, hD = 10, hH = 12;
+    for (var y = 0; y < hH; y++) {
+      for (var x = -hW; x <= hW; x++) {
+        for (var z = -hD; z <= hD; z++) {
+          if (y === 0) setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+          else if (x === -hW || x === hW || z === hD) setBlock(ox + x, base + y, oz + z, BLOCK.METAL);
+          else if (z === -hD && (x % 5 === 0 || y === 0 || y === hH - 1))
+            setBlock(ox + x, base + y, oz + z, BLOCK.METAL);
+          else if (z === -hD && y > 2 && y < hH - 1 && x % 5 !== 0)
+            setBlock(ox + x, base + y, oz + z, BLOCK.GLASS);
+        }
+      }
+    }
+    // Barrel-vault roof
+    for (var ay = 0; ay < 5; ay++) {
+      for (var ax = -hW; ax <= hW; ax++) {
+        setBlock(ox + ax, base + hH + ay, oz - hD + ay, BLOCK.METAL);
+        setBlock(ox + ax, base + hH + ay, oz + hD - ay, BLOCK.METAL);
+      }
+    }
+    _buildings.push({ kind: 'landmark_aircraft_hangar', x: ox - hW, z: oz - hD, w: hW * 2 + 1, d: hD * 2 + 1, baseY: h, floorH: hH, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Cargo / Freight Terminal — airport/port warehouse with loading bays
+  function generateCargoTerminal(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var wW = 12, wD = 4, wH = 8;
+    for (var y = 0; y < wH; y++) {
+      for (var x = -wW; x <= wW; x++) {
+        for (var z = -wD; z <= wD; z++) {
+          if (y === 0) setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+          else if (x === -wW || x === wW || z === wD) setBlock(ox + x, base + y, oz + z, BLOCK.METAL);
+          else if (z === -wD && (x % 6 === 0 || y === 0 || y === wH - 1))
+            setBlock(ox + x, base + y, oz + z, BLOCK.METAL);
+        }
+      }
+    }
+    // Loading bays (4 openings on N face)
+    for (var bay = -9; bay <= 9; bay += 6) {
+      for (var bh = 1; bh < 5; bh++) {
+        setBlock(ox + bay - 1, base + bh, oz - wD, BLOCK.AIR);
+        setBlock(ox + bay,     base + bh, oz - wD, BLOCK.AIR);
+        setBlock(ox + bay + 1, base + bh, oz - wD, BLOCK.AIR);
+      }
+    }
+    // Gable roof
+    for (var gy = 0; gy < 4; gy++) {
+      var gw = wW - gy;
+      for (var gx = -gw; gx <= gw; gx++) {
+        setBlock(ox + gx, base + wH + gy, oz - wD + gy, BLOCK.METAL);
+        setBlock(ox + gx, base + wH + gy, oz + wD - gy, BLOCK.METAL);
+      }
+    }
+    _buildings.push({ kind: 'landmark_cargo_terminal', x: ox - wW, z: oz - wD, w: wW * 2 + 1, d: wD * 2 + 1, baseY: h, floorH: wH, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Oil Refinery Distillation Column — tall column + pipe rack + flare
+  function generateRefineryDistillationTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main column: 2×2 METAL, 32 high with white safety bands
+    for (var ty = 0; ty < 32; ty++) {
+      var colBlock = (ty % 8 === 0) ? BLOCK.WHITE_TILE : BLOCK.METAL;
+      setBlock(ox - 1, base + ty, oz - 1, colBlock);
+      setBlock(ox,     base + ty, oz - 1, colBlock);
+      setBlock(ox - 1, base + ty, oz,     colBlock);
+      setBlock(ox,     base + ty, oz,     colBlock);
+    }
+    // Pipe rack: METAL running north
+    for (var pz = 2; pz <= 8; pz++) {
+      setBlock(ox - 1, base + 8, oz + pz, BLOCK.METAL);
+      setBlock(ox,     base + 8, oz + pz, BLOCK.METAL);
+    }
+    // Support columns for pipe rack
+    for (var scz = 2; scz <= 8; scz += 3) {
+      for (var scy = 0; scy < 8; scy++) setBlock(ox - 1, base + scy, oz + scz, BLOCK.METAL);
+    }
+    // Heat-exchanger drums (offset)
+    for (var dr = 0; dr < 3; dr++) {
+      for (var dz = 0; dz < 4; dz++) setBlock(ox + 3, base + dr * 2, oz + dz, BLOCK.METAL);
+    }
+    // Flare stack
+    for (var fly = 0; fly < 28; fly++) setBlock(ox + 7, base + fly, oz, BLOCK.METAL);
+    setBlock(ox + 7, base + 28, oz, BLOCK.FIRE);
+    // Concrete berm
+    for (var bex = -2; bex <= 2; bex++) for (var bez = -2; bez <= 2; bez++)
+      setBlock(ox + bex, h, oz + bez, BLOCK.CONCRETE);
+    _buildings.push({ kind: 'landmark_refinery_tower', x: ox - 2, z: oz - 2, w: 12, d: 12, baseY: h, floorH: 8, floors: 4, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Spherical LPG Storage Tank — large ball-shaped petroleum vessel
+  function generateRefinerySphere(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var R = 6;
+    for (var sy = -R; sy <= R; sy++) {
+      var sr = Math.round(Math.sqrt(R * R - sy * sy));
+      _lmDisc(ox, h + 1 + R + sy, oz, sr, BLOCK.METAL);
+    }
+    // 4 support legs
+    for (var ly = 0; ly < R; ly++) {
+      setBlock(ox - 4, h + 1 + ly, oz - 4, BLOCK.CONCRETE);
+      setBlock(ox + 4, h + 1 + ly, oz - 4, BLOCK.CONCRETE);
+      setBlock(ox - 4, h + 1 + ly, oz + 4, BLOCK.CONCRETE);
+      setBlock(ox + 4, h + 1 + ly, oz + 4, BLOCK.CONCRETE);
+    }
+    _buildings.push({ kind: 'landmark_refinery_sphere', x: ox - R - 1, z: oz - R - 1, w: R * 2 + 2, d: R * 2 + 2, baseY: h, floorH: R * 2, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Cooling Tower — hyperbolic concrete cooling tower (Chornobyl / refinery)
+  function generateCoolingTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var towerH = 28;
+    for (var ty = 0; ty < towerH; ty++) {
+      var tr = Math.round(8 + (ty < towerH / 2 ? (towerH / 2 - ty) * 0.25 : (ty - towerH / 2) * 0.1));
+      _lmRing(ox, h + 1 + ty, oz, tr, BLOCK.CONCRETE);
+    }
+    // Steam plume (GLASS = mist effect)
+    for (var sm = 0; sm < 3; sm++) _lmDisc(ox, h + 1 + towerH + sm, oz, 5 - sm, BLOCK.GLASS);
+    _buildings.push({ kind: 'landmark_cooling_tower', x: ox - 10, z: oz - 10, w: 20, d: 20, baseY: h, floorH: towerH, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Bakhmut Hotel — 7-floor Soviet-era concrete hotel (partially collapsed)
+  function generateBakhmutHotel(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var bW = 7, bD = 4, bH = 20;
+    for (var y = 0; y < bH; y++) {
+      for (var x = -bW; x <= bW; x++) {
+        for (var z = -bD; z <= bD; z++) {
+          if (y === 0 || x === -bW || x === bW || z === -bD || z === bD)
+            setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Balconies on S face
+    for (var bfl = 3; bfl < bH; bfl += 3) {
+      for (var bbx = -5; bbx <= 5; bbx++) setBlock(ox + bbx, base + bfl, oz + bD + 1, BLOCK.CONCRETE);
+    }
+    // Windows
+    for (var wfl = 0; wfl < 6; wfl++) {
+      for (var wx = -5; wx <= 5; wx += 3) {
+        setBlock(ox + wx, base + wfl * 3 + 1, oz + bD, BLOCK.GLASS);
+        setBlock(ox + wx, base + wfl * 3 + 2, oz + bD, BLOCK.GLASS);
+      }
+    }
+    // Partial collapse on NW corner
+    for (var dy = bH - 6; dy < bH; dy++) {
+      for (var ddx = -bW; ddx <= -bW + 2; ddx++) {
+        setBlock(ox + ddx, base + dy, oz - bD, Math.random() < 0.4 ? BLOCK.RUBBLE : BLOCK.AIR);
+      }
+    }
+    _buildings.push({ kind: 'landmark_bakhmut_hotel', x: ox - bW, z: oz - bD, w: bW * 2 + 1, d: bD * 2 + 1, baseY: h, floorH: 3, floors: 7, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Saky Airbase — control tower, revetment, explosion craters (Aug 2022 strike)
+  function generateSakyAirbase(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Tower: 3×3 CONCRETE, 16 high
+    for (var ty = 0; ty < 16; ty++) {
+      for (var tx = -1; tx <= 1; tx++) for (var tz = -1; tz <= 1; tz++)
+        setBlock(ox + tx, base + ty, oz + tz, BLOCK.CONCRETE);
+    }
+    // Glass cab
+    for (var cy = 0; cy < 3; cy++) {
+      for (var ccx = -2; ccx <= 2; ccx++) for (var ccz = -2; ccz <= 2; ccz++) {
+        if (ccx === -2 || ccx === 2 || ccz === -2 || ccz === 2 || cy === 0)
+          setBlock(ox + ccx, base + 16 + cy, oz + ccz, BLOCK.GLASS);
+      }
+    }
+    _lmDisc(ox, base + 20, oz, 2, BLOCK.METAL);
+    // Revetment: U-shaped CONCRETE walls
+    for (var ry = 0; ry < 8; ry++) {
+      for (var rrz = 0; rrz < 10; rrz++) {
+        setBlock(ox + 12,     base + ry, oz - 8 + rrz, BLOCK.CONCRETE);
+        setBlock(ox + 12 + 9, base + ry, oz - 8 + rrz, BLOCK.CONCRETE);
+      }
+      for (var rrx = 0; rrx < 10; rrx++)
+        setBlock(ox + 12 + rrx, base + ry, oz - 8, BLOCK.CONCRETE);
+    }
+    // Explosion craters (Ukraine's August 2022 strike on Saky)
+    var craters = [[-8, 10], [5, 14], [-5, 20], [10, 5]];
+    for (var ci = 0; ci < craters.length; ci++) {
+      _lmDisc(ox + craters[ci][0], h, oz + craters[ci][1], 3, BLOCK.RUBBLE);
+      setBlock(ox + craters[ci][0], h + 1, oz + craters[ci][1], BLOCK.FIRE);
+    }
+    _buildings.push({ kind: 'landmark_saky_airbase', x: ox - 3, z: oz - 10, w: 25, d: 30, baseY: h, floorH: 8, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Antonov Production Hall — where AN-124 / AN-225 were built
+  function generateAntonovFactory(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var fW = 18, fD = 12, fH = 14;
+    for (var y = 0; y < fH; y++) {
+      for (var x = -fW; x <= fW; x++) {
+        for (var z = -fD; z <= fD; z++) {
+          if (y === 0) setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+          else if (x === -fW || x === fW) setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+          else if (z === -fD || z === fD) {
+            if (x % 6 === 0 || y === 0 || y === fH - 1) setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+            else if (y > 2 && y < fH - 1) setBlock(ox + x, base + y, oz + z, BLOCK.GLASS);
+          }
+        }
+      }
+    }
+    // Overhead crane rails
+    for (var crx = -fW; crx <= fW; crx++) {
+      setBlock(ox + crx, base + fH - 1, oz - fD + 3, BLOCK.METAL);
+      setBlock(ox + crx, base + fH - 1, oz + fD - 3, BLOCK.METAL);
+    }
+    // Sawtooth roof
+    for (var ry = 0; ry < 4; ry++) {
+      for (var rrx = -fW; rrx <= fW; rrx++) {
+        setBlock(ox + rrx, base + fH + ry, oz - fD + ry * 3,     BLOCK.METAL);
+        setBlock(ox + rrx, base + fH + ry, oz - fD + ry * 3 + 1, BLOCK.GLASS);
+        setBlock(ox + rrx, base + fH + ry, oz - fD + ry * 3 + 2, BLOCK.GLASS);
+      }
+    }
+    // Large east door opening (10H × 12W)
+    for (var dy = 1; dy < 10; dy++) for (var ddz = -6; ddz <= 6; ddz++)
+      setBlock(ox + fW, base + dy, oz + ddz, BLOCK.AIR);
+    // Antonov FLAG
+    setBlock(ox, base + fH + 4, oz - fD - 1, BLOCK.FLAG);
+    _buildings.push({ kind: 'landmark_antonov_factory', x: ox - fW, z: oz - fD, w: fW * 2 + 1, d: fD * 2 + 1, baseY: h, floorH: fH, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Sevastopol "Monument to the Sunken Ships" — Corinthian column in bay
+  function generateSevastopolMonument(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    _lmDisc(ox, h, oz, 5, BLOCK.STONE);
+    // 4 plinths
+    for (var pa = 0; pa < 4; pa++) {
+      var prad = pa * Math.PI / 2;
+      var ppx = Math.round(ox + Math.cos(prad) * 3);
+      var ppz = Math.round(oz + Math.sin(prad) * 3);
+      setBlock(ppx, base,     ppz, BLOCK.CONCRETE);
+      setBlock(ppx, base + 1, ppz, BLOCK.CONCRETE);
+    }
+    // Column: 2×2 PLASTER, 16 high
+    for (var coly = 0; coly < 16; coly++) {
+      setBlock(ox - 1, base + coly, oz - 1, BLOCK.PLASTER);
+      setBlock(ox,     base + coly, oz - 1, BLOCK.PLASTER);
+      setBlock(ox - 1, base + coly, oz,     BLOCK.PLASTER);
+      setBlock(ox,     base + coly, oz,     BLOCK.PLASTER);
+    }
+    // Capital (wider)
+    for (var capx = -2; capx <= 1; capx++) for (var capz = -2; capz <= 1; capz++)
+      setBlock(ox + capx, base + 16, oz + capz, BLOCK.PLASTER);
+    // Eagle finial (METAL)
+    _lmDisc(ox, base + 18, oz, 2, BLOCK.METAL);
+    setBlock(ox, base + 19, oz, BLOCK.METAL);
+    // Chain fence perimeter
+    for (var cf = 0; cf < 360; cf += 30) {
+      var cfrad = cf * Math.PI / 180;
+      setBlock(Math.round(ox + Math.cos(cfrad) * 6), base, Math.round(oz + Math.sin(cfrad) * 6), BLOCK.FENCE);
+    }
+    _buildings.push({ kind: 'landmark_sevastopol_monument', x: ox - 6, z: oz - 6, w: 12, d: 12, baseY: h, floorH: 18, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Snake Island Fort — ancient fortification (Ottoman/Russian ruins on Zmiiny Island)
+  function generateSnakeIslandFort(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var wR = 8;
+    // Curtain walls
+    for (var wy = 0; wy < 5; wy++) {
+      for (var wwx = -wR; wwx <= wR; wwx++) {
+        setBlock(ox + wwx, base + wy, oz - wR, BLOCK.STONE);
+        setBlock(ox + wwx, base + wy, oz + wR, BLOCK.STONE);
+        setBlock(ox - wR, base + wy, oz + wwx, BLOCK.STONE);
+        setBlock(ox + wR, base + wy, oz + wwx, BLOCK.STONE);
+      }
+    }
+    // Merlons
+    for (var mx = -wR; mx <= wR; mx += 2) {
+      setBlock(ox + mx, base + 5, oz - wR, BLOCK.STONE);
+      setBlock(ox + mx, base + 5, oz + wR, BLOCK.STONE);
+      setBlock(ox - wR, base + 5, oz + mx, BLOCK.STONE);
+      setBlock(ox + wR, base + 5, oz + mx, BLOCK.STONE);
+    }
+    // Corner bastions
+    var corners = [[-wR, -wR], [wR, -wR], [-wR, wR], [wR, wR]];
+    for (var ci = 0; ci < corners.length; ci++) {
+      for (var bty = 0; bty < 7; bty++) {
+        for (var btx = -1; btx <= 1; btx++) for (var btz = -1; btz <= 1; btz++)
+          setBlock(ox + corners[ci][0] + btx, base + bty, oz + corners[ci][1] + btz, BLOCK.STONE);
+      }
+    }
+    // Central gun battery
+    for (var gx = -4; gx <= 3; gx++) for (var gz = -4; gz <= 3; gz++) {
+      setBlock(ox + gx, base,     oz + gz, BLOCK.CONCRETE);
+      setBlock(ox + gx, base + 1, oz + gz, BLOCK.CONCRETE);
+    }
+    // NE lighthouse tower: BRICK, 12 high
+    for (var lty = 0; lty < 12; lty++) {
+      setBlock(ox + wR,     base + lty, oz - wR,     BLOCK.BRICK);
+      setBlock(ox + wR + 1, base + lty, oz - wR,     BLOCK.BRICK);
+      setBlock(ox + wR,     base + lty, oz - wR + 1, BLOCK.BRICK);
+    }
+    setBlock(ox + wR, base + 13, oz - wR, BLOCK.FLAG);
+    // Rubble (fortress in ruins)
+    _lmDisc(ox + 4, base, oz - 3, 2, BLOCK.RUBBLE);
+    _lmDisc(ox - 5, base, oz + 5, 2, BLOCK.RUBBLE);
+    _buildings.push({ kind: 'landmark_snake_fort', x: ox - wR - 1, z: oz - wR - 1, w: wR * 2 + 3, d: wR * 2 + 3, baseY: h, floorH: 5, floors: 1, cx: ox, cz: oz });
   }
 
   // IDEA 3: Railway tracks
@@ -7313,6 +7971,10 @@ window.VoxelWorld = (function () {
       generateDroneNest(-80, -18);
       generateDroneNest(85, 50);
       generateDroneNest(-85, 50);
+      // Hostomel airport infrastructure landmarks
+      generateAirportControlTower(20, -30);   // ATC tower east of main terminal
+      generateAircraftHangar(-50, -25);        // Antonov cargo hangar (NW apron)
+      generateCargoTerminal(60, 15);           // Freight terminal (east end)
     } else if (level.id === 'AVDIIVKA') {
       // Avdiivka Coke and Chemical Plant — industrial fortress, most fortified Ukrainian position
       // The coking plant (AKHZ) was Europe's largest — defended for 2+ years
@@ -7811,6 +8473,10 @@ window.VoxelWorld = (function () {
       generateBurningRuin(-48, -50);
       generateBurningRuin(42, -52);
       generateBurningRuin(-5, 95);
+      // Bakhmut city centre landmarks
+      generateBakhmutHotel(30, -30);          // Hotel Bakhmut (Wagner commanders' HQ)
+      generateSovietAdminBuilding(0, -50);    // City hall / administrative building
+      generateArtemivskWinery(20, 35);        // Artemivsk champagne factory (Bakhmut's old name)
     } else if (level.id === 'MARIUPOL') {
       // Mariupol / Azovstal Steelworks — total industrial destruction, urban holocaust
       // The Azovstal plant: massive sprawling steel mill (multiple industrial complexes)
@@ -8039,118 +8705,91 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, -48);
       generateDroneNest(48, 48);
     } else if (level.id === 'MOSCOW') {
-      // ── MOSCOW OUTSKIRTS — real street grid density ──────────────────────
-      // Based on Moscow's concentric ring road layout:
-      //   Center: Red Square / government buildings
-      //   Inner ring: Sadovoye Koltso (~Boulevard Ring, radius ~20)
-      //   Outer ring: TTK / Third Ring Road (radius ~40)
-      //
-      // Building types used:
-      //   generateUkrainianApartment = Soviet 9-story khrushchevka/stalinka blocks
-      //   generateApartmentBlock     = standard 5-story residential
-      //   generateLuxuryVilla        = government/prestige office buildings
-      //   generateIndustrialComplex  = factory/logistics (outer ring)
-      //   generateChurch             = orthodox churches (authentic Moscow)
-      //   generateWaterTower         = district water towers
-      //   generateBillboard          = propaganda/military billboards
-      //   generateCommTower          = Ostankino-style antenna mast
-      //   generateRoadNetwork        = street grid between blocks
-      //
-      // ── INNER RING (Sadovoye Koltso, radius 20-30) ────────────────────
-      // North axis — major arterial road (like Tverskaya St)
-      generateUkrainianApartment(-10, -22, 12);  // tall stalinka flanking Tverskaya
-      generateUkrainianApartment(10, -22, 12);
-      generateUkrainianApartment(-10, 22, 10);
-      generateUkrainianApartment(10, 22, 10);
-      // East/West axis (like Novy Arbat / Kutuzovsky)
-      generateUkrainianApartment(-22, -10, 11);
-      generateUkrainianApartment(-22, 10, 9);
-      generateUkrainianApartment(22, -10, 11);
-      generateUkrainianApartment(22, 10, 9);
-      // Diagonal blocks (filling in the quarter-grid)
-      generateApartmentBlock(-16, -16, 5);
-      generateApartmentBlock(16, -16, 5);
-      generateApartmentBlock(-16, 16, 5);
-      generateApartmentBlock(16, 16, 5);
-      // Central government district (south of Red Square)
-      generateLuxuryVilla(-8, -5, 12, 8);    // Federal ministry bloc
-      generateLuxuryVilla(8, -5, 10, 8);     // State Duma-adjacent
-      generateLuxuryVilla(0, -18, 14, 10);   // GUM-sized government building
-      // Orthodox churches (authentic Moscow — one per district block)
-      generateChristSaviour(-28, -6); // Cathedral of Christ the Saviour — gold-domed white cathedral
-      generateChurch(25, 5);      // Kremlin area church
-      generateChurch(5, 28);      // Eastern orthodox parish
-      generateChurch(-5, -28);    // South district
-      // Water tower + comm infrastructure
-      generateWaterTower(-28, -25);
-      generateWaterTower(28, 25);
-      generateOstankinoTower(0, 0);   // Ostankino TV Tower — dominant tapered needle on the skyline
+      // ── MOSCOW CITY (MIBC) — International Business Center glass skyscraper district ──
+      // Based on real Moscow-City: 12+ glass towers on Presnenskaya Embankment
+      // Peninsula formed by Moskva River bend, Kutuzovsky Prospekt to the north
 
-      // ── OUTER RING (TTK / Third Ring Road, radius 30-48) ────────────────
-      // Soviet-era khrushchevka residential estates (microrayons)
-      generateUkrainianApartment(-35, -20, 9);
-      generateUkrainianApartment(-35, 0, 9);
-      generateUkrainianApartment(-35, 20, 9);
-      generateUkrainianApartment(35, -20, 9);
-      generateUkrainianApartment(35, 0, 9);
-      generateUkrainianApartment(35, 20, 9);
-      generateUkrainianApartment(-20, -35, 9);
-      generateUkrainianApartment(0, -35, 9);
-      generateUkrainianApartment(20, -35, 9);
-      generateUkrainianApartment(-20, 35, 9);
-      generateUkrainianApartment(0, 35, 9);
-      generateUkrainianApartment(20, 35, 9);
-      // Industrial nodes on outer ring (Baumanskiy / Lyublino industrial areas)
-      generateIndustrialComplex(-42, -42);
-      generateIndustrialComplex(42, 42);
-      generateSevenSisters(-40, 42);  // Stalin skyscraper (Seven Sisters / MSU-style tower)
-      // Billboard grid (military propaganda / Z-symbols)
-      generateBillboard(-18, -30);
-      generateBillboard(18, -30);
-      generateBillboard(-30, 18);
-      generateBillboard(30, -18);
-      generateBillboard(0, -40);
-      generateBillboard(40, 0);
+      // ── MOSKVA RIVER — southern embankment ──────────────────────────────
+      generateMoskovaRiver(-55, 38, 110);   // River runs W→E along south edge
+
+      // ── MIBC TOWER CLUSTER (center) ─────────────────────────────────────
+      // Mercury City Tower: slim diamond-plan glass needle — tallest MIBC tower
+      generateMercuryTower(-14, -8);
+      // Federation Towers: E+W twin rectangular glass slabs
+      generateFederationTowers(5, -14);
+      // OKO Tower: wide glass slab, diagonal-sliced roof
+      generateOkoTower(16, 2);
+      // Evolution Tower: slowly twisting glass tower
+      generateEvolutionTower(0, 6);
+      // Neva Towers: pair of cylindrical glass towers
+      generateNevaTowers(-8, 10);
+      // Eurasia Tower: tapered glass needle with gold crown
+      generateEurasiaTower(20, -10);
+      // City of Capitals: stepped glass complex with two sub-towers
+      generateCityOfCapitals(-20, 4);
+      // Imperia Tower: rectangular glass slab, square plan
+      generateOstankinoTower(-28, -20);  // Ostankino — moved to NW corner (correct Moscow location)
+      // Three additional mid-rise MIBC towers to fill the cluster
+      generateSevenSisters(-35, 35);   // Seven Sisters Stalin tower at far south
+      generateChristSaviour(-35, -35); // Cathedral at NW (correct position relative to Kremlin)
+
+      // ── SURROUNDING URBAN CONTEXT — Soviet residential rings ─────────────
+      // Inner residential ring: 8 khrushchevka stalinka blocks around MIBC
+      generateUkrainianApartment(-35, -10, 10);
+      generateUkrainianApartment(35, -10, 10);
+      generateUkrainianApartment(-35, 15, 9);
+      generateUkrainianApartment(35, 15, 9);
+      generateUkrainianApartment(-12, -32, 11);
+      generateUkrainianApartment(12, -32, 11);
+      generateUkrainianApartment(-25, -28, 9);
+      generateUkrainianApartment(25, -28, 9);
+      // Mid-ring: more residential blocks
+      generateApartmentBlock(-42, -28, 6);
+      generateApartmentBlock(42, -28, 6);
+      generateApartmentBlock(-42, 20, 5);
+      generateApartmentBlock(42, 20, 5);
+      generateApartmentBlock(0, -42, 5);
+      generateApartmentBlock(-20, 28, 5);
+      generateApartmentBlock(20, 28, 5);
+      // Kutuzovsky Prospekt north boulevard
+      generateLuxuryVilla(-12, -40, 14, 6);   // Government ministry block
+      generateLuxuryVilla(12, -40, 12, 6);    // Adjacent ministry
 
       // ── MILITARY FORTIFICATION RING (defending Moscow) ─────────────────
-      // Checkpoints on all 4 main approach roads
-      generateCheckpoint(0, 44, false);    // North highway (Leningradskoye Sh.)
-      generateCheckpoint(0, -44, false);   // South (Kashirskoye Sh.)
-      generateCheckpoint(44, 0, true);     // East (Entuziastov Sh.)
-      generateCheckpoint(-44, 0, true);    // West (Kutuzovsky)
-      // Russian National Guard defensive positions (inner perimeter)
+      generateCheckpoint(0, -44, false);
+      generateCheckpoint(44, 0, true);
+      generateCheckpoint(-44, 0, true);
       generateDefensivePosition(-30, 0);
       generateDefensivePosition(30, 0);
       generateDefensivePosition(0, -30);
-      generateDefensivePosition(0, 30);
       generateDefensivePosition(-22, -22);
       generateDefensivePosition(22, 22);
-      // Anti-air positions (S-300/S-400 batteries on city outskirts)
       generateAntiAirPosition(-40, 20);
       generateAntiAirPosition(40, -20);
       generateAntiAirPosition(20, 40);
       generateAntiAirPosition(-20, -40);
-      // Barricades blocking major roads (improvised Russian city defence)
       generateBarbedWire(0, 0, 25, true);
       generateBarbedWire(0, 0, 25, false);
       generateAntiTankHedgehogs(18);
-      // Artillery + ammo
       generateArtilleryBattery(40, 40);
       generateArtilleryBattery(-40, -40);
       generateAmmoDepot(32, -32);
       generateAmmoDepot(-32, 32);
-      // Burned/wrecked military vehicles on main streets
       generateWreckedTank(-12, -28);
       generateWreckedTank(14, 26);
       generateWreckedAPC(-28, 14);
       generateWreckedConvoy(28, -14);
       generateBurningRuin(-18, -40);
       generateBurningRuin(20, 38);
-      // Drone nests at all 4 outer corners
       generateDroneNest(48, 48);
       generateDroneNest(-48, 48);
       generateDroneNest(48, -48);
       generateDroneNest(-48, -48);
+      // Mariupol city landmarks
+      generateAzovsteelWorks(38, -32);        // Azovstal Iron & Steel blast furnace complex
+      generatePortCrane(42, 8);               // Mariupol port loading crane
+      generateSovietAdminBuilding(-12, -38);  // Mariupol city hall (Leninska Square)
+      generateMariupolDramaTheatre(0, 20);    // Drama Theatre (already exists, reinforce it)
     } else if (level.id === 'SEVASTOPOL') {
       // Sevastopol Black Sea Fleet HQ — massive naval base, coastal city, fortifications
       // Naval infrastructure (Inkerman Bay / Severnaya Bay docks)
@@ -8474,6 +9113,10 @@ window.VoxelWorld = (function () {
       generateDroneNest(0, -56);
       generateDroneNest(40, 40);
       generateDroneNest(-40, -40);
+      // Sevastopol city landmarks
+      generateSevastopolMonument(0, -30);     // Monument to the Sunken Ships — Corinthian column in bay
+      generateSovietAdminBuilding(-22, -15);  // Naval HQ / Black Sea Fleet command building
+      generatePortCrane(35, -10);             // Shipyard gantry crane
     } else if (level.id === 'SNAKE') {
       // Snake Island — iconic Black Sea outpost ("Russian warship, go fuck yourself!")
       // Small rocky outcrop: lighthouse, gun positions, communications relay
@@ -8504,6 +9147,8 @@ window.VoxelWorld = (function () {
       generateDroneNest(25, 25);
       generateDroneNest(-25, -25);
       generateDroneNest(25, -25);
+      // Snake Island fort ruins (historic fortification + lighthouse)
+      generateSnakeIslandFort(0, 0);     // Ottoman/Russian fortress ruins surrounding the island
     } else if (level.id === 'SAKY') {
       // Saky Airbase, Crimea — Russia's largest military air base in Crimea
       // Ukraine struck this in August 2022 — Su-24, Su-30 fighters destroyed on ground
@@ -8557,6 +9202,10 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, 48);
       generateDroneNest(48, -48);
       generateDroneNest(-48, -48);
+      // Saky military airbase landmarks (Aug 2022 explosion site)
+      generateSakyAirbase(0, -20);           // ATC tower + revetment + explosion craters
+      generateAircraftHangar(-40, -35);      // Hardened aircraft shelter (HAS)
+      generateAircraftHangar(38, -35);       // Second hardened shelter
     } else if (level.id === 'VUHLEDAR') {
       // Vuhledar — Russia's worst defeat. The 155th Marine Brigade lost 300+ tanks
       // in minefield corridors. Nicknamed "the Russian tank graveyard."
@@ -8716,6 +9365,9 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, -48);
       // Kherson Pokrovska Cathedral — white walls + blue dome visible from the Dnipro
       generateKhersonCathedral(-20, -42);  // South (Kherson city) side, near the bank
+      // Antonov aircraft factory landmarks (Hostomel/Kyiv Oblast)
+      generateAntonovFactory(0, -25);       // Primary production hall + sawtooth roof
+      generateAircraftHangar(30, 10);       // Secondary assembly hangar
     } else if (level.id === 'REFINERY') {
       // Russian-held oil refinery — Lukoil/Gazprom facility in occupied territory
       // Drone strikes by Ukraine repeatedly hit refineries throughout 2023-2024
@@ -8804,6 +9456,10 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, 48);
       generateDroneNest(48, -48);
       generateDroneNest(-48, -48);
+      // Refinery landmark structures (distillation tower, LPG sphere, cooling tower)
+      generateRefineryDistillationTower(-5, -38);  // Primary distillation column + flare stack
+      generateRefinerySphere(20, -28);              // LPG spherical storage tank on legs
+      generateCoolingTower(-32, 12);               // Industrial hyperbolic cooling tower
     }
     // ── War-zone ruined homes & commercial buildings (every stage) ──
     // Real Ukraine war reference: Mariupol, Bakhmut, Avdiivka districts
