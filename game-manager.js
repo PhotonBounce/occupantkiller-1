@@ -4964,6 +4964,9 @@ const GameManager = (function () {
         showOverlay('win');
         document.getElementById('win-score').textContent = player.score;
         document.getElementById('win-kills').textContent = player.kills;
+        var _winHS = document.getElementById('win-headshots'); if (_winHS) _winHS.textContent = player.totalHeadshots || 0;
+        var _winAcc = document.getElementById('win-accuracy'); if (_winAcc) _winAcc.textContent = player.totalShots > 0 ? Math.round((player.totalHits / player.totalShots) * 100) : 0;
+        var _winDmg = document.getElementById('win-damage'); if (_winDmg) _winDmg.textContent = Math.round(player.totalDamageTaken || 0);
         document.getElementById('win-stages').textContent = STAGES.length;
         return;
       }
@@ -5442,9 +5445,9 @@ const GameManager = (function () {
 
   /* ── Combat ──────────────────────────────────────────────────────── */
   function updateCombat(delta) {
-    // Drone combat: LMB triggers drone action
+    // Drone combat: LMB triggers drone action (only on new press, not held)
     if (DroneSystem.isPossessing()) {
-      if (mouseDown || touch.firing) {
+      if (mouseNewPress && (mouseDown || touch.firing)) {
         DroneSystem.useActivePayload();
         mouseNewPress = false;
       }

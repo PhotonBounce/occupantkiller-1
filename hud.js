@@ -2115,6 +2115,7 @@ const HUD = (() => {
     showNPCText, _updateNPCTextPositions,
     // ── Targeting Assistant ──
     updateTargetAssist,
+    showWaveSummary,
   };
 })();
 
