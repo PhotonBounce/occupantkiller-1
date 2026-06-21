@@ -47,14 +47,15 @@ const MissionSystem = (function () {
                   var fwd = new THREE.Vector3(Math.sin(fwdAngle), 0, Math.cos(fwdAngle));
                   var right = new THREE.Vector3(fwd.z, 0, -fwd.x);
 
-                  // PHASE 1: AT teams at 450-600m (TOW priority targets)
-                  // Real doctrine: Bradleys engage Russian AT assets at max standoff before closing
+                  // PHASE 1: AT teams at "standoff range" (TOW priority targets)
+                  // Scaled to voxel-world distances: level content spans ~±100 units.
+                  // TOW "standoff" is represented as 60-80 voxel units ahead.
                   var atTypes = ['SPETSNAZ', 'ENGINEER', 'STORMER'];
                   var numAT = 4 + Math.floor(Math.random() * 3);
                   if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
                     for (var a = 0; a < numAT; a++) {
-                      var atDist = 450 + Math.random() * 150; // 450-600m
-                      var atLat  = (Math.random() - 0.5) * 60;
+                      var atDist = 60 + Math.random() * 20; // 60-80 voxels (TOW standoff)
+                      var atLat  = (Math.random() - 0.5) * 40;
                       var ax = playerPos.x + fwd.x * atDist + right.x * atLat;
                       var az = playerPos.z + fwd.z * atDist + right.z * atLat;
                       var ay = 0;
@@ -67,14 +68,13 @@ const MissionSystem = (function () {
                     }
                   }
 
-                  // PHASE 2: Infantry line inside treeline at 100-250m wide strip at 300-480m
-                  // These are the treeline defenders — suppressed and then swept by Bushmaster
+                  // PHASE 2: Infantry treeline — Bushmaster sweep range (25-55 voxels)
                   var treeTypes = ['CONSCRIPT', 'STORMER', 'CONSCRIPT', 'CONSCRIPT', 'BOMBER'];
                   var numTree = killTarget - numAT;
                   if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
                     for (var t = 0; t < numTree; t++) {
-                      var tDist = 300 + Math.random() * 180; // 300-480m
-                      var tLat  = (Math.random() - 0.5) * 100; // 100m wide treeline
+                      var tDist = 25 + Math.random() * 30; // 25-55 voxels (Bushmaster engagement range)
+                      var tLat  = (Math.random() - 0.5) * 60; // 60-wide treeline spread
                       var tx = playerPos.x + fwd.x * tDist + right.x * tLat;
                       var tz = playerPos.z + fwd.z * tDist + right.z * tLat;
                       var ty = 0;
