@@ -48,6 +48,7 @@ const Weapons = (() => {
       id: 'SVD', name: 'SVD Dragunov', damage: 115,
       fireRate: 0.85, clipSize: 10, maxReserve: 40, reloadTime: 3.5,
       spread: 0.004, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.040, recoilX: 0.010,
+      critChance: 0.20, critMult: 2.0,
     },
     {
       id: 'PKM', name: 'PKM', damage: 18,
@@ -122,6 +123,7 @@ const Weapons = (() => {
       id: 'BARRETTM82', name: 'Barrett M82', damage: 250,
       fireRate: 1.5, clipSize: 10, maxReserve: 30, reloadTime: 4.0,
       spread: 0.002, auto: false, type: 'AMR', hasScope: true, recoilY: 0.045, recoilX: 0.012,
+      critChance: 0.25, critMult: 2.5,
     },
     {
       id: 'MINIGUN', name: 'M134 Minigun', damage: 12,
@@ -132,6 +134,7 @@ const Weapons = (() => {
       id: 'CROSSBOW', name: 'Tactical Crossbow', damage: 130,
       fireRate: 1.2, clipSize: 1, maxReserve: 15, reloadTime: 1.8,
       spread: 0.006, auto: false, type: 'SILENT', recoilY: 0, recoilX: 0,
+      critChance: 0.30, critMult: 2.0,
     },
     {
       id: 'FLAMETHROWER', name: 'RPO-A Shmel', damage: 200,
@@ -194,6 +197,7 @@ const Weapons = (() => {
       id: 'VSS', name: 'VSS Vintorez', damage: 42,
       fireRate: 0.12, clipSize: 20, maxReserve: 80, reloadTime: 2.5,
       spread: 0.010, auto: true, type: 'SILENT', hasScope: true, recoilY: 0.012, recoilX: 0.005,
+      critChance: 0.12, critMult: 1.8,
     },
     {
       id: 'STINGER', name: 'FIM-92 Stinger', damage: 700,
@@ -204,6 +208,7 @@ const Weapons = (() => {
       id: 'THROWKNIFE', name: 'Throwing Knife', damage: 90,
       fireRate: 0.5, clipSize: 1, maxReserve: 8, reloadTime: 0.3,
       spread: 0.008, auto: false, type: 'SILENT', recoilY: 0, recoilX: 0,
+      critChance: 0.35, critMult: 2.5,
     },
     {
       id: 'C4', name: 'C4 Explosive', damage: 500,
@@ -742,6 +747,20 @@ const Weapons = (() => {
       spread: 0.002, auto: false, type: 'EXPLOSIVE', recoilY: 0.0, recoilX: 0.0,
       homing: true, blastRadius: 18,
       description: "US Army Tactical Missile System — fires from standard HIMARS or M270 MLRS launchers. Ukraine secretly received ATACMS in late 2023; used them to strike Russian air bases in Crimea and Berdyansk port (sank landing ships). M39 variant carries 950 M74 submunitions; M57 variant has 227kg unitary warhead. Range 300km — reaches deep into Russian-controlled territory.",
+    },
+    // ── M16A2 + RG-6 Inferno Drum (user-requested) ────────────────────────
+    {
+      id: 'M16A2', name: 'M16A2 (5.56mm Burst)', damage: 33,
+      fireRate: 0.095, clipSize: 30, maxReserve: 150, reloadTime: 2.5,
+      spread: 0.013, auto: false, type: 'NATO', hasScope: false, recoilY: 0.010, recoilX: 0.004,
+      critChance: 0.15, critMult: 1.6,
+      description: 'US M16A2 with 20" barrel, triangular A2 handguards, and adjustable A2 carry-handle rear sight. 3-round burst or semi-auto. Higher muzzle velocity and accuracy than the M4A1 carbine — 975 m/s vs 884 m/s. Standard US infantry rifle from 1983 through the 2010s. Thousands supplied to Ukrainian forces by the US plus captured from early-war Russian seizures of NATO stockpiles. Loved for its flat trajectory at 400m+ and reliability in Donbas winters.',
+    },
+    {
+      id: 'RG6_FIRE', name: 'RG-6 "Inferno" Drum', damage: 95,
+      fireRate: 0.9, clipSize: 6, maxReserve: 24, reloadTime: 3.4,
+      spread: 0.022, auto: false, type: 'INCENDIARY', blastRadius: 5, recoilY: 0.028, recoilX: 0.010,
+      description: 'RG-6 "Gnome" 6-shot 40mm revolver drum grenade launcher loaded with RSP-30 incendiary/thermobaric rounds. Revolver action, shoulder-fired, 400m max range. Each round ignites a thermite-phosphorus splash on impact — inspired by Baba Yaga drone incendiary drop tactics. Ukrainian improvised incendiary rounds often use white phosphorus or RKhT thermite inserts. Devastating area denial — burning at 2,200°C, impossible to extinguish with water.',
     },
   ];
 
@@ -6179,14 +6198,18 @@ const Weapons = (() => {
       }
     }
 
+    var _skillSpreadMod = (typeof SkillSystem !== 'undefined' && SkillSystem.getSpreadMod) ? SkillSystem.getSpreadMod() : 1.0;
+    // Weather accuracy mod: lower accuracy = more spread (reciprocal)
+    var _weatherAcc = (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) ? (WeatherSystem.getModifiers().accuracyMod || 1.0) : 1.0;
+    var _effectiveSpread = wep.spread * _skillSpreadMod * (2.0 - _weatherAcc);
     spreadVec.set(
-      (Math.random() - 0.5) * wep.spread * 2,
-      (Math.random() - 0.5) * wep.spread * 2
+      (Math.random() - 0.5) * _effectiveSpread * 2,
+      (Math.random() - 0.5) * _effectiveSpread * 2
     );
     if (_aimSnapDir) {
       raycaster.ray.origin.copy(camera.getWorldPosition(new THREE.Vector3()));
       raycaster.ray.direction.copy(_aimSnapDir).add(
-        new THREE.Vector3((Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread)
+        new THREE.Vector3((Math.random()-0.5)*_effectiveSpread, (Math.random()-0.5)*_effectiveSpread, (Math.random()-0.5)*_effectiveSpread)
       ).normalize();
     } else {
       raycaster.setFromCamera(spreadVec, camera);
@@ -6747,6 +6770,10 @@ const Weapons = (() => {
         if (mesh) { mesh.rotation.x = _sprintLowerRotX; mesh.rotation.z = 0; }
         HUD.showReload(false);
         HUD.setAmmo(st.clip, st.reserve);
+        // Reload-ready audio cue (distinctive chambered click)
+        if (typeof AudioSystem !== 'undefined' && AudioSystem.playReloadReady) {
+          AudioSystem.playReloadReady();
+        }
       }
     }
   }
@@ -6953,7 +6980,7 @@ const Weapons = (() => {
   }
   function _curStats() { return _stats(currentIdx); }
   function effectiveClipSize(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.clipSize   : 0; }
-  function effectiveReloadTime(idx){ var s = _stats(idx == null ? currentIdx : idx); return s ? s.reloadTime : 0; }
+  function effectiveReloadTime(idx){ var s = _stats(idx == null ? currentIdx : idx); if (!s) return 0; var t = s.reloadTime; if (typeof Perks !== 'undefined' && Perks.getReloadMult) t *= Perks.getReloadMult(); return t; }
   function effectiveFireRate(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.fireRate   : 0; }
   function effectiveDamage(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.damage     : 0; }
   function effectiveSpread(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.spread     : 0; }

@@ -17,20 +17,23 @@ const MissionSystem = (function () {
 
   /* ── Templates ───────────────────────────────────────────────────── */
   const TEMPLATES = {
-            // Bradley IFV Assault — drive M2A3 Bradley, clear forest ambush
-            //   M242 Bushmaster 25mm chain gun (200 rpm cyclic, dual-feed HE/AP)
-            //   M240C 7.62mm coax. Press B to enter/exit. WASD drive, mouse aim turret.
+            // ── Bradley IFV Assault (Ukrainian Treeline Doctrine) ──────────────────
+            // Ukrainian doctrine observed in 47th Mechanized Brigade + 33rd Mech:
+            //   1. Halt outside treeline at 400-600m — fire TOW at AT teams / AFVs first
+            //   2. Suppress treeline with 25mm HE-T (M792) rounds at 300m walking fire
+            //   3. Close to 150m and switch to AP-T (M791) for hard cover
+            //   4. Dismount infantry to clear remaining positions
+            // Press G to mount | T: TOW missile | LMB: M242 25mm | RMB: Coax | WASD drive | B exit
             bradley_mission: {
-              name: 'Bradley IFV Assault',
-              description: 'Drive the M2A3 Bradley. Use the M242 Bushmaster 25mm chain gun and M240 coax to clear {kills} Russian occupants ambushing from the woods.',
+              name: 'Bradley Treeline Assault',
+              description: 'Ukrainian doctrine: halt at 500m, TOW suppression first. Then advance and sweep the treeline with 25mm Bushmaster. Dismount and clear.',
               tier: 5,
               generate() {
-                var killTarget = 18 + Math.floor(Math.random() * 7); // 18-24
+                var killTarget = 20 + Math.floor(Math.random() * 8); // 20-27 enemies
                 var spawned = 0;
-                var spawnPositions = [];
                 var spawnedEnemyIds = [];
+                var spawnPositions = [];
                 try {
-                  // Find the player position via active camera
                   var playerPos = new THREE.Vector3(0, 0, 0);
                   try {
                     if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
@@ -38,49 +41,70 @@ const MissionSystem = (function () {
                       if (p && p.position) playerPos.copy(p.position);
                     }
                   } catch (e) {}
-                  // Forest ambush ahead of player (~80-130 units away)
+
                   var fwdAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw)
                     ? CameraSystem.getYaw() : Math.random() * Math.PI * 2;
                   var fwd = new THREE.Vector3(Math.sin(fwdAngle), 0, Math.cos(fwdAngle));
-                  var center = playerPos.clone().add(fwd.clone().multiplyScalar(105));
+                  var right = new THREE.Vector3(fwd.z, 0, -fwd.x);
+
+                  // PHASE 1: AT teams at 450-600m (TOW priority targets)
+                  // Real doctrine: Bradleys engage Russian AT assets at max standoff before closing
+                  var atTypes = ['SPETSNAZ', 'ENGINEER', 'STORMER'];
+                  var numAT = 4 + Math.floor(Math.random() * 3);
                   if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-                    var types = ['CONSCRIPT', 'STORMER', 'ENGINEER', 'SNIPER'];
-                    for (var i = 0; i < killTarget; i++) {
-                      // Scatter across an 80x40 forest strip
-                      var ux = (Math.random() - 0.5) * 80;
-                      var uz = (Math.random() - 0.5) * 40;
-                      // Rotate the strip to face the player axis
-                      var rx = ux * fwd.z + uz * fwd.x;
-                      var rz = -ux * fwd.x + uz * fwd.z;
-                      var ex = center.x + rx;
-                      var ez = center.z + rz;
-                      var ey = 0;
-                      try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ey = VoxelWorld.getTerrainHeight(ex, ez) || 0; } catch (e2) {}
+                    for (var a = 0; a < numAT; a++) {
+                      var atDist = 450 + Math.random() * 150; // 450-600m
+                      var atLat  = (Math.random() - 0.5) * 60;
+                      var ax = playerPos.x + fwd.x * atDist + right.x * atLat;
+                      var az = playerPos.z + fwd.z * atDist + right.z * atLat;
+                      var ay = 0;
+                      try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ay = VoxelWorld.getTerrainHeight(ax, az) || 0; } catch (e2) {}
                       try {
-                        var tp = types[Math.floor(Math.random() * types.length)];
-                        var spawnedEnemy = Enemies.spawnSingle(tp, { x: ex, y: ey + 1, z: ez });
-                        if (spawnedEnemy) {
-                          spawnedEnemyIds.push(spawnedEnemy.id);
-                          spawned++;
-                        }
-                        spawnPositions.push({ x: ex, z: ez });
+                        var atType = atTypes[Math.floor(Math.random() * atTypes.length)];
+                        var se = Enemies.spawnSingle(atType, { x: ax, y: ay + 1, z: az });
+                        if (se) { spawnedEnemyIds.push(se.id); spawned++; spawnPositions.push({ x: ax, z: az }); }
                       } catch (eS) {}
                     }
                   }
-                  // Auto-spawn the Bradley right next to the player and announce
+
+                  // PHASE 2: Infantry line inside treeline at 100-250m wide strip at 300-480m
+                  // These are the treeline defenders — suppressed and then swept by Bushmaster
+                  var treeTypes = ['CONSCRIPT', 'STORMER', 'CONSCRIPT', 'CONSCRIPT', 'BOMBER'];
+                  var numTree = killTarget - numAT;
+                  if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+                    for (var t = 0; t < numTree; t++) {
+                      var tDist = 300 + Math.random() * 180; // 300-480m
+                      var tLat  = (Math.random() - 0.5) * 100; // 100m wide treeline
+                      var tx = playerPos.x + fwd.x * tDist + right.x * tLat;
+                      var tz = playerPos.z + fwd.z * tDist + right.z * tLat;
+                      var ty = 0;
+                      try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ty = VoxelWorld.getTerrainHeight(tx, tz) || 0; } catch (e2) {}
+                      try {
+                        var tType = treeTypes[Math.floor(Math.random() * treeTypes.length)];
+                        var se2 = Enemies.spawnSingle(tType, { x: tx, y: ty + 1, z: tz });
+                        if (se2) { spawnedEnemyIds.push(se2.id); spawned++; spawnPositions.push({ x: tx, z: tz }); }
+                      } catch (eS2) {}
+                    }
+                  }
+
+                  // Spawn Bradley right next to player and announce with doctrine brief
                   try {
                     if (typeof Bradley !== 'undefined' && Bradley.spawnAt) {
-                      var bx = playerPos.x + 4;
-                      var bz = playerPos.z;
+                      var bx = playerPos.x + fwd.x * 4 - right.x * 2;
+                      var bz = playerPos.z + fwd.z * 4 - right.z * 2;
                       var by = 0;
                       try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) by = VoxelWorld.getTerrainHeight(bx, bz) || 0; } catch (e3) {}
                       Bradley.spawnAt(new THREE.Vector3(bx, by, bz));
                     }
-                    if (typeof HUD !== 'undefined' && HUD.showToast) {
-                      HUD.showToast('🚛 BRADLEY READY — Press B to mount. M242 Bushmaster 25mm + M240 coax.', 5000, '#a0c878');
-                    }
+                    setTimeout(function() {
+                      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F69B} BRADLEY IFV READY — Press G to mount', 4000, '#a0c878'); } catch (e) {}
+                    }, 400);
+                    setTimeout(function() {
+                      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F3AF} DOCTRINE: T = TOW missiles first (AT teams at 500m) → then LMB Bushmaster sweep', 6500, '#ffcc44'); } catch (e) {}
+                    }, 4800);
                   } catch (eBR) {}
                 } catch (eAll) {}
+
                 return {
                   type: 'bradley_mission',
                   killTarget: killTarget,
@@ -89,22 +113,31 @@ const MissionSystem = (function () {
                   spawnedEnemyIds: spawnedEnemyIds,
                   spawnPositions: spawnPositions,
                   startTime: Date.now(),
-                  objectiveText: 'Clear forest ambush ahead...',
+                  phase: 1,  // 1=TOW, 2=Bushmaster, 3=clear
+                  objectiveText: 'PHASE 1: Engage AT teams with TOW at 500m',
                 };
               },
               check(mission) {
-                if (mission.spawned === 0) { mission.objectiveText = 'Clear forest ambush: complete'; return true; }
+                if (mission.spawned === 0) { mission.objectiveText = 'Treeline clear — Bradley mission complete'; return true; }
                 if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) return false;
                 var aliveCount = 0;
                 var allEnemies = Enemies.getAll();
                 for (var id of mission.spawnedEnemyIds) {
-                  var found = allEnemies.find(e => e && e.id === id);
-                  if (found && found.alive) {
-                    aliveCount++;
-                  }
+                  var found = allEnemies.find(function(e) { return e && e.id === id; });
+                  if (found && found.alive) aliveCount++;
                 }
                 mission.kills = mission.spawned - aliveCount;
-                mission.objectiveText = `Clear forest ambush: ${mission.kills}/${mission.spawned} killed`;
+                // Phase progression hints
+                var pct = mission.kills / mission.spawned;
+                if (pct >= 0.4 && mission.phase === 1) {
+                  mission.phase = 2;
+                  try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F525} PHASE 2: Advance and sweep treeline with 25mm Bushmaster', 5000, '#ff8833'); } catch(e) {}
+                }
+                if (pct >= 0.75 && mission.phase === 2) {
+                  mission.phase = 3;
+                  try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F4A5} PHASE 3: Dismount and clear remaining positions', 4000, '#ff5555'); } catch(e) {}
+                }
+                mission.objectiveText = 'Treeline assault: ' + mission.kills + '/' + mission.spawned + ' killed (Phase ' + mission.phase + ')';
                 return aliveCount === 0;
               },
             },
@@ -156,7 +189,7 @@ const MissionSystem = (function () {
             if (mission.state === 'spawning') {
               var zone = mission.landingZones[mission.completedWaves % mission.landingZones.length];
               var count = 5 + mission.completedWaves * 2;
-              var types = ['CONSCRIPT', 'STORMER', 'ARMORED'];
+              var types = ['PARATROOP', 'PARATROOP', 'CONSCRIPT', 'STORMER'];
               mission.spawnedEnemyIds = [];
               for (var i = 0; i < count; i++) {
                 var tp = types[Math.floor(Math.random() * types.length)];
@@ -259,6 +292,7 @@ const MissionSystem = (function () {
             } else if (mission.timeLimit <= 0) {
               mission.timerExpiries = (mission.timerExpiries || 0) + 1;
               if (mission.timerExpiries >= 3) {
+                // Mission fails after 3 expiries — mark as failed and stop update
                 mission.timeLimit = -999;
                 if (typeof HUD !== 'undefined' && HUD.showToast) {
                   HUD.showToast('❌ BREAKOUT FAILED — encirclement holds.', 5000, '#ff3333');
@@ -303,41 +337,36 @@ const MissionSystem = (function () {
           failed(mission) { return !mission.reached && mission.timeLimit === -999; },
         },
     gather: {
-      name: 'Resource Gathering',
-      description: 'Collect {amount} {resource} from the world.',
+      name: 'Intel Sweep',
+      description: 'Eliminate Russian occupants to gather battlefield intelligence.',
       tier: 1,
       generate() {
-        const resources = ['wood', 'metal', 'stone'];
-        const res = resources[Math.floor(Math.random() * resources.length)];
-        const amount = 20 + Math.floor(Math.random() * 40);
+        const amount = 15 + Math.floor(Math.random() * 20);
         return {
           type: MISSION_TYPE.GATHER,
-          resource: res,
           targetAmount: amount,
           currentAmount: 0,
         };
       },
       check(mission) {
-        mission.objectiveText = `Gather ${mission.resource.toUpperCase()}: ${mission.currentAmount}/${mission.targetAmount}`;
+        mission.objectiveText = `Eliminate: ${mission.currentAmount}/${mission.targetAmount}`;
         return mission.currentAmount >= mission.targetAmount;
       },
     },
     expand: {
-      name: 'Base Expansion',
-      description: 'Build {count} new structure(s).',
+      name: 'Hold the Line',
+      description: 'Defend your position through multiple full waves without retreating.',
       tier: 2,
       generate() {
         return {
           type: MISSION_TYPE.EXPAND,
-          targetCount: 1 + Math.floor(Math.random() * 2),
-          startCount: (typeof Building !== 'undefined' && Building.getStructures) ? Building.getStructures().length : 0,
+          targetCount: 2 + Math.floor(Math.random() * 2),
+          completedWaves: 0,
         };
       },
       check(mission) {
-        var cur = (typeof Building !== 'undefined' && Building.getStructures) ? Building.getStructures().length : 0;
-        var built = cur - mission.startCount;
-        mission.objectiveText = `Build structures: ${built}/${mission.targetCount}`;
-        return cur >= mission.startCount + mission.targetCount;
+        mission.objectiveText = `Survive waves: ${mission.completedWaves}/${mission.targetCount}`;
+        return mission.completedWaves >= mission.targetCount;
       },
     },
     recon: {
@@ -383,7 +412,7 @@ const MissionSystem = (function () {
     },
     defense: {
       name: 'Defensive Survival',
-      description: 'Survive {waves} enemy waves without losing your base.',
+      description: 'Survive multiple enemy assault waves. Each completed wave counts toward the objective.',
       tier: 3,
       generate() {
         return {
@@ -581,7 +610,7 @@ const MissionSystem = (function () {
     },
     infiltrate: {
       name: 'Infiltrate the Occupants',
-      description: 'You are inserted in a Russian uniform. Walk among them, then eliminate {kills} occupants. Disguise breaks when you attack — survive the response.',
+      description: 'You are inserted in a Russian uniform. Walk among them, then eliminate the target occupants. Disguise breaks when you attack — survive the response.',
       tier: 4,
       generate() {
         const kills = 8 + Math.floor(Math.random() * 5);
@@ -621,7 +650,7 @@ const MissionSystem = (function () {
         var spawnedEnemyIds = [];
         try {
           if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-            var types = ['CONSCRIPT', 'STORMER', 'ARMORED'];
+            var types = ['CONSCRIPT', 'SNIPER', 'ENGINEER'];
             for (var f = 0; f < building.floors; f++) {
               for (var n = 0; n < 2; n++) {
                 var tp = types[Math.floor(Math.random() * types.length)];
@@ -662,6 +691,115 @@ const MissionSystem = (function () {
         mission.objectiveText = `Clear Building: ${mission.spawned - aliveCount}/${mission.spawned} cleared`;
         return aliveCount === 0;
       },
+    },
+    // "Blow the Lid" — drone strike on Russian oil refinery (based on real June 2026 Ukrainian strikes)
+    // All-drone mission: FPV suicide drones + bombers, no infantry
+    blow_the_lid: {
+      name: 'Blow the Lid',
+      description: 'OPERATION: BLOW THE LID\n' +
+        'June 2026 — Ukrainian FPV swarms and Shahed-style bombers struck the Saratov oil refinery,\n' +
+        'blowing the pressure lid off a storage tank in a massive fireball seen for 40km.\n' +
+        'Your mission: fly drones into the refinery complex. No boots on ground.\n' +
+        'Destroy 3 fuel storage targets. Blow. The. Lid.',
+      tier: 5,
+      generate() {
+        var playerPos = new THREE.Vector3(0, 0, 0);
+        try {
+          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+            var p = GameManager.getPlayer(); if (p && p.position) playerPos.copy(p.position);
+          }
+        } catch(e){}
+        var angle = Math.random() * Math.PI * 2;
+        var dist = 55 + Math.random() * 20;
+        var cx = playerPos.x + Math.sin(angle) * dist;
+        var cz = playerPos.z + Math.cos(angle) * dist;
+        var baseY = 0;
+        try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) baseY = VoxelWorld.getTerrainHeight(cx, cz) || 0; } catch(e){}
+        var targets = [
+          { x: cx,      z: cz,      y: baseY, destroyed: false, label: 'Tank Alpha (main storage)' },
+          { x: cx + 9,  z: cz + 6,  y: baseY, destroyed: false, label: 'Tank Bravo (pressure vessel)' },
+          { x: cx - 7,  z: cz - 9,  y: baseY, destroyed: false, label: 'Refinery Column (distillation)' },
+        ];
+        if (typeof HUD !== 'undefined' && HUD.showToast) {
+          HUD.showToast('🛸 BLOW THE LID — 3 oil targets marked. Fly drones in. No ground troops!', 7000, '#ff8800');
+        }
+        // Chain explosion sequence to simulate refinery igniting
+        var scene = window._gameScene;
+        var delay1 = 4000 + Math.random() * 2000;
+        setTimeout(function() {
+          try {
+            if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+              WorldFeatures.applyExplosionDamage(cx, baseY + 4, cz, 8, 120);
+            }
+            if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
+              AudioSystem.playExplosion({ x: cx, y: baseY + 4, z: cz }, 1.0);
+            }
+          } catch(e){}
+        }, delay1);
+        return {
+          type: 'blow_the_lid', targets: targets,
+          destroyed: 0, refCenter: { x: cx, y: baseY, z: cz },
+          chainFired: false, state: 'active',
+          objectiveText: '🛸 BLOW THE LID: approach targets to drone-strike — 0/3 destroyed',
+        };
+      },
+      update(mission, delta) {
+        if (mission.state !== 'active') return;
+        var playerPos = new THREE.Vector3(0, 0, 0);
+        try {
+          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+            var p = GameManager.getPlayer(); if (p && p.position) playerPos.copy(p.position);
+          }
+        } catch(e){}
+        for (var i = 0; i < mission.targets.length; i++) {
+          var t = mission.targets[i];
+          if (t.destroyed) continue;
+          var dx = playerPos.x - t.x, dz = playerPos.z - t.z;
+          if (dx * dx + dz * dz < 625) { // within 25 units
+            t.destroyed = true;
+            mission.destroyed++;
+            var tx = t.x, ty = t.y, tz = t.z;
+            try {
+              if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+                WorldFeatures.applyExplosionDamage(tx, ty + 3, tz, 10 + i * 3, 180 + i * 40);
+              }
+              if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
+                AudioSystem.playExplosion({ x: tx, y: ty + 3, z: tz }, 1.4);
+              }
+            } catch(eEx){}
+            if (typeof HUD !== 'undefined' && HUD.showToast) {
+              HUD.showToast('💥 ' + t.label + ' DESTROYED — UKRAINE STRIKES BACK!', 3500, '#ff6600');
+            }
+            // Big chain explosion when 2nd or 3rd target hit
+            if (mission.destroyed >= 2 && !mission.chainFired) {
+              mission.chainFired = true;
+              var rc = mission.refCenter;
+              setTimeout(function() {
+                try {
+                  if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+                    WorldFeatures.applyExplosionDamage(rc.x, rc.y + 10, rc.z, 22, 400);
+                    WorldFeatures.applyExplosionDamage(rc.x + 5, rc.y + 6, rc.z + 4, 15, 300);
+                  }
+                  if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
+                    AudioSystem.playExplosion({ x: rc.x, y: rc.y + 10, z: rc.z }, 2.0);
+                  }
+                  if (typeof HUD !== 'undefined' && HUD.showToast) {
+                    HUD.showToast('🔥🔥 THE LID BLOWS! REFINERY ENGULFED! UKRAINE CONFIRMS STRIKE!', 8000, '#ffaa00');
+                  }
+                } catch(e){}
+              }, 1200);
+            }
+          }
+        }
+        mission.objectiveText = '🛸 BLOW THE LID: ' + mission.destroyed + '/3 targets destroyed — approach each to strike';
+        if (mission.destroyed >= 3) {
+          mission.state = 'done';
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast('✅ BLOW THE LID — MISSION COMPLETE! All 3 refinery targets destroyed!', 7000, '#ffdd00');
+          }
+        }
+      },
+      check(mission) { return mission.state === 'done'; },
     },
   };
 
@@ -728,6 +866,7 @@ const MissionSystem = (function () {
       'defense', 'defense', 'recon', 'recon',
       'escort', 'escort', 'infiltrate', 'infiltrate',
       'urban_breakout', 'urban_breakout', 'bradley_mission',
+      'blow_the_lid', 'airborne_assault',
     ];
     let pick = weighted[Math.floor(Math.random() * weighted.length)];
     if (!TEMPLATES[pick]) pick = Object.keys(TEMPLATES)[0];
@@ -813,13 +952,13 @@ const MissionSystem = (function () {
 
   function onWaveCompleted() {
     for (const m of activeMissions) {
-      if (m.data.type === MISSION_TYPE.DEFENSE) {
+      if (m.data.type === MISSION_TYPE.DEFENSE || m.data.type === MISSION_TYPE.EXPAND) {
         m.data.completedWaves++;
       }
     }
   }
 
-  // INFILTRATE: called every time the player kills a Russian occupant.
+  // INFILTRATE / GATHER: called every time the player kills a Russian occupant.
   function onEnemyKilled() {
     for (const m of activeMissions) {
       if (m.data.type === MISSION_TYPE.INFILTRATE) {
@@ -828,6 +967,9 @@ const MissionSystem = (function () {
         const blown = (typeof Enemies !== 'undefined' && Enemies.isDisguiseBlown) ? Enemies.isDisguiseBlown() : true;
         if (!blown) m.data.stealthKills++;
         else m.data.disguiseBlown = true;
+      }
+      if (m.data.type === MISSION_TYPE.GATHER) {
+        m.data.currentAmount++;
       }
     }
   }
@@ -861,7 +1003,7 @@ const MissionSystem = (function () {
     { id: 'knife_only',     name: 'Knife Only',        desc: 'Use only melee weapons',                     reward: 400, check: function (s) { return s.kills > 0 && s.meleeKills === s.kills; } },
     { id: 'pacifist_start', name: 'Pacifist Start',    desc: 'Don\'t kill for the first 15 seconds',       reward: 150, check: function (s) { return s.firstKillTime >= 15; } },
     { id: 'conserve_ammo',  name: 'Conserve Ammo',     desc: 'Finish wave with >50% ammo remaining',       reward: 200, check: function (s) { return s.ammoPercent > 50; } },
-    { id: 'ghost',          name: 'Ghost',             desc: 'Don\'t get spotted for 30 seconds',          reward: 300, check: function (s) { return s.undetectedTime >= 30; } },
+    { id: 'quick_draw',     name: 'Quick Draw',        desc: 'Get first kill within 5 seconds',             reward: 250, check: function (s) { return s.firstKillTime > 0 && s.firstKillTime <= 5; } },
     { id: 'collateral',     name: 'Collateral',        desc: 'Kill 3+ enemies with one explosive',         reward: 350, check: function (s) { return s.maxExplosiveKill >= 3; } },
     { id: 'marksman',       name: 'Marksman',          desc: '>80% accuracy this wave',                    reward: 250, check: function (s) { return s.shotsFired > 0 && (s.shotsHit / s.shotsFired) > 0.8; } },
     { id: 'survivor',       name: 'Survivor',          desc: 'Finish wave with less than 20 HP',           reward: 200, check: function (s) { return s.hpAtEnd < 20 && s.hpAtEnd > 0; } },
@@ -890,112 +1032,7 @@ const MissionSystem = (function () {
     return activeSideObj;
   }
 
-  /* ── 2. Mission Chains ───────────────────────────────────────────── */
-  const MISSION_CHAINS = [
-            // Bradley IFV Forest Road Mission
-            {
-              id: 'bradley_forest',
-              name: 'Bradley Forest Road',
-              stages: [
-                { name: 'Convoy Start', type: 'bradley_mission', desc: 'Defend the convoy while riding the Bradley IFV through a Ukrainian forest road.' },
-                { name: 'Ambush Defense', type: MISSION_TYPE.DEFENSE, desc: 'Repel ambushes and protect the convoy.' },
-                { name: 'Breakout', type: MISSION_TYPE.ESCORT, desc: 'Escort survivors to safety after exiting the vehicle.' }
-              ]
-            },
-        // Hostomel Airport Assault (campaign & skirmish)
-        {
-          id: 'hostomel_airport',
-          name: 'Hostomel Airport Assault',
-          stages: [
-            { name: 'Repel Airborne', type: 'airborne_assault', desc: 'Defend against Russian VDV landings' },
-            { name: 'Secure Runway', type: MISSION_TYPE.DEFENSE, desc: 'Hold the runway for reinforcements' },
-            { name: 'Counterattack', type: MISSION_TYPE.ESCORT, desc: 'Lead a counterattack to clear the airport' }
-          ]
-        },
-        // Kyiv Siege: First Day (campaign)
-        {
-          id: 'kyiv_siege_day1',
-          name: 'Kyiv Siege: First Day',
-          stages: [
-            { name: 'Urban Defense', type: MISSION_TYPE.DEFENSE, desc: 'Hold defensive lines in Kyiv suburbs' },
-            { name: 'Breakout', type: 'urban_breakout', desc: 'Break out of partial encirclement' },
-            { name: 'Rescue Civilians', type: MISSION_TYPE.ESCORT, desc: 'Escort civilians to safety' }
-          ]
-        },
-    {
-      id: 'operation_viper',
-      name: 'Operation Viper',
-      stages: [
-        { name: 'Recon',        type: MISSION_TYPE.RECON,    desc: 'Scout enemy stronghold locations' },
-        { name: 'Assassinate',  type: MISSION_TYPE.DEFENSE,  desc: 'Eliminate the garrison commander' },
-        { name: 'Extract',      type: MISSION_TYPE.ESCORT,   desc: 'Extract intel to base safely' },
-      ],
-    },
-    {
-      id: 'supply_line',
-      name: 'Supply Line',
-      stages: [
-        { name: 'Gather Resources', type: MISSION_TYPE.GATHER,  desc: 'Collect supplies for the convoy' },
-        { name: 'Defend Convoy',     type: MISSION_TYPE.DEFENSE, desc: 'Protect the supply convoy from ambush' },
-        { name: 'Deliver Supplies',  type: MISSION_TYPE.ESCORT,  desc: 'Deliver supplies to the forward base' },
-      ],
-    },
-    {
-      id: 'liberation',
-      name: 'Liberation',
-      stages: [
-        { name: 'Capture Zone',       type: MISSION_TYPE.EXPAND,   desc: 'Seize the occupied territory' },
-        { name: 'Eliminate Garrison',  type: MISSION_TYPE.DEFENSE,  desc: 'Wipe out remaining enemy forces' },
-        { name: 'Rebuild',            type: MISSION_TYPE.EXPAND,   desc: 'Reconstruct the liberated zone' },
-      ],
-    },
-    {
-      id: 'deep_strike',
-      name: 'Deep Strike',
-      stages: [
-        { name: 'Scout',          type: MISSION_TYPE.RECON,    desc: 'Locate the target bridge' },
-        { name: 'Demolish Bridge', type: MISSION_TYPE.DEFENSE, desc: 'Plant charges and defend the site' },
-        { name: 'Escape',         type: MISSION_TYPE.ESCORT,   desc: 'Escape the blast zone before reinforcements arrive' },
-      ],
-    },
-  ];
-
-  let activeChain = null;
-  let chainProgress = 0;
-
-  function startChain(chainId) {
-    var chain = MISSION_CHAINS.find(function (c) { return c.id === chainId; });
-    if (!chain) return null;
-    activeChain = chain;
-    chainProgress = 0;
-    var stage = chain.stages[0];
-    return generateMission(stage.type);
-  }
-
-  function advanceChain() {
-    if (!activeChain) return null;
-    chainProgress++;
-    if (chainProgress >= activeChain.stages.length) {
-      var finished = { chain: activeChain.name, completed: true };
-      activeChain = null;
-      chainProgress = 0;
-      return finished;
-    }
-    var stage = activeChain.stages[chainProgress];
-    return generateMission(stage.type);
-  }
-
-  function getChainProgress() {
-    if (!activeChain) return null;
-    return {
-      chain: activeChain,
-      current: chainProgress,
-      total: activeChain.stages.length,
-      stage: activeChain.stages[chainProgress] || null,
-    };
-  }
-
-  /* ── 3. Dynamic Mission Difficulty ───────────────────────────────── */
+  /* ── 2. Dynamic Mission Difficulty ───────────────────────────────── */
   function scaleMission(mission, playerLevel) {
     var factor = 1 + (playerLevel - 1) * 0.15;
     var d = mission.data;
@@ -1056,11 +1093,6 @@ const MissionSystem = (function () {
     generateSideObjective,
     checkSideObjective,
     getSideObjective,
-    /* Mission Chains */
-    MISSION_CHAINS,
-    startChain,
-    advanceChain,
-    getChainProgress,
     /* Dynamic Difficulty */
     scaleMission,
     /* Mission Timer */

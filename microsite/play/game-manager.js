@@ -72,7 +72,6 @@
 const GameManager = (function () {
   // Overlay state for drone controls HUD
   var _droneControlsVisible = false;
-  var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
   // QA automation override: set by test script before any game code runs
   if (typeof window !== 'undefined' && window.__QA_MODE === undefined) window.__QA_MODE = false;
   'use strict';
@@ -88,6 +87,26 @@ const GameManager = (function () {
     STAGE_CLEAR: 'stageClear',
     WIN:         'win',
   });
+
+  /* ── Persistent Settings (saved to localStorage) ──────────────── */
+  var _mouseSensitivity = (function() {
+    var v = parseFloat(localStorage.getItem('ok_sensitivity'));
+    return (isNaN(v) || v <= 0) ? 1.0 : v;
+  })();
+  var _audioVolume = (function() {
+    var v = parseFloat(localStorage.getItem('ok_volume'));
+    return (isNaN(v) || v < 0) ? 0.5 : v;
+  })();
+
+  function setMouseSensitivity(v) {
+    _mouseSensitivity = Math.max(0.1, Math.min(5.0, parseFloat(v) || 1.0));
+    localStorage.setItem('ok_sensitivity', _mouseSensitivity);
+  }
+  function setAudioVolume(v) {
+    _audioVolume = Math.max(0, Math.min(1.0, parseFloat(v) || 0.5));
+    localStorage.setItem('ok_volume', _audioVolume);
+    if (typeof AudioSystem !== 'undefined' && AudioSystem.setVolume) AudioSystem.setVolume(_audioVolume);
+  }
 
   /* ── Core State ──────────────────────────────────────────────────── */
   let gameState     = STATE.MENU;
@@ -273,8 +292,8 @@ const GameManager = (function () {
   const STAMINA_REGEN_RATE = 0.08;  // per second while not sprinting
 
   /* ── Battlefield Events ─────────────────────────────────────────── */
-  // Probabilities must sum to <= 1.0 so all events can fire (cumulative selection)
   const BATTLE_EVENTS = [
+    // Probabilities must sum to <= 1.0 so all events can fire (cumulative selection)
     { id: 'ARTILLERY',     label: '💥 ARTILLERY BARRAGE!',      color: '#ff4444', chance: 0.15 },
     { id: 'SUPPLY_DROP',   label: '📦 SUPPLY DROP INCOMING!',   color: '#44ff88', chance: 0.13 },
     { id: 'MORTAR',        label: '💣 MORTAR STRIKE!',          color: '#ff8800', chance: 0.10 },
@@ -287,6 +306,10 @@ const GameManager = (function () {
     { id: 'CHEMICAL',       label: '☣ CHEMICAL ATTACK!',       color: '#aaff00', chance: 0.05 },
     { id: 'EMP',            label: '⚡ EMP BLAST!',             color: '#4400ff', chance: 0.04 },
     { id: 'TUNNEL_BREACH',  label: '🕳 TUNNEL BREACH!',        color: '#884400', chance: 0.06 },
+    { id: 'PARTISAN_HELP', label: '🤝 PARTISANS JOIN THE FIGHT!', color: '#88ff44', chance: 0.06 },
+    { id: 'OWN_GOAL',      label: '😂 RUSSIAN FRIENDLY FIRE!',    color: '#ffff00', chance: 0.04 },
+    { id: 'INTEL_BREACH',  label: '📡 INTEL BREACH — ENEMY POS!', color: '#00ffcc', chance: 0.05 },
+    { id: 'MEDIC_EVAC',    label: '🏥 MEDIC TEAM INBOUND!',        color: '#ff88aa', chance: 0.05 },
   ];
 
   function triggerBattlefieldEvent() {
@@ -431,6 +454,79 @@ const GameManager = (function () {
             x: player.position.x + Math.cos(_tbYaw + ta) * td,
             z: player.position.z + Math.sin(_tbYaw + ta) * td
           });
+        }
+        break;
+      case 'PARTISAN_HELP':
+        // Local partisans spawn and fight alongside player — variety pack
+        if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
+          for (let i = 0; i < 4; i++) {
+            const _pa = Math.random() * Math.PI * 2;
+            const _pd = 5 + Math.random() * 8;
+            const _px2 = player.position.x + Math.cos(_pa) * _pd;
+            const _pz2 = player.position.z + Math.sin(_pa) * _pd;
+            const _ph = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_px2, _pz2) : 0;
+            NPCSystem.spawn(_px2, _ph, _pz2, ['infantry', 'specialist', 'medic'][Math.floor(Math.random() * 3)]);
+          }
+        }
+        if (typeof Economy !== 'undefined') Economy.addCurrency(30);
+        break;
+      case 'OWN_GOAL':
+        // Russian units fire on their own — causes explosions near enemy clusters
+        var _ogAll = Enemies.getAll();
+        var _ogKilled = 0;
+        for (let i = 0; i < Math.min(_ogAll.length, 8); i++) {
+          if (_ogAll[i].alive && _ogAll[i].mesh) {
+            var _ogPos = _ogAll[i].mesh.position;
+            if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_ogPos.clone(), 3);
+            Enemies.damageInRadius(_ogPos, 5, 70);
+            if (!_ogAll[i].alive) _ogKilled++;
+          }
+        }
+        if (_ogKilled > 0) {
+          HUD.showToast('😂 ' + _ogKilled + ' killed by own side!', 2500, '#ffff00');
+          player.score += _ogKilled * 15;
+        }
+        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.08, 1.0);
+        break;
+      case 'INTEL_BREACH':
+        // Reveal all enemy positions on minimap for 30s (mimic UAV briefly)
+        if (typeof Perks !== 'undefined' && Perks.activateStreak) {
+          // Temporarily mark all enemies as spotted for minimap
+          var _ibAll = Enemies.getAll();
+          for (let i = 0; i < _ibAll.length; i++) {
+            if (_ibAll[i].alive) {
+              _ibAll[i]._intelRevealed = true;
+              _ibAll[i].playerSpotted = true;
+            }
+          }
+          setTimeout(function() {
+            var _ibAll2 = Enemies.getAll();
+            for (let i = 0; i < _ibAll2.length; i++) {
+              if (_ibAll2[i]._intelRevealed) {
+                _ibAll2[i]._intelRevealed = false;
+                // Don't clear playerSpotted if they're genuinely tracking player
+              }
+            }
+          }, 30000);
+        }
+        HUD.showToast('📡 ALL ENEMY POSITIONS REVEALED (30s)', 3000, '#00ffcc');
+        break;
+      case 'MEDIC_EVAC':
+        // Medic team arrives: heal player + spawn healing pickups
+        {
+          var _mevHeal = Math.min(40, player.maxHp - player.hp);
+          player.hp = Math.min(player.hp + 40, player.maxHp);
+          if (HUD.setHealth) HUD.setHealth(player.hp, player.maxHp);
+          // Also spawn 2 medkits nearby
+          for (let i = 0; i < 2; i++) {
+            const _mx = player.position.x + (Math.random()-0.5) * 6;
+            const _mz = player.position.z + (Math.random()-0.5) * 6;
+            const _mh = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_mx, _mz) : 0;
+            if (typeof Pickups !== 'undefined' && Pickups.spawn) {
+              Pickups.spawn(new THREE.Vector3(_mx, _mh, _mz), 'MEDKIT');
+            }
+          }
+          if (_mevHeal > 0) HUD.notifyPickup('🏥 MEDIC: +' + _mevHeal + ' HP', '#ff88aa');
         }
         break;
     }
@@ -591,9 +687,9 @@ const GameManager = (function () {
       sunColor:     0xff8833,
       sunIntensity: 0.85,
       exposure:     0.9,
+      hintWeapons:  ['AK-74M','RPG-7','NLAW'],
       description:  'Stop the airborne assault at Hostomel Airport.',
-      objective:    'Destroy all enemy VDV paratroopers and anti-air guns. Survive 7 waves.',
-      hintWeapons:  ['AK74','GP25','IGLA'],
+      objective:    'Repel VDV paratroopers and secure Hostomel Airport. Survive 7 waves.',
     },
     {
       id:           2,
@@ -606,9 +702,9 @@ const GameManager = (function () {
       sunColor:     0xccccdd,
       sunIntensity: 0.7,
       exposure:     0.8,
+      hintWeapons:  ['SVD Dragunov','NLAW','FGM-148 Javelin'],
       description:  'Industrial ruins of Avdiivka. Defend the coking plant.',
-      objective:    'Hold the coking plant against VDV and armored assaults. Watch for snipers.',
-      hintWeapons:  ['RPG7','DOUBLEBARREL','SVD'],
+      objective:    'Hold the coking plant against ground assault and armor. Watch for snipers in the ruins.',
     },
     {
       id:           3,
@@ -621,9 +717,9 @@ const GameManager = (function () {
       sunColor:     0xccccdd,
       sunIntensity: 0.65,
       exposure:     0.7,
+      hintWeapons:  ['AK-74M','PKM','RPO-A Shmel'],
       description:  'Total destruction in Bakhmut. The city is a graveyard.',
       objective:    'Navigate the ruins. Wagner mercenaries attack from all angles. Clear 7 waves.',
-      hintWeapons:  ['SCARH','CLAYMORE','FLASHBANG'],
     },
     {
       id:           4,
@@ -636,9 +732,9 @@ const GameManager = (function () {
       sunColor:     0xffcc55,
       sunIntensity: 0.9,
       exposure:     0.9,
+      hintWeapons:  ['NLAW','FGM-148 Javelin','Stugna-P'],
       description:  'Cross the Dnipro at Kherson. Liberate the bridgehead.',
       objective:    'Secure the Dnipro crossing. Drown enemy armor in the river. 7 waves.',
-      hintWeapons:  ['NLAW','AT4','RPG7'],
     },
     {
       id:           5,
@@ -651,9 +747,9 @@ const GameManager = (function () {
       sunColor:     0xff6622,
       sunIntensity: 0.5,
       exposure:     0.65,
+      hintWeapons:  ['M4A1','PKM','RPO-A Shmel'],
       description:  'Fight through the burning Azovstal steelworks. No retreat.',
       objective:    'Survive the steelworks inferno. Fire deals constant damage. Clear all 7 waves.',
-      hintWeapons:  ['FLAMETHROWER','NLAW','CLAYMORE'],
     },
     {
       id:           6,
@@ -666,9 +762,9 @@ const GameManager = (function () {
       sunColor:     0xffddaa,
       sunIntensity: 0.95,
       exposure:     0.9,
+      hintWeapons:  ['M142 HIMARS (GMLRS Strike)','RPG-7','C4 Explosive'],
       description:  'Assault the Kerch Strait bridge. Cut off their supply line.',
-      objective:    'Blow the Crimea Bridge. Heavy naval bombardment incoming. 7 waves.',
-      hintWeapons:  ['IGLA','BARRETTM82','PKM'],
+      objective:    'Repel naval marines at the Kerch Strait crossing. Drone strikes and naval bombardment incoming. 7 waves.',
     },
     {
       id:           7,
@@ -681,13 +777,13 @@ const GameManager = (function () {
       sunColor:     0xaacc44,
       sunIntensity: 0.55,
       exposure:     0.75,
+      hintWeapons:  ['Barrett M82','AK-74M','RPO-A Shmel'],
       description:  'The irradiated exclusion zone. Radiation adds periodic damage.',
-      objective:    'Survive Chornobyl. Radiation, mutants, and Spetsnaz. Avoid the red zones.',
-      hintWeapons:  ['FLAMETHROWER','CLAYMORE','AK12'],
+      objective:    'Survive Chornobyl. Constant radiation drains HP — watch your health bar. Spetsnaz and feral threats. 7 waves.',
     },
     {
       id:           8,
-      name:         'MOSCOW FINALE',
+      name:         'OUTER MOSCOW',
       theme:        'cityscape',
       wavesPerStage: 9,
       difficulty:   3.5,
@@ -696,9 +792,9 @@ const GameManager = (function () {
       sunColor:     0xeeeeff,
       sunIntensity: 0.4,
       exposure:     0.6,
-      description:  'The final push to the Kremlin. End it here.',
-      objective:    'Push through Moscow defenses. Kill the Kremlin boss. 9 waves.',
-      hintWeapons:  ['BARRETTM82','P90','FLASHBANG'],
+      hintWeapons:  ['Barrett M82','M2HB Browning .50cal','FGM-148 Javelin'],
+      description:  'The armored push into Moscow\'s outer ring. FSB elite and Rosgvardiya defend the suburbs.',
+      objective:    'Break through the outer Moscow defensive ring. 9 waves of elite defenders.',
     },
     {
       id:           9,
@@ -711,9 +807,9 @@ const GameManager = (function () {
       sunColor:     0xddccaa,
       sunIntensity: 0.85,
       exposure:     0.85,
+      hintWeapons:  ['M142 HIMARS (GMLRS Strike)','RPG-7','NLAW'],
       description:  'Destroy the Black Sea Fleet at Sevastopol. Sink them all.',
-      objective:    'Naval base assault. Ship artillery rains down. Destroy all fleet defenders.',
-      hintWeapons:  ['NLAW','IGLA','RPG7'],
+      objective:    'Naval base assault. Ship artillery rains down. Destroy all fleet defenders. 7 waves.',
     },
     {
       id:           10,
@@ -726,9 +822,9 @@ const GameManager = (function () {
       sunColor:     0xdd6633,
       sunIntensity: 0.6,
       exposure:     0.7,
+      hintWeapons:  ['RPO-A Shmel','TOS-1A Buratino (Thermobaric MLRS)','M142 HIMARS (GMLRS Strike)'],
       description:  'Liberate the last occupied stronghold in Donbas.',
-      objective:    'Break the Donbas line. Thermobaric weapons and mechs. 8 waves.',
-      hintWeapons:  ['NLAW','AT4','FLAMETHROWER'],
+      objective:    'Break the Donbas line. Kadyrovites, Wagner, mortar teams, and suppressive trench fire. 8 waves.',
     },
     {
       id:           11,
@@ -741,9 +837,9 @@ const GameManager = (function () {
       sunColor:     0xffaa44,
       sunIntensity: 0.75,
       exposure:     0.85,
+      hintWeapons:  ['NLAW','FGM-148 Javelin','M142 HIMARS (GMLRS Strike)'],
       description:  'Cross into enemy territory. Take the fight to them.',
       objective:    'Invade Belgorod. Tanks and mechanized infantry counter-attack hard. 8 waves.',
-      hintWeapons:  ['NLAW','JAVELIN','STUGNA'],
     },
     {
       id:           12,
@@ -756,9 +852,9 @@ const GameManager = (function () {
       sunColor:     0xff3322,
       sunIntensity: 0.3,
       exposure:     0.5,
+      hintWeapons:  ['FGM-148 Javelin','M142 HIMARS (GMLRS Strike)','Barrett M82'],
       description:  'The ultimate battle for peace. Storm the Kremlin. End the war.',
       objective:    'Final assault. Every enemy type. Maximum difficulty. Survive 10 waves.',
-      hintWeapons:  ['JAVELIN','BARRETTM82','FLAMETHROWER'],
     },
     {
       id:           13,
@@ -773,7 +869,7 @@ const GameManager = (function () {
       exposure:     0.75,
       tankFocus:    true,
       capitalDefense: true,  // armored columns + city-integrity objective + Bayraktar support
-      hintWeapons:  ['NLAW','FGM148Javelin','RPG7','StugnaP'],
+      hintWeapons:  ['NLAW','FGM-148 Javelin','RPG-7','Stugna-P'],
       description:  'Feb 2022. Russian armored columns push down the boulevard toward Maidan. NLAW teams and Bayraktar strikes hold the capital.',
       objective:    'DEFEND KYIV: stop every armored column before it breaches the line. City integrity must survive 8 waves.',
     },
@@ -788,9 +884,9 @@ const GameManager = (function () {
       sunColor:     0xddddff,
       sunIntensity: 0.65,
       exposure:     0.8,
+      hintWeapons:  ['Igla MANPADS','RPG-7','NLAW'],
       description:  'Feb 24, 2022. Russian warship Moskva approaches Snake Island. Reply: "Russian warship, go fuck yourself."',
       objective:    'Hold Snake Island against naval bombardment. Only 6 waves — make them count.',
-      hintWeapons:  ['IGLA','RPG7','PKM'],
     },
     {
       id:           15,
@@ -803,9 +899,9 @@ const GameManager = (function () {
       sunColor:     0xfff0d0,
       sunIntensity: 0.95,
       exposure:     0.95,
+      hintWeapons:  ['Drone Jammer Rifle','Igla MANPADS','Strela-2M (SA-7 MANPADS)'],
       description:  'Aug 2022. Crimea. Light up the Saky airbase — every parked Su-24 is a war crime grounded.',
       objective:    'Airbase raid. Heavy bomber drone presence. Jammer rifle recommended. 7 waves.',
-      hintWeapons:  ['IGLA','BARRETTM82','PKM'],
     },
     {
       id:           16,
@@ -819,11 +915,12 @@ const GameManager = (function () {
       sunIntensity: 0.5,
       exposure:     0.7,
       tankFocus:    true,
-      hintWeapons:  ['NLAW','FGM148Javelin','StugnaP','RPG7'],
+      hintWeapons:  ['NLAW','FGM-148 Javelin','Stugna-P','RPG-7'],
       description:  'Feb 2023. The 155th Naval Infantry Brigade walks into a minefield. Make Vuhledar the largest tank graveyard of the war.',
       objective:    'Tank graveyard. Mines and AT weapons are your friends. 8 waves of armor.',
     },
     {
+      hintWeapons:  ['SV-98 Precision Sniper Rifle','Barrett M82','SVD Dragunov'],
       id:           17,
       name:         'ANTONOV BRIDGE STRIKE',
       theme:        'urban',
@@ -836,7 +933,6 @@ const GameManager = (function () {
       exposure:     0.85,
       description:  'Jul-Aug 2022. HIMARS season. Cut the Antonov Bridge supply line and trap the Russian forces in Kherson.',
       objective:    'Bridge strike. Long-range artillery duels. Precision weapons matter. 7 waves.',
-      hintWeapons:  ['BARRETTM82','STUGNA','SVD'],
     },
     {
       id:           18,
@@ -859,6 +955,22 @@ const GameManager = (function () {
 
   /* ── Last-kill camera tracking ───────────────────────────────── */
   var _lastKillPos = null;  // position of most recent enemy kill
+  var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
+
+  /* ── Smoke Zone System ─────────────────────────────────────── */
+  var _activeSmokeZones = []; // [{x, z, radius, timer}]
+  window._activeSmokeZones = _activeSmokeZones; // exposed for enemies.js detection
+
+  function addSmokeZone(x, z, radius, duration) {
+    _activeSmokeZones.push({ x: x, z: z, radius: radius || 6, timer: duration || 18 });
+  }
+
+  function updateSmokeZones(delta) {
+    for (var si = _activeSmokeZones.length - 1; si >= 0; si--) {
+      _activeSmokeZones[si].timer -= delta;
+      if (_activeSmokeZones[si].timer <= 0) _activeSmokeZones.splice(si, 1);
+    }
+  }
 
   /* ── Suppression System (near-miss visual response) ──────────── */
   var _suppressionLevel = 0;  // 0→1
@@ -1184,6 +1296,13 @@ const GameManager = (function () {
     } catch (_e) {}
     try {
       _renderer = createRendererWithFallback();
+        // Mobile: begin at HIGH quality tier (1) instead of ULTRA (0).
+        // The adaptive system can scale back up if the device handles it.
+        if (isMobile) {
+          setTimeout(function() {
+            if (_perfLevel === 0) _applyPerfLevel(1, null);
+          }, 3000); // after 3s of gameplay data
+        }
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         window._gameScene = _scene; // CollapsePhysics + WorldFeatures use this without circular dep
@@ -1191,7 +1310,8 @@ const GameManager = (function () {
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
         _scene.background = new THREE.Color(fogColor);
-        _scene.fog = new THREE.Fog(fogColor, 18, isMobile ? 55 : 120);
+        // Mobile: tighter fog near (12) makes objects fade sooner, cutting GPU triangle count.
+        _scene.fog = new THREE.Fog(fogColor, isMobile ? 12 : 18, isMobile ? 55 : 120);
 
         // If running in compatibility mode, show a warning overlay
         if (_rendererProfile === 'compatibility') {
@@ -1368,7 +1488,11 @@ const GameManager = (function () {
     _bootStep('tracers');
 
     // Audio, Weather & ML systems
-    _safeInit('audio', function () { if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init(); });
+    _safeInit('audio', function () {
+      if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init();
+      // Apply saved volume after init
+      if (window.AudioSystem && window.AudioSystem.setVolume) window.AudioSystem.setVolume(_audioVolume);
+    });
     _safeInit('weather', function () { if (WeatherSystem && typeof WeatherSystem.init === 'function') WeatherSystem.init(_scene, _camera); });
     _safeInit('ml', function () { if (MLSystem && typeof MLSystem.init === 'function') MLSystem.init(); });
     _safeInit('stagevfx', function () { if (typeof StageVFX !== 'undefined' && StageVFX && typeof StageVFX.init === 'function') StageVFX.init(_scene); });
@@ -1423,6 +1547,30 @@ const GameManager = (function () {
       }
       // ── B29: Destructible environment — explosive weapons destroy blocks ──
       var wType = Weapons.getCurrentType();
+      // Flashbang grenade: stun nearby enemies for 4s via the existing stunInRadius system
+      if (wType === 'FLASHBANG') {
+        var _fbRadius = Weapons.getBlastRadius() || 8;
+        if (typeof Enemies !== 'undefined' && Enemies.stunInRadius) {
+          Enemies.stunInRadius(new THREE.Vector3(x, y, z), _fbRadius, 4.0);
+        }
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💥 FLASHBANG — enemies stunned!', '#ffff44');
+      }
+      // Smoke grenade: create a detection-blocking smoke zone at impact
+      if (wType === 'SMOKE') {
+        addSmokeZone(x, z, Weapons.getBlastRadius() || 6, 18);
+        if (typeof Tracers !== 'undefined' && Tracers.spawnSmoke) {
+          for (var _si2 = 0; _si2 < 12; _si2++) {
+            (function(_sii) {
+              setTimeout(function() {
+                try {
+                  Tracers.spawnSmoke(new THREE.Vector3(x + (Math.random()-0.5)*4, y + 0.3, z + (Math.random()-0.5)*4));
+                } catch(e) {}
+              }, _sii * 200);
+            })(_si2);
+          }
+        }
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💨 SMOKE DEPLOYED — enemies blinded!', '#888888');
+      }
       var isExpl = ['AT', 'ATGM', 'AT_HEAVY', 'AT_LIGHT', 'GRENADE', 'INCENDIARY', 'THERMOBARIC'].indexOf(wType) >= 0;
       if (isExpl && typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
         var bRadius = Weapons.getBlastRadius() || 3;
@@ -1463,17 +1611,21 @@ const GameManager = (function () {
           if (HUD.showToast) HUD.showToast('🛬 RECON COMPLETE — returning to ground combat', 3000, '#44ff88');
         }
       } catch (_edr) {}
-      if (reward > 0 && typeof Marketplace !== 'undefined') {
-        if (Marketplace.awardCustomOKC) {
-          Marketplace.awardCustomOKC(reward, 'mission_complete', {
-            missionName: mission && mission.name ? mission.name : null,
-            missionType: mission && mission.type ? mission.type : null,
-          }).then(function () {
-            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
-          });
-        } else {
-          Marketplace.addOKC(reward);
+      if (reward > 0) {
+        if (typeof Economy !== 'undefined' && Economy.addCurrency) Economy.addCurrency(reward);
+        if (typeof Marketplace !== 'undefined') {
+          if (Marketplace.awardCustomOKC) {
+            Marketplace.awardCustomOKC(reward, 'mission_complete', {
+              missionName: mission && mission.name ? mission.name : null,
+              missionType: mission && mission.type ? mission.type : null,
+            }).then(function () {
+              if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+            });
+          } else {
+            Marketplace.addOKC(reward);
+          }
         }
+        if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
       }
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
@@ -1518,9 +1670,8 @@ const GameManager = (function () {
     if (typeof NPCSystem !== 'undefined' && NPCSystem.setPlayerFormation) NPCSystem.setPlayerFormation(window.__chosenFormation || 'wedge');
     if (player.role === 'brigade' && typeof NPCSystem !== 'undefined' && NPCSystem.spawnAssaultGroups) NPCSystem.spawnAssaultGroups();
 
-    VehicleSystem.clear(); // prevent vehicle duplication on repeated startGame calls
-
     // Spawn starter vehicle fleet on roads (road-level positions)
+    VehicleSystem.clear(); // prevent duplication if forceStartGame is called multiple times
     var roadWPs = (window.VoxelWorld.getRoadWaypoints ? window.VoxelWorld.getRoadWaypoints() : []);
     var _rp0 = roadWPs.length > 2 ? roadWPs[2] : new THREE.Vector3(8, 0, 20);
     var _rp1 = roadWPs.length > 6 ? roadWPs[6] : new THREE.Vector3(12, 0, 20);
@@ -1556,6 +1707,9 @@ const GameManager = (function () {
       if (controlsHint) {
         controlsHint.innerHTML = 'LEFT PAD · MOVE &nbsp;|&nbsp; RIGHT PAD · LOOK &nbsp;|&nbsp; 🔫 FIRE &nbsp;|&nbsp; ◎ AIM &nbsp;|&nbsp; ✋ USE &nbsp;|&nbsp; 🚗 VEHICLE &nbsp;|&nbsp; 🎒 INVENTORY';
       }
+      // Replace keyboard-only grenade hint with touch button reference
+      var grHint = document.getElementById('grenade-keyhint');
+      if (grHint) grHint.textContent = 'tap 💣 button';
     }
 
     // Handle resize
@@ -1651,6 +1805,7 @@ const GameManager = (function () {
                 HUD.notifyPickup('\ud83d\udca3 HOLD [F] TO PLANT CHARGE...', '#ff8800');
                 fHandled = true; // actual planting progress runs in hold-F update loop
               } else if (mt.config.id === 'RESCUE') {
+                // RESCUE: proximity check uses nearest unfreed POW position, not zone center
                 var _mtr = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
                 var _nearPowDist = 999;
                 if (_mtr && _mtr.pows) {
@@ -1661,11 +1816,12 @@ const GameManager = (function () {
                     _nearPowDist = Math.min(_nearPowDist, _mdx2 * _mdx2 + _mdz2 * _mdz2);
                   }
                 }
-                if (_nearPowDist < 25) { // prompt on keydown; hold runs in update loop
+                if (_nearPowDist < 25) { // 5m radius \u2014 show prompt on keydown, hold runs in update loop
                   HUD.notifyPickup('\ud83d\udd13 HOLD [F] TO FREE POW...', '#88ff88');
                   fHandled = true;
                 }
               } else if (mt.config.id === 'DEFUSE') {
+                // DEFUSE: proximity check against nearest undefused bomb position
                 var _mtp = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
                 var _nearBombDist = 999;
                 if (_mtp && _mtp.bombs) {
@@ -1676,7 +1832,7 @@ const GameManager = (function () {
                     _nearBombDist = Math.min(_nearBombDist, _ddx * _ddx + _ddz * _ddz);
                   }
                 }
-                if (_nearBombDist < 36) { // prompt on keydown; hold runs in update loop
+                if (_nearBombDist < 36) { // 6m radius \u2014 show prompt on keydown, hold runs in update loop
                   HUD.notifyPickup('\u23f1\ufe0f HOLD [F] TO DEFUSE...', '#ffcc00');
                   fHandled = true;
                 }
@@ -1979,6 +2135,16 @@ const GameManager = (function () {
           if (bfInd) bfInd.style.display = blindOn ? 'block' : 'none';
         }
 
+        // X key — use airstrike token if available
+        if (e.code === 'KeyX' && gameState === STATE.PLAYING) {
+          if (_airstrikeTokens > 0) {
+            useAirstrikeToken();
+            HUD.notifyPickup('✈ TOKEN USED (' + _airstrikeTokens + ' left)', '#aaddff');
+          } else {
+            HUD.notifyPickup('✈ NO AIRSTRIKE TOKENS', '#888888');
+          }
+        }
+
         // ── B30: Combat Roll (double-tap A/D or Alt+A/D) ──
         if ((e.code === 'KeyA' || e.code === 'KeyD') && keys['AltLeft'] && typeof CombatExtras !== 'undefined' && CombatExtras.tryRoll) {
           var rollDir = new THREE.Vector3();
@@ -2090,19 +2256,21 @@ const GameManager = (function () {
           toggleInventory();
         }
 
-        // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9)
-        if (e.code === 'Digit1') Weapons.switchTo(0);
-        if (e.code === 'Digit2') Weapons.switchTo(1);
-        if (e.code === 'Digit3') Weapons.switchTo(2);
-        if (e.code === 'Digit4' && gameState === STATE.PLAYING) Weapons.switchTo(3);
-        if (e.code === 'Digit5' && gameState === STATE.PLAYING) Weapons.switchTo(4);
-        if (e.code === 'Digit6' && gameState === STATE.PLAYING) Weapons.switchTo(5);
-        if (e.code === 'Digit7' && gameState === STATE.PLAYING) Weapons.switchTo(6);
-        if (e.code === 'Digit8') Weapons.switchTo(7);
-        if (e.code === 'Digit9') Weapons.switchTo(8);
-        if (e.code === 'Digit0') Weapons.switchTo(9);
-        if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
-        if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
+        // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9) — blocked during drone possession
+        if (!DroneSystem.isPossessing()) {
+          if (e.code === 'Digit1') Weapons.switchTo(0);
+          if (e.code === 'Digit2') Weapons.switchTo(1);
+          if (e.code === 'Digit3') Weapons.switchTo(2);
+          if (e.code === 'Digit4' && gameState === STATE.PLAYING) Weapons.switchTo(3);
+          if (e.code === 'Digit5' && gameState === STATE.PLAYING) Weapons.switchTo(4);
+          if (e.code === 'Digit6' && gameState === STATE.PLAYING) Weapons.switchTo(5);
+          if (e.code === 'Digit7' && gameState === STATE.PLAYING) Weapons.switchTo(6);
+          if (e.code === 'Digit8') Weapons.switchTo(7);
+          if (e.code === 'Digit9') Weapons.switchTo(8);
+          if (e.code === 'Digit0') Weapons.switchTo(9);
+          if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
+          if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
+        }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
 
         // Build mode: template selection
@@ -2298,14 +2466,19 @@ const GameManager = (function () {
     document.addEventListener('mousemove', function (e) {
       if (document.pointerLockElement) {
         var stunScale = GameManager._flashbangStun > 0 ? 0.15 : 1;
-        CameraSystem.handleMouseMove(e.movementX * stunScale, e.movementY * stunScale);
+        var sensScale = stunScale * _mouseSensitivity;
+        CameraSystem.handleMouseMove(e.movementX * sensScale, e.movementY * sensScale);
       }
     });
 
     document.addEventListener('wheel', function (e) {
       if (gameState === STATE.PLAYING) {
-        if (e.deltaY > 0) Weapons.switchNext();
-        else if (e.deltaY < 0) Weapons.switchPrev();
+        if (DroneSystem.isPossessing()) {
+          DroneSystem.cyclePayload(e.deltaY > 0 ? 1 : -1);
+        } else {
+          if (e.deltaY > 0) Weapons.switchNext();
+          else if (e.deltaY < 0) Weapons.switchPrev();
+        }
       } else {
         CameraSystem.handleWheel(e.deltaY);
       }
@@ -2661,6 +2834,8 @@ const GameManager = (function () {
     }
   }
 
+  var _payloadBarBound = false;
+
   function showDroneControlsHUD(droneType) {
     var hud = document.getElementById('drone-controls-hud');
     if (!hud) return;
@@ -2679,27 +2854,35 @@ const GameManager = (function () {
     var payloadDisp = document.getElementById('drone-payload-display');
     var modeEl = document.getElementById('drone-view-mode');
 
-    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON' };
+    var names = {
+      fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER',
+      recon: 'RECON', incendiary: 'INCENDIARY', baba_yaga: 'BABA YAGA',
+      bayraktar: 'BAYRAKTAR TB2', kamikaze: 'KAMIKAZE',
+    };
     if (typeLabel) typeLabel.textContent = '\u2014 ' + (names[droneType] || droneType.toUpperCase());
     if (modeEl) modeEl.textContent = 'EYE';
 
-    if (droneType === 'fpv_attack') {
-      if (actionText) actionText.textContent = 'Kamikaze Dive';
-      if (actionHint) actionHint.style.display = '';
-      if (payloadDisp) payloadDisp.style.display = 'none';
-    } else if (droneType === 'bomb') {
-      if (actionText) actionText.textContent = 'Drop Bomb';
-      if (actionHint) actionHint.style.display = '';
-      if (payloadDisp) payloadDisp.style.display = '';
-    } else {
-      if (actionHint) actionHint.style.display = 'none';
-      if (payloadDisp) payloadDisp.style.display = 'none';
+    var hasFire = droneType === 'fpv_attack' || droneType === 'bomb' || droneType === 'incendiary' || droneType === 'baba_yaga' || droneType === 'kamikaze';
+    var actionLabels = { fpv_attack: 'Kamikaze', bomb: 'Drop Bomb', incendiary: 'Drop Fire', baba_yaga: 'Drop Thermite', kamikaze: 'Strike', surveillance: 'Use Payload', recon: 'Use Payload' };
+    if (actionText) actionText.textContent = actionLabels[droneType] || 'Action';
+    if (actionHint) actionHint.style.display = hasFire || droneType === 'surveillance' || droneType === 'recon' ? '' : 'none';
+    if (payloadDisp) payloadDisp.style.display = 'none';
+
+    // Wire payload \u25c4 \u25ba buttons once
+    if (!_payloadBarBound) {
+      _payloadBarBound = true;
+      var btnPL = document.getElementById('drone-payload-prev');
+      var btnPR = document.getElementById('drone-payload-next');
+      if (btnPL) btnPL.addEventListener('click', function(e) { e.stopPropagation(); DroneSystem.cyclePayload(-1); });
+      if (btnPR) btnPR.addEventListener('click', function(e) { e.stopPropagation(); DroneSystem.cyclePayload(1); });
     }
   }
 
   function hideDroneControlsHUD() {
     var hud = document.getElementById('drone-controls-hud');
     if (hud) hud.style.display = 'none';
+    var bar = document.getElementById('drone-payload-bar');
+    if (bar) bar.style.display = 'none';
     _droneControlsVisible = false;
   }
 
@@ -2817,12 +3000,29 @@ const GameManager = (function () {
       }
     }
     if (payloadEl) {
-      if (drone.type === 'bomb') {
+      if (drone.hasPayload) {
         payloadEl.style.display = '';
-        payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
-        payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';
+        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD READY';
+        payloadEl.style.color = '#ffaa00';
+      } else if (drone.type === 'bomb' || drone.type === 'incendiary' || drone.type === 'baba_yaga') {
+        payloadEl.style.display = '';
+        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD DROPPED';
+        payloadEl.style.color = '#666';
       } else {
         payloadEl.style.display = 'none';
+      }
+    }
+
+    // Payload selector bar \u2014 show when possessing any drone with payload options
+    var payloadBar = document.getElementById('drone-payload-bar');
+    var payloadLabel = document.getElementById('drone-payload-label');
+    if (payloadBar) {
+      var activePL = DroneSystem.getActivePayload ? DroneSystem.getActivePayload() : null;
+      if (activePL) {
+        payloadBar.style.display = 'flex';
+        if (payloadLabel) payloadLabel.textContent = (activePL.icon || '') + ' ' + activePL.name;
+      } else {
+        payloadBar.style.display = 'none';
       }
     }
 
@@ -3134,10 +3334,10 @@ const GameManager = (function () {
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined') Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
+    if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.clear) CollapsePhysics.clear(_scene);
     if (typeof Flags !== 'undefined' && Flags.clear) Flags.clear();
     if (typeof Environment !== 'undefined' && Environment.clear) Environment.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
-    if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.clear) CollapsePhysics.clear(_scene);
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
 
     // Respawn organized assault groups for the real gameplay start path
@@ -3199,11 +3399,16 @@ const GameManager = (function () {
 
     // Generate an initial mission. Stage-specific signature missions take priority.
     // droneOnly stages (stage 18 Refinery) handle missions entirely via RefineryStrike.
-    var _initStageDef = STAGES[currentStage];
-    if (!(_initStageDef && _initStageDef.droneOnly)) {
-      if (_initStageDef && _initStageDef.capitalDefense) {
+    if (!(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
+      // __forceMission: set by menu "data-mission" buttons (e.g. Bradley) to bypass random pick
+      var _forcedType = (typeof window !== 'undefined' && window.__forceMission) ? window.__forceMission : null;
+      if (_forcedType) {
+        window.__forceMission = null; // consume once
+        var _forceM = MissionSystem.generateMission(_forcedType);
+        _autoReconDroneForMission(_forceM);
+      } else if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
         MissionSystem.generateMission('kyiv_defense');
-      } else if (_initStageDef && _initStageDef.id === 1) {
+      } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
         MissionSystem.generateMission('airborne_assault');
       } else {
         var _initMission = MissionSystem.generateRandom();
@@ -3360,7 +3565,9 @@ const GameManager = (function () {
 
     // Start stage-specific environmental VFX
     if (typeof StageVFX !== 'undefined' && StageVFX.startStageEffects) {
-      StageVFX.startStageEffects(stageDef.theme, { warzone: !!stageDef.capitalDefense });
+      // cityscape = war-torn city (Moscow/Kremlin) — always gets smoke + artillery flash
+      var _warzoneAtmo = !!stageDef.capitalDefense || stageDef.theme === 'cityscape';
+      StageVFX.startStageEffects(stageDef.theme, { warzone: _warzoneAtmo });
     }
 
     // Spawn water bodies per stage
@@ -3425,6 +3632,9 @@ const GameManager = (function () {
       var _ws = document.getElementById('win-score');  if (_ws) _ws.textContent = player.score;
       var _wk = document.getElementById('win-kills');  if (_wk) _wk.textContent = player.kills;
       var _wst = document.getElementById('win-stages'); if (_wst) _wst.textContent = STAGES.length;
+      var _winHS2 = document.getElementById('win-headshots'); if (_winHS2) _winHS2.textContent = player.totalHeadshots || 0;
+      var _winAcc2 = document.getElementById('win-accuracy'); if (_winAcc2) _winAcc2.textContent = player.totalShots > 0 ? Math.round((player.totalHits / player.totalShots) * 100) : 0;
+      var _winDmg2 = document.getElementById('win-damage'); if (_winDmg2) _winDmg2.textContent = Math.round(player.totalDamageTaken || 0);
       return;
     }
 
@@ -3486,8 +3696,8 @@ const GameManager = (function () {
     if (typeof Tracers !== 'undefined' && Tracers.clear) Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
     if (typeof Environment !== 'undefined' && Environment.clear) Environment.clear();
-    if (typeof WorldFeatures !== 'undefined' && WorldFeatures.clear) WorldFeatures.clear();
     if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.clear) CollapsePhysics.clear(_scene);
+    if (typeof WorldFeatures !== 'undefined' && WorldFeatures.clear) WorldFeatures.clear();
     if (typeof CombatExtras !== 'undefined' && CombatExtras.reset) CombatExtras.reset();
     if (typeof Traversal !== 'undefined' && Traversal.reset) Traversal.reset();
     if (typeof MissionTypes !== 'undefined' && MissionTypes.clear) MissionTypes.clear();
@@ -3509,7 +3719,6 @@ const GameManager = (function () {
       for (var _ubi = 0; _ubi < _urbBuildings.length; _ubi++) {
         var _ubb = _urbBuildings[_ubi];
         if (!_ubb || _ubb.kind !== 'apartment') continue;
-        // 1-2 infantry per floor, random floor, max 3 NPCs per building
         var _ubCount = 1 + Math.floor(Math.random() * 2);
         for (var _ubni = 0; _ubni < _ubCount; _ubni++) {
           var _ubFloor = Math.floor(Math.random() * Math.min(_ubb.floors, 3));
@@ -3549,6 +3758,10 @@ const GameManager = (function () {
     HUD.setStage(stageDef.id, stageDef.name);
     HUD.setWave(0);
 
+    hideOverlays();
+    gameState = STATE.PLAYING;
+    requestPointerLock();
+
     // Clear stale missions from prior stage and seed a fresh stage-appropriate one
     if (typeof MissionSystem !== 'undefined' && MissionSystem.init) MissionSystem.init();
     if (typeof MissionSystem !== 'undefined' && !stageDef.droneOnly) {
@@ -3561,10 +3774,6 @@ const GameManager = (function () {
         _autoReconDroneForMission(_nsM);
       }
     }
-
-    hideOverlays();
-    gameState = STATE.PLAYING;
-    requestPointerLock();
 
     // Announce new stage then show drone selection
     HUD.announceStage(stageDef.id, stageDef.name, stageDef.description, stageDef.objective);
@@ -3643,7 +3852,40 @@ const GameManager = (function () {
     var _battlePlan = (stageDef && stageDef.capitalDefense)
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
+    // Mobile enemy cap: reduce group count to keep frame rate manageable.
+    // Scale reduction by adaptive quality level — low-end devices get fewest enemies.
+    if (isMobile) {
+      if (!_battlePlan) _battlePlan = {};
+      var _mobileGroupCut = _perfLevel >= 3 ? -5 : (_perfLevel >= 2 ? -4 : -3);
+      _battlePlan.groupDelta = (_battlePlan.groupDelta || 0) + _mobileGroupCut;
+    }
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
+
+    // Infantry guarantee: if wave spawned zero ground enemies, force-spawn a minimum squad
+    setTimeout(function() {
+      try {
+        var _droneTypes = { DRONE_OP:1, KAMIKAZE_DRONE:1, SWARM_OP:1, EW_OPERATOR:1 };
+        var alive = Enemies.getAll ? Enemies.getAll().filter(function(e) {
+          return e && e.alive && e.typeName && !_droneTypes[e.typeName];
+        }) : [];
+        console.log('[Wave ' + w + '] Infantry alive after wave start: ' + alive.length + ' / total alive: ' + (Enemies.getAliveCount ? Enemies.getAliveCount() : '?'));
+        if (alive.length === 0) {
+          console.warn('[Wave ' + w + '] NO INFANTRY SPAWNED — forcing minimum squad');
+          var _gTypes = ['CONSCRIPT', 'STORMER', 'ENGINEER'];
+          var _spawnCount = 3 + w;
+          for (var _gi = 0; _gi < _spawnCount; _gi++) {
+            var _gt = _gTypes[_gi % _gTypes.length];
+            var _ga = (_gi / _spawnCount) * Math.PI * 2;
+            var _gr = 20 + Math.random() * 10;
+            Enemies.spawnSingle(_gt, {
+              x: player.position.x + Math.cos(_ga) * _gr,
+              z: player.position.z + Math.sin(_ga) * _gr
+            });
+          }
+        }
+      } catch (e) { console.error('[Wave] infantry-guarantee check failed:', e); }
+    }, 800);
+
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -3652,10 +3894,10 @@ const GameManager = (function () {
     var _eFLabel = ['▲ WEDGE', '━ LINE', '| COLUMN', '⋮ STAGGERED'];
     var _efi = (w + stageDef.id + Math.floor(Math.random() * 2)) % _enemyForms.length;
     if (HUD.notifyPickup) HUD.notifyPickup('INTEL: Enemy formation — ' + _eFLabel[_efi], '#ff8800');
-    if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
-    // Announce side objective so player knows what bonus to aim for this wave
     var _sideObj = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
     if (_sideObj && HUD.notifyPickup) HUD.notifyPickup('⭐ SIDE OBJ: ' + _sideObj.name + ' — ' + _sideObj.desc + ' (+' + _sideObj.reward + ' OKC)', '#ffcc00');
+    if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
+    // Show recommended weapons hint on wave 1 if stage defines them
     if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
       HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
     }
@@ -3666,8 +3908,16 @@ const GameManager = (function () {
         ? EnemyTypes.getBossForStage(stageDef.id) : 'BOSS';
       var _bx = player.position.x + (Math.random() - 0.5) * 20;
       var _bz = player.position.z + 30 + Math.random() * 10;
-      Enemies.spawnSingle(bossType, { x: _bx, z: _bz });
+      Enemies.spawnSingle(bossType, {
+        x: _bx,
+        z: _bz,
+        // omit y so spawnOne() resolves terrain height itself
+      });
       HUD.notifyPickup('⚠ BOSS INCOMING: ' + (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType] ? EnemyTypes.TYPES[bossType].name : 'COMMANDER'), '#ff0000');
+      // Escalate to intense 140-BPM battle theme for boss fight
+      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playBossMusic) {
+        window.AudioSystem.playBossMusic();
+      }
     }
 
     // ═══ Blood Moon effect on final 2 waves ═══
@@ -3745,7 +3995,7 @@ const GameManager = (function () {
         DroneSystem.callBayraktar();
       }
       // Building snipers — enemy sharpshooters on Soviet apartment rooftops
-      // (buildings at x=-15,z=-33/-17/-1 and x=+21,z=-33/-17)
+      // (buildings at x=-15,z=-33/-17/-1 and x=+21,z=-33/-17 per world gen)
       if (w >= 2 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
         var _kyivBuildingPos = [
           { x: -15, z: -33 }, { x: 21, z: -33 },
@@ -3779,6 +4029,7 @@ const GameManager = (function () {
       // Wave 6+: Grad/Uragan artillery salvo warning — area denial for ~8s
       if (w >= 6 && typeof HUD !== 'undefined') {
         HUD.notifyPickup('💥 INCOMING GRAD SALVO — TAKE COVER!', '#ff2222');
+        // Spawn rubble/fire at random spots in the approach corridor
         if (typeof VoxelWorld !== 'undefined' && VoxelWorld.setBlock) {
           for (var _gs = 0; _gs < 4; _gs++) {
             var _gx = (Math.random() - 0.5) * 20;
@@ -3834,7 +4085,25 @@ const GameManager = (function () {
       VehicleSystem.spawnEnemy(ctx, cty, ctz, 'combat');
     }
     if (tankFocus && w === 1) {
-      HUD.notifyPickup('🚀 GRAB AN NLAW OR JAVELIN — STOP THE CONVOY!', '#ffcc44');
+      var _tStageId = stageDef ? stageDef.id : 0;
+      if (_tStageId === 16) {
+        // Vuhledar: minefield tank graveyard — hint mines + AT weapons
+        HUD.notifyPickup('💣 MINEFIELD ACTIVE — USE NLAW/STUGNA + PLACE MINES!', '#ffcc44');
+        // Seed the approach corridor with enemy mines to simulate the real minefield
+        if (typeof WorldFeatures !== 'undefined' && WorldFeatures.placeMine &&
+            typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+          for (var _vm = 0; _vm < 12; _vm++) {
+            var _va = (_vm / 12) * Math.PI * 2;
+            var _vd = 18 + (_vm % 3) * 6 + Math.random() * 4;
+            var _vx = Math.cos(_va) * _vd;
+            var _vz = Math.sin(_va) * _vd;
+            var _vy = VoxelWorld.getTerrainHeight(_vx, _vz);
+            WorldFeatures.placeMine(_vx, _vy, _vz, 'enemy');
+          }
+        }
+      } else {
+        HUD.notifyPickup('🚀 GRAB AN NLAW OR JAVELIN — STOP THE ARMOR!', '#ffcc44');
+      }
     }
 
     // ═══ Building Garrison — enemies occupy buildings each wave ═══
@@ -4071,33 +4340,29 @@ const GameManager = (function () {
         WorldFeatures.placeMine(lmX, lmY, lmZ, 'enemy');
       }
     }
-    // Spawn radiation zones on wave 6 — CHORNOBYL ONLY (stage 7)
-    if (w === 6 && typeof WorldFeatures !== 'undefined' && STAGES[currentStage] && STAGES[currentStage].id === 7) {
-      WorldFeatures.addRadiationZone(player.position.x + 30, player.position.z + 30, 8);
-      WorldFeatures.addRadiationZone(player.position.x - 25, player.position.z + 15, 6);
-      HUD.notifyPickup('☢ CHORNOBYL RADIATION ZONES ACTIVE!', '#00ff00');
+    // Hostomel (id 1): VDV paratroop landing + anti-air warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 1) {
+      HUD.notifyPickup('⚡ VDV PARATROOPERS LANDING — HOLD THE AIRFIELD!', '#ffcc44');
     }
-    // Stage-specific wave-1 flavor notifications (parity with main game-manager)
-    if (w === 1 && STAGES[currentStage]) {
-      var _sid = STAGES[currentStage].id;
-      if (_sid === 1) HUD.notifyPickup('⚡ VDV PARATROOPERS LANDING — HOLD THE AIRFIELD!', '#ffcc44');
-      else if (_sid === 2) HUD.notifyPickup('⚠ SNIPERS IN THE RUINS — KEEP MOVING, USE COVER!', '#ffaa44');
-      else if (_sid === 3) HUD.notifyPickup('☠ WAGNER MERCENARIES — COMING FROM ALL SIDES!', '#ff4444');
-      else if (_sid === 4) HUD.notifyPickup('🌊 DNIPRO CROSSING — LURE ENEMY ARMOR INTO THE RIVER!', '#44aaff');
-      else if (_sid === 5) HUD.notifyPickup('🔥 STEELWORKS INFERNO — FIRE DEALS CONSTANT DAMAGE!', '#ff6600');
-      else if (_sid === 6) HUD.notifyPickup('⚓ NAVAL MARINES AND DRONE STRIKES — HOLD THE KERCH CROSSING!', '#4477ff');
-      else if (_sid === 7) HUD.notifyPickup('☢ RADIATION ACTIVE — CONSTANT EXPOSURE, WATCH YOUR HP!', '#00ff44');
-      else if (_sid === 8) HUD.notifyPickup('🛡 FSB ELITE & ROSGVARDIYA — MAXIMUM RESISTANCE!', '#cc44ff');
-      else if (_sid === 9) HUD.notifyPickup('💥 SHIP ARTILLERY INCOMING — DESTROY THE FLEET!', '#4488ff');
-      else if (_sid === 10) HUD.notifyPickup('☠ DONBAS STRONGHOLD — THERMOBARIC WEAPONS CLEAR TRENCHES!', '#ff4444');
-      else if (_sid === 11) HUD.notifyPickup('⚠ HEAVY ARMORED COUNTER-ATTACK — GRAB ANTI-TANK WEAPONS!', '#ff8800');
-      else if (_sid === 12) HUD.notifyPickup('🏛 KREMLIN — EVERY ENEMY TYPE. MAXIMUM DIFFICULTY. HOLD THE LINE!', '#ff3300');
-      else if (_sid === 13) HUD.notifyPickup('🇺🇦 DEFEND KYIV — STOP THE ARMORED COLUMNS AT ALL COSTS!', '#0057b7');
-      else if (_sid === 14) HUD.notifyPickup('⚓ MOSKVA IS SHELLING — SHELTER AND HOLD THE ISLAND!', '#4477ff');
-      else if (_sid === 15) HUD.notifyPickup('📡 GRAB A JAMMER RIFLE — HEAVY DRONE PRESENCE!', '#ff6600');
-      else if (_sid === 16) HUD.notifyPickup('⚰ TANK GRAVEYARD — USE MINES AND ANTI-TANK WEAPONS!', '#ff8800');
-      else if (_sid === 17) HUD.notifyPickup('🎯 ARTILLERY DUELS — PRECISION WEAPONS REQUIRED. WATCH YOUR RANGE!', '#ffcc44');
-      else if (_sid === 18) HUD.notifyPickup('💥 FPV DRONE ARMED — FLY INTO THE REFINERY. NO SECOND CHANCES!', '#ff6600');
+    // Avdiivka (id 2): sniper warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 2) {
+      HUD.notifyPickup('⚠ SNIPERS IN THE RUINS — KEEP MOVING, USE COVER!', '#ffaa44');
+    }
+    // Bakhmut (id 3): Wagner multi-directional assault warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 3) {
+      HUD.notifyPickup('☠ WAGNER MERCENARIES — COMING FROM ALL SIDES!', '#ff4444');
+    }
+    // Kherson (id 4): river/armor warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 4) {
+      HUD.notifyPickup('🌊 DNIPRO CROSSING — LURE ENEMY ARMOR INTO THE RIVER!', '#44aaff');
+    }
+    // Snake Island (id 14): warn about Moskva bombardment at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 14) {
+      HUD.notifyPickup('⚓ MOSKVA IS SHELLING — SHELTER AND HOLD THE ISLAND!', '#4477ff');
+    }
+    // Sevastopol (id 9): ship artillery warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 9) {
+      HUD.notifyPickup('💥 SHIP ARTILLERY INCOMING — DESTROY THE FLEET!', '#4488ff');
     }
     // Hostomel (id 1): VDV paratroopers drop from altitude each wave
     if (STAGES[currentStage] && STAGES[currentStage].id === 1 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
@@ -4118,25 +4383,77 @@ const GameManager = (function () {
         Enemies.spawnSingle('DRONE_OP', new THREE.Vector3(_voX, VoxelWorld.getTerrainHeight(_voX, _voZ), _voZ));
       }
     }
-    // Belgorod (id 11): extra BTR spawn at wave 1 to reflect armored counter-attack
-    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 11 && !capitalDefense && typeof VehicleSystem !== 'undefined') {
-      var _bgrA = Math.random() * Math.PI * 2;
-      var _bgrD = 35 + Math.random() * 10;
-      var _bgrX = Math.cos(_bgrA) * _bgrD;
-      var _bgrZ = Math.sin(_bgrA) * _bgrD;
-      VehicleSystem.spawnEnemy(_bgrX, VoxelWorld.getTerrainHeight(_bgrX, _bgrZ), _bgrZ, 'combat');
+    // Belgorod (id 11): heavy counter-attack warning + extra armor at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 11) {
+      HUD.notifyPickup('⚠ HEAVY ARMORED COUNTER-ATTACK — GRAB ANTI-TANK WEAPONS!', '#ff8800');
+      // Extra BTR spawn from wave 1 to reflect "tanks and mech infantry counter-attack"
+      if (!capitalDefense && typeof VehicleSystem !== 'undefined') {
+        var _bgrA = Math.random() * Math.PI * 2;
+        var _bgrD = 35 + Math.random() * 10;
+        var _bgrX = Math.cos(_bgrA) * _bgrD;
+        var _bgrZ = Math.sin(_bgrA) * _bgrD;
+        VehicleSystem.spawnEnemy(_bgrX, VoxelWorld.getTerrainHeight(_bgrX, _bgrZ), _bgrZ, 'combat');
+      }
     }
-    // Saky airbase (id 15): extra kamikaze drone surge at wave start (periodic handled in update loop)
+    // Saky airbase (id 15): extra drone spawns each wave + jammer hint at wave 1
     if (STAGES[currentStage] && STAGES[currentStage].id === 15) {
+      if (w === 1) HUD.notifyPickup('📡 GRAB A JAMMER RIFLE — HEAVY DRONE PRESENCE!', '#ff6600');
+      // Spawn 1+floor(w/2) extra KAMIKAZE_DRONEs at the airbase perimeter
       var _sakySurge = 1 + Math.floor(w / 2);
       for (var _sdi = 0; _sdi < _sakySurge; _sdi++) {
-        var _saA = Math.random() * Math.PI * 2;
-        var _saD = 28 + _sdi * 5 + Math.random() * 5;
-        var _saX = player.position.x + Math.cos(_saA) * _saD;
-        var _saZ = player.position.z + Math.sin(_saA) * _saD;
-        var _saY = VoxelWorld.getTerrainHeight(_saX, _saZ) + 7;
-        if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_saX, _saY, _saZ));
+        var _sa = Math.random() * Math.PI * 2;
+        var _sd = 28 + _sdi * 5 + Math.random() * 5;
+        var _sx = player.position.x + Math.cos(_sa) * _sd;
+        var _sz = player.position.z + Math.sin(_sa) * _sd;
+        var _sy = VoxelWorld.getTerrainHeight(_sx, _sz) + 7;
+        if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_sx, _sy, _sz));
       }
+    }
+    // Mariupol (id 5): fire hazard warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 5) {
+      HUD.notifyPickup('🔥 STEELWORKS INFERNO — FIRE DEALS CONSTANT DAMAGE!', '#ff6600');
+    }
+    // Crimea Bridge (id 6): naval marines + drone warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 6) {
+      HUD.notifyPickup('⚓ NAVAL MARINES AND DRONE STRIKES — HOLD THE KERCH CROSSING!', '#4477ff');
+    }
+    // Chornobyl (id 7): radiation warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 7) {
+      HUD.notifyPickup('☢ RADIATION ACTIVE — CONSTANT EXPOSURE, WATCH YOUR HP!', '#00ff44');
+    }
+    // Outer Moscow (id 8): elite defenders warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 8) {
+      HUD.notifyPickup('🛡 FSB ELITE & ROSGVARDIYA — MAXIMUM RESISTANCE!', '#cc44ff');
+    }
+    // Donbas (id 10): thermobaric weapons reminder at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 10) {
+      HUD.notifyPickup('☠ DONBAS STRONGHOLD — THERMOBARIC WEAPONS CLEAR TRENCHES!', '#ff4444');
+    }
+    // Kremlin (id 12): final battle warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 12) {
+      HUD.notifyPickup('🏛 KREMLIN — EVERY ENEMY TYPE. MAXIMUM DIFFICULTY. HOLD THE LINE!', '#ff3300');
+    }
+    // Kyiv (id 13): defend the capital at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 13) {
+      HUD.notifyPickup('🇺🇦 DEFEND KYIV — STOP THE ARMORED COLUMNS AT ALL COSTS!', '#0057b7');
+    }
+    // Antonov (id 17): long-range artillery duel warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 17) {
+      HUD.notifyPickup('🎯 ARTILLERY DUELS — PRECISION WEAPONS REQUIRED. WATCH YOUR RANGE!', '#ffcc44');
+    }
+    // Vuhledar (id 16): tank graveyard warning at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 16) {
+      HUD.notifyPickup('⚰ TANK GRAVEYARD — USE MINES AND ANTI-TANK WEAPONS!', '#ff8800');
+    }
+    // Refinery (id 18): FPV drone mission start at wave 1
+    if (w === 1 && STAGES[currentStage] && STAGES[currentStage].id === 18) {
+      HUD.notifyPickup('💥 FPV DRONE ARMED — FLY INTO THE REFINERY. NO SECOND CHANCES!', '#ff6600');
+    }
+    // Spawn radiation zones in Chornobyl stage (ID 7) on wave 6
+    if (w === 6 && typeof WorldFeatures !== 'undefined' && STAGES[currentStage] && STAGES[currentStage].id === 7) {
+      WorldFeatures.addRadiationZone(player.position.x + 30, player.position.z + 30, 8);
+      WorldFeatures.addRadiationZone(player.position.x - 25, player.position.z + 15, 6);
+      HUD.notifyPickup('☢ CHORNOBYL RADIATION ZONES ACTIVE!', '#00ff00');
     }
     // Bakhmut (id 3): Wagner surrounds from all angles each wave
     if (STAGES[currentStage] && STAGES[currentStage].id === 3 && typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
@@ -4395,8 +4712,9 @@ const GameManager = (function () {
     if (typeof CombatExtras !== 'undefined') {
       CombatExtras.reset();
     }
-    // Capture total after ALL spawning for correct progress bar denominator
+    // Capture total after ALL spawning (garrison, convoys, stage-specific) for correct progress bar denominator
     player._waveStartCount = Enemies.getAliveCount();
+    // Re-announce with correct enemy count now that all spawning is complete
     HUD.announceWave(w, player._waveStartCount, stageDef.wavesPerStage);
   }
 
@@ -4512,9 +4830,10 @@ const GameManager = (function () {
         shotsHit: player.waveHits,
         hpAtEnd: player.hp,
         ammoPercent: _ammoPercent,
-        meleeKills: player.waveMeleeKills || 0,
-        firstKillTime: player.waveFirstKillTime || 0,
-        maxExplosiveKill: player.waveMaxExplosiveKill || 0,
+        meleeKills: player.waveMeleeKills,
+        firstKillTime: player.waveFirstKillTime,
+        undetectedTime: 0,
+        maxExplosiveKill: player.waveMaxExplosiveKill,
       });
       if (sideResult && sideResult.completed) {
         if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
@@ -4538,7 +4857,7 @@ const GameManager = (function () {
     var _snapWaveDmg = player.waveDamageTaken;
     var _snapWaveTime = Math.round((performance.now() - (player.waveStartTime || performance.now())) / 1000);
 
-    // Reset wave stats (AFTER side objective check so objectives have accurate data)
+    // Reset wave stats (AFTER all tracking above)
     player.waveKills = 0;
     player.waveShots = 0;
     player.waveHits = 0;
@@ -4575,7 +4894,7 @@ const GameManager = (function () {
 
     // ── B27: Economy wave hooks ──
     if (typeof Economy !== 'undefined') {
-      Economy.produce();
+      Economy.produce(); // production cycle per wave
       if (Economy.processInvestments) Economy.processInvestments();
       if (Economy.triggerRandomEvent && Math.random() < 0.3) {
         Economy.triggerRandomEvent();
@@ -4652,6 +4971,9 @@ const GameManager = (function () {
         showOverlay('win');
         document.getElementById('win-score').textContent = player.score;
         document.getElementById('win-kills').textContent = player.kills;
+        var _winHS = document.getElementById('win-headshots'); if (_winHS) _winHS.textContent = player.totalHeadshots || 0;
+        var _winAcc = document.getElementById('win-accuracy'); if (_winAcc) _winAcc.textContent = player.totalShots > 0 ? Math.round((player.totalHits / player.totalShots) * 100) : 0;
+        var _winDmg = document.getElementById('win-damage'); if (_winDmg) _winDmg.textContent = Math.round(player.totalDamageTaken || 0);
         document.getElementById('win-stages').textContent = STAGES.length;
         return;
       }
@@ -4709,6 +5031,22 @@ const GameManager = (function () {
       var nextCount = 3 + currentWave * 2;
       shopEnemies.textContent = nextCount + ' enemies incoming';
     }
+    // Show next wave enemy types preview
+    var shopNextThreat = document.getElementById('shop-next-threat');
+    if (shopNextThreat && typeof EnemyTypes !== 'undefined' && EnemyTypes.WAVE_COMPOSITIONS) {
+      var _nwComp = EnemyTypes.WAVE_COMPOSITIONS[Math.min(currentWave + 1, 24)];
+      if (_nwComp && _nwComp.types) {
+        var _threatIcons = { CONSCRIPT: '🪖', STORMER: '⚔', ARMORED: '🛡', SNIPER_ELITE: '🎯', BOMBER: '💣', TANK: '🚂', DRONE_OP: '📡', BTR: '🚗', SPETSNAZ: '🕶', MEDIC: '➕', WAGNER: '☠', BOSS: '👑', FLAMETHROWER: '🔥', KADYROVITE: '🐍', COMMISSAR: '📣', MORTAR: '💥', PARATROOP: '🪂', WAR_DOG: '🐕', KAMIKAZE_DRONE: '🚁', OFFICER: '🎖' };
+        var _seen = [];
+        for (var _ti = 0; _ti < _nwComp.types.length && _seen.length < 5; _ti++) {
+          var _tp = _nwComp.types[_ti];
+          if (_tp !== 'BOSS') { var _ic = _threatIcons[_tp] || '⚠'; if (_seen.indexOf(_ic) === -1) _seen.push(_ic); }
+        }
+        shopNextThreat.textContent = _seen.join(' ');
+      } else {
+        shopNextThreat.textContent = '';
+      }
+    }
     // Reset shop buttons
     var shopBtns = document.querySelectorAll('.shop-buy-btn');
     for (var si = 0; si < shopBtns.length; si++) {
@@ -4717,7 +5055,7 @@ const GameManager = (function () {
       shopBtns[si].style.color = '';
     }
     // Restore button text
-    var btnTexts = { health: '\u2764\uFE0F Health +50 \u00B7 40 OKC', armor: '\uD83D\uDEE1\uFE0F Armor Pack \u00B7 60 OKC', ammo: '\uD83D\uDD2B Full Ammo \u00B7 30 OKC', stim: '\uD83D\uDC89 Stim Pack \u00B7 50 OKC' };
+    var btnTexts = { health: '\u2764\uFE0F Health +50 \u00B7 40 OKC', armor: '\uD83D\uDEE1\uFE0F Armor Pack \u00B7 60 OKC', ammo: '\uD83D\uDD2B Full Ammo \u00B7 30 OKC', stim: '\uD83D\uDC89 Stim Pack \u00B7 50 OKC', dmgboost: '\uD83D\uDD25 Damage +25% \u00B7 60 OKC', airstrike_tok: '\u2708 Airstrike Token \u00B7 90 OKC' };
     for (var si2 = 0; si2 < shopBtns.length; si2++) {
       var itemId = shopBtns[si2].getAttribute('data-item');
       if (btnTexts[itemId]) shopBtns[si2].textContent = btnTexts[itemId];
@@ -4958,6 +5296,16 @@ const GameManager = (function () {
       player._stimTimer -= delta;
     }
 
+    // Damage boost decay
+    if (_dmgBoostTimer > 0) {
+      _dmgBoostTimer -= delta;
+      if (_dmgBoostTimer <= 0) {
+        _dmgBoostMult = 1.0;
+        _dmgBoostTimer = 0;
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('🔥 Damage boost expired', '#888');
+      }
+    }
+
     // ── B24: Crouch height + slide + cover detection ──
     if (!player.prone) {
       var targetH = player.isCrouching ? 1.1 : 1.7;
@@ -5076,8 +5424,9 @@ const GameManager = (function () {
     CameraSystem.update(delta, player.position, isMoving, player.onGround);
     // Update kill cam override (blocks mouse-look while active)
     if (CameraSystem.updateKillCam) CameraSystem.updateKillCam(delta);
-    // Update suppression visual
+    // Update suppression visual and smoke zones
     updateSuppression(delta);
+    updateSmokeZones(delta);
 
     // Player footstep sounds
     if (isMoving && player.onGround && typeof AudioSystem !== 'undefined') {
@@ -5103,20 +5452,10 @@ const GameManager = (function () {
 
   /* ── Combat ──────────────────────────────────────────────────────── */
   function updateCombat(delta) {
-    // Drone combat: LMB triggers drone action
+    // Drone combat: LMB triggers drone action (only on new press, not held)
     if (DroneSystem.isPossessing()) {
-      if (mouseDown || touch.firing) {
-        const drone = DroneSystem.getPossessed();
-        if (drone) {
-          if (drone.type === 'fpv_attack') {
-            DroneSystem.fireAttack(drone.id);
-          } else if (drone.type === 'bomb' && drone.hasPayload) {
-            DroneSystem.dropPayload(drone.id);
-          } else if ((drone.type === 'incendiary' || drone.type === 'baba_yaga') && drone.hasPayload) {
-            DroneSystem.dropFire(drone.id);
-            if (drone.type === 'baba_yaga') HUD.notifyPickup('🔥 THERMITE DROPPED!', '#ff6600');
-          }
-        }
+      if (mouseNewPress && (mouseDown || touch.firing)) {
+        DroneSystem.useActivePayload();
         mouseNewPress = false;
       }
       return;
@@ -5317,7 +5656,7 @@ const GameManager = (function () {
     MLSystem.trackCombatEngagement(engageRange < 10);
 
     const isHeadshot = hit.object === enemy.mesh.userData.headMesh;
-    let baseDmg = Weapons.getDamage();
+    let baseDmg = Math.round(Weapons.getDamage() * _dmgBoostMult);
 
     // ═══ NEW: Apply ammo type and perk damage modifiers ═══
     if (typeof CombatExtras !== 'undefined') {
@@ -5329,10 +5668,23 @@ const GameManager = (function () {
       baseDmg = Math.round(baseDmg * Perks.getDeadEyeMult());
       HUD.notifyPickup('🎯 DEAD EYE CRIT!', '#ff4400');
     }
+    // Marksman proc — previous headshot grants +30% to this shot
+    if (typeof Perks !== 'undefined' && Perks.getMarksmanMult() > 1.0) {
+      baseDmg = Math.round(baseDmg * Perks.getMarksmanMult());
+      Perks.consumeMarksman();
+      HUD.notifyPickup('🔭 MARKSMAN!', '#4488ff');
+    }
     // Prestige damage bonus
     if (typeof Progression !== 'undefined') {
       var pBonuses = Progression.getPrestigeBonuses();
       baseDmg = Math.round(baseDmg * pBonuses.damageMult);
+    }
+    // Per-weapon crit roll — precision weapons only, independent of headshot
+    var _wepCfgCrit = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent() : null;
+    if (_wepCfgCrit && _wepCfgCrit.critChance && !isHeadshot && Math.random() < _wepCfgCrit.critChance) {
+      baseDmg = Math.round(baseDmg * (_wepCfgCrit.critMult || 2.0));
+      HUD.notifyPickup('💥 CRITICAL HIT! ×' + (_wepCfgCrit.critMult || 2).toFixed(1), '#ff6600');
+      if (typeof AudioSystem !== 'undefined' && AudioSystem.playCriticalHit) AudioSystem.playCriticalHit();
     }
     const dmg = isHeadshot ? baseDmg * 2 : baseDmg;
 
@@ -5369,6 +5721,7 @@ const GameManager = (function () {
       player.score += 50;
       player.totalHeadshots++;
       player.waveHeadshots++;
+      if (typeof Perks !== 'undefined' && Perks.onHeadshot) Perks.onHeadshot();
     }
 
     if (remaining <= 0) {
@@ -5585,7 +5938,17 @@ const GameManager = (function () {
       }
       // Perk: kill tracking & killstreaks
       if (typeof Perks !== 'undefined') {
+        var _streaksBefore = Perks.getAvailableStreaks().length;
         Perks.onKill();
+        // Notify new killstreak earned
+        var _streaksAfter = Perks.getAvailableStreaks().length;
+        if (_streaksAfter > _streaksBefore) {
+          var _newStreak = Perks.getAvailableStreaks()[_streaksAfter - 1];
+          if (typeof HUD !== 'undefined' && HUD.showToast) {
+            HUD.showToast(_newStreak.icon + ' KILLSTREAK: ' + _newStreak.name + ' READY!', 3000, '#ff8800');
+          }
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
+        }
         // Scavenger auto-loot
         var scavRange = Perks.getScavengerRange();
         if (scavRange > 0) {
@@ -5693,18 +6056,6 @@ const GameManager = (function () {
       }
       if (HUD.showStreak) HUD.showStreak(player.killStreak, streakMult);
 
-      // Wire enemy kill to MissionTypes ASSASSINATION tracking
-      if (typeof MissionTypes !== 'undefined' && MissionTypes.getActive && MissionTypes.getActive()) {
-        var mt = MissionTypes.getActive();
-        if (mt.config && mt.config.id === 'ASSASSINATION' && enemy.mesh) {
-          var mtDx = enemy.mesh.position.x - mt.zoneX;
-          var mtDz = enemy.mesh.position.z - mt.zoneZ;
-          if (mtDx * mtDx + mtDz * mtDz < 400) {
-            MissionTypes.interact('DAMAGE_HVT', { damage: dmg });
-          }
-        }
-      }
-
       // Dog tag collection (every kill drops a dog tag)
       player.dogTags++;
       if (player.dogTags % 10 === 0) {
@@ -5756,7 +6107,7 @@ const GameManager = (function () {
         };
         var enemyTypeName = (enemy.typeCfg && enemy.typeCfg.name) || 'CONSCRIPT';
         var dropWeaponId = (enemyTypeName in _ENEMY_WEAPONS) ? _ENEMY_WEAPONS[enemyTypeName] : 'AK74';
-        if (!dropWeaponId) dropWeaponId = null; // null = no weapon drop for this type
+        if (!dropWeaponId) dropWeaponId = null;
         // Find weapon index by ID
         var dropIdx = -1;
         var wCount = Weapons.getWeaponCount();
@@ -5812,6 +6163,7 @@ const GameManager = (function () {
   function onPlayerHit(dmg, attackerPos) {
     if (gameState !== STATE.PLAYING) return; // can't take damage when dead/paused
     if (player.godMode) return; // God mode: immune to damage
+    if (DroneSystem.isPossessing()) return; // player body is passive while piloting drone
     // Shield absorbs damage
     if (player.shieldTimer > 0) {
       HUD.notifyPickup('🛡 SHIELDED!', '#ffd700');
@@ -5997,12 +6349,27 @@ const GameManager = (function () {
       var _dtEl = document.getElementById('dead-title');
       if (_dtEl) _dtEl.textContent = _defeatReason || 'YOU DIED';
       _defeatReason = null;
-      showOverlay('dead');
 
-      var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
-      var _dsc = document.getElementById('dead-score');  if (_dsc) _dsc.textContent = player.score;
-      var _dk = document.getElementById('dead-kills');   if (_dk) _dk.textContent = player.kills;
-      var _dw = document.getElementById('dead-wave');    if (_dw) _dw.textContent = currentWave;
+      // Dramatic death flash — red vignette → black before overlay appears
+      var _deathFlashEl = document.getElementById('death-flash');
+      if (_deathFlashEl) {
+        _deathFlashEl.style.display = 'block';
+        _deathFlashEl.classList.remove('active');
+        // Force reflow so animation re-triggers
+        void _deathFlashEl.offsetWidth;
+        _deathFlashEl.classList.add('active');
+      }
+      // Flatline audio cue
+      if (window.AudioSystem && window.AudioSystem.playFlatline) window.AudioSystem.playFlatline();
+
+      // Delay death overlay by 1.2s for dramatic effect
+      setTimeout(function() {
+        if (_deathFlashEl) { _deathFlashEl.classList.remove('active'); _deathFlashEl.style.display = 'none'; }
+        showOverlay('dead');
+        var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
+        var _dsc = document.getElementById('dead-score');  if (_dsc) _dsc.textContent = player.score;
+        var _dk = document.getElementById('dead-kills');   if (_dk) _dk.textContent = player.kills;
+        var _dw = document.getElementById('dead-wave');    if (_dw) _dw.textContent = currentWave;
 
       // ── Gameplay Tip Overlay on Death ──
       var tips = [
@@ -6080,6 +6447,7 @@ const GameManager = (function () {
           distance: Math.round(player.distanceWalked),
         });
       }
+      }, 1200); // end of death overlay setTimeout
     }
   }
 
@@ -6093,20 +6461,21 @@ const GameManager = (function () {
   var _PERF_MAX_LEVEL = 3;
   var _lowFpsStreak = 0;
   var _highFpsStreak = 0;
-  var _baseFogFar = isMobile ? 55 : 120;   // saved at first fog init
-  var _baseShadowsEnabled = true;
+  var _baseFogFar = isMobile ? 55 : 120;
+  // Mobile renderer is always created without shadows; never re-enable them.
+  var _baseShadowsEnabled = !isMobile;
   var _basePixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.1 : 1.5);
 
-  // Absolute (non-cumulative) quality apply — safe to call in any direction
   function _applyPerfLevel(level, fps) {
     _perfLevel = Math.max(0, Math.min(level, _PERF_MAX_LEVEL));
     _qualityReduced = _perfLevel > 0;
     try {
       var pr, fogFar, shadows;
       if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled; _lowEndVFX = false; }
-      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = true; _lowEndVFX = false; }
-      else if (_perfLevel === 2) { pr = 1.0; fogFar = 60; shadows = false; _lowEndVFX = false; }
-      else                       { pr = 0.7; fogFar = 45; shadows = false; _lowEndVFX = true; }
+      // Level 1: slightly reduced pixel ratio + tighter fog; no shadows on mobile.
+      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = !isMobile; _lowEndVFX = false; }
+      else if (_perfLevel === 2) { pr = isMobile ? 0.9 : 1.0; fogFar = isMobile ? 45 : 60; shadows = false; _lowEndVFX = false; }
+      else                       { pr = isMobile ? 0.75 : 0.7; fogFar = isMobile ? 35 : 45; shadows = false; _lowEndVFX = true; }
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
       if (sunLight) sunLight.castShadow = shadows;
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
@@ -6138,17 +6507,23 @@ const GameManager = (function () {
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
-    if (_perfCheckTimer > 2 && _fpsSamples > 8) {
+    // Mobile: check every 1.5s (react faster to low FPS); desktop: 2s
+    var _perfInterval = isMobile ? 1.5 : 2.0;
+    var _fpsDrop = isMobile ? 28 : 38;   // mobile starts downgrading at 28 FPS
+    var _fpsRecover = isMobile ? 50 : 65; // mobile recovers quality at 50 FPS
+    if (_perfCheckTimer > _perfInterval && _fpsSamples > 6) {
       var avgFps = _fpsSamples / _fpsAccum;
-      // Step DOWN: sustained < 38 FPS for 2 windows (~4s)
-      if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
-      else if (avgFps > 65) { _highFpsStreak++; _lowFpsStreak = 0; }
+      if (avgFps < _fpsDrop) { _lowFpsStreak++; _highFpsStreak = 0; }
+      else if (avgFps > _fpsRecover) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
-      if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
+      // Fast-drop: mobile critically-low FPS (<20) skips the streak check and downgrades immediately.
+      if (isMobile && avgFps < 20 && _perfLevel < _PERF_MAX_LEVEL) {
+        _applyPerfLevel(_perfLevel + 1, avgFps);
+        _lowFpsStreak = 0;
+      } else if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
       }
-      // Step UP: sustained > 65 FPS for 3 windows (~6s) if quality was reduced
       if (_highFpsStreak >= 3 && _perfLevel > 0) {
         _applyPerfLevel(_perfLevel - 1, avgFps);
         _highFpsStreak = 0;
@@ -6291,17 +6666,6 @@ const GameManager = (function () {
         }
       }
 
-      // ── DONBAS: Suppressive trench fire — accuracy debuff (stage 10) ──
-      if (STAGES[currentStage] && STAGES[currentStage].id === 10 && gameState === STATE.PLAYING) {
-        player._trenchSuppressionTimer = (player._trenchSuppressionTimer || 0) + delta;
-        if (player._trenchSuppressionTimer >= 8.0 + Math.random() * 5) {
-          player._trenchSuppressionTimer = 0;
-          if (Math.random() < 0.30) {
-            _suppressionLevel = Math.min(1, _suppressionLevel + 0.3);
-            if (HUD.notifyPickup) HUD.notifyPickup('Suppressive fire!', '#ffaa00');
-          }
-        }
-      }
       // ── ANTONOV BRIDGE: Enemy long-range artillery strikes (stage 17) ──
       if (STAGES[currentStage] && STAGES[currentStage].id === 17 && gameState === STATE.PLAYING) {
         player._antonovArtillTimer = (player._antonovArtillTimer || 0) + delta;
@@ -6319,6 +6683,18 @@ const GameManager = (function () {
             if (HUD.showDamageFlash) HUD.showDamageFlash(0xff8800, 0.35);
             if (typeof Feedback !== 'undefined' && Feedback.screenShake) Feedback.screenShake(0.9);
             if (HUD.notifyPickup) HUD.notifyPickup('🔥 Enemy artillery strike!', '#ff8800');
+          }
+        }
+      }
+
+      // ── DONBAS: Suppressive trench fire — accuracy debuff (stage 10) ──
+      if (STAGES[currentStage] && STAGES[currentStage].id === 10 && gameState === STATE.PLAYING) {
+        player._trenchSuppressionTimer = (player._trenchSuppressionTimer || 0) + delta;
+        if (player._trenchSuppressionTimer >= 8.0 + Math.random() * 5) {
+          player._trenchSuppressionTimer = 0;
+          if (Math.random() < 0.30) {
+            _suppressionLevel = Math.min(1, _suppressionLevel + 0.3);
+            if (HUD.notifyPickup) HUD.notifyPickup('Suppressive fire!', '#ffaa00');
           }
         }
       }
@@ -6350,12 +6726,12 @@ const GameManager = (function () {
         if (player._sakyDroneTimer >= 18.0 + Math.random() * 10) {
           player._sakyDroneTimer = 0;
           if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-            var _sdAngle2 = Math.random() * Math.PI * 2;
-            var _sdDist2  = 30 + Math.random() * 15;
-            var _sdX2 = player.position.x + Math.cos(_sdAngle2) * _sdDist2;
-            var _sdZ2 = player.position.z + Math.sin(_sdAngle2) * _sdDist2;
-            var _sdY2 = VoxelWorld.getTerrainHeight(_sdX2, _sdZ2) + 8;
-            Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_sdX2, _sdY2, _sdZ2));
+            var _sdAngle = Math.random() * Math.PI * 2;
+            var _sdDist  = 30 + Math.random() * 15;
+            var _sdX = player.position.x + Math.cos(_sdAngle) * _sdDist;
+            var _sdZ = player.position.z + Math.sin(_sdAngle) * _sdDist;
+            var _sdY = VoxelWorld.getTerrainHeight(_sdX, _sdZ) + 8;
+            Enemies.spawnSingle('KAMIKAZE_DRONE', new THREE.Vector3(_sdX, _sdY, _sdZ));
             if (HUD.notifyPickup) HUD.notifyPickup('⚠ KAMIKAZE DRONE INCOMING!', '#ff6600');
           }
         }
@@ -7044,9 +7420,11 @@ const GameManager = (function () {
             _wpT = _md.spawnPositions[Math.floor(_md.spawnPositions.length / 2)];
           }
         }
-        // MissionTypes scripted missions (RESCUE, DEFUSE, DEMOLITION, etc.)
+        // MissionTypes scripted missions (DEMOLITION, CAPTURE_ZONE, ASSASSINATION, RESCUE, DEFUSE):
+        // zone coordinates are zoneX/zoneZ on the active mission — point waypoint there.
         if (!_wpT && typeof MissionTypes !== 'undefined' && MissionTypes.getActive && MissionTypes.getActive()) {
           var _mt = MissionTypes.getActive();
+          // RESCUE: point to nearest unfreed POW
           if (_mt.config && _mt.config.id === 'RESCUE') {
             var _mpProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
             if (_mpProg && _mpProg.pows) {
@@ -7059,6 +7437,7 @@ const GameManager = (function () {
               }
             }
           }
+          // DEFUSE: point to nearest undefused bomb
           if (!_wpT && _mt.config && _mt.config.id === 'DEFUSE') {
             var _mfProg = MissionTypes.getProgress ? MissionTypes.getProgress() : null;
             if (_mfProg && _mfProg.bombs) {
@@ -7071,6 +7450,7 @@ const GameManager = (function () {
               }
             }
           }
+          // All other types: fall back to zone center
           if (!_wpT && typeof _mt.zoneX === 'number' && typeof _mt.zoneZ === 'number') {
             _wpT = { x: _mt.zoneX, y: VoxelWorld.getTerrainHeight(_mt.zoneX, _mt.zoneZ), z: _mt.zoneZ };
           }
@@ -7115,7 +7495,8 @@ const GameManager = (function () {
         var mmNPCs = (typeof NPCSystem !== 'undefined' && NPCSystem.getAll) ? NPCSystem.getAll() : [];
         var mmVehicles = (typeof VehicleSystem !== 'undefined' && VehicleSystem.getAll) ? VehicleSystem.getAll() : [];
         var mmDrones = (typeof DroneSystem !== 'undefined' && DroneSystem.getAll) ? DroneSystem.getAll() : [];
-        HUD.updateMinimap(player.position.x, player.position.z, CameraSystem.getYaw(), mmEnemies, mmNPCs, mmVehicles, mmDrones);
+        var mmOpts = { uav: (typeof Perks !== 'undefined' && Perks.isUAVActive && Perks.isUAVActive()) };
+        HUD.updateMinimap(player.position.x, player.position.z, CameraSystem.getYaw(), mmEnemies, mmNPCs, mmVehicles, mmDrones, null, mmOpts);
       }
 
       // Targeting assistant (on-weapon enemy readout)
@@ -7478,6 +7859,7 @@ const GameManager = (function () {
       }
 
       // Hold-F mission interact: per-frame continuous progress for RESCUE/DEFUSE
+      // _hfNotifCd throttles the per-frame HUD notification so it refreshes ~4 Hz not 60 Hz
       if (!player._hfNotifCd) player._hfNotifCd = 0;
       player._hfNotifCd = Math.max(0, player._hfNotifCd - delta);
       if (keys && keys['KeyF'] && typeof MissionTypes !== 'undefined' && MissionTypes.getActive && MissionTypes.getActive()) {
@@ -7605,13 +7987,16 @@ const GameManager = (function () {
                 } else if (typeof Marketplace !== 'undefined') {
                   Marketplace.addOKC(reward.okc);
                 }
+                if (typeof Economy !== 'undefined' && Economy.addCurrency) Economy.addCurrency(reward.okc);
                 if (typeof RankSystem !== 'undefined') RankSystem.addXP(reward.xp);
                 if (typeof Progression !== 'undefined') Progression.trackStat('wavesCleared', 0); // mission tracking
+                if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
               }
               mTracker.style.display = 'none';
             } else if (missionResult.state === 'FAILED') {
               var _failMsg = { TIME_UP: 'Time ran out', DETONATION: 'Bomb detonated', VIP_DEAD: 'VIP eliminated' }[missionResult.reason] || (missionResult.reason || 'Mission failed');
               HUD.notifyPickup('❌ MISSION FAILED: ' + _failMsg, '#ff4444');
+              // DEFUSE detonation: bombs explode — deal blast damage to player
               if (missionResult.reason === 'DETONATION' && !player.godMode) {
                 var _defCfg = MissionTypes.getActive() ? MissionTypes.getActive().config : null;
                 var _defDmg = (_defCfg && _defCfg.blastDamage) ? _defCfg.blastDamage : 200;
@@ -8073,13 +8458,15 @@ const GameManager = (function () {
     const btnNext = document.getElementById('btn-weapon-next');
     btnPrev.addEventListener('touchstart', function (e) {
       e.preventDefault();
-      Weapons.switchPrev();
+      if (DroneSystem.isPossessing()) { DroneSystem.cyclePayload(-1); }
+      else { Weapons.switchPrev(); }
       btnPrev.classList.add('active');
     }, { passive: false });
     btnPrev.addEventListener('touchend', function () { btnPrev.classList.remove('active'); });
     btnNext.addEventListener('touchstart', function (e) {
       e.preventDefault();
-      Weapons.switchNext();
+      if (DroneSystem.isPossessing()) { DroneSystem.cyclePayload(1); }
+      else { Weapons.switchNext(); }
       btnNext.classList.add('active');
     }, { passive: false });
     btnNext.addEventListener('touchend', function () { btnNext.classList.remove('active'); });
@@ -8105,6 +8492,26 @@ const GameManager = (function () {
     });
     bindTapButton('btn-vehicle', function () { tapVirtualKey('KeyG'); });
     bindTapButton('btn-build', function () { tapVirtualKey('KeyB'); });
+    // Build-opt tap: select template directly on mobile
+    document.querySelectorAll('.build-opt[data-template]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        if (gameState !== STATE.BUILD_MODE) return;
+        if (typeof Building !== 'undefined' && Building.selectTemplate) Building.selectTemplate(el.dataset.template);
+        document.querySelectorAll('.build-opt').forEach(function (o) { o.classList.remove('selected'); });
+        el.classList.add('selected');
+      });
+    });
+    // Mobile: relabel build-opt key hints to bare names
+    if (isMobile) {
+      var _bOpts = [['barracks','Barracks'],['factory','Factory'],['turret','Turret'],
+        ['droneHangar','Drone Hangar'],['commandCenter','Command Center'],['wall','Wall'],['dugout','Dugout']];
+      _bOpts.forEach(function (pair) {
+        var el = document.querySelector('.build-opt[data-template="' + pair[0] + '"]');
+        if (el) el.textContent = pair[1];
+      });
+      var binfo = document.querySelector('#build-hud .build-info');
+      if (binfo) binfo.textContent = 'TAP · Select | Fire · Place | 🔨 · Exit';
+    }
     bindTapButton('btn-view', function () {
       if (DroneSystem.isPossessing()) {
         toggleDroneRemoteView();
@@ -8423,7 +8830,8 @@ const GameManager = (function () {
     _scene.add(nade);
     var fwd = _camera.getWorldDirection(new THREE.Vector3());
     var vel = new THREE.Vector3(fwd.x * 18, 6 + fwd.y * 14, fwd.z * 18);
-    _handGrenades.push({ mesh: nade, vel: vel, fuse: 2.5, spin: new THREE.Vector3(8, 6, 4) });
+    var _nadeFuse = 2.5 - (typeof Perks !== 'undefined' && Perks.getGrenadeFuseSub ? Perks.getGrenadeFuseSub() : 0);
+    _handGrenades.push({ mesh: nade, vel: vel, fuse: _nadeFuse, spin: new THREE.Vector3(8, 6, 4) });
     if (!player.godMode) player.grenades = Math.max(0, player.grenades - 1);
     if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : player.grenades);
     _handGrenadeCooldown = 0.45;
@@ -8468,7 +8876,8 @@ const GameManager = (function () {
           try { window.AudioSystem.playExplosion(); } catch (e) {}
         }
         if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
-          var _gRes = Enemies.damageInRadius(pos, 6.5, 110);
+          var _explMult = (typeof Perks !== 'undefined' && Perks.getExplosiveDamageMult) ? Perks.getExplosiveDamageMult() : 1.0;
+          var _gRes = Enemies.damageInRadius(pos, 6.5, Math.round(110 * _explMult));
           if (player && Array.isArray(_gRes)) {
             var _gKills = 0;
             for (var _gi = 0; _gi < _gRes.length; _gi++) if (_gRes[_gi].remaining <= 0) _gKills++;
@@ -8975,7 +9384,7 @@ const GameManager = (function () {
   /* ── Mission Board: deliberately choose & START a mission ───────────── */
   var _missionBoardEl = null;
   var _MISSION_ICONS = {
-    gather: '📦', expand: '🏗', recon: '🛰', defense: '🛡', escort: '🚐',
+    gather: '🔍', expand: '⚔', recon: '🛰', defense: '🛡', escort: '🚐',
     infiltrate: '🕵', clear_building: '🏚', assassinate: '🎯', sabotage: '💥',
     airborne_assault: '🪂', urban_breakout: '🏃', bradley_mission: '🚛', kyiv_defense: '🏛',
   };
@@ -9053,11 +9462,50 @@ const GameManager = (function () {
     if (CameraSystem.shake) CameraSystem.shake(0.4, 0.5);
 
     if (streak.id === 'ARTILLERY' || streak.id === 'AIRSTRIKE') {
-      // Damage enemies in area around player's aim point
       var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
-      var target = player.position.clone().add(fwd.multiplyScalar(30));
-      Enemies.damageInRadius(target, streak.radius || 15, streak.damage || 200);
-      if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(target, (streak.radius || 15) * 0.3);
+      var artTarget = player.position.clone().add(fwd.multiplyScalar(30));
+      var artRadius = streak.radius || 15;
+      var artDmg = streak.damage || 200;
+      var artShells = streak.id === 'AIRSTRIKE' ? 8 : 5;
+      if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 FIRE FOR EFFECT!', 2000, '#ff6600');
+      // Staggered shell impacts over 2 seconds
+      for (var ai = 0; ai < artShells; ai++) {
+        (function(_i, _cx, _cz) {
+          setTimeout(function() {
+            var shellPos = new THREE.Vector3(
+              _cx + (Math.random()-0.5) * artRadius,
+              0.5,
+              _cz + (Math.random()-0.5) * artRadius
+            );
+            Enemies.damageInRadius(shellPos, artRadius * 0.45, artDmg / artShells * 1.4);
+            if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+              Tracers.spawnExplosion(shellPos, artRadius * 0.22);
+            }
+            if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
+              WorldFeatures.applyExplosionDamage(shellPos.x, shellPos.y, shellPos.z, artRadius * 0.3, artDmg * 0.5);
+            }
+            if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.5, 0.4);
+          }, 400 + _i * 220);
+        })(ai, artTarget.x, artTarget.z);
+      }
+    } else if (streak.id === 'UAV') {
+      // UAV scan: show enemies on minimap for 15s with pulsing indicator
+      if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📡 UAV ONLINE — SCANNING', 2000, '#00ffcc');
+      // Reveal all enemy positions in HUD via a sweep animation
+      (function() {
+        var sweepEl = document.getElementById('uav-sweep');
+        if (!sweepEl) {
+          sweepEl = document.createElement('div');
+          sweepEl.id = 'uav-sweep';
+          sweepEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:150;background:radial-gradient(ellipse 120% 120% at 50% 50%,rgba(0,255,150,0.06) 0%,transparent 70%);animation:uavSweep 1s ease-out forwards';
+          var style = document.createElement('style');
+          style.textContent = '@keyframes uavSweep{0%{opacity:0}20%{opacity:1}100%{opacity:0}}';
+          document.head.appendChild(style);
+          document.body.appendChild(sweepEl);
+        }
+        sweepEl.style.animation = 'none';
+        setTimeout(function() { sweepEl.style.animation = 'uavSweep 1s ease-out forwards'; }, 16);
+      })();
     } else if (streak.id === 'NUKE') {
       // Kill all enemies
       var allEn = Enemies.getAll();
@@ -9102,6 +9550,46 @@ const GameManager = (function () {
     if (HUD.notifyPickup) HUD.notifyPickup('💉 Speed Boost ' + duration + 's', '#ff8a65');
   }
 
+  var _dmgBoostMult = 1.0;
+  var _dmgBoostTimer = 0;
+  function addDamageBoost(pct, duration) {
+    _dmgBoostMult = 1 + pct;
+    _dmgBoostTimer = duration;
+  }
+  function getDamageBoostMult() { return _dmgBoostMult; }
+
+  var _airstrikeTokens = 0;
+  function addAirstrikeToken() { _airstrikeTokens++; }
+  function getAirstrikeTokens() { return _airstrikeTokens; }
+  function useAirstrikeToken() {
+    if (_airstrikeTokens <= 0) return false;
+    _airstrikeTokens--;
+    // Fire an airstrike at player's aimed position
+    if (!_camera) return true;
+    var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
+    var target = player.position.clone().add(fwd.multiplyScalar(35));
+    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('✈ AIRSTRIKE ON THE WAY!', 2500, '#aaddff');
+    for (var _ati = 0; _ati < 7; _ati++) {
+      (function(_i3, _tx, _tz) {
+        setTimeout(function() {
+          var _asp = new THREE.Vector3(_tx + (Math.random()-0.5)*16, 0.5, _tz + (Math.random()-0.5)*8);
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_asp, 3.5);
+          if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) Enemies.damageInRadius(_asp, 8, 220);
+          if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) WorldFeatures.applyExplosionDamage(_asp.x, _asp.y, _asp.z, 2.5, 100);
+          if (CameraSystem.shake) CameraSystem.shake(0.6, 0.3);
+        }, 2500 + _i3 * 220);
+      })(_ati, target.x, target.z);
+    }
+    return true;
+  }
+
+  function applyKnockback(dir, force) {
+    if (!player || !player.velocity) return;
+    player.velocity.x += dir.x * force;
+    player.velocity.y += Math.max(0.4, dir.y) * force * 0.5;
+    player.velocity.z += dir.z * force;
+  }
+
   /* ── Public API ──────────────────────────────────────────────────── */
   return {
     STATE,
@@ -9144,6 +9632,8 @@ const GameManager = (function () {
 
     getStageInfo:    function () { return STAGES[currentStage]; },
     isSprinting:     function () { return player.sprinting; },
+    getPerfLevel:    function () { return _perfLevel; },
+    isLowEndVFX:     function () { return _lowEndVFX || _perfLevel >= 2; },
     _activateStreak: _activateStreak,
     _openPerksMenu: _openPerksMenu,
     _openJournal: _openJournal,
@@ -9152,8 +9642,18 @@ const GameManager = (function () {
     healPlayer: healPlayer,
     addArmor: addArmor,
     addStimBuff: addStimBuff,
+    addDamageBoost: addDamageBoost,
+    getDamageBoostMult: getDamageBoostMult,
+    addAirstrikeToken: addAirstrikeToken,
+    getAirstrikeTokens: getAirstrikeTokens,
+    useAirstrikeToken: useAirstrikeToken,
+    applyKnockback: applyKnockback,
     addSuppression: addSuppression,
     requestFullscreenAndLockLandscape: requestFullscreenAndLockLandscape,
+    setMouseSensitivity: setMouseSensitivity,
+    setAudioVolume:      setAudioVolume,
+    getMouseSensitivity: function() { return _mouseSensitivity; },
+    getAudioVolume:      function() { return _audioVolume; },
     // Test helpers for headless Puppeteer (bypasses pointer lock requirement)
     _testFireStart:  function () { mouseDown = true; mouseNewPress = true; },
     _testFireStop:   function () { mouseDown = false; mouseNewPress = false; },

@@ -10,7 +10,18 @@ name: Deploy to GitHub Pages
 #   Settings → Pages → Build and deployment → Source → "GitHub Actions"
 #   (direct link: https://github.com/PhotonBounce/occupantkiller-1/settings/pages)
 # Until that's done this workflow skips the deploy with a warning (stays green).
-# After it's done, every push here publishes automatically.
+# After it's done, every push to main publishes automatically.
+#
+# ── WHY DEPLOY ONLY RUNS ON main ───────────────────────────────────────────
+# The auto-created `github-pages` environment restricts deployments to the
+# default branch (main). A deploy job that references that environment from a
+# feature branch (claude/**, copilot/**) is REJECTED by environment branch
+# protection in ~1s before any step runs — a hard CI failure we can't skip
+# from the workflow. So the deploy job is gated to main; feature branches run
+# only the (harmless) gate check. To enable per-branch PREVIEW deploys, the
+# repo owner can one-time add a branch pattern under
+#   Settings → Environments → github-pages → Deployment branches and tags
+# and then loosen the `if:` on the deploy job below.
 #
 # Live URL once deployed: https://photonbounce.github.io/occupantkiller-1/
 # (root game = /, microsite copy = /microsite/play/, QA gallery = /qa-gallery/)
@@ -33,14 +44,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # ── Job 1: gate ──────────────────────────────────────────────────────────
+  # Checks whether Pages is enabled WITHOUT touching the github-pages
+  # environment, so the workflow never fails due to environment protection
+  # rules on feature branches.
+  gate:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
     steps:
       - name: Check whether Pages is enabled
-        id: gate
+        id: check
         run: |
           CODE=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Accept: application/vnd.github+json" \
@@ -55,12 +69,25 @@ jobs:
             echo "::warning::GitHub Pages is not enabled yet (API returned $CODE). Enable it once at Settings → Pages → Source: 'GitHub Actions' (https://github.com/${{ github.repository }}/settings/pages), then re-run this workflow. Skipping deploy for now."
           fi
 
+  # ── Job 2: deploy ────────────────────────────────────────────────────────
+  # Only runs when Pages is confirmed enabled. Putting the environment
+  # declaration here (rather than on the gate job) means the github-pages
+  # environment protection rules are only evaluated when we're actually
+  # going to deploy — not on every push from a feature branch.
+  deploy:
+    needs: gate
+    # Only deploy from main — the github-pages environment rejects feature
+    # branches (see header). On branches this job is skipped, keeping CI green.
+    if: needs.gate.outputs.ready == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Checkout
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/checkout@v4
 
       - name: Assemble lean site (game files only)
-        if: steps.gate.outputs.ready == 'true'
         run: |
           mkdir -p _site
           # Copy the whole tree EXCEPT heavy, non-game directories so the
@@ -93,20 +120,16 @@ jobs:
           ls -1 _site | head -40
 
       - name: Setup Pages
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: '_site'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/deploy-pages@v4
 
       - name: Summary
-        if: steps.gate.outputs.ready == 'true'
         run: echo "Game published → ${{ steps.deployment.outputs.page_url }}"

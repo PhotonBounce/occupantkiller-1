@@ -34,8 +34,13 @@ window.Bradley = (function () {
   // Fire timing
   var _bushCool = 0;            // 0.30s cyclic = 200 rpm
   var _coaxCool = 0;            // 0.085s = 700 rpm
+  var _towCool = 0;             // 9s reload per TOW shot
+  var _towAmmo = 6;             // 2-tube reload x3 sorties = 6 shots
   var _firingBush = false, _firingCoax = false;
   var _heAp = 0;                // alt 0=HE, 1=AP
+  // Phase tracking for Ukrainian doctrine mode (TOW first, then Bushmaster sweep)
+  var _doctrinePhase = 0;       // 0=idle, 1=TOW suppression, 2=Bushmaster sweep
+  var _doctrineToast = 0;
   // Visual extras
   var _casings = [];
   var _projectiles = [];        // bushmaster shells (visible tracer + impact)
@@ -44,9 +49,11 @@ window.Bradley = (function () {
 
   var BUSH_RPM_INTERVAL = 0.30;   // 200 rpm cyclic
   var COAX_RPM_INTERVAL = 0.085;  // ~700 rpm
+  var TOW_COOL_TIME = 9.0;        // 9s per TOW reload cycle
   var BUSH_DMG_HE = 70, BUSH_AOE = 2.6;
   var BUSH_DMG_AP = 95;
   var COAX_DMG = 20;
+  var TOW_DMG = 850;
   var DRIVE_ACCEL = 7.5, DRIVE_MAX = 14, DRIVE_FRICTION = 3.0;
   var TURN_RATE = 1.2; // rad/s at full input
   var BARREL_LEN = 2.6;
@@ -189,6 +196,7 @@ window.Bradley = (function () {
   function spawnAt(pos) {
     if (!_scene) return null;
     if (_vehicle) try { _scene.remove(_vehicle.group); } catch (e) {}
+    _towAmmo = 6; _towCool = 0; _doctrinePhase = 0; _doctrineToast = 0;
     return _spawnVehicle(pos);
   }
 
@@ -245,7 +253,7 @@ window.Bradley = (function () {
         window.GameManager.__bradleyCam = _chaseCam;
       }
     } catch (e) {}
-    try { window.HUD && window.HUD.showToast && window.HUD.showToast('🚛 BRADLEY — LMB: 25mm Bushmaster | RMB: Coax 7.62 | WASD drive | B exit', 4000, '#88ff88'); } catch (e) {}
+    try { window.HUD && window.HUD.showToast && window.HUD.showToast('\u{1F69B} BRADLEY IFV — LMB: 25mm Bushmaster | RMB: Coax | T: TOW missile (' + _towAmmo + ' left) | WASD drive | B exit', 5000, '#88ff88'); } catch (e) {}
     try { window.AudioSystem && window.AudioSystem.playVehicleIdle && (_vehicle.idleHandle = window.AudioSystem.playVehicleIdle(800)); } catch (e) {}
   }
 
@@ -351,6 +359,54 @@ window.Bradley = (function () {
     _ejectCasing(false);
   }
 
+  // ── BGM-71 TOW missile (T key / middle mouse) ──────────────
+  // Ukrainian doctrine: fire TOW at AT/fortified targets first at 500-800m,
+  // then close in and sweep with 25mm Bushmaster through the treeline.
+  function _fireTOW() {
+    if (!_vehicle || _towAmmo <= 0 || _towCool > 0) return;
+    _towCool = TOW_COOL_TIME;
+    _towAmmo--;
+
+    // TOW launches from right-side tube (offset +1.0 x, +0.3 y)
+    var origin = _muzzleWorld().clone();
+    origin.x += 1.0; origin.y += 0.3;
+    var dir = _aimDirWorld();
+
+    // Wire-guided tracer — bright orange
+    try {
+      if (window.Tracers && window.Tracers.spawnTracer) {
+        window.Tracers.spawnTracer(origin.clone(), dir.clone(), 0xff6600, 700);
+      }
+    } catch (e) {}
+
+    // Hitscan to 700m, AOE 5.5m, 850 damage (vs RHA-equivalent of T-72)
+    var hitPos = _hitscan(origin, dir, 700, true);
+    if (!hitPos) {
+      // No direct hit — detonate 180m downrange at ground level
+      hitPos = origin.clone().add(dir.clone().multiplyScalar(180));
+      hitPos.y = 0;
+    }
+    try {
+      var expPos = hitPos.clone().add(new THREE.Vector3(0, 0.4, 0));
+      if (window.Tracers && window.Tracers.spawnExplosion) window.Tracers.spawnExplosion(expPos, 5.5);
+      if (window.Enemies && window.Enemies.damageInRadius) window.Enemies.damageInRadius(expPos, 5.5, TOW_DMG, 'EXPLOSIVE');
+      if (window.AudioSystem && window.AudioSystem.playExplosion) window.AudioSystem.playExplosion(1.8, true);
+    } catch (e) {}
+
+    // Doctrine phase advance: first two TOW shots = suppression phase
+    if (_doctrinePhase === 0) _doctrinePhase = 1;
+    if (_doctrinePhase === 1 && _towAmmo <= 4) _doctrinePhase = 2;
+
+    var remaining = _towAmmo;
+    var msg = remaining > 0
+      ? '\u{1F680} TOW AWAY — ' + remaining + ' remaining | now sweep with 25mm'
+      : '\u{1F4A5} LAST TOW — switch to Bushmaster!';
+    try { if (window.HUD && window.HUD.showToast) window.HUD.showToast(msg, 3000, '#ff9933'); } catch (e) {}
+
+    // Kick the turret group to simulate launch recoil
+    if (_vehicle) _vehicle.turret.position.z -= 0.06;
+  }
+
   function _hitscan(origin, dir, maxDist, isHE) {
     if (!window.Enemies || !window.Enemies.getAll) return null;
     var all = window.Enemies.getAll();
@@ -397,6 +453,21 @@ window.Bradley = (function () {
   function update(dt) {
     if (_bushCool > 0) _bushCool -= dt;
     if (_coaxCool > 0) _coaxCool -= dt;
+    if (_towCool  > 0) _towCool  -= dt;
+
+    // Ukrainian doctrine HUD hints
+    if (_active && _doctrinePhase === 1 && _doctrineToast === 0) {
+      _doctrineToast = 1;
+      try { if (window.HUD && window.HUD.showToast) window.HUD.showToast('\u{1F6E1} DOCTRINE: TOW suppression first — target AT assets at 500m+. Then close with Bushmaster.', 5500, '#a0c878'); } catch (e) {}
+    }
+    if (_active && _doctrinePhase === 2 && _doctrineToast === 1) {
+      _doctrineToast = 2;
+      try { if (window.HUD && window.HUD.showToast) window.HUD.showToast('\u{1F525} BUSHMASTER PHASE — sweep the treeline. LMB rapid fire. HE-AP alternating.', 4500, '#ff8833'); } catch (e) {}
+    }
+    // Restore turret Z after TOW recoil kick
+    if (_vehicle && _vehicle.turret.position.z < 0) {
+      _vehicle.turret.position.z = Math.min(0, _vehicle.turret.position.z + dt * 0.4);
+    }
 
     // Casings physics
     for (var i = _casings.length - 1; i >= 0; i--) {
@@ -501,6 +572,7 @@ window.Bradley = (function () {
     else if (ev.code === 'KeyA') _key.a = true;
     else if (ev.code === 'KeyD') _key.d = true;
     else if (ev.code === 'KeyV' && !ev.repeat) _shoulderSide = -_shoulderSide;
+    else if (ev.code === 'KeyT' && !ev.repeat) _fireTOW();   // TOW missile
     else if (ev.code === 'Escape') exit();
   }
   function _onKeyUp(ev) {
@@ -544,7 +616,8 @@ window.Bradley = (function () {
     _casings.length = 0; _projectiles.length = 0;
     _key.w = _key.s = _key.a = _key.d = false;
     _firingBush = _firingCoax = false;
-    _bushCool = _coaxCool = 0;
+    _bushCool = _coaxCool = _towCool = 0;
+    _towAmmo = 6; _doctrinePhase = 0; _doctrineToast = 0;
     _bind();
   }
 

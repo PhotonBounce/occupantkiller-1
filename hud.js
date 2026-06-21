@@ -863,7 +863,7 @@ const HUD = (() => {
   function setMinimapJammed(jammed) { _minimapJammed = !!jammed; }
   function setCompassJammed(jammed) { _compassJammed = !!jammed; }
 
-  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups) {
+  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups, opts) {
     if (!minimapCtx) return;
     const ctx = minimapCtx;
     ctx.clearRect(0, 0, MM_SIZE, MM_SIZE);
@@ -886,8 +886,9 @@ const HUD = (() => {
     ctx.arc(MM_HALF, MM_HALF, MM_HALF - 2, 0, Math.PI * 2);
     ctx.clip();
 
+    var _uavOn = opts && opts.uav;
     // Background
-    ctx.fillStyle = 'rgba(10,15,10,0.85)';
+    ctx.fillStyle = _uavOn ? 'rgba(0,20,15,0.90)' : 'rgba(10,15,10,0.85)';
     ctx.fillRect(0, 0, MM_SIZE, MM_SIZE);
 
     // Grid (rotates with player)
@@ -1050,6 +1051,34 @@ const HUD = (() => {
       var cx = MM_HALF + Math.sin(ca) * (MM_HALF - 10);
       var cy = MM_HALF - Math.cos(ca) * (MM_HALF - 10);
       ctx.fillText(dirs[ci].label, cx, cy + 3);
+    }
+
+    // UAV: rotating sweep line + teal enemy highlighting
+    if (_uavOn) {
+      var _uavAngle = (performance.now() * 0.002) % (Math.PI * 2);
+      // Sweep arc (fading green sector behind sweep line)
+      ctx.save();
+      ctx.translate(MM_HALF, MM_HALF);
+      var _grad = ctx.createConicalGradient ? null : null; // not standard — use arc fill
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, MM_HALF - 2, _uavAngle - 1.1, _uavAngle, false);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0,255,180,0.10)';
+      ctx.fill();
+      // Sweep line
+      ctx.strokeStyle = 'rgba(0,255,150,0.7)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(_uavAngle) * (MM_HALF - 2), Math.sin(_uavAngle) * (MM_HALF - 2));
+      ctx.stroke();
+      ctx.restore();
+      // UAV label
+      ctx.fillStyle = 'rgba(0,255,150,0.75)';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('UAV', 6, MM_SIZE - 6);
     }
 
     ctx.restore();
@@ -1584,27 +1613,75 @@ const HUD = (() => {
   let _bossBarEl = null;
   let _bossBarFill = null;
   let _bossBarName = null;
+  let _bossBarPhase = null;
+  let _bossLastPhase = 0;
 
   function showBossBar(name, hp, maxHp) {
     if (!_bossBarEl) {
       _bossBarEl = document.createElement('div');
       _bossBarEl.id = 'boss-health-bar';
-      _bossBarEl.style.cssText = 'position:fixed;top:5%;left:50%;transform:translateX(-50%);width:400px;background:rgba(0,0,0,0.7);border:2px solid #cc0000;border-radius:4px;padding:4px;z-index:200;text-align:center;display:none;';
+      _bossBarEl.style.cssText = 'position:fixed;top:5%;left:50%;transform:translateX(-50%);width:420px;background:rgba(0,0,0,0.75);border:2px solid #cc0000;border-radius:4px;padding:5px 6px;z-index:200;text-align:center;display:none;';
       _bossBarName = document.createElement('div');
-      _bossBarName.style.cssText = 'color:#ff4444;font-size:14px;font-weight:bold;margin-bottom:2px;';
+      _bossBarName.style.cssText = 'color:#ff4444;font-size:14px;font-weight:bold;margin-bottom:3px;letter-spacing:1px;';
+      var _bossBarTrack = document.createElement('div');
+      _bossBarTrack.style.cssText = 'background:rgba(80,0,0,0.4);border-radius:3px;overflow:hidden;position:relative;';
       _bossBarFill = document.createElement('div');
-      _bossBarFill.style.cssText = 'height:12px;background:linear-gradient(90deg,#cc0000,#ff4444);border-radius:2px;transition:width 0.3s;';
+      _bossBarFill.style.cssText = 'height:14px;background:linear-gradient(90deg,#cc0000,#ff4444);border-radius:3px;transition:width 0.25s ease-out;';
+      _bossBarPhase = document.createElement('div');
+      _bossBarPhase.style.cssText = 'position:absolute;right:5px;top:0;height:100%;line-height:14px;font-size:10px;color:rgba(255,255,255,0.7);font-weight:bold;';
+      _bossBarTrack.appendChild(_bossBarFill);
+      _bossBarTrack.appendChild(_bossBarPhase);
       _bossBarEl.appendChild(_bossBarName);
-      _bossBarEl.appendChild(_bossBarFill);
+      _bossBarEl.appendChild(_bossBarTrack);
       document.body.appendChild(_bossBarEl);
+      // Inject keyframe animation for enrage pulse
+      if (!document.getElementById('_bossBarKf')) {
+        var style = document.createElement('style');
+        style.id = '_bossBarKf';
+        style.textContent = '@keyframes bossRage{0%,100%{border-color:#cc0000}50%{border-color:#ff2200;box-shadow:0 0 10px #ff2200}}' +
+          '@keyframes bossEnrage{0%,100%{border-color:#ff6600}50%{border-color:#ffaa00;box-shadow:0 0 14px #ff8800}}';
+        document.head.appendChild(style);
+      }
     }
+    var pct = maxHp > 0 ? hp / maxHp : 0;
     _bossBarName.textContent = '☠ ' + name;
-    _bossBarFill.style.width = Math.max(0, (hp / maxHp) * 100) + '%';
+    _bossBarFill.style.width = Math.max(0, pct * 100) + '%';
     _bossBarEl.style.display = 'block';
+
+    // Phase coloring + border pulse
+    var newPhase;
+    if (pct <= 0.33) {
+      newPhase = 3;
+      _bossBarFill.style.background = 'linear-gradient(90deg,#880000,#cc0000,#ff2200)';
+      _bossBarEl.style.animation = 'bossRage 0.7s infinite';
+      _bossBarEl.style.borderColor = '#ff2200';
+      if (_bossBarPhase) _bossBarPhase.textContent = '⚡ ENRAGED';
+    } else if (pct <= 0.66) {
+      newPhase = 2;
+      _bossBarFill.style.background = 'linear-gradient(90deg,#aa3300,#ee5500)';
+      _bossBarEl.style.animation = 'bossEnrage 1.2s infinite';
+      _bossBarEl.style.borderColor = '#ee5500';
+      if (_bossBarPhase) _bossBarPhase.textContent = '⚠ WOUNDED';
+    } else {
+      newPhase = 1;
+      _bossBarFill.style.background = 'linear-gradient(90deg,#cc0000,#ff4444)';
+      _bossBarEl.style.animation = '';
+      _bossBarEl.style.borderColor = '#cc0000';
+      if (_bossBarPhase) _bossBarPhase.textContent = '';
+    }
+    // Toast on phase transition
+    if (newPhase > _bossLastPhase && _bossLastPhase > 0) {
+      if (typeof showToast === 'function') {
+        showToast(newPhase === 2 ? '⚠ BOSS WOUNDED — WATCH OUT!' : '⚡ BOSS ENRAGED — EXTREME DANGER!', 3000,
+          newPhase === 3 ? '#ff2200' : '#ee5500');
+      }
+    }
+    _bossLastPhase = newPhase;
   }
 
   function hideBossBar() {
     if (_bossBarEl) _bossBarEl.style.display = 'none';
+    _bossLastPhase = 0;
   }
 
   // ── B22: XP Progress Bar ────────────────────────────────────────
@@ -2038,6 +2115,7 @@ const HUD = (() => {
     showNPCText, _updateNPCTextPositions,
     // ── Targeting Assistant ──
     updateTargetAssist,
+    showWaveSummary,
   };
 })();
 
