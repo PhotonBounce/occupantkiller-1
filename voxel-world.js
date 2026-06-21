@@ -4034,6 +4034,216 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_snake_fort', x: ox - wR - 1, z: oz - wR - 1, w: wR * 2 + 3, d: wR * 2 + 3, baseY: h, floorH: 5, floors: 1, cx: ox, cz: oz });
   }
 
+  // LANDMARK: Soviet-era train station — large stone terminus building + platform canopy
+  function generateTrainStation(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var bW = 10, bD = 6, bH = 10;
+    // Main building shell
+    for (var y = 0; y < bH; y++) {
+      for (var x = -bW; x <= bW; x++) {
+        for (var z = -bD; z <= bD; z++) {
+          if (y === 0) setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+          else if (x === -bW || x === bW || z === -bD || z === bD || y === bH - 1)
+            setBlock(ox + x, base + y, oz + z, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Arched windows on south facade (z = -bD)
+    for (var wx = -bW + 2; wx <= bW - 2; wx += 3) {
+      for (var wy = 1; wy <= 6; wy++) setBlock(ox + wx, base + wy, oz - bD, BLOCK.GLASS);
+    }
+    // Facade columns (pilasters) on south face
+    for (var col = -bW; col <= bW; col += 4) {
+      for (var cy = 1; cy < bH; cy++) setBlock(ox + col, base + cy, oz - bD - 1, BLOCK.PLASTER);
+      setBlock(ox + col, base + bH, oz - bD - 1, BLOCK.PLASTER);
+    }
+    // Central clock tower (5W × 5D × 6H above main roof)
+    for (var ty = 0; ty < 7; ty++) {
+      for (var tx = -2; tx <= 2; tx++) for (var tz = -2; tz <= 2; tz++) {
+        if (tx === -2 || tx === 2 || tz === -2 || tz === 2) setBlock(ox + tx, base + bH + ty, oz + tz, BLOCK.PLASTER);
+      }
+    }
+    // Clock face glass on all four tower sides
+    setBlock(ox, base + bH + 3, oz - 3, BLOCK.GLASS);
+    setBlock(ox, base + bH + 3, oz + 3, BLOCK.GLASS);
+    setBlock(ox - 3, base + bH + 3, oz, BLOCK.GLASS);
+    setBlock(ox + 3, base + bH + 3, oz, BLOCK.GLASS);
+    setBlock(ox, base + bH + 8, oz, BLOCK.FLAG);
+    // Platform surface (STONE) north of building
+    for (var ppx = -bW + 1; ppx < bW; ppx++) {
+      for (var ppz = bD + 1; ppz <= bD + 8; ppz++) {
+        setBlock(ox + ppx, base, oz + ppz, BLOCK.STONE);
+      }
+    }
+    // Platform canopy (METAL roof over platform)
+    for (var px = -bW; px <= bW; px++) {
+      for (var pz = bD; pz <= bD + 9; pz++) {
+        if (px === -bW || px === bW || pz === bD + 9) setBlock(ox + px, base + bH, oz + pz, BLOCK.METAL);
+      }
+    }
+    // Support pillars for platform canopy
+    for (var sp = -bW + 2; sp <= bW - 2; sp += 4) {
+      setBlock(ox + sp, base + bH - 1, oz + bD + 9, BLOCK.METAL);
+    }
+    // Entrance steps
+    for (var sx = -4; sx <= 4; sx++) {
+      setBlock(ox + sx, base,     oz - bD - 1, BLOCK.STONE);
+      setBlock(ox + sx, base - 1, oz - bD - 2, BLOCK.STONE);
+    }
+    _buildings.push({ kind: 'landmark_train_station', x: ox - bW, z: oz - bD, w: bW * 2 + 1, d: bD + 10, baseY: h, floorH: bH, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Coal washing plant — mine processing facility with conveyor tower + settling pond
+  function generateCoalWashingPlant(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var hW = 8, hD = 5, hH = 12;
+    // Main washing hall (METAL-frame shed)
+    for (var y = 0; y < hH; y++) {
+      for (var x = -hW; x <= hW; x++) {
+        for (var z = -hD; z <= hD; z++) {
+          if (y === 0) setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+          else if (x === -hW || x === hW || z === -hD || z === hD || y === hH - 1)
+            setBlock(ox + x, base + y, oz + z, BLOCK.METAL);
+          else if ((x === -hW + 3 || x === hW - 3) && y < hH - 1)
+            setBlock(ox + x, base + y, oz + z === oz - hD || z === hD ? BLOCK.METAL : BLOCK.AIR, BLOCK.AIR);
+        }
+      }
+    }
+    // Elevated conveyor tower (east of hall)
+    for (var ty = 0; ty < 20; ty++) {
+      setBlock(ox + hW + 2, base + ty, oz, BLOCK.METAL);
+      setBlock(ox + hW + 3, base + ty, oz, BLOCK.METAL);
+    }
+    // Slanted conveyor gallery from ground to tower top
+    for (var ci = 0; ci < 14; ci++) {
+      setBlock(ox + hW - ci, base + Math.floor(ci * 14 / 13), oz + 1, BLOCK.METAL);
+    }
+    // Settling pond (BLUE_TILE) south of hall
+    for (var px = -4; px <= 4; px++) {
+      for (var pz = hD + 2; pz <= hD + 6; pz++) {
+        setBlock(ox + px, base, oz + pz, BLOCK.BLUE_TILE);
+      }
+    }
+    // Hopper bins on top of main hall
+    for (var hi = -1; hi <= 1; hi++) {
+      _lmDisc(ox + hi * 5, base + hH, oz, 2, BLOCK.CONCRETE);
+      setBlock(ox + hi * 5, base + hH + 1, oz, BLOCK.STONE);
+    }
+    _buildings.push({ kind: 'landmark_coal_plant', x: ox - hW, z: oz - hD, w: hW * 2 + 4, d: hD * 2 + 7, baseY: h, floorH: hH, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Soviet school — 3-story PLASTER school with colonnaded entrance and window strips
+  function generateSovietSchool(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var bW = 9, bD = 4, bH = 9;
+    // Main structure
+    for (var y = 0; y < bH; y++) {
+      for (var x = -bW; x <= bW; x++) {
+        for (var z = -bD; z <= bD; z++) {
+          if (y === 0) { setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE); continue; }
+          var isEdge = (x === -bW || x === bW || z === -bD || z === bD || y === bH - 1);
+          if (isEdge) {
+            var isWindow = (z === -bD || z === bD) && y > 0 && y < bH - 1 && Math.abs(x) % 3 !== 0;
+            setBlock(ox + x, base + y, oz + z, isWindow ? BLOCK.GLASS : BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Entrance portico (south face projecting columns)
+    for (var ey = 0; ey < 5; ey++) {
+      for (var ex = -3; ex <= 3; ex++) {
+        if (ex === -3 || ex === 0 || ex === 3 || ey === 4)
+          setBlock(ox + ex, base + ey, oz - bD - 1, BLOCK.PLASTER);
+      }
+    }
+    // Steps
+    for (var sx = -3; sx <= 3; sx++) {
+      setBlock(ox + sx, base,     oz - bD - 2, BLOCK.STONE);
+      setBlock(ox + sx, base - 1, oz - bD - 3, BLOCK.STONE);
+    }
+    setBlock(ox, base + bH, oz - bD, BLOCK.FLAG);
+    _buildings.push({ kind: 'landmark_soviet_school', x: ox - bW, z: oz - bD - 1, w: bW * 2 + 1, d: bD * 2 + 2, baseY: h, floorH: 3, floors: 3, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Naval barracks — 2-story CONCRETE barracks block with parade ground
+  function generateNavalBarracks(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var bW = 8, bD = 4, bH = 7;
+    // Building
+    for (var y = 0; y < bH; y++) {
+      for (var x = -bW; x <= bW; x++) {
+        for (var z = -bD; z <= bD; z++) {
+          if (y === 0) { setBlock(ox + x, base, oz + z, BLOCK.CONCRETE); continue; }
+          var isEdge = x === -bW || x === bW || z === -bD || z === bD || y === bH - 1 || y === Math.floor(bH / 2);
+          if (isEdge) setBlock(ox + x, base + y, oz + z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Alternating windows on long facades
+    for (var wy = 1; wy < bH - 1; wy++) {
+      for (var wx = -bW + 2; wx < bW - 1; wx += 3) {
+        setBlock(ox + wx, base + wy, oz + bD, BLOCK.GLASS);
+        setBlock(ox + wx, base + wy, oz - bD, BLOCK.GLASS);
+      }
+    }
+    // Parade ground (BLUE_TILE in front)
+    for (var px = -bW; px <= bW; px++) {
+      for (var pz = bD + 1; pz <= bD + 7; pz++) {
+        setBlock(ox + px, base, oz + pz, BLOCK.BLUE_TILE);
+      }
+    }
+    // Flagpole
+    for (var fp = 1; fp <= 5; fp++) setBlock(ox, base + bH + fp, oz + bD + 4, BLOCK.METAL);
+    setBlock(ox, base + bH + 6, oz + bD + 4, BLOCK.FLAG);
+    _buildings.push({ kind: 'landmark_naval_barracks', x: ox - bW, z: oz - bD, w: bW * 2 + 1, d: bD + 8, baseY: h, floorH: Math.floor(bH / 2), floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Submarine dry dock — reinforced concrete pen with BLUE_TILE water lane + overhead gantry
+  function generateSubmarineDock(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var dLen = 16, dW = 4, dH = 8;
+    // Side walls
+    for (var y = 0; y < dH; y++) {
+      for (var i = -dLen; i <= dLen; i++) {
+        setBlock(ox + i, base + y, oz - dW, BLOCK.CONCRETE);
+        setBlock(ox + i, base + y, oz + dW, BLOCK.CONCRETE);
+      }
+    }
+    // Back wall (west end)
+    for (var bky = 0; bky < dH; bky++) {
+      for (var bkz = -dW; bkz <= dW; bkz++) {
+        setBlock(ox - dLen, base + bky, oz + bkz, BLOCK.CONCRETE);
+      }
+    }
+    // Water lane floor (BLUE_TILE)
+    for (var wi = -dLen + 1; wi <= dLen; wi++) {
+      for (var ww = -dW + 1; ww <= dW - 1; ww++) {
+        setBlock(ox + wi, base, oz + ww, BLOCK.BLUE_TILE);
+      }
+    }
+    // Overhead gantry rails + crane trolleys
+    for (var gi = -dLen; gi <= dLen; gi++) {
+      setBlock(ox + gi, base + dH, oz - dW, BLOCK.METAL);
+      setBlock(ox + gi, base + dH, oz + dW, BLOCK.METAL);
+      if (gi % 6 === 0) {
+        setBlock(ox + gi, base + dH, oz - 1, BLOCK.METAL);
+        setBlock(ox + gi, base + dH, oz,     BLOCK.METAL);
+        setBlock(ox + gi, base + dH, oz + 1, BLOCK.METAL);
+      }
+    }
+    // Concrete dock edge lip
+    for (var li = -dLen; li <= dLen; li++) {
+      setBlock(ox + li, base + 1, oz - dW - 1, BLOCK.CONCRETE);
+      setBlock(ox + li, base + 1, oz + dW + 1, BLOCK.CONCRETE);
+    }
+    _buildings.push({ kind: 'landmark_submarine_dock', x: ox - dLen, z: oz - dW - 1, w: dLen * 2 + 1, d: dW * 2 + 3, baseY: h, floorH: dH, floors: 1, cx: ox, cz: oz });
+  }
+
   // IDEA 3: Railway tracks
   function generateRailway(startX, startZ, length, horizontal) {
     for (let i = 0; i < length; i++) {
@@ -8125,6 +8335,12 @@ window.VoxelWorld = (function () {
       generateDroneNest(-25, 35);
       // Artemivsk Winery landmark — Wagner HQ, the famous chalk-cellar champagne factory
       generateArtemivskWinery(20, 35);     // NE outskirts, near where Wagner staged their assault
+      // Bakhmut city centre landmarks
+      generateBakhmutHotel(30, -30);       // Hotel Bakhmut (Wagner commanders' HQ)
+      generateSovietAdminBuilding(0, -50); // City hall / administrative building
+      generateSovietSchool(-32, -18);      // Bakhmut school (shelled into rubble)
+      generateTrainStation(-15, 30);       // Bakhmut railway junction station
+      generateChurch(-30, 5);              // Orthodox church (still standing amid ruins)
     } else if (level.id === 'KHERSON') {
       // Kherson city — Dnipro river port, Soviet housing estates, occupation frontline
       // City center: admin buildings + apartment blocks flanking the main boulevard
@@ -8473,10 +8689,6 @@ window.VoxelWorld = (function () {
       generateBurningRuin(-48, -50);
       generateBurningRuin(42, -52);
       generateBurningRuin(-5, 95);
-      // Bakhmut city centre landmarks
-      generateBakhmutHotel(30, -30);          // Hotel Bakhmut (Wagner commanders' HQ)
-      generateSovietAdminBuilding(0, -50);    // City hall / administrative building
-      generateArtemivskWinery(20, 35);        // Artemivsk champagne factory (Bakhmut's old name)
     } else if (level.id === 'MARIUPOL') {
       // Mariupol / Azovstal Steelworks — total industrial destruction, urban holocaust
       // The Azovstal plant: massive sprawling steel mill (multiple industrial complexes)
@@ -8542,6 +8754,11 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, -48);
       generateDroneNest(48, -48);
       generateDroneNest(-48, 48);
+      // Mariupol city landmarks
+      generateAzovsteelWorks(38, -32);        // Azovstal Iron & Steel blast furnace complex
+      generatePortCrane(42, 8);               // Mariupol port loading crane
+      generateSovietAdminBuilding(-12, -38);  // Mariupol city hall (Leninska Square)
+      generateSovietSchool(25, -20);          // Mariupol school (bombed)
     } else if (level.id === 'CRIMEA') {
       // Kerch Strait Bridge — 19km span connecting Russia to occupied Crimea
       // Attacked twice: truck bomb (Oct 2022) and sea drones (Jul 2023)
@@ -8785,11 +9002,6 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, 48);
       generateDroneNest(48, -48);
       generateDroneNest(-48, -48);
-      // Mariupol city landmarks
-      generateAzovsteelWorks(38, -32);        // Azovstal Iron & Steel blast furnace complex
-      generatePortCrane(42, 8);               // Mariupol port loading crane
-      generateSovietAdminBuilding(-12, -38);  // Mariupol city hall (Leninska Square)
-      generateMariupolDramaTheatre(0, 20);    // Drama Theatre (already exists, reinforce it)
     } else if (level.id === 'SEVASTOPOL') {
       // Sevastopol Black Sea Fleet HQ — massive naval base, coastal city, fortifications
       // Naval infrastructure (Inkerman Bay / Severnaya Bay docks)
@@ -8848,6 +9060,13 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, 0);
       generateDroneNest(0, -48);
       generateDroneNest(0, 48);
+      // Sevastopol city landmarks
+      generateSevastopolMonument(0, -30);   // Monument to the Sunken Ships — Corinthian column in bay
+      generateSovietAdminBuilding(-22, -15);// Naval HQ / Black Sea Fleet command building
+      generatePortCrane(35, -10);           // Shipyard gantry crane
+      generateNavalBarracks(-42, 32);       // Black Sea Fleet enlisted barracks
+      generateSubmarineDock(-12, -45);      // Balaklava-style submarine bay
+      generateTrainStation(35, -38);        // Sevastopol railway terminus (historic 1875 station)
     } else if (level.id === 'DONBAS') {
       // Donbas final push — mining heartland, trench warfare, urban fringe towns
       // Industrial core: coal mines, salt mines, slag heaps
@@ -8936,6 +9155,12 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, 48);
       generateDroneNest(48, 48);
       generateDroneNest(-48, -48);
+      // Additional Donbas industrial / civic landmarks
+      generateCoalWashingPlant(-42, -28);  // Coal preparation plant (Donetsk basin)
+      generateMineShaftTower(-30, -45);    // Second mine headframe (Donetsk coal country)
+      generateTrainStation(0, -38);        // Donetsk main railway station
+      generateSovietAdminBuilding(0, -22); // City administration building
+      generateChurch(-28, 28);             // Orthodox church (damaged in fighting)
     } else if (level.id === 'BELGOROD') {
       // Belgorod Oblast offensive — Russian border region, the fight taken to the aggressor
       // Russian border villages, military depots, border crossing fortifications
@@ -9018,6 +9243,12 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, 48);
       // Belgorod WWII memorial — eternal flame obelisk in the city centre
       generateBelgorodMemorial(0, 20);     // City-centre plaza memorial
+      // Additional Belgorod city landmarks
+      generateTrainStation(-15, 42);        // Belgorod central railway station
+      generateSovietSchool(35, 32);         // Soviet-era school building
+      generateSovietAdminBuilding(-38, 28); // Oblast court / administration
+      generateGrainSilo(32, -38);           // Agricultural storage (Belgorod grain region)
+      generateIndustrialComplex(-38, -8);   // Energomash rocket plant
     } else if (level.id === 'KREMLIN') {
       // KREMLIN SHOWDOWN — Final stage. The full Red Square / Moscow city center under assault.
       // The zombie president boss spawns from inside the Kremlin palace.
@@ -9113,10 +9344,6 @@ window.VoxelWorld = (function () {
       generateDroneNest(0, -56);
       generateDroneNest(40, 40);
       generateDroneNest(-40, -40);
-      // Sevastopol city landmarks
-      generateSevastopolMonument(0, -30);     // Monument to the Sunken Ships — Corinthian column in bay
-      generateSovietAdminBuilding(-22, -15);  // Naval HQ / Black Sea Fleet command building
-      generatePortCrane(35, -10);             // Shipyard gantry crane
     } else if (level.id === 'SNAKE') {
       // Snake Island — iconic Black Sea outpost ("Russian warship, go fuck yourself!")
       // Small rocky outcrop: lighthouse, gun positions, communications relay
@@ -9292,6 +9519,12 @@ window.VoxelWorld = (function () {
       // Vuhledar mining landmarks — coal mine headframe + extra terikon slag heap
       generateMineShaftTower(38, -40);     // Kopyor winding tower (NE edge — Vuhledar was coal country)
       generateTerikon(-32, 35);            // Second slag heap (NW — visible for miles)
+      // Additional Vuhledar town landmarks
+      generateCoalWashingPlant(-12, -45);  // Coal preparation plant (mine processing)
+      generateMineShaftTower(-40, -18);    // Second mine headframe (town had multiple shafts)
+      generateSovietSchool(5, 45);         // Vuhledar School #1 (destroyed in siege)
+      generateSovietAdminBuilding(0, 32);  // Vuhledar city hall / administration
+      generateChurch(-38, 22);             // Orthodox church (damaged in fighting)
     } else if (level.id === 'ANTONOV') {
       // Antonov Bridge / Kherson Oblast — HIMARS supply line interdiction
       // The bridge over the Dnipro was struck repeatedly to cut Russian supplies
