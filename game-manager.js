@@ -3287,6 +3287,7 @@ const GameManager = (function () {
     if (typeof CombatExtras !== 'undefined') CombatExtras.reset();
     if (typeof Traversal !== 'undefined') Traversal.reset();
     if (typeof WorldFeatures !== 'undefined') WorldFeatures.clear();
+    if (typeof CityProps !== 'undefined' && CityProps.clear) CityProps.clear(_scene);
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof MissionTypes !== 'undefined') MissionTypes.clear();
     if (typeof Feedback !== 'undefined') Feedback.clear();
@@ -3703,6 +3704,7 @@ const GameManager = (function () {
     if (typeof MissionTypes !== 'undefined' && MissionTypes.clear) MissionTypes.clear();
     if (typeof Feedback !== 'undefined' && Feedback.clear) Feedback.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
+    if (typeof CityProps !== 'undefined' && CityProps.clear) CityProps.clear(_scene);
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
     if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
 
