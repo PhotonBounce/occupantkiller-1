@@ -2827,6 +2827,116 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_panorama', x: ox - R, z: oz - R, w: 2 * R + 1, d: 2 * R + 1, baseY: h, floorH: 4, floors: 2, cx: ox, cz: oz });
   }
 
+  // ── HOSTOMEL: Antonov An-225 "Mriya" ───────────────────────────────────
+  // The world's largest aircraft, destroyed in its hangar at Hostomel in 2022.
+  // Built here as a battle-damaged hulk in Ukrainian blue/yellow livery.
+  function generateAN225Mriya(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var fy = h + 4;        // fuselage centre height (sitting on gear)
+    // Fuselage — long horizontal tube along X
+    for (var x = -22; x <= 22; x++) {
+      var rr = (x < -18) ? 1 : 2; // taper at the tail
+      for (var dy = -rr; dy <= rr; dy++) {
+        for (var dz = -rr; dz <= rr; dz++) {
+          if (dy * dy + dz * dz <= rr * rr + 1) {
+            // Blue belly stripe / white upper (Ukrainian livery)
+            var blk = (dy <= -1) ? BLOCK.BLUE_TILE : BLOCK.WHITE_TILE;
+            setBlock(ox + x, fy + dy, oz + dz, blk);
+          }
+        }
+      }
+    }
+    // Cockpit hump near the nose
+    for (var cx2 = 18; cx2 <= 21; cx2++) {
+      setBlock(ox + cx2, fy + 3, oz, BLOCK.GLASS);
+      setBlock(ox + cx2, fy + 2, oz - 1, BLOCK.GLASS);
+      setBlock(ox + cx2, fy + 2, oz + 1, BLOCK.GLASS);
+    }
+    // Nose cone
+    setBlock(ox + 23, fy, oz, BLOCK.WHITE_TILE);
+    // Main wing — large swept slab through mid-fuselage (spans Z)
+    for (var wx = -6; wx <= 8; wx++) {
+      var sweep = Math.round((8 - wx) * 0.4); // leading-edge sweep
+      for (var wz = -20; wz <= 20; wz++) {
+        if (Math.abs(wz) < 3) continue; // wing roots meet fuselage
+        var taper = Math.abs(wz) > 14 ? 1 : 0; // thinner wingtips
+        if (taper && wx > 5) continue;
+        setBlock(ox + wx - sweep, fy - 1, oz + wz, BLOCK.WHITE_TILE);
+      }
+    }
+    // Yellow wingtip accents (livery)
+    setBlock(ox - 2, fy - 1, oz - 20, BLOCK.LIGHT);
+    setBlock(ox - 2, fy - 1, oz + 20, BLOCK.LIGHT);
+    // Six engine pods under the wings (3 per side)
+    var engZ = [-16, -11, -6, 6, 11, 16];
+    for (var ei = 0; ei < engZ.length; ei++) {
+      for (var ex = 0; ex <= 3; ex++) {
+        setBlock(ox + ex - 1, fy - 3, oz + engZ[ei], BLOCK.METAL);
+      }
+      setBlock(ox - 2, fy - 3, oz + engZ[ei], BLOCK.ELECTRONICS); // intake fan
+    }
+    // Twin vertical tail fins (the An-225's signature)
+    for (var ty = 0; ty < 7; ty++) {
+      setBlock(ox - 20, fy + 2 + ty, oz - 6, BLOCK.BLUE_TILE);
+      setBlock(ox - 20, fy + 2 + ty, oz + 6, BLOCK.BLUE_TILE);
+    }
+    // Horizontal stabiliser connecting the tails
+    for (var sz = -7; sz <= 7; sz++) setBlock(ox - 20, fy + 2, oz + sz, BLOCK.WHITE_TILE);
+    // Landing gear (rows of wheels)
+    for (var gz = -3; gz <= 3; gz += 2) {
+      for (var gx = -4; gx <= 6; gx += 2) {
+        setBlock(ox + gx, h + 1, oz + gz, BLOCK.METAL);
+        setBlock(ox + gx, h + 2, oz + gz, BLOCK.METAL);
+      }
+    }
+    // Battle damage — the hulk is broken and burning around the left wing
+    setBlock(ox + 2, fy - 1, oz - 14, BLOCK.FIRE);
+    setBlock(ox + 1, fy - 1, oz - 17, BLOCK.FIRE);
+    setBlock(ox - 1, fy, oz - 19, BLOCK.RUBBLE);
+    setBlock(ox + 4, fy - 1, oz - 11, BLOCK.RUBBLE);
+    _buildings.push({ kind: 'landmark_an225', x: ox - 22, z: oz - 20, w: 46, d: 41, baseY: h, floorH: 4, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── SNAKE ISLAND: the Zmiinyi Island lighthouse ────────────────────────
+  // Tall round red/white-banded tower with a glazed lantern room + keeper hut.
+  function generateLighthouse(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var towerH = 22, R = 2;
+    for (var y = 0; y < towerH; y++) {
+      var band = ((y >> 1) & 1); // alternating bands every 2 blocks
+      var blk = band ? BLOCK.BANNER : BLOCK.WHITE_TILE;
+      for (var dx = -R; dx <= R; dx++) {
+        for (var dz = -R; dz <= R; dz++) {
+          if (dx * dx + dz * dz <= R * R + 1) {
+            var edge = (dx * dx + dz * dz > (R - 1) * (R - 1));
+            if (edge || y === 0) setBlock(ox + dx, h + y + 1, oz + dz, blk);
+          }
+        }
+      }
+    }
+    // Gallery deck below the lantern
+    _lmDisc(ox, h + towerH + 1, oz, R + 1, BLOCK.METAL);
+    // Glazed lantern room
+    for (var ly = 0; ly < 3; ly++) {
+      _lmRing(ox, h + towerH + 2 + ly, oz, R, BLOCK.GLASS);
+    }
+    // Light + roof
+    setBlock(ox, h + towerH + 5, oz, BLOCK.LIGHT);
+    _lmDisc(ox, h + towerH + 6, oz, R, BLOCK.METAL);
+    setBlock(ox, h + towerH + 7, oz, BLOCK.FLAG);
+    // Keeper's building at the base (small stone hut)
+    for (var bx = 3; bx <= 8; bx++) {
+      for (var bz = -3; bz <= 3; bz++) {
+        for (var by = 0; by < 4; by++) {
+          var shell = (bx === 3 || bx === 8 || bz === -3 || bz === 3 || by === 0 || by === 3);
+          if (shell) setBlock(ox + bx, h + by + 1, oz + bz, BLOCK.STONE);
+        }
+      }
+    }
+    setBlock(ox + 3, h + 2, oz, BLOCK.DOOR);
+    _buildings.push({ kind: 'landmark_lighthouse', x: ox - R, z: oz - R, w: 12, d: 7, baseY: h, floorH: towerH, floors: 1, cx: ox, cz: oz });
+  }
+
   // IDEA 3: Railway tracks
   function generateRailway(startX, startZ, length, horizontal) {
     for (let i = 0; i < length; i++) {
@@ -6708,6 +6818,8 @@ window.VoxelWorld = (function () {
       // Hostomel town center (church, water tower, commercial)
       generateChurch(88, -80);                   // Local church on main road
       generateChurch(-88, -75);
+      // Antonov An-225 "Mriya" — the world's largest plane, destroyed here in 2022
+      generateAN225Mriya(0, 30);
       generateWaterTower(70, -75);               // District water tower
       generateLuxuryVilla(-75, -80, 8, 6);       // Hostomel administration building
       // Fuel/supply depot at airport (Russian used it as re-supply point)
@@ -7914,8 +8026,8 @@ window.VoxelWorld = (function () {
     } else if (level.id === 'SNAKE') {
       // Snake Island — iconic Black Sea outpost ("Russian warship, go fuck yourself!")
       // Small rocky outcrop: lighthouse, gun positions, communications relay
-      generateCommTower(0, 0);          // Strategic comms relay (reason Russia wanted it)
-      generateCommTower(8, 12);         // Backup antenna mast
+      generateLighthouse(0, 0);         // Zmiinyi Island lighthouse — the island's iconic landmark
+      generateCommTower(8, 12);         // Strategic comms relay (reason Russia wanted it)
       generateRadarTower(-8, -12);      // Coastal radar
       generateDefensivePosition(-15, -15);
       generateDefensivePosition(15, 15);
