@@ -1231,7 +1231,7 @@ window.VoxelWorld = (function () {
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
-  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv'];
+  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy'];
 
   function getLevelDef(index) {
     if (index >= 0 && index < LEVELS.length) return LEVELS[index];
@@ -5657,6 +5657,178 @@ window.VoxelWorld = (function () {
     setBlock(ox + 7, base + 7, oz - 4, BLOCK.RUBBLE);
     setBlock(ox + 6, base + 7, oz - 4, BLOCK.AIR);
     _buildings.push({ kind: 'landmark_mykolaiv_shipyard', x: ox - 14, z: oz - 12, w: 29, d: 24, baseY: h, floorH: 5, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Dnipro Arena — 31k-seat UEFA 3-star stadium in Dnipro, opened 2008
+  // Modern cable-stayed CONCRETE bowl with METAL roof trusses + GLASS facade panels.
+  // Russia struck the nearby freight district in July 2023 missile attacks.
+  function generateDniproArena(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var aR = 16, bR = 12;
+    // Outer concourse oval (ellipsoidal retaining CONCRETE shell)
+    for (var a = 0; a < 360; a += 6) {
+      var rad = a * Math.PI / 180;
+      var wx = Math.round(Math.cos(rad) * aR);
+      var wz = Math.round(Math.sin(rad) * bR);
+      for (var wy = 0; wy < 10; wy++) setBlock(ox + wx, h + wy + 1, oz + wz, BLOCK.CONCRETE);
+    }
+    // Inner seating bowl — 4 tiers, step-graduated
+    for (var tier = 0; tier < 4; tier++) {
+      var tA = aR - 3 - tier * 3, tB = bR - 2 - tier * 2, tY = h + 3 + tier * 2;
+      for (var ta = 0; ta < 360; ta += 5) {
+        var trad = ta * Math.PI / 180;
+        setBlock(ox + Math.round(Math.cos(trad) * tA), tY, oz + Math.round(Math.sin(trad) * tB), BLOCK.STONE);
+      }
+    }
+    // Cable-stayed METAL roof structure — 8 radial truss arms
+    for (var ri = 0; ri < 8; ri++) {
+      var rRad = (ri / 8) * Math.PI * 2;
+      var rx = Math.round(Math.cos(rRad) * (aR - 2)), rz = Math.round(Math.sin(rRad) * (bR - 2));
+      // Truss from rim toward center overhead
+      for (var rf = 0; rf < 5; rf++) {
+        var rfx = Math.round(rx * (1 - rf * 0.2)), rfz = Math.round(rz * (1 - rf * 0.2));
+        setBlock(ox + rfx, h + 14 - rf, oz + rfz, BLOCK.METAL);
+      }
+    }
+    // GLASS facade curtain wall panels between truss arms
+    for (var a2 = 0; a2 < 360; a2 += 12) {
+      var r2 = a2 * Math.PI / 180;
+      var gx = Math.round(Math.cos(r2) * aR), gz = Math.round(Math.sin(r2) * bR);
+      for (var gy = 3; gy < 10; gy += 3) setBlock(ox + gx, h + gy, oz + gz, BLOCK.GLASS);
+    }
+    // South main entrance arch
+    for (var eh = 0; eh < 6; eh++) {
+      setBlock(ox - 2, h + eh + 1, oz + bR, BLOCK.CONCRETE);
+      setBlock(ox + 2, h + eh + 1, oz + bR, BLOCK.CONCRETE);
+    }
+    for (var ea = -3; ea <= 3; ea++) setBlock(ox + ea, h + 7, oz + bR, BLOCK.METAL);
+    // 4 LIGHT corner beacons
+    var beacons = [[aR + 1, bR + 1], [-aR - 1, bR + 1], [aR + 1, -bR - 1], [-aR - 1, -bR - 1]];
+    for (var bi = 0; bi < beacons.length; bi++) {
+      var bx = ox + beacons[bi][0], bz2 = oz + beacons[bi][1];
+      for (var bh2 = 0; bh2 < 14; bh2++) setBlock(bx, h + bh2 + 1, bz2, BLOCK.METAL);
+      setBlock(bx, h + 15, bz2, BLOCK.LIGHT);
+    }
+    _buildings.push({ kind: 'landmark_dnipro_arena', x: ox - aR, z: oz - bR, w: aR*2, d: bR*2, baseY: h, floorH: 5, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Yuzhmash / Yuzhnoye — Dnipro rocket & spacecraft factory complex (1954)
+  // Produced Zenit-3, Antares, Cyclone, Dnieper rockets. Key Ukrainian defense-industrial site.
+  // Russia repeatedly targeted surrounding oblast to disrupt Dnipro's logistics hub role.
+  function generateYuzhmash(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    // Large METAL assembly hall 30×14 — where Zenit rockets are built vertically
+    for (var py = 0; py < 14; py++) {
+      for (var px = -15; px <= 15; px++) {
+        for (var pz = -7; pz <= 7; pz++) {
+          var edge = (Math.abs(px) === 15 || Math.abs(pz) === 7);
+          if (edge || py === 0 || py === 13) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.METAL);
+        }
+      }
+    }
+    // Sawtooth clerestory GLASS roof for natural lighting inside factory
+    for (var sr = -14; sr <= 14; sr += 4) {
+      for (var sz = -6; sz <= 6; sz++) {
+        setBlock(ox + sr, h + 14, oz + sz, BLOCK.GLASS);
+        setBlock(ox + sr, h + 15, oz + sz, BLOCK.GLASS);
+      }
+    }
+    // 3 launch preparation towers (vertical assembly buildings — huge concrete towers)
+    var towers = [[-10, 15], [0, 18], [10, 15]];
+    for (var ti = 0; ti < towers.length; ti++) {
+      var tx = ox + towers[ti][0], tz = oz + towers[ti][1];
+      for (var ty = 0; ty < 22; ty++) {
+        for (var tdx = -2; tdx <= 2; tdx++) {
+          for (var tdz = -2; tdz <= 2; tdz++) {
+            if (Math.abs(tdx) === 2 || Math.abs(tdz) === 2 || ty === 0 || ty === 21) {
+              setBlock(tx + tdx, h + ty + 1, tz + tdz, BLOCK.REINFORCED);
+            }
+          }
+        }
+      }
+      setBlock(tx, h + 23, tz, BLOCK.LIGHT); // warning light atop tower
+    }
+    // Rocket test stand — open CONCRETE frame
+    for (var rf = 0; rf < 8; rf++) {
+      setBlock(ox + 18, h + rf + 1, oz, BLOCK.CONCRETE);
+      setBlock(ox + 18, h + rf + 1, oz + 3, BLOCK.CONCRETE);
+      setBlock(ox + 18, h + rf + 1, oz - 3, BLOCK.CONCRETE);
+    }
+    for (var rft = -3; rft <= 3; rft++) setBlock(ox + 18, h + 9, oz + rft, BLOCK.METAL);
+    // CONCRETE perimeter security wall
+    for (var pw = -18; pw <= 18; pw++) {
+      setBlock(ox + pw, h + 1, oz - 12, BLOCK.CONCRETE);
+      setBlock(ox + pw, h + 2, oz - 12, BLOCK.CONCRETE);
+      setBlock(ox + pw, h + 1, oz + 22, BLOCK.CONCRETE);
+      setBlock(ox + pw, h + 2, oz + 22, BLOCK.CONCRETE);
+    }
+    for (var pp = -12; pp <= 22; pp++) {
+      setBlock(ox - 18, h + 1, oz + pp, BLOCK.CONCRETE);
+      setBlock(ox - 18, h + 2, oz + pp, BLOCK.CONCRETE);
+      setBlock(ox + 20, h + 1, oz + pp, BLOCK.CONCRETE);
+      setBlock(ox + 20, h + 2, oz + pp, BLOCK.CONCRETE);
+    }
+    _buildings.push({ kind: 'landmark_yuzhmash', x: ox - 18, z: oz - 12, w: 36, d: 34, baseY: h, floorH: 7, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Chernihiv Transfiguration Cathedral (Спасо-Преображенський Собор, 1036 AD)
+  // One of the oldest surviving churches in Ukraine. Endured WWII; withstood 40-day Russian siege 2022.
+  // Five-domed Romanesque-Byzantine structure of STONE with lead-grey shingle roof + golden crosses.
+  function generateChernihivCathedral(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var bw = 16, bd = 12, bh = 9;
+    // White STONE cathedral body (thick 11th-century masonry walls)
+    for (var py = 0; py < bh; py++) {
+      for (var px = -Math.floor(bw/2); px <= Math.floor(bw/2); px++) {
+        for (var pz = -Math.floor(bd/2); pz <= Math.floor(bd/2); pz++) {
+          var edge = (Math.abs(px) === Math.floor(bw/2) || Math.abs(pz) === Math.floor(bd/2));
+          if (edge || py === 0 || py === bh - 1) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.STONE);
+        }
+      }
+    }
+    // Narrow round-arched windows (Romanesque style — every 4 blocks)
+    for (var wz2 = -4; wz2 <= 4; wz2 += 4) {
+      for (var wy2 = 3; wy2 < bh - 2; wy2 += 3) {
+        setBlock(ox - Math.floor(bw/2), h + wy2 + 1, oz + wz2, BLOCK.GLASS);
+        setBlock(ox + Math.floor(bw/2), h + wy2 + 1, oz + wz2, BLOCK.GLASS);
+        setBlock(ox + wz2 - 2, h + wy2 + 1, oz - Math.floor(bd/2), BLOCK.GLASS);
+      }
+    }
+    // 5 golden domes (central larger, 4 corner smaller) — classic Ukrainian church
+    _lmOnionDome(ox, h + bh + 1, oz, 3, BLOCK.BUS);            // central
+    _lmOnionDome(ox - 6, h + bh, oz - 4, 2, BLOCK.BUS);        // NW
+    _lmOnionDome(ox + 6, h + bh, oz - 4, 2, BLOCK.BUS);        // NE
+    _lmOnionDome(ox - 6, h + bh, oz + 4, 2, BLOCK.BUS);        // SW
+    _lmOnionDome(ox + 6, h + bh, oz + 4, 2, BLOCK.BUS);        // SE
+    // STONE entrance porch (narthex) on the west
+    for (var py2 = 0; py2 < 6; py2++) {
+      for (var px2 = -3; px2 <= 3; px2++) {
+        if (Math.abs(px2) === 3 || py2 === 0 || py2 === 5) {
+          setBlock(ox + px2, h + py2 + 1, oz - Math.floor(bd/2) - 4, BLOCK.STONE);
+        }
+      }
+    }
+    // Entrance arch
+    for (var ea = -1; ea <= 1; ea++) {
+      for (var eg = 0; eg < 4; eg++) setBlock(ox + ea, h + eg + 1, oz - Math.floor(bd/2) - 4, BLOCK.AIR);
+    }
+    setBlock(ox - 2, h + 4, oz - Math.floor(bd/2) - 4, BLOCK.STONE);
+    setBlock(ox + 2, h + 4, oz - Math.floor(bd/2) - 4, BLOCK.STONE);
+    for (var ar = -2; ar <= 2; ar++) setBlock(ox + ar, h + 5, oz - Math.floor(bd/2) - 4, BLOCK.STONE);
+    // Separate detached bell tower to NW (11th-century freestanding tower)
+    var btx = ox - Math.floor(bw/2) - 5;
+    for (var by = 0; by < 16; by++) {
+      var taper = by > 12 ? 1 : 2;
+      for (var bxx = -taper; bxx <= taper; bxx++) {
+        for (var bzz = -taper; bzz <= taper; bzz++) {
+          if (Math.abs(bxx) === taper || Math.abs(bzz) === taper || by === 0) {
+            setBlock(btx + bxx, h + by + 1, oz + bzz, BLOCK.STONE);
+          }
+        }
+      }
+    }
+    _lmOnionDome(btx, h + 17, oz, 2, BLOCK.BUS);
+    _buildings.push({ kind: 'landmark_chernihiv_cathedral', x: ox - 11, z: oz - 10, w: 22, d: 20, baseY: h, floorH: 5, floors: 2, cx: ox, cz: oz });
   }
 
   // LANDMARK: Golden Gate (Zoloti Vorota) — 11th-century Byzantine city gate, reconstructed 1982
@@ -11138,6 +11310,149 @@ window.VoxelWorld = (function () {
         generateWreckedAPC(18, 12);
         generateWreckedConvoy(-35, 20);
         generateCraters(10);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Dnipro') {
+        // Dnipro (Dnipropetrovsk) — Ukraine's 4th city, key logistics+defense hub
+        // Famous: Yuzhmash rocket factory, Dnipro Arena, Transfiguration Cathedral
+        // Russia struck the oblast in July 2023 (Kramatorsk café attack aftermath logistics)
+        generateDniproArena(0, -5);                // Dnipro Arena — 31k UEFA-3 stadium
+        generateYuzhmash(-5, 30);                  // Yuzhmash rocket/spacecraft factory
+        generateChurch(-20, -8);                   // Transfiguration Cathedral (neoclassical)
+        generateChurch(18, -10);                   // Intercession Cathedral
+        generateLuxuryVilla(-12, -15, 12, 10);     // Dnipro City Hall (Soviet neoclassical)
+        generateLuxuryVilla(12, -18, 10, 8);       // Oblast State Administration
+        generateSovietAdminBuilding(0, -28);        // Main government square block
+        generateUkrainianApartment(-30, -30, 12);  // Left Bank Dnipro — massive residential zone
+        generateUkrainianApartment(-30, -52, 9);
+        generateUkrainianApartment(22, -32, 12);
+        generateUkrainianApartment(22, -52, 9);
+        generateUkrainianApartment(-15, -65, 6);
+        generateUkrainianApartment(12, -65, 6);
+        generateUkrainianApartment(-48, -15, 5);
+        generateUkrainianApartment(42, -18, 5);
+        generateIndustrialComplex(-30, -35);        // Dniprospetsstal steel
+        generateIndustrialComplex(28, -38);         // DNEPROVAGONMASH rolling stock
+        generateIndustrialComplex(-35, 48);         // South Ukrainian machine-building plant
+        generateTrainStation(-32, 42);              // Dnipro Central Station (1930s neo-baroque)
+        generateRailway(-18, 25, 45, false);
+        generateBridge(0, 18, 40, 5);              // Dnieper River bridge (Pivdennyi)
+        generateGrainSilo(-40, -25);
+        generateGrainSilo(35, -22);
+        generateWaterTower(-42, 12);
+        generateCommTower(0, -45);                 // Dnipro TV tower (240m)
+        generatePowerLines(0, 0, 5);
+        generateArtilleryBattery(-40, -48);
+        generateArtilleryBattery(38, 45);
+        generateAntiAirPosition(-32, 40);
+        generateAntiAirPosition(30, -40);
+        generateBunker(-18, 18);
+        generateBunker(18, -18);
+        generateTrenchNetwork(-15, 12);
+        generateBurningRuin(-18, -20);
+        generateBurningRuin(15, 20);
+        generateBurningRuin(-40, -32);
+        generateBurningRuin(38, -30);
+        generateWreckedTank(-12, -25);
+        generateWreckedConvoy(-35, 22);
+        generateCraters(12);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Chernihiv') {
+        // Chernihiv — medieval city, besieged 40 days Feb–March 2022
+        // One of oldest Ukrainian cities; 11th-century cathedrals survived the siege
+        // Russia cut off electricity, water, heat — civilian death toll heavy
+        generateChernihivCathedral(0, -5);         // Transfiguration Cathedral 1036 AD
+        generateChurch(-22, -8);                   // Borysohlib Cathedral (12th century)
+        generateChurch(20, -5);                    // St. Catherine's Church (Cossack baroque)
+        generateLuxuryVilla(-10, -15, 12, 8);      // Chernihiv Regional Administration
+        generateSovietAdminBuilding(0, -22);        // Town square (Red Square)
+        generateUkrainianApartment(-28, -28, 9);
+        generateUkrainianApartment(-28, -48, 6);
+        generateUkrainianApartment(22, -30, 9);
+        generateUkrainianApartment(22, -50, 6);
+        generateUkrainianApartment(-15, -58, 5);
+        generateUkrainianApartment(12, -58, 5);
+        generateUkrainianApartment(-48, -12, 5);
+        generateUkrainianApartment(40, -15, 5);
+        generateTrainStation(30, 28);              // Chernihiv Station (struck March 2022)
+        generateRailway(15, 15, 35, false);
+        generateBridge(0, 22, 30, 4);             // Desna River bridge (cut by bombing)
+        generateCollapsedBridge(12, 28);           // Bombed span
+        generateIndustrialComplex(-32, -35);       // Khimprom chemical plant
+        generateIndustrialComplex(28, -32);        // Chernihivske brewery (landmark)
+        generateWaterTower(-38, 18);
+        generateWaterTower(35, 15);
+        generateGrainSilo(-38, -22);
+        generatePowerLines(0, 0, 4);
+        generateArtilleryBattery(-42, -48);
+        generateArtilleryBattery(40, 42);
+        generateDefensivePosition(-15, 15);
+        generateDefensivePosition(15, -15);
+        generateBunker(-18, 20);
+        generateBunker(18, -20);
+        generateTrenchNetwork(-12, 12);
+        generateTrenchNetwork(12, -12);
+        generateBurningRuin(-18, -18);
+        generateBurningRuin(16, 18);
+        generateBurningRuin(-40, -30);
+        generateBurningRuin(36, -28);
+        generateWreckedTank(-10, -22);
+        generateWreckedAPC(15, 15);
+        generateWreckedConvoy(-30, 20);
+        generateCraters(14);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(0, -48);
+      } else if (cityName === 'Sumy') {
+        // Sumy — northeastern Ukraine, 30km from Russian border
+        // Completely surrounded briefly in March 2022; daily shelling 2022-2024
+        // Home to: Sumy State University, Sumykhimprom chemical plant
+        generateChurch(-15, -8);                   // Resurrection Cathedral (neoclassical)
+        generateChurch(18, -5);                    // Peter and Paul Cathedral
+        generateLuxuryVilla(-8, -15, 12, 8);       // Sumy Regional Administration (shelled)
+        generateSovietAdminBuilding(0, -22);        // Central square / city hall area
+        generateUkrainianApartment(-28, -28, 9);
+        generateUkrainianApartment(-28, -48, 6);
+        generateUkrainianApartment(22, -30, 9);
+        generateUkrainianApartment(22, -50, 6);
+        generateUkrainianApartment(-15, -58, 5);
+        generateUkrainianApartment(12, -58, 5);
+        generateUkrainianApartment(-48, -12, 5);
+        generateUkrainianApartment(40, -15, 5);
+        generateIndustrialComplex(-30, -35);        // Sumykhimprom chemical plant
+        generateIndustrialComplex(25, -38);         // Sumy Frunze industrial machinery
+        generateIndustrialComplex(-35, 42);         // SELMI electron microscope plant
+        generateTrainStation(30, 30);              // Sumy Railway Station
+        generateRailway(15, 18, 38, false);
+        generateBridge(0, 20, 28, 4);             // Psel River bridge
+        generateGrainSilo(-38, -22);
+        generateGrainSilo(33, -20);
+        generateWaterTower(-40, 15);
+        generateCommTower(-5, -42);
+        generatePowerLines(0, 0, 4);
+        generateArtilleryBattery(-42, -48);
+        generateArtilleryBattery(40, 42);
+        generateAntiAirPosition(-30, 38);
+        generateAntiAirPosition(28, -38);
+        generateBunker(-18, 18);
+        generateBunker(18, -18);
+        generateTrenchNetwork(-12, 12);
+        generateTrenchNetwork(12, -12);
+        generateDefensivePosition(-8, 8);
+        generateDefensivePosition(8, -8);
+        generateBurningRuin(-18, -18);
+        generateBurningRuin(16, 18);
+        generateBurningRuin(-40, -30);
+        generateBurningRuin(36, -28);
+        generateWreckedTank(-10, -22);
+        generateWreckedAPC(15, 15);
+        generateWreckedConvoy(-32, 20);
+        generateCraters(16);
         generateDroneNest(48, 48);
         generateDroneNest(-48, -48);
         generateDroneNest(48, -48);
