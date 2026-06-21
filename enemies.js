@@ -1450,7 +1450,8 @@ const Enemies = (() => {
     // ── Wounded / mobility-impaired flavor variants ─────────
     // ~6% of basic infantry get one of: donkey rider, wheelchair, crutches, crawling.
     // Skips bosses, mechs, vehicles, dogs, drones, kamikaze, snipers.
-    var _wvSkip = { BOSS:1, BOSS_MARIUPOL:1, BOSS_CRIMEA:1, BOSS_CHORNOBYL:1,
+    var _wvSkip = { BOSS:1, BOSS_HOSTOMEL:1, BOSS_AVDIIVKA:1, BOSS_BAKHMUT:1, BOSS_KHERSON:1,
+      BOSS_MARIUPOL:1, BOSS_CRIMEA:1, BOSS_CHORNOBYL:1,
       BOSS_MOSCOW:1, BOSS_SEVASTOPOL:1, BOSS_DONBAS:1, BOSS_BELGOROD:1,
       BOSS_KREMLIN:1, BOSS_KYIV:1, BOSS_SNAKE_ISLAND:1, BOSS_SAKY:1,
       BOSS_VUHLEDAR:1, BOSS_ANTONOV:1,
@@ -3135,6 +3136,10 @@ const Enemies = (() => {
             }
             break;
           case 'BOSS':
+          case 'BOSS_HOSTOMEL':
+          case 'BOSS_AVDIIVKA':
+          case 'BOSS_BAKHMUT':
+          case 'BOSS_KHERSON':
           case 'BOSS_MARIUPOL':
           case 'BOSS_CRIMEA':
           case 'BOSS_CHORNOBYL':

@@ -21,6 +21,60 @@ const EnemyTypes = (function () {
       spawnMessage: '⚠️ ENEMY COMMANDER APPROACHING!'
     },
 
+    // ── Stage-Specific Boss Types (Stages 1-4) ──────────────
+
+    // Stage 1: HOSTOMEL AIRPORT — VDV Airborne Assault Colonel
+    BOSS_HOSTOMEL: {
+      id: 'BOSS_HOSTOMEL', name: 'VDV Assault Colonel', tier: 3,
+      hp: 600, speed: 2.2, damage: 40, attackRange: 12,
+      color: 0x4466cc, scale: 1.65, xpReward: 220,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🪂 VDV ASSAULT COLONEL DROPS IN!',
+      behavior: 'boss',
+      rageThreshold: 0.5, rageDamageMult: 1.5,
+      summonTypes: ['PARATROOP', 'DRONE_OP'], summonCount: 3, summonInterval: 12
+    },
+
+    // Stage 2: AVDIIVKA — Siege Commander in armored vest
+    BOSS_AVDIIVKA: {
+      id: 'BOSS_AVDIIVKA', name: 'Avdiivka Siege Commander', tier: 3,
+      hp: 650, speed: 1.3, damage: 50, attackRange: 10,
+      color: 0x664422, scale: 1.70, xpReward: 260,
+      abilities: ['summon_reinforcements', 'rage_mode', 'bunker_shield'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🏭 SIEGE COMMANDER BREAKS THROUGH THE LINE!',
+      behavior: 'boss',
+      rageThreshold: 0.45, rageDamageMult: 1.4,
+      summonTypes: ['ARMORED', 'STORMER'], summonCount: 3, summonInterval: 15
+    },
+
+    // Stage 3: BAKHMUT RUINS — Wagner Group Butcher
+    BOSS_BAKHMUT: {
+      id: 'BOSS_BAKHMUT', name: 'Bakhmut Butcher (Wagner Lt.)', tier: 3,
+      hp: 700, speed: 2.0, damage: 60, attackRange: 8,
+      color: 0x442200, scale: 1.75, xpReward: 300,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT', 'RARE_WEAPON'],
+      spawnMessage: '☠ WAGNER BUTCHER STORMS THE RUINS!',
+      behavior: 'boss',
+      rageThreshold: 0.5, rageDamageMult: 1.8,
+      summonTypes: ['WAGNER', 'CONSCRIPT', 'CONSCRIPT'], summonCount: 4, summonInterval: 10
+    },
+
+    // Stage 4: KHERSON — Occupation Commissioner
+    BOSS_KHERSON: {
+      id: 'BOSS_KHERSON', name: 'Kherson Occupation Commissioner', tier: 3,
+      hp: 550, speed: 1.6, damage: 35, attackRange: 15,
+      color: 0x446622, scale: 1.60, xpReward: 240,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🪖 OCCUPATION COMMISSIONER TAKES THE FIELD!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.3,
+      summonTypes: ['BTR', 'SNIPER', 'CONSCRIPT'], summonCount: 3, summonInterval: 14
+    },
+
     // ── Stage-Specific Boss Types (Stages 5-12) ──────────────
 
     // Stage 5: MARIUPOL STEELWORKS — Forge Master amid molten steel
@@ -1036,6 +1090,10 @@ const EnemyTypes = (function () {
 
   /* ── Stage-Specific Boss Selection ─────────── */
   const STAGE_BOSS_MAP = {
+    1:  'BOSS_HOSTOMEL',      // VDV Airborne Assault Colonel
+    2:  'BOSS_AVDIIVKA',      // Avdiivka Siege Commander
+    3:  'BOSS_BAKHMUT',       // Bakhmut Butcher (Wagner Lt.)
+    4:  'BOSS_KHERSON',       // Kherson Occupation Commissioner
     5:  'BOSS_MARIUPOL',      // Azovstal Forge Master
     6:  'BOSS_CRIMEA',        // Kerch Bridge Admiral
     7:  'BOSS_CHORNOBYL',     // Irradiated Stalker
@@ -1054,7 +1112,7 @@ const EnemyTypes = (function () {
 
   /**
    * Returns the boss type ID for a given stage (1-based stage id).
-   * Stages 1-4 use the generic 'BOSS'. Stages 5-12 have unique bosses.
+   * All 17 combat stages have unique named bosses.
    */
   function getBossForStage(stageId) {
     return STAGE_BOSS_MAP[stageId] || 'BOSS';
