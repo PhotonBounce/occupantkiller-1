@@ -3603,6 +3603,79 @@ window.VoxelWorld = (function () {
 
   // LANDMARK: Bakhmut Sports Arena — local multipurpose hall repurposed as staging position
   // The Bakhmut Palace of Culture / sports complex became a tactical position during siege
+  // LANDMARK: Donbas Arena — Shakhtar Donetsk's modern UEFA 5-star stadium
+  // Opened 2009 for Euro 2012, 52,000 seats. Struck by Russian shells Aug 2022.
+  // Distinctive: oval concrete bowl with steel canopy roof and glass panels.
+  function generateDonbasArena(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var R = 12, rInner = 8;
+    // Outer concourse ring — CONCRETE bowl walls, 8 blocks high
+    for (var y = 0; y < 8; y++) {
+      _lmRing(ox, base + y, oz, R, BLOCK.CONCRETE);
+    }
+    // Entrance portals on N/S/E/W — 3-wide archways (clear bottom 5 blocks)
+    var portals = [[0, -R], [0, R], [-R, 0], [R, 0]];
+    for (var pi = 0; pi < portals.length; pi++) {
+      var pdx = portals[pi][0], pdz = portals[pi][1];
+      for (var ph = 0; ph < 5; ph++) {
+        setBlock(ox + pdx, base + ph, oz + pdz, BLOCK.AIR);
+        if (pdz === 0) {
+          setBlock(ox + pdx, base + ph, oz + pdz - 1, BLOCK.AIR);
+          setBlock(ox + pdx, base + ph, oz + pdz + 1, BLOCK.AIR);
+        } else {
+          setBlock(ox + pdx - 1, base + ph, oz + pdz, BLOCK.AIR);
+          setBlock(ox + pdx + 1, base + ph, oz + pdz, BLOCK.AIR);
+        }
+      }
+    }
+    // Seating tiers: 3 rings stepped toward centre (STONE)
+    for (var tier = 0; tier < 4; tier++) {
+      _lmRing(ox, base + tier * 2, oz, rInner + tier, BLOCK.STONE);
+    }
+    // Pitch surface (flat GRASS disc)
+    _lmDisc(ox, base, oz, rInner - 1, BLOCK.GRASS);
+    // Roof canopy — METAL ring at height 10, bridged by METAL beams every 30°
+    _lmRing(ox, base + 10, oz, R, BLOCK.METAL);
+    for (var a = 0; a < 360; a += 30) {
+      var rad = a * Math.PI / 180;
+      for (var rb = 8; rb <= 12; rb++) {
+        var bx = Math.round(ox + Math.cos(rad) * rb);
+        var bz = Math.round(oz + Math.sin(rad) * rb);
+        setBlock(bx, base + 10, bz, BLOCK.METAL);
+      }
+      // GLASS panels between beam midpoints
+      var rad2 = (a + 15) * Math.PI / 180;
+      for (var rg = 9; rg <= 11; rg++) {
+        setBlock(Math.round(ox + Math.cos(rad2) * rg), base + 10, Math.round(oz + Math.sin(rad2) * rg), BLOCK.GLASS);
+      }
+    }
+    // Scoreboard towers — METAL+CONCRETE pillars at NW and SE, floodlights on top
+    var towers = [[-R + 2, -R + 2], [R - 2, R - 2]];
+    for (var ti = 0; ti < towers.length; ti++) {
+      var tx = ox + towers[ti][0], tz = oz + towers[ti][1];
+      for (var ty = 0; ty < 14; ty++) setBlock(tx, base + ty, tz, BLOCK.METAL);
+      setBlock(tx, base + 14, tz, BLOCK.LIGHT);
+      setBlock(tx + 1, base + 14, tz, BLOCK.LIGHT);
+      setBlock(tx, base + 14, tz + 1, BLOCK.LIGHT);
+    }
+    // Battle damage — collapsed SE sector (Russian shells hit roof support)
+    for (var da = 30; da < 90; da += 10) {
+      var drad = da * Math.PI / 180;
+      var dx = Math.round(ox + Math.cos(drad) * R);
+      var dz = Math.round(oz + Math.sin(drad) * R);
+      for (var dy = 6; dy <= 10; dy++) {
+        if (Math.random() < 0.7) setBlock(dx, base + dy, dz, BLOCK.RUBBLE);
+      }
+    }
+    for (var rc = 0; rc < 6; rc++) {
+      var rdx = Math.round((Math.random() - 0.5) * 6);
+      var rdz = Math.round((Math.random() - 0.5) * 6);
+      setBlock(ox + R - 2 + rdx, base, oz - 2 + rdz, BLOCK.RUBBLE);
+    }
+    _buildings.push({ kind: 'landmark_donbas_arena', x: ox - R, z: oz - R, w: R * 2 + 1, d: R * 2 + 1, baseY: h, floorH: 5, floors: 2, cx: ox, cz: oz });
+  }
+
   function generateBakhmutArena(ox, oz) {
     var h = getTerrainHeight(ox, oz) || 0;
     var base = h + 1;
@@ -9534,6 +9607,7 @@ window.VoxelWorld = (function () {
       generateTrainStation(0, -38);        // Donetsk main railway station
       generateSovietAdminBuilding(0, -22); // City administration building
       generateChurch(-28, 28);             // Orthodox church (damaged in fighting)
+      generateDonbasArena(12, -22);         // Donbas Arena — Shakhtar Donetsk stadium, struck by Russian shells 2022
     } else if (level.id === 'BELGOROD') {
       // Belgorod Oblast offensive — Russian border region, the fight taken to the aggressor
       // Russian border villages, military depots, border crossing fortifications
@@ -10072,6 +10146,342 @@ window.VoxelWorld = (function () {
       generateRefinerySphere(20, -28);              // LPG spherical storage tank on legs
       generateCoolingTower(-32, 12);               // Industrial hyperbolic cooling tower
     }
+
+    // ── PROC_CITIES: distinct content for each procedural city ─────────────
+    // Cities are: Mariupol, Severodonetsk, Lysychansk, Bucha, Irpin,
+    //             Izium, Kupyansk, Robotyne, Vuhledar  (repeat after 9)
+    if (level.id && level.id.startsWith('PROC_')) {
+      var cityName = level.name;
+      if (cityName === 'Bucha') {
+        // Bucha suburb of Kyiv — site of documented Russian war crimes March 2022
+        // Residential neighbourhood: villas with gardens, Soviet-era apartment rows
+        generateLuxuryVilla(-8, -12, 8, 6);    // Irpin'ska Street villas (suburb)
+        generateLuxuryVilla(10, -14, 7, 5);
+        generateLuxuryVilla(-20, -20, 9, 7);
+        generateLuxuryVilla(18, -22, 8, 6);
+        generateLuxuryVilla(-5, -30, 7, 5);
+        generateLuxuryVilla(22, -35, 8, 6);
+        generateLuxuryVilla(-28, -35, 9, 7);
+        generateLuxuryVilla(32, -18, 7, 5);
+        generateUkrainianApartment(-38, -18, 5);
+        generateUkrainianApartment(-38, -38, 5);
+        generateUkrainianApartment(28, -42, 5);
+        generateChurch(-12, -42);               // St Andrew's Church (historic landmark)
+        generateTrainStation(30, 20);           // Bucha railway station (Kyiv–Kovel line)
+        generateFieldHospital(0, 15);           // MSF / Ukrainian humanitarian point
+        generateWaterTower(40, -28);
+        generatePowerLines(0, 0, 4);
+        generateRailway(15, 0, 35, false);
+        generateBurningRuin(-18, -8);           // Villas burned by occupation forces
+        generateBurningRuin(15, -10);
+        generateBurningRuin(-30, -12);
+        generateBurningRuin(8, -38);
+        generateWreckedCar(-8, -18);            // Civilians' cars on Yablunska Street
+        generateWreckedCar(5, -25);
+        generateWreckedCar(-22, -28);
+        generateWreckedAmbulance(12, -30);
+        generateWreckedConvoy(-15, 5);          // Russian convoy that retreated
+        generateRuinedHouse(-42, -28);
+        generateRuinedHouse(35, -35);
+        generateSniperNest(-38, 8);             // Russian sniper positions
+        generateSniperNest(38, 12);
+        generateBunker(-25, 10);
+        generateBunker(20, 10);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, 48);
+        generateDroneNest(0, -48);
+      } else if (cityName === 'Irpin') {
+        // Irpin — satellite city of Kyiv, famous evacuation/river crossing Feb–Mar 2022
+        // The blown Irpin bridge became a global image of the war
+        generateCollapsedBridge(0, 0);          // The Irpin evacuation bridge (destroyed to slow advance)
+        generateCollapsedBridge(-15, -5);       // Second river crossing (blown)
+        generateLuxuryVilla(-12, -18, 8, 6);   // Residential district villas
+        generateLuxuryVilla(10, -20, 7, 5);
+        generateLuxuryVilla(-22, -30, 9, 7);
+        generateLuxuryVilla(20, -32, 8, 6);
+        generateLuxuryVilla(-5, -42, 7, 5);
+        generateLuxuryVilla(28, -22, 8, 6);
+        generateLuxuryVilla(32, -38, 9, 7);
+        generateLuxuryVilla(-35, -20, 7, 5);
+        generateUkrainianApartment(-30, -48, 6);
+        generateUkrainianApartment(25, -50, 6);
+        generateUkrainianApartment(-45, -35, 5);
+        generateChurch(0, -35);                 // Local orthodox church used as shelter
+        generateWaterTower(-40, -12);
+        generateFieldHospital(15, 12);
+        generatePowerLines(0, 0, 4);
+        generateBurningRuin(8, -22);
+        generateBurningRuin(-18, -25);
+        generateBurningRuin(25, -40);
+        generateBurningRuin(-35, -42);
+        generateWreckedTank(-10, -12);          // Russian T-72 abandoned on evacuation route
+        generateWreckedTank(18, -15);
+        generateWreckedAPC(-25, -18);
+        generateWreckedCar(5, -28);
+        generateWreckedCar(-15, -30);
+        generateWreckedAmbulance(22, -28);
+        generateWreckedConvoy(-20, 8);
+        generateRuinedHouse(38, -28);
+        generateRuinedHouse(-38, -48);
+        generateBarbedWire(0, 0, 25, true);     // Ukrainian defensive line
+        generateAntiTankHedgehogs(12);
+        generateCheckpoint(0, 20, false);       // Evacuation corridor checkpoint
+        generateBunker(-15, 18);
+        generateBunker(15, 18);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(0, 48);
+      } else if (cityName === 'Severodonetsk') {
+        // Severodonetsk — industrial twin city of Lysychansk, chemical plant city
+        // Destroyed May–June 2022 in the longest single-city siege of the war
+        generateIndustrialComplex(0, 0);        // Azot chemical plant — largest nitrogen plant in Ukraine
+        generateIndustrialComplex(-20, -10);    // Azot processing block 2
+        generateIndustrialComplex(22, 12);      // Azot block 3 (Azovstal of the north)
+        generateCoolingTower(-35, 5);           // Azot cooling towers (visible from city)
+        generateCoolingTower(35, -15);
+        generateRefineryDistillationTower(15, -20); // Chemical distillation column
+        generateCommTower(0, -30);              // Industrial comms mast
+        generateWaterTower(-30, 28);
+        generateWaterTower(30, -35);
+        generateUkrainianApartment(-30, -30, 9); // Khimik microdistrict (chemical workers' housing)
+        generateUkrainianApartment(-30, -50, 6);
+        generateUkrainianApartment(22, -32, 9);
+        generateUkrainianApartment(22, -52, 6);
+        generateUkrainianApartment(-15, -60, 5);
+        generateUkrainianApartment(12, -60, 5);
+        generateUkrainianApartment(-48, -12, 6);
+        generateUkrainianApartment(42, -12, 6);
+        generateSovietAdminBuilding(0, -22);    // City hall on Lenin Square
+        generateChurch(-25, -8);
+        generateChurch(22, 5);
+        generateTrainStation(-35, 30);
+        generateBridge(0, 20, 30, 4);          // Siversky Donets river crossing
+        generateCollapsedBridge(15, 25);        // Blown secondary bridge
+        generateRailway(-15, 0, 45, false);
+        generateAmmoDepot(-28, -18);
+        generateAmmoDepot(25, -20);
+        generateArtilleryBattery(38, -38);
+        generateArtilleryBattery(-38, 35);
+        generateTrenchNetwork(-15, 15);
+        generateTrenchNetwork(15, -15);
+        generateBunker(-28, 28);
+        generateBunker(25, 25);
+        generateBurningRuin(-18, -18);
+        generateBurningRuin(15, 20);
+        generateBurningRuin(-35, -35);
+        generateBurningRuin(35, 35);
+        generateWreckedTank(-12, -25);
+        generateWreckedAPC(18, -22);
+        generateWreckedConvoy(-38, 18);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Lysychansk') {
+        // Lysychansk — hilltop city above the Siversky Donets, twin of Severodonetsk
+        // Last Ukrainian-held city before it fell 3 July 2022
+        // Famous for: Lysychansk Oil Refinery (huge complex), hilltop positions
+        generateRefineryDistillationTower(0, 0);   // Lysychansk Oil Refinery — primary column
+        generateRefineryDistillationTower(-15, -8);// Secondary distillation
+        generateRefinerySphere(20, 15);             // LPG sphere
+        generateCoolingTower(-30, 8);               // Refinery cooling tower
+        generateCoolingTower(30, -5);
+        generateIndustrialComplex(12, -20);         // Refinery processing units
+        generateIndustrialComplex(-18, -18);
+        generateGrainSilo(35, 20);                  // Agricultural silo (Luhansk Oblast grain)
+        generateGrainSilo(-35, -22);
+        generateWaterTower(0, -35);
+        generateUkrainianApartment(-28, -30, 9);    // Lysychansk residential
+        generateUkrainianApartment(-28, -52, 6);
+        generateUkrainianApartment(22, -28, 9);
+        generateUkrainianApartment(22, -50, 6);
+        generateUkrainianApartment(-15, -62, 5);
+        generateUkrainianApartment(12, -62, 5);
+        generateApartmentBlock(-45, -15, 4);
+        generateApartmentBlock(38, -15, 4);
+        generateSovietAdminBuilding(0, -18);        // Lysychansk city administration
+        generateChurch(-22, -5);
+        generateTrainStation(30, 30);
+        generateRailway(-10, 20, 40, false);
+        generateRailway(-20, 0, 35, true);
+        generateSniperNest(-40, 0);                 // Ukrainian hilltop sniper positions
+        generateSniperNest(40, 0);
+        generateSniperNest(0, -48);
+        generateBunker(-20, -22);
+        generateBunker(20, 20);
+        generateArtilleryBattery(-38, 32);
+        generateArtilleryBattery(35, -35);
+        generateAmmoDepot(-32, 12);
+        generateAmmoDepot(28, -12);
+        generateTrenchNetwork(-18, 18);
+        generateTrenchNetwork(18, -18);
+        generateBurningRuin(-18, -12);
+        generateBurningRuin(15, 18);
+        generateBurningRuin(35, -30);
+        generateWreckedTank(-15, 22);
+        generateWreckedAPC(18, -18);
+        generateWreckedConvoy(38, 28);
+        generateCraters(10);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Izium') {
+        // Izium (Izyum) — city in Kharkiv Oblast, occupied Mar–Sep 2022
+        // Known for: discovered mass graves after liberation, WWII memorial city
+        generateLuxuryVilla(-8, -10, 10, 8);    // City administration (Soborna Square)
+        generateChurch(-20, -5);                 // Izium cathedral (bombed)
+        generateChurch(18, 8);                   // Second parish church
+        generateUkrainianApartment(-30, -25, 9);
+        generateUkrainianApartment(-30, -45, 6);
+        generateUkrainianApartment(25, -28, 9);
+        generateUkrainianApartment(25, -48, 6);
+        generateUkrainianApartment(-15, -55, 5);
+        generateUkrainianApartment(12, -55, 5);
+        generateTrainStation(-35, 25);
+        generateRailway(-20, 10, 35, false);
+        generateBridge(0, 10, 35, 5);            // Siversky Donets bridge
+        generateWaterTower(38, -30);
+        generateWaterTower(-38, -30);
+        generateSovietAdminBuilding(0, -25);
+        generateBelgorodMemorial(5, 22);         // WWII memorial (re-used for new graves 2022)
+        generateBunker(-22, -18);
+        generateBunker(20, -20);
+        generateTrenchNetwork(-15, 15);
+        generateTrenchNetwork(15, -15);
+        generateArtilleryBattery(-38, -35);
+        generateArtilleryBattery(35, 35);
+        generateBurningRuin(-15, -18);
+        generateBurningRuin(12, 18);
+        generateBurningRuin(-30, -30);
+        generateBurningRuin(28, -28);
+        generateWreckedTank(-12, -22);
+        generateWreckedAPC(18, 15);
+        generateWreckedConvoy(-35, 25);
+        generateCraters(8);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+        generateDroneNest(0, 48);
+      } else if (cityName === 'Kupyansk') {
+        // Kupyansk — railway junction city in Kharkiv Oblast, key logistics hub
+        // Occupied Feb 2022, liberated Sep 2022, contested again 2024
+        generateTrainStation(0, 0);             // Kupyansk-Uzlovyi major railway junction
+        generateRailway(-20, 5, 50, true);      // East-west rail line (main axis)
+        generateRailway(5, -15, 40, false);     // North-south spur
+        generateRailway(-10, 15, 35, true);     // Second east-west line
+        generateGrainSilo(-35, -20);            // Agricultural grain terminal (Oskil region)
+        generateGrainSilo(32, -25);
+        generateBridge(0, 20, 30, 4);           // Oskil River bridge
+        generateCollapsedBridge(15, 25);        // Second bridge (blown)
+        generateUkrainianApartment(-28, -32, 9);
+        generateUkrainianApartment(-28, -52, 6);
+        generateUkrainianApartment(22, -35, 9);
+        generateUkrainianApartment(22, -52, 6);
+        generateUkrainianApartment(-48, -10, 5);
+        generateUkrainianApartment(42, -10, 5);
+        generateLuxuryVilla(-5, -18, 10, 8);   // City hall (Maydan square area)
+        generateChurch(-22, -8);
+        generateWaterTower(-40, 30);
+        generatePowerLines(0, 0, 5);
+        generateIndustrialComplex(35, -15);     // Mechanical plant
+        generateAmmoDepot(-28, 12);
+        generateAmmoDepot(25, 10);
+        generateArtilleryBattery(-40, -38);
+        generateArtilleryBattery(38, 35);
+        generateCheckpoint(0, 45, false);       // Main highway N26
+        generateCheckpoint(0, -45, false);
+        generateBunker(-20, 18);
+        generateBunker(18, 18);
+        generateTrenchNetwork(-18, 20);
+        generateTrenchNetwork(18, -20);
+        generateBurningRuin(-18, -15);
+        generateBurningRuin(15, 15);
+        generateWreckedTank(-12, -18);
+        generateWreckedConvoy(35, -30);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+      } else if (cityName === 'Robotyne') {
+        // Robotyne (Robotynne) — small village, key 2023 counteroffensive breakthrough
+        // Just farmland, one church, grain silos, extensive minefields
+        generateChurch(0, 0);                   // Village orthodox church (the only landmark)
+        generateGrainSilo(18, -12);             // Village grain store
+        generateGrainSilo(-15, 15);
+        generateFarmBuilding(-20, -18);         // Farm outbuildings
+        generateFarmBuilding(22, 18);
+        generateFarmBuilding(-25, 20);
+        generateWaterTower(-30, -10);           // Village water tower
+        generateUkrainianApartment(-10, -28, 3); // Small 3-storey block (collective farm housing)
+        generateUkrainianApartment(8, -30, 3);
+        generateWreckedTank(-18, -8);           // Russian T-80 graveyard (2023 assault)
+        generateWreckedTank(15, -5);
+        generateWreckedTank(28, 12);
+        generateWreckedAPC(-25, 5);
+        generateWreckedAPC(20, -18);
+        generateWreckedConvoy(-38, -22);
+        // Extensive minefields — Robotyne was defended by 3 mine belts
+        generateMinefield(-25, -25);
+        generateMinefield(25, 25);
+        generateMinefield(-40, 5);
+        generateMinefield(38, -8);
+        generateMinefield(0, -35);
+        generateMinefieldSigns(15);
+        generateTrenchNetwork(-12, 12);
+        generateTrenchNetwork(12, -12);
+        generateTrenchNetwork(-30, 30);
+        generateTrenchNetwork(30, -30);
+        generateBunker(-15, -15);
+        generateBunker(15, 15);
+        generateBunker(-35, 0);
+        generateBunker(35, 0);
+        generateMortarPit(-28, -12);
+        generateMortarPit(25, 10);
+        generateDefensivePosition(-10, 20);
+        generateDefensivePosition(10, -20);
+        generateAntiTankHedgehogs(20);
+        generateBurningRuin(-8, -8);
+        generateBurningRuin(10, 10);
+        generateBurningRuin(-22, 18);
+        generateBurningRuin(20, -22);
+        generateCraters(15);
+        generateDroneNest(45, 45);
+        generateDroneNest(-45, -45);
+        generateDroneNest(45, -45);
+        generateDroneNest(-45, 45);
+      } else {
+        // Generic proc city (Mariupol/Vuhledar repeats, or any future addition)
+        generateUkrainianApartment(-25, -25, 6);
+        generateUkrainianApartment(-25, -45, 6);
+        generateUkrainianApartment(20, -28, 6);
+        generateUkrainianApartment(20, -48, 6);
+        generateUkrainianApartment(-15, -55, 5);
+        generateUkrainianApartment(12, -55, 5);
+        generateUkrainianApartment(-45, -10, 5);
+        generateUkrainianApartment(38, -10, 5);
+        generateSovietAdminBuilding(0, -20);
+        generateChurch(-22, -5);
+        generateChurch(20, 8);
+        generateTrainStation(30, 30);
+        generateWaterTower(-35, 28);
+        generateIndustrialComplex(-30, -30);
+        generateIndustrialComplex(28, -30);
+        generateGrainSilo(35, -18);
+        generateAmmoDepot(-28, 10);
+        generateBunker(-20, 20);
+        generateBunker(20, -20);
+        generateTrenchNetwork(-15, 15);
+        generateTrenchNetwork(15, -15);
+        generateBurningRuin(-18, -18);
+        generateBurningRuin(18, 18);
+        generateWreckedTank(-12, -22);
+        generateWreckedAPC(18, 15);
+        generateDroneNest(45, 45);
+        generateDroneNest(-45, -45);
+        generateDroneNest(45, -45);
+        generateDroneNest(-45, 45);
+      }
+    }
+
     // ── War-zone ruined homes & commercial buildings (every stage) ──
     // Real Ukraine war reference: Mariupol, Bakhmut, Avdiivka districts
     // after months of bombardment — partial walls, blown roofs, exposed
