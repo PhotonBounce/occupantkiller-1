@@ -5053,6 +5053,111 @@ window.VoxelWorld = (function () {
     setBlock(ox + 4, surfH + 2, oz, BLOCK.AIR);
   }
 
+  // LANDMARK: Golden Gate (Zoloti Vorota) — 11th-century Byzantine city gate, reconstructed 1982
+  // White STONE tower with archway passage + small chapel on top, iconic western entrance to old Kyiv
+  function generateGoldenGate(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var W = 10, D = 8;
+    for (var wx = 0; wx <= W; wx++) {
+      for (var wz = 0; wz <= D; wz++) {
+        for (var wy = 1; wy <= 12; wy++) {
+          if (wx === 0 || wx === W || wz === 0 || wz === D || wy === 12) {
+            setBlock(ox + wx, base + wy, oz + wz, BLOCK.STONE);
+          }
+        }
+      }
+    }
+    // Central archway passage (3 wide × 6 tall)
+    for (var az = 0; az <= D; az++) {
+      for (var ax = 3; ax <= 7; ax++) {
+        for (var ay = 1; ay <= 6; ay++) setBlock(ox + ax, base + ay, oz + az, BLOCK.AIR);
+      }
+    }
+    // Chapel room on top
+    for (var cx2 = 2; cx2 <= 8; cx2++) {
+      for (var cz2 = 2; cz2 <= 6; cz2++) {
+        for (var cy = 13; cy <= 16; cy++) {
+          if (cx2 === 2 || cx2 === 8 || cz2 === 2 || cz2 === 6 || cy === 16) {
+            setBlock(ox + cx2, base + cy, oz + cz2, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    // Golden dome on chapel
+    for (var gd = -1; gd <= 1; gd++) {
+      for (var gdz = -1; gdz <= 1; gdz++) {
+        if (gd * gd + gdz * gdz <= 1) setBlock(ox + 5 + gd, base + 17, oz + 4 + gdz, BLOCK.LIGHT);
+      }
+    }
+    setBlock(ox + 5, base + 18, oz + 4, BLOCK.LIGHT);
+    setBlock(ox + 5, base + 19, oz + 4, BLOCK.METAL);
+    // Crenellations atop gate tower
+    for (var mi = 0; mi <= W; mi += 2) {
+      setBlock(ox + mi, base + 13, oz, BLOCK.STONE);
+      setBlock(ox + mi, base + 13, oz + D, BLOCK.STONE);
+    }
+    _buildings.push({ kind: 'golden_gate', x: ox, z: oz, w: W + 1, d: D + 1, baseY: h, floorH: 6, floors: 2, cx: ox + 5, cz: oz + 4 });
+  }
+
+  // LANDMARK: Kyiv Central Railway Station (Tsentralnyi Vokzal, 1932)
+  // Stalinist neoclassical building with central clock tower — main rail hub of the city
+  function generateKyivCentralStation(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Wide main hall (PLASTER walls, 8 floors)
+    for (var mbx = 0; mbx <= 20; mbx++) {
+      for (var mbz = 0; mbz <= 12; mbz++) {
+        for (var mby = 1; mby <= 8; mby++) {
+          if (mbx === 0 || mbx === 20 || mbz === 0 || mbz === 12 || mby === 8) {
+            setBlock(ox + mbx, base + mby, oz + mbz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Arched windows on north facade
+    for (var wc = 2; wc <= 18; wc += 4) {
+      for (var wy2 = 2; wy2 <= 6; wy2++) {
+        setBlock(ox + wc, base + wy2, oz, BLOCK.GLASS);
+        setBlock(ox + wc + 1, base + wy2, oz, BLOCK.GLASS);
+      }
+    }
+    // Grand entrance arch (centre, 5 wide)
+    for (var eax = 8; eax <= 12; eax++) {
+      for (var eay = 1; eay <= 5; eay++) setBlock(ox + eax, base + eay, oz, BLOCK.AIR);
+    }
+    // Central clock tower
+    for (var cth = 9; cth <= 15; cth++) {
+      for (var ctx = 8; ctx <= 12; ctx++) {
+        for (var ctz = 4; ctz <= 8; ctz++) {
+          if (ctx === 8 || ctx === 12 || ctz === 4 || ctz === 8) {
+            setBlock(ox + ctx, base + cth, oz + ctz, BLOCK.STONE);
+          }
+        }
+      }
+    }
+    // Clock face glass insets on each side
+    setBlock(ox + 10, base + 12, oz + 4, BLOCK.GLASS);
+    setBlock(ox + 10, base + 12, oz + 8, BLOCK.GLASS);
+    setBlock(ox + 8, base + 12, oz + 6, BLOCK.GLASS);
+    setBlock(ox + 12, base + 12, oz + 6, BLOCK.GLASS);
+    // Tower spire
+    setBlock(ox + 10, base + 16, oz + 6, BLOCK.METAL);
+    setBlock(ox + 10, base + 17, oz + 6, BLOCK.METAL);
+    // Platform awning (canopy over tracks)
+    for (var pax = -2; pax <= 22; pax++) {
+      setBlock(ox + pax, base + 5, oz + 12, BLOCK.CONCRETE);
+    }
+    // Railway tracks heading south
+    for (var trz = 13; trz <= 20; trz++) {
+      for (var trx = 2; trx <= 18; trx += 6) {
+        setBlock(ox + trx, base, oz + trz, BLOCK.METAL);
+        setBlock(ox + trx + 1, base, oz + trz, BLOCK.METAL);
+      }
+    }
+    _buildings.push({ kind: 'kyiv_central_station', x: ox - 2, z: oz, w: 25, d: 21, baseY: h, floorH: 8, floors: 2, cx: ox + 10, cz: oz + 6 });
+  }
+
   // ─── Kyiv Maidan Nezalezhnosti — historical recreation ─────────────
   // Recreates the Independence Square / Khreshchatyk approach where
   // Russian armored columns were stopped on the road into Kyiv (Feb–Mar 2022).
@@ -8568,6 +8673,8 @@ window.VoxelWorld = (function () {
       generateMotherlandMonument(50, -40);  // Батьківщина-Мати: titanium statue, Pechersk hills (SE)
       generateStSophia(-55, -38);           // St. Sophia Cathedral — gold domes + bell tower (NW old town)
       generateLavraBellTower(52, 28);       // Kyiv Pechersk Lavra Great Bell Tower (E)
+      generateGoldenGate(-38, -12);         // Zoloti Vorota — 11th-century medieval city gate (SW of Maidan)
+      generateKyivCentralStation(-62, 48);  // Kyiv Central Station — clock tower, 1932 neoclassical (NW)
       // Drone nests along enemy approach corridor
       generateDroneNest(36, -40);
       generateDroneNest(-36, -40);
@@ -9693,6 +9800,10 @@ window.VoxelWorld = (function () {
       generateSovietSchool(5, 45);         // Vuhledar School #1 (destroyed in siege)
       generateSovietAdminBuilding(0, 32);  // Vuhledar city hall / administration
       generateChurch(-38, 22);             // Orthodox church (damaged in fighting)
+      generateFieldHospital(28, -12);      // Vuhledar district hospital (heavily shelled 2022-23)
+      generateWaterTower(15, -22);         // Municipal water supply tower
+      generateUkrainianApartment(-15, -8, 5); // Soviet 5-story residential block
+      generateUkrainianApartment(22, -8, 5);  // Second residential block (east side)
     } else if (level.id === 'ANTONOV') {
       // Antonov Bridge / Kherson Oblast — HIMARS supply line interdiction
       // The bridge over the Dnipro was struck repeatedly to cut Russian supplies
