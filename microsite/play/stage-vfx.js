@@ -42,7 +42,10 @@
 var StageVFX = (function () {
   'use strict';
 
-  var MAX_PARTICLES = 200;
+  var _isMobileVFX = (function() {
+    try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
+  })();
+  var MAX_PARTICLES = _isMobileVFX ? 60 : 200;
   var _scene = null;
   var _activeTheme = null;
 
@@ -551,17 +554,25 @@ var StageVFX = (function () {
   function update(delta) {
     if (!_scene || !groupMesh) return;
 
+    // Skip particle spawning (but still animate existing particles) when at LOW quality.
+    var _skipSpawn = false;
+    try {
+      if (typeof GameManager !== 'undefined' && GameManager.isLowEndVFX) _skipSpawn = GameManager.isLowEndVFX();
+    } catch(e) {}
+
     // Run spawners
     var i, s;
-    for (i = 0; i < _spawners.length; i++) {
-      s = _spawners[i];
-      s.timer -= delta;
-      if (s.timer <= 0) {
-        // Only spawn if under budget
-        if (active.length < MAX_PARTICLES) {
-          s.fn();
+    if (!_skipSpawn) {
+      for (i = 0; i < _spawners.length; i++) {
+        s = _spawners[i];
+        s.timer -= delta;
+        if (s.timer <= 0) {
+          // Only spawn if under budget
+          if (active.length < MAX_PARTICLES) {
+            s.fn();
+          }
+          s.timer = s.interval;
         }
-        s.timer = s.interval;
       }
     }
 

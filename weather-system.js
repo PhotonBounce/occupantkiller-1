@@ -261,7 +261,10 @@ const WeatherSystem = (function () {
   }
 
   function createParticleSystem() {
-    var maxParticles = 3000;
+    var _isMobileWx = (function() {
+      try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
+    })();
+    var maxParticles = _isMobileWx ? 600 : 3000;
     var geometry = new THREE.BufferGeometry();
     var positions = new Float32Array(maxParticles * 3);
     var velocities = new Float32Array(maxParticles * 3);
