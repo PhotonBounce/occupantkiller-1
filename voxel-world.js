@@ -2500,6 +2500,216 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_lavra', x: ox - 5, z: oz - 5, w: 11, d: 11, baseY: h, floorH: 6, floors: 4, cx: ox, cz: oz });
   }
 
+  // ── KYIV: Verkhovna Rada (Ukrainian Parliament) ─────────────────────────
+  // Neoclassical 1939 parliament in Lypky district. White colonnade, low dome,
+  // stone steps. Defended by soldiers during the Russian advance, Feb 2022.
+  function generateVerkhovnaRada(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var bw = 22, bd = 14, bh = 10;
+    // Main PLASTER body (shell)
+    for (var py = 0; py < bh; py++) {
+      for (var px = -Math.floor(bw/2); px <= Math.floor(bw/2); px++) {
+        for (var pz = -Math.floor(bd/2); pz <= Math.floor(bd/2); pz++) {
+          var edge = (Math.abs(px) === Math.floor(bw/2) || Math.abs(pz) === Math.floor(bd/2));
+          if (edge || py === 0 || py === bh - 1) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // GLASS window grid on side walls every 2 blocks
+    for (var wy = 2; wy < bh - 2; wy += 3) {
+      for (var wx = -9; wx <= 9; wx += 3) {
+        setBlock(ox + wx, h + wy + 1, oz - Math.floor(bd/2), BLOCK.GLASS);
+        setBlock(ox + wx, h + wy + 1, oz + Math.floor(bd/2), BLOCK.GLASS);
+      }
+    }
+    // 8 STONE columns across south colonnade (public face)
+    for (var ci = -7; ci <= 7; ci += 2) {
+      for (var cy = 0; cy < bh + 2; cy++) setBlock(ox + ci, h + cy + 1, oz - Math.floor(bd/2) - 3, BLOCK.STONE);
+    }
+    // Triangular pediment above colonnade
+    for (var pi = -8; pi <= 8; pi++) {
+      var pHeight = Math.max(0, 3 - Math.abs(pi) / 3);
+      for (var ph = 0; ph <= pHeight; ph++) setBlock(ox + pi, h + bh + 1 + ph, oz - Math.floor(bd/2) - 2, BLOCK.STONE);
+    }
+    // Low LIGHT dome on roof (gold-tinted rotunda)
+    for (var dr = 0; dr < 3; dr++) {
+      var dR = 3 - dr;
+      _lmRing(ox, h + bh + 1 + dr, oz, dR, BLOCK.WHITE_TILE);
+    }
+    _lmDisc(ox, h + bh + 4, oz, 2, BLOCK.LIGHT);
+    setBlock(ox, h + bh + 5, oz, BLOCK.LIGHT);
+    // Wide stone entrance steps (south side)
+    for (var st = 0; st < 4; st++) {
+      for (var sx = -5 + st; sx <= 5 - st; sx++) {
+        setBlock(ox + sx, h + st + 1, oz - Math.floor(bd/2) - 3 - (3 - st), BLOCK.STONE);
+      }
+    }
+    // Iron FENCE perimeter around grounds
+    for (var fx = -12; fx <= 12; fx++) {
+      setBlock(ox + fx, h + 1, oz - 9, BLOCK.FENCE);
+      setBlock(ox + fx, h + 1, oz + 9, BLOCK.FENCE);
+    }
+    for (var fz = -9; fz <= 9; fz++) {
+      setBlock(ox - 12, h + 1, oz + fz, BLOCK.FENCE);
+      setBlock(ox + 12, h + 1, oz + fz, BLOCK.FENCE);
+    }
+    _buildings.push({ kind: 'landmark_rada', x: ox - 11, z: oz - 7, w: bw, d: bd, baseY: h, floorH: 5, floors: 2, cx: ox, cz: oz });
+  }
+
+  // ── KYIV: NSC Olimpiyskiy (Olympic Stadium) ────────────────────────────
+  // Ukraine's national 70k-seat stadium. Oval CONCRETE bowl, 4 floodlight towers.
+  // Hosted Euro 2012 final. Now used for civil defense briefings — 2022 siege.
+  function generateNSCOlimpiyskiy(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    // Outer oval retaining wall (22×16 semi-ellipse using _lmRing approx)
+    var aR = 14, bR = 10;
+    for (var a = 0; a < 360; a += 8) {
+      var rad = a * Math.PI / 180;
+      var wx = Math.round(Math.cos(rad) * aR);
+      var wz = Math.round(Math.sin(rad) * bR);
+      for (var wy2 = 0; wy2 < 8; wy2++) setBlock(ox + wx, h + wy2 + 1, oz + wz, BLOCK.CONCRETE);
+    }
+    // Tiered inner seating bowl (3 tiers)
+    for (var tier = 0; tier < 3; tier++) {
+      var tA = aR - 3 - tier * 3, tB = bR - 2 - tier * 2, tY = h + 3 + tier * 2;
+      for (var ta = 0; ta < 360; ta += 6) {
+        var trad = ta * Math.PI / 180;
+        var tx = Math.round(Math.cos(trad) * tA);
+        var tz = Math.round(Math.sin(trad) * tB);
+        setBlock(ox + tx, tY, oz + tz, BLOCK.STONE);
+      }
+    }
+    // 4 floodlight towers at quadrants
+    var ftPos = [[aR + 2, 0], [-aR - 2, 0], [0, bR + 2], [0, -bR - 2]];
+    for (var fi = 0; fi < ftPos.length; fi++) {
+      var ftx = ox + ftPos[fi][0], ftz = oz + ftPos[fi][1];
+      for (var fh = 0; fh < 18; fh++) setBlock(ftx, h + fh + 1, ftz, BLOCK.METAL);
+      // Light boom
+      for (var fl = -2; fl <= 2; fl++) {
+        setBlock(ftx + fl, h + 18, ftz, BLOCK.METAL);
+        setBlock(ftx + fl, h + 18, ftz + (ftPos[fi][1] !== 0 ? 0 : 1), BLOCK.LIGHT);
+      }
+    }
+    // Main south entrance arch
+    for (var eh = 0; eh < 5; eh++) {
+      setBlock(ox - 2, h + eh + 1, oz + bR, BLOCK.CONCRETE);
+      setBlock(ox + 2, h + eh + 1, oz + bR, BLOCK.CONCRETE);
+    }
+    for (var ea = -2; ea <= 2; ea++) setBlock(ox + ea, h + 6, oz + bR, BLOCK.CONCRETE);
+    _buildings.push({ kind: 'landmark_olimpiyskiy', x: ox - aR, z: oz - bR, w: aR*2, d: bR*2, baseY: h, floorH: 4, floors: 2, cx: ox, cz: oz });
+  }
+
+  // ── KYIV: St. Michael's Golden-Domed Monastery ─────────────────────────
+  // Baroque blue-and-white monastery rebuilt 1997 (Soviet-destroyed in 1936).
+  // 7 golden domes. Served as shelter and morgue for Maidan protesters, 2014.
+  function generateStMichaelMonastery(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var bw = 14, bd = 10, bh = 8;
+    // Blue-white body (WHITE_TILE approximates the cream/white walls)
+    for (var py = 0; py < bh; py++) {
+      for (var px = -Math.floor(bw/2); px <= Math.floor(bw/2); px++) {
+        for (var pz = -Math.floor(bd/2); pz <= Math.floor(bd/2); pz++) {
+          var edge = (Math.abs(px) === Math.floor(bw/2) || Math.abs(pz) === Math.floor(bd/2));
+          if (edge || py === 0 || py === bh - 1) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.WHITE_TILE);
+        }
+      }
+    }
+    // Arched GLASS windows on north and south faces
+    for (var wz2 = -3; wz2 <= 3; wz2 += 3) {
+      for (var wy3 = 2; wy3 < bh - 1; wy3 += 3) {
+        setBlock(ox - Math.floor(bw/2), h + wy3 + 1, oz + wz2, BLOCK.GLASS);
+        setBlock(ox + Math.floor(bw/2), h + wy3 + 1, oz + wz2, BLOCK.GLASS);
+      }
+    }
+    // 7 golden onion domes — large central + 6 flanking
+    _lmOnionDome(ox, h + bh + 1, oz, 3, BLOCK.BUS);         // central large
+    _lmOnionDome(ox - 5, h + bh, oz - 3, 2, BLOCK.BUS);
+    _lmOnionDome(ox + 5, h + bh, oz - 3, 2, BLOCK.BUS);
+    _lmOnionDome(ox - 5, h + bh, oz + 3, 2, BLOCK.BUS);
+    _lmOnionDome(ox + 5, h + bh, oz + 3, 2, BLOCK.BUS);
+    _lmOnionDome(ox - 2, h + bh, oz - 5, 1, BLOCK.BUS);
+    _lmOnionDome(ox + 2, h + bh, oz - 5, 1, BLOCK.BUS);
+    // Separate WHITE_TILE bell tower to the west
+    var btx = ox - Math.floor(bw/2) - 6;
+    for (var by = 0; by < 14; by++) {
+      var taper = by > 10 ? 1 : 2;
+      for (var bx = -taper; bx <= taper; bx++) {
+        for (var bz = -taper; bz <= taper; bz++) {
+          if (Math.abs(bx) === taper || Math.abs(bz) === taper || by === 0) {
+            setBlock(btx + bx, h + by + 1, oz + bz, BLOCK.WHITE_TILE);
+          }
+        }
+      }
+    }
+    _lmOnionDome(btx, h + 15, oz, 2, BLOCK.BUS);
+    // Low STONE monastery wall enclosure
+    var mw = 22, md = 18;
+    for (var mx = -Math.floor(mw/2); mx <= Math.floor(mw/2); mx++) {
+      setBlock(ox + mx, h + 1, oz - Math.floor(md/2), BLOCK.STONE);
+      setBlock(ox + mx, h + 2, oz - Math.floor(md/2), BLOCK.STONE);
+      setBlock(ox + mx, h + 1, oz + Math.floor(md/2), BLOCK.STONE);
+      setBlock(ox + mx, h + 2, oz + Math.floor(md/2), BLOCK.STONE);
+    }
+    for (var mz = -Math.floor(md/2); mz <= Math.floor(md/2); mz++) {
+      setBlock(ox - Math.floor(mw/2), h + 1, oz + mz, BLOCK.STONE);
+      setBlock(ox - Math.floor(mw/2), h + 2, oz + mz, BLOCK.STONE);
+      setBlock(ox + Math.floor(mw/2), h + 1, oz + mz, BLOCK.STONE);
+      setBlock(ox + Math.floor(mw/2), h + 2, oz + mz, BLOCK.STONE);
+    }
+    _buildings.push({ kind: 'landmark_st_michael', x: ox - 11, z: oz - 9, w: mw, d: md, baseY: h, floorH: 4, floors: 2, cx: ox, cz: oz });
+  }
+
+  // ── KYIV: Kyiv Arsenal (Арсенал, 1764) ────────────────────────────────
+  // Oldest continuously operating industrial enterprise in Kyiv. Tsarist brick
+  // fortress-factory. Workers revolted here in 1918. Now a contemporary art museum.
+  function generateKyivArsenal(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var bw = 24, bd = 10, bh = 6;
+    // Thick BRICK perimeter walls (fortress-gauge, ~2 blocks thick)
+    for (var py = 0; py < bh; py++) {
+      for (var px = -Math.floor(bw/2); px <= Math.floor(bw/2); px++) {
+        for (var pz = -Math.floor(bd/2); pz <= Math.floor(bd/2); pz++) {
+          var edge = (Math.abs(px) >= Math.floor(bw/2) - 1 || Math.abs(pz) >= Math.floor(bd/2) - 1);
+          if (edge || py === 0) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.BRICK);
+        }
+      }
+    }
+    // 4 corner bastion towers (square, 2 stories taller than main wall)
+    var corners = [[-Math.floor(bw/2), -Math.floor(bd/2)], [Math.floor(bw/2), -Math.floor(bd/2)],
+                   [-Math.floor(bw/2), Math.floor(bd/2)], [Math.floor(bw/2), Math.floor(bd/2)]];
+    for (var ci2 = 0; ci2 < corners.length; ci2++) {
+      var cx3 = ox + corners[ci2][0], cz3 = oz + corners[ci2][1];
+      for (var cy2 = 0; cy2 < bh + 3; cy2++) {
+        for (var bx = -2; bx <= 2; bx++) {
+          for (var bz = -2; bz <= 2; bz++) {
+            if (Math.abs(bx) === 2 || Math.abs(bz) === 2 || cy2 === 0 || cy2 === bh + 2) {
+              setBlock(cx3 + bx, h + cy2 + 1, cz3 + bz, BLOCK.STONE);
+            }
+          }
+        }
+      }
+    }
+    // 2 tall BRICK chimneys (factory history)
+    for (var chy = 0; chy < 14; chy++) setBlock(ox - 6, h + chy + bh, oz, BLOCK.BRICK);
+    for (var chy2 = 0; chy2 < 14; chy2++) setBlock(ox + 6, h + chy2 + bh, oz, BLOCK.BRICK);
+    setBlock(ox - 6, h + bh + 14, oz, BLOCK.LIGHT);
+    setBlock(ox + 6, h + bh + 14, oz, BLOCK.LIGHT);
+    // Arched STONE gateway on north face (vehicle entrance)
+    for (var gw = -2; gw <= 2; gw++) {
+      for (var gh = 0; gh < 4; gh++) setBlock(ox + gw, h + gh + 1, oz - Math.floor(bd/2), BLOCK.AIR);
+    }
+    setBlock(ox - 3, h + 4, oz - Math.floor(bd/2), BLOCK.STONE);
+    setBlock(ox + 3, h + 4, oz - Math.floor(bd/2), BLOCK.STONE);
+    for (var ga = -2; ga <= 2; ga++) setBlock(ox + ga, h + 5, oz - Math.floor(bd/2), BLOCK.STONE);
+    // Cannon courtyard paving (flat CONCRETE floor inside)
+    for (var cpx = -Math.floor(bw/2) + 2; cpx <= Math.floor(bw/2) - 2; cpx++) {
+      for (var cpz = -Math.floor(bd/2) + 2; cpz <= Math.floor(bd/2) - 2; cpz++) {
+        setBlock(ox + cpx, h + 1, oz + cpz, BLOCK.CONCRETE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_arsenal', x: ox - Math.floor(bw/2), z: oz - Math.floor(bd/2), w: bw, d: bd, baseY: h, floorH: bh, floors: 1, cx: ox, cz: oz });
+  }
+
   // ── MOSCOW: Ostankino TV Tower ─────────────────────────────────────────
   // Towering tapered concrete needle with an observation-deck bulge + antenna.
   function generateOstankinoTower(ox, oz) {
@@ -9072,6 +9282,10 @@ window.VoxelWorld = (function () {
       generateLavraBellTower(52, 28);       // Kyiv Pechersk Lavra Great Bell Tower (E)
       generateGoldenGate(-38, -12);         // Zoloti Vorota — 11th-century medieval city gate (SW of Maidan)
       generateKyivCentralStation(-62, 48);  // Kyiv Central Station — clock tower, 1932 neoclassical (NW)
+      generateVerkhovnaRada(38, -18);       // Ukrainian Parliament — neoclassical 1939, Lypky district (SE)
+      generateNSCOlimpiyskiy(-28, -58);     // Olympic Stadium — 70k-seat, Euro 2012 final (SW)
+      generateStMichaelMonastery(-52, -62); // St. Michael's Golden-Domed Monastery (W old town)
+      generateKyivArsenal(55, 8);           // Kyiv Arsenal 1764 factory-fortress, contemporary art museum (E)
       // Drone nests along enemy approach corridor
       generateDroneNest(36, -40);
       generateDroneNest(-36, -40);
@@ -10050,6 +10264,80 @@ window.VoxelWorld = (function () {
       // Snake Island fort ruins (historic fortification + lighthouse)
       generateSnakeIslandFort(0, 0);              // Ottoman/Russian fortress ruins surrounding the island
       generateSnakeIslandBarracks(-14, -22);      // Ukrainian border guard barracks (13 defenders' post)
+      // Coastal artillery emplacements — historic naval guns still on the island
+      (function () {
+        var guns = [[20, 8], [-20, -8], [8, 22]];
+        for (var gi = 0; gi < guns.length; gi++) {
+          var gx = guns[gi][0], gz = guns[gi][1];
+          var gh = getTerrainHeight(gx, gz) || 1;
+          // Circular CONCRETE gun platform
+          for (var pa = 0; pa < 360; pa += 45) {
+            var pr = pa * Math.PI / 180;
+            setBlock(Math.round(gx + Math.cos(pr) * 3), gh + 1, Math.round(gz + Math.sin(pr) * 3), BLOCK.CONCRETE);
+          }
+          _lmDisc(gx, gh + 1, gz, 2, BLOCK.CONCRETE);
+          // Gun barrel (METAL pointing out to sea)
+          setBlock(gx, gh + 2, gz, BLOCK.METAL);
+          setBlock(gx, gh + 2, gz - 1, BLOCK.METAL);
+          setBlock(gx, gh + 2, gz - 2, BLOCK.METAL);
+          setBlock(gx, gh + 2, gz - 3, BLOCK.METAL);
+          setBlock(gx, gh + 3, gz, BLOCK.METAL); // gun mount pivot
+        }
+      })();
+      // Naval pier (Ukrainian Border Guard patrol boat dock)
+      (function () {
+        var px2 = 0, pz2 = -28;
+        var ph = getTerrainHeight(px2, pz2) || 1;
+        // Pier deck extending north into the sea
+        for (var pd = 0; pd < 10; pd++) {
+          setBlock(px2 - 1, ph, pz2 - pd, BLOCK.WOOD);
+          setBlock(px2,     ph, pz2 - pd, BLOCK.WOOD);
+          setBlock(px2 + 1, ph, pz2 - pd, BLOCK.WOOD);
+        }
+        // Pier posts below
+        for (var pp = 0; pp < 3; pp += 3) {
+          setBlock(px2 - 1, ph - 1, pz2 - pp, BLOCK.WOOD);
+          setBlock(px2 + 1, ph - 1, pz2 - pp, BLOCK.WOOD);
+        }
+        // Patrol boat silhouette at dock (hull METAL, cabin CONCRETE)
+        for (var bx2 = -2; bx2 <= 2; bx2++) {
+          setBlock(px2 + bx2, ph + 1, pz2 - 7, BLOCK.METAL);
+          setBlock(px2 + bx2, ph + 2, pz2 - 7, BLOCK.METAL);
+        }
+        setBlock(px2, ph + 3, pz2 - 6, BLOCK.CONCRETE); // bridge/cabin
+        setBlock(px2, ph + 3, pz2 - 5, BLOCK.CONCRETE);
+        setBlock(px2, ph + 4, pz2 - 6, BLOCK.CONCRETE);
+      })();
+      // Helicopter landing pad (CONCRETE square with H marking, LIGHT corners)
+      (function () {
+        var hx = 18, hz = 20;
+        var hh = getTerrainHeight(hx, hz) || 1;
+        // Pad surface
+        for (var hpx = -4; hpx <= 4; hpx++) {
+          for (var hpz = -4; hpz <= 4; hpz++) {
+            setBlock(hx + hpx, hh, hz + hpz, BLOCK.CONCRETE);
+          }
+        }
+        // H marking in LIGHT blocks
+        setBlock(hx - 2, hh + 1, hz, BLOCK.LIGHT);
+        setBlock(hx - 1, hh + 1, hz, BLOCK.LIGHT);
+        setBlock(hx,     hh + 1, hz, BLOCK.LIGHT);
+        setBlock(hx + 1, hh + 1, hz, BLOCK.LIGHT);
+        setBlock(hx + 2, hh + 1, hz, BLOCK.LIGHT);
+        setBlock(hx - 2, hh + 1, hz - 2, BLOCK.LIGHT);
+        setBlock(hx - 2, hh + 1, hz - 1, BLOCK.LIGHT);
+        setBlock(hx - 2, hh + 1, hz + 1, BLOCK.LIGHT);
+        setBlock(hx - 2, hh + 1, hz + 2, BLOCK.LIGHT);
+        setBlock(hx + 2, hh + 1, hz - 2, BLOCK.LIGHT);
+        setBlock(hx + 2, hh + 1, hz - 1, BLOCK.LIGHT);
+        setBlock(hx + 2, hh + 1, hz + 1, BLOCK.LIGHT);
+        setBlock(hx + 2, hh + 1, hz + 2, BLOCK.LIGHT);
+        // Corner lights
+        setBlock(hx - 4, hh + 1, hz - 4, BLOCK.LIGHT);
+        setBlock(hx + 4, hh + 1, hz - 4, BLOCK.LIGHT);
+        setBlock(hx - 4, hh + 1, hz + 4, BLOCK.LIGHT);
+        setBlock(hx + 4, hh + 1, hz + 4, BLOCK.LIGHT);
+      })();
     } else if (level.id === 'SAKY') {
       // Saky Airbase, Crimea — Russia's largest military air base in Crimea
       // Ukraine struck this in August 2022 — Su-24, Su-30 fighters destroyed on ground
