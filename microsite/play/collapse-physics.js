@@ -15,6 +15,10 @@
 const CollapsePhysics = (function () {
   'use strict';
 
+  var _isMobileCP = (function() {
+    try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
+  })();
+
   var STRUCTURAL = { 3: true, 4: true, 5: true, 9: true, 10: true, 11: true, 18: true };
 
   var BLOCK_COLOR = {
@@ -47,7 +51,7 @@ const CollapsePhysics = (function () {
     if (!scene) return;
     heightFactor = heightFactor || 0;
     var hex = BLOCK_COLOR[blockType] || 0x999999;
-    var count = 2 + (Math.random() < 0.4 ? 1 : 0); // 2 or 3 chunks
+    var count = _isMobileCP ? 1 : (2 + (Math.random() < 0.4 ? 1 : 0)); // mobile: 1 chunk; desktop: 2-3
 
     var groundY = 0;
     try {
@@ -149,8 +153,9 @@ const CollapsePhysics = (function () {
   function update(scene, delta) {
     if (!scene || !delta || _fallers.length === 0) return;
 
-    // Safety cap — older debris removed first if pile gets too big
-    while (_fallers.length > 220) {
+    // Safety cap — mobile keeps fewer debris meshes to stay under GPU budget.
+    var _maxFallers = _isMobileCP ? 60 : 220;
+    while (_fallers.length > _maxFallers) {
       var oldest = _fallers.shift();
       if (oldest.mesh) { scene.remove(oldest.mesh); }
     }

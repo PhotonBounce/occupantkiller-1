@@ -3,6 +3,10 @@
  * Depends on: Three.js global (THREE), VoxelWorld (optional)
  */
 const Tracers = (() => {
+  const _isMobileTR = (function() {
+    try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
+  })();
+
   let _scene = null;
   const tracers = [];
   const trails = [];
@@ -501,13 +505,13 @@ const Tracers = (() => {
   const _holeGeo = new THREE.PlaneGeometry(0.18, 0.18);
   const _scorchMarks = [];
   const _scorchGeo = new THREE.PlaneGeometry(1, 1);
-  var MAX_SCORCH = 40;
+  var MAX_SCORCH = _isMobileTR ? 12 : 40;
   const _smokePillars = [];
   const _holeMat = new THREE.MeshBasicMaterial({
     color: 0x111111, transparent: true, opacity: 0.7,
     depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1
   });
-  var MAX_HOLES = 120;
+  var MAX_HOLES = _isMobileTR ? 40 : 120;
   // Surface type → impact color for bullet holes
   const _surfaceColors = {
     5:  0xC0C0C0,  // METAL → bright silver
@@ -711,7 +715,7 @@ const Tracers = (() => {
   /* ── Bullet Projectiles (fast visible particles) ──────────── */
   const bullets = [];
   const _bulletPool = [];
-  const MAX_BULLETS = 120;
+  const MAX_BULLETS = _isMobileTR ? 40 : 120;
   // Stretched sphere reused for every bullet (streak look via scale.z)
   const _bulletGeo = new THREE.SphereGeometry(1, 5, 4);
 
