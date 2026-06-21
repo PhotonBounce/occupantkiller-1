@@ -1473,7 +1473,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var startBtn   = document.getElementById('start-btn');
     var quickHint  = document.getElementById('quick-start-hint');
     var showAdvLink = document.getElementById('show-advanced-start');
-    if (!hasPlayed && quickBtn && startBtn && advSection) {
+    // On mobile, always show the full start screen — one-button "quick start"
+    // hides the mission/map/mode selectors which is confusing on touch devices.
+    var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    var _forceAdvanced = _isTouchDevice;
+    if (!hasPlayed && !_forceAdvanced && quickBtn && startBtn && advSection) {
       quickBtn.style.display = '';
       startBtn.style.display = 'none';
       if (advSection)  advSection.style.display = 'none';
@@ -1490,6 +1494,14 @@ document.addEventListener('DOMContentLoaded', function () {
         window.showLoading('GENERATING TERRAIN...');
         setTimeout(function() { GameManager.startGame(); window.hideLoading(); }, 1200);
       });
+    }
+    // Mobile: add a subtle scroll-hint so users know the screen is scrollable
+    if (_isTouchDevice && advSection) {
+      var _hint = document.createElement('p');
+      _hint.textContent = '▼ Scroll for maps, missions & loadout';
+      _hint.style.cssText = 'text-align:center;color:#555;font-size:11px;margin:4px 0 8px;letter-spacing:1px;font-family:monospace';
+      var _ctaRow = document.querySelector('.start-cta-row');
+      if (_ctaRow && _ctaRow.parentNode) _ctaRow.parentNode.insertBefore(_hint, _ctaRow.nextSibling);
     }
   })();
 

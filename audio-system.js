@@ -1048,6 +1048,28 @@ window.AudioSystem = (function () {
   let _musicGain = null;
   let _musicVolume = 0.18;
   let _musicBeatInterval = null;
+  // ── Shuffle system: 4 battle music themes cycle in random order ──
+  var _musicThemes = [0, 1, 2, 3];
+  var _musicThemeIdx = 0;
+  var _musicThemeDuration = 0;    // seconds elapsed on current theme
+  var _THEME_DURATION = 90;       // switch theme every ~90s
+  (function _shuffleThemes() {
+    for (var i = _musicThemes.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = _musicThemes[i]; _musicThemes[i] = _musicThemes[j]; _musicThemes[j] = t;
+    }
+  })();
+  function _nextTheme() {
+    _musicThemeIdx = (_musicThemeIdx + 1) % _musicThemes.length;
+    if (_musicThemeIdx === 0) {
+      // Re-shuffle on loop-around
+      for (var i = _musicThemes.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = _musicThemes[i]; _musicThemes[i] = _musicThemes[j]; _musicThemes[j] = t;
+      }
+    }
+    return _musicThemes[_musicThemeIdx];
+  }
 
   function playMusic(style) {
     // style: 'battle', 'ambient', 'victory'
@@ -1059,78 +1081,135 @@ window.AudioSystem = (function () {
     _musicGain.gain.value = _musicVolume;
     _musicGain.connect(masterGain);
     _musicPlaying = true;
+    _musicThemeDuration = 0;
 
     if (style === 'battle' || !style) {
-      // Procedural war drums + bass pulse
-      var bpm = 110;
+      // Select the current shuffled battle theme
+      var theme = _musicThemes[_musicThemeIdx];
+      // Theme 0: Fast march (original) — 110 BPM kick/snare/hat + bass
+      // Theme 1: Tense ominous — 90 BPM, sparse kick, heavy bass drone
+      // Theme 2: Intense assault — 140 BPM, fast hats, double kick
+      // Theme 3: Slow tension pad — 75 BPM, deep sub bass, minimal perc
+      var bpmTable = [110, 90, 140, 75];
+      var bpm = bpmTable[theme] || 110;
       var beatTime = 60 / bpm;
       var beat = 0;
+
+      // Bass note sequences per theme: Am, Dm, Em, Gm flavours
+      var _bassSeqs = [
+        [55, 65, 55, 73],   // Theme 0: A–E–A–C march
+        [42, 42, 50, 42],   // Theme 1: F#–F#–D–F# ominous
+        [58, 62, 58, 65],   // Theme 2: A#–D–A#–F assault
+        [36, 36, 43, 36],   // Theme 3: C–C–G–C deep sub
+      ];
+      var _kickGainMap   = [0.50, 0.35, 0.60, 0.28]; // kick volume per theme
+      var _snareGainMap  = [0.25, 0.12, 0.32, 0.08]; // snare volume per theme
+      var _bassFreqMap   = [200, 120, 220, 100];       // bass filter cutoff per theme
+      var _kickPattern   = [[0,0,0,0], [0,0,0,0], [0,2,0,0], [0,0,0,0]]; // extra kick on beat (intensity theme)
+      var _bassGainMap   = [0.08, 0.14, 0.06, 0.18];  // bass louder on ominous/tension themes
+      var _bassSeq = _bassSeqs[theme] || _bassSeqs[0];
 
       _musicBeatInterval = setInterval(function () {
         if (!enabled || !ctx || !_musicPlaying) return;
         var now = ctx.currentTime;
+        _musicThemeDuration += beatTime;
 
-        // Kick drum (low thump)
-        if (beat % 4 === 0) {
+        // Kick drum
+        var doKick = (beat % 4 === 0) || (theme === 2 && beat % 4 === 2); // double kick on intense theme
+        if (doKick) {
           var kickOsc = ctx.createOscillator();
           var kickGain = ctx.createGain();
           kickOsc.type = 'sine';
-          kickOsc.frequency.setValueAtTime(120, now);
-          kickOsc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
-          kickGain.gain.setValueAtTime(0.5, now);
-          kickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+          var kickStart = theme === 1 ? 80 : 120;
+          kickOsc.frequency.setValueAtTime(kickStart, now);
+          kickOsc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+          kickGain.gain.setValueAtTime(_kickGainMap[theme] || 0.5, now);
+          kickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
           kickOsc.connect(kickGain);
           kickGain.connect(_musicGain);
           kickOsc.start(now);
-          kickOsc.stop(now + 0.2);
+          kickOsc.stop(now + 0.22);
         }
 
-        // Snare hit (noise burst)
-        if (beat % 4 === 2) {
+        // Snare — not on Theme 3 (tension: no snare)
+        if (beat % 4 === 2 && theme !== 3) {
           var snareNoise = createNoise(0.08);
           var snareGain = ctx.createGain();
           var snareFilter = ctx.createBiquadFilter();
           snareFilter.type = 'highpass';
-          snareFilter.frequency.value = 2000;
-          snareGain.gain.setValueAtTime(0.25, now);
+          snareFilter.frequency.value = theme === 2 ? 3000 : 2000;
+          snareGain.gain.setValueAtTime(_snareGainMap[theme] || 0.25, now);
           snareGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
           snareNoise.connect(snareFilter);
           snareFilter.connect(snareGain);
           snareGain.connect(_musicGain);
         }
 
-        // Hi-hat (fast noise tick)
-        var hhNoise = createNoise(0.02);
-        var hhGain = ctx.createGain();
-        var hhFilter = ctx.createBiquadFilter();
-        hhFilter.type = 'highpass';
-        hhFilter.frequency.value = 6000;
-        hhGain.gain.setValueAtTime(beat % 2 === 0 ? 0.12 : 0.06, now);
-        hhGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-        hhNoise.connect(hhFilter);
-        hhFilter.connect(hhGain);
-        hhGain.connect(_musicGain);
+        // Hi-hat — sparse on Theme 1 and 3 (ominous/tension), rapid on Theme 2 (intense)
+        var hhEvery = theme === 2 ? 1 : (theme === 1 || theme === 3 ? 4 : 2);
+        if (beat % hhEvery === 0) {
+          var hhNoise = createNoise(0.02);
+          var hhGain = ctx.createGain();
+          var hhFilter = ctx.createBiquadFilter();
+          hhFilter.type = 'highpass';
+          hhFilter.frequency.value = theme === 2 ? 8000 : 6000;
+          var hhVol = theme === 2 ? 0.18 : (theme === 0 ? (beat % 2 === 0 ? 0.12 : 0.06) : 0.05);
+          hhGain.gain.setValueAtTime(hhVol, now);
+          hhGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+          hhNoise.connect(hhFilter);
+          hhFilter.connect(hhGain);
+          hhGain.connect(_musicGain);
+        }
 
-        // Bass line (low drone pulse every 8 beats)
-        if (beat % 8 === 0) {
+        // Bass pulse (every 8 beats; every 4 on intense theme)
+        var bassEvery = theme === 2 ? 4 : 8;
+        if (beat % bassEvery === 0) {
           var bassOsc = ctx.createOscillator();
           var bassGain = ctx.createGain();
-          bassOsc.type = 'sawtooth';
-          var bassNotes = [55, 65, 55, 73]; // Am pentatonic bass
-          bassOsc.frequency.value = bassNotes[Math.floor(beat / 8) % bassNotes.length];
-          bassGain.gain.setValueAtTime(0.08, now);
-          bassGain.gain.exponentialRampToValueAtTime(0.001, now + beatTime * 3);
+          bassOsc.type = theme === 1 ? 'sine' : 'sawtooth';
+          bassOsc.frequency.value = _bassSeq[Math.floor(beat / bassEvery) % _bassSeq.length];
+          bassGain.gain.setValueAtTime(_bassGainMap[theme] || 0.08, now);
+          bassGain.gain.exponentialRampToValueAtTime(0.001, now + beatTime * (theme === 3 ? 5 : 3));
           var bassFilter = ctx.createBiquadFilter();
           bassFilter.type = 'lowpass';
-          bassFilter.frequency.value = 200;
+          bassFilter.frequency.value = _bassFreqMap[theme] || 200;
           bassOsc.connect(bassFilter);
           bassFilter.connect(bassGain);
           bassGain.connect(_musicGain);
           bassOsc.start(now);
-          bassOsc.stop(now + beatTime * 4);
+          bassOsc.stop(now + beatTime * (theme === 3 ? 6 : 4));
+        }
+
+        // Tension drone pad on Theme 1 (ominous) and Theme 3 (slow tension)
+        if ((theme === 1 || theme === 3) && beat % 16 === 0) {
+          var padF = theme === 3 ? 55 : 73;
+          var padOscT = ctx.createOscillator();
+          var padGainT = ctx.createGain();
+          padOscT.type = 'sine';
+          padOscT.frequency.value = padF;
+          padGainT.gain.setValueAtTime(0.04, now);
+          padGainT.gain.linearRampToValueAtTime(0.07, now + 2);
+          padGainT.gain.exponentialRampToValueAtTime(0.001, now + 6);
+          padOscT.connect(padGainT);
+          padGainT.connect(_musicGain);
+          padOscT.start(now);
+          padOscT.stop(now + 6);
         }
 
         beat++;
+
+        // Auto-advance to next shuffle theme after _THEME_DURATION seconds
+        if (_musicThemeDuration >= _THEME_DURATION && _musicPlaying) {
+          _musicThemeDuration = 0;
+          var nextT = _nextTheme();
+          // Fade out and restart with new theme
+          if (_musicGain) {
+            _musicGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.2);
+            setTimeout(function() {
+              if (_musicPlaying) playMusic('battle');
+            }, 1300);
+          }
+        }
       }, beatTime * 1000);
 
     } else if (style === 'ambient') {

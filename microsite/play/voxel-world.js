@@ -6397,19 +6397,118 @@ window.VoxelWorld = (function () {
       generateWatchtower(0, 30);
       generateDroneNest(40, -40);
     } else if (level.id === 'MOSCOW') {
-      // Kremlin outskirts — dense city blocks, checkpoints, barricades
-      generateUkrainianApartment(-20, -20, 8);
-      generateUkrainianApartment(20, -20, 10);
-      generateUkrainianApartment(-20, 20, 8);
-      generateUkrainianApartment(20, 20, 10);
-      generateCheckpoint(0, 35, false);
-      generateCheckpoint(0, -35, false);
-      generateDefensivePosition(-35, 0);
-      generateDefensivePosition(35, 0);
-      generateBarbedWire(0, 0, 20, true);
-      generateBarbedWire(0, 0, 20, false);
-      generateDroneNest(45, 45);
-      generateDroneNest(-45, -45);
+      // ── MOSCOW OUTSKIRTS — real street grid density ──────────────────────
+      // Based on Moscow's concentric ring road layout:
+      //   Center: Red Square / government buildings
+      //   Inner ring: Sadovoye Koltso (~Boulevard Ring, radius ~20)
+      //   Outer ring: TTK / Third Ring Road (radius ~40)
+      //
+      // Building types used:
+      //   generateUkrainianApartment = Soviet 9-story khrushchevka/stalinka blocks
+      //   generateApartmentBlock     = standard 5-story residential
+      //   generateLuxuryVilla        = government/prestige office buildings
+      //   generateIndustrialComplex  = factory/logistics (outer ring)
+      //   generateChurch             = orthodox churches (authentic Moscow)
+      //   generateWaterTower         = district water towers
+      //   generateBillboard          = propaganda/military billboards
+      //   generateCommTower          = Ostankino-style antenna mast
+      //   generateRoadNetwork        = street grid between blocks
+      //
+      // ── INNER RING (Sadovoye Koltso, radius 20-30) ────────────────────
+      // North axis — major arterial road (like Tverskaya St)
+      generateUkrainianApartment(-10, -22, 12);  // tall stalinka flanking Tverskaya
+      generateUkrainianApartment(10, -22, 12);
+      generateUkrainianApartment(-10, 22, 10);
+      generateUkrainianApartment(10, 22, 10);
+      // East/West axis (like Novy Arbat / Kutuzovsky)
+      generateUkrainianApartment(-22, -10, 11);
+      generateUkrainianApartment(-22, 10, 9);
+      generateUkrainianApartment(22, -10, 11);
+      generateUkrainianApartment(22, 10, 9);
+      // Diagonal blocks (filling in the quarter-grid)
+      generateApartmentBlock(-16, -16, 5);
+      generateApartmentBlock(16, -16, 5);
+      generateApartmentBlock(-16, 16, 5);
+      generateApartmentBlock(16, 16, 5);
+      // Central government district (south of Red Square)
+      generateLuxuryVilla(-8, -5, 12, 8);    // Federal ministry bloc
+      generateLuxuryVilla(8, -5, 10, 8);     // State Duma-adjacent
+      generateLuxuryVilla(0, -18, 14, 10);   // GUM-sized government building
+      // Orthodox churches (authentic Moscow — one per district block)
+      generateChurch(-25, -5);    // Khram Khrista Spasitelya area
+      generateChurch(25, 5);      // Kremlin area church
+      generateChurch(5, 28);      // Eastern orthodox parish
+      generateChurch(-5, -28);    // South district
+      // Water tower + comm infrastructure
+      generateWaterTower(-28, -25);
+      generateWaterTower(28, 25);
+      generateCommTower(0, 0);    // Red Square comm mast
+
+      // ── OUTER RING (TTK / Third Ring Road, radius 30-48) ────────────────
+      // Soviet-era khrushchevka residential estates (microrayons)
+      generateUkrainianApartment(-35, -20, 9);
+      generateUkrainianApartment(-35, 0, 9);
+      generateUkrainianApartment(-35, 20, 9);
+      generateUkrainianApartment(35, -20, 9);
+      generateUkrainianApartment(35, 0, 9);
+      generateUkrainianApartment(35, 20, 9);
+      generateUkrainianApartment(-20, -35, 9);
+      generateUkrainianApartment(0, -35, 9);
+      generateUkrainianApartment(20, -35, 9);
+      generateUkrainianApartment(-20, 35, 9);
+      generateUkrainianApartment(0, 35, 9);
+      generateUkrainianApartment(20, 35, 9);
+      // Industrial nodes on outer ring (Baumanskiy / Lyublino industrial areas)
+      generateIndustrialComplex(-42, -42);
+      generateIndustrialComplex(42, 42);
+      generateIndustrialComplex(-42, 42);
+      // Billboard grid (military propaganda / Z-symbols)
+      generateBillboard(-18, -30);
+      generateBillboard(18, -30);
+      generateBillboard(-30, 18);
+      generateBillboard(30, -18);
+      generateBillboard(0, -40);
+      generateBillboard(40, 0);
+
+      // ── MILITARY FORTIFICATION RING (defending Moscow) ─────────────────
+      // Checkpoints on all 4 main approach roads
+      generateCheckpoint(0, 44, false);    // North highway (Leningradskoye Sh.)
+      generateCheckpoint(0, -44, false);   // South (Kashirskoye Sh.)
+      generateCheckpoint(44, 0, true);     // East (Entuziastov Sh.)
+      generateCheckpoint(-44, 0, true);    // West (Kutuzovsky)
+      // Russian National Guard defensive positions (inner perimeter)
+      generateDefensivePosition(-30, 0);
+      generateDefensivePosition(30, 0);
+      generateDefensivePosition(0, -30);
+      generateDefensivePosition(0, 30);
+      generateDefensivePosition(-22, -22);
+      generateDefensivePosition(22, 22);
+      // Anti-air positions (S-300/S-400 batteries on city outskirts)
+      generateAntiAirPosition(-40, 20);
+      generateAntiAirPosition(40, -20);
+      generateAntiAirPosition(20, 40);
+      generateAntiAirPosition(-20, -40);
+      // Barricades blocking major roads (improvised Russian city defence)
+      generateBarbedWire(0, 0, 25, true);
+      generateBarbedWire(0, 0, 25, false);
+      generateAntiTankHedgehogs(18);
+      // Artillery + ammo
+      generateArtilleryBattery(40, 40);
+      generateArtilleryBattery(-40, -40);
+      generateAmmoDepot(32, -32);
+      generateAmmoDepot(-32, 32);
+      // Burned/wrecked military vehicles on main streets
+      generateWreckedTank(-12, -28);
+      generateWreckedTank(14, 26);
+      generateWreckedAPC(-28, 14);
+      generateWreckedConvoy(28, -14);
+      generateBurningRuin(-18, -40);
+      generateBurningRuin(20, 38);
+      // Drone nests at all 4 outer corners
+      generateDroneNest(48, 48);
+      generateDroneNest(-48, 48);
+      generateDroneNest(48, -48);
+      generateDroneNest(-48, -48);
     } else if (level.id === 'SEVASTOPOL') {
       // Naval base — docks, cranes, coastal fortifications
       generateBridge(0, 20, 40, 5);

@@ -1296,6 +1296,13 @@ const GameManager = (function () {
     } catch (_e) {}
     try {
       _renderer = createRendererWithFallback();
+        // Mobile: begin at HIGH quality tier (1) instead of ULTRA (0).
+        // The adaptive system can scale back up if the device handles it.
+        if (isMobile) {
+          setTimeout(function() {
+            if (_perfLevel === 0) _applyPerfLevel(1, null);
+          }, 3000); // after 3s of gameplay data
+        }
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         window._gameScene = _scene; // CollapsePhysics + WorldFeatures use this without circular dep
@@ -6474,10 +6481,14 @@ const GameManager = (function () {
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
-    if (_perfCheckTimer > 2 && _fpsSamples > 8) {
+    // Mobile: check every 1.5s (react faster to low FPS); desktop: 2s
+    var _perfInterval = isMobile ? 1.5 : 2.0;
+    var _fpsDrop = isMobile ? 28 : 38;   // mobile starts downgrading at 28 FPS
+    var _fpsRecover = isMobile ? 50 : 65; // mobile recovers quality at 50 FPS
+    if (_perfCheckTimer > _perfInterval && _fpsSamples > 6) {
       var avgFps = _fpsSamples / _fpsAccum;
-      if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
-      else if (avgFps > 65) { _highFpsStreak++; _lowFpsStreak = 0; }
+      if (avgFps < _fpsDrop) { _lowFpsStreak++; _highFpsStreak = 0; }
+      else if (avgFps > _fpsRecover) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
       if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
