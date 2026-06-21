@@ -3550,6 +3550,103 @@ window.VoxelWorld = (function () {
     }
   }
 
+  // LANDMARK: Pripyat MsCh-126 Hospital — 3-storey Soviet hospital, iconic exclusion zone ruin
+  // Famous for the basement where highly-radioactive PPE and liquidator gear was left behind
+  function generatePripyatHospital(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main building 18×10, 3 floors, PLASTER white walls
+    for (var mbx = 0; mbx <= 18; mbx++) {
+      for (var mbz = 0; mbz <= 10; mbz++) {
+        for (var mby = 1; mby <= 12; mby++) {
+          if (mbx === 0 || mbx === 18 || mbz === 0 || mbz === 10 || (mby % 4 === 0)) {
+            setBlock(ox + mbx, base + mby, oz + mbz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Window openings (hospital windows — 2 wide × 2 tall, regularly spaced)
+    for (var wf = 0; wf < 3; wf++) {
+      for (var wx2 = 3; wx2 <= 15; wx2 += 5) {
+        setBlock(ox + wx2,     base + 2 + wf * 4, oz,      BLOCK.GLASS);
+        setBlock(ox + wx2 + 1, base + 2 + wf * 4, oz,      BLOCK.GLASS);
+        setBlock(ox + wx2,     base + 2 + wf * 4, oz + 10, BLOCK.GLASS);
+        setBlock(ox + wx2 + 1, base + 2 + wf * 4, oz + 10, BLOCK.GLASS);
+        setBlock(ox + wx2,     base + 3 + wf * 4, oz,      BLOCK.GLASS);
+        setBlock(ox + wx2 + 1, base + 3 + wf * 4, oz,      BLOCK.GLASS);
+        setBlock(ox + wx2,     base + 3 + wf * 4, oz + 10, BLOCK.GLASS);
+        setBlock(ox + wx2 + 1, base + 3 + wf * 4, oz + 10, BLOCK.GLASS);
+      }
+    }
+    // Entrance: clear 3-wide doorway on south face
+    for (var ea = 7; ea <= 10; ea++) {
+      setBlock(ox + ea, base + 1, oz, BLOCK.AIR);
+      setBlock(ox + ea, base + 2, oz, BLOCK.AIR);
+    }
+    // Red cross on roof (internationally recognized medical marker)
+    var ry = base + 13;
+    setBlock(ox + 9, ry, oz + 5, BLOCK.LIGHT);
+    for (var rci = 7; rci <= 11; rci++) setBlock(ox + rci, ry, oz + 5, BLOCK.LIGHT);
+    for (var rcj = 3; rcj <= 7; rcj++) setBlock(ox + 9, ry, oz + rcj, BLOCK.LIGHT);
+    // Collapsed east wing (rubble — radiation-damaged structural failure)
+    for (var cbx = 15; cbx <= 18; cbx++) {
+      for (var cbz = 2; cbz <= 8; cbz++) {
+        if (Math.random() < 0.6) setBlock(ox + cbx, base + 1, oz + cbz, BLOCK.RUBBLE);
+      }
+    }
+    // Hospital yard debris (radioactive PPE, stretchers abandoned in haste)
+    setBlock(ox + 2,  base, oz - 2, BLOCK.RUBBLE);
+    setBlock(ox + 12, base, oz - 2, BLOCK.RUBBLE);
+    setBlock(ox + 6,  base, oz + 12, BLOCK.RUBBLE);
+    _buildings.push({ kind: 'pripyat_hospital', x: ox, z: oz, w: 19, d: 11, baseY: h, floorH: 4, floors: 3, cx: ox + 9, cz: oz + 5 });
+  }
+
+  // LANDMARK: Bakhmut Sports Arena — local multipurpose hall repurposed as staging position
+  // The Bakhmut Palace of Culture / sports complex became a tactical position during siege
+  function generateBakhmutArena(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Arena main hall — wide flat CONCRETE building (16×20) with high ceiling
+    for (var ax2 = 0; ax2 <= 16; ax2++) {
+      for (var az2 = 0; az2 <= 20; az2++) {
+        for (var ay = 1; ay <= 10; ay++) {
+          if (ax2 === 0 || ax2 === 16 || az2 === 0 || az2 === 20 || ay === 10) {
+            setBlock(ox + ax2, base + ay, oz + az2, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Large windows on sides (arena skylighting)
+    for (var wz3 = 3; wz3 <= 17; wz3 += 4) {
+      for (var wy3 = 3; wy3 <= 7; wy3++) {
+        setBlock(ox,      base + wy3, oz + wz3,     BLOCK.GLASS);
+        setBlock(ox,      base + wy3, oz + wz3 + 1, BLOCK.GLASS);
+        setBlock(ox + 16, base + wy3, oz + wz3,     BLOCK.GLASS);
+        setBlock(ox + 16, base + wy3, oz + wz3 + 1, BLOCK.GLASS);
+      }
+    }
+    // Main entrance (south face, 4 wide × 5 tall)
+    for (var ea2 = 6; ea2 <= 10; ea2++) {
+      for (var ey = 1; ey <= 5; ey++) setBlock(ox + ea2, base + ey, oz, BLOCK.AIR);
+    }
+    // Arched barrel roof (visible above the flat wall line)
+    for (var aax = -1; aax <= 17; aax++) {
+      var archH = Math.round(3 - (aax - 8) * (aax - 8) / 70.0);
+      if (archH > 0) {
+        for (var aaz = 0; aaz <= 20; aaz++) {
+          setBlock(ox + aax, base + 10 + archH, oz + aaz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Battle damage — shelled sections
+    setBlock(ox + 2,  base + 6, oz + 5,  BLOCK.RUBBLE);
+    setBlock(ox + 14, base + 4, oz + 15, BLOCK.RUBBLE);
+    setBlock(ox + 14, base + 5, oz + 15, BLOCK.AIR);
+    // Ukrainian graffiti position (window facing enemy approach)
+    setBlock(ox + 16, base + 6, oz + 10, BLOCK.AIR);
+    _buildings.push({ kind: 'bakhmut_arena', x: ox, z: oz, w: 17, d: 21, baseY: h, floorH: 10, floors: 1, cx: ox + 8, cz: oz + 10 });
+  }
+
   // LANDMARK: Mercury City Tower — slim diamond-plan glass needle (tallest in MIBC)
   function generateMercuryTower(ox, oz) {
     var h = getTerrainHeight(ox, oz) || 0;
@@ -8584,6 +8681,7 @@ window.VoxelWorld = (function () {
       generateAmmoDepot(38, 28);
       generateAmmoDepot(-40, 25);
       generateAmmoDepot(-48, -55);
+      generateBakhmutArena(-5, 22);              // Bakhmut Sports Arena/Palace of Culture (tactical strongpoint)
       // Railway (Bakhmut is a railway junction city)
       generateRailway(-20, -30, 35, true);
       generateRailway(0, 10, 30, false);
@@ -9140,6 +9238,7 @@ window.VoxelWorld = (function () {
       generateLuxuryVilla(-5, -5, 12, 10);      // Pripyat Executive Committee (city hall)
       generateChurch(-25, -5);                  // Pripyat orthodox church (still standing)
       generateChurch(22, 8);                    // Chornobyl town church
+      generatePripyatHospital(-38, 32);         // MsCh-126 Hospital — famous radioactive ruin, Pripyat ghost city
       // Amusement park (never opened — famous for the rusty yellow Ferris wheel)
       generatePripyatFerrisWheel(18, 28);       // Pripyat amusement-park Ferris wheel
       generateWatchtower(-18, 25);
