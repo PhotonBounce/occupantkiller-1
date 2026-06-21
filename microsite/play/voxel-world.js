@@ -8263,6 +8263,12 @@ window.VoxelWorld = (function () {
       generateDroneNest(-30, 22);
       // AKHZ landmark: the iconic blast-furnace battery with tall chimneys
       generateAKHZBlastFurnace(5, -50);    // South edge of plant — AKHZ coke oven battery
+      // Avdiivka city landmarks
+      generateCoalWashingPlant(-15, -65);  // Coal preparation plant (Avdiivka coal basin)
+      generateMineShaftTower(-50, -38);    // Mine headframe (local Donbas coal shaft)
+      generateTrainStation(-22, 12);       // Avdiivka railway junction (critical supply node)
+      generateSovietAdminBuilding(0, 18);  // City administration building
+      generateChurch(35, -60);             // Orthodox church (still standing during siege)
     } else if (level.id === 'BAKHMUT') {
       // Bakhmut — the most destroyed city in modern warfare history
       // Once a city of 70,000 — now rubble after 224+ days of siege
@@ -8841,6 +8847,11 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, -48);
       // Kerch Fortress landmark — ancient Ottoman-Russian fortification on the strait
       generateKerchFortress(-30, -40);     // Kerch (Crimean) side, south-west
+      // Kerch city landmarks
+      generateTrainStation(35, -50);       // Kerch railway station (built 1944, major hub)
+      generatePortCrane(-42, -38);         // Kerch ferry terminal crane
+      generateSovietAdminBuilding(-20, -28);// Kerch city administration
+      generateNavalBarracks(40, -28);      // Russian naval support facility
     } else if (level.id === 'CHORNOBYL') {
       // Chornobyl Exclusion Zone — 30km dead zone, ghost city of Pripyat, irradiated reactor
       // Reactor No. 4 / New Safe Confinement area (center)
