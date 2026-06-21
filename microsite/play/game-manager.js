@@ -3400,7 +3400,13 @@ const GameManager = (function () {
     // Generate an initial mission. Stage-specific signature missions take priority.
     // droneOnly stages (stage 18 Refinery) handle missions entirely via RefineryStrike.
     if (!(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
-      if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
+      // __forceMission: set by menu "data-mission" buttons (e.g. Bradley) to bypass random pick
+      var _forcedType = (typeof window !== 'undefined' && window.__forceMission) ? window.__forceMission : null;
+      if (_forcedType) {
+        window.__forceMission = null; // consume once
+        var _forceM = MissionSystem.generateMission(_forcedType);
+        _autoReconDroneForMission(_forceM);
+      } else if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
         MissionSystem.generateMission('kyiv_defense');
       } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
         MissionSystem.generateMission('airborne_assault');

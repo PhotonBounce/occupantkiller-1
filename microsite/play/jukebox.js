@@ -63,7 +63,10 @@ window.Jukebox = (function () {
 
   function _onMp3Ended() {
     if (_autoplay) {
-      _mp3Idx = (_mp3Idx + 1) % _mp3Tracks.length;
+      var nextIdx = (_mp3Idx + 1) % _mp3Tracks.length;
+      // Re-shuffle at the end of each cycle so the repeat order is always different.
+      if (nextIdx === 0) _shuffleArray(_mp3Tracks);
+      _mp3Idx = nextIdx;
       _playMp3At(_mp3Idx);
     } else {
       _mp3Playing = false;

@@ -614,6 +614,7 @@
             <button class="btn pill map-btn"            data-stage="4"  style="border-color:#888;color:#888">⚙ MARIUPOL</button>
             <button class="btn pill map-btn"            data-stage="5"  style="border-color:#888;color:#888">🌊 CRIMEA</button>
             <button class="btn pill map-btn"            data-stage="6"  style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
+            <button class="btn pill map-btn"            data-stage="7"  style="border-color:#cc44ff;color:#cc44ff">🏙 MOSCOW</button>
           </div>
           <p id="map-desc" class="start-section-desc">Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
         </section>
@@ -652,6 +653,22 @@
                 <div style="color:#aaa;font-size:11px;margin-top:2px">Total urban destruction. Wagner mercenary assault from all directions. Stay alive.</div>
               </div>
               <button class="btn pill mission-start-btn" data-stage="2" data-formation="echelon_l" style="border-color:#88ff88;color:#88ff88;white-space:nowrap;flex-shrink:0">▶ START</button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+              <div style="flex:1">
+                <div style="color:#cc44ff;font-weight:bold;font-size:12px">🏙 OUTER MOSCOW — FSB STORM</div>
+                <div style="color:#aaa;font-size:11px;margin-top:2px">Elite FSB guards and Rosgvardiya response teams defend the city ring. 9 waves of maximum resistance.</div>
+              </div>
+              <button class="btn pill mission-start-btn" data-stage="7" data-formation="wedge" style="border-color:#cc44ff;color:#cc44ff;white-space:nowrap;flex-shrink:0">▶ START</button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+              <div style="flex:1">
+                <div style="color:#a0c878;font-weight:bold;font-size:12px">🚒 BRADLEY IFV — TREELINE ASSAULT</div>
+                <div style="color:#aaa;font-size:11px;margin-top:2px">Ukrainian 47th Mech doctrine: TOW suppression at 500m, then close with 25mm Bushmaster. Press G to mount.</div>
+              </div>
+              <button class="btn pill mission-start-btn" data-stage="7" data-formation="line" data-mission="bradley_mission" style="border-color:#a0c878;color:#a0c878;white-space:nowrap;flex-shrink:0">▶ START</button>
             </div>
 
           </div>
@@ -1408,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '4':  'Mariupol Steelworks — Azovstal last stand. Fire deals constant damage. No retreat.',
       '5':  'Crimea Bridge — Strike the strategic crossing before it can be reinforced.',
       '6':  'Chornobyl Zone — Irradiated exclusion zone. Abandoned buildings, radiation damage.',
+      '7':  'Outer Moscow Ring — FSB elite and Rosgvardiya defend the suburbs. 9 waves of maximum resistance.',
     };
     var mapBtns = document.querySelectorAll('.map-btn');
     function setActiveMap(stage) {
@@ -1443,8 +1461,10 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function () {
           var stage = parseInt(btn.getAttribute('data-stage'), 10);
           var formation = btn.getAttribute('data-formation') || 'wedge';
+          var forceMission = btn.getAttribute('data-mission') || null;
           window.__chosenStartStage = stage;
           window.__chosenFormation = formation;
+          window.__forceMission = forceMission || null;
           // Sync UI highlights
           var mapBtnsSync = document.querySelectorAll('.map-btn');
           for (var k = 0; k < mapBtnsSync.length; k++) {
