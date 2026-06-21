@@ -2937,6 +2937,75 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_lighthouse', x: ox - R, z: oz - R, w: 12, d: 7, baseY: h, floorH: towerH, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── DONBAS: terikon (coal-mine slag heap) ──────────────────────────────
+  // The signature flat-topped cones that dominate the Donbas skyline.
+  function generateTerikon(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var baseR = 12, peakH = 15;
+    for (var y = 0; y < peakH; y++) {
+      var r = Math.round(baseR * (1 - y / peakH));
+      for (var dx = -r; dx <= r; dx++) {
+        for (var dz = -r; dz <= r; dz++) {
+          if (dx * dx + dz * dz <= r * r + 1) {
+            // Dark spoil: mostly dirt/stone with rubble flecks; smouldering top
+            var blk = BLOCK.DIRT;
+            var hsh = ((dx * 7 + dz * 13 + y * 5) & 7);
+            if (hsh === 0) blk = BLOCK.STONE;
+            else if (hsh === 1) blk = BLOCK.RUBBLE;
+            setBlock(ox + dx, h + y + 1, oz + dz, blk);
+          }
+        }
+      }
+    }
+    // Smouldering vents near the summit (terikons often burn internally)
+    setBlock(ox, h + peakH, oz, BLOCK.FIRE);
+    setBlock(ox + 2, h + peakH - 1, oz - 1, BLOCK.FIRE);
+    // Old mine conveyor stub climbing one flank
+    for (var c = 0; c < 8; c++) {
+      setBlock(ox + baseR - c, h + c + 1, oz + 1, BLOCK.METAL);
+    }
+    _buildings.push({ kind: 'landmark_terikon', x: ox - baseR, z: oz - baseR, w: 2 * baseR + 1, d: 2 * baseR + 1, baseY: h, floorH: peakH, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── SAKY: destroyed Su-24 fighter-bomber on the apron ──────────────────
+  // A blackened swept-wing jet wreck — the kind Ukraine hit at Saky in 2022.
+  function generateDestroyedJet(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var fy = h + 2;
+    // Fuselage along X (charred metal)
+    for (var x = -8; x <= 8; x++) {
+      var rr = (x > 5) ? 0 : 1; // pointed nose
+      for (var dy = -rr; dy <= rr; dy++) {
+        for (var dz = -rr; dz <= rr; dz++) {
+          setBlock(ox + x, fy + dy, oz + dz, BLOCK.METAL);
+        }
+      }
+    }
+    // Cockpit canopy
+    setBlock(ox + 5, fy + 1, oz, BLOCK.GLASS);
+    // Variable-sweep wings (Su-24 swing-wings, here swept back) — one wing broken
+    for (var wx = -4; wx <= 2; wx++) {
+      for (var wz = 2; wz <= 9; wz++) {
+        if (wz - 2 > (wx + 4) + 2) continue; // swept trailing edge
+        setBlock(ox + wx, fy - 1, oz + wz, BLOCK.METAL);          // intact right wing
+        if (wz <= 6) setBlock(ox + wx, fy - 1, oz - wz, BLOCK.RUBBLE); // shattered left wing
+      }
+    }
+    // Twin tail fins
+    for (var ty = 0; ty < 4; ty++) {
+      setBlock(ox - 7, fy + 1 + ty, oz - 1, BLOCK.METAL);
+      setBlock(ox - 7, fy + 1 + ty, oz + 1, BLOCK.METAL);
+    }
+    // Twin engine exhausts
+    setBlock(ox - 8, fy, oz - 1, BLOCK.FUEL_BARREL);
+    setBlock(ox - 8, fy, oz + 1, BLOCK.FUEL_BARREL);
+    // Burning wreckage + scorch
+    setBlock(ox - 1, fy, oz - 3, BLOCK.FIRE);
+    setBlock(ox + 1, fy - 1, oz + 4, BLOCK.FIRE);
+    setBlock(ox - 3, h + 1, oz - 5, BLOCK.RUBBLE);
+    _buildings.push({ kind: 'landmark_destroyed_jet', x: ox - 8, z: oz - 9, w: 17, d: 19, baseY: h, floorH: 3, floors: 1, cx: ox, cz: oz });
+  }
+
   // IDEA 3: Railway tracks
   function generateRailway(startX, startZ, length, horizontal) {
     for (let i = 0; i < length; i++) {
@@ -7765,6 +7834,7 @@ window.VoxelWorld = (function () {
       // Donbas final push — mining heartland, trench warfare, urban fringe towns
       // Industrial core: coal mines, salt mines, slag heaps
       generateSaltMine(30, -30);          // Soledar salt mine (Putin's prize)
+      generateTerikon(12, -36);           // Coal-mine slag heap — the Donbas skyline signature
       generateIndustrialComplex(-30, 30); // Donetsk coal processing
       generateIndustrialComplex(25, 28);  // Steel mill (Alchevsk)
       generateIndustrialComplex(-28, -28);// Coke plant
@@ -8058,6 +8128,9 @@ window.VoxelWorld = (function () {
       // Ukraine struck this in August 2022 — Su-24, Su-30 fighters destroyed on ground
       generateRunway(0, 0, 80, 10);           // Main runway 2100m (scaled)
       generateRunway(-10, 30, 50, 6);         // Secondary taxiway
+      // Destroyed Su-24 fighter-bombers on the apron — the Aug 2022 strike
+      generateDestroyedJet(-8, 14);
+      generateDestroyedJet(12, -14);
       generateControlTower(10, 15);            // ATC tower
       generateRadarTower(-30, -25);            // Air defense radar
       generateRadarTower(30, -25);             // Early warning radar
