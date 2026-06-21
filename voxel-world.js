@@ -6027,18 +6027,80 @@ window.VoxelWorld = (function () {
     ]);
     if (level.id === 'HOSTOMEL') {
       generateHostomelAirport(0, 0);
-      // Residential blocks east of the airport (town of Hostomel)
+      // Town of Hostomel — residential district east/west of the airport
+      // Russian VDV captured and held this for weeks Feb–Mar 2022
       generateUkrainianApartment(80, -30, 6);
       generateUkrainianApartment(80, -50, 9);
       generateUkrainianApartment(80, -68, 6);
       generateUkrainianApartment(95, -40, 9);
-      // Enemy drone nests — placed outside the airport perimeter fence
-      generateDroneNest(80, -20);
-      generateDroneNest(-80, -18);
-      // Russian VDV anti-air gun emplacements flanking the runway
-      generateAntiAirPosition(-30, 35);
+      generateUkrainianApartment(62, -55, 6);
+      generateUkrainianApartment(108, -55, 6);
+      generateUkrainianApartment(-80, -35, 6);   // West side of Hostomel
+      generateUkrainianApartment(-80, -55, 9);
+      generateUkrainianApartment(-95, -45, 6);
+      generateUkrainianApartment(-65, -60, 6);
+      // Antonov logistics offices and assembly buildings (south of main runway)
+      generateIndustrialComplex(50, -40);        // Antonov factory complex
+      generateIndustrialComplex(-50, -38);       // Logistics center
+      generateCommTower(-70, -20);               // Antonov comms tower
+      generateControlTower(65, -20);             // Secondary control building
+      // Hostomel town center (church, water tower, commercial)
+      generateChurch(88, -80);                   // Local church on main road
+      generateChurch(-88, -75);
+      generateWaterTower(70, -75);               // District water tower
+      generateLuxuryVilla(-75, -80, 8, 6);       // Hostomel administration building
+      // Fuel/supply depot at airport (Russian used it as re-supply point)
+      generateFuelDepot(65, 45);
+      generateFuelDepot(-68, 42);
+      generateAmmoDepot(80, 45);
+      // Russian VDV defensive fortifications around the airport perimeter
+      generateAntiAirPosition(-30, 35);          // S-300 battery on north runway end
       generateAntiAirPosition(30, 35);
       generateAntiAirPosition(0, 55);
+      generateAntiAirPosition(75, 20);           // Outer perimeter AA
+      generateAntiAirPosition(-72, 22);
+      generateDefensivePosition(-55, 10);
+      generateDefensivePosition(55, 12);
+      generateDefensivePosition(0, 70);
+      generateDefensivePosition(-40, -30);
+      generateDefensivePosition(42, -28);
+      generateBunker(-60, 30);
+      generateBunker(58, 32);
+      generateBunker(-25, 60);
+      generateBunker(25, 60);
+      generateCheckpoint(0, 75, false);          // North approach road
+      generateCheckpoint(100, 0, true);          // East perimeter
+      generateCheckpoint(-100, 0, true);         // West perimeter
+      generateBarbedWire(0, 40, 60, true);       // Perimeter wire along runway north
+      generateAntiTankHedgehogs(12);             // Road blockades
+      generateTrenchNetwork(-45, 15);
+      generateTrenchNetwork(45, 18);
+      generateMortarPit(-70, 5);
+      generateMortarPit(68, 8);
+      generateSniperNest(0, -50);                // Sniper in destroyed terminal area
+      // Battle damage — fierce Ukrainian counterattacks 26 Feb–30 Mar 2022
+      generateBurningRuin(-70, -45);
+      generateBurningRuin(72, -42);
+      generateBurningRuin(-20, -20);
+      generateBurningRuin(18, -22);
+      generateBurningRuin(0, -48);
+      generateRuinedHouse(85, -90);
+      generateRuinedHouse(-85, -88);
+      generateRuinedCommercial(60, -90);
+      generateWreckedTank(-65, 18);
+      generateWreckedTank(62, 16);
+      generateWreckedAPC(-48, -35);
+      generateWreckedConvoy(85, -20);
+      generateWreckedConvoy(-85, -22);
+      generateCraters(8);
+      // Radar + comms for Russian coordination
+      generateRadarTower(-75, 30);
+      generateRadarTower(72, 28);
+      // Drone nests at corners of the airport perimeter
+      generateDroneNest(80, -20);
+      generateDroneNest(-80, -18);
+      generateDroneNest(85, 50);
+      generateDroneNest(-85, 50);
     } else if (level.id === 'AVDIIVKA') {
       // Avdiivka Coke and Chemical Plant — industrial fortress, most fortified Ukrainian position
       // The coking plant (AKHZ) was Europe's largest — defended for 2+ years
