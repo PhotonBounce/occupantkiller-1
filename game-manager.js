@@ -3861,9 +3861,9 @@ const GameManager = (function () {
     // Infantry guarantee: if wave spawned zero ground enemies, force-spawn a minimum squad
     setTimeout(function() {
       try {
-        var _droneTypes = ['DRONE_OP', 'KAMIKAZE_DRONE', 'SWARM_OP', 'EW_OPERATOR'];
+        var _droneTypes = { DRONE_OP:1, KAMIKAZE_DRONE:1, SWARM_OP:1, EW_OPERATOR:1 };
         var alive = Enemies.getAll ? Enemies.getAll().filter(function(e) {
-          return e && e.alive && e.type && _droneTypes.indexOf(e.type) === -1 && !e.isDrone;
+          return e && e.alive && e.typeName && !_droneTypes[e.typeName];
         }) : [];
         console.log('[Wave ' + w + '] Infantry alive after wave start: ' + alive.length + ' / total alive: ' + (Enemies.getAliveCount ? Enemies.getAliveCount() : '?'));
         if (alive.length === 0) {

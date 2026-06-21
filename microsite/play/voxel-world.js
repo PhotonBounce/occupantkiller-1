@@ -2258,6 +2258,58 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'st_basils', x: ox - 13, z: oz - 13, w: 26, d: 26, baseY: h, floorH: 3, floors: 4, cx: ox, cz: oz });
   }
 
+  // Lenin's Mausoleum — the dark-red stepped granite pyramid on Red Square,
+  // pressed against the Kremlin south wall. Three receding tiers with black
+  // accent bands, mirroring the real structure's silhouette.
+  function generateLeninMausoleum(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    // Stone plaza plinth the mausoleum sits on
+    for (var px = -7; px <= 7; px++) {
+      for (var pz = -5; pz <= 5; pz++) {
+        setBlock(ox + px, h, oz + pz, BLOCK.STONE);
+      }
+    }
+    // Tier 1 — widest base (14 × 10, 2 blocks tall), dark red
+    for (var bx = -6; bx <= 6; bx++) {
+      for (var bz = -4; bz <= 4; bz++) {
+        setBlock(ox + bx, h + 1, oz + bz, BLOCK.BANNER);
+        setBlock(ox + bx, h + 2, oz + bz, BLOCK.BANNER);
+      }
+    }
+    // Black accent band between tier 1 and 2
+    for (var bx = -6; bx <= 6; bx++) {
+      for (var bz = -4; bz <= 4; bz++) {
+        setBlock(ox + bx, h + 3, oz + bz, BLOCK.METAL);
+      }
+    }
+    // Tier 2 — middle (10 × 6, 2 blocks tall), dark red
+    for (var bx = -4; bx <= 4; bx++) {
+      for (var bz = -3; bz <= 3; bz++) {
+        setBlock(ox + bx, h + 4, oz + bz, BLOCK.BANNER);
+        setBlock(ox + bx, h + 5, oz + bz, BLOCK.BANNER);
+      }
+    }
+    // Black accent band between tier 2 and 3
+    for (var bx = -4; bx <= 4; bx++) {
+      for (var bz = -3; bz <= 3; bz++) {
+        setBlock(ox + bx, h + 6, oz + bz, BLOCK.METAL);
+      }
+    }
+    // Tier 3 — top (6 × 4, 2 blocks), red body + stone roof deck
+    for (var bx = -3; bx <= 3; bx++) {
+      for (var bz = -2; bz <= 2; bz++) {
+        setBlock(ox + bx, h + 7, oz + bz, BLOCK.BANNER);
+        setBlock(ox + bx, h + 8, oz + bz, BLOCK.STONE);
+      }
+    }
+    // Entrance pillars on the north face (facing Red Square / palace)
+    setBlock(ox - 3, h + 1, oz - 5, BLOCK.CONCRETE);
+    setBlock(ox - 3, h + 2, oz - 5, BLOCK.CONCRETE);
+    setBlock(ox + 3, h + 1, oz - 5, BLOCK.CONCRETE);
+    setBlock(ox + 3, h + 2, oz - 5, BLOCK.CONCRETE);
+    _buildings.push({ kind: 'mausoleum', x: ox - 6, z: oz - 4, w: 13, d: 9, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
   // IDEA 3: Railway tracks
   function generateRailway(startX, startZ, length, horizontal) {
     for (let i = 0; i < length; i++) {
@@ -7245,6 +7297,9 @@ window.VoxelWorld = (function () {
       // KREMLIN SHOWDOWN — Final stage. The full Red Square / Moscow city center under assault.
       // The zombie president boss spawns from inside the Kremlin palace.
       generateKremlinPalace(0, 0);
+      // Lenin's Mausoleum — stepped dark-red pyramid pressed against the
+      // Kremlin south wall, on the north edge of Red Square.
+      generateLeninMausoleum(0, 15);
       // St. Basil's Cathedral — the iconic colourful onion domes of Red Square,
       // standing just south of the palace where the player approaches the finale.
       generateStBasils(0, 40);
