@@ -2166,6 +2166,98 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'kremlin_palace', x: ox + hx, z: oz + hz, w: pw, d: pd, baseY: h, floorH: 3, floors: 3, cx: ox, cz: oz });
   }
 
+  // St. Basil's Cathedral — Moscow's iconic Red Square cathedral with its
+  // cluster of colourful onion domes. One tall central tent-roof tower ringed
+  // by eight chapels, each capped with a differently-coloured bulbous dome.
+  function generateStBasils(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+
+    // Filled horizontal disc of a single block type (for round dome layers)
+    function _disc(cx, y, cz, r, blockType) {
+      if (r <= 0) { setBlock(cx, y, cz, blockType); return; }
+      for (var dx = -r; dx <= r; dx++) {
+        for (var dz = -r; dz <= r; dz++) {
+          if (dx * dx + dz * dz <= r * r + 1) setBlock(cx + dx, y, cz + dz, blockType);
+        }
+      }
+    }
+
+    // A bulbous onion dome on a drum, capped with a golden finial + cross
+    function _onionDome(cx, baseY, cz, R, domeBlock) {
+      // Cylindrical drum the dome sits on
+      for (var dy = 0; dy < 2; dy++) _disc(cx, baseY + dy, cz, Math.max(1, Math.round(R * 0.55)), BLOCK.WHITE_TILE);
+      // Bulb profile (radius multiplier per layer — swells then tapers to a point)
+      var profile = [0.65, 0.85, 1.0, 1.0, 0.85, 0.6, 0.35, 0.15];
+      for (var i = 0; i < profile.length; i++) {
+        _disc(cx, baseY + 2 + i, cz, Math.max(0, Math.round(R * profile[i])), domeBlock);
+      }
+      // Golden finial + orthodox cross
+      var topY = baseY + 2 + profile.length;
+      setBlock(cx, topY, cz, BLOCK.BUS);          // gold ball
+      setBlock(cx, topY + 1, cz, BLOCK.METAL);    // cross post
+      setBlock(cx, topY + 2, cz, BLOCK.METAL);
+      setBlock(cx - 1, topY + 1, cz, BLOCK.METAL); // cross arms
+      setBlock(cx + 1, topY + 1, cz, BLOCK.METAL);
+    }
+
+    // A square brick chapel tower topped with a coloured onion dome
+    function _chapel(cx, cz, towerH, R, domeBlock, half) {
+      for (var ty = 0; ty < towerH; ty++) {
+        for (var bx = -half; bx <= half; bx++) {
+          for (var bz = -half; bz <= half; bz++) {
+            var isWall = (Math.abs(bx) === half || Math.abs(bz) === half);
+            if (isWall || ty === towerH - 1 || ty === 0) {
+              setBlock(cx + bx, h + ty + 1, cz + bz, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+      // Tall windows on each face
+      for (var wy = 2; wy < towerH - 1; wy += 3) {
+        setBlock(cx, h + wy + 1, cz - half, BLOCK.GLASS);
+        setBlock(cx, h + wy + 1, cz + half, BLOCK.GLASS);
+        setBlock(cx - half, h + wy + 1, cz, BLOCK.GLASS);
+        setBlock(cx + half, h + wy + 1, cz, BLOCK.GLASS);
+      }
+      _onionDome(cx, h + towerH + 1, cz, R, domeBlock);
+    }
+
+    // Raised stone plinth the whole cathedral sits on
+    for (var px = -13; px <= 13; px++) {
+      for (var pz = -13; pz <= 13; pz++) {
+        if (px * px + pz * pz <= 13 * 13) setBlock(ox + px, h + 1, oz + pz, BLOCK.STONE);
+      }
+    }
+
+    // Central tent-roof tower (tallest, gold dome)
+    var cTowerH = 16;
+    _chapel(ox, oz, cTowerH, 3, BLOCK.BUS, 3);
+    // Tent-roof red ring just below the central drum for the signature silhouette
+    _disc(ox, h + cTowerH + 1, oz, 4, BLOCK.BANNER);
+
+    // Eight surrounding chapels — alternating bold dome colours like the real cathedral
+    // Cardinal chapels (taller, larger domes)
+    var cardinalColors = [BLOCK.STREET_SIGN, BLOCK.BLUE_TILE, BLOCK.BANNER, BLOCK.BUS]; // green, blue, red, gold
+    var cardinals = [[0, -9], [9, 0], [0, 9], [-9, 0]];
+    for (var ci = 0; ci < cardinals.length; ci++) {
+      _chapel(ox + cardinals[ci][0], oz + cardinals[ci][1], 11, 2.6, cardinalColors[ci], 2);
+    }
+    // Diagonal chapels (shorter, smaller domes, contrasting colours)
+    var diagColors = [BLOCK.BLUE_TILE, BLOCK.BANNER, BLOCK.BUS, BLOCK.STREET_SIGN];
+    var diagonals = [[-7, -7], [7, -7], [7, 7], [-7, 7]];
+    for (var di = 0; di < diagonals.length; di++) {
+      _chapel(ox + diagonals[di][0], oz + diagonals[di][1], 8, 2.0, diagColors[di], 2);
+    }
+
+    // Grand entrance staircase / porch on the south face
+    for (var sx = -2; sx <= 2; sx++) {
+      setBlock(ox + sx, h + 1, oz - 14, BLOCK.STONE);
+      setBlock(ox + sx, h + 2, oz - 13, BLOCK.STONE);
+    }
+
+    _buildings.push({ kind: 'st_basils', x: ox - 13, z: oz - 13, w: 26, d: 26, baseY: h, floorH: 3, floors: 4, cx: ox, cz: oz });
+  }
+
   // IDEA 3: Railway tracks
   function generateRailway(startX, startZ, length, horizontal) {
     for (let i = 0; i < length; i++) {
@@ -7153,6 +7245,9 @@ window.VoxelWorld = (function () {
       // KREMLIN SHOWDOWN — Final stage. The full Red Square / Moscow city center under assault.
       // The zombie president boss spawns from inside the Kremlin palace.
       generateKremlinPalace(0, 0);
+      // St. Basil's Cathedral — the iconic colourful onion domes of Red Square,
+      // standing just south of the palace where the player approaches the finale.
+      generateStBasils(0, 40);
       // Kremlin walls: Red Square buildings (GUM, State Duma, Historical Museum)
       generateLuxuryVilla(-18, -10, 12, 8);   // GUM department store replica
       generateLuxuryVilla(18, -10, 10, 8);    // State Historical Museum
@@ -7167,7 +7262,8 @@ window.VoxelWorld = (function () {
       generateUkrainianApartment(-48, 0, 10);
       generateUkrainianApartment(48, 0, 10);
       generateUkrainianApartment(0, -48, 10);
-      generateUkrainianApartment(0, 48, 10);
+      // (south apartment relocated to a corner — St. Basil's Cathedral now occupies the south-centre)
+      generateUkrainianApartment(-52, 48, 10);
       // Orthodox churches (Moscow has many — Kremlin grounds have Assumption Cathedral etc.)
       generateChurch(-22, 20);                // Assumption Cathedral (within Kremlin)
       generateChurch(22, 20);                 // Archangel Cathedral
@@ -7191,7 +7287,7 @@ window.VoxelWorld = (function () {
       generateDefensivePosition(-40, 0);
       generateDefensivePosition(40, 0);
       generateDefensivePosition(0, -40);
-      generateDefensivePosition(0, 40);
+      // (south defensive position removed — St. Basil's Cathedral stands here)
       generateBunker(-35, 35);
       generateBunker(35, -35);
       generateBunker(-35, -35);
