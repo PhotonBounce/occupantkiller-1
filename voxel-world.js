@@ -2310,6 +2310,305 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'mausoleum', x: ox - 6, z: oz - 4, w: 13, d: 9, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
   }
 
+  /* ════════════════════════════════════════════════════════════════════
+   *  LANDMARK BUILDINGS — recognizable real-world architecture per map.
+   *  Modeled on actual buildings (GTA-style) so each city reads as itself.
+   *  Shared voxel helpers kept local so each generator is self-contained.
+   * ════════════════════════════════════════════════════════════════════ */
+
+  // Filled horizontal disc of one block type (round dome / tower layers).
+  function _lmDisc(cx, y, cz, r, blockType) {
+    if (r <= 0) { setBlock(cx, y, cz, blockType); return; }
+    for (var dx = -r; dx <= r; dx++) {
+      for (var dz = -r; dz <= r; dz++) {
+        if (dx * dx + dz * dz <= r * r + 1) setBlock(cx + dx, y, cz + dz, blockType);
+      }
+    }
+  }
+
+  // Hollow ring (round wall) of one block type.
+  function _lmRing(cx, y, cz, r, blockType) {
+    for (var a = 0; a < 360; a += 8) {
+      var rad = a * Math.PI / 180;
+      var rx = Math.round(cx + Math.cos(rad) * r);
+      var rz = Math.round(cz + Math.sin(rad) * r);
+      setBlock(rx, y, rz, blockType);
+    }
+  }
+
+  // Bulbous golden onion dome on a drum, capped with finial + orthodox cross.
+  function _lmOnionDome(cx, baseY, cz, R, domeBlock) {
+    for (var dy = 0; dy < 2; dy++) _lmDisc(cx, baseY + dy, cz, Math.max(1, Math.round(R * 0.55)), BLOCK.WHITE_TILE);
+    var profile = [0.65, 0.85, 1.0, 1.0, 0.85, 0.6, 0.35, 0.15];
+    for (var i = 0; i < profile.length; i++) {
+      _lmDisc(cx, baseY + 2 + i, cz, Math.max(0, Math.round(R * profile[i])), domeBlock);
+    }
+    var topY = baseY + 2 + profile.length;
+    setBlock(cx, topY, cz, BLOCK.BUS);
+    setBlock(cx, topY + 1, cz, BLOCK.METAL);
+    setBlock(cx, topY + 2, cz, BLOCK.METAL);
+    setBlock(cx - 1, topY + 1, cz, BLOCK.METAL);
+    setBlock(cx + 1, topY + 1, cz, BLOCK.METAL);
+  }
+
+  // ── KYIV: Motherland Monument (Батьківщина-Мати) ───────────────────────
+  // Colossal silver titanium statue holding sword + shield on a museum plinth.
+  function generateMotherlandMonument(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    // Museum pedestal — broad concrete base block
+    for (var px = -8; px <= 8; px++) {
+      for (var pz = -8; pz <= 8; pz++) {
+        for (var py = 0; py < 7; py++) {
+          var isShell = (px === -8 || px === 8 || pz === -8 || pz === 8 || py === 0 || py === 6);
+          if (isShell) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.STONE);
+        }
+      }
+    }
+    // Entrance arch on the south face
+    for (var dw = -2; dw <= 2; dw++) {
+      for (var dh = 0; dh < 4; dh++) setBlock(ox + dw, h + dh + 1, oz - 8, BLOCK.AIR);
+    }
+    var sb = h + 8; // statue base height (on top of pedestal)
+    // Legs / lower robe — tapering metal column
+    for (var ly = 0; ly < 10; ly++) {
+      var lr = 3 - Math.floor(ly / 5);
+      for (var lx = -lr; lx <= lr; lx++) {
+        for (var lz = -lr; lz <= lr; lz++) {
+          setBlock(ox + lx, sb + ly, oz + lz, BLOCK.METAL);
+        }
+      }
+    }
+    var torsoY = sb + 10;
+    // Torso (2×2 core, broad shoulders)
+    for (var ty = 0; ty < 8; ty++) {
+      for (var tx = -1; tx <= 1; tx++) {
+        for (var tz = -1; tz <= 1; tz++) setBlock(ox + tx, torsoY + ty, oz + tz, BLOCK.METAL);
+      }
+    }
+    // Shoulders
+    for (var sx = -3; sx <= 3; sx++) setBlock(ox + sx, torsoY + 7, oz, BLOCK.METAL);
+    // Head
+    setBlock(ox, torsoY + 8, oz, BLOCK.METAL);
+    setBlock(ox, torsoY + 9, oz, BLOCK.METAL);
+    // Right arm raised high holding the sword (east side, reaching up)
+    var armX = ox + 4;
+    for (var ay = 0; ay < 6; ay++) setBlock(armX, torsoY + 7 + ay, oz, BLOCK.METAL);
+    // Sword blade soaring above (the monument's silhouette)
+    for (var bl = 0; bl < 16; bl++) setBlock(armX, torsoY + 13 + bl, oz, BLOCK.METAL);
+    setBlock(armX - 1, torsoY + 14, oz, BLOCK.METAL); // crossguard
+    setBlock(armX + 1, torsoY + 14, oz, BLOCK.METAL);
+    // Left arm extended holding the shield (west side)
+    var shX = ox - 4;
+    for (var ay2 = 0; ay2 < 3; ay2++) setBlock(ox - 1 - ay2, torsoY + 6, oz, BLOCK.METAL);
+    // Shield slab (flat vertical panel) with red emblem
+    for (var shy = 0; shy < 7; shy++) {
+      for (var shz = -2; shz <= 2; shz++) setBlock(shX, torsoY + 2 + shy, oz + shz, BLOCK.METAL);
+    }
+    setBlock(shX - 1, torsoY + 5, oz, BLOCK.BANNER); // emblem face
+    _buildings.push({ kind: 'landmark_motherland', x: ox - 8, z: oz - 8, w: 17, d: 17, baseY: h, floorH: 6, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── KYIV: St. Sophia Cathedral ─────────────────────────────────────────
+  // White-walled Byzantine cathedral crowned with golden onion domes, a green
+  // accent roof, and a tall baroque bell tower beside it.
+  function generateStSophia(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var bw = 18, bd = 12, bh = 8;
+    var hx = -Math.floor(bw / 2), hz = -Math.floor(bd / 2);
+    // White cathedral body (hollow shell)
+    for (var py = 0; py < bh; py++) {
+      for (var px = 0; px < bw; px++) {
+        for (var pz = 0; pz < bd; pz++) {
+          var isWall = (px === 0 || px === bw - 1 || pz === 0 || pz === bd - 1);
+          if (isWall || py === 0 || py === bh - 1) setBlock(ox + hx + px, h + py + 1, oz + hz + pz, BLOCK.WHITE_TILE);
+        }
+      }
+    }
+    // Green cornice ring just under the roofline
+    for (var cx2 = 0; cx2 < bw; cx2++) {
+      setBlock(ox + hx + cx2, h + bh, oz + hz, BLOCK.STREET_SIGN);
+      setBlock(ox + hx + cx2, h + bh, oz + hz + bd - 1, BLOCK.STREET_SIGN);
+    }
+    // Arched windows along facade
+    for (var wy = 2; wy < bh - 1; wy += 3) {
+      for (var wz = 2; wz < bd - 2; wz += 3) {
+        setBlock(ox + hx, h + wy + 1, oz + hz + wz, BLOCK.GLASS);
+        setBlock(ox + hx + bw - 1, h + wy + 1, oz + hz + wz, BLOCK.GLASS);
+      }
+    }
+    // Central tall golden dome + four flanking smaller domes (13-dome cathedral)
+    _lmOnionDome(ox, h + bh + 1, oz, 3, BLOCK.BUS);
+    _lmOnionDome(ox - 6, h + bh, oz - 3, 2, BLOCK.BUS);
+    _lmOnionDome(ox + 6, h + bh, oz - 3, 2, BLOCK.BUS);
+    _lmOnionDome(ox - 6, h + bh, oz + 3, 2, BLOCK.BUS);
+    _lmOnionDome(ox + 6, h + bh, oz + 3, 2, BLOCK.BUS);
+    // Entrance doorway (south)
+    for (var dw2 = -1; dw2 <= 1; dw2++) {
+      for (var dh2 = 0; dh2 < 3; dh2++) setBlock(ox + dw2, h + dh2 + 1, oz + hz, BLOCK.DOOR);
+    }
+    // Baroque bell tower beside the cathedral (west)
+    var btx = ox + hx - 6, btH = 16;
+    for (var by = 0; by < btH; by++) {
+      var taper = by > 11 ? 1 : 2;
+      for (var bx2 = -taper; bx2 <= taper; bx2++) {
+        for (var bz2 = -taper; bz2 <= taper; bz2++) {
+          var edge = (Math.abs(bx2) === taper || Math.abs(bz2) === taper);
+          if (edge || by === 0) setBlock(btx + bx2, h + by + 1, oz + bz2, BLOCK.WHITE_TILE);
+        }
+      }
+    }
+    _lmOnionDome(btx, h + btH + 1, oz, 2, BLOCK.BUS);
+    _buildings.push({ kind: 'landmark_st_sophia', x: ox + hx, z: oz + hz, w: bw, d: bd, baseY: h, floorH: 3, floors: 2, cx: ox, cz: oz });
+  }
+
+  // ── KYIV: Kyiv Pechersk Lavra Great Bell Tower ─────────────────────────
+  // Tall tiered baroque tower (the tallest free-standing bell tower), gold dome.
+  function generateLavraBellTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var tiers = [
+      { r: 5, hh: 6, block: BLOCK.WHITE_TILE },
+      { r: 4, hh: 6, block: BLOCK.WHITE_TILE },
+      { r: 3, hh: 6, block: BLOCK.PLASTER },
+      { r: 2, hh: 5, block: BLOCK.WHITE_TILE },
+    ];
+    var y = h + 1;
+    for (var ti = 0; ti < tiers.length; ti++) {
+      var t = tiers[ti];
+      for (var ly = 0; ly < t.hh; ly++) {
+        for (var lx = -t.r; lx <= t.r; lx++) {
+          for (var lz = -t.r; lz <= t.r; lz++) {
+            var edge = (Math.abs(lx) === t.r || Math.abs(lz) === t.r);
+            if (edge || ly === 0) setBlock(ox + lx, y + ly, oz + lz, t.block);
+          }
+        }
+      }
+      // Arched bell openings on each face of every tier
+      var midY = y + Math.floor(t.hh / 2);
+      setBlock(ox, midY, oz - t.r, BLOCK.AIR);
+      setBlock(ox, midY, oz + t.r, BLOCK.AIR);
+      setBlock(ox - t.r, midY, oz, BLOCK.AIR);
+      setBlock(ox + t.r, midY, oz, BLOCK.AIR);
+      // Gold cornice band at top of each tier
+      for (var gx = -t.r; gx <= t.r; gx++) {
+        setBlock(ox + gx, y + t.hh - 1, oz - t.r, BLOCK.BUS);
+        setBlock(ox + gx, y + t.hh - 1, oz + t.r, BLOCK.BUS);
+      }
+      y += t.hh;
+    }
+    // Crowning golden dome
+    _lmOnionDome(ox, y, oz, 2, BLOCK.BUS);
+    _buildings.push({ kind: 'landmark_lavra', x: ox - 5, z: oz - 5, w: 11, d: 11, baseY: h, floorH: 6, floors: 4, cx: ox, cz: oz });
+  }
+
+  // ── MOSCOW: Ostankino TV Tower ─────────────────────────────────────────
+  // Towering tapered concrete needle with an observation-deck bulge + antenna.
+  function generateOstankinoTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    // Splayed base feet
+    _lmDisc(ox, h + 1, oz, 5, BLOCK.CONCRETE);
+    _lmDisc(ox, h + 2, oz, 4, BLOCK.CONCRETE);
+    // Tapering shaft
+    var shaftH = 44;
+    for (var sy = 0; sy < shaftH; sy++) {
+      var r = Math.max(1, Math.round(3 - (sy / shaftH) * 2));
+      _lmRing(ox, h + 3 + sy, oz, r, BLOCK.CONCRETE);
+      if (sy % 6 === 0) _lmRing(ox, h + 3 + sy, oz, r, BLOCK.GLASS); // ribbon windows
+    }
+    // Observation-deck bulge (the famous restaurant ring)
+    var deckY = h + 3 + 30;
+    for (var dy = 0; dy < 4; dy++) {
+      _lmRing(ox, deckY + dy, oz, 4, dy === 1 || dy === 2 ? BLOCK.GLASS : BLOCK.CONCRETE);
+    }
+    // Antenna mast spire
+    var topY = h + 3 + shaftH;
+    for (var ay = 0; ay < 14; ay++) setBlock(ox, topY + ay, oz, BLOCK.METAL);
+    setBlock(ox, topY + 14, oz, BLOCK.LIGHT); // aircraft warning light
+    _buildings.push({ kind: 'landmark_ostankino', x: ox - 5, z: oz - 5, w: 11, d: 11, baseY: h, floorH: 6, floors: 8, cx: ox, cz: oz });
+  }
+
+  // ── MOSCOW: Stalin Skyscraper ("Seven Sisters" / MSU main building) ────
+  // Symmetric stepped Stalinist high-rise with wings and a central spire.
+  function generateSevenSisters(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    function box(cx, cz, w, d, hh, block) {
+      var hxx = -Math.floor(w / 2), hzz = -Math.floor(d / 2);
+      for (var yy = 0; yy < hh; yy++) {
+        for (var xx = 0; xx < w; xx++) {
+          for (var zz = 0; zz < d; zz++) {
+            var edge = (xx === 0 || xx === w - 1 || zz === 0 || zz === d - 1);
+            if (edge || yy === hh - 1) setBlock(cx + hxx + xx, h + yy + 1, cz + hzz + zz, block);
+            // window rows
+            if (edge && yy % 2 === 0 && yy > 1 && yy < hh - 1) {
+              if ((xx + zz) % 2 === 0) setBlock(cx + hxx + xx, h + yy + 1, cz + hzz + zz, BLOCK.GLASS);
+            }
+          }
+        }
+      }
+    }
+    // Low side wings
+    box(ox - 12, oz, 8, 10, 10, BLOCK.STONE);
+    box(ox + 12, oz, 8, 10, 10, BLOCK.STONE);
+    // Mid setback blocks
+    box(ox - 7, oz, 6, 8, 18, BLOCK.STONE);
+    box(ox + 7, oz, 6, 8, 18, BLOCK.STONE);
+    // Central tower (tallest)
+    box(ox, oz, 10, 10, 30, BLOCK.STONE);
+    // Stepped crown setbacks
+    box(ox, oz, 8, 8, 34, BLOCK.STONE);
+    box(ox, oz, 5, 5, 38, BLOCK.STONE);
+    // Spire with red star
+    for (var spy = 0; spy < 8; spy++) setBlock(ox, h + 39 + spy, oz, BLOCK.METAL);
+    setBlock(ox, h + 47, oz, BLOCK.BANNER); // red star finial
+    _buildings.push({ kind: 'landmark_seven_sisters', x: ox - 17, z: oz - 5, w: 34, d: 10, baseY: h, floorH: 3, floors: 12, cx: ox, cz: oz });
+  }
+
+  // ── MOSCOW: Cathedral of Christ the Saviour ────────────────────────────
+  // Massive white cathedral with one huge gold dome + four corner gold domes.
+  function generateChristSaviour(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var s = 9; // half-extent of the square body
+    for (var py = 0; py < 12; py++) {
+      for (var px = -s; px <= s; px++) {
+        for (var pz = -s; pz <= s; pz++) {
+          var isWall = (Math.abs(px) === s || Math.abs(pz) === s);
+          if (isWall || py === 0 || py === 11) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.WHITE_TILE);
+        }
+      }
+    }
+    // Gold cornice band
+    for (var bx = -s; bx <= s; bx++) {
+      setBlock(ox + bx, h + 12, oz - s, BLOCK.BUS);
+      setBlock(ox + bx, h + 12, oz + s, BLOCK.BUS);
+      setBlock(ox - s, h + 12, oz + bx, BLOCK.BUS);
+      setBlock(ox + s, h + 12, oz + bx, BLOCK.BUS);
+    }
+    // Tall arched windows
+    for (var wy = 3; wy < 10; wy += 3) {
+      for (var wo = -5; wo <= 5; wo += 5) {
+        setBlock(ox + wo, h + wy + 1, oz - s, BLOCK.GLASS);
+        setBlock(ox + wo, h + wy + 1, oz + s, BLOCK.GLASS);
+        setBlock(ox - s, h + wy + 1, oz + wo, BLOCK.GLASS);
+        setBlock(ox + s, h + wy + 1, oz + wo, BLOCK.GLASS);
+      }
+    }
+    // Huge central gold dome on a drum
+    for (var dr = 0; dr < 3; dr++) _lmRing(ox, h + 12 + dr, oz, 4, BLOCK.WHITE_TILE);
+    var domeProfile = [4, 4, 3, 3, 2, 1];
+    for (var di = 0; di < domeProfile.length; di++) _lmDisc(ox, h + 15 + di, oz, domeProfile[di], BLOCK.BUS);
+    setBlock(ox, h + 15 + domeProfile.length, oz, BLOCK.METAL);
+    setBlock(ox, h + 16 + domeProfile.length, oz, BLOCK.METAL);
+    // Four corner gold domes
+    var corners = [[-6, -6], [6, -6], [-6, 6], [6, 6]];
+    for (var ci = 0; ci < corners.length; ci++) {
+      _lmOnionDome(ox + corners[ci][0], h + 12, oz + corners[ci][1], 2, BLOCK.BUS);
+    }
+    // Entrance portico (south)
+    for (var dw3 = -2; dw3 <= 2; dw3++) {
+      for (var dh3 = 0; dh3 < 4; dh3++) setBlock(ox + dw3, h + dh3 + 1, oz - s, BLOCK.DOOR);
+    }
+    _buildings.push({ kind: 'landmark_christ_saviour', x: ox - s, z: oz - s, w: 2 * s + 1, d: 2 * s + 1, baseY: h, floorH: 4, floors: 3, cx: ox, cz: oz });
+  }
+
   // IDEA 3: Railway tracks
   function generateRailway(startX, startZ, length, horizontal) {
     for (let i = 0; i < length; i++) {
@@ -6449,6 +6748,10 @@ window.VoxelWorld = (function () {
       // where Russian armored columns were stopped on the road into Kyiv
       generateKyivMaidanSquare(0, 0);
       generateKyivCityExtension(0, 0);
+      // ── Kyiv landmarks — recognizable city icons on the flanks ──
+      generateMotherlandMonument(50, -40);  // Батьківщина-Мати: titanium statue, Pechersk hills (SE)
+      generateStSophia(-55, -38);           // St. Sophia Cathedral — gold domes + bell tower (NW old town)
+      generateLavraBellTower(52, 28);       // Kyiv Pechersk Lavra Great Bell Tower (E)
       // Drone nests along enemy approach corridor
       generateDroneNest(36, -40);
       generateDroneNest(-36, -40);
@@ -6995,14 +7298,14 @@ window.VoxelWorld = (function () {
       generateLuxuryVilla(8, -5, 10, 8);     // State Duma-adjacent
       generateLuxuryVilla(0, -18, 14, 10);   // GUM-sized government building
       // Orthodox churches (authentic Moscow — one per district block)
-      generateChurch(-25, -5);    // Khram Khrista Spasitelya area
+      generateChristSaviour(-28, -6); // Cathedral of Christ the Saviour — gold-domed white cathedral
       generateChurch(25, 5);      // Kremlin area church
       generateChurch(5, 28);      // Eastern orthodox parish
       generateChurch(-5, -28);    // South district
       // Water tower + comm infrastructure
       generateWaterTower(-28, -25);
       generateWaterTower(28, 25);
-      generateCommTower(0, 0);    // Red Square comm mast
+      generateOstankinoTower(0, 0);   // Ostankino TV Tower — dominant tapered needle on the skyline
 
       // ── OUTER RING (TTK / Third Ring Road, radius 30-48) ────────────────
       // Soviet-era khrushchevka residential estates (microrayons)
@@ -7021,7 +7324,7 @@ window.VoxelWorld = (function () {
       // Industrial nodes on outer ring (Baumanskiy / Lyublino industrial areas)
       generateIndustrialComplex(-42, -42);
       generateIndustrialComplex(42, 42);
-      generateIndustrialComplex(-42, 42);
+      generateSevenSisters(-40, 42);  // Stalin skyscraper (Seven Sisters / MSU-style tower)
       // Billboard grid (military propaganda / Z-symbols)
       generateBillboard(-18, -30);
       generateBillboard(18, -30);
@@ -7323,7 +7626,8 @@ window.VoxelWorld = (function () {
       generateChurch(-22, 20);                // Assumption Cathedral (within Kremlin)
       generateChurch(22, 20);                 // Archangel Cathedral
       generateChurch(-38, -15);              // Church of St. George (outer)
-      generateChurch(38, -15);               // Cathedral of Christ the Saviour area
+      generateChristSaviour(44, -20);        // Cathedral of Christ the Saviour — gold-domed white cathedral
+      generateOstankinoTower(-56, 42);       // Ostankino TV Tower needle on the NW skyline
       // Massive defensive fortification — last stand of the occupant
       generateRazorWireField(0, 0);
       generateRazorWireMaze(-25, 0, 5);
