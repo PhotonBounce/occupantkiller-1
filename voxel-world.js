@@ -20443,6 +20443,240 @@ window.VoxelWorld = (function () {
     return muralMesh;
   }
 
+  // ── Night Raid Level Generators ──────────────────────────────────────────
+
+  function generateKievNightRaid(ox, oz) {
+    var x, z, i, bh;
+    var perimOffsets = [];
+    for (i = -30; i <= 30; i += 3) {
+      perimOffsets.push([i, -30]);
+      perimOffsets.push([i, 30]);
+      perimOffsets.push([-30, i]);
+      perimOffsets.push([30, i]);
+    }
+    for (i = 0; i < perimOffsets.length; i++) {
+      bh = getHeight(ox + perimOffsets[i][0], oz + perimOffsets[i][1]);
+      for (var py = 1; py <= 4; py++) {
+        setBlock(ox + perimOffsets[i][0], bh + py, oz + perimOffsets[i][1], BLOCK.METAL);
+      }
+    }
+    for (x = ox - 12; x <= ox + 12; x++) {
+      for (z = oz - 8; z <= oz + 8; z++) {
+        var isEdge = (x === ox - 12 || x === ox + 12 || z === oz - 8 || z === oz + 8);
+        bh = getHeight(x, z);
+        for (var by = 1; by <= 6; by++) {
+          if (isEdge) setBlock(x, bh + by, z, BLOCK.CONCRETE);
+        }
+        setBlock(x, bh + 7, z, BLOCK.CONCRETE);
+      }
+    }
+    bh = getHeight(ox, oz + 8);
+    for (var ty = 0; ty >= -4; ty--) {
+      setBlock(ox, bh + ty, oz + 9, BLOCK.AIR);
+      setBlock(ox + 1, bh + ty, oz + 9, BLOCK.AIR);
+      setBlock(ox, bh + ty, oz + 10, BLOCK.AIR);
+      setBlock(ox + 1, bh + ty, oz + 10, BLOCK.AIR);
+    }
+    var towerPos = [[-22, -22], [22, -22], [-22, 22], [22, 22]];
+    for (i = 0; i < towerPos.length; i++) {
+      var tx = ox + towerPos[i][0], tz = oz + towerPos[i][1];
+      bh = getHeight(tx, tz);
+      for (var tp = 1; tp <= 18; tp++) setBlock(tx, bh + tp, tz, BLOCK.METAL);
+      for (var sc = 0; sc < 8; sc++) {
+        setBlock(tx, bh + 19, tz + sc, BLOCK.GLASS);
+        setBlock(tx + 1, bh + 19, tz + sc, BLOCK.GLASS);
+      }
+      setBlock(tx, bh + 20, tz, BLOCK.LIGHT);
+    }
+    var boothPos = [[-30, -30], [30, -30], [-30, 30], [30, 30], [0, -30], [0, 30], [-30, 0], [30, 0]];
+    for (i = 0; i < boothPos.length; i++) {
+      var bx2 = ox + boothPos[i][0], bz2 = oz + boothPos[i][1];
+      bh = getHeight(bx2, bz2);
+      for (x = bx2; x <= bx2 + 2; x++) {
+        for (z = bz2; z <= bz2 + 2; z++) {
+          for (var by2 = 1; by2 <= 3; by2++) setBlock(x, bh + by2, z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    var hpPos = [[-40, 0], [40, 0]];
+    for (i = 0; i < hpPos.length; i++) {
+      var hx = ox + hpPos[i][0], hz = oz + hpPos[i][1];
+      bh = getHeight(hx, hz);
+      for (x = hx; x <= hx + 5; x++) {
+        for (z = hz; z <= hz + 5; z++) {
+          setBlock(x, bh + 1, z, BLOCK.CONCRETE);
+          if (x === hx || x === hx + 5 || z === hz || z === hz + 5) setBlock(x, bh + 2, z, BLOCK.LIGHT);
+        }
+      }
+    }
+  }
+
+  function generateOdessaPortNight(ox, oz) {
+    var x, z, i, bh;
+    var whPos = [[-45, -20], [0, -20], [-45, 10], [0, 10]];
+    for (i = 0; i < whPos.length; i++) {
+      var wx = ox + whPos[i][0], wz = oz + whPos[i][1];
+      bh = getHeight(wx, wz);
+      for (x = wx; x <= wx + 30; x++) {
+        for (z = wz; z <= wz + 12; z++) {
+          var isEdgeW = (x === wx || x === wx + 30 || z === wz || z === wz + 12);
+          for (var wy = 1; wy <= 8; wy++) {
+            if (isEdgeW) setBlock(x, bh + wy, z, BLOCK.CONCRETE);
+          }
+          setBlock(x, bh + 9, z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    var cranePos = [[-20, 35], [10, 35], [40, 35]];
+    for (i = 0; i < cranePos.length; i++) {
+      var crx = ox + cranePos[i][0], crz = oz + cranePos[i][1];
+      bh = getHeight(crx, crz);
+      for (var cy = 1; cy <= 16; cy++) setBlock(crx, bh + cy, crz, BLOCK.METAL);
+      for (x = crx - 4; x <= crx + 4; x++) setBlock(x, bh + 16, crz, BLOCK.METAL);
+      setBlock(crx, bh + 17, crz, BLOCK.LIGHT);
+      setBlock(crx - 4, bh + 17, crz, BLOCK.LIGHT);
+      setBlock(crx + 4, bh + 17, crz, BLOCK.LIGHT);
+    }
+    var tkPos = [[-60, -10], [-48, -10], [-36, -10], [-60, 5], [-48, 5]];
+    for (i = 0; i < tkPos.length; i++) {
+      var tkx = ox + tkPos[i][0], tkz = oz + tkPos[i][1];
+      bh = getHeight(tkx, tkz);
+      for (var ang = 0; ang < 628; ang += 6) {
+        var tka = Math.round(Math.cos(ang * 0.01) * 5);
+        var tkb = Math.round(Math.sin(ang * 0.01) * 5);
+        for (var thy = 1; thy <= 8; thy++) setBlock(tkx + tka, bh + thy, tkz + tkb, BLOCK.METAL);
+      }
+      for (x = tkx - 4; x <= tkx + 4; x++) {
+        for (z = tkz - 4; z <= tkz + 4; z++) {
+          if ((x - tkx) * (x - tkx) + (z - tkz) * (z - tkz) <= 16) setBlock(x, bh + 9, z, BLOCK.METAL);
+        }
+      }
+    }
+    for (x = ox - 65; x <= ox + 65; x += 2) {
+      bh = getHeight(x, oz - 30);
+      for (var pw = 1; pw <= 3; pw++) setBlock(x, bh + pw, oz - 30, BLOCK.STONE);
+      bh = getHeight(x, oz + 40);
+      for (pw = 1; pw <= 3; pw++) setBlock(x, bh + pw, oz + 40, BLOCK.STONE);
+    }
+    for (z = oz - 30; z <= oz + 40; z += 2) {
+      bh = getHeight(ox - 65, z);
+      for (var pw2 = 1; pw2 <= 3; pw2++) setBlock(ox - 65, bh + pw2, z, BLOCK.STONE);
+      bh = getHeight(ox + 65, z);
+      for (pw2 = 1; pw2 <= 3; pw2++) setBlock(ox + 65, bh + pw2, z, BLOCK.STONE);
+    }
+    for (x = ox - 60; x <= ox + 60; x += 5) {
+      bh = getHeight(x, oz + 30);
+      setBlock(x, bh + 4, oz + 30, BLOCK.LIGHT);
+    }
+    for (x = ox - 60; x <= ox + 60; x++) {
+      for (z = oz + 36; z <= oz + 40; z++) setBlock(x, 0, z, BLOCK.CONCRETE);
+    }
+    for (x = ox - 60; x <= ox + 60; x += 5) setBlock(x, 1, oz + 38, BLOCK.LIGHT);
+    var shipPos = [[-50, 40], [-10, 40], [30, 40]];
+    for (i = 0; i < shipPos.length; i++) {
+      var sxi = ox + shipPos[i][0], szi = oz + shipPos[i][1];
+      for (x = sxi; x <= sxi + 40; x++) {
+        for (z = szi; z <= szi + 8; z++) {
+          setBlock(x, 1, z, BLOCK.METAL);
+          setBlock(x, 2, z, BLOCK.METAL);
+        }
+      }
+      for (x = sxi; x <= sxi + 40; x++) {
+        setBlock(x, 3, szi, BLOCK.METAL);
+        setBlock(x, 3, szi + 8, BLOCK.METAL);
+      }
+      setBlock(sxi + 20, 4, szi + 4, BLOCK.LIGHT);
+    }
+  }
+
+  function generateBelgorodNight(ox, oz) {
+    var x, z, i, bh;
+    var tentPos = [[-30, -20], [-20, -20], [-10, -20], [0, -20], [-30, -8], [-20, -8], [-10, -8], [0, -8]];
+    for (i = 0; i < tentPos.length; i++) {
+      var tblock = (i % 2 === 0) ? BLOCK.WOOD : BLOCK.STONE;
+      var ttx = ox + tentPos[i][0], ttz = oz + tentPos[i][1];
+      bh = getHeight(ttx, ttz);
+      for (x = ttx; x <= ttx + 5; x++) {
+        for (z = ttz; z <= ttz + 3; z++) {
+          var isEdgeT = (x === ttx || x === ttx + 5 || z === ttz || z === ttz + 3);
+          for (var tty = 1; tty <= 3; tty++) {
+            if (isEdgeT || tty === 3) setBlock(x, bh + tty, z, tblock);
+          }
+        }
+      }
+    }
+    var tankParkPos = [[20, -25], [26, -25], [32, -25], [38, -25], [44, -25]];
+    for (i = 0; i < tankParkPos.length; i++) {
+      var tpx = ox + tankParkPos[i][0], tpz = oz + tankParkPos[i][1];
+      bh = getHeight(tpx, tpz);
+      for (x = tpx - 1; x <= tpx + 4; x++) {
+        for (z = tpz - 1; z <= tpz + 3; z++) setBlock(x, bh + 1, z, BLOCK.CONCRETE);
+      }
+      for (x = tpx; x <= tpx + 3; x++) {
+        for (z = tpz; z <= tpz + 2; z++) {
+          setBlock(x, bh + 2, z, BLOCK.METAL);
+          setBlock(x, bh + 3, z, BLOCK.METAL);
+        }
+      }
+      setBlock(tpx + 1, bh + 4, tpz + 1, BLOCK.METAL);
+      setBlock(tpx + 2, bh + 4, tpz + 1, BLOCK.METAL);
+      setBlock(tpx + 3, bh + 4, tpz + 1, BLOCK.METAL);
+      setBlock(tpx + 4, bh + 4, tpz + 1, BLOCK.METAL);
+    }
+    var ammoPos = [[-40, 15], [-28, 15], [-40, 26], [-28, 26]];
+    for (i = 0; i < ammoPos.length; i++) {
+      var amx = ox + ammoPos[i][0], amz = oz + ammoPos[i][1];
+      bh = getHeight(amx, amz);
+      for (x = amx; x <= amx + 8; x++) {
+        for (z = amz; z <= amz + 5; z++) {
+          var isEdgeA = (x === amx || x === amx + 8 || z === amz || z === amz + 5);
+          for (var aby = 1; aby <= 3; aby++) {
+            if (isEdgeA) setBlock(x, bh + aby, z, BLOCK.CONCRETE);
+          }
+          setBlock(x, bh + 4, z, BLOCK.CONCRETE);
+        }
+      }
+      for (x = amx - 2; x <= amx + 10; x++) {
+        bh = getHeight(x, amz - 2);
+        for (var bwy = 1; bwy <= 3; bwy++) setBlock(x, bh + bwy, amz - 2, BLOCK.STONE);
+        bh = getHeight(x, amz + 7);
+        for (bwy = 1; bwy <= 3; bwy++) setBlock(x, bh + bwy, amz + 7, BLOCK.STONE);
+      }
+    }
+    var cpx = ox + 15, cpz = oz + 5;
+    bh = getHeight(cpx, cpz);
+    for (x = cpx; x <= cpx + 12; x++) {
+      for (z = cpz; z <= cpz + 8; z++) {
+        var isEdgeC = (x === cpx || x === cpx + 12 || z === cpz || z === cpz + 8);
+        for (var cpy = 1; cpy <= 6; cpy++) {
+          if (isEdgeC) setBlock(x, bh + cpy, z, BLOCK.PLASTER);
+        }
+        setBlock(x, bh + 7, z, BLOCK.ROOFTILE);
+      }
+    }
+    setBlock(cpx + 3, bh + 3, cpz, BLOCK.LIGHT);
+    setBlock(cpx + 6, bh + 3, cpz, BLOCK.LIGHT);
+    setBlock(cpx + 9, bh + 3, cpz, BLOCK.LIGHT);
+    setBlock(cpx + 3, bh + 3, cpz + 8, BLOCK.LIGHT);
+    setBlock(cpx + 9, bh + 3, cpz + 8, BLOCK.LIGHT);
+    bh = getHeight(cpx + 6, cpz + 4);
+    for (var anty = 8; anty <= 14; anty++) setBlock(cpx + 6, bh + anty, cpz + 4, BLOCK.METAL);
+    setBlock(cpx + 6, bh + 15, cpz + 4, BLOCK.METAL);
+    setBlock(cpx + 7, bh + 15, cpz + 4, BLOCK.METAL);
+    setBlock(cpx + 6, bh + 15, cpz + 5, BLOCK.METAL);
+    setBlock(cpx + 7, bh + 15, cpz + 5, BLOCK.METAL);
+    for (i = 0; i < 60; i++) {
+      var fang = i * 1.047;
+      var fdist = 35 + (i % 5) * 3;
+      var fx = ox + Math.round(Math.cos(fang) * fdist);
+      var fz = oz + Math.round(Math.sin(fang) * fdist);
+      var fblock = (i % 3 === 0) ? BLOCK.STONE : BLOCK.WOOD;
+      var fheight = 6 + (i % 7);
+      bh = getHeight(fx, fz);
+      for (var fy = 1; fy <= fheight; fy++) setBlock(fx, bh + fy, fz, fblock);
+    }
+  }
+
   function generateLevel(index) {
     var level = getLevelDef(index);
     setTheme(level.theme);
@@ -23180,6 +23414,21 @@ window.VoxelWorld = (function () {
       generateCraters(5);
       generateBunker(-30, -22);
       generateBunker(24, -22);
+    } else if (level.id === 'KIEV_NIGHT_RAID') {
+      generateKievNightRaid(0, 0);
+      generateCraters(3);
+      generateBunker(-35, -30);
+      generateBunker(35, -30);
+    } else if (level.id === 'ODESSA_PORT_NIGHT') {
+      generateOdessaPortNight(0, 0);
+      generateCraters(2);
+      generateBunker(-20, -28);
+      generateBunker(20, -28);
+    } else if (level.id === 'BELGOROD_NIGHT') {
+      generateBelgorodNight(0, 0);
+      generateCraters(4);
+      generateBunker(-45, -30);
+      generateBunker(45, -30);
     }
 
     // ── PROC_CITIES: distinct content for each procedural city ─────────────

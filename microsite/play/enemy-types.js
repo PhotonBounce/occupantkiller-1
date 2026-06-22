@@ -666,6 +666,9 @@ const EnemyTypes = (function () {
     BOSS_ARMYANSK:         { type: 'BOSS_ARMYANSK',         hp: 1600, speed: 1.5, damage: 23, fireRate: 0.85, tier: 3, name: 'Gen. Mizintsev',       color: 0x001a1a, scale: 1.9, reward: 3300 },
     BOSS_IZIUM:            { type: 'BOSS_IZIUM',            hp: 1750, speed: 1.6, damage: 26, fireRate: 0.78, tier: 4, name: 'Col. Korolkov',        color: 0x1a1200, scale: 2.0, reward: 3700 },
     BOSS_ALCHEVSK:         { type: 'BOSS_ALCHEVSK',         hp: 2500, speed: 1.3, damage: 38, fireRate: 0.6,  tier: 5, name: 'Gen. Lapin "Steel"',   color: 0x1a0a00, scale: 2.6, reward: 5500 },
+    BOSS_KIEV_NIGHT:       { type: 'BOSS_KIEV_NIGHT',       hp: 2800, speed: 1.4, damage: 40, fireRate: 0.55, tier: 5, name: 'Night Commander',        color: 0x080810, scale: 2.4, reward: 6000 },
+    BOSS_ODESSA_PORT:      { type: 'BOSS_ODESSA_PORT',      hp: 3200, speed: 1.2, damage: 45, fireRate: 0.5,  tier: 5, name: 'Port Admiral',           color: 0x0a1a2a, scale: 2.5, reward: 6500 },
+    BOSS_BELGOROD_NIGHT:   { type: 'BOSS_BELGOROD_NIGHT',   hp: 2600, speed: 1.3, damage: 42, fireRate: 0.52, tier: 5, name: 'Belgorod General',       color: 0x100808, scale: 1.5, reward: 7000 },
 
     // Feature 17: Suicide Bomber
     BOMBER: {
@@ -1629,6 +1632,9 @@ const EnemyTypes = (function () {
     ARMYANSK:             'BOSS_ARMYANSK',
     IZIUM:                'BOSS_IZIUM',
     ALCHEVSK:             'BOSS_ALCHEVSK',
+    KIEV_NIGHT_RAID:      'BOSS_KIEV_NIGHT',
+    ODESSA_PORT_NIGHT:    'BOSS_ODESSA_PORT',
+    BELGOROD_NIGHT:       'BOSS_BELGOROD_NIGHT',
   };
 
   /**
