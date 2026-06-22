@@ -1364,6 +1364,7 @@ const GameManager = (function () {
     // Audio, Weather & ML systems
     _safeInit('audio', function () { if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init(); });
     _safeInit('weather', function () { if (WeatherSystem && typeof WeatherSystem.init === 'function') WeatherSystem.init(_scene, _camera); });
+    _safeInit('weather-particles', function () { if (typeof Weather !== 'undefined' && Weather.init && _scene) { Weather.init(_scene, _camera); } });
     _safeInit('ml', function () { if (MLSystem && typeof MLSystem.init === 'function') MLSystem.init(); });
     _safeInit('stagevfx', function () { if (typeof StageVFX !== 'undefined' && StageVFX && typeof StageVFX.init === 'function') StageVFX.init(_scene); });
     _safeInit('flags', function () {
@@ -1946,6 +1947,15 @@ const GameManager = (function () {
               perksMenu.style.display = 'none';
             }
           }
+        }
+
+        // Weather cycle (Shift+W)
+        if (e.code === 'KeyW' && e.shiftKey) {
+          var weathers = ['clear', 'rain', 'snow', 'fog', 'sandstorm'];
+          var cur = (typeof Weather !== 'undefined') ? Weather.getCurrent() : 'clear';
+          var nextIdx = (weathers.indexOf(cur) + 1) % weathers.length;
+          if (typeof Weather !== 'undefined') Weather.setWeather(weathers[nextIdx]);
+          if (typeof HUD !== 'undefined' && HUD.notify) HUD.notify('🌦 Weather: ' + weathers[nextIdx].toUpperCase());
         }
 
         // War journal (Y key)
@@ -6998,6 +7008,7 @@ const GameManager = (function () {
         HUD._updateNPCTextPositions(NPCSystem.getAll(), _camera, _renderer);
       }
       DroneSystem.update(delta);
+      if (typeof Weather !== 'undefined' && Weather.update) { Weather.update(delta, _camera ? _camera.position : null); }
       // Recon mission: check if possessed drone is near a scout target
       if (typeof MissionSystem !== 'undefined' && MissionSystem.onDroneScout && DroneSystem.getPossessed) {
         var _posDrone = DroneSystem.getPossessed();
