@@ -5659,6 +5659,12 @@ const GameManager = (function () {
       player.kills++;
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
+      // ── Enemy kill-cam cinematic: 20% chance, only when 3+ enemies remain ──
+      try {
+        if (Math.random() < 0.20 && Enemies.getAliveCount() > 3) {
+          _triggerEkCam((enemy.typeCfg && enemy.typeCfg.name) || 'ENEMY');
+        }
+      } catch (eKC) {}
       // Kill milestone banners — celebrate round numbers of total kills
       try {
         var _kMile = player.kills;
@@ -7119,6 +7125,25 @@ const GameManager = (function () {
       }
       // Decay kill FOV kick (~0.4s ease-back)
       if (_killFovKick > 0) _killFovKick = Math.max(0, _killFovKick - delta * 8);
+
+      // ── Enemy kill-cam tilt recovery ──
+      if (_ekCamActive) {
+        _ekCamTimer -= delta;
+        var _ekt = Math.max(0, _ekCamTimer);
+        var _ekPhase = Math.min(1, (EK_CAM_DURATION - _ekt) / EK_CAM_RETURN);
+        var _ekLerp = Math.sin(_ekPhase * Math.PI * 0.5);
+        if (typeof CameraSystem !== 'undefined' && CameraSystem.setYaw && CameraSystem.getYaw) {
+          CameraSystem.setYaw(CameraSystem.getYaw() + _ekCamYawDelta * (1 - _ekLerp) * delta * 3);
+        }
+        if (typeof CameraSystem !== 'undefined' && CameraSystem.setPitch && CameraSystem.getPitch) {
+          CameraSystem.setPitch(CameraSystem.getPitch() + _ekCamPitchDelta * (1 - _ekLerp) * delta * 3);
+        }
+        if (_ekCamTimer <= 0) {
+          _ekCamActive = false;
+          _ekCamYawDelta = 0;
+          _ekCamPitchDelta = 0;
+        }
+      }
 
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
         if (waveDone) onWaveComplete();

@@ -893,6 +893,56 @@ const Enemies = (() => {
     }
   }
 
+  // ── Dynamic squad flanking/suppression orders ──
+  function _issueSquadOrders() {
+    if (!_playerPos) return;
+    // Find a "leader" — closest alive enemy to the player that isn't retreating
+    var leader = null, best = Infinity;
+    for (var i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      if (!e || !e.alive || e.retreating) continue;
+      var d = e.mesh.position.distanceTo(_playerPos);
+      if (d < best) { best = d; leader = e; }
+    }
+    if (!leader) return;
+
+    // Build candidate list (all alive, non-leader enemies)
+    var candidates = [];
+    for (var ci = 0; ci < enemies.length; ci++) {
+      var ce = enemies[ci];
+      if (ce && ce.alive && ce !== leader) candidates.push(ce);
+    }
+
+    // Pick 1-2 flankers
+    var numFlankers = Math.min(2, Math.floor(candidates.length / 3));
+    for (var fi = 0; fi < numFlankers; fi++) {
+      if (candidates.length === 0) break;
+      var ridx = Math.floor(Math.random() * candidates.length);
+      var flanker = candidates[ridx];
+      candidates.splice(ridx, 1);
+      if (!flanker || flanker._flanking) continue;
+      flanker._flanking = true;
+      flanker._flankAngle = (Math.PI / 3) * (fi === 0 ? 1 : -1) + (Math.random() - 0.5) * 0.4;
+      flanker._flankTimer = 3.5 + Math.random() * 2;
+      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playEnemyBark) {
+        window.AudioSystem.playEnemyBark('spot');
+      }
+    }
+
+    // Pick 1 suppressor from remaining candidates
+    if (candidates.length > 0) {
+      var sidx = Math.floor(Math.random() * candidates.length);
+      var suppressor = candidates[sidx];
+      if (suppressor && !suppressor._suppressing) {
+        suppressor._suppressing = true;
+        suppressor._suppressTimer = 2.5 + Math.random() * 1.5;
+        if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playEnemyBark) {
+          window.AudioSystem.playEnemyBark('suppress');
+        }
+      }
+    }
+  }
+
   // ── Enemy Roles for Assault Groups ──────────────────────
   const SQUAD_ROLE = Object.freeze({
     POINTMAN:  'pointman',   // leads group, scouts ahead
@@ -1066,6 +1116,10 @@ const Enemies = (() => {
   let _disguiseBlown = false;   // becomes true once player attacks anyone
   let _aiStrategy = null; // ML counter-strategy for this wave
   let _adaptiveMult = 1.0; // B25: adaptive difficulty multiplier
+
+  // ── Dynamic squad flanking/suppression ──
+  var _squadTimer = 0;        // counts down to next squad command
+  var SQUAD_INTERVAL = 4.0;   // seconds between squad tactical decisions
 
   const ARENA_SIZE = 24;
   const DETECTION_RANGE = 14;   // enemies detect player within this range
@@ -2415,6 +2469,13 @@ const Enemies = (() => {
     // Update assault groups
     updateAssaultGroups(delta, playerPos);
 
+    // ── Dynamic squad flanking/suppression ──
+    _squadTimer -= delta;
+    if (_squadTimer <= 0 && enemies.length >= 3) {
+      _squadTimer = SQUAD_INTERVAL + Math.random() * 2;
+      _issueSquadOrders();
+    }
+
     // Get friendly NPCs for NPC-vs-NPC combat
     const friendlyNPCs = (typeof NPCSystem !== 'undefined' && NPCSystem.getAll)
       ? NPCSystem.getAll() : [];
@@ -3165,7 +3226,8 @@ const Enemies = (() => {
           e._rangedTimer -= delta;
 
           // AI Smart Learning: faster fire rate during player's reload window
-          var fireRateMod = 1.0;
+          // Also incorporate dynamic squad suppression fire rate modifier
+          var fireRateMod = (e._fireRateMod !== undefined) ? e._fireRateMod : 1.0;
           if (_aiStrategy && _aiStrategy.attackDuringReload && typeof MLSystem !== 'undefined') {
             // Dynamically compute reload window instead of using stale strategy value
             var mlBehavior = MLSystem.getBehavior();
@@ -3930,6 +3992,38 @@ const Enemies = (() => {
 
       // Apply per-frame squad tactic logic (role assignment, leader alerts, flank target calc)
       _updateSquadTactics(e, playerPos, delta);
+
+      // ── Dynamic squad flanking movement ──
+      if (e._flanking && e._flankTimer > 0) {
+        e._flankTimer -= delta;
+        var _dynToPlayer = new THREE.Vector3(
+          playerPos.x - e.mesh.position.x,
+          0,
+          playerPos.z - e.mesh.position.z
+        ).normalize();
+        var _dynPerp = new THREE.Vector3(-_dynToPlayer.z, 0, _dynToPlayer.x);
+        var _tanFA = Math.tan(e._flankAngle || 0);
+        var _dynDir = new THREE.Vector3(
+          _dynToPlayer.x + _dynPerp.x * _tanFA,
+          0,
+          _dynToPlayer.z + _dynPerp.z * _tanFA
+        ).normalize();
+        e.mesh.position.x += _dynDir.x * (e.speed || 3) * delta * 1.15;
+        e.mesh.position.z += _dynDir.z * (e.speed || 3) * delta * 1.15;
+        if (e._flankTimer <= 0) { e._flanking = false; }
+      }
+
+      // ── Dynamic squad suppressive fire ──
+      if (e._suppressing && e._suppressTimer > 0) {
+        e._suppressTimer -= delta;
+        e._fireRateMod = 0.45;
+        if (e._suppressTimer <= 0) {
+          e._suppressing = false;
+          e._fireRateMod = 1.0;
+        }
+      } else if (!e._suppressing) {
+        if (e._fireRateMod !== undefined && e._fireRateMod !== 1.0) e._fireRateMod = 1.0;
+      }
 
       // Update floating HP bar
       updateHpBar(e, playerPos);
