@@ -2697,6 +2697,297 @@ window.AudioSystem = (function () {
     n.connect(nf); nf.connect(ng); ng.connect(masterGain);
   }
 
+  // ── Enhanced Audio Functions ──────────────────────────────────
+
+  // 1. playFootstepEnhanced — surface-aware synthetic footstep
+  var _lastFootstepTime = 0;
+  function playFootstepEnhanced(surfaceType, isRunning) {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    var now = ctx.currentTime;
+    // Rate limiting: ~2/s walking (~500ms), ~3.5/s running (~286ms)
+    var minInterval = isRunning ? 0.286 : 0.500;
+    if ((now - _lastFootstepTime) < minInterval) return;
+    _lastFootstepTime = now;
+    resume();
+    var surface = surfaceType || 'concrete';
+    var gainMult = isRunning ? 1.4 : 1.0;
+    if (surface === 'concrete' || surface === 'metal') {
+      // Short noise burst, 200Hz HP filter
+      var noise = createNoise(0.06);
+      var hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 200;
+      var gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.08 * gainMult * masterVol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      noise.connect(hp); hp.connect(gain); gain.connect(masterGain);
+    } else if (surface === 'dirt' || surface === 'wood') {
+      // Lower noise burst, 80Hz HP filter
+      var noise2 = createNoise(0.10);
+      var hp2 = ctx.createBiquadFilter();
+      hp2.type = 'highpass';
+      hp2.frequency.value = 80;
+      var gain2 = ctx.createGain();
+      gain2.gain.setValueAtTime(0.06 * gainMult * masterVol, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+      noise2.connect(hp2); hp2.connect(gain2); gain2.connect(masterGain);
+    } else if (surface === 'water') {
+      // Splash noise burst
+      var noise3 = createNoise(0.08);
+      var hp3 = ctx.createBiquadFilter();
+      hp3.type = 'highpass';
+      hp3.frequency.value = 400;
+      var gain3 = ctx.createGain();
+      gain3.gain.setValueAtTime(0.07 * gainMult * masterVol, now);
+      gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      noise3.connect(hp3); hp3.connect(gain3); gain3.connect(masterGain);
+      // Brief delay reverb (simulate splash echo)
+      var delay = ctx.createDelay();
+      delay.delayTime.value = 0.05;
+      var echoNoise = createNoise(0.05);
+      var echoGain = ctx.createGain();
+      echoGain.gain.setValueAtTime(0.03 * masterVol, now + 0.05);
+      echoGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      echoNoise.connect(delay); delay.connect(echoGain); echoGain.connect(masterGain);
+    } else {
+      // Default: concrete-like
+      var noiseD = createNoise(0.06);
+      var hpD = ctx.createBiquadFilter();
+      hpD.type = 'highpass';
+      hpD.frequency.value = 200;
+      var gainD = ctx.createGain();
+      gainD.gain.setValueAtTime(0.07 * gainMult * masterVol, now);
+      gainD.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      noiseD.connect(hpD); hpD.connect(gainD); gainD.connect(masterGain);
+    }
+  }
+
+  // 2. playRicochetEnhanced — sharp metallic ping with distance factor
+  function playRicochetEnhanced(distanceFactor) {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    var df = (distanceFactor == null) ? 1.0 : Math.max(0, Math.min(1, distanceFactor));
+    resume();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.linearRampToValueAtTime(800, now + 0.08);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.04 * df * masterVol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.09);
+  }
+
+  // 3. playGlassBreak — high freq noise burst + debris rattle
+  function playGlassBreak() {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    resume();
+    var now = ctx.currentTime;
+    // High freq noise burst: 4000Hz HP, 0.15 gain, 0.12s
+    var shatter = createNoise(0.12);
+    var hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 4000;
+    var shatterGain = ctx.createGain();
+    shatterGain.gain.setValueAtTime(0.15 * masterVol, now);
+    shatterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    shatter.connect(hp); hp.connect(shatterGain); shatterGain.connect(masterGain);
+    // Debris rattle: low 200Hz noise, 0.05 gain, 0.3s with fade
+    var rattle = createNoise(0.3);
+    var rattleFilt = ctx.createBiquadFilter();
+    rattleFilt.type = 'lowpass';
+    rattleFilt.frequency.value = 200;
+    var rattleGain = ctx.createGain();
+    rattleGain.gain.setValueAtTime(0.05 * masterVol, now + 0.10);
+    rattleGain.gain.linearRampToValueAtTime(0.04 * masterVol, now + 0.2);
+    rattleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.40);
+    rattle.connect(rattleFilt); rattleFilt.connect(rattleGain); rattleGain.connect(masterGain);
+  }
+
+  // 4. playHelicopterRotor — start/stop rotor oscillation at 14Hz
+  var _heliRotorOsc = null;
+  var _heliRotorGain = null;
+  function playHelicopterRotor(isActive, distanceFactor) {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    var df = (distanceFactor == null) ? 1.0 : Math.max(0, Math.min(1, distanceFactor));
+    resume();
+    if (isActive) {
+      if (_heliRotorOsc) return; // already running
+      _heliRotorOsc = ctx.createOscillator();
+      _heliRotorOsc.type = 'sine';
+      _heliRotorOsc.frequency.value = 14; // ~14Hz rotor pulse
+      _heliRotorGain = ctx.createGain();
+      _heliRotorGain.gain.value = 0.1 * df * masterVol;
+      var rotorLp = ctx.createBiquadFilter();
+      rotorLp.type = 'lowpass';
+      rotorLp.frequency.value = 400;
+      _heliRotorOsc.connect(rotorLp);
+      rotorLp.connect(_heliRotorGain);
+      _heliRotorGain.connect(masterGain);
+      _heliRotorOsc.start();
+    } else {
+      if (_heliRotorOsc) {
+        try { _heliRotorOsc.stop(); } catch(e) {}
+        _heliRotorOsc = null;
+        _heliRotorGain = null;
+      }
+    }
+  }
+
+  // 5. playMortarLaunch — low THUMP + ascending whistle
+  function playMortarLaunch() {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    resume();
+    var now = ctx.currentTime;
+    // Low THUMP: 60Hz sine, 0.7 gain, 0.15s fast attack/decay
+    var thump = ctx.createOscillator();
+    thump.type = 'sine';
+    thump.frequency.value = 60;
+    var thumpGain = ctx.createGain();
+    thumpGain.gain.setValueAtTime(0.001, now);
+    thumpGain.gain.linearRampToValueAtTime(0.7 * masterVol, now + 0.02);
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    thump.connect(thumpGain); thumpGain.connect(masterGain);
+    thump.start(now); thump.stop(now + 0.16);
+    // Ascending whistle: 200→800Hz sweep, 0.1 gain, 1.0s
+    var whistle = ctx.createOscillator();
+    whistle.type = 'sine';
+    whistle.frequency.setValueAtTime(200, now + 0.05);
+    whistle.frequency.linearRampToValueAtTime(800, now + 1.05);
+    var whistleGain = ctx.createGain();
+    whistleGain.gain.setValueAtTime(0.1 * masterVol, now + 0.05);
+    whistleGain.gain.exponentialRampToValueAtTime(0.001, now + 1.05);
+    whistle.connect(whistleGain); whistleGain.connect(masterGain);
+    whistle.start(now + 0.05); whistle.stop(now + 1.06);
+  }
+
+  // 6. playMortarImpact — sub-bass BOOM + debris rattle
+  function playMortarImpact(distanceFactor) {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    var df = (distanceFactor == null) ? 1.0 : Math.max(0, Math.min(1, distanceFactor));
+    resume();
+    var now = ctx.currentTime;
+    // Sub-bass BOOM: 40Hz sine, gain 1.0×df, 0.5s
+    var boom = ctx.createOscillator();
+    boom.type = 'sine';
+    boom.frequency.value = 40;
+    var boomGain = ctx.createGain();
+    boomGain.gain.setValueAtTime(1.0 * df * masterVol, now);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    boom.connect(boomGain); boomGain.connect(masterGain);
+    boom.start(now); boom.stop(now + 0.52);
+    // Debris rattle: bandpass noise 400Hz, 0.3 gain, 0.8s
+    var debris = createNoise(0.8);
+    var debrisFilt = ctx.createBiquadFilter();
+    debrisFilt.type = 'bandpass';
+    debrisFilt.frequency.value = 400;
+    debrisFilt.Q.value = 1.5;
+    var debrisGain = ctx.createGain();
+    debrisGain.gain.setValueAtTime(0.3 * masterVol, now);
+    debrisGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    debris.connect(debrisFilt); debrisFilt.connect(debrisGain); debrisGain.connect(masterGain);
+  }
+
+  // 7. playTripwireArm — short mechanical click
+  function playTripwireArm() {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    resume();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.value = 880;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.04 * masterVol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.05);
+  }
+
+  // 8. playTripwireDetonate — explosion with extra low-end
+  function playTripwireDetonate() {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    resume();
+    // Alias to playExplosionNear with extra 30Hz oscillator
+    playExplosionNear(2);
+    var now = ctx.currentTime;
+    var subOsc = ctx.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.value = 30;
+    var subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0.3 * masterVol, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    subOsc.connect(subGain); subGain.connect(masterGain);
+    subOsc.start(now); subOsc.stop(now + 0.65);
+  }
+
+  // 9. playVehicleEngineLoop — continuous engine hum, start/stop on isRunning toggle
+  var _vehicleEngineOsc = null;
+  var _vehicleEngineGain = null;
+  function playVehicleEngineLoop(isRunning, type) {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    resume();
+    if (isRunning) {
+      if (_vehicleEngineOsc) return; // already running
+      var freqMap = { truck: 60, tank: 45, btv: 70 };
+      var baseFreq = freqMap[type] || 80;
+      _vehicleEngineOsc = ctx.createOscillator();
+      _vehicleEngineOsc.type = 'sawtooth';
+      _vehicleEngineOsc.frequency.value = baseFreq;
+      _vehicleEngineGain = ctx.createGain();
+      _vehicleEngineGain.gain.value = 0.08 * masterVol;
+      var engLp = ctx.createBiquadFilter();
+      engLp.type = 'lowpass';
+      engLp.frequency.value = 300;
+      _vehicleEngineOsc.connect(engLp);
+      engLp.connect(_vehicleEngineGain);
+      _vehicleEngineGain.connect(masterGain);
+      _vehicleEngineOsc.start();
+    } else {
+      if (_vehicleEngineOsc) {
+        try { _vehicleEngineOsc.stop(); } catch(e) {}
+        _vehicleEngineOsc = null;
+        _vehicleEngineGain = null;
+      }
+    }
+  }
+
+  // 10. playRadioChatter — bandpass noise 1200-2400Hz voice range, 0.3s burst
+  function playRadioChatter() {
+    if (window._sfxEnabled === false) return;
+    if (!enabled || !ctx) return;
+    var masterVol = window._masterVolume || 1.0;
+    resume();
+    var now = ctx.currentTime;
+    var noise = createNoise(0.3);
+    var bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1800; // center of 1200-2400Hz
+    bp.Q.value = 1.5;
+    var gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.06 * masterVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    noise.connect(bp); bp.connect(gain); gain.connect(masterGain);
+  }
+
   return {
     init: init,
     resume: resume,
@@ -2811,6 +3102,17 @@ window.AudioSystem = (function () {
     playExplosionNear: playExplosionNear,
     playMeleeKnifeSwing: playMeleeKnifeSwing,
     playMeleeKnifeHit: playMeleeKnifeHit,
+    // Enhanced audio functions
+    playFootstepEnhanced: playFootstepEnhanced,
+    playRicochetEnhanced: playRicochetEnhanced,
+    playGlassBreak: playGlassBreak,
+    playHelicopterRotor: playHelicopterRotor,
+    playMortarLaunch: playMortarLaunch,
+    playMortarImpact: playMortarImpact,
+    playTripwireArm: playTripwireArm,
+    playTripwireDetonate: playTripwireDetonate,
+    playVehicleEngineLoop: playVehicleEngineLoop,
+    playRadioChatter: playRadioChatter,
   };
 
   // EKG flatline — played on player death before death overlay
