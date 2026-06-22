@@ -1230,6 +1230,8 @@ window.VoxelWorld = (function () {
     { id: 'VUHLEDAR',  name: 'Vuhledar Tank Graveyard', desc: 'Bury the 155th in the minefield', theme: 'wasteland', wavesPerLevel: 8, difficulty: 1.9, fogColor: 0x4a4030, tankFocus: true, spawnCandidates: [{ x: -15, z: 12 }, { x: 15, z: 12 }, { x: 0, z: 20 }, { x: -25, z: 5 }, { x: 25, z: 5 }, { x: 0, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'AVDIIVKA_COKE', name: 'Avdiivka Coke Plant', desc: 'Industrial fortress siege', theme: 'wasteland', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x2a2218, spawnCandidates: [{ x: -15, z: -18 }, { x: 15, z: -18 }, { x: 0, z: -25 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'BUCHA',    name: 'Bucha Liberation',      desc: 'Expose the atrocities',       theme: 'urban',     wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x556655, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -22 }, { x: -30, z: 5 }, { x: 30, z: 5 }],  spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'MARIUPOL', name: 'Mariupol Azovstal', desc: 'Last stand at the steel works', theme: 'wasteland', wavesPerLevel: 10, difficulty: 4.8, fogColor: 0x1a1208, spawnCandidates: [{ x: -10, z: -20 }, { x: 10, z: -20 }, { x: 0, z: -30 }, { x: -25, z: 0 }, { x: 25, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'MELITOPOL', name: 'Melitopol Occupation', desc: 'Partisan resistance in occupied city', theme: 'urban', wavesPerLevel: 7, difficulty: 3.0, fogColor: 0x334422, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -30, z: 5 }, { x: 30, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -10568,6 +10570,268 @@ window.VoxelWorld = (function () {
     }
   }
 
+  // LANDMARK: Azovstal Iron and Steel Works, Mariupol — Soviet mega-plant, last Ukrainian holdout 2022
+  function generateAzovsteelHall(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main industrial complex: 50 wide x 25 deep, REINFORCED/METAL walls, 14 high
+    for (var wy = 0; wy < 14; wy++) {
+      for (var wx = 0; wx < 50; wx++) {
+        for (var wz = 0; wz < 25; wz++) {
+          var isEdge = wx === 0 || wx === 49 || wz === 0 || wz === 24;
+          var isRoof = wy === 13;
+          if (isEdge || isRoof) {
+            var bt = (wy > 7 && isEdge) ? BLOCK.METAL : BLOCK.REINFORCED;
+            setBlock(ox + wx, base + wy, oz + wz, bt);
+          }
+        }
+      }
+    }
+    // North wall half-collapsed — rubble and gaps
+    for (var rx = 3; rx < 47; rx++) {
+      for (var rz2 = -3; rz2 <= 0; rz2++) {
+        if (Math.random() > 0.35) setBlock(ox + rx, base, oz + rz2, BLOCK.RUBBLE);
+        if (Math.random() > 0.6)  setBlock(ox + rx, base + 1, oz + rz2, BLOCK.RUBBLE);
+      }
+      // Gaps every 6 blocks in north wall up to half-height
+      if (rx % 6 < 3) {
+        for (var cy = 0; cy < 8; cy++) setBlock(ox + rx, base + cy, oz, BLOCK.AIR);
+      }
+    }
+    // Blast furnace chimneys: 2×2 METAL, 35 blocks tall
+    var chimneyPositions = [{ x: 10, z: 8 }, { x: 38, z: 8 }];
+    for (var ci = 0; ci < chimneyPositions.length; ci++) {
+      var cp = chimneyPositions[ci];
+      for (var chy = 0; chy < 35; chy++) {
+        setBlock(ox + cp.x,     base + chy, oz + cp.z,     BLOCK.METAL);
+        setBlock(ox + cp.x + 1, base + chy, oz + cp.z,     BLOCK.METAL);
+        setBlock(ox + cp.x,     base + chy, oz + cp.z + 1, BLOCK.METAL);
+        setBlock(ox + cp.x + 1, base + chy, oz + cp.z + 1, BLOCK.METAL);
+      }
+      // LIGHT at top — blast furnace still burning
+      setBlock(ox + cp.x,     base + 35, oz + cp.z,     BLOCK.LIGHT);
+      setBlock(ox + cp.x + 1, base + 35, oz + cp.z,     BLOCK.LIGHT);
+    }
+    // 8 blast craters around the complex
+    var craterPts = [
+      { x: -4, z: 5 }, { x: -4, z: 18 }, { x: 54, z: 3 }, { x: 54, z: 20 },
+      { x: 12, z: -4 }, { x: 30, z: -4 }, { x: 10, z: 28 }, { x: 38, z: 28 }
+    ];
+    for (var cri = 0; cri < craterPts.length; cri++) {
+      var cr = craterPts[cri];
+      setBlock(ox + cr.x, h, oz + cr.z, BLOCK.AIR);
+      setBlock(ox + cr.x, h, oz + cr.z + 1, BLOCK.RUBBLE);
+      setBlock(ox + cr.x + 1, h, oz + cr.z, BLOCK.RUBBLE);
+      setBlock(ox + cr.x - 1, h, oz + cr.z, BLOCK.RUBBLE);
+      setBlock(ox + cr.x, h, oz + cr.z - 1, BLOCK.RUBBLE);
+      if (h > 0) setBlock(ox + cr.x, h - 1, oz + cr.z, BLOCK.AIR);
+    }
+    // Underground tunnel entrance: 3×2 AIR hole going 8 blocks deep, CONCRETE walls
+    var tunX = ox + 22; var tunZ = oz + 12;
+    for (var td = 0; td < 8; td++) {
+      for (var tx = 0; tx < 3; tx++) {
+        for (var tz = 0; tz < 2; tz++) {
+          setBlock(tunX + tx, h - td, tunZ + tz, BLOCK.AIR);
+          // CONCRETE lining on sides
+          if (tx === 0 || tx === 2) setBlock(tunX + tx, h - td - 1, tunZ + tz, BLOCK.CONCRETE);
+          if (tz === 0 || tz === 1) setBlock(tunX + tx, h - td, tunZ + tz - 1, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Open surface entrance
+    for (var teh = 0; teh < 3; teh++) {
+      setBlock(tunX,     base + teh, tunZ,     BLOCK.AIR);
+      setBlock(tunX + 1, base + teh, tunZ,     BLOCK.AIR);
+      setBlock(tunX + 2, base + teh, tunZ,     BLOCK.AIR);
+      setBlock(tunX,     base + teh, tunZ + 1, BLOCK.AIR);
+      setBlock(tunX + 1, base + teh, tunZ + 1, BLOCK.AIR);
+      setBlock(tunX + 2, base + teh, tunZ + 1, BLOCK.AIR);
+    }
+    // LIGHT dots scattered inside — blast furnaces still burning
+    var lightPts = [{ x: 5, z: 5 }, { x: 20, z: 18 }, { x: 35, z: 6 }, { x: 45, z: 15 }];
+    for (var li = 0; li < lightPts.length; li++) {
+      setBlock(ox + lightPts[li].x, base + 1, oz + lightPts[li].z, BLOCK.LIGHT);
+    }
+    // Coking coal piles: CONCRETE mounds 4 wide × 3 high
+    var coalPiles = [{ x: 3, z: 18 }, { x: 16, z: 18 }, { x: 34, z: 18 }];
+    for (var cpi = 0; cpi < coalPiles.length; cpi++) {
+      var pile = coalPiles[cpi];
+      for (var ph = 0; ph < 3; ph++) {
+        for (var pr = -2 + ph; pr <= 2 - ph; pr++) {
+          setBlock(ox + pile.x + pr, base + ph, oz + pile.z + ph, BLOCK.CONCRETE);
+          setBlock(ox + pile.x + pr, base + ph, oz + pile.z - ph, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Defensive fortifications inside: makeshift walls + sniper positions
+    // East inner wall (sandbag barricade)
+    for (var sw = 0; sw < 8; sw++) {
+      setBlock(ox + 42 + (sw % 2), base, oz + 4 + sw, BLOCK.SANDBAG);
+      setBlock(ox + 42 + (sw % 2), base + 1, oz + 4 + sw, BLOCK.SANDBAG);
+    }
+    // West inner barricade
+    for (var sw2 = 0; sw2 < 8; sw2++) {
+      setBlock(ox + 4 + (sw2 % 2), base, oz + 12 + sw2, BLOCK.SANDBAG);
+      setBlock(ox + 4 + (sw2 % 2), base + 1, oz + 12 + sw2, BLOCK.SANDBAG);
+    }
+    // Sniper positions at roof corners
+    setBlock(ox + 2,  base + 14, oz + 2,  BLOCK.SANDBAG);
+    setBlock(ox + 47, base + 14, oz + 2,  BLOCK.SANDBAG);
+    setBlock(ox + 2,  base + 14, oz + 22, BLOCK.SANDBAG);
+    setBlock(ox + 47, base + 14, oz + 22, BLOCK.SANDBAG);
+    // Loading bay entrance south wall
+    for (var lo2 = 10; lo2 <= 20; lo2++) {
+      for (var lh2 = 0; lh2 < 6; lh2++) {
+        setBlock(ox + lo2, base + lh2, oz + 24, BLOCK.AIR);
+      }
+    }
+    _buildings.push({ kind: 'landmark_azovstal_hall', x: ox, z: oz, w: 50, d: 25, baseY: h, floorH: 14, floors: 1, cx: ox + 25, cz: oz + 12 });
+  }
+
+  // LANDMARK: Mariupol Drama Theatre — bombed 16 March 2022, civilians sheltering inside
+  function generateMariupolTheatre(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main body: 20 wide x 12 deep, PLASTER walls, 12 blocks high
+    for (var wy = 0; wy < 12; wy++) {
+      for (var wx = 0; wx < 20; wx++) {
+        for (var wz = 0; wz < 12; wz++) {
+          var isEdge = wx === 0 || wx === 19 || wz === 0 || wz === 11;
+          if (isEdge) setBlock(ox + wx, base + wy, oz + wz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Neoclassical windows: tall arched openings
+    for (var wpos = 3; wpos < 17; wpos += 4) {
+      for (var wh2 = 2; wh2 <= 6; wh2++) {
+        setBlock(ox + wpos, base + wh2, oz,      BLOCK.GLASS);
+        setBlock(ox + wpos, base + wh2, oz + 11, BLOCK.GLASS);
+      }
+    }
+    // 6 STONE columns on south façade, 11 high
+    var colPositions = [1, 4, 7, 10, 13, 16];
+    for (var ci2 = 0; ci2 < colPositions.length; ci2++) {
+      for (var colH = 0; colH < 11; colH++) {
+        setBlock(ox + colPositions[ci2], base + colH, oz - 1, BLOCK.STONE);
+      }
+    }
+    // Grand stairs: 8 steps wide, STONE, on south side
+    for (var step = 0; step < 5; step++) {
+      for (var sx = 6; sx < 14; sx++) {
+        setBlock(ox + sx, h + step, oz - 2 - step, BLOCK.STONE);
+      }
+    }
+    // BOMBED: north wall is RUBBLE — collapsed sections
+    for (var rx2 = 1; rx2 < 19; rx2++) {
+      for (var ry2 = 0; ry2 < 12; ry2++) {
+        if (Math.random() > 0.3) {
+          setBlock(ox + rx2, base + ry2, oz, BLOCK.RUBBLE);
+        } else {
+          setBlock(ox + rx2, base + ry2, oz, BLOCK.AIR);
+        }
+      }
+    }
+    // Roof partially collapsed — random RUBBLE on floor inside
+    for (var rfx = 2; rfx < 18; rfx++) {
+      for (var rfz = 2; rfz < 10; rfz++) {
+        if (Math.random() > 0.7) {
+          setBlock(ox + rfx, base, oz + rfz, BLOCK.RUBBLE);
+        }
+        // Partial roof collapse: holes and debris at ceiling level
+        if (Math.random() > 0.65) {
+          setBlock(ox + rfx, base + 11, oz + rfz, BLOCK.AIR);
+          setBlock(ox + rfx, base + 10, oz + rfz, BLOCK.RUBBLE);
+        }
+      }
+    }
+    // Burned interior: LIGHT blocks (fires) scattered
+    var firePts = [{ x: 3, z: 3 }, { x: 9, z: 8 }, { x: 15, z: 4 }, { x: 6, z: 9 }];
+    for (var fi = 0; fi < firePts.length; fi++) {
+      setBlock(ox + firePts[fi].x, base + 1, oz + firePts[fi].z, BLOCK.LIGHT);
+    }
+    // "ДЕТИ" memorial — 3×2 WHITE_TILE patches on south plaza
+    // Two patches flanking the stairs (ДЕТИ = children, written on ground so air crews could see)
+    for (var dp = 0; dp < 3; dp++) {
+      setBlock(ox + 1 + dp, h, oz - 8, BLOCK.WHITE_TILE);
+      setBlock(ox + 1 + dp, h, oz - 9, BLOCK.WHITE_TILE);
+    }
+    for (var dp2 = 0; dp2 < 3; dp2++) {
+      setBlock(ox + 15 + dp2, h, oz - 8, BLOCK.WHITE_TILE);
+      setBlock(ox + 15 + dp2, h, oz - 9, BLOCK.WHITE_TILE);
+    }
+    _buildings.push({ kind: 'landmark_mariupol_theatre', x: ox, z: oz - 7, w: 20, d: 20, baseY: h, floorH: 12, floors: 1, cx: ox + 10, cz: oz + 5 });
+  }
+
+  // LANDMARK: Melitopol City Hall — Stalinist admin building, Russian-occupied since March 2022
+  function generateMelitopolCityHall(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var bW = 16; var bD = 10; var bFloors = 8; var floorH = 3;
+    var totalH = bFloors * floorH; // 24 blocks
+    // Main CONCRETE body: 16×10 footprint, 24 high (8 floors)
+    for (var wy = 0; wy < totalH; wy++) {
+      for (var wx = 0; wx < bW; wx++) {
+        for (var wz = 0; wz < bD; wz++) {
+          var isEdge = wx === 0 || wx === bW - 1 || wz === 0 || wz === bD - 1;
+          var isFloorLine = (wy % floorH === 0);
+          if (isEdge || isFloorLine) {
+            setBlock(ox + wx, base + wy, oz + wz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // STONE pilasters every 4 blocks on south façade
+    for (var pilX = 0; pilX <= bW; pilX += 4) {
+      for (var pilY = 0; pilY < totalH; pilY++) {
+        setBlock(ox + pilX, base + pilY, oz + bD, BLOCK.STONE);
+      }
+    }
+    // Windows on south and north façades
+    for (var fl = 0; fl < bFloors; fl++) {
+      for (var wx2 = 2; wx2 < bW - 2; wx2 += 4) {
+        setBlock(ox + wx2, base + fl * floorH + 1, oz + bD - 1, BLOCK.GLASS);
+        setBlock(ox + wx2, base + fl * floorH + 2, oz + bD - 1, BLOCK.GLASS);
+        setBlock(ox + wx2, base + fl * floorH + 1, oz,           BLOCK.GLASS);
+        setBlock(ox + wx2, base + fl * floorH + 2, oz,           BLOCK.GLASS);
+      }
+    }
+    // CONCRETE stepped crown/cornice at top (2 layers of stepped overhang)
+    for (var cx2 = -1; cx2 <= bW; cx2++) {
+      setBlock(ox + cx2, base + totalH,     oz - 1,     BLOCK.CONCRETE);
+      setBlock(ox + cx2, base + totalH,     oz + bD,    BLOCK.CONCRETE);
+      setBlock(ox + cx2, base + totalH + 1, oz - 1,     BLOCK.CONCRETE);
+      setBlock(ox + cx2, base + totalH + 1, oz + bD,    BLOCK.CONCRETE);
+    }
+    for (var cz2 = -1; cz2 <= bD; cz2++) {
+      setBlock(ox - 1,   base + totalH,     oz + cz2,  BLOCK.CONCRETE);
+      setBlock(ox + bW,  base + totalH,     oz + cz2,  BLOCK.CONCRETE);
+    }
+    // Second step (narrower)
+    for (var cx3 = 0; cx3 < bW; cx3++) {
+      setBlock(ox + cx3, base + totalH + 2, oz,       BLOCK.CONCRETE);
+      setBlock(ox + cx3, base + totalH + 2, oz + bD - 1, BLOCK.CONCRETE);
+    }
+    // Russian flag placeholder: LIGHT block at rooftop center (occupied)
+    setBlock(ox + 8, base + totalH + 3, oz + 5, BLOCK.LIGHT);
+    setBlock(ox + 8, base + totalH + 4, oz + 5, BLOCK.FLAG);
+    // Entry arch: AIR gap 3×4 on south façade
+    for (var ah = 0; ah < 4; ah++) {
+      setBlock(ox + 7,  base + ah, oz + bD - 1, BLOCK.AIR);
+      setBlock(ox + 8,  base + ah, oz + bD - 1, BLOCK.AIR);
+      setBlock(ox + 9,  base + ah, oz + bD - 1, BLOCK.AIR);
+      setBlock(ox + 7,  base + ah, oz + bD, BLOCK.AIR);
+      setBlock(ox + 8,  base + ah, oz + bD, BLOCK.AIR);
+      setBlock(ox + 9,  base + ah, oz + bD, BLOCK.AIR);
+    }
+    // Steps up to main entrance
+    for (var es = 0; es < 3; es++) {
+      for (var esx = 6; esx <= 10; esx++) {
+        setBlock(ox + esx, h + es, oz + bD + es, BLOCK.CONCRETE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_melitopol_cityhall', x: ox, z: oz, w: bW, d: bD, baseY: h, floorH: floorH, floors: bFloors, cx: ox + 8, cz: oz + 5 });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -11724,6 +11988,40 @@ window.VoxelWorld = (function () {
       generateCraters(12);
       generateDroneNest(45, 45); generateDroneNest(-45, -45);
       generateAntiAirPosition(-35, 35); generateAntiAirPosition(35, -35);
+    } else if (level.id === 'MARIUPOL') {
+      // Mariupol — Azov Sea port, besieged Feb–May 2022. Azovstal steel works was last holdout.
+      // 2,000+ Azov Regiment defenders held out 82 days before evacuation.
+      generateAzovsteelHall(0, -15);
+      generateAzovsteelHall(30, 5);         // second section of the complex
+      generateMariupolTheatre(-25, 20);     // Drama Theatre bombing site
+      generateBunker(-20, -25); generateBunker(20, -25);
+      generateBunker(-20, 25); generateBunker(20, 25);
+      generateTrenchNetwork(-15, 10); generateTrenchNetwork(15, -10);
+      generateTrenchNetwork(0, -35); generateTrenchNetwork(0, 35);
+      generateBurningRuin(-38, -8); generateBurningRuin(35, 12);
+      generateBurningRuin(-15, -45); generateBurningRuin(15, 40);
+      generateWreckedTank(-28, -35); generateWreckedAPC(22, 30); generateWreckedConvoy(-35, 30);
+      generateMortarPit(-30, 15); generateMortarPit(28, -18);
+      generateAntiTankHedgehogs(22);
+      generateCraters(15);
+      generateDroneNest(45, 45); generateDroneNest(-45, -45); generateDroneNest(45, -45);
+      generateAntiAirPosition(-35, 35); generateAntiAirPosition(35, -35);
+      generateDefensivePosition(-12, 35); generateDefensivePosition(12, 35);
+    } else if (level.id === 'MELITOPOL') {
+      // Melitopol — city in Zaporizhzhia oblast, occupied by Russia in March 2022 (day 5 of invasion).
+      // Mayor Ivan Fedorov was kidnapped; city became hub of partisan resistance.
+      generateMelitopolCityHall(0, -5);
+      generateUkrainianApartment(-30, -20, 6); generateUkrainianApartment(25, -22, 5);
+      generateUkrainianApartment(-32, 15, 5); generateUkrainianApartment(28, 18, 6);
+      generateChurch(-20, 8); generateChurch(18, -28);
+      generateBurningRuin(-38, -8); generateBurningRuin(35, 12);
+      generateWreckedTank(-22, 20); generateWreckedAPC(20, -30);
+      generateCraters(6);
+      generateBunker(-20, -20); generateBunker(20, 20);
+      generateCheckpoint(0, -40, false); generateCheckpoint(40, 0, true);
+      generateDroneNest(45, 42); generateDroneNest(-45, -40);
+      generateAntiAirPosition(-35, 35);
+      generateTrenchNetwork(-15, 15);
     } else if (level.id === 'BUCHA') {
       // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022
       // St. Andrew's Church cemetery mass burial, Yablunska Street massacres
