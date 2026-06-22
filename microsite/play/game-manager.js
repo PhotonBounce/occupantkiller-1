@@ -1472,7 +1472,7 @@ const GameManager = (function () {
     if (typeof Feedback !== 'undefined' && Feedback && typeof Feedback.init === 'function') Feedback.init();
     if (typeof Progression !== 'undefined' && Progression && typeof Progression.init === 'function') Progression.init();
     // Tactical minimap
-    try { if (typeof Minimap !== 'undefined' && Minimap.init) Minimap.init(); } catch (eMM) {}
+    try { if (typeof Minimap !== 'undefined' && Minimap.init) Minimap.init(typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []); } catch (eMM) {}
 
     // Birds + Mortar + Premium + Lottery + Gyro
     try { if (window.Birds   && Birds.init)   Birds.init(_scene); } catch (e) {}
@@ -2051,7 +2051,7 @@ const GameManager = (function () {
           }
         }
 
-        // Ping/mark system (M key) / Minimap toggle (Shift+M)
+        // Ping/mark system (M key) / Minimap toggle (Shift+M or M)
         if (e.code === 'KeyM' && gameState === STATE.PLAYING) {
           if (e.shiftKey) {
             // Shift+M: toggle tactical minimap
@@ -2060,6 +2060,7 @@ const GameManager = (function () {
               HUD.notifyPickup('🗺️ MINIMAP ' + (Minimap.isVisible ? 'ON' : 'OFF'), '#88aaff');
             }
           } else {
+            if (typeof Minimap !== 'undefined' && Minimap.toggle) Minimap.toggle();
             if (typeof Feedback !== 'undefined') {
               var pingPos = player.position.clone();
               var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
@@ -7790,13 +7791,11 @@ const GameManager = (function () {
 
       // Tactical minimap (window.Minimap module)
       if (typeof Minimap !== 'undefined' && Minimap.update) {
-        var _mmTactEnemies = Enemies.getAll();
-        var _mmTactBuildings = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getBuildings) ? VoxelWorld.getBuildings() : (window._buildings || []);
+        var _mmTactEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
         Minimap.update(
-          { x: player.position.x, z: player.position.z },
-          CameraSystem.getYaw(),
-          _mmTactEnemies,
-          _mmTactBuildings
+          player.position,
+          CameraSystem ? CameraSystem.getYaw() : 0,
+          _mmTactEnemies
         );
       }
 
