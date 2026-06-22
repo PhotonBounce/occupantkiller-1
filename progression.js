@@ -75,6 +75,21 @@ const Progression = (function () {
       onRankUp(RANKS[_rankIndex]);
     }
     _saveXPData();
+    /* Update XP bar UI */
+    _updateXPBar(didRankUp);
+    _showXPGainPopup(gained);
+    /* Show at full opacity for 4s on any XP gain */
+    if (typeof document !== 'undefined') {
+      var xpBar = document.getElementById('xpProgressBar');
+      if (xpBar) {
+        if (_xpBarFadeTimer) clearTimeout(_xpBarFadeTimer);
+        xpBar.style.opacity = '1';
+        _xpBarFadeTimer = setTimeout(function () {
+          var b = document.getElementById('xpProgressBar');
+          if (b) { b.style.opacity = '0.4'; }
+        }, 4000);
+      }
+    }
     return { gained: gained, totalXP: _totalXP, rankedUp: didRankUp };
   }
 
@@ -161,6 +176,234 @@ const Progression = (function () {
     }
 
     _updateRankBadge();
+    _showRankUpBanner(newRank);
+  }
+
+  /* ── XP Progress Bar HUD ────────────────────── */
+  var _xpBarFadeTimer = null;
+
+  function _buildXPBar() {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById('xpProgressBar')) return;
+
+    /* Inject keyframe CSS for animations */
+    if (!document.getElementById('xpBarStyles')) {
+      var styleEl = document.createElement('style');
+      styleEl.id = 'xpBarStyles';
+      styleEl.textContent = [
+        '@keyframes xpGainFloat {',
+        '  0%   { opacity:1; transform:translateX(-50%) translateY(0); }',
+        '  100% { opacity:0; transform:translateX(-50%) translateY(-25px); }',
+        '}',
+        '@keyframes rankBannerSlide {',
+        '  0%   { opacity:0; transform:translateX(-50%) translateY(-30px); }',
+        '  15%  { opacity:1; transform:translateX(-50%) translateY(0); }',
+        '  80%  { opacity:1; transform:translateX(-50%) translateY(0); }',
+        '  100% { opacity:0; transform:translateX(-50%) translateY(-20px); }',
+        '}'
+      ].join('\n');
+      document.head.appendChild(styleEl);
+    }
+
+    /* Outer container */
+    var bar = document.createElement('div');
+    bar.id = 'xpProgressBar';
+    bar.style.cssText = [
+      'position:fixed',
+      'top:0px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'width:400px',
+      'height:18px',
+      'z-index:9998',
+      'display:flex',
+      'align-items:center',
+      'background:rgba(0,0,0,0.7)',
+      'border-radius:0 0 6px 6px',
+      'overflow:hidden',
+      'pointer-events:none',
+      'opacity:1',
+      'transition:opacity 0.6s ease'
+    ].join(';');
+
+    /* Fill bar */
+    var fill = document.createElement('div');
+    fill.id = 'xpBarFill';
+    fill.style.cssText = [
+      'position:absolute',
+      'left:0',
+      'top:0',
+      'height:100%',
+      'width:0%',
+      'background:linear-gradient(90deg,#0066cc,#00aaff)',
+      'transition:width 0.4s ease',
+      'z-index:1'
+    ].join(';');
+
+    /* Left rank label */
+    var leftLabel = document.createElement('span');
+    leftLabel.id = 'xpBarLeftLabel';
+    leftLabel.style.cssText = [
+      'position:absolute',
+      'left:4px',
+      'font-family:monospace',
+      'font-size:9px',
+      'color:#fff',
+      'font-weight:bold',
+      'white-space:nowrap',
+      'z-index:2',
+      'text-shadow:0 0 3px #000'
+    ].join(';');
+
+    /* Right rank label */
+    var rightLabel = document.createElement('span');
+    rightLabel.id = 'xpBarRightLabel';
+    rightLabel.style.cssText = [
+      'position:absolute',
+      'right:4px',
+      'font-family:monospace',
+      'font-size:9px',
+      'color:#fff',
+      'font-weight:bold',
+      'white-space:nowrap',
+      'z-index:2',
+      'text-shadow:0 0 3px #000'
+    ].join(';');
+
+    /* Center XP text */
+    var centerText = document.createElement('span');
+    centerText.id = 'xpBarCenterText';
+    centerText.style.cssText = [
+      'position:absolute',
+      'left:0',
+      'right:0',
+      'text-align:center',
+      'font-family:monospace',
+      'font-size:9px',
+      'color:#fff',
+      'font-weight:bold',
+      'z-index:2',
+      'text-shadow:0 0 3px #000'
+    ].join(';');
+
+    bar.appendChild(fill);
+    bar.appendChild(leftLabel);
+    bar.appendChild(rightLabel);
+    bar.appendChild(centerText);
+    document.body.appendChild(bar);
+
+    _updateXPBar(false);
+    _scheduleXPBarFade();
+  }
+
+  function _updateXPBar(flashGold) {
+    if (typeof document === 'undefined') return;
+    var bar = document.getElementById('xpProgressBar');
+    if (!bar) return;
+
+    var fill = document.getElementById('xpBarFill');
+    var leftLabel = document.getElementById('xpBarLeftLabel');
+    var rightLabel = document.getElementById('xpBarRightLabel');
+    var centerText = document.getElementById('xpBarCenterText');
+    if (!fill || !leftLabel || !rightLabel || !centerText) return;
+
+    var curRank = RANKS[_rankIndex];
+    var isMaxRank = _rankIndex >= RANKS.length - 1;
+    var nextRank = isMaxRank ? null : RANKS[_rankIndex + 1];
+
+    var progress = getXPProgress();
+    var pct = Math.round(progress * 100);
+    fill.style.width = pct + '%';
+
+    leftLabel.textContent = curRank.name.toUpperCase();
+    rightLabel.textContent = isMaxRank ? 'MAX' : nextRank.name.toUpperCase();
+
+    if (isMaxRank) {
+      centerText.textContent = _totalXP + ' XP (MAX)';
+    } else {
+      centerText.textContent = _totalXP + ' / ' + nextRank.xpRequired + ' XP';
+    }
+
+    if (flashGold) {
+      fill.style.background = 'linear-gradient(90deg,#ffd700,#ffec6e)';
+      setTimeout(function () {
+        var f = document.getElementById('xpBarFill');
+        if (f) { f.style.background = 'linear-gradient(90deg,#0066cc,#00aaff)'; }
+      }, 500);
+    }
+  }
+
+  function _scheduleXPBarFade() {
+    if (typeof document === 'undefined') return;
+    var bar = document.getElementById('xpProgressBar');
+    if (!bar) return;
+    if (_xpBarFadeTimer) { clearTimeout(_xpBarFadeTimer); }
+    bar.style.opacity = '1';
+    _xpBarFadeTimer = setTimeout(function () {
+      var b = document.getElementById('xpProgressBar');
+      if (b) { b.style.opacity = '0.4'; }
+    }, 3000);
+  }
+
+  function _showXPGainPopup(amount) {
+    if (typeof document === 'undefined') return;
+    var popup = document.createElement('div');
+    popup.style.cssText = [
+      'position:fixed',
+      'top:20px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'color:#00aaff',
+      'font-family:monospace',
+      'font-size:13px',
+      'font-weight:bold',
+      'z-index:10001',
+      'pointer-events:none',
+      'text-shadow:0 0 6px #0066cc',
+      'animation:xpGainFloat 1.5s ease-out forwards'
+    ].join(';');
+    popup.textContent = '+' + amount + ' XP';
+    document.body.appendChild(popup);
+    setTimeout(function () {
+      if (popup.parentNode) { popup.parentNode.removeChild(popup); }
+    }, 1500);
+  }
+
+  function _showRankUpBanner(newRank) {
+    if (typeof document === 'undefined') return;
+    var existing = document.getElementById('rankUpBanner');
+    if (existing) { existing.remove(); }
+
+    var banner = document.createElement('div');
+    banner.id = 'rankUpBanner';
+    banner.style.cssText = [
+      'position:fixed',
+      'top:33vh',
+      'left:50%',
+      'transform:translateX(-50%) translateY(-30px)',
+      'background:rgba(0,0,0,0.88)',
+      'color:#ffd700',
+      'font-family:monospace',
+      'font-size:20px',
+      'font-weight:bold',
+      'padding:18px 40px',
+      'border-radius:8px',
+      'z-index:10000',
+      'text-align:center',
+      'pointer-events:none',
+      'border:2px solid #ffd700',
+      'animation:rankBannerSlide 3s ease forwards'
+    ].join(';');
+    banner.textContent = '⭐ RANK UP! ' + newRank.name.toUpperCase() + ' ⭐';
+    document.body.appendChild(banner);
+
+    setTimeout(function () {
+      if (banner.parentNode) { banner.parentNode.removeChild(banner); }
+    }, 3000);
+
+    if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlockNew) {
+      AudioSystem.playAchievementUnlockNew();
+    }
   }
 
   /* ── Rank HUD Badge ─────────────────────────── */
@@ -821,12 +1064,16 @@ const Progression = (function () {
     _loadXPData();
     load();
     refreshDailies();
-    /* Inject rank badge after DOM is ready */
+    /* Inject rank badge and XP bar after DOM is ready */
     if (typeof document !== 'undefined') {
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', _injectRankBadge);
+        document.addEventListener('DOMContentLoaded', function () {
+          _injectRankBadge();
+          _buildXPBar();
+        });
       } else {
         _injectRankBadge();
+        _buildXPBar();
       }
     }
   }
