@@ -372,6 +372,52 @@ window.Bradley = (function () {
     _ejectCasing(false);
   }
 
+  function _fireTOW() {
+    if (_towCool > 0 || !_vehicle || _towAmmo <= 0) return;
+    _towAmmo--;
+    _towCool = 9.0; // 9s reload
+
+    var origin = _muzzleWorld();
+    // TOW launches from right side of turret, slightly elevated
+    origin.x += 0.5; origin.y += 0.3;
+    var dir = _aimDirWorld();
+
+    // Missile tracer (slow, visible)
+    try {
+      if (window.Tracers && window.Tracers.spawnTracer) {
+        window.Tracers.spawnTracer(origin.clone(), dir.clone(), 0xff8800, 300);
+      }
+    } catch (e) {}
+
+    // Hitscan at long range
+    var hp = _hitscan(origin, dir, 300, true);
+    if (hp) {
+      // Heavy warhead explosion
+      try {
+        if (window.Enemies && window.Enemies.damageInRadius) {
+          window.Enemies.damageInRadius(hp, 6, 600, 'EXPLOSIVE');
+        }
+        if (window.Tracers && window.Tracers.spawnExplosion) {
+          window.Tracers.spawnExplosion(hp, 4.0);
+        }
+        if (window.AudioSystem && AudioSystem.playExplosion) {
+          AudioSystem.playExplosion(2.5, true);
+        }
+      } catch (e) {}
+    }
+
+    // Screen shake
+    _shakeTimer = 0.2;
+    _shakeAmount = 0.1;
+
+    // Toast
+    try {
+      if (window.HUD && HUD.showToast) {
+        HUD.showToast('🚀 TOW AWAY — ' + _towAmmo + ' remaining', 2000, '#ff8800');
+      }
+    } catch (e) {}
+  }
+
   function _hitscan(origin, dir, maxDist, isHE) {
     if (!window.Enemies || !window.Enemies.getAll) return null;
     var all = window.Enemies.getAll();
@@ -539,6 +585,7 @@ window.Bradley = (function () {
     else if (ev.code === 'KeyA') _key.a = true;
     else if (ev.code === 'KeyD') _key.d = true;
     else if (ev.code === 'KeyV' && !ev.repeat) toggleViewMode();
+    else if (ev.code === 'KeyT' && !ev.repeat) _fireTOW();
     else if (ev.code === 'Escape') exit();
   }
   function _onKeyUp(ev) {
