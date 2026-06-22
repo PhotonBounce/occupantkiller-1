@@ -2284,6 +2284,31 @@ const Enemies = (() => {
     spawnTimer  = (Math.max(0.3, 2.0 - stageNum * 0.15) + Math.random() * 1.5) * spawnIntervalMultiplier;
   }
 
+  // ── Time-of-day aware detection helper ───────────────────
+  // weatherAdjustedBase is optional; if provided it overrides DETECTION_RANGE for the range check
+  function _canDetectPlayer(e, playerPos, dist) {
+    var mods = (window.TimeOfDay && TimeOfDay.getCombatModifiers) ? TimeOfDay.getCombatModifiers() : { enemyDetectRange: 1.0, nightVision: false };
+    var wMod = 1.0;
+    if (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) {
+      wMod = WeatherSystem.getModifiers().visionRange || 1.0;
+    }
+    var baseRange = DETECTION_RANGE * wMod;
+
+    if (mods.nightVision) {
+      // Night: enemies use flashlights — narrow cone, limited range
+      if (dist > 20) return false; // flashlight max range
+      // Check angle: player must be within ~14° of enemy forward direction
+      var toPlayer = new THREE.Vector3().subVectors(playerPos, e.mesh.position).normalize();
+      var facingDir = new THREE.Vector3(Math.sin(e.mesh.rotation.y), 0, Math.cos(e.mesh.rotation.y));
+      var dot = facingDir.dot(toPlayer);
+      if (dot > 0.97) return true; // inside flashlight cone
+      // Outside cone: very short ambient detection range
+      return dist < 8;
+    }
+
+    return dist < baseRange * mods.enemyDetectRange;
+  }
+
   // ── Per-frame update ──────────────────────────────────────
   function update(delta, playerPos, onPlayerHit, onEnemyDied) {
     // Cache player position for spawning
@@ -2595,21 +2620,17 @@ const Enemies = (() => {
       }
 
 
-      // Player detection: only spot if not stealthed and within weather-modified detection range/angle
-      let weatherVisionMod = 1.0;
-      if (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) {
-        weatherVisionMod = WeatherSystem.getModifiers().visionRange || 1.0;
-      }
-      const effectiveDetectionRange = DETECTION_RANGE * weatherVisionMod;
+      // Player detection: only spot if not stealthed.
+      // _canDetectPlayer handles weather + time-of-day multipliers and night-vision cone.
       // ── DISGUISE: Russian uniform fools enemies until disguise is blown.
       //    Even disguised, point-blank stares (<1.5m) and active fire break it.
-      const _disguisedSafe = _playerDisguised && !_disguiseBlown;
+      var _disguisedSafe = _playerDisguised && !_disguiseBlown;
       if (_disguisedSafe && distToPlayer >= 1.6) {
         e.spotLevel = Math.max(0, e.spotLevel - delta * 1.5);
-      } else if (!_playerStealth && distToPlayer < effectiveDetectionRange) {
+      } else if (!_playerStealth && _canDetectPlayer(e, playerPos, distToPlayer)) {
         // Check if player is roughly in front of enemy (FOV cone)
-        const facingDir = _tmpVec3d.set(0, 0, -1).applyQuaternion(e.mesh.quaternion);
-        const angleToPlayer = facingDir.angleTo(_tmpVec3e.copy(dirToPlayer).normalize());
+        var facingDir = _tmpVec3d.set(0, 0, -1).applyQuaternion(e.mesh.quaternion);
+        var angleToPlayer = facingDir.angleTo(_tmpVec3e.copy(dirToPlayer).normalize());
         if (angleToPlayer < DETECTION_ANGLE || distToPlayer < 4) {
           e.spotLevel = Math.min(SPOT_TIME + 0.5, e.spotLevel + delta);
         } else {
