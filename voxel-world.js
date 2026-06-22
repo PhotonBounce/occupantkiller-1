@@ -1238,6 +1238,8 @@ window.VoxelWorld = (function () {
     { id: 'SEVERODONETSK', name: 'Severodonetsk Last Stand', desc: 'Hold the Azot plant until evacuation', theme: 'industrial', wavesPerLevel: 10, difficulty: 4.2, fogColor: 0x382010, spawnCandidates: [{ x: -15, z: -20 }, { x: 15, z: -20 }, { x: 0, z: -28 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'MYKOLAIV', name: 'Mykolaiv Port Defense', desc: 'Hold the Bug River port against amphibious assault', theme: 'coastal', wavesPerLevel: 8, difficulty: 3.2, fogColor: 0x334455, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KRAMATORSK', name: 'Kramatorsk Station', desc: 'Defend the railway hub under missile threat', theme: 'urban', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x332222, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'DNIPRO', name: 'Dnipro Industrial District', desc: 'Protect the steel plants and Dnipro bridges', theme: 'industrial', wavesPerLevel: 9, difficulty: 3.4, fogColor: 0x332233, spawnCandidates: [{ x: -20, z: -18 }, { x: 20, z: -18 }, { x: 0, z: -28 }, { x: -30, z: 5 }, { x: 30, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'CHERNIHIV', name: 'Chernihiv Medieval Defence', desc: 'Defend the 1000-year-old city from siege', theme: 'urban', wavesPerLevel: 8, difficulty: 3.0, fogColor: 0x223322, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -12368,6 +12370,275 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_kramatorsk_cityhall', x: ox - 8, z: oz - 5, w: 18, d: 12, baseY: base, floorH: 12, floors: 3, cx: ox, cz: oz });
   }
 
+  // LANDMARK: Dnipro Metallurgical Plant (DMZ) — vast Soviet-era steel complex
+  // One of the largest steelworks in Eastern Europe; produced armor plate for T-64 tanks.
+  // Russia targeted Dnipro's industrial infrastructure repeatedly from 2022 onwards.
+  function generateDniproSteelPlant(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Main production hall — massive 50×20 CONCRETE shell, 14 high
+    for (y = 0; y < 14; y++) {
+      for (i = -25; i <= 25; i++) {
+        for (j = -10; j <= 10; j++) {
+          var edge2 = (Math.abs(i) === 25 || Math.abs(j) === 10);
+          if (edge2 || y === 0 || y === 13) setBlock(ox + i, h + y + 1, oz + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // GLASS clerestory strip along ridge for factory lighting
+    for (i = -24; i <= 24; i += 2) {
+      setBlock(ox + i, h + 14, oz, BLOCK.GLASS);
+      setBlock(ox + i, h + 15, oz, BLOCK.GLASS);
+    }
+    // 3 blast furnaces — 8×8 BRICK cylinders, 22 high with LIGHT orange glow at base
+    var furnacePositions = [[-16, 15], [0, 18], [16, 15]];
+    for (var fi = 0; fi < furnacePositions.length; fi++) {
+      var fx = ox + furnacePositions[fi][0], fz = oz + furnacePositions[fi][1];
+      for (y = 0; y < 22; y++) {
+        for (i = -4; i <= 4; i++) {
+          for (j = -4; j <= 4; j++) {
+            if (Math.abs(i) === 4 || Math.abs(j) === 4 || y === 0 || y === 21) {
+              setBlock(fx + i, h + y + 1, fz + j, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+      // LIGHT glow at base of each furnace (tapping floor)
+      for (i = -2; i <= 2; i++) {
+        for (j = -2; j <= 2; j++) {
+          setBlock(fx + i, h + 1, fz + j, BLOCK.LIGHT);
+        }
+      }
+    }
+    // 35-high brick chimney stack (3×3)
+    for (y = 0; y < 35; y++) {
+      for (i = -1; i <= 1; i++) {
+        for (j = -1; j <= 1; j++) {
+          if (Math.abs(i) === 1 || Math.abs(j) === 1 || y === 0 || y === 34) {
+            setBlock(ox + 20, h + y + 1, oz - 5 + j + i, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    // Overhead crane gantry — METAL H-frame spanning hall at 18 high
+    for (i = -25; i <= 25; i++) {
+      setBlock(ox + i, h + 18, oz - 8, BLOCK.METAL);
+      setBlock(ox + i, h + 18, oz + 8, BLOCK.METAL);
+    }
+    // Crane vertical legs
+    for (y = 14; y <= 18; y++) {
+      setBlock(ox - 24, h + y, oz - 8, BLOCK.METAL);
+      setBlock(ox - 24, h + y, oz + 8, BLOCK.METAL);
+      setBlock(ox + 24, h + y, oz - 8, BLOCK.METAL);
+      setBlock(ox + 24, h + y, oz + 8, BLOCK.METAL);
+    }
+    // Ladle cars (static) — METAL box 3×2×2 on ground near furnaces
+    for (i = -1; i <= 1; i++) {
+      setBlock(ox - 8 + i, h + 1, oz + 12, BLOCK.METAL);
+      setBlock(ox - 8 + i, h + 2, oz + 12, BLOCK.METAL);
+      setBlock(ox + 8 + i, h + 1, oz + 12, BLOCK.METAL);
+      setBlock(ox + 8 + i, h + 2, oz + 12, BLOCK.METAL);
+    }
+    // Transformer yard — METAL boxes with FENCE cage
+    for (i = -3; i <= 3; i++) {
+      for (j = -3; j <= 3; j++) {
+        if (Math.abs(i) === 3 || Math.abs(j) === 3) setBlock(ox - 22 + i, h + 1, oz + 14 + j, BLOCK.FENCE);
+      }
+    }
+    setBlock(ox - 22, h + 1, oz + 14, BLOCK.METAL);
+    setBlock(ox - 22, h + 2, oz + 14, BLOCK.METAL);
+    setBlock(ox - 20, h + 1, oz + 14, BLOCK.METAL);
+    setBlock(ox - 20, h + 2, oz + 14, BLOCK.METAL);
+    // CONCRETE access road approach
+    for (i = -2; i <= 2; i++) {
+      for (j = 0; j < 12; j++) {
+        setBlock(ox + i, h, oz - 10 - j, BLOCK.CONCRETE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_dnipro_steelplant', x: ox - 25, z: oz - 10, w: 50, d: 30, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Sicheslav Suspension Bridge — long crossing over the Dnipro River
+  // One of several major bridges connecting the two banks of Dnipro city.
+  // Russian forces attempted to disrupt the city's logistics but bridge survived.
+  function generateDniproSuspensionBridge(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, y;
+    // 2 main pylon towers — 4×4 CONCRETE, 30 high at each end
+    var towerOffsets = [[-28, 0], [28, 0]];
+    for (var ti = 0; ti < towerOffsets.length; ti++) {
+      var tx = ox + towerOffsets[ti][0], tz = oz + towerOffsets[ti][1];
+      for (y = 0; y < 30; y++) {
+        for (var dx = -2; dx <= 2; dx++) {
+          for (var dz = -2; dz <= 2; dz++) {
+            if (Math.abs(dx) === 2 || Math.abs(dz) === 2 || y === 0 || y === 29) {
+              setBlock(tx + dx, h + y + 1, tz + dz, BLOCK.CONCRETE);
+            }
+          }
+        }
+      }
+      // Crossbeam at top
+      for (var cx2 = -3; cx2 <= 3; cx2++) setBlock(tx + cx2, h + 30, tz, BLOCK.CONCRETE);
+      setBlock(tx, h + 31, tz, BLOCK.LIGHT); // navigation warning light
+    }
+    // Bridge deck — 60×4 REINFORCED, elevated 6 blocks on CONCRETE pillars every 8
+    for (i = -30; i <= 30; i++) {
+      for (var dz2 = -2; dz2 <= 2; dz2++) {
+        setBlock(ox + i, h + 6, oz + dz2, BLOCK.REINFORCED);
+      }
+    }
+    // Support pillars every 8 blocks
+    for (i = -24; i <= 24; i += 8) {
+      for (y = 1; y <= 5; y++) {
+        setBlock(ox + i, h + y, oz - 2, BLOCK.CONCRETE);
+        setBlock(ox + i, h + y, oz + 2, BLOCK.CONCRETE);
+      }
+    }
+    // Cable stays — FENCE blocks diagonally from tower tops to deck
+    var cablePoints = [
+      [-28, 30, -20, 6], [-28, 30, -12, 6], [-28, 30, -4, 6],
+      [28, 30, 20, 6], [28, 30, 12, 6], [28, 30, 4, 6]
+    ];
+    for (var ci = 0; ci < cablePoints.length; ci++) {
+      var cx3 = cablePoints[ci][0], cy1 = cablePoints[ci][1];
+      var ex = cablePoints[ci][2], ey1 = cablePoints[ci][3];
+      var steps = Math.abs(ex - cx3);
+      for (var si = 0; si <= steps; si++) {
+        var frac = steps > 0 ? si / steps : 0;
+        var sx = Math.round(cx3 + (ex - cx3) * frac);
+        var sy = Math.round(cy1 + (ey1 - cy1) * frac);
+        setBlock(ox + sx, h + sy, oz, BLOCK.FENCE);
+      }
+    }
+    // Approach ramps on each end — 8-block CONCRETE slope up to deck level
+    for (i = 0; i < 8; i++) {
+      var rampY = Math.floor(i * 5 / 8) + 1;
+      for (var dz3 = -2; dz3 <= 2; dz3++) {
+        setBlock(ox - 30 - i, h + rampY, oz + dz3, BLOCK.CONCRETE);
+        setBlock(ox + 30 + i, h + rampY, oz + dz3, BLOCK.CONCRETE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_dnipro_bridge', x: ox - 38, z: oz - 2, w: 76, d: 4, baseY: h, floorH: 6, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Chernihiv Collegium (1702) — baroque educational institution
+  // Founded by Archbishop Ioan Maksymovych; two-tower baroque facade dominates the skyline.
+  // The 40-day Russian siege of Chernihiv in Feb-Mar 2022 left the city heavily damaged.
+  function generateChernihivCollegium(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Main body — 20×8 PLASTER, 12 high
+    for (y = 0; y < 12; y++) {
+      for (i = -10; i <= 10; i++) {
+        for (j = -4; j <= 4; j++) {
+          var edge3 = (Math.abs(i) === 10 || Math.abs(j) === 4);
+          if (edge3 || y === 0 || y === 11) setBlock(ox + i, h + y + 1, oz + j, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Tall arched GLASS windows every 3 blocks on front facade
+    for (i = -9; i <= 9; i += 3) {
+      setBlock(ox + i, h + 3, oz - 4, BLOCK.GLASS);
+      setBlock(ox + i, h + 4, oz - 4, BLOCK.GLASS);
+      setBlock(ox + i, h + 5, oz - 4, BLOCK.GLASS);
+      // Rear facade windows too
+      setBlock(ox + i, h + 3, oz + 4, BLOCK.GLASS);
+      setBlock(ox + i, h + 4, oz + 4, BLOCK.GLASS);
+      setBlock(ox + i, h + 5, oz + 4, BLOCK.GLASS);
+    }
+    // 2 baroque towers — 6×6 BRICK, 20 high, with onion-dome caps
+    var towers2 = [[-8, 0], [8, 0]];
+    for (var ti2 = 0; ti2 < towers2.length; ti2++) {
+      var tx2 = ox + towers2[ti2][0], tz2 = oz + towers2[ti2][1];
+      for (y = 0; y < 20; y++) {
+        for (i = -3; i <= 3; i++) {
+          for (j = -3; j <= 3; j++) {
+            if (Math.abs(i) === 3 || Math.abs(j) === 3 || y === 0 || y === 19) {
+              setBlock(tx2 + i, h + y + 1, tz2 + j, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+      // Onion dome on each tower
+      _lmOnionDome(tx2, h + 21, tz2, 2, BLOCK.ROOFTILE);
+    }
+    // Grand entrance stairs — 10-wide × 4-step STONE approach on south side
+    for (var step = 0; step < 4; step++) {
+      for (i = -5; i <= 5; i++) {
+        setBlock(ox + i, h + step + 1, oz - 4 - step - 1, BLOCK.STONE);
+      }
+    }
+    // Courtyard walls — PLASTER L-sections flanking the entrance
+    for (j = 0; j < 6; j++) {
+      setBlock(ox - 12, h + 1, oz - 4 - j, BLOCK.PLASTER);
+      setBlock(ox - 12, h + 2, oz - 4 - j, BLOCK.PLASTER);
+      setBlock(ox + 12, h + 1, oz - 4 - j, BLOCK.PLASTER);
+      setBlock(ox + 12, h + 2, oz - 4 - j, BLOCK.PLASTER);
+    }
+    for (i = -12; i <= 12; i++) {
+      setBlock(ox + i, h + 1, oz - 10, BLOCK.PLASTER);
+      setBlock(ox + i, h + 2, oz - 10, BLOCK.PLASTER);
+    }
+    _buildings.push({ kind: 'landmark_chernihiv_collegium', x: ox - 10, z: oz - 4, w: 20, d: 8, baseY: h, floorH: 12, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Desna River Bridge at Chernihiv — key supply/escape route
+  // Ukrainian forces held this bridge throughout the 35-day siege. Russian forces
+  // attempted sabotage from the north but Ukrainian defenders stopped them.
+  function generateChernihivDesnaBridge(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, y;
+    // 3 concrete bridge piers in river, 8 high
+    var pierPositions = [-16, 0, 16];
+    for (var pi2 = 0; pi2 < pierPositions.length; pi2++) {
+      var px2 = ox + pierPositions[pi2];
+      for (y = 1; y <= 8; y++) {
+        for (var dx2 = -1; dx2 <= 1; dx2++) {
+          setBlock(px2 + dx2, h + y, oz, BLOCK.CONCRETE);
+          setBlock(px2 + dx2, h + y, oz + 1, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Bridge deck — 50×4 REINFORCED, elevated 5 blocks
+    for (i = -25; i <= 25; i++) {
+      for (var dz4 = -2; dz4 <= 2; dz4++) {
+        setBlock(ox + i, h + 5, oz + dz4, BLOCK.REINFORCED);
+      }
+    }
+    // Blown section — center 8 blocks = RUBBLE + AIR (Russian sabotage attempt)
+    for (i = -4; i <= 4; i++) {
+      for (var dz5 = -2; dz5 <= 2; dz5++) {
+        setBlock(ox + i, h + 5, oz + dz5, BLOCK.AIR);    // destroy the deck
+        setBlock(ox + i, h + 4, oz + dz5, BLOCK.RUBBLE); // rubble below
+        setBlock(ox + i, h + 3, oz + dz5, BLOCK.RUBBLE);
+      }
+    }
+    // Twisted METAL at each break
+    setBlock(ox - 5, h + 5, oz, BLOCK.METAL);
+    setBlock(ox - 5, h + 6, oz, BLOCK.METAL);
+    setBlock(ox + 5, h + 5, oz, BLOCK.METAL);
+    setBlock(ox + 5, h + 6, oz, BLOCK.METAL);
+    // Ukrainian defensive positions (CONCRETE bunkers) on south bank
+    var bunkerPos = [[-20, -6], [0, -6], [20, -6]];
+    for (var bi2 = 0; bi2 < bunkerPos.length; bi2++) {
+      var bx2 = ox + bunkerPos[bi2][0], bz3 = oz + bunkerPos[bi2][1];
+      for (var bdx = -2; bdx <= 2; bdx++) {
+        for (var bdz = -2; bdz <= 2; bdz++) {
+          if (Math.abs(bdx) === 2 || Math.abs(bdz) === 2 || bdx === -2) {
+            setBlock(bx2 + bdx, h + 1, bz3 + bdz, BLOCK.CONCRETE);
+            setBlock(bx2 + bdx, h + 2, bz3 + bdz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // RUBBLE scatter around blown section
+    for (i = -6; i <= 6; i += 2) {
+      setBlock(ox + i, h + 1, oz + 4, BLOCK.RUBBLE);
+      setBlock(ox + i, h + 1, oz - 4, BLOCK.RUBBLE);
+    }
+    _buildings.push({ kind: 'landmark_chernihiv_desna_bridge', x: ox - 25, z: oz - 2, w: 50, d: 4, baseY: h, floorH: 5, floors: 1, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -13609,6 +13880,45 @@ window.VoxelWorld = (function () {
       generateDroneNest(45, 42); generateDroneNest(-45, -42);
       generateAntiAirPosition(-40, 28); generateAntiAirPosition(38, -28);
       generateCheckpoint(0, -50, false); generateCheckpoint(-48, 0, true);
+    } else if (level.id === 'DNIPRO') {
+      // Dnipro — 4th largest Ukrainian city, major industrial hub on the Dnipro River
+      // Russia struck the city center multiple times 2022-2023; steel plants and bridges targeted
+      generateDniproArena(-5, -20);
+      generateDniproSteelPlant(25, 15);
+      generateDniproSuspensionBridge(-20, -35);
+      generateUkrainianApartment(-28, -22, 12); generateUkrainianApartment(28, -18, 9);
+      generateUkrainianApartment(-32, 10, 9); generateUkrainianApartment(30, 15, 6);
+      generateIndustrialComplex(35, -5);
+      generateRuinedHouse(-12, 28); generateRuinedHouse(12, -38);
+      generateBurningRuin(-38, -12); generateBurningRuin(35, 14);
+      generateWreckedTank(-20, -30); generateWreckedAPC(18, 30); generateWreckedConvoy(-30, 28);
+      generateCraters(12);
+      generateBunker(-28, -30); generateBunker(24, 28); generateBunker(0, -42);
+      generateMortarPit(-35, -12); generateMortarPit(30, 14);
+      generateTrenchNetwork(-18, 22); generateTrenchNetwork(18, -22);
+      generateSniperNest(-38, -40); generateSniperNest(35, -40);
+      generateDroneNest(45, 42); generateDroneNest(-45, -42);
+      generateAntiAirPosition(-40, 28); generateAntiAirPosition(38, -28);
+      generateCheckpoint(0, -50, false); generateCheckpoint(-48, 0, true);
+    } else if (level.id === 'CHERNIHIV') {
+      // Chernihiv — northern Ukraine, besieged 35 days Feb-Mar 2022; major medieval city
+      // Cathedral of Transfiguration (1031 AD) survived; city was cut off from supply routes
+      generateChernihivCathedral(-12, -10);
+      generateChernihivCollegium(10, 8);
+      generateChernihivDesnaBridge(25, -28);
+      generateUkrainianApartment(-28, -22, 6); generateUkrainianApartment(25, -18, 9);
+      generateUkrainianApartment(-30, 12, 9); generateUkrainianApartment(28, 18, 6);
+      generateRuinedHouse(-15, 26); generateRuinedHouse(12, -35);
+      generateBurningRuin(-35, -10); generateBurningRuin(30, 12);
+      generateWreckedTank(-18, -28); generateWreckedAPC(16, 28);
+      generateCraters(10);
+      generateBunker(-25, -28); generateBunker(22, 25); generateBunker(0, -40);
+      generateMortarPit(-32, -10); generateMortarPit(28, 12);
+      generateTrenchNetwork(-15, 20); generateTrenchNetwork(15, -20);
+      generateSniperNest(-36, -38); generateSniperNest(32, -38);
+      generateDroneNest(40, 38); generateDroneNest(-40, -38);
+      generateAntiAirPosition(-36, 25); generateAntiAirPosition(32, -25);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
     } else if (level.id === 'BUCHA') {
       // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022
       // St. Andrew's Church cemetery mass burial, Yablunska Street massacres
