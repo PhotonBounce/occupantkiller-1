@@ -1253,6 +1253,7 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (typeof HazardZones !== 'undefined') HazardZones.init(_scene);
         if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
         var stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
@@ -3653,6 +3654,7 @@ const GameManager = (function () {
       Radio.init();
       Radio.setLevel(_radioLevelMap[stageDef.id] || null);
     }
+    if (typeof HazardZones !== 'undefined') HazardZones.setupForLevel(stageDef ? stageDef.id : null);
     if (typeof SupplyCrate !== 'undefined') SupplyCrate.clear();
   }
 
@@ -7421,6 +7423,7 @@ const GameManager = (function () {
         CompanionDrone.update(delta, player.position, []);
       }
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
+      if (typeof HazardZones !== 'undefined') HazardZones.update(delta, player.position, player);
       // Check if any enemy stepped on a landmine
       if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
         var _mineEnemies = Enemies.getAll();

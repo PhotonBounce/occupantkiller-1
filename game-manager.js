@@ -7423,6 +7423,7 @@ const GameManager = (function () {
         CompanionDrone.update(delta, player.position, []);
       }
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
+      if (typeof HazardZones !== 'undefined') HazardZones.update(delta, player.position, player);
       // Check if any enemy stepped on a landmine
       if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
         var _mineEnemies = Enemies.getAll();
