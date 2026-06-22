@@ -105,6 +105,7 @@ const GameManager = (function () {
   var _musicIntTimer = 0; // throttle music intensity calc
   var _buildMatHud = null; // cached DOM ref for build materials HUD
   var _weaponWheelHeld = false; // tracks whether Q is held for weapon wheel
+  var _bossBarShowing = false; // tracks whether boss health bar is currently visible
 
   // ── Muzzle flash PointLight — scene-space burst on every shot (Task 2) ──
   var _muzzleFlash = null;
@@ -4765,6 +4766,7 @@ const GameManager = (function () {
 
   function onWaveComplete() {
     try {
+    if (typeof HUD !== 'undefined' && HUD.hideBossBar) HUD.hideBossBar();
     player.score += SCORE_WAVE_BONUS;
     HUD.setScore(player.score);
     MLSystem.onWaveComplete(currentWave, currentStage, player.hp / player.maxHp);
@@ -7419,6 +7421,28 @@ const GameManager = (function () {
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
         if (waveDone) onWaveComplete();
       });
+      // Boss health bar tracking
+      try {
+        var _bossE = null;
+        var _allEnemiesForBoss = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
+        for (var _bi = 0; _bi < _allEnemiesForBoss.length; _bi++) {
+          var _be = _allEnemiesForBoss[_bi];
+          if (_be && _be.hp > 0 && _be.type && _be.type.indexOf('BOSS') !== -1) {
+            _bossE = _be; break;
+          }
+        }
+        if (_bossE) {
+          if (typeof HUD !== 'undefined' && HUD.showBossBar) {
+            HUD.showBossBar(_bossE.type.replace(/_/g, ' '), _bossE.hp, _bossE.maxHp || _bossE.hp);
+          }
+        } else {
+          if (typeof HUD !== 'undefined' && HUD.hideBossBar && _bossBarShowing) {
+            HUD.hideBossBar();
+            _bossBarShowing = false;
+          }
+        }
+        _bossBarShowing = !!_bossE;
+      } catch (eBB) {}
       if (typeof CompanionDrone !== 'undefined' && CompanionDrone.isActive()) {
         var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
         CompanionDrone.update(delta, player.position, _allEnemies);

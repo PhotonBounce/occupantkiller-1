@@ -1661,30 +1661,115 @@ const HUD = (() => {
   }
 
   // ── B22: Boss Health Bar ─────────────────────────────────────────
-  let _bossBarEl = null;
-  let _bossBarFill = null;
-  let _bossBarName = null;
+  var _bossBarEl = null;
+  var _bossNameEl = null;
+  var _bossHpFillEl = null;
+  var _bossHpEl = null;
+  var _bossLastHp = 1;
+  var _bossMaxHp = 1;
+  var _bossFlashTimer = 0;
 
-  function showBossBar(name, hp, maxHp) {
+  function showBossBar(bossName, currentHp, maxHp) {
+    _bossMaxHp = maxHp || 1;
+    _bossLastHp = _bossLastHp;
+
     if (!_bossBarEl) {
+      // Create elements
       _bossBarEl = document.createElement('div');
       _bossBarEl.id = 'boss-health-bar';
-      _bossBarEl.style.cssText = 'position:fixed;top:5%;left:50%;transform:translateX(-50%);width:400px;background:rgba(0,0,0,0.7);border:2px solid #cc0000;border-radius:4px;padding:4px;z-index:200;text-align:center;display:none;';
-      _bossBarName = document.createElement('div');
-      _bossBarName.style.cssText = 'color:#ff4444;font-size:14px;font-weight:bold;margin-bottom:2px;';
-      _bossBarFill = document.createElement('div');
-      _bossBarFill.style.cssText = 'height:12px;background:linear-gradient(90deg,#cc0000,#ff4444);border-radius:2px;transition:width 0.3s;';
-      _bossBarEl.appendChild(_bossBarName);
-      _bossBarEl.appendChild(_bossBarFill);
+      _bossBarEl.style.cssText = [
+        'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);',
+        'width:500px;max-width:80vw;',
+        'z-index:7000;pointer-events:none;',
+        'text-align:center;',
+        'animation:bossBarFadeIn 0.5s ease forwards;',
+      ].join('');
+
+      // Add CSS animation
+      if (!document.getElementById('boss-bar-style')) {
+        var style = document.createElement('style');
+        style.id = 'boss-bar-style';
+        style.textContent = [
+          '@keyframes bossBarFadeIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }',
+          '@keyframes bossBarFlash { 0%,100% { filter:none; } 50% { filter:brightness(3) sepia(1) saturate(5); } }',
+          '.boss-hp-flash { animation: bossBarFlash 0.2s ease; }',
+        ].join('');
+        document.head.appendChild(style);
+      }
+
+      _bossNameEl = document.createElement('div');
+      _bossNameEl.style.cssText = [
+        'font-family:monospace;font-size:14px;letter-spacing:3px;',
+        'color:#cc0000;text-transform:uppercase;margin-bottom:6px;',
+        'text-shadow:0 0 10px rgba(200,0,0,0.8);',
+      ].join('');
+
+      var barOuter = document.createElement('div');
+      barOuter.style.cssText = [
+        'width:100%;height:14px;',
+        'background:rgba(20,0,0,0.8);',
+        'border:1px solid rgba(200,0,0,0.4);',
+        'border-radius:2px;',
+        'overflow:hidden;',
+        'position:relative;',
+      ].join('');
+
+      _bossHpFillEl = document.createElement('div');
+      _bossHpFillEl.style.cssText = [
+        'height:100%;width:100%;',
+        'background:linear-gradient(90deg, #8b0000, #cc0000, #ff2200);',
+        'transition:width 0.3s ease;',
+        'position:relative;',
+      ].join('');
+      // Shine effect
+      _bossHpFillEl.innerHTML = '<div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(rgba(255,255,255,0.15),transparent);"></div>';
+
+      _bossHpEl = document.createElement('div');
+      _bossHpEl.style.cssText = [
+        'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);',
+        'font-family:monospace;font-size:9px;color:rgba(255,200,200,0.9);',
+        'pointer-events:none;',
+      ].join('');
+
+      barOuter.appendChild(_bossHpFillEl);
+      barOuter.appendChild(_bossHpEl);
+      _bossBarEl.appendChild(_bossNameEl);
+      _bossBarEl.appendChild(barOuter);
       document.body.appendChild(_bossBarEl);
     }
-    _bossBarName.textContent = '☠ ' + name;
-    _bossBarFill.style.width = Math.max(0, (hp / maxHp) * 100) + '%';
-    _bossBarEl.style.display = 'block';
+
+    // Update content
+    _bossNameEl.textContent = bossName || 'BOSS';
+    var pct = Math.max(0, Math.min(100, (currentHp / _bossMaxHp) * 100));
+    _bossHpFillEl.style.width = pct + '%';
+    _bossHpEl.textContent = Math.round(currentHp) + ' / ' + Math.round(_bossMaxHp);
+
+    // Flash on damage
+    if (currentHp < _bossLastHp) {
+      _bossHpFillEl.classList.remove('boss-hp-flash');
+      void _bossHpFillEl.offsetWidth; // reflow
+      _bossHpFillEl.classList.add('boss-hp-flash');
+    }
+    _bossLastHp = currentHp;
+
+    // Color transition near death
+    if (pct < 25) {
+      _bossHpFillEl.style.background = 'linear-gradient(90deg, #4a0000, #8b0000, #cc0000)';
+    } else if (pct < 50) {
+      _bossHpFillEl.style.background = 'linear-gradient(90deg, #6b0000, #aa0000, #dd1100)';
+    } else {
+      _bossHpFillEl.style.background = 'linear-gradient(90deg, #8b0000, #cc0000, #ff2200)';
+    }
   }
 
   function hideBossBar() {
-    if (_bossBarEl) _bossBarEl.style.display = 'none';
+    if (_bossBarEl) {
+      document.body.removeChild(_bossBarEl);
+      _bossBarEl = null;
+      _bossNameEl = null;
+      _bossHpFillEl = null;
+      _bossHpEl = null;
+    }
   }
 
   // ── B22: XP Progress Bar ────────────────────────────────────────
