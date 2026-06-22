@@ -3229,6 +3229,7 @@ const GameManager = (function () {
     if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
     if (window.Airdrop && Airdrop.clear) Airdrop.clear();
+    if (window.Loot && Loot.clear) Loot.clear();
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined') Tracers.clear();
@@ -7233,6 +7234,8 @@ const GameManager = (function () {
       });
       // Update loot items
       try { if (window.Loot && Loot.update) Loot.update(delta, player.position); } catch(eLU) {}
+      // Update HUD dynamic panels (active upgrades + kill feed)
+      try { if (typeof HUD !== 'undefined' && HUD.update) HUD.update(delta, player); } catch(eHU) {}
       // Update airdrop
       if (window.Airdrop && Airdrop.update) {
         Airdrop.update(delta, player ? player.position : null);
