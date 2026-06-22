@@ -2002,6 +2002,131 @@ window.AudioSystem = (function () {
     noiseGain.connect(masterGain);
   }
 
+  function playLootPickup() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var freqs = [880, 1109, 1318, 1760];
+    freqs.forEach(function(f, i) {
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f, now + i * 0.05);
+      o.frequency.exponentialRampToValueAtTime(f * 1.05, now + i * 0.05 + 0.1);
+      g.gain.setValueAtTime(0.12, now + i * 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.2);
+      o.connect(g); g.connect(masterGain);
+      o.start(now + i * 0.05); o.stop(now + i * 0.05 + 0.22);
+    });
+  }
+
+  function playShopPurchase() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var notes = [523, 659, 784];
+    notes.forEach(function(f, i) {
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.18, now + i * 0.08);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.35);
+      o.connect(g); g.connect(masterGain);
+      o.start(now + i * 0.08); o.stop(now + i * 0.08 + 0.38);
+    });
+    var click = ctx.createOscillator();
+    var cg = ctx.createGain();
+    click.type = 'square'; click.frequency.value = 120;
+    cg.gain.setValueAtTime(0.06, now); cg.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    click.connect(cg); cg.connect(masterGain);
+    click.start(now); click.stop(now + 0.05);
+  }
+
+  function playBloodHit() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var noise = createNoise(0.08);
+    var filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    var gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    noise.connect(filter); filter.connect(gain); gain.connect(masterGain);
+    var thud = ctx.createOscillator();
+    var tg = ctx.createGain();
+    thud.type = 'sine'; thud.frequency.setValueAtTime(100, now);
+    thud.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+    tg.gain.setValueAtTime(0.15, now); tg.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    thud.connect(tg); tg.connect(masterGain);
+    thud.start(now); thud.stop(now + 0.12);
+  }
+
+  function playT72Cannon() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var noise1 = createNoise(0.5);
+    var f1 = ctx.createBiquadFilter();
+    f1.type = 'lowpass'; f1.frequency.value = 400;
+    var g1 = ctx.createGain();
+    g1.gain.setValueAtTime(0.55, now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    noise1.connect(f1); f1.connect(g1); g1.connect(masterGain);
+    var sub = ctx.createOscillator();
+    var sg = ctx.createGain();
+    sub.type = 'sine'; sub.frequency.setValueAtTime(55, now);
+    sub.frequency.exponentialRampToValueAtTime(28, now + 0.6);
+    sg.gain.setValueAtTime(0.35, now); sg.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+    sub.connect(sg); sg.connect(masterGain);
+    sub.start(now); sub.stop(now + 0.75);
+    var crack = ctx.createOscillator();
+    var cg = ctx.createGain();
+    crack.type = 'sawtooth'; crack.frequency.value = 180;
+    cg.gain.setValueAtTime(0.4, now); cg.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+    crack.connect(cg); cg.connect(masterGain);
+    crack.start(now); crack.stop(now + 0.08);
+  }
+
+  function playBTR80Fire() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var noise = createNoise(0.12);
+    var filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass'; filter.frequency.value = 600; filter.Q.value = 0.8;
+    var gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.28, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    noise.connect(filter); filter.connect(gain); gain.connect(masterGain);
+    var bark = ctx.createOscillator();
+    var bg = ctx.createGain();
+    bark.type = 'sawtooth'; bark.frequency.setValueAtTime(280, now);
+    bark.frequency.exponentialRampToValueAtTime(110, now + 0.1);
+    bg.gain.setValueAtTime(0.22, now); bg.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    bark.connect(bg); bg.connect(masterGain);
+    bark.start(now); bark.stop(now + 0.16);
+  }
+
+  function playHorn() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var freqs = [233, 293, 175];
+    freqs.forEach(function(f, i) {
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.type = 'sawtooth';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0, now);
+      g.gain.linearRampToValueAtTime(0.15, now + 0.04);
+      g.gain.setValueAtTime(0.15, now + 0.55);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+      o.connect(g); g.connect(masterGain);
+      o.start(now); o.stop(now + 0.72);
+    });
+  }
+
   return {
     init: init,
     resume: resume,
@@ -2086,6 +2211,12 @@ window.AudioSystem = (function () {
     playImpact: playImpact,
     playLowHealth: playLowHealth,
     playFlatline: playFlatline,
+    playLootPickup: playLootPickup,
+    playShopPurchase: playShopPurchase,
+    playBloodHit: playBloodHit,
+    playT72Cannon: playT72Cannon,
+    playBTR80Fire: playBTR80Fire,
+    playHorn: playHorn,
   };
 
   // EKG flatline — played on player death before death overlay
