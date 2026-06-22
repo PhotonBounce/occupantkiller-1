@@ -12,17 +12,19 @@ window.EnemyStalker = (function () {
   var STALKER_SPEED         = 3.5;          // units/s
   var STALKER_DAMAGE        = 35;           // slash damage
   var STALKER_SCALE         = 1.0;
-  var OPACITY_HIDDEN        = 0.15;         // resting invisible shimmer
-  var OPACITY_MOVING        = 0.25;         // slightly visible when moving
+  var OPACITY_HIDDEN        = 0.12;         // resting invisible shimmer
+  var OPACITY_MOVING        = 0.22;         // slightly visible when moving
   var OPACITY_DETECTED      = 1.0;          // fully visible when spotted
   var DETECT_RANGE          = 5.0;          // units — gaze detection radius
-  var DETECT_DOT_THRESHOLD  = 0.92;         // cos(~23°) — "staring directly at"
+  var DETECT_DOT_THRESHOLD  = 0.97;         // very narrow cone — looking directly at stalker
   var VISIBLE_DURATION      = 2.0;          // seconds stalker stays visible after detection
-  var ATTACK_RANGE          = 1.5;          // units — close enough to slash
+  var ATTACK_RANGE          = 2.0;          // units — close range dash trigger
+  var ATTACK_COOLDOWN       = 6.0;          // seconds between attacks
   var DASH_DURATION         = 0.3;          // seconds for dash attack
   var RETREAT_DIST          = 8.0;          // units — retreat distance after attack
   var QUESTION_RANGE        = 8.0;          // units — show "?" HUD icon
-  var QUESTION_FLICKER_INT  = 0.35;         // seconds between flicker toggles
+  var QUESTION_INTERVAL     = 3.0;          // seconds between "?" flicker appearances
+  var QUESTION_FLICKER_INT  = 0.25;         // seconds between flicker toggles (visual blink)
   var SPAWN_WAVE_MIN        = 4;            // spawns from wave 4 (after wave 3)
   var THERMAL_OUTLINE_COLOR = '#FF2200';    // bright red outline for thermal vision
 
@@ -36,7 +38,8 @@ window.EnemyStalker = (function () {
   // HUD elements
   var _questionEl         = null;   // "?" flickering HUD icon
   var _questionVisible    = false;
-  var _questionFlickerT   = 0;
+  var _questionIntervalT  = 0;      // countdown to next "?" flicker event (3s cycle)
+  var _questionFlickerT   = 0;      // countdown for the brief visual blink
   var _thermalOutlineEl   = null;   // red outline DOM element for thermal mode
 
   // Temp reusable THREE vectors (allocated once)
@@ -432,7 +435,7 @@ window.EnemyStalker = (function () {
       // If close enough, initiate dash attack
       if (distToP <= ATTACK_RANGE + 0.5 && sk.state === 'stalk') {
         var now = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
-        if (now - sk.lastAttackT > 3.0) {
+        if (now - sk.lastAttackT > ATTACK_COOLDOWN) {
           // Begin dash
           sk.state = 'dash';
           sk.dashTimer = 0;
@@ -457,17 +460,27 @@ window.EnemyStalker = (function () {
       _setOpacity(sk, OPACITY_DETECTED);
     }
 
-    // ── "?" HUD flicker when stalker is nearby but unseen ─
-    _questionFlickerT -= dt;
+    // ── "?" HUD flicker when stalker is nearby but unseen (every 3s) ─
     if (distToP < QUESTION_RANGE && sk.state === 'stalk' && !alwaysReveal) {
-      if (_questionFlickerT <= 0) {
-        _questionVisible = !_questionVisible;
-        _questionFlickerT = QUESTION_FLICKER_INT;
-        _showQuestionIcon(_questionVisible);
+      _questionIntervalT -= dt;
+      if (_questionIntervalT <= 0) {
+        // Trigger a brief flicker: show "?" for a moment then hide
+        _questionIntervalT = QUESTION_INTERVAL;
+        _questionFlickerT  = QUESTION_FLICKER_INT;
+        _showQuestionIcon(true);
+        _questionVisible = true;
+      }
+      if (_questionVisible && _questionFlickerT > 0) {
+        _questionFlickerT -= dt;
+        if (_questionFlickerT <= 0) {
+          _showQuestionIcon(false);
+          _questionVisible = false;
+        }
       }
     } else {
       _showQuestionIcon(false);
-      _questionVisible = false;
+      _questionVisible   = false;
+      _questionIntervalT = 0;
     }
 
     // ── Update thermal/laser outline ──────────────────────
@@ -477,7 +490,7 @@ window.EnemyStalker = (function () {
   // ── Attack helpers ────────────────────────────────────────
   function _doAttack(sk, playerPos) {
     var now = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
-    if (now - sk.lastAttackT < 3.0) return;
+    if (now - sk.lastAttackT < ATTACK_COOLDOWN) return;
     sk.lastAttackT = now;
 
     // Begin dash
@@ -540,9 +553,10 @@ window.EnemyStalker = (function () {
   // ── Reset (called between waves / stages) ─────────────────
   function reset() {
     _removeStalker();
-    _currentWave = 0;
-    _questionFlickerT = 0;
-    _questionVisible = false;
+    _currentWave      = 0;
+    _questionFlickerT  = 0;
+    _questionIntervalT = 0;
+    _questionVisible   = false;
     _showQuestionIcon(false);
     if (_thermalOutlineEl) _thermalOutlineEl.style.display = 'none';
   }
