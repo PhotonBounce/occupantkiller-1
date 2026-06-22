@@ -5600,6 +5600,7 @@ const Weapons = (() => {
 
   // ── Projectile system (NLAW / Stugna) ────────────────────
   const projectiles = [];
+  const _explosionFlashes = []; // track active explosion radius visuals
   const PROJ_SPEED = 30;
 
   function spawnProjectile(camera, wep) {
@@ -5802,7 +5803,7 @@ const Weapons = (() => {
         if (p.isMolotov) {
           createFireArea(p.mesh.position, p.radius);
         } else {
-          createExplosionFlash(p.mesh.position);
+          createExplosionFlash(p.mesh.position, p.radius);
         }
         p.mesh.geometry.dispose();
         p.mesh.material.dispose();
@@ -5812,8 +5813,10 @@ const Weapons = (() => {
     }
   }
 
-  function createExplosionFlash(pos) {
+  function createExplosionFlash(pos, blastRadius) {
     if (!_scene) return;
+    blastRadius = blastRadius || 3;
+    // Central bright flash
     const flashGeo = new THREE.SphereGeometry(1.5, 8, 8);
     const flashMat = new THREE.MeshBasicMaterial({
       color: 0xff6600, transparent: true, opacity: 0.9,
@@ -5822,18 +5825,19 @@ const Weapons = (() => {
     const flash = new THREE.Mesh(flashGeo, flashMat);
     flash.position.copy(pos);
     _scene.add(flash);
-    let t = 0.2;
-    const fadeInterval = setInterval(function () {
-      t -= 0.016;
-      flash.material.opacity = Math.max(0, t / 0.2) * 0.9;
-      flash.scale.setScalar(1 + (0.2 - t) * 5);
-      if (t <= 0) {
-        _scene.remove(flash);
-        flashGeo.dispose();
-        flashMat.dispose();
-        clearInterval(fadeInterval);
-      }
-    }, 16);
+    // Explosion radius visual: semi-transparent sphere showing damage radius
+    const radiusGeo = new THREE.SphereGeometry(blastRadius, 8, 8);
+    const radiusMat = new THREE.MeshBasicMaterial({
+      color: 0xff6600, transparent: true, opacity: 0.3,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    });
+    const radiusMesh = new THREE.Mesh(radiusGeo, radiusMat);
+    radiusMesh.position.copy(pos);
+    _scene.add(radiusMesh);
+    // Track explosion for animation
+    const explosionFlash = { flash: flash, radius: radiusMesh, startTime: 0, duration: 0.4 };
+    _explosionFlashes.push(explosionFlash);
   }
 
   function createFireArea(pos, radius) {
