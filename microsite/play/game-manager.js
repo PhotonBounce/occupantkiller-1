@@ -5670,6 +5670,15 @@ const GameManager = (function () {
       } catch (eDN) {}
       Feedback.spawnDamageNumber(_dnX, _dnY, dmg, isHeadshot, false);
     }
+    // HUD floating damage number (supplemental 3D-projected number)
+    if (typeof HUD !== 'undefined' && HUD.showDamageNumber && enemy && enemy.mesh && _camera) {
+      var _dmgPos = enemy.mesh.position.clone();
+      _dmgPos.y += 1.5;
+      _dmgPos.project(_camera);
+      var _sx = (_dmgPos.x * 0.5 + 0.5) * window.innerWidth;
+      var _sy = (-_dmgPos.y * 0.5 + 0.5) * window.innerHeight;
+      HUD.showDamageNumber(_sx, _sy, dmg, isHeadshot);
+    }
 
     SkillSystem.onShoot(true, isHeadshot);
     HUD.flashHit(isHeadshot, remaining <= 0);
@@ -5765,6 +5774,14 @@ const GameManager = (function () {
       HUD.setKills(player.kills);
       RankSystem.onKill(isHeadshot);
       HUD.addKill(Weapons.getCurrentName(), enemy.typeCfg ? enemy.typeCfg.name : 'ENEMY', isHeadshot);
+      // HUD kill feed entry with weapon icon
+      if (typeof HUD !== 'undefined' && HUD.addKillFeedEntry) {
+        var _wepIcon = isHeadshot ? '🎯' : '🔫';
+        var _wepTyp = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? (Weapons.getCurrent().type || '') : '';
+        if (_wepTyp === 'grenade' || _wepTyp === 'explosive') _wepIcon = '💣';
+        else if (isHeadshot) _wepIcon = '🎯';
+        HUD.addKillFeedEntry('You', enemy.typeCfg ? enemy.typeCfg.name : 'Enemy', _wepIcon);
+      }
       // FOV kick: brief zoom-out punch on kill (bigger on headshot)
       _killFovKick = Math.max(_killFovKick, isHeadshot ? 4.5 : 2.5);
 
@@ -6559,6 +6576,7 @@ const GameManager = (function () {
       // Core systems
       TimeSystem.update(delta);
       WeatherSystem.update(delta);
+      if (typeof WeatherEvents !== 'undefined') WeatherEvents.update();
       MLSystem.trackFPS(delta);
       // AI Smart Learning: track player position for behavior profiling
       MLSystem.trackPlayerPosition(player.position.x, player.position.z, delta);

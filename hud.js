@@ -1901,6 +1901,68 @@ const HUD = (() => {
     setTimeout(function () { if (entry.parentNode) entry.remove(); }, 5000);
   }
 
+  // ── Floating Damage Numbers ──────────────────────────────────────
+  function showDamageNumber(screenX, screenY, amount, isCrit) {
+    var el = document.createElement('div');
+    el.style.cssText = [
+      'position:fixed;',
+      'left:' + screenX + 'px;',
+      'top:' + screenY + 'px;',
+      'font-family:monospace;',
+      'font-size:' + (isCrit ? '22' : '16') + 'px;',
+      'font-weight:bold;',
+      'color:' + (isCrit ? '#ff4444' : '#ffdd44') + ';',
+      'text-shadow:1px 1px 2px #000;',
+      'pointer-events:none;',
+      'z-index:9000;',
+      'transition:transform 0.8s ease-out, opacity 0.8s ease-out;',
+      'transform:translateY(0px);',
+      'opacity:1;',
+    ].join('');
+    el.textContent = (isCrit ? '💥 ' : '') + Math.round(amount);
+    document.body.appendChild(el);
+    // Animate upward and fade
+    requestAnimationFrame(function() {
+      el.style.transform = 'translateY(-' + (isCrit ? 70 : 45) + 'px)';
+      el.style.opacity = '0';
+    });
+    setTimeout(function() {
+      if (document.body.contains(el)) document.body.removeChild(el);
+    }, 850);
+  }
+
+  // ── Kill Feed ─────────────────────────────────────────────────────
+  // Lazily create the kill-feed container if it doesn't exist in the DOM
+  var _killFeedContainer = null;
+  (function initKillFeedContainer() {
+    var existing = document.getElementById('kill-feed');
+    if (existing) {
+      _killFeedContainer = existing;
+      // Ensure correct positioning styles are applied
+      _killFeedContainer.style.cssText = 'position:fixed;top:60px;right:8px;width:220px;z-index:800;pointer-events:none;';
+    } else {
+      _killFeedContainer = document.createElement('div');
+      _killFeedContainer.id = 'kill-feed';
+      _killFeedContainer.style.cssText = 'position:fixed;top:60px;right:8px;width:220px;z-index:800;pointer-events:none;';
+      document.body.appendChild(_killFeedContainer);
+    }
+  })();
+
+  function addKillFeedEntry(killerName, victimName, weaponIcon) {
+    var container = document.getElementById('kill-feed');
+    if (!container) container = _killFeedContainer;
+    if (!container) return;
+    var entry = document.createElement('div');
+    entry.style.cssText = 'background:rgba(0,0,0,0.65);border-left:2px solid #ff4444;padding:3px 6px;margin-bottom:3px;font-size:11px;font-family:monospace;color:#fff;border-radius:2px;transition:opacity 1s;';
+    entry.innerHTML = '<span style="color:#44ff88">' + escapeHTML(killerName) + '</span> ' + (weaponIcon || '🔫') + ' <span style="color:#ff8888">' + escapeHTML(victimName) + '</span>';
+    container.appendChild(entry);
+    // Cap at 5 entries
+    while (container.children.length > 5) container.removeChild(container.firstChild);
+    // Fade out after 4s
+    setTimeout(function() { entry.style.opacity = '0'; }, 4000);
+    setTimeout(function() { if (container.contains(entry)) container.removeChild(entry); }, 5000);
+  }
+
   // ── B22: Grenade Indicator ───────────────────────────────────────
   function showGrenadeWarning(direction) {
     var el = document.getElementById('grenade-warning');
@@ -2120,6 +2182,9 @@ const HUD = (() => {
     updateTargetAssist,
     // ── NVG Indicator ──
     updateNvgIndicator,
+    // ── Floating Damage Numbers + Kill Feed ──
+    showDamageNumber,
+    addKillFeedEntry,
   };
 
   function updateNvgIndicator() {

@@ -3850,6 +3850,10 @@ const GameManager = (function () {
     var _sideObj = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
     if (_sideObj && HUD.notifyPickup) HUD.notifyPickup('⭐ SIDE OBJ: ' + _sideObj.name + ' — ' + _sideObj.desc + ' (+' + _sideObj.reward + ' OKC)', '#ffcc00');
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
+    // 25% chance of weather event on wave 3+
+    if (currentWave >= 3 && Math.random() < 0.25 && typeof WeatherEvents !== 'undefined') {
+      WeatherEvents.triggerRandom();
+    }
     // Show recommended weapons hint on wave 1 if stage defines them
     if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
       HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
@@ -7200,6 +7204,8 @@ const GameManager = (function () {
         // Immediate fire spread boost (frame-accurate)
         if (Weapons.didFire && Weapons.didFire()) _chSpread += 0.25;
         if (Weapons.isZoomed && Weapons.isZoomed()) _chSpread *= 0.25;
+        var _weatherAccPenalty = (typeof WeatherEvents !== 'undefined') ? WeatherEvents.getAccuracyPenalty() : 0;
+        if (_weatherAccPenalty > 0) _chSpread *= (1 + _weatherAccPenalty);
         if (HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       } catch (eCh) {}
 
