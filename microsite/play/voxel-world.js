@@ -1252,6 +1252,7 @@ window.VoxelWorld = (function () {
     { id: 'KURSK',    name: 'Kursk Nuclear Zone',   desc: 'Storm the Russian nuclear city — tank battle ground of WW2', theme: 'industrial', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x3a1a3a, spawnCandidates: [{ x: 0, z: 0 }, { x: 20, z: 0 }, { x: -20, z: 0 }, { x: 0, z: 20 }, { x: 0, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'TERNOPIL', name: 'Ternopil Castle Siege', desc: 'Defend the Renaissance castle and baroque cathedral of western Ukraine', theme: 'urban', wavesPerLevel: 8, difficulty: 2.5, fogColor: 0x445533, spawnCandidates: [{ x: 0, z: 0 }, { x: 15, z: 15 }, { x: -15, z: 15 }, { x: 0, z: -20 }, { x: 20, z: -10 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'IZIUM',     name: 'Izium Liberation',      desc: 'Liberated city, site of mass atrocity discovery', theme: 'urban', wavesPerLevel: 7, difficulty: 3.0, fogColor: 0x445533, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -14750,6 +14751,325 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_odessa_port', x: ox - 5, z: oz, w: 40, d: 35, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── IZIUM: Mass Grave Memorial ────────────────────────────────────────────
+  // Izium was liberated in September 2022; Ukrainian forces discovered 440 graves
+  // in a forest on the edge of the city — evidence of Russian war crimes.
+  function generateIziumMassGrave(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+
+    // Forest clearing: STONE/GRASS base 20×20
+    for (i = 0; i < 20; i++) {
+      for (j = 0; j < 20; j++) {
+        setBlock(ox + i - 10, h, oz + j - 10, BLOCK.STONE);
+      }
+    }
+
+    // 440 grave markers in rows — WOOD posts 1 high, spaced 2 apart in 20×22 grid
+    // (20 columns × 22 rows = 440)
+    for (i = 0; i < 20; i++) {
+      for (j = 0; j < 22; j++) {
+        setBlock(ox - 19 + i * 2, h + 1, oz - 21 + j * 2, BLOCK.WOOD);
+      }
+    }
+
+    // Ukrainian national flag: METAL pole 10 high
+    for (y = 1; y <= 10; y++) {
+      setBlock(ox + 12, h + y, oz - 5, BLOCK.METAL);
+    }
+    // Flag: top half yellow (LIGHT blocks), bottom half blue (CONCRETE)
+    for (i = 0; i < 4; i++) {
+      setBlock(ox + 13 + i, h + 10, oz - 5, BLOCK.LIGHT);    // yellow top
+      setBlock(ox + 13 + i, h + 9,  oz - 5, BLOCK.CONCRETE); // blue bottom
+    }
+
+    // Memorial cross: STONE base 3×3×1
+    for (i = -1; i <= 1; i++) {
+      for (j = -1; j <= 1; j++) {
+        setBlock(ox + i, h, oz + 12 + j, BLOCK.STONE);
+      }
+    }
+    // Vertical arm 1×1×8
+    for (y = 1; y <= 8; y++) {
+      setBlock(ox, h + y, oz + 12, BLOCK.STONE);
+    }
+    // Horizontal arm 5×1×1 at y+5
+    for (i = -2; i <= 2; i++) {
+      setBlock(ox + i, h + 5, oz + 12, BLOCK.STONE);
+    }
+
+    // Candle lights: LIGHT blocks at 5 positions in front of cross
+    setBlock(ox - 2, h + 1, oz + 10, BLOCK.LIGHT);
+    setBlock(ox - 1, h + 1, oz + 10, BLOCK.LIGHT);
+    setBlock(ox,     h + 1, oz + 10, BLOCK.LIGHT);
+    setBlock(ox + 1, h + 1, oz + 10, BLOCK.LIGHT);
+    setBlock(ox + 2, h + 1, oz + 10, BLOCK.LIGHT);
+
+    // Pine tree perimeter: 6 WOOD trunks 5 high with ROOFTILE 3×3 crowns
+    var treePositions = [[-12,-12],[12,-12],[-12,0],[12,0],[-12,12],[12,12]];
+    for (var ti = 0; ti < treePositions.length; ti++) {
+      var tx = ox + treePositions[ti][0], tz = oz + treePositions[ti][1];
+      for (y = 1; y <= 5; y++) {
+        setBlock(tx, h + y, tz, BLOCK.WOOD);
+      }
+      // 3×3 crown at top
+      for (i = -1; i <= 1; i++) {
+        for (j = -1; j <= 1; j++) {
+          setBlock(tx + i, h + 6, tz + j, BLOCK.ROOFTILE);
+        }
+      }
+    }
+
+    // UN observers tent: 4×4 METAL frame 3 high, WHITE_TILE floor
+    var tentX = ox + 14, tentZ = oz + 8;
+    for (i = 0; i < 4; i++) {
+      for (j = 0; j < 4; j++) {
+        setBlock(tentX + i, h, tentZ + j, BLOCK.WHITE_TILE);
+      }
+    }
+    // Frame corners and top beam
+    for (y = 0; y <= 3; y++) {
+      setBlock(tentX,     h + y, tentZ,     BLOCK.METAL);
+      setBlock(tentX + 3, h + y, tentZ,     BLOCK.METAL);
+      setBlock(tentX,     h + y, tentZ + 3, BLOCK.METAL);
+      setBlock(tentX + 3, h + y, tentZ + 3, BLOCK.METAL);
+    }
+    for (i = 0; i < 4; i++) {
+      setBlock(tentX + i, h + 3, tentZ,     BLOCK.METAL);
+      setBlock(tentX + i, h + 3, tentZ + 3, BLOCK.METAL);
+    }
+    for (j = 0; j < 4; j++) {
+      setBlock(tentX,     h + 3, tentZ + j, BLOCK.METAL);
+      setBlock(tentX + 3, h + 3, tentZ + j, BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'landmark_izium_massgrave', x: ox - 22, z: oz - 22, w: 44, d: 44, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── MELITOPOL: Central Railway Station ───────────────────────────────────
+  // Melitopol's railway station became a key Russian military logistics hub
+  // after occupation in March 2022.
+  function generateMelitopolStation(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+
+    // Station building: 20×10 PLASTER, 6 high
+    for (y = 0; y < 6; y++) {
+      for (i = 0; i < 20; i++) {
+        setBlock(ox + i - 10, h + y, oz - 5, BLOCK.PLASTER);
+        setBlock(ox + i - 10, h + y, oz + 4, BLOCK.PLASTER);
+      }
+      for (j = -5; j <= 4; j++) {
+        setBlock(ox - 10, h + y, oz + j, BLOCK.PLASTER);
+        setBlock(ox + 9,  h + y, oz + j, BLOCK.PLASTER);
+      }
+    }
+    // Roof
+    for (i = 0; i < 20; i++) {
+      for (j = 0; j < 10; j++) {
+        setBlock(ox + i - 10, h + 6, oz + j - 5, BLOCK.PLASTER);
+      }
+    }
+    // Arched entrance on south wall: 3 wide × 4 high AIR cutout
+    for (i = -1; i <= 1; i++) {
+      for (y = 0; y < 4; y++) {
+        setBlock(ox + i, h + y, oz - 5, BLOCK.AIR);
+      }
+    }
+
+    // Platform: WHITE_TILE 40×4 slab running east-west
+    for (i = -20; i < 20; i++) {
+      for (j = 0; j < 4; j++) {
+        setBlock(ox + i, h, oz + 5 + j, BLOCK.WHITE_TILE);
+      }
+    }
+
+    // 3 sets of rail tracks: METAL running east-west, 2 tracks per set, 3 sets spaced 4 apart
+    for (var ts = 0; ts < 3; ts++) {
+      var trackZ = oz + 10 + ts * 4;
+      for (i = -20; i < 20; i++) {
+        setBlock(ox + i, h, trackZ,     BLOCK.METAL);
+        setBlock(ox + i, h, trackZ + 2, BLOCK.METAL);
+      }
+    }
+
+    // 2 stationary rail cars: 12×3 METAL hulls (2 high) on first track
+    for (var rc = 0; rc < 2; rc++) {
+      var rcx = ox - 18 + rc * 14, rcz = oz + 10;
+      for (i = 0; i < 12; i++) {
+        for (j = 0; j < 3; j++) {
+          setBlock(rcx + i, h + 1, rcz + j, BLOCK.METAL);
+          setBlock(rcx + i, h + 2, rcz + j, BLOCK.METAL);
+        }
+      }
+    }
+
+    // Russian military checkpoint: CONCRETE bunker 6×4×3 at station entrance
+    var ckx = ox - 3, ckz = oz - 12;
+    for (y = 0; y < 3; y++) {
+      for (i = 0; i < 6; i++) {
+        setBlock(ckx + i, h + y, ckz,     BLOCK.CONCRETE);
+        setBlock(ckx + i, h + y, ckz + 3, BLOCK.CONCRETE);
+      }
+      setBlock(ckx,     h + y, ckz + 1, BLOCK.CONCRETE);
+      setBlock(ckx,     h + y, ckz + 2, BLOCK.CONCRETE);
+      setBlock(ckx + 5, h + y, ckz + 1, BLOCK.CONCRETE);
+      setBlock(ckx + 5, h + y, ckz + 2, BLOCK.CONCRETE);
+    }
+    // Sandbags (STONE) on sides of checkpoint
+    for (i = 0; i < 6; i++) {
+      setBlock(ckx + i, h + 3, ckz - 1, BLOCK.STONE);
+      setBlock(ckx + i, h + 3, ckz + 4, BLOCK.STONE);
+    }
+
+    // "Z" symbol on station south wall: LIGHT blocks in Z-pattern
+    // Top row
+    setBlock(ox - 3, h + 4, oz - 5, BLOCK.LIGHT);
+    setBlock(ox - 2, h + 4, oz - 5, BLOCK.LIGHT);
+    setBlock(ox - 1, h + 4, oz - 5, BLOCK.LIGHT);
+    setBlock(ox,     h + 4, oz - 5, BLOCK.LIGHT);
+    setBlock(ox + 1, h + 4, oz - 5, BLOCK.LIGHT);
+    // Diagonal
+    setBlock(ox,     h + 3, oz - 5, BLOCK.LIGHT);
+    setBlock(ox - 1, h + 2, oz - 5, BLOCK.LIGHT);
+    // Bottom row
+    setBlock(ox - 3, h + 1, oz - 5, BLOCK.LIGHT);
+    setBlock(ox - 2, h + 1, oz - 5, BLOCK.LIGHT);
+    setBlock(ox - 1, h + 1, oz - 5, BLOCK.LIGHT);
+    setBlock(ox,     h + 1, oz - 5, BLOCK.LIGHT);
+    setBlock(ox + 1, h + 1, oz - 5, BLOCK.LIGHT);
+
+    // Propaganda banners: 3 METAL poles 6 high with CONCRETE + LIGHT flag
+    var polePositions = [[-15, -8], [0, -8], [15, -8]];
+    for (var pi = 0; pi < polePositions.length; pi++) {
+      var px = ox + polePositions[pi][0], pz = oz + polePositions[pi][1];
+      for (y = 1; y <= 6; y++) {
+        setBlock(px, h + y, pz, BLOCK.METAL);
+      }
+      // Small flag at top: CONCRETE red + LIGHT
+      setBlock(px + 1, h + 6, pz, BLOCK.CONCRETE);
+      setBlock(px + 2, h + 6, pz, BLOCK.CONCRETE);
+      setBlock(px + 1, h + 5, pz, BLOCK.LIGHT);
+      setBlock(px + 2, h + 5, pz, BLOCK.LIGHT);
+    }
+
+    _buildings.push({ kind: 'landmark_melitopol_station', x: ox - 20, z: oz - 12, w: 42, d: 35, baseY: h, floorH: 6, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── MELITOPOL: Occupied City Centre ──────────────────────────────────────
+  // Melitopol city centre under Russian occupation — admin building, hotel,
+  // central plaza with Russian flag display and military vehicles.
+  function generateMelitopolCityCentre(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+
+    // City hall / occupied admin building: 14×10 BRICK, 8 high
+    for (y = 0; y < 8; y++) {
+      for (i = 0; i < 14; i++) {
+        setBlock(ox + i - 7, h + y, oz - 5, BLOCK.BRICK);
+        setBlock(ox + i - 7, h + y, oz + 4, BLOCK.BRICK);
+      }
+      for (j = -5; j <= 4; j++) {
+        setBlock(ox - 7, h + y, oz + j, BLOCK.BRICK);
+        setBlock(ox + 6, h + y, oz + j, BLOCK.BRICK);
+      }
+    }
+    // Roof
+    for (i = 0; i < 14; i++) {
+      for (j = 0; j < 10; j++) {
+        setBlock(ox + i - 7, h + 8, oz + j - 5, BLOCK.BRICK);
+      }
+    }
+    // PLASTER columns on front facade: 1×1×8, 4 columns
+    for (var col = -3; col <= 3; col += 2) {
+      for (y = 0; y <= 7; y++) {
+        setBlock(ox + col, h + y, oz - 6, BLOCK.PLASTER);
+      }
+    }
+
+    // Occupied hotel: 8×20 CONCRETE, 10 high
+    var hx = ox + 20, hz = oz - 10;
+    for (y = 0; y < 10; y++) {
+      for (i = 0; i < 8; i++) {
+        setBlock(hx + i, h + y, hz,      BLOCK.CONCRETE);
+        setBlock(hx + i, h + y, hz + 19, BLOCK.CONCRETE);
+      }
+      for (j = 0; j < 20; j++) {
+        setBlock(hx,     h + y, hz + j, BLOCK.CONCRETE);
+        setBlock(hx + 7, h + y, hz + j, BLOCK.CONCRETE);
+      }
+    }
+    // GLASS windows every 3 blocks on hotel sides
+    for (j = 3; j < 20; j += 3) {
+      for (y = 1; y < 9; y += 3) {
+        setBlock(hx,     h + y, hz + j, BLOCK.GLASS);
+        setBlock(hx + 7, h + y, hz + j, BLOCK.GLASS);
+      }
+    }
+    // Hotel roof
+    for (i = 0; i < 8; i++) {
+      for (j = 0; j < 20; j++) {
+        setBlock(hx + i, h + 10, hz + j, BLOCK.CONCRETE);
+      }
+    }
+
+    // Central plaza: WHITE_TILE 25×25
+    for (i = -12; i < 13; i++) {
+      for (j = -12; j < 13; j++) {
+        setBlock(ox + i, h, oz + 15 + j, BLOCK.WHITE_TILE);
+      }
+    }
+    // METAL statue base in center: CONCRETE 3×3×4
+    for (y = 1; y <= 4; y++) {
+      for (i = -1; i <= 1; i++) {
+        for (j = -1; j <= 1; j++) {
+          setBlock(ox + i, h + y, oz + 15 + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+
+    // Russian flag display: 3 METAL poles 8 high with CONCRETE red blocks
+    var flagPoles = [[-8, 28], [0, 28], [8, 28]];
+    for (var fi = 0; fi < flagPoles.length; fi++) {
+      var fpx = ox + flagPoles[fi][0], fpz = oz + flagPoles[fi][1];
+      for (y = 1; y <= 8; y++) {
+        setBlock(fpx, h + y, fpz, BLOCK.METAL);
+      }
+      // Russian flag indicator: CONCRETE red on top
+      setBlock(fpx + 1, h + 8, fpz, BLOCK.CONCRETE);
+      setBlock(fpx + 2, h + 8, fpz, BLOCK.CONCRETE);
+      setBlock(fpx + 3, h + 8, fpz, BLOCK.CONCRETE);
+      setBlock(fpx + 1, h + 7, fpz, BLOCK.CONCRETE);
+      setBlock(fpx + 2, h + 7, fpz, BLOCK.CONCRETE);
+      setBlock(fpx + 3, h + 7, fpz, BLOCK.CONCRETE);
+    }
+
+    // Military vehicles parked: 3 CONCRETE blocks 4×2×2 in plaza
+    var vehPositions = [[-10, 22], [0, 22], [10, 22]];
+    for (var vi = 0; vi < vehPositions.length; vi++) {
+      var vx = ox + vehPositions[vi][0], vz = oz + vehPositions[vi][1];
+      for (i = 0; i < 4; i++) {
+        setBlock(vx + i, h + 1, vz,     BLOCK.CONCRETE);
+        setBlock(vx + i, h + 1, vz + 1, BLOCK.CONCRETE);
+        setBlock(vx + i, h + 2, vz,     BLOCK.CONCRETE);
+        setBlock(vx + i, h + 2, vz + 1, BLOCK.CONCRETE);
+      }
+    }
+
+    // Rubble patches: 3 RUBBLE piles indicating shelling
+    var rubblePositions = [[-15, 20], [12, 25], [-8, 30]];
+    for (var rubbleI = 0; rubbleI < rubblePositions.length; rubbleI++) {
+      var rubbleX = ox + rubblePositions[rubbleI][0], rubbleZ = oz + rubblePositions[rubbleI][1];
+      for (i = 0; i < 3; i++) {
+        for (j = 0; j < 3; j++) {
+          setBlock(rubbleX + i, h + 1, rubbleZ + j, BLOCK.RUBBLE);
+        }
+      }
+    }
+
+    _buildings.push({ kind: 'landmark_melitopol_citycentre', x: ox - 12, z: oz - 10, w: 45, d: 50, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -15861,6 +16181,8 @@ window.VoxelWorld = (function () {
       // Melitopol — city in Zaporizhzhia oblast, occupied by Russia in March 2022 (day 5 of invasion).
       // Mayor Ivan Fedorov was kidnapped; city became hub of partisan resistance.
       generateMelitopolCityHall(0, -5);
+      generateMelitopolStation(-25, 20);          // Central railway station (Russian logistics hub)
+      generateMelitopolCityCentre(20, -30);       // Occupied city centre, plaza, Russian flags
       generateUkrainianApartment(-30, -20, 6); generateUkrainianApartment(25, -22, 5);
       generateUkrainianApartment(-32, 15, 5); generateUkrainianApartment(28, 18, 6);
       generateChurch(-20, 8); generateChurch(18, -28);
@@ -15967,6 +16289,7 @@ window.VoxelWorld = (function () {
       // Mykolaiv — southern Ukraine port on Southern Bug, defended against Russian advance 2022
       generateMykolaivAdminBuilding(-8, -10);    // Regional admin hit by Neptune missile March 2022
       generateMykolaivPort(25, -30);             // Southern Bug river port + grain terminal
+      generateMykolaivShipyard(0, 30);           // Chornomorsky Shipyard — largest in USSR, BSZ Black Sea plant
       generateUkrainianApartment(-25, -20, 9); generateUkrainianApartment(20, 15, 6);
       generateUkrainianApartment(-28, 10, 6); generateUkrainianApartment(25, -5, 9);
       generateIndustrialComplex(30, 20);         // Inhul River shipyard
@@ -16855,6 +17178,30 @@ window.VoxelWorld = (function () {
       generateSniperNest(-35, -38); generateSniperNest(32, -36);
       generateDroneNest(40, 38); generateDroneNest(-40, -38);
       generateAntiAirPosition(-32, 26); generateAntiAirPosition(30, -26);
+      generateCheckpoint(0, -45, false); generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'IZIUM') {
+      // Izium (Izyum) — liberated September 2022; 440 graves discovered in forest nearby
+      // Kharkiv Oblast city on Siversky Donets river; occupied March–Sep 2022
+      // Liberation revealed evidence of systematic Russian war crimes
+      generateIziumMassGrave(0, -5);              // Mass grave memorial site — 440 graves
+      generateChurch(-20, -5);                    // Izium cathedral (bombed during occupation)
+      generateChurch(18, 8);                      // Second parish church
+      generateUkrainianApartment(-30, -25, 9); generateUkrainianApartment(25, -28, 6);
+      generateUkrainianApartment(-32, 12, 6); generateUkrainianApartment(28, 15, 9);
+      generateTrainStation(-35, 25);              // Izium railway station
+      generateBridge(0, 10, 35, 5);              // Siversky Donets bridge
+      generateWaterTower(38, -30);
+      generateSovietAdminBuilding(0, -25);
+      generateBurningRuin(-15, -18); generateBurningRuin(12, 18);
+      generateBurningRuin(-30, -30); generateBurningRuin(28, -28);
+      generateWreckedTank(-12, -22); generateWreckedAPC(18, 15);
+      generateWreckedConvoy(-35, 25);
+      generateCraters(8);
+      generateBunker(-22, -18); generateBunker(20, -20);
+      generateTrenchNetwork(-15, 15); generateTrenchNetwork(15, -15);
+      generateArtilleryBattery(-38, -35); generateArtilleryBattery(35, 35);
+      generateDroneNest(45, 42); generateDroneNest(-45, -40);
+      generateAntiAirPosition(-35, 28); generateAntiAirPosition(32, -28);
       generateCheckpoint(0, -45, false); generateCheckpoint(-42, 0, true);
     }
 
