@@ -1916,7 +1916,7 @@ const GameManager = (function () {
         }
 
         // Perks menu (P key — override time pause in gameplay)
-        if (e.code === 'KeyP' && gameState === STATE.PLAYING) {
+        if (e.code === 'KeyP' && gameState === STATE.PLAYING && !e.shiftKey) {
           var perksMenu = document.getElementById('perks-menu');
           if (perksMenu) {
             if (perksMenu.style.display === 'none' || !perksMenu.style.display) {
@@ -1926,6 +1926,13 @@ const GameManager = (function () {
               perksMenu.style.display = 'none';
             }
           }
+        }
+
+        // Challenge mode toggle (Shift+P)
+        if (e.code === 'KeyP' && e.shiftKey && gameState === STATE.PLAYING) {
+          window._challengeMode = !window._challengeMode;
+          window._challengeScoreMult = window._challengeMode ? 2 : 1;
+          if (HUD.showToast) HUD.showToast(window._challengeMode ? 'CHALLENGE MODE ON' : 'CHALLENGE MODE OFF', 2000, window._challengeMode ? '#ff8800' : '#aaa');
         }
 
         // War journal (Y key)
@@ -3621,6 +3628,16 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
+    // Challenge mode: harder waves with extra enemies and 2× score
+    if (window._challengeMode) {
+      try {
+        Enemies.spawnSingle('ARMORED', { x: player.position.x + 20, z: player.position.z + 20 });
+        Enemies.spawnSingle('ARMORED', { x: player.position.x - 20, z: player.position.z + 20 });
+        Enemies.spawnSingle('STORMER', { x: player.position.x, z: player.position.z + 35 });
+      } catch(e) {}
+      window._challengeScoreMult = 2;
+      if (HUD.showToast) HUD.showToast('CHALLENGE WAVE — 2x SCORE', 3000, '#ff8800');
+    }
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -5451,7 +5468,7 @@ const GameManager = (function () {
       } catch (eUC) {}
       // Streak score multiplier: 3+ kills in chain = +10% per streak (capped at +150%)
       var _streakMult = 1 + Math.min(1.5, Math.max(0, player.killStreak - 1) * 0.1);
-      var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult);
+      var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult * (window._challengeScoreMult || 1));
       player.score += _scoreGain;
       // Show floating multiplier text when meaningful (>= x1.2)
       if (_streakMult >= 1.2 && typeof Feedback !== 'undefined' && Feedback.showStreakMult) {
@@ -6825,6 +6842,7 @@ const GameManager = (function () {
           var _list = Enemies.getAll();
           // Tighter cone when zoomed (precise) vs wider when hipfiring (forgiving)
           var _aimCos = (Weapons.isZoomed && Weapons.isZoomed()) ? 0.997 : 0.992;
+          var _aimEnemy = null;
           for (var _ti = 0; _ti < _list.length; _ti++) {
             var _en = _list[_ti];
             if (!_en || !_en.alive || !_en.mesh) continue;
@@ -6834,7 +6852,12 @@ const GameManager = (function () {
             var _dist = Math.sqrt(_dx*_dx + _dy*_dy + _dz*_dz);
             if (_dist < 1 || _dist > 120) continue;
             var _dot = (_dx*_camFwd.x + _dy*_camFwd.y + _dz*_camFwd.z) / _dist;
-            if (_dot > _aimCos) { _onTarget = true; _onTargetDist = _dist; break; }
+            if (_dot > _aimCos) { _onTarget = true; _onTargetDist = _dist; _aimEnemy = _en; break; }
+          }
+          // Tag enemy on aim (not just on shoot)
+          if (_aimEnemy && !_aimEnemy._tagged) {
+            _aimEnemy._tagged = true;
+            _aimEnemy._tagTimer = 8.0;
           }
           HUD.setCrosshairTarget(_onTarget);
           // Range readout: only show when zoomed AND on target (sniper info)
@@ -6861,6 +6884,14 @@ const GameManager = (function () {
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
         if (waveDone) onWaveComplete();
       });
+      // Decrement enemy tag timers
+      var _allTagged = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
+      for (var _tti = 0; _tti < _allTagged.length; _tti++) {
+        if (_allTagged[_tti]._tagTimer > 0) {
+          _allTagged[_tti]._tagTimer -= delta;
+          if (_allTagged[_tti]._tagTimer <= 0) _allTagged[_tti]._tagged = false;
+        }
+      }
       Pickups.update(delta, player.position, function (type, data) {
         AudioSystem.playPickup();
         MLSystem.onPickup();

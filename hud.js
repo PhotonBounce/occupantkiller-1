@@ -943,21 +943,34 @@ const HUD = (() => {
             ctx.lineWidth = 1.4;
             ctx.beginPath(); ctx.arc(mp.x, mp.y, r + 2 + _mmPulse * 1.5, 0, Math.PI * 2); ctx.stroke();
           }
-          ctx.fillStyle = col;
-          ctx.beginPath(); ctx.arc(mp.x, mp.y, r, 0, Math.PI * 2); ctx.fill();
-          // Facing tick
-          if (e.mesh && e.mesh.quaternion) {
-            try {
-              var fwdX = -Math.sin(e.mesh.rotation.y);
-              var fwdZ = -Math.cos(e.mesh.rotation.y);
-              // Apply same map-rotation as toMM
-              var fcos = Math.cos(pyaw), fsin = Math.sin(pyaw);
-              var rx = fwdX * fcos - fwdZ * fsin;
-              var ry = fwdX * fsin + fwdZ * fcos;
-              ctx.strokeStyle = col;
-              ctx.lineWidth = 1;
-              ctx.beginPath(); ctx.moveTo(mp.x, mp.y); ctx.lineTo(mp.x + rx * (r + 3), mp.y + ry * (r + 3)); ctx.stroke();
-            } catch (eFt) {}
+          if (e._tagged) {
+            // Orange diamond for tagged enemies
+            ctx.save();
+            ctx.translate(mp.x, mp.y);
+            ctx.rotate(Math.PI / 4);
+            ctx.fillStyle = '#ff8800';
+            ctx.fillRect(-3, -3, 6, 6);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(-3, -3, 6, 6);
+            ctx.restore();
+          } else {
+            ctx.fillStyle = col;
+            ctx.beginPath(); ctx.arc(mp.x, mp.y, r, 0, Math.PI * 2); ctx.fill();
+            // Facing tick
+            if (e.mesh && e.mesh.quaternion) {
+              try {
+                var fwdX = -Math.sin(e.mesh.rotation.y);
+                var fwdZ = -Math.cos(e.mesh.rotation.y);
+                // Apply same map-rotation as toMM
+                var fcos = Math.cos(pyaw), fsin = Math.sin(pyaw);
+                var rx = fwdX * fcos - fwdZ * fsin;
+                var ry = fwdX * fsin + fwdZ * fcos;
+                ctx.strokeStyle = col;
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(mp.x, mp.y); ctx.lineTo(mp.x + rx * (r + 3), mp.y + ry * (r + 3)); ctx.stroke();
+              } catch (eFt) {}
+            }
           }
         }
       }
