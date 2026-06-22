@@ -5575,6 +5575,7 @@ const Weapons = (() => {
     if (!unlocked[idx]) return;
     if (idx === currentIdx) return;
     if (zoomed) exitZoom();
+    _hideScopeOverlay(); // always hide scope overlay when switching weapons
     // Cancel reload on old weapon before switching
     var oldState = states[currentIdx];
     if (oldState && oldState.reloading) {
@@ -5658,12 +5659,14 @@ const Weapons = (() => {
     if (cur().type === 'MELEE') return; // no zoom on melee
     zoomed = true;
     _adsTarget = 1;
+    if (_isSniperWeapon()) _showScopeOverlay();
   }
 
   function exitZoom() {
     if (!_camera) return;
     zoomed = false;
     _adsTarget = 0;
+    _hideScopeOverlay();
   }
 
   function toggleFlashlight() {
@@ -7505,6 +7508,7 @@ const Weapons = (() => {
     handleRightUp,
     exitZoom,
     isZoomed,
+    isScopeActive: function() { return _scopeActive; },
     toggleFlashlight,
     setPlayerSpeed: function(s) { _playerSpeed = s; },
     setHoldBreath,
