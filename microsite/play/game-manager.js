@@ -1261,11 +1261,13 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.LootDrops) LootDrops.init(_scene);
         if (window.WaveEvents) WaveEvents.init(_scene);
         if (window.BountySystem) BountySystem.init(_scene);
         if (window.VehicleEnemies) VehicleEnemies.init(_scene);
         window._takeVehicleRamDamage = function(dmg) { onPlayerHit(dmg, null); };
         window._takeBTRDamage        = function(dmg) { onPlayerHit(dmg, null); };
+        window._takeDamageFromWaveEvent = function(dmg) { onPlayerHit(dmg, null); };
         if (window.Destructibles) Destructibles.init(_scene);
         if (window.StaminaSystem) StaminaSystem.init();
         if (window.Grapple) Grapple.init(_scene, _camera);
@@ -1547,9 +1549,10 @@ const GameManager = (function () {
     // Tactical minimap
     try { if (typeof Minimap !== 'undefined' && Minimap.init) Minimap.init(typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []); } catch (eMM) {}
 
-    // Birds + Mortar + Premium + Lottery + Gyro
+    // Birds + Mortar + MortarEmplacement + Premium + Lottery + Gyro
     try { if (window.Birds   && Birds.init)   Birds.init(_scene); } catch (e) {}
     try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, _controls); } catch (e) {}
+    try { if (window.MortarEmplacement && MortarEmplacement.init) MortarEmplacement.init(_scene, _camera); } catch (e) {}
     try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, _controls); } catch (e) {}
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
@@ -1557,6 +1560,9 @@ const GameManager = (function () {
     try { if (window.LevelBriefing && LevelBriefing.init) LevelBriefing.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
     if (typeof EnemyChatter !== 'undefined' && _camera) EnemyChatter.init(_camera);
+    try { if (window.DamageNumbers) DamageNumbers.init(_scene, _camera); } catch (e) {}
+    // Companion radio tactical chatter
+    try { if (window.CompanionRadio && CompanionRadio.init) CompanionRadio.init(); } catch (eCR) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -2159,9 +2165,16 @@ const GameManager = (function () {
           }
         }
 
-        // Ping/mark system (M key) / Minimap toggle (Shift+M or M)
+        // M key — MortarEmplacement deploy/undeploy (no shift), else Ping/Minimap
         if (e.code === 'KeyM' && gameState === STATE.PLAYING) {
-          if (e.shiftKey) {
+          if (!e.shiftKey && window.MortarEmplacement) {
+            // Toggle mortar emplacement
+            if (MortarEmplacement.isDeployed()) {
+              MortarEmplacement.undeploy();
+            } else {
+              MortarEmplacement.deploy(player.position, _camera);
+            }
+          } else if (e.shiftKey) {
             // Shift+M: toggle tactical minimap
             if (typeof Minimap !== 'undefined' && Minimap.toggle) {
               Minimap.toggle();
@@ -3389,6 +3402,8 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.WaveEvents) WaveEvents.reset();
+    if (window.MortarEmplacement && MortarEmplacement.reset) MortarEmplacement.reset();
     if (window.BountySystem) BountySystem.reset();
     if (window.Destructibles) Destructibles.reset();
     if (window.VehicleEnemies) VehicleEnemies.reset();
@@ -3717,6 +3732,7 @@ const GameManager = (function () {
     if (window.Grapple) Grapple.clear();
     if (window.SpecialGrenades) SpecialGrenades.clear();
     if (window.BloodEffects) BloodEffects.clear();
+    if (window.DamageNumbers) DamageNumbers.clear();
     if (window.ClaymoreMines) ClaymoreMines.clear();
     if (window.RadioSupport) RadioSupport.clear();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
@@ -4154,6 +4170,8 @@ const GameManager = (function () {
     if (currentWave >= 3 && Math.random() < 0.25 && typeof WeatherEvents !== 'undefined') {
       WeatherEvents.triggerRandom();
     }
+    // Random mid-wave events — trigger 'start' phase
+    if (window.WaveEvents) WaveEvents.triggerRandom(currentWave, 'start');
     // Show recommended weapons hint on wave 1 if stage defines them
     if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
       HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
@@ -6054,9 +6072,11 @@ const GameManager = (function () {
       baseDmg = Math.round(baseDmg * ammoMods.dmgMult);
     }
     // Dead eye crit check
+    var isCrit = false;
     if (typeof Perks !== 'undefined' && Perks.isDeadEyeShot()) {
       baseDmg = Math.round(baseDmg * Perks.getDeadEyeMult());
       HUD.notifyPickup('🎯 DEAD EYE CRIT!', '#ff4400');
+      isCrit = true;
     }
     // Prestige damage bonus
     if (typeof Progression !== 'undefined') {
@@ -6098,6 +6118,10 @@ const GameManager = (function () {
       var _sx = (_dmgPos.x * 0.5 + 0.5) * window.innerWidth;
       var _sy = (-_dmgPos.y * 0.5 + 0.5) * window.innerHeight;
       HUD.showDamageNumber(_sx, _sy, dmg, isHeadshot);
+    }
+    // DamageNumbers: 3D-projected floating damage numbers above enemy head
+    if (window.DamageNumbers && enemy && enemy.mesh) {
+      DamageNumbers.spawnNumber(enemy.mesh.position, dmg, isHeadshot, isCrit);
     }
 
     SkillSystem.onShoot(true, isHeadshot);
@@ -8170,14 +8194,17 @@ const GameManager = (function () {
       // Update tracers
       if (typeof Tracers !== 'undefined') Tracers.update(delta, player.position);
       if (typeof EnemyChatter !== 'undefined') EnemyChatter.update();
+      if (window.CompanionRadio && CompanionRadio.update) CompanionRadio.update(delta);
       if (typeof StageVFX !== 'undefined') StageVFX.update(delta);
       if (typeof Flags !== 'undefined' && Flags.update) Flags.update(delta);
       if (typeof Environment !== 'undefined' && Environment.update) Environment.update(delta);
-      // Birds / Mortar / Gyro per-frame
+      // Birds / Mortar / MortarEmplacement / Gyro per-frame
       try { if (window.Birds   && Birds.update)   Birds.update(delta); } catch (eBU) {}
       try { if (window.Mortar  && Mortar.update)  Mortar.update(delta); } catch (eMU) {}
+      try { if (window.MortarEmplacement && MortarEmplacement.update) MortarEmplacement.update(delta, typeof Enemies !== 'undefined' ? Enemies.getAll() : []); } catch (eMEU) {}
       try { if (window.Bradley && Bradley.update) Bradley.update(delta); } catch (eBV) {}
       try { if (window.Gyro    && Gyro.update)    Gyro.update(delta); } catch (eGU) {}
+      try { if (window.DamageNumbers) DamageNumbers.update(delta); } catch (eDNU) {}
 
       // ═══ NEW FEATURE SYSTEM UPDATES (59 features) ═══
 
