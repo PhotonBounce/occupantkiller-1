@@ -138,6 +138,7 @@ window.Leaderboard = (function() {
       { title: '🚁 DRONES & VEHICLES', keys: [
         ['F', 'Enter/exit vehicle'],
         ['E', 'Possess drone'],
+        ['Shift+C', 'Deploy Companion Drone'],
         ['Shift+W', 'Cycle weather (clear/rain/snow/fog)'],
       ]},
       { title: '🌟 SPECIAL FEATURES', keys: [

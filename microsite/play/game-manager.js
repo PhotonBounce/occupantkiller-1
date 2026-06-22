@@ -1274,6 +1274,8 @@ const GameManager = (function () {
     // isn't sliced open by near-clipping (player was seeing inside the guns).
     _camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.02, isMobile ? 140 : 200);
 
+    if (typeof CompanionDrone !== 'undefined') CompanionDrone.init(_scene, _camera);
+
     // Lighting — Ukrainian theme
     ambLight = new THREE.AmbientLight(0x888866, 0.8);
     if (_scene) _scene.add(ambLight);
@@ -1945,12 +1947,23 @@ const GameManager = (function () {
         }
 
         // Cycle ammo type (C key)
-        if (e.code === 'KeyC') {
+        if (e.code === 'KeyC' && !e.shiftKey) {
           if (typeof CombatExtras !== 'undefined') {
             var ammoInfo = CombatExtras.cycleAmmoType();
             HUD.notifyPickup('🔄 AMMO: ' + ammoInfo.name, '#' + ammoInfo.color.toString(16).padStart(6, '0'));
             var ammoIndicator = document.getElementById('ammo-type-indicator');
             if (ammoIndicator) ammoIndicator.textContent = ammoInfo.name.toUpperCase();
+          }
+        }
+
+        // Companion drone toggle (Shift+C)
+        if (e.code === 'KeyC' && e.shiftKey) {
+          if (typeof CompanionDrone !== 'undefined') {
+            if (CompanionDrone.isActive()) {
+              CompanionDrone.recall();
+            } else {
+              CompanionDrone.deploy(player.position);
+            }
           }
         }
 
@@ -7168,6 +7181,12 @@ const GameManager = (function () {
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
         if (waveDone) onWaveComplete();
       });
+      if (typeof CompanionDrone !== 'undefined' && CompanionDrone.isActive()) {
+        var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
+        CompanionDrone.update(delta, player.position, _allEnemies);
+      } else if (typeof CompanionDrone !== 'undefined') {
+        CompanionDrone.update(delta, player.position, []);
+      }
       // Check if any enemy stepped on a landmine
       if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
         var _mineEnemies = Enemies.getAll();
