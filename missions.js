@@ -67,7 +67,7 @@ const MissionSystem = (function () {
                       } catch (eS) {}
                     }
                   }
-                  // Auto-spawn the Bradley right next to the player and announce
+                  // Auto-spawn the Bradley right next to the player and auto-mount
                   try {
                     if (typeof Bradley !== 'undefined' && Bradley.spawnAt) {
                       var bx = playerPos.x + 4;
@@ -75,10 +75,14 @@ const MissionSystem = (function () {
                       var by = 0;
                       try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) by = VoxelWorld.getTerrainHeight(bx, bz) || 0; } catch (e3) {}
                       Bradley.spawnAt(new THREE.Vector3(bx, by, bz));
+                      // Auto-mount: player starts already in the Bradley
+                      setTimeout(function() {
+                        try { if (typeof Bradley !== 'undefined' && Bradley.enter) Bradley.enter(); } catch (eAE) {}
+                      }, 800);
                     }
-                    if (typeof HUD !== 'undefined' && HUD.showToast) {
-                      HUD.showToast('🚛 BRADLEY SPAWNED — Press G to mount. M242 Bushmaster 25mm + M240 coax.', 5000, '#a0c878');
-                    }
+                    setTimeout(function() {
+                      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F52D} Press V to toggle First/Third Person turret view', 4000, '#a0c878'); } catch (e) {}
+                    }, 1500);
                   } catch (eBR) {}
                 } catch (eAll) {}
                 return {

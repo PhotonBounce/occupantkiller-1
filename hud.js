@@ -236,7 +236,9 @@ const HUD = (() => {
   function hide() { el.hud.style.display = 'none'; }
 
   function setScore(v)   {
-    el.score.textContent   = 'SCORE: '   + v;
+    var scoreText = 'SCORE: ' + v;
+    if (window._prestigeLevel > 0) { scoreText += ' ' + '⭐'.repeat(Math.min(window._prestigeLevel, 5)); }
+    el.score.textContent   = scoreText;
     // Brief pulse-pop when score updates
     el.score.style.transition = 'none';
     el.score.style.transform = 'scale(1.18)';
@@ -2038,7 +2040,21 @@ const HUD = (() => {
     showNPCText, _updateNPCTextPositions,
     // ── Targeting Assistant ──
     updateTargetAssist,
+    // ── NVG Indicator ──
+    updateNvgIndicator,
   };
+
+  function updateNvgIndicator() {
+    var badge = document.getElementById('nvg-indicator');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'nvg-indicator';
+      badge.textContent = 'NVG';
+      badge.style.cssText = 'position:fixed;top:12px;right:120px;background:#00cc44;color:#000;font-family:monospace;font-size:13px;font-weight:bold;padding:3px 8px;border-radius:3px;z-index:9000;display:none;letter-spacing:2px;';
+      document.body.appendChild(badge);
+    }
+    badge.style.display = window._nvgActive ? 'block' : 'none';
+  }
 })();
 
 if (typeof window !== 'undefined') window.HUD = HUD;

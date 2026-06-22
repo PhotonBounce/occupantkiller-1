@@ -338,7 +338,9 @@ const CameraSystem = (function () {
       // lens/body doesn't fill the centre of the screen.
       if (_droneObj.visible) _droneObj.visible = false;
       _camera.position.copy(_droneObj.position);
-      const euler = _tmpEuler.set(pitch, yaw, 0, 'YXZ');
+      // Apply drone's bank roll to camera for authentic FPV tilt feel
+      var fpvRoll = (_droneObj.userData && _droneObj.userData.fpvRoll) ? -_droneObj.userData.fpvRoll * 0.35 : 0;
+      const euler = _tmpEuler.set(pitch, yaw, fpvRoll, 'YXZ');
       _camera.quaternion.setFromEuler(euler);
     }
   }

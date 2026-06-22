@@ -105,6 +105,15 @@ const GameManager = (function () {
   var _musicIntTimer = 0; // throttle music intensity calc
   var _buildMatHud = null; // cached DOM ref for build materials HUD
 
+  // ── Muzzle flash PointLight — scene-space burst on every shot (Task 2) ──
+  var _muzzleFlash = null;
+
+  // ── Weapon idle sway time accumulator (Task 1) ────────────────────────
+  var _swayTime = 0;
+
+  // ── Sniper scope overlay DOM element (Task 3) ─────────────────────────
+  var _gmScopeEl = null;
+
   // Footstep dust puffs (visible when sprinting)
   var _footstepPuffs = [];
   var _footstepPuffGeo = null;
@@ -152,6 +161,43 @@ const GameManager = (function () {
       }
     }
   }
+  // ── Muzzle flash PointLight: burst of warm light at barrel tip ──────
+  function doMuzzleFlash() {
+    if (!_muzzleFlash && typeof THREE !== 'undefined' && _scene) {
+      _muzzleFlash = new THREE.PointLight(0xffffaa, 8, 4);
+      _scene.add(_muzzleFlash);
+    }
+    if (_muzzleFlash && _camera) {
+      _muzzleFlash.intensity = 8;
+      _muzzleFlash.position.copy(_camera.position);
+      var _mfDir = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
+      _muzzleFlash.position.addScaledVector(_mfDir, 1.2);
+      setTimeout(function() { if (_muzzleFlash) _muzzleFlash.intensity = 0; }, 40);
+    }
+  }
+
+  // ── Scope overlay: create SVG vignette+crosshair for sniper rifles ───
+  function _gmCreateScopeOverlay() {
+    var existing = document.getElementById('scope-overlay');
+    if (existing) { _gmScopeEl = existing; return; }
+    var scopeEl = document.createElement('div');
+    scopeEl.id = 'scope-overlay';
+    scopeEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;display:none;';
+    scopeEl.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<defs><radialGradient id="sg" cx="50%" cy="50%" r="45%"><stop offset="40%" stop-color="transparent"/><stop offset="80%" stop-color="rgba(0,0,0,0.7)"/><stop offset="100%" stop-color="rgba(0,0,0,0.95)"/></radialGradient></defs>' +
+      '<rect width="100" height="100" fill="url(#sg)"/>' +
+      '<line x1="50" y1="0" x2="50" y2="100" stroke="rgba(0,255,0,0.7)" stroke-width="0.2"/>' +
+      '<line x1="0" y1="50" x2="100" y2="50" stroke="rgba(0,255,0,0.7)" stroke-width="0.2"/>' +
+      '<circle cx="50" cy="50" r="0.4" fill="rgba(0,255,0,0.9)"/>' +
+      '<line x1="50" y1="40" x2="50" y2="38" stroke="rgba(0,255,0,0.6)" stroke-width="0.3"/>' +
+      '<line x1="50" y1="60" x2="50" y2="62" stroke="rgba(0,255,0,0.6)" stroke-width="0.3"/>' +
+      '<line x1="40" y1="50" x2="38" y2="50" stroke="rgba(0,255,0,0.6)" stroke-width="0.3"/>' +
+      '<line x1="60" y1="50" x2="62" y2="50" stroke="rgba(0,255,0,0.6)" stroke-width="0.3"/>' +
+      '</svg>';
+    document.body.appendChild(scopeEl);
+    _gmScopeEl = scopeEl;
+  }
+
   // ── Threat-behind warning glow ───────────────────────────────────
   var _threatEl = null;
   var _threatOpacity = 0;
@@ -191,6 +237,11 @@ const GameManager = (function () {
   var _domHeatBar = null, _domOverheat = null, _domMaint = null;
   var _domSwim = null, _domBreathContainer = null, _domBreathBar = null;
   var _domMantle = null;
+
+  /* ── Prestige State ─────────────────────────────────────────────── */
+  window._prestigeLevel = parseInt(localStorage.getItem('okk_prestige') || '0');
+  window._prestigeScoreMult = 1 + (window._prestigeLevel * 0.25);
+  window._prestigeFireRate = 1 + (window._prestigeLevel * 0.05);
 
   /* ── Player State ────────────────────────────────────────────────── */
   const GOD_MODE_HP = 999999;
@@ -893,6 +944,9 @@ const GameManager = (function () {
   var _currentFOV = 75;
   var _targetFOV = 75;
   var _killFovKick = 0; // additive FOV bump on kill, decays
+  var _killStreak = 0;
+  var _killStreakTimer = 0;
+  var _killStreakMult = 1;
 
   /* ── Physics Constants ───────────────────────────────────────────── */
   const MOVE_SPEED   = 6.0;
@@ -1356,6 +1410,7 @@ const GameManager = (function () {
     // Audio, Weather & ML systems
     _safeInit('audio', function () { if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init(); });
     _safeInit('weather', function () { if (WeatherSystem && typeof WeatherSystem.init === 'function') WeatherSystem.init(_scene, _camera); });
+    _safeInit('weather-particles', function () { if (typeof Weather !== 'undefined' && Weather.init && _scene) { Weather.init(_scene, _camera); } });
     _safeInit('ml', function () { if (MLSystem && typeof MLSystem.init === 'function') MLSystem.init(); });
     _safeInit('stagevfx', function () { if (typeof StageVFX !== 'undefined' && StageVFX && typeof StageVFX.init === 'function') StageVFX.init(_scene); });
     _safeInit('flags', function () {
@@ -1403,6 +1458,12 @@ const GameManager = (function () {
     });
     Weapons.setOnTerrainShot(function (x, y, z, blockType) {
       onTerrainDestroyed(x, y, z, blockType);
+      // ── Fuel Barrel explosion: shooting a barrel triggers chain detonation ──
+      if (blockType === 12) {
+        _barrelExplosionDepth = 0;
+        detonateBarrel(x, y, z);
+        return;
+      }
       // ── B29: Destructible environment — explosive weapons destroy blocks ──
       var wType = Weapons.getCurrentType();
       var isExpl = ['AT', 'ATGM', 'AT_HEAVY', 'AT_LIGHT', 'GRENADE', 'INCENDIARY', 'THERMOBARIC'].indexOf(wType) >= 0;
@@ -1798,8 +1859,20 @@ const GameManager = (function () {
           }
         }
 
+        // Night Vision Goggles toggle (Shift+N)
+        if (e.code === 'KeyN' && e.shiftKey) {
+          window._nvgActive = !window._nvgActive;
+          var _nvgCanvas = document.getElementById('c') || document.querySelector('canvas');
+          if (_nvgCanvas) {
+            _nvgCanvas.style.filter = window._nvgActive ? 'brightness(0.3) contrast(3) hue-rotate(100deg) saturate(5) sepia(0.8)' : '';
+          }
+          if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+            HUD.notifyPickup(window._nvgActive ? '🟢 NVG ON' : 'NVG OFF', window._nvgActive ? '#00ff44' : '#888888');
+          }
+        }
+
         // Airdrop beacon
-        if (e.code === 'KeyN' && player.airdropCooldown <= 0) {
+        if (e.code === 'KeyN' && !e.shiftKey && player.airdropCooldown <= 0) {
           player.airdropCooldown = 45; // 45 second cooldown
           HUD.notifyPickup('📦 AIRDROP BEACON DEPLOYED!', '#44ff88');
           setTimeout(function () {
@@ -1926,6 +1999,15 @@ const GameManager = (function () {
               perksMenu.style.display = 'none';
             }
           }
+        }
+
+        // Weather cycle (Shift+W)
+        if (e.code === 'KeyW' && e.shiftKey) {
+          var weathers = ['clear', 'rain', 'snow', 'fog', 'sandstorm'];
+          var cur = (typeof Weather !== 'undefined') ? Weather.getCurrent() : 'clear';
+          var nextIdx = (weathers.indexOf(cur) + 1) % weathers.length;
+          if (typeof Weather !== 'undefined') Weather.setWeather(weathers[nextIdx]);
+          if (typeof HUD !== 'undefined' && HUD.notify) HUD.notify('🌦 Weather: ' + weathers[nextIdx].toUpperCase());
         }
 
         // War journal (Y key)
@@ -3392,18 +3474,49 @@ const GameManager = (function () {
 
   function getCurrentStage() { return STAGES[currentStage]; }
 
+  function showPrestigePrompt() {
+    var overlay = document.createElement('div');
+    overlay.id = 'prestige-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;color:#FFD700;';
+    var prestigeBonus = Math.round((window._prestigeLevel + 1) * 25);
+    overlay.innerHTML = '<h1 style="font-size:3em;margin:0 0 20px 0;">&#11088; PRESTIGE AVAILABLE &#11088;</h1>' +
+      '<p style="font-size:1.4em;color:#fff;margin:0 0 10px 0;">You completed all ' + STAGES.length + ' missions.</p>' +
+      '<p style="font-size:1.2em;color:#aaa;margin:0 0 30px 0;">Prestige level: <b style="color:#FFD700">' + window._prestigeLevel + '</b></p>' +
+      '<p style="font-size:1.1em;color:#7CFC00;margin:0 0 40px 0;">Prestige now &rarr; +' + prestigeBonus + '% permanent score bonus + 5% fire rate</p>' +
+      '<div style="display:flex;gap:20px;">' +
+      '<button id="prestige-yes" style="padding:15px 40px;font-size:1.3em;background:#FFD700;color:#000;border:none;cursor:pointer;border-radius:4px;">PRESTIGE NOW</button>' +
+      '<button id="prestige-no" style="padding:15px 40px;font-size:1.3em;background:#555;color:#fff;border:none;cursor:pointer;border-radius:4px;">Keep Playing</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    document.getElementById('prestige-yes').onclick = function() {
+      window._prestigeLevel++;
+      localStorage.setItem('okk_prestige', String(window._prestigeLevel));
+      window._prestigeScoreMult = 1 + (window._prestigeLevel * 0.25);
+      window._prestigeFireRate = 1 + (window._prestigeLevel * 0.05);
+      document.body.removeChild(overlay);
+      // Restart from level 0
+      currentStage = 0;
+      currentWave = 0;
+      startLevel();
+    };
+    document.getElementById('prestige-no').onclick = function() {
+      document.body.removeChild(overlay);
+    };
+  }
+
   function nextStage() {
     hideOverlays();
     if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
     try {
     currentStage++;
     if (currentStage >= STAGES.length) {
-      // All stages done — win!
+      // All stages done — win! Show prestige prompt then win screen.
       gameState = STATE.WIN;
       showOverlay('win');
       var _ws = document.getElementById('win-score');  if (_ws) _ws.textContent = player.score;
       var _wk = document.getElementById('win-kills');  if (_wk) _wk.textContent = player.kills;
       var _wst = document.getElementById('win-stages'); if (_wst) _wst.textContent = STAGES.length;
+      showPrestigePrompt();
       return;
     }
 
@@ -5331,6 +5444,8 @@ const GameManager = (function () {
             CameraSystem.shake(0.02, 0.1);
           }
         }
+        // ── Muzzle flash PointLight burst in world-space (Task 2) ──
+        doMuzzleFlash();
       }
       mouseNewPress = false;
     }
@@ -5451,8 +5566,18 @@ const GameManager = (function () {
       } catch (eUC) {}
       // Streak score multiplier: 3+ kills in chain = +10% per streak (capped at +150%)
       var _streakMult = 1 + Math.min(1.5, Math.max(0, player.killStreak - 1) * 0.1);
-      var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult);
+      var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult * _killStreakMult * (window._prestigeScoreMult || 1));
       player.score += _scoreGain;
+      _killStreak++;
+      _killStreakTimer = 5.0;
+      var _streakNames = ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE', 'UNSTOPPABLE', 'GODLIKE'];
+      var _streakName = _streakNames[Math.min(_killStreak, _streakNames.length - 1)] || 'MASSACRE';
+      if (_killStreak >= 2) {
+        _killStreakMult = 1 + (_killStreak * 0.1);
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+          HUD.notifyPickup('🔥 ' + _streakName + '! ×' + _killStreakMult.toFixed(1), '#ff8800');
+        }
+      }
       // Show floating multiplier text when meaningful (>= x1.2)
       if (_streakMult >= 1.2 && typeof Feedback !== 'undefined' && Feedback.showStreakMult) {
         try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
@@ -5845,6 +5970,66 @@ const GameManager = (function () {
         Tracers.spawnExplosion(vehicle.position, 3);
       }
     }
+  }
+
+  var _barrelExplosionDepth = 0;
+  function detonateBarrel(bx, by, bz) {
+    if (_barrelExplosionDepth > 3) return;
+    _barrelExplosionDepth++;
+    try {
+      // Remove barrel
+      if (typeof VoxelWorld !== 'undefined' && VoxelWorld.setBlock) {
+        VoxelWorld.setBlock(bx, by, bz, 0); // AIR
+        VoxelWorld.setBlock(bx, by + 1, bz, 0); // clear above
+      }
+      // Explosion visual
+      var exPos = new THREE.Vector3(bx + 0.5, by + 0.5, bz + 0.5);
+      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+        Tracers.spawnExplosion(exPos, 2.5);
+      }
+      // Damage enemies in radius
+      if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+        var enemies = Enemies.getAll();
+        for (var ei = 0; ei < enemies.length; ei++) {
+          var ep = enemies[ei].position || (enemies[ei].mesh && enemies[ei].mesh.position);
+          if (!ep) continue;
+          var dx = ep.x - exPos.x, dy = ep.y - exPos.y, dz = ep.z - exPos.z;
+          var dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          if (dist < 6) {
+            var dmg = Math.round(120 * (1 - dist / 6));
+            if (Enemies.damage) Enemies.damage(enemies[ei], dmg, false, 'explosion');
+          }
+        }
+      }
+      // Chain reaction — check nearby barrels
+      for (var cx = bx - 4; cx <= bx + 4; cx++) {
+        for (var cy = by - 2; cy <= by + 2; cy++) {
+          for (var cz = bz - 4; cz <= bz + 4; cz++) {
+            if (cx === bx && cy === by && cz === bz) continue;
+            if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getBlock && VoxelWorld.getBlock(cx, cy, cz) === 12) {
+              var chainDist = Math.sqrt((cx-bx)*(cx-bx) + (cy-by)*(cy-by) + (cz-bz)*(cz-bz));
+              if (chainDist <= 4) {
+                setTimeout(function(x,y,z){ detonateBarrel(x,y,z); }.bind(null,cx,cy,cz), 150 + Math.random()*200);
+              }
+            }
+          }
+        }
+      }
+      if (typeof HUD !== 'undefined' && HUD.notifyPickup && _barrelExplosionDepth === 1) {
+        HUD.notifyPickup('💥 BARREL EXPLODED!', '#ff8800');
+      }
+      // Damage player if too close
+      if (typeof player !== 'undefined' && player.position) {
+        var pdx = player.position.x - exPos.x, pdy = player.position.y - exPos.y, pdz = player.position.z - exPos.z;
+        var pDist = Math.sqrt(pdx*pdx + pdy*pdy + pdz*pdz);
+        if (pDist < 5) {
+          var pDmg = Math.round(80 * (1 - pDist / 5));
+          player.hp = Math.max(0, player.hp - pDmg);
+          if (typeof HUD !== 'undefined' && HUD.flashDamage) HUD.flashDamage(pDmg);
+        }
+      }
+    } catch(e) {}
+    setTimeout(function() { if (_barrelExplosionDepth > 0) _barrelExplosionDepth = Math.max(0, _barrelExplosionDepth - 1); }, 500);
   }
 
   function onPlayerHit(dmg, attackerPos) {
@@ -6798,6 +6983,24 @@ const GameManager = (function () {
       if (Weapons.setHolstered) Weapons.setHolstered(DroneSystem.isPossessing() || VehicleSystem.isInVehicle());
       Weapons.update(delta);
 
+      // ── Task 1: Weapon idle sway — breathing motion accumulated in GM ────────
+      // _swayTime drives the breathing cycle; Weapons.js uses setPlayerSpeed to
+      // modulate walk sway; this accumulates the phase for any additional overlay.
+      var _isMoving = (Math.abs(player.velocity.x) > 0.1 || Math.abs(player.velocity.z) > 0.1);
+      var _swayFreq = _isMoving ? 8.0 : 1.5;
+      _swayTime += delta * _swayFreq;
+
+      // ── Task 3: Sniper scope overlay — show when zoomed with SNIPER/AMR ─────
+      try {
+        if (!_gmScopeEl) _gmCreateScopeOverlay();
+        if (_gmScopeEl && typeof Weapons !== 'undefined' && Weapons.isZoomed && Weapons.getCurrentType) {
+          var _curType = Weapons.getCurrentType();
+          var _isSniperWep = (_curType === 'SNIPER' || _curType === 'AMR');
+          var _shouldShowScope = Weapons.isZoomed() && _isSniperWep;
+          _gmScopeEl.style.display = _shouldShowScope ? 'block' : 'none';
+        }
+      } catch (eSc) {}
+
       // ── Dynamic crosshair spread: widens with movement, sprint, jump, recent fire ──
       try {
         var _chSpread = 0;
@@ -6857,6 +7060,11 @@ const GameManager = (function () {
       }
       // Decay kill FOV kick (~0.4s ease-back)
       if (_killFovKick > 0) _killFovKick = Math.max(0, _killFovKick - delta * 8);
+      // Decay kill streak timer
+      if (_killStreakTimer > 0) {
+        _killStreakTimer -= delta;
+        if (_killStreakTimer <= 0) { _killStreak = 0; _killStreakMult = 1; }
+      }
 
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
         if (waveDone) onWaveComplete();
@@ -6932,6 +7140,7 @@ const GameManager = (function () {
         HUD._updateNPCTextPositions(NPCSystem.getAll(), _camera, _renderer);
       }
       DroneSystem.update(delta);
+      if (typeof Weather !== 'undefined' && Weather.update) { Weather.update(delta, _camera ? _camera.position : null); }
       // Recon mission: check if possessed drone is near a scout target
       if (typeof MissionSystem !== 'undefined' && MissionSystem.onDroneScout && DroneSystem.getPossessed) {
         var _posDrone = DroneSystem.getPossessed();
