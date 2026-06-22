@@ -2816,6 +2816,117 @@ const Enemies = (() => {
         e.mesh.position.y = (window.VoxelWorld.getTopSolidY ? window.VoxelWorld.getTopSolidY(e.mesh.position.x, e.mesh.position.z) : window.VoxelWorld.getTerrainHeight(e.mesh.position.x, e.mesh.position.z) + 1);
       }
 
+      // ── Patrol route AI ──────────────────────────────────────
+      // Enemies without a detected player follow defined patrol paths.
+      // On spotting the player they transition through 'suspicious' then 'combat'.
+      if (e._patrolState !== 'combat' && !e._detectedPlayer) {
+        // Compute distance and forward-arc to player for detection checks
+        var _pdx = playerPos.x - e.mesh.position.x;
+        var _pdz = playerPos.z - e.mesh.position.z;
+        var _pDist = Math.sqrt(_pdx * _pdx + _pdz * _pdz);
+
+        // Extended detection range when shots fired nearby
+        var _patrolDetectRange = 18;
+        if (window._shotFiredPos) {
+          var _sfx = window._shotFiredPos.x - e.mesh.position.x;
+          var _sfz = window._shotFiredPos.z - e.mesh.position.z;
+          var _sfDist = Math.sqrt(_sfx * _sfx + _sfz * _sfz);
+          if (_sfDist < 20) _patrolDetectRange = 30;
+        }
+
+        // Check 120deg forward arc: dot product of facing direction vs dir-to-player
+        var _facingX = Math.sin(e.mesh.rotation.y);
+        var _facingZ = Math.cos(e.mesh.rotation.y);
+        var _pDistInv = _pDist > 0.001 ? 1 / _pDist : 0;
+        var _dotToPlayer = (_facingX * _pdx + _facingZ * _pdz) * _pDistInv;
+        // cos(60deg) = 0.5 => dot > 0.5 means within 120deg arc (60deg each side)
+        var _inFrontArc = _dotToPlayer > 0.5;
+        var _inDetectRange = _pDist < _patrolDetectRange;
+
+        // Update suspicious/detection logic
+        if (_inDetectRange && _inFrontArc && !_playerStealth) {
+          e._suspiciousTimer = (e._suspiciousTimer || 0) + delta;
+          // Show "?" sprite during suspicious state
+          if (e._suspIcon) e._suspIcon.visible = true;
+          if (e.alertIcon) e.alertIcon.visible = false;
+          // Head tilt slightly toward player for suspicious look
+          if (e.mesh) e.mesh.rotation.x = Math.min(0.15, e._suspiciousTimer * 0.1);
+
+          if (e._suspiciousTimer >= 1.5) {
+            // Alert! Transition to combat
+            e._patrolState = 'combat';
+            e._detectedPlayer = true;
+            // Replace "?" with "!" sprite
+            if (e._suspIcon) e._suspIcon.visible = false;
+            if (e.alertIcon) e.alertIcon.visible = true;
+            // Reset head tilt
+            if (e.mesh) e.mesh.rotation.x = 0;
+            // Play alert SFX if available
+            if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playEnemyAlert) {
+              var _alertNowP = performance.now();
+              if (!_lastAlertTime || _alertNowP - _lastAlertTime > 1200) {
+                window.AudioSystem.playEnemyAlert();
+                _lastAlertTime = _alertNowP;
+              }
+            }
+            spawnBarkText(e.mesh.position, 'spotted');
+            _alertNearbyAllies(e, enemies);
+          }
+        } else {
+          // Player moved out of arc or range -- reset suspicious timer
+          if (e._suspiciousTimer > 0) {
+            e._suspiciousTimer = Math.max(0, e._suspiciousTimer - delta * 2);
+            if (e._suspiciousTimer <= 0) {
+              if (e._suspIcon) e._suspIcon.visible = false;
+              if (e.mesh) e.mesh.rotation.x = 0;
+            }
+          }
+        }
+
+        // Patrol movement: move toward current waypoint
+        if (e._patrolState === 'patrol' && e._patrolRoute && e._patrolRoute.length > 0) {
+          var _wp = e._patrolRoute[e._patrolIndex];
+          var _wdx = _wp.x - e.mesh.position.x;
+          var _wdz = _wp.z - e.mesh.position.z;
+          var _wDist = Math.sqrt(_wdx * _wdx + _wdz * _wdz);
+          if (_wDist < 0.8) {
+            // Arrived at waypoint -- pause then advance
+            e._patrolPause = (e._patrolPause || 0) + delta;
+            if (e._patrolPause >= 1.5) {
+              e._patrolPause = 0;
+              e._patrolIndex = (e._patrolIndex + 1) % e._patrolRoute.length;
+            }
+          } else {
+            // Slow patrol walk toward waypoint
+            var _patrolSpeed = 1.8;
+            if (e._suspiciousTimer > 0) _patrolSpeed = 0.8; // slow when suspicious
+            e.mesh.position.x += (_wdx / _wDist) * _patrolSpeed * delta;
+            e.mesh.position.z += (_wdz / _wDist) * _patrolSpeed * delta;
+            e.mesh.lookAt(new THREE.Vector3(_wp.x, e.mesh.position.y, _wp.z));
+            e.mesh.rotation.y += Math.PI; // face forward
+            // Subtle leg animation while patrolling
+            e.legAngle += e.legDir * (_patrolSpeed / 2.2) * 4 * delta;
+            if (Math.abs(e.legAngle) > 0.45) e.legDir *= -1;
+            var _pParts = e.mesh.userData.parts;
+            if (_pParts) {
+              if (_pParts[3]) _pParts[3].rotation.x =  e.legAngle;
+              if (_pParts[4]) _pParts[4].rotation.x = -e.legAngle;
+              if (_pParts[5]) _pParts[5].rotation.x = -e.legAngle * 0.5;
+              if (_pParts[6]) _pParts[6].rotation.x =  e.legAngle * 0.5;
+            }
+          }
+          // Update HP bar during patrol
+          updateHpBar(e, playerPos);
+          continue; // skip remainder of combat AI while patrolling
+        }
+      }
+
+      // Sync patrol combat state to playerSpotted so existing combat AI fires
+      if (e._detectedPlayer) {
+        e.playerSpotted = true;
+        e.spotLevel = SPOT_TIME + 0.5;
+      }
+
       // ── Detection system: enemies must spot the player ──
       const dirToPlayer = _tmpVec3
         .subVectors(playerPos, e.mesh.position).setY(0);
@@ -2908,6 +3019,13 @@ const Enemies = (() => {
         }
         if (!e.playerSpotted) triggerBark(e, 'attack');
         e.playerSpotted = true;
+        // If shot while patrolling, immediately enter combat
+        if (e._patrolState !== 'combat') {
+          e._patrolState = 'combat';
+          e._detectedPlayer = true;
+          if (e._suspIcon) e._suspIcon.visible = false;
+          if (e.mesh) e.mesh.rotation.x = 0;
+        }
       }
 
       // Alert icon visibility
