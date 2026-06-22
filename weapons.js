@@ -6492,6 +6492,36 @@ const Weapons = (() => {
     // Projectiles
     updateProjectiles(delta);
 
+    // Update explosion radius flashes
+    for (let ei = _explosionFlashes.length - 1; ei >= 0; ei--) {
+      const exp = _explosionFlashes[ei];
+      exp.startTime += delta;
+      const progress = exp.startTime / exp.duration;
+      if (progress >= 1.0) {
+        if (exp.flash && _scene) {
+          _scene.remove(exp.flash);
+          if (exp.flash.geometry) exp.flash.geometry.dispose();
+          if (exp.flash.material) exp.flash.material.dispose();
+        }
+        if (exp.radius && _scene) {
+          _scene.remove(exp.radius);
+          if (exp.radius.geometry) exp.radius.geometry.dispose();
+          if (exp.radius.material) exp.radius.material.dispose();
+        }
+        _explosionFlashes.splice(ei, 1);
+      } else {
+        // Animate central flash: expand and fade
+        if (exp.flash) {
+          exp.flash.material.opacity = Math.max(0, 0.9 * (1.0 - progress * 1.5));
+          exp.flash.scale.setScalar(1 + progress * 5);
+        }
+        // Animate radius sphere: fade opacity
+        if (exp.radius) {
+          exp.radius.material.opacity = Math.max(0, 0.3 * (1.0 - progress));
+        }
+      }
+    }
+
     // Recoil recovery (visual gun kick)
     const mesh = gunMeshes[currentIdx];
     if (recoilOffsetZ < 0) recoilOffsetZ = Math.min(0, recoilOffsetZ + delta * 12 * 0.04);
