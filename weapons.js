@@ -743,6 +743,55 @@ const Weapons = (() => {
       homing: true, blastRadius: 18,
       description: "US Army Tactical Missile System — fires from standard HIMARS or M270 MLRS launchers. Ukraine secretly received ATACMS in late 2023; used them to strike Russian air bases in Crimea and Berdyansk port (sank landing ships). M39 variant carries 950 M74 submunitions; M57 variant has 227kg unitary warhead. Range 300km — reaches deep into Russian-controlled territory.",
     },
+    // ── 8 new weapons ──────────────────────────────────────────
+    {
+      id: 'NLAW_MK1', name: 'NLAW (Next gen Light Anti-tank Weapon)', damage: 280,
+      fireRate: 0.2, clipSize: 1, maxReserve: 4, reloadTime: 4.0,
+      spread: 0, auto: false, type: 'AT', blastRadius: 4, recoilY: 0.060, recoilX: 0.020,
+      description: 'British-Swedish NLAW shoulder-fired ATGW supplied to Ukraine in thousands. Predicted Line Of Sight (PLOS) guidance — operator tracks target for 1 second, missile self-guides the rest. Fires a single missile with a top-attack overfly warhead. Effective at 20-600m. Most widely used man-portable AT weapon of the Ukraine war.',
+    },
+    {
+      id: 'UMP9', name: 'HK UMP-9 (9mm SMG)', damage: 28,
+      fireRate: 0.07, clipSize: 30, maxReserve: 150, reloadTime: 2.0,
+      spread: 0.04, auto: true, type: 'SMG', recoilY: 0.010, recoilX: 0.004,
+      description: 'German Heckler & Koch UMP-9 compact submachine gun. Polymer frame, folding stock, 30-round magazine. Fires 9×19mm at 600rpm — controllable full-auto. Excellent hip-fire stability. Used by German KSK special forces and police units; some examples supplied to Ukraine through various channels.',
+    },
+    {
+      id: 'VSS_SF', name: 'VSS Vintorez (SF suppressed rifle)', damage: 55,
+      fireRate: 4.5, clipSize: 20, maxReserve: 80, reloadTime: 2.5,
+      spread: 0.010, auto: true, type: 'SILENT', hasScope: true, recoilY: 0.012, recoilX: 0.005,
+      description: 'Russian VSS Vintorez ("Thread-cutter") with integral suppressor and 9×39mm subsonic SP-6 armour-piercing rounds. GRU/FSB special forces weapon — nearly silent at 200m+. Fires from 20-round straight magazine. Used by Russian Spetsnaz in counter-sniper and CQB roles throughout the Ukraine conflict. The suppressor is non-removable.',
+    },
+    {
+      id: 'PKP_HVY', name: 'PKP Pecheneg (sustained-fire MG)', damage: 48,
+      fireRate: 9.0, clipSize: 100, maxReserve: 200, reloadTime: 5.0,
+      spread: 0.05, auto: true, type: 'LMG', recoilY: 0.022, recoilX: 0.012,
+      description: 'Russian PKP Pecheneg belt-fed machine gun. Improved PKM with a heavy fixed barrel (no quick-change needed) and forced air cooling through the barrel jacket. 7.62×54mmR at 650rpm sustained. Heavy — slows movement but devastating in static defense. Used extensively by Russian forces in Donbas trench warfare.',
+    },
+    {
+      id: 'OTS33', name: 'OTs-33 Pernach (machine pistol)', damage: 20,
+      fireRate: 12.0, clipSize: 27, maxReserve: 108, reloadTime: 1.8,
+      spread: 0.065, auto: true, type: 'PISTOL', recoilY: 0.015, recoilX: 0.008,
+      description: 'Russian OTs-33 Pernach ("Mace") machine pistol. 9×18mm PM at ~1000rpm in full-auto. 27-round magazine feeds from the grip. Compact — fits in a holster despite full-auto capability. Issued to Russian MVD officers and vehicle crews. Near-uncontrollable in full-auto but devastating at room distance.',
+    },
+    {
+      id: 'RGD5_THROW', name: 'RGD-5 Grenade (throwable)', damage: 120,
+      fireRate: 0.5, clipSize: 1, maxReserve: 5, reloadTime: 1.0,
+      spread: 1.0, auto: false, type: 'GRENADE', blastRadius: 5, recoilY: 0.0, recoilX: 0.0,
+      description: 'Soviet RGD-5 offensive fragmentation grenade. Smooth plastic body with internal fragmentation liner. 3.2-second fuze after pull-ring release. Standard throw range ~30m. Both sides carry dozens — the most common grenade in the war. Effective blast radius ~5m, wounding radius ~20m. Both Ukrainian and Russian soldiers throw these daily in trench assaults.',
+    },
+    {
+      id: 'STUGNA_LG', name: 'Stugna-P (laser-guided ATGM)', damage: 350,
+      fireRate: 0.15, clipSize: 1, maxReserve: 3, reloadTime: 5.0,
+      spread: 0, auto: false, type: 'ATGM', hasScope: true, homing: true, blastRadius: 5, recoilY: 0.050, recoilX: 0.015,
+      description: "Ukrainian Stugna-P (Barrier-P) laser-guided anti-tank missile system. Luch Design Bureau, Kyiv. Remote-controlled from 50m away via cable — crew stays under cover while firing. 130mm tandem warhead penetrates 800mm RHA behind ERA. Domestic Ukrainian production ramped up during the war. Viral videos of Stugna destroying Russian T-72/T-80 tanks from ambush positions.",
+    },
+    {
+      id: 'AN94_BURST', name: 'AN-94 Abakan (2-round hyperburst)', damage: 47,
+      fireRate: 6.0, clipSize: 30, maxReserve: 120, reloadTime: 2.4,
+      spread: 0.015, auto: true, type: 'ASSAULT', recoilY: 0.018, recoilX: 0.006,
+      description: 'Russian AN-94 Abakan 5.45×39mm assault rifle with unique two-round burst hyperspeed mode firing both rounds at 1800rpm before recoil registers — effectively placing two rounds in the same hole. Designed by Nikonov in the 1990s to replace the AK-74. Unusual pulley-delay mechanism shifts the barrel and bolt group forward during firing. Used by Russian Spetsnaz and elite units in Ukraine.',
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -5041,6 +5090,123 @@ const Weapons = (() => {
       return g;
     },
 
+    // ── NLAW MK1 (British-Swedish shoulder-fired ATGW) ───────────────
+    nlaw_mk1: function () {
+      return _launcher({ len: 0.52, r: 0.026, tube: _pal.olive, rear: 'cone',
+        warhead: true, optic: true, sight: false });
+    },
+
+    // ── UMP-9 (HK compact submachine gun) ────────────────────────────
+    ump9: function () {
+      return _rifle({ hg: 'rail', hgColor: _pal.poly, stock: 'fixed', stockColor: _pal.poly,
+        mag: 'straight', magColor: _pal.poly, muzzle: 'flash', recvLen: 0.18, recvH: 0.040,
+        barLen: 0.10, barR: 0.009, recvColor: _pal.poly });
+    },
+
+    // ── VSS Vintorez SF (suppressed 9×39mm special-forces rifle) ─────
+    vss_sf: function () {
+      return _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'skel', stockColor: _pal.blk,
+        mag: 'straight', magColor: _pal.blk, muzzle: 'supp', recvLen: 0.22, recvH: 0.042,
+        barLen: 0.14, barR: 0.010, recvColor: _pal.blk, scope: true, sights: false });
+    },
+
+    // ── PKP Pecheneg (heavy sustained-fire belt-fed MG) ──────────────
+    pkp_hvy: function () {
+      return _rifle({ hg: 'wood', hgColor: _pal.wood, stock: 'wood', stockColor: _pal.wood,
+        mag: 'box', magColor: _pal.olive, muzzle: 'brake', recvLen: 0.30, recvH: 0.056,
+        barLen: 0.36, barR: 0.015, recvColor: _pal.gm, bipod: true, belt: true });
+    },
+
+    // ── OTs-33 Pernach (Russian machine pistol, 9×18mm) ──────────────
+    ots33: function () {
+      var g = new THREE.Group(); g.userData.selfContained = true;
+      var X = 0.17, Y = -0.125;
+      var blk = _pal.blk();
+      // Slide (compact, boxy)
+      var slide = new THREE.Group(); slide.name = '_slide';
+      slide.add(_P(_B(0.030, 0.036, 0.14, blk), X, Y + 0.018, -0.30));
+      slide.add(_P(_B(0.010, 0.007, 0.012, blk), X, Y + 0.038, -0.23)); // rear sight
+      slide.add(_P(_B(0.006, 0.007, 0.006, blk), X, Y + 0.038, -0.37)); // front sight
+      g.add(slide);
+      g.userData._anim = { slide: slide, slideHome: slide.position.z };
+      // Frame + rail
+      g.add(_P(_B(0.028, 0.018, 0.135, _pal.poly()), X, Y - 0.006, -0.300));
+      // Barrel
+      g.add(_P(_T(0.007, 0.026, _pal.steel(), 10), X, Y + 0.018, -0.383));
+      // Extended box magazine (27-round)
+      var mag = _P(_B(0.026, 0.090, 0.036, _pal.poly()), X, Y - 0.068, -0.280);
+      mag.rotation.x = 0.10; g.add(mag);
+      // Trigger guard
+      g.add(_P(_B(0.024, 0.005, 0.046, blk), X, Y - 0.040, -0.310));
+      g.add(_P(_B(0.024, 0.022, 0.006, blk), X, Y - 0.030, -0.333));
+      // Selector switch (right side)
+      g.add(_P(_B(0.004, 0.014, 0.014, _pal.steel()), X + 0.016, Y + 0.010, -0.285));
+      return g;
+    },
+
+    // ── RGD-5 Grenade (throwable, hand-held) ─────────────────────────
+    rgd5_throw: function () {
+      var g = new THREE.Group(); g.userData.selfContained = true;
+      var X = 0.17, Y = -0.10;
+      // Body — smooth olive plastic sphere (distinctive RGD-5 egg shape)
+      var body = new THREE.Mesh(
+        new THREE.SphereGeometry(0.035, 12, 10),
+        new THREE.MeshLambertMaterial({ color: 0x3a4228 }));
+      body.position.set(X, Y, -0.28); g.add(body);
+      // Top cap (fuze well)
+      g.add(_P(_T(0.014, 0.028, _pal.steel(), 8), X, Y + 0.032, -0.255));
+      // Safety lever (spoon — flat on side)
+      var lever = _P(_B(0.030, 0.008, 0.048, _pal.steel()), X + 0.018, Y + 0.010, -0.263);
+      lever.rotation.z = 0.20; g.add(lever);
+      // Pull ring
+      var ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.010, 0.002, 5, 10),
+        new THREE.MeshLambertMaterial({ color: 0xcccccc }));
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(X + 0.018, Y + 0.030, -0.245); g.add(ring);
+      // Hand grip (player hand position)
+      g.add(_P(_B(0.020, 0.070, 0.022, _pal.blk()), X, Y - 0.030, -0.280));
+      return g;
+    },
+
+    // ── Stugna-P (Ukrainian laser-guided ATGM) ────────────────────────
+    stugna_lg: function () {
+      var g = new THREE.Group(); g.userData.selfContained = true;
+      var X = 0.17, Y = -0.115;
+      // Launch tube (rectangular section — unique to Stugna)
+      g.add(_P(_B(0.052, 0.052, 0.55, _pal.olive()), X, Y, -0.22));
+      // Missile warhead (front cone)
+      g.add(_P(_T(0.024, 0.10, _M(0x3a3c30, 0.4, 0.6), 12), X, Y, -0.52));
+      var tip = new THREE.Mesh(
+        new THREE.ConeGeometry(0.024, 0.065, 10),
+        new THREE.MeshLambertMaterial({ color: 0x2a2a22 }));
+      tip.rotation.x = Math.PI / 2; tip.position.set(X, Y, -0.61); g.add(tip);
+      // Rear blast cone
+      var bcone = new THREE.Mesh(
+        new THREE.ConeGeometry(0.038, 0.055, 10),
+        new THREE.MeshLambertMaterial({ color: _pal.olive() }));
+      bcone.rotation.x = -Math.PI / 2; bcone.position.set(X, Y, 0.065); g.add(bcone);
+      // Remote control sight module (distinctive box mounted on top)
+      g.add(_P(_B(0.060, 0.048, 0.085, _pal.blk()), X, Y + 0.052, -0.05));
+      // Sight lens (front face)
+      g.add(_P(_B(0.036, 0.028, 0.006, _M(0x2244aa, 0.3, 0.8)), X, Y + 0.052, -0.093));
+      // Control cable connector (rear of sight box)
+      g.add(_P(_B(0.008, 0.008, 0.016, _pal.blk()), X + 0.020, Y + 0.030, 0.040));
+      // Pistol grip
+      var gp = _P(_B(0.032, 0.085, 0.038, _pal.poly()), X, Y - 0.070, -0.03);
+      gp.rotation.x = 0.14; g.add(gp);
+      // Trigger guard
+      g.add(_P(_B(0.026, 0.005, 0.048, _pal.blk()), X, Y - 0.040, -0.045));
+      return g;
+    },
+
+    // ── AN-94 Abakan (2-round hyperburst assault rifle) ───────────────
+    an94_burst: function () {
+      return _rifle({ hg: 'rail', hgColor: _pal.poly, stock: 'tube', stockColor: _pal.poly,
+        mag: 'curved', magColor: _pal.olive, muzzle: 'brake', recvLen: 0.24, recvH: 0.048,
+        barLen: 0.26, barR: 0.011, recvColor: _pal.gm, rail: true, sights: true });
+    },
+
   };
 
   const meshBuilders = [
@@ -5092,6 +5258,8 @@ const Weapons = (() => {
     NB.ak74m, NB.switchblade600, NB.pzh2000, NB.kh101,
     // 4 more (CAESAR 155mm, Brimstone 2, IRIS-T SLM, ATACMS)
     NB.caesar155, NB.brimstone2, NB.iristslm, NB.atacms,
+    // 8 new weapons (NLAW MK1, UMP-9, VSS SF, PKP Heavy, OTs-33, RGD-5 Throwable, Stugna-P LG, AN-94 Burst)
+    NB.nlaw_mk1, NB.ump9, NB.vss_sf, NB.pkp_hvy, NB.ots33, NB.rgd5_throw, NB.stugna_lg, NB.an94_burst,
   ];
 
   // Ensure meshBuilders matches WEAPONS length
