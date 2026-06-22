@@ -723,7 +723,15 @@ const HUD = (() => {
       var st = GameManager.getCurrentStage();
       if (st && st.name) stageName = '<p style="font-size:12px;color:#aaa;margin-top:2px">' + escapeHTML(st.name) + '</p>';
     }
-    el.waveAnn.innerHTML = '<h2>WAVE ' + escapeHTML(number) + progress + '</h2><p>' + escapeHTML(enemyCount) + ' OCCUPANTS STORMING</p>' + stageName;
+    // Active modifier chips
+    var chips = '';
+    var weatherIcons = { rain: '🌧', snow: '❄', fog: '🌫', sandstorm: '💨', clear: '' };
+    var wType = (typeof Weather !== 'undefined' && Weather.getCurrent) ? Weather.getCurrent() : 'clear';
+    if (wType && wType !== 'clear') chips += '<span style="font-size:10px;background:rgba(0,0,0,0.5);padding:1px 5px;border-radius:3px;margin:0 2px">' + (weatherIcons[wType] || '') + ' ' + wType.toUpperCase() + '</span>';
+    if (window._nvgActive) chips += '<span style="font-size:10px;background:rgba(0,204,68,0.3);padding:1px 5px;border-radius:3px;margin:0 2px">🟢 NVG</span>';
+    if (window._prestigeLevel > 0) chips += '<span style="font-size:10px;background:rgba(255,215,0,0.2);padding:1px 5px;border-radius:3px;margin:0 2px">⭐ P' + window._prestigeLevel + '</span>';
+    var chipsHtml = chips ? '<div style="margin-top:4px">' + chips + '</div>' : '';
+    el.waveAnn.innerHTML = '<h2>WAVE ' + escapeHTML(number) + progress + '</h2><p>' + escapeHTML(enemyCount) + ' OCCUPANTS STORMING</p>' + stageName + chipsHtml;
     el.waveAnn.classList.remove('visible');
     void el.waveAnn.offsetWidth;
     el.waveAnn.classList.add('visible');
