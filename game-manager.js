@@ -7953,6 +7953,7 @@ const GameManager = (function () {
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
       if (window.SurrenderSystem) SurrenderSystem.update(delta);
       if (window.SuppressionSystem) SuppressionSystem.update(delta, player);
+      if (window.FreezeGrenade) FreezeGrenade.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);

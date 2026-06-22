@@ -1,28 +1,41 @@
 // ============================================================
-//  freeze-grenade.js — Cryogenic grenade feature module
-//  Alt+G: throw freeze grenade (3 charges)
-//  Parabolic throw arc, 8 units forward, 2 unit peak, 0.8s flight
-//  On landing: burst of 12 ice shard particles, freeze radius 6 units
-//  Frozen enemies: cannot move/attack, take 2x damage, 4s freeze
-//  Ice sphere visual overlay; shatters on lethal damage for +150 bonus
-//  HUD: "❄ CRYO ×N" counter bottom-left in cyan
-//  Audio: whoosh on throw, crystal crack on impact, tinkle on shatter
+//  freeze-grenade.js — Cryogenic Freeze Grenade module
+//  Alt+Z: throw freeze grenade (2 charges, 45s cooldown per charge)
+//  Parabolic arc, 1.8s fuse, bounces once on ground
+//  On detonation: expanding shockwave ring, 16 ice crystal shards,
+//  point light flash; enemies frozen 4s (full) or slowed 3s (partial)
+//  Frozen bonus: +50% damage to frozen enemies (_frozenEnemy flag)
+//  HUD: "x CRYO xN" counter in cyan
+//  Audio: cryo hiss on throw, crystalline impact, thaw crack
 // ============================================================
 window.FreezeGrenade = (function () {
   'use strict';
 
-  // ── State ─────────────────────────────────────────────────
+  // Constants
+  var MAX_CHARGES = 2;
+  var COOLDOWN_PER_CHARGE = 45;
+  var FREEZE_RADIUS = 5;
+  var SLOW_RADIUS = 8;
+  var FREEZE_DURATION = 4;
+  var SLOW_DURATION = 3;
+  var SLOW_MULT = 0.4;
+  var BLAST_DAMAGE = 20;
+  var FUSE_TIME = 1.8;
+
+  // State
   var _scene = null;
   var _camera = null;
-
-  var _count = 3;
-  var MAX_COUNT = 3;
-
-  var _active = [];          // in-flight grenades
-  var _particles = [];       // ice shard particles after explosion
+  var _charges = MAX_CHARGES;
+  var _cooldowns = [0, 0];
+  var _active = [];
+  var _particles = [];
+  var _shockwaves = [];
+  var _lights = [];
   var _hudEl = null;
 
-  // ── HUD ───────────────────────────────────────────────────
+  window._frozenEnemies = window._frozenEnemies || [];
+
+  // HUD
   function _createHUD() {
     if (_hudEl) return;
     _hudEl = document.createElement('div');
@@ -31,81 +44,60 @@ window.FreezeGrenade = (function () {
       'position:fixed',
       'bottom:80px',
       'left:16px',
-      'color:#00EEFF',
+      'color:#00CCFF',
       'font-size:13px',
       'font-family:monospace',
       'z-index:200',
       'pointer-events:none',
-      'text-shadow:0 0 6px rgba(0,238,255,0.8)',
-      'letter-spacing:1px'
+      'text-shadow:0 0 8px rgba(0,200,255,0.9)',
+      'letter-spacing:1px',
+      'transition:opacity 0.3s'
     ].join(';');
-    _hudEl.textContent = '❄ CRYO \xD7' + _count;
     var hud = document.getElementById('hud');
-    if (hud) {
-      hud.appendChild(_hudEl);
-    } else {
-      document.body.appendChild(_hudEl);
-    }
+    if (hud) { hud.appendChild(_hudEl); } else { document.body.appendChild(_hudEl); }
   }
 
   function _updateHUD() {
     if (!_hudEl) _createHUD();
-    _hudEl.textContent = '❄ CRYO \xD7' + _count;
-    _hudEl.style.opacity = (_count > 0) ? '1' : '0.4';
+    _hudEl.textContent = '❄ CRYO \xD7' + _charges;
+    if (_charges < MAX_CHARGES) {
+      var secs = Math.ceil(_cooldowns[_charges]);
+      _hudEl.textContent += ' [' + secs + 's]';
+    }
+    _hudEl.style.opacity = (_charges > 0) ? '1' : '0.35';
   }
 
-  // ── Audio helpers ─────────────────────────────────────────
-  function _playWhoosh() {
+  // Audio
+  function _playCryoHiss() {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(600, ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(80, ctx.currentTime + 0.5);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.5);
-      osc.onended = function () {
-        try { ctx.close(); } catch (e) {}
-      };
-    } catch (e) {}
-  }
-
-  function _playCrystalCrack() {
-    try {
-      var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      // Short broadband burst for crystal crack
-      var bufLen = Math.floor(ctx.sampleRate * 0.25);
+      var bufLen = Math.floor(ctx.sampleRate * 0.6);
       var buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
       var data = buf.getChannelData(0);
       for (var i = 0; i < bufLen; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.12));
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.4)) * 0.4;
       }
       var src = ctx.createBufferSource();
       src.buffer = buf;
       var filter = ctx.createBiquadFilter();
-      filter.type = 'highpass';
-      filter.frequency.value = 2000;
+      filter.type = 'bandpass';
+      filter.frequency.value = 1200;
+      filter.Q.value = 0.5;
       var gain = ctx.createGain();
-      gain.gain.value = 1.2;
+      gain.gain.setValueAtTime(0.6, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
       src.connect(filter);
       filter.connect(gain);
       gain.connect(ctx.destination);
       src.start();
-      src.onended = function () {
-        try { ctx.close(); } catch (e) {}
-      };
+      src.onended = function () { try { ctx.close(); } catch (e) {} };
     } catch (e) {}
   }
 
-  function _playTinkle() {
+  function _playCrystalImpact() {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var freqs = [1047, 1319, 1568, 2093];
+      var freqs = [880, 1320, 1760, 2200, 2640];
       for (var f = 0; f < freqs.length; f++) {
         (function (freq, delay) {
           var osc = ctx.createOscillator();
@@ -113,347 +105,538 @@ window.FreezeGrenade = (function () {
           osc.type = 'sine';
           osc.frequency.value = freq;
           gain.gain.setValueAtTime(0, ctx.currentTime + delay);
-          gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + delay + 0.01);
-          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + delay + 0.35);
+          gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + delay + 0.005);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.5);
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.start(ctx.currentTime + delay);
-          osc.stop(ctx.currentTime + delay + 0.4);
-        }(freqs[f], f * 0.07));
+          osc.stop(ctx.currentTime + delay + 0.55);
+        }(freqs[f], f * 0.04));
       }
-      setTimeout(function () {
-        try { ctx.close(); } catch (e) {}
-      }, 2000);
+      var bufLen2 = Math.floor(ctx.sampleRate * 0.15);
+      var buf2 = ctx.createBuffer(1, bufLen2, ctx.sampleRate);
+      var d2 = buf2.getChannelData(0);
+      for (var i2 = 0; i2 < bufLen2; i2++) {
+        d2[i2] = (Math.random() * 2 - 1) * Math.exp(-i2 / (bufLen2 * 0.08));
+      }
+      var nSrc = ctx.createBufferSource();
+      nSrc.buffer = buf2;
+      var hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 3000;
+      var nGain = ctx.createGain();
+      nGain.gain.value = 0.8;
+      nSrc.connect(hp);
+      hp.connect(nGain);
+      nGain.connect(ctx.destination);
+      nSrc.start();
+      setTimeout(function () { try { ctx.close(); } catch (e) {} }, 2000);
     } catch (e) {}
   }
 
-  // ── Blue screen tint on detonation ────────────────────────
-  function _blueTint() {
-    var canvas = document.querySelector('canvas');
-    if (!canvas) return;
-    canvas.style.transition = 'filter 0.05s';
-    canvas.style.filter = 'hue-rotate(180deg) saturate(1.5)';
-    setTimeout(function () {
-      canvas.style.transition = 'filter 0.4s';
-      canvas.style.filter = '';
-    }, 500);
+  function _playThawCrack() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var bufLen = Math.floor(ctx.sampleRate * 0.2);
+      var buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < bufLen; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.05));
+      }
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      var hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 1500;
+      var gain = ctx.createGain();
+      gain.gain.value = 1.0;
+      src.connect(hp);
+      hp.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+      src.onended = function () { try { ctx.close(); } catch (e) {} };
+    } catch (e) {}
   }
 
-  // ── Ice shard particles ───────────────────────────────────
-  function _spawnParticles(pos) {
+  // Visual helpers
+  function _spawnShockwave(pos) {
     if (!_scene) return;
-    var SHARD_COUNT = 12;
+    var geo = new THREE.SphereGeometry(0.3, 16, 8);
+    var mat = new THREE.MeshBasicMaterial({
+      color: 0xCCEEFF,
+      transparent: true,
+      opacity: 0.7,
+      side: THREE.DoubleSide
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(pos);
+    _scene.add(mesh);
+    _shockwaves.push({ mesh: mesh, elapsed: 0, duration: 1.0 });
+  }
+
+  function _spawnFlashLight(pos) {
+    if (!_scene) return;
+    var light = new THREE.PointLight(0xAAEEFF, 8, 10);
+    light.position.copy(pos);
+    _scene.add(light);
+    _lights.push({ light: light, elapsed: 0, duration: 0.4 });
+  }
+
+  function _spawnIceShards(pos) {
+    if (!_scene) return;
+    var SHARD_COUNT = 16;
     for (var i = 0; i < SHARD_COUNT; i++) {
-      var geo = new THREE.ConeGeometry(0.05, 0.3, 4);
+      var geo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
       var mat = new THREE.MeshLambertMaterial({
-        color: 0x00EEFF,
+        color: 0xCCEEFF,
         transparent: true,
-        opacity: 0.85
+        opacity: 0.9
       });
       var mesh = new THREE.Mesh(geo, mat);
       mesh.position.copy(pos);
-      _scene.add(mesh);
-
-      // Random outward direction
       var angle = (i / SHARD_COUNT) * Math.PI * 2;
-      var upAngle = (Math.random() - 0.3) * Math.PI * 0.8;
-      var vx = Math.cos(angle) * Math.cos(upAngle) * (2 + Math.random() * 3);
-      var vy = Math.abs(Math.sin(upAngle)) * (2 + Math.random() * 2) + 1;
-      var vz = Math.sin(angle) * Math.cos(upAngle) * (2 + Math.random() * 3);
-
-      _particles.push({
-        mesh: mesh,
-        vel: { x: vx, y: vy, z: vz },
-        life: 0.8 + Math.random() * 0.4,
-        elapsed: 0
-      });
+      var upAngle = (Math.random() * 0.7 + 0.1) * Math.PI;
+      var speed = 3 + Math.random() * 4;
+      var vx = Math.cos(angle) * Math.cos(upAngle) * speed;
+      var vy = Math.abs(Math.sin(upAngle)) * speed + 1;
+      var vz = Math.sin(angle) * Math.cos(upAngle) * speed;
+      _scene.add(mesh);
+      _particles.push({ mesh: mesh, vel: { x: vx, y: vy, z: vz }, life: 0.7 + Math.random() * 0.5, elapsed: 0, type: 'shard' });
     }
   }
 
-  // ── Frozen enemy ice sphere visual ────────────────────────
-  function _attachIceSphere(enemy) {
-    if (!_scene || !enemy || !enemy.position) return;
-    if (enemy._iceSphere) return;  // already has one
-    var geo = new THREE.SphereGeometry(0.6, 8, 8);
-    var mat = new THREE.MeshLambertMaterial({
-      color: 0x00EEFF,
-      transparent: true,
-      opacity: 0.45
+  function _spawnSmoke(pos) {
+    if (!_scene) return;
+    var geo = new THREE.SphereGeometry(0.06, 4, 4);
+    var mat = new THREE.MeshBasicMaterial({ color: 0x88BBFF, transparent: true, opacity: 0.5 });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(pos);
+    _scene.add(mesh);
+    _particles.push({
+      mesh: mesh,
+      vel: { x: (Math.random() - 0.5) * 0.3, y: 0.4 + Math.random() * 0.3, z: (Math.random() - 0.5) * 0.3 },
+      life: 0.5 + Math.random() * 0.3,
+      elapsed: 0,
+      type: 'smoke'
     });
+  }
+
+  function _spawnOrbitParticle(enemy) {
+    if (!_scene || !enemy || !enemy.mesh) return;
+    var geo = new THREE.SphereGeometry(0.05, 3, 3);
+    var mat = new THREE.MeshBasicMaterial({ color: 0xAAEEFF, transparent: true, opacity: 0.8 });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(enemy.mesh.position);
+    _scene.add(mesh);
+    _particles.push({
+      mesh: mesh,
+      life: 1.5 + Math.random(),
+      elapsed: 0,
+      type: 'orbit',
+      enemy: enemy,
+      orbitAngle: Math.random() * Math.PI * 2,
+      orbitRadius: 0.5 + Math.random() * 0.3,
+      orbitSpeed: 1.5 + Math.random(),
+      orbitHeight: 0.3 + Math.random() * 0.8
+    });
+  }
+
+  // Ice sphere overlay on enemy
+  function _attachIceSphere(enemy) {
+    if (!_scene || !enemy || !enemy.mesh) return;
+    if (enemy._iceSphere) return;
+    var geo = new THREE.SphereGeometry(0.7, 8, 8);
+    var mat = new THREE.MeshLambertMaterial({ color: 0xCCEEFF, transparent: true, opacity: 0.38 });
     var sphere = new THREE.Mesh(geo, mat);
-    sphere.position.copy(enemy.position);
+    sphere.position.copy(enemy.mesh.position);
     _scene.add(sphere);
     enemy._iceSphere = sphere;
+    for (var i = 0; i < 4; i++) { _spawnOrbitParticle(enemy); }
   }
 
   function _removeIceSphere(enemy) {
     if (!_scene || !enemy) return;
     if (enemy._iceSphere) {
       try { _scene.remove(enemy._iceSphere); } catch (ex) {}
+      try { enemy._iceSphere.geometry.dispose(); } catch (ex) {}
+      try { enemy._iceSphere.material.dispose(); } catch (ex) {}
       enemy._iceSphere = null;
     }
   }
 
-  // ── Apply freeze to enemies in radius ────────────────────
-  function _freezeEnemies(pos) {
-    var RADIUS = 6;
-    var FREEZE_S = 4.0;
-    var enemies = _getEnemies();
-    for (var i = 0; i < enemies.length; i++) {
-      var e = enemies[i];
-      if (!e || !e.position) continue;
-      var dx = e.position.x - pos.x;
-      var dy = e.position.y - pos.y;
-      var dz = e.position.z - pos.z;
-      var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      if (dist <= RADIUS) {
-        e.frozen = true;
-        e.frozenTimer = FREEZE_S;
-        _attachIceSphere(e);
-      }
-    }
-  }
-
+  // Enemy access
   function _getEnemies() {
     if (window.Enemies && typeof window.Enemies.getAll === 'function') {
       return window.Enemies.getAll();
     }
-    if (window.GameManager && Array.isArray(window.GameManager.enemies)) {
-      return window.GameManager.enemies;
-    }
-    if (window._enemies && Array.isArray(window._enemies)) {
-      return window._enemies;
-    }
-    if (window.enemies && Array.isArray(window.enemies)) {
-      return window.enemies;
-    }
     return [];
   }
 
-  // ── Detonate ──────────────────────────────────────────────
-  function _detonate(data) {
-    var pos = data.mesh.position.clone();
-
-    // Remove grenade mesh
-    if (_scene) {
-      try { _scene.remove(data.mesh); } catch (ex) {}
-    }
-
-    // Spawn ice shard particles
-    _spawnParticles(pos);
-
-    // Freeze enemies in radius
-    _freezeEnemies(pos);
-
-    // Blue canvas tint
-    _blueTint();
-
-    // Crystal crack audio
-    _playCrystalCrack();
+  // Material tint for frozen enemy
+  function _tintEnemy(enemy, frozen) {
+    if (!enemy || !enemy.mesh) return;
+    enemy.mesh.traverse(function (obj) {
+      if (obj.isMesh && obj.material) {
+        if (frozen) {
+          if (!obj._origColor) { obj._origColor = obj.material.color ? obj.material.color.getHex() : 0xffffff; }
+          obj.material.color.setHex(0xCCEEFF);
+        } else {
+          if (obj._origColor !== undefined) {
+            obj.material.color.setHex(obj._origColor);
+            obj._origColor = undefined;
+          }
+        }
+      }
+    });
   }
 
-  // ── Grenade mesh ─────────────────────────────────────────
+  // Direct blast damage
+  function _blastDamage(enemy) {
+    if (!enemy) return;
+    if (typeof enemy.hp !== 'undefined') {
+      enemy.hp -= BLAST_DAMAGE;
+      if (enemy.hp < 0) { enemy.hp = 0; }
+    }
+  }
+
+  // Freeze / slow enemies in radius
+  function _freezeEnemies(pos) {
+    var enemies = _getEnemies();
+    window._frozenEnemies = [];
+    for (var i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      if (!e || !e.alive || !e.mesh) continue;
+      var ePos = e.mesh.position;
+      var dx = ePos.x - pos.x;
+      var dy = ePos.y - pos.y;
+      var dz = ePos.z - pos.z;
+      var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (dist <= SLOW_RADIUS) { _blastDamage(e); }
+      if (dist <= FREEZE_RADIUS) {
+        e.frozen = true;
+        e.frozenTimer = FREEZE_DURATION;
+        e._frozenEnemy = true;
+        e._slowedByFreeze = false;
+        e._suppressionActive = true;
+        if (!e._baseSpeedBackup) { e._baseSpeedBackup = e.speed; }
+        _tintEnemy(e, true);
+        _attachIceSphere(e);
+        window._frozenEnemies.push(e);
+      } else if (dist <= SLOW_RADIUS) {
+        e.frozen = false;
+        e._frozenEnemy = false;
+        e._slowedByFreeze = true;
+        e._slowTimer = SLOW_DURATION;
+        if (!e._baseSpeedBackup) { e._baseSpeedBackup = e.speed; }
+        e._speedMult = SLOW_MULT;
+      }
+    }
+  }
+
+  // Detonation
+  function _detonate(data) {
+    var pos = data.mesh.position.clone();
+    if (_scene) { try { _scene.remove(data.mesh); } catch (ex) {} }
+    _spawnShockwave(pos);
+    _spawnFlashLight(pos);
+    _spawnIceShards(pos);
+    _freezeEnemies(pos);
+    _playCrystalImpact();
+    var canvas = document.querySelector('canvas');
+    if (canvas) {
+      canvas.style.transition = 'filter 0.06s';
+      canvas.style.filter = 'hue-rotate(190deg) saturate(1.8) brightness(1.3)';
+      setTimeout(function () {
+        canvas.style.transition = 'filter 0.5s';
+        canvas.style.filter = '';
+      }, 400);
+    }
+  }
+
+  // Grenade mesh
   function _makeGrenadeMesh() {
-    var geo = new THREE.SphereGeometry(0.12, 6, 6);
-    var mat = new THREE.MeshLambertMaterial({ color: 0x00EEFF });
+    var geo = new THREE.SphereGeometry(0.14, 8, 6);
+    var mat = new THREE.MeshLambertMaterial({ color: 0x88DDFF });
     return new THREE.Mesh(geo, mat);
   }
 
-  // ── Throw logic ───────────────────────────────────────────
-  function _throw() {
+  // Throw
+  function throw_grenade() {
     if (!_scene || !_camera) return false;
-    if (_count <= 0) return false;
-
-    _count -= 1;
-    _updateHUD();
-
-    // Start at camera position
+    if (_charges <= 0) return false;
+    _charges -= 1;
     var startPos = _camera.position.clone();
-    startPos.y -= 0.2;
-
-    // Forward direction in XZ plane
+    startPos.y -= 0.15;
     var dir = new THREE.Vector3(0, 0, -1);
     dir.applyQuaternion(_camera.quaternion);
     dir.y = 0;
     if (dir.lengthSq() < 0.0001) { dir.z = -1; }
     dir.normalize();
-
-    var landPos = new THREE.Vector3(
-      startPos.x + dir.x * 8,
-      startPos.y,
-      startPos.z + dir.z * 8
-    );
-
+    var speed = 10;
     var mesh = _makeGrenadeMesh();
     mesh.position.copy(startPos);
     _scene.add(mesh);
-
     _active.push({
       mesh: mesh,
-      startPos: startPos.clone(),
-      landPos: landPos.clone(),
+      vel: { x: dir.x * speed, y: 5, z: dir.z * speed },
       elapsed: 0,
-      duration: 0.8,
-      detonated: false
+      fuse: FUSE_TIME,
+      bounced: false,
+      detonated: false,
+      smokeTimer: 0
     });
-
-    _playWhoosh();
+    _cooldowns[_charges] = COOLDOWN_PER_CHARGE;
+    _updateHUD();
+    _playCryoHiss();
     return true;
   }
 
-  // ── Update loop ───────────────────────────────────────────
+  // Update loop
   function update(dt) {
-    var i, d, t;
+    var i, p, e, frac;
 
-    // Advance in-flight grenades
-    for (i = _active.length - 1; i >= 0; i--) {
-      d = _active[i];
-      if (d.detonated) {
-        _active.splice(i, 1);
-        continue;
+    // Cooldown recharge
+    for (i = 0; i < MAX_CHARGES; i++) {
+      if (_cooldowns[i] > 0) {
+        _cooldowns[i] -= dt;
+        if (_cooldowns[i] <= 0) {
+          _cooldowns[i] = 0;
+          if (_charges < MAX_CHARGES) { _charges += 1; }
+        }
       }
-      d.elapsed += dt;
-      t = Math.min(d.elapsed / d.duration, 1);
+    }
+    _updateHUD();
 
-      // Lerp XZ position
-      d.mesh.position.x = d.startPos.x + (d.landPos.x - d.startPos.x) * t;
-      d.mesh.position.z = d.startPos.z + (d.landPos.z - d.startPos.z) * t;
-
-      // Parabolic Y arc: peak height 2 units
-      var ARC_HEIGHT = 2.0;
-      d.mesh.position.y = d.startPos.y + ARC_HEIGHT * 4 * t * (1 - t);
-
-      if (t >= 1) {
-        d.detonated = true;
-        _detonate(d);
+    // In-flight grenades
+    for (i = _active.length - 1; i >= 0; i--) {
+      var g = _active[i];
+      if (g.detonated) { _active.splice(i, 1); continue; }
+      g.elapsed += dt;
+      g.fuse -= dt;
+      g.vel.y -= 9.8 * dt;
+      g.mesh.position.x += g.vel.x * dt;
+      g.mesh.position.y += g.vel.y * dt;
+      g.mesh.position.z += g.vel.z * dt;
+      g.mesh.rotation.x += 3 * dt;
+      g.mesh.rotation.z += 2 * dt;
+      if (!g.bounced && g.mesh.position.y <= 0.14) {
+        g.mesh.position.y = 0.14;
+        g.vel.y = Math.abs(g.vel.y) * 0.35;
+        g.vel.x *= 0.6;
+        g.vel.z *= 0.6;
+        g.bounced = true;
+      }
+      g.smokeTimer -= dt;
+      if (g.smokeTimer <= 0) { _spawnSmoke(g.mesh.position); g.smokeTimer = 0.06; }
+      if (g.fuse <= 0) {
+        g.detonated = true;
+        _detonate(g);
         _active.splice(i, 1);
       }
     }
 
-    // Advance ice shard particles
+    // Shockwave rings
+    for (i = _shockwaves.length - 1; i >= 0; i--) {
+      var sw = _shockwaves[i];
+      sw.elapsed += dt;
+      frac = sw.elapsed / sw.duration;
+      if (frac >= 1) {
+        if (_scene) { try { _scene.remove(sw.mesh); } catch (ex) {} }
+        _shockwaves.splice(i, 1);
+        continue;
+      }
+      var scale = 0.3 + (5 - 0.3) * frac;
+      sw.mesh.scale.setScalar(scale);
+      sw.mesh.material.opacity = 0.7 * (1 - frac);
+    }
+
+    // Point light flashes
+    for (i = _lights.length - 1; i >= 0; i--) {
+      var lEntry = _lights[i];
+      lEntry.elapsed += dt;
+      frac = lEntry.elapsed / lEntry.duration;
+      if (frac >= 1) {
+        if (_scene) { try { _scene.remove(lEntry.light); } catch (ex) {} }
+        _lights.splice(i, 1);
+        continue;
+      }
+      lEntry.light.intensity = 8 * (1 - frac);
+    }
+
+    // Particles
     for (i = _particles.length - 1; i >= 0; i--) {
-      var p = _particles[i];
+      p = _particles[i];
       p.elapsed += dt;
       if (p.elapsed >= p.life) {
-        if (_scene) {
-          try { _scene.remove(p.mesh); } catch (ex) {}
-        }
+        if (_scene) { try { _scene.remove(p.mesh); } catch (ex) {} }
         _particles.splice(i, 1);
         continue;
       }
-      var frac = p.elapsed / p.life;
-      p.mesh.position.x += p.vel.x * dt;
-      p.mesh.position.y += p.vel.y * dt - 4.9 * dt * dt; // gravity
-      p.vel.y -= 9.8 * dt;
-      p.mesh.position.z += p.vel.z * dt;
-      p.mesh.material.opacity = 0.85 * (1 - frac);
+      frac = p.elapsed / p.life;
+      if (p.type === 'shard') {
+        p.vel.y -= 9.8 * dt;
+        p.mesh.position.x += p.vel.x * dt;
+        p.mesh.position.y += p.vel.y * dt;
+        p.mesh.position.z += p.vel.z * dt;
+        p.mesh.rotation.x += 5 * dt;
+        p.mesh.rotation.z += 3 * dt;
+        p.mesh.material.opacity = 0.9 * (1 - frac);
+      } else if (p.type === 'smoke') {
+        p.mesh.position.x += p.vel.x * dt;
+        p.mesh.position.y += p.vel.y * dt;
+        p.mesh.position.z += p.vel.z * dt;
+        p.mesh.scale.setScalar(1 + frac * 2);
+        p.mesh.material.opacity = 0.5 * (1 - frac);
+      } else if (p.type === 'orbit') {
+        if (!p.enemy || !p.enemy.frozen || !p.enemy.mesh) {
+          if (_scene) { try { _scene.remove(p.mesh); } catch (ex) {} }
+          _particles.splice(i, 1);
+          continue;
+        }
+        p.orbitAngle += p.orbitSpeed * dt;
+        p.mesh.position.set(
+          p.enemy.mesh.position.x + Math.cos(p.orbitAngle) * p.orbitRadius,
+          p.enemy.mesh.position.y + p.orbitHeight,
+          p.enemy.mesh.position.z + Math.sin(p.orbitAngle) * p.orbitRadius
+        );
+        p.mesh.material.opacity = 0.8 * (1 - frac * 0.3);
+      }
     }
 
-    // Tick frozen timers on enemies and handle thaw / 2x damage / shatter
+    // Frozen / slowed enemy tick
     var enemies = _getEnemies();
+    window._frozenEnemies = [];
     for (i = 0; i < enemies.length; i++) {
-      var e = enemies[i];
-      if (!e || !e.frozen) continue;
+      e = enemies[i];
+      if (!e) continue;
 
-      // Tick timer
-      e.frozenTimer -= dt;
+      if (e.frozen) {
+        e.frozenTimer -= dt;
+        e._suppressionActive = true;
+        if (e._iceSphere && e.mesh) { e._iceSphere.position.copy(e.mesh.position); }
 
-      // Keep ice sphere tracking enemy position
-      if (e._iceSphere && e.position) {
-        e._iceSphere.position.copy(e.position);
-      }
-
-      // While frozen: stop movement and attacks
-      if (e.velocity) { e.velocity.x = 0; e.velocity.z = 0; }
-      if (typeof e.canMove !== 'undefined') { e.canMove = false; }
-      if (typeof e.canAttack !== 'undefined') { e.canAttack = false; }
-
-      // Check lethal-damage-while-frozen (health at/below 0 while still frozen)
-      if (e.health !== undefined && e.health <= 0 && !e._shattered) {
-        e._shattered = true;
-        _removeIceSphere(e);
-        _playTinkle();
-        // +150 bonus score
-        if (window.player && typeof window.player.score !== 'undefined') {
-          window.player.score += 150;
+        // Lethal shatter bonus
+        if (e.hp !== undefined && e.hp <= 0 && !e._shattered) {
+          e._shattered = true;
+          _removeIceSphere(e);
+          _tintEnemy(e, false);
+          _playThawCrack();
+          if (e.mesh) { _spawnIceShards(e.mesh.position.clone()); }
+          if (window.player && typeof window.player.score !== 'undefined') { window.player.score += 150; }
+          if (window.HUD && typeof window.HUD.showToast === 'function') { window.HUD.showToast('ICE SHATTER! +150'); }
+          e.frozen = false;
+          e.frozenTimer = 0;
+          e._frozenEnemy = false;
+          e._suppressionActive = false;
+          if (e._baseSpeedBackup !== undefined) { e.speed = e._baseSpeedBackup; e._baseSpeedBackup = undefined; }
+          continue;
         }
-        if (window.HUD && typeof window.HUD.showToast === 'function') {
-          window.HUD.showToast('ICE SHATTER! +150');
+
+        if (e.frozenTimer <= 0) {
+          // Thaw
+          e.frozen = false;
+          e.frozenTimer = 0;
+          e._frozenEnemy = false;
+          e._suppressionActive = false;
+          if (e._baseSpeedBackup !== undefined) { e.speed = e._baseSpeedBackup; e._baseSpeedBackup = undefined; }
+          _tintEnemy(e, false);
+          _removeIceSphere(e);
+          _playThawCrack();
+          if (e.mesh) { _spawnIceShards(e.mesh.position.clone()); }
+        } else {
+          window._frozenEnemies.push(e);
         }
-        e.frozen = false;
-        e.frozenTimer = 0;
-        continue;
       }
 
-      // Thaw after timer expires
-      if (e.frozenTimer <= 0) {
-        e.frozen = false;
-        e.frozenTimer = 0;
-        if (typeof e.canMove !== 'undefined') { e.canMove = true; }
-        if (typeof e.canAttack !== 'undefined') { e.canAttack = true; }
-        _removeIceSphere(e);
+      if (e._slowedByFreeze) {
+        e._slowTimer -= dt;
+        if (e._slowTimer <= 0) {
+          e._slowedByFreeze = false;
+          e._speedMult = undefined;
+          if (e._baseSpeedBackup !== undefined) { e.speed = e._baseSpeedBackup; e._baseSpeedBackup = undefined; }
+        }
       }
+    }
+
+    // Player freeze hook (future use)
+    // window._playerFrozen and window._playerFrozenTimer reserved
+  }
+
+  // Key handler
+  function _onKeyDown(ev) {
+    if (ev.altKey && (ev.code === 'KeyZ' || ev.key === 'z' || ev.key === 'Z')) {
+      ev.preventDefault();
+      throw_grenade();
     }
   }
 
-  // ── Key handler ───────────────────────────────────────────
-  function _onKeyDown(e) {
-    // Alt+G
-    if (e.altKey && (e.code === 'KeyG' || e.key === 'g' || e.key === 'G')) {
-      e.preventDefault();
-      _throw();
-    }
-  }
-
-  // ── init ─────────────────────────────────────────────────
+  // init
   function init(scene, camera) {
-    _scene = scene || window._gameScene;
+    _scene = scene || window._gameScene || window._scene;
     _camera = camera || window._camera;
-    _count = MAX_COUNT;
+    _charges = MAX_CHARGES;
+    _cooldowns = [0, 0];
     _active = [];
     _particles = [];
+    _shockwaves = [];
+    _lights = [];
     _hudEl = null;
+    window._frozenEnemies = [];
     _createHUD();
     _updateHUD();
     window.removeEventListener('keydown', _onKeyDown);
     window.addEventListener('keydown', _onKeyDown);
   }
 
-  // ── reset ─────────────────────────────────────────────────
+  // reset
   function reset() {
-    _count = MAX_COUNT;
-    // Clear in-flight grenades
-    for (var i = 0; i < _active.length; i++) {
-      if (_scene && _active[i].mesh) {
-        try { _scene.remove(_active[i].mesh); } catch (ex) {}
-      }
+    _charges = MAX_CHARGES;
+    _cooldowns = [0, 0];
+    var i, e;
+    for (i = 0; i < _active.length; i++) {
+      if (_scene && _active[i].mesh) { try { _scene.remove(_active[i].mesh); } catch (ex) {} }
     }
     _active = [];
-    // Clear particles
-    for (var j = 0; j < _particles.length; j++) {
-      if (_scene && _particles[j].mesh) {
-        try { _scene.remove(_particles[j].mesh); } catch (ex) {}
-      }
+    for (i = 0; i < _particles.length; i++) {
+      if (_scene && _particles[i].mesh) { try { _scene.remove(_particles[i].mesh); } catch (ex) {} }
     }
     _particles = [];
-    // Thaw all frozen enemies
+    for (i = 0; i < _shockwaves.length; i++) {
+      if (_scene && _shockwaves[i].mesh) { try { _scene.remove(_shockwaves[i].mesh); } catch (ex) {} }
+    }
+    _shockwaves = [];
+    for (i = 0; i < _lights.length; i++) {
+      if (_scene && _lights[i].light) { try { _scene.remove(_lights[i].light); } catch (ex) {} }
+    }
+    _lights = [];
     var enemies = _getEnemies();
-    for (var k = 0; k < enemies.length; k++) {
-      var e = enemies[k];
-      if (e && e.frozen) {
+    for (i = 0; i < enemies.length; i++) {
+      e = enemies[i];
+      if (!e) continue;
+      if (e.frozen) {
         e.frozen = false;
         e.frozenTimer = 0;
+        e._frozenEnemy = false;
+        e._suppressionActive = false;
+        if (e._baseSpeedBackup !== undefined) { e.speed = e._baseSpeedBackup; e._baseSpeedBackup = undefined; }
+        _tintEnemy(e, false);
         _removeIceSphere(e);
       }
+      if (e._slowedByFreeze) {
+        e._slowedByFreeze = false;
+        e._speedMult = undefined;
+        if (e._baseSpeedBackup !== undefined) { e.speed = e._baseSpeedBackup; e._baseSpeedBackup = undefined; }
+      }
     }
+    window._frozenEnemies = [];
     _updateHUD();
   }
 
-  // ── Public API ────────────────────────────────────────────
+  // Public API
   return {
     init: init,
     update: update,
-    throw_: _throw,
+    throw_grenade: throw_grenade,
     reset: reset
   };
 
