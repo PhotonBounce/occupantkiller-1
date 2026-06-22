@@ -1458,6 +1458,12 @@ const GameManager = (function () {
     });
     Weapons.setOnTerrainShot(function (x, y, z, blockType) {
       onTerrainDestroyed(x, y, z, blockType);
+      // ── Fuel Barrel explosion: shooting a barrel triggers chain detonation ──
+      if (blockType === 12) {
+        _barrelExplosionDepth = 0;
+        detonateBarrel(x, y, z);
+        return;
+      }
       // ── B29: Destructible environment — explosive weapons destroy blocks ──
       var wType = Weapons.getCurrentType();
       var isExpl = ['AT', 'ATGM', 'AT_HEAVY', 'AT_LIGHT', 'GRENADE', 'INCENDIARY', 'THERMOBARIC'].indexOf(wType) >= 0;
@@ -5964,6 +5970,66 @@ const GameManager = (function () {
         Tracers.spawnExplosion(vehicle.position, 3);
       }
     }
+  }
+
+  var _barrelExplosionDepth = 0;
+  function detonateBarrel(bx, by, bz) {
+    if (_barrelExplosionDepth > 3) return;
+    _barrelExplosionDepth++;
+    try {
+      // Remove barrel
+      if (typeof VoxelWorld !== 'undefined' && VoxelWorld.setBlock) {
+        VoxelWorld.setBlock(bx, by, bz, 0); // AIR
+        VoxelWorld.setBlock(bx, by + 1, bz, 0); // clear above
+      }
+      // Explosion visual
+      var exPos = new THREE.Vector3(bx + 0.5, by + 0.5, bz + 0.5);
+      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+        Tracers.spawnExplosion(exPos, 2.5);
+      }
+      // Damage enemies in radius
+      if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+        var enemies = Enemies.getAll();
+        for (var ei = 0; ei < enemies.length; ei++) {
+          var ep = enemies[ei].position || (enemies[ei].mesh && enemies[ei].mesh.position);
+          if (!ep) continue;
+          var dx = ep.x - exPos.x, dy = ep.y - exPos.y, dz = ep.z - exPos.z;
+          var dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          if (dist < 6) {
+            var dmg = Math.round(120 * (1 - dist / 6));
+            if (Enemies.damage) Enemies.damage(enemies[ei], dmg, false, 'explosion');
+          }
+        }
+      }
+      // Chain reaction — check nearby barrels
+      for (var cx = bx - 4; cx <= bx + 4; cx++) {
+        for (var cy = by - 2; cy <= by + 2; cy++) {
+          for (var cz = bz - 4; cz <= bz + 4; cz++) {
+            if (cx === bx && cy === by && cz === bz) continue;
+            if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getBlock && VoxelWorld.getBlock(cx, cy, cz) === 12) {
+              var chainDist = Math.sqrt((cx-bx)*(cx-bx) + (cy-by)*(cy-by) + (cz-bz)*(cz-bz));
+              if (chainDist <= 4) {
+                setTimeout(function(x,y,z){ detonateBarrel(x,y,z); }.bind(null,cx,cy,cz), 150 + Math.random()*200);
+              }
+            }
+          }
+        }
+      }
+      if (typeof HUD !== 'undefined' && HUD.notifyPickup && _barrelExplosionDepth === 1) {
+        HUD.notifyPickup('💥 BARREL EXPLODED!', '#ff8800');
+      }
+      // Damage player if too close
+      if (typeof player !== 'undefined' && player.position) {
+        var pdx = player.position.x - exPos.x, pdy = player.position.y - exPos.y, pdz = player.position.z - exPos.z;
+        var pDist = Math.sqrt(pdx*pdx + pdy*pdy + pdz*pdz);
+        if (pDist < 5) {
+          var pDmg = Math.round(80 * (1 - pDist / 5));
+          player.hp = Math.max(0, player.hp - pDmg);
+          if (typeof HUD !== 'undefined' && HUD.flashDamage) HUD.flashDamage(pDmg);
+        }
+      }
+    } catch(e) {}
+    setTimeout(function() { if (_barrelExplosionDepth > 0) _barrelExplosionDepth = Math.max(0, _barrelExplosionDepth - 1); }, 500);
   }
 
   function onPlayerHit(dmg, attackerPos) {
