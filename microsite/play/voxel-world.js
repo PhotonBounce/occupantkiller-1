@@ -20311,6 +20311,134 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_melitopol_citycentre', x: ox - 12, z: oz - 10, w: 45, d: 50, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── PROPAGANDA POSTER — Russian war propaganda on building walls ─────────────
+  // Creates a Three.js group with a framed poster showing Z-symbol and Russian text.
+  // facing: 0=north (+Z face), 1=east (+X face), 2=south (-Z face), 3=west (-X face)
+  function generatePropagandaPoster(scene, x, y, z, facing) {
+    if (!scene) return;
+    var group = new THREE.Group();
+
+    // Frame: dark gray metal border
+    var frameGeo = new THREE.BoxGeometry(2.0, 2.8, 0.06);
+    var frameMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    var frameMesh = new THREE.Mesh(frameGeo, frameMat);
+    frameMesh.position.set(0, 0, 0);
+    group.add(frameMesh);
+
+    // Background: red backing panel
+    var bgGeo = new THREE.BoxGeometry(1.8, 2.6, 0.05);
+    var bgMat = new THREE.MeshLambertMaterial({ color: 0xCC0000 });
+    var bgMesh = new THREE.Mesh(bgGeo, bgMat);
+    bgMesh.position.set(0, 0, 0.03);
+    group.add(bgMesh);
+
+    // Canvas texture with Z symbol and Russian text
+    var canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 384;
+    var ctx = canvas.getContext('2d');
+
+    // Red background
+    ctx.fillStyle = '#CC0000';
+    ctx.fillRect(0, 0, 256, 384);
+
+    // White border strip
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(10, 10, 236, 364);
+
+    // Gold star at top
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('★', 128, 60);
+
+    // Large white Z symbol
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 140px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Z', 128, 230);
+
+    // Russian text "МЫ ПОБЕДИМ" (We will win)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 28px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('МЫ ПОБЕДИМ', 128, 310);
+
+    // Subtext "РОССИЯ"
+    ctx.font = 'bold 22px Arial';
+    ctx.fillStyle = '#FFD700';
+    ctx.fillText('РОССИЯ', 128, 360);
+
+    var texture = new THREE.CanvasTexture(canvas);
+    var posterGeo = new THREE.PlaneGeometry(1.8, 2.6);
+    var posterMat = new THREE.MeshLambertMaterial({ map: texture, side: THREE.DoubleSide });
+    var posterMesh = new THREE.Mesh(posterGeo, posterMat);
+    posterMesh.position.set(0, 0, 0.06);
+    group.add(posterMesh);
+
+    // Rotate group based on facing direction
+    if (facing === 1) {
+      group.rotation.y = -Math.PI / 2;
+    } else if (facing === 2) {
+      group.rotation.y = Math.PI;
+    } else if (facing === 3) {
+      group.rotation.y = Math.PI / 2;
+    }
+    // facing === 0: no rotation (north, +Z face)
+
+    group.position.set(x, y + 1.4, z);
+    scene.add(group);
+    return group;
+  }
+
+  // ── WAR MURAL — wide Saint George ribbon mural on a building wall ────────────
+  // A wide painted mural with victory text and Russian flag colors.
+  function generateWarMural(scene, x, y, z, width) {
+    if (!scene) return;
+    var canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    var ctx = canvas.getContext('2d');
+
+    // Dark background
+    ctx.fillStyle = '#1A1A1A';
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Saint George ribbon — alternating orange and black horizontal stripes
+    var stripeColors = ['#F47920', '#1A1A1A', '#F47920', '#1A1A1A', '#F47920'];
+    var stripeH = 20;
+    for (var si = 0; si < stripeColors.length; si++) {
+      ctx.fillStyle = stripeColors[si];
+      ctx.fillRect(30, 40 + si * stripeH, 452, stripeH);
+    }
+
+    // "ПОБЕДА" in large bold letters (Victory)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 96px Arial';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 8;
+    ctx.fillText('ПОБЕДА', 256, 175);
+    ctx.shadowBlur = 0;
+
+    // Russian flag stripe at the bottom: white, blue, red
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 210, 512, 15);
+    ctx.fillStyle = '#0039A6';
+    ctx.fillRect(0, 225, 512, 15);
+    ctx.fillStyle = '#D52B1E';
+    ctx.fillRect(0, 240, 512, 16);
+
+    var texture = new THREE.CanvasTexture(canvas);
+    var muralGeo = new THREE.PlaneGeometry(width, 3.0);
+    var muralMat = new THREE.MeshLambertMaterial({ map: texture, side: THREE.DoubleSide });
+    var muralMesh = new THREE.Mesh(muralGeo, muralMat);
+    muralMesh.position.set(x, y + 1.5, z);
+    scene.add(muralMesh);
+    return muralMesh;
+  }
+
   function generateLevel(index) {
     var level = getLevelDef(index);
     setTheme(level.theme);
@@ -21224,6 +21352,17 @@ window.VoxelWorld = (function () {
       generateDroneNest(-48, 48);
       generateDroneNest(48, -48);
       generateDroneNest(-48, -48);
+      // Propaganda posters on building walls throughout Moscow
+      generatePropagandaPoster(_scene, 15, 2, 5, 0);
+      generatePropagandaPoster(_scene, -12, 2, 8, 2);
+      generatePropagandaPoster(_scene, 20, 2, -18, 1);
+      generatePropagandaPoster(_scene, -22, 2, -20, 3);
+      generatePropagandaPoster(_scene, 5, 2, 25, 0);
+      generatePropagandaPoster(_scene, -8, 2, -30, 2);
+      generatePropagandaPoster(_scene, 30, 2, 12, 1);
+      generatePropagandaPoster(_scene, -35, 2, 5, 3);
+      generateWarMural(_scene, 0, 1, -20, 8);
+      generateWarMural(_scene, 25, 1, 15, 6);
     } else if (level.id === 'SEVASTOPOL') {
       // Sevastopol Black Sea Fleet HQ — massive naval base, coastal city, fortifications
       // Naval infrastructure (Inkerman Bay / Severnaya Bay docks)
@@ -21812,6 +21951,12 @@ window.VoxelWorld = (function () {
       generateBelgorodPrinceVladimir(-30, 30);  // Prince Vladimir Monument — city symbol
       generateBelgorodCathedral(25, -25);       // Transfiguration Cathedral — white domes
       generateBelgorodProkhorovka(0, 40);       // Prokhorovka Tank Battle Memorial
+      // Propaganda posters on building walls in Belgorod
+      generatePropagandaPoster(_scene, 5, 2, 10, 0);
+      generatePropagandaPoster(_scene, -10, 2, -5, 2);
+      generatePropagandaPoster(_scene, 18, 2, -12, 1);
+      generatePropagandaPoster(_scene, -20, 2, 15, 3);
+      generateWarMural(_scene, -5, 1, 30, 7);
     } else if (level.id === 'KREMLIN') {
       // KREMLIN SHOWDOWN — Final stage. Full Red Square under assault.
       // Kremlin perimeter wall with crenellations and towers
@@ -21909,6 +22054,18 @@ window.VoxelWorld = (function () {
       generateDroneNest(0, -56);
       generateDroneNest(40, 40);
       generateDroneNest(-40, -40);
+      // Propaganda posters on Kremlin walls and surrounding buildings
+      generatePropagandaPoster(_scene, 10, 3, 15, 1);
+      generatePropagandaPoster(_scene, -8, 3, 15, 3);
+      generatePropagandaPoster(_scene, 20, 3, -25, 0);
+      generatePropagandaPoster(_scene, -18, 3, -25, 2);
+      generatePropagandaPoster(_scene, 35, 3, 5, 1);
+      generatePropagandaPoster(_scene, -35, 3, 5, 3);
+      generateWarMural(_scene, 0, 1, 40, 10);
+      generateWarMural(_scene, 30, 1, -10, 8);
+      // Final siege: war murals flanking the Kremlin approach
+      generateWarMural(_scene, -25, 1, 0, 12);
+      generateWarMural(_scene, 25, 1, 0, 12);
     } else if (level.id === 'SNAKE') {
       // Snake Island — iconic Black Sea outpost ("Russian warship, go fuck yourself!")
       // Small rocky outcrop: lighthouse, gun positions, communications relay

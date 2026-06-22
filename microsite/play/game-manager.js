@@ -3757,6 +3757,7 @@ const GameManager = (function () {
     if (window.MeleeKnife) MeleeKnife.clear();
     if (window.WeatherEffects) WeatherEffects.clear();
     if (window.IntelPickups) IntelPickups.clear(_scene);
+    if (window.DogTags) DogTags.clear();
     window.VoxelWorld.generateLevel(stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
@@ -6629,6 +6630,9 @@ const GameManager = (function () {
           HUD.notifyPickup('WEAPON UNLOCKED: ' + Weapons.getWeaponName(idx), '#ff8800');
         }
       }
+
+      // Dog tags drop on enemy death
+      if (window._onEnemyKillForDogTags) window._onEnemyKillForDogTags(enemy.mesh.position, enemy.type);
     }
   }
 
@@ -7836,6 +7840,7 @@ const GameManager = (function () {
       if (window.TripwireIED) { var _iedEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; TripwireIED.update(_iedEnemies, delta); }
       if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
       if (window.LootDrops) LootDrops.update(delta);
+      if (window.DogTags) DogTags.update(delta);
       if (window.GasMask) GasMask.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);
       if (window.WeatherEffects) WeatherEffects.update(delta, player.position);
