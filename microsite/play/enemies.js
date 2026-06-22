@@ -2263,6 +2263,8 @@ const Enemies = (() => {
         if (typeof HUD !== 'undefined' && HUD.showBossIntro) HUD.showBossIntro(typeCfg.name || typeName);
         if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.4, 0.6);
         if (typeof Feedback !== 'undefined' && Feedback.triggerSlowMo) Feedback.triggerSlowMo(0.55, 0.25);
+        // Show epic boss HP bar at bottom of screen
+        _showBossHPBar(typeCfg.name || typeName, hp);
       } catch (eBI) {}
     }
 
@@ -5108,6 +5110,11 @@ const Enemies = (() => {
     if (enemy.hp <= 0) {
       enemy.alive      = false;
       enemy.deathTimer = 6.0;
+      // Hide boss HP bar when boss dies
+      if (enemy.isBoss || (enemy.typeCfg && enemy.typeCfg.role === 'boss') ||
+          (enemy.typeName && enemy.typeName.indexOf('BOSS_') === 0) || enemy.typeName === 'BOSS') {
+        try { _hideBossHPBar(); } catch (eBH) {}
+      }
       // Spatial death grunt
       if (typeof window !== 'undefined' && window.AudioSystem && window.AudioSystem.playEnemyDeath && _playerPos && enemy.mesh) {
         var _ddx = enemy.mesh.position.x - _playerPos.x;
@@ -5554,6 +5561,9 @@ const Enemies = (() => {
     },
     RANKS,
     UNITS,
+    showBossHPBar:   _showBossHPBar,
+    updateBossHPBar: _updateBossHPBar,
+    hideBossHPBar:   _hideBossHPBar,
   };
 })();
 
