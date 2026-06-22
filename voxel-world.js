@@ -1214,7 +1214,7 @@ window.VoxelWorld = (function () {
     { id: 'HOSTOMEL',  name: 'Hostomel Airport',    desc: 'Stop the airborne assault',  theme: 'grassland', wavesPerLevel: 7, difficulty: 1.0, fogColor: 0xD4A017, spawnCandidates: [{ x: 0, z: -22 }, { x: -10, z: -22 }, { x: 10, z: -22 }, { x: -6, z: -26 }, { x: 6, z: -26 }, { x: 0, z: -16 }], spawnLookTarget: { x: 0, z: 18 } },
     { id: 'AVDIIVKA',  name: 'Avdiivka Industrial Zone', desc: 'Hold the coking plant',  theme: 'urban',     wavesPerLevel: 7, difficulty: 1.3, fogColor: 0x3a3028, spawnCandidates: [{ x: -10, z: 25 }, { x: 10, z: 25 }, { x: 0, z: 30 }, { x: -35, z: -5 }, { x: 35, z: -5 }, { x: -22, z: 15 }, { x: 22, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'BAKHMUT',   name: 'Bakhmut Ruins',        desc: 'Defend the city',             theme: 'urban',     wavesPerLevel: 7, difficulty: 1.6, fogColor: 0x2a2a2a, spawnCandidates: [{ x: -18, z: -5 }, { x: 18, z: -5 }, { x: 0, z: -18 }, { x: -12, z: 10 }, { x: 12, z: 10 }, { x: -35, z: 0 }, { x: 35, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
-    { id: 'KHERSON',   name: 'Kherson Bridgehead',   desc: 'Cross the Dnipro',            theme: 'grassland', wavesPerLevel: 7, difficulty: 1.9, fogColor: 0xD4A017, spawnCandidates: [{ x: -20, z: -35 }, { x: 20, z: -35 }, { x: 0, z: -40 }, { x: -30, z: -20 }, { x: 30, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KHERSON',   name: 'Kherson Liberation',   desc: 'Retake the Dnieper port — liberate Freedom Square', theme: 'urban', wavesPerLevel: 8, difficulty: 3.2, fogColor: 0x558866, spawnCandidates: [{ x: -15, z: -20 }, { x: 15, z: -20 }, { x: 0, z: -28 }, { x: -28, z: 0 }, { x: 28, z: 0 }, { x: 0, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'MARIUPOL',  name: 'Mariupol Steelworks',  desc: 'Fight through Azovstal',      theme: 'industrial', wavesPerLevel: 7, difficulty: 2.2, fogColor: 0x1a1a20, spawnCandidates: [{ x: -12, z: -28 }, { x: 12, z: -28 }, { x: 0, z: -35 }, { x: -30, z: 8 }, { x: 30, z: 8 }, { x: -30, z: -20 }, { x: 30, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'CRIMEA',    name: 'Crimea Bridge',        desc: 'Cut the supply line',         theme: 'coastal',   wavesPerLevel: 7, difficulty: 2.5, fogColor: 0x5577aa, spawnCandidates: [{ x: -20, z: -30 }, { x: 20, z: -30 }, { x: -35, z: -15 }, { x: 35, z: -15 }, { x: 0, z: -42 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'CHORNOBYL', name: 'Chornobyl Zone',       desc: 'Irradiated exclusion zone',   theme: 'wasteland', wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x3a3520, spawnCandidates: [{ x: -18, z: -25 }, { x: 18, z: -25 }, { x: 0, z: -32 }, { x: -28, z: -12 }, { x: 28, z: -12 }, { x: -15, z: -40 }, { x: 15, z: -40 }], spawnLookTarget: { x: 0, z: 0 } },
@@ -1231,6 +1231,7 @@ window.VoxelWorld = (function () {
     { id: 'AVDIIVKA_COKE', name: 'Avdiivka Coke Plant', desc: 'Industrial fortress siege', theme: 'wasteland', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x2a2218, spawnCandidates: [{ x: -15, z: -18 }, { x: 15, z: -18 }, { x: 0, z: -25 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'BUCHA',    name: 'Bucha Liberation',      desc: 'Expose the atrocities',       theme: 'urban',     wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x556655, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -22 }, { x: -30, z: 5 }, { x: 30, z: 5 }],  spawnLookTarget: { x: 0, z: 0 } },
     { id: 'MELITOPOL', name: 'Melitopol Occupation', desc: 'Partisan resistance in occupied city', theme: 'urban', wavesPerLevel: 7, difficulty: 3.0, fogColor: 0x334422, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -30, z: 5 }, { x: 30, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'ZAPORIZHZHIA', name: 'Zaporizhzhia Nuclear Zone', desc: 'Secure the ZNPP — fight through Cossack land', theme: 'industrial', wavesPerLevel: 9, difficulty: 3.8, fogColor: 0x445566, spawnCandidates: [{ x: -20, z: -20 }, { x: 20, z: -20 }, { x: 0, z: -30 }, { x: -30, z: 5 }, { x: 30, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -10831,6 +10832,279 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_melitopol_cityhall', x: ox, z: oz, w: bW, d: bD, baseY: h, floorH: floorH, floors: bFloors, cx: ox + 8, cz: oz + 5 });
   }
 
+  // LANDMARK: Kherson Freedom Square — main plaza, liberated Nov 2022
+  function generateKhersonFreedomSquare(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // 30×30 open plaza with WHITE_TILE/CONCRETE surface
+    for (var px = -15; px <= 15; px++) {
+      for (var pz = -15; pz <= 15; pz++) {
+        var tile = ((px + pz) % 2 === 0) ? BLOCK.WHITE_TILE : BLOCK.CONCRETE;
+        setBlock(ox + px, h, oz + pz, tile);
+      }
+    }
+    // Ukrainian flag pole: METAL pole 15 high with LIGHT block at top (gold)
+    for (var fy = 0; fy < 15; fy++) setBlock(ox, base + fy, oz - 12, BLOCK.METAL);
+    setBlock(ox, base + 15, oz - 12, BLOCK.LIGHT);
+    setBlock(ox + 1, base + 13, oz - 12, BLOCK.LIGHT);
+    setBlock(ox + 1, base + 14, oz - 12, BLOCK.LIGHT);
+    // Soviet-era admin building on north edge: 20 wide × 6 deep × 6 high PLASTER/CONCRETE
+    for (var ay = 0; ay < 6; ay++) {
+      for (var ax = -10; ax <= 10; ax++) {
+        for (var az = -18; az <= -12; az++) {
+          var isEdge = ax === -10 || ax === 10 || az === -18 || az === -12;
+          if (isEdge || ay === 0 || ay === 5)
+            setBlock(ox + ax, base + ay, oz + az, ay < 2 ? BLOCK.CONCRETE : BLOCK.PLASTER);
+        }
+      }
+    }
+    // Columns every 4 blocks on south face of admin building
+    for (var col = -8; col <= 8; col += 4) {
+      for (var cy = 0; cy < 8; cy++) setBlock(ox + col, base + cy, oz - 11, BLOCK.CONCRETE);
+    }
+    // Burned Russian tank wreck at center
+    for (var ty = 0; ty < 2; ty++) {
+      for (var tx = -2; tx <= 2; tx++) {
+        for (var tz = -1; tz <= 1; tz++) {
+          setBlock(ox + tx, base + ty, oz + tz, BLOCK.METAL);
+        }
+      }
+    }
+    setBlock(ox + 3, base + 1, oz, BLOCK.METAL); // gun barrel
+    setBlock(ox + 4, base + 1, oz, BLOCK.METAL);
+    // Rubble from shelling (scattered)
+    setBlock(ox - 8, base, oz + 5, BLOCK.RUBBLE);
+    setBlock(ox - 7, base, oz + 6, BLOCK.RUBBLE);
+    setBlock(ox + 9, base, oz + 3, BLOCK.RUBBLE);
+    setBlock(ox + 8, base + 1, oz + 4, BLOCK.RUBBLE);
+    setBlock(ox - 5, base, oz - 5, BLOCK.RUBBLE);
+    // Fountain base: 8×8 ring of CONCRETE blocks 1 high
+    for (var fx = -4; fx <= 4; fx++) {
+      setBlock(ox + fx, base, oz + 8, BLOCK.CONCRETE);
+      setBlock(ox + fx, base, oz + 12, BLOCK.CONCRETE);
+    }
+    for (var fz = 8; fz <= 12; fz++) {
+      setBlock(ox - 4, base, oz + fz, BLOCK.CONCRETE);
+      setBlock(ox + 4, base, oz + fz, BLOCK.CONCRETE);
+    }
+    _buildings.push({ kind: 'landmark_kherson_freedom_square', x: ox - 15, z: oz - 18, w: 31, d: 34, baseY: h, floorH: 6, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Kherson Port — grain silos, crane, industrial waterfront
+  function generateKhersonPort(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // 40×15 CONCRETE dock surface
+    for (var dx = -20; dx <= 20; dx++) {
+      for (var dz = -7; dz <= 7; dz++) {
+        setBlock(ox + dx, h, oz + dz, BLOCK.CONCRETE);
+      }
+    }
+    // 2 grain silos: 4×4 CONCRETE, 16 high
+    for (var si = 0; si < 2; si++) {
+      var sx = ox + (si === 0 ? -12 : 10);
+      for (var sy = 0; sy < 16; sy++) {
+        for (var ssx = -2; ssx <= 2; ssx++) {
+          for (var ssz = -2; ssz <= 2; ssz++) {
+            if (Math.abs(ssx) === 2 || Math.abs(ssz) === 2)
+              setBlock(sx + ssx, base + sy, oz + ssz, BLOCK.CONCRETE);
+          }
+        }
+      }
+      // Silo cap
+      for (var cap = 0; cap < 2; cap++) {
+        for (var csx = -1; csx <= 1; csx++) {
+          for (var csz = -1; csz <= 1; csz++) {
+            setBlock(sx + csx, base + 16 + cap, oz + csz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Port crane: METAL L-shape — vertical 14 high, arm 8 wide
+    for (var cry = 0; cry < 14; cry++) setBlock(ox + 18, base + cry, oz - 2, BLOCK.METAL);
+    for (var crx = 10; crx <= 18; crx++) setBlock(ox + crx, base + 14, oz - 2, BLOCK.METAL);
+    setBlock(ox + 18, base + 13, oz - 3, BLOCK.METAL); // diagonal brace
+    // 3 shipping containers in a row
+    for (var ci = 0; ci < 3; ci++) {
+      var cx2 = ox - 18 + ci * 5;
+      for (var ciy = 0; ciy < 3; ciy++) {
+        for (var cix = 0; cix < 4; cix++) {
+          for (var ciz = 0; ciz < 2; ciz++) {
+            setBlock(cx2 + cix, base + ciy, oz + 3 + ciz, BLOCK.METAL);
+          }
+        }
+      }
+    }
+    // Warehouse: 18×8 METAL building, 5 high, corrugated roof
+    for (var wy = 0; wy < 5; wy++) {
+      for (var wx2 = -9; wx2 <= 9; wx2++) {
+        for (var wz = -6; wz <= -1; wz++) {
+          var isWall = wx2 === -9 || wx2 === 9 || wz === -6 || wz === -1;
+          if (isWall || wy === 0) setBlock(ox + wx2, base + wy, oz + wz, BLOCK.METAL);
+          else if (wy === 4) {
+            setBlock(ox + wx2, base + wy, oz + wz, (wx2 % 2 === 0) ? BLOCK.METAL : BLOCK.STONE);
+          }
+        }
+      }
+    }
+    // Blast craters from missile strikes
+    setBlock(ox + 5, h, oz + 6, BLOCK.RUBBLE);
+    setBlock(ox + 6, h, oz + 6, BLOCK.RUBBLE);
+    setBlock(ox - 8, h, oz + 5, BLOCK.RUBBLE);
+    // Sunken barge: partially visible METAL hull at dock edge
+    for (var bx = -5; bx <= 5; bx++) setBlock(ox + bx, h, oz + 7, BLOCK.METAL);
+    for (var bz2 = 5; bz2 <= 7; bz2++) {
+      setBlock(ox - 5, h, oz + bz2, BLOCK.METAL);
+      setBlock(ox + 5, h, oz + bz2, BLOCK.METAL);
+    }
+    _buildings.push({ kind: 'landmark_kherson_port', x: ox - 20, z: oz - 6, w: 41, d: 14, baseY: h, floorH: 5, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Zaporizhzhia Cossack Fort (Sich) — Khortytsia Island fortress
+  function generateZaporizhzhiaCossackFort(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    var R = 16; // 32×32 perimeter
+    // Wooden palisade wall perimeter — WOOD poles 5 high
+    for (var wx = -R; wx <= R; wx++) {
+      for (var wy = 0; wy < 5; wy++) {
+        setBlock(ox + wx, base + wy, oz - R, BLOCK.WOOD);
+        setBlock(ox + wx, base + wy, oz + R, BLOCK.WOOD);
+      }
+    }
+    for (var wz = -R; wz <= R; wz++) {
+      for (var wy2 = 0; wy2 < 5; wy2++) {
+        setBlock(ox - R, base + wy2, oz + wz, BLOCK.WOOD);
+        setBlock(ox + R, base + wy2, oz + wz, BLOCK.WOOD);
+      }
+    }
+    // Sharpened palisade tops (alternating heights)
+    for (var pt = -R; pt <= R; pt += 2) {
+      setBlock(ox + pt, base + 5, oz - R, BLOCK.WOOD);
+      setBlock(ox + pt, base + 5, oz + R, BLOCK.WOOD);
+      setBlock(ox - R, base + 5, oz + pt, BLOCK.WOOD);
+      setBlock(ox + R, base + 5, oz + pt, BLOCK.WOOD);
+    }
+    // 4 corner bastions: 6×6 WOOD platforms, 7 high
+    var corners = [[-R, -R], [R - 5, -R], [-R, R - 5], [R - 5, R - 5]];
+    for (var ci2 = 0; ci2 < corners.length; ci2++) {
+      var cbx = ox + corners[ci2][0], cbz = oz + corners[ci2][1];
+      for (var cy2 = 0; cy2 < 7; cy2++) {
+        for (var cx3 = 0; cx3 < 6; cx3++) {
+          for (var cz2 = 0; cz2 < 6; cz2++) {
+            var isEdge2 = cx3 === 0 || cx3 === 5 || cz2 === 0 || cz2 === 5;
+            if (isEdge2 || cy2 === 0 || cy2 === 6) setBlock(cbx + cx3, base + cy2, cbz + cz2, BLOCK.WOOD);
+          }
+        }
+      }
+    }
+    // Inner compound buildings: 4×4 STONE/WOOD, 3 high
+    var innerBuildings = [[-6, -6], [4, -6], [-6, 4], [4, 4]];
+    for (var ib = 0; ib < innerBuildings.length; ib++) {
+      var ibx = ox + innerBuildings[ib][0], ibz = oz + innerBuildings[ib][1];
+      for (var iby = 0; iby < 3; iby++) {
+        for (var ibx2 = 0; ibx2 < 4; ibx2++) {
+          for (var ibz2 = 0; ibz2 < 4; ibz2++) {
+            var isIbEdge = ibx2 === 0 || ibx2 === 3 || ibz2 === 0 || ibz2 === 3;
+            if (isIbEdge || iby === 0 || iby === 2)
+              setBlock(ibx + ibx2, base + iby, ibz + ibz2, iby < 2 ? BLOCK.STONE : BLOCK.WOOD);
+          }
+        }
+      }
+    }
+    // Central ceremonial fire pit: 3×3 LIGHT blocks (eternal flame)
+    for (var fx2 = -1; fx2 <= 1; fx2++) {
+      for (var fz2 = -1; fz2 <= 1; fz2++) {
+        setBlock(ox + fx2, base, oz + fz2, BLOCK.LIGHT);
+      }
+    }
+    // Earthwork ramparts: STONE mounds 3 wide × 2 high along outer wall
+    for (var rx = -R + 2; rx <= R - 2; rx += 4) {
+      setBlock(ox + rx, base, oz - R + 1, BLOCK.STONE);
+      setBlock(ox + rx, base + 1, oz - R + 1, BLOCK.STONE);
+      setBlock(ox + rx, base, oz + R - 1, BLOCK.STONE);
+      setBlock(ox + rx, base + 1, oz + R - 1, BLOCK.STONE);
+    }
+    // Gate: 4-wide × 4-high AIR gap on south face with flanking guard towers
+    for (var gy = 0; gy < 4; gy++) {
+      for (var gx = -2; gx <= 2; gx++) {
+        setBlock(ox + gx, base + gy, oz + R, BLOCK.AIR);
+      }
+    }
+    // Gate towers
+    for (var gty = 0; gty < 8; gty++) {
+      for (var gtx = -4; gtx <= -3; gtx++) setBlock(ox + gtx, base + gty, oz + R, BLOCK.WOOD);
+      for (var gtx2 = 3; gtx2 <= 4; gtx2++) setBlock(ox + gtx2, base + gty, oz + R, BLOCK.WOOD);
+    }
+    _buildings.push({ kind: 'landmark_zaporizhzhia_cossack_fort', x: ox - R, z: oz - R, w: R * 2 + 1, d: R * 2 + 1, baseY: h, floorH: 5, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: DniproHES Hydroelectric Dam — iconic Soviet structure
+  function generateZaporizhzhiaHydrodam(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Dam wall: 60 wide × 6 deep × 10 high REINFORCED CONCRETE
+    for (var dy = 0; dy < 10; dy++) {
+      for (var dx = -30; dx <= 30; dx++) {
+        for (var dz = -3; dz <= 2; dz++) {
+          setBlock(ox + dx, base + dy, oz + dz, BLOCK.REINFORCED);
+        }
+      }
+    }
+    // Blast damage: 2 gate sections blown (AIR gaps in dam wall)
+    for (var bgy = 0; bgy < 10; bgy++) {
+      for (var bgx = -8; bgx <= -5; bgx++) {
+        for (var bgz = -3; bgz <= 2; bgz++) {
+          setBlock(ox + bgx, base + bgy, oz + bgz, BLOCK.AIR);
+        }
+      }
+      for (var bgx2 = 12; bgx2 <= 15; bgx2++) {
+        for (var bgz2 = -3; bgz2 <= 2; bgz2++) {
+          setBlock(ox + bgx2, base + bgy, oz + bgz2, BLOCK.AIR);
+        }
+      }
+    }
+    // Water gates: 4×4 METAL gate frames every 8 blocks along dam top
+    for (var wgi = -24; wgi <= 24; wgi += 8) {
+      for (var wgy = 0; wgy < 4; wgy++) {
+        setBlock(ox + wgi, base + 10 + wgy, oz - 1, BLOCK.METAL);
+        setBlock(ox + wgi + 3, base + 10 + wgy, oz - 1, BLOCK.METAL);
+      }
+      setBlock(ox + wgi, base + 10, oz - 1, BLOCK.METAL);
+      setBlock(ox + wgi + 1, base + 10, oz - 1, BLOCK.METAL);
+      setBlock(ox + wgi + 2, base + 10, oz - 1, BLOCK.METAL);
+      setBlock(ox + wgi + 3, base + 10, oz - 1, BLOCK.METAL);
+    }
+    // Generator hall: 20×8 METAL building on downstream side, 8 high
+    for (var gy2 = 0; gy2 < 8; gy2++) {
+      for (var gx2 = -10; gx2 <= 10; gx2++) {
+        for (var gz2 = 4; gz2 <= 11; gz2++) {
+          var isGEdge = gx2 === -10 || gx2 === 10 || gz2 === 4 || gz2 === 11;
+          if (isGEdge || gy2 === 0 || gy2 === 7) setBlock(ox + gx2, base + gy2, oz + gz2, BLOCK.METAL);
+        }
+      }
+    }
+    // Power pylons: METAL poles 14 high on each side, 2×2 base
+    var pylonX = [-32, 32];
+    for (var pi = 0; pi < pylonX.length; pi++) {
+      for (var py = 0; py < 14; py++) {
+        setBlock(ox + pylonX[pi],     base + py, oz, BLOCK.METAL);
+        setBlock(ox + pylonX[pi] + 1, base + py, oz, BLOCK.METAL);
+        setBlock(ox + pylonX[pi],     base + py, oz + 1, BLOCK.METAL);
+        setBlock(ox + pylonX[pi] + 1, base + py, oz + 1, BLOCK.METAL);
+      }
+      // Crossbar at top
+      for (var pbx = -2; pbx <= 2; pbx++) setBlock(ox + pylonX[pi] + pbx, base + 14, oz, BLOCK.METAL);
+    }
+    // Spillway rubble: RUBBLE piles at base downstream
+    for (var rb = -12; rb <= 12; rb += 3) {
+      setBlock(ox + rb, base, oz + 12, BLOCK.RUBBLE);
+      setBlock(ox + rb + 1, base, oz + 12, BLOCK.RUBBLE);
+      setBlock(ox + rb, base + 1, oz + 13, BLOCK.RUBBLE);
+    }
+    _buildings.push({ kind: 'landmark_zaporizhzhia_hydrodam', x: ox - 32, z: oz - 3, w: 65, d: 16, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -11108,63 +11382,20 @@ window.VoxelWorld = (function () {
       generateTrainStation(-15, 30);       // Bakhmut railway junction station
       generateChurch(-30, 5);              // Orthodox church (still standing amid ruins)
     } else if (level.id === 'KHERSON') {
-      // Kherson city — Dnipro river port, Soviet housing estates, occupation frontline
-      // City center: admin buildings + apartment blocks flanking the main boulevard
-      generateLuxuryVilla(-5, -10, 14, 10);    // Kherson Oblast Admin HQ
-      generateLuxuryVilla(10, -8, 10, 8);     // Regional government offices
-      generateUkrainianApartment(-30, -25, 12); // North residential block
-      generateUkrainianApartment(-30, -47, 9);  // North-west apartments
-      generateUkrainianApartment(20, -30, 9);   // East residential
-      generateUkrainianApartment(20, -52, 6);   // Far east block
-      generateUkrainianApartment(-15, -55, 6);  // South block
-      generateUkrainianApartment(5, -58, 9);    // South-east apartments
-      generateUkrainianApartment(-45, -15, 6);  // West fringe
-      generateUkrainianApartment(38, -15, 6);   // East fringe
-      // Port/docks district (Dnipro riverbank features)
-      generateIndustrialComplex(-35, -55);      // Port warehouses
-      generateGrainSilo(-42, -30);              // Kherson grain terminal
-      generateGrainSilo(30, -55);               // Second grain silo
-      generateRailway(-20, -45, 25, true);      // Port railway spur
-      // Churches (Kherson has several orthodox parishes)
-      generateChurch(-22, -8);
-      generateChurch(30, -22);
-      // Urban infrastructure
-      generateWaterTower(-48, -38);
-      generateWaterTower(42, -40);
-      generatePowerLines(0, 0, 4);
-      generateFieldHospital(8, 10);             // Humanitarian corridor medical post
-      // Military occupation features
-      generateCheckpoint(0, -62, false);        // South road checkpoint (toward Skadovsk)
-      generateCheckpoint(0, 12, false);         // North Dnipro approach
-      generateCheckpoint(44, -30, true);        // East road to Crimea
-      generateDefensivePosition(-20, 5);
-      generateDefensivePosition(22, 0);
-      generateDefensivePosition(0, -65);
-      generateArtilleryBattery(-40, -60);
-      generateArtilleryBattery(38, 10);
-      generateAntiAirPosition(-30, 8);
-      generateAntiAirPosition(32, -58);
-      generateBarbedWire(0, 0, 30, false);
-      generateAntiTankHedgehogs(10);
-      // Battle damage
-      generateBurningRuin(-18, -22);
-      generateBurningRuin(12, -45);
-      generateBurningRuin(-38, -48);
-      generateWreckedTank(-10, -35);
-      generateWreckedAPC(15, -18);
-      generateWreckedConvoy(35, -38);
-      generateWreckedCar(-25, -60);
-      generateWreckedCar(28, -65);
-      generateBillboard(-35, -30);
-      generateBillboard(25, -42);
-      generateDroneNest(44, -50);
-      generateDroneNest(-42, -58);
-      generateDroneNest(0, 15);
-      // Kherson landmarks: railway station, cathedral, fortress, port
-      generateKhersonStation(-30, 22);          // Kherson Railway Station (NW city)
-      generateKhersonCathedral(25, -18);        // Pokrovska Cathedral (city centre)
-      generateKhersonFortress(18, -52);         // 18th-century star fort (old town SE)
-      generateKhersonPortTerminal(-5, -80);     // Dnipro river commercial port (south)
+      // Kherson Liberation — liberate Freedom Square and the Dnieper port city (Nov 2022)
+      generateKhersonFreedomSquare(0, -5);       // Main plaza — Ukrainian flag pole, tank wreck
+      generateKhersonCathedral(-22, 15);         // Saint Catherine's Cathedral — tall bell tower
+      generateKhersonPort(20, -30);              // Industrial waterfront — grain silos, crane
+      generateUkrainianApartment(-30, -25, 6); generateUkrainianApartment(28, -22, 5);
+      generateUkrainianApartment(-32, 10, 5); generateUkrainianApartment(25, 15, 6);
+      generateBurningRuin(-38, -10); generateBurningRuin(35, 8);
+      generateWreckedTank(-18, -18); generateWreckedAPC(20, 25);
+      generateCraters(8);
+      generateBunker(-25, -30); generateBunker(25, 28);
+      generateCheckpoint(0, -42, false); generateCheckpoint(0, 42, true);
+      generateDroneNest(45, 40); generateDroneNest(-45, -38);
+      generateAntiAirPosition(-35, 30); generateAntiAirPosition(35, -28);
+      generateTrenchNetwork(-18, 20); generateTrenchNetwork(18, -20);
     } else if (level.id === 'KYIV') {
       // Real-map recreation: Maidan Nezalezhnosti / Khreshchatyk approach
       // where Russian armored columns were stopped on the road into Kyiv
@@ -12002,6 +12233,22 @@ window.VoxelWorld = (function () {
       generateDroneNest(45, 42); generateDroneNest(-45, -40);
       generateAntiAirPosition(-35, 35);
       generateTrenchNetwork(-15, 15);
+    } else if (level.id === 'ZAPORIZHZHIA') {
+      // Zaporizhzhia — industrial city, Cossack heritage, ZNPP occupied by Russia
+      generateZaporizhzhiaCossackFort(-20, -15); // Khortytsia Island Sich fortress
+      generateZaporizhzhiaHydrodam(15, 20);      // DniproHES Soviet hydroelectric dam
+      generateUkrainianApartment(-35, -28, 7); generateUkrainianApartment(30, -25, 6);
+      generateBurningRuin(-40, 5); generateBurningRuin(38, -8);
+      generateWreckedTank(-25, 20); generateWreckedAPC(22, -28);
+      generateWreckedConvoy(-30, -35);
+      generateCraters(10);
+      generateBunker(-28, 25); generateBunker(28, -22);
+      generateBunker(-15, -32); generateBunker(15, 30);
+      generateMortarPit(-35, -10); generateMortarPit(32, 12);
+      generateDroneNest(45, 42); generateDroneNest(-45, -40); generateDroneNest(45, -42);
+      generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -32);
+      generateTrenchNetwork(-20, 15); generateTrenchNetwork(20, -15);
+      generateTrenchNetwork(0, -38);
     } else if (level.id === 'BUCHA') {
       // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022
       // St. Andrew's Church cemetery mass burial, Yablunska Street massacres
