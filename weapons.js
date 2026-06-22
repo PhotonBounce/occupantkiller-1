@@ -5986,54 +5986,62 @@ const Weapons = (() => {
   }
 
   // ── Smoke Cloud ────────────────────────────────────────────
-  const _smokeClouds = []; // active smoke zones for LOS checks
+  var _smokeClouds = []; // active smoke zones for LOS checks
 
   function createSmokeCloud(pos, radius) {
     if (!_scene) return;
-    // Visual: multiple translucent spheres
-    const group = new THREE.Group();
-    group.position.copy(pos);
-    for (let i = 0; i < 6; i++) {
-      const s = new THREE.Mesh(
-        new THREE.SphereGeometry(radius * (0.5 + Math.random() * 0.5), 8, 6),
-        new THREE.MeshBasicMaterial({
-          color: 0xcccccc, transparent: true, opacity: 0.45,
-          depthWrite: false,
-        })
-      );
-      s.position.set(
-        (Math.random() - 0.5) * radius * 0.6,
-        Math.random() * radius * 0.4,
-        (Math.random() - 0.5) * radius * 0.6
-      );
-      group.add(s);
-    }
-    _scene.add(group);
-    const cloud = { group: group, pos: pos.clone(), radius: radius, life: 6.0 };
-    _smokeClouds.push(cloud);
-    if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playSmoke) window.AudioSystem.playSmoke();
 
-    // Animate fade-out
-    const fadeInt = setInterval(function () {
-      cloud.life -= 0.1;
-      // Drift upward slowly
-      group.position.y += 0.02;
-      // Expand slightly
-      group.scale.setScalar(1 + (6.0 - cloud.life) * 0.05);
-      // Fade in last 2 seconds
-      if (cloud.life < 2.0) {
-        group.children.forEach(function (c) {
-          c.material.opacity = 0.45 * (cloud.life / 2.0);
-        });
-      }
-      if (cloud.life <= 0) {
-        group.children.forEach(function (c) { c.geometry.dispose(); c.material.dispose(); });
-        _scene.remove(group);
-        const idx = _smokeClouds.indexOf(cloud);
-        if (idx >= 0) _smokeClouds.splice(idx, 1);
-        clearInterval(fadeInt);
-      }
-    }, 100);
+    var group = new THREE.Group();
+    group.position.copy(pos);
+    group.position.y += 0.5;
+
+    var particles = [];
+    var count = 18;
+
+    for (var i = 0; i < count; i++) {
+      var size = 1.5 + Math.random() * 2.5;
+      var geo = new THREE.SphereGeometry(size, 6, 6);
+      var mat = new THREE.MeshBasicMaterial({
+        color: 0xcccccc,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false
+      });
+      var p = new THREE.Mesh(geo, mat);
+
+      // Random positions within cloud radius
+      var angle = Math.random() * Math.PI * 2;
+      var rad = Math.random() * 4;
+      p.position.set(
+        Math.cos(angle) * rad,
+        Math.random() * 2,
+        Math.sin(angle) * rad
+      );
+
+      // Individual particle rise velocity
+      p._riseSpeed = 0.2 + Math.random() * 0.4;
+      p._expandSpeed = 0.08 + Math.random() * 0.1;
+      p._delay = i * 0.15; // stagger spawn
+      p._active = false;
+
+      group.add(p);
+      particles.push(p);
+    }
+
+    _scene.add(group);
+    _smokeClouds.push({
+      group: group,
+      particles: particles,
+      timer: 0,
+      maxTimer: 18.0, // smoke lasts 18 seconds
+      pos: pos.clone(),
+      radius: radius || 6
+    });
+
+    // Audio
+    try {
+      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playSmoke) window.AudioSystem.playSmoke();
+    } catch(e) {}
   }
 
   function isInSmoke(px, pz) {
@@ -6646,6 +6654,52 @@ const Weapons = (() => {
         window._gameScene.remove(bp);
         bp.geometry.dispose(); bp.material.dispose();
         _bloodParticles.splice(bi, 1);
+      }
+    }
+
+    // Smoke clouds
+    for (var si = _smokeClouds.length - 1; si >= 0; si--) {
+      var sc = _smokeClouds[si];
+      sc.timer += delta;
+
+      var lifeRatio = sc.timer / sc.maxTimer;
+
+      sc.particles.forEach(function(p) {
+        p._delay -= delta;
+        if (p._delay > 0) return;
+        if (!p._active) {
+          p._active = true;
+        }
+
+        // Rise slowly
+        p.position.y += p._riseSpeed * delta;
+
+        // Expand
+        var s = 1 + p._expandSpeed * sc.timer * 2;
+        p.scale.setScalar(Math.min(s, 2.5));
+
+        // Opacity: fade in for first 2s, hold, fade out last 3s
+        var fade = 1.0;
+        if (sc.timer < 2.0) {
+          fade = sc.timer / 2.0;
+        } else if (lifeRatio > 0.8) {
+          fade = 1.0 - (lifeRatio - 0.8) / 0.2;
+        }
+        p.material.opacity = Math.max(0, Math.min(0.45, fade * 0.45));
+
+        // Slight horizontal drift
+        p.position.x += (Math.random() - 0.5) * 0.01;
+        p.position.z += (Math.random() - 0.5) * 0.01;
+      });
+
+      if (sc.timer >= sc.maxTimer) {
+        _scene.remove(sc.group);
+        // Dispose geometries/materials
+        sc.particles.forEach(function(p) {
+          p.geometry.dispose();
+          p.material.dispose();
+        });
+        _smokeClouds.splice(si, 1);
       }
     }
 
@@ -7515,6 +7569,7 @@ const Weapons = (() => {
     getRecoilAccum: function() { return _recoilPitchAccum; },
     startInspect,
     isInSmoke: isInSmoke,
+    createSmokeCloud: createSmokeCloud,
     getWeaponCount: function () { return WEAPONS.length; },
     unlockForStage: unlockForStage,
     getCurrentIdx:  function () { return currentIdx; },
