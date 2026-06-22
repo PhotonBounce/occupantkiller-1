@@ -1261,6 +1261,8 @@ window.VoxelWorld = (function () {
     { id: 'DNIPRO_METRO', name: 'Dnipro River Defense', desc: 'Hold the industrial capital and its Dnipr River embankment', theme: 'urban', wavesPerLevel: 8, difficulty: 3.3, fogColor: 0x334455, spawnCandidates: [{ x: 0, z: -30 }, { x: -20, z: -18 }, { x: 20, z: -18 }, { x: -28, z: 8 }, { x: 28, z: 8 }, { x: 0, z: 28 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'AZOVSTAL', name: 'Azovstal Last Stand', desc: 'Hold the steel works tunnels against the Russian siege — Azov Battalion\'s finest hour', theme: 'industrial', wavesPerLevel: 9, difficulty: 4.2, fogColor: 0x2a1a1a, spawnCandidates: [{ x: 0, z: -40 }, { x: -15, z: -25 }, { x: 15, z: -25 }, { x: -20, z: 5 }, { x: 20, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KHERSON_BRIDGE', name: 'Kherson Liberation', desc: 'Clear the Antonivka Bridge and liberate Kherson from Russian occupation', theme: 'urban', wavesPerLevel: 8, difficulty: 3.4, fogColor: 0x445566, spawnCandidates: [{ x: 0, z: -35 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'ZAPORIZHZHIA_NPP', name: 'Zaporizhzhia Nuclear Plant', desc: 'Defend Europe\'s largest nuclear plant — prevent a Chernobyl-scale catastrophe', theme: 'industrial', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x336633, spawnCandidates: [{ x: 0, z: -45 }, { x: -20, z: -30 }, { x: 20, z: -30 }, { x: -28, z: 0 }, { x: 28, z: 0 }, { x: 0, z: 30 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KRAMATORSK_STATION', name: 'Kramatorsk Station', desc: 'The Tochka-U strike on the evacuation platform — 59 civilians, 7 children killed', theme: 'urban', wavesPerLevel: 8, difficulty: 3.6, fogColor: 0x2a2a35, spawnCandidates: [{ x: 0, z: -40 }, { x: -20, z: -25 }, { x: 20, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 30 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -18307,6 +18309,33 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, 42); generateDroneNest(-40, -40);
       generateAntiAirPosition(-32, -30); generateAntiAirPosition(30, 28);
       generateCheckpoint(-40, 0, true);
+    } else if (level.id === 'ZAPORIZHZHIA_NPP') {
+      generateCheckpoint(0, -50);
+      generateBunker(-25, -5); generateBunker(25, -5);
+      generateZaporizhzhiaNPP(0, 0);
+      generateUkrainianApartment(-38, -30, 8); generateUkrainianApartment(35, -30, 6);
+      generateBurningRuin(-20, 32); generateBurningRuin(18, -38);
+      generateWreckedTank(-22, -35); generateWreckedAPC(22, 28);
+      generateCraters(10);
+      generateTrenchNetwork(-18, 22); generateTrenchNetwork(18, -22);
+      generateArtilleryBattery(-42, -42); generateArtilleryBattery(40, 40);
+      generateDroneNest(48, 45); generateDroneNest(-48, -45);
+      generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -32);
+      generateCheckpoint(-48, 0, true);
+    } else if (level.id === 'KRAMATORSK_STATION') {
+      generateCheckpoint(0, -45);
+      generateBunker(-22, -5); generateBunker(22, -5);
+      generateKramatorskStation(0, 0);
+      generateUkrainianApartment(-32, -28, 7); generateUkrainianApartment(28, -28, 5);
+      generateUkrainianApartment(-34, 18, 5); generateUkrainianApartment(28, 20, 7);
+      generateChurch(-20, 22); generateChurch(20, -22);
+      generateBurningRuin(-15, 28); generateBurningRuin(15, -32);
+      generateWreckedTank(-18, -30); generateWreckedAPC(18, 22);
+      generateCraters(8);
+      generateTrenchNetwork(-15, 18); generateTrenchNetwork(15, -18);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-35, -30); generateAntiAirPosition(32, 28);
+      generateCheckpoint(-42, 0, true);
     }
 
     // ── PROC_CITIES: distinct content for each procedural city ─────────────
