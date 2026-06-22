@@ -432,6 +432,59 @@ const EnemyTypes = (function () {
       behavior: 'boss',
       rageThreshold: 0.45, rageDamageMult: 1.6
     },
+    BOSS_DEBALTSEVE: {
+      id: 'BOSS_DEBALTSEVE', name: 'DNR Winter Siege Commander', tier: 4,
+      hp: 1350, speed: 1.4, damage: 82, attackRange: 20,
+      color: 0x445566, scale: 1.95, xpReward: 580,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '❄ THE DNR WINTER SIEGE COMMANDER STORMS DEBALTSEVE — HOLD THE CORRIDOR!',
+      behavior: 'boss',
+      artilleryDamage: 90, artilleryRadius: 4, artilleryInterval: 10,
+      rageThreshold: 0.35, rageDamageMult: 1.8,
+      summonTypes: ['WAGNER', 'SPETSNAZ', 'KADYROVITE'], summonCount: 4, summonInterval: 15
+    },
+    BOSS_IRPIN: {
+      id: 'BOSS_IRPIN', name: 'Kyiv Advance Column General', tier: 3,
+      hp: 1100, speed: 1.55, damage: 65, attackRange: 18,
+      color: 0x334433, scale: 1.85, xpReward: 490,
+      abilities: ['summon_reinforcements', 'rage_mode', 'smoke_screen'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🌉 THE KYIV ADVANCE COLUMN GENERAL CROSSES THE IRPIN RIVER — CUT HIM OFF!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+    BOSS_LYSYCHANSK: {
+      id: 'BOSS_LYSYCHANSK', name: 'LPR Hilltop Assault General', tier: 4,
+      hp: 1400, speed: 1.45, damage: 80, attackRange: 22,
+      color: 0x3a2810, scale: 2.0, xpReward: 600,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '⛽ THE LPR HILLTOP ASSAULT GENERAL TAKES THE REFINERY HEIGHTS — RETAKE THEM!',
+      behavior: 'boss',
+      artilleryDamage: 95, artilleryRadius: 4.5, artilleryInterval: 9,
+      rageThreshold: 0.3, rageDamageMult: 1.9
+    },
+    BOSS_ENERGODAR: {
+      id: 'BOSS_ENERGODAR', name: 'Nuclear City Occupation Commander', tier: 4,
+      hp: 1280, speed: 1.4, damage: 75, attackRange: 20,
+      color: 0x223322, scale: 1.9, xpReward: 560,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '☢ THE NUCLEAR CITY OCCUPATION COMMANDER CONTROLS ENERGODAR — TAKE IT BACK!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+    BOSS_KHERSON_CITY: {
+      id: 'BOSS_KHERSON_CITY', name: 'Kherson Occupation General', tier: 3,
+      hp: 1150, speed: 1.5, damage: 68, attackRange: 19,
+      color: 0x334422, scale: 1.85, xpReward: 510,
+      abilities: ['summon_reinforcements', 'rage_mode', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🌻 THE KHERSON OCCUPATION GENERAL FLEES FREEDOM SQUARE — CATCH HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.65
+    },
 
     // Feature 17: Suicide Bomber
     BOMBER: {
@@ -1306,6 +1359,11 @@ const EnemyTypes = (function () {
     KHMELNYTSKYI:         'BOSS_KHMELNYTSKYI',
     NIKOPOL:              'BOSS_NIKOPOL',
     UZHHOROD:             'BOSS_UZHHOROD',
+    DEBALTSEVE:           'BOSS_DEBALTSEVE',
+    IRPIN:                'BOSS_IRPIN',
+    LYSYCHANSK:           'BOSS_LYSYCHANSK',
+    ENERGODAR:            'BOSS_ENERGODAR',
+    KHERSON_CITY:         'BOSS_KHERSON_CITY',
   };
 
   /**
