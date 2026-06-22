@@ -6476,7 +6476,15 @@ const Weapons = (() => {
       }
       if (!dropMiss) {
         var dropDmgMult = hits[0]._dropDamageMult || 1;
-        onHit(hits[0], Math.round(wep.damage * dropDmgMult));
+        var _finalDmg = Math.round(wep.damage * dropDmgMult * (window._weaponDamageMultiplier || 1));
+        onHit(hits[0], _finalDmg);
+        // Explosive rounds (shop upgrade): AOE damage burst on hit
+        if (window._explosiveRounds && hits[0].point && typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+          Enemies.damageInRadius(hits[0].point, 3.5, Math.round(_finalDmg * 0.35));
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
+            try { AudioSystem.playExplosion(); } catch(e){}
+          }
+        }
       // Bullet penetration for high-caliber weapons — hit 2nd target at reduced damage
       var penTypes = ['SNIPER', 'LMG', 'HMG', 'HMG_HEAVY', 'MINIGUN', 'AMR', 'MACHINEGUN'];
       if (penTypes.indexOf(wep.type) >= 0 && hits.length > 1) {
@@ -7354,6 +7362,22 @@ const Weapons = (() => {
       if (a.recoilMult)        s.recoilY   *= a.recoilMult;
       if (a.silent)            s.silent     = true;
       if (a.muzzleFlashMult != null) s.muzzleFlashMult = Math.min(s.muzzleFlashMult, a.muzzleFlashMult);
+    }
+    // Shop upgrade: extended mag increases clip size
+    if (window._magCapMultiplier && window._magCapMultiplier !== 1) {
+      s.clipSize = Math.max(1, Math.floor(s.clipSize * window._magCapMultiplier));
+    }
+    // Shop upgrade: damage multiplier
+    if (window._weaponDamageMultiplier && window._weaponDamageMultiplier !== 1) {
+      s.damage = Math.round(s.damage * window._weaponDamageMultiplier);
+    }
+    // Shop upgrade: ROF multiplier
+    if (window._rofMultiplier && window._rofMultiplier !== 1) {
+      s.fireRate = s.fireRate * window._rofMultiplier;
+    }
+    // Shop upgrade: reload multiplier
+    if (window._reloadMultiplier && window._reloadMultiplier !== 1) {
+      s.reloadTime = s.reloadTime * window._reloadMultiplier;
     }
     return s;
   }
