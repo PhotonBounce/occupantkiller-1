@@ -359,6 +359,48 @@ const EnemyTypes = (function () {
       behavior: 'boss',
       rageThreshold: 0.4, rageDamageMult: 1.7
     },
+    BOSS_MARIUPOL_DRAMA: {
+      id: 'BOSS_MARIUPOL_DRAMA', name: 'Mariupol Theatre Siege Commander', tier: 5,
+      hp: 1600, speed: 1.3, damage: 90, attackRange: 22,
+      color: 0x332211, scale: 2.1, xpReward: 700,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode', 'fortify'],
+      lootTable: ['LEGENDARY_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '💀 THE THEATRE SIEGE COMMANDER — ДЕТИ WERE WRITTEN ON THE FLOOR. BRING JUSTICE!',
+      behavior: 'boss',
+      artilleryDamage: 110, artilleryRadius: 5, artilleryInterval: 9,
+      rageThreshold: 0.3, rageDamageMult: 2.0,
+      summonTypes: ['KADYROVITE', 'WAGNER', 'COMMISSAR'], summonCount: 5, summonInterval: 12
+    },
+    BOSS_SEVERODONETSK_AZOT: {
+      id: 'BOSS_SEVERODONETSK_AZOT', name: 'AZOT Chemical Plant Overseer', tier: 4,
+      hp: 1350, speed: 1.4, damage: 80, attackRange: 20,
+      color: 0x223311, scale: 1.9, xpReward: 580,
+      abilities: ['summon_reinforcements', 'smoke_screen', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'MEDKIT', 'ARMOR'],
+      spawnMessage: '☠ THE AZOT PLANT OVERSEER THREATENS CHEMICAL CATASTROPHE — STOP HIM NOW!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+    BOSS_LVIV_OLD_TOWN: {
+      id: 'BOSS_LVIV_OLD_TOWN', name: 'Lviv Saboteur Colonel', tier: 3,
+      hp: 1100, speed: 1.7, damage: 65, attackRange: 18,
+      color: 0x334422, scale: 1.8, xpReward: 480,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '⚔ THE LVIV SABOTEUR COLONEL TARGETS THE CITY OF LIONS — DEFEND ITS WALLS!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.65
+    },
+    BOSS_ODESSA_CATACOMBS: {
+      id: 'BOSS_ODESSA_CATACOMBS', name: 'Black Sea Amphibious Strike General', tier: 4,
+      hp: 1250, speed: 1.5, damage: 75, attackRange: 20,
+      color: 0x223355, scale: 1.9, xpReward: 540,
+      abilities: ['summon_reinforcements', 'rocket_salvo', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '⚓ THE BLACK SEA STRIKE GENERAL EMERGES FROM THE CATACOMBS — HOLD ODESSA!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.75
+    },
 
     // Feature 17: Suicide Bomber
     BOMBER: {
@@ -1226,6 +1268,10 @@ const EnemyTypes = (function () {
     KRAMATORSK_STATION:   'BOSS_KRAMATORSK_STATION',
     BUCHA_MEMORIAL:       'BOSS_BUCHA_MEMORIAL',
     HOSTOMEL_AIRPORT_RAID: 'BOSS_HOSTOMEL_AIRPORT_RAID',
+    MARIUPOL_DRAMA:       'BOSS_MARIUPOL_DRAMA',
+    SEVERODONETSK_AZOT:   'BOSS_SEVERODONETSK_AZOT',
+    LVIV_OLD_TOWN:        'BOSS_LVIV_OLD_TOWN',
+    ODESSA_CATACOMBS:     'BOSS_ODESSA_CATACOMBS',
   };
 
   /**
