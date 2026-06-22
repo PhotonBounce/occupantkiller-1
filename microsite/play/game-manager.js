@@ -273,6 +273,9 @@ const GameManager = (function () {
     lastDamageTime: 0,        // time since last damage (for health regen)
     // ── Throwables ──
     grenades:   5,            // hand grenades on player; default 5, unlimited in god mode
+    grenadeType: 'FRAG',      // current grenade type: FRAG, SMOKE, FLASHBANG
+    smokeGrenades: 2,         // smoke grenade count
+    flashGrenades: 2,         // flashbang grenade count
     // ── Loot & Building ──
     lootParticles: [],        // active loot particles in world
     buildMaterials: { wood: 0, stone: 0, metal: 0, dirt: 0, sand: 0, brick: 0 },
@@ -1646,6 +1649,24 @@ const GameManager = (function () {
       if (e.code === 'KeyG' && e.ctrlKey && e.shiftKey) {
         e.preventDefault();
         toggleGodMode();
+        return;
+      }
+
+      // Shift+G (without Ctrl): cycle grenade type FRAG → SMOKE → FLASHBANG → FRAG
+      if (e.code === 'KeyG' && e.shiftKey && !e.ctrlKey) {
+        e.preventDefault();
+        if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
+          if (player.grenadeType === 'FRAG') {
+            player.grenadeType = 'SMOKE';
+            HUD.notifyPickup('💨 GRENADE: SMOKE [' + (player.smokeGrenades || 0) + ']', '#aaaaaa');
+          } else if (player.grenadeType === 'SMOKE') {
+            player.grenadeType = 'FLASHBANG';
+            HUD.notifyPickup('⚡ GRENADE: FLASHBANG [' + (player.flashGrenades || 0) + ']', '#ffff88');
+          } else {
+            player.grenadeType = 'FRAG';
+            HUD.notifyPickup('💣 GRENADE: FRAG [' + (player.godMode ? '∞' : (player.grenades || 0)) + ']', '#ffaa00');
+          }
+        }
         return;
       }
 
@@ -8882,25 +8903,68 @@ const GameManager = (function () {
 
   function throwHandGrenade() {
     if (_handGrenadeCooldown > 0) return;
-    if (!player.godMode && (!player.grenades || player.grenades <= 0)) {
-      HUD.notifyPickup('🚫 NO GRENADES', '#ff6600');
-      return;
-    }
     if (!_scene || !_camera) return;
-    var geo = new THREE.SphereGeometry(0.10, 8, 6);
-    var mat = new THREE.MeshLambertMaterial({ color: 0x2a3018 });
-    var nade = new THREE.Mesh(geo, mat);
+
+    var gType = player.grenadeType || 'FRAG';
+
+    // Check ammo for the selected type
+    if (!player.godMode) {
+      if (gType === 'FRAG' && (!player.grenades || player.grenades <= 0)) {
+        HUD.notifyPickup('🚫 NO FRAG GRENADES', '#ff6600');
+        return;
+      }
+      if (gType === 'SMOKE' && (!player.smokeGrenades || player.smokeGrenades <= 0)) {
+        HUD.notifyPickup('🚫 NO SMOKE GRENADES', '#ff6600');
+        return;
+      }
+      if (gType === 'FLASHBANG' && (!player.flashGrenades || player.flashGrenades <= 0)) {
+        HUD.notifyPickup('🚫 NO FLASHBANGS', '#ff6600');
+        return;
+      }
+    }
+
     var origin = player.position.clone();
     origin.y -= 0.4;
-    nade.position.copy(origin);
-    _scene.add(nade);
     var fwd = _camera.getWorldDirection(new THREE.Vector3());
     var vel = new THREE.Vector3(fwd.x * 18, 6 + fwd.y * 14, fwd.z * 18);
-    _handGrenades.push({ mesh: nade, vel: vel, fuse: 2.5, spin: new THREE.Vector3(8, 6, 4) });
-    if (!player.godMode) player.grenades = Math.max(0, player.grenades - 1);
-    if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : player.grenades);
-    _handGrenadeCooldown = 0.45;
-    HUD.notifyPickup('💣 GRENADE OUT', '#ffaa00');
+
+    if (gType === 'SMOKE') {
+      // Smoke grenade: small grey sphere that lands and creates a smoke cloud
+      var sGeo = new THREE.SphereGeometry(0.10, 8, 6);
+      var sMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+      var sNade = new THREE.Mesh(sGeo, sMat);
+      sNade.position.copy(origin);
+      _scene.add(sNade);
+      _handGrenades.push({ mesh: sNade, vel: vel, fuse: 2.0, spin: new THREE.Vector3(6, 5, 3), type: 'SMOKE' });
+      if (!player.godMode) player.smokeGrenades = Math.max(0, player.smokeGrenades - 1);
+      _handGrenadeCooldown = 0.45;
+      HUD.notifyPickup('💨 SMOKE OUT', '#aaaaaa');
+
+    } else if (gType === 'FLASHBANG') {
+      // Flashbang: white sphere that blinds on detonation
+      var fGeo = new THREE.SphereGeometry(0.10, 8, 6);
+      var fMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+      var fNade = new THREE.Mesh(fGeo, fMat);
+      fNade.position.copy(origin);
+      _scene.add(fNade);
+      _handGrenades.push({ mesh: fNade, vel: vel, fuse: 2.0, spin: new THREE.Vector3(10, 8, 5), type: 'FLASHBANG' });
+      if (!player.godMode) player.flashGrenades = Math.max(0, player.flashGrenades - 1);
+      _handGrenadeCooldown = 0.45;
+      HUD.notifyPickup('⚡ FLASHBANG OUT', '#ffff88');
+
+    } else {
+      // FRAG (default)
+      var geo = new THREE.SphereGeometry(0.10, 8, 6);
+      var mat = new THREE.MeshLambertMaterial({ color: 0x2a3018 });
+      var nade = new THREE.Mesh(geo, mat);
+      nade.position.copy(origin);
+      _scene.add(nade);
+      _handGrenades.push({ mesh: nade, vel: vel, fuse: 2.5, spin: new THREE.Vector3(8, 6, 4), type: 'FRAG' });
+      if (!player.godMode) player.grenades = Math.max(0, player.grenades - 1);
+      if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : player.grenades);
+      _handGrenadeCooldown = 0.45;
+      HUD.notifyPickup('💣 GRENADE OUT', '#ffaa00');
+    }
   }
 
   function updateHandGrenades(delta) {
@@ -8936,27 +9000,75 @@ const GameManager = (function () {
       }
       if (g.fuse <= 0) {
         var pos = g.mesh.position.clone();
-        if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(pos, 2.2);
-        if (window.AudioSystem && window.AudioSystem.playExplosion) {
-          try { window.AudioSystem.playExplosion(); } catch (e) {}
-        }
-        if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
-          var _gRes = Enemies.damageInRadius(pos, 6.5, 110);
-          if (player && Array.isArray(_gRes)) {
-            var _gKills = 0;
-            for (var _gi = 0; _gi < _gRes.length; _gi++) if (_gRes[_gi].remaining <= 0) _gKills++;
-            if (_gKills > 0) player.waveMaxExplosiveKill = Math.max(player.waveMaxExplosiveKill || 0, _gKills);
+
+        if (g.type === 'SMOKE') {
+          // Smoke grenade: create semi-transparent sphere cloud, persist 8 seconds
+          var smokeGeo = new THREE.SphereGeometry(4, 12, 8);
+          var smokeMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+          smokeMat.transparent = true;
+          smokeMat.opacity = 0.35;
+          var smokeMesh = new THREE.Mesh(smokeGeo, smokeMat);
+          smokeMesh.position.copy(pos);
+          smokeMesh.position.y += 2;
+          if (_scene) _scene.add(smokeMesh);
+          window._smokePositions = window._smokePositions || [];
+          window._smokePositions.push({ x: pos.x, z: pos.z, expires: Date.now() + 8000, mesh: smokeMesh });
+          // Schedule smoke removal after 8 seconds
+          (function(sm) {
+            setTimeout(function() {
+              if (_scene) _scene.remove(sm);
+              if (sm.geometry) sm.geometry.dispose();
+              if (sm.material) sm.material.dispose();
+              // Clean up from _smokePositions
+              if (window._smokePositions) {
+                for (var _si = window._smokePositions.length - 1; _si >= 0; _si--) {
+                  if (window._smokePositions[_si].mesh === sm) {
+                    window._smokePositions.splice(_si, 1);
+                  }
+                }
+              }
+            }, 8000);
+          }(smokeMesh));
+
+        } else if (g.type === 'FLASHBANG') {
+          // Flashbang: white screen flash + AI blind state
+          window._flashTime = Date.now() + 3500;
+          var flashDiv = document.createElement('div');
+          flashDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;opacity:0.95;pointer-events:none;z-index:9999;transition:opacity 2s ease-out';
+          document.body.appendChild(flashDiv);
+          // Fade out: brief hold then fade
+          setTimeout(function() {
+            flashDiv.style.opacity = '0';
+            setTimeout(function() {
+              if (flashDiv.parentNode) flashDiv.parentNode.removeChild(flashDiv);
+            }, 2100);
+          }, 1500);
+
+        } else {
+          // FRAG (default): explosion damage
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(pos, 2.2);
+          if (window.AudioSystem && window.AudioSystem.playExplosion) {
+            try { window.AudioSystem.playExplosion(); } catch (e) {}
+          }
+          if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+            var _gRes = Enemies.damageInRadius(pos, 6.5, 110);
+            if (player && Array.isArray(_gRes)) {
+              var _gKills = 0;
+              for (var _gi = 0; _gi < _gRes.length; _gi++) if (_gRes[_gi].remaining <= 0) _gKills++;
+              if (_gKills > 0) player.waveMaxExplosiveKill = Math.max(player.waveMaxExplosiveKill || 0, _gKills);
+            }
+          }
+          if (CameraSystem.shake) CameraSystem.shake(0.35, 0.4);
+          if (!player.godMode) {
+            var dx = player.position.x - pos.x, dy = player.position.y - pos.y, dz = player.position.z - pos.z;
+            var d2 = dx * dx + dy * dy + dz * dz;
+            if (d2 < 36) {
+              var falloff = 1 - Math.sqrt(d2) / 6;
+              onPlayerHit(60 * falloff, pos);
+            }
           }
         }
-        if (CameraSystem.shake) CameraSystem.shake(0.35, 0.4);
-        if (!player.godMode) {
-          var dx = player.position.x - pos.x, dy = player.position.y - pos.y, dz = player.position.z - pos.z;
-          var d2 = dx * dx + dy * dy + dz * dz;
-          if (d2 < 36) {
-            var falloff = 1 - Math.sqrt(d2) / 6;
-            onPlayerHit(60 * falloff, pos);
-          }
-        }
+
         if (_scene) _scene.remove(g.mesh);
         if (g.mesh.geometry) g.mesh.geometry.dispose();
         if (g.mesh.material) g.mesh.material.dispose();
@@ -9029,8 +9141,10 @@ const GameManager = (function () {
           });
         }
       } catch (e) {}
-      // Unlimited hand grenades
+      // Unlimited hand grenades (all types)
       player.grenades = Infinity;
+      player.smokeGrenades = Infinity;
+      player.flashGrenades = Infinity;
       if (HUD.setHandGrenades) HUD.setHandGrenades(Infinity);
       // Enable stealth (enemies can't see player)
       player.stealth = true;
@@ -9059,8 +9173,11 @@ const GameManager = (function () {
       Enemies.setPlayerStealth(false);
       var stInd = document.getElementById('stealth-indicator');
       if (stInd) stInd.style.display = 'none';
-      // Reset grenades to default 5
+      // Reset grenades to default 5 (all types)
       player.grenades = 5;
+      player.smokeGrenades = 2;
+      player.flashGrenades = 2;
+      player.grenadeType = 'FRAG';
       if (HUD.setHandGrenades) HUD.setHandGrenades(5);
       HUD.notifyPickup('⚡ GOD MODE DEACTIVATED', '#ff6600');
     }
