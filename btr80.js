@@ -422,8 +422,10 @@ window.BTR80 = (function () {
 
     // Audio
     try {
-      if (window.AudioSystem && window.AudioSystem.playExplosion) {
-        window.AudioSystem.playExplosion(0.22, false);
+      if (window.AudioSystem && window.AudioSystem.playBTR80Fire) {
+        window.AudioSystem.playBTR80Fire();
+      } else if (window.AudioSystem && window.AudioSystem.playGunshot) {
+        window.AudioSystem.playGunshot('heavy');
       }
     } catch (e) {}
 

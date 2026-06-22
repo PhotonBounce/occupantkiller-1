@@ -423,7 +423,9 @@ window.T72 = (function () {
 
     // Audio
     try {
-      if (window.AudioSystem && window.AudioSystem.playExplosion) {
+      if (window.AudioSystem && window.AudioSystem.playT72Cannon) {
+        window.AudioSystem.playT72Cannon();
+      } else if (window.AudioSystem && window.AudioSystem.playExplosion) {
         window.AudioSystem.playExplosion(1.2, false);
       }
     } catch (e) {}

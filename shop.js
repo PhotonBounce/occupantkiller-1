@@ -115,6 +115,7 @@ window.Shop = (function() {
           if (window.HUD && HUD.updateOKC && window.Marketplace) HUD.updateOKC(Marketplace.getOKC());
           _purchased[upg.id] = (_purchased[upg.id] || 0) + 1;
           try { upg.apply(); } catch(e) {}
+          if (window.AudioSystem && AudioSystem.playShopPurchase) AudioSystem.playShopPurchase();
           if (window.HUD && HUD.showToast) HUD.showToast('✅ ' + upg.name + ' purchased!', 2000, '#44ff88');
           // Rebuild panel to reflect new state
           if (_panel && _panel.parentNode) _panel.parentNode.removeChild(_panel);

@@ -89,6 +89,7 @@ window.Loot = (function() {
       var dz = playerPos.z - item.mesh.position.z;
       if (dx * dx + dz * dz < 2.25) {
         _applyEffect(item.type);
+        if (window.AudioSystem && AudioSystem.playLootPickup) AudioSystem.playLootPickup();
         _scene.remove(item.mesh);
         _items.splice(i, 1);
         continue;
