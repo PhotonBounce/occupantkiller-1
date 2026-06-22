@@ -596,6 +596,61 @@ const EnemyTypes = (function () {
       rageThreshold: 0.25, rageDamageMult: 2.0
     },
 
+    BOSS_CRIMEA_BRIDGE: {
+      id: 'BOSS_CRIMEA_BRIDGE', name: 'Bridge Garrison Commander', tier: 5,
+      hp: 2200, speed: 2.1, damage: 50, attackRange: 14,
+      color: 0x001122, scale: 2.1, xpReward: 880,
+      abilities: ['airstrike', 'mortar_barrage', 'summon_reinforcements', 'rage_mode'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'BRIDGE GARRISON COMMANDER DEFENDS THE KERCH STRAIT — TAKE THE BRIDGE!',
+      behavior: 'boss',
+      rageThreshold: 0.25, rageDamageMult: 2.1
+    },
+
+    BOSS_SEVASTOPOL: {
+      id: 'BOSS_SEVASTOPOL', name: 'Black Sea Fleet Admiral', tier: 4,
+      hp: 1600, speed: 1.9, damage: 42, attackRange: 12,
+      color: 0x001a2a, scale: 2.0, xpReward: 720,
+      abilities: ['airstrike', 'mortar_barrage', 'summon_reinforcements', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'BLACK SEA FLEET ADMIRAL COMMANDS THE HARBOR — SINK HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.9
+    },
+
+    BOSS_LUHANSK: {
+      id: 'BOSS_LUHANSK', name: 'LPR Military Governor', tier: 4,
+      hp: 1500, speed: 1.8, damage: 40, attackRange: 12,
+      color: 0x110a00, scale: 1.95, xpReward: 680,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'fortify', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'LPR MILITARY GOVERNOR CONTROLS THE INDUSTRIAL HUB — ELIMINATE HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.85
+    },
+
+    BOSS_STAROBILSK: {
+      id: 'BOSS_STAROBILSK', name: 'Logistics Commander', tier: 3,
+      hp: 1300, speed: 1.7, damage: 35, attackRange: 10,
+      color: 0x1a1000, scale: 1.9, xpReward: 600,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'LOGISTICS COMMANDER RUNS THE SUPPLY HUB — CUT HIM OFF!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.75
+    },
+
+    BOSS_BERDIANSK: {
+      id: 'BOSS_BERDIANSK', name: 'Azov Port Commandant', tier: 3,
+      hp: 1350, speed: 1.8, damage: 36, attackRange: 11,
+      color: 0x0a1522, scale: 1.9, xpReward: 620,
+      abilities: ['airstrike', 'summon_reinforcements', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'AZOV PORT COMMANDANT CONTROLS THE HARBOR — TAKE THE PORT!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+
     // Feature 17: Suicide Bomber
     BOMBER: {
       id: 'BOMBER', name: 'Suicide Bomber', tier: 2,
@@ -1538,6 +1593,11 @@ const EnemyTypes = (function () {
     ZAPORIZHZHIA_CITY:    'BOSS_ZAPORIZHZHIA_CITY',
     SUMY_CITY:            'BOSS_SUMY_CITY',
     DONETSK_CITY:         'BOSS_DONETSK_CITY',
+    CRIMEA_BRIDGE:        'BOSS_CRIMEA_BRIDGE',
+    SEVASTOPOL:           'BOSS_SEVASTOPOL',
+    LUHANSK:              'BOSS_LUHANSK',
+    STAROBILSK:           'BOSS_STAROBILSK',
+    BERDIANSK:            'BOSS_BERDIANSK',
   };
 
   /**
