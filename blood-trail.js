@@ -1,503 +1,579 @@
 // ============================================================
-//  blood-trail.js — Wounded enemies leave blood trails for tracking
-//  Features:
-//    - Ground blood drops (trail + splatter on hit)
-//    - Wound-type-specific visuals (normal, shotgun, headshot)
-//    - Pre-pooled geometry (200 floor drops + 50 wall splatters)
-//    - Drop fade-out after 30s (opacity lerp over 2s)
-//    - Death pool cluster on enemy death (60s lifetime)
-//    - Wall splatter via simple heuristic (no raycast)
-//  Public API: init(scene), update(dt), onEnemyDamaged(enemy, dmg),
-//              onEnemyDeath(enemy), clear(), reset()
-//  Hooks: window._onEnemyDamageForBlood, window._onEnemyDeathForBlood
+//  blood-trail.js — Blood Trail Tracker
+//  Wounded enemies leave a blood trail the player can follow.
+//
+//  Public API: { init, update, reset }
+//  Config toggle: window._bleedEnabled (default true)
 // ============================================================
 window.BloodTrail = (function () {
   'use strict';
 
-  // ── Config ──────────────────────────────────────────────
-  var MAX_FLOOR_DROPS   = 200;
-  var MAX_WALL_SPLATTERS = 50;
-  var DROP_INTERVAL_NORMAL = 0.30;   // seconds between trail drops (>30% HP)
-  var DROP_INTERVAL_HEAVY  = 0.15;   // seconds between trail drops (<30% HP)
-  var BLEED_THRESHOLD  = 0.60;       // start bleeding below 60% HP
-  var DROP_LIFETIME    = 30.0;       // seconds before fade begins
-  var FADE_DURATION    = 2.0;        // seconds to fade to 0 opacity
-  var BLOOD_COLOR      = 0x8B0000;   // base dark red
+  // ── Constants ──────────────────────────────────────────────
+  var HP_THRESHOLD     = 0.40;   // track enemies below 40% HP
+  var DROP_INTERVAL    = 1.5;    // seconds between trail drops
+  var DROP_LIFETIME    = 25.0;   // seconds before fade begins
+  var DEATH_FADE_TIME  = 2.0;    // seconds for death cleanup fade
+  var MAX_DROPS        = 80;     // pool ceiling (FIFO when exceeded)
+  var TRACKER_RANGE    = 15.0;   // units — max distance for direction arrow
+  var PING_INTERVAL    = 3.0;    // seconds between compass audio pings
+  var TRACK_THRESHOLD  = 3;      // drops followed before "tracked kill" bonus
+  var BONUS_SCORE      = 75;
 
-  // ── Module state ────────────────────────────────────────
-  var _scene      = null;
-  var _initialized = false;
+  // ── Scene / Three.js state ─────────────────────────────────
+  var _scene           = null;
+  var _camera          = null;   // needed for screen-space arrow
+  var _initialized     = false;
 
-  // Shared material for all floor blood drops
-  var _floorMat   = null;
-  // Shared material for all wall splatters
-  var _wallMat    = null;
+  // ── Drop pool ──────────────────────────────────────────────
+  // Each slot: { mesh, light, active, timer, enemyId, fadeDur, opacity }
+  var _drops           = [];
 
-  // Pool arrays: all meshes pre-created at init
-  var _floorPool  = [];  // array of {mesh, active, timer, lifetime}
-  var _wallPool   = [];  // array of {mesh, active, timer}
+  // ── Enemy tracking state ───────────────────────────────────
+  // Keyed by a unique _btId assigned to each enemy object.
+  // { timer, dropCount }
+  var _enemyState      = {};
+  var _btIdCounter     = 0;
 
-  // Active drop records (point into pool by index)
-  // Using parallel arrays instead of objects for perf
-  var _floorActive  = [];  // indices into _floorPool that are currently live
-  var _wallActive   = [];  // indices into _wallPool currently live
+  // ── Tracker mode ──────────────────────────────────────────
+  var _trackerActive   = false;
+  var _trackerHUD      = null;   // DOM element for HUD label
+  var _arrowEl         = null;   // DOM element for direction arrow
+  var _pingTimer       = 0;
+  var _pulseLight      = null;   // PointLight on most-recent drop
+  var _pulsePhase      = 0;
 
-  // Per-enemy bleeding state
-  var _enemyState = {};  // keyed by enemy._btId, value: {timer, active}
-  var _btIdCounter = 0;
+  // ── Kill-tracking: how many drops player has "followed" ──
+  // Maps enemyId -> count of drops the player has passed near
+  var _followedDrops   = {};
 
-  // ── Helpers ─────────────────────────────────────────────
+  // ── Audio context (optional ping) ─────────────────────────
+  var _audioCtx        = null;
+
+  // ── Helpers ───────────────────────────────────────────────
   function _rnd(min, max) {
     return min + Math.random() * (max - min);
   }
 
-  function _varyColor(base) {
-    // Vary brightness slightly per-drop so drops look organic
-    var r = ((base >> 16) & 0xff);
-    var g = ((base >>  8) & 0xff);
-    var b =  (base        & 0xff);
-    var delta = Math.floor(_rnd(-12, 12));
-    r = Math.max(0, Math.min(255, r + delta));
-    g = Math.max(0, Math.min(255, g));
-    b = Math.max(0, Math.min(255, b));
-    return (r << 16) | (g << 8) | b;
+  function _getBleedEnabled() {
+    return (window._bleedEnabled === undefined) ? true : !!window._bleedEnabled;
   }
 
-  // ── Pool management ─────────────────────────────────────
-
-  function _buildFloorPool() {
-    for (var i = 0; i < MAX_FLOOR_DROPS; i++) {
-      var radius = 0.08;
-      var geo = new THREE.CircleGeometry(radius, 6);
-      var mesh = new THREE.Mesh(geo, _floorMat);
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.visible = false;
-      mesh.renderOrder = 1;
-      _scene.add(mesh);
-      _floorPool.push({ mesh: mesh, active: false, timer: 0, lifetime: DROP_LIFETIME });
-    }
-  }
-
-  function _buildWallPool() {
-    for (var i = 0; i < MAX_WALL_SPLATTERS; i++) {
-      var geo = new THREE.PlaneGeometry(0.1, 0.1);
-      var mesh = new THREE.Mesh(geo, _wallMat);
-      mesh.visible = false;
-      mesh.renderOrder = 1;
-      _scene.add(mesh);
-      _wallPool.push({ mesh: mesh, active: false, timer: 0 });
-    }
-  }
-
-  // Return a free floor pool slot (recycles oldest if full)
-  function _acquireFloorSlot() {
-    // Try to find inactive
-    for (var i = 0; i < _floorPool.length; i++) {
-      if (!_floorPool[i].active) return i;
-    }
-    // All in use — recycle oldest active (first in _floorActive list)
-    if (_floorActive.length > 0) {
-      var oldest = _floorActive.shift();
-      _floorPool[oldest].mesh.visible = false;
-      _floorPool[oldest].active = false;
-      return oldest;
-    }
-    return 0;
-  }
-
-  function _acquireWallSlot() {
-    for (var i = 0; i < _wallPool.length; i++) {
-      if (!_wallPool[i].active) return i;
-    }
-    if (_wallActive.length > 0) {
-      var oldest = _wallActive.shift();
-      _wallPool[oldest].mesh.visible = false;
-      _wallPool[oldest].active = false;
-      return oldest;
-    }
-    return 0;
-  }
-
-  // ── Place a single floor blood drop ─────────────────────
-  // woundType: 'normal' | 'shotgun' | 'headshot' | 'death'
-  // x, z: world XZ position
-  // lifetime: optional override (for death pools)
-  function _placeFloorDrop(x, z, woundType, lifetime) {
-    var slot = _acquireFloorSlot();
-    var entry = _floorPool[slot];
-    var mesh  = entry.mesh;
-
-    // Rebuild geometry with wound-type-specific radius
-    var radius;
-    if (woundType === 'headshot') {
-      radius = 0.2 + _rnd(-0.02, 0.02);
-    } else if (woundType === 'shotgun') {
-      radius = 0.15 + _rnd(-0.02, 0.04);
-    } else if (woundType === 'death') {
-      radius = _rnd(0.10, 0.30);
-    } else {
-      radius = 0.08 + Math.random() * 0.06;
-    }
-
-    // Dispose old geometry, create new (pool is small enough that this is OK
-    // for infrequent death/headshot events; trail drops reuse)
-    mesh.geometry.dispose();
-    mesh.geometry = new THREE.CircleGeometry(radius, 6);
-
-    // Color variation
-    var col = _varyColor(BLOOD_COLOR);
-    mesh.material = new THREE.MeshBasicMaterial({
-      color: col,
-      transparent: true,
-      opacity: 0.92,
-      depthWrite: false
-    });
-
-    mesh.position.set(x, 0.01, z);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.rotation.z = _rnd(0, Math.PI * 2); // random angular tilt for organic look
-    mesh.visible = true;
-
-    entry.active   = true;
-    entry.timer    = 0;
-    entry.lifetime = (lifetime !== undefined) ? lifetime : DROP_LIFETIME;
-
-    _floorActive.push(slot);
-    return slot;
-  }
-
-  // ── Place a wall splatter ───────────────────────────────
-  // pos: THREE.Vector3 of impact, normal: facing direction (unit vec)
-  function _placeWallSplatter(px, py, pz, nx, ny, nz) {
-    var slot = _acquireWallSlot();
-    var entry = _wallPool[slot];
-    var mesh  = entry.mesh;
-
-    var size = _rnd(0.07, 0.14);
-    mesh.geometry.dispose();
-    mesh.geometry = new THREE.PlaneGeometry(size, size);
-    mesh.material = new THREE.MeshBasicMaterial({
-      color: _varyColor(BLOOD_COLOR),
-      transparent: true,
-      opacity: 0.85,
-      depthWrite: false
-    });
-
-    // Offset slightly off the wall surface to avoid z-fighting
-    var OFFSET = 0.015;
-    mesh.position.set(
-      px + nx * OFFSET,
-      py + _rnd(-0.15, 0.15),
-      pz + nz * OFFSET
-    );
-
-    // Orient plane to face along normal (yaw only — we ignore roll)
-    mesh.rotation.set(0, Math.atan2(nx, nz), 0);
-
-    mesh.visible = true;
-    entry.active  = true;
-    entry.timer   = 0;
-
-    _wallActive.push(slot);
-  }
-
-  // ── Splatter on hit (multiple drops in radius) ───────────
-  function _spawnSplatter(x, z, woundType) {
-    var count, radius;
-    if (woundType === 'shotgun') {
-      count  = Math.floor(_rnd(6, 9));   // 6-8
-      radius = 0.50;
-    } else if (woundType === 'headshot') {
-      count  = Math.floor(_rnd(4, 7));   // 4-6
-      radius = 0.40;
-    } else {
-      count  = Math.floor(_rnd(3, 6));   // 3-5
-      radius = 0.30;
-    }
-    for (var i = 0; i < count; i++) {
-      var angle = _rnd(0, Math.PI * 2);
-      var dist  = _rnd(0, radius);
-      _placeFloorDrop(
-        x + Math.cos(angle) * dist,
-        z + Math.sin(angle) * dist,
-        woundType,
-        DROP_LIFETIME
-      );
-    }
-  }
-
-  // ── Heuristic wall splatter near enemy ─────────────────
-  // We pick the closest wall axis (X or Z) relative to enemy position
-  // and place a splatter in that direction.
-  function _spawnWallSplatterHeuristic(ex, ey, ez) {
-    // Simple heuristic: emit a splatter on the dominant axis from scene origin
-    // In a grid-based voxel world this approximation is sufficient without raycasting
-    var absX = Math.abs(ex);
-    var absZ = Math.abs(ez);
-    var nx, nz;
-    if (absX >= absZ) {
-      nx = (ex > 0) ? 1 : -1;
-      nz = 0;
-    } else {
-      nx = 0;
-      nz = (ez > 0) ? 1 : -1;
-    }
-    // Place the splatter 0.5 units in that direction from the enemy
-    _placeWallSplatter(
-      ex + nx * 0.5,
-      ey + _rnd(0.5, 1.2),
-      ez + nz * 0.5,
-      nx, 0, nz
-    );
-  }
-
-  // ── Death pool cluster ──────────────────────────────────
-  function _spawnDeathPool(x, z) {
-    var count = Math.floor(_rnd(5, 9)); // 5-8
-    for (var i = 0; i < count; i++) {
-      var angle = _rnd(0, Math.PI * 2);
-      var dist  = _rnd(0, 0.35);
-      _placeFloorDrop(
-        x + Math.cos(angle) * dist,
-        z + Math.sin(angle) * dist,
-        'death',
-        60.0   // 60s lifetime
-      );
-    }
-  }
-
-  // ── Public API ──────────────────────────────────────────
-
-  function init(scene) {
-    _scene = scene;
-
-    // Shared materials (one instance — shared across all drops via per-slot override for color variety)
-    _floorMat = new THREE.MeshBasicMaterial({
-      color: BLOOD_COLOR,
-      transparent: true,
-      opacity: 0.92,
-      depthWrite: false
-    });
-    _wallMat = new THREE.MeshBasicMaterial({
-      color: BLOOD_COLOR,
-      transparent: true,
-      opacity: 0.85,
-      depthWrite: false
-    });
-
-    _floorPool   = [];
-    _wallPool    = [];
-    _floorActive = [];
-    _wallActive  = [];
-    _enemyState  = {};
-    _btIdCounter = 0;
-
-    _buildFloorPool();
-    _buildWallPool();
-
-    _initialized = true;
-
-    // Register global hooks
-    window._onEnemyDamageForBlood = function (enemy, dmg) {
-      BloodTrail.onEnemyDamaged(enemy, dmg);
-    };
-    window._onEnemyDeathForBlood = function (enemy) {
-      BloodTrail.onEnemyDeath(enemy);
-    };
-
-    console.log('[BloodTrail] initialized — ' + MAX_FLOOR_DROPS + ' floor slots, ' + MAX_WALL_SPLATTERS + ' wall slots');
-  }
-
-  function update(dt) {
-    if (!_initialized || !_scene) return;
-
-    // Update floor drops: fade and deactivate
-    var i = 0;
-    while (i < _floorActive.length) {
-      var idx   = _floorActive[i];
-      var entry = _floorPool[idx];
-      if (!entry.active) {
-        _floorActive.splice(i, 1);
-        continue;
-      }
-      entry.timer += dt;
-      // Fade phase
-      if (entry.timer >= entry.lifetime) {
-        var fadeT = (entry.timer - entry.lifetime) / FADE_DURATION;
-        if (fadeT >= 1.0) {
-          // Fully faded — deactivate
-          entry.mesh.visible = false;
-          entry.active = false;
-          _floorActive.splice(i, 1);
-          continue;
-        }
-        var targetOpacity = 0.92 * (1.0 - fadeT);
-        if (entry.mesh.material && entry.mesh.material.opacity !== undefined) {
-          entry.mesh.material.opacity = targetOpacity;
-        }
-      }
-      i++;
-    }
-
-    // Update wall splatters: fade over same schedule as floor drops
-    var j = 0;
-    while (j < _wallActive.length) {
-      var widx  = _wallActive[j];
-      var wentry = _wallPool[widx];
-      if (!wentry.active) {
-        _wallActive.splice(j, 1);
-        continue;
-      }
-      wentry.timer += dt;
-      if (wentry.timer >= DROP_LIFETIME) {
-        var wfadeT = (wentry.timer - DROP_LIFETIME) / FADE_DURATION;
-        if (wfadeT >= 1.0) {
-          wentry.mesh.visible = false;
-          wentry.active = false;
-          _wallActive.splice(j, 1);
-          continue;
-        }
-        if (wentry.mesh.material && wentry.mesh.material.opacity !== undefined) {
-          wentry.mesh.material.opacity = 0.85 * (1.0 - wfadeT);
-        }
-      }
-      j++;
-    }
-
-    // Tick per-enemy bleed timers (drop placement happens in onEnemyDamaged)
-    // We only need to tick the interval counters that drive passive trail drops.
-    // Passive drops are driven externally via repeated onEnemyDamaged calls or
-    // a separate game loop that tracks enemy position. We expose addTrailDrop
-    // for that purpose. The timer resets are also managed there.
-  }
-
-  // Called every frame by the game loop for each wounded enemy
-  // (Game must call this if it wants passive trail drops while enemy moves)
-  function tickEnemyTrail(enemy, dt) {
-    if (!_initialized) return;
-    if (!enemy || enemy.hp === undefined || enemy.maxHp === undefined) return;
-
-    var hpFrac = enemy.hp / enemy.maxHp;
-    if (hpFrac >= BLEED_THRESHOLD || enemy.hp <= 0) return;
-
-    // Ensure state record exists
-    var id = enemy._btId;
-    if (!id) return;
-    var state = _enemyState[id];
-    if (!state) return;
-
-    state.timer += dt;
-    var interval = (hpFrac < 0.30) ? DROP_INTERVAL_HEAVY : DROP_INTERVAL_NORMAL;
-
-    if (state.timer >= interval) {
-      state.timer -= interval;
-      var ex = enemy.position ? enemy.position.x : 0;
-      var ez = enemy.position ? enemy.position.z : 0;
-      _placeFloorDrop(ex + _rnd(-0.05, 0.05), ez + _rnd(-0.05, 0.05), 'normal', DROP_LIFETIME);
-    }
-  }
-
-  function onEnemyDamaged(enemy, damage, woundType) {
-    if (!_initialized || !enemy) return;
-
-    // Assign a unique ID to this enemy for state tracking
+  function _assignId(enemy) {
     if (!enemy._btId) {
       enemy._btId = ++_btIdCounter;
     }
+    return enemy._btId;
+  }
 
+  // ── Pool management ───────────────────────────────────────
+  function _acquireSlot() {
+    // Find inactive slot first
+    for (var i = 0; i < _drops.length; i++) {
+      if (!_drops[i].active) return i;
+    }
+    // Pool below ceiling — grow it
+    if (_drops.length < MAX_DROPS) {
+      return _drops.length; // caller will push a new entry
+    }
+    // FIFO eviction: remove oldest (first active slot)
+    for (var j = 0; j < _drops.length; j++) {
+      if (_drops[j].active) {
+        _evictDrop(j);
+        return j;
+      }
+    }
+    return 0;
+  }
+
+  function _evictDrop(idx) {
+    var d = _drops[idx];
+    if (!d) return;
+    if (d.mesh) {
+      if (_scene) _scene.remove(d.mesh);
+      if (d.mesh.geometry) d.mesh.geometry.dispose();
+      if (d.mesh.material) d.mesh.material.dispose();
+      d.mesh = null;
+    }
+    if (d.light) {
+      if (_scene) _scene.remove(d.light);
+      d.light = null;
+    }
+    d.active  = false;
+    d.enemyId = null;
+  }
+
+  // ── Place a blood drop ───────────────────────────────────
+  function _placeDrop(x, z, enemyId) {
+    var radius  = _rnd(0.08, 0.18);
+    var opacity = _rnd(0.6, 1.0);
+    var geo     = new THREE.CircleGeometry(radius, 8);
+    var mat     = new THREE.MeshBasicMaterial({
+      color:       0x8B0000,
+      transparent: true,
+      opacity:     opacity,
+      depthWrite:  false
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(x, 0.01, z);
+    if (_scene) _scene.add(mesh);
+
+    var idx  = _acquireSlot();
+    var slot = {
+      mesh:       mesh,
+      light:      null,
+      active:     true,
+      timer:      0,
+      enemyId:    enemyId,
+      fadeDur:    DROP_LIFETIME,
+      baseOpacity: opacity
+    };
+
+    if (idx < _drops.length) {
+      _drops[idx] = slot;
+    } else {
+      _drops.push(slot);
+    }
+    return idx;
+  }
+
+  // ── Tracker-mode pulse light on newest drop ───────────────
+  function _attachPulseLight(idx) {
+    // Remove old pulse light from previous drop
+    if (_pulseLight && _scene) {
+      _scene.remove(_pulseLight);
+      _pulseLight = null;
+    }
+    var d = _drops[idx];
+    if (!d || !d.mesh) return;
+    var light = new THREE.PointLight(0xFF0000, 3, 4);
+    light.position.copy(d.mesh.position);
+    light.position.y += 0.3;
+    if (_scene) _scene.add(light);
+    d.light    = light;
+    _pulseLight = light;
+  }
+
+  // ── HUD / DOM helpers ─────────────────────────────────────
+  function _createHUD() {
+    if (_trackerHUD) return;
+    var el      = document.createElement('div');
+    el.id       = 'blood-trail-hud';
+    el.style.position   = 'fixed';
+    el.style.top        = '12px';
+    el.style.left       = '12px';
+    el.style.color      = '#cc0000';
+    el.style.fontFamily = 'monospace, sans-serif';
+    el.style.fontSize   = '16px';
+    el.style.fontWeight = 'bold';
+    el.style.textShadow = '0 0 6px #ff0000, 0 0 12px #ff0000';
+    el.style.zIndex     = '9999';
+    el.style.display    = 'none';
+    el.style.pointerEvents = 'none';
+    el.innerText        = '🩸 TRAIL ACTIVE';
+    document.body.appendChild(el);
+    _trackerHUD = el;
+  }
+
+  function _createArrow() {
+    if (_arrowEl) return;
+    var el      = document.createElement('div');
+    el.id       = 'blood-trail-arrow';
+    el.style.position   = 'fixed';
+    el.style.top        = '50%';
+    el.style.left       = '50%';
+    el.style.transform  = 'translate(-50%, -50%)';
+    el.style.color      = '#ff0000';
+    el.style.fontSize   = '28px';
+    el.style.fontWeight = 'bold';
+    el.style.zIndex     = '9999';
+    el.style.display    = 'none';
+    el.style.pointerEvents = 'none';
+    el.style.textShadow = '0 0 8px #ff0000';
+    el.innerText        = '↑'; // up arrow, rotated by JS
+    document.body.appendChild(el);
+    _arrowEl = el;
+  }
+
+  function _showHUD(show) {
+    if (_trackerHUD) _trackerHUD.style.display = show ? 'block' : 'none';
+    if (_arrowEl)    _arrowEl.style.display    = show ? 'block' : 'none';
+  }
+
+  // ── Find nearest active drop within range ─────────────────
+  function _nearestDrop(px, pz, maxDist) {
+    var bestIdx  = -1;
+    var bestDist = maxDist * maxDist;
+    for (var i = 0; i < _drops.length; i++) {
+      var d = _drops[i];
+      if (!d || !d.active || !d.mesh) continue;
+      var dx   = d.mesh.position.x - px;
+      var dz   = d.mesh.position.z - pz;
+      var dist2 = dx * dx + dz * dz;
+      if (dist2 < bestDist) {
+        bestDist = dist2;
+        bestIdx  = i;
+      }
+    }
+    return bestIdx;
+  }
+
+  // ── Update direction arrow on screen ─────────────────────
+  function _updateArrow(px, pz) {
+    if (!_arrowEl || !_trackerActive) return;
+
+    var nearIdx = _nearestDrop(px, pz, TRACKER_RANGE);
+    if (nearIdx < 0) {
+      _arrowEl.style.display = 'none';
+      return;
+    }
+
+    var drop = _drops[nearIdx];
+    var dx   = drop.mesh.position.x - px;
+    var dz   = drop.mesh.position.z - pz;
+    // Angle in screen-space: atan2(dx, -dz) gives forward-is-up orientation
+    var angle = Math.atan2(dx, -dz) * (180 / Math.PI);
+
+    _arrowEl.style.display   = 'block';
+    _arrowEl.style.transform =
+      'translate(-50%, -50%) rotate(' + angle + 'deg)';
+  }
+
+  // ── Audio ping ────────────────────────────────────────────
+  function _emitPing() {
+    try {
+      if (!_audioCtx) {
+        if (typeof AudioContext !== 'undefined') {
+          _audioCtx = new AudioContext();
+        } else if (typeof webkitAudioContext !== 'undefined') {
+          _audioCtx = new webkitAudioContext();
+        }
+      }
+      if (!_audioCtx) return;
+      var osc  = _audioCtx.createOscillator();
+      var gain = _audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(_audioCtx.destination);
+      osc.type      = 'sine';
+      osc.frequency.setValueAtTime(880, _audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, _audioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.15, _audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.3);
+      osc.start(_audioCtx.currentTime);
+      osc.stop(_audioCtx.currentTime + 0.3);
+    } catch (e) {
+      // Audio not available — silently skip
+    }
+  }
+
+  // ── Show score bonus ──────────────────────────────────────
+  function _showBonus() {
+    // Use game HUD if available
+    if (window.HUD && typeof window.HUD.showKillFeedMessage === 'function') {
+      window.HUD.showKillFeedMessage('TRACKED KILL +' + BONUS_SCORE);
+      return;
+    }
+    // Fallback: show a brief DOM notification
+    var el       = document.createElement('div');
+    el.innerText = 'TRACKED KILL +' + BONUS_SCORE;
+    el.style.position   = 'fixed';
+    el.style.top        = '40%';
+    el.style.left       = '50%';
+    el.style.transform  = 'translate(-50%, -50%)';
+    el.style.color      = '#ff4444';
+    el.style.fontFamily = 'monospace, sans-serif';
+    el.style.fontSize   = '26px';
+    el.style.fontWeight = 'bold';
+    el.style.textShadow = '0 0 10px #ff0000';
+    el.style.zIndex     = '99999';
+    el.style.pointerEvents = 'none';
+    document.body.appendChild(el);
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 2000);
+  }
+
+  // ── Per-frame update of enemy bleeding ───────────────────
+  function _tickEnemies(dt) {
+    if (!window.Enemies || typeof window.Enemies.getAll !== 'function') return;
+
+    var all = window.Enemies.getAll();
+    for (var i = 0; i < all.length; i++) {
+      var e = all[i];
+      if (!e || !e.alive) continue;
+      if (e.hp === undefined || e.maxHp === undefined) continue;
+
+      var hpFrac = e.hp / e.maxHp;
+      if (hpFrac >= HP_THRESHOLD) continue;
+
+      var id = _assignId(e);
+      if (!_enemyState[id]) {
+        _enemyState[id] = { timer: 0, dropCount: 0 };
+      }
+
+      var state = _enemyState[id];
+      state.timer += dt;
+
+      if (state.timer >= DROP_INTERVAL) {
+        state.timer -= DROP_INTERVAL;
+
+        var pos = e.mesh ? e.mesh.position : (e.position || null);
+        if (!pos) continue;
+
+        var dropIdx = _placeDrop(
+          pos.x + _rnd(-0.05, 0.05),
+          pos.z + _rnd(-0.05, 0.05),
+          id
+        );
+        state.dropCount++;
+
+        // Attach pulse light if tracker mode is on (newest drop only)
+        if (_trackerActive) {
+          _attachPulseLight(dropIdx);
+        }
+      }
+    }
+  }
+
+  // ── Check if player is near a drop (for "followed" tally) ─
+  function _checkFollowing(px, pz) {
+    var NEAR2 = 1.5 * 1.5; // 1.5 units counts as "followed"
+    for (var i = 0; i < _drops.length; i++) {
+      var d = _drops[i];
+      if (!d || !d.active || !d.mesh || !d.enemyId) continue;
+      var dx   = d.mesh.position.x - px;
+      var dz   = d.mesh.position.z - pz;
+      if (dx * dx + dz * dz < NEAR2) {
+        _followedDrops[d.enemyId] = (_followedDrops[d.enemyId] || 0) + 1;
+        // Deactivate so we don't count same drop twice
+        d.active = false;
+        d.mesh.visible = false;
+        if (d.light && _scene) {
+          _scene.remove(d.light);
+          d.light = null;
+        }
+      }
+    }
+  }
+
+  // ── Death cleanup: accelerate fade on drops for that enemy ─
+  function _onEnemyDeath(enemy) {
+    if (!enemy || !enemy._btId) return;
     var id = enemy._btId;
 
-    // Ensure state record
-    if (!_enemyState[id]) {
-      _enemyState[id] = { timer: 0, active: false };
+    // Award tracked kill bonus if applicable
+    var followed = _followedDrops[id] || 0;
+    if (followed >= TRACK_THRESHOLD) {
+      _showBonus();
+      if (window.GameManager && typeof window.GameManager.addScore === 'function') {
+        window.GameManager.addScore(BONUS_SCORE);
+      }
     }
 
-    var maxHp = (enemy.maxHp !== undefined) ? enemy.maxHp : 100;
-    var curHp = (enemy.hp   !== undefined) ? enemy.hp   : 0;
-    var hpFrac = maxHp > 0 ? curHp / maxHp : 0;
-
-    // Resolve wound type
-    var type = woundType || 'normal';
-    if (type !== 'shotgun' && type !== 'headshot') type = 'normal';
-
-    // Only spawn effects if enemy survived (hp > 0)
-    if (curHp <= 0) return;
-
-    var ex = enemy.position ? enemy.position.x : 0;
-    var ey = enemy.position ? enemy.position.y : 0;
-    var ez = enemy.position ? enemy.position.z : 0;
-
-    // Always spawn impact splatter at hit position
-    _spawnSplatter(ex, ez, type);
-
-    // Heuristic wall splatter for shotgun or close-range hits
-    if (type === 'shotgun') {
-      _spawnWallSplatterHeuristic(ex, ey, ez);
+    // Accelerate fade for all drops belonging to this enemy
+    for (var i = 0; i < _drops.length; i++) {
+      var d = _drops[i];
+      if (!d || !d.active || d.enemyId !== id) continue;
+      // Reduce remaining lifetime to force 2s fade
+      // We do this by setting fadeDur to DEATH_FADE_TIME and resetting timer
+      // to DROP_LIFETIME so fade kicks in immediately.
+      d.timer   = d.fadeDur;
+      d.fadeDur = DEATH_FADE_TIME;
     }
 
-    // Start bleeding trail if below threshold
-    if (hpFrac < BLEED_THRESHOLD) {
-      _enemyState[id].active = true;
+    delete _followedDrops[id];
+    delete _enemyState[id];
+  }
+
+  // ── Per-frame fade logic ──────────────────────────────────
+  function _tickFades(dt) {
+    for (var i = 0; i < _drops.length; i++) {
+      var d = _drops[i];
+      if (!d || !d.active) continue;
+
+      d.timer += dt;
+
+      if (d.timer >= d.fadeDur) {
+        // In fade window
+        var elapsed = d.timer - d.fadeDur;
+        var fadeLen = (d.fadeDur === DEATH_FADE_TIME)
+          ? DEATH_FADE_TIME
+          : 3.0; // 3s normal fade window
+        var t = elapsed / fadeLen;
+
+        if (t >= 1.0) {
+          // Fully faded
+          if (d.mesh) {
+            if (_scene) _scene.remove(d.mesh);
+            if (d.mesh.geometry) d.mesh.geometry.dispose();
+            if (d.mesh.material) d.mesh.material.dispose();
+            d.mesh = null;
+          }
+          if (d.light) {
+            if (_scene) _scene.remove(d.light);
+            d.light = null;
+          }
+          d.active  = false;
+          d.enemyId = null;
+          continue;
+        }
+
+        // Lerp opacity
+        if (d.mesh && d.mesh.material) {
+          d.mesh.material.opacity = d.baseOpacity * (1.0 - t);
+        }
+      }
     }
   }
 
-  function onEnemyDeath(enemy) {
-    if (!_initialized || !enemy) return;
+  // ── Pulse animation for highlight light ──────────────────
+  function _tickPulse(dt) {
+    if (!_pulseLight || !_trackerActive) return;
+    _pulsePhase += dt * 4.0; // 4 Hz pulse
+    _pulseLight.intensity = 2.0 + Math.sin(_pulsePhase) * 1.5;
+  }
 
-    var ex = enemy.position ? enemy.position.x : 0;
-    var ez = enemy.position ? enemy.position.z : 0;
-    var ey = enemy.position ? enemy.position.y : 0;
+  // ── Get player position from game globals ─────────────────
+  function _getPlayerPos() {
+    if (window.GameManager && window.GameManager.player) {
+      var p = window.GameManager.player;
+      var pos = p.position || (p.mesh && p.mesh.position) || null;
+      if (pos) return { x: pos.x, z: pos.z };
+    }
+    if (window.player) {
+      var pp = window.player.position || (window.player.mesh && window.player.mesh.position) || null;
+      if (pp) return { x: pp.x, z: pp.z };
+    }
+    return null;
+  }
 
-    // Headshot death pool (larger)
-    _placeFloorDrop(ex, ez, 'headshot', 60.0);
-
-    // Cluster death pool
-    _spawnDeathPool(ex, ez);
-
-    // Wall splatter on death
-    _spawnWallSplatterHeuristic(ex, ey, ez);
-
-    // Clean up enemy state
-    if (enemy._btId && _enemyState[enemy._btId]) {
-      delete _enemyState[enemy._btId];
-      delete enemy._btId;
+  // ── Check dead enemies each frame ─────────────────────────
+  function _tickDeaths() {
+    if (!window.Enemies || typeof window.Enemies.getAll !== 'function') return;
+    // We track which IDs are alive in enemyState; when the enemy disappears
+    // from the alive list (alive===false or not in list), trigger death cleanup.
+    // To avoid O(n^2) we check all states and confirm enemy still alive.
+    for (var id in _enemyState) {
+      if (!_enemyState.hasOwnProperty(id)) continue;
+      // We don't hold a reference to the enemy object, only the ID.
+      // The game's Enemies.getAll() only returns alive enemies, so if the id
+      // is no longer found we treat it as dead.
+      var found = false;
+      var all   = window.Enemies.getAll();
+      for (var i = 0; i < all.length; i++) {
+        if (all[i]._btId == id) { found = true; break; }
+      }
+      if (!found) {
+        _onEnemyDeath({ _btId: parseInt(id, 10) });
+      }
     }
   }
 
-  function clear() {
+  // ── Key listener ──────────────────────────────────────────
+  function _onKeyDown(e) {
+    // Alt+T
+    if (e.altKey && (e.key === 't' || e.key === 'T')) {
+      _trackerActive = !_trackerActive;
+      _showHUD(_trackerActive);
+      if (!_trackerActive && _pulseLight) {
+        if (_scene) _scene.remove(_pulseLight);
+        _pulseLight = null;
+      }
+    }
+  }
+
+  // ── Public: init ──────────────────────────────────────────
+  function init(scene, camera) {
+    _scene        = scene;
+    _camera       = camera || null;
+    _initialized  = true;
+    _drops        = [];
+    _enemyState   = {};
+    _followedDrops = {};
+    _btIdCounter  = 0;
+    _trackerActive = false;
+    _pingTimer    = 0;
+    _pulsePhase   = 0;
+    _pulseLight   = null;
+
+    _createHUD();
+    _createArrow();
+    _showHUD(false);
+
+    document.addEventListener('keydown', _onKeyDown);
+
+    console.log('[BloodTrail] initialized — tracker ready (Alt+T to toggle)');
+  }
+
+  // ── Public: update ────────────────────────────────────────
+  function update(dt) {
     if (!_initialized) return;
+    if (!_getBleedEnabled()) return;
+    if (!dt || dt <= 0) dt = 0.016;
 
-    for (var i = 0; i < _floorPool.length; i++) {
-      _floorPool[i].mesh.visible = false;
-      _floorPool[i].active = false;
-      _floorPool[i].timer  = 0;
+    _tickDeaths();
+    _tickEnemies(dt);
+    _tickFades(dt);
+    _tickPulse(dt);
+
+    var playerPos = _getPlayerPos();
+    if (playerPos) {
+      _checkFollowing(playerPos.x, playerPos.z);
+      if (_trackerActive) {
+        _updateArrow(playerPos.x, playerPos.z);
+
+        // Compass ping toward nearest wounded enemy
+        _pingTimer += dt;
+        if (_pingTimer >= PING_INTERVAL) {
+          _pingTimer = 0;
+          // Only ping if there are active drops
+          var hasDrops = false;
+          for (var i = 0; i < _drops.length; i++) {
+            if (_drops[i] && _drops[i].active) { hasDrops = true; break; }
+          }
+          if (hasDrops) _emitPing();
+        }
+      }
     }
-    for (var j = 0; j < _wallPool.length; j++) {
-      _wallPool[j].mesh.visible = false;
-      _wallPool[j].active = false;
-      _wallPool[j].timer  = 0;
-    }
-    _floorActive = [];
-    _wallActive  = [];
-    _enemyState  = {};
   }
 
+  // ── Public: reset ─────────────────────────────────────────
   function reset() {
-    clear();
-    _btIdCounter = 0;
+    // Remove all drops from scene
+    for (var i = 0; i < _drops.length; i++) {
+      var d = _drops[i];
+      if (!d) continue;
+      if (d.mesh) {
+        if (_scene) _scene.remove(d.mesh);
+        if (d.mesh.geometry) d.mesh.geometry.dispose();
+        if (d.mesh.material) d.mesh.material.dispose();
+        d.mesh = null;
+      }
+      if (d.light) {
+        if (_scene) _scene.remove(d.light);
+        d.light = null;
+      }
+    }
+    _drops        = [];
+    _enemyState   = {};
+    _followedDrops = {};
+    _btIdCounter  = 0;
+    _pingTimer    = 0;
+    _pulsePhase   = 0;
+
+    if (_pulseLight) {
+      if (_scene) _scene.remove(_pulseLight);
+      _pulseLight = null;
+    }
+
+    _trackerActive = false;
+    _showHUD(false);
   }
 
-  // ── Public object ────────────────────────────────────────
-  var BloodTrail = {
-    init:            init,
-    update:          update,
-    tickEnemyTrail:  tickEnemyTrail,
-    onEnemyDamaged:  onEnemyDamaged,
-    onEnemyDeath:    onEnemyDeath,
-    clear:           clear,
-    reset:           reset
+  return {
+    init:   init,
+    update: update,
+    reset:  reset
   };
-
-  return BloodTrail;
 
 })();
