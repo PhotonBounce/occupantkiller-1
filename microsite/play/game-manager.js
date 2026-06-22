@@ -104,6 +104,7 @@ const GameManager = (function () {
   var _hudSlowTimer = 0; // throttle slow HUD updates (dailies, bounties, prestige)
   var _musicIntTimer = 0; // throttle music intensity calc
   var _buildMatHud = null; // cached DOM ref for build materials HUD
+  var _weaponWheelHeld = false; // tracks whether Q is held for weapon wheel
 
   // ── Muzzle flash PointLight — scene-space burst on every shot (Task 2) ──
   var _muzzleFlash = null;
@@ -1478,6 +1479,8 @@ const GameManager = (function () {
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
+    // Daily challenges panel
+    try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
     // Create weapons
     Weapons.createGunMesh(_camera);
@@ -1671,6 +1674,12 @@ const GameManager = (function () {
       if (e.code === 'KeyG' && e.ctrlKey && e.shiftKey) {
         e.preventDefault();
         toggleGodMode();
+        return;
+      }
+
+      // Shift+D: toggle daily challenges panel
+      if (e.code === 'KeyD' && e.shiftKey && !e.ctrlKey) {
+        if (typeof DailyChallenges !== 'undefined') DailyChallenges.togglePanel();
         return;
       }
 
@@ -2239,7 +2248,37 @@ const GameManager = (function () {
         if (e.code === 'Digit8') Weapons.switchTo(7);
         if (e.code === 'Digit9') Weapons.switchTo(8);
         if (e.code === 'Digit0') Weapons.switchTo(9);
-        if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
+        if (e.code === 'KeyQ' && !keys['AltLeft'] && gameState === STATE.PLAYING) {
+          if (!_weaponWheelHeld) {
+            _weaponWheelHeld = true;
+            // Build weapon list from unlocked weapons
+            var _wwWeapons = [];
+            var _wwUnlocked = Weapons.getUnlockedList ? Weapons.getUnlockedList() : [];
+            for (var _wi = 0; _wi < _wwUnlocked.length; _wi++) {
+              var _wwIdx = _wwUnlocked[_wi];
+              var _wwDef = Weapons.getWeaponDef ? Weapons.getWeaponDef(_wwIdx) : null;
+              var _wwState = Weapons.getWeaponState ? Weapons.getWeaponState(_wwIdx) : null;
+              if (_wwDef) {
+                _wwWeapons.push({
+                  name: _wwDef.name || ('Weapon ' + (_wwIdx + 1)),
+                  icon: '🔫',
+                  ammo: _wwState ? _wwState.clip : 0,
+                  maxAmmo: _wwDef.clipSize || 30,
+                  _origIdx: _wwIdx,
+                });
+              }
+            }
+            if (typeof HUD !== 'undefined' && HUD.showWeaponWheel) {
+              // Find position of current weapon in unlocked list
+              var _wwCurIdx = Weapons.getCurrentIdx ? Weapons.getCurrentIdx() : 0;
+              var _wwCurPos = 0;
+              for (var _wj = 0; _wj < _wwUnlocked.length; _wj++) {
+                if (_wwUnlocked[_wj] === _wwCurIdx) { _wwCurPos = _wj; break; }
+              }
+              HUD.showWeaponWheel(_wwWeapons, _wwCurPos);
+            }
+          }
+        }
         if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) {
           // Check for nearby attachment pickup first
           var _atkPickedUp = false;
@@ -2360,6 +2399,20 @@ const GameManager = (function () {
         CombatExtras.setLean(0);
       }
 
+      // Weapon wheel: release Q to confirm selection
+      if (e.code === 'KeyQ' && _weaponWheelHeld) {
+        _weaponWheelHeld = false;
+        var _wwSelected = (typeof HUD !== 'undefined' && HUD.hideWeaponWheel) ? HUD.hideWeaponWheel() : -1;
+        if (_wwSelected >= 0) {
+          // _wwSelected is position in unlocked list; resolve to actual weapon index
+          var _wwUnlockedOnUp = Weapons.getUnlockedList ? Weapons.getUnlockedList() : [];
+          var _wwTargetIdx = (_wwUnlockedOnUp[_wwSelected] !== undefined) ? _wwUnlockedOnUp[_wwSelected] : -1;
+          if (_wwTargetIdx >= 0 && _wwTargetIdx !== (Weapons.getCurrentIdx ? Weapons.getCurrentIdx() : 0)) {
+            Weapons.switchTo(_wwTargetIdx);
+          }
+        }
+      }
+
       if (CameraSystem.getMode() === CameraSystem.MODE.STRATEGIC) {
         if (e.code === 'ArrowUp'    || e.code === 'KeyW') CameraSystem.setRTSKey('up', false);
         if (e.code === 'ArrowDown'  || e.code === 'KeyS') CameraSystem.setRTSKey('down', false);
@@ -2462,6 +2515,9 @@ const GameManager = (function () {
     });
 
     document.addEventListener('mousemove', function (e) {
+      if (_weaponWheelHeld && typeof HUD !== 'undefined' && HUD.updateWeaponWheelMouse) {
+        HUD.updateWeaponWheelMouse(e.clientX, e.clientY);
+      }
       if (document.pointerLockElement) {
         var stunScale = GameManager._flashbangStun > 0 ? 0.15 : 1;
         CameraSystem.handleMouseMove(e.movementX * stunScale, e.movementY * stunScale);
@@ -4789,6 +4845,14 @@ const GameManager = (function () {
         if (Achievements.recordSurvivor) Achievements.recordSurvivor(player.hp, player.maxHp || 100);
       }
     } catch (eAchW) {}
+    // Daily challenges: record wave + score
+    try {
+      if (typeof DailyChallenges !== 'undefined') {
+        DailyChallenges.recordWave();
+        DailyChallenges.recordScore(player.score);
+        if (player.waveDamageTaken === 0) DailyChallenges.recordNoDamageWave();
+      }
+    } catch (eDCW) {}
     // Radio chatter on wave clear
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_clear');
     // Achievement checks
@@ -5015,6 +5079,8 @@ const GameManager = (function () {
       // Show stage clear overlay
       gameState = STATE.STAGE_CLEAR;
       if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playLevelComplete) window.AudioSystem.playLevelComplete();
+      // Daily challenges: record level complete
+      try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordLevel(); } catch (eDCL) {}
       showOverlay('stageclear');
       var _scn = document.getElementById('stageclear-num');   if (_scn) _scn.textContent = stageDef.id;
       var _scna = document.getElementById('stageclear-name'); if (_scna) _scna.textContent = stageDef.name;
@@ -5759,6 +5825,8 @@ const GameManager = (function () {
       player.totalHeadshots++;
       player.waveHeadshots++;
       player.stageHeadshots = (player.stageHeadshots || 0) + 1;
+      // Daily challenges: record headshot
+      try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordHeadshot(); } catch (eDCH) {}
     }
 
     if (remaining <= 0) {
@@ -5822,6 +5890,8 @@ const GameManager = (function () {
       player.kills++;
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
+      // Daily challenges: record kill
+      try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordKill(); } catch (eDCK) {}
       // Achievements: record kill
       try {
         if (typeof Achievements !== 'undefined' && Achievements.recordKill) {

@@ -2079,6 +2079,14 @@ const HUD = (() => {
   // Restore shown weapons from localStorage
   try { var _sw = localStorage.getItem('ok_shown_weapons'); if (_sw) _shownWeapons = JSON.parse(_sw); } catch(e){}
 
+  // ── Weapon Wheel state vars ──
+  var _weaponWheelEl = null;
+  var _weaponWheelActive = false;
+  var _weaponWheelSelected = -1;
+  var _weaponWheelItems = [];
+  var _weaponWheelCenterX = 0;
+  var _weaponWheelCenterY = 0;
+
   function showWeaponUnlockCard(weaponDef) {
     if (!weaponDef || !weaponDef.name) return;
     // Only show the big card on FIRST ever unlock of this weapon
@@ -2115,6 +2123,115 @@ const HUD = (() => {
       _weaponCardEl.style.opacity = '0';
       _weaponCardEl.style.transform = 'translateX(-50%) scale(0.8)';
     }, 2800);
+  }
+
+  // ── Weapon Wheel Functions ──
+  function showWeaponWheel(weapons, currentIdx) {
+    if (_weaponWheelEl) return;
+    _weaponWheelActive = true;
+    _weaponWheelItems = weapons;
+    _weaponWheelSelected = currentIdx;
+    _weaponWheelCenterX = window.innerWidth / 2;
+    _weaponWheelCenterY = window.innerHeight / 2;
+
+    _weaponWheelEl = document.createElement('div');
+    _weaponWheelEl.id = 'weapon-wheel';
+    _weaponWheelEl.style.cssText = [
+      'position:fixed;top:0;left:0;width:100%;height:100%;',
+      'z-index:8500;pointer-events:none;',
+    ].join('');
+
+    // Background circle
+    var bg = document.createElement('div');
+    bg.style.cssText = [
+      'position:absolute;',
+      'left:' + (_weaponWheelCenterX - 160) + 'px;',
+      'top:' + (_weaponWheelCenterY - 160) + 'px;',
+      'width:320px;height:320px;',
+      'background:rgba(0,0,0,0.75);',
+      'border-radius:50%;',
+      'border:2px solid rgba(255,200,50,0.3);',
+    ].join('');
+    _weaponWheelEl.appendChild(bg);
+
+    // Center label
+    var centerLabel = document.createElement('div');
+    centerLabel.id = 'ww-center';
+    centerLabel.style.cssText = [
+      'position:absolute;',
+      'left:' + (_weaponWheelCenterX - 40) + 'px;',
+      'top:' + (_weaponWheelCenterY - 12) + 'px;',
+      'width:80px;text-align:center;',
+      'font-family:monospace;font-size:11px;color:#888;pointer-events:none;',
+    ].join('');
+    centerLabel.textContent = 'SELECT';
+    _weaponWheelEl.appendChild(centerLabel);
+
+    // Weapon slots
+    var n = Math.min(weapons.length, 8);
+    for (var i = 0; i < n; i++) {
+      var angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+      var radius = 110;
+      var sx = _weaponWheelCenterX + radius * Math.cos(angle) - 35;
+      var sy = _weaponWheelCenterY + radius * Math.sin(angle) - 30;
+      var slot = document.createElement('div');
+      slot.id = 'ww-slot-' + i;
+      var isActive = (i === currentIdx);
+      slot.style.cssText = [
+        'position:absolute;',
+        'left:' + sx + 'px;top:' + sy + 'px;',
+        'width:70px;height:60px;',
+        'text-align:center;',
+        'background:' + (isActive ? 'rgba(255,200,50,0.2)' : 'rgba(255,255,255,0.05)') + ';',
+        'border:1px solid ' + (isActive ? '#ffd700' : 'rgba(255,255,255,0.15)') + ';',
+        'border-radius:5px;padding:2px;',
+        'font-family:monospace;pointer-events:none;',
+      ].join('');
+      slot.innerHTML = '<div style="font-size:22px">' + (weapons[i].icon || '🔫') + '</div>' +
+        '<div style="font-size:9px;color:' + (isActive ? '#ffd700' : '#aaa') + ';overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' + escapeHTML(weapons[i].name || '') + '</div>';
+      _weaponWheelEl.appendChild(slot);
+    }
+
+    document.body.appendChild(_weaponWheelEl);
+  }
+
+  function updateWeaponWheelMouse(mouseX, mouseY) {
+    if (!_weaponWheelEl || !_weaponWheelActive) return _weaponWheelSelected;
+    var dx = mouseX - _weaponWheelCenterX;
+    var dy = mouseY - _weaponWheelCenterY;
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 20) return _weaponWheelSelected; // too close to center, no change
+    var angle = Math.atan2(dy, dx) + Math.PI/2;
+    if (angle < 0) angle += 2 * Math.PI;
+    var n = Math.min(_weaponWheelItems.length, 8);
+    var newIdx = Math.floor((angle / (2 * Math.PI)) * n) % n;
+    if (newIdx !== _weaponWheelSelected) {
+      _weaponWheelSelected = newIdx;
+      // Update slot visuals
+      for (var i = 0; i < n; i++) {
+        var slot = document.getElementById('ww-slot-' + i);
+        if (!slot) continue;
+        var active = (i === newIdx);
+        slot.style.background = active ? 'rgba(255,200,50,0.2)' : 'rgba(255,255,255,0.05)';
+        slot.style.borderColor = active ? '#ffd700' : 'rgba(255,255,255,0.15)';
+        if (slot.querySelector('div:last-child')) {
+          slot.querySelector('div:last-child').style.color = active ? '#ffd700' : '#aaa';
+        }
+      }
+      // Update center label
+      var cl = document.getElementById('ww-center');
+      if (cl && _weaponWheelItems[newIdx]) cl.textContent = _weaponWheelItems[newIdx].name || '';
+    }
+    return _weaponWheelSelected;
+  }
+
+  function hideWeaponWheel() {
+    _weaponWheelActive = false;
+    if (_weaponWheelEl) {
+      document.body.removeChild(_weaponWheelEl);
+      _weaponWheelEl = null;
+    }
+    return _weaponWheelSelected;
   }
 
   // ── Last Wave Summary Overlay ──
@@ -2185,6 +2302,8 @@ const HUD = (() => {
     // ── Floating Damage Numbers + Kill Feed ──
     showDamageNumber,
     addKillFeedEntry,
+    // ── Weapon Wheel ──
+    showWeaponWheel, updateWeaponWheelMouse, hideWeaponWheel,
   };
 
   function updateNvgIndicator() {
