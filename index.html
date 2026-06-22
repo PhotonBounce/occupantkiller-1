@@ -280,18 +280,9 @@
       <div id="stamina-bar" style="width:100%;height:100%;background:linear-gradient(90deg,#ffcc00,#ffee66);border-radius:3px;transition:width 0.15s"></div>
     </div>
 
-    <!-- Night vision overlay — multi-layer NVG phosphor effect -->
-    <div id="night-vision-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:195;pointer-events:none">
-      <!-- NVG tube vignette: bright phosphor center fades to near-black at edges -->
-      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 68% 78% at 50% 50%,rgba(0,70,0,0.22) 0%,rgba(0,50,0,0.38) 50%,rgba(0,8,0,0.92) 100%);mix-blend-mode:screen"></div>
-      <!-- Green phosphor tint -->
-      <div style="position:absolute;inset:0;background:rgba(0,30,0,0.28);mix-blend-mode:screen"></div>
-      <!-- CRT scanlines — 1px dark line every 3px -->
-      <div style="position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(0,0,0,0.22) 0,rgba(0,0,0,0.22) 1px,transparent 1px,transparent 3px);pointer-events:none"></div>
-      <!-- Circular tube hard edge — masks extreme corners to black -->
-      <div style="position:absolute;inset:0;background:radial-gradient(circle 44vh at 50% 50%,transparent 40vh,rgba(0,0,0,0.96) 46vh)"></div>
-      <!-- NVG indicator -->
-      <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);color:#00ff44;font-size:11px;font-family:monospace;opacity:0.55">NVG ON [L]</div>
+    <!-- Night vision overlay -->
+    <div id="night-vision-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,40,0,0.3);border:3px solid rgba(0,255,0,0.15);z-index:195;pointer-events:none;mix-blend-mode:screen">
+      <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);color:#00ff44;font-size:11px;font-family:monospace;opacity:0.6">🔦 NIGHT VISION [L]</div>
     </div>
 
     <!-- OKC / Wallet HUD element -->
@@ -611,20 +602,9 @@
             <button class="btn pill map-btn"            data-stage="12" style="border-color:#888;color:#888">🏛 KYIV</button>
             <button class="btn pill map-btn"            data-stage="1"  style="border-color:#888;color:#888">🔥 AVDIIVKA</button>
             <button class="btn pill map-btn"            data-stage="2"  style="border-color:#888;color:#888">💀 BAKHMUT</button>
-            <button class="btn pill map-btn"            data-stage="3"  style="border-color:#888;color:#888">🌊 KHERSON</button>
             <button class="btn pill map-btn"            data-stage="4"  style="border-color:#888;color:#888">⚙ MARIUPOL</button>
-            <button class="btn pill map-btn"            data-stage="5"  style="border-color:#888;color:#888">🌉 CRIMEA</button>
+            <button class="btn pill map-btn"            data-stage="5"  style="border-color:#888;color:#888">🌊 CRIMEA</button>
             <button class="btn pill map-btn"            data-stage="6"  style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
-            <button class="btn pill map-btn"            data-stage="7"  style="border-color:#cc44ff;color:#cc44ff">🏙 MOSCOW</button>
-            <button class="btn pill map-btn"            data-stage="8"  style="border-color:#3355aa;color:#6688dd">⚓ SEVASTOPOL</button>
-            <button class="btn pill map-btn"            data-stage="9"  style="border-color:#888;color:#888">⛏ DONBAS</button>
-            <button class="btn pill map-btn"            data-stage="10" style="border-color:#888;color:#888">🚀 BELGOROD</button>
-            <button class="btn pill map-btn"            data-stage="11" style="border-color:#ff3333;color:#ff3333">☭ KREMLIN</button>
-            <button class="btn pill map-btn"            data-stage="13" style="border-color:#4a6680;color:#88aacc">🏝 SNAKE</button>
-            <button class="btn pill map-btn"            data-stage="14" style="border-color:#886644;color:#bbaa88">✈ SAKY</button>
-            <button class="btn pill map-btn"            data-stage="15" style="border-color:#4a4030;color:#aa9966">💣 VUHLEDAR</button>
-            <button class="btn pill map-btn"            data-stage="16" style="border-color:#556677;color:#88aacc">🌉 ANTONOV</button>
-            <button class="btn pill map-btn"            data-stage="17" style="border-color:#2a2620;color:#cc8833">🛢 REFINERY</button>
           </div>
           <p id="map-desc" class="start-section-desc">Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
         </section>
@@ -663,30 +643,6 @@
                 <div style="color:#aaa;font-size:11px;margin-top:2px">Total urban destruction. Wagner mercenary assault from all directions. Stay alive.</div>
               </div>
               <button class="btn pill mission-start-btn" data-stage="2" data-formation="echelon_l" style="border-color:#88ff88;color:#88ff88;white-space:nowrap;flex-shrink:0">▶ START</button>
-            </div>
-
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
-              <div style="flex:1">
-                <div style="color:#cc44ff;font-weight:bold;font-size:12px">🏙 OUTER MOSCOW — FSB STORM</div>
-                <div style="color:#aaa;font-size:11px;margin-top:2px">Elite FSB guards and Rosgvardiya response teams defend the city ring. 9 waves of maximum resistance.</div>
-              </div>
-              <button class="btn pill mission-start-btn" data-stage="7" data-formation="wedge" style="border-color:#cc44ff;color:#cc44ff;white-space:nowrap;flex-shrink:0">▶ START</button>
-            </div>
-
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(50,0,0,0.4);border:1px solid #882222;border-radius:6px;padding:8px 12px">
-              <div style="flex:1">
-                <div style="color:#ff3333;font-weight:bold;font-size:12px">☭ KREMLIN — THE ZOMBIE PRESIDENT (FINALE)</div>
-                <div style="color:#aaa;font-size:11px;margin-top:2px">Red Square last stand. Fight past St. Basil's Cathedral to the Kremlin palace and end the war against the 5000-HP zombie tyrant himself.</div>
-              </div>
-              <button class="btn pill mission-start-btn" data-stage="11" data-formation="diamond" style="border-color:#ff3333;color:#ff3333;white-space:nowrap;flex-shrink:0">▶ START</button>
-            </div>
-
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
-              <div style="flex:1">
-                <div style="color:#a0c878;font-weight:bold;font-size:12px">🚒 BRADLEY IFV — TREELINE ASSAULT</div>
-                <div style="color:#aaa;font-size:11px;margin-top:2px">Ukrainian 47th Mech doctrine: TOW suppression at 500m, then close with 25mm Bushmaster. Press G to mount.</div>
-              </div>
-              <button class="btn pill mission-start-btn" data-stage="7" data-formation="line" data-mission="bradley_mission" style="border-color:#a0c878;color:#a0c878;white-space:nowrap;flex-shrink:0">▶ START</button>
             </div>
 
           </div>
@@ -736,92 +692,13 @@
     </div>
   </div>
 
-  <!-- Death flash overlay — red vignette that fades to black on player death -->
-  <div id="death-flash" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:800;pointer-events:none;background:radial-gradient(ellipse 120% 120% at 50% 50%,rgba(200,0,0,0.0) 0%,rgba(180,0,0,0.7) 60%,rgba(0,0,0,1.0) 100%)"></div>
-  <style>
-    @keyframes deathFlash {
-      0%   { opacity:0 }
-      12%  { opacity:1 }
-      40%  { opacity:0.85 }
-      100% { opacity:1 }
-    }
-    #death-flash.active { animation: deathFlash 1.15s ease-out forwards; }
-  </style>
-
   <!-- Pause screen (legacy fallback — redirects to unified inventory overlay) -->
   <div id="overlay-pause" class="overlay" style="display:none">
     <h1>PAUSED</h1>
     <p>Game paused. Press <kbd>R</kbd> to resume or <kbd>Q</kbd> to quit.</p>
     <button class="btn" id="pause-resume-btn">▶ [R]ESUME</button>
-    <button class="btn" id="pause-settings-btn" style="margin-top:8px;border-color:#66aacc;color:#66aacc">⚙ SETTINGS</button>
     <button class="btn" id="pause-quit-btn" style="margin-top:8px;border-color:#888;color:#888">✕ [Q]UIT TO MENU</button>
   </div>
-
-  <!-- Settings Modal -->
-  <div id="settings-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:900;background:rgba(0,0,0,0.82);display:none;align-items:center;justify-content:center">
-    <div style="background:#0d1520;border:1px solid #336688;border-radius:10px;padding:32px 40px;min-width:320px;max-width:480px;width:90%">
-      <h2 style="margin:0 0 24px;color:#88ccff;font-size:20px;letter-spacing:2px;text-align:center">⚙ SETTINGS</h2>
-      <div style="margin-bottom:20px">
-        <label style="color:#aaa;font-size:13px;display:block;margin-bottom:6px">MOUSE SENSITIVITY
-          <span id="sens-value-label" style="color:#fff;float:right">1.0×</span>
-        </label>
-        <input type="range" id="settings-sens" min="0.1" max="5.0" step="0.1" value="1.0"
-          style="width:100%;accent-color:#88ccff;cursor:pointer">
-      </div>
-      <div style="margin-bottom:28px">
-        <label style="color:#aaa;font-size:13px;display:block;margin-bottom:6px">AUDIO VOLUME
-          <span id="vol-value-label" style="color:#fff;float:right">50%</span>
-        </label>
-        <input type="range" id="settings-vol" min="0" max="1.0" step="0.05" value="0.5"
-          style="width:100%;accent-color:#88ccff;cursor:pointer">
-      </div>
-      <div style="display:flex;gap:12px;justify-content:center">
-        <button id="settings-close-btn" style="background:#223344;color:#88ccff;border:1px solid #336688;border-radius:6px;padding:10px 28px;font-size:14px;cursor:pointer;letter-spacing:1px">BACK</button>
-      </div>
-    </div>
-  </div>
-  <script>
-  (function() {
-    var modal = document.getElementById('settings-modal');
-    var sensSlider = document.getElementById('settings-sens');
-    var volSlider  = document.getElementById('settings-vol');
-    var sensLabel  = document.getElementById('sens-value-label');
-    var volLabel   = document.getElementById('vol-value-label');
-
-    function openSettings() {
-      // Sync sliders to current game values
-      if (window.GameManager) {
-        sensSlider.value = GameManager.getMouseSensitivity ? GameManager.getMouseSensitivity() : 1.0;
-        volSlider.value  = GameManager.getAudioVolume  ? GameManager.getAudioVolume()  : 0.5;
-      }
-      sensLabel.textContent = parseFloat(sensSlider.value).toFixed(1) + '×';
-      volLabel.textContent  = Math.round(parseFloat(volSlider.value) * 100) + '%';
-      modal.style.display = 'flex';
-    }
-
-    function closeSettings() {
-      modal.style.display = 'none';
-    }
-
-    sensSlider.addEventListener('input', function() {
-      sensLabel.textContent = parseFloat(sensSlider.value).toFixed(1) + '×';
-      if (window.GameManager && GameManager.setMouseSensitivity) GameManager.setMouseSensitivity(sensSlider.value);
-    });
-
-    volSlider.addEventListener('input', function() {
-      volLabel.textContent = Math.round(parseFloat(volSlider.value) * 100) + '%';
-      if (window.GameManager && GameManager.setAudioVolume) GameManager.setAudioVolume(volSlider.value);
-    });
-
-    document.getElementById('settings-close-btn').addEventListener('click', closeSettings);
-
-    var pauseSettingsBtn = document.getElementById('pause-settings-btn');
-    if (pauseSettingsBtn) pauseSettingsBtn.addEventListener('click', openSettings);
-
-    // Close on backdrop click
-    modal.addEventListener('click', function(e) { if (e.target === modal) closeSettings(); });
-  })();
-  </script>
 
 
 
@@ -834,11 +711,10 @@
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">SHIFT</kbd> Down</span>
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">MOUSE</kbd> Look</span>
       <span id="drone-action-hint" style="color:#ff4444"><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">LMB</kbd> <span id="drone-action-text">Attack</span></span>
-      <span style="color:#ffdd44"><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">SCROLL</kbd> Payload</span>
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">T</kbd> View</span>
       <span><kbd style="background:#333;padding:1px 5px;border-radius:3px;border:1px solid #555">F</kbd> Exit Drone</span>
     </div>
-    <div id="drone-touch-hints" style="display:none;font-size:11px;color:#ccc">Left stick · Move &nbsp;|&nbsp; Right stick · Look &nbsp;|&nbsp; 🔫 Attack &nbsp;|&nbsp; ◄ ► Payload &nbsp;|&nbsp; 👁 View &nbsp;|&nbsp; ✕ Exit Drone</div>
+    <div id="drone-touch-hints" style="display:none;font-size:11px;color:#ccc">Left stick · Move &nbsp;|&nbsp; Right stick · Look &nbsp;|&nbsp; 🔫 Attack &nbsp;|&nbsp; 👁 View &nbsp;|&nbsp; ✕ Exit Drone</div>
     <div style="margin-top:5px;font-size:11px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <span style="color:#00ccff">\uD83D\uDD0B <span id="drone-battery-display">100</span>%</span>
       <span style="color:#ff4444">\u2764 <span id="drone-hp-display">100</span>%</span>
@@ -850,12 +726,6 @@
       <span style="color:#66ddff"><span id="drone-remote-status">REMOTE STABLE</span></span>
       <span id="drone-payload-display" style="color:#ffaa00;display:none">\uD83D\uDCA3 PAYLOAD READY</span>
       <span id="drone-nest-hint" style="color:#ff8888;display:none">\u25B6 Nest nearby! Dive to destroy!</span>
-    </div>
-    <!-- Drone payload selector bar (scroll wheel / \u25C4 \u25BA to cycle) -->
-    <div id="drone-payload-bar" style="display:none;align-items:center;justify-content:center;gap:10px;margin-top:6px;pointer-events:auto">
-      <button id="drone-payload-prev" style="background:#1a2a3a;color:#00ccff;border:1px solid #00ccff;border-radius:4px;padding:2px 10px;font-size:14px;cursor:pointer">&#9664;</button>
-      <span id="drone-payload-label" style="color:#ffdd44;font-size:13px;font-weight:bold;min-width:160px;text-align:center">\uD83D\uDCA5 FPV Charge</span>
-      <button id="drone-payload-next" style="background:#1a2a3a;color:#00ccff;border:1px solid #00ccff;border-radius:4px;padding:2px 10px;font-size:14px;cursor:pointer">&#9654;</button>
     </div>
   </div>
 
@@ -925,10 +795,6 @@
         <button class="btn shop-buy-btn" data-item="armor" style="font-size:11px;padding:4px 10px;border-color:#4fc3f7;color:#4fc3f7;display:block;width:100%;margin:4px 0">🛡️ Armor Pack · 60 OKC</button>
         <button class="btn shop-buy-btn" data-item="ammo" style="font-size:11px;padding:4px 10px;border-color:#ffcc00;color:#ffcc00;display:block;width:100%;margin:4px 0">🔫 Full Ammo · 30 OKC</button>
         <button class="btn shop-buy-btn" data-item="stim" style="font-size:11px;padding:4px 10px;border-color:#ff8a65;color:#ff8a65;display:block;width:100%;margin:4px 0">💉 Stim Pack · 50 OKC</button>
-        <button class="btn shop-buy-btn" data-item="grenades" style="font-size:11px;padding:4px 10px;border-color:#ff8800;color:#ff8800;display:block;width:100%;margin:4px 0">💣 Grenade Pack ×5 · 25 OKC</button>
-        <button class="btn shop-buy-btn" data-item="maxhp" style="font-size:11px;padding:4px 10px;border-color:#ff66aa;color:#ff66aa;display:block;width:100%;margin:4px 0">❤️‍🔥 Max HP +25 · 80 OKC</button>
-        <button class="btn shop-buy-btn" data-item="dmgboost" style="font-size:11px;padding:4px 10px;border-color:#ff2200;color:#ff2200;display:block;width:100%;margin:4px 0">🔥 Damage +25% · 60 OKC</button>
-        <button class="btn shop-buy-btn" data-item="airstrike_tok" style="font-size:11px;padding:4px 10px;border-color:#aaddff;color:#aaddff;display:block;width:100%;margin:4px 0">✈ Airstrike Token · 90 OKC</button>
       </div>
       <div style="background:rgba(0,0,0,0.6);border:1px solid #444;border-radius:6px;padding:10px 14px;min-width:160px;text-align:center">
         <p style="color:#aaa;font-size:11px;margin:0 0 6px">WAVE STATS</p>
@@ -941,7 +807,6 @@
         <p style="color:#aaa;font-size:11px;margin:0 0 6px">NEXT WAVE</p>
         <p id="shop-next-wave" style="color:#ff8a65;font-size:14px;font-weight:bold;margin:4px 0">Wave 2</p>
         <p id="shop-next-enemies" style="color:#ccc;font-size:12px;margin:2px 0"></p>
-        <div id="shop-next-threat" style="font-size:11px;color:#ff8a65;margin:4px 0;min-height:16px"></div>
         <p id="shop-auto-timer" style="color:#888;font-size:11px;margin:8px 0">Auto-start in <span id="shop-countdown">5</span>s</p>
       </div>
     </div>
@@ -966,9 +831,6 @@
     <p>All stages cleared. All occupants eliminated.</p>
     <p class="stat">FINAL SCORE: <span id="win-score">0</span></p>
     <p class="stat">TOTAL KILLS: <span id="win-kills">0</span></p>
-    <p class="stat">HEADSHOTS: <span id="win-headshots">0</span></p>
-    <p class="stat">ACCURACY: <span id="win-accuracy">0</span>%</p>
-    <p class="stat">DAMAGE TAKEN: <span id="win-damage">0</span></p>
     <p class="stat">STAGES COMPLETED: <span id="win-stages">18</span></p>
     <button class="btn" id="play-again-btn">PLAY AGAIN</button>
   </div>
@@ -1233,10 +1095,10 @@
 <script src="progression.js?v=20260429b"></script>
 <script src="refinery-strike.js?v=20260429b"></script>
 <script src="enemy-artillery.js?v=20260429b"></script>
-<script src="city-props.js?v=20260429b"></script>
-<script src="collapse-physics.js?v=20260620a"></script>
-<script src="game-manager.js?v=20260429b-static"></script>
 
+
+<script src="game-manager.js?v=20260429b-static"></script>
+<script src="performance-scaler.js"></script>
 
 <!-- Defensive global export for VoxelWorld and AudioSystem -->
 <script>
@@ -1446,8 +1308,6 @@ document.addEventListener('DOMContentLoaded', function () {
       '4':  'Mariupol Steelworks — Azovstal last stand. Fire deals constant damage. No retreat.',
       '5':  'Crimea Bridge — Strike the strategic crossing before it can be reinforced.',
       '6':  'Chornobyl Zone — Irradiated exclusion zone. Abandoned buildings, radiation damage.',
-      '7':  'Outer Moscow Ring — FSB elite and Rosgvardiya defend the suburbs. 9 waves of maximum resistance.',
-      '11': 'Kremlin Showdown — The final battle on Red Square. St. Basil\'s Cathedral and the Kremlin palace frame the fight against The Zombie President. 10 waves.',
     };
     var mapBtns = document.querySelectorAll('.map-btn');
     function setActiveMap(stage) {
@@ -1483,10 +1343,8 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function () {
           var stage = parseInt(btn.getAttribute('data-stage'), 10);
           var formation = btn.getAttribute('data-formation') || 'wedge';
-          var forceMission = btn.getAttribute('data-mission') || null;
           window.__chosenStartStage = stage;
           window.__chosenFormation = formation;
-          window.__forceMission = forceMission || null;
           // Sync UI highlights
           var mapBtnsSync = document.querySelectorAll('.map-btn');
           for (var k = 0; k < mapBtnsSync.length; k++) {
@@ -1515,11 +1373,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var startBtn   = document.getElementById('start-btn');
     var quickHint  = document.getElementById('quick-start-hint');
     var showAdvLink = document.getElementById('show-advanced-start');
-    // On mobile, always show the full start screen — one-button "quick start"
-    // hides the mission/map/mode selectors which is confusing on touch devices.
-    var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    var _forceAdvanced = _isTouchDevice;
-    if (!hasPlayed && !_forceAdvanced && quickBtn && startBtn && advSection) {
+    if (!hasPlayed && quickBtn && startBtn && advSection) {
       quickBtn.style.display = '';
       startBtn.style.display = 'none';
       if (advSection)  advSection.style.display = 'none';
@@ -1536,14 +1390,6 @@ document.addEventListener('DOMContentLoaded', function () {
         window.showLoading('GENERATING TERRAIN...');
         setTimeout(function() { GameManager.startGame(); window.hideLoading(); }, 1200);
       });
-    }
-    // Mobile: add a subtle scroll-hint so users know the screen is scrollable
-    if (_isTouchDevice && advSection) {
-      var _hint = document.createElement('p');
-      _hint.textContent = '▼ Scroll for maps, missions & loadout';
-      _hint.style.cssText = 'text-align:center;color:#555;font-size:11px;margin:4px 0 8px;letter-spacing:1px;font-family:monospace';
-      var _ctaRow = document.querySelector('.start-cta-row');
-      if (_ctaRow && _ctaRow.parentNode) _ctaRow.parentNode.insertBefore(_hint, _ctaRow.nextSibling);
     }
   })();
 
@@ -1581,40 +1427,10 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Wave Shop purchase logic ──────────────────────────────
   (function () {
     var shopItems = {
-      health:   { cost: 40, label: '❤️ Health +50', apply: function () { GameManager.healPlayer(50); } },
-      armor:    { cost: 60, label: '🛡️ Armor Pack', apply: function () { GameManager.addArmor(50); } },
-      ammo:     { cost: 30, label: '🔫 Full Ammo', apply: function () { if (typeof Weapons !== 'undefined' && Weapons.refillAllAmmo) Weapons.refillAllAmmo(); } },
-      stim:     { cost: 50, label: '💉 Stim Pack', apply: function () { GameManager.addStimBuff(30); } },
-      grenades: { cost: 25, label: '💣 Grenade Pack ×5', apply: function () {
-        var p = GameManager.getPlayer && GameManager.getPlayer();
-        if (p) {
-          p.grenades = Math.min(99, (p.grenades || 0) + 5);
-          if (typeof HUD !== 'undefined' && HUD.setHandGrenades) HUD.setHandGrenades(p.grenades);
-          if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💣 +5 Grenades', '#ff8800');
-        }
-      }},
-      maxhp:    { cost: 80, label: '❤️‍🔥 Max HP +25', apply: function () {
-        var p = GameManager.getPlayer && GameManager.getPlayer();
-        if (p) {
-          p.maxHp = (p.maxHp || 100) + 25;
-          p.hp = Math.min(p.hp + 25, p.maxHp);
-          if (typeof HUD !== 'undefined' && HUD.setHealth) HUD.setHealth(p.hp, p.maxHp);
-          if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('❤️ Max HP +25', '#ff66aa');
-        }
-      }},
-      dmgboost: { cost: 60, label: '🔥 Damage +25%', apply: function () {
-        if (typeof GameManager !== 'undefined' && GameManager.addDamageBoost) {
-          GameManager.addDamageBoost(0.25, 60);
-        }
-        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('🔥 DAMAGE +25% (60s)', '#ff2200');
-        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🔥 DAMAGE BOOST ACTIVE — 60s', 3000, '#cc2200');
-      }},
-      airstrike_tok: { cost: 90, label: '✈ Airstrike Token', apply: function () {
-        if (typeof GameManager !== 'undefined' && GameManager.addAirstrikeToken) {
-          GameManager.addAirstrikeToken();
-        }
-        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('✈ AIRSTRIKE TOKEN READY (press X)', '#aaddff');
-      }},
+      health: { cost: 40, label: '❤️ Health +50', apply: function () { GameManager.healPlayer(50); } },
+      armor:  { cost: 60, label: '🛡️ Armor Pack', apply: function () { GameManager.addArmor(50); } },
+      ammo:   { cost: 30, label: '🔫 Full Ammo', apply: function () { if (typeof Weapons !== 'undefined' && Weapons.refillAllAmmo) Weapons.refillAllAmmo(); } },
+      stim:   { cost: 50, label: '💉 Stim Pack', apply: function () { GameManager.addStimBuff(30); } },
     };
     var btns = document.querySelectorAll('.shop-buy-btn');
     for (var i = 0; i < btns.length; i++) {

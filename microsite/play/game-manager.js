@@ -88,26 +88,6 @@ const GameManager = (function () {
     WIN:         'win',
   });
 
-  /* ── Persistent Settings (saved to localStorage) ──────────────── */
-  var _mouseSensitivity = (function() {
-    var v = parseFloat(localStorage.getItem('ok_sensitivity'));
-    return (isNaN(v) || v <= 0) ? 1.0 : v;
-  })();
-  var _audioVolume = (function() {
-    var v = parseFloat(localStorage.getItem('ok_volume'));
-    return (isNaN(v) || v < 0) ? 0.5 : v;
-  })();
-
-  function setMouseSensitivity(v) {
-    _mouseSensitivity = Math.max(0.1, Math.min(5.0, parseFloat(v) || 1.0));
-    localStorage.setItem('ok_sensitivity', _mouseSensitivity);
-  }
-  function setAudioVolume(v) {
-    _audioVolume = Math.max(0, Math.min(1.0, parseFloat(v) || 0.5));
-    localStorage.setItem('ok_volume', _audioVolume);
-    if (typeof AudioSystem !== 'undefined' && AudioSystem.setVolume) AudioSystem.setVolume(_audioVolume);
-  }
-
   /* ── Core State ──────────────────────────────────────────────────── */
   let gameState     = STATE.MENU;
   let _scene        = null;
@@ -306,10 +286,6 @@ const GameManager = (function () {
     { id: 'CHEMICAL',       label: '☣ CHEMICAL ATTACK!',       color: '#aaff00', chance: 0.05 },
     { id: 'EMP',            label: '⚡ EMP BLAST!',             color: '#4400ff', chance: 0.04 },
     { id: 'TUNNEL_BREACH',  label: '🕳 TUNNEL BREACH!',        color: '#884400', chance: 0.06 },
-    { id: 'PARTISAN_HELP', label: '🤝 PARTISANS JOIN THE FIGHT!', color: '#88ff44', chance: 0.06 },
-    { id: 'OWN_GOAL',      label: '😂 RUSSIAN FRIENDLY FIRE!',    color: '#ffff00', chance: 0.04 },
-    { id: 'INTEL_BREACH',  label: '📡 INTEL BREACH — ENEMY POS!', color: '#00ffcc', chance: 0.05 },
-    { id: 'MEDIC_EVAC',    label: '🏥 MEDIC TEAM INBOUND!',        color: '#ff88aa', chance: 0.05 },
   ];
 
   function triggerBattlefieldEvent() {
@@ -454,79 +430,6 @@ const GameManager = (function () {
             x: player.position.x + Math.cos(_tbYaw + ta) * td,
             z: player.position.z + Math.sin(_tbYaw + ta) * td
           });
-        }
-        break;
-      case 'PARTISAN_HELP':
-        // Local partisans spawn and fight alongside player — variety pack
-        if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
-          for (let i = 0; i < 4; i++) {
-            const _pa = Math.random() * Math.PI * 2;
-            const _pd = 5 + Math.random() * 8;
-            const _px2 = player.position.x + Math.cos(_pa) * _pd;
-            const _pz2 = player.position.z + Math.sin(_pa) * _pd;
-            const _ph = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_px2, _pz2) : 0;
-            NPCSystem.spawn(_px2, _ph, _pz2, ['infantry', 'specialist', 'medic'][Math.floor(Math.random() * 3)]);
-          }
-        }
-        if (typeof Economy !== 'undefined') Economy.addCurrency(30);
-        break;
-      case 'OWN_GOAL':
-        // Russian units fire on their own — causes explosions near enemy clusters
-        var _ogAll = Enemies.getAll();
-        var _ogKilled = 0;
-        for (let i = 0; i < Math.min(_ogAll.length, 8); i++) {
-          if (_ogAll[i].alive && _ogAll[i].mesh) {
-            var _ogPos = _ogAll[i].mesh.position;
-            if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_ogPos.clone(), 3);
-            Enemies.damageInRadius(_ogPos, 5, 70);
-            if (!_ogAll[i].alive) _ogKilled++;
-          }
-        }
-        if (_ogKilled > 0) {
-          HUD.showToast('😂 ' + _ogKilled + ' killed by own side!', 2500, '#ffff00');
-          player.score += _ogKilled * 15;
-        }
-        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.08, 1.0);
-        break;
-      case 'INTEL_BREACH':
-        // Reveal all enemy positions on minimap for 30s (mimic UAV briefly)
-        if (typeof Perks !== 'undefined' && Perks.activateStreak) {
-          // Temporarily mark all enemies as spotted for minimap
-          var _ibAll = Enemies.getAll();
-          for (let i = 0; i < _ibAll.length; i++) {
-            if (_ibAll[i].alive) {
-              _ibAll[i]._intelRevealed = true;
-              _ibAll[i].playerSpotted = true;
-            }
-          }
-          setTimeout(function() {
-            var _ibAll2 = Enemies.getAll();
-            for (let i = 0; i < _ibAll2.length; i++) {
-              if (_ibAll2[i]._intelRevealed) {
-                _ibAll2[i]._intelRevealed = false;
-                // Don't clear playerSpotted if they're genuinely tracking player
-              }
-            }
-          }, 30000);
-        }
-        HUD.showToast('📡 ALL ENEMY POSITIONS REVEALED (30s)', 3000, '#00ffcc');
-        break;
-      case 'MEDIC_EVAC':
-        // Medic team arrives: heal player + spawn healing pickups
-        {
-          var _mevHeal = Math.min(40, player.maxHp - player.hp);
-          player.hp = Math.min(player.hp + 40, player.maxHp);
-          if (HUD.setHealth) HUD.setHealth(player.hp, player.maxHp);
-          // Also spawn 2 medkits nearby
-          for (let i = 0; i < 2; i++) {
-            const _mx = player.position.x + (Math.random()-0.5) * 6;
-            const _mz = player.position.z + (Math.random()-0.5) * 6;
-            const _mh = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_mx, _mz) : 0;
-            if (typeof Pickups !== 'undefined' && Pickups.spawn) {
-              Pickups.spawn(new THREE.Vector3(_mx, _mh, _mz), 'MEDKIT');
-            }
-          }
-          if (_mevHeal > 0) HUD.notifyPickup('🏥 MEDIC: +' + _mevHeal + ' HP', '#ff88aa');
         }
         break;
     }
@@ -957,21 +860,6 @@ const GameManager = (function () {
   var _lastKillPos = null;  // position of most recent enemy kill
   var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
 
-  /* ── Smoke Zone System ─────────────────────────────────────── */
-  var _activeSmokeZones = []; // [{x, z, radius, timer}]
-  window._activeSmokeZones = _activeSmokeZones; // exposed for enemies.js detection
-
-  function addSmokeZone(x, z, radius, duration) {
-    _activeSmokeZones.push({ x: x, z: z, radius: radius || 6, timer: duration || 18 });
-  }
-
-  function updateSmokeZones(delta) {
-    for (var si = _activeSmokeZones.length - 1; si >= 0; si--) {
-      _activeSmokeZones[si].timer -= delta;
-      if (_activeSmokeZones[si].timer <= 0) _activeSmokeZones.splice(si, 1);
-    }
-  }
-
   /* ── Suppression System (near-miss visual response) ──────────── */
   var _suppressionLevel = 0;  // 0→1
   var _suppressionDecay = 0.5; // per second
@@ -1168,19 +1056,6 @@ const GameManager = (function () {
     var topY = (typeof window.VoxelWorld.getTopSolidY === 'function')
       ? window.VoxelWorld.getTopSolidY(player.position.x, player.position.z)
       : window.VoxelWorld.getTerrainHeight(player.position.x, player.position.z) + 1;
-    // Step up over persistent frozen corpses (max radius 0.8, adds 0.55 height)
-    if (window._corpseObstacles && window._corpseObstacles.length > 0) {
-      var _px2 = player.position.x, _pz2 = player.position.z;
-      for (var _ci = 0; _ci < window._corpseObstacles.length; _ci++) {
-        var _co = window._corpseObstacles[_ci];
-        var _cdx = _px2 - _co.x, _cdz = _pz2 - _co.z;
-        if (_cdx * _cdx + _cdz * _cdz < 0.64) {
-          var _corpseTop = _co.y + 0.55;
-          if (_corpseTop > topY) topY = _corpseTop;
-          break;
-        }
-      }
-    }
     var terrainY = topY + player.height;
     var gap = player.position.y - terrainY;
 
@@ -1296,22 +1171,14 @@ const GameManager = (function () {
     } catch (_e) {}
     try {
       _renderer = createRendererWithFallback();
-        // Mobile: begin at HIGH quality tier (1) instead of ULTRA (0).
-        // The adaptive system can scale back up if the device handles it.
-        if (isMobile) {
-          setTimeout(function() {
-            if (_perfLevel === 0) _applyPerfLevel(1, null);
-          }, 3000); // after 3s of gameplay data
-        }
+        window.__renderer = _renderer; // expose for PerformanceScaler
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
-        window._gameScene = _scene; // CollapsePhysics + WorldFeatures use this without circular dep
         let stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
         _scene.background = new THREE.Color(fogColor);
-        // Mobile: tighter fog near (12) makes objects fade sooner, cutting GPU triangle count.
-        _scene.fog = new THREE.Fog(fogColor, isMobile ? 12 : 18, isMobile ? 55 : 120);
+        _scene.fog = new THREE.Fog(fogColor, 18, isMobile ? 55 : 120);
 
         // If running in compatibility mode, show a warning overlay
         if (_rendererProfile === 'compatibility') {
@@ -1488,11 +1355,7 @@ const GameManager = (function () {
     _bootStep('tracers');
 
     // Audio, Weather & ML systems
-    _safeInit('audio', function () {
-      if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init();
-      // Apply saved volume after init
-      if (window.AudioSystem && window.AudioSystem.setVolume) window.AudioSystem.setVolume(_audioVolume);
-    });
+    _safeInit('audio', function () { if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init(); });
     _safeInit('weather', function () { if (WeatherSystem && typeof WeatherSystem.init === 'function') WeatherSystem.init(_scene, _camera); });
     _safeInit('ml', function () { if (MLSystem && typeof MLSystem.init === 'function') MLSystem.init(); });
     _safeInit('stagevfx', function () { if (typeof StageVFX !== 'undefined' && StageVFX && typeof StageVFX.init === 'function') StageVFX.init(_scene); });
@@ -1525,13 +1388,8 @@ const GameManager = (function () {
     if (typeof Progression !== 'undefined' && Progression && typeof Progression.init === 'function') Progression.init();
     // Birds + Mortar + Premium + Lottery + Gyro
     try { if (window.Birds   && Birds.init)   Birds.init(_scene); } catch (e) {}
-    // NOTE: pass null for controls — there is no _controls object in this module
-    // (input is via requestPointerLock). Referencing an undeclared _controls here
-    // threw a ReferenceError that the try/catch swallowed, so Mortar.init and
-    // Bradley.init silently never ran — leaving Bradley._scene null and the
-    // Bradley IFV failing to spawn in its mission. Neither module uses controls.
-    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, null); } catch (e) {}
-    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, null); } catch (e) {}
+    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, _controls); } catch (e) {}
+    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, _controls); } catch (e) {}
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
@@ -1546,36 +1404,8 @@ const GameManager = (function () {
     });
     Weapons.setOnTerrainShot(function (x, y, z, blockType) {
       onTerrainDestroyed(x, y, z, blockType);
-      // Red Faction-style: unsupported column above falls as debris
-      if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.onBlockDestroyed) {
-        try { CollapsePhysics.onBlockDestroyed(_scene, x, y, z); } catch (eCP) {}
-      }
       // ── B29: Destructible environment — explosive weapons destroy blocks ──
       var wType = Weapons.getCurrentType();
-      // Flashbang grenade: stun nearby enemies for 4s via the existing stunInRadius system
-      if (wType === 'FLASHBANG') {
-        var _fbRadius = Weapons.getBlastRadius() || 8;
-        if (typeof Enemies !== 'undefined' && Enemies.stunInRadius) {
-          Enemies.stunInRadius(new THREE.Vector3(x, y, z), _fbRadius, 4.0);
-        }
-        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💥 FLASHBANG — enemies stunned!', '#ffff44');
-      }
-      // Smoke grenade: create a detection-blocking smoke zone at impact
-      if (wType === 'SMOKE') {
-        addSmokeZone(x, z, Weapons.getBlastRadius() || 6, 18);
-        if (typeof Tracers !== 'undefined' && Tracers.spawnSmoke) {
-          for (var _si2 = 0; _si2 < 12; _si2++) {
-            (function(_sii) {
-              setTimeout(function() {
-                try {
-                  Tracers.spawnSmoke(new THREE.Vector3(x + (Math.random()-0.5)*4, y + 0.3, z + (Math.random()-0.5)*4));
-                } catch(e) {}
-              }, _sii * 200);
-            })(_si2);
-          }
-        }
-        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💨 SMOKE DEPLOYED — enemies blinded!', '#888888');
-      }
       var isExpl = ['AT', 'ATGM', 'AT_HEAVY', 'AT_LIGHT', 'GRENADE', 'INCENDIARY', 'THERMOBARIC'].indexOf(wType) >= 0;
       if (isExpl && typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
         var bRadius = Weapons.getBlastRadius() || 3;
@@ -1616,21 +1446,17 @@ const GameManager = (function () {
           if (HUD.showToast) HUD.showToast('🛬 RECON COMPLETE — returning to ground combat', 3000, '#44ff88');
         }
       } catch (_edr) {}
-      if (reward > 0) {
-        if (typeof Economy !== 'undefined' && Economy.addCurrency) Economy.addCurrency(reward);
-        if (typeof Marketplace !== 'undefined') {
-          if (Marketplace.awardCustomOKC) {
-            Marketplace.awardCustomOKC(reward, 'mission_complete', {
-              missionName: mission && mission.name ? mission.name : null,
-              missionType: mission && mission.type ? mission.type : null,
-            }).then(function () {
-              if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
-            });
-          } else {
-            Marketplace.addOKC(reward);
-          }
+      if (reward > 0 && typeof Marketplace !== 'undefined') {
+        if (Marketplace.awardCustomOKC) {
+          Marketplace.awardCustomOKC(reward, 'mission_complete', {
+            missionName: mission && mission.name ? mission.name : null,
+            missionType: mission && mission.type ? mission.type : null,
+          }).then(function () {
+            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+          });
+        } else {
+          Marketplace.addOKC(reward);
         }
-        if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
       }
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
@@ -2140,16 +1966,6 @@ const GameManager = (function () {
           if (bfInd) bfInd.style.display = blindOn ? 'block' : 'none';
         }
 
-        // X key — use airstrike token if available
-        if (e.code === 'KeyX' && gameState === STATE.PLAYING) {
-          if (_airstrikeTokens > 0) {
-            useAirstrikeToken();
-            HUD.notifyPickup('✈ TOKEN USED (' + _airstrikeTokens + ' left)', '#aaddff');
-          } else {
-            HUD.notifyPickup('✈ NO AIRSTRIKE TOKENS', '#888888');
-          }
-        }
-
         // ── B30: Combat Roll (double-tap A/D or Alt+A/D) ──
         if ((e.code === 'KeyA' || e.code === 'KeyD') && keys['AltLeft'] && typeof CombatExtras !== 'undefined' && CombatExtras.tryRoll) {
           var rollDir = new THREE.Vector3();
@@ -2261,21 +2077,19 @@ const GameManager = (function () {
           toggleInventory();
         }
 
-        // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9) — blocked during drone possession
-        if (!DroneSystem.isPossessing()) {
-          if (e.code === 'Digit1') Weapons.switchTo(0);
-          if (e.code === 'Digit2') Weapons.switchTo(1);
-          if (e.code === 'Digit3') Weapons.switchTo(2);
-          if (e.code === 'Digit4' && gameState === STATE.PLAYING) Weapons.switchTo(3);
-          if (e.code === 'Digit5' && gameState === STATE.PLAYING) Weapons.switchTo(4);
-          if (e.code === 'Digit6' && gameState === STATE.PLAYING) Weapons.switchTo(5);
-          if (e.code === 'Digit7' && gameState === STATE.PLAYING) Weapons.switchTo(6);
-          if (e.code === 'Digit8') Weapons.switchTo(7);
-          if (e.code === 'Digit9') Weapons.switchTo(8);
-          if (e.code === 'Digit0') Weapons.switchTo(9);
-          if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
-          if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
-        }
+        // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9)
+        if (e.code === 'Digit1') Weapons.switchTo(0);
+        if (e.code === 'Digit2') Weapons.switchTo(1);
+        if (e.code === 'Digit3') Weapons.switchTo(2);
+        if (e.code === 'Digit4' && gameState === STATE.PLAYING) Weapons.switchTo(3);
+        if (e.code === 'Digit5' && gameState === STATE.PLAYING) Weapons.switchTo(4);
+        if (e.code === 'Digit6' && gameState === STATE.PLAYING) Weapons.switchTo(5);
+        if (e.code === 'Digit7' && gameState === STATE.PLAYING) Weapons.switchTo(6);
+        if (e.code === 'Digit8') Weapons.switchTo(7);
+        if (e.code === 'Digit9') Weapons.switchTo(8);
+        if (e.code === 'Digit0') Weapons.switchTo(9);
+        if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
+        if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
 
         // Build mode: template selection
@@ -2471,19 +2285,14 @@ const GameManager = (function () {
     document.addEventListener('mousemove', function (e) {
       if (document.pointerLockElement) {
         var stunScale = GameManager._flashbangStun > 0 ? 0.15 : 1;
-        var sensScale = stunScale * _mouseSensitivity;
-        CameraSystem.handleMouseMove(e.movementX * sensScale, e.movementY * sensScale);
+        CameraSystem.handleMouseMove(e.movementX * stunScale, e.movementY * stunScale);
       }
     });
 
     document.addEventListener('wheel', function (e) {
       if (gameState === STATE.PLAYING) {
-        if (DroneSystem.isPossessing()) {
-          DroneSystem.cyclePayload(e.deltaY > 0 ? 1 : -1);
-        } else {
-          if (e.deltaY > 0) Weapons.switchNext();
-          else if (e.deltaY < 0) Weapons.switchPrev();
-        }
+        if (e.deltaY > 0) Weapons.switchNext();
+        else if (e.deltaY < 0) Weapons.switchPrev();
       } else {
         CameraSystem.handleWheel(e.deltaY);
       }
@@ -2839,8 +2648,6 @@ const GameManager = (function () {
     }
   }
 
-  var _payloadBarBound = false;
-
   function showDroneControlsHUD(droneType) {
     var hud = document.getElementById('drone-controls-hud');
     if (!hud) return;
@@ -2859,35 +2666,27 @@ const GameManager = (function () {
     var payloadDisp = document.getElementById('drone-payload-display');
     var modeEl = document.getElementById('drone-view-mode');
 
-    var names = {
-      fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER',
-      recon: 'RECON', incendiary: 'INCENDIARY', baba_yaga: 'BABA YAGA',
-      bayraktar: 'BAYRAKTAR TB2', kamikaze: 'KAMIKAZE',
-    };
+    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON' };
     if (typeLabel) typeLabel.textContent = '\u2014 ' + (names[droneType] || droneType.toUpperCase());
     if (modeEl) modeEl.textContent = 'EYE';
 
-    var hasFire = droneType === 'fpv_attack' || droneType === 'bomb' || droneType === 'incendiary' || droneType === 'baba_yaga' || droneType === 'kamikaze';
-    var actionLabels = { fpv_attack: 'Kamikaze', bomb: 'Drop Bomb', incendiary: 'Drop Fire', baba_yaga: 'Drop Thermite', kamikaze: 'Strike', surveillance: 'Use Payload', recon: 'Use Payload' };
-    if (actionText) actionText.textContent = actionLabels[droneType] || 'Action';
-    if (actionHint) actionHint.style.display = hasFire || droneType === 'surveillance' || droneType === 'recon' ? '' : 'none';
-    if (payloadDisp) payloadDisp.style.display = 'none';
-
-    // Wire payload \u25c4 \u25ba buttons once
-    if (!_payloadBarBound) {
-      _payloadBarBound = true;
-      var btnPL = document.getElementById('drone-payload-prev');
-      var btnPR = document.getElementById('drone-payload-next');
-      if (btnPL) btnPL.addEventListener('click', function(e) { e.stopPropagation(); DroneSystem.cyclePayload(-1); });
-      if (btnPR) btnPR.addEventListener('click', function(e) { e.stopPropagation(); DroneSystem.cyclePayload(1); });
+    if (droneType === 'fpv_attack') {
+      if (actionText) actionText.textContent = 'Kamikaze Dive';
+      if (actionHint) actionHint.style.display = '';
+      if (payloadDisp) payloadDisp.style.display = 'none';
+    } else if (droneType === 'bomb') {
+      if (actionText) actionText.textContent = 'Drop Bomb';
+      if (actionHint) actionHint.style.display = '';
+      if (payloadDisp) payloadDisp.style.display = '';
+    } else {
+      if (actionHint) actionHint.style.display = 'none';
+      if (payloadDisp) payloadDisp.style.display = 'none';
     }
   }
 
   function hideDroneControlsHUD() {
     var hud = document.getElementById('drone-controls-hud');
     if (hud) hud.style.display = 'none';
-    var bar = document.getElementById('drone-payload-bar');
-    if (bar) bar.style.display = 'none';
     _droneControlsVisible = false;
   }
 
@@ -3005,31 +2804,12 @@ const GameManager = (function () {
       }
     }
     if (payloadEl) {
-      if (drone.hasPayload) {
+      if (drone.type === 'bomb') {
         payloadEl.style.display = '';
-        var payloadCountStr = drone.payloadCount !== undefined ? ' \u00D7' + drone.payloadCount : '';
-        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD READY' + payloadCountStr;
-        payloadEl.style.color = '#ffaa00';
-      } else if (drone.type === 'bomb' || drone.type === 'incendiary' || drone.type === 'baba_yaga') {
-        payloadEl.style.display = '';
-        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD DROPPED';
-        payloadEl.style.color = '#666';
+        payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
+        payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';
       } else {
         payloadEl.style.display = 'none';
-      }
-    }
-
-    // Payload selector bar \u2014 show when possessing any drone with payload options
-    var payloadBar = document.getElementById('drone-payload-bar');
-    var payloadLabel = document.getElementById('drone-payload-label');
-    if (payloadBar) {
-      var activePL = DroneSystem.getActivePayload ? DroneSystem.getActivePayload() : null;
-      if (activePL) {
-        payloadBar.style.display = 'flex';
-        var plCountStr = drone.payloadCount !== undefined ? ' [\u00D7' + drone.payloadCount + ']' : '';
-        if (payloadLabel) payloadLabel.textContent = (activePL.icon || '') + ' ' + activePL.name + plCountStr;
-      } else {
-        payloadBar.style.display = 'none';
       }
     }
 
@@ -3197,33 +2977,6 @@ const GameManager = (function () {
   }
 
   /* ── Start Game ──────────────────────────────────────────────────── */
-  // Resolve a clear, validated spawn point from VoxelWorld (spawnCandidates +
-  // isSpawnAreaClear). Previously the player was hardcoded to world origin
-  // (0,0,0), which in dense cityscape levels (Moscow/Kremlin) dropped the player
-  // inside a building cluster. This applies the validated spawn and faces the
-  // player toward the stage's look target so the action is in view.
-  function _applyLevelSpawn() {
-    var sx = 0, sz = 0, sy = null;
-    try {
-      var sp = (window.VoxelWorld && VoxelWorld.getSpawnPoint) ? VoxelWorld.getSpawnPoint() : null;
-      if (sp && isFinite(sp.x) && isFinite(sp.z)) {
-        sx = sp.x; sz = sp.z;
-        if (isFinite(sp.y)) sy = sp.y;
-      }
-    } catch (e) {}
-    var groundH = (sy !== null) ? sy : window.VoxelWorld.getTerrainHeight(sx, sz);
-    player.position.set(sx, groundH + player.height, sz);
-    if (player.velocity && player.velocity.set) player.velocity.set(0, 0, 0);
-    // Face the stage's look target (toward the action) so the intro frames it.
-    try {
-      var lvl = (window.VoxelWorld && VoxelWorld.getLevelDef) ? VoxelWorld.getLevelDef(currentStage) : null;
-      var lt = lvl && lvl.spawnLookTarget;
-      if (lt && isFinite(lt.x) && isFinite(lt.z) && typeof CameraSystem !== 'undefined' && CameraSystem.setYaw) {
-        CameraSystem.setYaw(Math.atan2(-(lt.x - sx), -(lt.z - sz)));
-      }
-    } catch (e) {}
-  }
-
   function startGame() {
     // CRITICAL: hide overlays immediately so the user doesn't stare at a frozen
     // death screen while we regenerate the world (which can take 1-3s).
@@ -3321,7 +3074,6 @@ const GameManager = (function () {
     if (typeof CombatExtras !== 'undefined') CombatExtras.reset();
     if (typeof Traversal !== 'undefined') Traversal.reset();
     if (typeof WorldFeatures !== 'undefined') WorldFeatures.clear();
-    if (typeof CityProps !== 'undefined' && CityProps.clear) CityProps.clear(_scene);
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof MissionTypes !== 'undefined') MissionTypes.clear();
     if (typeof Feedback !== 'undefined') Feedback.clear();
@@ -3349,9 +3101,8 @@ const GameManager = (function () {
     // overridden currentStage above)
     applyStage(currentStage);
 
-    // Spawn at a validated clear location (not hardcoded origin) so the player
-    // doesn't start embedded in a building in dense cityscape levels.
-    _applyLevelSpawn();
+    const spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
+    player.position.set(0, spawnH + player.height, 0);
 
     Weapons.reset();
     if (player.godMode) {
@@ -3370,7 +3121,6 @@ const GameManager = (function () {
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined') Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
-    if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.clear) CollapsePhysics.clear(_scene);
     if (typeof Flags !== 'undefined' && Flags.clear) Flags.clear();
     if (typeof Environment !== 'undefined' && Environment.clear) Environment.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
@@ -3436,13 +3186,7 @@ const GameManager = (function () {
     // Generate an initial mission. Stage-specific signature missions take priority.
     // droneOnly stages (stage 18 Refinery) handle missions entirely via RefineryStrike.
     if (!(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
-      // __forceMission: set by menu "data-mission" buttons (e.g. Bradley) to bypass random pick
-      var _forcedType = (typeof window !== 'undefined' && window.__forceMission) ? window.__forceMission : null;
-      if (_forcedType) {
-        window.__forceMission = null; // consume once
-        var _forceM = MissionSystem.generateMission(_forcedType);
-        _autoReconDroneForMission(_forceM);
-      } else if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
+      if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
         MissionSystem.generateMission('kyiv_defense');
       } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
         MissionSystem.generateMission('airborne_assault');
@@ -3552,11 +3296,6 @@ const GameManager = (function () {
     // Generate level terrain and features
     window.VoxelWorld.generateLevel(stageIndex);
 
-    // Roadside war-scene set dressing (civilian + destroyed military vehicles)
-    if (typeof CityProps !== 'undefined' && CityProps.populate) {
-      try { CityProps.populate(_scene, stageIndex, stageDef); } catch (eCP) { if (typeof console !== 'undefined') console.warn('CityProps.populate failed:', eCP); }
-    }
-
     // Capital defense (Kyiv): fresh city integrity + defense zone at Maidan.
     if (typeof ConvoySystem !== 'undefined') {
       ConvoySystem.reset();
@@ -3601,9 +3340,7 @@ const GameManager = (function () {
 
     // Start stage-specific environmental VFX
     if (typeof StageVFX !== 'undefined' && StageVFX.startStageEffects) {
-      // cityscape = war-torn city (Moscow/Kremlin) — always gets smoke + artillery flash
-      var _warzoneAtmo = !!stageDef.capitalDefense || stageDef.theme === 'cityscape';
-      StageVFX.startStageEffects(stageDef.theme, { warzone: _warzoneAtmo });
+      StageVFX.startStageEffects(stageDef.theme, { warzone: !!stageDef.capitalDefense });
     }
 
     // Spawn water bodies per stage
@@ -3668,9 +3405,6 @@ const GameManager = (function () {
       var _ws = document.getElementById('win-score');  if (_ws) _ws.textContent = player.score;
       var _wk = document.getElementById('win-kills');  if (_wk) _wk.textContent = player.kills;
       var _wst = document.getElementById('win-stages'); if (_wst) _wst.textContent = STAGES.length;
-      var _winHS2 = document.getElementById('win-headshots'); if (_winHS2) _winHS2.textContent = player.totalHeadshots || 0;
-      var _winAcc2 = document.getElementById('win-accuracy'); if (_winAcc2) _winAcc2.textContent = player.totalShots > 0 ? Math.round((player.totalHits / player.totalShots) * 100) : 0;
-      var _winDmg2 = document.getElementById('win-damage'); if (_winDmg2) _winDmg2.textContent = Math.round(player.totalDamageTaken || 0);
       return;
     }
 
@@ -3717,8 +3451,10 @@ const GameManager = (function () {
     player.hp = Math.min(player.maxHp, player.hp + Math.ceil(missingHp * 0.5));
     HUD.setHealth(player.hp, player.maxHp);
 
-    // Reset player position on new terrain — use validated clear spawn point.
-    _applyLevelSpawn();
+    // Reset player position on new terrain
+    const spawnH = VoxelWorld.getTerrainHeight(0, 0);
+    player.position.set(0, spawnH + player.height, 0);
+    player.velocity.set(0, 0, 0);
 
     // Clear enemies, pickups, and module state from old stage
     Enemies.clear();
@@ -3730,14 +3466,12 @@ const GameManager = (function () {
     if (typeof Tracers !== 'undefined' && Tracers.clear) Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
     if (typeof Environment !== 'undefined' && Environment.clear) Environment.clear();
-    if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.clear) CollapsePhysics.clear(_scene);
     if (typeof WorldFeatures !== 'undefined' && WorldFeatures.clear) WorldFeatures.clear();
     if (typeof CombatExtras !== 'undefined' && CombatExtras.reset) CombatExtras.reset();
     if (typeof Traversal !== 'undefined' && Traversal.reset) Traversal.reset();
     if (typeof MissionTypes !== 'undefined' && MissionTypes.clear) MissionTypes.clear();
     if (typeof Feedback !== 'undefined' && Feedback.clear) Feedback.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
-    if (typeof CityProps !== 'undefined' && CityProps.clear) CityProps.clear(_scene);
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.init) WeatherSystem.init(_scene, _camera);
     if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
 
@@ -3887,40 +3621,7 @@ const GameManager = (function () {
     var _battlePlan = (stageDef && stageDef.capitalDefense)
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
-    // Mobile enemy cap: reduce group count to keep frame rate manageable.
-    // Scale reduction by adaptive quality level — low-end devices get fewest enemies.
-    if (isMobile) {
-      if (!_battlePlan) _battlePlan = {};
-      var _mobileGroupCut = _perfLevel >= 3 ? -5 : (_perfLevel >= 2 ? -4 : -3);
-      _battlePlan.groupDelta = (_battlePlan.groupDelta || 0) + _mobileGroupCut;
-    }
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
-
-    // Infantry guarantee: if wave spawned zero ground enemies, force-spawn a minimum squad
-    setTimeout(function() {
-      try {
-        var _droneTypes = { DRONE_OP:1, KAMIKAZE_DRONE:1, SWARM_OP:1, EW_OPERATOR:1 };
-        var alive = Enemies.getAll ? Enemies.getAll().filter(function(e) {
-          return e && e.alive && e.typeName && !_droneTypes[e.typeName];
-        }) : [];
-        console.log('[Wave ' + w + '] Infantry alive after wave start: ' + alive.length + ' / total alive: ' + (Enemies.getAliveCount ? Enemies.getAliveCount() : '?'));
-        if (alive.length === 0) {
-          console.warn('[Wave ' + w + '] NO INFANTRY SPAWNED — forcing minimum squad');
-          var _gTypes = ['CONSCRIPT', 'STORMER', 'ENGINEER'];
-          var _spawnCount = 3 + w;
-          for (var _gi = 0; _gi < _spawnCount; _gi++) {
-            var _gt = _gTypes[_gi % _gTypes.length];
-            var _ga = (_gi / _spawnCount) * Math.PI * 2;
-            var _gr = 20 + Math.random() * 10;
-            Enemies.spawnSingle(_gt, {
-              x: player.position.x + Math.cos(_ga) * _gr,
-              z: player.position.z + Math.sin(_ga) * _gr
-            });
-          }
-        }
-      } catch (e) { console.error('[Wave] infantry-guarantee check failed:', e); }
-    }, 800);
-
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -3949,10 +3650,6 @@ const GameManager = (function () {
         // omit y so spawnOne() resolves terrain height itself
       });
       HUD.notifyPickup('⚠ BOSS INCOMING: ' + (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType] ? EnemyTypes.TYPES[bossType].name : 'COMMANDER'), '#ff0000');
-      // Escalate to intense 140-BPM battle theme for boss fight
-      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playBossMusic) {
-        window.AudioSystem.playBossMusic();
-      }
     }
 
     // ═══ Blood Moon effect on final 2 waves ═══
@@ -4344,7 +4041,7 @@ const GameManager = (function () {
     // Only start if no scripted mission already active (avoids silently overwriting in-progress missions).
     // Skip for capitalDefense (Kyiv) — convoy columns are already the priority objective.
     if (w % 3 === 0 && typeof MissionTypes !== 'undefined' && !MissionTypes.getActive() && !capitalDefense) {
-      var _mSafeTypes = ['DEMOLITION', 'CAPTURE_ZONE', 'ASSASSINATION', 'RESCUE', 'DEFUSE', 'ESCORT'];
+      var _mSafeTypes = ['DEMOLITION', 'CAPTURE_ZONE', 'ASSASSINATION', 'RESCUE', 'DEFUSE'];
       var mType = _mSafeTypes[Math.floor(Math.random() * _mSafeTypes.length)];
       var _mzX = player.position.x + (Math.random() - 0.5) * 40;
       var _mzZ = player.position.z + (Math.random() - 0.5) * 40;
@@ -5006,9 +4703,6 @@ const GameManager = (function () {
         showOverlay('win');
         document.getElementById('win-score').textContent = player.score;
         document.getElementById('win-kills').textContent = player.kills;
-        var _winHS = document.getElementById('win-headshots'); if (_winHS) _winHS.textContent = player.totalHeadshots || 0;
-        var _winAcc = document.getElementById('win-accuracy'); if (_winAcc) _winAcc.textContent = player.totalShots > 0 ? Math.round((player.totalHits / player.totalShots) * 100) : 0;
-        var _winDmg = document.getElementById('win-damage'); if (_winDmg) _winDmg.textContent = Math.round(player.totalDamageTaken || 0);
         document.getElementById('win-stages').textContent = STAGES.length;
         return;
       }
@@ -5066,22 +4760,6 @@ const GameManager = (function () {
       var nextCount = 3 + currentWave * 2;
       shopEnemies.textContent = nextCount + ' enemies incoming';
     }
-    // Show next wave enemy types preview
-    var shopNextThreat = document.getElementById('shop-next-threat');
-    if (shopNextThreat && typeof EnemyTypes !== 'undefined' && EnemyTypes.WAVE_COMPOSITIONS) {
-      var _nwComp = EnemyTypes.WAVE_COMPOSITIONS[Math.min(currentWave + 1, 24)];
-      if (_nwComp && _nwComp.types) {
-        var _threatIcons = { CONSCRIPT: '🪖', STORMER: '⚔', ARMORED: '🛡', SNIPER_ELITE: '🎯', BOMBER: '💣', TANK: '🚂', DRONE_OP: '📡', BTR: '🚗', SPETSNAZ: '🕶', MEDIC: '➕', WAGNER: '☠', BOSS: '👑', FLAMETHROWER: '🔥', KADYROVITE: '🐍', COMMISSAR: '📣', MORTAR: '💥', PARATROOP: '🪂', WAR_DOG: '🐕', KAMIKAZE_DRONE: '🚁', OFFICER: '🎖' };
-        var _seen = [];
-        for (var _ti = 0; _ti < _nwComp.types.length && _seen.length < 5; _ti++) {
-          var _tp = _nwComp.types[_ti];
-          if (_tp !== 'BOSS') { var _ic = _threatIcons[_tp] || '⚠'; if (_seen.indexOf(_ic) === -1) _seen.push(_ic); }
-        }
-        shopNextThreat.textContent = _seen.join(' ');
-      } else {
-        shopNextThreat.textContent = '';
-      }
-    }
     // Reset shop buttons
     var shopBtns = document.querySelectorAll('.shop-buy-btn');
     for (var si = 0; si < shopBtns.length; si++) {
@@ -5090,7 +4768,7 @@ const GameManager = (function () {
       shopBtns[si].style.color = '';
     }
     // Restore button text
-    var btnTexts = { health: '\u2764\uFE0F Health +50 \u00B7 40 OKC', armor: '\uD83D\uDEE1\uFE0F Armor Pack \u00B7 60 OKC', ammo: '\uD83D\uDD2B Full Ammo \u00B7 30 OKC', stim: '\uD83D\uDC89 Stim Pack \u00B7 50 OKC', dmgboost: '\uD83D\uDD25 Damage +25% \u00B7 60 OKC', airstrike_tok: '\u2708 Airstrike Token \u00B7 90 OKC' };
+    var btnTexts = { health: '\u2764\uFE0F Health +50 \u00B7 40 OKC', armor: '\uD83D\uDEE1\uFE0F Armor Pack \u00B7 60 OKC', ammo: '\uD83D\uDD2B Full Ammo \u00B7 30 OKC', stim: '\uD83D\uDC89 Stim Pack \u00B7 50 OKC' };
     for (var si2 = 0; si2 < shopBtns.length; si2++) {
       var itemId = shopBtns[si2].getAttribute('data-item');
       if (btnTexts[itemId]) shopBtns[si2].textContent = btnTexts[itemId];
@@ -5331,16 +5009,6 @@ const GameManager = (function () {
       player._stimTimer -= delta;
     }
 
-    // Damage boost decay
-    if (_dmgBoostTimer > 0) {
-      _dmgBoostTimer -= delta;
-      if (_dmgBoostTimer <= 0) {
-        _dmgBoostMult = 1.0;
-        _dmgBoostTimer = 0;
-        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('🔥 Damage boost expired', '#888');
-      }
-    }
-
     // ── B24: Crouch height + slide + cover detection ──
     if (!player.prone) {
       var targetH = player.isCrouching ? 1.1 : 1.7;
@@ -5459,9 +5127,8 @@ const GameManager = (function () {
     CameraSystem.update(delta, player.position, isMoving, player.onGround);
     // Update kill cam override (blocks mouse-look while active)
     if (CameraSystem.updateKillCam) CameraSystem.updateKillCam(delta);
-    // Update suppression visual and smoke zones
+    // Update suppression visual
     updateSuppression(delta);
-    updateSmokeZones(delta);
 
     // Player footstep sounds
     if (isMoving && player.onGround && typeof AudioSystem !== 'undefined') {
@@ -5487,10 +5154,20 @@ const GameManager = (function () {
 
   /* ── Combat ──────────────────────────────────────────────────────── */
   function updateCombat(delta) {
-    // Drone combat: LMB triggers drone action (only on new press, not held)
+    // Drone combat: LMB triggers drone action
     if (DroneSystem.isPossessing()) {
-      if (mouseNewPress && (mouseDown || touch.firing)) {
-        DroneSystem.useActivePayload();
+      if (mouseDown || touch.firing) {
+        const drone = DroneSystem.getPossessed();
+        if (drone) {
+          if (drone.type === 'fpv_attack') {
+            DroneSystem.fireAttack(drone.id);
+          } else if (drone.type === 'bomb' && drone.hasPayload) {
+            DroneSystem.dropPayload(drone.id);
+          } else if ((drone.type === 'incendiary' || drone.type === 'baba_yaga') && drone.hasPayload) {
+            DroneSystem.dropFire(drone.id);
+            if (drone.type === 'baba_yaga') HUD.notifyPickup('🔥 THERMITE DROPPED!', '#ff8800');
+          }
+        }
         mouseNewPress = false;
       }
       return;
@@ -5691,7 +5368,7 @@ const GameManager = (function () {
     MLSystem.trackCombatEngagement(engageRange < 10);
 
     const isHeadshot = hit.object === enemy.mesh.userData.headMesh;
-    let baseDmg = Math.round(Weapons.getDamage() * _dmgBoostMult);
+    let baseDmg = Weapons.getDamage();
 
     // ═══ NEW: Apply ammo type and perk damage modifiers ═══
     if (typeof CombatExtras !== 'undefined') {
@@ -5703,23 +5380,10 @@ const GameManager = (function () {
       baseDmg = Math.round(baseDmg * Perks.getDeadEyeMult());
       HUD.notifyPickup('🎯 DEAD EYE CRIT!', '#ff4400');
     }
-    // Marksman proc — previous headshot grants +30% to this shot
-    if (typeof Perks !== 'undefined' && Perks.getMarksmanMult() > 1.0) {
-      baseDmg = Math.round(baseDmg * Perks.getMarksmanMult());
-      Perks.consumeMarksman();
-      HUD.notifyPickup('🔭 MARKSMAN!', '#4488ff');
-    }
     // Prestige damage bonus
     if (typeof Progression !== 'undefined') {
       var pBonuses = Progression.getPrestigeBonuses();
       baseDmg = Math.round(baseDmg * pBonuses.damageMult);
-    }
-    // Per-weapon crit roll — precision weapons only, independent of headshot
-    var _wepCfgCrit = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent() : null;
-    if (_wepCfgCrit && _wepCfgCrit.critChance && !isHeadshot && Math.random() < _wepCfgCrit.critChance) {
-      baseDmg = Math.round(baseDmg * (_wepCfgCrit.critMult || 2.0));
-      HUD.notifyPickup('💥 CRITICAL HIT! ×' + (_wepCfgCrit.critMult || 2).toFixed(1), '#ff6600');
-      if (typeof AudioSystem !== 'undefined' && AudioSystem.playCriticalHit) AudioSystem.playCriticalHit();
     }
     const dmg = isHeadshot ? baseDmg * 2 : baseDmg;
 
@@ -5756,7 +5420,6 @@ const GameManager = (function () {
       player.score += 50;
       player.totalHeadshots++;
       player.waveHeadshots++;
-      if (typeof Perks !== 'undefined' && Perks.onHeadshot) Perks.onHeadshot();
     }
 
     if (remaining <= 0) {
@@ -5973,17 +5636,7 @@ const GameManager = (function () {
       }
       // Perk: kill tracking & killstreaks
       if (typeof Perks !== 'undefined') {
-        var _streaksBefore = Perks.getAvailableStreaks().length;
         Perks.onKill();
-        // Notify new killstreak earned
-        var _streaksAfter = Perks.getAvailableStreaks().length;
-        if (_streaksAfter > _streaksBefore) {
-          var _newStreak = Perks.getAvailableStreaks()[_streaksAfter - 1];
-          if (typeof HUD !== 'undefined' && HUD.showToast) {
-            HUD.showToast(_newStreak.icon + ' KILLSTREAK: ' + _newStreak.name + ' READY!', 3000, '#ff8800');
-          }
-          if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
-        }
         // Scavenger auto-loot
         var scavRange = Perks.getScavengerRange();
         if (scavRange > 0) {
@@ -6384,27 +6037,12 @@ const GameManager = (function () {
       var _dtEl = document.getElementById('dead-title');
       if (_dtEl) _dtEl.textContent = _defeatReason || 'YOU DIED';
       _defeatReason = null;
+      showOverlay('dead');
 
-      // Dramatic death flash — red vignette → black before overlay appears
-      var _deathFlashEl = document.getElementById('death-flash');
-      if (_deathFlashEl) {
-        _deathFlashEl.style.display = 'block';
-        _deathFlashEl.classList.remove('active');
-        // Force reflow so animation re-triggers
-        void _deathFlashEl.offsetWidth;
-        _deathFlashEl.classList.add('active');
-      }
-      // Flatline audio cue
-      if (window.AudioSystem && window.AudioSystem.playFlatline) window.AudioSystem.playFlatline();
-
-      // Delay death overlay by 1.2s for dramatic effect
-      setTimeout(function() {
-        if (_deathFlashEl) { _deathFlashEl.classList.remove('active'); _deathFlashEl.style.display = 'none'; }
-        showOverlay('dead');
-        var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
-        var _dsc = document.getElementById('dead-score');  if (_dsc) _dsc.textContent = player.score;
-        var _dk = document.getElementById('dead-kills');   if (_dk) _dk.textContent = player.kills;
-        var _dw = document.getElementById('dead-wave');    if (_dw) _dw.textContent = currentWave;
+      var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
+      var _dsc = document.getElementById('dead-score');  if (_dsc) _dsc.textContent = player.score;
+      var _dk = document.getElementById('dead-kills');   if (_dk) _dk.textContent = player.kills;
+      var _dw = document.getElementById('dead-wave');    if (_dw) _dw.textContent = currentWave;
 
       // ── Gameplay Tip Overlay on Death ──
       var tips = [
@@ -6482,7 +6120,6 @@ const GameManager = (function () {
           distance: Math.round(player.distanceWalked),
         });
       }
-      }, 1200); // end of death overlay setTimeout
     }
   }
 
@@ -6497,8 +6134,7 @@ const GameManager = (function () {
   var _lowFpsStreak = 0;
   var _highFpsStreak = 0;
   var _baseFogFar = isMobile ? 55 : 120;
-  // Mobile renderer is always created without shadows; never re-enable them.
-  var _baseShadowsEnabled = !isMobile;
+  var _baseShadowsEnabled = true;
   var _basePixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.1 : 1.5);
 
   function _applyPerfLevel(level, fps) {
@@ -6507,10 +6143,9 @@ const GameManager = (function () {
     try {
       var pr, fogFar, shadows;
       if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled; _lowEndVFX = false; }
-      // Level 1: slightly reduced pixel ratio + tighter fog; no shadows on mobile.
-      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = !isMobile; _lowEndVFX = false; }
-      else if (_perfLevel === 2) { pr = isMobile ? 0.9 : 1.0; fogFar = isMobile ? 45 : 60; shadows = false; _lowEndVFX = false; }
-      else                       { pr = isMobile ? 0.75 : 0.7; fogFar = isMobile ? 35 : 45; shadows = false; _lowEndVFX = true; }
+      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = true; _lowEndVFX = false; }
+      else if (_perfLevel === 2) { pr = 1.0; fogFar = 60; shadows = false; _lowEndVFX = false; }
+      else                       { pr = 0.7; fogFar = 45; shadows = false; _lowEndVFX = true; }
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
       if (sunLight) sunLight.castShadow = shadows;
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
@@ -6534,6 +6169,7 @@ const GameManager = (function () {
     // Hitstop: update timer with real time, zero delta while frozen
     if (typeof Feedback !== 'undefined' && Feedback.updateHitStop) Feedback.updateHitStop(rawDelta);
     var delta = (typeof Feedback !== 'undefined' && Feedback.isHitStopped && Feedback.isHitStopped()) ? 0 : rawDelta;
+    try { if (window.PerformanceScaler && PerformanceScaler.tick) PerformanceScaler.tick(rawDelta * 1000); } catch (ePS) {}
 
     // Slow-mo: scale delta by slow-mo rate (triggered on multikills / wave clears)
     if (typeof Feedback !== 'undefined' && Feedback.getSlowMoRate) delta *= Feedback.getSlowMoRate();
@@ -6542,20 +6178,12 @@ const GameManager = (function () {
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
-    // Mobile: check every 1.5s (react faster to low FPS); desktop: 2s
-    var _perfInterval = isMobile ? 1.5 : 2.0;
-    var _fpsDrop = isMobile ? 28 : 38;   // mobile starts downgrading at 28 FPS
-    var _fpsRecover = isMobile ? 50 : 65; // mobile recovers quality at 50 FPS
-    if (_perfCheckTimer > _perfInterval && _fpsSamples > 6) {
+    if (_perfCheckTimer > 2 && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
-      if (avgFps < _fpsDrop) { _lowFpsStreak++; _highFpsStreak = 0; }
-      else if (avgFps > _fpsRecover) { _highFpsStreak++; _lowFpsStreak = 0; }
+      if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
+      else if (avgFps > 65) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
-      // Fast-drop: mobile critically-low FPS (<20) skips the streak check and downgrades immediately.
-      if (isMobile && avgFps < 20 && _perfLevel < _PERF_MAX_LEVEL) {
-        _applyPerfLevel(_perfLevel + 1, avgFps);
-        _lowFpsStreak = 0;
-      } else if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
+      if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
       }
@@ -7530,8 +7158,7 @@ const GameManager = (function () {
         var mmNPCs = (typeof NPCSystem !== 'undefined' && NPCSystem.getAll) ? NPCSystem.getAll() : [];
         var mmVehicles = (typeof VehicleSystem !== 'undefined' && VehicleSystem.getAll) ? VehicleSystem.getAll() : [];
         var mmDrones = (typeof DroneSystem !== 'undefined' && DroneSystem.getAll) ? DroneSystem.getAll() : [];
-        var mmOpts = { uav: (typeof Perks !== 'undefined' && Perks.isUAVActive && Perks.isUAVActive()) };
-        HUD.updateMinimap(player.position.x, player.position.z, CameraSystem.getYaw(), mmEnemies, mmNPCs, mmVehicles, mmDrones, null, mmOpts);
+        HUD.updateMinimap(player.position.x, player.position.z, CameraSystem.getYaw(), mmEnemies, mmNPCs, mmVehicles, mmDrones);
       }
 
       // Targeting assistant (on-weapon enemy readout)
@@ -7565,7 +7192,6 @@ const GameManager = (function () {
       try { if (window.Mortar  && Mortar.update)  Mortar.update(delta); } catch (eMU) {}
       try { if (window.Bradley && Bradley.update) Bradley.update(delta); } catch (eBV) {}
       try { if (window.Gyro    && Gyro.update)    Gyro.update(delta); } catch (eGU) {}
-      try { if (window.CollapsePhysics && CollapsePhysics.update) CollapsePhysics.update(_scene, delta); } catch (eCPU) {}
 
       // ═══ NEW FEATURE SYSTEM UPDATES (59 features) ═══
 
@@ -8022,10 +7648,8 @@ const GameManager = (function () {
                 } else if (typeof Marketplace !== 'undefined') {
                   Marketplace.addOKC(reward.okc);
                 }
-                if (typeof Economy !== 'undefined' && Economy.addCurrency) Economy.addCurrency(reward.okc);
                 if (typeof RankSystem !== 'undefined') RankSystem.addXP(reward.xp);
                 if (typeof Progression !== 'undefined') Progression.trackStat('wavesCleared', 0); // mission tracking
-                if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
               }
               mTracker.style.display = 'none';
             } else if (missionResult.state === 'FAILED') {
@@ -8127,8 +7751,10 @@ const GameManager = (function () {
     // Switch to mortar bird's-eye cam if deployed, or Bradley chase cam if driving
     var renderCam = _camera;
     try {
-      if (window.Bradley && window.Bradley.isActive && window.Bradley.isActive() && window.GameManager.__bradleyCam) {
-        renderCam = window.GameManager.__bradleyCam;
+      if (window.Bradley && window.Bradley.isActive && window.Bradley.isActive()) {
+        var _bradleyCamActive = Bradley.getActiveCamera ? Bradley.getActiveCamera() : window.GameManager.__bradleyCam;
+        if (_bradleyCamActive) renderCam = _bradleyCamActive;
+        // if null: FPV mode — _camera has been repositioned directly by Bradley.update()
       } else if (window.Mortar && window.Mortar.isDeployed && window.Mortar.isDeployed() && window.GameManager.__mortarCam) {
         renderCam = window.GameManager.__mortarCam;
       }
@@ -8493,15 +8119,13 @@ const GameManager = (function () {
     const btnNext = document.getElementById('btn-weapon-next');
     btnPrev.addEventListener('touchstart', function (e) {
       e.preventDefault();
-      if (DroneSystem.isPossessing()) { DroneSystem.cyclePayload(-1); }
-      else { Weapons.switchPrev(); }
+      Weapons.switchPrev();
       btnPrev.classList.add('active');
     }, { passive: false });
     btnPrev.addEventListener('touchend', function () { btnPrev.classList.remove('active'); });
     btnNext.addEventListener('touchstart', function (e) {
       e.preventDefault();
-      if (DroneSystem.isPossessing()) { DroneSystem.cyclePayload(1); }
-      else { Weapons.switchNext(); }
+      Weapons.switchNext();
       btnNext.classList.add('active');
     }, { passive: false });
     btnNext.addEventListener('touchend', function () { btnNext.classList.remove('active'); });
@@ -8526,6 +8150,9 @@ const GameManager = (function () {
       }
     });
     bindTapButton('btn-vehicle', function () { tapVirtualKey('KeyG'); });
+    bindTapButton('btn-bradley-view', function () {
+      try { if (typeof Bradley !== 'undefined' && Bradley.toggleViewMode) Bradley.toggleViewMode(); } catch (e) {}
+    });
     bindTapButton('btn-build', function () { tapVirtualKey('KeyB'); });
     // Build-opt tap: select template directly on mobile
     document.querySelectorAll('.build-opt[data-template]').forEach(function (el) {
@@ -8865,8 +8492,7 @@ const GameManager = (function () {
     _scene.add(nade);
     var fwd = _camera.getWorldDirection(new THREE.Vector3());
     var vel = new THREE.Vector3(fwd.x * 18, 6 + fwd.y * 14, fwd.z * 18);
-    var _nadeFuse = 2.5 - (typeof Perks !== 'undefined' && Perks.getGrenadeFuseSub ? Perks.getGrenadeFuseSub() : 0);
-    _handGrenades.push({ mesh: nade, vel: vel, fuse: _nadeFuse, spin: new THREE.Vector3(8, 6, 4) });
+    _handGrenades.push({ mesh: nade, vel: vel, fuse: 2.5, spin: new THREE.Vector3(8, 6, 4) });
     if (!player.godMode) player.grenades = Math.max(0, player.grenades - 1);
     if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : player.grenades);
     _handGrenadeCooldown = 0.45;
@@ -8911,8 +8537,7 @@ const GameManager = (function () {
           try { window.AudioSystem.playExplosion(); } catch (e) {}
         }
         if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
-          var _explMult = (typeof Perks !== 'undefined' && Perks.getExplosiveDamageMult) ? Perks.getExplosiveDamageMult() : 1.0;
-          var _gRes = Enemies.damageInRadius(pos, 6.5, Math.round(110 * _explMult));
+          var _gRes = Enemies.damageInRadius(pos, 6.5, 110);
           if (player && Array.isArray(_gRes)) {
             var _gKills = 0;
             for (var _gi = 0; _gi < _gRes.length; _gi++) if (_gRes[_gi].remaining <= 0) _gKills++;
@@ -9497,50 +9122,11 @@ const GameManager = (function () {
     if (CameraSystem.shake) CameraSystem.shake(0.4, 0.5);
 
     if (streak.id === 'ARTILLERY' || streak.id === 'AIRSTRIKE') {
+      // Damage enemies in area around player's aim point
       var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
-      var artTarget = player.position.clone().add(fwd.multiplyScalar(30));
-      var artRadius = streak.radius || 15;
-      var artDmg = streak.damage || 200;
-      var artShells = streak.id === 'AIRSTRIKE' ? 8 : 5;
-      if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 FIRE FOR EFFECT!', 2000, '#ff6600');
-      // Staggered shell impacts over 2 seconds
-      for (var ai = 0; ai < artShells; ai++) {
-        (function(_i, _cx, _cz) {
-          setTimeout(function() {
-            var shellPos = new THREE.Vector3(
-              _cx + (Math.random()-0.5) * artRadius,
-              0.5,
-              _cz + (Math.random()-0.5) * artRadius
-            );
-            Enemies.damageInRadius(shellPos, artRadius * 0.45, artDmg / artShells * 1.4);
-            if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
-              Tracers.spawnExplosion(shellPos, artRadius * 0.22);
-            }
-            if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
-              WorldFeatures.applyExplosionDamage(shellPos.x, shellPos.y, shellPos.z, artRadius * 0.3, artDmg * 0.5);
-            }
-            if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.5, 0.4);
-          }, 400 + _i * 220);
-        })(ai, artTarget.x, artTarget.z);
-      }
-    } else if (streak.id === 'UAV') {
-      // UAV scan: show enemies on minimap for 15s with pulsing indicator
-      if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📡 UAV ONLINE — SCANNING', 2000, '#00ffcc');
-      // Reveal all enemy positions in HUD via a sweep animation
-      (function() {
-        var sweepEl = document.getElementById('uav-sweep');
-        if (!sweepEl) {
-          sweepEl = document.createElement('div');
-          sweepEl.id = 'uav-sweep';
-          sweepEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:150;background:radial-gradient(ellipse 120% 120% at 50% 50%,rgba(0,255,150,0.06) 0%,transparent 70%);animation:uavSweep 1s ease-out forwards';
-          var style = document.createElement('style');
-          style.textContent = '@keyframes uavSweep{0%{opacity:0}20%{opacity:1}100%{opacity:0}}';
-          document.head.appendChild(style);
-          document.body.appendChild(sweepEl);
-        }
-        sweepEl.style.animation = 'none';
-        setTimeout(function() { sweepEl.style.animation = 'uavSweep 1s ease-out forwards'; }, 16);
-      })();
+      var target = player.position.clone().add(fwd.multiplyScalar(30));
+      Enemies.damageInRadius(target, streak.radius || 15, streak.damage || 200);
+      if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(target, (streak.radius || 15) * 0.3);
     } else if (streak.id === 'NUKE') {
       // Kill all enemies
       var allEn = Enemies.getAll();
@@ -9585,46 +9171,6 @@ const GameManager = (function () {
     if (HUD.notifyPickup) HUD.notifyPickup('💉 Speed Boost ' + duration + 's', '#ff8a65');
   }
 
-  var _dmgBoostMult = 1.0;
-  var _dmgBoostTimer = 0;
-  function addDamageBoost(pct, duration) {
-    _dmgBoostMult = 1 + pct;
-    _dmgBoostTimer = duration;
-  }
-  function getDamageBoostMult() { return _dmgBoostMult; }
-
-  var _airstrikeTokens = 0;
-  function addAirstrikeToken() { _airstrikeTokens++; }
-  function getAirstrikeTokens() { return _airstrikeTokens; }
-  function useAirstrikeToken() {
-    if (_airstrikeTokens <= 0) return false;
-    _airstrikeTokens--;
-    // Fire an airstrike at player's aimed position
-    if (!_camera) return true;
-    var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
-    var target = player.position.clone().add(fwd.multiplyScalar(35));
-    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('✈ AIRSTRIKE ON THE WAY!', 2500, '#aaddff');
-    for (var _ati = 0; _ati < 7; _ati++) {
-      (function(_i3, _tx, _tz) {
-        setTimeout(function() {
-          var _asp = new THREE.Vector3(_tx + (Math.random()-0.5)*16, 0.5, _tz + (Math.random()-0.5)*8);
-          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_asp, 3.5);
-          if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) Enemies.damageInRadius(_asp, 8, 220);
-          if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) WorldFeatures.applyExplosionDamage(_asp.x, _asp.y, _asp.z, 2.5, 100);
-          if (CameraSystem.shake) CameraSystem.shake(0.6, 0.3);
-        }, 2500 + _i3 * 220);
-      })(_ati, target.x, target.z);
-    }
-    return true;
-  }
-
-  function applyKnockback(dir, force) {
-    if (!player || !player.velocity) return;
-    player.velocity.x += dir.x * force;
-    player.velocity.y += Math.max(0.4, dir.y) * force * 0.5;
-    player.velocity.z += dir.z * force;
-  }
-
   /* ── Public API ──────────────────────────────────────────────────── */
   return {
     STATE,
@@ -9667,8 +9213,6 @@ const GameManager = (function () {
 
     getStageInfo:    function () { return STAGES[currentStage]; },
     isSprinting:     function () { return player.sprinting; },
-    getPerfLevel:    function () { return _perfLevel; },
-    isLowEndVFX:     function () { return _lowEndVFX || _perfLevel >= 2; },
     _activateStreak: _activateStreak,
     _openPerksMenu: _openPerksMenu,
     _openJournal: _openJournal,
@@ -9677,18 +9221,8 @@ const GameManager = (function () {
     healPlayer: healPlayer,
     addArmor: addArmor,
     addStimBuff: addStimBuff,
-    addDamageBoost: addDamageBoost,
-    getDamageBoostMult: getDamageBoostMult,
-    addAirstrikeToken: addAirstrikeToken,
-    getAirstrikeTokens: getAirstrikeTokens,
-    useAirstrikeToken: useAirstrikeToken,
-    applyKnockback: applyKnockback,
     addSuppression: addSuppression,
     requestFullscreenAndLockLandscape: requestFullscreenAndLockLandscape,
-    setMouseSensitivity: setMouseSensitivity,
-    setAudioVolume:      setAudioVolume,
-    getMouseSensitivity: function() { return _mouseSensitivity; },
-    getAudioVolume:      function() { return _audioVolume; },
     // Test helpers for headless Puppeteer (bypasses pointer lock requirement)
     _testFireStart:  function () { mouseDown = true; mouseNewPress = true; },
     _testFireStop:   function () { mouseDown = false; mouseNewPress = false; },
