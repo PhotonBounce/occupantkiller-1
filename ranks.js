@@ -74,9 +74,19 @@ const RankSystem = (function () {
   /* ── XP ──────────────────────────────────────────────────────────── */
   function addXP(amount) {
     totalXP += amount;
+    var prevIndex = rankIndex;
     // Check for rank up
     while (rankIndex < RANKS.length - 1 && totalXP >= RANKS[rankIndex + 1].xpRequired) {
       rankIndex++;
+    }
+    if (rankIndex > prevIndex) {
+      var newRank = RANKS[rankIndex];
+      if (typeof HUD !== 'undefined' && HUD.showToast) {
+        HUD.showToast(newRank.icon + ' RANK UP: ' + newRank.name + '!', 4000, '#2266cc');
+      }
+      if (typeof AudioSystem !== 'undefined' && AudioSystem.playLevelUp) {
+        AudioSystem.playLevelUp();
+      }
     }
     return RANKS[rankIndex];
   }

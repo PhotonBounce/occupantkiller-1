@@ -253,6 +253,496 @@ const Weapons = (() => {
       spread: 0.09, auto: false, type: 'SHOTGUN', recoilY: 0.038, recoilX: 0.016,
       description: 'Ukrainian-made pump-action shotgun. Domestic production — armed the Territorial Defense.',
     },
+    // ── 3 additional Ukraine-conflict weapons ─────────────────
+    {
+      id: 'MALYUK', name: 'Malyuk (Vulcan) Bullpup', damage: 28,
+      fireRate: 0.075, clipSize: 30, maxReserve: 180, reloadTime: 2.0,
+      spread: 0.026, auto: true, type: 'ASSAULT', recoilY: 0.014, recoilX: 0.006,
+      description: 'Ukrainian-designed bullpup assault rifle. Compact, ergonomic, domestically produced for the UAF.',
+    },
+    {
+      id: 'CARLGUSTAF', name: 'Carl Gustaf M3 (MAAWS)', damage: 750,
+      fireRate: 3.2, clipSize: 1, maxReserve: 4, reloadTime: 4.5,
+      spread: 0.005, auto: false, type: 'AT', blastRadius: 4.8, recoilY: 0.062, recoilX: 0.024,
+      description: '84mm recoilless rifle supplied by US, Sweden, and others. Versatile platform for armor, bunkers, and area denial.',
+    },
+    {
+      id: 'M240B', name: 'M240B GPMG (7.62mm)', damage: 32,
+      fireRate: 0.095, clipSize: 100, maxReserve: 400, reloadTime: 4.2,
+      spread: 0.032, auto: true, type: 'LMG', recoilY: 0.018, recoilX: 0.010,
+      description: 'NATO 7.62mm belt-fed machine gun. Supplied to Ukraine. Reliable sustained-fire platform.',
+    },
+    {
+      id: 'PKPECHENEG', name: 'PKP Pecheneg (7.62mm MG)', damage: 34,
+      fireRate: 0.085, clipSize: 100, maxReserve: 400, reloadTime: 5.0,
+      spread: 0.028, auto: true, type: 'LMG', recoilY: 0.016, recoilX: 0.008,
+      description: 'Improved Russian PKM variant with fixed heavy barrel and integral bipod. Used extensively by Russian forces in Ukraine.',
+    },
+    {
+      id: 'SPG9', name: 'SPG-9 Kopye (73mm)', damage: 550,
+      fireRate: 5.0, clipSize: 1, maxReserve: 5, reloadTime: 5.5,
+      spread: 0.006, auto: false, type: 'AT', blastRadius: 4.2, recoilY: 0.055, recoilX: 0.020,
+      description: 'Soviet 73mm recoilless rifle. Tripod-mounted or vehicle-mounted. Widely used by both Ukrainian and Russian forces for AT and bunker-busting.',
+    },
+    {
+      id: 'HK416', name: 'HK416 A5', damage: 31,
+      fireRate: 0.080, clipSize: 30, maxReserve: 150, reloadTime: 2.4,
+      spread: 0.020, auto: true, type: 'ASSAULT', recoilY: 0.013, recoilX: 0.005,
+      description: 'German assault rifle supplied to Ukraine via Germany and other NATO partners. Piston-driven, highly reliable in harsh conditions.',
+    },
+    {
+      id: 'RGD5', name: 'RGD-5 Frag Grenade', damage: 180,
+      fireRate: 1.2, clipSize: 4, maxReserve: 12, reloadTime: 1.0,
+      spread: 0.0, auto: false, type: 'GRENADE', recoilY: 0.0, recoilX: 0.0,
+      description: 'Soviet fragmentation grenade. Standard issue across former Soviet armies. Effective blast radius ~15m. Both sides use these extensively.',
+    },
+    {
+      id: 'SPIKE_LR', name: 'Spike LR ATGM', damage: 1100,
+      fireRate: 3.0, clipSize: 1, maxReserve: 4, reloadTime: 4.5,
+      spread: 0.0, auto: false, type: 'ATGM', recoilY: 0.02, recoilX: 0.0,
+      description: 'Israeli fire-and-forget anti-tank guided missile. Used extensively by Ukraine. Lock-on top-attack mode defeats ERA. Range 200-4000m.',
+    },
+    {
+      id: 'MILAN', name: 'MILAN ATGM', damage: 850,
+      fireRate: 4.0, clipSize: 1, maxReserve: 3, reloadTime: 5.0,
+      spread: 0.0, auto: false, type: 'ATGM', recoilY: 0.015, recoilX: 0.0,
+      description: 'Franco-German wire-guided anti-tank missile. Germany, France and Belgium supplied hundreds to Ukraine. Tandem warhead, SACLOS guidance.',
+    },
+    {
+      id: 'MP7', name: 'HK MP7A2', damage: 20,
+      fireRate: 0.055, clipSize: 40, maxReserve: 160, reloadTime: 2.1,
+      spread: 0.018, auto: true, type: 'SMG', recoilY: 0.009, recoilX: 0.004,
+      description: 'German compact PDW using 4.6×30mm armour-piercing rounds. Supplied by Germany. Compact enough for vehicle crews and special forces.',
+    },
+    {
+      id: 'KORD', name: 'Kord 12.7mm HMG', damage: 65,
+      fireRate: 0.105, clipSize: 50, maxReserve: 200, reloadTime: 4.0,
+      spread: 0.030, auto: true, type: 'HMG', recoilY: 0.04, recoilX: 0.012,
+      description: 'Russian 12.7×108mm heavy machine gun. Successor to NSV/Utyes. Used on BTR-82A, T-80, T-90 vehicles. Effective against infantry and light armour to 2000m.',
+    },
+    {
+      id: 'BROWNING_M2', name: 'M2HB Browning .50cal', damage: 60,
+      fireRate: 0.115, clipSize: 50, maxReserve: 200, reloadTime: 4.2,
+      spread: 0.028, auto: true, type: 'HMG', recoilY: 0.042, recoilX: 0.014,
+      description: 'American .50-caliber heavy machine gun. Iconic NATO HMG mounted on HMMWVs, M113s and M2A2 Bradleys supplied to Ukraine. "Ma Deuce" — in service since 1933.',
+    },
+    {
+      id: 'ZU_23_2', name: 'ZU-23-2 (23mm AA Autocannon)', damage: 85,
+      fireRate: 0.075, clipSize: 50, maxReserve: 200, reloadTime: 5.0,
+      spread: 0.022, auto: true, type: 'HMG', recoilY: 0.055, recoilX: 0.018,
+      description: 'Soviet twin 23×152mm autocannon. Both sides improvised this AA gun on trucks as a ground assault weapon. Devastating against infantry, light vehicles and drones.',
+    },
+    {
+      id: 'FPV_DRONE', name: 'FPV Kamikaze Drone', damage: 400,
+      fireRate: 8.0, clipSize: 1, maxReserve: 3, reloadTime: 6.5,
+      spread: 0, auto: false, type: 'AT_LIGHT', recoilY: 0.015, recoilX: 0.004,
+      blastRadius: 5, homing: false,
+      description: 'First-person-view quadcopter with RKG-3 grenade or PG-7 warhead. Most prolific weapon in 2024-2025 Ukraine war. Guided by FPV goggles to target.',
+    },
+    {
+      id: 'KORNET', name: '9M133 Kornet ATGM', damage: 1050,
+      fireRate: 4.5, clipSize: 1, maxReserve: 3, reloadTime: 5.8,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.060, recoilX: 0.018,
+      blastRadius: 7, homing: true, hasScope: true,
+      description: 'Russian laser-guided ATGM. Dual tandem warhead defeats ERA-equipped T-80/T-90. Used by Russian forces to destroy Ukrainian armour; some captured units used by Ukraine.',
+    },
+    {
+      id: 'RPG26', name: 'RPG-26 Aglen (disposable)', damage: 390,
+      fireRate: 3.2, clipSize: 1, maxReserve: 2, reloadTime: 3.8,
+      spread: 0.012, auto: false, type: 'AT_LIGHT', recoilY: 0.070, recoilX: 0.022,
+      blastRadius: 3.5,
+      description: 'Single-shot disposable 72.5mm rocket launcher. Used by both sides throughout the war. Lighter and simpler than RPG-7 — fire and discard the tube.',
+    },
+    {
+      id: 'HIMARS', name: 'M142 HIMARS (GMLRS Strike)', damage: 3000,
+      fireRate: 12.0, clipSize: 1, maxReserve: 1, reloadTime: 14.0,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 25, homing: true,
+      description: 'US M142 High Mobility Artillery Rocket System. GMLRS precision rocket to 84km. Decisive NATO weapon destroying Russian depots and supply lines across Ukraine.',
+    },
+    {
+      id: 'F1_GRENADE', name: 'F-1 "Limonka" Grenade', damage: 220,
+      fireRate: 1.8, clipSize: 3, maxReserve: 9, reloadTime: 1.5,
+      spread: 0, auto: false, type: 'GRENADE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 6,
+      description: 'Soviet F-1 fragmentation grenade ("Limonka" = little lemon). Heavier frag pattern than RGD-5 — lethal radius ~5m. Both sides stockpile thousands.',
+    },
+    {
+      id: 'MAXIM1910', name: 'Maxim M1910 (7.62mm)', damage: 28,
+      fireRate: 0.10, clipSize: 250, maxReserve: 500, reloadTime: 7.0,
+      spread: 0.025, auto: true, type: 'LMG', recoilY: 0.025, recoilX: 0.008,
+      description: 'WW1-era water-cooled machine gun still seen in Ukraine. Belt-fed, tripod-mounted. Filmed in combat in 2022-2024. Soviet/Russian mil doctrine: "never throw anything away."',
+    },
+    {
+      id: 'BM21_GRAD', name: 'BM-21 Grad MLRS (Call Fire)', damage: 2800,
+      fireRate: 14.0, clipSize: 1, maxReserve: 1, reloadTime: 16.0,
+      spread: 0.02, auto: false, type: 'AT_HEAVY', recoilY: 0.008, recoilX: 0.002,
+      blastRadius: 28, homing: false,
+      description: 'Soviet BM-21 Grad 40-round 122mm MLRS. Russia\'s most used artillery system in Ukraine — responsible for the majority of casualties. Wide-area saturation fire.',
+    },
+    {
+      id: 'TAVOR_X95', name: 'IWI Tavor X95 (5.56mm)', damage: 29,
+      fireRate: 0.085, clipSize: 30, maxReserve: 120, reloadTime: 2.2,
+      spread: 0.018, auto: true, type: 'RIFLE', recoilY: 0.022, recoilX: 0.008,
+      description: 'Israeli bullpup assault rifle. Supplied to Ukrainian units through various channels. Compact (590mm overall), very reliable in urban environments.',
+    },
+    {
+      id: 'TOW_BGM71', name: 'BGM-71 TOW ATGM', damage: 950,
+      fireRate: 5.5, clipSize: 1, maxReserve: 3, reloadTime: 7.0,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.045, recoilX: 0.012,
+      blastRadius: 6, homing: true, hasScope: true,
+      description: 'US Tube-launched Optically tracked Wire-guided ATGM. Thousands supplied to Ukraine. BGM-71F warhead penetrates 900mm RHA. Range 3750m, in service since 1970.',
+    },
+    {
+      id: 'RPG29', name: 'RPG-29 Vampir (tandem)', damage: 680,
+      fireRate: 4.0, clipSize: 1, maxReserve: 2, reloadTime: 5.0,
+      spread: 0.008, auto: false, type: 'AT_LIGHT', recoilY: 0.075, recoilX: 0.024,
+      blastRadius: 5,
+      description: 'Russian RPG-29 Vampir. 105mm tandem HEAT warhead defeats ERA-equipped tanks. Two-piece tube design. Used by Russian forces and Syrian Army; some captured by Ukraine.',
+    },
+    {
+      id: 'STARSTREAK', name: 'Starstreak HVM (UK)', damage: 750,
+      fireRate: 4.2, clipSize: 1, maxReserve: 3, reloadTime: 5.5,
+      spread: 0, auto: false, type: 'AA', recoilY: 0.040, recoilX: 0.012,
+      blastRadius: 4, homing: true, hasScope: true,
+      description: 'UK Thales Starstreak high-velocity missile. Fires 3 laser-guided tungsten darts at Mach 3.5. Supplied to Ukraine for drone/helicopter defense in 2022.',
+    },
+    {
+      id: 'AKM', name: 'AKM/AK-47 (7.62×39mm)', damage: 32,
+      fireRate: 0.095, clipSize: 30, maxReserve: 120, reloadTime: 2.3,
+      spread: 0.022, auto: true, type: 'RIFLE', recoilY: 0.030, recoilX: 0.012,
+      description: 'AKM — the mass-produced AK-47 variant. 7.62×39mm round. What most Russian conscripts and older units carry. Captured examples are primary loot on the Kyiv front.',
+    },
+    {
+      id: 'AN94', name: 'AN-94 Abakan (5.45mm)', damage: 33,
+      fireRate: 0.080, clipSize: 30, maxReserve: 120, reloadTime: 2.4,
+      spread: 0.015, auto: true, type: 'RIFLE', recoilY: 0.018, recoilX: 0.006,
+      description: 'Russian AN-94 Abakan. 2-round hyperburst at 1800rpm before cycling. Used by Russian Spetsnaz and elite units in Ukraine. Unusual pulley-delay mechanism.',
+    },
+    {
+      id: 'M67_GRENADE', name: 'M67 Frag Grenade (NATO)', damage: 210,
+      fireRate: 1.8, clipSize: 3, maxReserve: 9, reloadTime: 1.5,
+      spread: 0, auto: false, type: 'GRENADE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 6,
+      description: 'US M67 spherical fragmentation grenade. NATO standard issue. Over a million delivered to Ukraine. Lethal radius ~5m, casualty radius ~15m.',
+    },
+    {
+      id: 'SWITCHBLADE300', name: 'Switchblade 300 (loitering)', damage: 320,
+      fireRate: 10.0, clipSize: 1, maxReserve: 2, reloadTime: 8.0,
+      spread: 0, auto: false, type: 'AT_LIGHT', recoilY: 0.008, recoilX: 0.002,
+      blastRadius: 4, homing: true,
+      description: 'AeroVironment Switchblade 300. US "kamikaze" loitering munition. Tube-launched, electrically propelled, anti-personnel warhead. Over 700 sent to Ukraine.',
+    },
+    {
+      id: 'SAIGA12', name: 'Saiga-12 Combat Shotgun', damage: 130,
+      fireRate: 0.42, clipSize: 10, maxReserve: 40, reloadTime: 2.8,
+      spread: 0.080, auto: false, type: 'SHOTGUN', recoilY: 0.055, recoilX: 0.018,
+      description: 'Russian Saiga-12 semi-automatic shotgun based on AK action. 12-gauge, box magazine. Used by both sides as an improvised close-quarters weapon and for drone interdiction.',
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'RPG18', name: 'RPG-18 Mukha (64mm disposable)', damage: 340,
+      fireRate: 3.0, clipSize: 1, maxReserve: 2, reloadTime: 3.5,
+      spread: 0.015, auto: false, type: 'AT_LIGHT', recoilY: 0.072, recoilX: 0.024,
+      blastRadius: 3.0,
+      description: 'Soviet 64mm single-shot disposable AT rocket. Both sides carry these in their webbing. Light, simple, plentiful — the default close-range AT option for Russian conscripts and Ukrainian TDF alike.',
+    },
+    {
+      id: 'PODNOS82', name: '2B14 Podnos 82mm Mortar', damage: 850,
+      fireRate: 5.5, clipSize: 1, maxReserve: 8, reloadTime: 4.0,
+      spread: 0.055, auto: false, type: 'EXPLOSIVE', recoilY: 0.006, recoilX: 0.002,
+      blastRadius: 9,
+      description: '82mm infantry mortar. The most common single artillery piece in the Ukraine trench war — both sides fire thousands of rounds daily. Drop-in-tube operation, 3km max range, 4 rounds/min.',
+    },
+    {
+      id: 'OTS14', name: 'OTs-14 Groza (Spetsnaz bullpup)', damage: 26,
+      fireRate: 0.068, clipSize: 30, maxReserve: 120, reloadTime: 2.2,
+      spread: 0.020, auto: true, type: 'ASSAULT', recoilY: 0.012, recoilX: 0.005,
+      description: 'Russian OTs-14 Groza bullpup. 9×39mm subsonic with integral suppressor and GP-25 underbarrel grenade launcher. Used by FSB and Spetsnaz in Ukraine. Nearly inaudible at distance.',
+    },
+    {
+      id: 'PP19', name: 'PP-19 Bizon (64-round helical)', damage: 16,
+      fireRate: 0.058, clipSize: 64, maxReserve: 192, reloadTime: 3.2,
+      spread: 0.025, auto: true, type: 'SMG', recoilY: 0.008, recoilX: 0.003,
+      description: 'Russian PP-19 Bizon. 9mm with distinctive 64-round helical (screw) magazine under the barrel. Used by Russian MVD, OMON and vehicle crews in Ukraine. Excellent CQB capacity.',
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'FAB500', name: 'FAB-500 Glide Bomb (UMPK kit)', damage: 5000,
+      fireRate: 20.0, clipSize: 1, maxReserve: 1, reloadTime: 22.0,
+      spread: 0.010, auto: false, type: 'EXPLOSIVE', recoilY: 0.003, recoilX: 0.001,
+      blastRadius: 18, homing: false,
+      description: 'Russian 500kg gravity bomb with UMPK glide-navigation kit. Released from Su-34/35 at 80km stand-off. Impossible to intercept with Ukrainian SAMs. Demolished Avdiivka, Bakhmut, Kherson. One bomb levels an apartment block.',
+    },
+    {
+      id: 'M777', name: 'M777 155mm Howitzer (Call Fire)', damage: 1400,
+      fireRate: 11.0, clipSize: 1, maxReserve: 3, reloadTime: 13.0,
+      spread: 0.018, auto: false, type: 'AT_HEAVY', recoilY: 0.006, recoilX: 0.002,
+      blastRadius: 12, homing: false,
+      description: 'US M777A2 155mm ultra-light towed howitzer. 120+ supplied to Ukraine. Fires Excalibur GPS-guided rounds to 40km. NATO standard 155mm — the backbone of Ukrainian counteroffensive firepower since 2022.',
+    },
+    {
+      id: 'STRELA2', name: 'Strela-2M (SA-7 MANPADS)', damage: 420,
+      fireRate: 4.8, clipSize: 1, maxReserve: 2, reloadTime: 5.0,
+      spread: 0, auto: false, type: 'AA', recoilY: 0.038, recoilX: 0.010,
+      blastRadius: 3.5, homing: true,
+      description: 'Soviet 1st-generation shoulder-launched MANPADS. Older than Igla/Stinger but vastly more numerous — both sides draw from Soviet-era depots. Infrared heat-seeking. Effective against helicopters and low-altitude aircraft.',
+    },
+    {
+      id: 'DROPDRONE', name: 'Commercial Drop Drone (VOG-25)', damage: 180,
+      fireRate: 6.0, clipSize: 2, maxReserve: 6, reloadTime: 4.5,
+      spread: 0.04, auto: false, type: 'EXPLOSIVE', recoilY: 0.003, recoilX: 0.001,
+      blastRadius: 4, homing: false,
+      description: 'DJI Mavic-3 commercial drone carrying a VOG-25 grenade in a 3D-printed clamp. Ukrainian innovation now responsible for more trench casualties than artillery in some sectors. Cheap, available, and terrifying.',
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'BAYRAKTAR', name: 'Bayraktar TB2 (Strike Drone)', damage: 1800,
+      fireRate: 14.0, clipSize: 1, maxReserve: 2, reloadTime: 16.0,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.004, recoilX: 0.001,
+      blastRadius: 10, homing: true,
+      description: 'Turkish Bayraktar TB2 UCAV. Ukraine had 35 by Feb 2022. Armed with MAM-L smart munition. Dominated the 2022 Kyiv defense — viral footage worldwide. Now countered by Russian EW but still operational in modified roles.',
+    },
+    {
+      id: 'TOS1A', name: 'TOS-1A Buratino (Thermobaric MLRS)', damage: 2500,
+      fireRate: 16.0, clipSize: 1, maxReserve: 1, reloadTime: 18.0,
+      spread: 0.008, auto: false, type: 'THERMOBARIC', recoilY: 0.005, recoilX: 0.002,
+      blastRadius: 16, homing: false,
+      description: 'Russian TOS-1A Solntsepyok. 220mm thermobaric MLRS on T-72 chassis. 24-round ripple creates 40,000m² fireball. Ukraine captured several in 2022. The most horrific area-denial weapon in the war.',
+    },
+    {
+      id: 'DP27', name: 'DP-27/28 "Degtyarev" LMG', damage: 26,
+      fireRate: 0.095, clipSize: 47, maxReserve: 141, reloadTime: 4.0,
+      spread: 0.038, auto: true, type: 'LMG', recoilY: 0.022, recoilX: 0.010,
+      description: 'Soviet WW2-era DP-27 light machine gun. Still filmed in Ukraine trenches 2022-2025 — both sides dip into old reserve stocks. 47-round pan magazine sits on top. Nicknamed "gramophone" or "record player."',
+    },
+    {
+      id: 'SV98', name: 'SV-98 Precision Sniper Rifle', damage: 185,
+      fireRate: 1.5, clipSize: 10, maxReserve: 30, reloadTime: 4.5,
+      spread: 0.002, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.045, recoilX: 0.012,
+      description: 'Russian SV-98 bolt-action 7.62×54mmR. Used by Russian snipers for methodical counter-sniper work in static trench lines. More accurate than SVD but slower. Deployed from dedicated hides at 800-1000m.',
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'LANCET3', name: 'Lancet-3 (Zala loitering munition)', damage: 520,
+      fireRate: 9.0, clipSize: 1, maxReserve: 2, reloadTime: 7.0,
+      spread: 0, auto: false, type: 'AT_LIGHT', recoilY: 0.004, recoilX: 0.001,
+      blastRadius: 5, homing: true,
+      description: 'Russian Zala Lancet-3 loitering munition. Distinctive X-wing design at nose and tail. 3kg warhead with fragmentation/shaped-charge option. Camera-guided via operator. Responsible for destroying hundreds of Ukrainian howitzers, tanks, and radar systems 2023-2025.',
+    },
+    {
+      id: 'STORMSHADOW', name: 'Storm Shadow/SCALP-EG Cruise Missile', damage: 6000,
+      fireRate: 20.0, clipSize: 1, maxReserve: 1, reloadTime: 22.0,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.002, recoilX: 0.001,
+      blastRadius: 18, homing: true,
+      description: 'UK/French Matra Storm Shadow / SCALP-EG standoff cruise missile. 450kg BROACH warhead penetrates hardened bunkers. Range >250km. Air-launched from Su-24M. UK delivery 2023 transformed Ukrainian deep-strike capability — hit Kerch Bridge, Crimea HQs, Sevastopol fleet.',
+    },
+    {
+      id: 'ASVAL', name: 'AS Val (9×39mm suppressed)', damage: 42,
+      fireRate: 0.080, clipSize: 20, maxReserve: 80, reloadTime: 2.5,
+      spread: 0.014, auto: true, type: 'RIFLE', recoilY: 0.016, recoilX: 0.006,
+      description: 'Russian AS Val assault rifle with integral suppressor. Fires subsonic 9×39mm SP-5/SP-6 armour-piercing rounds. Issued to GRU Spetsnaz and elite Rosgvardia. Integral suppressor is non-removable. Used by Russian special forces in Kyiv suburb raids February-March 2022.',
+    },
+    {
+      id: 'OSV96', name: 'OSV-96 12.7mm Anti-Material', damage: 240,
+      fireRate: 2.0, clipSize: 5, maxReserve: 20, reloadTime: 5.0,
+      spread: 0.003, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.055, recoilX: 0.016,
+      description: 'Russian OSV-96 12.7×108mm anti-material rifle. Folding stock for vehicle transport. Used to defeat light armour, crew-served weapons, and enemy snipers at 1500m+. Both sides deploy heavy anti-material rifles to neutralise each other\'s entrenched positions.',
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'NEPTUNE', name: 'Neptune R-360 Anti-Ship Missile', damage: 8000,
+      fireRate: 20.0, clipSize: 1, maxReserve: 1, reloadTime: 25.0,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.003, recoilX: 0.001,
+      blastRadius: 22, homing: true,
+      description: 'Ukrainian R-360 Neptune subsonic cruise missile. Two Neptune missiles sank the Russian cruiser Moskva on 13 April 2022 — the largest warship sunk in combat since the Falklands. Sea-skimming at 10m altitude, 280km range. Coastal defense system converted to land strike.',
+    },
+    {
+      id: 'METIS_M1', name: 'Metis-M1 (9M131) ATGM', damage: 620,
+      fireRate: 5.5, clipSize: 1, maxReserve: 4, reloadTime: 6.0,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.040, recoilX: 0.010,
+      blastRadius: 5, homing: true, hasScope: true,
+      description: 'Russian 9M131 Metis-M1 ATGM. Successor to 9M115 Metis. Tandem warhead on tripod-mounted launcher. Portable two-man system. Used extensively by Russian motorised rifle companies in Ukraine for direct AT fire. Wire-guided with 1.5km range.',
+    },
+    {
+      id: 'M249SAW', name: 'M249 SAW (FN Minimi 5.56mm)', damage: 24,
+      fireRate: 0.068, clipSize: 200, maxReserve: 600, reloadTime: 5.5,
+      spread: 0.032, auto: true, type: 'LMG', recoilY: 0.018, recoilX: 0.008,
+      description: 'US M249 Squad Automatic Weapon / FN Minimi. 5.56×45mm belt or STANAG mag. Supplied by US to Ukraine as part of equipment packages. 850rpm cyclic. Standard NATO squad fire support weapon — lighter than PKM but high sustained fire rate.',
+    },
+    {
+      id: 'RPG30', name: 'RPG-30 Kryuk (precursor rocket)', damage: 520,
+      fireRate: 3.8, clipSize: 1, maxReserve: 2, reloadTime: 4.5,
+      spread: 0.006, auto: false, type: 'AT_LIGHT', recoilY: 0.072, recoilX: 0.022,
+      blastRadius: 4.5,
+      description: 'Russian RPG-30 "Hook". Unique dual-tube design: fires a small precursor rocket to trigger ERA, then the main 105mm tandem warhead follows. Specifically designed to defeat Kontakt-5 and Trophy active protection systems. Issued to Russian forces in Ukraine.',
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'SHAHED136', name: 'Shahed-136 / Geranium-2 Drone', damage: 1200,
+      fireRate: 12.0, clipSize: 1, maxReserve: 3, reloadTime: 10.0,
+      spread: 0, auto: false, type: 'INCENDIARY', recoilY: 0.002, recoilX: 0.001,
+      blastRadius: 8, homing: true,
+      description: 'Iranian Shahed-136 loitering munition — designated Geranium-2 by Russia. Delta-wing suicide drone used in mass swarm attacks on Ukrainian cities 2022-2025. Visible on radar but cheap enough to overwhelm air defense. Kyiv residents hear the distinctive lawn-mower engine at night.',
+    },
+    {
+      id: 'AGM88HARM', name: 'AGM-88 HARM (Anti-Radiation Missile)', damage: 3500,
+      fireRate: 16.0, clipSize: 1, maxReserve: 2, reloadTime: 18.0,
+      spread: 0, auto: false, type: 'AT_HEAVY', recoilY: 0.003, recoilX: 0.001,
+      blastRadius: 14, homing: true,
+      description: 'US AGM-88 High-speed Anti-Radiation Missile. Homes on radar emissions. Ukraine adapted its MiG-29s to fire HARM in 2022, destroying dozens of Russian Buk and S-300 batteries. Range 150km at Mach 2. Pivotal in degrading Russian radar coverage over Ukraine.',
+    },
+    {
+      id: 'RGO78', name: 'RGO-78 Defensive Frag Grenade', damage: 230,
+      fireRate: 1.8, clipSize: 3, maxReserve: 9, reloadTime: 1.5,
+      spread: 0, auto: false, type: 'GRENADE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 6,
+      description: 'Russian RGO-78 defensive fragmentation grenade. Dual-pattern fragmentation liner — both inner and outer shells fragment, doubling coverage vs RGD-5. Standard issue Russian ground forces. Found in vast quantities at abandoned Russian positions around Kyiv.',
+    },
+    {
+      id: 'GEPARD35', name: 'Gepard Flakpanzer (35mm AA)', damage: 90,
+      fireRate: 0.040, clipSize: 340, maxReserve: 680, reloadTime: 8.0,
+      spread: 0.018, auto: true, type: 'HMG', recoilY: 0.035, recoilX: 0.014,
+      description: 'German Flakpanzer Gepard twin 35mm AA autocannon. Germany supplied 30+ to Ukraine — first time Germany sent heavy weapons. Proved devastating against Shahed drones, helicopters, and low-flying jets. Oerlikon KDA 35mm at 550rpm per barrel. Effective ceiling 3000m.',
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'PTRD41', name: 'PTRD-41 Anti-Tank Rifle (14.5mm)', damage: 200,
+      fireRate: 2.2, clipSize: 1, maxReserve: 20, reloadTime: 3.0,
+      spread: 0.004, auto: false, type: 'SNIPER', hasScope: false, recoilY: 0.060, recoilX: 0.020,
+      description: 'Soviet PTRD-41 semi-auto 14.5×114mm anti-tank rifle designed in 1941. Still filmed in Ukraine 2022-2025 — both sides unboxed WWII-era reserves. Devastating against unarmoured vehicles, engine blocks, crew-served weapons, and body armour at 500m+.',
+    },
+    {
+      id: 'KONKURS', name: '9M113 Konkurs ATGM', damage: 780,
+      fireRate: 5.0, clipSize: 1, maxReserve: 4, reloadTime: 6.5,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.042, recoilX: 0.012,
+      blastRadius: 6, homing: true, hasScope: true,
+      description: 'Soviet 9M113 Konkurs (AT-5 Spandrel) ATGM. Semi-automatic SACLOS wire-guided missile mounted on BMP-1P, BMP-2, and Konkurs-M vehicle mounts. One of the most common ATGMs in the Russian arsenal. Tandem warhead variant penetrates 750mm RHA behind ERA.',
+    },
+    {
+      id: 'M32MGL', name: 'M32A1 MGL (6-shot Grenade Launcher)', damage: 195,
+      fireRate: 1.2, clipSize: 6, maxReserve: 24, reloadTime: 6.0,
+      spread: 0.025, auto: false, type: 'GRENADE', recoilY: 0.028, recoilX: 0.010,
+      blastRadius: 5.5,
+      description: 'Milkor M32A1 multi-shot 40mm grenade launcher. US supplied to Ukraine for fire support. Revolver-action fires 6 rounds of 40×46mm HE, smoke, or illumination in rapid succession. Range 350m point target, 800m area. Used by Ukrainian TDF rapid reaction units.',
+    },
+    {
+      id: 'PPSH41', name: 'PPSh-41 (7.62mm Submachine Gun)', damage: 22,
+      fireRate: 0.050, clipSize: 71, maxReserve: 213, reloadTime: 4.0,
+      spread: 0.040, auto: true, type: 'SMG', recoilY: 0.020, recoilX: 0.009,
+      description: 'Soviet PPSh-41 submachine gun. Iconic WWII weapon filmed in combat in Ukraine in 2022-2024. Both sides drew from 80-year-old arsenal reserves in the equipment shortages of early 2022. 71-round drum at 900rpm — terrifying in close quarters despite its age.',
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'AIAX', name: 'AI AXMC .338 Lapua Precision Rifle', damage: 210,
+      fireRate: 1.2, clipSize: 10, maxReserve: 30, reloadTime: 5.0,
+      spread: 0.002, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.048, recoilX: 0.014,
+      description: 'Accuracy International AXMC multi-calibre chassis rifle in .338 Lapua Magnum. British precision rifle used by Ukrainian snipers including the famous "UA Ghost" team. Effective range 1400m. Modular system allows calibre change in the field between 7.62mm, .308, and .338.',
+    },
+    {
+      id: 'MALYUTKA', name: '9M14 Malyutka (AT-3 Sagger) ATGM', damage: 500,
+      fireRate: 7.0, clipSize: 1, maxReserve: 3, reloadTime: 8.0,
+      spread: 0, auto: false, type: 'ATGM', recoilY: 0.030, recoilX: 0.008,
+      blastRadius: 5, homing: true, hasScope: true,
+      description: 'Soviet 9M14 Malyutka (AT-3 Sagger) — first mass-produced ATGM, from 1960. Manually guided via joystick. Both sides used thousands from ageing reserves. Famously used to devastating effect in the 1973 Arab-Israeli War. Still lethal against older armour in Ukraine.',
+    },
+    {
+      id: 'VERBA', name: '9K333 Verba MANPADS', damage: 560,
+      fireRate: 4.5, clipSize: 1, maxReserve: 3, reloadTime: 5.5,
+      spread: 0, auto: false, type: 'AA', recoilY: 0.038, recoilX: 0.010,
+      blastRadius: 4, homing: true, hasScope: true,
+      description: "Russian 9K333 Verba (Willow) MANPADS. Russia's newest surface-to-air missile system as of 2022. Three-channel seeker (UV + near-IR + mid-IR) defeats all known flare countermeasures. Issued to Russian AA units and some special forces. Captured examples analyzed by Western intelligence.",
+    },
+    {
+      id: 'RGN86', name: 'RGN-86 Offensive Grenade', damage: 175,
+      fireRate: 1.8, clipSize: 3, maxReserve: 9, reloadTime: 1.5,
+      spread: 0, auto: false, type: 'GRENADE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 5,
+      description: "Russian RGN-86 offensive fragmentation grenade. Plastic body with shrapnel liner, fitted with UDZ impact-inertial fuze — detonates on impact OR after 3.2-4 seconds. Standard companion to RGO-78 defensive grenade. Both found throughout abandoned Russian positions around Kyiv in March 2022.",
+    },
+    // ── 4 more authentic war weapons ─────────────────────────────
+    {
+      id: 'RPG32', name: 'RPG-32 Hashim (reusable AT launcher)', damage: 580,
+      fireRate: 4.0, clipSize: 1, maxReserve: 3, reloadTime: 5.2,
+      spread: 0.007, auto: false, type: 'AT_LIGHT', recoilY: 0.068, recoilX: 0.022,
+      blastRadius: 4.8,
+      description: 'Russian/Jordanian RPG-32 Hashim. Reusable launcher body with interchangeable 72.5mm or 105mm warhead modules — unlike most single-use RPGs. Tandem warhead defeats ERA. Adopted by Russia and Jordan 2012; used in Ukraine by Russian forces and shared with allied groups.',
+    },
+    {
+      id: 'G36C', name: 'HK G36C (5.56mm NATO)', damage: 28,
+      fireRate: 0.082, clipSize: 30, maxReserve: 120, reloadTime: 2.1,
+      spread: 0.016, auto: true, type: 'RIFLE', recoilY: 0.020, recoilX: 0.007,
+      description: 'Heckler & Koch G36C compact carbine. Germany supplied G36 variants to Ukraine as part of aid packages from Bundeswehr stocks. Gas-operated rotating bolt, distinctive transparent magazine. Used alongside STANAG-standard firearms by Ukrainian special operations forces.',
+    },
+    {
+      id: 'VASILEK', name: '2B9 Vasilek (82mm Auto Mortar)', damage: 700,
+      fireRate: 2.8, clipSize: 4, maxReserve: 20, reloadTime: 6.0,
+      spread: 0.015, auto: false, type: 'EXPLOSIVE', recoilY: 0.015, recoilX: 0.005,
+      blastRadius: 9,
+      description: 'Soviet 2B9 Vasilek automatic 82mm mortar. Semi-auto feed via 4-round clips at 100rpm max. Can fire like artillery in flat-trajectory direct fire mode (unique among mortars). Both sides use from ageing stocks. Tripod + wheeled carriage — visible at dug-in positions throughout the Donbas.',
+    },
+    {
+      id: 'B10', name: 'B-10 Recoilless Rifle (82mm)', damage: 420,
+      fireRate: 3.5, clipSize: 1, maxReserve: 5, reloadTime: 5.0,
+      spread: 0.010, auto: false, type: 'AT', recoilY: 0.055, recoilX: 0.015,
+      blastRadius: 5,
+      description: 'Soviet B-10 82mm recoilless rifle from 1954. Smooth-bore with breech counterblast. Both sides dug B-10s from 60-year-old arsenals during 2022 equipment shortages. Shoulder-fired or wheel-carriage mounted. Still effective against APCs and fortified positions at 400m.',
+    },
+    {
+      id: 'AK74M', name: 'AK-74M (5.45×39mm)', damage: 26,
+      fireRate: 0.079, clipSize: 30, maxReserve: 120, reloadTime: 2.0,
+      spread: 0.014, auto: true, type: 'RIFLE', recoilY: 0.017, recoilX: 0.005,
+      description: "Russia's standard-issue service rifle since 1991. 5.45mm intermediate cartridge, side-folding polymer stock, muzzle brake that nearly eliminates climb. The AK-74M is carried by virtually every Russian soldier in Ukraine — the most common opposing weapon on the battlefield.",
+    },
+    {
+      id: 'SWITCHBLADE600', name: 'Switchblade 600 (anti-armor loitering munition)', damage: 680,
+      fireRate: 5.0, clipSize: 1, maxReserve: 2, reloadTime: 8.0,
+      spread: 0.003, auto: false, type: 'AT_LIGHT', recoilY: 0.005, recoilX: 0.001,
+      homing: true, blastRadius: 6,
+      description: "AeroVironment Switchblade 600 — US-supplied anti-armor kamikaze drone. Much larger than the 300 variant, purpose-built to defeat armored vehicles. Deploys from a tube, wings unfold mid-air, operator guides to target via live video feed. Warhead equivalent to a Javelin. Provided to Ukraine under US military aid packages from 2022.",
+    },
+    {
+      id: 'PZH2000', name: 'Panzerhaubitze 2000 (155mm SPH)', damage: 1200,
+      fireRate: 6.0, clipSize: 3, maxReserve: 9, reloadTime: 9.0,
+      spread: 0.012, auto: false, type: 'EXPLOSIVE', recoilY: 0.010, recoilX: 0.003,
+      blastRadius: 14,
+      description: "German/Dutch PzH 2000 self-propelled howitzer. 155mm/L52 barrel with autoloader — 3 rounds in under 10 seconds. Germany and Netherlands donated ~20 units to Ukraine in 2022; proved devastating against Russian logistics and troop concentrations. Max range 40km with base bleed ammunition.",
+    },
+    {
+      id: 'KH101', name: 'Kh-101 Cruise Missile', damage: 2400,
+      fireRate: 0.0, clipSize: 1, maxReserve: 1, reloadTime: 12.0,
+      spread: 0.002, auto: false, type: 'AT_HEAVY', recoilY: 0.0, recoilX: 0.0,
+      homing: true, blastRadius: 22,
+      description: "Russian Kh-101 air-launched cruise missile. Stealthy composite airframe, terrain-following guidance, 400kg warhead. Russia fires these from Tu-95MS and Tu-160 bombers targeting Ukrainian cities, power grid, and infrastructure. Ukraine intercepts ~50% with Patriots and F-16s, but mass salvos overwhelm defences. Range 5,000km.",
+    },
+    {
+      id: 'CAESAR155', name: 'CAESAR 155mm SPH (Call Fire)', damage: 1100,
+      fireRate: 5.0, clipSize: 2, maxReserve: 6, reloadTime: 8.0,
+      spread: 0.010, auto: false, type: 'EXPLOSIVE', recoilY: 0.010, recoilX: 0.002,
+      blastRadius: 13,
+      description: "French CAESAR (CAmion Équipé d'un Système d'ARtillerie) 155mm/L52 self-propelled howitzer mounted on a 6×6 truck. France donated 18 to Ukraine in 2022 — their wheeled design allows 80km/h road speed, shoot-and-scoot in under 90 seconds. Range 42km with Excalibur GPS rounds. Proved devastating against Russian command posts and logistics.",
+    },
+    {
+      id: 'BRIMSTONE2', name: 'Brimstone 2 (UK Precision ATGM)', damage: 380,
+      fireRate: 2.5, clipSize: 3, maxReserve: 9, reloadTime: 6.0,
+      spread: 0.003, auto: false, type: 'AT_LIGHT', recoilY: 0.005, recoilX: 0.001,
+      homing: true, blastRadius: 5,
+      description: "MBDA Brimstone 2 — British precision anti-armor missile with dual-mode millimetre-wave radar and semi-active laser homing. UK donated Brimstones to Ukraine in 2022. Highly accurate against moving armored vehicles; can be ripple-fired in salvo to defeat multiple targets simultaneously. Tandem HEAT warhead defeats ERA. Range 12km air-launched.",
+    },
+    {
+      id: 'IRISTSLM', name: 'IRIS-T SLM (German Air Defense)', damage: 600,
+      fireRate: 3.0, clipSize: 4, maxReserve: 8, reloadTime: 7.0,
+      spread: 0.003, auto: false, type: 'AT_HEAVY', recoilY: 0.006, recoilX: 0.001,
+      homing: true, blastRadius: 8,
+      description: "Diehl Defence IRIS-T SLM (Surface Launched Medium range) — Germany delivered the first system to Ukraine in October 2022. Fires IRIS-T missiles at up to 40km range and 20km altitude, defeating drones, cruise missiles, and aircraft. Claimed ~96% intercept rate against Shahed drones. Each system can simultaneously engage multiple targets with active radar seekers.",
+    },
+    {
+      id: 'ATACMS', name: 'MGM-140 ATACMS (US Ballistic Missile)', damage: 1800,
+      fireRate: 0.0, clipSize: 1, maxReserve: 2, reloadTime: 12.0,
+      spread: 0.002, auto: false, type: 'EXPLOSIVE', recoilY: 0.0, recoilX: 0.0,
+      homing: true, blastRadius: 18,
+      description: "US Army Tactical Missile System — fires from standard HIMARS or M270 MLRS launchers. Ukraine secretly received ATACMS in late 2023; used them to strike Russian air bases in Crimea and Berdyansk port (sank landing ships). M39 variant carries 950 M74 submunitions; M57 variant has 227kg unitary warhead. Range 300km — reaches deep into Russian-controlled territory.",
+    },
   ];
 
   // ── Per-weapon mutable state ───────────────────────────────
@@ -268,6 +758,18 @@ const Weapons = (() => {
   }
   let states     = WEAPONS.map(makeState);
   let currentIdx = 0;
+  // Shell casing ejection state
+  var _casings = []; // { mesh, scene, vx, vy, vz, rx, rz, life, landed }
+  // ── Bolt/slide animation (standalone, separate from WeaponDetails) ──────
+  var _boltTimer   = 0;      // counts up, drives bolt position
+  var _boltMaxTime = 0.08;   // bolt travel time (80ms back, 80ms return)
+  var _boltState   = 0;      // 0=rest, 1=moving back, 2=moving forward
+  var _boltOffset  = 0;      // current Z offset of bolt mesh
+  var _boltMesh    = null;   // optional dedicated bolt child mesh
+  // ── Additional shell casings (physics-driven, scene-level) ───────────────
+  var _shellCasings = []; // { mesh, vx, vy, vz, rx, ry, rz, life, maxLife }
+  var _shellGeo = null;
+  var _shellMat = null;
   // Gatling (0), Shovel (1), and Drone Jammer (last) start unlocked
   let _jammerIdx = WEAPONS.findIndex(function(w) { return w.id === 'DRONEJAMMER'; });
   let unlocked   = WEAPONS.map(function(_, i) { return i <= 1 || i === _jammerIdx; });
@@ -356,6 +858,90 @@ const Weapons = (() => {
   let rightMouseDown = false;
   const FOV_DEFAULT = 75;
   const FOV_ZOOMED  = 25;
+
+  // ── Sniper scope overlay ──────────────────────────────────
+  var _scopeOverlay = null;
+  var _scopeActive = false;
+
+  function _isSniperWeapon() {
+    var w = cur();
+    return w && (w.type === 'SNIPER' || w.type === 'AMR');
+  }
+
+  function _createScopeOverlay() {
+    if (_scopeOverlay) return;
+    var div = document.createElement('div');
+    div.id = 'scope-overlay';
+    div.style.cssText = [
+      'position:fixed;top:0;left:0;width:100%;height:100%;',
+      'pointer-events:none;z-index:80;display:none;',
+      'background:black;'
+    ].join('');
+
+    // Center circle (clear view through scope)
+    var circle = document.createElement('div');
+    circle.style.cssText = [
+      'position:absolute;',
+      'width:280px;height:280px;',
+      'left:50%;top:50%;',
+      'transform:translate(-50%,-50%);',
+      'border-radius:50%;',
+      'background:rgba(0,0,0,0);',
+      'box-shadow:0 0 0 9999px black;',
+      'border:3px solid rgba(100,100,100,0.8);'
+    ].join('');
+
+    // SVG crosshair reticle
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '280');
+    svg.setAttribute('height', '280');
+    svg.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);';
+    svg.innerHTML = [
+      // Mil-dot crosshair lines
+      '<line x1="140" y1="0" x2="140" y2="280" stroke="rgba(0,0,0,0.9)" stroke-width="1"/>',
+      '<line x1="0" y1="140" x2="280" y2="140" stroke="rgba(0,0,0,0.9)" stroke-width="1"/>',
+      // Mil dots on vertical
+      '<circle cx="140" cy="70" r="2" fill="black"/>',
+      '<circle cx="140" cy="100" r="2" fill="black"/>',
+      '<circle cx="140" cy="180" r="2" fill="black"/>',
+      '<circle cx="140" cy="210" r="2" fill="black"/>',
+      // Mil dots on horizontal
+      '<circle cx="70" cy="140" r="2" fill="black"/>',
+      '<circle cx="100" cy="140" r="2" fill="black"/>',
+      '<circle cx="180" cy="140" r="2" fill="black"/>',
+      '<circle cx="210" cy="140" r="2" fill="black"/>',
+      // Center dot
+      '<circle cx="140" cy="140" r="2.5" fill="black"/>',
+      // Range adjustment knob indicators
+      '<text x="150" y="72" fill="rgba(0,0,0,0.7)" font-size="8" font-family="monospace">2</text>',
+      '<text x="150" y="102" fill="rgba(0,0,0,0.7)" font-size="8" font-family="monospace">1</text>',
+      // Elevation numbers
+      '<text x="8" y="144" fill="rgba(0,0,0,0.5)" font-size="8" font-family="monospace">100m</text>',
+      '<text x="8" y="175" fill="rgba(0,0,0,0.5)" font-size="8" font-family="monospace">200m</text>',
+      '<text x="8" y="206" fill="rgba(0,0,0,0.5)" font-size="8" font-family="monospace">300m</text>',
+      // Scope brand (fictional)
+      '<text x="105" y="260" fill="rgba(0,0,0,0.4)" font-size="7" font-family="monospace">OKC\xd78 TACTICAL</text>'
+    ].join('');
+
+    div.appendChild(circle);
+    div.appendChild(svg);
+    document.body.appendChild(div);
+    _scopeOverlay = div;
+  }
+
+  function _showScopeOverlay() {
+    if (_scopeOverlay) {
+      _scopeOverlay.style.display = 'block';
+      _scopeActive = true;
+    }
+  }
+
+  function _hideScopeOverlay() {
+    if (_scopeOverlay) {
+      _scopeOverlay.style.display = 'none';
+      _scopeActive = false;
+    }
+  }
 
   // ── Gun meshes ────────────────────────────────────────────
   const gunMeshes = [];
@@ -681,6 +1267,7 @@ const Weapons = (() => {
     // MPL-50 entrenching tool: wooden shaft held diagonally with a real
     // pentagonal spade blade at the forward end (previously a stick + flat box).
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const woodMat   = new THREE.MeshLambertMaterial({ color: 0x7a5230 });
     const darkWood  = new THREE.MeshLambertMaterial({ color: 0x4a3018 });
     const steelMat  = new THREE.MeshPhongMaterial({ color: 0x9a9aa0, shininess: 80,  specular: 0x6a6a77 });
@@ -748,6 +1335,7 @@ const Weapons = (() => {
     // Combat/fire axe: wooden haft held diagonally with a steel head (bit +
     // poll) at the forward end.
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const woodMat  = new THREE.MeshLambertMaterial({ color: 0x6e4a26 });
     const wrapMat  = new THREE.MeshLambertMaterial({ color: 0x2a1c10 });
     const headMat  = new THREE.MeshPhongMaterial({ color: 0x3a3a40, shininess: 70, specular: 0x6a6a77 });
@@ -802,6 +1390,7 @@ const Weapons = (() => {
 
   function buildMakarovMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const met = 0x2a2a2e, frame_c = 0x333336, grip_c = 0x1a1a0a, panel_c = 0x2a1a0a;
 
     // ── Slide assembly (moves back on fire) ──
@@ -926,6 +1515,7 @@ const Weapons = (() => {
 
   function buildAkMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const bk = 0x2a2a2e, wd = 0x5a3a1a, dk = 0x222226, frm = 0x333336;
     // All dimensions/positions below are refined to match real AK-74M blueprints (side/top/front)
     // All parts are now physically connected, no floating/overlapping
@@ -1057,6 +1647,7 @@ const Weapons = (() => {
 
   function buildRpkMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const barrel = new THREE.Mesh(
       new THREE.BoxGeometry(0.04, 0.04, 0.52),
       new THREE.MeshLambertMaterial({ color: 0x333333 })
@@ -1090,6 +1681,7 @@ const Weapons = (() => {
 
   function buildSvdMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const bk = 0x2a2a2e, wd = 0x3a2a18, frm = 0x333336;
     // ── Barrel (long, thin) ──
     const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0105, 0.0105, 0.55, 14), new THREE.MeshLambertMaterial({ color: bk }));
@@ -1185,6 +1777,7 @@ const Weapons = (() => {
 
   function buildPkmMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const barrel = new THREE.Mesh(
       new THREE.BoxGeometry(0.048, 0.048, 0.65),
       new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
@@ -1221,6 +1814,7 @@ const Weapons = (() => {
 
   function buildNlawMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Launch tube
     const tube = new THREE.Mesh(
       new THREE.CylinderGeometry(0.05, 0.05, 0.55, 10),
@@ -1246,6 +1840,7 @@ const Weapons = (() => {
 
   function buildStugnaMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Launch tube
     const tube = new THREE.Mesh(
       new THREE.CylinderGeometry(0.04, 0.04, 0.45, 10),
@@ -1274,6 +1869,7 @@ const Weapons = (() => {
 
   function buildM4Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const bk = 0x2a2a2e, fde = 0x8a7a5a, frm = 0x333336;
     // ── Barrel (M4 carbine profile) ──
     const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.020, 0.32), new THREE.MeshLambertMaterial({ color: frm }));
@@ -1414,6 +2010,7 @@ const Weapons = (() => {
 
   function buildJavelinMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // CLU (Command Launch Unit) housing
     const clu = new THREE.Mesh(
       new THREE.BoxGeometry(0.12, 0.10, 0.20),
@@ -1451,6 +2048,7 @@ const Weapons = (() => {
 
   function buildRpg7Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Main tube
     const tube = new THREE.Mesh(
       new THREE.CylinderGeometry(0.04, 0.035, 0.70, 8),
@@ -1490,6 +2088,7 @@ const Weapons = (() => {
 
   function buildIglaMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Main tube (olive green, longer than NLAW)
     const tube = new THREE.Mesh(
       new THREE.CylinderGeometry(0.055, 0.055, 0.65, 10),
@@ -1522,6 +2121,7 @@ const Weapons = (() => {
 
   function buildGp25Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Grenade launcher barrel (stubby, wide bore)
     const barrel = new THREE.Mesh(
       new THREE.CylinderGeometry(0.04, 0.04, 0.28, 10),
@@ -1553,6 +2153,7 @@ const Weapons = (() => {
 
   function buildScarHMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Barrel with integrated suppressor look
     const barrel = new THREE.Mesh(
       new THREE.BoxGeometry(0.038, 0.038, 0.36),
@@ -1596,6 +2197,7 @@ const Weapons = (() => {
 
   function buildDshkMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Heavy barrel
     const barrel = new THREE.Mesh(
       new THREE.BoxGeometry(0.06, 0.06, 0.70),
@@ -1671,6 +2273,7 @@ const Weapons = (() => {
 
   function buildMg3Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const barrel = new THREE.Mesh(
       new THREE.BoxGeometry(0.05, 0.05, 0.65),
       new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
@@ -1708,6 +2311,7 @@ const Weapons = (() => {
     // H&K MP5: tubular receiver, slim slotted handguard, short shrouded barrel,
     // curved 30-rd magazine, retractable stock rails + butt, cocking-tube on top.
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const X = 0.18, Y = -0.14;
     const black = new THREE.MeshLambertMaterial({ color: 0x202023 });
     const dark = new THREE.MeshLambertMaterial({ color: 0x16161a });
@@ -1768,6 +2372,7 @@ const Weapons = (() => {
 
   function buildBarrettMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const barrel = new THREE.Mesh(
       new THREE.BoxGeometry(0.05, 0.05, 0.75),
       new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
@@ -1839,6 +2444,7 @@ const Weapons = (() => {
 
   function buildCrossbowMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const stock = new THREE.Mesh(
       new THREE.BoxGeometry(0.04, 0.04, 0.35),
       new THREE.MeshLambertMaterial({ color: 0x3a3a3a })
@@ -1866,6 +2472,7 @@ const Weapons = (() => {
 
   function buildFlamethrowerMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const tube = new THREE.Mesh(
       new THREE.CylinderGeometry(0.06, 0.06, 0.55, 10),
       new THREE.MeshLambertMaterial({ color: 0x4a5a3a })
@@ -1894,6 +2501,7 @@ const Weapons = (() => {
 
   function buildDoubleBarrelMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const barrel1 = new THREE.Mesh(
       new THREE.CylinderGeometry(0.025, 0.025, 0.45, 8),
       new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
@@ -2017,6 +2625,7 @@ const Weapons = (() => {
   // ── AK-12 mesh ──
   function buildAk12Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const receiver = new THREE.Mesh(
       new THREE.BoxGeometry(0.04, 0.05, 0.38),
       new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
@@ -2050,6 +2659,7 @@ const Weapons = (() => {
   // ── P90 mesh ──
   function buildP90Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.045, 0.08, 0.30),
       new THREE.MeshLambertMaterial({ color: 0x3a3a3a })
@@ -2078,6 +2688,7 @@ const Weapons = (() => {
   // ── AT4 mesh ──
   function buildAt4Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const tube = new THREE.Mesh(
       new THREE.CylinderGeometry(0.035, 0.035, 0.55, 8),
       new THREE.MeshLambertMaterial({ color: 0x556633 })
@@ -2101,6 +2712,7 @@ const Weapons = (() => {
   // ── Glock mesh ──
   function buildGlockMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const bk = 0x1a1a1e, frm = 0x222226, poly = 0x1e1e22;
 
     // ── Slide (moving part) ──
@@ -2209,6 +2821,7 @@ const Weapons = (() => {
   // ── KS-23 mesh ──
   function buildKs23Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const barrel = new THREE.Mesh(
       new THREE.CylinderGeometry(0.020, 0.020, 0.45, 8),
       new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
@@ -2233,6 +2846,7 @@ const Weapons = (() => {
   // ── AGS-17 mesh ──
   function buildAgs17Mesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.06, 0.06, 0.25),
       new THREE.MeshLambertMaterial({ color: 0x3a3a2a })
@@ -2265,6 +2879,7 @@ const Weapons = (() => {
   // ── VSS Vintorez mesh ──
   function buildVssMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const receiver = new THREE.Mesh(
       new THREE.BoxGeometry(0.03, 0.04, 0.28),
       new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
@@ -2299,6 +2914,7 @@ const Weapons = (() => {
   // ── Stinger mesh ──
   function buildStingerMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const tube = new THREE.Mesh(
       new THREE.CylinderGeometry(0.04, 0.04, 0.60, 8),
       new THREE.MeshLambertMaterial({ color: 0x556644 })
@@ -2446,6 +3062,7 @@ const Weapons = (() => {
   // ── Drone Jammer Rifle mesh ──
   function buildDroneJammerMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     // Main body — bulky EMP rifle
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.055, 0.065, 0.38),
@@ -2506,6 +3123,7 @@ const Weapons = (() => {
   // Placeholder mesh builder for missing weapons
   function buildPlaceholderMesh() {
     const g = new THREE.Group();
+    g.userData.selfContained = true;
     const mat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
     const geo = new THREE.BoxGeometry(0.2, 0.2, 0.6);
     const mesh = new THREE.Mesh(geo, mat);
@@ -2732,22 +3350,1846 @@ const Weapons = (() => {
     panzerfaust3: () => _launcher({ len: 0.55, r: 0.033, tube: () => _M(0x504e3a, 0.3, 0.6), rear: 'cone', sight: true, grip2: true }),
     nsvhmg: () => _rifle({ hg: 'tube', stock: 'fixed', mag: 'box', magColor: _pal.gm, muzzle: 'brake',
       barLen: 0.55, barR: 0.020, recvLen: 0.32, bipod: true, belt: true, recvColor: _pal.blk }),
-    fort500: function () {
+    // ── 3 additional Ukraine-conflict weapons ─────────────────
+    malyuk: function () {
+      // Bullpup: action at rear, long barrel out front
       const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
-      g.add(_P(_B(0.05, 0.072, 0.28, _pal.blk()), X, Y, -0.24));             // receiver
-      g.add(_P(_T(0.020, 0.38, _pal.steel(), 14), X, Y + 0.004, -0.42));     // barrel
-      g.add(_P(_T(0.018, 0.26, _pal.blk(), 12), X, Y - 0.016, -0.36));       // magazine tube under barrel
-      g.add(_P(_B(0.048, 0.075, 0.11, _pal.wood()), X, Y - 0.005, -0.04));   // stock
-      const gp = _P(_B(0.030, 0.082, 0.038, _pal.poly()), X, Y - 0.062, -0.14); gp.rotation.x = 0.30; g.add(gp);
-      g.add(_P(_B(0.030, 0.012, 0.038, _pal.blk()), X, Y - 0.030, -0.22));   // trigger guard base
-      g.add(_P(_B(0.010, 0.030, 0.010, _pal.blk()), X, Y - 0.032, -0.19));   // trigger
-      g.add(_P(_B(0.012, 0.014, 0.012, _pal.gm()), X, Y + 0.050, -0.54));    // front bead sight
+      g.add(_P(_B(0.055, 0.088, 0.30, _pal.blk()), X, Y, -0.17));              // combined receiver+stock shell
+      g.add(_P(_T(0.013, 0.40, _pal.steel(), 12), X, Y + 0.012, -0.37));       // long barrel
+      g.add(_P(_B(0.046, 0.024, 0.20, () => _M(0x1a1a1a)), X, Y - 0.014, -0.29)); // underbarrel rail/forend
+      const mag = _P(_B(0.030, 0.092, 0.022, _pal.plum()), X, Y - 0.058, -0.05); mag.rotation.x = -0.14; g.add(mag);
+      const gp = _P(_B(0.030, 0.080, 0.038, _pal.poly()), X, Y - 0.063, -0.11); gp.rotation.x = 0.17; g.add(gp);
+      g.add(_P(_B(0.035, 0.046, 0.060, _pal.blk()), X, Y + 0.060, -0.04));     // built-in optic housing
+      g.add(_P(_T(0.016, 0.038, _pal.steel(), 8), X, Y + 0.012, -0.58));        // muzzle device
       return g;
     },
+    carlgustaf: () => _launcher({ len: 0.64, r: 0.046, tube: () => _M(0x4a4a3a, 0.3, 0.6),
+      rear: 'cone', sight: true, grip2: true, hs: true }),
+    m240b: () => _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'fixed', mag: 'box', magColor: _pal.gm,
+      muzzle: 'flash', barLen: 0.48, barR: 0.015, recvLen: 0.30, bipod: true, belt: true, recvColor: _pal.blk }),
+    // ── 3 new weapons (PKP, SPG-9, HK416) ─────────────────────
+    pkpecheneg: () => _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'fixed', mag: 'box', magColor: _pal.gm,
+      muzzle: 'flash', barLen: 0.50, barR: 0.016, recvLen: 0.30, bipod: true, belt: true, recvColor: _pal.blk }),
+    spg9: function () {
+      // Recoilless rifle: wide rear blast tube, pistol grip, small sight
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      const tubeMat = () => _M(0x5a5845, 0.35, 0.6);
+      g.add(_P(_T(0.040, 0.72, tubeMat, 14), X, Y + 0.008, -0.36)); // main tube
+      g.add(_P(_T(0.030, 0.14, () => _M(0x3a3830), 12), X, Y + 0.008, -0.74)); // rear blast diffuser (cone flared end)
+      // Rear blast cone flare
+      const rear = new THREE.Mesh(new THREE.ConeGeometry(0.048, 0.08, 12), _M(0x2a2820));
+      rear.rotation.x = Math.PI / 2; rear.position.set(X, Y + 0.008, -0.75); g.add(rear);
+      // Pistol grip
+      const gp = _P(_B(0.028, 0.085, 0.034, _pal.poly()), X, Y - 0.052, -0.30); gp.rotation.x = 0.20; g.add(gp);
+      // Trigger group box
+      g.add(_P(_B(0.030, 0.028, 0.040, _pal.blk()), X, Y - 0.015, -0.30));
+      // Simple folding sight post
+      g.add(_P(_B(0.005, 0.040, 0.005, _pal.steel()), X + 0.04, Y + 0.055, -0.28));
+      g.add(_P(_B(0.030, 0.005, 0.005, _pal.steel()), X + 0.04, Y + 0.055, -0.28));
+      return g;
+    },
+    hk416: () => _rifle({ hg: 'rail', hgColor: _pal.blk, stock: 'tube', mag: 'curved',
+      muzzle: 'flash', rail: true, recvLen: 0.24, barLen: 0.30, barR: 0.012, recvColor: _pal.blk }),
+    fort500: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true; const X = 0.17, Y = -0.125;
+      g.add(_P(_B(0.05, 0.072, 0.28, _pal.blk()), X, Y, -0.24));
+      g.add(_P(_T(0.020, 0.38, _pal.steel(), 14), X, Y + 0.004, -0.42));
+      g.add(_P(_T(0.018, 0.26, _pal.blk(), 12), X, Y - 0.016, -0.36));
+      g.add(_P(_B(0.048, 0.075, 0.11, _pal.wood()), X, Y - 0.005, -0.04));
+      const gp = _P(_B(0.030, 0.082, 0.038, _pal.poly()), X, Y - 0.062, -0.14); gp.rotation.x = 0.30; g.add(gp);
+      g.add(_P(_B(0.030, 0.012, 0.038, _pal.blk()), X, Y - 0.030, -0.22));
+      g.add(_P(_B(0.010, 0.030, 0.010, _pal.blk()), X, Y - 0.032, -0.19));
+      g.add(_P(_B(0.012, 0.014, 0.012, _pal.gm()), X, Y + 0.050, -0.54));
+      return g;
+    },
+
+    // ── RGD-5 Fragmentation Grenade ───────────────────────────────────
+    rgd5: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.13;
+      // Egg-shaped body (two spheres blended with cylinder)
+      g.add(_P(_T(0.036, 0.054, 0x556B2F, 10), X, Y + 0.010, -0.22));   // lower body
+      g.add(_P(_T(0.032, 0.036, 0x4A6020, 10), X, Y + 0.040, -0.22));   // upper body taper
+      // Fuse assembly (top)
+      g.add(_P(_B(0.014, 0.014, 0.014, 0x666666), X, Y + 0.063, -0.22)); // fuze cap
+      g.add(_P(_T(0.005, 0.018, 0x888888, 8), X, Y + 0.075, -0.22));    // safety pin post
+      // Spoon lever
+      const spoon = _P(_B(0.003, 0.022, 0.008, 0x999999), X + 0.016, Y + 0.060, -0.22);
+      spoon.rotation.z = 0.3; g.add(spoon);
+      // Pull ring
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.010, 0.002, 6, 12), new THREE.MeshLambertMaterial({ color: 0x999999 }));
+      ring.position.set(X + 0.010, Y + 0.082, -0.22); g.add(ring);
+      return g;
+    },
+
+    // ── Spike LR ATGM ─────────────────────────────────────────────────
+    spike_lr: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.12;
+      // Launch tube (rectangular, OD green)
+      g.add(_P(_B(0.060, 0.060, 0.55, 0x4B5320), X, Y, -0.35));
+      // Optic/seeker head (front, square black)
+      g.add(_P(_B(0.050, 0.050, 0.04, 0x1a1a1a), X, Y, -0.62));
+      // Seeker window (glass)
+      g.add(_P(_B(0.030, 0.030, 0.008, 0x334455), X, Y, -0.645));
+      // Rear exhaust cone
+      g.add(_P(_B(0.068, 0.068, 0.03, 0x2a2a2a), X, Y, -0.07));
+      // Folded gripstock/tripod legs
+      g.add(_P(_B(0.010, 0.070, 0.010, 0x333322), X - 0.040, Y - 0.02, -0.32));
+      g.add(_P(_B(0.010, 0.070, 0.010, 0x333322), X + 0.040, Y - 0.02, -0.32));
+      // Carry handle
+      g.add(_P(_B(0.008, 0.010, 0.120, 0x222211), X, Y + 0.042, -0.32));
+      // IDF Star of David sticker (small light block)
+      g.add(_P(_B(0.006, 0.006, 0.004, 0xddcc44), X + 0.031, Y + 0.010, -0.45));
+      return g;
+    },
+
+    // ── MILAN ATGM ────────────────────────────────────────────────────
+    milan: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.12;
+      // Main launch tube (olive drab, slightly wider than NLAW)
+      g.add(_P(_T(0.048, 0.52, 0x4F5022, 10), X, Y, -0.34));
+      // Thermal sight unit (boxed, on top)
+      g.add(_P(_B(0.055, 0.045, 0.14, 0x1a1a1a), X, Y + 0.055, -0.38));
+      // Sight eyepiece
+      g.add(_P(_B(0.028, 0.028, 0.030, 0x333333), X, Y + 0.055, -0.27));
+      // Front trigger grip
+      const fg = _P(_B(0.030, 0.085, 0.030, 0x1a1a1a), X, Y - 0.060, -0.22); fg.rotation.x = 0.15; g.add(fg);
+      // Rear shoulder rest
+      g.add(_P(_B(0.070, 0.048, 0.025, 0x3a3a2a), X, Y, -0.09));
+      // Wire guidance spool (side, small cylinder)
+      g.add(_P(_T(0.018, 0.040, 0x888866, 8), X + 0.035, Y, -0.28));
+      return g;
+    },
+
+    // ── HK MP7A2 ──────────────────────────────────────────────────────
+    mp7: () => _rifle({ hg: 'rail', hgColor: _pal.blk, stock: 'skel', mag: 'box',
+      magColor: _pal.blk, muzzle: 'flash', recvLen: 0.13, recvH: 0.040, barLen: 0.14,
+      barR: 0.009, recvColor: _pal.blk }),
+
+    // ── Kord 12.7mm HMG ──────────────────────────────────────────────
+    kord: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.11;
+      // Heavy receiver body
+      g.add(_P(_B(0.055, 0.065, 0.35, _pal.blk()), X, Y, -0.28));
+      // Thick heavy barrel with fluted cooling
+      g.add(_P(_T(0.020, 0.54, _pal.steel(), 14), X, Y + 0.008, -0.52));
+      for (let i = 0; i < 8; i++) {
+        g.add(_P(_T(0.023, 0.008, _pal.blk(), 10), X, Y + 0.008, -0.24 - i * 0.04));
+      }
+      // Muzzle brake (rectangular)
+      g.add(_P(_B(0.044, 0.044, 0.05, _pal.blk()), X, Y + 0.008, -0.78));
+      // Spade grips (rear handles)
+      g.add(_P(_B(0.010, 0.075, 0.012, _pal.blk()), X - 0.030, Y - 0.025, -0.04));
+      g.add(_P(_B(0.010, 0.075, 0.012, _pal.blk()), X + 0.030, Y - 0.025, -0.04));
+      g.add(_P(_B(0.064, 0.010, 0.012, _pal.blk()), X, Y - 0.000, -0.04));
+      // Belt feed box (left side, large)
+      g.add(_P(_B(0.025, 0.055, 0.110, 0x3a3a28), X - 0.045, Y - 0.005, -0.22));
+      // Rear sight
+      g.add(_P(_B(0.008, 0.028, 0.006, _pal.blk()), X, Y + 0.045, -0.10));
+      // Top rail / carry handle stub
+      g.add(_P(_B(0.022, 0.010, 0.18, _pal.steel()), X, Y + 0.042, -0.32));
+      return g;
+    },
+
+    // ── M2HB Browning .50cal ──────────────────────────────────────────
+    browning_m2: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.11;
+      // Receiver (large, rectangular)
+      g.add(_P(_B(0.065, 0.075, 0.40, _pal.blk()), X, Y, -0.30));
+      // Very heavy barrel
+      g.add(_P(_T(0.022, 0.62, _pal.steel(), 14), X, Y + 0.010, -0.58));
+      // Barrel fluting rings
+      for (let i = 0; i < 6; i++) {
+        g.add(_P(_T(0.026, 0.010, _pal.blk(), 10), X, Y + 0.010, -0.26 - i * 0.06));
+      }
+      // Muzzle booster / compensator
+      g.add(_P(_T(0.030, 0.06, _pal.blk(), 10), X, Y + 0.010, -0.88));
+      g.add(_P(_B(0.050, 0.050, 0.018, _pal.blk()), X, Y + 0.010, -0.900));
+      // Spade grips
+      g.add(_P(_B(0.010, 0.080, 0.014, _pal.blk()), X - 0.034, Y - 0.024, -0.06));
+      g.add(_P(_B(0.010, 0.080, 0.014, _pal.blk()), X + 0.034, Y - 0.024, -0.06));
+      g.add(_P(_B(0.072, 0.012, 0.014, _pal.blk()), X, Y + 0.002, -0.06));
+      // Ammo belt box (right side)
+      g.add(_P(_B(0.022, 0.062, 0.130, 0x4a4a38), X + 0.050, Y, -0.22));
+      // Backplate
+      g.add(_P(_B(0.070, 0.080, 0.025, _pal.blk()), X, Y, -0.08));
+      // Rear leaf sight
+      g.add(_P(_B(0.008, 0.032, 0.006, _pal.blk()), X, Y + 0.050, -0.12));
+      // Front sight post
+      g.add(_P(_B(0.005, 0.022, 0.005, _pal.blk()), X, Y + 0.050, -0.86));
+      return g;
+    },
+
+    // ── ZU-23-2 (twin 23mm AA autocannon) ────────────────────────────
+    zu23_2: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Receiver/breech housing (wide, flat)
+      g.add(_P(_B(0.090, 0.055, 0.28, _pal.blk()), X, Y, -0.20));
+      // Twin barrels — upper and lower, slightly separated
+      g.add(_P(_T(0.014, 0.52, _pal.steel(), 12), X, Y + 0.024, -0.50));
+      g.add(_P(_T(0.014, 0.52, _pal.steel(), 12), X, Y - 0.012, -0.50));
+      // Muzzle brakes on both barrels
+      g.add(_P(_B(0.018, 0.018, 0.030, _pal.blk()), X, Y + 0.024, -0.76));
+      g.add(_P(_B(0.018, 0.018, 0.030, _pal.blk()), X, Y - 0.012, -0.76));
+      // Ammo drum/box (left side of receiver)
+      g.add(_P(_B(0.028, 0.055, 0.090, 0x3a3a28), X - 0.058, Y, -0.18));
+      // Ammo drum (right side)
+      g.add(_P(_B(0.028, 0.055, 0.090, 0x3a3a28), X + 0.058, Y, -0.18));
+      // Gunshield (protective plate in front)
+      g.add(_P(_B(0.100, 0.072, 0.010, _pal.blk()), X, Y + 0.008, -0.37));
+      // Ring sight (AA lead ring)
+      g.add(_P(_T(0.020, 0.005, _pal.steel(), 16), X, Y + 0.064, -0.42));
+      // Spade grip handles
+      g.add(_P(_B(0.008, 0.060, 0.010, _pal.blk()), X - 0.028, Y - 0.020, -0.06));
+      g.add(_P(_B(0.008, 0.060, 0.010, _pal.blk()), X + 0.028, Y - 0.020, -0.06));
+      return g;
+    },
+
+    // ── FPV Kamikaze Drone ────────────────────────────────────────────
+    fpv_drone: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.06;
+      // Central body frame
+      g.add(_P(_B(0.040, 0.020, 0.040, _pal.blk()), X, Y, -0.15));
+      // 4 motor arms (diagonal, extending outward)
+      g.add(_P(_B(0.060, 0.008, 0.010, _pal.blk()), X - 0.032, Y + 0.002, -0.13));
+      g.add(_P(_B(0.060, 0.008, 0.010, _pal.blk()), X + 0.032, Y + 0.002, -0.13));
+      g.add(_P(_B(0.010, 0.008, 0.060, _pal.blk()), X, Y + 0.002, -0.12));
+      g.add(_P(_B(0.010, 0.008, 0.060, _pal.blk()), X, Y + 0.002, -0.18));
+      // Motor nodes at arm tips
+      g.add(_P(_T(0.010, 0.016, _pal.steel(), 8), X - 0.062, Y + 0.010, -0.13));
+      g.add(_P(_T(0.010, 0.016, _pal.steel(), 8), X + 0.062, Y + 0.010, -0.13));
+      g.add(_P(_T(0.010, 0.016, _pal.steel(), 8), X, Y + 0.010, -0.245));
+      g.add(_P(_T(0.010, 0.016, _pal.steel(), 8), X, Y + 0.010, -0.066));
+      // Propeller discs (flat torus approximated by thin flat cylinders)
+      g.add(_P(_T(0.022, 0.003, 0xdddddd, 8), X - 0.062, Y + 0.018, -0.13));
+      g.add(_P(_T(0.022, 0.003, 0xdddddd, 8), X + 0.062, Y + 0.018, -0.13));
+      g.add(_P(_T(0.022, 0.003, 0xdddddd, 8), X, Y + 0.018, -0.245));
+      g.add(_P(_T(0.022, 0.003, 0xdddddd, 8), X, Y + 0.018, -0.066));
+      // Explosive warhead (cylinder underneath)
+      g.add(_P(_T(0.016, 0.042, 0xcc6600, 10), X, Y - 0.026, -0.15));
+      // FPV camera (small sphere at front)
+      const camMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+      const cam = new THREE.Mesh(new THREE.SphereGeometry(0.009, 6, 4), camMat);
+      cam.position.set(X, Y + 0.005, -0.175); g.add(cam);
+      // Antenna (thin stick)
+      g.add(_P(_T(0.003, 0.050, _pal.blk(), 6), X + 0.015, Y + 0.030, -0.14));
+      return g;
+    },
+
+    // ── 9M133 Kornet ATGM ────────────────────────────────────────────
+    kornet: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.08;
+      // Launch tube (long rectangular box, Russian green)
+      g.add(_P(_B(0.055, 0.055, 0.52, 0x2d3d1f), X, Y, -0.36));
+      // Thermal sight CLU (left side of launcher, box)
+      g.add(_P(_B(0.028, 0.050, 0.095, _pal.blk()), X - 0.046, Y + 0.010, -0.20));
+      // Sight lens (circular)
+      g.add(_P(_T(0.014, 0.010, 0x334455, 8), X - 0.060, Y + 0.018, -0.20));
+      // Rear fuze cap
+      g.add(_P(_T(0.024, 0.020, _pal.blk(), 8), X, Y, -0.62));
+      // Warhead nose dome
+      g.add(_P(_T(0.026, 0.040, 0x3d4830, 8), X, Y, -0.12));
+      // Folded carry handle
+      g.add(_P(_B(0.040, 0.008, 0.055, _pal.blk()), X, Y + 0.035, -0.30));
+      // Bipod legs
+      g.add(_P(_B(0.006, 0.055, 0.006, _pal.blk()), X - 0.020, Y - 0.028, -0.44));
+      g.add(_P(_B(0.006, 0.055, 0.006, _pal.blk()), X + 0.020, Y - 0.028, -0.44));
+      // Rear pistol grip
+      g.add(_P(_B(0.014, 0.038, 0.020, 0x1a1a0a), X, Y - 0.018, -0.60));
+      return g;
+    },
+
+    // ── RPG-26 Aglen (disposable) ─────────────────────────────────────
+    rpg26: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Main tube (shorter than RPG-7, cylindrical)
+      g.add(_P(_T(0.028, 0.46, 0x5c5c3a, 12), X, Y, -0.28));
+      // Warhead nose (slightly wider cone-like)
+      g.add(_P(_T(0.032, 0.065, 0x3a3a28, 10), X, Y, -0.005));
+      // Nose cap ogive
+      g.add(_P(_T(0.018, 0.040, 0x2a2a18, 8), X, Y, 0.040));
+      // Rear exhaust nozzle (narrowed end)
+      g.add(_P(_T(0.018, 0.032, _pal.blk(), 8), X, Y, -0.56));
+      // Sling attachment (small loop left side)
+      g.add(_P(_B(0.004, 0.020, 0.006, _pal.blk()), X - 0.032, Y, -0.30));
+      // Trigger mechanism housing
+      g.add(_P(_B(0.014, 0.030, 0.028, _pal.blk()), X, Y - 0.030, -0.32));
+      // Shoulder pad (rubber buffer, flat plate)
+      g.add(_P(_B(0.040, 0.022, 0.010, 0x2a2a2a), X, Y, -0.50));
+      // Front sight (flip-up pin)
+      g.add(_P(_B(0.004, 0.018, 0.004, _pal.blk()), X, Y + 0.030, -0.09));
+      return g;
+    },
+
+    // ── M142 HIMARS (fire-control unit) ──────────────────────────────
+    himars: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.08;
+      // Fire control unit body (laptop-sized box, OD green)
+      g.add(_P(_B(0.100, 0.068, 0.026, 0x3a4a2a), X, Y, -0.18));
+      // Screen face (dark, slight lighter border)
+      g.add(_P(_B(0.080, 0.050, 0.004, 0x0a1a2a), X, Y + 0.004, -0.205));
+      // Keypad area (lower half of screen face)
+      g.add(_P(_B(0.080, 0.014, 0.004, 0x1a2a1a), X, Y - 0.012, -0.205));
+      // GPS antenna stub (top right)
+      g.add(_P(_T(0.006, 0.040, _pal.blk(), 6), X + 0.042, Y + 0.056, -0.18));
+      // Handle/grip bar
+      g.add(_P(_B(0.090, 0.010, 0.018, _pal.blk()), X, Y - 0.038, -0.18));
+      // Side connector panel
+      g.add(_P(_B(0.006, 0.044, 0.020, _pal.blk()), X - 0.054, Y, -0.17));
+      // Launch confirm button (red)
+      const btnMat = new THREE.MeshLambertMaterial({ color: 0xcc2222 });
+      const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.006, 6), btnMat);
+      btn.position.set(X + 0.030, Y + 0.022, -0.208); g.add(btn);
+      // US Army star decal (small flat star)
+      g.add(_P(_B(0.016, 0.016, 0.003, 0xcccccc), X - 0.010, Y + 0.018, -0.208));
+      return g;
+    },
+
+    // ── F-1 "Limonka" Frag Grenade ────────────────────────────────────
+    f1_grenade: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.10, Y = -0.06;
+      // Oval/lemon body (two cylinders stacked for bulge)
+      g.add(_P(_T(0.022, 0.028, 0x3a4a28, 10), X, Y, -0.12));
+      g.add(_P(_T(0.020, 0.018, 0x3a4a28, 10), X, Y, -0.09));
+      g.add(_P(_T(0.020, 0.018, 0x3a4a28, 10), X, Y, -0.150));
+      // Segmented/grooved body (fragmentation pattern cast in)
+      for (let s = 0; s < 4; s++) {
+        g.add(_P(_T(0.023, 0.003, 0x2a3820, 10), X, Y, -0.098 - s * 0.010));
+      }
+      // Fuze assembly on top
+      g.add(_P(_T(0.010, 0.024, _pal.blk(), 8), X, Y + 0.018, -0.090));
+      g.add(_P(_B(0.014, 0.010, 0.020, _pal.blk()), X, Y + 0.030, -0.090));
+      // Safety pin ring (small torus from two segments)
+      g.add(_P(_T(0.010, 0.003, _pal.steel(), 8), X + 0.014, Y + 0.035, -0.090));
+      // Safety lever (spoon)
+      g.add(_P(_B(0.005, 0.022, 0.006, _pal.steel()), X + 0.014, Y + 0.022, -0.090));
+      return g;
+    },
+
+    // ── Maxim M1910 water-cooled MG ───────────────────────────────────
+    maxim1910: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Receiver box (large, squarish)
+      g.add(_P(_B(0.075, 0.070, 0.32, 0x3a3228), X, Y, -0.22));
+      // Water jacket (cylindrical barrel shroud — the iconic Maxim feature)
+      g.add(_P(_T(0.025, 0.38, 0x4a4640, 12), X, Y + 0.008, -0.40));
+      // Corrugated cooling rings on water jacket
+      for (let i = 0; i < 10; i++) {
+        g.add(_P(_T(0.027, 0.005, 0x2a2a26, 10), X, Y + 0.008, -0.24 - i * 0.040));
+      }
+      // Muzzle flash hider
+      g.add(_P(_T(0.022, 0.036, _pal.blk(), 8), X, Y + 0.008, -0.60));
+      // Water filler cap on top of jacket
+      g.add(_P(_T(0.012, 0.014, 0x5a5650, 8), X, Y + 0.034, -0.38));
+      // Trigger/grip area
+      g.add(_P(_B(0.016, 0.048, 0.026, 0x2a2216), X - 0.018, Y - 0.020, -0.08));
+      g.add(_P(_B(0.016, 0.048, 0.026, 0x2a2216), X + 0.018, Y - 0.020, -0.08));
+      // Rear spade grip cross bar
+      g.add(_P(_B(0.060, 0.012, 0.014, _pal.blk()), X, Y + 0.002, -0.07));
+      // Feed block (right side, for cloth belt)
+      g.add(_P(_B(0.020, 0.040, 0.055, 0x3a3228), X + 0.052, Y, -0.15));
+      return g;
+    },
+
+    // ── BM-21 Grad MLRS (call-for-fire device) ───────────────────────
+    bm21_grad: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.07;
+      // Artillery fire control tablet (ruggedized, olive green)
+      g.add(_P(_B(0.095, 0.062, 0.024, 0x2a3420), X, Y, -0.17));
+      // Screen (military map display, dark green)
+      g.add(_P(_B(0.074, 0.044, 0.004, 0x0d1a0a), X, Y + 0.003, -0.194));
+      // Map grid lines (two lighter strips)
+      g.add(_P(_B(0.074, 0.002, 0.003, 0x1a3a14), X, Y + 0.008, -0.194));
+      g.add(_P(_B(0.074, 0.002, 0.003, 0x1a3a14), X, Y - 0.004, -0.194));
+      // Side carry handle
+      g.add(_P(_B(0.012, 0.008, 0.028, _pal.blk()), X - 0.052, Y + 0.024, -0.17));
+      // Battery pack (rear)
+      g.add(_P(_B(0.090, 0.058, 0.020, 0x222822), X, Y, -0.150));
+      // Fire mission button (red, with guard)
+      const gradBtn = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.006, 6),
+        new THREE.MeshLambertMaterial({ color: 0xdd1111 }));
+      gradBtn.position.set(X + 0.028, Y + 0.024, -0.196); g.add(gradBtn);
+      // Red star decal (Soviet)
+      g.add(_P(_B(0.012, 0.012, 0.003, 0xcc1111), X - 0.012, Y + 0.020, -0.195));
+      return g;
+    },
+
+    // ── BGM-71 TOW ATGM ──────────────────────────────────────────────
+    tow_bgm71: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Launch tube (square cross-section, OD green)
+      g.add(_P(_B(0.055, 0.055, 0.48, 0x2d3d1f), X, Y, -0.30));
+      // AN/TAS-4 thermal sight (boxy, right side of tube)
+      g.add(_P(_B(0.038, 0.050, 0.075, _pal.blk()), X - 0.052, Y + 0.012, -0.24));
+      g.add(_P(_T(0.012, 0.010, 0x223322, 8), X - 0.075, Y + 0.020, -0.24)); // lens
+      // Wire spool (at rear, cylindrical drum)
+      g.add(_P(_T(0.030, 0.035, 0x4a4a3a, 10), X, Y - 0.012, -0.54));
+      // Bipod legs (front folded down)
+      g.add(_P(_B(0.005, 0.065, 0.008, _pal.blk()), X - 0.022, Y - 0.032, -0.18));
+      g.add(_P(_B(0.005, 0.065, 0.008, _pal.blk()), X + 0.022, Y - 0.032, -0.18));
+      // Traversing handle (rear pistol grip)
+      g.add(_P(_B(0.016, 0.042, 0.022, 0x1a1a0a), X, Y - 0.022, -0.56));
+      // Missile nose (warhead cap protruding front)
+      g.add(_P(_T(0.022, 0.050, 0x3a4830, 8), X, Y, -0.05));
+      return g;
+    },
+
+    // ── RPG-29 Vampir ────────────────────────────────────────────────
+    rpg29: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Two-section main tube (larger diameter than RPG-7, front+rear halves)
+      g.add(_P(_T(0.034, 0.30, 0x5c5c3a, 12), X, Y, -0.15));
+      g.add(_P(_T(0.030, 0.26, 0x4c4c32, 12), X, Y, -0.45));
+      // Tandem warhead (two-stage nose: precursor + main charge)
+      g.add(_P(_T(0.038, 0.055, 0x3a3a28, 10), X, Y, -0.01));
+      g.add(_P(_T(0.028, 0.030, 0x2a2a18, 8), X, Y, 0.045));
+      // Rear nozzle / exhaust
+      g.add(_P(_T(0.020, 0.028, _pal.blk(), 8), X, Y, -0.71));
+      // Trigger/pistol grip housing (center)
+      g.add(_P(_B(0.015, 0.038, 0.032, _pal.blk()), X, Y - 0.030, -0.32));
+      // Front grip handle
+      g.add(_P(_B(0.012, 0.035, 0.018, 0x1a1a0a), X, Y - 0.026, -0.18));
+      // PGO-7V optical sight (right side)
+      g.add(_P(_B(0.024, 0.032, 0.070, _pal.blk()), X + 0.044, Y + 0.014, -0.30));
+      g.add(_P(_T(0.010, 0.008, 0x223322, 6), X + 0.063, Y + 0.018, -0.30));
+      return g;
+    },
+
+    // ── Starstreak HVM ───────────────────────────────────────────────
+    starstreak: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.085;
+      // Shoulder-launch tube (hexagonal, olive drab)
+      g.add(_P(_T(0.028, 0.38, 0x2a3c20, 10), X, Y, -0.24));
+      // Aiming unit (distinctive three-window target acquisition unit, front-top)
+      g.add(_P(_B(0.048, 0.038, 0.065, _pal.blk()), X, Y + 0.034, -0.16));
+      // Three sensor windows on aiming unit
+      for (let sw = 0; sw < 3; sw++) {
+        g.add(_P(_B(0.010, 0.014, 0.006, 0x224433), X - 0.012 + sw * 0.012, Y + 0.042, -0.195));
+      }
+      // Gripstock (rear handle assembly)
+      g.add(_P(_B(0.060, 0.016, 0.035, 0x1a1a0a), X, Y - 0.022, -0.41));
+      // Missile fin/dart assembly visible at rear
+      g.add(_P(_T(0.018, 0.025, 0x3a3a28, 6), X, Y, -0.44));
+      // Fire button cover (hinged guard, top right)
+      g.add(_P(_B(0.012, 0.010, 0.018, 0x555544), X + 0.020, Y + 0.030, -0.38));
+      // Shoulder pad
+      g.add(_P(_B(0.044, 0.020, 0.012, 0x2a2a1a), X, Y, -0.46));
+      return g;
+    },
+
+    // ── AKM / AK-47 (7.62×39mm) ──────────────────────────────────────
+    akm: function () {
+      // 7.62×39mm: slightly thicker barrel, brown wood furniture, slant brake
+      return _rifle({
+        hg: 'wood', hgColor: _pal.wood,
+        stock: 'wood', stockColor: _pal.wood,
+        mag: 'curved', magColor: _pal.olive,
+        muzzle: 'brake',
+        recvLen: 0.26, barR: 0.014, barLen: 0.32,
+        recvColor: () => 0x2a2a1e,
+      });
+    },
+
+    // ── AN-94 Abakan ─────────────────────────────────────────────────
+    an94: function () {
+      // Unusual geometry: offset barrel, side-fold stock, prominent muzzle device
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.115;
+      // Receiver (slightly longer than AK, offset barrel channel)
+      g.add(_P(_B(0.044, 0.065, 0.28, _pal.blk()), X, Y, -0.20));
+      // Barrel (offset right/up — Abakan has unusual barrel layout)
+      g.add(_P(_T(0.011, 0.32, _pal.steel(), 12), X + 0.006, Y + 0.006, -0.38));
+      // Distinctive large muzzle device (asymmetric compensator)
+      g.add(_P(_B(0.028, 0.028, 0.048, _pal.blk()), X + 0.006, Y + 0.006, -0.55));
+      // Side-folding stock (folded — compact position)
+      g.add(_P(_B(0.008, 0.060, 0.080, 0x1a1a14), X + 0.034, Y + 0.002, -0.09));
+      // Curved pistol grip (distinctive shape)
+      g.add(_P(_B(0.022, 0.055, 0.030, _pal.poly()), X, Y - 0.038, -0.08));
+      g.add(_P(_B(0.018, 0.032, 0.022, _pal.poly()), X, Y - 0.058, -0.065));
+      // Curved 30-round magazine
+      const m1 = _P(_B(0.028, 0.068, 0.040, _pal.olive()), X, Y - 0.060, -0.22); m1.rotation.x = -0.10; g.add(m1);
+      const m2 = _P(_B(0.026, 0.060, 0.036, _pal.olive()), X, Y - 0.108, -0.244); m2.rotation.x = -0.28; g.add(m2);
+      // Handguard
+      g.add(_P(_B(0.040, 0.044, 0.130, _pal.poly()), X, Y, -0.30));
+      // Front sight post
+      g.add(_P(_B(0.006, 0.026, 0.008, _pal.blk()), X, Y + 0.040, -0.52));
+      return g;
+    },
+
+    // ── M67 Fragmentation Grenade ─────────────────────────────────────
+    m67_grenade: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.10, Y = -0.06;
+      // Spherical body (approximate with scaled sphere + cylinder base)
+      const bodyMat = new THREE.MeshLambertMaterial({ color: 0x2a3a1e });
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.025, 10, 8), bodyMat);
+      body.position.set(X, Y, -0.12); g.add(body);
+      // Body band (equator seam)
+      g.add(_P(_T(0.027, 0.004, 0x223320, 10), X, Y, -0.12));
+      // Fuze assembly on top
+      g.add(_P(_T(0.010, 0.022, _pal.blk(), 8), X, Y + 0.025, -0.120));
+      g.add(_P(_B(0.014, 0.012, 0.020, _pal.blk()), X, Y + 0.038, -0.120));
+      // Safety spoon (flat lever on side)
+      g.add(_P(_B(0.006, 0.028, 0.006, _pal.steel()), X + 0.016, Y + 0.022, -0.120));
+      // Pull ring
+      g.add(_P(_T(0.008, 0.002, _pal.steel(), 8), X + 0.026, Y + 0.038, -0.120));
+      return g;
+    },
+
+    // ── Switchblade 300 loitering munition ───────────────────────────
+    switchblade300: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.13, Y = -0.05;
+      // Launch tube (cylindrical, OD green, narrow)
+      g.add(_P(_T(0.020, 0.32, 0x3a4a28, 12), X, Y, -0.20));
+      // Deployed wing stubs (pop-out delta wings, mid-body)
+      g.add(_P(_B(0.075, 0.004, 0.028, 0x2a3a1e), X, Y, -0.16));   // left+right wing span
+      g.add(_P(_B(0.055, 0.004, 0.020, 0x2a3a1e), X, Y, -0.20));   // rear stabilizer
+      // EO/IR seeker nose dome
+      g.add(_P(_T(0.016, 0.025, 0x1a1a1e, 8), X, Y, -0.055));
+      // Sensor window
+      g.add(_P(_T(0.009, 0.008, 0x223344, 6), X, Y, -0.042));
+      // Canard fins (tiny front control surfaces)
+      g.add(_P(_B(0.040, 0.003, 0.016, 0x2a3a1e), X, Y, -0.08));
+      // Battery/warhead module (mid-body slightly fatter section)
+      g.add(_P(_T(0.022, 0.06, 0x2d3d20, 10), X, Y, -0.14));
+      // Propeller at rear
+      g.add(_P(_B(0.060, 0.004, 0.006, 0x444434), X, Y, -0.34));
+      return g;
+    },
+
+    // ── Saiga-12 combat shotgun ───────────────────────────────────────
+    saiga12: function () {
+      return _rifle({
+        hg: 'tube', hgColor: _pal.blk,
+        stock: 'fixed', stockColor: _pal.blk,
+        mag: 'box', magColor: _pal.blk,
+        muzzle: 'brake',
+        recvLen: 0.22, barR: 0.016, barLen: 0.22,
+        recvColor: _pal.blk,
+      });
+    },
+
+    // ── IWI Tavor X95 bullpup ─────────────────────────────────────────
+    tavor_x95: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Bullpup body (magazine behind trigger — compact)
+      g.add(_P(_B(0.040, 0.060, 0.34, 0x3a3a3a), X, Y, -0.17));
+      // Barrel (short, protruding from very front)
+      g.add(_P(_T(0.010, 0.22, _pal.steel(), 10), X, Y + 0.010, -0.38));
+      // Muzzle device
+      g.add(_P(_T(0.014, 0.028, _pal.blk(), 8), X, Y + 0.010, -0.50));
+      // Polymer grip (forward)
+      g.add(_P(_B(0.022, 0.042, 0.018, 0x2a2a2a), X, Y - 0.024, -0.28));
+      // Box magazine (behind trigger position, bottom of stock)
+      g.add(_P(_B(0.022, 0.052, 0.036, 0x1a1a18), X, Y - 0.026, -0.09));
+      // Optical top rail
+      g.add(_P(_B(0.030, 0.008, 0.200, _pal.blk()), X, Y + 0.036, -0.18));
+      // Holographic sight (standard on Israeli units)
+      g.add(_P(_B(0.026, 0.024, 0.030, 0x2a2a2a), X, Y + 0.040, -0.26));
+      g.add(_P(_B(0.014, 0.014, 0.004, 0x113311, 8), X, Y + 0.044, -0.278)); // lens
+      // Thumb hole stock cutout
+      g.add(_P(_B(0.018, 0.028, 0.060, 0x3a3a3a), X, Y + 0.006, -0.04));
+      // IDF-style folding buttstock stub
+      g.add(_P(_B(0.028, 0.028, 0.022, 0x2a2a2a), X, Y, -0.005));
+      return g;
+    },
+
+    // ── RPG-18 Mukha (64mm disposable AT tube) ───────────────────────
+    rpg18: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Main tube (thin cylinder, telescoping — show deployed)
+      g.add(_P(_T(0.022, 0.38, 0x6a6a4a, 12), X, Y, -0.22));
+      // Forward shoulder section (slightly wider)
+      g.add(_P(_T(0.026, 0.12, 0x5a5a3a, 10), X, Y, -0.08));
+      // Nose cap (64mm HEAT warhead)
+      g.add(_P(_T(0.020, 0.040, 0x3a3a28, 8), X, Y, 0.012));
+      // Nose ogive tip
+      g.add(_P(_T(0.010, 0.024, 0x2a2a18, 6), X, Y, 0.050));
+      // Rear nozzle/exhaust cap
+      g.add(_P(_T(0.016, 0.028, _pal.blk(), 8), X, Y, -0.42));
+      // Trigger/firing mechanism (small box under center)
+      g.add(_P(_B(0.012, 0.022, 0.020, _pal.blk()), X, Y - 0.024, -0.22));
+      // Front flip-up sight
+      g.add(_P(_B(0.004, 0.016, 0.004, _pal.blk()), X, Y + 0.026, -0.10));
+      // Rear iron sight
+      g.add(_P(_B(0.012, 0.010, 0.004, _pal.blk()), X, Y + 0.026, -0.32));
+      return g;
+    },
+
+    // ── 2B14 Podnos 82mm Mortar ──────────────────────────────────────
+    podnos82: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.10;
+      // Baseplate (wide flat square plate)
+      g.add(_P(_B(0.090, 0.008, 0.090, 0x3a3a2a), X, Y + 0.002, -0.15));
+      // Bipod V-legs
+      const legMat = _pal.blk();
+      const legL = _P(_B(0.008, 0.055, 0.006, legMat), X - 0.022, Y - 0.018, -0.18);
+      legL.rotation.z = 0.22; g.add(legL);
+      const legR = _P(_B(0.008, 0.055, 0.006, legMat), X + 0.022, Y - 0.018, -0.18);
+      legR.rotation.z = -0.22; g.add(legR);
+      // Traversing joint at top of bipod
+      g.add(_P(_T(0.010, 0.014, _pal.steel(), 8), X, Y + 0.030, -0.18));
+      // Mortar tube at ~45° elevation
+      const tube = _P(_T(0.016, 0.35, 0x4a4a3a, 12), X, Y + 0.048, -0.20);
+      tube.rotation.x = Math.PI / 4 + 0.1;
+      g.add(tube);
+      // Muzzle bell (slightly wider)
+      const muz = _P(_T(0.020, 0.025, _pal.steel(), 10), X, Y + 0.055, -0.085);
+      muz.rotation.x = Math.PI / 4 + 0.1;
+      g.add(muz);
+      return g;
+    },
+
+    // ── OTs-14 Groza (Spetsnaz bullpup with integral suppressor) ─────
+    ots14: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.105;
+      // Compact bullpup body
+      g.add(_P(_B(0.038, 0.058, 0.28, _pal.blk()), X, Y, -0.15));
+      // Integral suppressor (large cylindrical can — characteristic of Groza)
+      g.add(_P(_T(0.018, 0.22, _pal.blk(), 12), X, Y + 0.008, -0.30));
+      // Suppressor end cap (wider than tube)
+      g.add(_P(_T(0.022, 0.018, _pal.blk(), 10), X, Y + 0.008, -0.42));
+      // Under-barrel GP-25 grenade launcher (short tube below barrel)
+      g.add(_P(_T(0.012, 0.16, 0x2a2a18, 10), X, Y - 0.022, -0.24));
+      g.add(_P(_T(0.016, 0.020, 0x1a1a10, 8), X, Y - 0.022, -0.33));
+      // Pistol grip (rear)
+      g.add(_P(_B(0.020, 0.046, 0.026, _pal.poly()), X, Y - 0.032, -0.05));
+      // Curved 9×39mm magazine
+      g.add(_P(_B(0.022, 0.060, 0.038, _pal.olive()), X, Y - 0.058, -0.16));
+      // Front sight (folding post over suppressor)
+      g.add(_P(_B(0.006, 0.018, 0.006, _pal.blk()), X, Y + 0.040, -0.38));
+      return g;
+    },
+
+    // ── PP-19 Bizon (helical magazine SMG) ───────────────────────────
+    pp19: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.095;
+      // Main receiver (AK-derived, compact)
+      g.add(_P(_B(0.042, 0.058, 0.22, _pal.blk()), X, Y, -0.15));
+      // Barrel (short, protruding)
+      g.add(_P(_T(0.010, 0.22, _pal.steel(), 12), X, Y + 0.006, -0.30));
+      // Muzzle device (threaded crown)
+      g.add(_P(_T(0.014, 0.028, _pal.blk(), 8), X, Y + 0.006, -0.42));
+      // Helical 64-round magazine (fat cylinder under barrel — the Bizon's trademark)
+      g.add(_P(_T(0.020, 0.20, 0x1a1a18, 12), X, Y - 0.020, -0.22));
+      const mc = new THREE.Mesh(new THREE.SphereGeometry(0.020, 8, 6),
+        new THREE.MeshLambertMaterial({ color: 0x1a1a18 }));
+      mc.position.set(X, Y - 0.020, -0.32); g.add(mc);
+      // Side-fold stock (AKS-style wire)
+      g.add(_P(_B(0.006, 0.052, 0.080, 0x1a1a14), X + 0.030, Y + 0.002, -0.08));
+      // Pistol grip
+      g.add(_P(_B(0.020, 0.046, 0.024, _pal.poly()), X, Y - 0.034, -0.05));
+      // Front sight post
+      g.add(_P(_B(0.006, 0.022, 0.006, _pal.blk()), X, Y + 0.040, -0.38));
+      return g;
+    },
+
+    // ── FAB-500M62 Glide Bomb with UMPK kit ──────────────────────────
+    fab500: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.12, Y = -0.08;
+      // Main bomb body (thick cylinder — 500kg iron bomb)
+      g.add(_P(_T(0.034, 0.52, 0x2a2a1e, 14), X, Y, -0.28));
+      // Ogive nose
+      const noseMat = new THREE.MeshLambertMaterial({ color: 0x1a1a14 });
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.034, 0.085, 14), noseMat);
+      nose.rotation.x = -Math.PI / 2; nose.position.set(X, Y, -0.04); g.add(nose);
+      // Tail section (narrower)
+      g.add(_P(_T(0.026, 0.10, 0x1a1a14, 10), X, Y, -0.57));
+      // UMPK folded navigation wings (mid-body, flat rectangles)
+      g.add(_P(_B(0.130, 0.005, 0.062, 0x3a3a28), X, Y + 0.002, -0.22));
+      // UMPK electronics box on top (guidance kit)
+      g.add(_P(_B(0.018, 0.016, 0.055, 0x1a1a0a), X, Y + 0.053, -0.24));
+      // Tail fins (two crossed planes)
+      g.add(_P(_B(0.062, 0.005, 0.048, 0x2a2a1e), X, Y + 0.002, -0.56));
+      g.add(_P(_B(0.005, 0.062, 0.048, 0x2a2a1e), X, Y + 0.002, -0.56));
+      // Wing-tip control surfaces (ailerons)
+      g.add(_P(_B(0.010, 0.014, 0.024, _pal.blk()), X - 0.068, Y + 0.002, -0.22));
+      g.add(_P(_B(0.010, 0.014, 0.024, _pal.blk()), X + 0.068, Y + 0.002, -0.22));
+      // Nose fuze arming wire
+      g.add(_P(_T(0.002, 0.040, _pal.steel(), 4), X + 0.016, Y + 0.010, -0.05));
+      return g;
+    },
+
+    // ── M777 155mm Howitzer (laser rangefinder / fire control) ───────
+    m777: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.08;
+      // Binocular body (rangefinder/laser designator for calling fire)
+      g.add(_P(_B(0.068, 0.040, 0.028, 0x4a5230), X, Y, -0.18));
+      // Left and right objective lenses
+      g.add(_P(_T(0.012, 0.012, 0x1a2a1a, 8), X - 0.024, Y + 0.002, -0.196));
+      g.add(_P(_T(0.012, 0.012, 0x1a2a1a, 8), X + 0.024, Y + 0.002, -0.196));
+      // Eyepiece housing (rear, slightly different shape)
+      g.add(_P(_B(0.060, 0.036, 0.022, 0x3a4228), X, Y, -0.162));
+      // Eyepiece cups
+      g.add(_P(_T(0.010, 0.008, 0x0a0a0a, 6), X - 0.020, Y + 0.002, -0.154));
+      g.add(_P(_T(0.010, 0.008, 0x0a0a0a, 6), X + 0.020, Y + 0.002, -0.154));
+      // Laser rangefinder unit (top)
+      g.add(_P(_B(0.020, 0.012, 0.016, 0x1a1a0a), X, Y + 0.028, -0.18));
+      // Laser emission window (small glass block)
+      g.add(_P(_B(0.010, 0.006, 0.006, 0x223344), X - 0.012, Y + 0.028, -0.190));
+      // Handle / grip (bottom centre)
+      g.add(_P(_B(0.024, 0.038, 0.018, _pal.poly()), X, Y - 0.038, -0.175));
+      // Ranging knob (top right)
+      g.add(_P(_T(0.005, 0.010, _pal.steel(), 6), X + 0.026, Y + 0.028, -0.175));
+      // NATO yellow artillery callsign sticker
+      g.add(_P(_B(0.018, 0.008, 0.004, 0xcccc44), X - 0.018, Y + 0.018, -0.195));
+      return g;
+    },
+
+    // ── Strela-2M (SA-7 GRAIL MANPADS) ───────────────────────────────
+    strela2: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.085;
+      // Main launch tube (older design — thicker, less refined than Igla)
+      g.add(_P(_T(0.026, 0.42, 0x4a5030, 10), X, Y, -0.26));
+      // Seeker head (nose, Strela-2 has large blunt IR seeker dome)
+      g.add(_P(_T(0.032, 0.065, 0x2a2a1e, 10), X, Y, -0.035));
+      // Glass IR seeker dome (semi-transparent sphere)
+      const domeM = new THREE.MeshLambertMaterial({ color: 0x1a2830, transparent: true, opacity: 0.75 });
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), domeM);
+      dome.position.set(X, Y, 0.030); g.add(dome);
+      // Shoulder rest / gripstock
+      g.add(_P(_B(0.055, 0.016, 0.038, 0x1a1a10), X, Y - 0.020, -0.44));
+      // Trigger/pistol grip
+      g.add(_P(_B(0.014, 0.040, 0.022, 0x1a1a0a), X, Y - 0.030, -0.22));
+      // IFF transponder block (side)
+      g.add(_P(_B(0.010, 0.016, 0.022, 0x222211), X + 0.028, Y + 0.004, -0.30));
+      // Rear stabilising fin stubs
+      g.add(_P(_B(0.040, 0.004, 0.022, 0x3a4030), X, Y, -0.46));
+      g.add(_P(_B(0.004, 0.040, 0.022, 0x3a4030), X, Y, -0.46));
+      // Cooling unit (grey cylinder, left side mid-tube) — cools seeker before use
+      g.add(_P(_T(0.010, 0.030, 0x666655, 8), X - 0.028, Y, -0.20));
+      return g;
+    },
+
+    // ── Commercial Drop Drone (DJI Mavic-style + VOG-25 grenade) ─────
+    dropdrone: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.13, Y = -0.05;
+      // Central body (DJI Mavic wedge shape)
+      g.add(_P(_B(0.038, 0.018, 0.044, 0x222224), X, Y, -0.14));
+      // Camera gimbal housing (front underside)
+      g.add(_P(_B(0.020, 0.016, 0.010, 0x333336), X, Y - 0.001, -0.178));
+      // Camera lens
+      const cam = new THREE.Mesh(new THREE.SphereGeometry(0.007, 6, 4),
+        new THREE.MeshLambertMaterial({ color: 0x111122 }));
+      cam.position.set(X, Y - 0.001, -0.185); g.add(cam);
+      // Rear arms (folded back — Mavic fold pattern)
+      g.add(_P(_B(0.006, 0.006, 0.040, 0x222224), X - 0.018, Y, -0.122));
+      g.add(_P(_B(0.006, 0.006, 0.040, 0x222224), X + 0.018, Y, -0.122));
+      // Front arms (folded forward, shorter)
+      g.add(_P(_B(0.040, 0.006, 0.006, 0x222224), X, Y, -0.130));
+      // Motor pods (4 tips)
+      for (let i = 0; i < 4; i++) {
+        const ax = (i < 2 ? -1 : 1) * 0.040, az = (i % 2 === 0 ? -0.122 : -0.108);
+        g.add(_P(_T(0.008, 0.014, _pal.steel(), 6), X + ax, Y + 0.010, az));
+        g.add(_P(_T(0.018, 0.002, 0xddddcc, 6), X + ax, Y + 0.018, az));
+      }
+      // VOG-25 grenade in 3D-printed clamp (hanging under body)
+      g.add(_P(_T(0.012, 0.038, 0x3a3a28, 8), X, Y - 0.030, -0.14));
+      g.add(_P(_T(0.015, 0.008, 0x2a2a20, 6), X, Y - 0.030, -0.118));
+      // Clamp bracket
+      g.add(_P(_B(0.022, 0.005, 0.004, 0x444444), X, Y - 0.016, -0.132));
+      // Battery indicator LED (tiny coloured dot on top)
+      g.add(_P(_B(0.004, 0.004, 0.004, 0x00cc44), X - 0.010, Y + 0.012, -0.158));
+      return g;
+    },
+
+    // ── Bayraktar TB2 Ground Control Station handset ──────────────────
+    bayraktar: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.07;
+      // GCS body (thicker game controller / handheld terminal)
+      g.add(_P(_B(0.090, 0.055, 0.030, 0x2a3020), X, Y, -0.185));
+      // Screen (drone video feed — slightly blue-tinted)
+      g.add(_P(_B(0.070, 0.038, 0.004, 0x080e1a), X, Y + 0.004, -0.204));
+      // Drone silhouette on screen (tiny T-shape = TB2 top view)
+      g.add(_P(_B(0.028, 0.003, 0.004, 0x1a4488), X, Y + 0.010, -0.205));  // wings
+      g.add(_P(_B(0.003, 0.016, 0.004, 0x1a4488), X, Y + 0.002, -0.205));  // fuselage
+      // Left joystick grip
+      g.add(_P(_B(0.014, 0.036, 0.022, _pal.poly()), X - 0.036, Y - 0.020, -0.185));
+      g.add(_P(_T(0.006, 0.014, _pal.blk(), 6), X - 0.036, Y + 0.014, -0.185));
+      // Right joystick grip
+      g.add(_P(_B(0.014, 0.036, 0.022, _pal.poly()), X + 0.036, Y - 0.020, -0.185));
+      g.add(_P(_T(0.006, 0.014, _pal.blk(), 6), X + 0.036, Y + 0.014, -0.185));
+      // Turkish flag sticker (red block on right side)
+      g.add(_P(_B(0.010, 0.006, 0.004, 0xcc2222), X + 0.028, Y + 0.022, -0.200));
+      // Antenna (right side, thin post)
+      g.add(_P(_T(0.003, 0.042, _pal.blk(), 6), X + 0.038, Y + 0.048, -0.185));
+      // Launch authorise button (red top-centre)
+      const authBtn = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.006, 6),
+        new THREE.MeshLambertMaterial({ color: 0xcc2200 }));
+      authBtn.position.set(X, Y + 0.032, -0.205); g.add(authBtn);
+      return g;
+    },
+
+    // ── TOS-1A Buratino thermobaric fire control unit ─────────────────
+    tos1a: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.14, Y = -0.07;
+      // Ruggedised fire control unit (orange-red safety colour)
+      g.add(_P(_B(0.080, 0.052, 0.028, 0x8a3308), X, Y, -0.170));
+      // Screen (target area map, dark green)
+      g.add(_P(_B(0.056, 0.034, 0.004, 0x0a0e08), X, Y + 0.004, -0.186));
+      // Grid lines on screen
+      g.add(_P(_B(0.056, 0.001, 0.003, 0x1a3a0a), X, Y + 0.008, -0.186));
+      g.add(_P(_B(0.001, 0.034, 0.003, 0x1a3a0a), X, Y + 0.004, -0.186));
+      // Large red fire-mission button (prominent, safety guard ring)
+      const fBtn = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.008, 8),
+        new THREE.MeshLambertMaterial({ color: 0xff3300 }));
+      fBtn.position.set(X + 0.028, Y + 0.020, -0.190); g.add(fBtn);
+      g.add(_P(_T(0.018, 0.004, 0x5a2a08, 8), X + 0.028, Y + 0.022, -0.190));
+      // Rubber side grips
+      g.add(_P(_B(0.006, 0.044, 0.024, 0x1a1a10), X - 0.044, Y, -0.170));
+      g.add(_P(_B(0.006, 0.044, 0.024, 0x1a1a10), X + 0.044, Y, -0.170));
+      // "TOS" marking on face (yellow lines)
+      g.add(_P(_B(0.016, 0.002, 0.002, 0xdddd22), X - 0.022, Y + 0.020, -0.188));
+      g.add(_P(_B(0.002, 0.012, 0.002, 0xdddd22), X - 0.022, Y + 0.014, -0.188));
+      return g;
+    },
+
+    // ── DP-27/28 Degtyarev LMG with 47-round pan magazine ────────────
+    dp27: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.11;
+      // Flat low receiver (DP-28 has very slim profile)
+      g.add(_P(_B(0.042, 0.048, 0.28, 0x3a3228), X, Y, -0.20));
+      // Long barrel with cooling fins (distinctive jacketted barrel)
+      g.add(_P(_T(0.012, 0.52, _pal.steel(), 12), X, Y + 0.004, -0.49));
+      for (let rf = 0; rf < 7; rf++) {
+        g.add(_P(_T(0.014, 0.006, 0x4a4842, 10), X, Y + 0.004, -0.26 - rf * 0.050));
+      }
+      // Muzzle (plain open)
+      g.add(_P(_T(0.014, 0.018, _pal.blk(), 8), X, Y + 0.004, -0.75));
+      // Gas cylinder (long piston rod below barrel — characteristic DP feature)
+      g.add(_P(_T(0.009, 0.32, 0x5a5850, 10), X, Y - 0.020, -0.35));
+      // DISTINCTIVE flat 47-round pan magazine on TOP of receiver
+      const panM = new THREE.MeshLambertMaterial({ color: 0x2a2822 });
+      const pan = new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.044, 0.024, 18), panM);
+      pan.rotation.x = Math.PI / 2; pan.position.set(X, Y + 0.042, -0.22); g.add(pan);
+      const panRim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.044, 0.005, 6, 18), _pal.blk());
+      panRim.rotation.x = Math.PI / 2; panRim.position.set(X, Y + 0.042, -0.22); g.add(panRim);
+      // Bipod legs (V-shape at gas block, folded forward)
+      const bl = _P(_B(0.006, 0.046, 0.008, _pal.blk()), X - 0.022, Y - 0.022, -0.38);
+      bl.rotation.z = 0.25; g.add(bl);
+      const br2 = _P(_B(0.006, 0.046, 0.008, _pal.blk()), X + 0.022, Y - 0.022, -0.38);
+      br2.rotation.z = -0.25; g.add(br2);
+      // Wooden pistol grip and buttstock
+      g.add(_P(_B(0.020, 0.044, 0.025, _pal.wood()), X, Y - 0.030, -0.06));
+      g.add(_P(_B(0.032, 0.038, 0.115, _pal.wood()), X, Y - 0.006, 0.014));
+      return g;
+    },
+
+    // ── SV-98 bolt-action precision sniper ───────────────────────────
+    sv98: function () {
+      return _rifle({
+        hg: 'rail', hgColor: _pal.tan,
+        stock: 'fixed', stockColor: () => _M(0x2a2820, 0.25, 0.7),
+        mag: 'box', magColor: _pal.blk,
+        muzzle: 'brake',
+        rail: true, scope: true, bipod: true,
+        recvLen: 0.30, barR: 0.013, barLen: 0.55,
+        recvColor: () => _M(0x282624, 0.4, 0.5),
+      });
+    },
+
+    // ── Lancet-3 loitering munition ──────────────────────────────────
+    lancet3: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Main fuselage (cylindrical, 380mm body)
+      g.add(_P(_T(0.016, 0.36, 0x1c1e1a, 10), X, Y, -0.24));
+      // Ogive warhead nose
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.016, 0.08, 8),
+        new THREE.MeshLambertMaterial({ color: 0x2a2c28 }));
+      nose.rotation.x = -Math.PI / 2; nose.position.set(X, Y, -0.47); g.add(nose);
+      // Distinctive X-wing fins at NOSE (4 swept wings)
+      for (let i = 0; i < 4; i++) {
+        const wf = _P(_B(0.002, 0.038, 0.040, 0x2a2c28), X, Y, -0.44);
+        wf.rotation.z = (Math.PI / 4) + i * (Math.PI / 2); g.add(wf);
+      }
+      // X-wing fins at TAIL (same distinctive pattern)
+      for (let i = 0; i < 4; i++) {
+        const wt = _P(_B(0.002, 0.040, 0.045, 0x2a2c28), X, Y, -0.06);
+        wt.rotation.z = (Math.PI / 4) + i * (Math.PI / 2); g.add(wt);
+      }
+      // Electric propulsion unit (pusher prop at tail)
+      g.add(_P(_T(0.012, 0.025, _pal.steel(), 8), X, Y, 0.04));
+      // Camera/seeker dome (transparent-tinted)
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(0.014, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshLambertMaterial({ color: 0x4060a0, transparent: true, opacity: 0.7 }));
+      dome.rotation.x = -Math.PI / 2; dome.position.set(X, Y - 0.012, -0.45); g.add(dome);
+      // Operator handle / launch tube section
+      g.add(_P(_B(0.018, 0.014, 0.07, _pal.blk()), X, Y + 0.024, -0.22));
+      return g;
+    },
+
+    // ── Storm Shadow cruise missile (operator GCS) ───────────────────
+    stormshadow: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Laptop-style GCS body
+      g.add(_P(_B(0.06, 0.045, 0.085, 0x2a2c30), X, Y, 0.0));
+      // Screen lid (angled open)
+      const lid = _P(_B(0.058, 0.042, 0.001, 0x111318), X, Y + 0.020, -0.042);
+      lid.rotation.x = -0.4; g.add(lid);
+      // Screen glow (blue mission display)
+      const scrn = _P(_B(0.050, 0.034, 0.002, 0x1a4a8c), X, Y + 0.022, -0.043);
+      scrn.rotation.x = -0.4; g.add(scrn);
+      // Keyboard keys (2 rows)
+      for (let kx = 0; kx < 5; kx++) {
+        g.add(_P(_B(0.009, 0.005, 0.009, 0x1a1c20), X - 0.022 + kx * 0.011, Y - 0.004, 0.022));
+        g.add(_P(_B(0.009, 0.005, 0.009, 0x1a1c20), X - 0.022 + kx * 0.011, Y - 0.004, 0.033));
+      }
+      // Missile profile silhouette on screen
+      const msil = _P(_B(0.030, 0.002, 0.015, 0x4080ff), X, Y + 0.028, -0.040);
+      msil.rotation.x = -0.4; g.add(msil);
+      // NATO badge sticker
+      g.add(_P(_B(0.014, 0.014, 0.001, 0x003087), X + 0.025, Y + 0.020, -0.001));
+      // Joystick nub
+      const jnub = new THREE.Mesh(
+        new THREE.SphereGeometry(0.006, 6, 6),
+        new THREE.MeshLambertMaterial({ color: 0x111111 }));
+      jnub.position.set(X - 0.020, Y + 0.000, 0.005); g.add(jnub);
+      // STRIKE button (red)
+      const sbtn = new THREE.Mesh(
+        new THREE.SphereGeometry(0.005, 6, 6),
+        new THREE.MeshLambertMaterial({ color: 0xdd1111 }));
+      sbtn.position.set(X + 0.025, Y - 0.001, 0.015); g.add(sbtn);
+      return g;
+    },
+
+    // ── AS Val suppressed assault rifle ─────────────────────────────
+    asval: function () {
+      return _rifle({
+        hg: 'wood', hgColor: () => _M(0x1c1e1c, 0.3, 0.7),
+        stock: 'skel', stockColor: _pal.blk,
+        mag: 'curved', magColor: _pal.blk,
+        muzzle: 'supp',
+        recvLen: 0.26, barR: 0.011, barLen: 0.18,
+        recvColor: _pal.blk, sights: false,
+      });
+    },
+
+    // ── OSV-96 12.7mm anti-material rifle ───────────────────────────
+    osv96: function () {
+      return _rifle({
+        hg: 'rail', hgColor: _pal.steel,
+        stock: 'tube', stockColor: _pal.blk,
+        mag: 'box', magColor: _pal.blk,
+        muzzle: 'brake',
+        rail: true, scope: true, bipod: true,
+        recvLen: 0.38, barR: 0.018, barLen: 0.62,
+        recvColor: _pal.blk,
+      });
+    },
+
+    // ── Neptune R-360 (coastal battery fire-control console) ────────
+    neptune: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Ruggedised military console body
+      g.add(_P(_B(0.070, 0.050, 0.090, 0x1e2228), X, Y, 0.0));
+      // Targeting screen (sea-blue radar display)
+      const sc = _P(_B(0.054, 0.038, 0.002, 0x0a2840), X, Y + 0.006, -0.045);
+      sc.rotation.x = -0.2; g.add(sc);
+      // Radar sweep arc on screen
+      const arc = _P(_B(0.040, 0.002, 0.025, 0x00cc88), X, Y + 0.012, -0.044);
+      arc.rotation.x = -0.2; g.add(arc);
+      // TARGET LOCKED indicator
+      const tgt = _P(_B(0.018, 0.006, 0.001, 0xff2200), X + 0.010, Y + 0.020, -0.044);
+      tgt.rotation.x = -0.2; g.add(tgt);
+      // Fire panel (3 buttons on top — ARM, CONFIRM, FIRE)
+      const btnColors = [0x224488, 0xff8800, 0xff0000];
+      for (let b = 0; b < 3; b++) {
+        const btn = new THREE.Mesh(
+          new THREE.SphereGeometry(0.006, 6, 6),
+          new THREE.MeshLambertMaterial({ color: btnColors[b] }));
+        btn.position.set(X - 0.016 + b * 0.016, Y + 0.028, 0.010); g.add(btn);
+      }
+      // Cable / communications port
+      g.add(_P(_T(0.004, 0.040, _pal.blk(), 6), X + 0.030, Y - 0.010, 0.010));
+      // Ukrainian trident embossed on console face
+      g.add(_P(_B(0.012, 0.018, 0.001, 0x4488cc), X, Y + 0.010, 0.046));
+      return g;
+    },
+
+    // ── Metis-M1 ATGM (launcher + sight unit) ───────────────────────
+    metis_m1: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Launch tube (rectangular cross-section, tan colour)
+      g.add(_P(_B(0.040, 0.036, 0.38, _pal.tan), X, Y, -0.22));
+      // Forward grip (folding)
+      g.add(_P(_B(0.012, 0.040, 0.016, 0x2a2820), X - 0.002, Y - 0.030, -0.28));
+      // Thermal sight unit (box on top)
+      g.add(_P(_B(0.030, 0.028, 0.065, 0x282a26), X, Y + 0.034, -0.15));
+      // Sight lens (circular, front-facing)
+      const lens = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.010, 0.010, 0.006, 8),
+        new THREE.MeshLambertMaterial({ color: 0x1a2a40, transparent: true, opacity: 0.8 }));
+      lens.rotation.x = Math.PI / 2; lens.position.set(X, Y + 0.034, -0.186); g.add(lens);
+      // Missile tube end-cap (distinctive squared shape)
+      g.add(_P(_B(0.042, 0.038, 0.012, 0x404038), X, Y, -0.43));
+      // Firing grip / trigger assembly
+      g.add(_P(_B(0.014, 0.038, 0.020, 0x1a1c18), X, Y - 0.016, -0.10));
+      // Front ring clamp
+      g.add(_P(_B(0.044, 0.040, 0.010, 0x3a3c38), X, Y, -0.38));
+      // Sling attachment point
+      g.add(_P(_B(0.006, 0.012, 0.020, _pal.blk()), X + 0.022, Y + 0.010, -0.30));
+      return g;
+    },
+
+    // ── M249 SAW / FN Minimi belt-fed LMG ───────────────────────────
+    m249saw: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Receiver (flat top rail, M249 profile)
+      g.add(_P(_B(0.040, 0.044, 0.28, 0x2c2e2a), X, Y, -0.18));
+      // Top rail
+      g.add(_P(_B(0.038, 0.008, 0.26, 0x242624), X, Y + 0.028, -0.18));
+      // Barrel (heavy, fluted — M249 has quick-detach barrel)
+      g.add(_P(_T(0.013, 0.50, _pal.steel(), 12), X, Y, -0.55));
+      // Muzzle flash hider (birdcage type)
+      g.add(_P(_T(0.016, 0.024, _pal.blk(), 6), X, Y, -0.82));
+      // Bipod (characteristic M249 bipod attached to gas block)
+      const bL = _P(_B(0.006, 0.050, 0.010, _pal.blk()), X - 0.020, Y - 0.030, -0.42);
+      bL.rotation.z = 0.20; g.add(bL);
+      const bR = _P(_B(0.006, 0.050, 0.010, _pal.blk()), X + 0.020, Y - 0.030, -0.42);
+      bR.rotation.z = -0.20; g.add(bR);
+      // 200-round ammo box (dangling on left side — STANAG-style plastic box)
+      g.add(_P(_B(0.020, 0.040, 0.058, 0x1e2820), X - 0.032, Y - 0.022, -0.14));
+      // Feed tray cover
+      g.add(_P(_B(0.040, 0.010, 0.090, 0x282a26), X, Y + 0.032, -0.12));
+      // Carry handle / barrel grab
+      g.add(_P(_B(0.006, 0.030, 0.080, 0x242422), X, Y + 0.050, -0.35));
+      // Pistol grip
+      g.add(_P(_B(0.018, 0.045, 0.022, 0x1a1c18), X, Y - 0.032, -0.02));
+      // Collapsible stock
+      g.add(_P(_B(0.024, 0.030, 0.085, 0x282a26), X, Y - 0.010, 0.060));
+      return g;
+    },
+
+    // ── Shahed-136 / Geranium-2 suicide drone ───────────────────────
+    shahed136: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Fuselage (rectangular, very low profile)
+      g.add(_P(_B(0.026, 0.016, 0.30, 0x2a2e22), X, Y, -0.18));
+      // Warhead nose (blunt cone, forward)
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.013, 0.055, 7),
+        new THREE.MeshLambertMaterial({ color: 0x3a3a2a }));
+      nose.rotation.x = -Math.PI / 2; nose.position.set(X, Y, -0.36); g.add(nose);
+      // DISTINCTIVE delta wings (swept back, triangular)
+      const wMat = new THREE.MeshLambertMaterial({ color: 0x303428 });
+      const wShape = [
+        new THREE.Vector2(0, 0), new THREE.Vector2(-0.10, 0.10),
+        new THREE.Vector2(-0.10, 0.12), new THREE.Vector2(0, 0.004),
+      ];
+      // Left delta wing
+      for (let s = 0; s < 2; s++) {
+        const wSide = _P(_B(0.001, 0.065, 0.18, 0x383c2c), X + (s === 0 ? -0.020 : 0.020), Y, -0.12);
+        wSide.rotation.z = s === 0 ? 0.45 : -0.45; g.add(wSide);
+      }
+      // Tail: small vertical fins
+      g.add(_P(_B(0.002, 0.030, 0.028, 0x303028), X, Y + 0.020, 0.04));
+      g.add(_P(_B(0.002, 0.030, 0.028, 0x303028), X, Y - 0.020, 0.04));
+      // Pusher propeller (rear-mounted)
+      g.add(_P(_T(0.010, 0.020, _pal.steel(), 6), X, Y, 0.09));
+      // Prop blades (2-blade)
+      g.add(_P(_B(0.002, 0.004, 0.070, _pal.blk()), X, Y, 0.10));
+      // Operator tracking screen (ruggedised military tablet)
+      const scrn = _P(_B(0.050, 0.040, 0.006, 0x111418), X, Y + 0.002, 0.20);
+      scrn.rotation.x = -0.3; g.add(scrn);
+      // Red "LAUNCH" indicator on screen
+      g.add(_P(_B(0.016, 0.010, 0.001, 0xcc1100), X, Y + 0.014, 0.195));
+      return g;
+    },
+
+    // ── AGM-88 HARM cockpit GCS ─────────────────────────────────────
+    agm88harm: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // EW console body (flat panel)
+      g.add(_P(_B(0.072, 0.048, 0.080, 0x1c1e22), X, Y, 0.0));
+      // Radar frequency display (green-on-black like early EW units)
+      const rd = _P(_B(0.058, 0.035, 0.002, 0x001408), X, Y + 0.006, -0.041);
+      rd.rotation.x = -0.15; g.add(rd);
+      // Frequency lock bars (target radar signatures)
+      for (let f = 0; f < 5; f++) {
+        const h = 0.004 + (f % 3) * 0.008;
+        g.add(_P(_B(0.006, h, 0.002, 0x00ff44), X - 0.020 + f * 0.010, Y + 0.010, -0.040));
+      }
+      // LOCK indicator
+      g.add(_P(_B(0.020, 0.008, 0.001, 0xffcc00), X + 0.010, Y + 0.020, -0.040));
+      // Physical radar horn (small directional antenna on top)
+      g.add(_P(_T(0.012, 0.028, 0x404044, 6), X, Y + 0.032, -0.010));
+      // Frequency band selector knob
+      const knob = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.006, 0.006, 0.012, 8),
+        new THREE.MeshLambertMaterial({ color: 0x181a1e }));
+      knob.position.set(X - 0.025, Y - 0.006, 0.010); g.add(knob);
+      // FIRE button
+      const fbtn = new THREE.Mesh(
+        new THREE.SphereGeometry(0.006, 6, 6),
+        new THREE.MeshLambertMaterial({ color: 0xff2200 }));
+      fbtn.position.set(X + 0.025, Y - 0.002, 0.015); g.add(fbtn);
+      return g;
+    },
+
+    // ── RGO-78 defensive grenade ────────────────────────────────────
+    rgo78: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.12;
+      // Slightly larger than RGD-5, olive drab body
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(0.026, 10, 8),
+        new THREE.MeshLambertMaterial({ color: 0x2e3428 }));
+      body.position.set(X, Y, -0.04); g.add(body);
+      // Segmentation lines (dual fragmentation pattern — waist ring)
+      const band = new THREE.Mesh(
+        new THREE.TorusGeometry(0.026, 0.003, 6, 16),
+        new THREE.MeshLambertMaterial({ color: 0x1e2418 }));
+      band.rotation.x = Math.PI / 2; band.position.set(X, Y, -0.04); g.add(band);
+      // Fuze body (top cylinder)
+      g.add(_P(_T(0.009, 0.040, 0x282a24, 8), X, Y + 0.030, -0.04));
+      // Spoon / lever
+      g.add(_P(_B(0.004, 0.032, 0.006, _pal.steel()), X + 0.012, Y + 0.014, -0.04));
+      // Safety pin ring
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.007, 0.002, 6, 8),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      ring.position.set(X + 0.014, Y + 0.044, -0.04); g.add(ring);
+      return g;
+    },
+
+    // ── Gepard 35mm AA (operator sight + joystick controller) ───────
+    gepard35: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Gunner console body (German angular military design)
+      g.add(_P(_B(0.068, 0.052, 0.085, 0x282c28), X, Y, 0.0));
+      // Radar tracking display (circular sweep, German grey)
+      const disp = _P(_B(0.052, 0.040, 0.002, 0x101810), X, Y + 0.006, -0.043);
+      disp.rotation.x = -0.15; g.add(disp);
+      // Radar arc (green sweep)
+      const arc = _P(_B(0.040, 0.002, 0.030, 0x00aa44), X, Y + 0.012, -0.042);
+      arc.rotation.x = -0.15; g.add(arc);
+      // Target blip
+      const blip = new THREE.Mesh(
+        new THREE.SphereGeometry(0.004, 5, 5),
+        new THREE.MeshLambertMaterial({ color: 0x00ff44 }));
+      blip.position.set(X + 0.008, Y + 0.016, -0.041); g.add(blip);
+      // Dual joystick handles (German twin-handle design)
+      for (let jx = 0; jx < 2; jx++) {
+        const jh = _P(_B(0.014, 0.028, 0.016, 0x1a1c1a), X - 0.018 + jx * 0.036, Y - 0.014, 0.020);
+        g.add(jh);
+        const jt = new THREE.Mesh(
+          new THREE.SphereGeometry(0.007, 6, 6),
+          new THREE.MeshLambertMaterial({ color: 0x111311 }));
+        jt.position.set(X - 0.018 + jx * 0.036, Y + 0.010, 0.020); g.add(jt);
+      }
+      // FIRE buttons (red, one per joystick)
+      const fb1 = new THREE.Mesh(new THREE.SphereGeometry(0.004, 5, 5), new THREE.MeshLambertMaterial({ color: 0xff1100 }));
+      const fb2 = new THREE.Mesh(new THREE.SphereGeometry(0.004, 5, 5), new THREE.MeshLambertMaterial({ color: 0xff1100 }));
+      fb1.position.set(X - 0.018, Y + 0.014, 0.020); g.add(fb1);
+      fb2.position.set(X + 0.018, Y + 0.014, 0.020); g.add(fb2);
+      // Iron Cross / Bundeswehr sticker (subtle)
+      g.add(_P(_B(0.010, 0.010, 0.001, 0x111111), X, Y + 0.020, -0.001));
+      return g;
+    },
+
+    // ── RPG-30 (dual-tube precursor system) ─────────────────────────
+    rpg30: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Main 105mm tube (wider bore)
+      g.add(_P(_T(0.028, 0.50, 0x2c2e28, 12), X, Y, -0.28));
+      // Main warhead (PG-30 tandem — blunter nose than RPG-7)
+      const wh = new THREE.Mesh(
+        new THREE.ConeGeometry(0.028, 0.10, 10),
+        new THREE.MeshLambertMaterial({ color: 0x4a3a1a }));
+      wh.rotation.x = -Math.PI / 2; wh.position.set(X, Y, -0.55); g.add(wh);
+      // Distinctive SECOND smaller precursor tube (parallel, upper left)
+      g.add(_P(_T(0.014, 0.32, 0x3a3830, 10), X - 0.030, Y + 0.026, -0.20));
+      // Precursor warhead (smaller cone)
+      const pre = new THREE.Mesh(
+        new THREE.ConeGeometry(0.014, 0.055, 8),
+        new THREE.MeshLambertMaterial({ color: 0x3a2a10 }));
+      pre.rotation.x = -Math.PI / 2; pre.position.set(X - 0.030, Y + 0.026, -0.38); g.add(pre);
+      // Grip (rear section, trigger assembly)
+      g.add(_P(_B(0.018, 0.048, 0.025, 0x1c1e1a), X, Y - 0.018, -0.08));
+      // Front and rear sights
+      g.add(_P(_B(0.003, 0.018, 0.003, _pal.blk()), X, Y + 0.032, -0.38));
+      g.add(_P(_B(0.003, 0.014, 0.003, _pal.blk()), X, Y + 0.030, -0.12));
+      // Strap loops
+      g.add(_P(_B(0.006, 0.012, 0.008, _pal.blk()), X + 0.030, Y, -0.25));
+      return g;
+    },
+
+    // ── PTRD-41 anti-tank rifle (14.5mm bolt-action) ─────────────────
+    ptrd41: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Very long, thin receiver (PTRD is almost entirely barrel, ~2m overall)
+      g.add(_P(_B(0.022, 0.028, 0.38, 0x2c2e28), X, Y, -0.22));
+      // Extremely long heavy barrel (14.5mm bore — much thicker than sniper)
+      g.add(_P(_T(0.016, 0.72, _pal.steel(), 12), X, Y + 0.002, -0.66));
+      // Muzzle brake (large 3-port brake characteristic of PTRD)
+      g.add(_P(_T(0.022, 0.055, _pal.steel(), 8), X, Y + 0.002, -1.04));
+      g.add(_P(_B(0.028, 0.014, 0.008, _pal.blk()), X, Y + 0.002, -1.02));
+      g.add(_P(_B(0.028, 0.014, 0.008, _pal.blk()), X, Y + 0.002, -1.00));
+      // Muzzle block/crown
+      g.add(_P(_T(0.018, 0.010, _pal.blk(), 8), X, Y + 0.002, -1.07));
+      // Pistol grip (simple wood)
+      g.add(_P(_B(0.018, 0.048, 0.022, _pal.wood()), X, Y - 0.028, -0.06));
+      // Fixed wood stock (straight, no pistol grip — WW2 style)
+      g.add(_P(_B(0.028, 0.030, 0.14, _pal.wood()), X, Y - 0.010, 0.065));
+      // Recoil pad (rubber, distinctive for 14.5mm)
+      g.add(_P(_B(0.032, 0.036, 0.012, 0x1a1a1a), X, Y - 0.010, 0.142));
+      // Single-shot loading port (no magazine — pure bolt-action)
+      g.add(_P(_B(0.010, 0.008, 0.022, 0x1c1c1c), X + 0.012, Y + 0.008, -0.10));
+      // Bipod (long for stability — attached at forestock)
+      const bL2 = _P(_B(0.006, 0.060, 0.010, _pal.blk()), X - 0.025, Y - 0.038, -0.45);
+      bL2.rotation.z = 0.20; g.add(bL2);
+      const bR2 = _P(_B(0.006, 0.060, 0.010, _pal.blk()), X + 0.025, Y - 0.038, -0.45);
+      bR2.rotation.z = -0.20; g.add(bR2);
+      // Rear sight
+      g.add(_P(_B(0.003, 0.020, 0.003, _pal.blk()), X, Y + 0.022, -0.08));
+      return g;
+    },
+
+    // ── 9M113 Konkurs ATGM (tripod launcher) ────────────────────────
+    konkurs: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Launch tube (square cross-section, NATO tan)
+      g.add(_P(_B(0.044, 0.040, 0.42, _pal.tan), X, Y, -0.24));
+      // Missile tube protective end-cap (rear)
+      g.add(_P(_B(0.046, 0.042, 0.012, 0x3a3830), X, Y, -0.46));
+      // Sight unit (9Sh119M periscope box, prominent on top)
+      g.add(_P(_B(0.035, 0.035, 0.070, 0x282a26), X, Y + 0.040, -0.12));
+      // Periscope lens (front of sight)
+      const lens = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.011, 0.011, 0.006, 8),
+        new THREE.MeshLambertMaterial({ color: 0x1a2840, transparent: true, opacity: 0.8 }));
+      lens.rotation.x = Math.PI / 2; lens.position.set(X, Y + 0.040, -0.158); g.add(lens);
+      // Grip assembly (pistol grip style under tube)
+      g.add(_P(_B(0.016, 0.044, 0.024, 0x1e2018), X, Y - 0.026, -0.10));
+      // Trigger guard
+      g.add(_P(_B(0.020, 0.006, 0.028, 0x1e2018), X, Y - 0.038, -0.09));
+      // Tube front support / gas deflector
+      g.add(_P(_B(0.048, 0.016, 0.016, 0x3a3c38), X, Y - 0.016, -0.40));
+      // Wire spool housing (Konkurs is wire-guided — visible spool at rear)
+      g.add(_P(_T(0.020, 0.018, 0x2a2c28, 10), X + 0.024, Y + 0.012, -0.44));
+      // Tripod legs (3 legs at 120°)
+      for (let lt = 0; lt < 3; lt++) {
+        const la = _P(_B(0.006, 0.070, 0.008, _pal.blk()), X, Y - 0.042, -0.20);
+        la.rotation.z = (lt * 2.094) - 0.3; g.add(la);
+      }
+      return g;
+    },
+
+    // ── M32A1 MGL (6-shot revolver grenade launcher) ─────────────────
+    m32mgl: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Receiver body (compact, wider than rifle due to cylinder)
+      g.add(_P(_B(0.050, 0.048, 0.18, 0x1c1e1a), X, Y, -0.08));
+      // Cylinder (6-chamber revolver — the visual centrepiece)
+      const cyl = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.038, 0.038, 0.048, 12),
+        new THREE.MeshLambertMaterial({ color: 0x222420 }));
+      cyl.rotation.x = Math.PI / 2; cyl.position.set(X, Y, -0.095); g.add(cyl);
+      // Cylinder chambers visible (6 holes)
+      for (let ch = 0; ch < 6; ch++) {
+        const ca = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.010, 0.010, 0.050, 6),
+          new THREE.MeshLambertMaterial({ color: 0x0a0c0a }));
+        ca.rotation.x = Math.PI / 2;
+        ca.position.set(X + Math.cos(ch * Math.PI / 3) * 0.024,
+          Y + Math.sin(ch * Math.PI / 3) * 0.024, -0.095); g.add(ca);
+      }
+      // Short barrel (40mm smooth bore)
+      g.add(_P(_T(0.022, 0.28, 0x282a26, 10), X, Y, -0.25));
+      // Muzzle (plain, no device)
+      g.add(_P(_T(0.024, 0.010, _pal.blk(), 8), X, Y, -0.40));
+      // Folding stock (telescoping wire — Milkor design)
+      const st = _P(_B(0.020, 0.022, 0.11, 0x1a1c18), X, Y - 0.008, 0.075);
+      g.add(st);
+      g.add(_P(_B(0.028, 0.012, 0.006, 0x1a1c18), X, Y - 0.008, 0.128));
+      // Pistol grip
+      g.add(_P(_B(0.018, 0.044, 0.022, 0x282a26), X, Y - 0.032, 0.004));
+      // Foregrip (vertical)
+      g.add(_P(_B(0.018, 0.038, 0.020, 0x1c1e1a), X, Y - 0.030, -0.28));
+      // Top rail
+      g.add(_P(_B(0.038, 0.007, 0.15, 0x111312), X, Y + 0.030, -0.04));
+      return g;
+    },
+
+    // ── AI AXMC .338 Lapua precision sniper ─────────────────────────
+    aiax: function () {
+      return _rifle({
+        hg: 'rail', hgColor: _pal.blk,
+        stock: 'tube', stockColor: () => _M(0x1a1e20, 0.3, 0.6),
+        mag: 'box', magColor: _pal.blk,
+        muzzle: 'brake',
+        rail: true, scope: true, bipod: true,
+        recvLen: 0.34, barR: 0.015, barLen: 0.58,
+        recvColor: () => _M(0x1e2022, 0.4, 0.5),
+      });
+    },
+
+    // ── 9M14 Malyutka (Sagger) manual ATGM ──────────────────────────
+    malyutka: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.09;
+      // Suitcase-style carrying/launch box (distinctive black box)
+      g.add(_P(_B(0.065, 0.042, 0.095, 0x1c1e1a), X, Y, 0.0));
+      // Launch rail on top (extends up at slight angle)
+      const rail = _P(_B(0.008, 0.005, 0.080, 0x2a2c28), X, Y + 0.028, -0.010);
+      rail.rotation.x = 0.15; g.add(rail);
+      // Missile (small, seated on rail — 9M14 is tiny)
+      g.add(_P(_T(0.010, 0.14, 0x2e3028, 8), X, Y + 0.036, -0.010));
+      const misNose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.010, 0.035, 7),
+        new THREE.MeshLambertMaterial({ color: 0x3a2a10 }));
+      misNose.rotation.x = -Math.PI / 2; misNose.position.set(X, Y + 0.036, -0.096); g.add(misNose);
+      // Wings (4 small fins at 45°)
+      for (let mf = 0; mf < 4; mf++) {
+        const fin = _P(_B(0.002, 0.018, 0.016, 0x2a2c28), X, Y + 0.036, 0.060);
+        fin.rotation.z = (Math.PI / 4) + mf * (Math.PI / 2); g.add(fin);
+      }
+      // Joystick controller (thumb stick, iconic Sagger feature)
+      const js = _P(_B(0.014, 0.032, 0.016, 0x181a18), X - 0.022, Y - 0.004, 0.030);
+      g.add(js);
+      const jst = new THREE.Mesh(
+        new THREE.SphereGeometry(0.005, 5, 5),
+        new THREE.MeshLambertMaterial({ color: 0x0a0a0a }));
+      jst.position.set(X - 0.022, Y + 0.022, 0.030); g.add(jst);
+      // Wire spool (prominent on front)
+      g.add(_P(_T(0.016, 0.014, 0x282a26, 8), X + 0.020, Y + 0.010, -0.048));
+      // Sight telescope (small, on right side)
+      g.add(_P(_T(0.008, 0.055, 0x1e201e, 8), X + 0.028, Y + 0.010, -0.005));
+      return g;
+    },
+
+    // ── 9K333 Verba MANPADS ──────────────────────────────────────────
+    verba: function () {
+      // Newer than Igla — sleeker tube, more ergonomic grip assembly
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Launch tube (lighter grey than older Strela/Igla systems)
+      g.add(_P(_T(0.030, 0.68, 0x3a3c38, 14), X, Y, -0.34));
+      // Grip/trigger section (modern ergonomic pistol grip shape)
+      g.add(_P(_B(0.028, 0.058, 0.055, 0x282a26), X, Y - 0.018, -0.10));
+      // Battery/coolant unit (distinctive modern box at grip)
+      g.add(_P(_B(0.032, 0.030, 0.045, 0x1e201c), X, Y - 0.044, -0.10));
+      // IFF identification unit (modern digital box, not on older systems)
+      g.add(_P(_B(0.030, 0.020, 0.060, 0x242622), X, Y + 0.036, -0.20));
+      // Seeker dome (3-channel — slightly larger than Igla/Strela)
+      const dom = new THREE.Mesh(
+        new THREE.SphereGeometry(0.018, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshLambertMaterial({ color: 0x1a2835, transparent: true, opacity: 0.75 }));
+      dom.rotation.x = -Math.PI / 2; dom.position.set(X, Y, -0.70); g.add(dom);
+      // Rear exhaust / blast shield
+      g.add(_P(_T(0.034, 0.018, 0x2a2a28, 10), X, Y, 0.00));
+      // Shoulder rest pad (modern ergonomic design)
+      g.add(_P(_B(0.055, 0.016, 0.026, 0x1a1c1a), X, Y, -0.14));
+      // Front sight
+      g.add(_P(_B(0.004, 0.020, 0.004, _pal.blk()), X, Y + 0.038, -0.58));
+      return g;
+    },
+
+    // ── RGN-86 offensive grenade ─────────────────────────────────────
+    rgn86: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.12;
+      // Slightly smaller and rounder than RGO — offensive (less fragmentation)
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(0.023, 10, 8),
+        new THREE.MeshLambertMaterial({ color: 0x2e3028 }));
+      body.scale.y = 1.15; body.position.set(X, Y, -0.04); g.add(body);
+      // Smooth plastic shell (no seam ring on RGN unlike RGO)
+      // Fuze body
+      g.add(_P(_T(0.008, 0.036, 0x242622, 8), X, Y + 0.028, -0.04));
+      // UDZ impact fuze cap (distinctive dome-shaped top)
+      const fcap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.008, 7, 5),
+        new THREE.MeshLambertMaterial({ color: 0x1a1c18 }));
+      fcap.position.set(X, Y + 0.050, -0.04); g.add(fcap);
+      // Spoon/safety lever
+      g.add(_P(_B(0.003, 0.028, 0.005, _pal.steel()), X + 0.010, Y + 0.014, -0.04));
+      // Safety ring pull
+      const ring2 = new THREE.Mesh(
+        new THREE.TorusGeometry(0.006, 0.0018, 5, 7),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      ring2.position.set(X + 0.012, Y + 0.044, -0.04); g.add(ring2);
+      return g;
+    },
+
+    // ── PPSh-41 (WW2 submachine gun, 71-round drum) ──────────────────
+    ppsh41: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.17, Y = -0.10;
+      // Distinctive rounded receiver + barrel shroud (perforated)
+      g.add(_P(_T(0.026, 0.45, 0x2a2c28, 12), X, Y, -0.29));
+      // Barrel shroud perforations (4 ring slots)
+      for (let ps = 0; ps < 4; ps++) {
+        g.add(_P(_B(0.058, 0.006, 0.020, 0x181a16), X, Y, -0.18 - ps * 0.055));
+      }
+      // Muzzle compensator (slanted, iconic PPSh feature)
+      const comp = _P(_B(0.032, 0.022, 0.030, _pal.steel()), X, Y + 0.008, -0.51);
+      comp.rotation.z = 0.15; g.add(comp);
+      // DISTINCTIVE 71-round drum magazine (large circular)
+      const drum = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.052, 0.052, 0.032, 20),
+        new THREE.MeshLambertMaterial({ color: 0x1e201c }));
+      drum.rotation.x = Math.PI / 2; drum.position.set(X, Y - 0.010, -0.12); g.add(drum);
+      const drumRim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.052, 0.004, 6, 20),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      drumRim.rotation.x = Math.PI / 2; drumRim.position.set(X, Y - 0.010, -0.12); g.add(drumRim);
+      // Drum feed neck
+      g.add(_P(_T(0.014, 0.028, 0x282a26, 8), X, Y + 0.014, -0.12));
+      // Wood pistol grip (Soviet brown wood)
+      g.add(_P(_B(0.020, 0.046, 0.026, 0x5a3c1a), X, Y - 0.030, -0.03));
+      // Wood stock (straight, one-piece)
+      g.add(_P(_B(0.028, 0.030, 0.14, 0x5a3c1a), X, Y - 0.010, 0.07));
+      // Rear sight (flip-type)
+      g.add(_P(_B(0.003, 0.018, 0.003, _pal.blk()), X, Y + 0.028, -0.06));
+      // Front sight post
+      g.add(_P(_B(0.003, 0.016, 0.003, _pal.blk()), X, Y + 0.030, -0.48));
+      return g;
+    },
+
+    // ── RPG-32 Hashim (dual-calibre reusable AT launcher) ────────────
+    rpg32: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.10;
+      // Main launch tube — fibreglass/composite (sand tan)
+      g.add(_P(_T(0.028, 0.55, _pal.tan(), 12), X, Y, -0.27));
+      // Front sight / optical mount rail (above tube)
+      g.add(_P(_B(0.060, 0.012, 0.008, _pal.blk()), X, Y + 0.032, -0.08));
+      // 105mm warhead capsule (removable front module — wider than tube)
+      const wHead = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.038, 0.028, 0.14, 10),
+        new THREE.MeshLambertMaterial({ color: 0x3a3c30 }));
+      wHead.rotation.x = Math.PI / 2; wHead.position.set(X, Y, -0.53); g.add(wHead);
+      // Piezo contact fuze tip (cone)
+      const tip = new THREE.Mesh(
+        new THREE.ConeGeometry(0.012, 0.038, 8),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      tip.rotation.x = Math.PI / 2; tip.position.set(X, Y, -0.64); g.add(tip);
+      // Tandem warhead seam ring
+      g.add(_P(_T(0.030, 0.006, _pal.steel(), 10), X, Y, -0.47));
+      // Backblast cone (rear counterblast vent, open funnel)
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(0.042, 0.065, 10),
+        new THREE.MeshLambertMaterial({ color: _pal.tan() }));
+      cone.rotation.x = -Math.PI / 2; cone.position.set(X, Y, 0.035); g.add(cone);
+      // Pistol grip
+      g.add(_P(_B(0.022, 0.062, 0.028, _pal.blk()), X, Y - 0.048, -0.06));
+      // Trigger guard
+      const tg = new THREE.Mesh(
+        new THREE.TorusGeometry(0.014, 0.003, 5, 10, Math.PI),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      tg.rotation.x = Math.PI / 2; tg.position.set(X, Y - 0.052, -0.06); g.add(tg);
+      // Shoulder rest pad (folding, rear of tube)
+      g.add(_P(_B(0.050, 0.018, 0.040, 0x4a4c40), X, Y + 0.002, 0.10));
+      return g;
+    },
+
+    // ── HK G36C (5.56mm NATO carbine, German aid to Ukraine) ─────────
+    g36c: function () {
+      return _rifle({ hg: 'rail', hgColor: _pal.poly, stock: 'skel', mag: 'curved',
+        magColor: _pal.olive, muzzle: 'flash', recvLen: 0.19, recvH: 0.044, barLen: 0.09,
+        barR: 0.010, recvColor: _pal.poly });
+    },
+
+    // ── 2B9 Vasilek (82mm automatic mortar, 4-round clip) ────────────
+    vasilek: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.08;
+      // Main barrel (smooth-bore, long)
+      g.add(_P(_T(0.022, 0.68, _pal.steel(), 10), X, Y + 0.04, -0.30));
+      // Breech block (boxy, bottom-load)
+      g.add(_P(_B(0.056, 0.058, 0.10, 0x3a3c38), X, Y, -0.02));
+      // 4-round clip feed from right side
+      for (let r = 0; r < 4; r++) {
+        const round = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.014, 0.014, 0.092, 8),
+          new THREE.MeshLambertMaterial({ color: 0x8a7c40 }));
+        round.rotation.x = Math.PI / 2;
+        round.position.set(X + 0.034 - r * 0.024, Y + 0.004, 0.02 - r * 0.005); g.add(round);
+      }
+      // Clip carrier frame
+      g.add(_P(_B(0.008, 0.018, 0.092, _pal.steel()), X + 0.040, Y + 0.004, 0.02));
+      // Bipod legs (spread V)
+      const bpL = _P(_B(0.006, 0.068, 0.007, _pal.steel()), X + 0.022, Y - 0.040, -0.48);
+      bpL.rotation.z = -0.30; g.add(bpL);
+      const bpR = _P(_B(0.006, 0.068, 0.007, _pal.steel()), X - 0.022, Y - 0.040, -0.48);
+      bpR.rotation.z = 0.30; g.add(bpR);
+      // Wheel carriage axle (distinctive — can be towed)
+      g.add(_P(_T(0.006, 0.18, _pal.steel(), 6), X, Y - 0.048, 0.06));
+      const wL = new THREE.Mesh(new THREE.TorusGeometry(0.034, 0.006, 6, 12),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      wL.rotation.y = Math.PI / 2; wL.position.set(X + 0.090, Y - 0.048, 0.06); g.add(wL);
+      const wR = new THREE.Mesh(new THREE.TorusGeometry(0.034, 0.006, 6, 12),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      wR.rotation.y = Math.PI / 2; wR.position.set(X - 0.090, Y - 0.048, 0.06); g.add(wR);
+      // Muzzle opening indicator
+      g.add(_P(_T(0.025, 0.005, _pal.blk(), 10), X, Y + 0.04, -0.655));
+      return g;
+    },
+
+    // ── AK-74M (Russia's standard 5.45mm service rifle) ──────────────
+    ak74m: function () {
+      return _rifle({ hg: 'wood', hgColor: _pal.poly, stock: 'skel', mag: 'curved',
+        magColor: _pal.poly, muzzle: 'brake', recvLen: 0.22, barLen: 0.16,
+        barR: 0.009, recvColor: _pal.gm });
+    },
+
+    // ── Switchblade 600 (anti-armor loitering munition) ──────────────
+    switchblade600: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.09;
+      // Launch tube (larger than SB300 — stores the whole drone)
+      g.add(_P(_T(0.038, 0.52, _pal.olive(), 10), X, Y, -0.22));
+      // Tube end cap (sealed before launch)
+      g.add(_P(_T(0.040, 0.010, _pal.blk(), 10), X, Y, -0.49));
+      // Carry handle / grip rail
+      g.add(_P(_B(0.012, 0.022, 0.10, _pal.blk()), X, Y + 0.038, -0.18));
+      // Folded wing nubs visible through vents (2 each side)
+      g.add(_P(_B(0.042, 0.006, 0.018, _pal.blk()), X, Y, -0.12));
+      g.add(_P(_B(0.042, 0.006, 0.018, _pal.blk()), X, Y, -0.30));
+      // Launch trigger assembly (rear grip)
+      g.add(_P(_B(0.022, 0.055, 0.028, _pal.blk()), X, Y - 0.042, 0.04));
+      const tg = new THREE.Mesh(
+        new THREE.TorusGeometry(0.012, 0.003, 5, 10, Math.PI),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      tg.rotation.x = Math.PI / 2; tg.position.set(X, Y - 0.048, 0.04); g.add(tg);
+      // Shoulder brace (folding, rear)
+      g.add(_P(_B(0.048, 0.014, 0.030, _pal.gm()), X, Y + 0.002, 0.10));
+      // Status LED strip
+      g.add(_P(_B(0.006, 0.004, 0.060, 0x002200), X + 0.020, Y + 0.012, -0.22));
+      return g;
+    },
+
+    // ── PzH 2000 (155mm self-propelled howitzer) ──────────────────────
+    pzh2000: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.15, Y = -0.08;
+      // Turret body (large boxy superstructure)
+      g.add(_P(_B(0.10, 0.065, 0.12, _pal.olive()), X, Y, -0.02));
+      // Barrel — long 155mm/L52 (very long for howitzer)
+      g.add(_P(_T(0.020, 0.80, _pal.steel(), 10), X, Y + 0.014, -0.46));
+      // Muzzle brake (double-baffle, prominent)
+      g.add(_P(_B(0.042, 0.028, 0.042, _pal.steel()), X, Y + 0.014, -0.87));
+      g.add(_P(_T(0.023, 0.006, _pal.blk(), 10), X, Y + 0.014, -0.91));
+      // Autoloader hump on rear of turret
+      g.add(_P(_B(0.068, 0.048, 0.060, _pal.olive()), X, Y + 0.030, 0.08));
+      // Hatch rings on top (commander + loader)
+      const hA = new THREE.Mesh(new THREE.TorusGeometry(0.016, 0.003, 5, 12),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      hA.position.set(X - 0.020, Y + 0.048, -0.01); g.add(hA);
+      const hB = new THREE.Mesh(new THREE.TorusGeometry(0.014, 0.003, 5, 12),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      hB.position.set(X + 0.020, Y + 0.048, 0.04); g.add(hB);
+      // Gun shield / mantlet
+      g.add(_P(_B(0.062, 0.058, 0.018, _pal.gm()), X, Y + 0.014, -0.08));
+      // Side grab handle
+      g.add(_P(_B(0.006, 0.006, 0.040, _pal.steel()), X + 0.056, Y + 0.010, -0.05));
+      return g;
+    },
+
+    // ── Kh-101 cruise missile (Russian air-launched) ──────────────────
+    kh101: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.07;
+      // Main body (long, narrow, stealthy faceted airframe)
+      g.add(_P(_T(0.022, 0.76, _pal.gm(), 8), X, Y, -0.32));
+      // Slightly wider centre section (warhead section)
+      g.add(_P(_T(0.028, 0.22, _pal.gm(), 8), X, Y, -0.16));
+      // Nose cone (pointed, composite)
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.022, 0.09, 8),
+        new THREE.MeshLambertMaterial({ color: _pal.blk() }));
+      nose.rotation.x = Math.PI / 2; nose.position.set(X, Y, -0.74); g.add(nose);
+      // Folded pop-out wings (2 mid-body, swept)
+      const wL = _P(_B(0.12, 0.004, 0.050, _pal.gm()), X + 0.062, Y, -0.25);
+      wL.rotation.z = -0.10; g.add(wL);
+      const wR = _P(_B(0.12, 0.004, 0.050, _pal.gm()), X - 0.062, Y, -0.25);
+      wR.rotation.z = 0.10; g.add(wR);
+      // Tail fins (cruciform, 4 × small)
+      const finAngles = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+      for (var fi = 0; fi < 4; fi++) {
+        const fin = _P(_B(0.040, 0.004, 0.028, _pal.steel()), X, Y, 0.06);
+        fin.rotation.z = finAngles[fi]; fin.position.x += Math.cos(finAngles[fi]) * 0.026;
+        fin.position.y += Math.sin(finAngles[fi]) * 0.026; g.add(fin);
+      }
+      // Turbojet intake (bottom, rectangular)
+      g.add(_P(_B(0.022, 0.014, 0.020, _pal.blk()), X, Y - 0.030, -0.10));
+      // Engine nozzle (rear)
+      g.add(_P(_T(0.014, 0.018, 0x441a00, 8), X, Y, 0.13));
+      return g;
+    },
+
+    // ── B-10 Recoilless Rifle (82mm, Soviet 1954) ────────────────────
+    b10: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.08;
+      // Smooth-bore barrel
+      g.add(_P(_T(0.022, 0.72, _pal.steel(), 10), X, Y, -0.30));
+      // Breech body (large boxy block — horizontal sliding breech)
+      g.add(_P(_B(0.062, 0.052, 0.12, 0x3c3e3a), X, Y, 0.04));
+      // Counterblast venturi (rear cone — prominent feature of RCL rifles)
+      const venL = new THREE.Mesh(
+        new THREE.ConeGeometry(0.036, 0.09, 10),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      venL.rotation.x = -Math.PI / 2; venL.position.set(X, Y, 0.13); g.add(venL);
+      // Carrying handles (two, top-mounted)
+      const hA = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.004, 5, 10, Math.PI),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      hA.position.set(X, Y + 0.024, -0.10); g.add(hA);
+      const hB = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.004, 5, 10, Math.PI),
+        new THREE.MeshLambertMaterial({ color: _pal.steel() }));
+      hB.position.set(X, Y + 0.024, -0.35); g.add(hB);
+      // Bipod
+      const bpA = _P(_B(0.006, 0.072, 0.007, _pal.steel()), X + 0.024, Y - 0.040, -0.48);
+      bpA.rotation.z = -0.28; g.add(bpA);
+      const bpB = _P(_B(0.006, 0.072, 0.007, _pal.steel()), X - 0.024, Y - 0.040, -0.48);
+      bpB.rotation.z = 0.28; g.add(bpB);
+      // Rear sighting assembly (telescopic sight mount)
+      g.add(_P(_B(0.015, 0.048, 0.015, 0x282a28), X + 0.038, Y + 0.010, -0.02));
+      // Muzzle face
+      g.add(_P(_T(0.025, 0.006, _pal.blk(), 10), X, Y, -0.665));
+      return g;
+    },
+
+    // ── CAESAR 155mm SPH (French wheeled howitzer) ───────────────────
+    caesar155: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.07;
+      // Truck cab (boxy, olive)
+      g.add(_P(_B(0.055, 0.040, 0.055, _pal.olive()), X, Y + 0.012, 0.04));
+      // Windscreen (dark glass strip)
+      g.add(_P(_B(0.054, 0.016, 0.005, _pal.blk()), X, Y + 0.036, 0.012));
+      // Gun platform (wider mounting deck behind cab)
+      g.add(_P(_B(0.060, 0.012, 0.090, _pal.gm()), X, Y - 0.004, -0.06));
+      // Main 155mm barrel (long, L52)
+      g.add(_P(_T(0.014, 0.62, _pal.steel(), 10), X, Y + 0.016, -0.38));
+      // Muzzle brake (double baffle)
+      g.add(_P(_B(0.028, 0.022, 0.022, _pal.steel()), X, Y + 0.016, -0.68));
+      g.add(_P(_B(0.028, 0.022, 0.010, _pal.steel()), X, Y + 0.016, -0.64));
+      // Breech block (boxy, rear of barrel)
+      g.add(_P(_B(0.030, 0.030, 0.055, _pal.gm()), X, Y + 0.016, 0.00));
+      // Equilibrators (two cylinders each side of barrel)
+      g.add(_P(_T(0.008, 0.08, _pal.steel(), 8), X + 0.022, Y + 0.006, -0.10));
+      g.add(_P(_T(0.008, 0.08, _pal.steel(), 8), X - 0.022, Y + 0.006, -0.10));
+      // Wheels (4 visible — front pair and rear pair)
+      const wMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+      const wGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.010, 10);
+      for (var wi = 0; wi < 2; wi++) {
+        const wz = wi === 0 ? 0.060 : -0.040;
+        const wF = new THREE.Mesh(wGeo, wMat); wF.rotation.z = Math.PI/2; wF.position.set(X + 0.036, Y - 0.026, wz); g.add(wF);
+        const wR = new THREE.Mesh(wGeo, wMat); wR.rotation.z = Math.PI/2; wR.position.set(X - 0.036, Y - 0.026, wz); g.add(wR);
+      }
+      // Hydraulic jack (deployed stabiliser leg)
+      g.add(_P(_B(0.006, 0.040, 0.006, _pal.steel()), X + 0.038, Y - 0.030, -0.065));
+      // French flag decal (small tri-colour on cab side — just coloured blocks)
+      g.add(_P(_B(0.003, 0.010, 0.018, 0x002395), X + 0.029, Y + 0.012, 0.040));
+      g.add(_P(_B(0.003, 0.010, 0.006, 0xffffff), X + 0.029, Y + 0.012, 0.052));
+      g.add(_P(_B(0.003, 0.010, 0.006, 0xed2939), X + 0.029, Y + 0.012, 0.058));
+      return g;
+    },
+
+    // ── Brimstone 2 missile (UK dual-mode precision) ─────────────────
+    brimstone2: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.08;
+      // Main body (slim, shorter than Kh-101)
+      g.add(_P(_T(0.016, 0.44, _pal.gm(), 8), X, Y, -0.16));
+      // Wider mid-section (warhead)
+      g.add(_P(_T(0.020, 0.12, _pal.gm(), 8), X, Y, -0.08));
+      // Nose cone (flat-faceted seeker head)
+      g.add(_P(_T(0.016, 0.055, 0x282828, 8), X, Y, -0.40));
+      // Seeker dome (mmW radar — darker tip)
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(0.016, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshLambertMaterial({ color: 0x1a1a1a }));
+      dome.rotation.x = Math.PI / 2; dome.position.set(X, Y, -0.44); g.add(dome);
+      // Pop-out wings (2 pairs — mid-body and tail)
+      for (var wi = 0; wi < 2; wi++) {
+        const wz = wi === 0 ? -0.14 : 0.10;
+        const wL = _P(_B(0.070, 0.004, 0.032, _pal.gm()), X + 0.037, Y, wz); wL.rotation.z = -0.08; g.add(wL);
+        const wR = _P(_B(0.070, 0.004, 0.032, _pal.gm()), X - 0.037, Y, wz); wR.rotation.z = 0.08; g.add(wR);
+      }
+      // Tail fins (4 × cruciform control fins)
+      const finAngles = [0, Math.PI/2, Math.PI, -Math.PI/2];
+      for (var fi = 0; fi < 4; fi++) {
+        const fin = _P(_B(0.028, 0.003, 0.022, _pal.steel()), X, Y, 0.14);
+        fin.rotation.z = finAngles[fi];
+        fin.position.x += Math.cos(finAngles[fi]) * 0.020;
+        fin.position.y += Math.sin(finAngles[fi]) * 0.020;
+        g.add(fin);
+      }
+      // Rocket motor nozzle
+      g.add(_P(_T(0.010, 0.014, _pal.blk(), 8), X, Y, 0.22));
+      return g;
+    },
+
+    // ── IRIS-T SLM launcher (German SAM system) ──────────────────────
+    iristslm: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.07;
+      // Launch vehicle body (boxy TRAKKER truck hull)
+      g.add(_P(_B(0.050, 0.032, 0.075, _pal.olive()), X, Y, -0.02));
+      // Cab front
+      g.add(_P(_B(0.046, 0.028, 0.030, _pal.gm()), X, Y + 0.006, 0.055));
+      // Missile launcher module (raised rectangular box on back)
+      g.add(_P(_B(0.046, 0.024, 0.060, _pal.gm()), X, Y + 0.032, -0.025));
+      // 4 × launch tubes (quad-pack visible ends)
+      const tubeMat = new THREE.MeshLambertMaterial({ color: 0x2a2c2a });
+      for (var ti = 0; ti < 4; ti++) {
+        const tx = X + (ti % 2 === 0 ? 0.011 : -0.011);
+        const ty = Y + 0.038 + (ti < 2 ? 0.010 : -0.002);
+        g.add(_P(_T(0.010, 0.065, tubeMat, 6), tx, ty, -0.024));
+      }
+      // Radar mast (folded down — boxy radar antenna at top)
+      g.add(_P(_B(0.006, 0.045, 0.006, _pal.steel()), X, Y + 0.058, 0.015));
+      g.add(_P(_B(0.022, 0.006, 0.018, _pal.gm()), X, Y + 0.082, 0.015));
+      // Truck wheels
+      const wMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+      const wGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.008, 10);
+      for (var wi = 0; wi < 2; wi++) {
+        const wz = wi === 0 ? 0.048 : -0.040;
+        const wF = new THREE.Mesh(wGeo, wMat); wF.rotation.z = Math.PI/2; wF.position.set(X + 0.032, Y - 0.022, wz); g.add(wF);
+        const wR = new THREE.Mesh(wGeo, wMat); wR.rotation.z = Math.PI/2; wR.position.set(X - 0.032, Y - 0.022, wz); g.add(wR);
+      }
+      return g;
+    },
+
+    // ── MGM-140 ATACMS ballistic missile ─────────────────────────────
+    atacms: function () {
+      const g = new THREE.Group(); g.userData.selfContained = true;
+      const X = 0.16, Y = -0.07;
+      // Main body (chunky ballistic missile — wider than cruise missiles)
+      g.add(_P(_T(0.030, 0.72, _pal.gm(), 10), X, Y, -0.26));
+      // Wider warhead section (front third)
+      g.add(_P(_T(0.034, 0.28, _pal.gm(), 10), X, Y, -0.44));
+      // Ogive nose (conical — ATACMS has blunt ogive)
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.034, 0.10, 10),
+        new THREE.MeshLambertMaterial({ color: _pal.gm() }));
+      nose.rotation.x = Math.PI / 2; nose.position.set(X, Y, -0.62); g.add(nose);
+      // Nose tip (guidance section — darker)
+      g.add(_P(_T(0.012, 0.030, _pal.blk(), 8), X, Y, -0.68));
+      // 4 × large wrap-around fins (distinctive ATACMS feature)
+      const finMat = new THREE.MeshLambertMaterial({ color: _pal.gm() });
+      for (var fi = 0; fi < 4; fi++) {
+        const ang = (fi / 4) * Math.PI * 2;
+        const fin = _P(_B(0.055, 0.004, 0.070, finMat), X, Y, 0.07);
+        fin.rotation.z = ang;
+        fin.position.x += Math.cos(ang) * 0.032;
+        fin.position.y += Math.sin(ang) * 0.032;
+        g.add(fin);
+      }
+      // Rocket motor (wide nozzle at rear)
+      g.add(_P(_T(0.022, 0.022, 0x3a1800, 10), X, Y, 0.15));
+      // Aft skirt (aerodynamic boat-tail)
+      g.add(_P(_T(0.026, 0.055, _pal.blk(), 10), X, Y, 0.10));
+      // Stencilled serial number band (two black rings)
+      g.add(_P(_T(0.031, 0.008, _pal.blk(), 10), X, Y, -0.10));
+      g.add(_P(_T(0.031, 0.008, _pal.blk(), 10), X, Y, 0.02));
+      return g;
+    },
+
+    // ── M16A2 (US standard issue 5.56mm rifle, AR-15 platform, 20" barrel) ──
+    m16: function () {
+      var g = new THREE.Group();
+      var mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.8 });
+      var plasticMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7, metalness: 0.05 });
+      var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.026, 0.52, 8), mat);
+      barrel.rotation.x = Math.PI/2; barrel.position.set(0, 0, 0.24); barrel.userData.role = 'bolt';
+      g.add(barrel);
+      var fh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.028, 0.055, 8), mat);
+      fh.rotation.x = Math.PI/2; fh.position.set(0, 0, 0.52); g.add(fh);
+      var upper = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.06, 0.28), mat);
+      upper.position.set(0, 0.02, 0.04); g.add(upper);
+      var lower = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.22), plasticMat);
+      lower.position.set(0, -0.01, 0.01); g.add(lower);
+      var handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.065, 0.12), mat);
+      handle.position.set(0, 0.075, 0.04); g.add(handle);
+      var stock = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.055, 0.22), plasticMat);
+      stock.position.set(0, -0.01, -0.16); g.add(stock);
+      var grip = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.09, 0.04), plasticMat);
+      grip.position.set(0, -0.07, -0.04); g.add(grip);
+      var hg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.032, 0.20, 8), plasticMat);
+      hg.rotation.x = Math.PI/2; hg.position.set(0, 0.005, 0.17); g.add(hg);
+      var mag = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.115, 0.035), plasticMat);
+      mag.position.set(0, -0.095, 0.02); g.add(mag);
+      g.userData.muzzlePos = new THREE.Vector3(0, 0, 0.56);
+      g.userData.selfContained = true;
+      return g;
+    },
+
+    // ── RG-6 Inferno (Russian 6-shot revolver grenade launcher) ──
+    rg6: function () {
+      var g = new THREE.Group();
+      var mat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5, metalness: 0.7 });
+      var drumMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.75 });
+      var body = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.12, 0.32), mat);
+      g.add(body);
+      var drum = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.095, 12), drumMat);
+      drum.rotation.z = Math.PI/2; drum.position.set(0, 0.05, -0.04); g.add(drum);
+      var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.028, 0.18, 8), mat);
+      barrel.rotation.x = Math.PI/2; barrel.position.set(0, 0.015, 0.22); barrel.userData.role = 'bolt'; g.add(barrel);
+      var stock = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.06, 0.20), mat);
+      stock.position.set(0.06, -0.02, -0.18); stock.rotation.z = 0.15; g.add(stock);
+      var grip = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.1, 0.04), mat);
+      grip.position.set(0, -0.08, -0.04); g.add(grip);
+      for (var ci = 0; ci < 6; ci++) {
+        var ang = (ci / 6) * Math.PI * 2;
+        var hole = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.1, 6), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9, metalness: 0.3 }));
+        hole.rotation.z = Math.PI/2; hole.position.set(Math.cos(ang) * 0.055, 0.05 + Math.sin(ang) * 0.055, -0.04); g.add(hole);
+      }
+      g.userData.muzzlePos = new THREE.Vector3(0, 0.015, 0.36);
+      g.userData.selfContained = true;
+      return g;
+    },
+
   };
 
   const meshBuilders = [
-    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.ak, NB.rpk,
+    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.m16, NB.ak, NB.rg6, NB.rpk,
     NB.svd, NB.pkm, NB.nlaw, NB.stugna, NB.m4,
     NB.javelin, NB.rpg7, NB.igla, NB.gp25,
     NB.scarh, NB.dshk, buildMolotovMesh,
@@ -2759,6 +5201,42 @@ const Weapons = (() => {
     buildThrowKnifeMesh, buildC4Mesh, NB.dronejammer, buildAxeMesh,
     // 5 Ukraine-war additions
     NB.aks74u, NB.m72law, NB.panzerfaust3, NB.nsvhmg, NB.fort500,
+    // 3 more Ukraine-conflict weapons
+    NB.malyuk, NB.carlgustaf, NB.m240b,
+    // 3 new additions (PKP Pecheneg, SPG-9, HK416)
+    NB.pkpecheneg, NB.spg9, NB.hk416,
+    // 6 more authentic war weapons
+    NB.rgd5, NB.spike_lr, NB.milan, NB.mp7, NB.kord, NB.browning_m2,
+    // 5 new war weapons (ZU-23-2, FPV drone, Kornet, RPG-26, HIMARS)
+    NB.zu23_2, NB.fpv_drone, NB.kornet, NB.rpg26, NB.himars,
+    // 4 more (F-1 grenade, Maxim M1910, BM-21 Grad, Tavor X95)
+    NB.f1_grenade, NB.maxim1910, NB.bm21_grad, NB.tavor_x95,
+    // 4 more (TOW BGM-71, RPG-29, Starstreak, AKM)
+    NB.tow_bgm71, NB.rpg29, NB.starstreak, NB.akm,
+    // 4 more (AN-94, M67, Switchblade 300, Saiga-12)
+    NB.an94, NB.m67_grenade, NB.switchblade300, NB.saiga12,
+    // 4 more (RPG-18, Podnos 82mm mortar, OTs-14 Groza, PP-19 Bizon)
+    NB.rpg18, NB.podnos82, NB.ots14, NB.pp19,
+    // 4 more (FAB-500 glide bomb, M777 howitzer, Strela-2, commercial drop drone)
+    NB.fab500, NB.m777, NB.strela2, NB.dropdrone,
+    // 4 more (Bayraktar TB2, TOS-1A, DP-27, SV-98)
+    NB.bayraktar, NB.tos1a, NB.dp27, NB.sv98,
+    // 4 more (Lancet-3, Storm Shadow, AS Val, OSV-96)
+    NB.lancet3, NB.stormshadow, NB.asval, NB.osv96,
+    // 4 more (Neptune R-360, Metis-M1 ATGM, M249 SAW, RPG-30)
+    NB.neptune, NB.metis_m1, NB.m249saw, NB.rpg30,
+    // 4 more (Shahed-136, AGM-88 HARM, RGO-78 grenade, Gepard 35mm)
+    NB.shahed136, NB.agm88harm, NB.rgo78, NB.gepard35,
+    // 4 more (PTRD-41, Konkurs ATGM, M32A1 MGL, PPSh-41)
+    NB.ptrd41, NB.konkurs, NB.m32mgl, NB.ppsh41,
+    // 4 more (AI AXMC, Malyutka Sagger, Verba MANPADS, RGN-86)
+    NB.aiax, NB.malyutka, NB.verba, NB.rgn86,
+    // 4 more (RPG-32 Hashim, HK G36C, 2B9 Vasilek auto-mortar, B-10 RCL)
+    NB.rpg32, NB.g36c, NB.vasilek, NB.b10,
+    // 4 more (AK-74M, Switchblade 600, PzH 2000, Kh-101)
+    NB.ak74m, NB.switchblade600, NB.pzh2000, NB.kh101,
+    // 4 more (CAESAR 155mm, Brimstone 2, IRIS-T SLM, ATACMS)
+    NB.caesar155, NB.brimstone2, NB.iristslm, NB.atacms,
   ];
 
   // Ensure meshBuilders matches WEAPONS length
@@ -2768,6 +5246,7 @@ const Weapons = (() => {
 
   function createGunMesh(camera) {
     _camera = camera;
+    _createScopeOverlay();
     for (let i = 0; i < WEAPONS.length; i++) {
       const m = meshBuilders[i]();
       // Enhance with reflective materials, sub-details, and animation rigging
@@ -3050,6 +5529,38 @@ const Weapons = (() => {
   const RECOIL_RECOVERY_DELAY = 0.12;
   const RECOIL_RECOVERY_RATE = 4;
 
+  // ── Per-weapon recoil profiles (bloom accumulation + sustained-fire spread) ──
+  var RECOIL_PROFILES = {
+    PISTOL:   { kickY: 0.022, kickX: 0.008, bloomAdd: 0.012, bloomDecay: 6.0, sustained: 0.0 },
+    SMG:      { kickY: 0.018, kickX: 0.018, bloomAdd: 0.010, bloomDecay: 7.5, sustained: 0.004 },
+    AR:       { kickY: 0.030, kickX: 0.010, bloomAdd: 0.014, bloomDecay: 5.0, sustained: 0.006 },
+    LMG:      { kickY: 0.025, kickX: 0.008, bloomAdd: 0.008, bloomDecay: 3.5, sustained: 0.012 },
+    SNIPER:   { kickY: 0.090, kickX: 0.005, bloomAdd: 0.040, bloomDecay: 2.5, sustained: 0.0 },
+    SHOTGUN:  { kickY: 0.060, kickX: 0.040, bloomAdd: 0.080, bloomDecay: 3.0, sustained: 0.0 },
+    GRENADE:  { kickY: 0.045, kickX: 0.012, bloomAdd: 0.020, bloomDecay: 3.5, sustained: 0.0 },
+    ROCKET:   { kickY: 0.070, kickX: 0.020, bloomAdd: 0.035, bloomDecay: 2.0, sustained: 0.0 },
+    DEFAULT:  { kickY: 0.028, kickX: 0.010, bloomAdd: 0.014, bloomDecay: 5.0, sustained: 0.0 },
+  };
+
+  function _getRecoilProfile(wepType) {
+    var t = wepType || '';
+    if (t === 'PISTOL') return RECOIL_PROFILES.PISTOL;
+    if (t === 'SMG') return RECOIL_PROFILES.SMG;
+    if (t === 'SNIPER' || t === 'AMR') return RECOIL_PROFILES.SNIPER;
+    if (t === 'SHOTGUN') return RECOIL_PROFILES.SHOTGUN;
+    if (t === 'LMG' || t === 'HMG' || t === 'HMG_HEAVY' || t === 'MACHINEGUN' ||
+        t === 'NATO_HEAVY' || t === 'GATLING' || t === 'MINIGUN') return RECOIL_PROFILES.LMG;
+    if (t === 'GRENADE' || t === 'SMOKE' || t === 'FLASHBANG' || t === 'INCENDIARY' ||
+        t === 'THERMOBARIC' || t === 'EXPLOSIVE') return RECOIL_PROFILES.GRENADE;
+    if (t === 'AT' || t === 'ATGM' || t === 'AT_HEAVY' || t === 'AT_LIGHT' || t === 'AA') return RECOIL_PROFILES.ROCKET;
+    if (t === 'ASSAULT' || t === 'NATO' || t === 'SILENT' || t === 'JAMMER') return RECOIL_PROFILES.AR;
+    return RECOIL_PROFILES.DEFAULT;
+  }
+
+  // Bloom state: accumulated spread from sustained fire
+  var _currentBloom = 0;
+  var _sustainedShots = 0;
+
   // ── Viewmodel inertia (mouse-look lag) ────────────────────
   let _prevYaw = 0;
   let _prevPitch = 0;
@@ -3098,6 +5609,18 @@ const Weapons = (() => {
     if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) {
       CameraSystem.shake(0.004 + intensity * 0.012, 0.12 + intensity * 0.08);
     }
+    // ── Per-weapon bloom accumulation and sustained-fire spread ──
+    var _rp = _getRecoilProfile(w.type);
+    _currentBloom = Math.min(0.18, _currentBloom + _rp.bloomAdd + _rp.sustained * _sustainedShots);
+    _sustainedShots++;
+    // Additional horizontal kick with alternating left/right pattern per profile
+    var _horizSign = (_sustainedShots % 2 === 0) ? 1 : -1;
+    if (typeof CameraSystem !== 'undefined') {
+      CameraSystem.setPitch(CameraSystem.getPitch() + _rp.kickY * recoilMod);
+      CameraSystem.setYaw(CameraSystem.getYaw() + _rp.kickX * _horizSign * (0.5 + Math.random() * 0.5) * recoilMod);
+    }
+    _recoilPitchAccum += _rp.kickY * recoilMod;
+    _recoilYawAccum += _rp.kickX * _horizSign * (0.5 + Math.random() * 0.5) * recoilMod;
   }
 
   // ── Weapon switching ──────────────────────────────────────
@@ -3106,6 +5629,7 @@ const Weapons = (() => {
     if (!unlocked[idx]) return;
     if (idx === currentIdx) return;
     if (zoomed) exitZoom();
+    _hideScopeOverlay(); // always hide scope overlay when switching weapons
     // Cancel reload on old weapon before switching
     var oldState = states[currentIdx];
     if (oldState && oldState.reloading) {
@@ -3183,18 +5707,26 @@ const Weapons = (() => {
     }
   }
 
+  function unlock(weaponId) {
+    for (var _ui = 0; _ui < WEAPONS.length; _ui++) {
+      if (WEAPONS[_ui].id === weaponId) { unlockWeapon(_ui); return; }
+    }
+  }
+
   // ── Scope zoom ────────────────────────────────────────────
   function enterZoom() {
     if (!_camera) return;
     if (cur().type === 'MELEE') return; // no zoom on melee
     zoomed = true;
     _adsTarget = 1;
+    if (_isSniperWeapon()) _showScopeOverlay();
   }
 
   function exitZoom() {
     if (!_camera) return;
     zoomed = false;
     _adsTarget = 0;
+    _hideScopeOverlay();
   }
 
   function toggleFlashlight() {
@@ -3216,7 +5748,33 @@ const Weapons = (() => {
 
   // ── Projectile system (NLAW / Stugna) ────────────────────
   const projectiles = [];
+  const _explosionFlashes = []; // track active explosion radius visuals
   const PROJ_SPEED = 30;
+
+  // ── Blood spray particles ─────────────────────────────────
+  var _bloodParticles = [];
+
+  function _addBloodSpray(pos) {
+    if (!window._gameScene) return;
+    var count = 12;
+    for (var i = 0; i < count; i++) {
+      var geo = new THREE.SphereGeometry(0.04 + Math.random() * 0.06, 4, 4);
+      var mat = new THREE.MeshBasicMaterial({ color: 0xaa0000, transparent: true, opacity: 0.9 });
+      var particle = new THREE.Mesh(geo, mat);
+      particle.position.copy(pos);
+      particle.position.y += 0.8 + Math.random() * 0.4;
+      var vel = new THREE.Vector3(
+        (Math.random() - 0.5) * 4,
+        Math.random() * 3 + 1,
+        (Math.random() - 0.5) * 4
+      );
+      particle._vel = vel;
+      particle._life = 0.4 + Math.random() * 0.3;
+      particle._age = 0;
+      window._gameScene.add(particle);
+      _bloodParticles.push(particle);
+    }
+  }
 
   function spawnProjectile(camera, wep) {
     if (!_scene) return;
@@ -3393,7 +5951,12 @@ const Weapons = (() => {
           window.AudioSystem.playExplosion();
         }
         // Explosion effect
-        Enemies.damageInRadius(p.mesh.position, p.radius, p.damage);
+        var _wExplRes = Enemies.damageInRadius(p.mesh.position, p.radius, p.damage);
+        if (typeof GameManager !== 'undefined' && GameManager.notifyExplosiveKills && Array.isArray(_wExplRes)) {
+          var _wExplK = 0;
+          for (var _wei = 0; _wei < _wExplRes.length; _wei++) if (_wExplRes[_wei].remaining <= 0) _wExplK++;
+          if (_wExplK > 0) GameManager.notifyExplosiveKills(_wExplK);
+        }
         // Destroy terrain blocks in blast radius
         if (typeof VoxelWorld !== 'undefined') {
           const cx = Math.round(p.mesh.position.x);
@@ -3413,7 +5976,7 @@ const Weapons = (() => {
         if (p.isMolotov) {
           createFireArea(p.mesh.position, p.radius);
         } else {
-          createExplosionFlash(p.mesh.position);
+          createExplosionFlash(p.mesh.position, p.radius);
         }
         p.mesh.geometry.dispose();
         p.mesh.material.dispose();
@@ -3423,8 +5986,10 @@ const Weapons = (() => {
     }
   }
 
-  function createExplosionFlash(pos) {
+  function createExplosionFlash(pos, blastRadius) {
     if (!_scene) return;
+    blastRadius = blastRadius || 3;
+    // Central bright flash
     const flashGeo = new THREE.SphereGeometry(1.5, 8, 8);
     const flashMat = new THREE.MeshBasicMaterial({
       color: 0xff6600, transparent: true, opacity: 0.9,
@@ -3433,18 +5998,19 @@ const Weapons = (() => {
     const flash = new THREE.Mesh(flashGeo, flashMat);
     flash.position.copy(pos);
     _scene.add(flash);
-    let t = 0.2;
-    const fadeInterval = setInterval(function () {
-      t -= 0.016;
-      flash.material.opacity = Math.max(0, t / 0.2) * 0.9;
-      flash.scale.setScalar(1 + (0.2 - t) * 5);
-      if (t <= 0) {
-        _scene.remove(flash);
-        flashGeo.dispose();
-        flashMat.dispose();
-        clearInterval(fadeInterval);
-      }
-    }, 16);
+    // Explosion radius visual: semi-transparent sphere showing damage radius
+    const radiusGeo = new THREE.SphereGeometry(blastRadius, 8, 8);
+    const radiusMat = new THREE.MeshBasicMaterial({
+      color: 0xff6600, transparent: true, opacity: 0.3,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    });
+    const radiusMesh = new THREE.Mesh(radiusGeo, radiusMat);
+    radiusMesh.position.copy(pos);
+    _scene.add(radiusMesh);
+    // Track explosion for animation
+    const explosionFlash = { flash: flash, radius: radiusMesh, startTime: 0, duration: 0.4 };
+    _explosionFlashes.push(explosionFlash);
   }
 
   function createFireArea(pos, radius) {
@@ -3480,54 +6046,62 @@ const Weapons = (() => {
   }
 
   // ── Smoke Cloud ────────────────────────────────────────────
-  const _smokeClouds = []; // active smoke zones for LOS checks
+  var _smokeClouds = []; // active smoke zones for LOS checks
 
   function createSmokeCloud(pos, radius) {
     if (!_scene) return;
-    // Visual: multiple translucent spheres
-    const group = new THREE.Group();
-    group.position.copy(pos);
-    for (let i = 0; i < 6; i++) {
-      const s = new THREE.Mesh(
-        new THREE.SphereGeometry(radius * (0.5 + Math.random() * 0.5), 8, 6),
-        new THREE.MeshBasicMaterial({
-          color: 0xcccccc, transparent: true, opacity: 0.45,
-          depthWrite: false,
-        })
-      );
-      s.position.set(
-        (Math.random() - 0.5) * radius * 0.6,
-        Math.random() * radius * 0.4,
-        (Math.random() - 0.5) * radius * 0.6
-      );
-      group.add(s);
-    }
-    _scene.add(group);
-    const cloud = { group: group, pos: pos.clone(), radius: radius, life: 6.0 };
-    _smokeClouds.push(cloud);
-    if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playSmoke) window.AudioSystem.playSmoke();
 
-    // Animate fade-out
-    const fadeInt = setInterval(function () {
-      cloud.life -= 0.1;
-      // Drift upward slowly
-      group.position.y += 0.02;
-      // Expand slightly
-      group.scale.setScalar(1 + (6.0 - cloud.life) * 0.05);
-      // Fade in last 2 seconds
-      if (cloud.life < 2.0) {
-        group.children.forEach(function (c) {
-          c.material.opacity = 0.45 * (cloud.life / 2.0);
-        });
-      }
-      if (cloud.life <= 0) {
-        group.children.forEach(function (c) { c.geometry.dispose(); c.material.dispose(); });
-        _scene.remove(group);
-        const idx = _smokeClouds.indexOf(cloud);
-        if (idx >= 0) _smokeClouds.splice(idx, 1);
-        clearInterval(fadeInt);
-      }
-    }, 100);
+    var group = new THREE.Group();
+    group.position.copy(pos);
+    group.position.y += 0.5;
+
+    var particles = [];
+    var count = 18;
+
+    for (var i = 0; i < count; i++) {
+      var size = 1.5 + Math.random() * 2.5;
+      var geo = new THREE.SphereGeometry(size, 6, 6);
+      var mat = new THREE.MeshBasicMaterial({
+        color: 0xcccccc,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false
+      });
+      var p = new THREE.Mesh(geo, mat);
+
+      // Random positions within cloud radius
+      var angle = Math.random() * Math.PI * 2;
+      var rad = Math.random() * 4;
+      p.position.set(
+        Math.cos(angle) * rad,
+        Math.random() * 2,
+        Math.sin(angle) * rad
+      );
+
+      // Individual particle rise velocity
+      p._riseSpeed = 0.2 + Math.random() * 0.4;
+      p._expandSpeed = 0.08 + Math.random() * 0.1;
+      p._delay = i * 0.15; // stagger spawn
+      p._active = false;
+
+      group.add(p);
+      particles.push(p);
+    }
+
+    _scene.add(group);
+    _smokeClouds.push({
+      group: group,
+      particles: particles,
+      timer: 0,
+      maxTimer: 18.0, // smoke lasts 18 seconds
+      pos: pos.clone(),
+      radius: radius || 6
+    });
+
+    // Audio
+    try {
+      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playSmoke) window.AudioSystem.playSmoke();
+    } catch(e) {}
   }
 
   function isInSmoke(px, pz) {
@@ -3603,6 +6177,16 @@ const Weapons = (() => {
     // Trigger visual animations (bolt cycle, barrel spin, muzzle smoke)
     if (typeof WeaponDetails !== 'undefined' && WeaponDetails.onFire) {
       WeaponDetails.onFire(gunMeshes[currentIdx], wep);
+    }
+
+    // ── Bolt/slide animation and shell casing ejection ───
+    _triggerBoltAnim();
+    // Standalone bolt cycle state machine (separate from WeaponDetails)
+    _boltState = 1;
+    _boltTimer = 0;
+    var _noShellTypes = ['MELEE','MINE','SMOKE','FLASHBANG','AT','ATGM','AT_HEAVY','AT_LIGHT','AA','GRENADE','INCENDIARY','THERMOBARIC','EXPLOSIVE','JAMMER','SILENT'];
+    if (_noShellTypes.indexOf(wep.type) < 0) {
+      _ejectShell(wep.type);
     }
 
     // ── Weapon jamming system ────────────────────────────
@@ -3717,9 +6301,10 @@ const Weapons = (() => {
       if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       const pellets = 8;
       for (let p = 0; p < pellets; p++) {
+        var _pelletBloom = _currentBloom;
         spreadVec.set(
-          (Math.random() - 0.5) * wep.spread * 2,
-          (Math.random() - 0.5) * wep.spread * 2
+          (Math.random() - 0.5) * (wep.spread + _pelletBloom) * 2,
+          (Math.random() - 0.5) * (wep.spread + _pelletBloom) * 2
         );
         raycaster.setFromCamera(spreadVec, camera);
         raycaster.far = 25; // shotgun effective range
@@ -3846,14 +6431,15 @@ const Weapons = (() => {
       }
     }
 
+    var _hitscanSpread = wep.spread + _currentBloom;
     spreadVec.set(
-      (Math.random() - 0.5) * wep.spread * 2,
-      (Math.random() - 0.5) * wep.spread * 2
+      (Math.random() - 0.5) * _hitscanSpread * 2,
+      (Math.random() - 0.5) * _hitscanSpread * 2
     );
     if (_aimSnapDir) {
       raycaster.ray.origin.copy(camera.getWorldPosition(new THREE.Vector3()));
       raycaster.ray.direction.copy(_aimSnapDir).add(
-        new THREE.Vector3((Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread)
+        new THREE.Vector3((Math.random()-0.5)*_hitscanSpread, (Math.random()-0.5)*_hitscanSpread, (Math.random()-0.5)*_hitscanSpread)
       ).normalize();
     } else {
       raycaster.setFromCamera(spreadVec, camera);
@@ -3896,7 +6482,15 @@ const Weapons = (() => {
       }
       if (!dropMiss) {
         var dropDmgMult = hits[0]._dropDamageMult || 1;
-        onHit(hits[0], Math.round(wep.damage * dropDmgMult));
+        var _finalDmg = Math.round(wep.damage * dropDmgMult * (window._weaponDamageMultiplier || 1));
+        onHit(hits[0], _finalDmg);
+        // Explosive rounds (shop upgrade): AOE damage burst on hit
+        if (window._explosiveRounds && hits[0].point && typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+          Enemies.damageInRadius(hits[0].point, 3.5, Math.round(_finalDmg * 0.35));
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
+            try { AudioSystem.playExplosion(); } catch(e){}
+          }
+        }
       // Bullet penetration for high-caliber weapons — hit 2nd target at reduced damage
       var penTypes = ['SNIPER', 'LMG', 'HMG', 'HMG_HEAVY', 'MINIGUN', 'AMR', 'MACHINEGUN'];
       if (penTypes.indexOf(wep.type) >= 0 && hits.length > 1) {
@@ -4092,6 +6686,96 @@ const Weapons = (() => {
     // Projectiles
     updateProjectiles(delta);
 
+    // Update explosion radius flashes
+    for (let ei = _explosionFlashes.length - 1; ei >= 0; ei--) {
+      const exp = _explosionFlashes[ei];
+      exp.startTime += delta;
+      const progress = exp.startTime / exp.duration;
+      if (progress >= 1.0) {
+        if (exp.flash && _scene) {
+          _scene.remove(exp.flash);
+          if (exp.flash.geometry) exp.flash.geometry.dispose();
+          if (exp.flash.material) exp.flash.material.dispose();
+        }
+        if (exp.radius && _scene) {
+          _scene.remove(exp.radius);
+          if (exp.radius.geometry) exp.radius.geometry.dispose();
+          if (exp.radius.material) exp.radius.material.dispose();
+        }
+        _explosionFlashes.splice(ei, 1);
+      } else {
+        // Animate central flash: expand and fade
+        if (exp.flash) {
+          exp.flash.material.opacity = Math.max(0, 0.9 * (1.0 - progress * 1.5));
+          exp.flash.scale.setScalar(1 + progress * 5);
+        }
+        // Animate radius sphere: fade opacity
+        if (exp.radius) {
+          exp.radius.material.opacity = Math.max(0, 0.3 * (1.0 - progress));
+        }
+      }
+    }
+
+    // blood particles
+    for (var bi = _bloodParticles.length - 1; bi >= 0; bi--) {
+      var bp = _bloodParticles[bi];
+      bp._age += delta;
+      bp._vel.y -= 9.8 * delta;
+      bp.position.addScaledVector(bp._vel, delta);
+      bp.material.opacity = 0.9 * (1 - bp._age / bp._life);
+      if (bp._age >= bp._life) {
+        window._gameScene.remove(bp);
+        bp.geometry.dispose(); bp.material.dispose();
+        _bloodParticles.splice(bi, 1);
+      }
+    }
+
+    // Smoke clouds
+    for (var si = _smokeClouds.length - 1; si >= 0; si--) {
+      var sc = _smokeClouds[si];
+      sc.timer += delta;
+
+      var lifeRatio = sc.timer / sc.maxTimer;
+
+      sc.particles.forEach(function(p) {
+        p._delay -= delta;
+        if (p._delay > 0) return;
+        if (!p._active) {
+          p._active = true;
+        }
+
+        // Rise slowly
+        p.position.y += p._riseSpeed * delta;
+
+        // Expand
+        var s = 1 + p._expandSpeed * sc.timer * 2;
+        p.scale.setScalar(Math.min(s, 2.5));
+
+        // Opacity: fade in for first 2s, hold, fade out last 3s
+        var fade = 1.0;
+        if (sc.timer < 2.0) {
+          fade = sc.timer / 2.0;
+        } else if (lifeRatio > 0.8) {
+          fade = 1.0 - (lifeRatio - 0.8) / 0.2;
+        }
+        p.material.opacity = Math.max(0, Math.min(0.45, fade * 0.45));
+
+        // Slight horizontal drift
+        p.position.x += (Math.random() - 0.5) * 0.01;
+        p.position.z += (Math.random() - 0.5) * 0.01;
+      });
+
+      if (sc.timer >= sc.maxTimer) {
+        _scene.remove(sc.group);
+        // Dispose geometries/materials
+        sc.particles.forEach(function(p) {
+          p.geometry.dispose();
+          p.material.dispose();
+        });
+        _smokeClouds.splice(si, 1);
+      }
+    }
+
     // Recoil recovery (visual gun kick)
     const mesh = gunMeshes[currentIdx];
     if (recoilOffsetZ < 0) recoilOffsetZ = Math.min(0, recoilOffsetZ + delta * 12 * 0.04);
@@ -4100,6 +6784,14 @@ const Weapons = (() => {
     if (_chSpread > 0) {
       _chSpread = Math.max(0, _chSpread - delta * 1.2);
       if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
+    }
+    // Bloom recovery: per-profile decay rate, sustained-shots counter resets while not firing
+    var _bRp = _getRecoilProfile(cur().type);
+    if (_currentBloom > 0) {
+      _currentBloom = Math.max(0, _currentBloom - _bRp.bloomDecay * delta);
+    }
+    if (!_firedThisFrame) {
+      _sustainedShots = Math.max(0, _sustainedShots - Math.floor(delta * 3));
     }
 
     // Smooth ADS FOV transition
@@ -4256,6 +6948,54 @@ const Weapons = (() => {
     // WeaponDetails visual animations (bolt, barrel spin, laser, smoke, scope overlay)
     if (typeof WeaponDetails !== 'undefined' && WeaponDetails.update) {
       WeaponDetails.update(delta, mesh, cur(), curState(), _firedThisFrame, zoomed);
+    }
+
+    // ── Bolt animation and shell casing ticks ────────────
+    _tickBoltAnim(delta);
+    _tickCasings(delta);
+
+    // ── Standalone bolt cycle animation ──────────────────
+    if (_boltState > 0) {
+      _boltTimer += delta;
+      if (_boltState === 1) {
+        // Phase 1: bolt moves back over _boltMaxTime
+        var _boltT = Math.min(1, _boltTimer / _boltMaxTime);
+        _boltOffset = _boltT * 0.045; // slide back 4.5cm
+        if (_boltT >= 1) { _boltTimer = 0; _boltState = 2; }
+      } else if (_boltState === 2) {
+        // Phase 2: bolt returns forward (slightly slower)
+        var _boltT2 = Math.min(1, _boltTimer / (_boltMaxTime * 1.2));
+        _boltOffset = (1 - _boltT2) * 0.045;
+        if (_boltT2 >= 1) { _boltTimer = 0; _boltState = 0; _boltOffset = 0; }
+      }
+      // Apply to bolt mesh if present (Z axis is forward/back in local space)
+      if (_boltMesh) _boltMesh.position.z = _boltOffset;
+    }
+
+    // ── Shell casings physics (scene-level) ──────────────
+    var _SHELL_GRAVITY = 9.8;
+    for (var _si = _shellCasings.length - 1; _si >= 0; _si--) {
+      var _sh = _shellCasings[_si];
+      _sh.life += delta;
+      _sh.vy -= _SHELL_GRAVITY * delta;
+      _sh.mesh.position.x += _sh.vx * delta;
+      _sh.mesh.position.y += _sh.vy * delta;
+      _sh.mesh.position.z += _sh.vz * delta;
+      _sh.mesh.rotation.x += _sh.rx * delta;
+      _sh.mesh.rotation.y += _sh.ry * delta;
+      _sh.mesh.rotation.z += _sh.rz * delta;
+      // Bounce off ground (simple)
+      if (_sh.mesh.position.y < 0.05 && _sh.vy < 0) {
+        _sh.mesh.position.y = 0.05;
+        _sh.vy = -_sh.vy * 0.3;
+        _sh.vx *= 0.7;
+        _sh.vz *= 0.7;
+      }
+      if (_sh.life >= _sh.maxLife) {
+        var _shSc = window._gameScene || _scene;
+        if (_shSc) _shSc.remove(_sh.mesh);
+        _shellCasings.splice(_si, 1);
+      }
     }
 
     // ── Guided weapon lock-on indicator ──
@@ -4448,6 +7188,19 @@ const Weapons = (() => {
       }
     }
     projectiles.length = 0;
+    // Clear shell casings
+    for (var _ci = _casings.length - 1; _ci >= 0; _ci--) {
+      try { _casings[_ci].scene.remove(_casings[_ci].mesh); } catch (e) {}
+    }
+    _casings.length = 0;
+    // Clear scene-level shell casings
+    for (var _sci = 0; _sci < _shellCasings.length; _sci++) {
+      var _scSc = window._gameScene || _scene;
+      if (_scSc) { try { _scSc.remove(_shellCasings[_sci].mesh); } catch (e) {} }
+    }
+    _shellCasings.length = 0;
+    // Reset standalone bolt state
+    _boltState = 0; _boltTimer = 0; _boltOffset = 0;
     // Clear smoke clouds with proper disposal
     for (let i = _smokeClouds.length - 1; i >= 0; i--) {
       var sc = _smokeClouds[i];
@@ -4615,6 +7368,22 @@ const Weapons = (() => {
       if (a.recoilMult)        s.recoilY   *= a.recoilMult;
       if (a.silent)            s.silent     = true;
       if (a.muzzleFlashMult != null) s.muzzleFlashMult = Math.min(s.muzzleFlashMult, a.muzzleFlashMult);
+    }
+    // Shop upgrade: extended mag increases clip size
+    if (window._magCapMultiplier && window._magCapMultiplier !== 1) {
+      s.clipSize = Math.max(1, Math.floor(s.clipSize * window._magCapMultiplier));
+    }
+    // Shop upgrade: damage multiplier
+    if (window._weaponDamageMultiplier && window._weaponDamageMultiplier !== 1) {
+      s.damage = Math.round(s.damage * window._weaponDamageMultiplier);
+    }
+    // Shop upgrade: ROF multiplier
+    if (window._rofMultiplier && window._rofMultiplier !== 1) {
+      s.fireRate = s.fireRate * window._rofMultiplier;
+    }
+    // Shop upgrade: reload multiplier
+    if (window._reloadMultiplier && window._reloadMultiplier !== 1) {
+      s.reloadTime = s.reloadTime * window._reloadMultiplier;
     }
     return s;
   }
@@ -4790,6 +7559,149 @@ const Weapons = (() => {
     return stats;
   }
 
+  // ── Standalone bolt mesh helper ───────────────────────────────
+  function _initBolt() {
+    if (_boltMesh) return;
+    var geo = new THREE.BoxGeometry(0.025, 0.018, 0.06);
+    var mat = new THREE.MeshPhongMaterial({ color: 0x2a2a2a, shininess: 80 });
+    _boltMesh = new THREE.Mesh(geo, mat);
+    _boltMesh.name = 'bolt';
+  }
+
+  // ── Shell casing geometry (lazy, shared) ──────────────────────
+  function _getShellGeo() {
+    if (!_shellGeo) {
+      _shellGeo = new THREE.CylinderGeometry(0.003, 0.003, 0.018, 6);
+      _shellMat = new THREE.MeshPhongMaterial({ color: 0xB8860B, shininess: 80 });
+    }
+    return { geo: _shellGeo, mat: _shellMat };
+  }
+
+  // ── Bolt/slide animation ──────────────────────────────────────
+  // Triggers a bolt-cycle animation on the current weapon's viewmodel mesh.
+  // Phase 0: retract over 0.06 s, phase 1: return over 0.09 s.
+  function _triggerBoltAnim() {
+    var mesh = gunMeshes[currentIdx];
+    if (!mesh) return;
+    mesh.userData.boltAnim = { phase: 0, t: 0, maxBack: 0.08 };
+  }
+
+  function _tickBoltAnim(dt) {
+    var mesh = gunMeshes[currentIdx];
+    if (!mesh || !mesh.userData.boltAnim) return;
+    var a = mesh.userData.boltAnim;
+    if (a.phase === 0) { // retracting
+      a.t += dt;
+      var prog = Math.min(1, a.t / 0.06);
+      // Store as boltOffsetZ so the main mesh position logic can incorporate it
+      mesh.userData.boltOffsetZ = a.maxBack * prog;
+      if (prog >= 1) { a.phase = 1; a.t = 0; }
+    } else if (a.phase === 1) { // returning
+      a.t += dt;
+      var prog2 = Math.min(1, a.t / 0.09);
+      mesh.userData.boltOffsetZ = a.maxBack * (1 - prog2);
+      if (prog2 >= 1) {
+        mesh.userData.boltOffsetZ = 0;
+        mesh.userData.boltAnim = null;
+      }
+    }
+    // Apply bolt offset on top of current position.z (added to the Z already set in update)
+    // We adjust mesh.position.z directly here; the main update loop overwrites it each frame,
+    // so we write to a separate child (or a tiny additional shift after the main write).
+    // Implementation: we add boltOffsetZ to position.z after the fact using a child sentinel.
+    // Since the main update writes mesh.position.z each frame, we animate the first child group
+    // that has userData.role === 'boltChild', or fall back to rotating children[0].
+    if (mesh.children.length > 0) {
+      var boltChild = null;
+      for (var bci = 0; bci < mesh.children.length; bci++) {
+        if (mesh.children[bci].userData && mesh.children[bci].userData.role === 'bolt') {
+          boltChild = mesh.children[bci]; break;
+        }
+      }
+      // Fallback: use the first visible child (typically the main gun body group)
+      if (!boltChild && mesh.children[0]) boltChild = mesh.children[0];
+      if (boltChild) {
+        boltChild.position.z = (boltChild.userData._origZ || 0) + (mesh.userData.boltOffsetZ || 0);
+        if (!boltChild.userData._origZSet) {
+          boltChild.userData._origZ = boltChild.position.z;
+          boltChild.userData._origZSet = true;
+        }
+      }
+    }
+  }
+
+  // ── Shell casing ejection ─────────────────────────────────────
+  function _ejectShell(weaponType) {
+    if (!_scene && !(typeof window !== 'undefined' && window._gameScene)) return;
+    var sc = (typeof window !== 'undefined' && window._gameScene) ? window._gameScene : _scene;
+    if (!sc) return;
+    var cam = _camera;
+    if (!cam && typeof window !== 'undefined' && window.GameManager && window.GameManager.getCamera) {
+      cam = window.GameManager.getCamera();
+    }
+    if (!cam) return;
+
+    var isBig    = (weaponType === 'HMG' || weaponType === 'HMG_HEAVY' || weaponType === 'LMG' || weaponType === 'MACHINEGUN' || weaponType === 'MINIGUN' || weaponType === 'GATLING');
+    var isPistol = (weaponType === 'PISTOL');
+    var r   = isBig ? 0.05 : (isPistol ? 0.025 : 0.032);
+    var len = isBig ? 0.18 : (isPistol ? 0.10  : 0.13);
+
+    var geo = new THREE.CylinderGeometry(r * 0.6, r, len, 6);
+    var mat = new THREE.MeshLambertMaterial({ color: 0xC8A840 });
+    var c = new THREE.Mesh(geo, mat);
+
+    // Ejection port: right side, slightly forward, roughly at shoulder height
+    var ejPos = new THREE.Vector3(0.28, -0.05, -0.35);
+    ejPos.applyQuaternion(cam.quaternion);
+    ejPos.add(cam.position);
+    c.position.copy(ejPos);
+
+    // Rightward + upward velocity in world space
+    var right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    sc.add(c);
+    _casings.push({
+      mesh: c, scene: sc,
+      vx: right.x * 3.5 + (Math.random() - 0.5) * 0.8,
+      vy: 2.5 + Math.random() * 1.5,
+      vz: right.z * 3.5 + (Math.random() - 0.5) * 0.8,
+      rx: (Math.random() - 0.5) * 20,
+      rz: (Math.random() - 0.5) * 20,
+      life: 2.2,
+      landed: false
+    });
+    // Cap at 30 casings; evict oldest
+    while (_casings.length > 30) {
+      var old = _casings.shift();
+      try { old.scene.remove(old.mesh); } catch (e) {}
+    }
+  }
+
+  function _tickCasings(dt) {
+    for (var i = _casings.length - 1; i >= 0; i--) {
+      var ca = _casings[i];
+      ca.life -= dt;
+      if (!ca.landed) {
+        ca.vy -= 15 * dt; // gravity
+        ca.mesh.position.x += ca.vx * dt;
+        ca.mesh.position.y += ca.vy * dt;
+        ca.mesh.position.z += ca.vz * dt;
+        ca.mesh.rotation.x += ca.rx * dt;
+        ca.mesh.rotation.z += ca.rz * dt;
+        if (ca.mesh.position.y < 0.05) {
+          ca.mesh.position.y = 0.05;
+          ca.vy *= -0.25; // bounce
+          ca.vx *= 0.5; ca.vz *= 0.5;
+          ca.rx *= 0.3;  ca.rz *= 0.3;
+          if (Math.abs(ca.vy) < 0.5) ca.landed = true;
+        }
+      }
+      if (ca.life <= 0) {
+        try { ca.scene.remove(ca.mesh); } catch (e) {}
+        _casings.splice(i, 1);
+      }
+    }
+  }
+
   return {
     createGunMesh,
     createMuzzleFlash,
@@ -4812,17 +7724,20 @@ const Weapons = (() => {
     switchNext,
     switchPrev,
     unlockWeapon,
+    unlock,
     refillAllAmmo,
     handleRightDown,
     handleRightUp,
     exitZoom,
     isZoomed,
+    isScopeActive: function() { return _scopeActive; },
     toggleFlashlight,
     setPlayerSpeed: function(s) { _playerSpeed = s; },
     setHoldBreath,
     getRecoilAccum: function() { return _recoilPitchAccum; },
     startInspect,
     isInSmoke: isInSmoke,
+    createSmokeCloud: createSmokeCloud,
     getWeaponCount: function () { return WEAPONS.length; },
     unlockForStage: unlockForStage,
     getCurrentIdx:  function () { return currentIdx; },
@@ -4868,6 +7783,7 @@ const Weapons = (() => {
     getBlastRadius: function () { return cur().blastRadius || 0; },
     setOnTerrainDig: setOnTerrainDig,
     setOnTerrainShot: setOnTerrainShot,
+    ejectShell: _ejectShell,
     // B24 exports
     unlockNext:       unlockNext,
     ATTACHMENTS:      ATTACHMENTS,
@@ -4897,6 +7813,7 @@ const Weapons = (() => {
       try { window.HUD && window.HUD.showToast && window.HUD.showToast('🛡 +' + n + ' AP rounds', 1800, '#88ddff'); } catch (e) {}
     },
     getAPAmmo: function () { return window._apAmmo || 0; },
+    addBloodSpray: _addBloodSpray,
     consumeAPAmmo: function (n) {
       var have = window._apAmmo || 0;
       if (have <= 0) return false;

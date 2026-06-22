@@ -758,6 +758,18 @@ const Weapons = (() => {
   }
   let states     = WEAPONS.map(makeState);
   let currentIdx = 0;
+  // Shell casing ejection state
+  var _casings = []; // { mesh, scene, vx, vy, vz, rx, rz, life, landed }
+  // ── Bolt/slide animation (standalone, separate from WeaponDetails) ──────
+  var _boltTimer   = 0;      // counts up, drives bolt position
+  var _boltMaxTime = 0.08;   // bolt travel time (80ms back, 80ms return)
+  var _boltState   = 0;      // 0=rest, 1=moving back, 2=moving forward
+  var _boltOffset  = 0;      // current Z offset of bolt mesh
+  var _boltMesh    = null;   // optional dedicated bolt child mesh
+  // ── Additional shell casings (physics-driven, scene-level) ───────────────
+  var _shellCasings = []; // { mesh, vx, vy, vz, rx, ry, rz, life, maxLife }
+  var _shellGeo = null;
+  var _shellMat = null;
   // Gatling (0), Shovel (1), and Drone Jammer (last) start unlocked
   let _jammerIdx = WEAPONS.findIndex(function(w) { return w.id === 'DRONEJAMMER'; });
   let unlocked   = WEAPONS.map(function(_, i) { return i <= 1 || i === _jammerIdx; });
@@ -846,6 +858,90 @@ const Weapons = (() => {
   let rightMouseDown = false;
   const FOV_DEFAULT = 75;
   const FOV_ZOOMED  = 25;
+
+  // ── Sniper scope overlay ──────────────────────────────────
+  var _scopeOverlay = null;
+  var _scopeActive = false;
+
+  function _isSniperWeapon() {
+    var w = cur();
+    return w && (w.type === 'SNIPER' || w.type === 'AMR');
+  }
+
+  function _createScopeOverlay() {
+    if (_scopeOverlay) return;
+    var div = document.createElement('div');
+    div.id = 'scope-overlay';
+    div.style.cssText = [
+      'position:fixed;top:0;left:0;width:100%;height:100%;',
+      'pointer-events:none;z-index:80;display:none;',
+      'background:black;'
+    ].join('');
+
+    // Center circle (clear view through scope)
+    var circle = document.createElement('div');
+    circle.style.cssText = [
+      'position:absolute;',
+      'width:280px;height:280px;',
+      'left:50%;top:50%;',
+      'transform:translate(-50%,-50%);',
+      'border-radius:50%;',
+      'background:rgba(0,0,0,0);',
+      'box-shadow:0 0 0 9999px black;',
+      'border:3px solid rgba(100,100,100,0.8);'
+    ].join('');
+
+    // SVG crosshair reticle
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '280');
+    svg.setAttribute('height', '280');
+    svg.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);';
+    svg.innerHTML = [
+      // Mil-dot crosshair lines
+      '<line x1="140" y1="0" x2="140" y2="280" stroke="rgba(0,0,0,0.9)" stroke-width="1"/>',
+      '<line x1="0" y1="140" x2="280" y2="140" stroke="rgba(0,0,0,0.9)" stroke-width="1"/>',
+      // Mil dots on vertical
+      '<circle cx="140" cy="70" r="2" fill="black"/>',
+      '<circle cx="140" cy="100" r="2" fill="black"/>',
+      '<circle cx="140" cy="180" r="2" fill="black"/>',
+      '<circle cx="140" cy="210" r="2" fill="black"/>',
+      // Mil dots on horizontal
+      '<circle cx="70" cy="140" r="2" fill="black"/>',
+      '<circle cx="100" cy="140" r="2" fill="black"/>',
+      '<circle cx="180" cy="140" r="2" fill="black"/>',
+      '<circle cx="210" cy="140" r="2" fill="black"/>',
+      // Center dot
+      '<circle cx="140" cy="140" r="2.5" fill="black"/>',
+      // Range adjustment knob indicators
+      '<text x="150" y="72" fill="rgba(0,0,0,0.7)" font-size="8" font-family="monospace">2</text>',
+      '<text x="150" y="102" fill="rgba(0,0,0,0.7)" font-size="8" font-family="monospace">1</text>',
+      // Elevation numbers
+      '<text x="8" y="144" fill="rgba(0,0,0,0.5)" font-size="8" font-family="monospace">100m</text>',
+      '<text x="8" y="175" fill="rgba(0,0,0,0.5)" font-size="8" font-family="monospace">200m</text>',
+      '<text x="8" y="206" fill="rgba(0,0,0,0.5)" font-size="8" font-family="monospace">300m</text>',
+      // Scope brand (fictional)
+      '<text x="105" y="260" fill="rgba(0,0,0,0.4)" font-size="7" font-family="monospace">OKC\xd78 TACTICAL</text>'
+    ].join('');
+
+    div.appendChild(circle);
+    div.appendChild(svg);
+    document.body.appendChild(div);
+    _scopeOverlay = div;
+  }
+
+  function _showScopeOverlay() {
+    if (_scopeOverlay) {
+      _scopeOverlay.style.display = 'block';
+      _scopeActive = true;
+    }
+  }
+
+  function _hideScopeOverlay() {
+    if (_scopeOverlay) {
+      _scopeOverlay.style.display = 'none';
+      _scopeActive = false;
+    }
+  }
 
   // ── Gun meshes ────────────────────────────────────────────
   const gunMeshes = [];
@@ -5036,10 +5132,64 @@ const Weapons = (() => {
       return g;
     },
 
+    // ── M16A2 (US standard issue 5.56mm rifle, AR-15 platform, 20" barrel) ──
+    m16: function () {
+      var g = new THREE.Group();
+      var mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.8 });
+      var plasticMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7, metalness: 0.05 });
+      var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.026, 0.52, 8), mat);
+      barrel.rotation.x = Math.PI/2; barrel.position.set(0, 0, 0.24); barrel.userData.role = 'bolt';
+      g.add(barrel);
+      var fh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.028, 0.055, 8), mat);
+      fh.rotation.x = Math.PI/2; fh.position.set(0, 0, 0.52); g.add(fh);
+      var upper = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.06, 0.28), mat);
+      upper.position.set(0, 0.02, 0.04); g.add(upper);
+      var lower = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.22), plasticMat);
+      lower.position.set(0, -0.01, 0.01); g.add(lower);
+      var handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.065, 0.12), mat);
+      handle.position.set(0, 0.075, 0.04); g.add(handle);
+      var stock = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.055, 0.22), plasticMat);
+      stock.position.set(0, -0.01, -0.16); g.add(stock);
+      var grip = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.09, 0.04), plasticMat);
+      grip.position.set(0, -0.07, -0.04); g.add(grip);
+      var hg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.032, 0.20, 8), plasticMat);
+      hg.rotation.x = Math.PI/2; hg.position.set(0, 0.005, 0.17); g.add(hg);
+      var mag = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.115, 0.035), plasticMat);
+      mag.position.set(0, -0.095, 0.02); g.add(mag);
+      g.userData.muzzlePos = new THREE.Vector3(0, 0, 0.56);
+      g.userData.selfContained = true;
+      return g;
+    },
+
+    // ── RG-6 Inferno (Russian 6-shot revolver grenade launcher) ──
+    rg6: function () {
+      var g = new THREE.Group();
+      var mat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5, metalness: 0.7 });
+      var drumMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.75 });
+      var body = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.12, 0.32), mat);
+      g.add(body);
+      var drum = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.095, 12), drumMat);
+      drum.rotation.z = Math.PI/2; drum.position.set(0, 0.05, -0.04); g.add(drum);
+      var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.028, 0.18, 8), mat);
+      barrel.rotation.x = Math.PI/2; barrel.position.set(0, 0.015, 0.22); barrel.userData.role = 'bolt'; g.add(barrel);
+      var stock = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.06, 0.20), mat);
+      stock.position.set(0.06, -0.02, -0.18); stock.rotation.z = 0.15; g.add(stock);
+      var grip = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.1, 0.04), mat);
+      grip.position.set(0, -0.08, -0.04); g.add(grip);
+      for (var ci = 0; ci < 6; ci++) {
+        var ang = (ci / 6) * Math.PI * 2;
+        var hole = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.1, 6), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9, metalness: 0.3 }));
+        hole.rotation.z = Math.PI/2; hole.position.set(Math.cos(ang) * 0.055, 0.05 + Math.sin(ang) * 0.055, -0.04); g.add(hole);
+      }
+      g.userData.muzzlePos = new THREE.Vector3(0, 0.015, 0.36);
+      g.userData.selfContained = true;
+      return g;
+    },
+
   };
 
   const meshBuilders = [
-    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.ak, NB.rpk,
+    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.m16, NB.ak, NB.rg6, NB.rpk,
     NB.svd, NB.pkm, NB.nlaw, NB.stugna, NB.m4,
     NB.javelin, NB.rpg7, NB.igla, NB.gp25,
     NB.scarh, NB.dshk, buildMolotovMesh,
@@ -5096,6 +5246,7 @@ const Weapons = (() => {
 
   function createGunMesh(camera) {
     _camera = camera;
+    _createScopeOverlay();
     for (let i = 0; i < WEAPONS.length; i++) {
       const m = meshBuilders[i]();
       // Enhance with reflective materials, sub-details, and animation rigging
@@ -5378,6 +5529,38 @@ const Weapons = (() => {
   const RECOIL_RECOVERY_DELAY = 0.12;
   const RECOIL_RECOVERY_RATE = 4;
 
+  // ── Per-weapon recoil profiles (bloom accumulation + sustained-fire spread) ──
+  var RECOIL_PROFILES = {
+    PISTOL:   { kickY: 0.022, kickX: 0.008, bloomAdd: 0.012, bloomDecay: 6.0, sustained: 0.0 },
+    SMG:      { kickY: 0.018, kickX: 0.018, bloomAdd: 0.010, bloomDecay: 7.5, sustained: 0.004 },
+    AR:       { kickY: 0.030, kickX: 0.010, bloomAdd: 0.014, bloomDecay: 5.0, sustained: 0.006 },
+    LMG:      { kickY: 0.025, kickX: 0.008, bloomAdd: 0.008, bloomDecay: 3.5, sustained: 0.012 },
+    SNIPER:   { kickY: 0.090, kickX: 0.005, bloomAdd: 0.040, bloomDecay: 2.5, sustained: 0.0 },
+    SHOTGUN:  { kickY: 0.060, kickX: 0.040, bloomAdd: 0.080, bloomDecay: 3.0, sustained: 0.0 },
+    GRENADE:  { kickY: 0.045, kickX: 0.012, bloomAdd: 0.020, bloomDecay: 3.5, sustained: 0.0 },
+    ROCKET:   { kickY: 0.070, kickX: 0.020, bloomAdd: 0.035, bloomDecay: 2.0, sustained: 0.0 },
+    DEFAULT:  { kickY: 0.028, kickX: 0.010, bloomAdd: 0.014, bloomDecay: 5.0, sustained: 0.0 },
+  };
+
+  function _getRecoilProfile(wepType) {
+    var t = wepType || '';
+    if (t === 'PISTOL') return RECOIL_PROFILES.PISTOL;
+    if (t === 'SMG') return RECOIL_PROFILES.SMG;
+    if (t === 'SNIPER' || t === 'AMR') return RECOIL_PROFILES.SNIPER;
+    if (t === 'SHOTGUN') return RECOIL_PROFILES.SHOTGUN;
+    if (t === 'LMG' || t === 'HMG' || t === 'HMG_HEAVY' || t === 'MACHINEGUN' ||
+        t === 'NATO_HEAVY' || t === 'GATLING' || t === 'MINIGUN') return RECOIL_PROFILES.LMG;
+    if (t === 'GRENADE' || t === 'SMOKE' || t === 'FLASHBANG' || t === 'INCENDIARY' ||
+        t === 'THERMOBARIC' || t === 'EXPLOSIVE') return RECOIL_PROFILES.GRENADE;
+    if (t === 'AT' || t === 'ATGM' || t === 'AT_HEAVY' || t === 'AT_LIGHT' || t === 'AA') return RECOIL_PROFILES.ROCKET;
+    if (t === 'ASSAULT' || t === 'NATO' || t === 'SILENT' || t === 'JAMMER') return RECOIL_PROFILES.AR;
+    return RECOIL_PROFILES.DEFAULT;
+  }
+
+  // Bloom state: accumulated spread from sustained fire
+  var _currentBloom = 0;
+  var _sustainedShots = 0;
+
   // ── Viewmodel inertia (mouse-look lag) ────────────────────
   let _prevYaw = 0;
   let _prevPitch = 0;
@@ -5426,6 +5609,18 @@ const Weapons = (() => {
     if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) {
       CameraSystem.shake(0.004 + intensity * 0.012, 0.12 + intensity * 0.08);
     }
+    // ── Per-weapon bloom accumulation and sustained-fire spread ──
+    var _rp = _getRecoilProfile(w.type);
+    _currentBloom = Math.min(0.18, _currentBloom + _rp.bloomAdd + _rp.sustained * _sustainedShots);
+    _sustainedShots++;
+    // Additional horizontal kick with alternating left/right pattern per profile
+    var _horizSign = (_sustainedShots % 2 === 0) ? 1 : -1;
+    if (typeof CameraSystem !== 'undefined') {
+      CameraSystem.setPitch(CameraSystem.getPitch() + _rp.kickY * recoilMod);
+      CameraSystem.setYaw(CameraSystem.getYaw() + _rp.kickX * _horizSign * (0.5 + Math.random() * 0.5) * recoilMod);
+    }
+    _recoilPitchAccum += _rp.kickY * recoilMod;
+    _recoilYawAccum += _rp.kickX * _horizSign * (0.5 + Math.random() * 0.5) * recoilMod;
   }
 
   // ── Weapon switching ──────────────────────────────────────
@@ -5434,6 +5629,7 @@ const Weapons = (() => {
     if (!unlocked[idx]) return;
     if (idx === currentIdx) return;
     if (zoomed) exitZoom();
+    _hideScopeOverlay(); // always hide scope overlay when switching weapons
     // Cancel reload on old weapon before switching
     var oldState = states[currentIdx];
     if (oldState && oldState.reloading) {
@@ -5511,18 +5707,26 @@ const Weapons = (() => {
     }
   }
 
+  function unlock(weaponId) {
+    for (var _ui = 0; _ui < WEAPONS.length; _ui++) {
+      if (WEAPONS[_ui].id === weaponId) { unlockWeapon(_ui); return; }
+    }
+  }
+
   // ── Scope zoom ────────────────────────────────────────────
   function enterZoom() {
     if (!_camera) return;
     if (cur().type === 'MELEE') return; // no zoom on melee
     zoomed = true;
     _adsTarget = 1;
+    if (_isSniperWeapon()) _showScopeOverlay();
   }
 
   function exitZoom() {
     if (!_camera) return;
     zoomed = false;
     _adsTarget = 0;
+    _hideScopeOverlay();
   }
 
   function toggleFlashlight() {
@@ -5544,7 +5748,33 @@ const Weapons = (() => {
 
   // ── Projectile system (NLAW / Stugna) ────────────────────
   const projectiles = [];
+  const _explosionFlashes = []; // track active explosion radius visuals
   const PROJ_SPEED = 30;
+
+  // ── Blood spray particles ─────────────────────────────────
+  var _bloodParticles = [];
+
+  function _addBloodSpray(pos) {
+    if (!window._gameScene) return;
+    var count = 12;
+    for (var i = 0; i < count; i++) {
+      var geo = new THREE.SphereGeometry(0.04 + Math.random() * 0.06, 4, 4);
+      var mat = new THREE.MeshBasicMaterial({ color: 0xaa0000, transparent: true, opacity: 0.9 });
+      var particle = new THREE.Mesh(geo, mat);
+      particle.position.copy(pos);
+      particle.position.y += 0.8 + Math.random() * 0.4;
+      var vel = new THREE.Vector3(
+        (Math.random() - 0.5) * 4,
+        Math.random() * 3 + 1,
+        (Math.random() - 0.5) * 4
+      );
+      particle._vel = vel;
+      particle._life = 0.4 + Math.random() * 0.3;
+      particle._age = 0;
+      window._gameScene.add(particle);
+      _bloodParticles.push(particle);
+    }
+  }
 
   function spawnProjectile(camera, wep) {
     if (!_scene) return;
@@ -5746,7 +5976,7 @@ const Weapons = (() => {
         if (p.isMolotov) {
           createFireArea(p.mesh.position, p.radius);
         } else {
-          createExplosionFlash(p.mesh.position);
+          createExplosionFlash(p.mesh.position, p.radius);
         }
         p.mesh.geometry.dispose();
         p.mesh.material.dispose();
@@ -5756,8 +5986,10 @@ const Weapons = (() => {
     }
   }
 
-  function createExplosionFlash(pos) {
+  function createExplosionFlash(pos, blastRadius) {
     if (!_scene) return;
+    blastRadius = blastRadius || 3;
+    // Central bright flash
     const flashGeo = new THREE.SphereGeometry(1.5, 8, 8);
     const flashMat = new THREE.MeshBasicMaterial({
       color: 0xff6600, transparent: true, opacity: 0.9,
@@ -5766,18 +5998,19 @@ const Weapons = (() => {
     const flash = new THREE.Mesh(flashGeo, flashMat);
     flash.position.copy(pos);
     _scene.add(flash);
-    let t = 0.2;
-    const fadeInterval = setInterval(function () {
-      t -= 0.016;
-      flash.material.opacity = Math.max(0, t / 0.2) * 0.9;
-      flash.scale.setScalar(1 + (0.2 - t) * 5);
-      if (t <= 0) {
-        _scene.remove(flash);
-        flashGeo.dispose();
-        flashMat.dispose();
-        clearInterval(fadeInterval);
-      }
-    }, 16);
+    // Explosion radius visual: semi-transparent sphere showing damage radius
+    const radiusGeo = new THREE.SphereGeometry(blastRadius, 8, 8);
+    const radiusMat = new THREE.MeshBasicMaterial({
+      color: 0xff6600, transparent: true, opacity: 0.3,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    });
+    const radiusMesh = new THREE.Mesh(radiusGeo, radiusMat);
+    radiusMesh.position.copy(pos);
+    _scene.add(radiusMesh);
+    // Track explosion for animation
+    const explosionFlash = { flash: flash, radius: radiusMesh, startTime: 0, duration: 0.4 };
+    _explosionFlashes.push(explosionFlash);
   }
 
   function createFireArea(pos, radius) {
@@ -5813,54 +6046,62 @@ const Weapons = (() => {
   }
 
   // ── Smoke Cloud ────────────────────────────────────────────
-  const _smokeClouds = []; // active smoke zones for LOS checks
+  var _smokeClouds = []; // active smoke zones for LOS checks
 
   function createSmokeCloud(pos, radius) {
     if (!_scene) return;
-    // Visual: multiple translucent spheres
-    const group = new THREE.Group();
-    group.position.copy(pos);
-    for (let i = 0; i < 6; i++) {
-      const s = new THREE.Mesh(
-        new THREE.SphereGeometry(radius * (0.5 + Math.random() * 0.5), 8, 6),
-        new THREE.MeshBasicMaterial({
-          color: 0xcccccc, transparent: true, opacity: 0.45,
-          depthWrite: false,
-        })
-      );
-      s.position.set(
-        (Math.random() - 0.5) * radius * 0.6,
-        Math.random() * radius * 0.4,
-        (Math.random() - 0.5) * radius * 0.6
-      );
-      group.add(s);
-    }
-    _scene.add(group);
-    const cloud = { group: group, pos: pos.clone(), radius: radius, life: 6.0 };
-    _smokeClouds.push(cloud);
-    if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playSmoke) window.AudioSystem.playSmoke();
 
-    // Animate fade-out
-    const fadeInt = setInterval(function () {
-      cloud.life -= 0.1;
-      // Drift upward slowly
-      group.position.y += 0.02;
-      // Expand slightly
-      group.scale.setScalar(1 + (6.0 - cloud.life) * 0.05);
-      // Fade in last 2 seconds
-      if (cloud.life < 2.0) {
-        group.children.forEach(function (c) {
-          c.material.opacity = 0.45 * (cloud.life / 2.0);
-        });
-      }
-      if (cloud.life <= 0) {
-        group.children.forEach(function (c) { c.geometry.dispose(); c.material.dispose(); });
-        _scene.remove(group);
-        const idx = _smokeClouds.indexOf(cloud);
-        if (idx >= 0) _smokeClouds.splice(idx, 1);
-        clearInterval(fadeInt);
-      }
-    }, 100);
+    var group = new THREE.Group();
+    group.position.copy(pos);
+    group.position.y += 0.5;
+
+    var particles = [];
+    var count = 18;
+
+    for (var i = 0; i < count; i++) {
+      var size = 1.5 + Math.random() * 2.5;
+      var geo = new THREE.SphereGeometry(size, 6, 6);
+      var mat = new THREE.MeshBasicMaterial({
+        color: 0xcccccc,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false
+      });
+      var p = new THREE.Mesh(geo, mat);
+
+      // Random positions within cloud radius
+      var angle = Math.random() * Math.PI * 2;
+      var rad = Math.random() * 4;
+      p.position.set(
+        Math.cos(angle) * rad,
+        Math.random() * 2,
+        Math.sin(angle) * rad
+      );
+
+      // Individual particle rise velocity
+      p._riseSpeed = 0.2 + Math.random() * 0.4;
+      p._expandSpeed = 0.08 + Math.random() * 0.1;
+      p._delay = i * 0.15; // stagger spawn
+      p._active = false;
+
+      group.add(p);
+      particles.push(p);
+    }
+
+    _scene.add(group);
+    _smokeClouds.push({
+      group: group,
+      particles: particles,
+      timer: 0,
+      maxTimer: 18.0, // smoke lasts 18 seconds
+      pos: pos.clone(),
+      radius: radius || 6
+    });
+
+    // Audio
+    try {
+      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playSmoke) window.AudioSystem.playSmoke();
+    } catch(e) {}
   }
 
   function isInSmoke(px, pz) {
@@ -5936,6 +6177,16 @@ const Weapons = (() => {
     // Trigger visual animations (bolt cycle, barrel spin, muzzle smoke)
     if (typeof WeaponDetails !== 'undefined' && WeaponDetails.onFire) {
       WeaponDetails.onFire(gunMeshes[currentIdx], wep);
+    }
+
+    // ── Bolt/slide animation and shell casing ejection ───
+    _triggerBoltAnim();
+    // Standalone bolt cycle state machine (separate from WeaponDetails)
+    _boltState = 1;
+    _boltTimer = 0;
+    var _noShellTypes = ['MELEE','MINE','SMOKE','FLASHBANG','AT','ATGM','AT_HEAVY','AT_LIGHT','AA','GRENADE','INCENDIARY','THERMOBARIC','EXPLOSIVE','JAMMER','SILENT'];
+    if (_noShellTypes.indexOf(wep.type) < 0) {
+      _ejectShell(wep.type);
     }
 
     // ── Weapon jamming system ────────────────────────────
@@ -6050,9 +6301,10 @@ const Weapons = (() => {
       if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       const pellets = 8;
       for (let p = 0; p < pellets; p++) {
+        var _pelletBloom = _currentBloom;
         spreadVec.set(
-          (Math.random() - 0.5) * wep.spread * 2,
-          (Math.random() - 0.5) * wep.spread * 2
+          (Math.random() - 0.5) * (wep.spread + _pelletBloom) * 2,
+          (Math.random() - 0.5) * (wep.spread + _pelletBloom) * 2
         );
         raycaster.setFromCamera(spreadVec, camera);
         raycaster.far = 25; // shotgun effective range
@@ -6179,14 +6431,15 @@ const Weapons = (() => {
       }
     }
 
+    var _hitscanSpread = wep.spread + _currentBloom;
     spreadVec.set(
-      (Math.random() - 0.5) * wep.spread * 2,
-      (Math.random() - 0.5) * wep.spread * 2
+      (Math.random() - 0.5) * _hitscanSpread * 2,
+      (Math.random() - 0.5) * _hitscanSpread * 2
     );
     if (_aimSnapDir) {
       raycaster.ray.origin.copy(camera.getWorldPosition(new THREE.Vector3()));
       raycaster.ray.direction.copy(_aimSnapDir).add(
-        new THREE.Vector3((Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread)
+        new THREE.Vector3((Math.random()-0.5)*_hitscanSpread, (Math.random()-0.5)*_hitscanSpread, (Math.random()-0.5)*_hitscanSpread)
       ).normalize();
     } else {
       raycaster.setFromCamera(spreadVec, camera);
@@ -6229,7 +6482,15 @@ const Weapons = (() => {
       }
       if (!dropMiss) {
         var dropDmgMult = hits[0]._dropDamageMult || 1;
-        onHit(hits[0], Math.round(wep.damage * dropDmgMult));
+        var _finalDmg = Math.round(wep.damage * dropDmgMult * (window._weaponDamageMultiplier || 1));
+        onHit(hits[0], _finalDmg);
+        // Explosive rounds (shop upgrade): AOE damage burst on hit
+        if (window._explosiveRounds && hits[0].point && typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+          Enemies.damageInRadius(hits[0].point, 3.5, Math.round(_finalDmg * 0.35));
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
+            try { AudioSystem.playExplosion(); } catch(e){}
+          }
+        }
       // Bullet penetration for high-caliber weapons — hit 2nd target at reduced damage
       var penTypes = ['SNIPER', 'LMG', 'HMG', 'HMG_HEAVY', 'MINIGUN', 'AMR', 'MACHINEGUN'];
       if (penTypes.indexOf(wep.type) >= 0 && hits.length > 1) {
@@ -6425,6 +6686,96 @@ const Weapons = (() => {
     // Projectiles
     updateProjectiles(delta);
 
+    // Update explosion radius flashes
+    for (let ei = _explosionFlashes.length - 1; ei >= 0; ei--) {
+      const exp = _explosionFlashes[ei];
+      exp.startTime += delta;
+      const progress = exp.startTime / exp.duration;
+      if (progress >= 1.0) {
+        if (exp.flash && _scene) {
+          _scene.remove(exp.flash);
+          if (exp.flash.geometry) exp.flash.geometry.dispose();
+          if (exp.flash.material) exp.flash.material.dispose();
+        }
+        if (exp.radius && _scene) {
+          _scene.remove(exp.radius);
+          if (exp.radius.geometry) exp.radius.geometry.dispose();
+          if (exp.radius.material) exp.radius.material.dispose();
+        }
+        _explosionFlashes.splice(ei, 1);
+      } else {
+        // Animate central flash: expand and fade
+        if (exp.flash) {
+          exp.flash.material.opacity = Math.max(0, 0.9 * (1.0 - progress * 1.5));
+          exp.flash.scale.setScalar(1 + progress * 5);
+        }
+        // Animate radius sphere: fade opacity
+        if (exp.radius) {
+          exp.radius.material.opacity = Math.max(0, 0.3 * (1.0 - progress));
+        }
+      }
+    }
+
+    // blood particles
+    for (var bi = _bloodParticles.length - 1; bi >= 0; bi--) {
+      var bp = _bloodParticles[bi];
+      bp._age += delta;
+      bp._vel.y -= 9.8 * delta;
+      bp.position.addScaledVector(bp._vel, delta);
+      bp.material.opacity = 0.9 * (1 - bp._age / bp._life);
+      if (bp._age >= bp._life) {
+        window._gameScene.remove(bp);
+        bp.geometry.dispose(); bp.material.dispose();
+        _bloodParticles.splice(bi, 1);
+      }
+    }
+
+    // Smoke clouds
+    for (var si = _smokeClouds.length - 1; si >= 0; si--) {
+      var sc = _smokeClouds[si];
+      sc.timer += delta;
+
+      var lifeRatio = sc.timer / sc.maxTimer;
+
+      sc.particles.forEach(function(p) {
+        p._delay -= delta;
+        if (p._delay > 0) return;
+        if (!p._active) {
+          p._active = true;
+        }
+
+        // Rise slowly
+        p.position.y += p._riseSpeed * delta;
+
+        // Expand
+        var s = 1 + p._expandSpeed * sc.timer * 2;
+        p.scale.setScalar(Math.min(s, 2.5));
+
+        // Opacity: fade in for first 2s, hold, fade out last 3s
+        var fade = 1.0;
+        if (sc.timer < 2.0) {
+          fade = sc.timer / 2.0;
+        } else if (lifeRatio > 0.8) {
+          fade = 1.0 - (lifeRatio - 0.8) / 0.2;
+        }
+        p.material.opacity = Math.max(0, Math.min(0.45, fade * 0.45));
+
+        // Slight horizontal drift
+        p.position.x += (Math.random() - 0.5) * 0.01;
+        p.position.z += (Math.random() - 0.5) * 0.01;
+      });
+
+      if (sc.timer >= sc.maxTimer) {
+        _scene.remove(sc.group);
+        // Dispose geometries/materials
+        sc.particles.forEach(function(p) {
+          p.geometry.dispose();
+          p.material.dispose();
+        });
+        _smokeClouds.splice(si, 1);
+      }
+    }
+
     // Recoil recovery (visual gun kick)
     const mesh = gunMeshes[currentIdx];
     if (recoilOffsetZ < 0) recoilOffsetZ = Math.min(0, recoilOffsetZ + delta * 12 * 0.04);
@@ -6433,6 +6784,14 @@ const Weapons = (() => {
     if (_chSpread > 0) {
       _chSpread = Math.max(0, _chSpread - delta * 1.2);
       if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
+    }
+    // Bloom recovery: per-profile decay rate, sustained-shots counter resets while not firing
+    var _bRp = _getRecoilProfile(cur().type);
+    if (_currentBloom > 0) {
+      _currentBloom = Math.max(0, _currentBloom - _bRp.bloomDecay * delta);
+    }
+    if (!_firedThisFrame) {
+      _sustainedShots = Math.max(0, _sustainedShots - Math.floor(delta * 3));
     }
 
     // Smooth ADS FOV transition
@@ -6589,6 +6948,54 @@ const Weapons = (() => {
     // WeaponDetails visual animations (bolt, barrel spin, laser, smoke, scope overlay)
     if (typeof WeaponDetails !== 'undefined' && WeaponDetails.update) {
       WeaponDetails.update(delta, mesh, cur(), curState(), _firedThisFrame, zoomed);
+    }
+
+    // ── Bolt animation and shell casing ticks ────────────
+    _tickBoltAnim(delta);
+    _tickCasings(delta);
+
+    // ── Standalone bolt cycle animation ──────────────────
+    if (_boltState > 0) {
+      _boltTimer += delta;
+      if (_boltState === 1) {
+        // Phase 1: bolt moves back over _boltMaxTime
+        var _boltT = Math.min(1, _boltTimer / _boltMaxTime);
+        _boltOffset = _boltT * 0.045; // slide back 4.5cm
+        if (_boltT >= 1) { _boltTimer = 0; _boltState = 2; }
+      } else if (_boltState === 2) {
+        // Phase 2: bolt returns forward (slightly slower)
+        var _boltT2 = Math.min(1, _boltTimer / (_boltMaxTime * 1.2));
+        _boltOffset = (1 - _boltT2) * 0.045;
+        if (_boltT2 >= 1) { _boltTimer = 0; _boltState = 0; _boltOffset = 0; }
+      }
+      // Apply to bolt mesh if present (Z axis is forward/back in local space)
+      if (_boltMesh) _boltMesh.position.z = _boltOffset;
+    }
+
+    // ── Shell casings physics (scene-level) ──────────────
+    var _SHELL_GRAVITY = 9.8;
+    for (var _si = _shellCasings.length - 1; _si >= 0; _si--) {
+      var _sh = _shellCasings[_si];
+      _sh.life += delta;
+      _sh.vy -= _SHELL_GRAVITY * delta;
+      _sh.mesh.position.x += _sh.vx * delta;
+      _sh.mesh.position.y += _sh.vy * delta;
+      _sh.mesh.position.z += _sh.vz * delta;
+      _sh.mesh.rotation.x += _sh.rx * delta;
+      _sh.mesh.rotation.y += _sh.ry * delta;
+      _sh.mesh.rotation.z += _sh.rz * delta;
+      // Bounce off ground (simple)
+      if (_sh.mesh.position.y < 0.05 && _sh.vy < 0) {
+        _sh.mesh.position.y = 0.05;
+        _sh.vy = -_sh.vy * 0.3;
+        _sh.vx *= 0.7;
+        _sh.vz *= 0.7;
+      }
+      if (_sh.life >= _sh.maxLife) {
+        var _shSc = window._gameScene || _scene;
+        if (_shSc) _shSc.remove(_sh.mesh);
+        _shellCasings.splice(_si, 1);
+      }
     }
 
     // ── Guided weapon lock-on indicator ──
@@ -6781,6 +7188,19 @@ const Weapons = (() => {
       }
     }
     projectiles.length = 0;
+    // Clear shell casings
+    for (var _ci = _casings.length - 1; _ci >= 0; _ci--) {
+      try { _casings[_ci].scene.remove(_casings[_ci].mesh); } catch (e) {}
+    }
+    _casings.length = 0;
+    // Clear scene-level shell casings
+    for (var _sci = 0; _sci < _shellCasings.length; _sci++) {
+      var _scSc = window._gameScene || _scene;
+      if (_scSc) { try { _scSc.remove(_shellCasings[_sci].mesh); } catch (e) {} }
+    }
+    _shellCasings.length = 0;
+    // Reset standalone bolt state
+    _boltState = 0; _boltTimer = 0; _boltOffset = 0;
     // Clear smoke clouds with proper disposal
     for (let i = _smokeClouds.length - 1; i >= 0; i--) {
       var sc = _smokeClouds[i];
@@ -6948,6 +7368,22 @@ const Weapons = (() => {
       if (a.recoilMult)        s.recoilY   *= a.recoilMult;
       if (a.silent)            s.silent     = true;
       if (a.muzzleFlashMult != null) s.muzzleFlashMult = Math.min(s.muzzleFlashMult, a.muzzleFlashMult);
+    }
+    // Shop upgrade: extended mag increases clip size
+    if (window._magCapMultiplier && window._magCapMultiplier !== 1) {
+      s.clipSize = Math.max(1, Math.floor(s.clipSize * window._magCapMultiplier));
+    }
+    // Shop upgrade: damage multiplier
+    if (window._weaponDamageMultiplier && window._weaponDamageMultiplier !== 1) {
+      s.damage = Math.round(s.damage * window._weaponDamageMultiplier);
+    }
+    // Shop upgrade: ROF multiplier
+    if (window._rofMultiplier && window._rofMultiplier !== 1) {
+      s.fireRate = s.fireRate * window._rofMultiplier;
+    }
+    // Shop upgrade: reload multiplier
+    if (window._reloadMultiplier && window._reloadMultiplier !== 1) {
+      s.reloadTime = s.reloadTime * window._reloadMultiplier;
     }
     return s;
   }
@@ -7123,6 +7559,149 @@ const Weapons = (() => {
     return stats;
   }
 
+  // ── Standalone bolt mesh helper ───────────────────────────────
+  function _initBolt() {
+    if (_boltMesh) return;
+    var geo = new THREE.BoxGeometry(0.025, 0.018, 0.06);
+    var mat = new THREE.MeshPhongMaterial({ color: 0x2a2a2a, shininess: 80 });
+    _boltMesh = new THREE.Mesh(geo, mat);
+    _boltMesh.name = 'bolt';
+  }
+
+  // ── Shell casing geometry (lazy, shared) ──────────────────────
+  function _getShellGeo() {
+    if (!_shellGeo) {
+      _shellGeo = new THREE.CylinderGeometry(0.003, 0.003, 0.018, 6);
+      _shellMat = new THREE.MeshPhongMaterial({ color: 0xB8860B, shininess: 80 });
+    }
+    return { geo: _shellGeo, mat: _shellMat };
+  }
+
+  // ── Bolt/slide animation ──────────────────────────────────────
+  // Triggers a bolt-cycle animation on the current weapon's viewmodel mesh.
+  // Phase 0: retract over 0.06 s, phase 1: return over 0.09 s.
+  function _triggerBoltAnim() {
+    var mesh = gunMeshes[currentIdx];
+    if (!mesh) return;
+    mesh.userData.boltAnim = { phase: 0, t: 0, maxBack: 0.08 };
+  }
+
+  function _tickBoltAnim(dt) {
+    var mesh = gunMeshes[currentIdx];
+    if (!mesh || !mesh.userData.boltAnim) return;
+    var a = mesh.userData.boltAnim;
+    if (a.phase === 0) { // retracting
+      a.t += dt;
+      var prog = Math.min(1, a.t / 0.06);
+      // Store as boltOffsetZ so the main mesh position logic can incorporate it
+      mesh.userData.boltOffsetZ = a.maxBack * prog;
+      if (prog >= 1) { a.phase = 1; a.t = 0; }
+    } else if (a.phase === 1) { // returning
+      a.t += dt;
+      var prog2 = Math.min(1, a.t / 0.09);
+      mesh.userData.boltOffsetZ = a.maxBack * (1 - prog2);
+      if (prog2 >= 1) {
+        mesh.userData.boltOffsetZ = 0;
+        mesh.userData.boltAnim = null;
+      }
+    }
+    // Apply bolt offset on top of current position.z (added to the Z already set in update)
+    // We adjust mesh.position.z directly here; the main update loop overwrites it each frame,
+    // so we write to a separate child (or a tiny additional shift after the main write).
+    // Implementation: we add boltOffsetZ to position.z after the fact using a child sentinel.
+    // Since the main update writes mesh.position.z each frame, we animate the first child group
+    // that has userData.role === 'boltChild', or fall back to rotating children[0].
+    if (mesh.children.length > 0) {
+      var boltChild = null;
+      for (var bci = 0; bci < mesh.children.length; bci++) {
+        if (mesh.children[bci].userData && mesh.children[bci].userData.role === 'bolt') {
+          boltChild = mesh.children[bci]; break;
+        }
+      }
+      // Fallback: use the first visible child (typically the main gun body group)
+      if (!boltChild && mesh.children[0]) boltChild = mesh.children[0];
+      if (boltChild) {
+        boltChild.position.z = (boltChild.userData._origZ || 0) + (mesh.userData.boltOffsetZ || 0);
+        if (!boltChild.userData._origZSet) {
+          boltChild.userData._origZ = boltChild.position.z;
+          boltChild.userData._origZSet = true;
+        }
+      }
+    }
+  }
+
+  // ── Shell casing ejection ─────────────────────────────────────
+  function _ejectShell(weaponType) {
+    if (!_scene && !(typeof window !== 'undefined' && window._gameScene)) return;
+    var sc = (typeof window !== 'undefined' && window._gameScene) ? window._gameScene : _scene;
+    if (!sc) return;
+    var cam = _camera;
+    if (!cam && typeof window !== 'undefined' && window.GameManager && window.GameManager.getCamera) {
+      cam = window.GameManager.getCamera();
+    }
+    if (!cam) return;
+
+    var isBig    = (weaponType === 'HMG' || weaponType === 'HMG_HEAVY' || weaponType === 'LMG' || weaponType === 'MACHINEGUN' || weaponType === 'MINIGUN' || weaponType === 'GATLING');
+    var isPistol = (weaponType === 'PISTOL');
+    var r   = isBig ? 0.05 : (isPistol ? 0.025 : 0.032);
+    var len = isBig ? 0.18 : (isPistol ? 0.10  : 0.13);
+
+    var geo = new THREE.CylinderGeometry(r * 0.6, r, len, 6);
+    var mat = new THREE.MeshLambertMaterial({ color: 0xC8A840 });
+    var c = new THREE.Mesh(geo, mat);
+
+    // Ejection port: right side, slightly forward, roughly at shoulder height
+    var ejPos = new THREE.Vector3(0.28, -0.05, -0.35);
+    ejPos.applyQuaternion(cam.quaternion);
+    ejPos.add(cam.position);
+    c.position.copy(ejPos);
+
+    // Rightward + upward velocity in world space
+    var right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    sc.add(c);
+    _casings.push({
+      mesh: c, scene: sc,
+      vx: right.x * 3.5 + (Math.random() - 0.5) * 0.8,
+      vy: 2.5 + Math.random() * 1.5,
+      vz: right.z * 3.5 + (Math.random() - 0.5) * 0.8,
+      rx: (Math.random() - 0.5) * 20,
+      rz: (Math.random() - 0.5) * 20,
+      life: 2.2,
+      landed: false
+    });
+    // Cap at 30 casings; evict oldest
+    while (_casings.length > 30) {
+      var old = _casings.shift();
+      try { old.scene.remove(old.mesh); } catch (e) {}
+    }
+  }
+
+  function _tickCasings(dt) {
+    for (var i = _casings.length - 1; i >= 0; i--) {
+      var ca = _casings[i];
+      ca.life -= dt;
+      if (!ca.landed) {
+        ca.vy -= 15 * dt; // gravity
+        ca.mesh.position.x += ca.vx * dt;
+        ca.mesh.position.y += ca.vy * dt;
+        ca.mesh.position.z += ca.vz * dt;
+        ca.mesh.rotation.x += ca.rx * dt;
+        ca.mesh.rotation.z += ca.rz * dt;
+        if (ca.mesh.position.y < 0.05) {
+          ca.mesh.position.y = 0.05;
+          ca.vy *= -0.25; // bounce
+          ca.vx *= 0.5; ca.vz *= 0.5;
+          ca.rx *= 0.3;  ca.rz *= 0.3;
+          if (Math.abs(ca.vy) < 0.5) ca.landed = true;
+        }
+      }
+      if (ca.life <= 0) {
+        try { ca.scene.remove(ca.mesh); } catch (e) {}
+        _casings.splice(i, 1);
+      }
+    }
+  }
+
   return {
     createGunMesh,
     createMuzzleFlash,
@@ -7145,17 +7724,20 @@ const Weapons = (() => {
     switchNext,
     switchPrev,
     unlockWeapon,
+    unlock,
     refillAllAmmo,
     handleRightDown,
     handleRightUp,
     exitZoom,
     isZoomed,
+    isScopeActive: function() { return _scopeActive; },
     toggleFlashlight,
     setPlayerSpeed: function(s) { _playerSpeed = s; },
     setHoldBreath,
     getRecoilAccum: function() { return _recoilPitchAccum; },
     startInspect,
     isInSmoke: isInSmoke,
+    createSmokeCloud: createSmokeCloud,
     getWeaponCount: function () { return WEAPONS.length; },
     unlockForStage: unlockForStage,
     getCurrentIdx:  function () { return currentIdx; },
@@ -7201,6 +7783,7 @@ const Weapons = (() => {
     getBlastRadius: function () { return cur().blastRadius || 0; },
     setOnTerrainDig: setOnTerrainDig,
     setOnTerrainShot: setOnTerrainShot,
+    ejectShell: _ejectShell,
     // B24 exports
     unlockNext:       unlockNext,
     ATTACHMENTS:      ATTACHMENTS,
@@ -7230,6 +7813,7 @@ const Weapons = (() => {
       try { window.HUD && window.HUD.showToast && window.HUD.showToast('🛡 +' + n + ' AP rounds', 1800, '#88ddff'); } catch (e) {}
     },
     getAPAmmo: function () { return window._apAmmo || 0; },
+    addBloodSpray: _addBloodSpray,
     consumeAPAmmo: function (n) {
       var have = window._apAmmo || 0;
       if (have <= 0) return false;

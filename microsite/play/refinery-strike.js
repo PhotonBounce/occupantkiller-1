@@ -137,7 +137,7 @@ const RefineryStrike = (function () {
         if (HUD.notifyPickup) HUD.notifyPickup('🎯 ' + _targets.length + ' TARGETS LOCKED', '#ffcc44');
       }, 1500);
       setTimeout(function () {
-        if (HUD.notifyPickup) HUD.notifyPickup('⚠ NO RESPAWNS — REQUEST NEW DRONE WITH [B]', '#ff4444');
+        if (HUD.notifyPickup) HUD.notifyPickup('⚠ DRONE DESTROYED? NEW DRONE AUTO-DEPLOYS IN 3s', '#ff4444');
       }, 3000);
     }
 

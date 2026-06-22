@@ -227,6 +227,9 @@ const HUD = (() => {
     createWeaponSlots();
   }
 
+  // Apply mobile HUD fixes
+  _applyMobileHUDFixes();
+
   let hitMarkerTimer   = null;
   let vignetteTimer    = null;
   let headshotTimer    = null;
@@ -1053,6 +1056,40 @@ const HUD = (() => {
     ctx.closePath();
     ctx.fill();
 
+    // Radar pulse overlay when _radarActive > 0
+    if (window._radarActive > 0) {
+      var _rNow = performance.now() * 0.001;
+      var _sweepAngle = (_rNow * 1.8) % (Math.PI * 2);
+      // Sweep gradient arc
+      var _sweepGrad = ctx.createConicalGradient
+        ? null // not supported everywhere — use manual arc
+        : null;
+      ctx.save();
+      ctx.translate(MM_HALF, MM_HALF);
+      ctx.rotate(_sweepAngle);
+      var _sweepGrad2 = ctx.createLinearGradient(0, -MM_HALF, 0, 0);
+      _sweepGrad2.addColorStop(0, 'rgba(0,255,80,0.22)');
+      _sweepGrad2.addColorStop(1, 'rgba(0,255,80,0)');
+      ctx.fillStyle = _sweepGrad2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, MM_HALF, -Math.PI / 2 - 0.45, -Math.PI / 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      // Radar border ring glow
+      ctx.strokeStyle = 'rgba(0,255,80,' + (0.3 + 0.2 * Math.sin(_rNow * 3)) + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(MM_HALF, MM_HALF, MM_HALF - 3, 0, Math.PI * 2);
+      ctx.stroke();
+      // Countdown indicator
+      ctx.fillStyle = 'rgba(0,255,80,0.7)';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('RADAR ' + Math.ceil(window._radarActive) + 's', MM_HALF, MM_SIZE - 6);
+    }
+
     // Compass labels (rotate with player)
     ctx.fillStyle = 'rgba(0,255,0,0.6)';
     ctx.font = '10px monospace';
@@ -1344,13 +1381,15 @@ const HUD = (() => {
   function updateStamina(pct) {
     if (!staminaBarEl) return;
     staminaBarEl.style.width = (pct * 100) + '%';
-    if (pct < 0.25) {
-      staminaBarEl.style.background = 'linear-gradient(90deg, #ff4444, #ff6644)';
-    } else if (pct < 0.5) {
-      staminaBarEl.style.background = 'linear-gradient(90deg, #ff8800, #ffaa44)';
+    if (pct < 0.20) {
+      staminaBarEl.style.background = 'linear-gradient(90deg, #ff4444, #ff8888)';
     } else {
-      staminaBarEl.style.background = 'linear-gradient(90deg, #ffcc00, #ffee66)';
+      staminaBarEl.style.background = 'linear-gradient(90deg, #44ff88, #88ffaa)';
     }
+  }
+
+  function setStamina(current, max) {
+    updateStamina(max > 0 ? current / max : 0);
   }
 
   // ── Night Vision ─────────────────────────────────────────────────
@@ -1559,20 +1598,121 @@ const HUD = (() => {
   const promoEl = document.getElementById('field-promotion');
   function showFieldPromotion(active) { if (promoEl) promoEl.style.display = active ? 'block' : 'none'; }
 
-  // ── Feature 50: Wave Stats ───────────────────────────────────────
-  const waveStatsEl = document.getElementById('wave-stats');
-  const waveStatsContent = document.getElementById('wave-stats-content');
+  // ── Feature 50: Wave Stats (Enhanced) ──────────────────────────────
+  var _waveStatsOverlay = null;
+  var _waveStatsTimer = null;
   function showWaveStats(stats) {
-    if (!waveStatsEl || !waveStatsContent) return;
-    waveStatsContent.innerHTML =
-      '💀 Kills: <b>' + escapeHTML(stats.kills || 0) + '</b><br>' +
-      '🎯 Accuracy: <b>' + escapeHTML(stats.accuracy || 0) + '%</b><br>' +
-      '💀 Headshots: <b>' + escapeHTML(stats.headshots || 0) + '</b><br>' +
-      '⏱ Time: <b>' + escapeHTML(stats.time || '0s') + '</b><br>' +
-      '❤ Damage Taken: <b>' + escapeHTML(stats.damageTaken || 0) + '</b><br>' +
-      '🔥 Best Streak: <b>' + escapeHTML(stats.bestStreak || 0) + '</b>';
-    waveStatsEl.style.display = 'block';
-    setTimeout(function () { waveStatsEl.style.display = 'none'; }, 5000);
+    stats = stats || {};
+    var kills = stats.kills || 0;
+    var headshots = stats.headshots || 0;
+    var accuracy = stats.accuracy != null ? stats.accuracy : 0;
+    var timeSeconds = stats.timeSeconds || 0;
+    var damageDealt = stats.damageDealt || 0;
+    var damageTaken = stats.damageTaken || 0;
+    var okc = stats.okc || 0;
+    var streak = stats.streak || 0;
+    var wave = stats.wave || 0;
+
+    // Performance rating
+    var rating;
+    if (kills > 20 && accuracy > 80 && damageTaken === 0) {
+      rating = 'LEGENDARY';
+    } else if (kills > 15 && accuracy > 65) {
+      rating = 'EXCELLENT';
+    } else if (kills > 8 && accuracy > 50) {
+      rating = 'GOOD';
+    } else if (kills >= 3) {
+      rating = 'AVERAGE';
+    } else {
+      rating = 'ROOKIE';
+    }
+
+    var ratingColor = rating === 'LEGENDARY' ? '#ffd700'
+      : rating === 'EXCELLENT' ? '#44ff88'
+      : rating === 'GOOD' ? '#aaffaa'
+      : rating === 'AVERAGE' ? '#ffdd44'
+      : '#ff8844';
+
+    var headshotPct = kills > 0 ? Math.round((headshots / kills) * 100) : 0;
+
+    // Create overlay element if needed
+    if (!_waveStatsOverlay) {
+      _waveStatsOverlay = document.createElement('div');
+      _waveStatsOverlay.id = 'wave-stats-overlay';
+      _waveStatsOverlay.style.cssText = [
+        'position:fixed',
+        'bottom:25%',
+        'left:50%',
+        'transform:translateX(-50%)',
+        'min-width:320px',
+        'z-index:200',
+        'pointer-events:none',
+        'background:rgba(0,0,0,0.82)',
+        'border:2px solid #ffd700',
+        'border-radius:6px',
+        'padding:14px 20px',
+        'font-family:monospace',
+        'color:#ffe566',
+        'font-size:13px',
+        'line-height:1.7',
+        'opacity:0',
+        'transition:opacity 0.3s ease',
+        'display:none',
+      ].join(';');
+      document.body.appendChild(_waveStatsOverlay);
+    }
+
+    var divider = '<div style="border-top:1px solid #ffd70055;margin:6px 0"></div>';
+
+    var header = '<div style="font-size:15px;font-weight:bold;color:#ffd700;margin-bottom:4px">' +
+      (wave ? 'WAVE ' + escapeHTML(wave) + ' COMPLETE' : 'WAVE COMPLETE') +
+      ' &nbsp; <span style="color:#44ff88">&#10003; ' + escapeHTML(kills) + ' kills</span>' +
+      '</div>';
+
+    var row1 = '<div>' +
+      '&#128128; Kills: <b>' + escapeHTML(kills) + '</b>' +
+      ' &nbsp;&nbsp; &#127919; Headshots: <b>' + escapeHTML(headshots) + '</b> <span style="color:#aaa">(' + escapeHTML(headshotPct) + '%)</span>' +
+      '</div>';
+
+    var row2 = '<div>' +
+      '&#128299; Accuracy: <b>' + escapeHTML(accuracy) + '%</b>' +
+      ' &nbsp;&nbsp; &#9201; Time: <b>' + escapeHTML(timeSeconds) + 's</b>' +
+      '</div>';
+
+    var row3 = '<div>' +
+      '&#10084; Damage Taken: <b>' + escapeHTML(damageTaken) + '</b>' +
+      ' &nbsp;&nbsp; &#9876; Dealt: <b>' + escapeHTML(damageDealt) + '</b>' +
+      '</div>';
+
+    var row4 = '<div>' +
+      '&#128176; OKC Earned: <b>+' + escapeHTML(okc) + '</b>' +
+      ' &nbsp;&nbsp; &#128293; Best Streak: <b>' + escapeHTML(streak) + '</b>' +
+      '</div>';
+
+    var perf = divider +
+      '<div style="text-align:center;font-size:14px;font-weight:bold;color:' + ratingColor + ';letter-spacing:1px">' +
+      'PERFORMANCE: ' + escapeHTML(rating) +
+      '</div>';
+
+    _waveStatsOverlay.innerHTML = header + divider + row1 + row2 + row3 + row4 + perf;
+
+    // Clear any existing timer
+    if (_waveStatsTimer) { clearTimeout(_waveStatsTimer); _waveStatsTimer = null; }
+
+    // Show with fade-in
+    _waveStatsOverlay.style.display = 'block';
+    // Force reflow so transition fires
+    void _waveStatsOverlay.offsetWidth;
+    _waveStatsOverlay.style.opacity = '1';
+
+    // Auto-hide after 5 seconds (fade out then hide)
+    _waveStatsTimer = setTimeout(function () {
+      _waveStatsOverlay.style.opacity = '0';
+      setTimeout(function () {
+        if (_waveStatsOverlay) _waveStatsOverlay.style.display = 'none';
+      }, 350);
+      _waveStatsTimer = null;
+    }, 5000);
   }
 
   // ── Feature 43: Death Statistics ─────────────────────────────────
@@ -1814,6 +1954,99 @@ const HUD = (() => {
     flash.style.opacity = '0';
   }
 
+  // ── Kill Feed (top-right, COD-style) ─────────────────────────────
+  var _killFeed = [];
+  var _killFeedEl = null;
+
+  function _initKillFeed() {
+    if (_killFeedEl) return;
+    var d = document.createElement('div');
+    d.id = 'hud-kill-feed';
+    d.style.cssText = 'position:fixed;top:60px;right:12px;width:260px;pointer-events:none;z-index:100;font-family:monospace;font-size:11px;';
+    document.body.appendChild(d);
+    _killFeedEl = d;
+  }
+
+  function addKillFeedEntry(killerName, victimName, weaponName, isPlayer) {
+    _initKillFeed();
+    var entry = { killer: killerName, victim: victimName, weapon: weaponName, isPlayer: isPlayer, life: 5.0 };
+    _killFeed.push(entry);
+    if (_killFeed.length > 6) _killFeed.shift();
+    _renderKillFeed();
+  }
+
+  function _renderKillFeed() {
+    if (!_killFeedEl) return;
+    _killFeedEl.innerHTML = _killFeed.map(function(e) {
+      var col = e.isPlayer ? '#ffcc44' : '#cccccc';
+      var fade = Math.min(1, e.life / 1.5);
+      return '<div style="text-align:right;margin-bottom:2px;opacity:' + fade.toFixed(2) + ';background:rgba(0,0,0,0.45);padding:1px 5px;border-radius:3px;">' +
+        '<span style="color:' + col + '">' + escapeHTML(e.killer || 'Player') + '</span>' +
+        ' <span style="color:#888">⟩</span> ' +
+        '<span style="color:#ff6666">' + escapeHTML(e.victim || 'Enemy') + '</span>' +
+        (e.weapon ? ' <span style="color:#8888aa;font-size:9px">[' + escapeHTML(e.weapon) + ']</span>' : '') +
+        '</div>';
+    }).join('');
+  }
+
+  function _tickKillFeed(dt) {
+    if (!_killFeed.length) return;
+    var changed = false;
+    for (var i = _killFeed.length - 1; i >= 0; i--) {
+      _killFeed[i].life -= dt;
+      if (_killFeed[i].life <= 0) { _killFeed.splice(i, 1); changed = true; }
+    }
+    if (changed || _killFeed.length) _renderKillFeed();
+  }
+
+  // ── Compass Bar (top-center) ──────────────────────────────────────
+  var _compassBarEl = null;
+  function _initCompassBar() {
+    if (_compassBarEl) return;
+    var d = document.createElement('div');
+    d.id = 'hud-compass-bar';
+    d.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);width:200px;height:22px;pointer-events:none;z-index:100;font-family:monospace;font-size:10px;color:#ddd;text-align:center;background:rgba(0,0,0,0.35);border-radius:4px;overflow:hidden;';
+    document.body.appendChild(d);
+    _compassBarEl = d;
+  }
+
+  function updateCompassBar(yawRad) {
+    if (!_compassBarEl) _initCompassBar();
+    if (!_compassBarEl) return;
+    var deg = ((yawRad * 180 / Math.PI) % 360 + 360) % 360;
+    var marks = ['N','·','NE','·','E','·','SE','·','S','·','SW','·','W','·','NW','·','N'];
+    var offset = Math.floor(deg / 22.5);
+    var visible = marks.slice(offset, offset + 7);
+    _compassBarEl.innerHTML = visible.map(function(m,i) {
+      var isMain = (m !== '·');
+      var isCtr = (i === 3);
+      return '<span style="display:inline-block;width:26px;color:' + (isCtr ? '#ffcc44' : (isMain ? '#fff' : '#555')) + ';font-weight:' + (isCtr ? 'bold' : 'normal') + '">' + m + '</span>';
+    }).join('') + '<div style="position:absolute;top:0;left:50%;width:2px;height:100%;background:rgba(255,200,0,0.5);transform:translateX(-50%)"></div>';
+  }
+
+  // ── Ammo warning flash ─────────────────────────────────────────────
+  function setAmmoWarning(isLow) {
+    var ammoEl = document.getElementById('hud-ammo') || document.getElementById('ammo-display');
+    if (!ammoEl) return;
+    ammoEl.style.color = isLow ? '#ff3333' : '';
+    ammoEl.style.animation = isLow ? 'hud-ammo-blink 0.5s infinite' : '';
+  }
+
+  // ── Mobile HUD size fixes ──────────────────────────────────────────
+  function _applyMobileHUDFixes() {
+    if (!('ontouchstart' in window)) return;
+    var style = document.createElement('style');
+    style.textContent = [
+      '#btn-fire { width:72px!important; height:72px!important; font-size:22px!important; }',
+      '#btn-aim { width:62px!important; height:62px!important; }',
+      '#btn-jump, #btn-crouch { width:56px!important; height:56px!important; }',
+      '.mobile-btn { min-width:52px; min-height:52px; }',
+      '#hud-ammo { font-size:18px!important; }',
+      '@keyframes hud-ammo-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }',
+    ].join('\n');
+    document.head.appendChild(style);
+  }
+
   // ── B22: Damage Log (scrolling combat text) ──────────────────────
   let _dmgLogEl = null;
 
@@ -1988,8 +2221,194 @@ const HUD = (() => {
     }, 2800);
   }
 
+  // ── Dramatic Wave Announcement Overlay ──
+  var _waveAnnounceDiv = null;
+
+  function showWaveAnnouncement(waveNum, totalWaves, isBossWave, opts) {
+    if (!_waveAnnounceDiv) {
+      _waveAnnounceDiv = document.createElement('div');
+      _waveAnnounceDiv.style.cssText = [
+        'position:fixed;top:0;left:0;width:100%;height:100%;',
+        'display:flex;flex-direction:column;align-items:center;justify-content:center;',
+        'pointer-events:none;z-index:70;',
+        'opacity:0;transition:opacity 0.3s;'
+      ].join('');
+      document.body.appendChild(_waveAnnounceDiv);
+    }
+
+    var color = isBossWave ? '#ff2222' : '#ffdd00';
+    var borderColor = isBossWave ? '#ff0000' : '#cc8800';
+    var label = isBossWave ? '⚠️ BOSS WAVE' : ('WAVE ' + waveNum + ' / ' + totalWaves);
+    var subtitle = isBossWave ? 'ALL FORCES CONVERGING' : _getWaveSubtitle(waveNum);
+    var intelHtml = '';
+    if (opts && opts.count) {
+      var _threatColor = opts.count >= 15 ? '#ff4444' : (opts.count >= 8 ? '#ff8800' : '#ffdd00');
+      intelHtml = '<div style="color:' + _threatColor + ';font-size:11px;font-family:monospace;margin-top:6px;letter-spacing:1px;">⚡ ' + opts.count + ' HOSTILES INBOUND' + (opts.intel ? ' · ' + opts.intel : '') + '</div>';
+    }
+
+    _waveAnnounceDiv.innerHTML = [
+      '<div style="',
+      'background:linear-gradient(180deg,rgba(0,0,0,0.92) 0%,rgba(20,0,0,0.85) 100%);',
+      'border:2px solid ' + borderColor + ';',
+      'border-left:6px solid ' + color + ';',
+      'padding:20px 40px;text-align:center;',
+      'box-shadow:0 0 40px rgba(255,80,0,0.4);',
+      'max-width:500px;',
+      '">',
+      '<div style="color:' + color + ';font-size:11px;letter-spacing:6px;font-family:monospace;margin-bottom:6px;">INCOMING</div>',
+      '<div style="color:' + color + ';font-size:38px;font-weight:bold;font-family:monospace;letter-spacing:3px;text-shadow:0 0 20px ' + color + ';">' + label + '</div>',
+      '<div style="color:#aaaaaa;font-size:13px;font-family:monospace;margin-top:8px;letter-spacing:2px;">' + subtitle + '</div>',
+      intelHtml,
+      '</div>'
+    ].join('');
+
+    _waveAnnounceDiv.style.opacity = '1';
+    clearTimeout(_waveAnnounceDiv._hideTimer);
+    _waveAnnounceDiv._hideTimer = setTimeout(function() {
+      _waveAnnounceDiv.style.opacity = '0';
+    }, 2500);
+  }
+
+  function _getWaveSubtitle(waveNum) {
+    var subtitles = [
+      'HOLD THE LINE',
+      'THEY KEEP COMING',
+      'NO RETREAT',
+      'DEFEND AT ALL COSTS',
+      'REPEL THE ASSAULT',
+      'IRON WILL',
+      'GLORY TO UKRAINE',
+      'SLAVA UKRAINI'
+    ];
+    return subtitles[(waveNum - 1) % subtitles.length];
+  }
+
+  // ── Active Upgrades Panel ─────────────────────────────────────────
+  var _activeUpgradesEl = null;
+
+  function updateActiveUpgrades(player) {
+    if (!_activeUpgradesEl) {
+      _activeUpgradesEl = document.createElement('div');
+      _activeUpgradesEl.id = 'active-upgrades';
+      _activeUpgradesEl.style.cssText = 'position:fixed;top:80px;right:8px;z-index:200;font-size:10px;color:#88ffcc;text-align:right;pointer-events:none;text-shadow:0 0 4px #000;background:rgba(0,0,0,0.55);padding:4px 6px;border-radius:4px;border:1px solid rgba(136,255,204,0.25);min-width:60px;';
+      document.body.appendChild(_activeUpgradesEl);
+    }
+
+    var lines = [];
+
+    if (window._silencerEquipped) lines.push('🔇 Suppressor');
+    if (window._nightVisionEquipped) lines.push('🌙 NVG');
+    if (window._explosiveRounds) lines.push('💥 Exp.Rounds');
+    if (window._armorPierceMultiplier > 1) lines.push('🛡️ AP \xD7' + window._armorPierceMultiplier.toFixed(1));
+    if (window._magCapMultiplier > 1) lines.push('📦 Mag \xD7' + window._magCapMultiplier.toFixed(1));
+    if (window._radarActive > 0) lines.push('📡 Radar ' + Math.ceil(window._radarActive) + 's');
+    if (window._airstrikeCount > 0) lines.push('✈️ Strikes: ' + window._airstrikeCount);
+    if (window._staminaRefill || (player && player._stimTimer > 0)) lines.push('💉 Stim');
+
+    if (lines.length === 0) {
+      _activeUpgradesEl.style.display = 'none';
+    } else {
+      _activeUpgradesEl.style.display = 'block';
+      var html = '';
+      for (var i = 0; i < lines.length; i++) {
+        html += '<div style="padding:1px 0">' + lines[i] + '</div>';
+      }
+      _activeUpgradesEl.innerHTML = html;
+    }
+  }
+
+  // ── Wave Kill Feed Ticker ─────────────────────────────────────────
+  var _waveKillFeedEl = null;
+  var _waveKillFeedEntries = [];
+
+  function _initWaveKillFeed() {
+    if (_waveKillFeedEl) return;
+    _waveKillFeedEl = document.createElement('div');
+    _waveKillFeedEl.id = 'kill-feed';
+    _waveKillFeedEl.style.cssText = 'position:fixed;bottom:80px;left:8px;z-index:200;font-size:11px;pointer-events:none;';
+    document.body.appendChild(_waveKillFeedEl);
+  }
+
+  function addKillFeed(msg, color) {
+    _initWaveKillFeed();
+    var entry = document.createElement('div');
+    entry.textContent = msg;
+    entry.style.cssText = 'color:' + (color || '#ffffff') + ';opacity:0;transition:opacity 0.3s;padding:1px 0;';
+    _waveKillFeedEl.appendChild(entry);
+    // Trigger fade-in
+    requestAnimationFrame(function() {
+      entry.style.opacity = '1';
+    });
+    var obj = { el: entry, _killFeedTimer: 5.0 };
+    _waveKillFeedEntries.push(obj);
+    // Keep only last 6
+    while (_waveKillFeedEntries.length > 6) {
+      var oldest = _waveKillFeedEntries.shift();
+      if (oldest.el && oldest.el.parentNode) oldest.el.parentNode.removeChild(oldest.el);
+    }
+  }
+
+  function updateKillFeed(delta) {
+    for (var i = _waveKillFeedEntries.length - 1; i >= 0; i--) {
+      var obj = _waveKillFeedEntries[i];
+      obj._killFeedTimer -= delta;
+      if (obj._killFeedTimer <= 0) {
+        obj.el.style.transition = 'opacity 0.4s';
+        obj.el.style.opacity = '0';
+        (function(o) {
+          setTimeout(function() {
+            if (o.el && o.el.parentNode) o.el.parentNode.removeChild(o.el);
+          }, 400);
+        })(obj);
+        _waveKillFeedEntries.splice(i, 1);
+      }
+    }
+  }
+
+  // ── Combo Kill Multiplier Display ────────────────────────────────
+  var _comboEl = null;
+  var _comboTimer = 0;
+  var _comboHideTimer = null;
+
+  function showComboMult(multiplier, killCount) {
+    if (!_comboEl) {
+      _comboEl = document.createElement('div');
+      _comboEl.id = 'combo-mult';
+      _comboEl.style.cssText = [
+        'position:fixed;top:30%;left:50%;transform:translateX(-50%) scale(1);',
+        'pointer-events:none;z-index:150;text-align:center;',
+        'font-family:monospace;transition:opacity 0.4s,transform 0.2s;',
+        'opacity:0;'
+      ].join('');
+      document.body.appendChild(_comboEl);
+    }
+    var color = multiplier >= 3.0 ? '#ff2222' : (multiplier >= 2.0 ? '#ff8800' : '#ffdd00');
+    var glow = 'text-shadow:0 0 20px ' + color + ',0 0 40px ' + color;
+    _comboEl.innerHTML = [
+      '<div style="font-size:52px;font-weight:bold;color:' + color + ';' + glow + ';">\xD7' + multiplier.toFixed(1) + '</div>',
+      '<div style="font-size:14px;color:#fff;letter-spacing:4px;margin-top:-8px;">' + killCount + ' KILLS</div>'
+    ].join('');
+    // Pulse animation
+    _comboEl.style.opacity = '1';
+    _comboEl.style.transform = 'translateX(-50%) scale(1.3)';
+    clearTimeout(_comboHideTimer);
+    setTimeout(function() {
+      if (_comboEl) _comboEl.style.transform = 'translateX(-50%) scale(1.0)';
+    }, 150);
+    _comboHideTimer = setTimeout(function() {
+      if (_comboEl) _comboEl.style.opacity = '0';
+    }, 3000);
+  }
+
+  // ── Combined HUD update (call from game loop with delta + player) ──
+  function update(delta, player) {
+    updateActiveUpgrades(player);
+    updateKillFeed(delta);
+    _tickKillFeed(delta);
+  }
+
   // ── Last Wave Summary Overlay ──
-  let _waveSummaryEl = null;
+  var _waveSummaryEl = null;
   function showWaveSummary(stats) {
     if (!_waveSummaryEl) {
       _waveSummaryEl = document.createElement('div');
@@ -2022,7 +2441,7 @@ const HUD = (() => {
     updateCompass, setCompassThreats, showStreak, showBleed, showProne, showJam,
     setMinimapJammed, setCompassJammed,
     showVehicleHUD, hideVehicleHUD, updateVehicleHUD, showHijackProgress,
-    updateStamina, showNightVision, updateWeatherDisplay,
+    updateStamina, setStamina, showNightVision, updateWeatherDisplay,
     showInteractionPrompt, hideInteractionPrompt,
     showLowHP, showShield,
     // ── New Feature HUD Functions ──
@@ -2033,10 +2452,11 @@ const HUD = (() => {
     addCombatLog, showAchievement,
     showTacticalMap, isTacticalMapVisible, updateTacticalMap,
     showSupplyMenu, showFieldPromotion, showWaveStats,
+    showWaveAnnouncement,
     showDeathStats, updateOKC,
     // ── B22: New HUD ──
     showBossBar, hideBossBar,
-    updateXPBar, showObjective, hideObjective, setPrimaryObjective,
+    updateXPBar, updateXP: updateXPBar, showObjective, hideObjective, setPrimaryObjective,
     setMissionWaypoint, updateMissionWaypoint, setCityIntegrity,
     showStreakBanner, showBossIntro, addDamageLog,
     showGrenadeWarning, updateStageProgress,
@@ -2051,6 +2471,13 @@ const HUD = (() => {
     showNPCText, _updateNPCTextPositions,
     // ── Targeting Assistant ──
     updateTargetAssist,
+    // ── Kill Feed, Compass, Ammo Warning, Mobile Fixes ──
+    addKillFeedEntry, updateCompassBar, setAmmoWarning, _tickKillFeed,
+    // ── Active Upgrades Panel + Wave Kill Feed ──
+    updateActiveUpgrades, addKillFeed, updateKillFeed,
+    update,
+    // ── Combo Kill Multiplier ──
+    showComboMult,
   };
 })();
 

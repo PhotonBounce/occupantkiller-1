@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OccupantKiller — QA / Map Improvement Gallery</title>
+<style>
+  :root{--bg:#0c0f0c;--fg:#cfe8cf;--accent:#7dff8a;--dim:#7a8a7a;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,monospace;display:flex;flex-direction:column;min-height:100vh}
+  header{padding:14px 18px;border-bottom:1px solid #1d2a1d;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
+  header h1{font-size:18px;letter-spacing:1px;color:var(--accent)}
+  header .sub{font-size:12px;color:var(--dim)}
+  .stage-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;padding:12px;min-height:0}
+  .stage-wrap img{max-width:100%;max-height:72vh;border:1px solid #233323;border-radius:6px;box-shadow:0 8px 30px #000a}
+  .nav{position:absolute;top:50%;transform:translateY(-50%);background:#0008;color:var(--fg);border:1px solid #2a3a2a;font-size:26px;width:46px;height:64px;cursor:pointer;border-radius:6px}
+  .nav:hover{background:#1a2a1aee;color:var(--accent)} .prev{left:18px}.next{right:18px}
+  .caption{padding:8px 18px;text-align:center}
+  .caption .name{font-size:16px;color:var(--accent);letter-spacing:.5px}
+  .caption .meta{font-size:12px;color:var(--dim);margin-top:2px}
+  .controls{display:flex;gap:14px;align-items:center;justify-content:center;padding:6px 0 10px}
+  .controls button{background:#162216;color:var(--fg);border:1px solid #2a3a2a;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px}
+  .controls button:hover{border-color:var(--accent);color:var(--accent)}
+  .counter{font-size:12px;color:var(--dim)}
+  .thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 12px;border-top:1px solid #1d2a1d;background:#080b08}
+  .thumbs img{height:54px;border:2px solid transparent;border-radius:4px;cursor:pointer;opacity:.55;flex:0 0 auto}
+  .thumbs img.active{border-color:var(--accent);opacity:1}
+  footer{font-size:11px;color:var(--dim);text-align:center;padding:8px}
+</style></head><body>
+<header>
+  <h1>🛰️ OCCUPANTKILLER — MAP IMPROVEMENT QA GALLERY</h1>
+  <span class="sub">18 maps · roadside war-scene props · built 2026-06-20 17:03 UTC</span>
+</header>
+<div class="stage-wrap">
+  <button class="nav prev" onclick="go(-1)">‹</button>
+  <img id="shot" src="shots/00-hostomel-airport.jpg" alt="">
+  <button class="nav next" onclick="go(1)">›</button>
+</div>
+<div class="caption">
+  <div class="name" id="cap-name"></div>
+  <div class="meta" id="cap-meta"></div>
+</div>
+<div class="controls">
+  <button onclick="go(-1)">◀ Prev</button>
+  <button id="playbtn" onclick="toggle()">⏸ Pause</button>
+  <button onclick="go(1)">Next ▶</button>
+  <span class="counter" id="counter"></span>
+</div>
+<div class="thumbs" id="thumbs"></div>
+<footer>Captured headlessly (Chrome + software WebGL, 1280×720) · Performance-mode renderer · OccupantKiller deep-QA loop</footer>
+<script>
+const SHOTS=[{"file":"shots/00-hostomel-airport.jpg","stage":0,"name":"HOSTOMEL AIRPORT","theme":"grassland","props":9},{"file":"shots/01-avdiivka-sector.jpg","stage":1,"name":"AVDIIVKA SECTOR","theme":"urban","props":16},{"file":"shots/02-bakhmut-ruins.jpg","stage":2,"name":"BAKHMUT RUINS","theme":"urban","props":16},{"file":"shots/03-kherson-crossing.jpg","stage":3,"name":"KHERSON CROSSING","theme":"grassland","props":9},{"file":"shots/04-mariupol-steelworks.jpg","stage":4,"name":"MARIUPOL STEELWORKS","theme":"industrial","props":14},{"file":"shots/05-crimea-bridge.jpg","stage":5,"name":"CRIMEA BRIDGE","theme":"coastal","props":9},{"file":"shots/06-chornobyl-zone.jpg","stage":6,"name":"CHORNOBYL ZONE","theme":"wasteland","props":9},{"file":"shots/07-outer-moscow.jpg","stage":7,"name":"OUTER MOSCOW","theme":"cityscape","props":9},{"file":"shots/08-sevastopol-naval-base.jpg","stage":8,"name":"SEVASTOPOL NAVAL BASE","theme":"coastal","props":9},{"file":"shots/09-donbas-final-push.jpg","stage":9,"name":"DONBAS FINAL PUSH","theme":"urban","props":16},{"file":"shots/10-belgorod-offensive.jpg","stage":10,"name":"BELGOROD OFFENSIVE","theme":"grassland","props":9},{"file":"shots/11-kremlin-showdown.jpg","stage":11,"name":"KREMLIN SHOWDOWN","theme":"cityscape","props":9},{"file":"shots/12-battle-of-kyiv.jpg","stage":12,"name":"BATTLE OF KYIV","theme":"urban","props":16},{"file":"shots/13-snake-island-defense.jpg","stage":13,"name":"SNAKE ISLAND DEFENSE","theme":"coastal","props":9},{"file":"shots/14-saky-airbase-strike.jpg","stage":14,"name":"SAKY AIRBASE STRIKE","theme":"coastal","props":9},{"file":"shots/15-vuhledar-tank-graveyard.jpg","stage":15,"name":"VUHLEDAR TANK GRAVEYARD","theme":"wasteland","props":9},{"file":"shots/16-antonov-bridge-strike.jpg","stage":16,"name":"ANTONOV BRIDGE STRIKE","theme":"urban","props":16},{"file":"shots/17-refinery-strike-fpv-drone.jpg","stage":17,"name":"REFINERY STRIKE — FPV DRONE","theme":"industrial","props":0}];
+let i=0, playing=true, timer=null;
+const img=document.getElementById('shot'), capN=document.getElementById('cap-name'),
+      capM=document.getElementById('cap-meta'), cnt=document.getElementById('counter'),
+      thumbs=document.getElementById('thumbs');
+SHOTS.forEach((s,k)=>{const t=document.createElement('img');t.src=s.file;t.onclick=()=>{i=k;render()};thumbs.appendChild(t);});
+function render(){
+  const s=SHOTS[i];
+  img.src=s.file;
+  capN.textContent=(s.stage+1)+'. '+s.name;
+  capM.textContent='theme: '+s.theme+'  ·  props placed: '+s.props;
+  cnt.textContent=(i+1)+' / '+SHOTS.length;
+  [...thumbs.children].forEach((t,k)=>t.classList.toggle('active',k===i));
+  const a=thumbs.children[i]; if(a) a.scrollIntoView({block:'nearest',inline:'center'});
+}
+function go(d){i=(i+d+SHOTS.length)%SHOTS.length;render();reset();}
+function reset(){if(timer)clearInterval(timer);if(playing)timer=setInterval(()=>go(1),4000);}
+function toggle(){playing=!playing;document.getElementById('playbtn').textContent=playing?'⏸ Pause':'▶ Play';reset();}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(-1);if(e.key==='ArrowRight')go(1);if(e.key===' '){e.preventDefault();toggle();}});
+render();reset();
+</script></body></html>

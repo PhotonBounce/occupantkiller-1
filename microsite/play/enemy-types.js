@@ -21,6 +21,60 @@ const EnemyTypes = (function () {
       spawnMessage: '⚠️ ENEMY COMMANDER APPROACHING!'
     },
 
+    // ── Stage-Specific Boss Types (Stages 1-4) ──────────────
+
+    // Stage 1: HOSTOMEL AIRPORT — VDV Airborne Assault Colonel
+    BOSS_HOSTOMEL: {
+      id: 'BOSS_HOSTOMEL', name: 'VDV Assault Colonel', tier: 3,
+      hp: 600, speed: 2.2, damage: 40, attackRange: 12,
+      color: 0x4466cc, scale: 1.65, xpReward: 220,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🪂 VDV ASSAULT COLONEL DROPS IN!',
+      behavior: 'boss',
+      rageThreshold: 0.5, rageDamageMult: 1.5,
+      summonTypes: ['PARATROOP', 'DRONE_OP'], summonCount: 3, summonInterval: 12
+    },
+
+    // Stage 2: AVDIIVKA — Siege Commander in armored vest
+    BOSS_AVDIIVKA: {
+      id: 'BOSS_AVDIIVKA', name: 'Avdiivka Siege Commander', tier: 3,
+      hp: 650, speed: 1.3, damage: 50, attackRange: 10,
+      color: 0x664422, scale: 1.70, xpReward: 260,
+      abilities: ['summon_reinforcements', 'rage_mode', 'bunker_shield'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🏭 SIEGE COMMANDER BREAKS THROUGH THE LINE!',
+      behavior: 'boss',
+      rageThreshold: 0.45, rageDamageMult: 1.4,
+      summonTypes: ['ARMORED', 'STORMER'], summonCount: 3, summonInterval: 15
+    },
+
+    // Stage 3: BAKHMUT RUINS — Wagner Group Butcher
+    BOSS_BAKHMUT: {
+      id: 'BOSS_BAKHMUT', name: 'Bakhmut Butcher (Wagner Lt.)', tier: 3,
+      hp: 700, speed: 2.0, damage: 60, attackRange: 8,
+      color: 0x442200, scale: 1.75, xpReward: 300,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT', 'RARE_WEAPON'],
+      spawnMessage: '☠ WAGNER BUTCHER STORMS THE RUINS!',
+      behavior: 'boss',
+      rageThreshold: 0.5, rageDamageMult: 1.8,
+      summonTypes: ['WAGNER', 'CONSCRIPT', 'CONSCRIPT'], summonCount: 4, summonInterval: 10
+    },
+
+    // Stage 4: KHERSON — Occupation Commissioner
+    BOSS_KHERSON: {
+      id: 'BOSS_KHERSON', name: 'Kherson Occupation Commissioner', tier: 3,
+      hp: 550, speed: 1.6, damage: 35, attackRange: 15,
+      color: 0x446622, scale: 1.60, xpReward: 240,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🪖 OCCUPATION COMMISSIONER TAKES THE FIELD!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.3,
+      summonTypes: ['BTR', 'SNIPER', 'CONSCRIPT'], summonCount: 3, summonInterval: 14
+    },
+
     // ── Stage-Specific Boss Types (Stages 5-12) ──────────────
 
     // Stage 5: MARIUPOL STEELWORKS — Forge Master amid molten steel
@@ -126,22 +180,7 @@ const EnemyTypes = (function () {
     },
 
     // Stage 12: KREMLIN SHOWDOWN — The Tyrant, final boss of the game
-    BOSS_KREMLIN: {
-      id: 'BOSS_KREMLIN', name: 'The Tyrant', tier: 5,
-      hp: 5000, speed: 1.5, damage: 100, attackRange: 20,
-      color: 0xcc0000, scale: 3.0, xpReward: 2500,
-      abilities: ['summon_reinforcements', 'rage_mode', 'nuclear_briefcase', 'body_doubles', 'bunker_shield'],
-      lootTable: ['LEGENDARY_WEAPON', 'LEGENDARY_WEAPON', 'XP_BOOST', 'VICTORY_TOKEN'],
-      spawnMessage: '👑 THE TYRANT MAKES HIS LAST STAND!',
-      behavior: 'boss',
-      phaseThresholds: [0.75, 0.5, 0.25], // 4-phase fight
-      shieldHP: 800, shieldRegenRate: 5,
-      nukeDamage: 250, nukeRadius: 12, nukeInterval: 20,
-      rageThreshold: 0.25, rageDamageMult: 2.5, rageSpeedMult: 2.0,
-      summonTypes: ['SPETSNAZ', 'ASSAULT_MECH', 'THERMOBARIC', 'SWARM_OP'], summonCount: 5, summonInterval: 15
-    },
-
-    // Stage 13: BATTLE OF KYIV
+    // Stage 13-17 unique bosses
     BOSS_KYIV: {
       id: 'BOSS_KYIV', name: 'Kyiv Column Commander', tier: 4,
       hp: 1800, speed: 1.8, damage: 70, attackRange: 18,
@@ -153,8 +192,6 @@ const EnemyTypes = (function () {
       phaseThresholds: [0.6, 0.3],
       summonTypes: ['CONSCRIPT', 'STORMER', 'PARATROOP'], summonCount: 4, summonInterval: 12
     },
-
-    // Stage 14: SNAKE ISLAND
     BOSS_SNAKE_ISLAND: {
       id: 'BOSS_SNAKE_ISLAND', name: 'Moskva Warship Captain', tier: 4,
       hp: 2000, speed: 1.2, damage: 80, attackRange: 25,
@@ -166,8 +203,6 @@ const EnemyTypes = (function () {
       phaseThresholds: [0.7, 0.4],
       summonTypes: ['BTR', 'DRONE_OP', 'SNIPER_ELITE'], summonCount: 3, summonInterval: 14
     },
-
-    // Stage 15: SAKY AIRBASE
     BOSS_SAKY: {
       id: 'BOSS_SAKY', name: 'Black Sea Aviation General', tier: 4,
       hp: 1600, speed: 2.0, damage: 65, attackRange: 20,
@@ -179,8 +214,6 @@ const EnemyTypes = (function () {
       phaseThresholds: [0.65, 0.35],
       summonTypes: ['KAMIKAZE_DRONE', 'PARATROOP', 'SPETSNAZ'], summonCount: 4, summonInterval: 10
     },
-
-    // Stage 16: VUHLEDAR
     BOSS_VUHLEDAR: {
       id: 'BOSS_VUHLEDAR', name: 'Tank Corps Colonel', tier: 4,
       hp: 2200, speed: 1.4, damage: 90, attackRange: 22,
@@ -192,8 +225,6 @@ const EnemyTypes = (function () {
       phaseThresholds: [0.6, 0.3],
       summonTypes: ['TANK', 'BTR', 'HEAVY_SNIPER'], summonCount: 3, summonInterval: 16
     },
-
-    // Stage 17: ANTONOV BRIDGE
     BOSS_ANTONOV: {
       id: 'BOSS_ANTONOV', name: 'Logistics Rear Admiral', tier: 4,
       hp: 1400, speed: 1.6, damage: 55, attackRange: 16,
@@ -204,6 +235,22 @@ const EnemyTypes = (function () {
       behavior: 'boss',
       phaseThresholds: [0.65, 0.35],
       summonTypes: ['ENGINEER', 'MORTAR', 'BTR'], summonCount: 3, summonInterval: 12
+    },
+
+    BOSS_KREMLIN: {
+      id: 'BOSS_KREMLIN', name: 'The Zombie President', tier: 5,
+      hp: 5000, speed: 1.5, damage: 100, attackRange: 20,
+      color: 0x3a0a6a, scale: 3.0, xpReward: 2500,
+      abilities: ['summon_reinforcements', 'rage_mode', 'nuclear_briefcase', 'body_doubles', 'bunker_shield'],
+      lootTable: ['LEGENDARY_WEAPON', 'LEGENDARY_WEAPON', 'XP_BOOST', 'VICTORY_TOKEN'],
+      spawnMessage: '🧟 THE ZOMBIE PRESIDENT SHAMBLES FROM THE KREMLIN!',
+      behavior: 'boss',
+      phaseThresholds: [0.75, 0.5, 0.25],
+      shieldHP: 800, shieldRegenRate: 5,
+      nukeDamage: 250, nukeRadius: 12, nukeInterval: 20,
+      rageThreshold: 0.25, rageDamageMult: 2.5, rageSpeedMult: 2.0,
+      summonTypes: ['SPETSNAZ', 'ASSAULT_MECH', 'THERMOBARIC', 'SWARM_OP'], summonCount: 5, summonInterval: 15,
+      zombie: true, baldHead: true
     },
 
     // Feature 17: Suicide Bomber
@@ -606,6 +653,416 @@ const EnemyTypes = (function () {
       result.summonCount = (typeCfg && typeCfg.summonCount) ? typeCfg.summonCount : (2 + Math.floor(wave / 3));
       result.summonTypes = (typeCfg && typeCfg.summonTypes && typeCfg.summonTypes.length) ? typeCfg.summonTypes : null;
     }
+    // Nuclear briefcase ability (BOSS_KREMLIN)
+    var hasNuke = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('nuclear_briefcase') !== -1;
+    if (hasNuke) {
+      var nukeInterval = typeCfg.nukeInterval || 20;
+      // Start at half interval so first strike isn't instant
+      if (enemy._nukeTimer === undefined) enemy._nukeTimer = nukeInterval * 0.5;
+      enemy._nukeTimer += dt;
+      if (enemy._nukeTimer >= nukeInterval) {
+        enemy._nukeTimer = 0;
+        result.nuclearStrike = {
+          damage:  typeCfg.nukeDamage  || 250,
+          radius:  typeCfg.nukeRadius  || 12,
+          targetX: playerPos.x,
+          targetY: playerPos.y,
+          targetZ: playerPos.z
+        };
+      }
+    }
+    // Bunker shield — periodic invincibility when ability is present
+    var hasShield = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('bunker_shield') !== -1;
+    if (hasShield) {
+      enemy._shieldCooldown = (enemy._shieldCooldown || 0) - dt;
+      enemy._shieldActive   = (enemy._shieldActive  || false);
+      if (!enemy._shieldActive && enemy._shieldCooldown <= 0) {
+        enemy._shieldActive   = true;
+        enemy._shieldTimer    = 4;      // 4s of invincibility
+        enemy._shieldCooldown = 25;     // 25s between phases
+        result.bunkerShieldOn = true;
+      }
+      if (enemy._shieldActive) {
+        enemy._shieldTimer -= dt;
+        if (enemy._shieldTimer <= 0) {
+          enemy._shieldActive = false;
+          result.bunkerShieldOff = true;
+        }
+      }
+    }
+    // Body doubles — spawn decoy bosses at 25% HP (once per fight)
+    var hasDoubles = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('body_doubles') !== -1;
+    if (hasDoubles && !enemy._doublesSpawned && enemy.hp < bossMaxHP * 0.25) {
+      enemy._doublesSpawned = true;
+      var bossPos = enemy.mesh ? enemy.mesh.position : null;
+      result.bodyDoubles = {
+        count: 2,
+        x: bossPos ? bossPos.x : playerPos.x,
+        z: bossPos ? bossPos.z : playerPos.z
+      };
+    }
+    // Flame aura — passive fire ring that damages player when nearby
+    var hasFlame = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('flame_aura') !== -1;
+    if (hasFlame && typeCfg.burnDPS && typeCfg.burnRadius) {
+      var dx = enemy.mesh ? (enemy.mesh.position.x - playerPos.x) : 99;
+      var dz = enemy.mesh ? (enemy.mesh.position.z - playerPos.z) : 99;
+      var distToPlayer = Math.sqrt(dx*dx + dz*dz);
+      if (distToPlayer < typeCfg.burnRadius) {
+        result.flameBurn = { dps: typeCfg.burnDPS, dist: distToPlayer, radius: typeCfg.burnRadius };
+      }
+    }
+    // Radiation aura + regeneration — BOSS_CHORNOBYL
+    var hasRad = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('radiation_aura') !== -1;
+    if (hasRad && typeCfg.radDPS && typeCfg.radRadius) {
+      var rdx = enemy.mesh ? (enemy.mesh.position.x - playerPos.x) : 99;
+      var rdz = enemy.mesh ? (enemy.mesh.position.z - playerPos.z) : 99;
+      var radDist = Math.sqrt(rdx*rdx + rdz*rdz);
+      if (radDist < typeCfg.radRadius) {
+        result.radBurn = { dps: typeCfg.radDPS, dist: radDist, radius: typeCfg.radRadius };
+      }
+    }
+    var hasRegen = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('regeneration') !== -1;
+    if (hasRegen && typeCfg.regenRate) {
+      // Track last damage time on enemy
+      if (!enemy._regenTimer) enemy._regenTimer = 0;
+      // Only regen if haven't been hit for 3s and not at max HP
+      enemy._regenTimer += dt;
+      if (enemy._regenTimer > 3 && enemy.hp < bossMaxHP) {
+        var regenAmt = typeCfg.regenRate * dt;
+        enemy.hp = Math.min(bossMaxHP, enemy.hp + regenAmt);
+        result.regen = true;
+      }
+    }
+    // Naval barrage (BOSS_CRIMEA) — periodic shell salvo at player position
+    var hasBarrage = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('naval_barrage') !== -1;
+    if (hasBarrage && typeCfg.barrageInterval) {
+      enemy._barrageTimer = (enemy._barrageTimer || typeCfg.barrageInterval * 0.6) + dt;
+      if (enemy._barrageTimer >= typeCfg.barrageInterval) {
+        enemy._barrageTimer = 0;
+        result.navalBarrage = {
+          damage: typeCfg.barrageDamage || 80,
+          radius: typeCfg.barrageRadius || 6,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
+    // Flashbang salvo (BOSS_MOSCOW) — blinds player on interval
+    var hasFlash = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('flashbang_salvo') !== -1;
+    if (hasFlash && typeCfg.flashbangInterval) {
+      if (enemy._flashTimer === undefined) enemy._flashTimer = typeCfg.flashbangInterval * 0.7;
+      enemy._flashTimer += dt;
+      if (enemy._flashTimer >= typeCfg.flashbangInterval) {
+        enemy._flashTimer = 0;
+        result.flashbangSalvo = { targetX: playerPos.x, targetZ: playerPos.z };
+      }
+    }
+    // Cruise missile (BOSS_SEVASTOPOL) — big delayed single impact
+    var hasMissile = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('cruise_missile') !== -1;
+    if (hasMissile && typeCfg.missileInterval) {
+      if (enemy._missileTimer === undefined) enemy._missileTimer = typeCfg.missileInterval * 0.5;
+      enemy._missileTimer += dt;
+      if (enemy._missileTimer >= typeCfg.missileInterval) {
+        enemy._missileTimer = 0;
+        result.cruiseMissile = {
+          damage: typeCfg.missileDamage || 150,
+          radius: typeCfg.missileRadius || 7,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
+    // Artillery call (BOSS_DONBAS) — rapid barrage of close shells
+    var hasArtCall = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('artillery_call') !== -1;
+    if (hasArtCall && typeCfg.artilleryInterval) {
+      if (enemy._artCallTimer === undefined) enemy._artCallTimer = typeCfg.artilleryInterval * 0.4;
+      enemy._artCallTimer += dt;
+      if (enemy._artCallTimer >= typeCfg.artilleryInterval) {
+        enemy._artCallTimer = 0;
+        result.artilleryCall = {
+          damage: typeCfg.artilleryDamage || 120,
+          radius: typeCfg.artilleryRadius || 5,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
+    // Rocket salvo (BOSS_BELGOROD) — burst of rockets at player in quick succession
+    var hasRockets = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('rocket_salvo') !== -1;
+    if (hasRockets && typeCfg.rocketInterval) {
+      if (enemy._rocketTimer === undefined) enemy._rocketTimer = typeCfg.rocketInterval * 0.5;
+      enemy._rocketTimer += dt;
+      if (enemy._rocketTimer >= typeCfg.rocketInterval) {
+        enemy._rocketTimer = 0;
+        result.rocketSalvo = {
+          damage: typeCfg.rocketSalvoDmg || 130,
+          count:  typeCfg.rocketSalvoCount || 6,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
+    // Drone swarm (BOSS_SAKY) — deploys kamikaze drones to hunt player
+    var hasDroneSwarm = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('drone_swarm') !== -1;
+    if (hasDroneSwarm) {
+      var swarmInterval = 22;
+      if (enemy._droneSwarmTimer === undefined) enemy._droneSwarmTimer = swarmInterval * 0.6;
+      enemy._droneSwarmTimer += dt;
+      if (enemy._droneSwarmTimer >= swarmInterval) {
+        enemy._droneSwarmTimer = 0;
+        result.droneSwarm = { count: 4 };
+      }
+    }
+    // Mortar screen (BOSS_ANTONOV) — dense mortar barrage around player position
+    var hasMortarScreen = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('mortar_screen') !== -1;
+    if (hasMortarScreen) {
+      var msInterval = 14;
+      if (enemy._mortarScreenTimer === undefined) enemy._mortarScreenTimer = msInterval * 0.5;
+      enemy._mortarScreenTimer += dt;
+      if (enemy._mortarScreenTimer >= msInterval) {
+        enemy._mortarScreenTimer = 0;
+        result.mortarScreen = {
+          damage: 70,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
+    // call_armor (BOSS_KYIV) — calls in armored vehicle support
+    var hasCallArmor = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('call_armor') !== -1;
+    if (hasCallArmor) {
+      var caInterval = typeCfg.callArmorInterval || 20;
+      if (enemy._callArmorTimer === undefined) enemy._callArmorTimer = caInterval * 0.7;
+      enemy._callArmorTimer += dt;
+      if (enemy._callArmorTimer >= caInterval) {
+        enemy._callArmorTimer = 0;
+        result.callArmor = { count: 2, types: typeCfg.summonTypes || ['BTR', 'TANK'] };
+      }
+    }
+    // artillery_strike (BOSS_KYIV) — targeted artillery on player
+    var hasArtilleryStrike = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('artillery_strike') !== -1;
+    if (hasArtilleryStrike) {
+      var asInterval = typeCfg.artilleryStrikeInterval || 15;
+      if (enemy._artilleryStrikeTimer === undefined) enemy._artilleryStrikeTimer = asInterval * 0.6;
+      enemy._artilleryStrikeTimer += dt;
+      if (enemy._artilleryStrikeTimer >= asInterval) {
+        enemy._artilleryStrikeTimer = 0;
+        result.artilleryStrike = {
+          damage: typeCfg.artilleryStrikeDmg || 100,
+          radius: typeCfg.artilleryStrikeRadius || 6,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // conscript_wave (BOSS_KYIV) — floods the zone with conscripts
+    var hasConscriptWave = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('conscript_wave') !== -1;
+    if (hasConscriptWave) {
+      var cwInterval = typeCfg.conscriptWaveInterval || 25;
+      if (enemy._conscriptWaveTimer === undefined) enemy._conscriptWaveTimer = cwInterval * 0.5;
+      enemy._conscriptWaveTimer += dt;
+      if (enemy._conscriptWaveTimer >= cwInterval) {
+        enemy._conscriptWaveTimer = 0;
+        result.conscriptWave = { count: typeCfg.conscriptWaveCount || 5 };
+      }
+    }
+    // depth_charge (BOSS_SNAKE_ISLAND) — drops AoE blasts in a wide pattern
+    var hasDepthCharge = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('depth_charge') !== -1;
+    if (hasDepthCharge) {
+      var dcInterval = typeCfg.depthChargeInterval || 12;
+      if (enemy._depthChargeTimer === undefined) enemy._depthChargeTimer = dcInterval * 0.6;
+      enemy._depthChargeTimer += dt;
+      if (enemy._depthChargeTimer >= dcInterval) {
+        enemy._depthChargeTimer = 0;
+        result.depthCharge = {
+          damage: typeCfg.depthChargeDmg || 90,
+          radius: typeCfg.depthChargeRadius || 8,
+          count: 4,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // marine_drop (BOSS_SNAKE_ISLAND) — air-drops marines at strategic positions
+    var hasMarineDrop = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('marine_drop') !== -1;
+    if (hasMarineDrop) {
+      var mdInterval = typeCfg.marineDropInterval || 18;
+      if (enemy._marineDropTimer === undefined) enemy._marineDropTimer = mdInterval * 0.8;
+      enemy._marineDropTimer += dt;
+      if (enemy._marineDropTimer >= mdInterval) {
+        enemy._marineDropTimer = 0;
+        result.marineDrop = { count: typeCfg.marineDropCount || 3 };
+      }
+    }
+    // airstrike_call (BOSS_SAKY) — carpet bombing run across player position
+    var hasAirstrikeCall = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('airstrike_call') !== -1;
+    if (hasAirstrikeCall) {
+      var acInterval = typeCfg.airstrikeInterval || 18;
+      if (enemy._airstrikeCallTimer === undefined) enemy._airstrikeCallTimer = acInterval * 0.5;
+      enemy._airstrikeCallTimer += dt;
+      if (enemy._airstrikeCallTimer >= acInterval) {
+        enemy._airstrikeCallTimer = 0;
+        result.airstrikeCall = {
+          damage: typeCfg.airstrikeDmg || 110,
+          radius: typeCfg.airstrikeRadius || 5,
+          bombCount: 6,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // scramble_jets (BOSS_SAKY) — strafing run dealing rapid light damage
+    var hasScrambleJets = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('scramble_jets') !== -1;
+    if (hasScrambleJets) {
+      var sjInterval = typeCfg.scrambleInterval || 14;
+      if (enemy._scrambleJetsTimer === undefined) enemy._scrambleJetsTimer = sjInterval * 0.7;
+      enemy._scrambleJetsTimer += dt;
+      if (enemy._scrambleJetsTimer >= sjInterval) {
+        enemy._scrambleJetsTimer = 0;
+        result.scrambleJets = {
+          damage: typeCfg.scrambleDmg || 30,
+          strafePasses: 3,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // tank_column (BOSS_VUHLEDAR) — summons a column of tanks
+    var hasTankColumn = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('tank_column') !== -1;
+    if (hasTankColumn) {
+      var tcInterval = typeCfg.tankColumnInterval || 22;
+      if (enemy._tankColumnTimer === undefined) enemy._tankColumnTimer = tcInterval * 0.6;
+      enemy._tankColumnTimer += dt;
+      if (enemy._tankColumnTimer >= tcInterval) {
+        enemy._tankColumnTimer = 0;
+        result.tankColumn = { count: typeCfg.tankColumnCount || 2 };
+      }
+    }
+    // artillery_prep (BOSS_VUHLEDAR) — preparatory bombardment before infantry advance
+    var hasArtilleryPrep = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('artillery_prep') !== -1;
+    if (hasArtilleryPrep) {
+      var apInterval = typeCfg.artilleryPrepInterval || 16;
+      if (enemy._artilleryPrepTimer === undefined) enemy._artilleryPrepTimer = apInterval * 0.5;
+      enemy._artilleryPrepTimer += dt;
+      if (enemy._artilleryPrepTimer >= apInterval) {
+        enemy._artilleryPrepTimer = 0;
+        result.artilleryPrep = {
+          damage: typeCfg.artilleryPrepDmg || 80,
+          radius: typeCfg.artilleryPrepRadius || 7,
+          shellCount: 7,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // minefield_advance (BOSS_VUHLEDAR) — scatter proximity mines around player
+    var hasMinefieldAdvance = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('minefield_advance') !== -1;
+    if (hasMinefieldAdvance) {
+      var mfInterval = typeCfg.minefieldInterval || 20;
+      if (enemy._minefieldTimer === undefined) enemy._minefieldTimer = mfInterval * 0.4;
+      enemy._minefieldTimer += dt;
+      if (enemy._minefieldTimer >= mfInterval) {
+        enemy._minefieldTimer = 0;
+        result.minefieldAdvance = {
+          mineCount: typeCfg.mineCount || 6,
+          mineDamage: typeCfg.mineDamage || 85,
+          spreadRadius: 12,
+          targetX: playerPos.x, targetZ: playerPos.z
+        };
+      }
+    }
+    // supply_drop (BOSS_ANTONOV) — boss heals nearby enemy allies
+    var hasSupplyDrop = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('supply_drop') !== -1;
+    if (hasSupplyDrop) {
+      var sdInterval = typeCfg.supplyDropInterval || 18;
+      if (enemy._supplyDropTimer === undefined) enemy._supplyDropTimer = sdInterval * 0.7;
+      enemy._supplyDropTimer += dt;
+      if (enemy._supplyDropTimer >= sdInterval) {
+        enemy._supplyDropTimer = 0;
+        result.supplyDrop = { healAmount: typeCfg.supplyHealAmount || 80, healRadius: 15 };
+      }
+    }
+    // repair_team (BOSS_ANTONOV) — spawns combat engineers to repair/heal
+    var hasRepairTeam = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('repair_team') !== -1;
+    if (hasRepairTeam) {
+      var rtInterval = typeCfg.repairTeamInterval || 24;
+      if (enemy._repairTeamTimer === undefined) enemy._repairTeamTimer = rtInterval * 0.8;
+      enemy._repairTeamTimer += dt;
+      if (enemy._repairTeamTimer >= rtInterval) {
+        enemy._repairTeamTimer = 0;
+        result.repairTeam = { count: typeCfg.repairTeamCount || 2 };
+      }
+    }
+
+    // fortify (BOSS_DONBAS) — periodic absorbing barrier that eats incoming damage
+    var hasFortify = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('fortify') !== -1;
+    if (hasFortify) {
+      if (enemy._fortifyTimer === undefined) enemy._fortifyTimer = 12;
+      enemy._fortifyTimer += dt;
+      if (enemy._fortifyActive) {
+        enemy._fortifyDuration = (enemy._fortifyDuration || 0) - dt;
+        if (enemy._fortifyDuration <= 0) {
+          enemy._fortifyActive = false;
+          enemy._fortifyShieldHP = 0;
+          result.fortifyExpired = true;
+        }
+      } else if (enemy._fortifyTimer >= 25) {
+        enemy._fortifyTimer = 0;
+        enemy._fortifyShieldHP = typeCfg.shieldHP || 300;
+        enemy._fortifyActive = true;
+        enemy._fortifyDuration = 8;
+        result.fortify = { shieldHP: enemy._fortifyShieldHP };
+      }
+    }
+
+    // armor_plates (BOSS_BELGOROD) — timed heavy armor period
+    var hasArmorPlates = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('armor_plates') !== -1;
+    if (hasArmorPlates) {
+      if (enemy._armorPlatesTimer === undefined) enemy._armorPlatesTimer = 10;
+      enemy._armorPlatesTimer += dt;
+      if (enemy._armorPlatesActive) {
+        enemy._armorPlatesDuration = (enemy._armorPlatesDuration || 0) - dt;
+        if (enemy._armorPlatesDuration <= 0) {
+          enemy._armorPlatesActive = false;
+          result.armorPlatesExpired = true;
+        }
+      } else if (enemy._armorPlatesTimer >= 20) {
+        enemy._armorPlatesTimer = 0;
+        enemy._armorPlatesActive = true;
+        enemy._armorPlatesDuration = 10;
+        result.armorPlates = {
+          reduction: (typeCfg.armorFront || 0.6)
+        };
+      }
+    }
+
+    // torpedo_salvo (BOSS_SEVASTOPOL) — spread of 5 torpedo blasts toward player
+    var hasTorpedo = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('torpedo_salvo') !== -1;
+    if (hasTorpedo) {
+      if (enemy._torpedoTimer === undefined) enemy._torpedoTimer = 6;
+      enemy._torpedoTimer += dt;
+      if (enemy._torpedoTimer >= 10) {
+        enemy._torpedoTimer = 0;
+        result.torpedoSalvo = {
+          count: 5,
+          damage: 80,
+          radius: 5,
+          spread: 10,
+          targetX: playerPos.x,
+          targetZ: playerPos.z
+        };
+      }
+    }
+
+    // shield_bash (generic BOSS) — melee slam when player is close
+    var hasShieldBash = typeCfg && typeCfg.abilities && typeCfg.abilities.indexOf('shield_bash') !== -1;
+    if (hasShieldBash) {
+      if (enemy._shieldBashTimer === undefined) enemy._shieldBashTimer = 4;
+      enemy._shieldBashTimer += dt;
+      var _sbDx = enemy.mesh ? (enemy.mesh.position.x - playerPos.x) : 99;
+      var _sbDz = enemy.mesh ? (enemy.mesh.position.z - playerPos.z) : 99;
+      var _sbDist = Math.sqrt(_sbDx*_sbDx + _sbDz*_sbDz);
+      if (enemy._shieldBashTimer >= 8 && _sbDist < 6) {
+        enemy._shieldBashTimer = 0;
+        result.shieldBash = { damage: 60, pushback: 8 };
+      }
+    }
+
     return result;
   }
 
@@ -633,25 +1090,29 @@ const EnemyTypes = (function () {
 
   /* ── Stage-Specific Boss Selection ─────────── */
   const STAGE_BOSS_MAP = {
-    5:  'BOSS_MARIUPOL',    // Azovstal Forge Master
-    6:  'BOSS_CRIMEA',      // Kerch Bridge Admiral
-    7:  'BOSS_CHORNOBYL',   // Irradiated Stalker
-    8:  'BOSS_MOSCOW',      // FSB Black Colonel
-    9:  'BOSS_SEVASTOPOL',  // Black Sea Fleet Commander
-    10: 'BOSS_DONBAS',      // Donbas Warlord
-    11: 'BOSS_BELGOROD',     // Belgorod Iron General
-    12: 'BOSS_KREMLIN',      // The Tyrant
-    13: 'BOSS_KYIV',         // Kyiv Column Commander
-    14: 'BOSS_SNAKE_ISLAND', // Moskva Warship Captain
-    15: 'BOSS_SAKY',         // Black Sea Aviation General
-    16: 'BOSS_VUHLEDAR',     // Tank Corps Colonel
-    17: 'BOSS_ANTONOV',      // Logistics Rear Admiral
+    1:  'BOSS_HOSTOMEL',      // VDV Airborne Assault Colonel
+    2:  'BOSS_AVDIIVKA',      // Avdiivka Siege Commander
+    3:  'BOSS_BAKHMUT',       // Bakhmut Butcher (Wagner Lt.)
+    4:  'BOSS_KHERSON',       // Kherson Occupation Commissioner
+    5:  'BOSS_MARIUPOL',      // Azovstal Forge Master
+    6:  'BOSS_CRIMEA',        // Kerch Bridge Admiral
+    7:  'BOSS_CHORNOBYL',     // Irradiated Stalker
+    8:  'BOSS_MOSCOW',        // FSB Black Colonel
+    9:  'BOSS_SEVASTOPOL',    // Black Sea Fleet Commander
+    10: 'BOSS_DONBAS',        // Donbas Warlord
+    11: 'BOSS_BELGOROD',      // Belgorod Iron General
+    12: 'BOSS_KREMLIN',       // The Tyrant
+    13: 'BOSS_KYIV',          // Kyiv Column Commander
+    14: 'BOSS_SNAKE_ISLAND',  // Moskva Warship Captain
+    15: 'BOSS_SAKY',          // Black Sea Aviation General
+    16: 'BOSS_VUHLEDAR',      // Tank Corps Colonel
+    17: 'BOSS_ANTONOV',       // Logistics Rear Admiral
     // 18 (Refinery FPV) is droneOnly/single-wave — no boss needed
   };
 
   /**
    * Returns the boss type ID for a given stage (1-based stage id).
-   * Stages 1-4 use the generic 'BOSS'. Stages 5-12 have unique bosses.
+   * All 17 combat stages have unique named bosses.
    */
   function getBossForStage(stageId) {
     return STAGE_BOSS_MAP[stageId] || 'BOSS';

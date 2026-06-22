@@ -100,6 +100,40 @@ const MissionTypes = (function () {
       rusGarrisonPerHole: 4, grenadeBonus: 8,
       timeLimit: 360, // 6 minutes
       rewardOKC: 350, rewardXP: 500
+    },
+    // Feature 47: Ambush Patrol
+    AMBUSH: {
+      id: 'AMBUSH', name: 'Ambush Patrol', icon: '🎭', tier: 2,
+      desc: 'Set up an ambush on an enemy patrol route and eliminate all targets.',
+      objectives: [
+        { type: 'position_ambush', label: 'Position at ambush point' },
+        { type: 'kill_patrol', label: 'Eliminate patrol (0/8)' }
+      ],
+      duration: 90, enemyCount: 8,
+      rewardOKC: 90, rewardXP: 135, timeLimit: 90
+    },
+    // Feature 48: Hold the Line
+    HOLD_THE_LINE: {
+      id: 'HOLD_THE_LINE', name: 'Hold the Line', icon: '🛡️', tier: 3,
+      desc: 'Defend the position against multiple enemy waves.',
+      objectives: [
+        { type: 'reach_zone', label: 'Reach defend zone' },
+        { type: 'defend_zone', label: 'Hold position (120s)' },
+        { type: 'survive_waves', label: 'Survive all waves' }
+      ],
+      holdTime: 120, waveCount: 3, zoneRadius: 8,
+      rewardOKC: 120, rewardXP: 180, timeLimit: 180
+    },
+    // Feature 49: Extraction
+    EXTRACTION: {
+      id: 'EXTRACTION', name: 'Extraction', icon: '🚁', tier: 3,
+      desc: 'Reach the extraction point while being pursued by enemies.',
+      objectives: [
+        { type: 'reach_extraction', label: 'Reach LZ' },
+        { type: 'survive_pursuit', label: 'Survive enemy pursuit' }
+      ],
+      extractTime: 60, extractRadius: 6,
+      rewardOKC: 110, rewardXP: 165, timeLimit: 90
     }
   };
 
@@ -255,6 +289,57 @@ const MissionTypes = (function () {
             window.HUD.notifyPickup('CLEAR ' + dCount + ' RUSSIAN DUGOUTS', '#ff8844');
           }
         } catch (eD) { /* swallow */ }
+        break;
+      case 'AMBUSH':
+        try {
+          missionProgress = { killed: 0, spawnedEnemyIds: [], patrolRoute: [], nextSpawnTime: 0, ambushCount: type.enemyCount + Math.floor(Math.random() * 5), nextSpawnIndex: 0 };
+          var _ambX = activeMission.zoneX - 20, _ambZ = activeMission.zoneZ;
+          for (var _wi = 0; _wi < 5; _wi++) { missionProgress.patrolRoute.push({ x: _ambX + (_wi / 4) * 40, z: _ambZ }); }
+          if (typeof window !== 'undefined' && window.Enemies && window.Enemies.spawnSingle) {
+            var _apy = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight) ? window.VoxelWorld.getTerrainHeight(_ambX, _ambZ) : 0;
+            var _ae0 = window.Enemies.spawnSingle('CONSCRIPT', { x: _ambX, y: _apy + 1, z: _ambZ }, { patrolWaypoints: missionProgress.patrolRoute });
+            if (_ae0) missionProgress.spawnedEnemyIds.push(_ae0.id);
+            missionProgress.nextSpawnIndex = 1; missionProgress.nextSpawnTime = 3;
+          }
+          if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) window.HUD.showToast('🎭 AMBUSH: Eliminate ' + missionProgress.ambushCount + ' patrolling enemies!', 5000, '#ff9900');
+        } catch (eA) {}
+        break;
+      case 'HOLD_THE_LINE':
+        try {
+          missionProgress = { holdTimer: 0, inZone: false, waveSpawned: 0, nextWaveTime: 40, allEnemyIds: [] };
+          if (typeof window !== 'undefined' && window.Enemies && window.Enemies.spawnSingle) {
+            var _hzy = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight) ? window.VoxelWorld.getTerrainHeight(activeMission.zoneX, activeMission.zoneZ) : 0;
+            for (var _hwi0 = 0; _hwi0 < 10; _hwi0++) {
+              var _hwa0 = (_hwi0 / 10) * Math.PI * 2, _hwd0 = 25 + Math.random() * 5;
+              var _hwx0 = activeMission.zoneX + Math.cos(_hwa0) * _hwd0, _hwz0 = activeMission.zoneZ + Math.sin(_hwa0) * _hwd0;
+              var _hwy0 = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight) ? window.VoxelWorld.getTerrainHeight(_hwx0, _hwz0) : 0;
+              var _hw0 = window.Enemies.spawnSingle('CONSCRIPT', { x: _hwx0, y: _hwy0 + 1, z: _hwz0 }, { guardPost: { x: activeMission.zoneX, y: _hzy, z: activeMission.zoneZ }, guardRadius: 30 });
+              if (_hw0) missionProgress.allEnemyIds.push(_hw0.id);
+            }
+            missionProgress.waveSpawned = 1;
+          }
+          if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) window.HUD.showToast('🛡️ HOLD THE LINE: Defend the zone for 120 seconds!', 5000, '#4488ff');
+        } catch (eH) {}
+        break;
+      case 'EXTRACTION':
+        try {
+          missionProgress = { extractionReached: false, pursuerIds: [], nextPursuerSpawnTime: 20, extractionPos: null };
+          var _extAng0 = Math.random() * Math.PI * 2, _extDist0 = 40 + Math.random() * 20;
+          var _extX0 = activeMission.zoneX + Math.cos(_extAng0) * _extDist0, _extZ0 = activeMission.zoneZ + Math.sin(_extAng0) * _extDist0;
+          var _extY0 = (typeof window !== 'undefined' && window.VoxelWorld && window.VoxelWorld.getTerrainHeight) ? window.VoxelWorld.getTerrainHeight(_extX0, _extZ0) : 0;
+          missionProgress.extractionPos = { x: _extX0, y: _extY0, z: _extZ0 };
+          if (typeof window !== 'undefined' && window.Enemies && window.Enemies.spawnSingle) {
+            var _purCount0 = 6 + Math.floor(Math.random() * 5), _oppAng0 = _extAng0 + Math.PI;
+            for (var _pi0 = 0; _pi0 < _purCount0; _pi0++) {
+              var _pAng0 = _oppAng0 + (Math.random() - 0.5) * Math.PI * 0.5, _pDist0 = 15 + Math.random() * 5;
+              var _px0 = activeMission.zoneX + Math.cos(_pAng0) * _pDist0, _pz0 = activeMission.zoneZ + Math.sin(_pAng0) * _pDist0;
+              var _py0 = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight) ? window.VoxelWorld.getTerrainHeight(_px0, _pz0) : 0;
+              var _pur0 = window.Enemies.spawnSingle('STORMER', { x: _px0, y: _py0 + 1, z: _pz0 }, { chaseTarget: true, guardPost: { x: _px0, y: _py0, z: _pz0 }, guardRadius: 60 });
+              if (_pur0) missionProgress.pursuerIds.push(_pur0.id);
+            }
+          }
+          if (typeof window !== 'undefined' && window.HUD && window.HUD.showToast) window.HUD.showToast('🚁 EXTRACTION IN 60s — reach the LZ!', 5000, '#ffaa00');
+        } catch (eE) {}
         break;
     }
     return true;
@@ -462,6 +547,84 @@ const MissionTypes = (function () {
           }
         }
         break;
+
+      case 'AMBUSH': {
+        if (missionProgress.nextSpawnIndex < missionProgress.ambushCount) {
+          missionProgress.nextSpawnTime -= dt;
+          if (missionProgress.nextSpawnTime <= 0) {
+            try {
+              var _asx = missionProgress.patrolRoute[0].x, _asz = missionProgress.patrolRoute[0].z;
+              var _asy = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight) ? window.VoxelWorld.getTerrainHeight(_asx, _asz) : 0;
+              if (window.Enemies && window.Enemies.spawnSingle) {
+                var _ae2 = window.Enemies.spawnSingle('CONSCRIPT', { x: _asx, y: _asy + 1, z: _asz }, { patrolWaypoints: missionProgress.patrolRoute });
+                if (_ae2) missionProgress.spawnedEnemyIds.push(_ae2.id);
+              }
+            } catch (eAS) {}
+            missionProgress.nextSpawnIndex++; missionProgress.nextSpawnTime = 3;
+          }
+        }
+        if (window.Enemies && window.Enemies.getAll) {
+          var _aAll = window.Enemies.getAll(), _alive = 0;
+          for (var _ai = 0; _ai < _aAll.length; _ai++) {
+            if (_aAll[_ai] && _aAll[_ai].alive && missionProgress.spawnedEnemyIds.indexOf(_aAll[_ai].id) >= 0) _alive++;
+          }
+          missionProgress.killed = missionProgress.ambushCount - _alive;
+          result.killed = missionProgress.killed; result.total = missionProgress.ambushCount;
+          if (_alive === 0 && missionProgress.nextSpawnIndex >= missionProgress.ambushCount) { m.state = 'COMPLETE'; return { ...result, state: 'COMPLETE' }; }
+        }
+        break;
+      }
+
+      case 'HOLD_THE_LINE': {
+        var _hdx = playerPos.x - m.zoneX, _hdz = playerPos.z - m.zoneZ;
+        var _inDef = _hdx * _hdx + _hdz * _hdz < cfg.zoneRadius * cfg.zoneRadius;
+        if (_inDef) missionProgress.holdTimer += dt;
+        else result.warning = 'RETURN TO ZONE';
+        missionProgress.nextWaveTime -= dt;
+        if (missionProgress.nextWaveTime <= 0 && missionProgress.waveSpawned < cfg.waveCount) {
+          try {
+            var _wn = missionProgress.waveSpawned + 1, _ws = 10 + (_wn - 1) * 2;
+            if (window.Enemies && window.Enemies.spawnSingle) {
+              for (var _hwi2 = 0; _hwi2 < _ws; _hwi2++) {
+                var _hwa2 = (_hwi2 / _ws) * Math.PI * 2, _hwd2 = 25 + Math.random() * 5;
+                var _hwx2 = m.zoneX + Math.cos(_hwa2) * _hwd2, _hwz2 = m.zoneZ + Math.sin(_hwa2) * _hwd2;
+                var _hwy2 = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight) ? window.VoxelWorld.getTerrainHeight(_hwx2, _hwz2) : 0;
+                var _hw2 = window.Enemies.spawnSingle('STORMER', { x: _hwx2, y: _hwy2 + 1, z: _hwz2 }, { guardPost: { x: m.zoneX, y: 0, z: m.zoneZ }, guardRadius: 30 });
+                if (_hw2) missionProgress.allEnemyIds.push(_hw2.id);
+              }
+            }
+            missionProgress.waveSpawned++; missionProgress.nextWaveTime = 40;
+            if (window.HUD && window.HUD.notifyPickup) window.HUD.notifyPickup('WAVE ' + missionProgress.waveSpawned + '/' + cfg.waveCount + ' INCOMING!', '#ff6600');
+          } catch (eWave) {}
+        }
+        result.holdProgress = missionProgress.holdTimer / cfg.holdTime;
+        result.inZone = _inDef;
+        if (missionProgress.holdTimer >= cfg.holdTime) { m.state = 'COMPLETE'; return { ...result, state: 'COMPLETE' }; }
+        break;
+      }
+
+      case 'EXTRACTION': {
+        var _edx = playerPos.x - missionProgress.extractionPos.x, _edz = playerPos.z - missionProgress.extractionPos.z;
+        var _edist = Math.sqrt(_edx * _edx + _edz * _edz);
+        missionProgress.nextPursuerSpawnTime -= dt;
+        if (missionProgress.nextPursuerSpawnTime <= 0) {
+          try {
+            if (window.Enemies && window.Enemies.spawnSingle) {
+              for (var _rpi = 0; _rpi < 2; _rpi++) {
+                var _rpAng = Math.random() * Math.PI * 2, _rpDist = 15 + Math.random() * 10;
+                var _rpx = playerPos.x + Math.cos(_rpAng) * _rpDist, _rpz = playerPos.z + Math.sin(_rpAng) * _rpDist;
+                var _rpy = (window.VoxelWorld && window.VoxelWorld.getTerrainHeight) ? window.VoxelWorld.getTerrainHeight(_rpx, _rpz) : 0;
+                var _rper = window.Enemies.spawnSingle('CONSCRIPT', { x: _rpx, y: _rpy + 1, z: _rpz }, { chaseTarget: true, guardPost: { x: _rpx, y: _rpy, z: _rpz }, guardRadius: 60 });
+                if (_rper) missionProgress.pursuerIds.push(_rper.id);
+              }
+            }
+          } catch (eExt) {}
+          missionProgress.nextPursuerSpawnTime = 20;
+        }
+        result.extractDistance = _edist; result.extractPos = missionProgress.extractionPos;
+        if (_edist <= cfg.extractRadius) { m.state = 'COMPLETE'; return { ...result, state: 'COMPLETE' }; }
+        break;
+      }
     }
     return result;
   }

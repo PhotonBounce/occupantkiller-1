@@ -42,7 +42,10 @@
 var StageVFX = (function () {
   'use strict';
 
-  var MAX_PARTICLES = 200;
+  var _isMobileVFX = (function() {
+    try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
+  })();
+  var MAX_PARTICLES = _isMobileVFX ? 60 : 200;
   var _scene = null;
   var _activeTheme = null;
 
@@ -361,6 +364,45 @@ var StageVFX = (function () {
       p.scaleEnd = 3.0;
       active.push(p);
     }, 1.0);
+
+    // Burning vehicle smoke — mid-range thick black columns
+    _addSpawner(function () {
+      var p = _getParticle(_geo.smokePlane, _mat.smoke);
+      if (!p) return;
+      // Fixed burning vehicle spots scattered near the player
+      var col = Math.floor(Math.random() * 5);
+      var offsets = [[-18, 12], [22, -8], [-8, 28], [15, 20], [-25, -18]];
+      var o = offsets[col];
+      p.mesh.position.set(o[0] + (Math.random() - 0.5) * 2, 1 + Math.random() * 1, o[1] + (Math.random() - 0.5) * 2);
+      p.velocity.set((Math.random() - 0.5) * 0.3, 2.0 + Math.random() * 1.5, (Math.random() - 0.5) * 0.3);
+      p.life = 1.0;
+      p.maxLife = 4 + Math.random() * 3;
+      p.spin = (Math.random() - 0.5) * 2;
+      p.scaleStart = 0.6;
+      p.scaleEnd = 2.5;
+      active.push(p);
+    }, 0.35);
+
+    // Orange ember sparks from burning buildings
+    _addSpawner(function () {
+      var p = _getParticle(_geo.box, _mat.ember);
+      if (!p) return;
+      p.mesh.position.set(
+        (Math.random() - 0.5) * 40,
+        2 + Math.random() * 6,
+        (Math.random() - 0.5) * 40
+      );
+      p.velocity.set(
+        (Math.random() - 0.5) * 1.5,
+        0.8 + Math.random() * 1.2,
+        (Math.random() - 0.5) * 1.5
+      );
+      p.life = 1.0;
+      p.maxLife = 1.5 + Math.random() * 1.5;
+      p.gravity = -0.3;
+      p.spin = (Math.random() - 0.5) * 4;
+      active.push(p);
+    }, 0.08);
   }
 
   function _setupGrassland() {
@@ -512,17 +554,25 @@ var StageVFX = (function () {
   function update(delta) {
     if (!_scene || !groupMesh) return;
 
+    // Skip particle spawning (but still animate existing particles) when at LOW quality.
+    var _skipSpawn = false;
+    try {
+      if (typeof GameManager !== 'undefined' && GameManager.isLowEndVFX) _skipSpawn = GameManager.isLowEndVFX();
+    } catch(e) {}
+
     // Run spawners
     var i, s;
-    for (i = 0; i < _spawners.length; i++) {
-      s = _spawners[i];
-      s.timer -= delta;
-      if (s.timer <= 0) {
-        // Only spawn if under budget
-        if (active.length < MAX_PARTICLES) {
-          s.fn();
+    if (!_skipSpawn) {
+      for (i = 0; i < _spawners.length; i++) {
+        s = _spawners[i];
+        s.timer -= delta;
+        if (s.timer <= 0) {
+          // Only spawn if under budget
+          if (active.length < MAX_PARTICLES) {
+            s.fn();
+          }
+          s.timer = s.interval;
         }
-        s.timer = s.interval;
       }
     }
 
@@ -627,21 +677,27 @@ var StageVFX = (function () {
   var _ambientProps = [];  // { mesh, type, timer }
 
   function spawnAmbientProps() {
-    // Smoke columns at random positions near spawn area
-    for (var i = 0; i < 4; i++) {
-      var sx = (Math.random() - 0.5) * 80;
-      var sz = (Math.random() - 0.5) * 80;
-      var smokeLight = new THREE.PointLight(0xff6600, 0.5, 8);
-      smokeLight.position.set(sx, 2, sz);
+    var fireCount = _warzone ? 8 : 4;
+    var fireRange = _warzone ? 100 : 80;
+    var fireIntensity = _warzone ? 1.2 : 0.5;
+    var fireRadius = _warzone ? 14 : 8;
+    // Burning vehicle / building fire glows
+    for (var i = 0; i < fireCount; i++) {
+      var sx = (Math.random() - 0.5) * fireRange;
+      var sz = (Math.random() - 0.5) * fireRange;
+      var fireColor = _warzone ? (Math.random() < 0.6 ? 0xff4400 : 0xff8800) : 0xff6600;
+      var smokeLight = new THREE.PointLight(fireColor, fireIntensity, fireRadius);
+      smokeLight.position.set(sx, 1.5 + Math.random() * 2, sz);
       if (groupMesh) groupMesh.add(smokeLight);
       _ambientProps.push({ mesh: smokeLight, type: 'fire-glow', timer: Math.random() * 6.28 });
     }
-    // Flickering window lights
-    for (var j = 0; j < 6; j++) {
+    // Flickering window lights — fewer in warzone (most buildings dark/destroyed)
+    var winCount = _warzone ? 3 : 6;
+    for (var j = 0; j < winCount; j++) {
       var lx = (Math.random() - 0.5) * 60;
       var ly = 3 + Math.random() * 8;
       var lz = (Math.random() - 0.5) * 60;
-      var windowLight = new THREE.PointLight(0xffcc66, 0.3, 6);
+      var windowLight = new THREE.PointLight(_warzone ? 0xff6633 : 0xffcc66, _warzone ? 0.5 : 0.3, 6);
       windowLight.position.set(lx, ly, lz);
       if (groupMesh) groupMesh.add(windowLight);
       _ambientProps.push({ mesh: windowLight, type: 'flicker', timer: Math.random() * 6.28 });
