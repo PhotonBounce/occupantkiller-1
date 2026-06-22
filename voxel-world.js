@@ -1231,7 +1231,7 @@ window.VoxelWorld = (function () {
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
-  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy','Poltava','Kursk','Lviv','Kramatorsk','Donetsk','Luhansk','Vinnytsia'];
+  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy','Poltava','Kursk','Lviv','Kramatorsk','Donetsk','Luhansk','Vinnytsia','Melitopol','Berdiansk','Zhytomyr'];
 
   function getLevelDef(index) {
     if (index >= 0 && index < LEVELS.length) return LEVELS[index];
@@ -12247,6 +12247,144 @@ window.VoxelWorld = (function () {
         generateWreckedAPC(18, 16);
         generateWreckedCar(8, -30);                   // Cars burned in the Vortex parking lot
         generateWreckedCar(14, -32);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Melitopol') {
+        // Melitopol — Russian-occupied since March 1 2022; became capital of occupied Zaporizhzhia Oblast
+        // Mayor Ivan Fedorov kidnapped by FSB March 11 2022 — one of first documented civilian kidnappings
+        // Key deportation hub; Russia moved 200,000+ Ukrainians through occupation filtration checkpoints
+        generateChurch(-28, -10);                     // St. Andrew's Cathedral (neoclassical, 1861)
+        generateChurch(22, -12);                      // Church of Intercession
+        generateLuxuryVilla(0, -28, 14, 10);          // Melitopol City Administration (now Russian HQ)
+        generateLuxuryVilla(-12, -18, 10, 8);         // FSB Regional Headquarters (deportation admin)
+        generateSovietAdminBuilding(-5, -14);         // Police station (used as filtration/torture facility)
+        generateUkrainianApartment(-38, -35, 9);
+        generateUkrainianApartment(-38, -55, 7);
+        generateUkrainianApartment(30, -38, 9);
+        generateUkrainianApartment(30, -58, 7);
+        generateUkrainianApartment(-18, -65, 6);
+        generateUkrainianApartment(18, -65, 6);
+        generateUkrainianApartment(-52, -14, 5);
+        generateUkrainianApartment(42, -16, 5);
+        generateIndustrialComplex(-35, -40);          // Melitopol Motor Plant (engine factory, seized)
+        generateIndustrialComplex(30, -42);           // Melitopol compressor plant
+        generateGrainSilo(-40, -22);
+        generateGrainSilo(35, -24);
+        generateWaterTower(-44, 18);
+        generateCommTower(0, -45);
+        generateTrainStation(35, 30);                 // Melitopol rail — key Russian logistics node
+        generateRailway(18, 18, 38, false);           // Melitopol–Tokmak–Mariupol supply corridor
+        generateBridge(0, 22, 28, 4);                 // Molochnyi Lyman bridge
+        // Heavy Russian military occupation — Melitopol is deep logistics hub
+        generateArtilleryBattery(-46, -50);
+        generateArtilleryBattery(44, 46);
+        generateAmmoDepot(-30, 14);
+        generateAmmoDepot(28, 12);
+        generateCheckpoint(0, 50, false);             // Occupation checkpoint — papers please
+        generateCheckpoint(0, -50, false);
+        generateBunker(-22, 22);
+        generateBunker(22, -22);
+        generateDefensivePosition(-10, 10);
+        generateDefensivePosition(10, -10);
+        generateBurningRuin(-20, -22);
+        generateBurningRuin(18, 20);
+        generateWreckedTank(-14, -26);
+        generateWreckedAPC(18, 18);
+        generateCraters(10);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Berdiansk') {
+        // Berdiansk — Azov Sea port, Russian-occupied since March 1 2022 (bloodlessly at first)
+        // March 24 2022: Ukrainian TB-2 drones struck Russian landing ship Orsk and ammunition depot
+        // Russia uses port for Zaporizhzhia supply chain; Ukraine strikes it repeatedly with drones/ATACMS
+        generateChurch(-25, -10);                     // St. Michael's Cathedral (1847)
+        generateChurch(20, -12);                      // Church of All Saints
+        generateSovietAdminBuilding(0, -22);          // Berdiansk City Administration
+        generateLuxuryVilla(-8, -30, 12, 8);          // Russian naval command facility
+        generateUkrainianApartment(-38, -35, 8);
+        generateUkrainianApartment(-38, -55, 6);
+        generateUkrainianApartment(30, -38, 8);
+        generateUkrainianApartment(30, -58, 6);
+        generateUkrainianApartment(-18, -65, 5);
+        generateUkrainianApartment(18, -65, 5);
+        generateUkrainianApartment(-50, -14, 5);
+        generateUkrainianApartment(40, -16, 5);
+        // Port infrastructure (Berdiansk is a sea port — critical for Russian logistics)
+        generatePortCrane(35, 20);                    // Port of Berdiansk gantry cranes
+        generatePortCrane(45, 12);
+        generateSubmarineDock(-12, 30);               // Landing craft dock (replaced Orsk after strike)
+        generateNavalBarracks(-40, 28);               // Russian naval infantry garrison
+        generateIndustrialComplex(-35, -40);          // Port warehousing
+        generateGrainSilo(-40, -22);
+        generateWaterTower(-44, 18);
+        generateCommTower(0, -42);
+        // TB-2 and ATACMS strike damage
+        generateBurningRuin(30, 28);                  // Burnt pier/dock area (Orsk was struck here)
+        generateBurningRuin(-22, -20);
+        generateBurningRuin(15, -35);
+        generateWreckedAPC(18, 18);
+        generateWreckedTruck(-14, 25);                // Russian military vehicles at port
+        generateCraters(14);
+        generateArtilleryBattery(-46, -48);
+        generateAntiAirPosition(30, -40);
+        generateAntiAirPosition(-32, 40);
+        generateBunker(-20, 20);
+        generateBunker(20, -20);
+        generateTrenchNetwork(-14, 14);
+        generateTrenchNetwork(14, -14);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Zhytomyr') {
+        // Zhytomyr — northwest Ukraine, 140km west of Kyiv; early war airstrikes Feb-March 2022
+        // Russian cruise missiles targeted the regional administration and military installations
+        // Key logistics city; Antonov helicopter production base nearby; Polish border transit hub
+        generateChurch(-28, -10);                     // Cathedral of the Holy Transfiguration (neoclassical)
+        generateChurch(22, -12);                      // St. Michael's Cathedral (18th century baroque)
+        generateChurch(-15, 20);                      // Zhytomyr Cathedral (oldest Orthodox, 1746)
+        generateLuxuryVilla(0, -28, 14, 10);          // Zhytomyr Regional Administration (shelled Feb 2022)
+        generateSovietAdminBuilding(-5, -14);         // City Council Hall
+        generateUkrainianApartment(-38, -35, 9);
+        generateUkrainianApartment(-38, -55, 7);
+        generateUkrainianApartment(30, -38, 9);
+        generateUkrainianApartment(30, -58, 7);
+        generateUkrainianApartment(-18, -65, 6);
+        generateUkrainianApartment(18, -65, 6);
+        generateUkrainianApartment(-52, -14, 5);
+        generateUkrainianApartment(42, -16, 5);
+        generateIndustrialComplex(-35, -40);          // Zhytomyr helicopter factory (Mi-8 maintenance)
+        generateIndustrialComplex(30, -42);           // Chemical fiber plant
+        generateIndustrialComplex(-40, 35);           // Zhytomyr armament factory
+        generateTrainStation(35, 30);                 // Zhytomyr Central Station (transit to Brest/Warsaw)
+        generateRailway(18, 18, 40, false);
+        generateBridge(0, 22, 30, 4);                 // Teteriv River bridge
+        generateGrainSilo(-40, -22);
+        generateWaterTower(-44, 18);
+        generateCommTower(0, -45);
+        generatePowerLines(0, 0, 4);
+        // Air defense (city defended from early Russian cruise missiles)
+        generateAntiAirPosition(-35, -42);
+        generateAntiAirPosition(32, 40);
+        generateArtilleryBattery(-44, -50);
+        generateArtilleryBattery(42, 46);
+        generateBunker(-22, 22);
+        generateBunker(22, -22);
+        generateTrenchNetwork(-14, 14);
+        generateTrenchNetwork(14, -14);
+        // Early war cruise missile damage (Feb-March 2022)
+        generateBurningRuin(-20, -22);
+        generateBurningRuin(18, 20);
+        generateBurningRuin(-42, -30);
+        generateBurningRuin(38, -28);
+        generateCraters(14);
+        generateWreckedTank(-12, -24);
+        generateWreckedAPC(18, 16);
+        generateWreckedConvoy(-34, 24);
         generateDroneNest(48, 48);
         generateDroneNest(-48, -48);
         generateDroneNest(48, -48);
