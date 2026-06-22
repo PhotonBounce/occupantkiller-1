@@ -14,7 +14,7 @@ window.RainSystem = (function () {
   var _drops = [];          // [{line, vel}]
   var DROP_COUNT = 300;
   var DROP_LENGTH = 0.15;
-  var DROP_SPREAD = 30;     // 30×30 box
+  var DROP_SPREAD = 30;     // 30x30 box
   var DROP_Y_MIN = 8;
   var DROP_Y_MAX = 10;
 
@@ -103,7 +103,6 @@ window.RainSystem = (function () {
     if (_rainGroup && _scene) {
       _scene.remove(_rainGroup);
     }
-    // Dispose geometries
     for (var i = 0; i < _drops.length; i++) {
       if (_drops[i].line.geometry) { _drops[i].line.geometry.dispose(); }
     }
@@ -114,15 +113,11 @@ window.RainSystem = (function () {
   function _updateDropPositions() {
     var windX = (typeof window._windX === 'number') ? window._windX : 0.3;
     var windZ = (typeof window._windZ === 'number') ? window._windZ : 0.1;
-    // Clamp wind drift to ±0.5
     windX = Math.max(-0.5, Math.min(0.5, windX));
     windZ = Math.max(-0.5, Math.min(0.5, windZ));
 
-    var px = _camera ? _camera.position.x : 0;
-    var pz = _camera ? _camera.position.z : 0;
-
-    _rainGroup.position.x = px;
-    _rainGroup.position.z = pz;
+    _rainGroup.position.x = _camera ? _camera.position.x : 0;
+    _rainGroup.position.z = _camera ? _camera.position.z : 0;
 
     return { windX: windX, windZ: windZ };
   }
@@ -148,7 +143,6 @@ window.RainSystem = (function () {
       var s = _splashes[i];
       s.age += dt;
       var t = s.age / SPLASH_DURATION;
-      // Fade in then out
       s.mesh.material.opacity = (t < 0.5) ? t * 1.4 : (1 - t) * 1.4;
       s.mesh.scale.setScalar(1 + t * 2);
       if (s.age >= SPLASH_DURATION) {
@@ -170,7 +164,6 @@ window.RainSystem = (function () {
     var px = _camera ? _camera.position.x : 0;
     var pz = _camera ? _camera.position.z : 0;
 
-    // Clear existing puddles
     while (_puddleGroup.children.length > 0) {
       var c = _puddleGroup.children[0];
       c.geometry.dispose();
@@ -179,16 +172,16 @@ window.RainSystem = (function () {
     }
     _puddles = [];
 
-    var geo = new THREE.CircleGeometry(PUDDLE_RADIUS, 8);
-    var mat = new THREE.MeshBasicMaterial({
-      color: 0x3B2A1A,
-      transparent: true,
-      opacity: 0.75,
-      side: THREE.DoubleSide
-    });
+    var sharedGeo = new THREE.CircleGeometry(PUDDLE_RADIUS, 8);
 
     for (var i = 0; i < PUDDLE_COUNT; i++) {
-      var m = new THREE.Mesh(geo, mat.clone());
+      var mat = new THREE.MeshBasicMaterial({
+        color: 0x3B2A1A,
+        transparent: true,
+        opacity: 0.75,
+        side: THREE.DoubleSide
+      });
+      var m = new THREE.Mesh(sharedGeo, mat);
       m.rotation.x = -Math.PI / 2;
       var ox = _rand(-8, 8);
       var oz = _rand(-8, 8);
@@ -237,12 +230,11 @@ window.RainSystem = (function () {
     if (cv) { cv.style.filter = ''; }
   }
 
-  // HUD badge
   function _showHudBadge() {
     if (_hudBadge) { return; }
     _hudBadge = document.createElement('div');
     _hudBadge.id = 'rain-hud-badge';
-    _hudBadge.textContent = '🌧'; // 🌧
+    _hudBadge.textContent = '🌧'; // rain cloud emoji
     _hudBadge.style.cssText = [
       'position:fixed',
       'top:8px',
@@ -264,7 +256,6 @@ window.RainSystem = (function () {
     _hudBadge = null;
   }
 
-  // Camera droplet divs
   function _createCamDroplets() {
     _removeCamDroplets();
     var count = Math.floor(_rand(3, 6));
@@ -288,7 +279,6 @@ window.RainSystem = (function () {
       document.body.appendChild(d);
       _camDroplets.push(d);
 
-      // Animate slide down
       (function (el) {
         setTimeout(function () {
           el.style.top = _rand(70, 95) + '%';
@@ -330,11 +320,10 @@ window.RainSystem = (function () {
 
     try {
       var duration = 2.5;
-      var bufLen = ctx.sampleRate * duration;
+      var bufLen = Math.floor(ctx.sampleRate * duration);
       var buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
       var data = buf.getChannelData(0);
 
-      // White noise burst decaying into low rumble
       for (var i = 0; i < bufLen; i++) {
         var t = i / ctx.sampleRate;
         var decay = Math.exp(-t * 1.2);
@@ -361,10 +350,7 @@ window.RainSystem = (function () {
 
   // ── Enemy tracking ───────────────────────────────────────────
   function _applyUavEffect() {
-    if (typeof window._uavActive !== 'undefined' && _isRaining) {
-      // Store original and apply 50% range reduction tag
-      window._uavRainReduction = 0.5;
-    }
+    window._uavRainReduction = 0.5;
   }
 
   function _removeUavEffect() {
@@ -399,7 +385,7 @@ window.RainSystem = (function () {
     if (!_isRaining) { return; }
     _isRaining = false;
     window._isRaining = false;
-    _puddleTimer = 0; // start linger countdown
+    _puddleTimer = 0;
 
     _removeRainGroup();
     _removeScreenBlur();
@@ -407,8 +393,6 @@ window.RainSystem = (function () {
     _removeHudBadge();
     _removeCamDroplets();
     _removeUavEffect();
-
-    // Puddles persist (removed after PUDDLE_LINGER seconds via update)
   }
 
   // ── Init ─────────────────────────────────────────────────────
@@ -420,26 +404,22 @@ window.RainSystem = (function () {
     window._mudSpeedFactor = 1.0;
     window._uavRainReduction = 1.0;
 
-    // Schedule first rain: 2-5 minutes (120-300 seconds)
     _nextRainIn = _rand(120, 300);
   }
 
   // ── Update (call each frame with delta time in seconds) ──────
   function update(dt) {
-    // Fallback scene/camera resolution
     if (!_scene) { _scene = window._gameScene || null; }
     if (!_camera) { _camera = window._camera || null; }
 
     if (dt === undefined || dt === null || dt > 1) { dt = 0.016; }
 
     if (!_isRaining) {
-      // Countdown to next rain
       _nextRainIn -= dt;
       if (_nextRainIn <= 0) {
         startRain();
       }
 
-      // Puddle linger after rain stops
       if (_puddles.length > 0) {
         _puddleTimer += dt;
         _checkMudEffect();
@@ -453,16 +433,14 @@ window.RainSystem = (function () {
       return;
     }
 
-    // ── Rain is active ──
+    // Rain is active
     _rainTimer += dt;
     if (_rainTimer >= _rainDuration) {
       stopRain();
-      // Schedule next rain
       _nextRainIn = _rand(120, 300);
       return;
     }
 
-    // Update rain drop positions
     if (_rainGroup) {
       var wind = _updateDropPositions();
       var windX = wind.windX;
@@ -471,14 +449,11 @@ window.RainSystem = (function () {
       for (var i = 0; i < _drops.length; i++) {
         var drop = _drops[i];
 
-        // Move drop
         drop.y -= drop.vel * dt;
         drop.x += windX * dt;
         drop.z += windZ * dt;
 
-        // Wrap back to top when hitting ground
         if (drop.y <= 0) {
-          // Spawn splash at world position
           var wx = (_camera ? _camera.position.x : 0) + drop.x;
           var wz = (_camera ? _camera.position.z : 0) + drop.z;
           _spawnSplash(wx, wz);
@@ -488,13 +463,11 @@ window.RainSystem = (function () {
           drop.z = _rand(-DROP_SPREAD / 2, DROP_SPREAD / 2);
         }
 
-        // Keep within horizontal spread (wrap)
         if (drop.x > DROP_SPREAD / 2) { drop.x -= DROP_SPREAD; }
         if (drop.x < -DROP_SPREAD / 2) { drop.x += DROP_SPREAD; }
         if (drop.z > DROP_SPREAD / 2) { drop.z -= DROP_SPREAD; }
         if (drop.z < -DROP_SPREAD / 2) { drop.z += DROP_SPREAD; }
 
-        // Update line geometry
         var pos = drop.line.geometry.attributes.position;
         pos.setXYZ(0, drop.x, drop.y, drop.z);
         pos.setXYZ(1, drop.x, drop.y - DROP_LENGTH, drop.z);
@@ -502,14 +475,12 @@ window.RainSystem = (function () {
       }
     }
 
-    // Thunder
     _thunderTimer -= dt;
     if (_thunderTimer <= 0) {
       _playThunder();
       _thunderTimer = _rand(15, 30);
     }
 
-    // Camera droplets refresh
     if (Math.random() < 0.005) {
       _createCamDroplets();
     }
