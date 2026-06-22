@@ -1,6 +1,9 @@
     // ── Drone Selection Overlay ──
     var _droneSelectionCallback = null;
 
+    // ── Loadout result from pre-stage selection ──
+    var _loadoutResult = null;
+
     function showDroneSelection(callback) {
       // Export to window for global access (always)
       if (typeof window !== 'undefined') window.showDroneSelection = showDroneSelection;
@@ -115,6 +118,9 @@ const GameManager = (function () {
 
   // ── Sniper scope overlay DOM element (Task 3) ─────────────────────────
   var _gmScopeEl = null;
+
+  // Killstreak time scale (1.0 = normal, <1.0 = slow motion via KillStreak module)
+  window._killstreakTimeScale = 1.0;
 
   // Footstep dust puffs (visible when sprinting)
   var _footstepPuffs = [];
@@ -3838,8 +3844,20 @@ const GameManager = (function () {
     player.stageHits = 0;
     player.stageHeadshots = 0;
     hideOverlays();
-    gameState = STATE.PLAYING;
-    requestPointerLock();
+
+    // ── Loadout selection before stage begins ──
+    if (typeof Loadout !== 'undefined') {
+      gameState = STATE.PAUSED;
+      Loadout.show(function(result) {
+        _loadoutResult = result;
+        if (typeof Loadout !== 'undefined') Loadout.applyLoadout(result, player);
+        gameState = STATE.PLAYING;
+        requestPointerLock();
+      });
+    } else {
+      gameState = STATE.PLAYING;
+      requestPointerLock();
+    }
 
     // Clear stale missions from prior stage and seed a fresh stage-appropriate one
     if (typeof MissionSystem !== 'undefined' && MissionSystem.init) MissionSystem.init();
@@ -5366,6 +5384,8 @@ const GameManager = (function () {
       if (typeof SkillSystem !== 'undefined' && SkillSystem.getPassiveBonus) {
         speed *= SkillSystem.getPassiveBonus('moveSpeed');
       }
+      // ── Loadout speed bonus ──
+      if (window._loadoutSpeedMult) speed *= window._loadoutSpeedMult;
       // ── B24: Crouch speed reduction ──
       if (player.isCrouching) speed *= 0.5;
       // ── B32: Blizzard slow ──
@@ -5618,6 +5638,7 @@ const GameManager = (function () {
           if (!hitDrone.alive && hitDrone.faction === 'russian') {
             player.score += 50;
             player.kills += 1;
+            if (typeof KillStreak !== 'undefined') KillStreak.onKill();
             if (typeof HUD !== 'undefined' && HUD.addCombatLog) {
               HUD.addCombatLog('Enemy drone shot down (+50)', '#44ddff');
             }
@@ -5895,6 +5916,7 @@ const GameManager = (function () {
         try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
       }
       player.kills++;
+      if (typeof KillStreak !== 'undefined') KillStreak.onKill();
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
       // Daily challenges: record kill
@@ -6521,6 +6543,7 @@ const GameManager = (function () {
         return;
       }
       gameState = STATE.DEAD;
+      if (typeof KillStreak !== 'undefined') KillStreak.onDeath();
       if (_waveStartTimer) { clearTimeout(_waveStartTimer); _waveStartTimer = null; }
       if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
       // Streak-end banner: show what was ended
@@ -6696,6 +6719,11 @@ const GameManager = (function () {
 
     // Slow-mo: scale delta by slow-mo rate (triggered on multikills / wave clears)
     if (typeof Feedback !== 'undefined' && Feedback.getSlowMoRate) delta *= Feedback.getSlowMoRate();
+
+    // Killstreak bullet-time: scale delta by killstreak time scale
+    if (window._killstreakTimeScale && window._killstreakTimeScale < 1.0) {
+      delta *= window._killstreakTimeScale;
+    }
 
     // ── Adaptive auto-quality calibration (bi-directional) ───────────
     _fpsAccum += delta;
