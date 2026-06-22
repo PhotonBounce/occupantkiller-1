@@ -3701,6 +3701,7 @@ const GameManager = (function () {
     if (window.GasMask) GasMask.clear();
     if (window.MeleeKnife) MeleeKnife.clear();
     if (window.WeatherEffects) WeatherEffects.clear();
+    if (window.IntelPickups) IntelPickups.clear(_scene);
     window.VoxelWorld.generateLevel(stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
@@ -3816,6 +3817,7 @@ const GameManager = (function () {
       Radio.setLevel(_radioLevelMap[stageDef.id] || null);
     }
     if (typeof HazardZones !== 'undefined') HazardZones.setupForLevel(stageDef ? stageDef.id : null);
+    if (window.IntelPickups) IntelPickups.spawnForLevel(stageDef ? stageDef.id : null, _scene);
     if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.setupForLevel(stageDef ? stageDef.id : '');
     if (window.WeatherEffects) {
       var _weatherMap = { 13:'RAIN', 3:'RAIN', 5:'FOG_STORM', 7:'FOG_STORM', 6:'FOG_STORM', 8:'SNOW', 11:'SNOW', 12:'SNOW' };
@@ -7713,6 +7715,7 @@ const GameManager = (function () {
           window._hazardSlowFactor = 1.0;
         }
       }
+      if (window.IntelPickups) IntelPickups.update(delta, player.position, player, _scene);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);

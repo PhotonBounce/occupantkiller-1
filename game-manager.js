@@ -3701,6 +3701,7 @@ const GameManager = (function () {
     if (window.GasMask) GasMask.clear();
     if (window.MeleeKnife) MeleeKnife.clear();
     if (window.WeatherEffects) WeatherEffects.clear();
+    if (window.IntelPickups) IntelPickups.clear(_scene);
     window.VoxelWorld.generateLevel(stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
