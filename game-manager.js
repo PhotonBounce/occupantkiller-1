@@ -1261,6 +1261,10 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.VehicleEnemies) VehicleEnemies.init(_scene);
+        window._takeVehicleRamDamage = function(dmg) { onPlayerHit(dmg, null); };
+        window._takeBTRDamage        = function(dmg) { onPlayerHit(dmg, null); };
+        if (window.Destructibles) Destructibles.init(_scene);
         if (window.StaminaSystem) StaminaSystem.init();
         if (window.Grapple) Grapple.init(_scene, _camera);
         if (window.CrouchSystem) CrouchSystem.init();
@@ -3382,6 +3386,8 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.Destructibles) Destructibles.reset();
+    if (window.VehicleEnemies) VehicleEnemies.reset();
     if (window.StaminaSystem) StaminaSystem.reset();
     if (window.Grapple) Grapple.reset();
     if (window.CrouchSystem) CrouchSystem.reset();
@@ -3692,6 +3698,8 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.Destructibles) Destructibles.clear();
+    if (window.VehicleEnemies) VehicleEnemies.clear();
     if (window.Grapple) Grapple.clear();
     if (window.SpecialGrenades) SpecialGrenades.clear();
     if (window.BloodEffects) BloodEffects.clear();
@@ -3817,6 +3825,7 @@ const GameManager = (function () {
       Radio.setLevel(_radioLevelMap[stageDef.id] || null);
     }
     if (typeof HazardZones !== 'undefined') HazardZones.setupForLevel(stageDef ? stageDef.id : null);
+    if (window.Destructibles) Destructibles.setupForLevel(stageDef ? stageDef.id : null, _scene);
     if (window.IntelPickups) IntelPickups.spawnForLevel(stageDef ? stageDef.id : null, _scene);
     if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.setupForLevel(stageDef ? stageDef.id : '');
     if (window.WeatherEffects) {
@@ -4110,6 +4119,9 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
+    if (window.VehicleEnemies && currentWave && currentWave % 5 === 0) {
+      VehicleEnemies.spawnBTR(_scene, player.position.x + 20, player.position.z + 20);
+    }
     if (typeof AllySoldiers !== 'undefined') AllySoldiers.spawnForWave(player.position, currentWave);
     if (typeof SupplyCrate !== 'undefined') SupplyCrate.dropAtWave(currentWave);
     window.AudioSystem.playWaveStart();
@@ -5856,6 +5868,34 @@ const GameManager = (function () {
           var _bDir = new THREE.Vector3();
           _camera.getWorldDirection(_bDir);
           ExplosiveBarrels.checkBulletHit(_bOrigin, _bDir, 100);
+        }
+        // ── Destructibles: shootable crate/barrel/wall/glass hit check ──
+        if (window.Destructibles) {
+          var _dOrigin = _camera.position;
+          var _dDir = new THREE.Vector3();
+          _camera.getWorldDirection(_dDir);
+          var _dHit = Destructibles.checkBulletHit(_dOrigin, _dDir, 100);
+          if (_dHit.hit) Destructibles.damage(_dHit.object, Weapons.getDamage ? Weapons.getDamage() : 25);
+        }
+        // ── Vehicle Enemies: proximity hit check ──
+        if (window.VehicleEnemies) {
+          var _vehList = VehicleEnemies.getAll();
+          for (var _vi = 0; _vi < _vehList.length; _vi++) {
+            var _vehTarget = _vehList[_vi];
+            if (!_vehTarget || !_vehTarget.alive || !_vehTarget.mesh) continue;
+            var _vehBOrigin = _camera.position;
+            var _vehBDir    = new THREE.Vector3();
+            _camera.getWorldDirection(_vehBDir);
+            var _vehRay = new THREE.Raycaster(_vehBOrigin, _vehBDir, 0, 100);
+            var _vehHits = _vehRay.intersectObject(_vehTarget.mesh, true);
+            if (_vehHits.length > 0) {
+              var _vehDmg = (typeof Weapons !== 'undefined' && Weapons.getDamage) ? Weapons.getDamage() : 25;
+              VehicleEnemies.damageVehicle(_vehTarget, _vehDmg);
+              player.kills++;
+              if (typeof KillStreak !== 'undefined' && KillStreak.onKill) KillStreak.onKill();
+              if (typeof HUD !== 'undefined' && HUD.addCombatLog) HUD.addCombatLog('Vehicle hit! (' + Math.round(_vehDmg) + ' dmg)', '#ff8800');
+            }
+          }
         }
         // ── Friendly Fire: check if bullet hit a Ukrainian NPC ──
         var hitNPC = null;
@@ -7812,6 +7852,7 @@ const GameManager = (function () {
       if (typeof ConvoySystem !== 'undefined') ConvoySystem.update(delta);
       if (typeof EnemyArtillery !== 'undefined') EnemyArtillery.update(delta);
       VehicleSystem.update(delta);
+      if (window.VehicleEnemies) VehicleEnemies.update(delta, player.position);
       Automation.update(delta);
       MissionSystem.update(delta);
       if (typeof RefineryStrike !== 'undefined' && RefineryStrike.update) RefineryStrike.update(delta);
@@ -8412,6 +8453,9 @@ const GameManager = (function () {
           }
         }
       }
+
+      // Destructibles update
+      if (window.Destructibles) Destructibles.update(delta);
 
       // Perks update
       if (typeof Perks !== 'undefined') {
