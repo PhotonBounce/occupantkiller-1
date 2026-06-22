@@ -1230,7 +1230,6 @@ window.VoxelWorld = (function () {
     { id: 'VUHLEDAR',  name: 'Vuhledar Tank Graveyard', desc: 'Bury the 155th in the minefield', theme: 'wasteland', wavesPerLevel: 8, difficulty: 1.9, fogColor: 0x4a4030, tankFocus: true, spawnCandidates: [{ x: -15, z: 12 }, { x: 15, z: 12 }, { x: 0, z: 20 }, { x: -25, z: 5 }, { x: 25, z: 5 }, { x: 0, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'AVDIIVKA_COKE', name: 'Avdiivka Coke Plant', desc: 'Industrial fortress siege', theme: 'wasteland', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x2a2218, spawnCandidates: [{ x: -15, z: -18 }, { x: 15, z: -18 }, { x: 0, z: -25 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'BUCHA',    name: 'Bucha Liberation',      desc: 'Expose the atrocities',       theme: 'urban',     wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x556655, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -22 }, { x: -30, z: 5 }, { x: 30, z: 5 }],  spawnLookTarget: { x: 0, z: 0 } },
-    { id: 'MARIUPOL', name: 'Mariupol Azovstal', desc: 'Last stand at the steel works', theme: 'wasteland', wavesPerLevel: 10, difficulty: 4.8, fogColor: 0x1a1208, spawnCandidates: [{ x: -10, z: -20 }, { x: 10, z: -20 }, { x: 0, z: -30 }, { x: -25, z: 0 }, { x: 25, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'MELITOPOL', name: 'Melitopol Occupation', desc: 'Partisan resistance in occupied city', theme: 'urban', wavesPerLevel: 7, difficulty: 3.0, fogColor: 0x334422, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -30, z: 5 }, { x: 30, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
@@ -11988,25 +11987,6 @@ window.VoxelWorld = (function () {
       generateCraters(12);
       generateDroneNest(45, 45); generateDroneNest(-45, -45);
       generateAntiAirPosition(-35, 35); generateAntiAirPosition(35, -35);
-    } else if (level.id === 'MARIUPOL') {
-      // Mariupol — Azov Sea port, besieged Feb–May 2022. Azovstal steel works was last holdout.
-      // 2,000+ Azov Regiment defenders held out 82 days before evacuation.
-      generateAzovsteelHall(0, -15);
-      generateAzovsteelHall(30, 5);         // second section of the complex
-      generateMariupolTheatre(-25, 20);     // Drama Theatre bombing site
-      generateBunker(-20, -25); generateBunker(20, -25);
-      generateBunker(-20, 25); generateBunker(20, 25);
-      generateTrenchNetwork(-15, 10); generateTrenchNetwork(15, -10);
-      generateTrenchNetwork(0, -35); generateTrenchNetwork(0, 35);
-      generateBurningRuin(-38, -8); generateBurningRuin(35, 12);
-      generateBurningRuin(-15, -45); generateBurningRuin(15, 40);
-      generateWreckedTank(-28, -35); generateWreckedAPC(22, 30); generateWreckedConvoy(-35, 30);
-      generateMortarPit(-30, 15); generateMortarPit(28, -18);
-      generateAntiTankHedgehogs(22);
-      generateCraters(15);
-      generateDroneNest(45, 45); generateDroneNest(-45, -45); generateDroneNest(45, -45);
-      generateAntiAirPosition(-35, 35); generateAntiAirPosition(35, -35);
-      generateDefensivePosition(-12, 35); generateDefensivePosition(12, 35);
     } else if (level.id === 'MELITOPOL') {
       // Melitopol — city in Zaporizhzhia oblast, occupied by Russia in March 2022 (day 5 of invasion).
       // Mayor Ivan Fedorov was kidnapped; city became hub of partisan resistance.
