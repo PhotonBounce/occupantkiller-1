@@ -746,6 +746,60 @@ const EnemyTypes = (function () {
       swarmSize: 8, droneDamage: 40, droneSpeed: 15, droneHP: 8,
       swarmInterval: 8,
       behavior: 'send_swarm'
+    },
+
+    // Basic sniper (referenced by boss summons — light version of SNIPER_ELITE)
+    SNIPER: {
+      id: 'SNIPER', name: 'Russian Sniper', tier: 2,
+      hp: 55, speed: 0.9, damage: 55, attackRange: 32,
+      color: 0x556644, scale: 1.05, xpReward: 85,
+      fireRate: 3.5, accuracy: 0.85,
+      behavior: 'snipe'
+    },
+
+    // Recon trooper — fast scout who spots player and buffs nearby allies
+    RECON: {
+      id: 'RECON', name: 'GRU Recon Trooper', tier: 2,
+      hp: 60, speed: 3.0, damage: 28, attackRange: 20,
+      color: 0x445533, scale: 0.95, xpReward: 80,
+      spottingRange: 35, spottingBonus: 0.25,
+      behavior: 'scout'
+    },
+
+    // Grenadier — throws grenades before closing to melee
+    GRENADIER: {
+      id: 'GRENADIER', name: 'Grenadier', tier: 2,
+      hp: 90, speed: 1.4, damage: 45, attackRange: 18,
+      color: 0x664422, scale: 1.1, xpReward: 95,
+      grenadeRange: 22, grenadeDamage: 80, grenadeRadius: 4.5, grenadeRate: 5.0,
+      behavior: 'grenadier'
+    },
+
+    // Javelin operator — fires guided AT missiles, huge area damage
+    JAVELIN_OP: {
+      id: 'JAVELIN_OP', name: 'Javelin Operator', tier: 3,
+      hp: 75, speed: 0.8, damage: 120, attackRange: 40,
+      color: 0x334455, scale: 1.1, xpReward: 130,
+      missileSpeed: 10, blastRadius: 6, reloadTime: 8.0,
+      behavior: 'javelin'
+    },
+
+    // Tunneler — appears from ground via tunnel entrance, surprise attack
+    TUNNELER: {
+      id: 'TUNNELER', name: 'Tunnel Infiltrator', tier: 2,
+      hp: 80, speed: 2.2, damage: 38, attackRange: 3,
+      color: 0x332211, scale: 1.0, xpReward: 90,
+      tunnelCooldown: 12, tunnelRange: 8,
+      behavior: 'tunnel_ambush'
+    },
+
+    // Commissar — political officer, forces nearby allies into rage (damage buff for allies)
+    COMMISSAR_FIELD: {
+      id: 'COMMISSAR_FIELD', name: 'Field Commissar', tier: 3,
+      hp: 110, speed: 1.1, damage: 42, attackRange: 16,
+      color: 0x880000, scale: 1.15, xpReward: 115,
+      rallyRadius: 12, rallyDamageMult: 1.4, rallyInterval: 8,
+      behavior: 'rally'
     }
   };
 
@@ -754,11 +808,11 @@ const EnemyTypes = (function () {
     1:  { types: ['CONSCRIPT'], weights: [1] },
     2:  { types: ['CONSCRIPT', 'BOMBER'], weights: [0.8, 0.2] },
     3:  { types: ['CONSCRIPT', 'STORMER', 'WAR_DOG'], weights: [0.5, 0.3, 0.2] },
-    4:  { types: ['CONSCRIPT', 'STORMER', 'SNIPER_ELITE', 'MEDIC'], weights: [0.4, 0.3, 0.15, 0.15] },
-    5:  { types: ['BOSS', 'STORMER', 'SHIELD_BEARER'], weights: [0.05, 0.5, 0.45] },
-    6:  { types: ['STORMER', 'ARMORED', 'ENGINEER', 'BOMBER'], weights: [0.3, 0.3, 0.2, 0.2] },
-    7:  { types: ['ARMORED', 'SNIPER_ELITE', 'MORTAR', 'MEDIC'], weights: [0.3, 0.25, 0.25, 0.2] },
-    8:  { types: ['ARMORED', 'SHIELD_BEARER', 'ENGINEER', 'MORTAR'], weights: [0.3, 0.25, 0.25, 0.2] },
+    4:  { types: ['CONSCRIPT', 'SNIPER', 'GRENADIER', 'MEDIC'], weights: [0.4, 0.2, 0.25, 0.15] },
+    5:  { types: ['BOSS', 'STORMER', 'RECON', 'GRENADIER'], weights: [0.05, 0.4, 0.3, 0.25] },
+    6:  { types: ['STORMER', 'ARMORED', 'GRENADIER', 'RECON'], weights: [0.3, 0.3, 0.25, 0.15] },
+    7:  { types: ['ARMORED', 'SNIPER_ELITE', 'TUNNELER', 'MEDIC'], weights: [0.3, 0.25, 0.25, 0.2] },
+    8:  { types: ['ARMORED', 'SHIELD_BEARER', 'GRENADIER', 'TUNNELER'], weights: [0.3, 0.25, 0.25, 0.2] },
     9:  { types: ['BOSS', 'ARMORED', 'SNIPER_ELITE', 'BOMBER', 'WAR_DOG'], weights: [0.05, 0.3, 0.25, 0.2, 0.2] },
     10: { types: ['BOSS', 'ARMORED', 'SHIELD_BEARER', 'MORTAR', 'SNIPER_ELITE', 'MEDIC'], weights: [0.1, 0.25, 0.2, 0.15, 0.15, 0.15] },
     // Stage 5+ waves: introduce new types
@@ -768,9 +822,9 @@ const EnemyTypes = (function () {
     14: { types: ['TANK', 'SPETSNAZ', 'OFFICER', 'MORTAR', 'DRONE_OP'], weights: [0.08, 0.25, 0.17, 0.25, 0.25] },
     15: { types: ['BOSS', 'TANK', 'SPETSNAZ', 'KAMIKAZE_DRONE', 'FLAMETHROWER', 'OFFICER'], weights: [0.08, 0.12, 0.2, 0.2, 0.2, 0.2] },
     // Stages 9-10: Naval & Donbas endgame waves
-    16: { types: ['HEAVY_SNIPER', 'BTR', 'SPETSNAZ', 'DRONE_OP', 'SHIELD_BEARER', 'SWARM_OP'], weights: [0.12, 0.12, 0.2, 0.2, 0.16, 0.2] },
-    17: { types: ['COMMISSAR', 'WAGNER', 'KADYROVITE', 'FLAMETHROWER', 'MORTAR'], weights: [0.1, 0.25, 0.2, 0.25, 0.2] },
-    18: { types: ['THERMOBARIC', 'TANK', 'HEAVY_SNIPER', 'SPETSNAZ', 'EW_OPERATOR'], weights: [0.1, 0.15, 0.2, 0.3, 0.25] },
+    16: { types: ['HEAVY_SNIPER', 'BTR', 'SPETSNAZ', 'DRONE_OP', 'RECON', 'SWARM_OP'], weights: [0.12, 0.12, 0.2, 0.2, 0.16, 0.2] },
+    17: { types: ['COMMISSAR_FIELD', 'GRENADIER', 'KADYROVITE', 'FLAMETHROWER', 'JAVELIN_OP'], weights: [0.1, 0.25, 0.2, 0.25, 0.2] },
+    18: { types: ['THERMOBARIC', 'JAVELIN_OP', 'HEAVY_SNIPER', 'TUNNELER', 'EW_OPERATOR'], weights: [0.1, 0.15, 0.2, 0.3, 0.25] },
     19: { types: ['BOSS', 'THERMOBARIC', 'COMMISSAR', 'BTR', 'SWARM_OP', 'HEAVY_SNIPER', 'DRONE_OP'], weights: [0.07, 0.13, 0.1, 0.18, 0.22, 0.18, 0.12] },
     20: { types: ['BOSS', 'ASSAULT_MECH', 'TANK', 'THERMOBARIC', 'SWARM_OP', 'SPETSNAZ', 'DRONE_OP'], weights: [0.08, 0.05, 0.13, 0.18, 0.22, 0.2, 0.14] },
     // Stages 11-12: Belgorod & Kremlin — maximum intensity
