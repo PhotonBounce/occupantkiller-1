@@ -3002,7 +3002,8 @@ const GameManager = (function () {
     if (payloadEl) {
       if (drone.hasPayload) {
         payloadEl.style.display = '';
-        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD READY';
+        var payloadCountStr = drone.payloadCount !== undefined ? ' \u00D7' + drone.payloadCount : '';
+        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD READY' + payloadCountStr;
         payloadEl.style.color = '#ffaa00';
       } else if (drone.type === 'bomb' || drone.type === 'incendiary' || drone.type === 'baba_yaga') {
         payloadEl.style.display = '';
@@ -3020,7 +3021,8 @@ const GameManager = (function () {
       var activePL = DroneSystem.getActivePayload ? DroneSystem.getActivePayload() : null;
       if (activePL) {
         payloadBar.style.display = 'flex';
-        if (payloadLabel) payloadLabel.textContent = (activePL.icon || '') + ' ' + activePL.name;
+        var plCountStr = drone.payloadCount !== undefined ? ' [\u00D7' + drone.payloadCount + ']' : '';
+        if (payloadLabel) payloadLabel.textContent = (activePL.icon || '') + ' ' + activePL.name + plCountStr;
       } else {
         payloadBar.style.display = 'none';
       }

@@ -1218,10 +1218,10 @@ window.VoxelWorld = (function () {
     { id: 'MARIUPOL',  name: 'Mariupol Steelworks',  desc: 'Fight through Azovstal',      theme: 'industrial', wavesPerLevel: 7, difficulty: 2.2, fogColor: 0x1a1a20, spawnCandidates: [{ x: -12, z: -28 }, { x: 12, z: -28 }, { x: 0, z: -35 }, { x: -30, z: 8 }, { x: 30, z: 8 }, { x: -30, z: -20 }, { x: 30, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'CRIMEA',    name: 'Crimea Bridge',        desc: 'Cut the supply line',         theme: 'coastal',   wavesPerLevel: 7, difficulty: 2.5, fogColor: 0x5577aa, spawnCandidates: [{ x: -20, z: -30 }, { x: 20, z: -30 }, { x: -35, z: -15 }, { x: 35, z: -15 }, { x: 0, z: -42 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'CHORNOBYL', name: 'Chornobyl Zone',       desc: 'Irradiated exclusion zone',   theme: 'wasteland', wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x3a3520, spawnCandidates: [{ x: -18, z: -25 }, { x: 18, z: -25 }, { x: 0, z: -32 }, { x: -28, z: -12 }, { x: 28, z: -12 }, { x: -15, z: -40 }, { x: 15, z: -40 }], spawnLookTarget: { x: 0, z: 0 } },
-    { id: 'MOSCOW',    name: 'Moscow Finale',        desc: 'End it at the Kremlin',       theme: 'cityscape', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x222228, spawnCandidates: [{ x: 0, z: -35 }, { x: -30, z: 0 }, { x: 30, z: 0 }, { x: 0, z: 35 }, { x: -25, z: -25 }, { x: 25, z: -25 }, { x: -25, z: 25 }, { x: 25, z: 25 }, { x: -45, z: 0 }, { x: 45, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'MOSCOW',    name: 'Moscow Finale',        desc: 'End it at the Kremlin',       theme: 'cityscape', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x222228, spawnCandidates: [{ x: 0, z: -50 }, { x: -50, z: 0 }, { x: 50, z: 0 }, { x: 0, z: 25 }, { x: -40, z: -38 }, { x: 40, z: -38 }, { x: -40, z: 25 }, { x: 40, z: 25 }, { x: 0, z: -22 }, { x: 0, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SEVASTOPOL', name: 'Sevastopol Naval Base', desc: 'Destroy the Black Sea Fleet', theme: 'coastal',  wavesPerLevel: 7, difficulty: 3.8, fogColor: 0x3355aa, spawnCandidates: [{ x: -15, z: 8 }, { x: 15, z: 5 }, { x: 0, z: -18 }, { x: -18, z: -10 }, { x: 18, z: -10 }, { x: -35, z: 8 }, { x: 35, z: 5 }], spawnLookTarget: { x: 0, z: 20 } },
     { id: 'DONBAS',    name: 'Donbas Final Push',     desc: 'Liberate the last stronghold', theme: 'urban',   wavesPerLevel: 8, difficulty: 4.2, fogColor: 0x2a2020, spawnCandidates: [{ x: -20, z: -12 }, { x: 20, z: -12 }, { x: 0, z: -20 }, { x: -35, z: 0 }, { x: 35, z: 0 }, { x: -15, z: 15 }, { x: 15, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
-    { id: 'BELGOROD',  name: 'Belgorod Offensive',    desc: 'Cross into enemy territory',   theme: 'grassland', wavesPerLevel: 8, difficulty: 4.6, fogColor: 0xD4A017, spawnCandidates: [{ x: -15, z: -12 }, { x: 15, z: -12 }, { x: 0, z: -20 }, { x: -30, z: -5 }, { x: 30, z: -5 }, { x: -12, z: 15 }, { x: 12, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'BELGOROD',  name: 'Belgorod Offensive',    desc: 'Cross into enemy territory',   theme: 'grassland', wavesPerLevel: 8, difficulty: 4.6, fogColor: 0x6B1A2E, spawnCandidates: [{ x: -15, z: -12 }, { x: 15, z: -12 }, { x: 0, z: -20 }, { x: -30, z: -5 }, { x: 30, z: -5 }, { x: -12, z: 15 }, { x: 12, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KREMLIN',   name: 'Kremlin Showdown',      desc: 'The final battle for peace',   theme: 'cityscape', wavesPerLevel: 10, difficulty: 5.0, fogColor: 0x111118, spawnCandidates: [{ x: -18, z: 52 }, { x: 18, z: 52 }, { x: -32, z: 22 }, { x: 32, z: 22 }, { x: 0, z: 55 }, { x: -32, z: -10 }, { x: 32, z: -10 }, { x: 0, z: -25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KYIV',      name: 'Siege of Kyiv',         desc: 'Ambush the Russian armored convoy', theme: 'urban', wavesPerLevel: 8, difficulty: 1.5, fogColor: 0x6a7080, tankFocus: true, spawnCandidates: [{ x: 0, z: -24 }, { x: -8, z: -24 }, { x: 8, z: -24 }, { x: -4, z: -28 }, { x: 4, z: -28 }], spawnLookTarget: { x: 0, z: 22 } },
     { id: 'SNAKE',     name: 'Snake Island Defense',  desc: '"Russian warship, go fuck yourself."', theme: 'coastal', wavesPerLevel: 6, difficulty: 1.4, fogColor: 0x4a6680, spawnCandidates: [{ x: -16, z: 0 }, { x: 16, z: 0 }, { x: 0, z: 16 }, { x: 0, z: -20 }, { x: -12, z: 12 }, { x: 12, z: -12 }], spawnLookTarget: { x: 0, z: 0 } },
@@ -2164,6 +2164,316 @@ window.VoxelWorld = (function () {
     setBlock(ox, h + ph + 2, oz + hz - 1, BLOCK.FIRE);
     // Register building
     _buildings.push({ kind: 'kremlin_palace', x: ox + hx, z: oz + hz, w: pw, d: pd, baseY: h, floorH: 3, floors: 3, cx: ox, cz: oz });
+  }
+
+  // Kremlin perimeter wall — red crenelated brick wall with corner/mid towers
+  function generateKremlinWall(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var wx = 26, wz = 20; // half-extents
+    var wallH = 8, towerH = 14;
+
+    // ── Perimeter walls (4 sides) ────────────────────────────────────────
+    for (var py = 0; py < wallH; py++) {
+      // North wall
+      for (var xi = -wx; xi <= wx; xi++) setBlock(ox + xi, h + py + 1, oz - wz, BLOCK.BRICK);
+      // South wall (with gate gap x: -2..2)
+      for (var xi2 = -wx; xi2 <= wx; xi2++) {
+        if (py < 4 && xi2 >= -2 && xi2 <= 2) continue; // gate arch
+        setBlock(ox + xi2, h + py + 1, oz + wz, BLOCK.BRICK);
+      }
+      // West wall
+      for (var zi = -wz; zi <= wz; zi++) setBlock(ox - wx, h + py + 1, oz + zi, BLOCK.BRICK);
+      // East wall
+      for (var zi2 = -wz; zi2 <= wz; zi2++) setBlock(ox + wx, h + py + 1, oz + zi2, BLOCK.BRICK);
+    }
+    // Crenellations — alternating BRICK on top of all 4 sides
+    for (var ci = -wx; ci <= wx; ci += 2) {
+      setBlock(ox + ci, h + wallH + 1, oz - wz, BLOCK.BRICK);
+      setBlock(ox + ci, h + wallH + 1, oz + wz, BLOCK.BRICK);
+    }
+    for (var cj = -wz; cj <= wz; cj += 2) {
+      setBlock(ox - wx, h + wallH + 1, oz + cj, BLOCK.BRICK);
+      setBlock(ox + wx, h + wallH + 1, oz + cj, BLOCK.BRICK);
+    }
+
+    // ── Corner towers (5×5, height 14) ───────────────────────────────────
+    var corners = [[-wx, -wz], [wx - 4, -wz], [-wx, wz - 4], [wx - 4, wz - 4]];
+    corners.forEach(function(c) {
+      for (var ty = 0; ty < towerH; ty++) {
+        for (var tx = 0; tx < 5; tx++) {
+          for (var tz = 0; tz < 5; tz++) {
+            if (tx === 0 || tx === 4 || tz === 0 || tz === 4 || ty === towerH - 1) {
+              setBlock(ox + c[0] + tx, h + ty + 1, oz + c[1] + tz, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+      // Pyramid cap
+      for (var pr = 0; pr < 3; pr++) {
+        for (var ptx = pr; ptx < 5 - pr; ptx++) {
+          for (var ptz = pr; ptz < 5 - pr; ptz++) {
+            setBlock(ox + c[0] + ptx, h + towerH + pr + 1, oz + c[1] + ptz, BLOCK.ROOFTILE);
+          }
+        }
+      }
+    });
+
+    // ── Mid-wall towers on long (north+south) sides ────────────────────────
+    [-wx / 2, 0, wx / 2].forEach(function(mx) {
+      var mxr = Math.round(mx);
+      [-wz, wz].forEach(function(mz) {
+        for (var ty = 0; ty < 12; ty++) {
+          for (var tx = -2; tx <= 2; tx++) {
+            for (var tz2 = -2; tz2 <= 2; tz2++) {
+              if (tx === -2 || tx === 2 || tz2 === -2 || tz2 === 2 || ty === 11) {
+                setBlock(ox + mxr + tx, h + ty + 1, oz + mz + tz2, BLOCK.BRICK);
+              }
+            }
+          }
+        }
+        // Pointed cap
+        setBlock(ox + mxr, h + 13, oz + mz, BLOCK.ROOFTILE);
+        setBlock(ox + mxr, h + 14, oz + mz, BLOCK.ROOFTILE);
+      });
+    });
+  }
+
+  // Spasskaya Tower — the iconic ruby-starred clock gate tower of Red Square
+  function generateSpasskayaTower(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    // Base: 6×6 BRICK tower 22 blocks high
+    for (var ty = 0; ty < 22; ty++) {
+      for (var tx = -3; tx <= 3; tx++) {
+        for (var tz = -3; tz <= 3; tz++) {
+          var isEdge = (tx === -3 || tx === 3 || tz === -3 || tz === 3);
+          if (isEdge || ty === 21) {
+            // Clock zone (Y=13-16): use PLASTER for the white clock face band
+            var mat = (ty >= 13 && ty <= 16) ? BLOCK.PLASTER : BLOCK.BRICK;
+            setBlock(ox + tx, h + ty + 1, oz + tz, mat);
+          }
+        }
+      }
+      // Gate arch: 3-wide × 4-high AIR passage through the base (north/south)
+      if (ty < 4) {
+        setBlock(ox - 1, h + ty + 1, oz - 3, BLOCK.AIR);
+        setBlock(ox,     h + ty + 1, oz - 3, BLOCK.AIR);
+        setBlock(ox + 1, h + ty + 1, oz - 3, BLOCK.AIR);
+        setBlock(ox - 1, h + ty + 1, oz + 3, BLOCK.AIR);
+        setBlock(ox,     h + ty + 1, oz + 3, BLOCK.AIR);
+        setBlock(ox + 1, h + ty + 1, oz + 3, BLOCK.AIR);
+      }
+    }
+    // Clock faces — 2×2 GLASS at Y=14-15 on all 4 cardinal sides
+    [-3, 3].forEach(function(side) {
+      setBlock(ox - 1, h + 14, oz + side, BLOCK.GLASS);
+      setBlock(ox,     h + 14, oz + side, BLOCK.GLASS);
+      setBlock(ox - 1, h + 15, oz + side, BLOCK.GLASS);
+      setBlock(ox,     h + 15, oz + side, BLOCK.GLASS);
+      setBlock(ox + side, h + 14, oz - 1, BLOCK.GLASS);
+      setBlock(ox + side, h + 14, oz,     BLOCK.GLASS);
+      setBlock(ox + side, h + 15, oz - 1, BLOCK.GLASS);
+      setBlock(ox + side, h + 15, oz,     BLOCK.GLASS);
+    });
+    // Green ROOFTILE tent roof above clock zone
+    for (var pr = 0; pr < 4; pr++) {
+      for (var rtx = -3 + pr; rtx <= 3 - pr; rtx++) {
+        for (var rtz = -3 + pr; rtz <= 3 - pr; rtz++) {
+          setBlock(ox + rtx, h + 22 + pr, oz + rtz, BLOCK.ROOFTILE);
+        }
+      }
+    }
+    // Ruby FIRE star at apex
+    setBlock(ox, h + 26, oz, BLOCK.FIRE);
+    setBlock(ox, h + 27, oz, BLOCK.FIRE);
+  }
+
+  // Red Square — the open cobblestone plaza south of the Kremlin wall
+  function generateRedSquare(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var pw = 28, pd = 14; // half-extents of plaza
+
+    // ── Cobblestone surface ────────────────────────────────────────────────
+    for (var sx = -pw; sx <= pw; sx++) {
+      for (var sz = -pd; sz <= pd; sz++) {
+        setBlock(ox + sx, h, oz + sz, BLOCK.WHITE_TILE);
+      }
+    }
+
+    // ── State Historical Museum — north boundary (14×8 BRICK, 12 high) ────
+    for (var bx = -7; bx <= 7; bx++) {
+      for (var bz = 0; bz < 8; bz++) {
+        for (var by = 0; by < 12; by++) {
+          var isWall = (bx === -7 || bx === 7 || bz === 0 || bz === 7 || by === 11);
+          if (isWall) setBlock(ox + bx, h + by + 1, oz - pd + bz, BLOCK.BRICK);
+        }
+      }
+    }
+    // Museum twin towers
+    [-7, 5].forEach(function(tx) {
+      for (var tty = 0; tty < 16; tty++) {
+        for (var ttx = 0; ttx < 3; ttx++) {
+          for (var ttz = 0; ttz < 3; ttz++) {
+            if (ttx === 0 || ttx === 2 || ttz === 0 || ttz === 2 || tty === 15) {
+              setBlock(ox + tx + ttx, h + tty + 1, oz - pd, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+    });
+
+    // ── GUM arcade — east boundary (28×5 PLASTER arcade, arched GLASS) ────
+    for (var gz = -pd; gz <= pd; gz++) {
+      for (var gy = 0; gy < 10; gy++) {
+        var isFrame = (gz === -pd || gz === pd || gy === 0 || gy === 9);
+        var mat = isFrame ? BLOCK.PLASTER : ((gz % 3 === 0 && gy >= 2 && gy <= 7) ? BLOCK.GLASS : BLOCK.AIR);
+        if (isFrame || mat === BLOCK.GLASS) setBlock(ox + pw, h + gy + 1, oz + gz, mat === BLOCK.AIR ? BLOCK.PLASTER : mat);
+      }
+    }
+
+    // ── Decorative barrier posts along plaza perimeter ─────────────────────
+    for (var px2 = -pw; px2 <= pw; px2 += 4) {
+      setBlock(ox + px2, h + 1, oz - pd, BLOCK.METAL);
+      setBlock(ox + px2, h + 2, oz - pd, BLOCK.METAL);
+      setBlock(ox + px2, h + 1, oz + pd, BLOCK.METAL);
+      setBlock(ox + px2, h + 2, oz + pd, BLOCK.METAL);
+    }
+
+    // ── Battle craters and burned vehicles in plaza ────────────────────────
+    setBlock(ox - 10, h, oz - 2, BLOCK.RUBBLE);
+    setBlock(ox - 9,  h, oz - 2, BLOCK.RUBBLE);
+    setBlock(ox + 8,  h, oz + 4, BLOCK.RUBBLE);
+    setBlock(ox,      h, oz + 8, BLOCK.RUBBLE);
+  }
+
+  // Kremlin Interior — fills the palace shell with multi-floor rooms
+  function generateKremlinInterior(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var pw = 30, pd = 22;
+    var hx = Math.round(-pw / 2), hz = Math.round(-pd / 2);
+
+    // ── Ground Floor (Y+2, Y+3) — Entry Hall + War Command Center ─────────
+    // Entry chandelier light (center of north half)
+    setBlock(ox, h + 3, oz + hz + 4, BLOCK.LIGHT);
+    // Guard desks (WOOD) flanking the entrance
+    setBlock(ox - 5, h + 2, oz + hz + 2, BLOCK.WOOD);
+    setBlock(ox + 5, h + 2, oz + hz + 2, BLOCK.WOOD);
+    // Dividing wall between entry hall and war room (partial, with door gap)
+    for (var wx2 = hx + 1; wx2 <= hx + pw - 2; wx2++) {
+      if (wx2 === ox + hx + pw / 2 - 1 || wx2 === ox + hx + pw / 2 || wx2 === ox + hx + pw / 2 + 1) continue;
+      setBlock(ox + wx2 + 15, h + 2, oz + hz + pd / 2, BLOCK.PLASTER);
+      setBlock(ox + wx2 + 15, h + 3, oz + hz + pd / 2, BLOCK.PLASTER);
+    }
+    // War room: METAL conference table (10×2) in south half
+    for (var tx3 = -5; tx3 <= 5; tx3++) {
+      setBlock(ox + tx3, h + 2, oz, BLOCK.METAL);
+      setBlock(ox + tx3, h + 2, oz + 1, BLOCK.METAL);
+    }
+    // CONCRETE "chair" blocks around table
+    [-7, 7].forEach(function(cx2) { setBlock(ox + cx2, h + 2, oz, BLOCK.CONCRETE); });
+    for (var tc = -5; tc <= 5; tc += 2) {
+      setBlock(ox + tc, h + 2, oz - 2, BLOCK.CONCRETE);
+      setBlock(ox + tc, h + 2, oz + 3, BLOCK.CONCRETE);
+    }
+    // GLASS screens on south wall (war room display)
+    for (var gs = -6; gs <= 6; gs += 3) {
+      setBlock(ox + gs, h + 2, oz + hz + pd - 2, BLOCK.GLASS);
+      setBlock(ox + gs, h + 3, oz + hz + pd - 2, BLOCK.GLASS);
+    }
+    // War room overhead lights
+    for (var lx = -8; lx <= 8; lx += 4) {
+      setBlock(ox + lx, h + 4, oz + 1, BLOCK.LIGHT);
+    }
+
+    // ── 2nd Floor (Y+5, Y+6) — Ministers' Corridor + Council Chamber ───────
+    // WOOD floor planks
+    for (var fx = hx + 1; fx <= hx + pw - 2; fx++) {
+      for (var fz = hz + 1; fz <= hz + pd - 2; fz++) {
+        setBlock(ox + fx, h + 5, oz + fz, BLOCK.WOOD);
+      }
+    }
+    // Central corridor (2-wide, full length, open)
+    for (var cz = hz + 1; cz <= hz + pd - 2; cz++) {
+      setBlock(ox - 1, h + 5, oz + cz, BLOCK.AIR);
+      setBlock(ox,     h + 5, oz + cz, BLOCK.AIR);
+      setBlock(ox + 1, h + 5, oz + cz, BLOCK.AIR);
+    }
+    // Corridor lights overhead every 4 blocks
+    for (var cl = hz + 2; cl <= hz + pd - 2; cl += 4) {
+      setBlock(ox, h + 7, oz + cl, BLOCK.LIGHT);
+    }
+    // Side room desks (3 per side)
+    [-8, 0, 8].forEach(function(rx) {
+      setBlock(ox + rx - 4, h + 6, oz - 2, BLOCK.WOOD);
+      setBlock(ox + rx + 4, h + 6, oz + 2, BLOCK.WOOD);
+    });
+    // Council chamber: round CONCRETE table in center
+    [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(d) {
+      setBlock(ox + d[0] * 2, h + 6, oz + d[1] * 2, BLOCK.CONCRETE);
+    });
+    // Council WOOD chair blocks
+    [[-3,0],[3,0],[0,-3],[0,3]].forEach(function(d) {
+      setBlock(ox + d[0], h + 6, oz + d[1], BLOCK.WOOD);
+    });
+
+    // ── 3rd Floor (Y+7, Y+8) — Presidential Office ──────────────────────────
+    // WHITE_TILE floor
+    for (var fpx = hx + 1; fpx <= hx + pw - 2; fpx++) {
+      for (var fpz = hz + 1; fpz <= hz + pd - 2; fpz++) {
+        setBlock(ox + fpx, h + 7, oz + fpz, BLOCK.WHITE_TILE);
+      }
+    }
+    // Presidential desk (3×2 WOOD) at north end
+    for (var dx = -1; dx <= 1; dx++) {
+      setBlock(ox + dx, h + 8, oz + hz + 3, BLOCK.WOOD);
+      setBlock(ox + dx, h + 8, oz + hz + 4, BLOCK.WOOD);
+    }
+    // Russian flag: METAL pole + LIGHT (white) + BRICK (red) blocks
+    setBlock(ox + 6, h + 8,  oz + hz + 3, BLOCK.METAL);
+    setBlock(ox + 6, h + 9,  oz + hz + 3, BLOCK.METAL);
+    setBlock(ox + 7, h + 8,  oz + hz + 3, BLOCK.LIGHT);   // white stripe
+    setBlock(ox + 7, h + 9,  oz + hz + 3, BLOCK.BRICK);   // red stripe
+    // Bookcase walls (east and west)
+    for (var bz2 = hz + 2; bz2 <= hz + pd - 2; bz2 += 2) {
+      setBlock(ox + hx + 2, h + 8, oz + bz2, BLOCK.WOOD);
+      setBlock(ox - hx - 2, h + 8, oz + bz2, BLOCK.WOOD);
+    }
+    // Large window overlooking Red Square (south façade)
+    for (var gx = -2; gx <= 2; gx++) {
+      setBlock(ox + gx, h + 8, oz + hz + pd - 1, BLOCK.GLASS);
+      setBlock(ox + gx, h + 7, oz + hz + pd - 1, BLOCK.GLASS);
+    }
+    // Chandelier / overhead light
+    setBlock(ox, h + 9, oz + hz + pd / 2, BLOCK.LIGHT);
+
+    // ── Underground escape tunnel (Y-1 to Y-4) ────────────────────────────
+    for (var tn = 0; tn < 22; tn++) {
+      // 2×3 STONE-lined tunnel heading south from palace center
+      for (var tw = -1; tw <= 1; tw++) {
+        for (var th = 0; th < 3; th++) {
+          var isEdge = (tw === -1 || tw === 1 || th === 0 || th === 2);
+          if (isEdge) setBlock(ox + tw, h - th, oz + hz + pd + tn, BLOCK.STONE);
+          else setBlock(ox + tw, h - th, oz + hz + pd + tn, BLOCK.AIR);
+        }
+      }
+      // Support beams every 5 blocks
+      if (tn % 5 === 0) {
+        setBlock(ox - 1, h - 1, oz + hz + pd + tn, BLOCK.WOOD);
+        setBlock(ox + 1, h - 1, oz + hz + pd + tn, BLOCK.WOOD);
+        setBlock(ox - 1, h - 2, oz + hz + pd + tn, BLOCK.WOOD);
+        setBlock(ox + 1, h - 2, oz + hz + pd + tn, BLOCK.WOOD);
+      }
+      // Lanterns every 8 blocks
+      if (tn % 8 === 0) setBlock(ox, h - 1, oz + hz + pd + tn, BLOCK.LIGHT);
+    }
+    // Rubble exit (collapsed section)
+    for (var rb = -2; rb <= 2; rb++) {
+      setBlock(ox + rb, h, oz + hz + pd + 22, BLOCK.RUBBLE);
+      setBlock(ox + rb, h + 1, oz + hz + pd + 22, BLOCK.RUBBLE);
+    }
+
+    // Boss spawn point behind the presidential desk on the top floor
+    _spawnPoints = _spawnPoints || [];
+    _spawnPoints.push({ x: ox, y: h + 8, z: oz + hz + 3, type: 'boss', bossId: 'BOSS_KREMLIN' });
   }
 
   // St. Basil's Cathedral — Moscow's iconic Red Square cathedral with its
@@ -9777,6 +10087,16 @@ window.VoxelWorld = (function () {
     setTheme(level.theme);
     _theme.seed = index * 3137;
 
+    // Russian-territory levels get red-purple-white terrain palette instead of Ukrainian blue
+    const RUSSIAN_LEVELS = ['MOSCOW', 'KREMLIN', 'BELGOROD'];
+    if (RUSSIAN_LEVELS.includes(level.id)) {
+      BLOCK_COLORS[BLOCK.GRASS] = 0x8B1A4A;  // deep rose-red (Russian flag red)
+      BLOCK_COLORS[BLOCK.DIRT]  = 0x5C2A3A;  // dark reddish earth
+    } else {
+      BLOCK_COLORS[BLOCK.GRASS] = 0x005BBB;  // restore Ukrainian blue
+      BLOCK_COLORS[BLOCK.DIRT]  = 0x7A5A3A;  // restore normal dirt
+    }
+
     regenerate();
     _droneNestPositions.length = 0; // Reset nests for this level
     _buildings.length = 0;          // Reset clearable building registry
@@ -10961,21 +11281,23 @@ window.VoxelWorld = (function () {
       generateGrainSilo(32, -38);           // Agricultural storage (Belgorod grain region)
       generateIndustrialComplex(-38, -8);   // Energomash rocket plant
     } else if (level.id === 'KREMLIN') {
-      // KREMLIN SHOWDOWN — Final stage. The full Red Square / Moscow city center under assault.
-      // The zombie president boss spawns from inside the Kremlin palace.
-      generateKremlinPalace(0, 0);
-      // Lenin's Mausoleum — stepped dark-red pyramid pressed against the
-      // Kremlin south wall, on the north edge of Red Square.
-      generateLeninMausoleum(0, 15);
-      // St. Basil's Cathedral — the iconic colourful onion domes of Red Square,
-      // standing just south of the palace where the player approaches the finale.
-      generateStBasils(0, 40);
-      // Kremlin walls: Red Square buildings (GUM, State Duma, Historical Museum)
-      generateLuxuryVilla(-18, -10, 12, 8);   // GUM department store replica
-      generateLuxuryVilla(18, -10, 10, 8);    // State Historical Museum
-      generateLuxuryVilla(0, -20, 16, 10);    // State Duma / government bloc
-      generateLuxuryVilla(-12, 15, 10, 8);    // Kremlin admin wing
-      generateLuxuryVilla(12, 15, 10, 8);     // Presidential admin building
+      // KREMLIN SHOWDOWN — Final stage. Full Red Square under assault.
+      // Kremlin perimeter wall with crenellations and towers
+      generateKremlinWall(0, 0);
+      // Palace and interior rooms (war room, presidential office, escape tunnel)
+      generateKremlinPalace(0, -6);
+      generateKremlinInterior(0, -6);
+      // Spasskaya Tower — clock tower gate in the south wall
+      generateSpasskayaTower(0, 20);
+      // Lenin's Mausoleum at the south Kremlin wall edge
+      generateLeninMausoleum(0, 22);
+      // Red Square plaza stretching south
+      generateRedSquare(0, 46);
+      // St. Basil's Cathedral at the south end of Red Square
+      generateStBasils(0, 60);
+      // Kremlin admin buildings flanking the palace inside the wall
+      generateLuxuryVilla(-12, -12, 10, 6);   // Kremlin admin wing west
+      generateLuxuryVilla(12, -12, 10, 6);    // Kremlin admin wing east
       // Inner ring: Stalinka apartment blocks surrounding Red Square
       generateUkrainianApartment(-30, -28, 14);
       generateUkrainianApartment(30, -28, 14);

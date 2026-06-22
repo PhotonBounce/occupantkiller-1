@@ -2718,8 +2718,9 @@ const Enemies = (() => {
           e.mesh.position.addScaledVector(dir, stepDist);
         }
 
-        // Face toward target
+        // Face toward target (model built facing +Z, lookAt orients -Z, so flip 180°)
         e.mesh.lookAt(moveTarget.x, e.mesh.position.y, moveTarget.z);
+        e.mesh.rotation.y += Math.PI;
 
         // Leg swing animation
         var prevLeg = e.legAngle;
@@ -2745,6 +2746,7 @@ const Enemies = (() => {
         var sStep = e.speed * 0.4 * delta;
         e.mesh.position.addScaledVector(strafe, sStep);
         e.mesh.lookAt(playerPos.x, e.mesh.position.y, playerPos.z);
+        e.mesh.rotation.y += Math.PI;
         // Subtle leg animation at half speed
         e.legAngle += e.legDir * (e.speed / 4.4) * 4 * delta;
         if (Math.abs(e.legAngle) > 0.3) e.legDir *= -1;
@@ -2798,6 +2800,7 @@ const Enemies = (() => {
             e.mesh.position.y = (window.VoxelWorld.getTopSolidY ? window.VoxelWorld.getTopSolidY(e.mesh.position.x, e.mesh.position.z) : window.VoxelWorld.getTerrainHeight(e.mesh.position.x, e.mesh.position.z) + 1);
           }
           e.mesh.lookAt(e.mesh.position.x + awayDir.x, e.mesh.position.y, e.mesh.position.z + awayDir.z);
+          e.mesh.rotation.y += Math.PI;
         }
         if (e._retreatTimer <= 0) e.retreating = false;
         // Update HP bar and continue
@@ -4119,6 +4122,7 @@ const Enemies = (() => {
       _tmpVec3e.subVectors(wounded.mesh.position, medic.mesh.position).setY(0).normalize();
       medic.mesh.position.addScaledVector(_tmpVec3e, medic.speed * 1.2 * delta);
       medic.mesh.lookAt(wounded.mesh.position.x, medic.mesh.position.y, wounded.mesh.position.z);
+      medic.mesh.rotation.y += Math.PI;
     } else {
       // Heal
       wounded.hp = Math.min(wounded.maxHp, wounded.hp + 8 * delta);
