@@ -437,6 +437,10 @@ const WorldFeatures = (function () {
             if (damage * falloff >= threshold) {
               VoxelWorld.setBlock(bx, by, bz, 0);
               destroyed.push({ x: bx, y: by, z: bz, wasBlock: block });
+              // Trigger column collapse for blocks above each destroyed block
+              if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.onBlockDestroyed) {
+                try { CollapsePhysics.onBlockDestroyed(window._gameScene || null, bx, by, bz); } catch (eC) {}
+              }
             }
           }
         }

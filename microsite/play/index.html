@@ -178,13 +178,13 @@
     <div id="build-hud" style="display:none">
       <div class="build-title">🔨 BUILD MODE</div>
       <div class="build-templates">
-        <span class="build-opt">[F1] Barracks</span>
-        <span class="build-opt">[F2] Factory</span>
-        <span class="build-opt">[F3] Turret</span>
-        <span class="build-opt">[F4] Drone Hangar</span>
-        <span class="build-opt">[F5] Command Center</span>
-        <span class="build-opt">[F6] Wall</span>
-        <span class="build-opt">[F7] Dugout</span>
+        <span class="build-opt" data-template="barracks">[F1] Barracks</span>
+        <span class="build-opt" data-template="factory">[F2] Factory</span>
+        <span class="build-opt" data-template="turret">[F3] Turret</span>
+        <span class="build-opt" data-template="droneHangar">[F4] Drone Hangar</span>
+        <span class="build-opt" data-template="commandCenter">[F5] Command Center</span>
+        <span class="build-opt" data-template="wall">[F6] Wall</span>
+        <span class="build-opt" data-template="dugout">[F7] Dugout</span>
       </div>
       <div class="build-info">LMB · Place | RMB · Remove | B · Exit Build</div>
     </div>
@@ -546,9 +546,17 @@
     <div class="start-card">
       <!-- ── Hero header ─────────────────────────────────── -->
       <header class="start-hero">
-        <div id="level-badge">HYBRID VOXEL WARFARE · 18 STAGES</div>
+        <div id="level-badge">HYBRID VOXEL WARFARE · 49+ MISSIONS</div>
         <h1>OCCUPANT KILLER</h1>
         <p class="start-tagline">Ukraine. Voxel world. Build. Command. Fight.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px;font-size:10px;color:#888;font-family:monospace">
+          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🏆 LEADERBOARD [TAB]</span>
+          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🌦 WEATHER [Shift+W]</span>
+          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🟢 NIGHT VISION [Shift+N]</span>
+          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🔥 KILL STREAKS</span>
+          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">💥 EXPLOSIVE BARRELS</span>
+          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">⭐ PRESTIGE SYSTEM</span>
+        </div>
       </header>
 
       <!-- ── Primary CTAs ────────────────────────────────── -->
@@ -580,6 +588,72 @@
             <button class="btn pill start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00">💣 Bomber</button>
           </div>
           <p id="start-drone-desc" class="start-section-desc">No drone — fight on foot (default).</p>
+        </section>
+
+        <section class="start-section start-section-wide">
+          <div class="start-section-title">🪖 SQUAD FORMATION</div>
+          <div id="formation-select" class="start-section-row">
+            <button class="btn pill formation-btn active-formation" data-formation="wedge" style="border-color:#0af;color:#0af">▲ WEDGE</button>
+            <button class="btn pill formation-btn" data-formation="line" style="border-color:#888;color:#888">━ LINE</button>
+            <button class="btn pill formation-btn" data-formation="diamond" style="border-color:#888;color:#888">◆ DIAMOND</button>
+            <button class="btn pill formation-btn" data-formation="column" style="border-color:#888;color:#888">| COLUMN</button>
+            <button class="btn pill formation-btn" data-formation="echelon_l" style="border-color:#888;color:#888">◁ ECHELON-L</button>
+            <button class="btn pill formation-btn" data-formation="echelon_r" style="border-color:#888;color:#888">▷ ECHELON-R</button>
+          </div>
+          <p id="formation-desc" class="start-section-desc">Wedge: V-shape assault — pointman leads, squad fans out behind. Enemy picks formation randomly.</p>
+        </section>
+
+        <section class="start-section start-section-wide">
+          <div class="start-section-title">🗺 SELECT MAP</div>
+          <div id="map-select" class="start-section-row" style="flex-wrap:wrap;gap:6px">
+            <button class="btn pill map-btn active-map" data-stage="0"  style="border-color:#0af;color:#0af">✈ HOSTOMEL</button>
+            <button class="btn pill map-btn"            data-stage="12" style="border-color:#888;color:#888">🏛 KYIV</button>
+            <button class="btn pill map-btn"            data-stage="1"  style="border-color:#888;color:#888">🔥 AVDIIVKA</button>
+            <button class="btn pill map-btn"            data-stage="2"  style="border-color:#888;color:#888">💀 BAKHMUT</button>
+            <button class="btn pill map-btn"            data-stage="4"  style="border-color:#888;color:#888">⚙ MARIUPOL</button>
+            <button class="btn pill map-btn"            data-stage="5"  style="border-color:#888;color:#888">🌊 CRIMEA</button>
+            <button class="btn pill map-btn"            data-stage="6"  style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
+          </div>
+          <p id="map-desc" class="start-section-desc">Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
+        </section>
+
+        <section class="start-section start-section-wide">
+          <div class="start-section-title">📋 CUSTOM MISSIONS</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+
+            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+              <div style="flex:1">
+                <div style="color:#0af;font-weight:bold;font-size:12px">✈ HOSTOMEL — VDV AIRBORNE ASSAULT</div>
+                <div style="color:#aaa;font-size:11px;margin-top:2px">Feb 24 2022 — Russian VDV Mi-8 helicopters land inside the airport. Hold the perimeter.</div>
+              </div>
+              <button class="btn pill mission-start-btn" data-stage="0" data-formation="diamond" style="border-color:#0af;color:#0af;white-space:nowrap;flex-shrink:0">▶ START</button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+              <div style="flex:1">
+                <div style="color:#ffcc00;font-weight:bold;font-size:12px">🏛 KYIV — STOP THE COLUMN</div>
+                <div style="color:#aaa;font-size:11px;margin-top:2px">Feb–Apr 2022 — Russian armor pushes down Khreshchatyk. Maidan must not fall.</div>
+              </div>
+              <button class="btn pill mission-start-btn" data-stage="12" data-formation="line" style="border-color:#ffcc00;color:#ffcc00;white-space:nowrap;flex-shrink:0">▶ START</button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+              <div style="flex:1">
+                <div style="color:#ff6622;font-weight:bold;font-size:12px">⚙ MARIUPOL — LAST STAND</div>
+                <div style="color:#aaa;font-size:11px;margin-top:2px">Azovstal steelworks — no retreat, no surrender. Survive all 7 waves in the inferno.</div>
+              </div>
+              <button class="btn pill mission-start-btn" data-stage="4" data-formation="wedge" style="border-color:#ff6622;color:#ff6622;white-space:nowrap;flex-shrink:0">▶ START</button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+              <div style="flex:1">
+                <div style="color:#88ff88;font-weight:bold;font-size:12px">💀 BAKHMUT — GRINDING DEFENCE</div>
+                <div style="color:#aaa;font-size:11px;margin-top:2px">Total urban destruction. Wagner mercenary assault from all directions. Stay alive.</div>
+              </div>
+              <button class="btn pill mission-start-btn" data-stage="2" data-formation="echelon_l" style="border-color:#88ff88;color:#88ff88;white-space:nowrap;flex-shrink:0">▶ START</button>
+            </div>
+
+          </div>
         </section>
 
         <section class="start-section start-section-wide">
@@ -997,6 +1071,7 @@
 <script src="missions.js?v=20260429b"></script>
 <script src="pickups.js?v=20260429b"></script>
 <script src="hud.js?v=20260429b"></script>
+<script src="shop.js?v=20260429b"></script>
 <script src="weapon-details.js?v=20260429b"></script>
 <script src="weapons.js?v=20260429b"></script>
 <script src="enemies.js?v=20260429b"></script>
@@ -1008,6 +1083,8 @@
 <script src="lottery.js?v=20260429b"></script>
 <script src="mortar.js?v=20260429b"></script>
 <script src="bradley.js?v=20260429b"></script>
+<script src="t72.js?v=20260429b"></script>
+<script src="btr80.js?v=20260429b"></script>
 <script src="gyro.js?v=20260429b"></script>
 <script src="weather-system.js?v=20260429b"></script>
 <script src="ml-system.js?v=20260429b"></script>
@@ -1029,10 +1106,15 @@
 <script src="progression.js?v=20260429b"></script>
 <script src="refinery-strike.js?v=20260429b"></script>
 <script src="enemy-artillery.js?v=20260429b"></script>
+<script src="loot.js?v=20260429b"></script>
+<script src="airdrop.js?v=20260429b"></script>
 
 
+<script src="performance-scaler.js"></script>
+<script src="leaderboard.js"></script>
+<script src="weather.js"></script>
 <script src="game-manager.js?v=20260429b-static"></script>
-
+<script src="time-of-day.js"></script>
 
 <!-- Defensive global export for VoxelWorld and AudioSystem -->
 <script>
@@ -1189,6 +1271,113 @@ document.addEventListener('DOMContentLoaded', function () {
       })(btns[i]);
     }
     setActiveDrone('');
+  })();
+
+  // ── Formation selection ────────────────────────────────
+  (function () {
+    var formDescs = {
+      wedge:     'WEDGE — V-shape assault. Pointman leads, squad fans out. Best for open terrain advances.',
+      line:      'LINE — Skirmish line. Maximum firepower to the front. Best for holding ground.',
+      diamond:   'DIAMOND — All-around defense. Leader center, squad covers all directions.',
+      column:    'COLUMN — Single file. Stealthy movement through narrow terrain and urban corridors.',
+      echelon_l: 'ECHELON LEFT — Squad offsets left-rear. Covers right flank during advance.',
+      echelon_r: 'ECHELON RIGHT — Squad offsets right-rear. Covers left flank during advance.',
+    };
+    var fbtn = document.querySelectorAll('.formation-btn');
+    var fdesc = document.getElementById('formation-desc');
+    function setActiveFormation(val) {
+      window.__chosenFormation = val || 'wedge';
+      for (var i = 0; i < fbtn.length; i++) {
+        var v = fbtn[i].getAttribute('data-formation') || '';
+        if (v === window.__chosenFormation) {
+          fbtn[i].style.boxShadow = '0 0 12px #0af';
+          fbtn[i].style.background = 'rgba(0,170,255,0.12)';
+          fbtn[i].style.borderColor = '#0af';
+          fbtn[i].style.color = '#0af';
+        } else {
+          fbtn[i].style.boxShadow = '';
+          fbtn[i].style.background = '';
+          fbtn[i].style.borderColor = '#888';
+          fbtn[i].style.color = '#888';
+        }
+      }
+      if (fdesc) fdesc.textContent = formDescs[window.__chosenFormation] || formDescs.wedge;
+    }
+    for (var i = 0; i < fbtn.length; i++) {
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          setActiveFormation(btn.getAttribute('data-formation') || 'wedge');
+        });
+      })(fbtn[i]);
+    }
+    setActiveFormation('wedge');
+  })();
+
+  // ── Map selection wiring ───────────────────────────────
+  (function () {
+    window.__chosenStartStage = 0;
+    var mapDescs = {
+      '0':  'Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.',
+      '12': 'Battle of Kyiv — Defend Maidan Nezalezhnosti and Khreshchatyk. The armored column from Bucha must not reach the capital. Feb–Apr 2022.',
+      '1':  'Avdiivka Sector — Industrial coke plant ruins. Year-long grinding battle for every block.',
+      '2':  'Bakhmut Ruins — Total urban destruction. Wagner mercenary assault from all directions.',
+      '4':  'Mariupol Steelworks — Azovstal last stand. Fire deals constant damage. No retreat.',
+      '5':  'Crimea Bridge — Strike the strategic crossing before it can be reinforced.',
+      '6':  'Chornobyl Zone — Irradiated exclusion zone. Abandoned buildings, radiation damage.',
+    };
+    var mapBtns = document.querySelectorAll('.map-btn');
+    function setActiveMap(stage) {
+      window.__chosenStartStage = parseInt(stage, 10);
+      for (var i = 0; i < mapBtns.length; i++) {
+        var b = mapBtns[i];
+        if (b.getAttribute('data-stage') === String(stage)) {
+          b.style.borderColor = '#0af';
+          b.style.color = '#0af';
+          b.classList.add('active-map');
+        } else {
+          b.style.borderColor = '#888';
+          b.style.color = '#888';
+          b.classList.remove('active-map');
+        }
+      }
+      var desc = document.getElementById('map-desc');
+      if (desc) desc.textContent = mapDescs[String(stage)] || '';
+    }
+    for (var mi = 0; mi < mapBtns.length; mi++) {
+      (function (btn) {
+        btn.addEventListener('click', function () { setActiveMap(btn.getAttribute('data-stage')); });
+      })(mapBtns[mi]);
+    }
+    setActiveMap('0');
+  })();
+
+  // ── Custom mission start buttons ───────────────────────
+  (function () {
+    var missionBtns = document.querySelectorAll('.mission-start-btn');
+    for (var mi2 = 0; mi2 < missionBtns.length; mi2++) {
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          var stage = parseInt(btn.getAttribute('data-stage'), 10);
+          var formation = btn.getAttribute('data-formation') || 'wedge';
+          window.__chosenStartStage = stage;
+          window.__chosenFormation = formation;
+          // Sync UI highlights
+          var mapBtnsSync = document.querySelectorAll('.map-btn');
+          for (var k = 0; k < mapBtnsSync.length; k++) {
+            var b = mapBtnsSync[k];
+            if (parseInt(b.getAttribute('data-stage'), 10) === stage) {
+              b.style.borderColor = '#0af'; b.style.color = '#0af';
+              b.classList.add('active-map');
+            } else {
+              b.style.borderColor = '#888'; b.style.color = '#888';
+              b.classList.remove('active-map');
+            }
+          }
+          var startBtn = document.getElementById('start-btn');
+          if (startBtn) startBtn.click();
+        });
+      })(missionBtns[mi2]);
+    }
   })();
 
   // ── Button wiring ──────────────────────────────────────

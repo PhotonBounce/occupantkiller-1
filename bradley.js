@@ -31,18 +31,22 @@ window.Bradley = (function () {
   var _camYaw = 0, _camPitch = -0.18;
   var _turretYaw = 0, _turretPitch = 0;
   var _shoulderSide = 1;        // +1 right, -1 left
+  var _fpvMode = false;       // true = first-person turret view, false = third-person chase
+  var _fpvOverlay = null;     // turret-sight crosshair DOM element
   // Fire timing
   var _bushCool = 0;            // 0.30s cyclic = 200 rpm
   var _coaxCool = 0;            // 0.085s = 700 rpm
   var _firingBush = false, _firingCoax = false;
   var _heAp = 0;                // alt 0=HE, 1=AP
+  var _towAmmo = 6;             // 2-tube reload x3 sorties = 6 shots
+  var _towCool = 0;             // 9s reload per TOW shot
   // Visual extras
   var _casings = [];
   var _projectiles = [];        // bushmaster shells (visible tracer + impact)
   // Input state
   var _key = { w: false, s: false, a: false, d: false };
 
-  var BUSH_RPM_INTERVAL = 0.30;   // 200 rpm cyclic
+  var BUSH_RPM_INTERVAL = 0.18;   // ~333 rpm cyclic (snappier)
   var COAX_RPM_INTERVAL = 0.085;  // ~700 rpm
   var BUSH_DMG_HE = 70, BUSH_AOE = 2.6;
   var BUSH_DMG_AP = 95;
@@ -170,8 +174,28 @@ window.Bradley = (function () {
     ant.position.set(-0.85, 0.95, -0.9);
     turret.add(ant);
 
+    // Open commander's hatch (raised lid)
+    var hatchLid = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.06, 0.72), new THREE.MeshLambertMaterial({ color: 0x3a4528 }));
+    hatchLid.position.set(0.5, 1.05, -0.2);
+    hatchLid.rotation.z = -0.55; // hatch open at angle
+    turret.add(hatchLid);
+    // Gunner head/helmet poking out of hatch
+    var helmetMat = new THREE.MeshLambertMaterial({ color: 0x2a3318 });
+    var head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), helmetMat);
+    head.position.set(0.5, 1.2, -0.2);
+    turret.add(head);
+    var shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.18, 0.4), helmetMat);
+    shoulders.position.set(0.5, 0.98, -0.2);
+    turret.add(shoulders);
+    // Earphones/comms on helmet
+    var earL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.08, 6), new THREE.MeshLambertMaterial({ color: 0x111111 }));
+    earL.rotation.z = Math.PI/2; earL.position.set(0.29, 1.21, -0.2);
+    turret.add(earL);
+    var earR = earL.clone(); earR.position.x = 0.71;
+    turret.add(earR);
+
     g.castShadow = false; g.receiveShadow = false;
-    return { group: g, turret: turret, gunMount: gunMount, barrel: barrel, brake: brake };
+    return { group: g, turret: turret, gunMount: gunMount, barrel: barrel, brake: brake, head: head, shoulders: shoulders };
   }
 
   function _spawnVehicle(pos) {
@@ -181,14 +205,24 @@ window.Bradley = (function () {
     _vehicle = {
       group: built.group, turret: built.turret, gunMount: built.gunMount,
       barrel: built.barrel, brake: built.brake,
+      head: built.head, shoulders: built.shoulders,
       vx: 0, vz: 0, yaw: 0, hp: 1500, maxHp: 1500
     };
     return _vehicle;
   }
 
   function spawnAt(pos) {
+    // Defensive: if init never wired the scene, resolve it from the live game
+    if (!_scene) {
+      _scene = (typeof window !== 'undefined' && window._gameScene) ||
+               (typeof window !== 'undefined' && window.GameManager && window.GameManager.getScene && window.GameManager.getScene()) || null;
+    }
+    if (!_gameCam && typeof window !== 'undefined' && window.GameManager && window.GameManager.getCamera) {
+      _gameCam = window.GameManager.getCamera();
+    }
     if (!_scene) return null;
     if (_vehicle) try { _scene.remove(_vehicle.group); } catch (e) {}
+    _towAmmo = 6 + (window._bonusTOW || 0); _towCool = 0;
     return _spawnVehicle(pos);
   }
 
@@ -220,38 +254,25 @@ window.Bradley = (function () {
       }
     }
     _active = true;
+    _fpvMode = false; // start in 3rd-person, player can press V to switch
     _camYaw = _vehicle.group.rotation.y;
     _camPitch = -0.22;
     _turretYaw = 0; _turretPitch = 0;
     _ensureChaseCam();
-    // Add first-person interior camera and viewport slit effect
-    if (_gameCam && _vehicle && _vehicle.group) {
-      // Place camera inside vehicle, looking out a narrow slit
-      _gameCam.position.copy(_vehicle.group.position).add(new THREE.Vector3(0, 1.25, -2.1));
-      _gameCam.lookAt(_vehicle.group.position.x, _vehicle.group.position.y + 1.25, _vehicle.group.position.z + 4);
-      // Optionally, add a simple black mesh as a viewport slit
-      if (!_vehicle.viewportSlit) {
-        const slitGeo = new THREE.BoxGeometry(1.2, 0.12, 0.02);
-        const slitMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-        const slit = new THREE.Mesh(slitGeo, slitMat);
-        slit.position.set(0, 1.18, 2.7);
-        slit.renderOrder = 9999;
-        _vehicle.group.add(slit);
-        _vehicle.viewportSlit = slit;
-      }
-    }
     try {
       if (window.GameManager) {
         window.GameManager.__bradleyCam = _chaseCam;
       }
     } catch (e) {}
-    try { window.HUD && window.HUD.showToast && window.HUD.showToast('🚛 BRADLEY — LMB: 25mm Bushmaster | RMB: Coax 7.62 | WASD drive | B exit', 4000, '#88ff88'); } catch (e) {}
+    try { window.HUD && window.HUD.showToast && window.HUD.showToast('\u{1F69B} BRADLEY IFV — LMB: 25mm Bushmaster | RMB: Coax | T: TOW (' + (_towAmmo || 6) + ') | WASD: drive | V: FP/TP view | G: exit', 5500, '#88ff88'); } catch (e) {}
     try { window.AudioSystem && window.AudioSystem.playVehicleIdle && (_vehicle.idleHandle = window.AudioSystem.playVehicleIdle(800)); } catch (e) {}
   }
 
   function exit() {
     if (!_active) return;
     _active = false;
+    _fpvMode = false;
+    _showFPVOverlay(false);
     try { if (_vehicle && _vehicle.idleHandle && _vehicle.idleHandle.stop) _vehicle.idleHandle.stop(); } catch (e) {}
     try { if (window.GameManager) window.GameManager.__bradleyCam = null; } catch (e) {}
     // Place player beside Bradley
@@ -351,6 +372,52 @@ window.Bradley = (function () {
     _ejectCasing(false);
   }
 
+  function _fireTOW() {
+    if (_towCool > 0 || !_vehicle || _towAmmo <= 0) return;
+    _towAmmo--;
+    _towCool = 9.0; // 9s reload
+
+    var origin = _muzzleWorld();
+    // TOW launches from right side of turret, slightly elevated
+    origin.x += 0.5; origin.y += 0.3;
+    var dir = _aimDirWorld();
+
+    // Missile tracer (slow, visible)
+    try {
+      if (window.Tracers && window.Tracers.spawnTracer) {
+        window.Tracers.spawnTracer(origin.clone(), dir.clone(), 0xff8800, 300);
+      }
+    } catch (e) {}
+
+    // Hitscan at long range
+    var hp = _hitscan(origin, dir, 300, true);
+    if (hp) {
+      // Heavy warhead explosion
+      try {
+        if (window.Enemies && window.Enemies.damageInRadius) {
+          window.Enemies.damageInRadius(hp, 6, 600, 'EXPLOSIVE');
+        }
+        if (window.Tracers && window.Tracers.spawnExplosion) {
+          window.Tracers.spawnExplosion(hp, 4.0);
+        }
+        if (window.AudioSystem && AudioSystem.playExplosion) {
+          AudioSystem.playExplosion(2.5, true);
+        }
+      } catch (e) {}
+    }
+
+    // Screen shake
+    _shakeTimer = 0.2;
+    _shakeAmount = 0.1;
+
+    // Toast
+    try {
+      if (window.HUD && HUD.showToast) {
+        HUD.showToast('🚀 TOW AWAY — ' + _towAmmo + ' remaining', 2000, '#ff8800');
+      }
+    } catch (e) {}
+  }
+
   function _hitscan(origin, dir, maxDist, isHE) {
     if (!window.Enemies || !window.Enemies.getAll) return null;
     var all = window.Enemies.getAll();
@@ -397,6 +464,7 @@ window.Bradley = (function () {
   function update(dt) {
     if (_bushCool > 0) _bushCool -= dt;
     if (_coaxCool > 0) _coaxCool -= dt;
+    if (_towCool  > 0) _towCool  -= dt;
 
     // Casings physics
     for (var i = _casings.length - 1; i >= 0; i--) {
@@ -458,22 +526,38 @@ window.Bradley = (function () {
     if (_firingBush) _fireBushmaster();
     if (_firingCoax) _fireCoax();
 
-    // Chase camera
-    var cam = _ensureChaseCam();
-    var off = new THREE.Vector3(_shoulderSide * 1.3, 3.2, 7.0);
-    var s = Math.sin(_camYaw), c = Math.cos(_camYaw);
-    var camPos = new THREE.Vector3(
-      _vehicle.group.position.x + off.x * c + off.z * s,
-      _vehicle.group.position.y + off.y,
-      _vehicle.group.position.z - off.x * s + off.z * c
-    );
-    cam.position.lerp(camPos, 0.25);
-    var look = new THREE.Vector3(_vehicle.group.position.x, _vehicle.group.position.y + 1.6, _vehicle.group.position.z);
-    cam.lookAt(look);
-    cam.updateProjectionMatrix();
-    // Sync first-person camera position so Enemies AI tracks the Bradley
+    if (_fpvMode && _gameCam && _vehicle) {
+      // FPV: mount camera at gunner/commander position on turret
+      var turWPos = new THREE.Vector3();
+      _vehicle.turret.getWorldPosition(turWPos);
+      // Eye position: above turret, offset toward gunner hatch
+      _gameCam.position.set(turWPos.x, turWPos.y + 0.85, turWPos.z);
+      // Rotate camera with turret + vehicle yaw, then apply pitch
+      var totalYaw = _vehicle.yaw + _turretYaw;
+      _gameCam.rotation.set(0, 0, 0, 'YXZ');
+      _gameCam.rotation.y = totalYaw + Math.PI; // +PI: model is -Z forward
+      _gameCam.rotation.x = _turretPitch * 0.8;
+      // Update ammo readout
+      _showFPVOverlay(true);
+    } else {
+      _showFPVOverlay(false);
+      // Third-person chase camera
+      var cam = _ensureChaseCam();
+      var off = new THREE.Vector3(_shoulderSide * 1.3, 3.2, 7.0);
+      var s = Math.sin(_camYaw), c = Math.cos(_camYaw);
+      var camPos = new THREE.Vector3(
+        _vehicle.group.position.x + off.x * c + off.z * s,
+        _vehicle.group.position.y + off.y,
+        _vehicle.group.position.z - off.x * s + off.z * c
+      );
+      cam.position.lerp(camPos, 0.25);
+      var look = new THREE.Vector3(_vehicle.group.position.x, _vehicle.group.position.y + 1.6, _vehicle.group.position.z);
+      cam.lookAt(look);
+      cam.updateProjectionMatrix();
+    }
+    // Sync main cam position so Enemies AI tracks the Bradley
     try {
-      if (_gameCam) {
+      if (_gameCam && !_fpvMode) {
         _gameCam.position.set(_vehicle.group.position.x, _vehicle.group.position.y + 1.5, _vehicle.group.position.z);
       }
     } catch (e) {}
@@ -500,7 +584,8 @@ window.Bradley = (function () {
     else if (ev.code === 'KeyS') _key.s = true;
     else if (ev.code === 'KeyA') _key.a = true;
     else if (ev.code === 'KeyD') _key.d = true;
-    else if (ev.code === 'KeyV' && !ev.repeat) _shoulderSide = -_shoulderSide;
+    else if (ev.code === 'KeyV' && !ev.repeat) toggleViewMode();
+    else if (ev.code === 'KeyT' && !ev.repeat) _fireTOW();
     else if (ev.code === 'Escape') exit();
   }
   function _onKeyUp(ev) {
@@ -538,13 +623,72 @@ window.Bradley = (function () {
     window.addEventListener('contextmenu', function (e) { if (_active) e.preventDefault(); });
   }
 
+  function _createFPVOverlay() {
+    if (_fpvOverlay) return;
+    var d = document.createElement('div');
+    d.id = 'bradley-fpv-overlay';
+    d.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none;z-index:150;';
+    // Turret sight reticle
+    d.innerHTML = '<svg width="100%" height="100%" style="position:absolute;top:0;left:0">' +
+      '<line x1="50%" y1="44%" x2="50%" y2="48%" stroke="#00ff44" stroke-width="1.5" opacity="0.9"/>' +
+      '<line x1="50%" y1="52%" x2="50%" y2="56%" stroke="#00ff44" stroke-width="1.5" opacity="0.9"/>' +
+      '<line x1="44%" y1="50%" x2="48%" y2="50%" stroke="#00ff44" stroke-width="1.5" opacity="0.9"/>' +
+      '<line x1="52%" y1="50%" x2="56%" y2="50%" stroke="#00ff44" stroke-width="1.5" opacity="0.9"/>' +
+      '<circle cx="50%" cy="50%" r="1.5%" fill="none" stroke="#00ff44" stroke-width="1" opacity="0.7"/>' +
+      '<circle cx="50%" cy="50%" r="4%" fill="none" stroke="#00ff44" stroke-width="0.5" opacity="0.4"/>' +
+      // Range marks
+      '<line x1="50%" y1="47.5%" x2="51%" y2="47.5%" stroke="#00ff44" stroke-width="0.8" opacity="0.5"/>' +
+      '<line x1="50%" y1="49%" x2="51%" y2="49%" stroke="#00ff44" stroke-width="0.8" opacity="0.5"/>' +
+      '<line x1="50%" y1="51%" x2="51%" y2="51%" stroke="#00ff44" stroke-width="0.8" opacity="0.5"/>' +
+      // Corner brackets
+      '<line x1="38%" y1="38%" x2="42%" y2="38%" stroke="#00ff44" stroke-width="1" opacity="0.3"/>' +
+      '<line x1="38%" y1="38%" x2="38%" y2="42%" stroke="#00ff44" stroke-width="1" opacity="0.3"/>' +
+      '<line x1="62%" y1="38%" x2="58%" y2="38%" stroke="#00ff44" stroke-width="1" opacity="0.3"/>' +
+      '<line x1="62%" y1="38%" x2="62%" y2="42%" stroke="#00ff44" stroke-width="1" opacity="0.3"/>' +
+      '<line x1="38%" y1="62%" x2="42%" y2="62%" stroke="#00ff44" stroke-width="1" opacity="0.3"/>' +
+      '<line x1="38%" y1="62%" x2="38%" y2="58%" stroke="#00ff44" stroke-width="1" opacity="0.3"/>' +
+      '<line x1="62%" y1="62%" x2="58%" y2="62%" stroke="#00ff44" stroke-width="1" opacity="0.3"/>' +
+      '<line x1="62%" y1="62%" x2="62%" y2="58%" stroke="#00ff44" stroke-width="1" opacity="0.3"/>' +
+      // Ammo/TOW readout placeholder
+      '<text x="68%" y="60%" font-family="monospace" font-size="12" fill="#00ff44" opacity="0.8" id="bfpv-ammo">M242 25mm</text>' +
+      '<text x="68%" y="63%" font-family="monospace" font-size="10" fill="#88ff88" opacity="0.6" id="bfpv-tow">TOW: 6 rdy</text>' +
+      '</svg>';
+    document.body.appendChild(d);
+    _fpvOverlay = d;
+  }
+
+  function _showFPVOverlay(show) {
+    if (!_fpvOverlay) _createFPVOverlay();
+    if (_fpvOverlay) _fpvOverlay.style.display = show ? 'block' : 'none';
+    // Update TOW count
+    if (show && _fpvOverlay) {
+      var towEl = _fpvOverlay.querySelector('#bfpv-tow');
+      if (towEl) towEl.textContent = 'TOW: ' + (_towAmmo || 0) + ' rdy';
+    }
+  }
+
+  function toggleViewMode() {
+    if (!_active) return;
+    _fpvMode = !_fpvMode;
+    _showFPVOverlay(_fpvMode);
+    try { if (window.HUD && window.HUD.notifyPickup) window.HUD.notifyPickup(_fpvMode ? '\u{1F52D} TURRET SIGHT — first person' : '\u{1F3A5} THIRD PERSON VIEW', '#00ccff'); } catch (e) {}
+  }
+
+  function getActiveCamera() {
+    // In FP mode, we control _gameCam directly — return null so caller uses main cam
+    if (_fpvMode) return null;
+    return _chaseCam;
+  }
+
   function init(scene, camera, controls) {
     _scene = scene; _gameCam = camera; _controls = controls;
     _vehicle = null; _active = false;
+    _fpvMode = false;
     _casings.length = 0; _projectiles.length = 0;
     _key.w = _key.s = _key.a = _key.d = false;
     _firingBush = _firingCoax = false;
-    _bushCool = _coaxCool = 0;
+    _bushCool = _coaxCool = _towCool = 0;
+    _towAmmo = 6 + (window._bonusTOW || 0);
     _bind();
   }
 
@@ -552,6 +696,8 @@ window.Bradley = (function () {
     init: init, update: update, clear: clear,
     spawnAt: spawnAt, enter: enter, exit: exit,
     isActive: isActive, getHealth: getHealth, getVehicle: getVehicle,
-    takeDamage: takeDamage
+    takeDamage: takeDamage,
+    toggleViewMode: toggleViewMode, getActiveCamera: getActiveCamera,
+    isFPV: function() { return _fpvMode; }
   };
 })();

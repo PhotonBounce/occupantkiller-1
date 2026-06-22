@@ -22,10 +22,14 @@ const Perks = (function () {
         // NEW: Artillery Strike
         ARTILLERY_STRIKE: {
           id: 'ARTILLERY_STRIKE', name: 'Artillery Strike', icon: '💥',
-          desc: 'Call in an artillery barrage on a target area. 120s cooldown.',
+          desc: 'Call in an artillery barrage on your position. 120s cooldown.',
           effect: function () {
-            if (typeof VFX !== 'undefined' && VFX.artilleryBarrage) {
-              VFX.artilleryBarrage();
+            if (typeof DroneSystem !== 'undefined' && DroneSystem.callArtilleryStrike) {
+              // Fire at player position (pulled from GameManager if available)
+              var gm = (typeof GameManager !== 'undefined') ? GameManager : null;
+              var pl = gm && gm.getPlayer ? gm.getPlayer() : null;
+              var pos = pl && pl.position ? pl.position.clone() : new THREE.Vector3(0, 0, 0);
+              DroneSystem.callArtilleryStrike(pos);
             }
           },
           cooldown: 120
@@ -76,6 +80,16 @@ const Perks = (function () {
       id: 'MARATHON', name: 'Marathon', icon: '🏃',
       desc: 'Unlimited sprint. Stamina drains 60% slower.',
       staminaMult: 0.4
+    },
+    EXPLOSIVE_EXPERT: {
+      id: 'EXPLOSIVE_EXPERT', name: 'Explosive Expert', icon: '💣',
+      desc: 'Grenades and explosions deal 35% more damage. Grenade fuse reduced by 0.5s.',
+      damageMult: 1.35, fuseSub: 0.5
+    },
+    MARKSMAN: {
+      id: 'MARKSMAN', name: 'Marksman', icon: '🔭',
+      desc: 'Headshots grant a 30% damage boost to your next shot (3s window).',
+      damageMult: 1.30, duration: 3.0
     }
   };
 
@@ -104,6 +118,7 @@ const Perks = (function () {
   let gunshipActive = false, gunshipTimer = 0;
   let pendingStreaks = [];
   let activeCooldowns = {};
+  let marksmanActive = false, marksmanTimer = 0;
 
   function reset() {
     equipped = [];
@@ -114,6 +129,7 @@ const Perks = (function () {
     gunshipActive = false; gunshipTimer = 0;
     pendingStreaks = [];
     activeCooldowns = {};
+    marksmanActive = false; marksmanTimer = 0;
   }
 
   /* ── Feature 32: Perk System ───────────────── */
@@ -146,11 +162,26 @@ const Perks = (function () {
   }
 
   /* ── Feature 32: Killstreak Rewards ────────── */
+  const MULTI_KILL_MSGS = ['', '', '💀 DOUBLE KILL!', '💀💀 TRIPLE KILL!', '🔥 QUADRUPLE KILL!', '🔥🔥 RAMPAGE!', '⚡ UNSTOPPABLE!'];
+
   function onKill() {
     killCount++;
     multiKillCount++;
     multiKillTimer = 3; // 3s window for multi-kill
     deadEyeCounter++;
+
+    // Multi-kill announcements
+    if (multiKillCount >= 2) {
+      var _mkMsg = multiKillCount < MULTI_KILL_MSGS.length
+        ? MULTI_KILL_MSGS[multiKillCount]
+        : '⚡ UNSTOPPABLE!';
+      if (_mkMsg && typeof HUD !== 'undefined' && HUD.showToast) {
+        HUD.showToast(_mkMsg, 2000, multiKillCount >= 4 ? '#cc4400' : '#aa2200');
+      }
+      if (typeof AudioSystem !== 'undefined' && AudioSystem.playMultiKill) {
+        AudioSystem.playMultiKill(multiKillCount);
+      }
+    }
 
     // Check killstreak
     if (KILLSTREAKS[killCount]) {
@@ -162,6 +193,12 @@ const Perks = (function () {
       adrenalineActive = true;
       adrenalineTimer = PERK_LIST.ADRENALINE.duration;
     }
+  }
+
+  function onHeadshot() {
+    if (!hasPerk('MARKSMAN')) return;
+    marksmanActive = true;
+    marksmanTimer = PERK_LIST.MARKSMAN.duration;
   }
 
   function resetStreak() { killCount = 0; }
@@ -225,6 +262,25 @@ const Perks = (function () {
     return hasPerk('MARATHON') ? PERK_LIST.MARATHON.staminaMult : 1.0;
   }
 
+  function getExplosiveDamageMult() {
+    return hasPerk('EXPLOSIVE_EXPERT') ? PERK_LIST.EXPLOSIVE_EXPERT.damageMult : 1.0;
+  }
+
+  function getGrenadeFuseSub() {
+    return hasPerk('EXPLOSIVE_EXPERT') ? PERK_LIST.EXPLOSIVE_EXPERT.fuseSub : 0;
+  }
+
+  function getMarksmanMult() {
+    return (hasPerk('MARKSMAN') && marksmanActive) ? PERK_LIST.MARKSMAN.damageMult : 1.0;
+  }
+
+  function consumeMarksman() {
+    if (!marksmanActive) return false;
+    marksmanActive = false;
+    marksmanTimer = 0;
+    return true;
+  }
+
   function getScavengerRange() {
     return hasPerk('SCAVENGER') ? PERK_LIST.SCAVENGER.range : 0;
   }
@@ -277,6 +333,12 @@ const Perks = (function () {
       if (gunshipTimer <= 0) gunshipActive = false;
     }
 
+    // Marksman window
+    if (marksmanActive) {
+      marksmanTimer -= dt;
+      if (marksmanTimer <= 0) { marksmanActive = false; }
+    }
+
     return { healThisTick, gunshipDPS };
   }
 
@@ -285,11 +347,13 @@ const Perks = (function () {
     reset, update,
     equipPerk, unequipPerk, hasPerk, getEquipped,
     activatePerk,
-    onKill, resetStreak, getAvailableStreaks, activateStreak,
+    onKill, onHeadshot, resetStreak, getAvailableStreaks, activateStreak,
     useBandage,
     isDeadEyeShot, getDeadEyeMult,
     getDamageTakenMult, getSpeedMult, getDetectionMult,
     getReloadMult, getStaminaMult,
+    getExplosiveDamageMult, getGrenadeFuseSub,
+    getMarksmanMult, consumeMarksman,
     getScavengerRange, getScavengerAmmo,
     isUAVActive, isGunshipActive
   };

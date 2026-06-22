@@ -236,7 +236,9 @@ const HUD = (() => {
   function hide() { el.hud.style.display = 'none'; }
 
   function setScore(v)   {
-    el.score.textContent   = 'SCORE: '   + v;
+    var scoreText = 'SCORE: ' + v;
+    if (window._prestigeLevel > 0) { scoreText += ' ' + '⭐'.repeat(Math.min(window._prestigeLevel, 5)); }
+    el.score.textContent   = scoreText;
     // Brief pulse-pop when score updates
     el.score.style.transition = 'none';
     el.score.style.transform = 'scale(1.18)';
@@ -690,12 +692,12 @@ const HUD = (() => {
     if (!_toastBox) {
       _toastBox = document.createElement('div');
       _toastBox.id = 'toast-stack';
-      _toastBox.style.cssText = 'position:fixed;bottom:170px;left:50%;transform:translateX(-50%);z-index:230;display:flex;flex-direction:column-reverse;gap:6px;align-items:center;pointer-events:none;max-width:80vw';
+      _toastBox.style.cssText = 'position:fixed;bottom:58px;left:50%;transform:translateX(-50%);z-index:230;display:flex;flex-direction:column-reverse;gap:4px;align-items:center;pointer-events:none;max-width:60vw';
       document.body.appendChild(_toastBox);
     }
     const t = document.createElement('div');
-    t.style.cssText = 'background:rgba(10,12,16,0.88);border:1px solid ' + (color || '#ffcc00') + ';color:' + (color || '#ffcc00') +
-      ';padding:6px 16px;border-radius:6px;font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000;box-shadow:0 2px 10px rgba(0,0,0,0.5);transition:opacity 0.5s;white-space:pre-wrap;text-align:center';
+    t.style.cssText = 'background:rgba(0,0,0,0.55);border-left:2px solid ' + (color || '#ffcc00') + ';color:' + (color || '#ffcc00') +
+      ';padding:3px 10px;border-radius:3px;font-family:"Segoe UI",system-ui,sans-serif;font-size:11px;font-weight:600;text-shadow:0 1px 2px #000;transition:opacity 0.4s;white-space:nowrap;text-align:left;max-width:55vw;overflow:hidden;text-overflow:ellipsis';
     t.textContent = text;
     _toastBox.appendChild(t);
     while (_toastBox.children.length > 4) _toastBox.removeChild(_toastBox.firstChild);
@@ -721,7 +723,15 @@ const HUD = (() => {
       var st = GameManager.getCurrentStage();
       if (st && st.name) stageName = '<p style="font-size:12px;color:#aaa;margin-top:2px">' + escapeHTML(st.name) + '</p>';
     }
-    el.waveAnn.innerHTML = '<h2>WAVE ' + escapeHTML(number) + progress + '</h2><p>' + escapeHTML(enemyCount) + ' OCCUPANTS STORMING</p>' + stageName;
+    // Active modifier chips
+    var chips = '';
+    var weatherIcons = { rain: '🌧', snow: '❄', fog: '🌫', sandstorm: '💨', clear: '' };
+    var wType = (typeof Weather !== 'undefined' && Weather.getCurrent) ? Weather.getCurrent() : 'clear';
+    if (wType && wType !== 'clear') chips += '<span style="font-size:10px;background:rgba(0,0,0,0.5);padding:1px 5px;border-radius:3px;margin:0 2px">' + (weatherIcons[wType] || '') + ' ' + wType.toUpperCase() + '</span>';
+    if (window._nvgActive) chips += '<span style="font-size:10px;background:rgba(0,204,68,0.3);padding:1px 5px;border-radius:3px;margin:0 2px">🟢 NVG</span>';
+    if (window._prestigeLevel > 0) chips += '<span style="font-size:10px;background:rgba(255,215,0,0.2);padding:1px 5px;border-radius:3px;margin:0 2px">⭐ P' + window._prestigeLevel + '</span>';
+    var chipsHtml = chips ? '<div style="margin-top:4px">' + chips + '</div>' : '';
+    el.waveAnn.innerHTML = '<h2>WAVE ' + escapeHTML(number) + progress + '</h2><p>' + escapeHTML(enemyCount) + ' OCCUPANTS STORMING</p>' + stageName + chipsHtml;
     el.waveAnn.classList.remove('visible');
     void el.waveAnn.offsetWidth;
     el.waveAnn.classList.add('visible');
@@ -1268,12 +1278,24 @@ const HUD = (() => {
     vehicleHudEl.style.display = 'block';
     const icon = VEHICLE_ICONS[vehicle.type] || '🚗';
     vhTypeEl.textContent = icon + ' ' + vehicle.type.toUpperCase().replace('_', ' ');
-    if (vehicle.flying) {
-      vhControlsEl.textContent = 'WASD · Fly | SPACE · Ascend | SHIFT · Descend | G · Exit | T · View | LMB · Fire';
-    } else if (vehicle.damage > 0) {
-      vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View | LMB · Fire Turret';
+    var isMobileCtx = typeof isMobile !== 'undefined' ? isMobile
+      : (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+    if (isMobileCtx) {
+      if (vehicle.flying) {
+        vhControlsEl.textContent = '🕹 LEFT · Fly | ⬆ Jump · Rise | ⬇ Crouch · Sink | 🚫 Exit btn | 👁 View btn | 🔫 Fire btn';
+      } else if (vehicle.damage > 0) {
+        vhControlsEl.textContent = '🕹 LEFT · Drive | 🚫 Exit btn | 👁 View btn | 🔫 Fire btn';
+      } else {
+        vhControlsEl.textContent = '🕹 LEFT · Drive | 🚫 Exit btn | 👁 View btn';
+      }
     } else {
-      vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View';
+      if (vehicle.flying) {
+        vhControlsEl.textContent = 'WASD · Fly | SPACE · Ascend | SHIFT · Descend | G · Exit | T · View | LMB · Fire';
+      } else if (vehicle.damage > 0) {
+        vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View | LMB · Fire Turret';
+      } else {
+        vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View';
+      }
     }
   }
 
@@ -2026,7 +2048,21 @@ const HUD = (() => {
     showNPCText, _updateNPCTextPositions,
     // ── Targeting Assistant ──
     updateTargetAssist,
+    // ── NVG Indicator ──
+    updateNvgIndicator,
   };
+
+  function updateNvgIndicator() {
+    var badge = document.getElementById('nvg-indicator');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'nvg-indicator';
+      badge.textContent = 'NVG';
+      badge.style.cssText = 'position:fixed;top:12px;right:120px;background:#00cc44;color:#000;font-family:monospace;font-size:13px;font-weight:bold;padding:3px 8px;border-radius:3px;z-index:9000;display:none;letter-spacing:2px;';
+      document.body.appendChild(badge);
+    }
+    badge.style.display = window._nvgActive ? 'block' : 'none';
+  }
 })();
 
 if (typeof window !== 'undefined') window.HUD = HUD;

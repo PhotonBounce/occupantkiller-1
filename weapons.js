@@ -6477,10 +6477,11 @@ const Weapons = (() => {
         swayX = Math.sin(walkSwayTime) * _playerSpeed * swayAmt;
         swayY = Math.sin(walkSwayTime * 2) * _playerSpeed * swayAmt * 0.6;
       } else {
-        // Idle micro-sway (breathing)
+        // Idle breathing sway — gentle weapon bob when standing still (Task 1)
         walkSwayTime += delta * 1.5;
-        swayX = Math.sin(walkSwayTime) * 0.0005;
-        swayY = Math.sin(walkSwayTime * 0.7) * 0.0003;
+        var _idleSwayAmt = zoomed ? 0.001 : 0.004;
+        swayX = Math.sin(walkSwayTime) * _idleSwayAmt;
+        swayY = Math.sin(walkSwayTime * 0.7) * _idleSwayAmt * 0.5;
       }
       // Scope sway (drift when zoomed, reduced when holding breath via Shift)
       if (zoomed) {
@@ -6954,7 +6955,7 @@ const Weapons = (() => {
   function _curStats() { return _stats(currentIdx); }
   function effectiveClipSize(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.clipSize   : 0; }
   function effectiveReloadTime(idx){ var s = _stats(idx == null ? currentIdx : idx); return s ? s.reloadTime : 0; }
-  function effectiveFireRate(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.fireRate   : 0; }
+  function effectiveFireRate(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.fireRate * (1 / (window._prestigeFireRate || 1)) : 0; }
   function effectiveDamage(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.damage     : 0; }
   function effectiveSpread(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.spread     : 0; }
   function isSilenced(idx)         { var s = _stats(idx == null ? currentIdx : idx); return !!(s && s.silent); }

@@ -166,15 +166,21 @@ const Environment = (function () {
     });
   }
 
+  // ── Mobile/performance detection ─────────────────────
+  var _isMobileEnv = (function() {
+    try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
+  })();
+
   // ── Init ─────────────────────────────────────────────
   function init(scene, camera) {
     _scene = scene;
     _camera = camera || _camera;
     var pp = _playerPos();
-    // Pre-seed a small population so the world feels alive immediately
-    for (var i = 0; i < 50; i++) _spawnDust(pp.x, pp.z);
-    for (var j = 0; j < 30; j++) _spawnLeaf(pp.x, pp.z);
-    for (var k = 0; k < 12; k++) _spawnScrap(pp.x, pp.z);
+    // Pre-seed: half count on mobile to avoid initial frame spike
+    var seedMult = _isMobileEnv ? 0.4 : 1.0;
+    for (var i = 0; i < Math.round(50 * seedMult); i++) _spawnDust(pp.x, pp.z);
+    for (var j = 0; j < Math.round(30 * seedMult); j++) _spawnLeaf(pp.x, pp.z);
+    for (var k = 0; k < Math.round(12 * seedMult); k++) _spawnScrap(pp.x, pp.z);
   }
 
   // ── Update ───────────────────────────────────────────
@@ -182,6 +188,9 @@ const Environment = (function () {
     if (!_scene || !_enabled) return;
     delta = Math.min(delta || 0.016, 0.1);
     var pp = _playerPos();
+
+    // On low-end, query GameManager perf level every ~3s to skip particles when lagging
+    var _isLowEnd = _isMobileEnv && (typeof GameManager !== 'undefined' && GameManager.isLowEndVFX ? GameManager.isLowEndVFX() : _isMobileEnv);
 
     // Wind direction drifts slowly
     _windDir += delta * 0.05;
@@ -215,16 +224,20 @@ const Environment = (function () {
     var totalWind = _windStrength + _gustStrength * 5.5;
     _wind.set(bx * totalWind, 0, bz * totalWind);
 
-    // Trickle-spawn ambient particles
-    if (Math.random() < 0.55) _spawnDust(pp.x, pp.z);
-    if (Math.random() < 0.32) _spawnLeaf(pp.x, pp.z);
-    if (Math.random() < 0.06) _spawnScrap(pp.x, pp.z);
+    // Trickle-spawn ambient particles — halved on mobile, skipped on LOW perf
+    if (!_isLowEnd) {
+      var _spawnRate = _isMobileEnv ? 0.5 : 1.0;
+      if (Math.random() < 0.55 * _spawnRate) _spawnDust(pp.x, pp.z);
+      if (Math.random() < 0.32 * _spawnRate) _spawnLeaf(pp.x, pp.z);
+      if (Math.random() < 0.06 * _spawnRate) _spawnScrap(pp.x, pp.z);
+    }
 
-    // Gust burst — kick up grass + extra leaves + scraps
-    if (_gustPhase === 1 && _gustStrength < 0.4 && Math.random() < 0.8) {
-      for (var bn = 0; bn < 8; bn++) _spawnTuft(pp.x, pp.z);
-      for (var bl = 0; bl < 4; bl++) _spawnLeaf(pp.x, pp.z);
-      for (var bs = 0; bs < 2; bs++) _spawnScrap(pp.x, pp.z);
+    // Gust burst — kick up grass + extra leaves + scraps (skip on LOW perf)
+    if (!_isLowEnd && _gustPhase === 1 && _gustStrength < 0.4 && Math.random() < 0.8) {
+      var _burstMult = _isMobileEnv ? 0.5 : 1.0;
+      for (var bn = 0; bn < Math.round(8 * _burstMult); bn++) _spawnTuft(pp.x, pp.z);
+      for (var bl = 0; bl < Math.round(4 * _burstMult); bl++) _spawnLeaf(pp.x, pp.z);
+      for (var bs = 0; bs < Math.round(2 * _burstMult); bs++) _spawnScrap(pp.x, pp.z);
     }
 
     // ── Update DUST ────────────────────────────────

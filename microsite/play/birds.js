@@ -60,10 +60,15 @@ window.Birds = (function () {
     }
   }
 
+  function _isMobileEnv() {
+    try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
+  }
+
   function init(scene) {
     _scene = scene;
     clear();
-    spawnFlock(14);
+    // Mobile: 5 birds (still atmospheric but lighter GPU load).
+    spawnFlock(_isMobileEnv() ? 5 : 14);
   }
 
   function clear() {
@@ -107,6 +112,10 @@ window.Birds = (function () {
 
   function update(dt) {
     if (!_scene || !_birds.length) return;
+    // Skip bird updates entirely when the performance system is at LOW tier.
+    try {
+      if (typeof GameManager !== 'undefined' && GameManager.isLowEndVFX && GameManager.isLowEndVFX()) return;
+    } catch(e) {}
     _t += dt;
     var camPos = null;
     try {

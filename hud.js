@@ -236,7 +236,9 @@ const HUD = (() => {
   function hide() { el.hud.style.display = 'none'; }
 
   function setScore(v)   {
-    el.score.textContent   = 'SCORE: '   + v;
+    var scoreText = 'SCORE: ' + v;
+    if (window._prestigeLevel > 0) { scoreText += ' ' + '⭐'.repeat(Math.min(window._prestigeLevel, 5)); }
+    el.score.textContent   = scoreText;
     // Brief pulse-pop when score updates
     el.score.style.transition = 'none';
     el.score.style.transform = 'scale(1.18)';
@@ -721,7 +723,15 @@ const HUD = (() => {
       var st = GameManager.getCurrentStage();
       if (st && st.name) stageName = '<p style="font-size:12px;color:#aaa;margin-top:2px">' + escapeHTML(st.name) + '</p>';
     }
-    el.waveAnn.innerHTML = '<h2>WAVE ' + escapeHTML(number) + progress + '</h2><p>' + escapeHTML(enemyCount) + ' OCCUPANTS STORMING</p>' + stageName;
+    // Active modifier chips
+    var chips = '';
+    var weatherIcons = { rain: '🌧', snow: '❄', fog: '🌫', sandstorm: '💨', clear: '' };
+    var wType = (typeof Weather !== 'undefined' && Weather.getCurrent) ? Weather.getCurrent() : 'clear';
+    if (wType && wType !== 'clear') chips += '<span style="font-size:10px;background:rgba(0,0,0,0.5);padding:1px 5px;border-radius:3px;margin:0 2px">' + (weatherIcons[wType] || '') + ' ' + wType.toUpperCase() + '</span>';
+    if (window._nvgActive) chips += '<span style="font-size:10px;background:rgba(0,204,68,0.3);padding:1px 5px;border-radius:3px;margin:0 2px">🟢 NVG</span>';
+    if (window._prestigeLevel > 0) chips += '<span style="font-size:10px;background:rgba(255,215,0,0.2);padding:1px 5px;border-radius:3px;margin:0 2px">⭐ P' + window._prestigeLevel + '</span>';
+    var chipsHtml = chips ? '<div style="margin-top:4px">' + chips + '</div>' : '';
+    el.waveAnn.innerHTML = '<h2>WAVE ' + escapeHTML(number) + progress + '</h2><p>' + escapeHTML(enemyCount) + ' OCCUPANTS STORMING</p>' + stageName + chipsHtml;
     el.waveAnn.classList.remove('visible');
     void el.waveAnn.offsetWidth;
     el.waveAnn.classList.add('visible');
@@ -2038,7 +2048,21 @@ const HUD = (() => {
     showNPCText, _updateNPCTextPositions,
     // ── Targeting Assistant ──
     updateTargetAssist,
+    // ── NVG Indicator ──
+    updateNvgIndicator,
   };
+
+  function updateNvgIndicator() {
+    var badge = document.getElementById('nvg-indicator');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'nvg-indicator';
+      badge.textContent = 'NVG';
+      badge.style.cssText = 'position:fixed;top:12px;right:120px;background:#00cc44;color:#000;font-family:monospace;font-size:13px;font-weight:bold;padding:3px 8px;border-radius:3px;z-index:9000;display:none;letter-spacing:2px;';
+      document.body.appendChild(badge);
+    }
+    badge.style.display = window._nvgActive ? 'block' : 'none';
+  }
 })();
 
 if (typeof window !== 'undefined') window.HUD = HUD;
