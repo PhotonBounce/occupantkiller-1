@@ -194,6 +194,15 @@ window.Bradley = (function () {
   }
 
   function spawnAt(pos) {
+    // Defensive: if init never wired the scene, resolve it from the live game
+    // scene so a mission can always spawn the Bradley.
+    if (!_scene) {
+      _scene = (typeof window !== 'undefined' && window._gameScene) ||
+               (typeof window !== 'undefined' && window.GameManager && window.GameManager.getScene && window.GameManager.getScene()) || null;
+    }
+    if (!_gameCam && typeof window !== 'undefined' && window.GameManager && window.GameManager.getCamera) {
+      _gameCam = window.GameManager.getCamera();
+    }
     if (!_scene) return null;
     if (_vehicle) try { _scene.remove(_vehicle.group); } catch (e) {}
     _towAmmo = 6; _towCool = 0; _doctrinePhase = 0; _doctrineToast = 0;

@@ -1525,8 +1525,13 @@ const GameManager = (function () {
     if (typeof Progression !== 'undefined' && Progression && typeof Progression.init === 'function') Progression.init();
     // Birds + Mortar + Premium + Lottery + Gyro
     try { if (window.Birds   && Birds.init)   Birds.init(_scene); } catch (e) {}
-    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, _controls); } catch (e) {}
-    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, _controls); } catch (e) {}
+    // NOTE: pass null for controls — there is no _controls object in this module
+    // (input is via requestPointerLock). Referencing an undeclared _controls here
+    // threw a ReferenceError that the try/catch swallowed, so Mortar.init and
+    // Bradley.init silently never ran — leaving Bradley._scene null and the
+    // Bradley IFV failing to spawn in its mission. Neither module uses controls.
+    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, null); } catch (e) {}
+    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, null); } catch (e) {}
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
