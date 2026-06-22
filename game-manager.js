@@ -1261,6 +1261,7 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.TripwireIED) TripwireIED.init(_scene, _camera);
         if (window.LootDrops) LootDrops.init(_scene);
         if (window.WaveEvents) WaveEvents.init(_scene);
         if (window.BountySystem) BountySystem.init(_scene);
@@ -3734,6 +3735,7 @@ const GameManager = (function () {
     if (window.BloodEffects) BloodEffects.clear();
     if (window.DamageNumbers) DamageNumbers.clear();
     if (window.ClaymoreMines) ClaymoreMines.clear();
+    if (window.TripwireIED) TripwireIED.clear();
     if (window.RadioSupport) RadioSupport.clear();
     if (window.CompanionRadio && CompanionRadio.clear) CompanionRadio.clear();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
@@ -7790,6 +7792,7 @@ const GameManager = (function () {
       }
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
       if (window.ClaymoreMines) { var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; ClaymoreMines.update(delta, player.position, _allEnemies); }
+      if (window.TripwireIED) { var _iedEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; TripwireIED.update(_iedEnemies, delta); }
       if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
       if (window.GasMask) GasMask.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);

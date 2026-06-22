@@ -1261,6 +1261,7 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.TripwireIED) TripwireIED.init(_scene, _camera);
         if (window.LootDrops) LootDrops.init(_scene);
         if (window.WaveEvents) WaveEvents.init(_scene);
         if (window.BountySystem) BountySystem.init(_scene);
@@ -3735,6 +3736,7 @@ const GameManager = (function () {
     if (window.DamageNumbers) DamageNumbers.clear();
     if (window.ClaymoreMines) ClaymoreMines.clear();
     if (window.RadioSupport) RadioSupport.clear();
+    if (window.CompanionRadio && CompanionRadio.clear) CompanionRadio.clear();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
     if (window.GasMask) GasMask.clear();
     if (window.MeleeKnife) MeleeKnife.clear();
@@ -4189,6 +4191,7 @@ const GameManager = (function () {
         // omit y so spawnOne() resolves terrain height itself
       });
       HUD.notifyPickup('⚠ BOSS INCOMING: ' + (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType] ? EnemyTypes.TYPES[bossType].name : 'COMMANDER'), '#ff0000');
+      if (window.CompanionRadio && CompanionRadio.onBossSpawn) CompanionRadio.onBossSpawn();
     }
 
     // ═══ Blood Moon effect on final 2 waves ═══
@@ -4987,11 +4990,13 @@ const GameManager = (function () {
     player._waveStartCount = Enemies.getAliveCount();
     // Re-announce with correct enemy count now that all spawning is complete
     HUD.announceWave(w, player._waveStartCount, stageDef.wavesPerStage);
+    if (window.CompanionRadio && CompanionRadio.onWaveStart) CompanionRadio.onWaveStart();
   }
 
   function onWaveComplete() {
     try {
     if (typeof HUD !== 'undefined' && HUD.hideBossBar) HUD.hideBossBar();
+    if (window.CompanionRadio && CompanionRadio.onWaveComplete) CompanionRadio.onWaveComplete();
     if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
     player.score += SCORE_WAVE_BONUS;
     HUD.setScore(player.score);
@@ -6477,6 +6482,7 @@ const GameManager = (function () {
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) {
         if (player.kills === 1) Feedback.radioChatter('first_blood');
         if (player.killStreak === 5 || player.killStreak === 10) Feedback.radioChatter('kill_streak');
+        if (window.CompanionRadio && CompanionRadio.onKillStreak) CompanionRadio.onKillStreak(player.killStreak);
       }
 
       // ── B30: Weapon Mastery tracking ──
@@ -6777,6 +6783,7 @@ const GameManager = (function () {
     // Low HP radio chatter
     if (player.hp > 0 && player.hp <= player.maxHp * 0.25) {
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('low_hp');
+      if (window.CompanionRadio && CompanionRadio.onPlayerLowHealth) CompanionRadio.onPlayerLowHealth();
     }
     // Player-hit audio feedback
     if (typeof AudioSystem !== 'undefined' && AudioSystem.playHit) AudioSystem.playHit();
@@ -7784,6 +7791,7 @@ const GameManager = (function () {
       }
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
       if (window.ClaymoreMines) { var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; ClaymoreMines.update(delta, player.position, _allEnemies); }
+      if (window.TripwireIED) { var _iedEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; TripwireIED.update(_iedEnemies, delta); }
       if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
       if (window.GasMask) GasMask.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);
