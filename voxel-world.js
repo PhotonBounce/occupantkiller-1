@@ -1280,6 +1280,11 @@ window.VoxelWorld = (function () {
     { id: 'CHASIV_YAR', name: 'Chasiv Yar Last Defence', desc: 'Hilltop canal city — the last major obstacle before Kramatorsk and Sloviansk', theme: 'urban', wavesPerLevel: 10, difficulty: 4.5, fogColor: 0x221111, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'TORETSK', name: 'Toretsk Mine Town', desc: 'Coal mining town in the Donbas — subterranean tunnels used for infiltration', theme: 'industrial', wavesPerLevel: 8, difficulty: 4.0, fogColor: 0x1a1a22, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'VOLCHANSK', name: 'Vovchansk Border Battle', desc: 'City on the Russian border — fought over street by street in 2024 Russian offensive', theme: 'urban', wavesPerLevel: 8, difficulty: 4.2, fogColor: 0x331111, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'MELITOPOL', name: 'Melitopol Occupation', desc: 'Zaporizhzhia oblast city seized in March 2022 — mayor kidnapped, population under Russian control', theme: 'urban', wavesPerLevel: 8, difficulty: 4.1, fogColor: 0x1a2211, fogNear: 30, fogFar: 120, spawnCandidates: [{ x: 0, z: 0 }, { x: -15, z: 15 }, { x: 15, z: 15 }, { x: 0, z: -20 }, { x: 20, z: 0 }, { x: -20, z: 0 }], spawnLookTarget: { x: 0, z: 0 }, bossType: 'BOSS_MELITOPOL' },
+    { id: 'AVDIIVKA', name: 'Avdiivka Siege', desc: 'Donetsk coke plant city — brutal siege 2023-2024, fell to Russia after months of grinding combat', theme: 'industrial', wavesPerLevel: 10, difficulty: 5.0, fogColor: 0x111111, fogNear: 25, fogFar: 100, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 }, bossType: 'BOSS_AVDIIVKA' },
+    { id: 'ZAPORIZHZHIA_CITY', name: 'Zaporizhzhia Frontline', desc: 'Large city near Europe\'s biggest nuclear plant — on the frontline since 2022', theme: 'urban', wavesPerLevel: 9, difficulty: 4.6, fogColor: 0x1a1122, fogNear: 28, fogFar: 110, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 }, bossType: 'BOSS_ZAPORIZHZHIA_CITY' },
+    { id: 'SUMY_CITY', name: 'Sumy Under Fire', desc: 'Northern city near the Russian border — repeatedly shelled by cross-border artillery', theme: 'urban', wavesPerLevel: 8, difficulty: 3.8, fogColor: 0x223322, fogNear: 32, fogFar: 130, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 }, bossType: 'BOSS_SUMY_CITY' },
+    { id: 'DONETSK_CITY', name: 'Donetsk Occupation Hub', desc: 'Capital of Donetsk oblast — under Russian-backed separatist control since 2014, now fully occupied', theme: 'urban', wavesPerLevel: 10, difficulty: 4.8, fogColor: 0x0d0d11, fogNear: 26, fogFar: 105, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 }, bossType: 'BOSS_DONETSK_CITY' },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -16603,6 +16608,644 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'volchansk_border', x: ox - 16, z: oz - 32, w: 32, d: 54, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── MELITOPOL: Occupied City ──────────────────────────────────────────────
+  // Melitopol (Мелітополь) in Zaporizhzhia oblast was seized in the first days
+  // of the 2022 invasion — the mayor was kidnapped by Russian forces. A large,
+  // ethnically Ukrainian city turned into an occupation hub for southern Ukraine.
+  function generateMelitopolCity(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Central square — 20×20 PLASTER/BRICK plaza
+    for (x = ox - 10; x <= ox + 10; x++) {
+      for (z = oz - 10; z <= oz + 10; z++) {
+        var ph = getHeight(x, z);
+        setBlock(x, ph, z, ((x + z) % 2 === 0) ? BLOCK.PLASTER : BLOCK.BRICK);
+      }
+    }
+
+    // Church — 8×8 BRICK with ROOFTILE dome, 8 high
+    bx = ox - 4; bz = oz - 26;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 7; x++) {
+      for (z = bz; z <= bz + 7; z++) {
+        var isEdgeCh = (x === bx || x === bx + 7 || z === bz || z === bz + 7);
+        for (i = 1; i <= 8; i++) {
+          if (isEdgeCh || i === 8) setBlock(x, bh + i, z, BLOCK.BRICK);
+        }
+      }
+    }
+    // Dome — 3×3 ROOFTILE cap
+    setBlock(ox - 1, bh + 9, bz + 3, BLOCK.ROOFTILE);
+    setBlock(ox,     bh + 9, bz + 3, BLOCK.ROOFTILE);
+    setBlock(ox + 1, bh + 9, bz + 3, BLOCK.ROOFTILE);
+    setBlock(ox - 1, bh + 10, bz + 3, BLOCK.ROOFTILE);
+    setBlock(ox,     bh + 10, bz + 3, BLOCK.ROOFTILE);
+    setBlock(ox + 1, bh + 10, bz + 3, BLOCK.ROOFTILE);
+    setBlock(ox,     bh + 11, bz + 3, BLOCK.ROOFTILE);
+
+    // Theater building — 16×8 PLASTER facade, 10 high, GLASS windows every 2 blocks
+    bx = ox - 8; bz = oz + 14;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 15; x++) {
+      for (z = bz; z <= bz + 7; z++) {
+        var isEdgeTh = (x === bx || x === bx + 15 || z === bz || z === bz + 7);
+        for (i = 1; i <= 10; i++) {
+          if (isEdgeTh || i === 10) setBlock(x, bh + i, z, BLOCK.PLASTER);
+        }
+      }
+    }
+    for (x = bx + 2; x <= bx + 13; x += 2) {
+      setBlock(x, bh + 3, bz, BLOCK.GLASS);
+      setBlock(x, bh + 5, bz, BLOCK.GLASS);
+      setBlock(x, bh + 7, bz, BLOCK.GLASS);
+    }
+
+    // 3 apartment blocks — 6×8, heights 8/10/12
+    var aptDefs = [[-22, -6, 8], [14, -6, 10], [-22, 16, 12]];
+    for (i = 0; i < aptDefs.length; i++) {
+      bx = ox + aptDefs[i][0]; bz = oz + aptDefs[i][1];
+      var aptH = aptDefs[i][2];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 5; x++) {
+        for (z = bz; z <= bz + 7; z++) {
+          var isEdgeApt = (x === bx || x === bx + 5 || z === bz || z === bz + 7);
+          for (var ay = 1; ay <= aptH; ay++) {
+            if (isEdgeApt || ay === aptH) setBlock(x, bh + ay, z, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+
+    // Russian checkpoint — 4×4 CONCRETE bunker with WOOD sandbags and flag pole
+    bx = ox + 16; bz = oz - 4;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 3; x++) {
+      for (z = bz; z <= bz + 3; z++) {
+        var isEdgeCk = (x === bx || x === bx + 3 || z === bz || z === bz + 3);
+        for (i = 1; i <= 3; i++) {
+          if (isEdgeCk) setBlock(x, bh + i, z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Sandbags around checkpoint
+    for (x = bx - 1; x <= bx + 4; x++) {
+      setBlock(x, bh + 1, bz - 1, BLOCK.SANDBAG);
+      setBlock(x, bh + 1, bz + 4, BLOCK.SANDBAG);
+    }
+    // Flag pole
+    for (i = 1; i <= 6; i++) setBlock(bx + 5, bh + i, bz + 1, BLOCK.METAL);
+    setBlock(bx + 6, bh + 6, bz + 1, BLOCK.LIGHT); // occupation flag
+
+    // 2 burned vehicles — METAL debris
+    var burnedPos = [[8, -18], [-14, 20]];
+    for (i = 0; i < burnedPos.length; i++) {
+      bx = ox + burnedPos[i][0]; bz = oz + burnedPos[i][1];
+      bh = getHeight(bx, bz);
+      setBlock(bx,     bh + 1, bz, BLOCK.METAL);
+      setBlock(bx + 1, bh + 1, bz, BLOCK.METAL);
+      setBlock(bx,     bh + 1, bz + 1, BLOCK.METAL);
+      setBlock(bx + 1, bh + 1, bz + 1, BLOCK.METAL);
+      setBlock(bx,     bh + 2, bz, BLOCK.RUBBLE);
+      setBlock(bx + 1, bh + 2, bz, BLOCK.RUBBLE);
+    }
+
+    // Market stalls — 8 WOOD awning structures, 2 high
+    var stallPositions = [[-8,-14],[-4,-14],[0,-14],[4,-14],[-8,-17],[-4,-17],[0,-17],[4,-17]];
+    for (i = 0; i < stallPositions.length; i++) {
+      bx = ox + stallPositions[i][0]; bz = oz + stallPositions[i][1];
+      bh = getHeight(bx, bz);
+      setBlock(bx, bh + 1, bz, BLOCK.WOOD);
+      setBlock(bx, bh + 2, bz, BLOCK.WOOD);
+      setBlock(bx + 1, bh + 2, bz, BLOCK.WOOD);
+      setBlock(bx, bh + 2, bz + 1, BLOCK.WOOD);
+    }
+
+    // Barricade wall — 1-wide BRICK wall across street with door gap (4 blocks wide gap)
+    for (x = ox - 14; x <= ox + 14; x++) {
+      if (x < ox - 2 || x > ox + 2) { // gap in center
+        bh = getHeight(x, oz - 13);
+        setBlock(x, bh + 1, oz - 13, BLOCK.BRICK);
+        setBlock(x, bh + 2, oz - 13, BLOCK.BRICK);
+      }
+    }
+
+    _buildings.push({ kind: 'melitopol_city', x: ox - 22, z: oz - 26, w: 44, d: 52, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── AVDIIVKA: Siege Ruins ─────────────────────────────────────────────────
+  // Avdiivka (Авдіївка) in Donetsk oblast endured one of the longest sieges of
+  // the war — coke plant became a fortress symbol. Russia captured it Feb 2024
+  // after months of grinding urban combat at extreme cost to both sides.
+  function generateAvdiivkaRuins(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Coke plant — 4 METAL industrial towers 14-18 high, connected by METAL walkways
+    var towerDefs = [[-14, -8, 14], [-6, -8, 16], [2, -8, 18], [10, -8, 15]];
+    for (i = 0; i < towerDefs.length; i++) {
+      bx = ox + towerDefs[i][0]; bz = oz + towerDefs[i][1];
+      var tH = towerDefs[i][2];
+      bh = getHeight(bx, bz);
+      for (var ty = 1; ty <= tH; ty++) {
+        setBlock(bx,     bh + ty, bz,     BLOCK.METAL);
+        setBlock(bx + 1, bh + ty, bz,     BLOCK.METAL);
+        setBlock(bx,     bh + ty, bz + 1, BLOCK.METAL);
+        setBlock(bx + 1, bh + ty, bz + 1, BLOCK.METAL);
+      }
+    }
+    // Walkway bridges connecting towers at height 10
+    var walkH = getHeight(ox - 13, oz - 7);
+    for (x = ox - 13; x <= ox + 11; x++) {
+      setBlock(x, walkH + 10, oz - 7, BLOCK.METAL);
+    }
+
+    // Destroyed apartment block — 10×8 with random missing blocks (Swiss cheese)
+    bx = ox - 5; bz = oz + 12;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 9; x++) {
+      for (z = bz; z <= bz + 7; z++) {
+        var isEdgeAv = (x === bx || x === bx + 9 || z === bz || z === bz + 7);
+        for (i = 1; i <= 6; i++) {
+          if (isEdgeAv || i === 6) {
+            // skip ~30% of edge blocks to simulate damage
+            var skipIt = ((x * 7 + z * 13 + i * 3) % 10 < 3);
+            if (!skipIt) setBlock(x, bh + i, z, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Interior rubble
+    setBlock(bx + 3, bh + 2, bz + 3, BLOCK.RUBBLE);
+    setBlock(bx + 5, bh + 1, bz + 4, BLOCK.RUBBLE);
+    setBlock(bx + 7, bh + 3, bz + 2, BLOCK.RUBBLE);
+
+    // Deep trench system — 2-wide, 2-deep STONE-lined trenches in Z pattern
+    for (x = ox - 18; x <= ox - 8; x++) {
+      bh = getHeight(x, oz - 20);
+      setBlock(x, bh - 1, oz - 20, BLOCK.STONE);
+      setBlock(x, bh - 1, oz - 19, BLOCK.STONE);
+    }
+    for (z = oz - 20; z <= oz - 10; z++) {
+      bh = getHeight(ox - 8, z);
+      setBlock(ox - 8, bh - 1, z, BLOCK.STONE);
+      setBlock(ox - 7, bh - 1, z, BLOCK.STONE);
+    }
+    for (x = ox - 8; x <= ox + 2; x++) {
+      bh = getHeight(x, oz - 10);
+      setBlock(x, bh - 1, oz - 10, BLOCK.STONE);
+      setBlock(x, bh - 1, oz - 9, BLOCK.STONE);
+    }
+
+    // Underground bunker entrance — 4×4 STONE hole with WOOD ladder blocks
+    bx = ox + 14; bz = oz - 18;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 3; x++) {
+      for (z = bz; z <= bz + 3; z++) {
+        var isEdgeBu = (x === bx || x === bx + 3 || z === bz || z === bz + 3);
+        if (isEdgeBu) setBlock(x, bh, z, BLOCK.STONE);
+      }
+    }
+    setBlock(bx + 1, bh - 1, bz + 1, BLOCK.LADDER);
+    setBlock(bx + 1, bh - 2, bz + 1, BLOCK.LADDER);
+    setBlock(bx + 2, bh - 1, bz + 1, BLOCK.LADDER);
+
+    // Shell craters — 5 crater depressions with STONE edges
+    var craterPos = [[-20, 5], [18, 8], [-10, 22], [22, -5], [0, -28]];
+    for (i = 0; i < craterPos.length; i++) {
+      bx = ox + craterPos[i][0]; bz = oz + craterPos[i][1];
+      bh = getHeight(bx, bz);
+      setBlock(bx, bh - 1, bz, BLOCK.DIRT);
+      setBlock(bx + 1, bh - 1, bz, BLOCK.STONE);
+      setBlock(bx - 1, bh - 1, bz, BLOCK.STONE);
+      setBlock(bx, bh - 1, bz + 1, BLOCK.STONE);
+      setBlock(bx, bh - 1, bz - 1, BLOCK.STONE);
+    }
+
+    // Rubble piles — STONE/CONCRETE clusters
+    var rubblePos = [[-16, 18], [-8, 26], [8, 20], [20, 24], [-4, -22], [14, -12], [-20, -10], [24, 10]];
+    for (i = 0; i < rubblePos.length; i++) {
+      bx = ox + rubblePos[i][0]; bz = oz + rubblePos[i][1];
+      bh = getHeight(bx, bz);
+      var rpH = (i % 3) + 2;
+      for (var ry = 1; ry <= rpH; ry++) {
+        setBlock(bx, bh + ry, bz, BLOCK.RUBBLE);
+        if (ry < rpH) setBlock(bx + 1, bh + ry, bz, BLOCK.STONE);
+        if (ry < rpH - 1) setBlock(bx, bh + ry, bz + 1, BLOCK.CONCRETE);
+      }
+    }
+
+    // Forward operating post — 6×6 METAL roof, 4 CONCRETE wall sections
+    bx = ox + 14; bz = oz + 18;
+    bh = getHeight(bx, bz);
+    // 4 corner walls
+    for (i = 1; i <= 4; i++) {
+      setBlock(bx, bh + i, bz, BLOCK.CONCRETE);
+      setBlock(bx + 5, bh + i, bz, BLOCK.CONCRETE);
+      setBlock(bx, bh + i, bz + 5, BLOCK.CONCRETE);
+      setBlock(bx + 5, bh + i, bz + 5, BLOCK.CONCRETE);
+    }
+    // Metal roof
+    for (x = bx; x <= bx + 5; x++) {
+      for (z = bz; z <= bz + 5; z++) {
+        setBlock(x, bh + 5, z, BLOCK.METAL);
+      }
+    }
+
+    _buildings.push({ kind: 'avdiivka_ruins', x: ox - 20, z: oz - 28, w: 45, d: 58, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── ZAPORIZHZHIA: Industrial Frontline ───────────────────────────────────
+  // Zaporizhzhia (Запоріжжя) is home to Europe's largest nuclear power plant —
+  // seized by Russia March 4 2022. The city itself remains under Ukrainian control
+  // but has been shelled hundreds of times. The Dnieper dam and hydroelectric
+  // station are major strategic features.
+  function generateZaporizhzhiaCity(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Dam/hydroelectric reference — 40-wide CONCRETE wall, 4 high
+    for (x = ox - 20; x <= ox + 20; x++) {
+      bh = getHeight(x, oz - 24);
+      for (i = 1; i <= 4; i++) {
+        setBlock(x, bh + i, oz - 24, BLOCK.CONCRETE);
+      }
+    }
+    // Water behind dam
+    for (x = ox - 18; x <= ox + 18; x++) {
+      bh = getHeight(x, oz - 25);
+      setBlock(x, bh, oz - 25, BLOCK.WATER);
+      setBlock(x, bh, oz - 26, BLOCK.WATER);
+    }
+
+    // Industrial district — 3 factory buildings BRICK/METAL
+    var factDefs = [[-20, 4, 12, 8, 8], [0, 4, 8, 6, 7], [14, 4, 6, 6, 6]];
+    for (i = 0; i < factDefs.length; i++) {
+      bx = ox + factDefs[i][0]; bz = oz + factDefs[i][1];
+      var fW = factDefs[i][2]; var fD = factDefs[i][3]; var fH2 = factDefs[i][4];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + fW - 1; x++) {
+        for (z = bz; z <= bz + fD - 1; z++) {
+          var isEdgeFact = (x === bx || x === bx + fW - 1 || z === bz || z === bz + fD - 1);
+          for (var fy = 1; fy <= fH2; fy++) {
+            if (isEdgeFact || fy === fH2) setBlock(x, bh + fy, z, (i % 2 === 0) ? BLOCK.BRICK : BLOCK.METAL);
+          }
+        }
+      }
+    }
+
+    // Apartment district — 6 buildings of varying height 8-14
+    var aptDefs2 = [[-24, -10, 8], [-24, 4, 10], [20, -12, 12], [20, 4, 14], [-10, 18, 10], [8, 18, 12]];
+    for (i = 0; i < aptDefs2.length; i++) {
+      bx = ox + aptDefs2[i][0]; bz = oz + aptDefs2[i][1];
+      var aH2 = aptDefs2[i][2];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 5; x++) {
+        for (z = bz; z <= bz + 7; z++) {
+          var isEdgeAp2 = (x === bx || x === bx + 5 || z === bz || z === bz + 7);
+          for (var ay2 = 1; ay2 <= aH2; ay2++) {
+            if (isEdgeAp2 || ay2 === aH2) setBlock(x, bh + ay2, z, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+
+    // Bridge structure — 6×30 CONCRETE with METAL railings
+    for (x = ox - 3; x <= ox + 3; x++) {
+      for (z = oz - 20; z <= oz - 8; z++) {
+        bh = getHeight(x, z);
+        setBlock(x, bh + 2, z, BLOCK.CONCRETE);
+      }
+    }
+    // Railings
+    for (z = oz - 20; z <= oz - 8; z++) {
+      bh = getHeight(ox - 3, z);
+      setBlock(ox - 3, bh + 3, z, BLOCK.METAL);
+      setBlock(ox + 3, bh + 3, z, BLOCK.METAL);
+    }
+
+    // Artillery position — 3×3 CONCRETE emplacement behind DIRT berm
+    bx = ox - 30; bz = oz + 10;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 2; x++) {
+      for (z = bz; z <= bz + 2; z++) {
+        setBlock(x, bh + 1, z, BLOCK.CONCRETE);
+      }
+    }
+    // DIRT berm around emplacement
+    for (x = bx - 1; x <= bx + 3; x++) {
+      setBlock(x, bh + 1, bz - 1, BLOCK.DIRT);
+      setBlock(x, bh + 1, bz + 3, BLOCK.DIRT);
+      setBlock(x, bh + 2, bz - 1, BLOCK.DIRT);
+    }
+    for (z = bz; z <= bz + 2; z++) {
+      setBlock(bx - 1, bh + 1, z, BLOCK.DIRT);
+      setBlock(bx - 1, bh + 2, z, BLOCK.DIRT);
+    }
+
+    // Fortified crossroads — 4 corner CONCRETE pillboxes
+    var pillboxPos = [[-6, -6], [6, -6], [-6, 6], [6, 6]];
+    for (i = 0; i < pillboxPos.length; i++) {
+      bx = ox + pillboxPos[i][0]; bz = oz + pillboxPos[i][1];
+      bh = getHeight(bx, bz);
+      setBlock(bx,     bh + 1, bz,     BLOCK.CONCRETE);
+      setBlock(bx + 1, bh + 1, bz,     BLOCK.CONCRETE);
+      setBlock(bx,     bh + 1, bz + 1, BLOCK.CONCRETE);
+      setBlock(bx + 1, bh + 1, bz + 1, BLOCK.CONCRETE);
+      setBlock(bx,     bh + 2, bz,     BLOCK.CONCRETE);
+      setBlock(bx + 1, bh + 2, bz,     BLOCK.CONCRETE);
+      setBlock(bx,     bh + 2, bz + 1, BLOCK.CONCRETE);
+      setBlock(bx + 1, bh + 2, bz + 1, BLOCK.CONCRETE);
+      setBlock(bx,     bh + 3, bz,     BLOCK.CONCRETE);
+      setBlock(bx + 1, bh + 3, bz,     BLOCK.CONCRETE);
+    }
+
+    _buildings.push({ kind: 'zaporizhzhia_city', x: ox - 30, z: oz - 26, w: 60, d: 54, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── SUMY: Northern Border City ────────────────────────────────────────────
+  // Sumy (Суми) in northeast Ukraine was briefly occupied in early 2022 then
+  // liberated. It sits near the Russian border and has been repeatedly shelled
+  // by cross-border artillery — a city that has lived under constant threat.
+  function generateSumyCity(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // University — 20×10 PLASTER neoclassical, 12 high, columns every 3 blocks
+    bx = ox - 10; bz = oz - 22;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 19; x++) {
+      for (z = bz; z <= bz + 9; z++) {
+        var isEdgeUni = (x === bx || x === bx + 19 || z === bz || z === bz + 9);
+        for (i = 1; i <= 12; i++) {
+          if (isEdgeUni || i === 12) setBlock(x, bh + i, z, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Columns on facade (every 3 blocks)
+    for (x = bx + 3; x <= bx + 16; x += 3) {
+      for (i = 1; i <= 10; i++) {
+        setBlock(x, bh + i, bz - 1, BLOCK.PLASTER);
+      }
+    }
+
+    // Regional hospital — 16×8 PLASTER building, 10 high
+    bx = ox + 6; bz = oz + 4;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 15; x++) {
+      for (z = bz; z <= bz + 7; z++) {
+        var isEdgeHosp = (x === bx || x === bx + 15 || z === bz || z === bz + 7);
+        for (i = 1; i <= 10; i++) {
+          if (isEdgeHosp || i === 10) setBlock(x, bh + i, z, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Red cross symbol on facade (LIGHT blocks)
+    setBlock(bx + 7, bh + 5, bz, BLOCK.LIGHT);
+    setBlock(bx + 8, bh + 4, bz, BLOCK.LIGHT);
+    setBlock(bx + 8, bh + 5, bz, BLOCK.LIGHT);
+    setBlock(bx + 8, bh + 6, bz, BLOCK.LIGHT);
+    setBlock(bx + 9, bh + 5, bz, BLOCK.LIGHT);
+
+    // Old city center — STONE SLAB cobblestone street, merchant buildings 6-8 high
+    for (x = ox - 8; x <= ox + 6; x++) {
+      bh = getHeight(x, oz);
+      setBlock(x, bh, oz, BLOCK.STONE);
+      setBlock(x, bh, oz + 1, BLOCK.STONE);
+    }
+    var merchantDefs = [[-14, 2, 6], [-8, 2, 7], [8, 2, 8]];
+    for (i = 0; i < merchantDefs.length; i++) {
+      bx = ox + merchantDefs[i][0]; bz = oz + merchantDefs[i][1];
+      var mH = merchantDefs[i][2];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 5; x++) {
+        for (z = bz; z <= bz + 4; z++) {
+          var isEdgeMer = (x === bx || x === bx + 5 || z === bz || z === bz + 4);
+          for (var my = 1; my <= mH; my++) {
+            if (isEdgeMer || my === mH) setBlock(x, bh + my, z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+
+    // River Psel crossing — 8-wide CONCRETE bridge, 20 long
+    for (x = ox - 4; x <= ox + 4; x++) {
+      for (z = oz - 14; z <= oz - 6; z++) {
+        bh = getHeight(x, z);
+        setBlock(x, bh + 2, z, BLOCK.CONCRETE);
+      }
+    }
+    // Bridge supports
+    bh = getHeight(ox - 4, oz - 14);
+    for (i = 1; i <= 2; i++) {
+      setBlock(ox - 4, bh + i, oz - 14, BLOCK.STONE);
+      setBlock(ox + 4, bh + i, oz - 14, BLOCK.STONE);
+      setBlock(ox - 4, bh + i, oz - 6, BLOCK.STONE);
+      setBlock(ox + 4, bh + i, oz - 6, BLOCK.STONE);
+    }
+
+    // Residential district — 8 small houses 4×4, height 4, BRICK
+    var houseDefs = [[-22, 14], [-16, 14], [-10, 14], [-4, 14], [-22, 22], [-16, 22], [-10, 22], [-4, 22]];
+    for (i = 0; i < houseDefs.length; i++) {
+      bx = ox + houseDefs[i][0]; bz = oz + houseDefs[i][1];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 3; x++) {
+        for (z = bz; z <= bz + 3; z++) {
+          var isEdgeH = (x === bx || x === bx + 3 || z === bz || z === bz + 3);
+          for (var hy = 1; hy <= 4; hy++) {
+            if (isEdgeH || hy === 4) setBlock(x, bh + hy, z, BLOCK.BRICK);
+          }
+        }
+      }
+      setBlock(bx + 1, bh + 4, bz + 1, BLOCK.ROOFTILE);
+      setBlock(bx + 2, bh + 4, bz + 1, BLOCK.ROOFTILE);
+    }
+
+    // Border checkpoint (north edge) — 6-wide gate, 2 guard towers 8 high
+    for (x = ox - 3; x <= ox + 3; x++) {
+      bh = getHeight(x, oz - 30);
+      setBlock(x, bh + 1, oz - 30, BLOCK.CONCRETE);
+      setBlock(x, bh + 2, oz - 30, BLOCK.CONCRETE);
+    }
+    // Gap for gate
+    bh = getHeight(ox, oz - 30);
+    setBlock(ox, bh + 1, oz - 30, BLOCK.AIR);
+    setBlock(ox, bh + 2, oz - 30, BLOCK.AIR);
+    // Guard towers
+    for (i = 1; i <= 8; i++) {
+      setBlock(ox - 4, bh + i, oz - 30, BLOCK.CONCRETE);
+      setBlock(ox + 4, bh + i, oz - 30, BLOCK.CONCRETE);
+    }
+
+    // Anti-vehicle hedgehogs — 10 METAL spike clusters
+    var hedgehogPos = [[-18, -5], [-12, -5], [-6, -5], [0, -5], [6, -5], [-18, -3], [-12, -3], [-6, -3], [0, -3], [6, -3]];
+    for (i = 0; i < hedgehogPos.length; i++) {
+      bx = ox + hedgehogPos[i][0]; bz = oz + hedgehogPos[i][1];
+      bh = getHeight(bx, bz);
+      setBlock(bx, bh + 1, bz, BLOCK.METAL);
+      setBlock(bx + 1, bh + 1, bz, BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'sumy_city', x: ox - 22, z: oz - 30, w: 44, d: 56, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── DONETSK_CITY: Occupied Capital ────────────────────────────────────────
+  // Donetsk (Донецьк) is the capital of Donetsk oblast, held by Russian-backed
+  // separatists since 2014 and now fully under Russian occupation. Home to
+  // Shakhtar Donetsk football club (Donetsk Arena), major industrial base, and
+  // a population that lived under proxy Russian rule for a decade before 2022.
+  function generateDonetskCity(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Donetsk Arena — circular CONCRETE stands, 10 high, partial GLASS roof
+    var arenaR = 14;
+    bh = getHeight(ox, oz - 10);
+    for (var angle = 0; angle < 360; angle += 4) {
+      var rad = angle * Math.PI / 180;
+      var ax = Math.round(ox + arenaR * Math.sin(rad));
+      var az = Math.round(oz - 10 + arenaR * Math.cos(rad));
+      var abh = getHeight(ax, az);
+      for (i = 1; i <= 10; i++) {
+        setBlock(ax, abh + i, az, BLOCK.CONCRETE);
+      }
+      if (angle % 20 === 0) {
+        setBlock(ax, abh + 11, az, BLOCK.GLASS);
+      }
+    }
+    // Arena field center
+    for (x = ox - 8; x <= ox + 8; x++) {
+      for (z = oz - 18; z <= oz - 2; z++) {
+        bh = getHeight(x, z);
+        if ((ox - x) * (ox - x) + (oz - 10 - z) * (oz - 10 - z) < arenaR * arenaR) {
+          setBlock(x, bh, z, BLOCK.GRASS);
+        }
+      }
+    }
+
+    // Promzona industrial zone — 5 METAL warehouses
+    var whDefs = [[-30, 14, 10, 8, 6], [-18, 14, 10, 8, 7], [-6, 14, 10, 8, 8], [6, 14, 10, 8, 6], [18, 14, 10, 8, 7]];
+    for (i = 0; i < whDefs.length; i++) {
+      bx = ox + whDefs[i][0]; bz = oz + whDefs[i][1];
+      var wW = whDefs[i][2]; var wD = whDefs[i][3]; var wH2 = whDefs[i][4];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + wW - 1; x++) {
+        for (z = bz; z <= bz + wD - 1; z++) {
+          var isEdgeWh = (x === bx || x === bx + wW - 1 || z === bz || z === bz + wD - 1);
+          for (var wy2 = 1; wy2 <= wH2; wy2++) {
+            if (isEdgeWh || wy2 === wH2) setBlock(x, bh + wy2, z, BLOCK.METAL);
+          }
+        }
+      }
+    }
+
+    // Soviet-era apartment towers — 4 towers, 14×8, heights 16-20
+    var towerApts = [[-32, -28, 16], [18, -28, 18], [-32, -8, 20], [18, -8, 16]];
+    for (i = 0; i < towerApts.length; i++) {
+      bx = ox + towerApts[i][0]; bz = oz + towerApts[i][1];
+      var taH = towerApts[i][2];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 13; x++) {
+        for (z = bz; z <= bz + 7; z++) {
+          var isEdgeTa = (x === bx || x === bx + 13 || z === bz || z === bz + 7);
+          for (var tay = 1; tay <= taH; tay++) {
+            if (isEdgeTa || tay === taH) setBlock(x, bh + tay, z, BLOCK.PLASTER);
+            // Windows on every other floor
+            if (!isEdgeTa && (tay % 3 === 2) && (x % 2 === 0)) setBlock(x, bh + tay, z, BLOCK.GLASS);
+          }
+        }
+      }
+    }
+
+    // Occupation administration building — 14×10 PLASTER neoclassical, 14 high
+    bx = ox - 7; bz = oz - 38;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 13; x++) {
+      for (z = bz; z <= bz + 9; z++) {
+        var isEdgeAdm = (x === bx || x === bx + 13 || z === bz || z === bz + 9);
+        for (i = 1; i <= 14; i++) {
+          if (isEdgeAdm || i === 14) setBlock(x, bh + i, z, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Columns on facade
+    for (x = bx + 2; x <= bx + 11; x += 3) {
+      for (i = 1; i <= 12; i++) {
+        setBlock(x, bh + i, bz - 1, BLOCK.PLASTER);
+      }
+    }
+
+    // Underground metro entrance — 8×8 CONCRETE descending shaft
+    bx = ox + 18; bz = oz - 38;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 7; x++) {
+      for (z = bz; z <= bz + 7; z++) {
+        var isEdgeMet = (x === bx || x === bx + 7 || z === bz || z === bz + 7);
+        if (isEdgeMet) setBlock(x, bh, z, BLOCK.CONCRETE);
+      }
+    }
+    // Stairs descending
+    for (i = 0; i < 4; i++) {
+      setBlock(bx + 2 + i, bh - i, bz + 3, BLOCK.STONE);
+      setBlock(bx + 2 + i, bh - i, bz + 4, BLOCK.STONE);
+    }
+
+    // DPR flag posts — 6 METAL poles with LIGHT block flags
+    var flagPos = [[-20, -26], [-10, -26], [0, -26], [10, -26], [20, -26], [30, -26]];
+    for (i = 0; i < flagPos.length; i++) {
+      bx = ox + flagPos[i][0]; bz = oz + flagPos[i][1];
+      bh = getHeight(bx, bz);
+      for (var fp = 1; fp <= 5; fp++) setBlock(bx, bh + fp, bz, BLOCK.METAL);
+      setBlock(bx + 1, bh + 5, bz, BLOCK.LIGHT);
+      setBlock(bx + 1, bh + 4, bz, BLOCK.LIGHT);
+    }
+
+    // Tank park — 4 decommissioned tank hulks
+    var tankPos = [[-26, 10], [-20, 10], [-14, 10], [-8, 10]];
+    for (i = 0; i < tankPos.length; i++) {
+      bx = ox + tankPos[i][0]; bz = oz + tankPos[i][1];
+      bh = getHeight(bx, bz);
+      // Hull
+      setBlock(bx,     bh + 1, bz, BLOCK.METAL);
+      setBlock(bx + 1, bh + 1, bz, BLOCK.METAL);
+      setBlock(bx + 2, bh + 1, bz, BLOCK.METAL);
+      setBlock(bx,     bh + 1, bz + 1, BLOCK.METAL);
+      setBlock(bx + 1, bh + 1, bz + 1, BLOCK.METAL);
+      setBlock(bx + 2, bh + 1, bz + 1, BLOCK.METAL);
+      // Turret (ROOFTILE)
+      setBlock(bx + 1, bh + 2, bz, BLOCK.ROOFTILE);
+      setBlock(bx + 1, bh + 2, bz + 1, BLOCK.ROOFTILE);
+      // Gun barrel
+      setBlock(bx - 1, bh + 2, bz, BLOCK.METAL);
+    }
+
+    // Fortified hotel — 10×6 CONCRETE tower, 18 high, GLASS windows, rooftop AA
+    bx = ox + 6; bz = oz - 30;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 9; x++) {
+      for (z = bz; z <= bz + 5; z++) {
+        var isEdgeHot = (x === bx || x === bx + 9 || z === bz || z === bz + 5);
+        for (i = 1; i <= 18; i++) {
+          if (isEdgeHot || i === 18) setBlock(x, bh + i, z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // GLASS windows on hotel
+    for (i = 3; i <= 17; i += 3) {
+      for (x = bx + 2; x <= bx + 7; x += 2) {
+        setBlock(x, bh + i, bz, BLOCK.GLASS);
+        setBlock(x, bh + i, bz + 5, BLOCK.GLASS);
+      }
+    }
+    // Rooftop AA position
+    setBlock(bx + 4, bh + 19, bz + 2, BLOCK.METAL);
+    setBlock(bx + 5, bh + 19, bz + 2, BLOCK.METAL);
+    setBlock(bx + 4, bh + 19, bz + 3, BLOCK.METAL);
+    setBlock(bx + 5, bh + 20, bz + 2, BLOCK.CONCRETE);
+
+    _buildings.push({ kind: 'donetsk_city', x: ox - 32, z: oz - 38, w: 64, d: 76, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
+  }
+
   // ── SLAVUTYCH: Chernobyl Memorial ────────────────────────────────────────
   // Slavutych was built in 1986 to house Chernobyl workers after Pripyat evacuation.
   // The reactor sarcophagus is visible from the city; exclusion zone starts at the edge.
@@ -20111,6 +20754,79 @@ window.VoxelWorld = (function () {
       generateDroneNest(44, 42); generateDroneNest(-44, -42);
       generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -30);
       generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'MELITOPOL') {
+      generateMelitopolCity(0, 0);
+      generateUkrainianApartment(-30, -28, 8); generateUkrainianApartment(26, -28, 6);
+      generateUkrainianApartment(-30, 18, 6); generateUkrainianApartment(26, 20, 8);
+      generateBurningRuin(-18, 30); generateBurningRuin(16, -35);
+      generateWreckedTank(-20, -30); generateWreckedAPC(18, 22); generateWreckedConvoy(-28, 20);
+      generateCraters(10);
+      generateBunker(-26, -26); generateBunker(26, 26); generateBunker(0, -40);
+      generateMortarPit(-30, -10); generateMortarPit(28, 10);
+      generateTrenchNetwork(-16, 20); generateTrenchNetwork(16, -20);
+      generateSniperNest(-38, -38); generateSniperNest(36, -38);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-36, 28); generateAntiAirPosition(34, -28);
+      generateCheckpoint(0, -44, false); generateCheckpoint(-40, 0, true);
+    } else if (level.id === 'AVDIIVKA') {
+      generateAvdiivkaRuins(0, 0);
+      generateUkrainianApartment(-32, -30, 6); generateUkrainianApartment(28, -30, 5);
+      generateIndustrialComplex(-36, 12); generateIndustrialComplex(34, -10);
+      generateBurningRuin(-22, 32); generateBurningRuin(20, -36);
+      generateBurningRuin(-36, -14); generateBurningRuin(32, 16);
+      generateWreckedTank(-24, -32); generateWreckedAPC(22, 24); generateWreckedConvoy(-32, 22);
+      generateCraters(18);
+      generateBunker(-28, -30); generateBunker(28, 30); generateBunker(-30, 16); generateBunker(30, -16);
+      generateMortarPit(-34, -14); generateMortarPit(32, 14);
+      generateTrenchNetwork(-22, 24); generateTrenchNetwork(22, -24); generateTrenchNetwork(0, 32);
+      generateSniperNest(-42, -42); generateSniperNest(40, -42);
+      generateDroneNest(46, 44); generateDroneNest(-46, -44); generateDroneNest(0, 48);
+      generateAntiAirPosition(-42, 32); generateAntiAirPosition(40, -34);
+      generateCheckpoint(0, -52, false); generateCheckpoint(-50, 0, true);
+    } else if (level.id === 'ZAPORIZHZHIA_CITY') {
+      generateZaporizhzhiaCity(0, 0);
+      generateUkrainianApartment(-34, -30, 9); generateUkrainianApartment(28, -30, 7);
+      generateUkrainianApartment(-34, 20, 7); generateUkrainianApartment(28, 22, 9);
+      generateIndustrialComplex(-38, 10); generateIndustrialComplex(36, -10);
+      generateBurningRuin(-20, 32); generateBurningRuin(18, -36);
+      generateWreckedTank(-22, -32); generateWreckedAPC(20, 24); generateWreckedConvoy(-30, 22);
+      generateCraters(14);
+      generateBunker(-28, -30); generateBunker(28, 30); generateBunker(0, -44);
+      generateMortarPit(-32, -12); generateMortarPit(30, 12);
+      generateTrenchNetwork(-20, 22); generateTrenchNetwork(20, -22);
+      generateSniperNest(-40, -40); generateSniperNest(38, -40);
+      generateDroneNest(44, 42); generateDroneNest(-44, -42);
+      generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -30);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-46, 0, true);
+    } else if (level.id === 'SUMY_CITY') {
+      generateSumyCity(0, 0);
+      generateUkrainianApartment(-28, -26, 7); generateUkrainianApartment(24, -26, 6);
+      generateUkrainianApartment(-28, 16, 6); generateUkrainianApartment(24, 18, 7);
+      generateBurningRuin(-16, 28); generateBurningRuin(14, -32);
+      generateWreckedTank(-20, -28); generateWreckedAPC(16, 20); generateWreckedConvoy(-26, 18);
+      generateCraters(10);
+      generateBunker(-24, -24); generateBunker(24, 24); generateBunker(0, -38);
+      generateMortarPit(-28, -10); generateMortarPit(26, 10);
+      generateTrenchNetwork(-14, 18); generateTrenchNetwork(14, -18);
+      generateSniperNest(-36, -36); generateSniperNest(34, -36);
+      generateDroneNest(40, 38); generateDroneNest(-40, -38);
+      generateAntiAirPosition(-34, 26); generateAntiAirPosition(32, -26);
+      generateCheckpoint(0, -42, false); generateCheckpoint(-38, 0, true);
+    } else if (level.id === 'DONETSK_CITY') {
+      generateDonetskCity(0, 0);
+      generateUkrainianApartment(-34, -30, 10); generateUkrainianApartment(30, -30, 8);
+      generateIndustrialComplex(-38, 14); generateIndustrialComplex(36, -12);
+      generateBurningRuin(-22, 34); generateBurningRuin(20, -38);
+      generateBurningRuin(-38, -16); generateBurningRuin(34, 18);
+      generateWreckedTank(-24, -34); generateWreckedAPC(22, 26); generateWreckedConvoy(-34, 24);
+      generateCraters(16);
+      generateBunker(-30, -32); generateBunker(30, 32); generateBunker(-32, 18); generateBunker(32, -18);
+      generateMortarPit(-36, -14); generateMortarPit(34, 14);
+      generateTrenchNetwork(-22, 24); generateTrenchNetwork(22, -24);
+      generateSniperNest(-44, -44); generateSniperNest(42, -44);
+      generateDroneNest(48, 46); generateDroneNest(-48, -46);
+      generateAntiAirPosition(-44, 34); generateAntiAirPosition(42, -34);
+      generateCheckpoint(0, -52, false); generateCheckpoint(-50, 0, true);
     }
 
     // ── PROC_CITIES: distinct content for each procedural city ─────────────

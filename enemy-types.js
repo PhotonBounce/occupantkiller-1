@@ -541,6 +541,61 @@ const EnemyTypes = (function () {
       rageThreshold: 0.35, rageDamageMult: 1.8
     },
 
+    BOSS_MELITOPOL: {
+      id: 'BOSS_MELITOPOL', name: 'The Occupier', tier: 3,
+      hp: 1300, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x1a2211, scale: 1.85, xpReward: 570,
+      abilities: ['fortify', 'summon_reinforcements', 'mortar_barrage'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'AMMO'],
+      spawnMessage: 'THE OCCUPIER TIGHTENS HIS GRIP ON MELITOPOL — BREAK HIS CONTROL!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+
+    BOSS_AVDIIVKA: {
+      id: 'BOSS_AVDIIVKA', name: 'Coke Plant Commander', tier: 5,
+      hp: 1800, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x111111, scale: 2.0, xpReward: 750,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'rage_mode', 'drone_swarm', 'tunnel_ambush'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'THE COKE PLANT COMMANDER EMERGES FROM THE INDUSTRIAL FORTRESS — DESTROY HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.9
+    },
+
+    BOSS_ZAPORIZHZHIA_CITY: {
+      id: 'BOSS_ZAPORIZHZHIA_CITY', name: 'Nuclear Zone Marshal', tier: 4,
+      hp: 1500, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x1a1122, scale: 1.92, xpReward: 650,
+      abilities: ['airstrike', 'drone_swarm', 'summon_reinforcements', 'fortify'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'THE NUCLEAR ZONE MARSHAL THREATENS THE DAM AND PLANT — STOP HIM NOW!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+
+    BOSS_SUMY_CITY: {
+      id: 'BOSS_SUMY_CITY', name: 'Border Invader', tier: 3,
+      hp: 1250, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x223322, scale: 1.82, xpReward: 545,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'AMMO'],
+      spawnMessage: 'THE BORDER INVADER SHELLS SUMY FROM ACROSS THE LINE — ELIMINATE HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+
+    BOSS_DONETSK_CITY: {
+      id: 'BOSS_DONETSK_CITY', name: 'DPR Commander', tier: 5,
+      hp: 2000, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x0d0d11, scale: 2.05, xpReward: 820,
+      abilities: ['airstrike', 'mortar_barrage', 'summon_reinforcements', 'rage_mode', 'drone_swarm', 'fortify'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'THE DPR COMMANDER COMMANDS THE OCCUPIED CAPITAL — TAKE HIM DOWN!',
+      behavior: 'boss',
+      rageThreshold: 0.25, rageDamageMult: 2.0
+    },
+
     // Feature 17: Suicide Bomber
     BOMBER: {
       id: 'BOMBER', name: 'Suicide Bomber', tier: 2,
@@ -1478,6 +1533,11 @@ const EnemyTypes = (function () {
     CHASIV_YAR:           'BOSS_CHASIV_YAR',
     TORETSK:              'BOSS_TORETSK',
     VOLCHANSK:            'BOSS_VOLCHANSK',
+    MELITOPOL:            'BOSS_MELITOPOL',
+    AVDIIVKA:             'BOSS_AVDIIVKA',
+    ZAPORIZHZHIA_CITY:    'BOSS_ZAPORIZHZHIA_CITY',
+    SUMY_CITY:            'BOSS_SUMY_CITY',
+    DONETSK_CITY:         'BOSS_DONETSK_CITY',
   };
 
   /**
