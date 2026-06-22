@@ -121,6 +121,7 @@ window.SupplyCrate = (function() {
       HUD.notifyPickup(crate.type.icon + ' ' + crate.type.label + ' COLLECTED!', '#ffdd44');
     }
     if (typeof NightVision !== 'undefined') NightVision.recharge(25);
+    if (window.ClaymoreMines) ClaymoreMines.setCount(Math.min(ClaymoreMines.getCount() + 1, 5));
   }
 
   function update(delta, playerPos, playerRef) {

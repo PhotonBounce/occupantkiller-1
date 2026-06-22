@@ -1260,6 +1260,24 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.MeleeKnife) MeleeKnife.init(_scene, _camera);
+        if (window.RadioSupport) RadioSupport.init(_scene, function(pos, radius, callback) {
+          var enemies = (typeof Enemies !== 'undefined' && Enemies.getAll) ? Enemies.getAll() : [];
+          for (var _rsi = 0; _rsi < enemies.length; _rsi++) {
+            var _rse = enemies[_rsi];
+            if (!_rse || _rse.hp <= 0 || !_rse.alive || !_rse.mesh) continue;
+            var _rsdx = _rse.mesh.position.x - pos.x;
+            var _rsdz = _rse.mesh.position.z - pos.z;
+            if (Math.sqrt(_rsdx*_rsdx + _rsdz*_rsdz) < radius) {
+              if (typeof Enemies !== 'undefined' && Enemies.damage) Enemies.damage(_rse, 9999);
+              player.kills++;
+            }
+          }
+          if (callback) callback();
+        });
+        if (window.ClaymoreMines) ClaymoreMines.init(_scene, function(pos, isPlayer) {
+          if (isPlayer) { _takeDamage(45); }
+        });
         if (typeof ArmorSystem !== 'undefined') ArmorSystem.init(_scene);
         if (typeof HazardZones !== 'undefined') HazardZones.init(_scene);
         if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
@@ -1920,6 +1938,16 @@ const GameManager = (function () {
           }
         }
 
+        // C key — place claymore mine
+        if (e.key === 'c' || e.key === 'C') {
+          if (window.ClaymoreMines && ClaymoreMines.getCount() > 0) {
+            ClaymoreMines.placeMine(player.position.clone(), CameraSystem.getForwardDir ? CameraSystem.getForwardDir() : new THREE.Vector3(0, 0, -1));
+            HUD.showToast('Claymore placed');
+          } else if (window.ClaymoreMines) {
+            HUD.showToast('No claymores!');
+          }
+        }
+
         // Toggle vehicle camera view (first person / third person)
         if (e.code === 'KeyT' && VehicleSystem.isInVehicle()) {
           VehicleSystem.toggleVehicleView();
@@ -2354,6 +2382,7 @@ const GameManager = (function () {
           if (!_atkPickedUp) Weapons.switchNext();
         }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
+        if (e.code === 'KeyR' && !e.shiftKey && !e.ctrlKey && !keys['KeyM'] && window.RadioSupport) { RadioSupport.openMenu(); }
 
         // Build mode: template selection
         if (gameState === STATE.BUILD_MODE) {
@@ -3290,6 +3319,8 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.ClaymoreMines) ClaymoreMines.reset();
+    if (window.RadioSupport) RadioSupport.reset();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.reset();
     if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
     window._killstreakTimeScale = 1.0;
@@ -3590,6 +3621,8 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.ClaymoreMines) ClaymoreMines.clear();
+    if (window.RadioSupport) RadioSupport.clear();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
     window.VoxelWorld.generateLevel(stageIndex);
 
@@ -5970,6 +6003,7 @@ const GameManager = (function () {
         try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
       }
       player.kills++;
+      if (window.RadioSupport) RadioSupport.onKill();
       if (typeof ArmorSystem !== 'undefined' && enemy && enemy.mesh) ArmorSystem.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z);
       if (typeof KillStreak !== 'undefined') KillStreak.onKill();
       player.waveKills++;
@@ -7542,11 +7576,13 @@ const GameManager = (function () {
         CompanionDrone.update(delta, player.position, []);
       }
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
+      if (window.ClaymoreMines) { var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; ClaymoreMines.update(delta, player.position, _allEnemies); }
       if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);
       if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
       if (typeof HazardZones !== 'undefined') HazardZones.update(delta, player.position, player);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
+      if (window.MeleeKnife) MeleeKnife.update(delta);
       // Check if any enemy stepped on a landmine
       if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
         var _mineEnemies = Enemies.getAll();
