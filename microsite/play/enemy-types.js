@@ -661,6 +661,11 @@ const EnemyTypes = (function () {
     BOSS_MURMANSK:         { type: 'BOSS_MURMANSK',         hp: 1800, speed: 1.5, damage: 28, fireRate: 0.75, tier: 4, name: 'Admiral Moiseev',      color: 0x0a1a3a, scale: 2.1, reward: 3800 },
     BOSS_VORONEZH:         { type: 'BOSS_VORONEZH',         hp: 1650, speed: 1.6, damage: 25, fireRate: 0.8,  tier: 4, name: 'Col. Prigozhin-2',    color: 0x2a1a0a, scale: 2.0, reward: 3500 },
     BOSS_YEYSK:            { type: 'BOSS_YEYSK',            hp: 2400, speed: 1.3, damage: 35, fireRate: 0.6,  tier: 5, name: 'General Gerasimov',   color: 0x0a0a1a, scale: 2.5, reward: 5000 },
+    BOSS_MELITOPOL_2:      { type: 'BOSS_MELITOPOL_2',      hp: 1900, speed: 1.6, damage: 28, fireRate: 0.75, tier: 4, name: 'Col. Saldatenko',      color: 0x2a1a00, scale: 2.0, reward: 3900 },
+    BOSS_TOKMAK:           { type: 'BOSS_TOKMAK',           hp: 1700, speed: 1.7, damage: 25, fireRate: 0.8,  tier: 4, name: 'Maj. Kovtun',          color: 0x1a1500, scale: 1.9, reward: 3600 },
+    BOSS_ARMYANSK:         { type: 'BOSS_ARMYANSK',         hp: 1600, speed: 1.5, damage: 23, fireRate: 0.85, tier: 3, name: 'Gen. Mizintsev',       color: 0x001a1a, scale: 1.9, reward: 3300 },
+    BOSS_IZIUM:            { type: 'BOSS_IZIUM',            hp: 1750, speed: 1.6, damage: 26, fireRate: 0.78, tier: 4, name: 'Col. Korolkov',        color: 0x1a1200, scale: 2.0, reward: 3700 },
+    BOSS_ALCHEVSK:         { type: 'BOSS_ALCHEVSK',         hp: 2500, speed: 1.3, damage: 38, fireRate: 0.6,  tier: 5, name: 'Gen. Lapin "Steel"',   color: 0x1a0a00, scale: 2.6, reward: 5500 },
 
     // Feature 17: Suicide Bomber
     BOMBER: {
@@ -1619,6 +1624,11 @@ const EnemyTypes = (function () {
     MURMANSK:             'BOSS_MURMANSK',
     VORONEZH:             'BOSS_VORONEZH',
     YEYSK:                'BOSS_YEYSK',
+    MELITOPOL_2:          'BOSS_MELITOPOL_2',
+    TOKMAK:               'BOSS_TOKMAK',
+    ARMYANSK:             'BOSS_ARMYANSK',
+    IZIUM:                'BOSS_IZIUM',
+    ALCHEVSK:             'BOSS_ALCHEVSK',
   };
 
   /**

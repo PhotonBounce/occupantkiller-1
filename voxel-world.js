@@ -1300,6 +1300,11 @@ window.VoxelWorld = (function () {
     { id: 'MURMANSK',           name: 'MURMANSK',         wavesPerLevel: 9,  difficulty: 5.0, fogColor: 0x001133, bossType: 'BOSS_MURMANSK' },
     { id: 'VORONEZH',           name: 'VORONEZH',         wavesPerLevel: 9,  difficulty: 4.9, fogColor: 0x1a0a00, bossType: 'BOSS_VORONEZH' },
     { id: 'YEYSK',              name: 'YEYSK',            wavesPerLevel: 10, difficulty: 5.5, fogColor: 0x001122, bossType: 'BOSS_YEYSK' },
+    { id: 'MELITOPOL_2',       name: 'MELITOPOL II',     wavesPerLevel: 9,  difficulty: 5.2, fogColor: 0x2a1a00, bossType: 'BOSS_MELITOPOL_2' },
+    { id: 'TOKMAK',            name: 'TOKMAK RAIL HUB',  wavesPerLevel: 9,  difficulty: 5.1, fogColor: 0x1a1500, bossType: 'BOSS_TOKMAK' },
+    { id: 'ARMYANSK',          name: 'ARMYANSK GATE',    wavesPerLevel: 8,  difficulty: 4.8, fogColor: 0x001a1a, bossType: 'BOSS_ARMYANSK' },
+    { id: 'IZIUM',             name: 'IZIUM LIBERATION', wavesPerLevel: 9,  difficulty: 4.9, fogColor: 0x1a1200, bossType: 'BOSS_IZIUM' },
+    { id: 'ALCHEVSK',          name: 'ALCHEVSK STEELWORKS', wavesPerLevel: 10, difficulty: 5.6, fogColor: 0x1a0a00, bossType: 'BOSS_ALCHEVSK' },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -18852,6 +18857,455 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'yeysk', x: ox - 25, z: oz - 15, w: 50, d: 40, baseY: h, floorH: 6, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── MELITOPOL_2: Second Assault on Occupied City ─────────────────────────
+  function generateMelitopol2(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // 8 apartment blocks in a 4×2 grid formation, each 8×5×10
+    var aptPositions = [[-18, -16], [-8, -16], [2, -16], [12, -16],
+                        [-18, 8],   [-8, 8],   [2, 8],   [12, 8]];
+    for (i = 0; i < aptPositions.length; i++) {
+      bx = ox + aptPositions[i][0]; bz = oz + aptPositions[i][1];
+      bh = getHeight(bx, bz);
+      for (x = bx; x < bx + 8; x++) {
+        for (z = bz; z < bz + 5; z++) {
+          for (var ay = 1; ay <= 10; ay++) {
+            var isEdge = (x === bx || x === bx + 7 || z === bz || z === bz + 4);
+            if (isEdge) setBlock(x, bh + ay, z, ay % 3 === 0 ? BLOCK.GLASS : BLOCK.CONCRETE);
+          }
+        }
+      }
+      // Roof
+      for (x = bx; x < bx + 8; x++) {
+        for (z = bz; z < bz + 5; z++) setBlock(x, bh + 11, z, BLOCK.ROOFTILE);
+      }
+    }
+
+    // Central plaza: bombed fountain — broken concrete ring 6-wide, debris
+    var fring = 4;
+    for (var angle = 0; angle < 628; angle++) {
+      var fx = Math.round(Math.cos(angle * 0.01) * fring);
+      var fz = Math.round(Math.sin(angle * 0.01) * fring);
+      bh = getHeight(ox + fx, oz + fz);
+      setBlock(ox + fx, bh, oz + fz, BLOCK.CONCRETE);
+      setBlock(ox + fx, bh + 1, oz + fz, BLOCK.CONCRETE);
+    }
+    // Debris scatter around fountain
+    var debrisOff = [[-2, 0], [2, 1], [0, -2], [-3, 2], [3, -1], [1, 3], [-1, -3]];
+    for (i = 0; i < debrisOff.length; i++) {
+      bh = getHeight(ox + debrisOff[i][0], oz + debrisOff[i][1]);
+      setBlock(ox + debrisOff[i][0], bh, oz + debrisOff[i][1], BLOCK.RUBBLE);
+      setBlock(ox + debrisOff[i][0], bh + 1, oz + debrisOff[i][1], BLOCK.RUBBLE);
+    }
+
+    // Vehicle checkpoint: METAL barrier walls
+    for (x = ox - 22; x <= ox + 22; x++) {
+      bh = getHeight(x, oz + 22);
+      setBlock(x, bh, oz + 22, BLOCK.METAL);
+      setBlock(x, bh + 1, oz + 22, BLOCK.METAL);
+    }
+    // Gap for road opening
+    for (x = ox - 2; x <= ox + 2; x++) {
+      bh = getHeight(x, oz + 22);
+      setBlock(x, bh, oz + 22, BLOCK.AIR);
+      setBlock(x, bh + 1, oz + 22, BLOCK.AIR);
+    }
+
+    // CONCRETE guard towers at checkpoint corners
+    var towerPos = [[-22, 22], [22, 22]];
+    for (i = 0; i < towerPos.length; i++) {
+      bx = ox + towerPos[i][0]; bz = oz + towerPos[i][1];
+      bh = getHeight(bx, bz);
+      for (var ty = 1; ty <= 6; ty++) {
+        setBlock(bx, bh + ty, bz, BLOCK.CONCRETE);
+        setBlock(bx + 1, bh + ty, bz, BLOCK.CONCRETE);
+        setBlock(bx, bh + ty, bz + 1, BLOCK.CONCRETE);
+        setBlock(bx + 1, bh + ty, bz + 1, BLOCK.CONCRETE);
+      }
+      // Watchtop
+      for (x = bx - 1; x <= bx + 2; x++) {
+        for (z = bz - 1; z <= bz + 2; z++) setBlock(x, bh + 7, z, BLOCK.CONCRETE);
+      }
+    }
+
+    // GRAD rocket launcher position: 4-wheeled METAL platform + thin barrel rockets
+    bx = ox - 20; bz = oz - 28;
+    bh = getHeight(bx, bz);
+    // Platform base
+    for (x = bx; x <= bx + 6; x++) {
+      for (z = bz; z <= bz + 4; z++) setBlock(x, bh + 1, z, BLOCK.METAL);
+    }
+    // Wheels (4 corners)
+    setBlock(bx, bh, bz, BLOCK.METAL); setBlock(bx + 6, bh, bz, BLOCK.METAL);
+    setBlock(bx, bh, bz + 4, BLOCK.METAL); setBlock(bx + 6, bh, bz + 4, BLOCK.METAL);
+    // Rocket barrels (8 thin barrels angled up)
+    for (i = 0; i < 8; i++) {
+      var rrx = bx + i;
+      setBlock(rrx, bh + 2, bz + 2, BLOCK.METAL);
+      setBlock(rrx, bh + 3, bz + 1, BLOCK.METAL);
+      setBlock(rrx, bh + 4, bz,     BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'melitopol2', x: ox - 22, z: oz - 30, w: 50, d: 60, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── TOKMAK: Key Rail Hub in Occupied Zaporizhzhia ────────────────────────
+  function generateTokmak(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Railway station hall: CONCRETE 20×10×8
+    bx = ox - 10; bz = oz - 5;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 20; x++) {
+      for (z = bz; z <= bz + 10; z++) {
+        var isWall = (x === bx || x === bx + 20 || z === bz || z === bz + 10);
+        for (var shy = 1; shy <= 8; shy++) {
+          if (isWall) setBlock(x, bh + shy, z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Arched GLASS roof panels
+    for (x = bx + 1; x < bx + 20; x++) {
+      for (z = bz + 1; z < bz + 10; z++) {
+        setBlock(x, bh + 8, z, BLOCK.GLASS);
+      }
+    }
+    // Floor
+    for (x = bx; x <= bx + 20; x++) {
+      for (z = bz; z <= bz + 10; z++) setBlock(x, bh, z, BLOCK.CONCRETE);
+    }
+
+    // 6 parallel rail tracks
+    for (i = 0; i < 6; i++) {
+      var tz = oz + 14 + i * 4;
+      for (x = ox - 30; x <= ox + 30; x++) {
+        bh = getHeight(x, tz);
+        setBlock(x, bh, tz, BLOCK.METAL);     // left rail
+        setBlock(x, bh, tz + 1, BLOCK.STONE); // stone tie
+        setBlock(x, bh, tz + 2, BLOCK.METAL); // right rail
+      }
+    }
+
+    // Ammunition train: 8 METAL box cars on first track
+    var trainZ = oz + 14;
+    for (i = 0; i < 8; i++) {
+      bx = ox - 28 + i * 7; bz = trainZ;
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 5; x++) {
+        for (z = bz; z <= bz + 2; z++) {
+          for (var cary = 1; cary <= 4; cary++) setBlock(x, bh + cary, z, BLOCK.METAL);
+        }
+      }
+      // Car roof
+      for (x = bx; x <= bx + 5; x++) setBlock(x, bh + 5, bz + 1, BLOCK.METAL);
+    }
+
+    // Platform awnings: CONCRETE awning on METAL poles
+    var awningPos = [[-25, 6], [0, 6], [20, 6]];
+    for (i = 0; i < awningPos.length; i++) {
+      bx = ox + awningPos[i][0]; bz = oz + awningPos[i][1];
+      bh = getHeight(bx, bz);
+      // Poles
+      setBlock(bx, bh + 1, bz, BLOCK.METAL); setBlock(bx, bh + 2, bz, BLOCK.METAL);
+      setBlock(bx, bh + 3, bz, BLOCK.METAL);
+      setBlock(bx + 6, bh + 1, bz, BLOCK.METAL); setBlock(bx + 6, bh + 2, bz, BLOCK.METAL);
+      setBlock(bx + 6, bh + 3, bz, BLOCK.METAL);
+      // Awning
+      for (x = bx; x <= bx + 6; x++) {
+        setBlock(x, bh + 4, bz, BLOCK.CONCRETE);
+        setBlock(x, bh + 4, bz + 1, BLOCK.CONCRETE);
+      }
+    }
+
+    // AA gun emplacement at station ends
+    var aaPos = [[-28, -6], [22, -6]];
+    for (i = 0; i < aaPos.length; i++) {
+      bx = ox + aaPos[i][0]; bz = oz + aaPos[i][1];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 3; x++) {
+        for (z = bz; z <= bz + 3; z++) {
+          for (var aay = 1; aay <= 2; aay++) setBlock(x, bh + aay, z, BLOCK.CONCRETE);
+        }
+      }
+      // Gun barrel
+      setBlock(bx - 2, bh + 3, bz + 1, BLOCK.METAL);
+      setBlock(bx - 1, bh + 3, bz + 1, BLOCK.METAL);
+      setBlock(bx,     bh + 3, bz + 1, BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'tokmak', x: ox - 30, z: oz - 5, w: 60, d: 45, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── ARMYANSK: Northern Crimea Gateway ────────────────────────────────────
+  function generateArmyansk(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Large CONCRETE arch gateway
+    var archW = 12;
+    bh = getHeight(ox - archW / 2, oz);
+    // Two pillars
+    for (var ahy = 1; ahy <= 10; ahy++) {
+      setBlock(ox - 6, bh + ahy, oz, BLOCK.CONCRETE);
+      setBlock(ox - 5, bh + ahy, oz, BLOCK.CONCRETE);
+      setBlock(ox + 5, bh + ahy, oz, BLOCK.CONCRETE);
+      setBlock(ox + 6, bh + ahy, oz, BLOCK.CONCRETE);
+    }
+    // Arch crossbeam
+    for (x = ox - 6; x <= ox + 6; x++) {
+      setBlock(x, bh + 10, oz, BLOCK.CONCRETE);
+      setBlock(x, bh + 11, oz, BLOCK.CONCRETE);
+    }
+
+    // METAL boom barriers extending from arch pillars
+    for (x = ox + 6; x <= ox + 16; x++) {
+      bh = getHeight(x, oz);
+      setBlock(x, bh + 4, oz, BLOCK.METAL);
+    }
+    for (x = ox - 16; x <= ox - 6; x++) {
+      bh = getHeight(x, oz);
+      setBlock(x, bh + 4, oz, BLOCK.METAL);
+    }
+
+    // Customs warehouse: 16×8×6 METAL building
+    bx = ox + 20; bz = oz - 4;
+    bh = getHeight(bx, bz);
+    for (x = bx; x <= bx + 16; x++) {
+      for (z = bz; z <= bz + 8; z++) {
+        var isEdgeA = (x === bx || x === bx + 16 || z === bz || z === bz + 8);
+        for (var why = 1; why <= 6; why++) {
+          if (isEdgeA) setBlock(x, bh + why, z, BLOCK.METAL);
+        }
+      }
+    }
+    // Roof
+    for (x = bx; x <= bx + 16; x++) {
+      for (z = bz; z <= bz + 8; z++) setBlock(x, bh + 7, z, BLOCK.METAL);
+    }
+
+    // Artillery staging: CONCRETE platforms with METAL tube barrels
+    var artilPos = [[-20, -16], [-10, -16], [0, -16]];
+    for (i = 0; i < artilPos.length; i++) {
+      bx = ox + artilPos[i][0]; bz = oz + artilPos[i][1];
+      bh = getHeight(bx, bz);
+      // Platform
+      for (x = bx; x <= bx + 4; x++) {
+        for (z = bz; z <= bz + 4; z++) setBlock(x, bh + 1, z, BLOCK.CONCRETE);
+      }
+      // Barrel (tube extending forward)
+      for (z = bz - 4; z <= bz - 1; z++) setBlock(bx + 2, bh + 2, z, BLOCK.METAL);
+    }
+
+    // Minefield perimeter: small METAL marker posts every 4 blocks
+    for (x = ox - 28; x <= ox + 28; x += 4) {
+      bh = getHeight(x, oz - 24);
+      setBlock(x, bh, oz - 24, BLOCK.METAL);
+      setBlock(x, bh + 1, oz - 24, BLOCK.METAL);
+    }
+    for (z = oz - 24; z <= oz + 24; z += 4) {
+      bh = getHeight(ox - 28, z);
+      setBlock(ox - 28, bh, z, BLOCK.METAL);
+      setBlock(ox - 28, bh + 1, z, BLOCK.METAL);
+      bh = getHeight(ox + 28, z);
+      setBlock(ox + 28, bh, z, BLOCK.METAL);
+      setBlock(ox + 28, bh + 1, z, BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'armyansk', x: ox - 28, z: oz - 24, w: 56, d: 48, baseY: h, floorH: 6, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── IZIUM: Liberation — Site of Russian Atrocities ───────────────────────
+  function generateIzium(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Partial cathedral structure with BRICK walls + METAL/WOOD scaffolding
+    bx = ox - 8; bz = oz - 12;
+    bh = getHeight(bx, bz);
+    // Cathedral walls (partial — some collapsed)
+    for (x = bx; x <= bx + 16; x++) {
+      for (z = bz; z <= bz + 14; z++) {
+        var isEdgeC = (x === bx || x === bx + 16 || z === bz || z === bz + 14);
+        if (isEdgeC) {
+          for (var cry = 1; cry <= 8; cry++) {
+            // Skip some blocks to simulate damage
+            if (!((x > bx + 10 && cry > 5) || (z === bz + 14 && x > bx + 8 && cry > 3))) {
+              setBlock(x, bh + cry, z, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+    }
+    // Scaffolding poles (METAL vertical + WOOD horizontal planks)
+    var scaffPos = [[bx + 16, bz + 4], [bx + 16, bz + 10]];
+    for (i = 0; i < scaffPos.length; i++) {
+      var spx = scaffPos[i][0], spz = scaffPos[i][1];
+      bh = getHeight(spx, spz);
+      for (var spy = 1; spy <= 10; spy++) setBlock(spx + 1, bh + spy, spz, BLOCK.METAL);
+      setBlock(spx, bh + 5, spz, BLOCK.WOOD);
+      setBlock(spx + 1, bh + 5, spz, BLOCK.WOOD);
+      setBlock(spx + 2, bh + 5, spz, BLOCK.WOOD);
+      setBlock(spx, bh + 9, spz, BLOCK.WOOD);
+      setBlock(spx + 1, bh + 9, spz, BLOCK.WOOD);
+    }
+
+    // Mass grave memorial: STONE obelisk 1×1×8 + LIGHT flower blocks
+    bx = ox + 14; bz = oz - 6;
+    bh = getHeight(bx, bz);
+    for (i = 1; i <= 8; i++) setBlock(bx, bh + i, bz, BLOCK.STONE);
+    // Flower/light tributes around obelisk
+    var flowerOff = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]];
+    for (i = 0; i < flowerOff.length; i++) {
+      var fh = getHeight(bx + flowerOff[i][0], bz + flowerOff[i][1]);
+      setBlock(bx + flowerOff[i][0], fh, bz + flowerOff[i][1], BLOCK.LIGHT);
+    }
+
+    // Military training camp remnants: obstacle course structures
+    var obstaclePos = [[-20, 12], [-14, 12], [-8, 12], [-2, 12]];
+    for (i = 0; i < obstaclePos.length; i++) {
+      bx = ox + obstaclePos[i][0]; bz = oz + obstaclePos[i][1];
+      bh = getHeight(bx, bz);
+      setBlock(bx, bh + 1, bz, BLOCK.CONCRETE);
+      setBlock(bx + 1, bh + 1, bz, BLOCK.CONCRETE);
+      setBlock(bx, bh + 2, bz, BLOCK.METAL);
+      setBlock(bx + 1, bh + 2, bz, BLOCK.METAL);
+      setBlock(bx, bh + 3, bz, BLOCK.CONCRETE);
+      setBlock(bx + 1, bh + 3, bz, BLOCK.CONCRETE);
+    }
+
+    // 8 artillery craters: pit 4 wide, 2 deep, rubble ring
+    var craterPos = [[-22, -20], [-10, -22], [4, -20], [16, -22],
+                     [-22, 20],  [-10, 22],  [4, 20],  [18, 22]];
+    for (i = 0; i < craterPos.length; i++) {
+      bx = ox + craterPos[i][0]; bz = oz + craterPos[i][1];
+      bh = getHeight(bx, bz);
+      // Crater pit
+      for (x = bx - 2; x <= bx + 2; x++) {
+        for (z = bz - 2; z <= bz + 2; z++) {
+          setBlock(x, bh, z, BLOCK.AIR);
+          setBlock(x, bh - 1, z, BLOCK.DIRT);
+          setBlock(x, bh - 2, z, BLOCK.DIRT);
+        }
+      }
+      // Rubble ring
+      for (x = bx - 3; x <= bx + 3; x++) {
+        var rh = getHeight(x, bz - 3);
+        setBlock(x, rh, bz - 3, BLOCK.RUBBLE);
+        rh = getHeight(x, bz + 3);
+        setBlock(x, rh, bz + 3, BLOCK.RUBBLE);
+      }
+      for (z = bz - 2; z <= bz + 2; z++) {
+        var rh2 = getHeight(bx - 3, z);
+        setBlock(bx - 3, rh2, z, BLOCK.RUBBLE);
+        rh2 = getHeight(bx + 3, z);
+        setBlock(bx + 3, rh2, z, BLOCK.RUBBLE);
+      }
+    }
+
+    _buildings.push({ kind: 'izium', x: ox - 22, z: oz - 22, w: 50, d: 50, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── ALCHEVSK: Occupied Metallurgical City Steelworks ─────────────────────
+  function generateAlchevsk(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Blast furnace: METAL cylinder radius 5, height 20, FIRE blocks at base
+    for (var ang = 0; ang < 628; ang += 5) {
+      var bfx = Math.round(Math.cos(ang * 0.01) * 5);
+      var bfz = Math.round(Math.sin(ang * 0.01) * 5);
+      bh = getHeight(ox + bfx, oz + bfz);
+      for (var bfy = 1; bfy <= 20; bfy++) setBlock(ox + bfx, bh + bfy, oz + bfz, BLOCK.METAL);
+    }
+    // Fill cylinder interior top with cap
+    for (x = ox - 4; x <= ox + 4; x++) {
+      for (z = oz - 4; z <= oz + 4; z++) {
+        if ((x - ox) * (x - ox) + (z - oz) * (z - oz) <= 16) {
+          bh = getHeight(x, z);
+          setBlock(x, bh + 21, z, BLOCK.METAL);
+        }
+      }
+    }
+    // FIRE blocks at base glow
+    for (x = ox - 3; x <= ox + 3; x++) {
+      for (z = oz - 3; z <= oz + 3; z++) {
+        if ((x - ox) * (x - ox) + (z - oz) * (z - oz) <= 9) {
+          bh = getHeight(x, z);
+          setBlock(x, bh, z, BLOCK.FIRE);
+        }
+      }
+    }
+
+    // Steel works conveyor: long METAL shelf 30 units, CONCRETE pillars every 8
+    var convX = ox + 12;
+    bh = getHeight(convX, oz);
+    for (z = oz - 15; z <= oz + 15; z++) {
+      setBlock(convX, bh + 6, z, BLOCK.METAL);
+      setBlock(convX + 1, bh + 6, z, BLOCK.METAL);
+    }
+    for (i = -15; i <= 15; i += 8) {
+      bh = getHeight(convX, oz + i);
+      for (var py = 1; py <= 5; py++) {
+        setBlock(convX, bh + py, oz + i, BLOCK.CONCRETE);
+        setBlock(convX + 1, bh + py, oz + i, BLOCK.CONCRETE);
+      }
+    }
+
+    // Molten metal channels: FIRE/LIGHT block filled trenches
+    var channelPos = [[6, -12, 6, 12], [-6, -10, -6, 10]];
+    for (i = 0; i < channelPos.length; i++) {
+      var cx1 = ox + channelPos[i][0], cz1 = oz + channelPos[i][1];
+      var cx2 = ox + channelPos[i][2], cz2 = oz + channelPos[i][3];
+      if (cx1 === cx2) {
+        for (z = Math.min(cz1, cz2); z <= Math.max(cz1, cz2); z++) {
+          bh = getHeight(cx1, z);
+          setBlock(cx1, bh - 1, z, BLOCK.FIRE);
+          setBlock(cx1, bh, z, BLOCK.LIGHT);
+        }
+      }
+    }
+
+    // Workers' barracks: 4 CONCRETE buildings with broken GLASS windows
+    var barracksPos = [[-28, -16], [-28, 0], [-16, -16], [-16, 0]];
+    for (i = 0; i < barracksPos.length; i++) {
+      bx = ox + barracksPos[i][0]; bz = oz + barracksPos[i][1];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 8; x++) {
+        for (z = bz; z <= bz + 6; z++) {
+          var isEdgeB = (x === bx || x === bx + 8 || z === bz || z === bz + 6);
+          for (var bby = 1; bby <= 5; bby++) {
+            if (isEdgeB) setBlock(x, bh + bby, z, BLOCK.CONCRETE);
+          }
+        }
+      }
+      // Broken glass windows
+      setBlock(bx + 2, bh + 2, bz, BLOCK.GLASS);
+      setBlock(bx + 5, bh + 2, bz, BLOCK.GLASS);
+      // Roof
+      for (x = bx; x <= bx + 8; x++) {
+        for (z = bz; z <= bz + 6; z++) setBlock(x, bh + 6, z, BLOCK.ROOFTILE);
+      }
+    }
+
+    // Overhead crane rail: METAL beam at height 12, running 25 units
+    bh = getHeight(ox, oz);
+    for (x = ox - 12; x <= ox + 12; x++) {
+      setBlock(x, bh + 12, oz - 2, BLOCK.METAL);
+      setBlock(x, bh + 12, oz + 2, BLOCK.METAL);
+    }
+    // Crane support pillars
+    var craneSupport = [[-12, -2], [-12, 2], [0, -2], [0, 2], [12, -2], [12, 2]];
+    for (i = 0; i < craneSupport.length; i++) {
+      bx = ox + craneSupport[i][0]; bz = oz + craneSupport[i][1];
+      bh = getHeight(bx, bz);
+      for (var csy = 1; csy <= 11; csy++) setBlock(bx, bh + csy, bz, BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'alchevsk', x: ox - 28, z: oz - 20, w: 50, d: 40, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
   // ── SLAVUTYCH: Chernobyl Memorial ────────────────────────────────────────
   // Slavutych was built in 1986 to house Chernobyl workers after Pripyat evacuation.
   // The reactor sarcophagus is visible from the city; exclusion zone starts at the edge.
@@ -22539,6 +22993,31 @@ window.VoxelWorld = (function () {
       generateBunker(-20, -16);
       generateBunker(20, -16);
       generateWreckedTank(-10, 16);
+    } else if (level.id === 'MELITOPOL_2') {
+      generateMelitopol2(0, 0);
+      generateCraters(6);
+      generateBunker(-24, -30);
+      generateWreckedTank(14, -20);
+    } else if (level.id === 'TOKMAK') {
+      generateTokmak(0, 0);
+      generateCraters(4);
+      generateBunker(-28, -14);
+      generateBunker(28, -14);
+    } else if (level.id === 'ARMYANSK') {
+      generateArmyansk(0, 0);
+      generateCraters(5);
+      generateBunker(-30, 16);
+      generateWreckedTank(20, 18);
+    } else if (level.id === 'IZIUM') {
+      generateIzium(0, 0);
+      generateCraters(8);
+      generateBunker(20, 14);
+      generateWreckedTank(-18, 16);
+    } else if (level.id === 'ALCHEVSK') {
+      generateAlchevsk(0, 0);
+      generateCraters(5);
+      generateBunker(-30, -22);
+      generateBunker(24, -22);
     }
 
     // ── PROC_CITIES: distinct content for each procedural city ─────────────
