@@ -3187,6 +3187,7 @@ const GameManager = (function () {
     player.hp = player.maxHp;
     player.score = 0;
     player.kills = 0;
+    if (typeof Perks !== 'undefined') Perks.reset();
     currentWave = 0;
     _scoreChain = 1;
     _chainTimer = 0;
@@ -5014,6 +5015,15 @@ const GameManager = (function () {
       var _scnl = document.getElementById('stageclear-next-label');  if (_scnl) _scnl.style.display = nextStageDef ? '' : 'none';
       // Defensive: ensure no lingering auto-countdown can bypass stage clear
       if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
+      // Show perk select overlay after stage clear (300ms delay so stage clear screen shows first)
+      if (typeof Perks !== 'undefined') {
+        setTimeout(function() {
+          if (typeof HUD !== 'undefined' && HUD.hide) HUD.hide(); // hide HUD temporarily
+          Perks.showPerkSelect(player, function(perkId) {
+            if (typeof HUD !== 'undefined' && HUD.show) HUD.show(); // restore HUD
+          });
+        }, 1800);
+      }
       return;
     }
 
