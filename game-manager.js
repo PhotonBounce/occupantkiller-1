@@ -3896,6 +3896,12 @@ const GameManager = (function () {
         // omit y so spawnOne() resolves terrain height itself
       });
       HUD.notifyPickup('⚠ BOSS INCOMING: ' + (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType] ? EnemyTypes.TYPES[bossType].name : 'COMMANDER'), '#ff0000');
+      // Show boss health bar immediately with full HP
+      if (HUD.showBossBar && typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType]) {
+        var _bCfg = EnemyTypes.TYPES[bossType];
+        var _bMaxHp = _bCfg.hpBase || 500;
+        HUD.showBossBar(_bCfg.name || bossType, _bMaxHp, _bMaxHp);
+      }
     }
 
     // ═══ Blood Moon effect on final 2 waves ═══
@@ -5702,6 +5708,15 @@ const GameManager = (function () {
     var _wepType = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent().type : '';
     var remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
     player._waveDamageDealt = (player._waveDamageDealt || 0) + dmg;
+
+    // Update boss health bar when a boss takes damage
+    var _tn2 = enemy.type || (enemy.typeCfg && enemy.typeCfg.name) || '';
+    if (_tn2 === 'BOSS' || _tn2.startsWith('BOSS_')) {
+      if (HUD.showBossBar && enemy.maxHp > 0) {
+        var _bName = (enemy.typeCfg && enemy.typeCfg.name) ? enemy.typeCfg.name : 'BOSS';
+        HUD.showBossBar(_bName, Math.max(0, enemy.hp), enemy.maxHp);
+      }
+    }
 
     // 3-D blood spray particles on hit
     if (typeof Weapons !== 'undefined' && Weapons.addBloodSpray && enemy.mesh) {
