@@ -2163,8 +2163,97 @@ const HUD = (() => {
     return subtitles[(waveNum - 1) % subtitles.length];
   }
 
+  // ── Active Upgrades Panel ─────────────────────────────────────────
+  var _activeUpgradesEl = null;
+
+  function updateActiveUpgrades(player) {
+    if (!_activeUpgradesEl) {
+      _activeUpgradesEl = document.createElement('div');
+      _activeUpgradesEl.id = 'active-upgrades';
+      _activeUpgradesEl.style.cssText = 'position:fixed;top:80px;right:8px;z-index:200;font-size:10px;color:#88ffcc;text-align:right;pointer-events:none;text-shadow:0 0 4px #000;background:rgba(0,0,0,0.55);padding:4px 6px;border-radius:4px;border:1px solid rgba(136,255,204,0.25);min-width:60px;';
+      document.body.appendChild(_activeUpgradesEl);
+    }
+
+    var lines = [];
+
+    if (window._silencerEquipped) lines.push('🔇 Suppressor');
+    if (window._nightVisionEquipped) lines.push('🌙 NVG');
+    if (window._explosiveRounds) lines.push('💥 Exp.Rounds');
+    if (window._armorPierceMultiplier > 1) lines.push('🛡️ AP \xD7' + window._armorPierceMultiplier.toFixed(1));
+    if (window._magCapMultiplier > 1) lines.push('📦 Mag \xD7' + window._magCapMultiplier.toFixed(1));
+    if (window._radarActive > 0) lines.push('📡 Radar ' + Math.ceil(window._radarActive) + 's');
+    if (window._airstrikeCount > 0) lines.push('✈️ Strikes: ' + window._airstrikeCount);
+    if (window._staminaRefill || (player && player._stimTimer > 0)) lines.push('💉 Stim');
+
+    if (lines.length === 0) {
+      _activeUpgradesEl.style.display = 'none';
+    } else {
+      _activeUpgradesEl.style.display = 'block';
+      var html = '';
+      for (var i = 0; i < lines.length; i++) {
+        html += '<div style="padding:1px 0">' + lines[i] + '</div>';
+      }
+      _activeUpgradesEl.innerHTML = html;
+    }
+  }
+
+  // ── Wave Kill Feed Ticker ─────────────────────────────────────────
+  var _waveKillFeedEl = null;
+  var _waveKillFeedEntries = [];
+
+  function _initWaveKillFeed() {
+    if (_waveKillFeedEl) return;
+    _waveKillFeedEl = document.createElement('div');
+    _waveKillFeedEl.id = 'kill-feed';
+    _waveKillFeedEl.style.cssText = 'position:fixed;bottom:80px;left:8px;z-index:200;font-size:11px;pointer-events:none;';
+    document.body.appendChild(_waveKillFeedEl);
+  }
+
+  function addKillFeed(msg, color) {
+    _initWaveKillFeed();
+    var entry = document.createElement('div');
+    entry.textContent = msg;
+    entry.style.cssText = 'color:' + (color || '#ffffff') + ';opacity:0;transition:opacity 0.3s;padding:1px 0;';
+    _waveKillFeedEl.appendChild(entry);
+    // Trigger fade-in
+    requestAnimationFrame(function() {
+      entry.style.opacity = '1';
+    });
+    var obj = { el: entry, _killFeedTimer: 5.0 };
+    _waveKillFeedEntries.push(obj);
+    // Keep only last 6
+    while (_waveKillFeedEntries.length > 6) {
+      var oldest = _waveKillFeedEntries.shift();
+      if (oldest.el && oldest.el.parentNode) oldest.el.parentNode.removeChild(oldest.el);
+    }
+  }
+
+  function updateKillFeed(delta) {
+    for (var i = _waveKillFeedEntries.length - 1; i >= 0; i--) {
+      var obj = _waveKillFeedEntries[i];
+      obj._killFeedTimer -= delta;
+      if (obj._killFeedTimer <= 0) {
+        obj.el.style.transition = 'opacity 0.4s';
+        obj.el.style.opacity = '0';
+        (function(o) {
+          setTimeout(function() {
+            if (o.el && o.el.parentNode) o.el.parentNode.removeChild(o.el);
+          }, 400);
+        })(obj);
+        _waveKillFeedEntries.splice(i, 1);
+      }
+    }
+  }
+
+  // ── Combined HUD update (call from game loop with delta + player) ──
+  function update(delta, player) {
+    updateActiveUpgrades(player);
+    updateKillFeed(delta);
+    _tickKillFeed(delta);
+  }
+
   // ── Last Wave Summary Overlay ──
-  let _waveSummaryEl = null;
+  var _waveSummaryEl = null;
   function showWaveSummary(stats) {
     if (!_waveSummaryEl) {
       _waveSummaryEl = document.createElement('div');
@@ -2229,6 +2318,9 @@ const HUD = (() => {
     updateTargetAssist,
     // ── Kill Feed, Compass, Ammo Warning, Mobile Fixes ──
     addKillFeedEntry, updateCompassBar, setAmmoWarning, _tickKillFeed,
+    // ── Active Upgrades Panel + Wave Kill Feed ──
+    updateActiveUpgrades, addKillFeed, updateKillFeed,
+    update,
   };
 })();
 
