@@ -2110,7 +2110,7 @@ const HUD = (() => {
   // ── Dramatic Wave Announcement Overlay ──
   var _waveAnnounceDiv = null;
 
-  function showWaveAnnouncement(waveNum, totalWaves, isBossWave) {
+  function showWaveAnnouncement(waveNum, totalWaves, isBossWave, opts) {
     if (!_waveAnnounceDiv) {
       _waveAnnounceDiv = document.createElement('div');
       _waveAnnounceDiv.style.cssText = [
@@ -2126,6 +2126,11 @@ const HUD = (() => {
     var borderColor = isBossWave ? '#ff0000' : '#cc8800';
     var label = isBossWave ? '⚠️ BOSS WAVE' : ('WAVE ' + waveNum + ' / ' + totalWaves);
     var subtitle = isBossWave ? 'ALL FORCES CONVERGING' : _getWaveSubtitle(waveNum);
+    var intelHtml = '';
+    if (opts && opts.count) {
+      var _threatColor = opts.count >= 15 ? '#ff4444' : (opts.count >= 8 ? '#ff8800' : '#ffdd00');
+      intelHtml = '<div style="color:' + _threatColor + ';font-size:11px;font-family:monospace;margin-top:6px;letter-spacing:1px;">⚡ ' + opts.count + ' HOSTILES INBOUND' + (opts.intel ? ' · ' + opts.intel : '') + '</div>';
+    }
 
     _waveAnnounceDiv.innerHTML = [
       '<div style="',
@@ -2139,6 +2144,7 @@ const HUD = (() => {
       '<div style="color:' + color + ';font-size:11px;letter-spacing:6px;font-family:monospace;margin-bottom:6px;">INCOMING</div>',
       '<div style="color:' + color + ';font-size:38px;font-weight:bold;font-family:monospace;letter-spacing:3px;text-shadow:0 0 20px ' + color + ';">' + label + '</div>',
       '<div style="color:#aaaaaa;font-size:13px;font-family:monospace;margin-top:8px;letter-spacing:2px;">' + subtitle + '</div>',
+      intelHtml,
       '</div>'
     ].join('');
 

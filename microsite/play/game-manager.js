@@ -3804,7 +3804,8 @@ const GameManager = (function () {
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
     if (HUD.showWaveAnnouncement) {
       var _bossWv = (w === stageDef.wavesPerStage);
-      HUD.showWaveAnnouncement(w, stageDef.wavesPerStage, _bossWv);
+      var _waveIntelOpts = { count: Enemies.getAliveCount(), intel: _bossWv ? 'BOSS UNIT DETECTED' : null };
+      HUD.showWaveAnnouncement(w, stageDef.wavesPerStage, _bossWv, _waveIntelOpts);
     }
     // Announce enemy's randomly chosen formation as an intel report
     var _enemyForms = ['WEDGE', 'LINE', 'COLUMN', 'STAGGERED'];
