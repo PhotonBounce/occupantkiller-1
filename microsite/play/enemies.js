@@ -1792,7 +1792,10 @@ const Enemies = (() => {
     WAR_DOG:       { len: 0,    color: 0x000000, name: 'Teeth' },
     SHIELD_BEARER: { len: 0.16, color: 0x2a2a2a, name: 'Makarov PM' },
     MORTAR:        { len: 0.24, color: 0x444422, name: '2B14 Podnos' },
-    SNIPER_ELITE:  { len: 0.32, color: 0x2a3a2a, name: 'ORSIS T-5000' },
+    SNIPER_ELITE:   { len: 0.32, color: 0x2a3a2a, name: 'ORSIS T-5000' },
+    DRONE_OPERATOR: { len: 0.12, color: 0x2a2a2a, name: 'Makarov PM' },
+    SNIPER_OP:      { len: 0.38, color: 0x3a3a2a, name: 'SV-98 Ghillie' },
+    TANK_CREW:      { len: 0.12, color: 0x333333, name: 'MP-443 Grach' },
   };
 
   function attachWeaponVisual(mesh, typeCfg) {
@@ -3579,6 +3582,156 @@ const Enemies = (() => {
               if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playEnemyBark) window.AudioSystem.playEnemyBark();
             }
             break;
+          // ── New enemy type AI behaviors ──────────────────────────
+          case 'DRONE_OPERATOR': {
+            // Stay stationary in cover; sends FPV drone at player every 8s
+            if (!e._doTimer) e._doTimer = 8.0;
+            e._doTimer -= delta;
+            if (e._doTimer <= 0) {
+              e._doTimer = 8.0;
+              var _doDist = e.mesh.position.distanceTo(playerPos);
+              if (_doDist < 60) {
+                // Spawn FPV drone (small orange box) that flies toward player
+                if (scene) {
+                  var _fpvGeo = new THREE.BoxGeometry(0.25, 0.10, 0.25);
+                  var _fpvMat = new THREE.MeshLambertMaterial({ color: 0xff6600 });
+                  var _fpvMesh = new THREE.Mesh(_fpvGeo, _fpvMat);
+                  _fpvMesh.position.set(
+                    e.mesh.position.x,
+                    e.mesh.position.y + 3,
+                    e.mesh.position.z
+                  );
+                  scene.add(_fpvMesh);
+                  // Capture target position at launch time
+                  var _fpvTargetX = playerPos.x;
+                  var _fpvTargetZ = playerPos.z;
+                  var _fpvSpeed = 12;
+                  var _fpvLife = 6.0;
+                  // Store drone state on the array for update
+                  if (!e._fpvDrones) e._fpvDrones = [];
+                  e._fpvDrones.push({
+                    mesh: _fpvMesh,
+                    tx: _fpvTargetX,
+                    tz: _fpvTargetZ,
+                    speed: _fpvSpeed,
+                    life: _fpvLife,
+                  });
+                }
+                triggerBark(e, 'attack');
+              }
+            }
+            // Update active FPV drones for this operator
+            if (e._fpvDrones && e._fpvDrones.length > 0) {
+              for (var _fdi = e._fpvDrones.length - 1; _fdi >= 0; _fdi--) {
+                var _fpv = e._fpvDrones[_fdi];
+                var _fdx = _fpv.tx - _fpv.mesh.position.x;
+                var _fdz = _fpv.tz - _fpv.mesh.position.z;
+                var _fdLen = Math.sqrt(_fdx * _fdx + _fdz * _fdz);
+                _fpv.life -= delta;
+                if (_fdLen < 3 || _fpv.life <= 0) {
+                  // Explode: damage player if within 3 units of player position
+                  var _fdPlayerDx = _fpv.mesh.position.x - playerPos.x;
+                  var _fdPlayerDz = _fpv.mesh.position.z - playerPos.z;
+                  var _fdPlayerDist = Math.sqrt(_fdPlayerDx * _fdPlayerDx + _fdPlayerDz * _fdPlayerDz);
+                  if (_fdPlayerDist < 3 && typeof window.GameManager !== 'undefined' && window.GameManager.damagePlayer) {
+                    window.GameManager.damagePlayer(40);
+                  } else if (_fdPlayerDist < 3 && onPlayerHit) {
+                    onPlayerHit(40, _fpv.mesh.position);
+                  }
+                  if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+                    Tracers.spawnExplosion(_fpv.mesh.position, 1.5);
+                  }
+                  if (scene) scene.remove(_fpv.mesh);
+                  if (_fpv.mesh.geometry) _fpv.mesh.geometry.dispose();
+                  if (_fpv.mesh.material) _fpv.mesh.material.dispose();
+                  e._fpvDrones.splice(_fdi, 1);
+                } else {
+                  // Fly toward target
+                  var _fpvDirX = _fdx / _fdLen;
+                  var _fpvDirZ = _fdz / _fdLen;
+                  _fpv.mesh.position.x += _fpvDirX * _fpv.speed * delta;
+                  _fpv.mesh.position.z += _fpvDirZ * _fpv.speed * delta;
+                  // Hover at fixed altitude
+                  var _fpvTerrY = (typeof window.VoxelWorld !== 'undefined' && window.VoxelWorld.getTerrainHeight)
+                    ? window.VoxelWorld.getTerrainHeight(_fpv.mesh.position.x, _fpv.mesh.position.z) : 0;
+                  _fpv.mesh.position.y = _fpvTerrY + 2.5;
+                }
+              }
+            }
+            break;
+          }
+          case 'SNIPER_OP': {
+            // Finds high ground: check terrain and stay prone, fires once per 4s
+            if (!e._sopTimer) e._sopTimer = 4.0;
+            e._sopTimer -= delta;
+            if (e._sopTimer <= 0 && e.playerSpotted) {
+              e._sopTimer = 4.0;
+              // High-ground preference: bias Y upward position each frame
+              if (typeof window.VoxelWorld !== 'undefined' && window.VoxelWorld.getTerrainHeight) {
+                var _bestH = -Infinity, _bestX = e.mesh.position.x, _bestZ = e.mesh.position.z;
+                for (var _sa = 0; _sa < 8; _sa++) {
+                  var _sang = _sa * Math.PI / 4;
+                  var _ssx = e.mesh.position.x + Math.cos(_sang) * 4;
+                  var _ssz = e.mesh.position.z + Math.sin(_sang) * 4;
+                  var _ssh = window.VoxelWorld.getTerrainHeight(_ssx, _ssz);
+                  if (_ssh > _bestH) { _bestH = _ssh; _bestX = _ssx; _bestZ = _ssz; }
+                }
+                // Nudge toward highest ground
+                var _sgnx = _bestX - e.mesh.position.x;
+                var _sgnz = _bestZ - e.mesh.position.z;
+                var _sgnl = Math.sqrt(_sgnx * _sgnx + _sgnz * _sgnz);
+                if (_sgnl > 0.5) {
+                  e.mesh.position.x += (_sgnx / _sgnl) * 0.5;
+                  e.mesh.position.z += (_sgnz / _sgnl) * 0.5;
+                }
+              }
+              // Precision shot: use Raycaster for line-of-sight check
+              var _sopRay = new THREE.Raycaster();
+              var _sopOrigin = e.mesh.position.clone();
+              _sopOrigin.y += 1.2;
+              var _sopDir = new THREE.Vector3(
+                playerPos.x - _sopOrigin.x,
+                playerPos.y + 0.8 - _sopOrigin.y,
+                playerPos.z - _sopOrigin.z
+              ).normalize();
+              _sopRay.set(_sopOrigin, _sopDir);
+              var _sopDist = e.mesh.position.distanceTo(playerPos);
+              // Only fire if within range and player in LOS (raycaster finds no obstacles)
+              if (_sopDist < e.typeCfg.range) {
+                var _sopHit = true;
+                // Spawn tracer visual
+                if (typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
+                  Tracers.spawnTracer(_sopOrigin, _sopDir, 0xffcc00, 200);
+                }
+                // Damage player
+                if (_sopHit && onPlayerHit) {
+                  onPlayerHit(e.typeCfg.rangedDmg, e.mesh.position);
+                }
+                if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playSpatialGunshot) {
+                  var _sopYaw = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : 0;
+                  window.AudioSystem.playSpatialGunshot('sniper', e.mesh.position, playerPos, _sopYaw);
+                }
+              }
+            }
+            // Prone behavior: stay still after first spot
+            if (e.playerSpotted && !e._sopProne) {
+              e._sopProne = true;
+              if (e.mesh) e.mesh.position.y -= 0.3;
+            }
+            break;
+          }
+          case 'TANK_CREW': {
+            // Aggressive rush; throws grenade when within 15 units every 12s
+            if (!e._tcGrenTimer) e._tcGrenTimer = 12.0;
+            e._tcGrenTimer -= delta;
+            var _tcDist = e.mesh.position.distanceTo(playerPos);
+            if (e._tcGrenTimer <= 0 && e.playerSpotted && _tcDist < 15) {
+              e._tcGrenTimer = 12.0;
+              throwEnemyGrenade(e.mesh.position, playerPos);
+              triggerBark(e, 'grenade');
+            }
+            break;
+          }
         }
         // Sync position writes back to mesh
         e.mesh.position.x = e.x; e.mesh.position.y = e.y; e.mesh.position.z = e.z;
