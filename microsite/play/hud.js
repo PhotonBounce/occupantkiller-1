@@ -2319,6 +2319,117 @@ const HUD = (() => {
     return _weaponWheelSelected;
   }
 
+  // ── Sniper Scope Overlay (ADS) ──
+  var _scopeEl = null;
+  var _scopeActive = false;
+  var _scopeSwayX = 0;
+  var _scopeSwayY = 0;
+  var _scopeBreathTimer = 0;
+  var _scopeZoom = 4.0;
+
+  function showScope(zoomLevel) {
+    _scopeZoom = zoomLevel || 4.0;
+    _scopeActive = true;
+
+    if (!_scopeEl) {
+      _scopeEl = document.createElement('div');
+      _scopeEl.id = 'scope-overlay';
+      _scopeEl.style.cssText = [
+        'position:fixed;top:0;left:0;width:100%;height:100%;',
+        'z-index:8800;pointer-events:none;',
+        'background:rgba(0,0,0,0.92);',
+      ].join('');
+
+      // Scope lens circle (clear circle in center)
+      var lensSize = Math.min(window.innerWidth, window.innerHeight) * 0.65;
+      var lens = document.createElement('div');
+      lens.id = 'scope-lens';
+      lens.style.cssText = [
+        'position:absolute;top:50%;left:50%;',
+        'transform:translate(-50%,-50%);',
+        'width:' + lensSize + 'px;height:' + lensSize + 'px;',
+        'border-radius:50%;',
+        'background:transparent;',
+        'box-shadow:0 0 0 ' + (window.innerWidth) + 'px rgba(0,0,0,0.92);',
+        'border:3px solid rgba(80,80,80,0.8);',
+        'overflow:hidden;',
+      ].join('');
+
+      // Crosshair
+      var crosshair = document.createElement('div');
+      crosshair.id = 'scope-crosshair';
+      crosshair.style.cssText = [
+        'position:absolute;top:50%;left:50%;',
+        'transform:translate(-50%,-50%);',
+        'pointer-events:none;',
+      ].join('');
+      crosshair.innerHTML = [
+        // Horizontal line
+        '<div style="position:absolute;top:0;left:' + (-lensSize/2) + 'px;width:' + lensSize + 'px;height:1px;background:rgba(255,255,255,0.8);"></div>',
+        // Vertical line
+        '<div style="position:absolute;top:' + (-lensSize/2) + 'px;left:0;width:1px;height:' + lensSize + 'px;background:rgba(255,255,255,0.8);"></div>',
+        // Center dot
+        '<div style="position:absolute;top:-2px;left:-2px;width:4px;height:4px;border-radius:50%;background:#ff2200;"></div>',
+        // Mil-dot markings (horizontal)
+        '<div style="position:absolute;top:-1px;left:' + (-lensSize*0.25 - 2) + 'px;width:4px;height:2px;background:rgba(255,255,255,0.6)"></div>',
+        '<div style="position:absolute;top:-1px;left:' + (lensSize*0.25 - 2) + 'px;width:4px;height:2px;background:rgba(255,255,255,0.6)"></div>',
+        '<div style="position:absolute;top:-1px;left:' + (-lensSize*0.125 - 2) + 'px;width:3px;height:2px;background:rgba(255,255,255,0.4)"></div>',
+        '<div style="position:absolute;top:-1px;left:' + (lensSize*0.125 - 2) + 'px;width:3px;height:2px;background:rgba(255,255,255,0.4)"></div>',
+      ].join('');
+
+      // Zoom level indicator
+      var zoomLabel = document.createElement('div');
+      zoomLabel.id = 'scope-zoom-label';
+      zoomLabel.style.cssText = [
+        'position:absolute;bottom:' + (window.innerHeight/2 - lensSize/2 + 10) + 'px;',
+        'right:' + (window.innerWidth/2 - lensSize/2 + 10) + 'px;',
+        'font-family:monospace;font-size:11px;color:rgba(200,200,200,0.6);',
+      ].join('');
+      zoomLabel.textContent = _scopeZoom.toFixed(1) + 'x';
+
+      // Lens reflection/tint
+      var tint = document.createElement('div');
+      tint.style.cssText = [
+        'position:absolute;top:0;left:0;width:100%;height:100%;',
+        'border-radius:50%;',
+        'background:radial-gradient(ellipse, rgba(0,20,40,0.1) 0%, rgba(0,30,60,0.25) 100%);',
+        'pointer-events:none;',
+      ].join('');
+
+      lens.appendChild(crosshair);
+      lens.appendChild(tint);
+      _scopeEl.appendChild(lens);
+      _scopeEl.appendChild(zoomLabel);
+      document.body.appendChild(_scopeEl);
+      _scopeEl._lens = lens;
+      _scopeEl._crosshair = crosshair;
+      _scopeEl._zoomLabel = zoomLabel;
+    }
+
+    _scopeEl.style.display = 'block';
+    // Hide default crosshair if it exists
+    var defaultCH = document.getElementById('crosshair');
+    if (defaultCH) defaultCH.style.visibility = 'hidden';
+  }
+
+  function hideScope() {
+    _scopeActive = false;
+    if (_scopeEl) _scopeEl.style.display = 'none';
+    // Restore default crosshair
+    var defaultCH = document.getElementById('crosshair');
+    if (defaultCH) defaultCH.style.visibility = '';
+  }
+
+  function updateScope(delta) {
+    if (!_scopeActive || !_scopeEl || !_scopeEl._crosshair) return;
+    _scopeBreathTimer += delta;
+    // Slow sine wave for breath
+    _scopeSwayX = Math.sin(_scopeBreathTimer * 0.8) * 3;
+    _scopeSwayY = Math.cos(_scopeBreathTimer * 0.6) * 2;
+    // Apply to crosshair
+    _scopeEl._crosshair.style.transform = 'translate(calc(-50% + ' + _scopeSwayX + 'px), calc(-50% + ' + _scopeSwayY + 'px))';
+  }
+
   // ── Last Wave Summary Overlay ──
   let _waveSummaryEl = null;
   function showWaveSummary(stats) {
@@ -2389,6 +2500,8 @@ const HUD = (() => {
     addKillFeedEntry,
     // ── Weapon Wheel ──
     showWeaponWheel, updateWeaponWheelMouse, hideWeaponWheel,
+    // ── Sniper Scope ADS ──
+    showScope: showScope, hideScope: hideScope, updateScope: updateScope, isScopeActive: function() { return _scopeActive; },
   };
 
   function updateNvgIndicator() {

@@ -1261,7 +1261,35 @@ const GameManager = (function () {
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
         if (typeof HazardZones !== 'undefined') HazardZones.init(_scene);
+        if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
         if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
+        if (typeof ExplosiveBarrels !== 'undefined') {
+          ExplosiveBarrels.init(_scene, function(x, y, z, radius, damage) {
+            // AoE damage to enemies in radius
+            if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+              var _aeList = Enemies.getAll();
+              for (var _aei = 0; _aei < _aeList.length; _aei++) {
+                var _ae = _aeList[_aei];
+                if (!_ae || !_ae.mesh || _ae.hp <= 0) continue;
+                var _aedx = _ae.mesh.position.x - x;
+                var _aedz = _ae.mesh.position.z - z;
+                var _aedist = Math.sqrt(_aedx*_aedx + _aedz*_aedz);
+                if (_aedist < radius) {
+                  var _aedmg = damage * (1 - _aedist / radius);
+                  if (Enemies.damage) Enemies.damage(_ae, _aedmg);
+                }
+              }
+            }
+            // Damage player if nearby
+            var _pldx = player.position.x - x;
+            var _pldz = player.position.z - z;
+            var _pldist = Math.sqrt(_pldx*_pldx + _pldz*_pldz);
+            if (_pldist < radius) {
+              var _pldmg = damage * 0.5 * (1 - _pldist / radius);
+              player.hp = Math.max(0, player.hp - _pldmg);
+            }
+          });
+        }
         var stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
@@ -3254,6 +3282,11 @@ const GameManager = (function () {
     player.score = 0;
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
+    if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
+    window._killstreakTimeScale = 1.0;
+    window._killstreakHealthRegen = 0;
+    window._killstreakAmmoRefill = 0;
     currentWave = 0;
     _scoreChain = 1;
     _chainTimer = 0;
@@ -3664,6 +3697,7 @@ const GameManager = (function () {
       Radio.setLevel(_radioLevelMap[stageDef.id] || null);
     }
     if (typeof HazardZones !== 'undefined') HazardZones.setupForLevel(stageDef ? stageDef.id : null);
+    if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.setupForLevel(stageDef ? stageDef.id : '');
     if (typeof SupplyCrate !== 'undefined') SupplyCrate.clear();
   }
 
@@ -3950,6 +3984,7 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
+    if (typeof AllySoldiers !== 'undefined') AllySoldiers.spawnForWave(player.position, currentWave);
     if (typeof SupplyCrate !== 'undefined') SupplyCrate.dropAtWave(currentWave);
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
@@ -4786,6 +4821,7 @@ const GameManager = (function () {
   function onWaveComplete() {
     try {
     if (typeof HUD !== 'undefined' && HUD.hideBossBar) HUD.hideBossBar();
+    if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
     player.score += SCORE_WAVE_BONUS;
     HUD.setScore(player.score);
     MLSystem.onWaveComplete(currentWave, currentStage, player.hp / player.maxHp);
@@ -5103,6 +5139,7 @@ const GameManager = (function () {
       // Show stage clear overlay
       gameState = STATE.STAGE_CLEAR;
       if (typeof EnemyChatter !== 'undefined') EnemyChatter.clear();
+      if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.clear();
       if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playLevelComplete) window.AudioSystem.playLevelComplete();
       // Daily challenges: record level complete
       try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordLevel(); } catch (eDCL) {}
@@ -5140,6 +5177,7 @@ const GameManager = (function () {
     }
 
     gameState = STATE.WAVE_CLEAR;
+    if (typeof KillStreak !== 'undefined') KillStreak.onWaveClear();
     showOverlay('waveclear');
     var _wvn = document.getElementById('waveclear-num');   if (_wvn) _wvn.textContent = currentWave;
     var _wvt = document.getElementById('waveclear-total'); if (_wvt) _wvt.textContent = stageDef.wavesPerStage;
@@ -5655,6 +5693,13 @@ const GameManager = (function () {
           if (hit.point) {
             Mines.checkBulletHit(hit.point.x, hit.point.y, hit.point.z, 0.8);
           }
+        }
+        // ── Explosive Barrels: raycast barrel hit check ──
+        if (typeof ExplosiveBarrels !== 'undefined') {
+          var _bOrigin = _camera.position;
+          var _bDir = new THREE.Vector3();
+          _camera.getWorldDirection(_bDir);
+          ExplosiveBarrels.checkBulletHit(_bOrigin, _bDir, 100);
         }
         // ── Friendly Fire: check if bullet hit a Ukrainian NPC ──
         var hitNPC = null;
@@ -7361,12 +7406,18 @@ const GameManager = (function () {
 
       // ── Task 3: Sniper scope overlay — show when zoomed with SNIPER/AMR ─────
       try {
-        if (!_gmScopeEl) _gmCreateScopeOverlay();
-        if (_gmScopeEl && typeof Weapons !== 'undefined' && Weapons.isZoomed && Weapons.getCurrentType) {
+        if (typeof Weapons !== 'undefined' && Weapons.isZoomed && Weapons.getCurrentType) {
           var _curType = Weapons.getCurrentType();
           var _isSniperWep = (_curType === 'SNIPER' || _curType === 'AMR');
           var _shouldShowScope = Weapons.isZoomed() && _isSniperWep;
-          _gmScopeEl.style.display = _shouldShowScope ? 'block' : 'none';
+          if (typeof HUD !== 'undefined' && HUD.showScope && HUD.hideScope) {
+            if (_shouldShowScope && !HUD.isScopeActive()) {
+              HUD.showScope(4.0);
+            } else if (!_shouldShowScope && HUD.isScopeActive()) {
+              HUD.hideScope();
+            }
+            if (typeof HUD.updateScope === 'function') HUD.updateScope(delta);
+          }
         }
       } catch (eSc) {}
 
@@ -7479,7 +7530,9 @@ const GameManager = (function () {
         CompanionDrone.update(delta, player.position, []);
       }
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
+      if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
       if (typeof HazardZones !== 'undefined') HazardZones.update(delta, player.position, player);
+      if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
       // Check if any enemy stepped on a landmine
       if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
         var _mineEnemies = Enemies.getAll();
@@ -7673,6 +7726,24 @@ const GameManager = (function () {
           player.hp = Math.min(player.maxHp * 0.75, player.hp + 1 * delta);
         }
         HUD.setHealth(player.hp, player.maxHp);
+      }
+
+      // Killstreak health bonus
+      if (window._killstreakHealthRegen && window._killstreakHealthRegen > 0) {
+        player.hp = Math.min(player.maxHp || 100, player.hp + window._killstreakHealthRegen);
+        window._killstreakHealthRegen = 0;
+        HUD.setHealth(player.hp, player.maxHp);
+      }
+
+      // Killstreak ammo refill bonus
+      if (window._killstreakAmmoRefill && window._killstreakAmmoRefill > 0) {
+        var _ksWst = Weapons.getStatus ? Weapons.getStatus() : null;
+        var _ksWdef = Weapons.getCurrentDef ? Weapons.getCurrentDef() : null;
+        if (_ksWst && _ksWdef && _ksWdef.clipSize > 0 && !_ksWst.reloading) {
+          _ksWst.clip = Math.min(_ksWdef.clipSize, _ksWst.clip + Math.ceil(_ksWdef.clipSize * window._killstreakAmmoRefill));
+          HUD.setAmmo(_ksWst.clip, _ksWst.reserve, _ksWdef.clipSize);
+        }
+        window._killstreakAmmoRefill = 0;
       }
 
       // Armor HUD

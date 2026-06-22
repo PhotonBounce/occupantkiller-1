@@ -5139,6 +5139,7 @@ const GameManager = (function () {
       // Show stage clear overlay
       gameState = STATE.STAGE_CLEAR;
       if (typeof EnemyChatter !== 'undefined') EnemyChatter.clear();
+      if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.clear();
       if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playLevelComplete) window.AudioSystem.playLevelComplete();
       // Daily challenges: record level complete
       try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordLevel(); } catch (eDCL) {}
@@ -5692,6 +5693,13 @@ const GameManager = (function () {
           if (hit.point) {
             Mines.checkBulletHit(hit.point.x, hit.point.y, hit.point.z, 0.8);
           }
+        }
+        // ── Explosive Barrels: raycast barrel hit check ──
+        if (typeof ExplosiveBarrels !== 'undefined') {
+          var _bOrigin = _camera.position;
+          var _bDir = new THREE.Vector3();
+          _camera.getWorldDirection(_bDir);
+          ExplosiveBarrels.checkBulletHit(_bOrigin, _bDir, 100);
         }
         // ── Friendly Fire: check if bullet hit a Ukrainian NPC ──
         var hitNPC = null;
@@ -7398,12 +7406,18 @@ const GameManager = (function () {
 
       // ── Task 3: Sniper scope overlay — show when zoomed with SNIPER/AMR ─────
       try {
-        if (!_gmScopeEl) _gmCreateScopeOverlay();
-        if (_gmScopeEl && typeof Weapons !== 'undefined' && Weapons.isZoomed && Weapons.getCurrentType) {
+        if (typeof Weapons !== 'undefined' && Weapons.isZoomed && Weapons.getCurrentType) {
           var _curType = Weapons.getCurrentType();
           var _isSniperWep = (_curType === 'SNIPER' || _curType === 'AMR');
           var _shouldShowScope = Weapons.isZoomed() && _isSniperWep;
-          _gmScopeEl.style.display = _shouldShowScope ? 'block' : 'none';
+          if (typeof HUD !== 'undefined' && HUD.showScope && HUD.hideScope) {
+            if (_shouldShowScope && !HUD.isScopeActive()) {
+              HUD.showScope(4.0);
+            } else if (!_shouldShowScope && HUD.isScopeActive()) {
+              HUD.hideScope();
+            }
+            if (typeof HUD.updateScope === 'function') HUD.updateScope(delta);
+          }
         }
       } catch (eSc) {}
 
