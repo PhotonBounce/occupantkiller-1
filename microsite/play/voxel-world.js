@@ -1256,6 +1256,8 @@ window.VoxelWorld = (function () {
     { id: 'SLAVUTYCH', name: 'Slavutych Exclusion',   desc: 'Ghost town near Chernobyl — shadows of the nuclear disaster', theme: 'urban', wavesPerLevel: 7, difficulty: 3.5, fogColor: 0x334422, spawnCandidates: [{ x: 0, z: -25 }, { x: -15, z: -15 }, { x: 15, z: -15 }, { x: -20, z: 5 }, { x: 20, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KREMENCHUK', name: 'Kremenchuk Mall Strike', desc: 'Russian missile strike on the crowded Amstor shopping centre', theme: 'urban', wavesPerLevel: 7, difficulty: 3.2, fogColor: 0x3a3a3a, spawnCandidates: [{ x: 0, z: -30 }, { x: -18, z: -15 }, { x: 18, z: -15 }, { x: -25, z: 10 }, { x: 25, z: 10 }, { x: 0, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'CHERKASY',  name: 'Cherkasy Defense',      desc: 'Cathedral city on the Dnipro — hold the river crossing', theme: 'urban', wavesPerLevel: 8, difficulty: 3.0, fogColor: 0x336644, spawnCandidates: [{ x: 0, z: -32 }, { x: -18, z: -18 }, { x: 18, z: -18 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: -15, z: 25 }, { x: 15, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'ZAPORIZHZHIA_NPP', name: 'Zaporizhzhia Nuclear Plant', desc: 'Defend Europe\'s largest nuclear plant — prevent a Chernobyl-scale catastrophe', theme: 'industrial', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x336633, spawnCandidates: [{ x: 0, z: -45 }, { x: -20, z: -30 }, { x: 20, z: -30 }, { x: -28, z: 0 }, { x: 28, z: 0 }, { x: 0, z: 30 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KRAMATORSK_STATION', name: 'Kramatorsk Station', desc: 'The Tochka-U strike on the evacuation platform — 59 civilians, 7 children killed', theme: 'urban', wavesPerLevel: 8, difficulty: 3.6, fogColor: 0x2a2a35, spawnCandidates: [{ x: 0, z: -40 }, { x: -20, z: -25 }, { x: 20, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 30 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'BUCHA_MEMORIAL', name: 'Bucha — City of Martyrs', desc: 'The suburb where Russian forces committed systematic atrocities — retake and bear witness', theme: 'urban', wavesPerLevel: 8, difficulty: 3.8, fogColor: 0x223322, spawnCandidates: [{ x: 0, z: -35 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 28 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'HOSTOMEL_AIRPORT_RAID', name: 'Hostomel Airbase Defense', desc: 'Repel the Russian heliborne assault — protect the world\'s largest aircraft from destruction', theme: 'urban', wavesPerLevel: 8, difficulty: 3.1, fogColor: 0x334433, spawnCandidates: [{ x: 0, z: -40 }, { x: -20, z: -25 }, { x: 20, z: -25 }, { x: -30, z: 5 }, { x: 30, z: 5 }, { x: 0, z: 30 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'DNIPRO_METRO', name: 'Dnipro River Defense', desc: 'Hold the industrial capital and its Dnipr River embankment', theme: 'urban', wavesPerLevel: 8, difficulty: 3.3, fogColor: 0x334455, spawnCandidates: [{ x: 0, z: -30 }, { x: -20, z: -18 }, { x: 20, z: -18 }, { x: -28, z: 8 }, { x: 28, z: 8 }, { x: 0, z: 28 }], spawnLookTarget: { x: 0, z: 0 } },
@@ -18237,6 +18239,33 @@ window.VoxelWorld = (function () {
       generateTrenchNetwork(-15, 15); generateTrenchNetwork(15, -15);
       generateDroneNest(42, 40); generateDroneNest(-42, -38);
       generateAntiAirPosition(-35, -32); generateAntiAirPosition(32, 30);
+      generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'ZAPORIZHZHIA_NPP') {
+      generateCheckpoint(0, -50);
+      generateBunker(-25, -5); generateBunker(25, -5);
+      generateZaporizhzhiaNPP(0, 0);
+      generateUkrainianApartment(-38, -30, 8); generateUkrainianApartment(35, -30, 6);
+      generateBurningRuin(-20, 32); generateBurningRuin(18, -38);
+      generateWreckedTank(-22, -35); generateWreckedAPC(22, 28);
+      generateCraters(10);
+      generateTrenchNetwork(-18, 22); generateTrenchNetwork(18, -22);
+      generateArtilleryBattery(-42, -42); generateArtilleryBattery(40, 40);
+      generateDroneNest(48, 45); generateDroneNest(-48, -45);
+      generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -32);
+      generateCheckpoint(-48, 0, true);
+    } else if (level.id === 'KRAMATORSK_STATION') {
+      generateCheckpoint(0, -45);
+      generateBunker(-22, -5); generateBunker(22, -5);
+      generateKramatorskStation(0, 0);
+      generateUkrainianApartment(-32, -28, 7); generateUkrainianApartment(28, -28, 5);
+      generateUkrainianApartment(-34, 18, 5); generateUkrainianApartment(28, 20, 7);
+      generateChurch(-20, 22); generateChurch(20, -22);
+      generateBurningRuin(-15, 28); generateBurningRuin(15, -32);
+      generateWreckedTank(-18, -30); generateWreckedAPC(18, 22);
+      generateCraters(8);
+      generateTrenchNetwork(-15, 18); generateTrenchNetwork(15, -18);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-35, -30); generateAntiAirPosition(32, 28);
       generateCheckpoint(-42, 0, true);
     } else if (level.id === 'BUCHA_MEMORIAL') {
       generateCheckpoint(0, -40);
