@@ -113,6 +113,15 @@ const GameManager = (function () {
   var _killCamDeathPos = null;
   var _killCamOverlay = null;
 
+  // ── Enemy kill-cam cinematic (player kills enemy) ──
+  var _ekCamActive = false;
+  var _ekCamTimer = 0;
+  var _ekCamYawDelta = 0;
+  var _ekCamPitchDelta = 0;
+  var _ekCamVignette = null;
+  var EK_CAM_DURATION = 1.2;
+  var EK_CAM_RETURN = 0.8;
+
   // Damage screen vignette
   var _damageVignette = null;
   var _damageVignetteAlpha = 0;
@@ -6920,6 +6929,13 @@ const GameManager = (function () {
           }
         }
       } catch (eArt) {}
+
+      // Radar decay — shop upgrade countdown
+      if (window._radarActive > 0) {
+        window._radarActive -= delta;
+        if (window._radarActive < 0) window._radarActive = 0;
+      }
+
       // Bullet crack near-miss — 30% chance when enemy fires within 20m of player
       try {
         if (gameState === STATE.PLAYING) {

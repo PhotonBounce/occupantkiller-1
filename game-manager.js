@@ -113,6 +113,15 @@ const GameManager = (function () {
   var _killCamDeathPos = null;
   var _killCamOverlay = null;
 
+  // ── Enemy kill-cam cinematic (player kills enemy) ──
+  var _ekCamActive = false;
+  var _ekCamTimer = 0;
+  var _ekCamYawDelta = 0;
+  var _ekCamPitchDelta = 0;
+  var _ekCamVignette = null;
+  var EK_CAM_DURATION = 1.2;
+  var EK_CAM_RETURN = 0.8;
+
   // Damage screen vignette
   var _damageVignette = null;
   var _damageVignetteAlpha = 0;
@@ -123,6 +132,31 @@ const GameManager = (function () {
     div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;background:radial-gradient(ellipse at center, transparent 40%, rgba(180,0,0,0) 100%);opacity:0;transition:none;';
     document.body.appendChild(div);
     _damageVignette = div;
+  }
+
+  // ── Enemy kill-cam cinematic trigger ──
+  function _triggerEkCam(enemyTypeName) {
+    if (_ekCamActive) return;
+    _ekCamActive = true;
+    _ekCamTimer = EK_CAM_DURATION;
+    _ekCamYawDelta = 0.35 * (Math.random() > 0.5 ? 1 : -1);
+    _ekCamPitchDelta = -0.06;
+
+    if (!_ekCamVignette) {
+      _ekCamVignette = document.createElement('div');
+      _ekCamVignette.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;transition:opacity 0.2s;';
+      document.body.appendChild(_ekCamVignette);
+    }
+    _ekCamVignette.style.background = 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%)';
+    _ekCamVignette.style.opacity = '1';
+
+    if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+      HUD.notifyPickup('💀 KILL #' + player.kills + ' — ' + (enemyTypeName || 'ENEMY'), '#ff4444');
+    }
+
+    setTimeout(function() {
+      if (_ekCamVignette) _ekCamVignette.style.opacity = '0';
+    }, 600);
   }
 
   // Footstep dust puffs (visible when sprinting)
@@ -6920,6 +6954,13 @@ const GameManager = (function () {
           }
         }
       } catch (eArt) {}
+
+      // Radar decay — shop upgrade countdown
+      if (window._radarActive > 0) {
+        window._radarActive -= delta;
+        if (window._radarActive < 0) window._radarActive = 0;
+      }
+
       // Bullet crack near-miss — 30% chance when enemy fires within 20m of player
       try {
         if (gameState === STATE.PLAYING) {

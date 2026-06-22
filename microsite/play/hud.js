@@ -1043,6 +1043,40 @@ const HUD = (() => {
     ctx.closePath();
     ctx.fill();
 
+    // Radar pulse overlay when _radarActive > 0
+    if (window._radarActive > 0) {
+      var _rNow = performance.now() * 0.001;
+      var _sweepAngle = (_rNow * 1.8) % (Math.PI * 2);
+      // Sweep gradient arc
+      var _sweepGrad = ctx.createConicalGradient
+        ? null // not supported everywhere — use manual arc
+        : null;
+      ctx.save();
+      ctx.translate(MM_HALF, MM_HALF);
+      ctx.rotate(_sweepAngle);
+      var _sweepGrad2 = ctx.createLinearGradient(0, -MM_HALF, 0, 0);
+      _sweepGrad2.addColorStop(0, 'rgba(0,255,80,0.22)');
+      _sweepGrad2.addColorStop(1, 'rgba(0,255,80,0)');
+      ctx.fillStyle = _sweepGrad2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, MM_HALF, -Math.PI / 2 - 0.45, -Math.PI / 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      // Radar border ring glow
+      ctx.strokeStyle = 'rgba(0,255,80,' + (0.3 + 0.2 * Math.sin(_rNow * 3)) + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(MM_HALF, MM_HALF, MM_HALF - 3, 0, Math.PI * 2);
+      ctx.stroke();
+      // Countdown indicator
+      ctx.fillStyle = 'rgba(0,255,80,0.7)';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('RADAR ' + Math.ceil(window._radarActive) + 's', MM_HALF, MM_SIZE - 6);
+    }
+
     // Compass labels (rotate with player)
     ctx.fillStyle = 'rgba(0,255,0,0.6)';
     ctx.font = '10px monospace';
