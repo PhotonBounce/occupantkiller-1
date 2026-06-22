@@ -1572,6 +1572,76 @@ const HUD = (() => {
     setTimeout(function () { waveStatsEl.style.display = 'none'; }, 5000);
   }
 
+  // ── Feature 51: Level Grade Overlay ─────────────────────────────
+  function showLevelGrade(stats) {
+    // stats: { score, kills, headshots, shots, damageTaken, wavesCompleted, totalWaves, levelName, time }
+    // Calculate grade: S(90+%), A(75-89%), B(60-74%), C(45-59%), D(<45%)
+
+    // Score base: headshot ratio, accuracy, damage avoided, wave completion
+    var accuracy = stats.shots > 0 ? (stats.headshots / stats.shots) * 100 : 0;
+    var damagePenalty = Math.min(50, stats.damageTaken / 10);
+    var completionBonus = stats.wavesCompleted >= stats.totalWaves ? 20 : 0;
+    var headshotBonus = Math.min(30, (stats.headshots / Math.max(1, stats.kills)) * 60);
+
+    var gradeScore = completionBonus + headshotBonus + (accuracy * 0.3) - damagePenalty;
+    gradeScore = Math.max(0, Math.min(100, gradeScore));
+
+    var grade, gradeColor, gradeGlow;
+    if (gradeScore >= 85) { grade = 'S'; gradeColor = '#ffd700'; gradeGlow = '#ff8800'; }
+    else if (gradeScore >= 70) { grade = 'A'; gradeColor = '#44ff88'; gradeGlow = '#00cc55'; }
+    else if (gradeScore >= 55) { grade = 'B'; gradeColor = '#44aaff'; gradeGlow = '#0066cc'; }
+    else if (gradeScore >= 40) { grade = 'C'; gradeColor = '#ffaa44'; gradeGlow = '#cc6600'; }
+    else { grade = 'D'; gradeColor = '#ff4444'; gradeGlow = '#cc0000'; }
+
+    // Create overlay element
+    var overlay = document.createElement('div');
+    overlay.id = 'level-grade-overlay';
+    overlay.style.cssText = [
+      'position:fixed;top:0;left:0;width:100%;height:100%;',
+      'background:rgba(0,0,0,0.75);z-index:9500;',
+      'display:flex;align-items:center;justify-content:center;',
+      'font-family:monospace;',
+    ].join('');
+
+    var timeStr = Math.floor(stats.time / 60) + 'm ' + Math.floor(stats.time % 60) + 's';
+
+    overlay.innerHTML = [
+      '<div style="text-align:center;padding:30px;max-width:380px;background:rgba(0,0,0,0.85);border:2px solid ' + gradeColor + ';border-radius:8px">',
+      '<div style="font-size:12px;color:#aaa;margin-bottom:6px;letter-spacing:3px">MISSION COMPLETE</div>',
+      '<div style="font-size:18px;color:#fff;margin-bottom:12px">' + escapeHTML(stats.levelName || 'LEVEL') + '</div>',
+      '<div style="font-size:80px;font-weight:bold;color:' + gradeColor + ';text-shadow:0 0 30px ' + gradeGlow + ';line-height:1;margin:8px 0">' + grade + '</div>',
+      '<div style="width:200px;height:6px;background:#333;border-radius:3px;margin:8px auto">',
+      '<div style="height:100%;width:' + gradeScore.toFixed(0) + '%;background:' + gradeColor + ';border-radius:3px;transition:width 1s"></div>',
+      '</div>',
+      '<div style="font-size:11px;color:#888;margin-bottom:14px">' + gradeScore.toFixed(0) + ' / 100</div>',
+      '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:14px">',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#9760; Kills</td><td style="text-align:right;color:#fff;padding:3px 8px">' + (stats.kills || 0) + '</td></tr>',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#127919; Headshots</td><td style="text-align:right;color:#ffd700;padding:3px 8px">' + (stats.headshots || 0) + '</td></tr>',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#128162; Damage Taken</td><td style="text-align:right;color:#ff6644;padding:3px 8px">' + Math.round(stats.damageTaken || 0) + '</td></tr>',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#9201; Time</td><td style="text-align:right;color:#88aaff;padding:3px 8px">' + timeStr + '</td></tr>',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#127754; Waves</td><td style="text-align:right;color:#88ff88;padding:3px 8px">' + (stats.wavesCompleted || 0) + '/' + (stats.totalWaves || '?') + '</td></tr>',
+      '</table>',
+      '<div style="font-size:11px;color:#555">[Click or press any key to continue]</div>',
+      '</div>'
+    ].join('');
+
+    document.body.appendChild(overlay);
+
+    // Remove on click or keypress
+    function _remove() {
+      document.body.removeChild(overlay);
+      document.removeEventListener('keydown', _remove);
+      overlay.removeEventListener('click', _remove);
+    }
+    overlay.addEventListener('click', _remove);
+    document.addEventListener('keydown', _remove);
+
+    // Auto-remove after 8 seconds
+    setTimeout(function() {
+      if (document.body.contains(overlay)) _remove();
+    }, 8000);
+  }
+
   // ── Feature 43: Death Statistics ─────────────────────────────────
   function showDeathStats(stats) {
     var el = document.getElementById('dead-statistics');
@@ -2029,7 +2099,7 @@ const HUD = (() => {
     showFogOfWar, showRadiation,
     addCombatLog, showAchievement,
     showTacticalMap, isTacticalMapVisible, updateTacticalMap,
-    showSupplyMenu, showFieldPromotion, showWaveStats,
+    showSupplyMenu, showFieldPromotion, showWaveStats, showLevelGrade,
     showDeathStats, updateOKC,
     // ── B22: New HUD ──
     showBossBar, hideBossBar,

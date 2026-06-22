@@ -3173,6 +3173,7 @@ const GameManager = (function () {
     player.distanceWalked = 0;
     player._lastPos = null;
     player.playStartTime = performance.now();
+    player.stageStartTime = performance.now();
     player.buildMaterials = { wood: 0, stone: 0, metal: 0, dirt: 0, sand: 0, brick: 0 };
     // Clear desaturation filter
     if (_renderer && _renderer.domElement) _renderer.domElement.style.filter = '';
@@ -3715,6 +3716,7 @@ const GameManager = (function () {
     HUD.setStage(stageDef.id, stageDef.name);
     HUD.setWave(0);
 
+    player.stageStartTime = performance.now();
     hideOverlays();
     gameState = STATE.PLAYING;
     requestPointerLock();
@@ -4901,6 +4903,22 @@ const GameManager = (function () {
         document.getElementById('win-kills').textContent = player.kills;
         document.getElementById('win-stages').textContent = STAGES.length;
         return;
+      }
+
+      // Show level grade overlay
+      if (typeof HUD !== 'undefined' && HUD.showLevelGrade) {
+        var _gradeStats = {
+          levelName: stageDef ? stageDef.name : 'MISSION',
+          score: player.score || 0,
+          kills: player.kills || 0,
+          headshots: player.headshots || player.waveHeadshots || 0,
+          shots: player.shots || player.waveShots || 0,
+          damageTaken: player.totalDamageTaken || player.waveDamageTaken || 0,
+          wavesCompleted: currentWave || 0,
+          totalWaves: stageDef ? (stageDef.wavesPerLevel || stageDef.wavesPerStage || 7) : 7,
+          time: ((performance.now() - (player.stageStartTime || performance.now())) / 1000)
+        };
+        HUD.showLevelGrade(_gradeStats);
       }
 
       // Show stage clear overlay
