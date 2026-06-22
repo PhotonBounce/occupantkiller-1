@@ -3595,6 +3595,7 @@ const GameManager = (function () {
       Radio.init();
       Radio.setLevel(_radioLevelMap[stageDef.id] || null);
     }
+    if (typeof SupplyCrate !== 'undefined') SupplyCrate.clear();
   }
 
   function getCurrentStage() { return STAGES[currentStage]; }
@@ -3868,6 +3869,7 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
+    if (typeof SupplyCrate !== 'undefined') SupplyCrate.dropAtWave(currentWave);
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -5758,7 +5760,19 @@ const GameManager = (function () {
       } catch (eUC) {}
       // Streak score multiplier: 3+ kills in chain = +10% per streak (capped at +150%)
       var _streakMult = 1 + Math.min(1.5, Math.max(0, player.killStreak - 1) * 0.1);
-      var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult * _killStreakMult * (window._prestigeScoreMult || 1));
+      var _baseKillScore = Math.round((enemy.scoreValue || 0) * _streakMult * _killStreakMult * (window._prestigeScoreMult || 1));
+      // Score chain multiplier
+      _chainKills++;
+      _chainTimer = _chainExpiry;
+      if (_chainKills >= 10) _scoreChain = 5;
+      else if (_chainKills >= 6) _scoreChain = 4;
+      else if (_chainKills >= 3) _scoreChain = 3;
+      else if (_chainKills >= 2) _scoreChain = 2;
+      if (_scoreChain > 1 && typeof HUD !== 'undefined' && HUD.showToast) {
+        HUD.showToast('x' + _scoreChain + ' KILL CHAIN! +' + (_scoreChain * 10) + ' bonus', '#ffdd00');
+      }
+      _updateChainDisplay();
+      var _scoreGain = Math.round(_baseKillScore * _scoreChain);
       player.score += _scoreGain;
       _killStreak++;
       _killStreakTimer = 5.0;
@@ -7305,6 +7319,7 @@ const GameManager = (function () {
       } else if (typeof CompanionDrone !== 'undefined') {
         CompanionDrone.update(delta, player.position, []);
       }
+      if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
       // Check if any enemy stepped on a landmine
       if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
         var _mineEnemies = Enemies.getAll();

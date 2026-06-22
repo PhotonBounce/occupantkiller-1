@@ -951,6 +951,27 @@ const GameManager = (function () {
   var _killStreakTimer = 0;
   var _killStreakMult = 1;
 
+  /* ── Score Chain (kill chain multiplier) ────────────────────────── */
+  var _scoreChain = 1;       // current multiplier (1, 2, 3, 4, or 5)
+  var _chainTimer = 0;       // seconds since last kill
+  var _chainExpiry = 5.0;    // chain resets after 5s without a kill
+  var _chainKills = 0;       // kills in current chain
+  var _chainEl = null;
+  function _updateChainDisplay() {
+    if (!_chainEl) {
+      _chainEl = document.createElement('div');
+      _chainEl.id = 'chain-multiplier';
+      _chainEl.style.cssText = 'position:fixed;top:80px;right:12px;font-family:monospace;font-size:22px;font-weight:bold;color:#ffdd00;text-shadow:0 0 8px #ff8800;z-index:500;pointer-events:none;transition:opacity 0.3s;';
+      document.body.appendChild(_chainEl);
+    }
+    if (_scoreChain > 1) {
+      _chainEl.textContent = 'x' + _scoreChain + ' CHAIN';
+      _chainEl.style.opacity = '1';
+    } else {
+      _chainEl.style.opacity = '0';
+    }
+  }
+
   /* ── Physics Constants ───────────────────────────────────────────── */
   const MOVE_SPEED   = 6.0;
   const SPRINT_MULT  = 1.65;
@@ -1231,6 +1252,7 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
         var stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
@@ -3166,6 +3188,9 @@ const GameManager = (function () {
     player.score = 0;
     player.kills = 0;
     currentWave = 0;
+    _scoreChain = 1;
+    _chainTimer = 0;
+    _chainKills = 0;
     currentStage = 0;
     // Stage jump: QA harness override or player map selection from start menu
     if (typeof window !== 'undefined') {
@@ -3570,6 +3595,7 @@ const GameManager = (function () {
       Radio.init();
       Radio.setLevel(_radioLevelMap[stageDef.id] || null);
     }
+    if (typeof SupplyCrate !== 'undefined') SupplyCrate.clear();
   }
 
   function getCurrentStage() { return STAGES[currentStage]; }
@@ -3658,6 +3684,10 @@ const GameManager = (function () {
 
     // Reset wave count for new stage
     currentWave = 0;
+    _scoreChain = 1;
+    _chainTimer = 0;
+    _chainKills = 0;
+    _updateChainDisplay();
 
     // Heal player between stages (50% of missing HP restored)
     const missingHp = player.maxHp - player.hp;
@@ -3839,6 +3869,7 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
+    if (typeof SupplyCrate !== 'undefined') SupplyCrate.dropAtWave(currentWave);
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -3850,6 +3881,10 @@ const GameManager = (function () {
     var _sideObj = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
     if (_sideObj && HUD.notifyPickup) HUD.notifyPickup('⭐ SIDE OBJ: ' + _sideObj.name + ' — ' + _sideObj.desc + ' (+' + _sideObj.reward + ' OKC)', '#ffcc00');
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
+    // 25% chance of weather event on wave 3+
+    if (currentWave >= 3 && Math.random() < 0.25 && typeof WeatherEvents !== 'undefined') {
+      WeatherEvents.triggerRandom();
+    }
     // Show recommended weapons hint on wave 1 if stage defines them
     if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
       HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
@@ -5725,7 +5760,19 @@ const GameManager = (function () {
       } catch (eUC) {}
       // Streak score multiplier: 3+ kills in chain = +10% per streak (capped at +150%)
       var _streakMult = 1 + Math.min(1.5, Math.max(0, player.killStreak - 1) * 0.1);
-      var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult * _killStreakMult * (window._prestigeScoreMult || 1));
+      var _baseKillScore = Math.round((enemy.scoreValue || 0) * _streakMult * _killStreakMult * (window._prestigeScoreMult || 1));
+      // Score chain multiplier
+      _chainKills++;
+      _chainTimer = _chainExpiry;
+      if (_chainKills >= 10) _scoreChain = 5;
+      else if (_chainKills >= 6) _scoreChain = 4;
+      else if (_chainKills >= 3) _scoreChain = 3;
+      else if (_chainKills >= 2) _scoreChain = 2;
+      if (_scoreChain > 1 && typeof HUD !== 'undefined' && HUD.showToast) {
+        HUD.showToast('x' + _scoreChain + ' KILL CHAIN! +' + (_scoreChain * 10) + ' bonus', '#ffdd00');
+      }
+      _updateChainDisplay();
+      var _scoreGain = Math.round(_baseKillScore * _scoreChain);
       player.score += _scoreGain;
       _killStreak++;
       _killStreakTimer = 5.0;
@@ -7200,6 +7247,8 @@ const GameManager = (function () {
         // Immediate fire spread boost (frame-accurate)
         if (Weapons.didFire && Weapons.didFire()) _chSpread += 0.25;
         if (Weapons.isZoomed && Weapons.isZoomed()) _chSpread *= 0.25;
+        var _weatherAccPenalty = (typeof WeatherEvents !== 'undefined') ? WeatherEvents.getAccuracyPenalty() : 0;
+        if (_weatherAccPenalty > 0) _chSpread *= (1 + _weatherAccPenalty);
         if (HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       } catch (eCh) {}
 
@@ -7250,6 +7299,16 @@ const GameManager = (function () {
         _killStreakTimer -= delta;
         if (_killStreakTimer <= 0) { _killStreak = 0; _killStreakMult = 1; }
       }
+      // Decay score chain timer
+      if (_scoreChain > 1) {
+        _chainTimer -= delta;
+        if (_chainTimer <= 0) {
+          _scoreChain = 1;
+          _chainKills = 0;
+          _updateChainDisplay();
+          if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('CHAIN BROKEN', '#ff6644');
+        }
+      }
 
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
         if (waveDone) onWaveComplete();
@@ -7260,6 +7319,7 @@ const GameManager = (function () {
       } else if (typeof CompanionDrone !== 'undefined') {
         CompanionDrone.update(delta, player.position, []);
       }
+      if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
       // Check if any enemy stepped on a landmine
       if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
         var _mineEnemies = Enemies.getAll();
