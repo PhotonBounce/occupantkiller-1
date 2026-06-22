@@ -2176,7 +2176,7 @@ const HUD = (() => {
     showDeathStats, updateOKC,
     // ── B22: New HUD ──
     showBossBar, hideBossBar,
-    updateXPBar, showObjective, hideObjective, setPrimaryObjective,
+    updateXPBar, updateXP: updateXPBar, showObjective, hideObjective, setPrimaryObjective,
     setMissionWaypoint, updateMissionWaypoint, setCityIntegrity,
     showStreakBanner, showBossIntro, addDamageLog,
     showGrenadeWarning, updateStageProgress,

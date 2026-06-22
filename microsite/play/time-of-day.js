@@ -290,12 +290,70 @@ window.TimeOfDay = (function () {
     // Visuals will be applied on first tick() call.
   })();
 
+  function getCombatModifiers() {
+    var phase = currentPhase;
+    // Night: enemies have shorter detection range, player has NV-scope tint
+    // Dawn/Dusk: reduced visibility for both sides
+    var mods = {
+      enemyDetectRange: 1.0,  // multiplier on enemy sight range
+      playerVisibility: 1.0,  // how easily player is spotted
+      fogDensity: 1.0,        // fog multiplier
+      nightVision: false,     // show NV tint on HUD
+      label: phase
+    };
+    switch (phase) {
+      case 'NIGHT':
+        mods.enemyDetectRange = 0.55;
+        mods.playerVisibility = 0.6;
+        mods.fogDensity = 1.4;
+        mods.nightVision = true;
+        break;
+      case 'DAWN':
+        mods.enemyDetectRange = 0.75;
+        mods.playerVisibility = 0.8;
+        mods.fogDensity = 1.2;
+        break;
+      case 'DUSK':
+        mods.enemyDetectRange = 0.7;
+        mods.playerVisibility = 0.75;
+        mods.fogDensity = 1.15;
+        break;
+      case 'MORNING':
+        mods.enemyDetectRange = 0.9;
+        break;
+      // AFTERNOON: defaults (full visibility)
+    }
+    return mods;
+  }
+
+  var _nvOverlay = null;
+
+  function _ensureNVOverlay() {
+    if (_nvOverlay) return;
+    _nvOverlay = document.createElement('div');
+    _nvOverlay.style.cssText = [
+      'position:fixed;top:0;left:0;width:100%;height:100%;',
+      'pointer-events:none;z-index:10;display:none;',
+      'background:rgba(0,30,0,0.18);',
+      'mix-blend-mode:multiply;'
+    ].join('');
+    if (document.body) document.body.appendChild(_nvOverlay);
+  }
+
+  function applyNightVisionHUD(enable) {
+    if (typeof document === 'undefined') return;
+    _ensureNVOverlay();
+    if (_nvOverlay) _nvOverlay.style.display = enable ? 'block' : 'none';
+  }
+
   return {
-    tick:          tick,
-    getPhase:      getPhase,
-    getHour:       getHour,
-    setHour:       setHour,
-    getTimeString: getTimeString
+    tick:               tick,
+    getPhase:           getPhase,
+    getHour:            getHour,
+    setHour:            setHour,
+    getTimeString:      getTimeString,
+    getCombatModifiers: getCombatModifiers,
+    applyNightVisionHUD: applyNightVisionHUD
   };
 
 })();

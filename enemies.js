@@ -2413,24 +2413,41 @@ const Enemies = (() => {
           e.mesh.rotation.x = Math.max(-1.8, Math.min(1.8, e.mesh.rotation.x));
         }
         // Directional knockback movement
-        if (e._deathVelX !== undefined && e.deathTimer > 0.8) {
+        if (e._deathVelX !== undefined) {
           e.mesh.position.x += e._deathVelX * delta;
           e.mesh.position.z += e._deathVelZ * delta;
-          // Friction decay
-          e._deathVelX *= (1 - 3 * delta);
-          e._deathVelZ *= (1 - 3 * delta);
+          // Friction decay (slower when airborne)
+          var _onGround = e.mesh.position.y <= 0;
+          e._deathVelX *= _onGround ? (1 - 5 * delta) : (1 - 1 * delta);
+          e._deathVelZ *= _onGround ? (1 - 5 * delta) : (1 - 1 * delta);
         }
         // Spin on Y axis
         if (e._deathSpinY) {
           e.mesh.rotation.y += e._deathSpinY * delta;
           e._deathSpinY *= (1 - 2 * delta);
         }
-        // Upward pop then sink
+        // Upward pop then gravity sink
         if (e._deathPopY !== undefined) {
           e._deathPopY -= 12 * delta; // gravity on corpse
           e.mesh.position.y += e._deathPopY * delta;
+          // Ground clamp — stop below-floor sinking
+          if (e.mesh.position.y < 0) {
+            e.mesh.position.y = 0;
+            e._deathPopY = 0;
+          }
         }
-        // Keep corpse at ground level (no sink to avoid z-fighting flicker)
+        // Ragdoll fade-out in the final 1.5 s of the 6 s timer
+        if (e.deathTimer <= 1.5 && e.mesh) {
+          var _fadeAlpha = Math.max(0, e.deathTimer / 1.5);
+          try {
+            e.mesh.traverse(function(c) {
+              if (c.isMesh && c.material) {
+                c.material.transparent = true;
+                c.material.opacity = _fadeAlpha;
+              }
+            });
+          } catch (_fe) {}
+        }
         if (e.deathTimer <= 0) {
           // Clean up sniper laser line
           if (e._laserLine) {

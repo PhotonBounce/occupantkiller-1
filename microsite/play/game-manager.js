@@ -1368,6 +1368,7 @@ const GameManager = (function () {
       if (Automation && typeof Automation.init === 'function') Automation.init();
       if (Pickups && typeof Pickups.init === 'function') Pickups.init(_scene);
       if (window.Loot && typeof window.Loot.init === 'function') window.Loot.init(_scene);
+      if (window.Airdrop && Airdrop.init) Airdrop.init(_scene);
     });
     _bootStep('missions');
 
@@ -3141,6 +3142,7 @@ const GameManager = (function () {
     DroneSystem.clear();
     if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
+    if (window.Airdrop && Airdrop.clear) Airdrop.clear();
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined') Tracers.clear();
@@ -4722,6 +4724,11 @@ const GameManager = (function () {
     // Trigger a random battlefield event between waves (from wave 2+)
     if (currentWave >= 3) {
       setTimeout(triggerBattlefieldEvent, 1500);
+    }
+
+    // Supply airdrop every 3 waves
+    if (window.Airdrop && !Airdrop.isActive() && currentWave % 3 === 0) {
+      if (player && player.position) Airdrop.spawnNearPlayer(player.position);
     }
 
     const stageDef = STAGES[currentStage];
@@ -7030,6 +7037,10 @@ const GameManager = (function () {
       });
       // Update loot items
       try { if (window.Loot && Loot.update) Loot.update(delta, player.position); } catch(eLU) {}
+      // Update airdrop
+      if (window.Airdrop && Airdrop.update) {
+        Airdrop.update(delta, player ? player.position : null);
+      }
 
       // Hybrid systems
       NPCSystem.update(delta, TimeSystem.getInfo());
