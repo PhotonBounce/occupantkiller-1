@@ -1228,7 +1228,7 @@ window.VoxelWorld = (function () {
     { id: 'SNAKE',     name: 'Snake Island Defense',  desc: '"Russian warship, go fuck yourself."', theme: 'coastal', wavesPerLevel: 6, difficulty: 1.4, fogColor: 0x4a6680, spawnCandidates: [{ x: -16, z: 0 }, { x: 16, z: 0 }, { x: 0, z: 16 }, { x: 0, z: -20 }, { x: -12, z: 12 }, { x: 12, z: -12 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SAKY',      name: 'Saky Airbase Strike',   desc: 'Crimea airbase — ground every Su-24', theme: 'coastal', wavesPerLevel: 7, difficulty: 1.7, fogColor: 0x886644, spawnCandidates: [{ x: -30, z: -20 }, { x: -20, z: -30 }, { x: 0, z: -35 }, { x: 30, z: -20 }, { x: -35, z: 10 }, { x: 35, z: 10 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'VUHLEDAR',  name: 'Vuhledar Tank Graveyard', desc: 'Bury the 155th in the minefield', theme: 'wasteland', wavesPerLevel: 8, difficulty: 1.9, fogColor: 0x4a4030, tankFocus: true, spawnCandidates: [{ x: -15, z: 12 }, { x: 15, z: 12 }, { x: 0, z: 20 }, { x: -25, z: 5 }, { x: 25, z: 5 }, { x: 0, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
-    { id: 'AVDIIVKA', name: 'Avdiivka Coke Plant', desc: 'Industrial fortress siege', theme: 'wasteland', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x2a2218, spawnCandidates: [{ x: -15, z: -18 }, { x: 15, z: -18 }, { x: 0, z: -25 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'AVDIIVKA_COKE', name: 'Avdiivka Coke Plant', desc: 'Industrial fortress siege', theme: 'wasteland', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x2a2218, spawnCandidates: [{ x: -15, z: -18 }, { x: 15, z: -18 }, { x: 0, z: -25 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'BUCHA',    name: 'Bucha Liberation',      desc: 'Expose the atrocities',       theme: 'urban',     wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x556655, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -22 }, { x: -30, z: 5 }, { x: 30, z: 5 }],  spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
@@ -11709,9 +11709,9 @@ window.VoxelWorld = (function () {
       generateAntiAirPosition(35, -35);
       generateDefensivePosition(-10, 40);
       generateDefensivePosition(10, 40);
-    } else if (level.id === 'AVDIIVKA') {
-      // Avdiivka — industrial city completely destroyed by Russian forces, fell Feb 2024
-      // Avdiivka Coke Plant (huge Soviet-era coking facility) and urban ruins
+    } else if (level.id === 'AVDIIVKA_COKE') {
+      // Avdiivka Coke Plant level — industrial city completely destroyed, fell Feb 2024
+      // Focuses on the AKHZ coking facility: massive industrial ruins and fortifications
       generateAvdiivkaCokeHall(0, -10);
       generateAvdiivkaCokeHall(25, 10);       // second complex section
       // Fortifications
