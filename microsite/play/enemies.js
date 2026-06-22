@@ -3076,6 +3076,12 @@ const Enemies = (() => {
         if (e._coverTimer > 0) e._coverTimer -= delta;
       }
 
+      // ── Boss berserker phase 1: always charge player directly ──
+      if (e._berserker && playerPos && e.mesh) {
+        moveTarget = playerPos;
+        targetDist = e.mesh.position.distanceTo(playerPos);
+      }
+
       // ── Movement toward target with obstacle avoidance + strategic flanking ──
       // Enemies with ranged weapons hold position at firing distance instead of rushing
       var engageDist = 1.0; // default: close to melee
@@ -3466,10 +3472,26 @@ const Enemies = (() => {
             fireRateMod = Math.min(fireRateMod, 0.7);
           }
 
+          // Boss burst fire: drain remaining burst shots rapidly
+          if (e._burstFire && e._burstRemaining > 0) {
+            e._burstTimer = (e._burstTimer || 0) - delta;
+            if (e._burstTimer <= 0) {
+              e._burstRemaining--;
+              e._burstTimer = 0.12; // 120ms between burst shots
+              // Re-enter the fire block by setting timer to 0 for next iteration
+              e._rangedTimer = 0;
+            }
+          }
+
           if (e._rangedTimer <= 0) {
             // Apply boss rage multiplier (faster attacks when low HP)
             var rageMod = e._rageMult || 1.0;
             e._rangedTimer = e.typeCfg.rangedRate * fireRateMod / rageMod;
+            // Boss burst fire: queue additional shots
+            if (e._burstFire && !(e._burstRemaining > 0)) {
+              e._burstRemaining = 2; // 2 follow-up shots after the first
+              e._burstTimer = 0.12;
+            }
 
             // Chance to throw grenade instead of shooting (8% when dist 8-20)
             if (distToPlayer > 8 && distToPlayer < 20 && Math.random() < 0.08) {
@@ -3777,6 +3799,53 @@ const Enemies = (() => {
                   if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('☠ BOSS FINAL PHASE — HE\'S GOING ALL OUT!', '#ff00ff');
                   if (typeof Feedback !== 'undefined' && Feedback.triggerSlowMo) Feedback.triggerSlowMo(0.2, 0.5);
                 }
+              }
+
+              // ── Boss phase visual feedback (per-frame) ──
+
+              // Phase transition flash: alternate red/white emissive
+              if (e._phaseTransition && e._phaseTransition > 0) {
+                e._phaseTransition -= delta;
+                var _flashOn = Math.floor(e._phaseTransition * 10) % 2 === 0;
+                if (e.mesh) {
+                  e.mesh.traverse(function (_ptChild) {
+                    if (_ptChild.isMesh && _ptChild.material && _ptChild.material.emissive) {
+                      _ptChild.material.emissive.setHex(_flashOn ? 0xff0000 : 0xffffff);
+                    }
+                  });
+                }
+                if (e._phaseTransition <= 0) {
+                  // Reset emissive when flash expires
+                  if (e.mesh) {
+                    e.mesh.traverse(function (_ptReset) {
+                      if (_ptReset.isMesh && _ptReset.material && _ptReset.material.emissive) {
+                        _ptReset.material.emissive.setHex(0x000000);
+                      }
+                    });
+                  }
+                }
+              }
+
+              // Phase 2: red point light on boss body
+              if (e._phase <= 2 && !e._phaseLight && e.mesh && scene) {
+                var _bPL = new THREE.PointLight(0xff2200, 1.5, 8);
+                _bPL.position.copy(e.mesh.position);
+                _bPL.position.y += 1.5;
+                scene.add(_bPL);
+                e._phaseLight = _bPL;
+              }
+              // Track phase light with boss position
+              if (e._phaseLight && e.mesh) {
+                e._phaseLight.position.copy(e.mesh.position);
+                e._phaseLight.position.y += 1.5;
+              }
+
+              // Phase 1: berserker charge — override AI target each frame
+              if (e._berserker && e.mesh && playerPos) {
+                e._chargeTarget = playerPos;
+                // Force playerSpotted so movement AI keeps chasing
+                e.playerSpotted = true;
+                e.spotLevel = 99;
               }
             }
             break;
@@ -4719,6 +4788,16 @@ const Enemies = (() => {
 
     enemy.hp = Math.max(0, enemy.hp - amount);
 
+    // Boss phase transitions: check thresholds on each damage event
+    if (enemy.alive && enemy.maxHp > 0 &&
+        (enemy.isBoss || (enemy.typeName && enemy.typeName.indexOf('BOSS_') === 0) || enemy.typeName === 'BOSS')) {
+      var _hpPct = enemy.hp / enemy.maxHp;
+      if (!enemy._phase) enemy._phase = 4; // start at phase 4 (full health)
+      if (_hpPct <= 0.25 && enemy._phase > 1) { _triggerBossPhase(enemy, 1); }
+      else if (_hpPct <= 0.50 && enemy._phase > 2) { _triggerBossPhase(enemy, 2); }
+      else if (_hpPct <= 0.75 && enemy._phase > 3) { _triggerBossPhase(enemy, 3); }
+    }
+
     // Wound grunt (bass-heavy) on non-fatal hit
     try {
       if (enemy.hp > 0 && window.AudioSystem && window.AudioSystem.playEnemyWound && Math.random() < 0.5) {
@@ -4937,6 +5016,66 @@ const Enemies = (() => {
       _cacheFrame = -1; // invalidate cache on death
     }
     return enemy.hp;
+  }
+
+  // ── Boss phase helpers ─────────────────────────────────────
+
+  function _spawnBossReinforcements(boss, count) {
+    var bossX = boss.mesh ? boss.mesh.position.x : 0;
+    var bossZ = boss.mesh ? boss.mesh.position.z : 0;
+    var reinforceTypes = ['ASSAULT', 'INFANTRY'];
+    for (var _ri = 0; _ri < count; _ri++) {
+      var _rAngle = (_ri / count) * Math.PI * 2 + Math.random() * 0.8;
+      var _rDist  = 4 + Math.random() * 4; // 4-8 units from boss
+      var _rSpawn = {
+        x: bossX + Math.cos(_rAngle) * _rDist,
+        y: 0,
+        z: bossZ + Math.sin(_rAngle) * _rDist,
+      };
+      var _rType = reinforceTypes[_ri % reinforceTypes.length];
+      var _rIdx = spawnOne(_rType, 0, _rSpawn);
+      // Mark as alerted immediately
+      if (typeof _rIdx === 'number' && enemies[_rIdx]) {
+        enemies[_rIdx].playerSpotted = true;
+        enemies[_rIdx].spotLevel = 99;
+        if (_playerPos) {
+          if (!enemies[_rIdx]._lastKnownPlayerPos) {
+            enemies[_rIdx]._lastKnownPlayerPos = new THREE.Vector3();
+          }
+          enemies[_rIdx]._lastKnownPlayerPos.copy(_playerPos);
+        }
+      }
+    }
+  }
+
+  function _triggerBossPhase(boss, phase) {
+    boss._phase = phase;
+    boss._phaseTransition = 0.8; // seconds of transition effect
+
+    if (phase === 3) {
+      // 75% HP: Speed increase
+      boss._speedMult = (boss._speedMult || 1.0) * 1.3;
+      boss._rageMult  = (boss._rageMult  || 1.0) * 1.2; // faster fire rate via existing rageMod
+      _spawnBossReinforcements(boss, 2);
+      window._bossPhaseEvent = { phase: 3, msg: 'ENRAGED!' };
+    }
+    if (phase === 2) {
+      // 50% HP: More aggressive
+      boss._speedMult = (boss._speedMult || 1.0) * 1.5;
+      boss._rageMult  = (boss._rageMult  || 1.0) * 1.5;
+      boss._burstFire = true;
+      _spawnBossReinforcements(boss, 3);
+      window._bossPhaseEvent = { phase: 2, msg: 'BERSERK!' };
+    }
+    if (phase === 1) {
+      // 25% HP: Desperate last stand
+      boss._speedMult = (boss._speedMult || 1.0) * 2.0;
+      boss._rageMult  = (boss._rageMult  || 1.0) * 2.0;
+      boss._berserker = true;
+      boss._burstFire = true;
+      _spawnBossReinforcements(boss, 4);
+      window._bossPhaseEvent = { phase: 1, msg: 'LAST STAND!' };
+    }
   }
 
   // ── Find enemy by intersected mesh (walk hierarchy) ───────
