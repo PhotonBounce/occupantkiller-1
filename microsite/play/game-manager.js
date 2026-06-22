@@ -315,6 +315,7 @@ const GameManager = (function () {
     slideTimer: 0,
     slideDir: null,
     _usedLastStand: false,
+    mines: 3,            // claymore/landmine inventory
   };
 
   /* ── Wave State ──────────────────────────────────────────────────── */
@@ -2149,9 +2150,14 @@ const GameManager = (function () {
 
         // Landmine placement (KeyU)
         if (e.code === 'KeyU' && typeof WorldFeatures !== 'undefined') {
-          var mineY = window.VoxelWorld.getTerrainHeight(player.position.x, player.position.z);
-          if (WorldFeatures.placeMine(player.position.x, mineY, player.position.z, 'player')) {
-            HUD.notifyPickup('💣 LANDMINE PLACED!', '#44aa44');
+          if (player.mines <= 0) {
+            if (window.HUD && HUD.showToast) HUD.showToast('No mines! [Buy in Shop]', 2000, '#ff4444');
+          } else {
+            var mineY = window.VoxelWorld.getTerrainHeight(player.position.x, player.position.z);
+            if (WorldFeatures.placeMine(player.position.x, mineY, player.position.z, 'player')) {
+              player.mines--;
+              if (window.HUD && HUD.showToast) HUD.showToast('💣 MINE PLACED [' + player.mines + ' left]', 1500, '#44aa44');
+            }
           }
         }
 
@@ -5185,6 +5191,19 @@ const GameManager = (function () {
       _sprintLocked = false;
       window._staminaRefill = false;
       if (window.HUD && HUD.showToast) HUD.showToast('⚡ Stamina Restored!', 1500, '#88ffcc');
+    }
+
+    // Consume stim purchased from shop
+    if (window._stimActive) {
+      player._stimTimer = 5.0 + (player._stimTimer || 0);
+      window._stimActive = false;
+      if (window.HUD && HUD.showToast) HUD.showToast('💉 STIM ACTIVE — SPEED BOOST!', 2000, '#88ffcc');
+    }
+
+    // Consume bonus claymores purchased from shop
+    if (window._bonusClaymores && window._bonusClaymores > 0) {
+      player.mines += window._bonusClaymores;
+      window._bonusClaymores = 0;
     }
 
     // Decay stim timer
