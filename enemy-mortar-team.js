@@ -1,657 +1,818 @@
-/**
- * enemy-mortar-team.js — Enemy Mortar Team (Indirect Fire)
- * Ukraine-conflict FPS (Three.js browser game)
+/* ════════════════════════════════════════════════════════════════════
+ *  ENEMY MORTAR TEAM — 2-man crew that lobs shells in high arcs
+ *  ─────────────────────────────────────────────────────────────────
+ *  From wave 6, 1 team spawns every 4 waves, positioned 25-35 units
+ *  from the player at the edge of visibility. The crew stays stationary:
+ *  spotter "looks" at player and signals; operator fires every 8s.
  *
- * Spawns a 2-person mortar crew that fires indirect-fire shells at the
- * player using predictive aim. No line-of-sight required. Shells are
- * not visible in flight — only the impact is seen/heard.
+ *  Blast radii:  ≤3u → 100 dmg   ≤6u → 60 dmg   ≤10u → 30 dmg
+ *  First shot ±6 units random; subsequent shots walk toward player.
+ *  Destroying mortar tube → operators flee.
+ *  Killing operator → spotter picks up tube, fires at 12s interval.
  *
- * API:   window.EnemyMortarTeam.init()
- *        window.EnemyMortarTeam.spawn(x, y, z)
- *        window.EnemyMortarTeam.update(dt, playerPos)
- *        window.EnemyMortarTeam.reset()
- *
- * Globals written: window._mortarTeamActive (count)
- *
- * Hooks:
- *   window._onExplosionForScorch(pos, radius) — scorch mark on impact
- *   window._suppressedLevel                   — suppression accumulator
- *   window._gameScore                         — score accumulator
- *
- * All var, IIFE pattern, no let/const.
- */
+ *  Public API:
+ *    EnemyMortarTeam.init(scene, camera)
+ *    EnemyMortarTeam.update(delta)
+ *    EnemyMortarTeam.spawn(x, y, z)
+ *    EnemyMortarTeam.reset()
+ *    EnemyMortarTeam.takeDamage(teamIndex, target, amount)
+ * ════════════════════════════════════════════════════════════════════ */
 window.EnemyMortarTeam = (function () {
   'use strict';
 
-  // ── Constants ─────────────────────────────────────────────────────────
-  var MORTAR_RANGE        = 40;      // max fire range (units)
-  var FIRE_INTERVAL       = 12;      // seconds between fire cycles
-  var VOLLEY_MIN          = 1;       // min shells per volley
-  var VOLLEY_MAX          = 3;       // max shells per volley
-  var SHELL_DELAY         = 8;       // seconds from firing to impact (indirect arc)
-  var SHELL_INTERVAL      = 1.4;     // seconds between shells in a volley
-  var BLAST_RADIUS        = 6;       // units for damage check
-  var NEAR_MISS_RADIUS    = 4;       // units for suppression
-  var SHELL_DAMAGE        = 45;      // damage on direct hit
-  var SUPPRESSION_HIT     = 40;      // suppression added per near miss
-  var CREW_HP             = 50;      // each crewman HP
-  var PREDICTION_LEAD     = 2;       // seconds of movement prediction
-  var LOADER_PERIOD       = 8;       // seconds per load animation cycle
-  var SCORE_KILL          = 500;     // score for destroying team
-  var SMOKE_MISS_CHANCE   = 0.5;     // accuracy penalty near smoke
-  var SMOKE_RADIUS        = 6;       // smoke detection radius
+  /* ── private state ─────────────────────────────────────────────── */
+  var _scene  = null;
+  var _camera = null;
+  var _initialized = false;
 
-  // Dark gray material for mortar hardware
-  var COLOR_DARK_GRAY     = 0x333333;
-  var COLOR_CREW          = 0x4a5a3a;  // olive drab
-  var COLOR_BASEPLATE     = 0x222222;
+  var _teams          = [];   /* active team objects */
+  var _shells         = [];   /* shells in flight */
+  var _indicators     = [];   /* landing circle indicators */
+  var _smokeParticles = [];   /* smoke trail particles */
 
-  // ── Module state ──────────────────────────────────────────────────────
-  var _scene         = null;
-  var _initialized   = false;
-  var _teams         = [];           // active mortar team objects
-  var _audioCtx      = null;
+  var _lastSpawnWave = -999;
 
-  // DOM elements
-  var _warningBanner = null;
-  var _warningTimer  = 0;
-  var _indicators    = [];           // per-impact screen-edge indicators
+  /* ── constants ──────────────────────────────────────────────────── */
+  var OPERATOR_HP   = 60;
+  var SPOTTER_HP    = 60;
+  var TUBE_HP       = 40;
+  var SCORE_REWARD  = 500;
 
-  // ── Helpers ───────────────────────────────────────────────────────────
+  var FIRE_INTERVAL_NORMAL = 8;
+  var FIRE_INTERVAL_SLOW   = 12;
 
-  function _rand(min, max) {
-    return min + Math.random() * (max - min);
+  var SHELL_PEAK_ABOVE      = 20;   /* peak height above player Y */
+  var SHELL_TRAVEL_TIME     = 3.5;  /* seconds from launch to impact */
+  var WARNING_BEFORE_IMPACT = 1.5;  /* seconds indicator shows before impact */
+
+  var BLAST_R1 = 3;  var BLAST_D1 = 100;
+  var BLAST_R2 = 6;  var BLAST_D2 = 60;
+  var BLAST_R3 = 10; var BLAST_D3 = 30;
+
+  var FIRST_SHOT_SPREAD = 6;    /* ±units on first shot */
+  var ACCURACY_STEP     = 0.8;  /* spread shrinks per shot */
+
+  var OPERATOR_COLOR = 0x2D4A1A;
+  var SPOTTER_COLOR  = 0x1A3A0E;
+  var TUBE_COLOR     = 0x666666;
+  var BASEPLATE_COL  = 0x555555;
+  var SHELL_COLOR    = 0x111111;
+  var SMOKE_COLOR    = 0x888888;
+
+  var FLEE_SPEED     = 5;
+  var SPAWN_MIN_DIST = 25;
+  var SPAWN_MAX_DIST = 35;
+
+  /* ════════════════════════════════════════════════════════════════
+     AUDIO — inline Web Audio (no external dependency)
+  ════════════════════════════════════════════════════════════════ */
+  function _getAudioCtx() {
+    if (!window._audioCtx) {
+      try {
+        window._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) { return null; }
+    }
+    return window._audioCtx;
   }
 
-  function _distXZ(a, b) {
-    var dx = a.x - b.x;
-    var dz = (a.z !== undefined ? a.z : 0) - (b.z !== undefined ? b.z : 0);
-    return Math.sqrt(dx * dx + dz * dz);
-  }
-
-  function _getScene() {
-    return _scene || window._gameScene || null;
-  }
-
-  // ── Audio ─────────────────────────────────────────────────────────────
-
-  function _ensureAudio() {
-    if (_audioCtx) return true;
+  function _playLaunch() {
+    var ctx = _getAudioCtx();
+    if (!ctx) return;
     try {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return false;
-      _audioCtx = new AC();
-      return true;
-    } catch (e) {
-      return false;
-    }
+      var dur  = 0.25;
+      var rate = ctx.sampleRate;
+      var buf  = ctx.createBuffer(1, Math.floor(rate * dur), rate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (rate * 0.06));
+      }
+      var src  = ctx.createBufferSource();
+      src.buffer = buf;
+      var gain = ctx.createGain();
+      gain.gain.value = 0.3;
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+    } catch (e) { /* silent */ }
   }
 
-  /** Low 60 Hz pulse — mortar "thunk" launch sound */
-  function _playThunk() {
-    if (!_ensureAudio()) return;
-    var t = _audioCtx.currentTime;
-
-    var osc = _audioCtx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(60, t);
-    osc.frequency.exponentialRampToValueAtTime(30, t + 0.18);
-
-    var gain = _audioCtx.createGain();
-    gain.gain.setValueAtTime(0.9, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-
-    osc.connect(gain);
-    gain.connect(_audioCtx.destination);
-    osc.start(t);
-    osc.stop(t + 0.28);
-
-    // Short click transient
-    var bufSize = Math.floor(_audioCtx.sampleRate * 0.03);
-    var buf = _audioCtx.createBuffer(1, bufSize, _audioCtx.sampleRate);
-    var data = buf.getChannelData(0);
-    for (var i = 0; i < bufSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 3) * 0.5;
-    }
-    var clickSrc = _audioCtx.createBufferSource();
-    clickSrc.buffer = buf;
-    var clickGain = _audioCtx.createGain();
-    clickGain.gain.setValueAtTime(0.5, t);
-    clickSrc.connect(clickGain);
-    clickGain.connect(_audioCtx.destination);
-    clickSrc.start(t);
-  }
-
-  /** Descending whistle 2000→400 Hz over 2 s — incoming warning */
+  /* Descending whistle as shell drops toward player */
   function _playWhistle() {
-    if (!_ensureAudio()) return;
-    var t = _audioCtx.currentTime;
-
-    var osc = _audioCtx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(2000, t);
-    osc.frequency.exponentialRampToValueAtTime(400, t + 2.0);
-
-    var gain = _audioCtx.createGain();
-    gain.gain.setValueAtTime(0.0, t);
-    gain.gain.linearRampToValueAtTime(0.5, t + 0.1);
-    gain.gain.setValueAtTime(0.5, t + 1.8);
-    gain.gain.linearRampToValueAtTime(0.0, t + 2.1);
-
-    osc.connect(gain);
-    gain.connect(_audioCtx.destination);
-    osc.start(t);
-    osc.stop(t + 2.15);
+    var ctx = _getAudioCtx();
+    if (!ctx) return;
+    try {
+      var osc  = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(900, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + WARNING_BEFORE_IMPACT);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.0,  ctx.currentTime + WARNING_BEFORE_IMPACT + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + WARNING_BEFORE_IMPACT + 0.1);
+    } catch (e) { /* silent */ }
   }
 
-  // ── DOM: Warning Banner ───────────────────────────────────────────────
-
-  function _ensureWarningBanner() {
-    if (_warningBanner) return;
-    _warningBanner = document.createElement('div');
-    _warningBanner.id = 'mortar-incoming-banner';
-    _warningBanner.style.cssText = [
-      'position:fixed',
-      'top:18%',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'background:rgba(200,20,0,0.88)',
-      'color:#fff',
-      'font-family:monospace',
-      'font-size:2rem',
-      'font-weight:bold',
-      'letter-spacing:0.12em',
-      'padding:10px 36px',
-      'border:3px solid #ff4400',
-      'border-radius:4px',
-      'pointer-events:none',
-      'display:none',
-      'z-index:9000',
-      'text-shadow:0 2px 8px #000',
-      'animation:mortar-flash 0.4s step-start infinite'
-    ].join(';');
-    _warningBanner.textContent = '⚠  INCOMING!  ⚠';
-
-    // Keyframe animation
-    if (!document.getElementById('mortar-team-style')) {
-      var style = document.createElement('style');
-      style.id = 'mortar-team-style';
-      style.textContent = [
-        '@keyframes mortar-flash {',
-        '  0%,100%{opacity:1} 50%{opacity:0.35}',
-        '}'
-      ].join('');
-      document.head.appendChild(style);
-    }
-
-    document.body.appendChild(_warningBanner);
+  function _playExplosion() {
+    var ctx = _getAudioCtx();
+    if (!ctx) return;
+    try {
+      var dur  = 0.7;
+      var rate = ctx.sampleRate;
+      var buf  = ctx.createBuffer(1, Math.floor(rate * dur), rate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (rate * 0.12));
+      }
+      var src  = ctx.createBufferSource();
+      src.buffer = buf;
+      var gain = ctx.createGain();
+      gain.gain.value = 0.55;
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+    } catch (e) { /* silent */ }
   }
 
-  function _showWarning(duration) {
-    _ensureWarningBanner();
-    _warningBanner.style.display = 'block';
-    _warningTimer = duration;
+  /* ════════════════════════════════════════════════════════════════
+     MESH BUILDERS
+  ════════════════════════════════════════════════════════════════ */
+
+  function _buildSoldierMesh(color, crouched) {
+    var group = new THREE.Group();
+    var mat   = new THREE.MeshLambertMaterial({ color: color });
+    var dark  = new THREE.MeshLambertMaterial({ color: 0x111111 });
+
+    /* torso */
+    var torsoGeo = new THREE.BoxGeometry(0.55, 0.78, 0.32);
+    var torso    = new THREE.Mesh(torsoGeo, mat);
+    torso.position.y = crouched ? 0.28 : 0.52;
+    group.add(torso);
+
+    /* head */
+    var headGeo = new THREE.BoxGeometry(0.32, 0.32, 0.32);
+    var head    = new THREE.Mesh(headGeo, mat);
+    head.position.y = crouched ? 0.76 : 1.08;
+    group.add(head);
+
+    /* arms */
+    var armGeo = new THREE.BoxGeometry(0.18, 0.55, 0.2);
+    var lArm   = new THREE.Mesh(armGeo, mat);
+    var rArm   = new THREE.Mesh(armGeo, mat);
+    var armY   = crouched ? 0.22 : 0.46;
+    lArm.position.set(-0.38, armY, 0);
+    rArm.position.set( 0.38, armY, 0);
+    group.add(lArm);
+    group.add(rArm);
+
+    /* legs */
+    var legGeo = new THREE.BoxGeometry(0.22, 0.55, 0.24);
+    var lLeg   = new THREE.Mesh(legGeo, dark);
+    var rLeg   = new THREE.Mesh(legGeo, dark);
+    lLeg.position.set(-0.16, crouched ? -0.15 : -0.12, 0);
+    rLeg.position.set( 0.16, crouched ? -0.15 : -0.12, 0);
+    group.add(lLeg);
+    group.add(rLeg);
+
+    return group;
   }
 
-  // ── DOM: Screen-edge indicator ────────────────────────────────────────
-
-  function _createIndicator(impactPos, camera) {
-    var el = document.createElement('div');
-    el.style.cssText = [
-      'position:fixed',
-      'width:28px',
-      'height:28px',
-      'pointer-events:none',
-      'z-index:8999',
-      'display:flex',
-      'align-items:center',
-      'justify-content:center',
-      'font-size:18px'
-    ].join(';');
-    el.innerHTML = '&#x25BC;'; // downward triangle shell icon
-    el.title = 'INCOMING';
-
-    var label = document.createElement('span');
-    label.style.cssText = [
-      'position:absolute',
-      'bottom:-16px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'font-family:monospace',
-      'font-size:9px',
-      'color:#ff4400',
-      'white-space:nowrap',
-      'font-weight:bold'
-    ].join(';');
-    label.textContent = 'INCOMING';
-    el.appendChild(label);
-
-    document.body.appendChild(el);
-
-    return {
-      el: el,
-      impactPos: impactPos,
-      ttl: SHELL_DELAY + 1.5
-    };
+  function _buildSpotterMesh() {
+    var group   = _buildSoldierMesh(SPOTTER_COLOR, false);
+    /* binoculars — small box at face height */
+    var binoGeo = new THREE.BoxGeometry(0.2, 0.08, 0.12);
+    var binoMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+    var bino    = new THREE.Mesh(binoGeo, binoMat);
+    bino.position.set(0, 1.08, 0.22);
+    group.add(bino);
+    return group;
   }
 
-  function _updateIndicator(ind, camera, dt) {
-    ind.ttl -= dt;
-    if (ind.ttl <= 0) {
-      if (ind.el.parentNode) ind.el.parentNode.removeChild(ind.el);
-      return false;
-    }
-
-    if (!camera || !window.THREE) {
-      ind.el.style.display = 'none';
-      return true;
-    }
-
-    var THREE = window.THREE;
-    var vp = new THREE.Vector3(ind.impactPos.x, ind.impactPos.y, ind.impactPos.z);
-    vp.project(camera);
-
-    // If in front of camera and on screen, hide indicator
-    var inView = (vp.z < 1) && (Math.abs(vp.x) < 0.9) && (Math.abs(vp.y) < 0.9);
-    if (inView) {
-      ind.el.style.display = 'none';
-      return true;
-    }
-
-    // Position on screen edge pointing toward impact
-    var W = window.innerWidth;
-    var H = window.innerHeight;
-    var angle = Math.atan2(-vp.y, vp.x);
-    var margin = 36;
-    var ex = Math.cos(angle);
-    var ey = -Math.sin(angle);
-    var scale = Math.min((W / 2 - margin) / Math.abs(ex || 0.001),
-                         (H / 2 - margin) / Math.abs(ey || 0.001));
-    var px = W / 2 + ex * scale;
-    var py = H / 2 + ey * scale;
-
-    ind.el.style.display = 'flex';
-    ind.el.style.left = Math.round(px - 14) + 'px';
-    ind.el.style.top  = Math.round(py - 14) + 'px';
-    ind.el.style.color = '#ff4400';
-    ind.el.style.transform = 'rotate(' + (angle + Math.PI / 2) + 'rad)';
-
-    return true;
-  }
-
-  // ── Mesh Construction ─────────────────────────────────────────────────
-
-  function _buildTeamMesh(scene) {
-    var THREE = window.THREE;
+  function _buildMortarMount() {
     var group = new THREE.Group();
 
-    // Baseplate
-    var bpGeo  = new THREE.BoxGeometry(0.4, 0.05, 0.4);
-    var bpMat  = new THREE.MeshLambertMaterial({ color: COLOR_BASEPLATE });
-    var bp     = new THREE.Mesh(bpGeo, bpMat);
-    bp.position.set(0, 0.025, 0);
-    bp.castShadow = true;
-    group.add(bp);
+    /* baseplate */
+    var baseGeo = new THREE.BoxGeometry(0.3, 0.1, 0.3);
+    var baseMat = new THREE.MeshLambertMaterial({ color: BASEPLATE_COL });
+    var base    = new THREE.Mesh(baseGeo, baseMat);
+    base.position.y = 0.05;
+    group.add(base);
 
-    // Mortar tube (angled 60° from vertical = 30° from horizontal)
-    var tubeGeo = new THREE.CylinderGeometry(0.1, 0.15, 0.5, 8);
-    var tubeMat = new THREE.MeshLambertMaterial({ color: COLOR_DARK_GRAY });
+    /* tube — 60° from horizontal = 30° from vertical; tilt via X rotation */
+    var tubeGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.8, 8);
+    var tubeMat = new THREE.MeshLambertMaterial({ color: TUBE_COLOR });
     var tube    = new THREE.Mesh(tubeGeo, tubeMat);
-    // Tilt 60° forward (from vertical): rotate around X by 30°
-    tube.rotation.x = Math.PI / 6;  // 30° → tube points 60° from ground
-    tube.position.set(0, 0.35, -0.1);
-    tube.castShadow = true;
+    tube.rotation.x = -Math.PI / 6;  /* -30° from vertical → muzzle angled 60° from ground */
+    tube.position.set(0, 0.5, -0.1);
     group.add(tube);
 
-    // Crew member 1 — gunner (right side)
-    var crewGeo1 = new THREE.BoxGeometry(0.4, 1.4, 0.3);
-    var crewMat  = new THREE.MeshLambertMaterial({ color: COLOR_CREW });
-    var crew1    = new THREE.Mesh(crewGeo1, crewMat);
-    crew1.position.set(0.5, 0.7, 0);
-    crew1.castShadow = true;
-    group.add(crew1);
-
-    // Crew member 2 — loader (left side, will bob forward)
-    var crewGeo2 = new THREE.BoxGeometry(0.4, 1.4, 0.3);
-    var crew2    = new THREE.Mesh(crewGeo2, crewMat.clone());
-    crew2.position.set(-0.5, 0.7, 0);
-    crew2.castShadow = true;
-    group.add(crew2);
-
-    return { group: group, crew1: crew1, crew2: crew2, tube: tube };
+    group.userData.tube = tube;
+    return group;
   }
 
-  // ── Smoke detection helper ────────────────────────────────────────────
-
-  function _smokeNearTeam(team) {
-    var smokes = window._activeSmokePositions || window._smokeGrenadePositions || [];
-    for (var i = 0; i < smokes.length; i++) {
-      var s = smokes[i];
-      var dx = team.position.x - s.x;
-      var dz = team.position.z - (s.z || 0);
-      if (Math.sqrt(dx * dx + dz * dz) < SMOKE_RADIUS) return true;
-    }
-    return false;
+  /* ════════════════════════════════════════════════════════════════
+     SCENE / PLAYER HELPERS
+  ════════════════════════════════════════════════════════════════ */
+  function _getScene() {
+    if (_scene) return _scene;
+    if (window.GameManager && window.GameManager.getScene) return window.GameManager.getScene();
+    return window._gameScene || null;
   }
 
-  // ── Impact handling ───────────────────────────────────────────────────
+  function _getPlayer() {
+    if (window.GameManager && window.GameManager.getPlayer) return window.GameManager.getPlayer();
+    return window.player || null;
+  }
 
-  function _triggerImpact(impactPos, team) {
-    var scene = _getScene();
-    var THREE = window.THREE;
-
-    // Explosion VFX
-    if (window.StageVFX && window.StageVFX.spawnExplosion) {
-      window.StageVFX.spawnExplosion(impactPos.x, impactPos.y, impactPos.z);
-    } else if (scene && THREE) {
-      // Fallback: simple flash sphere
-      var flashGeo = new THREE.SphereGeometry(1.2, 8, 8);
-      var flashMat = new THREE.MeshBasicMaterial({ color: 0xff8800 });
-      var flash    = new THREE.Mesh(flashGeo, flashMat);
-      flash.position.set(impactPos.x, impactPos.y + 0.5, impactPos.z);
-      scene.add(flash);
-      setTimeout(function () { if (flash.parent) flash.parent.remove(flash); }, 200);
+  function _dealDamage(amount) {
+    if (window._takeDamageFromWaveEvent) {
+      window._takeDamageFromWaveEvent(amount);
+    } else if (window.GameManager && window.GameManager.takeDamage) {
+      window.GameManager.takeDamage(amount, 'mortar');
+    } else {
+      var p = _getPlayer();
+      if (p) {
+        if (typeof p.health === 'number') { p.health = Math.max(0, p.health - amount); }
+        else if (typeof p.hp === 'number') { p.hp    = Math.max(0, p.hp    - amount); }
+      }
     }
+    if (window.HUD && window.HUD.showDamageFlash) { window.HUD.showDamageFlash(); }
+  }
 
-    // Scorch mark hook
-    if (typeof window._onExplosionForScorch === 'function') {
-      window._onExplosionForScorch(
-        { x: impactPos.x, y: impactPos.y, z: impactPos.z },
-        BLAST_RADIUS
-      );
-    }
+  function _showToast(msg) {
+    if (window.HUD && window.HUD.showToast) { window.HUD.showToast(msg); }
+  }
 
-    // Camera shake
-    if (window._triggerCameraShake) {
-      window._triggerCameraShake(1.1);
-    } else if (window.CameraSystem && window.CameraSystem.shake) {
-      window.CameraSystem.shake(1.1);
-    }
+  function _showIncomingHUD() {
+    _showToast('INCOMING FIRE!');
+    try {
+      var flash = document.createElement('div');
+      flash.style.cssText = [
+        'position:fixed',
+        'top:0',
+        'left:0',
+        'width:100%',
+        'height:100%',
+        'background:rgba(255,0,0,0.35)',
+        'pointer-events:none',
+        'z-index:9999'
+      ].join(';');
+      document.body.appendChild(flash);
+      setTimeout(function () {
+        if (flash.parentNode) { flash.parentNode.removeChild(flash); }
+      }, 500);
+    } catch (e) { /* not in browser env */ }
+  }
 
-    // Player damage check
-    var playerPos = window._playerPosition || window._player && window._player.position;
-    if (playerPos) {
-      var dx = playerPos.x - impactPos.x;
-      var dz = playerPos.z - impactPos.z;
+  /* ════════════════════════════════════════════════════════════════
+     LANDING INDICATOR — red circle flashes on ground before impact
+  ════════════════════════════════════════════════════════════════ */
+  function _spawnIndicator(tx, tz) {
+    var sc = _getScene();
+    if (!sc) return null;
+
+    var geo  = new THREE.CircleGeometry(1.5, 20);
+    var mat  = new THREE.MeshBasicMaterial({
+      color: 0xFF0000,
+      transparent: true,
+      opacity: 0.75,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(tx, 0.05, tz);
+    sc.add(mesh);
+
+    var ind = { mesh: mesh, mat: mat, life: 0, maxLife: WARNING_BEFORE_IMPACT };
+    _indicators.push(ind);
+    return ind;
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     SMOKE TRAIL PARTICLE
+  ════════════════════════════════════════════════════════════════ */
+  function _spawnSmoke(x, y, z) {
+    var sc = _getScene();
+    if (!sc) return;
+
+    var geo  = new THREE.SphereGeometry(0.07 + Math.random() * 0.09, 4, 4);
+    var mat  = new THREE.MeshBasicMaterial({
+      color: SMOKE_COLOR,
+      transparent: true,
+      opacity: 0.55
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    sc.add(mesh);
+
+    _smokeParticles.push({
+      mesh    : mesh,
+      mat     : mat,
+      life    : 0,
+      maxLife : 0.8 + Math.random() * 0.5,
+      vx      : (Math.random() - 0.5) * 0.4,
+      vy      : 0.3 + Math.random() * 0.5,
+      vz      : (Math.random() - 0.5) * 0.4
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     BLAST HANDLER
+  ════════════════════════════════════════════════════════════════ */
+  function _handleBlast(tx, tz) {
+    _playExplosion();
+
+    var player = _getPlayer();
+    if (player && player.position) {
+      var dx   = player.position.x - tx;
+      var dz   = player.position.z - tz;
       var dist = Math.sqrt(dx * dx + dz * dz);
 
-      if (dist < BLAST_RADIUS) {
-        var dmg = Math.round(SHELL_DAMAGE * (1 - dist / BLAST_RADIUS));
-        if (window._applyPlayerDamage) {
-          window._applyPlayerDamage(dmg, 'mortar');
-        } else if (window.Player && window.Player.takeDamage) {
-          window.Player.takeDamage(dmg);
-        } else if (window._playerHP !== undefined) {
-          window._playerHP = Math.max(0, (window._playerHP || 0) - dmg);
+      var dmg = 0;
+      if      (dist <= BLAST_R1) { dmg = BLAST_D1; }
+      else if (dist <= BLAST_R2) { dmg = BLAST_D2; }
+      else if (dist <= BLAST_R3) { dmg = BLAST_D3; }
+
+      if (dmg > 0) {
+        _dealDamage(dmg);
+        _showIncomingHUD();
+      }
+    }
+
+    /* debris smoke puffs */
+    for (var i = 0; i < 12; i++) {
+      _spawnSmoke(
+        tx + (Math.random() - 0.5) * 2,
+        0.2 + Math.random() * 1.0,
+        tz + (Math.random() - 0.5) * 2
+      );
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     SHELL LAUNCH
+  ════════════════════════════════════════════════════════════════ */
+  function _fireShell(team) {
+    var sc = _getScene();
+    if (!sc) return;
+
+    var player = _getPlayer();
+    if (!player || !player.position) return;
+
+    /* target with spread; accuracy improves each shot */
+    var spread = team.currentSpread;
+    var tx = player.position.x + (Math.random() * 2 - 1) * spread;
+    var tz = player.position.z + (Math.random() * 2 - 1) * spread;
+    team.currentSpread = Math.max(0.3, team.currentSpread - ACCURACY_STEP);
+    team.shotsFired++;
+
+    var sx = team.pos.x;
+    var sz = team.pos.z;
+    var sy = 1.2;  /* muzzle height */
+
+    var peakY = (player.position.y || 0) + SHELL_PEAK_ABOVE;
+
+    var geo  = new THREE.SphereGeometry(0.18, 7, 7);
+    var mat  = new THREE.MeshLambertMaterial({ color: SHELL_COLOR });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(sx, sy, sz);
+    sc.add(mesh);
+
+    _playLaunch();
+
+    _shells.push({
+      mesh             : mesh,
+      startX           : sx,
+      startY           : sy,
+      startZ           : sz,
+      targetX          : tx,
+      targetZ          : tz,
+      peakY            : peakY,
+      life             : 0,
+      travelTime       : SHELL_TRAVEL_TIME,
+      smokeTimer       : 0,
+      indicatorSpawned : false,
+      whistlePlayed    : false
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     TEAM DEATH / KILL HELPERS
+  ════════════════════════════════════════════════════════════════ */
+  function _removeMeshes(team) {
+    var sc = _getScene();
+    if (!sc) return;
+    if (team.operatorMesh) { sc.remove(team.operatorMesh); }
+    if (team.spotterMesh)  { sc.remove(team.spotterMesh);  }
+    if (team.mortarGroup)  { sc.remove(team.mortarGroup);  }
+    team.operatorMesh = null;
+    team.spotterMesh  = null;
+    team.mortarGroup  = null;
+  }
+
+  function _killTeam(team) {
+    if (team.dead) return;
+    team.dead = true;
+
+    if (!team.scoreGiven) {
+      team.scoreGiven = true;
+      var p = _getPlayer();
+      if (p && typeof p.score === 'number') { p.score += SCORE_REWARD; }
+      _showToast('+500 — Mortar team eliminated!');
+    }
+
+    _removeMeshes(team);
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     PUBLIC takeDamage — called by ray-cast hit system
+     target: 'operator' | 'spotter' | 'tube'
+     teamIndex: index in _teams array
+  ════════════════════════════════════════════════════════════════ */
+  function takeDamage(teamIndex, target, amount) {
+    var team = _teams[teamIndex];
+    if (!team || team.dead) return;
+
+    if (target === 'operator') {
+      team.operatorHP -= amount;
+      if (team.operatorHP <= 0) {
+        team.operatorHP    = 0;
+        team.operatorAlive = false;
+        if (team.operatorMesh) { team.operatorMesh.visible = false; }
+
+        if (team.spotterAlive && team.tubeAlive) {
+          /* spotter picks up tube — slower fire rate, reset timer */
+          team.fireTimer = FIRE_INTERVAL_SLOW;
+          _showToast('Operator down — spotter taking over!');
+        } else {
+          _checkTeamDead(teamIndex);
         }
-      } else if (dist < NEAR_MISS_RADIUS) {
-        // Near-miss suppression
-        if (window._suppressedLevel !== undefined) {
-          window._suppressedLevel = (window._suppressedLevel || 0) + SUPPRESSION_HIT;
-        }
+      }
+    } else if (target === 'spotter') {
+      team.spotterHP -= amount;
+      if (team.spotterHP <= 0) {
+        team.spotterHP    = 0;
+        team.spotterAlive = false;
+        if (team.spotterMesh) { team.spotterMesh.visible = false; }
+        _checkTeamDead(teamIndex);
+      }
+    } else if (target === 'tube') {
+      team.tubeHP -= amount;
+      if (team.tubeHP <= 0) {
+        team.tubeHP    = 0;
+        team.tubeAlive = false;
+        if (team.mortarGroup) { team.mortarGroup.visible = false; }
+
+        /* operators flee */
+        team.fleeing = true;
+        var angle = Math.random() * Math.PI * 2;
+        team.fleeDir.set(Math.cos(angle), 0, Math.sin(angle));
+        _showToast('Mortar tube destroyed — crew fleeing!');
       }
     }
   }
 
-  // ── Fire a volley from a team ─────────────────────────────────────────
-
-  function _fireVolley(team, playerPos) {
-    var count = Math.floor(_rand(VOLLEY_MIN, VOLLEY_MAX + 1));
-    var hasSmokeNear = _smokeNearTeam(team);
-
-    for (var i = 0; i < count; i++) {
-      (function (shellIndex) {
-        // Predictive aim: target = playerPos + velocity * PREDICTION_LEAD
-        var targetX = playerPos.x + (team._playerVelX || 0) * PREDICTION_LEAD;
-        var targetZ = playerPos.z + (team._playerVelZ || 0) * PREDICTION_LEAD;
-
-        // Smoke accuracy reduction
-        if (hasSmokeNear && Math.random() < SMOKE_MISS_CHANCE) {
-          targetX += _rand(-8, 8);
-          targetZ += _rand(-8, 8);
-        }
-
-        // Small natural scatter
-        targetX += _rand(-1.5, 1.5);
-        targetZ += _rand(-1.5, 1.5);
-
-        var impactPos = { x: targetX, y: 0, z: targetZ };
-
-        // Schedule: thunk sound + warning 8s before impact
-        var launchDelay = shellIndex * SHELL_INTERVAL;
-        var impactDelay = launchDelay + SHELL_DELAY;
-
-        setTimeout(function () {
-          if (team._destroyed) return;
-          _playThunk();
-        }, launchDelay * 1000);
-
-        // Warning appears SHELL_DELAY seconds before impact (at launch time)
-        setTimeout(function () {
-          if (team._destroyed) return;
-          _playWhistle();
-          _showWarning(SHELL_DELAY);
-          var camera = window._camera || window._gameCamera;
-          var ind = _createIndicator(impactPos, camera);
-          _indicators.push(ind);
-        }, launchDelay * 1000);
-
-        setTimeout(function () {
-          if (team._destroyed) return;
-          _triggerImpact(impactPos, team);
-        }, impactDelay * 1000);
-      })(i);
-    }
+  function _checkTeamDead(teamIndex) {
+    var team = _teams[teamIndex];
+    if (!team) return;
+    if (!team.operatorAlive && !team.spotterAlive) { _killTeam(team); }
   }
 
-  // ── Team destruction ──────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════
+     TEAM OBJECT FACTORY
+  ════════════════════════════════════════════════════════════════ */
+  function _createTeam(x, z) {
+    var operatorMesh = _buildSoldierMesh(OPERATOR_COLOR, true);
+    var spotterMesh  = _buildSpotterMesh();
+    var mortarGroup  = _buildMortarMount();
 
-  function _killCrewman(team, index) {
-    team._crewHP[index] = 0;
-    var scene = _getScene();
-    var THREE = window.THREE;
-    if (!scene || !THREE) return;
+    operatorMesh.position.set(x + 0.5, 0, z);
+    spotterMesh.position.set(x - 0.8, 0, z + 0.3);
+    mortarGroup.position.set(x, 0, z - 0.4);
 
-    var crewMesh = (index === 0) ? team.meshes.crew1 : team.meshes.crew2;
-    // Ragdoll-style: tip over
-    crewMesh.rotation.z = Math.PI / 2 * (index === 0 ? 1 : -1);
-    crewMesh.position.y = 0.2;
-
-    if (typeof window._onEnemyDeathForBlood === 'function') {
-      window._onEnemyDeathForBlood({ position: crewMesh.position });
+    var sc = _getScene();
+    if (sc) {
+      sc.add(operatorMesh);
+      sc.add(spotterMesh);
+      sc.add(mortarGroup);
     }
 
-    // Check if both dead
-    if (team._crewHP[0] <= 0 && team._crewHP[1] <= 0) {
-      _destroyTeam(team);
-    }
-  }
+    return {
+      operatorMesh   : operatorMesh,
+      spotterMesh    : spotterMesh,
+      mortarGroup    : mortarGroup,
+      pos            : new THREE.Vector3(x, 0, z),
 
-  function _destroyTeam(team) {
-    if (team._destroyed) return;
-    team._destroyed = true;
+      operatorHP     : OPERATOR_HP,
+      spotterHP      : SPOTTER_HP,
+      tubeHP         : TUBE_HP,
 
-    // Score
-    if (window._gameScore !== undefined) {
-      window._gameScore = (window._gameScore || 0) + SCORE_KILL;
-    } else if (window.ScoreSystem && window.ScoreSystem.add) {
-      window.ScoreSystem.add(SCORE_KILL, 'Mortar Team');
-    }
+      operatorAlive  : true,
+      spotterAlive   : true,
+      tubeAlive      : true,
 
-    // Remove mesh after short delay (so death animation visible)
-    var scene = _getScene();
-    setTimeout(function () {
-      if (scene && team.meshes && team.meshes.group) {
-        scene.remove(team.meshes.group);
-      }
-    }, 2500);
+      fleeing        : false,
+      fleeDir        : new THREE.Vector3(0, 0, 0),
 
-    // Update active count
-    window._mortarTeamActive = Math.max(0, (window._mortarTeamActive || 1) - 1);
+      spotterPhase   : 0,
+      spotterTimer   : 0,
 
-    // Remove from array
-    for (var i = _teams.length - 1; i >= 0; i--) {
-      if (_teams[i] === team) { _teams.splice(i, 1); break; }
-    }
-  }
+      fireTimer      : FIRE_INTERVAL_NORMAL * 0.5,
+      shotsFired     : 0,
+      currentSpread  : FIRST_SHOT_SPREAD,
 
-  // ── Public: init ──────────────────────────────────────────────────────
-
-  function init() {
-    if (_initialized) return;
-    _initialized = true;
-    _scene = _getScene();
-    window._mortarTeamActive = window._mortarTeamActive || 0;
-    _ensureWarningBanner();
-  }
-
-  // ── Public: spawn ─────────────────────────────────────────────────────
-
-  function spawn(x, y, z) {
-    var scene = _getScene();
-    if (!scene || !window.THREE) {
-      console.warn('[EnemyMortarTeam] No scene or THREE available');
-      return null;
-    }
-
-    var meshData = _buildTeamMesh(scene);
-    meshData.group.position.set(x, y, z);
-    scene.add(meshData.group);
-
-    var team = {
-      position:    { x: x, y: y, z: z },
-      meshes:      meshData,
-      _crewHP:     [CREW_HP, CREW_HP],
-      _destroyed:  false,
-      _fireTimer:  _rand(4, FIRE_INTERVAL),  // stagger initial fire
-      _loaderTime: 0,
-      _loaderBob:  false,
-      _playerVelX: 0,
-      _playerVelZ: 0,
-      _lastPlayerPos: null,
-
-      // Public takeDamage for other systems
-      takeDamage: function (amount, hitPos) {
-        if (this._destroyed) return;
-        // Split damage randomly between crew (or target closest)
-        var target = Math.random() < 0.5 ? 0 : 1;
-        if (this._crewHP[target] <= 0) target = 1 - target;
-        if (this._crewHP[target] <= 0) return;
-        this._crewHP[target] -= amount;
-        if (this._crewHP[target] <= 0) {
-          _killCrewman(this, target);
-        }
-      }
+      dead           : false,
+      scoreGiven     : false
     };
+  }
 
+  /* ════════════════════════════════════════════════════════════════
+     SPAWN (public)
+  ════════════════════════════════════════════════════════════════ */
+  function spawn(x, y, z) {
+    if (!_scene) {
+      _scene  = (window.GameManager && window.GameManager.getScene)
+                ? window.GameManager.getScene()
+                : window._gameScene;
+      _camera = (window.GameManager && window.GameManager.getCamera)
+                ? window.GameManager.getCamera()
+                : window._camera;
+    }
+
+    var spawnX = (x !== undefined) ? x : 0;
+    var spawnZ = (z !== undefined) ? z : 0;
+
+    if (x === undefined) {
+      var player = _getPlayer();
+      if (player && player.position) {
+        var angle = Math.random() * Math.PI * 2;
+        var dist  = SPAWN_MIN_DIST + Math.random() * (SPAWN_MAX_DIST - SPAWN_MIN_DIST);
+        spawnX = player.position.x + Math.cos(angle) * dist;
+        spawnZ = player.position.z + Math.sin(angle) * dist;
+      }
+    }
+
+    var team = _createTeam(spawnX, spawnZ);
     _teams.push(team);
-    window._mortarTeamActive = (_mortarTeamActive || 0) + 1;
-
     return team;
   }
 
-  // Expose spawn alias: window._mortarTeamActive needs to read the closure var
-  var _mortarTeamActive = window._mortarTeamActive || 0;
+  /* ════════════════════════════════════════════════════════════════
+     UPDATE SUB-SYSTEMS
+  ════════════════════════════════════════════════════════════════ */
 
-  // ── Public: update ────────────────────────────────────────────────────
+  function _updateWaveSpawn() {
+    var gm = window.GameManager;
+    if (!gm || !gm.getCurrentWave) return;
+    var wave = gm.getCurrentWave();
+    if (wave < 6) return;
 
-  function update(dt, playerPos) {
-    // Update warning banner timer
-    if (_warningTimer > 0) {
-      _warningTimer -= dt;
-      if (_warningTimer <= 0 && _warningBanner) {
-        _warningBanner.style.display = 'none';
-      }
-    }
+    /* wave 6, 10, 14, 18 … → every 4th wave from 6 */
+    if ((wave - 6) % 4 !== 0) return;
+    if (wave === _lastSpawnWave) return;
+    _lastSpawnWave = wave;
+    spawn();
+  }
 
-    // Update screen-edge indicators
-    var camera = window._camera || window._gameCamera;
-    for (var k = _indicators.length - 1; k >= 0; k--) {
-      if (!_updateIndicator(_indicators[k], camera, dt)) {
-        _indicators.splice(k, 1);
-      }
-    }
+  function _updateTeams(delta) {
+    var i, team, player, dx, dz, dist;
 
-    if (!playerPos) return;
+    for (i = _teams.length - 1; i >= 0; i--) {
+      team = _teams[i];
+      if (!team) continue;
 
-    for (var i = 0; i < _teams.length; i++) {
-      var team = _teams[i];
-      if (team._destroyed) continue;
-
-      // Track player velocity for prediction
-      if (team._lastPlayerPos) {
-        team._playerVelX = (playerPos.x - team._lastPlayerPos.x) / dt;
-        team._playerVelZ = (playerPos.z - team._lastPlayerPos.z) / dt;
-      }
-      team._lastPlayerPos = { x: playerPos.x, y: playerPos.y || 0, z: playerPos.z };
-
-      // Range check (indirect fire, no LOS needed)
-      var dist = _distXZ(team.position, playerPos);
-      if (dist > MORTAR_RANGE) continue;
-
-      // Fire timer
-      team._fireTimer -= dt;
-      if (team._fireTimer <= 0) {
-        _fireVolley(team, playerPos);
-        team._fireTimer = FIRE_INTERVAL;
+      if (team.dead) {
+        _teams.splice(i, 1);
+        continue;
       }
 
-      // Loader animation — crew2 bobs forward every LOADER_PERIOD seconds
-      team._loaderTime += dt;
-      if (team._loaderTime >= LOADER_PERIOD) {
-        team._loaderTime -= LOADER_PERIOD;
-        team._loaderBob = true;
-      }
+      /* flee movement when tube is destroyed */
+      if (team.fleeing) {
+        team.pos.x += team.fleeDir.x * FLEE_SPEED * delta;
+        team.pos.z += team.fleeDir.z * FLEE_SPEED * delta;
 
-      if (team._crewHP[1] > 0) {
-        var loader = team.meshes.crew2;
-        if (team._loaderBob) {
-          var bobFrac = team._loaderTime / 0.6;  // 0.6 s bob duration
-          if (bobFrac < 1) {
-            loader.rotation.x = Math.sin(bobFrac * Math.PI) * 0.45;
-          } else {
-            loader.rotation.x = 0;
-            team._loaderBob = false;
+        if (team.operatorMesh) {
+          team.operatorMesh.position.set(team.pos.x + 0.5, 0, team.pos.z);
+        }
+        if (team.spotterMesh) {
+          team.spotterMesh.position.set(team.pos.x - 0.8, 0, team.pos.z + 0.3);
+        }
+
+        player = _getPlayer();
+        if (player && player.position) {
+          dx   = team.pos.x - player.position.x;
+          dz   = team.pos.z - player.position.z;
+          dist = Math.sqrt(dx * dx + dz * dz);
+          if (dist > 80) {
+            _removeMeshes(team);
+            team.dead = true;
           }
         }
+        continue;
+      }
+
+      /* spotter looks at player */
+      player = _getPlayer();
+      if (player && player.position && team.spotterMesh) {
+        team.spotterMesh.lookAt(
+          player.position.x,
+          team.spotterMesh.position.y,
+          player.position.z
+        );
+      }
+
+      /* spotter signal bob */
+      team.spotterTimer += delta;
+      if (team.spotterTimer > 2.0) {
+        team.spotterTimer = 0;
+        team.spotterPhase = (team.spotterPhase === 0) ? 1 : 0;
+        if (team.spotterMesh) {
+          team.spotterMesh.position.y = (team.spotterPhase === 1) ? 0.06 : 0;
+        }
+      }
+
+      /* fire control — needs tube plus at least one crew member */
+      if (!team.tubeAlive) continue;
+      if (!team.operatorAlive && !team.spotterAlive) continue;
+
+      team.fireTimer -= delta;
+      if (team.fireTimer <= 0) {
+        var interval = team.operatorAlive ? FIRE_INTERVAL_NORMAL : FIRE_INTERVAL_SLOW;
+        team.fireTimer = interval;
+        _fireShell(team);
       }
     }
   }
 
-  // ── Public: reset ─────────────────────────────────────────────────────
+  function _updateShells(delta) {
+    var i, s, t, px, pz, py, baseY, arcY, timeLeft, sc;
 
+    for (i = _shells.length - 1; i >= 0; i--) {
+      s = _shells[i];
+      s.life += delta;
+      t = Math.min(s.life / s.travelTime, 1.0);
+
+      /* parabolic arc interpolation */
+      px    = s.startX + (s.targetX - s.startX) * t;
+      pz    = s.startZ + (s.targetZ - s.startZ) * t;
+      baseY = s.startY * (1 - t);
+      arcY  = 4 * s.peakY * t * (1 - t);
+      py    = baseY + arcY;
+
+      s.mesh.position.set(px, py, pz);
+
+      /* smoke trail */
+      s.smokeTimer += delta;
+      if (s.smokeTimer > 0.05) {
+        s.smokeTimer = 0;
+        _spawnSmoke(px, py, pz);
+      }
+
+      /* landing indicator appears WARNING_BEFORE_IMPACT s before impact */
+      timeLeft = s.travelTime - s.life;
+      if (!s.indicatorSpawned && timeLeft <= WARNING_BEFORE_IMPACT) {
+        s.indicatorSpawned = true;
+        _spawnIndicator(s.targetX, s.targetZ);
+      }
+
+      /* whistle starts at apex (t=0.5) */
+      if (!s.whistlePlayed && t >= 0.5) {
+        s.whistlePlayed = true;
+        _playWhistle();
+      }
+
+      /* impact */
+      if (t >= 1.0) {
+        sc = _getScene();
+        if (sc) { sc.remove(s.mesh); }
+        _shells.splice(i, 1);
+        _handleBlast(s.targetX, s.targetZ);
+      }
+    }
+  }
+
+  function _updateIndicators(delta) {
+    var i, ind, phase, sc;
+
+    for (i = _indicators.length - 1; i >= 0; i--) {
+      ind = _indicators[i];
+      ind.life += delta;
+
+      /* flash by oscillating opacity */
+      phase = ind.life / ind.maxLife;
+      ind.mat.opacity = 0.4 + 0.55 * Math.abs(Math.sin(phase * Math.PI * 6));
+
+      if (ind.life >= ind.maxLife) {
+        sc = _getScene();
+        if (sc) { sc.remove(ind.mesh); }
+        _indicators.splice(i, 1);
+      }
+    }
+  }
+
+  function _updateSmoke(delta) {
+    var i, p, t, sc;
+
+    for (i = _smokeParticles.length - 1; i >= 0; i--) {
+      p = _smokeParticles[i];
+      p.life += delta;
+      t = p.life / p.maxLife;
+
+      p.mesh.position.x += p.vx * delta;
+      p.mesh.position.y += p.vy * delta;
+      p.mesh.position.z += p.vz * delta;
+      p.mat.opacity = 0.55 * (1 - t);
+
+      if (p.life >= p.maxLife) {
+        sc = _getScene();
+        if (sc) { sc.remove(p.mesh); }
+        _smokeParticles.splice(i, 1);
+      }
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     INIT (public)
+  ════════════════════════════════════════════════════════════════ */
+  function init(scene, camera) {
+    _scene  = scene  || (window.GameManager && window.GameManager.getScene
+              ? window.GameManager.getScene()
+              : window._gameScene);
+    _camera = camera || (window.GameManager && window.GameManager.getCamera
+              ? window.GameManager.getCamera()
+              : window._camera);
+
+    _teams          = [];
+    _shells         = [];
+    _indicators     = [];
+    _smokeParticles = [];
+    _lastSpawnWave  = -999;
+    _initialized    = true;
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     UPDATE (public)
+  ════════════════════════════════════════════════════════════════ */
+  function update(delta) {
+    if (!_scene) {
+      _scene  = (window.GameManager && window.GameManager.getScene)
+                ? window.GameManager.getScene()
+                : window._gameScene;
+      _camera = (window.GameManager && window.GameManager.getCamera)
+                ? window.GameManager.getCamera()
+                : window._camera;
+    }
+
+    _updateWaveSpawn();
+    _updateTeams(delta);
+    _updateShells(delta);
+    _updateIndicators(delta);
+    _updateSmoke(delta);
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     RESET (public)
+  ════════════════════════════════════════════════════════════════ */
   function reset() {
-    var scene = _getScene();
-    for (var i = 0; i < _teams.length; i++) {
-      var team = _teams[i];
-      if (scene && team.meshes && team.meshes.group) {
-        scene.remove(team.meshes.group);
+    var sc = _getScene();
+    var i;
+
+    for (i = 0; i < _teams.length; i++) {
+      if (sc) {
+        if (_teams[i].operatorMesh) { sc.remove(_teams[i].operatorMesh); }
+        if (_teams[i].spotterMesh)  { sc.remove(_teams[i].spotterMesh);  }
+        if (_teams[i].mortarGroup)  { sc.remove(_teams[i].mortarGroup);  }
       }
     }
-    _teams = [];
-    window._mortarTeamActive = 0;
-
-    // Clean up indicators
-    for (var k = 0; k < _indicators.length; k++) {
-      if (_indicators[k].el && _indicators[k].el.parentNode) {
-        _indicators[k].el.parentNode.removeChild(_indicators[k].el);
-      }
+    for (i = 0; i < _shells.length; i++) {
+      if (sc && _shells[i].mesh) { sc.remove(_shells[i].mesh); }
     }
-    _indicators = [];
-
-    if (_warningBanner) {
-      _warningBanner.style.display = 'none';
+    for (i = 0; i < _indicators.length; i++) {
+      if (sc && _indicators[i].mesh) { sc.remove(_indicators[i].mesh); }
     }
-    _warningTimer = 0;
+    for (i = 0; i < _smokeParticles.length; i++) {
+      if (sc && _smokeParticles[i].mesh) { sc.remove(_smokeParticles[i].mesh); }
+    }
+
+    _teams          = [];
+    _shells         = [];
+    _indicators     = [];
+    _smokeParticles = [];
+    _lastSpawnWave  = -999;
   }
 
-  // ── Public API ────────────────────────────────────────────────────────
-
+  /* ════════════════════════════════════════════════════════════════
+     PUBLIC API
+  ════════════════════════════════════════════════════════════════ */
   return {
-    init:   init,
-    update: update,
-    spawn:  spawn,
-    reset:  reset
+    init       : init,
+    update     : update,
+    spawn      : spawn,
+    reset      : reset,
+    takeDamage : takeDamage
   };
 
 })();
