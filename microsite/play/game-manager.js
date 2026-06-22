@@ -1227,7 +1227,8 @@ const GameManager = (function () {
       _renderer = createRendererWithFallback();
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
-        let stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
+        if (typeof Mines !== 'undefined') Mines.init(_scene);
+        var stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
         _scene.background = new THREE.Color(fogColor);
@@ -3416,7 +3417,17 @@ const GameManager = (function () {
     }
 
     // Generate level terrain and features
+    if (typeof Mines !== 'undefined') Mines.clear();
     window.VoxelWorld.generateLevel(stageIndex);
+
+    // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
+    if (stageDef.id === 2 || stageDef.id === 3 || stageDef.id === 10 || stageDef.id === 16) {
+      var _minePositions = [[-15,0,-20],[15,0,-20],[0,0,-30],[25,0,10],[-25,0,10],[-10,0,15],[10,0,-15],[-30,0,-25],[30,0,25],[0,0,20]];
+      for (var _mi = 0; _mi < _minePositions.length; _mi++) {
+        if (typeof Mines !== 'undefined') Mines.placeMine(_minePositions[_mi][0], 0, _minePositions[_mi][2]);
+      }
+      HUD.notifyPickup('⚠️ MINEFIELD DETECTED', '#ffaa00');
+    }
 
     // Capital defense (Kyiv): fresh city integrity + defense zone at Maidan.
     if (typeof ConvoySystem !== 'undefined') {
@@ -5409,6 +5420,17 @@ const GameManager = (function () {
           }
           return;
         }
+        // ── Mine detonation: check if bullet hit a landmine mesh or passed near one ──
+        if (typeof Mines !== 'undefined') {
+          var _hitMineByMesh = hit.object && hit.object.userData && hit.object.userData.isMine;
+          if (_hitMineByMesh) {
+            Mines.checkBulletHit(hit.object.position.x, hit.object.position.y, hit.object.position.z, 0.8);
+            return;
+          }
+          if (hit.point) {
+            Mines.checkBulletHit(hit.point.x, hit.point.y, hit.point.z, 0.8);
+          }
+        }
         // ── Friendly Fire: check if bullet hit a Ukrainian NPC ──
         var hitNPC = null;
         var _nWalk = hit.object;
@@ -7146,6 +7168,18 @@ const GameManager = (function () {
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
         if (waveDone) onWaveComplete();
       });
+      // Check if any enemy stepped on a landmine
+      if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
+        var _mineEnemies = Enemies.getAll();
+        for (var _mei = 0; _mei < _mineEnemies.length; _mei++) {
+          var _me = _mineEnemies[_mei];
+          if (!_me || !_me.alive || !_me.mesh) continue;
+          var _mineHit = Mines.checkTrigger(_me.mesh.position.x, _me.mesh.position.z, 0.5);
+          if (_mineHit) {
+            Enemies.damage(_me, 80);
+          }
+        }
+      }
       Pickups.update(delta, player.position, function (type, data) {
         AudioSystem.playPickup();
         MLSystem.onPickup();
