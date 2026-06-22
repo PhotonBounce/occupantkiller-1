@@ -14065,6 +14065,691 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_zaporizhzhia_dam', x: ox - 26, z: oz - 6, w: 52, d: 28, baseY: h, floorH: 16, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── MARIUPOL: Azovstal Integrated Iron and Steel Works ───────────────────
+  // Largest steel plant in Europe — last Ukrainian defenders held out here
+  function generateAzovstasPlant(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+
+    // Main blast furnace tower: 10×10 METAL base, 24 blocks high, LIGHT at top
+    for (y = 0; y < 24; y++) {
+      for (i = 0; i < 10; i++) {
+        for (j = 0; j < 10; j++) {
+          if (i === 0 || i === 9 || j === 0 || j === 9 || y === 0) {
+            setBlock(ox + i, h + y, oz + j, BLOCK.METAL);
+          }
+        }
+      }
+    }
+    setBlock(ox + 5, h + 24, oz + 5, BLOCK.LIGHT);
+
+    // 2 secondary furnace stacks: 6×6 METAL, 18 high, LIGHT at top
+    var stacks = [[-8, 5], [12, 5]];
+    for (var si = 0; si < stacks.length; si++) {
+      var sx = ox + stacks[si][0], sz = oz + stacks[si][1];
+      for (y = 0; y < 18; y++) {
+        for (i = 0; i < 6; i++) {
+          for (j = 0; j < 6; j++) {
+            if (i === 0 || i === 5 || j === 0 || j === 5 || y === 0) {
+              setBlock(sx + i, h + y, sz + j, BLOCK.METAL);
+            }
+          }
+        }
+      }
+      setBlock(sx + 3, h + 18, sz + 3, BLOCK.LIGHT);
+    }
+
+    // Rolling mill shed: 40×14 METAL, 6 high, GLASS panels every 4 blocks on long walls
+    var rmx = ox - 20, rmz = oz + 15;
+    for (i = 0; i < 40; i++) {
+      for (y = 0; y < 6; y++) {
+        setBlock(rmx + i, h + y, rmz, BLOCK.METAL);
+        setBlock(rmx + i, h + y, rmz + 13, BLOCK.METAL);
+      }
+      if (y === 6) {
+        setBlock(rmx + i, h + 6, rmz, BLOCK.METAL);
+        setBlock(rmx + i, h + 6, rmz + 13, BLOCK.METAL);
+      }
+    }
+    for (j = 0; j < 14; j++) {
+      for (y = 0; y < 6; y++) {
+        setBlock(rmx, h + y, rmz + j, BLOCK.METAL);
+        setBlock(rmx + 39, h + y, rmz + j, BLOCK.METAL);
+      }
+    }
+    // GLASS panels every 4 blocks on long walls
+    for (i = 4; i < 40; i += 4) {
+      for (y = 1; y < 4; y++) {
+        setBlock(rmx + i, h + y, rmz, BLOCK.GLASS);
+        setBlock(rmx + i, h + y, rmz + 13, BLOCK.GLASS);
+      }
+    }
+    // Flat roof
+    for (i = 0; i < 40; i++) {
+      for (j = 0; j < 14; j++) {
+        setBlock(rmx + i, h + 6, rmz + j, BLOCK.METAL);
+      }
+    }
+
+    // Underground bunker network: -2 to -4 Y, 4-wide STONE corridors cross pattern
+    var bx = ox, bz = oz;
+    for (i = -20; i <= 20; i++) {
+      for (y = -4; y <= -2; y++) {
+        setBlock(bx + i, h + y, bz, BLOCK.STONE);
+        setBlock(bx + i, h + y, bz + 1, BLOCK.STONE);
+        setBlock(bx + i, h + y, bz + 2, BLOCK.STONE);
+        setBlock(bx + i, h + y, bz + 3, BLOCK.STONE);
+      }
+    }
+    for (j = -20; j <= 20; j++) {
+      for (y = -4; y <= -2; y++) {
+        setBlock(bx, h + y, bz + j, BLOCK.STONE);
+        setBlock(bx + 1, h + y, bz + j, BLOCK.STONE);
+        setBlock(bx + 2, h + y, bz + j, BLOCK.STONE);
+        setBlock(bx + 3, h + y, bz + j, BLOCK.STONE);
+      }
+    }
+    // LIGHT lanterns every 6 blocks in tunnels
+    for (i = -18; i <= 18; i += 6) {
+      setBlock(bx + i, h - 2, bz + 1, BLOCK.LIGHT);
+      setBlock(bx + 1, h - 2, bz + i, BLOCK.LIGHT);
+    }
+
+    // Coke oven battery: row of 8 BRICK cells (2×2 each, 4 high) spaced 3 apart
+    var cox = ox + 15, coz = oz - 5;
+    for (var ci = 0; ci < 8; ci++) {
+      var cx2 = cox + ci * 5;
+      for (y = 0; y < 4; y++) {
+        setBlock(cx2, h + y, coz, BLOCK.BRICK);
+        setBlock(cx2 + 1, h + y, coz, BLOCK.BRICK);
+        setBlock(cx2, h + y, coz + 1, BLOCK.BRICK);
+        setBlock(cx2 + 1, h + y, coz + 1, BLOCK.BRICK);
+      }
+    }
+
+    // Cooling water tower: 8×8 CONCRETE, 14 high, hollow 4×4 center
+    var wtx = ox - 15, wtz = oz - 12;
+    for (y = 0; y < 14; y++) {
+      for (i = 0; i < 8; i++) {
+        for (j = 0; j < 8; j++) {
+          var inCenter = (i >= 2 && i <= 5 && j >= 2 && j <= 5);
+          if (!inCenter) {
+            setBlock(wtx + i, h + y, wtz + j, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+
+    // Crater field: 10 RUBBLE piles in 30-unit radius
+    var craterAngles = [0, 36, 72, 108, 144, 180, 216, 252, 288, 324];
+    for (var ca = 0; ca < craterAngles.length; ca++) {
+      var cr = craterAngles[ca] * Math.PI / 180;
+      var crx = Math.round(ox + Math.cos(cr) * (15 + ca % 3 * 5));
+      var crz2 = Math.round(oz + Math.sin(cr) * (15 + ca % 3 * 5));
+      var ch2 = getTerrainHeight(crx, crz2) || 0;
+      for (i = -1; i <= 1; i++) {
+        for (j = -1; j <= 1; j++) {
+          setBlock(crx + i, ch2, crz2 + j, BLOCK.RUBBLE);
+        }
+      }
+    }
+
+    // Perimeter rubble walls: partial CONCRETE walls (4-6 wide, 3 high) at irregular intervals
+    var wallPositions = [[-25, -8], [25, -8], [-25, 12], [25, 12], [-10, -18], [10, -18]];
+    for (var wi = 0; wi < wallPositions.length; wi++) {
+      var wx = ox + wallPositions[wi][0], wz2 = oz + wallPositions[wi][1];
+      var wlen = 4 + wi % 3;
+      var wh2 = getTerrainHeight(wx, wz2) || 0;
+      for (i = 0; i < wlen; i++) {
+        for (y = 0; y < 3; y++) {
+          if (Math.random() > 0.2) setBlock(wx + i, wh2 + y, wz2, BLOCK.CONCRETE);
+        }
+      }
+    }
+
+    _buildings.push({ kind: 'landmark_azovstas_plant', x: ox - 20, z: oz - 18, w: 60, d: 50, baseY: h, floorH: 6, floors: 4, cx: ox, cz: oz });
+  }
+
+  // ── MARIUPOL: Port on the Azov Sea ────────────────────────────────────────
+  // Shelled into ruins, cranes destroyed, ships sunk
+  function generateMariupolPort(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+
+    // Dock wall: 30×3 CONCRETE, 4 high running east-west
+    for (i = 0; i < 30; i++) {
+      for (j = 0; j < 3; j++) {
+        for (y = 0; y < 4; y++) {
+          setBlock(ox + i, h + y, oz + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+
+    // 3 destroyed cranes: METAL L-shapes 12 high
+    var cranePositions = [2, 12, 22];
+    for (var cri = 0; cri < cranePositions.length; cri++) {
+      var crx = ox + cranePositions[cri];
+      // Vertical arm: 4×4 base, 12 high
+      for (y = 0; y < 12; y++) {
+        setBlock(crx, h + y, oz - 2, BLOCK.METAL);
+        setBlock(crx + 1, h + y, oz - 2, BLOCK.METAL);
+        setBlock(crx, h + y, oz - 1, BLOCK.METAL);
+        setBlock(crx + 1, h + y, oz - 1, BLOCK.METAL);
+      }
+      // Horizontal arm: 10 long at top
+      for (i = 0; i < 10; i++) {
+        setBlock(crx + i, h + 12, oz - 2, BLOCK.METAL);
+      }
+    }
+
+    // Sunken ship hull: 20×6 shape — RUBBLE for half-submerged, METAL for upper
+    var shipx = ox + 5, shipz = oz + 6;
+    for (i = 0; i < 20; i++) {
+      // Lower hull (submerged/rubble)
+      setBlock(shipx + i, h - 1, shipz, BLOCK.RUBBLE);
+      setBlock(shipx + i, h - 1, shipz + 5, BLOCK.RUBBLE);
+      // Upper hull (METAL)
+      setBlock(shipx + i, h, shipz, BLOCK.METAL);
+      setBlock(shipx + i, h, shipz + 5, BLOCK.METAL);
+      setBlock(shipx + i, h + 1, shipz, BLOCK.METAL);
+      setBlock(shipx + i, h + 1, shipz + 5, BLOCK.METAL);
+    }
+    // Bow and stern caps
+    for (j = 0; j < 6; j++) {
+      setBlock(shipx, h, shipz + j, BLOCK.METAL);
+      setBlock(shipx + 19, h, shipz + j, BLOCK.METAL);
+    }
+
+    // Port warehouse: 20×10 BRICK, 5 high, collapsed roof with RUBBLE inside
+    var whx = ox - 5, whz = oz - 15;
+    for (i = 0; i < 20; i++) {
+      for (y = 0; y < 5; y++) {
+        setBlock(whx + i, h + y, whz, BLOCK.BRICK);
+        setBlock(whx + i, h + y, whz + 9, BLOCK.BRICK);
+      }
+    }
+    for (j = 0; j < 10; j++) {
+      for (y = 0; y < 5; y++) {
+        setBlock(whx, h + y, whz + j, BLOCK.BRICK);
+        setBlock(whx + 19, h + y, whz + j, BLOCK.BRICK);
+      }
+    }
+    // Collapsed roof section (large AIR gap with RUBBLE inside)
+    for (i = 5; i < 15; i++) {
+      for (j = 2; j < 8; j++) {
+        setBlock(whx + i, h + 4, whz + j, BLOCK.RUBBLE);
+      }
+    }
+
+    // Fuel tanks: 3 cylinders (5×5 CONCRETE, 8 high)
+    var tankPositions = [[-8, -18], [0, -18], [8, -18]];
+    for (var ti = 0; ti < tankPositions.length; ti++) {
+      var tx = ox + tankPositions[ti][0], tz = oz + tankPositions[ti][1];
+      for (y = 0; y < 8; y++) {
+        for (i = 0; i < 5; i++) {
+          for (j = 0; j < 5; j++) {
+            if (i === 0 || i === 4 || j === 0 || j === 4) {
+              setBlock(tx + i, h + y, tz + j, BLOCK.CONCRETE);
+            }
+          }
+        }
+      }
+      // Top cap
+      for (i = 0; i < 5; i++) {
+        for (j = 0; j < 5; j++) {
+          setBlock(tx + i, h + 8, tz + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+
+    // Guard bunkers: 3 CONCRETE boxes 4×3×2 at dock entrances
+    var bunkerPos = [[0, -4], [10, -4], [20, -4]];
+    for (var bi = 0; bi < bunkerPos.length; bi++) {
+      var bpx = ox + bunkerPos[bi][0], bpz = oz + bunkerPos[bi][1];
+      for (i = 0; i < 4; i++) {
+        for (y = 0; y < 2; y++) {
+          setBlock(bpx + i, h + y, bpz, BLOCK.CONCRETE);
+          setBlock(bpx + i, h + y, bpz + 2, BLOCK.CONCRETE);
+        }
+      }
+      for (j = 0; j < 3; j++) {
+        for (y = 0; y < 2; y++) {
+          setBlock(bpx, h + y, bpz + j, BLOCK.CONCRETE);
+          setBlock(bpx + 3, h + y, bpz + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+
+    _buildings.push({ kind: 'landmark_mariupol_port', x: ox - 5, z: oz - 20, w: 35, d: 30, baseY: h, floorH: 5, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── BAKHMUT: Meat Grinder ─────────────────────────────────────────────────
+  // The most destroyed city of the war — almost nothing left standing
+  function generateBakhmutMeatGrinder(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+
+    // Former administrative building: 3 walls standing, 8×14 BRICK frame, 8 high
+    // Window GLASS holes every 3 blocks, one wall collapsed (RUBBLE)
+    var abx = ox - 4, abz = oz - 7;
+    for (y = 0; y < 8; y++) {
+      for (i = 0; i < 8; i++) {
+        // North wall (windows every 3)
+        if (i % 3 !== 1 || y < 2 || y > 5) {
+          setBlock(abx + i, h + y, abz, BLOCK.BRICK);
+        } else {
+          setBlock(abx + i, h + y, abz, BLOCK.GLASS);
+        }
+        // South wall collapsed — RUBBLE pile instead
+        if (y === 0) setBlock(abx + i, h, abz + 13, BLOCK.RUBBLE);
+      }
+      for (j = 0; j < 14; j++) {
+        // East wall
+        if (j % 3 !== 1 || y < 2 || y > 5) {
+          setBlock(abx + 7, h + y, abz + j, BLOCK.BRICK);
+        } else {
+          setBlock(abx + 7, h + y, abz + j, BLOCK.GLASS);
+        }
+        // West wall
+        if (j % 3 !== 1 || y < 2 || y > 5) {
+          setBlock(abx, h + y, abz + j, BLOCK.BRICK);
+        } else {
+          setBlock(abx, h + y, abz + j, BLOCK.GLASS);
+        }
+      }
+    }
+    // Collapsed south wall rubble
+    for (i = 0; i < 8; i++) {
+      for (j = 0; j < 3; j++) {
+        setBlock(abx + i, h, abz + 11 + j, BLOCK.RUBBLE);
+        setBlock(abx + i, h + 1, abz + 12 + j, BLOCK.RUBBLE);
+      }
+    }
+
+    // Salt mine entrance: 4×6 STONE arch at ground, tunnel descending -1 to -4
+    var smx = ox + 12, smz = oz + 8;
+    for (y = 0; y < 5; y++) {
+      for (i = 0; i < 4; i++) {
+        setBlock(smx + i, h + y, smz, BLOCK.STONE);
+        setBlock(smx + i, h + y, smz + 5, BLOCK.STONE);
+      }
+    }
+    for (j = 0; j < 6; j++) {
+      for (y = 0; y < 5; y++) {
+        setBlock(smx, h + y, smz + j, BLOCK.STONE);
+        setBlock(smx + 3, h + y, smz + j, BLOCK.STONE);
+      }
+    }
+    // Descending tunnel
+    for (var td = 0; td < 10; td++) {
+      var ty = Math.floor(-1 - td * 3 / 10);
+      for (i = 0; i < 4; i++) {
+        setBlock(smx + i, h + ty, smz - td - 1, BLOCK.STONE);
+        setBlock(smx + i, h + ty - 1, smz - td - 1, BLOCK.STONE);
+      }
+      // WOOD beams every 3 blocks
+      if (td % 3 === 0) {
+        setBlock(smx, h + ty, smz - td - 1, BLOCK.WOOD);
+        setBlock(smx + 3, h + ty, smz - td - 1, BLOCK.WOOD);
+        setBlock(smx + 1, h + ty + 1, smz - td - 1, BLOCK.WOOD);
+        setBlock(smx + 2, h + ty + 1, smz - td - 1, BLOCK.WOOD);
+      }
+      // LIGHT lanterns every 5 blocks
+      if (td % 5 === 0) {
+        setBlock(smx + 1, h + ty, smz - td - 1, BLOCK.LIGHT);
+      }
+    }
+
+    // 6 destroyed apartment blocks: RUBBLE piles scattered across 60×60 area
+    var apBlocks = [[-20, -15], [15, -20], [-15, 20], [20, 15], [-25, 5], [5, 25]];
+    for (var api = 0; api < apBlocks.length; api++) {
+      var apx = ox + apBlocks[api][0], apz = oz + apBlocks[api][1];
+      var apw = 8 + api % 2 * 4, apd = 4 + api % 3 * 2, aph = 3 + api % 2;
+      var aph2 = getTerrainHeight(apx, apz) || 0;
+      for (i = 0; i < apw; i++) {
+        for (j = 0; j < apd; j++) {
+          for (y = 0; y < aph; y++) {
+            if (Math.random() > 0.35) setBlock(apx + i, aph2 + y, apz + j, BLOCK.RUBBLE);
+          }
+        }
+      }
+    }
+
+    // Wagner HQ ruin: 10×10 BRICK building, half demolished, METAL rods sticking up
+    var wgx = ox - 18, wgz = oz - 18;
+    var wgh = getTerrainHeight(wgx, wgz) || 0;
+    for (i = 0; i < 10; i++) {
+      for (j = 0; j < 10; j++) {
+        // Floor 1
+        setBlock(wgx + i, wgh, wgz + j, BLOCK.BRICK);
+        // Partial walls to y+3
+        if (i === 0 || i === 9 || j === 0 || j === 9) {
+          for (y = 1; y <= 3; y++) {
+            if (Math.random() > 0.2) setBlock(wgx + i, wgh + y, wgz + j, BLOCK.BRICK);
+          }
+        }
+        // Half floors at y+3 and y+6 with gaps
+        if (i % 3 !== 2 && j % 3 !== 2) {
+          setBlock(wgx + i, wgh + 3, wgz + j, BLOCK.BRICK);
+          if (Math.random() > 0.4) setBlock(wgx + i, wgh + 6, wgz + j, BLOCK.BRICK);
+        }
+      }
+    }
+    // METAL reinforcement rods sticking up
+    var rodPos = [[1,1],[4,4],[7,7],[2,8],[8,2]];
+    for (var ri = 0; ri < rodPos.length; ri++) {
+      setBlock(wgx + rodPos[ri][0], wgh + 7, wgz + rodPos[ri][1], BLOCK.METAL);
+      setBlock(wgx + rodPos[ri][0], wgh + 8, wgz + rodPos[ri][1], BLOCK.METAL);
+    }
+
+    // Trench network: 2-deep zigzag (Y -1 to -2), STONE walls, WOOD planks every 4
+    var trenchSegs = [[5, -5], [5, 5], [15, 5], [15, -5], [25, -5]];
+    for (var tsi = 0; tsi < trenchSegs.length - 1; tsi++) {
+      var t1x = ox + trenchSegs[tsi][0], t1z = oz + trenchSegs[tsi][1];
+      var t2x = ox + trenchSegs[tsi + 1][0], t2z = oz + trenchSegs[tsi + 1][1];
+      var tdx = Math.sign(t2x - t1x), tdz2 = Math.sign(t2z - t1z);
+      var tlen = Math.max(Math.abs(t2x - t1x), Math.abs(t2z - t1z));
+      var th = getTerrainHeight(t1x, t1z) || 0;
+      for (var tk = 0; tk < tlen; tk++) {
+        var tkx = t1x + tdx * tk, tkz = t1z + tdz2 * tk;
+        setBlock(tkx, th - 1, tkz, BLOCK.STONE);
+        setBlock(tkx, th - 2, tkz, BLOCK.STONE);
+        if (tk % 4 === 0) setBlock(tkx, th, tkz, BLOCK.WOOD);
+      }
+    }
+
+    // Ukrainian flag: METAL pole 8 high with LIGHT and CONCRETE blocks
+    var flx = ox + 22, flz = oz - 12;
+    var flh = getTerrainHeight(flx, flz) || 0;
+    for (y = 0; y < 8; y++) {
+      setBlock(flx, flh + y, flz, BLOCK.METAL);
+    }
+    // Blue (CONCRETE) and yellow (LIGHT) flag colors
+    setBlock(flx + 1, flh + 8, flz, BLOCK.CONCRETE);
+    setBlock(flx + 2, flh + 8, flz, BLOCK.CONCRETE);
+    setBlock(flx + 3, flh + 8, flz, BLOCK.CONCRETE);
+    setBlock(flx + 1, flh + 7, flz, BLOCK.LIGHT);
+    setBlock(flx + 2, flh + 7, flz, BLOCK.LIGHT);
+    setBlock(flx + 3, flh + 7, flz, BLOCK.LIGHT);
+
+    // Shell crater field: 15 craters (2-3 radius holes, RUBBLE rim)
+    var craters2 = [[-30,-25],[-10,-30],[10,-28],[28,-20],[-25,0],[0,0],[22,5],[-15,15],[10,20],[25,-10],[-8,-10],[18,-15],[-20,25],[5,-22],[-5,10]];
+    for (var cri2 = 0; cri2 < craters2.length; cri2++) {
+      var crx2 = ox + craters2[cri2][0], crz3 = oz + craters2[cri2][1];
+      var crad = 2 + cri2 % 2;
+      var crh2 = getTerrainHeight(crx2, crz3) || 0;
+      // Hollow the crater (AIR center)
+      for (i = -crad; i <= crad; i++) {
+        for (j = -crad; j <= crad; j++) {
+          if (i * i + j * j <= crad * crad) {
+            setBlock(crx2 + i, crh2, crz3 + j, BLOCK.AIR);
+          }
+        }
+      }
+      // RUBBLE rim around crater
+      for (i = -(crad + 1); i <= crad + 1; i++) {
+        for (j = -(crad + 1); j <= crad + 1; j++) {
+          var dist2 = i * i + j * j;
+          if (dist2 > crad * crad && dist2 <= (crad + 1) * (crad + 1)) {
+            setBlock(crx2 + i, crh2, crz3 + j, BLOCK.RUBBLE);
+          }
+        }
+      }
+    }
+
+    _buildings.push({ kind: 'landmark_bakhmut_meatgrinder', x: ox - 30, z: oz - 30, w: 60, d: 60, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── ODESSA: Transfiguration Cathedral and Central Square ─────────────────
+  // Famous baroque cathedral, white and ornate
+  function generateOdessaCathedralSquare(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+
+    // Cathedral main body: 16×24 PLASTER, 12 high
+    var cbx = ox - 8, cbz = oz - 12;
+    for (y = 0; y < 12; y++) {
+      for (i = 0; i < 16; i++) {
+        setBlock(cbx + i, h + y, cbz, BLOCK.PLASTER);
+        setBlock(cbx + i, h + y, cbz + 23, BLOCK.PLASTER);
+      }
+      for (j = 0; j < 24; j++) {
+        setBlock(cbx, h + y, cbz + j, BLOCK.PLASTER);
+        setBlock(cbx + 15, h + y, cbz + j, BLOCK.PLASTER);
+      }
+    }
+    // Roof/ceiling at 12
+    for (i = 0; i < 16; i++) {
+      for (j = 0; j < 24; j++) {
+        setBlock(cbx + i, h + 12, cbz + j, BLOCK.PLASTER);
+      }
+    }
+
+    // GLASS windows: 2×3 every 4 blocks on long walls
+    for (j = 4; j < 24; j += 4) {
+      for (y = 3; y <= 5; y++) {
+        setBlock(cbx, h + y, cbz + j, BLOCK.GLASS);
+        setBlock(cbx, h + y, cbz + j + 1, BLOCK.GLASS);
+        setBlock(cbx + 15, h + y, cbz + j, BLOCK.GLASS);
+        setBlock(cbx + 15, h + y, cbz + j + 1, BLOCK.GLASS);
+      }
+    }
+
+    // Dome: 8×8 BRICK base stepping to smaller layers with ROOFTILE cap
+    var dmx = ox - 4, dmz = oz - 4;
+    // 8×8 BRICK base at roof level
+    for (i = 0; i < 8; i++) {
+      for (j = 0; j < 8; j++) {
+        setBlock(dmx + i, h + 13, dmz + j, BLOCK.BRICK);
+      }
+    }
+    // 6×6 step
+    for (i = 1; i < 7; i++) {
+      for (j = 1; j < 7; j++) {
+        setBlock(dmx + i, h + 14, dmz + j, BLOCK.BRICK);
+      }
+    }
+    // 4×4 step
+    for (i = 2; i < 6; i++) {
+      for (j = 2; j < 6; j++) {
+        setBlock(dmx + i, h + 15, dmz + j, BLOCK.BRICK);
+      }
+    }
+    // 2×2 ROOFTILE cap
+    for (i = 3; i < 5; i++) {
+      for (j = 3; j < 5; j++) {
+        setBlock(dmx + i, h + 16, dmz + j, BLOCK.ROOFTILE);
+        setBlock(dmx + i, h + 17, dmz + j, BLOCK.ROOFTILE);
+        setBlock(dmx + i, h + 18, dmz + j, BLOCK.ROOFTILE);
+      }
+    }
+
+    // Twin bell towers: 6×6 PLASTER, 18 high with ROOFTILE pyramid tips
+    var towerPositions = [[-8, -12], [6, -12]];
+    for (var twi = 0; twi < towerPositions.length; twi++) {
+      var twx = ox + towerPositions[twi][0], twz = oz + towerPositions[twi][1];
+      for (y = 0; y < 18; y++) {
+        for (i = 0; i < 6; i++) {
+          setBlock(twx + i, h + y, twz, BLOCK.PLASTER);
+          setBlock(twx + i, h + y, twz + 5, BLOCK.PLASTER);
+        }
+        for (j = 0; j < 6; j++) {
+          setBlock(twx, h + y, twz + j, BLOCK.PLASTER);
+          setBlock(twx + 5, h + y, twz + j, BLOCK.PLASTER);
+        }
+      }
+      // GLASS windows on towers
+      for (y = 12; y < 16; y++) {
+        setBlock(twx + 2, h + y, twz, BLOCK.GLASS);
+        setBlock(twx + 3, h + y, twz, BLOCK.GLASS);
+      }
+      // ROOFTILE pyramid tip (4 layers tapering)
+      for (var pl = 0; pl < 4; pl++) {
+        var pr2 = 3 - pl;
+        for (i = -pr2; i <= pr2; i++) {
+          for (j = -pr2; j <= pr2; j++) {
+            setBlock(twx + 3 + i, h + 18 + pl, twz + 3 + j, BLOCK.ROOFTILE);
+          }
+        }
+      }
+    }
+
+    // Baroque facade: PLASTER columns (1×1×8) every 4 blocks across the front
+    for (i = 0; i < 16; i += 4) {
+      for (y = 0; y < 8; y++) {
+        setBlock(cbx + i, h + y, cbz - 1, BLOCK.PLASTER);
+      }
+    }
+
+    // Central square plaza: WHITE_TILE 30×30 in front
+    var plazax = ox - 15, plazaz = oz + 14;
+    for (i = 0; i < 30; i++) {
+      for (j = 0; j < 30; j++) {
+        setBlock(plazax + i, h, plazaz + j, BLOCK.WHITE_TILE);
+      }
+    }
+
+    // Potemkin Steps reference: WHITE_TILE stepped platform descending 6 blocks south
+    var stpx = ox - 2, stpz = oz + 44;
+    for (var step = 0; step < 6; step++) {
+      for (i = 0; i < 4; i++) {
+        setBlock(stpx + i, h - step, stpz + step * 2, BLOCK.WHITE_TILE);
+        setBlock(stpx + i, h - step, stpz + step * 2 + 1, BLOCK.WHITE_TILE);
+      }
+    }
+
+    _buildings.push({ kind: 'landmark_odessa_cathedral', x: cbx, z: cbz, w: 16, d: 24, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── ODESSA: Black Sea Port ────────────────────────────────────────────────
+  // Strategic grain export hub, repeatedly struck by Russia
+  function generateOdessaPort(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+
+    // Grain silos: 6 cylinders (4×4 CONCRETE, 16 high) in 2 rows of 3
+    var siloPositions = [[0,0],[6,0],[12,0],[0,6],[6,6],[12,6]];
+    for (var sli = 0; sli < siloPositions.length; sli++) {
+      var slx = ox + siloPositions[sli][0], slz = oz + siloPositions[sli][1];
+      for (y = 0; y < 16; y++) {
+        for (i = 0; i < 4; i++) {
+          setBlock(slx + i, h + y, slz, BLOCK.CONCRETE);
+          setBlock(slx + i, h + y, slz + 3, BLOCK.CONCRETE);
+        }
+        setBlock(slx, h + y, slz + 1, BLOCK.CONCRETE);
+        setBlock(slx, h + y, slz + 2, BLOCK.CONCRETE);
+        setBlock(slx + 3, h + y, slz + 1, BLOCK.CONCRETE);
+        setBlock(slx + 3, h + y, slz + 2, BLOCK.CONCRETE);
+      }
+    }
+
+    // Port control tower: 6×6 CONCRETE, 14 high, GLASS top 3 floors
+    var ctx = ox + 22, ctz = oz + 2;
+    for (y = 0; y < 14; y++) {
+      for (i = 0; i < 6; i++) {
+        var isGlass = (y >= 11);
+        var blockType = isGlass ? BLOCK.GLASS : BLOCK.CONCRETE;
+        setBlock(ctx + i, h + y, ctz, blockType);
+        setBlock(ctx + i, h + y, ctz + 5, blockType);
+      }
+      for (j = 0; j < 6; j++) {
+        var isGlass2 = (y >= 11);
+        var blockType2 = isGlass2 ? BLOCK.GLASS : BLOCK.CONCRETE;
+        setBlock(ctx, h + y, ctz + j, blockType2);
+        setBlock(ctx + 5, h + y, ctz + j, blockType2);
+      }
+    }
+    // GLASS panels on all 4 sides (2×2 per face)
+    for (y = 11; y < 14; y++) {
+      setBlock(ctx + 2, h + y, ctz, BLOCK.GLASS);
+      setBlock(ctx + 3, h + y, ctz, BLOCK.GLASS);
+      setBlock(ctx + 2, h + y, ctz + 5, BLOCK.GLASS);
+      setBlock(ctx + 3, h + y, ctz + 5, BLOCK.GLASS);
+      setBlock(ctx, h + y, ctz + 2, BLOCK.GLASS);
+      setBlock(ctx, h + y, ctz + 3, BLOCK.GLASS);
+      setBlock(ctx + 5, h + y, ctz + 2, BLOCK.GLASS);
+      setBlock(ctx + 5, h + y, ctz + 3, BLOCK.GLASS);
+    }
+
+    // Container crane: METAL tower 16 high, horizontal arm 12 long, FENCE cables
+    var crx3 = ox + 18, crz4 = oz + 15;
+    for (y = 0; y < 16; y++) {
+      setBlock(crx3, h + y, crz4, BLOCK.METAL);
+      setBlock(crx3 + 1, h + y, crz4, BLOCK.METAL);
+    }
+    // Horizontal arm
+    for (i = 0; i < 12; i++) {
+      setBlock(crx3 + i, h + 16, crz4, BLOCK.METAL);
+    }
+    // FENCE cables from tip to base
+    setBlock(crx3 + 6, h + 8, crz4, BLOCK.FENCE);
+    setBlock(crx3 + 9, h + 10, crz4, BLOCK.FENCE);
+    setBlock(crx3 + 11, h + 13, crz4, BLOCK.FENCE);
+
+    // Quay wall: 35×3 REINFORCED seawall, 4 high
+    var qwx = ox - 5, qwz = oz + 22;
+    for (i = 0; i < 35; i++) {
+      for (j = 0; j < 3; j++) {
+        for (y = 0; y < 4; y++) {
+          setBlock(qwx + i, h + y, qwz + j, BLOCK.REINFORCED);
+        }
+      }
+    }
+
+    // Naval vessel outline: 24×6 METAL hull alongside quay
+    var nvx = ox + 2, nvz = oz + 26;
+    for (i = 0; i < 24; i++) {
+      setBlock(nvx + i, h, nvz, BLOCK.METAL);
+      setBlock(nvx + i, h, nvz + 5, BLOCK.METAL);
+      setBlock(nvx + i, h + 1, nvz, BLOCK.METAL);
+      setBlock(nvx + i, h + 1, nvz + 5, BLOCK.METAL);
+    }
+    for (j = 0; j < 6; j++) {
+      setBlock(nvx, h, nvz + j, BLOCK.METAL);
+      setBlock(nvx + 23, h, nvz + j, BLOCK.METAL);
+    }
+
+    // Anti-missile bunkers: 4 CONCRETE domes (5×5 base, 3 blocks high, hollowed)
+    var domePositions = [[-5, 15], [20, 15], [-5, -5], [20, -5]];
+    for (var di = 0; di < domePositions.length; di++) {
+      var dx2 = ox + domePositions[di][0], dz2 = oz + domePositions[di][1];
+      var dh = getTerrainHeight(dx2, dz2) || 0;
+      for (y = 0; y < 3; y++) {
+        for (i = 0; i < 5; i++) {
+          for (j = 0; j < 5; j++) {
+            var inner = (i >= 1 && i <= 3 && j >= 1 && j <= 3 && y > 0);
+            if (!inner) setBlock(dx2 + i, dh + y, dz2 + j, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+
+    // AA gun positions: 3 open-top CONCRETE platforms 3×3×2 with METAL barrel
+    var aaPositions = [[30, 0], [30, 10], [30, 20]];
+    for (var aai = 0; aai < aaPositions.length; aai++) {
+      var aax = ox + aaPositions[aai][0], aaz = oz + aaPositions[aai][1];
+      var aah = getTerrainHeight(aax, aaz) || 0;
+      // Platform walls (open top)
+      for (i = 0; i < 3; i++) {
+        for (y = 0; y < 2; y++) {
+          setBlock(aax + i, aah + y, aaz, BLOCK.CONCRETE);
+          setBlock(aax + i, aah + y, aaz + 2, BLOCK.CONCRETE);
+        }
+      }
+      for (j = 0; j < 3; j++) {
+        for (y = 0; y < 2; y++) {
+          setBlock(aax, aah + y, aaz + j, BLOCK.CONCRETE);
+          setBlock(aax + 2, aah + y, aaz + j, BLOCK.CONCRETE);
+        }
+      }
+      // METAL barrel (2 high on platform)
+      setBlock(aax + 1, aah + 2, aaz + 1, BLOCK.METAL);
+      setBlock(aax + 1, aah + 3, aaz + 1, BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'landmark_odessa_port', x: ox - 5, z: oz, w: 40, d: 35, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -14341,6 +15026,7 @@ window.VoxelWorld = (function () {
       generateSovietSchool(-32, -18);      // Bakhmut school (shelled into rubble)
       generateTrainStation(-15, 30);       // Bakhmut railway junction station
       generateChurch(-30, 5);              // Orthodox church (still standing amid ruins)
+      generateBakhmutMeatGrinder(0, 0);    // Meat grinder — rubble field, salt mine, trench network
     } else if (level.id === 'KHERSON') {
       // Kherson Liberation — liberate Freedom Square and the Dnieper port city (Nov 2022)
       generateKhersonFreedomSquare(0, -5);       // Main plaza — Ukrainian flag pole, tank wreck
@@ -14725,6 +15411,8 @@ window.VoxelWorld = (function () {
       generatePortCrane(42, 8);               // Mariupol port loading crane
       generateSovietAdminBuilding(-12, -38);  // Mariupol city hall (Leninska Square)
       generateSovietSchool(25, -20);          // Mariupol school (bombed)
+      generateAzovstasPlant(0, 0);            // Azovstal plant — last defensive stronghold
+      generateMariupolPort(30, -20);          // Azov Sea port — destroyed cranes and sunken ships
     } else if (level.id === 'CRIMEA') {
       // Kerch Strait Bridge — 19km span connecting Russia to occupied Crimea
       // Attacked twice: truck bomb (Oct 2022) and sea drones (Jul 2023)
@@ -15220,6 +15908,8 @@ window.VoxelWorld = (function () {
       generateAntiAirPosition(-32, 28); generateAntiAirPosition(30, -26);
       generateTrenchNetwork(-15, 18); generateTrenchNetwork(15, -18);
       generateMortarPit(-30, 8); generateMortarPit(28, -10);
+      generateOdessaCathedralSquare(0, 0);    // Transfiguration Cathedral and central square
+      generateOdessaPort(-30, -20);           // Black Sea port — grain silos, cranes, naval vessels
     } else if (level.id === 'DONETSK') {
       // Donetsk — occupied industrial city, Donbass Arena, Soviet admin, frontline ruins
       generateDonetskArena(-5, -10);
