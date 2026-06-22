@@ -1256,6 +1256,8 @@ window.VoxelWorld = (function () {
     { id: 'SLAVUTYCH', name: 'Slavutych Exclusion',   desc: 'Ghost town near Chernobyl — shadows of the nuclear disaster', theme: 'urban', wavesPerLevel: 7, difficulty: 3.5, fogColor: 0x334422, spawnCandidates: [{ x: 0, z: -25 }, { x: -15, z: -15 }, { x: 15, z: -15 }, { x: -20, z: 5 }, { x: 20, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KREMENCHUK', name: 'Kremenchuk Mall Strike', desc: 'Russian missile strike on the crowded Amstor shopping centre', theme: 'urban', wavesPerLevel: 7, difficulty: 3.2, fogColor: 0x3a3a3a, spawnCandidates: [{ x: 0, z: -30 }, { x: -18, z: -15 }, { x: 18, z: -15 }, { x: -25, z: 10 }, { x: 25, z: 10 }, { x: 0, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'CHERKASY',  name: 'Cherkasy Defense',      desc: 'Cathedral city on the Dnipro — hold the river crossing', theme: 'urban', wavesPerLevel: 8, difficulty: 3.0, fogColor: 0x336644, spawnCandidates: [{ x: 0, z: -32 }, { x: -18, z: -18 }, { x: 18, z: -18 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: -15, z: 25 }, { x: 15, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'BUCHA_MEMORIAL', name: 'Bucha — City of Martyrs', desc: 'The suburb where Russian forces committed systematic atrocities — retake and bear witness', theme: 'urban', wavesPerLevel: 8, difficulty: 3.8, fogColor: 0x223322, spawnCandidates: [{ x: 0, z: -35 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 28 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'HOSTOMEL_AIRPORT_RAID', name: 'Hostomel Airbase Defense', desc: 'Repel the Russian heliborne assault — protect the world\'s largest aircraft from destruction', theme: 'urban', wavesPerLevel: 8, difficulty: 3.1, fogColor: 0x334433, spawnCandidates: [{ x: 0, z: -40 }, { x: -20, z: -25 }, { x: 20, z: -25 }, { x: -30, z: 5 }, { x: 30, z: 5 }, { x: 0, z: 30 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'DNIPRO_METRO', name: 'Dnipro River Defense', desc: 'Hold the industrial capital and its Dnipr River embankment', theme: 'urban', wavesPerLevel: 8, difficulty: 3.3, fogColor: 0x334455, spawnCandidates: [{ x: 0, z: -30 }, { x: -20, z: -18 }, { x: 20, z: -18 }, { x: -28, z: 8 }, { x: 28, z: 8 }, { x: 0, z: 28 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'AZOVSTAL', name: 'Azovstal Last Stand', desc: 'Hold the steel works tunnels against the Russian siege — Azov Battalion\'s finest hour', theme: 'industrial', wavesPerLevel: 9, difficulty: 4.2, fogColor: 0x2a1a1a, spawnCandidates: [{ x: 0, z: -40 }, { x: -15, z: -25 }, { x: 15, z: -25 }, { x: -20, z: 5 }, { x: 20, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KHERSON_BRIDGE', name: 'Kherson Liberation', desc: 'Clear the Antonivka Bridge and liberate Kherson from Russian occupation', theme: 'urban', wavesPerLevel: 8, difficulty: 3.4, fogColor: 0x445566, spawnCandidates: [{ x: 0, z: -35 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
@@ -14757,6 +14759,309 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_odessa_port', x: ox - 5, z: oz, w: 40, d: 35, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── BUCHA: War Crime Memorial ────────────────────────────────────────────
+  // Bucha is a suburb of Kyiv where Russian forces committed systematic atrocities
+  // in March-April 2022. Yablunska Street became known worldwide.
+  function generateBuchaMemorial(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Church of St Andrew — 10×8 BRICK walls 10 high
+    for (x = ox - 5; x <= ox + 5; x++) {
+      for (z = oz - 4; z <= oz + 4; z++) {
+        var isWall = (x === ox - 5 || x === ox + 5 || z === oz - 4 || z === oz + 4);
+        if (isWall) {
+          for (i = 0; i < 10; i++) setBlock(x, h + i, z, BLOCK.BRICK);
+        } else {
+          setBlock(x, h, z, BLOCK.STONE);
+        }
+      }
+    }
+    // GLASS window panels every 3 blocks, 2 high
+    var winZ = [oz - 4, oz + 4];
+    for (i = 0; i < winZ.length; i++) {
+      setBlock(ox - 3, h + 4, winZ[i], BLOCK.GLASS); setBlock(ox - 3, h + 5, winZ[i], BLOCK.GLASS);
+      setBlock(ox,     h + 4, winZ[i], BLOCK.GLASS); setBlock(ox,     h + 5, winZ[i], BLOCK.GLASS);
+      setBlock(ox + 3, h + 4, winZ[i], BLOCK.GLASS); setBlock(ox + 3, h + 5, winZ[i], BLOCK.GLASS);
+    }
+    // Blue ROOFTILE dome — 3×3 pyramid 3 high on top of church
+    for (i = 0; i < 3; i++) {
+      for (x = ox - (1 - i); x <= ox + (1 - i); x++) {
+        for (z = oz - (1 - i); z <= oz + (1 - i); z++) {
+          setBlock(x, h + 10 + i, z, BLOCK.ROOFTILE);
+        }
+      }
+    }
+    // Golden LIGHT at apex of dome
+    setBlock(ox, h + 13, oz, BLOCK.LIGHT);
+    // White PLASTER bell tower — 3×3 BRICK base 14 high with ROOFTILE spire cap
+    var btx = ox + 7, btz = oz;
+    var btH = getHeight(btx, btz);
+    for (i = 0; i < 14; i++) {
+      for (x = btx - 1; x <= btx + 1; x++) {
+        for (z = btz - 1; z <= btz + 1; z++) {
+          setBlock(x, btH + i, z, i < 2 ? BLOCK.BRICK : BLOCK.PLASTER);
+        }
+      }
+    }
+    setBlock(btx, btH + 14, btz, BLOCK.ROOFTILE);
+    setBlock(btx, btH + 15, btz, BLOCK.ROOFTILE);
+
+    // Yablunska Street — WHITE_TILE paved 6 wide × 40 long N-S
+    for (z = oz - 20; z <= oz + 20; z++) {
+      for (x = ox - 3; x <= ox + 3; x++) {
+        setBlock(x, h, z, BLOCK.WHITE_TILE);
+      }
+    }
+    // Burned car hulks on street — 4× CONCRETE (3×2) with LIGHT fire glow
+    var carPositions = [[ox - 1, oz - 14], [ox + 1, oz - 7], [ox - 1, oz + 5], [ox + 1, oz + 13]];
+    for (i = 0; i < carPositions.length; i++) {
+      bx = carPositions[i][0]; bz = carPositions[i][1];
+      bh = getHeight(bx, bz);
+      setBlock(bx,     bh, bz,     BLOCK.CONCRETE);
+      setBlock(bx + 1, bh, bz,     BLOCK.CONCRETE);
+      setBlock(bx + 2, bh, bz,     BLOCK.CONCRETE);
+      setBlock(bx,     bh, bz + 1, BLOCK.CONCRETE);
+      setBlock(bx + 1, bh, bz + 1, BLOCK.CONCRETE);
+      setBlock(bx + 2, bh, bz + 1, BLOCK.CONCRETE);
+      setBlock(bx + 1, bh + 1, bz, BLOCK.LIGHT);
+    }
+
+    // Mass grave site — STONE-lined rectangle 10×6 with WOOD crosses
+    var gx = ox - 18, gz = oz + 5;
+    var gH = getHeight(gx, gz);
+    for (x = gx; x <= gx + 10; x++) {
+      setBlock(x, gH, gz,     BLOCK.STONE);
+      setBlock(x, gH, gz + 6, BLOCK.STONE);
+    }
+    for (z = gz; z <= gz + 6; z++) {
+      setBlock(gx,      gH, z, BLOCK.STONE);
+      setBlock(gx + 10, gH, z, BLOCK.STONE);
+    }
+    // 12 cross markers (WOOD pillar 2 high + horizontal beam at top)
+    var crossPos = [[1,1],[3,1],[5,1],[7,1],[9,1],[1,3],[3,3],[5,3],[7,3],[9,3],[2,5],[6,5]];
+    for (i = 0; i < crossPos.length; i++) {
+      var cx2 = gx + crossPos[i][0], cz2 = gz + crossPos[i][1];
+      var cH = getHeight(cx2, cz2);
+      setBlock(cx2,     cH,     cz2, BLOCK.WOOD);
+      setBlock(cx2,     cH + 1, cz2, BLOCK.WOOD);
+      setBlock(cx2 - 1, cH + 1, cz2, BLOCK.WOOD);
+      setBlock(cx2 + 1, cH + 1, cz2, BLOCK.WOOD);
+    }
+
+    // Civilian cottages — 6× small houses (5×4 BRICK 4 high with ROOFTILE peaked roof)
+    var housePos = [[-18,-15],[-18,-5],[14,-15],[14,-5],[14,8],[-18,8]];
+    for (i = 0; i < housePos.length; i++) {
+      bx = ox + housePos[i][0]; bz = oz + housePos[i][1];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 5; x++) {
+        for (z = bz; z <= bz + 4; z++) {
+          var isE = (x === bx || x === bx + 5 || z === bz || z === bz + 4);
+          if (isE) {
+            for (var hy = 0; hy < 4; hy++) setBlock(x, bh + hy, z, BLOCK.BRICK);
+          } else {
+            setBlock(x, bh, z, BLOCK.STONE);
+          }
+        }
+      }
+      // peaked roof
+      setBlock(bx + 1, bh + 4, bz + 1, BLOCK.ROOFTILE);
+      setBlock(bx + 2, bh + 4, bz + 1, BLOCK.ROOFTILE);
+      setBlock(bx + 3, bh + 4, bz + 1, BLOCK.ROOFTILE);
+      setBlock(bx + 1, bh + 4, bz + 2, BLOCK.ROOFTILE);
+      setBlock(bx + 2, bh + 5, bz + 2, BLOCK.ROOFTILE);
+      setBlock(bx + 3, bh + 4, bz + 2, BLOCK.ROOFTILE);
+      setBlock(bx + 1, bh + 4, bz + 3, BLOCK.ROOFTILE);
+      setBlock(bx + 2, bh + 4, bz + 3, BLOCK.ROOFTILE);
+      setBlock(bx + 3, bh + 4, bz + 3, BLOCK.ROOFTILE);
+      // GLASS window + WOOD door
+      setBlock(bx + 1, bh + 2, bz,     BLOCK.GLASS);
+      setBlock(bx + 4, bh + 2, bz,     BLOCK.GLASS);
+      setBlock(bx + 2, bh + 1, bz + 4, BLOCK.WOOD);
+      setBlock(bx + 2, bh + 2, bz + 4, BLOCK.WOOD);
+    }
+
+    // Prosecution evidence marker flags — 8× METAL 3-high poles with LIGHT yellow top
+    var flagPos = [[-10,-18],[0,-18],[10,-18],[-10,18],[0,18],[10,18],[-20,0],[20,0]];
+    for (i = 0; i < flagPos.length; i++) {
+      bx = ox + flagPos[i][0]; bz = oz + flagPos[i][1];
+      bh = getHeight(bx, bz);
+      setBlock(bx, bh,     bz, BLOCK.METAL);
+      setBlock(bx, bh + 1, bz, BLOCK.METAL);
+      setBlock(bx, bh + 2, bz, BLOCK.METAL);
+      setBlock(bx, bh + 3, bz, BLOCK.LIGHT);
+    }
+
+    // Liberation mural — 8×4 PLASTER wall with GLASS/LIGHT Ukrainian flag pattern
+    var mx = ox + 12, mz = oz - 20, mH = getHeight(mx, mz);
+    for (x = mx; x <= mx + 8; x++) {
+      for (i = 0; i < 4; i++) {
+        setBlock(x, mH + i, mz, i >= 2 ? BLOCK.GLASS : BLOCK.LIGHT);
+      }
+    }
+
+    _buildings.push({ kind: 'landmark_bucha_memorial', x: ox - 20, z: oz - 22, w: 42, d: 44, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── HOSTOMEL: Airport Raid (An-225 Mriya) ────────────────────────────────
+  // On 24 Feb 2022 Russian forces assaulted Hostomel airport in a bid to capture
+  // Kyiv. Ukrainian paratroopers repelled the attack; the Antonov An-225 Mriya
+  // (world's largest aircraft) was destroyed in the fighting.
+  function generateHostomelAirportRaid(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz, bh;
+
+    // Main runway — STONE strip 8×80 running E-W with METAL edge lighting posts
+    for (x = ox - 40; x <= ox + 40; x++) {
+      for (z = oz - 4; z <= oz + 4; z++) {
+        setBlock(x, h, z, BLOCK.STONE);
+      }
+    }
+    // Edge lighting: METAL 2 high + LIGHT cap every 10 blocks
+    for (x = ox - 40; x <= ox + 40; x += 10) {
+      bh = getHeight(x, oz - 5);
+      setBlock(x, bh,     oz - 5, BLOCK.METAL);
+      setBlock(x, bh + 1, oz - 5, BLOCK.METAL);
+      setBlock(x, bh + 2, oz - 5, BLOCK.LIGHT);
+      setBlock(x, bh,     oz + 5, BLOCK.METAL);
+      setBlock(x, bh + 1, oz + 5, BLOCK.METAL);
+      setBlock(x, bh + 2, oz + 5, BLOCK.LIGHT);
+    }
+
+    // Antonov An-225 Mriya wreckage — CONCRETE/METAL fuselage 2×28 3 high
+    var fx = ox - 14, fz = oz + 15;
+    var fH = getHeight(fx, fz);
+    // Fuselage
+    for (x = fx; x <= fx + 28; x++) {
+      for (i = 0; i < 3; i++) {
+        setBlock(x, fH + i, fz,     BLOCK.CONCRETE);
+        setBlock(x, fH + i, fz + 1, BLOCK.CONCRETE);
+      }
+    }
+    // Nose cone (ROOFTILE)
+    setBlock(fx - 1, fH,     fz,     BLOCK.ROOFTILE);
+    setBlock(fx - 1, fH,     fz + 1, BLOCK.ROOFTILE);
+    setBlock(fx - 1, fH + 1, fz,     BLOCK.ROOFTILE);
+    setBlock(fx - 1, fH + 1, fz + 1, BLOCK.ROOFTILE);
+    // Wings — METAL 2-wide extending 12 blocks each side at mid-fuselage
+    var wingX = fx + 14;
+    for (z = fz - 12; z < fz; z++) {
+      setBlock(wingX,     fH, z, BLOCK.METAL);
+      setBlock(wingX + 1, fH, z, BLOCK.METAL);
+    }
+    for (z = fz + 2; z <= fz + 14; z++) {
+      setBlock(wingX,     fH, z, BLOCK.METAL);
+      setBlock(wingX + 1, fH, z, BLOCK.METAL);
+    }
+    // Engine nacelles on wings — METAL 4×4×3 with FIRE (burned)
+    var nacPos = [[wingX - 3, fz - 10],[wingX - 3, fz - 5],[wingX - 3, fz + 4],[wingX - 3, fz + 9]];
+    for (i = 0; i < nacPos.length; i++) {
+      bx = nacPos[i][0]; bz = nacPos[i][1];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 3; x++) {
+        for (z = bz; z <= bz + 3; z++) {
+          for (var ny = 0; ny < 3; ny++) setBlock(x, bh + ny, z, BLOCK.METAL);
+        }
+      }
+      setBlock(bx + 1, bh + 3, bz + 1, BLOCK.FIRE);
+    }
+    // RUBBLE around the aircraft
+    var rubPos = [[-2,0],[2,0],[0,2],[0,-2],[-3,1],[3,-1],[1,3],[-1,-3]];
+    for (i = 0; i < rubPos.length; i++) {
+      setBlock(fx + 14 + rubPos[i][0], fH, fz + rubPos[i][1] + 1, BLOCK.RUBBLE);
+    }
+
+    // Airport control tower — 4×4 CONCRETE 18 high
+    var twx = ox + 20, twz = oz - 18;
+    var tH = getHeight(twx, twz);
+    for (i = 0; i < 18; i++) {
+      for (x = twx; x <= twx + 3; x++) {
+        for (z = twz; z <= twz + 3; z++) {
+          setBlock(x, tH + i, z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // 6×6 GLASS observation floor at top
+    for (x = twx - 1; x <= twx + 4; x++) {
+      for (z = twz - 1; z <= twz + 4; z++) {
+        setBlock(x, tH + 16, z, BLOCK.GLASS);
+        setBlock(x, tH + 17, z, BLOCK.GLASS);
+        setBlock(x, tH + 18, z, BLOCK.GLASS);
+      }
+    }
+    // METAL antenna 3 more high
+    setBlock(twx + 1, tH + 19, twz + 1, BLOCK.METAL);
+    setBlock(twx + 1, tH + 20, twz + 1, BLOCK.METAL);
+    setBlock(twx + 1, tH + 21, twz + 1, BLOCK.METAL);
+
+    // Hangar building — 30×20 CONCRETE 8 high
+    var hgx = ox - 42, hgz = oz - 10;
+    var hgH = getHeight(hgx, hgz);
+    for (x = hgx; x <= hgx + 30; x++) {
+      for (z = hgz; z <= hgz + 20; z++) {
+        var isHWall = (x === hgx || x === hgx + 30 || z === hgz || z === hgz + 20);
+        if (isHWall) {
+          for (i = 0; i < 8; i++) setBlock(x, hgH + i, z, BLOCK.CONCRETE);
+        } else {
+          setBlock(x, hgH, z, BLOCK.STONE);
+        }
+      }
+    }
+    // Large METAL doors (6-wide AIR gaps) on east and west ends
+    for (z = hgz + 7; z <= hgz + 13; z++) {
+      for (i = 0; i < 6; i++) {
+        setBlock(hgx,      hgH + i, z, BLOCK.AIR);
+        setBlock(hgx + 30, hgH + i, z, BLOCK.AIR);
+      }
+    }
+
+    // Helicopter pad (former Russian LZ) — circle of WHITE_TILE radius 8
+    var hpx = ox + 10, hpz = oz - 30;
+    var hpH = getHeight(hpx, hpz);
+    for (x = hpx - 8; x <= hpx + 8; x++) {
+      for (z = hpz - 8; z <= hpz + 8; z++) {
+        if ((x - hpx) * (x - hpx) + (z - hpz) * (z - hpz) <= 64) {
+          setBlock(x, hpH, z, BLOCK.WHITE_TILE);
+        }
+      }
+    }
+    // "H" marking in CONCRETE — two vertical columns, one horizontal
+    for (z = hpz - 3; z <= hpz + 3; z++) {
+      setBlock(hpx - 2, hpH, z, BLOCK.CONCRETE);
+      setBlock(hpx + 2, hpH, z, BLOCK.CONCRETE);
+    }
+    setBlock(hpx - 1, hpH, hpz, BLOCK.CONCRETE);
+    setBlock(hpx,     hpH, hpz, BLOCK.CONCRETE);
+    setBlock(hpx + 1, hpH, hpz, BLOCK.CONCRETE);
+
+    // Shot-down helicopters — 2× METAL hulk (4×2 2 high) with FIRE glow
+    var heliPos = [[ox - 25, oz - 32], [ox + 28, oz - 20]];
+    for (i = 0; i < heliPos.length; i++) {
+      bx = heliPos[i][0]; bz = heliPos[i][1];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 3; x++) {
+        setBlock(x, bh,     bz,     BLOCK.METAL);
+        setBlock(x, bh,     bz + 1, BLOCK.METAL);
+        setBlock(x, bh + 1, bz,     BLOCK.METAL);
+        setBlock(x, bh + 1, bz + 1, BLOCK.METAL);
+      }
+      setBlock(bx + 1, bh + 2, bz, BLOCK.FIRE);
+    }
+
+    // Paratrooper defensive positions — 4× STONE walls 5 blocks long, 2 high
+    var wallPos = [[ox - 10, oz + 6], [ox + 5, oz + 6], [ox - 10, oz - 12], [ox + 5, oz - 12]];
+    for (i = 0; i < wallPos.length; i++) {
+      bx = wallPos[i][0]; bz = wallPos[i][1];
+      bh = getHeight(bx, bz);
+      for (x = bx; x <= bx + 4; x++) {
+        setBlock(x, bh,     bz, BLOCK.STONE);
+        setBlock(x, bh + 1, bz, BLOCK.STONE);
+      }
+    }
+
+    _buildings.push({ kind: 'landmark_hostomel_airport', x: ox - 45, z: oz - 35, w: 90, d: 70, baseY: h, floorH: 18, floors: 1, cx: ox, cz: oz });
+  }
+
   // ── SLAVUTYCH: Chernobyl Memorial ────────────────────────────────────────
   // Slavutych was built in 1986 to house Chernobyl workers after Pripyat evacuation.
   // The reactor sarcophagus is visible from the city; exclusion zone starts at the edge.
@@ -17931,6 +18236,33 @@ window.VoxelWorld = (function () {
       generateDroneNest(42, 40); generateDroneNest(-42, -38);
       generateAntiAirPosition(-35, -32); generateAntiAirPosition(32, 30);
       generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'BUCHA_MEMORIAL') {
+      generateCheckpoint(0, -40);
+      generateBunker(-20, 5); generateBunker(20, 5);
+      generateBuchaMemorial(0, 0);
+      generateChurch(-25, -15); generateChurch(22, 18);
+      generateUkrainianApartment(-32, -28, 6); generateUkrainianApartment(28, -28, 5);
+      generateUkrainianApartment(-32, 18, 5); generateUkrainianApartment(28, 22, 6);
+      generateBurningRuin(-15, 28); generateBurningRuin(15, -32);
+      generateWreckedTank(-18, -32); generateWreckedAPC(18, 22);
+      generateCraters(8);
+      generateTrenchNetwork(-15, 18); generateTrenchNetwork(15, -18);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-35, -30); generateAntiAirPosition(32, 28);
+      generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'HOSTOMEL_AIRPORT_RAID') {
+      generateCheckpoint(0, -45);
+      generateBunker(-22, -5); generateBunker(22, -5);
+      generateHostomelAirportRaid(0, 0);
+      generateUkrainianApartment(-35, -28, 7); generateUkrainianApartment(32, -28, 5);
+      generateBurningRuin(-20, 30); generateBurningRuin(18, -35);
+      generateWreckedConvoy(-35, -15);
+      generateCraters(10);
+      generateTrenchNetwork(-18, 20); generateTrenchNetwork(18, -20);
+      generateArtilleryBattery(-40, -38); generateArtilleryBattery(38, 38);
+      generateDroneNest(45, 42); generateDroneNest(-45, -42);
+      generateAntiAirPosition(-38, 28); generateAntiAirPosition(35, -30);
+      generateCheckpoint(-45, 0, true);
     } else if (level.id === 'DNIPRO_METRO') {
       generateCheckpoint(0, -35);
       generateBunker(-22, 5); generateBunker(22, 5);
