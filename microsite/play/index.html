@@ -1130,6 +1130,8 @@
 <script src="killstreak.js"></script>
 <script src="ally-soldiers.js"></script>
 <script src="night-vision.js"></script>
+<script src="wave-shop.js"></script>
+<script src="armor-system.js"></script>
 <script src="game-manager.js?v=20260429b-static"></script>
 <script src="time-of-day.js"></script>
 
@@ -1452,9 +1454,29 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('next-wave-btn').addEventListener('click', function () {
     if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
     GameManager.hideOverlays();
-    GameManager.setState(GameManager.STATE.PLAYING);
-    GameManager.requestPointerLock();
-    GameManager.beginWave(GameManager.getCurrentWave() + 1);
+
+    // Wave Shop: show between-wave shop every 3 waves before starting the next wave
+    var _completedWave = GameManager.getCurrentWave();
+    if (typeof WaveShop !== 'undefined' && WaveShop.shouldShow(_completedWave)) {
+      var _shopPlayer = GameManager.getPlayer();
+      GameManager.setState(GameManager.STATE.PAUSED);
+      WaveShop.show(_shopPlayer.score, _shopPlayer, function(newScore, purchased) {
+        _shopPlayer.score = newScore;
+        if (typeof HUD !== 'undefined' && HUD.setScore) HUD.setScore(_shopPlayer.score);
+        // Apply ammo refill if purchased
+        if (purchased.indexOf('AMMO_REFILL') !== -1) {
+          if (typeof Weapons !== 'undefined' && Weapons.refillAllAmmo) Weapons.refillAllAmmo();
+          window._shopAmmoRefill = false;
+        }
+        GameManager.setState(GameManager.STATE.PLAYING);
+        GameManager.requestPointerLock();
+        GameManager.beginWave(_completedWave + 1);
+      });
+    } else {
+      GameManager.setState(GameManager.STATE.PLAYING);
+      GameManager.requestPointerLock();
+      GameManager.beginWave(_completedWave + 1);
+    }
   });
 
   // ── Wave Shop purchase logic ──────────────────────────────
