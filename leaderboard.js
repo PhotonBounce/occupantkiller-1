@@ -1,17 +1,51 @@
 window.Leaderboard = (function() {
   var STORAGE_KEY = 'okk_leaderboard_v1';
+  var RECORDS_KEY = 'okk_level_records_v1';
   var MAX_ENTRIES = 10;
   var _entries = [];
+  var _records = {}; // levelId → {score, kills, waves, accuracy, date}
 
   function _load() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       _entries = raw ? JSON.parse(raw) : [];
     } catch(e) { _entries = []; }
+    try {
+      var rawR = localStorage.getItem(RECORDS_KEY);
+      _records = rawR ? JSON.parse(rawR) : {};
+    } catch(e) { _records = {}; }
   }
 
   function _save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_entries)); } catch(e) {}
+    try { localStorage.setItem(RECORDS_KEY, JSON.stringify(_records)); } catch(e) {}
+  }
+
+  function submitLevelRecord(levelId, score, kills, waves, accuracy) {
+    _load();
+    var existing = _records[levelId];
+    var isNewRecord = !existing || score > existing.score;
+    if (isNewRecord) {
+      _records[levelId] = {
+        score: score || 0,
+        kills: kills || 0,
+        waves: waves || 0,
+        accuracy: accuracy || 0,
+        date: new Date().toISOString().slice(0, 10)
+      };
+      _save();
+    }
+    return isNewRecord;
+  }
+
+  function getLevelRecord(levelId) {
+    _load();
+    return _records[levelId] || null;
+  }
+
+  function getAllRecords() {
+    _load();
+    return Object.assign({}, _records);
   }
 
   // Submit a score. Returns rank (1-based) or null if not in top 10.
@@ -95,33 +129,93 @@ window.Leaderboard = (function() {
     }
     if (!rows) rows = '<tr><td colspan="6" style="text-align:center;color:#666;padding:20px">No scores yet — play a game!</td></tr>';
 
-    var tabBtnStyle = 'padding:6px 16px;cursor:pointer;border:none;font-family:monospace;font-size:13px;';
+    var tabBtnStyle = 'padding:5px 12px;cursor:pointer;border:none;font-family:monospace;font-size:12px;';
     var scoresBtnStyle = tabBtnStyle + (_activeTab === 'scores' ? 'background:#cc0000;color:#fff;' : 'background:#222;color:#aaa;');
     var guidesBtnStyle = tabBtnStyle + (_activeTab === 'guide' ? 'background:#cc0000;color:#fff;' : 'background:#222;color:#aaa;');
+    var recordsBtnStyle = tabBtnStyle + (_activeTab === 'records' ? 'background:#cc0000;color:#fff;' : 'background:#222;color:#aaa;');
 
     var content = '';
     if (_activeTab === 'scores') {
       content = '<table style="width:100%;border-collapse:collapse"><tbody>' + rows + '</tbody></table>';
+    } else if (_activeTab === 'records') {
+      content = _renderRecords();
     } else {
       content = _renderGuide();
     }
 
+    var completedCount = Object.keys(_records).length;
     var prestigeInfo = window._prestigeLevel > 0
       ? '<div style="text-align:center;color:#ffd700;margin-bottom:8px">⭐ PRESTIGE ' + window._prestigeLevel + ' · ×' + (window._prestigeScoreMult || 1).toFixed(2) + ' score bonus</div>'
       : '';
 
     _overlayEl.innerHTML =
-      '<h2 style="text-align:center;color:#ff4444;margin:0 0 10px">⚔ OCCUPANT KILLER</h2>' +
+      '<h2 style="text-align:center;color:#ff4444;margin:0 0 6px">⚔ OCCUPANT KILLER</h2>' +
+      (completedCount > 0 ? '<div style="text-align:center;color:#aaa;font-size:11px;margin-bottom:6px">🗺️ ' + completedCount + ' cities liberated</div>' : '') +
       prestigeInfo +
-      '<div style="display:flex;gap:4px;margin-bottom:12px;justify-content:center">' +
+      '<div style="display:flex;gap:4px;margin-bottom:10px;justify-content:center">' +
         '<button id="lb-tab-scores" style="' + scoresBtnStyle + '">🏆 TOP SCORES</button>' +
+        '<button id="lb-tab-records" style="' + recordsBtnStyle + '">🗺️ RECORDS</button>' +
         '<button id="lb-tab-guide" style="' + guidesBtnStyle + '">📖 CONTROLS</button>' +
       '</div>' +
       content +
-      '<div style="text-align:center;margin-top:12px;font-size:11px;color:#555">[TAB] to close</div>';
+      '<div style="text-align:center;margin-top:10px;font-size:11px;color:#555">[TAB] to close</div>';
 
     document.getElementById('lb-tab-scores').onclick = function() { _activeTab = 'scores'; _render(); };
+    document.getElementById('lb-tab-records').onclick = function() { _activeTab = 'records'; _render(); };
     document.getElementById('lb-tab-guide').onclick = function() { _activeTab = 'guide'; _render(); };
+  }
+
+  function _renderRecords() {
+    var recs = _records;
+    var levelDefs = typeof VoxelWorld !== 'undefined' && VoxelWorld.getLevels ? VoxelWorld.getLevels() : [];
+    var html = '<div style="max-height:55vh;overflow-y:auto;">';
+
+    if (levelDefs.length === 0) {
+      // Fallback: just show saved records
+      var keys = Object.keys(recs);
+      if (keys.length === 0) {
+        html += '<div style="text-align:center;color:#666;padding:20px">No level records yet — complete a mission!</div>';
+      } else {
+        html += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+        html += '<tr style="color:#888;border-bottom:1px solid #333"><td style="padding:3px 6px">LEVEL</td><td style="padding:3px 6px;text-align:right">SCORE</td><td style="padding:3px 6px;text-align:right">KILLS</td><td style="padding:3px 6px;text-align:right">WAVES</td><td style="padding:3px 6px;text-align:right">ACC</td></tr>';
+        for (var k = 0; k < keys.length; k++) {
+          var r = recs[keys[k]];
+          html += '<tr style="color:#ccc;border-bottom:1px solid #1a1a1a">' +
+            '<td style="padding:3px 6px">✅ ' + _esc(keys[k]) + '</td>' +
+            '<td style="padding:3px 6px;text-align:right;color:#ffd700">' + r.score.toLocaleString() + '</td>' +
+            '<td style="padding:3px 6px;text-align:right">' + r.kills + '</td>' +
+            '<td style="padding:3px 6px;text-align:right">W' + r.waves + '</td>' +
+            '<td style="padding:3px 6px;text-align:right">' + r.accuracy + '%</td>' +
+            '</tr>';
+        }
+        html += '</table>';
+      }
+    } else {
+      // Sort levels by difficulty, show completion status
+      var sorted = levelDefs.slice().sort(function(a, b) { return (a.difficulty || 0) - (b.difficulty || 0); });
+      html += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+      html += '<tr style="color:#888;border-bottom:1px solid #333"><td style="padding:3px 4px">LVL</td><td style="padding:3px 4px">SCORE</td><td style="padding:3px 4px;text-align:right">K</td><td style="padding:3px 4px;text-align:right">W</td><td style="padding:3px 4px;text-align:right">ACC</td></tr>';
+      for (var li = 0; li < sorted.length && li < 60; li++) {
+        var lvl = sorted[li];
+        var rec = recs[lvl.id];
+        var diffColor = lvl.difficulty >= 4 ? '#ff4444' : lvl.difficulty >= 3 ? '#ff8800' : lvl.difficulty >= 2 ? '#ffdd00' : '#88ff88';
+        var icon = rec ? '✅' : '⬜';
+        var scoreText = rec ? rec.score.toLocaleString() : '—';
+        var killsText = rec ? rec.kills : '—';
+        var wavesText = rec ? 'W' + rec.waves : '—';
+        var accText = rec ? rec.accuracy + '%' : '—';
+        html += '<tr style="color:' + (rec ? '#ccc' : '#555') + ';border-bottom:1px solid #111">' +
+          '<td style="padding:2px 4px">' + icon + ' <span style="color:' + diffColor + ';font-size:9px">D' + (lvl.difficulty || 1).toFixed(1) + '</span> ' + _esc(lvl.name || lvl.id) + '</td>' +
+          '<td style="padding:2px 4px;color:#ffd700">' + scoreText + '</td>' +
+          '<td style="padding:2px 4px;text-align:right">' + killsText + '</td>' +
+          '<td style="padding:2px 4px;text-align:right">' + wavesText + '</td>' +
+          '<td style="padding:2px 4px;text-align:right">' + accText + '</td>' +
+          '</tr>';
+      }
+      html += '</table>';
+    }
+    html += '</div>';
+    return html;
   }
 
   function _renderGuide() {
@@ -177,5 +271,5 @@ window.Leaderboard = (function() {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  return { submitScore: submitScore, getEntries: getEntries, clear: clear, show: show, hide: hide, toggle: toggle };
+  return { submitScore: submitScore, getEntries: getEntries, clear: clear, show: show, hide: hide, toggle: toggle, submitLevelRecord: submitLevelRecord, getLevelRecord: getLevelRecord, getAllRecords: getAllRecords };
 })();
