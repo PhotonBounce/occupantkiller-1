@@ -3241,6 +3241,7 @@ const GameManager = (function () {
 
     // Reset skills on new game (skills are designed to accrue per-run, not persist)
     if (typeof SkillSystem !== 'undefined' && SkillSystem.init) SkillSystem.init();
+    if (typeof Medals !== 'undefined') Medals.reset();
 
     // Preserve scalar god-mode effects across a new run.
     if (player.godMode) {
@@ -4849,6 +4850,26 @@ const GameManager = (function () {
     var _snapWaveHits = player.waveHits;
     var _snapWaveDmg = player.waveDamageTaken;
     var _snapWaveTime = Math.round((performance.now() - (player.waveStartTime || performance.now())) / 1000);
+
+    // Show wave medals
+    if (typeof Medals !== 'undefined') {
+      var _medalStats = {
+        kills: _snapWaveKills || 0,
+        headshots: player.waveHeadshots || 0,
+        shots: _snapWaveShots || 0,
+        waveHits: _snapWaveHits || 0,
+        damageTaken: _snapWaveDmg || 0,
+        waveTime: _snapWaveTime || 0,
+        survived: player.hp > 0,
+        healsUsed: player.waveBandagesUsed || 0,
+        explosiveKills: player.waveExplosiveKills || 0,
+        vehicleKills: player.waveVehicleKills || 0,
+        hp: player.hp,
+        ammoUsed: _snapWaveShots || 0,
+      };
+      var _waveMedals = Medals.evaluateWave(_medalStats);
+      if (_waveMedals.length > 0) Medals.showWaveMedals(_waveMedals, currentWave);
+    }
 
     // Reset wave stats (AFTER all tracking above)
     player.waveKills = 0;
