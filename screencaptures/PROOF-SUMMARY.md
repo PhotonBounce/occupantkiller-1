@@ -55,7 +55,22 @@ FPV attack drones carry 99 charges but the count was never shown.
 
 - `enemy-facing-01.png` — enemies rendering and oriented (88 alive, no crash)
 
-## 6. Kremlin landmarks
+## 6. Weapons now render the correct, intact models
+Root cause of "lots of weapons are not intact": M16A2 (#3) and RG-6 Inferno (#5)
+were added to the WEAPONS list without mesh builders, so the positional
+`meshBuilders` array was 2 short (117 for 119 weapons). Every weapon from index 3
+onward rendered the model 1-2 slots off (M16→AK, AK→RPK, AKM→grenade sphere…) and
+the final two (IRIS-T SLM, ATACMS) fell into the magenta `0xff00ff` placeholder.
+
+Fixed by adding `NB.m16` / `NB.rg6` builders and realigning the array to 119/119.
+
+- `weapons-gallery-1.png` … `weapons-gallery-4.png` — all 119 weapon view-models
+- Before: #117 IRIS-T and #118 ATACMS were solid magenta boxes; AK-47 was a tiny
+  green sphere; AXMC/PPSh were specks.
+- After: IRIS-T = launch vehicle, ATACMS = missile, AK-47 = rifle, AXMC = sniper
+  rifle, PPSh = SMG. (Diagnostic: 0 magenta placeholders; builder count 119/119.)
+
+## 7. Kremlin landmarks
 New `generateKremlinWall` / `generateSpasskayaTower` / `generateRedSquare` /
 `generateKremlinInterior`. Level generates cleanly (13 buildings, no runtime error).
 
