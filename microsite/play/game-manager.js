@@ -1562,6 +1562,8 @@ const GameManager = (function () {
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
     if (typeof EnemyChatter !== 'undefined' && _camera) EnemyChatter.init(_camera);
     try { if (window.DamageNumbers) DamageNumbers.init(_scene, _camera); } catch (e) {}
+    // ADS (Aim Down Sights) system
+    try { if (window.ADSSystem && ADSSystem.init) ADSSystem.init(_scene, _camera); } catch (eADS) { console.warn('[ADSSystem] init failed', eADS); }
     // Companion radio tactical chatter
     try { if (window.CompanionRadio && CompanionRadio.init) CompanionRadio.init(); } catch (eCR) {}
     // Daily challenges panel
@@ -2661,6 +2663,8 @@ const GameManager = (function () {
           handleMinecraftPlace();
         } else {
           Weapons.handleRightDown();
+          // ADS: aim down sights on right-click (non-melee, non-vehicle)
+          if (window.ADSSystem && ADSSystem.startADS) ADSSystem.startADS();
         }
       }
     });
@@ -2673,6 +2677,8 @@ const GameManager = (function () {
           VehicleSystem.setVehicleKey('mgFire', false);
         }
         Weapons.handleRightUp();
+        // ADS: exit aim-down-sights on right-click release
+        if (window.ADSSystem && ADSSystem.stopADS) ADSSystem.stopADS();
       }
     });
 
@@ -3407,6 +3413,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.TripwireIED) TripwireIED.reset();
     if (window.LootDrops) LootDrops.reset();
     if (window.WaveEvents) WaveEvents.reset();
     if (window.MortarEmplacement && MortarEmplacement.reset) MortarEmplacement.reset();
@@ -3732,6 +3739,7 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.WaveEvents) WaveEvents.clear();
     if (window.LootDrops) LootDrops.clear();
     if (window.BountySystem) BountySystem.clear();
     if (window.Destructibles) Destructibles.clear();
@@ -5630,6 +5638,8 @@ const GameManager = (function () {
       }
       // ── Loadout speed bonus ──
       if (window._loadoutSpeedMult) speed *= window._loadoutSpeedMult;
+      // ── ADS speed reduction (0.65 while aiming down sights) ──
+      if (window._adsSpeedMult && window._adsSpeedMult !== 1.0) speed *= window._adsSpeedMult;
       // ── B24: Crouch speed reduction (CrouchSystem overrides) ──
       var _crouchMult = (window.CrouchSystem ? CrouchSystem.getSpeedMult() : (player.isCrouching ? 0.5 : 1.0));
       speed *= _crouchMult;
@@ -6226,6 +6236,11 @@ const GameManager = (function () {
       if (typeof KillStreak !== 'undefined') KillStreak.onKill();
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
+      // Wave events: trigger 'mid' when 50% of wave enemies are killed
+      if (window.WaveEvents && player._waveStartCount > 0 &&
+          player.waveKills === Math.ceil(player._waveStartCount * 0.5)) {
+        WaveEvents.triggerRandom(currentWave, 'mid');
+      }
       // Daily challenges: record kill
       try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordKill(); } catch (eDCK) {}
       // Achievements: record kill
@@ -7074,6 +7089,7 @@ const GameManager = (function () {
       if (window.StaminaSystem) StaminaSystem.update(delta);
       WeatherSystem.update(delta);
       if (typeof WeatherEvents !== 'undefined') WeatherEvents.update();
+      if (window.WaveEvents) WaveEvents.update(delta);
       MLSystem.trackFPS(delta);
       // AI Smart Learning: track player position for behavior profiling
       MLSystem.trackPlayerPosition(player.position.x, player.position.z, delta);
@@ -7664,6 +7680,20 @@ const GameManager = (function () {
       // doesn't float in that view ("flying with a machine gun").
       if (Weapons.setHolstered) Weapons.setHolstered(DroneSystem.isPossessing() || VehicleSystem.isInVehicle());
       Weapons.update(delta);
+
+      // ── ADS System update — FOV lerp, scope sway, breath control ──
+      window._playerVelocityLen = player.velocity ? player.velocity.length() : 0;
+      try {
+        if (window.ADSSystem && ADSSystem.update) {
+          // Notify ADSSystem of weapon type changes (detected once per frame)
+          var _adsWepType = (typeof Weapons !== 'undefined' && Weapons.getCurrentType) ? Weapons.getCurrentType() : '';
+          if (_adsWepType && _adsWepType !== window._adsLastWeaponType) {
+            window._adsLastWeaponType = _adsWepType;
+            ADSSystem.onWeaponChange(_adsWepType);
+          }
+          ADSSystem.update(delta);
+        }
+      } catch (eADSU) {}
 
       // ── Task 1: Weapon idle sway — breathing motion accumulated in GM ────────
       // _swayTime drives the breathing cycle; Weapons.js uses setPlayerSpeed to
