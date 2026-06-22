@@ -1261,7 +1261,35 @@ const GameManager = (function () {
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
         if (typeof HazardZones !== 'undefined') HazardZones.init(_scene);
+        if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
         if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
+        if (typeof ExplosiveBarrels !== 'undefined') {
+          ExplosiveBarrels.init(_scene, function(x, y, z, radius, damage) {
+            // AoE damage to enemies in radius
+            if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+              var _aeList = Enemies.getAll();
+              for (var _aei = 0; _aei < _aeList.length; _aei++) {
+                var _ae = _aeList[_aei];
+                if (!_ae || !_ae.mesh || _ae.hp <= 0) continue;
+                var _aedx = _ae.mesh.position.x - x;
+                var _aedz = _ae.mesh.position.z - z;
+                var _aedist = Math.sqrt(_aedx*_aedx + _aedz*_aedz);
+                if (_aedist < radius) {
+                  var _aedmg = damage * (1 - _aedist / radius);
+                  if (Enemies.damage) Enemies.damage(_ae, _aedmg);
+                }
+              }
+            }
+            // Damage player if nearby
+            var _pldx = player.position.x - x;
+            var _pldz = player.position.z - z;
+            var _pldist = Math.sqrt(_pldx*_pldx + _pldz*_pldz);
+            if (_pldist < radius) {
+              var _pldmg = damage * 0.5 * (1 - _pldist / radius);
+              player.hp = Math.max(0, player.hp - _pldmg);
+            }
+          });
+        }
         var stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
@@ -3255,6 +3283,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
     window._killstreakTimeScale = 1.0;
     window._killstreakHealthRegen = 0;
     window._killstreakAmmoRefill = 0;
@@ -3668,6 +3697,7 @@ const GameManager = (function () {
       Radio.setLevel(_radioLevelMap[stageDef.id] || null);
     }
     if (typeof HazardZones !== 'undefined') HazardZones.setupForLevel(stageDef ? stageDef.id : null);
+    if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.setupForLevel(stageDef ? stageDef.id : '');
     if (typeof SupplyCrate !== 'undefined') SupplyCrate.clear();
   }
 
@@ -3954,6 +3984,7 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
+    if (typeof AllySoldiers !== 'undefined') AllySoldiers.spawnForWave(player.position, currentWave);
     if (typeof SupplyCrate !== 'undefined') SupplyCrate.dropAtWave(currentWave);
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
@@ -4790,6 +4821,7 @@ const GameManager = (function () {
   function onWaveComplete() {
     try {
     if (typeof HUD !== 'undefined' && HUD.hideBossBar) HUD.hideBossBar();
+    if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
     player.score += SCORE_WAVE_BONUS;
     HUD.setScore(player.score);
     MLSystem.onWaveComplete(currentWave, currentStage, player.hp / player.maxHp);
@@ -7484,6 +7516,7 @@ const GameManager = (function () {
         CompanionDrone.update(delta, player.position, []);
       }
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
+      if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
       if (typeof HazardZones !== 'undefined') HazardZones.update(delta, player.position, player);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
       // Check if any enemy stepped on a landmine
