@@ -3174,6 +3174,9 @@ const GameManager = (function () {
     player._lastPos = null;
     player.playStartTime = performance.now();
     player.stageStartTime = performance.now();
+    player.stageShots = 0;
+    player.stageHits = 0;
+    player.stageHeadshots = 0;
     player.buildMaterials = { wood: 0, stone: 0, metal: 0, dirt: 0, sand: 0, brick: 0 };
     // Clear desaturation filter
     if (_renderer && _renderer.domElement) _renderer.domElement.style.filter = '';
@@ -3717,6 +3720,9 @@ const GameManager = (function () {
     HUD.setWave(0);
 
     player.stageStartTime = performance.now();
+    player.stageShots = 0;
+    player.stageHits = 0;
+    player.stageHeadshots = 0;
     hideOverlays();
     gameState = STATE.PLAYING;
     requestPointerLock();
@@ -4921,6 +4927,13 @@ const GameManager = (function () {
         HUD.showLevelGrade(_gradeStats);
       }
 
+      // Submit level record to leaderboard
+      if (typeof Leaderboard !== 'undefined' && Leaderboard.submitLevelRecord && stageDef) {
+        var _stageAcc = (player.stageShots || 0) > 0
+          ? Math.round(((player.stageHits || 0) / (player.stageShots || 1)) * 100) : 0;
+        Leaderboard.submitLevelRecord(stageDef.id, player.score, player.kills, currentWave, _stageAcc);
+      }
+
       // Show stage clear overlay
       gameState = STATE.STAGE_CLEAR;
       if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playLevelComplete) window.AudioSystem.playLevelComplete();
@@ -5526,6 +5539,7 @@ const GameManager = (function () {
         MLSystem.onShot(weaponId);
         player.totalShots++;
         player.waveShots++;
+        player.stageShots = (player.stageShots || 0) + 1;
         // Register heat + maintenance per shot (not per hit, to avoid shotgun 8x issue)
         if (typeof CombatExtras !== 'undefined') {
           CombatExtras.registerShot();
@@ -5640,6 +5654,7 @@ const GameManager = (function () {
     HUD.flashHit(isHeadshot, remaining <= 0);
     player.totalHits++;
     player.waveHits++;
+    player.stageHits = (player.stageHits || 0) + 1;
 
     if (isHeadshot) {
       HUD.showHeadshot();
@@ -5647,6 +5662,7 @@ const GameManager = (function () {
       player.score += 50;
       player.totalHeadshots++;
       player.waveHeadshots++;
+      player.stageHeadshots = (player.stageHeadshots || 0) + 1;
     }
 
     if (remaining <= 0) {
