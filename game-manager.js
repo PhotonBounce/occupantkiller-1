@@ -2246,7 +2246,11 @@ const GameManager = (function () {
         // Inventory/Tab toggle
         if (e.code === 'Tab') {
           e.preventDefault();
-          toggleInventory();
+          if (typeof Leaderboard !== 'undefined' && Leaderboard.toggle) {
+            Leaderboard.toggle();
+          } else {
+            toggleInventory();
+          }
         }
 
         // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9)
@@ -6415,6 +6419,11 @@ const GameManager = (function () {
           deadLB.textContent = '🏆 Leaderboard Rank: #' + rank;
         }
         Progression.save();
+      }
+      // Submit to local leaderboard
+      if (typeof Leaderboard !== 'undefined' && Leaderboard.submitScore) {
+        var _lbName = (window._playerName || 'SOLDIER');
+        Leaderboard.submitScore(_lbName, player.score || 0, currentWave || 1, player.kills || 0, STAGES[currentStage] ? String(STAGES[currentStage].id) : 'UNKNOWN');
       }
       // Reset perk streak on death
       if (typeof Perks !== 'undefined') Perks.resetStreak();
