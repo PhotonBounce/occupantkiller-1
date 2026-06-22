@@ -103,6 +103,7 @@ const GameManager = (function () {
   var _gmTmp3 = new THREE.Vector3();
   var _gmNewPos = new THREE.Vector3();
   var _waveStartTimer = null;
+  var _levelStartTime = 0;  // Date.now() timestamp when the current level began
   var _defeatReason = null; // custom defeat banner (e.g. 'KYIV HAS FALLEN'); null = 'YOU DIED'
   var _hudSlowTimer = 0; // throttle slow HUD updates (dailies, bounties, prestige)
   var _musicIntTimer = 0; // throttle music intensity calc
@@ -1279,6 +1280,7 @@ const GameManager = (function () {
           if (isPlayer) { _takeDamage(45); }
         });
         if (typeof ArmorSystem !== 'undefined') ArmorSystem.init(_scene);
+        if (window.GasMask) GasMask.init(_scene);
         if (typeof HazardZones !== 'undefined') HazardZones.init(_scene);
         if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
         if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
@@ -1935,6 +1937,18 @@ const GameManager = (function () {
                 throwHandGrenade();
               }
             }
+          }
+        }
+
+        // V key — melee knife attack
+        if (e.key === 'v' || e.key === 'V') {
+          if (window.MeleeKnife && gameState === STATE.PLAYING) {
+            var _allEnemiesForKnife = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
+            MeleeKnife.attack(player.position, _camera, _allEnemiesForKnife, function(enemy, dmg) {
+              Enemies.damageEnemy(enemy, dmg, 'knife');
+              player.kills++;
+              HUD.addKillFeedEntry('You', enemy.type || 'Enemy', '🔪');
+            });
           }
         }
 
@@ -3319,6 +3333,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.MeleeKnife) MeleeKnife.reset();
     if (window.ClaymoreMines) ClaymoreMines.reset();
     if (window.RadioSupport) RadioSupport.reset();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.reset();
@@ -3359,6 +3374,7 @@ const GameManager = (function () {
     player._lastPos = null;
     player.playStartTime = performance.now();
     player.stageStartTime = performance.now();
+    _levelStartTime = Date.now();  // record when this level started
     player.stageShots = 0;
     player.stageHits = 0;
     player.stageHeadshots = 0;
@@ -3624,6 +3640,7 @@ const GameManager = (function () {
     if (window.ClaymoreMines) ClaymoreMines.clear();
     if (window.RadioSupport) RadioSupport.clear();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
+    if (window.MeleeKnife) MeleeKnife.clear();
     window.VoxelWorld.generateLevel(stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
@@ -6005,6 +6022,7 @@ const GameManager = (function () {
       player.kills++;
       if (window.RadioSupport) RadioSupport.onKill();
       if (typeof ArmorSystem !== 'undefined' && enemy && enemy.mesh) ArmorSystem.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z);
+      if (window.GasMask && enemy && enemy.mesh) GasMask.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z, typeof STAGES !== 'undefined' && STAGES[currentStage] ? STAGES[currentStage].id : '');
       if (typeof KillStreak !== 'undefined') KillStreak.onKill();
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
@@ -7582,6 +7600,7 @@ const GameManager = (function () {
       if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
       if (typeof HazardZones !== 'undefined') HazardZones.update(delta, player.position, player);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
+      if (window.RadioSupport) RadioSupport.update(delta);
       if (window.MeleeKnife) MeleeKnife.update(delta);
       // Check if any enemy stepped on a landmine
       if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
