@@ -1234,6 +1234,8 @@ window.VoxelWorld = (function () {
     { id: 'ZAPORIZHZHIA', name: 'Zaporizhzhia Nuclear Zone', desc: 'Secure the ZNPP — fight through Cossack land', theme: 'industrial', wavesPerLevel: 9, difficulty: 3.8, fogColor: 0x445566, spawnCandidates: [{ x: -20, z: -20 }, { x: 20, z: -20 }, { x: 0, z: -30 }, { x: -30, z: 5 }, { x: 30, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ODESSA', name: 'Odessa Sea Gate', desc: 'Defend the Black Sea port from amphibious assault', theme: 'coastal', wavesPerLevel: 8, difficulty: 3.5, fogColor: 0x446688, spawnCandidates: [{ x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 5 }, { x: 25, z: 5 }, { x: 0, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'DONETSK', name: 'Donetsk Line', desc: 'Counter-attack in the occupied industrial city', theme: 'urban', wavesPerLevel: 10, difficulty: 4.5, fogColor: 0x3a3a2a, spawnCandidates: [{ x: -20, z: -15 }, { x: 20, z: -15 }, { x: 0, z: -25 }, { x: -30, z: 0 }, { x: 30, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'LVIV', name: 'Lviv Stronghold', desc: 'Defend the cultural capital from saboteurs', theme: 'urban', wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x445533, spawnCandidates: [{ x: -18, z: -20 }, { x: 18, z: -20 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'SEVERODONETSK', name: 'Severodonetsk Last Stand', desc: 'Hold the Azot plant until evacuation', theme: 'industrial', wavesPerLevel: 10, difficulty: 4.2, fogColor: 0x382010, spawnCandidates: [{ x: -15, z: -20 }, { x: 15, z: -20 }, { x: 0, z: -28 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -11371,6 +11373,357 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_donetsk_admin', x: ox - 10, z: oz - 6, w: 21, d: 19, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
   }
 
+  // LANDMARK: Lviv High Castle (Vysoky Zamok) — 14th-century medieval ruins on hilltop
+  // Last defence of the city; now a tourist site but becomes a Ukrainian firing position
+  function generateLvivHighCastle(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Elevated stone mound — terraced hill (6 tiers, each shrinking by 2 blocks)
+    for (var tier = 0; tier < 6; tier++) {
+      var tierW = 15 - tier * 2;
+      var tierD = 10 - tier * 1;
+      for (var tx = -tierW; tx <= tierW; tx++) {
+        for (var tz = -tierD; tz <= tierD; tz++) {
+          setBlock(ox + tx, base + tier, oz + tz, BLOCK.STONE);
+        }
+      }
+    }
+    var peak = base + 6;
+    // Ruined tower — 8×8 BRICK walls, 18 high, open top (ruined)
+    for (var ty = 0; ty < 18; ty++) {
+      for (var tx = -4; tx <= 4; tx++) {
+        for (var tz = -4; tz <= 4; tz++) {
+          if (Math.abs(tx) === 4 || Math.abs(tz) === 4) {
+            // North side half-collapsed above floor 10
+            if (ty > 10 && tz === -4 && Math.abs(tx) < 3) continue;
+            setBlock(ox + tx, peak + ty, oz + tz, BLOCK.BRICK);
+          }
+        }
+      }
+      // Arrow slit windows every 3 floors
+      if (ty % 3 === 1) {
+        setBlock(ox - 4, peak + ty, oz, BLOCK.AIR);
+        setBlock(ox + 4, peak + ty, oz, BLOCK.AIR);
+        setBlock(ox, peak + ty, oz - 4, BLOCK.AIR);
+        setBlock(ox, peak + ty, oz + 4, BLOCK.AIR);
+      }
+    }
+    // Rubble scatter — north face collapse debris
+    for (var rx = -3; rx <= 3; rx++) {
+      for (var rz = -6; rz <= -4; rz++) {
+        if (Math.random() < 0.6) setBlock(ox + rx, peak, oz + rz, BLOCK.RUBBLE);
+      }
+    }
+    // Stone wall fragments around courtyard (sections every 6 blocks, 4 high)
+    var wallPositions = [[-12, -8], [12, -8], [-12, 8], [12, 8], [-12, 0], [12, 0], [0, -8], [0, 8]];
+    for (var wi = 0; wi < wallPositions.length; wi++) {
+      var wpx = wallPositions[wi][0]; var wpz = wallPositions[wi][1];
+      for (var wh = 0; wh < 4; wh++) {
+        for (var ws = -2; ws <= 2; ws++) {
+          if (Math.abs(wpx) > Math.abs(wpz)) {
+            setBlock(ox + wpx, base + wh, oz + wpz + ws, BLOCK.STONE);
+          } else {
+            setBlock(ox + wpx + ws, base + wh, oz + wpz, BLOCK.STONE);
+          }
+        }
+      }
+    }
+    // Courtyard RUBBLE floor
+    for (var cfx = -10; cfx <= 10; cfx++) {
+      for (var cfz = -6; cfz <= 6; cfz++) {
+        if (Math.random() < 0.3) setBlock(ox + cfx, base, oz + cfz, BLOCK.RUBBLE);
+      }
+    }
+    // AA gun position at summit (2×2 METAL + FENCE)
+    setBlock(ox + 2, peak + 1, oz + 2, BLOCK.METAL);
+    setBlock(ox + 3, peak + 1, oz + 2, BLOCK.METAL);
+    setBlock(ox + 2, peak + 2, oz + 2, BLOCK.FENCE);
+    setBlock(ox + 3, peak + 2, oz + 2, BLOCK.FENCE);
+    _buildings.push({ kind: 'landmark_lviv_castle', x: ox - 15, z: oz - 10, w: 31, d: 21, baseY: h, floorH: 18, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Lviv National Academic Opera and Ballet Theatre (1900) — ornate neo-baroque
+  // Used as Ukrainian planning HQ; surrounded by sandbag defenses, vehicles outside
+  function generateLvivOperaHouse(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main hall — 24×16 PLASTER box, 12 high
+    for (var wy = 0; wy < 12; wy++) {
+      for (var wx = -12; wx <= 12; wx++) {
+        for (var wz = -8; wz <= 8; wz++) {
+          if (Math.abs(wx) === 12 || Math.abs(wz) === 8 || wy === 11) {
+            setBlock(ox + wx, base + wy, oz + wz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // GLASS windows (arched, 3 per long wall)
+    for (var wfl = 2; wfl <= 9; wfl += 4) {
+      for (var wfx = -8; wfx <= 8; wfx += 6) {
+        setBlock(ox + wfx, base + wfl, oz + 8, BLOCK.GLASS);
+        setBlock(ox + wfx, base + wfl + 1, oz + 8, BLOCK.GLASS);
+        setBlock(ox + wfx, base + wfl, oz - 8, BLOCK.GLASS);
+        setBlock(ox + wfx, base + wfl + 1, oz - 8, BLOCK.GLASS);
+      }
+    }
+    // Dome — 8×8 ROOFTILE dome on center, 5 high, GLASS oculus at top
+    var domeProfile = [4, 3, 3, 2, 1];
+    for (var di = 0; di < domeProfile.length; di++) {
+      _lmDisc(ox, base + 12 + di, oz, domeProfile[di], di === 4 ? BLOCK.GLASS : BLOCK.ROOFTILE);
+    }
+    // 6 PLASTER columns on south portico
+    for (var pc = -6; pc <= 6; pc += 3) {
+      for (var ph = 0; ph < 10; ph++) {
+        setBlock(ox + pc, base + ph, oz - 9, BLOCK.PLASTER);
+        setBlock(ox + pc, base + ph, oz - 10, BLOCK.PLASTER);
+      }
+    }
+    // Side wings — 10×8 PLASTER, 9 high
+    for (var sw = -1; sw <= 1; sw += 2) {
+      for (var swy = 0; swy < 9; swy++) {
+        for (var swx = -5; swx <= 5; swx++) {
+          for (var swz = -4; swz <= 4; swz++) {
+            if (Math.abs(swx) === 5 || Math.abs(swz) === 4 || swy === 8) {
+              setBlock(ox + sw * 17 + swx, base + swy, oz + swz, BLOCK.PLASTER);
+            }
+          }
+        }
+      }
+    }
+    // Grand stairs south face (10 wide × 5 steps)
+    for (var es = 0; es < 5; es++) {
+      for (var ex = -5 + es; ex <= 5 - es; ex++) {
+        setBlock(ox + ex, h + es, oz - 11 - es, BLOCK.STONE);
+      }
+    }
+    // Sandbag defenses (CONCRETE blocks at perimeter)
+    for (var sb = -14; sb <= 14; sb += 4) {
+      setBlock(ox + sb, base, oz + 12, BLOCK.CONCRETE);
+      setBlock(ox + sb, base + 1, oz + 12, BLOCK.CONCRETE);
+      setBlock(ox + sb, base, oz - 16, BLOCK.CONCRETE);
+      setBlock(ox + sb, base + 1, oz - 16, BLOCK.CONCRETE);
+    }
+    // Military vehicles parked outside (METAL boxes)
+    setBlock(ox - 18, base, oz + 5, BLOCK.METAL);
+    setBlock(ox - 18, base + 1, oz + 5, BLOCK.METAL);
+    setBlock(ox + 18, base, oz + 5, BLOCK.METAL);
+    setBlock(ox + 18, base + 1, oz + 5, BLOCK.METAL);
+    _buildings.push({ kind: 'landmark_lviv_opera', x: ox - 22, z: oz - 16, w: 45, d: 33, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Lviv Rynok Square — baroque city hall tower + merchant houses around plaza
+  function generateLvivRynokSquare(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Plaza surface — WHITE_TILE / CONCRETE checkerboard
+    for (var px = -15; px <= 15; px++) {
+      for (var pz = -15; pz <= 15; pz++) {
+        var checker = (Math.abs(px) + Math.abs(pz)) % 2 === 0;
+        setBlock(ox + px, h, oz + pz, checker ? BLOCK.WHITE_TILE : BLOCK.CONCRETE);
+      }
+    }
+    // City Hall tower — 6×6 BRICK base 8 high, then narrowing tower up to 22
+    for (var ty = 0; ty < 22; ty++) {
+      var tw = ty < 8 ? 3 : 2;
+      for (var tx = -tw; tx <= tw; tx++) {
+        for (var tz = -tw; tz <= tw; tz++) {
+          if (Math.abs(tx) === tw || Math.abs(tz) === tw) {
+            setBlock(ox + tx, base + ty, oz + tz, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    // ROOFTILE pointed roof on tower
+    for (var rr = 0; rr <= 4; rr++) {
+      var rrW = 3 - Math.floor(rr * 0.8);
+      if (rrW < 0) rrW = 0;
+      for (var rrx = -rrW; rrx <= rrW; rrx++) {
+        for (var rrz = -rrW; rrz <= rrW; rrz++) {
+          setBlock(ox + rrx, base + 22 + rr, oz + rrz, BLOCK.ROOFTILE);
+        }
+      }
+    }
+    // Town hall base — 12×8 CONCRETE admin block, 6 high (behind/around tower)
+    for (var by = 0; by < 6; by++) {
+      for (var bx = -6; bx <= 6; bx++) {
+        for (var bz = -4; bz <= 4; bz++) {
+          if (Math.abs(bx) === 6 || Math.abs(bz) === 4 || by === 5) {
+            setBlock(ox + bx, base + by, oz + bz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // 4 corner baroque merchant houses (8×6 PLASTER, 8 high)
+    var corners = [[-12, -12], [12, -12], [-12, 12], [12, 12]];
+    for (var ci = 0; ci < corners.length; ci++) {
+      var chx = corners[ci][0]; var chz = corners[ci][1];
+      for (var chy = 0; chy < 8; chy++) {
+        for (var chbx = -4; chbx <= 4; chbx++) {
+          for (var chbz = -3; chbz <= 3; chbz++) {
+            if (Math.abs(chbx) === 4 || Math.abs(chbz) === 3 || chy === 7) {
+              setBlock(ox + chx + chbx, base + chy, oz + chz + chbz, BLOCK.PLASTER);
+            }
+          }
+        }
+      }
+      // ROOFTILE roofs on merchant houses
+      setBlock(ox + chx, base + 8, oz + chz, BLOCK.ROOFTILE);
+      for (var rfi = -3; rfi <= 3; rfi++) setBlock(ox + chx + rfi, base + 8, oz + chz, BLOCK.ROOFTILE);
+    }
+    // Fountain/well — 4×4 CONCRETE ring + LIGHT water glow
+    _lmRing(ox, base, oz, 2, BLOCK.CONCRETE);
+    setBlock(ox, base, oz, BLOCK.LIGHT);
+    setBlock(ox, base + 1, oz, BLOCK.LIGHT);
+    // METAL lamp posts every 8 blocks around plaza
+    var lampPos = [[-8, 0], [8, 0], [0, -8], [0, 8], [-8, -8], [8, -8], [-8, 8], [8, 8]];
+    for (var li = 0; li < lampPos.length; li++) {
+      for (var lh = 0; lh < 3; lh++) setBlock(ox + lampPos[li][0], base + lh, oz + lampPos[li][1], BLOCK.METAL);
+      setBlock(ox + lampPos[li][0], base + 3, oz + lampPos[li][1], BLOCK.LIGHT);
+    }
+    _buildings.push({ kind: 'landmark_lviv_rynok', x: ox - 15, z: oz - 15, w: 31, d: 31, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Azot Chemical Plant — Severodonetsk — site of the last Ukrainian stand, June 2022
+  // Massive industrial complex: production halls, storage tanks, blast craters, underground shelters
+  function generateSeverodonetskAzot(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main production hall — 60×25 CONCRETE, 12 high (massive industrial shed)
+    for (var wy = 0; wy < 12; wy++) {
+      for (var wx = -30; wx <= 30; wx++) {
+        for (var wz = -12; wz <= 12; wz++) {
+          if (Math.abs(wx) === 30 || Math.abs(wz) === 12 || wy === 11) {
+            setBlock(ox + wx, base + wy, oz + wz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Roof damage — Grad strike holes (every ~12 blocks along roof)
+    for (var rd = -24; rd <= 24; rd += 12) {
+      setBlock(ox + rd, base + 11, oz, BLOCK.AIR);
+      setBlock(ox + rd + 1, base + 11, oz, BLOCK.AIR);
+      setBlock(ox + rd, base + 10, oz, BLOCK.RUBBLE);
+    }
+    // GLASS factory windows (large industrial panes, damaged)
+    for (var wfi = -24; wfi <= 24; wfi += 8) {
+      for (var wfh = 2; wfh <= 9; wfh += 4) {
+        if (Math.random() < 0.6) {
+          setBlock(ox + wfi, base + wfh, oz + 12, BLOCK.GLASS);
+          setBlock(ox + wfi, base + wfh + 1, oz + 12, BLOCK.GLASS);
+        }
+      }
+    }
+    // Main smokestack — 4×4 BRICK, 35 high
+    for (var sy = 0; sy < 35; sy++) {
+      for (var sx = -2; sx <= 2; sx++) {
+        for (var sz = -2; sz <= 2; sz++) {
+          if (Math.abs(sx) === 2 || Math.abs(sz) === 2) {
+            setBlock(ox + 35, base + sy, oz - 8, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    // 4 Chemical storage tanks — 6×6 METAL cylinders, 10 high
+    var tankPositions = [[-20, 18], [-8, 18], [8, 18], [20, 18]];
+    for (var ti = 0; ti < tankPositions.length; ti++) {
+      var tkx = tankPositions[ti][0]; var tkz = tankPositions[ti][1];
+      for (var tky = 0; tky < 10; tky++) {
+        _lmRing(ox + tkx, base + tky, oz + tkz, 3, BLOCK.METAL);
+      }
+      _lmDisc(ox + tkx, base + 10, oz + tkz, 3, BLOCK.METAL);
+    }
+    // Access road (CONCRETE path between structures)
+    for (var ary = -30; ary <= 30; ary++) {
+      setBlock(ox + ary, h, oz + 14, BLOCK.CONCRETE);
+      setBlock(ox + ary, h, oz + 15, BLOCK.CONCRETE);
+    }
+    // Defensive bunkers inside complex (6 CONCRETE mounds)
+    var bunkerPos = [[-25, -5], [0, -5], [25, -5], [-15, 5], [15, 5], [0, 5]];
+    for (var bi = 0; bi < bunkerPos.length; bi++) {
+      var bkx = bunkerPos[bi][0]; var bkz = bunkerPos[bi][1];
+      for (var bky = 0; bky < 3; bky++) {
+        for (var bkbx = -2; bkbx <= 2; bkbx++) {
+          for (var bkbz = -1; bkbz <= 1; bkbz++) {
+            setBlock(ox + bkx + bkbx, base + bky, oz + bkz + bkbz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Blast craters from Grad strikes (12 small depressions)
+    for (var cr = 0; cr < 12; cr++) {
+      var crx = ox + Math.floor((cr * 17 + 7) % 55) - 27;
+      var crz = oz + Math.floor((cr * 13 + 3) % 22) - 11;
+      setBlock(crx, h, crz, BLOCK.RUBBLE);
+      setBlock(crx + 1, h, crz, BLOCK.RUBBLE);
+      setBlock(crx, h, crz + 1, BLOCK.RUBBLE);
+    }
+    // Ukrainian flag graffiti on main hall wall (2×2 LIGHT blocks — symbolic resistance)
+    setBlock(ox - 10, base + 4, oz - 12, BLOCK.LIGHT);
+    setBlock(ox - 9, base + 4, oz - 12, BLOCK.LIGHT);
+    setBlock(ox - 10, base + 5, oz - 12, BLOCK.LIGHT);
+    setBlock(ox - 9, base + 5, oz - 12, BLOCK.LIGHT);
+    // Underground shelter entrance (3×2 AIR gap descending)
+    setBlock(ox + 5, h, oz - 8, BLOCK.AIR);
+    setBlock(ox + 6, h, oz - 8, BLOCK.AIR);
+    setBlock(ox + 5, h - 1, oz - 8, BLOCK.AIR);
+    setBlock(ox + 6, h - 1, oz - 8, BLOCK.AIR);
+    setBlock(ox + 5, h - 2, oz - 8, BLOCK.AIR);
+    setBlock(ox + 6, h - 2, oz - 8, BLOCK.AIR);
+    _buildings.push({ kind: 'landmark_azot', x: ox - 30, z: oz - 12, w: 61, d: 25, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Northern Donets River Bridge — blown up June 2022, key Severodonetsk supply line
+  // Bridge deck with destroyed middle section, RUBBLE hanging ends, flanking bunkers
+  function generateSeverodonetskBridge(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // River bed — lower terrain suggestion (STONE base)
+    for (var rbx = -16; rbx <= 16; rbx++) {
+      for (var rbz = -2; rbz <= 2; rbz++) {
+        setBlock(ox + rbx, h - 1, oz + rbz, BLOCK.STONE);
+      }
+    }
+    // Bridge pillars — REINFORCED CONCRETE every 8 blocks, 5 high
+    for (var pi = -16; pi <= 16; pi += 8) {
+      for (var ph = 0; ph < 5; ph++) {
+        setBlock(ox + pi, base + ph, oz, BLOCK.REINFORCED);
+        setBlock(ox + pi, base + ph, oz + 1, BLOCK.REINFORCED);
+      }
+    }
+    // Bridge deck — 3 wide × 32 long, elevated 5 blocks, with blown middle section
+    for (var bx = -16; bx <= 16; bx++) {
+      for (var bz = -1; bz <= 1; bz++) {
+        // Middle 10 blocks are destroyed (AIR gap)
+        if (Math.abs(bx) <= 5) continue;
+        setBlock(ox + bx, base + 5, oz + bz, BLOCK.CONCRETE);
+      }
+    }
+    // RUBBLE on broken bridge ends
+    for (var rz2 = -1; rz2 <= 1; rz2++) {
+      setBlock(ox + 6, base + 4, oz + rz2, BLOCK.RUBBLE);
+      setBlock(ox + 7, base + 3, oz + rz2, BLOCK.RUBBLE);
+      setBlock(ox - 6, base + 4, oz + rz2, BLOCK.RUBBLE);
+      setBlock(ox - 7, base + 3, oz + rz2, BLOCK.RUBBLE);
+    }
+    // Flanking riverside bunkers — CONCRETE boxes on each bank
+    for (var side = -1; side <= 1; side += 2) {
+      for (var bby = 0; bby < 3; bby++) {
+        for (var bbx = -3; bbx <= 3; bbx++) {
+          for (var bbz = -2; bbz <= 2; bbz++) {
+            if (Math.abs(bbx) === 3 || Math.abs(bbz) === 2 || bby === 2) {
+              setBlock(ox + side * 20 + bbx, base + bby, oz + bbz, BLOCK.CONCRETE);
+            }
+          }
+        }
+      }
+    }
+    // Wrecked vehicle on bridge stub (METAL box 2×1×1)
+    setBlock(ox + 10, base + 6, oz, BLOCK.METAL);
+    setBlock(ox + 11, base + 6, oz, BLOCK.METAL);
+    setBlock(ox + 10, base + 7, oz, BLOCK.METAL);
+    _buildings.push({ kind: 'landmark_sievierodonetsk_bridge', x: ox - 22, z: oz - 3, w: 45, d: 7, baseY: h, floorH: 7, floors: 1, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -12550,6 +12903,40 @@ window.VoxelWorld = (function () {
       generateDroneNest(42, 40); generateDroneNest(-42, -38); generateDroneNest(42, -40);
       generateAntiAirPosition(-38, 28); generateAntiAirPosition(36, -28);
       generateCheckpoint(0, -45, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'LVIV') {
+      // Lviv — western Ukraine, cultural capital, High Castle hill, opera house, baroque square
+      generateLvivHighCastle(-20, -15);
+      generateLvivOperaHouse(15, 10);
+      generateLvivRynokSquare(0, -5);
+      generateUkrainianApartment(-30, -25, 5); generateUkrainianApartment(28, -22, 4);
+      generateUkrainianApartment(-32, 18, 4);
+      generateBurningRuin(-38, -8); generateBurningRuin(35, 12);
+      generateWreckedTank(-20, 20); generateWreckedAPC(18, -28);
+      generateCraters(6);
+      generateBunker(-28, -25); generateBunker(25, 22);
+      generateCheckpoint(0, -40, false); generateCheckpoint(-40, 0, true);
+      generateDroneNest(42, 38); generateDroneNest(-42, -36);
+      generateAntiAirPosition(-32, 28); generateAntiAirPosition(30, -26);
+      generateTrenchNetwork(-15, 18); generateTrenchNetwork(15, -18);
+    } else if (level.id === 'SEVERODONETSK') {
+      // Severodonetsk — Luhansk oblast, Azot plant last stand June 2022, mostly destroyed
+      generateSeverodonetskAzot(0, -10);
+      generateSeverodonetskBridge(25, -30);
+      generateUkrainianApartment(-30, -22, 6); generateUkrainianApartment(28, -20, 7);
+      generateUkrainianApartment(-32, 15, 5); generateUkrainianApartment(25, 18, 6);
+      generateRuinedHouse(-15, 22); generateRuinedHouse(15, -35);
+      generateBurningRuin(-38, -8); generateBurningRuin(36, 10);
+      generateWreckedTank(-22, -28); generateWreckedAPC(20, 25); generateWreckedConvoy(-30, 28);
+      generateCraters(16);
+      generateBunker(-25, -30); generateBunker(22, 28);
+      generateBunker(0, -38); generateBunker(-38, 15);
+      generateMortarPit(-35, -10); generateMortarPit(30, 12);
+      generateTrenchNetwork(-18, 20); generateTrenchNetwork(18, -20);
+      generateTrenchNetwork(0, -42); generateTrenchNetwork(0, 40);
+      generateSniperNest(-38, -38); generateSniperNest(35, -38);
+      generateDroneNest(45, 42); generateDroneNest(-45, -40); generateDroneNest(45, -40);
+      generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -30);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
     } else if (level.id === 'BUCHA') {
       // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022
       // St. Andrew's Church cemetery mass burial, Yablunska Street massacres
