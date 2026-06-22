@@ -316,6 +316,8 @@ const GameManager = (function () {
     slideDir: null,
     _usedLastStand: false,
     mines: 3,            // claymore/landmine inventory
+    fortifyMats: 3,      // fortification material packs for sandbag barriers
+    _buildMode: false,   // fortification build mode toggle
   };
 
   /* ── Wave State ──────────────────────────────────────────────────── */
@@ -1738,6 +1740,16 @@ const GameManager = (function () {
           }
         }
 
+        // Fortification build mode toggle (B key in PLAYING state)
+        if (e.code === 'KeyB' && gameState === STATE.PLAYING) {
+          if (player.fortifyMats > 0) {
+            player._buildMode = !player._buildMode;
+            if (HUD.showToast) HUD.showToast(player._buildMode ? ('🧱 BUILD MODE — ' + player.fortifyMats + ' packs left. Click to place') : '🧱 BUILD MODE OFF', 2000, player._buildMode ? '#ffaa44' : '#aaa');
+          } else {
+            if (HUD.showToast) HUD.showToast('🧱 No fortification materials', 1500, '#888');
+          }
+        }
+
         // L key — toggle weapon flashlight
         if (e.code === 'KeyL') {
           if (typeof Weapons !== 'undefined' && Weapons.toggleFlashlight) Weapons.toggleFlashlight();
@@ -2419,6 +2431,34 @@ const GameManager = (function () {
         } else {
           mouseDown = true;
           mouseNewPress = true;
+        }
+
+        // Build mode placement
+        if (player._buildMode && player.fortifyMats > 0 && gameState === STATE.PLAYING) {
+          // Place a sandbag barrier at crosshair position
+          var _buildDir = new THREE.Vector3();
+          _camera.getWorldDirection(_buildDir);
+          var _buildPos = _camera.position.clone().add(_buildDir.multiplyScalar(4));
+          _buildPos.y = 0; // ground level
+          // Create 3D sandbag model (3x1x1 stone-colored box)
+          var _bagGeo = new THREE.BoxGeometry(2.5, 1.2, 0.8);
+          var _bagMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
+          var _bagMesh = new THREE.Mesh(_bagGeo, _bagMat);
+          _bagMesh.position.copy(_buildPos);
+          _bagMesh.position.y = 0.6;
+          // Rotate to face player
+          _bagMesh.lookAt(_camera.position.x, 0.6, _camera.position.z);
+          if (window._gameScene) window._gameScene.add(_bagMesh);
+          // Track for collision
+          if (!window._fortifications) window._fortifications = [];
+          window._fortifications.push({ mesh: _bagMesh, pos: _buildPos.clone(), w: 2.5, d: 0.8 });
+          player.fortifyMats--;
+          if (HUD.showToast) HUD.showToast('🧱 Barrier placed! (' + player.fortifyMats + ' left)', 1000, '#ffaa44');
+          if (player.fortifyMats <= 0) {
+            player._buildMode = false;
+            if (HUD.showToast) HUD.showToast('🧱 No materials left', 1500, '#888');
+          }
+          return; // don't shoot
         }
 
         if (gameState === STATE.BUILD_MODE) {
@@ -5348,6 +5388,12 @@ const GameManager = (function () {
       player._stimTimer -= delta;
     }
 
+    // Consume bonus fortify mats purchased from shop
+    if (window._bonusFortifyMats) {
+      player.fortifyMats = (player.fortifyMats || 0) + window._bonusFortifyMats;
+      window._bonusFortifyMats = 0;
+    }
+
     // ── B24: Crouch height + slide + cover detection ──
     if (!player.prone) {
       var targetH = player.isCrouching ? 1.1 : 1.7;
@@ -7977,6 +8023,10 @@ const GameManager = (function () {
           if (airdropResult === 'AMMO_CRATE') Weapons.addAmmo(100);
           else if (airdropResult === 'MEDKIT') { player.hp = player.maxHp; HUD.setHealth(player.hp, player.maxHp); }
           else if (airdropResult === 'ARMOR') { player.armor = 100; if (HUD.updateArmor) HUD.updateArmor(1); }
+          else if (airdropResult === 'FORTIFY_MAT') {
+            player.fortifyMats = (player.fortifyMats || 0) + 2;
+            if (HUD.showToast) HUD.showToast('🧱 +2 Fortification packs', 2000, '#ffaa44');
+          }
         }
 
         // Radiation zone check
