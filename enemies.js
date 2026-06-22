@@ -990,6 +990,29 @@ const Enemies = (() => {
     }
   }
 
+  // ── Flanking Role Assignment ──────────────────────────────
+  // Distributes approach angles across a group so they surround the player
+  // rather than all rushing from the same direction. Only activates when 3+
+  // enemies are alerted simultaneously.
+  function _assignFlankRoles(group, playerPos) {
+    if (!group || group.length === 0) return;
+    var n = group.length;
+    for (var i = 0; i < n; i++) {
+      var baseAngle = Math.atan2(
+        group[i].mesh.position.z - playerPos.z,
+        group[i].mesh.position.x - playerPos.x
+      );
+      var spread = (Math.PI * 2) / Math.max(n, 3);
+      group[i]._flankAngle = baseAngle + (i - Math.floor(n / 2)) * spread * 0.5;
+      group[i]._flankAssigned = true;
+      group[i]._flankUpdateTimer = 0;
+      group[i]._flankTargetX = undefined;
+      group[i]._flankTargetZ = undefined;
+      group[i]._flankDx = undefined;
+      group[i]._flankDz = undefined;
+    }
+  }
+
   // ── Enemy Roles for Assault Groups ──────────────────────
   const SQUAD_ROLE = Object.freeze({
     POINTMAN:  'pointman',   // leads group, scouts ahead
@@ -2771,6 +2794,17 @@ const Enemies = (() => {
         if (typeof EnemyChatter !== 'undefined') EnemyChatter.say(e, 'spot');
         // Squad alert propagation: alert nearby allies faster
         _alertNearbyAllies(e, enemies);
+        // Assign flanking roles when 3+ enemies are alerted together
+        var _alertedGroup = [];
+        for (var _fi = 0; _fi < enemies.length; _fi++) {
+          var _fe = enemies[_fi];
+          if (_fe && _fe.playerSpotted && _fe.hp > 0 && _fe.alive) {
+            _alertedGroup.push(_fe);
+          }
+        }
+        if (_alertedGroup.length >= 3) {
+          _assignFlankRoles(_alertedGroup, playerPos);
+        }
       } else if (!e.playerSpotted) {
         e._wasSpotted = false;
       }
@@ -3041,6 +3075,37 @@ const Enemies = (() => {
           }
         }
 
+        // ── Group flanking: enemies assigned a flank angle approach from offset positions ──
+        if (e._flankAssigned && !e.retreating && e.playerSpotted && !targetIsNPC) {
+          e._flankUpdateTimer = (e._flankUpdateTimer || 0) + delta;
+          // Recalculate flank target every 2 seconds
+          if (e._flankUpdateTimer > 2.0 || e._flankTargetX === undefined) {
+            e._flankUpdateTimer = 0;
+            var flankRadius = 3.0;
+            e._flankTargetX = playerPos.x + Math.cos(e._flankAngle) * flankRadius;
+            e._flankTargetZ = playerPos.z + Math.sin(e._flankAngle) * flankRadius;
+          }
+          // Blend flank direction (60%) with direct approach (40%)
+          var fdx = e._flankTargetX - e.mesh.position.x;
+          var fdz = e._flankTargetZ - e.mesh.position.z;
+          var fdist = Math.sqrt(fdx * fdx + fdz * fdz);
+          if (fdist > 1.5) {
+            var directDx = playerPos.x - e.mesh.position.x;
+            var directDz = playerPos.z - e.mesh.position.z;
+            var directDist = Math.sqrt(directDx * directDx + directDz * directDz);
+            if (directDist > 0) {
+              var blendedDx = (fdx / fdist) * 0.6 + (directDx / directDist) * 0.4;
+              var blendedDz = (fdz / fdist) * 0.6 + (directDz / directDist) * 0.4;
+              var blendedLen = Math.sqrt(blendedDx * blendedDx + blendedDz * blendedDz);
+              if (blendedLen > 0) {
+                dir.x = blendedDx / blendedLen;
+                dir.z = blendedDz / blendedLen;
+                dir.y = 0;
+              }
+            }
+          }
+        }
+
         // ── Bounding overwatch: STORMER/SPETSNAZ pairs alternate fire and advance ──
         if (e.playerSpotted && !targetIsNPC && targetDist > 4) {
           var _bTypeName = e.typeCfg.name;
@@ -3208,6 +3273,10 @@ const Enemies = (() => {
         if (Math.random() < 0.15 * delta) {
           e.retreating = true;
           e._retreatTimer = 3 + Math.random() * 2; // retreat for 3-5 seconds
+          // Clear flank assignment so retreating enemies stop flanking
+          e._flankAssigned = false;
+          e._flankDx = undefined;
+          e._flankDz = undefined;
         }
       }
       if (e.retreating) {
