@@ -1,500 +1,446 @@
-/* tactical-map.js — Full-screen overhead tactical map (Tab key)
- * Self-initialising IIFE. No game-manager.js changes required.
- * All var, no let/const.
+/* tactical-map.js — Tactical minimap overlay (M key toggle)
+ * 280x280 panel, bottom-right corner, dark background, green grid.
+ * Intel overlay: patrol routes, dead bodies, capture points, hot zones,
+ * airdrops, bombs, enemy blips with alert flash, boss pulse ring, zoom.
+ * IIFE pattern, all var, no let/const.
  */
 window.TacticalMap = (function () {
   'use strict';
 
   // ── Private state ────────────────────────────────────────────────
-  var _overlay  = null;   // full-screen div
-  var _canvas   = null;   // 600×600 canvas
+  var _panel    = null;   // outer div (bottom-right panel)
+  var _canvas   = null;   // 280×280 canvas
   var _ctx      = null;
   var _visible  = false;
   var _rafId    = null;
-  var _blinkOn  = true;
-  var _blinkT   = 0;      // ms accumulator for 1 Hz blink
   var _lastTime = 0;
 
-  // Map geometry
-  var MAP_W     = 600;    // canvas width/height in px
-  var MAP_H     = 600;
-  var WORLD_R   = 80;     // world units visible from centre to edge (±80)
-  var PX_PER_U  = MAP_W / (WORLD_R * 2); // 3.75 px per world unit
+  // Blink / pulse state
+  var _blinkOn  = true;
+  var _blinkT   = 0;     // ms accumulator — 2Hz = 250ms half-period
 
-  // Grid letter labels along axes
-  var GRID_COLS = 'ABCDEFGHIJ';
-  var GRID_ROWS = 10;
+  // Pulse ring for boss (pulsing outward)
+  var _pulseR   = 0;     // current pulse ring radius px
 
-  // Level building cluster definitions  (levelId → array of {x,z,w,d} in world units)
-  var LEVEL_BUILDINGS = {
-    'hostomel':       [{ x: -40, z: -30, w: 25, d: 15 }, { x: 10, z: 20, w: 20, d: 12 }],
-    'azovstal':       [{ x: -50, z: -40, w: 30, d: 20 }, { x: 20, z:  5, w: 25, d: 18 }],
-    'mariupol':       [{ x: -30, z: -35, w: 20, d: 20 }, { x: 25, z: -10, w: 18, d: 14 }],
-    'dnipro-bridge':  [{ x: -60, z:  5, w: 15, d: 50 }, { x: 45, z: 5, w: 15, d: 50 }],
-    'azovstal-plant': [{ x: -45, z: -20, w: 30, d: 15 }, { x: 5, z: 15, w: 25, d: 20 }],
-    'kerch-bridge':   [{ x: -70, z: -5, w: 20, d: 10 }, { x: 50, z: -5, w: 20, d: 10 }],
-    'chornobyl':      [{ x: -20, z: -50, w: 25, d: 25 }, { x: 10, z: 20, w: 15, d: 15 }],
-    'moscow-ring':    [{ x: -40, z: -40, w: 20, d: 20 }, { x: 20, z: 20, w: 20, d: 20 }, { x: -20, z: 25, w: 15, d: 12 }],
-    'sevastopol':     [{ x: -35, z: -25, w: 20, d: 18 }, { x: 15, z: 10, w: 22, d: 14 }],
-    'donbas-line':    [{ x: -55, z: -10, w: 25, d: 12 }, { x: 20, z: -10, w: 25, d: 12 }],
-    'belgorod':       [{ x: -30, z: -30, w: 18, d: 18 }, { x: 15, z: 10, w: 22, d: 18 }],
-    'kyiv-defense':   [{ x: -45, z: -35, w: 25, d: 20 }, { x: 10, z: 20, w: 20, d: 15 }, { x: -15, z: -50, w: 18, d: 18 }],
-    'snake-island':   [{ x: -15, z: -10, w: 30, d: 20 }],
-    'saki-airbase':   [{ x: -50, z: -20, w: 40, d: 15 }, { x: 15, z: 10, w: 25, d: 20 }],
-    'vuhledar':       [{ x: -35, z: -30, w: 22, d: 18 }, { x: 12, z: 5, w: 20, d: 15 }],
-    'kerch-strike':   [{ x: -60, z: -5, w: 18, d: 10 }, { x: 42, z: -5, w: 18, d: 10 }],
-    'default':        [{ x: -35, z: -25, w: 20, d: 15 }, { x: 15, z: 10, w: 20, d: 15 }],
-  };
+  // Zoom levels: px-per-world-unit
+  // scale 1:2 = 0.5px/unit, 1:4 = 0.25px/unit, 1:8 = 0.125px/unit
+  var ZOOM_LEVELS   = [0.5, 0.25, 0.125];
+  var ZOOM_LABELS   = ['1:2', '1:4', '1:8'];
+  var _zoomIdx      = 1;   // default 1:4
 
-  // ── Helpers ─────────────────────────────────────────────────────
+  // Map dimensions
+  var MAP_W = 280;
+  var MAP_H = 280;
 
-  // World coords → canvas coords (centred on player)
-  function worldToCanvas(wx, wz, playerX, playerZ) {
-    var dx = wx - playerX;
-    var dz = wz - playerZ;
+  // Grid spacing (world units)
+  var GRID_WU = 20;
+
+  // Hover coord readout
+  var _hoverCoord = null;  // {wx, wz} or null
+
+  // ── Helpers ──────────────────────────────────────────────────────
+
+  function _pxPerUnit() {
+    return ZOOM_LEVELS[_zoomIdx];
+  }
+
+  // World coords → canvas UV (player at centre)
+  function _toCanvas(wx, wz, px, pz) {
+    var scale = _pxPerUnit();
     return {
-      cx: MAP_W / 2 + dx * PX_PER_U,
-      cy: MAP_H / 2 + dz * PX_PER_U,
+      cx: MAP_W / 2 + (wx - px) * scale,
+      cy: MAP_H / 2 + (wz - pz) * scale,
     };
   }
 
-  // Get game state safely
+  // Canvas UV → world coords
+  function _toWorld(cx, cy, px, pz) {
+    var scale = _pxPerUnit();
+    return {
+      wx: px + (cx - MAP_W / 2) / scale,
+      wz: pz + (cy - MAP_H / 2) / scale,
+    };
+  }
+
+  // Is canvas point inside visible area (with optional margin)?
+  function _inBounds(cx, cy, margin) {
+    var m = margin || 0;
+    return cx >= -m && cx <= MAP_W + m && cy >= -m && cy <= MAP_H + m;
+  }
+
+  // ── Game state accessors ─────────────────────────────────────────
+
   function _getPlayer() {
     if (window.GameManager && window.GameManager.getPlayer) return window.GameManager.getPlayer();
     return null;
   }
-  function _getWave() {
-    if (window.GameManager && window.GameManager.getCurrentWave) return window.GameManager.getCurrentWave();
+
+  function _getPlayerYaw() {
+    if (window.CameraSystem && window.CameraSystem.getYaw) return window.CameraSystem.getYaw();
+    var cam = window.GameManager && window.GameManager.getCamera ? window.GameManager.getCamera() : null;
+    if (cam && cam.rotation) return cam.rotation.y;
     return 0;
   }
-  function _getScore() {
-    var p = _getPlayer();
-    return (p && typeof p.score === 'number') ? p.score : 0;
-  }
-  function _getStageInfo() {
-    if (window.GameManager && window.GameManager.getStageInfo) return window.GameManager.getStageInfo();
-    return null;
-  }
+
   function _getEnemies() {
     if (window.Enemies && window.Enemies.getAll) return window.Enemies.getAll();
     if (window._enemyList) return window._enemyList;
     return [];
   }
-  function _getAllies() {
-    if (window.AllySoldiers && window.AllySoldiers.getAll) return window.AllySoldiers.getAll();
-    return [];
-  }
-  function _getCrates() {
-    if (window.SupplyCrate && window.SupplyCrate._crates) return window.SupplyCrate._crates;
-    return [];
-  }
-  function _getPlayerYaw() {
-    if (window.CameraSystem && window.CameraSystem.getYaw) return window.CameraSystem.getYaw();
-    var cam = window.GameManager && window.GameManager.getCamera ? window.GameManager.getCamera() : null;
-    if (cam) return cam.rotation ? cam.rotation.y : 0;
-    return 0;
-  }
 
-  // ── Canvas draw ─────────────────────────────────────────────────
+  // ── Draw helpers ─────────────────────────────────────────────────
 
-  function _drawGrid(ctx, playerX, playerZ) {
-    ctx.strokeStyle = 'rgba(0,80,0,0.3)';
-    ctx.lineWidth = 1;
-    // Grid every 20 world units
-    var gridUnit = 20;
-    // find world-aligned start
-    var startX = Math.floor((playerX - WORLD_R) / gridUnit) * gridUnit;
-    var startZ = Math.floor((playerZ - WORLD_R) / gridUnit) * gridUnit;
-    var endX = playerX + WORLD_R;
-    var endZ = playerZ + WORLD_R;
-
+  // Draw a filled triangle pointing up (▲)
+  function _drawTriangleUp(ctx, cx, cy, size) {
     ctx.beginPath();
-    for (var wx = startX; wx <= endX; wx += gridUnit) {
-      var cx = MAP_W / 2 + (wx - playerX) * PX_PER_U;
+    ctx.moveTo(cx, cy - size);
+    ctx.lineTo(cx + size * 0.8, cy + size * 0.6);
+    ctx.lineTo(cx - size * 0.8, cy + size * 0.6);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Draw a triangle pointing down (▽)
+  function _drawTriangleDown(ctx, cx, cy, size) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + size);
+    ctx.lineTo(cx + size * 0.8, cy - size * 0.6);
+    ctx.lineTo(cx - size * 0.8, cy - size * 0.6);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Draw X mark
+  function _drawX(ctx, cx, cy, size) {
+    ctx.beginPath();
+    ctx.moveTo(cx - size, cy - size);
+    ctx.lineTo(cx + size, cy + size);
+    ctx.moveTo(cx + size, cy - size);
+    ctx.lineTo(cx - size, cy + size);
+    ctx.stroke();
+  }
+
+  // Draw star-burst / asterisk for bomb markers
+  function _drawAsterisk(ctx, cx, cy, size) {
+    var arms = 6;
+    for (var i = 0; i < arms; i++) {
+      var angle = (i / arms) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * size, cy + Math.sin(angle) * size);
+      ctx.stroke();
+    }
+  }
+
+  // ── Section draw functions ────────────────────────────────────────
+
+  function _drawBackground(ctx) {
+    ctx.fillStyle = 'rgba(0,15,0,0.92)';
+    ctx.fillRect(0, 0, MAP_W, MAP_H);
+  }
+
+  function _drawGrid(ctx, px, pz) {
+    var scale = _pxPerUnit();
+    var halfW  = MAP_W / (2 * scale);
+    var halfH  = MAP_H / (2 * scale);
+    var startX = Math.floor((px - halfW) / GRID_WU) * GRID_WU;
+    var startZ = Math.floor((pz - halfH) / GRID_WU) * GRID_WU;
+    var endX   = px + halfW;
+    var endZ   = pz + halfH;
+
+    ctx.strokeStyle = 'rgba(0,160,0,0.18)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    for (var wx = startX; wx <= endX; wx += GRID_WU) {
+      var cx = MAP_W / 2 + (wx - px) * scale;
       ctx.moveTo(cx, 0);
       ctx.lineTo(cx, MAP_H);
     }
-    for (var wz = startZ; wz <= endZ; wz += gridUnit) {
-      var cy = MAP_H / 2 + (wz - playerZ) * PX_PER_U;
+    for (var wz = startZ; wz <= endZ; wz += GRID_WU) {
+      var cy = MAP_H / 2 + (wz - pz) * scale;
       ctx.moveTo(0, cy);
       ctx.lineTo(MAP_W, cy);
     }
     ctx.stroke();
   }
 
-  function _drawGridLabels(ctx, playerX, playerZ) {
-    ctx.fillStyle = 'rgba(0,180,0,0.6)';
-    ctx.font = 'bold 11px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
+  function _drawPatrolRoutes(ctx, enemies, px, pz) {
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = 'rgba(255,80,80,0.45)';
+    ctx.lineWidth = 1;
 
-    var gridUnit = 20;
-    var startX = Math.floor((playerX - WORLD_R) / gridUnit) * gridUnit;
-    var startZ = Math.floor((playerZ - WORLD_R) / gridUnit) * gridUnit;
-
-    var colIdx = 0;
-    var rowIdx = 0;
-    for (var wz = startZ; wz <= playerZ + WORLD_R; wz += gridUnit) {
-      var cy = MAP_H / 2 + (wz - playerZ) * PX_PER_U;
-      colIdx = 0;
-      for (var wx = startX; wx <= playerX + WORLD_R; wx += gridUnit) {
-        var cx = MAP_W / 2 + (wx - playerX) * PX_PER_U;
-        var label = (GRID_COLS[colIdx % GRID_COLS.length] || 'Z') + (rowIdx % 10 + 1);
-        if (cx > 0 && cx < MAP_W && cy > 0 && cy < MAP_H) {
-          ctx.fillText(label, cx + 2, cy + 2);
-        }
-        colIdx++;
-      }
-      rowIdx++;
-    }
-  }
-
-  function _drawBuildings(ctx, playerX, playerZ, levelId) {
-    var id = levelId || 'default';
-    var clusters = LEVEL_BUILDINGS[id] || LEVEL_BUILDINGS['default'];
-
-    for (var i = 0; i < clusters.length; i++) {
-      var b = clusters[i];
-      var topLeft = worldToCanvas(b.x, b.z, playerX, playerZ);
-      var wp = b.w * PX_PER_U;
-      var dp = b.d * PX_PER_U;
-
-      ctx.fillStyle = 'rgba(40,70,40,0.55)';
-      ctx.strokeStyle = 'rgba(0,120,0,0.6)';
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(topLeft.cx, topLeft.cy, wp, dp);
-      ctx.strokeRect(topLeft.cx, topLeft.cy, wp, dp);
-
-      // Label
-      ctx.fillStyle = 'rgba(0,180,0,0.5)';
-      ctx.font = '9px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('BLD', topLeft.cx + wp / 2, topLeft.cy + dp / 2);
-    }
-  }
-
-  function _drawCrates(ctx, playerX, playerZ) {
-    var crates = _getCrates();
-    for (var i = 0; i < crates.length; i++) {
-      var c = crates[i];
-      if (!c || !c.mesh || !c.mesh.position) continue;
-      var pos = worldToCanvas(c.mesh.position.x, c.mesh.position.z, playerX, playerZ);
-      if (pos.cx < 0 || pos.cx > MAP_W || pos.cy < 0 || pos.cy > MAP_H) continue;
-
-      // Yellow diamond
-      ctx.save();
-      ctx.translate(pos.cx, pos.cy);
-      ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = '#ffdd00';
-      ctx.fillRect(-3, -3, 6, 6);
-      ctx.restore();
-    }
-  }
-
-  function _drawObjective(ctx, playerX, playerZ, blinkOn) {
-    // Try to find objective position from game state
-    var stage = _getStageInfo();
-    if (!stage) return;
-
-    // Draw a blinking white ring at a nominal objective point
-    // Use a fixed offset to hint there's an objective without exact coords
-    var objX = 0, objZ = 0; // centre of world
-    var pos = worldToCanvas(objX, objZ, playerX, playerZ);
-    if (pos.cx < -20 || pos.cx > MAP_W + 20 || pos.cy < -20 || pos.cy > MAP_H + 20) return;
-
-    if (blinkOn) {
-      ctx.beginPath();
-      ctx.arc(pos.cx, pos.cy, 8, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(pos.cx, pos.cy, 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-    } else {
-      ctx.beginPath();
-      ctx.arc(pos.cx, pos.cy, 8, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-  }
-
-  function _drawEnemies(ctx, playerX, playerZ) {
-    var enemies = _getEnemies();
     for (var i = 0; i < enemies.length; i++) {
       var e = enemies[i];
-      if (!e || !e.mesh || !e.mesh.position || (e.hp !== undefined && e.hp <= 0)) continue;
-      var pos = worldToCanvas(e.mesh.position.x, e.mesh.position.z, playerX, playerZ);
-      if (pos.cx < -5 || pos.cx > MAP_W + 5 || pos.cy < -5 || pos.cy > MAP_H + 5) continue;
+      if (!e || !e._patrolPoints || e._patrolPoints.length < 2) continue;
+      if (e.hp !== undefined && e.hp <= 0) continue;
 
-      var isVehicle = e.type && (e.type.indexOf('VEHICLE') !== -1 || e.type.indexOf('TANK') !== -1 || e.type.indexOf('BTR') !== -1 || e.type.indexOf('BRADLEY') !== -1);
-      var isBoss   = e.type && e.type.indexOf('BOSS') !== -1;
+      var pts = e._patrolPoints;
+      ctx.beginPath();
+      var started = false;
+      for (var j = 0; j < pts.length; j++) {
+        var pt = pts[j];
+        if (!pt) continue;
+        var wx = typeof pt.x === 'number' ? pt.x : (pt[0] || 0);
+        var wz = typeof pt.z === 'number' ? pt.z : (pt[2] || 0);
+        var c = _toCanvas(wx, wz, px, pz);
+        if (!started) { ctx.moveTo(c.cx, c.cy); started = true; }
+        else { ctx.lineTo(c.cx, c.cy); }
+      }
+      // Close patrol loop back to first point
+      if (started && pts[0]) {
+        var first = pts[0];
+        var fx = typeof first.x === 'number' ? first.x : (first[0] || 0);
+        var fz = typeof first.z === 'number' ? first.z : (first[2] || 0);
+        var fc = _toCanvas(fx, fz, px, pz);
+        ctx.lineTo(fc.cx, fc.cy);
+      }
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
+  function _drawDeadBodies(ctx, px, pz) {
+    var bodies = window._deadBodyPositions;
+    if (!bodies || !bodies.length) return;
+    ctx.strokeStyle = 'rgba(160,160,160,0.7)';
+    ctx.lineWidth = 1.5;
+    for (var i = 0; i < bodies.length; i++) {
+      var b = bodies[i];
+      if (!b) continue;
+      var wx = typeof b.x === 'number' ? b.x : 0;
+      var wz = typeof b.z === 'number' ? b.z : 0;
+      var c = _toCanvas(wx, wz, px, pz);
+      if (!_inBounds(c.cx, c.cy)) continue;
+      _drawX(ctx, c.cx, c.cy, 3);
+    }
+  }
+
+  function _drawCapturePoints(ctx, px, pz, blinkOn) {
+    var cps = window._capturePointPositions;
+    if (!cps || !cps.length) return;
+    for (var i = 0; i < cps.length; i++) {
+      var cp = cps[i];
+      if (!cp) continue;
+      var wx = typeof cp.x === 'number' ? cp.x : 0;
+      var wz = typeof cp.z === 'number' ? cp.z : 0;
+      var c = _toCanvas(wx, wz, px, pz);
+      if (!_inBounds(c.cx, c.cy)) continue;
+
+      var col = '#ffffff'; // neutral
+      if (cp.owner === 'player' || cp.owner === 'friendly') col = '#4488ff';
+      else if (cp.owner === 'enemy') col = '#ff3333';
+
+      ctx.beginPath();
+      ctx.arc(c.cx, c.cy, 5, 0, Math.PI * 2);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Contested / neutral: blink fill on blinkOn
+      if (cp.owner === 'contested' && blinkOn) {
+        ctx.fillStyle = 'rgba(255,255,0,0.35)';
+        ctx.fill();
+      }
+    }
+  }
+
+  function _drawHotZones(ctx, px, pz) {
+    var zones = window._hotZonePositions;
+    if (!zones || !zones.length) return;
+    ctx.strokeStyle = 'rgba(255,140,0,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    for (var i = 0; i < zones.length; i++) {
+      var z = zones[i];
+      if (!z) continue;
+      var wx = typeof z.x === 'number' ? z.x : 0;
+      var wz = typeof z.z === 'number' ? z.z : 0;
+      var radius = (typeof z.radius === 'number' ? z.radius : 10) * _pxPerUnit();
+      var c = _toCanvas(wx, wz, px, pz);
+      ctx.beginPath();
+      ctx.arc(c.cx, c.cy, Math.max(4, radius), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
+  function _drawAirdrops(ctx, px, pz) {
+    var drops = window._activeDropPositions;
+    if (!drops || !drops.length) return;
+    ctx.fillStyle = '#44ff88';
+    for (var i = 0; i < drops.length; i++) {
+      var d = drops[i];
+      if (!d) continue;
+      var wx = typeof d.x === 'number' ? d.x : 0;
+      var wz = typeof d.z === 'number' ? d.z : 0;
+      var c = _toCanvas(wx, wz, px, pz);
+      if (!_inBounds(c.cx, c.cy)) continue;
+      _drawTriangleDown(ctx, c.cx, c.cy, 5);
+    }
+  }
+
+  function _drawBombs(ctx, px, pz, blinkOn) {
+    var bombs = window._activeBombPositions;
+    if (!bombs || !bombs.length) return;
+    ctx.strokeStyle = blinkOn ? '#ff2222' : 'rgba(255,80,80,0.3)';
+    ctx.lineWidth = 1.5;
+    for (var i = 0; i < bombs.length; i++) {
+      var b = bombs[i];
+      if (!b) continue;
+      var wx = typeof b.x === 'number' ? b.x : 0;
+      var wz = typeof b.z === 'number' ? b.z : 0;
+      var c = _toCanvas(wx, wz, px, pz);
+      if (!_inBounds(c.cx, c.cy)) continue;
+      _drawAsterisk(ctx, c.cx, c.cy, 5);
+    }
+  }
+
+  function _drawEnemies(ctx, enemies, px, pz, blinkOn, pulseR) {
+    for (var i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      if (!e) continue;
+      if (e.hp !== undefined && e.hp <= 0) continue;
+
+      var epos = null;
+      if (e.mesh && e.mesh.position) {
+        epos = _toCanvas(e.mesh.position.x, e.mesh.position.z, px, pz);
+      } else if (e.position) {
+        epos = _toCanvas(e.position.x, e.position.z, px, pz);
+      }
+      if (!epos) continue;
+      if (!_inBounds(epos.cx, epos.cy, 5)) continue;
+
+      var isBoss    = !!(e.type && (e.type.indexOf('BOSS') !== -1 || e.type.indexOf('COMMANDER') !== -1));
+      var isAlerted = !!(e.alerted || e.state === 'alert' || e.state === 'combat' || e.state === 'chase');
+
+      // Alerted enemies blink at 2Hz — skip on dark phase
+      if (isAlerted && !blinkOn) continue;
+
+      // Dot size scales with HP ratio (3–7px)
+      var hpRatio = 0.5;
+      if (typeof e.hp === 'number' && typeof e.maxHp === 'number' && e.maxHp > 0) {
+        hpRatio = e.hp / e.maxHp;
+      }
+      var dotR = isBoss ? 7 : Math.max(3, Math.round(3 + hpRatio * 4));
 
       ctx.save();
-      ctx.translate(pos.cx, pos.cy);
+      ctx.translate(epos.cx, epos.cy);
 
-      if (isVehicle) {
-        // Orange square for vehicle
-        ctx.fillStyle = '#ff8800';
-        ctx.fillRect(-5, -5, 10, 10);
-        ctx.strokeStyle = '#ffcc00';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(-5, -5, 10, 10);
-      } else if (isBoss) {
-        // Magenta star for boss
+      if (isBoss) {
+        // Pulsing outer ring for boss
+        var ringR = dotR + pulseR;
+        ctx.beginPath();
+        ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,0,255,0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, dotR, 0, Math.PI * 2);
         ctx.fillStyle = '#ff00ff';
-        _drawStar(ctx, 0, 0, 7, 5);
+        ctx.fill();
       } else {
-        // Red star for regular enemy
+        ctx.beginPath();
+        ctx.arc(0, 0, dotR, 0, Math.PI * 2);
         ctx.fillStyle = '#ff3333';
-        _drawStar(ctx, 0, 0, 6, 4);
+        ctx.fill();
       }
+
       ctx.restore();
     }
   }
 
-  function _drawAllies(ctx, playerX, playerZ) {
-    var allies = _getAllies();
-    for (var i = 0; i < allies.length; i++) {
-      var a = allies[i];
-      if (!a || !a.mesh || !a.mesh.position || (a.hp !== undefined && a.hp <= 0)) continue;
-      var pos = worldToCanvas(a.mesh.position.x, a.mesh.position.z, playerX, playerZ);
-      if (pos.cx < -5 || pos.cx > MAP_W + 5 || pos.cy < -5 || pos.cy > MAP_H + 5) continue;
-
-      // Green square 5px
-      ctx.fillStyle = '#33ff66';
-      ctx.fillRect(pos.cx - 3, pos.cy - 3, 6, 6);
-      ctx.strokeStyle = '#00dd44';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(pos.cx - 3, pos.cy - 3, 6, 6);
-    }
-  }
-
-  function _drawStar(ctx, cx, cy, outerR, innerR) {
-    var points = 5;
-    ctx.beginPath();
-    for (var i = 0; i < points * 2; i++) {
-      var angle = (i * Math.PI) / points - Math.PI / 2;
-      var r = (i % 2 === 0) ? outerR : innerR;
-      var x = cx + Math.cos(angle) * r;
-      var y = cy + Math.sin(angle) * r;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  function _drawRangeRings(ctx, playerX, playerZ) {
-    var rings = [20, 40]; // world units
+  function _drawPlayer(ctx, yaw) {
     var cx = MAP_W / 2;
     var cy = MAP_H / 2;
 
-    for (var i = 0; i < rings.length; i++) {
-      var r = rings[i] * PX_PER_U;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(0,180,60,0.2)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 6]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Range label
-      ctx.fillStyle = 'rgba(0,180,60,0.4)';
-      ctx.font = '9px monospace';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(rings[i] + 'u', cx + r + 2, cy);
-    }
-  }
-
-  function _drawPlayer(ctx, playerYaw, blinkOn) {
-    var cx = MAP_W / 2;
-    var cy = MAP_H / 2;
-
-    // Blinking pulse ring
-    if (blinkOn) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, 12, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(80,140,255,0.35)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    // Crosshair ⊕
-    var cr = 8;
-    ctx.strokeStyle = '#4488ff';
-    ctx.lineWidth = 2;
-    // Outer circle
-    ctx.beginPath();
-    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
-    ctx.stroke();
-    // Cross lines
-    ctx.beginPath();
-    ctx.moveTo(cx - cr - 3, cy); ctx.lineTo(cx + cr + 3, cy);
-    ctx.moveTo(cx, cy - cr - 3); ctx.lineTo(cx, cy + cr + 3);
-    ctx.stroke();
-
-    // Facing direction line (15px)
-    var facingLen = 15;
-    // yaw 0 = looking toward -Z in Three.js; map Z is down on canvas
-    // player faces (-sin(yaw), 0, -cos(yaw)) in world → on canvas dx=0, dy=cos(yaw)*-PX
-    // So canvas direction: angle = -yaw - π/2 mapped: heading angle on canvas = yaw (screen up = world -Z)
-    var lineEndX = cx + Math.sin(playerYaw) * (-facingLen);
-    var lineEndY = cy + Math.cos(playerYaw) * (-facingLen);
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(lineEndX, lineEndY);
-    ctx.strokeStyle = '#88aaff';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Centre dot
-    ctx.beginPath();
-    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-  }
-
-  function _drawNorthIndicator(ctx) {
-    var nx = MAP_W - 40;
-    var ny = 20;
     ctx.save();
-    ctx.translate(nx, ny);
+    ctx.translate(cx, cy);
+    // Rotate triangle by yaw (camera direction)
+    ctx.rotate(yaw);
 
-    // Arrow up
+    // Blue filled triangle ▲ pointing up (toward negative-Z = north)
+    ctx.fillStyle = '#4488ff';
+    ctx.strokeStyle = '#aaccff';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(0, -12);
-    ctx.lineTo(-5, 2);
-    ctx.lineTo(0, 0);
-    ctx.lineTo(5, 2);
+    ctx.moveTo(0, -7);        // tip
+    ctx.lineTo(5, 5);
+    ctx.lineTo(-5, 5);
     ctx.closePath();
-    ctx.fillStyle = '#ffffff';
     ctx.fill();
+    ctx.stroke();
 
-    ctx.fillStyle = '#aaffaa';
-    ctx.font = 'bold 11px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText('N', 0, 4);
     ctx.restore();
   }
 
-  function _drawHUDBar(ctx, wave, score, stageName) {
-    // Top header bar
-    ctx.fillStyle = 'rgba(0,20,0,0.85)';
-    ctx.fillRect(0, 0, MAP_W, 38);
-
-    ctx.fillStyle = '#00ff88';
-    ctx.font = 'bold 13px monospace';
-    ctx.textAlign = 'left';
+  function _drawCompassRose(ctx) {
+    var m = 10; // px margin from each edge
+    ctx.fillStyle = 'rgba(0,220,100,0.75)';
+    ctx.font = 'bold 8px monospace';
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('TACTICAL MAP', 12, 19);
-
-    var waveStr = 'WAVE ' + (wave || '--');
-    var scoreStr = 'SCORE ' + (score || 0);
-    var stageStr = stageName ? stageName.toUpperCase() : '';
-
-    ctx.fillStyle = '#aaffcc';
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(stageStr + '  ' + waveStr + '  |  ' + scoreStr, MAP_W - 12, 19);
+    ctx.fillText('N', MAP_W / 2, m);
+    ctx.fillText('S', MAP_W / 2, MAP_H - m);
+    ctx.fillText('W', m, MAP_H / 2);
+    ctx.fillText('E', MAP_W - m, MAP_H / 2);
   }
 
-  function _drawLegend(ctx) {
-    var y = MAP_H - 22;
-    ctx.fillStyle = 'rgba(0,20,0,0.85)';
-    ctx.fillRect(0, MAP_H - 34, MAP_W, 34);
-
-    ctx.font = '11px monospace';
-    ctx.textBaseline = 'middle';
-
-    var items = [
-      { color: '#4488ff', label: '⊕ You' },
-      { color: '#33ff66', label: '■ Ally' },
-      { color: '#ff3333', label: '★ Enemy' },
-      { color: '#ff8800', label: '■ Vehicle' },
-      { color: '#ffdd00', label: '◆ Crate' },
-      { color: '#ffffff', label: '○ Objective' },
-    ];
-    var x = 10;
-    for (var i = 0; i < items.length; i++) {
-      ctx.fillStyle = items[i].color;
-      ctx.fillText(items[i].label, x, y);
-      x += ctx.measureText(items[i].label).width + 14;
-    }
-
-    ctx.fillStyle = 'rgba(0,200,100,0.4)';
+  function _drawZoomLabel(ctx) {
+    ctx.fillStyle = 'rgba(0,220,100,0.65)';
+    ctx.font = '8px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText('[TAB] or [ESC] Close', MAP_W - 10, y);
-    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(ZOOM_LABELS[_zoomIdx], MAP_W - 4, 4);
   }
 
-  // ── Main redraw ─────────────────────────────────────────────────
+  function _drawHoverCoord(ctx) {
+    if (!_hoverCoord) return;
+    ctx.fillStyle = 'rgba(0,240,120,0.85)';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    var txt = 'X:' + Math.round(_hoverCoord.wx) + ' Z:' + Math.round(_hoverCoord.wz);
+    ctx.fillText(txt, 4, MAP_H - 4);
+  }
+
+  // ── Main redraw ───────────────────────────────────────────────────
 
   function _redraw(ts) {
     if (!_visible || !_ctx) return;
 
     var dt = ts - _lastTime;
     _lastTime = ts;
+
+    // Blink at 2Hz: flip every 250ms
     _blinkT += dt;
-    if (_blinkT >= 500) { _blinkOn = !_blinkOn; _blinkT -= 500; }
+    if (_blinkT >= 250) { _blinkOn = !_blinkOn; _blinkT -= 250; }
 
-    var player = _getPlayer();
-    var playerX = player && player.position ? player.position.x : 0;
-    var playerZ = player && player.position ? player.position.z : 0;
-    var playerYaw = _getPlayerYaw();
-    var wave  = _getWave();
-    var score = _getScore();
-    var stage = _getStageInfo();
-    var stageName = stage ? stage.name : '';
-    var levelId   = stage ? stage.id : 'default';
+    // Boss pulse ring oscillates 0–8px over 1s
+    _pulseR = Math.abs(((ts % 1000) / 1000) * 2 - 1) * 8;
 
-    var ctx = _ctx;
+    var player   = _getPlayer();
+    var px       = player && player.position ? player.position.x : 0;
+    var pz       = player && player.position ? player.position.z : 0;
+    var yaw      = _getPlayerYaw();
+    var enemies  = _getEnemies();
+    var ctx      = _ctx;
+
     ctx.clearRect(0, 0, MAP_W, MAP_H);
 
-    // 1. Background fill
-    ctx.fillStyle = '#0a1a0a';
-    ctx.fillRect(0, 0, MAP_W, MAP_H);
-
-    // 2. Grid
-    _drawGrid(ctx, playerX, playerZ);
-    _drawGridLabels(ctx, playerX, playerZ);
-
-    // 3. Buildings
-    _drawBuildings(ctx, playerX, playerZ, levelId);
-
-    // 4. Objective marker
-    _drawObjective(ctx, playerX, playerZ, _blinkOn);
-
-    // 5. Supply crates
-    _drawCrates(ctx, playerX, playerZ);
-
-    // 6. Enemy blips
-    _drawEnemies(ctx, playerX, playerZ);
-
-    // 7. Ally blips
-    _drawAllies(ctx, playerX, playerZ);
-
-    // 8. Player crosshair + facing
-    _drawPlayer(ctx, playerYaw, _blinkOn);
-
-    // 9. Range rings
-    _drawRangeRings(ctx, playerX, playerZ);
-
-    // 10. North indicator
-    _drawNorthIndicator(ctx);
-
-    // 11. HUD bar (top)
-    _drawHUDBar(ctx, wave, score, stageName);
-
-    // 12. Legend bar (bottom)
-    _drawLegend(ctx);
+    _drawBackground(ctx);
+    _drawGrid(ctx, px, pz);
+    _drawPatrolRoutes(ctx, enemies, px, pz);
+    _drawDeadBodies(ctx, px, pz);
+    _drawHotZones(ctx, px, pz);
+    _drawCapturePoints(ctx, px, pz, _blinkOn);
+    _drawAirdrops(ctx, px, pz);
+    _drawBombs(ctx, px, pz, _blinkOn);
+    _drawEnemies(ctx, enemies, px, pz, _blinkOn, _pulseR);
+    _drawPlayer(ctx, yaw);
+    _drawCompassRose(ctx);
+    _drawZoomLabel(ctx);
+    _drawHoverCoord(ctx);
   }
 
   function _loop(ts) {
@@ -503,145 +449,122 @@ window.TacticalMap = (function () {
     _rafId = requestAnimationFrame(_loop);
   }
 
-  // ── Public API ──────────────────────────────────────────────────
+  // ── Public API ────────────────────────────────────────────────────
 
   function init() {
-    if (_overlay) return; // already initialised
+    if (_panel) return; // already initialised
 
-    // Reuse the existing #tactical-map stub (Feature 45 in index.html) if present,
-    // otherwise create the full-screen overlay from scratch.
-    var existingStub = document.getElementById('tactical-map');
-
-    if (existingStub) {
-      // Take over the stub: clear its children, restyle as full-screen overlay
-      _overlay = existingStub;
-      // Remove any existing child nodes (the old 400×400 canvas stub etc.)
-      while (_overlay.firstChild) { _overlay.removeChild(_overlay.firstChild); }
-      _overlay.style.cssText = [
-        'position:fixed;top:0;left:0;width:100%;height:100%;',
-        'background:rgba(0,0,0,0.82);',
-        'z-index:9000;',
-        'display:none;',
-        'align-items:center;',
-        'justify-content:center;',
-        'font-family:monospace;',
-        'pointer-events:auto;',
-      ].join('');
-    } else {
-      // No existing stub — create the overlay div fresh
-      _overlay = document.createElement('div');
-      _overlay.id = 'tactical-map';
-      _overlay.style.cssText = [
-        'position:fixed;top:0;left:0;width:100%;height:100%;',
-        'background:rgba(0,0,0,0.82);',
-        'z-index:9000;',
-        'display:none;',
-        'align-items:center;',
-        'justify-content:center;',
-        'font-family:monospace;',
-        'pointer-events:auto;',
-      ].join('');
-      document.body.appendChild(_overlay);
-    }
-
-    // Inner panel that contains the 600×600 canvas
-    var panel = document.createElement('div');
-    panel.style.cssText = [
-      'position:relative;',
+    _panel = document.createElement('div');
+    _panel.id = 'tactical-map-panel';
+    _panel.style.cssText = [
+      'position:fixed;',
+      'bottom:12px;',
+      'right:12px;',
       'width:' + MAP_W + 'px;',
       'height:' + MAP_H + 'px;',
-      'border:2px solid rgba(0,200,80,0.6);',
-      'box-shadow:0 0 30px rgba(0,200,80,0.3), 0 0 60px rgba(0,100,40,0.2);',
+      'background:rgba(0,15,0,0.92);',
+      'border:1px solid rgba(0,200,80,0.4);',
+      'border-radius:4px;',
+      'box-shadow:0 0 12px rgba(0,180,60,0.2);',
+      'z-index:4500;',
+      'display:none;',
       'overflow:hidden;',
+      'pointer-events:auto;',
     ].join('');
 
     _canvas = document.createElement('canvas');
     _canvas.width  = MAP_W;
     _canvas.height = MAP_H;
     _canvas.style.cssText = 'display:block;';
-    panel.appendChild(_canvas);
+    _panel.appendChild(_canvas);
     _ctx = _canvas.getContext('2d');
 
-    _overlay.appendChild(panel);
+    document.body.appendChild(_panel);
 
-    // Keyboard handler: Tab or Escape closes the map
+    // Mouse hover → world coordinate readout
+    _canvas.addEventListener('mousemove', function (e) {
+      var rect = _canvas.getBoundingClientRect();
+      var mx = e.clientX - rect.left;
+      var my = e.clientY - rect.top;
+      var pl = _getPlayer();
+      var ppx = pl && pl.position ? pl.position.x : 0;
+      var ppz = pl && pl.position ? pl.position.z : 0;
+      _hoverCoord = _toWorld(mx, my, ppx, ppz);
+    });
+    _canvas.addEventListener('mouseleave', function () {
+      _hoverCoord = null;
+    });
+
+    // Key listeners: M toggles map; +/- zooms while open
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Tab') {
-        e.preventDefault();
+      // M key (no modifiers): toggle tactical map
+      if (e.code === 'KeyM' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
         toggle();
         return;
       }
-      if (e.key === 'Escape' && _visible) {
+
+      if (!_visible) return;
+
+      // + / = / NumpadAdd: zoom in (higher detail)
+      if (e.code === 'Equal' || e.code === 'NumpadAdd') {
+        _zoomIdx = Math.max(0, _zoomIdx - 1);
         e.preventDefault();
-        hide();
         return;
       }
-    }, true); // capture phase so Tab is intercepted before browser default
-  }
-
-  function show() {
-    if (!_overlay) init();
-    _visible = true;
-    _overlay.style.display = 'flex';
-    _overlay.style.alignItems = 'center';
-    _overlay.style.justifyContent = 'center';
-
-    // Release pointer lock
-    if (document.exitPointerLock) {
-      try { document.exitPointerLock(); } catch (ex) { /* ignore */ }
-    }
-
-    // Pause game input
-    window._tacticalMapOpen = true;
-
-    // Start RAF loop
-    _blinkOn = true;
-    _blinkT  = 0;
-    _lastTime = performance.now();
-    if (!_rafId) {
-      _rafId = requestAnimationFrame(_loop);
-    }
-  }
-
-  function hide() {
-    _visible = false;
-    if (_overlay) _overlay.style.display = 'none';
-
-    // Resume game input
-    window._tacticalMapOpen = false;
-
-    // Stop RAF loop
-    if (_rafId) {
-      cancelAnimationFrame(_rafId);
-      _rafId = null;
-    }
+      // - / NumpadSubtract: zoom out
+      if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
+        _zoomIdx = Math.min(ZOOM_LEVELS.length - 1, _zoomIdx + 1);
+        e.preventDefault();
+        return;
+      }
+    }, false);
   }
 
   function toggle() {
-    if (_visible) hide(); else show();
+    if (_visible) {
+      _visible = false;
+      if (_panel) _panel.style.display = 'none';
+      if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+    } else {
+      if (!_panel) init();
+      _visible  = true;
+      _blinkOn  = true;
+      _blinkT   = 0;
+      _pulseR   = 0;
+      _lastTime = performance.now();
+      _panel.style.display = 'block';
+      if (!_rafId) {
+        _rafId = requestAnimationFrame(_loop);
+      }
+    }
   }
 
-  function update() {
-    // Called externally if needed — the internal RAF loop handles redraws,
-    // but external callers can trigger a single frame.
+  function update(dt, enemies, playerPos, camera) {
+    // External hook — internal RAF loop redraws each frame,
+    // but callers may trigger a single forced redraw here.
     if (_visible && _ctx) {
       _redraw(performance.now());
     }
   }
 
-  // ── Auto-init on DOMContentLoaded ───────────────────────────────
+  function reset() {
+    _visible = false;
+    if (_panel) _panel.style.display = 'none';
+    if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+  }
+
+  // Auto-init once DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    // DOM already ready (script loaded late)
-    try { init(); } catch (ex) { /* will retry via DOMContentLoaded if this fails */ }
+    try { init(); } catch (ex) { /* ignore — may retry via DOMContentLoaded */ }
   }
 
   return {
     init:   init,
-    toggle: toggle,
-    show:   show,
-    hide:   hide,
     update: update,
+    toggle: toggle,
+    reset:  reset,
   };
+
 })();
