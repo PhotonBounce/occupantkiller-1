@@ -1536,6 +1536,7 @@ const GameManager = (function () {
     try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, _controls); } catch (e) {}
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
+    try { if (window.MissionDebrief && MissionDebrief.init) MissionDebrief.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
     if (typeof EnemyChatter !== 'undefined' && _camera) EnemyChatter.init(_camera);
     // Daily challenges panel
@@ -2279,6 +2280,17 @@ const GameManager = (function () {
         // Night Vision Goggles (NightVision module — N key, no modifiers, not in vehicle)
         if (e.code === 'KeyN' && !e.shiftKey && !e.ctrlKey && !e.altKey && gameState === STATE.PLAYING) {
           if (typeof NightVision !== 'undefined') NightVision.toggle();
+        }
+
+        // Gas Mask toggle (T key — only when not in drone/vehicle, normal gameplay)
+        if (e.code === 'KeyT' && !DroneSystem.isPossessing() && !VehicleSystem.isInVehicle() && gameState === STATE.PLAYING) {
+          if (window.GasMask) {
+            if (GasMask.isAvailable()) {
+              GasMask.isEquipped() ? GasMask.unequip() : GasMask.equip();
+            } else {
+              if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('No gas mask', '#888888');
+            }
+          }
         }
 
         // Dolphin dive (Ctrl while sprinting)
@@ -3641,6 +3653,7 @@ const GameManager = (function () {
     if (window.ClaymoreMines) ClaymoreMines.clear();
     if (window.RadioSupport) RadioSupport.clear();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
+    if (window.GasMask) GasMask.clear();
     if (window.MeleeKnife) MeleeKnife.clear();
     window.VoxelWorld.generateLevel(stageIndex);
 

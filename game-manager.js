@@ -1285,6 +1285,7 @@ const GameManager = (function () {
         if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
         if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
         if (typeof NightVision !== 'undefined') NightVision.init(_renderer.domElement, _scene);
+        if (window.WeatherEffects) WeatherEffects.init(_scene);
         if (typeof ExplosiveBarrels !== 'undefined') {
           ExplosiveBarrels.init(_scene, function(x, y, z, radius, damage) {
             // AoE damage to enemies in radius
@@ -1536,6 +1537,7 @@ const GameManager = (function () {
     try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, _controls); } catch (e) {}
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
+    try { if (window.MissionDebrief && MissionDebrief.init) MissionDebrief.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
     if (typeof EnemyChatter !== 'undefined' && _camera) EnemyChatter.init(_camera);
     // Daily challenges panel
@@ -7634,6 +7636,7 @@ const GameManager = (function () {
       if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
       if (window.GasMask) GasMask.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);
+      if (window.WeatherEffects) WeatherEffects.update(delta, player.position);
       if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
       if (typeof HazardZones !== 'undefined') {
         var _preHazardHp = player.hp;
