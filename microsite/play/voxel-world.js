@@ -1231,7 +1231,7 @@ window.VoxelWorld = (function () {
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
-  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy','Poltava','Kursk','Lviv','Kramatorsk'];
+  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy','Poltava','Kursk','Lviv','Kramatorsk','Donetsk','Luhansk','Vinnytsia'];
 
   function getLevelDef(index) {
     if (index >= 0 && index < LEVELS.length) return LEVELS[index];
@@ -5936,6 +5936,176 @@ window.VoxelWorld = (function () {
     setBlock(ox + 9,  h + 2, oz + 4, BLOCK.METAL);
     setBlock(ox + 10, h + 3, oz + 4, BLOCK.RUBBLE); // battle damage
     _buildings.push({ kind: 'landmark_kursk_border', x: ox - 4, z: oz - 4, w: 22, d: 14, baseY: h, floorH: 4, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Donetsk State Academic Opera House — 1941 neo-classical, Russian-occupied since 2014
+  // The Donetsk People's Republic uses the Donetsk Oblast Admin building (stormed April 6 2014)
+  // as its headquarters — that's what we model here alongside the Opera House context
+  function generateDonetskAdminHQ(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main admin building — imposing Soviet neoclassical CONCRETE block
+    for (var by = 0; by < 14; by++) {
+      for (var bx = -12; bx <= 12; bx++) {
+        for (var bz = -7; bz <= 7; bz++) {
+          var edge = (Math.abs(bx) === 12 || Math.abs(bz) === 7);
+          if (edge || by === 0 || by === 13) setBlock(ox + bx, base + by, oz + bz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Central tower section (raised taller above main building)
+    for (var ty = 13; ty < 20; ty++) {
+      for (var tx = -5; tx <= 5; tx++) {
+        for (var tz = -4; tz <= 4; tz++) {
+          if (Math.abs(tx) === 5 || Math.abs(tz) === 4 || ty === 19) {
+            setBlock(ox + tx, base + ty, oz + tz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Red star on roof (occupied building — Russian/DNR flag)
+    setBlock(ox, base + 20, oz, BLOCK.RUBBLE); // flagpole base
+    for (var fp = 0; fp < 6; fp++) setBlock(ox, base + 21 + fp, oz, BLOCK.METAL);
+    // Russian tricolor (white/blue/red stripes using blocks)
+    setBlock(ox + 1, base + 25, oz, BLOCK.PLASTER);   // white stripe
+    setBlock(ox + 2, base + 25, oz, BLOCK.PLASTER);
+    setBlock(ox + 1, base + 26, oz, BLOCK.CONCRETE);  // blue stripe
+    setBlock(ox + 2, base + 26, oz, BLOCK.CONCRETE);
+    setBlock(ox + 1, base + 27, oz, BLOCK.RUBBLE);    // red stripe
+    setBlock(ox + 2, base + 27, oz, BLOCK.RUBBLE);
+    // GLASS windows (large Soviet style)
+    for (var wi = -10; wi <= 10; wi += 3) {
+      for (var wl = 2; wl <= 11; wl += 3) {
+        setBlock(ox + wi, base + wl, oz + 7, BLOCK.GLASS);
+        setBlock(ox + wi, base + wl + 1, oz + 7, BLOCK.GLASS);
+      }
+    }
+    // Grand columns on south facade (8 pilasters)
+    for (var ci = -10; ci <= 10; ci += 3) {
+      for (var cy = 0; cy < 14; cy++) setBlock(ox + ci, base + cy, oz + 8, BLOCK.STONE);
+    }
+    // Concrete perimeter wall (administrative compound) with gaps for gates
+    for (var wx = -18; wx <= 18; wx++) {
+      if (Math.abs(wx) > 3) setBlock(ox + wx, base + 1, oz + 12, BLOCK.CONCRETE);
+      if (Math.abs(wx) > 3) setBlock(ox + wx, base + 2, oz + 12, BLOCK.CONCRETE);
+      setBlock(ox + wx, base + 1, oz - 12, BLOCK.CONCRETE);
+      setBlock(ox + wx, base + 2, oz - 12, BLOCK.CONCRETE);
+    }
+    for (var wz = -12; wz <= 12; wz++) {
+      setBlock(ox + 18, base + 1, oz + wz, BLOCK.CONCRETE);
+      setBlock(ox + 18, base + 2, oz + wz, BLOCK.CONCRETE);
+      setBlock(ox - 18, base + 1, oz + wz, BLOCK.CONCRETE);
+      setBlock(ox - 18, base + 2, oz + wz, BLOCK.CONCRETE);
+    }
+    _buildings.push({ kind: 'landmark_donetsk_admin', x: ox - 12, z: oz - 7, w: 25, d: 20, baseY: h, floorH: 14, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Luhansk Power Plant (Luhanska TPP) — one of Ukraine's largest thermal plants
+  // Russian forces seized it in 2014; used as artillery staging area; heavily damaged by fighting
+  // 2×200MW steam turbine blocks, 4 massive cooling towers, heavy industrial infrastructure
+  function generateLuhanskTPP(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main turbine hall — enormous METAL industrial building
+    for (var by = 0; by < 18; by++) {
+      for (var bx = -16; bx <= 16; bx++) {
+        for (var bz = -8; bz <= 8; bz++) {
+          var edge = (Math.abs(bx) === 16 || Math.abs(bz) === 8);
+          if (edge || by === 0 || by === 17) setBlock(ox + bx, base + by, oz + bz, BLOCK.METAL);
+        }
+      }
+    }
+    // Control room annex (CONCRETE, smaller attached block)
+    for (var cry = 0; cry < 10; cry++) {
+      for (var crx = -4; crx <= 4; crx++) {
+        for (var crz = 9; crz <= 15; crz++) {
+          var cre = (Math.abs(crx) === 4 || crz === 9 || crz === 15);
+          if (cre || cry === 0 || cry === 9) setBlock(ox + crx, base + cry, oz + crz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // 4 massive cooling towers (iconic smokestack silhouette)
+    var towerPos = [[-18, -18], [18, -18], [-18, 18], [18, 18]];
+    for (var ti = 0; ti < towerPos.length; ti++) {
+      var tx = ox + towerPos[ti][0], tz = oz + towerPos[ti][1];
+      var th = getTerrainHeight(tx, tz) || h;
+      // Hyperboloid cooling tower shape — wide base, narrow waist, flared top
+      var towerProfile = [5, 4, 3, 3, 3, 4, 5]; // radius at each level
+      for (var tl = 0; tl < towerProfile.length * 3; tl++) {
+        var tR = towerProfile[Math.min(Math.floor(tl / 3), towerProfile.length - 1)];
+        _lmRing(tx, th + tl + 1, tz, tR, BLOCK.CONCRETE);
+      }
+    }
+    // 2 tall chimney stacks (BRICK)
+    for (var ci2 = 0; ci2 < 2; ci2++) {
+      var cx2 = ox + (ci2 === 0 ? -8 : 8);
+      for (var cy2 = 0; cy2 < 28; cy2++) {
+        _lmRing(cx2, base + cy2, oz - 10, 2, BLOCK.BRICK);
+      }
+    }
+    // Coal yard (open area with RUBBLE piles)
+    for (var cyi = 0; cyi < 6; cyi++) {
+      var cyx = ox - 12 + cyi * 4;
+      setBlock(cyx, base + 1, oz + 20, BLOCK.RUBBLE);
+      setBlock(cyx, base + 2, oz + 20, BLOCK.RUBBLE);
+      setBlock(cyx + 1, base + 1, oz + 20, BLOCK.RUBBLE);
+    }
+    _buildings.push({ kind: 'landmark_luhansk_tpp', x: ox - 16, z: oz - 8, w: 33, d: 40, baseY: h, floorH: 18, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Vinnytsia Vortex Shopping Center — Kalibr cruise missile strike July 14 2022
+  // 23 civilians killed (including 3 children named Liza, 4yo), 202 wounded.
+  // The building was completely destroyed. A memorial now stands at the impact site.
+  function generateVinnytsiaVortex(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Ruined main structure — partially standing CONCRETE frame (not fully collapsed)
+    for (var by = 0; by < 6; by++) {
+      for (var bx = -12; bx <= 12; bx++) {
+        for (var bz = -8; bz <= 8; bz++) {
+          var edge = (Math.abs(bx) === 12 || Math.abs(bz) === 8);
+          // Partial collapse: skip some edge sections (battle-damage effect)
+          var collapsed = (bx > 4 && bz < 0 && by > 2);
+          if (!collapsed && (edge || by === 0)) setBlock(ox + bx, base + by, oz + bz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Collapsed section (rubble pile on east side where missile hit)
+    for (var rx = 4; rx <= 12; rx++) {
+      for (var rz = -8; rz <= 0; rz++) {
+        setBlock(ox + rx, base, oz + rz, BLOCK.RUBBLE);
+        if (Math.random() > 0.5) setBlock(ox + rx, base + 1, oz + rz, BLOCK.RUBBLE);
+      }
+    }
+    // Burnt car park (vehicles caught in the blast) — west side
+    setBlock(ox - 6,  base + 1, oz + 10, BLOCK.METAL);
+    setBlock(ox - 6,  base + 2, oz + 10, BLOCK.RUBBLE); // burnt car
+    setBlock(ox - 9,  base + 1, oz + 12, BLOCK.METAL);
+    setBlock(ox - 9,  base + 2, oz + 12, BLOCK.RUBBLE);
+    setBlock(ox - 12, base + 1, oz + 8,  BLOCK.METAL);
+    setBlock(ox - 12, base + 2, oz + 8,  BLOCK.RUBBLE);
+    // Main impact crater (center of the strike)
+    var crX = ox + 5, crZ = oz - 5;
+    var crH = getTerrainHeight(crX, crZ) || h;
+    for (var cra = 0; cra < 360; cra += 12) {
+      var crad = cra * Math.PI / 180;
+      var crR = 3 + (cra % 24 === 0 ? 1 : 0);
+      var crdx = Math.round(Math.cos(crad) * crR), crdz = Math.round(Math.sin(crad) * crR);
+      setBlock(crX + crdx, crH,     crZ + crdz, BLOCK.RUBBLE);
+      setBlock(crX + crdx, crH - 1, crZ + crdz, BLOCK.RUBBLE);
+    }
+    // Memorial for Liza (4yo girl killed) — small STONE pillar with LIGHT (eternal flame)
+    var memX = ox - 2, memZ = oz + 14;
+    var memH = getTerrainHeight(memX, memZ) || h;
+    setBlock(memX, memH + 1, memZ, BLOCK.STONE);
+    setBlock(memX, memH + 2, memZ, BLOCK.STONE);
+    setBlock(memX, memH + 3, memZ, BLOCK.STONE);
+    setBlock(memX, memH + 4, memZ, BLOCK.LIGHT); // eternal flame
+    // Flowers/offerings (LIGHT blocks scattered — representing candles)
+    setBlock(memX - 1, memH + 1, memZ, BLOCK.LIGHT);
+    setBlock(memX + 1, memH + 1, memZ, BLOCK.LIGHT);
+    setBlock(memX,     memH + 1, memZ + 1, BLOCK.LIGHT);
+    _buildings.push({ kind: 'landmark_vinnytsia_vortex', x: ox - 12, z: oz - 8, w: 25, d: 23, baseY: h, floorH: 6, floors: 1, cx: ox, cz: oz });
   }
 
   // LANDMARK: Lviv National Academic Opera and Ballet Theatre — built 1897-1900, neo-rococo
@@ -11936,6 +12106,151 @@ window.VoxelWorld = (function () {
         generateDroneNest(48, -48);
         generateDroneNest(-48, 48);
         generateDroneNest(0, 48);
+      } else if (cityName === 'Donetsk') {
+        // Donetsk — largest Russian-occupied city; namesake of the conflict; occupied since 2014
+        // "Donetsk People's Republic" (DNR) declared from the Oblast Admin building April 6 2014
+        // Home of Shakhtar Donetsk FC (Champions League regulars), Donbas Arena, Donetsk airport battle
+        generateDonetskAdminHQ(0, -20);              // Oblast Admin HQ (stormed April 2014, now DNR HQ)
+        generateDonbasArena(15, 15);                  // Donbas Arena — struck by Russian shells 2022
+        generateChurch(-28, -10);                     // Holy Transfiguration Cathedral (1930s, closed Soviet era)
+        generateChurch(22, -12);                      // Donetsk Cathedral of St. Volodymyr
+        generateLuxuryVilla(-10, -30, 14, 10);        // Donetsk City Hall (neoclassical Soviet)
+        generateSovietAdminBuilding(-5, -10);         // Secondary admin building / security HQ
+        generateUkrainianApartment(-38, -38, 10);
+        generateUkrainianApartment(-38, -60, 8);
+        generateUkrainianApartment(32, -42, 10);
+        generateUkrainianApartment(32, -62, 8);
+        generateUkrainianApartment(-18, -68, 7);
+        generateUkrainianApartment(18, -68, 7);
+        generateUkrainianApartment(-55, -18, 6);
+        generateUkrainianApartment(45, -20, 6);
+        generateIndustrialComplex(-35, -42);          // Donetsk Metallurgical Plant
+        generateIndustrialComplex(30, -45);           // Donetsk Chemical Plant
+        generateIndustrialComplex(-42, 35);           // Yenakiieve Steel Works (Akhmetov)
+        generateMineShaftTower(-28, 40);              // Donetsk coal mine headframe
+        generateTerikon(25, 42);                      // Coal slag heap — Donbas skyline
+        generateTrainStation(35, 30);                 // Donetsk Central Station
+        generateRailway(18, 18, 40, false);
+        generateGrainSilo(-40, -28);
+        generateWaterTower(-42, 20);
+        generateCommTower(0, -48);
+        // Heavy militarization — DNR/Russian forces 2014-2024
+        generateArtilleryBattery(-46, -52);
+        generateArtilleryBattery(44, 46);
+        generateAmmoDepot(-30, 15);
+        generateBunker(-22, 22);
+        generateBunker(22, -22);
+        generateTrenchNetwork(-15, 15);
+        generateTrenchNetwork(15, -15);
+        generateDefensivePosition(-10, 10);
+        generateDefensivePosition(10, -10);
+        generateBurningRuin(-22, -22);
+        generateBurningRuin(20, 22);
+        generateWreckedTank(-14, -26);
+        generateWreckedAPC(18, 18);
+        generateCraters(15);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Luhansk') {
+        // Luhansk — capital of Russian-occupied "LNR" (Luhansk People's Republic); occupied since 2014
+        // Ukraine has not controlled Luhansk city since Sept 12 2014
+        // Major features: Luhansk Thermal Power Plant, locomotive works, regional admin building
+        generateLuhanskTPP(-18, 25);                  // Luhanska TPP — seized by Russia 2014, shelled repeatedly
+        generateChurch(-28, -10);                     // St. Michael's Cathedral (18th century Baroque)
+        generateChurch(22, -12);                      // Luhansk Nativity Cathedral
+        generateLuxuryVilla(0, -25, 14, 10);          // Luhansk Oblast Administration (now "LNR" capital HQ)
+        generateSovietAdminBuilding(-5, -12);         // LNR Security Ministry
+        generateUkrainianApartment(-38, -38, 9);
+        generateUkrainianApartment(-38, -58, 7);
+        generateUkrainianApartment(30, -42, 9);
+        generateUkrainianApartment(30, -62, 7);
+        generateUkrainianApartment(-18, -66, 6);
+        generateUkrainianApartment(18, -66, 6);
+        generateUkrainianApartment(-52, -16, 5);
+        generateUkrainianApartment(42, -18, 5);
+        generateIndustrialComplex(-35, -40);          // Luhansk Locomotive Works (major employer)
+        generateIndustrialComplex(30, -42);           // Luhansk Chemical Plant
+        generateIndustrialComplex(-40, 35);           // Coal processing facility
+        generateMineShaftTower(-30, 42);
+        generateGrainSilo(-40, -25);
+        generateWaterTower(-44, 18);
+        generateCommTower(0, -45);
+        generateTrainStation(35, 32);                 // Luhansk railway station (now Russian supply chain)
+        generateRailway(16, 20, 38, false);
+        generateBridge(0, 22, 28, 4);                 // Luhan River crossing
+        // Russian military infrastructure
+        generateArtilleryBattery(-46, -50);
+        generateArtilleryBattery(44, 44);
+        generateAmmoDepot(-30, 12);
+        generateAmmoDepot(28, 10);
+        generateBunker(-20, 20);
+        generateBunker(20, -20);
+        generateBunker(-38, -16);
+        generateTrenchNetwork(-14, 14);
+        generateTrenchNetwork(14, -14);
+        generateBurningRuin(-20, -20);
+        generateBurningRuin(18, 20);
+        generateBurningRuin(-40, -28);
+        generateWreckedTank(-12, -24);
+        generateWreckedAPC(18, 16);
+        generateCraters(12);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Vinnytsia') {
+        // Vinnytsia — central Ukraine; July 14 2022 Kalibr cruise missile strike on "Vortex" mall
+        // 23 civilians killed including 4yo Liza Dmytrieva; 202 wounded; ICC war crimes investigation
+        // Also: Southern Air Command HQ (strike may have targeted a military meeting there)
+        generateVinnytsiaVortex(15, -25);             // "Vortex" shopping center — July 14 2022 strike site
+        generateChurch(-25, -10);                     // Vinnytsia Transfiguration Cathedral (19th century)
+        generateChurch(20, -8);                       // Church of St. George (oldest in Podillia region)
+        generateLuxuryVilla(0, -28, 14, 10);          // Vinnytsia Regional Administration (neoclassical)
+        generateSovietAdminBuilding(-5, -14);         // City Hall / Southern Air Command building
+        generateUkrainianApartment(-38, -35, 9);
+        generateUkrainianApartment(-38, -55, 7);
+        generateUkrainianApartment(30, -38, 9);
+        generateUkrainianApartment(30, -58, 7);
+        generateUkrainianApartment(-18, -65, 6);
+        generateUkrainianApartment(18, -65, 6);
+        generateUkrainianApartment(-52, -14, 5);
+        generateUkrainianApartment(42, -16, 5);
+        generateIndustrialComplex(-35, -40);          // Roshen confectionery factory (Poroshenko's)
+        generateIndustrialComplex(30, -42);           // Vinnytsia Aircraft Repair Plant
+        generateIndustrialComplex(-40, 35);           // Nemyriv spirits distillery complex
+        generateTrainStation(35, 30);                 // Vinnytsia Central Station
+        generateRailway(18, 18, 38, false);
+        generateBridge(0, 22, 30, 4);                 // Southern Bug River bridge
+        generateGrainSilo(-40, -22);
+        generateWaterTower(-44, 18);
+        generateCommTower(0, -45);
+        generatePowerLines(0, 0, 4);
+        // Air defense installation (Vinnytsia has major Southern Air Command base)
+        generateAntiAirPosition(-35, -42);
+        generateAntiAirPosition(32, 40);
+        generateAntiAirPosition(-50, 48);             // MIM-104 Patriot battery (context: active defense)
+        generateArtilleryBattery(-44, -50);
+        generateArtilleryBattery(42, 46);
+        generateBunker(-22, 22);
+        generateBunker(22, -22);
+        generateTrenchNetwork(-14, 14);
+        generateTrenchNetwork(14, -14);
+        // Strike aftermath — major blast damage
+        generateBurningRuin(-20, -20);
+        generateBurningRuin(18, 20);
+        generateBurningRuin(12, -28);                 // Near the Vortex strike site
+        generateBurningRuin(-40, -30);
+        generateCraters(15);
+        generateWreckedTank(-12, -24);
+        generateWreckedAPC(18, 16);
+        generateWreckedCar(8, -30);                   // Cars burned in the Vortex parking lot
+        generateWreckedCar(14, -32);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
       } else {
         // Generic proc city (Mariupol/Vuhledar repeats, or any future addition)
         generateUkrainianApartment(-25, -25, 6);
