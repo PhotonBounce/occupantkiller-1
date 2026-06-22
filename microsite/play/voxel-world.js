@@ -1270,6 +1270,11 @@ window.VoxelWorld = (function () {
     { id: 'KHMELNYTSKYI', name: 'Khmelnytskyi Fortress', desc: 'Defend the Podolian fortress city — nuclear plant and Cossack heritage under fire', theme: 'urban', wavesPerLevel: 8, difficulty: 3.1, fogColor: 0x445533, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'NIKOPOL', name: 'Nikopol Under Bombardment', desc: 'Steel city across the Dnipro from ZNPP — nonstop shelling from the occupied right bank', theme: 'industrial', wavesPerLevel: 8, difficulty: 3.6, fogColor: 0x332222, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 0 }, { x: 28, z: 0 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'UZHHOROD', name: 'Uzhhorod Carpathian Gate', desc: 'Westernmost Ukrainian city — Carpathian fortress protecting NATO\'s doorstep', theme: 'urban', wavesPerLevel: 7, difficulty: 2.4, fogColor: 0x556644, spawnCandidates: [{ x: -15, z: -18 }, { x: 15, z: -18 }, { x: 0, z: -28 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'DEBALTSEVE', name: 'Debaltseve Winter Battle', desc: 'Brutal 2015 winter battle — armored retreat through the snow corridor', theme: 'urban', wavesPerLevel: 9, difficulty: 3.8, fogColor: 0x334444, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'IRPIN', name: 'Irpin Bridge Retreat', desc: 'Blown bridge — civilians crossing under fire', theme: 'urban', wavesPerLevel: 7, difficulty: 2.6, fogColor: 0x446633, spawnCandidates: [{ x: -15, z: -18 }, { x: 15, z: -18 }, { x: 0, z: -28 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'LYSYCHANSK', name: 'Lysychansk Last Redoubt', desc: 'High ground above the Siverskyi Donets — last Ukrainian stronghold in the region', theme: 'industrial', wavesPerLevel: 9, difficulty: 4.1, fogColor: 0x2a2218, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'ENERGODAR', name: 'Energodar Nuclear City', desc: 'Company town built to serve ZNPP — fight through the reactor worker\'s city', theme: 'industrial', wavesPerLevel: 8, difficulty: 3.9, fogColor: 0x336633, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KHERSON_CITY', name: 'Kherson City Liberation', desc: 'Street by street urban liberation — residents greet Ukrainian forces with flowers', theme: 'urban', wavesPerLevel: 8, difficulty: 3.3, fogColor: 0x445566, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -15678,6 +15683,409 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'uzhhorod_castle', x: ox - 12, z: oz - 12, w: 26, d: 26, baseY: hb, floorH: 14, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── DEBALTSEVE: Frozen Urban Battlefield ─────────────────────────────────
+  // Debaltseve 2015 — Ukrainian forces encircled and forced to retreat in bitter cold.
+  // Railway junction town; Russian armored columns cut off the escape corridor.
+  function generateDebaltseveBattlefield(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz;
+
+    // Frozen ground — STONE and DIRT patches simulating icy rubble
+    for (x = ox - 20; x <= ox + 20; x++) {
+      for (z = oz - 20; z <= oz + 20; z++) {
+        var fh = getHeight(x, z);
+        if ((x + z) % 3 === 0) {
+          setBlock(x, fh, z, BLOCK.STONE);
+        } else if ((x + z) % 5 === 0) {
+          setBlock(x, fh, z, BLOCK.DIRT);
+        }
+      }
+    }
+
+    // Railway tracks — METAL blocks in a cross pattern
+    for (i = -18; i <= 18; i++) {
+      setBlock(ox + i, h, oz + 2, BLOCK.METAL);
+      setBlock(ox + i, h, oz + 3, BLOCK.METAL);
+    }
+    for (i = -10; i <= 10; i++) {
+      setBlock(ox + 2, h, oz + i, BLOCK.METAL);
+      setBlock(ox + 3, h, oz + i, BLOCK.METAL);
+    }
+
+    // Burnt-out train car (3×1×1 METAL box on tracks)
+    for (x = ox - 3; x <= ox; x++) {
+      setBlock(x, h + 1, oz + 2, BLOCK.METAL);
+      setBlock(x, h + 1, oz + 3, BLOCK.METAL);
+      setBlock(x, h + 2, oz + 2, BLOCK.METAL);
+      setBlock(x, h + 2, oz + 3, BLOCK.METAL);
+    }
+    setBlock(ox - 3, h + 1, oz + 2, BLOCK.METAL);
+    setBlock(ox - 3, h + 1, oz + 3, BLOCK.METAL);
+    setBlock(ox,     h + 1, oz + 2, BLOCK.METAL);
+    setBlock(ox,     h + 1, oz + 3, BLOCK.METAL);
+
+    // Blown-out building shells (walls without roofs)
+    var shells = [[-12, -10], [10, -10], [-12, 12]];
+    for (i = 0; i < shells.length; i++) {
+      bx = ox + shells[i][0]; bz = oz + shells[i][1];
+      var sh = getHeight(bx, bz);
+      for (var sy = 1; sy <= 5; sy++) {
+        setBlock(bx,     sh + sy, bz,     BLOCK.BRICK);
+        setBlock(bx + 4, sh + sy, bz,     BLOCK.BRICK);
+        setBlock(bx,     sh + sy, bz + 4, BLOCK.BRICK);
+        setBlock(bx + 4, sh + sy, bz + 4, BLOCK.BRICK);
+      }
+      // Exposed floor at mid-height
+      for (var fx = bx + 1; fx <= bx + 3; fx++) {
+        for (var fz2 = bz + 1; fz2 <= bz + 3; fz2++) {
+          setBlock(fx, sh + 3, fz2, BLOCK.WOOD);
+        }
+      }
+    }
+
+    // Rubble field in center plaza
+    var rubble = [[-4, -5], [-2, -3], [0, -5], [3, -4], [-5, -1], [4, -2], [-3, 1], [2, 2], [-1, 4], [5, 3]];
+    for (i = 0; i < rubble.length; i++) {
+      bx = ox + rubble[i][0]; bz = oz + rubble[i][1];
+      var rh = getHeight(bx, bz);
+      setBlock(bx, rh + 1, bz, BLOCK.BRICK);
+      setBlock(bx + 1, rh, bz, BLOCK.STONE);
+    }
+
+    // Frozen river strip — STONE across the map at north edge
+    for (x = ox - 22; x <= ox + 22; x++) {
+      var riv = getHeight(x, oz - 16);
+      setBlock(x, riv, oz - 16, BLOCK.STONE);
+      setBlock(x, riv, oz - 17, BLOCK.STONE);
+    }
+
+    // Tank graveyard
+    generateWreckedTank(ox - 8, oz + 15);
+    generateWreckedTank(ox + 12, oz - 8);
+    generateWreckedTank(ox - 15, oz + 5);
+
+    _buildings.push({ kind: 'debaltseve_battlefield', x: ox - 20, z: oz - 20, w: 40, d: 40, baseY: h, floorH: 5, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── IRPIN: Bridge Retreat ─────────────────────────────────────────────────
+  // Irpin bridge destroyed March 2022 — civilians waded across river shallows
+  // under Russian artillery fire. Famous images of families fleeing with luggage.
+  function generateIrpinBridgeArea(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz;
+
+    // River banks — STONE/DIRT embankment 2 high on both sides
+    for (x = ox - 22; x <= ox + 22; x++) {
+      var bkh = getHeight(x, oz - 3);
+      setBlock(x, bkh,     oz - 3, BLOCK.STONE);
+      setBlock(x, bkh + 1, oz - 3, BLOCK.STONE);
+      setBlock(x, bkh,     oz + 3, BLOCK.STONE);
+      setBlock(x, bkh + 1, oz + 3, BLOCK.STONE);
+    }
+
+    // River bed — STONE in the gap
+    for (x = ox - 22; x <= ox + 22; x++) {
+      for (z = oz - 2; z <= oz + 2; z++) {
+        setBlock(x, h - 1, z, BLOCK.STONE);
+      }
+    }
+
+    // Bridge west section — STONE spans
+    for (x = ox - 22; x <= ox - 5; x++) {
+      for (z = oz - 1; z <= oz + 1; z++) {
+        setBlock(x, h, z, BLOCK.STONE);
+        setBlock(x, h + 1, z, BLOCK.STONE);
+      }
+    }
+    // Bridge railings west
+    for (x = ox - 22; x <= ox - 5; x++) {
+      setBlock(x, h + 2, oz - 1, BLOCK.METAL);
+      setBlock(x, h + 2, oz + 1, BLOCK.METAL);
+    }
+
+    // Collapsed bridge center — AIR gap (blocks removed, just rubble below)
+    for (x = ox - 4; x <= ox + 4; x++) {
+      var ch2 = getHeight(x, oz);
+      setBlock(x, ch2, oz - 1, BLOCK.STONE); // fallen rubble below
+      setBlock(x, ch2, oz,     BLOCK.STONE);
+    }
+
+    // Bridge east section (Russian side)
+    for (x = ox + 5; x <= ox + 22; x++) {
+      for (z = oz - 1; z <= oz + 1; z++) {
+        setBlock(x, h, z, BLOCK.STONE);
+        setBlock(x, h + 1, z, BLOCK.STONE);
+      }
+    }
+
+    // Civilian evacuation barriers (west bank)
+    for (i = -8; i <= -1; i++) {
+      setBlock(ox - 16, h + 1, oz + i, BLOCK.FENCE);
+      setBlock(ox - 10, h + 1, oz + i, BLOCK.FENCE);
+    }
+
+    // Ukrainian sandbag position west bank
+    for (x = ox - 20; x <= ox - 16; x++) {
+      setBlock(x, h + 1, oz - 6, BLOCK.DIRT);
+      setBlock(x, h + 2, oz - 6, BLOCK.DIRT);
+    }
+
+    // Russian checkpoint remains east bank
+    setBlock(ox + 14, h + 1, oz - 4, BLOCK.METAL);
+    setBlock(ox + 14, h + 2, oz - 4, BLOCK.METAL);
+    setBlock(ox + 14, h + 1, oz + 4, BLOCK.METAL);
+    setBlock(ox + 14, h + 2, oz + 4, BLOCK.METAL);
+    setBlock(ox + 12, h + 1, oz,     BLOCK.CONCRETE);
+    setBlock(ox + 16, h + 1, oz,     BLOCK.CONCRETE);
+
+    // Burnt civilian vehicles along evacuation road
+    generateWreckedAPC(ox - 14, oz + 8);
+    generateWreckedAPC(ox - 6, oz + 10);
+
+    _buildings.push({ kind: 'irpin_bridge', x: ox - 22, z: oz - 3, w: 44, d: 6, baseY: h, floorH: 3, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── LYSYCHANSK: Industrial Hilltop Refinery ───────────────────────────────
+  // Lysychansk fell July 2022 after Severodonetsk. High ground above Siverskyi
+  // Donets made it the last Ukrainian hold in Luhansk Oblast.
+  function generateLysychanskRefinery(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz;
+
+    // Tall refinery tower — METAL cylinder 18 high
+    for (i = 0; i < 18; i++) {
+      setBlock(ox, h + i, oz, BLOCK.METAL);
+      setBlock(ox + 1, h + i, oz, BLOCK.METAL);
+      setBlock(ox, h + i, oz + 1, BLOCK.METAL);
+      setBlock(ox + 1, h + i, oz + 1, BLOCK.METAL);
+    }
+    setBlock(ox, h + 18, oz, BLOCK.LIGHT);
+    setBlock(ox + 1, h + 18, oz, BLOCK.LIGHT);
+
+    // Storage tanks — 3 cylinders, METAL, 4 high, radius 3
+    var tankPos = [[-8, -5], [6, -8], [-8, 8]];
+    for (i = 0; i < tankPos.length; i++) {
+      bx = ox + tankPos[i][0]; bz = oz + tankPos[i][1];
+      var th = getHeight(bx, bz);
+      for (var ty = 0; ty <= 4; ty++) {
+        for (x = bx - 3; x <= bx + 3; x++) {
+          for (z = bz - 3; z <= bz + 3; z++) {
+            var dx = x - bx; var dz = z - bz;
+            if (dx * dx + dz * dz <= 9) {
+              if (ty === 0 || ty === 4 || dx * dx + dz * dz >= 7) {
+                setBlock(x, th + ty, z, BLOCK.METAL);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Pipeline — METAL blocks at waist height running east-west 20 blocks
+    for (x = ox - 10; x <= ox + 10; x++) {
+      setBlock(x, h + 2, oz - 5, BLOCK.METAL);
+    }
+
+    // Oil spill ground staining — DIRT patches
+    var spills = [[3, 3], [-3, 5], [5, -2], [-5, -3], [2, -6]];
+    for (i = 0; i < spills.length; i++) {
+      bx = ox + spills[i][0]; bz = oz + spills[i][1];
+      var sph = getHeight(bx, bz);
+      setBlock(bx, sph, bz, BLOCK.DIRT);
+      setBlock(bx + 1, sph, bz, BLOCK.DIRT);
+      setBlock(bx, sph, bz + 1, BLOCK.DIRT);
+    }
+
+    // Chemical processing building — 12×8 CONCRETE shell 6 high
+    for (x = ox + 8; x <= ox + 20; x++) {
+      for (z = oz - 4; z <= oz + 4; z++) {
+        var isEdge2 = (x === ox + 8 || x === ox + 20 || z === oz - 4 || z === oz + 4);
+        for (var cy2 = 1; cy2 <= 6; cy2++) {
+          if (isEdge2 || cy2 === 6) {
+            setBlock(x, h + cy2, z, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Windows
+    for (x = ox + 10; x <= ox + 18; x += 3) {
+      setBlock(x, h + 3, oz - 4, BLOCK.GLASS);
+      setBlock(x, h + 3, oz + 4, BLOCK.GLASS);
+    }
+
+    // Sniper tower — 2×2 METAL frame 12 high with WOOD platform
+    bx = ox - 14; bz = oz - 12;
+    var sth = getHeight(bx, bz);
+    for (i = 0; i < 12; i++) {
+      setBlock(bx, sth + i, bz, BLOCK.METAL);
+      setBlock(bx + 1, sth + i, bz, BLOCK.METAL);
+    }
+    for (x = bx - 1; x <= bx + 2; x++) {
+      for (z = bz - 1; z <= bz + 2; z++) {
+        setBlock(x, sth + 12, z, BLOCK.WOOD);
+      }
+    }
+    setBlock(bx, sth + 13, bz, BLOCK.METAL); // upper rail
+
+    _buildings.push({ kind: 'lysychansk_refinery', x: ox - 5, z: oz - 5, w: 27, d: 12, baseY: h, floorH: 18, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── ENERGODAR: Nuclear Company Town ──────────────────────────────────────
+  // Energodar built in 1970s to house workers of Zaporizhzhia Nuclear Power Plant.
+  // Russian forces seized the ZNPP in March 2022 — largest nuclear plant in Europe.
+  function generateEnergodorCity(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz;
+
+    // Svobody Square central paving — STONE 12×12
+    for (x = ox - 6; x <= ox + 6; x++) {
+      for (z = oz - 6; z <= oz + 6; z++) {
+        var sqh = getHeight(x, z);
+        setBlock(x, sqh, z, BLOCK.STONE);
+      }
+    }
+
+    // Soviet-style monument — tall STONE column with METAL figure on top
+    setBlock(ox, h + 1, oz, BLOCK.STONE);
+    setBlock(ox, h + 2, oz, BLOCK.STONE);
+    setBlock(ox, h + 3, oz, BLOCK.STONE);
+    setBlock(ox, h + 4, oz, BLOCK.STONE);
+    setBlock(ox, h + 5, oz, BLOCK.STONE);
+    setBlock(ox, h + 6, oz, BLOCK.METAL); // figure
+
+    // Cooling tower silhouettes — 2 tall CONCRETE + STONE shapes
+    var towerPos = [[-20, -15], [-14, -15]];
+    for (i = 0; i < towerPos.length; i++) {
+      bx = ox + towerPos[i][0]; bz = oz + towerPos[i][1];
+      var cwh = getHeight(bx, bz);
+      for (var cwy = 0; cwy < 14; cwy++) {
+        var cwRadius = (cwy < 7) ? (3 - Math.floor(cwy / 3)) : (1 + Math.floor((cwy - 7) / 3));
+        for (x = bx - cwRadius; x <= bx + cwRadius; x++) {
+          setBlock(x, cwh + cwy, bz, BLOCK.CONCRETE);
+          setBlock(x, cwh + cwy, bz + 1, BLOCK.CONCRETE);
+        }
+        setBlock(bx, cwh + cwy, bz - cwRadius, BLOCK.CONCRETE);
+        setBlock(bx, cwh + cwy, bz + 1 + cwRadius, BLOCK.CONCRETE);
+      }
+    }
+
+    // Radiation checkpoint — METAL barriers and LIGHT warning markers
+    var checkPositions = [[-12, 0], [12, 0], [0, -12], [0, 12]];
+    for (i = 0; i < checkPositions.length; i++) {
+      bx = ox + checkPositions[i][0]; bz = oz + checkPositions[i][1];
+      var ckh = getHeight(bx, bz);
+      setBlock(bx, ckh + 1, bz, BLOCK.METAL);
+      setBlock(bx, ckh + 2, bz, BLOCK.METAL);
+      setBlock(bx, ckh + 3, bz, BLOCK.LIGHT);
+    }
+
+    // Sports complex — large 16×10 CONCRETE flat building, 4 high
+    for (x = ox + 10; x <= ox + 26; x++) {
+      for (z = oz + 8; z <= oz + 18; z++) {
+        var sph2 = getHeight(x, z);
+        var isEdge3 = (x === ox + 10 || x === ox + 26 || z === oz + 8 || z === oz + 18);
+        for (i = 1; i <= 4; i++) {
+          if (isEdge3 || i === 4) {
+            setBlock(x, sph2 + i, z, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+
+    // Blocked emergency exit — METAL barrier
+    for (x = ox - 8; x <= ox - 5; x++) {
+      var exh = getHeight(x, oz - 14);
+      setBlock(x, exh + 1, oz - 14, BLOCK.METAL);
+      setBlock(x, exh + 2, oz - 14, BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'energodar_city', x: ox - 6, z: oz - 6, w: 38, d: 30, baseY: h, floorH: 6, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── KHERSON_CITY: Liberated City Center ──────────────────────────────────
+  // Kherson liberated November 2022 — residents came out waving Ukrainian flags
+  // and embracing soldiers. Svobody (Freedom) Square was the liberation focal point.
+  function generateKhersonCityCenter(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i, bx, bz;
+
+    // Svobody Square — large cobblestone plaza 20×20 STONE paving
+    for (x = ox - 10; x <= ox + 10; x++) {
+      for (z = oz - 10; z <= oz + 10; z++) {
+        var pqh = getHeight(x, z);
+        setBlock(x, pqh, z, BLOCK.STONE);
+      }
+    }
+
+    // City administration building — 14×10 PLASTER neoclassical, 10 high
+    for (x = ox - 7; x <= ox + 7; x++) {
+      for (z = oz - 18; z <= oz - 8; z++) {
+        var abh = getHeight(x, z);
+        var isEdgeA = (x === ox - 7 || x === ox + 7 || z === oz - 18 || z === oz - 8);
+        for (i = 1; i <= 10; i++) {
+          if (isEdgeA || i === 10) {
+            setBlock(x, abh + i, z, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // GLASS windows on facade
+    for (x = ox - 5; x <= ox + 5; x += 2) {
+      setBlock(x, h + 3, oz - 18, BLOCK.GLASS);
+      setBlock(x, h + 5, oz - 18, BLOCK.GLASS);
+      setBlock(x, h + 7, oz - 18, BLOCK.GLASS);
+    }
+
+    // Ukrainian flag on roof — METAL pole + LIGHT (yellow/blue)
+    var flagX = ox; var flagZ = oz - 14;
+    var flh = getHeight(flagX, flagZ);
+    setBlock(flagX, flh + 11, flagZ, BLOCK.METAL);
+    setBlock(flagX, flh + 12, flagZ, BLOCK.METAL);
+    setBlock(flagX + 1, flh + 12, flagZ, BLOCK.LIGHT); // blue flag
+    setBlock(flagX + 1, flh + 11, flagZ, BLOCK.LIGHT); // yellow flag
+
+    // Bullet-scarred apartment facades — PLASTER with DIRT patches
+    var apBlocks = [[-14, 5], [12, 5]];
+    for (i = 0; i < apBlocks.length; i++) {
+      bx = ox + apBlocks[i][0]; bz = oz + apBlocks[i][1];
+      var aph = getHeight(bx, bz);
+      for (var ay = 1; ay <= 8; ay++) {
+        setBlock(bx, aph + ay, bz, BLOCK.PLASTER);
+        setBlock(bx + 4, aph + ay, bz, BLOCK.PLASTER);
+      }
+      // Bullet scars — DIRT patches
+      setBlock(bx + 1, aph + 3, bz, BLOCK.DIRT);
+      setBlock(bx + 2, aph + 5, bz, BLOCK.DIRT);
+      setBlock(bx + 3, aph + 2, bz, BLOCK.DIRT);
+    }
+
+    // Liberation flower patches — GRASS patches where rubble was
+    var flowers = [[-6, 8], [5, 9], [-3, 11], [7, 7], [-8, 10]];
+    for (i = 0; i < flowers.length; i++) {
+      bx = ox + flowers[i][0]; bz = oz + flowers[i][1];
+      var fph = getHeight(bx, bz);
+      setBlock(bx, fph, bz, BLOCK.GRASS || BLOCK.DIRT);
+    }
+
+    // Russian occupation checkpoint debris
+    for (x = ox + 14; x <= ox + 17; x++) {
+      var oph = getHeight(x, oz);
+      setBlock(x, oph + 1, oz, BLOCK.METAL);
+    }
+    setBlock(ox + 15, h + 1, oz + 1, BLOCK.CONCRETE);
+
+    // Dnieper River shoreline — STONE bank at south edge
+    for (x = ox - 22; x <= ox + 22; x++) {
+      var rvh = getHeight(x, oz + 20);
+      setBlock(x, rvh, oz + 20, BLOCK.STONE);
+      setBlock(x, rvh, oz + 21, BLOCK.STONE);
+      setBlock(x, rvh - 1, oz + 22, BLOCK.STONE); // water (lower STONE = river)
+      setBlock(x, rvh - 1, oz + 23, BLOCK.STONE);
+    }
+
+    _buildings.push({ kind: 'kherson_city_center', x: ox - 10, z: oz - 18, w: 20, d: 40, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
   // ── SLAVUTYCH: Chernobyl Memorial ────────────────────────────────────────
   // Slavutych was built in 1986 to house Chernobyl workers after Pripyat evacuation.
   // The reactor sarcophagus is visible from the city; exclusion zone starts at the edge.
@@ -19053,6 +19461,68 @@ window.VoxelWorld = (function () {
       generateSniperNest(-32, -32); generateSniperNest(30, -32);
       generateDroneNest(38, 36); generateDroneNest(-38, -36);
       generateAntiAirPosition(-32, 25); generateAntiAirPosition(28, -25);
+      generateCheckpoint(0, -40, false); generateCheckpoint(-38, 0, true);
+    } else if (level.id === 'DEBALTSEVE') {
+      generateDebaltseveBattlefield(0, -5);
+      generateUkrainianApartment(-30, -28, 6); generateUkrainianApartment(28, -28, 5);
+      generateUkrainianApartment(-30, 18, 5); generateUkrainianApartment(28, 20, 6);
+      generateBurningRuin(-20, 30); generateBurningRuin(18, -35);
+      generateBurningRuin(-35, -12); generateBurningRuin(32, 15);
+      generateWreckedTank(-22, -30); generateWreckedAPC(20, 22); generateWreckedTank(0, 35);
+      generateCraters(12);
+      generateBunker(-25, -28); generateBunker(25, 28);
+      generateTrenchNetwork(-18, 20); generateTrenchNetwork(18, -20);
+      generateSniperNest(-38, -38); generateSniperNest(35, -38);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateCheckpoint(0, -45, false); generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'IRPIN') {
+      generateIrpinBridgeArea(0, 5);
+      generateUkrainianApartment(-28, -22, 8); generateUkrainianApartment(25, -22, 6);
+      generateUkrainianApartment(-28, 20, 6); generateUkrainianApartment(25, 22, 8);
+      generateBurningRuin(-15, 30); generateBurningRuin(14, -35);
+      generateWreckedTank(-18, -28); generateWreckedAPC(16, 22); generateWreckedConvoy(-28, 18);
+      generateCraters(7);
+      generateBunker(-22, -25); generateBunker(22, 25);
+      generateTrenchNetwork(-14, 18); generateTrenchNetwork(14, -18);
+      generateDroneNest(38, 36); generateDroneNest(-38, -36);
+      generateCheckpoint(0, -38, false); generateCheckpoint(-38, 0, true);
+    } else if (level.id === 'LYSYCHANSK') {
+      generateLysychanskRefinery(0, 0);
+      generateUkrainianApartment(-32, -28, 7); generateUkrainianApartment(28, -28, 5);
+      generateIndustrialComplex(35, 10); generateIndustrialComplex(-35, -8);
+      generateBurningRuin(-20, 30); generateBurningRuin(18, -35);
+      generateWreckedTank(-22, -32); generateWreckedAPC(20, 25); generateWreckedConvoy(-30, 20);
+      generateCraters(14);
+      generateBunker(-25, -28); generateBunker(25, 28); generateBunker(0, -40);
+      generateMortarPit(-30, -10); generateMortarPit(28, 10);
+      generateTrenchNetwork(-18, 20); generateTrenchNetwork(18, -20);
+      generateSniperNest(-38, -38); generateSniperNest(35, -38);
+      generateDroneNest(44, 42); generateDroneNest(-44, -42);
+      generateAntiAirPosition(-38, 30); generateAntiAirPosition(35, -30);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'ENERGODAR') {
+      generateEnergodorCity(0, -5);
+      generateUkrainianApartment(-32, -28, 9); generateUkrainianApartment(28, -28, 6);
+      generateIndustrialComplex(38, 12); generateIndustrialComplex(-38, -8);
+      generateBurningRuin(-18, 28); generateBurningRuin(16, -35);
+      generateWreckedTank(-20, -32); generateWreckedAPC(18, 22);
+      generateCraters(10);
+      generateBunker(-25, -28); generateBunker(25, 28);
+      generateTrenchNetwork(-16, 20); generateTrenchNetwork(16, -20);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-38, 28); generateAntiAirPosition(35, -28);
+      generateCheckpoint(0, -45, false); generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'KHERSON_CITY') {
+      generateKhersonCityCenter(0, -8);
+      generateUkrainianApartment(-30, -28, 8); generateUkrainianApartment(28, -28, 6);
+      generateUkrainianApartment(-30, 18, 6); generateUkrainianApartment(28, 20, 8);
+      generateChurch(-20, -18); generateChurch(18, 20);
+      generateBurningRuin(-15, 28); generateBurningRuin(14, -32);
+      generateWreckedTank(-18, -30); generateWreckedAPC(16, 22);
+      generateCraters(7);
+      generateBunker(-22, -25); generateBunker(22, 25);
+      generateTrenchNetwork(-14, 18); generateTrenchNetwork(14, -18);
+      generateDroneNest(38, 36); generateDroneNest(-38, -36);
       generateCheckpoint(0, -40, false); generateCheckpoint(-38, 0, true);
     }
 
