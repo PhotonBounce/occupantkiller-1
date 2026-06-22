@@ -2226,6 +2226,477 @@ window.AudioSystem = (function () {
     src.start();
   }
 
+  // ── 1. Positional 3D Audio Engine ────────────────────────────
+  // playPositional3D: plays a sound at a world position with distance falloff and stereo pan
+  function playPositional3D(soundId, worldX, worldZ, listenerX, listenerZ) {
+    if (!enabled || !ctx) return;
+    resume();
+    var dx = (worldX || 0) - (listenerX || 0);
+    var dz = (worldZ || 0) - (listenerZ || 0);
+    var distance = Math.sqrt(dx * dx + dz * dz);
+    var maxRange = 40;
+    if (distance > maxRange) return;
+    var vol = 1 / (distance + 1);
+    var angle = Math.atan2(dx, dz);
+    var pan = Math.max(-1, Math.min(1, Math.sin(angle)));
+    var now = ctx.currentTime;
+
+    // Attempt to use PannerNode (full 3D), fall back to StereoPannerNode
+    var panner = null;
+    if (ctx.createPanner) {
+      panner = ctx.createPanner();
+      panner.panningModel = 'HRTF';
+      panner.distanceModel = 'linear';
+      panner.maxDistance = maxRange;
+      panner.refDistance = 1;
+      panner.rolloffFactor = 1;
+      if (panner.positionX) {
+        panner.positionX.value = dx;
+        panner.positionY.value = 0;
+        panner.positionZ.value = dz;
+      } else {
+        panner.setPosition(dx, 0, dz);
+      }
+    } else if (ctx.createStereoPanner) {
+      panner = ctx.createStereoPanner();
+      _safePV(panner.pan, pan);
+    }
+
+    var gainNode = ctx.createGain();
+    gainNode.gain.value = _safeAudio(Math.min(1, vol));
+
+    // Choose oscillator params based on soundId
+    var freq = 400, decay = 0.10, oscType = 'sawtooth';
+    if (soundId === 'gunshot_enemy') { freq = 400; decay = 0.10; }
+    else if (soundId === 'explosion') { freq = 70; decay = 0.35; oscType = 'sine'; }
+    else if (soundId === 'engine') { freq = 80; decay = 0.20; oscType = 'sawtooth'; }
+    else if (soundId === 'pistol') { freq = 800; decay = 0.06; }
+    else if (soundId === 'rifle') { freq = 400; decay = 0.10; }
+
+    var osc = ctx.createOscillator();
+    osc.type = oscType;
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq * 0.2), now + decay);
+    var oscGain = ctx.createGain();
+    oscGain.gain.setValueAtTime(0.25, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + decay);
+    osc.connect(oscGain);
+    oscGain.connect(gainNode);
+
+    if (panner) {
+      gainNode.connect(panner);
+      panner.connect(masterGain);
+    } else {
+      gainNode.connect(masterGain);
+    }
+    osc.start(now);
+    osc.stop(now + decay + 0.01);
+  }
+
+  // ── 2. Level-specific Ambient Sound Layers ────────────────────
+  var _levelAmbientTimers = [];
+  var _levelAmbientSources = [];
+  var _levelAmbientNodes = [];
+
+  function stopLevelAmbient() {
+    var i;
+    for (i = 0; i < _levelAmbientTimers.length; i++) {
+      clearTimeout(_levelAmbientTimers[i]);
+      clearInterval(_levelAmbientTimers[i]);
+    }
+    for (i = 0; i < _levelAmbientSources.length; i++) {
+      try { _levelAmbientSources[i].stop(); } catch(e) {}
+    }
+    for (i = 0; i < _levelAmbientNodes.length; i++) {
+      try { _levelAmbientNodes[i].disconnect(); } catch(e) {}
+    }
+    _levelAmbientTimers = [];
+    _levelAmbientSources = [];
+    _levelAmbientNodes = [];
+  }
+
+  function playAmbient(levelId) {
+    if (!ctx) {
+      try {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = ctx.createGain();
+        masterGain.gain.value = volume;
+        masterGain.connect(ctx.destination);
+      } catch(e) { return; }
+    }
+    if (!enabled) return;
+    resume();
+    stopLevelAmbient();
+
+    if (levelId === 'CHORNOBYL') {
+      // Geiger counter: random oscillator clicks 10-40ms pulses, 0.3-2s apart
+      function _scheduleGeiger() {
+        if (!enabled || !ctx) return;
+        var now = ctx.currentTime;
+        var pulseLen = 0.010 + Math.random() * 0.030; // 10-40ms
+        var osc = ctx.createOscillator();
+        var g = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 3000 + Math.random() * 3000;
+        g.gain.setValueAtTime(0.04, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + pulseLen);
+        osc.connect(g); g.connect(masterGain);
+        osc.start(now); osc.stop(now + pulseLen + 0.001);
+        _levelAmbientSources.push(osc);
+        _levelAmbientNodes.push(g);
+        var nextMs = 300 + Math.random() * 1700; // 0.3-2s
+        var tid = setTimeout(_scheduleGeiger, nextMs);
+        _levelAmbientTimers.push(tid);
+      }
+      _scheduleGeiger();
+
+    } else if (levelId === 'KYIV' || levelId === 'KHARKIV' || levelId === 'MARIUPOL_STEEL') {
+      // Distant artillery rumble: very low 20-40Hz oscillator, slow amplitude modulation
+      var artOsc = ctx.createOscillator();
+      artOsc.type = 'sine';
+      artOsc.frequency.value = 20 + Math.random() * 20;
+      var artLfo = ctx.createOscillator();
+      artLfo.type = 'sine';
+      artLfo.frequency.value = 0.12;
+      var artLfoGain = ctx.createGain();
+      artLfoGain.gain.value = 0.015;
+      artLfo.connect(artLfoGain);
+      var artGain = ctx.createGain();
+      artGain.gain.value = 0.04;
+      artLfoGain.connect(artGain.gain);
+      artOsc.connect(artGain); artGain.connect(masterGain);
+      artOsc.start(); artLfo.start();
+      _levelAmbientSources.push(artOsc, artLfo);
+      _levelAmbientNodes.push(artGain, artLfoGain);
+
+    } else if (levelId === 'KREMLIN' || levelId === 'MOSCOW') {
+      // Wind howl: noise through 200Hz bandpass, slow LFO on gain 0.03-0.07
+      var windBuf = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate);
+      var windData = windBuf.getChannelData(0);
+      for (var wi = 0; wi < windData.length; wi++) windData[wi] = Math.random() * 2 - 1;
+      var windSrc = ctx.createBufferSource();
+      windSrc.buffer = windBuf;
+      windSrc.loop = true;
+      var windFilt = ctx.createBiquadFilter();
+      windFilt.type = 'bandpass';
+      windFilt.frequency.value = 200;
+      windFilt.Q.value = 1.5;
+      var windLfo = ctx.createOscillator();
+      windLfo.type = 'sine';
+      windLfo.frequency.value = 0.08;
+      var windLfoAmp = ctx.createGain();
+      windLfoAmp.gain.value = 0.02; // LFO depth
+      windLfo.connect(windLfoAmp);
+      var windGain = ctx.createGain();
+      windGain.gain.value = 0.05; // center of 0.03-0.07 range
+      windLfoAmp.connect(windGain.gain);
+      windSrc.connect(windFilt); windFilt.connect(windGain); windGain.connect(masterGain);
+      windSrc.start(); windLfo.start();
+      _levelAmbientSources.push(windSrc, windLfo);
+      _levelAmbientNodes.push(windGain, windLfoAmp, windFilt);
+
+    } else if (levelId === 'CRIMEA_BRIDGE') {
+      // Ocean/sea wind: similar to above but faster LFO
+      var seaBuf = ctx.createBuffer(1, ctx.sampleRate * 5, ctx.sampleRate);
+      var seaData = seaBuf.getChannelData(0);
+      for (var si = 0; si < seaData.length; si++) seaData[si] = Math.random() * 2 - 1;
+      var seaSrc = ctx.createBufferSource();
+      seaSrc.buffer = seaBuf;
+      seaSrc.loop = true;
+      var seaFilt = ctx.createBiquadFilter();
+      seaFilt.type = 'bandpass';
+      seaFilt.frequency.value = 300;
+      seaFilt.Q.value = 0.8;
+      var seaLfo = ctx.createOscillator();
+      seaLfo.type = 'sine';
+      seaLfo.frequency.value = 0.28; // faster LFO for ocean waves
+      var seaLfoAmp = ctx.createGain();
+      seaLfoAmp.gain.value = 0.025;
+      seaLfo.connect(seaLfoAmp);
+      var seaGain = ctx.createGain();
+      seaGain.gain.value = 0.04;
+      seaLfoAmp.connect(seaGain.gain);
+      seaSrc.connect(seaFilt); seaFilt.connect(seaGain); seaGain.connect(masterGain);
+      seaSrc.start(); seaLfo.start();
+      _levelAmbientSources.push(seaSrc, seaLfo);
+      _levelAmbientNodes.push(seaGain, seaLfoAmp, seaFilt);
+
+    } else {
+      // Default: distant combat ambience — occasional faint explosion burst every 8-15s
+      function _scheduleDistantCombat() {
+        if (!enabled || !ctx) return;
+        var now = ctx.currentTime;
+        var osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(45, now);
+        osc.frequency.exponentialRampToValueAtTime(22, now + 0.9);
+        var g = ctx.createGain();
+        g.gain.setValueAtTime(0.06, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+        osc.connect(g); g.connect(masterGain);
+        osc.start(now); osc.stop(now + 0.95);
+        _levelAmbientSources.push(osc);
+        _levelAmbientNodes.push(g);
+        var nextMs = 8000 + Math.random() * 7000; // 8-15s
+        var tid = setTimeout(_scheduleDistantCombat, nextMs);
+        _levelAmbientTimers.push(tid);
+      }
+      _scheduleDistantCombat();
+    }
+  }
+
+  // ── 3. Menu / UI SFX ─────────────────────────────────────────
+  function playMenuClick() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.value = 440;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.1, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.04);
+  }
+
+  function playMenuHover() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = 880;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.05, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.025);
+  }
+
+  function playWaveComplete() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var notes = [440, 550, 660];
+    var gap = 0.030; // 30ms gap
+    var dur = 0.080; // 80ms each
+    notes.forEach(function(freq, i) {
+      var osc = ctx.createOscillator();
+      var g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      var t = now + i * (dur + gap);
+      g.gain.setValueAtTime(0.12, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(t); osc.stop(t + dur + 0.01);
+    });
+  }
+
+  // Enhanced playLevelComplete — triumphant 4-note sequence with harmony
+  function playLevelCompleteNew() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var notes = [523, 659, 784, 1047];
+    notes.forEach(function(freq, i) {
+      var t = now + i * 0.4;
+      // Primary note
+      var osc = ctx.createOscillator();
+      var g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.12, t);
+      g.gain.linearRampToValueAtTime(0.15, t + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(t); osc.stop(t + 0.55);
+      // Harmony: fifth above
+      var harm = ctx.createOscillator();
+      var hg = ctx.createGain();
+      harm.type = 'sine';
+      harm.frequency.value = freq * 1.5;
+      hg.gain.setValueAtTime(0.05, t);
+      hg.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      harm.connect(hg); hg.connect(masterGain);
+      harm.start(t); harm.stop(t + 0.55);
+    });
+  }
+
+  // Enhanced playAchievementUnlock — magical shimmer: 8 notes 440→1760Hz, each 40ms
+  function playAchievementUnlockNew() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var startFreq = 440;
+    var endFreq = 1760;
+    var numNotes = 8;
+    var noteDur = 0.040;
+    for (var ai = 0; ai < numNotes; ai++) {
+      var freq = startFreq * Math.pow(endFreq / startFreq, ai / (numNotes - 1));
+      var t = now + ai * noteDur;
+      var osc = ctx.createOscillator();
+      var g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.08, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + noteDur);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(t); osc.stop(t + noteDur + 0.002);
+    }
+  }
+
+  // ── 4. Combat Audio Improvements ─────────────────────────────
+
+  // Enhanced reload: metallic click pattern, 3-4 clicks 60ms apart
+  function playReloadWeapon(weaponType) {
+    if (!enabled || !ctx || ctx.state === 'suspended') return;
+    resume();
+    var now = ctx.currentTime;
+    var numClicks = (weaponType === 'shotgun' || weaponType === 'sniper') ? 4 : 3;
+    var clickSpacing = 0.060; // 60ms
+    for (var ci = 0; ci < numClicks; ci++) {
+      var t = now + ci * clickSpacing;
+      var osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1800 + Math.random() * 600, t);
+      osc.frequency.exponentialRampToValueAtTime(800, t + 0.025);
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(0.09, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(t); osc.stop(t + 0.04);
+      // Metallic resonance
+      var ping = ctx.createOscillator();
+      ping.type = 'sine';
+      ping.frequency.value = 3000 + Math.random() * 1500;
+      var pg = ctx.createGain();
+      pg.gain.setValueAtTime(0.03, t);
+      pg.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      ping.connect(pg); pg.connect(masterGain);
+      ping.start(t); ping.stop(t + 0.045);
+    }
+  }
+
+  // Dry fire — hollow click: 100Hz tap oscillator, 40ms
+  function playDryFireNew() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(100, now);
+    osc.frequency.exponentialRampToValueAtTime(60, now + 0.040);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.08, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.040);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.045);
+  }
+
+  // Far explosion — low rumble at 40Hz, 0.8s, fades
+  function playExplosionFar() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(40, now);
+    osc.frequency.exponentialRampToValueAtTime(22, now + 0.8);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.07, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.82);
+    // Noise rumble
+    var nbuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.8), ctx.sampleRate);
+    var nd = nbuf.getChannelData(0);
+    for (var ni = 0; ni < nd.length; ni++) nd[ni] = (Math.random() * 2 - 1) * (1 - ni / nd.length);
+    var nsrc = ctx.createBufferSource();
+    nsrc.buffer = nbuf;
+    var nf = ctx.createBiquadFilter();
+    nf.type = 'lowpass'; nf.frequency.value = 100;
+    var ng = ctx.createGain(); ng.gain.value = 0.04;
+    nsrc.connect(nf); nf.connect(ng); ng.connect(masterGain);
+    nsrc.start(now); nsrc.stop(now + 0.82);
+  }
+
+  // Near explosion — distance-attenuated sharp boom then rumble tail
+  function playExplosionNear(distance) {
+    if (!enabled || !ctx) return;
+    resume();
+    var dist = Math.max(1, Math.min(40, distance || 1));
+    var vol = Math.max(0.05, 1 - dist / 40);
+    var now = ctx.currentTime;
+    // Sharp boom: 60Hz → 20Hz sweep, 0.4s
+    var osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(60, now);
+    osc.frequency.exponentialRampToValueAtTime(20, now + 0.4);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(_safeAudio(0.45 * vol), now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.42);
+    // Noise burst on impact
+    var crack = createNoise(0.12);
+    var cg = ctx.createGain();
+    cg.gain.setValueAtTime(_safeAudio(0.35 * vol), now);
+    cg.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    crack.connect(cg); cg.connect(masterGain);
+    // Rumble tail: 0.6s after boom
+    var rumble = ctx.createOscillator();
+    rumble.type = 'sine';
+    rumble.frequency.setValueAtTime(35, now + 0.4);
+    rumble.frequency.exponentialRampToValueAtTime(18, now + 1.0);
+    var rg = ctx.createGain();
+    rg.gain.setValueAtTime(_safeAudio(0.08 * vol), now + 0.4);
+    rg.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+    rumble.connect(rg); rg.connect(masterGain);
+    rumble.start(now + 0.38); rumble.stop(now + 1.05);
+  }
+
+  // Melee knife swing — air whoosh: white noise through 2000Hz lowpass, 150ms
+  function playMeleeKnifeSwing() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var whoosh = createNoise(0.15);
+    var filt = ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = 2000;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.linearRampToValueAtTime(0.18, now + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    whoosh.connect(filt); filt.connect(g); g.connect(masterGain);
+  }
+
+  // Melee knife hit — wet thud: 200→80Hz sine sweep, 100ms
+  function playMeleeKnifeHit() {
+    if (!enabled || !ctx) return;
+    resume();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.10);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.22, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.11);
+    // Flesh thud noise
+    var n = createNoise(0.08);
+    var nf = ctx.createBiquadFilter();
+    nf.type = 'lowpass'; nf.frequency.value = 600;
+    var ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.14, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    n.connect(nf); nf.connect(ng); ng.connect(masterGain);
+  }
+
   return {
     init: init,
     resume: resume,
@@ -2322,6 +2793,24 @@ window.AudioSystem = (function () {
     playHelicopterAmbient: playHelicopterAmbient,
     playWindAmbient: playWindAmbient,
     playBulletCrack: playBulletCrack,
+    // 1. Positional 3D audio
+    playPositional3D: playPositional3D,
+    // 2. Level ambient layers
+    playAmbient: playAmbient,
+    stopLevelAmbient: stopLevelAmbient,
+    // 3. Menu/UI SFX
+    playMenuClick: playMenuClick,
+    playMenuHover: playMenuHover,
+    playWaveComplete: playWaveComplete,
+    playLevelCompleteNew: playLevelCompleteNew,
+    playAchievementUnlockNew: playAchievementUnlockNew,
+    // 4. Combat audio improvements
+    playReloadWeapon: playReloadWeapon,
+    playDryFireNew: playDryFireNew,
+    playExplosionFar: playExplosionFar,
+    playExplosionNear: playExplosionNear,
+    playMeleeKnifeSwing: playMeleeKnifeSwing,
+    playMeleeKnifeHit: playMeleeKnifeHit,
   };
 
   // EKG flatline — played on player death before death overlay
