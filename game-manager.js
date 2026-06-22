@@ -1272,6 +1272,7 @@ const GameManager = (function () {
         if (window.Destructibles) Destructibles.init(_scene);
         if (window.StaminaSystem) StaminaSystem.init();
         if (window.Grapple) Grapple.init(_scene, _camera);
+        if (window.ScavengeSystem) ScavengeSystem.init(_scene, _camera);
         if (window.CrouchSystem) CrouchSystem.init();
         if (window.SpecialGrenades) SpecialGrenades.init(_scene, _camera, function(enemyCallback) {
             var enemies = Enemies ? Enemies.getAll() : [];
@@ -1280,6 +1281,7 @@ const GameManager = (function () {
             }
         });
         if (window.BloodEffects) BloodEffects.init(_scene, _camera);
+        if (window.BallisticShield) BallisticShield.init(_scene, _camera);
         if (window.MeleeKnife) MeleeKnife.init(_scene, _camera);
         if (window.RadioSupport) RadioSupport.init(_scene, function(pos, radius, callback) {
           var enemies = (typeof Enemies !== 'undefined' && Enemies.getAll) ? Enemies.getAll() : [];
@@ -1566,6 +1568,8 @@ const GameManager = (function () {
     try { if (window.ADSSystem && ADSSystem.init) ADSSystem.init(_scene, _camera); } catch (eADS) { console.warn('[ADSSystem] init failed', eADS); }
     // Companion radio tactical chatter
     try { if (window.CompanionRadio && CompanionRadio.init) CompanionRadio.init(); } catch (eCR) {}
+    // Bullet-time power-up
+    try { if (window.TimeWarp && TimeWarp.init) TimeWarp.init(); } catch (eTW) { console.warn('[TimeWarp] init failed', eTW); }
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -2143,11 +2147,24 @@ const GameManager = (function () {
           }
         }
 
-        // Field bandage perk (H key)
+        // H key — Ballistic Shield deploy/pickup (priority), else field bandage
         if (e.code === 'KeyH') {
-          if (typeof Perks !== 'undefined' && Perks.useBandage()) {
-            HUD.notifyPickup('🩹 FIELD BANDAGE APPLIED!', '#22ff55');
-            try { if (typeof Achievements !== 'undefined' && Achievements.recordBandage) Achievements.recordBandage(); } catch (eAchH) {}
+          var _shieldHandled = false;
+          if (window.BallisticShield) {
+            if (BallisticShield.isDeployed()) {
+              BallisticShield.pickup(player.position);
+              _shieldHandled = true;
+            } else {
+              BallisticShield.deploy(player.position, _camera.rotation.y);
+              HUD.notifyPickup('🛡 SHIELD DEPLOYED', '#88ffaa');
+              _shieldHandled = true;
+            }
+          }
+          if (!_shieldHandled) {
+            if (typeof Perks !== 'undefined' && Perks.useBandage()) {
+              HUD.notifyPickup('🩹 FIELD BANDAGE APPLIED!', '#22ff55');
+              try { if (typeof Achievements !== 'undefined' && Achievements.recordBandage) Achievements.recordBandage(); } catch (eAchH) {}
+            }
           }
         }
 
@@ -2440,6 +2457,10 @@ const GameManager = (function () {
             }
           }
           if (!_grappleHandled) {
+            // Check for nearby scavenged weapon drop first (E key)
+            if (window.ScavengeSystem && player && ScavengeSystem.tryPickup(player.position)) {
+              // Pickup succeeded — skip further E-key actions
+            } else {
             // Check for nearby attachment pickup first
             var _atkPickedUp = false;
             if (typeof Attachments !== 'undefined' && _scene && player) {
@@ -2467,6 +2488,7 @@ const GameManager = (function () {
               }
             }
             if (!_atkPickedUp) Weapons.switchNext();
+            } // end else (no scavenge pickup)
           }
         }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
@@ -3413,6 +3435,8 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.TimeWarp) TimeWarp.reset();
+    if (window.ScavengeSystem) ScavengeSystem.reset();
     if (window.TripwireIED) TripwireIED.reset();
     if (window.LootDrops) LootDrops.reset();
     if (window.WaveEvents) WaveEvents.reset();
@@ -3739,6 +3763,7 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.TimeWarp) TimeWarp.clear();
     if (window.WaveEvents) WaveEvents.clear();
     if (window.LootDrops) LootDrops.clear();
     if (window.BountySystem) BountySystem.clear();
@@ -3757,6 +3782,7 @@ const GameManager = (function () {
     if (window.MeleeKnife) MeleeKnife.clear();
     if (window.WeatherEffects) WeatherEffects.clear();
     if (window.IntelPickups) IntelPickups.clear(_scene);
+    if (window.ScavengeSystem) ScavengeSystem.clear();
     if (window.DogTags) DogTags.clear();
     window.VoxelWorld.generateLevel(stageIndex);
 
@@ -6284,6 +6310,12 @@ const GameManager = (function () {
         else if (isHeadshot) _wepIcon = '🎯';
         HUD.addKillFeedEntry('You', enemy.typeCfg ? enemy.typeCfg.name : 'Enemy', _wepIcon);
       }
+      // KillFeed overlay hook — COD-style kill feed (kill-feed.js)
+      if (window._onKillForFeed) {
+        var _kfEnemyType = enemy.typeCfg ? enemy.typeCfg.name : (enemy.type || 'ENEMY');
+        var _kfWeapon = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? (Weapons.getCurrent().type || '') : '';
+        _onKillForFeed(_kfEnemyType, _kfWeapon, isHeadshot);
+      }
       // FOV kick: brief zoom-out punch on kill (bigger on headshot)
       _killFovKick = Math.max(_killFovKick, isHeadshot ? 4.5 : 2.5);
 
@@ -6510,6 +6542,8 @@ const GameManager = (function () {
         if (player.killStreak === 5 || player.killStreak === 10) Feedback.radioChatter('kill_streak');
         if (window.CompanionRadio && CompanionRadio.onKillStreak) CompanionRadio.onKillStreak(player.killStreak);
       }
+      // TimeWarp: award bullet-time charge at streaks 10 and 20
+      if (window._onKillStreakForTimeWarp) _onKillStreakForTimeWarp(player.killStreak);
 
       // ── B30: Weapon Mastery tracking ──
       if (typeof CombatExtras !== 'undefined' && CombatExtras.addWeaponKill) {
@@ -6633,6 +6667,13 @@ const GameManager = (function () {
 
       // Dog tags drop on enemy death
       if (window._onEnemyKillForDogTags) window._onEnemyKillForDogTags(enemy.mesh.position, enemy.type);
+
+      // Scavenge system — spawn a pickable weapon drop at enemy position
+      if (window.ScavengeSystem && enemy.mesh) {
+        var _scavType = (enemy.typeCfg && enemy.typeCfg.name) || null;
+        var _scavId   = enemy._weaponType || null;
+        ScavengeSystem.spawnWeaponDrop(enemy.mesh.position, _scavId, null);
+      }
     }
   }
 
@@ -6725,6 +6766,17 @@ const GameManager = (function () {
     if (gameState !== STATE.PLAYING) return; // can't take damage when dead/paused
     if (player.godMode) return; // God mode: immune to damage
     if (DroneSystem.isPossessing()) return; // player body is passive while piloting drone
+    // Ballistic Shield blocks bullet from attacker direction (full block)
+    if (window.BallisticShield && BallisticShield.isDeployed() && attackerPos) {
+      var _bsOrigin = attackerPos.clone ? attackerPos.clone() : new THREE.Vector3(attackerPos.x, attackerPos.y, attackerPos.z);
+      _bsOrigin.y += 1.0; // approx bullet height
+      var _bsTarget = player.position.clone();
+      _bsTarget.y += 0.8;
+      var _bsDir = new THREE.Vector3().subVectors(_bsTarget, _bsOrigin).normalize();
+      if (BallisticShield.checkBulletBlock(_bsOrigin, _bsDir)) {
+        return; // bullet fully blocked by shield
+      }
+    }
     // Shield absorbs damage
     if (player.shieldTimer > 0) {
       HUD.notifyPickup('🛡 SHIELDED!', '#ffd700');
@@ -7055,6 +7107,12 @@ const GameManager = (function () {
     // Killstreak bullet-time: scale delta by killstreak time scale
     if (window._killstreakTimeScale && window._killstreakTimeScale < 1.0) {
       delta *= window._killstreakTimeScale;
+    }
+
+    // TimeWarp bullet-time: update with raw delta, then scale game delta
+    if (window.TimeWarp) TimeWarp.update(rawDelta);
+    if (window._bulletTimeScale && window._bulletTimeScale !== 1.0) {
+      delta *= window._bulletTimeScale;
     }
 
     // ── Adaptive auto-quality calibration (bi-directional) ───────────
@@ -8246,6 +8304,9 @@ const GameManager = (function () {
           }
         }
       }
+
+      // Scavenge system update (weapon drops, pickup prompt)
+      if (window.ScavengeSystem) ScavengeSystem.update(delta, player);
 
       // Update tracers
       if (typeof Tracers !== 'undefined') Tracers.update(delta, player.position);
