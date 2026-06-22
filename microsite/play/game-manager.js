@@ -924,6 +924,53 @@ const GameManager = (function () {
   var _lastKillPos = null;  // position of most recent enemy kill
   var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
   var _weaponUnlockShown = {};  // tracks which weapon unlock milestones have fired
+  var _companion = null;   // the NPC currently following player
+  var _companionCooldown = 0;  // prevent spam
+
+  /* ── Companion Follow System ─────────────────────────────────── */
+  function _toggleCompanion() {
+    try {
+      if (_companion && _companion.alive) {
+        // Dismiss companion
+        _companion._following = false;
+        _companion._rallyOverride = null;
+        _companion = null;
+        if (HUD && HUD.showToast) HUD.showToast('Companion dismissed', 1500, '#88ccff');
+        return;
+      }
+      // Find nearest alive friendly NPC within 30 units
+      var npcs = (typeof NPCSystem !== 'undefined' && NPCSystem.getAll) ? NPCSystem.getAll() : [];
+      var best = null;
+      var bestDist = 30;
+      for (var ci = 0; ci < npcs.length; ci++) {
+        var n = npcs[ci];
+        if (!n || !n.alive || n.role === 'civilian') continue;
+        var cd = n.position ? n.position.distanceTo(player.position) : 999;
+        if (cd < bestDist) { bestDist = cd; best = n; }
+      }
+      if (!best) {
+        // Spawn a companion NPC next to player
+        var _cnx = player.position.x + (Math.random() - 0.5) * 4;
+        var _cnz = player.position.z + (Math.random() - 0.5) * 4;
+        var _cny = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_cnx, _cnz) + 1 : player.position.y;
+        if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
+          NPCSystem.spawn(_cnx, _cny, _cnz, 'infantry');
+          var _all = NPCSystem.getAll();
+          best = _all[_all.length - 1];
+        }
+      }
+      if (best) {
+        _companion = best;
+        _companion._following = true;
+        if (HUD && HUD.showToast) HUD.showToast('🤝 Companion following — [F] to dismiss', 2500, '#44ff88');
+        if (HUD && HUD.notifyPickup) HUD.notifyPickup('Companion: ' + (_companion.name || 'Ukrainian Soldier'), '#44ff88');
+      } else {
+        if (HUD && HUD.showToast) HUD.showToast('No nearby allies', 1500, '#ff8844');
+      }
+    } catch (err) {
+      console.warn('[companion] _toggleCompanion error:', err);
+    }
+  }
 
   /* ── Suppression System (near-miss visual response) ──────────── */
   var _suppressionLevel = 0;  // 0→1
@@ -1840,6 +1887,12 @@ const GameManager = (function () {
               }
             }
           }
+        }
+
+        // Companion follow mode toggle
+        if (e.code === 'KeyF' && !e.repeat && _companionCooldown <= 0) {
+          _companionCooldown = 2.0;
+          _toggleCompanion();
         }
 
         // Toggle vehicle camera view (first person / third person)
@@ -7272,6 +7325,27 @@ const GameManager = (function () {
 
       // Hybrid systems
       NPCSystem.update(delta, TimeSystem.getInfo());
+      // Companion follow AI
+      try {
+        if (_companionCooldown > 0) _companionCooldown -= delta;
+        if (_companion) {
+          if (!_companion.alive) {
+            _companion = null;
+            if (HUD && HUD.showToast) HUD.showToast('💀 Companion KIA', 2000, '#ff4444');
+          } else if (_companion._following) {
+            // Move companion toward player (override NPC movement)
+            var _cpDist = _companion.position ? _companion.position.distanceTo(player.position) : 0;
+            if (_cpDist > 4.0) {
+              var _cpDir = new THREE.Vector3().subVectors(player.position, _companion.position).normalize();
+              var _cpSpeed = Math.min(_cpDist * 0.5, 5.0) * delta;
+              _companion.position.addScaledVector(_cpDir, _cpSpeed);
+              if (_companion.mesh) _companion.mesh.position.copy(_companion.position);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[companion] update error:', err);
+      }
       if (typeof HUD !== 'undefined' && HUD._updateNPCTextPositions) {
         HUD._updateNPCTextPositions(NPCSystem.getAll(), _camera, _renderer);
       }
