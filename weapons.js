@@ -5529,6 +5529,38 @@ const Weapons = (() => {
   const RECOIL_RECOVERY_DELAY = 0.12;
   const RECOIL_RECOVERY_RATE = 4;
 
+  // ── Per-weapon recoil profiles (bloom accumulation + sustained-fire spread) ──
+  var RECOIL_PROFILES = {
+    PISTOL:   { kickY: 0.022, kickX: 0.008, bloomAdd: 0.012, bloomDecay: 6.0, sustained: 0.0 },
+    SMG:      { kickY: 0.018, kickX: 0.018, bloomAdd: 0.010, bloomDecay: 7.5, sustained: 0.004 },
+    AR:       { kickY: 0.030, kickX: 0.010, bloomAdd: 0.014, bloomDecay: 5.0, sustained: 0.006 },
+    LMG:      { kickY: 0.025, kickX: 0.008, bloomAdd: 0.008, bloomDecay: 3.5, sustained: 0.012 },
+    SNIPER:   { kickY: 0.090, kickX: 0.005, bloomAdd: 0.040, bloomDecay: 2.5, sustained: 0.0 },
+    SHOTGUN:  { kickY: 0.060, kickX: 0.040, bloomAdd: 0.080, bloomDecay: 3.0, sustained: 0.0 },
+    GRENADE:  { kickY: 0.045, kickX: 0.012, bloomAdd: 0.020, bloomDecay: 3.5, sustained: 0.0 },
+    ROCKET:   { kickY: 0.070, kickX: 0.020, bloomAdd: 0.035, bloomDecay: 2.0, sustained: 0.0 },
+    DEFAULT:  { kickY: 0.028, kickX: 0.010, bloomAdd: 0.014, bloomDecay: 5.0, sustained: 0.0 },
+  };
+
+  function _getRecoilProfile(wepType) {
+    var t = wepType || '';
+    if (t === 'PISTOL') return RECOIL_PROFILES.PISTOL;
+    if (t === 'SMG') return RECOIL_PROFILES.SMG;
+    if (t === 'SNIPER' || t === 'AMR') return RECOIL_PROFILES.SNIPER;
+    if (t === 'SHOTGUN') return RECOIL_PROFILES.SHOTGUN;
+    if (t === 'LMG' || t === 'HMG' || t === 'HMG_HEAVY' || t === 'MACHINEGUN' ||
+        t === 'NATO_HEAVY' || t === 'GATLING' || t === 'MINIGUN') return RECOIL_PROFILES.LMG;
+    if (t === 'GRENADE' || t === 'SMOKE' || t === 'FLASHBANG' || t === 'INCENDIARY' ||
+        t === 'THERMOBARIC' || t === 'EXPLOSIVE') return RECOIL_PROFILES.GRENADE;
+    if (t === 'AT' || t === 'ATGM' || t === 'AT_HEAVY' || t === 'AT_LIGHT' || t === 'AA') return RECOIL_PROFILES.ROCKET;
+    if (t === 'ASSAULT' || t === 'NATO' || t === 'SILENT' || t === 'JAMMER') return RECOIL_PROFILES.AR;
+    return RECOIL_PROFILES.DEFAULT;
+  }
+
+  // Bloom state: accumulated spread from sustained fire
+  var _currentBloom = 0;
+  var _sustainedShots = 0;
+
   // ── Viewmodel inertia (mouse-look lag) ────────────────────
   let _prevYaw = 0;
   let _prevPitch = 0;
@@ -5577,6 +5609,18 @@ const Weapons = (() => {
     if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) {
       CameraSystem.shake(0.004 + intensity * 0.012, 0.12 + intensity * 0.08);
     }
+    // ── Per-weapon bloom accumulation and sustained-fire spread ──
+    var _rp = _getRecoilProfile(w.type);
+    _currentBloom = Math.min(0.18, _currentBloom + _rp.bloomAdd + _rp.sustained * _sustainedShots);
+    _sustainedShots++;
+    // Additional horizontal kick with alternating left/right pattern per profile
+    var _horizSign = (_sustainedShots % 2 === 0) ? 1 : -1;
+    if (typeof CameraSystem !== 'undefined') {
+      CameraSystem.setPitch(CameraSystem.getPitch() + _rp.kickY * recoilMod);
+      CameraSystem.setYaw(CameraSystem.getYaw() + _rp.kickX * _horizSign * (0.5 + Math.random() * 0.5) * recoilMod);
+    }
+    _recoilPitchAccum += _rp.kickY * recoilMod;
+    _recoilYawAccum += _rp.kickX * _horizSign * (0.5 + Math.random() * 0.5) * recoilMod;
   }
 
   // ── Weapon switching ──────────────────────────────────────
@@ -6251,9 +6295,10 @@ const Weapons = (() => {
       if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       const pellets = 8;
       for (let p = 0; p < pellets; p++) {
+        var _pelletBloom = _currentBloom;
         spreadVec.set(
-          (Math.random() - 0.5) * wep.spread * 2,
-          (Math.random() - 0.5) * wep.spread * 2
+          (Math.random() - 0.5) * (wep.spread + _pelletBloom) * 2,
+          (Math.random() - 0.5) * (wep.spread + _pelletBloom) * 2
         );
         raycaster.setFromCamera(spreadVec, camera);
         raycaster.far = 25; // shotgun effective range
@@ -6380,14 +6425,15 @@ const Weapons = (() => {
       }
     }
 
+    var _hitscanSpread = wep.spread + _currentBloom;
     spreadVec.set(
-      (Math.random() - 0.5) * wep.spread * 2,
-      (Math.random() - 0.5) * wep.spread * 2
+      (Math.random() - 0.5) * _hitscanSpread * 2,
+      (Math.random() - 0.5) * _hitscanSpread * 2
     );
     if (_aimSnapDir) {
       raycaster.ray.origin.copy(camera.getWorldPosition(new THREE.Vector3()));
       raycaster.ray.direction.copy(_aimSnapDir).add(
-        new THREE.Vector3((Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread)
+        new THREE.Vector3((Math.random()-0.5)*_hitscanSpread, (Math.random()-0.5)*_hitscanSpread, (Math.random()-0.5)*_hitscanSpread)
       ).normalize();
     } else {
       raycaster.setFromCamera(spreadVec, camera);
@@ -6724,6 +6770,14 @@ const Weapons = (() => {
     if (_chSpread > 0) {
       _chSpread = Math.max(0, _chSpread - delta * 1.2);
       if (typeof HUD !== 'undefined' && HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
+    }
+    // Bloom recovery: per-profile decay rate, sustained-shots counter resets while not firing
+    var _bRp = _getRecoilProfile(cur().type);
+    if (_currentBloom > 0) {
+      _currentBloom = Math.max(0, _currentBloom - _bRp.bloomDecay * delta);
+    }
+    if (!_firedThisFrame) {
+      _sustainedShots = Math.max(0, _sustainedShots - Math.floor(delta * 3));
     }
 
     // Smooth ADS FOV transition
