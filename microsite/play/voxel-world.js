@@ -6258,6 +6258,164 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_kramatorsk_station', x: ox - 14, z: oz - 5, w: 29, d: 30, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
   }
 
+  // LANDMARK: Rivne Nuclear Power Plant — Ukraine's 2nd largest NPP; 2 VVER-440 + 2 VVER-1000 reactors
+  // Located in Varash (Kuznetsovsk) city; continued operating throughout the 2022 invasion
+  // VVER-440 (older/smaller) units 1-2 on west; VVER-1000 (larger/modern) units 3-4 on east
+  function generateRivneNPP(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Turbine hall — CONCRETE long structure housing all 4 units (26 long × 6 wide × 7 high)
+    for (var ty = 0; ty < 7; ty++) {
+      for (var tx = -13; tx <= 13; tx++) {
+        for (var tz = -3; tz <= 3; tz++) {
+          if (tx === -13 || tx === 13 || tz === -3 || tz === 3 || ty === 6) {
+            setBlock(ox + tx, base + ty, oz + tz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // VVER-440 units (older, smaller) — west pair, radius 2, height 12
+    var vver440X = [-9, -3];
+    for (var i440 = 0; i440 < 2; i440++) {
+      var rx440 = ox + vver440X[i440];
+      for (var ry440 = 0; ry440 < 5; ry440++) {
+        _lmRing(rx440, base + 7 + ry440, oz, 2, BLOCK.REINFORCED);
+      }
+      _lmDisc(rx440, base + 12, oz, 2, BLOCK.CONCRETE);
+      _lmDisc(rx440, base + 13, oz, 1, BLOCK.CONCRETE);
+    }
+    // VVER-1000 units (newer, larger) — east pair, radius 3, height 17
+    var vver1000X = [4, 10];
+    for (var i1000 = 0; i1000 < 2; i1000++) {
+      var rx1000 = ox + vver1000X[i1000];
+      for (var ry1000 = 0; ry1000 < 8; ry1000++) {
+        _lmRing(rx1000, base + 7 + ry1000, oz, 3, BLOCK.REINFORCED);
+      }
+      _lmDisc(rx1000, base + 15, oz, 3, BLOCK.CONCRETE);
+      _lmDisc(rx1000, base + 16, oz, 2, BLOCK.CONCRETE);
+      _lmDisc(rx1000, base + 17, oz, 1, BLOCK.CONCRETE);
+    }
+    // Two hyperboloid cooling towers (one per reactor pair)
+    for (var ctR = 0; ctR < 12; ctR++) {
+      var rW = Math.max(2, 4 - Math.floor(ctR * 0.28));
+      _lmRing(ox - 18, base + ctR, oz, rW, BLOCK.CONCRETE);
+      _lmRing(ox + 18, base + ctR, oz, rW, BLOCK.CONCRETE);
+    }
+    _lmDisc(ox - 18, base + 13, oz, 2, BLOCK.CONCRETE);
+    _lmDisc(ox + 18, base + 13, oz, 2, BLOCK.CONCRETE);
+    // Control/admin building (south side, 9×5 footprint, 5 floors)
+    for (var aby = 0; aby < 5; aby++) {
+      for (var abx = -4; abx <= 4; abx++) {
+        for (var abz = 6; abz <= 10; abz++) {
+          if (abx === -4 || abx === 4 || abz === 6 || abz === 10 || aby === 4) {
+            setBlock(ox + abx, base + aby, oz + abz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Cooling pond intake channel (east side — RNPP uses Styr River cooling)
+    for (var cp = 0; cp < 8; cp++) {
+      setBlock(ox + 22 + cp, base - 1, oz, BLOCK.STONE);
+      setBlock(ox + 22 + cp, base - 1, oz + 1, BLOCK.STONE);
+    }
+    // Perimeter security fence
+    for (var fxN = -22; fxN <= 22; fxN++) {
+      setBlock(ox + fxN, base, oz - 6, BLOCK.FENCE);
+      setBlock(ox + fxN, base, oz + 12, BLOCK.FENCE);
+    }
+    for (var fzN = -6; fzN <= 12; fzN++) {
+      setBlock(ox - 22, base, oz + fzN, BLOCK.FENCE);
+      setBlock(ox + 22, base, oz + fzN, BLOCK.FENCE);
+    }
+    setBlock(ox, base + 1, oz + 13, BLOCK.LIGHT); // radiation warning at main gate
+    _buildings.push({ kind: 'landmark_rnpp', x: ox - 22, z: oz - 6, w: 45, d: 19, baseY: h, floorH: 5, floors: 4, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Ternopil Castle — island fortress built 1540, Lithuanian-Polish Renaissance architecture
+  // Sits on an artificial island in the Ternopil Pond; curtain walls, four round bastions, central keep
+  function generateTernopilCastle(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Moat — Stone bed ring around the castle creating the island effect
+    for (var mx = -12; mx <= 12; mx++) {
+      for (var mz = -12; mz <= 12; mz++) {
+        var mdist = Math.sqrt(mx * mx + mz * mz);
+        if (mdist > 7.5 && mdist < 12) {
+          setBlock(ox + mx, base - 1, oz + mz, BLOCK.STONE);
+          setBlock(ox + mx, base, oz + mz, BLOCK.AIR);
+        }
+      }
+    }
+    // Curtain wall (STONE, 12×12 square, 6 high)
+    for (var wy = 0; wy < 6; wy++) {
+      for (var wx = -6; wx <= 6; wx++) {
+        setBlock(ox + wx, base + wy, oz - 6, BLOCK.STONE);
+        setBlock(ox + wx, base + wy, oz + 6, BLOCK.STONE);
+      }
+      for (var wz = -6; wz <= 6; wz++) {
+        setBlock(ox - 6, base + wy, oz + wz, BLOCK.STONE);
+        setBlock(ox + 6, base + wy, oz + wz, BLOCK.STONE);
+      }
+    }
+    // Round bastions at corners (STONE cylinders radius 2, 8 high)
+    var bastions = [[-6, -6], [6, -6], [-6, 6], [6, 6]];
+    for (var bi = 0; bi < 4; bi++) {
+      var bx = ox + bastions[bi][0], bz2 = oz + bastions[bi][1];
+      for (var bhy = 0; bhy < 8; bhy++) {
+        _lmRing(bx, base + bhy, bz2, 2, BLOCK.STONE);
+      }
+      _lmDisc(bx, base + 8, bz2, 2, BLOCK.ROOFTILE);
+    }
+    // Gateway breach in south wall (3-wide, 4-high opening)
+    for (var gy = 0; gy < 4; gy++) {
+      setBlock(ox - 1, base + gy, oz + 6, BLOCK.AIR);
+      setBlock(ox,     base + gy, oz + 6, BLOCK.AIR);
+      setBlock(ox + 1, base + gy, oz + 6, BLOCK.AIR);
+    }
+    setBlock(ox - 1, base + 3, oz + 6, BLOCK.METAL); // portcullis bar
+    setBlock(ox,     base + 3, oz + 6, BLOCK.METAL);
+    setBlock(ox + 1, base + 3, oz + 6, BLOCK.METAL);
+    // Central keep tower (BRICK, 5×5 footprint, 12 high)
+    for (var ky = 0; ky < 12; ky++) {
+      for (var kx = -2; kx <= 2; kx++) {
+        for (var kz = -2; kz <= 2; kz++) {
+          if (kx === -2 || kx === 2 || kz === -2 || kz === 2) {
+            setBlock(ox + kx, base + ky, oz + kz, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    // Battlements at keep top (crenellations)
+    for (var cr = -2; cr <= 2; cr += 2) {
+      setBlock(ox + cr, base + 12, oz - 2, BLOCK.BRICK);
+      setBlock(ox + cr, base + 12, oz + 2, BLOCK.BRICK);
+      setBlock(ox - 2, base + 12, oz + cr, BLOCK.BRICK);
+      setBlock(ox + 2, base + 12, oz + cr, BLOCK.BRICK);
+    }
+    // Flagpole atop keep (Ukrainian trident flag context)
+    setBlock(ox, base + 13, oz, BLOCK.WOOD);
+    setBlock(ox, base + 14, oz, BLOCK.WOOD);
+    setBlock(ox + 1, base + 14, oz, BLOCK.LIGHT);
+    setBlock(ox + 2, base + 14, oz, BLOCK.LIGHT);
+    setBlock(ox + 1, base + 13, oz, BLOCK.LIGHT);
+    // Inner courtyard storehouse (PLASTER, west wall)
+    for (var cs = 0; cs < 3; cs++) {
+      setBlock(ox - 5, base + cs, oz - 4, BLOCK.PLASTER);
+      setBlock(ox - 5, base + cs, oz - 3, BLOCK.PLASTER);
+      setBlock(ox - 5, base + cs, oz - 2, BLOCK.PLASTER);
+      setBlock(ox - 4, base + cs, oz - 4, BLOCK.PLASTER);
+      setBlock(ox - 4, base + cs, oz - 2, BLOCK.PLASTER);
+    }
+    setBlock(ox - 4, base + 3, oz - 3, BLOCK.ROOFTILE);
+    // Drawbridge approach (WOOD planks across moat, south side)
+    for (var db = 7; db <= 11; db++) {
+      setBlock(ox - 1, base, oz + db, BLOCK.WOOD);
+      setBlock(ox,     base, oz + db, BLOCK.WOOD);
+      setBlock(ox + 1, base, oz + db, BLOCK.WOOD);
+    }
+    _buildings.push({ kind: 'landmark_ternopil_castle', x: ox - 12, z: oz - 12, w: 24, d: 24, baseY: h, floorH: 4, floors: 3, cx: ox, cz: oz });
+  }
+
   // LANDMARK: Golden Gate (Zoloti Vorota) — 11th-century Byzantine city gate, reconstructed 1982
   // White STONE tower with archway passage + small chapel on top, iconic western entrance to old Kyiv
   function generateGoldenGate(ox, oz) {
@@ -12596,13 +12754,8 @@ window.VoxelWorld = (function () {
         // Rivne — western Ukraine regional center; site of Rivne NPP (2nd largest in Ukraine, 4 VVER reactors)
         // Russian column advanced toward Rivne through Belarus in Feb 2022; city hit by Kalibr missiles
         // Rivne NPP continues operating (unlike Zaporizhzhia); critical for Ukrainian power grid
-        generateCoolingTower(-18, -5);                // Rivne NPP cooling tower unit 1+2
-        generateCoolingTower(18, -5);                 // Rivne NPP cooling tower unit 3+4
-        generateIndustrialComplex(-25, -20);          // RNPP reactor hall (VVER-440 units 1&2)
-        generateIndustrialComplex(22, -22);           // RNPP reactor hall (VVER-1000 units 3&4)
-        generateRefineryDistillationTower(-30, -30);  // NPP turbine hall
-        generateRefineryDistillationTower(28, -30);   // NPP auxiliary systems
-        generateCommTower(0, -48);                    // NPP control & communications tower
+        generateRivneNPP(0, -18);                      // Rivne NPP — 2 VVER-440 + 2 VVER-1000 reactors
+        generateCommTower(0, -48);                    // NPP external communications mast
         generateChurch(-28, -8);                      // Cathedral of the Assumption (neoclassical)
         generateChurch(22, 5);                        // St. Michael's Cathedral (18th century)
         generateChurch(-15, 18);                      // Church of the Nativity of Christ
@@ -12648,7 +12801,7 @@ window.VoxelWorld = (function () {
         // Ternopil — western Ukraine, former Habsburg crown land; important transit hub
         // City-fortress built 1540; famous for island castle on Ternopil Pond; large diaspora
         // Received Russian ballistic missile and Shahed attacks on energy infrastructure 2022-2023
-        generateKerchFortress(-5, 10);                // Ternopil Castle (1540 island fortress, reused model)
+        generateTernopilCastle(-5, 10);               // Ternopil Castle (1540 island fortress, curtain walls + keep)
         generateChurch(-25, -12);                     // Immaculate Conception Cathedral (Dominican, 16th c.)
         generateChurch(20, 8);                        // Nativity of Christ Cathedral (Orthodox)
         generateChurch(-12, 22);                      // Greek Catholic St. Michael's Cathedral
