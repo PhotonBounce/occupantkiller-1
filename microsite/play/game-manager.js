@@ -6145,6 +6145,8 @@ const GameManager = (function () {
     if (window.DamageNumbers && enemy && enemy.mesh) {
       DamageNumbers.spawnNumber(enemy.mesh.position, dmg, isHeadshot, isCrit);
     }
+    // HitMarkers: crosshair flash feedback (normal / headshot / kill)
+    if (window.HitMarkers) HitMarkers.flash(isHeadshot, remaining <= 0);
 
     SkillSystem.onShoot(true, isHeadshot);
     HUD.flashHit(isHeadshot, remaining <= 0);
@@ -7733,6 +7735,8 @@ const GameManager = (function () {
         // Immediate fire spread boost (frame-accurate)
         if (Weapons.didFire && Weapons.didFire()) _chSpread += 0.25;
         if (Weapons.isZoomed && Weapons.isZoomed()) _chSpread *= 0.25;
+        // ADS accuracy bonus: further tighten spread when aiming down sights
+        if (window._adsAccuracyBonus) _chSpread *= 0.5;
         var _weatherAccPenalty = (typeof WeatherEvents !== 'undefined') ? WeatherEvents.getAccuracyPenalty() : 0;
         if (_weatherAccPenalty > 0) _chSpread *= (1 + _weatherAccPenalty);
         if (HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);

@@ -24,6 +24,31 @@ const Enemies = (() => {
   // ── Floating damage numbers ────────────────────────────────
   const _dmgNumbers = [];
 
+  // ── Suspicious "?" icon shared texture ───────────────────
+  var _suspiciousTexture = null;
+  function getSuspiciousTexture() {
+    if (_suspiciousTexture) return _suspiciousTexture;
+    var c = document.createElement('canvas');
+    c.width = 32; c.height = 32;
+    var ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, 32, 32);
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath(); ctx.arc(16, 16, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.font = 'bold 24px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#000000';
+    ctx.fillText('?', 16, 16);
+    _suspiciousTexture = new THREE.CanvasTexture(c);
+    return _suspiciousTexture;
+  }
+  function buildSuspiciousIcon() {
+    var mat = new THREE.SpriteMaterial({ map: getSuspiciousTexture(), depthTest: false, transparent: true });
+    var sprite = new THREE.Sprite(mat);
+    sprite.scale.set(0.45, 0.45, 1);
+    sprite.visible = false;
+    return sprite;
+  }
+
   // ── Alert icon shared texture ("!" above enemy) ───────────
   let _alertTexture = null;
   function getAlertTexture() {
@@ -2077,36 +2102,52 @@ const Enemies = (() => {
 
   // ── Floating HP bar (lives in scene, follows enemy) ───────
   function buildHpBar() {
-    const group = new THREE.Group();
+    var group = new THREE.Group();
 
-    const bgMesh = new THREE.Mesh(
+    // Thin black outline behind everything (slightly wider/taller)
+    var outlineMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.76, 0.13),
+      new THREE.MeshBasicMaterial({
+        color:       0x000000,
+        side:        THREE.DoubleSide,
+        depthTest:   true,
+        depthWrite:  false,
+        transparent: true,
+        opacity:     0.92,
+      })
+    );
+    outlineMesh.position.z = -0.001;
+
+    // Gray background track (full width, always visible)
+    var bgMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.7, 0.09),
       new THREE.MeshBasicMaterial({
-        color:      0x330000,
-        side:       THREE.DoubleSide,
-        depthTest:  true,
-        depthWrite: false,
+        color:       0x444444,
+        side:        THREE.DoubleSide,
+        depthTest:   true,
+        depthWrite:  false,
         transparent: true,
-        opacity:    0.85,
+        opacity:     0.85,
       })
     );
 
-    const fgMesh = new THREE.Mesh(
+    // Foreground fill (color updated per-frame based on HP%)
+    var fgMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.7, 0.09),
       new THREE.MeshBasicMaterial({
-        color:      0x44ff44,
-        side:       THREE.DoubleSide,
-        depthTest:  true,
-        depthWrite: false,
+        color:       0x00ff44,
+        side:        THREE.DoubleSide,
+        depthTest:   true,
+        depthWrite:  false,
         transparent: true,
-        opacity:    0.9,
+        opacity:     0.95,
       })
     );
     fgMesh.position.z = 0.002;
 
-    group.add(bgMesh, fgMesh);
+    group.add(outlineMesh, bgMesh, fgMesh);
     if (scene) scene.add(group);
-    return { group, fg: fgMesh };
+    return { group, fg: fgMesh, _flashTimer: 0 };
   }
 
   // ── Spawn one enemy ───────────────────────────────────────
@@ -2202,6 +2243,11 @@ const Enemies = (() => {
     _alertIcon.position.set(0, 1.75 * typeCfg.scale + 0.6, 0);
     mesh.add(_alertIcon);
 
+    // Build suspicious "?" icon (shown during patrol suspicious state)
+    var _suspIcon = buildSuspiciousIcon();
+    _suspIcon.position.set(0, 1.75 * typeCfg.scale + 0.6, 0);
+    mesh.add(_suspIcon);
+
     const waveHpBonus    = (1 + (wave - 1) * 0.22) * stageMult * _adaptiveMult;
     const waveSpeedBonus = (1 + (wave - 1) * 0.06) * (1 + (stageMult - 1) * 0.3);
     const hp             = typeCfg.hpBase * waveHpBonus * rank.hpMult;
@@ -2217,6 +2263,8 @@ const Enemies = (() => {
         if (typeof HUD !== 'undefined' && HUD.showBossIntro) HUD.showBossIntro(typeCfg.name || typeName);
         if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.4, 0.6);
         if (typeof Feedback !== 'undefined' && Feedback.triggerSlowMo) Feedback.triggerSlowMo(0.55, 0.25);
+        // Show epic boss HP bar at bottom of screen
+        _showBossHPBar(typeCfg.name || typeName, hp);
       } catch (eBI) {}
     }
 
@@ -2271,6 +2319,21 @@ const Enemies = (() => {
       _squadTacticRole: (enemies.length % 3 === 0) ? 'leader' : (enemies.length % 3 === 1) ? 'suppressor' : 'flanker',
       _flankTarget: null,
       _coordinateCooldown: 0,
+      // ── Patrol route AI ──────────────────────────────────────
+      // Default: 4-waypoint square around spawn position (±8 units in X/Z)
+      _patrolRoute: [
+        {x: sx + 8, y: 0, z: sz},
+        {x: sx + 8, y: 0, z: sz + 8},
+        {x: sx - 8, y: 0, z: sz + 8},
+        {x: sx - 8, y: 0, z: sz}
+      ],
+      _patrolIndex: 0,
+      _patrolDir:   1,
+      _patrolPause: 0,
+      _patrolState: 'patrol',
+      _detectedPlayer: false,
+      _suspiciousTimer: 0,
+      _suspIcon: _suspIcon,
     });
     return idx;
   }
@@ -2916,7 +2979,7 @@ const Enemies = (() => {
             }
           }
           // Update HP bar during patrol
-          updateHpBar(e, playerPos);
+          updateHpBar(e, playerPos, delta);
           continue; // skip remainder of combat AI while patrolling
         }
       }
@@ -2936,7 +2999,7 @@ const Enemies = (() => {
       if (e.squadRole === SQUAD_ROLE.MEDIC && !e.playerSpotted) {
         const healed = updateMedicBehavior(e, delta);
         if (healed) {
-          updateHpBar(e, playerPos);
+          updateHpBar(e, playerPos, delta);
           continue;
         }
       }
@@ -3514,7 +3577,7 @@ const Enemies = (() => {
         }
         if (e._retreatTimer <= 0) e.retreating = false;
         // Update HP bar and continue
-        updateHpBar(e, playerPos);
+        updateHpBar(e, playerPos, delta);
         continue;
       }
 
@@ -4492,7 +4555,7 @@ const Enemies = (() => {
       }
 
       // Update floating HP bar
-      updateHpBar(e, playerPos);
+      updateHpBar(e, playerPos, delta);
       // Attacker tag pulse fade
       if (e._attackerTag) _updateAttackerTag(e, delta);
       // Bleeding from low HP: periodic small blood drip on the ground
@@ -4587,21 +4650,31 @@ const Enemies = (() => {
   }
 
   // ── Update HP bar helper ──────────────────────────────────
-  function updateHpBar(e, playerPos) {
+  function updateHpBar(e, playerPos, delta) {
     if (e.hpBar) {
-      const pct    = e.hp / e.maxHp;
-      e.hpBar.fg.scale.x     = pct;
-      e.hpBar.fg.position.x  = -0.35 * (1 - pct);
-      let hpColor = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffaa00 : 0xff2222;
-      // Pulse red when nearly dead — telegraphs the kill shot
-      if (pct < 0.18) {
-        var _pNow = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-        var _pulse = (Math.sin(_pNow * 0.018) * 0.5 + 0.5);
-        hpColor = _pulse > 0.5 ? 0xff5555 : 0xff0000;
-      }
-      e.hpBar.fg.material.color.setHex(hpColor);
+      var pct    = e.hp / e.maxHp;
+      var barWidth = 0.7;
+      e.hpBar.fg.scale.x    = pct;
+      // Left-align the fill: shift left by half the missing width
+      e.hpBar.fg.position.x = -(1 - pct) * barWidth / 2;
 
-      const barY = e.mesh.position.y + 1.75 * e.typeCfg.scale + 0.35;
+      // White flash on HP change: tick down flash timer, then apply color
+      if (e.hpBar._flashTimer > 0) {
+        e.hpBar._flashTimer -= (delta || 0.016);
+        e.hpBar.fg.material.color.setHex(0xffffff);
+      } else {
+        // Color transitions: green > 60%, yellow > 30%, red <= 30%
+        var hpColor = pct > 0.6 ? 0x00ff44 : pct > 0.3 ? 0xffcc00 : 0xff2200;
+        // Pulse red when nearly dead — telegraphs the kill shot
+        if (pct < 0.18) {
+          var _pNow = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+          var _pulse = (Math.sin(_pNow * 0.018) * 0.5 + 0.5);
+          hpColor = _pulse > 0.5 ? 0xff5555 : 0xff0000;
+        }
+        e.hpBar.fg.material.color.setHex(hpColor);
+      }
+
+      var barY = e.mesh.position.y + 1.75 * e.typeCfg.scale + 0.35;
       e.hpBar.group.position.set(e.mesh.position.x, barY, e.mesh.position.z);
       e.hpBar.group.lookAt(playerPos.x, barY, playerPos.z);
     }
@@ -4906,6 +4979,16 @@ const Enemies = (() => {
 
     enemy.hp = Math.max(0, enemy.hp - amount);
 
+    // Trigger HP bar white flash on hit
+    if (enemy.hpBar) { enemy.hpBar._flashTimer = 0.12; }
+
+    // Update boss screen-edge HP bar on hit
+    if (enemy.alive && enemy.maxHp > 0 &&
+        (enemy.isBoss || (enemy.typeCfg && enemy.typeCfg.role === 'boss') ||
+         (enemy.typeName && enemy.typeName.indexOf('BOSS_') === 0) || enemy.typeName === 'BOSS')) {
+      _updateBossHPBar(enemy.hp);
+    }
+
     // Boss phase transitions: check thresholds on each damage event
     if (enemy.alive && enemy.maxHp > 0 &&
         (enemy.isBoss || (enemy.typeName && enemy.typeName.indexOf('BOSS_') === 0) || enemy.typeName === 'BOSS')) {
@@ -5164,6 +5247,57 @@ const Enemies = (() => {
         }
       }
     }
+  }
+
+  // ── Boss screen-edge HP bar (DOM) ─────────────────────────
+  function _showBossHPBar(bossName, maxHp) {
+    var el = document.getElementById('bossHPBar');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'bossHPBar';
+      el.innerHTML = '<div id="bossHPName"></div>' +
+        '<div id="bossHPTrack"><div id="bossHPFill"></div><div id="bossHPShield"></div></div>' +
+        '<div id="bossHPPhase">PHASE 1</div>';
+      el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);' +
+        'width:60%;background:#0a0a0a;border:1px solid #cc2200;padding:8px;' +
+        'font-family:monospace;z-index:800;box-shadow:0 0 18px #cc000088;';
+      document.body.appendChild(el);
+    }
+    document.getElementById('bossHPName').textContent = '☠ ' + bossName;
+    document.getElementById('bossHPName').style.cssText = 'color:#ff4444;font-size:16px;font-weight:bold;margin-bottom:4px;text-shadow:0 0 8px #ff0000;';
+    document.getElementById('bossHPTrack').style.cssText = 'width:100%;height:18px;background:#1a0000;border:1px solid #660000;position:relative;';
+    document.getElementById('bossHPFill').style.cssText = 'width:100%;height:100%;background:linear-gradient(90deg,#cc0000,#ff4400);transition:width 0.15s ease-out;';
+    document.getElementById('bossHPShield').style.cssText = 'position:absolute;top:0;left:0;width:0%;height:100%;background:rgba(100,200,255,0.4);';
+    _bossMaxHp = maxHp;
+    _bossEl = el;
+    el.style.display = 'block';
+  }
+
+  function _updateBossHPBar(currentHp) {
+    if (!_bossEl) return;
+    var pct = Math.max(0, currentHp / _bossMaxHp);
+    var fillEl = document.getElementById('bossHPFill');
+    if (fillEl) fillEl.style.width = (pct * 100) + '%';
+    // Phase display
+    var phaseEl = document.getElementById('bossHPPhase');
+    if (phaseEl) {
+      if (pct > 0.75) phaseEl.textContent = 'PHASE 1';
+      else if (pct > 0.50) phaseEl.textContent = '⚡ PHASE 2 — ENRAGED';
+      else if (pct > 0.25) phaseEl.textContent = '\u{1F480} PHASE 3 — BERSERK';
+      else phaseEl.textContent = '☠ PHASE 4 — LAST STAND';
+      phaseEl.style.cssText = 'color:#ff8800;font-size:12px;margin-top:3px;';
+    }
+    // Flash red border when hit
+    var track = document.getElementById('bossHPTrack');
+    if (track) {
+      track.style.borderColor = '#ff0000';
+      clearTimeout(_bossFlashTimer);
+      _bossFlashTimer = setTimeout(function() { track.style.borderColor = '#660000'; }, 150);
+    }
+  }
+
+  function _hideBossHPBar() {
+    if (_bossEl) _bossEl.style.display = 'none';
   }
 
   function _triggerBossPhase(boss, phase) {
