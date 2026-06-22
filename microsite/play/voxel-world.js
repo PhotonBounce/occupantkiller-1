@@ -2470,10 +2470,6 @@ window.VoxelWorld = (function () {
       setBlock(ox + rb, h, oz + hz + pd + 22, BLOCK.RUBBLE);
       setBlock(ox + rb, h + 1, oz + hz + pd + 22, BLOCK.RUBBLE);
     }
-
-    // Boss spawn point behind the presidential desk on the top floor
-    _spawnPoints = _spawnPoints || [];
-    _spawnPoints.push({ x: ox, y: h + 8, z: oz + hz + 3, type: 'boss', bossId: 'BOSS_KREMLIN' });
   }
 
   // St. Basil's Cathedral — Moscow's iconic Red Square cathedral with its

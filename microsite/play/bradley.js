@@ -13,7 +13,7 @@
 //    Mouse = aim turret (yaw + pitch)
 //    LMB   = M242 Bushmaster 25mm  (alt HE/AP)
 //    RMB   = M240 coax 7.62mm
-//    B     = enter / exit
+//    G     = enter / exit
 //    V     = swap shoulder camera
 //
 //  Public API: init(scene,camera,controls), update(dt), clear(),
@@ -253,7 +253,7 @@ window.Bradley = (function () {
         window.GameManager.__bradleyCam = _chaseCam;
       }
     } catch (e) {}
-    try { window.HUD && window.HUD.showToast && window.HUD.showToast('\u{1F69B} BRADLEY IFV — LMB: 25mm Bushmaster | RMB: Coax | T: TOW missile (' + _towAmmo + ' left) | WASD drive | B exit', 5000, '#88ff88'); } catch (e) {}
+    try { window.HUD && window.HUD.showToast && window.HUD.showToast('\u{1F69B} BRADLEY IFV — LMB: 25mm Bushmaster | RMB: Coax | T: TOW missile (' + _towAmmo + ' left) | WASD drive | G exit', 5000, '#88ff88'); } catch (e) {}
     try { window.AudioSystem && window.AudioSystem.playVehicleIdle && (_vehicle.idleHandle = window.AudioSystem.playVehicleIdle(800)); } catch (e) {}
   }
 

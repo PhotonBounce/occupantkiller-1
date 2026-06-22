@@ -1053,6 +1053,8 @@ window.AudioSystem = (function () {
   var _musicThemeIdx = 0;
   var _musicThemeDuration = 0;    // seconds elapsed on current theme
   var _THEME_DURATION = 90;       // switch theme every ~90s
+  var _lastPlayedTheme = -1;      // track last theme so starts don't repeat it
+  var _forcedTheme = -1;          // when >=0, playMusic uses this theme (boss music)
   (function _shuffleThemes() {
     for (var i = _musicThemes.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
@@ -1084,9 +1086,21 @@ window.AudioSystem = (function () {
     _musicThemeDuration = 0;
 
     if (style === 'battle' || !style) {
-      // Always start from a fresh random position in the shuffled array
-      _musicThemeIdx = Math.floor(Math.random() * _musicThemes.length);
+      if (_forcedTheme >= 0) {
+        // Boss music (or any forced theme) — honour the requested theme exactly.
+        var fIdx = _musicThemes.indexOf(_forcedTheme);
+        _musicThemeIdx = fIdx >= 0 ? fIdx : 0;
+        _forcedTheme = -1; // consume once
+      } else {
+        // Pick a fresh random theme, avoiding an immediate repeat of the last
+        // theme so a new game start always sounds different.
+        _musicThemeIdx = Math.floor(Math.random() * _musicThemes.length);
+        if (_musicThemes.length > 1 && _musicThemes[_musicThemeIdx] === _lastPlayedTheme) {
+          _musicThemeIdx = (_musicThemeIdx + 1) % _musicThemes.length;
+        }
+      }
       var theme = _musicThemes[_musicThemeIdx];
+      _lastPlayedTheme = theme;
       // Theme 0: Fast march (original) — 110 BPM kick/snare/hat + bass
       // Theme 1: Tense ominous — 90 BPM, sparse kick, heavy bass drone
       // Theme 2: Intense assault — 140 BPM, fast hats, double kick
@@ -1257,9 +1271,7 @@ window.AudioSystem = (function () {
   // Force the 140 BPM "intense assault" battle theme for boss fights.
   // Switches immediately so the music escalates when the boss spawns.
   function playBossMusic() {
-    var bossTheme = 2; // theme index 2 = 140 BPM intense assault
-    var idx = _musicThemes.indexOf(bossTheme);
-    if (idx >= 0) _musicThemeIdx = idx;
+    _forcedTheme = 2; // theme index 2 = 140 BPM intense assault (honoured by playMusic)
     playMusic('battle');
     // Also max out volume for added drama
     if (_musicGain) _musicGain.gain.value = Math.min(1.0, _musicVolume * 1.6);

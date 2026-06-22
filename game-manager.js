@@ -3192,6 +3192,33 @@ const GameManager = (function () {
   }
 
   /* ── Start Game ──────────────────────────────────────────────────── */
+  // Resolve a clear, validated spawn point from VoxelWorld (spawnCandidates +
+  // isSpawnAreaClear). Previously the player was hardcoded to world origin
+  // (0,0,0), which in dense cityscape levels (Moscow/Kremlin) dropped the player
+  // inside a building cluster. This applies the validated spawn and faces the
+  // player toward the stage's look target so the action is in view.
+  function _applyLevelSpawn() {
+    var sx = 0, sz = 0, sy = null;
+    try {
+      var sp = (window.VoxelWorld && VoxelWorld.getSpawnPoint) ? VoxelWorld.getSpawnPoint() : null;
+      if (sp && isFinite(sp.x) && isFinite(sp.z)) {
+        sx = sp.x; sz = sp.z;
+        if (isFinite(sp.y)) sy = sp.y;
+      }
+    } catch (e) {}
+    var groundH = (sy !== null) ? sy : window.VoxelWorld.getTerrainHeight(sx, sz);
+    player.position.set(sx, groundH + player.height, sz);
+    if (player.velocity && player.velocity.set) player.velocity.set(0, 0, 0);
+    // Face the stage's look target (toward the action) so the intro frames it.
+    try {
+      var lvl = (window.VoxelWorld && VoxelWorld.getLevelDef) ? VoxelWorld.getLevelDef(currentStage) : null;
+      var lt = lvl && lvl.spawnLookTarget;
+      if (lt && isFinite(lt.x) && isFinite(lt.z) && typeof CameraSystem !== 'undefined' && CameraSystem.setYaw) {
+        CameraSystem.setYaw(Math.atan2(-(lt.x - sx), -(lt.z - sz)));
+      }
+    } catch (e) {}
+  }
+
   function startGame() {
     // CRITICAL: hide overlays immediately so the user doesn't stare at a frozen
     // death screen while we regenerate the world (which can take 1-3s).
@@ -3317,8 +3344,9 @@ const GameManager = (function () {
     // overridden currentStage above)
     applyStage(currentStage);
 
-    const spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
-    player.position.set(0, spawnH + player.height, 0);
+    // Spawn at a validated clear location (not hardcoded origin) so the player
+    // doesn't start embedded in a building in dense cityscape levels.
+    _applyLevelSpawn();
 
     Weapons.reset();
     if (player.godMode) {
@@ -3684,10 +3712,8 @@ const GameManager = (function () {
     player.hp = Math.min(player.maxHp, player.hp + Math.ceil(missingHp * 0.5));
     HUD.setHealth(player.hp, player.maxHp);
 
-    // Reset player position on new terrain
-    const spawnH = VoxelWorld.getTerrainHeight(0, 0);
-    player.position.set(0, spawnH + player.height, 0);
-    player.velocity.set(0, 0, 0);
+    // Reset player position on new terrain — use validated clear spawn point.
+    _applyLevelSpawn();
 
     // Clear enemies, pickups, and module state from old stage
     Enemies.clear();
