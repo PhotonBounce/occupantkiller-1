@@ -849,6 +849,90 @@ const Weapons = (() => {
   const FOV_DEFAULT = 75;
   const FOV_ZOOMED  = 25;
 
+  // ── Sniper scope overlay ──────────────────────────────────
+  var _scopeOverlay = null;
+  var _scopeActive = false;
+
+  function _isSniperWeapon() {
+    var w = cur();
+    return w && (w.type === 'SNIPER' || w.type === 'AMR');
+  }
+
+  function _createScopeOverlay() {
+    if (_scopeOverlay) return;
+    var div = document.createElement('div');
+    div.id = 'scope-overlay';
+    div.style.cssText = [
+      'position:fixed;top:0;left:0;width:100%;height:100%;',
+      'pointer-events:none;z-index:80;display:none;',
+      'background:black;'
+    ].join('');
+
+    // Center circle (clear view through scope)
+    var circle = document.createElement('div');
+    circle.style.cssText = [
+      'position:absolute;',
+      'width:280px;height:280px;',
+      'left:50%;top:50%;',
+      'transform:translate(-50%,-50%);',
+      'border-radius:50%;',
+      'background:rgba(0,0,0,0);',
+      'box-shadow:0 0 0 9999px black;',
+      'border:3px solid rgba(100,100,100,0.8);'
+    ].join('');
+
+    // SVG crosshair reticle
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '280');
+    svg.setAttribute('height', '280');
+    svg.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);';
+    svg.innerHTML = [
+      // Mil-dot crosshair lines
+      '<line x1="140" y1="0" x2="140" y2="280" stroke="rgba(0,0,0,0.9)" stroke-width="1"/>',
+      '<line x1="0" y1="140" x2="280" y2="140" stroke="rgba(0,0,0,0.9)" stroke-width="1"/>',
+      // Mil dots on vertical
+      '<circle cx="140" cy="70" r="2" fill="black"/>',
+      '<circle cx="140" cy="100" r="2" fill="black"/>',
+      '<circle cx="140" cy="180" r="2" fill="black"/>',
+      '<circle cx="140" cy="210" r="2" fill="black"/>',
+      // Mil dots on horizontal
+      '<circle cx="70" cy="140" r="2" fill="black"/>',
+      '<circle cx="100" cy="140" r="2" fill="black"/>',
+      '<circle cx="180" cy="140" r="2" fill="black"/>',
+      '<circle cx="210" cy="140" r="2" fill="black"/>',
+      // Center dot
+      '<circle cx="140" cy="140" r="2.5" fill="black"/>',
+      // Range adjustment knob indicators
+      '<text x="150" y="72" fill="rgba(0,0,0,0.7)" font-size="8" font-family="monospace">2</text>',
+      '<text x="150" y="102" fill="rgba(0,0,0,0.7)" font-size="8" font-family="monospace">1</text>',
+      // Elevation numbers
+      '<text x="8" y="144" fill="rgba(0,0,0,0.5)" font-size="8" font-family="monospace">100m</text>',
+      '<text x="8" y="175" fill="rgba(0,0,0,0.5)" font-size="8" font-family="monospace">200m</text>',
+      '<text x="8" y="206" fill="rgba(0,0,0,0.5)" font-size="8" font-family="monospace">300m</text>',
+      // Scope brand (fictional)
+      '<text x="105" y="260" fill="rgba(0,0,0,0.4)" font-size="7" font-family="monospace">OKC\xd78 TACTICAL</text>'
+    ].join('');
+
+    div.appendChild(circle);
+    div.appendChild(svg);
+    document.body.appendChild(div);
+    _scopeOverlay = div;
+  }
+
+  function _showScopeOverlay() {
+    if (_scopeOverlay) {
+      _scopeOverlay.style.display = 'block';
+      _scopeActive = true;
+    }
+  }
+
+  function _hideScopeOverlay() {
+    if (_scopeOverlay) {
+      _scopeOverlay.style.display = 'none';
+      _scopeActive = false;
+    }
+  }
+
   // ── Gun meshes ────────────────────────────────────────────
   const gunMeshes = [];
 
@@ -5152,6 +5236,7 @@ const Weapons = (() => {
 
   function createGunMesh(camera) {
     _camera = camera;
+    _createScopeOverlay();
     for (let i = 0; i < WEAPONS.length; i++) {
       const m = meshBuilders[i]();
       // Enhance with reflective materials, sub-details, and animation rigging
@@ -5602,6 +5687,31 @@ const Weapons = (() => {
   const projectiles = [];
   const _explosionFlashes = []; // track active explosion radius visuals
   const PROJ_SPEED = 30;
+
+  // ── Blood spray particles ─────────────────────────────────
+  var _bloodParticles = [];
+
+  function _addBloodSpray(pos) {
+    if (!window._gameScene) return;
+    var count = 12;
+    for (var i = 0; i < count; i++) {
+      var geo = new THREE.SphereGeometry(0.04 + Math.random() * 0.06, 4, 4);
+      var mat = new THREE.MeshBasicMaterial({ color: 0xaa0000, transparent: true, opacity: 0.9 });
+      var particle = new THREE.Mesh(geo, mat);
+      particle.position.copy(pos);
+      particle.position.y += 0.8 + Math.random() * 0.4;
+      var vel = new THREE.Vector3(
+        (Math.random() - 0.5) * 4,
+        Math.random() * 3 + 1,
+        (Math.random() - 0.5) * 4
+      );
+      particle._vel = vel;
+      particle._life = 0.4 + Math.random() * 0.3;
+      particle._age = 0;
+      window._gameScene.add(particle);
+      _bloodParticles.push(particle);
+    }
+  }
 
   function spawnProjectile(camera, wep) {
     if (!_scene) return;
@@ -6519,6 +6629,20 @@ const Weapons = (() => {
         if (exp.radius) {
           exp.radius.material.opacity = Math.max(0, 0.3 * (1.0 - progress));
         }
+      }
+    }
+
+    // blood particles
+    for (var bi = _bloodParticles.length - 1; bi >= 0; bi--) {
+      var bp = _bloodParticles[bi];
+      bp._age += delta;
+      bp._vel.y -= 9.8 * delta;
+      bp.position.addScaledVector(bp._vel, delta);
+      bp.material.opacity = 0.9 * (1 - bp._age / bp._life);
+      if (bp._age >= bp._life) {
+        window._gameScene.remove(bp);
+        bp.geometry.dispose(); bp.material.dispose();
+        _bloodParticles.splice(bi, 1);
       }
     }
 
@@ -7461,6 +7585,7 @@ const Weapons = (() => {
       try { window.HUD && window.HUD.showToast && window.HUD.showToast('🛡 +' + n + ' AP rounds', 1800, '#88ddff'); } catch (e) {}
     },
     getAPAmmo: function () { return window._apAmmo || 0; },
+    addBloodSpray: _addBloodSpray,
     consumeAPAmmo: function (n) {
       var have = window._apAmmo || 0;
       if (have <= 0) return false;

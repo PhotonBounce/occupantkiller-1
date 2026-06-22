@@ -113,6 +113,18 @@ const GameManager = (function () {
   var _killCamDeathPos = null;
   var _killCamOverlay = null;
 
+  // Damage screen vignette
+  var _damageVignette = null;
+  var _damageVignetteAlpha = 0;
+
+  function _initDamageVignette() {
+    var div = document.createElement('div');
+    div.id = 'damage-vignette';
+    div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;background:radial-gradient(ellipse at center, transparent 40%, rgba(180,0,0,0) 100%);opacity:0;transition:none;';
+    document.body.appendChild(div);
+    _damageVignette = div;
+  }
+
   // Footstep dust puffs (visible when sprinting)
   var _footstepPuffs = [];
   var _footstepPuffGeo = null;
@@ -1406,6 +1418,9 @@ const GameManager = (function () {
     // Create weapons
     Weapons.createGunMesh(_camera);
     Weapons.createMuzzleFlash(_scene, _camera);
+
+    // Init damage vignette overlay
+    _initDamageVignette();
 
     // Wire terrain destruction callbacks for loot & mining
     Weapons.setOnTerrainDig(function (x, y, z, blockType) {
@@ -5411,6 +5426,11 @@ const GameManager = (function () {
     var _wepType = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent().type : '';
     const remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
 
+    // 3-D blood spray particles on hit
+    if (typeof Weapons !== 'undefined' && Weapons.addBloodSpray && enemy.mesh) {
+      Weapons.addBloodSpray(enemy.mesh.position);
+    }
+
     // Floating damage number on hit (not just kill)
     if (typeof Feedback !== 'undefined') {
       // Project enemy world position to screen so the number rises from the actual hit point
@@ -5926,6 +5946,12 @@ const GameManager = (function () {
     player.hp = Math.max(0, player.hp - dmg);
     HUD.setHealth(player.hp, player.maxHp);
     HUD.flashDamage();
+    // Damage screen vignette flash
+    _damageVignetteAlpha = 1.0;
+    if (_damageVignette) {
+      _damageVignette.style.background = 'radial-gradient(ellipse at center, transparent 35%, rgba(180,0,0,0.85) 100%)';
+      _damageVignette.style.opacity = '1';
+    }
     // Close-call slow-mo: hit drops HP from > 30% into critical (< 18%) in one shot
     var _critFrac = 0.18, _safeFrac = 0.30;
     if (player.maxHp > 0 && _hpBefore > player.maxHp * _safeFrac && player.hp > 0 && player.hp < player.maxHp * _critFrac) {
@@ -7785,6 +7811,13 @@ const GameManager = (function () {
           if (gw && gw.type !== 'MELEE') { gs.clip = gw.clipSize; gs.reserve = gw.maxReserve; }
         }
       }
+    }
+
+    // ── Damage vignette fade ──
+    if (_damageVignette && _damageVignetteAlpha > 0) {
+      _damageVignetteAlpha -= delta * 2.5;
+      if (_damageVignetteAlpha < 0) _damageVignetteAlpha = 0;
+      _damageVignette.style.opacity = _damageVignetteAlpha.toString();
     }
 
     // ── Kill-cam replay update ──
