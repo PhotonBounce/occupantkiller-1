@@ -3254,6 +3254,10 @@ const GameManager = (function () {
     player.score = 0;
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
+    if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    window._killstreakTimeScale = 1.0;
+    window._killstreakHealthRegen = 0;
+    window._killstreakAmmoRefill = 0;
     currentWave = 0;
     _scoreChain = 1;
     _chainTimer = 0;
