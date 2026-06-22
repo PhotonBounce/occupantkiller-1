@@ -1,457 +1,698 @@
-// perk-system.js — Permanent perk upgrade tree (IIFE, all var)
-// J key opens/closes. Currency = player.score / 100 (perk points).
+// perk-system.js — XP leveling + perk selection system (IIFE, all var)
+// Earn XP from kills, level up, choose a perk every 3 levels.
 // Persists via localStorage key 'okk_perks_v1'.
-// Exposes: window.PerkSystem = { init, toggle, show, hide, getActivePerk, hasPerk, applyPerks, reset }
+// Exposes: window.PerkSystem = { init, update, onKill, onWaveComplete, reset }
+// Globals set: window._playerLevel, window._playerPerks, window._playerXP
+//              window._reloadSpeedMult, window._grenadeCountBonus,
+//              window._grenadesRechargeBonus, window._enemyDetectMult,
+//              window._scavengerEnabled, window._medRegenEnabled,
+//              window._killstreakWindowBonus, window._ironLungsEnabled,
+//              window._thickSkinBonus
 
 window.PerkSystem = (function () {
+  'use strict';
 
-  // ── Perk definitions ─────────────────────────────────────────────────────
-  var PERK_CATEGORIES = [
+  // ── XP thresholds (quadratic progression) ───────────────────────────────
+  // Index 0 = XP needed to reach level 2, index N = XP needed to reach level N+2
+  var XP_TABLE = (function () {
+    var t = [];
+    // 100, 250, 450, 700, 1000, 1400, 1900, 2500, then continue quadratic
+    var base = [100, 250, 450, 700, 1000, 1400, 1900, 2500];
+    for (var i = 0; i < base.length; i++) t.push(base[i]);
+    // Beyond level 9 — extend with quadratic formula: 3100, 3800, 4600, ...
+    var last = 2500;
+    var gap = 700;
+    var gapInc = 100;
+    for (var j = 0; j < 40; j++) {
+      last = last + gap;
+      t.push(last);
+      gap += gapInc;
+    }
+    return t;
+  })();
+
+  // ── Perk pool ────────────────────────────────────────────────────────────
+  var PERKS = [
     {
-      id: 'COMBAT',
-      label: 'Combat',
-      color: '#e53935',
-      glow: 'rgba(229,57,53,0.55)',
-      emoji: '🔫',
-      perks: [
-        { id: 'IRON_LUNGS',   name: 'Iron Lungs',      desc: 'Stamina drains 30% slower',                  cost: 500,  prereq: null,          icon: '🫁' },
-        { id: 'QUICK_RELOAD', name: 'Quick Reload',     desc: 'Reload 25% faster',                          cost: 800,  prereq: 'IRON_LUNGS',   icon: '⚡' },
-        { id: 'EXTRA_MAGS',   name: 'Extra Magazines',  desc: 'Start each wave with +1 mag per weapon',     cost: 1000, prereq: 'QUICK_RELOAD',  icon: '🎒' },
-        { id: 'STEADY_HANDS', name: 'Steady Hands',     desc: 'Recoil reduced 20%',                         cost: 1200, prereq: 'EXTRA_MAGS',    icon: '🤲' },
-        { id: 'DEATH_DEALER', name: 'Death Dealer',     desc: 'All damage +15%',                            cost: 2000, prereq: 'STEADY_HANDS',  icon: '💀' }
-      ]
+      id: 'IRON_LUNGS',
+      name: 'Iron Lungs',
+      icon: '🪱',
+      desc: 'Hold breath longer — zoom stays stable 50% longer while ADS.'
     },
     {
-      id: 'SURVIVAL',
-      label: 'Survival',
-      color: '#1e88e5',
-      glow: 'rgba(30,136,229,0.55)',
-      emoji: '🛡️',
-      perks: [
-        { id: 'FIELD_MEDIC',  name: 'Field Medic',  desc: 'Slowly regenerate HP to 25 max',                  cost: 600,  prereq: null,           icon: '💉' },
-        { id: 'HARDENED',     name: 'Hardened',      desc: 'Take 15% less damage',                            cost: 900,  prereq: 'FIELD_MEDIC',   icon: '🪖' },
-        { id: 'THICK_SKIN',   name: 'Thick Skin',    desc: 'Armor absorbs 80% instead of 60%',               cost: 1100, prereq: 'HARDENED',       icon: '🦏' },
-        { id: 'LAST_STAND',   name: 'Last Stand',    desc: 'At <10 HP, deal 40% more damage',                cost: 1500, prereq: 'THICK_SKIN',    icon: '⚔️' },
-        { id: 'PHOENIX',      name: 'Phoenix',       desc: 'Once per level: survive lethal hit with 5 HP',   cost: 2500, prereq: 'LAST_STAND',    icon: '🔥' }
-      ]
+      id: 'QUICK_RELOAD',
+      name: 'Quick Reload',
+      icon: '⚡',
+      desc: '40% faster reload speed on all weapons.'
     },
     {
-      id: 'TACTICAL',
-      label: 'Tactical',
-      color: '#43a047',
-      glow: 'rgba(67,160,71,0.55)',
-      emoji: '👁️',
-      perks: [
-        { id: 'EAGLE_EYE',    name: 'Eagle Eye',    desc: 'Enemy detection range increased; see health bars at distance', cost: 500,  prereq: null,           icon: '🦅' },
-        { id: 'TRACKER',      name: 'Tracker',      desc: 'Enemies show footprint trails for 3s after moving',           cost: 700,  prereq: 'EAGLE_EYE',    icon: '🐾' },
-        { id: 'HUNTER',       name: 'Hunter',       desc: 'Marked enemies (bounty/HVT) take 25% more damage',           cost: 1000, prereq: 'TRACKER',       icon: '🎯' },
-        { id: 'SILENT_KILLER',name: 'Silent Killer', desc: 'Knife kills are silent, no enemy alert',                    cost: 1500, prereq: 'HUNTER',        icon: '🔪' },
-        { id: 'GHOST',        name: 'Ghost',        desc: 'Stay crouched 5+ sec to become unseen by enemies',           cost: 2500, prereq: 'SILENT_KILLER', icon: '👻' }
-      ]
+      id: 'THICK_SKIN',
+      name: 'Thick Skin',
+      icon: '🦏',
+      desc: '+25 max HP permanently. Health bar extends.'
+    },
+    {
+      id: 'GRENADIER',
+      name: 'Grenadier',
+      icon: '💣',
+      desc: 'Grenade count +2 and cooldown reduced by 30%.'
+    },
+    {
+      id: 'GHOST',
+      name: 'Ghost',
+      icon: '👻',
+      desc: 'Enemies detect the player 25% slower.'
+    },
+    {
+      id: 'SCAVENGER',
+      name: 'Scavenger',
+      icon: '🎒',
+      desc: '60% chance enemies drop ammo on death.'
+    },
+    {
+      id: 'MEDIC',
+      name: 'Medic',
+      icon: '💉',
+      desc: 'Regenerate 1 HP/s when out of combat for 8 seconds.'
+    },
+    {
+      id: 'KILLSTREAK',
+      name: 'Killstreak',
+      icon: '🔥',
+      desc: 'Kill streak window extended from 8s to 14s.'
     }
   ];
 
-  // ── State ─────────────────────────────────────────────────────────────────
-  var _unlocked = [];      // array of perk IDs
-  var _perkPoints = 0;     // cached points
-  var _visible = false;
-  var _overlay = null;
+  // ── Private state ────────────────────────────────────────────────────────
+  var _level = 1;
+  var _xp = 0;
+  var _perks = [];          // array of perk IDs chosen
   var _initialized = false;
+  var _overlayVisible = false;
+  var _pendingPerkSelect = false;
 
-  // ── Storage ───────────────────────────────────────────────────────────────
-  var STORAGE_KEY = 'okk_perks_v1';
+  // HUD elements (created on init)
+  var _levelBadge = null;
+  var _xpBarWrap = null;
+  var _xpBarFill = null;
+
+  // Medic regen state
+  var _combatTimer = 0;     // seconds since last damage taken
+  var _medRegenActive = false;
+
+  // ── Save / Load ──────────────────────────────────────────────────────────
+  var SAVE_KEY = 'okk_perks_v1';
 
   function _save() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ unlocked: _unlocked, perkPoints: _perkPoints }));
-    } catch (e) { /* storage unavailable */ }
+      var data = { level: _level, xp: _xp, perks: _perks };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    } catch (e) {}
   }
 
   function _load() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        var data = JSON.parse(raw);
-        if (Array.isArray(data.unlocked)) { _unlocked = data.unlocked; }
-        if (typeof data.perkPoints === 'number') { _perkPoints = data.perkPoints; }
-      }
-    } catch (e) { /* corrupt data — start fresh */ }
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function _calcPoints() {
-    var score = 0;
-    try {
-      if (window.player && typeof window.player.score === 'number') {
-        score = window.player.score;
-      } else if (window.GameManager && typeof window.GameManager.getScore === 'function') {
-        score = window.GameManager.getScore();
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (data && typeof data.level === 'number') {
+        _level = data.level;
+        _xp    = data.xp || 0;
+        _perks = Array.isArray(data.perks) ? data.perks : [];
       }
     } catch (e) {}
-    return Math.floor(score / 100);
   }
 
-  function _isUnlocked(id) {
-    for (var i = 0; i < _unlocked.length; i++) {
-      if (_unlocked[i] === id) { return true; }
-    }
-    return false;
+  // ── XP threshold for next level ──────────────────────────────────────────
+  function _xpForLevel(lvl) {
+    // XP_TABLE[0] = threshold for level 1->2, [N] = threshold for level N+1->N+2
+    var idx = lvl - 1;
+    if (idx < 0) idx = 0;
+    if (idx >= XP_TABLE.length) idx = XP_TABLE.length - 1;
+    return XP_TABLE[idx];
   }
 
-  function _prereqMet(perk) {
-    if (!perk.prereq) { return true; }
-    return _isUnlocked(perk.prereq);
-  }
+  // ── Apply active perks to window globals ─────────────────────────────────
+  function _applyPerks() {
+    // Reset all to defaults
+    window._reloadSpeedMult       = 1.0;
+    window._grenadeCountBonus     = 0;
+    window._grenadesRechargeBonus = 0;
+    window._enemyDetectMult       = 1.0;
+    window._scavengerEnabled      = false;
+    window._medRegenEnabled       = false;
+    window._killstreakWindowBonus = 0;
+    window._ironLungsEnabled      = false;
+    window._thickSkinBonus        = 0;
 
-  function _canAfford(cost) {
-    return _perkPoints >= cost;
-  }
-
-  function _isAvailable(perk) {
-    return !_isUnlocked(perk.id) && _prereqMet(perk) && _canAfford(perk.cost);
-  }
-
-  function _getPerkDef(id) {
-    for (var ci = 0; ci < PERK_CATEGORIES.length; ci++) {
-      var cat = PERK_CATEGORIES[ci];
-      for (var pi = 0; pi < cat.perks.length; pi++) {
-        if (cat.perks[pi].id === id) { return cat.perks[pi]; }
+    for (var i = 0; i < _perks.length; i++) {
+      var pid = _perks[i];
+      if (pid === 'QUICK_RELOAD') {
+        window._reloadSpeedMult = 0.6;
+      }
+      if (pid === 'GRENADIER') {
+        window._grenadeCountBonus     = 2;
+        window._grenadesRechargeBonus = 0.3;
+      }
+      if (pid === 'GHOST') {
+        window._enemyDetectMult = 0.75;
+      }
+      if (pid === 'SCAVENGER') {
+        window._scavengerEnabled = true;
+      }
+      if (pid === 'MEDIC') {
+        window._medRegenEnabled = true;
+      }
+      if (pid === 'KILLSTREAK') {
+        window._killstreakWindowBonus = 6; // extra seconds
+      }
+      if (pid === 'IRON_LUNGS') {
+        window._ironLungsEnabled = true;
+      }
+      if (pid === 'THICK_SKIN') {
+        window._thickSkinBonus = 25;
       }
     }
-    return null;
+
+    // Expose canonical globals
+    window._playerLevel = _level;
+    window._playerPerks = _perks.slice();
+    window._playerXP    = _xp;
   }
 
-  function _getCategoryForPerk(id) {
-    for (var ci = 0; ci < PERK_CATEGORIES.length; ci++) {
-      var cat = PERK_CATEGORIES[ci];
-      for (var pi = 0; pi < cat.perks.length; pi++) {
-        if (cat.perks[pi].id === id) { return cat; }
+  // ── HUD: level badge + XP bar ────────────────────────────────────────────
+  function _ensureHUD() {
+    if (_levelBadge && _levelBadge.parentNode) return;
+
+    // Level badge — top-left
+    _levelBadge = document.createElement('div');
+    _levelBadge.id = 'perk-level-badge';
+    _levelBadge.style.cssText = [
+      'position:fixed',
+      'top:8px',
+      'left:8px',
+      'background:rgba(0,0,0,0.75)',
+      'border:1px solid #c8a000',
+      'border-radius:4px',
+      'padding:2px 7px',
+      'font-family:monospace',
+      'font-size:13px',
+      'font-weight:bold',
+      'color:#ffd700',
+      'letter-spacing:1px',
+      'z-index:300',
+      'pointer-events:none',
+      'user-select:none',
+      'transition:box-shadow 0.3s'
+    ].join(';');
+    document.body.appendChild(_levelBadge);
+
+    // XP bar container — thin bar below health bar (bottom-left)
+    _xpBarWrap = document.createElement('div');
+    _xpBarWrap.id = 'perk-xp-bar-wrap';
+    _xpBarWrap.style.cssText = [
+      'position:fixed',
+      'bottom:36px',
+      'left:12px',
+      'width:180px',
+      'height:5px',
+      'background:rgba(0,0,0,0.55)',
+      'border:1px solid rgba(255,215,0,0.3)',
+      'border-radius:3px',
+      'z-index:300',
+      'pointer-events:none',
+      'overflow:hidden'
+    ].join(';');
+
+    _xpBarFill = document.createElement('div');
+    _xpBarFill.id = 'perk-xp-bar-fill';
+    _xpBarFill.style.cssText = [
+      'height:100%',
+      'width:0%',
+      'background:linear-gradient(90deg,#c8a000,#ffd700)',
+      'border-radius:2px',
+      'transition:width 0.4s ease'
+    ].join(';');
+
+    _xpBarWrap.appendChild(_xpBarFill);
+    document.body.appendChild(_xpBarWrap);
+  }
+
+  function _updateHUD() {
+    if (!_levelBadge) return;
+    _levelBadge.textContent = 'Lv.' + _level;
+    if (!_xpBarFill) return;
+    var needed = _xpForLevel(_level);
+    var pct = needed > 0 ? Math.min(100, (_xp / needed) * 100) : 100;
+    _xpBarFill.style.width = pct + '%';
+  }
+
+  // ── Level-up animation ───────────────────────────────────────────────────
+  function _showLevelUpAnim(newLevel) {
+    // Golden border flash
+    var flash = document.createElement('div');
+    flash.style.cssText = [
+      'position:fixed',
+      'top:0',
+      'left:0',
+      'right:0',
+      'bottom:0',
+      'pointer-events:none',
+      'border:4px solid #ffd700',
+      'box-shadow:inset 0 0 60px rgba(255,215,0,0.4),0 0 40px rgba(255,215,0,0.3)',
+      'z-index:500',
+      'opacity:1',
+      'transition:opacity 0.9s ease'
+    ].join(';');
+    document.body.appendChild(flash);
+    setTimeout(function () { flash.style.opacity = '0'; }, 200);
+    setTimeout(function () {
+      if (flash.parentNode) flash.parentNode.removeChild(flash);
+    }, 1150);
+
+    // "LEVEL UP!" text banner
+    var banner = document.createElement('div');
+    banner.style.cssText = [
+      'position:fixed',
+      'top:28%',
+      'left:50%',
+      'transform:translateX(-50%) scale(0.6)',
+      'font-family:monospace',
+      'font-size:36px',
+      'font-weight:bold',
+      'color:#ffd700',
+      'text-shadow:0 0 20px #ffd700,0 0 40px #ffa500,2px 2px 0 #000',
+      'letter-spacing:4px',
+      'pointer-events:none',
+      'z-index:501',
+      'opacity:1',
+      'transition:transform 0.25s ease,opacity 0.6s ease',
+      'white-space:nowrap'
+    ].join(';');
+    banner.textContent = 'LEVEL UP!  Lv.' + newLevel;
+    document.body.appendChild(banner);
+    setTimeout(function () { banner.style.transform = 'translateX(-50%) scale(1)'; }, 20);
+    setTimeout(function () { banner.style.opacity = '0'; }, 1500);
+    setTimeout(function () {
+      if (banner.parentNode) banner.parentNode.removeChild(banner);
+    }, 2200);
+
+    // Pulse level badge
+    if (_levelBadge) {
+      _levelBadge.style.boxShadow = '0 0 10px #ffd700,0 0 22px #ffd700';
+      setTimeout(function () {
+        if (_levelBadge) _levelBadge.style.boxShadow = '';
+      }, 1600);
+    }
+  }
+
+  // ── Pick 3 random perks for selection (prefer unowned) ──────────────────
+  function _pickSelectionPool() {
+    var unowned = [];
+    var owned = [];
+    var i;
+    for (i = 0; i < PERKS.length; i++) {
+      if (_perks.indexOf(PERKS[i].id) < 0) {
+        unowned.push(PERKS[i]);
+      } else {
+        owned.push(PERKS[i]);
       }
     }
-    return null;
-  }
 
-  // ── Purchase ──────────────────────────────────────────────────────────────
-  function _purchase(id) {
-    var perk = _getPerkDef(id);
-    if (!perk) { return; }
-    if (_isUnlocked(id)) { return; }
-    if (!_prereqMet(perk)) { return; }
-    if (!_canAfford(perk.cost)) { return; }
-    _perkPoints -= perk.cost;
-    _unlocked.push(id);
-    _save();
-    _renderOverlay();
-  }
-
-  // ── Apply perks (called at level start) ───────────────────────────────────
-  function applyPerks() {
-    // Reset all perk globals to defaults first
-    window._staminaDrainMult    = 1;
-    window._reloadSpeedMult     = 1;
-    window._bonusMagazines      = 0;
-    window._recoilMult          = 1;
-    window._damageMult          = window._damageMult || 1;
-    window._hpRegenEnabled      = false;
-    window._damageReductionMult = 1;
-    window._armorAbsorption     = 0.6;
-    window._lastStandBonus      = false;
-    window._phoenixEnabled      = false;
-    window._eagleEyeEnabled     = false;
-    window._trackerEnabled      = false;
-    window._hunterDamageMult    = 1;
-    window._silentKnifeEnabled  = false;
-    window._ghostEnabled        = false;
-
-    if (_isUnlocked('IRON_LUNGS'))    { window._staminaDrainMult    = 0.7; }
-    if (_isUnlocked('QUICK_RELOAD'))  { window._reloadSpeedMult     = 0.75; }
-    if (_isUnlocked('EXTRA_MAGS'))    { window._bonusMagazines      = 1; }
-    if (_isUnlocked('STEADY_HANDS'))  { window._recoilMult          = 0.8; }
-    if (_isUnlocked('DEATH_DEALER'))  { window._damageMult          = (window._damageMult || 1) * 1.15; }
-
-    if (_isUnlocked('FIELD_MEDIC'))   { window._hpRegenEnabled      = true; }
-    if (_isUnlocked('HARDENED'))      { window._damageReductionMult = 0.85; }
-    if (_isUnlocked('THICK_SKIN'))    { window._armorAbsorption     = 0.8; }
-    if (_isUnlocked('LAST_STAND'))    { window._lastStandBonus      = true; }
-    if (_isUnlocked('PHOENIX'))       { window._phoenixEnabled      = true; }
-
-    if (_isUnlocked('EAGLE_EYE'))     { window._eagleEyeEnabled     = true; }
-    if (_isUnlocked('TRACKER'))       { window._trackerEnabled      = true; }
-    if (_isUnlocked('HUNTER'))        { window._hunterDamageMult    = 1.25; }
-    if (_isUnlocked('SILENT_KILLER')) { window._silentKnifeEnabled  = true; }
-    if (_isUnlocked('GHOST'))         { window._ghostEnabled        = true; }
-  }
-
-  // ── DOM / UI ──────────────────────────────────────────────────────────────
-  var _styleEl = null;
-
-  function _injectStyles() {
-    if (_styleEl) { return; }
-    _styleEl = document.createElement('style');
-    _styleEl.id = 'perk-system-styles';
-    _styleEl.textContent = [
-      '#perk-overlay {',
-      '  position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;',
-      '  background: rgba(13,13,13,0.97);',
-      '  display: flex; flex-direction: column; align-items: center;',
-      '  font-family: "Courier New", monospace;',
-      '  color: #e0e0e0;',
-      '  transform: translateX(-100%);',
-      '  transition: transform 0.32s cubic-bezier(0.22,1,0.36,1);',
-      '  overflow-y: auto;',
-      '  padding: 24px 16px 32px;',
-      '  box-sizing: border-box;',
-      '}',
-      '#perk-overlay.perk-visible {',
-      '  transform: translateX(0);',
-      '}',
-      '#perk-header {',
-      '  text-align: center; margin-bottom: 20px; width: 100%;',
-      '}',
-      '#perk-header h1 {',
-      '  font-size: 28px; letter-spacing: 6px; text-transform: uppercase;',
-      '  color: #f5f5f5; margin: 0 0 6px; text-shadow: 0 0 12px #fff4;',
-      '}',
-      '#perk-points-display {',
-      '  font-size: 18px; letter-spacing: 3px; color: #ffd54f;',
-      '  text-shadow: 0 0 8px #ffd54f88;',
-      '}',
-      '#perk-close-hint {',
-      '  font-size: 12px; color: #666; margin-top: 4px; letter-spacing: 2px;',
-      '}',
-      '#perk-columns {',
-      '  display: flex; flex-direction: row; gap: 24px;',
-      '  width: 100%; max-width: 900px; justify-content: center;',
-      '}',
-      '.perk-column {',
-      '  display: flex; flex-direction: column; gap: 12px;',
-      '  flex: 1; min-width: 200px; max-width: 260px;',
-      '}',
-      '.perk-cat-header {',
-      '  text-align: center; font-size: 14px; letter-spacing: 4px;',
-      '  text-transform: uppercase; padding: 8px 0 4px;',
-      '  border-bottom: 1px solid #333;',
-      '  margin-bottom: 4px;',
-      '}',
-      '.perk-card {',
-      '  width: 100%; min-height: 120px;',
-      '  background: #1a1a1a;',
-      '  border: 1px solid #333;',
-      '  border-radius: 6px;',
-      '  padding: 10px 12px;',
-      '  box-sizing: border-box;',
-      '  cursor: default;',
-      '  position: relative;',
-      '  transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;',
-      '  display: flex; flex-direction: column; gap: 4px;',
-      '}',
-      '.perk-card.perk-locked {',
-      '  opacity: 0.42;',
-      '  filter: grayscale(0.6);',
-      '}',
-      '.perk-card.perk-unlocked {',
-      '  background: #0f1f0f;',
-      '  opacity: 1;',
-      '}',
-      '.perk-card.perk-available {',
-      '  cursor: pointer;',
-      '  opacity: 1;',
-      '  animation: perk-pulse 1.6s ease-in-out infinite;',
-      '}',
-      '@keyframes perk-pulse {',
-      '  0%, 100% { box-shadow: 0 0 0 0 transparent; }',
-      '  50% { box-shadow: 0 0 10px 2px var(--cat-glow, #ffffff44); }',
-      '}',
-      '.perk-card.perk-available:hover {',
-      '  background: #222;',
-      '}',
-      '.perk-icon {',
-      '  font-size: 26px; line-height: 1;',
-      '}',
-      '.perk-name {',
-      '  font-size: 13px; font-weight: bold; letter-spacing: 1px;',
-      '  text-transform: uppercase;',
-      '}',
-      '.perk-desc {',
-      '  font-size: 11px; color: #999; line-height: 1.4;',
-      '}',
-      '.perk-cost {',
-      '  font-size: 12px; margin-top: 4px;',
-      '  letter-spacing: 1px;',
-      '}',
-      '.perk-status-icon {',
-      '  position: absolute; top: 8px; right: 10px; font-size: 16px;',
-      '}'
-    ].join('\n');
-    document.head.appendChild(_styleEl);
-  }
-
-  function _buildOverlay() {
-    if (_overlay) { return; }
-    _overlay = document.createElement('div');
-    _overlay.id = 'perk-overlay';
-    _overlay.setAttribute('role', 'dialog');
-    _overlay.setAttribute('aria-label', 'Perk upgrade tree');
-    document.body.appendChild(_overlay);
-  }
-
-  function _renderOverlay() {
-    if (!_overlay) { return; }
-
-    // Update perk points from current score
-    var fresh = _calcPoints();
-    // Only increase — points aren't reduced by score changes (only by spending)
-    if (fresh > _perkPoints + 0) {
-      _perkPoints = fresh;
+    function _shuffle(arr) {
+      var a = arr.slice();
+      var j, tmp;
+      for (var ii = a.length - 1; ii > 0; ii--) {
+        j = Math.floor(Math.random() * (ii + 1));
+        tmp = a[ii]; a[ii] = a[j]; a[j] = tmp;
+      }
+      return a;
     }
 
-    var html = '';
+    var pool = _shuffle(unowned).slice(0, 3);
+    if (pool.length < 3) {
+      var extra = _shuffle(owned);
+      for (var k = 0; k < extra.length && pool.length < 3; k++) {
+        pool.push(extra[k]);
+      }
+    }
+    while (pool.length < 3 && pool.length > 0) pool.push(pool[0]);
+    return pool;
+  }
 
-    // Header
-    html += '<div id="perk-header">';
-    html += '<h1>&#9760; Perk Upgrades &#9760;</h1>';
-    html += '<div id="perk-points-display">PERK POINTS: ' + _perkPoints + '</div>';
-    html += '<div id="perk-close-hint">[ J ] to close</div>';
-    html += '</div>';
+  // ── Perk selection overlay ───────────────────────────────────────────────
+  function _showPerkSelect() {
+    if (_overlayVisible) return;
+    _overlayVisible = true;
+    window._isPaused = true;
 
-    // Columns
-    html += '<div id="perk-columns">';
+    var pool = _pickSelectionPool();
+    if (!pool.length) {
+      // Nothing to show (all 8 owned and pool still empty somehow)
+      _overlayVisible = false;
+      window._isPaused = false;
+      return;
+    }
 
-    for (var ci = 0; ci < PERK_CATEGORIES.length; ci++) {
-      var cat = PERK_CATEGORIES[ci];
-      html += '<div class="perk-column">';
-      html += '<div class="perk-cat-header" style="color:' + cat.color + '">' + cat.emoji + ' ' + cat.label + '</div>';
+    var overlay = document.createElement('div');
+    overlay.id = 'perk-select-overlay';
+    overlay.style.cssText = [
+      'position:fixed',
+      'top:0',
+      'left:0',
+      'right:0',
+      'bottom:0',
+      'background:rgba(0,0,0,0.82)',
+      'z-index:9000',
+      'display:flex',
+      'flex-direction:column',
+      'align-items:center',
+      'justify-content:center',
+      'font-family:monospace'
+    ].join(';');
 
-      for (var pi = 0; pi < cat.perks.length; pi++) {
-        var perk = cat.perks[pi];
-        var unlocked = _isUnlocked(perk.id);
-        var available = _isAvailable(perk);
-        var locked = !unlocked && !available;
+    // Title
+    var title = document.createElement('div');
+    title.style.cssText = [
+      'color:#ffd700',
+      'font-size:26px',
+      'font-weight:bold',
+      'letter-spacing:4px',
+      'text-shadow:0 0 15px #ffd700',
+      'margin-bottom:8px'
+    ].join(';');
+    title.textContent = 'CHOOSE A PERK';
+    overlay.appendChild(title);
 
-        var cardClass = 'perk-card';
-        if (unlocked) { cardClass += ' perk-unlocked'; }
-        else if (available) { cardClass += ' perk-available'; }
-        else { cardClass += ' perk-locked'; }
+    var sub = document.createElement('div');
+    sub.style.cssText = 'color:#aaa;font-size:13px;margin-bottom:28px;letter-spacing:2px;';
+    sub.textContent = 'LEVEL ' + _level + ' — SELECT ONE';
+    overlay.appendChild(sub);
 
-        var borderColor = unlocked ? cat.color : (available ? cat.color : '#333');
-        var glowStyle = unlocked
-          ? 'box-shadow:0 0 12px 2px ' + cat.glow + ';'
-          : '';
-        var style = 'border-color:' + borderColor + ';' + glowStyle + '--cat-glow:' + cat.glow + ';';
+    // Card row
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:18px;align-items:stretch;';
+    overlay.appendChild(row);
 
-        var dataAttr = available ? 'data-perk-id="' + perk.id + '"' : '';
+    for (var ci = 0; ci < pool.length; ci++) {
+      (function (perk) {
+        var alreadyOwned = _perks.indexOf(perk.id) >= 0;
 
-        html += '<div class="' + cardClass + '" style="' + style + '" ' + dataAttr + '>';
+        var card = document.createElement('div');
+        card.style.cssText = [
+          'width:160px',
+          'min-height:220px',
+          'background:rgba(15,20,15,0.97)',
+          'border:2px solid ' + (alreadyOwned ? '#886600' : '#3a5a2a'),
+          'border-radius:8px',
+          'padding:18px 14px',
+          'display:flex',
+          'flex-direction:column',
+          'align-items:center',
+          'gap:10px',
+          'cursor:pointer',
+          'transition:border-color 0.15s,box-shadow 0.15s,transform 0.15s',
+          'box-sizing:border-box',
+          'text-align:center'
+        ].join(';');
 
-        // Status icon (top-right)
-        var statusIcon = unlocked ? '&#9989;' : (available ? '&#128275;' : '&#128274;');
-        html += '<span class="perk-status-icon">' + statusIcon + '</span>';
+        // Icon
+        var iconEl = document.createElement('div');
+        iconEl.style.cssText = 'font-size:38px;line-height:1;';
+        iconEl.textContent = perk.icon;
+        card.appendChild(iconEl);
 
-        html += '<span class="perk-icon">' + perk.icon + '</span>';
-        html += '<span class="perk-name" style="color:' + (unlocked ? cat.color : (available ? cat.color : '#aaa')) + '">' + perk.name + '</span>';
-        html += '<span class="perk-desc">' + perk.desc + '</span>';
+        // Name
+        var nameEl = document.createElement('div');
+        nameEl.style.cssText = [
+          'color:#ffd700',
+          'font-size:14px',
+          'font-weight:bold',
+          'letter-spacing:1px',
+          'text-transform:uppercase'
+        ].join(';');
+        nameEl.textContent = perk.name;
+        card.appendChild(nameEl);
 
-        if (!unlocked) {
-          var costColor = _canAfford(perk.cost) ? '#ffd54f' : '#f44336';
-          html += '<span class="perk-cost" style="color:' + costColor + '">&#9760; ' + perk.cost + ' pts</span>';
-        } else {
-          html += '<span class="perk-cost" style="color:#43a047">UNLOCKED</span>';
+        // Description
+        var descEl = document.createElement('div');
+        descEl.style.cssText = 'color:#bbb;font-size:11px;line-height:1.45;';
+        descEl.textContent = perk.desc;
+        card.appendChild(descEl);
+
+        // Already-owned badge
+        if (alreadyOwned) {
+          var badgeEl = document.createElement('div');
+          badgeEl.style.cssText = [
+            'margin-top:auto',
+            'color:#886600',
+            'font-size:10px',
+            'letter-spacing:1px',
+            'border-top:1px solid #444',
+            'padding-top:8px',
+            'width:100%',
+            'text-align:center'
+          ].join(';');
+          badgeEl.textContent = 'ALREADY OWNED';
+          card.appendChild(badgeEl);
         }
 
-        html += '</div>'; // .perk-card
-      }
-
-      html += '</div>'; // .perk-column
-    }
-
-    html += '</div>'; // #perk-columns
-
-    _overlay.innerHTML = html;
-
-    // Attach click handlers to available cards
-    var cards = _overlay.querySelectorAll('.perk-available[data-perk-id]');
-    for (var k = 0; k < cards.length; k++) {
-      (function (card) {
-        card.addEventListener('click', function () {
-          _purchase(card.getAttribute('data-perk-id'));
+        // Hover
+        card.addEventListener('mouseover', function () {
+          card.style.borderColor = '#ffd700';
+          card.style.boxShadow = '0 0 20px rgba(255,215,0,0.35)';
+          card.style.transform = 'translateY(-4px)';
         });
-      })(cards[k]);
+        card.addEventListener('mouseout', function () {
+          card.style.borderColor = alreadyOwned ? '#886600' : '#3a5a2a';
+          card.style.boxShadow = '';
+          card.style.transform = '';
+        });
+
+        // Click to select
+        card.addEventListener('click', function () {
+          _selectPerk(perk.id, perk.name, overlay);
+        });
+
+        row.appendChild(card);
+      })(pool[ci]);
     }
+
+    document.body.appendChild(overlay);
   }
 
-  // ── Key handler ───────────────────────────────────────────────────────────
-  function _onKeyDown(e) {
-    if (e.key === 'j' || e.key === 'J') {
-      // Don't intercept if typing in an input/textarea
-      var tag = document.activeElement && document.activeElement.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') { return; }
-      e.preventDefault();
-      toggle();
+  function _selectPerk(perkId, perkName, overlay) {
+    if (_perks.indexOf(perkId) < 0) {
+      _perks.push(perkId);
     }
+    _applyPerks();
+    _save();
+
+    // Fade out overlay
+    overlay.style.transition = 'opacity 0.4s';
+    overlay.style.opacity = '0';
+    setTimeout(function () {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      _overlayVisible = false;
+      window._isPaused = false;
+      _showToast('PERK UNLOCKED: ' + perkName.toUpperCase(), '#ffd700');
+    }, 450);
   }
 
-  // ── Public API ────────────────────────────────────────────────────────────
+  // ── Toast helper ─────────────────────────────────────────────────────────
+  function _showToast(msg, color) {
+    try {
+      if (window.HUD && typeof HUD.showToast === 'function') {
+        HUD.showToast(msg, 2200, color || '#ffd700');
+        return;
+      }
+    } catch (e) {}
+    var toast = document.createElement('div');
+    toast.style.cssText = [
+      'position:fixed',
+      'top:20%',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'background:rgba(0,0,0,0.88)',
+      'border:1px solid ' + (color || '#ffd700'),
+      'color:' + (color || '#ffd700'),
+      'font-family:monospace',
+      'font-size:14px',
+      'font-weight:bold',
+      'letter-spacing:2px',
+      'padding:10px 20px',
+      'border-radius:4px',
+      'z-index:9999',
+      'pointer-events:none',
+      'text-align:center',
+      'opacity:1',
+      'transition:opacity 0.5s'
+    ].join(';');
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(function () { toast.style.opacity = '0'; }, 1700);
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 2300);
+  }
+
+  // ── Add XP ───────────────────────────────────────────────────────────────
+  function _addXP(amount) {
+    _xp += amount;
+    window._playerXP = _xp;
+
+    var leveled = false;
+    while (_xp >= _xpForLevel(_level)) {
+      _xp -= _xpForLevel(_level);
+      _level++;
+      leveled = true;
+      window._playerLevel = _level;
+      window._playerXP    = _xp;
+    }
+
+    if (leveled) {
+      _applyPerks();
+      _save();
+      _showLevelUpAnim(_level);
+
+      // Every 3 levels: show perk selection (delayed so level-up banner shows first)
+      if (_level % 3 === 0 && !_pendingPerkSelect) {
+        _pendingPerkSelect = true;
+        setTimeout(function () {
+          _showPerkSelect();
+          _pendingPerkSelect = false;
+        }, 1600);
+      }
+    }
+
+    _updateHUD();
+  }
+
+  // ── Public API ───────────────────────────────────────────────────────────
+
   function init() {
-    if (_initialized) { return; }
+    if (_initialized) return;
     _initialized = true;
     _load();
-    _injectStyles();
-    _buildOverlay();
-    document.addEventListener('keydown', _onKeyDown);
+    _applyPerks();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () {
+        _ensureHUD();
+        _updateHUD();
+      });
+    } else {
+      _ensureHUD();
+      _updateHUD();
+    }
   }
 
-  function show() {
-    if (!_initialized) { init(); }
-    if (_visible) { return; }
-    _visible = true;
-    _perkPoints = _calcPoints(); // refresh on open
-    _renderOverlay();
-    // Force reflow then add class for slide-in
-    void _overlay.offsetWidth;
-    _overlay.classList.add('perk-visible');
-    _save();
+  // delta = seconds elapsed since last frame
+  function update(delta) {
+    if (!_initialized) return;
+
+    // Medic: regen 1 HP/s after 8s out of combat
+    if (_perks.indexOf('MEDIC') >= 0) {
+      _combatTimer += delta;
+      if (_combatTimer >= 8) {
+        _medRegenActive = true;
+        try {
+          if (typeof player !== 'undefined' && player && typeof player.hp === 'number') {
+            var cap = (typeof player.maxHp === 'number' ? player.maxHp : 100) +
+                      (_perks.indexOf('THICK_SKIN') >= 0 ? 25 : 0);
+            if (player.hp < cap) {
+              player.hp = Math.min(cap, player.hp + delta);
+              if (typeof HUD !== 'undefined' && HUD.setHP) HUD.setHP(player.hp, cap);
+            }
+          }
+        } catch (e) {}
+      } else {
+        _medRegenActive = false;
+      }
+    }
   }
 
-  function hide() {
-    if (!_visible) { return; }
-    _visible = false;
-    _overlay.classList.remove('perk-visible');
+  // opts: { headshot: bool, boss: bool, enemyType: string }
+  function onKill(opts) {
+    if (!_initialized) return;
+    opts = opts || {};
+
+    var xpGain = 25;
+    if (opts.headshot) xpGain += 50;
+    if (opts.boss)     xpGain += 100;
+
+    // Reset medic combat timer
+    _combatTimer = 0;
+    _medRegenActive = false;
+
+    // Scavenger: 60% chance to drop ammo
+    if (_perks.indexOf('SCAVENGER') >= 0 && Math.random() < 0.6) {
+      try {
+        if (typeof Weapons !== 'undefined' && Weapons.addAmmo) {
+          Weapons.addAmmo(15);
+          if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+            HUD.notifyPickup('SCAVENGER +15 ammo', '#88ff88');
+          }
+        }
+      } catch (e) {}
+    }
+
+    _addXP(xpGain);
   }
 
-  function toggle() {
-    if (_visible) { hide(); } else { show(); }
-  }
-
-  function hasPerk(id) {
-    return _isUnlocked(id);
-  }
-
-  function getActivePerk() {
-    // Returns first unlocked perk (legacy single-perk API shim)
-    return _unlocked.length > 0 ? _unlocked[0] : null;
+  function onWaveComplete() {
+    if (!_initialized) return;
+    _addXP(50); // small wave-clear bonus
   }
 
   function reset() {
-    _unlocked = [];
-    _perkPoints = 0;
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-    if (_overlay) { _renderOverlay(); }
-  }
+    _level = 1;
+    _xp    = 0;
+    _perks = [];
+    _pendingPerkSelect = false;
+    _combatTimer = 0;
+    _medRegenActive = false;
 
-  return { init: init, toggle: toggle, show: show, hide: hide, getActivePerk: getActivePerk, hasPerk: hasPerk, applyPerks: applyPerks, reset: reset };
-
-})();
-
-// Auto-init when DOM is ready
-(function () {
-  function _tryInit() {
-    if (window.PerkSystem && typeof window.PerkSystem.init === 'function') {
-      window.PerkSystem.init();
+    var ov = document.getElementById('perk-select-overlay');
+    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    if (_overlayVisible) {
+      _overlayVisible = false;
+      window._isPaused = false;
     }
+
+    _applyPerks();
+    _save();
+    _updateHUD();
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _tryInit);
-  } else {
-    _tryInit();
-  }
+
+  // ── Auto-hook: intercept _onKillForFeed to catch all kills ───────────────
+  (function () {
+    var _prevKillHook = window._onKillForFeed;
+    window._onKillForFeed = function (enemyType, weapon, isHeadshot) {
+      if (typeof _prevKillHook === 'function') _prevKillHook(enemyType, weapon, isHeadshot);
+      var isBoss = typeof enemyType === 'string' &&
+                   (enemyType.indexOf('BOSS') >= 0 || enemyType.indexOf('boss') >= 0);
+      if (window.PerkSystem && typeof PerkSystem.onKill === 'function') {
+        PerkSystem.onKill({ headshot: !!isHeadshot, boss: isBoss, enemyType: enemyType });
+      }
+    };
+  })();
+
+  // ── Auto-hook: intercept _onPlayerDamage to reset medic timer ───────────
+  (function () {
+    var _prevDmgHook = window._onPlayerDamage;
+    window._onPlayerDamage = function (amount) {
+      if (typeof _prevDmgHook === 'function') _prevDmgHook(amount);
+      _combatTimer = 0;
+      _medRegenActive = false;
+    };
+  })();
+
+  return {
+    init: init,
+    update: update,
+    onKill: onKill,
+    onWaveComplete: onWaveComplete,
+    reset: reset
+  };
+
 })();
