@@ -705,6 +705,28 @@ const Enemies = (() => {
       role:        'tank_crew',
       range: 20, rangedDmg: 25, rangedRate: 1.2, accuracy: 0.4,
     },
+    // ── Field Commander enemy types ─────────────────────────────
+    GENERAL_KOZLOV: {
+      name: 'GENERAL_KOZLOV', hpBase: 800, speedBase: 2.5, scale: 1.3,
+      camoVariant: 'dark', bodyColor: 0x1a1a2a, headColor: 0xb09070,
+      limbColor: 0x111122, helmetColor: 0x1a1a1a, eyeColor: 0xff0000,
+      attackDmg: 50, attackRate: 1.0, scoreValue: 5000, dropChance: 1.0,
+      role: 'general', range: 25, rangedDmg: 45, rangedRate: 1.2, accuracy: 0.75,
+    },
+    COLONEL_VADIM: {
+      name: 'COLONEL_VADIM', hpBase: 450, speedBase: 3.5, scale: 1.2,
+      camoVariant: 'dark', bodyColor: 0x2a1a0a, headColor: 0xb09070,
+      limbColor: 0x221100, helmetColor: 0x1a0a0a, eyeColor: 0xff4400,
+      attackDmg: 35, attackRate: 0.8, scoreValue: 3000, dropChance: 1.0,
+      role: 'colonel', range: 20, rangedDmg: 30, rangedRate: 1.0, accuracy: 0.70,
+    },
+    CAPTAIN_IGOR: {
+      name: 'CAPTAIN_IGOR', hpBase: 200, speedBase: 5.0, scale: 1.15,
+      camoVariant: 'dark', bodyColor: 0x1a2a1a, headColor: 0xb09070,
+      limbColor: 0x112211, helmetColor: 0x0a1a0a, eyeColor: 0x00ff44,
+      attackDmg: 25, attackRate: 0.6, scoreValue: 1500, dropChance: 0.90,
+      role: 'captain', range: 15, rangedDmg: 22, rangedRate: 0.9, accuracy: 0.65,
+    },
   };
 
   // ── Cover-Seeking Helper ────────────────────────────────────
@@ -1219,14 +1241,14 @@ const Enemies = (() => {
     2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','SNIPER'] },                // Avdiivka — defenders + snipers as per objective
     3: { bias: 0.50, pool: ['STORMER','MORTAR','ARMORED','SABOTEUR','WAGNER'] },                    // Bakhmut — Wagner meat-grinder + heavy mortar
     4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor drowned in Dnipro
-    5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER'] },       // Mariupol — CQB in steelworks
+    5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER','CAPTAIN_IGOR'] },       // Mariupol — CQB in steelworks
     6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — naval marines landing + air+sea drones
     7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+mutant+Spetsnaz (objective says "Spetsnaz")
-    8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER'] }, // Moscow — elite FSB
+    8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER','COLONEL_VADIM'] }, // Moscow — elite FSB
     9: { bias: 0.55, pool: ['BTR','DRONE_OP','HEAVY_SNIPER','STORMER','MORTAR'] },                  // Sevastopol — naval base
     10:{ bias: 0.60, pool: ['KADYROVITE','WAGNER','COMMISSAR','MORTAR','ARMORED'] },                 // Donbas — entrenched
     11:{ bias: 0.60, pool: ['SPETSNAZ','THERMOBARIC','ASSAULT_MECH','HEAVY_SNIPER','BTR'] },          // Belgorod — mechanized (VehicleSystem handles tank visuals)
-    12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR'] },    // Kremlin — everything
+    12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR','GENERAL_KOZLOV'] },    // Kremlin — everything
     13:{ bias: 0.60, pool: ['CONSCRIPT','STORMER','PARATROOP','DRONE_OP','SPETSNAZ'] },             // Kyiv — column escort infantry (armor comes from ConvoySystem)
     14:{ bias: 0.55, pool: ['DRONE_OP','BTR','SABOTEUR','BOMBER','MORTAR'] },                      // Snake Island — naval commandos + bombardment
     15:{ bias: 0.55, pool: ['PARATROOP','DRONE_OP','SPETSNAZ','KAMIKAZE_DRONE','SNIPER_ELITE'] },   // Saky Airbase — airborne raiders
@@ -1269,6 +1291,9 @@ const Enemies = (() => {
     if (w >= 14 && r < 0.13) return 'SWARM_OP';
     if (w >= 14 && r < 0.16) return 'EW_OPERATOR';
     if (w >= 12 && r < 0.19) return 'COMMISSAR';
+    if (w >= 12 && r < 0.205) return 'GENERAL_KOZLOV';
+    if (w >= 8 && r < 0.215) return 'COLONEL_VADIM';
+    if (w >= 5 && r < 0.225) return 'CAPTAIN_IGOR';
     // Mid-game types
     if (w >= 7 && r < 0.22) return 'MORTAR';
     if (w >= 7 && r < 0.25) return 'SNIPER_ELITE';
@@ -1652,7 +1677,8 @@ const Enemies = (() => {
       BOSS_VUHLEDAR:1, BOSS_ANTONOV:1,
       WAR_DOG:1, KAMIKAZE_DRONE:1, ASSAULT_MECH:1, TANK:1, BTR:1,
       MORTAR:1, HEAVY_SNIPER:1, SNIPER_ELITE:1, SNIPER:1, BOMBER:1,
-      EW_OPERATOR:1, DRONE_OP:1, DRONE_OPERATOR:1, SNIPER_OP:1, TANK_CREW:1 };
+      EW_OPERATOR:1, DRONE_OP:1, DRONE_OPERATOR:1, SNIPER_OP:1, TANK_CREW:1,
+      GENERAL_KOZLOV:1, COLONEL_VADIM:1, CAPTAIN_IGOR:1 };
     if (!_wvSkip[typeCfg.name] && Math.random() < 0.06) {
       try {
         var wv = Math.floor(Math.random() * 4); // 0=donkey 1=wheelchair 2=crutches 3=crawling
@@ -3908,6 +3934,39 @@ const Enemies = (() => {
               e._tcGrenTimer = 12.0;
               throwEnemyGrenade(e.mesh.position, playerPos);
               triggerBark(e, 'grenade');
+            }
+            break;
+          }
+          case 'GENERAL_KOZLOV':
+          case 'COLONEL_VADIM':
+          case 'CAPTAIN_IGOR': {
+            // Field commander AI: approach player, then call reinforcements on timer
+            // Movement: use spetsnaz-style approach
+            etResult = EnemyTypes.updateSpetsnaz ? EnemyTypes.updateSpetsnaz(e, playerPos, delta) : null;
+            // Commander reinforcement timer
+            if (e.role === 'general' || e.role === 'colonel' || e.role === 'captain') {
+              var _cmdInterval = e.role === 'general' ? 15 : (e.role === 'colonel' ? 20 : 25);
+              e._commanderTimer = (e._commanderTimer !== undefined ? e._commanderTimer : _cmdInterval);
+              e._commanderTimer -= delta;
+              if (e._commanderTimer <= 0) {
+                e._commanderTimer = _cmdInterval;
+                try {
+                  if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+                    HUD.notifyPickup('📡 ' + (e.typeName || 'COMMANDER') + ' CALLING REINFORCEMENTS!', '#ff4400');
+                  }
+                  // Spawn 2-3 infantry around commander
+                  var _rCount = 2 + Math.floor(Math.random() * 2);
+                  for (var _ri = 0; _ri < _rCount; _ri++) {
+                    var _ra = Math.random() * Math.PI * 2;
+                    var _rDist = 8 + Math.random() * 6;
+                    if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+                      Enemies.spawnSingle('INFANTRY', { x: e.mesh.position.x + Math.cos(_ra) * _rDist, z: e.mesh.position.z + Math.sin(_ra) * _rDist });
+                    }
+                  }
+                } catch (_cmdErr) {
+                  // Suppress spawn errors to avoid crashes from recursive spawnSingle
+                }
+              }
             }
             break;
           }
