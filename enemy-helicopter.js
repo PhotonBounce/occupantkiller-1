@@ -1,433 +1,1034 @@
+/* ════════════════════════════════════════════════════════════════════
+ *  ENEMY HELICOPTER SYSTEM
+ *  ─────────────────────────────────────────────────────────────────
+ *  Aerial boss-lite enemy that circles the player and attacks with
+ *  a minigun and rocket salvos. Appears from wave 10 onward (every
+ *  4 waves). Tracked in window._helicopterEnemies = [].
+ *
+ *  Visual:
+ *   - Body         BoxGeometry(1.5,0.6,3)   military gray 0x666655
+ *   - Tail boom    BoxGeometry(0.3,0.3,2.5) behind body
+ *   - Main rotor   BoxGeometry(4,0.06,0.3)  spinning on top
+ *   - Tail rotor   BoxGeometry(0.06,0.6,0.06)
+ *   - Landing skids
+ *   - SpotLight(0xFFFFFF, 3) searchlight sweeping toward player
+ *
+ *  Behavior:
+ *   - Orbits at Y=8-12, radius 20-25, clockwise
+ *   - rotor.rotation.y += 12 * dt  (tail rotor perpendicular)
+ *   - 400 HP
+ *   - Minigun: within 30 units, 10 dmg, 0.12 s rate, red tracers
+ *   - Rockets: every 10 s, 2 projectiles, slight homing, smoke trail
+ *   - Searchlight sweep toward player
+ *   - Engine: 8 Hz AM modulation on low-pass noise
+ *   - 50% HP: black smoke trail
+ *   - 25% HP: erratic movement + rotor slowdown
+ *   - Death: spin-out (rotation.z), crash explosion, debris, +1200 score
+ *   - Spawn: wave >= 10, every 4 waves, enters from map edge
+ *   - HUD: "HOSTILE AIRCRAFT" toast + red dot on compass
+ *
+ *  Public API  (IIFE, window.EnemyHelicopter):
+ *    init(scene)  -- once after scene ready
+ *    update(dt)   -- per-frame
+ *    spawn()      -- manual / auto trigger
+ *    reset()      -- clear all helicopters between stages
+ * ═════════════════════════════════════════════════════════════════ */
 window.EnemyHelicopter = (function () {
   'use strict';
 
+  // -- Module state --
   var _scene = null;
-  var _camera = null;
-  var _playerRef = null;
+  var _waveCheckTimer = 0;
+  var _spawnCooldown  = 0;
+  var _deathExplosions = [];   // fade-out tracking for crash VFX
 
-  var _heliGroup = null;
-  var _fuselage = null;
-  var _mainRotor = null;
-  var _tailRotor = null;
-  var _searchlight = null;
-  var _healthBar = null;
-  var _healthBarBg = null;
+  // -- Constants --
+  var SPAWN_WAVE_MIN    = 10;
+  var SPAWN_EVERY_WAVES = 4;
+  var MAX_HELICOPTERS   = 3;
+  var SCORE_VALUE       = 1200;
 
-  var _hp = 300;
-  var _maxHp = 300;
-  var _active = false;
-  var _destroyed = false;
+  // -- Global registry (spec: window._helicopterEnemies = []) --
+  window._helicopterEnemies = window._helicopterEnemies || [];
 
-  var _orbitAngle = 0;
-  var _orbitRadius = 20;
-  var _orbitY = 12;
-  var _orbitSpeed = 8;
+  // -- Web Audio nodes keyed by heli id --
+  var _audioCtx    = null;
+  var _engineNodes = {};
 
-  var _phase = 'circling';
-  var _attackCooldown = 8;
-  var _attackTimer = 0;
-  var _rocketCooldown = 12;
-  var _rocketTimer = 0;
-  var _cannonBurstCount = 0;
-  var _cannonBurstTimer = 0;
+  // -- Compass blip DOM element --
+  var _blipEl = null;
 
-  var _shells = [];
-  var _rockets = [];
-  var _muzzleFlash = null;
-  var _muzzleFlashTimer = 0;
+  // -- Unique id counter --
+  var _nextId = 0;
 
-  var _audioCtx = null;
-  var _engineGain = null;
-  var _engineOsc1 = null;
-  var _engineOsc2 = null;
-
-  var _fallTimer = 0;
-  var _smokeParticles = [];
-  var _warnDiv = null;
-
-  function _vec3(x, y, z) { return new THREE.Vector3(x, y, z); }
-  function _dist3(a, b) { return a.distanceTo(b); }
-
-  function _initAudio() {
+  // ─────────────────────────────────────────────────────────────────
+  //  HELPERS
+  // ─────────────────────────────────────────────────────────────────
+  function _getPlayer() {
     try {
-      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      _engineGain = _audioCtx.createGain();
-      _engineGain.gain.value = 0;
-      _engineGain.connect(_audioCtx.destination);
-      _engineOsc1 = _audioCtx.createOscillator();
-      _engineOsc1.type = 'sawtooth';
-      _engineOsc1.frequency.value = 40;
-      var g1 = _audioCtx.createGain();
-      g1.gain.value = 0.6;
-      _engineOsc1.connect(g1);
-      g1.connect(_engineGain);
-      _engineOsc1.start();
-      _engineOsc2 = _audioCtx.createOscillator();
-      _engineOsc2.type = 'sawtooth';
-      _engineOsc2.frequency.value = 80;
-      var g2 = _audioCtx.createGain();
-      g2.gain.value = 0.3;
-      _engineOsc2.connect(g2);
-      g2.connect(_engineGain);
-      _engineOsc2.start();
-    } catch (e) { _audioCtx = null; }
+      if (window.GameManager && window.GameManager.getPlayer) return window.GameManager.getPlayer();
+    } catch (e) {}
+    return null;
   }
 
-  function _updateAudioVolume(playerPos) {
-    if (!_audioCtx || !_heliGroup || !_engineGain) return;
-    var d = _dist3(_heliGroup.position, playerPos);
-    var vol = Math.max(0, 1 - d / 60) * 0.6;
-    _engineGain.gain.setTargetAtTime(vol, _audioCtx.currentTime, 0.1);
+  function _getCamera() {
+    try {
+      if (window.GameManager && window.GameManager.getCamera) return window.GameManager.getCamera();
+    } catch (e) {}
+    return null;
   }
 
-  function _stopAudio() {
-    if (!_audioCtx) return;
+  function _getScene() {
+    if (_scene) return _scene;
     try {
-      _engineGain.gain.setTargetAtTime(0, _audioCtx.currentTime, 0.2);
-      setTimeout(function () {
-        try { if (_engineOsc1) _engineOsc1.stop(); if (_engineOsc2) _engineOsc2.stop(); } catch (e) {}
-      }, 500);
+      if (window.GameManager && window.GameManager.getScene) {
+        var s = window.GameManager.getScene();
+        if (s) { _scene = s; }
+      }
+    } catch (e) {}
+    return _scene;
+  }
+
+  function _terrainY(x, z) {
+    try {
+      if (window.VoxelWorld && window.VoxelWorld.getTerrainHeight) {
+        return window.VoxelWorld.getTerrainHeight(x, z) || 0;
+      }
+    } catch (e) {}
+    return 0;
+  }
+
+  function _getCurrentWave() {
+    try {
+      if (window.GameManager && window.GameManager.getWave) return window.GameManager.getWave();
+      if (window.GameManager && typeof window.GameManager.wave === 'number') return window.GameManager.wave;
+    } catch (e) {}
+    return 0;
+  }
+
+  function _addScore(n) {
+    try {
+      if (window.GameManager && window.GameManager.addScore) window.GameManager.addScore(n);
+      else if (window.ScoreSystem && window.ScoreSystem.add) window.ScoreSystem.add(n);
+      else window._score = (window._score || 0) + n;
     } catch (e) {}
   }
 
-  function _showWarning() {
-    if (_warnDiv) { document.body.removeChild(_warnDiv); }
-    _warnDiv = document.createElement('div');
-    _warnDiv.textContent = 'ENEMY HELO INBOUND!';
-    _warnDiv.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);color:#ff2020;font-size:2.2rem;font-weight:bold;font-family:monospace;text-shadow:0 0 12px #ff0000;z-index:9999;pointer-events:none;animation:heloWarn 3s forwards';
-    var style = document.createElement('style');
-    style.textContent = '@keyframes heloWarn{0%{opacity:1}70%{opacity:1}100%{opacity:0}}';
-    document.head.appendChild(style);
-    document.body.appendChild(_warnDiv);
-    setTimeout(function () {
-      if (_warnDiv && _warnDiv.parentNode) { _warnDiv.parentNode.removeChild(_warnDiv); _warnDiv = null; }
-    }, 3100);
+  function _hudToast(msg, color) {
+    try {
+      var c = color || '#ff4444';
+      if (window.HUD && window.HUD.notifyPickup) { window.HUD.notifyPickup(msg, c); return; }
+      if (window.HUD && window.HUD.showToast)    { window.HUD.showToast(msg, 3000, c); }
+    } catch (e) {}
   }
 
-  function _createHealthBar() {
-    var canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 16;
-    var tex = new THREE.CanvasTexture(canvas);
-    var bgGeo = new THREE.PlaneGeometry(2.2, 0.28);
-    var bgMat = new THREE.MeshBasicMaterial({ color: 0x222222, depthTest: false, transparent: true });
-    _healthBarBg = new THREE.Mesh(bgGeo, bgMat);
-    _healthBarBg.renderOrder = 999;
-    var barGeo = new THREE.PlaneGeometry(2, 0.2);
-    var barMat = new THREE.MeshBasicMaterial({ map: tex, depthTest: false, transparent: true });
-    _healthBar = new THREE.Mesh(barGeo, barMat);
-    _healthBar.renderOrder = 1000;
-    _healthBar.userData.tex = tex;
-    _healthBar.userData.canvas = canvas;
-    _heliGroup.add(_healthBarBg);
-    _heliGroup.add(_healthBar);
-    _healthBarBg.position.set(0, 1.8, 0);
-    _healthBar.position.set(0, 1.8, 0.01);
-    _updateHealthBar();
+  function _damagePlayer(dmg) {
+    try {
+      var player = _getPlayer();
+      if (!player || player.godMode) return;
+      if (typeof player.hp === 'undefined') return;
+      player.hp = Math.max(0, player.hp - dmg);
+      if (window.HUD && window.HUD.setHealth)       window.HUD.setHealth(player.hp, player.maxHp || 100);
+      if (window.HUD && window.HUD.showDamageFlash) window.HUD.showDamageFlash(0xff2200, 0.35);
+      if (window.Feedback && window.Feedback.screenShake) window.Feedback.screenShake(0.25);
+    } catch (e) {}
   }
 
-  function _updateHealthBar() {
-    if (!_healthBar) return;
-    var canvas = _healthBar.userData.canvas;
-    var ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, 128, 16);
-    var pct = Math.max(0, _hp / _maxHp);
-    ctx.fillStyle = pct > 0.5 ? '#00ff44' : pct > 0.25 ? '#ffaa00' : '#ff2222';
-    ctx.fillRect(0, 0, Math.round(pct * 128), 16);
-    _healthBar.userData.tex.needsUpdate = true;
+  // ─────────────────────────────────────────────────────────────────
+  //  ENGINE AUDIO  (8 Hz AM modulation on low-freq noise)
+  // ─────────────────────────────────────────────────────────────────
+  function _startEngineSound(heliId) {
+    try {
+      if (!_audioCtx) {
+        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (_engineNodes[heliId]) return;
+
+      var ctx = _audioCtx;
+      var bufLen = ctx.sampleRate * 2;
+      var noiseBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+      var nd = noiseBuf.getChannelData(0);
+      for (var i = 0; i < bufLen; i++) nd[i] = Math.random() * 2 - 1;
+
+      var noise = ctx.createBufferSource();
+      noise.buffer = noiseBuf;
+      noise.loop = true;
+
+      var lpf = ctx.createBiquadFilter();
+      lpf.type = 'lowpass';
+      lpf.frequency.value = 110;
+      lpf.Q.value = 7;
+
+      // 8 Hz AM oscillator
+      var amOsc = ctx.createOscillator();
+      amOsc.type = 'sine';
+      amOsc.frequency.value = 8;
+      var amGain = ctx.createGain();
+      amGain.gain.value = 0.35;
+      amOsc.connect(amGain);
+
+      // Carrier gain -- AM modulates it
+      var carrierGain = ctx.createGain();
+      carrierGain.gain.value = 0.5;
+      amGain.connect(carrierGain.gain);
+
+      var masterGain = ctx.createGain();
+      masterGain.gain.value = 0.15;
+
+      noise.connect(lpf);
+      lpf.connect(carrierGain);
+      carrierGain.connect(masterGain);
+      masterGain.connect(ctx.destination);
+
+      noise.start();
+      amOsc.start();
+
+      _engineNodes[heliId] = {
+        noise: noise, amOsc: amOsc,
+        lpf: lpf, masterGain: masterGain
+      };
+    } catch (e) {}
   }
 
+  function _stopEngineSound(heliId) {
+    try {
+      var nd = _engineNodes[heliId];
+      if (!nd) return;
+      try { nd.noise.stop(); } catch (e) {}
+      try { nd.amOsc.stop(); } catch (e) {}
+      delete _engineNodes[heliId];
+    } catch (e) {}
+  }
+
+  function _updateEngineAudio(heliId, hpRatio) {
+    try {
+      var nd = _engineNodes[heliId];
+      if (!nd) return;
+      nd.lpf.frequency.value = 60 + hpRatio * 60;
+      nd.masterGain.gain.value = 0.06 + hpRatio * 0.09;
+    } catch (e) {}
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  HUD COMPASS BLIP
+  // ─────────────────────────────────────────────────────────────────
+  function _ensureBlip() {
+    if (_blipEl) return;
+    try {
+      var compass = document.getElementById('tactical-compass');
+      if (!compass) return;
+      _blipEl = document.createElement('div');
+      _blipEl.id = 'heli-compass-blip';
+      _blipEl.style.cssText =
+        'position:absolute;top:50%;width:8px;height:8px;' +
+        'background:#ff2222;border-radius:50%;' +
+        'transform:translate(-50%,-50%);' +
+        'box-shadow:0 0 4px #ff0000;pointer-events:none;display:none;';
+      compass.appendChild(_blipEl);
+    } catch (e) {}
+  }
+
+  function _updateBlip() {
+    try {
+      if (!_blipEl) { _ensureBlip(); return; }
+      var helis = window._helicopterEnemies;
+      if (!helis || helis.length === 0) { _blipEl.style.display = 'none'; return; }
+
+      var player = _getPlayer();
+      if (!player || !player.position) { _blipEl.style.display = 'none'; return; }
+
+      var nearest = null;
+      var nearestDist = Infinity;
+      for (var i = 0; i < helis.length; i++) {
+        var h = helis[i];
+        if (!h || !h.alive || !h.mesh) continue;
+        var ddx = h.mesh.position.x - player.position.x;
+        var ddz = h.mesh.position.z - player.position.z;
+        var dd  = Math.sqrt(ddx * ddx + ddz * ddz);
+        if (dd < nearestDist) { nearestDist = dd; nearest = h; }
+      }
+      if (!nearest) { _blipEl.style.display = 'none'; return; }
+
+      var camera = _getCamera();
+      var camYaw = 0;
+      if (camera) {
+        var fwd = new THREE.Vector3();
+        camera.getWorldDirection(fwd);
+        camYaw = Math.atan2(fwd.x, fwd.z);
+      }
+      var dx2 = nearest.mesh.position.x - player.position.x;
+      var dz2 = nearest.mesh.position.z - player.position.z;
+      var angleToHeli = Math.atan2(dx2, dz2);
+      var relAngle = angleToHeli - camYaw;
+      while (relAngle >  Math.PI) relAngle -= 2 * Math.PI;
+      while (relAngle < -Math.PI) relAngle += 2 * Math.PI;
+      var pct = 0.5 + relAngle / (Math.PI * 2);
+      pct = Math.max(0.04, Math.min(0.96, pct));
+      _blipEl.style.left    = (pct * 100).toFixed(1) + '%';
+      _blipEl.style.display = 'block';
+    } catch (e) {}
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  MESH CONSTRUCTION  (per spec geometry)
+  // ─────────────────────────────────────────────────────────────────
   function _buildMesh() {
-    _heliGroup = new THREE.Group();
-    var fuseGeo = new THREE.BoxGeometry(2, 0.6, 1);
-    var fuseMat = new THREE.MeshLambertMaterial({ color: 0x2A4A2A });
-    _fuselage = new THREE.Mesh(fuseGeo, fuseMat);
-    _fuselage.userData.isHeliFuselage = true;
-    _heliGroup.add(_fuselage);
-    var tailGeo = new THREE.BoxGeometry(0.2, 0.2, 1.2);
-    var tailBoom = new THREE.Mesh(tailGeo, new THREE.MeshLambertMaterial({ color: 0x2A4A2A }));
-    tailBoom.position.set(0, 0, 1.1);
-    _heliGroup.add(tailBoom);
-    var rotorGeo = new THREE.BoxGeometry(3, 0.05, 0.2);
-    _mainRotor = new THREE.Mesh(rotorGeo, new THREE.MeshLambertMaterial({ color: 0x1A2A1A }));
-    _mainRotor.position.set(0, 0.42, 0);
-    _heliGroup.add(_mainRotor);
-    var trGeo = new THREE.BoxGeometry(0.08, 0.6, 0.08);
-    _tailRotor = new THREE.Mesh(trGeo, new THREE.MeshLambertMaterial({ color: 0x1A2A1A }));
-    _tailRotor.position.set(0.15, 0, 1.65);
-    _heliGroup.add(_tailRotor);
-    _searchlight = new THREE.SpotLight(0xFFFFFF, 1.5, 30, 0.3);
-    _searchlight.position.set(0, -0.5, -0.3);
-    _heliGroup.add(_searchlight);
-    var st = new THREE.Object3D();
-    st.position.set(0, -10, -5);
-    _heliGroup.add(st);
-    _searchlight.target = st;
-    _scene.add(_heliGroup);
-    _createHealthBar();
-  }
+    var group = new THREE.Group();
 
-  function _fireCannonBurst(playerPos) {
-    var mp = new THREE.Vector3();
-    _fuselage.getWorldPosition(mp);
-    mp.y -= 0.3;
-    for (var i = 0; i < 5; i++) {
-      var sg = new THREE.BoxGeometry(0.05, 0.05, 0.4);
-      var sm = new THREE.MeshBasicMaterial({ color: 0xFFCC00 });
-      var shell = new THREE.Mesh(sg, sm);
-      shell.position.copy(mp);
-      var dir = new THREE.Vector3().subVectors(playerPos, mp).normalize();
-      dir.x += (Math.random() - 0.5) * 0.25;
-      dir.y += (Math.random() - 0.5) * 0.15;
-      dir.z += (Math.random() - 0.5) * 0.25;
-      dir.normalize();
-      shell.userData.velocity = dir.multiplyScalar(30);
-      shell.userData.life = 1.5;
-      _scene.add(shell);
-      _shells.push(shell);
+    var bodyMat  = new THREE.MeshLambertMaterial({ color: 0x666655 });
+    var darkMat  = new THREE.MeshLambertMaterial({ color: 0x333322 });
+    var rotorMat = new THREE.MeshLambertMaterial({ color: 0x444433 });
+    var skidMat  = new THREE.MeshLambertMaterial({ color: 0x555544 });
+    var glassMat = new THREE.MeshLambertMaterial({ color: 0x223344, transparent: true, opacity: 0.6 });
+
+    // Body: BoxGeometry(1.5, 0.6, 3) military gray 0x666655
+    var body = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.6, 3), bodyMat);
+    group.add(body);
+
+    // Cockpit nose
+    var cockpit = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.8), glassMat);
+    cockpit.position.set(0, 0, -1.7);
+    group.add(cockpit);
+
+    // Tail boom: BoxGeometry(0.3, 0.3, 2.5) behind body
+    var tailBoom = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 2.5), bodyMat);
+    tailBoom.position.set(0, 0.08, 2.75);
+    group.add(tailBoom);
+
+    // Tail fin (vertical stabilizer)
+    var tailFin = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.55, 0.45), bodyMat);
+    tailFin.position.set(0, 0.33, 3.85);
+    group.add(tailFin);
+
+    // Main rotor hub
+    var rotorHub = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.16, 8), darkMat);
+    rotorHub.position.set(0, 0.42, 0);
+    group.add(rotorHub);
+
+    // Main rotor: BoxGeometry(4, 0.06, 0.3) on top -- spins on Y
+    var mainRotorGroup = new THREE.Group();
+    mainRotorGroup.position.set(0, 0.50, 0);
+    var mainBlade1 = new THREE.Mesh(new THREE.BoxGeometry(4, 0.06, 0.3), rotorMat);
+    mainRotorGroup.add(mainBlade1);
+    var mainBlade2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 4), rotorMat);
+    mainRotorGroup.add(mainBlade2);
+    group.add(mainRotorGroup);
+    group.userData.mainRotor = mainRotorGroup;
+
+    // Tail rotor: BoxGeometry(0.06, 0.6, 0.06) -- spins perpendicular (Z axis)
+    var tailRotorGroup = new THREE.Group();
+    tailRotorGroup.position.set(0.20, 0.16, 3.95);
+    var tailBlade1 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.6, 0.06), rotorMat);
+    tailRotorGroup.add(tailBlade1);
+    var tailBlade2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.6), rotorMat);
+    tailRotorGroup.add(tailBlade2);
+    group.add(tailRotorGroup);
+    group.userData.tailRotor = tailRotorGroup;
+
+    // Landing skids
+    var skidL = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 2.0), skidMat);
+    skidL.position.set(-0.65, -0.38, 0);
+    group.add(skidL);
+    var skidR = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 2.0), skidMat);
+    skidR.position.set(0.65, -0.38, 0);
+    group.add(skidR);
+    var strutPositions = [
+      [-0.65, -0.22, -0.55], [-0.65, -0.22, 0.55],
+      [ 0.65, -0.22, -0.55], [ 0.65, -0.22,  0.55]
+    ];
+    for (var si = 0; si < strutPositions.length; si++) {
+      var strut = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.32, 0.05), skidMat);
+      strut.position.set(strutPositions[si][0], strutPositions[si][1], strutPositions[si][2]);
+      group.add(strut);
     }
-    if (_muzzleFlash) { _muzzleFlash.intensity = 3; } else { _muzzleFlash = new THREE.PointLight(0xFF8800, 3, 5); _scene.add(_muzzleFlash); }
-    _muzzleFlash.position.copy(mp);
-    _muzzleFlashTimer = 0.08;
+
+    // Minigun pod under nose
+    var gunPod = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.85, 6), darkMat);
+    gunPod.rotation.x = Math.PI / 2;
+    gunPod.position.set(0.32, -0.25, -1.45);
+    group.add(gunPod);
+    group.userData.gunLocalPos = new THREE.Vector3(0.32, -0.25, -1.9);
+
+    // SpotLight(0xFFFFFF, 3) searchlight cone pointing down
+    var spotlight = new THREE.SpotLight(0xFFFFFF, 3, 35, Math.PI * 0.14, 0.28, 1.4);
+    spotlight.position.set(0, -0.28, -0.4);
+    var slTarget = new THREE.Object3D();
+    slTarget.position.set(0, -10, -6);
+    group.add(slTarget);
+    spotlight.target = slTarget;
+    group.add(spotlight);
+    group.userData.searchlight = spotlight;
+    group.userData.slTarget    = slTarget;
+
+    return group;
   }
 
-  function _updateShells(dt, playerPos) {
-    for (var i = _shells.length - 1; i >= 0; i--) {
-      var s = _shells[i];
-      s.position.addScaledVector(s.userData.velocity, dt);
-      s.userData.life -= dt;
-      if (_dist3(s.position, playerPos) < 2) { _dealDamageToPlayer(15); _scene.remove(s); _shells.splice(i, 1); continue; }
-      if (s.position.y < 0 || s.userData.life <= 0) { _scene.remove(s); _shells.splice(i, 1); }
-    }
+  // ─────────────────────────────────────────────────────────────────
+  //  VFX HELPERS
+  // ─────────────────────────────────────────────────────────────────
+  function _spawnSmokePuff(scene, pos) {
+    try {
+      var puff = new THREE.Mesh(
+        new THREE.SphereGeometry(0.35 + Math.random() * 0.25, 5, 4),
+        new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.6, depthWrite: false })
+      );
+      puff.position.copy(pos);
+      puff.position.x += (Math.random() - 0.5) * 0.35;
+      puff.position.z += (Math.random() - 0.5) * 0.35;
+      scene.add(puff);
+      return { mesh: puff, life: 0, maxLife: 1.0 + Math.random() * 0.6 };
+    } catch (e) { return null; }
   }
 
-  function _fireRocket(playerPos) {
-    var rg = new THREE.CylinderGeometry(0.08, 0.08, 0.5, 8);
-    var rm = new THREE.MeshLambertMaterial({ color: 0x888888 });
-    var rocket = new THREE.Mesh(rg, rm);
-    var sp = new THREE.Vector3();
-    _heliGroup.getWorldPosition(sp);
-    sp.y -= 0.3;
-    rocket.position.copy(sp);
-    var dir = new THREE.Vector3().subVectors(playerPos, sp).normalize();
-    rocket.userData.velocity = dir.multiplyScalar(20);
-    rocket.userData.life = 4;
-    rocket.userData.active = true;
-    rocket.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-    _scene.add(rocket);
-    _rockets.push(rocket);
+  // Red tracer line from minigun to hit position
+  function _spawnTracer(scene, fromVec, toVec) {
+    try {
+      var dir = new THREE.Vector3().subVectors(toVec, fromVec);
+      var len = dir.length();
+      var mid = new THREE.Vector3().addVectors(fromVec, toVec).multiplyScalar(0.5);
+      var geo = new THREE.CylinderGeometry(0.018, 0.018, len, 4);
+      var mat = new THREE.MeshBasicMaterial({
+        color: 0xff2222, transparent: true, opacity: 0.88, depthWrite: false
+      });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.position.copy(mid);
+      var quat = new THREE.Quaternion().setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0), dir.clone().normalize()
+      );
+      mesh.quaternion.copy(quat);
+      scene.add(mesh);
+      return { mesh: mesh, life: 0, maxLife: 0.07 };
+    } catch (e) { return null; }
   }
 
-  function _rocketExplode(pos, playerPos) {
-    var em = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial({ color: 0xFF6600 }));
-    em.position.copy(pos);
-    _scene.add(em);
-    var el = new THREE.PointLight(0xFF4400, 4, 15);
-    el.position.copy(pos);
-    _scene.add(el);
-    for (var i = 0; i < 8; i++) {
-      var sp2 = new THREE.Mesh(new THREE.SphereGeometry(0.3 + Math.random() * 0.4, 6, 6), new THREE.MeshBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.7 }));
-      sp2.position.copy(pos);
-      sp2.userData.vel = new THREE.Vector3((Math.random() - 0.5) * 2, 2 + Math.random() * 3, (Math.random() - 0.5) * 2);
-      sp2.userData.life = 1.5 + Math.random();
-      _scene.add(sp2);
-      _smokeParticles.push(sp2);
-    }
-    var d = _dist3(pos, playerPos);
-    if (d < 5) { _dealDamageToPlayer(Math.max(10, Math.round(60 * (1 - d / 5)))); }
-    setTimeout(function () { _scene.remove(em); _scene.remove(el); }, 300);
+  // Orange rocket projectile with smoke trail
+  function _spawnRocket(scene, fromPos, toPos) {
+    try {
+      var grp = new THREE.Group();
+      var rbody = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.075, 0.075, 0.55, 6),
+        new THREE.MeshLambertMaterial({ color: 0xff6600 })
+      );
+      rbody.rotation.x = Math.PI / 2;
+      grp.add(rbody);
+      var glow = new THREE.Mesh(
+        new THREE.SphereGeometry(0.11, 5, 4),
+        new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.85, depthWrite: false })
+      );
+      glow.position.z = 0.32;
+      grp.add(glow);
+
+      grp.position.copy(fromPos);
+      var dir = new THREE.Vector3().subVectors(toPos, fromPos).normalize();
+      grp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      scene.add(grp);
+
+      return {
+        mesh: grp,
+        velocity: dir.clone().multiplyScalar(18),
+        life: 0, maxLife: 6.0,
+        smoke: [], smokeTimer: 0
+      };
+    } catch (e) { return null; }
   }
 
-  function _updateRockets(dt, playerPos) {
-    for (var i = _rockets.length - 1; i >= 0; i--) {
-      var r = _rockets[i];
-      if (!r.userData.active) { _scene.remove(r); _rockets.splice(i, 1); continue; }
-      r.position.addScaledVector(r.userData.velocity, dt);
-      r.userData.life -= dt;
-      if (_dist3(r.position, playerPos) < 1.5 || r.position.y < 0 || r.userData.life <= 0) {
-        _rocketExplode(r.position.clone(), playerPos);
-        r.userData.active = false;
-        _scene.remove(r);
-        _rockets.splice(i, 1);
+  function _rocketImpact(scene, pos, hitPlayer) {
+    try {
+      var flash = new THREE.Mesh(
+        new THREE.SphereGeometry(2.0, 8, 6),
+        new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.92, depthWrite: false })
+      );
+      flash.position.copy(pos);
+      scene.add(flash);
+      setTimeout(function () { try { scene.remove(flash); } catch (e) {} }, 280);
+
+      if (hitPlayer) {
+        _damagePlayer(35);
+        if (window.Feedback && window.Feedback.screenShake) window.Feedback.screenShake(0.9);
       }
-    }
+      try {
+        if (window.Enemies && window.Enemies.damageInRadius) {
+          window.Enemies.damageInRadius(pos, 3.5, 50);
+        }
+      } catch (e) {}
+      try {
+        if (window.AudioSystem && window.AudioSystem.playExplosion) window.AudioSystem.playExplosion(0.55);
+        else if (window.AudioSystem && window.AudioSystem.play) window.AudioSystem.play('explosion', 0.55);
+      } catch (e) {}
+    } catch (e) {}
   }
 
-  function _dealDamageToPlayer(amount) {
-    if (window.PlayerHealth && typeof window.PlayerHealth.takeDamage === 'function') { window.PlayerHealth.takeDamage(amount); }
-    else if (window.player && typeof window.player.takeDamage === 'function') { window.player.takeDamage(amount); }
-    else if (window.GameManager && typeof window.GameManager.damagePlayer === 'function') { window.GameManager.damagePlayer(amount); }
+  // Death crash explosion + debris
+  function _deathExplosion(scene, pos) {
+    try {
+      var flash = new THREE.Mesh(
+        new THREE.SphereGeometry(4.5, 12, 8),
+        new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.95, depthWrite: false })
+      );
+      flash.position.copy(pos);
+      scene.add(flash);
+
+      var fire = new THREE.Mesh(
+        new THREE.SphereGeometry(2.8, 8, 6),
+        new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.82, depthWrite: false })
+      );
+      fire.position.copy(pos);
+      fire.position.y -= 0.4;
+      scene.add(fire);
+
+      var smoke = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.6, 0.8, 9, 8),
+        new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.72, depthWrite: false })
+      );
+      smoke.position.copy(pos);
+      smoke.position.y += 4.5;
+      scene.add(smoke);
+
+      var debrisList = [];
+      for (var d = 0; d < 8; d++) {
+        var dMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.18 + Math.random() * 0.38, 0.08 + Math.random() * 0.18, 0.18 + Math.random() * 0.38),
+          new THREE.MeshLambertMaterial({ color: 0x444433 })
+        );
+        dMesh.position.copy(pos);
+        var ang = Math.random() * Math.PI * 2;
+        var spd = 3 + Math.random() * 5;
+        debrisList.push({
+          mesh:  dMesh,
+          vx:    Math.cos(ang) * spd,
+          vy:    4 + Math.random() * 6,
+          vz:    Math.sin(ang) * spd,
+          rvx:   (Math.random() - 0.5) * 8,
+          rvz:   (Math.random() - 0.5) * 8
+        });
+        scene.add(dMesh);
+      }
+
+      try {
+        if (window.AudioSystem && window.AudioSystem.playExplosion) window.AudioSystem.playExplosion(1.0);
+        else if (window.AudioSystem && window.AudioSystem.play) window.AudioSystem.play('explosion', 1.0);
+      } catch (e) {}
+      if (window.Feedback && window.Feedback.screenShake) window.Feedback.screenShake(1.8);
+
+      return { flash: flash, fire: fire, smoke: smoke, debris: debrisList, life: 0, maxLife: 4.5 };
+    } catch (e) { return null; }
   }
 
-  function _addScore(points) {
-    if (window.ScoreSystem && typeof window.ScoreSystem.add === 'function') { window.ScoreSystem.add(points); }
-    else if (window.GameManager && typeof window.GameManager.addScore === 'function') { window.GameManager.addScore(points); }
-    else { window._score = (window._score || 0) + points; }
-  }
-
-  function _triggerDestruction() {
-    _phase = 'falling';
-    _fallTimer = 0;
-    _stopAudio();
-    _spawnCrashSmoke();
-  }
-
-  function _spawnCrashSmoke() {
-    if (!_heliGroup || !_scene) return;
-    var pos = _heliGroup.position.clone();
-    for (var i = 0; i < 12; i++) {
-      var sp = new THREE.Mesh(new THREE.SphereGeometry(0.4 + Math.random() * 0.6, 6, 6), new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.8 }));
-      sp.position.copy(pos);
-      sp.userData.vel = new THREE.Vector3((Math.random() - 0.5) * 3, 3 + Math.random() * 5, (Math.random() - 0.5) * 3);
-      sp.userData.life = 2 + Math.random() * 2;
-      _scene.add(sp);
-      _smokeParticles.push(sp);
-    }
-  }
-
-  function _crashExplosion(pos) {
-    var em = new THREE.Mesh(new THREE.SphereGeometry(1.5, 10, 10), new THREE.MeshBasicMaterial({ color: 0xFF4400 }));
-    em.position.copy(pos);
-    _scene.add(em);
-    var el = new THREE.PointLight(0xFF2200, 6, 25);
-    el.position.copy(pos);
-    _scene.add(el);
-    for (var i = 0; i < 20; i++) {
-      var sp = new THREE.Mesh(new THREE.SphereGeometry(0.5 + Math.random() * 0.8, 6, 6), new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.7 }));
-      sp.position.copy(pos);
-      sp.userData.vel = new THREE.Vector3((Math.random() - 0.5) * 2, 4 + Math.random() * 6, (Math.random() - 0.5) * 2);
-      sp.userData.life = 3 + Math.random() * 3;
-      _scene.add(sp);
-      _smokeParticles.push(sp);
-    }
-    setTimeout(function () { _scene.remove(em); _scene.remove(el); }, 500);
-    _addScore(1000);
-    _destroyed = true;
-    window._helicopterActive = false;
-    setTimeout(function () { if (_heliGroup && _scene) { _scene.remove(_heliGroup); _heliGroup = null; } }, 2000);
-  }
-
-  function _updateSmoke(dt) {
-    for (var i = _smokeParticles.length - 1; i >= 0; i--) {
-      var sp = _smokeParticles[i];
-      sp.position.addScaledVector(sp.userData.vel, dt);
-      sp.userData.life -= dt;
-      sp.material.opacity = Math.max(0, sp.userData.life / 4) * 0.8;
-      if (sp.userData.life <= 0) { _scene.remove(sp); _smokeParticles.splice(i, 1); }
-    }
-  }
-
-  function init(scene, camera, playerRef) {
-    _scene = scene;
-    _camera = camera;
-    _playerRef = playerRef;
-  }
-
+  // ─────────────────────────────────────────────────────────────────
+  //  SPAWN ONE HELICOPTER
+  // ─────────────────────────────────────────────────────────────────
   function spawn() {
-    if (_active || !_scene) return;
-    _hp = _maxHp;
-    _destroyed = false;
-    _phase = 'circling';
-    _attackTimer = 4;
-    _rocketTimer = 0;
-    _orbitAngle = Math.random() * Math.PI * 2;
-    _shells = [];
-    _rockets = [];
-    _smokeParticles = [];
-    _cannonBurstCount = 0;
-    _cannonBurstTimer = 0;
-    _muzzleFlash = null;
-    _muzzleFlashTimer = 0;
-    _fallTimer = 0;
-    _buildMesh();
-    _initAudio();
-    _heliGroup.position.set(_orbitRadius + 5, 15, 0);
-    _active = true;
-    window._helicopterActive = true;
-    _showWarning();
+    var scene = _getScene();
+    if (!scene) return null;
+    if (window._helicopterEnemies.length >= MAX_HELICOPTERS) return null;
+
+    var player = _getPlayer();
+    var spawnX = 0;
+    var spawnZ = 0;
+    if (player && player.position) {
+      var angle = Math.random() * Math.PI * 2;
+      spawnX = player.position.x + Math.cos(angle) * 65;
+      spawnZ = player.position.z + Math.sin(angle) * 65;
+    }
+    var spawnY = _terrainY(spawnX, spawnZ) + 11 + Math.random() * 4;
+
+    var mesh = _buildMesh();
+    mesh.position.set(spawnX, spawnY, spawnZ);
+    scene.add(mesh);
+
+    var id = ++_nextId;
+    var heli = {
+      id:           id,
+      mesh:         mesh,
+      hp:           400,
+      maxHp:        400,
+      alive:        true,
+      dying:        false,
+      deathTimer:   0,
+      spinVelocity: 0,
+      // Orbit: Y=8-12, radius 20-25
+      orbitRadius:  20 + Math.random() * 5,
+      orbitHeight:   8 + Math.random() * 4,
+      orbitAngle:   Math.random() * Math.PI * 2,
+      orbitSpeed:   0.27 + Math.random() * 0.11,  // rad/s clockwise
+      // Entry flight from edge
+      entryPhase:   true,
+      entryTimer:   0,
+      entryMaxTime: 4.5,
+      // Minigun: 10 dmg, 0.12 s rate
+      gunTimer:     0,
+      gunRate:      0.12,
+      // Rocket salvo: every 10 s, 2 rockets
+      rocketTimer:  3 + Math.random() * 4,
+      rocketRate:   10,
+      rockets:      [],
+      // VFX
+      tracers:      [],
+      smokePuffs:   [],
+      smokeTimer:   0,
+      deathExpTracked: false
+    };
+
+    window._helicopterEnemies.push(heli);
+    _startEngineSound(id);
+    _hudToast('! HOSTILE AIRCRAFT DETECTED !', '#ff2222');
+    return heli;
   }
 
-  function update(dt, playerPos) {
-    if (!_active || !_heliGroup || !_scene) return;
-    if (!playerPos) { playerPos = _vec3(0, 0, 0); }
-    if (_healthBar && _camera) { _healthBar.quaternion.copy(_camera.quaternion); _healthBarBg.quaternion.copy(_camera.quaternion); }
-    _updateSmoke(dt);
-    if (_muzzleFlashTimer > 0) { _muzzleFlashTimer -= dt; if (_muzzleFlashTimer <= 0 && _muzzleFlash) { _muzzleFlash.intensity = 0; } }
-    if (_phase === 'falling') {
-      _fallTimer += dt;
-      _heliGroup.rotation.z += dt * 1.2;
-      _heliGroup.position.y -= dt * 6;
-      if (_mainRotor) { _mainRotor.rotation.y += dt * Math.max(0, 5 - _fallTimer * 3); }
-      if (Math.random() < dt * 8) { _spawnCrashSmoke(); }
-      if (_heliGroup.position.y < 0.5 && !_destroyed) { _crashExplosion(_heliGroup.position.clone()); }
-      return;
-    }
-    if (_mainRotor) { _mainRotor.rotation.y += dt * 5; }
-    if (_tailRotor) { _tailRotor.rotation.x += dt * 15; }
-    _updateAudioVolume(playerPos);
-    _updateShells(dt, playerPos);
-    _updateRockets(dt, playerPos);
-    if (_phase === 'circling') {
-      _orbitAngle += (_orbitSpeed / _orbitRadius) * dt;
-      var tx = Math.cos(_orbitAngle) * _orbitRadius;
-      var tz = Math.sin(_orbitAngle) * _orbitRadius;
-      _heliGroup.position.x += (tx - _heliGroup.position.x) * Math.min(1, dt * 3);
-      _heliGroup.position.z += (tz - _heliGroup.position.z) * Math.min(1, dt * 3);
-      _heliGroup.position.y += (_orbitY - _heliGroup.position.y) * Math.min(1, dt * 2);
-      var na = _orbitAngle + 0.05;
-      var nx = Math.cos(na) * _orbitRadius;
-      var nz = Math.sin(na) * _orbitRadius;
-      _heliGroup.lookAt(nx, _heliGroup.position.y, nz);
-      if (_searchlight && _searchlight.target) { _searchlight.target.position.set(nx - _heliGroup.position.x, -8, nz - _heliGroup.position.z); }
-      _attackTimer -= dt;
-      if (_attackTimer <= 0) { _phase = 'attack'; _cannonBurstCount = 0; _cannonBurstTimer = 0; _attackTimer = _attackCooldown; }
-      if (_hp < 150) { _rocketTimer -= dt; if (_rocketTimer <= 0) { _fireRocket(playerPos); _rocketTimer = _rocketCooldown; } }
-    } else if (_phase === 'attack') {
-      var dx = playerPos.x - _heliGroup.position.x;
-      var dz = playerPos.z - _heliGroup.position.z;
-      var hd = Math.sqrt(dx * dx + dz * dz);
-      _heliGroup.position.y += (6 - _heliGroup.position.y) * Math.min(1, dt * 2);
-      _heliGroup.position.x += (dx / Math.max(hd, 1)) * _orbitSpeed * dt;
-      _heliGroup.position.z += (dz / Math.max(hd, 1)) * _orbitSpeed * dt;
-      _heliGroup.lookAt(new THREE.Vector3(playerPos.x, _heliGroup.position.y, playerPos.z));
-      if (hd < 10 && _cannonBurstCount < 3) {
-        _cannonBurstTimer -= dt;
-        if (_cannonBurstTimer <= 0) { _fireCannonBurst(playerPos); _cannonBurstCount++; _cannonBurstTimer = 0.35; }
+  // ─────────────────────────────────────────────────────────────────
+  //  MINIGUN FIRE
+  // ─────────────────────────────────────────────────────────────────
+  function _fireGun(heli, scene, playerPos) {
+    var mesh = heli.mesh;
+    var localGun = heli.mesh.userData.gunLocalPos || new THREE.Vector3(0.32, -0.25, -1.9);
+    var worldGun = mesh.localToWorld(localGun.clone());
+
+    var targetPos = new THREE.Vector3(
+      playerPos.x + (Math.random() - 0.5) * 1.4,
+      (playerPos.y !== undefined ? playerPos.y : 1.5) + (Math.random() - 0.5) * 0.45,
+      playerPos.z + (Math.random() - 0.5) * 1.4
+    );
+
+    var tracer = _spawnTracer(scene, worldGun, targetPos);
+    if (tracer) heli.tracers.push(tracer);
+
+    var player = _getPlayer();
+    if (player && player.position) {
+      var dx = targetPos.x - player.position.x;
+      var dz = targetPos.z - player.position.z;
+      if (Math.sqrt(dx * dx + dz * dz) < 1.1) {
+        _damagePlayer(10);
       }
-      if (_cannonBurstCount >= 3 && _cannonBurstTimer <= 0) { _phase = 'circling'; _orbitAngle = Math.atan2(_heliGroup.position.z, _heliGroup.position.x); }
-      if (_hp < 150) { _rocketTimer -= dt; if (_rocketTimer <= 0) { _fireRocket(playerPos); _rocketTimer = _rocketCooldown; } }
+    }
+
+    try {
+      if (window.AudioSystem && window.AudioSystem.playGunshot) window.AudioSystem.playGunshot(0.12);
+    } catch (e) {}
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  ROCKET SALVO  (2 rockets every 10 s)
+  // ─────────────────────────────────────────────────────────────────
+  function _fireRocketSalvo(heli, scene, playerPos) {
+    var worldPos = heli.mesh.position.clone();
+    for (var r = 0; r < 2; r++) {
+      var fromPos = worldPos.clone();
+      fromPos.x += (r === 0 ? -0.75 : 0.75);
+      fromPos.y -= 0.25;
+      var targetPos = new THREE.Vector3(
+        playerPos.x + (Math.random() - 0.5) * 2.5,
+        playerPos.y !== undefined ? playerPos.y : 0,
+        playerPos.z + (Math.random() - 0.5) * 2.5
+      );
+      var rocket = _spawnRocket(scene, fromPos, targetPos);
+      if (rocket) heli.rockets.push(rocket);
+    }
+    _hudToast('INCOMING ROCKETS', '#ff6600');
+    try {
+      if (window.AudioSystem && window.AudioSystem.playExplosion) window.AudioSystem.playExplosion(0.28);
+    } catch (e) {}
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  UPDATE ROCKETS
+  // ─────────────────────────────────────────────────────────────────
+  function _updateRockets(heli, dt, scene, playerPos) {
+    for (var r = heli.rockets.length - 1; r >= 0; r--) {
+      var rkt = heli.rockets[r];
+      rkt.life += dt;
+      if (rkt.life >= rkt.maxLife) {
+        try { scene.remove(rkt.mesh); } catch (e) {}
+        for (var si = 0; si < rkt.smoke.length; si++) {
+          try { scene.remove(rkt.smoke[si].mesh); } catch (e) {}
+        }
+        heli.rockets.splice(r, 1);
+        continue;
+      }
+
+      // Slight homing toward player
+      var rp = rkt.mesh.position;
+      var toPlayer = new THREE.Vector3(
+        playerPos.x - rp.x,
+        (playerPos.y !== undefined ? playerPos.y : 0) + 1 - rp.y,
+        playerPos.z - rp.z
+      ).normalize().multiplyScalar(18);
+      rkt.velocity.lerp(toPlayer, dt * 0.75);
+
+      rp.x += rkt.velocity.x * dt;
+      rp.y += rkt.velocity.y * dt;
+      rp.z += rkt.velocity.z * dt;
+
+      // Orient along velocity
+      var vDir = rkt.velocity.clone().normalize();
+      if (vDir.length() > 0.001) {
+        try {
+          rkt.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vDir);
+        } catch (e) {}
+      }
+
+      // Smoke puffs
+      rkt.smokeTimer += dt;
+      if (rkt.smokeTimer >= 0.04) {
+        rkt.smokeTimer = 0;
+        var puff = _spawnSmokePuff(scene, rp.clone());
+        if (puff) rkt.smoke.push(puff);
+      }
+      // Age smoke puffs
+      for (var sj = rkt.smoke.length - 1; sj >= 0; sj--) {
+        var sp = rkt.smoke[sj];
+        sp.life += dt;
+        sp.mesh.position.y += dt * 1.4;
+        sp.mesh.material.opacity = Math.max(0, 0.6 * (1 - sp.life / sp.maxLife));
+        if (sp.life >= sp.maxLife) {
+          try { scene.remove(sp.mesh); } catch (e) {}
+          rkt.smoke.splice(sj, 1);
+        }
+      }
+
+      // Hit detection
+      var rdx = rp.x - playerPos.x;
+      var rdy = rp.y - (playerPos.y !== undefined ? playerPos.y + 1 : 1);
+      var rdz = rp.z - playerPos.z;
+      var rdist = Math.sqrt(rdx * rdx + rdy * rdy + rdz * rdz);
+      var groundHit = rp.y < _terrainY(rp.x, rp.z) + 0.25;
+      if (rdist < 2.2 || groundHit) {
+        _rocketImpact(scene, rp.clone(), rdist < 2.2);
+        for (var sk = rkt.smoke.length - 1; sk >= 0; sk--) {
+          try { scene.remove(rkt.smoke[sk].mesh); } catch (e) {}
+        }
+        try { scene.remove(rkt.mesh); } catch (e) {}
+        heli.rockets.splice(r, 1);
+      }
     }
   }
 
-  function takeDamage(amount, hitObject) {
-    if (hitObject && !hitObject.userData.isHeliFuselage) return false;
-    if (!_active || _destroyed || _phase === 'falling') return false;
-    _hp -= amount;
-    _updateHealthBar();
-    if (_hp <= 0) { _hp = 0; _triggerDestruction(); }
-    return true;
+  // ─────────────────────────────────────────────────────────────────
+  //  UPDATE ONE LIVE HELICOPTER
+  // ─────────────────────────────────────────────────────────────────
+  function _updateHeli(heli, dt, scene) {
+    var player    = _getPlayer();
+    var playerPos = (player && player.position) ? player.position : new THREE.Vector3(0, 0, 0);
+    var mesh      = heli.mesh;
+    var pos       = mesh.position;
+    var hpRatio   = heli.hp / heli.maxHp;
+
+    // Entry flight: approach orbit circle from map edge
+    if (heli.entryPhase) {
+      heli.entryTimer += dt;
+      var tgtX = playerPos.x + Math.cos(heli.orbitAngle) * heli.orbitRadius;
+      var tgtZ = playerPos.z + Math.sin(heli.orbitAngle) * heli.orbitRadius;
+      var tgtY = _terrainY(tgtX, tgtZ) + heli.orbitHeight;
+      pos.x += (tgtX - pos.x) * dt * 1.4;
+      pos.y += (tgtY - pos.y) * dt * 1.4;
+      pos.z += (tgtZ - pos.z) * dt * 1.4;
+      if (heli.entryTimer >= heli.entryMaxTime) heli.entryPhase = false;
+    } else {
+      var erratic  = hpRatio <= 0.25;
+      var spdMult  = erratic ? (0.45 + Math.random() * 0.45) : 1.0;
+
+      if (erratic) {
+        heli.orbitHeight += (Math.random() - 0.5) * dt * 2.8;
+        heli.orbitHeight  = Math.max(4, Math.min(14, heli.orbitHeight));
+        heli.orbitRadius += (Math.random() - 0.5) * dt * 1.8;
+        heli.orbitRadius  = Math.max(14, Math.min(28, heli.orbitRadius));
+      }
+
+      // Clockwise orbit: angle decreases over time
+      heli.orbitAngle -= heli.orbitSpeed * spdMult * dt;
+
+      var orbitX = playerPos.x + Math.cos(heli.orbitAngle) * heli.orbitRadius;
+      var orbitZ = playerPos.z + Math.sin(heli.orbitAngle) * heli.orbitRadius;
+      var orbitY = _terrainY(orbitX, orbitZ) + heli.orbitHeight;
+
+      var lerpRate = erratic ? 1.4 : 2.4;
+      pos.x += (orbitX - pos.x) * dt * lerpRate;
+      pos.y += (orbitY - pos.y) * dt * lerpRate;
+      pos.z += (orbitZ - pos.z) * dt * lerpRate;
+
+      var faceYaw = Math.atan2(playerPos.x - pos.x, playerPos.z - pos.z);
+      mesh.rotation.y = faceYaw;
+      mesh.rotation.z = -0.14 * spdMult + (erratic ? (Math.random() - 0.5) * 0.18 : 0);
+    }
+
+    // Rotor spin: main rotor += 12 * dt; tail rotor spins perpendicular (Z)
+    var rotorMult = hpRatio <= 0.25 ? Math.max(0.25, hpRatio * 4) : 1.0;
+    if (mesh.userData.mainRotor) {
+      mesh.userData.mainRotor.rotation.y += 12 * rotorMult * dt;
+    }
+    if (mesh.userData.tailRotor) {
+      mesh.userData.tailRotor.rotation.z += 18 * rotorMult * dt;
+    }
+
+    // Searchlight: sweep cone toward player
+    try {
+      var slTarget = mesh.userData.slTarget;
+      if (slTarget) {
+        var worldTarget = new THREE.Vector3(playerPos.x, playerPos.y || 0, playerPos.z);
+        mesh.worldToLocal(worldTarget);
+        slTarget.position.copy(worldTarget);
+        if (slTarget.updateMatrixWorld) slTarget.updateMatrixWorld();
+      }
+    } catch (e) {}
+
+    // Distance to player
+    var pdx = pos.x - playerPos.x;
+    var pdz = pos.z - playerPos.z;
+    var distToPlayer = Math.sqrt(pdx * pdx + pdz * pdz);
+
+    // Minigun: continuous fire within 30 units, 10 dmg, 0.12 s rate
+    if (!heli.entryPhase && distToPlayer < 30) {
+      heli.gunTimer += dt;
+      if (heli.gunTimer >= heli.gunRate) {
+        heli.gunTimer = 0;
+        _fireGun(heli, scene, playerPos);
+      }
+    }
+
+    // Rocket salvo: every 10 s, 2 rockets
+    if (!heli.entryPhase) {
+      heli.rocketTimer += dt;
+      if (heli.rocketTimer >= heli.rocketRate) {
+        heli.rocketTimer = 0;
+        _fireRocketSalvo(heli, scene, playerPos);
+      }
+    }
+
+    // Update tracer lifetimes
+    for (var t = heli.tracers.length - 1; t >= 0; t--) {
+      var tr = heli.tracers[t];
+      tr.life += dt;
+      if (tr.life >= tr.maxLife) {
+        try { scene.remove(tr.mesh); } catch (e) {}
+        heli.tracers.splice(t, 1);
+      }
+    }
+
+    // Rockets
+    _updateRockets(heli, dt, scene, playerPos);
+
+    // Damage-state smoke: at 50% HP black smoke trail; more at 25%
+    if (hpRatio <= 0.50) {
+      heli.smokeTimer += dt;
+      var smokeRate = hpRatio <= 0.25 ? 0.07 : 0.16;
+      if (heli.smokeTimer >= smokeRate) {
+        heli.smokeTimer = 0;
+        var sp2 = _spawnSmokePuff(scene, pos.clone());
+        if (sp2) heli.smokePuffs.push(sp2);
+      }
+    }
+
+    // Age smoke puffs
+    for (var spi = heli.smokePuffs.length - 1; spi >= 0; spi--) {
+      var spk = heli.smokePuffs[spi];
+      spk.life += dt;
+      spk.mesh.position.y += dt * 1.7;
+      spk.mesh.material.opacity = Math.max(0, 0.6 * (1 - spk.life / spk.maxLife));
+      if (spk.life >= spk.maxLife) {
+        try { scene.remove(spk.mesh); } catch (e) {}
+        heli.smokePuffs.splice(spi, 1);
+      }
+    }
+
+    // Engine audio
+    _updateEngineAudio(heli.id, hpRatio);
+
+    // Die check
+    if (heli.hp <= 0 && !heli.dying) {
+      heli.dying = true;
+      try {
+        var sl = mesh.userData.searchlight;
+        if (sl) sl.intensity = 0;
+      } catch (e) {}
+      _hudToast('HELICOPTER DOWN!', '#00ff88');
+      _addScore(SCORE_VALUE);
+      try {
+        if (window.GameManager && window.GameManager.onEnemyKilled) {
+          window.GameManager.onEnemyKilled({ type: 'helicopter', score: SCORE_VALUE });
+        }
+      } catch (e) {}
+      try {
+        if (window.AudioSystem && window.AudioSystem.playEnemyDeath) window.AudioSystem.playEnemyDeath(1.0);
+      } catch (e) {}
+    }
   }
 
+  // Death spin-out: increasing rotation.z, crash on ground
+  function _updateDying(heli, dt, scene) {
+    heli.deathTimer += dt;
+    var mesh = heli.mesh;
+
+    heli.spinVelocity += dt * 3.2;
+    mesh.rotation.z += heli.spinVelocity * dt;
+    mesh.rotation.x += heli.spinVelocity * dt * 0.35;
+    mesh.position.y -= dt * (1.8 + heli.deathTimer * 4.5);
+
+    if (mesh.userData.mainRotor) {
+      mesh.userData.mainRotor.rotation.y += Math.max(0.4, 7 - heli.deathTimer * 4) * dt;
+    }
+
+    var sp = _spawnSmokePuff(scene, mesh.position.clone());
+    if (sp) { sp.maxLife = 1.6; heli.smokePuffs.push(sp); }
+
+    var gnd = _terrainY(mesh.position.x, mesh.position.z);
+    if (mesh.position.y <= gnd + 0.4 || heli.deathTimer > 5.5) {
+      var exp = _deathExplosion(scene, mesh.position.clone());
+      if (exp) _deathExplosions.push(exp);
+      try { scene.remove(mesh); } catch (e) {}
+      _stopEngineSound(heli.id);
+      heli.alive = false;
+
+      for (var ri = 0; ri < heli.rockets.length; ri++) {
+        try { scene.remove(heli.rockets[ri].mesh); } catch (e) {}
+        for (var rsi = 0; rsi < heli.rockets[ri].smoke.length; rsi++) {
+          try { scene.remove(heli.rockets[ri].smoke[rsi].mesh); } catch (e) {}
+        }
+      }
+      heli.rockets.length = 0;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  PUBLIC: init
+  // ─────────────────────────────────────────────────────────────────
+  function init(scene) {
+    _scene = scene || _getScene();
+    window._helicopterEnemies = window._helicopterEnemies || [];
+    _ensureBlip();
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  PUBLIC: update
+  // ─────────────────────────────────────────────────────────────────
+  function update(dt) {
+    var scene = _getScene();
+    if (!scene) return;
+
+    // Wave-based auto-spawn: wave >= 10, every 4 waves
+    _spawnCooldown  -= dt;
+    _waveCheckTimer += dt;
+    if (_waveCheckTimer >= 2.0) {
+      _waveCheckTimer = 0;
+      var wave = _getCurrentWave();
+      if (wave >= SPAWN_WAVE_MIN && _spawnCooldown <= 0) {
+        var wavesSince = (wave - SPAWN_WAVE_MIN) % SPAWN_EVERY_WAVES;
+        if (wavesSince === 0 && window._helicopterEnemies.length === 0) {
+          spawn();
+          _spawnCooldown = 65;
+        }
+      }
+    }
+
+    // Update each helicopter
+    for (var i = window._helicopterEnemies.length - 1; i >= 0; i--) {
+      var heli = window._helicopterEnemies[i];
+      if (!heli) { window._helicopterEnemies.splice(i, 1); continue; }
+
+      if (heli.alive) {
+        if (heli.dying) {
+          _updateDying(heli, dt, scene);
+        } else {
+          _updateHeli(heli, dt, scene);
+        }
+      } else {
+        // Dead -- clean remaining smoke puffs
+        for (var spi = 0; spi < heli.smokePuffs.length; spi++) {
+          try { scene.remove(heli.smokePuffs[spi].mesh); } catch (e) {}
+        }
+        heli.smokePuffs.length = 0;
+        window._helicopterEnemies.splice(i, 1);
+      }
+    }
+
+    // Fade death explosions
+    for (var de = _deathExplosions.length - 1; de >= 0; de--) {
+      var exp = _deathExplosions[de];
+      exp.life += dt;
+      var k = exp.life / exp.maxLife;
+
+      if (exp.flash) {
+        exp.flash.scale.setScalar(1 + k * 2.2);
+        exp.flash.material.opacity = Math.max(0, 0.95 * (1 - k * 1.3));
+      }
+      if (exp.fire) {
+        exp.fire.scale.setScalar(1 + k * 1.6);
+        exp.fire.material.opacity = Math.max(0, 0.82 * (1 - k * 1.2));
+      }
+      if (exp.smoke) {
+        exp.smoke.position.y += dt * 2.2;
+        exp.smoke.scale.y     = 1 + k * 2.0;
+        exp.smoke.material.opacity = Math.max(0, 0.72 * (1 - k * 0.85));
+      }
+      if (exp.debris) {
+        for (var db = 0; db < exp.debris.length; db++) {
+          var dbp = exp.debris[db];
+          dbp.mesh.position.x += dbp.vx * dt;
+          dbp.mesh.position.y += dbp.vy * dt;
+          dbp.mesh.position.z += dbp.vz * dt;
+          dbp.vy -= 9.8 * dt;
+          dbp.mesh.rotation.x += dbp.rvx * dt;
+          dbp.mesh.rotation.z += dbp.rvz * dt;
+        }
+      }
+      if (k >= 1) {
+        try { if (exp.flash)  scene.remove(exp.flash);  } catch (e) {}
+        try { if (exp.fire)   scene.remove(exp.fire);   } catch (e) {}
+        try { if (exp.smoke)  scene.remove(exp.smoke);  } catch (e) {}
+        if (exp.debris) {
+          for (var db2 = 0; db2 < exp.debris.length; db2++) {
+            try { scene.remove(exp.debris[db2].mesh); } catch (e) {}
+          }
+        }
+        _deathExplosions.splice(de, 1);
+      }
+    }
+
+    // HUD compass blip
+    _updateBlip();
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  PUBLIC: reset
+  // ─────────────────────────────────────────────────────────────────
   function reset() {
-    _active = false;
-    _destroyed = false;
-    _phase = 'circling';
-    window._helicopterActive = false;
-    _stopAudio();
-    if (_heliGroup && _scene) { _scene.remove(_heliGroup); }
-    _heliGroup = null; _fuselage = null; _mainRotor = null; _tailRotor = null; _searchlight = null; _healthBar = null; _healthBarBg = null;
-    if (_muzzleFlash && _scene) { _scene.remove(_muzzleFlash); }
-    _muzzleFlash = null;
-    for (var i = 0; i < _shells.length; i++) { if (_scene) _scene.remove(_shells[i]); }
-    _shells = [];
-    for (var j = 0; j < _rockets.length; j++) { if (_scene) _scene.remove(_rockets[j]); }
-    _rockets = [];
-    for (var k = 0; k < _smokeParticles.length; k++) { if (_scene) _scene.remove(_smokeParticles[k]); }
-    _smokeParticles = [];
-    if (_warnDiv && _warnDiv.parentNode) { _warnDiv.parentNode.removeChild(_warnDiv); _warnDiv = null; }
+    var scene = _getScene();
+
+    for (var i = 0; i < window._helicopterEnemies.length; i++) {
+      var heli = window._helicopterEnemies[i];
+      if (!heli) continue;
+      try { if (scene && heli.mesh) scene.remove(heli.mesh); } catch (e) {}
+      for (var ri = 0; ri < heli.rockets.length; ri++) {
+        try { if (scene) scene.remove(heli.rockets[ri].mesh); } catch (e) {}
+        for (var rsi = 0; rsi < heli.rockets[ri].smoke.length; rsi++) {
+          try { if (scene) scene.remove(heli.rockets[ri].smoke[rsi].mesh); } catch (e) {}
+        }
+      }
+      for (var spi = 0; spi < heli.smokePuffs.length; spi++) {
+        try { if (scene) scene.remove(heli.smokePuffs[spi].mesh); } catch (e) {}
+      }
+      for (var tri = 0; tri < heli.tracers.length; tri++) {
+        try { if (scene) scene.remove(heli.tracers[tri].mesh); } catch (e) {}
+      }
+      _stopEngineSound(heli.id);
+    }
+    window._helicopterEnemies.length = 0;
+
+    for (var de = 0; de < _deathExplosions.length; de++) {
+      var exp = _deathExplosions[de];
+      try { if (scene && exp.flash)  scene.remove(exp.flash);  } catch (e) {}
+      try { if (scene && exp.fire)   scene.remove(exp.fire);   } catch (e) {}
+      try { if (scene && exp.smoke)  scene.remove(exp.smoke);  } catch (e) {}
+      if (exp.debris) {
+        for (var db = 0; db < exp.debris.length; db++) {
+          try { if (scene) scene.remove(exp.debris[db].mesh); } catch (e) {}
+        }
+      }
+    }
+    _deathExplosions.length = 0;
+
+    _spawnCooldown  = 0;
+    _waveCheckTimer = 0;
+    if (_blipEl) _blipEl.style.display = 'none';
   }
 
-  window._helicopterActive = false;
-
-  return { init: init, update: update, spawn: spawn, reset: reset, takeDamage: takeDamage };
+  return { init: init, update: update, spawn: spawn, reset: reset };
 })();

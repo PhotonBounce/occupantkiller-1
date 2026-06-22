@@ -1,213 +1,156 @@
 window.PlayerCallouts = (function() {
   'use strict';
 
-  var CALLOUT_TEXT = {
-    RELOAD:        'Reloading!',
-    LOW_AMMO:      'Running low!',
-    GRENADE_OUT:   'Frag out!',
-    CONTACT:       'Contact!',
-    DOWN:          'Man down!',
-    KNIFE:         'Going blade!',
-    VEHICLE:       'Vehicle engaged!',
-    BOMB_SPOTTED:  'Found the bomb!',
-    EXTRACTION:    'Extraction inbound!',
-    WAVE_CLEAR:    'Area clear!',
-    KILLSTREAK_5:  'Five kills!',
-    SNIPER:        'Sniper!'
+  var _lastCallout = 0;
+  var _COOLDOWN = 5;
+  var _audioCtx = null;
+  var _queue = [];
+  var _playing = false;
+  var _calloutTimer = 0;
+  var _active = true;
+
+  var CALLOUTS = {
+    kill:      ['Enemy down!', 'Got one!', 'Target eliminated.', 'One less.', 'Hostile neutralized.'],
+    multi:     ['Double kill!', 'Two down!', 'Multiple hostiles eliminated.'],
+    headshot:  ['Headshot!', 'Right between the eyes.', 'Clean kill.'],
+    reload:    ['Reloading!', 'Cover me, reloading.', 'Changing mag.'],
+    lowAmmo:   ['Running low!', 'Almost out of ammo.', 'Need ammo!'],
+    lowHealth: ["I'm hit bad!", 'Taking fire, need cover!', 'Critical, critical!'],
+    grenade:   ['Grenade out!', 'Frag out!', 'Throwing!'],
+    flanked:   ['Flanked!', 'Enemy on my flank!', "They're coming around!"],
+    wave:      ['Wave incoming!', 'Contact, multiple hostiles!', 'Here they come!'],
+    clear:      ['Area clear.', 'All clear.', 'Zone secured.'],
+    boost:     ['Going in!', "Let's move!", 'On the move!']
   };
 
-  var GLOBAL_COOLDOWN_MS = 3000;
-  var SAME_TYPE_COOLDOWN_MS = 8000;
-  var RATE_WINDOW_MS = 5000;
-  var RATE_MAX = 2;
-  var SUBTITLE_DURATION_MS = 2000;
-
-  var _enabled = true;
-  var _speechAvailable = false;
-  var _subtitleEl = null;
-  var _subtitleTimer = null;
-
-  var _lastCalloutTime = 0;
-  var _lastCalloutByType = {};
-  var _recentCallouts = [];
-
-  var _lastSniperAlerted = false;
-
-  function _loadEnabled() {
-    try {
-      var stored = localStorage.getItem('calloutsEnabled');
-      if (stored !== null) {
-        _enabled = stored !== 'false';
-      }
-    } catch (e) {
-      _enabled = true;
-    }
+  function _getAudio() {
+    if (!_audioCtx) _audioCtx = window._audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    return _audioCtx;
   }
 
-  function _saveEnabled() {
-    try {
-      localStorage.setItem('calloutsEnabled', String(_enabled));
-    } catch (e) {}
-  }
-
-  function _initSubtitleEl() {
-    if (_subtitleEl) return;
-    _subtitleEl = document.createElement('div');
-    _subtitleEl.id = 'callout-subtitle';
-    _subtitleEl.style.cssText = [
-      'position: fixed',
-      'bottom: 60px',
-      'left: 50%',
-      'transform: translateX(-50%)',
-      'color: #4cff4c',
-      'background: rgba(0,0,0,0.55)',
-      'font-family: monospace',
-      'font-size: 18px',
-      'font-weight: bold',
-      'padding: 6px 18px',
-      'border-radius: 4px',
-      'letter-spacing: 0.08em',
-      'pointer-events: none',
-      'z-index: 99999',
-      'display: none',
-      'text-shadow: 0 0 6px #000'
-    ].join(';');
-    document.body.appendChild(_subtitleEl);
-  }
-
-  function _showSubtitle(text) {
-    if (!_subtitleEl) _initSubtitleEl();
-    if (_subtitleTimer) {
-      clearTimeout(_subtitleTimer);
-      _subtitleTimer = null;
-    }
-    _subtitleEl.textContent = '◙ ' + text;
-    _subtitleEl.style.display = 'block';
-    _subtitleTimer = setTimeout(function() {
-      if (_subtitleEl) _subtitleEl.style.display = 'none';
-      _subtitleTimer = null;
-    }, SUBTITLE_DURATION_MS);
-  }
-
-  function _speakOrFallback(text) {
-    _showSubtitle(text);
-    if (!_speechAvailable) return;
-    try {
-      var utt = new SpeechSynthesisUtterance(text);
-      utt.lang = 'en-US';
-      utt.rate = 1.0;
-      utt.pitch = 0.85;
-      utt.volume = 0.7;
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utt);
-    } catch (e) {
-      // fall back to subtitle only
-    }
-  }
-
-  function _canCallout(type) {
-    if (!_enabled) return false;
-    var now = Date.now();
-
-    if ((now - _lastCalloutTime) < GLOBAL_COOLDOWN_MS) return false;
-
-    var lastSame = _lastCalloutByType[type] || 0;
-    if ((now - lastSame) < SAME_TYPE_COOLDOWN_MS) return false;
-
-    var cutoff = now - RATE_WINDOW_MS;
-    var recent = 0;
-    for (var i = 0; i < _recentCallouts.length; i++) {
-      if (_recentCallouts[i] >= cutoff) recent++;
-    }
-    if (recent >= RATE_MAX) return false;
-
-    return true;
-  }
-
-  function _recordCallout(type) {
-    var now = Date.now();
-    _lastCalloutTime = now;
-    _lastCalloutByType[type] = now;
-    _recentCallouts.push(now);
-    var cutoff = now - RATE_WINDOW_MS;
-    var kept = [];
-    for (var i = 0; i < _recentCallouts.length; i++) {
-      if (_recentCallouts[i] >= cutoff) kept.push(_recentCallouts[i]);
-    }
-    _recentCallouts = kept;
-  }
-
-  function callout(type, data) {
-    if (!CALLOUT_TEXT[type]) return;
-    if (!_canCallout(type)) return;
-    _recordCallout(type);
-    _speakOrFallback(CALLOUT_TEXT[type]);
-  }
-
-  function update(dt) {
-    if (typeof window._onReloadForCallout !== 'undefined' && window._onReloadForCallout) {
-      window._onReloadForCallout = false;
-      callout('RELOAD');
-    }
-
-    if (typeof window._activeSniperCount !== 'undefined' &&
-        window._activeSniperCount > 0 &&
-        typeof window._playerAlerted !== 'undefined' &&
-        window._playerAlerted) {
-      if (!_lastSniperAlerted) {
-        _lastSniperAlerted = true;
-        callout('SNIPER');
-      }
-    } else {
-      _lastSniperAlerted = false;
-    }
-  }
-
-  function reset() {
-    _lastCalloutTime = 0;
-    _lastCalloutByType = {};
-    _recentCallouts = [];
-    _lastSniperAlerted = false;
-    if (_subtitleTimer) {
-      clearTimeout(_subtitleTimer);
-      _subtitleTimer = null;
-    }
-    if (_subtitleEl) {
-      _subtitleEl.style.display = 'none';
-    }
-    if (_speechAvailable) {
+  function _synthVoice(text) {
+    // Use Web Speech API if available
+    if (typeof window.speechSynthesis !== 'undefined' && _active) {
       try {
-        window.speechSynthesis.cancel();
-      } catch (e) {}
+        var utt = new window.SpeechSynthesisUtterance(text);
+        utt.rate = 1.1;
+        utt.pitch = 0.8;
+        utt.volume = 0.35;
+        // Prefer English military-sounding voice
+        var voices = window.speechSynthesis.getVoices();
+        for (var i = 0; i < voices.length; i++) {
+          if (voices[i].lang && voices[i].lang.indexOf('en') === 0) {
+            utt.voice = voices[i];
+            break;
+          }
+        }
+        window.speechSynthesis.speak(utt);
+        return true;
+      } catch(e) {}
     }
+    // Fallback: just show as toast
+    return false;
+  }
+
+  function _pick(type) {
+    var arr = CALLOUTS[type];
+    if (!arr || !arr.length) return '';
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function callout(type) {
+    if (!_active) return;
+    var now = Date.now() / 1000;
+    if (now - _lastCallout < _COOLDOWN) return;
+    _lastCallout = now;
+    var text = _pick(type);
+    if (!text) return;
+    if (!_synthVoice(text)) {
+      // Show as floating HUD text if speech not available
+      _showCalloutText(text);
+    }
+  }
+
+  function _showCalloutText(text) {
+    var el = document.createElement('div');
+    el.style.cssText = [
+      'position:fixed', 'bottom:230px', 'left:50%',
+      'transform:translateX(-50%)',
+      'color:#FFCC44', 'font-family:monospace', 'font-size:14px',
+      'font-weight:bold', 'text-shadow:0 0 6px #AA8800',
+      'pointer-events:none', 'z-index:1600',
+      'opacity:1', 'transition:opacity 0.5s'
+    ].join(';');
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function() {
+      el.style.opacity = '0';
+      setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
+    }, 2500);
   }
 
   function init() {
-    _loadEnabled();
+    // Hook enemy killed
+    var prevKill = window._onEnemyKilled;
+    window._onEnemyKilled = function(enemy, score) {
+      if (prevKill) prevKill(enemy, score);
+      callout(window._headshotStreak >= 2 ? 'multi' : 'kill');
+    };
 
-    _speechAvailable = !!(window.speechSynthesis &&
-      typeof SpeechSynthesisUtterance !== 'undefined');
+    // Hook low health
+    setInterval(function() {
+      var player = window.player || (window.GameManager && window.GameManager.getPlayer ? window.GameManager.getPlayer() : null);
+      if (player && player.hp !== undefined && player.hp < 25 && player.hp > 0) {
+        callout('lowHealth');
+      }
+    }, 8000);
 
-    Object.defineProperty(window, '_calloutsEnabled', {
-      get: function() { return _enabled; },
-      set: function(v) {
-        _enabled = !!v;
-        _saveEnabled();
-      },
-      configurable: true
-    });
+    // Hook wave start
+    var prevWave = window._onWaveStart;
+    window._onWaveStart = function(wave) {
+      if (prevWave) prevWave(wave);
+      callout('wave');
+    };
 
-    if (document.body) {
-      _initSubtitleEl();
-    } else {
-      document.addEventListener('DOMContentLoaded', _initSubtitleEl);
+    // Hook grenade throw
+    var prevShot = window._onGrenadeThrown;
+    window._onGrenadeThrown = function() {
+      if (prevShot) prevShot();
+      callout('grenade');
+    };
+
+    // Expose global
+    window._playerCallout = callout;
+  }
+
+  function update(dt) {
+    _calloutTimer += dt;
+    // Occasional combat callouts during active gameplay
+    if (_calloutTimer > 45 + Math.random() * 30) {
+      _calloutTimer = 0;
+      var player = window.player || (window.GameManager && window.GameManager.getPlayer ? window.GameManager.getPlayer() : null);
+      if (player && player.hp > 0 && window.Enemies && window.Enemies.getAll) {
+        var enemies = window.Enemies.getAll();
+        if (enemies && enemies.length > 0) callout('flanked');
+      }
     }
   }
 
-  return {
-    init: init,
-    callout: callout,
-    update: update,
-    reset: reset
-  };
+  function toggle() {
+    _active = !_active;
+    if (window.HUD && window.HUD.showToast) {
+      window.HUD.showToast('VOICE CALLOUTS: ' + (_active ? 'ON' : 'OFF'));
+    }
+    return _active;
+  }
+
+  function reset() {
+    _lastCallout = 0;
+    _calloutTimer = 0;
+    if (typeof window.speechSynthesis !== 'undefined') {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  return { init: init, update: update, callout: callout, toggle: toggle, reset: reset };
 })();
