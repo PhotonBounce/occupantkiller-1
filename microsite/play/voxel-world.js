@@ -12742,7 +12742,7 @@ window.VoxelWorld = (function () {
         generateBridge(0, 20, 28, 4);                 // Kazenny Torets River crossing
         generateGrainSilo(34, 40);
         generatePowerLines(0, 0, 4);
-        generateArtilleryBattery(-45, 45);            // Ukrainian artillery during 2014 recapture
+        generateArtilleryBattery(-54, 52);            // Ukrainian artillery during 2014 recapture (clear of salt lake)
         generateArtilleryBattery(40, -46);
         generateAntiAirPosition(-42, -40);
         generateAntiAirPosition(38, 42);
@@ -12752,7 +12752,7 @@ window.VoxelWorld = (function () {
         generateTrenchNetwork(14, -14);
         generateBurningRuin(-25, -30);                // Battle damage from 2014 siege and 2022 shelling
         generateBurningRuin(22, 18);
-        generateBurningRuin(-38, 28);
+        generateBurningRuin(-20, 30);
         generateBurningRuin(34, -28);
         generateCraters(14);
         generateWreckedTank(-14, -22);                // Russian separatist T-64s
