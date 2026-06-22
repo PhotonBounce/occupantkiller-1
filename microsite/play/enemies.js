@@ -2633,6 +2633,9 @@ const Enemies = (() => {
 
       alive++;
 
+      // ── Lifetime accumulator (used by limping gait wobble) ──
+      e._lifeTime = (e._lifeTime || 0) + delta;
+
       // Reset hit-flash colour
       if (e.flashTimer > 0) {
         e.flashTimer -= delta;
@@ -2674,6 +2677,94 @@ const Enemies = (() => {
         if (e._flinchTimer <= 0 && e.mesh) {
           e.mesh.rotation.x = 0;
           e.mesh.rotation.z = 0;
+        }
+      }
+
+      // ── Hit stagger: brief directional jerk + body tilt on damage ──
+      if (e._staggerTime && e._staggerTime > 0) {
+        e._staggerTime -= delta;
+        if (e._staggerDir) {
+          e.mesh.position.x += e._staggerDir.x * 0.8 * delta;
+          e.mesh.position.z += e._staggerDir.z * 0.8 * delta;
+        }
+        e.mesh.rotation.z = Math.sin(e._staggerTime * 30) * 0.15 * (e._staggerTime / 0.25);
+        if (e._staggerTime <= 0) {
+          e.mesh.rotation.z = 0;
+        }
+      }
+
+      // ── Red emissive hit flash ──
+      if (e._hitFlashTime && e._hitFlashTime > 0) {
+        e._hitFlashTime -= delta;
+        if (e._hitFlashTime <= 0) {
+          // Reset emissive to black on all mesh children
+          e.mesh.traverse(function (child) {
+            if (child.isMesh && child.material && child.material.emissive) {
+              child.material.emissive.setHex(0x000000);
+            }
+          });
+        }
+      }
+
+      // ── Near-miss suppression window timer ──
+      if (e._nearMissTimer && e._nearMissTimer > 0) {
+        e._nearMissTimer -= delta;
+        if (e._nearMissTimer <= 0) {
+          e._nearMissCount = 0;
+          e._nearMissTimer = 0;
+        }
+      }
+
+      // ── Player-fired suppression system (near-miss based) ──
+      if (e._suppressionActive && e._suppressionTimer > 0) {
+        e._suppressionTimer -= delta;
+        if (e._suppressionTimer <= 0) {
+          // Release suppression
+          e._suppressionActive = false;
+          e._nearMissCount = 0;
+          e._accuracyPenalty = 0;
+          // Restore Y position from crouching
+          if (e._suppressedOffset) {
+            e.mesh.position.y += e._suppressedOffset;
+            e._suppressedOffset = 0;
+          }
+          window._enemySuppressed = false;
+        } else {
+          // While suppressed: sway, hold position, accuracy penalty already set
+          e.mesh.rotation.y += Math.sin(Date.now() * 0.003) * 0.02;
+        }
+      }
+
+      // ── Wounded limping: triggered once when HP crosses 30% threshold ──
+      if (!e._limpingChecked && e.hp <= e.maxHp * 0.3 && e.hp > 0) {
+        e._limpingChecked = true;
+        if (!e._limping) {
+          e._limping = true;
+          e._speedMult = (e._speedMult || 1.0) * 0.55;
+        }
+      }
+      // ── Critical state: triggered once at 20% HP ──
+      if (!e._criticalChecked && e.hp <= e.maxHp * 0.2 && e.hp > 0) {
+        e._criticalChecked = true;
+        if (!e._critical) {
+          e._critical = true;
+          e._criticalPauseTimer = 0;
+        }
+      }
+      // ── Critical pause update ──
+      if (e._critical && e.hp > 0) {
+        e._criticalPauseTimer = (e._criticalPauseTimer || 0) + delta;
+        if (!e._criticalPausing && e._criticalPauseTimer >= 3.0) {
+          e._criticalPausing = true;
+          e._criticalPauseTimer = 0;
+          e._criticalPauseDur = 0.5;
+        }
+        if (e._criticalPausing) {
+          e._criticalPauseDur -= delta;
+          e.mesh.rotation.y += Math.sin(Date.now() * 0.003) * 0.02;
+          if (e._criticalPauseDur <= 0) {
+            e._criticalPausing = false;
+          }
         }
       }
 
@@ -3182,6 +3273,11 @@ const Enemies = (() => {
         var speedMult = 1;
         if (e._officerBuffSpd) { speedMult *= e._officerBuffSpd; e._officerBuffSpd = 0; }
         if (e._rallyBuff && !e._officerBuffDmg) { speedMult *= e._rallyBuff; } // rally also boosts speed
+        if (e._speedMult) speedMult *= e._speedMult; // wounded limping speed reduction
+        // Suppressed: hold position or slowly retreat
+        if (e._suppressionActive) speedMult = 0;
+        // Critical pause: freeze movement
+        if (e._criticalPausing) speedMult = 0;
         const stepDist = e.speed * speedMult * delta * (e._staggerTimer > 0 ? 0 : 1);
         const nextX = e.mesh.position.x + dir.x * stepDist * 2;
         const nextZ = e.mesh.position.z + dir.z * stepDist * 2;
@@ -3247,9 +3343,9 @@ const Enemies = (() => {
         if (parts[6]) parts[6].rotation.x =  e.legAngle * 0.5;
         // Torso bob
         if (parts[0]) parts[0].rotation.z = Math.sin(e.legAngle) * 0.04;
-        // Wounded limp — readable wobble + subtle red rim-tint at low HP
+        // Wounded limp — readable wobble + gait wobble + subtle red rim-tint at low HP
         if (e.hp < e.maxHp * 0.3 && e.mesh && e.mesh.userData.woundedVariant !== 'crawling') {
-          e.mesh.rotation.z = Math.sin(e.legAngle * 0.6) * 0.06;
+          e.mesh.rotation.z = Math.sin(e.legAngle * 0.6) * 0.06 + Math.sin((e._lifeTime || 0) * 14) * 0.04;
           var _woundedParts = e.mesh.userData.parts;
           if (_woundedParts && _woundedParts[0] && _woundedParts[0].material && _woundedParts[0].material.color) {
             _woundedParts[0].material.color.r = Math.min(1, _woundedParts[0].material.color.r + 0.04);
@@ -3385,6 +3481,10 @@ const Enemies = (() => {
             // AI Smart Learning: slight accuracy boost when countering
             if (_aiStrategy && _aiStrategy.adaptationLevel >= 2) {
               hitChance = Math.min(0.85, hitChance * 1.15);
+            }
+            // Suppression penalty: reduce accuracy while player pins enemy
+            if (e._suppressionActive && e._accuracyPenalty) {
+              hitChance = Math.max(0, hitChance - e._accuracyPenalty);
             }
             if (Math.random() < hitChance) {
               var eDmg = e.typeCfg.rangedDmg;
@@ -4678,6 +4778,20 @@ const Enemies = (() => {
       }
     }
 
+    // Hit stagger: directional visual shake (separate from flinch, more wobble)
+    enemy._staggerTime = 0.25;
+    enemy._staggerDir = { x: (Math.random() - 0.5) * 2, z: (Math.random() - 0.5) * 2 };
+
+    // Red emissive hit flash
+    if (enemy.mesh) {
+      enemy.mesh.traverse(function (child) {
+        if (child.isMesh && child.material && child.material.emissive) {
+          child.material.emissive.setHex(0xff0000);
+        }
+      });
+      enemy._hitFlashTime = 0.12;
+    }
+
     // Spawn blood voxel particles (shared geometry + materials)
     if (scene && enemy.mesh) {
       // 2x base count + bigger gibs — UA patriot gore mode
@@ -4981,6 +5095,41 @@ const Enemies = (() => {
     return enemies.filter(e => e && e.alive && e.surrendered).length;
   }
 
+  // ── Suppression: called when a player bullet misses but passes within 2m of an enemy ──
+  // bulletPos: THREE.Vector3 of the bullet's closest point to the enemy
+  function notifyNearMiss(bulletPos) {
+    if (!bulletPos) return;
+    for (var _nmi = 0; _nmi < enemies.length; _nmi++) {
+      var _nme = enemies[_nmi];
+      if (!_nme || !_nme.alive || !_nme.mesh) continue;
+      var _nmdx = _nme.mesh.position.x - bulletPos.x;
+      var _nmdz = _nme.mesh.position.z - bulletPos.z;
+      var _nmDist = Math.sqrt(_nmdx * _nmdx + _nmdz * _nmdz);
+      if (_nmDist > 2) continue; // only within 2 metres counts
+      // Start or refresh the 0.5s window
+      if (!_nme._nearMissTimer || _nme._nearMissTimer <= 0) {
+        _nme._nearMissCount = 0;
+        _nme._nearMissTimer = 0.5;
+      }
+      _nme._nearMissCount = (_nme._nearMissCount || 0) + 1;
+      // 3+ near misses within window triggers suppression
+      if (_nme._nearMissCount >= 3 && !_nme._suppressionActive) {
+        _nme._suppressionActive = true;
+        _nme._suppressionTimer = 1.5;
+        _nme._accuracyPenalty = 0.4;
+        _nme._nearMissCount = 0;
+        _nme._nearMissTimer = 0;
+        // Crouch by lowering Y
+        if (!_nme._suppressedOffset) {
+          _nme.mesh.position.y -= 0.35;
+          _nme._suppressedOffset = 0.35;
+        }
+        // Signal HUD
+        window._enemySuppressed = true;
+      }
+    }
+  }
+
   return {
     startWave,
     update,
@@ -5001,6 +5150,7 @@ const Enemies = (() => {
     blowDisguise,
     tagAttacker,
     getSurrenderCount,
+    notifyNearMiss,
     spawnSingle: function (typeName, pos, opts) {
       var idx = spawnOne(typeName, -1, pos, opts);
       return enemies[idx];
