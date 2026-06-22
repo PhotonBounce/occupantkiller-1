@@ -651,6 +651,17 @@ const EnemyTypes = (function () {
       rageThreshold: 0.35, rageDamageMult: 1.8
     },
 
+    BOSS_POLTAVA: { type: 'BOSS_POLTAVA', hp: 1400, speed: 1.5, damage: 22, fireRate: 0.9, tier: 3, name: 'Colonel Petrenko',    color: 0x3a5a1a, scale: 1.9, reward: 3000 },
+    BOSS_MYKOLAIV: { type: 'BOSS_MYKOLAIV', hp: 1550, speed: 1.6, damage: 24, fireRate: 0.8, tier: 3, name: 'Admiral Volkov',      color: 0x1a2a4a, scale: 2.0, reward: 3200 },
+    BOSS_RIVNE: { type: 'BOSS_RIVNE', hp: 1350, speed: 1.7, damage: 20, fireRate: 1.0, tier: 3, name: 'Mykola "Ядерний"',    color: 0x2a1a4a, scale: 1.8, reward: 2900 },
+    BOSS_KREMENCHUK: { type: 'BOSS_KREMENCHUK', hp: 1600, speed: 1.5, damage: 26, fireRate: 0.8, tier: 4, name: 'Lt. General Shapkin', color: 0x4a2a1a, scale: 2.1, reward: 3400 },
+    BOSS_NOVOROSSIYSK:     { type: 'BOSS_NOVOROSSIYSK',     hp: 2000, speed: 1.4, damage: 30, fireRate: 0.7,  tier: 5, name: 'Admiral Osipov',      color: 0x0a1a2a, scale: 2.3, reward: 4000 },
+    BOSS_SAINT_PETERSBURG: { type: 'BOSS_SAINT_PETERSBURG', hp: 2200, speed: 1.4, damage: 32, fireRate: 0.65, tier: 5, name: 'General Surovikin',    color: 0x0a1a2a, scale: 2.4, reward: 4500 },
+    BOSS_PSKOV:            { type: 'BOSS_PSKOV',            hp: 1500, speed: 1.7, damage: 22, fireRate: 0.9,  tier: 3, name: 'Major Ignatenko',      color: 0x2a2a3a, scale: 1.9, reward: 3100 },
+    BOSS_MURMANSK:         { type: 'BOSS_MURMANSK',         hp: 1800, speed: 1.5, damage: 28, fireRate: 0.75, tier: 4, name: 'Admiral Moiseev',      color: 0x0a1a3a, scale: 2.1, reward: 3800 },
+    BOSS_VORONEZH:         { type: 'BOSS_VORONEZH',         hp: 1650, speed: 1.6, damage: 25, fireRate: 0.8,  tier: 4, name: 'Col. Prigozhin-2',    color: 0x2a1a0a, scale: 2.0, reward: 3500 },
+    BOSS_YEYSK:            { type: 'BOSS_YEYSK',            hp: 2400, speed: 1.3, damage: 35, fireRate: 0.6,  tier: 5, name: 'General Gerasimov',   color: 0x0a0a1a, scale: 2.5, reward: 5000 },
+
     // Feature 17: Suicide Bomber
     BOMBER: {
       id: 'BOMBER', name: 'Suicide Bomber', tier: 2,
@@ -1598,6 +1609,16 @@ const EnemyTypes = (function () {
     LUHANSK:              'BOSS_LUHANSK',
     STAROBILSK:           'BOSS_STAROBILSK',
     BERDIANSK:            'BOSS_BERDIANSK',
+    POLTAVA:              'BOSS_POLTAVA',
+    MYKOLAIV:             'BOSS_MYKOLAIV',
+    RIVNE:                'BOSS_RIVNE',
+    KREMENCHUK:           'BOSS_KREMENCHUK',
+    NOVOROSSIYSK:         'BOSS_NOVOROSSIYSK',
+    SAINT_PETERSBURG:     'BOSS_SAINT_PETERSBURG',
+    PSKOV:                'BOSS_PSKOV',
+    MURMANSK:             'BOSS_MURMANSK',
+    VORONEZH:             'BOSS_VORONEZH',
+    YEYSK:                'BOSS_YEYSK',
   };
 
   /**
