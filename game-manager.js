@@ -1480,6 +1480,7 @@ const GameManager = (function () {
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
+    if (typeof EnemyChatter !== 'undefined' && _camera) EnemyChatter.init(_camera);
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -5080,6 +5081,7 @@ const GameManager = (function () {
 
       // Show stage clear overlay
       gameState = STATE.STAGE_CLEAR;
+      if (typeof EnemyChatter !== 'undefined') EnemyChatter.clear();
       if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playLevelComplete) window.AudioSystem.playLevelComplete();
       // Daily challenges: record level complete
       try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordLevel(); } catch (eDCL) {}
@@ -6413,6 +6415,7 @@ const GameManager = (function () {
           if (_ad < _bestD) { _bestD = _ad; _bestE = _ae; }
         }
         if (_bestE && _bestD < 9 && Enemies.tagAttacker) Enemies.tagAttacker(_bestE);
+        if (_bestE && _bestD < 9 && typeof EnemyChatter !== 'undefined') EnemyChatter.say(_bestE, 'attack');
       }
     } catch (eAtk) {}
     MLSystem.onDamageTaken(dmg);
@@ -7796,6 +7799,7 @@ const GameManager = (function () {
 
       // Update tracers
       if (typeof Tracers !== 'undefined') Tracers.update(delta, player.position);
+      if (typeof EnemyChatter !== 'undefined') EnemyChatter.update();
       if (typeof StageVFX !== 'undefined') StageVFX.update(delta);
       if (typeof Flags !== 'undefined' && Flags.update) Flags.update(delta);
       if (typeof Environment !== 'undefined' && Environment.update) Environment.update(delta);

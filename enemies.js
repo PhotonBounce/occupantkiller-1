@@ -2768,6 +2768,7 @@ const Enemies = (() => {
         }
         // Visual exclamation bark
         if (typeof spawnBarkText === 'function') spawnBarkText(e.mesh.position, 'spotted');
+        if (typeof EnemyChatter !== 'undefined') EnemyChatter.say(e, 'spot');
         // Squad alert propagation: alert nearby allies faster
         _alertNearbyAllies(e, enemies);
       } else if (!e.playerSpotted) {
@@ -4575,6 +4576,8 @@ const Enemies = (() => {
       }
     }
     enemy.flashTimer = 0.08;
+    // Enemy hurt chatter (non-fatal hits only)
+    if (enemy.hp > 0 && typeof EnemyChatter !== 'undefined') EnemyChatter.say(enemy, 'hurt');
 
     // Suppression fire: enemy who takes damage fires rapidly at last known player pos
     if (_playerPos) {
