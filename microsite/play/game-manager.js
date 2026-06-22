@@ -1261,6 +1261,8 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.StaminaSystem) StaminaSystem.init();
+        if (window.Grapple) Grapple.init(_scene, _camera);
         if (window.CrouchSystem) CrouchSystem.init();
         if (window.SpecialGrenades) SpecialGrenades.init(_scene, _camera, function(enemyCallback) {
             var enemies = Enemies ? Enemies.getAll() : [];
@@ -2399,33 +2401,46 @@ const GameManager = (function () {
           }
         }
         if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) {
-          // Check for nearby attachment pickup first
-          var _atkPickedUp = false;
-          if (typeof Attachments !== 'undefined' && _scene && player) {
-            var _atkChildren = _scene.children;
-            for (var _ati = 0; _ati < _atkChildren.length; _ati++) {
-              var _atkMesh = _atkChildren[_ati];
-              if (!_atkMesh || !_atkMesh.userData || !_atkMesh.userData.isAttachmentPickup) continue;
-              var _atkDist = _atkMesh.position.distanceTo(player.position);
-              if (_atkDist <= 1.5) {
-                var _atkId = _atkMesh.userData.attachmentId;
-                var _atkSlot = Weapons.getCurrentIdx();
-                Attachments.attach(_atkSlot, _atkId);
-                _scene.remove(_atkMesh);
-                if (_atkMesh.geometry) _atkMesh.geometry.dispose();
-                if (_atkMesh.material) _atkMesh.material.dispose();
-                // Refresh weapon HUD to show new attachment icon
-                if (typeof HUD !== 'undefined' && HUD.setWeapon && Weapons.getCurrentName) {
-                  var _atkDef = Attachments.getAttached(_atkSlot);
-                  var _atkIcon = _atkDef ? ' ' + _atkDef.icon : '';
-                  HUD.setWeapon(Weapons.getCurrentName() + _atkIcon, _atkSlot);
-                }
-                _atkPickedUp = true;
-                break;
-              }
+          // ── Grapple: Ctrl+E fires hook; E while attached releases ──
+          var _grappleHandled = false;
+          if (window.Grapple && !VehicleSystem.isInVehicle() && !DroneSystem.isPossessing()) {
+            if (Grapple.isActive()) {
+              Grapple.release();
+              _grappleHandled = true;
+            } else if (e.ctrlKey) {
+              Grapple.fire(player.position, _camera);
+              _grappleHandled = true;
             }
           }
-          if (!_atkPickedUp) Weapons.switchNext();
+          if (!_grappleHandled) {
+            // Check for nearby attachment pickup first
+            var _atkPickedUp = false;
+            if (typeof Attachments !== 'undefined' && _scene && player) {
+              var _atkChildren = _scene.children;
+              for (var _ati = 0; _ati < _atkChildren.length; _ati++) {
+                var _atkMesh = _atkChildren[_ati];
+                if (!_atkMesh || !_atkMesh.userData || !_atkMesh.userData.isAttachmentPickup) continue;
+                var _atkDist = _atkMesh.position.distanceTo(player.position);
+                if (_atkDist <= 1.5) {
+                  var _atkId = _atkMesh.userData.attachmentId;
+                  var _atkSlot = Weapons.getCurrentIdx();
+                  Attachments.attach(_atkSlot, _atkId);
+                  _scene.remove(_atkMesh);
+                  if (_atkMesh.geometry) _atkMesh.geometry.dispose();
+                  if (_atkMesh.material) _atkMesh.material.dispose();
+                  // Refresh weapon HUD to show new attachment icon
+                  if (typeof HUD !== 'undefined' && HUD.setWeapon && Weapons.getCurrentName) {
+                    var _atkDef = Attachments.getAttached(_atkSlot);
+                    var _atkIcon = _atkDef ? ' ' + _atkDef.icon : '';
+                    HUD.setWeapon(Weapons.getCurrentName() + _atkIcon, _atkSlot);
+                  }
+                  _atkPickedUp = true;
+                  break;
+                }
+              }
+            }
+            if (!_atkPickedUp) Weapons.switchNext();
+          }
         }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
         if (e.code === 'KeyR' && !e.shiftKey && !e.ctrlKey && !keys['KeyM'] && window.RadioSupport) { RadioSupport.openMenu(); }
@@ -2474,6 +2489,7 @@ const GameManager = (function () {
           if (e.code === 'Space')     VehicleSystem.setVehicleKey('up', true);
           if (e.code === 'ShiftLeft') VehicleSystem.setVehicleKey('down', true);
         }
+        if (e.code === 'ShiftLeft') { if (window.StaminaSystem) StaminaSystem.startSprint(); }
       }
 
       // ── B26: FPS display toggle (F10) ──
@@ -2555,6 +2571,7 @@ const GameManager = (function () {
         if (e.code === 'Space')     VehicleSystem.setVehicleKey('up', false);
         if (e.code === 'ShiftLeft') VehicleSystem.setVehicleKey('down', false);
       }
+      if (e.code === 'ShiftLeft') { if (window.StaminaSystem) StaminaSystem.stopSprint(); }
     });
 
     // Mobile audio unlock — resume Web Audio context on first touch (iOS/Android requirement)
@@ -3365,6 +3382,8 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.StaminaSystem) StaminaSystem.reset();
+    if (window.Grapple) Grapple.reset();
     if (window.CrouchSystem) CrouchSystem.reset();
     if (window.SpecialGrenades) SpecialGrenades.reset();
     if (window.BloodEffects) BloodEffects.reset();
@@ -3673,6 +3692,7 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.Grapple) Grapple.clear();
     if (window.SpecialGrenades) SpecialGrenades.clear();
     if (window.BloodEffects) BloodEffects.clear();
     if (window.ClaymoreMines) ClaymoreMines.clear();
@@ -5523,7 +5543,7 @@ const GameManager = (function () {
     if (isMoving) {
       moveDir.normalize();
       var wasSprinting = player.sprinting;
-      player.sprinting = !!keys['ShiftLeft'] || touch.sprinting;
+      player.sprinting = window.StaminaSystem ? StaminaSystem.isSprinting() : (!!keys['ShiftLeft'] || touch.sprinting);
       // Dismiss sprint tip on first sprint
       if (player.sprinting && !wasSprinting && typeof Feedback !== 'undefined' && Feedback.dismissTip) {
         Feedback.dismissTip('sprint');
@@ -5532,7 +5552,8 @@ const GameManager = (function () {
       if (player.sprinting && Weapons.isReloading()) {
         Weapons.cancelReload();
       }
-      let speed = MOVE_SPEED * (player.sprinting ? SPRINT_MULT : 1) * (player.prone ? 0.3 : 1);
+      var _sprintMult = window.StaminaSystem ? (StaminaSystem.isSprinting() ? 1.8 : 1.0) : (player.sprinting ? SPRINT_MULT : 1);
+      var speed = MOVE_SPEED * _sprintMult * (player.prone ? 0.3 : 1);
       // Stim boost: +60% speed while active
       if (player._stimTimer && player._stimTimer > 0) speed *= 1.6;
       // Kill momentum speed boost
@@ -5560,6 +5581,8 @@ const GameManager = (function () {
         player._landSlowTimer -= delta;
         speed *= 0.4;
       }
+      // Grapple reduces WASD effectiveness to 30% while attached
+      if (window.Grapple && Grapple.isActive()) speed *= Grapple.movementMultiplier();
       moveDir.multiplyScalar(speed * delta);
 
       // Stamina drain on sprint
@@ -5604,8 +5627,9 @@ const GameManager = (function () {
       player.inCover = false;
     }
 
-    // Gravity
-    player.velocity.y -= GRAVITY * delta;
+    // Gravity (reduced while grapple is attached)
+    var _gravMult = (window.Grapple && Grapple.isActive()) ? Grapple.gravityMultiplier() : 1.0;
+    player.velocity.y -= GRAVITY * _gravMult * delta;
 
     // Jump (keyboard or touch)
     if ((keys['Space'] || touch.jumping) && player.onGround) {
@@ -5694,6 +5718,9 @@ const GameManager = (function () {
     }
 
     player.position.copy(newPos);
+
+    // Grapple update — must run after player.position is committed
+    if (window.Grapple) Grapple.update(delta, player.position, _camera);
 
     // Update camera
     CameraSystem.update(delta, player.position, isMoving, player.onGround);
@@ -6944,6 +6971,7 @@ const GameManager = (function () {
       // Core systems
       TimeSystem.update(delta);
       if (window.BloodEffects) BloodEffects.update(delta);
+      if (window.StaminaSystem) StaminaSystem.update(delta);
       WeatherSystem.update(delta);
       if (typeof WeatherEvents !== 'undefined') WeatherEvents.update();
       MLSystem.trackFPS(delta);
@@ -7612,7 +7640,7 @@ const GameManager = (function () {
 
       // ── FOV kick: sprint widens (+5), ADS narrows (weapons handles its own) ──
       if (!Weapons.isZoomed()) {
-        _targetFOV = _baseFOV + (player.sprinting ? 5 : 0) + _killFovKick;
+        _targetFOV = _baseFOV + (window._sprintFOVDelta || (player.sprinting ? 5 : 0)) + _killFovKick;
         _currentFOV += (_targetFOV - _currentFOV) * Math.min(1, delta * 10);
         _camera.fov = _currentFOV;
         _camera.updateProjectionMatrix();
