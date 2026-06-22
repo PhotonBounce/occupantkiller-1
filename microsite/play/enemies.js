@@ -116,9 +116,34 @@ const Enemies = (() => {
     charge:    'УРААА!',
     hurt:      'Он ранен!',
     reinforce: 'Подкрепление!',
-    spotted:   'Вижу его!',
+    spotted:   'Вижу його!',
   };
   var _lastAlertTime = 0;
+
+  // ── Enemy Taunts System ───────────────────────────────────
+  var _enemyTauntTimer = {};
+  var ENEMY_TAUNTS = {
+    DEFAULT:   ['FOR RUSSIA!', 'DIE FOR PUTIN!', 'COVER ME!', 'GRENADE OUT!', 'FLANKING!'],
+    SPETSNAZ:  ['SPETSNAZ NEVER RETREATS!', 'FOR THE MOTHERLAND!', 'БАНДЕРОВЕЦЬ!'],
+    WAGNER:    ['WAGNER NEVER DIES!', 'PRIGOZHIN LIVES IN US!', 'COOK THE BAKHMUT!'],
+    COMMISSAR: ['COWARDS WILL BE SHOT!', 'NO RETREAT BY ORDER!', 'FORWARD, DOGS!'],
+    TANK:      ['TARGET ACQUIRED!', 'ARMOR IS INDESTRUCTIBLE!', 'T-72 UNSTOPPABLE!'],
+    BOMBER:    ['ALLAHU AKBAR!', 'I DIE FOR RUSSIA!', 'BOOM!'],
+  };
+  function maybeTaunt(enemy) {
+    var now = performance.now();
+    var key = enemy.id || (enemy.x + ',' + enemy.z);
+    if (!_enemyTauntTimer[key] || now - _enemyTauntTimer[key] > 8000 + Math.random() * 12000) {
+      _enemyTauntTimer[key] = now;
+      var type = (enemy.typeCfg && enemy.typeCfg.id) ? enemy.typeCfg.id : 'DEFAULT';
+      var taunts = ENEMY_TAUNTS[type] || ENEMY_TAUNTS.DEFAULT;
+      var taunt = taunts[Math.floor(Math.random() * taunts.length)];
+      if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+        HUD.notifyPickup('☭ ' + taunt, '#cc4444');
+      }
+    }
+  }
+
   function spawnBarkText(pos, barkType) {
     if (!scene) return;
     var text = _BARK_TEXTS[barkType] || barkType;
@@ -3245,6 +3270,11 @@ const Enemies = (() => {
         continue;
       }
 
+      // ── Enemy taunts when in combat range ──
+      if (e.playerSpotted && !targetIsNPC && distToPlayer < 15 && Math.random() < 0.05) {
+        maybeTaunt(e);
+      }
+
       // ── Combat: ranged attack on player if spotted ──
       if (e.playerSpotted && !targetIsNPC && e.typeCfg.range > 0) {
         if (distToPlayer < e.typeCfg.range && distToPlayer > 2.5) {
@@ -3557,6 +3587,26 @@ const Enemies = (() => {
                   EnemyTypes.TYPES[e.typeName] && EnemyTypes.TYPES[e.typeName].name)
                   ? EnemyTypes.TYPES[e.typeName].name : (e.typeCfg.name || 'BOSS');
                 HUD.showBossBar(_bossDisplayName, e.hp, e.maxHp);
+              }
+              // Boss phase transitions — dramatic announcements
+              var _tn2 = e.typeName || '';
+              if ((_tn2 === 'BOSS' || _tn2.startsWith('BOSS_')) && e.maxHp > 0) {
+                var _bPhasePct = e.hp / e.maxHp;
+                var _bPhaseKey = '_bossPhase_' + (e.id || 0);
+                var _lastPhase = window[_bPhaseKey] || 1.0;
+                if (_lastPhase > 0.75 && _bPhasePct <= 0.75) {
+                  window[_bPhaseKey] = 0.75;
+                  if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('⚠ BOSS PHASE 2 — ENEMY ENRAGED!', '#ff4400');
+                  if (typeof AudioSystem !== 'undefined' && AudioSystem.playBossPhase) AudioSystem.playBossPhase();
+                } else if (_lastPhase > 0.50 && _bPhasePct <= 0.50) {
+                  window[_bPhaseKey] = 0.50;
+                  if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💀 BOSS PHASE 3 — MAXIMUM DANGER!', '#ff0000');
+                  if (typeof AudioSystem !== 'undefined' && AudioSystem.playBossPhase) AudioSystem.playBossPhase();
+                } else if (_lastPhase > 0.25 && _bPhasePct <= 0.25) {
+                  window[_bPhaseKey] = 0.25;
+                  if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('☠ BOSS FINAL PHASE — HE\'S GOING ALL OUT!', '#ff00ff');
+                  if (typeof Feedback !== 'undefined' && Feedback.triggerSlowMo) Feedback.triggerSlowMo(0.2, 0.5);
+                }
               }
             }
             break;
