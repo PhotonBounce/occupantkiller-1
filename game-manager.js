@@ -1355,6 +1355,7 @@ const GameManager = (function () {
       if (MissionSystem && typeof MissionSystem.init === 'function') MissionSystem.init();
       if (Automation && typeof Automation.init === 'function') Automation.init();
       if (Pickups && typeof Pickups.init === 'function') Pickups.init(_scene);
+      if (window.Loot && typeof window.Loot.init === 'function') window.Loot.init(_scene);
     });
     _bootStep('missions');
 
@@ -4788,6 +4789,7 @@ const GameManager = (function () {
     var countdownEl = document.getElementById('shop-countdown');
     if (countdownEl) countdownEl.textContent = _shopSec;
     window._shopCountdownId = setInterval(function () {
+      if (window.Shop && Shop.isVisible()) return; // pause countdown while shop is open
       _shopSec--;
       if (countdownEl) countdownEl.textContent = _shopSec;
       if (_shopSec <= 0) {
@@ -4823,6 +4825,17 @@ const GameManager = (function () {
           if (e.code === 'Space' && ovWC.style.display !== 'none') { e.preventDefault(); skip(e); }
         });
       }
+    }
+    // ── Between-wave upgrade shop ──
+    if (window.Shop) {
+      Shop.show(function startNextWave() {
+        if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
+        hideOverlays();
+        gameState = STATE.PLAYING;
+        updateMobileControlsVisibility();
+        requestPointerLock();
+        beginWave(currentWave + 1);
+      });
     }
     } catch (e) { console.error('[onWaveComplete] error:', e); }
   }
@@ -5438,6 +5451,8 @@ const GameManager = (function () {
       if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
         Tracers.spawnExplosion(enemy.mesh.position, 1.5);
       }
+      // Drop loot from enemy
+      try { if (window.Loot && Loot.dropAt) Loot.dropAt(enemy.mesh.position, enemy.type); } catch(eLD) {}
       MLSystem.onKill(Weapons.getCurrentId());
       MLSystem.trackKillTiming(); // AI Smart Learning: track kill timing patterns
       // INFILTRATE mission: count occupant kills (stealth bonus if disguise still up)
@@ -6949,6 +6964,8 @@ const GameManager = (function () {
           }
         }
       });
+      // Update loot items
+      try { if (window.Loot && Loot.update) Loot.update(delta, player.position); } catch(eLU) {}
 
       // Hybrid systems
       NPCSystem.update(delta, TimeSystem.getInfo());

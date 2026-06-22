@@ -1355,6 +1355,7 @@ const GameManager = (function () {
       if (MissionSystem && typeof MissionSystem.init === 'function') MissionSystem.init();
       if (Automation && typeof Automation.init === 'function') Automation.init();
       if (Pickups && typeof Pickups.init === 'function') Pickups.init(_scene);
+      if (window.Loot && typeof window.Loot.init === 'function') window.Loot.init(_scene);
     });
     _bootStep('missions');
 
@@ -5438,6 +5439,8 @@ const GameManager = (function () {
       if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
         Tracers.spawnExplosion(enemy.mesh.position, 1.5);
       }
+      // Drop loot from enemy
+      try { if (window.Loot && Loot.dropAt) Loot.dropAt(enemy.mesh.position, enemy.type); } catch(eLD) {}
       MLSystem.onKill(Weapons.getCurrentId());
       MLSystem.trackKillTiming(); // AI Smart Learning: track kill timing patterns
       // INFILTRATE mission: count occupant kills (stealth bonus if disguise still up)
@@ -6949,6 +6952,8 @@ const GameManager = (function () {
           }
         }
       });
+      // Update loot items
+      try { if (window.Loot && Loot.update) Loot.update(delta, player.position); } catch(eLU) {}
 
       // Hybrid systems
       NPCSystem.update(delta, TimeSystem.getInfo());
