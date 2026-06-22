@@ -650,6 +650,61 @@ const Enemies = (() => {
       attackDmg: 55, attackRate: 1.0, scoreValue: 11000, dropChance: 1.0,
       role: 'boss', range: 16, rangedDmg: 55, rangedRate: 1.2, accuracy: 0.55,
     },
+    // ── New enemy types ─────────────────────────────────────
+    DRONE_OPERATOR: {
+      name:        'DRONE_OPERATOR',
+      hpBase:      80,
+      speedBase:   1.5,
+      scale:       1.0,
+      camoVariant: 'light',
+      bodyColor:   0x9a8a6a,   // tan uniform
+      headColor:   0xc8a882,
+      limbColor:   EMR_CAMO.dark,
+      helmetColor: 0x3a3a2a,
+      eyeColor:    0x00ccff,
+      attackDmg:   15,
+      attackRate:  1.5,
+      scoreValue:  60,
+      dropChance:  0.40,
+      role:        'drone_operator',
+      range: 45, rangedDmg: 15, rangedRate: 1.5, accuracy: 0.35,
+    },
+    SNIPER_OP: {
+      name:        'SNIPER_OP',
+      hpBase:      70,
+      speedBase:   1.2,
+      scale:       1.0,
+      camoVariant: 'dark',
+      bodyColor:   0x3a5a2a,   // green ghillie base
+      headColor:   0xa09070,
+      limbColor:   0x2a4a1a,
+      helmetColor: 0x2a3a1a,
+      eyeColor:    0xff6600,
+      attackDmg:   85,
+      attackRate:  4.0,
+      scoreValue:  80,
+      dropChance:  0.55,
+      role:        'sniper_op',
+      range: 80, rangedDmg: 85, rangedRate: 4.0, accuracy: 0.75,
+    },
+    TANK_CREW: {
+      name:        'TANK_CREW',
+      hpBase:      120,
+      speedBase:   3.5,
+      scale:       1.0,
+      camoVariant: 'dark',
+      bodyColor:   0x1a1a1a,   // dark jumpsuit
+      headColor:   0xb09070,
+      limbColor:   0x111111,
+      helmetColor: 0x1a1a1a,
+      eyeColor:    0xff4400,
+      attackDmg:   25,
+      attackRate:  1.0,
+      scoreValue:  45,
+      dropChance:  0.35,
+      role:        'tank_crew',
+      range: 20, rangedDmg: 25, rangedRate: 1.2, accuracy: 0.4,
+    },
   };
 
   // ── Cover-Seeking Helper ────────────────────────────────────
@@ -1471,7 +1526,7 @@ const Enemies = (() => {
       BOSS_VUHLEDAR:1, BOSS_ANTONOV:1,
       WAR_DOG:1, KAMIKAZE_DRONE:1, ASSAULT_MECH:1, TANK:1, BTR:1,
       MORTAR:1, HEAVY_SNIPER:1, SNIPER_ELITE:1, SNIPER:1, BOMBER:1,
-      EW_OPERATOR:1, DRONE_OP:1 };
+      EW_OPERATOR:1, DRONE_OP:1, DRONE_OPERATOR:1, SNIPER_OP:1, TANK_CREW:1 };
     if (!_wvSkip[typeCfg.name] && Math.random() < 0.06) {
       try {
         var wv = Math.floor(Math.random() * 4); // 0=donkey 1=wheelchair 2=crutches 3=crawling
@@ -1619,6 +1674,101 @@ const Enemies = (() => {
           group.add(blood);
         }
       } catch (e) {}
+    }
+
+    // ── Special mesh parts for new enemy types ──────────────
+    var _typeName = typeCfg.name;
+    switch (_typeName) {
+      case 'DRONE_OPERATOR': {
+        // Hunched pose: lower torso slightly to simulate crouching
+        torso.position.y = 0.65 * s;
+        head.position.y  = 1.18 * s;
+        // Backpack with antenna
+        var _dpPack = new THREE.Mesh(
+          new THREE.BoxGeometry(0.30 * s, 0.36 * s, 0.12 * s),
+          new THREE.MeshLambertMaterial({ color: 0x3a3a2a })
+        );
+        _dpPack.position.set(0, 0.82 * s, -0.18 * s);
+        group.add(_dpPack);
+        var _dpAntenna = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.015 * s, 0.015 * s, 0.32 * s, 6),
+          new THREE.MeshLambertMaterial({ color: 0x888888 })
+        );
+        _dpAntenna.position.set(0.06 * s, 1.10 * s, -0.18 * s);
+        group.add(_dpAntenna);
+        // Controller box (flat METAL box held in both hands)
+        var _dpCtrl = new THREE.Mesh(
+          new THREE.BoxGeometry(0.22 * s, 0.08 * s, 0.12 * s),
+          new THREE.MeshLambertMaterial({ color: 0x444444 })
+        );
+        _dpCtrl.position.set(0, 0.68 * s, 0.16 * s);
+        group.add(_dpCtrl);
+        break;
+      }
+      case 'SNIPER_OP': {
+        // Ghillie suit: irregular green chunks on torso + arms
+        var _ghillieMat = new THREE.MeshLambertMaterial({ color: 0x2a4a18 });
+        var _ghilliePositions = [
+          [0, 0.92 * s, 0.14 * s, 0.18 * s, 0.12 * s, 0.06 * s],
+          [-0.14 * s, 0.88 * s, 0.10 * s, 0.12 * s, 0.10 * s, 0.05 * s],
+          [0.16 * s, 0.78 * s, 0.12 * s, 0.10 * s, 0.14 * s, 0.04 * s],
+          [0, 1.02 * s, 0.08 * s, 0.20 * s, 0.08 * s, 0.05 * s],
+        ];
+        for (var _gi = 0; _gi < _ghilliePositions.length; _gi++) {
+          var _gp = _ghilliePositions[_gi];
+          var _ghunk = new THREE.Mesh(
+            new THREE.BoxGeometry(_gp[3], _gp[4], _gp[5]),
+            _ghillieMat
+          );
+          _ghunk.position.set(_gp[0], _gp[1], _gp[2]);
+          _ghunk.rotation.z = (Math.random() - 0.5) * 0.3;
+          group.add(_ghunk);
+        }
+        // Long rifle barrel extending 0.4 units in +Z
+        var _sniperBarrel = new THREE.Mesh(
+          new THREE.BoxGeometry(0.04 * s, 0.04 * s, 0.40 * s),
+          new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
+        );
+        _sniperBarrel.position.set(0.35 * s, 0.72 * s, 0.30 * s);
+        group.add(_sniperBarrel);
+        // Bipod
+        var _bpL = new THREE.Mesh(
+          new THREE.BoxGeometry(0.005 * s, 0.10 * s, 0.005 * s),
+          new THREE.MeshLambertMaterial({ color: 0x222222 })
+        );
+        _bpL.position.set(0.33 * s, 0.64 * s, 0.44 * s);
+        _bpL.rotation.z = 0.25;
+        var _bpR = _bpL.clone();
+        _bpR.position.x = 0.37 * s;
+        _bpR.rotation.z = -0.25;
+        group.add(_bpL, _bpR);
+        break;
+      }
+      case 'TANK_CREW': {
+        // Black tanker helmet (sphere cap) replacing standard helmet
+        // Remove doesn't work easily; overlay a sphere on top of head
+        var _tankHelmet = new THREE.Mesh(
+          new THREE.SphereGeometry(0.20 * s, 8, 6),
+          new THREE.MeshLambertMaterial({ color: 0x111111 })
+        );
+        _tankHelmet.position.y = 1.56 * s;
+        group.add(_tankHelmet);
+        // Dark jumpsuit overlay (covers the torso + legs area)
+        var _jumpsuit = new THREE.Mesh(
+          new THREE.BoxGeometry(0.54 * s, 0.80 * s, 0.28 * s),
+          new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
+        );
+        _jumpsuit.position.y = 0.80 * s;
+        group.add(_jumpsuit);
+        // Pistol (short barrel in right hand)
+        var _pistolBody = new THREE.Mesh(
+          new THREE.BoxGeometry(0.05 * s, 0.08 * s, 0.10 * s),
+          new THREE.MeshLambertMaterial({ color: 0x222222 })
+        );
+        _pistolBody.position.set(0.35 * s, 0.70 * s, 0.10 * s);
+        group.add(_pistolBody);
+        break;
+      }
     }
 
     return group;

@@ -105,6 +105,14 @@ const GameManager = (function () {
   var _musicIntTimer = 0; // throttle music intensity calc
   var _buildMatHud = null; // cached DOM ref for build materials HUD
 
+  // ── Kill-cam replay effect ──
+  var _killCamActive = false;
+  var _killCamTime = 0;
+  var _killCamDuration = 2.0;
+  var _killCamStartPos = null;
+  var _killCamDeathPos = null;
+  var _killCamOverlay = null;
+
   // Footstep dust puffs (visible when sprinting)
   var _footstepPuffs = [];
   var _footstepPuffGeo = null;
@@ -5996,6 +6004,19 @@ const GameManager = (function () {
         if (CameraSystem.shake) CameraSystem.shake(0.08, 0.5);
         return;
       }
+      // ── Kill-cam replay effect: freeze movement, orbit camera, show overlay ──
+      _killCamActive = true;
+      _killCamTime = 0;
+      _killCamStartPos = _camera.position.clone();
+      _killCamDeathPos = player.position.clone();
+      // Create "KILLED" overlay
+      if (!_killCamOverlay) {
+        _killCamOverlay = document.createElement('div');
+        _killCamOverlay.id = 'kill-cam-overlay';
+        _killCamOverlay.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:64px;font-weight:bold;text-shadow:2px 2px 8px #000;pointer-events:none;z-index:999;';
+        _killCamOverlay.textContent = 'KILLED';
+        document.body.appendChild(_killCamOverlay);
+      }
       gameState = STATE.DEAD;
       if (_waveStartTimer) { clearTimeout(_waveStartTimer); _waveStartTimer = null; }
       if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
@@ -7745,6 +7766,36 @@ const GameManager = (function () {
         if (gs && !gs.reloading) {
           var gw = Weapons.getCurrent ? Weapons.getCurrent() : null;
           if (gw && gw.type !== 'MELEE') { gs.clip = gw.clipSize; gs.reserve = gw.maxReserve; }
+        }
+      }
+    }
+
+    // ── Kill-cam replay update ──
+    if (_killCamActive && gameState === STATE.DEAD) {
+      _killCamTime += delta;
+      const progress = Math.min(_killCamTime / _killCamDuration, 1.0);
+      // Orbit camera around death position: 180° yaw rotation using lerp
+      const orbitRadius = _killCamStartPos.distanceTo(_killCamDeathPos);
+      const orbitalSpeed = Math.PI * progress; // 180° over duration
+      const orbitX = _killCamDeathPos.x + Math.cos(orbitalSpeed) * orbitRadius;
+      const orbitZ = _killCamDeathPos.z + Math.sin(orbitalSpeed) * orbitRadius;
+      const orbitY = _killCamDeathPos.y + 1.5; // slightly above
+      _camera.position.set(orbitX, orbitY, orbitZ);
+      _camera.lookAt(_killCamDeathPos.x, _killCamDeathPos.y + 0.5, _killCamDeathPos.z);
+
+      // Fade "KILLED" overlay opacity
+      if (_killCamOverlay) {
+        const fadeOpacity = Math.max(0, 1.0 - progress * 1.5); // fade after 66% of duration
+        _killCamOverlay.style.opacity = fadeOpacity.toFixed(2);
+      }
+
+      // Deactivate after duration
+      if (progress >= 1.0) {
+        _killCamActive = false;
+        if (_killCamOverlay) {
+          _killCamOverlay.style.opacity = '0';
+          document.body.removeChild(_killCamOverlay);
+          _killCamOverlay = null;
         }
       }
     }

@@ -1228,6 +1228,8 @@ window.VoxelWorld = (function () {
     { id: 'SNAKE',     name: 'Snake Island Defense',  desc: '"Russian warship, go fuck yourself."', theme: 'coastal', wavesPerLevel: 6, difficulty: 1.4, fogColor: 0x4a6680, spawnCandidates: [{ x: -16, z: 0 }, { x: 16, z: 0 }, { x: 0, z: 16 }, { x: 0, z: -20 }, { x: -12, z: 12 }, { x: 12, z: -12 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SAKY',      name: 'Saky Airbase Strike',   desc: 'Crimea airbase — ground every Su-24', theme: 'coastal', wavesPerLevel: 7, difficulty: 1.7, fogColor: 0x886644, spawnCandidates: [{ x: -30, z: -20 }, { x: -20, z: -30 }, { x: 0, z: -35 }, { x: 30, z: -20 }, { x: -35, z: 10 }, { x: 35, z: 10 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'VUHLEDAR',  name: 'Vuhledar Tank Graveyard', desc: 'Bury the 155th in the minefield', theme: 'wasteland', wavesPerLevel: 8, difficulty: 1.9, fogColor: 0x4a4030, tankFocus: true, spawnCandidates: [{ x: -15, z: 12 }, { x: 15, z: 12 }, { x: 0, z: 20 }, { x: -25, z: 5 }, { x: 25, z: 5 }, { x: 0, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'AVDIIVKA', name: 'Avdiivka Coke Plant', desc: 'Industrial fortress siege', theme: 'wasteland', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x2a2218, spawnCandidates: [{ x: -15, z: -18 }, { x: 15, z: -18 }, { x: 0, z: -25 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'BUCHA',    name: 'Bucha Liberation',      desc: 'Expose the atrocities',       theme: 'urban',     wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x556655, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -22 }, { x: -30, z: 5 }, { x: 30, z: 5 }],  spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -10327,6 +10329,245 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_prokhorovka_memorial', x:ox-10, z:oz-14, w:21, d:24, baseY:h, floorH:20, floors:1, cx:ox, cz:oz });
   }
 
+  // LANDMARK: Avdiivka Coke Plant — massive Soviet-era coking facility, besieged 2022–2024
+  function generateAvdiivkaCokeHall(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main industrial hall: 40 wide x 20 deep, METAL/REINFORCED walls, 12 high
+    for (var wy = 0; wy < 12; wy++) {
+      for (var wx = 0; wx < 40; wx++) {
+        for (var wz = 0; wz < 20; wz++) {
+          var isEdge = wx === 0 || wx === 39 || wz === 0 || wz === 19;
+          var isRoof = wy === 11;
+          if (isEdge || isRoof) {
+            var blockType = (wy > 6 && isEdge) ? BLOCK.METAL : BLOCK.REINFORCED;
+            setBlock(ox + wx, base + wy, oz + wz, blockType);
+          }
+        }
+      }
+    }
+    // Collapsed north wall — rubble field
+    for (var rx = 4; rx < 36; rx++) {
+      for (var rz = -3; rz <= 0; rz++) {
+        if (Math.random() > 0.3) setBlock(ox + rx, base, oz + rz, BLOCK.RUBBLE);
+        if (Math.random() > 0.6) setBlock(ox + rx, base + 1, oz + rz, BLOCK.RUBBLE);
+      }
+      // North wall collapsed sections — gaps every 8 blocks
+      if (rx % 8 < 4) {
+        for (var cy = 0; cy < 7; cy++) setBlock(ox + rx, base + cy, oz, BLOCK.AIR);
+      }
+    }
+    // Windows along east and west walls
+    for (var wp = 3; wp < 38; wp += 5) {
+      for (var wh = 3; wh <= 7; wh++) {
+        setBlock(ox + wp, base + wh, oz, BLOCK.GLASS);
+        setBlock(ox + wp, base + wh, oz + 19, BLOCK.GLASS);
+      }
+    }
+    // 5 blast craters outside the south wall
+    var craterOffsets = [-15, -8, 0, 8, 15];
+    for (var ci = 0; ci < craterOffsets.length; ci++) {
+      var cx2 = ox + 20 + craterOffsets[ci];
+      var cz2 = oz + 24;
+      setBlock(cx2, base - 1, cz2, BLOCK.AIR);
+      setBlock(cx2, h, cz2, BLOCK.RUBBLE);
+      setBlock(cx2 + 1, h, cz2, BLOCK.RUBBLE);
+      setBlock(cx2 - 1, h, cz2, BLOCK.RUBBLE);
+      setBlock(cx2, h, cz2 + 1, BLOCK.RUBBLE);
+      setBlock(cx2, h, cz2 - 1, BLOCK.RUBBLE);
+    }
+    // Tall chimney: 1x1 REINFORCED, 30 blocks high, on SE corner
+    for (var chim = 0; chim < 30; chim++) {
+      setBlock(ox + 36, base + chim, oz + 16, BLOCK.REINFORCED);
+    }
+    setBlock(ox + 36, base + 30, oz + 16, BLOCK.METAL);  // cap
+    // Coal piles (CONCRETE mounds) along north interior
+    for (var cp = 0; cp < 3; cp++) {
+      var cpx = ox + 5 + cp * 12;
+      var cpz = oz + 3;
+      for (var cph = 0; cph < 3; cph++) {
+        for (var cpr = -2 + cph; cpr <= 2 - cph; cpr++) {
+          setBlock(cpx + cpr, base + cph, cpz + cph, BLOCK.CONCRETE);
+          setBlock(cpx + cpr, base + cph, cpz - cph, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Rusted machinery: METAL boxes (3x2x2) in the interior
+    for (var mi = 0; mi < 4; mi++) {
+      var mx = ox + 4 + mi * 9;
+      var mz = oz + 8;
+      for (var mby = 0; mby < 2; mby++) {
+        for (var mbx = 0; mbx < 3; mbx++) {
+          for (var mbz = 0; mbz < 2; mbz++) {
+            setBlock(mx + mbx, base + mby, mz + mbz, BLOCK.METAL);
+          }
+        }
+      }
+    }
+    // Large entrance opening in south wall (loading bay)
+    for (var lo = 8; lo <= 16; lo++) {
+      for (var lh = 0; lh < 6; lh++) {
+        setBlock(ox + lo, base + lh, oz + 19, BLOCK.AIR);
+      }
+    }
+    _buildings.push({ kind: 'landmark_avdiivka_coke_hall', x: ox, z: oz, w: 40, d: 20, baseY: h, floorH: 12, floors: 1, cx: ox + 20, cz: oz + 10 });
+  }
+
+  // LANDMARK: St. Andrew's Church, Bucha — Kyiv suburb, site of Russian war crimes 2022
+  function generateBuchaChurch(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Church body: 12 wide x 8 deep, PLASTER walls, 6 high
+    for (var wy = 0; wy < 6; wy++) {
+      for (var wx = 0; wx < 12; wx++) {
+        for (var wz = 0; wz < 8; wz++) {
+          var isEdge = wx === 0 || wx === 11 || wz === 0 || wz === 7;
+          if (isEdge) setBlock(ox + wx, base + wy, oz + wz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Arched windows along nave walls
+    for (var awx = 2; awx < 10; awx += 3) {
+      for (var awh = 2; awh <= 4; awh++) {
+        setBlock(ox + awx, base + awh, oz, BLOCK.GLASS);
+        setBlock(ox + awx, base + awh, oz + 7, BLOCK.GLASS);
+      }
+    }
+    // Green concrete dome over nave centre (3x3 base, tapering)
+    var domeCx = ox + 6; var domeCz = oz + 4;
+    for (var dr = -2; dr <= 2; dr++) for (var dz2 = -2; dz2 <= 2; dz2++) setBlock(domeCx + dr, base + 6, domeCz + dz2, BLOCK.CONCRETE);
+    for (var dr2 = -1; dr2 <= 1; dr2++) for (var dz3 = -1; dz3 <= 1; dz3++) setBlock(domeCx + dr2, base + 7, domeCz + dz3, BLOCK.CONCRETE);
+    setBlock(domeCx, base + 8, domeCz, BLOCK.CONCRETE);
+    // Bell tower: 3x3 PLASTER, 14 blocks high, at west end
+    for (var ty = 0; ty < 14; ty++) {
+      for (var tx = -1; tx <= 1; tx++) {
+        for (var tz = -1; tz <= 1; tz++) {
+          var isTowerEdge = Math.abs(tx) === 1 || Math.abs(tz) === 1;
+          if (isTowerEdge) setBlock(ox + tx, base + ty, oz - 2 + tz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Open arches at top of tower (floor 10-12)
+    for (var bh = 10; bh <= 12; bh++) {
+      setBlock(ox, base + bh, oz - 2, BLOCK.AIR);
+      setBlock(ox, base + bh, oz, BLOCK.AIR);
+    }
+    // LIGHT cross at apex of tower
+    setBlock(ox, base + 14, oz - 1, BLOCK.LIGHT);
+    setBlock(ox - 1, base + 13, oz - 1, BLOCK.LIGHT);
+    setBlock(ox + 1, base + 13, oz - 1, BLOCK.LIGHT);
+    // Cemetery wall: FENCE 3 high, surrounding rear of church
+    for (var fw = -3; fw <= 14; fw++) {
+      for (var fh = 0; fh < 3; fh++) {
+        setBlock(ox + fw, base + fh, oz + 12, BLOCK.FENCE);
+        setBlock(ox + fw, base + fh, oz - 5, BLOCK.FENCE);
+      }
+    }
+    for (var fd = -5; fd <= 12; fd++) {
+      for (var fh2 = 0; fh2 < 3; fh2++) {
+        setBlock(ox - 3, base + fh2, oz + fd, BLOCK.FENCE);
+        setBlock(ox + 14, base + fh2, oz + fd, BLOCK.FENCE);
+      }
+    }
+    // Cemetery gate opening (south)
+    for (var gh = 0; gh < 3; gh++) {
+      setBlock(ox + 5, base + gh, oz + 12, BLOCK.AIR);
+      setBlock(ox + 6, base + gh, oz + 12, BLOCK.AIR);
+    }
+    // 4 grave markers in churchyard — WOOD post + METAL cross
+    var graves = [{ x: 1, z: 9 }, { x: 3, z: 10 }, { x: 9, z: 9 }, { x: 11, z: 10 }];
+    for (var gi = 0; gi < graves.length; gi++) {
+      setBlock(ox + graves[gi].x, base, oz + graves[gi].z, BLOCK.WOOD);
+      setBlock(ox + graves[gi].x, base + 1, oz + graves[gi].z, BLOCK.METAL);
+      setBlock(ox + graves[gi].x - 1, base + 1, oz + graves[gi].z, BLOCK.METAL);
+      setBlock(ox + graves[gi].x + 1, base + 1, oz + graves[gi].z, BLOCK.METAL);
+    }
+    // Bomb craters in churchyard
+    for (var bci = 0; bci < 3; bci++) {
+      var bcx = ox + 2 + bci * 4;
+      var bcz = oz + 11;
+      setBlock(bcx, h, bcz, BLOCK.RUBBLE);
+      setBlock(bcx + 1, h, bcz, BLOCK.RUBBLE);
+      setBlock(bcx, h, bcz + 1, BLOCK.RUBBLE);
+    }
+    _buildings.push({ kind: 'landmark_bucha_church', x: ox - 3, z: oz - 5, w: 18, d: 18, baseY: h, floorH: 8, floors: 1, cx: ox + 6, cz: oz + 3 });
+  }
+
+  // LANDMARK: Yablunska Street, Bucha — scene of civilian massacre and destroyed vehicles
+  function generateBuchaStreet(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    // 8-wide CONCRETE road, 60 blocks long, running north-south
+    for (var rz = -30; rz <= 30; rz++) {
+      for (var rx = -4; rx <= 4; rx++) {
+        setBlock(ox + rx, h, oz + rz, BLOCK.CONCRETE);
+      }
+      // Yellow centre line every other block
+      if (rz % 4 === 0) setBlock(ox, h, oz + rz, BLOCK.WHITE_TILE);
+    }
+    // Pavement / kerb on both sides
+    for (var kz = -30; kz <= 30; kz++) {
+      setBlock(ox - 5, h, oz + kz, BLOCK.STONE);
+      setBlock(ox + 5, h, oz + kz, BLOCK.STONE);
+    }
+    // 6 destroyed/burned cars: METAL 2x4x1 boxes, placed along the road
+    var carPositions = [
+      { x: -7, z: -20, rot: 0 }, { x: 7, z: -12, rot: 1 },
+      { x: -8, z: 0,   rot: 0 }, { x: 6,  z: 8,  rot: 1 },
+      { x: -7, z: 18,  rot: 0 }, { x: 8,  z: 25, rot: 1 },
+    ];
+    for (var ci2 = 0; ci2 < carPositions.length; ci2++) {
+      var cp2 = carPositions[ci2];
+      var cl = cp2.rot === 0 ? 4 : 2;
+      var cw = cp2.rot === 0 ? 2 : 4;
+      for (var cy2 = 0; cy2 < 2; cy2++) {
+        for (var cxb = 0; cxb < cl; cxb++) {
+          for (var czb = 0; czb < cw; czb++) {
+            setBlock(ox + cp2.x + cxb, h + cy2, oz + cp2.z + czb, BLOCK.METAL);
+          }
+        }
+      }
+      // Rubble underneath some overturned cars
+      if (ci2 % 2 === 1) {
+        for (var cxb2 = 0; cxb2 < cl; cxb2++) setBlock(ox + cp2.x + cxb2, h, oz + cp2.z, BLOCK.RUBBLE);
+      }
+    }
+    // Burned house ruins (BRICK shells with RUBBLE interior) on both sides
+    var housePositions = [
+      { x: -18, z: -22 }, { x: 12, z: -18 },
+      { x: -20, z: 5  }, { x: 14, z: 10  },
+    ];
+    for (var hi2 = 0; hi2 < housePositions.length; hi2++) {
+      var hp = housePositions[hi2];
+      var hw = 8; var hd = 6;
+      // Brick shell walls, only partial (50% chance per block)
+      for (var hy = 0; hy < 5; hy++) {
+        for (var hx = 0; hx < hw; hx++) {
+          for (var hz = 0; hz < hd; hz++) {
+            var isWall = hx === 0 || hx === hw - 1 || hz === 0 || hz === hd - 1;
+            if (isWall && Math.random() > 0.35) {
+              setBlock(ox + hp.x + hx, h + hy, oz + hp.z + hz, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+      // Rubble fill
+      for (var rxi = 1; rxi < hw - 1; rxi++) {
+        for (var rzi2 = 1; rzi2 < hd - 1; rzi2++) {
+          setBlock(ox + hp.x + rxi, h, oz + hp.z + rzi2, BLOCK.RUBBLE);
+        }
+      }
+    }
+    // Shell craters every 8 blocks along the street
+    for (var scz = -24; scz <= 24; scz += 8) {
+      var scOff = (scz % 16 === 0) ? -6 : 6;
+      setBlock(ox + scOff, h, oz + scz, BLOCK.RUBBLE);
+      setBlock(ox + scOff + 1, h, oz + scz, BLOCK.RUBBLE);
+      setBlock(ox + scOff, h, oz + scz + 1, BLOCK.RUBBLE);
+      setBlock(ox + scOff - 1, h, oz + scz, BLOCK.RUBBLE);
+      setBlock(ox + scOff, h - 1, oz + scz, BLOCK.AIR);
+    }
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -11468,6 +11709,36 @@ window.VoxelWorld = (function () {
       generateAntiAirPosition(35, -35);
       generateDefensivePosition(-10, 40);
       generateDefensivePosition(10, 40);
+    } else if (level.id === 'AVDIIVKA') {
+      // Avdiivka — industrial city completely destroyed by Russian forces, fell Feb 2024
+      // Avdiivka Coke Plant (huge Soviet-era coking facility) and urban ruins
+      generateAvdiivkaCokeHall(0, -10);
+      generateAvdiivkaCokeHall(25, 10);       // second complex section
+      // Fortifications
+      generateBunker(-20, -20); generateBunker(20, -20); generateBunker(-20, 20); generateBunker(20, 20);
+      generateTrenchNetwork(-15, 15); generateTrenchNetwork(15, -15);
+      generateBurningRuin(-35, 0); generateBurningRuin(35, 5); generateBurningRuin(0, -40);
+      generateWreckedTank(-28, -32); generateWreckedAPC(22, 28);
+      generateMortarPit(-30, 12); generateMortarPit(28, -14);
+      generateAntiTankHedgehogs(20);
+      generateCraters(12);
+      generateDroneNest(45, 45); generateDroneNest(-45, -45);
+      generateAntiAirPosition(-35, 35); generateAntiAirPosition(35, -35);
+    } else if (level.id === 'BUCHA') {
+      // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022
+      // St. Andrew's Church cemetery mass burial, Yablunska Street massacres
+      generateBuchaChurch(-15, 5);
+      generateBuchaStreet(0, -10);
+      generateUkrainianApartment(-30, -20, 5); generateUkrainianApartment(25, -22, 4);
+      generateUkrainianApartment(-32, 12, 4); generateUkrainianApartment(28, 15, 5);
+      generateBurningRuin(-18, -30); generateBurningRuin(15, 25);
+      generateBurningRuin(-35, -8); generateBurningRuin(32, -18);
+      generateWreckedTank(-22, 18); generateWreckedAPC(20, -28);
+      generateWreckedConvoy(0, 35); generateWreckedTruck(-30, 30);
+      generateCraters(8);
+      generateBunker(-20, -20); generateBunker(20, 20);
+      generateCheckpoint(0, -40, false);
+      generateDroneNest(45, 40); generateDroneNest(-45, -38);
     } else if (level.id === 'BELGOROD') {
       // Belgorod Oblast offensive — Russian border region, the fight taken to the aggressor
       // Russian border villages, military depots, border crossing fortifications
