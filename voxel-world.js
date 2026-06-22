@@ -1218,12 +1218,12 @@ window.VoxelWorld = (function () {
     { id: 'MARIUPOL',  name: 'Mariupol Steelworks',  desc: 'Fight through Azovstal',      theme: 'industrial', wavesPerLevel: 7, difficulty: 2.2, fogColor: 0x1a1a20, spawnCandidates: [{ x: -12, z: -28 }, { x: 12, z: -28 }, { x: 0, z: -35 }, { x: -30, z: 8 }, { x: 30, z: 8 }, { x: -30, z: -20 }, { x: 30, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'CRIMEA',    name: 'Crimea Bridge',        desc: 'Cut the supply line',         theme: 'coastal',   wavesPerLevel: 7, difficulty: 2.5, fogColor: 0x5577aa, spawnCandidates: [{ x: -20, z: -30 }, { x: 20, z: -30 }, { x: -35, z: -15 }, { x: 35, z: -15 }, { x: 0, z: -42 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'CHORNOBYL', name: 'Chornobyl Zone',       desc: 'Irradiated exclusion zone',   theme: 'wasteland', wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x3a3520, spawnCandidates: [{ x: -18, z: -25 }, { x: 18, z: -25 }, { x: 0, z: -32 }, { x: -28, z: -12 }, { x: 28, z: -12 }, { x: -15, z: -40 }, { x: 15, z: -40 }], spawnLookTarget: { x: 0, z: 0 } },
-    { id: 'MOSCOW',    name: 'Moscow Finale',        desc: 'End it at the Kremlin',       theme: 'cityscape', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x222228, spawnCandidates: [{ x: 0, z: 0 }, { x: 0, z: -35 }, { x: 0, z: 35 }, { x: -18, z: 0 }, { x: 18, z: 0 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'MOSCOW',    name: 'Moscow Finale',        desc: 'End it at the Kremlin',       theme: 'cityscape', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x4A1942, spawnCandidates: [{ x: 0, z: 0 }, { x: 0, z: -35 }, { x: 0, z: 35 }, { x: -18, z: 0 }, { x: 18, z: 0 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SEVASTOPOL', name: 'Sevastopol Naval Base', desc: 'Destroy the Black Sea Fleet', theme: 'coastal',  wavesPerLevel: 7, difficulty: 3.8, fogColor: 0x3355aa, spawnCandidates: [{ x: -15, z: 8 }, { x: 15, z: 5 }, { x: 0, z: -18 }, { x: -18, z: -10 }, { x: 18, z: -10 }, { x: -35, z: 8 }, { x: 35, z: 5 }], spawnLookTarget: { x: 0, z: 20 } },
     { id: 'DONBAS',    name: 'Donbas Final Push',     desc: 'Liberate the last stronghold', theme: 'urban',   wavesPerLevel: 8, difficulty: 4.2, fogColor: 0x2a2020, spawnCandidates: [{ x: -20, z: -12 }, { x: 20, z: -12 }, { x: 0, z: -20 }, { x: -35, z: 0 }, { x: 35, z: 0 }, { x: -15, z: 15 }, { x: 15, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KHARKIV', name: 'Kharkiv Under Fire', desc: 'Defend Ukraine\'s 2nd city under constant bombardment', theme: 'urban', wavesPerLevel: 10, difficulty: 3.8, fogColor: 0x443322, spawnCandidates: [{ x: -20, z: -18 }, { x: 20, z: -18 }, { x: 0, z: -28 }, { x: -30, z: 5 }, { x: 30, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'BELGOROD',  name: 'Belgorod Offensive',    desc: 'Cross into enemy territory',   theme: 'grassland', wavesPerLevel: 8, difficulty: 4.6, fogColor: 0x6B1A2E, spawnCandidates: [{ x: -15, z: -12 }, { x: 15, z: -12 }, { x: 0, z: -20 }, { x: -30, z: -5 }, { x: 30, z: -5 }, { x: -12, z: 15 }, { x: 12, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
-    { id: 'KREMLIN',   name: 'Kremlin Showdown',      desc: 'The final battle for peace',   theme: 'cityscape', wavesPerLevel: 10, difficulty: 5.0, fogColor: 0x111118, spawnCandidates: [{ x: -18, z: 52 }, { x: 18, z: 52 }, { x: -32, z: 22 }, { x: 32, z: 22 }, { x: 0, z: 55 }, { x: -32, z: -10 }, { x: 32, z: -10 }, { x: 0, z: -25 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KREMLIN',   name: 'Kremlin Showdown',      desc: 'The final battle for peace',   theme: 'cityscape', wavesPerLevel: 10, difficulty: 5.0, fogColor: 0x4A1942, spawnCandidates: [{ x: -18, z: 52 }, { x: 18, z: 52 }, { x: -32, z: 22 }, { x: 32, z: 22 }, { x: 0, z: 55 }, { x: -32, z: -10 }, { x: 32, z: -10 }, { x: 0, z: -25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KYIV',      name: 'Siege of Kyiv',         desc: 'Ambush the Russian armored convoy', theme: 'urban', wavesPerLevel: 8, difficulty: 1.5, fogColor: 0x6a7080, tankFocus: true, spawnCandidates: [{ x: 0, z: -24 }, { x: -8, z: -24 }, { x: 8, z: -24 }, { x: -4, z: -28 }, { x: 4, z: -28 }], spawnLookTarget: { x: 0, z: 22 } },
     { id: 'SNAKE',     name: 'Snake Island Defense',  desc: '"Russian warship, go fuck yourself."', theme: 'coastal', wavesPerLevel: 6, difficulty: 1.4, fogColor: 0x4a6680, spawnCandidates: [{ x: -16, z: 0 }, { x: 16, z: 0 }, { x: 0, z: 16 }, { x: 0, z: -20 }, { x: -12, z: 12 }, { x: 12, z: -12 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SAKY',      name: 'Saky Airbase Strike',   desc: 'Crimea airbase — ground every Su-24', theme: 'coastal', wavesPerLevel: 7, difficulty: 1.7, fogColor: 0x886644, spawnCandidates: [{ x: -30, z: -20 }, { x: -20, z: -30 }, { x: 0, z: -35 }, { x: 30, z: -20 }, { x: -35, z: 10 }, { x: 35, z: 10 }], spawnLookTarget: { x: 0, z: 0 } },
@@ -20312,18 +20312,19 @@ window.VoxelWorld = (function () {
   }
 
   function generateLevel(index) {
-    const level = getLevelDef(index);
+    var level = getLevelDef(index);
     setTheme(level.theme);
     _theme.seed = index * 3137;
 
     // Russian-territory levels get red-purple-white terrain palette instead of Ukrainian blue
-    const RUSSIAN_LEVELS = ['MOSCOW', 'KREMLIN', 'BELGOROD', 'KURSK'];
-    if (RUSSIAN_LEVELS.includes(level.id)) {
-      BLOCK_COLORS[BLOCK.GRASS] = 0x8B1A4A;  // deep rose-red (Russian flag red)
-      BLOCK_COLORS[BLOCK.DIRT]  = 0x5C2A3A;  // dark reddish earth
-    } else {
-      BLOCK_COLORS[BLOCK.GRASS] = 0x005BBB;  // restore Ukrainian blue
-      BLOCK_COLORS[BLOCK.DIRT]  = 0x7A5A3A;  // restore normal dirt
+    var RUSSIAN_LEVELS = ['MOSCOW', 'KREMLIN', 'BELGOROD', 'KURSK'];
+    // reset to Ukrainian/default colors
+    BLOCK_COLORS[BLOCK.GRASS] = 0x005BBB;  // restore Ukrainian blue
+    BLOCK_COLORS[BLOCK.DIRT]  = 0x7A5A3A;  // restore normal dirt
+    // override for Russian territory
+    if (RUSSIAN_LEVELS.indexOf(level.id) !== -1) {
+      BLOCK_COLORS[BLOCK.GRASS] = 0x8B2252;  // dark rose-red for Russian territory
+      BLOCK_COLORS[BLOCK.DIRT]  = 0x5C1A38;  // darker reddish dirt
     }
 
     regenerate();
