@@ -1231,7 +1231,7 @@ window.VoxelWorld = (function () {
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
-  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy','Poltava','Kursk','Lviv','Kramatorsk','Donetsk','Luhansk','Vinnytsia','Melitopol','Berdiansk','Zhytomyr'];
+  const PROC_CITIES = ['Mariupol','Severodonetsk','Lysychansk','Bucha','Irpin','Izium','Kupyansk','Robotyne','Vuhledar','Kharkiv','Odessa','Zaporizhzhia','Mykolaiv','Dnipro','Chernihiv','Sumy','Poltava','Kursk','Lviv','Kramatorsk','Donetsk','Luhansk','Vinnytsia','Melitopol','Berdiansk','Zhytomyr','Sloviansk','Pokrovsk','Rivne','Ternopil'];
 
   function getLevelDef(index) {
     if (index >= 0 && index < LEVELS.length) return LEVELS[index];
@@ -12485,6 +12485,209 @@ window.VoxelWorld = (function () {
         generateWreckedTank(-12, -24);
         generateWreckedAPC(18, 16);
         generateWreckedConvoy(-34, 24);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Sloviansk') {
+        // Sloviansk — where the Donbas war began April 12, 2014; Strelkov/"Igor Girkin" seized the
+        // city administration and police HQ; Ukrainian forces retook it June 5, 2014 after 54-day siege
+        // Famous for therapeutic salt lakes (mined since 1625); key eastern Donetsk hub
+        generateChurch(-22, -18);                     // Cathedral of the Holy Resurrection (1828, neoclassical)
+        generateChurch(18, 10);                       // St. Nicholas Church (used as Strelkov command post 2014)
+        generateChurch(-10, 22);                      // Church of Intercession (historic center)
+        generateSovietAdminBuilding(0, -28);          // Sloviansk City Administration (seized April 12, 2014)
+        generateLuxuryVilla(-8, -42, 14, 10);         // Sloviansk Regional HQ (barricaded during 2014 siege)
+        generateUkrainianApartment(-35, -32, 8);
+        generateUkrainianApartment(-35, -52, 7);
+        generateUkrainianApartment(30, -35, 8);
+        generateUkrainianApartment(30, -55, 7);
+        generateUkrainianApartment(-18, -62, 6);
+        generateUkrainianApartment(18, -62, 6);
+        generateUkrainianApartment(-50, -18, 5);
+        generateUkrainianApartment(42, -20, 5);
+        generateSaltMine(-40, 35);                    // Sloviansk salt deposit (mined since 1625)
+        generateSaltMine(38, -38);                    // Karlovka salt works
+        generateIndustrialComplex(-40, -40);          // Slovianska DRES thermal power plant
+        generateCommTower(10, -48);                   // TV tower (seized by separatists April 14, 2014)
+        generateTrainStation(38, 22);                 // Sloviansk railway station (key supply line)
+        generateRailway(20, 12, 40, false);
+        generateRailway(-5, -5, 38, true);
+        generateWaterTower(-44, 20);
+        generateBridge(0, 20, 28, 4);                 // Kazenny Torets River crossing
+        generateGrainSilo(34, 40);
+        generatePowerLines(0, 0, 4);
+        generateArtilleryBattery(-45, 45);            // Ukrainian artillery during 2014 recapture
+        generateArtilleryBattery(40, -46);
+        generateAntiAirPosition(-42, -40);
+        generateAntiAirPosition(38, 42);
+        generateBunker(-22, 22);
+        generateBunker(22, -22);
+        generateTrenchNetwork(-14, 14);
+        generateTrenchNetwork(14, -14);
+        generateBurningRuin(-25, -30);                // Battle damage from 2014 siege and 2022 shelling
+        generateBurningRuin(22, 18);
+        generateBurningRuin(-38, 28);
+        generateBurningRuin(34, -28);
+        generateCraters(14);
+        generateWreckedTank(-14, -22);                // Russian separatist T-64s
+        generateWreckedAPC(12, 16);
+        generateWreckedConvoy(-32, 24);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Pokrovsk') {
+        // Pokrovsk — critical Ukrainian logistics hub in western Donetsk Oblast
+        // Protecting Pokrovsk is existential for the entire front; main supply artery 2024
+        // Previously Krasnoarmiisk (renamed 2016); coal mining and chemical production
+        generateChurch(-24, -15);                     // Pokrovsk Holy Protection Cathedral
+        generateChurch(20, 12);                       // St. Michael's Church
+        generateSovietAdminBuilding(0, -30);          // Pokrovsk City Administration
+        generateUkrainianApartment(-35, -35, 8);
+        generateUkrainianApartment(-35, -55, 7);
+        generateUkrainianApartment(28, -38, 8);
+        generateUkrainianApartment(28, -58, 7);
+        generateUkrainianApartment(-18, -65, 6);
+        generateUkrainianApartment(15, -65, 6);
+        generateUkrainianApartment(-50, -12, 5);
+        generateUkrainianApartment(42, -15, 5);
+        generateMineShaftTower(-38, 35);              // Coal mine elevator shaft
+        generateMineShaftTower(36, -42);              // Second coal mine shaft
+        generateTerikon(-42, 30);                     // Coal spoil heap (terikon)
+        generateTerikon(40, -36);                     // Second terikon
+        generateCoalWashingPlant(-35, -42);           // Central coal washing facility
+        generateIndustrialComplex(32, 35);            // Chemical plant (Dobropillia-Pavlograd enterprise)
+        generateTrainStation(38, 18);                 // Pokrovsk railway junction (critical supply artery)
+        generateRailway(20, 8, 42, false);
+        generateRailway(-8, 0, 40, true);             // Perpendicular line — rail junction
+        generateRailway(-8, -8, 30, false);           // Branch line to Donetsk front
+        generateGrainSilo(-40, -24);
+        generateWaterTower(-42, 16);
+        generateCommTower(5, -50);
+        generateFuelDepot(-30, 32);                   // Forward fuel depot for Ukrainian armored units
+        generateAmmoDepot(28, -32);                   // Ammunition pre-position for Donetsk front
+        generatePowerLines(0, 0, 5);
+        generateArtilleryBattery(-44, -48);           // Heavy defensive fortifications (2024 front-line)
+        generateArtilleryBattery(42, 44);
+        generateArtilleryBattery(-44, 44);
+        generateAntiAirPosition(-40, 38);
+        generateAntiAirPosition(36, -44);
+        generateBunker(-24, 22);
+        generateBunker(22, -24);
+        generateBunker(-20, -30);
+        generateTrenchNetwork(-15, 12);
+        generateTrenchNetwork(15, -12);
+        generateBurningRuin(-22, -28);                // 2024 frontline battle damage (one of most shelled cities)
+        generateBurningRuin(20, 20);
+        generateBurningRuin(-40, -30);
+        generateBurningRuin(36, -30);
+        generateBurningRuin(-18, 28);
+        generateCraters(18);                          // Heavy Russian artillery and Shahed drone strikes
+        generateWreckedTank(-16, -24);
+        generateWreckedTank(14, 18);
+        generateWreckedAPC(-30, 28);
+        generateWreckedConvoy(32, -30);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Rivne') {
+        // Rivne — western Ukraine regional center; site of Rivne NPP (2nd largest in Ukraine, 4 VVER reactors)
+        // Russian column advanced toward Rivne through Belarus in Feb 2022; city hit by Kalibr missiles
+        // Rivne NPP continues operating (unlike Zaporizhzhia); critical for Ukrainian power grid
+        generateCoolingTower(-18, -5);                // Rivne NPP cooling tower unit 1+2
+        generateCoolingTower(18, -5);                 // Rivne NPP cooling tower unit 3+4
+        generateIndustrialComplex(-25, -20);          // RNPP reactor hall (VVER-440 units 1&2)
+        generateIndustrialComplex(22, -22);           // RNPP reactor hall (VVER-1000 units 3&4)
+        generateRefineryDistillationTower(-30, -30);  // NPP turbine hall
+        generateRefineryDistillationTower(28, -30);   // NPP auxiliary systems
+        generateCommTower(0, -48);                    // NPP control & communications tower
+        generateChurch(-28, -8);                      // Cathedral of the Assumption (neoclassical)
+        generateChurch(22, 5);                        // St. Michael's Cathedral (18th century)
+        generateChurch(-15, 18);                      // Church of the Nativity of Christ
+        generateSovietAdminBuilding(0, -22);          // Rivne Regional State Administration
+        generateLuxuryVilla(-5, -35, 12, 9);          // Rivne City Council (neo-baroque)
+        generateUkrainianApartment(-38, -35, 9);
+        generateUkrainianApartment(-38, -55, 7);
+        generateUkrainianApartment(30, -38, 9);
+        generateUkrainianApartment(30, -58, 7);
+        generateUkrainianApartment(-18, -68, 6);
+        generateUkrainianApartment(18, -68, 6);
+        generateUkrainianApartment(-52, -15, 5);
+        generateUkrainianApartment(44, -18, 5);
+        generateTrainStation(38, 30);                 // Rivne Central Station (Warsaw-Kyiv corridor)
+        generateRailway(20, 18, 42, false);
+        generateBridge(0, 25, 32, 4);                 // Ustye River bridge (Rivne bypass)
+        generateGrainSilo(-40, -22);
+        generateWaterTower(-46, 18);
+        generateFuelDepot(-32, 35);                   // Fuel reserve (NATO supply corridor)
+        generateAmmoDepot(30, -36);
+        generatePowerLines(-5, -5, 6);                // NPP transmission lines
+        generateAntiAirPosition(-38, -42);            // NPP air defense (critical infrastructure)
+        generateAntiAirPosition(34, 40);
+        generateAntiAirPosition(-38, 40);             // Third SAM battery protecting NPP
+        generateArtilleryBattery(-44, -50);
+        generateArtilleryBattery(42, 46);
+        generateBunker(-22, 22);
+        generateBunker(22, -22);
+        generateTrenchNetwork(-14, 12);
+        generateTrenchNetwork(14, -12);
+        generateBurningRuin(-25, -28);                // Kalibr missile strikes on city infrastructure
+        generateBurningRuin(22, 18);
+        generateBurningRuin(38, -28);
+        generateCraters(10);
+        generateWreckedTank(-14, -22);
+        generateWreckedAPC(12, 16);
+        generateWreckedConvoy(-32, 24);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Ternopil') {
+        // Ternopil — western Ukraine, former Habsburg crown land; important transit hub
+        // City-fortress built 1540; famous for island castle on Ternopil Pond; large diaspora
+        // Received Russian ballistic missile and Shahed attacks on energy infrastructure 2022-2023
+        generateKerchFortress(-5, 10);                // Ternopil Castle (1540 island fortress, reused model)
+        generateChurch(-25, -12);                     // Immaculate Conception Cathedral (Dominican, 16th c.)
+        generateChurch(20, 8);                        // Nativity of Christ Cathedral (Orthodox)
+        generateChurch(-12, 22);                      // Greek Catholic St. Michael's Cathedral
+        generateChurch(28, -22);                      // St. Anne's Church (Gothic-Renaissance, 1549)
+        generateLuxuryVilla(-5, -32, 16, 12);         // Ternopil Regional Administration (Habsburg-era)
+        generateSovietAdminBuilding(0, -22);          // Ternopil City Council
+        generateUkrainianApartment(-35, -32, 8);
+        generateUkrainianApartment(-35, -52, 7);
+        generateUkrainianApartment(28, -35, 8);
+        generateUkrainianApartment(28, -55, 7);
+        generateUkrainianApartment(-18, -62, 6);
+        generateUkrainianApartment(18, -62, 6);
+        generateUkrainianApartment(-50, -15, 5);
+        generateUkrainianApartment(42, -18, 5);
+        generateBridge(0, 18, 38, 5);                 // Ternopil Pond dam bridge (iconic landmark)
+        generateTrainStation(36, 28);                 // Ternopil Central Station (NATO supply transit)
+        generateRailway(18, 15, 40, false);
+        generateWaterTower(-44, 20);
+        generateCommTower(8, -48);                    // Transmission tower (struck by Shahed Oct 2022)
+        generateGrainSilo(-38, -22);
+        generateIndustrialComplex(-40, 35);           // Sugar refinery (Ternopil historically sugar production)
+        generateIndustrialComplex(35, -40);           // Ternopil machine-building plant
+        generateFuelDepot(-30, 30);                   // Fuel transit depot (supply lines to front)
+        generatePowerLines(0, 0, 4);
+        generateAntiAirPosition(-36, -40);            // Air defense (protecting NATO supply corridor)
+        generateAntiAirPosition(32, 38);
+        generateArtilleryBattery(-42, 44);
+        generateArtilleryBattery(40, -44);
+        generateBunker(-20, 20);
+        generateBunker(20, -20);
+        generateTrenchNetwork(-14, 12);
+        generateTrenchNetwork(14, -12);
+        generateBurningRuin(-22, -26);                // Infrastructure strike damage
+        generateBurningRuin(20, 16);
+        generateBurningRuin(-38, 30);
+        generateCraters(8);
+        generateWreckedCar(-12, -30);
+        generateWreckedTruck(10, 18);
+        generateWreckedConvoy(-28, 20);
         generateDroneNest(48, 48);
         generateDroneNest(-48, -48);
         generateDroneNest(48, -48);
