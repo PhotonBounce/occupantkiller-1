@@ -2281,6 +2281,17 @@ const GameManager = (function () {
           if (typeof NightVision !== 'undefined') NightVision.toggle();
         }
 
+        // Gas Mask toggle (T key — only when not in drone/vehicle, normal gameplay)
+        if (e.code === 'KeyT' && !DroneSystem.isPossessing() && !VehicleSystem.isInVehicle() && gameState === STATE.PLAYING) {
+          if (window.GasMask) {
+            if (GasMask.isAvailable()) {
+              GasMask.isEquipped() ? GasMask.unequip() : GasMask.equip();
+            } else {
+              if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('No gas mask', '#888888');
+            }
+          }
+        }
+
         // Dolphin dive (Ctrl while sprinting)
         if (e.code === 'ControlLeft' && player.sprinting && typeof Traversal !== 'undefined') {
           var fwdDir = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
@@ -3337,6 +3348,7 @@ const GameManager = (function () {
     if (window.ClaymoreMines) ClaymoreMines.reset();
     if (window.RadioSupport) RadioSupport.reset();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.reset();
+    if (window.GasMask) GasMask.reset();
     if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
     window._killstreakTimeScale = 1.0;
     window._killstreakHealthRegen = 0;
@@ -3640,6 +3652,7 @@ const GameManager = (function () {
     if (window.ClaymoreMines) ClaymoreMines.clear();
     if (window.RadioSupport) RadioSupport.clear();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
+    if (window.GasMask) GasMask.clear();
     if (window.MeleeKnife) MeleeKnife.clear();
     window.VoxelWorld.generateLevel(stageIndex);
 
@@ -5203,35 +5216,57 @@ const GameManager = (function () {
       if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playLevelComplete) window.AudioSystem.playLevelComplete();
       // Daily challenges: record level complete
       try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordLevel(); } catch (eDCL) {}
-      showOverlay('stageclear');
-      var _scn = document.getElementById('stageclear-num');   if (_scn) _scn.textContent = stageDef.id;
-      var _scna = document.getElementById('stageclear-name'); if (_scna) _scna.textContent = stageDef.name;
-      var _scs = document.getElementById('stageclear-score'); if (_scs) _scs.textContent = player.score;
-      var _sck = document.getElementById('stageclear-kills'); if (_sck) _sck.textContent = player.kills;
 
-      // Show heal preview
-      const missingHp = player.maxHp - player.hp;
-      const healAmount = Math.ceil(missingHp * 0.5);
-      const healEl = document.getElementById('stageclear-heal');
-      if (healEl) {
-        healEl.textContent = healAmount > 0
-          ? '❤ +' + healAmount + ' HP will be restored'
-          : '❤ Full health!';
+      // ── Mission Debrief (shown before stage-clear overlay) ──────────────
+      var _debriefAcc = (player.stageShots || 0) > 0
+        ? Math.round(((player.stageHits || 0) / (player.stageShots || 1)) * 100) : 0;
+      var _debriefStats = {
+        levelName: stageDef ? stageDef.name : 'UNKNOWN',
+        kills: player.kills || 0,
+        totalEnemies: player.kills || 0,
+        headshots: player.stageHeadshots || player.totalHeadshots || 0,
+        accuracy: _debriefAcc,
+        timeSeconds: Math.floor((_levelStartTime ? (Date.now() - _levelStartTime) / 1000 : 0)),
+        score: player.score || 0,
+        medals: window._lastWaveMedals || []
+      };
+      function _showStageClearOverlay() {
+        showOverlay('stageclear');
+        var _scn = document.getElementById('stageclear-num');   if (_scn) _scn.textContent = stageDef.id;
+        var _scna = document.getElementById('stageclear-name'); if (_scna) _scna.textContent = stageDef.name;
+        var _scs = document.getElementById('stageclear-score'); if (_scs) _scs.textContent = player.score;
+        var _sck = document.getElementById('stageclear-kills'); if (_sck) _sck.textContent = player.kills;
+        // Show heal preview
+        var missingHp = player.maxHp - player.hp;
+        var healAmount = Math.ceil(missingHp * 0.5);
+        var healEl = document.getElementById('stageclear-heal');
+        if (healEl) {
+          healEl.textContent = healAmount > 0
+            ? '❤ +' + healAmount + ' HP will be restored'
+            : '❤ Full health!';
+        }
+        var nextStageDef = STAGES[currentStage + 1];
+        var _scnn = document.getElementById('stageclear-next-name');   if (_scnn) _scnn.textContent = nextStageDef ? nextStageDef.name : 'VICTORY';
+        var _scnl = document.getElementById('stageclear-next-label');  if (_scnl) _scnl.style.display = nextStageDef ? '' : 'none';
+        // Defensive: ensure no lingering auto-countdown can bypass stage clear
+        if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
+        // Show perk select overlay after stage clear (300ms delay so stage clear screen shows first)
+        if (typeof Perks !== 'undefined') {
+          setTimeout(function() {
+            if (typeof HUD !== 'undefined' && HUD.hide) HUD.hide(); // hide HUD temporarily
+            Perks.showPerkSelect(player, function(perkId) {
+              if (typeof HUD !== 'undefined' && HUD.show) HUD.show(); // restore HUD
+            });
+          }, 1800);
+        }
       }
-
-      const nextStageDef = STAGES[currentStage + 1];
-      var _scnn = document.getElementById('stageclear-next-name');   if (_scnn) _scnn.textContent = nextStageDef ? nextStageDef.name : 'VICTORY';
-      var _scnl = document.getElementById('stageclear-next-label');  if (_scnl) _scnl.style.display = nextStageDef ? '' : 'none';
-      // Defensive: ensure no lingering auto-countdown can bypass stage clear
-      if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
-      // Show perk select overlay after stage clear (300ms delay so stage clear screen shows first)
-      if (typeof Perks !== 'undefined') {
-        setTimeout(function() {
-          if (typeof HUD !== 'undefined' && HUD.hide) HUD.hide(); // hide HUD temporarily
-          Perks.showPerkSelect(player, function(perkId) {
-            if (typeof HUD !== 'undefined' && HUD.show) HUD.show(); // restore HUD
-          });
-        }, 1800);
+      if (window.MissionDebrief) {
+        MissionDebrief.show(_debriefStats, function() {
+          _showStageClearOverlay();
+        });
+      } else {
+        // Fallback: original flow without debrief
+        _showStageClearOverlay();
       }
       return;
     }
@@ -7597,9 +7632,18 @@ const GameManager = (function () {
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
       if (window.ClaymoreMines) { var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; ClaymoreMines.update(delta, player.position, _allEnemies); }
       if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
+      if (window.GasMask) GasMask.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);
       if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
-      if (typeof HazardZones !== 'undefined') HazardZones.update(delta, player.position, player);
+      if (typeof HazardZones !== 'undefined') {
+        var _preHazardHp = player.hp;
+        HazardZones.update(delta, player.position, player);
+        // Gas mask: if equipped and in gas zone, block damage and speed penalty
+        if (window.GasMask && GasMask.interceptGasDamage()) {
+          player.hp = _preHazardHp;
+          window._hazardSlowFactor = 1.0;
+        }
+      }
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
       if (window.MeleeKnife) MeleeKnife.update(delta);
