@@ -1959,8 +1959,12 @@ const GameManager = (function () {
                   HUD.notifyPickup('🚗 ENTERED VEHICLE', '#44ff44');
                 }
               } else {
-                // No nearby vehicle: fall back to throwing a hand grenade
-                throwHandGrenade();
+                // No nearby vehicle: place IED if available, else throw grenade
+                if (window.TripwireIED) {
+                  TripwireIED.placeIED(player.position, _camera.rotation.y);
+                } else {
+                  throwHandGrenade();
+                }
               }
             }
           }
@@ -3403,6 +3407,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.LootDrops) LootDrops.reset();
     if (window.WaveEvents) WaveEvents.reset();
     if (window.MortarEmplacement && MortarEmplacement.reset) MortarEmplacement.reset();
     if (window.BountySystem) BountySystem.reset();
@@ -3727,6 +3732,7 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.LootDrops) LootDrops.clear();
     if (window.BountySystem) BountySystem.clear();
     if (window.Destructibles) Destructibles.clear();
     if (window.VehicleEnemies) VehicleEnemies.clear();
@@ -3735,6 +3741,7 @@ const GameManager = (function () {
     if (window.BloodEffects) BloodEffects.clear();
     if (window.DamageNumbers) DamageNumbers.clear();
     if (window.ClaymoreMines) ClaymoreMines.clear();
+    if (window.TripwireIED) TripwireIED.clear();
     if (window.RadioSupport) RadioSupport.clear();
     if (window.CompanionRadio && CompanionRadio.clear) CompanionRadio.clear();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
@@ -6215,6 +6222,7 @@ const GameManager = (function () {
       if (window.RadioSupport) RadioSupport.onKill();
       if (typeof ArmorSystem !== 'undefined' && enemy && enemy.mesh) ArmorSystem.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z);
       if (window.GasMask && enemy && enemy.mesh) GasMask.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z, typeof STAGES !== 'undefined' && STAGES[currentStage] ? STAGES[currentStage].id : '');
+      if (window.LootDrops && enemy && enemy.mesh) LootDrops.spawnLoot(enemy.mesh.position, enemy.type);
       if (typeof KillStreak !== 'undefined') KillStreak.onKill();
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
@@ -7793,6 +7801,7 @@ const GameManager = (function () {
       if (window.ClaymoreMines) { var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; ClaymoreMines.update(delta, player.position, _allEnemies); }
       if (window.TripwireIED) { var _iedEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; TripwireIED.update(_iedEnemies, delta); }
       if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
+      if (window.LootDrops) LootDrops.update(delta);
       if (window.GasMask) GasMask.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);
       if (window.WeatherEffects) WeatherEffects.update(delta, player.position);

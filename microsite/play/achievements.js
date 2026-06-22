@@ -52,6 +52,28 @@ window.Achievements = (function () {
     PERFECT_WAVE:   { id: 'PERFECT_WAVE',   name: 'Perfect Wave',        desc: 'Complete a wave with 100% headshot accuracy', icon: '🎯', unlocked: false },
     DRONE_ACE_NEW:  { id: 'DRONE_ACE_NEW',  name: 'Drone Ace',           desc: 'Destroy 10 enemies using drones',         icon: '🚁', unlocked: false },
     SURVIVOR_1HP:   { id: 'SURVIVOR_1HP',   name: 'By A Thread',         desc: 'Complete a wave with 1 HP remaining',     icon: '❤️', unlocked: false },
+
+    /* ── New achievements ─────────────────────────────────────── */
+    FIRST_BLOOD_NEW: { id: 'FIRST_BLOOD_NEW', name: 'First Blood',        desc: 'Score your first kill',                   icon: '🩸', unlocked: false },
+    VETERAN_WAVES:   { id: 'VETERAN_WAVES',   name: 'Wave Veteran',       desc: 'Survive 20 waves',                        icon: '🎖️', unlocked: false },
+    IRON_WILL:       { id: 'IRON_WILL',       name: 'Iron Will',          desc: 'Complete a level with only 5 HP remaining', icon: '🛡️', unlocked: false },
+    SILENT_APPROACH: { id: 'SILENT_APPROACH', name: 'Silent Approach',    desc: 'Kill 10 enemies with the knife',          icon: '🔪', unlocked: false },
+    DRAGON_SLAYER:   { id: 'DRAGON_SLAYER',   name: 'Dragon Slayer',      desc: 'Defeat 5 boss enemies',                   icon: '🐉', unlocked: false },
+    SPRAY_N_PRAY:    { id: 'SPRAY_N_PRAY',    name: 'Spray \'n\' Pray',  desc: 'Fire 1000 rounds in one session',         icon: '💥', unlocked: false },
+    PRECISION:       { id: 'PRECISION',       name: 'Precision',          desc: 'Achieve 80% accuracy in a wave',          icon: '🎯', unlocked: false },
+    SURVIVOR_I:      { id: 'SURVIVOR_I',      name: 'Survivor I',         desc: 'Complete a level without dying',          icon: '💪', unlocked: false },
+    RAMPAGE_NEW:     { id: 'RAMPAGE_NEW',     name: 'Rampage',            desc: 'Kill 5 enemies in 3 seconds',             icon: '🔴', unlocked: false },
+    DEMOLITIONS:     { id: 'DEMOLITIONS',     name: 'Demolitions Expert', desc: 'Destroy 10 explosive barrels',            icon: '🛢️', unlocked: false },
+    GHOST:           { id: 'GHOST',           name: 'Ghost',              desc: 'Complete a wave without taking damage',   icon: '👻', unlocked: false },
+    SNIPER_ELITE:    { id: 'SNIPER_ELITE',    name: 'Sniper Elite',       desc: 'Get 25 headshots in one level',           icon: '🔭', unlocked: false },
+    WARMONGER:       { id: 'WARMONGER',       name: 'Warmonger',          desc: 'Reach a 15-kill streak',                  icon: '⚔️', unlocked: false },
+    SHOCK_AND_AWE:   { id: 'SHOCK_AND_AWE',   name: 'Shock and Awe',      desc: 'Kill 3 enemies with one grenade',         icon: '💣', unlocked: false },
+    GROUND_CONTROL:  { id: 'GROUND_CONTROL',  name: 'Ground Control',     desc: 'Kill 20 enemies while crouched',          icon: '🪖', unlocked: false },
+    LIBERATOR:       { id: 'LIBERATOR',       name: 'Liberator',          desc: 'Complete all Ukraine-defense levels',     icon: '🇺🇦', unlocked: false },
+    BEAR_HUNTER:     { id: 'BEAR_HUNTER',     name: 'Bear Hunter',        desc: 'Kill 50 Russian bosses',                  icon: '🐻', unlocked: false },
+    CENTURION:       { id: 'CENTURION',       name: 'Centurion',          desc: 'Score 100 total kills',                   icon: '💯', unlocked: false },
+    MILLENNIUM:      { id: 'MILLENNIUM',      name: 'Millennium',         desc: 'Score 1000 total kills',                  icon: '🌟', unlocked: false },
+    LEGENDARY:       { id: 'LEGENDARY',       name: 'Legendary',          desc: 'Unlock all other achievements',           icon: '👑', unlocked: false },
   };
 
   var _storage_key = 'okk_achievements_v1';
@@ -74,6 +96,14 @@ window.Achievements = (function () {
     totalLevelsCompleted: 0,
     score: 0,
     totalKills: 0,
+    // New persistent stats for added achievements
+    knifeKills: 0,
+    bossKills: 0,
+    russBossKills: 0,
+    sessionShots: 0,
+    crouchKills: 0,
+    barrelKills: 0,
+    uaLevelsCompleted: [],
     // Transient (not persisted between sessions but tracked in-memory)
     _killsWithoutDamage: 0,
     _recentKillTimes: [],  // timestamps for multi-kill detection
@@ -88,6 +118,12 @@ window.Achievements = (function () {
     _waveHeadshots: 0,
     _waveStartTime: 0,
     _firstWaveKillDone: false,
+    _waveHits: 0,
+    _levelDeaths: 0,
+    _levelHeadshots: 0,
+    _killStreak: 0,
+    _maxKillStreak: 0,
+    _recentKillTimes3s: [],  // for 3-second rampage window
   };
 
   /* ── Popup queue ──────────────────────────────────────────── */
@@ -280,11 +316,23 @@ window.Achievements = (function () {
     return false;
   }
 
+  /* ── Check if all achievements are unlocked (Legendary) ─────── */
+  function _checkLegendary() {
+    var allIds = Object.keys(ACHIEVEMENTS);
+    for (var i = 0; i < allIds.length; i++) {
+      if (allIds[i] === 'LEGENDARY') continue;
+      if (!ACHIEVEMENTS[allIds[i]].unlocked) return;
+    }
+    unlock('LEGENDARY');
+  }
+
   /* ── Reset transient kill tracking when damage is taken ───── */
   function _onDamageTaken() {
     _stats._killsWithoutDamage = 0;
     _stats._lastDamagerTime = Date.now();
     _stats._revengeKill = false;
+    _stats._waveHits++;
+    _stats._killStreak = 0;
   }
 
   /* ── Record a kill ────────────────────────────────────────── */
@@ -297,12 +345,37 @@ window.Achievements = (function () {
     var killDist      = opts.distance || 0;
     var isCloseKill   = killDist > 0 && killDist <= 3;
     var isRevengeKill = !!opts.isRevengeKill;
+    var isKnifeKill   = !!opts.isKnifeKill;
+    var isBossKill    = !!opts.isBossKill;
+    var isRussBoss    = !!opts.isRussBoss;
+    var isCrouched    = !!opts.isCrouched;
+    var isBarrelKill  = !!opts.isBarrelKill;
 
     _stats.kills++;
     _stats.totalKills++;
     if (isHeadshot) _stats.headshots++;
     if (isNvgActive) _stats.nvgKills++;
     if (isDroneKill) _stats.droneKills++;
+    if (isKnifeKill)  _stats.knifeKills++;
+    if (isBossKill)   _stats.bossKills++;
+    if (isRussBoss)   _stats.russBossKills++;
+    if (isCrouched)   _stats.crouchKills++;
+    if (isBarrelKill) _stats.barrelKills++;
+    if (isHeadshot)   _stats._levelHeadshots++;
+    _stats.sessionShots++;
+
+    // Kill streak tracking
+    _stats._killStreak++;
+    if (_stats._killStreak > _stats._maxKillStreak) {
+      _stats._maxKillStreak = _stats._killStreak;
+    }
+
+    // 3-second rampage window
+    var nowRampage = Date.now();
+    _stats._recentKillTimes3s.push(nowRampage);
+    _stats._recentKillTimes3s = _stats._recentKillTimes3s.filter(function (t) {
+      return nowRampage - t <= 3000;
+    });
 
     // Headshot streak tracking
     if (isHeadshot) {
@@ -405,6 +478,22 @@ window.Achievements = (function () {
 
     // Rampage: 5 kills within 5s
     if (_stats._recentKillTimes.length >= 5) unlock('RAMPAGE');
+
+    // New achievement checks
+    if (_stats.kills >= 1)                       unlock('FIRST_BLOOD_NEW');
+    if (_stats.totalKills >= 100)                unlock('CENTURION');
+    if (_stats.totalKills >= 1000)               unlock('MILLENNIUM');
+    if (_stats.knifeKills >= 10)                 unlock('SILENT_APPROACH');
+    if (_stats.bossKills >= 5)                   unlock('DRAGON_SLAYER');
+    if (_stats.sessionShots >= 1000)             unlock('SPRAY_N_PRAY');
+    if (_stats.crouchKills >= 20)                unlock('GROUND_CONTROL');
+    if (_stats.barrelKills >= 10)                unlock('DEMOLITIONS');
+    if (_stats.russBossKills >= 50)              unlock('BEAR_HUNTER');
+    if (_stats._maxKillStreak >= 15)             unlock('WARMONGER');
+    // Rampage new: 5 kills within 3 seconds
+    if (_stats._recentKillTimes3s.length >= 5)   unlock('RAMPAGE_NEW');
+    // Check legendary (all other achievements unlocked)
+    _checkLegendary();
   }
 
   /* ── Record bandage use ───────────────────────────────────── */
@@ -412,6 +501,23 @@ window.Achievements = (function () {
     _stats.bandagesUsed++;
     _save();
     if (_stats.bandagesUsed >= 10) unlock('MEDIC');
+  }
+
+  /* ── Record player death ─────────────────────────────────── */
+  function recordDeath() {
+    _stats._levelDeaths++;
+    _stats._killStreak = 0;
+  }
+
+  /* ── Record a Ukraine-defense level complete ─────────────── */
+  function recordUALevel(levelId) {
+    var lid = String(levelId);
+    if (_stats.uaLevelsCompleted.indexOf(lid) === -1) {
+      _stats.uaLevelsCompleted.push(lid);
+      _save();
+    }
+    // Liberator: all 5 UA levels completed (adjust count to match game design)
+    if (_stats.uaLevelsCompleted.length >= 5) unlock('LIBERATOR');
   }
 
   /* ── Record wave complete ─────────────────────────────────── */
@@ -470,6 +576,25 @@ window.Achievements = (function () {
       if (currentHp <= 1 && currentHp > 0) unlock('SURVIVOR_1HP');
     }
 
+    // Ghost: complete a wave without taking damage
+    if (_stats._waveHits === 0) unlock('GHOST');
+
+    // Precision: 80% accuracy in a wave (at least 5 shots fired)
+    if (_stats._waveShots >= 5 && (_stats._waveHeadshots / _stats._waveShots) >= 0.8) {
+      unlock('PRECISION');
+    }
+
+    // Sniper Elite: 25 headshots in one level
+    if (_stats._levelHeadshots >= 25) unlock('SNIPER_ELITE');
+
+    // Iron Will: complete a level (wave) with only 5 HP remaining
+    if (currentHp !== undefined && currentHp > 0 && currentHp <= 5) {
+      unlock('IRON_WILL');
+    }
+
+    // Survivor I: complete a level without dying
+    if (_stats._levelDeaths === 0) unlock('SURVIVOR_I');
+
     // Reset per-wave transient stats
     _stats._waveGrenadeKills  = 0;
     _stats._closeKills        = 0;
@@ -477,6 +602,7 @@ window.Achievements = (function () {
     _stats._waveHeadshots     = 0;
     _stats._waveStartTime     = 0;
     _stats._firstWaveKillDone = false;
+    _stats._waveHits          = 0;
 
     _save();
     _checkWaveAchievements();
@@ -486,6 +612,7 @@ window.Achievements = (function () {
   function _checkWaveAchievements() {
     if (_stats.wavesCompleted >= 10) unlock('WAVE_CLEAR');
     if (_stats.wavesCompleted >= 10) unlock('WAVE_10');
+    if (_stats.wavesCompleted >= 20) unlock('VETERAN_WAVES');
     if (_stats.wavesCompleted >= 25) unlock('WAVE_25');
     if (_stats.wavesCompleted >= 50) unlock('WAVE_50');
 
@@ -512,6 +639,9 @@ window.Achievements = (function () {
 
   /* ── Record grenade multi-kill ────────────────────────────── */
   function recordGrenade(killCount) {
+    if (killCount >= 3) {
+      unlock('SHOCK_AND_AWE');
+    }
     if (killCount >= 5) {
       _stats.grenadesMultiKills++;
       _save();
@@ -551,6 +681,15 @@ window.Achievements = (function () {
     _stats._closeKills        = 0;
     _stats._waveShots         = 0;
     _stats._waveHeadshots     = 0;
+    _stats._waveHits          = 0;
+  }
+
+  /* ── Record level start (reset level-scoped transient stats) ── */
+  function recordLevelStart() {
+    _stats._levelDeaths    = 0;
+    _stats._levelHeadshots = 0;
+    _stats._maxKillStreak  = 0;
+    _stats._killStreak     = 0;
   }
 
   /* ── Record score update ──────────────────────────────────── */
@@ -569,10 +708,16 @@ window.Achievements = (function () {
 
   /* ── Reset per-run perk counter (call at run start) ──────── */
   function recordRunStart() {
-    _stats._perksUnlocked = 0;
-    _stats._headshotStreak = 0;
-    _stats._killsSinceReload = 0;
-    _stats._revengeKill = false;
+    _stats._perksUnlocked      = 0;
+    _stats._headshotStreak     = 0;
+    _stats._killsSinceReload   = 0;
+    _stats._revengeKill        = false;
+    _stats._levelDeaths        = 0;
+    _stats._levelHeadshots     = 0;
+    _stats._killStreak         = 0;
+    _stats._maxKillStreak      = 0;
+    _stats._recentKillTimes3s  = [];
+    _stats.sessionShots        = 0;
   }
 
   /* ── Called externally when player takes damage ───────────── */
@@ -612,6 +757,9 @@ window.Achievements = (function () {
     recordScore: recordScore,
     recordPerkUnlocked: recordPerkUnlocked,
     recordRunStart: recordRunStart,
+    recordDeath: recordDeath,
+    recordUALevel: recordUALevel,
+    recordLevelStart: recordLevelStart,
     onDamageTaken: onDamageTaken,
     getAll: getAll,
     getUnlocked: getUnlocked,
