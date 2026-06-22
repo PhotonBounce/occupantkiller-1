@@ -760,6 +760,16 @@ const Weapons = (() => {
   let currentIdx = 0;
   // Shell casing ejection state
   var _casings = []; // { mesh, scene, vx, vy, vz, rx, rz, life, landed }
+  // ── Bolt/slide animation (standalone, separate from WeaponDetails) ──────
+  var _boltTimer   = 0;      // counts up, drives bolt position
+  var _boltMaxTime = 0.08;   // bolt travel time (80ms back, 80ms return)
+  var _boltState   = 0;      // 0=rest, 1=moving back, 2=moving forward
+  var _boltOffset  = 0;      // current Z offset of bolt mesh
+  var _boltMesh    = null;   // optional dedicated bolt child mesh
+  // ── Additional shell casings (physics-driven, scene-level) ───────────────
+  var _shellCasings = []; // { mesh, vx, vy, vz, rx, ry, rz, life, maxLife }
+  var _shellGeo = null;
+  var _shellMat = null;
   // Gatling (0), Shovel (1), and Drone Jammer (last) start unlocked
   let _jammerIdx = WEAPONS.findIndex(function(w) { return w.id === 'DRONEJAMMER'; });
   let unlocked   = WEAPONS.map(function(_, i) { return i <= 1 || i === _jammerIdx; });
@@ -6121,6 +6131,9 @@ const Weapons = (() => {
 
     // ── Bolt/slide animation and shell casing ejection ───
     _triggerBoltAnim();
+    // Standalone bolt cycle state machine (separate from WeaponDetails)
+    _boltState = 1;
+    _boltTimer = 0;
     var _noShellTypes = ['MELEE','MINE','SMOKE','FLASHBANG','AT','ATGM','AT_HEAVY','AT_LIGHT','AA','GRENADE','INCENDIARY','THERMOBARIC','EXPLOSIVE','JAMMER','SILENT'];
     if (_noShellTypes.indexOf(wep.type) < 0) {
       _ejectShell(wep.type);
@@ -6873,6 +6886,50 @@ const Weapons = (() => {
     _tickBoltAnim(delta);
     _tickCasings(delta);
 
+    // ── Standalone bolt cycle animation ──────────────────
+    if (_boltState > 0) {
+      _boltTimer += delta;
+      if (_boltState === 1) {
+        // Phase 1: bolt moves back over _boltMaxTime
+        var _boltT = Math.min(1, _boltTimer / _boltMaxTime);
+        _boltOffset = _boltT * 0.045; // slide back 4.5cm
+        if (_boltT >= 1) { _boltTimer = 0; _boltState = 2; }
+      } else if (_boltState === 2) {
+        // Phase 2: bolt returns forward (slightly slower)
+        var _boltT2 = Math.min(1, _boltTimer / (_boltMaxTime * 1.2));
+        _boltOffset = (1 - _boltT2) * 0.045;
+        if (_boltT2 >= 1) { _boltTimer = 0; _boltState = 0; _boltOffset = 0; }
+      }
+      // Apply to bolt mesh if present (Z axis is forward/back in local space)
+      if (_boltMesh) _boltMesh.position.z = _boltOffset;
+    }
+
+    // ── Shell casings physics (scene-level) ──────────────
+    var _SHELL_GRAVITY = 9.8;
+    for (var _si = _shellCasings.length - 1; _si >= 0; _si--) {
+      var _sh = _shellCasings[_si];
+      _sh.life += delta;
+      _sh.vy -= _SHELL_GRAVITY * delta;
+      _sh.mesh.position.x += _sh.vx * delta;
+      _sh.mesh.position.y += _sh.vy * delta;
+      _sh.mesh.position.z += _sh.vz * delta;
+      _sh.mesh.rotation.x += _sh.rx * delta;
+      _sh.mesh.rotation.y += _sh.ry * delta;
+      _sh.mesh.rotation.z += _sh.rz * delta;
+      // Bounce off ground (simple)
+      if (_sh.mesh.position.y < 0.05 && _sh.vy < 0) {
+        _sh.mesh.position.y = 0.05;
+        _sh.vy = -_sh.vy * 0.3;
+        _sh.vx *= 0.7;
+        _sh.vz *= 0.7;
+      }
+      if (_sh.life >= _sh.maxLife) {
+        var _shSc = window._gameScene || _scene;
+        if (_shSc) _shSc.remove(_sh.mesh);
+        _shellCasings.splice(_si, 1);
+      }
+    }
+
     // ── Guided weapon lock-on indicator ──
     if (typeof HUD !== 'undefined' && HUD.showLockOn && _camera) {
       var cw = cur();
@@ -7068,6 +7125,14 @@ const Weapons = (() => {
       try { _casings[_ci].scene.remove(_casings[_ci].mesh); } catch (e) {}
     }
     _casings.length = 0;
+    // Clear scene-level shell casings
+    for (var _sci = 0; _sci < _shellCasings.length; _sci++) {
+      var _scSc = window._gameScene || _scene;
+      if (_scSc) { try { _scSc.remove(_shellCasings[_sci].mesh); } catch (e) {} }
+    }
+    _shellCasings.length = 0;
+    // Reset standalone bolt state
+    _boltState = 0; _boltTimer = 0; _boltOffset = 0;
     // Clear smoke clouds with proper disposal
     for (let i = _smokeClouds.length - 1; i >= 0; i--) {
       var sc = _smokeClouds[i];
@@ -7410,6 +7475,24 @@ const Weapons = (() => {
     return stats;
   }
 
+  // ── Standalone bolt mesh helper ───────────────────────────────
+  function _initBolt() {
+    if (_boltMesh) return;
+    var geo = new THREE.BoxGeometry(0.025, 0.018, 0.06);
+    var mat = new THREE.MeshPhongMaterial({ color: 0x2a2a2a, shininess: 80 });
+    _boltMesh = new THREE.Mesh(geo, mat);
+    _boltMesh.name = 'bolt';
+  }
+
+  // ── Shell casing geometry (lazy, shared) ──────────────────────
+  function _getShellGeo() {
+    if (!_shellGeo) {
+      _shellGeo = new THREE.CylinderGeometry(0.003, 0.003, 0.018, 6);
+      _shellMat = new THREE.MeshPhongMaterial({ color: 0xB8860B, shininess: 80 });
+    }
+    return { geo: _shellGeo, mat: _shellMat };
+  }
+
   // ── Bolt/slide animation ──────────────────────────────────────
   // Triggers a bolt-cycle animation on the current weapon's viewmodel mesh.
   // Phase 0: retract over 0.06 s, phase 1: return over 0.09 s.
@@ -7615,6 +7698,7 @@ const Weapons = (() => {
     getBlastRadius: function () { return cur().blastRadius || 0; },
     setOnTerrainDig: setOnTerrainDig,
     setOnTerrainShot: setOnTerrainShot,
+    ejectShell: _ejectShell,
     // B24 exports
     unlockNext:       unlockNext,
     ATTACHMENTS:      ATTACHMENTS,
