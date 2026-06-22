@@ -3365,6 +3365,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.CrouchSystem) CrouchSystem.reset();
     if (window.SpecialGrenades) SpecialGrenades.reset();
     if (window.BloodEffects) BloodEffects.reset();
     if (window.MeleeKnife) MeleeKnife.reset();
@@ -8295,7 +8296,7 @@ const GameManager = (function () {
 
       // Hand-thrown grenades (player-thrown via KeyG when no nearby vehicle)
       updateHandGrenades(delta);
-      if (window.SpecialGrenades) SpecialGrenades.update(delta, player.position, _allEnemies);
+      if (window.SpecialGrenades) SpecialGrenades.update(delta, player.position, typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []);
 
       // World features update (fires, trees, mines, airdrops, smoke)
       if (typeof WorldFeatures !== 'undefined') {

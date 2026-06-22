@@ -1261,6 +1261,7 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.CrouchSystem) CrouchSystem.init();
         if (window.SpecialGrenades) SpecialGrenades.init(_scene, _camera, function(enemyCallback) {
             var enemies = Enemies ? Enemies.getAll() : [];
             for (var i = 0; i < enemies.length; i++) {
@@ -3364,6 +3365,8 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.CrouchSystem) CrouchSystem.reset();
+    if (window.SpecialGrenades) SpecialGrenades.reset();
     if (window.BloodEffects) BloodEffects.reset();
     if (window.MeleeKnife) MeleeKnife.reset();
     if (window.ClaymoreMines) ClaymoreMines.reset();
@@ -3670,6 +3673,7 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.SpecialGrenades) SpecialGrenades.clear();
     if (window.BloodEffects) BloodEffects.clear();
     if (window.ClaymoreMines) ClaymoreMines.clear();
     if (window.RadioSupport) RadioSupport.clear();
@@ -5546,8 +5550,9 @@ const GameManager = (function () {
       }
       // ── Loadout speed bonus ──
       if (window._loadoutSpeedMult) speed *= window._loadoutSpeedMult;
-      // ── B24: Crouch speed reduction ──
-      if (player.isCrouching) speed *= 0.5;
+      // ── B24: Crouch speed reduction (CrouchSystem overrides) ──
+      var _crouchMult = (window.CrouchSystem ? CrouchSystem.getSpeedMult() : (player.isCrouching ? 0.5 : 1.0));
+      speed *= _crouchMult;
       // ── B32: Blizzard slow ──
       if (player._blizzardSlow) speed *= player._blizzardSlow;
       // ── Landing impact slow ──
@@ -7681,6 +7686,7 @@ const GameManager = (function () {
         }
       }
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
+      if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
       if (window.MeleeKnife) MeleeKnife.update(delta);
       // Check if any enemy stepped on a landmine
@@ -8290,7 +8296,7 @@ const GameManager = (function () {
 
       // Hand-thrown grenades (player-thrown via KeyG when no nearby vehicle)
       updateHandGrenades(delta);
-      if (window.SpecialGrenades) SpecialGrenades.update(delta, player.position, _allEnemies);
+      if (window.SpecialGrenades) SpecialGrenades.update(delta, player.position, typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []);
 
       // World features update (fires, trees, mines, airdrops, smoke)
       if (typeof WorldFeatures !== 'undefined') {
