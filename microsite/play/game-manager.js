@@ -923,6 +923,7 @@ const GameManager = (function () {
   /* ── Last-kill camera tracking ───────────────────────────────── */
   var _lastKillPos = null;  // position of most recent enemy kill
   var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
+  var _weaponUnlockShown = {};  // tracks which weapon unlock milestones have fired
 
   /* ── Suppression System (near-miss visual response) ──────────── */
   var _suppressionLevel = 0;  // 0→1
@@ -3708,6 +3709,32 @@ const GameManager = (function () {
     }, 1800);
   }
 
+  /* ── Weapon Unlock Milestones ────────────────────────────────────── */
+  function _checkWeaponUnlocks() {
+    var k = player.kills;
+    var thresholds = [
+      { at: 15,  id: 'AK74',        msg: '🔓 UNLOCKED: AK-74' },
+      { at: 30,  id: 'SVD',         msg: '🔓 UNLOCKED: SVD Dragunov' },
+      { at: 50,  id: 'PKM',         msg: '🔓 UNLOCKED: PKM LMG' },
+      { at: 75,  id: 'RPG7',        msg: '🔓 UNLOCKED: RPG-7' },
+      { at: 100, id: 'PANZERFAUST', msg: '🔓 UNLOCKED: Panzerfaust 3' },
+      { at: 150, id: 'SWITCHBLADE', msg: '🔓 UNLOCKED: Switchblade 600' },
+      { at: 200, id: 'M134',        msg: '🔓 UNLOCKED: M134 Minigun' },
+      { at: 300, id: 'JAVELIN',     msg: '🔓 UNLOCKED: FGM-148 Javelin' },
+    ];
+    for (var ti = 0; ti < thresholds.length; ti++) {
+      var t = thresholds[ti];
+      if (k >= t.at && !_weaponUnlockShown[t.id]) {
+        _weaponUnlockShown[t.id] = true;
+        window._unlockedWeapons = window._unlockedWeapons || {};
+        window._unlockedWeapons[t.id] = true;
+        if (window.Weapons && Weapons.unlock) Weapons.unlock(t.id);
+        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast(t.msg + ' (' + t.at + ' kills)', 4000, '#ffd700');
+        if (window.AudioSystem && AudioSystem.playUnlock) AudioSystem.playUnlock();
+      }
+    }
+  }
+
   /* ── Wave Management ─────────────────────────────────────────────── */
   function beginWave(w) {
     if (typeof window !== 'undefined') {
@@ -5677,6 +5704,7 @@ const GameManager = (function () {
         try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
       }
       player.kills++;
+      _checkWeaponUnlocks();
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
       // ── Enemy kill-cam cinematic: 20% chance, only when 3+ enemies remain ──
