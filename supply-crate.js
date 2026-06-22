@@ -120,6 +120,7 @@ window.SupplyCrate = (function() {
     if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
       HUD.notifyPickup(crate.type.icon + ' ' + crate.type.label + ' COLLECTED!', '#ffdd44');
     }
+    if (typeof NightVision !== 'undefined') NightVision.recharge(25);
   }
 
   function update(delta, playerPos, playerRef) {

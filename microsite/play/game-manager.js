@@ -1263,6 +1263,7 @@ const GameManager = (function () {
         if (typeof HazardZones !== 'undefined') HazardZones.init(_scene);
         if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
         if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
+        if (typeof NightVision !== 'undefined') NightVision.init(_renderer.domElement, _scene);
         if (typeof ExplosiveBarrels !== 'undefined') {
           ExplosiveBarrels.init(_scene, function(x, y, z, radius, damage) {
             // AoE damage to enemies in radius
@@ -2230,6 +2231,11 @@ const GameManager = (function () {
         if (e.code === 'KeyN' && typeof VehicleSystem !== 'undefined' && VehicleSystem.isInVehicle()) {
           var veh = VehicleSystem.getOccupied();
           if (veh && VehicleSystem.honkHorn) VehicleSystem.honkHorn(veh.id);
+        }
+
+        // Night Vision Goggles (NightVision module — N key, no modifiers, not in vehicle)
+        if (e.code === 'KeyN' && !e.shiftKey && !e.ctrlKey && !e.altKey && gameState === STATE.PLAYING) {
+          if (typeof NightVision !== 'undefined') NightVision.toggle();
         }
 
         // Dolphin dive (Ctrl while sprinting)
@@ -7530,6 +7536,7 @@ const GameManager = (function () {
         CompanionDrone.update(delta, player.position, []);
       }
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
+      if (typeof NightVision !== 'undefined') NightVision.update(delta);
       if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
       if (typeof HazardZones !== 'undefined') HazardZones.update(delta, player.position, player);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);

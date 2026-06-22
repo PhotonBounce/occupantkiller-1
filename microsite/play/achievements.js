@@ -26,6 +26,32 @@ window.Achievements = (function () {
     MARKSMAN:       { id: 'MARKSMAN',       name: 'Marksman',            desc: 'Kill 50 enemies total',                   icon: '💯', unlocked: false },
     VETERAN:        { id: 'VETERAN',        name: 'Veteran',             desc: 'Kill 200 enemies total',                  icon: '🎖️', unlocked: false },
     LEGEND:         { id: 'LEGEND',         name: 'Legend',              desc: 'Kill 500 enemies total',                  icon: '👑', unlocked: false },
+
+    /* ── Combat mastery ───────────────────────────────────────── */
+    QUICK_DRAW:     { id: 'QUICK_DRAW',     name: 'Quick Draw',          desc: 'Kill an enemy within 2 seconds of the wave starting', icon: '⚡', unlocked: false },
+    TRIPLE_HEADSHOT:{ id: 'TRIPLE_HEADSHOT',name: 'Triple Tap',          desc: '3 headshots in a row without missing',    icon: '🎯', unlocked: false },
+    KNIFE_ONLY:     { id: 'KNIFE_ONLY',     name: 'Ghost Protocol',      desc: 'Kill 3 enemies in one wave with grenades only', icon: '💣', unlocked: false },
+    NO_RELOAD:      { id: 'NO_RELOAD',      name: 'Steady Hands',        desc: 'Kill 5 enemies without reloading',        icon: '🔫', unlocked: false },
+    LONG_SHOT:      { id: 'LONG_SHOT',      name: 'Long Distance',       desc: 'Kill an enemy from more than 40 units away', icon: '🏹', unlocked: false },
+    CLOSE_QUARTERS: { id: 'CLOSE_QUARTERS', name: 'In Your Face',        desc: 'Kill 3 enemies from within 3 units',      icon: '🥊', unlocked: false },
+    REVENGE_KILL:   { id: 'REVENGE_KILL',   name: 'Comeback Kid',        desc: 'Kill the enemy who last damaged you within 5 seconds', icon: '😤', unlocked: false },
+
+    /* ── Progression ──────────────────────────────────────────── */
+    WAVE_10:        { id: 'WAVE_10',        name: 'Veteran',             desc: 'Survive 10 waves',                        icon: '🌊', unlocked: false },
+    WAVE_25:        { id: 'WAVE_25',        name: 'Hardened Soldier',    desc: 'Survive 25 waves',                        icon: '🎖️', unlocked: false },
+    WAVE_50:        { id: 'WAVE_50',        name: 'Iron Man',            desc: 'Survive 50 waves',                        icon: '🛡️', unlocked: false },
+    LEVEL_5:        { id: 'LEVEL_5',        name: 'Tour of Duty',        desc: 'Complete 5 levels',                       icon: '📋', unlocked: false },
+    LEVEL_10:       { id: 'LEVEL_10',       name: 'Combat Veteran',      desc: 'Complete 10 levels',                      icon: '🏅', unlocked: false },
+    SCORE_50K:      { id: 'SCORE_50K',      name: 'High Achiever',       desc: 'Reach a score of 50,000',                 icon: '💰', unlocked: false },
+    SCORE_200K:     { id: 'SCORE_200K',     name: 'Legendary',           desc: 'Reach a score of 200,000',                icon: '👑', unlocked: false },
+    KILL_100:       { id: 'KILL_100',       name: 'Century',             desc: 'Get 100 total kills',                     icon: '💯', unlocked: false },
+    KILL_500:       { id: 'KILL_500',       name: 'Unstoppable',         desc: 'Get 500 total kills',                     icon: '🔥', unlocked: false },
+
+    /* ── Special ──────────────────────────────────────────────── */
+    PERK_MASTER:    { id: 'PERK_MASTER',    name: 'Perk Master',         desc: 'Unlock 5 different perks in a single run', icon: '✨', unlocked: false },
+    PERFECT_WAVE:   { id: 'PERFECT_WAVE',   name: 'Perfect Wave',        desc: 'Complete a wave with 100% headshot accuracy', icon: '🎯', unlocked: false },
+    DRONE_ACE_NEW:  { id: 'DRONE_ACE_NEW',  name: 'Drone Ace',           desc: 'Destroy 10 enemies using drones',         icon: '🚁', unlocked: false },
+    SURVIVOR_1HP:   { id: 'SURVIVOR_1HP',   name: 'By A Thread',         desc: 'Complete a wave with 1 HP remaining',     icon: '❤️', unlocked: false },
   };
 
   var _storage_key = 'okk_achievements_v1';
@@ -43,9 +69,25 @@ window.Achievements = (function () {
     levelsCompleted: [],
     nvgKills: 0,
     weatherTypesCompleted: [],
+    // New persistent stats
+    longestKillDist: 0,
+    totalLevelsCompleted: 0,
+    score: 0,
+    totalKills: 0,
     // Transient (not persisted between sessions but tracked in-memory)
     _killsWithoutDamage: 0,
     _recentKillTimes: [],  // timestamps for multi-kill detection
+    _headshotStreak: 0,
+    _killsSinceReload: 0,
+    _waveGrenadeKills: 0,
+    _closeKills: 0,
+    _revengeKill: false,
+    _lastDamagerTime: 0,
+    _perksUnlocked: 0,
+    _waveShots: 0,
+    _waveHeadshots: 0,
+    _waveStartTime: 0,
+    _firstWaveKillDone: false,
   };
 
   /* ── Popup queue ──────────────────────────────────────────── */
@@ -241,25 +283,66 @@ window.Achievements = (function () {
   /* ── Reset transient kill tracking when damage is taken ───── */
   function _onDamageTaken() {
     _stats._killsWithoutDamage = 0;
+    _stats._lastDamagerTime = Date.now();
+    _stats._revengeKill = false;
   }
 
   /* ── Record a kill ────────────────────────────────────────── */
   function recordKill(opts) {
     opts = opts || {};
-    var isHeadshot  = !!opts.headshot;
-    var isNvgActive = !!opts.isNvgActive;
-    var isDroneKill = !!opts.isDroneKill;
+    var isHeadshot    = !!opts.headshot;
+    var isNvgActive   = !!opts.isNvgActive;
+    var isDroneKill   = !!opts.isDroneKill;
+    var isGrenadeKill = !!opts.isGrenadeKill;
+    var killDist      = opts.distance || 0;
+    var isCloseKill   = killDist > 0 && killDist <= 3;
+    var isRevengeKill = !!opts.isRevengeKill;
 
     _stats.kills++;
+    _stats.totalKills++;
     if (isHeadshot) _stats.headshots++;
     if (isNvgActive) _stats.nvgKills++;
     if (isDroneKill) _stats.droneKills++;
+
+    // Headshot streak tracking
+    if (isHeadshot) {
+      _stats._headshotStreak++;
+    } else {
+      _stats._headshotStreak = 0;
+    }
+
+    // Kills without reloading
+    _stats._killsSinceReload++;
+
+    // Grenade kills this wave
+    if (isGrenadeKill) _stats._waveGrenadeKills++;
+
+    // Distance tracking
+    if (killDist > _stats.longestKillDist) _stats.longestKillDist = killDist;
+
+    // Close kills
+    if (isCloseKill) _stats._closeKills++;
+
+    // Revenge kill
+    if (isRevengeKill) _stats._revengeKill = true;
+
+    // Wave shot / headshot accuracy tracking
+    _stats._waveShots++;
+    if (isHeadshot) _stats._waveHeadshots++;
 
     // Unstoppable: kills without taking damage (transient counter)
     _stats._killsWithoutDamage++;
 
     // Multi-kill timing window
     var now = Date.now();
+
+    // Quick draw: first kill within 2s of wave start
+    if (!_stats._firstWaveKillDone && _stats._waveStartTime > 0) {
+      if (now - _stats._waveStartTime <= 2000) {
+        unlock('QUICK_DRAW');
+      }
+      _stats._firstWaveKillDone = true;
+    }
     _stats._recentKillTimes.push(now);
     // Prune old entries (> 5s)
     _stats._recentKillTimes = _stats._recentKillTimes.filter(function (t) {
@@ -280,18 +363,38 @@ window.Achievements = (function () {
     if (_stats.kills >= 200) unlock('VETERAN');
     if (_stats.kills >= 500) unlock('LEGEND');
 
+    // New total kill milestones
+    if (_stats.totalKills >= 100) unlock('KILL_100');
+    if (_stats.totalKills >= 500) unlock('KILL_500');
+
     // Headshot milestones
     if (_stats.headshots >= 10) unlock('HEADHUNTER');
     if (_stats.headshots >= 25) unlock('SHARPSHOOTER');
+
+    // Headshot streak
+    if (_stats._headshotStreak >= 3) unlock('TRIPLE_HEADSHOT');
 
     // NVG kills
     if (_stats.nvgKills >= 10) unlock('NVG_OPERATOR');
 
     // Drone kills
     if (_stats.droneKills >= 10) unlock('DRONE_ACE');
+    if (_stats.droneKills >= 10) unlock('DRONE_ACE_NEW');
 
     // Unstoppable
     if (_stats._killsWithoutDamage >= 10) unlock('UNSTOPPABLE');
+
+    // Kills without reloading
+    if (_stats._killsSinceReload >= 5) unlock('NO_RELOAD');
+
+    // Long distance kill
+    if (_stats.longestKillDist >= 40) unlock('LONG_SHOT');
+
+    // Close quarters kills
+    if (_stats._closeKills >= 3) unlock('CLOSE_QUARTERS');
+
+    // Revenge kill
+    if (_stats._revengeKill) unlock('REVENGE_KILL');
 
     // Multi-kill checks (within 2s window)
     var within2s = _stats._recentKillTimes.filter(function (t) {
@@ -312,7 +415,17 @@ window.Achievements = (function () {
   }
 
   /* ── Record wave complete ─────────────────────────────────── */
-  function recordWaveComplete(levelId) {
+  function recordWaveComplete(opts) {
+    // Support legacy call style: recordWaveComplete(levelId)
+    var levelId, currentHp, maxHp;
+    if (opts !== null && typeof opts === 'object') {
+      levelId   = opts.levelId;
+      currentHp = opts.hp;
+      maxHp     = opts.maxHp;
+    } else {
+      levelId = opts;
+    }
+
     _stats.wavesCompleted++;
 
     // Track unique levels completed
@@ -320,6 +433,7 @@ window.Achievements = (function () {
       var lid = String(levelId);
       if (_stats.levelsCompleted.indexOf(lid) === -1) {
         _stats.levelsCompleted.push(lid);
+        _stats.totalLevelsCompleted++;
       }
     }
 
@@ -343,6 +457,27 @@ window.Achievements = (function () {
       }
     } catch (eW) {}
 
+    // Perfect wave: 100% headshot accuracy (and at least 1 shot)
+    if (_stats._waveShots > 0 && _stats._waveShots === _stats._waveHeadshots) {
+      unlock('PERFECT_WAVE');
+    }
+
+    // Grenade only wave: 3 grenade kills in one wave
+    if (_stats._waveGrenadeKills >= 3) unlock('KNIFE_ONLY');
+
+    // Survivor 1HP
+    if (currentHp !== undefined && maxHp !== undefined) {
+      if (currentHp <= 1 && currentHp > 0) unlock('SURVIVOR_1HP');
+    }
+
+    // Reset per-wave transient stats
+    _stats._waveGrenadeKills  = 0;
+    _stats._closeKills        = 0;
+    _stats._waveShots         = 0;
+    _stats._waveHeadshots     = 0;
+    _stats._waveStartTime     = 0;
+    _stats._firstWaveKillDone = false;
+
     _save();
     _checkWaveAchievements();
   }
@@ -350,8 +485,13 @@ window.Achievements = (function () {
   /* ── Check wave-related achievements ─────────────────────── */
   function _checkWaveAchievements() {
     if (_stats.wavesCompleted >= 10) unlock('WAVE_CLEAR');
+    if (_stats.wavesCompleted >= 10) unlock('WAVE_10');
+    if (_stats.wavesCompleted >= 25) unlock('WAVE_25');
+    if (_stats.wavesCompleted >= 50) unlock('WAVE_50');
 
-    if (_stats.levelsCompleted.length >= 5) unlock('LEVEL_CONQUEROR');
+    if (_stats.levelsCompleted.length >= 5)  unlock('LEVEL_CONQUEROR');
+    if (_stats.totalLevelsCompleted >= 5)    unlock('LEVEL_5');
+    if (_stats.totalLevelsCompleted >= 10)   unlock('LEVEL_10');
 
     // All Weather Warrior: completed a wave in rain, snow, and fog
     var hasRain  = _stats.weatherTypesCompleted.indexOf('rain') !== -1;
@@ -364,6 +504,9 @@ window.Achievements = (function () {
   function recordSurvivor(currentHp, maxHp) {
     if (currentHp > 0 && maxHp > 0 && (currentHp / maxHp) < 0.25) {
       unlock('SURVIVOR');
+    }
+    if (currentHp <= 1 && currentHp > 0) {
+      unlock('SURVIVOR_1HP');
     }
   }
 
@@ -386,6 +529,50 @@ window.Achievements = (function () {
   /* ── Record prestige level ────────────────────────────────── */
   function recordPrestige(level) {
     if (level >= 1) unlock('PRESTIGE_ONE');
+  }
+
+  /* ── Record reload (resets killsSinceReload counter) ─────── */
+  function recordReload() {
+    _stats._killsSinceReload = 0;
+  }
+
+  /* ── Record a shot fired (for wave accuracy tracking) ────── */
+  function recordShot(opts) {
+    opts = opts || {};
+    _stats._waveShots++;
+    if (opts.headshot) _stats._waveHeadshots++;
+  }
+
+  /* ── Record wave start (for quick draw timing) ───────────── */
+  function recordWaveStart() {
+    _stats._waveStartTime     = Date.now();
+    _stats._firstWaveKillDone = false;
+    _stats._waveGrenadeKills  = 0;
+    _stats._closeKills        = 0;
+    _stats._waveShots         = 0;
+    _stats._waveHeadshots     = 0;
+  }
+
+  /* ── Record score update ──────────────────────────────────── */
+  function recordScore(newScore) {
+    _stats.score = newScore || 0;
+    _save();
+    if (_stats.score >= 50000)  unlock('SCORE_50K');
+    if (_stats.score >= 200000) unlock('SCORE_200K');
+  }
+
+  /* ── Record perk unlocked ─────────────────────────────────── */
+  function recordPerkUnlocked() {
+    _stats._perksUnlocked++;
+    if (_stats._perksUnlocked >= 5) unlock('PERK_MASTER');
+  }
+
+  /* ── Reset per-run perk counter (call at run start) ──────── */
+  function recordRunStart() {
+    _stats._perksUnlocked = 0;
+    _stats._headshotStreak = 0;
+    _stats._killsSinceReload = 0;
+    _stats._revengeKill = false;
   }
 
   /* ── Called externally when player takes damage ───────────── */
@@ -419,6 +606,12 @@ window.Achievements = (function () {
     recordGrenade: recordGrenade,
     recordBarrelChain: recordBarrelChain,
     recordPrestige: recordPrestige,
+    recordReload: recordReload,
+    recordShot: recordShot,
+    recordWaveStart: recordWaveStart,
+    recordScore: recordScore,
+    recordPerkUnlocked: recordPerkUnlocked,
+    recordRunStart: recordRunStart,
     onDamageTaken: onDamageTaken,
     getAll: getAll,
     getUnlocked: getUnlocked,
