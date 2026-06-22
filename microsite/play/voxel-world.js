@@ -1253,6 +1253,9 @@ window.VoxelWorld = (function () {
     { id: 'TERNOPIL', name: 'Ternopil Castle Siege', desc: 'Defend the Renaissance castle and baroque cathedral of western Ukraine', theme: 'urban', wavesPerLevel: 8, difficulty: 2.5, fogColor: 0x445533, spawnCandidates: [{ x: 0, z: 0 }, { x: 15, z: 15 }, { x: -15, z: 15 }, { x: 0, z: -20 }, { x: 20, z: -10 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'IZIUM',     name: 'Izium Liberation',      desc: 'Liberated city, site of mass atrocity discovery', theme: 'urban', wavesPerLevel: 7, difficulty: 3.0, fogColor: 0x445533, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'SLAVUTYCH', name: 'Slavutych Exclusion',   desc: 'Ghost town near Chernobyl — shadows of the nuclear disaster', theme: 'urban', wavesPerLevel: 7, difficulty: 3.5, fogColor: 0x334422, spawnCandidates: [{ x: 0, z: -25 }, { x: -15, z: -15 }, { x: 15, z: -15 }, { x: -20, z: 5 }, { x: 20, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KREMENCHUK', name: 'Kremenchuk Mall Strike', desc: 'Russian missile strike on the crowded Amstor shopping centre', theme: 'urban', wavesPerLevel: 7, difficulty: 3.2, fogColor: 0x3a3a3a, spawnCandidates: [{ x: 0, z: -30 }, { x: -18, z: -15 }, { x: 18, z: -15 }, { x: -25, z: 10 }, { x: 25, z: 10 }, { x: 0, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'CHERKASY',  name: 'Cherkasy Defense',      desc: 'Cathedral city on the Dnipro — hold the river crossing', theme: 'urban', wavesPerLevel: 8, difficulty: 3.0, fogColor: 0x336644, spawnCandidates: [{ x: 0, z: -32 }, { x: -18, z: -18 }, { x: 18, z: -18 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: -15, z: 25 }, { x: 15, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -14751,6 +14754,251 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_odessa_port', x: ox - 5, z: oz, w: 40, d: 35, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── SLAVUTYCH: Chernobyl Memorial ────────────────────────────────────────
+  // Slavutych was built in 1986 to house Chernobyl workers after Pripyat evacuation.
+  // The reactor sarcophagus is visible from the city; exclusion zone starts at the edge.
+  function generateSlavutychChernobylMemorial(ox, oz) {
+    var h = getHeight(ox, oz);
+    var i, bx, bz;
+    // Reactor containment pillar (simplified sarcophagus shape)
+    for (i = 0; i < 16; i++) {
+      setBlock(ox, h + i, oz, BLOCK.CONCRETE);
+      setBlock(ox + 1, h + i, oz, BLOCK.CONCRETE);
+      setBlock(ox, h + i, oz + 1, BLOCK.CONCRETE);
+      setBlock(ox + 1, h + i, oz + 1, BLOCK.CONCRETE);
+    }
+    setBlock(ox, h + 16, oz, BLOCK.LIGHT); // warning glow cap
+    setBlock(ox + 1, h + 16, oz, BLOCK.LIGHT);
+    setBlock(ox, h + 16, oz + 1, BLOCK.LIGHT);
+    setBlock(ox + 1, h + 16, oz + 1, BLOCK.LIGHT);
+    // Memorial wall — 20-wide BRICK with embedded GLASS panels
+    for (bx = ox - 10; bx <= ox + 10; bx++) {
+      for (i = 0; i < 5; i++) {
+        setBlock(bx, h + i, oz - 8, BLOCK.BRICK);
+      }
+    }
+    for (i = 0; i < 5; i++) {
+      setBlock(ox - 3, h + i, oz - 8, BLOCK.GLASS);
+      setBlock(ox - 2, h + i, oz - 8, BLOCK.GLASS);
+      setBlock(ox + 2, h + i, oz - 8, BLOCK.GLASS);
+      setBlock(ox + 3, h + i, oz - 8, BLOCK.GLASS);
+    }
+    // Radiation warning poles (METAL + LIGHT tops)
+    var warnPositions = [[-12, -12], [12, -12], [-12, 12], [12, 12]];
+    for (i = 0; i < warnPositions.length; i++) {
+      bx = ox + warnPositions[i][0]; bz = oz + warnPositions[i][1];
+      setBlock(bx, h, bz, BLOCK.METAL);
+      setBlock(bx, h + 1, bz, BLOCK.METAL);
+      setBlock(bx, h + 2, bz, BLOCK.METAL);
+      setBlock(bx, h + 3, bz, BLOCK.METAL);
+      setBlock(bx, h + 4, bz, BLOCK.LIGHT);
+    }
+    // City buildings in semicircle
+    for (i = 0; i < 3; i++) {
+      var cAngle = (Math.PI / 4) * (i - 1);
+      var cbx = Math.round(ox + Math.sin(cAngle) * 20);
+      var cbz = Math.round(oz + Math.cos(cAngle) * 20);
+      var ch = getHeight(cbx, cbz);
+      for (var cy = 0; cy < 7; cy++) {
+        for (var cx2 = cbx - 2; cx2 <= cbx + 2; cx2++) {
+          for (var cz2 = cbz - 2; cz2 <= cbz + 2; cz2++) {
+            setBlock(cx2, ch + cy, cz2, cy === 6 ? BLOCK.ROOFTILE : BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Exclusion zone fence perimeter (30×30)
+    var fenceR = 15;
+    for (i = -fenceR; i <= fenceR; i++) {
+      setBlock(ox + i, h, oz - fenceR, BLOCK.METAL);
+      setBlock(ox + i, h + 1, oz - fenceR, BLOCK.FENCE);
+      setBlock(ox + i, h, oz + fenceR, BLOCK.METAL);
+      setBlock(ox + i, h + 1, oz + fenceR, BLOCK.FENCE);
+      setBlock(ox - fenceR, h, oz + i, BLOCK.METAL);
+      setBlock(ox - fenceR, h + 1, oz + i, BLOCK.FENCE);
+      setBlock(ox + fenceR, h, oz + i, BLOCK.METAL);
+      setBlock(ox + fenceR, h + 1, oz + i, BLOCK.FENCE);
+    }
+    // Abandoned vehicle hulls (CONCRETE shells)
+    var vPos = [[-6, 10], [8, -6], [-10, 5]];
+    for (i = 0; i < vPos.length; i++) {
+      bx = ox + vPos[i][0]; bz = oz + vPos[i][1];
+      var vh = getHeight(bx, bz);
+      setBlock(bx, vh, bz, BLOCK.CONCRETE);
+      setBlock(bx + 1, vh, bz, BLOCK.CONCRETE);
+      setBlock(bx, vh + 1, bz, BLOCK.CONCRETE);
+      setBlock(bx + 1, vh + 1, bz, BLOCK.CONCRETE);
+    }
+    _buildings.push({ kind: 'landmark_slavutych_memorial', x: ox - 10, z: oz - 10, w: 22, d: 22, baseY: h, floorH: 16, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── KREMENCHUK: Shopping Centre Ruins ────────────────────────────────────
+  // On 27 June 2022, Russia fired two Kh-22 missiles at the Amstor mall in
+  // Kremenchuk — killing 20 and wounding 59. The strike was classified a war crime.
+  function generateKremenchukShoppingCentre(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i;
+    // Mall shell — 30 wide, 20 deep, GLASS/CONCRETE walls 6 high
+    for (x = ox - 15; x <= ox + 15; x++) {
+      for (z = oz - 10; z <= oz + 10; z++) {
+        var isEdge = (x === ox - 15 || x === ox + 15 || z === oz - 10 || z === oz + 10);
+        if (isEdge) {
+          for (i = 0; i < 6; i++) {
+            setBlock(x, h + i, z, (i % 2 === 0) ? BLOCK.CONCRETE : BLOCK.GLASS);
+          }
+        } else {
+          setBlock(x, h, z, BLOCK.CONCRETE); // floor
+        }
+      }
+    }
+    // Collapsed roof section (partial roof with gap crater)
+    for (x = ox - 15; x <= ox + 15; x++) {
+      for (z = oz - 10; z <= oz + 10; z++) {
+        var dxc = x - ox, dzc = z - oz;
+        if (Math.abs(dxc) > 4 || Math.abs(dzc) > 4) { // leave center 8×8 open (impact crater)
+          setBlock(x, h + 6, z, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Impact crater (6×6 depression with fire glow)
+    for (x = ox - 3; x <= ox + 3; x++) {
+      for (z = oz - 3; z <= oz + 3; z++) {
+        setBlock(x, h, z, BLOCK.AIR);
+        setBlock(x, h - 1, z, BLOCK.RUBBLE);
+        setBlock(x, h - 2, z, BLOCK.RUBBLE);
+        setBlock(x, h - 3, z, BLOCK.RUBBLE);
+      }
+    }
+    setBlock(ox, h, oz, BLOCK.LIGHT); setBlock(ox + 1, h, oz, BLOCK.LIGHT);
+    setBlock(ox, h, oz + 1, BLOCK.LIGHT); setBlock(ox - 1, h, oz, BLOCK.LIGHT);
+    // Rubble scatter around crater
+    var rubbleOff = [[-5, 0], [5, 2], [0, -6], [-3, 5], [6, -3], [-7, 3], [4, -5]];
+    for (i = 0; i < rubbleOff.length; i++) {
+      setBlock(ox + rubbleOff[i][0], h, oz + rubbleOff[i][1], BLOCK.RUBBLE);
+      setBlock(ox + rubbleOff[i][0], h + 1, oz + rubbleOff[i][1], BLOCK.RUBBLE);
+    }
+    // 3 rescue/emergency tents (METAL frame + WHITE_TILE floor)
+    var tentPos = [[-20, -15], [20, -12], [-20, 12]];
+    for (i = 0; i < tentPos.length; i++) {
+      var tx = ox + tentPos[i][0], tz = oz + tentPos[i][1];
+      var th = getHeight(tx, tz);
+      for (x = tx - 2; x <= tx + 2; x++) setBlock(x, th, tz - 1, BLOCK.CONCRETE);
+      for (x = tx - 2; x <= tx + 2; x++) setBlock(x, th, tz + 1, BLOCK.CONCRETE);
+      setBlock(tx - 2, th + 1, tz - 1, BLOCK.METAL); setBlock(tx - 2, th + 1, tz + 1, BLOCK.METAL);
+      setBlock(tx + 2, th + 1, tz - 1, BLOCK.METAL); setBlock(tx + 2, th + 1, tz + 1, BLOCK.METAL);
+      setBlock(tx - 2, th + 2, tz - 1, BLOCK.METAL); setBlock(tx + 2, th + 2, tz - 1, BLOCK.METAL);
+      setBlock(tx - 2, th + 2, tz + 1, BLOCK.METAL); setBlock(tx + 2, th + 2, tz + 1, BLOCK.METAL);
+      for (x = tx - 2; x <= tx + 2; x++) { setBlock(x, th + 2, tz - 1, BLOCK.METAL); setBlock(x, th + 2, tz + 1, BLOCK.METAL); }
+      for (z = tz - 1; z <= tz + 1; z++) setBlock(tx, th, z, BLOCK.WHITE_TILE);
+    }
+    _buildings.push({ kind: 'landmark_kremenchuk_mall', x: ox - 15, z: oz - 10, w: 30, d: 20, baseY: h, floorH: 6, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── CHERKASY: City Centre with Cathedral + Monument ────────────────────────
+  // Cherkasy is a regional capital on the Kremenchuk Reservoir of the Dnipro River.
+  // The Cathedral of St Archangel Michael dominates the skyline; Khmelnytsky monument
+  // stands in the central square near the neoclassical city hall.
+  function generateCherkasyCityCentre(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i;
+    // Cathedral — 12×10 BRICK walls 10 high with ROOFTILE pyramid dome
+    for (x = ox - 6; x <= ox + 6; x++) {
+      for (z = oz - 5; z <= oz + 5; z++) {
+        var isEdgeCath = (x === ox - 6 || x === ox + 6 || z === oz - 5 || z === oz + 5);
+        if (isEdgeCath) {
+          for (i = 0; i < 10; i++) setBlock(x, h + i, z, BLOCK.BRICK);
+        } else {
+          setBlock(x, h, z, BLOCK.STONE);
+        }
+      }
+    }
+    // ROOFTILE pyramid dome
+    for (i = 0; i < 4; i++) {
+      for (x = ox - (3 - i); x <= ox + (3 - i); x++) {
+        for (z = oz - (3 - i); z <= oz + (3 - i); z++) {
+          setBlock(x, h + 10 + i, z, BLOCK.ROOFTILE);
+        }
+      }
+    }
+    setBlock(ox, h + 14, oz, BLOCK.METAL); // cross apex
+    // Bell tower (14 high, 4×4 BRICK with ROOFTILE spire)
+    for (i = 0; i < 14; i++) {
+      setBlock(ox - 9, h + i, oz - 2, BLOCK.BRICK);
+      setBlock(ox - 9, h + i, oz + 2, BLOCK.BRICK);
+      setBlock(ox - 8, h + i, oz - 2, BLOCK.BRICK);
+      setBlock(ox - 8, h + i, oz + 2, BLOCK.BRICK);
+      setBlock(ox - 9, h + i, oz - 1, BLOCK.BRICK);
+      setBlock(ox - 9, h + i, oz + 1, BLOCK.BRICK);
+      setBlock(ox - 8, h + i, oz - 1, BLOCK.BRICK);
+      setBlock(ox - 8, h + i, oz + 1, BLOCK.BRICK);
+    }
+    for (i = 0; i < 3; i++) {
+      setBlock(ox - 9, h + 14 + i, oz, BLOCK.ROOFTILE);
+      setBlock(ox - 8, h + 14 + i, oz, BLOCK.ROOFTILE);
+    }
+    setBlock(ox - 8, h + 17, oz, BLOCK.METAL);
+    // Cathedral windows (GLASS)
+    for (z = oz - 3; z <= oz + 3; z += 2) {
+      setBlock(ox - 6, h + 4, z, BLOCK.GLASS);
+      setBlock(ox - 6, h + 5, z, BLOCK.GLASS);
+      setBlock(ox + 6, h + 4, z, BLOCK.GLASS);
+      setBlock(ox + 6, h + 5, z, BLOCK.GLASS);
+    }
+    // Khmelnytsky monument — STONE 3×3 pedestal × 5 high + METAL statue 2×2×4
+    var mx = ox + 12, mz = oz;
+    var mh = getHeight(mx, mz);
+    for (x = mx - 1; x <= mx + 1; x++) {
+      for (z = mz - 1; z <= mz + 1; z++) {
+        for (i = 0; i < 5; i++) setBlock(x, mh + i, z, BLOCK.STONE);
+      }
+    }
+    setBlock(mx, mh + 5, mz, BLOCK.METAL);
+    setBlock(mx, mh + 6, mz, BLOCK.METAL);
+    setBlock(mx, mh + 7, mz, BLOCK.METAL);
+    setBlock(mx, mh + 8, mz, BLOCK.METAL);
+    setBlock(mx - 1, mh + 6, mz, BLOCK.METAL);
+    setBlock(mx + 1, mh + 6, mz, BLOCK.METAL);
+    // City Hall — 16×10 BRICK 8 high with columns
+    var chx = ox - 15, chz = oz + 15;
+    var chh = getHeight(chx, chz);
+    for (x = chx - 8; x <= chx + 8; x++) {
+      for (z = chz - 5; z <= chz + 5; z++) {
+        var isEdgeCH = (x === chx - 8 || x === chx + 8 || z === chz - 5 || z === chz + 5);
+        if (isEdgeCH) {
+          for (i = 0; i < 8; i++) setBlock(x, chh + i, z, BLOCK.BRICK);
+        } else {
+          setBlock(x, chh, z, BLOCK.STONE);
+        }
+      }
+    }
+    // ROOFTILE flat top
+    for (x = chx - 8; x <= chx + 8; x++) {
+      for (z = chz - 5; z <= chz + 5; z++) {
+        setBlock(x, chh + 8, z, BLOCK.ROOFTILE);
+      }
+    }
+    // City park — 20×20 GRASS with WOOD benches
+    var px = ox + 5, pz = oz + 20;
+    var ph = getHeight(px, pz);
+    for (x = px - 10; x <= px + 10; x++) {
+      for (z = pz - 10; z <= pz + 10; z++) {
+        setBlock(x, ph, z, BLOCK.GRASS);
+      }
+    }
+    var benchPos = [[-7, -7], [7, -7], [-7, 7], [7, 7]];
+    for (i = 0; i < benchPos.length; i++) {
+      setBlock(px + benchPos[i][0], ph + 1, pz + benchPos[i][1], BLOCK.WOOD);
+    }
+    // Promenade — 30×8 WHITE_TILE
+    for (x = ox - 15; x <= ox + 15; x++) {
+      for (z = oz - 14; z <= oz - 7; z++) {
+        setBlock(x, h, z, BLOCK.WHITE_TILE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_cherkasy_cathedral', x: ox - 6, z: oz - 5, w: 12, d: 10, baseY: h, floorH: 17, floors: 1, cx: ox, cz: oz });
+    _buildings.push({ kind: 'landmark_cherkasy_cityhall', x: chx - 8, z: chz - 5, w: 16, d: 10, baseY: chh, floorH: 8, floors: 1, cx: chx, cz: chz });
+  }
+
   // ── IZIUM: Mass Grave Memorial ────────────────────────────────────────────
   // Izium was liberated in September 2022; Ukrainian forces discovered 440 graves
   // in a forest on the edge of the city — evidence of Russian war crimes.
@@ -17203,6 +17451,42 @@ window.VoxelWorld = (function () {
       generateDroneNest(45, 42); generateDroneNest(-45, -40);
       generateAntiAirPosition(-35, 28); generateAntiAirPosition(32, -28);
       generateCheckpoint(0, -45, false); generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'SLAVUTYCH') {
+      generateCheckpoint(0, -30);
+      generateBunker(-15, 10); generateBunker(15, 10);
+      generateSlavutychChernobylMemorial(0, 0);
+      generateUkrainianApartment(-28, -18, 6); generateUkrainianApartment(25, -20, 5);
+      generateBurningRuin(-18, 20); generateBurningRuin(18, -22);
+      generateCraters(6);
+      generateTrenchNetwork(0, -20); generateTrenchNetwork(-20, 20);
+      generateDroneNest(35, 35); generateDroneNest(-35, -35);
+      generateAntiAirPosition(-28, -28); generateAntiAirPosition(28, 28);
+    } else if (level.id === 'KREMENCHUK') {
+      generateCheckpoint(0, -35);
+      generateBunker(-20, 8); generateBunker(20, 8);
+      generateKremenchukShoppingCentre(0, 0);
+      generateUkrainianApartment(-30, -22, 7); generateUkrainianApartment(28, -22, 5);
+      generateUkrainianApartment(-32, 15, 5); generateUkrainianApartment(28, 18, 7);
+      generateBurningRuin(-14, 22); generateBurningRuin(14, -25);
+      generateWreckedTank(-15, -28); generateWreckedAPC(15, 22);
+      generateCraters(8);
+      generateTrenchNetwork(-12, 18); generateTrenchNetwork(12, -18);
+      generateDroneNest(38, 40); generateDroneNest(-38, -38);
+      generateAntiAirPosition(-30, -30); generateAntiAirPosition(30, 28);
+    } else if (level.id === 'CHERKASY') {
+      generateCheckpoint(0, -38);
+      generateBunker(-22, 5); generateBunker(22, 5);
+      generateCherkasyCityCentre(0, 0);
+      generateUkrainianApartment(-32, -22, 8); generateUkrainianApartment(28, -25, 6);
+      generateUkrainianApartment(-32, 18, 6); generateUkrainianApartment(28, 20, 8);
+      generateChurch(-22, -15); generateChurch(20, 15);
+      generateBurningRuin(-15, 25); generateBurningRuin(12, -30);
+      generateWreckedTank(-18, -28); generateWreckedAPC(18, 22);
+      generateCraters(7);
+      generateTrenchNetwork(-15, 15); generateTrenchNetwork(15, -15);
+      generateDroneNest(42, 40); generateDroneNest(-42, -38);
+      generateAntiAirPosition(-35, -32); generateAntiAirPosition(32, 30);
+      generateCheckpoint(-42, 0, true);
     }
 
     // ── PROC_CITIES: distinct content for each procedural city ─────────────
