@@ -5544,8 +5544,16 @@ const GameManager = (function () {
       if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
         Tracers.spawnExplosion(enemy.mesh.position, 1.5);
       }
-      // Drop loot from enemy
-      try { if (window.Loot && Loot.dropAt) Loot.dropAt(enemy.mesh.position, enemy.type); } catch(eLD) {}
+      // Drop loot from enemy — pass tier so bosses/heavies give better drops
+      try {
+        if (window.Loot && Loot.dropAt) {
+          var _lootTier = 'normal';
+          var _tn = enemy.typeName || '';
+          if (_tn === 'BOSS' || _tn.startsWith('BOSS_')) _lootTier = 'boss';
+          else if (_tn === 'TANK' || _tn === 'ASSAULT_MECH' || _tn === 'HEAVY_GUNNER') _lootTier = 'heavy';
+          Loot.dropAt(enemy.mesh.position, enemy.type, _lootTier);
+        }
+      } catch(eLD) {}
       MLSystem.onKill(Weapons.getCurrentId());
       MLSystem.trackKillTiming(); // AI Smart Learning: track kill timing patterns
       // INFILTRATE mission: count occupant kills (stealth bonus if disguise still up)

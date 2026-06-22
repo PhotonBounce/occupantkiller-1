@@ -1237,6 +1237,7 @@ window.VoxelWorld = (function () {
     { id: 'LVIV', name: 'Lviv Stronghold', desc: 'Defend the cultural capital from saboteurs', theme: 'urban', wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x445533, spawnCandidates: [{ x: -18, z: -20 }, { x: 18, z: -20 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SEVERODONETSK', name: 'Severodonetsk Last Stand', desc: 'Hold the Azot plant until evacuation', theme: 'industrial', wavesPerLevel: 10, difficulty: 4.2, fogColor: 0x382010, spawnCandidates: [{ x: -15, z: -20 }, { x: 15, z: -20 }, { x: 0, z: -28 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'MYKOLAIV', name: 'Mykolaiv Port Defense', desc: 'Hold the Bug River port against amphibious assault', theme: 'coastal', wavesPerLevel: 8, difficulty: 3.2, fogColor: 0x334455, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KRAMATORSK', name: 'Kramatorsk Station', desc: 'Defend the railway hub under missile threat', theme: 'urban', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x332222, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -12151,6 +12152,222 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_mykolaiv_port', x: ox - 32, z: oz - 18, w: 64, d: 30, baseY: base, floorH: 18, floors: 1, cx: ox, cz: oz });
   }
 
+  // ─── KRAMATORSK LANDMARKS ─────────────────────────────────────────────────
+
+  function generateKramatorskRailStation(ox, oz) {
+    // Kramatorsk Railway Station — bombed April 8 2022 by Tochka-U missile
+    // ~60 civilians killed while evacuating; "children" written on missiles found at scene
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main station hall: 20×10 PLASTER, 8 high — Soviet neoclassical
+    for (var wy = 0; wy < 8; wy++) {
+      for (var wx = -10; wx <= 10; wx++) {
+        for (var wz = -5; wz <= 5; wz++) {
+          if (Math.abs(wx) === 10 || Math.abs(wz) === 5 || wy === 7) {
+            setBlock(ox + wx, base + wy, oz + wz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // 4 Soviet neoclassical columns on south facade
+    var colPositions = [[-7, 5], [-3, 5], [3, 5], [7, 5]];
+    for (var ci = 0; ci < colPositions.length; ci++) {
+      for (var cy = 0; cy < 8; cy++) {
+        setBlock(ox + colPositions[ci][0], base + cy, oz + colPositions[ci][1], BLOCK.PLASTER);
+      }
+    }
+    // Platform: 40×4 CONCRETE, 1 high, beside hall to the east
+    for (var px = -20; px <= 20; px++) {
+      for (var pz = 6; pz <= 9; pz++) {
+        setBlock(ox + px, base, oz + pz, BLOCK.CONCRETE);
+      }
+    }
+    // Train: 4 METAL cars 6×3×3 on platform
+    var carStartX = -18;
+    for (var tc = 0; tc < 4; tc++) {
+      var cx2 = ox + carStartX + tc * 8;
+      for (var ty = 0; ty < 3; ty++) {
+        for (var tx = 0; tx < 6; tx++) {
+          for (var tz = 0; tz < 3; tz++) {
+            if (Math.abs(tx) === 0 || tx === 5 || Math.abs(tz) === 0 || tz === 2 || ty === 2) {
+              setBlock(cx2 + tx, base + 1 + ty, oz + 6 + tz, BLOCK.METAL);
+            }
+          }
+        }
+      }
+    }
+    // MISSILE STRIKE: center of platform — Tochka-U impact crater (15×15 rubble)
+    for (var rx = -7; rx <= 7; rx++) {
+      for (var rz = -7; rz <= 7; rz++) {
+        var rdist = Math.sqrt(rx * rx + rz * rz);
+        if (rdist <= 7) {
+          // Crater center: AIR dug down
+          if (rdist < 3) {
+            setBlock(ox + rx, base - 1, oz + 7 + rz, BLOCK.AIR);
+            setBlock(ox + rx, base, oz + 7 + rz, BLOCK.AIR);
+          } else {
+            // Rubble rim
+            setBlock(ox + rx, base, oz + 7 + rz, BLOCK.RUBBLE);
+            if (Math.random() < 0.4) setBlock(ox + rx, base + 1, oz + 7 + rz, BLOCK.RUBBLE);
+          }
+        }
+      }
+    }
+    // Scattered rubble over wider radius
+    for (var sr = 0; sr < 60; sr++) {
+      var srx = ox + Math.round((Math.random() - 0.5) * 40);
+      var srz = oz + Math.round((Math.random() - 0.5) * 40);
+      var srh = getTerrainHeight(srx, srz) || 0;
+      setBlock(srx, srh + 1, srz, BLOCK.RUBBLE);
+    }
+    // Evacuee shelter: AIR stairwell descending (3×2) under station floor
+    for (var sy = 0; sy < 3; sy++) {
+      for (var sz = 0; sz < 2; sz++) {
+        setBlock(ox - 2 + sz, base - 1 - sy, oz - 3, BLOCK.AIR);
+      }
+    }
+    // Sandbag barriers near entrance
+    for (var sb = -3; sb <= 3; sb++) {
+      setBlock(ox + sb, base + 1, oz + 6, BLOCK.SANDBAG);
+      setBlock(ox + sb, base + 2, oz + 6, BLOCK.SANDBAG);
+    }
+    _buildings.push({ kind: 'landmark_kramatorsk_station', x: ox - 10, z: oz - 5, w: 22, d: 15, baseY: base, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  function generateKramatorskNKMZ(ox, oz) {
+    // NKMZ — Novokramatorsky Mashinobudivny Zavod; massive Soviet heavy machinery plant
+    // Largest industrial enterprise in Kramatorsk; produces cranes, mining equipment, rolling mills
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Massive factory hall: 50×30 REINFORCED/CONCRETE walls, 14 high
+    for (var wy = 0; wy < 14; wy++) {
+      for (var wx = -25; wx <= 25; wx++) {
+        for (var wz = -15; wz <= 15; wz++) {
+          if (Math.abs(wx) === 25 || Math.abs(wz) === 15 || wy === 13) {
+            var mat = (wy === 13) ? BLOCK.REINFORCED : BLOCK.CONCRETE;
+            setBlock(ox + wx, base + wy, oz + wz, mat);
+          }
+        }
+      }
+    }
+    // Industrial windows: strip of GLASS every 4 rows
+    for (var gwy = 2; gwy < 13; gwy += 4) {
+      for (var gwx = -20; gwx <= 20; gwx += 4) {
+        setBlock(ox + gwx, base + gwy, oz - 15, BLOCK.GLASS);
+        setBlock(ox + gwx, base + gwy, oz + 15, BLOCK.GLASS);
+      }
+    }
+    // 2 smokestacks: 4×4 BRICK base, 30 high
+    var stacks = [[-20, -18], [20, -18]];
+    for (var si = 0; si < stacks.length; si++) {
+      var sx = ox + stacks[si][0]; var sz = oz + stacks[si][1];
+      var sh2 = getTerrainHeight(sx, sz) || 0;
+      var sbase = sh2 + 1;
+      for (var sty = 0; sty < 30; sty++) {
+        for (var stx = -2; stx <= 2; stx++) {
+          for (var stz = -2; stz <= 2; stz++) {
+            if (Math.abs(stx) === 2 || Math.abs(stz) === 2) {
+              setBlock(sx + stx, sbase + sty, sz + stz, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+    }
+    // Heavy crane gantry: H-frame METAL structure 20 high spanning hall width
+    // Two vertical towers
+    for (var gty = 0; gty < 20; gty++) {
+      // West tower
+      setBlock(ox - 24, base + gty, oz, BLOCK.METAL);
+      setBlock(ox - 23, base + gty, oz, BLOCK.METAL);
+      // East tower
+      setBlock(ox + 23, base + gty, oz, BLOCK.METAL);
+      setBlock(ox + 24, base + gty, oz, BLOCK.METAL);
+    }
+    // Horizontal beam at top spanning hall
+    for (var gbx = -24; gbx <= 24; gbx++) {
+      setBlock(ox + gbx, base + 20, oz, BLOCK.METAL);
+      setBlock(ox + gbx, base + 21, oz, BLOCK.METAL);
+    }
+    // Railway siding approach from south: CONCRETE track
+    for (var rsy = 0; rsy < 20; rsy++) {
+      setBlock(ox - 5, base, oz + 15 + rsy, BLOCK.CONCRETE);
+      setBlock(ox + 5, base, oz + 15 + rsy, BLOCK.CONCRETE);
+    }
+    // Tank repair bay: 15×10 METAL floor section inside hall
+    for (var trx = -7; trx <= 7; trx++) {
+      for (var trz = -5; trz <= 4; trz++) {
+        setBlock(ox + trx, base, oz + trz, BLOCK.METAL);
+      }
+    }
+    // Tank hulls (METAL boxes) in repair bay — 2 tanks
+    for (var tk = 0; tk < 2; tk++) {
+      var tkx = ox - 5 + tk * 8; var tkz = oz - 3;
+      for (var tky = 0; tky < 3; tky++) {
+        for (var tkx2 = 0; tkx2 < 5; tkx2++) {
+          for (var tkz2 = 0; tkz2 < 3; tkz2++) {
+            if (Math.abs(tkx2) === 0 || tkx2 === 4 || Math.abs(tkz2) === 0 || tkz2 === 2 || tky === 2) {
+              setBlock(tkx + tkx2, base + 1 + tky, tkz + tkz2, BLOCK.METAL);
+            }
+          }
+        }
+      }
+    }
+    // Defensive trenches along factory perimeter
+    for (var dta = 0; dta < 30; dta++) {
+      setBlock(ox - 28 + dta, base - 1, oz + 18, BLOCK.AIR);
+    }
+    for (var dtb = 0; dtb < 30; dtb++) {
+      setBlock(ox - 28 + dtb, base - 1, oz - 20, BLOCK.AIR);
+    }
+    _buildings.push({ kind: 'landmark_kramatorsk_nkmz', x: ox - 25, z: oz - 15, w: 52, d: 32, baseY: base, floorH: 14, floors: 2, cx: ox, cz: oz });
+  }
+
+  function generateKramatorskCityHall(ox, oz) {
+    // Kramatorsk City Hall — Soviet-era administrative building on central square
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main body: 16×10 CONCRETE, 12 high
+    for (var wy = 0; wy < 12; wy++) {
+      for (var wx = -8; wx <= 8; wx++) {
+        for (var wz = -5; wz <= 5; wz++) {
+          if (Math.abs(wx) === 8 || Math.abs(wz) === 5 || wy === 11) {
+            setBlock(ox + wx, base + wy, oz + wz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // 6 CONCRETE columns on south facade, 11 high
+    var colX = [-6, -3, 0, 3, 6];
+    for (var ci = 0; ci < colX.length; ci++) {
+      for (var cy = 0; cy < 11; cy++) {
+        setBlock(ox + colX[ci], base + cy, oz + 5, BLOCK.CONCRETE);
+      }
+    }
+    // Central tower: 4×4 CONCRETE, 18 high
+    for (var ty = 0; ty < 18; ty++) {
+      for (var tx = -2; tx <= 2; tx++) {
+        for (var tz = -2; tz <= 2; tz++) {
+          if (Math.abs(tx) === 2 || Math.abs(tz) === 2) {
+            setBlock(ox + tx, base + 12 + ty, oz + tz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Ukrainian flag on tower top: LIGHT (blue) and CONCRETE (yellow) blocks
+    // Blue stripe
+    setBlock(ox, base + 30, oz - 3, BLOCK.LIGHT);
+    setBlock(ox + 1, base + 30, oz - 3, BLOCK.LIGHT);
+    // Yellow stripe
+    setBlock(ox, base + 29, oz - 3, BLOCK.CONCRETE);
+    setBlock(ox + 1, base + 29, oz - 3, BLOCK.CONCRETE);
+    // Sandbagged entrance: SANDBAG blocks 2 high across entrance
+    for (var sb = -3; sb <= 3; sb++) {
+      setBlock(ox + sb, base + 1, oz + 6, BLOCK.SANDBAG);
+      setBlock(ox + sb, base + 2, oz + 6, BLOCK.SANDBAG);
+    }
+    _buildings.push({ kind: 'landmark_kramatorsk_cityhall', x: ox - 8, z: oz - 5, w: 18, d: 12, baseY: base, floorH: 12, floors: 3, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -13374,6 +13591,24 @@ window.VoxelWorld = (function () {
       generateDroneNest(42, 40); generateDroneNest(-42, -40);
       generateAntiAirPosition(-38, 28); generateAntiAirPosition(35, -28);
       generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'KRAMATORSK') {
+      // Kramatorsk — Donetsk Oblast HQ under Ukrainian control; Tochka-U missile hit station Apr 2022
+      generateKramatorskRailStation(-5, -20);
+      generateKramatorskNKMZ(20, 15);
+      generateKramatorskCityHall(-18, 8);
+      generateUkrainianApartment(-28, -28, 9); generateUkrainianApartment(30, -22, 6);
+      generateUkrainianApartment(-32, 12, 6); generateUkrainianApartment(28, 20, 9);
+      generateRuinedHouse(-12, 28); generateRuinedHouse(10, -38);
+      generateBurningRuin(-38, -15); generateBurningRuin(32, 12);
+      generateWreckedTank(-20, -30); generateWreckedAPC(18, 30); generateWreckedConvoy(-30, 28);
+      generateCraters(14);
+      generateBunker(-28, -30); generateBunker(24, 28); generateBunker(0, -42); generateBunker(-40, 15);
+      generateMortarPit(-35, -15); generateMortarPit(30, 14);
+      generateTrenchNetwork(-18, 22); generateTrenchNetwork(18, -22);
+      generateSniperNest(-38, -40); generateSniperNest(35, -40);
+      generateDroneNest(45, 42); generateDroneNest(-45, -42);
+      generateAntiAirPosition(-40, 28); generateAntiAirPosition(38, -28);
+      generateCheckpoint(0, -50, false); generateCheckpoint(-48, 0, true);
     } else if (level.id === 'BUCHA') {
       // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022
       // St. Andrew's Church cemetery mass burial, Yablunska Street massacres
