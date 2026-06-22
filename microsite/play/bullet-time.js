@@ -1,548 +1,438 @@
 /**
- * bullet-time.js — Slow-motion bullet-time power with visual film-noir effects
- * window.BulletTime module
+ * bullet-time.js -- Bullet Time slow-motion ability
+ * Keybind: Shift+T to toggle
+ * Exports: window._bulletTimeActive, window._bulletTimeScale, window._bulletTimeEnergy
  */
+
+// Exported state globals set immediately so other modules can read them
+window._bulletTimeActive     = false;
+window._bulletTimeScale      = 1.0;
+window._bulletTimeEnergy     = 1.0;
+window._bulletTimeAudioPitch = 1.0;
+
 window.BulletTime = (function () {
   'use strict';
 
-  // --- Private state ---
-  var _scene = null;
-  var _camera = null;
-  var _active = false;
-  var _charge = 1.0;          // 0..1, full = 1.0
-  var _cooldownTimer = 0;     // seconds remaining in cooldown
-  var _activeTimer = 0;       // seconds remaining while active
-  var _maxDuration = 5.0;     // seconds
-  var _cooldown = 30.0;       // seconds
-  var _timeScaleActive = 0.2;
-  var _normalFOV = 75;
-  var _activeFOV = 70;        // FOV reduced by 5 during bullet-time
-  var _qKeyDown = false;
-  var _qPressHandled = false;
+  // Constants
+  var SLOW_SCALE      = 0.2;
+  var DRAIN_RATE      = 0.25;
+  var CHARGE_RATE     = 0.15;
+  var MAX_DURATION    = 8.0;
+  var MIN_RECHARGE    = 4.0;
+  var MOTE_COUNT      = 30;
+  var BASS_FREQ       = 100;
+  var BASS_GAIN_LEVEL = 0.04;
 
-  // Visual / audio state
-  var _flashLight = null;
-  var _flashTimer = 0;
-  var _speedLines = null;
-  var _speedLineTimer = 0;
-  var _oversatTimer = 0;      // post-deactivate over-saturation timer
-  var _particles = [];        // dust-mote particle meshes
-  var _meterEl = null;        // HUD meter DOM element
-  var _meterFill = null;
-  var _vignetteEl = null;
-  var _canvasEl = null;
-  var _audioCtx = null;
+  // Private state
+  var _scene        = null;
+  var _camera       = null;
+  var _active       = false;
+  var _energy       = 1.0;
+  var _runTime      = 0.0;
+  var _rechargeWait = 0.0;
+  var _forcedOff    = false;
+
+  // Shift+T keybind state
+  var _shiftHeld     = false;
+  var _tHeld         = false;
+  var _toggleHandled = false;
+
+  // DOM refs
+  var _canvasEl      = null;
+  var _vignetteEl    = null;
+  var _labelEl       = null;
+  var _energyWrap    = null;
+  var _energyBarFill = null;
+  var _energyBarText = null;
+  var _pulseDir      = 1;
+  var _pulseAlpha    = 1.0;
+
+  // Three.js mote group
+  var _moteGroup = null;
+  var _moteVels  = [];
+
+  // Audio
+  var _audioCtx     = null;
+  var _bassOsc      = null;
+  var _bassGainNode = null;
+
+  // Misc legacy audio state
   var _initialized = false;
 
-  // --- Helpers ---
-
+  // --- Canvas helper ---
   function _getCanvas() {
     if (!_canvasEl) {
-      _canvasEl = document.querySelector('canvas');
+      _canvasEl = document.getElementById('gameCanvas') ||
+                  document.querySelector('canvas');
     }
     return _canvasEl;
   }
 
-  function _getAudioCtx() {
-    if (!_audioCtx) {
-      try {
-        _audioCtx = window._audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-        window._audioCtx = _audioCtx;
-      } catch (e) { /* no audio */ }
-    }
-    return _audioCtx;
-  }
-
-  function _toast(msg) {
-    if (window.HUD && window.HUD.showToast) {
-      window.HUD.showToast(msg);
-    }
-  }
-
-  // --- HUD Meter ---
-
-  function _createMeter() {
-    if (_meterEl) return;
-
-    _meterEl = document.createElement('div');
-    _meterEl.id = 'bt-meter';
-    _meterEl.style.cssText = [
-      'position:fixed',
-      'right:18px',
-      'top:50%',
-      'transform:translateY(-50%)',
-      'width:10px',
-      'height:120px',
-      'background:rgba(0,0,0,0.5)',
-      'border:1px solid rgba(0,100,255,0.7)',
-      'border-radius:5px',
-      'overflow:hidden',
-      'z-index:9999',
-      'pointer-events:none'
-    ].join(';');
-
-    _meterFill = document.createElement('div');
-    _meterFill.style.cssText = [
-      'position:absolute',
-      'bottom:0',
-      'left:0',
-      'width:100%',
-      'height:100%',
-      'background:linear-gradient(to top,rgba(0,80,255,0.9),rgba(100,180,255,0.7))',
-      'transition:height 0.1s linear'
-    ].join(';');
-
-    _meterEl.appendChild(_meterFill);
-    document.body.appendChild(_meterEl);
-  }
-
-  function _updateMeter() {
-    if (!_meterFill) return;
-    var pct = Math.max(0, Math.min(1, _charge)) * 100;
-    _meterFill.style.height = pct + '%';
-    // Pulse blue border when active
-    if (_active) {
-      _meterEl.style.borderColor = 'rgba(80,160,255,1)';
-      _meterEl.style.boxShadow = '0 0 6px rgba(0,100,255,0.8)';
-    } else {
-      _meterEl.style.borderColor = 'rgba(0,100,255,0.7)';
-      _meterEl.style.boxShadow = 'none';
-    }
-  }
-
-  // --- Vignette overlay ---
-
-  function _createVignette() {
-    if (_vignetteEl) return;
-    _vignetteEl = document.createElement('div');
-    _vignetteEl.id = 'bt-vignette';
-    _vignetteEl.style.cssText = [
-      'position:fixed',
-      'inset:0',
-      'pointer-events:none',
-      'z-index:9998',
-      'transition:box-shadow 0.3s ease'
-    ].join(';');
-    document.body.appendChild(_vignetteEl);
-  }
-
-  function _applyVisualActive() {
-    var canvas = _getCanvas();
-    if (canvas) {
-      canvas.style.filter = 'saturate(0.3) contrast(1.4)';
-      canvas.style.transition = 'filter 0.3s ease';
-    }
-    if (_vignetteEl) {
-      _vignetteEl.style.boxShadow = 'inset 0 0 80px rgba(0,100,255,0.5)';
-    }
-  }
-
-  function _applyVisualDeactivate() {
-    var canvas = _getCanvas();
-    if (canvas) {
-      // Brief over-saturation flash
-      canvas.style.filter = 'saturate(3.0) contrast(1.1) brightness(1.3)';
-      canvas.style.transition = 'filter 0.05s ease';
-      _oversatTimer = 0.3;
-    }
-    if (_vignetteEl) {
-      _vignetteEl.style.boxShadow = 'none';
-    }
-  }
-
-  function _restoreVisualNormal() {
-    var canvas = _getCanvas();
-    if (canvas) {
-      canvas.style.filter = 'none';
-      canvas.style.transition = 'filter 0.4s ease';
-    }
-  }
-
-  // --- Camera FOV ---
-
-  function _setCameraFOV(fov) {
-    var cam = _camera || window._camera;
-    if (!cam) return;
-    if (cam.fov !== undefined) {
-      cam.fov = fov;
-      cam.updateProjectionMatrix && cam.updateProjectionMatrix();
-    }
-  }
-
-  // --- Speed lines (LineSegments from center outward) ---
-
-  function _createSpeedLines() {
-    var scene = _scene || window._gameScene;
-    if (!scene) return;
-    if (typeof THREE === 'undefined') return;
-
-    var positions = [];
-    var count = 32;
-    for (var i = 0; i < count; i++) {
-      var angle = (i / count) * Math.PI * 2;
-      var r1 = 2 + Math.random() * 2;
-      var r2 = r1 + 3 + Math.random() * 5;
-      // Start point
-      positions.push(Math.cos(angle) * r1, Math.sin(angle) * r1, 0);
-      // End point
-      positions.push(Math.cos(angle) * r2, Math.sin(angle) * r2, 0);
-    }
-
-    var geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    var mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
-    _speedLines = new THREE.LineSegments(geo, mat);
-
-    var cam = _camera || window._camera;
-    if (cam) {
-      _speedLines.position.copy(cam.position);
-      _speedLines.quaternion.copy(cam.quaternion);
-      _speedLines.translateZ(-8);
-    }
-
-    scene.add(_speedLines);
-    _speedLineTimer = 0.5;
-  }
-
-  function _removeSpeedLines() {
-    if (!_speedLines) return;
-    var scene = _scene || window._gameScene;
-    if (scene) scene.remove(_speedLines);
-    if (_speedLines.geometry) _speedLines.geometry.dispose();
-    if (_speedLines.material) _speedLines.material.dispose();
-    _speedLines = null;
-  }
-
-  // --- Flash point light ---
-
-  function _createFlashLight() {
-    var scene = _scene || window._gameScene;
-    if (!scene) return;
-    if (typeof THREE === 'undefined') return;
-
-    var cam = _camera || window._camera;
-    _flashLight = new THREE.PointLight(0xffffff, 8, 30);
-    if (cam) {
-      _flashLight.position.copy(cam.position);
-    }
-    scene.add(_flashLight);
-    _flashTimer = 0.25;
-  }
-
-  function _removeFlashLight() {
-    if (!_flashLight) return;
-    var scene = _scene || window._gameScene;
-    if (scene) scene.remove(_flashLight);
-    _flashLight = null;
-  }
-
-  // --- Dust mote particles ---
-
-  function _spawnDustParticle(x, y, z) {
-    var scene = _scene || window._gameScene;
-    if (!scene) return;
-    if (typeof THREE === 'undefined') return;
-
-    var geo = new THREE.SphereGeometry(0.05, 4, 4);
-    var mat = new THREE.MeshBasicMaterial({
-      color: 0x88aaff,
-      transparent: true,
-      opacity: 0.7
-    });
-    var mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(
-      x + (Math.random() - 0.5) * 0.4,
-      y + (Math.random() - 0.5) * 0.4,
-      z + (Math.random() - 0.5) * 0.4
-    );
-    mesh._life = 0.6 + Math.random() * 0.4;
-    mesh._maxLife = mesh._life;
-    mesh._vel = new THREE.Vector3(
-      (Math.random() - 0.5) * 0.5,
-      (Math.random()) * 0.3,
-      (Math.random() - 0.5) * 0.5
-    );
-    scene.add(mesh);
-    _particles.push(mesh);
-  }
-
-  function _updateParticles(dt) {
-    var scene = _scene || window._gameScene;
-    var toRemove = [];
-    for (var i = 0; i < _particles.length; i++) {
-      var p = _particles[i];
-      p._life -= dt;
-      if (p._life <= 0) {
-        toRemove.push(i);
-        if (scene) scene.remove(p);
-        if (p.geometry) p.geometry.dispose();
-        if (p.material) p.material.dispose();
-      } else {
-        p.position.addScaledVector(p._vel, dt);
-        p.material.opacity = (p._life / p._maxLife) * 0.7;
-      }
-    }
-    // Remove dead particles in reverse order
-    for (var j = toRemove.length - 1; j >= 0; j--) {
-      _particles.splice(toRemove[j], 1);
-    }
-  }
-
-  function _clearAllParticles() {
-    var scene = _scene || window._gameScene;
-    for (var i = 0; i < _particles.length; i++) {
-      var p = _particles[i];
-      if (scene) scene.remove(p);
-      if (p.geometry) p.geometry.dispose();
-      if (p.material) p.material.dispose();
-    }
-    _particles = [];
-  }
-
-  // --- Audio ---
-
-  function _playActivateSound() {
-    var ctx = _getAudioCtx();
-    if (!ctx) return;
-    try {
-      // Low-pitched rumble oscillator
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(60, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.5);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.8);
-
-      // Echo layer
-      var osc2 = ctx.createOscillator();
-      var gain2 = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(80, ctx.currentTime + 0.1);
-      osc2.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.6);
-      gain2.gain.setValueAtTime(0.15, ctx.currentTime + 0.1);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(ctx.currentTime + 0.1);
-      osc2.stop(ctx.currentTime + 0.9);
-    } catch (e) { /* audio unavailable */ }
-  }
-
-  function _playDeactivateSound() {
-    var ctx = _getAudioCtx();
-    if (!ctx) return;
-    try {
-      // Time-restore whoosh — rising pitch
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(100, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.3);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.35);
-    } catch (e) { /* audio unavailable */ }
-  }
-
-  // --- Activation / Deactivation ---
-
-  function activate() {
-    if (_active) return;
-    if (_charge <= 0) {
-      _toast('Bullet-Time not charged!');
-      return;
-    }
-    if (_cooldownTimer > 0) {
-      _toast('Bullet-Time cooling down...');
-      return;
-    }
-
-    _active = true;
-    _activeTimer = _maxDuration * _charge;
-    window._timeScale = _timeScaleActive;
-    window._scoreMultiplier = 1.5;
-
-    _applyVisualActive();
-    _setCameraFOV(_activeFOV);
-    _createFlashLight();
-    _createSpeedLines();
-    _playActivateSound();
-    _toast('BULLET TIME!');
-  }
-
-  function deactivate() {
-    if (!_active) return;
-
-    _active = false;
-    _cooldownTimer = _cooldown;
-    _charge = 0;
-    window._timeScale = 1.0;
-    window._scoreMultiplier = 1.0;
-
-    _applyVisualDeactivate();
-    _setCameraFOV(_normalFOV);
-    _removeSpeedLines();
-    _playDeactivateSound();
-    _clearAllParticles();
-    _toast('Bullet-Time ended. Cooling down...');
-  }
-
-  // --- Key handlers ---
-
+  // --- Key handlers: Shift+T ---
   function _onKeyDown(e) {
-    if (e.code === 'KeyQ' && !_qKeyDown) {
-      _qKeyDown = true;
-      if (!_qPressHandled) {
-        _qPressHandled = true;
-        if (_active) {
-          deactivate();
-        } else {
-          activate();
+    if (e.key === 'Shift') { _shiftHeld = true; }
+    if (e.key === 'T' || e.key === 't') {
+      if (!_tHeld) {
+        _tHeld = true;
+        if (_shiftHeld && !_toggleHandled) {
+          _toggleHandled = true;
+          if (_active) { _deactivate(); } else { _activate(); }
         }
       }
     }
   }
 
   function _onKeyUp(e) {
-    if (e.code === 'KeyQ') {
-      _qKeyDown = false;
-      _qPressHandled = false;
+    if (e.key === 'Shift') { _shiftHeld = false; _toggleHandled = false; }
+    if (e.key === 'T' || e.key === 't') { _tHeld = false; _toggleHandled = false; }
+  }
+
+  // --- Build spec UI ---
+  function _buildUI() {
+    // Vignette overlay rgba(0,0,0,0.25) edge darkening
+    if (!_vignetteEl) {
+      _vignetteEl = document.createElement('div');
+      _vignetteEl.id = 'bt-vignette';
+      _vignetteEl.style.cssText =
+        'position:fixed;top:0;left:0;width:100%;height:100%;' +
+        'pointer-events:none;z-index:9000;display:none;' +
+        'background:radial-gradient(ellipse at center,' +
+        'transparent 50%,rgba(0,0,0,0.25) 100%);';
+      document.body.appendChild(_vignetteEl);
+    }
+
+    // SLOW label pulsing at bottom
+    if (!_labelEl) {
+      _labelEl = document.createElement('div');
+      _labelEl.id = 'bt-label';
+      _labelEl.textContent = '▶▶ SLOW';
+      _labelEl.style.cssText =
+        'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);' +
+        'color:#4af;font-family:monospace;font-size:22px;font-weight:bold;' +
+        'letter-spacing:4px;text-shadow:0 0 12px #4af,0 0 24px #08f;' +
+        'pointer-events:none;z-index:9001;display:none;opacity:1;';
+      document.body.appendChild(_labelEl);
+    }
+
+    // Horizontal energy bar 200px wide electric blue at top
+    if (!_energyWrap) {
+      _energyWrap = document.createElement('div');
+      _energyWrap.id = 'bt-energy-wrap';
+      _energyWrap.style.cssText =
+        'position:fixed;top:8px;left:50%;transform:translateX(-50%);' +
+        'width:200px;z-index:9002;pointer-events:none;' +
+        'display:flex;flex-direction:column;align-items:center;gap:2px;';
+
+      _energyBarText = document.createElement('div');
+      _energyBarText.style.cssText =
+        'font-family:monospace;font-size:10px;color:#4af;' +
+        'letter-spacing:2px;text-shadow:0 0 6px #08f;';
+      _energyBarText.textContent = 'BULLET TIME';
+
+      var barOuter = document.createElement('div');
+      barOuter.style.cssText =
+        'width:200px;height:6px;background:rgba(0,60,120,0.5);' +
+        'border:1px solid #4af;border-radius:3px;overflow:hidden;';
+
+      _energyBarFill = document.createElement('div');
+      _energyBarFill.style.cssText =
+        'height:100%;width:100%;' +
+        'background:linear-gradient(90deg,#08f,#4af);' +
+        'border-radius:3px;transition:width 0.05s linear;';
+
+      barOuter.appendChild(_energyBarFill);
+      _energyWrap.appendChild(_energyBarText);
+      _energyWrap.appendChild(barOuter);
+      document.body.appendChild(_energyWrap);
     }
   }
 
-  // --- Public API ---
+  function _showActiveUI() {
+    var canvas = _getCanvas();
+    if (canvas) { canvas.style.filter = 'saturate(1.4) contrast(1.1)'; }
+    if (_vignetteEl) _vignetteEl.style.display = 'block';
+    if (_labelEl)    _labelEl.style.display    = 'block';
+  }
 
-  function init(scene, camera) {
+  function _hideActiveUI() {
+    var canvas = _getCanvas();
+    if (canvas) { canvas.style.filter = ''; }
+    if (_vignetteEl) _vignetteEl.style.display = 'none';
+    if (_labelEl)    _labelEl.style.display    = 'none';
+    if (_labelEl)    _labelEl.style.opacity    = '1';
+    _pulseAlpha = 1.0;
+    _pulseDir   = 1;
+  }
+
+  function _refreshEnergyBar() {
+    if (!_energyBarFill) return;
+    var pct = Math.max(0, Math.min(1, _energy)) * 100;
+    _energyBarFill.style.width = pct + '%';
+    if (!_energyBarText) return;
+    if (_forcedOff && _energy < 1.0) {
+      _energyBarText.textContent      = 'RECHARGING';
+      _energyBarText.style.color      = '#f80';
+      _energyBarText.style.textShadow = '0 0 6px #f80';
+    } else {
+      _energyBarText.textContent      = 'BULLET TIME';
+      _energyBarText.style.color      = '#4af';
+      _energyBarText.style.textShadow = '0 0 6px #08f';
+    }
+  }
+
+  // --- 30 floating blue dust motes ---
+  function _buildMotes() {
+    var THREE = window.THREE;
+    if (!THREE) return;
+    _moteGroup = new THREE.Group();
+    _moteVels  = [];
+    var geo = new THREE.SphereGeometry(0.03, 4, 4);
+    var i;
+    for (i = 0; i < MOTE_COUNT; i++) {
+      var mat = new THREE.MeshBasicMaterial({
+        color: 0x4499ff,
+        transparent: true,
+        opacity: 0.7
+      });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(
+        (Math.random() - 0.5) * 4,
+        (Math.random() - 0.5) * 4,
+        (Math.random() - 0.5) * 4
+      );
+      _moteGroup.add(mesh);
+      _moteVels.push({
+        x: (Math.random() - 0.5) * 0.3,
+        y: (Math.random() - 0.5) * 0.3,
+        z: (Math.random() - 0.5) * 0.3
+      });
+    }
+  }
+
+  function _addMotesToScene() {
+    var scene = _scene || window._gameScene;
+    if (scene && _moteGroup) scene.add(_moteGroup);
+  }
+
+  function _removeMotesFromScene() {
+    var scene = _scene || window._gameScene;
+    if (scene && _moteGroup) scene.remove(_moteGroup);
+  }
+
+  function _tickMotes(realDt, camera) {
+    if (!_moteGroup || !camera) return;
+    var children = _moteGroup.children;
+    var i;
+    for (i = 0; i < children.length; i++) {
+      var m = children[i];
+      var v = _moteVels[i];
+      m.position.x += v.x * realDt * 0.5;
+      m.position.y += v.y * realDt * 0.5;
+      m.position.z += v.z * realDt * 0.5;
+      if (Math.abs(m.position.x - camera.position.x) > 3) {
+        m.position.x = camera.position.x + (Math.random() - 0.5) * 4;
+      }
+      if (Math.abs(m.position.y - camera.position.y) > 3) {
+        m.position.y = camera.position.y + (Math.random() - 0.5) * 4;
+      }
+      if (Math.abs(m.position.z - camera.position.z) > 3) {
+        m.position.z = camera.position.z + (Math.random() - 0.5) * 4;
+      }
+    }
+    _moteGroup.position.copy(camera.position);
+  }
+
+  // --- Audio: 100Hz bass hum oscillator, gain 0.04 ---
+  function _ensureAudioCtx() {
+    if (_audioCtx) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (window.AudioSystem && window.AudioSystem._ctx) {
+        _audioCtx = window.AudioSystem._ctx;
+      } else {
+        _audioCtx = new AC();
+      }
+    } catch (e) { _audioCtx = null; }
+  }
+
+  function _startBassHum() {
+    _ensureAudioCtx();
+    if (!_audioCtx) return;
+    try {
+      _bassOsc      = _audioCtx.createOscillator();
+      _bassGainNode = _audioCtx.createGain();
+      _bassOsc.type = 'sine';
+      _bassOsc.frequency.setValueAtTime(BASS_FREQ, _audioCtx.currentTime);
+      _bassGainNode.gain.setValueAtTime(0, _audioCtx.currentTime);
+      _bassGainNode.gain.linearRampToValueAtTime(
+        BASS_GAIN_LEVEL,
+        _audioCtx.currentTime + 0.3
+      );
+      _bassOsc.connect(_bassGainNode);
+      _bassGainNode.connect(_audioCtx.destination);
+      _bassOsc.start();
+      window._bulletTimeAudioPitch = 0.7;
+    } catch (e) {
+      _bassOsc = null;
+      _bassGainNode = null;
+    }
+  }
+
+  function _stopBassHum() {
+    window._bulletTimeAudioPitch = 1.0;
+    if (!_bassOsc || !_bassGainNode || !_audioCtx) return;
+    try {
+      _bassGainNode.gain.linearRampToValueAtTime(0, _audioCtx.currentTime + 0.3);
+      var oscRef = _bassOsc;
+      _bassOsc      = null;
+      _bassGainNode = null;
+      setTimeout(function () {
+        try { oscRef.stop(); } catch (e2) { /* already stopped */ }
+      }, 400);
+    } catch (e) {
+      _bassOsc = null;
+      _bassGainNode = null;
+    }
+  }
+
+  // --- Activate / Deactivate ---
+  function _activate() {
+    if (_active)         return;
+    if (_forcedOff)      return;
+    if (_energy <= 0.01) return;
+
+    _active  = true;
+    _runTime = 0.0;
+
+    window._bulletTimeActive = true;
+    window._bulletTimeScale  = SLOW_SCALE;
+    if (typeof window._timeScale !== 'undefined') window._timeScale = SLOW_SCALE;
+
+    _showActiveUI();
+    _addMotesToScene();
+    _startBassHum();
+  }
+
+  function _deactivate() {
+    if (!_active) return;
+
+    _active       = false;
+    _rechargeWait = 0.0;
+
+    window._bulletTimeActive = false;
+    window._bulletTimeScale  = 1.0;
+    if (typeof window._timeScale !== 'undefined') window._timeScale = 1.0;
+
+    _hideActiveUI();
+    _removeMotesFromScene();
+    _stopBassHum();
+  }
+
+  // --- Public init ---
+  function init(scene) {
     if (_initialized) return;
     _initialized = true;
 
-    _scene = scene || window._gameScene || null;
-    _camera = camera || window._camera || null;
-
-    // Capture normal FOV
-    var cam = _camera || window._camera;
-    if (cam && cam.fov !== undefined) {
-      _normalFOV = cam.fov;
-      _activeFOV = _normalFOV - 5;
+    _scene = scene || null;
+    if (!_scene && window.GameManager && window.GameManager._scene) {
+      _scene = window.GameManager._scene;
     }
 
-    // Init global timeScale
-    window._timeScale = window._timeScale || 1.0;
-    window._scoreMultiplier = window._scoreMultiplier || 1.0;
+    _buildUI();
+    _buildMotes();
 
-    _createMeter();
-    _createVignette();
+    window._bulletTimeActive     = false;
+    window._bulletTimeScale      = 1.0;
+    window._bulletTimeEnergy     = 1.0;
+    window._bulletTimeAudioPitch = 1.0;
 
-    document.addEventListener('keydown', _onKeyDown);
-    document.addEventListener('keyup', _onKeyUp);
+    window.addEventListener('keydown', _onKeyDown);
+    window.addEventListener('keyup',   _onKeyUp);
   }
 
-  function update(dt) {
-    // Allow scene/camera to be resolved lazily
+  // --- Public update (called with REAL unscaled dt every frame) ---
+  function update(realDt, camera) {
+    if (!_initialized) return;
+
+    // Lazy scene resolution
     if (!_scene) _scene = window._gameScene || null;
-    if (!_camera) _camera = window._camera || null;
+    if (!camera)  camera = window._camera || null;
 
-    var realDt = dt || 0.016;
+    var dt = realDt || 0.016;
 
-    // --- Flash light fade ---
-    if (_flashLight) {
-      _flashTimer -= realDt;
-      if (_flashTimer <= 0) {
-        _removeFlashLight();
-      } else {
-        _flashLight.intensity = 8 * (_flashTimer / 0.25);
-      }
-    }
-
-    // --- Speed lines fade ---
-    if (_speedLines) {
-      _speedLineTimer -= realDt;
-      if (_speedLineTimer <= 0) {
-        _removeSpeedLines();
-      } else {
-        _speedLines.material.opacity = _speedLineTimer / 0.5;
-      }
-    }
-
-    // --- Over-saturation timer ---
-    if (_oversatTimer > 0) {
-      _oversatTimer -= realDt;
-      if (_oversatTimer <= 0) {
-        _restoreVisualNormal();
-      }
-    }
-
-    // --- Active bullet-time tick ---
     if (_active) {
-      _activeTimer -= realDt;
-      _charge = Math.max(0, _activeTimer / _maxDuration);
+      _runTime += dt;
+      _energy  -= DRAIN_RATE * dt;
+      if (_energy < 0) _energy = 0;
 
-      // Spawn dust on enemies
-      var enemies = (window.Enemies && window.Enemies.getAll) ? window.Enemies.getAll() : [];
-      for (var i = 0; i < enemies.length; i++) {
-        var enemy = enemies[i];
-        if (enemy && enemy.mesh && Math.random() < 0.3) {
-          var pos = enemy.mesh.position;
-          _spawnDustParticle(pos.x, pos.y, pos.z);
-        }
-      }
-
-      // Score multiplier while active
-      window._scoreMultiplier = (_timeScaleActive < 0.5) ? 1.5 : 1.0;
-
-      if (_activeTimer <= 0) {
-        deactivate();
+      // Force exit on max duration or depletion
+      if (_runTime >= MAX_DURATION || _energy <= 0) {
+        _forcedOff = true;
+        _deactivate();
       }
     } else {
-      // Cooldown
-      if (_cooldownTimer > 0) {
-        _cooldownTimer -= realDt;
-        if (_cooldownTimer < 0) _cooldownTimer = 0;
-        // Refill charge during cooldown
-        _charge = 1.0 - (_cooldownTimer / _cooldown);
-      } else {
-        _charge = 1.0;
+      // Recharge
+      _energy += CHARGE_RATE * dt;
+      if (_energy > 1.0) _energy = 1.0;
+
+      // Mandatory recharge window after forced exit
+      if (_forcedOff) {
+        _rechargeWait += dt;
+        if (_rechargeWait >= MIN_RECHARGE) {
+          _forcedOff    = false;
+          _rechargeWait = 0.0;
+        }
       }
     }
 
-    // Update particles
-    _updateParticles(realDt);
+    window._bulletTimeEnergy = _energy;
+    _refreshEnergyBar();
 
-    // Update meter
-    _updateMeter();
+    // Pulse SLOW label
+    if (_active && _labelEl) {
+      _pulseAlpha += _pulseDir * dt * 2.5;
+      if (_pulseAlpha >= 1.0) { _pulseAlpha = 1.0; _pulseDir = -1; }
+      if (_pulseAlpha <= 0.3) { _pulseAlpha = 0.3; _pulseDir =  1; }
+      _labelEl.style.opacity = String(_pulseAlpha.toFixed(2));
+    }
+
+    // Drift motes
+    if (_active && camera) {
+      _tickMotes(dt, camera);
+    }
   }
 
+  // --- Public activate (can be called externally) ---
+  function activate() { _activate(); }
+
+  // --- Public reset ---
   function reset() {
-    if (_active) {
-      deactivate();
-    }
-    _charge = 1.0;
-    _cooldownTimer = 0;
-    _activeTimer = 0;
-    window._timeScale = 1.0;
-    window._scoreMultiplier = 1.0;
-    _clearAllParticles();
-    _removeFlashLight();
-    _removeSpeedLines();
-    _restoreVisualNormal();
-    if (_vignetteEl) _vignetteEl.style.boxShadow = 'none';
-    _updateMeter();
+    _deactivate();
+    _energy       = 1.0;
+    _runTime      = 0.0;
+    _rechargeWait = 0.0;
+    _forcedOff    = false;
+    _pulseAlpha   = 1.0;
+    _pulseDir     = 1;
+
+    window._bulletTimeActive = false;
+    window._bulletTimeScale  = 1.0;
+    window._bulletTimeEnergy = 1.0;
+    _refreshEnergyBar();
+  }
+
+  // --- Kill bonus: +20 score per kill while active ---
+  function getKillBonus() {
+    return _active ? 20 : 0;
   }
 
   return {
-    init: init,
-    update: update,
-    activate: activate,
-    deactivate: deactivate,
-    reset: reset
+    init:         init,
+    update:       update,
+    activate:     activate,
+    reset:        reset,
+    getKillBonus: getKillBonus
   };
 
 })();
