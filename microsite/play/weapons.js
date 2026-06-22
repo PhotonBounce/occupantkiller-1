@@ -5707,6 +5707,12 @@ const Weapons = (() => {
     }
   }
 
+  function unlock(weaponId) {
+    for (var _ui = 0; _ui < WEAPONS.length; _ui++) {
+      if (WEAPONS[_ui].id === weaponId) { unlockWeapon(_ui); return; }
+    }
+  }
+
   // ── Scope zoom ────────────────────────────────────────────
   function enterZoom() {
     if (!_camera) return;
@@ -7718,6 +7724,7 @@ const Weapons = (() => {
     switchNext,
     switchPrev,
     unlockWeapon,
+    unlock,
     refillAllAmmo,
     handleRightDown,
     handleRightUp,
