@@ -11261,11 +11261,111 @@ window.VoxelWorld = (function () {
     }
 
     // ── PROC_CITIES: distinct content for each procedural city ─────────────
-    // Cities are: Mariupol, Severodonetsk, Lysychansk, Bucha, Irpin,
-    //             Izium, Kupyansk, Robotyne, Vuhledar  (repeat after 9)
     if (level.id && level.id.startsWith('PROC_')) {
       var cityName = level.name;
-      if (cityName === 'Bucha') {
+      if (cityName === 'Mariupol') {
+        // Mariupol PROC_CITIES version — the city during and after the 2022 siege
+        // 80% of city destroyed; Azovstal steelworks became last Ukrainian stronghold
+        // Mariupol Drama Theatre sheltered 1,000+ civilians; deliberately bombed March 16 2022
+        generateMariupolDramaTheatre(-5, -10);      // Theatre (bombed with civilians inside March 2022)
+        generateAzovsteelWorks(20, 20);             // Azovstal Steel — last Ukrainian holdout
+        generatePortCrane(40, 0);                   // Mariupol port (Russian ships seized it)
+        generatePortCrane(50, 10);
+        generateChurch(-25, -5);                    // Cathedral of St. Nicholas
+        generateChurch(20, -12);                    // Greek Orthodox church (Mariupol was majority Greek)
+        generateSovietAdminBuilding(0, -22);        // City Hall (heavily shelled)
+        generateUkrainianApartment(-35, -38, 9);
+        generateUkrainianApartment(-35, -58, 7);
+        generateUkrainianApartment(28, -42, 9);
+        generateUkrainianApartment(28, -62, 7);
+        generateUkrainianApartment(-18, -68, 6);
+        generateUkrainianApartment(18, -68, 6);
+        generateUkrainianApartment(-52, -18, 5);
+        generateUkrainianApartment(42, -20, 5);
+        generateIndustrialComplex(-38, -40);        // Ilyich Iron and Steel Works (second plant)
+        generateIndustrialComplex(35, -42);         // Port warehousing and logistics
+        generateGrainSilo(-40, -25);
+        generateWaterTower(-44, 18);
+        generateCommTower(-5, -45);
+        generateTrainStation(35, 28);               // Mariupol main railway station
+        generateRailway(18, 16, 38, false);
+        generateBridge(0, 20, 28, 4);               // Kalmius River bridge
+        // Extensive battle damage — 80% destruction
+        generateBurningRuin(-20, -20);
+        generateBurningRuin(18, 20);
+        generateBurningRuin(-42, -32);
+        generateBurningRuin(38, -30);
+        generateBurningRuin(-8, -48);
+        generateBurningRuin(22, -50);
+        generateWreckedTank(-14, -26);
+        generateWreckedTank(24, 24);
+        generateWreckedAPC(18, 18);
+        generateWreckedConvoy(-36, 24);
+        generateWreckedBus(-28, -14);
+        generateWreckedAmbulance(14, -16);
+        generateCraters(22);
+        generateArtilleryBattery(-46, -52);
+        generateArtilleryBattery(44, 46);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Vuhledar') {
+        // Vuhledar PROC_CITIES version — small mining town, Russia lost 130+ tanks in Jan-Feb 2023
+        // The 155th Naval Infantry Brigade was almost entirely destroyed attacking across open ground
+        // Active Russian artillery from the heights; Ukrainian ATGMs devastated tank columns
+        generateMineShaftTower(-15, -10);           // Coal mine headframe (Vuhlehirska mine)
+        generateMineShaftTower(20, 18);             // Second shaft tower
+        generateTerikon(-30, 18);                   // Slag heap — dominant Vuhledar skyline feature
+        generateTerikon(28, -20);
+        generateCoalWashingPlant(-35, -30);         // Coal preparation plant
+        generateChurch(-22, -8);                    // Orthodox church (1968, in ruins)
+        generateSovietAdminBuilding(0, -20);        // City administration building
+        generateUkrainianApartment(-30, -32, 7);
+        generateUkrainianApartment(-30, -52, 6);
+        generateUkrainianApartment(25, -35, 7);
+        generateUkrainianApartment(25, -55, 6);
+        generateUkrainianApartment(-14, -60, 5);
+        generateUkrainianApartment(14, -60, 5);
+        generateUkrainianApartment(-48, -14, 5);
+        generateUkrainianApartment(38, -16, 5);
+        generateIndustrialComplex(-42, -38);        // Mining support facilities
+        generateGrainSilo(-38, -22);
+        generateWaterTower(-42, 16);
+        generateCommTower(-5, -42);
+        // Minefields and tank traps (key defensive feature)
+        generateMinefield(-25, -25);
+        generateMinefield(25, 25);
+        generateMinefield(-40, 10);
+        generateMinefield(38, -12);
+        generateMinefieldSigns(16);
+        // Russian tank graveyard — 130+ AFVs lost
+        generateWreckedTank(-18, -22);
+        generateWreckedTank(22, 20);
+        generateWreckedTank(-35, 10);
+        generateWreckedTank(32, -12);
+        generateWreckedAPC(14, 14);
+        generateWreckedAPC(-28, -15);
+        generateDestroyedTank(-10, -30);
+        generateDestroyedTank(28, 25);
+        generateDestroyedTank(-38, 18);
+        generateArtilleryBattery(-45, -48);
+        generateArtilleryBattery(42, 44);
+        generateBunker(-20, 20);
+        generateBunker(20, -20);
+        generateTrenchNetwork(-15, 15);
+        generateTrenchNetwork(15, -15);
+        generateDefensivePosition(-10, 10);
+        generateDefensivePosition(10, -10);
+        generateBurningRuin(-20, -22);
+        generateBurningRuin(18, 20);
+        generateBurningRuin(-38, -28);
+        generateCraters(20);
+        generateDroneNest(48, 48);
+        generateDroneNest(-48, -48);
+        generateDroneNest(48, -48);
+        generateDroneNest(-48, 48);
+      } else if (cityName === 'Bucha') {
         // Bucha suburb of Kyiv — site of documented Russian war crimes March 2022
         // Residential neighbourhood: villas with gardens, Soviet-era apartment rows
         generateLuxuryVilla(-8, -12, 8, 6);    // Irpin'ska Street villas (suburb)
