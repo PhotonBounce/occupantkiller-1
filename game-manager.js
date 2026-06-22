@@ -1261,6 +1261,7 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.BloodEffects) BloodEffects.init(_scene, _camera);
         if (window.MeleeKnife) MeleeKnife.init(_scene, _camera);
         if (window.RadioSupport) RadioSupport.init(_scene, function(pos, radius, callback) {
           var enemies = (typeof Enemies !== 'undefined' && Enemies.getAll) ? Enemies.getAll() : [];
@@ -3656,6 +3657,7 @@ const GameManager = (function () {
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
     if (window.GasMask) GasMask.clear();
     if (window.MeleeKnife) MeleeKnife.clear();
+    if (window.WeatherEffects) WeatherEffects.clear();
     window.VoxelWorld.generateLevel(stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
@@ -3772,6 +3774,10 @@ const GameManager = (function () {
     }
     if (typeof HazardZones !== 'undefined') HazardZones.setupForLevel(stageDef ? stageDef.id : null);
     if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.setupForLevel(stageDef ? stageDef.id : '');
+    if (window.WeatherEffects) {
+      var _weatherMap = { 13:'RAIN', 3:'RAIN', 5:'FOG_STORM', 7:'FOG_STORM', 6:'FOG_STORM', 8:'SNOW', 11:'SNOW', 12:'SNOW' };
+      WeatherEffects.setWeather(stageDef ? (_weatherMap[stageDef.id] || 'CLEAR') : 'CLEAR');
+    }
     if (typeof SupplyCrate !== 'undefined') SupplyCrate.clear();
   }
 
@@ -5954,6 +5960,10 @@ const GameManager = (function () {
     var _wepType = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent().type : '';
     const remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
 
+    if (window.BloodEffects && enemy && enemy.mesh) {
+      BloodEffects.onHit(enemy.mesh.position.clone());
+    }
+
     // Floating damage number on hit (not just kill)
     if (typeof Feedback !== 'undefined') {
       // Project enemy world position to screen so the number rises from the actual hit point
@@ -6058,6 +6068,9 @@ const GameManager = (function () {
         try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
       }
       player.kills++;
+      if (window.BloodEffects && enemy && enemy.mesh) {
+        BloodEffects.onDeath(enemy.mesh.position.clone(), isHeadshot || false);
+      }
       if (window.RadioSupport) RadioSupport.onKill();
       if (typeof ArmorSystem !== 'undefined' && enemy && enemy.mesh) ArmorSystem.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z);
       if (window.GasMask && enemy && enemy.mesh) GasMask.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z, typeof STAGES !== 'undefined' && STAGES[currentStage] ? STAGES[currentStage].id : '');
@@ -6906,6 +6919,7 @@ const GameManager = (function () {
     if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
       // Core systems
       TimeSystem.update(delta);
+      if (window.BloodEffects) BloodEffects.update(delta);
       WeatherSystem.update(delta);
       if (typeof WeatherEvents !== 'undefined') WeatherEvents.update();
       MLSystem.trackFPS(delta);

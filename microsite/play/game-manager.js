@@ -1285,6 +1285,7 @@ const GameManager = (function () {
         if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
         if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
         if (typeof NightVision !== 'undefined') NightVision.init(_renderer.domElement, _scene);
+        if (window.WeatherEffects) WeatherEffects.init(_scene);
         if (typeof ExplosiveBarrels !== 'undefined') {
           ExplosiveBarrels.init(_scene, function(x, y, z, radius, damage) {
             // AoE damage to enemies in radius
@@ -3655,6 +3656,7 @@ const GameManager = (function () {
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
     if (window.GasMask) GasMask.clear();
     if (window.MeleeKnife) MeleeKnife.clear();
+    if (window.WeatherEffects) WeatherEffects.clear();
     window.VoxelWorld.generateLevel(stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
@@ -3771,6 +3773,10 @@ const GameManager = (function () {
     }
     if (typeof HazardZones !== 'undefined') HazardZones.setupForLevel(stageDef ? stageDef.id : null);
     if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.setupForLevel(stageDef ? stageDef.id : '');
+    if (window.WeatherEffects) {
+      var _weatherMap = { 13:'RAIN', 3:'RAIN', 5:'FOG_STORM', 7:'FOG_STORM', 6:'FOG_STORM', 8:'SNOW', 11:'SNOW', 12:'SNOW' };
+      WeatherEffects.setWeather(stageDef ? (_weatherMap[stageDef.id] || 'CLEAR') : 'CLEAR');
+    }
     if (typeof SupplyCrate !== 'undefined') SupplyCrate.clear();
   }
 
@@ -7635,6 +7641,7 @@ const GameManager = (function () {
       if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
       if (window.GasMask) GasMask.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);
+      if (window.WeatherEffects) WeatherEffects.update(delta, player.position);
       if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
       if (typeof HazardZones !== 'undefined') {
         var _preHazardHp = player.hp;
