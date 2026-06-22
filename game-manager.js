@@ -1272,6 +1272,7 @@ const GameManager = (function () {
         if (window.Destructibles) Destructibles.init(_scene);
         if (window.StaminaSystem) StaminaSystem.init();
         if (window.Grapple) Grapple.init(_scene, _camera);
+        if (window.ZiplineGrapple) ZiplineGrapple.init(_scene, _camera);
         if (window.Wingsuit) Wingsuit.init(_scene, _camera);
         if (window.ScavengeSystem) ScavengeSystem.init(_scene, _camera);
         if (window.CrouchSystem) CrouchSystem.init();
@@ -1575,6 +1576,8 @@ const GameManager = (function () {
     try { if (window.SurrenderSystem) SurrenderSystem.init(_scene); } catch (eSS) { console.warn('[SurrenderSystem] init failed', eSS); }
     // Suppression system
     try { if (window.SuppressionSystem) SuppressionSystem.init(_scene, _camera); } catch (eSup) { console.warn('[SuppressionSystem] init failed', eSup); }
+    // Freeze grenade
+    try { if (window.FreezeGrenade && FreezeGrenade.init) FreezeGrenade.init(_scene, _camera); } catch (eFG) { console.warn('[FreezeGrenade] init failed', eFG); }
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -3452,6 +3455,7 @@ const GameManager = (function () {
     if (window.VehicleEnemies) VehicleEnemies.reset();
     if (window.StaminaSystem) StaminaSystem.reset();
     if (window.Grapple) Grapple.reset();
+    if (window.ZiplineGrapple) ZiplineGrapple.reset();
     if (window.Wingsuit) Wingsuit.reset();
     if (window.CrouchSystem) CrouchSystem.reset();
     if (window.SpecialGrenades) SpecialGrenades.reset();
@@ -5828,6 +5832,8 @@ const GameManager = (function () {
 
     // Grapple update — must run after player.position is committed
     if (window.Grapple) Grapple.update(delta, player.position, _camera);
+    // ZiplineGrapple update — runs after physics
+    if (window.ZiplineGrapple) ZiplineGrapple.update(delta);
     // Wingsuit update — runs after physics, passes player object and key state
     if (window.Wingsuit) Wingsuit.update(delta, player, keys);
 
