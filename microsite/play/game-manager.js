@@ -3191,11 +3191,13 @@ const GameManager = (function () {
     player.totalHeadshots = 0;
     player.totalDamageTaken = 0;
     player.bestStreak = 0;
+    player.bestKillStreak = 0;
     player.waveKills = 0;
     player.waveShots = 0;
     player.waveHits = 0;
     player.waveHeadshots = 0;
     player.waveDamageTaken = 0;
+    player._waveDamageDealt = 0;
     player.waveMeleeKills = 0;
     player.waveFirstKillTime = 999;
     player.waveMaxExplosiveKill = 0;
@@ -4985,6 +4987,23 @@ const GameManager = (function () {
 
     gameState = STATE.WAVE_CLEAR;
     showOverlay('waveclear');
+    // Show detailed wave performance stats overlay
+    try {
+      if (typeof HUD !== 'undefined' && HUD.showWaveStats) {
+        var _wAcc = _snapWaveShots > 0 ? Math.round((_snapWaveHits / _snapWaveShots) * 100) : 0;
+        HUD.showWaveStats({
+          wave:         currentWave,
+          kills:        _snapWaveKills || 0,
+          headshots:    player.waveHeadshots || 0,
+          accuracy:     _wAcc,
+          timeSeconds:  _snapWaveTime,
+          damageDealt:  player._waveDamageDealt || 0,
+          damageTaken:  _snapWaveDmg || 0,
+          okc:          typeof Economy !== 'undefined' ? Economy.getCurrency() : 0,
+          streak:       player.bestKillStreak || player.killStreak || 0,
+        });
+      }
+    } catch(eWS) {}
     var _wvn = document.getElementById('waveclear-num');   if (_wvn) _wvn.textContent = currentWave;
     var _wvt = document.getElementById('waveclear-total'); if (_wvt) _wvt.textContent = stageDef.wavesPerStage;
     var _wvi = document.getElementById('waveclear-stage-info');
@@ -5681,7 +5700,8 @@ const GameManager = (function () {
     const dmg = isHeadshot ? baseDmg * 2 : baseDmg;
 
     var _wepType = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent().type : '';
-    const remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
+    var remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
+    player._waveDamageDealt = (player._waveDamageDealt || 0) + dmg;
 
     // 3-D blood spray particles on hit
     if (typeof Weapons !== 'undefined' && Weapons.addBloodSpray && enemy.mesh) {
@@ -6022,6 +6042,7 @@ const GameManager = (function () {
       // Kill streak tracking
       player.killStreak++;
       if (player.killStreak > player.bestStreak) player.bestStreak = player.killStreak;
+      if (player.killStreak > (player.bestKillStreak || 0)) player.bestKillStreak = player.killStreak;
       // Radio chatter on milestones
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) {
         if (player.kills === 1) Feedback.radioChatter('first_blood');
