@@ -1232,6 +1232,8 @@ window.VoxelWorld = (function () {
     { id: 'BUCHA',    name: 'Bucha Liberation',      desc: 'Expose the atrocities',       theme: 'urban',     wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x556655, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -22 }, { x: -30, z: 5 }, { x: 30, z: 5 }],  spawnLookTarget: { x: 0, z: 0 } },
     { id: 'MELITOPOL', name: 'Melitopol Occupation', desc: 'Partisan resistance in occupied city', theme: 'urban', wavesPerLevel: 7, difficulty: 3.0, fogColor: 0x334422, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -30, z: 5 }, { x: 30, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ZAPORIZHZHIA', name: 'Zaporizhzhia Nuclear Zone', desc: 'Secure the ZNPP — fight through Cossack land', theme: 'industrial', wavesPerLevel: 9, difficulty: 3.8, fogColor: 0x445566, spawnCandidates: [{ x: -20, z: -20 }, { x: 20, z: -20 }, { x: 0, z: -30 }, { x: -30, z: 5 }, { x: 30, z: 5 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'ODESSA', name: 'Odessa Sea Gate', desc: 'Defend the Black Sea port from amphibious assault', theme: 'coastal', wavesPerLevel: 8, difficulty: 3.5, fogColor: 0x446688, spawnCandidates: [{ x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 5 }, { x: 25, z: 5 }, { x: 0, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'DONETSK', name: 'Donetsk Line', desc: 'Counter-attack in the occupied industrial city', theme: 'urban', wavesPerLevel: 10, difficulty: 4.5, fogColor: 0x3a3a2a, spawnCandidates: [{ x: -20, z: -15 }, { x: 20, z: -15 }, { x: 0, z: -25 }, { x: -30, z: 0 }, { x: 30, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -11105,6 +11107,270 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_zaporizhzhia_hydrodam', x: ox - 32, z: oz - 3, w: 65, d: 16, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
   }
 
+  // LANDMARK: Potemkin Steps — 197 steps from Odessa harbor to cliff-top city
+  function generateOdessaPotemkinSteps(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Bottom plaza: 20×8 CONCRETE base at harbor level
+    for (var px = -10; px <= 10; px++) {
+      for (var pz = 0; pz <= 8; pz++) {
+        setBlock(ox + px, base, oz + pz, BLOCK.CONCRETE);
+      }
+    }
+    // 10 landings + steps climbing north (negative z) and up
+    for (var flight = 0; flight < 10; flight++) {
+      var flightBase = base + flight * 2;
+      var flightZ = oz - (flight * 5);
+      // 2-step riser for each flight
+      for (var step = 0; step < 2; step++) {
+        var stepY = flightBase + step;
+        var stepZ = flightZ - step;
+        for (var sx = -10; sx <= 10; sx++) {
+          setBlock(ox + sx, stepY, stepZ, BLOCK.STONE);
+        }
+      }
+      // Landing platform: 20×3 STONE
+      var landZ = flightZ - 2;
+      for (var lx = -10; lx <= 10; lx++) {
+        for (var lz2 = 0; lz2 <= 2; lz2++) {
+          setBlock(ox + lx, flightBase + 2, landZ - lz2, BLOCK.STONE);
+        }
+      }
+      // Lamp posts on each landing (left and right)
+      var lampY = flightBase + 2;
+      var lampZ = landZ - 1;
+      for (var lp = 0; lp < 3; lp++) setBlock(ox - 10, lampY + lp, lampZ, BLOCK.METAL);
+      setBlock(ox - 10, lampY + 3, lampZ, BLOCK.LIGHT);
+      for (var lp2 = 0; lp2 < 3; lp2++) setBlock(ox + 10, lampY + lp2, lampZ, BLOCK.METAL);
+      setBlock(ox + 10, lampY + 3, lampZ, BLOCK.LIGHT);
+    }
+    // Iron fence railings along the full length on each side
+    for (var fi = 0; fi < 10; fi++) {
+      var fz = oz - fi * 5;
+      for (var fs = 0; fs < 5; fs++) {
+        setBlock(ox - 11, base + fi * 2, fz - fs, BLOCK.FENCE);
+        setBlock(ox + 11, base + fi * 2, fz - fs, BLOCK.FENCE);
+      }
+    }
+    // Top statue plaza: 20×6 PLASTER at top level
+    var topY = base + 20;
+    var topZ = oz - 52;
+    for (var tpx = -10; tpx <= 10; tpx++) {
+      for (var tpz = 0; tpz <= 6; tpz++) {
+        setBlock(ox + tpx, topY, topZ - tpz, BLOCK.PLASTER);
+      }
+    }
+    // Duke de Richelieu statue: 2×2×3 CONCRETE pedestal
+    for (var sy = 0; sy < 3; sy++) {
+      setBlock(ox - 1, topY + 1 + sy, topZ - 3, BLOCK.CONCRETE);
+      setBlock(ox,     topY + 1 + sy, topZ - 3, BLOCK.CONCRETE);
+      setBlock(ox - 1, topY + 1 + sy, topZ - 2, BLOCK.CONCRETE);
+      setBlock(ox,     topY + 1 + sy, topZ - 2, BLOCK.CONCRETE);
+    }
+    _buildings.push({ kind: 'landmark_odessa_potemkin_steps', x: ox - 11, z: topZ - 6, w: 23, d: oz - topZ + 15, baseY: h, floorH: 20, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Odessa Black Sea harbor — grain terminal, military dock
+  function generateOdessaHarbor(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Harbor sea wall: 40×3 REINFORCED CONCRETE
+    for (var hwy = 0; hwy < 3; hwy++) {
+      for (var hwx = -20; hwx <= 20; hwx++) {
+        setBlock(ox + hwx, base + hwy, oz, BLOCK.REINFORCED);
+        setBlock(ox + hwx, base + hwy, oz + 1, BLOCK.REINFORCED);
+        setBlock(ox + hwx, base + hwy, oz + 2, BLOCK.REINFORCED);
+      }
+    }
+    // 3 grain silos: 4×4 CONCRETE cylinders 16 high
+    var siloPos = [[-14, -8], [0, -8], [14, -8]];
+    for (var si = 0; si < siloPos.length; si++) {
+      var sx2 = ox + siloPos[si][0], sz2 = oz + siloPos[si][1];
+      for (var siy = 0; siy < 16; siy++) {
+        for (var six = 0; six < 4; six++) {
+          for (var siz = 0; siz < 4; siz++) {
+            var isSEdge = six === 0 || six === 3 || siz === 0 || siz === 3;
+            if (isSEdge || siy === 0 || siy === 15) setBlock(sx2 + six, base + siy, sz2 + siz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Harbor crane: METAL L-shape, 12 high vertical + 10 wide arm
+    var craneX = ox + 20, craneZ = oz - 5;
+    for (var cry = 0; cry < 12; cry++) setBlock(craneX, base + cry, craneZ, BLOCK.METAL);
+    for (var crx = 0; crx < 10; crx++) setBlock(craneX - crx, base + 12, craneZ, BLOCK.METAL);
+    // Grain conveyor: METAL belt bridge 15 long, 4 high
+    for (var gcx = -15; gcx <= 0; gcx++) {
+      setBlock(ox + gcx, base + 4, oz - 12, BLOCK.METAL);
+    }
+    for (var gcp = 0; gcp < 4; gcp++) {
+      setBlock(ox - 15, base + gcp, oz - 12, BLOCK.METAL);
+      setBlock(ox,      base + gcp, oz - 12, BLOCK.METAL);
+    }
+    // Military dock: 20×6 STONE dock
+    for (var dkx = -10; dkx <= 10; dkx++) {
+      for (var dkz = 4; dkz <= 10; dkz++) {
+        setBlock(ox + dkx, base, oz + dkz, BLOCK.STONE);
+      }
+    }
+    // METAL bollards every 3 blocks along dock
+    for (var bol = -9; bol <= 9; bol += 3) {
+      setBlock(ox + bol, base + 1, oz + 10, BLOCK.METAL);
+    }
+    // Missile strike craters on dock
+    for (var cr = -6; cr <= 6; cr += 4) {
+      setBlock(ox + cr, base, oz + 7, BLOCK.RUBBLE);
+      setBlock(ox + cr + 1, base, oz + 7, BLOCK.RUBBLE);
+    }
+    // Sunken cargo ship: METAL hull 12×3 partially visible
+    for (var shx = -6; shx <= 6; shx++) {
+      setBlock(ox + shx, base, oz + 16, BLOCK.METAL);
+      setBlock(ox + shx, base, oz + 18, BLOCK.METAL);
+    }
+    for (var shhx = -5; shhx <= 5; shhx++) {
+      setBlock(ox + shhx, base + 1, oz + 17, BLOCK.METAL);
+    }
+    _buildings.push({ kind: 'landmark_odessa_harbor', x: ox - 20, z: oz - 12, w: 45, d: 32, baseY: h, floorH: 16, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Donbass Arena — capacity 50k stadium, heavily damaged
+  function generateDonetskArena(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Oval bowl: 30×25 CONCRETE curved walls, 8 high
+    // Approximate oval with rectangular loop
+    var aW = 15, aD = 12;
+    for (var ay = 0; ay < 8; ay++) {
+      for (var ax = -aW; ax <= aW; ax++) {
+        setBlock(ox + ax, base + ay, oz - aD, BLOCK.CONCRETE);
+        setBlock(ox + ax, base + ay, oz + aD, BLOCK.CONCRETE);
+      }
+      for (var az = -aD; az <= aD; az++) {
+        setBlock(ox - aW, base + ay, oz + az, BLOCK.CONCRETE);
+        setBlock(ox + aW, base + ay, oz + az, BLOCK.CONCRETE);
+      }
+    }
+    // Shattered roof on top ring: alternating CONCRETE and RUBBLE
+    for (var arx = -aW; arx <= aW; arx += 2) {
+      setBlock(ox + arx, base + 8, oz - aD, arx % 4 === 0 ? BLOCK.RUBBLE : BLOCK.CONCRETE);
+      setBlock(ox + arx, base + 8, oz + aD, arx % 4 === 0 ? BLOCK.RUBBLE : BLOCK.CONCRETE);
+    }
+    for (var arz = -aD; arz <= aD; arz += 2) {
+      setBlock(ox - aW, base + 8, oz + arz, arz % 4 === 0 ? BLOCK.RUBBLE : BLOCK.CONCRETE);
+      setBlock(ox + aW, base + 8, oz + arz, arz % 4 === 0 ? BLOCK.RUBBLE : BLOCK.CONCRETE);
+    }
+    // 4 entrance portals: 4×5 AIR gaps spaced around perimeter
+    for (var ep = 0; ep < 5; ep++) {
+      setBlock(ox - 2, base + ep, oz - aD, BLOCK.AIR);
+      setBlock(ox - 1, base + ep, oz - aD, BLOCK.AIR);
+      setBlock(ox,     base + ep, oz - aD, BLOCK.AIR);
+      setBlock(ox + 1, base + ep, oz - aD, BLOCK.AIR);
+    }
+    for (var ep2 = 0; ep2 < 5; ep2++) {
+      setBlock(ox - 2, base + ep2, oz + aD, BLOCK.AIR);
+      setBlock(ox - 1, base + ep2, oz + aD, BLOCK.AIR);
+      setBlock(ox,     base + ep2, oz + aD, BLOCK.AIR);
+      setBlock(ox + 1, base + ep2, oz + aD, BLOCK.AIR);
+    }
+    for (var ep3 = 0; ep3 < 5; ep3++) {
+      setBlock(ox - aW, base + ep3, oz - 2, BLOCK.AIR);
+      setBlock(ox - aW, base + ep3, oz - 1, BLOCK.AIR);
+      setBlock(ox - aW, base + ep3, oz,     BLOCK.AIR);
+      setBlock(ox - aW, base + ep3, oz + 1, BLOCK.AIR);
+    }
+    for (var ep4 = 0; ep4 < 5; ep4++) {
+      setBlock(ox + aW, base + ep4, oz - 2, BLOCK.AIR);
+      setBlock(ox + aW, base + ep4, oz - 1, BLOCK.AIR);
+      setBlock(ox + aW, base + ep4, oz,     BLOCK.AIR);
+      setBlock(ox + aW, base + ep4, oz + 1, BLOCK.AIR);
+    }
+    // Refugee shelters inside: rows of WOOD platforms + PLASTER partition walls
+    for (var ri = -8; ri <= 8; ri += 4) {
+      for (var rz3 = -8; rz3 <= 8; rz3 += 4) {
+        setBlock(ox + ri,     base, oz + rz3, BLOCK.WOOD);
+        setBlock(ox + ri + 1, base, oz + rz3, BLOCK.WOOD);
+        setBlock(ox + ri + 2, base, oz + rz3, BLOCK.WOOD);
+        setBlock(ox + ri,     base + 1, oz + rz3, BLOCK.PLASTER);
+        setBlock(ox + ri,     base + 2, oz + rz3, BLOCK.PLASTER);
+      }
+    }
+    // Fallen field illumination poles: LIGHT blocks scattered
+    setBlock(ox - 5,  base + 1, oz - 3, BLOCK.LIGHT);
+    setBlock(ox + 5,  base + 1, oz + 4, BLOCK.LIGHT);
+    setBlock(ox,      base + 1, oz - 6, BLOCK.LIGHT);
+    // External blast craters and RUBBLE piles
+    setBlock(ox - 18, base, oz - 15, BLOCK.RUBBLE);
+    setBlock(ox + 17, base, oz - 14, BLOCK.RUBBLE);
+    setBlock(ox - 16, base, oz + 14, BLOCK.RUBBLE);
+    setBlock(ox + 18, base + 1, oz + 15, BLOCK.RUBBLE);
+    _buildings.push({ kind: 'landmark_donetsk_arena', x: ox - aW, z: oz - aD, w: aW * 2 + 1, d: aD * 2 + 1, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Donetsk Regional Administration Building — Soviet bloc, bombed
+  function generateDonetskAdminBuilding(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // 20×12 CONCRETE blocky structure, 12 high
+    for (var dy2 = 0; dy2 < 12; dy2++) {
+      for (var dx2 = -10; dx2 <= 10; dx2++) {
+        for (var dz2 = -6; dz2 <= 6; dz2++) {
+          var isEdge3 = dx2 === -10 || dx2 === 10 || dz2 === -6 || dz2 === 6;
+          if (isEdge3 || dy2 === 0 || dy2 === 11) setBlock(ox + dx2, base + dy2, oz + dz2, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // North wall (z = -6): completely RUBBLE (missile hit)
+    for (var ry = 0; ry < 12; ry++) {
+      for (var rxx = -10; rxx <= 10; rxx++) {
+        setBlock(ox + rxx, base + ry, oz - 6, BLOCK.RUBBLE);
+      }
+    }
+    // Rubble spill in front of north wall
+    for (var rs = -8; rs <= 8; rs += 2) {
+      setBlock(ox + rs, base, oz - 7, BLOCK.RUBBLE);
+      setBlock(ox + rs + 1, base + 1, oz - 8, BLOCK.RUBBLE);
+    }
+    // South façade: CONCRETE columns every 4 blocks, 12 high
+    for (var cc = -8; cc <= 8; cc += 4) {
+      for (var ccy = 0; ccy < 12; ccy++) {
+        setBlock(ox + cc, base + ccy, oz + 6, BLOCK.CONCRETE);
+        setBlock(ox + cc + 1, base + ccy, oz + 6, BLOCK.CONCRETE);
+      }
+    }
+    // GLASS windows 2×3 each floor on south face
+    for (var wfl = 0; wfl < 4; wfl++) {
+      for (var wcl = -6; wcl <= 6; wcl += 4) {
+        for (var wh = 0; wh < 3; wh++) {
+          setBlock(ox + wcl, base + 1 + wfl * 3 + wh, oz + 6, BLOCK.GLASS);
+          setBlock(ox + wcl + 1, base + 1 + wfl * 3 + wh, oz + 6, BLOCK.GLASS);
+        }
+      }
+    }
+    // Entry steps: 8-wide × 4-step STONE staircase on south
+    for (var es = 0; es < 4; es++) {
+      for (var esx = -4; esx <= 4; esx++) {
+        setBlock(ox + esx, base + es, oz + 7 + es, BLOCK.STONE);
+      }
+    }
+    // Flagpole: METAL pole 8 high at top with LIGHT block
+    for (var fp = 0; fp < 8; fp++) setBlock(ox, base + 12 + fp, oz, BLOCK.METAL);
+    setBlock(ox, base + 20, oz, BLOCK.LIGHT);
+    // Surrounding perimeter fence
+    for (var pfx = -12; pfx <= 12; pfx++) {
+      setBlock(ox + pfx, base, oz - 9, BLOCK.FENCE);
+      setBlock(ox + pfx, base, oz + 12, BLOCK.FENCE);
+    }
+    for (var pfz = -9; pfz <= 12; pfz++) {
+      setBlock(ox - 12, base, oz + pfz, BLOCK.FENCE);
+      setBlock(ox + 12, base, oz + pfz, BLOCK.FENCE);
+    }
+    // Burned vehicle wreck in courtyard
+    setBlock(ox - 6, base, oz - 3, BLOCK.RUBBLE);
+    setBlock(ox - 5, base, oz - 3, BLOCK.RUBBLE);
+    setBlock(ox - 6, base + 1, oz - 3, BLOCK.METAL);
+    _buildings.push({ kind: 'landmark_donetsk_admin', x: ox - 10, z: oz - 6, w: 21, d: 19, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -12249,6 +12515,41 @@ window.VoxelWorld = (function () {
       generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -32);
       generateTrenchNetwork(-20, 15); generateTrenchNetwork(20, -15);
       generateTrenchNetwork(0, -38);
+    } else if (level.id === 'ODESSA') {
+      // Odessa — Black Sea port city, Potemkin Steps, Opera House, harbor
+      generateOdessaPotemkinSteps(5, 25);
+      generateOdessaOperaHouse(-20, 10);
+      generateOdessaHarbor(15, -20);
+      generateUkrainianApartment(-30, -18, 5); generateUkrainianApartment(28, -20, 6);
+      generateUkrainianApartment(-32, 15, 4); generateUkrainianApartment(26, 18, 5);
+      generateBurningRuin(-38, 5); generateBurningRuin(35, -8);
+      generateWreckedTank(-20, 22); generateWreckedAPC(18, -28);
+      generateCraters(8);
+      generateBunker(-28, -25); generateBunker(25, 22);
+      generateCheckpoint(0, -38, false); generateCheckpoint(-38, 0, true);
+      generateDroneNest(42, 38); generateDroneNest(-42, -36);
+      generateAntiAirPosition(-32, 28); generateAntiAirPosition(30, -26);
+      generateTrenchNetwork(-15, 18); generateTrenchNetwork(15, -18);
+      generateMortarPit(-30, 8); generateMortarPit(28, -10);
+    } else if (level.id === 'DONETSK') {
+      // Donetsk — occupied industrial city, Donbass Arena, Soviet admin, frontline ruins
+      generateDonetskArena(-5, -10);
+      generateDonetskAdminBuilding(20, 15);
+      generateUkrainianApartment(-30, -22, 6); generateUkrainianApartment(25, -25, 7);
+      generateUkrainianApartment(-32, 12, 5); generateUkrainianApartment(28, 15, 6);
+      generateRuinedHouse(-18, -30); generateRuinedHouse(15, 25);
+      generateBurningRuin(-38, -5); generateBurningRuin(36, 8);
+      generateWreckedTank(-22, -25); generateWreckedAPC(20, 22); generateWreckedConvoy(-30, 25);
+      generateCraters(14);
+      generateBunker(-25, -28); generateBunker(22, 25);
+      generateBunker(0, -35); generateBunker(-38, 12);
+      generateMortarPit(-32, -12); generateMortarPit(28, 10);
+      generateTrenchNetwork(-18, 18); generateTrenchNetwork(18, -18);
+      generateTrenchNetwork(0, -40); generateTrenchNetwork(0, 38);
+      generateSniperNest(-35, -35); generateSniperNest(32, -35); generateSniperNest(-35, 32);
+      generateDroneNest(42, 40); generateDroneNest(-42, -38); generateDroneNest(42, -40);
+      generateAntiAirPosition(-38, 28); generateAntiAirPosition(36, -28);
+      generateCheckpoint(0, -45, false); generateCheckpoint(-45, 0, true);
     } else if (level.id === 'BUCHA') {
       // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022
       // St. Andrew's Church cemetery mass burial, Yablunska Street massacres
