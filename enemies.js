@@ -4411,6 +4411,12 @@ const Enemies = (() => {
       NPCML.onDamaged(enemy._ml, amount, srcDir, weaponType || null);
     }
 
+    // Armor piercing (shop upgrade): boost damage vs armored enemy types before reduction
+    var _apTyped = ['SHIELD_BEARER', 'TANK', 'ARMORED', 'ASSAULT_MECH', 'HEAVY_GUNNER'];
+    if (window._armorPierceMultiplier && _apTyped.indexOf(enemy.typeName) >= 0) {
+      amount = Math.round(amount * window._armorPierceMultiplier);
+    }
+
     // Shield bearer: route damage through EnemyTypes shield check
     if (typeof EnemyTypes !== 'undefined' && enemy.typeName === 'SHIELD_BEARER') {
       var fromAngle = 0;
