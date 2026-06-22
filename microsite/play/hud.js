@@ -1585,20 +1585,121 @@ const HUD = (() => {
   const promoEl = document.getElementById('field-promotion');
   function showFieldPromotion(active) { if (promoEl) promoEl.style.display = active ? 'block' : 'none'; }
 
-  // ── Feature 50: Wave Stats ───────────────────────────────────────
-  const waveStatsEl = document.getElementById('wave-stats');
-  const waveStatsContent = document.getElementById('wave-stats-content');
+  // ── Feature 50: Wave Stats (Enhanced) ──────────────────────────────
+  var _waveStatsOverlay = null;
+  var _waveStatsTimer = null;
   function showWaveStats(stats) {
-    if (!waveStatsEl || !waveStatsContent) return;
-    waveStatsContent.innerHTML =
-      '💀 Kills: <b>' + escapeHTML(stats.kills || 0) + '</b><br>' +
-      '🎯 Accuracy: <b>' + escapeHTML(stats.accuracy || 0) + '%</b><br>' +
-      '💀 Headshots: <b>' + escapeHTML(stats.headshots || 0) + '</b><br>' +
-      '⏱ Time: <b>' + escapeHTML(stats.time || '0s') + '</b><br>' +
-      '❤ Damage Taken: <b>' + escapeHTML(stats.damageTaken || 0) + '</b><br>' +
-      '🔥 Best Streak: <b>' + escapeHTML(stats.bestStreak || 0) + '</b>';
-    waveStatsEl.style.display = 'block';
-    setTimeout(function () { waveStatsEl.style.display = 'none'; }, 5000);
+    stats = stats || {};
+    var kills = stats.kills || 0;
+    var headshots = stats.headshots || 0;
+    var accuracy = stats.accuracy != null ? stats.accuracy : 0;
+    var timeSeconds = stats.timeSeconds || 0;
+    var damageDealt = stats.damageDealt || 0;
+    var damageTaken = stats.damageTaken || 0;
+    var okc = stats.okc || 0;
+    var streak = stats.streak || 0;
+    var wave = stats.wave || 0;
+
+    // Performance rating
+    var rating;
+    if (kills > 20 && accuracy > 80 && damageTaken === 0) {
+      rating = 'LEGENDARY';
+    } else if (kills > 15 && accuracy > 65) {
+      rating = 'EXCELLENT';
+    } else if (kills > 8 && accuracy > 50) {
+      rating = 'GOOD';
+    } else if (kills >= 3) {
+      rating = 'AVERAGE';
+    } else {
+      rating = 'ROOKIE';
+    }
+
+    var ratingColor = rating === 'LEGENDARY' ? '#ffd700'
+      : rating === 'EXCELLENT' ? '#44ff88'
+      : rating === 'GOOD' ? '#aaffaa'
+      : rating === 'AVERAGE' ? '#ffdd44'
+      : '#ff8844';
+
+    var headshotPct = kills > 0 ? Math.round((headshots / kills) * 100) : 0;
+
+    // Create overlay element if needed
+    if (!_waveStatsOverlay) {
+      _waveStatsOverlay = document.createElement('div');
+      _waveStatsOverlay.id = 'wave-stats-overlay';
+      _waveStatsOverlay.style.cssText = [
+        'position:fixed',
+        'bottom:25%',
+        'left:50%',
+        'transform:translateX(-50%)',
+        'min-width:320px',
+        'z-index:200',
+        'pointer-events:none',
+        'background:rgba(0,0,0,0.82)',
+        'border:2px solid #ffd700',
+        'border-radius:6px',
+        'padding:14px 20px',
+        'font-family:monospace',
+        'color:#ffe566',
+        'font-size:13px',
+        'line-height:1.7',
+        'opacity:0',
+        'transition:opacity 0.3s ease',
+        'display:none',
+      ].join(';');
+      document.body.appendChild(_waveStatsOverlay);
+    }
+
+    var divider = '<div style="border-top:1px solid #ffd70055;margin:6px 0"></div>';
+
+    var header = '<div style="font-size:15px;font-weight:bold;color:#ffd700;margin-bottom:4px">' +
+      (wave ? 'WAVE ' + escapeHTML(wave) + ' COMPLETE' : 'WAVE COMPLETE') +
+      ' &nbsp; <span style="color:#44ff88">&#10003; ' + escapeHTML(kills) + ' kills</span>' +
+      '</div>';
+
+    var row1 = '<div>' +
+      '&#128128; Kills: <b>' + escapeHTML(kills) + '</b>' +
+      ' &nbsp;&nbsp; &#127919; Headshots: <b>' + escapeHTML(headshots) + '</b> <span style="color:#aaa">(' + escapeHTML(headshotPct) + '%)</span>' +
+      '</div>';
+
+    var row2 = '<div>' +
+      '&#128299; Accuracy: <b>' + escapeHTML(accuracy) + '%</b>' +
+      ' &nbsp;&nbsp; &#9201; Time: <b>' + escapeHTML(timeSeconds) + 's</b>' +
+      '</div>';
+
+    var row3 = '<div>' +
+      '&#10084; Damage Taken: <b>' + escapeHTML(damageTaken) + '</b>' +
+      ' &nbsp;&nbsp; &#9876; Dealt: <b>' + escapeHTML(damageDealt) + '</b>' +
+      '</div>';
+
+    var row4 = '<div>' +
+      '&#128176; OKC Earned: <b>+' + escapeHTML(okc) + '</b>' +
+      ' &nbsp;&nbsp; &#128293; Best Streak: <b>' + escapeHTML(streak) + '</b>' +
+      '</div>';
+
+    var perf = divider +
+      '<div style="text-align:center;font-size:14px;font-weight:bold;color:' + ratingColor + ';letter-spacing:1px">' +
+      'PERFORMANCE: ' + escapeHTML(rating) +
+      '</div>';
+
+    _waveStatsOverlay.innerHTML = header + divider + row1 + row2 + row3 + row4 + perf;
+
+    // Clear any existing timer
+    if (_waveStatsTimer) { clearTimeout(_waveStatsTimer); _waveStatsTimer = null; }
+
+    // Show with fade-in
+    _waveStatsOverlay.style.display = 'block';
+    // Force reflow so transition fires
+    void _waveStatsOverlay.offsetWidth;
+    _waveStatsOverlay.style.opacity = '1';
+
+    // Auto-hide after 5 seconds (fade out then hide)
+    _waveStatsTimer = setTimeout(function () {
+      _waveStatsOverlay.style.opacity = '0';
+      setTimeout(function () {
+        if (_waveStatsOverlay) _waveStatsOverlay.style.display = 'none';
+      }, 350);
+      _waveStatsTimer = null;
+    }, 5000);
   }
 
   // ── Feature 43: Death Statistics ─────────────────────────────────
