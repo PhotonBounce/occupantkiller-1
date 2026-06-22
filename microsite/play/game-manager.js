@@ -5117,6 +5117,14 @@ const GameManager = (function () {
       player.stamina = Math.min(1.0, player.stamina + STAMINA_REGEN_RATE * delta);
     }
 
+    // Consume stamina refill from loot pickup
+    if (window._staminaRefill) {
+      player.stamina = 1.0;
+      _sprintLocked = false;
+      window._staminaRefill = false;
+      if (window.HUD && HUD.showToast) HUD.showToast('⚡ Stamina Restored!', 1500, '#88ffcc');
+    }
+
     // Decay stim timer
     if (player._stimTimer && player._stimTimer > 0) {
       player._stimTimer -= delta;
