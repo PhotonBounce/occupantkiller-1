@@ -1261,6 +1261,13 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.SpecialGrenades) SpecialGrenades.init(_scene, _camera, function(enemyCallback) {
+            var enemies = Enemies ? Enemies.getAll() : [];
+            for (var i = 0; i < enemies.length; i++) {
+                if (enemies[i] && !enemies[i].dead) enemyCallback(enemies[i]);
+            }
+        });
+        if (window.BloodEffects) BloodEffects.init(_scene, _camera);
         if (window.MeleeKnife) MeleeKnife.init(_scene, _camera);
         if (window.RadioSupport) RadioSupport.init(_scene, function(pos, radius, callback) {
           var enemies = (typeof Enemies !== 'undefined' && Enemies.getAll) ? Enemies.getAll() : [];
@@ -1940,6 +1947,17 @@ const GameManager = (function () {
               }
             }
           }
+        }
+
+        if (e.key === 'z' || e.key === 'Z') {
+            if (window.SpecialGrenades && SpecialGrenades.getSmokeCount() > 0) {
+                SpecialGrenades.throwSmoke(player.position, _camera);
+            } else { if (window.HUD && HUD.showToast) HUD.showToast('No smoke grenades'); }
+        }
+        if (e.key === 'x' || e.key === 'X') {
+            if (window.SpecialGrenades && SpecialGrenades.getFlashCount() > 0) {
+                SpecialGrenades.throwFlash(player.position, _camera);
+            } else { if (window.HUD && HUD.showToast) HUD.showToast('No flashbangs'); }
         }
 
         // V key — melee knife attack
@@ -3346,6 +3364,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.BloodEffects) BloodEffects.reset();
     if (window.MeleeKnife) MeleeKnife.reset();
     if (window.ClaymoreMines) ClaymoreMines.reset();
     if (window.RadioSupport) RadioSupport.reset();
@@ -3651,6 +3670,7 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.BloodEffects) BloodEffects.clear();
     if (window.ClaymoreMines) ClaymoreMines.clear();
     if (window.RadioSupport) RadioSupport.clear();
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
@@ -5959,6 +5979,10 @@ const GameManager = (function () {
     var _wepType = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent().type : '';
     const remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
 
+    if (window.BloodEffects && enemy && enemy.mesh) {
+      BloodEffects.onHit(enemy.mesh.position.clone());
+    }
+
     // Floating damage number on hit (not just kill)
     if (typeof Feedback !== 'undefined') {
       // Project enemy world position to screen so the number rises from the actual hit point
@@ -6063,6 +6087,9 @@ const GameManager = (function () {
         try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
       }
       player.kills++;
+      if (window.BloodEffects && enemy && enemy.mesh) {
+        BloodEffects.onDeath(enemy.mesh.position.clone(), isHeadshot || false);
+      }
       if (window.RadioSupport) RadioSupport.onKill();
       if (typeof ArmorSystem !== 'undefined' && enemy && enemy.mesh) ArmorSystem.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z);
       if (window.GasMask && enemy && enemy.mesh) GasMask.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z, typeof STAGES !== 'undefined' && STAGES[currentStage] ? STAGES[currentStage].id : '');
@@ -6911,6 +6938,7 @@ const GameManager = (function () {
     if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
       // Core systems
       TimeSystem.update(delta);
+      if (window.BloodEffects) BloodEffects.update(delta);
       WeatherSystem.update(delta);
       if (typeof WeatherEvents !== 'undefined') WeatherEvents.update();
       MLSystem.trackFPS(delta);
@@ -8262,6 +8290,7 @@ const GameManager = (function () {
 
       // Hand-thrown grenades (player-thrown via KeyG when no nearby vehicle)
       updateHandGrenades(delta);
+      if (window.SpecialGrenades) SpecialGrenades.update(delta, player.position, _allEnemies);
 
       // World features update (fires, trees, mines, airdrops, smoke)
       if (typeof WorldFeatures !== 'undefined') {
