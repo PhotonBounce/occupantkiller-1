@@ -486,6 +486,61 @@ const EnemyTypes = (function () {
       rageThreshold: 0.4, rageDamageMult: 1.65
     },
 
+    BOSS_KUPYANSK: {
+      id: 'BOSS_KUPYANSK', name: 'Kharkiv Rail Logistics Colonel', tier: 3,
+      hp: 1200, speed: 1.6, damage: 72, attackRange: 20,
+      color: 0x334422, scale: 1.85, xpReward: 530,
+      abilities: ['summon_reinforcements', 'airstrike', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'AMMO'],
+      spawnMessage: '🚂 THE RAIL LOGISTICS COLONEL CONTROLS THE JUNCTION — TAKE HIM DOWN!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+
+    BOSS_ROBOTYNE: {
+      id: 'BOSS_ROBOTYNE', name: 'Zaporizhzhia Line Breaker General', tier: 4,
+      hp: 1450, speed: 1.4, damage: 85, attackRange: 22,
+      color: 0x443322, scale: 1.9, xpReward: 620,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'rage_mode', 'minefield'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '💨 THE LINE BREAKER GENERAL COMMANDS THE MINED FIELDS — BREACH HIS PERIMETER!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+
+    BOSS_CHASIV_YAR: {
+      id: 'BOSS_CHASIV_YAR', name: 'Canal City Siege Commander', tier: 4,
+      hp: 1500, speed: 1.35, damage: 90, attackRange: 23,
+      color: 0x221122, scale: 1.95, xpReward: 660,
+      abilities: ['mortar_barrage', 'drone_swarm', 'summon_reinforcements', 'rage_mode'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🌊 THE CANAL SIEGE COMMANDER HOLDS THE LAST CROSSING — STOP HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.85
+    },
+
+    BOSS_TORETSK: {
+      id: 'BOSS_TORETSK', name: 'Donbas Mine District Warlord', tier: 4,
+      hp: 1380, speed: 1.45, damage: 80, attackRange: 20,
+      color: 0x1a1a33, scale: 1.88, xpReward: 590,
+      abilities: ['tunnel_ambush', 'summon_reinforcements', 'rage_mode', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '⛏ THE MINE DISTRICT WARLORD EMERGES FROM THE TUNNELS — FIGHT!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.75
+    },
+
+    BOSS_VOLCHANSK: {
+      id: 'BOSS_VOLCHANSK', name: 'Russian Border Assault General', tier: 4,
+      hp: 1420, speed: 1.5, damage: 82, attackRange: 21,
+      color: 0x441111, scale: 1.9, xpReward: 610,
+      abilities: ['airstrike', 'summon_reinforcements', 'rage_mode', 'mortar_barrage'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🇷🇺 THE BORDER ASSAULT GENERAL CROSSES FROM RUSSIA — REPEL THE INVASION!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+
     // Feature 17: Suicide Bomber
     BOMBER: {
       id: 'BOMBER', name: 'Suicide Bomber', tier: 2,
@@ -1364,6 +1419,11 @@ const EnemyTypes = (function () {
     LYSYCHANSK:           'BOSS_LYSYCHANSK',
     ENERGODAR:            'BOSS_ENERGODAR',
     KHERSON_CITY:         'BOSS_KHERSON_CITY',
+    KUPYANSK:             'BOSS_KUPYANSK',
+    ROBOTYNE:             'BOSS_ROBOTYNE',
+    CHASIV_YAR:           'BOSS_CHASIV_YAR',
+    TORETSK:              'BOSS_TORETSK',
+    VOLCHANSK:            'BOSS_VOLCHANSK',
   };
 
   /**
