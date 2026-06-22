@@ -253,6 +253,113 @@ const EnemyTypes = (function () {
       zombie: true, baldHead: true
     },
 
+    // New city bosses — Slavutych through Hostomel Airport
+    BOSS_SLAVUTYCH: {
+      id: 'BOSS_SLAVUTYCH', name: 'Exclusion Zone Warden', tier: 3,
+      hp: 800, speed: 1.3, damage: 50, attackRange: 18,
+      color: 0x2a4a22, scale: 1.6, xpReward: 350,
+      abilities: ['summon_reinforcements', 'radiation_burst'],
+      lootTable: ['MEDKIT', 'RARE_WEAPON', 'ARMOR'],
+      spawnMessage: '☢ THE EXCLUSION ZONE WARDEN EMERGES FROM THE REACTOR SHADOW!',
+      behavior: 'boss'
+    },
+    BOSS_KREMENCHUK: {
+      id: 'BOSS_KREMENCHUK', name: 'Missile Strike Commander', tier: 3,
+      hp: 900, speed: 1.4, damage: 55, attackRange: 20,
+      color: 0x553311, scale: 1.7, xpReward: 380,
+      abilities: ['summon_reinforcements', 'artillery_call'],
+      lootTable: ['MEDKIT', 'RARE_WEAPON', 'XP_BOOST'],
+      spawnMessage: '🚀 THE MISSILE STRIKE COMMANDER CALLS IN ANOTHER SALVO!',
+      behavior: 'boss',
+      artilleryDamage: 80, artilleryRadius: 4, artilleryInterval: 12
+    },
+    BOSS_CHERKASY: {
+      id: 'BOSS_CHERKASY', name: 'Dnipro River Blockade General', tier: 3,
+      hp: 950, speed: 1.3, damage: 60, attackRange: 18,
+      color: 0x2a3344, scale: 1.7, xpReward: 400,
+      abilities: ['summon_reinforcements', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '⚔ THE DNIPRO BLOCKADE GENERAL TAKES THE BRIDGE!',
+      behavior: 'boss'
+    },
+    BOSS_DNIPRO_METRO: {
+      id: 'BOSS_DNIPRO_METRO', name: 'Industrial Zone Overseer', tier: 4,
+      hp: 1100, speed: 1.4, damage: 65, attackRange: 20,
+      color: 0x334455, scale: 1.8, xpReward: 450,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🏭 THE INDUSTRIAL ZONE OVERSEER DEPLOYS HIS GARRISON!',
+      behavior: 'boss',
+      artilleryDamage: 90, artilleryRadius: 4, artilleryInterval: 10,
+      rageThreshold: 0.4, rageDamageMult: 1.6
+    },
+    BOSS_AZOVSTAL: {
+      id: 'BOSS_AZOVSTAL', name: 'Azovstal Siege Marshal', tier: 4,
+      hp: 1500, speed: 1.2, damage: 80, attackRange: 22,
+      color: 0x221111, scale: 2.0, xpReward: 600,
+      abilities: ['summon_reinforcements', 'rage_mode', 'artillery_call', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '⚙ THE AZOVSTAL SIEGE MARSHAL BRINGS THE STEEL WORKS DOWN!',
+      behavior: 'boss',
+      artilleryDamage: 100, artilleryRadius: 5, artilleryInterval: 8,
+      rageThreshold: 0.35, rageDamageMult: 1.8,
+      summonTypes: ['SPETSNAZ', 'MORTAR', 'COMMISSAR'], summonCount: 4, summonInterval: 14
+    },
+    BOSS_KHERSON_BRIDGE: {
+      id: 'BOSS_KHERSON_BRIDGE', name: 'River Crossing General', tier: 4,
+      hp: 1200, speed: 1.4, damage: 70, attackRange: 20,
+      color: 0x334466, scale: 1.8, xpReward: 500,
+      abilities: ['summon_reinforcements', 'rocket_salvo', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'XP_BOOST'],
+      spawnMessage: '🌊 THE RIVER CROSSING GENERAL HOLDS THE ANTONIVKA BRIDGE!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+    BOSS_ZAPORIZHZHIA_NPP: {
+      id: 'BOSS_ZAPORIZHZHIA_NPP', name: 'Nuclear Plant Commandant', tier: 5,
+      hp: 2000, speed: 1.3, damage: 90, attackRange: 25,
+      color: 0x446633, scale: 2.2, xpReward: 750,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode', 'radiation_burst'],
+      lootTable: ['LEGENDARY_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '☢ THE NUCLEAR PLANT COMMANDANT TRIGGERS REACTOR ALERT!',
+      behavior: 'boss',
+      artilleryDamage: 110, artilleryRadius: 5, artilleryInterval: 9,
+      rageThreshold: 0.3, rageDamageMult: 2.0,
+      summonTypes: ['SPETSNAZ', 'MORTAR', 'THERMOBARIC'], summonCount: 4, summonInterval: 12
+    },
+    BOSS_KRAMATORSK_STATION: {
+      id: 'BOSS_KRAMATORSK_STATION', name: 'Railway Massacre Colonel', tier: 4,
+      hp: 1300, speed: 1.5, damage: 75, attackRange: 20,
+      color: 0x443322, scale: 1.9, xpReward: 550,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '💀 THE RAILWAY MASSACRE COLONEL ARRIVES BY ARMORED TRAIN!',
+      behavior: 'boss',
+      artilleryDamage: 95, artilleryRadius: 4, artilleryInterval: 10,
+      rageThreshold: 0.35, rageDamageMult: 1.7
+    },
+    BOSS_BUCHA_MEMORIAL: {
+      id: 'BOSS_BUCHA_MEMORIAL', name: 'Bucha Occupation Commander', tier: 4,
+      hp: 1400, speed: 1.4, damage: 80, attackRange: 22,
+      color: 0x333322, scale: 2.0, xpReward: 600,
+      abilities: ['summon_reinforcements', 'rage_mode', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '💀 THE BUCHA OCCUPATION COMMANDER MUST BE BROUGHT TO JUSTICE!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.9,
+      summonTypes: ['KADYROVITE', 'SPETSNAZ', 'COMMISSAR'], summonCount: 5, summonInterval: 13
+    },
+    BOSS_HOSTOMEL_AIRPORT_RAID: {
+      id: 'BOSS_HOSTOMEL_AIRPORT_RAID', name: 'VDV Heliborne Strike Colonel', tier: 4,
+      hp: 1200, speed: 1.6, damage: 70, attackRange: 18,
+      color: 0x334433, scale: 1.8, xpReward: 520,
+      abilities: ['summon_reinforcements', 'rocket_salvo', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'XP_BOOST'],
+      spawnMessage: '🚁 THE VDV HELIBORNE STRIKE COLONEL DESCENDS ON HOSTOMEL!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+
     // Feature 17: Suicide Bomber
     BOMBER: {
       id: 'BOMBER', name: 'Suicide Bomber', tier: 2,
@@ -1108,11 +1215,22 @@ const EnemyTypes = (function () {
     16: 'BOSS_VUHLEDAR',      // Tank Corps Colonel
     17: 'BOSS_ANTONOV',       // Logistics Rear Admiral
     // 18 (Refinery FPV) is droneOnly/single-wave — no boss needed
+    // New city levels — keyed by string level ID
+    SLAVUTYCH:            'BOSS_SLAVUTYCH',
+    KREMENCHUK:           'BOSS_KREMENCHUK',
+    CHERKASY:             'BOSS_CHERKASY',
+    DNIPRO_METRO:         'BOSS_DNIPRO_METRO',
+    AZOVSTAL:             'BOSS_AZOVSTAL',
+    KHERSON_BRIDGE:       'BOSS_KHERSON_BRIDGE',
+    ZAPORIZHZHIA_NPP:     'BOSS_ZAPORIZHZHIA_NPP',
+    KRAMATORSK_STATION:   'BOSS_KRAMATORSK_STATION',
+    BUCHA_MEMORIAL:       'BOSS_BUCHA_MEMORIAL',
+    HOSTOMEL_AIRPORT_RAID: 'BOSS_HOSTOMEL_AIRPORT_RAID',
   };
 
   /**
-   * Returns the boss type ID for a given stage (1-based stage id).
-   * All 17 combat stages have unique named bosses.
+   * Returns the boss type ID for a given stage (1-based stage id or level string ID).
+   * All combat stages have unique named bosses.
    */
   function getBossForStage(stageId) {
     return STAGE_BOSS_MAP[stageId] || 'BOSS';
