@@ -1334,13 +1334,15 @@ const HUD = (() => {
   function updateStamina(pct) {
     if (!staminaBarEl) return;
     staminaBarEl.style.width = (pct * 100) + '%';
-    if (pct < 0.25) {
-      staminaBarEl.style.background = 'linear-gradient(90deg, #ff4444, #ff6644)';
-    } else if (pct < 0.5) {
-      staminaBarEl.style.background = 'linear-gradient(90deg, #ff8800, #ffaa44)';
+    if (pct < 0.20) {
+      staminaBarEl.style.background = 'linear-gradient(90deg, #ff4444, #ff8888)';
     } else {
-      staminaBarEl.style.background = 'linear-gradient(90deg, #ffcc00, #ffee66)';
+      staminaBarEl.style.background = 'linear-gradient(90deg, #44ff88, #88ffaa)';
     }
+  }
+
+  function setStamina(current, max) {
+    updateStamina(max > 0 ? current / max : 0);
   }
 
   // ── Night Vision ─────────────────────────────────────────────────
@@ -2161,7 +2163,7 @@ const HUD = (() => {
     updateCompass, setCompassThreats, showStreak, showBleed, showProne, showJam,
     setMinimapJammed, setCompassJammed,
     showVehicleHUD, hideVehicleHUD, updateVehicleHUD, showHijackProgress,
-    updateStamina, showNightVision, updateWeatherDisplay,
+    updateStamina, setStamina, showNightVision, updateWeatherDisplay,
     showInteractionPrompt, hideInteractionPrompt,
     showLowHP, showShield,
     // ── New Feature HUD Functions ──

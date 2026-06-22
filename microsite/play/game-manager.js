@@ -288,8 +288,17 @@ const GameManager = (function () {
   const SCORE_WAVE_BONUS = 500;
 
   /* ── Stamina Config ──────────────────────────────────────────────── */
-  const STAMINA_DRAIN_RATE = 0.15;  // per second while sprinting
-  const STAMINA_REGEN_RATE = 0.08;  // per second while not sprinting
+  const STAMINA_DRAIN_RATE = 0.20;  // per second while sprinting (20/100 per second)
+  const STAMINA_REGEN_RATE = 0.25;  // per second while not sprinting (25/100 per second)
+  var _sprintLocked = false;
+  var _sprintLockTimer = 0;
+
+  /* ── Health Regen Config ─────────────────────────────────────────── */
+  var REGEN_DELAY = 8.0;   // seconds after last damage before regen starts
+  var REGEN_RATE  = 3.0;   // HP per second
+  var REGEN_MAX   = 60;    // max HP from out-of-combat regen
+  var _regenActive = false;
+  var _regenToast = null;
 
   /* ── Battlefield Events ─────────────────────────────────────────── */
   const BATTLE_EVENTS = [
@@ -5031,10 +5040,16 @@ const GameManager = (function () {
     }
 
     const isMoving = moveDir.lengthSq() > 0;
+    // Stamina sprint lockout: tick down when locked
+    if (_sprintLocked) {
+      _sprintLockTimer -= delta;
+      if (_sprintLockTimer <= 0) _sprintLocked = false;
+    }
     if (isMoving) {
       moveDir.normalize();
       var wasSprinting = player.sprinting;
-      player.sprinting = !!keys['ShiftLeft'] || touch.sprinting;
+      // Block sprint if stamina locked out or stamina depleted
+      player.sprinting = (!!keys['ShiftLeft'] || touch.sprinting) && !_sprintLocked && player.stamina > 0;
       // Dismiss sprint tip on first sprint
       if (player.sprinting && !wasSprinting && typeof Feedback !== 'undefined' && Feedback.dismissTip) {
         Feedback.dismissTip('sprint');
@@ -5074,13 +5089,18 @@ const GameManager = (function () {
       if (player.sprinting && player.stamina > 0) {
         player.stamina = Math.max(0, player.stamina - STAMINA_DRAIN_RATE * delta);
         if (player.stamina <= 0) {
-          player.sprinting = false; // exhausted
+          player.sprinting = false; // exhausted — enter lockout
+          _sprintLocked = true;
+          _sprintLockTimer = 2.0;
         }
+      } else if (!player.sprinting) {
+        // Stamina regen when moving but not sprinting
+        player.stamina = Math.min(1.0, player.stamina + STAMINA_REGEN_RATE * delta);
       }
 
       if (player.sprinting) SkillSystem.onSprint();
     } else {
-      // Stamina regen when not sprinting
+      // Stamina regen when not moving
       player.stamina = Math.min(1.0, player.stamina + STAMINA_REGEN_RATE * delta);
     }
 
@@ -6715,7 +6735,8 @@ const GameManager = (function () {
       if (player.airdropCooldown > 0) player.airdropCooldown -= delta;
 
       // Stamina HUD
-      if (HUD.updateStamina) HUD.updateStamina(player.stamina);
+      if (HUD.setStamina) HUD.setStamina(player.stamina * 100, 100);
+      else if (HUD.updateStamina) HUD.updateStamina(player.stamina);
 
       // Weather indicator
       if (HUD.updateWeatherDisplay && WeatherSystem.getModifiers) {
@@ -7120,17 +7141,26 @@ const GameManager = (function () {
       // Minecraft-style building: right-click with shovel to place blocks
       // (handled in mousedown handler below)
 
-      // Health regen: tier 1 (2hp/s after 5s, cap 50%) + tier 2 (1hp/s after 10s, cap 75%)
+      // Health regen: 3hp/s after 8s out of combat, cap at 60hp
       player.lastDamageTime += delta;
-      if (player.lastDamageTime > 5 && player.hp > 0 && player.hp < player.maxHp * 0.75) {
-        if (player.hp < player.maxHp * 0.5) {
-          // Tier 1: fast regen to 50%
-          player.hp = Math.min(player.maxHp * 0.5, player.hp + 2 * delta);
-        } else if (player.lastDamageTime > 10) {
-          // Tier 2: slow regen to 75%
-          player.hp = Math.min(player.maxHp * 0.75, player.hp + 1 * delta);
+      if (player.hp > 0 && player.hp < REGEN_MAX) {
+        if (player.lastDamageTime >= REGEN_DELAY) {
+          if (!_regenActive) {
+            _regenActive = true;
+            if (!_regenToast) {
+              _regenToast = document.createElement('div');
+              _regenToast.style.cssText = 'position:fixed;bottom:120px;left:20px;color:#44ff88;font-size:12px;font-family:monospace;z-index:30;opacity:0.8;';
+              _regenToast.textContent = '+ HEALING';
+              document.body.appendChild(_regenToast);
+            }
+            if (_regenToast) _regenToast.style.display = 'block';
+          }
+          player.hp = Math.min(REGEN_MAX, player.hp + REGEN_RATE * delta);
+          HUD.setHealth(player.hp, player.maxHp);
         }
-        HUD.setHealth(player.hp, player.maxHp);
+      } else {
+        _regenActive = false;
+        if (_regenToast) _regenToast.style.display = 'none';
       }
 
       // Armor HUD
