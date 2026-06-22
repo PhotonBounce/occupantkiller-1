@@ -1440,6 +1440,9 @@ const GameManager = (function () {
     if (typeof MissionTypes !== 'undefined' && MissionTypes && typeof MissionTypes.clear === 'function') MissionTypes.clear();
     if (typeof Feedback !== 'undefined' && Feedback && typeof Feedback.init === 'function') Feedback.init();
     if (typeof Progression !== 'undefined' && Progression && typeof Progression.init === 'function') Progression.init();
+    // Tactical minimap
+    try { if (typeof Minimap !== 'undefined' && Minimap.init) Minimap.init(); } catch (eMM) {}
+
     // Birds + Mortar + Premium + Lottery + Gyro
     try { if (window.Birds   && Birds.init)   Birds.init(_scene); } catch (e) {}
     try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, _controls); } catch (e) {}
@@ -1856,6 +1859,7 @@ const GameManager = (function () {
             player.bleedTimer = 0;
             if (HUD.showBleed) HUD.showBleed(false);
             HUD.notifyPickup('🩹 BANDAGE APPLIED', '#22ff55');
+            try { if (typeof Achievements !== 'undefined' && Achievements.recordBandage) Achievements.recordBandage(); } catch (eAchB) {}
           }
         }
 
@@ -1953,6 +1957,7 @@ const GameManager = (function () {
         if (e.code === 'KeyH') {
           if (typeof Perks !== 'undefined' && Perks.useBandage()) {
             HUD.notifyPickup('🩹 FIELD BANDAGE APPLIED!', '#22ff55');
+            try { if (typeof Achievements !== 'undefined' && Achievements.recordBandage) Achievements.recordBandage(); } catch (eAchH) {}
           }
         }
 
@@ -1977,14 +1982,22 @@ const GameManager = (function () {
           }
         }
 
-        // Ping/mark system (M key)
+        // Ping/mark system (M key) / Minimap toggle (Shift+M)
         if (e.code === 'KeyM' && gameState === STATE.PLAYING) {
-          if (typeof Feedback !== 'undefined') {
-            var pingPos = player.position.clone();
-            var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
-            pingPos.add(fwd.multiplyScalar(20));
-            Feedback.addPing(pingPos.x, pingPos.y, pingPos.z, 'MARK', '#ffff00');
-            HUD.notifyPickup('📍 POSITION MARKED', '#ffff00');
+          if (e.shiftKey) {
+            // Shift+M: toggle tactical minimap
+            if (typeof Minimap !== 'undefined' && Minimap.toggle) {
+              Minimap.toggle();
+              HUD.notifyPickup('🗺️ MINIMAP ' + (Minimap.isVisible ? 'ON' : 'OFF'), '#88aaff');
+            }
+          } else {
+            if (typeof Feedback !== 'undefined') {
+              var pingPos = player.position.clone();
+              var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
+              pingPos.add(fwd.multiplyScalar(20));
+              Feedback.addPing(pingPos.x, pingPos.y, pingPos.z, 'MARK', '#ffff00');
+              HUD.notifyPickup('📍 POSITION MARKED', '#ffff00');
+            }
           }
         }
 
@@ -2170,7 +2183,35 @@ const GameManager = (function () {
         if (e.code === 'Digit9') Weapons.switchTo(8);
         if (e.code === 'Digit0') Weapons.switchTo(9);
         if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
-        if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
+        if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) {
+          // Check for nearby attachment pickup first
+          var _atkPickedUp = false;
+          if (typeof Attachments !== 'undefined' && _scene && player) {
+            var _atkChildren = _scene.children;
+            for (var _ati = 0; _ati < _atkChildren.length; _ati++) {
+              var _atkMesh = _atkChildren[_ati];
+              if (!_atkMesh || !_atkMesh.userData || !_atkMesh.userData.isAttachmentPickup) continue;
+              var _atkDist = _atkMesh.position.distanceTo(player.position);
+              if (_atkDist <= 1.5) {
+                var _atkId = _atkMesh.userData.attachmentId;
+                var _atkSlot = Weapons.getCurrentIdx();
+                Attachments.attach(_atkSlot, _atkId);
+                _scene.remove(_atkMesh);
+                if (_atkMesh.geometry) _atkMesh.geometry.dispose();
+                if (_atkMesh.material) _atkMesh.material.dispose();
+                // Refresh weapon HUD to show new attachment icon
+                if (typeof HUD !== 'undefined' && HUD.setWeapon && Weapons.getCurrentName) {
+                  var _atkDef = Attachments.getAttached(_atkSlot);
+                  var _atkIcon = _atkDef ? ' ' + _atkDef.icon : '';
+                  HUD.setWeapon(Weapons.getCurrentName() + _atkIcon, _atkSlot);
+                }
+                _atkPickedUp = true;
+                break;
+              }
+            }
+          }
+          if (!_atkPickedUp) Weapons.switchNext();
+        }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
 
         // Build mode: template selection
@@ -3493,6 +3534,7 @@ const GameManager = (function () {
       localStorage.setItem('okk_prestige', String(window._prestigeLevel));
       window._prestigeScoreMult = 1 + (window._prestigeLevel * 0.25);
       window._prestigeFireRate = 1 + (window._prestigeLevel * 0.05);
+      try { if (typeof Achievements !== 'undefined' && Achievements.recordPrestige) Achievements.recordPrestige(window._prestigeLevel); } catch (eAchP) {}
       document.body.removeChild(overlay);
       // Restart from level 0
       currentStage = 0;
@@ -4639,6 +4681,14 @@ const GameManager = (function () {
       Progression.updateBounty('low_damage', Math.round(player.waveDamageTaken));
       Progression.save();
     }
+    // Achievements: record wave complete
+    try {
+      if (typeof Achievements !== 'undefined' && Achievements.recordWaveComplete) {
+        var _achLevelId = (typeof stageDef !== 'undefined' && stageDef) ? stageDef.id : null;
+        Achievements.recordWaveComplete(_achLevelId);
+        if (Achievements.recordSurvivor) Achievements.recordSurvivor(player.hp, player.maxHp || 100);
+      }
+    } catch (eAchW) {}
     // Radio chatter on wave clear
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_clear');
     // Achievement checks
@@ -5585,6 +5635,16 @@ const GameManager = (function () {
       player.kills++;
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
+      // Achievements: record kill
+      try {
+        if (typeof Achievements !== 'undefined' && Achievements.recordKill) {
+          Achievements.recordKill({
+            headshot: isHeadshot,
+            isNvgActive: !!window._nvgActive,
+            isDroneKill: !!(typeof DroneSystem !== 'undefined' && DroneSystem.isPossessing && DroneSystem.isPossessing()),
+          });
+        }
+      } catch (eAchK) {}
       // Kill milestone banners — celebrate round numbers of total kills
       try {
         var _kMile = player.kills;
@@ -5931,6 +5991,12 @@ const GameManager = (function () {
         }
       }
 
+      // Attachment drop: 10% chance on enemy death
+      if (typeof Attachments !== 'undefined' && _scene && enemy && enemy.mesh && Math.random() < 0.10) {
+        var _atkDropId = Attachments.getRandomAttachment();
+        Attachments.spawnPickup(_scene, enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z, _atkDropId);
+      }
+
       // Weapon unlock drop (pickup weapons 2-15)
       if (Math.random() < 0.12) {
         const candidates = [];
@@ -6083,6 +6149,7 @@ const GameManager = (function () {
       }
     } catch (eAtk) {}
     MLSystem.onDamageTaken(dmg);
+    if (typeof Achievements !== 'undefined' && Achievements.onDamageTaken) Achievements.onDamageTaken();
     var _hpBefore = player.hp;
     player.hp = Math.max(0, player.hp - dmg);
     HUD.setHealth(player.hp, player.maxHp);
@@ -7210,6 +7277,32 @@ const GameManager = (function () {
       // Update loot particles
       updateLootParticles(delta);
 
+      // Animate attachment pickup meshes (bob + rotate) and show interaction prompt
+      try {
+        if (typeof Attachments !== 'undefined' && _scene && player) {
+          var _atkNow = performance.now() / 1000;
+          var _atkNearLabel = null;
+          var _atkSceneChildren = _scene.children;
+          for (var _atkAni = 0; _atkAni < _atkSceneChildren.length; _atkAni++) {
+            var _atkM = _atkSceneChildren[_atkAni];
+            if (!_atkM || !_atkM.userData || !_atkM.userData.isAttachmentPickup) continue;
+            // Rotate
+            _atkM.rotation.y += delta * 1.8;
+            // Bob up and down
+            var _atkBase = _atkM.userData.bobBase || 0.2;
+            _atkM.position.y = _atkBase + Math.sin(_atkNow * 2.2) * 0.12;
+            // Show pickup prompt if within 1.5 units
+            var _atkDist2 = _atkM.position.distanceTo(player.position);
+            if (_atkDist2 <= 1.5) {
+              _atkNearLabel = '[E] Pick up ' + (_atkM.userData.label || 'Attachment');
+            }
+          }
+          if (_atkNearLabel && HUD.showInteractionPrompt) {
+            HUD.showInteractionPrompt(_atkNearLabel);
+          }
+        }
+      } catch (eAtk) {}
+
       // Minecraft-style building: right-click with shovel to place blocks
       // (handled in mousedown handler below)
 
@@ -7366,6 +7459,18 @@ const GameManager = (function () {
         var mmVehicles = (typeof VehicleSystem !== 'undefined' && VehicleSystem.getAll) ? VehicleSystem.getAll() : [];
         var mmDrones = (typeof DroneSystem !== 'undefined' && DroneSystem.getAll) ? DroneSystem.getAll() : [];
         HUD.updateMinimap(player.position.x, player.position.z, CameraSystem.getYaw(), mmEnemies, mmNPCs, mmVehicles, mmDrones);
+      }
+
+      // Tactical minimap (window.Minimap module)
+      if (typeof Minimap !== 'undefined' && Minimap.update) {
+        var _mmTactEnemies = Enemies.getAll();
+        var _mmTactBuildings = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getBuildings) ? VoxelWorld.getBuildings() : (window._buildings || []);
+        Minimap.update(
+          { x: player.position.x, z: player.position.z },
+          CameraSystem.getYaw(),
+          _mmTactEnemies,
+          _mmTactBuildings
+        );
       }
 
       // Targeting assistant (on-weapon enemy readout)

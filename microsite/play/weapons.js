@@ -783,7 +783,12 @@ const Weapons = (() => {
 
   function refreshWeaponHud() {
     if (typeof HUD === 'undefined' || !HUD.setWeapon) return;
-    HUD.setWeapon(cur().name, currentIdx);
+    var _wepDisplayName = cur().name;
+    if (typeof Attachments !== 'undefined' && Attachments.getAttached) {
+      var _wepAtk = Attachments.getAttached(currentIdx);
+      if (_wepAtk) _wepDisplayName = _wepDisplayName + ' ' + _wepAtk.icon;
+    }
+    HUD.setWeapon(_wepDisplayName, currentIdx);
     if (cur().type === 'MELEE') {
       HUD.setAmmo('∞', '—');
       if (HUD.showGrenadeSection) HUD.showGrenadeSection(true);
@@ -5404,8 +5409,11 @@ const Weapons = (() => {
   function applyRecoil() {
     const w = cur();
     if (!w.recoilY && !w.recoilX) return;
-    const recoilMod = (typeof SkillSystem !== 'undefined' && typeof SkillSystem.getRecoilMod === 'function')
+    var recoilMod = (typeof SkillSystem !== 'undefined' && typeof SkillSystem.getRecoilMod === 'function')
       ? SkillSystem.getRecoilMod() : 1.0;
+    if (typeof Attachments !== 'undefined' && Attachments.getRecoilMulti) {
+      recoilMod *= Attachments.getRecoilMulti(currentIdx);
+    }
     var appliedYaw = (Math.random() - 0.5) * w.recoilX * 2 * recoilMod;
     if (typeof CameraSystem !== 'undefined') {
       CameraSystem.setPitch(CameraSystem.getPitch() + w.recoilY * recoilMod);
@@ -6229,7 +6237,8 @@ const Weapons = (() => {
       }
       if (!dropMiss) {
         var dropDmgMult = hits[0]._dropDamageMult || 1;
-        onHit(hits[0], Math.round(wep.damage * dropDmgMult));
+        var _atkDmgMult = (typeof Attachments !== 'undefined' && Attachments.getDamageMulti) ? Attachments.getDamageMulti(currentIdx) : 1.0;
+        onHit(hits[0], Math.round(wep.damage * dropDmgMult * _atkDmgMult));
       // Bullet penetration for high-caliber weapons — hit 2nd target at reduced damage
       var penTypes = ['SNIPER', 'LMG', 'HMG', 'HMG_HEAVY', 'MINIGUN', 'AMR', 'MACHINEGUN'];
       if (penTypes.indexOf(wep.type) >= 0 && hits.length > 1) {
