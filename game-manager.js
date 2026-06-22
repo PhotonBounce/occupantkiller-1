@@ -3784,6 +3784,15 @@ const GameManager = (function () {
         if (window.Weapons && Weapons.unlock) Weapons.unlock(t.id);
         if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast(t.msg + ' (' + t.at + ' kills)', 4000, '#ffd700');
         if (window.AudioSystem && AudioSystem.playUnlock) AudioSystem.playUnlock();
+        // Show dramatic weapon unlock card with stats
+        try {
+          if (typeof HUD !== 'undefined' && HUD.showWeaponUnlockCard && window.Weapons && Weapons.getWeaponCount) {
+            for (var _wui = 0; _wui < Weapons.getWeaponCount(); _wui++) {
+              var _wDef = Weapons.getWeaponInfo(_wui);
+              if (_wDef && _wDef.id === t.id) { HUD.showWeaponUnlockCard(_wDef); break; }
+            }
+          }
+        } catch(eWU) {}
       }
     }
   }
@@ -5754,8 +5763,13 @@ const GameManager = (function () {
       var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult);
       player.score += _scoreGain;
       // Show floating multiplier text when meaningful (>= x1.2)
-      if (_streakMult >= 1.2 && typeof Feedback !== 'undefined' && Feedback.showStreakMult) {
-        try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
+      if (_streakMult >= 1.2) {
+        if (typeof Feedback !== 'undefined' && Feedback.showStreakMult) {
+          try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
+        }
+        if (typeof HUD !== 'undefined' && HUD.showComboMult) {
+          try { HUD.showComboMult(_streakMult, player.killStreak); } catch (eCM) {}
+        }
       }
       player.kills++;
       _checkWeaponUnlocks();
