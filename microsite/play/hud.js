@@ -2430,8 +2430,298 @@ const HUD = (() => {
     _scopeEl._crosshair.style.transform = 'translate(calc(-50% + ' + _scopeSwayX + 'px), calc(-50% + ' + _scopeSwayY + 'px))';
   }
 
+  // ── Kill Streak Counter ────────────────────────────────────────────
+  var _killStreakEl = null;
+  var _killStreakBonusEl = null;
+  var _killStreakFadeTimer = null;
+  var _killStreakPulseStyleId = 'ks-pulse-kf';
+
+  function updateKillStreak(streak, bonusName) {
+    if (!_killStreakEl) {
+      _killStreakEl = document.createElement('div');
+      _killStreakEl.style.cssText = 'position:fixed;top:90px;right:15px;font-family:monospace;font-size:26px;font-weight:bold;pointer-events:none;z-index:210;text-align:right;transition:opacity 0.4s;text-shadow:0 0 8px currentColor;';
+      document.body.appendChild(_killStreakEl);
+      _killStreakBonusEl = document.createElement('div');
+      _killStreakBonusEl.style.cssText = 'font-size:12px;letter-spacing:2px;margin-top:2px;text-align:right;';
+      _killStreakEl.appendChild(_killStreakBonusEl);
+      if (!document.getElementById(_killStreakPulseStyleId)) {
+        var st = document.createElement('style');
+        st.id = _killStreakPulseStyleId;
+        st.textContent = '@keyframes ksCrimsonPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.6) drop-shadow(0 0 8px #cc0000)}}';
+        document.head.appendChild(st);
+      }
+    }
+    if (!streak || streak <= 0) {
+      clearTimeout(_killStreakFadeTimer);
+      _killStreakFadeTimer = setTimeout(function() {
+        if (_killStreakEl) _killStreakEl.style.opacity = '0';
+      }, 2000);
+      return;
+    }
+    clearTimeout(_killStreakFadeTimer);
+    _killStreakEl.style.opacity = '1';
+    var color;
+    if (streak >= 10) {
+      color = '#cc0000';
+      _killStreakEl.style.animation = 'ksCrimsonPulse 0.7s ease-in-out infinite';
+    } else if (streak >= 5) {
+      color = '#ff2222';
+      _killStreakEl.style.animation = '';
+    } else {
+      color = '#ff8800';
+      _killStreakEl.style.animation = '';
+    }
+    _killStreakEl.style.color = color;
+    _killStreakEl.firstChild.nodeType === 3
+      ? (_killStreakEl.firstChild.textContent = '🔥 \xD7' + streak)
+      : null;
+    // Set text node at start (before the bonus child div)
+    if (_killStreakEl.childNodes[0] && _killStreakEl.childNodes[0].nodeType === 3) {
+      _killStreakEl.childNodes[0].textContent = '🔥 \xD7' + streak;
+    } else {
+      _killStreakEl.insertBefore(document.createTextNode('🔥 \xD7' + streak), _killStreakEl.firstChild);
+    }
+    if (_killStreakBonusEl) {
+      if (bonusName) {
+        _killStreakBonusEl.textContent = bonusName.toUpperCase();
+        _killStreakBonusEl.style.color = color;
+        _killStreakBonusEl.style.display = 'block';
+      } else {
+        _killStreakBonusEl.style.display = 'none';
+      }
+    }
+  }
+
+  // ── Score Multiplier Display ───────────────────────────────────────
+  var _scoreMultEl = null;
+  var _scoreMultPulseId = 'sm-pulse-kf';
+
+  function updateScoreMult(mult) {
+    if (!_scoreMultEl) {
+      _scoreMultEl = document.createElement('div');
+      _scoreMultEl.style.cssText = 'position:fixed;right:15px;font-family:monospace;font-size:16px;font-weight:bold;pointer-events:none;z-index:210;text-align:right;transition:opacity 0.3s;';
+      // Position below kill streak counter (90px + ~60px)
+      _scoreMultEl.style.top = '152px';
+      document.body.appendChild(_scoreMultEl);
+      if (!document.getElementById(_scoreMultPulseId)) {
+        var st = document.createElement('style');
+        st.id = _scoreMultPulseId;
+        st.textContent = '@keyframes smGoldPulse{0%,100%{text-shadow:0 0 6px #ffcc00}50%{text-shadow:0 0 18px #ffcc00,0 0 30px #ff8800}}';
+        document.head.appendChild(st);
+      }
+    }
+    if (!mult || mult <= 1.0) {
+      _scoreMultEl.style.opacity = '0';
+      return;
+    }
+    _scoreMultEl.style.opacity = '1';
+    _scoreMultEl.textContent = 'SCORE \xD7' + mult.toFixed(1);
+    if (mult > 2.0) {
+      _scoreMultEl.style.color = '#ffd700';
+      _scoreMultEl.style.animation = 'smGoldPulse 0.9s ease-in-out infinite';
+    } else {
+      _scoreMultEl.style.color = '#ffcc44';
+      _scoreMultEl.style.animation = '';
+      _scoreMultEl.style.textShadow = '0 0 6px #ff8800';
+    }
+  }
+
+  // ── Wave Timer ────────────────────────────────────────────────────
+  var _waveTimerEl = null;
+
+  function _fmtWaveTime(s) {
+    var m = Math.floor(Math.max(0, s) / 60);
+    var sec = Math.floor(Math.max(0, s) % 60);
+    return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function showWaveTimer(seconds) {
+    if (!_waveTimerEl) {
+      _waveTimerEl = document.createElement('div');
+      _waveTimerEl.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);font-family:monospace;font-size:15px;font-weight:bold;color:#fff;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.2);border-radius:4px;padding:3px 12px;pointer-events:none;z-index:130;letter-spacing:2px;transition:color 0.3s,border-color 0.3s;';
+      document.body.appendChild(_waveTimerEl);
+    }
+    _waveTimerEl.style.display = 'block';
+    _waveTimerEl.textContent = 'WAVE ENDS IN ' + _fmtWaveTime(seconds);
+    _waveTimerEl.style.color = '#ffffff';
+    _waveTimerEl.style.borderColor = 'rgba(255,255,255,0.2)';
+  }
+
+  function updateWaveTimer(secondsLeft) {
+    if (!_waveTimerEl || _waveTimerEl.style.display === 'none') return;
+    _waveTimerEl.textContent = 'WAVE ENDS IN ' + _fmtWaveTime(secondsLeft);
+    if (secondsLeft < 30) {
+      _waveTimerEl.style.color = '#ff3333';
+      _waveTimerEl.style.borderColor = 'rgba(255,50,50,0.5)';
+    } else {
+      _waveTimerEl.style.color = '#ffffff';
+      _waveTimerEl.style.borderColor = 'rgba(255,255,255,0.2)';
+    }
+  }
+
+  function hideWaveTimer() {
+    if (_waveTimerEl) _waveTimerEl.style.display = 'none';
+  }
+
+  // ── Combo Chain Display ───────────────────────────────────────────
+  var _comboEl = null;
+  var _comboClearTimer = null;
+  var _comboBounceId = 'combo-bounce-kf';
+
+  function showCombo(count, multiplier) {
+    if (!_comboEl) {
+      _comboEl = document.createElement('div');
+      _comboEl.style.cssText = 'position:fixed;left:15px;font-family:monospace;font-size:18px;font-weight:bold;pointer-events:none;z-index:210;transition:opacity 0.3s;opacity:0;';
+      // Position below ammo area — ammo is typically bottom-left ~80px from bottom
+      _comboEl.style.bottom = '130px';
+      document.body.appendChild(_comboEl);
+      if (!document.getElementById(_comboBounceId)) {
+        var st = document.createElement('style');
+        st.id = _comboBounceId;
+        st.textContent = '@keyframes comboBounce{0%{transform:scale(1.5)}100%{transform:scale(1)}}';
+        document.head.appendChild(st);
+      }
+    }
+    clearTimeout(_comboClearTimer);
+    var color;
+    var shadow = '';
+    if (count >= 5) {
+      color = '#ff2222';
+      shadow = '0 0 10px #ff0000,0 0 18px #aa0000';
+    } else if (count >= 4) {
+      color = '#ff8800';
+      shadow = '0 0 8px #ff4400';
+    } else if (count >= 3) {
+      color = '#ffcc00';
+    } else {
+      color = '#ffffff';
+    }
+    _comboEl.style.color = color;
+    _comboEl.style.textShadow = shadow;
+    _comboEl.style.animation = 'none';
+    void _comboEl.offsetHeight; // reflow to retrigger
+    _comboEl.style.animation = 'comboBounce 0.2s ease-out forwards';
+    _comboEl.textContent = '💥 COMBO \xD7' + count + ' (x' + (multiplier || 1).toFixed(1) + ')';
+    _comboEl.style.opacity = '1';
+    _comboClearTimer = setTimeout(function() {
+      if (_comboEl) _comboEl.style.opacity = '0';
+    }, 2000);
+  }
+
+  function clearCombo() {
+    clearTimeout(_comboClearTimer);
+    if (_comboEl) _comboEl.style.opacity = '0';
+  }
+
+  // ── Objective Marker (screen-edge arrow) ─────────────────────────
+  var _objMarkerEl = null;
+  var _objMarkerLabel = '';
+  var _objMarkerWorldPos = null;
+
+  function setObjective(text, worldPos3D, camera) {
+    _objMarkerLabel = text || '';
+    _objMarkerWorldPos = worldPos3D || null;
+    if (!_objMarkerEl) {
+      _objMarkerEl = document.createElement('div');
+      _objMarkerEl.style.cssText = 'position:fixed;pointer-events:none;z-index:215;font-family:monospace;font-size:13px;font-weight:bold;color:#ff6600;text-shadow:0 1px 4px #000,0 0 8px #ff4400;transition:opacity 0.2s;display:none;white-space:nowrap;';
+      document.body.appendChild(_objMarkerEl);
+    }
+    if (!text) {
+      _objMarkerEl.style.display = 'none';
+      return;
+    }
+    _objMarkerEl.style.display = 'block';
+    if (camera) updateObjectiveArrow(camera);
+  }
+
+  function updateObjectiveArrow(camera) {
+    if (!_objMarkerEl || !_objMarkerWorldPos || !camera) return;
+    var pos3 = _objMarkerWorldPos;
+    var vec = new THREE.Vector3(pos3.x, pos3.y || 0, pos3.z);
+    var camPos = camera.getWorldPosition ? camera.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3();
+    var dist = Math.round(camPos.distanceTo(vec));
+    vec.project(camera);
+    var behind = vec.z > 1;
+    var sx = (vec.x * 0.5 + 0.5) * window.innerWidth;
+    var sy = (-vec.y * 0.5 + 0.5) * window.innerHeight;
+    if (behind) { sx = window.innerWidth - sx; sy = window.innerHeight * 0.85; }
+    var margin = 40;
+    var onScreen = !behind && sx >= margin && sx <= window.innerWidth - margin && sy >= margin && sy <= window.innerHeight - margin;
+    if (onScreen) {
+      // Show chevron label above world position
+      _objMarkerEl.style.left = sx + 'px';
+      _objMarkerEl.style.top = (sy - 30) + 'px';
+      _objMarkerEl.style.transform = 'translate(-50%, 0)';
+      _objMarkerEl.innerHTML = '► ' + _objMarkerLabel + ' (' + dist + 'm)';
+    } else {
+      // Clamp to screen edge and rotate arrow toward target
+      var cx = window.innerWidth / 2;
+      var cy = window.innerHeight / 2;
+      var ang = Math.atan2(sy - cy, sx - cx);
+      var ex = cx + Math.cos(ang) * (Math.min(cx, cy) - margin);
+      var ey = cy + Math.sin(ang) * (Math.min(cx, cy) - margin);
+      ex = Math.max(margin, Math.min(window.innerWidth - margin, ex));
+      ey = Math.max(margin, Math.min(window.innerHeight - margin, ey));
+      var arrowDeg = (ang * 180 / Math.PI) + 90;
+      _objMarkerEl.style.left = ex + 'px';
+      _objMarkerEl.style.top = ey + 'px';
+      _objMarkerEl.style.transform = 'translate(-50%, -50%)';
+      _objMarkerEl.innerHTML = '<span style="display:inline-block;transform:rotate(' + arrowDeg + 'deg);font-size:22px">►</span><br><span style="font-size:11px">' + _objMarkerLabel + ' (' + dist + 'm)</span>';
+    }
+  }
+
+  function clearObjective() {
+    _objMarkerLabel = '';
+    _objMarkerWorldPos = null;
+    if (_objMarkerEl) _objMarkerEl.style.display = 'none';
+  }
+
+  // ── Better Crosshair Dynamic Spread (lerped) ──────────────────────
+  // Replaces the existing instant setCrosshairSpread with a lerping version.
+  // _chSpreadCurrent tracks the current visual spread; caller sets _chSpreadTarget
+  // by calling setCrosshairSpread(amount) each frame.
+  var _chSpreadCurrent = 0;
+  var _chSpreadTarget = 0;
+  var _chSpreadLastTime = 0;
+  // Inject transition-smoothed spread CSS once
+  (function() {
+    if (!document.getElementById('ch-spread-kf')) {
+      var st = document.createElement('style');
+      st.id = 'ch-spread-kf';
+      // Ensure crosshair lines use a smooth CSS transition as a fallback
+      st.textContent = '#crosshair .cl-top,#crosshair .cl-bottom,#crosshair .cl-left,#crosshair .cl-right{transition:transform 0.05s linear;}';
+      document.head.appendChild(st);
+    }
+  })();
+
+  function setCrosshairSpread(amount) {
+    _chSpreadTarget = Math.max(0, Math.min(1, amount || 0));
+    var now = performance.now();
+    var dt = _chSpreadLastTime > 0 ? Math.min(0.1, (now - _chSpreadLastTime) / 1000) : 0.016;
+    _chSpreadLastTime = now;
+    // Lerp at rate 6/sec
+    var rate = 6 * dt;
+    _chSpreadCurrent += (_chSpreadTarget - _chSpreadCurrent) * Math.min(1, rate);
+    if (!_chLineCache) {
+      _chLineCache = {
+        top:    document.querySelector('#crosshair .cl-top'),
+        bottom: document.querySelector('#crosshair .cl-bottom'),
+        left:   document.querySelector('#crosshair .cl-left'),
+        right:  document.querySelector('#crosshair .cl-right'),
+      };
+    }
+    // 0 = ±8px from center, 1.0 = ±32px from center
+    var base = 8;
+    var range = 24; // 32 - 8
+    var px = Math.round(base + _chSpreadCurrent * range);
+    if (_chLineCache.top)    _chLineCache.top.style.transform    = 'translateY(-' + px + 'px)';
+    if (_chLineCache.bottom) _chLineCache.bottom.style.transform = 'translateY(' + px + 'px)';
+    if (_chLineCache.left)   _chLineCache.left.style.transform   = 'translateX(-' + px + 'px)';
+    if (_chLineCache.right)  _chLineCache.right.style.transform  = 'translateX(' + px + 'px)';
+  }
+
   // ── Last Wave Summary Overlay ──
-  let _waveSummaryEl = null;
+  var _waveSummaryEl = null;
   function showWaveSummary(stats) {
     if (!_waveSummaryEl) {
       _waveSummaryEl = document.createElement('div');
@@ -2502,6 +2792,16 @@ const HUD = (() => {
     showWeaponWheel, updateWeaponWheelMouse, hideWeaponWheel,
     // ── Sniper Scope ADS ──
     showScope: showScope, hideScope: hideScope, updateScope: updateScope, isScopeActive: function() { return _scopeActive; },
+    // ── Kill Streak Counter ──
+    updateKillStreak,
+    // ── Score Multiplier Display ──
+    updateScoreMult,
+    // ── Wave Timer ──
+    showWaveTimer, updateWaveTimer, hideWaveTimer,
+    // ── Combo Chain Display ──
+    showCombo, clearCombo,
+    // ── Objective Marker ──
+    setObjective, updateObjectiveArrow, clearObjective,
   };
 
   function updateNvgIndicator() {
