@@ -75,6 +75,8 @@ window.Leaderboard = (function() {
     if (_overlayEl && _overlayEl.style.display === 'block') { hide(); } else { show(); }
   }
 
+  var _activeTab = 'scores';
+
   function _render() {
     if (!_overlayEl) return;
     var rows = '';
@@ -92,9 +94,82 @@ window.Leaderboard = (function() {
         '</tr>';
     }
     if (!rows) rows = '<tr><td colspan="6" style="text-align:center;color:#666;padding:20px">No scores yet — play a game!</td></tr>';
-    _overlayEl.innerHTML = '<h2 style="text-align:center;color:#ff4444;margin:0 0 12px">🏆 TOP SCORES</h2>' +
-      '<table style="width:100%;border-collapse:collapse"><tbody>' + rows + '</tbody></table>' +
-      '<div style="text-align:center;margin-top:12px;font-size:11px;color:#555">[TAB] to close · ' + _entries.length + '/' + MAX_ENTRIES + ' entries</div>';
+
+    var tabBtnStyle = 'padding:6px 16px;cursor:pointer;border:none;font-family:monospace;font-size:13px;';
+    var scoresBtnStyle = tabBtnStyle + (_activeTab === 'scores' ? 'background:#cc0000;color:#fff;' : 'background:#222;color:#aaa;');
+    var guidesBtnStyle = tabBtnStyle + (_activeTab === 'guide' ? 'background:#cc0000;color:#fff;' : 'background:#222;color:#aaa;');
+
+    var content = '';
+    if (_activeTab === 'scores') {
+      content = '<table style="width:100%;border-collapse:collapse"><tbody>' + rows + '</tbody></table>';
+    } else {
+      content = _renderGuide();
+    }
+
+    var prestigeInfo = window._prestigeLevel > 0
+      ? '<div style="text-align:center;color:#ffd700;margin-bottom:8px">⭐ PRESTIGE ' + window._prestigeLevel + ' · ×' + (window._prestigeScoreMult || 1).toFixed(2) + ' score bonus</div>'
+      : '';
+
+    _overlayEl.innerHTML =
+      '<h2 style="text-align:center;color:#ff4444;margin:0 0 10px">⚔ OCCUPANT KILLER</h2>' +
+      prestigeInfo +
+      '<div style="display:flex;gap:4px;margin-bottom:12px;justify-content:center">' +
+        '<button id="lb-tab-scores" style="' + scoresBtnStyle + '">🏆 TOP SCORES</button>' +
+        '<button id="lb-tab-guide" style="' + guidesBtnStyle + '">📖 CONTROLS</button>' +
+      '</div>' +
+      content +
+      '<div style="text-align:center;margin-top:12px;font-size:11px;color:#555">[TAB] to close</div>';
+
+    document.getElementById('lb-tab-scores').onclick = function() { _activeTab = 'scores'; _render(); };
+    document.getElementById('lb-tab-guide').onclick = function() { _activeTab = 'guide'; _render(); };
+  }
+
+  function _renderGuide() {
+    var sections = [
+      { title: '🔫 COMBAT', keys: [
+        ['LMB / Space', 'Fire weapon'],
+        ['RMB', 'Aim down sights / zoom'],
+        ['R', 'Reload'],
+        ['Q / Mouse wheel', 'Switch weapon'],
+        ['G', 'Throw grenade / deploy Bradley'],
+        ['H', 'Apply field bandage'],
+        ['B', 'Build mode (fortifications)'],
+      ]},
+      { title: '🚁 DRONES & VEHICLES', keys: [
+        ['F', 'Enter/exit vehicle'],
+        ['E', 'Possess drone'],
+        ['Shift+W', 'Cycle weather (clear/rain/snow/fog)'],
+      ]},
+      { title: '🌟 SPECIAL FEATURES', keys: [
+        ['Shift+N', 'Toggle Night Vision Goggles (NVG)'],
+        ['Shift+P', 'Toggle Challenge Mode (×2 score)'],
+        ['N', 'Call airdrop beacon'],
+        ['TAB', 'Leaderboard / controls guide'],
+        ['F10', 'Toggle FPS counter'],
+      ]},
+      { title: '🏆 SCORING', keys: [
+        ['Kill streak ×2+', 'DOUBLE/TRIPLE/QUAD kill banners + bonus %'],
+        ['Headshot', 'Extra score + HUD flash'],
+        ['Barrel explosion', 'Chain reaction bonus kills'],
+        ['Prestige (all levels)', '+25% score per prestige level'],
+        ['Challenge mode', '×2 score multiplier'],
+      ]},
+    ];
+    var html = '<div style="column-count:2;column-gap:16px;">';
+    for (var s = 0; s < sections.length; s++) {
+      var sec = sections[s];
+      html += '<div style="break-inside:avoid;margin-bottom:12px;">';
+      html += '<div style="color:#ff8800;font-weight:bold;margin-bottom:4px;">' + sec.title + '</div>';
+      for (var k = 0; k < sec.keys.length; k++) {
+        html += '<div style="display:flex;gap:8px;margin-bottom:2px;font-size:11px;">' +
+          '<span style="color:#ffd700;min-width:100px">' + _esc(sec.keys[k][0]) + '</span>' +
+          '<span style="color:#ccc">' + _esc(sec.keys[k][1]) + '</span>' +
+          '</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
   }
 
   function _esc(s) {
