@@ -2306,7 +2306,9 @@ const Enemies = (() => {
       return dist < 8;
     }
 
-    return dist < baseRange * mods.enemyDetectRange;
+    // Silencer from shop reduces enemy detection range by 35%
+    var silencerMod = window._silencerEquipped ? 0.65 : 1.0;
+    return dist < baseRange * mods.enemyDetectRange * silencerMod;
   }
 
   // ── Per-frame update ──────────────────────────────────────

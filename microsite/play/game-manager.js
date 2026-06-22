@@ -1842,8 +1842,36 @@ const GameManager = (function () {
           }
         }
 
+        // Airstrike beacon (shop upgrade) — takes priority over regular airdrop
+        if (e.code === 'KeyN' && window._airstrikeCount > 0) {
+          window._airstrikeCount--;
+          HUD.notifyPickup('✈️ HIMARS STRIKE INBOUND! [' + window._airstrikeCount + ' remaining]', '#ff8800');
+          if (window.AudioSystem && AudioSystem.playDistantArtillery) AudioSystem.playDistantArtillery();
+          setTimeout(function() {
+            var px = player.position.x, pz = player.position.z;
+            var strikeRadius = 20;
+            // 6 impact points in a pattern around target area
+            var impacts = [[0,0],[8,-5],[-6,8],[5,10],[-9,-4],[3,-12]];
+            impacts.forEach(function(offset, idx) {
+              setTimeout(function() {
+                var ix = px + offset[0] + (Math.random()-0.5)*4;
+                var iz = pz + offset[1] + (Math.random()-0.5)*4;
+                if (window.Enemies && Enemies.damageInRadius) {
+                  Enemies.damageInRadius(new THREE.Vector3(ix, 0, iz), 12, 300);
+                }
+                if (window.AudioSystem && AudioSystem.playExplosion) AudioSystem.playExplosion();
+                if (window._gameScene) {
+                  var flash = new THREE.PointLight(0xff6600, 8, 25);
+                  flash.position.set(ix, 4, iz);
+                  window._gameScene.add(flash);
+                  setTimeout(function() { if (window._gameScene) window._gameScene.remove(flash); }, 400);
+                }
+              }, idx * 250);
+            });
+            HUD.notifyPickup('✈️ STRIKE COMPLETE', '#ff8800');
+          }, 2500);
         // Airdrop beacon
-        if (e.code === 'KeyN' && player.airdropCooldown <= 0) {
+        } else if (e.code === 'KeyN' && player.airdropCooldown <= 0) {
           player.airdropCooldown = 45; // 45 second cooldown
           HUD.notifyPickup('📦 AIRDROP BEACON DEPLOYED!', '#44ff88');
           setTimeout(function () {
@@ -7205,7 +7233,15 @@ const GameManager = (function () {
 
       // Health regen: 3hp/s after 8s out of combat, cap at 60hp
       player.lastDamageTime += delta;
-      if (player.hp > 0 && player.hp < REGEN_MAX) {
+      // Auto-enable night vision if shop upgrade purchased
+      if (window._nightVisionEquipped && !player.nightVision) {
+        player.nightVision = true;
+        if (window.HUD && HUD.showNightVision) HUD.showNightVision(true);
+      }
+
+      var _effectiveRegenMax = REGEN_MAX + (window._maxHPBonus || 0);
+      var _effectiveRegenRate = REGEN_RATE * (window._combatRegenMultiplier || 1);
+      if (player.hp > 0 && player.hp < _effectiveRegenMax) {
         if (player.lastDamageTime >= REGEN_DELAY) {
           if (!_regenActive) {
             _regenActive = true;
@@ -7217,7 +7253,7 @@ const GameManager = (function () {
             }
             if (_regenToast) _regenToast.style.display = 'block';
           }
-          player.hp = Math.min(REGEN_MAX, player.hp + REGEN_RATE * delta);
+          player.hp = Math.min(_effectiveRegenMax, player.hp + _effectiveRegenRate * delta);
           HUD.setHealth(player.hp, player.maxHp);
         }
       } else {
