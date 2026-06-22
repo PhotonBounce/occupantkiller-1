@@ -1572,6 +1572,8 @@ const GameManager = (function () {
     try { if (window.TimeWarp && TimeWarp.init) TimeWarp.init(); } catch (eTW) { console.warn('[TimeWarp] init failed', eTW); }
     // Surrender system
     try { if (window.SurrenderSystem) SurrenderSystem.init(_scene); } catch (eSS) { console.warn('[SurrenderSystem] init failed', eSS); }
+    // Suppression system
+    try { if (window.SuppressionSystem) SuppressionSystem.init(_scene, _camera); } catch (eSup) { console.warn('[SuppressionSystem] init failed', eSup); }
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -3788,6 +3790,7 @@ const GameManager = (function () {
     if (window.ScavengeSystem) ScavengeSystem.clear();
     if (window.DogTags) DogTags.clear();
     if (window.SurrenderSystem) SurrenderSystem.clear();
+    if (window.SuppressionSystem) SuppressionSystem.reset();
     window.VoxelWorld.generateLevel(stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
@@ -6057,6 +6060,12 @@ const GameManager = (function () {
         player.totalShots++;
         player.waveShots++;
         player.stageShots = (player.stageShots || 0) + 1;
+        // Suppression system: notify of each shot fired
+        if (window._onShotFired && _camera) {
+          _gmTmp2.copy(_camera.position);
+          _camera.getWorldDirection(_gmTmp3);
+          window._onShotFired(_gmTmp2, _gmTmp3);
+        }
         // Register heat + maintenance per shot (not per hit, to avoid shotgun 8x issue)
         if (typeof CombatExtras !== 'undefined') {
           CombatExtras.registerShot();
@@ -7931,6 +7940,7 @@ const GameManager = (function () {
       if (window.IntelPickups) IntelPickups.update(delta, player.position, player, _scene);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
       if (window.SurrenderSystem) SurrenderSystem.update(delta);
+      if (window.SuppressionSystem) SuppressionSystem.update(delta, player);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
