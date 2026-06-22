@@ -821,6 +821,78 @@ const Enemies = (() => {
     );
   }
 
+  // ── Squad-Level Flanking and Suppressive Fire Tactics ───────
+  // Called once per frame per enemy to apply squad-coordinated behaviors.
+  // Groups of 3 (by index): leader alerts allies, suppressor pins player,
+  // flanker maneuvers 90° around to attack from the side.
+  function _updateSquadTactics(e, player, dt) {
+    if (!e || !e.mesh || !e.alive) return;
+    if (e.squadId === undefined || e.squadId === null) return;
+    if (!e._squadTacticRole) return;
+    // Don't override death or standard retreat
+    if (!e.alive || e.retreating || e.surrendered) return;
+
+    var toPlayer = new THREE.Vector3(
+      player.x - e.mesh.position.x,
+      0,
+      player.z - e.mesh.position.z
+    );
+    var distToPlayer = toPlayer.length();
+
+    if (e._squadTacticRole === 'suppressor' && distToPlayer < 35) {
+      // Suppressor stays put and fires rapidly, pinning the player
+      if (!e._suppressorActive) {
+        e._suppressorActive = true;
+        // Halve fire cooldown permanently while in suppressor role
+        if (e.typeCfg && e._rangedTimer === undefined) e._rangedTimer = 0;
+        e._suppressorRateBoost = true;
+      }
+      e._suppressingPlayer = true;
+      // Back off suppressor if critically hurt or out of range
+      if (distToPlayer > 50 || e.hp < e.maxHp * 0.3) {
+        e._suppressingPlayer = false;
+        e._suppressorActive = false;
+      }
+    } else {
+      e._suppressingPlayer = false;
+    }
+
+    if (e._squadTacticRole === 'flanker' && distToPlayer < 40) {
+      // Flanker moves 90° around the player to attack from the side
+      if (!e._flankTarget && !e.retreating) {
+        var perpDir = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).normalize();
+        // Alternate flank side by squadId parity
+        var flankSign = (e.squadId % 2 === 0) ? 1 : -1;
+        e._flankTarget = new THREE.Vector3(
+          player.x + perpDir.x * flankSign * 15,
+          e.mesh.position.y,
+          player.z + perpDir.z * flankSign * 15
+        );
+      }
+      // Cancel flank if badly hurt
+      if (e.hp < e.maxHp * 0.25) {
+        e._flankTarget = null;
+      }
+    } else if (distToPlayer >= 40) {
+      // Out of range — reset so we recalculate on next approach
+      e._flankTarget = null;
+    }
+
+    if (e._squadTacticRole === 'leader' && distToPlayer < 30) {
+      // Leader coordinates: alerts nearby allies to player position
+      if (!e._coordinateCooldown || e._coordinateCooldown <= 0) {
+        e._coordinateCooldown = 8.0;
+        _alertNearbyAllies(e, enemies);
+        triggerBark(e, 'spotted');
+      }
+    }
+
+    if (e._coordinateCooldown && e._coordinateCooldown > 0) {
+      e._coordinateCooldown -= dt;
+      if (e._coordinateCooldown < 0) e._coordinateCooldown = 0;
+    }
+  }
+
   // ── Enemy Roles for Assault Groups ──────────────────────
   const SQUAD_ROLE = Object.freeze({
     POINTMAN:  'pointman',   // leads group, scouts ahead
@@ -2066,6 +2138,11 @@ const Enemies = (() => {
       _alertedTimer: 0,   // counts down after losing sight; returns to post when 0
       // Per-enemy ML brain (session-scoped, in-memory only)
       _ml: (typeof NPCML !== 'undefined' && NPCML.createBrain) ? NPCML.createBrain({ typeName: typeName }) : null,
+      // Squad-level flanking/suppression tactics (groups of 3)
+      squadId: Math.floor(enemies.length / 3),
+      _squadTacticRole: (enemies.length % 3 === 0) ? 'leader' : (enemies.length % 3 === 1) ? 'suppressor' : 'flanker',
+      _flankTarget: null,
+      _coordinateCooldown: 0,
     });
     return idx;
   }
@@ -3762,6 +3839,57 @@ const Enemies = (() => {
           }
         }
       }
+
+      // ── Squad tactics: SUPPRESSING and FLANKING state behaviors ──────
+      // Suppressor: hold position, face player, fire at boosted rate
+      if (e._suppressingPlayer && e.playerSpotted) {
+        var _suppTarget = new THREE.Vector3(playerPos.x, e.mesh.position.y, playerPos.z);
+        e.mesh.lookAt(_suppTarget);
+        e.mesh.rotation.y += Math.PI;
+        // Fire at twice the normal rate (boost handled by halving _rangedTimer recharge)
+        if (e.typeCfg && e.typeCfg.rangedDmg > 0) {
+          if (!e._suppressRateTimer) e._suppressRateTimer = 0;
+          e._suppressRateTimer -= delta;
+          if (e._suppressRateTimer <= 0 && distToPlayer < e.typeCfg.range) {
+            e._suppressRateTimer = (e.typeCfg.rangedRate || 1.5) * 0.5;
+            _fireAtPosition(e, playerPos, 5.0, playerPos, onPlayerHit);
+          }
+        }
+      }
+
+      // Flanker: move to flank position, then switch to normal approach
+      if (e._flankTarget && !e.retreating && !e.surrendered) {
+        var _toFlank = new THREE.Vector3(
+          e._flankTarget.x - e.mesh.position.x,
+          0,
+          e._flankTarget.z - e.mesh.position.z
+        );
+        var _distToFlank = _toFlank.length();
+        if (_distToFlank > 1.5) {
+          _toFlank.normalize();
+          e.mesh.position.x += _toFlank.x * e.speed * delta;
+          e.mesh.position.z += _toFlank.z * e.speed * delta;
+          e.mesh.lookAt(e._flankTarget.x, e.mesh.position.y, e._flankTarget.z);
+          e.mesh.rotation.y += Math.PI;
+          // Bark when starting a flank run (once per flank)
+          if (!e._flankBarkDone) {
+            e._flankBarkDone = true;
+            triggerBark(e, 'flank');
+          }
+        } else {
+          // Reached flank position — resume normal pursuit
+          e._flankTarget = null;
+          e._flankBarkDone = false;
+        }
+        // Abort flank if enemy is point-blank or critically hurt
+        if (distToPlayer < 6 || e.hp < e.maxHp * 0.25) {
+          e._flankTarget = null;
+          e._flankBarkDone = false;
+        }
+      }
+
+      // Apply per-frame squad tactic logic (role assignment, leader alerts, flank target calc)
+      _updateSquadTactics(e, playerPos, delta);
 
       // Update floating HP bar
       updateHpBar(e, playerPos);
