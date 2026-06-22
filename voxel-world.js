@@ -1249,6 +1249,8 @@ window.VoxelWorld = (function () {
     { id: 'BERDIANSK', name: 'Berdiansk Port Raid', desc: 'Raid the occupied Azov port, sink Russian ships', theme: 'coastal', wavesPerLevel: 8, difficulty: 3.3, fogColor: 0x334455, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SLOVIANSK', name: 'Sloviansk Supply Run', desc: 'Hold the key Donetsk logistics hub', theme: 'urban', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x332222, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'POKROVSK', name: 'Pokrovsk Last Line', desc: 'Defend the final logistics hub before Donetsk falls', theme: 'industrial', wavesPerLevel: 10, difficulty: 4.5, fogColor: 0x221100, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KURSK',    name: 'Kursk Nuclear Zone',   desc: 'Storm the Russian nuclear city — tank battle ground of WW2', theme: 'industrial', wavesPerLevel: 9, difficulty: 4.0, fogColor: 0x3a1a3a, spawnCandidates: [{ x: 0, z: 0 }, { x: 20, z: 0 }, { x: -20, z: 0 }, { x: 0, z: 20 }, { x: 0, z: -20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'TERNOPIL', name: 'Ternopil Castle Siege', desc: 'Defend the Renaissance castle and baroque cathedral of western Ukraine', theme: 'urban', wavesPerLevel: 8, difficulty: 2.5, fogColor: 0x445533, spawnCandidates: [{ x: 0, z: 0 }, { x: 15, z: 15 }, { x: -15, z: 15 }, { x: 0, z: -20 }, { x: 20, z: -10 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -13772,13 +13774,304 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_pokrovsk_saltmine', x: ox - 8, z: oz - 9, w: 32, d: 20, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── KURSK: Nuclear Power Station ─────────────────────────────────────────
+  // Kursk NPP — one of the oldest Soviet RBMK reactors, located in Kurchatov city
+  function generateKurskNuclearStation(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Main reactor building: 16×16 CONCRETE solid, 18 blocks high
+    for (y = 0; y < 18; y++) {
+      for (i = -8; i <= 8; i++) {
+        for (j = -8; j <= 8; j++) {
+          var edgeKNS = (Math.abs(i) === 8 || Math.abs(j) === 8);
+          if (edgeKNS || y === 0 || y === 17) setBlock(ox + i, h + y, oz + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Dome top: narrowing 14×14 -> 12×12 -> 10×10 -> 8×8
+    var domeLayersKNS = [7, 6, 5, 4];
+    for (var dlKNS = 0; dlKNS < domeLayersKNS.length; dlKNS++) {
+      var rKNS = domeLayersKNS[dlKNS];
+      for (i = -rKNS; i <= rKNS; i++) {
+        for (j = -rKNS; j <= rKNS; j++) {
+          if (Math.abs(i) === rKNS || Math.abs(j) === rKNS) {
+            setBlock(ox + i, h + 18 + dlKNS, oz + j, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Cooling tower: 8×8 CONCRETE base, 16 high, hollow 4×4 center
+    var ctxKNS = ox + 20, ctzKNS = oz;
+    for (y = 0; y < 16; y++) {
+      for (i = -4; i <= 4; i++) {
+        for (j = -4; j <= 4; j++) {
+          var edgeCTKNS = (Math.abs(i) === 4 || Math.abs(j) === 4);
+          var hollowCTKNS = (Math.abs(i) <= 2 && Math.abs(j) <= 2);
+          if (edgeCTKNS && !hollowCTKNS) setBlock(ctxKNS + i, h + y, ctzKNS + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Cooling tower top widens to 10×10 (hyperboloid step)
+    for (i = -5; i <= 5; i++) {
+      for (j = -5; j <= 5; j++) {
+        if (Math.abs(i) === 5 || Math.abs(j) === 5) setBlock(ctxKNS + i, h + 16, ctzKNS + j, BLOCK.CONCRETE);
+      }
+    }
+    // Control building: 12×8 BRICK, 6 high with METAL roof
+    var cbxKNS = ox - 16, cbzKNS = oz;
+    for (y = 0; y < 6; y++) {
+      for (i = -6; i <= 6; i++) {
+        for (j = -4; j <= 4; j++) {
+          var edgeCBKNS = (Math.abs(i) === 6 || Math.abs(j) === 4);
+          if (edgeCBKNS || y === 0 || y === 5) setBlock(cbxKNS + i, h + y, cbzKNS + j, BLOCK.BRICK);
+        }
+      }
+    }
+    // Metal roof over control building
+    for (i = -6; i <= 6; i++) {
+      for (j = -4; j <= 4; j++) {
+        setBlock(cbxKNS + i, h + 6, cbzKNS + j, BLOCK.METAL);
+      }
+    }
+    // Perimeter security fence: METAL posts + FENCE rails around 40×40
+    for (var fpxKNS = -20; fpxKNS <= 20; fpxKNS++) {
+      setBlock(ox + fpxKNS, h + 1, oz - 20, BLOCK.FENCE);
+      setBlock(ox + fpxKNS, h + 2, oz - 20, BLOCK.FENCE);
+      setBlock(ox + fpxKNS, h + 1, oz + 20, BLOCK.FENCE);
+      setBlock(ox + fpxKNS, h + 2, oz + 20, BLOCK.FENCE);
+    }
+    for (var fpzKNS = -20; fpzKNS <= 20; fpzKNS++) {
+      setBlock(ox - 20, h + 1, oz + fpzKNS, BLOCK.FENCE);
+      setBlock(ox - 20, h + 2, oz + fpzKNS, BLOCK.FENCE);
+      setBlock(ox + 20, h + 1, oz + fpzKNS, BLOCK.FENCE);
+      setBlock(ox + 20, h + 2, oz + fpzKNS, BLOCK.FENCE);
+    }
+    // METAL posts at fence corners
+    var cornerKNS = [[-20,-20],[20,-20],[-20,20],[20,20]];
+    for (var ciKNS = 0; ciKNS < cornerKNS.length; ciKNS++) {
+      for (y = 0; y < 4; y++) setBlock(ox + cornerKNS[ciKNS][0], h + y, oz + cornerKNS[ciKNS][1], BLOCK.METAL);
+    }
+    // Guard towers at corners: 3×3 CONCRETE, 8 high
+    var gtCornersKNS = [[-18,-18],[18,-18],[-18,18],[18,18]];
+    for (var gtKNS = 0; gtKNS < gtCornersKNS.length; gtKNS++) {
+      var gtxKNS = ox + gtCornersKNS[gtKNS][0], gtzKNS = oz + gtCornersKNS[gtKNS][1];
+      for (y = 0; y < 8; y++) {
+        for (i = -1; i <= 1; i++) {
+          for (j = -1; j <= 1; j++) {
+            if (Math.abs(i) === 1 || Math.abs(j) === 1 || y === 0 || y === 7) {
+              setBlock(gtxKNS + i, h + y, gtzKNS + j, BLOCK.CONCRETE);
+            }
+          }
+        }
+      }
+    }
+    // "Z" propaganda sign: LIGHT blocks in Z-pattern on control building south wall
+    var zBaseY = h + 2, zBaseX = cbxKNS - 3, zBaseZ = cbzKNS - 4;
+    // Top bar of Z
+    setBlock(zBaseX,     zBaseY + 2, zBaseZ, BLOCK.LIGHT);
+    setBlock(zBaseX + 1, zBaseY + 2, zBaseZ, BLOCK.LIGHT);
+    setBlock(zBaseX + 2, zBaseY + 2, zBaseZ, BLOCK.LIGHT);
+    // Diagonal of Z
+    setBlock(zBaseX + 2, zBaseY + 1, zBaseZ, BLOCK.LIGHT);
+    setBlock(zBaseX + 1, zBaseY + 1, zBaseZ, BLOCK.LIGHT);
+    // Bottom bar of Z
+    setBlock(zBaseX,     zBaseY, zBaseZ, BLOCK.LIGHT);
+    setBlock(zBaseX + 1, zBaseY, zBaseZ, BLOCK.LIGHT);
+    setBlock(zBaseX + 2, zBaseY, zBaseZ, BLOCK.LIGHT);
+    _buildings.push({ kind: 'landmark_kursk_npp', x: ox - 20, z: oz - 20, w: 40, d: 40, baseY: h, floorH: 18, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── KURSK: WW2 Memorial (Prokhorovka tank battle) ─────────────────────────
+  // The Battle of Prokhorovka (July 1943) was the largest tank battle in history
+  function generateKurskMemorial(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Central obelisk: 3×3 STONE base -> 2×2 -> 1×1 up to 20 blocks high
+    for (i = -1; i <= 1; i++) {
+      for (j = -1; j <= 1; j++) {
+        for (y = 0; y < 8; y++) setBlock(ox + i, h + y, oz + j, BLOCK.STONE);
+      }
+    }
+    for (i = -1; i <= 1; i += 2) setBlock(ox + i, h + 8, oz, BLOCK.STONE);
+    for (j = -1; j <= 1; j += 2) setBlock(ox, h + 8, oz + j, BLOCK.STONE);
+    setBlock(ox, h + 8, oz, BLOCK.STONE);
+    for (y = 9; y < 20; y++) setBlock(ox, h + y, oz, BLOCK.STONE);
+    // 4 burned tank wrecks at compass points r=12 (METAL/RUBBLE shapes 4×2×2)
+    var tankOffsetsKM = [[0,-12],[0,12],[-12,0],[12,0]];
+    for (var tiKM = 0; tiKM < tankOffsetsKM.length; tiKM++) {
+      var txKM = ox + tankOffsetsKM[tiKM][0], tzKM = oz + tankOffsetsKM[tiKM][1];
+      var thKM = getTerrainHeight(txKM, tzKM) || h;
+      // Tank hull: 4×2 RUBBLE base
+      for (i = -2; i <= 2; i++) {
+        setBlock(txKM + i, thKM + 1, tzKM,     BLOCK.RUBBLE);
+        setBlock(txKM + i, thKM + 1, tzKM + 1, BLOCK.RUBBLE);
+      }
+      // Tank turret: METAL block on top
+      setBlock(txKM,     thKM + 2, tzKM, BLOCK.METAL);
+      setBlock(txKM + 1, thKM + 2, tzKM, BLOCK.METAL);
+    }
+    // Eternal flame platform: STONE 5×5, LIGHT block center
+    for (i = -2; i <= 2; i++) {
+      for (j = -2; j <= 2; j++) {
+        setBlock(ox + i, h, oz + j + 5, BLOCK.STONE);
+      }
+    }
+    setBlock(ox, h + 1, oz + 5, BLOCK.LIGHT);
+    // 3 METAL flag poles, 6 high, around the memorial
+    var poleOffsetsKM = [[-4, 4],[0, 4],[4, 4]];
+    for (var piKM = 0; piKM < poleOffsetsKM.length; piKM++) {
+      var pxKM = ox + poleOffsetsKM[piKM][0], pzKM = oz + poleOffsetsKM[piKM][1];
+      for (y = 0; y < 6; y++) setBlock(pxKM, h + y, pzKM, BLOCK.METAL);
+    }
+    _buildings.push({ kind: 'landmark_kursk_memorial', x: ox - 14, z: oz - 14, w: 28, d: 28, baseY: h, floorH: 20, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── TERNOPIL: Baroque Cathedral ───────────────────────────────────────────
+  // Western Ukrainian baroque cathedral — twin-tower facade, ornate interior
+  function generateTernopilCathedral(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Main nave: 12×24 BRICK, 10 high (shell only)
+    for (y = 0; y < 10; y++) {
+      for (i = -6; i <= 6; i++) {
+        for (j = -12; j <= 12; j++) {
+          var edgeTCH = (Math.abs(i) === 6 || Math.abs(j) === 12);
+          if (edgeTCH || y === 0 || y === 9) setBlock(ox + i, h + y, oz + j, BLOCK.BRICK);
+        }
+      }
+    }
+    // GLASS windows every 4 blocks on long walls (2×2 each)
+    for (var wzTCH = -10; wzTCH <= 10; wzTCH += 4) {
+      setBlock(ox - 6, h + 3, oz + wzTCH, BLOCK.GLASS);
+      setBlock(ox - 6, h + 4, oz + wzTCH, BLOCK.GLASS);
+      setBlock(ox - 6, h + 3, oz + wzTCH + 1, BLOCK.GLASS);
+      setBlock(ox - 6, h + 4, oz + wzTCH + 1, BLOCK.GLASS);
+      setBlock(ox + 6, h + 3, oz + wzTCH, BLOCK.GLASS);
+      setBlock(ox + 6, h + 4, oz + wzTCH, BLOCK.GLASS);
+      setBlock(ox + 6, h + 3, oz + wzTCH + 1, BLOCK.GLASS);
+      setBlock(ox + 6, h + 4, oz + wzTCH + 1, BLOCK.GLASS);
+    }
+    // Front facade towers: 2 towers 6×6 BRICK, 18 high
+    var towerOffsTCH = [[-5, -12],[5, -12]];
+    for (var tiTCH = 0; tiTCH < towerOffsTCH.length; tiTCH++) {
+      var txTCH = ox + towerOffsTCH[tiTCH][0], tzTCH = oz + towerOffsTCH[tiTCH][1];
+      for (y = 0; y < 18; y++) {
+        for (i = -3; i <= 3; i++) {
+          for (j = -3; j <= 3; j++) {
+            var edgeTWR = (Math.abs(i) === 3 || Math.abs(j) === 3);
+            if (edgeTWR || y === 0 || y === 17) setBlock(txTCH + i, h + y, tzTCH + j, BLOCK.BRICK);
+          }
+        }
+      }
+      // ROOFTILE pyramid tip on each tower
+      for (y = 0; y < 4; y++) {
+        var rTCH = 3 - y;
+        for (i = -rTCH; i <= rTCH; i++) {
+          for (j = -rTCH; j <= rTCH; j++) {
+            if (Math.abs(i) === rTCH || Math.abs(j) === rTCH) {
+              setBlock(txTCH + i, h + 18 + y, tzTCH + j, BLOCK.ROOFTILE);
+            }
+          }
+        }
+      }
+      // Bell (METAL block) in each tower top
+      setBlock(txTCH, h + 17, tzTCH, BLOCK.METAL);
+    }
+    // Dome over crossing: 8×8 BRICK base -> 6×6 -> 4×4 -> 2×2 -> ROOFTILE cap
+    var dxTCH = ox, dzTCH = oz;
+    for (i = -4; i <= 4; i++) {
+      for (j = -4; j <= 4; j++) {
+        if (Math.abs(i) === 4 || Math.abs(j) === 4) setBlock(dxTCH + i, h + 10, dzTCH + j, BLOCK.BRICK);
+      }
+    }
+    for (i = -3; i <= 3; i++) {
+      for (j = -3; j <= 3; j++) {
+        if (Math.abs(i) === 3 || Math.abs(j) === 3) setBlock(dxTCH + i, h + 11, dzTCH + j, BLOCK.BRICK);
+      }
+    }
+    for (i = -2; i <= 2; i++) {
+      for (j = -2; j <= 2; j++) {
+        if (Math.abs(i) === 2 || Math.abs(j) === 2) setBlock(dxTCH + i, h + 12, dzTCH + j, BLOCK.BRICK);
+      }
+    }
+    setBlock(dxTCH - 1, h + 13, dzTCH - 1, BLOCK.BRICK);
+    setBlock(dxTCH + 1, h + 13, dzTCH - 1, BLOCK.BRICK);
+    setBlock(dxTCH - 1, h + 13, dzTCH + 1, BLOCK.BRICK);
+    setBlock(dxTCH + 1, h + 13, dzTCH + 1, BLOCK.BRICK);
+    setBlock(dxTCH, h + 14, dzTCH, BLOCK.ROOFTILE);
+    _buildings.push({ kind: 'landmark_ternopil_cathedral', x: ox - 8, z: oz - 14, w: 16, d: 28, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── ZAPORIZHZHIA: Dam and Forge ───────────────────────────────────────────
+  // DniproHES dam (1932 Soviet hydroelectric) + Zaporizhstal steel plant
+  function generateZaporizhzhiaDamForge(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Dam wall: 40 wide × 4 thick × 8 high CONCRETE running east-west
+    for (i = -20; i <= 20; i++) {
+      for (j = -2; j <= 2; j++) {
+        for (y = 0; y < 8; y++) {
+          var edgeDF = (Math.abs(i) === 20 || Math.abs(j) === 2 || y === 0 || y === 7);
+          if (edgeDF) setBlock(ox + i, h + y, oz + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Blast furnace: 8×8 BRICK, 16 high
+    var bfxDF = ox - 25, bfzDF = oz + 10;
+    for (y = 0; y < 16; y++) {
+      for (i = -4; i <= 4; i++) {
+        for (j = -4; j <= 4; j++) {
+          var edgeBFDF = (Math.abs(i) === 4 || Math.abs(j) === 4);
+          if (edgeBFDF || y === 0 || y === 15) setBlock(bfxDF + i, h + y, bfzDF + j, BLOCK.BRICK);
+        }
+      }
+    }
+    // LIGHT blocks at top of furnace (fire glow)
+    for (i = -2; i <= 2; i++) {
+      for (j = -2; j <= 2; j++) {
+        setBlock(bfxDF + i, h + 16, bfzDF + j, BLOCK.LIGHT);
+      }
+    }
+    // Steel mill shed: 24×12 METAL, 6 high with GLASS panels every 3 blocks
+    var smxDF = ox + 10, smzDF = oz + 10;
+    for (y = 0; y < 6; y++) {
+      for (i = -12; i <= 12; i++) {
+        for (j = -6; j <= 6; j++) {
+          var edgeSMDF = (Math.abs(i) === 12 || Math.abs(j) === 6);
+          if (edgeSMDF || y === 0 || y === 5) setBlock(smxDF + i, h + y, smzDF + j, BLOCK.METAL);
+        }
+      }
+    }
+    // GLASS panels on long walls every 3 blocks
+    for (var gxDF = -10; gxDF <= 10; gxDF += 3) {
+      setBlock(smxDF + gxDF, h + 2, smzDF - 6, BLOCK.GLASS);
+      setBlock(smxDF + gxDF, h + 3, smzDF - 6, BLOCK.GLASS);
+      setBlock(smxDF + gxDF, h + 2, smzDF + 6, BLOCK.GLASS);
+      setBlock(smxDF + gxDF, h + 3, smzDF + 6, BLOCK.GLASS);
+    }
+    // Conveyor belt: METAL blocks at h+3 running 20 blocks north-south
+    for (var czDF = 0; czDF < 20; czDF++) {
+      setBlock(ox + 5, h + 3, oz - 10 + czDF, BLOCK.METAL);
+    }
+    // Crane: METAL vertical 12 high with arm extending 8 blocks, FENCE cables
+    var crxDF = ox + 18, crzDF = oz + 5;
+    for (y = 0; y < 12; y++) setBlock(crxDF, h + y, crzDF, BLOCK.METAL);
+    // Crane arm (8 blocks east)
+    for (i = 0; i < 8; i++) setBlock(crxDF + i, h + 12, crzDF, BLOCK.METAL);
+    // FENCE cables from arm end down to ground
+    setBlock(crxDF + 4, h + 6, crzDF, BLOCK.FENCE);
+    setBlock(crxDF + 8, h + 6, crzDF, BLOCK.FENCE);
+    setBlock(crxDF + 8, h + 9, crzDF, BLOCK.FENCE);
+    _buildings.push({ kind: 'landmark_zaporizhzhia_dam', x: ox - 26, z: oz - 6, w: 52, d: 28, baseY: h, floorH: 16, floors: 1, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
     _theme.seed = index * 3137;
 
     // Russian-territory levels get red-purple-white terrain palette instead of Ukrainian blue
-    const RUSSIAN_LEVELS = ['MOSCOW', 'KREMLIN', 'BELGOROD'];
+    const RUSSIAN_LEVELS = ['MOSCOW', 'KREMLIN', 'BELGOROD', 'KURSK'];
     if (RUSSIAN_LEVELS.includes(level.id)) {
       BLOCK_COLORS[BLOCK.GRASS] = 0x8B1A4A;  // deep rose-red (Russian flag red)
       BLOCK_COLORS[BLOCK.DIRT]  = 0x5C2A3A;  // dark reddish earth
@@ -14892,9 +15185,12 @@ window.VoxelWorld = (function () {
       generateAntiAirPosition(-35, 35);
       generateTrenchNetwork(-15, 15);
     } else if (level.id === 'ZAPORIZHZHIA') {
-      // Zaporizhzhia — industrial city, Cossack heritage, ZNPP occupied by Russia
+      // Zaporizhzhia — industrial city, Cossack heritage, ZNPP (Europe's largest NPP) occupied by Russia
+      // DniproHES dam (1932), Zaporizhstal steel plant, Khortytsia Island Sich fortress
+      generateZaporizhzhiaNPP(-20, 0);           // Zaporizhzhia Nuclear Power Plant (ZNPP, Russia-occupied)
+      generateZaporizhzhiaDamForge(25, 20);      // DniproHES dam + Zaporizhstal steel plant / forge
       generateZaporizhzhiaCossackFort(-20, -15); // Khortytsia Island Sich fortress
-      generateZaporizhzhiaHydrodam(15, 20);      // DniproHES Soviet hydroelectric dam
+      generateZaporizhzhiaHydrodam(15, 20);      // DniproHES Soviet hydroelectric dam (landmark)
       generateUkrainianApartment(-35, -28, 7); generateUkrainianApartment(30, -25, 6);
       generateBurningRuin(-40, 5); generateBurningRuin(38, -8);
       generateWreckedTank(-25, 20); generateWreckedAPC(22, -28);
@@ -14907,6 +15203,7 @@ window.VoxelWorld = (function () {
       generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -32);
       generateTrenchNetwork(-20, 15); generateTrenchNetwork(20, -15);
       generateTrenchNetwork(0, -38);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
     } else if (level.id === 'ODESSA') {
       // Odessa — Black Sea port city, Potemkin Steps, Opera House, harbor
       generateOdessaPotemkinSteps(5, 25);
@@ -15833,6 +16130,42 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, 38); generateDroneNest(-40, -38);
       generateAntiAirPosition(-36, 25); generateAntiAirPosition(32, -25);
       generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'KURSK') {
+      // Kursk — Russian nuclear city, site of WW2's greatest tank battle (Prokhorovka)
+      // Russia's Kursk Oblast was invaded by Ukraine in August 2024 (Kursk offensive)
+      generateKurskNuclearStation(0, 0);
+      generateKurskMemorial(30, 20);
+      generateKurskBorderPost(-25, -20);
+      generateRuinedHouse(-18, -30); generateRuinedHouse(14, 25);
+      generateBurningRuin(-35, -10); generateBurningRuin(30, 12);
+      generateWreckedTank(-20, -28); generateWreckedAPC(18, 28); generateWreckedConvoy(-30, 25);
+      generateCraters(12);
+      generateBunker(-22, 28); generateBunker(22, -25);
+      generateBunker(0, -42); generateBunker(-38, 10);
+      generateMortarPit(-30, -12); generateMortarPit(28, 10);
+      generateTrenchNetwork(-18, 18); generateTrenchNetwork(18, -18);
+      generateSniperNest(-38, -35); generateSniperNest(35, -38);
+      generateDroneNest(42, 38); generateDroneNest(-42, -38);
+      generateAntiAirPosition(-35, 30); generateAntiAirPosition(32, -28);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'TERNOPIL') {
+      // Ternopil — western Ukrainian city with Renaissance castle on a lake
+      // Baroque cathedral, historic centre, cultural hub far from frontlines
+      generateTernopilCastle(0, 0);
+      generateTernopilCathedral(30, -15);
+      generateUkrainianApartment(-28, -22, 7); generateUkrainianApartment(28, -18, 5);
+      generateUkrainianApartment(-30, 12, 5); generateUkrainianApartment(26, 16, 7);
+      generateRuinedHouse(-15, 28); generateRuinedHouse(12, -38);
+      generateBurningRuin(-35, -8); generateBurningRuin(32, 10);
+      generateWreckedTank(-20, -25); generateWreckedAPC(16, 28);
+      generateCraters(8);
+      generateBunker(-22, -25); generateBunker(20, 22); generateBunker(0, -38);
+      generateMortarPit(-28, -10); generateMortarPit(26, 12);
+      generateTrenchNetwork(-15, 20); generateTrenchNetwork(15, -20);
+      generateSniperNest(-35, -38); generateSniperNest(32, -36);
+      generateDroneNest(40, 38); generateDroneNest(-40, -38);
+      generateAntiAirPosition(-32, 26); generateAntiAirPosition(30, -26);
+      generateCheckpoint(0, -45, false); generateCheckpoint(-42, 0, true);
     }
 
     // ── PROC_CITIES: distinct content for each procedural city ─────────────
