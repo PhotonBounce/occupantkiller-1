@@ -1240,7 +1240,10 @@ window.VoxelWorld = (function () {
     { id: 'KRAMATORSK', name: 'Kramatorsk Station', desc: 'Defend the railway hub under missile threat', theme: 'urban', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x332222, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'DNIPRO', name: 'Dnipro Industrial District', desc: 'Protect the steel plants and Dnipro bridges', theme: 'industrial', wavesPerLevel: 9, difficulty: 3.4, fogColor: 0x332233, spawnCandidates: [{ x: -20, z: -18 }, { x: 20, z: -18 }, { x: 0, z: -28 }, { x: -30, z: 5 }, { x: 30, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'CHERNIHIV', name: 'Chernihiv Medieval Defence', desc: 'Defend the 1000-year-old city from siege', theme: 'urban', wavesPerLevel: 8, difficulty: 3.0, fogColor: 0x223322, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
-    { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
+    { id: 'SUMY', name: 'Sumy University District', desc: 'Defend the besieged northeastern city', theme: 'urban', wavesPerLevel: 8, difficulty: 3.1, fogColor: 0x334422, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'POLTAVA', name: 'Poltava Battle Ridge', desc: 'Hold the historic battlefield against Russian advance', theme: 'grassland', wavesPerLevel: 8, difficulty: 2.8, fogColor: 0x445533, spawnCandidates: [{ x: -20, z: -20 }, { x: 20, z: -20 }, { x: 0, z: -30 }, { x: -30, z: 5 }, { x: 30, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'LUHANSK', name: 'Luhansk Occupied HQ', desc: 'Infiltrate and destroy LPR occupation command', theme: 'urban', wavesPerLevel: 10, difficulty: 4.0, fogColor: 0x221111, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -12639,6 +12642,428 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_chernihiv_desna_bridge', x: ox - 25, z: oz - 2, w: 50, d: 4, baseY: h, floorH: 5, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── SUMY: Palace of Culture — Stalin-era neoclassical with columns ───────
+  function generateSumyPalaceOfCulture(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, px, py, pz;
+    // Main body: 24×14 PLASTER, 16 high (hollow shell)
+    for (py = 0; py < 16; py++) {
+      for (px = -12; px <= 12; px++) {
+        for (pz = -7; pz <= 7; pz++) {
+          var edge = (Math.abs(px) === 12 || Math.abs(pz) === 7);
+          if (edge || py === 0 || py === 15) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // 8 CONCRETE columns across facade (front, z=-7), spaced evenly, 2×2 base, 12 high
+    var colPositions = [-10, -8, -5, -2, 2, 5, 8, 10];
+    for (i = 0; i < colPositions.length; i++) {
+      var cx2 = ox + colPositions[i];
+      var cz2 = oz - 9;
+      for (py = 0; py < 12; py++) {
+        setBlock(cx2,     h + py + 1, cz2,     BLOCK.CONCRETE);
+        setBlock(cx2 + 1, h + py + 1, cz2,     BLOCK.CONCRETE);
+        setBlock(cx2,     h + py + 1, cz2 + 1, BLOCK.CONCRETE);
+        setBlock(cx2 + 1, h + py + 1, cz2 + 1, BLOCK.CONCRETE);
+      }
+    }
+    // Grand pediment: triangular PLASTER roof above front facade, 4 high
+    for (var pd = 0; pd <= 4; pd++) {
+      for (px = -(10 - pd * 2); px <= (10 - pd * 2); px++) {
+        setBlock(ox + px, h + 16 + pd, oz - 7, BLOCK.PLASTER);
+      }
+    }
+    // Side wings: 8×14 PLASTER, 10 high, each side
+    for (py = 0; py < 10; py++) {
+      for (px = 12; px <= 20; px++) {
+        for (pz = -7; pz <= 7; pz++) {
+          var wedge = (Math.abs(px) === 12 || px === 20 || Math.abs(pz) === 7);
+          if (wedge || py === 0 || py === 9) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.PLASTER);
+        }
+      }
+      for (px = -20; px <= -12; px++) {
+        for (pz = -7; pz <= 7; pz++) {
+          var wedge2 = (px === -20 || Math.abs(px) === 12 || Math.abs(pz) === 7);
+          if (wedge2 || py === 0 || py === 9) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Central dome: 6×6 CONCRETE drum 4 high
+    for (py = 0; py < 4; py++) {
+      for (px = -3; px <= 3; px++) {
+        for (pz = -3; pz <= 3; pz++) {
+          if (Math.abs(px) === 3 || Math.abs(pz) === 3) setBlock(ox + px, h + 16 + py, oz + pz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // ROOFTILE hemisphere cap 3 high on drum
+    for (py = 0; py < 3; py++) {
+      var r = 3 - py;
+      for (px = -r; px <= r; px++) {
+        for (pz = -r; pz <= r; pz++) {
+          if (Math.abs(px) === r || Math.abs(pz) === r) setBlock(ox + px, h + 20 + py, oz + pz, BLOCK.ROOFTILE);
+        }
+      }
+    }
+    // Tall arched windows: GLASS 1×4 every 3 blocks on front
+    for (pz = -6; pz <= 6; pz += 3) {
+      for (py = 2; py <= 5; py++) setBlock(ox - 12, h + py + 1, oz + pz, BLOCK.GLASS);
+      for (py = 2; py <= 5; py++) setBlock(ox + 12, h + py + 1, oz + pz, BLOCK.GLASS);
+    }
+    for (px = -9; px <= 9; px += 3) {
+      for (py = 2; py <= 5; py++) setBlock(ox + px, h + py + 1, oz + 7, BLOCK.GLASS);
+    }
+    // Sandbag reinforcement around ground floor
+    for (px = -13; px <= 13; px++) {
+      setBlock(ox + px, h + 1, oz - 8, BLOCK.SANDBAG);
+      setBlock(ox + px, h + 1, oz + 8, BLOCK.SANDBAG);
+    }
+    for (pz = -8; pz <= 8; pz++) {
+      setBlock(ox - 13, h + 1, oz + pz, BLOCK.SANDBAG);
+      setBlock(ox + 13, h + 1, oz + pz, BLOCK.SANDBAG);
+    }
+    _buildings.push({ kind: 'landmark_sumy_palace_of_culture', x: ox - 20, z: oz - 9, w: 40, d: 18, baseY: h, floorH: 4, floors: 3, cx: ox, cz: oz });
+  }
+
+  // ── SUMY: Assumption Cathedral — 18th-century Baroque, twin towers ───────
+  function generateSumyAssumptionCathedral(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var px, py, pz;
+    // STONE foundation visible 2 blocks
+    for (py = 0; py < 2; py++) {
+      for (px = -7; px <= 7; px++) {
+        for (pz = -5; pz <= 5; pz++) {
+          if (Math.abs(px) === 7 || Math.abs(pz) === 5 || py === 0) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.STONE);
+        }
+      }
+    }
+    // Main body: 14×10 BRICK, 18 high
+    for (py = 0; py < 18; py++) {
+      for (px = -7; px <= 7; px++) {
+        for (pz = -5; pz <= 5; pz++) {
+          var edge = (Math.abs(px) === 7 || Math.abs(pz) === 5);
+          if (edge || py === 0 || py === 17) setBlock(ox + px, h + py + 3, oz + pz, BLOCK.BRICK);
+        }
+      }
+    }
+    // Twin towers: 4×4 BRICK, 26 high each, flanking west facade (oz - 5)
+    var towerX = [-10, 4];
+    var t, twx;
+    for (t = 0; t < 2; t++) {
+      twx = ox + towerX[t];
+      for (py = 0; py < 26; py++) {
+        for (px = 0; px <= 3; px++) {
+          for (pz = -2; pz <= 2; pz++) {
+            if (Math.abs(px - 1) === 2 || Math.abs(pz) === 2 || py === 0) setBlock(twx + px, h + py + 1, oz - 8 + pz, BLOCK.BRICK);
+          }
+        }
+      }
+      // Gold LIGHT at top of each tower
+      setBlock(twx + 1, h + 27, oz - 8, BLOCK.LIGHT);
+      setBlock(twx + 2, h + 27, oz - 8, BLOCK.LIGHT);
+      // Small cap
+      for (px = 0; px <= 3; px++) {
+        for (pz = -2; pz <= 2; pz++) {
+          setBlock(twx + px, h + 28, oz - 8 + pz, BLOCK.ROOFTILE);
+        }
+      }
+    }
+    // Central dome drum: 6×6 BRICK, 6 high
+    for (py = 0; py < 6; py++) {
+      for (px = -3; px <= 3; px++) {
+        for (pz = -3; pz <= 3; pz++) {
+          if (Math.abs(px) === 3 || Math.abs(pz) === 3) setBlock(ox + px, h + 21 + py, oz + pz, BLOCK.BRICK);
+        }
+      }
+    }
+    // ROOFTILE cap
+    _lmOnionDome(ox, h + 27, oz, 3, BLOCK.ROOFTILE);
+    // Arched GLASS windows: 1×3 every 4 blocks on sides
+    for (pz = -4; pz <= 4; pz += 4) {
+      for (py = 5; py <= 7; py++) {
+        setBlock(ox - 7, h + py + 3, oz + pz, BLOCK.GLASS);
+        setBlock(ox + 7, h + py + 3, oz + pz, BLOCK.GLASS);
+      }
+    }
+    for (px = -4; px <= 4; px += 4) {
+      for (py = 5; py <= 7; py++) setBlock(ox + px, h + py + 3, oz + 5, BLOCK.GLASS);
+    }
+    _buildings.push({ kind: 'landmark_sumy_assumption_cathedral', x: ox - 12, z: oz - 10, w: 24, d: 18, baseY: h, floorH: 5, floors: 4, cx: ox, cz: oz });
+  }
+
+  // ── POLTAVA: White Rotunda of Fame — neoclassical monument on Battle Hill ─
+  function generatePoltavaRotunda(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, px, py, pz, ang;
+    // Earthwork mound: raised DIRT/STONE platform 2 blocks high under rotunda
+    for (px = -8; px <= 8; px++) {
+      for (pz = -8; pz <= 8; pz++) {
+        var dist = Math.sqrt(px * px + pz * pz);
+        if (dist <= 8) {
+          setBlock(ox + px, h + 1, oz + pz, BLOCK.DIRT);
+          setBlock(ox + px, h + 2, oz + pz, BLOCK.STONE);
+        }
+      }
+    }
+    var moundH = h + 2;
+    // Commemorative plaza: WHITE_TILE 10×10 around base
+    for (px = -5; px <= 5; px++) {
+      for (pz = -5; pz <= 5; pz++) {
+        setBlock(ox + px, moundH + 1, oz + pz, BLOCK.WHITE_TILE);
+      }
+    }
+    // 12 columns (STONE 1×1, 8 high) in oval pattern
+    for (i = 0; i < 12; i++) {
+      ang = (i / 12) * Math.PI * 2;
+      var colX = Math.round(ox + Math.cos(ang) * 5);
+      var colZ = Math.round(oz + Math.sin(ang) * 5);
+      for (py = 0; py < 8; py++) setBlock(colX, moundH + py + 2, colZ, BLOCK.STONE);
+      // Capitals
+      setBlock(colX, moundH + 10, colZ, BLOCK.STONE);
+    }
+    // Copper roof: ROOFTILE dome cap 6×6, 5 high
+    for (py = 0; py < 5; py++) {
+      var r = 5 - py;
+      for (px = -r; px <= r; px++) {
+        for (pz = -r; pz <= r; pz++) {
+          if (Math.abs(px) === r || Math.abs(pz) === r) setBlock(ox + px, moundH + 10 + py, oz + pz, BLOCK.ROOFTILE);
+        }
+      }
+    }
+    // Center obelisk: STONE 2×2, 14 high
+    for (py = 0; py < 14; py++) {
+      setBlock(ox,     moundH + py + 2, oz,     BLOCK.STONE);
+      setBlock(ox + 1, moundH + py + 2, oz,     BLOCK.STONE);
+      setBlock(ox,     moundH + py + 2, oz + 1, BLOCK.STONE);
+      setBlock(ox + 1, moundH + py + 2, oz + 1, BLOCK.STONE);
+    }
+    // Obelisk tip
+    setBlock(ox, moundH + 16, oz, BLOCK.LIGHT);
+    // Battle-scarred: RUBBLE patches on east side (mortar hits)
+    for (i = 0; i < 6; i++) {
+      setBlock(ox + 6 + (i % 3), moundH + 1, oz - 2 + (i % 2) * 4, BLOCK.RUBBLE);
+    }
+    _buildings.push({ kind: 'landmark_poltava_rotunda', x: ox - 8, z: oz - 8, w: 16, d: 16, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── POLTAVA: Assumption Cathedral — baroque, onion domes ─────────────────
+  function generatePoltavaAssumptionCathedral(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var px, py, pz;
+    // Main nave: 12×8 BRICK, 16 high
+    for (py = 0; py < 16; py++) {
+      for (px = -6; px <= 6; px++) {
+        for (pz = -4; pz <= 4; pz++) {
+          var edge = (Math.abs(px) === 6 || Math.abs(pz) === 4);
+          if (edge || py === 0 || py === 15) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.BRICK);
+        }
+      }
+    }
+    // Blue facade accent: CONCRETE strips on outer walls
+    for (py = 2; py <= 14; py += 4) {
+      for (px = -6; px <= 6; px++) {
+        setBlock(ox + px, h + py + 1, oz - 4, BLOCK.CONCRETE);
+        setBlock(ox + px, h + py + 1, oz + 4, BLOCK.CONCRETE);
+      }
+      for (pz = -4; pz <= 4; pz++) {
+        setBlock(ox - 6, h + py + 1, oz + pz, BLOCK.CONCRETE);
+        setBlock(ox + 6, h + py + 1, oz + pz, BLOCK.CONCRETE);
+      }
+    }
+    // Baroque bell tower: 4×4 BRICK, 24 high, at west end (oz - 4 - offset)
+    var btz = oz - 8;
+    for (py = 0; py < 24; py++) {
+      for (px = -2; px <= 2; px++) {
+        for (pz = -2; pz <= 2; pz++) {
+          if (Math.abs(px) === 2 || Math.abs(pz) === 2 || py === 0) setBlock(ox + px, h + py + 1, btz + pz, BLOCK.BRICK);
+        }
+      }
+    }
+    // 3 onion domes on nave (center + 2 flanking)
+    _lmOnionDome(ox,     h + 17, oz,     3, BLOCK.ROOFTILE);
+    _lmOnionDome(ox - 4, h + 16, oz,     2, BLOCK.ROOFTILE);
+    _lmOnionDome(ox + 4, h + 16, oz,     2, BLOCK.ROOFTILE);
+    // Bell tower dome
+    _lmOnionDome(ox, h + 25, btz, 2, BLOCK.ROOFTILE);
+    // GLASS windows: 2×3 arched pattern every 4 blocks
+    for (pz = -3; pz <= 3; pz += 3) {
+      for (py = 4; py <= 6; py++) {
+        setBlock(ox - 6, h + py + 1, oz + pz, BLOCK.GLASS);
+        setBlock(ox + 6, h + py + 1, oz + pz, BLOCK.GLASS);
+        setBlock(ox - 5, h + py + 1, oz + pz, BLOCK.GLASS);
+        setBlock(ox + 5, h + py + 1, oz + pz, BLOCK.GLASS);
+      }
+    }
+    _buildings.push({ kind: 'landmark_poltava_assumption_cathedral', x: ox - 8, z: oz - 12, w: 16, d: 20, baseY: h, floorH: 5, floors: 3, cx: ox, cz: oz });
+  }
+
+  // ── LUHANSK: Drama Theater — Stalinist with barricades and occupation signs ─
+  function generateLuhanskDramaTheater(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, px, py, pz;
+    // Grand stalinist facade: 28×16 PLASTER, 14 high
+    for (py = 0; py < 14; py++) {
+      for (px = -14; px <= 14; px++) {
+        for (pz = -8; pz <= 8; pz++) {
+          var edge = (Math.abs(px) === 14 || Math.abs(pz) === 8);
+          if (edge || py === 0 || py === 13) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Massive colonnade: 10 CONCRETE columns, 3×3 each, 12 high across front
+    var colX2 = [-12, -9, -6, -3, 0, 3, 6, 9, 12];
+    for (i = 0; i < colX2.length; i++) {
+      var ccx = ox + colX2[i];
+      var ccz = oz - 10;
+      for (py = 0; py < 12; py++) {
+        setBlock(ccx - 1, h + py + 1, ccz - 1, BLOCK.CONCRETE);
+        setBlock(ccx,     h + py + 1, ccz - 1, BLOCK.CONCRETE);
+        setBlock(ccx + 1, h + py + 1, ccz - 1, BLOCK.CONCRETE);
+        setBlock(ccx - 1, h + py + 1, ccz,     BLOCK.CONCRETE);
+        setBlock(ccx,     h + py + 1, ccz,     BLOCK.CONCRETE);
+        setBlock(ccx + 1, h + py + 1, ccz,     BLOCK.CONCRETE);
+        setBlock(ccx - 1, h + py + 1, ccz + 1, BLOCK.CONCRETE);
+        setBlock(ccx,     h + py + 1, ccz + 1, BLOCK.CONCRETE);
+        setBlock(ccx + 1, h + py + 1, ccz + 1, BLOCK.CONCRETE);
+      }
+    }
+    // Central pediment: PLASTER triangle 6 high above facade
+    for (var pd2 = 0; pd2 <= 6; pd2++) {
+      for (px = -(8 - pd2); px <= (8 - pd2); px++) {
+        setBlock(ox + px, h + 14 + pd2, oz - 8, BLOCK.PLASTER);
+      }
+    }
+    // 2 side wings: 10×16 PLASTER, 12 high
+    for (py = 0; py < 12; py++) {
+      for (px = 14; px <= 24; px++) {
+        for (pz = -8; pz <= 8; pz++) {
+          var sw = (px === 14 || px === 24 || Math.abs(pz) === 8);
+          if (sw || py === 0 || py === 11) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.PLASTER);
+        }
+      }
+      for (px = -24; px <= -14; px++) {
+        for (pz = -8; pz <= 8; pz++) {
+          var sw2 = (px === -24 || px === -14 || Math.abs(pz) === 8);
+          if (sw2 || py === 0 || py === 11) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Separatist barricades: CONCRETE blocks 2 high at entrance
+    for (px = -8; px <= 8; px += 2) {
+      setBlock(ox + px, h + 1, oz - 11, BLOCK.CONCRETE);
+      setBlock(ox + px, h + 2, oz - 11, BLOCK.CONCRETE);
+    }
+    // Shot-out windows: AIR gaps on upper floors (windows missing)
+    for (pz = -6; pz <= 6; pz += 3) {
+      for (py = 7; py <= 10; py++) {
+        setBlock(ox - 14, h + py + 1, oz + pz, BLOCK.AIR);
+        setBlock(ox + 14, h + py + 1, oz + pz, BLOCK.AIR);
+      }
+    }
+    // Lower windows on sides (intact)
+    for (pz = -6; pz <= 6; pz += 3) {
+      for (py = 3; py <= 5; py++) {
+        setBlock(ox - 14, h + py + 1, oz + pz, BLOCK.GLASS);
+        setBlock(ox + 14, h + py + 1, oz + pz, BLOCK.GLASS);
+      }
+    }
+    // Russian flag on roof: white stripe (LIGHT), blue stripe (CONCRETE), red stripe (LIGHT)
+    for (px = -3; px <= 3; px++) {
+      setBlock(ox + px, h + 15, oz,     BLOCK.LIGHT);     // white top
+      setBlock(ox + px, h + 15, oz + 1, BLOCK.CONCRETE);  // blue mid
+      setBlock(ox + px, h + 15, oz + 2, BLOCK.LIGHT);     // red bottom (LIGHT = bright)
+    }
+    _buildings.push({ kind: 'landmark_luhansk_drama_theater', x: ox - 25, z: oz - 12, w: 50, d: 22, baseY: h, floorH: 4, floors: 3, cx: ox, cz: oz });
+  }
+
+  // ── LUHANSK: Railway Station — Stalinist logistics hub ───────────────────
+  function generateLuhanskRailStation(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, px, py, pz;
+    // Station building: 30×10 PLASTER, 12 high (Stalinist)
+    for (py = 0; py < 12; py++) {
+      for (px = -15; px <= 15; px++) {
+        for (pz = -5; pz <= 5; pz++) {
+          var edge = (Math.abs(px) === 15 || Math.abs(pz) === 5);
+          if (edge || py === 0 || py === 11) setBlock(ox + px, h + py + 1, oz + pz, BLOCK.PLASTER);
+        }
+      }
+    }
+    // BRICK accent on lower half
+    for (py = 0; py < 4; py++) {
+      for (px = -15; px <= 15; px++) {
+        setBlock(ox + px, h + py + 1, oz - 5, BLOCK.BRICK);
+        setBlock(ox + px, h + py + 1, oz + 5, BLOCK.BRICK);
+      }
+      for (pz = -5; pz <= 5; pz++) {
+        setBlock(ox - 15, h + py + 1, oz + pz, BLOCK.BRICK);
+        setBlock(ox + 15, h + py + 1, oz + pz, BLOCK.BRICK);
+      }
+    }
+    // Windows on station facade
+    for (px = -12; px <= 12; px += 4) {
+      for (py = 3; py <= 7; py++) {
+        setBlock(ox + px, h + py + 1, oz - 5, BLOCK.GLASS);
+        setBlock(ox + px, h + py + 1, oz + 5, BLOCK.GLASS);
+      }
+    }
+    // Platform canopy: METAL frame 40×6, 6 high (south of station)
+    for (px = -20; px <= 20; px++) {
+      for (py = 0; py < 6; py++) {
+        if (py === 5 || Math.abs(px) === 20) setBlock(ox + px, h + py + 1, oz + 8, BLOCK.METAL);
+        if (py === 5 || Math.abs(px) === 20) setBlock(ox + px, h + py + 1, oz + 11, BLOCK.METAL);
+      }
+      // Canopy roof
+      if (px % 5 === 0) {
+        for (pz = 8; pz <= 11; pz++) setBlock(ox + px, h + 6, oz + pz, BLOCK.METAL);
+      }
+    }
+    // 2 rail tracks: STONE/METAL strips 60 long going east-west
+    for (px = -30; px <= 30; px++) {
+      setBlock(ox + px, h + 1, oz + 14, BLOCK.STONE);  // track 1
+      setBlock(ox + px, h + 1, oz + 16, BLOCK.METAL);
+      setBlock(ox + px, h + 1, oz + 20, BLOCK.STONE);  // track 2
+      setBlock(ox + px, h + 1, oz + 22, BLOCK.METAL);
+    }
+    // Platform surface: CONCRETE walkway 6 wide, 60 long
+    for (px = -30; px <= 30; px++) {
+      for (pz = 7; pz <= 13; pz++) setBlock(ox + px, h + 1, oz + pz, BLOCK.CONCRETE);
+    }
+    // Ammunition wagons: METAL box 3×6×2 on tracks
+    for (i = 0; i < 3; i++) {
+      var wox = ox - 10 + i * 8;
+      for (py = 0; py < 2; py++) {
+        for (px = 0; px <= 2; px++) {
+          for (pz = 0; pz <= 5; pz++) {
+            if (Math.abs(px) === 2 || px === 0 || pz === 0 || pz === 5 || py === 1) setBlock(wox + px, h + 2 + py, oz + 14 + pz, BLOCK.METAL);
+          }
+        }
+      }
+    }
+    // Russian military tents: CONCRETE/METAL L-shapes near station
+    for (i = 0; i < 2; i++) {
+      var tent_x = ox - 18 + i * 36;
+      for (px = 0; px <= 4; px++) {
+        setBlock(tent_x + px, h + 1, oz - 8, BLOCK.CONCRETE);
+        setBlock(tent_x + px, h + 2, oz - 8, BLOCK.METAL);
+        setBlock(tent_x + px, h + 3, oz - 8, BLOCK.CONCRETE);
+      }
+      for (pz = -8; pz <= -4; pz++) {
+        setBlock(tent_x, h + 1, oz + pz, BLOCK.CONCRETE);
+        setBlock(tent_x, h + 2, oz + pz, BLOCK.METAL);
+      }
+    }
+    // Barricades and guard posts: CONCRETE fortified positions
+    for (i = 0; i < 4; i++) {
+      var bp_x = ox - 14 + i * 10;
+      setBlock(bp_x,     h + 1, oz - 7, BLOCK.CONCRETE);
+      setBlock(bp_x + 1, h + 1, oz - 7, BLOCK.CONCRETE);
+      setBlock(bp_x,     h + 2, oz - 7, BLOCK.CONCRETE);
+      setBlock(bp_x + 1, h + 2, oz - 7, BLOCK.REINFORCED);
+    }
+    _buildings.push({ kind: 'landmark_luhansk_rail_station', x: ox - 20, z: oz - 6, w: 40, d: 30, baseY: h, floorH: 4, floors: 3, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -13919,6 +14344,57 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, 38); generateDroneNest(-40, -38);
       generateAntiAirPosition(-36, 25); generateAntiAirPosition(32, -25);
       generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'SUMY') {
+      // Sumy — northeast Ukraine, besieged early 2022; university city near Russian border
+      generateSumyPalaceOfCulture(-8, -15);
+      generateSumyAssumptionCathedral(15, 10);
+      generateUkrainianApartment(-28, -22, 9); generateUkrainianApartment(28, -18, 6);
+      generateUkrainianApartment(-32, 10, 6); generateUkrainianApartment(30, 15, 9);
+      generateRuinedHouse(-12, 28); generateRuinedHouse(12, -38);
+      generateBurningRuin(-35, -10); generateBurningRuin(30, 12);
+      generateWreckedTank(-18, -28); generateWreckedAPC(16, 28); generateWreckedConvoy(-30, 28);
+      generateCraters(10);
+      generateBunker(-25, -28); generateBunker(22, 25); generateBunker(0, -40);
+      generateMortarPit(-32, -10); generateMortarPit(28, 12);
+      generateTrenchNetwork(-15, 20); generateTrenchNetwork(15, -20);
+      generateSniperNest(-36, -38); generateSniperNest(32, -38);
+      generateDroneNest(40, 38); generateDroneNest(-40, -38);
+      generateAntiAirPosition(-36, 25); generateAntiAirPosition(32, -25);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'POLTAVA') {
+      // Poltava — central Ukraine; site of 1709 battle; Russian missile strike killed 51 in 2024
+      generatePoltavaRotunda(0, -5);
+      generatePoltavaAssumptionCathedral(-20, 12);
+      generateUkrainianApartment(-28, -25, 6); generateUkrainianApartment(28, -20, 9);
+      generateUkrainianApartment(-32, 12, 9); generateUkrainianApartment(30, 18, 6);
+      generateRuinedHouse(-15, 30); generateRuinedHouse(15, -40);
+      generateBurningRuin(-38, -12); generateBurningRuin(32, 14);
+      generateWreckedTank(-20, -30); generateWreckedAPC(18, 30);
+      generateCraters(12);
+      generateBunker(-28, -30); generateBunker(24, 28); generateBunker(0, -42);
+      generateMortarPit(-35, -12); generateMortarPit(30, 14);
+      generateTrenchNetwork(-18, 22); generateTrenchNetwork(18, -22);
+      generateSniperNest(-38, -40); generateSniperNest(34, -40);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-38, 28); generateAntiAirPosition(34, -28);
+      generateCheckpoint(0, -50, false); generateCheckpoint(-48, 0, true);
+    } else if (level.id === 'LUHANSK') {
+      // Luhansk — Russian-occupied since 2014; LPR "capital"; key rail/road hub
+      generateLuhanskDramaTheater(-5, -18);
+      generateLuhanskRailStation(18, 15);
+      generateUkrainianApartment(-30, -25, 9); generateUkrainianApartment(30, -20, 6);
+      generateUkrainianApartment(-34, 12, 6); generateUkrainianApartment(32, 18, 9);
+      generateRuinedHouse(-14, 32); generateRuinedHouse(14, -42);
+      generateBurningRuin(-38, -14); generateBurningRuin(34, 15);
+      generateWreckedTank(-20, -32); generateWreckedAPC(18, 32); generateWreckedConvoy(-32, 30);
+      generateCraters(14);
+      generateBunker(-28, -32); generateBunker(25, 30); generateBunker(0, -44);
+      generateMortarPit(-36, -14); generateMortarPit(32, 15);
+      generateTrenchNetwork(-16, 24); generateTrenchNetwork(16, -24);
+      generateSniperNest(-40, -42); generateSniperNest(36, -42);
+      generateDroneNest(44, 42); generateDroneNest(-44, -42);
+      generateAntiAirPosition(-40, 30); generateAntiAirPosition(36, -30);
+      generateCheckpoint(0, -52, false); generateCheckpoint(-50, 0, true);
     } else if (level.id === 'BUCHA') {
       // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022
       // St. Andrew's Church cemetery mass burial, Yablunska Street massacres
