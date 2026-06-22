@@ -1261,6 +1261,7 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.WaveEvents) WaveEvents.init(_scene);
         if (window.BountySystem) BountySystem.init(_scene);
         if (window.VehicleEnemies) VehicleEnemies.init(_scene);
         window._takeVehicleRamDamage = function(dmg) { onPlayerHit(dmg, null); };
@@ -4153,6 +4154,8 @@ const GameManager = (function () {
     if (currentWave >= 3 && Math.random() < 0.25 && typeof WeatherEvents !== 'undefined') {
       WeatherEvents.triggerRandom();
     }
+    // Random mid-wave events — trigger 'start' phase
+    if (window.WaveEvents) WaveEvents.triggerRandom(currentWave, 'start');
     // Show recommended weapons hint on wave 1 if stage defines them
     if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
       HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
@@ -8737,10 +8740,17 @@ const GameManager = (function () {
       }
     }
 
+    // DeathCam update (uses rawDelta so camera animates even when game is paused/frozen)
+    if (window.DeathCam && DeathCam.isActive && DeathCam.isActive()) {
+      try { DeathCam.update(rawDelta); } catch (eDC) {}
+    }
+
     // Switch to mortar bird's-eye cam if deployed, or Bradley chase cam if driving
     var renderCam = _camera;
     try {
-      if (window.Bradley && window.Bradley.isActive && window.Bradley.isActive() && window.GameManager.__bradleyCam) {
+      if (window.DeathCam && DeathCam.isActive && DeathCam.isActive() && DeathCam.getCamera && DeathCam.getCamera()) {
+        renderCam = DeathCam.getCamera();
+      } else if (window.Bradley && window.Bradley.isActive && window.Bradley.isActive() && window.GameManager.__bradleyCam) {
         renderCam = window.GameManager.__bradleyCam;
       } else if (window.Mortar && window.Mortar.isDeployed && window.Mortar.isDeployed() && window.GameManager.__mortarCam) {
         renderCam = window.GameManager.__mortarCam;
