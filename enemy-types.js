@@ -401,6 +401,37 @@ const EnemyTypes = (function () {
       behavior: 'boss',
       rageThreshold: 0.35, rageDamageMult: 1.75
     },
+    BOSS_KHMELNYTSKYI: {
+      id: 'BOSS_KHMELNYTSKYI', name: 'Podolian Siege Commander', tier: 3,
+      hp: 1150, speed: 1.6, damage: 68, attackRange: 18,
+      color: 0x334433, scale: 1.85, xpReward: 500,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '⚔ THE PODOLIAN SIEGE COMMANDER STORMS THE FORTRESS WALLS — DEFEND KHMELNYTSKYI!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.65
+    },
+    BOSS_NIKOPOL: {
+      id: 'BOSS_NIKOPOL', name: 'Dnipro Bombardment General', tier: 4,
+      hp: 1300, speed: 1.45, damage: 78, attackRange: 22,
+      color: 0x223322, scale: 1.9, xpReward: 550,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '💀 THE DNIPRO BOMBARDMENT GENERAL CROSSES THE RIVER — DEFEND THE STEEL CITY!',
+      behavior: 'boss',
+      artilleryDamage: 88, artilleryRadius: 4, artilleryInterval: 11,
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+    BOSS_UZHHOROD: {
+      id: 'BOSS_UZHHOROD', name: 'Carpathian Saboteur Colonel', tier: 3,
+      hp: 1050, speed: 1.7, damage: 60, attackRange: 16,
+      color: 0x445533, scale: 1.8, xpReward: 460,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🏔 THE CARPATHIAN SABOTEUR COLONEL APPROACHES NATO\'S DOORSTEP — STOP HIM AT UZHHOROD!',
+      behavior: 'boss',
+      rageThreshold: 0.45, rageDamageMult: 1.6
+    },
 
     // Feature 17: Suicide Bomber
     BOMBER: {
@@ -1272,6 +1303,9 @@ const EnemyTypes = (function () {
     SEVERODONETSK_AZOT:   'BOSS_SEVERODONETSK_AZOT',
     LVIV_OLD_TOWN:        'BOSS_LVIV_OLD_TOWN',
     ODESSA_CATACOMBS:     'BOSS_ODESSA_CATACOMBS',
+    KHMELNYTSKYI:         'BOSS_KHMELNYTSKYI',
+    NIKOPOL:              'BOSS_NIKOPOL',
+    UZHHOROD:             'BOSS_UZHHOROD',
   };
 
   /**

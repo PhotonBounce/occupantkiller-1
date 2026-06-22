@@ -1267,6 +1267,9 @@ window.VoxelWorld = (function () {
     { id: 'SEVERODONETSK_AZOT', name: 'Severodonetsk AZOT Plant', desc: 'Hold the AZOT chemical plant where civilians sheltered underground during the battle', theme: 'industrial', wavesPerLevel: 8, difficulty: 3.7, fogColor: 0x2a3322, spawnCandidates: [{ x: 0, z: -40 }, { x: -20, z: -25 }, { x: 20, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 30 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'LVIV_OLD_TOWN', name: 'Lviv — City of Lions', desc: 'UNESCO heritage city — gateway of western Ukraine and the soul of Galicia', theme: 'urban', wavesPerLevel: 8, difficulty: 2.8, fogColor: 0x445533, spawnCandidates: [{ x: 0, z: -35 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 28 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ODESSA_CATACOMBS', name: 'Odessa — Black Sea Siege', desc: 'Defend the Pearl of the Black Sea — Potemkin Stairs, opera house, and the partisan tunnels', theme: 'coastal', wavesPerLevel: 8, difficulty: 3.2, fogColor: 0x445566, spawnCandidates: [{ x: 0, z: -35 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 28 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KHMELNYTSKYI', name: 'Khmelnytskyi Fortress', desc: 'Defend the Podolian fortress city — nuclear plant and Cossack heritage under fire', theme: 'urban', wavesPerLevel: 8, difficulty: 3.1, fogColor: 0x445533, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'NIKOPOL', name: 'Nikopol Under Bombardment', desc: 'Steel city across the Dnipro from ZNPP — nonstop shelling from the occupied right bank', theme: 'industrial', wavesPerLevel: 8, difficulty: 3.6, fogColor: 0x332222, spawnCandidates: [{ x: -18, z: -18 }, { x: 18, z: -18 }, { x: 0, z: -28 }, { x: -28, z: 0 }, { x: 28, z: 0 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'UZHHOROD', name: 'Uzhhorod Carpathian Gate', desc: 'Westernmost Ukrainian city — Carpathian fortress protecting NATO\'s doorstep', theme: 'urban', wavesPerLevel: 7, difficulty: 2.4, fogColor: 0x556644, spawnCandidates: [{ x: -15, z: -18 }, { x: 15, z: -18 }, { x: 0, z: -28 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -15445,6 +15448,236 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_odessa_catacombs', x: ox - 15, z: oz - 20, w: 40, d: 50, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── KHMELNYTSKYI: Podolian Fortress City ────────────────────────────────────────
+  function generateKhmelnytskyiCityCentre(ox, oz) {
+    var h = getHeight(ox, oz);
+    // Starosilska Square — historic cobblestone plaza
+    for (var px = -10; px <= 10; px++) {
+      for (var pz = -8; pz <= 8; pz++) {
+        setBlock(ox + px, h, oz + pz, BLOCK.STONE);
+      }
+    }
+    // Khmelnytsky Drama Theatre — neoclassical 14×10 PLASTER, 10 high
+    for (var tx = -7; tx <= 7; tx++) {
+      for (var tz = 0; tz <= 10; tz++) {
+        for (var ty = 1; ty <= 10; ty++) {
+          if (tx === -7 || tx === 7 || tz === 0 || tz === 10 || ty === 10) {
+            setBlock(ox + tx, h + ty, oz - 12 + tz, BLOCK.PLASTER);
+          } else if (ty === 1) {
+            setBlock(ox + tx, h + ty, oz - 12 + tz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Theatre roof — triangular pediment
+    for (var rp = 0; rp <= 3; rp++) {
+      for (var rpx = -7 + rp; rpx <= 7 - rp; rpx++) {
+        setBlock(ox + rpx, h + 11 + rp, oz - 12, BLOCK.ROOFTILE);
+      }
+    }
+    // Theatre columns (6 columns on facade)
+    for (var col = -6; col <= 6; col += 2) {
+      for (var cy2 = 1; cy2 <= 8; cy2++) {
+        setBlock(ox + col, h + cy2, oz - 12, BLOCK.PLASTER);
+      }
+    }
+    // Bohdan Khmelnytsky Monument — tall column with figure
+    for (var my = 1; my <= 12; my++) {
+      setBlock(ox, h + my, oz + 4, BLOCK.STONE);
+    }
+    setBlock(ox, h + 13, oz + 4, BLOCK.METAL); // figure atop
+    // Monument base — 3×3 stone pedestal
+    for (var mbx = -1; mbx <= 1; mbx++) {
+      for (var mbz = 3; mbz <= 5; mbz++) {
+        setBlock(ox + mbx, h + 1, oz + mbz, BLOCK.STONE);
+      }
+    }
+    // Fortification wall fragments — old Podolian castle
+    for (var fw = -20; fw <= 20; fw++) {
+      for (var fwy = 1; fwy <= 5; fwy++) {
+        if (Math.abs(fw) === 20 || fwy === 5) {
+          setBlock(ox + fw, h + fwy, oz - 25, BLOCK.BRICK);
+        }
+      }
+    }
+    // Corner tower (NW)
+    for (var cty = 1; cty <= 8; cty++) {
+      for (var ctx = -22; ctx <= -18; ctx++) {
+        for (var ctz = -27; ctz <= -23; ctz++) {
+          if (ctx === -22 || ctx === -18 || ctz === -27 || ctz === -23 || cty === 8) {
+            setBlock(ox + ctx, h + cty, oz + ctz, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    setBlock(ox - 20, h + 9, oz - 25, BLOCK.ROOFTILE);
+    // City hall — 10×8 building, 8 high
+    for (var chx = 15; chx <= 25; chx++) {
+      for (var chz = -5; chz <= 3; chz++) {
+        for (var chy = 1; chy <= 8; chy++) {
+          if (chx === 15 || chx === 25 || chz === -5 || chz === 3 || chy === 8) {
+            setBlock(ox + chx, h + chy, oz + chz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    _buildings.push({ kind: 'khmelnytskyi', x: ox - 20, z: oz - 28, w: 45, d: 45, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── NIKOPOL: Steel City Under Bombardment ────────────────────────────────────────
+  function generateNikopolSteelCity(ox, oz) {
+    var h = getHeight(ox, oz);
+    // Central Nikopol Steel & Alloys Plant — massive industrial complex
+    // Main production hall: 22×12 CONCRETE, 8 high with GLASS skylights
+    for (var hx = -11; hx <= 11; hx++) {
+      for (var hz = -6; hz <= 6; hz++) {
+        for (var hy = 1; hy <= 8; hy++) {
+          if (hx === -11 || hx === 11 || hz === -6 || hz === 6 || hy === 8) {
+            setBlock(ox + hx, h + hy, oz + hz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Skylight windows in roof
+    for (var sx = -9; sx <= 9; sx += 3) {
+      setBlock(ox + sx, h + 8, oz, BLOCK.GLASS);
+      setBlock(ox + sx, h + 8, oz + 2, BLOCK.GLASS);
+    }
+    // Blast furnace towers (2) — METAL cylinders 14 high
+    for (var bfy = 1; bfy <= 14; bfy++) {
+      for (var bfa = 0; bfa < 4; bfa++) {
+        var bfx2 = [14, 14, 18, 18][bfa];
+        var bfz2 = [0, 4, 0, 4][bfa];
+        setBlock(ox + bfx2, h + bfy, oz + bfz2, BLOCK.METAL);
+      }
+    }
+    // Smoke from furnaces (LIGHT block for glow)
+    setBlock(ox + 15, h + 15, oz + 1, BLOCK.LIGHT);
+    setBlock(ox + 17, h + 15, oz + 3, BLOCK.LIGHT);
+    // River embankment — Nikopol sits on Dnipro opposite ZNPP
+    for (var rx = -30; rx <= 30; rx++) {
+      setBlock(ox + rx, h, oz - 30, BLOCK.STONE);
+      setBlock(ox + rx, h + 1, oz - 30, BLOCK.STONE);
+    }
+    // Anti-drone netting frames over plant
+    for (var nf = -10; nf <= 10; nf += 5) {
+      for (var nfy = 8; nfy <= 12; nfy++) {
+        setBlock(ox + nf, h + nfy, oz - 6, BLOCK.METAL);
+        setBlock(ox + nf, h + nfy, oz + 6, BLOCK.METAL);
+      }
+      setBlock(ox + nf, h + 12, oz, BLOCK.FENCE);
+    }
+    // Missile impact craters (heavy bombardment city)
+    for (var cr = 0; cr < 5; cr++) {
+      var crx = [25, -22, 0, 30, -30][cr];
+      var crz = [15, -18, 30, -20, 10][cr];
+      for (var cra = -2; cra <= 2; cra++) {
+        for (var crb = -2; crb <= 2; crb++) {
+          if (cra * cra + crb * crb <= 4) {
+            setBlock(ox + crx + cra, h, oz + crz + crb, BLOCK.DIRT);
+          }
+        }
+      }
+    }
+    // Wrecked MLRS vehicle
+    for (var wy2 = 1; wy2 <= 2; wy2++) {
+      setBlock(ox - 20, h + wy2, oz + 25, BLOCK.METAL);
+      setBlock(ox - 21, h + wy2, oz + 25, BLOCK.METAL);
+    }
+    _buildings.push({ kind: 'nikopol_steel', x: ox - 14, z: oz - 10, w: 36, d: 20, baseY: h, floorH: 8, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── UZHHOROD: Carpathian Fortress Gate ────────────────────────────────────────
+  function generateUzhhorodCastle(ox, oz) {
+    var h = getHeight(ox, oz);
+    // Uzhhorod Castle — 9th century fortress on a hill, visible from Czech border
+    // Raised hill base — 3 tiers of stone terracing
+    for (var tier = 0; tier < 3; tier++) {
+      var tw = 18 - tier * 4;
+      for (var tx2 = -tw; tx2 <= tw; tx2++) {
+        for (var tz2 = -tw; tz2 <= tw; tz2++) {
+          if (Math.abs(tx2) === tw || Math.abs(tz2) === tw) {
+            setBlock(ox + tx2, h + tier + 1, oz + tz2, BLOCK.STONE);
+          } else {
+            setBlock(ox + tx2, h + tier, oz + tz2, BLOCK.DIRT);
+          }
+        }
+      }
+    }
+    var hb = h + 3; // base of castle walls
+    // Castle curtain wall — 14×14 STONE, 8 high
+    for (var wally = 1; wally <= 8; wally++) {
+      for (var wallx = -7; wallx <= 7; wallx++) {
+        setBlock(ox + wallx, hb + wally, oz - 7, BLOCK.STONE);
+        setBlock(ox + wallx, hb + wally, oz + 7, BLOCK.STONE);
+      }
+      for (var wallz = -7; wallz <= 7; wallz++) {
+        setBlock(ox - 7, hb + wally, oz + wallz, BLOCK.STONE);
+        setBlock(ox + 7, hb + wally, oz + wallz, BLOCK.STONE);
+      }
+    }
+    // Crenellations atop the curtain wall
+    for (var cx3 = -7; cx3 <= 7; cx3 += 2) {
+      setBlock(ox + cx3, hb + 9, oz - 7, BLOCK.STONE);
+      setBlock(ox + cx3, hb + 9, oz + 7, BLOCK.STONE);
+    }
+    for (var cz3 = -7; cz3 <= 7; cz3 += 2) {
+      setBlock(ox - 7, hb + 9, oz + cz3, BLOCK.STONE);
+      setBlock(ox + 7, hb + 9, oz + cz3, BLOCK.STONE);
+    }
+    // Corner towers — 4×4 STONE, 12 high
+    var ctPos = [[-9,-9],[9,-9],[-9,9],[9,9]];
+    for (var ctp = 0; ctp < ctPos.length; ctp++) {
+      for (var ctpy = 1; ctpy <= 12; ctpy++) {
+        for (var ctpx = 0; ctpx < 3; ctpx++) {
+          for (var ctpz = 0; ctpz < 3; ctpz++) {
+            if (ctpx === 0 || ctpx === 2 || ctpz === 0 || ctpz === 2 || ctpy === 12) {
+              setBlock(ox + ctPos[ctp][0] + ctpx, hb + ctpy, oz + ctPos[ctp][1] + ctpz, BLOCK.STONE);
+            }
+          }
+        }
+      }
+    }
+    // ROOFTILE pyramid cap on towers
+    for (var cpr = 0; cpr < ctPos.length; cpr++) {
+      setBlock(ox + ctPos[cpr][0] + 1, hb + 13, oz + ctPos[cpr][1] + 1, BLOCK.ROOFTILE);
+    }
+    // Gatehouse — south wall opening 3-wide × 4-high with portcullis
+    for (var gwy = hb + 1; gwy <= hb + 4; gwy++) {
+      setBlock(ox - 1, gwy, oz + 7, BLOCK.AIR);
+      setBlock(ox,     gwy, oz + 7, BLOCK.AIR);
+      setBlock(ox + 1, gwy, oz + 7, BLOCK.AIR);
+    }
+    // Castle keep — 8×8 STONE, 14 high
+    for (var ky = 1; ky <= 14; ky++) {
+      for (var kx = -3; kx <= 3; kx++) {
+        for (var kz = -3; kz <= 3; kz++) {
+          if (kx === -3 || kx === 3 || kz === -3 || kz === 3 || ky === 14) {
+            setBlock(ox + kx, hb + ky, oz + kz, BLOCK.STONE);
+          }
+        }
+      }
+    }
+    setBlock(ox, hb + 15, oz, BLOCK.METAL); // flagpole
+    // Uzhhorod Philharmonic — baroque building below castle
+    for (var ph = -14; ph <= -8; ph++) {
+      for (var phz = 18; phz <= 26; phz++) {
+        for (var phy = 1; phy <= 8; phy++) {
+          if (ph === -14 || ph === -8 || phz === 18 || phz === 26 || phy === 8) {
+            setBlock(ox + ph, h + phy, oz + phz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Cherry-blossom alley (famous Uzhhorod landmark — WOOD blocks as tree trunks)
+    for (var bl = -25; bl <= 25; bl += 5) {
+      setBlock(ox + bl, h + 1, oz + 30, BLOCK.WOOD);
+      setBlock(ox + bl, h + 2, oz + 30, BLOCK.WOOD);
+      setBlock(ox + bl, h + 3, oz + 30, BLOCK.LEAVES || BLOCK.GRASS);
+    }
+    _buildings.push({ kind: 'uzhhorod_castle', x: ox - 12, z: oz - 12, w: 26, d: 26, baseY: hb, floorH: 14, floors: 1, cx: ox, cz: oz });
+  }
+
   // ── SLAVUTYCH: Chernobyl Memorial ────────────────────────────────────────
   // Slavutych was built in 1986 to house Chernobyl workers after Pripyat evacuation.
   // The reactor sarcophagus is visible from the city; exclusion zone starts at the edge.
@@ -18773,6 +19006,54 @@ window.VoxelWorld = (function () {
       generateDroneNest(42, 40); generateDroneNest(-42, -40);
       generateAntiAirPosition(-35, -32); generateAntiAirPosition(32, 30);
       generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'KHMELNYTSKYI') {
+      generateKhmelnytskyiCityCentre(0, -8);
+      generateUkrainianApartment(-30, -28, 8); generateUkrainianApartment(28, -28, 6);
+      generateUkrainianApartment(-30, 16, 6); generateUkrainianApartment(28, 18, 8);
+      generateChurch(-22, 20); generateChurch(20, -20);
+      generateBurningRuin(-18, 28); generateBurningRuin(16, -32);
+      generateWreckedTank(-20, -30); generateWreckedAPC(18, 22);
+      generateWreckedConvoy(-32, 18);
+      generateCraters(9);
+      generateBunker(-25, -25); generateBunker(25, 25); generateBunker(0, -38);
+      generateMortarPit(-30, -12); generateMortarPit(28, 10);
+      generateTrenchNetwork(-15, 18); generateTrenchNetwork(15, -18);
+      generateSniperNest(-35, -35); generateSniperNest(32, -35);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-35, 28); generateAntiAirPosition(32, -28);
+      generateCheckpoint(0, -45, false); generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'NIKOPOL') {
+      generateNikopolSteelCity(0, -5);
+      generateUkrainianApartment(-32, -28, 7); generateUkrainianApartment(28, -28, 5);
+      generateUkrainianApartment(-32, 20, 5); generateUkrainianApartment(28, 22, 7);
+      generateIndustrialComplex(-35, 10); generateIndustrialComplex(35, -8);
+      generateBurningRuin(-20, 30); generateBurningRuin(18, -35);
+      generateBurningRuin(-35, -18); generateBurningRuin(32, 15);
+      generateWreckedTank(-22, -32); generateWreckedAPC(20, 25);
+      generateWreckedConvoy(-30, 22);
+      generateCraters(14);
+      generateBunker(-25, -28); generateBunker(25, 28); generateBunker(0, -42);
+      generateMortarPit(-32, -12); generateMortarPit(30, 12);
+      generateTrenchNetwork(-18, 20); generateTrenchNetwork(18, -20);
+      generateSniperNest(-38, -38); generateSniperNest(35, -38);
+      generateDroneNest(44, 42); generateDroneNest(-44, -42);
+      generateAntiAirPosition(-38, 30); generateAntiAirPosition(35, -30);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'UZHHOROD') {
+      generateUzhhorodCastle(0, -5);
+      generateUkrainianApartment(-28, 22, 6); generateUkrainianApartment(25, 22, 8);
+      generateUkrainianApartment(-28, -25, 8); generateUkrainianApartment(25, -25, 6);
+      generateChurch(-18, -20); generateChurch(16, 18);
+      generateBurningRuin(-15, 28); generateBurningRuin(14, -30);
+      generateWreckedTank(-18, -28); generateWreckedAPC(16, 22);
+      generateCraters(6);
+      generateBunker(-22, -22); generateBunker(22, 22); generateBunker(0, -35);
+      generateMortarPit(-28, -10); generateMortarPit(26, 10);
+      generateTrenchNetwork(-12, 16); generateTrenchNetwork(12, -16);
+      generateSniperNest(-32, -32); generateSniperNest(30, -32);
+      generateDroneNest(38, 36); generateDroneNest(-38, -36);
+      generateAntiAirPosition(-32, 25); generateAntiAirPosition(28, -25);
+      generateCheckpoint(0, -40, false); generateCheckpoint(-38, 0, true);
     }
 
     // ── PROC_CITIES: distinct content for each procedural city ─────────────
