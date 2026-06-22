@@ -227,6 +227,9 @@ const HUD = (() => {
     createWeaponSlots();
   }
 
+  // Apply mobile HUD fixes
+  _applyMobileHUDFixes();
+
   let hitMarkerTimer   = null;
   let vignetteTimer    = null;
   let headshotTimer    = null;
@@ -863,7 +866,7 @@ const HUD = (() => {
   function setMinimapJammed(jammed) { _minimapJammed = !!jammed; }
   function setCompassJammed(jammed) { _compassJammed = !!jammed; }
 
-  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups, opts) {
+  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups) {
     if (!minimapCtx) return;
     const ctx = minimapCtx;
     ctx.clearRect(0, 0, MM_SIZE, MM_SIZE);
@@ -886,9 +889,8 @@ const HUD = (() => {
     ctx.arc(MM_HALF, MM_HALF, MM_HALF - 2, 0, Math.PI * 2);
     ctx.clip();
 
-    var _uavOn = opts && opts.uav;
     // Background
-    ctx.fillStyle = _uavOn ? 'rgba(0,20,15,0.90)' : 'rgba(10,15,10,0.85)';
+    ctx.fillStyle = 'rgba(10,15,10,0.85)';
     ctx.fillRect(0, 0, MM_SIZE, MM_SIZE);
 
     // Grid (rotates with player)
@@ -1051,34 +1053,6 @@ const HUD = (() => {
       var cx = MM_HALF + Math.sin(ca) * (MM_HALF - 10);
       var cy = MM_HALF - Math.cos(ca) * (MM_HALF - 10);
       ctx.fillText(dirs[ci].label, cx, cy + 3);
-    }
-
-    // UAV: rotating sweep line + teal enemy highlighting
-    if (_uavOn) {
-      var _uavAngle = (performance.now() * 0.002) % (Math.PI * 2);
-      // Sweep arc (fading green sector behind sweep line)
-      ctx.save();
-      ctx.translate(MM_HALF, MM_HALF);
-      var _grad = ctx.createConicalGradient ? null : null; // not standard — use arc fill
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, MM_HALF - 2, _uavAngle - 1.1, _uavAngle, false);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(0,255,180,0.10)';
-      ctx.fill();
-      // Sweep line
-      ctx.strokeStyle = 'rgba(0,255,150,0.7)';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(_uavAngle) * (MM_HALF - 2), Math.sin(_uavAngle) * (MM_HALF - 2));
-      ctx.stroke();
-      ctx.restore();
-      // UAV label
-      ctx.fillStyle = 'rgba(0,255,150,0.75)';
-      ctx.font = 'bold 9px monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText('UAV', 6, MM_SIZE - 6);
     }
 
     ctx.restore();
@@ -1613,75 +1587,27 @@ const HUD = (() => {
   let _bossBarEl = null;
   let _bossBarFill = null;
   let _bossBarName = null;
-  let _bossBarPhase = null;
-  let _bossLastPhase = 0;
 
   function showBossBar(name, hp, maxHp) {
     if (!_bossBarEl) {
       _bossBarEl = document.createElement('div');
       _bossBarEl.id = 'boss-health-bar';
-      _bossBarEl.style.cssText = 'position:fixed;top:5%;left:50%;transform:translateX(-50%);width:420px;background:rgba(0,0,0,0.75);border:2px solid #cc0000;border-radius:4px;padding:5px 6px;z-index:200;text-align:center;display:none;';
+      _bossBarEl.style.cssText = 'position:fixed;top:5%;left:50%;transform:translateX(-50%);width:400px;background:rgba(0,0,0,0.7);border:2px solid #cc0000;border-radius:4px;padding:4px;z-index:200;text-align:center;display:none;';
       _bossBarName = document.createElement('div');
-      _bossBarName.style.cssText = 'color:#ff4444;font-size:14px;font-weight:bold;margin-bottom:3px;letter-spacing:1px;';
-      var _bossBarTrack = document.createElement('div');
-      _bossBarTrack.style.cssText = 'background:rgba(80,0,0,0.4);border-radius:3px;overflow:hidden;position:relative;';
+      _bossBarName.style.cssText = 'color:#ff4444;font-size:14px;font-weight:bold;margin-bottom:2px;';
       _bossBarFill = document.createElement('div');
-      _bossBarFill.style.cssText = 'height:14px;background:linear-gradient(90deg,#cc0000,#ff4444);border-radius:3px;transition:width 0.25s ease-out;';
-      _bossBarPhase = document.createElement('div');
-      _bossBarPhase.style.cssText = 'position:absolute;right:5px;top:0;height:100%;line-height:14px;font-size:10px;color:rgba(255,255,255,0.7);font-weight:bold;';
-      _bossBarTrack.appendChild(_bossBarFill);
-      _bossBarTrack.appendChild(_bossBarPhase);
+      _bossBarFill.style.cssText = 'height:12px;background:linear-gradient(90deg,#cc0000,#ff4444);border-radius:2px;transition:width 0.3s;';
       _bossBarEl.appendChild(_bossBarName);
-      _bossBarEl.appendChild(_bossBarTrack);
+      _bossBarEl.appendChild(_bossBarFill);
       document.body.appendChild(_bossBarEl);
-      // Inject keyframe animation for enrage pulse
-      if (!document.getElementById('_bossBarKf')) {
-        var style = document.createElement('style');
-        style.id = '_bossBarKf';
-        style.textContent = '@keyframes bossRage{0%,100%{border-color:#cc0000}50%{border-color:#ff2200;box-shadow:0 0 10px #ff2200}}' +
-          '@keyframes bossEnrage{0%,100%{border-color:#ff6600}50%{border-color:#ffaa00;box-shadow:0 0 14px #ff8800}}';
-        document.head.appendChild(style);
-      }
     }
-    var pct = maxHp > 0 ? hp / maxHp : 0;
     _bossBarName.textContent = '☠ ' + name;
-    _bossBarFill.style.width = Math.max(0, pct * 100) + '%';
+    _bossBarFill.style.width = Math.max(0, (hp / maxHp) * 100) + '%';
     _bossBarEl.style.display = 'block';
-
-    // Phase coloring + border pulse
-    var newPhase;
-    if (pct <= 0.33) {
-      newPhase = 3;
-      _bossBarFill.style.background = 'linear-gradient(90deg,#880000,#cc0000,#ff2200)';
-      _bossBarEl.style.animation = 'bossRage 0.7s infinite';
-      _bossBarEl.style.borderColor = '#ff2200';
-      if (_bossBarPhase) _bossBarPhase.textContent = '⚡ ENRAGED';
-    } else if (pct <= 0.66) {
-      newPhase = 2;
-      _bossBarFill.style.background = 'linear-gradient(90deg,#aa3300,#ee5500)';
-      _bossBarEl.style.animation = 'bossEnrage 1.2s infinite';
-      _bossBarEl.style.borderColor = '#ee5500';
-      if (_bossBarPhase) _bossBarPhase.textContent = '⚠ WOUNDED';
-    } else {
-      newPhase = 1;
-      _bossBarFill.style.background = 'linear-gradient(90deg,#cc0000,#ff4444)';
-      _bossBarEl.style.animation = '';
-      _bossBarEl.style.borderColor = '#cc0000';
-      if (_bossBarPhase) _bossBarPhase.textContent = '';
-    }
-    // Toast on phase transition
-    if (newPhase > _bossLastPhase && _bossLastPhase > 0) {
-      if (typeof showToast === 'function') {
-        showToast(newPhase === 2 ? '⚠ BOSS WOUNDED — WATCH OUT!' : '⚡ BOSS ENRAGED — EXTREME DANGER!', 3000,
-          newPhase === 3 ? '#ff2200' : '#ee5500');
-      }
-    }
-    _bossLastPhase = newPhase;
   }
 
   function hideBossBar() {
     if (_bossBarEl) _bossBarEl.style.display = 'none';
-    _bossLastPhase = 0;
   }
 
   // ── B22: XP Progress Bar ────────────────────────────────────────
@@ -1876,6 +1802,99 @@ const HUD = (() => {
     void flash.offsetWidth;
     flash.style.transition = 'opacity 0.65s ease-out';
     flash.style.opacity = '0';
+  }
+
+  // ── Kill Feed (top-right, COD-style) ─────────────────────────────
+  var _killFeed = [];
+  var _killFeedEl = null;
+
+  function _initKillFeed() {
+    if (_killFeedEl) return;
+    var d = document.createElement('div');
+    d.id = 'hud-kill-feed';
+    d.style.cssText = 'position:fixed;top:60px;right:12px;width:260px;pointer-events:none;z-index:100;font-family:monospace;font-size:11px;';
+    document.body.appendChild(d);
+    _killFeedEl = d;
+  }
+
+  function addKillFeedEntry(killerName, victimName, weaponName, isPlayer) {
+    _initKillFeed();
+    var entry = { killer: killerName, victim: victimName, weapon: weaponName, isPlayer: isPlayer, life: 5.0 };
+    _killFeed.push(entry);
+    if (_killFeed.length > 6) _killFeed.shift();
+    _renderKillFeed();
+  }
+
+  function _renderKillFeed() {
+    if (!_killFeedEl) return;
+    _killFeedEl.innerHTML = _killFeed.map(function(e) {
+      var col = e.isPlayer ? '#ffcc44' : '#cccccc';
+      var fade = Math.min(1, e.life / 1.5);
+      return '<div style="text-align:right;margin-bottom:2px;opacity:' + fade.toFixed(2) + ';background:rgba(0,0,0,0.45);padding:1px 5px;border-radius:3px;">' +
+        '<span style="color:' + col + '">' + escapeHTML(e.killer || 'Player') + '</span>' +
+        ' <span style="color:#888">⟩</span> ' +
+        '<span style="color:#ff6666">' + escapeHTML(e.victim || 'Enemy') + '</span>' +
+        (e.weapon ? ' <span style="color:#8888aa;font-size:9px">[' + escapeHTML(e.weapon) + ']</span>' : '') +
+        '</div>';
+    }).join('');
+  }
+
+  function _tickKillFeed(dt) {
+    if (!_killFeed.length) return;
+    var changed = false;
+    for (var i = _killFeed.length - 1; i >= 0; i--) {
+      _killFeed[i].life -= dt;
+      if (_killFeed[i].life <= 0) { _killFeed.splice(i, 1); changed = true; }
+    }
+    if (changed || _killFeed.length) _renderKillFeed();
+  }
+
+  // ── Compass Bar (top-center) ──────────────────────────────────────
+  var _compassBarEl = null;
+  function _initCompassBar() {
+    if (_compassBarEl) return;
+    var d = document.createElement('div');
+    d.id = 'hud-compass-bar';
+    d.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);width:200px;height:22px;pointer-events:none;z-index:100;font-family:monospace;font-size:10px;color:#ddd;text-align:center;background:rgba(0,0,0,0.35);border-radius:4px;overflow:hidden;';
+    document.body.appendChild(d);
+    _compassBarEl = d;
+  }
+
+  function updateCompassBar(yawRad) {
+    if (!_compassBarEl) _initCompassBar();
+    if (!_compassBarEl) return;
+    var deg = ((yawRad * 180 / Math.PI) % 360 + 360) % 360;
+    var marks = ['N','·','NE','·','E','·','SE','·','S','·','SW','·','W','·','NW','·','N'];
+    var offset = Math.floor(deg / 22.5);
+    var visible = marks.slice(offset, offset + 7);
+    _compassBarEl.innerHTML = visible.map(function(m,i) {
+      var isMain = (m !== '·');
+      var isCtr = (i === 3);
+      return '<span style="display:inline-block;width:26px;color:' + (isCtr ? '#ffcc44' : (isMain ? '#fff' : '#555')) + ';font-weight:' + (isCtr ? 'bold' : 'normal') + '">' + m + '</span>';
+    }).join('') + '<div style="position:absolute;top:0;left:50%;width:2px;height:100%;background:rgba(255,200,0,0.5);transform:translateX(-50%)"></div>';
+  }
+
+  // ── Ammo warning flash ─────────────────────────────────────────────
+  function setAmmoWarning(isLow) {
+    var ammoEl = document.getElementById('hud-ammo') || document.getElementById('ammo-display');
+    if (!ammoEl) return;
+    ammoEl.style.color = isLow ? '#ff3333' : '';
+    ammoEl.style.animation = isLow ? 'hud-ammo-blink 0.5s infinite' : '';
+  }
+
+  // ── Mobile HUD size fixes ──────────────────────────────────────────
+  function _applyMobileHUDFixes() {
+    if (!('ontouchstart' in window)) return;
+    var style = document.createElement('style');
+    style.textContent = [
+      '#btn-fire { width:72px!important; height:72px!important; font-size:22px!important; }',
+      '#btn-aim { width:62px!important; height:62px!important; }',
+      '#btn-jump, #btn-crouch { width:56px!important; height:56px!important; }',
+      '.mobile-btn { min-width:52px; min-height:52px; }',
+      '#hud-ammo { font-size:18px!important; }',
+      '@keyframes hud-ammo-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }',
+    ].join('\n');
+    document.head.appendChild(style);
   }
 
   // ── B22: Damage Log (scrolling combat text) ──────────────────────
@@ -2115,7 +2134,8 @@ const HUD = (() => {
     showNPCText, _updateNPCTextPositions,
     // ── Targeting Assistant ──
     updateTargetAssist,
-    showWaveSummary,
+    // ── Kill Feed, Compass, Ammo Warning, Mobile Fixes ──
+    addKillFeedEntry, updateCompassBar, setAmmoWarning, _tickKillFeed,
   };
 })();
 
