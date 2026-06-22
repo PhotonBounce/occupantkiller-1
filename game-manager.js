@@ -3388,6 +3388,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.BountySystem) BountySystem.reset();
     if (window.Destructibles) Destructibles.reset();
     if (window.VehicleEnemies) VehicleEnemies.reset();
     if (window.StaminaSystem) StaminaSystem.reset();
@@ -3709,6 +3710,7 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.BountySystem) BountySystem.clear();
     if (window.Destructibles) Destructibles.clear();
     if (window.VehicleEnemies) VehicleEnemies.clear();
     if (window.Grapple) Grapple.clear();

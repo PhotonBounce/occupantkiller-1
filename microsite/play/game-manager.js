@@ -3388,6 +3388,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.BountySystem) BountySystem.reset();
     if (window.Destructibles) Destructibles.reset();
     if (window.VehicleEnemies) VehicleEnemies.reset();
     if (window.StaminaSystem) StaminaSystem.reset();
@@ -3709,6 +3710,7 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.BountySystem) BountySystem.clear();
     if (window.Destructibles) Destructibles.clear();
     if (window.VehicleEnemies) VehicleEnemies.clear();
     if (window.Grapple) Grapple.clear();
@@ -4130,6 +4132,7 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
+    if (window.BountySystem) BountySystem.markEnemy(Enemies ? Enemies.getAll() : []);
     if (window.VehicleEnemies && currentWave && currentWave % 5 === 0) {
       VehicleEnemies.spawnBTR(_scene, player.position.x + 20, player.position.z + 20);
     }
@@ -6172,6 +6175,10 @@ const GameManager = (function () {
         try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
       }
       player.kills++;
+      if (window.BountySystem && enemy) {
+        var _bountyResult = BountySystem.checkKill(enemy);
+        if (_bountyResult) { player.score += 2000; if (typeof HUD !== 'undefined' && HUD.updateScore) HUD.updateScore(player.score); }
+      }
       if (window.BloodEffects && enemy && enemy.mesh) {
         BloodEffects.onDeath(enemy.mesh.position.clone(), isHeadshot || false);
       }
@@ -7768,6 +7775,7 @@ const GameManager = (function () {
       }
       if (window.IntelPickups) IntelPickups.update(delta, player.position, player, _scene);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
+      if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
       if (window.MeleeKnife) MeleeKnife.update(delta);
