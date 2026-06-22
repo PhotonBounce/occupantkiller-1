@@ -1,10 +1,225 @@
 /* ============================================================
  *  PROGRESSION.JS — 7 new progression/meta features
  *  Features: prestige system, daily challenges, bounty board,
- *  war journal, stats tracking, leaderboard, challenge modes
+ *  war journal, stats tracking, leaderboard, challenge modes,
+ *  XP leveling, Ukrainian military rank system, prestige bonuses
  * ============================================================ */
 const Progression = (function () {
   'use strict';
+
+  /* ── XP & Ukrainian Military Rank System ───── */
+  var RANKS = [
+    { rank: 1,  name: 'Рядовий',                  eng: 'Private',           xpRequired: 0      },
+    { rank: 2,  name: 'Молодший сержант',           eng: 'Private 1st',       xpRequired: 500    },
+    { rank: 3,  name: 'Сержант',                    eng: 'Corporal',          xpRequired: 1200   },
+    { rank: 4,  name: 'Старший сержант',             eng: 'Sergeant',          xpRequired: 2500   },
+    { rank: 5,  name: 'Старшина',                   eng: 'Staff Sergeant',    xpRequired: 4500   },
+    { rank: 6,  name: 'Прапорщик',                  eng: 'Warrant Officer',   xpRequired: 7500   },
+    { rank: 7,  name: 'Молодший лейтенант',          eng: 'Second Lt',         xpRequired: 12000  },
+    { rank: 8,  name: 'Лейтенант',                  eng: 'Lieutenant',        xpRequired: 18000  },
+    { rank: 9,  name: 'Старший лейтенант',           eng: 'Senior Lt',         xpRequired: 26000  },
+    { rank: 10, name: 'Капітан',                    eng: 'Captain',           xpRequired: 36000  },
+    { rank: 11, name: 'Майор',                      eng: 'Major',             xpRequired: 50000  },
+    { rank: 12, name: 'Підполковник',               eng: 'Lt Colonel',        xpRequired: 70000  },
+    { rank: 13, name: 'Полковник',                  eng: 'Colonel',           xpRequired: 95000  },
+    { rank: 14, name: 'Бригадний генерал',           eng: 'Brigadier',         xpRequired: 130000 },
+    { rank: 15, name: 'Генерал-майор',              eng: 'Major General',     xpRequired: 175000 },
+    { rank: 16, name: 'Генерал-лейтенант',          eng: 'Lt General',        xpRequired: 230000 },
+    { rank: 17, name: 'Генерал',                    eng: 'General',           xpRequired: 300000 },
+    { rank: 18, name: 'Генерал армії',              eng: 'General of Army',   xpRequired: 400000 },
+    { rank: 19, name: 'Маршал',                     eng: 'Marshal',           xpRequired: 550000 },
+    { rank: 20, name: 'Верховний Головнокомандувач', eng: 'Supreme Commander', xpRequired: 750000 }
+  ];
+
+  /* Rank emoji by rank number */
+  var RANK_EMOJIS = ['🪖','🪖','🎖️','🎖️','🏅','🏅','⭐','⭐','🌟','🌟','🌟','💫','💫','🏆','🏆','🏆','👑','👑','👑','⚜️'];
+
+  /* Prestige badge styles */
+  var PRESTIGE_BADGE_STYLES = {
+    0: { color: '#aaaaaa', label: '' },
+    1: { color: '#aaaaaa', label: '★'  },
+    2: { color: '#c0c0c0', label: '★★' },
+    3: { color: '#ffd700', label: '★★★' },
+    4: { color: 'rainbow', label: '★★★★' },
+    5: { color: '#ff44ff', label: '★★★★★' }
+  };
+
+  var _totalXP = 0;
+  var _rankIndex = 0; // 0-based index into RANKS array
+
+  function _getRankIndexForXP(xp) {
+    var idx = 0;
+    for (var i = RANKS.length - 1; i >= 0; i--) {
+      if (xp >= RANKS[i].xpRequired) { idx = i; break; }
+    }
+    return idx;
+  }
+
+  function _getPrestigeXPMult() {
+    if (prestigeLevel >= 5) return 2.0;
+    if (prestigeLevel === 4) return 1.75;
+    if (prestigeLevel === 3) return 1.50;
+    if (prestigeLevel === 2) return 1.25;
+    if (prestigeLevel === 1) return 1.10;
+    return 1.0;
+  }
+
+  function addXP(amount, reason) {
+    var mult = _getPrestigeXPMult();
+    var gained = Math.round(amount * mult);
+    _totalXP += gained;
+    var newIdx = _getRankIndexForXP(_totalXP);
+    var didRankUp = newIdx > _rankIndex;
+    _rankIndex = newIdx;
+    if (didRankUp) {
+      onRankUp(RANKS[_rankIndex]);
+    }
+    _saveXPData();
+    return { gained: gained, totalXP: _totalXP, rankedUp: didRankUp };
+  }
+
+  function getRank() {
+    return RANKS[_rankIndex];
+  }
+
+  function getXP() {
+    return _totalXP;
+  }
+
+  function getXPToNext() {
+    if (_rankIndex >= RANKS.length - 1) return 0;
+    return RANKS[_rankIndex + 1].xpRequired - _totalXP;
+  }
+
+  function getXPProgress() {
+    if (_rankIndex >= RANKS.length - 1) return 1.0;
+    var cur = RANKS[_rankIndex].xpRequired;
+    var next = RANKS[_rankIndex + 1].xpRequired;
+    return (_totalXP - cur) / (next - cur);
+  }
+
+  function onRankUp(newRank) {
+    var rankIdx = newRank.rank - 1;
+    var emoji = RANK_EMOJIS[rankIdx] || '🏅';
+
+    /* Determine border color from prestige */
+    var borderColor = '#4fc3f7';
+    if (prestigeLevel >= 4) borderColor = 'transparent';
+    else if (prestigeLevel === 3) borderColor = '#ffd700';
+    else if (prestigeLevel === 2) borderColor = '#c0c0c0';
+    else if (prestigeLevel === 1) borderColor = '#b0b0b0';
+
+    /* Build and inject toast overlay (browser only) */
+    if (typeof document !== 'undefined') {
+      var existing = document.getElementById('rankUpToast');
+      if (existing) existing.remove();
+
+      var toast = document.createElement('div');
+      toast.id = 'rankUpToast';
+      toast.style.cssText = [
+        'position:fixed',
+        'top:50%',
+        'left:50%',
+        'transform:translate(-50%,-50%)',
+        'background:rgba(0,0,0,0.88)',
+        'color:#fff',
+        'font-family:monospace',
+        'font-size:22px',
+        'font-weight:bold',
+        'padding:28px 48px',
+        'border-radius:10px',
+        'z-index:99999',
+        'text-align:center',
+        'pointer-events:none',
+        (prestigeLevel >= 4
+          ? 'border:3px solid transparent;background-clip:padding-box;outline:3px solid;outline-color:hsl(' + ((Date.now() / 20) % 360) + 'deg,100%,60%)'
+          : 'border:3px solid ' + borderColor)
+      ].join(';');
+
+      toast.innerHTML = [
+        '<div style="font-size:14px;letter-spacing:3px;color:#aaa;margin-bottom:6px">RANK UP</div>',
+        '<div style="font-size:36px;margin:4px 0">' + emoji + '</div>',
+        '<div style="color:#4fc3f7">' + newRank.name + '</div>',
+        '<div style="font-size:16px;color:#ccc;margin-top:4px">(' + newRank.eng + ')</div>'
+      ].join('');
+
+      document.body.appendChild(toast);
+
+      /* Rainbow border animation for prestige 4+ */
+      if (prestigeLevel >= 4) {
+        var hue = 0;
+        var rainbowInterval = setInterval(function () {
+          hue = (hue + 6) % 360;
+          toast.style.outlineColor = 'hsl(' + hue + 'deg,100%,60%)';
+        }, 33);
+        setTimeout(function () { clearInterval(rainbowInterval); }, 4000);
+      }
+
+      setTimeout(function () {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 4000);
+    }
+
+    _updateRankBadge();
+  }
+
+  /* ── Rank HUD Badge ─────────────────────────── */
+  function _updateRankBadge() {
+    if (typeof document === 'undefined') return;
+    var badge = document.getElementById('rankBadge');
+    if (!badge) return;
+    var r = RANKS[_rankIndex];
+    var emoji = RANK_EMOJIS[_rankIndex] || '🏅';
+    var prestigeStyle = PRESTIGE_BADGE_STYLES[Math.min(prestigeLevel, 5)];
+    var borderCol = prestigeLevel >= 4 ? '#ff44ff' : prestigeStyle.color;
+
+    badge.style.borderColor = borderCol;
+    badge.innerHTML = emoji + ' ' + r.name + '<br><span style="font-size:10px;color:#bbb">' + r.eng + (prestigeStyle.label ? ' ' + prestigeStyle.label : '') + '</span>';
+  }
+
+  function _injectRankBadge() {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById('rankBadge')) return;
+    var badge = document.createElement('div');
+    badge.id = 'rankBadge';
+    badge.style.cssText = [
+      'position:fixed',
+      'bottom:12px',
+      'left:12px',
+      'background:rgba(0,0,0,0.7)',
+      'color:#fff',
+      'font-family:monospace',
+      'font-size:13px',
+      'font-weight:bold',
+      'padding:6px 12px',
+      'border-radius:6px',
+      'z-index:9999',
+      'border:2px solid #aaa',
+      'pointer-events:none',
+      'line-height:1.4'
+    ].join(';');
+    document.body.appendChild(badge);
+    _updateRankBadge();
+  }
+
+  /* ── XP Persistence (okk_progression_v2) ────── */
+  function _saveXPData() {
+    try {
+      localStorage.setItem('okk_progression_v2', JSON.stringify({ xp: _totalXP, prestige: prestigeLevel }));
+    } catch (_e) { /* noop */ }
+  }
+
+  function _loadXPData() {
+    try {
+      var raw = localStorage.getItem('okk_progression_v2');
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (typeof d.xp === 'number') _totalXP = d.xp;
+        if (typeof d.prestige === 'number') prestigeLevel = d.prestige;
+        _rankIndex = _getRankIndexForXP(_totalXP);
+      }
+    } catch (_e) { /* noop */ }
+  }
 
   /* ── Feature 53: Prestige System ───────────── */
   const PRESTIGE = {
@@ -29,6 +244,8 @@ const Progression = (function () {
     if (prestigeLevel >= PRESTIGE.MAX_LEVEL) return false;
     prestigeLevel++;
     prestigeXPRequired = Math.floor(prestigeXPRequired * 1.5);
+    _saveXPData();
+    _updateRankBadge();
     return {
       level: prestigeLevel,
       icon: PRESTIGE.ICONS[prestigeLevel - 1],
@@ -601,14 +818,26 @@ const Progression = (function () {
   }
 
   function init() {
+    _loadXPData();
     load();
     refreshDailies();
+    /* Inject rank badge after DOM is ready */
+    if (typeof document !== 'undefined') {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _injectRankBadge);
+      } else {
+        _injectRankBadge();
+      }
+    }
   }
 
   return {
     PRESTIGE, CHALLENGE_MODES, DAILY_CHALLENGES, BOUNTY_TEMPLATES,
     JOURNAL_CATEGORIES, CODEX_ENTRIES, ACHIEVEMENTS, SEASON_REWARDS,
+    RANKS, RANK_EMOJIS,
     init, reset, save, load,
+    // XP & Rank system
+    addXP, getRank, getXP, getXPToNext, getXPProgress, onRankUp,
     // Prestige
     canPrestige, doPrestige, getPrestigeBonuses, getPrestigeLevel, getPrestigeIcon,
     // Dailies
@@ -636,3 +865,19 @@ const Progression = (function () {
     setHighestStage: function (s) { if (s > _highestStage) _highestStage = s; }
   };
 })();
+
+/* ── Global XP Hook Exposure (after Progression is defined) ── */
+if (typeof window !== 'undefined') {
+  window.Progression_addKillXP = function (isHeadshot) {
+    return Progression.addXP(isHeadshot ? 75 : 50, 'kill');
+  };
+  window.Progression_addWaveClearXP = function (waveNum) {
+    return Progression.addXP(100 * waveNum, 'wave');
+  };
+  window.Progression_addLevelXP = function (difficulty) {
+    return Progression.addXP(500 * difficulty, 'level');
+  };
+  window.Progression_addBossKillXP = function () {
+    return Progression.addXP(1000, 'boss');
+  };
+}
