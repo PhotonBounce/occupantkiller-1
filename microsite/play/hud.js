@@ -419,20 +419,169 @@ const HUD = (() => {
     _sprintEl.style.opacity = String(v * 0.6);
   }
 
-  function setAmmo(clip, reserve, clipSize) {
+  // ── Ammo Display Enhancements ─────────────────────────────────────
+  // Inject CSS for critical ammo flash animation (called once)
+  var _ammoStylesInjected = false;
+  function _injectStyles() {
+    if (_ammoStylesInjected) return;
+    _ammoStylesInjected = true;
+    var st = document.createElement('style');
+    st.id = 'ammo-enhance-styles';
+    st.textContent = '.ammo-critical { animation: ammoBlink 0.5s infinite; color: #ff2200 !important; }'
+      + '@keyframes ammoBlink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }';
+    document.head.appendChild(st);
+  }
+
+  // Build and inject the SVG magazine ring next to the ammo counter
+  var _ammoRingEl = null;
+  function _buildAmmoRing() {
+    if (_ammoRingEl || !el.ammo) return;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '60');
+    svg.setAttribute('height', '60');
+    svg.style.cssText = 'position:absolute;left:-68px;top:50%;transform:translateY(-50%);pointer-events:none;';
+    svg.id = 'ammo-ring-svg';
+
+    // Background track circle
+    var track = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    track.setAttribute('cx', '30');
+    track.setAttribute('cy', '30');
+    track.setAttribute('r', '26');
+    track.setAttribute('fill', 'none');
+    track.setAttribute('stroke', 'rgba(255,255,255,0.1)');
+    track.setAttribute('stroke-width', '4');
+    svg.appendChild(track);
+
+    // Animated foreground arc
+    var arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    arc.setAttribute('cx', '30');
+    arc.setAttribute('cy', '30');
+    arc.setAttribute('r', '26');
+    arc.setAttribute('fill', 'none');
+    arc.setAttribute('stroke', '#00cc44');
+    arc.setAttribute('stroke-width', '4');
+    arc.setAttribute('stroke-linecap', 'round');
+    // Start arc from top (-90deg = rotate -90)
+    arc.setAttribute('transform', 'rotate(-90 30 30)');
+    arc.style.transition = 'stroke-dasharray 0.18s ease-out, stroke 0.18s ease-out';
+    arc.id = 'ammoRing';
+    svg.appendChild(arc);
+
+    // Inject relative positioning on parent if needed
+    var parent = el.ammo.parentNode;
+    if (parent) {
+      var pos = window.getComputedStyle(parent).position;
+      if (pos === 'static') parent.style.position = 'relative';
+      parent.insertBefore(svg, el.ammo);
+    }
+    _ammoRingEl = arc;
+  }
+
+  // Update the ring arc (current / max)
+  function updateAmmoRing(current, max) {
+    var pct = (max > 0) ? Math.max(0, Math.min(1, current / max)) : 0;
+    var circumference = 2 * Math.PI * 26; // r=26
+    var dash = pct * circumference;
+    var ringEl = document.getElementById('ammoRing');
+    if (ringEl) {
+      ringEl.setAttribute('stroke-dasharray', dash + ' ' + circumference);
+      ringEl.setAttribute('stroke', pct > 0.5 ? '#00cc44' : pct > 0.25 ? '#ffcc00' : '#ff4400');
+    }
+  }
+
+  // Reserve ammo breakdown element (id="ammoReserve" showing "RES: XX")
+  var _ammoReserveBreakEl = null;
+  function _ensureAmmoReserveBreak() {
+    if (_ammoReserveBreakEl || !el.ammo) return;
+    _ammoReserveBreakEl = document.createElement('div');
+    _ammoReserveBreakEl.id = 'ammoReserve';
+    _ammoReserveBreakEl.style.cssText = 'font-size:10px;color:#44aa44;letter-spacing:1px;margin-top:2px;font-family:monospace;';
+    var parent = el.ammo.parentNode;
+    if (parent) parent.appendChild(_ammoReserveBreakEl);
+  }
+
+  // Reload bar element (id="reloadBar") shown during reload
+  var _reloadBarEl = null;
+  var _reloadBarFillEl = null;
+  function _ensureReloadBar() {
+    if (_reloadBarEl) return;
+    _reloadBarEl = document.createElement('div');
+    _reloadBarEl.id = 'reloadBar';
+    _reloadBarEl.style.cssText = 'width:120px;height:4px;background:rgba(0,0,0,0.6);border:1px solid #333;border-radius:2px;overflow:hidden;margin-bottom:4px;display:none;';
+    _reloadBarFillEl = document.createElement('div');
+    _reloadBarFillEl.style.cssText = 'height:100%;width:0%;background:#00cc44;transition:width 0.05s linear;';
+    _reloadBarEl.appendChild(_reloadBarFillEl);
+    var parent = el.ammo ? el.ammo.parentNode : null;
+    if (parent) parent.insertBefore(_reloadBarEl, el.ammo);
+  }
+
+  // Ammo type badge element
+  var _ammoTypeBadgeEl = null;
+  function _ensureAmmoTypeBadge() {
+    if (_ammoTypeBadgeEl || !el.ammo) return;
+    _ammoTypeBadgeEl = document.createElement('span');
+    _ammoTypeBadgeEl.id = 'ammoTypeBadge';
+    _ammoTypeBadgeEl.style.cssText = 'display:inline-block;margin-left:6px;padding:1px 5px;border-radius:3px;background:rgba(0,0,0,0.55);border:1px solid #444;color:#aaa;font-size:10px;font-family:monospace;letter-spacing:1px;vertical-align:middle;';
+    el.ammo.parentNode && el.ammo.parentNode.insertBefore(_ammoTypeBadgeEl, el.ammo.nextSibling);
+  }
+
+  // Show/update the reload progress bar (called from showReload or separately)
+  function updateReloadBar(progress) {
+    _ensureReloadBar();
+    if (!_reloadBarEl) return;
+    if (progress == null || progress < 0) {
+      _reloadBarEl.style.display = 'none';
+      return;
+    }
+    _reloadBarEl.style.display = 'block';
+    if (_reloadBarFillEl) _reloadBarFillEl.style.width = (Math.max(0, Math.min(1, progress)) * 100).toFixed(1) + '%';
+  }
+
+  // Update ammo type badge from weapon's ammoType property
+  function updateAmmoTypeBadge(ammoType) {
+    _ensureAmmoTypeBadge();
+    if (!_ammoTypeBadgeEl) return;
+    var label = ammoType || '';
+    _ammoTypeBadgeEl.textContent = label;
+    var typeColors = { '5.56': '#88ffaa', '7.62': '#ffcc44', '9mm': '#aaddff', '12GA': '#ff8844', 'RPG': '#ff4444', '.50': '#ff6600', '40mm': '#ffaa00' };
+    _ammoTypeBadgeEl.style.color = typeColors[label] || '#aaa';
+    _ammoTypeBadgeEl.style.display = label ? 'inline-block' : 'none';
+  }
+
+  function setAmmo(clip, reserve, clipSize, ammoType) {
     if (!el.ammo || !el.ammoRes) return;
+    _injectStyles();
+    _buildAmmoRing();
+    _ensureAmmoReserveBreak();
     el.ammo.textContent    = clip;
     el.ammoRes.textContent = '/ ' + reserve;
+
+    // Magazine ring indicator
+    if (typeof clip === 'number' && clipSize) {
+      updateAmmoRing(clip, clipSize);
+    }
+
+    // Critical ammo flash (≤5 rounds)
+    if (typeof clip === 'number' && clip <= 5 && clip > 0) {
+      el.ammo.classList.add('ammo-critical');
+    } else {
+      el.ammo.classList.remove('ammo-critical');
+    }
+
     // Low ammo warning flash + sound
     if (clipSize && typeof clip === 'number' && clip > 0 && clip <= clipSize * 0.25) {
-      el.ammo.style.color = '#ff4444';
-      el.ammo.style.animation = 'lowAmmoFlash 0.4s infinite';
+      if (!el.ammo.classList.contains('ammo-critical')) {
+        el.ammo.style.color = '#ff4444';
+        el.ammo.style.animation = 'lowAmmoFlash 0.4s infinite';
+      }
       if (window.AudioSystem && AudioSystem.playLowAmmo) AudioSystem.playLowAmmo();
     } else if (clipSize && typeof clip === 'number' && clip > 0 && clip <= clipSize * 0.5) {
       // Half-clip warning: yellow tint, no flash
-      el.ammo.style.color = '#ffcc44';
-      el.ammo.style.animation = '';
-    } else {
+      if (!el.ammo.classList.contains('ammo-critical')) {
+        el.ammo.style.color = '#ffcc44';
+        el.ammo.style.animation = '';
+      }
+    } else if (!el.ammo.classList.contains('ammo-critical')) {
       el.ammo.style.color = '';
       el.ammo.style.animation = '';
     }
@@ -442,6 +591,17 @@ const HUD = (() => {
     } else {
       el.ammoRes.style.color = '';
     }
+    // Reserve breakdown
+    if (_ammoReserveBreakEl) {
+      if (typeof reserve === 'number') {
+        _ammoReserveBreakEl.textContent = 'RES: ' + Math.max(0, reserve);
+        _ammoReserveBreakEl.style.color = reserve <= 0 ? '#ff6666' : '#44aa44';
+      } else {
+        _ammoReserveBreakEl.textContent = '';
+      }
+    }
+    // Ammo type badge
+    if (ammoType !== undefined) updateAmmoTypeBadge(ammoType);
   }
 
   function setWeapon(name, idx) {
@@ -484,6 +644,8 @@ const HUD = (() => {
   function showReload(on, progress) {
     if (on) el.reload.classList.add('visible');
     else    el.reload.classList.remove('visible');
+    // Inline reload bar next to ammo counter
+    updateReloadBar(on ? (progress || 0) : -1);
     // Lazy-create a progress bar under the reload indicator
     var rb = document.getElementById('reload-progress-bar');
     if (on) {
@@ -2746,7 +2908,7 @@ const HUD = (() => {
     show, hide,
     setScore, setWave, setKills, setEnemies, setStage,
     setWaveProgress,
-    setHealth, setAmmo, setWeapon, showReload,
+    setHealth, setAmmo, setWeapon, showReload, updateAmmoRing, updateReloadBar, updateAmmoTypeBadge,
     flashHit, flashDamage, flashHeal, showBloodDrops,
     showHeadshot, notifyPickup, showToast, setCrosshairSpread, setCrosshairTarget, setRangeReadout, setSprintIntensity, setGrenadeWarning, setHandGrenades, showGrenadeSection, showLockOn,
     announceWave, announceStage,
