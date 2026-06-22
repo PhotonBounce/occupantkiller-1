@@ -1265,6 +1265,8 @@ window.VoxelWorld = (function () {
     { id: 'KHERSON_BRIDGE', name: 'Kherson Liberation', desc: 'Clear the Antonivka Bridge and liberate Kherson from Russian occupation', theme: 'urban', wavesPerLevel: 8, difficulty: 3.4, fogColor: 0x445566, spawnCandidates: [{ x: 0, z: -35 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'MARIUPOL_DRAMA', name: 'Mariupol Theatre — ДЕТИ', desc: 'The Russian strike on the Drama Theatre where civilians sheltered — 300+ killed', theme: 'urban', wavesPerLevel: 8, difficulty: 4.0, fogColor: 0x1a1a20, spawnCandidates: [{ x: 0, z: -40 }, { x: -20, z: -25 }, { x: 20, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 30 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SEVERODONETSK_AZOT', name: 'Severodonetsk AZOT Plant', desc: 'Hold the AZOT chemical plant where civilians sheltered underground during the battle', theme: 'industrial', wavesPerLevel: 8, difficulty: 3.7, fogColor: 0x2a3322, spawnCandidates: [{ x: 0, z: -40 }, { x: -20, z: -25 }, { x: 20, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 30 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'LVIV_OLD_TOWN', name: 'Lviv — City of Lions', desc: 'UNESCO heritage city — gateway of western Ukraine and the soul of Galicia', theme: 'urban', wavesPerLevel: 8, difficulty: 2.8, fogColor: 0x445533, spawnCandidates: [{ x: 0, z: -35 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: -25, z: 8 }, { x: 25, z: 8 }, { x: 0, z: 28 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'ODESSA_CATACOMBS', name: 'Odessa — Black Sea Siege', desc: 'Defend the Pearl of the Black Sea — Potemkin Stairs, opera house, and the partisan tunnels', theme: 'coastal', wavesPerLevel: 8, difficulty: 3.2, fogColor: 0x445566, spawnCandidates: [{ x: 0, z: -35 }, { x: -18, z: -20 }, { x: 18, z: -20 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 28 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
 
@@ -15066,6 +15068,383 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_hostomel_airport', x: ox - 45, z: oz - 35, w: 90, d: 70, baseY: h, floorH: 18, floors: 1, cx: ox, cz: oz });
   }
 
+  // ── LVIV: Old Town (UNESCO World Heritage) ───────────────────────────────
+  // Lviv's historic centre is inscribed on the UNESCO World Heritage List.
+  // It is the main western gateway — for supplies, refugees, and reinforcements.
+  function generateLvivOldTown(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i;
+
+    // ── Rynok Square (Market) — WHITE_TILE paved 20×20 ──
+    for (x = ox - 10; x <= ox + 10; x++) {
+      for (z = oz - 10; z <= oz + 10; z++) {
+        setBlock(x, h, z, BLOCK.WHITE_TILE);
+      }
+    }
+    // METAL lamp posts every 5 blocks (3 high + LIGHT cap)
+    var lampPos = [[-8, -8], [-8, 0], [-8, 8], [0, -8], [0, 8], [8, -8], [8, 0], [8, 8]];
+    for (i = 0; i < lampPos.length; i++) {
+      var lx = ox + lampPos[i][0], lz = oz + lampPos[i][1];
+      setBlock(lx, h + 1, lz, BLOCK.METAL);
+      setBlock(lx, h + 2, lz, BLOCK.METAL);
+      setBlock(lx, h + 3, lz, BLOCK.METAL);
+      setBlock(lx, h + 4, lz, BLOCK.LIGHT);
+    }
+    // Center: STONE fountain base 3×3
+    for (x = ox - 1; x <= ox + 1; x++) {
+      for (z = oz - 1; z <= oz + 1; z++) {
+        setBlock(x, h + 1, z, BLOCK.STONE);
+      }
+    }
+    // Water effect — GLASS 1 high in center of fountain
+    setBlock(ox, h + 2, oz, BLOCK.GLASS);
+
+    // ── Dormition (Uspenska) Church ──
+    var cx = ox - 18, cz = oz - 12;
+    var ch = getHeight(cx, cz);
+    // Main nave: 12×10 BRICK, 14 high
+    for (x = cx - 6; x <= cx + 6; x++) {
+      for (z = cz - 5; z <= cz + 5; z++) {
+        var isNavEdge = (x === cx - 6 || x === cx + 6 || z === cz - 5 || z === cz + 5);
+        if (isNavEdge) {
+          for (i = 0; i < 14; i++) setBlock(x, ch + i, z, BLOCK.BRICK);
+        } else {
+          setBlock(x, ch, z, BLOCK.STONE);
+        }
+      }
+    }
+    // Tall octagonal bell tower 4×4 BRICK 20 high (north side)
+    var tx = cx - 4, tz = cz - 8;
+    var th = getHeight(tx, tz);
+    for (i = 0; i < 20; i++) {
+      setBlock(tx,     th + i, tz,     BLOCK.BRICK);
+      setBlock(tx + 1, th + i, tz,     BLOCK.BRICK);
+      setBlock(tx + 2, th + i, tz,     BLOCK.BRICK);
+      setBlock(tx + 3, th + i, tz,     BLOCK.BRICK);
+      setBlock(tx,     th + i, tz + 3, BLOCK.BRICK);
+      setBlock(tx + 1, th + i, tz + 3, BLOCK.BRICK);
+      setBlock(tx + 2, th + i, tz + 3, BLOCK.BRICK);
+      setBlock(tx + 3, th + i, tz + 3, BLOCK.BRICK);
+      setBlock(tx,     th + i, tz + 1, BLOCK.BRICK);
+      setBlock(tx,     th + i, tz + 2, BLOCK.BRICK);
+      setBlock(tx + 3, th + i, tz + 1, BLOCK.BRICK);
+      setBlock(tx + 3, th + i, tz + 2, BLOCK.BRICK);
+    }
+    // GLASS windows at top zone (rows 14-18 from base)
+    for (i = 14; i <= 18; i++) {
+      setBlock(tx + 1, th + i, tz,     BLOCK.GLASS);
+      setBlock(tx + 2, th + i, tz,     BLOCK.GLASS);
+      setBlock(tx + 1, th + i, tz + 3, BLOCK.GLASS);
+      setBlock(tx + 2, th + i, tz + 3, BLOCK.GLASS);
+    }
+    // METAL cross apex
+    setBlock(tx + 1, th + 20, tz + 1, BLOCK.METAL);
+    setBlock(tx + 1, th + 21, tz + 1, BLOCK.METAL);
+    // Three ornate buttresses on south facade (PLASTER pilasters 3 wide × 7 high)
+    var buttX = [cx - 5, cx, cx + 5];
+    for (i = 0; i < 3; i++) {
+      for (var bi = 0; bi < 7; bi++) {
+        setBlock(buttX[i] - 1, ch + bi, cz + 5, BLOCK.PLASTER);
+        setBlock(buttX[i],     ch + bi, cz + 5, BLOCK.PLASTER);
+        setBlock(buttX[i] + 1, ch + bi, cz + 5, BLOCK.PLASTER);
+        setBlock(buttX[i] - 1, ch + bi, cz + 6, BLOCK.PLASTER);
+        setBlock(buttX[i],     ch + bi, cz + 6, BLOCK.PLASTER);
+        setBlock(buttX[i] + 1, ch + bi, cz + 6, BLOCK.PLASTER);
+      }
+    }
+    // Renaissance arch doorway: 4-wide, 6-high AIR with PLASTER arch frame on south face
+    for (i = 0; i < 6; i++) {
+      setBlock(cx - 2, ch + i, cz + 5, BLOCK.AIR);
+      setBlock(cx - 1, ch + i, cz + 5, BLOCK.AIR);
+      setBlock(cx,     ch + i, cz + 5, BLOCK.AIR);
+      setBlock(cx + 1, ch + i, cz + 5, BLOCK.AIR);
+    }
+    setBlock(cx - 3, ch + 6, cz + 5, BLOCK.PLASTER);
+    setBlock(cx - 2, ch + 7, cz + 5, BLOCK.PLASTER);
+    setBlock(cx - 1, ch + 7, cz + 5, BLOCK.PLASTER);
+    setBlock(cx,     ch + 7, cz + 5, BLOCK.PLASTER);
+    setBlock(cx + 1, ch + 7, cz + 5, BLOCK.PLASTER);
+    setBlock(cx + 2, ch + 6, cz + 5, BLOCK.PLASTER);
+
+    // ── High Castle Hill ──
+    var hcx = ox + 18, hcz = oz + 18;
+    var hch = getHeight(hcx, hcz);
+    // Terraced walls: 4 terraces, each 5 blocks forward + 1 block up
+    for (var tier = 0; tier < 4; tier++) {
+      var tierZ = hcz - 10 + tier * 5;
+      for (x = hcx - 12; x <= hcx + 12; x++) {
+        for (i = 0; i <= tier; i++) {
+          setBlock(x, hch + i, tierZ, BLOCK.STONE);
+        }
+      }
+    }
+    // 20×20 plateau raised 4 blocks
+    for (x = hcx - 10; x <= hcx + 10; x++) {
+      for (z = hcz; z <= hcz + 10; z++) {
+        setBlock(x, hch + 4, z, BLOCK.STONE);
+      }
+    }
+    // Ruined castle walls 6×6 footprint, 8 high STONE
+    for (x = hcx - 3; x <= hcx + 3; x++) {
+      for (z = hcz + 1; z <= hcz + 7; z++) {
+        var isWall = (x === hcx - 3 || x === hcx + 3 || z === hcz + 1 || z === hcz + 7);
+        if (isWall) {
+          // East wall (x === hcx+3) half-collapsed: steps from 8 down to 3
+          var wallH = 8;
+          if (x === hcx + 3) {
+            var zOff = z - (hcz + 1);
+            wallH = Math.max(3, 8 - Math.floor(zOff * 5 / 6));
+          }
+          for (i = 0; i < wallH; i++) setBlock(x, hch + 5 + i, z, BLOCK.STONE);
+        }
+      }
+    }
+    // METAL Ukrainian flag pole 3 high + LIGHT top
+    setBlock(hcx, hch + 13, hcz + 4, BLOCK.METAL);
+    setBlock(hcx, hch + 14, hcz + 4, BLOCK.METAL);
+    setBlock(hcx, hch + 15, hcz + 4, BLOCK.METAL);
+    setBlock(hcx, hch + 16, hcz + 4, BLOCK.LIGHT);
+
+    // ── Latin Cathedral (Dominican) ──
+    var lcx = ox + 16, lcz = oz - 14;
+    var lch = getHeight(lcx, lcz);
+    // 16×10 BRICK 12 high
+    for (x = lcx - 8; x <= lcx + 8; x++) {
+      for (z = lcz - 5; z <= lcz + 5; z++) {
+        var isLCEdge = (x === lcx - 8 || x === lcx + 8 || z === lcz - 5 || z === lcz + 5);
+        if (isLCEdge) {
+          for (i = 0; i < 12; i++) setBlock(x, lch + i, z, BLOCK.BRICK);
+        } else {
+          setBlock(x, lch, z, BLOCK.STONE);
+        }
+      }
+    }
+    // ROOFTILE pitched roof (spanning width)
+    for (var ri = 0; ri <= 4; ri++) {
+      for (z = lcz - 5 + ri; z <= lcz + 5 - ri; z++) {
+        setBlock(lcx - 4 + ri, lch + 12 + ri, z, BLOCK.ROOFTILE);
+        if (ri > 0) setBlock(lcx + 4 - ri, lch + 12 + ri, z, BLOCK.ROOFTILE);
+      }
+    }
+    // Flying buttresses (PLASTER support columns every 4 blocks)
+    var fbZPos = [lcz - 4, lcz, lcz + 4];
+    for (i = 0; i < fbZPos.length; i++) {
+      for (var fbi = 0; fbi < 3; fbi++) {
+        setBlock(lcx - 9 - fbi, lch + fbi, fbZPos[i], BLOCK.PLASTER);
+        setBlock(lcx + 9 + fbi, lch + fbi, fbZPos[i], BLOCK.PLASTER);
+      }
+    }
+    // 2 PLASTER towers 15 high flanking entrance (north face z = lcz-5)
+    var twrPositions = [[lcx - 7, lcz - 6], [lcx + 7, lcz - 6]];
+    for (i = 0; i < twrPositions.length; i++) {
+      var twx = twrPositions[i][0], twz = twrPositions[i][1];
+      var twh = getHeight(twx, twz);
+      for (var ti = 0; ti < 15; ti++) {
+        setBlock(twx,     twh + ti, twz,     BLOCK.PLASTER);
+        setBlock(twx + 1, twh + ti, twz,     BLOCK.PLASTER);
+        setBlock(twx,     twh + ti, twz + 1, BLOCK.PLASTER);
+        setBlock(twx + 1, twh + ti, twz + 1, BLOCK.PLASTER);
+      }
+      setBlock(twx, twh + 15, twz, BLOCK.ROOFTILE);
+      setBlock(twx + 1, twh + 15, twz, BLOCK.ROOFTILE);
+    }
+
+    // ── Old Town defensive wall fragment 2×12, 5 high with crenellations ──
+    var wbx = ox - 28, wbz = oz;
+    var wbh = getHeight(wbx, wbz);
+    for (z = wbz - 6; z <= wbz + 6; z++) {
+      var wallHeight = (Math.abs(z - wbz) % 2 === 0) ? 6 : 5; // crenellations
+      for (i = 0; i < wallHeight; i++) {
+        setBlock(wbx,     wbh + i, z, BLOCK.STONE);
+        setBlock(wbx + 1, wbh + i, z, BLOCK.STONE);
+      }
+    }
+    // 3 METAL/FENCE loophole openings
+    var loopZ = [wbz - 4, wbz, wbz + 4];
+    for (i = 0; i < loopZ.length; i++) {
+      setBlock(wbx, wbh + 3, loopZ[i], BLOCK.FENCE);
+      setBlock(wbx + 1, wbh + 3, loopZ[i], BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'landmark_lviv_old_town', x: ox - 30, z: oz - 25, w: 60, d: 50, baseY: h, floorH: 14, floors: 1, cx: ox, cz: oz });
+  }
+
+  // ── ODESSA: Catacombs and Black Sea Landmarks ─────────────────────────────
+  // Odessa has 2,500+ km of catacombs used by WWII partisans.
+  // The city faces Russian naval bombardment from the Black Sea.
+  function generateOdessaCatacombs(ox, oz) {
+    var h = getHeight(ox, oz);
+    var x, z, i;
+
+    // ── Potemkin Stairs approach — stepped WHITE_TILE terrace 12 wide, 6 steps ──
+    for (var step = 0; step < 6; step++) {
+      var stepZ = oz - 5 + step * 2; // two blocks per step going south
+      var stepY = h + (5 - step);    // descends 1 block each pair
+      for (x = ox - 6; x <= ox + 6; x++) {
+        setBlock(x, stepY, stepZ,     BLOCK.WHITE_TILE);
+        setBlock(x, stepY, stepZ + 1, BLOCK.WHITE_TILE);
+      }
+      // METAL balustrade posts on sides
+      setBlock(ox - 6, stepY + 1, stepZ, BLOCK.METAL);
+      setBlock(ox + 6, stepY + 1, stepZ, BLOCK.METAL);
+    }
+
+    // ── Neoclassical Opera House — 20×14 BRICK 12 high ──
+    var opx = ox, opz = oz + 20;
+    var oph = getHeight(opx, opz);
+    for (x = opx - 10; x <= opx + 10; x++) {
+      for (z = opz - 7; z <= opz + 7; z++) {
+        var isOpEdge = (x === opx - 10 || x === opx + 10 || z === opz - 7 || z === opz + 7);
+        if (isOpEdge) {
+          for (i = 0; i < 12; i++) setBlock(x, oph + i, z, BLOCK.PLASTER);
+        } else {
+          setBlock(x, oph, z, BLOCK.STONE);
+        }
+      }
+    }
+    // 6 PLASTER columns across front facade (each 2×2, 10 high)
+    var colSpacing = [-8, -5, -2, 2, 5, 8];
+    for (i = 0; i < colSpacing.length; i++) {
+      var colX = opx + colSpacing[i];
+      for (var ci = 0; ci < 10; ci++) {
+        setBlock(colX,     oph + ci, opz - 7, BLOCK.PLASTER);
+        setBlock(colX + 1, oph + ci, opz - 7, BLOCK.PLASTER);
+        setBlock(colX,     oph + ci, opz - 8, BLOCK.PLASTER);
+        setBlock(colX + 1, oph + ci, opz - 8, BLOCK.PLASTER);
+      }
+    }
+    // ROOFTILE pediment gable (triangular, 10 wide tapering to 1 at peak)
+    for (var pg = 0; pg <= 5; pg++) {
+      for (x = opx - (5 - pg); x <= opx + (5 - pg); x++) {
+        setBlock(x, oph + 12 + pg, opz - 8, BLOCK.ROOFTILE);
+      }
+    }
+    // Arched GLASS windows on facade
+    var winZ = [opz - 4, opz, opz + 4];
+    for (i = 0; i < winZ.length; i++) {
+      setBlock(opx - 9, oph + 4, winZ[i], BLOCK.GLASS);
+      setBlock(opx - 9, oph + 5, winZ[i], BLOCK.GLASS);
+      setBlock(opx - 9, oph + 6, winZ[i], BLOCK.GLASS);
+      setBlock(opx + 9, oph + 4, winZ[i], BLOCK.GLASS);
+      setBlock(opx + 9, oph + 5, winZ[i], BLOCK.GLASS);
+      setBlock(opx + 9, oph + 6, winZ[i], BLOCK.GLASS);
+    }
+
+    // ── Catacomb tunnel entrance + underground tunnels ──
+    var enx = ox - 8, enz = oz + 5;
+    var enh = getHeight(enx, enz);
+    // Surface entrance: 4×3 AIR tunnel mouth framed in STONE
+    for (x = enx - 2; x <= enx + 2; x++) {
+      setBlock(x, enh + 1, enz, BLOCK.STONE);
+      setBlock(x, enh + 4, enz, BLOCK.STONE);
+      for (i = 1; i <= 3; i++) setBlock(x, enh + i, enz, BLOCK.AIR);
+    }
+    setBlock(enx - 3, enh + 1, enz, BLOCK.STONE);
+    setBlock(enx - 3, enh + 2, enz, BLOCK.STONE);
+    setBlock(enx - 3, enh + 3, enz, BLOCK.STONE);
+    setBlock(enx + 3, enh + 1, enz, BLOCK.STONE);
+    setBlock(enx + 3, enh + 2, enz, BLOCK.STONE);
+    setBlock(enx + 3, enh + 3, enz, BLOCK.STONE);
+    // Underground tunnel: 3 wide × 3 tall, 25 blocks north
+    for (z = enz; z <= enz + 25; z++) {
+      for (x = enx - 1; x <= enx + 1; x++) {
+        // Stone lining
+        setBlock(x, enh - 1, z, BLOCK.STONE);
+        setBlock(x, enh - 4, z, BLOCK.STONE);
+        // AIR tunnel interior
+        setBlock(x, enh - 2, z, BLOCK.AIR);
+        setBlock(x, enh - 3, z, BLOCK.AIR);
+      }
+      setBlock(enx - 2, enh - 2, z, BLOCK.STONE);
+      setBlock(enx - 2, enh - 3, z, BLOCK.STONE);
+      setBlock(enx + 2, enh - 2, z, BLOCK.STONE);
+      setBlock(enx + 2, enh - 3, z, BLOCK.STONE);
+      // LIGHT lanterns every 8 blocks
+      if ((z - enz) % 8 === 0) setBlock(enx, enh - 4, z, BLOCK.LIGHT);
+      // WOOD support beams every 5 blocks
+      if ((z - enz) % 5 === 0) {
+        setBlock(enx - 1, enh - 2, z, BLOCK.WOOD);
+        setBlock(enx + 1, enh - 2, z, BLOCK.WOOD);
+        setBlock(enx - 1, enh - 4, z, BLOCK.WOOD);
+        setBlock(enx + 1, enh - 4, z, BLOCK.WOOD);
+      }
+    }
+    // Side alcoves at z+8 and z+16
+    var alcoveZ = [enz + 8, enz + 16];
+    for (i = 0; i < alcoveZ.length; i++) {
+      setBlock(enx - 3, enh - 2, alcoveZ[i], BLOCK.AIR);
+      setBlock(enx - 3, enh - 3, alcoveZ[i], BLOCK.AIR);
+      setBlock(enx - 4, enh - 2, alcoveZ[i], BLOCK.AIR);
+      setBlock(enx - 4, enh - 3, alcoveZ[i], BLOCK.AIR);
+    }
+    // Exit shaft at north end (4×2 AIR hole opening upward)
+    for (x = enx - 2; x <= enx + 2; x++) {
+      setBlock(x, enh - 2, enz + 25, BLOCK.AIR);
+      setBlock(x, enh - 1, enz + 25, BLOCK.AIR);
+      setBlock(x, enh,     enz + 25, BLOCK.AIR);
+    }
+
+    // ── Black Sea port — 30×8 STONE dock ──
+    var pkx = ox + 10, pkz = oz - 15;
+    var pkh = getHeight(pkx, pkz);
+    for (x = pkx - 15; x <= pkx + 15; x++) {
+      for (z = pkz - 4; z <= pkz + 4; z++) {
+        setBlock(x, pkh, z, BLOCK.STONE);
+      }
+    }
+    // 3 METAL cranes (pole 14 high, arm 8 wide, FENCE wire)
+    var craneX = [pkx - 10, pkx, pkx + 10];
+    for (i = 0; i < craneX.length; i++) {
+      var crx = craneX[i];
+      var crh = getHeight(crx, pkz);
+      for (var cri = 0; cri < 14; cri++) setBlock(crx, crh + cri, pkz, BLOCK.METAL);
+      for (x = crx; x <= crx + 8; x++) setBlock(x, crh + 14, pkz, BLOCK.METAL);
+      setBlock(crx + 8, crh + 15, pkz, BLOCK.FENCE);
+      setBlock(crx + 8, crh + 13, pkz, BLOCK.FENCE);
+    }
+    // Cargo containers (CONCRETE 4×2×2 boxes) scattered on dock
+    var ctPos = [[-12, -3], [-4, -3], [5, -3], [12, -3]];
+    for (i = 0; i < ctPos.length; i++) {
+      var ctx = pkx + ctPos[i][0], ctz = pkz + ctPos[i][1];
+      var ctH = getHeight(ctx, ctz);
+      for (x = ctx; x <= ctx + 4; x++) {
+        setBlock(x, ctH + 1, ctz, BLOCK.CONCRETE);
+        setBlock(x, ctH + 2, ctz, BLOCK.CONCRETE);
+        setBlock(x, ctH + 1, ctz + 2, BLOCK.CONCRETE);
+        setBlock(x, ctH + 2, ctz + 2, BLOCK.CONCRETE);
+      }
+      setBlock(ctx,     ctH + 1, ctz + 1, BLOCK.CONCRETE);
+      setBlock(ctx + 4, ctH + 1, ctz + 1, BLOCK.CONCRETE);
+    }
+
+    // ── Duc de Richelieu monument ──
+    var dmx = ox + 1, dmz = oz - 3;
+    var dmh = getHeight(dmx, dmz);
+    // STONE 2×2×4 pedestal
+    for (i = 0; i < 4; i++) {
+      setBlock(dmx,     dmh + i, dmz,     BLOCK.STONE);
+      setBlock(dmx + 1, dmh + i, dmz,     BLOCK.STONE);
+      setBlock(dmx,     dmh + i, dmz + 1, BLOCK.STONE);
+      setBlock(dmx + 1, dmh + i, dmz + 1, BLOCK.STONE);
+    }
+    // METAL figure 1×1×3 at top
+    setBlock(dmx, dmh + 4, dmz, BLOCK.METAL);
+    setBlock(dmx, dmh + 5, dmz, BLOCK.METAL);
+    setBlock(dmx, dmh + 6, dmz, BLOCK.METAL);
+
+    // ── Anti-aircraft battery positions (4× AA guns on promenade) ──
+    var aaPos = [[-12, 2], [-4, 2], [4, 2], [12, 2]];
+    for (i = 0; i < aaPos.length; i++) {
+      var aax = ox + aaPos[i][0], aaz = oz + aaPos[i][1];
+      var aah = getHeight(aax, aaz);
+      setBlock(aax, aah + 1, aaz, BLOCK.METAL);
+      setBlock(aax, aah + 2, aaz, BLOCK.METAL);
+      setBlock(aax, aah + 3, aaz, BLOCK.METAL);
+    }
+
+    _buildings.push({ kind: 'landmark_odessa_catacombs', x: ox - 15, z: oz - 20, w: 40, d: 50, baseY: h, floorH: 12, floors: 1, cx: ox, cz: oz });
+  }
+
   // ── SLAVUTYCH: Chernobyl Memorial ────────────────────────────────────────
   // Slavutych was built in 1986 to house Chernobyl workers after Pripyat evacuation.
   // The reactor sarcophagus is visible from the city; exclusion zone starts at the edge.
@@ -18367,6 +18746,33 @@ window.VoxelWorld = (function () {
       generateDroneNest(45, 42); generateDroneNest(-45, -42);
       generateAntiAirPosition(-38, 28); generateAntiAirPosition(35, -30);
       generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'LVIV_OLD_TOWN') {
+      generateCheckpoint(0, -40);
+      generateBunker(-20, 5); generateBunker(20, 5);
+      generateLvivOldTown(0, 0);
+      generateChurch(-25, 20); generateChurch(22, -18);
+      generateUkrainianApartment(-32, -28, 6); generateUkrainianApartment(28, -28, 5);
+      generateBurningRuin(-15, 28); generateBurningRuin(15, -32);
+      generateWreckedTank(-18, -30); generateWreckedAPC(18, 22);
+      generateCraters(6);
+      generateTrenchNetwork(-15, 18); generateTrenchNetwork(15, -18);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-35, -30); generateAntiAirPosition(32, 28);
+      generateCheckpoint(-42, 0, true);
+    } else if (level.id === 'ODESSA_CATACOMBS') {
+      generateCheckpoint(0, -40);
+      generateBunker(-22, 5); generateBunker(22, 5);
+      generateOdessaCatacombs(0, 0);
+      generateUkrainianApartment(-32, -28, 8); generateUkrainianApartment(28, -28, 6);
+      generateUkrainianApartment(-32, 18, 6); generateUkrainianApartment(28, 20, 8);
+      generateChurch(-22, -18); generateChurch(20, 20);
+      generateBurningRuin(-15, 28); generateBurningRuin(15, -32);
+      generateWreckedTank(-20, -30); generateWreckedAPC(18, 22);
+      generateCraters(8);
+      generateTrenchNetwork(-15, 18); generateTrenchNetwork(15, -18);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-35, -32); generateAntiAirPosition(32, 30);
+      generateCheckpoint(-42, 0, true);
     }
 
     // ── PROC_CITIES: distinct content for each procedural city ─────────────
