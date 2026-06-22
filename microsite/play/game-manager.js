@@ -3586,6 +3586,35 @@ const GameManager = (function () {
     }
   }
 
+  /* ── Kill Streak Banner ──────────────────────────────────────────── */
+  function _showKillStreakBanner(text, kills) {
+    if (!window._killStreakBanner) {
+      var d = document.createElement('div');
+      d.style.cssText = [
+        'position:fixed;top:20%;left:50%;transform:translateX(-50%);',
+        'pointer-events:none;z-index:65;',
+        'opacity:0;transition:opacity 0.15s;',
+        'text-align:center;'
+      ].join('');
+      document.body.appendChild(d);
+      window._killStreakBanner = d;
+    }
+    var colors = { 2:'#ffdd00', 3:'#ff9900', 4:'#ff5500', 5:'#ff2200', 6:'#ff00ff', 7:'#ffffff' };
+    var col = colors[Math.min(kills, 7)] || '#ffdd00';
+    window._killStreakBanner.innerHTML = [
+      '<div style="color:' + col + ';font-size:32px;font-weight:bold;',
+      'font-family:monospace;letter-spacing:4px;',
+      'text-shadow:0 0 20px ' + col + ',0 2px 4px black;">' + text + '</div>',
+      '<div style="color:rgba(255,255,255,0.6);font-size:14px;font-family:monospace;">',
+      kills + ' KILL STREAK</div>'
+    ].join('');
+    window._killStreakBanner.style.opacity = '1';
+    clearTimeout(window._killStreakBanner._t);
+    window._killStreakBanner._t = setTimeout(function() {
+      if (window._killStreakBanner) window._killStreakBanner.style.opacity = '0';
+    }, 1800);
+  }
+
   /* ── Wave Management ─────────────────────────────────────────────── */
   function beginWave(w) {
     if (typeof window !== 'undefined') {
@@ -3629,6 +3658,10 @@ const GameManager = (function () {
       window.AudioSystem.playWaveStart();
       HUD.setWave(w, stageDef.wavesPerStage);
       HUD.announceWave(w, 0, stageDef.wavesPerStage);
+      if (HUD.showWaveAnnouncement) {
+        var _bossWvDrone = (w === stageDef.wavesPerStage);
+        HUD.showWaveAnnouncement(w, stageDef.wavesPerStage, _bossWvDrone);
+      }
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
       RefineryStrike.startMission({
         onComplete: function () {
@@ -3649,6 +3682,10 @@ const GameManager = (function () {
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
+    if (HUD.showWaveAnnouncement) {
+      var _bossWv = (w === stageDef.wavesPerStage);
+      HUD.showWaveAnnouncement(w, stageDef.wavesPerStage, _bossWv);
+    }
     // Announce enemy's randomly chosen formation as an intel report
     var _enemyForms = ['WEDGE', 'LINE', 'COLUMN', 'STAGGERED'];
     var _eFLabel = ['▲ WEDGE', '━ LINE', '| COLUMN', '⋮ STAGGERED'];
@@ -5592,6 +5629,7 @@ const GameManager = (function () {
       if (player.multikillCount >= 2) {
         var mkNames = ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'MULTI KILL', 'MEGA KILL', 'ULTRA KILL'];
         var mkName = mkNames[Math.min(player.multikillCount, 6)];
+        _showKillStreakBanner(mkName, player.multikillCount);
         if (HUD.showStreakBanner) HUD.showStreakBanner(mkName, player.multikillCount);
         // Adrenaline rush on quad+: brief slow-mo + FOV punch
         if (player.multikillCount >= 4) {

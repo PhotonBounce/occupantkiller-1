@@ -2071,6 +2071,62 @@ const HUD = (() => {
     }, 2800);
   }
 
+  // ── Dramatic Wave Announcement Overlay ──
+  var _waveAnnounceDiv = null;
+
+  function showWaveAnnouncement(waveNum, totalWaves, isBossWave) {
+    if (!_waveAnnounceDiv) {
+      _waveAnnounceDiv = document.createElement('div');
+      _waveAnnounceDiv.style.cssText = [
+        'position:fixed;top:0;left:0;width:100%;height:100%;',
+        'display:flex;flex-direction:column;align-items:center;justify-content:center;',
+        'pointer-events:none;z-index:70;',
+        'opacity:0;transition:opacity 0.3s;'
+      ].join('');
+      document.body.appendChild(_waveAnnounceDiv);
+    }
+
+    var color = isBossWave ? '#ff2222' : '#ffdd00';
+    var borderColor = isBossWave ? '#ff0000' : '#cc8800';
+    var label = isBossWave ? '⚠️ BOSS WAVE' : ('WAVE ' + waveNum + ' / ' + totalWaves);
+    var subtitle = isBossWave ? 'ALL FORCES CONVERGING' : _getWaveSubtitle(waveNum);
+
+    _waveAnnounceDiv.innerHTML = [
+      '<div style="',
+      'background:linear-gradient(180deg,rgba(0,0,0,0.92) 0%,rgba(20,0,0,0.85) 100%);',
+      'border:2px solid ' + borderColor + ';',
+      'border-left:6px solid ' + color + ';',
+      'padding:20px 40px;text-align:center;',
+      'box-shadow:0 0 40px rgba(255,80,0,0.4);',
+      'max-width:500px;',
+      '">',
+      '<div style="color:' + color + ';font-size:11px;letter-spacing:6px;font-family:monospace;margin-bottom:6px;">INCOMING</div>',
+      '<div style="color:' + color + ';font-size:38px;font-weight:bold;font-family:monospace;letter-spacing:3px;text-shadow:0 0 20px ' + color + ';">' + label + '</div>',
+      '<div style="color:#aaaaaa;font-size:13px;font-family:monospace;margin-top:8px;letter-spacing:2px;">' + subtitle + '</div>',
+      '</div>'
+    ].join('');
+
+    _waveAnnounceDiv.style.opacity = '1';
+    clearTimeout(_waveAnnounceDiv._hideTimer);
+    _waveAnnounceDiv._hideTimer = setTimeout(function() {
+      _waveAnnounceDiv.style.opacity = '0';
+    }, 2500);
+  }
+
+  function _getWaveSubtitle(waveNum) {
+    var subtitles = [
+      'HOLD THE LINE',
+      'THEY KEEP COMING',
+      'NO RETREAT',
+      'DEFEND AT ALL COSTS',
+      'REPEL THE ASSAULT',
+      'IRON WILL',
+      'GLORY TO UKRAINE',
+      'SLAVA UKRAINI'
+    ];
+    return subtitles[(waveNum - 1) % subtitles.length];
+  }
+
   // ── Last Wave Summary Overlay ──
   let _waveSummaryEl = null;
   function showWaveSummary(stats) {
@@ -2116,6 +2172,7 @@ const HUD = (() => {
     addCombatLog, showAchievement,
     showTacticalMap, isTacticalMapVisible, updateTacticalMap,
     showSupplyMenu, showFieldPromotion, showWaveStats,
+    showWaveAnnouncement,
     showDeathStats, updateOKC,
     // ── B22: New HUD ──
     showBossBar, hideBossBar,
