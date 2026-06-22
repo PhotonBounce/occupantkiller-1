@@ -5056,8 +5056,20 @@ const Weapons = (() => {
 
   };
 
+  // ── Builders for two weapons that were added to WEAPONS without meshes ──
+  // M16A2 (#3) and RG-6 Inferno (#5) were added to the WEAPONS list but never
+  // got mesh builders, so the positional meshBuilders array was 2 short. That
+  // shifted every weapon from index 3 onward onto the wrong model (M16→AK,
+  // AK→RPK, …) and dropped the last two into the magenta placeholder. These
+  // dedicated builders restore the 1:1 weapon→mesh alignment.
+  // M16A2 is an AR-15-platform 5.56mm rifle (same family as the M4A1 carbine);
+  // RG-6 Inferno is a 6-shot revolver grenade launcher (same class as the M32A1
+  // MGL). Both delegate to the matching, known-good builder.
+  NB.m16 = NB.m16 || function () { return NB.m4(); };
+  NB.rg6 = NB.rg6 || function () { return NB.m32mgl(); };
+
   const meshBuilders = [
-    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.ak, NB.rpk,
+    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.m16, NB.ak, NB.rg6, NB.rpk,
     NB.svd, NB.pkm, NB.nlaw, NB.stugna, NB.m4,
     NB.javelin, NB.rpg7, NB.igla, NB.gp25,
     NB.scarh, NB.dshk, buildMolotovMesh,
