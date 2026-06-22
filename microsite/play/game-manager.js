@@ -1570,6 +1570,8 @@ const GameManager = (function () {
     try { if (window.CompanionRadio && CompanionRadio.init) CompanionRadio.init(); } catch (eCR) {}
     // Bullet-time power-up
     try { if (window.TimeWarp && TimeWarp.init) TimeWarp.init(); } catch (eTW) { console.warn('[TimeWarp] init failed', eTW); }
+    // Surrender system
+    try { if (window.SurrenderSystem) SurrenderSystem.init(_scene); } catch (eSS) { console.warn('[SurrenderSystem] init failed', eSS); }
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -2457,6 +2459,10 @@ const GameManager = (function () {
             }
           }
           if (!_grappleHandled) {
+            // Check for nearby scavenged weapon drop first (E key)
+            if (window.ScavengeSystem && player && ScavengeSystem.tryPickup(player.position)) {
+              // Pickup succeeded — skip further E-key actions
+            } else {
             // Check for nearby attachment pickup first
             var _atkPickedUp = false;
             if (typeof Attachments !== 'undefined' && _scene && player) {
@@ -2484,6 +2490,7 @@ const GameManager = (function () {
               }
             }
             if (!_atkPickedUp) Weapons.switchNext();
+            } // end else (no scavenge pickup)
           }
         }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
@@ -3430,6 +3437,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.BallisticShield) BallisticShield.reset();
     if (window.TimeWarp) TimeWarp.reset();
     if (window.ScavengeSystem) ScavengeSystem.reset();
     if (window.TripwireIED) TripwireIED.reset();
@@ -5906,6 +5914,15 @@ const GameManager = (function () {
       // Map weapon type to audio sound type
       const audioMap = { MELEE: 'melee', PISTOL: 'pistol', ASSAULT: 'rifle', LMG: 'rifle', SNIPER: 'sniper', HMG: 'hmg', AT: 'launcher', ATGM: 'launcher', NATO: 'rifle', AT_HEAVY: 'launcher', AT_LIGHT: 'launcher', AA: 'launcher', GRENADE: 'launcher', NATO_HEAVY: 'rifle', HMG_HEAVY: 'hmg', INCENDIARY: 'launcher', MACHINEGUN: 'hmg', SMG: 'smg', AMR: 'heavy_sniper', MINIGUN: 'hmg', SILENT: 'silenced', THERMOBARIC: 'launcher', SHOTGUN: 'shotgun', MINE: 'explosive', SMOKE: 'launcher', FLASHBANG: 'launcher', EXPLOSIVE: 'explosive', GATLING: 'gatling' };
       Weapons.tryFire(_camera, targets, delta, function (hit) {
+        // ── Ballistic Shield: check if player's own bullet intersects the shield ──
+        if (window.BallisticShield && BallisticShield.isDeployed()) {
+          var _bsRayOrigin = _camera.position.clone();
+          var _bsRayDir = new THREE.Vector3();
+          _camera.getWorldDirection(_bsRayDir);
+          if (BallisticShield.checkBulletBlock(_bsRayOrigin, _bsRayDir)) {
+            return; // bullet stopped by own deployed shield
+          }
+        }
         // Check if hit a drone first (mesh hierarchy tagged with userData.droneId)
         var hitDrone = null;
         if (typeof DroneSystem !== 'undefined' && DroneSystem.findByMesh) {
@@ -6131,6 +6148,9 @@ const GameManager = (function () {
 
     var _wepType = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent().type : '';
     const remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
+
+    // Surrender check: low-HP enemies may raise hands
+    if (window.SurrenderSystem && remaining > 0) SurrenderSystem.checkSurrender(enemy);
 
     if (window.BloodEffects && enemy && enemy.mesh) {
       BloodEffects.onHit(enemy.mesh.position.clone());
@@ -6761,6 +6781,17 @@ const GameManager = (function () {
     if (gameState !== STATE.PLAYING) return; // can't take damage when dead/paused
     if (player.godMode) return; // God mode: immune to damage
     if (DroneSystem.isPossessing()) return; // player body is passive while piloting drone
+    // Ballistic Shield blocks bullet from attacker direction (full block)
+    if (window.BallisticShield && BallisticShield.isDeployed() && attackerPos) {
+      var _bsOrigin = attackerPos.clone ? attackerPos.clone() : new THREE.Vector3(attackerPos.x, attackerPos.y, attackerPos.z);
+      _bsOrigin.y += 1.0; // approx bullet height
+      var _bsTarget = player.position.clone();
+      _bsTarget.y += 0.8;
+      var _bsDir = new THREE.Vector3().subVectors(_bsTarget, _bsOrigin).normalize();
+      if (BallisticShield.checkBulletBlock(_bsOrigin, _bsDir)) {
+        return; // bullet fully blocked by shield
+      }
+    }
     // Shield absorbs damage
     if (player.shieldTimer > 0) {
       HUD.notifyPickup('🛡 SHIELDED!', '#ffd700');
@@ -7898,6 +7929,7 @@ const GameManager = (function () {
       }
       if (window.IntelPickups) IntelPickups.update(delta, player.position, player, _scene);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
+      if (window.SurrenderSystem) SurrenderSystem.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
