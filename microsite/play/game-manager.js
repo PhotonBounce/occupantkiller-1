@@ -6170,6 +6170,7 @@ const GameManager = (function () {
     if (typeof Feedback !== 'undefined' && Feedback.updateHitStop) Feedback.updateHitStop(rawDelta);
     var delta = (typeof Feedback !== 'undefined' && Feedback.isHitStopped && Feedback.isHitStopped()) ? 0 : rawDelta;
     try { if (window.PerformanceScaler && PerformanceScaler.tick) PerformanceScaler.tick(rawDelta * 1000); } catch (ePS) {}
+    try { if (window.TimeOfDay && TimeOfDay.tick) TimeOfDay.tick(rawDelta); } catch (eTOD) {}
 
     // Slow-mo: scale delta by slow-mo rate (triggered on multikills / wave clears)
     if (typeof Feedback !== 'undefined' && Feedback.getSlowMoRate) delta *= Feedback.getSlowMoRate();
