@@ -2292,6 +2292,7 @@ window.AudioSystem = (function () {
     playGrappleHook: playGrappleHook,
     playWallRun: playWallRun,
     playAchievementUnlock: playAchievementUnlock,
+    playUnlock: playAchievementUnlock,
     playLevelUp: playLevelUp,
     playRollDodge: playRollDodge,
     playCriticalHit: playCriticalHit,
