@@ -1221,7 +1221,7 @@ window.VoxelWorld = (function () {
     { id: 'MOSCOW',    name: 'Moscow Finale',        desc: 'End it at the Kremlin',       theme: 'cityscape', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x222228, spawnCandidates: [{ x: 0, z: -50 }, { x: -50, z: 0 }, { x: 50, z: 0 }, { x: 0, z: 25 }, { x: -40, z: -38 }, { x: 40, z: -38 }, { x: -40, z: 25 }, { x: 40, z: 25 }, { x: 0, z: -22 }, { x: 0, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SEVASTOPOL', name: 'Sevastopol Naval Base', desc: 'Destroy the Black Sea Fleet', theme: 'coastal',  wavesPerLevel: 7, difficulty: 3.8, fogColor: 0x3355aa, spawnCandidates: [{ x: -15, z: 8 }, { x: 15, z: 5 }, { x: 0, z: -18 }, { x: -18, z: -10 }, { x: 18, z: -10 }, { x: -35, z: 8 }, { x: 35, z: 5 }], spawnLookTarget: { x: 0, z: 20 } },
     { id: 'DONBAS',    name: 'Donbas Final Push',     desc: 'Liberate the last stronghold', theme: 'urban',   wavesPerLevel: 8, difficulty: 4.2, fogColor: 0x2a2020, spawnCandidates: [{ x: -20, z: -12 }, { x: 20, z: -12 }, { x: 0, z: -20 }, { x: -35, z: 0 }, { x: 35, z: 0 }, { x: -15, z: 15 }, { x: 15, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
-    { id: 'KHARKIV',   name: 'Kharkiv: Second City',   desc: 'Ukraine\'s second city under siege', theme: 'urban', wavesPerLevel: 8, difficulty: 3.2, fogColor: 0x4a4a5a, spawnCandidates: [{ x: -18, z: -20 }, { x: 18, z: -20 }, { x: 0, z: -28 }, { x: -30, z: 0 }, { x: 30, z: 0 }, { x: -15, z: 20 }, { x: 15, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KHARKIV', name: 'Kharkiv Under Fire', desc: 'Defend Ukraine\'s 2nd city under constant bombardment', theme: 'urban', wavesPerLevel: 10, difficulty: 3.8, fogColor: 0x443322, spawnCandidates: [{ x: -20, z: -18 }, { x: 20, z: -18 }, { x: 0, z: -28 }, { x: -30, z: 5 }, { x: 30, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'BELGOROD',  name: 'Belgorod Offensive',    desc: 'Cross into enemy territory',   theme: 'grassland', wavesPerLevel: 8, difficulty: 4.6, fogColor: 0x6B1A2E, spawnCandidates: [{ x: -15, z: -12 }, { x: 15, z: -12 }, { x: 0, z: -20 }, { x: -30, z: -5 }, { x: 30, z: -5 }, { x: -12, z: 15 }, { x: 12, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KREMLIN',   name: 'Kremlin Showdown',      desc: 'The final battle for peace',   theme: 'cityscape', wavesPerLevel: 10, difficulty: 5.0, fogColor: 0x111118, spawnCandidates: [{ x: -18, z: 52 }, { x: 18, z: 52 }, { x: -32, z: 22 }, { x: 32, z: 22 }, { x: 0, z: 55 }, { x: -32, z: -10 }, { x: 32, z: -10 }, { x: 0, z: -25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KYIV',      name: 'Siege of Kyiv',         desc: 'Ambush the Russian armored convoy', theme: 'urban', wavesPerLevel: 8, difficulty: 1.5, fogColor: 0x6a7080, tankFocus: true, spawnCandidates: [{ x: 0, z: -24 }, { x: -8, z: -24 }, { x: 8, z: -24 }, { x: -4, z: -28 }, { x: 4, z: -28 }], spawnLookTarget: { x: 0, z: 22 } },
@@ -1236,6 +1236,7 @@ window.VoxelWorld = (function () {
     { id: 'DONETSK', name: 'Donetsk Line', desc: 'Counter-attack in the occupied industrial city', theme: 'urban', wavesPerLevel: 10, difficulty: 4.5, fogColor: 0x3a3a2a, spawnCandidates: [{ x: -20, z: -15 }, { x: 20, z: -15 }, { x: 0, z: -25 }, { x: -30, z: 0 }, { x: 30, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'LVIV', name: 'Lviv Stronghold', desc: 'Defend the cultural capital from saboteurs', theme: 'urban', wavesPerLevel: 7, difficulty: 2.8, fogColor: 0x445533, spawnCandidates: [{ x: -18, z: -20 }, { x: 18, z: -20 }, { x: 0, z: -28 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SEVERODONETSK', name: 'Severodonetsk Last Stand', desc: 'Hold the Azot plant until evacuation', theme: 'industrial', wavesPerLevel: 10, difficulty: 4.2, fogColor: 0x382010, spawnCandidates: [{ x: -15, z: -20 }, { x: 15, z: -20 }, { x: 0, z: -28 }, { x: -28, z: 0 }, { x: 28, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'MYKOLAIV', name: 'Mykolaiv Port Defense', desc: 'Hold the Bug River port against amphibious assault', theme: 'coastal', wavesPerLevel: 8, difficulty: 3.2, fogColor: 0x334455, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: -20 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -11724,6 +11725,432 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_sievierodonetsk_bridge', x: ox - 22, z: oz - 3, w: 45, d: 7, baseY: h, floorH: 7, floors: 1, cx: ox, cz: oz });
   }
 
+  // ─── KHARKIV LANDMARKS ────────────────────────────────────────────────────
+
+  function generateKharkivFreedomSquare(ox, oz) {
+    // Maidan Svobody — one of Europe's largest squares (Freedom Square)
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // 50×50 checkerboard ground — WHITE_TILE and CONCRETE alternating
+    for (var px = -25; px <= 25; px++) {
+      for (var pz = -25; pz <= 25; pz++) {
+        var tile = ((px + pz) % 2 === 0) ? BLOCK.WHITE_TILE : BLOCK.CONCRETE;
+        setBlock(ox + px, base - 1, oz + pz, tile);
+      }
+    }
+    // Central fountain — 8×8 CONCRETE ring with LIGHT water center
+    for (var fx = -4; fx <= 4; fx++) {
+      for (var fz = -4; fz <= 4; fz++) {
+        var onRing = (Math.abs(fx) === 4 || Math.abs(fz) === 4);
+        if (onRing) {
+          setBlock(ox + fx, base, oz + fz, BLOCK.CONCRETE);
+          setBlock(ox + fx, base + 1, oz + fz, BLOCK.CONCRETE);
+        } else if (Math.abs(fx) <= 3 && Math.abs(fz) <= 3) {
+          setBlock(ox + fx, base, oz + fz, BLOCK.LIGHT);
+        }
+      }
+    }
+    setBlock(ox, base + 1, oz, BLOCK.LIGHT);
+    setBlock(ox, base + 2, oz, BLOCK.LIGHT);
+    // 6 Soviet neoclassical buildings around the plaza perimeter
+    var plazaBuildings = [
+      [-30, -15], [30, -15], [-30, 15], [30, 15], [-10, -30], [10, -30]
+    ];
+    for (var bi = 0; bi < plazaBuildings.length; bi++) {
+      var box = ox + plazaBuildings[bi][0];
+      var boz = oz + plazaBuildings[bi][1];
+      var bh = getTerrainHeight(box, boz) || 0;
+      var bbase = bh + 1;
+      // Main body 16×10 PLASTER, 10 high
+      for (var wy = 0; wy < 10; wy++) {
+        for (var wx = -8; wx <= 8; wx++) {
+          for (var wz = -5; wz <= 5; wz++) {
+            if (Math.abs(wx) === 8 || Math.abs(wz) === 5 || wy === 9) {
+              setBlock(box + wx, bbase + wy, boz + wz, BLOCK.PLASTER);
+            }
+          }
+        }
+      }
+      // Columns on south face — 1×1×9 every 2 blocks
+      for (var ci = -6; ci <= 6; ci += 2) {
+        for (var cy = 0; cy < 9; cy++) {
+          setBlock(box + ci, bbase + cy, boz + 5, BLOCK.PLASTER);
+        }
+      }
+    }
+    // 4 METAL lamp posts at plaza corners
+    var corners = [[-22, -22], [22, -22], [-22, 22], [22, 22]];
+    for (var li = 0; li < corners.length; li++) {
+      var lx = ox + corners[li][0]; var lz = oz + corners[li][1];
+      var lh = getTerrainHeight(lx, lz) || 0;
+      for (var ly = 0; ly < 4; ly++) {
+        setBlock(lx, lh + 1 + ly, lz, BLOCK.METAL);
+      }
+      setBlock(lx, lh + 5, lz, BLOCK.LIGHT);
+    }
+    // Shell craters — 8 random RUBBLE pits
+    var craterPositions = [[-18, -18], [15, 20], [-8, 22], [20, -12],
+                           [-22, 5], [10, -22], [-5, 18], [18, 8]];
+    for (var cri = 0; cri < craterPositions.length; cri++) {
+      var crx = ox + craterPositions[cri][0]; var crz = oz + craterPositions[cri][1];
+      var crh = getTerrainHeight(crx, crz) || 0;
+      setBlock(crx, crh, crz, BLOCK.RUBBLE);
+      setBlock(crx + 1, crh, crz, BLOCK.RUBBLE);
+      setBlock(crx, crh, crz + 1, BLOCK.RUBBLE);
+      setBlock(crx, crh - 1, crz, BLOCK.AIR);
+    }
+    _buildings.push({ kind: 'landmark_kharkiv_freedom_square', x: ox - 30, z: oz - 30, w: 60, d: 60, baseY: base, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
+  function generateKharkivDerzhprom(ox, oz) {
+    // Derzhprom — first Soviet skyscraper (1928), brutalist constructivist, U-shaped
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Left wing: 6×20 CONCRETE, 16 high
+    for (var wy = 0; wy < 16; wy++) {
+      for (var wx = -3; wx <= 3; wx++) {
+        for (var wz = 0; wz <= 20; wz++) {
+          if (Math.abs(wx) === 3 || wz === 0 || wz === 20 || wy === 15) {
+            setBlock(ox - 12 + wx, base + wy, oz + wz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Right wing: 6×20 CONCRETE, 16 high
+    for (var ry = 0; ry < 16; ry++) {
+      for (var rx = -3; rx <= 3; rx++) {
+        for (var rz = 0; rz <= 20; rz++) {
+          if (Math.abs(rx) === 3 || rz === 0 || rz === 20 || ry === 15) {
+            setBlock(ox + 12 + rx, base + ry, oz + rz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Main body: 12×8 CONCRETE, 13 high between wings (back wall at z=20)
+    for (var my = 0; my < 13; my++) {
+      for (var mx = -6; mx <= 6; mx++) {
+        for (var mz = 14; mz <= 22; mz++) {
+          if (Math.abs(mx) === 6 || mz === 14 || mz === 22 || my === 12) {
+            setBlock(ox + mx, base + my, oz + mz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Center bridge at Y+10 connecting wings (flying walkway)
+    for (var bry = 10; bry <= 13; bry++) {
+      for (var brx = -9; brx <= 9; brx++) {
+        for (var brz = 8; brz <= 12; brz++) {
+          if (bry === 10 || bry === 13 || Math.abs(brx) === 9 || brz === 8 || brz === 12) {
+            setBlock(ox + brx, base + bry, oz + brz, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // GLASS windows — 1×2 every 2 blocks on outer facades
+    for (var wi = -2; wi <= 2; wi++) {
+      for (var wh = 2; wh <= 14; wh += 3) {
+        // Left wing south face
+        setBlock(ox - 12 + wi * 1, base + wh, oz, BLOCK.GLASS);
+        setBlock(ox - 12 + wi * 1, base + wh + 1, oz, BLOCK.GLASS);
+        // Right wing south face
+        setBlock(ox + 12 + wi * 1, base + wh, oz, BLOCK.GLASS);
+        setBlock(ox + 12 + wi * 1, base + wh + 1, oz, BLOCK.GLASS);
+      }
+    }
+    // Ground floor arcade — AIR gap 1×3 running south-side entries
+    for (var ai = -2; ai <= 2; ai++) {
+      for (var ah = 1; ah <= 3; ah++) {
+        setBlock(ox - 12 + ai, base + ah, oz, BLOCK.AIR);
+        setBlock(ox + 12 + ai, base + ah, oz, BLOCK.AIR);
+      }
+    }
+    // Top observation deck — METAL railing around roof edge of main body
+    for (var mx2 = -6; mx2 <= 6; mx2++) {
+      setBlock(ox + mx2, base + 13, oz + 14, BLOCK.METAL);
+      setBlock(ox + mx2, base + 13, oz + 22, BLOCK.METAL);
+    }
+    for (var mz2 = 14; mz2 <= 22; mz2++) {
+      setBlock(ox - 6, base + 13, oz + mz2, BLOCK.METAL);
+      setBlock(ox + 6, base + 13, oz + mz2, BLOCK.METAL);
+    }
+    _buildings.push({ kind: 'landmark_kharkiv_derzhprom', x: ox - 15, z: oz, w: 30, d: 24, baseY: base, floorH: 16, floors: 5, cx: ox, cz: oz });
+  }
+
+  function generateKharkivUniversity(ox, oz) {
+    // Karazin University — neoclassical 1940s, columns, clock tower
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main hall: 20×12 PLASTER, 12 high
+    for (var wy = 0; wy < 12; wy++) {
+      for (var wx = -10; wx <= 10; wx++) {
+        for (var wz = -6; wz <= 6; wz++) {
+          if (Math.abs(wx) === 10 || Math.abs(wz) === 6 || wy === 11) {
+            setBlock(ox + wx, base + wy, oz + wz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // 8 PLASTER columns on south facade, 1×1×11, spaced every 2 blocks
+    for (var ci = -7; ci <= 7; ci += 2) {
+      for (var cy = 0; cy < 11; cy++) {
+        setBlock(ox + ci, base + cy, oz + 6, BLOCK.PLASTER);
+      }
+    }
+    // Central clock tower: 4×4 BRICK, 20 high
+    for (var ty = 0; ty < 20; ty++) {
+      for (var tx = -2; tx <= 2; tx++) {
+        for (var tz = -2; tz <= 2; tz++) {
+          if (Math.abs(tx) === 2 || Math.abs(tz) === 2) {
+            setBlock(ox + tx, base + ty, oz + tz, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    // GLASS clock faces on all 4 sides at Y=16-17
+    setBlock(ox, base + 16, oz + 2, BLOCK.GLASS);
+    setBlock(ox, base + 17, oz + 2, BLOCK.GLASS);
+    setBlock(ox, base + 16, oz - 2, BLOCK.GLASS);
+    setBlock(ox, base + 17, oz - 2, BLOCK.GLASS);
+    setBlock(ox + 2, base + 16, oz, BLOCK.GLASS);
+    setBlock(ox + 2, base + 17, oz, BLOCK.GLASS);
+    setBlock(ox - 2, base + 16, oz, BLOCK.GLASS);
+    setBlock(ox - 2, base + 17, oz, BLOCK.GLASS);
+    // ROOFTILE pediment on main entrance
+    for (var ri = -4; ri <= 4; ri++) {
+      setBlock(ox + ri, base + 12, oz + 6, BLOCK.ROOFTILE);
+    }
+    // Side wings: 10×8 PLASTER, 9 high
+    var wings = [[-15, 0], [15, 0]];
+    for (var wi = 0; wi < wings.length; wi++) {
+      var wx2 = ox + wings[wi][0]; var wz2 = oz + wings[wi][1];
+      var wh2 = getTerrainHeight(wx2, wz2) || 0;
+      for (var wy2 = 0; wy2 < 9; wy2++) {
+        for (var wxa = -5; wxa <= 5; wxa++) {
+          for (var wza = -4; wza <= 4; wza++) {
+            if (Math.abs(wxa) === 5 || Math.abs(wza) === 4 || wy2 === 8) {
+              setBlock(wx2 + wxa, wh2 + 1 + wy2, wz2 + wza, BLOCK.PLASTER);
+            }
+          }
+        }
+      }
+    }
+    // Sandbags at entrance
+    for (var si = -3; si <= 3; si++) {
+      setBlock(ox + si, base, oz + 8, BLOCK.STONE);
+      setBlock(ox + si, base + 1, oz + 8, BLOCK.STONE);
+    }
+    _buildings.push({ kind: 'landmark_kharkiv_university', x: ox - 20, z: oz - 6, w: 40, d: 15, baseY: base, floorH: 12, floors: 3, cx: ox, cz: oz });
+  }
+
+  function generateKharkivSaltivka(ox, oz) {
+    // Saltivka — largest residential district, 70% destroyed by shelling
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // 4 Soviet apartment towers — 8×12 CONCRETE, 14 high, top 4 floors = RUBBLE
+    var towers = [[-10, -10], [10, -10], [-10, 10], [10, 10]];
+    for (var ti = 0; ti < towers.length; ti++) {
+      var tx = ox + towers[ti][0]; var tz = oz + towers[ti][1];
+      var th = getTerrainHeight(tx, tz) || 0;
+      var tbase = th + 1;
+      for (var ty = 0; ty < 14; ty++) {
+        var block = (ty >= 10) ? BLOCK.RUBBLE : BLOCK.CONCRETE;
+        for (var txa = -4; txa <= 4; txa++) {
+          for (var tza = -6; tza <= 6; tza++) {
+            if (Math.abs(txa) === 4 || Math.abs(tza) === 6 || ty === 13) {
+              setBlock(tx + txa, tbase + ty, tz + tza, block);
+            }
+          }
+        }
+      }
+      // Windows
+      for (var wf = 2; wf <= 10; wf += 3) {
+        for (var wc = -3; wc <= 3; wc += 2) {
+          setBlock(tx + wc, tbase + wf, tz + 6, BLOCK.GLASS);
+          setBlock(tx + wc, tbase + wf, tz - 6, BLOCK.GLASS);
+        }
+      }
+    }
+    // 2 fully collapsed towers — RUBBLE piles 4 high, 10×8 footprint
+    var collapsed = [[-22, 0], [22, 0]];
+    for (var ci = 0; ci < collapsed.length; ci++) {
+      var cx = ox + collapsed[ci][0]; var cz = oz + collapsed[ci][1];
+      var ch = getTerrainHeight(cx, cz) || 0;
+      for (var cy = 0; cy < 4; cy++) {
+        for (var cxa = -5; cxa <= 5; cxa++) {
+          for (var cza = -4; cza <= 4; cza++) {
+            if (Math.random() < (0.9 - cy * 0.15)) {
+              setBlock(cx + cxa, ch + 1 + cy, cz + cza, BLOCK.RUBBLE);
+            }
+          }
+        }
+      }
+    }
+    // CONCRETE roads between towers with craters
+    for (var rz = -18; rz <= 18; rz++) {
+      setBlock(ox, base - 1, oz + rz, BLOCK.CONCRETE);
+      setBlock(ox + 1, base - 1, oz + rz, BLOCK.CONCRETE);
+    }
+    // Burnt-out vehicles — METAL box 2×1×1 scattered
+    var vehicles = [[-5, -18], [5, 18], [-18, 5], [18, -5]];
+    for (var vi = 0; vi < vehicles.length; vi++) {
+      var vx = ox + vehicles[vi][0]; var vz = oz + vehicles[vi][1];
+      var vh = getTerrainHeight(vx, vz) || 0;
+      setBlock(vx, vh + 1, vz, BLOCK.METAL);
+      setBlock(vx + 1, vh + 1, vz, BLOCK.METAL);
+      setBlock(vx, vh + 2, vz, BLOCK.METAL);
+    }
+    // Bomb craters — 8 pits in streets
+    var craters2 = [[-2, -15], [2, 15], [-15, 2], [15, -2],
+                    [-8, -8], [8, 8], [-12, 12], [12, -12]];
+    for (var cri2 = 0; cri2 < craters2.length; cri2++) {
+      var crx2 = ox + craters2[cri2][0]; var crz2 = oz + craters2[cri2][1];
+      var crh2 = getTerrainHeight(crx2, crz2) || 0;
+      setBlock(crx2, crh2, crz2, BLOCK.RUBBLE);
+      setBlock(crx2 + 1, crh2, crz2, BLOCK.RUBBLE);
+      setBlock(crx2, crh2, crz2 + 1, BLOCK.RUBBLE);
+      setBlock(crx2, crh2 - 1, crz2, BLOCK.AIR);
+    }
+    _buildings.push({ kind: 'landmark_kharkiv_saltivka', x: ox - 26, z: oz - 18, w: 52, d: 36, baseY: base, floorH: 14, floors: 5, cx: ox, cz: oz });
+  }
+
+  // ─── MYKOLAIV LANDMARKS ───────────────────────────────────────────────────
+
+  function generateMykolaivAdminBuilding(ox, oz) {
+    // Mykolaiv Regional Administration — hit by R-360 Neptune missile March 2022
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Main body: 18×10 PLASTER, 10 high
+    for (var wy = 0; wy < 10; wy++) {
+      for (var wx = -9; wx <= 9; wx++) {
+        for (var wz = -5; wz <= 5; wz++) {
+          if (Math.abs(wx) === 9 || Math.abs(wz) === 5 || wy === 9) {
+            setBlock(ox + wx, base + wy, oz + wz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Front colonnade — 6 PLASTER columns 1×12 high on south face
+    for (var ci = -5; ci <= 5; ci += 2) {
+      for (var cy = 0; cy < 12; cy++) {
+        setBlock(ox + ci, base + cy, oz + 5, BLOCK.PLASTER);
+      }
+    }
+    // MISSILE IMPACT: northeast corner floors 6-10 = AIR gap (gutted)
+    for (var dy = 5; dy < 10; dy++) {
+      for (var dx = 4; dx <= 9; dx++) {
+        for (var dz = -5; dz <= -2; dz++) {
+          setBlock(ox + dx, base + dy, oz + dz, BLOCK.AIR);
+        }
+      }
+    }
+    // RUBBLE pile at base under impact zone
+    for (var rx = 5; rx <= 9; rx++) {
+      for (var rz = -4; rz <= -1; rz++) {
+        setBlock(ox + rx, base, oz + rz, BLOCK.RUBBLE);
+        if (Math.random() < 0.5) setBlock(ox + rx, base + 1, oz + rz, BLOCK.RUBBLE);
+      }
+    }
+    // PLASTER debris around impact
+    setBlock(ox + 7, base + 5, oz - 6, BLOCK.PLASTER);
+    setBlock(ox + 8, base + 4, oz - 6, BLOCK.PLASTER);
+    // Emergency barriers — METAL poles 2 high around damage zone
+    for (var pi = 4; pi <= 10; pi += 2) {
+      setBlock(ox + pi, base + 1, oz - 6, BLOCK.METAL);
+      setBlock(ox + pi, base + 2, oz - 6, BLOCK.METAL);
+    }
+    for (var pz2 = -5; pz2 <= -1; pz2 += 2) {
+      setBlock(ox + 10, base + 1, oz + pz2, BLOCK.METAL);
+      setBlock(ox + 10, base + 2, oz + pz2, BLOCK.METAL);
+    }
+    _buildings.push({ kind: 'landmark_mykolaiv_admin', x: ox - 9, z: oz - 5, w: 20, d: 13, baseY: base, floorH: 10, floors: 3, cx: ox, cz: oz });
+  }
+
+  function generateMykolaivPort(ox, oz) {
+    // Southern Bug river port + grain terminal
+    var h = getTerrainHeight(ox, oz) || 0;
+    var base = h + 1;
+    // Long dock: 60×4 CONCRETE, 1 high
+    for (var dx = -30; dx <= 30; dx++) {
+      for (var dz = -2; dz <= 2; dz++) {
+        setBlock(ox + dx, base, oz + dz, BLOCK.CONCRETE);
+      }
+    }
+    // Grain silos — 3× of 6×6 CONCRETE, 18 high
+    var siloPositions = [[-18, -12], [0, -12], [18, -12]];
+    for (var si = 0; si < siloPositions.length; si++) {
+      var sx = ox + siloPositions[si][0]; var sz = oz + siloPositions[si][1];
+      var sh = getTerrainHeight(sx, sz) || 0;
+      var sbase = sh + 1;
+      for (var sy = 0; sy < 18; sy++) {
+        _lmRing(sx, sbase + sy, sz, 3, BLOCK.CONCRETE);
+      }
+      // Silo roof
+      for (var srx = -3; srx <= 3; srx++) {
+        for (var srz = -3; srz <= 3; srz++) {
+          setBlock(sx + srx, sbase + 18, sz + srz, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Port crane — 4-legged METAL A-frame, 20 high
+    var crx = ox + 28; var crz = oz - 8;
+    var crh = getTerrainHeight(crx, crz) || 0;
+    var crbase = crh + 1;
+    // 4 legs
+    var legs = [[-3, -3], [3, -3], [-3, 3], [3, 3]];
+    for (var li = 0; li < legs.length; li++) {
+      for (var ly = 0; ly < 20; ly++) {
+        setBlock(crx + legs[li][0], crbase + ly, crz + legs[li][1], BLOCK.METAL);
+      }
+    }
+    // Horizontal arm — 12 blocks wide at top
+    for (var ax = -6; ax <= 6; ax++) {
+      setBlock(crx + ax, crbase + 20, crz, BLOCK.METAL);
+      setBlock(crx + ax, crbase + 21, crz, BLOCK.METAL);
+    }
+    // Cable down from arm tip
+    for (var cy2 = 10; cy2 <= 20; cy2++) {
+      setBlock(crx - 6, crbase + cy2, crz, BLOCK.METAL);
+    }
+    // Cargo shed: 20×10 METAL/REINFORCED roof, 6 high
+    var csx = ox - 10; var csz = oz - 16;
+    var csh = getTerrainHeight(csx, csz) || 0;
+    var csbase = csh + 1;
+    for (var csy = 0; csy < 6; csy++) {
+      for (var csx2 = -10; csx2 <= 10; csx2++) {
+        for (var csz2 = -5; csz2 <= 5; csz2++) {
+          if (Math.abs(csx2) === 10 || Math.abs(csz2) === 5 || csy === 5) {
+            var mat = (csy === 5) ? BLOCK.REINFORCED : BLOCK.METAL;
+            setBlock(csx + csx2, csbase + csy, csz + csz2, mat);
+          }
+        }
+      }
+    }
+    // Patrol boat (static): 12×4 METAL hull, 3 high
+    var bx = ox - 22; var bz = oz + 6;
+    var bh = getTerrainHeight(bx, bz) || 0;
+    var bbase = bh + 1;
+    for (var by = 0; by < 3; by++) {
+      for (var bxa = -6; bxa <= 6; bxa++) {
+        for (var bza = -2; bza <= 2; bza++) {
+          if (Math.abs(bxa) === 6 || Math.abs(bza) === 2 || by === 2) {
+            setBlock(bx + bxa, bbase + by, bz + bza, BLOCK.METAL);
+          }
+        }
+      }
+    }
+    // Boat bridge — PLASTER 4×3×4
+    for (var bby = 3; bby < 7; bby++) {
+      for (var bbx = -2; bbx <= 2; bbx++) {
+        for (var bbz = -1; bbz <= 1; bbz++) {
+          if (Math.abs(bbx) === 2 || Math.abs(bbz) === 1 || bby === 6) {
+            setBlock(bx + bbx, bbase + bby, bz + bbz, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    _buildings.push({ kind: 'landmark_mykolaiv_port', x: ox - 32, z: oz - 18, w: 64, d: 30, baseY: base, floorH: 18, floors: 1, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -12794,34 +13221,25 @@ window.VoxelWorld = (function () {
       generateChurch(-28, 28);             // Orthodox church (damaged in fighting)
       generateDonbasArena(12, -22);         // Donbas Arena — Shakhtar Donetsk stadium, struck by Russian shells 2022
     } else if (level.id === 'KHARKIV') {
-      // Kharkiv — Ukraine's second-largest city, 40km from Russian border, heavily shelled since 2022
-      generateDerzhprom(-5, -5);                // Constructivist Derzhprom skyscraper — Freedom Square
-      generateKharkivOperaHouse(0, 25);         // National Opera — neoclassical 1925
-      generateKharkivMirrorField(-5, -40);      // "Field of Mirrors" sculpture near Freedom Square
-      generateKharkivSumskaSt(0, -22);          // Sumska Street — neo-baroque 19c boulevard
-      generateKharkivApartments(-35, -20, 6);   // Typical Khrushchyovka residential blocks
-      generateKharkivApartments(30, 15, 5);
-      generateKharkivApartments(-30, 30, 7);
-      generateChurch(-22, 8);                   // Holy Annunciation Cathedral
-      generateChurch(18, -30);
-      generateBunker(-25, -25);
-      generateBunker(25, -25);
-      generateBunker(-25, 25);
-      generateBunker(25, 25);
-      generateTrenchNetwork(-15, 12);
-      generateTrenchNetwork(15, -12);
-      generateBurningRuin(-40, -10);
-      generateBurningRuin(38, 8);
-      generateBurningRuin(0, -45);
-      generateWreckedTank(-28, -38);
-      generateWreckedAPC(22, 35);
-      generateCraters(10);
-      generateDroneNest(45, 45);
-      generateDroneNest(-45, -45);
-      generateAntiAirPosition(-35, 35);
-      generateAntiAirPosition(35, -35);
-      generateDefensivePosition(-10, 40);
-      generateDefensivePosition(10, 40);
+      // Kharkiv — Ukraine's 2nd largest city, 40km from Russian border, under constant bombardment since 2022
+      generateKharkivFreedomSquare(0, 0);           // Maidan Svobody — one of Europe's largest squares
+      generateKharkivDerzhprom(-22, -15);           // Derzhprom — first Soviet skyscraper, U-shaped brutalist
+      generateKharkivUniversity(18, 12);            // Karazin University — neoclassical with clock tower
+      generateKharkivSaltivka(-30, 20);             // Saltivka district — 70% destroyed Khrushchyovka blocks
+      generateUkrainianApartment(28, -22, 9); generateUkrainianApartment(32, -5, 12);
+      generateUkrainianApartment(-28, -28, 6); generateUkrainianApartment(-35, 5, 9);
+      generateRuinedHouse(-15, -32); generateRuinedHouse(12, -35);
+      generateBurningRuin(-38, -12); generateBurningRuin(35, 15);
+      generateWreckedTank(-22, -30); generateWreckedAPC(20, 28); generateWreckedConvoy(-28, 30);
+      generateCraters(18);
+      generateBunker(-30, -28); generateBunker(25, 26); generateBunker(0, -40); generateBunker(-40, 15);
+      generateMortarPit(-35, -12); generateMortarPit(32, 14);
+      generateTrenchNetwork(-18, 22); generateTrenchNetwork(18, -22);
+      generateTrenchNetwork(0, -45); generateTrenchNetwork(0, 42);
+      generateSniperNest(-40, -40); generateSniperNest(35, -40);
+      generateDroneNest(45, 42); generateDroneNest(-45, -42); generateDroneNest(45, -42);
+      generateAntiAirPosition(-42, 28); generateAntiAirPosition(40, -30);
+      generateCheckpoint(0, -50, false); generateCheckpoint(-48, 0, true);
     } else if (level.id === 'AVDIIVKA_COKE') {
       // Avdiivka Coke Plant level — industrial city completely destroyed, fell Feb 2024
       // Focuses on the AKHZ coking facility: massive industrial ruins and fortifications
@@ -12936,6 +13354,25 @@ window.VoxelWorld = (function () {
       generateSniperNest(-38, -38); generateSniperNest(35, -38);
       generateDroneNest(45, 42); generateDroneNest(-45, -40); generateDroneNest(45, -40);
       generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -30);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'MYKOLAIV') {
+      // Mykolaiv — southern Ukraine port on Southern Bug, defended against Russian advance 2022
+      generateMykolaivAdminBuilding(-8, -10);    // Regional admin hit by Neptune missile March 2022
+      generateMykolaivPort(25, -30);             // Southern Bug river port + grain terminal
+      generateUkrainianApartment(-25, -20, 9); generateUkrainianApartment(20, 15, 6);
+      generateUkrainianApartment(-28, 10, 6); generateUkrainianApartment(25, -5, 9);
+      generateIndustrialComplex(30, 20);         // Inhul River shipyard
+      generateRuinedHouse(-18, 25); generateRuinedHouse(15, -38);
+      generateBurningRuin(-35, -10); generateBurningRuin(32, 12);
+      generateWreckedTank(-20, -28); generateWreckedAPC(18, 28);
+      generateCraters(12);
+      generateBunker(-28, -28); generateBunker(22, 25); generateBunker(0, -40); generateBunker(-40, 12);
+      generateMortarPit(-32, -10); generateMortarPit(28, 12);
+      generateTrenchNetwork(-15, 20); generateTrenchNetwork(15, -20);
+      generateTrenchNetwork(0, -44); generateTrenchNetwork(0, 38);
+      generateSniperNest(-38, -38); generateSniperNest(32, -38);
+      generateDroneNest(42, 40); generateDroneNest(-42, -40);
+      generateAntiAirPosition(-38, 28); generateAntiAirPosition(35, -28);
       generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
     } else if (level.id === 'BUCHA') {
       // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022

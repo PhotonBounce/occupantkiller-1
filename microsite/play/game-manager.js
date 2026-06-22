@@ -1208,6 +1208,8 @@ const GameManager = (function () {
         // Fog color must match background to avoid visible horizon seam (audit #17)
         _scene.background = new THREE.Color(fogColor);
         _scene.fog = new THREE.Fog(fogColor, 18, isMobile ? 55 : 120);
+        // Initialize performance auto-scaler
+        if (window.PerformanceScaler) PerformanceScaler.init(_renderer, _scene);
 
         // If running in compatibility mode, show a warning overlay
         if (_rendererProfile === 'compatibility') {
@@ -1616,6 +1618,13 @@ const GameManager = (function () {
         toggleGodMode();
         return;
       }
+
+      // Quality level shortcuts (Ctrl+1 through Ctrl+5)
+      if (e.ctrlKey && e.code === 'Digit1') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(0); }
+      if (e.ctrlKey && e.code === 'Digit2') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(1); }
+      if (e.ctrlKey && e.code === 'Digit3') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(2); }
+      if (e.ctrlKey && e.code === 'Digit4') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(3); }
+      if (e.ctrlKey && e.code === 'Digit5') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(4); }
 
       if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
         // Speed controls (only in build mode, since 4-7 are weapons in play mode)
@@ -6296,7 +6305,7 @@ const GameManager = (function () {
     // Hitstop: update timer with real time, zero delta while frozen
     if (typeof Feedback !== 'undefined' && Feedback.updateHitStop) Feedback.updateHitStop(rawDelta);
     var delta = (typeof Feedback !== 'undefined' && Feedback.isHitStopped && Feedback.isHitStopped()) ? 0 : rawDelta;
-    try { if (window.PerformanceScaler && PerformanceScaler.tick) PerformanceScaler.tick(rawDelta * 1000); } catch (ePS) {}
+    try { if (window.PerformanceScaler && PerformanceScaler.recordFrame) PerformanceScaler.recordFrame(rawDelta); } catch (ePS) {}
     try { if (window.TimeOfDay && TimeOfDay.tick) TimeOfDay.tick(rawDelta); } catch (eTOD) {}
 
     // Slow-mo: scale delta by slow-mo rate (triggered on multikills / wave clears)
