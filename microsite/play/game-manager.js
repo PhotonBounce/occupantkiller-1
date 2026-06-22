@@ -3020,7 +3020,11 @@ const GameManager = (function () {
       }
     }
     if (payloadEl) {
-      if (drone.type === 'bomb') {
+      if (drone.type === 'fpv_attack' && drone.payloadCount !== undefined) {
+        payloadEl.style.display = '';
+        payloadEl.textContent = '\uD83C\uDFAF FPV Charge [\u00D7' + drone.payloadCount + ']';
+        payloadEl.style.color = drone.payloadCount > 20 ? '#44ff88' : drone.payloadCount > 5 ? '#ffaa00' : '#ff4444';
+      } else if (drone.type === 'bomb') {
         payloadEl.style.display = '';
         payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
         payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';
