@@ -3381,6 +3381,10 @@ const GameManager = (function () {
     if (typeof AudioSystem !== 'undefined' && AudioSystem.startAmbientLoop) {
       window.AudioSystem.startAmbientLoop(stageDef.theme);
     }
+    // Wind ambience — base battlefield atmosphere
+    if (typeof AudioSystem !== 'undefined' && AudioSystem.playWindAmbient) {
+      AudioSystem.playWindAmbient(0.3);
+    }
 
     // Start stage-specific environmental VFX
     if (typeof StageVFX !== 'undefined' && StageVFX.startStageEffects) {
@@ -6869,6 +6873,39 @@ const GameManager = (function () {
           }
         }
       } catch (eDB) {}
+      // Ambient deep artillery rumble — low-freq sub-bass, every 15-40s
+      try {
+        if (gameState === STATE.PLAYING) {
+          if (player._artilleryTimer === undefined) player._artilleryTimer = 8;
+          player._artilleryTimer -= delta;
+          if (player._artilleryTimer <= 0) {
+            if (typeof AudioSystem !== 'undefined' && AudioSystem.playDistantArtillery) AudioSystem.playDistantArtillery();
+            player._artilleryTimer = 15 + Math.random() * 25;
+          }
+        }
+      } catch (eArt) {}
+      // Bullet crack near-miss — 30% chance when enemy fires within 20m of player
+      try {
+        if (gameState === STATE.PLAYING) {
+          if (player._bulletCrackTimer === undefined) player._bulletCrackTimer = 0;
+          player._bulletCrackTimer -= delta;
+          if (player._bulletCrackTimer <= 0 && typeof Enemies !== 'undefined' && Enemies.getAll) {
+            var _bcEnemies = Enemies.getAll();
+            for (var _bci = 0; _bci < _bcEnemies.length; _bci++) {
+              var _bce = _bcEnemies[_bci];
+              if (!_bce || !_bce.alive || !_bce.mesh || !_bce.shooting) continue;
+              var _bcDx = _bce.mesh.position.x - player.position.x;
+              var _bcDz = _bce.mesh.position.z - player.position.z;
+              if (_bcDx*_bcDx + _bcDz*_bcDz < 20*20 && Math.random() < 0.30) {
+                if (typeof AudioSystem !== 'undefined' && AudioSystem.playBulletCrack) AudioSystem.playBulletCrack();
+                player._bulletCrackTimer = 0.8 + Math.random() * 0.5;
+                break;
+              }
+            }
+            if (player._bulletCrackTimer <= 0) player._bulletCrackTimer = 0.3;
+          }
+        }
+      } catch (eBCk) {}
       // Compass threat ticks: nearest 4 enemies as red marks at top of compass bar
       try {
         if (HUD.setCompassThreats && Enemies.getAll) {

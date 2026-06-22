@@ -1321,6 +1321,8 @@ window.AudioSystem = (function () {
     charge:    { freq: 90,  type: 'sawtooth', dur: 0.30, ramp: [0.7, 1.0, 1.4] },
     hurt:      { freq: 180, type: 'square',   dur: 0.14, ramp: [1.2, 0.5] },
     reinforce: { freq: 130, type: 'triangle',  dur: 0.20, ramp: [1.0, 1.3] },
+    spot:      { freq: 280, type: 'sawtooth', dur: 0.22, ramp: [1.0, 0.78, 1.25, 0.64] },
+    suppress:  { freq: 200, type: 'sawtooth', dur: 0.20, ramp: [1.0, 0.90, 1.00, 0.80] },
   };
   function playEnemyBark(barkType, panX) {
     if (!enabled || !ctx) return;
@@ -2127,6 +2129,103 @@ window.AudioSystem = (function () {
     });
   }
 
+  // ── Ambient battlefield sounds ──────────────────────────────
+
+  // Deep distant artillery rumble (non-directional, low freq)
+  function playDistantArtillery() {
+    if (!enabled || !ctx) return;
+    resume();
+    var buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 1.5), ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.8;
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    var lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 120;
+    lp.Q.value = 5;
+    var gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.15);
+    gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.5);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.5);
+    src.connect(lp); lp.connect(gain); gain.connect(masterGain);
+    src.start(ctx.currentTime);
+  }
+
+  // Helicopter rotor ambience — call with true to start, false to stop
+  var _heliOsc = null;
+  var _heliGain = null;
+  function playHelicopterAmbient(start) {
+    if (!enabled || !ctx) return;
+    resume();
+    if (start) {
+      if (_heliOsc) return;
+      _heliOsc = ctx.createOscillator();
+      _heliOsc.type = 'sawtooth';
+      _heliOsc.frequency.value = 18;
+      var lfo = ctx.createOscillator();
+      lfo.frequency.value = 18;
+      var lfoGain = ctx.createGain();
+      lfoGain.gain.value = 0.3;
+      lfo.connect(lfoGain);
+      _heliGain = ctx.createGain();
+      _heliGain.gain.value = 0.08;
+      var lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 400;
+      lfoGain.connect(_heliGain.gain);
+      _heliOsc.connect(lp); lp.connect(_heliGain); _heliGain.connect(masterGain);
+      _heliOsc.start(); lfo.start();
+    } else {
+      if (_heliOsc) { try { _heliOsc.stop(); } catch(e) {} _heliOsc = null; _heliGain = null; }
+    }
+  }
+
+  // Wind howl ambient — intensity 0.0 to 1.0; creates node on first call
+  var _windAmbNode = null;
+  var _windAmbGain = null;
+  function playWindAmbient(intensity) {
+    if (!enabled || !ctx) return;
+    resume();
+    if (!_windAmbGain) {
+      var buf = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
+      var d = buf.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      _windAmbNode = ctx.createBufferSource();
+      _windAmbNode.buffer = buf;
+      _windAmbNode.loop = true;
+      var hp = ctx.createBiquadFilter();
+      hp.type = 'bandpass';
+      hp.frequency.value = 600;
+      hp.Q.value = 0.7;
+      _windAmbGain = ctx.createGain();
+      _windAmbGain.gain.value = 0;
+      _windAmbNode.connect(hp); hp.connect(_windAmbGain); _windAmbGain.connect(masterGain);
+      _windAmbNode.start();
+    }
+    _windAmbGain.gain.setTargetAtTime((intensity || 0) * 0.06, ctx.currentTime, 0.5);
+  }
+
+  // Supersonic bullet crack — near-miss crack whip sound
+  function playBulletCrack() {
+    if (!enabled || !ctx) return;
+    resume();
+    var len = Math.floor(ctx.sampleRate * 0.04);
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) {
+      var env = 1 - i / len;
+      d[i] = (Math.random() * 2 - 1) * env * env;
+    }
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    var hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000;
+    var gain = ctx.createGain(); gain.gain.value = 0.6;
+    src.connect(hp); hp.connect(gain); gain.connect(masterGain);
+    src.start();
+  }
+
   return {
     init: init,
     resume: resume,
@@ -2217,6 +2316,11 @@ window.AudioSystem = (function () {
     playT72Cannon: playT72Cannon,
     playBTR80Fire: playBTR80Fire,
     playHorn: playHorn,
+    // Ambient battlefield sounds
+    playDistantArtillery: playDistantArtillery,
+    playHelicopterAmbient: playHelicopterAmbient,
+    playWindAmbient: playWindAmbient,
+    playBulletCrack: playBulletCrack,
   };
 
   // EKG flatline — played on player death before death overlay
