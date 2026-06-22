@@ -222,7 +222,7 @@ window.Bradley = (function () {
     }
     if (!_scene) return null;
     if (_vehicle) try { _scene.remove(_vehicle.group); } catch (e) {}
-    _towAmmo = 6; _towCool = 0;
+    _towAmmo = 6 + (window._bonusTOW || 0); _towCool = 0;
     return _spawnVehicle(pos);
   }
 
@@ -688,7 +688,7 @@ window.Bradley = (function () {
     _key.w = _key.s = _key.a = _key.d = false;
     _firingBush = _firingCoax = false;
     _bushCool = _coaxCool = _towCool = 0;
-    _towAmmo = 6;
+    _towAmmo = 6 + (window._bonusTOW || 0);
     _bind();
   }
 

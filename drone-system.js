@@ -420,7 +420,7 @@ const DroneSystem = (function () {
       alive:    true,
       active:   true,  // powered on
       hasPayload: type === DRONE_TYPE.BOMB || type === DRONE_TYPE.ENEMY_BOMBER || type === DRONE_TYPE.INCENDIARY || type === DRONE_TYPE.BABA_YAGA || type === DRONE_TYPE.FPV_ATTACK,
-      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5 : (type === DRONE_TYPE.FPV_ATTACK ? 99 : undefined),
+      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5 : (type === DRONE_TYPE.FPV_ATTACK ? (99 + (window._dronePayloadBonus || 0)) : undefined),
       missiles: (type === DRONE_TYPE.BAYRAKTAR) ? TB2_MISSILES : undefined,
       _babaDropCooldown: 0,
       // Bomber survival chance after payload drop (real-world based)
