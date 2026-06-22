@@ -1,342 +1,297 @@
-// ============================================================
-//  flashbang.js — Flashbang grenade feature module
-//  Alt+F: throw flashbang (3 per life)
-//  Parabolic throw arc, lands 5 units ahead
-//  On detonation: PointLight + white CSS overlay + ringing audio
-//  Enemies within 8 units: stunned 4s + blinded (head shake)
-//  HUD: "⚡ FLASH ×3" counter; 2s cooldown between throws
-//  Public API: init(scene, camera), update(dt), throw(), reset()
-// ============================================================
-window.Flashbang = (function () {
+window.Flashbang = (function() {
   'use strict';
 
-  // ── State ─────────────────────────────────────────────────
   var _scene = null;
   var _camera = null;
+  var _grenades = [];
+  var _charges = 2;
+  var _cooldown = 0;
+  var _COOLDOWN = 20;
+  var _MAX_CHARGES = 2;
+  var _audioCtx = null;
+  var _overlay = null;
+  var _hudEl = null;
 
-  var _count = 3;             // flashbangs remaining this life
-  var _cooldownLeft = 0;      // seconds until next throw allowed
-  var COOLDOWN_S = 2;
-  var MAX_COUNT = 3;
+  function _getAudio() {
+    if (!_audioCtx) _audioCtx = window._audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    return _audioCtx;
+  }
 
-  var _active = [];           // in-flight / detonating flashbangs
-  var _hudEl = null;          // HUD counter element
+  function _playThrow() {
+    try {
+      var ctx = _getAudio();
+      var osc = ctx.createOscillator();
+      var g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = 320;
+      g.gain.setValueAtTime(0.05, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc.start(); osc.stop(ctx.currentTime + 0.15);
+    } catch(e) {}
+  }
 
-  // ── HUD ───────────────────────────────────────────────────
+  function _playBang() {
+    try {
+      var ctx = _getAudio();
+      var buf = ctx.createBuffer(1, ctx.sampleRate * 0.4, ctx.sampleRate);
+      var d = buf.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.05));
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      var filt = ctx.createBiquadFilter();
+      filt.type = 'highpass'; filt.frequency.value = 2000;
+      var g = ctx.createGain();
+      src.connect(filt); filt.connect(g); g.connect(ctx.destination);
+      g.gain.value = 1.0;
+      src.start();
+
+      // High pitch ring after bang
+      var ring = ctx.createOscillator();
+      var rg = ctx.createGain();
+      ring.connect(rg); rg.connect(ctx.destination);
+      ring.frequency.value = 4000;
+      rg.gain.setValueAtTime(0.3, ctx.currentTime + 0.1);
+      rg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3.0);
+      ring.start(ctx.currentTime + 0.1);
+      ring.stop(ctx.currentTime + 3.0);
+    } catch(e) {}
+  }
+
+  function _createOverlay() {
+    if (_overlay) return;
+    _overlay = document.createElement('div');
+    _overlay.id = 'flashbang-overlay';
+    _overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:white;pointer-events:none;z-index:2500;opacity:0;transition:opacity 0.08s';
+    document.body.appendChild(_overlay);
+  }
+
   function _createHUD() {
     if (_hudEl) return;
     _hudEl = document.createElement('div');
     _hudEl.id = 'flashbang-hud';
-    _hudEl.style.cssText = [
-      'position:fixed',
-      'bottom:110px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'color:#ffffaa',
-      'font-size:13px',
-      'font-family:monospace',
-      'z-index:200',
-      'pointer-events:none',
-      'text-shadow:0 0 6px rgba(255,255,100,0.7)',
-      'letter-spacing:1px'
-    ].join(';');
-    _hudEl.textContent = '⚡ FLASH \xD7' + _count;
-    var hud = document.getElementById('hud');
-    if (hud) {
-      hud.appendChild(_hudEl);
-    } else {
-      document.body.appendChild(_hudEl);
-    }
+    _hudEl.style.cssText = 'position:fixed;bottom:160px;right:16px;color:#FFFFFF;font-family:monospace;font-size:13px;font-weight:bold;text-shadow:1px 1px 2px #000;z-index:1400;pointer-events:none';
+    document.body.appendChild(_hudEl);
   }
 
   function _updateHUD() {
-    if (!_hudEl) _createHUD();
-    _hudEl.textContent = '⚡ FLASH \xD7' + _count;
-    _hudEl.style.opacity = (_count > 0) ? '1' : '0.4';
+    if (!_hudEl) return;
+    var icons = '';
+    for (var i = 0; i < _MAX_CHARGES; i++) icons += i < _charges ? '💥' : '○';
+    var cdText = _cooldown > 0 ? ' ' + Math.ceil(_cooldown) + 's' : '';
+    _hudEl.textContent = 'FLASH ' + icons + cdText;
   }
 
-  // ── Overlay (player screen flash) ─────────────────────────
-  function _flashPlayerScreen() {
-    var el = document.getElementById('flashbang-overlay');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'flashbang-overlay';
-      el.style.cssText = [
-        'position:fixed',
-        'top:0',
-        'left:0',
-        'right:0',
-        'bottom:0',
-        'background:#fff',
-        'opacity:0',
-        'pointer-events:none',
-        'z-index:200',
-        'transition:opacity 0.05s'
-      ].join(';');
-      document.body.appendChild(el);
-    }
-    // snap to full white
-    el.style.transition = 'opacity 0.05s';
-    el.style.opacity = '1';
-
-    // fade to 0 over 3 s using stepped rAF reduction
-    var start = performance.now();
-    var DURATION = 3000;
-    function fadeStep() {
-      var elapsed = performance.now() - start;
-      var frac = Math.max(0, 1 - elapsed / DURATION);
-      el.style.transition = 'none';
-      el.style.opacity = String(frac);
-      if (frac > 0) {
-        requestAnimationFrame(fadeStep);
-      }
-    }
-    requestAnimationFrame(fadeStep);
+  function _flashScreen(intensity) {
+    if (!_overlay) return;
+    _overlay.style.transition = 'opacity 0.08s';
+    _overlay.style.opacity = String(Math.min(1, intensity));
+    var fadeTime = 1.5 + intensity * 2.0;
+    setTimeout(function() {
+      _overlay.style.transition = 'opacity ' + fadeTime + 's';
+      _overlay.style.opacity = '0';
+    }, 80);
   }
 
-  // ── Ringing audio ─────────────────────────────────────────
-  function _playRing() {
-    try {
-      var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 4000;
-      gain.gain.setValueAtTime(0.6, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 3);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 3);
-      osc.onended = function () {
-        try { ctx.close(); } catch (e) {}
-      };
-    } catch (e) {
-      // AudioContext may not be available (e.g. Node.js check env)
-    }
-  }
-
-  // ── Detonate ──────────────────────────────────────────────
-  function _detonate(data) {
-    var pos = data.mesh.position.clone();
-
-    // 1. Expose global active state
-    window._flashbangActive = { timestamp: Date.now(), radius: 8 };
-
-    // 2. Point light burst (0.2 s)
-    var light = new THREE.PointLight(0xFFFFFF, 20, 15);
-    light.position.copy(pos);
-    _scene.add(light);
-    setTimeout(function () {
-      _scene.remove(light);
-      window._flashbangActive = null;
-    }, 200);
-
-    // 3. Player screen overlay + audio (only if mesh is near camera)
-    _flashPlayerScreen();
-    _playRing();
-
-    // 4. Stun + blind nearby enemies
-    _stunEnemies(pos);
-
-    // 5. Remove grenade mesh
-    _scene.remove(data.mesh);
-  }
-
-  // ── Enemy stun / blind ────────────────────────────────────
-  function _stunEnemies(pos) {
-    var RADIUS = 8;
-    var STUN_S = 4;
-    var enemies = _getEnemies();
+  function _blindEnemies(pos, radius) {
+    if (!window.Enemies || !window.Enemies.getAll) return;
+    var enemies = window.Enemies.getAll();
     for (var i = 0; i < enemies.length; i++) {
       var e = enemies[i];
-      if (!e || !e.position) continue;
-      var dx = e.position.x - pos.x;
-      var dy = e.position.y - pos.y;
-      var dz = e.position.z - pos.z;
-      var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      if (dist <= RADIUS) {
-        e._stunned = true;
-        e._blinded = true;
-        e._stunTimer = STUN_S;
-        // schedule head-shake un-blind animation
-        _scheduleHeadShake(e, STUN_S);
+      if (!e || !e.mesh) continue;
+      var dx = e.mesh.position.x - pos.x;
+      var dz = e.mesh.position.z - pos.z;
+      var dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < radius) {
+        var intensity = 1.0 - (dist / radius);
+        var blindTime = 2.0 + intensity * 4.0;
+        e._flashBlinded = true;
+        e._flashBlindTimer = blindTime;
+        e._flashIntensity = intensity;
+        // Slow movement during blind
+        if (!e._origSpeed) e._origSpeed = e.speed || 3;
+        e.speed = (e._origSpeed || 3) * (1.0 - intensity * 0.7);
       }
     }
   }
 
-  function _getEnemies() {
-    // Try common global arrays used across this codebase
-    if (window.GameManager && Array.isArray(window.GameManager.enemies)) {
-      return window.GameManager.enemies;
-    }
-    if (window._enemies && Array.isArray(window._enemies)) {
-      return window._enemies;
-    }
-    if (window.enemies && Array.isArray(window.enemies)) {
-      return window.enemies;
-    }
-    return [];
-  }
-
-  // Head-shake: oscillate rotation.z for 0.1 s intervals when un-blinding
-  function _scheduleHeadShake(enemy, stunSeconds) {
-    var shakeStart = Date.now() + stunSeconds * 1000 - 600; // start 0.6 s before recovery
-    var shakeEnd = Date.now() + stunSeconds * 1000;
-    var originalZ = (enemy.rotation) ? enemy.rotation.z : 0;
-    var phase = 0;
-
-    function shake() {
-      var now = Date.now();
-      if (now < shakeStart) {
-        setTimeout(shake, shakeStart - now);
-        return;
+  function _throwGrenade() {
+    if (_charges <= 0 || _cooldown > 0) {
+      if (window.HUD && window.HUD.showToast) {
+        window.HUD.showToast(_charges <= 0 ? 'NO FLASHBANGS' : 'FLASHBANG RECHARGING');
       }
-      if (now > shakeEnd) {
-        // restore
-        if (enemy.rotation) enemy.rotation.z = originalZ;
-        enemy._blinded = false;
-        return;
-      }
-      if (enemy.rotation) {
-        phase += 1;
-        enemy.rotation.z = originalZ + (phase % 2 === 0 ? 0.15 : -0.15);
-      }
-      setTimeout(shake, 100);
+      return;
     }
-    shake();
-  }
 
-  // ── Grenade mesh (small sphere) ───────────────────────────
-  function _makeGrenadeMesh() {
-    var geo = new THREE.SphereGeometry(0.08, 8, 6);
-    var mat = new THREE.MeshLambertMaterial({ color: 0x444444 });
-    return new THREE.Mesh(geo, mat);
-  }
+    var cam = _camera || window._camera;
+    if (!cam) return;
 
-  // ── Throw logic (parabolic arc) ───────────────────────────
-  function _throw() {
-    if (!_scene || !_camera) return false;
-    if (_count <= 0) return false;
-    if (_cooldownLeft > 0) return false;
+    _charges--;
+    if (_charges === 0) _cooldown = _COOLDOWN;
+    _playThrow();
 
-    _count -= 1;
-    _cooldownLeft = COOLDOWN_S;
-    _updateHUD();
+    var dir = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion).normalize();
+    var startPos = cam.position.clone().add(new THREE.Vector3(0, -0.3, 0));
 
-    // Start position: camera position
-    var startPos = _camera.position.clone();
-    startPos.y -= 0.2; // slight drop from eye level
-
-    // Forward direction in XZ plane
-    var dir = new THREE.Vector3(0, 0, -1);
-    dir.applyQuaternion(_camera.quaternion);
-    dir.y = 0;
-    if (dir.lengthSq() < 0.0001) { dir.z = -1; }
-    dir.normalize();
-
-    // Land 5 units ahead of camera XZ
-    var landPos = new THREE.Vector3(
-      startPos.x + dir.x * 5,
-      startPos.y,        // same height as start (lands at ground approx)
-      startPos.z + dir.z * 5
-    );
-
-    var mesh = _makeGrenadeMesh();
+    var geo = new THREE.SphereGeometry(0.08, 6, 6);
+    var mat = new THREE.MeshLambertMaterial({ color: 0xCCCCCC });
+    var mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(startPos);
-    _scene.add(mesh);
+    (_scene || window._gameScene || window._scene).add(mesh);
 
-    var FLIGHT_S = 0.7;  // seconds of flight
-    var data = {
+    _grenades.push({
       mesh: mesh,
-      startPos: startPos.clone(),
-      landPos: landPos.clone(),
-      elapsed: 0,
-      duration: FLIGHT_S,
-      detonated: false
-    };
-    _active.push(data);
-    return true;
+      vel: {
+        x: dir.x * 14 + (Math.random() - 0.5) * 0.5,
+        y: dir.y * 14 + 3,
+        z: dir.z * 14 + (Math.random() - 0.5) * 0.5
+      },
+      timer: 1.8,
+      exploded: false
+    });
+
+    _updateHUD();
   }
 
-  // ── Update loop ───────────────────────────────────────────
-  function update(dt) {
-    // tick cooldown
-    if (_cooldownLeft > 0) {
-      _cooldownLeft -= dt;
-      if (_cooldownLeft < 0) _cooldownLeft = 0;
-    }
+  function _explode(g) {
+    if (g.exploded) return;
+    g.exploded = true;
 
-    // advance active grenades
-    for (var i = _active.length - 1; i >= 0; i--) {
-      var d = _active[i];
-      if (d.detonated) {
-        _active.splice(i, 1);
-        continue;
+    var pos = g.mesh.position.clone();
+    var sc = _scene || window._gameScene || window._scene;
+
+    // Flash sphere
+    var flashGeo = new THREE.SphereGeometry(0.5, 8, 8);
+    var flashMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 1.0 });
+    var flashMesh = new THREE.Mesh(flashGeo, flashMat);
+    flashMesh.position.copy(pos);
+    sc.add(flashMesh);
+
+    var flashLight = new THREE.PointLight(0xFFFFFF, 80, 30);
+    flashLight.position.copy(pos);
+    sc.add(flashLight);
+
+    // Check player distance for screen flash
+    var cam = _camera || window._camera;
+    if (cam) {
+      var dx = cam.position.x - pos.x;
+      var dz = cam.position.z - pos.z;
+      var playerDist = Math.sqrt(dx * dx + dz * dz);
+      if (playerDist < 18) {
+        var playerIntensity = Math.max(0, 1.0 - playerDist / 18);
+        _flashScreen(playerIntensity);
+        if (playerIntensity > 0.3) _playBang();
       }
-      d.elapsed += dt;
-      var t = Math.min(d.elapsed / d.duration, 1);
+    }
 
-      // Lerp XZ
-      d.mesh.position.x = d.startPos.x + (d.landPos.x - d.startPos.x) * t;
-      d.mesh.position.z = d.startPos.z + (d.landPos.z - d.startPos.z) * t;
+    _blindEnemies(pos, 16);
 
-      // Parabolic Y arc: rises then falls
-      var ARC_HEIGHT = 2.0;
-      d.mesh.position.y = d.startPos.y + ARC_HEIGHT * 4 * t * (1 - t);
+    if (window.HUD && window.HUD.showToast) window.HUD.showToast('FLASHBANG!');
 
-      // Detonate on landing
-      if (t >= 1) {
-        d.detonated = true;
-        _detonate(d);
-        _active.splice(i, 1);
+    // Fade out flash mesh and light
+    var fadeTimer = 0;
+    var fadeInterval = setInterval(function() {
+      fadeTimer += 0.05;
+      flashMat.opacity = Math.max(0, 1.0 - fadeTimer * 10);
+      flashLight.intensity = Math.max(0, 80 - fadeTimer * 1600);
+      if (fadeTimer >= 0.1) {
+        sc.remove(flashMesh);
+        sc.remove(flashLight);
+        clearInterval(fadeInterval);
       }
-    }
+    }, 50);
   }
 
-  // ── Key handler ───────────────────────────────────────────
-  function _onKeyDown(e) {
-    // Alt+F
-    if (e.altKey && (e.code === 'KeyF' || e.key === 'f' || e.key === 'F')) {
-      e.preventDefault();
-      _throw();
-    }
-  }
-
-  // ── init ─────────────────────────────────────────────────
   function init(scene, camera) {
-    _scene = scene;
-    _camera = camera;
-    _count = MAX_COUNT;
-    _cooldownLeft = 0;
-    _active = [];
-    _hudEl = null;
+    _scene = scene || window._gameScene || window._scene;
+    _camera = camera || window._camera;
+    _createOverlay();
     _createHUD();
     _updateHUD();
-    window.removeEventListener('keydown', _onKeyDown);
-    window.addEventListener('keydown', _onKeyDown);
+
+    document.addEventListener('keydown', function(e) {
+      if (e.code === 'AltLeft' && e.altKey) return;
+      if (window._menuOpen || window._isPaused || window._inMenu) return;
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+      if (e.code === 'AltRight' || (e.altKey && e.code === 'KeyF')) {
+        if (e.altKey && e.code === 'KeyF') {
+          e.preventDefault();
+          _throwGrenade();
+        }
+      }
+      if (e.altKey && e.key === 'f') {
+        e.preventDefault();
+        _throwGrenade();
+      }
+    });
   }
 
-  // ── reset (call on new life / respawn) ───────────────────
-  function reset() {
-    _count = MAX_COUNT;
-    _cooldownLeft = 0;
-    // clear any in-flight grenades
-    for (var i = 0; i < _active.length; i++) {
-      if (_scene && _active[i].mesh) {
-        try { _scene.remove(_active[i].mesh); } catch (ex) {}
+  function update(dt) {
+    if (!_scene && !window._gameScene) return;
+    var sc = _scene || window._gameScene || window._scene;
+
+    if (_cooldown > 0) {
+      _cooldown -= dt;
+      if (_cooldown <= 0) {
+        _cooldown = 0;
+        _charges = Math.min(_charges + 1, _MAX_CHARGES);
+        if (_charges < _MAX_CHARGES) _cooldown = _COOLDOWN;
+        if (window.HUD && window.HUD.showToast && _charges > 0) window.HUD.showToast('FLASHBANG READY');
+        _updateHUD();
       }
     }
-    _active = [];
+
+    // Update enemy blind timers
+    if (window.Enemies && window.Enemies.getAll) {
+      var enemies = window.Enemies.getAll();
+      for (var i = 0; i < enemies.length; i++) {
+        var e = enemies[i];
+        if (!e || !e._flashBlinded) continue;
+        e._flashBlindTimer -= dt;
+        if (e._flashBlindTimer <= 0) {
+          e._flashBlinded = false;
+          if (e._origSpeed !== undefined) {
+            e.speed = e._origSpeed;
+          }
+        }
+      }
+    }
+
+    // Update grenade physics
+    for (var j = _grenades.length - 1; j >= 0; j--) {
+      var g = _grenades[j];
+      g.mesh.position.x += g.vel.x * dt;
+      g.mesh.position.y += g.vel.y * dt;
+      g.mesh.position.z += g.vel.z * dt;
+      g.vel.y -= 9.8 * dt;
+      g.mesh.rotation.x += 8 * dt;
+
+      // Bounce off ground
+      if (g.mesh.position.y < 0.1) {
+        g.mesh.position.y = 0.1;
+        g.vel.y = Math.abs(g.vel.y) * 0.4;
+        g.vel.x *= 0.7;
+        g.vel.z *= 0.7;
+      }
+
+      g.timer -= dt;
+      if (g.timer <= 0 && !g.exploded) {
+        _explode(g);
+        sc.remove(g.mesh);
+        _grenades.splice(j, 1);
+      }
+    }
+  }
+
+  function reset() {
+    var sc = _scene || window._gameScene || window._scene;
+    for (var i = 0; i < _grenades.length; i++) {
+      if (sc) sc.remove(_grenades[i].mesh);
+    }
+    _grenades = [];
+    _charges = _MAX_CHARGES;
+    _cooldown = 0;
     _updateHUD();
   }
 
-  // ── Public API ────────────────────────────────────────────
-  return {
-    init: init,
-    update: update,
-    'throw': _throw,
-    reset: reset
-  };
-
-}());
+  return { init: init, update: update, throw: _throwGrenade, reset: reset };
+})();
