@@ -1221,6 +1221,7 @@ window.VoxelWorld = (function () {
     { id: 'MOSCOW',    name: 'Moscow Finale',        desc: 'End it at the Kremlin',       theme: 'cityscape', wavesPerLevel: 9, difficulty: 3.5, fogColor: 0x222228, spawnCandidates: [{ x: 0, z: -50 }, { x: -50, z: 0 }, { x: 50, z: 0 }, { x: 0, z: 25 }, { x: -40, z: -38 }, { x: 40, z: -38 }, { x: -40, z: 25 }, { x: 40, z: 25 }, { x: 0, z: -22 }, { x: 0, z: 0 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'SEVASTOPOL', name: 'Sevastopol Naval Base', desc: 'Destroy the Black Sea Fleet', theme: 'coastal',  wavesPerLevel: 7, difficulty: 3.8, fogColor: 0x3355aa, spawnCandidates: [{ x: -15, z: 8 }, { x: 15, z: 5 }, { x: 0, z: -18 }, { x: -18, z: -10 }, { x: 18, z: -10 }, { x: -35, z: 8 }, { x: 35, z: 5 }], spawnLookTarget: { x: 0, z: 20 } },
     { id: 'DONBAS',    name: 'Donbas Final Push',     desc: 'Liberate the last stronghold', theme: 'urban',   wavesPerLevel: 8, difficulty: 4.2, fogColor: 0x2a2020, spawnCandidates: [{ x: -20, z: -12 }, { x: 20, z: -12 }, { x: 0, z: -20 }, { x: -35, z: 0 }, { x: 35, z: 0 }, { x: -15, z: 15 }, { x: 15, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'KHARKIV',   name: 'Kharkiv: Second City',   desc: 'Ukraine\'s second city under siege', theme: 'urban', wavesPerLevel: 8, difficulty: 3.2, fogColor: 0x4a4a5a, spawnCandidates: [{ x: -18, z: -20 }, { x: 18, z: -20 }, { x: 0, z: -28 }, { x: -30, z: 0 }, { x: 30, z: 0 }, { x: -15, z: 20 }, { x: 15, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'BELGOROD',  name: 'Belgorod Offensive',    desc: 'Cross into enemy territory',   theme: 'grassland', wavesPerLevel: 8, difficulty: 4.6, fogColor: 0x6B1A2E, spawnCandidates: [{ x: -15, z: -12 }, { x: 15, z: -12 }, { x: 0, z: -20 }, { x: -30, z: -5 }, { x: 30, z: -5 }, { x: -12, z: 15 }, { x: 12, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KREMLIN',   name: 'Kremlin Showdown',      desc: 'The final battle for peace',   theme: 'cityscape', wavesPerLevel: 10, difficulty: 5.0, fogColor: 0x111118, spawnCandidates: [{ x: -18, z: 52 }, { x: 18, z: 52 }, { x: -32, z: 22 }, { x: 32, z: 22 }, { x: 0, z: 55 }, { x: -32, z: -10 }, { x: 32, z: -10 }, { x: 0, z: -25 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'KYIV',      name: 'Siege of Kyiv',         desc: 'Ambush the Russian armored convoy', theme: 'urban', wavesPerLevel: 8, difficulty: 1.5, fogColor: 0x6a7080, tankFocus: true, spawnCandidates: [{ x: 0, z: -24 }, { x: -8, z: -24 }, { x: 8, z: -24 }, { x: -4, z: -28 }, { x: 4, z: -28 }], spawnLookTarget: { x: 0, z: 22 } },
@@ -10202,6 +10203,130 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_khrushchyovka', x: ox, z: oz, w: bW, d: bD, baseY: h, floorH: 3, floors: bH, cx: ox + bW / 2, cz: oz + bD / 2 });
   }
 
+  // LANDMARK: Kharkiv "Field of Mirrors" — outdoor sculpture garden near Freedom Square
+  function generateKharkivMirrorField(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    for (var px = -5; px <= 4; px++) for (var pz = -5; pz <= 4; pz++) setBlock(ox + px, h, oz + pz, BLOCK.WHITE_TILE);
+    var polePos = [[-8,-8],[-4,-8],[0,-8],[4,-8],[8,-8],[-8,0],[-4,0],[0,0],[4,0],[8,0],[-8,8],[-4,8],[0,8],[4,8],[8,8]];
+    for (var pi = 0; pi < polePos.length; pi++) {
+      var px2 = ox + polePos[pi][0], pz2 = oz + polePos[pi][1];
+      var ph = getTerrainHeight(px2, pz2) || 0;
+      setBlock(px2, ph+1, pz2, BLOCK.METAL); setBlock(px2, ph+2, pz2, BLOCK.METAL); setBlock(px2, ph+3, pz2, BLOCK.METAL);
+      setBlock(px2, ph+4, pz2, BLOCK.GLASS); setBlock(px2-1, ph+4, pz2, BLOCK.GLASS); setBlock(px2+1, ph+4, pz2, BLOCK.GLASS);
+      setBlock(px2, ph+4, pz2-1, BLOCK.GLASS); setBlock(px2, ph+4, pz2+1, BLOCK.GLASS);
+    }
+    var benchSpots = [[-6,-11],[5,-11],[-6,10],[5,10],[-11,-6],[-11,5],[10,-6],[10,5]];
+    for (var bi = 0; bi < benchSpots.length; bi++) {
+      var bx = ox+benchSpots[bi][0], bz2 = oz+benchSpots[bi][1]; var bh = getTerrainHeight(bx, bz2)||0;
+      setBlock(bx, bh+1, bz2, BLOCK.WOOD); setBlock(bx+1, bh+1, bz2, BLOCK.WOOD); setBlock(bx, bh+2, bz2, BLOCK.WOOD);
+    }
+    _buildings.push({ kind: 'landmark_kharkiv_mirror_field', x:ox-9, z:oz-9, w:18, d:18, baseY:h, floorH:4, floors:1, cx:ox, cz:oz });
+  }
+
+  // LANDMARK: Kharkiv National Academic Opera and Ballet Theatre (neoclassical, 1925)
+  function generateKharkivOperaHouse(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0; var base = h + 1;
+    for (var wy = 0; wy < 10; wy++) for (var wx = -12; wx <= 11; wx++) for (var wz = -7; wz <= 6; wz++)
+      if (wx===-12||wx===11||wz===-7||wz===6||wy===9) setBlock(ox+wx, base+wy, oz+wz, BLOCK.PLASTER);
+    for (var col = -5; col <= 5; col += 2) for (var cy = 0; cy < 9; cy++) {
+      setBlock(ox+col, base+cy, oz-8, BLOCK.STONE); setBlock(ox+col, base+cy, oz-9, BLOCK.STONE);
+    }
+    for (var es = 0; es < 5; es++) for (var ex = -5+es; ex <= 5-es; ex++) setBlock(ox+ex, h-es, oz-10-es, BLOCK.STONE);
+    for (var pg = 0; pg <= 4; pg++) { var pgW = 6-pg; for (var pgx = -pgW; pgx <= pgW; pgx++) setBlock(ox+pgx, base+9+pg, oz-8, BLOCK.PLASTER); }
+    for (var sy = 0; sy < 7; sy++) {
+      for (var sz = -7; sz <= 6; sz++) {
+        setBlock(ox-16, base+sy, oz+sz, BLOCK.PLASTER); setBlock(ox-20, base+sy, oz+sz, BLOCK.PLASTER);
+        setBlock(ox+15, base+sy, oz+sz, BLOCK.PLASTER); setBlock(ox+19, base+sy, oz+sz, BLOCK.PLASTER);
+      }
+      for (var sx2 = -20; sx2 <= -16; sx2++) { setBlock(ox+sx2, base+sy, oz-7, BLOCK.PLASTER); setBlock(ox+sx2, base+sy, oz+6, BLOCK.PLASTER); }
+      for (var sx3 = 15; sx3 <= 19; sx3++) { setBlock(ox+sx3, base+sy, oz-7, BLOCK.PLASTER); setBlock(ox+sx3, base+sy, oz+6, BLOCK.PLASTER); }
+    }
+    var domeRadii = [3,2,1,0];
+    for (var di = 0; di < domeRadii.length; di++) { var dr = domeRadii[di]; for (var ddx = -dr; ddx <= dr; ddx++) for (var ddz = -dr; ddz <= dr; ddz++) setBlock(ox+ddx, base+10+di, oz-1+ddz, BLOCK.STONE); }
+    setBlock(ox, base+14, oz-1, BLOCK.LIGHT);
+    for (var wfl = 0; wfl < 9; wfl += 3) for (var wz2 = -4; wz2 <= 4; wz2 += 4) {
+      setBlock(ox-12, base+wfl, oz+wz2, BLOCK.GLASS); setBlock(ox-12, base+wfl+1, oz+wz2, BLOCK.GLASS);
+      setBlock(ox+11, base+wfl, oz+wz2, BLOCK.GLASS); setBlock(ox+11, base+wfl+1, oz+wz2, BLOCK.GLASS);
+    }
+    _buildings.push({ kind: 'landmark_kharkiv_opera', x:ox-20, z:oz-10, w:40, d:17, baseY:h, floorH:5, floors:2, cx:ox, cz:oz });
+  }
+
+  // LANDMARK: Sumska Street — Kharkiv's neo-baroque main boulevard (19th-century brick apartments)
+  function generateKharkivSumskaSt(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0; var base = h + 1;
+    for (var rd = -25; rd <= 24; rd++) {
+      for (var rw = -4; rw <= 4; rw++) setBlock(ox+rd, h, oz+rw, BLOCK.CONCRETE);
+      setBlock(ox+rd, h, oz-5, BLOCK.WHITE_TILE); setBlock(ox+rd, h, oz+5, BLOCK.WHITE_TILE);
+    }
+    var sides = [{ offs: [-18, 0, 18], dz: -10, ez: -3 }, { offs: [-18, 0, 18], dz: 3, ez: 10 }];
+    for (var si = 0; si < sides.length; si++) {
+      var s = sides[si];
+      for (var ni = 0; ni < s.offs.length; ni++) {
+        var nx = ox + s.offs[ni];
+        for (var ay = 0; ay < 8; ay++) for (var ax = -6; ax <= 5; ax++) for (var az = s.dz; az <= s.ez; az++)
+          if (ax===-6||ax===5||az===s.dz||az===s.ez||ay===7) setBlock(nx+ax, base+ay, oz+az, BLOCK.BRICK);
+        for (var cs = 1; cs < 8; cs += 2) for (var cx2 = -6; cx2 <= 5; cx2++) {
+          setBlock(nx+cx2, base+cs, oz+s.dz, BLOCK.STONE); setBlock(nx+cx2, base+cs, oz+s.ez, BLOCK.STONE);
+        }
+        for (var wy2 = 0; wy2 < 8; wy2++) for (var wxi = -5; wxi <= 4; wxi += 2) {
+          setBlock(nx+wxi, base+wy2, oz+s.dz, BLOCK.GLASS); setBlock(nx+wxi, base+wy2, oz+s.ez, BLOCK.GLASS);
+        }
+      }
+    }
+    _buildings.push({ kind: 'landmark_kharkiv_sumska', x:ox-25, z:oz-11, w:50, d:22, baseY:h, floorH:3, floors:8, cx:ox, cz:oz });
+  }
+
+  // LANDMARK: Prince Vladimir Monument — symbol of Belgorod
+  function generateBelgorodPrinceVladimir(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0; var base = h + 1;
+    for (var py = 0; py < 4; py++) for (var px = -1; px <= 1; px++) for (var pz = -1; pz <= 1; pz++) setBlock(ox+px, base+py, oz+pz, BLOCK.CONCRETE);
+    for (var fa = 0; fa < 360; fa += 45) {
+      var frad = fa * Math.PI / 180;
+      setBlock(Math.round(ox+Math.cos(frad)*4), base,   Math.round(oz+Math.sin(frad)*4), BLOCK.FENCE);
+      setBlock(Math.round(ox+Math.cos(frad)*4), base+1, Math.round(oz+Math.sin(frad)*4), BLOCK.FENCE);
+    }
+    for (var col2 = 0; col2 < 8; col2++) setBlock(ox, base+4+col2, oz, BLOCK.STONE);
+    setBlock(ox, base+12, oz, BLOCK.PLASTER); setBlock(ox, base+13, oz, BLOCK.PLASTER);
+    setBlock(ox, base+14, oz, BLOCK.LIGHT); setBlock(ox-1, base+14, oz, BLOCK.PLASTER); setBlock(ox+1, base+14, oz, BLOCK.PLASTER); setBlock(ox, base+15, oz, BLOCK.PLASTER);
+    _buildings.push({ kind: 'landmark_belgorod_vladimir', x:ox-4, z:oz-4, w:9, d:9, baseY:h, floorH:15, floors:1, cx:ox, cz:oz });
+  }
+
+  // LANDMARK: Transfiguration Cathedral — Belgorod's main Orthodox cathedral
+  function generateBelgorodCathedral(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0; var base = h + 1;
+    for (var wy = 0; wy < 12; wy++) for (var wx = -7; wx <= 6; wx++) for (var wz = -5; wz <= 4; wz++)
+      if (wx===-7||wx===6||wz===-5||wz===4||wy===11) setBlock(ox+wx, base+wy, oz+wz, BLOCK.PLASTER);
+    var cDomes = [[0,0,3],[1,0,2],[2,0,1]];
+    for (var cd = 0; cd < cDomes.length; cd++) { var cdr = cDomes[cd][2]; for (var cdx = -cdr; cdx <= cdr; cdx++) for (var cdz2 = -cdr; cdz2 <= cdr; cdz2++) setBlock(ox+cdx, base+12+cd, oz+cdz2, BLOCK.CONCRETE); }
+    setBlock(ox, base+15, oz, BLOCK.METAL);
+    var cornerDomes = [[-5,-3],[5,-3],[-5,3],[5,3]];
+    for (var cdi = 0; cdi < cornerDomes.length; cdi++) {
+      var cdox = ox+cornerDomes[cdi][0], cdoz = oz+cornerDomes[cdi][1];
+      for (var smr = -1; smr <= 1; smr++) for (var smz = -1; smz <= 1; smz++) setBlock(cdox+smr, base+12, cdoz+smz, BLOCK.CONCRETE);
+      setBlock(cdox, base+13, cdoz, BLOCK.CONCRETE); setBlock(cdox, base+14, cdoz, BLOCK.METAL);
+    }
+    for (var ty = 0; ty < 16; ty++) for (var tx = -11; tx <= -8; tx++) for (var tz = -2; tz <= 1; tz++)
+      if (tx===-11||tx===-8||tz===-2||tz===1) setBlock(ox+tx, base+ty, oz+tz, ty>=12?BLOCK.GLASS:BLOCK.PLASTER);
+    for (var ey = 0; ey < 3; ey++) { setBlock(ox-1, base+ey, oz-5, BLOCK.AIR); setBlock(ox, base+ey, oz-5, BLOCK.AIR); }
+    _buildings.push({ kind: 'landmark_belgorod_cathedral', x:ox-11, z:oz-5, w:18, d:10, baseY:h, floorH:6, floors:2, cx:ox, cz:oz });
+  }
+
+  // LANDMARK: Prokhorovka Tank Battle Memorial (largest tank battle in history, July 1943)
+  function generateBelgorodProkhorovka(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0; var base = h + 1;
+    for (var plx = -10; plx <= 9; plx++) for (var plz = -14; plz <= 9; plz++) setBlock(ox+plx, h, oz+plz, BLOCK.BRICK);
+    for (var pfx = -2; pfx <= 1; pfx++) for (var pfz = -2; pfz <= 1; pfz++) setBlock(ox+pfx, base, oz+pfz, BLOCK.STONE);
+    setBlock(ox-1, base+1, oz, BLOCK.LIGHT); setBlock(ox, base+1, oz, BLOCK.LIGHT);
+    setBlock(ox-1, base+1, oz-1, BLOCK.LIGHT); setBlock(ox, base+1, oz-1, BLOCK.LIGHT);
+    for (var oy = 0; oy < 18; oy++) setBlock(ox, base+oy, oz-8, BLOCK.REINFORCED);
+    setBlock(ox, base+18, oz-8, BLOCK.STONE); setBlock(ox, base+19, oz-8, BLOCK.METAL);
+    for (var la = 0; la < 360; la += 30) { var lrad = la*Math.PI/180; setBlock(Math.round(ox+Math.cos(lrad)*4), base, Math.round(oz-8+Math.sin(lrad)*4), BLOCK.STONE); }
+    for (var ty2 = 0; ty2 < 2; ty2++) for (var tx2 = -8; tx2 <= -5; tx2++) { setBlock(ox+tx2, base+ty2, oz-10, BLOCK.METAL); setBlock(ox+tx2, base+ty2, oz-9, BLOCK.METAL); }
+    for (var ty3 = 0; ty3 < 2; ty3++) for (var tx3 = 4; tx3 <= 7; tx3++) { setBlock(ox+tx3, base+ty3, oz-10, BLOCK.METAL); setBlock(ox+tx3, base+ty3, oz-9, BLOCK.METAL); }
+    for (var mwx = -10; mwx <= 9; mwx++) for (var mwy = 0; mwy < 4; mwy++) setBlock(ox+mwx, base+mwy, oz+8, BLOCK.STONE);
+    _buildings.push({ kind: 'landmark_prokhorovka_memorial', x:ox-10, z:oz-14, w:21, d:24, baseY:h, floorH:20, floors:1, cx:ox, cz:oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -11314,6 +11439,35 @@ window.VoxelWorld = (function () {
       generateSovietAdminBuilding(0, -22); // City administration building
       generateChurch(-28, 28);             // Orthodox church (damaged in fighting)
       generateDonbasArena(12, -22);         // Donbas Arena — Shakhtar Donetsk stadium, struck by Russian shells 2022
+    } else if (level.id === 'KHARKIV') {
+      // Kharkiv — Ukraine's second-largest city, 40km from Russian border, heavily shelled since 2022
+      generateDerzhprom(-5, -5);                // Constructivist Derzhprom skyscraper — Freedom Square
+      generateKharkivOperaHouse(0, 25);         // National Opera — neoclassical 1925
+      generateKharkivMirrorField(-5, -40);      // "Field of Mirrors" sculpture near Freedom Square
+      generateKharkivSumskaSt(0, -22);          // Sumska Street — neo-baroque 19c boulevard
+      generateKharkivApartments(-35, -20, 6);   // Typical Khrushchyovka residential blocks
+      generateKharkivApartments(30, 15, 5);
+      generateKharkivApartments(-30, 30, 7);
+      generateChurch(-22, 8);                   // Holy Annunciation Cathedral
+      generateChurch(18, -30);
+      generateBunker(-25, -25);
+      generateBunker(25, -25);
+      generateBunker(-25, 25);
+      generateBunker(25, 25);
+      generateTrenchNetwork(-15, 12);
+      generateTrenchNetwork(15, -12);
+      generateBurningRuin(-40, -10);
+      generateBurningRuin(38, 8);
+      generateBurningRuin(0, -45);
+      generateWreckedTank(-28, -38);
+      generateWreckedAPC(22, 35);
+      generateCraters(10);
+      generateDroneNest(45, 45);
+      generateDroneNest(-45, -45);
+      generateAntiAirPosition(-35, 35);
+      generateAntiAirPosition(35, -35);
+      generateDefensivePosition(-10, 40);
+      generateDefensivePosition(10, 40);
     } else if (level.id === 'BELGOROD') {
       // Belgorod Oblast offensive — Russian border region, the fight taken to the aggressor
       // Russian border villages, military depots, border crossing fortifications
@@ -11402,6 +11556,10 @@ window.VoxelWorld = (function () {
       generateSovietAdminBuilding(-38, 28); // Oblast court / administration
       generateGrainSilo(32, -38);           // Agricultural storage (Belgorod grain region)
       generateIndustrialComplex(-38, -8);   // Energomash rocket plant
+      // New authentic Belgorod landmarks
+      generateBelgorodPrinceVladimir(-30, 30);  // Prince Vladimir Monument — city symbol
+      generateBelgorodCathedral(25, -25);       // Transfiguration Cathedral — white domes
+      generateBelgorodProkhorovka(0, 40);       // Prokhorovka Tank Battle Memorial
     } else if (level.id === 'KREMLIN') {
       // KREMLIN SHOWDOWN — Final stage. Full Red Square under assault.
       // Kremlin perimeter wall with crenellations and towers

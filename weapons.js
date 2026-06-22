@@ -5038,10 +5038,64 @@ const Weapons = (() => {
       return g;
     },
 
+    // ── M16A2 (US standard issue 5.56mm rifle, AR-15 platform, 20" barrel) ──
+    m16: function () {
+      var g = new THREE.Group();
+      var mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.8 });
+      var plasticMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7, metalness: 0.05 });
+      var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.026, 0.52, 8), mat);
+      barrel.rotation.x = Math.PI/2; barrel.position.set(0, 0, 0.24); barrel.userData.role = 'bolt';
+      g.add(barrel);
+      var fh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.028, 0.055, 8), mat);
+      fh.rotation.x = Math.PI/2; fh.position.set(0, 0, 0.52); g.add(fh);
+      var upper = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.06, 0.28), mat);
+      upper.position.set(0, 0.02, 0.04); g.add(upper);
+      var lower = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.22), plasticMat);
+      lower.position.set(0, -0.01, 0.01); g.add(lower);
+      var handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.065, 0.12), mat);
+      handle.position.set(0, 0.075, 0.04); g.add(handle);
+      var stock = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.055, 0.22), plasticMat);
+      stock.position.set(0, -0.01, -0.16); g.add(stock);
+      var grip = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.09, 0.04), plasticMat);
+      grip.position.set(0, -0.07, -0.04); g.add(grip);
+      var hg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.032, 0.20, 8), plasticMat);
+      hg.rotation.x = Math.PI/2; hg.position.set(0, 0.005, 0.17); g.add(hg);
+      var mag = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.115, 0.035), plasticMat);
+      mag.position.set(0, -0.095, 0.02); g.add(mag);
+      g.userData.muzzlePos = new THREE.Vector3(0, 0, 0.56);
+      g.userData.selfContained = true;
+      return g;
+    },
+
+    // ── RG-6 Inferno (Russian 6-shot revolver grenade launcher) ──
+    rg6: function () {
+      var g = new THREE.Group();
+      var mat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5, metalness: 0.7 });
+      var drumMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.75 });
+      var body = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.12, 0.32), mat);
+      g.add(body);
+      var drum = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.095, 12), drumMat);
+      drum.rotation.z = Math.PI/2; drum.position.set(0, 0.05, -0.04); g.add(drum);
+      var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.028, 0.18, 8), mat);
+      barrel.rotation.x = Math.PI/2; barrel.position.set(0, 0.015, 0.22); barrel.userData.role = 'bolt'; g.add(barrel);
+      var stock = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.06, 0.20), mat);
+      stock.position.set(0.06, -0.02, -0.18); stock.rotation.z = 0.15; g.add(stock);
+      var grip = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.1, 0.04), mat);
+      grip.position.set(0, -0.08, -0.04); g.add(grip);
+      for (var ci = 0; ci < 6; ci++) {
+        var ang = (ci / 6) * Math.PI * 2;
+        var hole = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.1, 6), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9, metalness: 0.3 }));
+        hole.rotation.z = Math.PI/2; hole.position.set(Math.cos(ang) * 0.055, 0.05 + Math.sin(ang) * 0.055, -0.04); g.add(hole);
+      }
+      g.userData.muzzlePos = new THREE.Vector3(0, 0.015, 0.36);
+      g.userData.selfContained = true;
+      return g;
+    },
+
   };
 
   const meshBuilders = [
-    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.ak, NB.rpk,
+    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.m16, NB.ak, NB.rg6, NB.rpk,
     NB.svd, NB.pkm, NB.nlaw, NB.stugna, NB.m4,
     NB.javelin, NB.rpg7, NB.igla, NB.gp25,
     NB.scarh, NB.dshk, buildMolotovMesh,
