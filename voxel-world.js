@@ -1243,6 +1243,9 @@ window.VoxelWorld = (function () {
     { id: 'SUMY', name: 'Sumy University District', desc: 'Defend the besieged northeastern city', theme: 'urban', wavesPerLevel: 8, difficulty: 3.1, fogColor: 0x334422, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'POLTAVA', name: 'Poltava Battle Ridge', desc: 'Hold the historic battlefield against Russian advance', theme: 'grassland', wavesPerLevel: 8, difficulty: 2.8, fogColor: 0x445533, spawnCandidates: [{ x: -20, z: -20 }, { x: 20, z: -20 }, { x: 0, z: -30 }, { x: -30, z: 5 }, { x: 30, z: 5 }, { x: 0, z: 22 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'LUHANSK', name: 'Luhansk Occupied HQ', desc: 'Infiltrate and destroy LPR occupation command', theme: 'urban', wavesPerLevel: 10, difficulty: 4.0, fogColor: 0x221111, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'VINNYTSIA', name: 'Vinnytsia Missile Strike', desc: 'Respond to Kalibr missile strike on civilian center', theme: 'urban', wavesPerLevel: 8, difficulty: 3.2, fogColor: 0x334433, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'RIVNE', name: 'Rivne Supply Line Defence', desc: 'Defend the western logistics hub', theme: 'urban', wavesPerLevel: 7, difficulty: 2.6, fogColor: 0x334422, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
+    { id: 'ZHYTOMYR', name: 'Zhytomyr Cathedral District', desc: 'Protect the historic city under aerial bombardment', theme: 'urban', wavesPerLevel: 8, difficulty: 2.9, fogColor: 0x223344, spawnCandidates: [{ x: -18, z: -15 }, { x: 18, z: -15 }, { x: 0, z: -25 }, { x: -28, z: 5 }, { x: 28, z: 5 }, { x: 0, z: 20 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'ANTONOV',   name: 'Antonov Bridge Strike', desc: 'HIMARS the supply line into Kherson', theme: 'urban', wavesPerLevel: 7, difficulty: 2.0, fogColor: 0x556677, spawnCandidates: [{ x: -5, z: 25 }, { x: 5, z: 25 }, { x: -15, z: 20 }, { x: 15, z: 20 }, { x: 0, z: 30 }, { x: -25, z: 15 }, { x: 25, z: 15 }], spawnLookTarget: { x: 0, z: 0 } },
     { id: 'REFINERY',  name: 'Refinery Strike (FPV)', desc: 'Fly an FPV drone into the oil refinery', theme: 'industrial', wavesPerLevel: 1, difficulty: 1.6, fogColor: 0x2a2620, droneOnly: true, spawnCandidates: [{ x: 0, z: 50 }], spawnLookTarget: { x: 0, z: 0 } },
   ];
@@ -13064,6 +13067,344 @@ window.VoxelWorld = (function () {
     _buildings.push({ kind: 'landmark_luhansk_rail_station', x: ox - 20, z: oz - 6, w: 40, d: 30, baseY: h, floorH: 4, floors: 3, cx: ox, cz: oz });
   }
 
+  // LANDMARK: Vinnytsia Transfiguration Cathedral — baroque white cathedral with gold domes
+  // Major spiritual landmark of central Ukraine; survived the July 2022 missile strike nearby
+  function generateVinnytsiaCathedral(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Stone base — 2 blocks visible
+    for (i = -6; i <= 6; i++) {
+      for (j = -4; j <= 4; j++) {
+        setBlock(ox + i, h + 1, oz + j, BLOCK.STONE);
+        setBlock(ox + i, h + 2, oz + j, BLOCK.STONE);
+      }
+    }
+    // Main nave — 12x8 PLASTER, 18 high (white baroque)
+    for (y = 0; y < 18; y++) {
+      for (i = -6; i <= 6; i++) {
+        for (j = -4; j <= 4; j++) {
+          var isEdgeVC = (Math.abs(i) === 6 || Math.abs(j) === 4);
+          if (isEdgeVC || y === 0 || y === 17) setBlock(ox + i, h + y + 3, oz + j, BLOCK.PLASTER);
+        }
+      }
+    }
+    // Arched GLASS windows: 1x3 every 3 blocks along sides
+    for (i = -3; i <= 3; i += 3) {
+      for (y = 0; y < 3; y++) {
+        setBlock(ox + i, h + 6 + y, oz - 4, BLOCK.GLASS);
+        setBlock(ox + i, h + 6 + y, oz + 4, BLOCK.GLASS);
+      }
+    }
+    for (j = -2; j <= 2; j += 2) {
+      for (y = 0; y < 3; y++) {
+        setBlock(ox - 6, h + 6 + y, oz + j, BLOCK.GLASS);
+        setBlock(ox + 6, h + 6 + y, oz + j, BLOCK.GLASS);
+      }
+    }
+    // Central dome — 6x6 BRICK drum, 5 high + ROOFTILE cap 4 high
+    for (y = 0; y < 5; y++) {
+      for (i = -3; i <= 3; i++) {
+        for (j = -3; j <= 3; j++) {
+          if (Math.abs(i) === 3 || Math.abs(j) === 3) setBlock(ox + i, h + 21 + y, oz + j, BLOCK.BRICK);
+        }
+      }
+    }
+    for (y = 0; y < 4; y++) {
+      var crVC = 3 - y;
+      for (i = -crVC; i <= crVC; i++) {
+        for (j = -crVC; j <= crVC; j++) {
+          if (Math.abs(i) === crVC || Math.abs(j) === crVC) setBlock(ox + i, h + 26 + y, oz + j, BLOCK.ROOFTILE);
+        }
+      }
+    }
+    // 2 gold-top towers: 4x4 BRICK, 22 high, LIGHT blocks at apex
+    var towersVC = [[-5, 0], [5, 0]];
+    for (var tiVC = 0; tiVC < towersVC.length; tiVC++) {
+      var txVC = ox + towersVC[tiVC][0], tzVC = oz + towersVC[tiVC][1];
+      for (y = 0; y < 22; y++) {
+        for (i = -2; i <= 2; i++) {
+          for (j = -2; j <= 2; j++) {
+            if (Math.abs(i) === 2 || Math.abs(j) === 2 || y === 0 || y === 21) setBlock(txVC + i, h + y + 3, tzVC + j, BLOCK.BRICK);
+          }
+        }
+      }
+      setBlock(txVC, h + 26, tzVC, BLOCK.LIGHT);
+      setBlock(txVC, h + 27, tzVC, BLOCK.LIGHT);
+    }
+    // Crater damage: AIR hole in south wall + RUBBLE pile (missile hit nearby)
+    setBlock(ox, h + 5, oz - 4, BLOCK.AIR);
+    setBlock(ox + 1, h + 5, oz - 4, BLOCK.AIR);
+    setBlock(ox - 1, h + 5, oz - 4, BLOCK.AIR);
+    setBlock(ox, h + 6, oz - 4, BLOCK.AIR);
+    for (i = -2; i <= 2; i++) {
+      setBlock(ox + i, h + 3, oz - 6, BLOCK.RUBBLE);
+      setBlock(ox + i, h + 3, oz - 7, BLOCK.RUBBLE);
+    }
+    setBlock(ox, h + 4, oz - 6, BLOCK.RUBBLE);
+    _buildings.push({ kind: 'landmark_vinnytsia_cathedral', x: ox - 6, z: oz - 4, w: 12, d: 8, baseY: h, floorH: 18, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Vinnytsia House of Officers — Soviet officer's club hit by Kalibr missile July 14 2022
+  // Strike killed 23 civilians in a crowded public space; building partially collapsed
+  function generateVinnytsiaOfficerHouse(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Main building — 20x12 PLASTER, 10 high (Soviet officer's club)
+    for (y = 0; y < 10; y++) {
+      for (i = -10; i <= 10; i++) {
+        for (j = -6; j <= 6; j++) {
+          var isEdgeVOH = (Math.abs(i) === 10 || Math.abs(j) === 6);
+          if (isEdgeVOH || y === 0 || y === 9) setBlock(ox + i, h + y + 1, oz + j, BLOCK.PLASTER);
+        }
+      }
+    }
+    // 6 columns across facade (front face at oz - 6)
+    var colXVOH = [-8, -5, -2, 2, 5, 8];
+    for (var ciVOH = 0; ciVOH < colXVOH.length; ciVOH++) {
+      for (y = 0; y < 8; y++) {
+        setBlock(ox + colXVOH[ciVOH], h + y + 1, oz - 7, BLOCK.CONCRETE);
+      }
+    }
+    // Collapsed section: AIR gap 6 wide in center, RUBBLE + CONCRETE debris on ground
+    for (i = -3; i <= 3; i++) {
+      for (y = 0; y < 8; y++) {
+        setBlock(ox + i, h + y + 1, oz - 6, BLOCK.AIR);
+        setBlock(ox + i, h + y + 1, oz - 5, BLOCK.AIR);
+        setBlock(ox + i, h + y + 1, oz - 4, BLOCK.AIR);
+      }
+      setBlock(ox + i, h + 1, oz - 6, BLOCK.RUBBLE);
+      setBlock(ox + i, h + 1, oz - 5, BLOCK.CONCRETE);
+      setBlock(ox + i, h + 2, oz - 5, BLOCK.RUBBLE);
+    }
+    // METAL fragments sticking up from rubble
+    setBlock(ox - 2, h + 2, oz - 7, BLOCK.METAL);
+    setBlock(ox - 2, h + 3, oz - 7, BLOCK.METAL);
+    setBlock(ox + 2, h + 2, oz - 7, BLOCK.METAL);
+    setBlock(ox + 2, h + 3, oz - 7, BLOCK.METAL);
+    setBlock(ox, h + 2, oz - 8, BLOCK.METAL);
+    // Scorched areas: LIGHT blocks at rubble edge (low flicker)
+    setBlock(ox - 3, h + 1, oz - 8, BLOCK.LIGHT);
+    setBlock(ox + 3, h + 1, oz - 8, BLOCK.LIGHT);
+    // Crater in front: 3x3 depression, RUBBLE filling
+    for (i = -1; i <= 1; i++) {
+      for (j = -1; j <= 1; j++) {
+        setBlock(ox + i, h, oz - 10 + j, BLOCK.RUBBLE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_vinnytsia_officer_house', x: ox - 10, z: oz - 6, w: 20, d: 12, baseY: h, floorH: 10, floors: 1, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Rivne Drama Theater — neoclassical building on main square
+  // Cultural centerpiece of Rivne; city became key western logistics hub in 2022
+  function generateRivneDramaTheater(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Main building — 22x14 PLASTER, 12 high
+    for (y = 0; y < 12; y++) {
+      for (i = -11; i <= 11; i++) {
+        for (j = -7; j <= 7; j++) {
+          var isEdgeRDT = (Math.abs(i) === 11 || Math.abs(j) === 7);
+          if (isEdgeRDT || y === 0 || y === 11) setBlock(ox + i, h + y + 1, oz + j, BLOCK.PLASTER);
+        }
+      }
+    }
+    // GLASS windows: 2x2 every 3 blocks on sides
+    for (i = -9; i <= 9; i += 3) {
+      for (y = 0; y < 2; y++) {
+        setBlock(ox + i, h + 4 + y, oz - 7, BLOCK.GLASS);
+        setBlock(ox + i, h + 4 + y, oz + 7, BLOCK.GLASS);
+      }
+    }
+    for (j = -5; j <= 5; j += 3) {
+      for (y = 0; y < 2; y++) {
+        setBlock(ox - 11, h + 4 + y, oz + j, BLOCK.GLASS);
+        setBlock(ox + 11, h + 4 + y, oz + j, BLOCK.GLASS);
+      }
+    }
+    // Colonnade: 8 CONCRETE columns, 10 high across front
+    var colPosRDT = [-9, -7, -5, -2, 2, 5, 7, 9];
+    for (var ciRDT = 0; ciRDT < colPosRDT.length; ciRDT++) {
+      for (y = 0; y < 10; y++) {
+        setBlock(ox + colPosRDT[ciRDT], h + y + 1, oz - 8, BLOCK.CONCRETE);
+      }
+    }
+    // Triangular pediment: PLASTER 5 high above colonnade center
+    for (var pyRDT = 0; pyRDT < 5; pyRDT++) {
+      var pwRDT = 5 - pyRDT;
+      for (i = -pwRDT; i <= pwRDT; i++) {
+        setBlock(ox + i, h + 13 + pyRDT, oz - 8, BLOCK.PLASTER);
+      }
+    }
+    // Side wings: 8x14 PLASTER, 9 high
+    var wingsRDT = [[-13, 0], [13, 0]];
+    for (var wiRDT = 0; wiRDT < wingsRDT.length; wiRDT++) {
+      var wxRDT = ox + wingsRDT[wiRDT][0], wzRDT = oz + wingsRDT[wiRDT][1];
+      for (y = 0; y < 9; y++) {
+        for (i = -4; i <= 4; i++) {
+          for (j = -7; j <= 7; j++) {
+            var isWEdgeRDT = (Math.abs(i) === 4 || Math.abs(j) === 7);
+            if (isWEdgeRDT || y === 0 || y === 8) setBlock(wxRDT + i, h + y + 1, wzRDT + j, BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Ukrainian flag defense marking on roof: LIGHT + CONCRETE blocks
+    for (i = -3; i <= 3; i++) {
+      setBlock(ox + i, h + 13, oz, BLOCK.LIGHT);
+    }
+    for (i = -3; i <= 3; i++) {
+      setBlock(ox + i, h + 13, oz + 2, BLOCK.CONCRETE);
+    }
+    _buildings.push({ kind: 'landmark_rivne_drama_theater', x: ox - 11, z: oz - 7, w: 22, d: 14, baseY: h, floorH: 12, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Zhytomyr Cathedral of the Transfiguration — Russian Orthodox with tall spires
+  // Historic city landmark; Zhytomyr is birthplace of Korolev (Soviet space program founder)
+  function generateZhytomyrCathedral(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Main body — 14x10 STONE, 18 high
+    for (y = 0; y < 18; y++) {
+      for (i = -7; i <= 7; i++) {
+        for (j = -5; j <= 5; j++) {
+          var isEdgeZC = (Math.abs(i) === 7 || Math.abs(j) === 5);
+          if (isEdgeZC || y === 0 || y === 17) setBlock(ox + i, h + y + 1, oz + j, BLOCK.STONE);
+        }
+      }
+    }
+    // Arched GLASS windows: 1x3 every 4 blocks
+    for (i = -4; i <= 4; i += 4) {
+      for (y = 0; y < 3; y++) {
+        setBlock(ox + i, h + 5 + y, oz - 5, BLOCK.GLASS);
+        setBlock(ox + i, h + 5 + y, oz + 5, BLOCK.GLASS);
+      }
+    }
+    for (j = -3; j <= 3; j += 3) {
+      for (y = 0; y < 3; y++) {
+        setBlock(ox - 7, h + 5 + y, oz + j, BLOCK.GLASS);
+        setBlock(ox + 7, h + 5 + y, oz + j, BLOCK.GLASS);
+      }
+    }
+    // Central dome — 6x6 STONE drum 5 high, ROOFTILE cap 4 high
+    for (y = 0; y < 5; y++) {
+      for (i = -3; i <= 3; i++) {
+        for (j = -3; j <= 3; j++) {
+          if (Math.abs(i) === 3 || Math.abs(j) === 3) setBlock(ox + i, h + 19 + y, oz + j, BLOCK.STONE);
+        }
+      }
+    }
+    for (y = 0; y < 4; y++) {
+      var drZC = 3 - y;
+      for (i = -drZC; i <= drZC; i++) {
+        for (j = -drZC; j <= drZC; j++) {
+          if (Math.abs(i) === drZC || Math.abs(j) === drZC) setBlock(ox + i, h + 24 + y, oz + j, BLOCK.ROOFTILE);
+        }
+      }
+    }
+    // Tall spires: 3x3 STONE base tapered to 1x1, 24 high total each side
+    var spiresZC = [[-6, 0], [6, 0]];
+    for (var siZC = 0; siZC < spiresZC.length; siZC++) {
+      var sxZC = ox + spiresZC[siZC][0], szZC = oz + spiresZC[siZC][1];
+      for (y = 0; y < 12; y++) {
+        for (i = -1; i <= 1; i++) {
+          for (j = -1; j <= 1; j++) {
+            if (Math.abs(i) === 1 || Math.abs(j) === 1 || y === 0) setBlock(sxZC + i, h + y + 3, szZC + j, BLOCK.STONE);
+          }
+        }
+      }
+      for (y = 12; y < 22; y++) {
+        setBlock(sxZC, h + y + 3, szZC, BLOCK.STONE);
+      }
+      for (y = 0; y < 4; y++) {
+        setBlock(sxZC, h + 25 + y, szZC, BLOCK.ROOFTILE);
+      }
+    }
+    // Russian shelling damage: RUBBLE pile on east facade
+    for (i = 4; i <= 7; i++) {
+      setBlock(ox + i, h + 1, oz + 2, BLOCK.RUBBLE);
+      setBlock(ox + i, h + 1, oz + 3, BLOCK.RUBBLE);
+      setBlock(ox + i, h + 2, oz + 2, BLOCK.RUBBLE);
+    }
+    setBlock(ox + 7, h + 3, oz + 3, BLOCK.RUBBLE);
+    setBlock(ox + 7, h + 4, oz, BLOCK.AIR);
+    setBlock(ox + 7, h + 5, oz, BLOCK.AIR);
+    _buildings.push({ kind: 'landmark_zhytomyr_cathedral', x: ox - 7, z: oz - 5, w: 14, d: 10, baseY: h, floorH: 18, floors: 2, cx: ox, cz: oz });
+  }
+
+  // LANDMARK: Zhytomyr Regional State Administration — Soviet-era admin building
+  // Key government building; Zhytomyr hub for western Ukraine logistics corridor
+  function generateZhytomyrAdminBuilding(ox, oz) {
+    var h = getTerrainHeight(ox, oz) || 0;
+    var i, j, y;
+    // Soviet-era admin — 26x14 CONCRETE, 14 high
+    for (y = 0; y < 14; y++) {
+      for (i = -13; i <= 13; i++) {
+        for (j = -7; j <= 7; j++) {
+          var isEdgeZAB = (Math.abs(i) === 13 || Math.abs(j) === 7);
+          if (isEdgeZAB || y === 0 || y === 13) setBlock(ox + i, h + y + 1, oz + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // GLASS windows: regular grid 2x2 every 3 blocks
+    for (i = -11; i <= 11; i += 3) {
+      for (y = 0; y < 2; y++) {
+        setBlock(ox + i, h + 3 + y, oz - 7, BLOCK.GLASS);
+        setBlock(ox + i, h + 7 + y, oz - 7, BLOCK.GLASS);
+        setBlock(ox + i, h + 11 + y, oz - 7, BLOCK.GLASS);
+        setBlock(ox + i, h + 3 + y, oz + 7, BLOCK.GLASS);
+        setBlock(ox + i, h + 7 + y, oz + 7, BLOCK.GLASS);
+      }
+    }
+    for (j = -5; j <= 5; j += 3) {
+      for (y = 0; y < 2; y++) {
+        setBlock(ox - 13, h + 4 + y, oz + j, BLOCK.GLASS);
+        setBlock(ox + 13, h + 4 + y, oz + j, BLOCK.GLASS);
+        setBlock(ox - 13, h + 8 + y, oz + j, BLOCK.GLASS);
+        setBlock(ox + 13, h + 8 + y, oz + j, BLOCK.GLASS);
+      }
+    }
+    // Portico: 6 CONCRETE columns, 12 high across center front
+    var porticoZAB = [-8, -5, -2, 2, 5, 8];
+    for (var piZAB = 0; piZAB < porticoZAB.length; piZAB++) {
+      for (y = 0; y < 12; y++) {
+        setBlock(ox + porticoZAB[piZAB], h + y + 1, oz - 8, BLOCK.CONCRETE);
+      }
+    }
+    // Clock tower: 4x4 CONCRETE, 20 high on roof center
+    for (y = 0; y < 20; y++) {
+      for (i = -2; i <= 2; i++) {
+        for (j = -2; j <= 2; j++) {
+          if (Math.abs(i) === 2 || Math.abs(j) === 2 || y === 0 || y === 19) setBlock(ox + i, h + 15 + y, oz + j, BLOCK.CONCRETE);
+        }
+      }
+    }
+    // Clock face GLASS blocks
+    setBlock(ox, h + 28, oz - 2, BLOCK.GLASS);
+    setBlock(ox, h + 29, oz - 2, BLOCK.GLASS);
+    setBlock(ox, h + 28, oz + 2, BLOCK.GLASS);
+    setBlock(ox, h + 29, oz + 2, BLOCK.GLASS);
+    // Ukrainian bunker positions: CONCRETE blocks 2 high at base
+    var bunkerPtsZAB = [[-15, -9], [15, -9], [-15, 9], [15, 9]];
+    for (var biZAB = 0; biZAB < bunkerPtsZAB.length; biZAB++) {
+      var bxZAB = ox + bunkerPtsZAB[biZAB][0], bzZAB = oz + bunkerPtsZAB[biZAB][1];
+      for (i = -1; i <= 1; i++) {
+        for (j = -1; j <= 1; j++) {
+          if (Math.abs(i) === 1 || Math.abs(j) === 1) {
+            setBlock(bxZAB + i, h + 1, bzZAB + j, BLOCK.CONCRETE);
+            setBlock(bxZAB + i, h + 2, bzZAB + j, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    // Drone landing pad: WHITE_TILE 6x6 on roof
+    for (i = -3; i <= 3; i++) {
+      for (j = -3; j <= 3; j++) {
+        setBlock(ox + i, h + 15, oz + j, BLOCK.WHITE_TILE);
+      }
+    }
+    _buildings.push({ kind: 'landmark_zhytomyr_admin', x: ox - 13, z: oz - 7, w: 26, d: 14, baseY: h, floorH: 14, floors: 3, cx: ox, cz: oz });
+  }
+
   function generateLevel(index) {
     const level = getLevelDef(index);
     setTheme(level.theme);
@@ -14395,6 +14736,56 @@ window.VoxelWorld = (function () {
       generateDroneNest(44, 42); generateDroneNest(-44, -42);
       generateAntiAirPosition(-40, 30); generateAntiAirPosition(36, -30);
       generateCheckpoint(0, -52, false); generateCheckpoint(-50, 0, true);
+    } else if (level.id === 'VINNYTSIA') {
+      // Vinnytsia — central Ukraine; Kalibr missile struck House of Officers July 14 2022, killing 23
+      generateVinnytsiaCathedral(-10, -15);
+      generateVinnytsiaOfficerHouse(12, 8);
+      generateUkrainianApartment(-28, -22, 9); generateUkrainianApartment(28, -18, 6);
+      generateUkrainianApartment(-30, 10, 6); generateUkrainianApartment(28, 14, 9);
+      generateRuinedHouse(-12, 28); generateRuinedHouse(12, -38);
+      generateBurningRuin(-35, -10); generateBurningRuin(30, 12);
+      generateWreckedTank(-18, -28); generateWreckedAPC(16, 28);
+      generateCraters(12);
+      generateBunker(-25, -28); generateBunker(22, 25); generateBunker(0, -40);
+      generateMortarPit(-32, -10); generateMortarPit(28, 12);
+      generateTrenchNetwork(-15, 20); generateTrenchNetwork(15, -20);
+      generateSniperNest(-36, -38); generateSniperNest(32, -38);
+      generateDroneNest(40, 38); generateDroneNest(-40, -38);
+      generateAntiAirPosition(-36, 25); generateAntiAirPosition(32, -25);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'RIVNE') {
+      // Rivne — northwest Ukraine administrative center; key western logistics hub
+      generateRivneDramaTheater(-5, -15);
+      generateUkrainianApartment(-28, -22, 9); generateUkrainianApartment(28, -18, 6);
+      generateUkrainianApartment(-30, 10, 6); generateUkrainianApartment(28, 14, 9);
+      generateRuinedHouse(-12, 28); generateRuinedHouse(12, -38);
+      generateBurningRuin(-35, -10); generateBurningRuin(30, 12);
+      generateWreckedTank(-18, -28); generateWreckedAPC(16, 28); generateWreckedConvoy(-28, 26);
+      generateCraters(10);
+      generateBunker(-25, -28); generateBunker(22, 25); generateBunker(0, -40);
+      generateMortarPit(-32, -10); generateMortarPit(28, 12);
+      generateTrenchNetwork(-15, 20); generateTrenchNetwork(15, -20);
+      generateSniperNest(-36, -38); generateSniperNest(32, -38);
+      generateDroneNest(40, 38); generateDroneNest(-40, -38);
+      generateAntiAirPosition(-36, 25); generateAntiAirPosition(32, -25);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
+    } else if (level.id === 'ZHYTOMYR') {
+      // Zhytomyr — northwest Ukraine logistics hub; birthplace of Korolev (space program)
+      generateZhytomyrCathedral(-8, -12);
+      generateZhytomyrAdminBuilding(14, 10);
+      generateUkrainianApartment(-28, -22, 9); generateUkrainianApartment(28, -18, 6);
+      generateUkrainianApartment(-30, 10, 6); generateUkrainianApartment(28, 14, 9);
+      generateRuinedHouse(-12, 28); generateRuinedHouse(12, -38);
+      generateBurningRuin(-35, -10); generateBurningRuin(30, 12);
+      generateWreckedTank(-18, -28); generateWreckedAPC(16, 28);
+      generateCraters(10);
+      generateBunker(-25, -28); generateBunker(22, 25); generateBunker(0, -40);
+      generateMortarPit(-32, -10); generateMortarPit(28, 12);
+      generateTrenchNetwork(-15, 20); generateTrenchNetwork(15, -20);
+      generateSniperNest(-36, -38); generateSniperNest(32, -38);
+      generateDroneNest(40, 38); generateDroneNest(-40, -38);
+      generateAntiAirPosition(-36, 25); generateAntiAirPosition(32, -25);
+      generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
     } else if (level.id === 'BUCHA') {
       // Bucha — Kyiv suburb, site of documented Russian war crimes, April 2022
       // St. Andrew's Church cemetery mass burial, Yablunska Street massacres
