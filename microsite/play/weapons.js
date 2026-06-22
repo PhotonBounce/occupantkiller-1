@@ -34,23 +34,10 @@ const Weapons = (() => {
       quickDraw: true,
     },
     {
-      id: 'M16A2', name: 'M16A2 (5.56mm Burst)', damage: 33,
-      fireRate: 0.095, clipSize: 30, maxReserve: 150, reloadTime: 2.5,
-      spread: 0.013, auto: false, type: 'NATO', hasScope: false, recoilY: 0.010, recoilX: 0.004,
-      critChance: 0.15, critMult: 1.6,
-      description: 'US M16A2 with 20" barrel, triangular A2 handguards, and adjustable A2 carry-handle rear sight. 3-round burst or semi-auto. Higher muzzle velocity and accuracy than the M4A1 carbine — 975 m/s vs 884 m/s. Standard US infantry rifle from 1983 through the 2010s. Thousands supplied to Ukrainian forces by the US plus captured from early-war Russian seizures of NATO stockpiles. Loved for its flat trajectory at 400m+ and reliability in Donbas winters.',
-    },
-    {
       id: 'AK74', name: 'AK-74M', damage: 30,
       fireRate: 0.095, clipSize: 30, maxReserve: 150, reloadTime: 1.8,
       spread: 0.018, auto: true, type: 'ASSAULT', recoilY: 0.013, recoilX: 0.005,
       hasScope: true,
-    },
-    {
-      id: 'RG6_FIRE', name: 'RG-6 "Inferno" Drum', damage: 95,
-      fireRate: 0.9, clipSize: 6, maxReserve: 24, reloadTime: 3.4,
-      spread: 0.022, auto: false, type: 'INCENDIARY', blastRadius: 5, recoilY: 0.028, recoilX: 0.010,
-      description: 'RG-6 "Gnome" 6-shot 40mm revolver drum grenade launcher loaded with RSP-30 incendiary/thermobaric rounds. Revolver action, shoulder-fired, 400m max range. Each round ignites a thermite-phosphorus splash on impact — inspired by Baba Yaga drone incendiary drop tactics. Ukrainian improvised incendiary rounds often use white phosphorus or RKhT thermite inserts. Devastating area denial — burning at 2,200°C, impossible to extinguish with water.',
     },
     {
       id: 'RPK74', name: 'RPK-74', damage: 22,
@@ -61,7 +48,6 @@ const Weapons = (() => {
       id: 'SVD', name: 'SVD Dragunov', damage: 115,
       fireRate: 0.85, clipSize: 10, maxReserve: 40, reloadTime: 3.5,
       spread: 0.004, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.040, recoilX: 0.010,
-      critChance: 0.20, critMult: 2.0,
     },
     {
       id: 'PKM', name: 'PKM', damage: 18,
@@ -136,7 +122,6 @@ const Weapons = (() => {
       id: 'BARRETTM82', name: 'Barrett M82', damage: 250,
       fireRate: 1.5, clipSize: 10, maxReserve: 30, reloadTime: 4.0,
       spread: 0.002, auto: false, type: 'AMR', hasScope: true, recoilY: 0.045, recoilX: 0.012,
-      critChance: 0.25, critMult: 2.5,
     },
     {
       id: 'MINIGUN', name: 'M134 Minigun', damage: 12,
@@ -147,7 +132,6 @@ const Weapons = (() => {
       id: 'CROSSBOW', name: 'Tactical Crossbow', damage: 130,
       fireRate: 1.2, clipSize: 1, maxReserve: 15, reloadTime: 1.8,
       spread: 0.006, auto: false, type: 'SILENT', recoilY: 0, recoilX: 0,
-      critChance: 0.30, critMult: 2.0,
     },
     {
       id: 'FLAMETHROWER', name: 'RPO-A Shmel', damage: 200,
@@ -210,7 +194,6 @@ const Weapons = (() => {
       id: 'VSS', name: 'VSS Vintorez', damage: 42,
       fireRate: 0.12, clipSize: 20, maxReserve: 80, reloadTime: 2.5,
       spread: 0.010, auto: true, type: 'SILENT', hasScope: true, recoilY: 0.012, recoilX: 0.005,
-      critChance: 0.12, critMult: 1.8,
     },
     {
       id: 'STINGER', name: 'FIM-92 Stinger', damage: 700,
@@ -221,7 +204,6 @@ const Weapons = (() => {
       id: 'THROWKNIFE', name: 'Throwing Knife', damage: 90,
       fireRate: 0.5, clipSize: 1, maxReserve: 8, reloadTime: 0.3,
       spread: 0.008, auto: false, type: 'SILENT', recoilY: 0, recoilX: 0,
-      critChance: 0.35, critMult: 2.5,
     },
     {
       id: 'C4', name: 'C4 Explosive', damage: 500,
@@ -776,6 +758,8 @@ const Weapons = (() => {
   }
   let states     = WEAPONS.map(makeState);
   let currentIdx = 0;
+  // Shell casing ejection state
+  var _casings = []; // { mesh, scene, vx, vy, vz, rx, rz, life, landed }
   // Gatling (0), Shovel (1), and Drone Jammer (last) start unlocked
   let _jammerIdx = WEAPONS.findIndex(function(w) { return w.id === 'DRONEJAMMER'; });
   let unlocked   = WEAPONS.map(function(_, i) { return i <= 1 || i === _jammerIdx; });
@@ -5056,20 +5040,8 @@ const Weapons = (() => {
 
   };
 
-  // ── Builders for two weapons that were added to WEAPONS without meshes ──
-  // M16A2 (#3) and RG-6 Inferno (#5) were added to the WEAPONS list but never
-  // got mesh builders, so the positional meshBuilders array was 2 short. That
-  // shifted every weapon from index 3 onward onto the wrong model (M16→AK,
-  // AK→RPK, …) and dropped the last two into the magenta placeholder. These
-  // dedicated builders restore the 1:1 weapon→mesh alignment.
-  // M16A2 is an AR-15-platform 5.56mm rifle (same family as the M4A1 carbine);
-  // RG-6 Inferno is a 6-shot revolver grenade launcher (same class as the M32A1
-  // MGL). Both delegate to the matching, known-good builder.
-  NB.m16 = NB.m16 || function () { return NB.m4(); };
-  NB.rg6 = NB.rg6 || function () { return NB.m32mgl(); };
-
   const meshBuilders = [
-    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.m16, NB.ak, NB.rg6, NB.rpk,
+    buildGatlingMesh, buildShovelMesh, NB.makarov, NB.ak, NB.rpk,
     NB.svd, NB.pkm, NB.nlaw, NB.stugna, NB.m4,
     NB.javelin, NB.rpg7, NB.igla, NB.gp25,
     NB.scarh, NB.dshk, buildMolotovMesh,
@@ -5968,6 +5940,13 @@ const Weapons = (() => {
       WeaponDetails.onFire(gunMeshes[currentIdx], wep);
     }
 
+    // ── Bolt/slide animation and shell casing ejection ───
+    _triggerBoltAnim();
+    var _noShellTypes = ['MELEE','MINE','SMOKE','FLASHBANG','AT','ATGM','AT_HEAVY','AT_LIGHT','AA','GRENADE','INCENDIARY','THERMOBARIC','EXPLOSIVE','JAMMER','SILENT'];
+    if (_noShellTypes.indexOf(wep.type) < 0) {
+      _ejectShell(wep.type);
+    }
+
     // ── Weapon jamming system ────────────────────────────
     if (wep.type !== 'MELEE' && wep.type !== 'MINE' && wep.type !== 'SMOKE' && wep.type !== 'FLASHBANG') {
       st.shotsSinceClean++;
@@ -6209,18 +6188,14 @@ const Weapons = (() => {
       }
     }
 
-    var _skillSpreadMod = (typeof SkillSystem !== 'undefined' && SkillSystem.getSpreadMod) ? SkillSystem.getSpreadMod() : 1.0;
-    // Weather accuracy mod: lower accuracy = more spread (reciprocal)
-    var _weatherAcc = (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) ? (WeatherSystem.getModifiers().accuracyMod || 1.0) : 1.0;
-    var _effectiveSpread = wep.spread * _skillSpreadMod * (2.0 - _weatherAcc);
     spreadVec.set(
-      (Math.random() - 0.5) * _effectiveSpread * 2,
-      (Math.random() - 0.5) * _effectiveSpread * 2
+      (Math.random() - 0.5) * wep.spread * 2,
+      (Math.random() - 0.5) * wep.spread * 2
     );
     if (_aimSnapDir) {
       raycaster.ray.origin.copy(camera.getWorldPosition(new THREE.Vector3()));
       raycaster.ray.direction.copy(_aimSnapDir).add(
-        new THREE.Vector3((Math.random()-0.5)*_effectiveSpread, (Math.random()-0.5)*_effectiveSpread, (Math.random()-0.5)*_effectiveSpread)
+        new THREE.Vector3((Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread)
       ).normalize();
     } else {
       raycaster.setFromCamera(spreadVec, camera);
@@ -6625,6 +6600,10 @@ const Weapons = (() => {
       WeaponDetails.update(delta, mesh, cur(), curState(), _firedThisFrame, zoomed);
     }
 
+    // ── Bolt animation and shell casing ticks ────────────
+    _tickBoltAnim(delta);
+    _tickCasings(delta);
+
     // ── Guided weapon lock-on indicator ──
     if (typeof HUD !== 'undefined' && HUD.showLockOn && _camera) {
       var cw = cur();
@@ -6781,10 +6760,6 @@ const Weapons = (() => {
         if (mesh) { mesh.rotation.x = _sprintLowerRotX; mesh.rotation.z = 0; }
         HUD.showReload(false);
         HUD.setAmmo(st.clip, st.reserve);
-        // Reload-ready audio cue (distinctive chambered click)
-        if (typeof AudioSystem !== 'undefined' && AudioSystem.playReloadReady) {
-          AudioSystem.playReloadReady();
-        }
       }
     }
   }
@@ -6819,6 +6794,11 @@ const Weapons = (() => {
       }
     }
     projectiles.length = 0;
+    // Clear shell casings
+    for (var _ci = _casings.length - 1; _ci >= 0; _ci--) {
+      try { _casings[_ci].scene.remove(_casings[_ci].mesh); } catch (e) {}
+    }
+    _casings.length = 0;
     // Clear smoke clouds with proper disposal
     for (let i = _smokeClouds.length - 1; i >= 0; i--) {
       var sc = _smokeClouds[i];
@@ -6991,7 +6971,7 @@ const Weapons = (() => {
   }
   function _curStats() { return _stats(currentIdx); }
   function effectiveClipSize(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.clipSize   : 0; }
-  function effectiveReloadTime(idx){ var s = _stats(idx == null ? currentIdx : idx); if (!s) return 0; var t = s.reloadTime; if (typeof Perks !== 'undefined' && Perks.getReloadMult) t *= Perks.getReloadMult(); return t; }
+  function effectiveReloadTime(idx){ var s = _stats(idx == null ? currentIdx : idx); return s ? s.reloadTime : 0; }
   function effectiveFireRate(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.fireRate   : 0; }
   function effectiveDamage(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.damage     : 0; }
   function effectiveSpread(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.spread     : 0; }
@@ -7159,6 +7139,131 @@ const Weapons = (() => {
       if (a.recoilMult) stats.recoilY *= a.recoilMult;
     }
     return stats;
+  }
+
+  // ── Bolt/slide animation ──────────────────────────────────────
+  // Triggers a bolt-cycle animation on the current weapon's viewmodel mesh.
+  // Phase 0: retract over 0.06 s, phase 1: return over 0.09 s.
+  function _triggerBoltAnim() {
+    var mesh = gunMeshes[currentIdx];
+    if (!mesh) return;
+    mesh.userData.boltAnim = { phase: 0, t: 0, maxBack: 0.08 };
+  }
+
+  function _tickBoltAnim(dt) {
+    var mesh = gunMeshes[currentIdx];
+    if (!mesh || !mesh.userData.boltAnim) return;
+    var a = mesh.userData.boltAnim;
+    if (a.phase === 0) { // retracting
+      a.t += dt;
+      var prog = Math.min(1, a.t / 0.06);
+      // Store as boltOffsetZ so the main mesh position logic can incorporate it
+      mesh.userData.boltOffsetZ = a.maxBack * prog;
+      if (prog >= 1) { a.phase = 1; a.t = 0; }
+    } else if (a.phase === 1) { // returning
+      a.t += dt;
+      var prog2 = Math.min(1, a.t / 0.09);
+      mesh.userData.boltOffsetZ = a.maxBack * (1 - prog2);
+      if (prog2 >= 1) {
+        mesh.userData.boltOffsetZ = 0;
+        mesh.userData.boltAnim = null;
+      }
+    }
+    // Apply bolt offset on top of current position.z (added to the Z already set in update)
+    // We adjust mesh.position.z directly here; the main update loop overwrites it each frame,
+    // so we write to a separate child (or a tiny additional shift after the main write).
+    // Implementation: we add boltOffsetZ to position.z after the fact using a child sentinel.
+    // Since the main update writes mesh.position.z each frame, we animate the first child group
+    // that has userData.role === 'boltChild', or fall back to rotating children[0].
+    if (mesh.children.length > 0) {
+      var boltChild = null;
+      for (var bci = 0; bci < mesh.children.length; bci++) {
+        if (mesh.children[bci].userData && mesh.children[bci].userData.role === 'bolt') {
+          boltChild = mesh.children[bci]; break;
+        }
+      }
+      // Fallback: use the first visible child (typically the main gun body group)
+      if (!boltChild && mesh.children[0]) boltChild = mesh.children[0];
+      if (boltChild) {
+        boltChild.position.z = (boltChild.userData._origZ || 0) + (mesh.userData.boltOffsetZ || 0);
+        if (!boltChild.userData._origZSet) {
+          boltChild.userData._origZ = boltChild.position.z;
+          boltChild.userData._origZSet = true;
+        }
+      }
+    }
+  }
+
+  // ── Shell casing ejection ─────────────────────────────────────
+  function _ejectShell(weaponType) {
+    if (!_scene && !(typeof window !== 'undefined' && window._gameScene)) return;
+    var sc = (typeof window !== 'undefined' && window._gameScene) ? window._gameScene : _scene;
+    if (!sc) return;
+    var cam = _camera;
+    if (!cam && typeof window !== 'undefined' && window.GameManager && window.GameManager.getCamera) {
+      cam = window.GameManager.getCamera();
+    }
+    if (!cam) return;
+
+    var isBig    = (weaponType === 'HMG' || weaponType === 'HMG_HEAVY' || weaponType === 'LMG' || weaponType === 'MACHINEGUN' || weaponType === 'MINIGUN' || weaponType === 'GATLING');
+    var isPistol = (weaponType === 'PISTOL');
+    var r   = isBig ? 0.05 : (isPistol ? 0.025 : 0.032);
+    var len = isBig ? 0.18 : (isPistol ? 0.10  : 0.13);
+
+    var geo = new THREE.CylinderGeometry(r * 0.6, r, len, 6);
+    var mat = new THREE.MeshLambertMaterial({ color: 0xC8A840 });
+    var c = new THREE.Mesh(geo, mat);
+
+    // Ejection port: right side, slightly forward, roughly at shoulder height
+    var ejPos = new THREE.Vector3(0.28, -0.05, -0.35);
+    ejPos.applyQuaternion(cam.quaternion);
+    ejPos.add(cam.position);
+    c.position.copy(ejPos);
+
+    // Rightward + upward velocity in world space
+    var right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    sc.add(c);
+    _casings.push({
+      mesh: c, scene: sc,
+      vx: right.x * 3.5 + (Math.random() - 0.5) * 0.8,
+      vy: 2.5 + Math.random() * 1.5,
+      vz: right.z * 3.5 + (Math.random() - 0.5) * 0.8,
+      rx: (Math.random() - 0.5) * 20,
+      rz: (Math.random() - 0.5) * 20,
+      life: 2.2,
+      landed: false
+    });
+    // Cap at 30 casings; evict oldest
+    while (_casings.length > 30) {
+      var old = _casings.shift();
+      try { old.scene.remove(old.mesh); } catch (e) {}
+    }
+  }
+
+  function _tickCasings(dt) {
+    for (var i = _casings.length - 1; i >= 0; i--) {
+      var ca = _casings[i];
+      ca.life -= dt;
+      if (!ca.landed) {
+        ca.vy -= 15 * dt; // gravity
+        ca.mesh.position.x += ca.vx * dt;
+        ca.mesh.position.y += ca.vy * dt;
+        ca.mesh.position.z += ca.vz * dt;
+        ca.mesh.rotation.x += ca.rx * dt;
+        ca.mesh.rotation.z += ca.rz * dt;
+        if (ca.mesh.position.y < 0.05) {
+          ca.mesh.position.y = 0.05;
+          ca.vy *= -0.25; // bounce
+          ca.vx *= 0.5; ca.vz *= 0.5;
+          ca.rx *= 0.3;  ca.rz *= 0.3;
+          if (Math.abs(ca.vy) < 0.5) ca.landed = true;
+        }
+      }
+      if (ca.life <= 0) {
+        try { ca.scene.remove(ca.mesh); } catch (e) {}
+        _casings.splice(i, 1);
+      }
+    }
   }
 
   return {
