@@ -5133,6 +5133,73 @@ window.VoxelWorld = (function () {
     }
   }
 
+  // LANDMARK: Sloviansk Salt Lakes — therapeutic resort lakes (Lake Slovianske, Repne, Vejsove)
+  // Sloviansk was a Soviet-era spa town: hypersaline brine lakes + curative mud, sanatoriums on the shore
+  function generateSaltLake(ox, oz) {
+    const surfH = getTerrainHeight(ox, oz);
+    const base = surfH;
+    // Carve the lake basin and fill with brine (WATER), rimmed by a white salt crust (WHITE_TILE)
+    const R = 14;
+    for (let lx = -R; lx <= R; lx++) {
+      for (let lz = -R; lz <= R; lz++) {
+        const d = Math.sqrt(lx * lx + lz * lz);
+        if (d <= R - 2) {
+          // Lake bed one block down, brine on top
+          setBlock(ox + lx, base - 1, oz + lz, BLOCK.WHITE_TILE);
+          setBlock(ox + lx, base, oz + lz, BLOCK.WATER);
+          setBlock(ox + lx, base + 1, oz + lz, BLOCK.AIR);
+        } else if (d <= R) {
+          // Salt crust shoreline ring
+          setBlock(ox + lx, base, oz + lz, BLOCK.WHITE_TILE);
+          setBlock(ox + lx, base + 1, oz + lz, BLOCK.AIR);
+        }
+      }
+    }
+    // Salt evaporation pans (small square WHITE_TILE basins near shore, NE)
+    for (let pi = 0; pi < 2; pi++) {
+      const px = ox + 16 + pi * 6, pz = oz - 10;
+      const ph = getTerrainHeight(px, pz);
+      for (let sx = 0; sx < 4; sx++) {
+        for (let sz = 0; sz < 4; sz++) {
+          setBlock(px + sx, ph, pz + sz, BLOCK.WHITE_TILE);
+          if (sx === 0 || sx === 3 || sz === 0 || sz === 3) {
+            setBlock(px + sx, ph + 1, pz + sz, BLOCK.WHITE_TILE);
+          } else {
+            setBlock(px + sx, ph, pz + sz, BLOCK.WATER);
+          }
+        }
+      }
+    }
+    // Lakeside sanatorium / mud-bath pavilion (PLASTER spa building, S shore)
+    const sbX = ox - 4, sbZ = oz + 17, sbH = getTerrainHeight(sbX, sbZ) + 1;
+    for (let by = 0; by < 5; by++) {
+      for (let bx = 0; bx <= 10; bx++) {
+        for (let bz = 0; bz <= 6; bz++) {
+          if (bx === 0 || bx === 10 || bz === 0 || bz === 6 || by === 4) {
+            const isWin = (by === 1 || by === 2) && (bx % 2 === 0) && bz === 0;
+            setBlock(sbX + bx, sbH + by, sbZ + bz, isWin ? BLOCK.GLASS : BLOCK.PLASTER);
+          }
+        }
+      }
+    }
+    // Spa colonnade facing the lake (STONE columns)
+    for (let c = 0; c <= 10; c += 2) {
+      setBlock(sbX + c, sbH, sbZ - 1, BLOCK.STONE);
+      setBlock(sbX + c, sbH + 1, sbZ - 1, BLOCK.STONE);
+      setBlock(sbX + c, sbH + 2, sbZ - 1, BLOCK.STONE);
+    }
+    for (let c2 = 0; c2 <= 10; c2++) {
+      setBlock(sbX + c2, sbH + 3, sbZ - 1, BLOCK.ROOFTILE); // colonnade roof
+    }
+    // Wooden bathing pier extending into the brine
+    for (let pd = 0; pd < 8; pd++) {
+      setBlock(ox - 1, base + 1, oz + 12 - pd, BLOCK.WOOD);
+      setBlock(ox,     base + 1, oz + 12 - pd, BLOCK.WOOD);
+      setBlock(ox + 1, base + 1, oz + 12 - pd, BLOCK.WOOD);
+    }
+    _buildings.push({ kind: 'landmark_salt_lake', x: ox - R, z: oz - R, w: R * 2, d: R * 2 + 20, baseY: surfH, floorH: 5, floors: 1, cx: ox, cz: oz });
+  }
+
   // IDEA 8: Water tower
   function generateWaterTower(ox, oz) {
     const surfH = getTerrainHeight(ox, oz);
@@ -12664,8 +12731,8 @@ window.VoxelWorld = (function () {
         generateUkrainianApartment(18, -62, 6);
         generateUkrainianApartment(-50, -18, 5);
         generateUkrainianApartment(42, -20, 5);
-        generateSaltMine(-40, 35);                    // Sloviansk salt deposit (mined since 1625)
-        generateSaltMine(38, -38);                    // Karlovka salt works
+        generateSaltLake(-38, 38);                    // Lake Slovianske — therapeutic brine resort lake + sanatorium
+        generateSaltMine(40, -40);                    // Karlovka salt works (underground rock-salt mine)
         generateIndustrialComplex(-40, -40);          // Slovianska DRES thermal power plant
         generateCommTower(10, -48);                   // TV tower (seized by separatists April 14, 2014)
         generateTrainStation(38, 22);                 // Sloviansk railway station (key supply line)
