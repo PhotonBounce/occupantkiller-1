@@ -1261,6 +1261,7 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.BountySystem) BountySystem.init(_scene);
         if (window.VehicleEnemies) VehicleEnemies.init(_scene);
         window._takeVehicleRamDamage = function(dmg) { onPlayerHit(dmg, null); };
         window._takeBTRDamage        = function(dmg) { onPlayerHit(dmg, null); };
@@ -1552,6 +1553,7 @@ const GameManager = (function () {
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
     try { if (window.MissionDebrief && MissionDebrief.init) MissionDebrief.init(); } catch (e) {}
+    try { if (window.LevelBriefing && LevelBriefing.init) LevelBriefing.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
     if (typeof EnemyChatter !== 'undefined' && _camera) EnemyChatter.init(_camera);
     // Daily challenges panel
@@ -3501,10 +3503,12 @@ const GameManager = (function () {
     }
 
     // Apply the starting stage (normally 0; the QA stage-jump hook may have
-    // overridden currentStage above)
-    applyStage(currentStage);
+    // overridden currentStage above).
+    // Show level briefing before generating the level, if available.
+    var _proceedToLevel = function() {
+      applyStage(currentStage);
 
-    const spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
+    var spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
     player.position.set(0, spawnH + player.height, 0);
 
     Weapons.reset();
@@ -3597,6 +3601,13 @@ const GameManager = (function () {
         var _initMission = MissionSystem.generateRandom();
         _autoReconDroneForMission(_initMission);
       }
+    }
+    }; // end _proceedToLevel
+    var _stageName = STAGES[currentStage] ? STAGES[currentStage].name : '';
+    if (window.LevelBriefing && _stageName) {
+      LevelBriefing.showBriefing(_stageName, _proceedToLevel);
+    } else {
+      _proceedToLevel();
     }
     } catch (err) {
       console.error('Failed to initialize game:', err);
