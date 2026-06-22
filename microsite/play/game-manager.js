@@ -3511,6 +3511,16 @@ const GameManager = (function () {
         WorldFeatures.spawnWaterBody(wc[wi].cx, wc[wi].cz, wc[wi].rx, wc[wi].rz, wc[wi].d);
       }
     }
+
+    // Radio comms: map numeric stage id to named level key
+    if (typeof Radio !== 'undefined') {
+      var _radioLevelMap = {
+        3: 'BAKHMUT', 4: 'KHERSON', 5: 'MARIUPOL', 6: 'CRIMEA',
+        7: 'CHORNOBYL', 12: 'KREMLIN', 13: 'KYIV', 14: 'SNAKE',
+      };
+      Radio.init();
+      Radio.setLevel(_radioLevelMap[stageDef.id] || null);
+    }
   }
 
   function getCurrentStage() { return STAGES[currentStage]; }
