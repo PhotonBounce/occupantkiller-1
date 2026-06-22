@@ -1260,6 +1260,7 @@ const GameManager = (function () {
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (typeof ArmorSystem !== 'undefined') ArmorSystem.init(_scene);
         if (typeof HazardZones !== 'undefined') HazardZones.init(_scene);
         if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
         if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
@@ -3289,6 +3290,7 @@ const GameManager = (function () {
     player.kills = 0;
     if (typeof Perks !== 'undefined') Perks.reset();
     if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (typeof ArmorSystem !== 'undefined') ArmorSystem.reset();
     if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
     window._killstreakTimeScale = 1.0;
     window._killstreakHealthRegen = 0;
@@ -3588,6 +3590,7 @@ const GameManager = (function () {
 
     // Generate level terrain and features
     if (typeof Mines !== 'undefined') Mines.clear();
+    if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
     window.VoxelWorld.generateLevel(stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
@@ -5967,6 +5970,7 @@ const GameManager = (function () {
         try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
       }
       player.kills++;
+      if (typeof ArmorSystem !== 'undefined' && enemy && enemy.mesh) ArmorSystem.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z);
       if (typeof KillStreak !== 'undefined') KillStreak.onKill();
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
@@ -6467,6 +6471,8 @@ const GameManager = (function () {
       var chalMods = Progression.getChallengeModifiers();
       if (chalMods.enemyDmgMult) dmg = Math.round(dmg * chalMods.enemyDmgMult);
     }
+    // ArmorSystem vest absorbs damage before player.armor
+    if (typeof ArmorSystem !== 'undefined') { dmg = ArmorSystem.absorbDamage(dmg); }
     // Armor absorbs up to 50% of incoming damage, capped by available armor points
     if (player.armor > 0) {
       var absorbed = Math.min(player.armor, dmg * 0.5);
@@ -7536,6 +7542,7 @@ const GameManager = (function () {
         CompanionDrone.update(delta, player.position, []);
       }
       if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
+      if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);
       if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
       if (typeof HazardZones !== 'undefined') HazardZones.update(delta, player.position, player);
