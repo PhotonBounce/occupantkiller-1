@@ -2251,6 +2251,41 @@ const HUD = (() => {
     }
   }
 
+  // ── Combo Kill Multiplier Display ────────────────────────────────
+  var _comboEl = null;
+  var _comboTimer = 0;
+  var _comboHideTimer = null;
+
+  function showComboMult(multiplier, killCount) {
+    if (!_comboEl) {
+      _comboEl = document.createElement('div');
+      _comboEl.id = 'combo-mult';
+      _comboEl.style.cssText = [
+        'position:fixed;top:30%;left:50%;transform:translateX(-50%) scale(1);',
+        'pointer-events:none;z-index:150;text-align:center;',
+        'font-family:monospace;transition:opacity 0.4s,transform 0.2s;',
+        'opacity:0;'
+      ].join('');
+      document.body.appendChild(_comboEl);
+    }
+    var color = multiplier >= 3.0 ? '#ff2222' : (multiplier >= 2.0 ? '#ff8800' : '#ffdd00');
+    var glow = 'text-shadow:0 0 20px ' + color + ',0 0 40px ' + color;
+    _comboEl.innerHTML = [
+      '<div style="font-size:52px;font-weight:bold;color:' + color + ';' + glow + ';">\xD7' + multiplier.toFixed(1) + '</div>',
+      '<div style="font-size:14px;color:#fff;letter-spacing:4px;margin-top:-8px;">' + killCount + ' KILLS</div>'
+    ].join('');
+    // Pulse animation
+    _comboEl.style.opacity = '1';
+    _comboEl.style.transform = 'translateX(-50%) scale(1.3)';
+    clearTimeout(_comboHideTimer);
+    setTimeout(function() {
+      if (_comboEl) _comboEl.style.transform = 'translateX(-50%) scale(1.0)';
+    }, 150);
+    _comboHideTimer = setTimeout(function() {
+      if (_comboEl) _comboEl.style.opacity = '0';
+    }, 3000);
+  }
+
   // ── Combined HUD update (call from game loop with delta + player) ──
   function update(delta, player) {
     updateActiveUpgrades(player);
@@ -2327,6 +2362,8 @@ const HUD = (() => {
     // ── Active Upgrades Panel + Wave Kill Feed ──
     updateActiveUpgrades, addKillFeed, updateKillFeed,
     update,
+    // ── Combo Kill Multiplier ──
+    showComboMult,
   };
 })();
 
