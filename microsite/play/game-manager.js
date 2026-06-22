@@ -105,60 +105,6 @@ const GameManager = (function () {
   var _musicIntTimer = 0; // throttle music intensity calc
   var _buildMatHud = null; // cached DOM ref for build materials HUD
 
-  // ── Kill-cam replay effect ──
-  var _killCamActive = false;
-  var _killCamTime = 0;
-  var _killCamDuration = 2.0;
-  var _killCamStartPos = null;
-  var _killCamDeathPos = null;
-  var _killCamOverlay = null;
-
-  // ── Enemy kill-cam cinematic (player kills enemy) ──
-  var _ekCamActive = false;
-  var _ekCamTimer = 0;
-  var _ekCamYawDelta = 0;
-  var _ekCamPitchDelta = 0;
-  var _ekCamVignette = null;
-  var EK_CAM_DURATION = 1.2;
-  var EK_CAM_RETURN = 0.8;
-
-  // Damage screen vignette
-  var _damageVignette = null;
-  var _damageVignetteAlpha = 0;
-
-  function _initDamageVignette() {
-    var div = document.createElement('div');
-    div.id = 'damage-vignette';
-    div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;background:radial-gradient(ellipse at center, transparent 40%, rgba(180,0,0,0) 100%);opacity:0;transition:none;';
-    document.body.appendChild(div);
-    _damageVignette = div;
-  }
-
-  // ── Enemy kill-cam cinematic trigger ──
-  function _triggerEkCam(enemyTypeName) {
-    if (_ekCamActive) return;
-    _ekCamActive = true;
-    _ekCamTimer = EK_CAM_DURATION;
-    _ekCamYawDelta = 0.35 * (Math.random() > 0.5 ? 1 : -1);
-    _ekCamPitchDelta = -0.06;
-
-    if (!_ekCamVignette) {
-      _ekCamVignette = document.createElement('div');
-      _ekCamVignette.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;transition:opacity 0.2s;';
-      document.body.appendChild(_ekCamVignette);
-    }
-    _ekCamVignette.style.background = 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%)';
-    _ekCamVignette.style.opacity = '1';
-
-    if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
-      HUD.notifyPickup('💀 KILL #' + player.kills + ' — ' + (enemyTypeName || 'ENEMY'), '#ff4444');
-    }
-
-    setTimeout(function() {
-      if (_ekCamVignette) _ekCamVignette.style.opacity = '0';
-    }, 600);
-  }
-
   // Footstep dust puffs (visible when sprinting)
   var _footstepPuffs = [];
   var _footstepPuffGeo = null;
@@ -246,6 +192,11 @@ const GameManager = (function () {
   var _domSwim = null, _domBreathContainer = null, _domBreathBar = null;
   var _domMantle = null;
 
+  /* ── Prestige State ─────────────────────────────────────────────── */
+  window._prestigeLevel = parseInt(localStorage.getItem('okk_prestige') || '0');
+  window._prestigeScoreMult = 1 + (window._prestigeLevel * 0.25);
+  window._prestigeFireRate = 1 + (window._prestigeLevel * 0.05);
+
   /* ── Player State ────────────────────────────────────────────────── */
   const GOD_MODE_HP = 999999;
   const player = {
@@ -315,9 +266,6 @@ const GameManager = (function () {
     slideTimer: 0,
     slideDir: null,
     _usedLastStand: false,
-    mines: 3,            // claymore/landmine inventory
-    fortifyMats: 3,      // fortification material packs for sandbag barriers
-    _buildMode: false,   // fortification build mode toggle
   };
 
   /* ── Wave State ──────────────────────────────────────────────────── */
@@ -325,17 +273,8 @@ const GameManager = (function () {
   const SCORE_WAVE_BONUS = 500;
 
   /* ── Stamina Config ──────────────────────────────────────────────── */
-  const STAMINA_DRAIN_RATE = 0.20;  // per second while sprinting (20/100 per second)
-  const STAMINA_REGEN_RATE = 0.25;  // per second while not sprinting (25/100 per second)
-  var _sprintLocked = false;
-  var _sprintLockTimer = 0;
-
-  /* ── Health Regen Config ─────────────────────────────────────────── */
-  var REGEN_DELAY = 8.0;   // seconds after last damage before regen starts
-  var REGEN_RATE  = 3.0;   // HP per second
-  var REGEN_MAX   = 60;    // max HP from out-of-combat regen
-  var _regenActive = false;
-  var _regenToast = null;
+  const STAMINA_DRAIN_RATE = 0.15;  // per second while sprinting
+  const STAMINA_REGEN_RATE = 0.08;  // per second while not sprinting
 
   /* ── Battlefield Events ─────────────────────────────────────────── */
   const BATTLE_EVENTS = [
@@ -925,54 +864,6 @@ const GameManager = (function () {
   /* ── Last-kill camera tracking ───────────────────────────────── */
   var _lastKillPos = null;  // position of most recent enemy kill
   var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
-  var _weaponUnlockShown = {};  // tracks which weapon unlock milestones have fired
-  var _companion = null;   // the NPC currently following player
-  var _companionCooldown = 0;  // prevent spam
-
-  /* ── Companion Follow System ─────────────────────────────────── */
-  function _toggleCompanion() {
-    try {
-      if (_companion && _companion.alive) {
-        // Dismiss companion
-        _companion._following = false;
-        _companion._rallyOverride = null;
-        _companion = null;
-        if (HUD && HUD.showToast) HUD.showToast('Companion dismissed', 1500, '#88ccff');
-        return;
-      }
-      // Find nearest alive friendly NPC within 30 units
-      var npcs = (typeof NPCSystem !== 'undefined' && NPCSystem.getAll) ? NPCSystem.getAll() : [];
-      var best = null;
-      var bestDist = 30;
-      for (var ci = 0; ci < npcs.length; ci++) {
-        var n = npcs[ci];
-        if (!n || !n.alive || n.role === 'civilian') continue;
-        var cd = n.position ? n.position.distanceTo(player.position) : 999;
-        if (cd < bestDist) { bestDist = cd; best = n; }
-      }
-      if (!best) {
-        // Spawn a companion NPC next to player
-        var _cnx = player.position.x + (Math.random() - 0.5) * 4;
-        var _cnz = player.position.z + (Math.random() - 0.5) * 4;
-        var _cny = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_cnx, _cnz) + 1 : player.position.y;
-        if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
-          NPCSystem.spawn(_cnx, _cny, _cnz, 'infantry');
-          var _all = NPCSystem.getAll();
-          best = _all[_all.length - 1];
-        }
-      }
-      if (best) {
-        _companion = best;
-        _companion._following = true;
-        if (HUD && HUD.showToast) HUD.showToast('🤝 Companion following — [F] to dismiss', 2500, '#44ff88');
-        if (HUD && HUD.notifyPickup) HUD.notifyPickup('Companion: ' + (_companion.name || 'Ukrainian Soldier'), '#44ff88');
-      } else {
-        if (HUD && HUD.showToast) HUD.showToast('No nearby allies', 1500, '#ff8844');
-      }
-    } catch (err) {
-      console.warn('[companion] _toggleCompanion error:', err);
-    }
-  }
 
   /* ── Suppression System (near-miss visual response) ──────────── */
   var _suppressionLevel = 0;  // 0→1
@@ -1007,6 +898,9 @@ const GameManager = (function () {
   var _currentFOV = 75;
   var _targetFOV = 75;
   var _killFovKick = 0; // additive FOV bump on kill, decays
+  var _killStreak = 0;
+  var _killStreakTimer = 0;
+  var _killStreakMult = 1;
 
   /* ── Physics Constants ───────────────────────────────────────────── */
   const MOVE_SPEED   = 6.0;
@@ -1285,7 +1179,6 @@ const GameManager = (function () {
     } catch (_e) {}
     try {
       _renderer = createRendererWithFallback();
-        window.__renderer = _renderer; // expose for PerformanceScaler
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
         let stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
@@ -1293,8 +1186,6 @@ const GameManager = (function () {
         // Fog color must match background to avoid visible horizon seam (audit #17)
         _scene.background = new THREE.Color(fogColor);
         _scene.fog = new THREE.Fog(fogColor, 18, isMobile ? 55 : 120);
-        // Initialize performance auto-scaler
-        if (window.PerformanceScaler) PerformanceScaler.init(_renderer, _scene);
 
         // If running in compatibility mode, show a warning overlay
         if (_rendererProfile === 'compatibility') {
@@ -1463,8 +1354,6 @@ const GameManager = (function () {
       if (MissionSystem && typeof MissionSystem.init === 'function') MissionSystem.init();
       if (Automation && typeof Automation.init === 'function') Automation.init();
       if (Pickups && typeof Pickups.init === 'function') Pickups.init(_scene);
-      if (window.Loot && typeof window.Loot.init === 'function') window.Loot.init(_scene);
-      if (window.Airdrop && Airdrop.init) Airdrop.init(_scene);
     });
     _bootStep('missions');
 
@@ -1515,9 +1404,6 @@ const GameManager = (function () {
     // Create weapons
     Weapons.createGunMesh(_camera);
     Weapons.createMuzzleFlash(_scene, _camera);
-
-    // Init damage vignette overlay
-    _initDamageVignette();
 
     // Wire terrain destruction callbacks for loot & mining
     Weapons.setOnTerrainDig(function (x, y, z, blockType) {
@@ -1704,13 +1590,6 @@ const GameManager = (function () {
         return;
       }
 
-      // Quality level shortcuts (Ctrl+1 through Ctrl+5)
-      if (e.ctrlKey && e.code === 'Digit1') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(0); }
-      if (e.ctrlKey && e.code === 'Digit2') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(1); }
-      if (e.ctrlKey && e.code === 'Digit3') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(2); }
-      if (e.ctrlKey && e.code === 'Digit4') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(3); }
-      if (e.ctrlKey && e.code === 'Digit5') { e.preventDefault(); if (window.PerformanceScaler) PerformanceScaler.setLevel(4); }
-
       if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
         // Speed controls (only in build mode, since 4-7 are weapons in play mode)
         if (gameState === STATE.BUILD_MODE) {
@@ -1737,16 +1616,6 @@ const GameManager = (function () {
             gameState = STATE.BUILD_MODE;
             Building.setBuildMode(true);
             document.getElementById('build-hud').style.display = 'block';
-          }
-        }
-
-        // Fortification build mode toggle (B key in PLAYING state)
-        if (e.code === 'KeyB' && gameState === STATE.PLAYING) {
-          if (player.fortifyMats > 0) {
-            player._buildMode = !player._buildMode;
-            if (HUD.showToast) HUD.showToast(player._buildMode ? ('🧱 BUILD MODE — ' + player.fortifyMats + ' packs left. Click to place') : '🧱 BUILD MODE OFF', 2000, player._buildMode ? '#ffaa44' : '#aaa');
-          } else {
-            if (HUD.showToast) HUD.showToast('🧱 No fortification materials', 1500, '#888');
           }
         }
 
@@ -1901,12 +1770,6 @@ const GameManager = (function () {
           }
         }
 
-        // Companion follow mode toggle
-        if (e.code === 'KeyF' && !e.repeat && _companionCooldown <= 0) {
-          _companionCooldown = 2.0;
-          _toggleCompanion();
-        }
-
         // Toggle vehicle camera view (first person / third person)
         if (e.code === 'KeyT' && VehicleSystem.isInVehicle()) {
           VehicleSystem.toggleVehicleView();
@@ -1943,36 +1806,20 @@ const GameManager = (function () {
           }
         }
 
-        // Airstrike beacon (shop upgrade) — takes priority over regular airdrop
-        if (e.code === 'KeyN' && window._airstrikeCount > 0) {
-          window._airstrikeCount--;
-          HUD.notifyPickup('✈️ HIMARS STRIKE INBOUND! [' + window._airstrikeCount + ' remaining]', '#ff8800');
-          if (window.AudioSystem && AudioSystem.playDistantArtillery) AudioSystem.playDistantArtillery();
-          setTimeout(function() {
-            var px = player.position.x, pz = player.position.z;
-            var strikeRadius = 20;
-            // 6 impact points in a pattern around target area
-            var impacts = [[0,0],[8,-5],[-6,8],[5,10],[-9,-4],[3,-12]];
-            impacts.forEach(function(offset, idx) {
-              setTimeout(function() {
-                var ix = px + offset[0] + (Math.random()-0.5)*4;
-                var iz = pz + offset[1] + (Math.random()-0.5)*4;
-                if (window.Enemies && Enemies.damageInRadius) {
-                  Enemies.damageInRadius(new THREE.Vector3(ix, 0, iz), 12, 300);
-                }
-                if (window.AudioSystem && AudioSystem.playExplosion) AudioSystem.playExplosion();
-                if (window._gameScene) {
-                  var flash = new THREE.PointLight(0xff6600, 8, 25);
-                  flash.position.set(ix, 4, iz);
-                  window._gameScene.add(flash);
-                  setTimeout(function() { if (window._gameScene) window._gameScene.remove(flash); }, 400);
-                }
-              }, idx * 250);
-            });
-            HUD.notifyPickup('✈️ STRIKE COMPLETE', '#ff8800');
-          }, 2500);
+        // Night Vision Goggles toggle (Shift+N)
+        if (e.code === 'KeyN' && e.shiftKey) {
+          window._nvgActive = !window._nvgActive;
+          var _nvgCanvas = document.getElementById('c') || document.querySelector('canvas');
+          if (_nvgCanvas) {
+            _nvgCanvas.style.filter = window._nvgActive ? 'brightness(0.3) contrast(3) hue-rotate(100deg) saturate(5) sepia(0.8)' : '';
+          }
+          if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+            HUD.notifyPickup(window._nvgActive ? '🟢 NVG ON' : 'NVG OFF', window._nvgActive ? '#00ff44' : '#888888');
+          }
+        }
+
         // Airdrop beacon
-        } else if (e.code === 'KeyN' && player.airdropCooldown <= 0) {
+        if (e.code === 'KeyN' && !e.shiftKey && player.airdropCooldown <= 0) {
           player.airdropCooldown = 45; // 45 second cooldown
           HUD.notifyPickup('📦 AIRDROP BEACON DEPLOYED!', '#44ff88');
           setTimeout(function () {
@@ -2089,7 +1936,7 @@ const GameManager = (function () {
         }
 
         // Perks menu (P key — override time pause in gameplay)
-        if (e.code === 'KeyP' && gameState === STATE.PLAYING && !e.shiftKey) {
+        if (e.code === 'KeyP' && gameState === STATE.PLAYING) {
           var perksMenu = document.getElementById('perks-menu');
           if (perksMenu) {
             if (perksMenu.style.display === 'none' || !perksMenu.style.display) {
@@ -2099,13 +1946,6 @@ const GameManager = (function () {
               perksMenu.style.display = 'none';
             }
           }
-        }
-
-        // Challenge mode toggle (Shift+P)
-        if (e.code === 'KeyP' && e.shiftKey && gameState === STATE.PLAYING) {
-          window._challengeMode = !window._challengeMode;
-          window._challengeScoreMult = window._challengeMode ? 2 : 1;
-          if (HUD.showToast) HUD.showToast(window._challengeMode ? 'CHALLENGE MODE ON' : 'CHALLENGE MODE OFF', 2000, window._challengeMode ? '#ff8800' : '#aaa');
         }
 
         // War journal (Y key)
@@ -2223,14 +2063,9 @@ const GameManager = (function () {
 
         // Landmine placement (KeyU)
         if (e.code === 'KeyU' && typeof WorldFeatures !== 'undefined') {
-          if (player.mines <= 0) {
-            if (window.HUD && HUD.showToast) HUD.showToast('No mines! [Buy in Shop]', 2000, '#ff4444');
-          } else {
-            var mineY = window.VoxelWorld.getTerrainHeight(player.position.x, player.position.z);
-            if (WorldFeatures.placeMine(player.position.x, mineY, player.position.z, 'player')) {
-              player.mines--;
-              if (window.HUD && HUD.showToast) HUD.showToast('💣 MINE PLACED [' + player.mines + ' left]', 1500, '#44aa44');
-            }
+          var mineY = window.VoxelWorld.getTerrainHeight(player.position.x, player.position.z);
+          if (WorldFeatures.placeMine(player.position.x, mineY, player.position.z, 'player')) {
+            HUD.notifyPickup('💣 LANDMINE PLACED!', '#44aa44');
           }
         }
 
@@ -2258,11 +2093,7 @@ const GameManager = (function () {
         // Inventory/Tab toggle
         if (e.code === 'Tab') {
           e.preventDefault();
-          if (typeof Leaderboard !== 'undefined' && Leaderboard.toggle) {
-            Leaderboard.toggle();
-          } else {
-            toggleInventory();
-          }
+          toggleInventory();
         }
 
         // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9)
@@ -2431,34 +2262,6 @@ const GameManager = (function () {
         } else {
           mouseDown = true;
           mouseNewPress = true;
-        }
-
-        // Build mode placement
-        if (player._buildMode && player.fortifyMats > 0 && gameState === STATE.PLAYING) {
-          // Place a sandbag barrier at crosshair position
-          var _buildDir = new THREE.Vector3();
-          _camera.getWorldDirection(_buildDir);
-          var _buildPos = _camera.position.clone().add(_buildDir.multiplyScalar(4));
-          _buildPos.y = 0; // ground level
-          // Create 3D sandbag model (3x1x1 stone-colored box)
-          var _bagGeo = new THREE.BoxGeometry(2.5, 1.2, 0.8);
-          var _bagMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
-          var _bagMesh = new THREE.Mesh(_bagGeo, _bagMat);
-          _bagMesh.position.copy(_buildPos);
-          _bagMesh.position.y = 0.6;
-          // Rotate to face player
-          _bagMesh.lookAt(_camera.position.x, 0.6, _camera.position.z);
-          if (window._gameScene) window._gameScene.add(_bagMesh);
-          // Track for collision
-          if (!window._fortifications) window._fortifications = [];
-          window._fortifications.push({ mesh: _bagMesh, pos: _buildPos.clone(), w: 2.5, d: 0.8 });
-          player.fortifyMats--;
-          if (HUD.showToast) HUD.showToast('🧱 Barrier placed! (' + player.fortifyMats + ' left)', 1000, '#ffaa44');
-          if (player.fortifyMats <= 0) {
-            player._buildMode = false;
-            if (HUD.showToast) HUD.showToast('🧱 No materials left', 1500, '#888');
-          }
-          return; // don't shoot
         }
 
         if (gameState === STATE.BUILD_MODE) {
@@ -3020,11 +2823,7 @@ const GameManager = (function () {
       }
     }
     if (payloadEl) {
-      if (drone.type === 'fpv_attack' && drone.payloadCount !== undefined) {
-        payloadEl.style.display = '';
-        payloadEl.textContent = '\uD83C\uDFAF FPV Charge [\u00D7' + drone.payloadCount + ']';
-        payloadEl.style.color = drone.payloadCount > 20 ? '#44ff88' : drone.payloadCount > 5 ? '#ffaa00' : '#ff4444';
-      } else if (drone.type === 'bomb') {
+      if (drone.type === 'bomb') {
         payloadEl.style.display = '';
         payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
         payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';
@@ -3246,13 +3045,11 @@ const GameManager = (function () {
     player.totalHeadshots = 0;
     player.totalDamageTaken = 0;
     player.bestStreak = 0;
-    player.bestKillStreak = 0;
     player.waveKills = 0;
     player.waveShots = 0;
     player.waveHits = 0;
     player.waveHeadshots = 0;
     player.waveDamageTaken = 0;
-    player._waveDamageDealt = 0;
     player.waveMeleeKills = 0;
     player.waveFirstKillTime = 999;
     player.waveMaxExplosiveKill = 0;
@@ -3339,8 +3136,6 @@ const GameManager = (function () {
     DroneSystem.clear();
     if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
-    if (window.Airdrop && Airdrop.clear) Airdrop.clear();
-    if (window.Loot && Loot.clear) Loot.clear();
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined') Tracers.clear();
@@ -3561,10 +3356,6 @@ const GameManager = (function () {
     if (typeof AudioSystem !== 'undefined' && AudioSystem.startAmbientLoop) {
       window.AudioSystem.startAmbientLoop(stageDef.theme);
     }
-    // Wind ambience — base battlefield atmosphere
-    if (typeof AudioSystem !== 'undefined' && AudioSystem.playWindAmbient) {
-      AudioSystem.playWindAmbient(0.3);
-    }
 
     // Start stage-specific environmental VFX
     if (typeof StageVFX !== 'undefined' && StageVFX.startStageEffects) {
@@ -3621,18 +3412,49 @@ const GameManager = (function () {
 
   function getCurrentStage() { return STAGES[currentStage]; }
 
+  function showPrestigePrompt() {
+    var overlay = document.createElement('div');
+    overlay.id = 'prestige-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;color:#FFD700;';
+    var prestigeBonus = Math.round((window._prestigeLevel + 1) * 25);
+    overlay.innerHTML = '<h1 style="font-size:3em;margin:0 0 20px 0;">&#11088; PRESTIGE AVAILABLE &#11088;</h1>' +
+      '<p style="font-size:1.4em;color:#fff;margin:0 0 10px 0;">You completed all ' + STAGES.length + ' missions.</p>' +
+      '<p style="font-size:1.2em;color:#aaa;margin:0 0 30px 0;">Prestige level: <b style="color:#FFD700">' + window._prestigeLevel + '</b></p>' +
+      '<p style="font-size:1.1em;color:#7CFC00;margin:0 0 40px 0;">Prestige now &rarr; +' + prestigeBonus + '% permanent score bonus + 5% fire rate</p>' +
+      '<div style="display:flex;gap:20px;">' +
+      '<button id="prestige-yes" style="padding:15px 40px;font-size:1.3em;background:#FFD700;color:#000;border:none;cursor:pointer;border-radius:4px;">PRESTIGE NOW</button>' +
+      '<button id="prestige-no" style="padding:15px 40px;font-size:1.3em;background:#555;color:#fff;border:none;cursor:pointer;border-radius:4px;">Keep Playing</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    document.getElementById('prestige-yes').onclick = function() {
+      window._prestigeLevel++;
+      localStorage.setItem('okk_prestige', String(window._prestigeLevel));
+      window._prestigeScoreMult = 1 + (window._prestigeLevel * 0.25);
+      window._prestigeFireRate = 1 + (window._prestigeLevel * 0.05);
+      document.body.removeChild(overlay);
+      // Restart from level 0
+      currentStage = 0;
+      currentWave = 0;
+      startLevel();
+    };
+    document.getElementById('prestige-no').onclick = function() {
+      document.body.removeChild(overlay);
+    };
+  }
+
   function nextStage() {
     hideOverlays();
     if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
     try {
     currentStage++;
     if (currentStage >= STAGES.length) {
-      // All stages done — win!
+      // All stages done — win! Show prestige prompt then win screen.
       gameState = STATE.WIN;
       showOverlay('win');
       var _ws = document.getElementById('win-score');  if (_ws) _ws.textContent = player.score;
       var _wk = document.getElementById('win-kills');  if (_wk) _wk.textContent = player.kills;
       var _wst = document.getElementById('win-stages'); if (_wst) _wst.textContent = STAGES.length;
+      showPrestigePrompt();
       return;
     }
 
@@ -3790,70 +3612,6 @@ const GameManager = (function () {
     }
   }
 
-  /* ── Kill Streak Banner ──────────────────────────────────────────── */
-  function _showKillStreakBanner(text, kills) {
-    if (!window._killStreakBanner) {
-      var d = document.createElement('div');
-      d.style.cssText = [
-        'position:fixed;top:20%;left:50%;transform:translateX(-50%);',
-        'pointer-events:none;z-index:65;',
-        'opacity:0;transition:opacity 0.15s;',
-        'text-align:center;'
-      ].join('');
-      document.body.appendChild(d);
-      window._killStreakBanner = d;
-    }
-    var colors = { 2:'#ffdd00', 3:'#ff9900', 4:'#ff5500', 5:'#ff2200', 6:'#ff00ff', 7:'#ffffff' };
-    var col = colors[Math.min(kills, 7)] || '#ffdd00';
-    window._killStreakBanner.innerHTML = [
-      '<div style="color:' + col + ';font-size:32px;font-weight:bold;',
-      'font-family:monospace;letter-spacing:4px;',
-      'text-shadow:0 0 20px ' + col + ',0 2px 4px black;">' + text + '</div>',
-      '<div style="color:rgba(255,255,255,0.6);font-size:14px;font-family:monospace;">',
-      kills + ' KILL STREAK</div>'
-    ].join('');
-    window._killStreakBanner.style.opacity = '1';
-    clearTimeout(window._killStreakBanner._t);
-    window._killStreakBanner._t = setTimeout(function() {
-      if (window._killStreakBanner) window._killStreakBanner.style.opacity = '0';
-    }, 1800);
-  }
-
-  /* ── Weapon Unlock Milestones ────────────────────────────────────── */
-  function _checkWeaponUnlocks() {
-    var k = player.kills;
-    var thresholds = [
-      { at: 15,  id: 'AK74',        msg: '🔓 UNLOCKED: AK-74' },
-      { at: 30,  id: 'SVD',         msg: '🔓 UNLOCKED: SVD Dragunov' },
-      { at: 50,  id: 'PKM',         msg: '🔓 UNLOCKED: PKM LMG' },
-      { at: 75,  id: 'RPG7',        msg: '🔓 UNLOCKED: RPG-7' },
-      { at: 100, id: 'PANZERFAUST', msg: '🔓 UNLOCKED: Panzerfaust 3' },
-      { at: 150, id: 'SWITCHBLADE', msg: '🔓 UNLOCKED: Switchblade 600' },
-      { at: 200, id: 'M134',        msg: '🔓 UNLOCKED: M134 Minigun' },
-      { at: 300, id: 'JAVELIN',     msg: '🔓 UNLOCKED: FGM-148 Javelin' },
-    ];
-    for (var ti = 0; ti < thresholds.length; ti++) {
-      var t = thresholds[ti];
-      if (k >= t.at && !_weaponUnlockShown[t.id]) {
-        _weaponUnlockShown[t.id] = true;
-        window._unlockedWeapons = window._unlockedWeapons || {};
-        window._unlockedWeapons[t.id] = true;
-        if (window.Weapons && Weapons.unlock) Weapons.unlock(t.id);
-        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast(t.msg + ' (' + t.at + ' kills)', 4000, '#ffd700');
-        if (window.AudioSystem && AudioSystem.playUnlock) AudioSystem.playUnlock();
-        // Show dramatic weapon unlock card with stats
-        try {
-          if (typeof HUD !== 'undefined' && HUD.showWeaponUnlockCard && window.Weapons && Weapons.getWeaponCount) {
-            for (var _wui = 0; _wui < Weapons.getWeaponCount(); _wui++) {
-              var _wDef = Weapons.getWeaponInfo(_wui);
-              if (_wDef && _wDef.id === t.id) { HUD.showWeaponUnlockCard(_wDef); break; }
-            }
-          }
-        } catch(eWU) {}
-      }
-    }
-  }
-
   /* ── Wave Management ─────────────────────────────────────────────── */
   function beginWave(w) {
     if (typeof window !== 'undefined') {
@@ -3897,10 +3655,6 @@ const GameManager = (function () {
       window.AudioSystem.playWaveStart();
       HUD.setWave(w, stageDef.wavesPerStage);
       HUD.announceWave(w, 0, stageDef.wavesPerStage);
-      if (HUD.showWaveAnnouncement) {
-        var _bossWvDrone = (w === stageDef.wavesPerStage);
-        HUD.showWaveAnnouncement(w, stageDef.wavesPerStage, _bossWvDrone);
-      }
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
       RefineryStrike.startMission({
         onComplete: function () {
@@ -3918,24 +3672,9 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
-    // Challenge mode: harder waves with extra enemies and 2× score
-    if (window._challengeMode) {
-      try {
-        Enemies.spawnSingle('ARMORED', { x: player.position.x + 20, z: player.position.z + 20 });
-        Enemies.spawnSingle('ARMORED', { x: player.position.x - 20, z: player.position.z + 20 });
-        Enemies.spawnSingle('STORMER', { x: player.position.x, z: player.position.z + 35 });
-      } catch(e) {}
-      window._challengeScoreMult = 2;
-      if (HUD.showToast) HUD.showToast('CHALLENGE WAVE — 2x SCORE', 3000, '#ff8800');
-    }
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
-    if (HUD.showWaveAnnouncement) {
-      var _bossWv = (w === stageDef.wavesPerStage);
-      var _waveIntelOpts = { count: Enemies.getAliveCount(), intel: _bossWv ? 'BOSS UNIT DETECTED' : null };
-      HUD.showWaveAnnouncement(w, stageDef.wavesPerStage, _bossWv, _waveIntelOpts);
-    }
     // Announce enemy's randomly chosen formation as an intel report
     var _enemyForms = ['WEDGE', 'LINE', 'COLUMN', 'STAGGERED'];
     var _eFLabel = ['▲ WEDGE', '━ LINE', '| COLUMN', '⋮ STAGGERED'];
@@ -3961,12 +3700,6 @@ const GameManager = (function () {
         // omit y so spawnOne() resolves terrain height itself
       });
       HUD.notifyPickup('⚠ BOSS INCOMING: ' + (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType] ? EnemyTypes.TYPES[bossType].name : 'COMMANDER'), '#ff0000');
-      // Show boss health bar immediately with full HP
-      if (HUD.showBossBar && typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType]) {
-        var _bCfg = EnemyTypes.TYPES[bossType];
-        var _bMaxHp = _bCfg.hpBase || 500;
-        HUD.showBossBar(_bCfg.name || bossType, _bMaxHp, _bMaxHp);
-      }
     }
 
     // ═══ Blood Moon effect on final 2 waves ═══
@@ -4980,11 +4713,6 @@ const GameManager = (function () {
       setTimeout(triggerBattlefieldEvent, 1500);
     }
 
-    // Supply airdrop every 3 waves
-    if (window.Airdrop && !Airdrop.isActive() && currentWave % 3 === 0) {
-      if (player && player.position) Airdrop.spawnNearPlayer(player.position);
-    }
-
     const stageDef = STAGES[currentStage];
 
     // Check if all waves in this stage are done
@@ -5058,23 +4786,6 @@ const GameManager = (function () {
 
     gameState = STATE.WAVE_CLEAR;
     showOverlay('waveclear');
-    // Show detailed wave performance stats overlay
-    try {
-      if (typeof HUD !== 'undefined' && HUD.showWaveStats) {
-        var _wAcc = _snapWaveShots > 0 ? Math.round((_snapWaveHits / _snapWaveShots) * 100) : 0;
-        HUD.showWaveStats({
-          wave:         currentWave,
-          kills:        _snapWaveKills || 0,
-          headshots:    player.waveHeadshots || 0,
-          accuracy:     _wAcc,
-          timeSeconds:  _snapWaveTime,
-          damageDealt:  player._waveDamageDealt || 0,
-          damageTaken:  _snapWaveDmg || 0,
-          okc:          typeof Economy !== 'undefined' ? Economy.getCurrency() : 0,
-          streak:       player.bestKillStreak || player.killStreak || 0,
-        });
-      }
-    } catch(eWS) {}
     var _wvn = document.getElementById('waveclear-num');   if (_wvn) _wvn.textContent = currentWave;
     var _wvt = document.getElementById('waveclear-total'); if (_wvt) _wvt.textContent = stageDef.wavesPerStage;
     var _wvi = document.getElementById('waveclear-stage-info');
@@ -5119,7 +4830,6 @@ const GameManager = (function () {
     var countdownEl = document.getElementById('shop-countdown');
     if (countdownEl) countdownEl.textContent = _shopSec;
     window._shopCountdownId = setInterval(function () {
-      if (window.Shop && Shop.isVisible()) return; // pause countdown while shop is open
       _shopSec--;
       if (countdownEl) countdownEl.textContent = _shopSec;
       if (_shopSec <= 0) {
@@ -5155,17 +4865,6 @@ const GameManager = (function () {
           if (e.code === 'Space' && ovWC.style.display !== 'none') { e.preventDefault(); skip(e); }
         });
       }
-    }
-    // ── Between-wave upgrade shop ──
-    if (window.Shop) {
-      Shop.show(function startNextWave() {
-        if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
-        hideOverlays();
-        gameState = STATE.PLAYING;
-        updateMobileControlsVisibility();
-        requestPointerLock();
-        beginWave(currentWave + 1);
-      });
     }
     } catch (e) { console.error('[onWaveComplete] error:', e); }
   }
@@ -5302,16 +5001,10 @@ const GameManager = (function () {
     }
 
     const isMoving = moveDir.lengthSq() > 0;
-    // Stamina sprint lockout: tick down when locked
-    if (_sprintLocked) {
-      _sprintLockTimer -= delta;
-      if (_sprintLockTimer <= 0) _sprintLocked = false;
-    }
     if (isMoving) {
       moveDir.normalize();
       var wasSprinting = player.sprinting;
-      // Block sprint if stamina locked out or stamina depleted
-      player.sprinting = (!!keys['ShiftLeft'] || touch.sprinting) && !_sprintLocked && player.stamina > 0;
+      player.sprinting = !!keys['ShiftLeft'] || touch.sprinting;
       // Dismiss sprint tip on first sprint
       if (player.sprinting && !wasSprinting && typeof Feedback !== 'undefined' && Feedback.dismissTip) {
         Feedback.dismissTip('sprint');
@@ -5351,51 +5044,19 @@ const GameManager = (function () {
       if (player.sprinting && player.stamina > 0) {
         player.stamina = Math.max(0, player.stamina - STAMINA_DRAIN_RATE * delta);
         if (player.stamina <= 0) {
-          player.sprinting = false; // exhausted — enter lockout
-          _sprintLocked = true;
-          _sprintLockTimer = 2.0;
+          player.sprinting = false; // exhausted
         }
-      } else if (!player.sprinting) {
-        // Stamina regen when moving but not sprinting
-        player.stamina = Math.min(1.0, player.stamina + STAMINA_REGEN_RATE * delta);
       }
 
       if (player.sprinting) SkillSystem.onSprint();
     } else {
-      // Stamina regen when not moving
+      // Stamina regen when not sprinting
       player.stamina = Math.min(1.0, player.stamina + STAMINA_REGEN_RATE * delta);
-    }
-
-    // Consume stamina refill from loot pickup
-    if (window._staminaRefill) {
-      player.stamina = 1.0;
-      _sprintLocked = false;
-      window._staminaRefill = false;
-      if (window.HUD && HUD.showToast) HUD.showToast('⚡ Stamina Restored!', 1500, '#88ffcc');
-    }
-
-    // Consume stim purchased from shop
-    if (window._stimActive) {
-      player._stimTimer = 5.0 + (player._stimTimer || 0);
-      window._stimActive = false;
-      if (window.HUD && HUD.showToast) HUD.showToast('💉 STIM ACTIVE — SPEED BOOST!', 2000, '#88ffcc');
-    }
-
-    // Consume bonus claymores purchased from shop
-    if (window._bonusClaymores && window._bonusClaymores > 0) {
-      player.mines += window._bonusClaymores;
-      window._bonusClaymores = 0;
     }
 
     // Decay stim timer
     if (player._stimTimer && player._stimTimer > 0) {
       player._stimTimer -= delta;
-    }
-
-    // Consume bonus fortify mats purchased from shop
-    if (window._bonusFortifyMats) {
-      player.fortifyMats = (player.fortifyMats || 0) + window._bonusFortifyMats;
-      window._bonusFortifyMats = 0;
     }
 
     // ── B24: Crouch height + slide + cover detection ──
@@ -5777,22 +5438,7 @@ const GameManager = (function () {
     const dmg = isHeadshot ? baseDmg * 2 : baseDmg;
 
     var _wepType = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent().type : '';
-    var remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
-    player._waveDamageDealt = (player._waveDamageDealt || 0) + dmg;
-
-    // Update boss health bar when a boss takes damage
-    var _tn2 = enemy.type || (enemy.typeCfg && enemy.typeCfg.name) || '';
-    if (_tn2 === 'BOSS' || _tn2.startsWith('BOSS_')) {
-      if (HUD.showBossBar && enemy.maxHp > 0) {
-        var _bName = (enemy.typeCfg && enemy.typeCfg.name) ? enemy.typeCfg.name : 'BOSS';
-        HUD.showBossBar(_bName, Math.max(0, enemy.hp), enemy.maxHp);
-      }
-    }
-
-    // 3-D blood spray particles on hit
-    if (typeof Weapons !== 'undefined' && Weapons.addBloodSpray && enemy.mesh) {
-      Weapons.addBloodSpray(enemy.mesh.position);
-    }
+    const remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
 
     // Floating damage number on hit (not just kill)
     if (typeof Feedback !== 'undefined') {
@@ -5834,16 +5480,6 @@ const GameManager = (function () {
       if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
         Tracers.spawnExplosion(enemy.mesh.position, 1.5);
       }
-      // Drop loot from enemy — pass tier so bosses/heavies give better drops
-      try {
-        if (window.Loot && Loot.dropAt) {
-          var _lootTier = 'normal';
-          var _tn = enemy.typeName || '';
-          if (_tn === 'BOSS' || _tn.startsWith('BOSS_')) _lootTier = 'boss';
-          else if (_tn === 'TANK' || _tn === 'ASSAULT_MECH' || _tn === 'HEAVY_GUNNER') _lootTier = 'heavy';
-          Loot.dropAt(enemy.mesh.position, enemy.type, _lootTier);
-        }
-      } catch(eLD) {}
       MLSystem.onKill(Weapons.getCurrentId());
       MLSystem.trackKillTiming(); // AI Smart Learning: track kill timing patterns
       // INFILTRATE mission: count occupant kills (stealth bonus if disguise still up)
@@ -5866,27 +5502,25 @@ const GameManager = (function () {
       } catch (eUC) {}
       // Streak score multiplier: 3+ kills in chain = +10% per streak (capped at +150%)
       var _streakMult = 1 + Math.min(1.5, Math.max(0, player.killStreak - 1) * 0.1);
-      var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult * (window._challengeScoreMult || 1));
+      var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult * _killStreakMult * (window._prestigeScoreMult || 1));
       player.score += _scoreGain;
-      // Show floating multiplier text when meaningful (>= x1.2)
-      if (_streakMult >= 1.2) {
-        if (typeof Feedback !== 'undefined' && Feedback.showStreakMult) {
-          try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
-        }
-        if (typeof HUD !== 'undefined' && HUD.showComboMult) {
-          try { HUD.showComboMult(_streakMult, player.killStreak); } catch (eCM) {}
+      _killStreak++;
+      _killStreakTimer = 5.0;
+      var _streakNames = ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE', 'UNSTOPPABLE', 'GODLIKE'];
+      var _streakName = _streakNames[Math.min(_killStreak, _streakNames.length - 1)] || 'MASSACRE';
+      if (_killStreak >= 2) {
+        _killStreakMult = 1 + (_killStreak * 0.1);
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+          HUD.notifyPickup('🔥 ' + _streakName + '! ×' + _killStreakMult.toFixed(1), '#ff8800');
         }
       }
+      // Show floating multiplier text when meaningful (>= x1.2)
+      if (_streakMult >= 1.2 && typeof Feedback !== 'undefined' && Feedback.showStreakMult) {
+        try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
+      }
       player.kills++;
-      _checkWeaponUnlocks();
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
-      // ── Enemy kill-cam cinematic: 20% chance, only when 3+ enemies remain ──
-      try {
-        if (Math.random() < 0.20 && Enemies.getAliveCount() > 3) {
-          _triggerEkCam((enemy.typeCfg && enemy.typeCfg.name) || 'ENEMY');
-        }
-      } catch (eKC) {}
       // Kill milestone banners — celebrate round numbers of total kills
       try {
         var _kMile = player.kills;
@@ -5975,7 +5609,6 @@ const GameManager = (function () {
       if (player.multikillCount >= 2) {
         var mkNames = ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'MULTI KILL', 'MEGA KILL', 'ULTRA KILL'];
         var mkName = mkNames[Math.min(player.multikillCount, 6)];
-        _showKillStreakBanner(mkName, player.multikillCount);
         if (HUD.showStreakBanner) HUD.showStreakBanner(mkName, player.multikillCount);
         // Adrenaline rush on quad+: brief slow-mo + FOV punch
         if (player.multikillCount >= 4) {
@@ -6128,7 +5761,6 @@ const GameManager = (function () {
       // Kill streak tracking
       player.killStreak++;
       if (player.killStreak > player.bestStreak) player.bestStreak = player.killStreak;
-      if (player.killStreak > (player.bestKillStreak || 0)) player.bestKillStreak = player.killStreak;
       // Radio chatter on milestones
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) {
         if (player.kills === 1) Feedback.radioChatter('first_blood');
@@ -6331,12 +5963,6 @@ const GameManager = (function () {
     player.hp = Math.max(0, player.hp - dmg);
     HUD.setHealth(player.hp, player.maxHp);
     HUD.flashDamage();
-    // Damage screen vignette flash
-    _damageVignetteAlpha = 1.0;
-    if (_damageVignette) {
-      _damageVignette.style.background = 'radial-gradient(ellipse at center, transparent 35%, rgba(180,0,0,0.85) 100%)';
-      _damageVignette.style.opacity = '1';
-    }
     // Close-call slow-mo: hit drops HP from > 30% into critical (< 18%) in one shot
     var _critFrac = 0.18, _safeFrac = 0.30;
     if (player.maxHp > 0 && _hpBefore > player.maxHp * _safeFrac && player.hp > 0 && player.hp < player.maxHp * _critFrac) {
@@ -6430,19 +6056,6 @@ const GameManager = (function () {
         if (CameraSystem.shake) CameraSystem.shake(0.08, 0.5);
         return;
       }
-      // ── Kill-cam replay effect: freeze movement, orbit camera, show overlay ──
-      _killCamActive = true;
-      _killCamTime = 0;
-      _killCamStartPos = _camera.position.clone();
-      _killCamDeathPos = player.position.clone();
-      // Create "KILLED" overlay
-      if (!_killCamOverlay) {
-        _killCamOverlay = document.createElement('div');
-        _killCamOverlay.id = 'kill-cam-overlay';
-        _killCamOverlay.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:64px;font-weight:bold;text-shadow:2px 2px 8px #000;pointer-events:none;z-index:999;';
-        _killCamOverlay.textContent = 'KILLED';
-        document.body.appendChild(_killCamOverlay);
-      }
       gameState = STATE.DEAD;
       if (_waveStartTimer) { clearTimeout(_waveStartTimer); _waveStartTimer = null; }
       if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
@@ -6469,11 +6082,6 @@ const GameManager = (function () {
           deadLB.textContent = '🏆 Leaderboard Rank: #' + rank;
         }
         Progression.save();
-      }
-      // Submit to local leaderboard
-      if (typeof Leaderboard !== 'undefined' && Leaderboard.submitScore) {
-        var _lbName = (window._playerName || 'SOLDIER');
-        Leaderboard.submitScore(_lbName, player.score || 0, currentWave || 1, player.kills || 0, STAGES[currentStage] ? String(STAGES[currentStage].id) : 'UNKNOWN');
       }
       // Reset perk streak on death
       if (typeof Perks !== 'undefined') Perks.resetStreak();
@@ -6621,8 +6229,6 @@ const GameManager = (function () {
     // Hitstop: update timer with real time, zero delta while frozen
     if (typeof Feedback !== 'undefined' && Feedback.updateHitStop) Feedback.updateHitStop(rawDelta);
     var delta = (typeof Feedback !== 'undefined' && Feedback.isHitStopped && Feedback.isHitStopped()) ? 0 : rawDelta;
-    try { if (window.PerformanceScaler && PerformanceScaler.recordFrame) PerformanceScaler.recordFrame(rawDelta); } catch (ePS) {}
-    try { if (window.TimeOfDay && TimeOfDay.tick) TimeOfDay.tick(rawDelta); } catch (eTOD) {}
 
     // Slow-mo: scale delta by slow-mo rate (triggered on multikills / wave clears)
     if (typeof Feedback !== 'undefined' && Feedback.getSlowMoRate) delta *= Feedback.getSlowMoRate();
@@ -7060,8 +6666,7 @@ const GameManager = (function () {
       if (player.airdropCooldown > 0) player.airdropCooldown -= delta;
 
       // Stamina HUD
-      if (HUD.setStamina) HUD.setStamina(player.stamina * 100, 100);
-      else if (HUD.updateStamina) HUD.updateStamina(player.stamina);
+      if (HUD.updateStamina) HUD.updateStamina(player.stamina);
 
       // Weather indicator
       if (HUD.updateWeatherDisplay && WeatherSystem.getModifiers) {
@@ -7177,46 +6782,6 @@ const GameManager = (function () {
           }
         }
       } catch (eDB) {}
-      // Ambient deep artillery rumble — low-freq sub-bass, every 15-40s
-      try {
-        if (gameState === STATE.PLAYING) {
-          if (player._artilleryTimer === undefined) player._artilleryTimer = 8;
-          player._artilleryTimer -= delta;
-          if (player._artilleryTimer <= 0) {
-            if (typeof AudioSystem !== 'undefined' && AudioSystem.playDistantArtillery) AudioSystem.playDistantArtillery();
-            player._artilleryTimer = 15 + Math.random() * 25;
-          }
-        }
-      } catch (eArt) {}
-
-      // Radar decay — shop upgrade countdown
-      if (window._radarActive > 0) {
-        window._radarActive -= delta;
-        if (window._radarActive < 0) window._radarActive = 0;
-      }
-
-      // Bullet crack near-miss — 30% chance when enemy fires within 20m of player
-      try {
-        if (gameState === STATE.PLAYING) {
-          if (player._bulletCrackTimer === undefined) player._bulletCrackTimer = 0;
-          player._bulletCrackTimer -= delta;
-          if (player._bulletCrackTimer <= 0 && typeof Enemies !== 'undefined' && Enemies.getAll) {
-            var _bcEnemies = Enemies.getAll();
-            for (var _bci = 0; _bci < _bcEnemies.length; _bci++) {
-              var _bce = _bcEnemies[_bci];
-              if (!_bce || !_bce.alive || !_bce.mesh || !_bce.shooting) continue;
-              var _bcDx = _bce.mesh.position.x - player.position.x;
-              var _bcDz = _bce.mesh.position.z - player.position.z;
-              if (_bcDx*_bcDx + _bcDz*_bcDz < 20*20 && Math.random() < 0.30) {
-                if (typeof AudioSystem !== 'undefined' && AudioSystem.playBulletCrack) AudioSystem.playBulletCrack();
-                player._bulletCrackTimer = 0.8 + Math.random() * 0.5;
-                break;
-              }
-            }
-            if (player._bulletCrackTimer <= 0) player._bulletCrackTimer = 0.3;
-          }
-        }
-      } catch (eBCk) {}
       // Compass threat ticks: nearest 4 enemies as red marks at top of compass bar
       try {
         if (HUD.setCompassThreats && Enemies.getAll) {
@@ -7321,7 +6886,6 @@ const GameManager = (function () {
           var _list = Enemies.getAll();
           // Tighter cone when zoomed (precise) vs wider when hipfiring (forgiving)
           var _aimCos = (Weapons.isZoomed && Weapons.isZoomed()) ? 0.997 : 0.992;
-          var _aimEnemy = null;
           for (var _ti = 0; _ti < _list.length; _ti++) {
             var _en = _list[_ti];
             if (!_en || !_en.alive || !_en.mesh) continue;
@@ -7331,12 +6895,7 @@ const GameManager = (function () {
             var _dist = Math.sqrt(_dx*_dx + _dy*_dy + _dz*_dz);
             if (_dist < 1 || _dist > 120) continue;
             var _dot = (_dx*_camFwd.x + _dy*_camFwd.y + _dz*_camFwd.z) / _dist;
-            if (_dot > _aimCos) { _onTarget = true; _onTargetDist = _dist; _aimEnemy = _en; break; }
-          }
-          // Tag enemy on aim (not just on shoot)
-          if (_aimEnemy && !_aimEnemy._tagged) {
-            _aimEnemy._tagged = true;
-            _aimEnemy._tagTimer = 8.0;
+            if (_dot > _aimCos) { _onTarget = true; _onTargetDist = _dist; break; }
           }
           HUD.setCrosshairTarget(_onTarget);
           // Range readout: only show when zoomed AND on target (sniper info)
@@ -7359,37 +6918,15 @@ const GameManager = (function () {
       }
       // Decay kill FOV kick (~0.4s ease-back)
       if (_killFovKick > 0) _killFovKick = Math.max(0, _killFovKick - delta * 8);
-
-      // ── Enemy kill-cam tilt recovery ──
-      if (_ekCamActive) {
-        _ekCamTimer -= delta;
-        var _ekt = Math.max(0, _ekCamTimer);
-        var _ekPhase = Math.min(1, (EK_CAM_DURATION - _ekt) / EK_CAM_RETURN);
-        var _ekLerp = Math.sin(_ekPhase * Math.PI * 0.5);
-        if (typeof CameraSystem !== 'undefined' && CameraSystem.setYaw && CameraSystem.getYaw) {
-          CameraSystem.setYaw(CameraSystem.getYaw() + _ekCamYawDelta * (1 - _ekLerp) * delta * 3);
-        }
-        if (typeof CameraSystem !== 'undefined' && CameraSystem.setPitch && CameraSystem.getPitch) {
-          CameraSystem.setPitch(CameraSystem.getPitch() + _ekCamPitchDelta * (1 - _ekLerp) * delta * 3);
-        }
-        if (_ekCamTimer <= 0) {
-          _ekCamActive = false;
-          _ekCamYawDelta = 0;
-          _ekCamPitchDelta = 0;
-        }
+      // Decay kill streak timer
+      if (_killStreakTimer > 0) {
+        _killStreakTimer -= delta;
+        if (_killStreakTimer <= 0) { _killStreak = 0; _killStreakMult = 1; }
       }
 
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
         if (waveDone) onWaveComplete();
       });
-      // Decrement enemy tag timers
-      var _allTagged = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
-      for (var _tti = 0; _tti < _allTagged.length; _tti++) {
-        if (_allTagged[_tti]._tagTimer > 0) {
-          _allTagged[_tti]._tagTimer -= delta;
-          if (_allTagged[_tti]._tagTimer <= 0) _allTagged[_tti]._tagged = false;
-        }
-      }
       Pickups.update(delta, player.position, function (type, data) {
         AudioSystem.playPickup();
         MLSystem.onPickup();
@@ -7454,38 +6991,9 @@ const GameManager = (function () {
           }
         }
       });
-      // Update loot items
-      try { if (window.Loot && Loot.update) Loot.update(delta, player.position); } catch(eLU) {}
-      // Update HUD dynamic panels (active upgrades + kill feed)
-      try { if (typeof HUD !== 'undefined' && HUD.update) HUD.update(delta, player); } catch(eHU) {}
-      // Update airdrop
-      if (window.Airdrop && Airdrop.update) {
-        Airdrop.update(delta, player ? player.position : null);
-      }
 
       // Hybrid systems
       NPCSystem.update(delta, TimeSystem.getInfo());
-      // Companion follow AI
-      try {
-        if (_companionCooldown > 0) _companionCooldown -= delta;
-        if (_companion) {
-          if (!_companion.alive) {
-            _companion = null;
-            if (HUD && HUD.showToast) HUD.showToast('💀 Companion KIA', 2000, '#ff4444');
-          } else if (_companion._following) {
-            // Move companion toward player (override NPC movement)
-            var _cpDist = _companion.position ? _companion.position.distanceTo(player.position) : 0;
-            if (_cpDist > 4.0) {
-              var _cpDir = new THREE.Vector3().subVectors(player.position, _companion.position).normalize();
-              var _cpSpeed = Math.min(_cpDist * 0.5, 5.0) * delta;
-              _companion.position.addScaledVector(_cpDir, _cpSpeed);
-              if (_companion.mesh) _companion.mesh.position.copy(_companion.position);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('[companion] update error:', err);
-      }
       if (typeof HUD !== 'undefined' && HUD._updateNPCTextPositions) {
         HUD._updateNPCTextPositions(NPCSystem.getAll(), _camera, _renderer);
       }
@@ -7562,34 +7070,17 @@ const GameManager = (function () {
       // Minecraft-style building: right-click with shovel to place blocks
       // (handled in mousedown handler below)
 
-      // Health regen: 3hp/s after 8s out of combat, cap at 60hp
+      // Health regen: tier 1 (2hp/s after 5s, cap 50%) + tier 2 (1hp/s after 10s, cap 75%)
       player.lastDamageTime += delta;
-      // Auto-enable night vision if shop upgrade purchased
-      if (window._nightVisionEquipped && !player.nightVision) {
-        player.nightVision = true;
-        if (window.HUD && HUD.showNightVision) HUD.showNightVision(true);
-      }
-
-      var _effectiveRegenMax = REGEN_MAX + (window._maxHPBonus || 0);
-      var _effectiveRegenRate = REGEN_RATE * (window._combatRegenMultiplier || 1);
-      if (player.hp > 0 && player.hp < _effectiveRegenMax) {
-        if (player.lastDamageTime >= REGEN_DELAY) {
-          if (!_regenActive) {
-            _regenActive = true;
-            if (!_regenToast) {
-              _regenToast = document.createElement('div');
-              _regenToast.style.cssText = 'position:fixed;bottom:120px;left:20px;color:#44ff88;font-size:12px;font-family:monospace;z-index:30;opacity:0.8;';
-              _regenToast.textContent = '+ HEALING';
-              document.body.appendChild(_regenToast);
-            }
-            if (_regenToast) _regenToast.style.display = 'block';
-          }
-          player.hp = Math.min(_effectiveRegenMax, player.hp + _effectiveRegenRate * delta);
-          HUD.setHealth(player.hp, player.maxHp);
+      if (player.lastDamageTime > 5 && player.hp > 0 && player.hp < player.maxHp * 0.75) {
+        if (player.hp < player.maxHp * 0.5) {
+          // Tier 1: fast regen to 50%
+          player.hp = Math.min(player.maxHp * 0.5, player.hp + 2 * delta);
+        } else if (player.lastDamageTime > 10) {
+          // Tier 2: slow regen to 75%
+          player.hp = Math.min(player.maxHp * 0.75, player.hp + 1 * delta);
         }
-      } else {
-        _regenActive = false;
-        if (_regenToast) _regenToast.style.display = 'none';
+        HUD.setHealth(player.hp, player.maxHp);
       }
 
       // Armor HUD
@@ -8027,10 +7518,6 @@ const GameManager = (function () {
           if (airdropResult === 'AMMO_CRATE') Weapons.addAmmo(100);
           else if (airdropResult === 'MEDKIT') { player.hp = player.maxHp; HUD.setHealth(player.hp, player.maxHp); }
           else if (airdropResult === 'ARMOR') { player.armor = 100; if (HUD.updateArmor) HUD.updateArmor(1); }
-          else if (airdropResult === 'FORTIFY_MAT') {
-            player.fortifyMats = (player.fortifyMats || 0) + 2;
-            if (HUD.showToast) HUD.showToast('🧱 +2 Fortification packs', 2000, '#ffaa44');
-          }
         }
 
         // Radiation zone check
@@ -8325,50 +7812,11 @@ const GameManager = (function () {
       }
     }
 
-    // ── Damage vignette fade ──
-    if (_damageVignette && _damageVignetteAlpha > 0) {
-      _damageVignetteAlpha -= delta * 2.5;
-      if (_damageVignetteAlpha < 0) _damageVignetteAlpha = 0;
-      _damageVignette.style.opacity = _damageVignetteAlpha.toString();
-    }
-
-    // ── Kill-cam replay update ──
-    if (_killCamActive && gameState === STATE.DEAD) {
-      _killCamTime += delta;
-      const progress = Math.min(_killCamTime / _killCamDuration, 1.0);
-      // Orbit camera around death position: 180° yaw rotation using lerp
-      const orbitRadius = _killCamStartPos.distanceTo(_killCamDeathPos);
-      const orbitalSpeed = Math.PI * progress; // 180° over duration
-      const orbitX = _killCamDeathPos.x + Math.cos(orbitalSpeed) * orbitRadius;
-      const orbitZ = _killCamDeathPos.z + Math.sin(orbitalSpeed) * orbitRadius;
-      const orbitY = _killCamDeathPos.y + 1.5; // slightly above
-      _camera.position.set(orbitX, orbitY, orbitZ);
-      _camera.lookAt(_killCamDeathPos.x, _killCamDeathPos.y + 0.5, _killCamDeathPos.z);
-
-      // Fade "KILLED" overlay opacity
-      if (_killCamOverlay) {
-        const fadeOpacity = Math.max(0, 1.0 - progress * 1.5); // fade after 66% of duration
-        _killCamOverlay.style.opacity = fadeOpacity.toFixed(2);
-      }
-
-      // Deactivate after duration
-      if (progress >= 1.0) {
-        _killCamActive = false;
-        if (_killCamOverlay) {
-          _killCamOverlay.style.opacity = '0';
-          document.body.removeChild(_killCamOverlay);
-          _killCamOverlay = null;
-        }
-      }
-    }
-
     // Switch to mortar bird's-eye cam if deployed, or Bradley chase cam if driving
     var renderCam = _camera;
     try {
-      if (window.Bradley && window.Bradley.isActive && window.Bradley.isActive()) {
-        var _bradleyCamActive = Bradley.getActiveCamera ? Bradley.getActiveCamera() : window.GameManager.__bradleyCam;
-        if (_bradleyCamActive) renderCam = _bradleyCamActive;
-        // if null: FPV mode — _camera has been repositioned directly by Bradley.update()
+      if (window.Bradley && window.Bradley.isActive && window.Bradley.isActive() && window.GameManager.__bradleyCam) {
+        renderCam = window.GameManager.__bradleyCam;
       } else if (window.Mortar && window.Mortar.isDeployed && window.Mortar.isDeployed() && window.GameManager.__mortarCam) {
         renderCam = window.GameManager.__mortarCam;
       }
@@ -8764,9 +8212,6 @@ const GameManager = (function () {
       }
     });
     bindTapButton('btn-vehicle', function () { tapVirtualKey('KeyG'); });
-    bindTapButton('btn-bradley-view', function () {
-      try { if (typeof Bradley !== 'undefined' && Bradley.toggleViewMode) Bradley.toggleViewMode(); } catch (e) {}
-    });
     bindTapButton('btn-build', function () { tapVirtualKey('KeyB'); });
     // Build-opt tap: select template directly on mobile
     document.querySelectorAll('.build-opt[data-template]').forEach(function (el) {
