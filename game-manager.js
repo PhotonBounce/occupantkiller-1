@@ -1272,6 +1272,7 @@ const GameManager = (function () {
         if (window.Destructibles) Destructibles.init(_scene);
         if (window.StaminaSystem) StaminaSystem.init();
         if (window.Grapple) Grapple.init(_scene, _camera);
+        if (window.Wingsuit) Wingsuit.init(_scene, _camera);
         if (window.ScavengeSystem) ScavengeSystem.init(_scene, _camera);
         if (window.CrouchSystem) CrouchSystem.init();
         if (window.SpecialGrenades) SpecialGrenades.init(_scene, _camera, function(enemyCallback) {
@@ -3451,6 +3452,7 @@ const GameManager = (function () {
     if (window.VehicleEnemies) VehicleEnemies.reset();
     if (window.StaminaSystem) StaminaSystem.reset();
     if (window.Grapple) Grapple.reset();
+    if (window.Wingsuit) Wingsuit.reset();
     if (window.CrouchSystem) CrouchSystem.reset();
     if (window.SpecialGrenades) SpecialGrenades.reset();
     if (window.BloodEffects) BloodEffects.reset();
@@ -5730,8 +5732,10 @@ const GameManager = (function () {
       player.inCover = false;
     }
 
-    // Gravity (reduced while grapple is attached)
-    var _gravMult = (window.Grapple && Grapple.isActive()) ? Grapple.gravityMultiplier() : 1.0;
+    // Gravity (reduced while grapple or wingsuit is active)
+    var _gravMult = (window.Grapple && Grapple.isActive()) ? Grapple.gravityMultiplier()
+                  : (window.Wingsuit && Wingsuit.isActive()) ? Wingsuit.gravityMultiplier()
+                  : 1.0;
     player.velocity.y -= GRAVITY * _gravMult * delta;
 
     // Jump (keyboard or touch)
@@ -5824,6 +5828,8 @@ const GameManager = (function () {
 
     // Grapple update — must run after player.position is committed
     if (window.Grapple) Grapple.update(delta, player.position, _camera);
+    // Wingsuit update — runs after physics, passes player object and key state
+    if (window.Wingsuit) Wingsuit.update(delta, player, keys);
 
     // Update camera
     CameraSystem.update(delta, player.position, isMoving, player.onGround);
