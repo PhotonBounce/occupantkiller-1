@@ -1658,6 +1658,17 @@ const GameManager = (function () {
     try { if (window.LootSystem && LootSystem.init) LootSystem.init(_scene, _camera); } catch (e) {}
     try { if (window.ProximityMine && ProximityMine.init) ProximityMine.init(_scene, _camera); } catch (e) {}
     try { if (window.TacticalShield && TacticalShield.init) TacticalShield.init(_scene, _camera); } catch (e) {}
+    // Wave 23 modules
+    try { if (window.MineSweeper && MineSweeper.init) MineSweeper.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperNest && SniperNest.init) SniperNest.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleConvoy && VehicleConvoy.init) VehicleConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeaponWorkshop && WeaponWorkshop.init) WeaponWorkshop.init(_scene, _camera); } catch (e) {}
+    try { if (window.SquadTactics && SquadTactics.init) SquadTactics.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleReplay && BattleReplay.init) BattleReplay.init(_scene, _camera); } catch (e) {}
+    try { if (window.DynamicEvents && DynamicEvents.init) DynamicEvents.init(_scene, _camera); } catch (e) {}
+    try { if (window.PropagandaSystem && PropagandaSystem.init) PropagandaSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankControls && TankControls.init) TankControls.init(_scene, _camera); } catch (e) {}
+    try { if (window.NBCProtection && NBCProtection.init) NBCProtection.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8113,6 +8124,17 @@ const GameManager = (function () {
       if (window.LootSystem) LootSystem.update(delta);
       if (window.ProximityMine) ProximityMine.update(delta);
       if (window.TacticalShield) TacticalShield.update(delta);
+      // Wave 23
+      if (window.MineSweeper) MineSweeper.update(delta);
+      if (window.SniperNest) SniperNest.update(delta);
+      if (window.VehicleConvoy) VehicleConvoy.update(delta);
+      if (window.WeaponWorkshop) WeaponWorkshop.update(delta);
+      if (window.SquadTactics) SquadTactics.update(delta);
+      if (window.BattleReplay) BattleReplay.update(delta);
+      if (window.DynamicEvents) DynamicEvents.update(delta);
+      if (window.PropagandaSystem) PropagandaSystem.update(delta);
+      if (window.TankControls) TankControls.update(delta);
+      if (window.NBCProtection) NBCProtection.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
