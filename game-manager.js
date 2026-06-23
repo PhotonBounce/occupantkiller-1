@@ -1691,6 +1691,15 @@ const GameManager = (function () {
     try { if (window.FieldComms && FieldComms.init) FieldComms.init(_scene, _camera); } catch (e) {}
     try { if (window.TrophySystem && TrophySystem.init) TrophySystem.init(_scene, _camera); } catch (e) {}
     try { if (window.ExtractionZone && ExtractionZone.init) ExtractionZone.init(_scene, _camera); } catch (e) {}
+    // Wave 26 modules
+    try { if (window.AmphibiousAssault && AmphibiousAssault.init) AmphibiousAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.SupplyChain && SupplyChain.init) SupplyChain.init(_scene, _camera); } catch (e) {}
+    try { if (window.RiotControl && RiotControl.init) RiotControl.init(_scene, _camera); } catch (e) {}
+    try { if (window.ElectromagneticPulse && ElectromagneticPulse.init) ElectromagneticPulse.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageNegotiation && HostageNegotiation.init) HostageNegotiation.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberWarfare && CyberWarfare.init) CyberWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.AntiAir && AntiAir.init) AntiAir.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackMarket && BlackMarket.init) BlackMarket.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8179,6 +8188,15 @@ const GameManager = (function () {
       if (window.FieldComms) FieldComms.update(delta);
       if (window.TrophySystem) TrophySystem.update(delta);
       if (window.ExtractionZone) ExtractionZone.update(delta);
+      // Wave 26
+      if (window.AmphibiousAssault) AmphibiousAssault.update(delta);
+      if (window.SupplyChain) SupplyChain.update(delta);
+      if (window.RiotControl) RiotControl.update(delta);
+      if (window.ElectromagneticPulse) ElectromagneticPulse.update(delta);
+      if (window.HostageNegotiation) HostageNegotiation.update(delta);
+      if (window.CyberWarfare) CyberWarfare.update(delta);
+      if (window.AntiAir) AntiAir.update(delta);
+      if (window.BlackMarket) BlackMarket.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
