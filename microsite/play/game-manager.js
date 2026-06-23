@@ -1798,6 +1798,15 @@ const GameManager = (function () {
     try { if (window.SniperHunt && SniperHunt.init) SniperHunt.init(_scene, _camera); } catch (e) {}
     try { if (window.VehicleRecovery && VehicleRecovery.init) VehicleRecovery.init(_scene, _camera); } catch (e) {}
     try { if (window.HostageStandoff && HostageStandoff.init) HostageStandoff.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightVisionOps && NightVisionOps.init) NightVisionOps.init(_scene, _camera); } catch (e) {}
+    try { if (window.BridgeDemolition && BridgeDemolition.init) BridgeDemolition.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArtilleryDuel && ArtilleryDuel.init) ArtilleryDuel.init(_scene, _camera); } catch (e) {}
+    try { if (window.TunnelWarfare && TunnelWarfare.init) TunnelWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.CarrierAssault && CarrierAssault.init) CarrierAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.DroneSwarm && DroneSwarm.init) DroneSwarm.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemBioResponse && ChemBioResponse.init) ChemBioResponse.init(_scene, _camera); } catch (e) {}
+    try { if (window.MedevacOps && MedevacOps.init) MedevacOps.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonBreak && PrisonBreak.init) PrisonBreak.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8387,6 +8396,15 @@ const GameManager = (function () {
       if (window.SniperHunt) SniperHunt.update(delta);
       if (window.VehicleRecovery) VehicleRecovery.update(delta);
       if (window.HostageStandoff) HostageStandoff.update(delta);
+      if (window.NightVisionOps) NightVisionOps.update(delta);
+      if (window.BridgeDemolition) BridgeDemolition.update(delta);
+      if (window.ArtilleryDuel) ArtilleryDuel.update(delta);
+      if (window.TunnelWarfare) TunnelWarfare.update(delta);
+      if (window.CarrierAssault) CarrierAssault.update(delta);
+      if (window.DroneSwarm) DroneSwarm.update(delta);
+      if (window.ChemBioResponse) ChemBioResponse.update(delta);
+      if (window.MedevacOps) MedevacOps.update(delta);
+      if (window.PrisonBreak) PrisonBreak.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
