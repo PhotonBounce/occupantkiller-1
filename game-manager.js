@@ -1599,6 +1599,18 @@ const GameManager = (function () {
     try { if (window.EMPPulse && EMPPulse.init) EMPPulse.init(_scene, _camera); } catch (e) {}
     try { if (window.InventorySystem && InventorySystem.init) InventorySystem.init(); } catch (e) {}
     try { if (window.MeleeSystem && MeleeSystem.init) MeleeSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperScope && SniperScope.init) SniperScope.init(_scene, _camera); } catch (e) {}
+    try { if (window.ParachuteDrop && ParachuteDrop.init) ParachuteDrop.init(_scene, _camera); } catch (e) {}
+    try { if (window.LandmineField && LandmineField.init) LandmineField.init(_scene, _camera); } catch (e) {}
+    try { if (window.SmokeLauncher && SmokeLauncher.init) SmokeLauncher.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirStrike && AirStrike.init) AirStrike.init(_scene, _camera); } catch (e) {}
+    try { if (window.WallBreach && WallBreach.init) WallBreach.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatRoll && CombatRoll.init) CombatRoll.init(_scene, _camera); } catch (e) {}
+    try { if (window.DogTagCollector && DogTagCollector.init) DogTagCollector.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemySniper && EnemySniper.init) EnemySniper.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleWreck && VehicleWreck.init) VehicleWreck.init(_scene, _camera); } catch (e) {}
+    try { if (window.SuppressorKit && SuppressorKit.init) SuppressorKit.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattlefieldPromotions && BattlefieldPromotions.init) BattlefieldPromotions.init(); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -7996,6 +8008,18 @@ const GameManager = (function () {
       if (window.EMPPulse) EMPPulse.update(delta);
       if (window.InventorySystem) InventorySystem.update(delta);
       if (window.MeleeSystem) MeleeSystem.update(delta);
+      if (window.SniperScope) SniperScope.update(delta);
+      if (window.ParachuteDrop) ParachuteDrop.update(delta);
+      if (window.LandmineField) LandmineField.update(delta);
+      if (window.SmokeLauncher) SmokeLauncher.update(delta);
+      if (window.AirStrike) AirStrike.update(delta);
+      if (window.WallBreach) WallBreach.update(delta);
+      if (window.CombatRoll) CombatRoll.update(delta);
+      if (window.DogTagCollector) DogTagCollector.update(delta);
+      if (window.EnemySniper) EnemySniper.update(delta);
+      if (window.VehicleWreck) VehicleWreck.update(delta);
+      if (window.SuppressorKit) SuppressorKit.update(delta);
+      if (window.BattlefieldPromotions) BattlefieldPromotions.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);

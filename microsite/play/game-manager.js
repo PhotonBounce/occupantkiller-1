@@ -1272,6 +1272,8 @@ const GameManager = (function () {
         if (window.Destructibles) Destructibles.init(_scene);
         if (window.StaminaSystem) StaminaSystem.init();
         if (window.Grapple) Grapple.init(_scene, _camera);
+        if (window.ZiplineGrapple) ZiplineGrapple.init(_scene, _camera);
+        if (window.Wingsuit) Wingsuit.init(_scene, _camera);
         if (window.ScavengeSystem) ScavengeSystem.init(_scene, _camera);
         if (window.CrouchSystem) CrouchSystem.init();
         if (window.SpecialGrenades) SpecialGrenades.init(_scene, _camera, function(enemyCallback) {
@@ -1572,6 +1574,10 @@ const GameManager = (function () {
     try { if (window.TimeWarp && TimeWarp.init) TimeWarp.init(); } catch (eTW) { console.warn('[TimeWarp] init failed', eTW); }
     // Surrender system
     try { if (window.SurrenderSystem) SurrenderSystem.init(_scene); } catch (eSS) { console.warn('[SurrenderSystem] init failed', eSS); }
+    // Suppression system
+    try { if (window.SuppressionSystem) SuppressionSystem.init(_scene, _camera); } catch (eSup) { console.warn('[SuppressionSystem] init failed', eSup); }
+    // Freeze grenade
+    try { if (window.FreezeGrenade && FreezeGrenade.init) FreezeGrenade.init(_scene, _camera); } catch (eFG) { console.warn('[FreezeGrenade] init failed', eFG); }
     try { if (window.KillCam && KillCam.init) KillCam.init(_scene, _camera); } catch (e) {}
     try { if (window.ShieldBubble && ShieldBubble.init) ShieldBubble.init(_scene, _camera); } catch (e) {}
     try { if (window.TripwireTrap && TripwireTrap.init) TripwireTrap.init(_scene, _camera); } catch (e) {}
@@ -1593,6 +1599,18 @@ const GameManager = (function () {
     try { if (window.EMPPulse && EMPPulse.init) EMPPulse.init(_scene, _camera); } catch (e) {}
     try { if (window.InventorySystem && InventorySystem.init) InventorySystem.init(); } catch (e) {}
     try { if (window.MeleeSystem && MeleeSystem.init) MeleeSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperScope && SniperScope.init) SniperScope.init(_scene, _camera); } catch (e) {}
+    try { if (window.ParachuteDrop && ParachuteDrop.init) ParachuteDrop.init(_scene, _camera); } catch (e) {}
+    try { if (window.LandmineField && LandmineField.init) LandmineField.init(_scene, _camera); } catch (e) {}
+    try { if (window.SmokeLauncher && SmokeLauncher.init) SmokeLauncher.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirStrike && AirStrike.init) AirStrike.init(_scene, _camera); } catch (e) {}
+    try { if (window.WallBreach && WallBreach.init) WallBreach.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatRoll && CombatRoll.init) CombatRoll.init(_scene, _camera); } catch (e) {}
+    try { if (window.DogTagCollector && DogTagCollector.init) DogTagCollector.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemySniper && EnemySniper.init) EnemySniper.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleWreck && VehicleWreck.init) VehicleWreck.init(_scene, _camera); } catch (e) {}
+    try { if (window.SuppressorKit && SuppressorKit.init) SuppressorKit.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattlefieldPromotions && BattlefieldPromotions.init) BattlefieldPromotions.init(); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -3470,6 +3488,8 @@ const GameManager = (function () {
     if (window.VehicleEnemies) VehicleEnemies.reset();
     if (window.StaminaSystem) StaminaSystem.reset();
     if (window.Grapple) Grapple.reset();
+    if (window.ZiplineGrapple) ZiplineGrapple.reset();
+    if (window.Wingsuit) Wingsuit.reset();
     if (window.CrouchSystem) CrouchSystem.reset();
     if (window.SpecialGrenades) SpecialGrenades.reset();
     if (window.BloodEffects) BloodEffects.reset();
@@ -3809,6 +3829,7 @@ const GameManager = (function () {
     if (window.ScavengeSystem) ScavengeSystem.clear();
     if (window.DogTags) DogTags.clear();
     if (window.SurrenderSystem) SurrenderSystem.clear();
+    if (window.SuppressionSystem) SuppressionSystem.reset();
     window.VoxelWorld.generateLevel(stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
@@ -5748,8 +5769,10 @@ const GameManager = (function () {
       player.inCover = false;
     }
 
-    // Gravity (reduced while grapple is attached)
-    var _gravMult = (window.Grapple && Grapple.isActive()) ? Grapple.gravityMultiplier() : 1.0;
+    // Gravity (reduced while grapple or wingsuit is active)
+    var _gravMult = (window.Grapple && Grapple.isActive()) ? Grapple.gravityMultiplier()
+                  : (window.Wingsuit && Wingsuit.isActive()) ? Wingsuit.gravityMultiplier()
+                  : 1.0;
     player.velocity.y -= GRAVITY * _gravMult * delta;
 
     // Jump (keyboard or touch)
@@ -5842,6 +5865,10 @@ const GameManager = (function () {
 
     // Grapple update — must run after player.position is committed
     if (window.Grapple) Grapple.update(delta, player.position, _camera);
+    // ZiplineGrapple update — runs after physics
+    if (window.ZiplineGrapple) ZiplineGrapple.update(delta);
+    // Wingsuit update — runs after physics, passes player object and key state
+    if (window.Wingsuit) Wingsuit.update(delta, player, keys);
 
     // Update camera
     CameraSystem.update(delta, player.position, isMoving, player.onGround);
@@ -6078,6 +6105,12 @@ const GameManager = (function () {
         player.totalShots++;
         player.waveShots++;
         player.stageShots = (player.stageShots || 0) + 1;
+        // Suppression system: notify of each shot fired
+        if (window._onShotFired && _camera) {
+          _gmTmp2.copy(_camera.position);
+          _camera.getWorldDirection(_gmTmp3);
+          window._onShotFired(_gmTmp2, _gmTmp3);
+        }
         // Register heat + maintenance per shot (not per hit, to avoid shotgun 8x issue)
         if (typeof CombatExtras !== 'undefined') {
           CombatExtras.registerShot();
@@ -7952,6 +7985,8 @@ const GameManager = (function () {
       if (window.IntelPickups) IntelPickups.update(delta, player.position, player, _scene);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
       if (window.SurrenderSystem) SurrenderSystem.update(delta);
+      if (window.SuppressionSystem) SuppressionSystem.update(delta, player);
+      if (window.FreezeGrenade) FreezeGrenade.update(delta);
       if (window.KillCam) KillCam.update(delta);
       if (window.ShieldBubble) ShieldBubble.update(delta);
       if (window.TripwireTrap) TripwireTrap.update(delta);
@@ -7973,6 +8008,18 @@ const GameManager = (function () {
       if (window.EMPPulse) EMPPulse.update(delta);
       if (window.InventorySystem) InventorySystem.update(delta);
       if (window.MeleeSystem) MeleeSystem.update(delta);
+      if (window.SniperScope) SniperScope.update(delta);
+      if (window.ParachuteDrop) ParachuteDrop.update(delta);
+      if (window.LandmineField) LandmineField.update(delta);
+      if (window.SmokeLauncher) SmokeLauncher.update(delta);
+      if (window.AirStrike) AirStrike.update(delta);
+      if (window.WallBreach) WallBreach.update(delta);
+      if (window.CombatRoll) CombatRoll.update(delta);
+      if (window.DogTagCollector) DogTagCollector.update(delta);
+      if (window.EnemySniper) EnemySniper.update(delta);
+      if (window.VehicleWreck) VehicleWreck.update(delta);
+      if (window.SuppressorKit) SuppressorKit.update(delta);
+      if (window.BattlefieldPromotions) BattlefieldPromotions.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
