@@ -1633,6 +1633,16 @@ const GameManager = (function () {
     try { if (window.ReconDrone && ReconDrone.init) ReconDrone.init(_scene, _camera); } catch (e) {}
     try { if (window.BunkerBuster && BunkerBuster.init) BunkerBuster.init(_scene, _camera); } catch (e) {}
     try { if (window.TacticalMap && TacticalMap.init) TacticalMap.init(_scene, _camera); } catch (e) {}
+    // Wave 21 modules
+    try { if (window.VehiclePhysics && VehiclePhysics.init) VehiclePhysics.init(_scene, _camera); } catch (e) {}
+    try { if (window.DecoyFlare && DecoyFlare.init) DecoyFlare.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortificationBuilder && FortificationBuilder.init) FortificationBuilder.init(_scene, _camera); } catch (e) {}
+    try { if (window.MortarStrikeSystem && MortarStrikeSystem.init) MortarStrikeSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemyMedicNPC && EnemyMedicNPC.init) EnemyMedicNPC.init(_scene, _camera); } catch (e) {}
+    try { if (window.ExplosiveBarrelChain && ExplosiveBarrelChain.init) ExplosiveBarrelChain.init(_scene, _camera); } catch (e) {}
+    try { if (window.PowerupSystem && PowerupSystem.init) PowerupSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaveAnnouncement && WaveAnnouncement.init) WaveAnnouncement.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnvironmentalHazards && EnvironmentalHazards.init) EnvironmentalHazards.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8064,6 +8074,16 @@ const GameManager = (function () {
       if (window.ReconDrone) ReconDrone.update(delta);
       if (window.BunkerBuster) BunkerBuster.update(delta);
       if (window.TacticalMap) TacticalMap.update(delta);
+      // Wave 21
+      if (window.VehiclePhysics) VehiclePhysics.update(delta);
+      if (window.DecoyFlare) DecoyFlare.update(delta);
+      if (window.FortificationBuilder) FortificationBuilder.update(delta);
+      if (window.MortarStrikeSystem) MortarStrikeSystem.update(delta);
+      if (window.EnemyMedicNPC) EnemyMedicNPC.update(delta);
+      if (window.ExplosiveBarrelChain) ExplosiveBarrelChain.update(delta);
+      if (window.PowerupSystem) PowerupSystem.update(delta);
+      if (window.WaveAnnouncement) WaveAnnouncement.update(delta);
+      if (window.EnvironmentalHazards) EnvironmentalHazards.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
