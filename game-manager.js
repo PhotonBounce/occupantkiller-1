@@ -1643,6 +1643,17 @@ const GameManager = (function () {
     try { if (window.PowerupSystem && PowerupSystem.init) PowerupSystem.init(_scene, _camera); } catch (e) {}
     try { if (window.WaveAnnouncement && WaveAnnouncement.init) WaveAnnouncement.init(_scene, _camera); } catch (e) {}
     try { if (window.EnvironmentalHazards && EnvironmentalHazards.init) EnvironmentalHazards.init(_scene, _camera); } catch (e) {}
+    // Wave 22 modules
+    try { if (window.CaptureZone && CaptureZone.init) CaptureZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirdropSupply && AirdropSupply.init) AirdropSupply.init(_scene, _camera); } catch (e) {}
+    try { if (window.StealthSystem && StealthSystem.init) StealthSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemyCoordinator && EnemyCoordinator.init) EnemyCoordinator.init(_scene, _camera); } catch (e) {}
+    try { if (window.HelicopterGunship && HelicopterGunship.init) HelicopterGunship.init(_scene, _camera); } catch (e) {}
+    try { if (window.JavelinLauncher && JavelinLauncher.init) JavelinLauncher.init(_scene, _camera); } catch (e) {}
+    try { if (window.TimedCharges && TimedCharges.init) TimedCharges.init(_scene, _camera); } catch (e) {}
+    try { if (window.SoldierSkillTree && SoldierSkillTree.init) SoldierSkillTree.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShieldGenerator && ShieldGenerator.init) ShieldGenerator.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatXPSystem && CombatXPSystem.init) CombatXPSystem.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8084,6 +8095,17 @@ const GameManager = (function () {
       if (window.PowerupSystem) PowerupSystem.update(delta);
       if (window.WaveAnnouncement) WaveAnnouncement.update(delta);
       if (window.EnvironmentalHazards) EnvironmentalHazards.update(delta);
+      // Wave 22
+      if (window.CaptureZone) CaptureZone.update(delta);
+      if (window.AirdropSupply) AirdropSupply.update(delta);
+      if (window.StealthSystem) StealthSystem.update(delta);
+      if (window.EnemyCoordinator) EnemyCoordinator.update(delta);
+      if (window.HelicopterGunship) HelicopterGunship.update(delta);
+      if (window.JavelinLauncher) JavelinLauncher.update(delta);
+      if (window.TimedCharges) TimedCharges.update(delta);
+      if (window.SoldierSkillTree) SoldierSkillTree.update(delta);
+      if (window.ShieldGenerator) ShieldGenerator.update(delta);
+      if (window.CombatXPSystem) CombatXPSystem.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
