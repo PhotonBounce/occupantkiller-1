@@ -1838,6 +1838,16 @@ const GameManager = (function () {
     try { if (window.AlienInvasion && AlienInvasion.init) AlienInvasion.init(_scene, _camera); } catch (e) {}
     try { if (window.CyberHeist && CyberHeist.init) CyberHeist.init(_scene, _camera); } catch (e) {}
     try { if (window.TrainRobbery && TrainRobbery.init) TrainRobbery.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleTemple && JungleTemple.init) JungleTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearPlant && NuclearPlant.init) NuclearPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.CasinoHeist && CasinoHeist.init) CasinoHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilRig && OilRig.init) OilRig.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyFortress && SkyFortress.init) SkyFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineWarfare && SubmarineWarfare.init) SubmarineWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.BioLab && BioLab.init) BioLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.Assassination && Assassination.init) Assassination.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeDefense && SiegeDefense.init) SiegeDefense.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostMission && GhostMission.init) GhostMission.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8467,6 +8477,16 @@ const GameManager = (function () {
       if (window.AlienInvasion) AlienInvasion.update(delta);
       if (window.CyberHeist) CyberHeist.update(delta);
       if (window.TrainRobbery) TrainRobbery.update(delta);
+      if (window.JungleTemple) JungleTemple.update(delta);
+      if (window.NuclearPlant) NuclearPlant.update(delta);
+      if (window.CasinoHeist) CasinoHeist.update(delta);
+      if (window.OilRig) OilRig.update(delta);
+      if (window.SkyFortress) SkyFortress.update(delta);
+      if (window.SubmarineWarfare) SubmarineWarfare.update(delta);
+      if (window.BioLab) BioLab.update(delta);
+      if (window.Assassination) Assassination.update(delta);
+      if (window.SiegeDefense) SiegeDefense.update(delta);
+      if (window.GhostMission) GhostMission.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
