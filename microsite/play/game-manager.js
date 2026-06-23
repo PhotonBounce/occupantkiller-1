@@ -1808,6 +1808,8 @@ const GameManager = (function () {
     try { if (window.MedevacOps && MedevacOps.init) MedevacOps.init(_scene, _camera); } catch (e) {}
     try { if (window.PrisonBreak && PrisonBreak.init) PrisonBreak.init(_scene, _camera); } catch (e) {}
     try { if (window.MountainAssault && MountainAssault.init) MountainAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.MechSuit && MechSuit.init) MechSuit.init(_scene, _camera); } catch (e) {}
+    try { if (window.RiverCrossing && RiverCrossing.init) RiverCrossing.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8407,6 +8409,8 @@ const GameManager = (function () {
       if (window.MedevacOps) MedevacOps.update(delta);
       if (window.PrisonBreak) PrisonBreak.update(delta);
       if (window.MountainAssault) MountainAssault.update(delta);
+      if (window.MechSuit) MechSuit.update(delta);
+      if (window.RiverCrossing) RiverCrossing.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);

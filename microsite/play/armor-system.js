@@ -1,116 +1,133 @@
+// armor-system.js — Body armor, helmets, ballistic protection and degradation
+// Browser-based — IIFE, all var (no let/const), Three.js as global THREE
+//
+// Public API:
+//   ArmorSystem.init(scene, camera)
+//   ArmorSystem.update(delta)
+//   ArmorSystem.reset()
+//   ArmorSystem.applyDamage(rawDamage, hitLocation, hitDir)
+//   ArmorSystem.repairArmor(amount)
+//   ArmorSystem.openArmorSelection()
+//   ArmorSystem.getSpeedMultiplier()
+//   ArmorSystem.getStaminaDrainRate()
+
 window.ArmorSystem = (function () {
   'use strict';
 
-  // ---------------------------------------------------------------------------
-  // Armor tier definitions
-  // ---------------------------------------------------------------------------
+  // ─────────────────────────────────────────────── armor tiers
   var TIERS = {
-    NONE: {
-      id: 'NONE',
-      label: 'No Armor',
-      reduction: 0,
-      maxPts: 0,
+    LEVEL_I: {
+      id: 'LEVEL_I',
+      label: 'LEVEL_I',
+      displayName: 'Soft Vest',
+      maxHP: 150,
       speedPenalty: 0,
-      weight: 0
+      staminaMult: 1.0,
+      color: 0x4a7c59,
+      description: 'Soft body armor — light and fast'
     },
-    LIGHT_VEST: {
-      id: 'LIGHT_VEST',
-      label: 'Light Vest',
-      reduction: 0.25,
-      maxPts: 50,
-      speedPenalty: 0,
-      weight: 5
+    LEVEL_II: {
+      id: 'LEVEL_II',
+      label: 'LEVEL_II',
+      displayName: 'Enhanced Vest',
+      maxHP: 250,
+      speedPenalty: 0.10,
+      staminaMult: 1.15,
+      color: 0x3d6b8a,
+      description: 'Enhanced protection — 10% speed penalty'
     },
-    PLATE_CARRIER: {
-      id: 'PLATE_CARRIER',
-      label: 'Plate Carrier',
-      reduction: 0.40,
-      maxPts: 100,
-      speedPenalty: 0,
-      weight: 10
-    },
-    HEAVY_EXOSUIT: {
-      id: 'HEAVY_EXOSUIT',
-      label: 'Heavy Exosuit',
-      reduction: 0.60,
-      maxPts: 200,
+    LEVEL_III: {
+      id: 'LEVEL_III',
+      label: 'LEVEL_III',
+      displayName: 'Plate Carrier',
+      maxHP: 350,
       speedPenalty: 0.20,
-      weight: 20
+      staminaMult: 1.35,
+      color: 0x5a4a2a,
+      description: 'Plate carrier — 20% speed penalty'
+    },
+    LEVEL_IV: {
+      id: 'LEVEL_IV',
+      label: 'LEVEL_IV',
+      displayName: 'Full Kit',
+      maxHP: 500,
+      speedPenalty: 0.35,
+      staminaMult: 1.60,
+      color: 0x2a2a2a,
+      description: 'Full combat kit — 35% speed penalty'
     }
   };
 
-  // Equipment slot definitions
-  var EQUIPMENT = {
-    NONE: 'NONE',
-    NIGHT_VISION: 'NIGHT_VISION',
-    GAS_MASK: 'GAS_MASK',
-    JETPACK: 'JETPACK'
+  // ─────────────────────────────────────────────── helmet types
+  var HELMETS = {
+    NONE: {
+      id: 'NONE',
+      label: 'No Helmet',
+      maxHP: 0,
+      hasNVG: false
+    },
+    PASGT: {
+      id: 'PASGT',
+      label: 'PASGT Helmet',
+      maxHP: 100,
+      hasNVG: false
+    },
+    FAST_HELMET: {
+      id: 'FAST_HELMET',
+      label: 'FAST Helmet',
+      maxHP: 150,
+      hasNVG: true
+    }
   };
 
-  // ---------------------------------------------------------------------------
-  // Module state
-  // ---------------------------------------------------------------------------
+  // ─────────────────────────────────────────────── hit locations
+  var HIT_LOCATION = {
+    HEAD: 'HEAD',
+    BODY: 'BODY',
+    LIMB: 'LIMB'
+  };
+
+  // ─────────────────────────────────────────────── state
   var _scene = null;
   var _camera = null;
   var _initialized = false;
 
-  // Armor state
-  var _currentTier = TIERS.LIGHT_VEST;
-  var _armorPts = 50;
+  var _currentTier = TIERS.LEVEL_I;
+  var _armorHP = 150;
   var _armorBroken = false;
+  var _repairCount = 0;
+  var _maxRepairs = 2;
 
-  // Helmet state
-  var _helmetDurability = 30;
-  var _helmetMaxDurability = 30;
+  var _currentHelmet = HELMETS.NONE;
+  var _helmetHP = 0;
   var _helmetBroken = false;
 
-  // Equipment
-  var _equippedItem = EQUIPMENT.NONE;
-  var _nvActive = false;
-  var _jetpackCooldown = 0;
-  var _jetpackActive = false;
-  var _jetpackTime = 0;
-  var _jetpackMaxTime = 2.0;
-  var _jetpackCooldownMax = 15.0;
+  // Three.js chest plate mesh
+  var _chestPlateMesh = null;
+  var _crackMeshA = null;
+  var _crackMeshB = null;
+  var _cracksVisible = false;
 
-  // Armor repair kit
-  var _repairing = false;
-  var _repairProgress = 0;
-  var _repairDuration = 3.0;
-  var _repairAmt = 50;
-
-  // Pickups in scene
-  var _pickups = [];          // { mesh, type, position, label }
-  var _nearPickup = null;
+  // Armor selection screen
+  var _selectionPanel = null;
+  var _selectionVisible = false;
+  var _inventoryPanel = null;
+  var _inventoryVisible = false;
 
   // HUD elements
   var _hudContainer = null;
-  var _armorPtsEl = null;
-  var _armorTierEl = null;
-  var _helmetBarEl = null;
-  var _armorBarFill = null;
-  var _crackOverlay = null;
-  var _loadoutPanel = null;
-  var _loadoutVisible = false;
-  var _repairBar = null;
-  var _repairBarFill = null;
-  var _repairBarWrap = null;
-  var _interactHint = null;
-
-  // Hit directional indicators (arcs on screen)
-  var _hitArcs = [];           // { canvas, timer, maxTimer, angle }
-  var _hitArcContainer = null;
-
-  // Night-vision overlay
-  var _nvOverlay = null;
-  var _nvEnemyMeshes = [];
+  var _hudArmorText = null;
+  var _hudHelmetText = null;
 
   // Audio
   var _audioCtx = null;
 
-  // ---------------------------------------------------------------------------
-  // Audio helpers
-  // ---------------------------------------------------------------------------
+  // Key state for A+R combo
+  var _keyA = false;
+  var _keyR = false;
+  var _comboTimer = 0;
+
+  // ─────────────────────────────────────────────── audio helpers
   function _getAudioCtx() {
     if (!_audioCtx) {
       try {
@@ -130,7 +147,7 @@ window.ArmorSystem = (function () {
       g.connect(ctx.destination);
       osc.type = type || 'sine';
       osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.5, ctx.currentTime + duration);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.3, ctx.currentTime + duration);
       g.gain.setValueAtTime(gainVal || 0.08, ctx.currentTime);
       g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
       osc.start();
@@ -138,223 +155,195 @@ window.ArmorSystem = (function () {
     } catch (e) {}
   }
 
+  function _playCrackSound() {
+    // Multi-tone crack/crunch noise
+    _playTone(220, 'sawtooth', 0.08, 0.14);
+    setTimeout(function () { _playTone(110, 'square', 0.12, 0.10); }, 40);
+    setTimeout(function () { _playTone(55, 'sawtooth', 0.20, 0.08); }, 90);
+    setTimeout(function () { _playTone(80, 'sine', 0.35, 0.06); }, 160);
+  }
+
   function _playArmorHit() {
-    _playTone(180, 'sawtooth', 0.12, 0.1);
+    _playTone(300, 'sawtooth', 0.10, 0.09);
+    setTimeout(function () { _playTone(180, 'sine', 0.18, 0.06); }, 60);
   }
 
-  function _playHelmetShatter() {
-    _playTone(900, 'square', 0.05, 0.12);
-    setTimeout(function () { _playTone(400, 'sawtooth', 0.15, 0.08); }, 60);
-    setTimeout(function () { _playTone(200, 'sine', 0.3, 0.06); }, 120);
+  function _playEquip() {
+    _playTone(440, 'sine', 0.12, 0.07);
+    setTimeout(function () { _playTone(550, 'sine', 0.10, 0.06); }, 80);
   }
 
-  function _playJetpackBoost() {
-    _playTone(220, 'sawtooth', 2.0, 0.07);
-  }
-
-  function _playPickupSound() {
-    _playTone(660, 'sine', 0.15, 0.09);
+  function _playRepair() {
+    _playTone(660, 'sine', 0.15, 0.08);
     setTimeout(function () { _playTone(880, 'sine', 0.12, 0.07); }, 120);
+    setTimeout(function () { _playTone(1100, 'sine', 0.10, 0.06); }, 220);
   }
 
-  // ---------------------------------------------------------------------------
-  // HUD creation
-  // ---------------------------------------------------------------------------
+  // ─────────────────────────────────────────────── Three.js mesh helpers
+  function _buildChestPlateMesh() {
+    if (!_camera) return;
+    // Remove existing
+    _removeChestMeshes();
+
+    if (_currentTier.id === 'LEVEL_I' && _armorBroken) return;
+
+    // Chest plate: BoxGeometry 0.6 x 0.8 x 0.1 offset (0, 0, -0.3) from camera
+    var geo = new THREE.BoxGeometry(0.6, 0.8, 0.1);
+    var mat = new THREE.MeshStandardMaterial({
+      color: _armorBroken ? 0x333333 : _currentTier.color,
+      roughness: 0.6,
+      metalness: _currentTier.id === 'LEVEL_III' || _currentTier.id === 'LEVEL_IV' ? 0.7 : 0.2
+    });
+    _chestPlateMesh = new THREE.Mesh(geo, mat);
+    _chestPlateMesh.position.set(0, 0, -0.3);
+    _camera.add(_chestPlateMesh);
+
+    // Build crack overlays (X shape from 2 BoxGeometries)
+    _buildCrackMeshes();
+
+    // Show cracks if HP < 50%
+    _updateCrackVisibility();
+  }
+
+  function _buildCrackMeshes() {
+    if (!_chestPlateMesh) return;
+
+    var crackMat = new THREE.MeshStandardMaterial({
+      color: 0x111111,
+      roughness: 1.0,
+      metalness: 0.0
+    });
+
+    // Crack A: diagonal /
+    var geoA = new THREE.BoxGeometry(0.62, 0.06, 0.12);
+    _crackMeshA = new THREE.Mesh(geoA, crackMat);
+    _crackMeshA.rotation.z = Math.PI / 4;
+    _crackMeshA.position.set(0, 0, 0.01);
+    _chestPlateMesh.add(_crackMeshA);
+
+    // Crack B: diagonal \
+    var geoB = new THREE.BoxGeometry(0.62, 0.06, 0.12);
+    _crackMeshB = new THREE.Mesh(geoB, crackMat);
+    _crackMeshB.rotation.z = -Math.PI / 4;
+    _crackMeshB.position.set(0, 0, 0.01);
+    _chestPlateMesh.add(_crackMeshB);
+
+    _crackMeshA.visible = false;
+    _crackMeshB.visible = false;
+  }
+
+  function _updateCrackVisibility() {
+    if (!_chestPlateMesh) return;
+    var maxHP = _currentTier.maxHP;
+    var showCracks = (maxHP > 0) && (_armorHP < maxHP * 0.5);
+    if (_crackMeshA) _crackMeshA.visible = showCracks;
+    if (_crackMeshB) _crackMeshB.visible = showCracks;
+    _cracksVisible = showCracks;
+
+    // If armor broken, turn plate dark gray
+    if (_chestPlateMesh.material) {
+      _chestPlateMesh.material.color.setHex(_armorBroken ? 0x333333 : _currentTier.color);
+    }
+  }
+
+  function _removeChestMeshes() {
+    if (_chestPlateMesh) {
+      if (_camera) _camera.remove(_chestPlateMesh);
+      if (_crackMeshA) {
+        _chestPlateMesh.remove(_crackMeshA);
+        if (_crackMeshA.geometry) _crackMeshA.geometry.dispose();
+        if (_crackMeshA.material) _crackMeshA.material.dispose();
+        _crackMeshA = null;
+      }
+      if (_crackMeshB) {
+        _chestPlateMesh.remove(_crackMeshB);
+        if (_crackMeshB.geometry) _crackMeshB.geometry.dispose();
+        if (_crackMeshB.material) _crackMeshB.material.dispose();
+        _crackMeshB = null;
+      }
+      if (_chestPlateMesh.geometry) _chestPlateMesh.geometry.dispose();
+      if (_chestPlateMesh.material) _chestPlateMesh.material.dispose();
+      _chestPlateMesh = null;
+    }
+    _cracksVisible = false;
+  }
+
+  // ─────────────────────────────────────────────── HUD
   function _createHUD() {
-    // Main container (bottom-right)
     _hudContainer = document.createElement('div');
-    _hudContainer.id = 'armor-hud';
+    _hudContainer.id = 'armor-hud-bl';
     _hudContainer.style.cssText = [
       'position:fixed',
-      'bottom:24px',
-      'right:24px',
+      'bottom:18px',
+      'left:18px',
       'display:flex',
       'flex-direction:column',
-      'align-items:flex-end',
-      'gap:6px',
+      'gap:3px',
       'pointer-events:none',
-      'z-index:9000',
+      'z-index:9100',
       'font-family:monospace',
       'user-select:none'
     ].join(';');
     document.body.appendChild(_hudContainer);
 
-    // Helmet row
-    var helmetRow = document.createElement('div');
-    helmetRow.style.cssText = 'display:flex;align-items:center;gap:6px;';
-    var helmetIcon = document.createElement('span');
-    helmetIcon.textContent = '⛑'; // ⛑ helmet icon
-    helmetIcon.style.cssText = 'font-size:16px;color:#aaa;';
-    helmetRow.appendChild(helmetIcon);
-    _helmetBarEl = document.createElement('div');
-    _helmetBarEl.style.cssText = [
-      'width:60px',
-      'height:6px',
-      'background:#333',
-      'border:1px solid #555',
-      'border-radius:3px',
-      'overflow:hidden'
-    ].join(';');
-    var helmetFill = document.createElement('div');
-    helmetFill.id = 'armor-helmet-fill';
-    helmetFill.style.cssText = 'height:100%;width:100%;background:#88aaff;transition:width 0.2s;';
-    _helmetBarEl.appendChild(helmetFill);
-    helmetRow.appendChild(_helmetBarEl);
-    _hudContainer.appendChild(helmetRow);
+    _hudArmorText = document.createElement('div');
+    _hudArmorText.id = 'armor-hud-armor-text';
+    _hudArmorText.style.cssText = 'color:#f8a020;font-size:13px;font-weight:bold;text-shadow:0 0 4px #000;';
+    _hudContainer.appendChild(_hudArmorText);
 
-    // Armor row: shield icon + bar + pts + tier
-    var armorRow = document.createElement('div');
-    armorRow.style.cssText = 'display:flex;align-items:center;gap:6px;';
-    var shieldIcon = document.createElement('span');
-    shieldIcon.textContent = '🛡'; // 🛡
-    shieldIcon.style.cssText = 'font-size:18px;';
-    armorRow.appendChild(shieldIcon);
+    _hudHelmetText = document.createElement('div');
+    _hudHelmetText.id = 'armor-hud-helmet-text';
+    _hudHelmetText.style.cssText = 'color:#88aaff;font-size:13px;font-weight:bold;text-shadow:0 0 4px #000;';
+    _hudContainer.appendChild(_hudHelmetText);
 
-    var barWrap = document.createElement('div');
-    barWrap.style.cssText = [
-      'width:90px',
-      'height:9px',
-      'background:#333',
-      'border:1px solid #666',
-      'border-radius:4px',
-      'overflow:hidden'
-    ].join(';');
-    _armorBarFill = document.createElement('div');
-    _armorBarFill.style.cssText = 'height:100%;width:100%;background:#f8a020;transition:width 0.2s;';
-    barWrap.appendChild(_armorBarFill);
-    armorRow.appendChild(barWrap);
+    _updateHUD();
+  }
 
-    _armorPtsEl = document.createElement('span');
-    _armorPtsEl.style.cssText = 'color:#f8a020;font-size:13px;font-weight:bold;min-width:28px;text-align:right;';
-    armorRow.appendChild(_armorPtsEl);
+  function _makeBar(current, maximum, filled, empty) {
+    if (maximum <= 0) return empty + empty + empty + empty + empty + empty;
+    var pct = Math.max(0, Math.min(1, current / maximum));
+    var total = 6;
+    var filledCount = Math.round(pct * total);
+    var result = '';
+    for (var i = 0; i < total; i++) {
+      result += i < filledCount ? filled : empty;
+    }
+    return result;
+  }
 
-    _armorTierEl = document.createElement('span');
-    _armorTierEl.style.cssText = 'color:#ccc;font-size:10px;';
-    armorRow.appendChild(_armorTierEl);
+  function _updateHUD() {
+    if (!_hudArmorText || !_hudHelmetText) return;
 
-    _hudContainer.appendChild(armorRow);
+    // Armor bar: filled = block, partial = medium shade, empty = light
+    var armorBar = _makeBar(_armorHP, _currentTier.maxHP, '█', '░');
+    var armorLabel = _armorBroken ? '[BROKEN]' : '[' + _currentTier.label + ']';
+    _hudArmorText.textContent = 'ARMOR: ' + armorBar + ' ' + armorLabel;
+    _hudArmorText.style.color = _armorBroken ? '#555' : '#f8a020';
 
-    // Repair bar (hidden by default)
-    _repairBarWrap = document.createElement('div');
-    _repairBarWrap.style.cssText = [
-      'display:none',
-      'flex-direction:column',
-      'align-items:flex-end',
-      'gap:2px'
-    ].join(';');
-    var repairLabel = document.createElement('span');
-    repairLabel.textContent = 'REPAIRING...';
-    repairLabel.style.cssText = 'color:#0cf;font-size:10px;';
-    _repairBarWrap.appendChild(repairLabel);
-    var repairOuter = document.createElement('div');
-    repairOuter.style.cssText = [
-      'width:90px',
-      'height:6px',
-      'background:#333',
-      'border:1px solid #0cf',
-      'border-radius:3px',
-      'overflow:hidden'
-    ].join(';');
-    _repairBar = document.createElement('div');
-    _repairBar.style.cssText = 'height:100%;width:0%;background:#0cf;transition:width 0.1s;';
-    repairOuter.appendChild(_repairBar);
-    _repairBarWrap.appendChild(repairOuter);
-    _hudContainer.appendChild(_repairBarWrap);
+    // Helmet bar
+    var helmetBar = _makeBar(_helmetHP, _currentHelmet.maxHP, '█', '░');
+    var helmetLabel = _helmetBroken ? '[BROKEN]' : '[' + _currentHelmet.id + ']';
+    if (_currentHelmet.id === 'NONE') {
+      _hudHelmetText.textContent = 'HELMET: [NONE]';
+      _hudHelmetText.style.color = '#555';
+    } else {
+      _hudHelmetText.textContent = 'HELMET: ' + helmetBar + ' ' + helmetLabel;
+      _hudHelmetText.style.color = _helmetBroken ? '#555' : '#88aaff';
+    }
+  }
 
-    // Interact hint
-    _interactHint = document.createElement('div');
-    _interactHint.style.cssText = [
-      'position:fixed',
-      'bottom:140px',
-      'right:50%',
-      'transform:translateX(50%)',
-      'color:#fff',
-      'font-family:monospace',
-      'font-size:13px',
-      'background:rgba(0,0,0,0.55)',
-      'padding:5px 12px',
-      'border-radius:4px',
-      'pointer-events:none',
-      'z-index:9001',
-      'display:none'
-    ].join(';');
-    document.body.appendChild(_interactHint);
-
-    // Crack overlay (armor broken)
-    _crackOverlay = document.createElement('div');
-    _crackOverlay.id = 'armor-crack-overlay';
-    _crackOverlay.style.cssText = [
+  // ─────────────────────────────────────────────── armor selection screen
+  function _createSelectionPanel() {
+    _selectionPanel = document.createElement('div');
+    _selectionPanel.id = 'armor-selection-panel';
+    _selectionPanel.style.cssText = [
       'position:fixed',
       'top:0',
       'left:0',
       'width:100%',
       'height:100%',
-      'pointer-events:none',
-      'z-index:8990',
-      'opacity:0',
-      'transition:opacity 0.4s'
-    ].join(';');
-    // Radial crack pattern via CSS box-shadow + border pattern
-    _crackOverlay.style.background = [
-      'radial-gradient(ellipse at 0% 0%, rgba(180,0,0,0.35) 0%, transparent 40%)',
-      'radial-gradient(ellipse at 100% 0%, rgba(120,120,120,0.3) 0%, transparent 35%)',
-      'radial-gradient(ellipse at 0% 100%, rgba(120,120,120,0.3) 0%, transparent 35%)',
-      'radial-gradient(ellipse at 100% 100%, rgba(180,0,0,0.35) 0%, transparent 40%)',
-      'radial-gradient(ellipse at 50% 0%, rgba(140,0,0,0.25) 0%, transparent 30%)',
-      'radial-gradient(ellipse at 50% 100%, rgba(140,0,0,0.25) 0%, transparent 30%)',
-      'radial-gradient(ellipse at 0% 50%, rgba(140,0,0,0.25) 0%, transparent 30%)',
-      'radial-gradient(ellipse at 100% 50%, rgba(140,0,0,0.25) 0%, transparent 30%)'
-    ].join(',');
-    document.body.appendChild(_crackOverlay);
-
-    // Night-vision overlay
-    _nvOverlay = document.createElement('div');
-    _nvOverlay.id = 'armor-nv-overlay';
-    _nvOverlay.style.cssText = [
-      'position:fixed',
-      'top:0',
-      'left:0',
-      'width:100%',
-      'height:100%',
-      'pointer-events:none',
-      'z-index:8980',
-      'display:none',
-      'background:rgba(0,10,0,0.82)'
-    ].join(';');
-    document.body.appendChild(_nvOverlay);
-
-    // Hit arc container
-    _hitArcContainer = document.createElement('canvas');
-    _hitArcContainer.id = 'armor-hit-arcs';
-    _hitArcContainer.style.cssText = [
-      'position:fixed',
-      'top:0',
-      'left:0',
-      'width:100%',
-      'height:100%',
-      'pointer-events:none',
-      'z-index:8995'
-    ].join(';');
-    _hitArcContainer.width = window.innerWidth;
-    _hitArcContainer.height = window.innerHeight;
-    document.body.appendChild(_hitArcContainer);
-
-    window.addEventListener('resize', function () {
-      _hitArcContainer.width = window.innerWidth;
-      _hitArcContainer.height = window.innerHeight;
-    });
-
-    // Loadout panel (Tab key)
-    _loadoutPanel = document.createElement('div');
-    _loadoutPanel.id = 'armor-loadout-panel';
-    _loadoutPanel.style.cssText = [
-      'position:fixed',
-      'top:0',
-      'left:0',
-      'width:100%',
-      'height:100%',
-      'background:rgba(0,0,0,0.78)',
-      'z-index:10000',
+      'background:rgba(0,0,0,0.85)',
+      'z-index:10100',
       'display:none',
       'flex-direction:column',
       'align-items:center',
@@ -363,582 +352,546 @@ window.ArmorSystem = (function () {
       'color:#eee',
       'pointer-events:auto'
     ].join(';');
-    document.body.appendChild(_loadoutPanel);
+    document.body.appendChild(_selectionPanel);
   }
 
-  function _updateHUD() {
-    if (!_hudContainer) return;
-
-    // Armor bar
-    var pct = _currentTier.maxPts > 0 ? Math.max(0, _armorPts / _currentTier.maxPts) : 0;
-    if (_armorBarFill) {
-      _armorBarFill.style.width = (pct * 100).toFixed(1) + '%';
-      _armorBarFill.style.background = _armorBroken ? '#555' : '#f8a020';
-    }
-    if (_armorPtsEl) {
-      _armorPtsEl.textContent = Math.ceil(_armorPts);
-      _armorPtsEl.style.color = _armorBroken ? '#555' : '#f8a020';
-    }
-    if (_armorTierEl) {
-      _armorTierEl.textContent = _currentTier.label;
-    }
-
-    // Helmet bar
-    var helmetFill = document.getElementById('armor-helmet-fill');
-    if (helmetFill) {
-      var hPct = Math.max(0, _helmetDurability / _helmetMaxDurability);
-      helmetFill.style.width = (hPct * 100).toFixed(1) + '%';
-      helmetFill.style.background = _helmetBroken ? '#333' : '#88aaff';
-    }
-
-    // Crack overlay
-    if (_crackOverlay) {
-      _crackOverlay.style.opacity = _armorBroken ? '1' : '0';
-    }
-
-    // Repair bar
-    if (_repairBarWrap) {
-      _repairBarWrap.style.display = _repairing ? 'flex' : 'none';
-      if (_repairing && _repairBar) {
-        var rPct = (_repairProgress / _repairDuration) * 100;
-        _repairBar.style.width = rPct.toFixed(1) + '%';
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Loadout panel
-  // ---------------------------------------------------------------------------
-  function _renderLoadoutPanel() {
-    if (!_loadoutPanel) return;
-    _loadoutPanel.innerHTML = '';
+  function _renderSelectionPanel() {
+    if (!_selectionPanel) return;
+    _selectionPanel.innerHTML = '';
 
     var title = document.createElement('h2');
-    title.textContent = 'EQUIPMENT LOADOUT';
-    title.style.cssText = 'margin-bottom:24px;letter-spacing:4px;color:#f8a020;font-size:22px;';
-    _loadoutPanel.appendChild(title);
+    title.textContent = 'ARMOR SELECTION';
+    title.style.cssText = 'margin-bottom:8px;letter-spacing:4px;color:#f8a020;font-size:20px;margin-top:0;';
+    _selectionPanel.appendChild(title);
 
-    var card = document.createElement('div');
-    card.style.cssText = [
-      'background:rgba(20,20,20,0.9)',
-      'border:1px solid #444',
-      'border-radius:8px',
-      'padding:28px 40px',
-      'min-width:360px',
-      'display:flex',
-      'flex-direction:column',
-      'gap:16px'
+    var subtitle = document.createElement('div');
+    subtitle.textContent = 'Select protection tier — heavier armor slows movement';
+    subtitle.style.cssText = 'color:#888;font-size:12px;margin-bottom:24px;letter-spacing:1px;';
+    _selectionPanel.appendChild(subtitle);
+
+    var grid = document.createElement('div');
+    grid.style.cssText = [
+      'display:grid',
+      'grid-template-columns:repeat(2,1fr)',
+      'gap:16px',
+      'max-width:700px',
+      'width:90%'
     ].join(';');
 
-    // Armor section
-    var armorSec = document.createElement('div');
-    armorSec.style.cssText = 'display:flex;flex-direction:column;gap:6px;';
-    var armorTitle = document.createElement('div');
-    armorTitle.textContent = '🛡 ARMOR';
-    armorTitle.style.cssText = 'font-size:13px;color:#f8a020;letter-spacing:2px;';
-    armorSec.appendChild(armorTitle);
+    var tierKeys = ['LEVEL_I', 'LEVEL_II', 'LEVEL_III', 'LEVEL_IV'];
+    for (var ti = 0; ti < tierKeys.length; ti++) {
+      (function (tierKey) {
+        var tier = TIERS[tierKey];
+        var isActive = (_currentTier.id === tierKey);
+        var card = document.createElement('div');
+        card.style.cssText = [
+          'background:' + (isActive ? 'rgba(248,160,32,0.12)' : 'rgba(30,30,30,0.9)'),
+          'border:2px solid ' + (isActive ? '#f8a020' : '#444'),
+          'border-radius:8px',
+          'padding:18px 20px',
+          'cursor:pointer',
+          'transition:border-color 0.15s'
+        ].join(';');
 
-    var armorInfo = document.createElement('div');
-    armorInfo.style.cssText = 'display:flex;justify-content:space-between;font-size:12px;color:#ccc;';
-    armorInfo.innerHTML = '<span>' + _currentTier.label + '</span><span>' + Math.ceil(_armorPts) + ' / ' + _currentTier.maxPts + ' pts</span>';
-    armorSec.appendChild(armorInfo);
+        var header = document.createElement('div');
+        header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
 
-    var armorBarOuter = document.createElement('div');
-    armorBarOuter.style.cssText = 'width:100%;height:8px;background:#222;border:1px solid #555;border-radius:4px;overflow:hidden;';
-    var armorBarInner = document.createElement('div');
-    var aPct = _currentTier.maxPts > 0 ? (_armorPts / _currentTier.maxPts * 100).toFixed(1) : 0;
-    armorBarInner.style.cssText = 'height:100%;width:' + aPct + '%;background:#f8a020;';
-    armorBarOuter.appendChild(armorBarInner);
-    armorSec.appendChild(armorBarOuter);
+        var tierName = document.createElement('span');
+        tierName.textContent = tier.label;
+        tierName.style.cssText = 'font-size:16px;font-weight:bold;color:' + (isActive ? '#f8a020' : '#ccc') + ';letter-spacing:2px;';
+        header.appendChild(tierName);
 
-    var armorStats = document.createElement('div');
-    armorStats.style.cssText = 'font-size:11px;color:#888;';
-    armorStats.textContent = 'Damage reduction: ' + (_currentTier.reduction * 100).toFixed(0) + '%  |  Speed penalty: ' + (_currentTier.speedPenalty * 100).toFixed(0) + '%';
-    armorSec.appendChild(armorStats);
-    card.appendChild(armorSec);
+        if (isActive) {
+          var badge = document.createElement('span');
+          badge.textContent = 'EQUIPPED';
+          badge.style.cssText = 'font-size:9px;color:#f8a020;border:1px solid #f8a020;padding:2px 6px;border-radius:3px;';
+          header.appendChild(badge);
+        }
+        card.appendChild(header);
+
+        var dispName = document.createElement('div');
+        dispName.textContent = tier.displayName;
+        dispName.style.cssText = 'font-size:12px;color:#aaa;margin-bottom:10px;';
+        card.appendChild(dispName);
+
+        var stats = document.createElement('div');
+        stats.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:11px;color:#777;';
+        stats.innerHTML = [
+          '<span>HP Absorb: <b style="color:#0cf;">' + tier.maxHP + '</b></span>',
+          '<span>Speed Penalty: <b style="color:#f80;">' + (tier.speedPenalty * 100).toFixed(0) + '%</b></span>',
+          '<span>Stamina Drain: <b style="color:#f44;">' + tier.staminaMult.toFixed(2) + 'x</b></span>'
+        ].join('');
+        card.appendChild(stats);
+
+        var desc = document.createElement('div');
+        desc.textContent = tier.description;
+        desc.style.cssText = 'font-size:10px;color:#555;margin-top:8px;font-style:italic;';
+        card.appendChild(desc);
+
+        card.addEventListener('click', function () {
+          _equipTier(tierKey);
+          _closeSelectionPanel();
+        });
+
+        grid.appendChild(card);
+      })(tierKeys[ti]);
+    }
+    _selectionPanel.appendChild(grid);
 
     // Helmet section
-    var divider1 = document.createElement('hr');
-    divider1.style.cssText = 'border:none;border-top:1px solid #333;margin:0;';
-    card.appendChild(divider1);
-
-    var helmetSec = document.createElement('div');
-    helmetSec.style.cssText = 'display:flex;flex-direction:column;gap:6px;';
     var helmetTitle = document.createElement('div');
-    helmetTitle.textContent = '⛑ HELMET';
-    helmetTitle.style.cssText = 'font-size:13px;color:#88aaff;letter-spacing:2px;';
-    helmetSec.appendChild(helmetTitle);
+    helmetTitle.textContent = 'HELMET';
+    helmetTitle.style.cssText = 'margin-top:24px;margin-bottom:12px;letter-spacing:3px;color:#88aaff;font-size:14px;';
+    _selectionPanel.appendChild(helmetTitle);
 
-    var helmetInfo = document.createElement('div');
-    helmetInfo.style.cssText = 'display:flex;justify-content:space-between;font-size:12px;color:#ccc;';
-    var hStatus = _helmetBroken ? 'BROKEN' : (Math.ceil(_helmetDurability) + ' / ' + _helmetMaxDurability + ' pts');
-    helmetInfo.innerHTML = '<span>' + (_helmetBroken ? 'Helmet (Broken)' : 'Combat Helmet') + '</span><span>' + hStatus + '</span>';
-    helmetSec.appendChild(helmetInfo);
+    var helmetGrid = document.createElement('div');
+    helmetGrid.style.cssText = 'display:flex;gap:12px;max-width:700px;width:90%;';
 
-    var helmetBarOuter = document.createElement('div');
-    helmetBarOuter.style.cssText = 'width:100%;height:8px;background:#222;border:1px solid #555;border-radius:4px;overflow:hidden;';
-    var helmetBarInner = document.createElement('div');
-    var hPct2 = (_helmetDurability / _helmetMaxDurability * 100).toFixed(1);
-    helmetBarInner.style.cssText = 'height:100%;width:' + hPct2 + '%;background:' + (_helmetBroken ? '#333' : '#88aaff') + ';';
-    helmetBarOuter.appendChild(helmetBarInner);
-    helmetSec.appendChild(helmetBarOuter);
+    var helmetKeys = ['NONE', 'PASGT', 'FAST_HELMET'];
+    for (var hi = 0; hi < helmetKeys.length; hi++) {
+      (function (helmetKey) {
+        var helm = HELMETS[helmetKey];
+        var isActive = (_currentHelmet.id === helmetKey);
+        var hCard = document.createElement('div');
+        hCard.style.cssText = [
+          'flex:1',
+          'background:' + (isActive ? 'rgba(136,170,255,0.12)' : 'rgba(30,30,30,0.9)'),
+          'border:2px solid ' + (isActive ? '#88aaff' : '#444'),
+          'border-radius:8px',
+          'padding:14px 16px',
+          'cursor:pointer'
+        ].join(';');
 
-    var helmetStats = document.createElement('div');
-    helmetStats.style.cssText = 'font-size:11px;color:#888;';
-    helmetStats.textContent = _helmetBroken ? 'Headshot multiplier: 2.0x (unprotected)' : 'Headshot multiplier reduced: 2.0x → 1.3x';
-    helmetSec.appendChild(helmetStats);
-    card.appendChild(helmetSec);
+        var hName = document.createElement('div');
+        hName.textContent = helm.label;
+        hName.style.cssText = 'font-size:13px;font-weight:bold;color:' + (isActive ? '#88aaff' : '#ccc') + ';margin-bottom:6px;';
+        hCard.appendChild(hName);
 
-    // Equipment section
-    var divider2 = document.createElement('hr');
-    divider2.style.cssText = 'border:none;border-top:1px solid #333;margin:0;';
-    card.appendChild(divider2);
+        var hStats = document.createElement('div');
+        hStats.style.cssText = 'font-size:11px;color:#666;display:flex;flex-direction:column;gap:3px;';
+        hStats.innerHTML = [
+          '<span>HP: <b style="color:#0cf;">' + (helm.maxHP || 'N/A') + '</b></span>',
+          '<span>NVG Rail: <b style="color:' + (helm.hasNVG ? '#0f0' : '#444') + ';">' + (helm.hasNVG ? 'Yes' : 'No') + '</b></span>'
+        ].join('');
+        hCard.appendChild(hStats);
 
-    var eqSec = document.createElement('div');
-    eqSec.style.cssText = 'display:flex;flex-direction:column;gap:6px;';
-    var eqTitle = document.createElement('div');
-    eqTitle.textContent = '⚙ EQUIPMENT SLOT';
-    eqTitle.style.cssText = 'font-size:13px;color:#0cf;letter-spacing:2px;';
-    eqSec.appendChild(eqTitle);
-
-    var eqItems = [
-      { id: EQUIPMENT.NIGHT_VISION, icon: '👁', name: 'Night-Vision Goggles', key: 'N', detail: 'Toggle NV — darkens scene, enemies glow green' },
-      { id: EQUIPMENT.GAS_MASK,     icon: '💨', name: 'Gas Mask',              key: 'Passive', detail: 'Immune to smoke/gas grenades' },
-      { id: EQUIPMENT.JETPACK,      icon: '🚀', name: 'Jetpack',               key: 'Space\xD72', detail: '2s boost, 15s cooldown' }
-    ];
-
-    for (var ei = 0; ei < eqItems.length; ei++) {
-      var item = eqItems[ei];
-      var row = document.createElement('div');
-      var isEquipped = (_equippedItem === item.id);
-      row.style.cssText = [
-        'display:flex',
-        'align-items:center',
-        'gap:10px',
-        'padding:6px 8px',
-        'border-radius:4px',
-        'border:1px solid ' + (isEquipped ? '#0cf' : '#333'),
-        'background:' + (isEquipped ? 'rgba(0,204,255,0.08)' : 'transparent'),
-        'cursor:pointer'
-      ].join(';');
-      row.innerHTML = '<span style="font-size:18px;">' + item.icon + '</span>'
-        + '<div style="flex:1;">'
-        +   '<div style="font-size:12px;color:' + (isEquipped ? '#0cf' : '#aaa') + ';">' + item.name + '</div>'
-        +   '<div style="font-size:10px;color:#666;">' + item.detail + '</div>'
-        + '</div>'
-        + '<span style="font-size:10px;color:#888;border:1px solid #555;padding:2px 5px;border-radius:3px;">' + item.key + '</span>';
-      (function (itemId) {
-        row.addEventListener('click', function () {
-          _equippedItem = itemId;
-          _renderLoadoutPanel();
+        hCard.addEventListener('click', function () {
+          _equipHelmet(helmetKey);
+          _renderSelectionPanel();
         });
-      })(item.id);
-      eqSec.appendChild(row);
+
+        helmetGrid.appendChild(hCard);
+      })(helmetKeys[hi]);
     }
-
-    // Jetpack cooldown display
-    if (_equippedItem === EQUIPMENT.JETPACK && _jetpackCooldown > 0) {
-      var jcd = document.createElement('div');
-      jcd.style.cssText = 'font-size:11px;color:#f80;';
-      jcd.textContent = 'Jetpack cooldown: ' + _jetpackCooldown.toFixed(1) + 's';
-      eqSec.appendChild(jcd);
-    }
-
-    card.appendChild(eqSec);
-
-    // Weight section
-    var divider3 = document.createElement('hr');
-    divider3.style.cssText = 'border:none;border-top:1px solid #333;margin:0;';
-    card.appendChild(divider3);
-
-    var weightSec = document.createElement('div');
-    weightSec.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#888;';
-    var totalWeight = _currentTier.weight + (_equippedItem !== EQUIPMENT.NONE ? 5 : 0);
-    var staminaDrain = 1.0 + (totalWeight / 100);
-    weightSec.innerHTML = '<span>Total weight: <b style="color:#ccc;">' + totalWeight + ' kg</b></span>'
-      + '<span>Stamina drain: <b style="color:#f80;">' + staminaDrain.toFixed(2) + 'x</b></span>';
-    card.appendChild(weightSec);
-
-    _loadoutPanel.appendChild(card);
+    _selectionPanel.appendChild(helmetGrid);
 
     var closeHint = document.createElement('div');
-    closeHint.textContent = '[TAB] Close';
-    closeHint.style.cssText = 'margin-top:18px;font-size:12px;color:#555;letter-spacing:2px;';
-    _loadoutPanel.appendChild(closeHint);
+    closeHint.textContent = '[A+R] or [ESC] Close';
+    closeHint.style.cssText = 'margin-top:20px;font-size:11px;color:#444;letter-spacing:2px;';
+    _selectionPanel.appendChild(closeHint);
   }
 
-  function _toggleLoadout() {
-    _loadoutVisible = !_loadoutVisible;
-    if (_loadoutPanel) {
-      _loadoutPanel.style.display = _loadoutVisible ? 'flex' : 'none';
-      if (_loadoutVisible) _renderLoadoutPanel();
-    }
+  function openArmorSelection() {
+    _selectionVisible = true;
+    if (!_selectionPanel) _createSelectionPanel();
+    _renderSelectionPanel();
+    _selectionPanel.style.display = 'flex';
   }
 
-  // ---------------------------------------------------------------------------
-  // Three.js pickup meshes
-  // ---------------------------------------------------------------------------
-  function _createArmorPickupMesh(color) {
-    var geo = new THREE.CylinderGeometry(0.35, 0.35, 0.06, 6); // hexagonal disc
-    var mat = new THREE.MeshStandardMaterial({
-      color: color || 0xff6600,
-      emissive: color || 0xff6600,
-      emissiveIntensity: 0.7,
-      metalness: 0.6,
-      roughness: 0.3
-    });
-    var mesh = new THREE.Mesh(geo, mat);
-    // Add a point light for glow
-    var light = new THREE.PointLight(color || 0xff6600, 1.2, 3);
-    mesh.add(light);
-    return mesh;
+  function _closeSelectionPanel() {
+    _selectionVisible = false;
+    if (_selectionPanel) _selectionPanel.style.display = 'none';
   }
 
-  function _spawnPickup(type, position) {
-    if (!_scene) return;
-    var color = (type === 'REPAIR_KIT') ? 0x00ccff : 0xff6600;
-    var mesh = _createArmorPickupMesh(color);
-    mesh.position.copy(position);
-    _scene.add(mesh);
-    _pickups.push({ mesh: mesh, type: type, position: position.clone(), label: type === 'REPAIR_KIT' ? 'Armor Repair Kit' : 'Armor Pickup' });
+  // ─────────────────────────────────────────────── inventory screen
+  function _createInventoryPanel() {
+    _inventoryPanel = document.createElement('div');
+    _inventoryPanel.id = 'armor-inventory-panel';
+    _inventoryPanel.style.cssText = [
+      'position:fixed',
+      'top:50%',
+      'left:50%',
+      'transform:translate(-50%,-50%)',
+      'background:rgba(10,10,10,0.95)',
+      'border:1px solid #444',
+      'border-radius:10px',
+      'padding:28px 36px',
+      'z-index:10050',
+      'display:none',
+      'flex-direction:row',
+      'gap:32px',
+      'font-family:monospace',
+      'color:#eee',
+      'pointer-events:auto',
+      'min-width:480px'
+    ].join(';');
+    document.body.appendChild(_inventoryPanel);
   }
 
-  function _spawnDefaultPickups() {
-    if (!_scene) return;
-    var positions = [
-      new THREE.Vector3(5, 0.1, 5),
-      new THREE.Vector3(-8, 0.1, 3),
-      new THREE.Vector3(2, 0.1, -10)
-    ];
-    for (var pi = 0; pi < positions.length; pi++) {
-      _spawnPickup('REPAIR_KIT', positions[pi]);
-    }
-  }
+  function _renderInventoryPanel() {
+    if (!_inventoryPanel) return;
+    _inventoryPanel.innerHTML = '';
 
-  // ---------------------------------------------------------------------------
-  // Hit directional arc
-  // ---------------------------------------------------------------------------
-  function _spawnHitArc(hitDir) {
-    if (!_hitArcContainer || !_camera) return;
+    // Silhouette column
+    var silhouetteCol = document.createElement('div');
+    silhouetteCol.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:8px;min-width:120px;';
 
-    // Convert 3D hit direction to 2D screen angle
-    var angle = 0;
-    if (hitDir && hitDir.isVector3) {
-      var camDir = new THREE.Vector3();
-      _camera.getWorldDirection(camDir);
-      var right = new THREE.Vector3();
-      right.crossVectors(camDir, _camera.up).normalize();
-      var dot = hitDir.dot(right);
-      var dotFwd = hitDir.dot(camDir);
-      angle = Math.atan2(dot, dotFwd);
-    }
+    var silTitle = document.createElement('div');
+    silTitle.textContent = 'ARMOR STATUS';
+    silTitle.style.cssText = 'font-size:11px;color:#888;letter-spacing:2px;margin-bottom:4px;';
+    silhouetteCol.appendChild(silTitle);
 
-    _hitArcs.push({ angle: angle, timer: 0, maxTimer: 1.0 });
-  }
+    // SVG silhouette diagram
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('width', '80');
+    svg.setAttribute('height', '160');
+    svg.style.cssText = 'display:block;';
 
-  function _updateHitArcs(delta) {
-    if (!_hitArcContainer) return;
-    var ctx = _hitArcContainer.getContext('2d');
-    var W = _hitArcContainer.width;
-    var H = _hitArcContainer.height;
-    ctx.clearRect(0, 0, W, H);
+    // Head
+    var headColor = _helmetBroken ? '#333' : (_currentHelmet.id === 'NONE' ? '#555' : '#88aaff');
+    var headCircle = document.createElementNS(svgNS, 'circle');
+    headCircle.setAttribute('cx', '40');
+    headCircle.setAttribute('cy', '22');
+    headCircle.setAttribute('r', '16');
+    headCircle.setAttribute('fill', headColor);
+    svg.appendChild(headCircle);
 
-    var cx = W / 2;
-    var cy = H / 2;
-    var radius = Math.min(W, H) * 0.38;
-    var arcSpan = Math.PI; // 180 degrees
+    // Body
+    var bodyColor = _armorBroken ? '#333' : '#f8a020';
+    var bodyRect = document.createElementNS(svgNS, 'rect');
+    bodyRect.setAttribute('x', '20');
+    bodyRect.setAttribute('y', '44');
+    bodyRect.setAttribute('width', '40');
+    bodyRect.setAttribute('height', '52');
+    bodyRect.setAttribute('rx', '4');
+    bodyRect.setAttribute('fill', bodyColor);
+    svg.appendChild(bodyRect);
 
-    for (var ai = _hitArcs.length - 1; ai >= 0; ai--) {
-      var arc = _hitArcs[ai];
-      arc.timer += delta;
-      if (arc.timer >= arc.maxTimer) {
-        _hitArcs.splice(ai, 1);
-        continue;
-      }
-      var progress = arc.timer / arc.maxTimer;
-      var alpha = 1 - progress;
-      var startAngle = arc.angle - arcSpan / 2;
-      var endAngle = arc.angle + arcSpan / 2;
+    // Arms (limbs — unarmored)
+    var leftArm = document.createElementNS(svgNS, 'rect');
+    leftArm.setAttribute('x', '4');
+    leftArm.setAttribute('y', '48');
+    leftArm.setAttribute('width', '14');
+    leftArm.setAttribute('height', '40');
+    leftArm.setAttribute('rx', '3');
+    leftArm.setAttribute('fill', '#444');
+    svg.appendChild(leftArm);
 
-      ctx.save();
-      ctx.globalAlpha = alpha * 0.8;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, startAngle, endAngle);
-      ctx.lineWidth = 8;
-      ctx.strokeStyle = 'rgba(255,80,20,' + alpha + ')';
-      ctx.shadowColor = 'rgba(255,80,20,0.6)';
-      ctx.shadowBlur = 12;
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
+    var rightArm = document.createElementNS(svgNS, 'rect');
+    rightArm.setAttribute('x', '62');
+    rightArm.setAttribute('y', '48');
+    rightArm.setAttribute('width', '14');
+    rightArm.setAttribute('height', '40');
+    rightArm.setAttribute('rx', '3');
+    rightArm.setAttribute('fill', '#444');
+    svg.appendChild(rightArm);
 
-  // ---------------------------------------------------------------------------
-  // Night vision helpers
-  // ---------------------------------------------------------------------------
-  function _applyNightVision(active) {
-    if (_nvOverlay) {
-      _nvOverlay.style.display = active ? 'block' : 'none';
-    }
-    // Apply green emissive glow to any tracked enemy meshes
-    for (var ni = 0; ni < _nvEnemyMeshes.length; ni++) {
-      var m = _nvEnemyMeshes[ni];
-      if (m && m.material) {
-        if (active) {
-          m.material.emissive = new THREE.Color(0x00ff44);
-          m.material.emissiveIntensity = 1.5;
-        } else {
-          m.material.emissive = new THREE.Color(0x000000);
-          m.material.emissiveIntensity = 0;
-        }
-      }
-    }
-  }
+    // Legs
+    var leftLeg = document.createElementNS(svgNS, 'rect');
+    leftLeg.setAttribute('x', '21');
+    leftLeg.setAttribute('y', '100');
+    leftLeg.setAttribute('width', '16');
+    leftLeg.setAttribute('height', '52');
+    leftLeg.setAttribute('rx', '3');
+    leftLeg.setAttribute('fill', '#444');
+    svg.appendChild(leftLeg);
 
-  function registerEnemyMesh(mesh) {
-    if (mesh && _nvEnemyMeshes.indexOf(mesh) === -1) {
-      _nvEnemyMeshes.push(mesh);
-      if (_nvActive) {
-        mesh.material.emissive = new THREE.Color(0x00ff44);
-        mesh.material.emissiveIntensity = 1.5;
-      }
-    }
-  }
+    var rightLeg = document.createElementNS(svgNS, 'rect');
+    rightLeg.setAttribute('x', '43');
+    rightLeg.setAttribute('y', '100');
+    rightLeg.setAttribute('width', '16');
+    rightLeg.setAttribute('height', '52');
+    rightLeg.setAttribute('rx', '3');
+    rightLeg.setAttribute('fill', '#444');
+    svg.appendChild(rightLeg);
 
-  // ---------------------------------------------------------------------------
-  // Keyboard input
-  // ---------------------------------------------------------------------------
-  function _onKeyDown(e) {
-    var key = e.key || e.code;
+    // Crack lines on body if damaged
+    if (_cracksVisible || _armorBroken) {
+      var crackA = document.createElementNS(svgNS, 'line');
+      crackA.setAttribute('x1', '24');
+      crackA.setAttribute('y1', '50');
+      crackA.setAttribute('x2', '56');
+      crackA.setAttribute('y2', '90');
+      crackA.setAttribute('stroke', '#111');
+      crackA.setAttribute('stroke-width', '3');
+      svg.appendChild(crackA);
 
-    // Tab: loadout panel
-    if (key === 'Tab') {
-      e.preventDefault();
-      _toggleLoadout();
-      return;
+      var crackB = document.createElementNS(svgNS, 'line');
+      crackB.setAttribute('x1', '56');
+      crackB.setAttribute('y1', '50');
+      crackB.setAttribute('x2', '24');
+      crackB.setAttribute('y2', '90');
+      crackB.setAttribute('stroke', '#111');
+      crackB.setAttribute('stroke-width', '3');
+      svg.appendChild(crackB);
     }
 
-    // F: interact with nearby repair kit
-    if (key === 'f' || key === 'F') {
-      if (_nearPickup && _nearPickup.type === 'REPAIR_KIT' && !_repairing) {
-        _startRepair();
-      }
-      return;
+    silhouetteCol.appendChild(svg);
+
+    var limbNote = document.createElement('div');
+    limbNote.textContent = 'LIMBS: UNARMORED';
+    limbNote.style.cssText = 'font-size:9px;color:#555;letter-spacing:1px;';
+    silhouetteCol.appendChild(limbNote);
+
+    _inventoryPanel.appendChild(silhouetteCol);
+
+    // Stats column
+    var statsCol = document.createElement('div');
+    statsCol.style.cssText = 'display:flex;flex-direction:column;gap:14px;flex:1;';
+
+    // Title
+    var invTitle = document.createElement('div');
+    invTitle.textContent = 'LOADOUT';
+    invTitle.style.cssText = 'font-size:16px;font-weight:bold;letter-spacing:3px;color:#f8a020;';
+    statsCol.appendChild(invTitle);
+
+    // Chest HP bar
+    var chestSec = document.createElement('div');
+    chestSec.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
+
+    var chestLabel = document.createElement('div');
+    chestLabel.style.cssText = 'display:flex;justify-content:space-between;font-size:12px;';
+    chestLabel.innerHTML = '<span style="color:#f8a020;">CHEST — ' + _currentTier.displayName + '</span>'
+      + '<span style="color:#ccc;">' + Math.ceil(_armorHP) + ' / ' + _currentTier.maxHP + ' HP</span>';
+    chestSec.appendChild(chestLabel);
+
+    var chestBarOuter = document.createElement('div');
+    chestBarOuter.style.cssText = 'width:100%;height:10px;background:#222;border:1px solid #555;border-radius:4px;overflow:hidden;';
+    var chestBarInner = document.createElement('div');
+    var chestPct = _currentTier.maxHP > 0 ? (_armorHP / _currentTier.maxHP * 100).toFixed(1) : 0;
+    chestBarInner.style.cssText = 'height:100%;width:' + chestPct + '%;background:' + (_armorBroken ? '#333' : '#f8a020') + ';transition:width 0.2s;';
+    chestBarOuter.appendChild(chestBarInner);
+    chestSec.appendChild(chestBarOuter);
+
+    if (_armorBroken) {
+      var brokenNote = document.createElement('div');
+      brokenNote.textContent = 'ARMOR BROKEN — No protection';
+      brokenNote.style.cssText = 'font-size:10px;color:#f44;';
+      chestSec.appendChild(brokenNote);
     }
+    statsCol.appendChild(chestSec);
 
-    // N: toggle night vision (if equipped)
-    if ((key === 'n' || key === 'N') && _equippedItem === EQUIPMENT.NIGHT_VISION) {
-      _nvActive = !_nvActive;
-      _applyNightVision(_nvActive);
-      return;
-    }
+    // Helmet HP bar
+    var helmSec = document.createElement('div');
+    helmSec.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
 
-    // Space+Space for jetpack — handled via double-tap detection
-    if (key === ' ' && _equippedItem === EQUIPMENT.JETPACK) {
-      _handleJetpackInput();
-      return;
-    }
-  }
+    var helmLabel = document.createElement('div');
+    helmLabel.style.cssText = 'display:flex;justify-content:space-between;font-size:12px;';
+    helmLabel.innerHTML = '<span style="color:#88aaff;">HELMET — ' + _currentHelmet.label + '</span>'
+      + '<span style="color:#ccc;">' + (_currentHelmet.maxHP > 0 ? Math.ceil(_helmetHP) + ' / ' + _currentHelmet.maxHP + ' HP' : 'N/A') + '</span>';
+    helmSec.appendChild(helmLabel);
 
-  // Jetpack double-tap detection
-  var _lastSpaceTime = 0;
-  function _handleJetpackInput() {
-    var now = performance.now();
-    if (now - _lastSpaceTime < 350) {
-      // Double tap
-      if (_jetpackCooldown <= 0 && !_jetpackActive) {
-        _jetpackActive = true;
-        _jetpackTime = 0;
-        _playJetpackBoost();
-      }
-    }
-    _lastSpaceTime = now;
-  }
+    if (_currentHelmet.maxHP > 0) {
+      var helmBarOuter = document.createElement('div');
+      helmBarOuter.style.cssText = 'width:100%;height:10px;background:#222;border:1px solid #555;border-radius:4px;overflow:hidden;';
+      var helmBarInner = document.createElement('div');
+      var helmPct = (_helmetHP / _currentHelmet.maxHP * 100).toFixed(1);
+      helmBarInner.style.cssText = 'height:100%;width:' + helmPct + '%;background:' + (_helmetBroken ? '#333' : '#88aaff') + ';transition:width 0.2s;';
+      helmBarOuter.appendChild(helmBarInner);
+      helmSec.appendChild(helmBarOuter);
 
-  // ---------------------------------------------------------------------------
-  // Armor repair
-  // ---------------------------------------------------------------------------
-  function _startRepair() {
-    _repairing = true;
-    _repairProgress = 0;
-  }
-
-  function _tickRepair(delta) {
-    if (!_repairing) return;
-    _repairProgress += delta;
-    if (_repairProgress >= _repairDuration) {
-      _repairing = false;
-      _repairProgress = 0;
-      _armorPts = Math.min(_currentTier.maxPts, _armorPts + _repairAmt);
-      if (_armorPts > 0) {
-        _armorBroken = false;
-      }
-      // Remove the used pickup
-      if (_nearPickup) {
-        _removePickup(_nearPickup);
-        _nearPickup = null;
-      }
-      _playPickupSound();
-    }
-  }
-
-  function _removePickup(pickup) {
-    var idx = _pickups.indexOf(pickup);
-    if (idx !== -1) {
-      if (_scene && pickup.mesh) {
-        _scene.remove(pickup.mesh);
-        if (pickup.mesh.geometry) pickup.mesh.geometry.dispose();
-        if (pickup.mesh.material) pickup.mesh.material.dispose();
-      }
-      _pickups.splice(idx, 1);
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Pickup proximity check
-  // ---------------------------------------------------------------------------
-  function _checkPickupProximity() {
-    if (!_camera) return;
-    var playerPos = _camera.position;
-    var closest = null;
-    var closestDist = 2.5; // interaction radius in world units
-
-    for (var pi = 0; pi < _pickups.length; pi++) {
-      var p = _pickups[pi];
-      var dist = playerPos.distanceTo(p.position);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closest = p;
+      if (_currentHelmet.hasNVG) {
+        var nvgNote = document.createElement('div');
+        nvgNote.textContent = 'NVG Rail equipped';
+        nvgNote.style.cssText = 'font-size:10px;color:#0f0;';
+        helmSec.appendChild(nvgNote);
       }
     }
+    statsCol.appendChild(helmSec);
 
-    _nearPickup = closest;
-    if (_interactHint) {
-      if (closest) {
-        _interactHint.style.display = 'block';
-        _interactHint.textContent = '[F] ' + closest.label;
-      } else {
-        _interactHint.style.display = 'none';
-      }
-    }
+    // Divider
+    var div = document.createElement('hr');
+    div.style.cssText = 'border:none;border-top:1px solid #333;margin:0;';
+    statsCol.appendChild(div);
+
+    // Performance stats
+    var perfSec = document.createElement('div');
+    perfSec.style.cssText = 'font-size:11px;color:#777;display:flex;flex-direction:column;gap:4px;';
+    perfSec.innerHTML = [
+      '<span>Speed multiplier: <b style="color:#ccc;">' + ((1 - _currentTier.speedPenalty) * 100).toFixed(0) + '%</b></span>',
+      '<span>Stamina drain: <b style="color:#f80;">' + _currentTier.staminaMult.toFixed(2) + 'x</b></span>',
+      '<span>Repairs used: <b style="color:#0cf;">' + _repairCount + ' / ' + _maxRepairs + '</b></span>'
+    ].join('');
+    statsCol.appendChild(perfSec);
+
+    var closeHint = document.createElement('div');
+    closeHint.textContent = '[I] or [ESC] Close';
+    closeHint.style.cssText = 'font-size:10px;color:#444;letter-spacing:2px;margin-top:4px;';
+    statsCol.appendChild(closeHint);
+
+    _inventoryPanel.appendChild(statsCol);
   }
 
-  // ---------------------------------------------------------------------------
-  // Pickup bob animation
-  // ---------------------------------------------------------------------------
-  var _pickupTime = 0;
-  function _animatePickups(delta) {
-    _pickupTime += delta;
-    for (var pi = 0; pi < _pickups.length; pi++) {
-      var p = _pickups[pi];
-      if (p.mesh) {
-        p.mesh.position.y = p.position.y + Math.sin(_pickupTime * 2.0 + pi * 1.3) * 0.08;
-        p.mesh.rotation.y += delta * 0.8;
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Jetpack update
-  // ---------------------------------------------------------------------------
-  function _tickJetpack(delta) {
-    if (_equippedItem !== EQUIPMENT.JETPACK) return;
-
-    if (_jetpackActive) {
-      _jetpackTime += delta;
-      // Push camera upward as a gameplay effect hint (actual physics in engine)
-      if (_camera) {
-        _camera.position.y += delta * 4.5;
-      }
-      if (_jetpackTime >= _jetpackMaxTime) {
-        _jetpackActive = false;
-        _jetpackCooldown = _jetpackCooldownMax;
-      }
-    } else if (_jetpackCooldown > 0) {
-      _jetpackCooldown -= delta;
-      if (_jetpackCooldown < 0) _jetpackCooldown = 0;
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Public: applyDamage
-  // ---------------------------------------------------------------------------
-  function applyDamage(rawDamage, hitDir, isHeadshot) {
-    var actualDamage = rawDamage;
-    var headshotMult = 2.0;
-
-    // Headshot: helmet reduces multiplier
-    if (isHeadshot) {
-      if (!_helmetBroken && _helmetDurability > 0) {
-        headshotMult = 1.3;
-        _helmetDurability -= rawDamage * 0.5;
-        if (_helmetDurability <= 0) {
-          _helmetDurability = 0;
-          _helmetBroken = true;
-          _playHelmetShatter();
-        }
-        rawDamage = rawDamage * headshotMult;
-      } else {
-        rawDamage = rawDamage * 2.0;
-      }
-    }
-
-    // Armor mitigation
-    if (!_armorBroken && _armorPts > 0 && _currentTier.reduction > 0) {
-      actualDamage = rawDamage * (1 - _currentTier.reduction);
-      _armorPts -= rawDamage * 0.5; // armor degrades
-      if (_armorPts <= 0) {
-        _armorPts = 0;
-        _armorBroken = true;
-      }
-      _playArmorHit();
+  function _toggleInventory() {
+    _inventoryVisible = !_inventoryVisible;
+    if (!_inventoryPanel) _createInventoryPanel();
+    if (_inventoryVisible) {
+      _renderInventoryPanel();
+      _inventoryPanel.style.display = 'flex';
     } else {
-      actualDamage = rawDamage;
+      _inventoryPanel.style.display = 'none';
     }
-
-    // Directional hit arc
-    _spawnHitArc(hitDir);
-
-    _updateHUD();
-
-    return actualDamage;
   }
 
-  // ---------------------------------------------------------------------------
-  // Public: equipArmor
-  // ---------------------------------------------------------------------------
-  function equipArmor(tierId) {
+  // ─────────────────────────────────────────────── equip helpers
+  function _equipTier(tierId) {
     var tier = TIERS[tierId];
     if (!tier) return;
     _currentTier = tier;
-    _armorPts = tier.maxPts;
-    _armorBroken = (tier.maxPts === 0);
+    _armorHP = tier.maxHP;
+    _armorBroken = (tier.maxHP === 0);
+    _repairCount = 0;
+    _playEquip();
+    _buildChestPlateMesh();
     _updateHUD();
   }
 
-  // ---------------------------------------------------------------------------
-  // Public: getArmorValue
-  // ---------------------------------------------------------------------------
-  function getArmorValue() {
-    return {
-      tier: _currentTier.id,
-      pts: _armorPts,
-      maxPts: _currentTier.maxPts,
-      reduction: _currentTier.reduction,
-      broken: _armorBroken,
-      speedPenalty: _currentTier.speedPenalty,
-      helmetDurability: _helmetDurability,
-      helmetBroken: _helmetBroken,
-      equipment: _equippedItem,
-      nvActive: _nvActive,
-      jetpackCooldown: _jetpackCooldown,
-      jetpackActive: _jetpackActive
-    };
+  function _equipHelmet(helmetId) {
+    var helm = HELMETS[helmetId];
+    if (!helm) return;
+    _currentHelmet = helm;
+    _helmetHP = helm.maxHP;
+    _helmetBroken = (helm.maxHP === 0);
+    _playEquip();
+    _updateHUD();
   }
 
-  // ---------------------------------------------------------------------------
-  // Public: init
-  // ---------------------------------------------------------------------------
+  // ─────────────────────────────────────────────── damage system
+  // hitLocation: 'HEAD', 'BODY', 'LIMB'
+  // Returns actual damage that reaches the player HP
+  function applyDamage(rawDamage, hitLocation, hitDir) {
+    var loc = hitLocation || HIT_LOCATION.BODY;
+    var playerDamage = rawDamage;
+
+    if (loc === HIT_LOCATION.LIMB) {
+      // Limb hits bypass armor entirely
+      return rawDamage;
+    }
+
+    if (loc === HIT_LOCATION.HEAD) {
+      if (!_helmetBroken && _currentHelmet.maxHP > 0) {
+        // Helmet absorbs 75%, 25% bleed through
+        var helmetAbsorb = rawDamage * 0.75;
+        playerDamage = rawDamage * 0.25;
+        _helmetHP -= helmetAbsorb;
+        if (_helmetHP <= 0) {
+          _helmetHP = 0;
+          _helmetBroken = true;
+          _playCrackSound();
+        } else {
+          _playArmorHit();
+        }
+      } else {
+        // No helmet: 2x head damage
+        playerDamage = rawDamage * 2.0;
+      }
+      _updateHUD();
+      return playerDamage;
+    }
+
+    // BODY hit
+    if (!_armorBroken && _armorHP > 0) {
+      // 75% to armor, 25% bleed through
+      var armorAbsorb = rawDamage * 0.75;
+      playerDamage = rawDamage * 0.25;
+      _armorHP -= armorAbsorb;
+      if (_armorHP <= 0) {
+        _armorHP = 0;
+        _armorBroken = true;
+        _playCrackSound();
+        _updateCrackVisibility();
+        if (_chestPlateMesh && _chestPlateMesh.material) {
+          _chestPlateMesh.material.color.setHex(0x333333);
+        }
+      } else {
+        _playArmorHit();
+        _updateCrackVisibility();
+      }
+    } else {
+      // Armor broken or none — full damage
+      playerDamage = rawDamage;
+    }
+
+    _updateHUD();
+    return playerDamage;
+  }
+
+  // ─────────────────────────────────────────────── repair
+  // Called when player is near LogisticsSystem supply truck or FieldHospital
+  function repairArmor(amount) {
+    if (_repairCount >= _maxRepairs) return false;
+    var repairAmt = amount !== undefined ? amount : 100;
+    _armorHP = Math.min(_currentTier.maxHP, _armorHP + repairAmt);
+    if (_armorHP > 0) {
+      _armorBroken = false;
+    }
+    _repairCount++;
+    _playRepair();
+    _buildChestPlateMesh();
+    _updateHUD();
+    return true;
+  }
+
+  // ─────────────────────────────────────────────── speed / stamina
+  function getSpeedMultiplier() {
+    return 1.0 - _currentTier.speedPenalty;
+  }
+
+  function getStaminaDrainRate() {
+    return _currentTier.staminaMult;
+  }
+
+  // ─────────────────────────────────────────────── keyboard input
+  function _onKeyDown(e) {
+    var key = (e.key || '').toLowerCase();
+
+    if (key === 'a') {
+      _keyA = true;
+      _comboTimer = 0.4;
+    }
+    if (key === 'r') {
+      _keyR = true;
+      _comboTimer = 0.4;
+    }
+
+    // A+R combo: open armor selection
+    if (_keyA && _keyR) {
+      _keyA = false;
+      _keyR = false;
+      _comboTimer = 0;
+      if (_selectionVisible) {
+        _closeSelectionPanel();
+      } else {
+        openArmorSelection();
+      }
+      return;
+    }
+
+    // I: inventory screen
+    if (key === 'i') {
+      if (_selectionVisible) _closeSelectionPanel();
+      _toggleInventory();
+      return;
+    }
+
+    // ESC: close any open panel
+    if (e.key === 'Escape') {
+      if (_selectionVisible) _closeSelectionPanel();
+      if (_inventoryVisible) {
+        _inventoryVisible = false;
+        if (_inventoryPanel) _inventoryPanel.style.display = 'none';
+      }
+    }
+  }
+
+  function _onKeyUp(e) {
+    var key = (e.key || '').toLowerCase();
+    if (key === 'a') _keyA = false;
+    if (key === 'r') _keyR = false;
+  }
+
+  // ─────────────────────────────────────────────── init
   function init(scene, camera) {
     if (_initialized) return;
     _initialized = true;
@@ -946,76 +899,86 @@ window.ArmorSystem = (function () {
     _camera = camera;
 
     _createHUD();
-    _updateHUD();
+    _createSelectionPanel();
+    _createInventoryPanel();
 
-    // Spawn some default pickups if scene provided
-    if (_scene) {
-      _spawnDefaultPickups();
+    // Default loadout
+    _currentTier = TIERS.LEVEL_I;
+    _armorHP = _currentTier.maxHP;
+    _armorBroken = false;
+    _currentHelmet = HELMETS.NONE;
+    _helmetHP = 0;
+    _helmetBroken = false;
+    _repairCount = 0;
+
+    // Build initial chest mesh if camera available
+    if (_camera && _currentTier.maxHP > 0) {
+      _buildChestPlateMesh();
     }
 
+    _updateHUD();
+
     document.addEventListener('keydown', _onKeyDown);
+    document.addEventListener('keyup', _onKeyUp);
   }
 
-  // ---------------------------------------------------------------------------
-  // Public: update
-  // ---------------------------------------------------------------------------
+  // ─────────────────────────────────────────────── update
   function update(delta) {
     if (!_initialized) return;
 
-    _tickRepair(delta);
-    _tickJetpack(delta);
-    _animatePickups(delta);
-    _checkPickupProximity();
-    _updateHitArcs(delta);
-    _updateHUD();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Public: reset
-  // ---------------------------------------------------------------------------
-  function reset() {
-    _currentTier = TIERS.LIGHT_VEST;
-    _armorPts = 50;
-    _armorBroken = false;
-    _helmetDurability = 30;
-    _helmetBroken = false;
-    _equippedItem = EQUIPMENT.NONE;
-    _nvActive = false;
-    _applyNightVision(false);
-    _jetpackCooldown = 0;
-    _jetpackActive = false;
-    _jetpackTime = 0;
-    _repairing = false;
-    _repairProgress = 0;
-    _hitArcs = [];
-    _loadoutVisible = false;
-    if (_loadoutPanel) _loadoutPanel.style.display = 'none';
-
-    // Remove pickup meshes
-    for (var pi = 0; pi < _pickups.length; pi++) {
-      var p = _pickups[pi];
-      if (_scene && p.mesh) _scene.remove(p.mesh);
+    // Combo key timeout
+    if (_comboTimer > 0) {
+      _comboTimer -= delta;
+      if (_comboTimer <= 0) {
+        _comboTimer = 0;
+        _keyA = false;
+        _keyR = false;
+      }
     }
-    _pickups = [];
-    _nearPickup = null;
 
-    if (_interactHint) _interactHint.style.display = 'none';
     _updateHUD();
   }
 
-  // ---------------------------------------------------------------------------
-  // Expose public API
-  // ---------------------------------------------------------------------------
+  // ─────────────────────────────────────────────── reset
+  function reset() {
+    _currentTier = TIERS.LEVEL_I;
+    _armorHP = _currentTier.maxHP;
+    _armorBroken = false;
+    _currentHelmet = HELMETS.NONE;
+    _helmetHP = 0;
+    _helmetBroken = false;
+    _repairCount = 0;
+    _cracksVisible = false;
+    _keyA = false;
+    _keyR = false;
+    _comboTimer = 0;
+
+    _removeChestMeshes();
+    if (_camera && _currentTier.maxHP > 0) {
+      _buildChestPlateMesh();
+    }
+
+    if (_selectionVisible) _closeSelectionPanel();
+    if (_inventoryVisible) {
+      _inventoryVisible = false;
+      if (_inventoryPanel) _inventoryPanel.style.display = 'none';
+    }
+
+    _updateHUD();
+  }
+
+  // ─────────────────────────────────────────────── public API
   return {
     init: init,
     update: update,
     reset: reset,
     applyDamage: applyDamage,
-    equipArmor: equipArmor,
-    getArmorValue: getArmorValue,
-    registerEnemyMesh: registerEnemyMesh,
-    spawnPickup: _spawnPickup,
+    repairArmor: repairArmor,
+    openArmorSelection: openArmorSelection,
+    getSpeedMultiplier: getSpeedMultiplier,
+    getStaminaDrainRate: getStaminaDrainRate,
     TIERS: TIERS,
-    EQUIPMENT: EQUIPMENT
+    HELMETS: HELMETS,
+    HIT_LOCATION: HIT_LOCATION
   };
 })();
