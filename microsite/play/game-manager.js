@@ -1669,6 +1669,17 @@ const GameManager = (function () {
     try { if (window.PropagandaSystem && PropagandaSystem.init) PropagandaSystem.init(_scene, _camera); } catch (e) {}
     try { if (window.TankControls && TankControls.init) TankControls.init(_scene, _camera); } catch (e) {}
     try { if (window.NBCProtection && NBCProtection.init) NBCProtection.init(_scene, _camera); } catch (e) {}
+    // Wave 24 modules
+    try { if (window.ArtilleryBattery && ArtilleryBattery.init) ArtilleryBattery.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanDestruction && UrbanDestruction.init) UrbanDestruction.init(_scene, _camera); } catch (e) {}
+    try { if (window.MedicStation && MedicStation.init) MedicStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeatherSystem && WeatherSystem.init) WeatherSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmorSystem && ArmorSystem.init) ArmorSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerAssault && BunkerAssault.init) BunkerAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.SignalIntelligence && SignalIntelligence.init) SignalIntelligence.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReconDrone && ReconDrone.init) ReconDrone.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightVision && NightVision.init) NightVision.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirSupport && AirSupport.init) AirSupport.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8135,6 +8146,17 @@ const GameManager = (function () {
       if (window.PropagandaSystem) PropagandaSystem.update(delta);
       if (window.TankControls) TankControls.update(delta);
       if (window.NBCProtection) NBCProtection.update(delta);
+      // Wave 24
+      if (window.ArtilleryBattery) ArtilleryBattery.update(delta);
+      if (window.UrbanDestruction) UrbanDestruction.update(delta);
+      if (window.MedicStation) MedicStation.update(delta);
+      if (window.WeatherSystem) WeatherSystem.update(delta);
+      if (window.ArmorSystem) ArmorSystem.update(delta);
+      if (window.BunkerAssault) BunkerAssault.update(delta);
+      if (window.SignalIntelligence) SignalIntelligence.update(delta);
+      if (window.ReconDrone) ReconDrone.update(delta);
+      if (window.NightVision) NightVision.update(delta);
+      if (window.AirSupport) AirSupport.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);

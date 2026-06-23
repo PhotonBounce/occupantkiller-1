@@ -1,858 +1,891 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   RECON DRONE — Persistent ISR (Intelligence, Surveillance, Reconnaissance)
-   ─────────────────────────────────────────────────────────────────────────
-   Ctrl+D  → launch drone (first press) / toggle drone-cam HUD (if airborne)
-   Alt     → (while drone airborne) paint laser target on nearest tagged enemy
-   Battery : 90s life → blink at 10s → return & 60s recharge on empty
-   HP      : 30 — takes 10 dmg from enemy shots near drone; death = explosion
-   EMP     : window._empActive → loses control 5s (random movement)
-
-   Public API:
-     window.ReconDrone = { init, update, launch, recall, reset }
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* ───────────────────────────────────────────────────────────────────────────
+   RECON DRONE — X key deploys an autonomous quad-rotor reconnaissance drone
+   Standalone IIFE module — all var, no let/const, Three.js as global THREE
+   Public API: { init(scene, camera), update(delta), deployDrone(),
+                 getTaggedEnemies(), reset() }
+   ─────────────────────────────────────────────────────────────────────────── */
 window.ReconDrone = (function () {
   'use strict';
 
-  /* ── Constants ──────────────────────────────────────────────────────────── */
-  var HOVER_Y         = 12;      // altitude above player Y
-  var ORBIT_RADIUS    = 15;      // units
-  var ORBIT_SPEED     = 0.4;     // rad/s
-  var ALT_VARIATION   = 0.5;     // ±units sin wave
-  var ROTOR_SPEED     = 15;      // rad/s
-  var SCAN_INTERVAL   = 1.0;     // seconds between surveillance sweeps
-  var SCAN_RADIUS     = 20;      // metres
-  var ENEMY_LIGHT_INT = 0.3;     // intensity of tagging PointLight
-  var ENEMY_LIGHT_RNG = 5;       // range of tagging PointLight
-  var BATTERY_MAX     = 90;      // seconds
-  var BATTERY_WARN    = 10;      // blink below this
-  var RECHARGE_TIME   = 60;      // seconds to recharge
-  var DRONE_HP        = 30;
-  var DMG_PER_HIT     = 10;
-  var EMP_LOSE_CTRL   = 5;       // seconds of random movement
-  var HUD_W           = 320;
-  var HUD_H           = 200;
+  /* ── Constants ─────────────────────────────────────────────────────────── */
+  var MAX_DRONES        = 2;
+  var BATTERY_MAX       = 45;      // seconds of flight time
+  var DRONE_HP          = 50;
+  var DRONE_ALTITUDE    = 12;      // units above spawn Y
+  var SPIRAL_AREA       = 80;      // world units covered (80×80)
+  var SPIRAL_DURATION   = 25;      // seconds for one full spiral sweep
+  var CAMERA_CONE_HALF  = 0.6;     // radians — half-angle of nadir cone
+  var TAG_DURATION      = 10;      // seconds tagged enemies stay highlighted
+  var DETECT_RANGE      = 28;      // horizontal units for enemy detection
+  var RECALL_SPEED      = 18;      // units/second on return flight
+  var CRUISE_SPEED      = 6;       // units/second along spiral
+  var ROTOR_SPIN        = 22;      // rad/s rotor rotation
+  var SMOKE_INTERVAL    = 0.08;    // seconds between death smoke puffs
+  var MINIMAP_SIZE      = 120;     // px
+  var AUDIO_FREQ_BASE   = 180;     // Hz rotor buzz
+  var AUDIO_FREQ_VARY   = 30;      // Hz swing based on speed
+  var LOW_BATTERY_WARN  = 10;      // seconds — flash red below this
 
-  /* ── Private State ──────────────────────────────────────────────────────── */
-  var _scene          = null;
-  var _camera         = null;
-  var _playerRef      = null;   // object with .position
+  /* ── Private state ─────────────────────────────────────────────────────── */
+  var _scene            = null;
+  var _camera           = null;
+  var _drones           = [];      // array of live drone objects
+  var _taggedMap        = {};      // keyed by enemy._reconId -> entry
+  var _reconIdSeq       = 0;
+  var _smokeParticles   = [];      // [{mesh, life, vel}]
+  var _initialized      = false;
 
-  var _initialized    = false;
-  var _active         = false;   // drone is airborne
-  var _phase          = 'idle'; // idle | rising | orbiting | returning | dead
-  var _recharging     = false;
-  var _rechargeTimer  = 0;
+  /* HUD / minimap DOM */
+  var _hudEl            = null;
+  var _batteryBarEl     = null;
+  var _batteryFillEl    = null;
+  var _minimapEl        = null;
+  var _minimapCtx       = null;
+  var _toastEl          = null;
+  var _toastQueue       = [];
 
-  var _battery        = BATTERY_MAX;
-  var _hp             = DRONE_HP;
-  var _orbitAngle     = 0;
-  var _orbitOriginX   = 0;
-  var _orbitOriginZ   = 0;
-  var _dronePos       = null;   // THREE.Vector3 — current world pos
+  /* Web Audio */
+  var _audioCtx         = null;
 
-  var _scanTimer      = 0;
-  var _empTimer       = 0;      // >0 = EMP-jammed, random movement
-  var _blinkTimer     = 0;
+  /* ── Time helper ───────────────────────────────────────────────────────── */
+  function _now() {
+    return (typeof performance !== 'undefined') ? performance.now() : Date.now();
+  }
 
-  /* ── Drone mesh group ───────────────────────────────────────────────────── */
-  var _droneGroup     = null;   // THREE.Group
-  var _rotors         = [];     // 4 CylinderGeometry meshes
-  var _debrisPieces   = [];     // on-death fragments
+  /* ── Notifications ─────────────────────────────────────────────────────── */
+  function _notify(msg, color) {
+    if (typeof window.HUD !== 'undefined' && window.HUD.notifyPickup) {
+      window.HUD.notifyPickup(msg, color || '#00ccff');
+    }
+  }
 
-  /* ── Surveillance lights ────────────────────────────────────────────────── */
-  var _tagLights      = [];     // { light, enemy }
+  function _ensureToast() {
+    if (_toastEl) return;
+    _toastEl = document.createElement('div');
+    _toastEl.id = 'recon-drone-toast';
+    _toastEl.style.cssText = [
+      'position:fixed',
+      'top:28%',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'color:#ffe600',
+      'font:bold 18px/1.4 monospace',
+      'text-shadow:0 0 8px #ff8800',
+      'pointer-events:none',
+      'z-index:10001',
+      'text-align:center'
+    ].join(';');
+    document.body.appendChild(_toastEl);
+  }
 
-  /* ── Laser marker ───────────────────────────────────────────────────────── */
-  var _laserLine      = null;   // THREE.Line
-  var _laserTarget    = null;   // THREE.Vector3 of painted target
-  var _altHeld        = false;
+  function _showToast(msg) {
+    _ensureToast();
+    _toastQueue.push({ msg: msg, born: _now() });
+  }
 
-  /* ── HUD / DOM ──────────────────────────────────────────────────────────── */
-  var _hudEl          = null;   // "DRONE ▶ 72s" status bar element
-  var _camWindow      = null;   // mini drone-cam overlay div
-  var _camCanvas      = null;   // canvas inside cam window
-  var _camCtx         = null;
-  var _camVisible     = false;
-  var _enemyDots      = [];     // DOM elements in cam window
+  function _tickToast() {
+    if (!_toastEl) return;
+    var nowMs = _now();
+    var i;
+    for (i = _toastQueue.length - 1; i >= 0; i--) {
+      if (nowMs - _toastQueue[i].born > 2500) {
+        _toastQueue.splice(i, 1);
+      }
+    }
+    var lines = [];
+    for (i = _toastQueue.length - 1; i >= 0; i--) {
+      lines.push(_toastQueue[i].msg);
+    }
+    _toastEl.innerHTML = lines.join('<br>');
+  }
 
-  /* ── Key tracking ───────────────────────────────────────────────────────── */
-  var _keysRegistered = false;
+  /* ── Audio ─────────────────────────────────────────────────────────────── */
+  function _getAudioCtx() {
+    if (!_audioCtx) {
+      try {
+        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (ignore) { /* audio unavailable */ }
+    }
+    return _audioCtx;
+  }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     BUILD DRONE MESH
-  ══════════════════════════════════════════════════════════════════════════ */
+  function _createRotorSound() {
+    var ctx = _getAudioCtx();
+    if (!ctx) return null;
+    try {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(AUDIO_FREQ_BASE, ctx.currentTime);
+      gain.gain.setValueAtTime(0.055, ctx.currentTime);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      return { osc: osc, gain: gain };
+    } catch (ignore) {
+      return null;
+    }
+  }
+
+  function _setRotorFreq(audioNode, speed) {
+    if (!audioNode || !_audioCtx) return;
+    var freq = AUDIO_FREQ_BASE + (speed / CRUISE_SPEED) * AUDIO_FREQ_VARY;
+    try {
+      audioNode.osc.frequency.setValueAtTime(freq, _audioCtx.currentTime);
+    } catch (ignore) { /* ignore */ }
+  }
+
+  function _stopRotorSound(audioNode) {
+    if (!audioNode) return;
+    try {
+      audioNode.gain.gain.setValueAtTime(0, _audioCtx.currentTime);
+      audioNode.osc.stop(_audioCtx.currentTime + 0.1);
+    } catch (ignore) { /* ignore */ }
+  }
+
+  /* ── Drone mesh ────────────────────────────────────────────────────────── */
   function _buildDroneMesh() {
-    var THREE = window.THREE;
-    if (!THREE) { return null; }
-
     var group = new THREE.Group();
-    var darkGrey = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
 
-    /* body */
-    var bodyGeo = new THREE.BoxGeometry(0.4, 0.08, 0.4);
-    var body    = new THREE.Mesh(bodyGeo, darkGrey);
+    /* central body — flat box */
+    var bodyGeo = new THREE.BoxGeometry(0.6, 0.18, 0.6);
+    var bodyMat = new THREE.MeshLambertMaterial({ color: 0x1a2a3a });
+    var body = new THREE.Mesh(bodyGeo, bodyMat);
     group.add(body);
 
-    /* 4 arms at 45 degrees increments */
-    var armAngles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
-    var a;
-    for (a = 0; a < 4; a++) {
-      var armGeo = new THREE.BoxGeometry(0.3, 0.03, 0.05);
-      var arm    = new THREE.Mesh(armGeo, darkGrey);
-      arm.rotation.y = armAngles[a];
-      arm.position.x = Math.cos(armAngles[a]) * 0.2;
-      arm.position.z = Math.sin(armAngles[a]) * 0.2;
+    /* 4 arm spokes with rotor discs */
+    var armDirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    var rotorMeshes = [];
+    var i;
+    for (i = 0; i < 4; i++) {
+      var ax = armDirs[i][0];
+      var az = armDirs[i][1];
+      var armLen = 0.65;
+
+      /* spoke */
+      var armGeo = new THREE.BoxGeometry(
+        ax !== 0 ? armLen : 0.08,
+        0.07,
+        ax !== 0 ? 0.08 : armLen
+      );
+      var armMat = new THREE.MeshLambertMaterial({ color: 0x223344 });
+      var arm = new THREE.Mesh(armGeo, armMat);
+      arm.position.set(ax * armLen * 0.5, 0, az * armLen * 0.5);
       group.add(arm);
-    }
 
-    /* 4 rotors */
-    _rotors = [];
-    var rotorMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
-    var rotorPositions = [
-      [  0.25, 0.05,  0.25],
-      [ -0.25, 0.05,  0.25],
-      [  0.25, 0.05, -0.25],
-      [ -0.25, 0.05, -0.25]
-    ];
-    var r;
-    for (r = 0; r < 4; r++) {
-      var rotorGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.015, 8);
-      var rotor    = new THREE.Mesh(rotorGeo, rotorMat);
-      rotor.position.set(rotorPositions[r][0], rotorPositions[r][1], rotorPositions[r][2]);
+      /* motor housing at tip */
+      var motorGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.10, 7);
+      var motorMat = new THREE.MeshLambertMaterial({ color: 0x445566 });
+      var motor = new THREE.Mesh(motorGeo, motorMat);
+      motor.position.set(ax * armLen, 0, az * armLen);
+      group.add(motor);
+
+      /* rotor disc (flat cylinder) */
+      var rotorGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.025, 10);
+      var rotorMat = new THREE.MeshLambertMaterial({
+        color: 0x334455,
+        transparent: true,
+        opacity: 0.75
+      });
+      var rotor = new THREE.Mesh(rotorGeo, rotorMat);
+      rotor.position.set(ax * armLen, 0.07, az * armLen);
       group.add(rotor);
-      _rotors.push(rotor);
+      rotorMeshes.push(rotor);
     }
 
-    return group;
+    /* camera pod underneath */
+    var camGeo = new THREE.SphereGeometry(0.13, 8, 6);
+    var camMat = new THREE.MeshLambertMaterial({ color: 0x080808 });
+    var camPod = new THREE.Mesh(camGeo, camMat);
+    camPod.position.set(0, -0.18, 0);
+    group.add(camPod);
+
+    /* lens glint */
+    var lensGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.02, 6);
+    var lensMat = new THREE.MeshLambertMaterial({
+      color: 0x003366,
+      emissive: 0x002255
+    });
+    var lens = new THREE.Mesh(lensGeo, lensMat);
+    lens.rotation.x = Math.PI / 2;
+    lens.position.set(0, -0.28, 0.06);
+    group.add(lens);
+
+    /* running light */
+    var runLight = new THREE.PointLight(0x00aaff, 0.5, 5);
+    runLight.position.set(0, 0.1, 0);
+    group.add(runLight);
+
+    return { group: group, rotorMeshes: rotorMeshes };
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     BUILD LASER LINE
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _buildLaserLine() {
-    var THREE = window.THREE;
-    if (!THREE || !_scene) { return; }
-    var pts = [new THREE.Vector3(), new THREE.Vector3()];
-    var geo = new THREE.BufferGeometry().setFromPoints(pts);
-    var mat = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
-    _laserLine = new THREE.Line(geo, mat);
-    _laserLine.visible = false;
-    _scene.add(_laserLine);
+  /* ── Spiral path ───────────────────────────────────────────────────────── */
+  /* t in [0,1] → {x,z} offset from spawn */
+  function _spiralOffset(t) {
+    var turns = 4;
+    var angle = t * turns * 2 * Math.PI;
+    var radius = t * (SPIRAL_AREA * 0.5);
+    return { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     BUILD HUD
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _buildHUD() {
-    if (_hudEl) { return; } /* already built */
+  /* ── Enemy helpers ─────────────────────────────────────────────────────── */
+  function _getEnemies() {
+    if (typeof window.Enemies !== 'undefined' && window.Enemies.getAll) {
+      return window.Enemies.getAll() || [];
+    }
+    if (Array.isArray(window.enemies)) return window.enemies;
+    if (Array.isArray(window._enemies)) return window._enemies;
+    return [];
+  }
 
-    /* Battery status bar */
+  function _isDead(enemy) {
+    return (enemy.hp !== undefined && enemy.hp <= 0) ||
+           (enemy.alive !== undefined && !enemy.alive) ||
+           (enemy.dead !== undefined && enemy.dead);
+  }
+
+  function _ensureReconId(enemy) {
+    if (enemy._reconId === undefined) {
+      enemy._reconId = ++_reconIdSeq;
+    }
+    return enemy._reconId;
+  }
+
+  /* Is the enemy inside the drone's downward-facing camera cone? */
+  function _inCameraCone(dronePos, enemyPos) {
+    var dx = enemyPos.x - dronePos.x;
+    var dz = enemyPos.z - dronePos.z;
+    var dy = dronePos.y - enemyPos.y; /* drone is above */
+    if (dy <= 0) return false;
+    var horizDist = Math.sqrt(dx * dx + dz * dz);
+    var halfConeRadius = Math.tan(CAMERA_CONE_HALF) * dy;
+    return horizDist <= halfConeRadius && horizDist <= DETECT_RANGE;
+  }
+
+  /* Tag or refresh an enemy */
+  function _tagEnemy(enemy) {
+    var id = _ensureReconId(enemy);
+    var nowMs = _now();
+    if (!_taggedMap[id]) {
+      /* save original color */
+      var origColor = null;
+      if (enemy.mesh && enemy.mesh.material && enemy.mesh.material.color) {
+        origColor = enemy.mesh.material.color.getHex();
+      }
+      _taggedMap[id] = {
+        enemy: enemy,
+        taggedUntil: nowMs + TAG_DURATION * 1000,
+        originalColor: origColor,
+        killConfirmed: false
+      };
+    } else {
+      /* refresh timer */
+      _taggedMap[id].taggedUntil = nowMs + TAG_DURATION * 1000;
+    }
+    /* apply glowing yellow highlight */
+    if (enemy.mesh && enemy.mesh.material && enemy.mesh.material.color) {
+      enemy.mesh.material.color.setHex(0xffee00);
+    }
+  }
+
+  function _tickTaggedEnemies() {
+    var nowMs = _now();
+    var id;
+    for (id in _taggedMap) {
+      if (!_taggedMap.hasOwnProperty(id)) continue;
+      var entry = _taggedMap[id];
+      if (nowMs > entry.taggedUntil) {
+        /* restore original color */
+        if (entry.enemy && entry.enemy.mesh && entry.enemy.mesh.material &&
+            entry.enemy.mesh.material.color && entry.originalColor !== null) {
+          entry.enemy.mesh.material.color.setHex(entry.originalColor);
+        }
+        delete _taggedMap[id];
+      } else {
+        /* pulse yellow glow */
+        if (entry.enemy && entry.enemy.mesh && entry.enemy.mesh.material &&
+            entry.enemy.mesh.material.color) {
+          var pulse = Math.sin(_now() * 0.006) * 0.5 + 0.5;
+          entry.enemy.mesh.material.color.setRGB(1.0, (0.7 + pulse * 0.3), 0.0);
+        }
+      }
+    }
+  }
+
+  function _checkKillConfirmations() {
+    var id;
+    for (id in _taggedMap) {
+      if (!_taggedMap.hasOwnProperty(id)) continue;
+      var entry = _taggedMap[id];
+      if (!entry.killConfirmed && entry.enemy && _isDead(entry.enemy)) {
+        entry.killConfirmed = true;
+        _showToast('+RECON KILL');
+        _notify('+RECON KILL', '#ffe600');
+      }
+    }
+  }
+
+  /* Purge all tags and restore colors (used on reset) */
+  function _clearAllTags() {
+    var id;
+    for (id in _taggedMap) {
+      if (!_taggedMap.hasOwnProperty(id)) continue;
+      var entry = _taggedMap[id];
+      if (entry.enemy && entry.enemy.mesh && entry.enemy.mesh.material &&
+          entry.enemy.mesh.material.color && entry.originalColor !== null) {
+        entry.enemy.mesh.material.color.setHex(entry.originalColor);
+      }
+    }
+    _taggedMap = {};
+  }
+
+  /* ── Smoke particles ───────────────────────────────────────────────────── */
+  function _spawnSmoke(pos) {
+    if (!_scene) return;
+    var geo = new THREE.SphereGeometry(0.12 + Math.random() * 0.1, 5, 4);
+    var mat = new THREE.MeshBasicMaterial({
+      color: 0x444444,
+      transparent: true,
+      opacity: 0.55
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(pos);
+    _scene.add(mesh);
+    _smokeParticles.push({
+      mesh: mesh,
+      life: 1.2,
+      vel: new THREE.Vector3(
+        (Math.random() - 0.5) * 1.5,
+        1.5 + Math.random(),
+        (Math.random() - 0.5) * 1.5
+      )
+    });
+  }
+
+  function _tickSmoke(delta) {
+    var i;
+    for (i = _smokeParticles.length - 1; i >= 0; i--) {
+      var s = _smokeParticles[i];
+      s.life -= delta;
+      if (s.life <= 0) {
+        if (_scene) _scene.remove(s.mesh);
+        _smokeParticles.splice(i, 1);
+      } else {
+        s.mesh.position.addScaledVector(s.vel, delta);
+        s.mesh.material.opacity = Math.max(0, s.life * 0.45);
+      }
+    }
+  }
+
+  /* ── HUD ───────────────────────────────────────────────────────────────── */
+  function _createHUD() {
+    if (_hudEl) return;
+
     _hudEl = document.createElement('div');
     _hudEl.id = 'recon-drone-hud';
     _hudEl.style.cssText = [
       'position:fixed',
-      'bottom:120px',
-      'right:12px',
-      'background:rgba(0,0,0,0.7)',
-      'color:#00ff88',
-      'font-family:monospace',
-      'font-size:12px',
-      'padding:4px 10px',
-      'border:1px solid #00ff88',
-      'border-radius:3px',
-      'z-index:500',
-      'display:none',
-      'pointer-events:none'
+      'top:18px',
+      'right:18px',
+      'background:rgba(0,0,0,0.70)',
+      'color:#00ccff',
+      'font:bold 12px/1.5 monospace',
+      'padding:7px 11px',
+      'border-radius:5px',
+      'border:1px solid rgba(0,200,255,0.35)',
+      'pointer-events:none',
+      'z-index:9900',
+      'min-width:145px'
     ].join(';');
     document.body.appendChild(_hudEl);
 
-    /* Drone-cam mini window */
-    _camWindow = document.createElement('div');
-    _camWindow.id = 'recon-drone-cam';
-    _camWindow.style.cssText = [
+    /* battery progress bar */
+    _batteryBarEl = document.createElement('div');
+    _batteryBarEl.id = 'recon-drone-batt-bar';
+    _batteryBarEl.style.cssText = [
+      'position:fixed',
+      'top:90px',
+      'right:18px',
+      'width:145px',
+      'height:7px',
+      'background:rgba(0,0,0,0.55)',
+      'border:1px solid #005577',
+      'border-radius:3px',
+      'z-index:9900',
+      'pointer-events:none',
+      'display:none'
+    ].join(';');
+    _batteryFillEl = document.createElement('div');
+    _batteryFillEl.style.cssText = [
+      'height:100%',
+      'background:#00ccff',
+      'border-radius:2px',
+      'width:100%'
+    ].join(';');
+    _batteryBarEl.appendChild(_batteryFillEl);
+    document.body.appendChild(_batteryBarEl);
+  }
+
+  function _createMinimap() {
+    if (_minimapEl) return;
+    _minimapEl = document.createElement('canvas');
+    _minimapEl.id = 'recon-drone-minimap';
+    _minimapEl.width = MINIMAP_SIZE;
+    _minimapEl.height = MINIMAP_SIZE;
+    _minimapEl.style.cssText = [
       'position:fixed',
       'bottom:12px',
-      'left:12px',
-      'width:' + HUD_W + 'px',
-      'height:' + HUD_H + 'px',
-      'background:#000',
-      'border:2px solid #00ff44',
+      'right:12px',
+      'width:' + MINIMAP_SIZE + 'px',
+      'height:' + MINIMAP_SIZE + 'px',
+      'border:2px solid #00ccff',
       'border-radius:4px',
-      'z-index:500',
-      'display:none',
-      'overflow:hidden',
-      'filter:sepia(1) hue-rotate(80deg) saturate(3) brightness(0.85)'
+      'background:#080c10',
+      'z-index:9800',
+      'pointer-events:none',
+      'box-shadow:0 0 10px rgba(0,200,255,0.35)',
+      'display:none'
     ].join(';');
-
-    _camCanvas = document.createElement('canvas');
-    _camCanvas.width  = HUD_W;
-    _camCanvas.height = HUD_H;
-    _camCanvas.style.cssText = 'display:block;width:100%;height:100%';
-    _camWindow.appendChild(_camCanvas);
-    _camCtx = _camCanvas.getContext('2d');
-
-    /* label */
-    var label = document.createElement('div');
-    label.style.cssText = [
-      'position:absolute',
-      'top:4px',
-      'left:6px',
-      'color:#00ff44',
-      'font-family:monospace',
-      'font-size:10px',
-      'letter-spacing:1px',
-      'pointer-events:none'
-    ].join(';');
-    label.textContent = 'DRONE CAM REC';
-    _camWindow.appendChild(label);
-
-    document.body.appendChild(_camWindow);
+    document.body.appendChild(_minimapEl);
+    _minimapCtx = _minimapEl.getContext('2d');
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     HUD UPDATES
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _updateHUD(dt) {
-    if (!_hudEl) { return; }
+  function _updateHUD() {
+    if (!_hudEl) return;
 
-    if (!_active && !_recharging) {
-      _hudEl.style.display = 'none';
-      return;
+    var activeDrones = 0;
+    var i;
+    for (i = 0; i < _drones.length; i++) {
+      if (_drones[i].state !== 'dead') activeDrones++;
     }
 
-    _hudEl.style.display = 'block';
-
-    if (_recharging) {
-      var remain = Math.ceil(RECHARGE_TIME - _rechargeTimer);
-      _hudEl.textContent = 'DRONE RECHARGING ' + remain + 's';
-      _hudEl.style.color = '#888888';
-      _hudEl.style.borderColor = '#888888';
-      return;
+    var taggedCount = 0;
+    var id;
+    for (id in _taggedMap) {
+      if (_taggedMap.hasOwnProperty(id)) taggedCount++;
     }
 
-    var secs = Math.ceil(_battery);
-    _hudEl.textContent = 'DRONE > ' + secs + 's';
+    /* battery from first active drone */
+    var battSecs = 0;
+    var battPct = 0;
+    for (i = 0; i < _drones.length; i++) {
+      if (_drones[i].state !== 'dead') {
+        battSecs = _drones[i].battery;
+        battPct = Math.round((battSecs / BATTERY_MAX) * 100);
+        break;
+      }
+    }
 
-    if (_battery <= BATTERY_WARN) {
-      _blinkTimer += dt;
-      if (_blinkTimer > 0.4) { _blinkTimer = 0; }
-      var vis = _blinkTimer < 0.2;
-      _hudEl.style.color  = vis ? '#ff4444' : 'transparent';
-      _hudEl.style.borderColor = vis ? '#ff4444' : 'transparent';
+    _hudEl.innerHTML = [
+      'RECON DRONE',
+      'DRONES: ' + activeDrones + '/' + MAX_DRONES,
+      (activeDrones > 0 ? 'BATTERY: ' + battPct + '%' : ''),
+      'TAGGED: ' + taggedCount
+    ].filter(Boolean).join('<br>');
+
+    /* battery bar */
+    if (activeDrones > 0) {
+      _batteryBarEl.style.display = 'block';
+      _batteryFillEl.style.width = battPct + '%';
+      if (battSecs <= LOW_BATTERY_WARN) {
+        var flash = (Math.floor(_now() / 300) % 2 === 0);
+        _batteryFillEl.style.background = flash ? '#ff2200' : '#550000';
+      } else {
+        _batteryFillEl.style.background = '#00ccff';
+      }
     } else {
-      _blinkTimer = 0;
-      _hudEl.style.color  = '#00ff88';
-      _hudEl.style.borderColor = '#00ff88';
+      _batteryBarEl.style.display = 'none';
+    }
+
+    /* minimap visibility */
+    if (_minimapEl) {
+      _minimapEl.style.display = activeDrones > 0 ? 'block' : 'none';
     }
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     DRONE-CAM RENDER (top-down schematic)
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _renderDroneCam() {
-    if (!_camCtx || !_camVisible || !_dronePos) { return; }
+  /* ── Minimap drawing ───────────────────────────────────────────────────── */
+  function _drawMinimap(drone) {
+    if (!_minimapCtx || !drone || !_camera) return;
 
-    var ctx = _camCtx;
-    ctx.clearRect(0, 0, HUD_W, HUD_H);
+    var ctx = _minimapCtx;
+    var W = MINIMAP_SIZE;
+    var H = MINIMAP_SIZE;
+    var center = drone.mesh.position;
+    var mapRadius = SPIRAL_AREA * 0.55;
+    var scale = (W * 0.5) / mapRadius;
 
     /* background */
-    ctx.fillStyle = '#060f06';
-    ctx.fillRect(0, 0, HUD_W, HUD_H);
+    ctx.fillStyle = '#080c10';
+    ctx.fillRect(0, 0, W, H);
 
-    /* grid lines */
-    ctx.strokeStyle = '#0a280a';
-    ctx.lineWidth = 1;
-    var gx, gy;
-    for (gx = 0; gx < HUD_W; gx += 20) {
-      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, HUD_H); ctx.stroke();
+    /* grid */
+    ctx.strokeStyle = 'rgba(0,180,255,0.10)';
+    ctx.lineWidth = 0.5;
+    var step = W / 6;
+    var g;
+    for (g = 0; g <= W; g += step) {
+      ctx.beginPath(); ctx.moveTo(g, 0); ctx.lineTo(g, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, g); ctx.lineTo(W, g); ctx.stroke();
     }
-    for (gy = 0; gy < HUD_H; gy += 20) {
-      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(HUD_W, gy); ctx.stroke();
+
+    /* VoxelWorld building outlines (white blobs via sampling) */
+    if (typeof window.VoxelWorld !== 'undefined' && window.VoxelWorld.getBlock) {
+      var sampleStep = 5;
+      var wx, wz;
+      for (wx = -mapRadius; wx < mapRadius; wx += sampleStep) {
+        for (wz = -mapRadius; wz < mapRadius; wz += sampleStep) {
+          var block = window.VoxelWorld.getBlock(
+            Math.round(center.x + wx),
+            Math.round(center.y),
+            Math.round(center.z + wz)
+          );
+          if (block && block !== 0) {
+            ctx.fillStyle = 'rgba(200,220,255,0.22)';
+            ctx.fillRect(
+              W * 0.5 + wx * scale - 1.5,
+              H * 0.5 + wz * scale - 1.5,
+              3, 3
+            );
+          }
+        }
+      }
     }
 
-    var cx = HUD_W / 2;
-    var cy = HUD_H / 2;
-    var scale = 4;
-
-    /* remove old DOM dots */
-    var d;
-    for (d = 0; d < _enemyDots.length; d++) {
-      if (_enemyDots[d].parentNode) { _enemyDots[d].parentNode.removeChild(_enemyDots[d]); }
-    }
-    _enemyDots = [];
-
-    /* draw enemy markers */
+    /* enemy blips */
     var enemies = _getEnemies();
     var i;
     for (i = 0; i < enemies.length; i++) {
-      var en = enemies[i];
-      if (!en) { continue; }
-      var ep = en.position || en;
-      var ex = ep.x !== undefined ? ep.x : 0;
-      var ez = ep.z !== undefined ? ep.z : 0;
-      var px = (ex - _dronePos.x) * scale + cx;
-      var pz = (ez - _dronePos.z) * scale + cy;
-      if (px < 0 || px > HUD_W || pz < 0 || pz > HUD_H) { continue; }
+      var enemy = enemies[i];
+      if (!enemy || !enemy.mesh || _isDead(enemy)) continue;
+      var ep = enemy.mesh.position;
+      var ex = W * 0.5 + (ep.x - center.x) * scale;
+      var ez = H * 0.5 + (ep.z - center.z) * scale;
+      if (ex < 1 || ex > W - 1 || ez < 1 || ez > H - 1) continue;
 
-      ctx.fillStyle = '#ff2222';
+      var isTagged = (enemy._reconId !== undefined && _taggedMap[enemy._reconId]);
       ctx.beginPath();
-      ctx.arc(px, pz, 4, 0, Math.PI * 2);
+      ctx.arc(ex, ez, isTagged ? 4 : 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = isTagged ? '#ffee00' : '#ff3333';
       ctx.fill();
-
-      if (en._radarRevealed) {
-        var dot = document.createElement('div');
-        dot.style.cssText = [
-          'position:absolute',
-          'left:' + (px - 5) + 'px',
-          'top:'  + (pz - 5) + 'px',
-          'width:10px',
-          'height:10px',
-          'border-radius:50%',
-          'background:#ff0000',
-          'border:1px solid #ff8888',
-          'pointer-events:none'
-        ].join(';');
-        _camWindow.appendChild(dot);
-        _enemyDots.push(dot);
+      if (isTagged) {
+        ctx.strokeStyle = 'rgba(255,220,0,0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       }
     }
 
-    /* drone centre crosshair */
-    ctx.strokeStyle = '#00ff44';
+    /* player position — blue dot */
+    var playerPos = _camera.position;
+    var ppx = W * 0.5 + (playerPos.x - center.x) * scale;
+    var ppz = H * 0.5 + (playerPos.z - center.z) * scale;
+    ppx = Math.max(3, Math.min(W - 3, ppx));
+    ppz = Math.max(3, Math.min(H - 3, ppz));
+    ctx.beginPath();
+    ctx.arc(ppx, ppz, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#4488ff';
+    ctx.fill();
+    ctx.strokeStyle = '#88bbff';
     ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx - 9, cy); ctx.lineTo(cx + 9, cy); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - 9); ctx.lineTo(cx, cy + 9); ctx.stroke();
 
-    /* scan radius ring */
-    ctx.strokeStyle = '#005500';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
+    /* drone position — cyan diamond */
     ctx.beginPath();
-    ctx.arc(cx, cy, SCAN_RADIUS * scale, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.moveTo(W * 0.5, H * 0.5 - 5);
+    ctx.lineTo(W * 0.5 + 4, H * 0.5);
+    ctx.lineTo(W * 0.5, H * 0.5 + 5);
+    ctx.lineTo(W * 0.5 - 4, H * 0.5);
+    ctx.closePath();
+    ctx.fillStyle = '#00ffee';
+    ctx.fill();
+
+    /* label */
+    ctx.fillStyle = 'rgba(0,200,255,0.65)';
+    ctx.font = 'bold 8px monospace';
+    ctx.fillText('RECON', 4, 10);
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     SURVEILLANCE SCAN
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _getEnemies() {
-    if (window.Enemies && typeof window.Enemies.getAll === 'function') {
-      return window.Enemies.getAll() || [];
+  /* ── Deploy a new drone ────────────────────────────────────────────────── */
+  function deployDrone() {
+    if (!_initialized || !_scene || !_camera) {
+      _notify('RECON DRONE: not initialized', '#ff4400');
+      return;
     }
-    return window._enemies || window._activeEnemies || [];
-  }
-
-  function _doScan() {
-    if (!_dronePos) { return; }
-    var enemies = _getEnemies();
-    var t;
-
-    /* remove old tag lights */
-    for (t = _tagLights.length - 1; t >= 0; t--) {
-      if (_tagLights[t] && _tagLights[t].light && _scene) {
-        _scene.remove(_tagLights[t].light);
-      }
-      _tagLights.splice(t, 1);
-    }
-
-    var i;
-    for (i = 0; i < enemies.length; i++) {
-      var en = enemies[i];
-      if (!en) { continue; }
-      var ep = en.position || en;
-      var dx = _dronePos.x - (ep.x || 0);
-      var dz = _dronePos.z - (ep.z || 0);
-      var distSq = dx * dx + dz * dz;
-
-      if (distSq <= SCAN_RADIUS * SCAN_RADIUS) {
-        en._radarRevealed = true;
-
-        if (_scene && window.THREE) {
-          var pl = new window.THREE.PointLight(0xffff00, ENEMY_LIGHT_INT, ENEMY_LIGHT_RNG);
-          pl.position.set(ep.x || 0, (ep.y || 0) + 2.5, ep.z || 0);
-          _scene.add(pl);
-          _tagLights.push({ light: pl, enemy: en });
-        }
-      }
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════
-     LASER MARKER
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _updateLaser(altHeld) {
-    if (!_laserLine || !_dronePos) {
-      if (_laserLine) { _laserLine.visible = false; }
+    if (_drones.length >= MAX_DRONES) {
+      _notify('RECON DRONE: max ' + MAX_DRONES + ' drones active', '#ff8800');
       return;
     }
 
-    if (!altHeld || !_active || _phase !== 'orbiting') {
-      _laserLine.visible = false;
-      _laserTarget = null;
-      return;
-    }
+    var spawnPos = _camera.position.clone();
+    var meshData = _buildDroneMesh();
+    meshData.group.position.copy(spawnPos);
+    meshData.group.position.y += 1;
+    _scene.add(meshData.group);
 
-    var enemies  = _getEnemies();
-    var bestEn   = null;
-    var bestDist = Infinity;
-    var i;
-    for (i = 0; i < enemies.length; i++) {
-      var en = enemies[i];
-      if (!en || !en._radarRevealed) { continue; }
-      var ep = en.position || en;
-      var dx = _dronePos.x - (ep.x || 0);
-      var dz = _dronePos.z - (ep.z || 0);
-      var dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist < bestDist) { bestDist = dist; bestEn = en; }
-    }
+    var audioNode = _createRotorSound();
 
-    if (!bestEn) {
-      _laserLine.visible = false;
-      _laserTarget = null;
-      return;
-    }
+    var drone = {
+      mesh        : meshData.group,
+      rotorMeshes : meshData.rotorMeshes,
+      spawnPos    : spawnPos.clone(),
+      hp          : DRONE_HP,
+      battery     : BATTERY_MAX,
+      state       : 'climbing',   /* climbing | patrol | recalling | dead */
+      spiralT     : 0,
+      smokeTimer  : 0,
+      audioNode   : audioNode,
+      born        : _now()
+    };
 
-    var THREE = window.THREE;
-    if (!THREE) { return; }
-
-    var ep2 = bestEn.position || bestEn;
-    _laserTarget = new THREE.Vector3(ep2.x || 0, ep2.y || 0, ep2.z || 0);
-
-    var positions = _laserLine.geometry.attributes.position;
-    if (positions) {
-      positions.setXYZ(0, _dronePos.x, _dronePos.y, _dronePos.z);
-      positions.setXYZ(1, _laserTarget.x, _laserTarget.y, _laserTarget.z);
-      positions.needsUpdate = true;
-    } else {
-      var pts = [_dronePos.clone(), _laserTarget.clone()];
-      _laserLine.geometry.setFromPoints(pts);
-    }
-    _laserLine.visible = true;
-
-    window._reconDroneLaserTarget = _laserTarget;
+    _drones.push(drone);
+    _notify('RECON DRONE DEPLOYED — ' + BATTERY_MAX + 's | X to recall', '#00ccff');
+    _updateHUD();
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     EXPLOSION / DEATH
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _explodeDrone() {
-    if (!_dronePos || !_scene || !window.THREE) { return; }
-    var THREE = window.THREE;
+  /* ── Recall / destroy helpers ──────────────────────────────────────────── */
+  function _recallDrone(drone) {
+    if (drone.state === 'dead' || drone.state === 'recalling') return;
+    drone.state = 'recalling';
+    _notify('RECON DRONE: recalling...', '#ffaa00');
+  }
 
-    var flash = new THREE.PointLight(0xff6600, 8, 12);
-    flash.position.copy(_dronePos);
-    _scene.add(flash);
-    setTimeout(function () { if (_scene) { _scene.remove(flash); } }, 400);
-
-    var debrisMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-    var p;
-    for (p = 0; p < 6; p++) {
-      var geo  = new THREE.BoxGeometry(0.06, 0.06, 0.06);
-      var mesh = new THREE.Mesh(geo, debrisMat);
-      mesh.position.copy(_dronePos);
-      var vel = {
-        x: (Math.random() - 0.5) * 4,
-        y: Math.random() * 3 + 1,
-        z: (Math.random() - 0.5) * 4
-      };
-      _scene.add(mesh);
-      _debrisPieces.push({ mesh: mesh, vel: vel, age: 0, maxAge: 2 });
+  function _destroyDrone(drone) {
+    if (drone.state === 'dead') return;
+    drone.state = 'dead';
+    _stopRotorSound(drone.audioNode);
+    if (typeof window.StageVFX !== 'undefined' && window.StageVFX.spawnExplosion) {
+      window.StageVFX.spawnExplosion(drone.mesh.position.clone(), 1.2);
     }
+    _notify('RECON DRONE SHOT DOWN!', '#ff2200');
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     REMOVE DRONE FROM SCENE
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _removeDroneMesh() {
-    if (_droneGroup && _scene) {
-      _scene.remove(_droneGroup);
-      _droneGroup = null;
-    }
-    _rotors = [];
-    var t;
-    for (t = 0; t < _tagLights.length; t++) {
-      if (_tagLights[t] && _tagLights[t].light && _scene) {
-        _scene.remove(_tagLights[t].light);
-      }
-    }
-    _tagLights = [];
-    if (_laserLine) { _laserLine.visible = false; }
+  function _removeDroneFromList(drone) {
+    _stopRotorSound(drone.audioNode);
+    if (_scene) _scene.remove(drone.mesh);
+    var idx = _drones.indexOf(drone);
+    if (idx >= 0) _drones.splice(idx, 1);
+    _updateHUD();
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     SPAWN DRONE AT PLAYER POSITION
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _spawnDrone() {
-    if (!_scene || !window.THREE) { return; }
-    var THREE = window.THREE;
-
-    _droneGroup = _buildDroneMesh();
-    if (!_droneGroup) { return; }
-
-    var startPos = _getPlayerPos();
-    _droneGroup.position.copy(startPos);
-    _scene.add(_droneGroup);
-
-    _dronePos = startPos.clone ? startPos.clone() : new THREE.Vector3(startPos.x, startPos.y, startPos.z);
-    _orbitOriginX = startPos.x;
-    _orbitOriginZ = startPos.z;
-    _orbitAngle   = 0;
-    _hp           = DRONE_HP;
-    _phase        = 'rising';
-    _active       = true;
-    _battery      = BATTERY_MAX;
-    _scanTimer    = 0;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════
-     PLAYER POSITION HELPER
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _getPlayerPos() {
-    var THREE = window.THREE;
-    if (!THREE) { return { x: 0, y: 0, z: 0 }; }
-
-    if (_playerRef && _playerRef.position) { return _playerRef.position.clone(); }
-    if (window._playerPosition) {
-      var pp = window._playerPosition;
-      return new THREE.Vector3(pp.x || 0, pp.y || 0, pp.z || 0);
-    }
-    if (window.player && window.player.position) { return window.player.position.clone(); }
-    if (_camera) { return _camera.position.clone(); }
-    return new THREE.Vector3(0, 0, 0);
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════
-     DAMAGE CHECK — enemy shots near drone
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _checkDamage() {
-    if (!_dronePos || !_active) { return; }
-    var shotPos = window._lastEnemyShotPos || window._lastBulletPos;
-    if (!shotPos) { return; }
-    var dx = _dronePos.x - (shotPos.x || 0);
-    var dy = _dronePos.y - (shotPos.y || 0);
-    var dz = _dronePos.z - (shotPos.z || 0);
-    if (dx * dx + dy * dy + dz * dz < 9) {
-      _hp -= DMG_PER_HIT;
-      if (_hp <= 0) { _killDrone(); }
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════
-     KILL DRONE
-  ══════════════════════════════════════════════════════════════════════════ */
-  function _killDrone() {
-    _explodeDrone();
-    _removeDroneMesh();
-    _active     = false;
-    _phase      = 'dead';
-    _camVisible = false;
-    if (_camWindow) { _camWindow.style.display = 'none'; }
-    _recharging    = true;
-    _rechargeTimer = 0;
-    if (_hudEl) { _hudEl.style.display = 'block'; }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════
-     KEY HANDLERS
-  ══════════════════════════════════════════════════════════════════════════ */
+  /* ── Key handler ───────────────────────────────────────────────────────── */
   function _onKeyDown(e) {
-    if (e.ctrlKey && (e.key === 'd' || e.key === 'D')) {
-      e.preventDefault();
-      if (!_active && !_recharging) {
-        launch();
-      } else if (_active) {
-        _camVisible = !_camVisible;
-        if (_camWindow) {
-          _camWindow.style.display = _camVisible ? 'block' : 'none';
-        }
+    if (e.code !== 'KeyX' && e.key !== 'x' && e.key !== 'X') return;
+
+    /* prefer recall over deploy when drones are active */
+    var i;
+    for (i = 0; i < _drones.length; i++) {
+      if (_drones[i].state !== 'dead' && _drones[i].state !== 'recalling') {
+        _recallDrone(_drones[i]);
+        return;
       }
-      return;
     }
-    if (e.key === 'Alt') {
-      e.preventDefault();
-      _altHeld = true;
-    }
+    /* otherwise deploy a new one */
+    deployDrone();
   }
 
-  function _onKeyUp(e) {
-    if (e.key === 'Alt') { _altHeld = false; }
-  }
+  /* ── Per-drone update ──────────────────────────────────────────────────── */
+  function _updateDrone(drone, delta) {
+    var nowMs = _now();
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     PUBLIC: INIT
-  ══════════════════════════════════════════════════════════════════════════ */
-  function init(scene, camera, playerRef) {
-    _scene     = scene     || _scene;
-    _camera    = camera    || _camera;
-    _playerRef = playerRef || _playerRef;
-
-    if (_initialized) { return; }
-    _initialized = true;
-
-    _buildHUD();
-
-    if (_scene) { _buildLaserLine(); }
-
-    if (!_keysRegistered) {
-      _keysRegistered = true;
-      document.addEventListener('keydown', _onKeyDown);
-      document.addEventListener('keyup',   _onKeyUp);
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════
-     PUBLIC: LAUNCH
-  ══════════════════════════════════════════════════════════════════════════ */
-  function launch() {
-    if (_active || _recharging) { return; }
-    if (!_scene || !window.THREE) {
-      console.warn('[ReconDrone] Scene not ready — call init(scene, camera) first.');
-      return;
-    }
-    _spawnDrone();
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════
-     PUBLIC: RECALL
-  ══════════════════════════════════════════════════════════════════════════ */
-  function recall() {
-    if (!_active) { return; }
-    _phase = 'returning';
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════
-     PUBLIC: RESET
-  ══════════════════════════════════════════════════════════════════════════ */
-  function reset() {
-    _removeDroneMesh();
-    var d;
-    for (d = 0; d < _debrisPieces.length; d++) {
-      if (_debrisPieces[d].mesh && _scene) { _scene.remove(_debrisPieces[d].mesh); }
-    }
-    _debrisPieces  = [];
-    _active        = false;
-    _phase         = 'idle';
-    _recharging    = false;
-    _rechargeTimer = 0;
-    _battery       = BATTERY_MAX;
-    _hp            = DRONE_HP;
-    _orbitAngle    = 0;
-    _scanTimer     = 0;
-    _empTimer      = 0;
-    _blinkTimer    = 0;
-    _camVisible    = false;
-    _altHeld       = false;
-    _laserTarget   = null;
-    _tagLights     = [];
-    _enemyDots     = [];
-    if (_camWindow) { _camWindow.style.display = 'none'; }
-    if (_hudEl)     { _hudEl.style.display = 'none'; }
-    if (_laserLine) { _laserLine.visible = false; }
-    window._reconDroneLaserTarget = null;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════
-     PUBLIC: UPDATE  (dt = seconds)
-  ══════════════════════════════════════════════════════════════════════════ */
-  function update(dt) {
-    if (!dt || dt <= 0) { dt = 0.016; }
-
-    /* ── Recharge phase ─────────────────────────────────────────────── */
-    if (_recharging) {
-      _rechargeTimer += dt;
-      _updateHUD(dt);
-      if (_rechargeTimer >= RECHARGE_TIME) {
-        _recharging    = false;
-        _rechargeTimer = 0;
-        _phase         = 'idle';
-        if (_hudEl) { _hudEl.style.display = 'none'; }
-      }
-      return;
-    }
-
-    if (!_active) { return; }
-
-    var THREE = window.THREE;
-    if (!THREE) { return; }
-
-    /* ── EMP jamming ────────────────────────────────────────────────── */
-    if (window._empActive === true && _empTimer <= 0) {
-      _empTimer = EMP_LOSE_CTRL;
-    }
-    if (_empTimer > 0) {
-      _empTimer -= dt;
-      if (_empTimer < 0) { _empTimer = 0; }
-    }
-
-    /* ── Battery drain ──────────────────────────────────────────────── */
-    if (_phase === 'orbiting') {
-      _battery -= dt;
-      if (_battery <= 0) {
-        _battery = 0;
-        _phase   = 'returning';
-      }
-    }
-
-    /* ── Phase: rising ──────────────────────────────────────────────── */
-    if (_phase === 'rising') {
-      var pp = _getPlayerPos();
-      var targetY = pp.y + HOVER_Y;
-      if (_droneGroup) {
-        _droneGroup.position.y += 4 * dt;
-        if (_droneGroup.position.y >= targetY) {
-          _droneGroup.position.y = targetY;
-          _orbitOriginX = pp.x;
-          _orbitOriginZ = pp.z;
-          _phase = 'orbiting';
-        }
-        _dronePos.copy(_droneGroup.position);
-      }
-    }
-
-    /* ── Phase: orbiting ────────────────────────────────────────────── */
-    if (_phase === 'orbiting') {
-      if (_empTimer > 0) {
-        if (_droneGroup) {
-          _droneGroup.position.x += (Math.random() - 0.5) * 3 * dt;
-          _droneGroup.position.y += (Math.random() - 0.5) * 2 * dt;
-          _droneGroup.position.z += (Math.random() - 0.5) * 3 * dt;
-          _dronePos.copy(_droneGroup.position);
-        }
-      } else {
-        _orbitAngle += ORBIT_SPEED * dt;
-        var pp2 = _getPlayerPos();
-        _orbitOriginX += (pp2.x - _orbitOriginX) * 0.02;
-        _orbitOriginZ += (pp2.z - _orbitOriginZ) * 0.02;
-
-        var tx = _orbitOriginX + Math.cos(_orbitAngle) * ORBIT_RADIUS;
-        var tz = _orbitOriginZ + Math.sin(_orbitAngle) * ORBIT_RADIUS;
-        var ty = pp2.y + HOVER_Y + Math.sin(_orbitAngle * 2.3) * ALT_VARIATION;
-
-        if (_droneGroup) {
-          _droneGroup.position.x = tx;
-          _droneGroup.position.y = ty;
-          _droneGroup.position.z = tz;
-          _dronePos.copy(_droneGroup.position);
-          _droneGroup.rotation.y = _orbitAngle + Math.PI * 0.5;
-        }
-      }
-
-      _scanTimer += dt;
-      if (_scanTimer >= SCAN_INTERVAL) {
-        _scanTimer = 0;
-        _doScan();
-      }
-    }
-
-    /* ── Phase: returning ───────────────────────────────────────────── */
-    if (_phase === 'returning') {
-      var pp3 = _getPlayerPos();
-      if (_droneGroup) {
-        var rdx = pp3.x - _droneGroup.position.x;
-        var rdy = pp3.y - _droneGroup.position.y;
-        var rdz = pp3.z - _droneGroup.position.z;
-        var spd = 5 * dt;
-        _droneGroup.position.x += rdx * spd;
-        _droneGroup.position.y += rdy * spd;
-        _droneGroup.position.z += rdz * spd;
-        _dronePos.copy(_droneGroup.position);
-        var distToPlayer = Math.sqrt(rdx * rdx + rdy * rdy + rdz * rdz);
-        if (distToPlayer < 0.5) {
-          _removeDroneMesh();
-          _active     = false;
-          _phase      = 'idle';
-          _recharging = true;
-          _rechargeTimer = 0;
-          _camVisible = false;
-          if (_camWindow) { _camWindow.style.display = 'none'; }
-          /* clear enemy radar tags */
-          var ens = _getEnemies();
-          var ei;
-          for (ei = 0; ei < ens.length; ei++) {
-            if (ens[ei]) { ens[ei]._radarRevealed = false; }
-          }
-        }
-      }
-    }
-
-    /* ── Spin rotors ────────────────────────────────────────────────── */
+    /* spin rotors */
     var ri;
-    for (ri = 0; ri < _rotors.length; ri++) {
-      _rotors[ri].rotation.y += ROTOR_SPEED * dt;
+    for (ri = 0; ri < drone.rotorMeshes.length; ri++) {
+      drone.rotorMeshes[ri].rotation.y += ROTOR_SPIN * delta;
     }
 
-    /* ── Debris physics ─────────────────────────────────────────────── */
-    var di;
-    for (di = _debrisPieces.length - 1; di >= 0; di--) {
-      var piece = _debrisPieces[di];
-      piece.age += dt;
-      piece.vel.y -= 9.8 * dt;
-      piece.mesh.position.x += piece.vel.x * dt;
-      piece.mesh.position.y += piece.vel.y * dt;
-      piece.mesh.position.z += piece.vel.z * dt;
-      if (piece.age >= piece.maxAge) {
-        if (_scene) { _scene.remove(piece.mesh); }
-        _debrisPieces.splice(di, 1);
+    /* gentle hover bob */
+    drone.mesh.position.y += Math.sin(nowMs * 0.003 + drone.born * 0.001) * 0.003;
+
+    /* ── State: climbing ── */
+    if (drone.state === 'climbing') {
+      var targetY = drone.spawnPos.y + DRONE_ALTITUDE;
+      drone.mesh.position.y += (targetY - drone.mesh.position.y) * 3.5 * delta;
+      if (Math.abs(drone.mesh.position.y - targetY) < 0.5) {
+        drone.state = 'patrol';
       }
     }
 
-    /* ── Damage check ───────────────────────────────────────────────── */
-    _checkDamage();
+    /* ── State: patrol (spiral) ── */
+    if (drone.state === 'patrol') {
+      drone.spiralT += delta / SPIRAL_DURATION;
+      if (drone.spiralT > 1) drone.spiralT -= 1;
 
-    /* ── Laser marker ───────────────────────────────────────────────── */
-    _updateLaser(_altHeld);
+      var offset = _spiralOffset(drone.spiralT);
+      var tgtX = drone.spawnPos.x + offset.x;
+      var tgtZ = drone.spawnPos.z + offset.z;
+      var tgtY = drone.spawnPos.y + DRONE_ALTITUDE;
 
-    /* ── Drone-cam render ───────────────────────────────────────────── */
-    if (_camVisible) { _renderDroneCam(); }
+      var dx = tgtX - drone.mesh.position.x;
+      var dz = tgtZ - drone.mesh.position.z;
+      var hdist = Math.sqrt(dx * dx + dz * dz);
+      var spd = Math.min(CRUISE_SPEED, hdist / (delta + 0.0001));
 
-    /* ── HUD update ─────────────────────────────────────────────────── */
-    _updateHUD(dt);
+      if (hdist > 0.1) {
+        drone.mesh.position.x += (dx / hdist) * spd * delta;
+        drone.mesh.position.z += (dz / hdist) * spd * delta;
+      }
+      drone.mesh.position.y += (tgtY - drone.mesh.position.y) * 2 * delta;
+
+      if (hdist > 0.5) {
+        drone.mesh.rotation.y = Math.atan2(dx, dz);
+      }
+
+      _setRotorFreq(drone.audioNode, spd);
+
+      /* scan for enemies in camera cone */
+      var enemies = _getEnemies();
+      var ei;
+      for (ei = 0; ei < enemies.length; ei++) {
+        var enemy = enemies[ei];
+        if (!enemy || !enemy.mesh || _isDead(enemy)) continue;
+        if (_inCameraCone(drone.mesh.position, enemy.mesh.position)) {
+          _tagEnemy(enemy);
+        }
+      }
+
+      /* drain battery */
+      drone.battery -= delta;
+      if (drone.battery <= 0) {
+        drone.battery = 0;
+        _notify('RECON DRONE: battery dead — recalling', '#ff4400');
+        drone.state = 'recalling';
+      }
+    }
+
+    /* ── State: recalling ── */
+    if (drone.state === 'recalling') {
+      var rTarget = _camera.position.clone();
+      var rdx = rTarget.x - drone.mesh.position.x;
+      var rdy = rTarget.y - drone.mesh.position.y;
+      var rdz = rTarget.z - drone.mesh.position.z;
+      var rdist = Math.sqrt(rdx * rdx + rdy * rdy + rdz * rdz);
+
+      if (rdist < 1.2) {
+        _removeDroneFromList(drone);
+        return; /* drone removed */
+      }
+
+      var rSpd = RECALL_SPEED * delta;
+      drone.mesh.position.x += (rdx / rdist) * rSpd;
+      drone.mesh.position.y += (rdy / rdist) * rSpd;
+      drone.mesh.position.z += (rdz / rdist) * rSpd;
+      _setRotorFreq(drone.audioNode, RECALL_SPEED);
+    }
+
+    /* ── State: dead (falling + smoke) ── */
+    if (drone.state === 'dead') {
+      drone.mesh.position.y -= 8 * delta;
+      drone.mesh.rotation.z += 2 * delta;
+
+      drone.smokeTimer -= delta;
+      if (drone.smokeTimer <= 0) {
+        drone.smokeTimer = SMOKE_INTERVAL;
+        _spawnSmoke(drone.mesh.position);
+      }
+
+      if (drone.mesh.position.y < drone.spawnPos.y - 4) {
+        _removeDroneFromList(drone);
+        /* no return needed — index shifts handled by caller iterating backwards */
+      }
+    }
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     AUTO DOM SETUP — keys registered early, scene picked up lazily
-  ══════════════════════════════════════════════════════════════════════════ */
-  (function _autoSetup() {
-    if (typeof document === 'undefined') { return; }
-    document.addEventListener('DOMContentLoaded', function () {
-      _buildHUD();
-      if (!_keysRegistered) {
-        _keysRegistered = true;
-        document.addEventListener('keydown', _onKeyDown);
-        document.addEventListener('keyup',   _onKeyUp);
-      }
-      /* lazy scene acquisition */
-      var _checkId = setInterval(function () {
-        var scene  = window._scene  || (window.GameManager && window.GameManager.scene);
-        var cam    = window._camera || (window.GameManager && window.GameManager.camera);
-        if (scene && cam) {
-          clearInterval(_checkId);
-          if (!_initialized) {
-            _scene       = scene;
-            _camera      = cam;
-            _initialized = true;
-            _buildLaserLine();
-          }
-        }
-      }, 500);
-    });
-  }());
+  /* ── Public: init ──────────────────────────────────────────────────────── */
+  function init(scene, camera) {
+    _scene = scene || null;
+    _camera = camera || null;
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     PUBLIC API
-  ══════════════════════════════════════════════════════════════════════════ */
+    _createHUD();
+    _createMinimap();
+
+    if (!window._reconDroneKeyBound) {
+      window.addEventListener('keydown', _onKeyDown, false);
+      window._reconDroneKeyBound = true;
+    }
+
+    _initialized = true;
+  }
+
+  /* ── Public: update (delta = seconds) ─────────────────────────────────── */
+  function update(delta) {
+    if (!_initialized) return;
+    if (!delta || delta <= 0) delta = 0.016;
+
+    _tickTaggedEnemies();
+    _checkKillConfirmations();
+    _tickSmoke(delta);
+    _tickToast();
+
+    /* iterate backwards so splice inside _updateDrone is safe */
+    var i;
+    for (i = _drones.length - 1; i >= 0; i--) {
+      _updateDrone(_drones[i], delta);
+    }
+
+    /* draw minimap from first active drone */
+    var minimapDrone = null;
+    for (i = 0; i < _drones.length; i++) {
+      if (_drones[i].state !== 'dead') {
+        minimapDrone = _drones[i];
+        break;
+      }
+    }
+    if (minimapDrone) {
+      _drawMinimap(minimapDrone);
+    }
+
+    _updateHUD();
+  }
+
+  /* ── Public: getTaggedEnemies ──────────────────────────────────────────── */
+  function getTaggedEnemies() {
+    var result = [];
+    var id;
+    for (id in _taggedMap) {
+      if (_taggedMap.hasOwnProperty(id)) {
+        result.push(_taggedMap[id].enemy);
+      }
+    }
+    return result;
+  }
+
+  /* ── Public: takeDamage (external — e.g. enemy bullet hits drone) ──────── */
+  function takeDamage(droneIndex, amount) {
+    var drone = _drones[droneIndex];
+    if (!drone || drone.state === 'dead') return;
+    drone.hp -= (amount || 10);
+    if (drone.hp <= 0) {
+      _destroyDrone(drone);
+    }
+  }
+
+  /* ── Public: reset ─────────────────────────────────────────────────────── */
+  function reset() {
+    var i;
+    for (i = 0; i < _drones.length; i++) {
+      _stopRotorSound(_drones[i].audioNode);
+      if (_scene) _scene.remove(_drones[i].mesh);
+    }
+    _drones = [];
+
+    _clearAllTags();
+
+    for (i = _smokeParticles.length - 1; i >= 0; i--) {
+      if (_scene) _scene.remove(_smokeParticles[i].mesh);
+    }
+    _smokeParticles = [];
+    _toastQueue = [];
+
+    _updateHUD();
+  }
+
+  /* ── Public API ────────────────────────────────────────────────────────── */
   return {
-    init:   init,
-    update: update,
-    launch: launch,
-    recall: recall,
-    reset:  reset
+    init             : init,
+    update           : update,
+    deployDrone      : deployDrone,
+    getTaggedEnemies : getTaggedEnemies,
+    takeDamage       : takeDamage,
+    reset            : reset
   };
 
 }());
