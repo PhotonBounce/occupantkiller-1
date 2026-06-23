@@ -1848,6 +1848,16 @@ const GameManager = (function () {
     try { if (window.Assassination && Assassination.init) Assassination.init(_scene, _camera); } catch (e) {}
     try { if (window.SiegeDefense && SiegeDefense.init) SiegeDefense.init(_scene, _camera); } catch (e) {}
     try { if (window.GhostMission && GhostMission.init) GhostMission.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceStation && SpaceStation.init) SpaceStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateCove && PirateCove.init) PirateCove.init(_scene, _camera); } catch (e) {}
+    try { if (window.GladiatorColosseum && GladiatorColosseum.init) GladiatorColosseum.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerBreach && BunkerBreach.init) BunkerBreach.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoAssault && VolcanoAssault.init) VolcanoAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoShip && CargoShip.init) CargoShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarzoneHospital && WarzoneHospital.init) WarzoneHospital.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmsDealer && ArmsDealer.init) ArmsDealer.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageCrisis && HostageCrisis.init) HostageCrisis.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankBattalion && TankBattalion.init) TankBattalion.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8487,6 +8497,16 @@ const GameManager = (function () {
       if (window.Assassination) Assassination.update(delta);
       if (window.SiegeDefense) SiegeDefense.update(delta);
       if (window.GhostMission) GhostMission.update(delta);
+      if (window.SpaceStation) SpaceStation.update(delta);
+      if (window.PirateCove) PirateCove.update(delta);
+      if (window.GladiatorColosseum) GladiatorColosseum.update(delta);
+      if (window.BunkerBreach) BunkerBreach.update(delta);
+      if (window.VolcanoAssault) VolcanoAssault.update(delta);
+      if (window.CargoShip) CargoShip.update(delta);
+      if (window.WarzoneHospital) WarzoneHospital.update(delta);
+      if (window.ArmsDealer) ArmsDealer.update(delta);
+      if (window.HostageCrisis) HostageCrisis.update(delta);
+      if (window.TankBattalion) TankBattalion.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
