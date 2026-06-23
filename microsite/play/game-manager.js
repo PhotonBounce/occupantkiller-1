@@ -1797,6 +1797,7 @@ const GameManager = (function () {
     try { if (window.SiegeTower && SiegeTower.init) SiegeTower.init(_scene, _camera); } catch (e) {}
     try { if (window.SniperHunt && SniperHunt.init) SniperHunt.init(_scene, _camera); } catch (e) {}
     try { if (window.VehicleRecovery && VehicleRecovery.init) VehicleRecovery.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageStandoff && HostageStandoff.init) HostageStandoff.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8385,6 +8386,7 @@ const GameManager = (function () {
       if (window.SiegeTower) SiegeTower.update(delta);
       if (window.SniperHunt) SniperHunt.update(delta);
       if (window.VehicleRecovery) VehicleRecovery.update(delta);
+      if (window.HostageStandoff) HostageStandoff.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
