@@ -1572,6 +1572,27 @@ const GameManager = (function () {
     try { if (window.TimeWarp && TimeWarp.init) TimeWarp.init(); } catch (eTW) { console.warn('[TimeWarp] init failed', eTW); }
     // Surrender system
     try { if (window.SurrenderSystem) SurrenderSystem.init(_scene); } catch (eSS) { console.warn('[SurrenderSystem] init failed', eSS); }
+    try { if (window.KillCam && KillCam.init) KillCam.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShieldBubble && ShieldBubble.init) ShieldBubble.init(_scene, _camera); } catch (e) {}
+    try { if (window.TripwireTrap && TripwireTrap.init) TripwireTrap.init(_scene, _camera); } catch (e) {}
+    try { if (window.BulletTime && BulletTime.init) BulletTime.init(); } catch (e) {}
+    try { if (window.MountedTurret && MountedTurret.init) MountedTurret.init(_scene, _camera); } catch (e) {}
+    try { if (window.DynamicWeather && DynamicWeather.init) DynamicWeather.init(_scene); } catch (e) {}
+    try { if (window.ObjectiveSystem && ObjectiveSystem.init) ObjectiveSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.ClusterBomb && ClusterBomb.init) ClusterBomb.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalMinimap && TacticalMinimap.init) TacticalMinimap.init(_scene, _camera); } catch (e) {}
+    try { if (window.KillFeedEvents && KillFeedEvents.init) KillFeedEvents.init(); } catch (e) {}
+    try { if (window.BossFinalForm && BossFinalForm.init) BossFinalForm.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadarPulse && RadarPulse.init) RadarPulse.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeaponWear && WeaponWear.init) WeaponWear.init(); } catch (e) {}
+    try { if (window.Nanobots && Nanobots.init) Nanobots.init(); } catch (e) {}
+    try { if (window.AmmoTypes && AmmoTypes.init) AmmoTypes.init(); } catch (e) {}
+    try { if (window.PlayerCallouts && PlayerCallouts.init) PlayerCallouts.init(_camera); } catch (e) {}
+    try { if (window.DriveableCar && DriveableCar.init) DriveableCar.init(_scene, _camera); } catch (e) {}
+    try { if (window.FPVKamikaze && FPVKamikaze.init) FPVKamikaze.init(_scene, _camera); } catch (e) {}
+    try { if (window.EMPPulse && EMPPulse.init) EMPPulse.init(_scene, _camera); } catch (e) {}
+    try { if (window.InventorySystem && InventorySystem.init) InventorySystem.init(); } catch (e) {}
+    try { if (window.MeleeSystem && MeleeSystem.init) MeleeSystem.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -7931,6 +7952,27 @@ const GameManager = (function () {
       if (window.IntelPickups) IntelPickups.update(delta, player.position, player, _scene);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
       if (window.SurrenderSystem) SurrenderSystem.update(delta);
+      if (window.KillCam) KillCam.update(delta);
+      if (window.ShieldBubble) ShieldBubble.update(delta);
+      if (window.TripwireTrap) TripwireTrap.update(delta);
+      if (window.BulletTime) BulletTime.update(delta);
+      if (window.MountedTurret) MountedTurret.update(delta);
+      if (window.DynamicWeather) DynamicWeather.update(delta);
+      if (window.ObjectiveSystem) ObjectiveSystem.update(delta);
+      if (window.ClusterBomb) ClusterBomb.update(delta);
+      if (window.TacticalMinimap) TacticalMinimap.update(delta);
+      if (window.KillFeedEvents) KillFeedEvents.update(delta);
+      if (window.BossFinalForm) BossFinalForm.update(delta);
+      if (window.RadarPulse) RadarPulse.update(delta);
+      if (window.WeaponWear) WeaponWear.update(delta);
+      if (window.Nanobots) Nanobots.update(delta);
+      if (window.AmmoTypes) AmmoTypes.update(delta);
+      if (window.PlayerCallouts) PlayerCallouts.update(delta);
+      if (window.DriveableCar) DriveableCar.update(delta);
+      if (window.FPVKamikaze) FPVKamikaze.update(delta);
+      if (window.EMPPulse) EMPPulse.update(delta);
+      if (window.InventorySystem) InventorySystem.update(delta);
+      if (window.MeleeSystem) MeleeSystem.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
