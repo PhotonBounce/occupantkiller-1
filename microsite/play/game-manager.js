@@ -1858,6 +1858,16 @@ const GameManager = (function () {
     try { if (window.ArmsDealer && ArmsDealer.init) ArmsDealer.init(_scene, _camera); } catch (e) {}
     try { if (window.HostageCrisis && HostageCrisis.init) HostageCrisis.init(_scene, _camera); } catch (e) {}
     try { if (window.TankBattalion && TankBattalion.init) TankBattalion.init(_scene, _camera); } catch (e) {}
+    try { if (window.ZombieApocalypse && ZombieApocalypse.init) ZombieApocalypse.init(_scene, _camera); } catch (e) {}
+    try { if (window.SamuraiDuel && SamuraiDuel.init) SamuraiDuel.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearSubmarine && NuclearSubmarine.init) NuclearSubmarine.init(_scene, _camera); } catch (e) {}
+    try { if (window.RebelUprising && RebelUprising.init) RebelUprising.init(_scene, _camera); } catch (e) {}
+    try { if (window.MiningDisaster && MiningDisaster.init) MiningDisaster.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonBreak && PrisonBreak.init) PrisonBreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.RacingCombat && RacingCombat.init) RacingCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.MedievalSiege && MedievalSiege.init) MedievalSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.IslandAssault && IslandAssault.init) IslandAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberpunkCity && CyberpunkCity.init) CyberpunkCity.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8507,6 +8517,16 @@ const GameManager = (function () {
       if (window.ArmsDealer) ArmsDealer.update(delta);
       if (window.HostageCrisis) HostageCrisis.update(delta);
       if (window.TankBattalion) TankBattalion.update(delta);
+      if (window.ZombieApocalypse) ZombieApocalypse.update(delta);
+      if (window.SamuraiDuel) SamuraiDuel.update(delta);
+      if (window.NuclearSubmarine) NuclearSubmarine.update(delta);
+      if (window.RebelUprising) RebelUprising.update(delta);
+      if (window.MiningDisaster) MiningDisaster.update(delta);
+      if (window.PrisonBreak) PrisonBreak.update(delta);
+      if (window.RacingCombat) RacingCombat.update(delta);
+      if (window.MedievalSiege) MedievalSiege.update(delta);
+      if (window.IslandAssault) IslandAssault.update(delta);
+      if (window.CyberpunkCity) CyberpunkCity.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
