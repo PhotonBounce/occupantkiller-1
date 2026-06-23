@@ -1735,6 +1735,16 @@ const GameManager = (function () {
     try { if (window.UrbanPatrol && UrbanPatrol.init) UrbanPatrol.init(_scene, _camera); } catch (e) {}
     try { if (window.ElectronicWarfare && ElectronicWarfare.init) ElectronicWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.VehicleConvoy && VehicleConvoy.init) VehicleConvoy.init(_scene, _camera); } catch (e) {}
+    // Wave 30 modules
+    try { if (window.BreachingCharges && BreachingCharges.init) BreachingCharges.init(_scene, _camera); } catch (e) {}
+    try { if (window.CasualtyEvacuation && CasualtyEvacuation.init) CasualtyEvacuation.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightVision && NightVision.init) NightVision.init(_scene, _camera); } catch (e) {}
+    try { if (window.FireSupport && FireSupport.init) FireSupport.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShieldSystem && ShieldSystem.init) ShieldSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.MineField && MineField.init) MineField.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankCommander && TankCommander.init) TankCommander.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatMedic && CombatMedic.init) CombatMedic.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeWarfare && SiegeWarfare.init) SiegeWarfare.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8264,6 +8274,15 @@ const GameManager = (function () {
       if (window.UrbanPatrol) UrbanPatrol.update(delta);
       if (window.ElectronicWarfare) ElectronicWarfare.update(delta);
       if (window.VehicleConvoy) VehicleConvoy.update(delta);
+      if (window.BreachingCharges) BreachingCharges.update(delta);
+      if (window.CasualtyEvacuation) CasualtyEvacuation.update(delta);
+      if (window.NightVision) NightVision.update(delta);
+      if (window.FireSupport) FireSupport.update(delta);
+      if (window.ShieldSystem) ShieldSystem.update(delta);
+      if (window.MineField) MineField.update(delta);
+      if (window.TankCommander) TankCommander.update(delta);
+      if (window.CombatMedic) CombatMedic.update(delta);
+      if (window.SiegeWarfare) SiegeWarfare.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
