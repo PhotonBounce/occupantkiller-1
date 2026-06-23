@@ -1654,6 +1654,10 @@ const GameManager = (function () {
     try { if (window.SoldierSkillTree && SoldierSkillTree.init) SoldierSkillTree.init(_scene, _camera); } catch (e) {}
     try { if (window.ShieldGenerator && ShieldGenerator.init) ShieldGenerator.init(_scene, _camera); } catch (e) {}
     try { if (window.CombatXPSystem && CombatXPSystem.init) CombatXPSystem.init(_scene, _camera); } catch (e) {}
+    // Loose modules (Waves 21-22 extras)
+    try { if (window.LootSystem && LootSystem.init) LootSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.ProximityMine && ProximityMine.init) ProximityMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalShield && TacticalShield.init) TacticalShield.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8106,6 +8110,9 @@ const GameManager = (function () {
       if (window.SoldierSkillTree) SoldierSkillTree.update(delta);
       if (window.ShieldGenerator) ShieldGenerator.update(delta);
       if (window.CombatXPSystem) CombatXPSystem.update(delta);
+      if (window.LootSystem) LootSystem.update(delta);
+      if (window.ProximityMine) ProximityMine.update(delta);
+      if (window.TacticalShield) TacticalShield.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
