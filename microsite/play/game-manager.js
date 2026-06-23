@@ -1828,6 +1828,16 @@ const GameManager = (function () {
     try { if (window.ZombieOutbreak && ZombieOutbreak.init) ZombieOutbreak.init(_scene, _camera); } catch (e) {}
     try { if (window.VolcanoEscape && VolcanoEscape.init) VolcanoEscape.init(_scene, _camera); } catch (e) {}
     try { if (window.FactionStandoff && FactionStandoff.init) FactionStandoff.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientSiege && AncientSiege.init) AncientSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.MechWarfare && MechWarfare.init) MechWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.DrugLord && DrugLord.init) DrugLord.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoonBase && MoonBase.init) MoonBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonRiot && PrisonRiot.init) PrisonRiot.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticBase && ArcticBase.init) ArcticBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TimeHeist && TimeHeist.init) TimeHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.AlienInvasion && AlienInvasion.init) AlienInvasion.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberHeist && CyberHeist.init) CyberHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainRobbery && TrainRobbery.init) TrainRobbery.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8447,6 +8457,16 @@ const GameManager = (function () {
       if (window.ZombieOutbreak) ZombieOutbreak.update(delta);
       if (window.VolcanoEscape) VolcanoEscape.update(delta);
       if (window.FactionStandoff) FactionStandoff.update(delta);
+      if (window.AncientSiege) AncientSiege.update(delta);
+      if (window.MechWarfare) MechWarfare.update(delta);
+      if (window.DrugLord) DrugLord.update(delta);
+      if (window.MoonBase) MoonBase.update(delta);
+      if (window.PrisonRiot) PrisonRiot.update(delta);
+      if (window.ArcticBase) ArcticBase.update(delta);
+      if (window.TimeHeist) TimeHeist.update(delta);
+      if (window.AlienInvasion) AlienInvasion.update(delta);
+      if (window.CyberHeist) CyberHeist.update(delta);
+      if (window.TrainRobbery) TrainRobbery.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
