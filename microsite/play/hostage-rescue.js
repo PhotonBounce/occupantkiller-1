@@ -1,102 +1,120 @@
 // ============================================================
-//  hostage-rescue.js — Civilian hostage rescue system
+//  hostage-rescue.js — Hostage Rescue Mission Module
 //  Features:
-//    1. Hostage spawning with civilian mesh (body, head, hands)
-//    2. Guard AI — patrols near hostage, engages player if spotted
-//    3. Rescue mechanic — hold E for 2s near unguarded hostage
-//    4. Mission HUD — top-center rescue counter + 120s wave timer
-//    5. Rescue rewards — +300 score, +15 HP, bonus ammo crate
-//    6. Failure state — stray shot within 5m kills hostage, -500 score
-//    7. Radio callout — Web Audio tones + KillFeedEvents integration
-//    8. Wave integration — spawnForWave for wave 3+
-//  Public API: init, update, spawnHostage, spawnForWave, reset
+//    1. H+R keys to activate mission; spawns 3 hostages + 4 guards
+//    2. Hostage mesh: cylinder body (orange), sphere head, tied arms
+//    3. VIP hostage: larger head + briefcase, +300 intel score
+//    4. Guard AI: patrol 4 waypoints, ALARM→rush player, 12-unit detect
+//    5. Rescue mechanic: E key within 2 units; hostage follows player
+//    6. Elimination approach: all guards dead → hostages auto-freed
+//    7. Stealth approach: no alarm triggered → +500 stealth bonus
+//    8. Extraction zone: green ring 25 units away, radius 6
+//    9. Alert system: alarm → rush + radio call-in 3 reinforcements after 15s
+//   10. Hostage HP 50; guards execute hostage if alarmed >45s
+//   11. 4-minute mission timer; fail if hostage dies or timer expires
+//   12. HUD: RESCUE [x/3 FREED] [GUARDS: x/4] [EXTRACT: xm] + timer
+//  Public API: init, update, reset
 // ============================================================
 window.HostageRescue = (function () {
   'use strict';
 
-  // ── Config ─────────────────────────────────────────────────
-  var MAX_HOSTAGES      = 3;
-  var GUARD_RADIUS_MIN  = 3;
-  var GUARD_RADIUS_MAX  = 5;
-  var GUARD_SPOT_RANGE  = 20;
-  var RESCUE_RANGE      = 2;
-  var RESCUE_HOLD_TIME  = 2.0;
-  var HOSTAGE_SPEED     = 1.5;
-  var HOSTAGE_DESPAWN   = 15.0;
-  var WAVE_TIME_LIMIT   = 120.0;  // seconds per wave
-  var STRAY_SHOT_RANGE  = 5;
-  var SCORE_RESCUE      = 300;
-  var SCORE_PENALTY     = -500;
-  var HEAL_AMOUNT       = 15;
+  // ── Config ────────────────────────────────────────────────────
+  var NUM_HOSTAGES         = 3;
+  var NUM_GUARDS           = 4;
+  var HOSTAGE_HP           = 50;
+  var RESCUE_RANGE         = 2;
+  var DETECT_RANGE         = 12;
+  var PATROL_SPEED         = 2;
+  var CHASE_SPEED          = 5;
+  var FOLLOW_SPEED         = 3;
+  var CLUSTER_MIN_DIST     = 30;
+  var EXTRACT_ZONE_RADIUS  = 6;
+  var EXTRACT_ZONE_DIST    = 25;
+  var REINFORCE_DELAY      = 15;  // seconds after alarm before reinforcements
+  var EXECUTE_DELAY        = 45;  // seconds alarmed before guards execute hostage
+  var MISSION_TIME         = 240; // seconds (4 minutes)
+  var SCORE_VIP_INTEL      = 300;
+  var SCORE_STEALTH_BONUS  = 500;
 
-  // Colors
-  var COLOR_BODY_BLUE   = 0x3a6fd8;
-  var COLOR_BODY_ORANGE = 0xe8841a;
-  var COLOR_SKIN        = 0xf5c5a3;
-  var COLOR_GUARD       = 0x4a4a4a;
-  var COLOR_GUARD_ACCENT= 0x8b0000;
+  var COLOR_HOSTAGE_BODY   = 0xFF8800;
+  var COLOR_SKIN           = 0xF5C5A3;
+  var COLOR_GUARD_BODY     = 0x333333;
+  var COLOR_GUARD_ACCENT   = 0x222222;
+  var COLOR_RIFLE          = 0x1A1A1A;
+  var COLOR_EXTRACT        = 0x00FF44;
+  var COLOR_VIP_BRIEFCASE  = 0x8B6914;
+  var COLOR_ARMED_BACK     = 0x664400;
 
-  // ── State ───────────────────────────────────────────────────
-  var _scene            = null;
-  var _hostages         = [];   // active hostage objects
-  var _guards           = [];   // active guard objects
-  var _hudEl            = null;
-  var _timerEl          = null;
-  var _promptEl         = null;
-  var _warnEl           = null;
+  // ── State ─────────────────────────────────────────────────────
+  var missionActive       = false;
+  var missionSuccess      = false;
+  var missionFailed       = false;
+  var missionTimer        = MISSION_TIME;
 
-  var _waveTimer        = 0;
-  var _waveActive       = false;
-  var _totalToRescue    = 0;
-  var _totalRescued     = 0;
-  var _inited           = false;
-  var _eKeyHeld         = false;
-  var _rescueProgress   = 0;
-  var _rescueTarget     = null;
-  var _rescueBarEl      = null;
-  var _warnTimer        = 0;
-  var _audioCtx         = null;
+  var hostages            = [];
+  var guards              = [];
+  var reinforcements      = [];
 
-  // ── Helpers ─────────────────────────────────────────────────
-  function _getScene() {
+  var alarmActive         = false;
+  var alarmTimer          = 0;
+  var reinforceSpawned    = false;
+  var stealthKills        = 0;
+  var anyAlarmEverTriggered = false;
+
+  var extractionZone      = null;
+  var extractionZonePos   = null;
+  var clusterCenter       = null;
+
+  var hudElement          = null;
+  var keyState            = {};
+  var prevHKey            = false;
+  var prevRKey            = false;
+  var prevEKey            = false;
+
+  var _scene              = null;
+  var _addedKeyListener   = false;
+
+  // ── Scene / Player helpers ────────────────────────────────────
+
+  function getScene() {
     return _scene ||
       (window.GameManager && window.GameManager.scene) ||
       window.scene ||
       null;
   }
 
-  function _getCamera() {
+  function getCamera() {
     return (window.GameManager && window.GameManager.camera) ||
       window.camera ||
       null;
   }
 
-  function _getPlayerPos() {
-    var cam = _getCamera();
+  function getPlayerPos() {
+    var cam = getCamera();
     if (cam) return cam.position;
+    if (window.player && window.player.position) return window.player.position;
     return null;
   }
 
-  function _dist(a, b) {
+  function dist3D(a, b) {
     var dx = a.x - b.x;
     var dy = a.y - b.y;
     var dz = a.z - b.z;
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
-  function _dist2D(a, b) {
+  function dist2D(a, b) {
     var dx = a.x - b.x;
     var dz = a.z - b.z;
     return Math.sqrt(dx * dx + dz * dz);
   }
 
-  function _addScore(pts) {
+  function addScore(pts) {
     if (window.GameManager && typeof window.GameManager.addScore === 'function') {
       window.GameManager.addScore(pts);
     } else if (typeof window._score !== 'undefined') {
       window._score += pts;
     }
-    // update HUD score display
     var scoreEl = document.getElementById('score-display');
     if (scoreEl) {
       var cur = parseInt((scoreEl.textContent || '').replace(/[^0-9\-]/g, '')) || 0;
@@ -104,774 +122,768 @@ window.HostageRescue = (function () {
     }
   }
 
-  function _healPlayer(amount) {
-    if (window.GameManager && typeof window.GameManager.healPlayer === 'function') {
-      window.GameManager.healPlayer(amount);
-    } else if (typeof window._playerHP !== 'undefined') {
-      window._playerHP = Math.min(100, window._playerHP + amount);
-    }
+  // ── Key listener ──────────────────────────────────────────────
+
+  function setupKeys() {
+    if (_addedKeyListener) return;
+    _addedKeyListener = true;
+    document.addEventListener('keydown', function (e) {
+      keyState[e.code] = true;
+    });
+    document.addEventListener('keyup', function (e) {
+      keyState[e.code] = false;
+    });
   }
 
-  // ── Web Audio radio callout ──────────────────────────────────
-  function _playRadioCallout() {
-    try {
-      if (!_audioCtx) {
-        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      var ctx = _audioCtx;
-      var now = ctx.currentTime;
+  // ── Material / Mesh helpers ───────────────────────────────────
 
-      // Three ascending tones
-      var tones = [440, 660, 880];
-      for (var i = 0; i < tones.length; i++) {
-        (function (freq, offset) {
-          var osc = ctx.createOscillator();
-          var gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(freq, now + offset);
-          gain.gain.setValueAtTime(0.0, now + offset);
-          gain.gain.linearRampToValueAtTime(0.18, now + offset + 0.01);
-          gain.gain.linearRampToValueAtTime(0.0, now + offset + 0.18);
-          osc.start(now + offset);
-          osc.stop(now + offset + 0.2);
-        })(tones[i], i * 0.22);
-      }
-
-      // Distorted voice simulation — band-pass filtered noise burst
-      var bufSize = ctx.sampleRate * 0.35;
-      var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-      var data = buf.getChannelData(0);
-      for (var s = 0; s < bufSize; s++) {
-        data[s] = (Math.random() * 2 - 1) * 0.4;
-      }
-      var noiseSource = ctx.createBufferSource();
-      noiseSource.buffer = buf;
-      var bpf = ctx.createBiquadFilter();
-      bpf.type = 'bandpass';
-      bpf.frequency.setValueAtTime(1200, now + 0.7);
-      bpf.Q.setValueAtTime(3, now + 0.7);
-      var noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.25, now + 0.7);
-      noiseGain.gain.linearRampToValueAtTime(0.0, now + 1.05);
-      noiseSource.connect(bpf);
-      bpf.connect(noiseGain);
-      noiseGain.connect(ctx.destination);
-      noiseSource.start(now + 0.7);
-    } catch (e) {
-      // audio not available — silently skip
+  function makeMat(color, opts) {
+    var params = { color: color };
+    if (opts) {
+      for (var k in opts) { params[k] = opts[k]; }
     }
+    return new THREE.MeshLambertMaterial(params);
   }
 
-  // ── Mesh factories ───────────────────────────────────────────
-  function _makeHostageMesh(colorBody) {
-    var THREE = window.THREE;
+  function makeMesh(geo, mat) {
+    var m = new THREE.Mesh(geo, mat);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    return m;
+  }
+
+  // ── Hostage mesh ──────────────────────────────────────────────
+
+  function buildHostageMesh(isVIP) {
     var group = new THREE.Group();
 
-    // Body
-    var bodyGeo = new THREE.CylinderGeometry(0.25, 0.25, 1.6, 8);
-    var bodyMat = new THREE.MeshLambertMaterial({ color: colorBody });
-    var body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.8;
+    // Body: CylinderGeometry orange
+    var bodyGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.2, 8);
+    var bodyMat = makeMat(COLOR_HOSTAGE_BODY);
+    var body = makeMesh(bodyGeo, bodyMat);
+    body.position.y = 0.6;
     group.add(body);
 
-    // Head
-    var headGeo = new THREE.SphereGeometry(0.2, 8, 8);
-    var headMat = new THREE.MeshLambertMaterial({ color: COLOR_SKIN });
-    var head = new THREE.Mesh(headGeo, headMat);
-    head.position.y = 1.8;
+    // Head: SphereGeometry
+    var headRadius = isVIP ? 0.35 : 0.25;
+    var headGeo = new THREE.SphereGeometry(headRadius, 8, 8);
+    var headMat = makeMat(COLOR_SKIN);
+    var head = makeMesh(headGeo, headMat);
+    head.position.y = 1.45 + (isVIP ? 0.05 : 0);
     group.add(head);
+    group._headMesh = head;
 
-    // Hands behind back (thin cylinders)
-    var handGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.4, 6);
-    var handMat = new THREE.MeshLambertMaterial({ color: COLOR_SKIN });
+    // Arms tied behind back (2 small boxes)
+    var armGeo = new THREE.BoxGeometry(0.15, 0.4, 0.1);
+    var armMat = makeMat(COLOR_ARMED_BACK);
+    var armL = makeMesh(armGeo, armMat);
+    armL.position.set(-0.2, 0.7, -0.25);
+    armL.rotation.z = 0.3;
+    group.add(armL);
+    group._armL = armL;
 
-    var handL = new THREE.Mesh(handGeo, handMat);
-    handL.rotation.z = Math.PI / 2;
-    handL.position.set(-0.28, 0.6, -0.18);
-    group.add(handL);
+    var armR = makeMesh(armGeo, armMat);
+    armR.position.set(0.2, 0.7, -0.25);
+    armR.rotation.z = -0.3;
+    group.add(armR);
+    group._armR = armR;
 
-    var handR = new THREE.Mesh(handGeo, handMat);
-    handR.rotation.z = Math.PI / 2;
-    handR.position.set(0.28, 0.6, -0.18);
-    group.add(handR);
-
-    // Kneel animation — tilt forward slightly
-    group.rotation.x = 0.3;
+    // VIP: briefcase
+    if (isVIP) {
+      var caseGeo = new THREE.BoxGeometry(0.3, 0.2, 0.1);
+      var caseMat = makeMat(COLOR_VIP_BRIEFCASE);
+      var briefcase = makeMesh(caseGeo, caseMat);
+      briefcase.position.set(0.5, 0.55, 0);
+      group.add(briefcase);
+      group._briefcase = briefcase;
+    }
 
     return group;
   }
 
-  function _makeGuardMesh() {
-    var THREE = window.THREE;
+  // ── Guard mesh ───────────────────────────────────────────────
+
+  function buildGuardMesh() {
     var group = new THREE.Group();
 
-    // Body
-    var bodyGeo = new THREE.CylinderGeometry(0.28, 0.28, 1.7, 8);
-    var bodyMat = new THREE.MeshLambertMaterial({ color: COLOR_GUARD });
-    var body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.85;
+    // Body: BoxGeometry dark gray
+    var bodyGeo = new THREE.BoxGeometry(0.6, 1.2, 0.4);
+    var bodyMat = makeMat(COLOR_GUARD_BODY);
+    var body = makeMesh(bodyGeo, bodyMat);
+    body.position.y = 0.6;
     group.add(body);
 
     // Head
-    var headGeo = new THREE.SphereGeometry(0.22, 8, 8);
-    var headMat = new THREE.MeshLambertMaterial({ color: COLOR_GUARD_ACCENT });
-    var head = new THREE.Mesh(headGeo, headMat);
-    head.position.y = 1.9;
+    var headGeo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
+    var headMat = makeMat(COLOR_GUARD_ACCENT);
+    var head = makeMesh(headGeo, headMat);
+    head.position.y = 1.375;
     group.add(head);
 
-    // Rifle (simple box)
-    var rifleGeo = new THREE.BoxGeometry(0.08, 0.08, 0.9);
-    var rifleMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
-    var rifle = new THREE.Mesh(rifleGeo, rifleMat);
-    rifle.position.set(0.35, 1.1, -0.2);
-    rifle.rotation.x = 0.3;
+    // Rifle: BoxGeometry(0.08, 0.08, 0.6)
+    var rifleGeo = new THREE.BoxGeometry(0.08, 0.08, 0.6);
+    var rifleMat = makeMat(COLOR_RIFLE);
+    var rifle = makeMesh(rifleGeo, rifleMat);
+    rifle.position.set(0.35, 0.8, 0.15);
     group.add(rifle);
 
     return group;
   }
 
-  // ── HUD creation ─────────────────────────────────────────────
-  function _ensureHUD() {
-    if (_hudEl) return;
+  // ── Extraction zone mesh ──────────────────────────────────────
 
-    _hudEl = document.createElement('div');
-    _hudEl.id = 'hostage-rescue-hud';
-    _hudEl.style.cssText = [
-      'position:fixed',
-      'top:38px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'background:rgba(0,0,0,0.7)',
-      'border:1px solid rgba(100,180,255,0.6)',
-      'color:#64b4ff',
-      'padding:4px 18px',
-      'border-radius:5px',
-      'font-size:12px',
-      'font-family:monospace',
-      'z-index:210',
-      'pointer-events:none',
-      'text-align:center',
-      'letter-spacing:1px',
-      'display:none'
-    ].join(';');
-    document.body.appendChild(_hudEl);
+  function buildExtractionZone(px, pz) {
+    var geo = new THREE.CylinderGeometry(
+      EXTRACT_ZONE_RADIUS,
+      EXTRACT_ZONE_RADIUS,
+      0.1,
+      32,
+      1,
+      true
+    );
+    var mat = new THREE.MeshBasicMaterial({
+      color: COLOR_EXTRACT,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.55,
+      wireframe: false
+    });
+    var ring = new THREE.Mesh(geo, mat);
 
-    _timerEl = document.createElement('div');
-    _timerEl.style.cssText = 'font-size:10px;color:#aaa;margin-top:2px';
-    _hudEl.appendChild(_timerEl);
+    // Place 25 units away from player in random direction
+    var angle = Math.random() * Math.PI * 2;
+    var ex = px + Math.cos(angle) * EXTRACT_ZONE_DIST;
+    var ez = pz + Math.sin(angle) * EXTRACT_ZONE_DIST;
+    ring.position.set(ex, 0.05, ez);
+    extractionZonePos = { x: ex, y: 0.05, z: ez };
 
-    // Rescue progress bar (shown when holding E)
-    _rescueBarEl = document.createElement('div');
-    _rescueBarEl.style.cssText = [
-      'position:fixed',
-      'bottom:220px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'width:160px',
-      'height:8px',
-      'background:rgba(0,0,0,0.5)',
-      'border:1px solid rgba(100,255,100,0.5)',
-      'border-radius:4px',
-      'z-index:210',
-      'pointer-events:none',
-      'overflow:hidden',
-      'display:none'
-    ].join(';');
-    var fill = document.createElement('div');
-    fill.id = 'hostage-rescue-bar-fill';
-    fill.style.cssText = 'width:0%;height:100%;background:linear-gradient(90deg,#22cc44,#66ff88);border-radius:4px;transition:width 0.05s';
-    _rescueBarEl.appendChild(fill);
-    document.body.appendChild(_rescueBarEl);
-
-    // Interaction prompt
-    _promptEl = document.createElement('div');
-    _promptEl.style.cssText = [
-      'position:fixed',
-      'bottom:240px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'background:rgba(0,0,0,0.65)',
-      'border:1px solid rgba(255,255,255,0.3)',
-      'color:#fff',
-      'padding:5px 16px',
-      'border-radius:5px',
-      'font-size:12px',
-      'font-family:monospace',
-      'z-index:210',
-      'pointer-events:none',
-      'text-align:center',
-      'display:none'
-    ].join(';');
-    document.body.appendChild(_promptEl);
-
-    // Warning overlay (civilian casualty)
-    _warnEl = document.createElement('div');
-    _warnEl.style.cssText = [
-      'position:fixed',
-      'top:25%',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'background:rgba(180,0,0,0.85)',
-      'border:2px solid #ff2222',
-      'color:#fff',
-      'padding:10px 28px',
-      'border-radius:7px',
-      'font-size:16px',
-      'font-weight:bold',
-      'font-family:monospace',
-      'z-index:500',
-      'pointer-events:none',
-      'text-align:center',
-      'display:none',
-      'letter-spacing:2px'
-    ].join(';');
-    _warnEl.textContent = 'X  CIVILIAN CASUALTY  X';
-    document.body.appendChild(_warnEl);
+    var scene = getScene();
+    if (scene) scene.add(ring);
+    return ring;
   }
 
-  function _updateHUD() {
-    if (!_hudEl) return;
-    if (!_waveActive) {
-      _hudEl.style.display = 'none';
-      return;
-    }
-    _hudEl.style.display = 'block';
-    var firstLine = document.createElement('div');
-    firstLine.textContent = 'RESCUE MISSION: ' + _totalRescued + '/' + _totalToRescue + ' HOSTAGES';
-    // Replace text content manually (HUD has child elements)
-    while (_hudEl.firstChild && _hudEl.firstChild !== _timerEl) {
-      _hudEl.removeChild(_hudEl.firstChild);
-    }
-    _hudEl.insertBefore(firstLine, _timerEl);
-    if (_waveTimer > 0) {
-      var secs = Math.ceil(_waveTimer);
-      var mins = Math.floor(secs / 60);
-      var s = secs % 60;
-      _timerEl.textContent = 'TIME: ' + mins + ':' + (s < 10 ? '0' : '') + s;
-      _timerEl.style.color = _waveTimer < 30 ? '#ff4444' : '#aaa';
-    } else {
-      _timerEl.textContent = '';
-    }
-  }
+  // ── Spawn hostage cluster ─────────────────────────────────────
 
-  function _showWarning(text, duration) {
-    if (!_warnEl) return;
-    _warnEl.textContent = text || 'X  CIVILIAN CASUALTY  X';
-    _warnEl.style.display = 'block';
-    _warnTimer = duration || 2.5;
-  }
+  function spawnHostages(px, pz) {
+    var scene = getScene();
+    if (!scene) return;
 
-  // ── Guard creation ───────────────────────────────────────────
-  function _spawnGuard(hostage, offsetAngle) {
-    var sc = _getScene();
-    if (!sc) return null;
-    var THREE = window.THREE;
+    // Random cluster position >30 units from player
+    var angle = Math.random() * Math.PI * 2;
+    var dist = CLUSTER_MIN_DIST + Math.random() * 20;
+    var cx = px + Math.cos(angle) * dist;
+    var cz = pz + Math.sin(angle) * dist;
+    clusterCenter = { x: cx, z: cz };
 
-    var r = GUARD_RADIUS_MIN + Math.random() * (GUARD_RADIUS_MAX - GUARD_RADIUS_MIN);
-    var gx = hostage.mesh.position.x + Math.cos(offsetAngle) * r;
-    var gz = hostage.mesh.position.z + Math.sin(offsetAngle) * r;
-    var gy = hostage.mesh.position.y;
+    // Pick one VIP (random)
+    var vipIndex = Math.floor(Math.random() * NUM_HOSTAGES);
 
-    var mesh = _makeGuardMesh();
-    mesh.position.set(gx, gy, gz);
-    sc.add(mesh);
+    for (var i = 0; i < NUM_HOSTAGES; i++) {
+      var isVIP = (i === vipIndex);
+      var mesh = buildHostageMesh(isVIP);
 
-    var guard = {
-      mesh: mesh,
-      hostage: hostage,
-      patrolAngle: offsetAngle,
-      patrolRadius: r,
-      patrolCenter: { x: hostage.mesh.position.x, y: gy, z: hostage.mesh.position.z },
-      patrolSpeed: 0.4 + Math.random() * 0.3,
-      state: 'patrol',   // 'patrol' | 'engage' | 'dead'
-      hp: 60,
-      alive: true
-    };
-    _guards.push(guard);
-    hostage.guards.push(guard);
-    return guard;
-  }
+      // Spread within 4-unit radius of cluster
+      var hAngle = (i / NUM_HOSTAGES) * Math.PI * 2;
+      var hx = cx + Math.cos(hAngle) * 2.5;
+      var hz = cz + Math.sin(hAngle) * 2.5;
+      mesh.position.set(hx, 0, hz);
+      scene.add(mesh);
 
-  // ── Hostage spawning ─────────────────────────────────────────
-  function spawnHostage(scene, x, y, z) {
-    if (_hostages.length >= MAX_HOSTAGES) return null;
-    var THREE = window.THREE;
-    if (!THREE) { console.warn('[HostageRescue] THREE not found'); return null; }
-
-    var sc = scene || _getScene();
-    if (!sc) return null;
-
-    var colorBody = (Math.random() > 0.5) ? COLOR_BODY_BLUE : COLOR_BODY_ORANGE;
-    var mesh = _makeHostageMesh(colorBody);
-    mesh.position.set(x, y, z);
-    sc.add(mesh);
-
-    var numGuards = 1 + (Math.random() > 0.5 ? 1 : 0);
-
-    var hostage = {
-      mesh: mesh,
-      state: 'captive',   // 'captive' | 'rescued' | 'killed' | 'fleeing'
-      guards: [],
-      guarded: true,
-      fleeTimer: 0,
-      waveAnim: 0,
-      armWaveDir: 1
-    };
-    _hostages.push(hostage);
-    _totalToRescue++;
-
-    for (var i = 0; i < numGuards; i++) {
-      var angle = (i / numGuards) * Math.PI * 2 + Math.random() * 0.5;
-      _spawnGuard(hostage, angle);
-    }
-
-    _ensureHUD();
-    _updateHUD();
-    return hostage;
-  }
-
-  // ── Guard death (called when guard is killed externally) ─────
-  function _killGuard(guard) {
-    if (!guard.alive) return;
-    guard.alive = false;
-    guard.state = 'dead';
-    var sc = _getScene();
-    if (sc && guard.mesh) sc.remove(guard.mesh);
-
-    // Check if hostage is now unguarded
-    var hostage = guard.hostage;
-    if (!hostage) return;
-    var allDead = true;
-    for (var i = 0; i < hostage.guards.length; i++) {
-      if (hostage.guards[i].alive) { allDead = false; break; }
-    }
-    if (allDead) {
-      hostage.guarded = false;
-    }
-  }
-
-  // ── Rescue hostage ──────────────────────────────────────────
-  function _rescueHostage(hostage) {
-    if (hostage.state !== 'captive') return;
-    hostage.state = 'fleeing';
-    hostage.guarded = false;
-    hostage.fleeTimer = HOSTAGE_DESPAWN;
-
-    // Stand up animation — reset rotation.x
-    hostage.mesh.rotation.x = 0;
-    // Arm wave starts
-    hostage.waveAnim = 0;
-
-    _totalRescued++;
-    _addScore(SCORE_RESCUE);
-    _healPlayer(HEAL_AMOUNT);
-    _spawnAmmoCrate(hostage);
-    _playRadioCallout();
-
-    if (window.KillFeedEvents && typeof window.KillFeedEvents.addEvent === 'function') {
-      window.KillFeedEvents.addEvent('HOSTAGE RESCUED +300', '', 'rescue');
-    }
-
-    _updateHUD();
-
-    // Check wave bonus
-    if (_waveActive && _totalRescued >= _totalToRescue) {
-      _triggerWaveBonus();
-    }
-  }
-
-  // ── Kill hostage (stray shot) ────────────────────────────────
-  function _killHostage(hostage) {
-    if (hostage.state !== 'captive') return;
-    hostage.state = 'killed';
-
-    // Red X overlay on hostage mesh
-    var THREE = window.THREE;
-    if (THREE && hostage.mesh) {
-      var mat = new THREE.MeshLambertMaterial({ color: 0xff0000 });
-      hostage.mesh.traverse(function (child) {
-        if (child.isMesh) child.material = mat;
+      hostages.push({
+        mesh: mesh,
+        hp: HOSTAGE_HP,
+        freed: false,
+        following: false,
+        isVIP: isVIP,
+        extracted: false,
+        celebrateTimer: 0,
+        celebrateActive: false,
+        followIndex: i
       });
     }
-
-    _addScore(SCORE_PENALTY);
-    _showWarning('X  CIVILIAN CASUALTY  X', 3.0);
-
-    if (window.KillFeedEvents && typeof window.KillFeedEvents.addEvent === 'function') {
-      window.KillFeedEvents.addEvent('CIVILIAN CASUALTY -500', '', 'penalty');
-    }
-
-    _updateHUD();
-
-    // Remove killed hostage mesh after 3 seconds
-    var sc = _getScene();
-    var h = hostage;
-    setTimeout(function () {
-      if (sc && h.mesh) sc.remove(h.mesh);
-    }, 3000);
   }
 
-  // ── Spawn bonus ammo crate nearby ───────────────────────────
-  function _spawnAmmoCrate(hostage) {
-    var THREE = window.THREE;
-    var sc = _getScene();
-    if (!THREE || !sc) return;
+  // ── Spawn guard patrol ────────────────────────────────────────
 
-    var angle = Math.random() * Math.PI * 2;
-    var r = 2 + Math.random() * 2;
-    var cx = hostage.mesh.position.x + Math.cos(angle) * r;
-    var cz = hostage.mesh.position.z + Math.sin(angle) * r;
-    var cy = hostage.mesh.position.y;
-
-    var geo = new THREE.BoxGeometry(0.6, 0.4, 0.4);
-    var mat = new THREE.MeshLambertMaterial({ color: 0x556b2f });
-    var crate = new THREE.Mesh(geo, mat);
-    crate.position.set(cx, cy + 0.2, cz);
-    sc.add(crate);
-
-    // Register with pickups system if available
-    if (window.Pickups && typeof window.Pickups.registerCrate === 'function') {
-      window.Pickups.registerCrate(crate, 'ammo', 50);
-    }
-
-    // Auto-remove after 30s
-    setTimeout(function () {
-      if (sc) sc.remove(crate);
-    }, 30000);
+  function buildWaypoints(cx, cz) {
+    var r = 8;
+    return [
+      { x: cx + r, z: cz + r },
+      { x: cx - r, z: cz + r },
+      { x: cx - r, z: cz - r },
+      { x: cx + r, z: cz - r }
+    ];
   }
 
-  // ── Wave bonus trigger ───────────────────────────────────────
-  function _triggerWaveBonus() {
-    _addScore(500);
-    var ann = document.getElementById('wave-announce');
-    if (ann) {
-      ann.textContent = 'ALL HOSTAGES RESCUED! +500 BONUS!';
-      ann.style.display = 'block';
-      setTimeout(function () {
-        ann.style.display = '';
-        ann.textContent = '';
-      }, 3000);
+  function spawnGuards(cx, cz) {
+    var scene = getScene();
+    if (!scene) return;
+
+    for (var i = 0; i < NUM_GUARDS; i++) {
+      var mesh = buildGuardMesh();
+      var startAngle = (i / NUM_GUARDS) * Math.PI * 2;
+      var gx = cx + Math.cos(startAngle) * 6;
+      var gz = cz + Math.sin(startAngle) * 6;
+      mesh.position.set(gx, 0, gz);
+      scene.add(mesh);
+
+      var waypoints = buildWaypoints(cx, cz);
+      guards.push({
+        mesh: mesh,
+        waypoints: waypoints,
+        waypointIndex: i % 4,
+        alertState: false,
+        dead: false,
+        stealth: false
+      });
     }
   }
 
-  // ── Check stray shots (called by update) ────────────────────
-  function _checkStrayShots() {
-    // Try to hook into the game's shot-fired signal
-    // We expose notifyShot() as a public call from the game's weapon system
+  function spawnReinforcements(px, pz) {
+    var scene = getScene();
+    if (!scene) return;
+
+    for (var i = 0; i < 3; i++) {
+      var mesh = buildGuardMesh();
+      var angle = Math.random() * Math.PI * 2;
+      var dist2 = 18 + Math.random() * 8;
+      var rx = px + Math.cos(angle) * dist2;
+      var rz = pz + Math.sin(angle) * dist2;
+      mesh.position.set(rx, 0, rz);
+      scene.add(mesh);
+
+      var waypoints = buildWaypoints(clusterCenter.x, clusterCenter.z);
+      var g = {
+        mesh: mesh,
+        waypoints: waypoints,
+        waypointIndex: 0,
+        alertState: true,
+        dead: false,
+        stealth: false
+      };
+      guards.push(g);
+      reinforcements.push(g);
+    }
   }
 
-  // ── Rescue progress update ───────────────────────────────────
-  function _updateRescueInteraction(dt) {
-    var pPos = _getPlayerPos();
-    if (!pPos) return;
+  // ── HUD ───────────────────────────────────────────────────────
 
-    var nearUnguarded = null;
-    for (var i = 0; i < _hostages.length; i++) {
-      var h = _hostages[i];
-      if (h.state !== 'captive') continue;
-      if (h.guarded) continue;
-      if (_dist2D(pPos, h.mesh.position) <= RESCUE_RANGE) {
-        nearUnguarded = h;
-        break;
+  function buildHUD() {
+    if (hudElement) return;
+    hudElement = document.createElement('div');
+    hudElement.id = 'hostage-rescue-hud';
+    hudElement.style.cssText = [
+      'position:fixed',
+      'top:10px',
+      'left:10px',
+      'background:rgba(0,0,0,0.72)',
+      'color:#00FF44',
+      'font-family:monospace',
+      'font-size:13px',
+      'padding:8px 14px',
+      'border:1px solid #00FF44',
+      'border-radius:4px',
+      'z-index:500',
+      'pointer-events:none',
+      'line-height:1.6'
+    ].join(';');
+    document.body.appendChild(hudElement);
+  }
+
+  function destroyHUD() {
+    if (hudElement && hudElement.parentNode) {
+      hudElement.parentNode.removeChild(hudElement);
+    }
+    hudElement = null;
+  }
+
+  function updateHUD() {
+    if (!hudElement) return;
+
+    var freed = 0;
+    for (var i = 0; i < hostages.length; i++) {
+      if (hostages[i].freed || hostages[i].extracted) freed++;
+    }
+
+    var liveGuards = 0;
+    for (var j = 0; j < guards.length; j++) {
+      if (!guards[j].dead) liveGuards++;
+    }
+
+    // Distance to extraction zone
+    var playerPos = getPlayerPos();
+    var extractDist = '?';
+    if (playerPos && extractionZonePos) {
+      var d = dist2D(playerPos, extractionZonePos);
+      extractDist = Math.round(d) + 'm';
+    }
+
+    // Timer MM:SS
+    var secs = Math.max(0, Math.ceil(missionTimer));
+    var mm = Math.floor(secs / 60);
+    var ss = secs % 60;
+    var timerStr = mm + ':' + (ss < 10 ? '0' : '') + ss;
+
+    var alarmStr = alarmActive ? ' ⚠ ALARM' : '';
+    var totalGuards = guards.length;
+
+    hudElement.innerHTML =
+      '<b>RESCUE MISSION' + alarmStr + '</b><br>' +
+      'FREED: ' + freed + '/' + NUM_HOSTAGES + ' &nbsp; ' +
+      'GUARDS: ' + liveGuards + '/' + totalGuards + '<br>' +
+      'EXTRACT: ' + extractDist + ' &nbsp; TIME: ' + timerStr;
+  }
+
+  // ── Mission start ─────────────────────────────────────────────
+
+  function startMission() {
+    if (missionActive) return;
+
+    var playerPos = getPlayerPos();
+    if (!playerPos) return;
+
+    missionActive = true;
+    missionSuccess = false;
+    missionFailed = false;
+    missionTimer = MISSION_TIME;
+    alarmActive = false;
+    alarmTimer = 0;
+    reinforceSpawned = false;
+    stealthKills = 0;
+    anyAlarmEverTriggered = false;
+    hostages = [];
+    guards = [];
+    reinforcements = [];
+
+    var px = playerPos.x;
+    var pz = playerPos.z;
+
+    spawnHostages(px, pz);
+    spawnGuards(clusterCenter.x, clusterCenter.z);
+    extractionZone = buildExtractionZone(px, pz);
+
+    buildHUD();
+
+    if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+      window.KillFeedEvents.push('RESCUE MISSION ACTIVATED — Hostages located');
+    }
+  }
+
+  // ── Trigger alarm ─────────────────────────────────────────────
+
+  function triggerAlarm() {
+    if (alarmActive) return;
+    alarmActive = true;
+    alarmTimer = 0;
+    anyAlarmEverTriggered = true;
+
+    for (var i = 0; i < guards.length; i++) {
+      guards[i].alertState = true;
+    }
+
+    if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+      window.KillFeedEvents.push('!! ALARM — Guards alerted! Radio call-in incoming');
+    }
+  }
+
+  // ── Mission success / fail ────────────────────────────────────
+
+  function endMission(success) {
+    missionActive = false;
+
+    if (success) {
+      missionSuccess = true;
+      var bonus = 0;
+      if (!anyAlarmEverTriggered) {
+        bonus = SCORE_STEALTH_BONUS;
+        addScore(bonus);
+        if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+          window.KillFeedEvents.push('STEALTH BONUS +' + bonus + ' — No alarm triggered!');
+        }
+      }
+      if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+        window.KillFeedEvents.push('MISSION SUCCESS — All hostages extracted!');
+      }
+    } else {
+      missionFailed = true;
+      if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+        window.KillFeedEvents.push('MISSION FAILED');
       }
     }
 
-    // Also check for guarded hostage prompt
-    var nearGuarded = null;
-    if (!nearUnguarded) {
-      for (var j = 0; j < _hostages.length; j++) {
-        var hg = _hostages[j];
-        if (hg.state !== 'captive') continue;
-        if (!hg.guarded) continue;
-        if (_dist2D(pPos, hg.mesh.position) <= RESCUE_RANGE) {
-          nearGuarded = hg;
+    // Show brief HUD result then remove after 5 seconds
+    if (hudElement) {
+      hudElement.innerHTML = success
+        ? '<b style="color:#00FF44">MISSION SUCCESS!</b>'
+        : '<b style="color:#FF2222">MISSION FAILED</b>';
+      var hudRef = hudElement;
+      setTimeout(function () {
+        if (hudRef && hudRef.parentNode) {
+          hudRef.parentNode.removeChild(hudRef);
+        }
+        if (hudElement === hudRef) hudElement = null;
+      }, 5000);
+    }
+  }
+
+  // ── Guard AI update ───────────────────────────────────────────
+
+  function updateGuard(guard, playerPos, dt) {
+    if (guard.dead) return;
+
+    var gp = guard.mesh.position;
+
+    // Detection check
+    if (!alarmActive && playerPos) {
+      var dToPlayer = dist2D(gp, playerPos);
+      if (dToPlayer < DETECT_RANGE) {
+        triggerAlarm();
+      }
+    }
+
+    if (guard.alertState && playerPos) {
+      // Chase player
+      var dx = playerPos.x - gp.x;
+      var dz = playerPos.z - gp.z;
+      var dl = Math.sqrt(dx * dx + dz * dz);
+      if (dl > 0.5) {
+        var speed = CHASE_SPEED * dt;
+        gp.x += (dx / dl) * speed;
+        gp.z += (dz / dl) * speed;
+        guard.mesh.rotation.y = Math.atan2(dx, dz);
+      }
+    } else {
+      // Patrol waypoints
+      var wp = guard.waypoints[guard.waypointIndex];
+      var pdx = wp.x - gp.x;
+      var pdz = wp.z - gp.z;
+      var pdl = Math.sqrt(pdx * pdx + pdz * pdz);
+      if (pdl < 1.0) {
+        guard.waypointIndex = (guard.waypointIndex + 1) % guard.waypoints.length;
+      } else {
+        var pspeed = PATROL_SPEED * dt;
+        gp.x += (pdx / pdl) * pspeed;
+        gp.z += (pdz / pdl) * pspeed;
+        guard.mesh.rotation.y = Math.atan2(pdx, pdz);
+      }
+    }
+  }
+
+  // ── Execute hostage (if alarmed too long) ─────────────────────
+
+  function executeRandomHostage() {
+    for (var i = 0; i < hostages.length; i++) {
+      var h = hostages[i];
+      if (!h.freed && !h.extracted) {
+        h.hp = 0;
+        if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+          window.KillFeedEvents.push('HOSTAGE EXECUTED by guards!');
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ── All guards dead? ──────────────────────────────────────────
+
+  function allGuardsDead() {
+    for (var i = 0; i < guards.length; i++) {
+      if (!guards[i].dead) return false;
+    }
+    return guards.length > 0;
+  }
+
+  // ── Celebrate animation (arms go up) ─────────────────────────
+
+  function startCelebrate(hostage) {
+    if (hostage.celebrateActive) return;
+    hostage.celebrateActive = true;
+    hostage.celebrateTimer = 0;
+    // Immediately raise arms
+    if (hostage.mesh._armL) {
+      hostage.mesh._armL.rotation.z = -1.2;
+      hostage.mesh._armL.position.set(-0.35, 1.1, 0);
+    }
+    if (hostage.mesh._armR) {
+      hostage.mesh._armR.rotation.z = 1.2;
+      hostage.mesh._armR.position.set(0.35, 1.1, 0);
+    }
+  }
+
+  // ── Hostage follow update ─────────────────────────────────────
+
+  function updateHostageFollow(hostage, followOrder, dt) {
+    if (!hostage.following || hostage.extracted) return;
+    var playerPos = getPlayerPos();
+    if (!playerPos) return;
+
+    // Offset behind player
+    var offsetDist = 3 + followOrder * 1.5;
+    // Get a point behind the player (approximate: trail slightly behind)
+    var hp = hostage.mesh.position;
+    var dx = playerPos.x - hp.x;
+    var dz = playerPos.z - hp.z;
+    var dl = Math.sqrt(dx * dx + dz * dz);
+
+    // Target: player position offset back
+    var tx, tz;
+    if (dl > 0.1) {
+      tx = playerPos.x - (dx / dl) * offsetDist;
+      tz = playerPos.z - (dz / dl) * offsetDist;
+    } else {
+      tx = hp.x;
+      tz = hp.z;
+    }
+
+    var tdx = tx - hp.x;
+    var tdz = tz - hp.z;
+    var tdl = Math.sqrt(tdx * tdx + tdz * tdz);
+    if (tdl > 0.2) {
+      var speed = FOLLOW_SPEED * dt;
+      hp.x += (tdx / tdl) * Math.min(speed, tdl);
+      hp.z += (tdz / tdl) * Math.min(speed, tdl);
+    }
+  }
+
+  // ── Kill guard (called by external weapon system) ─────────────
+
+  function killGuard(guardIndex, stealth) {
+    if (guardIndex < 0 || guardIndex >= guards.length) return;
+    var g = guards[guardIndex];
+    if (g.dead) return;
+    g.dead = true;
+    g.mesh.visible = false;
+    if (stealth && !alarmActive) {
+      stealthKills++;
+    }
+    var scene = getScene();
+    if (scene) scene.remove(g.mesh);
+  }
+
+  // ── Main init ─────────────────────────────────────────────────
+
+  function init(sceneRef) {
+    _scene = sceneRef || null;
+    setupKeys();
+  }
+
+  // ── Main update ───────────────────────────────────────────────
+
+  function update(dt) {
+    if (!dt || dt <= 0) dt = 0.016;
+
+    setupKeys();
+
+    var hDown = !!(keyState['KeyH']);
+    var rDown = !!(keyState['KeyR']);
+    var eDown = !!(keyState['KeyE']);
+
+    // H+R together to start mission (edge-detect on release)
+    if (hDown && rDown && !prevHKey && !prevRKey) {
+      if (!missionActive && !missionSuccess) {
+        startMission();
+      }
+    }
+    prevHKey = hDown;
+    prevRKey = rDown;
+
+    var eJustPressed = eDown && !prevEKey;
+    prevEKey = eDown;
+
+    if (!missionActive) return;
+
+    var playerPos = getPlayerPos();
+
+    // ── Mission timer countdown ────────────────────────────────
+    missionTimer -= dt;
+    if (missionTimer <= 0) {
+      endMission(false);
+      return;
+    }
+
+    // ── Alarm timer / reinforcements ───────────────────────────
+    if (alarmActive) {
+      alarmTimer += dt;
+
+      // Spawn reinforcements after 15 seconds
+      if (!reinforceSpawned && alarmTimer >= REINFORCE_DELAY) {
+        reinforceSpawned = true;
+        if (playerPos) {
+          spawnReinforcements(playerPos.x, playerPos.z);
+        }
+        if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+          window.KillFeedEvents.push('REINFORCEMENTS INBOUND — 3 guards called in!');
+        }
+      }
+
+      // Execute hostage if alarmed > 45 seconds
+      if (alarmTimer >= EXECUTE_DELAY) {
+        var killed = executeRandomHostage();
+        if (killed) {
+          alarmTimer = 0; // reset so next execute takes another 45s
+        }
+      }
+    }
+
+    // ── Guard updates ──────────────────────────────────────────
+    for (var gi = 0; gi < guards.length; gi++) {
+      updateGuard(guards[gi], playerPos, dt);
+    }
+
+    // ── Check if all guards dead → auto-free hostages ──────────
+    var guardsAllDead = allGuardsDead();
+    if (guardsAllDead) {
+      for (var hi = 0; hi < hostages.length; hi++) {
+        var h = hostages[hi];
+        if (!h.freed && !h.extracted) {
+          h.freed = true;
+          h.following = true;
+          startCelebrate(h);
+        }
+      }
+    }
+
+    // ── Rescue mechanic: E key near unfree'd hostage ───────────
+    if (eJustPressed && playerPos) {
+      for (var ri = 0; ri < hostages.length; ri++) {
+        var rh = hostages[ri];
+        if (rh.freed || rh.extracted || rh.hp <= 0) continue;
+        var rdist = dist3D(playerPos, rh.mesh.position);
+        if (rdist <= RESCUE_RANGE) {
+          rh.freed = true;
+          rh.following = true;
+          if (rh.isVIP) {
+            addScore(SCORE_VIP_INTEL);
+            if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+              window.KillFeedEvents.push('VIP RESCUED — Intel secured! +' + SCORE_VIP_INTEL);
+            }
+          } else {
+            if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+              window.KillFeedEvents.push('Hostage freed!');
+            }
+          }
+          startCelebrate(rh);
           break;
         }
       }
     }
 
-    if (nearUnguarded) {
-      _promptEl.textContent = '[E] RESCUE HOSTAGE — Hold 2s';
-      _promptEl.style.display = 'block';
+    // ── Hostage follow / extraction check ─────────────────────
+    var followOrder = 0;
+    var allExtracted = true;
+    var anyDead = false;
 
-      if (_eKeyHeld) {
-        _rescueProgress += dt;
-        _rescueTarget = nearUnguarded;
-        var pct = Math.min(100, (_rescueProgress / RESCUE_HOLD_TIME) * 100);
-        var fill = document.getElementById('hostage-rescue-bar-fill');
-        if (fill) fill.style.width = pct + '%';
-        _rescueBarEl.style.display = 'block';
+    for (var fhi = 0; fhi < hostages.length; fhi++) {
+      var fh = hostages[fhi];
 
-        if (_rescueProgress >= RESCUE_HOLD_TIME) {
-          _rescueHostage(nearUnguarded);
-          _rescueProgress = 0;
-          _rescueTarget = null;
-          _rescueBarEl.style.display = 'none';
-          var f2 = document.getElementById('hostage-rescue-bar-fill');
-          if (f2) f2.style.width = '0%';
-          _promptEl.style.display = 'none';
-        }
-      } else {
-        if (_rescueTarget === nearUnguarded) {
-          _rescueProgress = 0;
-          _rescueTarget = null;
-          var f3 = document.getElementById('hostage-rescue-bar-fill');
-          if (f3) f3.style.width = '0%';
-          _rescueBarEl.style.display = 'none';
-        }
-      }
-    } else if (nearGuarded) {
-      _promptEl.textContent = 'ELIMINATE GUARDS TO RESCUE';
-      _promptEl.style.display = 'block';
-      _rescueProgress = 0;
-      _rescueTarget = null;
-      _rescueBarEl.style.display = 'none';
-    } else {
-      _promptEl.style.display = 'none';
-      if (!_eKeyHeld) {
-        _rescueProgress = 0;
-        _rescueTarget = null;
-        _rescueBarEl.style.display = 'none';
-      }
-    }
-  }
-
-  // ── Fleeing hostage animation ────────────────────────────────
-  function _updateFleeingHostage(h, dt) {
-    // Wave arms animation
-    h.waveAnim += dt * 3;
-    var leftHand = h.mesh.children[2];
-    var rightHand = h.mesh.children[3];
-    if (leftHand) leftHand.rotation.z = Math.PI / 2 + Math.sin(h.waveAnim) * 0.6;
-    if (rightHand) rightHand.rotation.z = Math.PI / 2 - Math.sin(h.waveAnim) * 0.6;
-
-    // Move toward map edge (positive Z direction as default)
-    h.mesh.position.z += HOSTAGE_SPEED * dt;
-
-    // Despawn timer
-    h.fleeTimer -= dt;
-    if (h.fleeTimer <= 0) {
-      var sc = _getScene();
-      if (sc) sc.remove(h.mesh);
-      h.state = 'despawned';
-    }
-  }
-
-  // ── Guard AI update ──────────────────────────────────────────
-  function _updateGuard(guard, dt) {
-    if (!guard.alive || guard.state === 'dead') return;
-    var THREE = window.THREE;
-    var pPos = _getPlayerPos();
-
-    if (guard.state === 'patrol') {
-      // Face the hostage
-      guard.patrolAngle += guard.patrolSpeed * dt;
-      var tx = guard.patrolCenter.x + Math.cos(guard.patrolAngle) * guard.patrolRadius;
-      var tz = guard.patrolCenter.z + Math.sin(guard.patrolAngle) * guard.patrolRadius;
-      guard.mesh.position.x = tx;
-      guard.mesh.position.z = tz;
-
-      // Face hostage
-      if (guard.hostage && guard.hostage.mesh) {
-        var hx = guard.hostage.mesh.position.x;
-        var hz = guard.hostage.mesh.position.z;
-        guard.mesh.rotation.y = Math.atan2(tx - hx, tz - hz);
+      // Dead check
+      if (fh.hp <= 0 && !fh.extracted) {
+        anyDead = true;
+        // Remove mesh
+        var fscene = getScene();
+        if (fscene && fh.mesh.parent) fscene.remove(fh.mesh);
+        fh.extracted = true; // mark so we don't reprocess
+        fh.freed = false;
       }
 
-      // Spot player
-      if (pPos) {
-        var d = _dist2D(pPos, guard.mesh.position);
-        if (d < GUARD_SPOT_RANGE) {
-          guard.state = 'engage';
-        }
-      }
-    } else if (guard.state === 'engage') {
-      if (!pPos) { guard.state = 'patrol'; return; }
-      var dx = pPos.x - guard.mesh.position.x;
-      var dz = pPos.z - guard.mesh.position.z;
-      var dist = Math.sqrt(dx * dx + dz * dz);
-
-      // Face player
-      guard.mesh.rotation.y = Math.atan2(dx, dz);
-
-      // Move toward player if more than 4m away
-      if (dist > 4) {
-        var spd = 2.5 * dt;
-        guard.mesh.position.x += (dx / dist) * spd;
-        guard.mesh.position.z += (dz / dist) * spd;
+      if (!fh.extracted && !fh.freed) {
+        allExtracted = false;
       }
 
-      // If player moves out of range, return to patrol
-      if (dist > GUARD_SPOT_RANGE * 1.5) {
-        guard.state = 'patrol';
-      }
-    }
-  }
+      if (!fh.extracted && fh.freed) {
+        // Following
+        updateHostageFollow(fh, followOrder, dt);
+        followOrder++;
 
-  // ── Key listeners ────────────────────────────────────────────
-  function _setupKeyListeners() {
-    document.addEventListener('keydown', function (e) {
-      if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') {
-        _eKeyHeld = true;
-      }
-    });
-    document.addEventListener('keyup', function (e) {
-      if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') {
-        _eKeyHeld = false;
-        _rescueProgress = 0;
-        if (_rescueBarEl) _rescueBarEl.style.display = 'none';
-        var fill = document.getElementById('hostage-rescue-bar-fill');
-        if (fill) fill.style.width = '0%';
-      }
-    });
-  }
-
-  // ── Public: notifyShot — called by weapon system on fire ─────
-  function notifyShot(shotOrigin) {
-    if (!shotOrigin) {
-      var pPos = _getPlayerPos();
-      if (!pPos) return;
-      shotOrigin = pPos;
-    }
-    for (var i = 0; i < _hostages.length; i++) {
-      var h = _hostages[i];
-      if (h.state !== 'captive') continue;
-      if (!h.guarded) continue; // only "unfreed" (guarded) hostages are endangered
-      var d = _dist(shotOrigin, h.mesh.position);
-      if (d <= STRAY_SHOT_RANGE) {
-        _killHostage(h);
-        break;
-      }
-    }
-  }
-
-  // ── Public: spawnForWave ─────────────────────────────────────
-  function spawnForWave(scene, wave) {
-    if (wave < 3) return;  // skip waves 1-2
-
-    var sc = scene || _getScene();
-    if (!sc) return;
-
-    var count = 1 + (Math.random() > 0.5 ? 1 : 0);
-
-    // Pick random spawn positions around map center
-    for (var i = 0; i < count; i++) {
-      var angle = Math.random() * Math.PI * 2;
-      var r = 15 + Math.random() * 20;
-      var x = Math.cos(angle) * r;
-      var z = Math.sin(angle) * r;
-      spawnHostage(sc, x, 0, z);
-    }
-
-    _waveActive = true;
-    _waveTimer = WAVE_TIME_LIMIT;
-  }
-
-  // ── Public: init ─────────────────────────────────────────────
-  function init(scene) {
-    if (_inited) return;
-    _inited = true;
-    _scene = scene || null;
-    _ensureHUD();
-    _setupKeyListeners();
-  }
-
-  // ── Public: update ───────────────────────────────────────────
-  function update(dt) {
-    if (!dt || dt <= 0) return;
-
-    // Warning overlay countdown
-    if (_warnTimer > 0) {
-      _warnTimer -= dt;
-      if (_warnEl) {
-        if (_warnTimer <= 0) {
-          _warnEl.style.display = 'none';
-          _warnTimer = 0;
+        // Extraction zone check
+        if (extractionZonePos) {
+          var edist = dist2D(fh.mesh.position, extractionZonePos);
+          if (edist <= EXTRACT_ZONE_RADIUS) {
+            fh.extracted = true;
+            var escene = getScene();
+            if (escene && fh.mesh.parent) escene.remove(fh.mesh);
+            addScore(200);
+            if (window.KillFeedEvents && typeof window.KillFeedEvents.push === 'function') {
+              window.KillFeedEvents.push('Hostage extracted!');
+            }
+          }
         }
       }
     }
 
-    // Wave timer
-    if (_waveActive && _waveTimer > 0) {
-      _waveTimer -= dt;
-      if (_waveTimer <= 0) {
-        _waveTimer = 0;
-        // Time expired — wave ends without bonus
-      }
+    // ── Mission fail if any hostage died ───────────────────────
+    if (anyDead) {
+      endMission(false);
+      return;
     }
 
-    // Update guards
-    for (var gi = 0; gi < _guards.length; gi++) {
-      _updateGuard(_guards[gi], dt);
+    // ── Mission success: all hostages extracted ────────────────
+    var numExtracted = 0;
+    var numAlive = 0;
+    for (var si = 0; si < hostages.length; si++) {
+      if (hostages[si].extracted && hostages[si].hp > 0) numExtracted++;
+      if (hostages[si].hp > 0) numAlive++;
     }
 
-    // Update hostages
-    for (var hi = 0; hi < _hostages.length; hi++) {
-      var h = _hostages[hi];
-      if (h.state === 'fleeing') {
-        _updateFleeingHostage(h, dt);
-      } else if (h.state === 'captive') {
-        // Gentle breathing bob
-        h.mesh.position.y += Math.sin(Date.now() * 0.002 + hi) * 0.0005;
-      }
+    if (numAlive > 0 && numExtracted >= numAlive) {
+      endMission(true);
+      return;
     }
 
-    // Rescue interaction
-    _updateRescueInteraction(dt);
-
-    // Check if guards died via external systems (HP check)
-    for (var di = 0; di < _guards.length; di++) {
-      var g = _guards[di];
-      if (!g.alive) continue;
-      // Check if guard mesh was removed from scene (killed by game)
-      var sc = _getScene();
-      if (sc && g.mesh && !g.mesh.parent) {
-        _killGuard(g);
-      }
-    }
-
-    // Update HUD
-    _updateHUD();
+    // ── HUD update ────────────────────────────────────────────
+    updateHUD();
   }
 
-  // ── Public: reset ────────────────────────────────────────────
+  // ── Reset ─────────────────────────────────────────────────────
+
   function reset() {
-    var sc = _getScene();
+    missionActive = false;
+    missionSuccess = false;
+    missionFailed = false;
+    alarmActive = false;
+    alarmTimer = 0;
+    reinforceSpawned = false;
+    stealthKills = 0;
+    anyAlarmEverTriggered = false;
+    missionTimer = MISSION_TIME;
 
-    for (var i = 0; i < _hostages.length; i++) {
-      if (sc && _hostages[i].mesh) sc.remove(_hostages[i].mesh);
+    var scene = getScene();
+
+    for (var hi = 0; hi < hostages.length; hi++) {
+      if (scene && hostages[hi].mesh && hostages[hi].mesh.parent) {
+        scene.remove(hostages[hi].mesh);
+      }
     }
-    for (var j = 0; j < _guards.length; j++) {
-      if (sc && _guards[j].mesh) sc.remove(_guards[j].mesh);
+    for (var gi = 0; gi < guards.length; gi++) {
+      if (scene && guards[gi].mesh && guards[gi].mesh.parent) {
+        scene.remove(guards[gi].mesh);
+      }
+    }
+    if (extractionZone && scene && extractionZone.parent) {
+      scene.remove(extractionZone);
     }
 
-    _hostages = [];
-    _guards = [];
-    _totalToRescue = 0;
-    _totalRescued = 0;
-    _waveActive = false;
-    _waveTimer = 0;
-    _eKeyHeld = false;
-    _rescueProgress = 0;
-    _rescueTarget = null;
-    _warnTimer = 0;
+    hostages = [];
+    guards = [];
+    reinforcements = [];
+    extractionZone = null;
+    extractionZonePos = null;
+    clusterCenter = null;
 
-    if (_hudEl) _hudEl.style.display = 'none';
-    if (_rescueBarEl) _rescueBarEl.style.display = 'none';
-    if (_promptEl) _promptEl.style.display = 'none';
-    if (_warnEl) _warnEl.style.display = 'none';
+    destroyHUD();
   }
 
-  // ── Public API ───────────────────────────────────────────────
+  // ── Public API ────────────────────────────────────────────────
+
   return {
     init: init,
     update: update,
-    spawnHostage: spawnHostage,
-    spawnForWave: spawnForWave,
     reset: reset,
-    notifyShot: notifyShot,
-    killGuard: _killGuard
+    killGuard: killGuard,
+    isActive: function () { return missionActive; },
+    getHostages: function () { return hostages; },
+    getGuards: function () { return guards; }
   };
+
 })();

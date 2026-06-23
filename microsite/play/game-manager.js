@@ -1757,6 +1757,10 @@ const GameManager = (function () {
     try { if (window.TunnelNetwork && TunnelNetwork.init) TunnelNetwork.init(_scene, _camera); } catch (e) {}
     try { if (window.MeleeCombat && MeleeCombat.init) MeleeCombat.init(_scene, _camera); } catch (e) {}
     try { if (window.VehicleDamage && VehicleDamage.init) VehicleDamage.init(_scene, _camera); } catch (e) {}
+    // Wave 32 modules
+    try { if (window.SupplyDrop && SupplyDrop.init) SupplyDrop.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageRescue && HostageRescue.init) HostageRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.MapSystem && MapSystem.init) MapSystem.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8306,6 +8310,9 @@ const GameManager = (function () {
       if (window.TunnelNetwork) TunnelNetwork.update(delta);
       if (window.MeleeCombat) MeleeCombat.update(delta);
       if (window.VehicleDamage) VehicleDamage.update(delta);
+      if (window.SupplyDrop) SupplyDrop.update(delta);
+      if (window.HostageRescue) HostageRescue.update(delta);
+      if (window.MapSystem) MapSystem.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
