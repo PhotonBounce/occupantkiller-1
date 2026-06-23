@@ -1680,6 +1680,17 @@ const GameManager = (function () {
     try { if (window.ReconDrone && ReconDrone.init) ReconDrone.init(_scene, _camera); } catch (e) {}
     try { if (window.NightVision && NightVision.init) NightVision.init(_scene, _camera); } catch (e) {}
     try { if (window.AirSupport && AirSupport.init) AirSupport.init(_scene, _camera); } catch (e) {}
+    // Wave 25 modules
+    try { if (window.SatelliteUplink && SatelliteUplink.init) SatelliteUplink.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonerRescue && PrisonerRescue.init) PrisonerRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeEngine && SiegeEngine.init) SiegeEngine.init(_scene, _camera); } catch (e) {}
+    try { if (window.SmokeGrenade && SmokeGrenade.init) SmokeGrenade.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortifiedOutpost && FortifiedOutpost.init) FortifiedOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatKnife && CombatKnife.init) CombatKnife.init(_scene, _camera); } catch (e) {}
+    try { if (window.MinefieldMapper && MinefieldMapper.init) MinefieldMapper.init(_scene, _camera); } catch (e) {}
+    try { if (window.FieldComms && FieldComms.init) FieldComms.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrophySystem && TrophySystem.init) TrophySystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.ExtractionZone && ExtractionZone.init) ExtractionZone.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8157,6 +8168,17 @@ const GameManager = (function () {
       if (window.ReconDrone) ReconDrone.update(delta);
       if (window.NightVision) NightVision.update(delta);
       if (window.AirSupport) AirSupport.update(delta);
+      // Wave 25
+      if (window.SatelliteUplink) SatelliteUplink.update(delta);
+      if (window.PrisonerRescue) PrisonerRescue.update(delta);
+      if (window.SiegeEngine) SiegeEngine.update(delta);
+      if (window.SmokeGrenade) SmokeGrenade.update(delta);
+      if (window.FortifiedOutpost) FortifiedOutpost.update(delta);
+      if (window.CombatKnife) CombatKnife.update(delta);
+      if (window.MinefieldMapper) MinefieldMapper.update(delta);
+      if (window.FieldComms) FieldComms.update(delta);
+      if (window.TrophySystem) TrophySystem.update(delta);
+      if (window.ExtractionZone) ExtractionZone.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
