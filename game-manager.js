@@ -1700,6 +1700,8 @@ const GameManager = (function () {
     try { if (window.CyberWarfare && CyberWarfare.init) CyberWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.AntiAir && AntiAir.init) AntiAir.init(_scene, _camera); } catch (e) {}
     try { if (window.BlackMarket && BlackMarket.init) BlackMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.BallisticCalculator && BallisticCalculator.init) BallisticCalculator.init(_scene, _camera); } catch (e) {}
+    try { if (window.TunnelSystem && TunnelSystem.init) TunnelSystem.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8197,6 +8199,8 @@ const GameManager = (function () {
       if (window.CyberWarfare) CyberWarfare.update(delta);
       if (window.AntiAir) AntiAir.update(delta);
       if (window.BlackMarket) BlackMarket.update(delta);
+      if (window.BallisticCalculator) BallisticCalculator.update(delta);
+      if (window.TunnelSystem) TunnelSystem.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
