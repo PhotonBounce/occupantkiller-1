@@ -1818,6 +1818,10 @@ const GameManager = (function () {
     try { if (window.TankWarfare && TankWarfare.init) TankWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.DesertStorm && DesertStorm.init) DesertStorm.init(_scene, _camera); } catch (e) {}
     try { if (window.RefugeeConvoy && RefugeeConvoy.init) RefugeeConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackOpsExtraction && BlackOpsExtraction.init) BlackOpsExtraction.init(_scene, _camera); } catch (e) {}
+    try { if (window.ZeroGravityCombat && ZeroGravityCombat.init) ZeroGravityCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.DroneRacing && DroneRacing.init) DroneRacing.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateShipBattle && PirateShipBattle.init) PirateShipBattle.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8427,6 +8431,10 @@ const GameManager = (function () {
       if (window.TankWarfare) TankWarfare.update(delta);
       if (window.DesertStorm) DesertStorm.update(delta);
       if (window.RefugeeConvoy) RefugeeConvoy.update(delta);
+      if (window.BlackOpsExtraction) BlackOpsExtraction.update(delta);
+      if (window.ZeroGravityCombat) ZeroGravityCombat.update(delta);
+      if (window.DroneRacing) DroneRacing.update(delta);
+      if (window.PirateShipBattle) PirateShipBattle.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
