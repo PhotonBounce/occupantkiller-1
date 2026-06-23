@@ -1623,6 +1623,16 @@ const GameManager = (function () {
     try { if (window.ArtilleryBarrage && ArtilleryBarrage.init) ArtilleryBarrage.init(_scene, _camera); } catch (e) {}
     try { if (window.RiotShieldPickup && RiotShieldPickup.init) RiotShieldPickup.init(_scene, _camera); } catch (e) {}
     try { if (window.ScoreMultiplier && ScoreMultiplier.init) ScoreMultiplier.init(); } catch (e) {}
+    try { if (window.HeliExtraction && HeliExtraction.init) HeliExtraction.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemicalWarfare && ChemicalWarfare.init) ChemicalWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemyTankDestroyer && EnemyTankDestroyer.init) EnemyTankDestroyer.init(_scene, _camera); } catch (e) {}
+    try { if (window.FlashbangSystem && FlashbangSystem.init) FlashbangSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemyEngineer && EnemyEngineer.init) EnemyEngineer.init(_scene, _camera); } catch (e) {}
+    try { if (window.RappellingSystem && RappellingSystem.init) RappellingSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.BulletCam && BulletCam.init) BulletCam.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReconDrone && ReconDrone.init) ReconDrone.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerBuster && BunkerBuster.init) BunkerBuster.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalMap && TacticalMap.init) TacticalMap.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8044,6 +8054,16 @@ const GameManager = (function () {
       if (window.ArtilleryBarrage) ArtilleryBarrage.update(delta);
       if (window.RiotShieldPickup) RiotShieldPickup.update(delta);
       if (window.ScoreMultiplier) ScoreMultiplier.update(delta);
+      if (window.HeliExtraction) HeliExtraction.update(delta);
+      if (window.ChemicalWarfare) ChemicalWarfare.update(delta);
+      if (window.EnemyTankDestroyer) EnemyTankDestroyer.update(delta);
+      if (window.FlashbangSystem) FlashbangSystem.update(delta);
+      if (window.EnemyEngineer) EnemyEngineer.update(delta);
+      if (window.RappellingSystem) RappellingSystem.update(delta);
+      if (window.BulletCam) BulletCam.update(delta);
+      if (window.ReconDrone) ReconDrone.update(delta);
+      if (window.BunkerBuster) BunkerBuster.update(delta);
+      if (window.TacticalMap) TacticalMap.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
