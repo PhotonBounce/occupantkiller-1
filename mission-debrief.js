@@ -1,411 +1,415 @@
-/* ─────────────────────────────────────────────────────────────────────────
-   mission-debrief.js  —  Animated post-mission stats and grade screen
-   Shown after a stage is cleared, before the next-level transition.
-   API:  MissionDebrief.init()
-         MissionDebrief.show(stats, onContinue)
-         MissionDebrief.hide()
-   ───────────────────────────────────────────────────────────────────────── */
-window.MissionDebrief = (function () {
+window.MissionDebrief = (function() {
   'use strict';
 
-  /* ── Module-level vars ──────────────────────────────────────────────── */
-  var _el           = null;   // root overlay element
-  var _countdownId  = null;   // auto-advance interval
-  var _onContinue   = null;   // callback from show()
-  var _visible      = false;
-  var _countdownSec = 12;
+  var _overlay = null;
+  var _visible = false;
+  var _animFrames = [];
+  var _currentWave = 0;
+  var STORAGE_KEY = 'okk_debrief_v1';
 
-  /* ── Medal definitions ──────────────────────────────────────────────── */
-  var MEDAL_LABELS = {
-    SHARPSHOOTER: { icon: '🎯', label: 'SHARPSHOOTER' },
-    IRON_WILL:    { icon: '🛡', label: 'IRON WILL'    },
-    GHOST:        { icon: '👻', label: 'GHOST'         },
-    HEADHUNTER:   { icon: '💀', label: 'HEADHUNTER'   },
-    SPEEDRUN:     { icon: '⚡', label: 'SPEED RUN'     },
-    BERSERKER:    { icon: '🔥', label: 'BERSERKER'    },
-  };
-
-  /* ── Grade calculation ───────────────────────────────────────────────── */
-  function calcGrade(stats) {
-    var acc      = stats.accuracy || 0;
-    var kills    = stats.kills    || 0;
-    var total    = stats.totalEnemies || kills;
-    var headshots = stats.headshots || 0;
-    var hsPct    = kills > 0 ? headshots / kills : 0;
-
-    if (acc >= 80 && kills >= total && hsPct >= 0.20) return 'S';
-    if (acc >= 65 || hsPct >= 0.15)                   return 'A';
-    if (acc >= 50)                                     return 'B';
-    if (acc >= 35)                                     return 'C';
-    return 'D';
-  }
-
-  var GRADE_STARS = { S: 5, A: 4, B: 3, C: 2, D: 1 };
-  var GRADE_COLOR = { S: '#ffe066', A: '#88ff88', B: '#66ccff', C: '#ffaa44', D: '#ff6666' };
-
-  function starsHtml(n) {
-    var s = '';
-    for (var i = 0; i < 5; i++) {
-      s += '<span style="color:' + (i < n ? '#ffd700' : '#444') + ';font-size:1.2em;">★</span>';
-    }
-    return s;
-  }
-
-  /* ── Time formatter ─────────────────────────────────────────────────── */
-  function fmtTime(sec) {
-    var s = Math.floor(sec || 0);
-    var m = Math.floor(s / 60);
-    var rs = s % 60;
-    return (m < 10 ? '0' : '') + m + ':' + (rs < 10 ? '0' : '') + rs;
-  }
-
-  /* ── Animated counter (counts from 0 to target over ~350 ms) ────────── */
-  function animateCount(el, target, suffix, duration) {
-    var start   = performance.now();
-    var dur     = duration || 350;
-    var tgt     = target || 0;
-    var suf     = suffix || '';
-
-    function tick(now) {
-      var elapsed = now - start;
-      var prog    = Math.min(elapsed / dur, 1);
-      var eased   = 1 - Math.pow(1 - prog, 3);   // ease-out cubic
-      var cur     = Math.round(eased * tgt);
-      el.textContent = cur + suf;
-      if (prog < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-
-  /* ── Progress bar fill ──────────────────────────────────────────────── */
-  function animateBar(barEl, pct, delay) {
-    setTimeout(function () {
-      barEl.style.transition = 'width 400ms ease-out';
-      barEl.style.width = Math.min(100, pct) + '%';
-    }, delay || 0);
-  }
-
-  /* ── Audio: star ping (Web Audio API oscillator) ────────────────────── */
-  function playStarPing() {
+  // ── Audio helpers ──────────────────────────────────────────────────────────
+  function _playFanfare(grade) {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type      = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.18, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.5);
-    } catch (e) { /* audio unavailable */ }
-  }
 
-  /* ── Build stat card HTML ───────────────────────────────────────────── */
-  function statCardHtml(id, iconHtml, label, value, pct) {
-    return '<div class="md-card" id="md-card-' + id + '" style="' +
-      'border:1px solid #4a6a2a;background:rgba(20,40,10,0.6);padding:16px;' +
-      'border-radius:4px;min-width:160px;flex:1;opacity:0;' +
-      'transition:opacity 200ms ease-in;">' +
-      '<div style="font-size:10px;letter-spacing:2px;color:#8aab44;margin-bottom:6px;">' + label + '</div>' +
-      '<div style="font-size:1.6em;font-weight:bold;color:#e8e0c0;" id="md-val-' + id + '">' + iconHtml + ' 0</div>' +
-      '<div style="margin-top:8px;height:4px;background:#1a2a0a;border-radius:2px;">' +
-        '<div id="md-bar-' + id + '" style="height:4px;background:#6aaa22;width:0%;border-radius:2px;"></div>' +
-      '</div>' +
-    '</div>';
-  }
-
-  /* ── Build the full debrief DOM ─────────────────────────────────────── */
-  function buildDom(stats, grade) {
-    var levelName = (stats.levelName || 'UNKNOWN').toUpperCase();
-    var numStars  = GRADE_STARS[grade] || 1;
-    var gradeCol  = GRADE_COLOR[grade] || '#e8e0c0';
-
-    /* Medals */
-    var medals = stats.medals || window._lastWaveMedals || [];
-    var medalsHtml = '';
-    if (medals.length > 0) {
-      var chips = '';
-      for (var mi = 0; mi < medals.length; mi++) {
-        var key = medals[mi].replace(/\s+/g, '_').toUpperCase();
-        var def = MEDAL_LABELS[key] || { icon: '🎖', label: key };
-        chips += '<span style="display:inline-flex;align-items:center;gap:4px;' +
-          'border:1px solid #6a8a2a;background:rgba(40,60,10,0.7);' +
-          'padding:4px 10px;border-radius:3px;font-size:11px;letter-spacing:1px;color:#ccee88;margin:3px;">' +
-          def.icon + ' ' + def.label + '</span>';
+      function beep(freq, start, dur, gain) {
+        var osc = ctx.createOscillator();
+        var env = ctx.createGain();
+        osc.connect(env);
+        env.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'triangle';
+        env.gain.setValueAtTime(0, ctx.currentTime + start);
+        env.gain.linearRampToValueAtTime(gain, ctx.currentTime + start + 0.02);
+        env.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur + 0.05);
       }
-      medalsHtml = '<div id="md-medals" style="margin-top:18px;opacity:0;transition:opacity 300ms;">' +
-        '<div style="font-size:10px;letter-spacing:2px;color:#8aab44;margin-bottom:8px;">MEDALS EARNED</div>' +
-        '<div>' + chips + '</div>' +
+
+      if (grade === 'S' || grade === 'A') {
+        // A-chord arpeggio: A4 C#5 E5 A5
+        beep(440,  0.0,  0.18, 0.3);
+        beep(554,  0.12, 0.18, 0.3);
+        beep(659,  0.24, 0.18, 0.3);
+        beep(880,  0.36, 0.35, 0.35);
+      } else if (grade === 'B' || grade === 'C') {
+        // Neutral two-note resolve
+        beep(392,  0.0,  0.15, 0.25);
+        beep(440,  0.18, 0.25, 0.25);
+      } else {
+        // Minor descending: D4 A3 F3
+        beep(294,  0.0,  0.2,  0.25);
+        beep(220,  0.22, 0.2,  0.25);
+        beep(175,  0.44, 0.3,  0.2);
+      }
+    } catch (e) {
+      // Audio unavailable — silently ignore
+    }
+  }
+
+  // ── Grade calculation ──────────────────────────────────────────────────────
+  function _calcGrade(kills, accuracy, civilianPenalty) {
+    var score = 0;
+
+    // Kills component (max 40 pts)
+    score += Math.min(40, kills * 2);
+
+    // Accuracy component (max 40 pts) — accuracy is 0-100
+    score += Math.min(40, accuracy * 0.4);
+
+    // Civilian penalty (up to -30 pts)
+    score -= civilianPenalty * 5;
+
+    score = Math.max(0, score);
+
+    if (score >= 95)  return 'S';
+    if (score >= 80)  return 'A';
+    if (score >= 65)  return 'B';
+    if (score >= 50)  return 'C';
+    if (score >= 35)  return 'D';
+    return 'F';
+  }
+
+  function _gradeColor(grade) {
+    var map = { S: '#ffd700', A: '#00ff88', B: '#4499ff', C: '#ffdd00', D: '#ff8800', F: '#ff2222' };
+    return map[grade] || '#ffffff';
+  }
+
+  function _gradeGlow(grade) {
+    var c = _gradeColor(grade);
+    return '0 0 12px ' + c + ', 0 0 30px ' + c;
+  }
+
+  function _stars(grade) {
+    var n = (grade === 'S' || grade === 'A') ? 3 : (grade === 'B' || grade === 'C') ? 2 : 1;
+    var filled = '';
+    var empty  = '';
+    var i;
+    for (i = 0; i < n; i++)     filled += '&#9733;';
+    for (i = n; i < 3; i++)     empty  += '&#9734;';
+    return '<span style="color:#ffd700;text-shadow:0 0 8px #ffd700;">' + filled + '</span>' +
+           '<span style="color:#444;">' + empty + '</span>';
+  }
+
+  // ── localStorage helpers ───────────────────────────────────────────────────
+  function _loadBest() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    } catch (e) { return {}; }
+  }
+
+  function _saveBest(wave, grade) {
+    var RANK = { S:6, A:5, B:4, C:3, D:2, F:1 };
+    try {
+      var data = _loadBest();
+      if (!data[wave] || RANK[grade] > RANK[data[wave]]) {
+        data[wave] = grade;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
+    } catch (e) {}
+  }
+
+  // ── Animated counter ───────────────────────────────────────────────────────
+  function _animateCounter(el, target, duration, suffix) {
+    suffix = suffix || '';
+    var start = null;
+    var from = 0;
+    function step(ts) {
+      if (!start) start = ts;
+      var pct = Math.min((ts - start) / duration, 1);
+      // ease-out cubic
+      var eased = 1 - Math.pow(1 - pct, 3);
+      el.textContent = Math.round(from + (target - from) * eased) + suffix;
+      if (pct < 1) {
+        _animFrames.push(requestAnimationFrame(step));
+      }
+    }
+    _animFrames.push(requestAnimationFrame(step));
+  }
+
+  // ── Format time ───────────────────────────────────────────────────────────
+  function _fmtTime(seconds) {
+    seconds = Math.round(seconds || 0);
+    var m = Math.floor(seconds / 60);
+    var s = seconds % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  // ── Build overlay DOM ──────────────────────────────────────────────────────
+  function _buildOverlay(waveNum, stats) {
+    var div = document.createElement('div');
+    div.id = 'mission-debrief-overlay';
+    div.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'width:100%', 'height:100%',
+      'background:rgba(0,0,0,0.88)', 'z-index:99999',
+      'display:flex', 'align-items:center', 'justify-content:center',
+      'font-family:monospace', 'color:#e0e0e0'
+    ].join(';');
+
+    var kills        = stats.kills        || 0;
+    var headshots    = stats.headshots    || 0;
+    var shotsFired   = stats.shotsFired   || 0;
+    var shotsHit     = stats.shotsHit     || 0;
+    var civAlive     = stats.civiliansAlive != null ? stats.civiliansAlive : 0;
+    var civDead      = stats.civsDead     || 0;
+    var duration     = stats.duration     || 0;
+    var baseScore    = stats.baseScore    || 0;
+    var objCount     = stats.objectivesCompleted || 0;
+
+    var accuracy     = shotsFired > 0 ? Math.round((shotsHit / shotsFired) * 100) : 0;
+    var waveBonus    = waveNum * 50;
+    var headshotBonus = headshots * 25;
+    var civPenalty   = civDead * 100;
+    var total        = Math.max(0, baseScore + waveBonus + headshotBonus - civPenalty);
+
+    var grade        = _calcGrade(kills, accuracy, civDead);
+    var gradeColor   = _gradeColor(grade);
+    var gradeGlow    = _gradeGlow(grade);
+
+    // Persist
+    _saveBest(waveNum, grade);
+    window._lastDebriefGrade = grade;
+
+    var bestData = _loadBest();
+    var bestGrade = bestData[waveNum] || grade;
+
+    // Card container
+    var card = document.createElement('div');
+    card.style.cssText = [
+      'background:#0a0a0f',
+      'border:1px solid #333',
+      'border-top:3px solid #cc2200',
+      'padding:32px 40px',
+      'min-width:460px',
+      'max-width:560px',
+      'width:90vw',
+      'box-shadow:0 0 40px rgba(200,0,0,0.25)',
+      'position:relative'
+    ].join(';');
+
+    // Header
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'text-align:center;margin-bottom:24px;border-bottom:1px solid #222;padding-bottom:18px;';
+    hdr.innerHTML =
+      '<div style="font-size:11px;letter-spacing:6px;color:#666;margin-bottom:6px;">AFTER ACTION REPORT</div>' +
+      '<div style="font-size:28px;font-weight:bold;color:#cc2200;letter-spacing:4px;text-shadow:0 0 16px #cc2200;">MISSION DEBRIEF</div>' +
+      '<div style="font-size:15px;color:#cc8800;letter-spacing:3px;margin-top:8px;">WAVE ' + waveNum + ' COMPLETE</div>';
+    card.appendChild(hdr);
+
+    // Grade + stars row
+    var gradeRow = document.createElement('div');
+    gradeRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;';
+    gradeRow.innerHTML =
+      '<div>' +
+        '<div style="font-size:11px;letter-spacing:3px;color:#555;margin-bottom:4px;">PERFORMANCE</div>' +
+        '<div id="mdb-grade" style="font-size:72px;font-weight:bold;color:' + gradeColor + ';' +
+          'text-shadow:' + gradeGlow + ';line-height:1;">' + grade + '</div>' +
+        '<div style="font-size:11px;color:#444;margin-top:4px;">BEST: ' + bestGrade + '</div>' +
+      '</div>' +
+      '<div style="text-align:right;">' +
+        '<div style="font-size:11px;letter-spacing:3px;color:#555;margin-bottom:8px;">RATING</div>' +
+        '<div style="font-size:32px;letter-spacing:4px;">' + _stars(grade) + '</div>' +
+      '</div>';
+    card.appendChild(gradeRow);
+
+    // Stats table
+    var statsDiv = document.createElement('div');
+    statsDiv.style.cssText = 'border:1px solid #1a1a1a;background:#050508;padding:16px;margin-bottom:20px;';
+
+    function statRow(label, id, val, suffix) {
+      return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #111;">' +
+        '<span style="color:#888;letter-spacing:2px;font-size:12px;">' + label + '</span>' +
+        '<span id="' + id + '" style="color:#e0e0e0;font-size:13px;">' + val + (suffix||'') + '</span>' +
         '</div>';
     }
 
-    /* Typewriter placeholder (filled by JS) */
-    var html =
-      '<div style="max-width:660px;width:90%;padding:32px 28px;' +
-        'border:1px solid #3a5a1a;background:rgba(8,18,4,0.95);border-radius:6px;">' +
+    statsDiv.innerHTML =
+      '<div style="font-size:10px;letter-spacing:4px;color:#444;margin-bottom:8px;">STATISTICS</div>' +
+      statRow('ENEMIES KILLED',     'mdb-kills',      0) +
+      statRow('HEADSHOTS',          'mdb-headshots',  0) +
+      statRow('ACCURACY',           'mdb-accuracy',   0, '%') +
+      statRow('CIVILIANS SAFE',     'mdb-civsafe',    0) +
+      statRow('TIME',               'mdb-time',       '00:00') +
+      (objCount > 0 ? statRow('OBJECTIVES COMPLETED', 'mdb-obj', 0) : '');
+    card.appendChild(statsDiv);
 
-        /* Header */
-        '<div id="md-header" style="text-align:center;opacity:0;transform:translateY(-30px);' +
-          'transition:opacity 400ms,transform 400ms;">' +
-          '<div style="font-size:11px;letter-spacing:4px;color:#8aab44;margin-bottom:4px;">🎖</div>' +
-          '<div style="font-size:2em;font-weight:bold;letter-spacing:6px;color:#ccff88;' +
-            'text-shadow:0 0 18px rgba(100,255,60,0.5);">MISSION COMPLETE</div>' +
-          '<div style="height:1px;background:linear-gradient(90deg,transparent,#4a8a1a,transparent);' +
-            'margin:14px 0;"></div>' +
-        '</div>' +
+    // Score breakdown
+    var scoreDiv = document.createElement('div');
+    scoreDiv.style.cssText = 'border:1px solid #1a1a1a;background:#050508;padding:16px;margin-bottom:20px;';
+    scoreDiv.innerHTML =
+      '<div style="font-size:10px;letter-spacing:4px;color:#444;margin-bottom:8px;">SCORE BREAKDOWN</div>' +
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;">' +
+        '<span style="color:#666;font-size:12px;">BASE SCORE</span>' +
+        '<span style="color:#aaa;font-size:12px;">' + baseScore + '</span>' +
+      '</div>' +
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;">' +
+        '<span style="color:#666;font-size:12px;">WAVE BONUS (x' + waveNum + ')</span>' +
+        '<span style="color:#44ff88;font-size:12px;">+' + waveBonus + '</span>' +
+      '</div>' +
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;">' +
+        '<span style="color:#666;font-size:12px;">HEADSHOT BONUS</span>' +
+        '<span style="color:#44ff88;font-size:12px;">+' + headshotBonus + '</span>' +
+      '</div>' +
+      (civPenalty > 0 ?
+        '<div style="display:flex;justify-content:space-between;padding:4px 0;">' +
+          '<span style="color:#666;font-size:12px;">CIVILIAN PENALTY</span>' +
+          '<span style="color:#ff4444;font-size:12px;">-' + civPenalty + '</span>' +
+        '</div>' : '') +
+      '<div style="border-top:1px solid #333;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;">' +
+        '<span style="color:#cc8800;font-size:13px;letter-spacing:2px;">&gt;&gt;&gt; TOTAL</span>' +
+        '<span id="mdb-total" style="color:#ffffff;font-size:15px;font-weight:bold;">0</span>' +
+      '</div>';
+    card.appendChild(scoreDiv);
 
-        /* Operation name (typewriter target) */
-        '<div id="md-opname" style="font-size:11px;letter-spacing:3px;color:#aac860;' +
-          'text-align:center;margin-bottom:22px;min-height:18px;"></div>' +
+    // Buttons
+    var btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:12px;justify-content:center;';
 
-        /* Stat cards grid */
-        '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">' +
-          statCardHtml('kills',  '🔫', 'ELIMINATIONS', stats.kills, stats.kills > 0 ? 100 : 0) +
-          statCardHtml('acc',    '🎯', 'ACCURACY',     stats.accuracy, stats.accuracy) +
-        '</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">' +
-          statCardHtml('hs',     '💀', 'HEADSHOTS',    stats.headshots, stats.kills > 0 ? Math.round(stats.headshots / stats.kills * 100) : 0) +
-          statCardHtml('time',   '⏱', 'TIME',         stats.timeSeconds, 100) +
-        '</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">' +
-          statCardHtml('score',  '💰', 'SCORE',        stats.score, 100) +
-          /* Grade card */
-          '<div class="md-card" id="md-card-grade" style="' +
-            'border:1px solid #4a6a2a;background:rgba(20,40,10,0.6);padding:16px;' +
-            'border-radius:4px;min-width:160px;flex:1;opacity:0;' +
-            'transition:opacity 200ms ease-in;">' +
-            '<div style="font-size:10px;letter-spacing:2px;color:#8aab44;margin-bottom:6px;">GRADE</div>' +
-            '<div id="md-grade-val" style="font-size:1.6em;font-weight:bold;color:' + gradeCol + ';opacity:0;transition:opacity 400ms;">' +
-              starsHtml(numStars) + ' <span style="font-size:1.3em;">' + grade + '</span>' +
-            '</div>' +
-            '<div style="margin-top:8px;height:4px;background:#1a2a0a;border-radius:2px;">' +
-              '<div id="md-bar-grade" style="height:4px;background:' + gradeCol + ';width:0%;border-radius:2px;"></div>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-
-        medalsHtml +
-
-        /* Continue button */
-        '<div style="text-align:center;margin-top:22px;">' +
-          '<button id="md-continue" style="' +
-            'border:2px solid #88aa44;color:#ccff88;background:transparent;' +
-            'font-family:Courier New,monospace;font-size:13px;letter-spacing:3px;' +
-            'padding:12px 40px;cursor:pointer;border-radius:3px;' +
-            'transition:background 200ms;outline:none;opacity:0;' +
-            'animation:md-pulse 1.8s ease-in-out infinite;"' +
-            '>CONTINUE (12)</button>' +
-        '</div>' +
-
-      '</div>';  /* end panel */
-
-    _el.innerHTML = '<style>' +
-      '@keyframes md-pulse{0%,100%{box-shadow:0 0 0 0 rgba(136,170,68,0);}50%{box-shadow:0 0 0 8px rgba(136,170,68,0.25);}}' +
-      '#md-continue:hover{background:rgba(80,120,20,0.6);}' +
-      '</style>' + html;
-  }
-
-  /* ── Typewriter animation ───────────────────────────────────────────── */
-  function typeWrite(el, text, msPerChar, cb) {
-    var i   = 0;
-    var txt = text || '';
-    el.textContent = '';
-    function step() {
-      if (i < txt.length) {
-        el.textContent += txt[i];
-        i++;
-        setTimeout(step, msPerChar || 40);
-      } else {
-        if (typeof cb === 'function') cb();
-      }
-    }
-    step();
-  }
-
-  /* ── Run the animation sequence ─────────────────────────────────────── */
-  function runSequence(stats, grade) {
-    var levelName = 'OPERATION: ' + (stats.levelName || 'UNKNOWN').toUpperCase();
-
-    /* 0.0s  Fade-in overlay */
-    _el.style.opacity = '0';
-    _el.style.transition = 'opacity 400ms';
-    _el.style.display = 'flex';
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        _el.style.opacity = '1';
-      });
-    });
-
-    /* 0.4s  Header slides down */
-    setTimeout(function () {
-      var hdr = document.getElementById('md-header');
-      if (hdr) {
-        hdr.style.opacity = '1';
-        hdr.style.transform = 'translateY(0)';
-      }
-    }, 400);
-
-    /* 0.8s  Typewriter for operation name */
-    setTimeout(function () {
-      var opEl = document.getElementById('md-opname');
-      if (opEl) typeWrite(opEl, levelName, 40);
-    }, 800);
-
-    /* 1.5s  Stat cards animate in one by one */
-    var CARD_IDS  = ['kills', 'acc', 'hs', 'time', 'score'];
-    var CARD_VALS = [
-      stats.kills    || 0,
-      stats.accuracy || 0,
-      stats.headshots || 0,
-      stats.timeSeconds || 0,
-      stats.score    || 0
-    ];
-    var CARD_SUFX = ['', '%', '', '', ''];
-    var CARD_PCTS = [
-      stats.kills > 0 ? 100 : 0,
-      stats.accuracy || 0,
-      stats.kills > 0 ? Math.round((stats.headshots / stats.kills) * 100) : 0,
-      100,
-      100
-    ];
-
-    for (var ci = 0; ci < CARD_IDS.length; ci++) {
-      (function (idx) {
-        setTimeout(function () {
-          var card = document.getElementById('md-card-' + CARD_IDS[idx]);
-          var valEl = document.getElementById('md-val-' + CARD_IDS[idx]);
-          var barEl = document.getElementById('md-bar-' + CARD_IDS[idx]);
-          if (card) card.style.opacity = '1';
-          if (valEl) {
-            /* Time card: show formatted time instead of counter */
-            if (CARD_IDS[idx] === 'time') {
-              animateCount(valEl, CARD_VALS[idx], 's', 350);
-              setTimeout(function () {
-                if (valEl) valEl.textContent = '⏱ ' + fmtTime(CARD_VALS[idx]);
-              }, 380);
-            } else {
-              var pfx = (CARD_IDS[idx] === 'score') ? '💰 ' :
-                        (CARD_IDS[idx] === 'kills') ? '🔫 ' :
-                        (CARD_IDS[idx] === 'hs')    ? '💀 ' :
-                        (CARD_IDS[idx] === 'acc')   ? '🎯 ' : '';
-              animateCount(valEl, CARD_VALS[idx], CARD_SUFX[idx], 350);
-              setTimeout(function (p) {
-                return function () {
-                  if (valEl) valEl.textContent = p + CARD_VALS[idx] + CARD_SUFX[idx];
-                };
-              }(pfx), 380);
-            }
-          }
-          if (barEl) animateBar(barEl, CARD_PCTS[idx], 50);
-        }, 1500 + idx * 200);
-      })(ci);
-    }
-
-    /* 2.5s  Grade card */
-    setTimeout(function () {
-      var card = document.getElementById('md-card-grade');
-      if (card) card.style.opacity = '1';
-      setTimeout(function () {
-        var gv = document.getElementById('md-grade-val');
-        var gb = document.getElementById('md-bar-grade');
-        if (gv) gv.style.opacity = '1';
-        if (gb) animateBar(gb, 100, 0);
-        playStarPing();
-      }, 150);
-    }, 2500);
-
-    /* 3.0s  Medals row */
-    setTimeout(function () {
-      var med = document.getElementById('md-medals');
-      if (med) med.style.opacity = '1';
-    }, 3000);
-
-    /* 3.5s  Continue button pulses in + start countdown */
-    setTimeout(function () {
-      var btn = document.getElementById('md-continue');
-      if (btn) {
-        btn.style.opacity = '1';
-        btn.addEventListener('click', _onContinueFired);
-      }
-      startCountdown();
-    }, 3500);
-  }
-
-  /* ── Continue button click + auto-advance ───────────────────────────── */
-  function _onContinueFired() {
-    hide();
-    if (typeof _onContinue === 'function') {
-      var cb = _onContinue;
-      _onContinue = null;
-      cb();
-    }
-  }
-
-  function startCountdown() {
-    var remaining = _countdownSec;
-    if (_countdownId) clearInterval(_countdownId);
-    _countdownId = setInterval(function () {
-      remaining--;
-      var btn = document.getElementById('md-continue');
-      if (btn) btn.textContent = 'CONTINUE (' + Math.max(0, remaining) + ')';
-      if (remaining <= 0) {
-        clearInterval(_countdownId);
-        _countdownId = null;
-        _onContinueFired();
-      }
-    }, 1000);
-  }
-
-  /* ── Public API ─────────────────────────────────────────────────────── */
-
-  function init() {
-    if (_el) return;   /* already initialised */
-    _el = document.createElement('div');
-    _el.id = 'missionDebrief';
-    _el.style.cssText = [
-      'position:fixed', 'top:0', 'left:0', 'width:100%', 'height:100%',
-      'background:rgba(0,0,0,0.9)',
-      'display:none', 'z-index:1000',
-      'font-family:Courier New,monospace', 'color:#e8e0c0',
-      'flex-direction:column', 'align-items:center', 'justify-content:center',
-      'overflow-y:auto'
+    var btnStyle = [
+      'font-family:monospace', 'font-size:13px', 'letter-spacing:3px',
+      'padding:10px 28px', 'border:1px solid', 'cursor:pointer',
+      'background:transparent', 'transition:all 0.15s'
     ].join(';');
-    document.body.appendChild(_el);
+
+    var continueBtn = document.createElement('button');
+    continueBtn.id = 'mdb-btn-continue';
+    continueBtn.style.cssText = btnStyle + ';color:#00ff88;border-color:#00ff88;';
+    continueBtn.textContent = '[ CONTINUE ]';
+    continueBtn.onmouseenter = function() { this.style.background = '#00ff8833'; };
+    continueBtn.onmouseleave = function() { this.style.background = 'transparent'; };
+    continueBtn.onclick = function() { _onContinue(); };
+
+    var retryBtn = document.createElement('button');
+    retryBtn.id = 'mdb-btn-retry';
+    retryBtn.style.cssText = btnStyle + ';color:#ff8844;border-color:#ff8844;';
+    retryBtn.textContent = '[ RETRY ]';
+    retryBtn.onmouseenter = function() { this.style.background = '#ff884433'; };
+    retryBtn.onmouseleave = function() { this.style.background = 'transparent'; };
+    retryBtn.onclick = function() { _onRetry(); };
+
+    btnRow.appendChild(continueBtn);
+    btnRow.appendChild(retryBtn);
+    card.appendChild(btnRow);
+
+    div.appendChild(card);
+
+    // Animate counters after DOM insertion (deferred)
+    setTimeout(function() {
+      var killEl   = document.getElementById('mdb-kills');
+      var hsEl     = document.getElementById('mdb-headshots');
+      var accEl    = document.getElementById('mdb-accuracy');
+      var civEl    = document.getElementById('mdb-civsafe');
+      var timeEl   = document.getElementById('mdb-time');
+      var objEl    = document.getElementById('mdb-obj');
+      var totalEl  = document.getElementById('mdb-total');
+
+      var DUR = 1500;
+      if (killEl)  _animateCounter(killEl,  kills,      DUR);
+      if (hsEl)    _animateCounter(hsEl,    headshots,  DUR);
+      if (accEl)   _animateCounter(accEl,   accuracy,   DUR, '%');
+      if (civEl)   _animateCounter(civEl,   civAlive,   DUR);
+      if (totalEl) _animateCounter(totalEl, total,      DUR);
+
+      if (objEl && objCount > 0) _animateCounter(objEl, objCount, DUR);
+
+      // Animate time by interpolating seconds
+      if (timeEl) {
+        var start = null;
+        var dur = DUR;
+        function stepTime(ts) {
+          if (!start) start = ts;
+          var pct = Math.min((ts - start) / dur, 1);
+          var eased = 1 - Math.pow(1 - pct, 3);
+          timeEl.textContent = _fmtTime(eased * duration);
+          if (pct < 1) _animFrames.push(requestAnimationFrame(stepTime));
+        }
+        _animFrames.push(requestAnimationFrame(stepTime));
+      }
+    }, 50);
+
+    return div;
   }
 
-  function show(stats, onContinue) {
-    if (!_el) init();
+  // ── Button handlers ────────────────────────────────────────────────────────
+  function _onContinue() {
+    hide();
+    window._isPaused = false;
+    if (window.GameManager && typeof window.GameManager.resume === 'function') {
+      window.GameManager.resume();
+    }
+  }
 
-    /* Cancel any previous countdown */
-    if (_countdownId) { clearInterval(_countdownId); _countdownId = null; }
+  function _onRetry() {
+    hide();
+    // Reload the current wave via GameManager if available
+    if (window.GameManager && typeof window.GameManager.restartWave === 'function') {
+      window.GameManager.restartWave();
+    } else {
+      location.reload();
+    }
+  }
 
-    _onContinue = onContinue || null;
-    _visible    = true;
+  // ── Public API ─────────────────────────────────────────────────────────────
+  function init() {
+    // Hook into wave-complete global callback
+    window._onWaveComplete = function(waveNum) {
+      show(waveNum);
+    };
+  }
 
-    var s = stats || {};
-    var grade = calcGrade(s);
+  function show(waveNum) {
+    if (_visible) return;
 
-    buildDom(s, grade);
+    _currentWave = waveNum || 1;
 
-    _el.style.display = 'flex';
-    _el.style.opacity = '0';
+    // Gather stats from globals
+    var stats = {
+      kills:               window._waveKillCount   || 0,
+      headshots:           window._headshotCount   || 0,
+      shotsFired:          window._shotsFired       || 0,
+      shotsHit:            window._shotsHit         || 0,
+      civiliansAlive:      window._civiliansAlive   != null ? window._civiliansAlive : 0,
+      civsDead:            window._civsDead         || 0,
+      duration:            window._waveDuration     || 0,
+      baseScore:           (window.player && window.player.score) || 0,
+      objectivesCompleted: (window.ObjectiveSystem && typeof window.ObjectiveSystem.getCompletedCount === 'function')
+                             ? window.ObjectiveSystem.getCompletedCount() : 0
+    };
 
-    runSequence(s, grade);
+    _overlay = _buildOverlay(_currentWave, stats);
+    document.body.appendChild(_overlay);
+    _visible = true;
+
+    // Pause game
+    window._isPaused = true;
+
+    // Play fanfare based on grade
+    _playFanfare(window._lastDebriefGrade);
   }
 
   function hide() {
-    if (_countdownId) { clearInterval(_countdownId); _countdownId = null; }
+    if (!_visible || !_overlay) return;
+
+    // Cancel any running animation frames
+    var i;
+    for (i = 0; i < _animFrames.length; i++) {
+      cancelAnimationFrame(_animFrames[i]);
+    }
+    _animFrames = [];
+
+    if (_overlay && _overlay.parentNode) {
+      _overlay.parentNode.removeChild(_overlay);
+    }
+    _overlay = null;
     _visible = false;
-    if (!_el) return;
-    _el.style.transition = 'opacity 300ms';
-    _el.style.opacity = '0';
-    setTimeout(function () {
-      if (_el) _el.style.display = 'none';
-    }, 320);
   }
 
-  return { init: init, show: show, hide: hide };
+  function reset() {
+    hide();
+    _currentWave = 0;
+    window._lastDebriefGrade = null;
+  }
+
+  return { init: init, show: show, hide: hide, reset: reset };
+
 })();
