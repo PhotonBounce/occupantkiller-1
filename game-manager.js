@@ -1786,6 +1786,8 @@ const GameManager = (function () {
     try { if (window.RiotResponse && RiotResponse.init) RiotResponse.init(_scene, _camera); } catch (e) {}
     try { if (window.FactorySabotage && FactorySabotage.init) FactorySabotage.init(_scene, _camera); } catch (e) {}
     try { if (window.POWEscape && POWEscape.init) POWEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.AmbushNetwork && AmbushNetwork.init) AmbushNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.EscapeEvade && EscapeEvade.init) EscapeEvade.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8363,6 +8365,8 @@ const GameManager = (function () {
       if (window.RiotResponse) RiotResponse.update(delta);
       if (window.FactorySabotage) FactorySabotage.update(delta);
       if (window.POWEscape) POWEscape.update(delta);
+      if (window.AmbushNetwork) AmbushNetwork.update(delta);
+      if (window.EscapeEvade) EscapeEvade.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
