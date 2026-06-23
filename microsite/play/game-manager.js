@@ -1766,6 +1766,8 @@ const GameManager = (function () {
     try { if (window.ArmorSystem && ArmorSystem.init) ArmorSystem.init(_scene, _camera); } catch (e) {}
     try { if (window.FortifiedRetreat && FortifiedRetreat.init) FortifiedRetreat.init(_scene, _camera); } catch (e) {}
     try { if (window.WeatherStorm && WeatherStorm.init) WeatherStorm.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpecialForces && SpecialForces.init) SpecialForces.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandBunker && CommandBunker.init) CommandBunker.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8323,6 +8325,8 @@ const GameManager = (function () {
       if (window.ArmorSystem) ArmorSystem.update(delta);
       if (window.FortifiedRetreat) FortifiedRetreat.update(delta);
       if (window.WeatherStorm) WeatherStorm.update(delta);
+      if (window.SpecialForces) SpecialForces.update(delta);
+      if (window.CommandBunker) CommandBunker.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
