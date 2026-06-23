@@ -1745,6 +1745,7 @@ const GameManager = (function () {
     try { if (window.TankCommander && TankCommander.init) TankCommander.init(_scene, _camera); } catch (e) {}
     try { if (window.CombatMedic && CombatMedic.init) CombatMedic.init(_scene, _camera); } catch (e) {}
     try { if (window.SiegeWarfare && SiegeWarfare.init) SiegeWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperRifle && SniperRifle.init) SniperRifle.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8283,6 +8284,7 @@ const GameManager = (function () {
       if (window.TankCommander) TankCommander.update(delta);
       if (window.CombatMedic) CombatMedic.update(delta);
       if (window.SiegeWarfare) SiegeWarfare.update(delta);
+      if (window.SniperRifle) SniperRifle.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
