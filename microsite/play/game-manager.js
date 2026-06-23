@@ -1776,6 +1776,8 @@ const GameManager = (function () {
     try { if (window.IEDDisposal && IEDDisposal.init) IEDDisposal.init(_scene, _camera); } catch (e) {}
     try { if (window.BattlefieldTriage && BattlefieldTriage.init) BattlefieldTriage.init(_scene, _camera); } catch (e) {}
     try { if (window.FirebaseDefense && FirebaseDefense.init) FirebaseDefense.init(_scene, _camera); } catch (e) {}
+    try { if (window.IntelNetwork && IntelNetwork.init) IntelNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.NavalOperations && NavalOperations.init) NavalOperations.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8343,6 +8345,8 @@ const GameManager = (function () {
       if (window.IEDDisposal) IEDDisposal.update(delta);
       if (window.BattlefieldTriage) BattlefieldTriage.update(delta);
       if (window.FirebaseDefense) FirebaseDefense.update(delta);
+      if (window.IntelNetwork) IntelNetwork.update(delta);
+      if (window.NavalOperations) NavalOperations.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
