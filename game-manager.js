@@ -1788,6 +1788,15 @@ const GameManager = (function () {
     try { if (window.POWEscape && POWEscape.init) POWEscape.init(_scene, _camera); } catch (e) {}
     try { if (window.AmbushNetwork && AmbushNetwork.init) AmbushNetwork.init(_scene, _camera); } catch (e) {}
     try { if (window.EscapeEvade && EscapeEvade.init) EscapeEvade.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanWarfare && UrbanWarfare.init) UrbanWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.RescueDownedPilot && RescueDownedPilot.init) RescueDownedPilot.init(_scene, _camera); } catch (e) {}
+    try { if (window.ConvoyEscort && ConvoyEscort.init) ConvoyEscort.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepRecon && DeepRecon.init) DeepRecon.init(_scene, _camera); } catch (e) {}
+    try { if (window.SupplyChainAttack && SupplyChainAttack.init) SupplyChainAttack.init(_scene, _camera); } catch (e) {}
+    try { if (window.MassSurrender && MassSurrender.init) MassSurrender.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeTower && SiegeTower.init) SiegeTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperHunt && SniperHunt.init) SniperHunt.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleRecovery && VehicleRecovery.init) VehicleRecovery.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8367,6 +8376,15 @@ const GameManager = (function () {
       if (window.POWEscape) POWEscape.update(delta);
       if (window.AmbushNetwork) AmbushNetwork.update(delta);
       if (window.EscapeEvade) EscapeEvade.update(delta);
+      if (window.UrbanWarfare) UrbanWarfare.update(delta);
+      if (window.RescueDownedPilot) RescueDownedPilot.update(delta);
+      if (window.ConvoyEscort) ConvoyEscort.update(delta);
+      if (window.DeepRecon) DeepRecon.update(delta);
+      if (window.SupplyChainAttack) SupplyChainAttack.update(delta);
+      if (window.MassSurrender) MassSurrender.update(delta);
+      if (window.SiegeTower) SiegeTower.update(delta);
+      if (window.SniperHunt) SniperHunt.update(delta);
+      if (window.VehicleRecovery) VehicleRecovery.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
