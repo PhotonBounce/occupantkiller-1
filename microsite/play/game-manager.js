@@ -1768,6 +1768,14 @@ const GameManager = (function () {
     try { if (window.WeatherStorm && WeatherStorm.init) WeatherStorm.init(_scene, _camera); } catch (e) {}
     try { if (window.SpecialForces && SpecialForces.init) SpecialForces.init(_scene, _camera); } catch (e) {}
     try { if (window.CommandBunker && CommandBunker.init) CommandBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatSwimming && CombatSwimming.init) CombatSwimming.init(_scene, _camera); } catch (e) {}
+    try { if (window.AerialDogfight && AerialDogfight.init) AerialDogfight.init(_scene, _camera); } catch (e) {}
+    try { if (window.ForwardObserver && ForwardObserver.init) ForwardObserver.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatJump && CombatJump.init) CombatJump.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatEngineering && CombatEngineering.init) CombatEngineering.init(_scene, _camera); } catch (e) {}
+    try { if (window.IEDDisposal && IEDDisposal.init) IEDDisposal.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattlefieldTriage && BattlefieldTriage.init) BattlefieldTriage.init(_scene, _camera); } catch (e) {}
+    try { if (window.FirebaseDefense && FirebaseDefense.init) FirebaseDefense.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8327,6 +8335,14 @@ const GameManager = (function () {
       if (window.WeatherStorm) WeatherStorm.update(delta);
       if (window.SpecialForces) SpecialForces.update(delta);
       if (window.CommandBunker) CommandBunker.update(delta);
+      if (window.CombatSwimming) CombatSwimming.update(delta);
+      if (window.AerialDogfight) AerialDogfight.update(delta);
+      if (window.ForwardObserver) ForwardObserver.update(delta);
+      if (window.CombatJump) CombatJump.update(delta);
+      if (window.CombatEngineering) CombatEngineering.update(delta);
+      if (window.IEDDisposal) IEDDisposal.update(delta);
+      if (window.BattlefieldTriage) BattlefieldTriage.update(delta);
+      if (window.FirebaseDefense) FirebaseDefense.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
