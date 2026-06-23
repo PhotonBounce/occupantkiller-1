@@ -1,157 +1,225 @@
 /* ════════════════════════════════════════════════════════════════════
- *  ENEMY SNIPER SYSTEM
+ *  ENEMY SNIPER — long-range AI sniper enemy module
  *  ─────────────────────────────────────────────────────────────────
- *  Camouflaged ghillie-suit sniper that picks off the player from
- *  long range. Stationary, waits for line-of-sight, laser-dot
- *  warning, then fires for heavy damage. Repositions after 3 shots.
+ *  Behavior state machine: REPOSITION → AIM → FIRE → RELOAD → REPOSITION
  *
  *  Public API:
- *    EnemySniper.init(scene, camera)  — call once after scene exists
- *    EnemySniper.update(delta)        — per-frame (seconds)
- *    EnemySniper.spawn()              — force-spawn a sniper
- *    EnemySniper.reset()              — clear all snipers
- *    EnemySniper.takeDamage(sniper, dmg) — deal damage to a sniper
+ *    EnemySniper.init(scene, camera)         — call once after scene exists
+ *    EnemySniper.update(delta)               — per-frame (seconds)
+ *    EnemySniper.spawn(scene, x, y, z)       — spawn a sniper at position
+ *    EnemySniper.getAll()                    — returns _snipers array
+ *    EnemySniper.reset()                     — clear all snipers + scene objects
  * ═════════════════════════════════════════════════════════════════ */
 window.EnemySniper = (function () {
   'use strict';
 
+  /* ── module-level scene / camera references ── */
   var _scene  = null;
   var _camera = null;
 
-  /* ── Config ── */
-  var MAX_SNIPERS    = 2;
-  var SNIPER_HP      = 60;
-  var SHOT_DAMAGE    = 55;
-  var LOS_WAIT_S     = 2.0;   // seconds in LOS before shooting
-  var LASER_WARN_S   = 0.5;   // laser dot visible before shot
-  var RELOAD_S       = 4.0;   // seconds between shots
-  var SHOTS_BEFORE_REPOSITION = 3;
-  var SCORE_VALUE    = 400;
-  var GHILLIE_COLOR  = 0x2D4A1A;
-  var BODY_COLOR     = 0x3A5A2A;
+  /* ── constants ── */
+  var MAX_SNIPERS      = 5;
+  var SNIPER_HP        = 180;
+  var SNIPER_COLOR     = 0x3d5a2e;   /* dark olive camo */
+  var MOVE_SPEED       = 4;          /* m/s during REPOSITION */
+  var AIM_DURATION     = 2.5;        /* seconds to aim before firing */
+  var RELOAD_DURATION  = 3.0;        /* seconds to reload */
+  var REPOSITION_MIN   = 20;         /* min distance from player */
+  var REPOSITION_MAX   = 40;         /* max distance from player */
+  var SHOT_DAMAGE      = 45;
+  var SHOT_SPREAD_RAD  = 0.05;       /* random angular spread */
+  var LASER_MAX_DIST   = 60;
+  var TRACER_SPEED     = 80;         /* m/s */
+  var SCORE_VALUE      = 500;
+  var HEADSHOT_Y       = 1.4;        /* Y threshold above mesh base */
+  var HEADSHOT_MULT    = 3;
+  var COUNTER_SNIPER_WINDOW = 0.5;   /* s: player fires within this of laser appear → 30% interrupt */
+  var COUNTER_INTERRUPT_CHANCE = 0.3;
 
-  /* ── Active snipers list ── */
+  /* ── active snipers list ── */
   var _snipers = [];
 
-  /* ── Raycaster for LOS ── */
-  var _raycaster = null;
+  /* ── active tracers list ── */
+  var _tracers = [];
+
+  /* ── track when player last fired (set by external code or injected hook) ── */
+  var _playerLastFiredTime = -999;
 
   /* ══════════════════════════════════════════════════
    *  INIT
    * ══════════════════════════════════════════════════ */
   function init(scene, camera) {
-    _scene  = scene  || window._gameScene;
-    _camera = camera || window._camera;
+    _scene  = scene  || window._gameScene  || null;
+    _camera = camera || window._camera     || null;
     _snipers = [];
-    window._sniperActive = false;
+    _tracers = [];
+    _playerLastFiredTime = -999;
 
-    if (typeof THREE !== 'undefined') {
-      _raycaster = new THREE.Raycaster();
+    /* hook into global player fire events so counter-sniper logic works */
+    if (typeof window._onPlayerFire === 'undefined') {
+      window._onPlayerFire = function () {
+        _playerLastFiredTime = _getTime();
+      };
+    } else {
+      /* wrap existing handler */
+      var _origFire = window._onPlayerFire;
+      window._onPlayerFire = function () {
+        _playerLastFiredTime = _getTime();
+        _origFire();
+      };
     }
   }
 
   /* ══════════════════════════════════════════════════
-   *  BUILD GHILLIE MESH
+   *  BUILD SNIPER MESH (Three.js group)
    * ══════════════════════════════════════════════════ */
   function _buildMesh() {
     var group = new THREE.Group();
+    var camoMat = new THREE.MeshLambertMaterial({ color: SNIPER_COLOR });
 
-    /* body */
-    var bodyGeo = new THREE.BoxGeometry(0.5, 1.0, 0.35);
-    var bodyMat = new THREE.MeshLambertMaterial({ color: BODY_COLOR, transparent: true, opacity: 0.3 });
-    var body    = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.5;
+    /* body — CylinderGeometry(radiusTop, radiusBottom, height, segments) */
+    var bodyGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.7, 8);
+    var body    = new THREE.Mesh(bodyGeo, camoMat);
+    body.position.y = 0.85;   /* half height off ground */
     group.add(body);
 
-    /* head */
-    var headGeo = new THREE.BoxGeometry(0.28, 0.28, 0.28);
-    var headMat = new THREE.MeshLambertMaterial({ color: BODY_COLOR, transparent: true, opacity: 0.3 });
-    var head    = new THREE.Mesh(headGeo, headMat);
-    head.position.y = 1.14;
+    /* head — SphereGeometry */
+    var headGeo = new THREE.SphereGeometry(0.2, 8, 6);
+    var head    = new THREE.Mesh(headGeo, camoMat);
+    head.position.y = 1.9;    /* body top (1.7) + radius (0.2) */
     group.add(head);
 
-    /* ghillie fragments — 5 PlaneGeometry(0.2, 0.35) at random rotations */
-    var ghillieMat = new THREE.MeshLambertMaterial({
-      color: GHILLIE_COLOR,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.DoubleSide
-    });
+    /* left arm */
+    var armGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6);
+    var armMat = new THREE.MeshLambertMaterial({ color: SNIPER_COLOR });
+    var leftArm = new THREE.Mesh(armGeo, armMat);
+    leftArm.position.set(-0.38, 1.1, 0);
+    leftArm.rotation.z = Math.PI / 4;
+    group.add(leftArm);
 
-    for (var i = 0; i < 5; i++) {
-      var fragGeo = new THREE.PlaneGeometry(0.2, 0.35);
-      var frag    = new THREE.Mesh(fragGeo, ghillieMat.clone());
-      /* distribute around body */
-      frag.position.set(
-        (Math.random() - 0.5) * 0.55,
-        0.3 + Math.random() * 0.7,
-        (Math.random() - 0.5) * 0.40
-      );
-      frag.rotation.set(
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2
-      );
-      group.add(frag);
-    }
+    /* right arm — holds rifle */
+    var rightArm = new THREE.Mesh(armGeo.clone(), armMat.clone());
+    rightArm.position.set(0.38, 1.1, 0);
+    rightArm.rotation.z = -Math.PI / 4;
+    group.add(rightArm);
 
-    /* store material refs for opacity changes */
-    group.userData.materials = [];
-    group.traverse(function (obj) {
-      if (obj.isMesh && obj.material) {
-        group.userData.materials.push(obj.material);
-      }
-    });
+    /* left leg */
+    var legGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.9, 6);
+    var legMat = new THREE.MeshLambertMaterial({ color: SNIPER_COLOR });
+    var leftLeg = new THREE.Mesh(legGeo, legMat);
+    leftLeg.position.set(-0.18, 0.0, 0);
+    group.add(leftLeg);
+
+    /* right leg */
+    var rightLeg = new THREE.Mesh(legGeo.clone(), legMat.clone());
+    rightLeg.position.set(0.18, 0.0, 0);
+    group.add(rightLeg);
+
+    /* sniper rifle — long barrel (BoxGeometry) */
+    var rifleGeo = new THREE.BoxGeometry(0.06, 0.06, 1.4);
+    var rifleMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+    var rifle    = new THREE.Mesh(rifleGeo, rifleMat);
+    rifle.position.set(0.2, 1.2, 0.8);  /* forward along +Z */
+    group.add(rifle);
+
+    /* store reference to right arm for reload animation */
+    group.userData.rightArm = rightArm;
+    group.userData.rifle    = rifle;
 
     return group;
   }
 
   /* ══════════════════════════════════════════════════
-   *  SPAWN
+   *  BUILD LASER LINE MESH
    * ══════════════════════════════════════════════════ */
-  function spawn() {
-    if (!_scene) return;
-    if (_snipers.length >= MAX_SNIPERS) return;
+  function _buildLaserLine(fromPos, toPos) {
+    var dir = new THREE.Vector3(
+      toPos.x - fromPos.x,
+      toPos.y - fromPos.y,
+      toPos.z - fromPos.z
+    );
+    var len = Math.min(dir.length(), LASER_MAX_DIST);
+    dir.normalize();
 
-    var playerPos = _getPlayerPos();
-    if (!playerPos) return;
+    /* use thin CylinderGeometry aligned along the shot direction */
+    var geo = new THREE.CylinderGeometry(0.01, 0.01, len, 4);
+    var mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    var mesh = new THREE.Mesh(geo, mat);
 
-    var angle = Math.random() * Math.PI * 2;
-    var dist  = 25 + Math.random() * 15;   /* 25-40 units */
-    var px    = playerPos.x + Math.cos(angle) * dist;
-    var pz    = playerPos.z + Math.sin(angle) * dist;
-    var py    = 2 + Math.random() * 2;     /* Y = 2-4 */
+    /* position at midpoint between sniper and player (capped at LASER_MAX_DIST) */
+    var mid = new THREE.Vector3(
+      fromPos.x + dir.x * len * 0.5,
+      fromPos.y + dir.y * len * 0.5,
+      fromPos.z + dir.z * len * 0.5
+    );
+    mesh.position.copy(mid);
 
-    var mesh = _buildMesh();
-    mesh.position.set(px, py, pz);
-    /* face toward player */
-    mesh.lookAt(playerPos.x, py, playerPos.z);
-    _scene.add(mesh);
+    /* orient cylinder to face along dir (cylinder default is Y-axis) */
+    var up = new THREE.Vector3(0, 1, 0);
+    var quat = new THREE.Quaternion().setFromUnitVectors(up, dir);
+    mesh.quaternion.copy(quat);
 
-    var sniper = {
-      mesh:        mesh,
-      hp:          SNIPER_HP,
-      alive:       true,
-      state:       'idle',   /* idle | aiming | laser | firing | reload | repositioning */
-      losTimer:    0,        /* time player has been in LOS */
-      reloadTimer: 0,
-      shotsFired:  0,
-      laserTimer:  0,
-      laserLight:  null,
-      tracerLine:  null,
-      tracerTimer: 0,
-    };
-
-    _snipers.push(sniper);
-    _updateSniperActiveFlag();
+    return mesh;
   }
 
   /* ══════════════════════════════════════════════════
-   *  UPDATE — called every frame
+   *  SPAWN
+   *  EnemySniper.spawn(scene, x, y, z)
+   * ══════════════════════════════════════════════════ */
+  function spawn(sceneArg, x, y, z) {
+    /* allow scene override per-call or fall back to module scene */
+    var sc = sceneArg || _scene || window._gameScene;
+    if (!sc) return null;
+    if (!_scene) _scene = sc;
+
+    if (_snipers.length >= MAX_SNIPERS) return null;
+
+    /* default spawn position if not provided */
+    var spawnX = (typeof x === 'number') ? x : 0;
+    var spawnY = (typeof y === 'number') ? y : 0;
+    var spawnZ = (typeof z === 'number') ? z : 0;
+
+    var mesh = _buildMesh();
+    mesh.position.set(spawnX, spawnY, spawnZ);
+    sc.add(mesh);
+
+    /* pick an initial cover destination */
+    var playerPos = _getPlayerPos();
+    var targetPos = _pickRepositionTarget(playerPos);
+
+    var sniper = {
+      scene:            sc,
+      mesh:             mesh,
+      hp:               SNIPER_HP,
+      alive:            true,
+      state:            'REPOSITION',  /* REPOSITION | AIM | FIRE | RELOAD */
+      /* REPOSITION */
+      targetPos:        targetPos,
+      /* AIM */
+      aimTimer:         0,
+      aimSwayTime:      0,
+      laserMesh:        null,
+      laserSpawnTime:   -999,
+      /* RELOAD */
+      reloadTimer:      0,
+      reloadArmDir:     1,
+    };
+
+    _snipers.push(sniper);
+    return sniper;
+  }
+
+  /* ══════════════════════════════════════════════════
+   *  UPDATE — called every frame with delta (seconds)
    * ══════════════════════════════════════════════════ */
   function update(delta) {
-    if (!_scene) return;
+    var sc = _scene || window._gameScene;
+    if (!sc) return;
 
+    /* update tracers */
+    _updateTracers(delta, sc);
+
+    /* update each sniper */
     for (var i = _snipers.length - 1; i >= 0; i--) {
       var s = _snipers[i];
       if (!s.alive) {
@@ -160,355 +228,447 @@ window.EnemySniper = (function () {
       }
       _updateSniper(s, delta);
     }
-
-    _updateSniperActiveFlag();
   }
 
   function _updateSniper(s, delta) {
-    var playerPos = _getPlayerPos();
+    if (!s.alive) return;
 
-    /* ── tracer fade ── */
-    if (s.tracerLine && s.tracerTimer > 0) {
-      s.tracerTimer -= delta;
-      if (s.tracerTimer <= 0) {
-        _scene.remove(s.tracerLine);
-        s.tracerLine.geometry.dispose();
-        s.tracerLine.material.dispose();
-        s.tracerLine = null;
+    if (s.state === 'REPOSITION') {
+      _stateReposition(s, delta);
+    } else if (s.state === 'AIM') {
+      _stateAim(s, delta);
+    } else if (s.state === 'FIRE') {
+      _stateFire(s);
+    } else if (s.state === 'RELOAD') {
+      _stateReload(s, delta);
+    }
+  }
+
+  /* ── REPOSITION state: run to cover position ── */
+  function _stateReposition(s, delta) {
+    var pos = s.mesh.position;
+    var tgt = s.targetPos;
+    if (!tgt) {
+      /* no target yet — pick one */
+      s.targetPos = _pickRepositionTarget(_getPlayerPos());
+      return;
+    }
+
+    var dx = tgt.x - pos.x;
+    var dz = tgt.z - pos.z;
+    var dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist < 0.5) {
+      /* arrived — transition to AIM */
+      s.state     = 'AIM';
+      s.aimTimer  = 0;
+      s.aimSwayTime = 0;
+      _showLaser(s);
+      return;
+    }
+
+    /* move toward target at MOVE_SPEED */
+    var step = Math.min(MOVE_SPEED * delta, dist);
+    var nx = pos.x + (dx / dist) * step;
+    var nz = pos.z + (dz / dist) * step;
+    s.mesh.position.set(nx, pos.y, nz);
+
+    /* face movement direction */
+    s.mesh.rotation.y = Math.atan2(dx, dz);
+  }
+
+  /* ── AIM state: face player for AIM_DURATION, sway, laser on ── */
+  function _stateAim(s, delta) {
+    var playerPos = _getPlayerPos();
+    if (!playerPos) return;
+
+    s.aimTimer    += delta;
+    s.aimSwayTime += delta;
+
+    /* face player with sway noise */
+    var baseAngle = Math.atan2(
+      playerPos.x - s.mesh.position.x,
+      playerPos.z - s.mesh.position.z
+    );
+    var sway = Math.sin(s.aimSwayTime * 3.7) * 0.03 +
+               Math.cos(s.aimSwayTime * 5.1) * 0.02;
+    s.mesh.rotation.y = baseAngle + sway;
+
+    /* update laser line position every frame */
+    _updateLaser(s, playerPos);
+
+    /* counter-sniper window: if player fired within COUNTER_SNIPER_WINDOW of laser appearing
+       and we're still aiming, 30% chance to interrupt */
+    var timeSinceLaser = _getTime() - s.laserSpawnTime;
+    if (timeSinceLaser <= COUNTER_SNIPER_WINDOW) {
+      var timeSincePlayerFired = _getTime() - _playerLastFiredTime;
+      if (timeSincePlayerFired <= COUNTER_SNIPER_WINDOW) {
+        if (Math.random() < COUNTER_INTERRUPT_CHANCE) {
+          /* interrupt: reset aim timer, sniper ducks back */
+          s.aimTimer = 0;
+          _playerLastFiredTime = -999; /* consume the interrupt */
+          return;
+        }
       }
     }
+
+    if (s.aimTimer >= AIM_DURATION) {
+      s.state = 'FIRE';
+    }
+  }
+
+  /* ── FIRE state: hitscan shot, tracer, then reload ── */
+  function _stateFire(s) {
+    var playerPos = _getPlayerPos();
+
+    _hideLaser(s);
+
+    if (playerPos) {
+      /* direction from sniper to player */
+      var dx = playerPos.x - s.mesh.position.x;
+      var dy = (playerPos.y + 1.0) - (s.mesh.position.y + 1.7);
+      var dz = playerPos.z - s.mesh.position.z;
+      var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      /* add random spread */
+      var spreadX = (Math.random() - 0.5) * 2.0 * SHOT_SPREAD_RAD;
+      var spreadY = (Math.random() - 0.5) * 2.0 * SHOT_SPREAD_RAD;
+      var spreadZ = (Math.random() - 0.5) * 2.0 * SHOT_SPREAD_RAD;
+
+      var shotDir = new THREE.Vector3(
+        dx / dist + spreadX,
+        dy / dist + spreadY,
+        dz / dist + spreadZ
+      ).normalize();
+
+      /* hitscan hit check: probability decreases with distance */
+      var hitChance = 1.0 - (dist / 40.0);
+      hitChance = Math.max(0, Math.min(1, hitChance));
+
+      if (Math.random() < hitChance) {
+        if (window._onPlayerDamage) {
+          window._onPlayerDamage(SHOT_DAMAGE);
+        } else if (window.player && window.player.health !== undefined) {
+          window.player.health -= SHOT_DAMAGE;
+        }
+      }
+
+      /* play crack sound */
+      _playSniperCrack();
+
+      /* spawn tracer round */
+      _spawnTracer(s, shotDir);
+    }
+
+    /* transition to RELOAD */
+    s.state       = 'RELOAD';
+    s.reloadTimer = RELOAD_DURATION;
+    s.reloadArmDir = 1;
+  }
+
+  /* ── RELOAD state: arm animation, then REPOSITION ── */
+  function _stateReload(s, delta) {
+    s.reloadTimer -= delta;
+
+    /* animate right arm rotation back and forth */
+    s.reloadArmDir = s.reloadArmDir || 1;
+    var arm = s.mesh.userData.rightArm;
+    if (arm) {
+      arm.rotation.x += delta * 2.0 * s.reloadArmDir;
+      if (arm.rotation.x > 1.0)  { s.reloadArmDir = -1; }
+      if (arm.rotation.x < -0.5) { s.reloadArmDir =  1; }
+    }
+
+    if (s.reloadTimer <= 0) {
+      /* reset arm */
+      if (arm) { arm.rotation.x = 0; }
+
+      /* pick new cover spot and reposition */
+      s.targetPos = _pickRepositionTarget(_getPlayerPos());
+      s.state     = 'REPOSITION';
+    }
+  }
+
+  /* ══════════════════════════════════════════════════
+   *  LASER POINTER
+   * ══════════════════════════════════════════════════ */
+  function _showLaser(s) {
+    _hideLaser(s);
+    var sc = s.scene || _scene;
+    if (!sc) return;
+
+    var playerPos = _getPlayerPos();
+    var fromPos = new THREE.Vector3(
+      s.mesh.position.x,
+      s.mesh.position.y + 1.5,
+      s.mesh.position.z
+    );
+    var toPos = playerPos
+      ? new THREE.Vector3(playerPos.x, playerPos.y + 1.0, playerPos.z)
+      : new THREE.Vector3(fromPos.x, fromPos.y, fromPos.z + 1);
+
+    var laserMesh = _buildLaserLine(fromPos, toPos);
+    sc.add(laserMesh);
+    s.laserMesh      = laserMesh;
+    s.laserSpawnTime = _getTime();
+  }
+
+  function _updateLaser(s, playerPos) {
+    var sc = s.scene || _scene;
+    if (!sc || !s.laserMesh) return;
+
+    /* rebuild laser each frame to track player */
+    sc.remove(s.laserMesh);
+    if (s.laserMesh.geometry) s.laserMesh.geometry.dispose();
+    if (s.laserMesh.material) s.laserMesh.material.dispose();
+    s.laserMesh = null;
 
     if (!playerPos) return;
 
-    /* ── face player ── */
-    s.mesh.lookAt(playerPos.x, s.mesh.position.y, playerPos.z);
-
-    if (s.state === 'idle') {
-      /* check LOS every frame */
-      if (_hasLOS(s.mesh.position, playerPos)) {
-        s.losTimer += delta;
-        if (s.losTimer >= LOS_WAIT_S) {
-          s.state    = 'laser';
-          s.losTimer = 0;
-          _showLaserDot(s, playerPos);
-          s.laserTimer = LASER_WARN_S;
-          _setCamouflage(s, false); /* reveal slightly when aiming */
-        }
-      } else {
-        s.losTimer = 0;
-        _setCamouflage(s, true);
-      }
-
-    } else if (s.state === 'laser') {
-      s.laserTimer -= delta;
-      /* keep laser dot on player */
-      if (s.laserLight) {
-        s.laserLight.position.copy(playerPos);
-        s.laserLight.position.y += 1.0;
-      }
-      if (s.laserTimer <= 0) {
-        _removeLaserDot(s);
-        _fireShot(s, playerPos);
-      }
-
-    } else if (s.state === 'reload') {
-      s.reloadTimer -= delta;
-      if (s.reloadTimer <= 0) {
-        /* check if still has LOS */
-        if (_hasLOS(s.mesh.position, playerPos)) {
-          s.state      = 'laser';
-          s.laserTimer = LASER_WARN_S;
-          _showLaserDot(s, playerPos);
-        } else {
-          s.state    = 'idle';
-          s.losTimer = 0;
-          _setCamouflage(s, true);
-        }
-      }
-    } else if (s.state === 'repositioning') {
-      /* instant reposition — already done in _reposition(), just set idle */
-      s.state    = 'idle';
-      s.losTimer = 0;
-      _setCamouflage(s, true);
-    }
-  }
-
-  /* ══════════════════════════════════════════════════
-   *  FIRE SHOT
-   * ══════════════════════════════════════════════════ */
-  function _fireShot(s, playerPos) {
-    s.state      = 'reload';
-    s.reloadTimer = RELOAD_S;
-    s.shotsFired++;
-
-    /* damage player */
-    if (window.player && window.player.health !== undefined) {
-      window.player.health -= SHOT_DAMAGE;
-    }
-
-    /* camera shake */
-    if (_camera) {
-      _camera.position.x += (Math.random() - 0.5) * 0.2;
-      _camera.position.y += (Math.random() - 0.5) * 0.2;
-    }
-
-    /* tracer line VFX */
-    _showTracer(s, playerPos);
-
-    /* sound */
-    _playSniperCrack();
-
-    /* camouflage back on after firing */
-    _setCamouflage(s, true);
-
-    /* reposition after N shots */
-    if (s.shotsFired >= SHOTS_BEFORE_REPOSITION) {
-      s.shotsFired = 0;
-      _reposition(s, playerPos);
-    }
-  }
-
-  /* ══════════════════════════════════════════════════
-   *  TRACER LINE
-   * ══════════════════════════════════════════════════ */
-  function _showTracer(s, playerPos) {
-    if (!_scene) return;
-    if (s.tracerLine) {
-      _scene.remove(s.tracerLine);
-      s.tracerLine.geometry.dispose();
-      s.tracerLine.material.dispose();
-      s.tracerLine = null;
-    }
-
-    var points = [
-      s.mesh.position.clone(),
-      new THREE.Vector3(playerPos.x, playerPos.y + 1.0, playerPos.z)
-    ];
-    var geo = new THREE.BufferGeometry().setFromPoints(points);
-    var mat = new THREE.LineBasicMaterial({ color: 0xFFFF00, linewidth: 2 });
-    var line = new THREE.Line(geo, mat);
-    _scene.add(line);
-    s.tracerLine  = line;
-    s.tracerTimer = 0.2;
-  }
-
-  /* ══════════════════════════════════════════════════
-   *  LASER DOT
-   * ══════════════════════════════════════════════════ */
-  function _showLaserDot(s, playerPos) {
-    if (!_scene) return;
-    _removeLaserDot(s);
-    var light = new THREE.PointLight(0xFF0000, 3, 1);
-    light.position.set(playerPos.x, playerPos.y + 1.2, playerPos.z);
-    _scene.add(light);
-    s.laserLight = light;
-  }
-
-  function _removeLaserDot(s) {
-    if (s.laserLight && _scene) {
-      _scene.remove(s.laserLight);
-      s.laserLight = null;
-    }
-  }
-
-  /* ══════════════════════════════════════════════════
-   *  CAMOUFLAGE OPACITY
-   * ══════════════════════════════════════════════════ */
-  function _setCamouflage(s, camouflaged) {
-    var opacity = camouflaged ? 0.3 : 0.85;
-    var mats = s.mesh.userData.materials || [];
-    for (var i = 0; i < mats.length; i++) {
-      mats[i].opacity = opacity;
-    }
-  }
-
-  /* ══════════════════════════════════════════════════
-   *  LINE-OF-SIGHT CHECK
-   * ══════════════════════════════════════════════════ */
-  function _hasLOS(fromPos, toPos) {
-    if (!_raycaster || !_scene) return true; /* assume LOS if no raycaster */
-
-    var dir = new THREE.Vector3(
-      toPos.x - fromPos.x,
-      (toPos.y + 1.0) - fromPos.y,
-      toPos.z - fromPos.z
+    var fromPos = new THREE.Vector3(
+      s.mesh.position.x,
+      s.mesh.position.y + 1.5,
+      s.mesh.position.z
     );
-    var dist = dir.length();
-    if (dist < 1) return true;
-    dir.normalize();
+    var toPos = new THREE.Vector3(playerPos.x, playerPos.y + 1.0, playerPos.z);
+    var laserMesh = _buildLaserLine(fromPos, toPos);
+    sc.add(laserMesh);
+    s.laserMesh = laserMesh;
+  }
 
-    _raycaster.set(fromPos, dir);
-    _raycaster.far = dist - 0.5;
+  function _hideLaser(s) {
+    var sc = s.scene || _scene;
+    if (!sc || !s.laserMesh) return;
+    sc.remove(s.laserMesh);
+    if (s.laserMesh.geometry) s.laserMesh.geometry.dispose();
+    if (s.laserMesh.material) s.laserMesh.material.dispose();
+    s.laserMesh = null;
+  }
 
-    /* collect scene objects that may block LOS (exclude sniper meshes) */
-    var obstacles = [];
-    _scene.traverse(function (obj) {
-      if (obj.isMesh) {
-        var isSniperMesh = false;
-        for (var i = 0; i < _snipers.length; i++) {
-          if (_snipers[i].mesh === obj || _snipers[i].mesh === obj.parent) {
-            isSniperMesh = true;
-            break;
-          }
-        }
-        if (!isSniperMesh) {
-          obstacles.push(obj);
+  /* ══════════════════════════════════════════════════
+   *  TRACER ROUND
+   * ══════════════════════════════════════════════════ */
+  function _spawnTracer(s, dir) {
+    var sc = s.scene || _scene;
+    if (!sc) return;
+
+    var geo = new THREE.SphereGeometry(0.05, 4, 4);
+    var mat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    var mesh = new THREE.Mesh(geo, mat);
+
+    /* start at rifle barrel tip */
+    var startPos = new THREE.Vector3(
+      s.mesh.position.x,
+      s.mesh.position.y + 1.5,
+      s.mesh.position.z
+    );
+    mesh.position.copy(startPos);
+    sc.add(mesh);
+
+    _tracers.push({
+      scene:    sc,
+      mesh:     mesh,
+      dir:      dir.clone(),
+      speed:    TRACER_SPEED,
+      life:     2.0   /* seconds before auto-remove */
+    });
+  }
+
+  function _updateTracers(delta, sc) {
+    for (var i = _tracers.length - 1; i >= 0; i--) {
+      var t = _tracers[i];
+      t.life -= delta;
+      if (t.life <= 0) {
+        t.scene.remove(t.mesh);
+        t.mesh.geometry.dispose();
+        t.mesh.material.dispose();
+        _tracers.splice(i, 1);
+        continue;
+      }
+      var step = t.speed * delta;
+      t.mesh.position.x += t.dir.x * step;
+      t.mesh.position.y += t.dir.y * step;
+      t.mesh.position.z += t.dir.z * step;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════
+   *  HEADSHOT DETECTION
+   *  Called when a player bullet hits a sniper.
+   *  hitY = world Y of bullet impact point.
+   *  Returns damage dealt (accounting for headshot multiplier).
+   * ══════════════════════════════════════════════════ */
+  function takeDamage(sniper, dmg, hitY) {
+    if (!sniper || !sniper.alive) return 0;
+
+    var actualDmg = dmg;
+    if (typeof hitY === 'number') {
+      /* headshot zone: hitY > sniper base Y + HEADSHOT_Y */
+      if (hitY > sniper.mesh.position.y + HEADSHOT_Y) {
+        actualDmg = dmg * HEADSHOT_MULT;
+        if (window.HUD && window.HUD.showToast) {
+          window.HUD.showToast('HEADSHOT!');
         }
       }
-    });
+    }
 
-    var hits = _raycaster.intersectObjects(obstacles, false);
-    return hits.length === 0;
-  }
-
-  /* ══════════════════════════════════════════════════
-   *  REPOSITION
-   * ══════════════════════════════════════════════════ */
-  function _reposition(s, playerPos) {
-    var angle = Math.random() * Math.PI * 2;
-    var dist  = 20 + Math.random() * 20;  /* 20-40 units */
-    var nx    = playerPos.x + Math.cos(angle) * dist;
-    var nz    = playerPos.z + Math.sin(angle) * dist;
-    var ny    = 2 + Math.random() * 2;
-
-    s.mesh.position.set(nx, ny, nz);
-    s.state = 'repositioning';
-    _setCamouflage(s, true);
-  }
-
-  /* ══════════════════════════════════════════════════
-   *  TAKE DAMAGE — public
-   * ══════════════════════════════════════════════════ */
-  function takeDamage(sniper, dmg) {
-    if (!sniper || !sniper.alive) return;
-    sniper.hp -= dmg;
+    sniper.hp -= actualDmg;
     if (sniper.hp <= 0) {
       _killSniper(sniper);
     }
+    return actualDmg;
   }
 
   /* ══════════════════════════════════════════════════
-   *  KILL SNIPER
+   *  DEATH / KILL
    * ══════════════════════════════════════════════════ */
   function _killSniper(s) {
     s.alive = false;
-    _removeLaserDot(s);
+    _hideLaser(s);
 
-    /* remove tracer if visible */
-    if (s.tracerLine && _scene) {
-      _scene.remove(s.tracerLine);
-      s.tracerLine.geometry.dispose();
-      s.tracerLine.material.dispose();
-      s.tracerLine = null;
-    }
+    var deathPos = s.mesh ? s.mesh.position.clone() : null;
+    var sc = s.scene || _scene;
 
-    /* remove mesh */
-    if (_scene && s.mesh) {
-      _scene.remove(s.mesh);
+    /* remove mesh from scene */
+    if (sc && s.mesh) {
+      sc.remove(s.mesh);
       s.mesh.traverse(function (obj) {
         if (obj.isMesh) {
           if (obj.geometry) obj.geometry.dispose();
           if (obj.material) obj.material.dispose();
         }
       });
+      s.mesh = null;
     }
 
-    /* score */
+    /* award score */
     if (window.player && window.player.score !== undefined) {
       window.player.score += SCORE_VALUE;
     }
-
-    /* toast */
-    if (window.HUD && window.HUD.showToast) {
-      window.HUD.showToast('ENEMY SNIPER NEUTRALIZED');
+    if (window._gameScore !== undefined) {
+      window._gameScore += SCORE_VALUE;
     }
 
-    /* rifle pickup */
-    _spawnRiflePickup(s.mesh ? s.mesh.position : null);
+    /* HUD notification */
+    if (window.HUD && window.HUD.showToast) {
+      window.HUD.showToast('SNIPER DOWN  +' + SCORE_VALUE);
+    }
 
-    _updateSniperActiveFlag();
+    /* spawn rifle / ammo pickup */
+    if (deathPos) {
+      _spawnAmmoPickup(sc, deathPos);
+    }
   }
 
   /* ══════════════════════════════════════════════════
-   *  RIFLE PICKUP
+   *  RIFLE AMMO PICKUP — BoxGeometry, +5 sniper ammo
    * ══════════════════════════════════════════════════ */
-  function _spawnRiflePickup(pos) {
-    if (!pos || !_scene) return;
+  function _spawnAmmoPickup(sc, pos) {
+    if (!sc || !pos) return;
     try {
+      /* try system-level pickup first */
       if (window.Pickups && window.Pickups.spawnAt) {
-        window.Pickups.spawnAt('rifle', pos.x, pos.y, pos.z);
+        window.Pickups.spawnAt('sniper_ammo', pos.x, pos.y, pos.z);
         return;
       }
-      /* fallback: simple visible marker */
-      var geo = new THREE.BoxGeometry(0.15, 0.6, 0.06);
+
+      /* fallback: visible box pickup the player can walk over */
+      var geo = new THREE.BoxGeometry(0.12, 0.5, 0.05);
       var mat = new THREE.MeshLambertMaterial({ color: 0x8B6914 });
       var mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(pos.x, pos.y, pos.z);
-      _scene.add(mesh);
-      /* auto-remove after 30s */
+      mesh.position.set(pos.x, pos.y + 0.25, pos.z);
+      mesh.userData.isAmmoPickup   = true;
+      mesh.userData.ammoType       = 'sniper';
+      mesh.userData.ammoAmount     = 5;
+      sc.add(mesh);
+
+      /* auto-remove after 30 s if not collected */
       setTimeout(function () {
-        if (_scene) {
-          _scene.remove(mesh);
+        if (sc) {
+          sc.remove(mesh);
           geo.dispose();
           mat.dispose();
         }
       }, 30000);
+
+      /* poll for player proximity to collect */
+      var _collectInterval = setInterval(function () {
+        if (!mesh.parent) { clearInterval(_collectInterval); return; }
+        var pp = _getPlayerPos();
+        if (!pp) return;
+        var dx = pp.x - mesh.position.x;
+        var dz = pp.z - mesh.position.z;
+        if (Math.sqrt(dx * dx + dz * dz) < 1.2) {
+          /* collect */
+          if (window.player && window.player.sniperAmmo !== undefined) {
+            window.player.sniperAmmo += 5;
+          }
+          if (window.HUD && window.HUD.showToast) {
+            window.HUD.showToast('+5 SNIPER AMMO');
+          }
+          sc.remove(mesh);
+          geo.dispose();
+          mat.dispose();
+          clearInterval(_collectInterval);
+        }
+      }, 200);
+
     } catch (e) {
-      /* silent — pickup is cosmetic */
+      /* pickup is cosmetic — silent failure */
     }
   }
 
   /* ══════════════════════════════════════════════════
-   *  SOUND — sniper crack + echo
+   *  SNIPER CRACK SOUND
    * ══════════════════════════════════════════════════ */
   function _playSniperCrack() {
     try {
-      var ctx = window._audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      var ctx = window._audioCtx ||
+                new (window.AudioContext || window.webkitAudioContext)();
       if (!window._audioCtx) window._audioCtx = ctx;
-
       var now = ctx.currentTime;
 
-      /* ── crack: short sharp oscillator burst ── */
-      var crackOsc  = ctx.createOscillator();
-      var crackGain = ctx.createGain();
-      crackOsc.type = 'sawtooth';
-      crackOsc.frequency.setValueAtTime(1800, now);
-      crackOsc.frequency.exponentialRampToValueAtTime(200, now + 0.06);
-      crackGain.gain.setValueAtTime(1.0, now);
-      crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-      crackOsc.connect(crackGain);
-      crackGain.connect(ctx.destination);
-      crackOsc.start(now);
-      crackOsc.stop(now + 0.08);
+      /* sharp crack oscillator */
+      var osc  = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(2200, now);
+      osc.frequency.exponentialRampToValueAtTime(180, now + 0.05);
+      gain.gain.setValueAtTime(0.9, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.07);
 
-      /* ── noise burst ── */
-      var bufLen = ctx.sampleRate * 0.12;
+      /* noise burst */
+      var bufLen = Math.ceil(ctx.sampleRate * 0.1);
       var buf    = ctx.createBuffer(1, bufLen, ctx.sampleRate);
       var data   = buf.getChannelData(0);
       for (var i = 0; i < bufLen; i++) {
         data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
       }
-      var noiseNode  = ctx.createBufferSource();
-      var noiseGain  = ctx.createGain();
-      noiseNode.buffer = buf;
-      noiseGain.gain.setValueAtTime(0.7, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-      noiseNode.connect(noiseGain);
+      var noise     = ctx.createBufferSource();
+      var noiseGain = ctx.createGain();
+      noise.buffer  = buf;
+      noiseGain.gain.setValueAtTime(0.6, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      noise.connect(noiseGain);
       noiseGain.connect(ctx.destination);
-      noiseNode.start(now);
+      noise.start(now);
 
-      /* ── echo / reverb (simple delay) ── */
-      var delay     = ctx.createDelay(2.0);
-      var echoGain  = ctx.createGain();
-      delay.delayTime.value = 0.35;
-      echoGain.gain.setValueAtTime(0.3, now);
-      echoGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
-      crackGain.connect(delay);
+      /* distant echo */
+      var delay    = ctx.createDelay(2.0);
+      var echoGain = ctx.createGain();
+      delay.delayTime.value = 0.3;
+      echoGain.gain.setValueAtTime(0.25, now);
+      echoGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+      gain.connect(delay);
       delay.connect(echoGain);
       echoGain.connect(ctx.destination);
 
     } catch (e) {
-      /* audio not available — silent */
+      /* audio not available */
     }
   }
 
@@ -519,18 +679,32 @@ window.EnemySniper = (function () {
     if (window.player && window.player.position) {
       return window.player.position;
     }
-    if (_camera) {
-      return _camera.position;
-    }
+    var cam = _camera || window._camera;
+    if (cam) return cam.position;
     return null;
   }
 
-  function _updateSniperActiveFlag() {
-    var anyAlive = false;
-    for (var i = 0; i < _snipers.length; i++) {
-      if (_snipers[i].alive) { anyAlive = true; break; }
+  function _pickRepositionTarget(playerPos) {
+    var angle = Math.random() * Math.PI * 2;
+    var dist  = REPOSITION_MIN + Math.random() * (REPOSITION_MAX - REPOSITION_MIN);
+    var px = 0, pz = 0;
+    if (playerPos) {
+      px = playerPos.x;
+      pz = playerPos.z;
     }
-    window._sniperActive = anyAlive;
+    return new THREE.Vector3(
+      px + Math.cos(angle) * dist,
+      0,
+      pz + Math.sin(angle) * dist
+    );
+  }
+
+  /* monotonic time in seconds (falls back to Date) */
+  function _getTime() {
+    if (typeof performance !== 'undefined' && performance.now) {
+      return performance.now() / 1000;
+    }
+    return Date.now() / 1000;
   }
 
   /* ══════════════════════════════════════════════════
@@ -539,32 +713,43 @@ window.EnemySniper = (function () {
   function reset() {
     for (var i = 0; i < _snipers.length; i++) {
       var s = _snipers[i];
-      _removeLaserDot(s);
-      if (s.tracerLine && _scene) {
-        _scene.remove(s.tracerLine);
-        if (s.tracerLine.geometry) s.tracerLine.geometry.dispose();
-        if (s.tracerLine.material) s.tracerLine.material.dispose();
-        s.tracerLine = null;
-      }
-      if (_scene && s.mesh) {
-        _scene.remove(s.mesh);
+      _hideLaser(s);
+      var sc = s.scene || _scene;
+      if (sc && s.mesh) {
+        sc.remove(s.mesh);
         s.mesh.traverse(function (obj) {
           if (obj.isMesh) {
             if (obj.geometry) obj.geometry.dispose();
             if (obj.material) obj.material.dispose();
           }
         });
+        s.mesh = null;
       }
     }
     _snipers = [];
-    window._sniperActive = false;
+
+    /* clean up any live tracers */
+    for (var j = 0; j < _tracers.length; j++) {
+      var t = _tracers[j];
+      t.scene.remove(t.mesh);
+      t.mesh.geometry.dispose();
+      t.mesh.material.dispose();
+    }
+    _tracers = [];
   }
 
-  /* ── public API ── */
+  /* ══════════════════════════════════════════════════
+   *  PUBLIC API
+   * ══════════════════════════════════════════════════ */
+  function getAll() {
+    return _snipers;
+  }
+
   return {
     init:       init,
     update:     update,
     spawn:      spawn,
+    getAll:     getAll,
     reset:      reset,
     takeDamage: takeDamage
   };
