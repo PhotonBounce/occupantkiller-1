@@ -1611,6 +1611,18 @@ const GameManager = (function () {
     try { if (window.VehicleWreck && VehicleWreck.init) VehicleWreck.init(_scene, _camera); } catch (e) {}
     try { if (window.SuppressorKit && SuppressorKit.init) SuppressorKit.init(_scene, _camera); } catch (e) {}
     try { if (window.BattlefieldPromotions && BattlefieldPromotions.init) BattlefieldPromotions.init(); } catch (e) {}
+    try { if (window.HostageRescue && HostageRescue.init) HostageRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.GrenadeLauncherGL && GrenadeLauncherGL.init) GrenadeLauncherGL.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlayerDeathSequence && PlayerDeathSequence.init) PlayerDeathSequence.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalReload && TacticalReload.init) TacticalReload.init(_scene, _camera); } catch (e) {}
+    try { if (window.ClaymoreDirectional && ClaymoreDirectional.init) ClaymoreDirectional.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightAssault && NightAssault.init) NightAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleTurret && VehicleTurret.init) VehicleTurret.init(_scene, _camera); } catch (e) {}
+    try { if (window.IntelDocuments && IntelDocuments.init) IntelDocuments.init(_scene, _camera); } catch (e) {}
+    try { if (window.BodyArmorVest && BodyArmorVest.init) BodyArmorVest.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArtilleryBarrage && ArtilleryBarrage.init) ArtilleryBarrage.init(_scene, _camera); } catch (e) {}
+    try { if (window.RiotShieldPickup && RiotShieldPickup.init) RiotShieldPickup.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScoreMultiplier && ScoreMultiplier.init) ScoreMultiplier.init(); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8020,6 +8032,18 @@ const GameManager = (function () {
       if (window.VehicleWreck) VehicleWreck.update(delta);
       if (window.SuppressorKit) SuppressorKit.update(delta);
       if (window.BattlefieldPromotions) BattlefieldPromotions.update(delta);
+      if (window.HostageRescue) HostageRescue.update(delta);
+      if (window.GrenadeLauncherGL) GrenadeLauncherGL.update(delta);
+      if (window.PlayerDeathSequence) PlayerDeathSequence.update(delta);
+      if (window.TacticalReload) TacticalReload.update(delta);
+      if (window.ClaymoreDirectional) ClaymoreDirectional.update(delta);
+      if (window.NightAssault) NightAssault.update(delta);
+      if (window.VehicleTurret) VehicleTurret.update(delta);
+      if (window.IntelDocuments) IntelDocuments.update(delta);
+      if (window.BodyArmorVest) BodyArmorVest.update(delta);
+      if (window.ArtilleryBarrage) ArtilleryBarrage.update(delta);
+      if (window.RiotShieldPickup) RiotShieldPickup.update(delta);
+      if (window.ScoreMultiplier) ScoreMultiplier.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
