@@ -1,64 +1,136 @@
-window.BodyDrag = (function() {
+// ============================================================
+//  body-drag.js — FPS body-drag system for Three.js combat game
+//
+//  Drag wounded allies and enemy corpses for tactical advantage.
+//
+//  Public API:
+//    BodyDrag.init(scene, camera)
+//    BodyDrag.update(delta)
+//    BodyDrag.startDrag(entityMesh)
+//    BodyDrag.stopDrag()
+//    BodyDrag.isDragging()
+//    BodyDrag.reset()
+// ============================================================
+window.BodyDrag = (function () {
   'use strict';
 
-  // --- State ---
-  var _deadBodies = [];          // array of THREE.Object3D meshes (horizontal enemy bodies)
-  var _draggedBody = null;       // currently dragged body mesh
-  var _dragStartPos = null;      // Vector3 of position where drag began
-  var _holdTimer = 0;            // seconds E has been held near a body
-  var _holdTarget = null;        // body being held-E towards
-  var _scene = null;
-  var _camera = null;
-  var _particleTimers = [];      // [{mesh, elapsed, duration}]
+  // ── Constants ──────────────────────────────────────────────
+  var GRAB_RADIUS         = 2.0;     // units — E key proximity
+  var DRAG_BEHIND_OFFSET  = 1.5;     // units behind player
+  var LERP_SPEED          = 8.0;     // drag smoothing
+  var SPEED_PENALTY       = 0.70;    // 30% slower while dragging
+  var WOUNDED_HP_THRESH   = 15;      // ally HP threshold for draggable
+  var ENEMY_DETECT_DELAY  = 15;      // seconds added to enemy detection
+  var DISTRACT_DURATION   = 20;      // seconds enemies are distracted
+  var DISTRACT_RANGE_MULT = 0.5;     // detection range multiplier while distracted
+  var COVER_BUFFER_HP     = 50;      // HP added to cover object near placed corpse
+  var COVER_RANGE         = 3.0;     // units — "behind cover" check radius
+  var BUILDING_RANGE      = 5.0;     // units — "inside building" check radius
+  var MEDIC_HEAL_MULT     = 2.0;     // heal rate multiplier for medic badge drag
+  var MEDIC_TENT_RANGE    = 4.0;     // units — range to trigger medic tent bonus
+  var DUST_INTERVAL       = 0.12;    // seconds between dust particle emits
+  var BLOOD_INTERVAL      = 0.5;     // seconds between blood drops
+  var PARTICLE_LIFE       = 1.8;     // seconds a dust particle lives
+  var BLOOD_LIFE          = 8.0;     // seconds a blood drop lives
+  var HUD_UPDATE_INTERVAL = 0.15;    // seconds between HUD label refreshes
 
-  // HUD elements
-  var _hudDragging = null;
-  var _hudBorderEl = null;
-  var _borderPulseTime = 0;
+  // ── State ──────────────────────────────────────────────────
+  var _scene        = null;
+  var _camera       = null;
 
-  // Constants
-  var PROXIMITY_DIST = 1.5;
-  var HOLD_TIME = 0.8;
-  var DRAG_OFFSET = 0.8;
-  var MAX_DRAG_RANGE = 8;
-  var RELEASE_DIST = 3;
-  var CONCEAL_DIST = 2.5;
-  var SCORE_CONCEAL = 300;
+  var _dragTarget   = null;   // currently dragged mesh (entity)
+  var _dragging     = false;
 
-  // --- Internal helpers ---
+  // entity metadata stored on mesh via ._bodyDragMeta
+  // { type:'enemy'|'ally', name:str, hp:number, isWounded:bool }
 
-  function _vec3Dist2D(a, b) {
-    var dx = a.x - b.x;
-    var dz = a.z - b.z;
-    return Math.sqrt(dx * dx + dz * dz);
+  // Particle lists — {mesh, elapsed, duration, vx, vy, vz}
+  var _dustParticles  = [];
+  var _bloodDrops     = [];
+
+  // Timers
+  var _dustTimer      = 0;
+  var _bloodTimer     = 0;
+  var _hudTimer       = 0;
+  var _borderPulse    = 0;
+
+  // Key tracking
+  var _eDown          = false;
+  var _ePrev          = false;
+
+  // Distracted enemies list — [{enemy, timer}]
+  var _distractedEnemies = [];
+
+  // DOM
+  var _hudDragEl      = null;  // "DRAGGING [E to drop] [cannot fire]" overlay
+  var _hudInfoEl      = null;  // entity name + HP + distance info bar
+  var _borderEl       = null;  // pulsing red border
+
+  // ── Init ───────────────────────────────────────────────────
+
+  function init(scene, camera) {
+    _scene  = scene  || (window.GameManager && window.GameManager.scene)  || null;
+    _camera = camera || (window.GameManager && window.GameManager.camera) || null;
+    _buildDOM();
+    _listenKeys();
+    window._bodyDragActive     = false;
+    window._bodyDragSpeedMult  = 1.0;
+    window._bodyDragWeaponLock = false;
   }
 
-  function _createHUD() {
-    if (_hudDragging) return;
+  // ── DOM ────────────────────────────────────────────────────
 
-    _hudDragging = document.createElement('div');
-    _hudDragging.id = 'body-drag-hud';
-    _hudDragging.textContent = 'DRAGGING BODY';
-    _hudDragging.style.cssText = [
+  function _buildDOM() {
+    if (_hudDragEl) return;
+
+    // "DRAGGING" controls reminder
+    _hudDragEl = document.createElement('div');
+    _hudDragEl.id = 'bd-drag-hud';
+    _hudDragEl.style.cssText = [
       'position:fixed',
-      'top:18px',
+      'top:22px',
       'left:50%',
       'transform:translateX(-50%)',
-      'color:#ff2222',
-      'font-size:18px',
+      'color:#ff3c3c',
+      'font-size:15px',
       'font-weight:bold',
       'font-family:monospace',
-      'letter-spacing:3px',
+      'letter-spacing:2px',
       'pointer-events:none',
       'z-index:9999',
+      'background:rgba(0,0,0,0.55)',
+      'padding:5px 14px',
+      'border-radius:4px',
       'display:none',
-      'text-shadow:0 0 8px #ff0000'
+      'text-shadow:0 0 6px #ff0000'
     ].join(';');
-    document.body.appendChild(_hudDragging);
+    _hudDragEl.textContent = 'DRAGGING  [E] DROP  [cannot fire]';
+    document.body.appendChild(_hudDragEl);
 
-    _hudBorderEl = document.createElement('div');
-    _hudBorderEl.id = 'body-drag-border';
-    _hudBorderEl.style.cssText = [
+    // Entity info bar (name / HP / distance to cover or tent)
+    _hudInfoEl = document.createElement('div');
+    _hudInfoEl.id = 'bd-info-hud';
+    _hudInfoEl.style.cssText = [
+      'position:fixed',
+      'top:56px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'color:#e8e8e8',
+      'font-size:13px',
+      'font-family:monospace',
+      'pointer-events:none',
+      'z-index:9999',
+      'background:rgba(0,0,0,0.45)',
+      'padding:4px 12px',
+      'border-radius:4px',
+      'display:none'
+    ].join(';');
+    document.body.appendChild(_hudInfoEl);
+
+    // Pulsing red screen border
+    _borderEl = document.createElement('div');
+    _borderEl.id = 'bd-border';
+    _borderEl.style.cssText = [
       'position:fixed',
       'top:0',
       'left:0',
@@ -66,43 +138,41 @@ window.BodyDrag = (function() {
       'height:100%',
       'pointer-events:none',
       'z-index:9998',
-      'box-shadow:inset 0 0 0 4px rgba(255,0,0,0)',
       'display:none'
     ].join(';');
-    document.body.appendChild(_hudBorderEl);
+    document.body.appendChild(_borderEl);
   }
 
-  function _showDragHUD(show) {
-    if (!_hudDragging) _createHUD();
-    _hudDragging.style.display = show ? 'block' : 'none';
-    _hudBorderEl.style.display = show ? 'block' : 'none';
-    if (!show) {
-      _borderPulseTime = 0;
-    }
+  function _showDragUI(on) {
+    if (!_hudDragEl) _buildDOM();
+    _hudDragEl.style.display = on ? 'block' : 'none';
+    _hudInfoEl.style.display = on ? 'block' : 'none';
+    _borderEl.style.display  = on ? 'block' : 'none';
+    if (!on) { _borderPulse = 0; _borderEl.style.boxShadow = ''; }
   }
 
   function _updateBorderPulse(dt) {
-    if (!_hudBorderEl || _hudBorderEl.style.display === 'none') return;
-    _borderPulseTime += dt;
-    var alpha = 0.3 + 0.3 * Math.sin(_borderPulseTime * 1.5);
-    _hudBorderEl.style.boxShadow = 'inset 0 0 0 4px rgba(255,0,0,' + alpha + ')';
+    if (!_borderEl || _borderEl.style.display === 'none') return;
+    _borderPulse += dt;
+    var a = 0.25 + 0.25 * Math.sin(_borderPulse * 2.5);
+    _borderEl.style.boxShadow = 'inset 0 0 0 5px rgba(255,0,0,' + a + ')';
   }
 
   function _showPrompt(text) {
-    var el = document.getElementById('body-drag-prompt');
+    var el = document.getElementById('bd-prompt');
     if (!el) {
       el = document.createElement('div');
-      el.id = 'body-drag-prompt';
+      el.id = 'bd-prompt';
       el.style.cssText = [
         'position:fixed',
-        'bottom:120px',
+        'bottom:130px',
         'left:50%',
         'transform:translateX(-50%)',
         'color:#ffffff',
-        'font-size:15px',
+        'font-size:14px',
         'font-family:monospace',
         'background:rgba(0,0,0,0.55)',
-        'padding:6px 18px',
+        'padding:5px 16px',
         'border-radius:4px',
         'pointer-events:none',
         'z-index:9999',
@@ -118,310 +188,621 @@ window.BodyDrag = (function() {
     }
   }
 
-  function _showMessage(text, color, duration) {
+  function _toast(text, color, dur) {
     var el = document.createElement('div');
     el.textContent = text;
     var c = color || '#ffffff';
     el.style.cssText = [
       'position:fixed',
-      'top:50%',
+      'top:45%',
       'left:50%',
       'transform:translate(-50%,-50%)',
       'color:' + c,
-      'font-size:22px',
+      'font-size:20px',
       'font-weight:bold',
       'font-family:monospace',
       'letter-spacing:2px',
       'pointer-events:none',
       'z-index:10000',
-      'text-shadow:0 0 12px ' + c
+      'text-shadow:0 0 10px ' + c,
+      'background:rgba(0,0,0,0.45)',
+      'padding:6px 18px',
+      'border-radius:6px'
     ].join(';');
     document.body.appendChild(el);
-    var ms = (duration || 2) * 1000;
-    setTimeout(function() {
+    setTimeout(function () {
       if (el.parentNode) el.parentNode.removeChild(el);
-    }, ms);
+    }, (dur || 2.5) * 1000);
+  }
+
+  // ── Key listener ───────────────────────────────────────────
+
+  function _listenKeys() {
+    document.addEventListener('keydown', function (e) {
+      if (e.code === 'KeyE' && !e.repeat) _eDown = true;
+    });
+    document.addEventListener('keyup', function (e) {
+      if (e.code === 'KeyE') _eDown = false;
+    });
+  }
+
+  // ── Helpers ────────────────────────────────────────────────
+
+  function _dist2D(a, b) {
+    var dx = a.x - b.x;
+    var dz = (a.z || 0) - (b.z || 0);
+    return Math.sqrt(dx * dx + dz * dz);
+  }
+
+  function _getPlayerPos() {
+    if (_camera) return _camera.position;
+    return new THREE.Vector3();
+  }
+
+  function _getPlayerForward() {
+    if (!_camera) return new THREE.Vector3(0, 0, -1);
+    var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
+    fwd.y = 0;
+    if (fwd.lengthSq() < 0.0001) fwd.set(0, 0, -1);
+    fwd.normalize();
+    return fwd;
+  }
+
+  // Find nearest draggable entity within GRAB_RADIUS
+  function _findNearestDraggable(playerPos) {
+    var best     = null;
+    var bestDist = GRAB_RADIUS;
+
+    // Dead enemies — registered on window._deadEnemies or flagged meshes
+    var deadEnemies = _getDeadEnemies();
+    for (var i = 0; i < deadEnemies.length; i++) {
+      var de = deadEnemies[i];
+      if (!de || !de.parent) continue;
+      var d = _dist2D(playerPos, de.position);
+      if (d < bestDist) { bestDist = d; best = de; }
+    }
+
+    // Wounded allies from SquadTactics
+    var woundedAllies = _getWoundedAllies();
+    for (var j = 0; j < woundedAllies.length; j++) {
+      var wa = woundedAllies[j];
+      if (!wa || !wa.parent) continue;
+      var da = _dist2D(playerPos, wa.position);
+      if (da < bestDist) { bestDist = da; best = wa; }
+    }
+
+    return best;
+  }
+
+  function _getDeadEnemies() {
+    // Support multiple integration patterns
+    if (window._deadBodies && Array.isArray(window._deadBodies)) {
+      return window._deadBodies;
+    }
+    if (window.Enemies && typeof window.Enemies.getDead === 'function') {
+      return window.Enemies.getDead();
+    }
+    if (window._enemies && Array.isArray(window._enemies)) {
+      var out = [];
+      for (var i = 0; i < window._enemies.length; i++) {
+        var e = window._enemies[i];
+        if (e && e._isDead) out.push(e.mesh || e);
+      }
+      return out;
+    }
+    return [];
+  }
+
+  function _getWoundedAllies() {
+    if (!window.SquadTactics || !window.SquadTactics.getSquad) return [];
+    var squad = window.SquadTactics.getSquad();
+    if (!squad || !Array.isArray(squad)) return [];
+    var out = [];
+    for (var i = 0; i < squad.length; i++) {
+      var m = squad[i];
+      if (!m) continue;
+      var hp = (m._hp !== undefined) ? m._hp : (m.hp !== undefined ? m.hp : 100);
+      if (hp < WOUNDED_HP_THRESH && hp > 0) {
+        var mesh = m.mesh || m;
+        // Tag metadata
+        if (!mesh._bodyDragMeta) {
+          mesh._bodyDragMeta = {
+            type: 'ally',
+            name: m.name || m._name || 'ALLY',
+            hp: hp,
+            isWounded: true,
+            squadRef: m
+          };
+        } else {
+          mesh._bodyDragMeta.hp = hp;
+        }
+        out.push(mesh);
+      }
+    }
+    return out;
+  }
+
+  function _ensureMeta(mesh) {
+    if (mesh._bodyDragMeta) return;
+    // Try to infer from mesh flags
+    var isEnemy = mesh._isEnemy || mesh._isDead || mesh._enemyDead || false;
+    mesh._bodyDragMeta = {
+      type: isEnemy ? 'enemy' : 'ally',
+      name: mesh._name || mesh.name || (isEnemy ? 'ENEMY' : 'ALLY'),
+      hp: mesh._hp || 0,
+      isWounded: !isEnemy
+    };
+  }
+
+  // ── Nearest cover / medic tent ─────────────────────────────
+
+  function _nearestCoverDist(pos) {
+    // Sandbags, wrecks, walls registered on global arrays
+    var covers = (window._coverObjects || window._sandbags || window._wreckPositions || []);
+    var best = Infinity;
+    for (var i = 0; i < covers.length; i++) {
+      var c = covers[i];
+      var cpos = (c && c.position) ? c.position : c;
+      if (!cpos) continue;
+      var d = _dist2D(pos, cpos);
+      if (d < best) best = d;
+    }
+    return best === Infinity ? -1 : best;
+  }
+
+  function _nearestMedicTentDist(pos) {
+    var tents = _getMedicTents();
+    var best = Infinity;
+    for (var i = 0; i < tents.length; i++) {
+      var t = tents[i];
+      var tpos = (t && t.position) ? t.position : t;
+      if (!tpos) continue;
+      var d = _dist2D(pos, tpos);
+      if (d < best) best = d;
+    }
+    return best === Infinity ? -1 : best;
+  }
+
+  function _getMedicTents() {
+    if (window.MedicStation && window.MedicStation.getTents) {
+      return window.MedicStation.getTents();
+    }
+    if (window._medicTents && Array.isArray(window._medicTents)) {
+      return window._medicTents;
+    }
+    return [];
   }
 
   function _isNearCover(pos) {
-    var positions = window._wreckPositions;
-    if (!positions || !positions.length) return false;
-    for (var i = 0; i < positions.length; i++) {
-      var wp = positions[i];
-      var dx = pos.x - wp.x;
-      var dz = pos.z - (wp.z !== undefined ? wp.z : 0);
-      if (Math.sqrt(dx * dx + dz * dz) <= CONCEAL_DIST) return true;
+    var d = _nearestCoverDist(pos);
+    return d >= 0 && d <= COVER_RANGE;
+  }
+
+  function _isInsideBuilding(pos) {
+    var buildings = window._buildingBounds || window._buildings || [];
+    for (var i = 0; i < buildings.length; i++) {
+      var b = buildings[i];
+      if (!b) continue;
+      // Support AABB {min, max} or position+range
+      if (b.min && b.max) {
+        if (pos.x >= b.min.x && pos.x <= b.max.x &&
+            pos.z >= b.min.z && pos.z <= b.max.z) return true;
+      } else if (b.position) {
+        if (_dist2D(pos, b.position) <= BUILDING_RANGE) return true;
+      }
     }
     return false;
   }
 
-  function _spawnConcealParticles(pos) {
-    if (!_scene) return;
-    var THREE = window.THREE;
-    if (!THREE) return;
+  function _isNearMedicTent(pos) {
+    var d = _nearestMedicTentDist(pos);
+    return d >= 0 && d <= MEDIC_TENT_RANGE;
+  }
 
-    for (var i = 0; i < 3; i++) {
-      var geo = new THREE.SphereGeometry(0.06, 4, 4);
-      var mat = new THREE.MeshBasicMaterial({ color: (i % 2 === 0) ? 0x4a7c2f : 0x8b6914 });
+  function _playerHasMedicBadge() {
+    if (window._playerMedicBadge) return true;
+    if (window.Player && window.Player.hasPerk && window.Player.hasPerk('medic')) return true;
+    if (window._playerPerks && window._playerPerks.indexOf('medic') !== -1) return true;
+    return false;
+  }
+
+  // ── Particles ──────────────────────────────────────────────
+
+  function _spawnDust(pos) {
+    if (!_scene) return;
+    for (var i = 0; i < 2; i++) {
+      var geo = new THREE.SphereGeometry(0.05 + Math.random() * 0.04, 4, 4);
+      var mat = new THREE.MeshBasicMaterial({
+        color: Math.random() > 0.5 ? 0xb8a070 : 0x9a8060,
+        transparent: true,
+        opacity: 0.75
+      });
       var mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(
-        pos.x + (Math.random() - 0.5) * 0.5,
-        pos.y + 0.1 + Math.random() * 0.3,
-        pos.z + (Math.random() - 0.5) * 0.5
+        pos.x + (Math.random() - 0.5) * 0.4,
+        pos.y + 0.05,
+        pos.z + (Math.random() - 0.5) * 0.4
       );
       _scene.add(mesh);
-      _particleTimers.push({ mesh: mesh, elapsed: 0, duration: 2, vy: 0.3 + Math.random() * 0.4 });
+      _dustParticles.push({
+        mesh:     mesh,
+        elapsed:  0,
+        duration: PARTICLE_LIFE * (0.7 + Math.random() * 0.6),
+        vx:       (Math.random() - 0.5) * 0.3,
+        vy:       0.08 + Math.random() * 0.12,
+        vz:       (Math.random() - 0.5) * 0.3
+      });
     }
+  }
+
+  function _spawnBloodDrop(pos) {
+    if (!_scene) return;
+    var geo = new THREE.SphereGeometry(0.06 + Math.random() * 0.04, 4, 4);
+    var mat = new THREE.MeshBasicMaterial({ color: 0x8b0000, transparent: true, opacity: 0.9 });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(
+      pos.x + (Math.random() - 0.5) * 0.2,
+      pos.y + 0.02,
+      pos.z + (Math.random() - 0.5) * 0.2
+    );
+    _scene.add(mesh);
+    _bloodDrops.push({ mesh: mesh, elapsed: 0, duration: BLOOD_LIFE });
   }
 
   function _updateParticles(dt) {
-    var toRemove = [];
-    for (var i = 0; i < _particleTimers.length; i++) {
-      var p = _particleTimers[i];
+    var i, p;
+
+    // Dust
+    for (i = _dustParticles.length - 1; i >= 0; i--) {
+      p = _dustParticles[i];
       p.elapsed += dt;
+      p.mesh.position.x += p.vx * dt;
       p.mesh.position.y += p.vy * dt;
-      p.vy -= 0.5 * dt;
-      var alpha = 1 - (p.elapsed / p.duration);
-      if (p.mesh.material) p.mesh.material.opacity = alpha;
+      p.mesh.position.z += p.vz * dt;
+      p.vy -= 0.4 * dt;
+      p.mesh.material.opacity = 0.75 * (1 - p.elapsed / p.duration);
       if (p.elapsed >= p.duration) {
-        if (_scene) _scene.remove(p.mesh);
-        if (p.mesh.geometry) p.mesh.geometry.dispose();
-        if (p.mesh.material) p.mesh.material.dispose();
-        toRemove.push(i);
+        _scene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+        _dustParticles.splice(i, 1);
       }
     }
-    for (var j = toRemove.length - 1; j >= 0; j--) {
-      _particleTimers.splice(toRemove[j], 1);
-    }
-  }
 
-  function _releaseBody(playerPos) {
-    if (!_draggedBody) return;
-
-    var body = _draggedBody;
-    var dropped = body.position.clone();
-
-    _draggedBody = null;
-    _dragStartPos = null;
-    window._draggingBody = false;
-
-    _showDragHUD(false);
-
-    // Check concealment
-    if (_isNearCover(dropped)) {
-      _showMessage('BODY CONCEALED', '#00ff88', 2.5);
-      _spawnConcealParticles(dropped);
-
-      // Award score bonus
-      if (typeof window._addScore === 'function') {
-        window._addScore(SCORE_CONCEAL);
-      } else if (window.ScoreSystem && typeof window.ScoreSystem.add === 'function') {
-        window.ScoreSystem.add(SCORE_CONCEAL);
-      }
-
-      // Mark as concealed so patrol AI ignores it
-      body._isConcealed = true;
-    } else {
-      // Alert patrol group
-      if (typeof window._onPatrolAlerted === 'function') {
-        window._onPatrolAlerted(body, dropped);
+    // Blood drops
+    for (i = _bloodDrops.length - 1; i >= 0; i--) {
+      p = _bloodDrops[i];
+      p.elapsed += dt;
+      var fade = 1 - Math.max(0, (p.elapsed - p.duration * 0.7) / (p.duration * 0.3));
+      p.mesh.material.opacity = 0.9 * fade;
+      if (p.elapsed >= p.duration) {
+        _scene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+        _bloodDrops.splice(i, 1);
       }
     }
   }
 
-  // --- Key state tracking ---
-  var _eKeyDown = false;
-  var _eWasDown = false;
+  // ── Tactical consequences ───────────────────────────────────
 
-  function _setupKeyListeners() {
-    document.addEventListener('keydown', function(e) {
-      if (e.code === 'KeyE' && !e.repeat) _eKeyDown = true;
-    });
-    document.addEventListener('keyup', function(e) {
-      if (e.code === 'KeyE') {
-        _eKeyDown = false;
-        _holdTimer = 0;
-        _holdTarget = null;
+  function _applyEnemyMissingDelay(bodyMesh) {
+    // Notify enemy patrol system
+    if (typeof window._onBodyMissing === 'function') {
+      window._onBodyMissing(bodyMesh, ENEMY_DETECT_DELAY);
+    }
+    if (window.Enemies && typeof window.Enemies.addDetectionDelay === 'function') {
+      window.Enemies.addDetectionDelay(ENEMY_DETECT_DELAY);
+    }
+  }
+
+  function _applyBodyCover(bodyMesh) {
+    // Drag enemy behind sandbag wall → +50 HP buffer to that cover
+    var covers = window._coverObjects || window._sandbags || [];
+    var pos = bodyMesh.position;
+    for (var i = 0; i < covers.length; i++) {
+      var c = covers[i];
+      var cpos = (c && c.position) ? c.position : c;
+      if (!cpos) continue;
+      if (_dist2D(pos, cpos) <= COVER_RANGE) {
+        if (c._coverHP !== undefined) {
+          c._coverHP += COVER_BUFFER_HP;
+        } else {
+          c._coverHP = COVER_BUFFER_HP;
+        }
+        _toast('COVER REINFORCED  +' + COVER_BUFFER_HP + ' HP', '#ffcc00', 2);
+        break;
       }
-    });
-  }
-
-  // --- Public API ---
-
-  function init(scene, camera) {
-    _scene = scene || (window.GameManager && window.GameManager.scene) || null;
-    _camera = camera || (window.GameManager && window.GameManager.camera) || null;
-    _createHUD();
-    _setupKeyListeners();
-    window._draggingBody = false;
-    window._nearDeadBody = false;
-  }
-
-  function registerBody(bodyMesh) {
-    if (bodyMesh && _deadBodies.indexOf(bodyMesh) === -1) {
-      _deadBodies.push(bodyMesh);
     }
   }
 
-  function unregisterBody(bodyMesh) {
-    var idx = _deadBodies.indexOf(bodyMesh);
-    if (idx !== -1) _deadBodies.splice(idx, 1);
-    if (_draggedBody === bodyMesh) {
-      _draggedBody = null;
-      _dragStartPos = null;
-      window._draggingBody = false;
-      _showDragHUD(false);
+  function _applyEvidenceRemoval(bodyMesh) {
+    // Remove awareness trigger in area
+    if (typeof window._removeAwarenessTrigger === 'function') {
+      window._removeAwarenessTrigger(bodyMesh.position.clone());
+    }
+    _toast('EVIDENCE REMOVED', '#00eeff', 2);
+  }
+
+  function _distractNearbyEnemies(centerPos) {
+    var enemies = (window._enemies) ? window._enemies : [];
+    if (window.Enemies && window.Enemies.getAll) enemies = window.Enemies.getAll();
+    for (var i = 0; i < enemies.length; i++) {
+      var en = enemies[i];
+      if (!en) continue;
+      var epos = (en.mesh && en.mesh.position) ? en.mesh.position : en.position;
+      if (!epos) continue;
+      if (_dist2D(centerPos, epos) <= 20) {
+        _distractedEnemies.push({ enemy: en, timer: DISTRACT_DURATION });
+        // Signal lower detection range
+        if (en._detectionRangeMult !== undefined) {
+          en._detectionRangeMult = DISTRACT_RANGE_MULT;
+        }
+      }
     }
   }
 
-  function startDrag(bodyMesh, playerPos) {
-    if (_draggedBody) return;
-    _draggedBody = bodyMesh;
-    _dragStartPos = playerPos.clone ? playerPos.clone() : { x: playerPos.x, y: playerPos.y, z: playerPos.z };
-    window._draggingBody = true;
-    _showDragHUD(true);
+  function _updateDistractions(dt) {
+    for (var i = _distractedEnemies.length - 1; i >= 0; i--) {
+      var d = _distractedEnemies[i];
+      d.timer -= dt;
+      if (d.timer <= 0) {
+        // Restore detection range
+        if (d.enemy && d.enemy._detectionRangeMult !== undefined) {
+          d.enemy._detectionRangeMult = 1.0;
+        }
+        _distractedEnemies.splice(i, 1);
+      }
+    }
   }
 
-  function update(dt, playerPos, playerDir) {
-    if (!playerPos) return;
+  function _applyMedicTentBonus(meta) {
+    if (!meta || meta.type !== 'ally' || !meta.squadRef) return;
+    var isMedic  = _playerHasMedicBadge();
+    var rate     = isMedic ? MEDIC_HEAL_MULT : 1.0;
+    var ref      = meta.squadRef;
 
-    // Resolve scene/camera lazily
-    if (!_scene && window.GameManager) _scene = window.GameManager.scene;
+    if (ref._healRateMult !== undefined) {
+      ref._healRateMult = rate;
+    }
+    if (typeof window._onAllyAtMedicTent === 'function') {
+      window._onAllyAtMedicTent(ref, rate);
+    }
+    var msg = isMedic
+      ? 'MEDIC DRAG BONUS  2x HEAL RATE'
+      : 'ALLY AT TENT  HEALING BOOSTED';
+    _toast(msg, '#44ff88', 2.5);
+  }
+
+  // ── HUD info bar update ────────────────────────────────────
+
+  function _updateInfoHUD() {
+    if (!_dragging || !_dragTarget) return;
+    _ensureMeta(_dragTarget);
+    var meta     = _dragTarget._bodyDragMeta;
+    var name     = meta.name || 'UNKNOWN';
+    var hp       = meta.hp !== undefined ? meta.hp : '?';
+    var pos      = _dragTarget.position;
+
+    var coverD   = _nearestCoverDist(pos);
+    var tentD    = _nearestMedicTentDist(pos);
+    var coverStr = coverD >= 0 ? Math.round(coverD) + 'm to cover' : 'no cover';
+    var tentStr  = tentD  >= 0 ? Math.round(tentD)  + 'm to tent'  : 'no tent';
+
+    _hudInfoEl.textContent = name + '  HP:' + hp + '   ' + coverStr + '  /  ' + tentStr;
+  }
+
+  // ── startDrag / stopDrag ───────────────────────────────────
+
+  function startDrag(entityMesh) {
+    if (_dragging) stopDrag();
+    if (!entityMesh) return;
+    _ensureMeta(entityMesh);
+
+    _dragTarget = entityMesh;
+    _dragging   = true;
+
+    window._bodyDragActive     = true;
+    window._bodyDragSpeedMult  = SPEED_PENALTY;
+    window._bodyDragWeaponLock = true;
+
+    _showDragUI(true);
+    _updateInfoHUD();
+    _showPrompt(null);
+  }
+
+  function stopDrag() {
+    if (!_dragging || !_dragTarget) {
+      _dragging   = false;
+      _dragTarget = null;
+      _resetGlobals();
+      _showDragUI(false);
+      _showPrompt(null);
+      return;
+    }
+
+    var body    = _dragTarget;
+    var droppedPos = body.position.clone();
+    var meta    = body._bodyDragMeta || {};
+
+    _dragTarget = null;
+    _dragging   = false;
+    _resetGlobals();
+    _showDragUI(false);
+    _showPrompt(null);
+    _dustTimer  = 0;
+    _bloodTimer = 0;
+
+    // Tactical consequences on drop
+    if (meta.type === 'enemy') {
+      _applyEnemyMissingDelay(body);
+      _distractNearbyEnemies(droppedPos);
+
+      if (_isNearCover(droppedPos)) {
+        _applyBodyCover(body);
+      }
+      if (_isInsideBuilding(droppedPos)) {
+        _applyEvidenceRemoval(body);
+      }
+      // Enemies far from patrol notice comrade missing
+      if (droppedPos.distanceTo && _getPlayerPos().distanceTo(droppedPos) > 15) {
+        _toast('COMRADE HIDDEN — PATROL DISTRACTED', '#ffaa00', 2.5);
+      }
+    } else if (meta.type === 'ally') {
+      if (_isNearMedicTent(droppedPos)) {
+        _applyMedicTentBonus(meta);
+      }
+    }
+  }
+
+  function isDragging() {
+    return _dragging;
+  }
+
+  function _resetGlobals() {
+    window._bodyDragActive     = false;
+    window._bodyDragSpeedMult  = 1.0;
+    window._bodyDragWeaponLock = false;
+  }
+
+  // ── Update ─────────────────────────────────────────────────
+
+  function update(delta) {
+    if (!_scene && window.GameManager) _scene  = window.GameManager.scene;
     if (!_camera && window.GameManager) _camera = window.GameManager.camera;
 
+    var dt = delta || 0.016;
+
+    _updateDistractions(dt);
     _updateParticles(dt);
     _updateBorderPulse(dt);
 
-    // --- Update dragged body position ---
-    if (_draggedBody) {
-      // Move body offset behind player along camera direction
-      var dir = playerDir;
-      if (!dir && _camera) {
-        // derive from camera
-        var THREE = window.THREE;
-        if (THREE) {
-          dir = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
+    var playerPos = _getPlayerPos();
+    var ePressed  = _eDown && !_ePrev;   // rising edge
+    _ePrev = _eDown;
+
+    if (_dragging && _dragTarget) {
+      // ── While dragging ────────────────────────────────────
+
+      // Move dragged body to target position (lerp)
+      var fwd    = _getPlayerForward();
+      var targetX = playerPos.x - fwd.x * DRAG_BEHIND_OFFSET;
+      var targetZ = playerPos.z - fwd.z * DRAG_BEHIND_OFFSET;
+      var t = Math.min(1, LERP_SPEED * dt);
+
+      _dragTarget.position.x += (targetX - _dragTarget.position.x) * t;
+      _dragTarget.position.z += (targetZ - _dragTarget.position.z) * t;
+      // Keep on ground (y of player feet ~= camera.y - eyeHeight)
+      _dragTarget.position.y = playerPos.y - 1.6 + 0.2;
+
+      // Lay body flat (rotate to horizontal)
+      _dragTarget.rotation.x = Math.PI / 2;
+
+      // Dust trail
+      _dustTimer += dt;
+      if (_dustTimer >= DUST_INTERVAL) {
+        _dustTimer = 0;
+        _spawnDust(_dragTarget.position);
+      }
+
+      // Blood trail (wounded ally or any body)
+      var meta = _dragTarget._bodyDragMeta || {};
+      if (meta.isWounded || meta.type === 'enemy') {
+        _bloodTimer += dt;
+        if (_bloodTimer >= BLOOD_INTERVAL) {
+          _bloodTimer = 0;
+          _spawnBloodDrop(_dragTarget.position);
         }
       }
 
-      if (dir) {
-        _draggedBody.position.x = playerPos.x - dir.x * DRAG_OFFSET;
-        _draggedBody.position.z = playerPos.z - dir.z * DRAG_OFFSET;
-        // keep body on ground (y unchanged, or slight floor snap)
-        // body.position.y stays as-is
+      // HUD refresh
+      _hudTimer += dt;
+      if (_hudTimer >= HUD_UPDATE_INTERVAL) {
+        _hudTimer = 0;
+        _updateInfoHUD();
       }
 
-      // Check max drag range from pickup point
-      if (_dragStartPos) {
-        var dragDist = _vec3Dist2D(playerPos, _dragStartPos);
-        if (dragDist > MAX_DRAG_RANGE) {
-          _releaseBody(playerPos);
-          return;
-        }
-      }
-
-      // Press E again while dragging → release
-      if (_eKeyDown && !_eWasDown) {
-        _releaseBody(playerPos);
-        _eWasDown = true;
+      // E pressed again → drop
+      if (ePressed) {
+        stopDrag();
         return;
       }
 
-      // Apply 60% speed modifier hint for other systems
-      window._bodyDragSpeedMult = 0.6;
-      window._bodyDragNoSprint = true;
-      window._bodyDragNoADS = true;
     } else {
-      window._bodyDragSpeedMult = 1.0;
-      window._bodyDragNoSprint = false;
-      window._bodyDragNoADS = false;
-    }
+      // ── Not dragging: scan for nearby entity ──────────────
+      var nearest = _findNearestDraggable(playerPos);
 
-    _eWasDown = _eKeyDown;
+      if (nearest) {
+        _ensureMeta(nearest);
+        var nm = nearest._bodyDragMeta || {};
+        var label = nm.type === 'ally'
+          ? '[E] Drag Wounded Ally'
+          : '[E] Drag Enemy Corpse';
+        _showPrompt(label);
 
-    // --- Proximity scan for dead bodies ---
-    var nearestBody = null;
-    var nearestDist = PROXIMITY_DIST;
-
-    for (var i = _deadBodies.length - 1; i >= 0; i--) {
-      var body = _deadBodies[i];
-      if (!body || body === _draggedBody) continue;
-      if (!body.parent) {
-        // Body was removed from scene, clean up
-        _deadBodies.splice(i, 1);
-        continue;
-      }
-      var d = _vec3Dist2D(playerPos, body.position);
-      if (d < nearestDist) {
-        nearestDist = d;
-        nearestBody = body;
-      }
-    }
-
-    window._nearDeadBody = (nearestBody !== null) || (_draggedBody !== null);
-
-    if (!_draggedBody) {
-      if (nearestBody) {
-        _showPrompt('[Hold E] Drag Body');
-
-        if (_eKeyDown) {
-          if (_holdTarget !== nearestBody) {
-            _holdTimer = 0;
-            _holdTarget = nearestBody;
-          }
-          _holdTimer += dt;
-          if (_holdTimer >= HOLD_TIME) {
-            _holdTimer = 0;
-            _holdTarget = null;
-            startDrag(nearestBody, playerPos);
-          }
-        } else {
-          _holdTimer = 0;
-          _holdTarget = null;
+        if (ePressed) {
+          startDrag(nearest);
         }
       } else {
         _showPrompt(null);
-        _holdTimer = 0;
-        _holdTarget = null;
       }
-    } else {
-      _showPrompt(null);
     }
   }
+
+  // ── reset ──────────────────────────────────────────────────
 
   function reset() {
-    if (_draggedBody) {
-      _draggedBody = null;
-      window._draggingBody = false;
-      _showDragHUD(false);
+    if (_dragging) {
+      _dragTarget = null;
+      _dragging   = false;
     }
-    _dragStartPos = null;
-    _holdTimer = 0;
-    _holdTarget = null;
-    _eKeyDown = false;
-    _eWasDown = false;
-    window._nearDeadBody = false;
-    window._bodyDragSpeedMult = 1.0;
-    window._bodyDragNoSprint = false;
-    window._bodyDragNoADS = false;
+    _resetGlobals();
+    _showDragUI(false);
     _showPrompt(null);
 
-    // Clean up particles
-    for (var i = 0; i < _particleTimers.length; i++) {
-      var p = _particleTimers[i];
+    // Clear particles
+    var i, p;
+    for (i = _dustParticles.length - 1; i >= 0; i--) {
+      p = _dustParticles[i];
       if (_scene) _scene.remove(p.mesh);
-      if (p.mesh.geometry) p.mesh.geometry.dispose();
-      if (p.mesh.material) p.mesh.material.dispose();
+      p.mesh.geometry.dispose();
+      p.mesh.material.dispose();
     }
-    _particleTimers = [];
+    _dustParticles = [];
+    for (i = _bloodDrops.length - 1; i >= 0; i--) {
+      p = _bloodDrops[i];
+      if (_scene) _scene.remove(p.mesh);
+      p.mesh.geometry.dispose();
+      p.mesh.material.dispose();
+    }
+    _bloodDrops = [];
+
+    // Restore any distracted enemies
+    for (i = 0; i < _distractedEnemies.length; i++) {
+      var d = _distractedEnemies[i];
+      if (d.enemy && d.enemy._detectionRangeMult !== undefined) {
+        d.enemy._detectionRangeMult = 1.0;
+      }
+    }
+    _distractedEnemies = [];
+
+    _dustTimer  = 0;
+    _bloodTimer = 0;
+    _hudTimer   = 0;
+    _borderPulse = 0;
+    _eDown      = false;
+    _ePrev      = false;
   }
 
+  // ── Public API ─────────────────────────────────────────────
+
   return {
-    init: init,
-    update: update,
+    init:      init,
+    update:    update,
     startDrag: startDrag,
-    reset: reset,
-    registerBody: registerBody,
-    unregisterBody: unregisterBody
+    stopDrag:  stopDrag,
+    isDragging: isDragging,
+    reset:     reset
   };
+
 })();

@@ -1,203 +1,105 @@
+// =============================================================================
+//  parachute-drop.js — HALO/HAHO Airborne Insertion & Combat Module
+//
+//  Features: freefall insertion, chute deployment, altimeter HUD, wind FX,
+//  AA threats, parachute damage, reserve chute, team drop, drop zone scoring.
+//
+//  Public API:
+//    ParachuteDrop.init(scene, camera)
+//    ParachuteDrop.update(delta)
+//    ParachuteDrop.triggerAirborneInsertion(altitude)
+//    ParachuteDrop.isInFreefall()
+//    ParachuteDrop.reset()
+// =============================================================================
 window.ParachuteDrop = (function () {
   'use strict';
 
   // ---------------------------------------------------------------------------
   // Constants
   // ---------------------------------------------------------------------------
-  var TERMINAL_VELOCITY = 50;      // m/s max freefall speed (downward positive)
-  var GRAVITY = 9.8;               // units/s^2
-  var CHUTE_DESCENT = 3;           // m/s target descent under chute
-  var CHUTE_DECEL_TIME = 1.2;      // seconds to decelerate to chute speed
-  var GROUND_Y = 1.0;              // snap-to-ground threshold
-  var MIN_DEPLOY_Y = 8;            // must be above this to deploy chute
-  var HALO_Y = 60;                 // spawn height for HALO jump
-  var HALO_TEXT_DUR = 3;           // seconds for HALO overlay text
-  var CHUTE_OFFSET_Y = 4;          // parachute mesh offset above camera
-  var WASD_DRIFT_MULT = 0.5;       // horizontal movement multiplier while descending
-  var NORMAL_SPEED = 6;            // baseline horizontal speed units/s
-  var MAX_CHARGES = 2;             // parachute uses per life
-  var SWAY_FREQ = 1.2;             // swaying frequency (rad/s)
-  var SWAY_AMP = 0.04;             // swaying amplitude (rad)
+  var FREEFALL_SPEED        = 25;    // downward units/s during freefall
+  var FREEFALL_H_SPEED      = 3;     // horizontal steering speed during freefall
+  var CHUTE_SPEED           = 2;     // downward units/s under main chute
+  var CHUTE_DAMAGED_SPEED   = 8;     // downward units/s when chute torn
+  var RESERVE_SPEED         = 2;     // downward units/s under reserve
+  var CHUTE_H_SPEED         = 0.5;   // horizontal steering speed under chute
+  var CHUTE_INFLATE_TIME    = 0.5;   // seconds for canopy to inflate
+  var CHUTE_RADIUS          = 3;     // hemisphere radius (units)
+  var CHUTE_OFFSET_Y        = 5;     // canopy offset above player
+  var AUTO_DEPLOY_Y         = 20;    // auto-deploy altitude
+  var RESERVE_DEPLOY_Y      = 5;     // reserve auto-deploy altitude
+  var PULL_WARNING_Y        = 25;    // show "PULL CHUTE" warning below this
+  var GROUND_Y              = 0;     // landing Y
+  var SNAP_DIST             = 0.3;   // snap-to-ground threshold
+  var CHUTE_MAX_HP          = 50;    // main chute hit points
+  var CHUTE_DAMAGE_THRESH   = 0.8;   // 80% damage triggers reserve
+  var DROP_ZONE_RADIUS      = 5;     // landing bonus inner radius
+  var DROP_ZONE_OUTER       = 10;    // landing bonus outer radius
+  var SCORE_INNER           = 150;   // score for landing within inner radius
+  var SCORE_OUTER           = 75;    // score for landing within outer radius
+  var TEAM_COUNT            = 3;     // number of AI team paratroopers
+  var SWAY_FREQ             = 1.1;   // canopy sway frequency
+  var SWAY_AMP              = 0.035; // canopy sway amplitude
+  var COMBAT_ACCURACY_PENALTY = 0.6; // 60% reduced accuracy during descent
+  var AA_THREAT_INTERVAL    = 5;     // seconds between AA threat checks
 
   // ---------------------------------------------------------------------------
-  // State
+  // Module state
   // ---------------------------------------------------------------------------
-  var _scene = null;
+  var _scene  = null;
   var _camera = null;
 
-  var _inAir = false;              // true when in freefall or chute descent
-  var _chuteDeployed = false;      // parachute is open
-  var _velocityY = 0;              // downward velocity (positive = falling)
-  var _charges = MAX_CHARGES;      // remaining parachute uses
+  var _active          = false; // insertion in progress
+  var _inFreefall      = false; // true during freefall phase
+  var _chuteDeployed   = false; // main chute open
+  var _reserveDeployed = false; // reserve chute open
+  var _chuteHP         = CHUTE_MAX_HP;
+  var _chuteInflating  = false;
+  var _inflateTimer    = 0;
+  var _landed          = false;
+  var _velocityY       = 0;    // current downward speed (positive = falling)
 
-  var _chuteGroup = null;          // Three.js group for parachute mesh
-  var _swayTimer = 0;              // timer for dome sway animation
+  var _dropZoneX       = 0;
+  var _dropZoneZ       = 0;
 
-  // Chute deceleration tracking
-  var _chuteDecelTimer = 0;        // time spent decelerating
-  var _chuteInitVel = 0;           // velocity at moment of deployment
+  // Three.js objects
+  var _mainChuteGroup   = null;
+  var _reserveGroup     = null;
+  var _tearOverlay      = null; // partial tear mesh
+  var _dropZoneMesh     = null;
+  var _teamChutes       = [];   // array of { group, posY, posX, posZ, color }
 
-  // HALO overlay
-  var _haloOverlay = null;
-  var _haloTimer = 0;
+  // Sway
+  var _swayTimer = 0;
 
-  // HUD
-  var _hud = null;
+  // HUD elements
+  var _hudEl      = null;
+  var _altEl      = null;
+  var _warnEl     = null;
+  var _chuteHudEl = null;
+
+  // Wind FX (Web Audio)
+  var _audioCtx    = null;
+  var _windSource  = null;
+  var _windGain    = null;
+  var _windFilter  = null;
+
+  // CSS wind blur
+  var _canvas      = null;
 
   // Input
-  var _keys = {
-    w: false, a: false, s: false, d: false
-  };
-
+  var _keys = { w: false, a: false, s: false, d: false };
   var _keydownHandler = null;
-  var _keyupHandler = null;
+  var _keyupHandler   = null;
+
+  // AA threat timer
+  var _aaThreatTimer = 0;
+
+  // Night drop
+  var _isNightDrop = false;
 
   // ---------------------------------------------------------------------------
-  // HUD
-  // ---------------------------------------------------------------------------
-  function _createHUD() {
-    if (_hud) { return; }
-
-    _hud = document.createElement('div');
-    _hud.id = 'parachute-drop-hud';
-    _hud.style.cssText = [
-      'position:fixed',
-      'bottom:80px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'color:#00ff88',
-      'font-family:monospace',
-      'font-size:16px',
-      'font-weight:bold',
-      'text-align:center',
-      'pointer-events:none',
-      'z-index:9000',
-      'text-shadow:0 0 8px #00ff88',
-      'line-height:1.6',
-      'display:none'
-    ].join(';');
-    document.body.appendChild(_hud);
-  }
-
-  function _updateHUD() {
-    if (!_hud) { return; }
-    if (!_inAir) {
-      _hud.style.display = 'none';
-      return;
-    }
-
-    _hud.style.display = 'block';
-    var playerY = _getPlayerY();
-    var altM = Math.max(0, Math.round(playerY * 3));
-    var descentDisplay = Math.abs(_velocityY).toFixed(1);
-    var deployHint = (!_chuteDeployed && playerY > MIN_DEPLOY_Y && _charges > 0)
-      ? '<br><span style="color:#ffff00">DEPLOY PARACHUTE [Alt+P]</span>'
-      : '';
-    var chargesDisplay = '<br><span style="color:#aaaaaa">CHUTES: ' + _charges + '/' + MAX_CHARGES + '</span>';
-
-    _hud.innerHTML =
-      'ALT: ' + altM + 'm' +
-      '&nbsp;&nbsp;&nbsp;DESCENT: ' + descentDisplay + ' m/s' +
-      deployHint +
-      chargesDisplay;
-  }
-
-  function _removeHUD() {
-    if (_hud && _hud.parentNode) {
-      _hud.parentNode.removeChild(_hud);
-    }
-    _hud = null;
-  }
-
-  // Charges display in corner (always visible when < MAX_CHARGES)
-  var _chargesCorner = null;
-
-  function _createChargesCorner() {
-    if (_chargesCorner) { return; }
-    _chargesCorner = document.createElement('div');
-    _chargesCorner.id = 'parachute-charges';
-    _chargesCorner.style.cssText = [
-      'position:fixed',
-      'top:12px',
-      'left:14px',
-      'color:#cccccc',
-      'font-family:monospace',
-      'font-size:14px',
-      'pointer-events:none',
-      'z-index:9001',
-      'text-shadow:0 0 4px #888',
-      'display:none'
-    ].join(';');
-    document.body.appendChild(_chargesCorner);
-  }
-
-  function _updateChargesCorner() {
-    if (!_chargesCorner) { return; }
-    if (_charges < MAX_CHARGES) {
-      _chargesCorner.textContent = 'CHUTES: ' + _charges + '/' + MAX_CHARGES;
-      _chargesCorner.style.display = 'block';
-    } else {
-      _chargesCorner.style.display = 'none';
-    }
-  }
-
-  function _removeChargesCorner() {
-    if (_chargesCorner && _chargesCorner.parentNode) {
-      _chargesCorner.parentNode.removeChild(_chargesCorner);
-    }
-    _chargesCorner = null;
-  }
-
-  // ---------------------------------------------------------------------------
-  // HALO overlay
-  // ---------------------------------------------------------------------------
-  function _showHALOOverlay() {
-    if (_haloOverlay) { return; }
-    _haloOverlay = document.createElement('div');
-    _haloOverlay.id = 'halo-jump-overlay';
-    _haloOverlay.style.cssText = [
-      'position:fixed',
-      'top:30%',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'color:#ff4400',
-      'font-family:monospace',
-      'font-size:36px',
-      'font-weight:bold',
-      'letter-spacing:6px',
-      'pointer-events:none',
-      'z-index:9500',
-      'text-shadow:0 0 20px #ff4400,0 0 40px #ff2200',
-      'opacity:1',
-      'transition:opacity 0.5s'
-    ].join(';');
-    _haloOverlay.textContent = 'HALO JUMP';
-    document.body.appendChild(_haloOverlay);
-    _haloTimer = HALO_TEXT_DUR;
-  }
-
-  function _updateHALOOverlay(dt) {
-    if (!_haloOverlay) { return; }
-    _haloTimer -= dt;
-    if (_haloTimer <= 0.5) {
-      var fadeRatio = Math.max(0, _haloTimer / 0.5);
-      _haloOverlay.style.opacity = String(fadeRatio);
-    }
-    if (_haloTimer <= 0) {
-      _removeHALOOverlay();
-    }
-  }
-
-  function _removeHALOOverlay() {
-    if (_haloOverlay && _haloOverlay.parentNode) {
-      _haloOverlay.parentNode.removeChild(_haloOverlay);
-    }
-    _haloOverlay = null;
-    _haloTimer = 0;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Player Y helpers — support window._playerY or camera.position.y
+  // Utility: player position helpers
   // ---------------------------------------------------------------------------
   function _getPlayerY() {
     if (typeof window._playerY === 'number') { return window._playerY; }
@@ -206,9 +108,7 @@ window.ParachuteDrop = (function () {
   }
 
   function _setPlayerY(y) {
-    if (typeof window._playerY === 'number') {
-      window._playerY = y;
-    }
+    if (typeof window._playerY === 'number') { window._playerY = y; }
     if (_camera) { _camera.position.y = y; }
   }
 
@@ -231,187 +131,666 @@ window.ParachuteDrop = (function () {
   }
 
   // ---------------------------------------------------------------------------
-  // Parachute mesh (Three.js)
+  // Wind Audio FX
   // ---------------------------------------------------------------------------
-  function _buildChuteMesh() {
-    if (!window.THREE) { return; }
-    if (_chuteGroup) { _removeChuteFromScene(); }
+  function _initWindAudio() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) { return; }
+      _audioCtx = new Ctx();
 
-    _chuteGroup = new window.THREE.Group();
+      // White noise buffer
+      var bufLen = _audioCtx.sampleRate * 2;
+      var buf = _audioCtx.createBuffer(1, bufLen, _audioCtx.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < bufLen; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
 
-    // Dome: 8 triangular segments using SphereGeometry slices
-    var domeMat = new window.THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      side: window.THREE.DoubleSide,
+      _windSource = _audioCtx.createBufferSource();
+      _windSource.buffer = buf;
+      _windSource.loop = true;
+
+      // High-pass filter for high-pitched wind
+      _windFilter = _audioCtx.createBiquadFilter();
+      _windFilter.type = 'highpass';
+      _windFilter.frequency.value = 1800;
+
+      _windGain = _audioCtx.createGain();
+      _windGain.gain.value = 0;
+
+      _windSource.connect(_windFilter);
+      _windFilter.connect(_windGain);
+      _windGain.connect(_audioCtx.destination);
+      _windSource.start();
+    } catch (e) {
+      // Audio not available — fail silently
+    }
+  }
+
+  function _updateWindAudio(speed) {
+    if (!_windGain) { return; }
+    // Volume proportional to freefall speed, max 0.4
+    var vol = _inFreefall ? Math.min(0.4, (speed / FREEFALL_SPEED) * 0.4) : 0;
+    try {
+      _windGain.gain.setTargetAtTime(vol, _audioCtx.currentTime, 0.2);
+    } catch (e) {}
+  }
+
+  function _stopWindAudio() {
+    if (_windGain) {
+      try { _windGain.gain.setTargetAtTime(0, _audioCtx.currentTime, 0.1); } catch (e) {}
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Visual wind blur (CSS filter on canvas)
+  // ---------------------------------------------------------------------------
+  function _findCanvas() {
+    if (_canvas) { return; }
+    // Look for a canvas that looks like the game renderer
+    var canvases = document.getElementsByTagName('canvas');
+    if (canvases.length > 0) { _canvas = canvases[0]; }
+  }
+
+  function _setWindBlur(amount) {
+    if (!_canvas) { _findCanvas(); }
+    if (!_canvas) { return; }
+    if (amount <= 0) {
+      _canvas.style.filter = '';
+    } else {
+      // radial blur approximation via blur + saturate
+      var px = (amount * 4).toFixed(1);
+      _canvas.style.filter = 'blur(' + px + 'px) saturate(1.4)';
+    }
+  }
+
+  function _clearWindBlur() {
+    if (_canvas) { _canvas.style.filter = ''; }
+  }
+
+  // ---------------------------------------------------------------------------
+  // HUD
+  // ---------------------------------------------------------------------------
+  function _createHUD() {
+    if (_hudEl) { return; }
+
+    _hudEl = document.createElement('div');
+    _hudEl.id = 'parachute-drop-hud';
+    _hudEl.style.cssText = [
+      'position:fixed',
+      'top:18%',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'text-align:center',
+      'pointer-events:none',
+      'z-index:9200',
+      'display:none',
+      'user-select:none'
+    ].join(';');
+
+    // Altimeter readout
+    _altEl = document.createElement('div');
+    _altEl.style.cssText = [
+      'font-family:\'Courier New\',monospace',
+      'font-size:52px',
+      'font-weight:bold',
+      'color:#00ff88',
+      'text-shadow:0 0 16px #00ff88,0 0 32px #00aa55',
+      'letter-spacing:4px',
+      'line-height:1'
+    ].join(';');
+    _altEl.textContent = '0';
+
+    // Unit label
+    var unitLabel = document.createElement('div');
+    unitLabel.style.cssText = [
+      'font-family:monospace',
+      'font-size:14px',
+      'color:#88ffcc',
+      'letter-spacing:8px',
+      'margin-top:2px'
+    ].join(';');
+    unitLabel.textContent = 'METERS AGL';
+
+    // Warning
+    _warnEl = document.createElement('div');
+    _warnEl.style.cssText = [
+      'font-family:monospace',
+      'font-size:20px',
+      'font-weight:bold',
+      'color:#ff2200',
+      'text-shadow:0 0 12px #ff2200',
+      'letter-spacing:3px',
+      'margin-top:8px',
+      'animation:pd-blink 0.4s step-end infinite',
+      'display:none'
+    ].join(';');
+    _warnEl.textContent = '⚠ PULL CHUTE ⚠';
+
+    // Chute status
+    _chuteHudEl = document.createElement('div');
+    _chuteHudEl.style.cssText = [
+      'font-family:monospace',
+      'font-size:13px',
+      'color:#aaddff',
+      'margin-top:6px'
+    ].join(';');
+
+    _hudEl.appendChild(_altEl);
+    _hudEl.appendChild(unitLabel);
+    _hudEl.appendChild(_warnEl);
+    _hudEl.appendChild(_chuteHudEl);
+    document.body.appendChild(_hudEl);
+
+    // Blink keyframe
+    if (!document.getElementById('pd-blink-style')) {
+      var style = document.createElement('style');
+      style.id = 'pd-blink-style';
+      style.textContent = '@keyframes pd-blink{0%,100%{opacity:1}50%{opacity:0}}';
+      document.head.appendChild(style);
+    }
+  }
+
+  function _updateHUD() {
+    if (!_hudEl) { return; }
+    if (!_active) {
+      _hudEl.style.display = 'none';
+      return;
+    }
+    _hudEl.style.display = 'block';
+
+    var y = _getPlayerY();
+    var altDisplay = Math.max(0, Math.round(y));
+    if (_altEl) { _altEl.textContent = altDisplay; }
+
+    // Pull chute warning
+    if (_warnEl) {
+      if (!_chuteDeployed && !_reserveDeployed && y < PULL_WARNING_Y && y > GROUND_Y + 1) {
+        _warnEl.style.display = 'block';
+      } else {
+        _warnEl.style.display = 'none';
+      }
+    }
+
+    // Chute status line
+    if (_chuteHudEl) {
+      var statusParts = [];
+      if (_chuteDeployed) {
+        var hpPct = Math.round((_chuteHP / CHUTE_MAX_HP) * 100);
+        statusParts.push('MAIN CHUTE: ' + hpPct + '%');
+        if (_tearOverlay) { statusParts.push('[TORN]'); }
+      } else if (_reserveDeployed) {
+        statusParts.push('RESERVE CHUTE ACTIVE');
+      } else if (_inFreefall) {
+        statusParts.push('FREEFALL — SPACE to deploy');
+      }
+      if (_isNightDrop) { statusParts.push('NIGHT DROP — NVG RECOMMENDED'); }
+      _chuteHudEl.textContent = statusParts.join('  ');
+    }
+  }
+
+  function _removeHUD() {
+    if (_hudEl && _hudEl.parentNode) {
+      _hudEl.parentNode.removeChild(_hudEl);
+    }
+    _hudEl = null;
+    _altEl = null;
+    _warnEl = null;
+    _chuteHudEl = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drop Zone mesh (green ring on the ground)
+  // ---------------------------------------------------------------------------
+  function _createDropZone(cx, cz) {
+    if (!window.THREE || !_scene) { return; }
+    _removeDropZone();
+
+    var ringGeo = new THREE.RingGeometry(DROP_ZONE_RADIUS - 0.3, DROP_ZONE_RADIUS + 0.3, 64);
+    var ringMat = new THREE.MeshBasicMaterial({
+      color: 0x00ff44,
+      side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.9
+      opacity: 0.75
     });
+    var ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(cx, GROUND_Y + 0.05, cz);
 
-    // Build dome as 8 separate "gores" (pie-slice shaped wedges)
-    var NUM_SEGMENTS = 8;
-    var DOME_RADIUS = 2.0;
+    // Inner dot
+    var dotGeo = new THREE.CircleGeometry(0.8, 32);
+    var dotMat = new THREE.MeshBasicMaterial({
+      color: 0x00ff44,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.5
+    });
+    var dot = new THREE.Mesh(dotGeo, dotMat);
+    dot.rotation.x = -Math.PI / 2;
+    dot.position.set(cx, GROUND_Y + 0.06, cz);
 
-    for (var i = 0; i < NUM_SEGMENTS; i++) {
-      // Use a sphere geometry sliced to 1/8th arc for each gore
-      var goreGeo = new window.THREE.SphereGeometry(
-        DOME_RADIUS,  // radius
-        1,            // widthSegments per gore
-        4,            // heightSegments
-        (i / NUM_SEGMENTS) * Math.PI * 2,          // phiStart
-        (1 / NUM_SEGMENTS) * Math.PI * 2,          // phiLength
-        0,            // thetaStart (top)
-        Math.PI / 2   // thetaLength (hemisphere)
-      );
-      // Alternate gore colours slightly for visual interest
-      var goreColor = (i % 2 === 0) ? 0xffffff : 0xeeeeee;
-      var goreMat = new window.THREE.MeshBasicMaterial({
-        color: goreColor,
-        side: window.THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.88
-      });
-      var gore = new window.THREE.Mesh(goreGeo, goreMat);
-      _chuteGroup.add(gore);
+    _dropZoneMesh = new THREE.Group();
+    _dropZoneMesh.add(ring);
+    _dropZoneMesh.add(dot);
+
+    // Night drop: dim if no lights
+    if (_isNightDrop) {
+      ringMat.opacity = 0.2;
+      dotMat.opacity = 0.15;
     }
 
-    // 8 suspension lines: thin CylinderGeometry, grey, from canopy rim down to camera
-    var lineMat = new window.THREE.MeshBasicMaterial({ color: 0x999999 });
-    var LINE_LENGTH = CHUTE_OFFSET_Y - 0.2; // reach from canopy to just above player
+    _scene.add(_dropZoneMesh);
+  }
 
-    for (var j = 0; j < 8; j++) {
-      var lineGeo = new window.THREE.CylinderGeometry(0.012, 0.012, LINE_LENGTH, 4);
-      var line = new window.THREE.Mesh(lineGeo, lineMat);
-      var angle = (j / 8) * Math.PI * 2;
-      var rimR = DOME_RADIUS * 0.85;
-      // Attach top of line near dome rim, bottom toward player
+  function _removeDropZone() {
+    if (_dropZoneMesh && _scene) {
+      _scene.remove(_dropZoneMesh);
+    }
+    _dropZoneMesh = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Canopy mesh builder
+  // ---------------------------------------------------------------------------
+  function _buildCanopyGroup(color, radius) {
+    if (!window.THREE) { return null; }
+    var group = new THREE.Group();
+
+    // Hemisphere: use SphereGeometry half-sphere
+    var domeGeo = new THREE.SphereGeometry(radius, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+    var domeMat = new THREE.MeshBasicMaterial({
+      color: color,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.0  // starts invisible, inflates
+    });
+    var dome = new THREE.Mesh(domeGeo, domeMat);
+    dome.name = 'canopy';
+    group.add(dome);
+
+    // Gore lines (alternating panels for visual detail)
+    var NUM_GORES = 8;
+    for (var g = 0; g < NUM_GORES; g++) {
+      var angle = (g / NUM_GORES) * Math.PI * 2;
+      var lineGeo = new THREE.CylinderGeometry(0.015, 0.015, CHUTE_OFFSET_Y - 0.5, 4);
+      var lineMat = new THREE.MeshBasicMaterial({ color: 0xbbbbbb });
+      var line = new THREE.Mesh(lineGeo, lineMat);
+      var rimR = radius * 0.8;
       line.position.set(
-        Math.cos(angle) * rimR * 0.5,
-        -(LINE_LENGTH / 2),
-        Math.sin(angle) * rimR * 0.5
+        Math.cos(angle) * rimR * 0.4,
+        -(CHUTE_OFFSET_Y - 0.5) / 2,
+        Math.sin(angle) * rimR * 0.4
       );
-      // Tilt lines outward from centre
-      line.rotation.z = Math.cos(angle) * 0.22;
-      line.rotation.x = Math.sin(angle) * 0.22;
-      _chuteGroup.add(line);
+      line.rotation.z = Math.cos(angle) * 0.18;
+      line.rotation.x = Math.sin(angle) * 0.18;
+      group.add(line);
     }
 
-    _swayTimer = 0;
-
-    if (_scene) { _scene.add(_chuteGroup); }
+    return group;
   }
 
-  function _updateChutePosition() {
-    if (!_chuteGroup || !_camera) { return; }
-    _chuteGroup.position.x = _camera.position.x;
-    _chuteGroup.position.y = _camera.position.y + CHUTE_OFFSET_Y;
-    _chuteGroup.position.z = _camera.position.z;
+  // ---------------------------------------------------------------------------
+  // Main chute
+  // ---------------------------------------------------------------------------
+  function _buildMainChute() {
+    if (!window.THREE || !_scene) { return; }
+    _removeMainChute();
+
+    _mainChuteGroup = _buildCanopyGroup(0xffffff, CHUTE_RADIUS);
+    if (_mainChuteGroup) { _scene.add(_mainChuteGroup); }
+    _inflateTimer = 0;
+    _chuteInflating = true;
   }
 
-  function _swayChute(dt) {
-    if (!_chuteGroup) { return; }
-    _swayTimer += dt;
-    _chuteGroup.rotation.x = Math.sin(_swayTimer * SWAY_FREQ) * SWAY_AMP;
-    _chuteGroup.rotation.z = Math.cos(_swayTimer * SWAY_FREQ * 0.7) * SWAY_AMP;
-  }
-
-  function _removeChuteFromScene() {
-    if (_chuteGroup && _scene) {
-      _scene.remove(_chuteGroup);
+  function _updateChuteInflation(dt) {
+    if (!_chuteInflating || !_mainChuteGroup) { return; }
+    _inflateTimer += dt;
+    var t = Math.min(1, _inflateTimer / CHUTE_INFLATE_TIME);
+    // Ease-out cubic
+    var ease = 1 - Math.pow(1 - t, 3);
+    var dome = _mainChuteGroup.getObjectByName('canopy');
+    if (dome && dome.material) {
+      dome.material.opacity = ease * 0.88;
     }
-    _chuteGroup = null;
+    // Scale inflate effect
+    _mainChuteGroup.scale.setScalar(0.2 + ease * 0.8);
+    if (t >= 1) { _chuteInflating = false; }
+  }
+
+  function _positionMainChute() {
+    if (!_mainChuteGroup || !_camera) { return; }
+    _mainChuteGroup.position.set(
+      _camera.position.x,
+      _camera.position.y + CHUTE_OFFSET_Y,
+      _camera.position.z
+    );
+  }
+
+  function _removeMainChute() {
+    if (_mainChuteGroup && _scene) { _scene.remove(_mainChuteGroup); }
+    _mainChuteGroup = null;
+    _chuteInflating = false;
+    _inflateTimer = 0;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tear overlay (partial tear mesh on main chute)
+  // ---------------------------------------------------------------------------
+  function _addTearOverlay() {
+    if (!window.THREE || !_mainChuteGroup || _tearOverlay) { return; }
+    var tearGeo = new THREE.SphereGeometry(CHUTE_RADIUS + 0.05, 6, 4, 0.8, 1.2, 0.3, 0.9);
+    var tearMat = new THREE.MeshBasicMaterial({
+      color: 0x222222,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.7,
+      wireframe: true
+    });
+    _tearOverlay = new THREE.Mesh(tearGeo, tearMat);
+    _mainChuteGroup.add(_tearOverlay);
+  }
+
+  function _removeTearOverlay() {
+    if (_tearOverlay && _mainChuteGroup) {
+      _mainChuteGroup.remove(_tearOverlay);
+    }
+    _tearOverlay = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reserve chute
+  // ---------------------------------------------------------------------------
+  function _deployReserve() {
+    if (_reserveDeployed) { return; }
+    _reserveDeployed = true;
+    _velocityY = RESERVE_SPEED; // snap to safe descent
+
+    if (!window.THREE || !_scene) { return; }
+    _reserveGroup = _buildCanopyGroup(0xff8800, CHUTE_RADIUS * 0.7);
+    if (_reserveGroup) {
+      // Offset slightly so it's distinguishable from (torn) main
+      _reserveGroup.position.set(
+        _getPlayerX() + 0.5,
+        _getPlayerY() + CHUTE_OFFSET_Y - 1,
+        _getPlayerZ()
+      );
+      _scene.add(_reserveGroup);
+      // Force full opacity immediately
+      var dome = _reserveGroup.getObjectByName('canopy');
+      if (dome && dome.material) { dome.material.opacity = 0.85; }
+      _reserveGroup.scale.setScalar(1);
+    }
+  }
+
+  function _positionReserve() {
+    if (!_reserveGroup || !_camera) { return; }
+    _reserveGroup.position.set(
+      _camera.position.x + 0.5,
+      _camera.position.y + CHUTE_OFFSET_Y - 1,
+      _camera.position.z
+    );
+  }
+
+  function _removeReserve() {
+    if (_reserveGroup && _scene) { _scene.remove(_reserveGroup); }
+    _reserveGroup = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Team drop (3 AI paratroopers)
+  // ---------------------------------------------------------------------------
+  var TEAM_COLORS = [0xff3333, 0x3399ff, 0xffdd00];
+
+  function _spawnTeamDrop(startY) {
+    _clearTeamChutes();
+    for (var t = 0; t < TEAM_COUNT; t++) {
+      if (!window.THREE || !_scene) {
+        _teamChutes.push({ group: null, posY: startY, posX: _dropZoneX + (t - 1) * 6, posZ: _dropZoneZ + (t % 2 === 0 ? 5 : -5), landed: false, velocityY: FREEFALL_SPEED, chuteOpen: false });
+        continue;
+      }
+      var chuteGroup = _buildCanopyGroup(TEAM_COLORS[t], CHUTE_RADIUS * 0.85);
+      var spawnX = _dropZoneX + (t - 1) * 6;
+      var spawnZ = _dropZoneZ + (t % 2 === 0 ? 5 : -5);
+      if (chuteGroup) {
+        chuteGroup.position.set(spawnX, startY + CHUTE_OFFSET_Y, spawnZ);
+        _scene.add(chuteGroup);
+      }
+      _teamChutes.push({
+        group: chuteGroup,
+        posY: startY,
+        posX: spawnX,
+        posZ: spawnZ,
+        landed: false,
+        velocityY: FREEFALL_SPEED,
+        chuteOpen: false,
+        chuteTimer: 0
+      });
+    }
+  }
+
+  function _updateTeamDrop(dt) {
+    for (var i = 0; i < _teamChutes.length; i++) {
+      var m = _teamChutes[i];
+      if (m.landed) { continue; }
+
+      // Auto-deploy chute at 30 units (staggered)
+      var autoDeployY = AUTO_DEPLOY_Y + (i * 5);
+      if (!m.chuteOpen && m.posY <= autoDeployY) {
+        m.chuteOpen = true;
+        m.velocityY = CHUTE_SPEED;
+        if (m.group) {
+          var dome = m.group.getObjectByName('canopy');
+          if (dome && dome.material) { dome.material.opacity = 0.82; }
+        }
+      }
+
+      m.posY -= m.velocityY * dt;
+
+      if (m.posY <= GROUND_Y) {
+        m.posY = GROUND_Y;
+        m.landed = true;
+        if (m.group && _scene) {
+          _scene.remove(m.group);
+          m.group = null;
+        }
+      } else if (m.group) {
+        m.group.position.set(m.posX, m.posY + CHUTE_OFFSET_Y, m.posZ);
+        // Gentle sway
+        m.chuteTimer = (m.chuteTimer || 0) + dt;
+        m.group.rotation.x = Math.sin(m.chuteTimer * SWAY_FREQ * 0.9) * SWAY_AMP;
+        m.group.rotation.z = Math.cos(m.chuteTimer * SWAY_FREQ * 0.7) * SWAY_AMP;
+      }
+    }
+  }
+
+  function _clearTeamChutes() {
+    for (var i = 0; i < _teamChutes.length; i++) {
+      if (_teamChutes[i].group && _scene) {
+        _scene.remove(_teamChutes[i].group);
+      }
+    }
+    _teamChutes = [];
   }
 
   // ---------------------------------------------------------------------------
   // Landing
   // ---------------------------------------------------------------------------
+  function _calcLandingScore() {
+    var dx = _getPlayerX() - _dropZoneX;
+    var dz = _getPlayerZ() - _dropZoneZ;
+    var dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist <= DROP_ZONE_RADIUS) {
+      _awardScore(SCORE_INNER, 'PRECISION LANDING +' + SCORE_INNER);
+    } else if (dist <= DROP_ZONE_OUTER) {
+      _awardScore(SCORE_OUTER, 'ON TARGET +' + SCORE_OUTER);
+    }
+  }
+
+  function _awardScore(pts, msg) {
+    if (window.ScoreSystem && typeof window.ScoreSystem.add === 'function') {
+      window.ScoreSystem.add(pts, msg);
+    } else if (window._gameScore !== undefined) {
+      window._gameScore += pts;
+    }
+    // Show brief HUD message
+    _showLandingMsg(msg);
+  }
+
+  function _showLandingMsg(msg) {
+    var el = document.createElement('div');
+    el.style.cssText = [
+      'position:fixed',
+      'top:40%',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'color:#ffdd00',
+      'font-family:monospace',
+      'font-size:22px',
+      'font-weight:bold',
+      'pointer-events:none',
+      'z-index:9300',
+      'text-shadow:0 0 12px #ffaa00',
+      'transition:opacity 1s'
+    ].join(';');
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function () { el.style.opacity = '0'; }, 1500);
+    setTimeout(function () { if (el.parentNode) { el.parentNode.removeChild(el); } }, 2600);
+  }
+
   function _land() {
-    _inAir = false;
+    if (_landed) { return; }
+    _landed = true;
+    _active = false;
+    _inFreefall = false;
     _chuteDeployed = false;
+    _reserveDeployed = false;
     _velocityY = 0;
-    _chuteDecelTimer = 0;
-    _chuteInitVel = 0;
 
     _setPlayerY(GROUND_Y);
-    _removeChuteFromScene();
+    _removeMainChute();
+    _removeReserve();
+    _removeTearOverlay();
+    _removeDropZone();
+    _stopWindAudio();
+    _clearWindBlur();
+    _calcLandingScore();
 
-    // Play landing sound via AudioSystem if available
-    if (window.AudioSystem && typeof window.AudioSystem.playLandingThud === 'function') {
-      window.AudioSystem.playLandingThud();
+    // Restore weapon accuracy
+    if (window._parachuteAccuracyPenalty !== undefined) {
+      window._parachuteAccuracyPenalty = 0;
     }
-
-    _updateChargesCorner();
   }
 
   // ---------------------------------------------------------------------------
-  // Deploy parachute
+  // Chute deployment
   // ---------------------------------------------------------------------------
-  function _deployChute() {
-    if (_chuteDeployed) { return; }
-    if (_charges <= 0) { return; }
-    if (_getPlayerY() <= MIN_DEPLOY_Y) { return; }
-    if (!_inAir) { return; }
+  function _deployMainChute() {
+    if (_chuteDeployed || _reserveDeployed) { return; }
+    if (!_active) { return; }
+    var y = _getPlayerY();
+    if (y <= GROUND_Y + 1) { return; }
 
     _chuteDeployed = true;
-    _charges--;
-    _chuteInitVel = _velocityY;
-    _chuteDecelTimer = 0;
+    _inFreefall = false;
+    _velocityY = CHUTE_SPEED;
+    _chuteHP = CHUTE_MAX_HP;
 
-    _buildChuteMesh();
-    _updateChargesCorner();
+    _buildMainChute();
+    _stopWindAudio();
+    _clearWindBlur();
   }
 
   // ---------------------------------------------------------------------------
-  // HALO jump trigger
+  // AA threat — enemy anti-air fires at player during descent
   // ---------------------------------------------------------------------------
-  function _triggerHALO() {
-    var px = _getPlayerX();
-    var pz = _getPlayerZ();
+  function _updateAAThreats(dt) {
+    if (!_active) { return; }
+    _aaThreatTimer -= dt;
+    if (_aaThreatTimer > 0) { return; }
+    _aaThreatTimer = AA_THREAT_INTERVAL;
 
-    // Place player 60 units up
-    _setPlayerY(HALO_Y);
-    // Keep same XZ
-    _setPlayerX(px);
-    _setPlayerZ(pz);
+    // Ask AntiAir.js (if loaded) to target player
+    if (window.AntiAir && typeof window.AntiAir.targetPlayer === 'function') {
+      window.AntiAir.targetPlayer();
+    }
 
-    _inAir = true;
-    _chuteDeployed = false;
-    _velocityY = 0;
-    _chuteDecelTimer = 0;
-    _chuteInitVel = 0;
+    // Simulate AA hit with probability proportional to altitude (lower = more dangerous)
+    var y = _getPlayerY();
+    var hitChance = Math.max(0, 0.3 - (y / 80) * 0.25);
+    if (Math.random() < hitChance) {
+      _takeChuteHit();
+    }
+  }
 
-    _showHALOOverlay();
+  // ---------------------------------------------------------------------------
+  // Parachute damage
+  // ---------------------------------------------------------------------------
+  function _takeChuteHit() {
+    if (!_chuteDeployed || _reserveDeployed) { return; }
+    var dmg = 10 + Math.random() * 15;
+    _chuteHP = Math.max(0, _chuteHP - dmg);
+
+    var hpFraction = _chuteHP / CHUTE_MAX_HP;
+
+    // Show tear visual
+    if (hpFraction < 0.5 && !_tearOverlay) {
+      _addTearOverlay();
+    }
+
+    // Increase fall speed proportionally to damage
+    var damageFactor = 1 - hpFraction;
+    _velocityY = CHUTE_SPEED + damageFactor * (CHUTE_DAMAGED_SPEED - CHUTE_SPEED);
+
+    // Reserve auto-deploys if > 80% damage
+    if (hpFraction < (1 - CHUTE_DAMAGE_THRESH) && !_reserveDeployed) {
+      var playerY = _getPlayerY();
+      if (playerY <= RESERVE_DEPLOY_Y + 3 || hpFraction <= 0.05) {
+        _deployReserve();
+      }
+    }
+  }
+
+  // Public: external systems can call this to damage the parachute
+  function damageChuteExternal(dmg) {
+    if (!_chuteDeployed || _reserveDeployed) { return; }
+    var amount = (typeof dmg === 'number') ? dmg : 10;
+    _takeChuteHit();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Combat during descent: reduced accuracy flag
+  // ---------------------------------------------------------------------------
+  function _setDescentCombatMode(on) {
+    if (on) {
+      window._parachuteAccuracyPenalty = COMBAT_ACCURACY_PENALTY;
+    } else {
+      window._parachuteAccuracyPenalty = 0;
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Input
   // ---------------------------------------------------------------------------
   function _onKeyDown(e) {
-    var key = e.key ? e.key.toLowerCase() : '';
-    var code = e.code || '';
-
-    // WASD tracking
+    var key = (e.key || '').toLowerCase();
     if (key === 'w') { _keys.w = true; }
     if (key === 'a') { _keys.a = true; }
     if (key === 's') { _keys.s = true; }
     if (key === 'd') { _keys.d = true; }
 
-    // Alt+P → deploy parachute
-    if ((e.altKey || e.getModifierState && e.getModifierState('Alt')) && key === 'p') {
-      e.preventDefault();
-      _deployChute();
-      return;
-    }
-
-    // F9 → HALO jump
-    if (key === 'f9' || code === 'F9') {
-      e.preventDefault();
-      _triggerHALO();
-      return;
+    // Space — deploy main chute
+    if (key === ' ' || e.code === 'Space') {
+      if (_active && !_chuteDeployed && !_reserveDeployed) {
+        e.preventDefault();
+        _deployMainChute();
+      }
     }
   }
 
   function _onKeyUp(e) {
-    var key = e.key ? e.key.toLowerCase() : '';
+    var key = (e.key || '').toLowerCase();
     if (key === 'w') { _keys.w = false; }
     if (key === 'a') { _keys.a = false; }
     if (key === 's') { _keys.s = false; }
@@ -419,10 +798,11 @@ window.ParachuteDrop = (function () {
   }
 
   function _registerKeys() {
+    if (_keydownHandler) { return; }
     _keydownHandler = _onKeyDown;
-    _keyupHandler = _onKeyUp;
+    _keyupHandler   = _onKeyUp;
     document.addEventListener('keydown', _keydownHandler, false);
-    document.addEventListener('keyup', _keyupHandler, false);
+    document.addEventListener('keyup',   _keyupHandler,   false);
   }
 
   function _unregisterKeys() {
@@ -439,47 +819,60 @@ window.ParachuteDrop = (function () {
   // ---------------------------------------------------------------------------
   // Physics update
   // ---------------------------------------------------------------------------
-  function _applyHorizontalDrift(dt) {
+  function _applyHorizontalInput(dt, speed) {
     if (!_camera) { return; }
-    var spd = NORMAL_SPEED * WASD_DRIFT_MULT;
-    var dx = 0;
-    var dz = 0;
-    if (_keys.w) { dz -= spd * dt; }
-    if (_keys.s) { dz += spd * dt; }
-    if (_keys.a) { dx -= spd * dt; }
-    if (_keys.d) { dx += spd * dt; }
+    var dx = 0, dz = 0;
+    if (_keys.w) { dz -= speed * dt; }
+    if (_keys.s) { dz += speed * dt; }
+    if (_keys.a) { dx -= speed * dt; }
+    if (_keys.d) { dx += speed * dt; }
     _camera.position.x += dx;
     _camera.position.z += dz;
   }
 
   function _updatePhysics(dt) {
-    if (!_inAir) { return; }
+    if (!_active) { return; }
 
-    if (_chuteDeployed) {
-      // Decelerate from _chuteInitVel to CHUTE_DESCENT over CHUTE_DECEL_TIME
-      _chuteDecelTimer += dt;
-      var t = Math.min(1, _chuteDecelTimer / CHUTE_DECEL_TIME);
-      _velocityY = _chuteInitVel + (_chuteInitVel - CHUTE_DESCENT) * (-t) + (t * (_chuteInitVel - CHUTE_DESCENT) * (-1));
-      // Simpler linear interpolation:
-      _velocityY = _chuteInitVel * (1 - t) + CHUTE_DESCENT * t;
+    var y = _getPlayerY();
 
-      // Horizontal drift from WASD
-      _applyHorizontalDrift(dt);
-
-      // Sway animation
-      _swayChute(dt);
-      _updateChutePosition();
-    } else {
-      // Freefall: accelerate downward
-      _velocityY += GRAVITY * dt;
-      if (_velocityY > TERMINAL_VELOCITY) { _velocityY = TERMINAL_VELOCITY; }
+    // ── Auto-deploy reserve at low altitude ──
+    if (!_reserveDeployed && _chuteDeployed && y <= RESERVE_DEPLOY_Y) {
+      var hpFrac = _chuteHP / CHUTE_MAX_HP;
+      if (hpFrac < (1 - CHUTE_DAMAGE_THRESH)) {
+        _deployReserve();
+      }
     }
 
-    // Apply vertical velocity
-    var newY = _getPlayerY() - _velocityY * dt;
+    // ── Auto-deploy main chute at 20 units ──
+    if (!_chuteDeployed && !_reserveDeployed && _inFreefall && y <= AUTO_DEPLOY_Y) {
+      _deployMainChute();
+    }
+
+    if (_reserveDeployed) {
+      _velocityY = RESERVE_SPEED;
+      _applyHorizontalInput(dt, CHUTE_H_SPEED);
+      _positionReserve();
+      _swayChute(dt);
+    } else if (_chuteDeployed) {
+      _applyHorizontalInput(dt, CHUTE_H_SPEED);
+      _updateChuteInflation(dt);
+      _positionMainChute();
+      _swayChute(dt);
+    } else if (_inFreefall) {
+      // Freefall — constant speed per spec
+      _velocityY = FREEFALL_SPEED;
+      _applyHorizontalInput(dt, FREEFALL_H_SPEED);
+
+      // Wind FX
+      _updateWindAudio(_velocityY);
+      var blurAmount = Math.min(1, _velocityY / FREEFALL_SPEED);
+      _setWindBlur(blurAmount);
+    }
+
+    var newY = y - _velocityY * dt;
 
     // Landing detection
-    if (newY <= GROUND_Y) {
+    if (newY <= GROUND_Y + SNAP_DIST) {
       _land();
       return;
     }
@@ -487,61 +880,144 @@ window.ParachuteDrop = (function () {
     _setPlayerY(newY);
   }
 
+  function _swayChute(dt) {
+    _swayTimer += dt;
+    if (_mainChuteGroup) {
+      _mainChuteGroup.rotation.x = Math.sin(_swayTimer * SWAY_FREQ) * SWAY_AMP;
+      _mainChuteGroup.rotation.z = Math.cos(_swayTimer * SWAY_FREQ * 0.75) * SWAY_AMP;
+    }
+    if (_reserveGroup) {
+      _reserveGroup.rotation.x = Math.sin(_swayTimer * SWAY_FREQ * 1.1 + 0.5) * SWAY_AMP;
+      _reserveGroup.rotation.z = Math.cos(_swayTimer * SWAY_FREQ * 0.8 + 0.5) * SWAY_AMP;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------------
+
+  /**
+   * init(scene, camera) — wire up module references
+   */
   function init(scene, camera) {
-    _scene = scene || _scene;
+    _scene  = scene  || _scene;
     _camera = camera || _camera;
 
-    _inAir = false;
-    _chuteDeployed = false;
-    _velocityY = 0;
-    _charges = MAX_CHARGES;
-    _chuteDecelTimer = 0;
-    _chuteInitVel = 0;
-
     _createHUD();
-    _createChargesCorner();
+    _registerKeys();
+    _initWindAudio();
+
+    // Expose chute damage hook for AntiAir.js / projectiles
+    window._parachuteDamageChuteHit = _takeChuteHit;
+  }
+
+  /**
+   * update(delta) — call each frame with elapsed seconds
+   */
+  function update(delta) {
+    if (!delta || delta <= 0) { return; }
+
+    _updatePhysics(delta);
+    _updateHUD();
+    _updateTeamDrop(delta);
+    _updateAAThreats(delta);
+  }
+
+  /**
+   * triggerAirborneInsertion(altitude) — begin HALO/HAHO drop
+   */
+  function triggerAirborneInsertion(altitude) {
+    var startY = (typeof altitude === 'number' && altitude > 0) ? altitude : 80;
+
+    // Reset any previous drop
+    reset();
+
+    _active     = true;
+    _inFreefall = true;
+    _landed     = false;
+    _chuteDeployed  = false;
+    _reserveDeployed = false;
+    _chuteHP    = CHUTE_MAX_HP;
+    _velocityY  = FREEFALL_SPEED;
+    _swayTimer  = 0;
+    _aaThreatTimer = AA_THREAT_INTERVAL;
+
+    // Check for night drop
+    _isNightDrop = (window.NightVision && typeof window.NightVision.isNight === 'function')
+      ? window.NightVision.isNight()
+      : false;
+
+    // Position player at insertion altitude
+    _setPlayerY(startY);
+
+    // Pick drop zone at current XZ position
+    _dropZoneX = _getPlayerX();
+    _dropZoneZ = _getPlayerZ();
+    _createDropZone(_dropZoneX, _dropZoneZ);
+
+    // Create HUD
+    _createHUD();
     _registerKeys();
 
-    // Expose trigger for external calls
-    window._parachuteDropTriggerHALO = _triggerHALO;
-    window._parachuteDropDeploy = _deployChute;
+    // Team drop
+    _spawnTeamDrop(startY - 5);
+
+    // Combat accuracy penalty during descent
+    _setDescentCombatMode(true);
+
+    // Wind audio
+    if (!_audioCtx) { _initWindAudio(); }
   }
 
-  function update(dt) {
-    if (!dt || dt <= 0) { return; }
-
-    _updatePhysics(dt);
-    _updateHUD();
-    _updateHALOOverlay(dt);
+  /**
+   * isInFreefall() — returns true while player is in the freefall phase
+   */
+  function isInFreefall() {
+    return _inFreefall;
   }
 
+  /**
+   * reset() — clean up all state and Three.js objects
+   */
   function reset() {
-    _inAir = false;
-    _chuteDeployed = false;
-    _velocityY = 0;
-    _charges = MAX_CHARGES;
-    _chuteDecelTimer = 0;
-    _chuteInitVel = 0;
-    _swayTimer = 0;
+    _active          = false;
+    _inFreefall      = false;
+    _chuteDeployed   = false;
+    _reserveDeployed = false;
+    _chuteInflating  = false;
+    _inflateTimer    = 0;
+    _landed          = false;
+    _velocityY       = 0;
+    _swayTimer       = 0;
+    _aaThreatTimer   = 0;
+    _isNightDrop     = false;
 
     _keys.w = false;
     _keys.a = false;
     _keys.s = false;
     _keys.d = false;
 
-    _removeChuteFromScene();
-    _removeHALOOverlay();
+    _removeMainChute();
+    _removeReserve();
+    _removeTearOverlay();
+    _removeDropZone();
+    _clearTeamChutes();
     _removeHUD();
-    _removeChargesCorner();
+    _stopWindAudio();
+    _clearWindBlur();
     _unregisterKeys();
 
-    window._parachuteDropTriggerHALO = null;
-    window._parachuteDropDeploy = null;
+    window._parachuteAccuracyPenalty = 0;
+    window._parachuteDamageChuteHit  = null;
   }
 
-  return { init: init, update: update, reset: reset };
+  return {
+    init:                     init,
+    update:                   update,
+    triggerAirborneInsertion: triggerAirborneInsertion,
+    isInFreefall:             isInFreefall,
+    reset:                    reset,
+    damageChute:              damageChuteExternal
+  };
 
 }());

@@ -1702,6 +1702,17 @@ const GameManager = (function () {
     try { if (window.BlackMarket && BlackMarket.init) BlackMarket.init(_scene, _camera); } catch (e) {}
     try { if (window.BallisticCalculator && BallisticCalculator.init) BallisticCalculator.init(_scene, _camera); } catch (e) {}
     try { if (window.TunnelSystem && TunnelSystem.init) TunnelSystem.init(_scene, _camera); } catch (e) {}
+    // Wave 27 modules
+    try { if (window.VehicleRepair && VehicleRepair.init) VehicleRepair.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostRecon && GhostRecon.init) GhostRecon.init(_scene, _camera); } catch (e) {}
+    try { if (window.LandslideEvent && LandslideEvent.init) LandslideEvent.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCrimesDetector && WarCrimesDetector.init) WarCrimesDetector.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandoRaid && CommandoRaid.init) CommandoRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.IntelligenceBriefing && IntelligenceBriefing.init) IntelligenceBriefing.init(_scene, _camera); } catch (e) {}
+    try { if (window.ParachuteDrop && ParachuteDrop.init) ParachuteDrop.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadioBeacon && RadioBeacon.init) RadioBeacon.init(_scene, _camera); } catch (e) {}
+    try { if (window.BodyDrag && BodyDrag.init) BodyDrag.init(_scene, _camera); } catch (e) {}
+    try { if (window.PsyOps && PsyOps.init) PsyOps.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8201,6 +8212,16 @@ const GameManager = (function () {
       if (window.BlackMarket) BlackMarket.update(delta);
       if (window.BallisticCalculator) BallisticCalculator.update(delta);
       if (window.TunnelSystem) TunnelSystem.update(delta);
+      if (window.VehicleRepair) VehicleRepair.update(delta);
+      if (window.GhostRecon) GhostRecon.update(delta);
+      if (window.LandslideEvent) LandslideEvent.update(delta);
+      if (window.WarCrimesDetector) WarCrimesDetector.update(delta);
+      if (window.CommandoRaid) CommandoRaid.update(delta);
+      if (window.IntelligenceBriefing) IntelligenceBriefing.update(delta);
+      if (window.ParachuteDrop) ParachuteDrop.update(delta);
+      if (window.RadioBeacon) RadioBeacon.update(delta);
+      if (window.BodyDrag) BodyDrag.update(delta);
+      if (window.PsyOps) PsyOps.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);

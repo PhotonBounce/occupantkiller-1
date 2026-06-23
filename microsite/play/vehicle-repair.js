@@ -1,624 +1,800 @@
-// ============================================================
-//  vehicle-repair.js — Vehicle Repair System with Toolbox Pickups
-//
-//  Allows players to repair damaged vehicles using toolbox pickups.
-//  Walk within 2 units of an active vehicle and hold E for 3s to repair.
-//  Cannot repair while enemies are within 10 units.
-//  Cannot repair destroyed wrecks from vehicle-wrecks.js.
-//
-//  Public API: init(scene), update(dt), spawnToolbox(x, y, z), reset()
-//  Global:     window._toolboxCount
-// ============================================================
 window.VehicleRepair = (function () {
   'use strict';
 
-  // ── State ────────────────────────────────────────────────────
-  var _scene = null;
-  var _toolboxes = [];          // active pickup objects in scene
-  var _repairTimer = 0;         // seconds E held near vehicle
-  var _repairDuration = 3.0;    // seconds required to complete repair
-  var _isRepairing = false;
-  var _repairWarningShown = false;
-  var _repairComplete = false;
-  var _sparks = [];             // active spark particles
-  var _eKeyHeld = false;
-  var _hudEl = null;            // "🔧 TOOL x2" HUD element
-  var _progressBarEl = null;    // repair progress bar element
-  var _bannerEl = null;         // result banner element
-  var _warningEl = null;        // "CLEAR AREA FIRST" warning
-  var _audioCtx = null;         // AudioContext for hammering sound
-  var _lastHammerTime = 0;      // time of last hammer burst
-  var _hammerInterval = 0.2;    // 200ms between hammer bursts
-  var _initialized = false;
-  var _nearVehicleCache = false;
-  var _spawnOnWave3Done = false; // guard so we only auto-spawn once
+  // ── State ──────────────────────────────────────────────────────────────────
+  var _scene, _camera;
+  var _vehicles = [];          // { mesh, hp, maxHp, systems, smoke, sound }
+  var _repairTruck = null;     // { mesh, crane, hook, chest, targetVehicle, state, winchLine }
+  var _medicNPC = null;        // { mesh, active, timer }
+  var _repairState = null;     // active minigame state
+  var _score = 0;
+  var _playerHp = 100;
+  var _keys = {};
+  var _mousePressed = false;
+  var _hud = null;             // DOM element container
+  var _diagnosticHud = null;
+  var _winchActive = false;
+  var _winchTarget = null;
+  var _qHeld = false;
+  var _eHeld = false;          // for Q+E call
+  var _callTruckTimer = 0;
 
-  // Max toolboxes player can carry
-  var MAX_TOOLBOXES = 2;
+  // Arrow sequence for task 3
+  var ARROW_SEQ = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
 
-  // ── Init ─────────────────────────────────────────────────────
-
-  function init(scene) {
-    if (_initialized) return;
-    _scene = scene || (window.GameManager && window.GameManager.getScene ? window.GameManager.getScene() : null);
-    window._toolboxCount = window._toolboxCount || 0;
-
-    _buildHUD();
-    _buildProgressBar();
-    _buildBanner();
-    _buildWarning();
-    _bindKeys();
-
-    _initialized = true;
-  }
-
-  // ── Key binding ──────────────────────────────────────────────
-
-  function _bindKeys() {
-    document.addEventListener('keydown', function (e) {
-      if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') {
-        _eKeyHeld = true;
-      }
-    });
-    document.addEventListener('keyup', function (e) {
-      if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') {
-        _eKeyHeld = false;
-        if (_isRepairing) {
-          _cancelRepair();
-        }
-      }
-    });
-  }
-
-  // ── Toolbox Mesh ─────────────────────────────────────────────
-
-  function spawnToolbox(x, y, z) {
-    if (!_scene) {
-      _scene = window.GameManager && window.GameManager.getScene ? window.GameManager.getScene() : null;
-    }
-    if (!_scene) return;
-
-    var group = new THREE.Group();
-    group.position.set(x, y, z);
-
-    // Main body — red BoxGeometry(0.3, 0.2, 0.4)
-    var bodyGeo = new THREE.BoxGeometry(0.3, 0.2, 0.4);
-    var bodyMat = new THREE.MeshLambertMaterial({ color: 0xCC2222 });
-    var body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.set(0, 0, 0);
-    group.add(body);
-
-    // Handle — small BoxGeometry(0.05, 0.12, 0.05)
-    var handleGeo = new THREE.BoxGeometry(0.05, 0.12, 0.05);
-    var handleMat = new THREE.MeshLambertMaterial({ color: 0x884400 });
-    var handle = new THREE.Mesh(handleGeo, handleMat);
-    handle.position.set(0, 0.16, 0);
-    group.add(handle);
-
-    // "TOOL" canvas label sprite
-    var canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 32;
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'rgba(0,0,0,0)';
-    ctx.fillRect(0, 0, 128, 32);
-    ctx.font = 'bold 20px Arial';
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('TOOL', 64, 16);
-    var tex = new THREE.CanvasTexture(canvas);
-    var spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-    var sprite = new THREE.Sprite(spriteMat);
-    sprite.scale.set(0.5, 0.125, 1);
-    sprite.position.set(0, 0.35, 0);
-    group.add(sprite);
-
-    _scene.add(group);
-
-    var toolbox = {
-      group: group,
-      body: body,
-      handle: handle,
-      sprite: sprite,
-      canvas: canvas,
-      tex: tex,
-      bobOffset: Math.random() * Math.PI * 2,
-      time: 0,
-      removed: false
-    };
-    _toolboxes.push(toolbox);
-    return toolbox;
-  }
-
-  // ── HUD Elements ─────────────────────────────────────────────
-
-  function _buildHUD() {
-    _hudEl = document.createElement('div');
-    _hudEl.id = 'vr-toolbox-hud';
-    _hudEl.style.cssText = [
+  // ── HUD Setup ──────────────────────────────────────────────────────────────
+  function _createHUD() {
+    _hud = document.createElement('div');
+    _hud.id = 'vr-hud';
+    _hud.style.cssText = [
       'position:fixed',
-      'bottom:120px',
+      'top:50%',
+      'left:50%',
+      'transform:translate(-50%,-50%)',
+      'background:rgba(0,0,0,0.82)',
+      'border:2px solid #4caf50',
+      'border-radius:8px',
+      'padding:18px 28px',
+      'color:#fff',
+      'font-family:monospace',
+      'font-size:15px',
+      'min-width:320px',
+      'display:none',
+      'z-index:9999',
+      'user-select:none'
+    ].join(';');
+    document.body.appendChild(_hud);
+
+    _diagnosticHud = document.createElement('div');
+    _diagnosticHud.id = 'vr-diag';
+    _diagnosticHud.style.cssText = [
+      'position:fixed',
+      'top:60px',
       'right:20px',
-      'padding:6px 12px',
-      'background:rgba(0,0,0,0.65)',
-      'color:#fff',
-      'font-family:monospace',
-      'font-size:14px',
-      'border-radius:4px',
-      'border:1px solid rgba(255,255,255,0.3)',
-      'display:none',
-      'pointer-events:none',
-      'z-index:900'
-    ].join(';');
-    document.body.appendChild(_hudEl);
-  }
-
-  function _buildProgressBar() {
-    var container = document.createElement('div');
-    container.id = 'vr-progress-container';
-    container.style.cssText = [
-      'position:fixed',
-      'bottom:160px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'width:220px',
-      'background:rgba(0,0,0,0.7)',
-      'border:2px solid #fff',
-      'border-radius:4px',
-      'padding:4px',
-      'display:none',
-      'pointer-events:none',
-      'z-index:901'
-    ].join(';');
-
-    var label = document.createElement('div');
-    label.style.cssText = 'color:#fff;font-family:monospace;font-size:12px;text-align:center;margin-bottom:3px;';
-    label.textContent = 'REPAIRING...';
-
-    var barOuter = document.createElement('div');
-    barOuter.style.cssText = 'background:#333;height:12px;border-radius:2px;overflow:hidden;';
-
-    var barInner = document.createElement('div');
-    barInner.id = 'vr-progress-fill';
-    barInner.style.cssText = 'background:#4488ff;height:100%;width:0%;transition:width 0.05s linear;';
-
-    barOuter.appendChild(barInner);
-    container.appendChild(label);
-    container.appendChild(barOuter);
-    document.body.appendChild(container);
-
-    _progressBarEl = container;
-  }
-
-  function _buildBanner() {
-    _bannerEl = document.createElement('div');
-    _bannerEl.id = 'vr-banner';
-    _bannerEl.style.cssText = [
-      'position:fixed',
-      'top:30%',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'padding:14px 28px',
-      'background:rgba(0,60,200,0.85)',
-      'color:#fff',
-      'font-family:monospace',
-      'font-size:22px',
-      'font-weight:bold',
+      'background:rgba(0,20,0,0.88)',
+      'border:1px solid #4caf50',
       'border-radius:6px',
-      'border:2px solid #88aaff',
-      'display:none',
-      'pointer-events:none',
-      'z-index:950',
-      'text-align:center'
-    ].join(';');
-    document.body.appendChild(_bannerEl);
-  }
-
-  function _buildWarning() {
-    _warningEl = document.createElement('div');
-    _warningEl.id = 'vr-warning';
-    _warningEl.style.cssText = [
-      'position:fixed',
-      'top:40%',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'padding:10px 20px',
-      'background:rgba(180,30,0,0.85)',
-      'color:#fff',
+      'padding:12px 18px',
+      'color:#4caf50',
       'font-family:monospace',
-      'font-size:16px',
-      'font-weight:bold',
-      'border-radius:4px',
-      'border:2px solid #ff5533',
+      'font-size:13px',
       'display:none',
-      'pointer-events:none',
-      'z-index:950',
-      'text-align:center'
+      'z-index:9998'
     ].join(';');
-    _warningEl.textContent = 'CLEAR AREA FIRST';
-    document.body.appendChild(_warningEl);
+    document.body.appendChild(_diagnosticHud);
   }
 
-  // ── Update ────────────────────────────────────────────────────
+  function _showHUD(html) {
+    _hud.innerHTML = html;
+    _hud.style.display = 'block';
+  }
 
-  function update(dt) {
-    if (!_initialized) return;
+  function _hideHUD() {
+    _hud.style.display = 'none';
+  }
 
-    var t = (window.performance ? window.performance.now() : Date.now()) / 1000;
+  function _showDiagnostic(vehicle) {
+    var sys = vehicle.systems;
+    var html = '<b>-- VEHICLE DIAGNOSTIC --</b><br>';
+    html += 'ENGINE : ' + _bar(sys.engine) + ' ' + sys.engine + '%<br>';
+    html += 'TRACKS : ' + _bar(sys.tracks) + ' ' + sys.tracks + '%<br>';
+    html += 'TURRET : ' + _bar(sys.turret) + ' ' + sys.turret + '%<br>';
+    html += 'RADIO  : ' + _bar(sys.radio)  + ' ' + sys.radio  + '%<br>';
+    html += '<span style="color:#aaa;font-size:11px">Press V to close</span>';
+    _diagnosticHud.innerHTML = html;
+    _diagnosticHud.style.display = 'block';
+  }
 
-    // Animate toolboxes (bob up/down)
-    for (var i = _toolboxes.length - 1; i >= 0; i--) {
-      var tb = _toolboxes[i];
-      if (tb.removed) {
-        _toolboxes.splice(i, 1);
-        continue;
-      }
-      tb.time += dt;
-      tb.group.position.y += Math.sin(tb.time * 2 + tb.bobOffset) * 0.002;
-      tb.group.rotation.y += dt * 0.8;
+  function _bar(pct) {
+    var filled = Math.round(pct / 10);
+    var empty = 10 - filled;
+    var color = pct > 60 ? '#4caf50' : pct > 30 ? '#ff9800' : '#f44336';
+    return '<span style="color:' + color + '">' +
+      '█'.repeat(filled) + '░'.repeat(empty) + '</span>';
+  }
 
-      // Check player proximity for pickup
-      _checkToolboxPickup(tb, i);
+  function _hideDiagnostic() {
+    _diagnosticHud.style.display = 'none';
+  }
+
+  // ── Vehicle Registry ───────────────────────────────────────────────────────
+  function repairVehicle(vehicleMesh) {
+    var v = {
+      mesh: vehicleMesh,
+      hp: vehicleMesh.userData.hp !== undefined ? vehicleMesh.userData.hp : 30,
+      maxHp: vehicleMesh.userData.maxHp || 100,
+      systems: {
+        engine: vehicleMesh.userData.engineDmg !== undefined ? vehicleMesh.userData.engineDmg : 20,
+        tracks: vehicleMesh.userData.tracksDmg !== undefined ? vehicleMesh.userData.tracksDmg : 45,
+        turret: vehicleMesh.userData.turretDmg !== undefined ? vehicleMesh.userData.turretDmg : 70,
+        radio:  vehicleMesh.userData.radioDmg  !== undefined ? vehicleMesh.userData.radioDmg  : 55
+      },
+      smoke: null,
+      sound: null,
+      stuck: vehicleMesh.userData.stuck || false,
+      tasksCompleted: 0
+    };
+    _addSmoke(v);
+    _vehicles.push(v);
+    return v;
+  }
+
+  function _addSmoke(v) {
+    // Particle-like smoke: a cluster of semi-transparent spheres that drift up
+    var smokeGroup = new THREE.Group();
+    var i;
+    for (i = 0; i < 6; i++) {
+      var sg = new THREE.SphereGeometry(0.18 + Math.random() * 0.14, 6, 6);
+      var sm = new THREE.MeshBasicMaterial({ color: 0x555555, transparent: true, opacity: 0.45 });
+      var sp = new THREE.Mesh(sg, sm);
+      sp.position.set((Math.random() - 0.5) * 0.5, 1.4 + i * 0.22, (Math.random() - 0.5) * 0.5);
+      sp.userData.driftY = 0.3 + Math.random() * 0.2;
+      sp.userData.life = Math.random();
+      smokeGroup.add(sp);
     }
+    v.mesh.add(smokeGroup);
+    v.smoke = smokeGroup;
+  }
 
-    // Animate sparks
-    _updateSparks(dt);
-
-    // Detect if player is near a vehicle
-    var nearVehicle = _isNearVehicle();
-    _nearVehicleCache = nearVehicle;
-
-    // Show/hide toolbox HUD
-    if (nearVehicle) {
-      _hudEl.textContent = '🔧 TOOL x' + (window._toolboxCount || 0);
-      _hudEl.style.display = 'block';
-    } else {
-      _hudEl.style.display = 'none';
-      if (_isRepairing) _cancelRepair();
-    }
-
-    // Auto-spawn toolboxes on wave 3 completion
-    _checkWave3Spawn();
-
-    // Repair logic
-    if (nearVehicle && _eKeyHeld && window._toolboxCount > 0) {
-      // Check if vehicle HP is below 10% (unrecoverable)
-      var hp = window._vehicleHP !== undefined ? window._vehicleHP : 100;
-      var maxHp = window._vehicleMaxHP !== undefined ? window._vehicleMaxHP : 100;
-      if (hp < maxHp * 0.1) {
-        _showBanner('VEHICLE DESTROYED — UNRECOVERABLE', '#c00');
-        if (_isRepairing) _cancelRepair();
-        return;
-      }
-
-      // Check for nearby enemies
-      if (_enemiesNearby()) {
-        _warningEl.style.display = 'block';
-        if (_isRepairing) _cancelRepair();
-        return;
-      }
-      _warningEl.style.display = 'none';
-
-      // Tick repair timer
-      _isRepairing = true;
-      _repairTimer += dt;
-      _progressBarEl.style.display = 'block';
-      var pct = Math.min((_repairTimer / _repairDuration) * 100, 100);
-      var fill = document.getElementById('vr-progress-fill');
-      if (fill) fill.style.width = pct + '%';
-
-      // Play hammering sound
-      if (t - _lastHammerTime >= _hammerInterval) {
-        _playHammer();
-        _lastHammerTime = t;
-      }
-
-      if (_repairTimer >= _repairDuration) {
-        _completeRepair();
-      }
-    } else {
-      // E not held or not near vehicle or no toolboxes
-      _warningEl.style.display = 'none';
-      if (_isRepairing) {
-        _cancelRepair();
-      }
+  function _stopSmoke(v) {
+    if (v.smoke) {
+      v.mesh.remove(v.smoke);
+      v.smoke = null;
     }
   }
 
-  // ── Vehicle proximity detection ───────────────────────────────
+  // ── Repair Truck ───────────────────────────────────────────────────────────
+  function callRepairTruck(pos) {
+    if (_repairTruck) return; // already exists
 
-  function _isNearVehicle() {
-    // Honour explicit global flag first
-    if (window._nearVehicle) return true;
-    if (window._inVehicle || window._vehicleMode) return true;
+    var truckGroup = new THREE.Group();
 
-    // Check player position against known vehicle positions
-    var playerPos = _getPlayerPos();
-    if (!playerPos) return false;
+    // Body
+    var bodyGeo = new THREE.BoxGeometry(3, 1.2, 6);
+    var bodyMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32 });
+    var body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.8;
+    truckGroup.add(body);
 
-    // Try Bradley
-    if (window.Bradley && typeof window.Bradley.getPosition === 'function') {
-      var bp = window.Bradley.getPosition();
-      if (bp && _dist3(playerPos, bp) < 2) return true;
+    // Cab
+    var cabGeo = new THREE.BoxGeometry(2.6, 1, 2);
+    var cabMat = new THREE.MeshLambertMaterial({ color: 0x388e3c });
+    var cab = new THREE.Mesh(cabGeo, cabMat);
+    cab.position.set(0, 1.9, 2);
+    truckGroup.add(cab);
+
+    // Wheels
+    var wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.35, 10);
+    var wheelMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+    var wheelPositions = [
+      [-1.55, 0.4, 2], [1.55, 0.4, 2],
+      [-1.55, 0.4, 0], [1.55, 0.4, 0],
+      [-1.55, 0.4, -2], [1.55, 0.4, -2]
+    ];
+    var wi;
+    for (wi = 0; wi < wheelPositions.length; wi++) {
+      var wm = new THREE.Mesh(wheelGeo, wheelMat);
+      wm.rotation.z = Math.PI / 2;
+      wm.position.set(wheelPositions[wi][0], wheelPositions[wi][1], wheelPositions[wi][2]);
+      truckGroup.add(wm);
     }
-    // Try BTR80
-    if (window.BTR80 && typeof window.BTR80.getPosition === 'function') {
-      var bp2 = window.BTR80.getPosition();
-      if (bp2 && _dist3(playerPos, bp2) < 2) return true;
-    }
-    // Try generic vehicle system
-    if (window.VehicleSystem && typeof window.VehicleSystem.getNearestVehiclePos === 'function') {
-      var vp = window.VehicleSystem.getNearestVehiclePos(playerPos);
-      if (vp && _dist3(playerPos, vp) < 2) return true;
-    }
-    return false;
+
+    // Crane base
+    var craneBase = new THREE.Group();
+    var cBaseGeo = new THREE.BoxGeometry(0.6, 0.4, 0.6);
+    var craneMat = new THREE.MeshLambertMaterial({ color: 0xf9a825 });
+    var cBase = new THREE.Mesh(cBaseGeo, craneMat);
+    craneBase.add(cBase);
+
+    // Crane arm
+    var craneArm = new THREE.Group();
+    var armGeo = new THREE.BoxGeometry(0.2, 0.2, 2.5);
+    var arm = new THREE.Mesh(armGeo, craneMat);
+    arm.position.z = -1.25;
+    craneArm.add(arm);
+    craneArm.position.y = 0.3;
+    craneBase.add(craneArm);
+
+    // Hook
+    var hookGeo = new THREE.SphereGeometry(0.12, 8, 8);
+    var hookMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+    var hookMesh = new THREE.Mesh(hookGeo, hookMat);
+    hookMesh.position.set(0, -0.3, -2.5);
+    craneArm.add(hookMesh);
+
+    craneBase.position.set(0, 1.85, -1.5);
+    truckGroup.add(craneBase);
+
+    // Tool chest
+    var chestGeo = new THREE.BoxGeometry(0.8, 0.5, 0.6);
+    var chestMat = new THREE.MeshLambertMaterial({ color: 0xd84315 });
+    var chest = new THREE.Mesh(chestGeo, chestMat);
+    chest.position.set(0.8, 1.55, -1.8);
+    truckGroup.add(chest);
+
+    // Spawn at world edge
+    var spawnPos = pos ? pos.clone() : new THREE.Vector3(50, 0, 50);
+    truckGroup.position.copy(spawnPos);
+
+    _scene.add(truckGroup);
+
+    _repairTruck = {
+      mesh: truckGroup,
+      crane: craneBase,
+      craneArm: craneArm,
+      hook: hookMesh,
+      chest: chest,
+      targetVehicle: null,
+      state: 'idle',  // idle | driving | craning | done
+      winchLine: null,
+      cranePhase: 0,  // 0=extend 1=descend 2=lift 3=reposition 4=lower
+      craneTimer: 0,
+      driveTimer: 0,
+      medic: null
+    };
+
+    // Medic NPC placeholder (spawns next to truck)
+    var medicGeo = new THREE.CapsuleGeometry(0.22, 0.9, 4, 8);
+    var medicMat = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+    var medicMesh = new THREE.Mesh(medicGeo, medicMat);
+    medicMesh.position.copy(spawnPos);
+    medicMesh.position.x += 2;
+    medicMesh.visible = false;
+    _scene.add(medicMesh);
+    _medicNPC = { mesh: medicMesh, active: false, timer: 0 };
   }
 
-  // ── Enemy proximity detection ─────────────────────────────────
+  // ── Minigame ───────────────────────────────────────────────────────────────
+  var _mg = null; // minigame state
 
-  function _enemiesNearby() {
-    var playerPos = _getPlayerPos();
-    if (!playerPos) return false;
+  function _startMinigame(vehicle) {
+    _mg = {
+      vehicle: vehicle,
+      task: 0,         // 0-4
+      phase: 'intro',  // intro | active | done
+      timer: 0,
+      // Task 1 - tighten bolts
+      ePresses: 0,
+      // Task 2 - weld joint
+      fHeldTime: 0,
+      fDown: false,
+      // Task 3 - reconnect wires
+      arrowIndex: 0,
+      arrowSeq: _generateArrowSeq(),
+      // Task 4 - pump fuel
+      indicatorPos: 0,
+      indicatorDir: 1,
+      lmbHits: 0,
+      // Task 5 - start engine
+      gaugePos: 0,
+      gaugeDir: 1,
+      gaugeSpeed: 0.6 + Math.random() * 0.4,
+      greenStart: 0.35,
+      greenEnd: 0.65,
+      taskDone: false,
+      score: 0
+    };
+    _repairState = _mg;
+    _showMinigameHUD();
+  }
 
-    // Check generic enemy list
-    if (window._enemies && Array.isArray(window._enemies)) {
-      for (var i = 0; i < window._enemies.length; i++) {
-        var e = window._enemies[i];
-        if (!e || e.dead || e.removed) continue;
-        var ep = e.position || (e.mesh && e.mesh.position);
-        if (ep && _dist3(playerPos, ep) < 10) return true;
-      }
+  function _generateArrowSeq() {
+    var seq = [];
+    var opts = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    var i;
+    for (i = 0; i < 4; i++) {
+      seq.push(opts[Math.floor(Math.random() * opts.length)]);
     }
-    // Check enemy system
-    if (window.Enemies && typeof window.Enemies.getList === 'function') {
-      var list = window.Enemies.getList();
-      if (list) {
-        for (var j = 0; j < list.length; j++) {
-          var en = list[j];
-          if (!en || en.dead || en.removed) continue;
-          var enp = en.position || (en.mesh && en.mesh.position);
-          if (enp && _dist3(playerPos, enp) < 10) return true;
+    return seq;
+  }
+
+  function _arrowSymbol(key) {
+    if (key === 'ArrowLeft')  return '←';
+    if (key === 'ArrowRight') return '→';
+    if (key === 'ArrowUp')    return '↑';
+    if (key === 'ArrowDown')  return '↓';
+    return '?';
+  }
+
+  function _showMinigameHUD() {
+    if (!_mg) return;
+    var t = _mg.task;
+    var progress = Math.round((_mg.vehicle.tasksCompleted / 5) * 100);
+    var filled = Math.round(progress / 5);
+    var bar = '█'.repeat(filled) + '░'.repeat(20 - filled);
+    var html = '<div style="margin-bottom:8px"><b>FIELD REPAIR</b>';
+    html += ' &nbsp; Score: <span style="color:#4caf50">' + _score + '</span></div>';
+    html += '<div style="margin-bottom:6px">Progress: [<span style="color:#4caf50">' + bar + '</span>] ' + progress + '%</div>';
+
+    if (t === 0) {
+      html += '<div style="font-size:18px;margin:8px 0">TIGHTEN BOLTS</div>';
+      html += '<div>Press <b>E</b> rapidly  <span style="color:#4caf50">' + _mg.ePresses + '/5</span></div>';
+    } else if (t === 1) {
+      var weldPct = Math.round((_mg.fHeldTime / 2) * 100);
+      html += '<div style="font-size:18px;margin:8px 0">WELD JOINT</div>';
+      html += '<div>Hold <b>F</b> for 2s  <span style="color:#ff9800">' + weldPct + '%</span></div>';
+      html += '<div style="background:#333;height:10px;width:200px;margin-top:6px"><div style="background:#ff9800;height:10px;width:' + Math.min(weldPct * 2, 200) + 'px"></div></div>';
+    } else if (t === 2) {
+      html += '<div style="font-size:18px;margin:8px 0">RECONNECT WIRES</div>';
+      html += '<div>Sequence: ';
+      var ai;
+      for (ai = 0; ai < _mg.arrowSeq.length; ai++) {
+        var col = ai < _mg.arrowIndex ? '#4caf50' : ai === _mg.arrowIndex ? '#fff' : '#555';
+        html += '<span style="color:' + col + ';font-size:20px">' + _arrowSymbol(_mg.arrowSeq[ai]) + '</span> ';
+      }
+      html += '</div>';
+    } else if (t === 3) {
+      html += '<div style="font-size:18px;margin:8px 0">PUMP FUEL</div>';
+      html += '<div>Click when bar is in <b style="color:#4caf50">green zone</b>  Hits: ' + _mg.lmbHits + '/3</div>';
+      var iPos = Math.round(_mg.indicatorPos * 180);
+      html += '<div style="position:relative;background:#333;height:16px;width:200px;margin-top:6px;border-radius:3px">';
+      html += '<div style="position:absolute;background:#4caf50;height:16px;left:70px;width:60px;border-radius:3px"></div>';
+      html += '<div style="position:absolute;background:#fff;height:16px;width:6px;left:' + iPos + 'px;top:0;border-radius:2px"></div>';
+      html += '</div>';
+    } else if (t === 4) {
+      html += '<div style="font-size:18px;margin:8px 0">START ENGINE</div>';
+      html += '<div>Press <b>Space</b> when needle is in <b style="color:#4caf50">green zone</b></div>';
+      var gPos = Math.round(_mg.gaugePos * 180);
+      html += '<div style="position:relative;background:#333;height:16px;width:200px;margin-top:6px;border-radius:3px">';
+      html += '<div style="position:absolute;background:#4caf50;height:16px;left:63px;width:54px;border-radius:3px"></div>';
+      html += '<div style="position:absolute;background:#ffeb3b;height:16px;width:6px;left:' + gPos + 'px;top:0;border-radius:2px"></div>';
+      html += '</div>';
+    }
+
+    html += '<div style="color:#888;font-size:11px;margin-top:10px">Press Esc to cancel</div>';
+    _showHUD(html);
+  }
+
+  function _advanceTask() {
+    _mg.vehicle.tasksCompleted++;
+    _score += 25;
+    _mg.taskDone = false;
+
+    // Apply partial / full heal
+    if (_mg.vehicle.tasksCompleted >= 5) {
+      // Full repair
+      _mg.vehicle.hp = _mg.vehicle.maxHp;
+      _mg.vehicle.systems.engine = 100;
+      _mg.vehicle.systems.tracks = 100;
+      _mg.vehicle.systems.turret = 100;
+      _mg.vehicle.systems.radio  = 100;
+      _stopSmoke(_mg.vehicle);
+      _score += 200;
+      _showHUD('<div style="font-size:20px;color:#4caf50">VEHICLE FULLY REPAIRED</div><div>Score +200 | Total: ' + _score + '</div>');
+      setTimeout(_hideHUD, 2500);
+      _repairState = null;
+      _mg = null;
+      return;
+    }
+
+    if (_mg.vehicle.tasksCompleted >= 1 && _mg.vehicle.tasksCompleted <= 3) {
+      _mg.vehicle.hp = Math.max(_mg.vehicle.hp, Math.round(_mg.vehicle.maxHp * 0.4));
+    }
+
+    _mg.task = _mg.vehicle.tasksCompleted;
+    // Reset per-task state
+    _mg.ePresses   = 0;
+    _mg.fHeldTime  = 0;
+    _mg.fDown      = false;
+    _mg.arrowIndex = 0;
+    _mg.arrowSeq   = _generateArrowSeq();
+    _mg.lmbHits    = 0;
+    _mg.indicatorPos = 0;
+    _mg.indicatorDir = 1;
+    _mg.gaugePos   = 0;
+    _mg.gaugeDir   = 1;
+    _mg.gaugeSpeed = 0.55 + Math.random() * 0.5;
+    _showMinigameHUD();
+  }
+
+  // ── Input Handlers ─────────────────────────────────────────────────────────
+  function _onKeyDown(e) {
+    _keys[e.code] = true;
+
+    // Diagnostic toggle
+    if (e.code === 'KeyV') {
+      var nearV = _nearestVehicle(3.5);
+      if (nearV) {
+        if (_diagnosticHud.style.display === 'none') {
+          _showDiagnostic(nearV);
+        } else {
+          _hideDiagnostic();
+        }
+      }
+      return;
+    }
+
+    // Start repair
+    if (e.code === 'KeyR') {
+      if (!_repairState) {
+        // Winch: W+R from repair truck
+        if (_keys['KeyW'] && _repairTruck && _winchTarget) {
+          _attachWinch();
+          return;
+        }
+        var nearV2 = _nearestVehicle(3);
+        if (nearV2) {
+          _startMinigame(nearV2);
         }
       }
     }
-    return false;
-  }
 
-  // ── Toolbox pickup check ──────────────────────────────────────
+    // Q held tracking for call-truck gesture Q+E
+    if (e.code === 'KeyQ') _qHeld = true;
 
-  function _checkToolboxPickup(tb, idx) {
-    var playerPos = _getPlayerPos();
-    if (!playerPos) return;
-    var tbPos = tb.group.position;
-    if (_dist3(playerPos, tbPos) < 1.2) {
-      if (window._toolboxCount < MAX_TOOLBOXES) {
-        window._toolboxCount = (window._toolboxCount || 0) + 1;
-        _removeToolbox(tb);
-        _toolboxes.splice(idx, 1);
-        _showBanner('🔧 Toolbox picked up (' + window._toolboxCount + '/' + MAX_TOOLBOXES + ')', '#446644');
+    // Minigame input
+    if (_mg) {
+      if (_mg.task === 0 && e.code === 'KeyE') {
+        _mg.ePresses++;
+        if (_mg.ePresses >= 5) _advanceTask();
+        else _showMinigameHUD();
+      }
+      if (_mg.task === 1 && e.code === 'KeyF') {
+        _mg.fDown = true;
+      }
+      if (_mg.task === 2) {
+        if (e.code === _mg.arrowSeq[_mg.arrowIndex]) {
+          _mg.arrowIndex++;
+          if (_mg.arrowIndex >= 4) _advanceTask();
+          else _showMinigameHUD();
+        } else if (e.code.startsWith('Arrow')) {
+          // Wrong key -- reset
+          _mg.arrowIndex = 0;
+          _showMinigameHUD();
+        }
+      }
+      if (_mg.task === 4 && e.code === 'Space') {
+        if (_mg.gaugePos >= _mg.greenStart && _mg.gaugePos <= _mg.greenEnd) {
+          _advanceTask();
+        } else {
+          // Miss -- flash red
+          _showHUD('<div style="color:#f44336;font-size:18px">MISS! Try again</div>');
+          setTimeout(_showMinigameHUD.bind(null), 600);
+        }
+      }
+      if (e.code === 'Escape') {
+        _repairState = null;
+        _mg = null;
+        _hideHUD();
+      }
+    }
+
+    // Tool chest interaction
+    if (e.code === 'KeyE' && !_mg) {
+      var nearChest = _nearToolChest(2.5);
+      if (nearChest && _repairState) {
+        // spare part: auto-complete current task
+        _advanceTask();
       }
     }
   }
 
-  function _removeToolbox(tb) {
-    if (!_scene || tb.removed) return;
-    _scene.remove(tb.group);
-    if (tb.body.geometry) tb.body.geometry.dispose();
-    if (tb.body.material) tb.body.material.dispose();
-    if (tb.handle.geometry) tb.handle.geometry.dispose();
-    if (tb.handle.material) tb.handle.material.dispose();
-    if (tb.tex) tb.tex.dispose();
-    if (tb.sprite.material) tb.sprite.material.dispose();
-    tb.removed = true;
-  }
-
-  // ── Repair actions ────────────────────────────────────────────
-
-  function _completeRepair() {
-    _isRepairing = false;
-    _repairTimer = 0;
-    _progressBarEl.style.display = 'none';
-
-    // Consume one toolbox
-    window._toolboxCount = Math.max(0, (window._toolboxCount || 1) - 1);
-
-    // Restore HP and armor
-    window._vehicleHP = window._vehicleMaxHP !== undefined ? window._vehicleMaxHP : 100;
-    if (window._vehicleArmor !== undefined) {
-      window._vehicleArmor = window._vehicleMaxArmor !== undefined ? window._vehicleMaxArmor : 100;
-    }
-    // Notify vehicle HUD if available
-    if (window.VehicleHUD && typeof window.VehicleHUD.onRepair === 'function') {
-      window.VehicleHUD.onRepair();
-    }
-
-    // Show banner
-    _showBanner('🔧 VEHICLE REPAIRED', '#2244cc');
-
-    // Sparks VFX
-    _spawnSparks();
-  }
-
-  function _cancelRepair() {
-    _isRepairing = false;
-    _repairTimer = 0;
-    _progressBarEl.style.display = 'none';
-    var fill = document.getElementById('vr-progress-fill');
-    if (fill) fill.style.width = '0%';
-  }
-
-  // ── Sparks VFX ────────────────────────────────────────────────
-
-  function _spawnSparks() {
-    if (!_scene) return;
-    var vehiclePos = _getVehiclePos() || { x: 0, y: 1, z: 0 };
-    var sparkGeo = new THREE.SphereGeometry(0.05, 4, 4);
-    var sparkMat = new THREE.MeshBasicMaterial({ color: 0xFF8800 });
-
-    for (var i = 0; i < 8; i++) {
-      var mesh = new THREE.Mesh(sparkGeo, sparkMat);
-      mesh.position.set(vehiclePos.x, vehiclePos.y + 1, vehiclePos.z);
-      _scene.add(mesh);
-
-      var angle = (i / 8) * Math.PI * 2;
-      var speed = 3 + Math.random() * 3;
-      var spark = {
-        mesh: mesh,
-        vx: Math.cos(angle) * speed,
-        vy: 4 + Math.random() * 3,
-        vz: Math.sin(angle) * speed,
-        life: 0.8 + Math.random() * 0.4,
-        age: 0,
-        removed: false
-      };
-      _sparks.push(spark);
+  function _onKeyUp(e) {
+    _keys[e.code] = false;
+    if (e.code === 'KeyQ') _qHeld = false;
+    if (_mg && _mg.task === 1 && e.code === 'KeyF') {
+      _mg.fDown = false;
     }
   }
 
-  function _updateSparks(dt) {
-    for (var i = _sparks.length - 1; i >= 0; i--) {
-      var s = _sparks[i];
-      if (s.removed) {
-        _sparks.splice(i, 1);
-        continue;
+  function _onMouseDown(e) {
+    if (e.button === 0) {
+      _mousePressed = true;
+      if (_mg && _mg.task === 3) {
+        var normalized = _mg.indicatorPos; // 0-1
+        var greenL = 70 / 200;  // green zone start fraction
+        var greenR = 130 / 200; // green zone end fraction
+        if (normalized >= greenL && normalized <= greenR) {
+          _mg.lmbHits++;
+          if (_mg.lmbHits >= 3) _advanceTask();
+          else _showMinigameHUD();
+        } else {
+          _showHUD('<div style="color:#f44336;font-size:18px">MISS! Try again</div>');
+          setTimeout(_showMinigameHUD.bind(null), 600);
+        }
       }
-      s.age += dt;
-      if (s.age >= s.life) {
-        if (_scene) _scene.remove(s.mesh);
-        if (s.mesh.geometry) s.mesh.geometry.dispose();
-        if (s.mesh.material) s.mesh.material.dispose();
-        s.removed = true;
-        _sparks.splice(i, 1);
-        continue;
+    }
+  }
+
+  function _onMouseUp(e) {
+    if (e.button === 0) _mousePressed = false;
+  }
+
+  // ── Proximity Helpers ──────────────────────────────────────────────────────
+  function _nearestVehicle(range) {
+    if (!_camera) return null;
+    var camPos = _camera.position;
+    var nearest = null;
+    var nearDist = Infinity;
+    var i;
+    for (i = 0; i < _vehicles.length; i++) {
+      var d = camPos.distanceTo(_vehicles[i].mesh.position);
+      if (d < range && d < nearDist) {
+        nearDist = d;
+        nearest = _vehicles[i];
       }
-      s.vy -= 9.8 * dt;
-      s.mesh.position.x += s.vx * dt;
-      s.mesh.position.y += s.vy * dt;
-      s.mesh.position.z += s.vz * dt;
-      var alpha = 1 - s.age / s.life;
-      s.mesh.material.opacity = alpha;
     }
+    return nearest;
   }
 
-  // ── Sound ─────────────────────────────────────────────────────
+  function _nearToolChest(range) {
+    if (!_repairTruck || !_camera) return false;
+    var chestWorld = new THREE.Vector3();
+    _repairTruck.chest.getWorldPosition(chestWorld);
+    return _camera.position.distanceTo(chestWorld) < range;
+  }
 
-  function _playHammer() {
-    try {
-      if (!_audioCtx) {
-        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function _nearRepairTruck(range) {
+    if (!_repairTruck || !_camera) return false;
+    return _camera.position.distanceTo(_repairTruck.mesh.position) < range;
+  }
+
+  // ── Winch ──────────────────────────────────────────────────────────────────
+  function _attachWinch() {
+    if (!_repairTruck || !_winchTarget) return;
+    _winchActive = true;
+    var lineMat = new THREE.LineBasicMaterial({ color: 0xffcc00 });
+    var points = [
+      _repairTruck.mesh.position.clone(),
+      _winchTarget.mesh.position.clone()
+    ];
+    var lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+    var winchLine = new THREE.Line(lineGeo, lineMat);
+    _scene.add(winchLine);
+    _repairTruck.winchLine = winchLine;
+  }
+
+  function _updateWinch(delta) {
+    if (!_winchActive || !_winchTarget || !_repairTruck) return;
+    var tv = _winchTarget.mesh;
+    var rt = _repairTruck.mesh;
+    var dir = new THREE.Vector3().subVectors(rt.position, tv.position).normalize();
+    var dist = tv.position.distanceTo(rt.position);
+    if (dist > 4) {
+      tv.position.addScaledVector(dir, delta * 3);
+      // Update winch line geometry
+      if (_repairTruck.winchLine) {
+        var pts = [rt.position.clone(), tv.position.clone()];
+        _repairTruck.winchLine.geometry.setFromPoints(pts);
       }
-      // 180Hz pulse for metallic clank
-      var osc = _audioCtx.createOscillator();
-      var gain = _audioCtx.createGain();
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(180, _audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(90, _audioCtx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.3, _audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.18);
-      osc.connect(gain);
-      gain.connect(_audioCtx.destination);
-      osc.start(_audioCtx.currentTime);
-      osc.stop(_audioCtx.currentTime + 0.2);
-    } catch (e) {
-      // AudioContext not available — silently skip
+    } else {
+      _winchActive = false;
+      _winchTarget.stuck = false;
+      if (_repairTruck.winchLine) {
+        _scene.remove(_repairTruck.winchLine);
+        _repairTruck.winchLine = null;
+      }
     }
   }
 
-  // ── Banner display ────────────────────────────────────────────
+  // ── Repair Truck AI ────────────────────────────────────────────────────────
+  function _updateRepairTruck(delta) {
+    if (!_repairTruck) return;
+    var rt = _repairTruck;
 
-  function _showBanner(msg, bgColor) {
-    if (!_bannerEl) return;
-    _bannerEl.textContent = msg;
-    _bannerEl.style.background = bgColor || 'rgba(0,60,200,0.85)';
-    _bannerEl.style.display = 'block';
-    if (_bannerEl._hideTimer) clearTimeout(_bannerEl._hideTimer);
-    _bannerEl._hideTimer = setTimeout(function () {
-      if (_bannerEl) _bannerEl.style.display = 'none';
-    }, 3000);
-  }
+    if (rt.state === 'driving' && rt.targetVehicle) {
+      var target = rt.targetVehicle.mesh.position;
+      var pos    = rt.mesh.position;
+      var dir    = new THREE.Vector3().subVectors(target, pos);
+      var dist   = dir.length();
+      if (dist > 5) {
+        dir.normalize();
+        rt.mesh.position.addScaledVector(dir, delta * 8);
+        rt.mesh.lookAt(target.x, rt.mesh.position.y, target.z);
+      } else {
+        rt.state = 'craning';
+        rt.cranePhase = 0;
+        rt.craneTimer = 0;
+      }
+    } else if (rt.state === 'craning') {
+      _updateCrane(delta, rt);
+    }
 
-  // ── Wave 3 auto-spawn ─────────────────────────────────────────
+    // CASEVAC
+    if (_playerHp < 20 && _nearRepairTruck(5) && _medicNPC && !_medicNPC.active) {
+      _medicNPC.active = true;
+      _medicNPC.mesh.visible = true;
+      _medicNPC.mesh.position.copy(rt.mesh.position);
+      _medicNPC.mesh.position.x += 2;
+      _medicNPC.timer = 0;
+    }
 
-  function _checkWave3Spawn() {
-    if (_spawnOnWave3Done) return;
-    var wave = window._currentWave || (window.GameManager && window.GameManager.getCurrentWave ? window.GameManager.getCurrentWave() : 0);
-    if (wave > 3) {
-      _spawnOnWave3Done = true;
-      // Spawn near player
-      var pp = _getPlayerPos();
-      var sx = pp ? pp.x + 3 : 3;
-      var sy = pp ? pp.y : 0;
-      var sz = pp ? pp.z + 3 : 3;
-      spawnToolbox(sx, sy, sz);
+    if (_medicNPC && _medicNPC.active) {
+      _medicNPC.timer += delta;
+      // Medic walks toward camera
+      if (_camera && _medicNPC.timer < 3) {
+        var camDir = new THREE.Vector3().subVectors(_camera.position, _medicNPC.mesh.position);
+        camDir.y = 0;
+        var mDist = camDir.length();
+        if (mDist > 1.2) {
+          camDir.normalize();
+          _medicNPC.mesh.position.addScaledVector(camDir, delta * 2.5);
+        } else if (_medicNPC.timer > 1) {
+          // Apply field dressing
+          _playerHp = Math.min((_playerHp + 50), 100);
+          _showHUD('<div style="color:#4caf50;font-size:16px">Medic applied field dressing! HP +50</div>');
+          setTimeout(_hideHUD, 2000);
+          _medicNPC.active = false;
+          _medicNPC.mesh.visible = false;
+        }
+      }
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────────
+  function _updateCrane(delta, rt) {
+    rt.craneTimer += delta;
 
-  function _getPlayerPos() {
-    if (window._playerPos) return window._playerPos;
-    if (window.Player && window.Player.getPosition) return window.Player.getPosition();
-    if (window._camera) return window._camera.position;
-    if (window.camera) return window.camera.position;
-    return null;
+    if (rt.cranePhase === 0) {
+      // Extend arm
+      if (rt.craneTimer < 1.5) {
+        rt.craneArm.scale.z = 1 + rt.craneTimer / 1.5;
+      } else {
+        rt.craneArm.scale.z = 2;
+        rt.cranePhase = 1;
+        rt.craneTimer = 0;
+      }
+    } else if (rt.cranePhase === 1) {
+      // Descend hook
+      if (rt.craneTimer < 1.5) {
+        rt.hook.position.y = -0.3 - rt.craneTimer * 1.2;
+      } else {
+        rt.hook.position.y = -2.1;
+        rt.cranePhase = 2;
+        rt.craneTimer = 0;
+      }
+    } else if (rt.cranePhase === 2) {
+      // Lift vehicle
+      if (rt.targetVehicle && rt.craneTimer < 2) {
+        rt.targetVehicle.mesh.position.y = rt.craneTimer;
+      } else if (rt.targetVehicle) {
+        rt.targetVehicle.mesh.position.y = 2;
+        rt.cranePhase = 3;
+        rt.craneTimer = 0;
+      }
+    } else if (rt.cranePhase === 3) {
+      // Reposition (move 2 units to the side)
+      if (rt.targetVehicle && rt.craneTimer < 1.5) {
+        rt.targetVehicle.mesh.position.x += delta * (10 / 1.5);
+      } else {
+        rt.cranePhase = 4;
+        rt.craneTimer = 0;
+      }
+    } else if (rt.cranePhase === 4) {
+      // Lower
+      if (rt.targetVehicle && rt.craneTimer < 1.5) {
+        rt.targetVehicle.mesh.position.y = 2 - rt.craneTimer * (2 / 1.5);
+      } else {
+        if (rt.targetVehicle) rt.targetVehicle.mesh.position.y = 0;
+        rt.craneArm.scale.z = 1;
+        rt.hook.position.y = -0.3;
+        rt.state = 'done';
+      }
+    }
   }
 
-  function _getVehiclePos() {
-    if (window.Bradley && typeof window.Bradley.getPosition === 'function') {
-      var bp = window.Bradley.getPosition();
-      if (bp) return bp;
+  // ── Smoke Update ───────────────────────────────────────────────────────────
+  function _updateSmoke(delta) {
+    var i, j, sp;
+    for (i = 0; i < _vehicles.length; i++) {
+      var v = _vehicles[i];
+      if (!v.smoke) continue;
+      for (j = 0; j < v.smoke.children.length; j++) {
+        sp = v.smoke.children[j];
+        sp.userData.life += delta * 0.5;
+        sp.position.y += delta * sp.userData.driftY;
+        sp.material.opacity = 0.45 * (1 - sp.userData.life % 1);
+        if (sp.userData.life % 1 > 0.95) {
+          sp.position.y = 1.4;
+          sp.userData.life = Math.random() * 0.3;
+        }
+      }
     }
-    if (window.BTR80 && typeof window.BTR80.getPosition === 'function') {
-      var bp2 = window.BTR80.getPosition();
-      if (bp2) return bp2;
-    }
-    if (window.VehicleSystem && typeof window.VehicleSystem.getNearestVehiclePos === 'function') {
-      var pp = _getPlayerPos();
-      return pp ? window.VehicleSystem.getNearestVehiclePos(pp) : null;
-    }
-    return null;
   }
 
-  function _dist3(a, b) {
-    var dx = (a.x || 0) - (b.x || 0);
-    var dy = (a.y || 0) - (b.y || 0);
-    var dz = (a.z || 0) - (b.z || 0);
-    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  // ── Q+E Call-truck gesture ─────────────────────────────────────────────────
+  function _updateCallTruck(delta) {
+    if (_keys['KeyQ'] && _keys['KeyE']) {
+      _callTruckTimer += delta;
+      if (_callTruckTimer > 1.5 && !_repairTruck) {
+        var nearV = _nearestVehicle(30);
+        var spawnPos = new THREE.Vector3(50, 0, 50);
+        callRepairTruck(spawnPos);
+        if (nearV && _repairTruck) {
+          _repairTruck.targetVehicle = nearV;
+          _repairTruck.state = 'driving';
+          _winchTarget = nearV;
+        }
+        _callTruckTimer = 0;
+        _showHUD('<div style="color:#4caf50">Repair truck dispatched!</div>');
+        setTimeout(_hideHUD, 2000);
+      }
+    } else {
+      _callTruckTimer = 0;
+    }
   }
 
-  // ── Reset ─────────────────────────────────────────────────────
+  // ── Minigame Update ────────────────────────────────────────────────────────
+  function _updateMinigame(delta) {
+    if (!_mg) return;
+
+    if (_mg.task === 1) {
+      if (_mg.fDown) {
+        _mg.fHeldTime += delta;
+        if (_mg.fHeldTime >= 2) {
+          _advanceTask();
+          return;
+        }
+      }
+      _showMinigameHUD();
+    }
+
+    if (_mg.task === 3) {
+      _mg.indicatorPos += delta * _mg.indicatorDir * 0.8;
+      if (_mg.indicatorPos >= 1) { _mg.indicatorPos = 1; _mg.indicatorDir = -1; }
+      if (_mg.indicatorPos <= 0) { _mg.indicatorPos = 0; _mg.indicatorDir =  1; }
+      _showMinigameHUD();
+    }
+
+    if (_mg.task === 4) {
+      _mg.gaugePos += delta * _mg.gaugeDir * _mg.gaugeSpeed;
+      if (_mg.gaugePos >= 1) { _mg.gaugePos = 1; _mg.gaugeDir = -1; }
+      if (_mg.gaugePos <= 0) { _mg.gaugePos = 0; _mg.gaugeDir =  1; }
+      _showMinigameHUD();
+    }
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+  function init(scene, camera) {
+    _scene  = scene;
+    _camera = camera;
+    _createHUD();
+    window.addEventListener('keydown', _onKeyDown);
+    window.addEventListener('keyup',   _onKeyUp);
+    window.addEventListener('mousedown', _onMouseDown);
+    window.addEventListener('mouseup',   _onMouseUp);
+  }
+
+  function update(delta) {
+    _updateMinigame(delta);
+    _updateRepairTruck(delta);
+    _updateSmoke(delta);
+    _updateWinch(delta);
+    _updateCallTruck(delta);
+  }
 
   function reset() {
-    // Remove all toolboxes from scene
-    for (var i = 0; i < _toolboxes.length; i++) {
-      _removeToolbox(_toolboxes[i]);
+    _vehicles = [];
+    _repairState = null;
+    _mg = null;
+    _winchActive = false;
+    _winchTarget = null;
+    _score = 0;
+    _playerHp = 100;
+    _callTruckTimer = 0;
+    _keys = {};
+    _mousePressed = false;
+    _qHeld = false;
+    _eHeld = false;
+
+    if (_repairTruck) {
+      _scene.remove(_repairTruck.mesh);
+      if (_repairTruck.winchLine) _scene.remove(_repairTruck.winchLine);
+      _repairTruck = null;
     }
-    _toolboxes = [];
-    _sparks = [];
-    _repairTimer = 0;
-    _isRepairing = false;
-    _repairWarningShown = false;
-    _repairComplete = false;
-    _spawnOnWave3Done = false;
-    window._toolboxCount = 0;
-
-    if (_progressBarEl) _progressBarEl.style.display = 'none';
-    if (_hudEl) _hudEl.style.display = 'none';
-    if (_bannerEl) _bannerEl.style.display = 'none';
-    if (_warningEl) _warningEl.style.display = 'none';
-
-    var fill = document.getElementById('vr-progress-fill');
-    if (fill) fill.style.width = '0%';
+    if (_medicNPC) {
+      _scene.remove(_medicNPC.mesh);
+      _medicNPC = null;
+    }
+    _hideHUD();
+    _hideDiagnostic();
   }
-
-  // ── Public API ────────────────────────────────────────────────
 
   return {
     init: init,
     update: update,
-    spawnToolbox: spawnToolbox,
-    reset: reset
+    reset: reset,
+    repairVehicle: repairVehicle,
+    callRepairTruck: callRepairTruck
   };
 
 })();
