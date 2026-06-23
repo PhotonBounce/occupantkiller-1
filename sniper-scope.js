@@ -1,593 +1,820 @@
 /**
- * sniper-scope.js — Enhanced Sniper Scope System
- * Ukraine-conflict FPS (Three.js browser game)
+ * sniper-scope.js — Advanced Sniper Scope System
+ * Three.js FPS game
  *
- * Replaces the basic ADS view for sniper rifles with a premium
- * full-screen scope overlay featuring mil-dot reticle, range estimation,
- * ballistic drop indicator, breath control, and wind indicator.
+ * Full-screen SVG scope reticle, zoom levels, breathing sway,
+ * breath hold, wind drift, range finder, heartbeat audio.
  *
  * IIFE pattern, all var (never let/const).
  * Exports: window.SniperScope
- *
- * Depends on: window.Weapons, window.Enemies, window.AdsSystem (optional)
  */
 window.SniperScope = (function () {
+  'use strict';
 
-  /* ── Sniper weapon type list ─────────────────────────────────────── */
-  var SNIPER_TYPES = { SNIPER: true, AMR: true };
-
-  /* Weapon IDs that are snipers regardless of type field */
-  var SNIPER_IDS = { SVD: true, BARRETTM82: true, AXMC: true, AIAX: true, PSG1: true };
-
-  /* Strings that identify a sniper if found in type or id */
-  var SNIPER_SUBSTRINGS = ['SNIPER', 'SVD', 'AXMC', 'BARRETT', 'PSG', 'AMR'];
-
-  /* ── FOV constants ───────────────────────────────────────────────── */
-  var SCOPE_FOV   = 15;   /* 6× zoom */
+  /* ── Zoom level definitions ─────────────────────────────────────── */
+  var ZOOM_LEVELS = [
+    { label: '4x',  fov: 15 },
+    { label: '8x',  fov: 8  },
+    { label: '12x', fov: 5  }
+  ];
   var HIPFIRE_FOV = 75;
 
   /* ── Sway constants ──────────────────────────────────────────────── */
-  var SWAY_AMP_X        = 2;      /* pixels */
-  var SWAY_AMP_Y        = 1.5;    /* pixels */
-  var SWAY_FREQ_X       = 0.001;  /* rad/ms  */
-  var SWAY_FREQ_Y       = 0.0013; /* rad/ms  */
-  var BREATH_SWAY_MULT  = 0.1;    /* held-breath sway reduction */
-  var BREATH_MAX_HOLD   = 3.0;    /* seconds before sway grows back */
+  var SWAY_AMP       = 0.0003; /* radians */
+  var SWAY_FREQ      = 0.8;    /* Hz */
+
+  /* ── Breath hold constants ───────────────────────────────────────── */
+  var BREATH_HOLD_DURATION = 3.0;   /* seconds max hold */
+  var BREATH_HOLD_COOLDOWN = 8.0;   /* seconds cooldown */
+
+  /* ── Heartbeat constants ─────────────────────────────────────────── */
+  var HB_BPM_NORMAL = 60;
+  var HB_BPM_RELEASE = 90; /* after breath hold ends */
+  var HB_RELEASE_DECAY = 5.0; /* seconds to decay back to normal */
 
   /* ── Wind constants ──────────────────────────────────────────────── */
-  var WIND_CHANGE_MIN   = 15000;  /* ms minimum between direction changes */
-  var WIND_CHANGE_MAX   = 30000;  /* ms maximum between direction changes */
-  var WIND_DIRS = ['→', '↗', '↑', '↖', '←', '↙', '↓', '↘'];
-
-  /* ── Ballistic drop threshold ────────────────────────────────────── */
-  var DROP_RANGE_THRESHOLD = 150; /* meters — drop visible beyond this */
+  var WIND_DIRS = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'];
+  var WIND_ARROWS = ['→', '↗', '↑', '↖',
+                     '←', '↙', '↓', '↘'];
 
   /* ── Internal state ──────────────────────────────────────────────── */
-  var _active          = false;
-  var _camera          = null;
+  var _scene         = null;
+  var _camera        = null;
+  var _active        = false;
+  var _zoomIdx       = 0;      /* index into ZOOM_LEVELS */
 
-  /* Breath state */
-  var _breathHeld      = false;
-  var _breathHeldMs    = 0;       /* accumulated ms Space held */
-  var _breathKeyDown   = false;
+  /* Time tracking */
+  var _elapsedTime   = 0;      /* accumulated seconds while scoped */
+
+  /* Breath hold state */
+  var _breathKeyDown    = false;
+  var _breathHolding    = false;
+  var _breathHoldTimer  = 0;   /* seconds remaining in hold */
+  var _breathCooldown   = 0;   /* seconds remaining in cooldown */
 
   /* Wind state */
-  var _windSpeed       = 0;       /* m/s */
-  var _windDirIdx      = 0;       /* index into WIND_DIRS */
-  var _windNextChange  = 0;       /* timestamp ms */
+  var _windSpeed    = 0;   /* mph */
+  var _windDirIdx   = 0;   /* index into WIND_DIRS */
 
-  /* Range / drop */
-  var _rangeM          = 0;       /* fake metres to nearest visible enemy */
-  var _dropPx          = 0;       /* pixels drop offset */
+  /* Range */
+  var _rangeMeters  = 0;
 
-  /* Sway offset applied to reticle wrapper */
-  var _swayX           = 0;
-  var _swayY           = 0;
+  /* Heartbeat audio */
+  var _audioCtx     = null;
+  var _hbInterval   = null;
+  var _hbBpm        = HB_BPM_NORMAL;
+  var _hbReleaseTimer = 0; /* seconds decaying from release bpm */
 
   /* DOM references */
-  var _overlayEl       = null;
-  var _reticleWrapEl   = null;
-  var _rangeTextEl     = null;
-  var _windTextEl      = null;
-  var _dropDotEl       = null;
-  var _dropLabelEl     = null;
-  var _windCorrEl      = null;
+  var _overlayEl      = null;
+  var _reticleWrapEl  = null;
+  var _zoomLabelEl    = null;
+  var _rangeTextEl    = null;
+  var _windArrowEl    = null;
+  var _windSpeedEl    = null;
+  var _breathHoldEl   = null;
+  var _cooldownEl     = null;
 
-  /* Cached crosshair standard element so we can hide it while scoped */
-  var _stdCrosshairEl  = null;
+  /* Sway camera offset (radians) applied to camera.rotation */
+  var _swayX = 0;
+  var _swayY = 0;
+  var _prevSwayX = 0;
+  var _prevSwayY = 0;
 
-  /* ── Sniper weapon detection ─────────────────────────────────────── */
-  function _isSniperWeapon() {
-    if (typeof window.Weapons === 'undefined' || typeof window.Weapons.getCurrent !== 'function') {
-      return false;
-    }
-    var w = window.Weapons.getCurrent();
-    if (!w) return false;
-
-    /* Check by type map */
-    if (w.type && SNIPER_TYPES[w.type]) return true;
-
-    /* Check by id map */
-    if (w.id && SNIPER_IDS[w.id]) return true;
-
-    /* Substring check on type and id */
-    var i;
-    for (i = 0; i < SNIPER_SUBSTRINGS.length; i++) {
-      if (w.type && w.type.indexOf(SNIPER_SUBSTRINGS[i]) !== -1) return true;
-      if (w.id   && w.id.indexOf(SNIPER_SUBSTRINGS[i])   !== -1) return true;
-    }
-    return false;
-  }
-
-  /* ── DOM Construction ────────────────────────────────────────────── */
+  /* ── Build overlay DOM ───────────────────────────────────────────── */
   function _buildOverlay() {
     var old = document.getElementById('sniperScopeOverlay');
-    if (old) old.parentNode.removeChild(old);
+    if (old) { old.parentNode.removeChild(old); }
 
     var el = document.createElement('div');
     el.id = 'sniperScopeOverlay';
 
-    el.innerHTML = [
-      '<style>',
-
-      /* Full-screen scope vignette — transparent centre, black border */
+    /* Inject styles */
+    var styleEl = document.createElement('style');
+    styleEl.textContent = [
       '#sniperScopeOverlay {',
-      '  display:none;',
-      '  position:fixed;',
-      '  top:0;left:0;right:0;bottom:0;',
-      '  z-index:500;',
-      '  pointer-events:none;',
-      '  overflow:hidden;',
-      '  background:radial-gradient(circle at 50% 50%, transparent 35%, black 36%);',
+      '  display: none;',
+      '  position: fixed;',
+      '  top: 0; left: 0; right: 0; bottom: 0;',
+      '  z-index: 500;',
+      '  pointer-events: none;',
+      '  overflow: hidden;',
+      '  background: radial-gradient(circle at 50% 50%, transparent 34.5%, rgba(0,0,0,0.97) 35.5%);',
       '}',
 
-      /* Sharp ring boundary around scope circle */
+      /* Sharp ring border */
       '#sniperScopeOverlay .snsc-ring {',
-      '  position:absolute;',
-      '  top:50%;left:50%;',
-      '  transform:translate(-50%,-50%);',
-      '  width:70vmin;height:70vmin;',
-      '  border-radius:50%;',
-      '  border:3px solid rgba(0,0,0,0.95);',
-      '  box-shadow:0 0 0 200vmax rgba(0,0,0,0.96);',
+      '  position: absolute;',
+      '  top: 50%; left: 50%;',
+      '  transform: translate(-50%, -50%);',
+      '  width: 70vmin; height: 70vmin;',
+      '  border-radius: 50%;',
+      '  border: 2px solid rgba(20,20,20,0.9);',
+      '  box-shadow: 0 0 0 200vmax rgba(0,0,0,0.97), inset 0 0 30px rgba(0,0,0,0.3);',
+      '  pointer-events: none;',
       '}',
 
-      /* Reticle wrapper — sway is applied to this via inline transform */
+      /* Reticle wrapper — sway applied via transform */
       '#sniperScopeOverlay .snsc-reticle-wrap {',
-      '  position:absolute;',
-      '  top:50%;left:50%;',
-      '  transform:translate(-50%,-50%);',
-      '  width:70vmin;height:70vmin;',
+      '  position: absolute;',
+      '  top: 50%; left: 50%;',
+      '  transform: translate(-50%, -50%);',
+      '  width: 70vmin; height: 70vmin;',
       '}',
 
-      /* SVG crosshair */
       '#sniperScopeOverlay .snsc-svg {',
-      '  position:absolute;',
-      '  top:0;left:0;',
-      '  width:100%;height:100%;',
+      '  position: absolute;',
+      '  top: 0; left: 0;',
+      '  width: 100%; height: 100%;',
+      '  overflow: visible;',
       '}',
 
-      /* HUD info area — top-right inside scope */
+      /* Top-right HUD */
       '#sniperScopeOverlay .snsc-hud {',
-      '  position:absolute;',
-      '  top:50%;left:50%;',
-      '  margin-top:calc(-35vmin + 12px);',
-      '  margin-left:calc(2vmin);',
-      '  font-family:monospace;',
-      '  font-size:11px;',
-      '  color:#c8ddc8;',
-      '  letter-spacing:1px;',
-      '  line-height:1.6;',
-      '  text-shadow:0 0 4px #000, 0 1px 2px #000;',
-      '  white-space:nowrap;',
+      '  position: absolute;',
+      '  top: 50%; left: 50%;',
+      '  margin-top: calc(-35vmin + 8px);',
+      '  margin-left: calc(3vmin);',
+      '  font-family: "Courier New", monospace;',
+      '  font-size: 11px;',
+      '  color: #b8d8b8;',
+      '  letter-spacing: 1.5px;',
+      '  line-height: 1.8;',
+      '  text-shadow: 0 0 5px #000, 0 1px 2px #000;',
+      '  white-space: nowrap;',
       '}',
 
-      /* Ballistic drop dot */
-      '#sniperScopeOverlay .snsc-drop-dot {',
-      '  display:none;',
-      '  position:absolute;',
-      '  top:50%;left:50%;',
-      '  width:8px;height:8px;',
-      '  border-radius:50%;',
-      '  background:#f44;',
-      '  border:1px solid #faa;',
-      '  transform:translate(-50%,-50%);',
+      /* Bottom-right zoom label */
+      '#sniperScopeOverlay .snsc-zoom-label {',
+      '  position: absolute;',
+      '  bottom: 50%; right: 50%;',
+      '  margin-bottom: calc(-35vmin + 8px);',
+      '  margin-right: calc(3vmin);',
+      '  font-family: "Courier New", monospace;',
+      '  font-size: 13px;',
+      '  color: #b8d8b8;',
+      '  letter-spacing: 2px;',
+      '  text-shadow: 0 0 5px #000;',
+      '  white-space: nowrap;',
       '}',
 
-      /* "AIM HERE" drop label */
-      '#sniperScopeOverlay .snsc-drop-label {',
-      '  display:none;',
-      '  position:absolute;',
-      '  left:50%;',
-      '  font-family:monospace;',
-      '  font-size:9px;',
-      '  color:#f44;',
-      '  text-shadow:0 0 3px #000;',
-      '  transform:translateX(8px);',
-      '  white-space:nowrap;',
+      /* Wind arrow overlay */
+      '#sniperScopeOverlay .snsc-wind-arrow {',
+      '  position: absolute;',
+      '  top: 50%; left: 50%;',
+      '  transform: translate(-50%, -50%);',
+      '  font-size: 22px;',
+      '  color: rgba(255, 200, 60, 0.85);',
+      '  text-shadow: 0 0 6px rgba(0,0,0,0.9);',
+      '  transition: transform 0.3s;',
       '}',
 
-      /* Wind correction arrow */
-      '#sniperScopeOverlay .snsc-wind-corr {',
-      '  display:none;',
-      '  position:absolute;',
-      '  top:50%;left:50%;',
-      '  transform:translate(-50%,-50%);',
-      '  font-size:18px;',
-      '  color:rgba(255,200,80,0.85);',
-      '  text-shadow:0 0 5px #000;',
+      /* Breath hold text */
+      '#sniperScopeOverlay .snsc-breathhold {',
+      '  display: none;',
+      '  position: absolute;',
+      '  top: 50%; left: 50%;',
+      '  margin-top: calc(35vmin - 28px);',
+      '  transform: translateX(-50%);',
+      '  font-family: "Courier New", monospace;',
+      '  font-size: 12px;',
+      '  letter-spacing: 3px;',
+      '  color: #80ff80;',
+      '  text-shadow: 0 0 8px #00ff00, 0 0 3px #000;',
       '}',
 
-      /* Scope label badge */
+      /* Cooldown text */
+      '#sniperScopeOverlay .snsc-cooldown {',
+      '  display: none;',
+      '  position: absolute;',
+      '  top: 50%; left: 50%;',
+      '  margin-top: calc(35vmin - 28px);',
+      '  transform: translateX(-50%);',
+      '  font-family: "Courier New", monospace;',
+      '  font-size: 11px;',
+      '  letter-spacing: 2px;',
+      '  color: #ff6060;',
+      '  text-shadow: 0 0 5px #ff0000, 0 0 3px #000;',
+      '}',
+
+      /* Top-left badge */
       '#sniperScopeOverlay .snsc-badge {',
-      '  position:absolute;',
-      '  top:50%;left:50%;',
-      '  margin-top:calc(-35vmin + 12px);',
-      '  margin-left:calc(-35vmin);',
-      '  font-family:monospace;',
-      '  font-size:10px;',
-      '  color:rgba(150,180,150,0.7);',
-      '  letter-spacing:2px;',
-      '  text-shadow:0 0 4px #000;',
-      '  white-space:nowrap;',
-      '}',
+      '  position: absolute;',
+      '  top: 50%; left: 50%;',
+      '  margin-top: calc(-35vmin + 8px);',
+      '  margin-left: calc(-35vmin);',
+      '  font-family: "Courier New", monospace;',
+      '  font-size: 10px;',
+      '  color: rgba(150, 180, 150, 0.6);',
+      '  letter-spacing: 2px;',
+      '  text-shadow: 0 0 4px #000;',
+      '  white-space: nowrap;',
+      '}'
+    ].join('\n');
 
-      '</style>',
+    document.head.appendChild(styleEl);
 
-      /* Black border ring */
-      '<div class="snsc-ring"></div>',
+    /* Build the SVG reticle */
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'snsc-svg');
+    svg.setAttribute('viewBox', '0 0 700 700');
 
-      /* Reticle wrapper (sway applied here) */
-      '<div class="snsc-reticle-wrap" id="snscReticleWrap">',
+    /* Helper to create SVG elements */
+    function svgEl(tag, attrs) {
+      var elem = document.createElementNS(svgNS, tag);
+      var k;
+      for (k in attrs) {
+        if (attrs.hasOwnProperty(k)) {
+          elem.setAttribute(k, attrs[k]);
+        }
+      }
+      return elem;
+    }
 
-        /* SVG crosshair + mil-dots + BDC stadia */
-        '<svg class="snsc-svg" viewBox="0 0 700 700" xmlns="http://www.w3.org/2000/svg">',
+    /* Outer scope circle wire */
+    svg.appendChild(svgEl('circle', {
+      cx: '350', cy: '350', r: '340',
+      stroke: 'rgba(0,0,0,0.5)', 'stroke-width': '0.8', fill: 'none'
+    }));
 
-          /* Vertical crosshair line */
-          '<line x1="350" y1="0" x2="350" y2="700"',
-          '  stroke="rgba(0,0,0,0.88)" stroke-width="1.2"/>',
+    /* Thin wire cross — full lines across circle */
+    /* Vertical line */
+    svg.appendChild(svgEl('line', {
+      x1: '350', y1: '10', x2: '350', y2: '690',
+      stroke: 'rgba(0,0,0,0.85)', 'stroke-width': '1.0'
+    }));
+    /* Horizontal line */
+    svg.appendChild(svgEl('line', {
+      x1: '10', y1: '350', x2: '690', y2: '350',
+      stroke: 'rgba(0,0,0,0.85)', 'stroke-width': '1.0'
+    }));
 
-          /* Horizontal crosshair line */
-          '<line x1="0" y1="350" x2="700" y2="350"',
-          '  stroke="rgba(0,0,0,0.88)" stroke-width="1.2"/>',
+    /* Thicker central cross arms (inner 30%) */
+    svg.appendChild(svgEl('line', {
+      x1: '350', y1: '215', x2: '350', y2: '485',
+      stroke: 'rgba(0,0,0,0.92)', 'stroke-width': '1.6'
+    }));
+    svg.appendChild(svgEl('line', {
+      x1: '215', y1: '350', x2: '485', y2: '350',
+      stroke: 'rgba(0,0,0,0.92)', 'stroke-width': '1.6'
+    }));
 
-          /* ── Horizontal mil-dot marks: 5 each side, 58px spacing ── */
-          /* Left arm */
-          '<circle cx="292" cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="234" cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="176" cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="118" cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="60"  cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
+    /* ── Horizontal mil-dots: 5 each side ──
+       Placed at 100, 200, 300, 400, 500 MOA equiv positions
+       using 58px spacing from center (350) */
+    var milDotPositions = [292, 234, 176, 118, 60];
+    var i, cx, cy;
 
-          /* Right arm */
-          '<circle cx="408" cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="466" cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="524" cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="582" cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="640" cy="350" r="3.5" fill="rgba(0,0,0,0.85)"/>',
+    /* Left arm dots */
+    for (i = 0; i < milDotPositions.length; i++) {
+      svg.appendChild(svgEl('circle', {
+        cx: String(milDotPositions[i]), cy: '350',
+        r: '3.5', fill: 'rgba(0,0,0,0.85)'
+      }));
+      /* Small tick marks above/below each dot */
+      svg.appendChild(svgEl('line', {
+        x1: String(milDotPositions[i]), y1: '344',
+        x2: String(milDotPositions[i]), y2: '340',
+        stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '0.8'
+      }));
+      svg.appendChild(svgEl('line', {
+        x1: String(milDotPositions[i]), y1: '356',
+        x2: String(milDotPositions[i]), y2: '360',
+        stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '0.8'
+      }));
+    }
 
-          /* ── Vertical mil-dot marks: 5 each side ── */
-          /* Upper arm */
-          '<circle cx="350" cy="292" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="350" cy="234" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="350" cy="176" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="350" cy="118" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="350" cy="60"  r="3.5" fill="rgba(0,0,0,0.85)"/>',
+    /* Right arm dots */
+    var rightPositions = [408, 466, 524, 582, 640];
+    for (i = 0; i < rightPositions.length; i++) {
+      svg.appendChild(svgEl('circle', {
+        cx: String(rightPositions[i]), cy: '350',
+        r: '3.5', fill: 'rgba(0,0,0,0.85)'
+      }));
+      svg.appendChild(svgEl('line', {
+        x1: String(rightPositions[i]), y1: '344',
+        x2: String(rightPositions[i]), y2: '340',
+        stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '0.8'
+      }));
+      svg.appendChild(svgEl('line', {
+        x1: String(rightPositions[i]), y1: '356',
+        x2: String(rightPositions[i]), y2: '360',
+        stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '0.8'
+      }));
+    }
 
-          /* Lower arm */
-          '<circle cx="350" cy="408" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="350" cy="466" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="350" cy="524" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="350" cy="582" r="3.5" fill="rgba(0,0,0,0.85)"/>',
-          '<circle cx="350" cy="640" r="3.5" fill="rgba(0,0,0,0.85)"/>',
+    /* Vertical mil-dots: 5 each arm */
+    var vertUpPos = [292, 234, 176, 118, 60];
+    for (i = 0; i < vertUpPos.length; i++) {
+      svg.appendChild(svgEl('circle', {
+        cx: '350', cy: String(vertUpPos[i]),
+        r: '3.5', fill: 'rgba(0,0,0,0.85)'
+      }));
+    }
+    var vertDownPos = [408, 466, 524, 582, 640];
+    for (i = 0; i < vertDownPos.length; i++) {
+      svg.appendChild(svgEl('circle', {
+        cx: '350', cy: String(vertDownPos[i]),
+        r: '3.5', fill: 'rgba(0,0,0,0.85)'
+      }));
+    }
 
-          /* ── Range stadia — BDC hash marks below centre ── */
-          /* 100m hash */
-          '<line x1="338" y1="408" x2="362" y2="408"',
-          '  stroke="rgba(0,0,0,0.80)" stroke-width="1.2"/>',
-          '<text x="367" y="412" font-family="monospace" font-size="13"',
-          '  fill="rgba(0,0,0,0.70)">100</text>',
+    /* BDC hash marks with labels on vertical lower arm */
+    var bdcData = [
+      { y: 408, label: '100m', w: 24 },
+      { y: 466, label: '200m', w: 30 },
+      { y: 524, label: '300m', w: 36 },
+      { y: 582, label: '400m', w: 42 }
+    ];
+    for (i = 0; i < bdcData.length; i++) {
+      svg.appendChild(svgEl('line', {
+        x1: String(350 - bdcData[i].w / 2), y1: String(bdcData[i].y),
+        x2: String(350 + bdcData[i].w / 2), y2: String(bdcData[i].y),
+        stroke: 'rgba(0,0,0,0.75)', 'stroke-width': '1.2'
+      }));
+      var lbl = document.createElementNS(svgNS, 'text');
+      lbl.setAttribute('x', String(350 + bdcData[i].w / 2 + 5));
+      lbl.setAttribute('y', String(bdcData[i].y + 4));
+      lbl.setAttribute('font-family', 'monospace');
+      lbl.setAttribute('font-size', '11');
+      lbl.setAttribute('fill', 'rgba(0,0,0,0.65)');
+      lbl.textContent = bdcData[i].label;
+      svg.appendChild(lbl);
+    }
 
-          /* 200m hash */
-          '<line x1="335" y1="466" x2="365" y2="466"',
-          '  stroke="rgba(0,0,0,0.80)" stroke-width="1.2"/>',
-          '<text x="370" y="470" font-family="monospace" font-size="13"',
-          '  fill="rgba(0,0,0,0.70)">200</text>',
+    /* Centre dot */
+    svg.appendChild(svgEl('circle', {
+      cx: '350', cy: '350', r: '2.2', fill: 'rgba(0,0,0,0.95)'
+    }));
 
-          /* 300m hash */
-          '<line x1="332" y1="524" x2="368" y2="524"',
-          '  stroke="rgba(0,0,0,0.80)" stroke-width="1.2"/>',
-          '<text x="373" y="528" font-family="monospace" font-size="13"',
-          '  fill="rgba(0,0,0,0.70)">300</text>',
+    /* Reticle wrapper div */
+    var reticleWrap = document.createElement('div');
+    reticleWrap.className = 'snsc-reticle-wrap';
+    reticleWrap.id = 'snscReticleWrap';
+    reticleWrap.appendChild(svg);
 
-          /* Centre dot */
-          '<circle cx="350" cy="350" r="2.5" fill="rgba(0,0,0,0.92)"/>',
+    /* Wind arrow inside reticle (at center offset) */
+    var windArrow = document.createElement('div');
+    windArrow.className = 'snsc-wind-arrow';
+    windArrow.id = 'snscWindArrow';
+    reticleWrap.appendChild(windArrow);
 
-        '</svg>',
+    /* Ring border */
+    var ring = document.createElement('div');
+    ring.className = 'snsc-ring';
 
-        /* Ballistic drop dot (shown when range > 150m) */
-        '<div class="snsc-drop-dot" id="snscDropDot"></div>',
-        '<div class="snsc-drop-label" id="snscDropLabel">AIM HERE</div>',
-
-        /* Wind correction arrow (shown at high wind) */
-        '<div class="snsc-wind-corr" id="snscWindCorr"></div>',
-
-      '</div>',  /* end snsc-reticle-wrap */
-
-      /* HUD: range + wind text */
-      '<div class="snsc-hud">',
-        '<div id="snscRangeText">RANGE: ---m</div>',
-        '<div id="snscWindText">WIND: -- m/s --</div>',
-      '</div>',
-
-      /* Scope badge bottom-left */
-      '<div class="snsc-badge">6&times; SNIPER</div>'
-
+    /* HUD panel */
+    var hud = document.createElement('div');
+    hud.className = 'snsc-hud';
+    hud.innerHTML = [
+      '<div id="snscRangeText">RANGE: ---m</div>',
+      '<div id="snscWindText">WIND: --mph --</div>'
     ].join('');
+
+    /* Zoom label */
+    var zoomLabel = document.createElement('div');
+    zoomLabel.className = 'snsc-zoom-label';
+    zoomLabel.id = 'snscZoomLabel';
+    zoomLabel.textContent = ZOOM_LEVELS[0].label;
+
+    /* Breath hold indicator */
+    var breathHoldEl = document.createElement('div');
+    breathHoldEl.className = 'snsc-breathhold';
+    breathHoldEl.id = 'snscBreathHold';
+    breathHoldEl.textContent = 'BREATH HOLD';
+
+    /* Cooldown indicator */
+    var cooldownEl = document.createElement('div');
+    cooldownEl.className = 'snsc-cooldown';
+    cooldownEl.id = 'snscCooldown';
+    cooldownEl.textContent = 'BREATH COOLING DOWN';
+
+    /* Badge */
+    var badge = document.createElement('div');
+    badge.className = 'snsc-badge';
+    badge.textContent = 'SNIPER SCOPE';
+
+    el.appendChild(ring);
+    el.appendChild(reticleWrap);
+    el.appendChild(hud);
+    el.appendChild(zoomLabel);
+    el.appendChild(breathHoldEl);
+    el.appendChild(cooldownEl);
+    el.appendChild(badge);
 
     document.body.appendChild(el);
     return el;
   }
 
-  /* ── Wind helpers ────────────────────────────────────────────────── */
+  /* ── Web Audio heartbeat ─────────────────────────────────────────── */
+  function _getAudioCtx() {
+    if (_audioCtx) { return _audioCtx; }
+    try {
+      var AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtxClass) {
+        _audioCtx = new AudioCtxClass();
+      }
+    } catch (e) {
+      _audioCtx = null;
+    }
+    return _audioCtx;
+  }
+
+  function _playHeartbeatTone() {
+    var ctx = _getAudioCtx();
+    if (!ctx) { return; }
+    try {
+      /* Resume if suspended (autoplay policy) */
+      if (ctx.state === 'suspended') { ctx.resume(); }
+
+      /* Two quick "lub-dub" pulses — very subtle */
+      var masterGain = ctx.createGain();
+      masterGain.gain.value = 0.04;
+      masterGain.connect(ctx.destination);
+
+      var now = ctx.currentTime;
+
+      /* Pulse 1: lub */
+      var osc1 = ctx.createOscillator();
+      var env1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.value = 55;
+      env1.gain.setValueAtTime(0, now);
+      env1.gain.linearRampToValueAtTime(1.0, now + 0.04);
+      env1.gain.linearRampToValueAtTime(0, now + 0.12);
+      osc1.connect(env1);
+      env1.connect(masterGain);
+      osc1.start(now);
+      osc1.stop(now + 0.15);
+
+      /* Pulse 2: dub (slightly higher pitch) */
+      var osc2 = ctx.createOscillator();
+      var env2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.value = 70;
+      env2.gain.setValueAtTime(0, now + 0.12);
+      env2.gain.linearRampToValueAtTime(0.7, now + 0.16);
+      env2.gain.linearRampToValueAtTime(0, now + 0.24);
+      osc2.connect(env2);
+      env2.connect(masterGain);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.28);
+    } catch (e) {
+      /* Silently ignore audio errors */
+    }
+  }
+
+  function _startHeartbeat() {
+    _stopHeartbeat();
+    _hbBpm = HB_BPM_NORMAL;
+    _scheduleHeartbeat();
+  }
+
+  function _scheduleHeartbeat() {
+    if (!_active) { return; }
+    _playHeartbeatTone();
+    var intervalMs = Math.round(60000 / _hbBpm);
+    _hbInterval = setTimeout(_scheduleHeartbeat, intervalMs);
+  }
+
+  function _stopHeartbeat() {
+    if (_hbInterval !== null) {
+      clearTimeout(_hbInterval);
+      _hbInterval = null;
+    }
+  }
+
+  /* ── Wind initialization ─────────────────────────────────────────── */
   function _initWind() {
-    _windSpeed   = Math.round(Math.random() * 8);
-    _windDirIdx  = Math.floor(Math.random() * WIND_DIRS.length);
-    _windNextChange = Date.now() + WIND_CHANGE_MIN +
-                     Math.random() * (WIND_CHANGE_MAX - WIND_CHANGE_MIN);
+    _windSpeed  = Math.round(Math.random() * 10); /* 0–10 mph */
+    _windDirIdx = Math.floor(Math.random() * WIND_DIRS.length);
   }
 
-  function _tickWind() {
-    var now = Date.now();
-    if (now >= _windNextChange) {
-      _windSpeed  = Math.round(Math.random() * 8);
-      _windDirIdx = Math.floor(Math.random() * WIND_DIRS.length);
-      _windNextChange = now + WIND_CHANGE_MIN +
-                        Math.random() * (WIND_CHANGE_MAX - WIND_CHANGE_MIN);
-    }
-  }
-
-  /* ── Range estimation ────────────────────────────────────────────── */
-  function _updateRange() {
-    _rangeM = 0;
-
-    if (typeof window.Enemies === 'undefined' ||
-        typeof window.Enemies.getAll !== 'function' ||
-        !_camera) {
-      return;
-    }
-
-    var enemies = window.Enemies.getAll();
-    if (!enemies || !enemies.length) return;
-
-    /* Project each enemy to NDC, pick closest to screen centre */
-    var projVec = new THREE.Vector3();
-    var halfW = window.innerWidth  / 2;
-    var halfH = window.innerHeight / 2;
-    var bestScreenDist = Infinity;
-    var bestWorldDist  = Infinity;
-
-    var i, e, screenDX, screenDY, screenDist;
-    for (i = 0; i < enemies.length; i++) {
-      e = enemies[i];
-      if (!e || !e.mesh || !e.alive) continue;
-
-      projVec.copy(e.mesh.position);
-      projVec.project(_camera);
-
-      /* projVec.z > 1 means behind camera */
-      if (projVec.z > 1) continue;
-
-      screenDX = projVec.x * halfW;
-      screenDY = projVec.y * halfH;
-      screenDist = screenDX * screenDX + screenDY * screenDY;
-
-      if (screenDist < bestScreenDist) {
-        bestScreenDist = screenDist;
-        bestWorldDist  = _camera.position.distanceTo(e.mesh.position);
-      }
-    }
-
-    if (bestWorldDist !== Infinity) {
-      _rangeM = Math.round(bestWorldDist * 4.7);
-    }
-  }
-
-  /* ── Sway calculation ────────────────────────────────────────────── */
-  function _calcSway() {
-    var t = Date.now();
-    var rawX = Math.sin(t * SWAY_FREQ_X) * SWAY_AMP_X;
-    var rawY = Math.cos(t * SWAY_FREQ_Y) * SWAY_AMP_Y;
-
-    var mult = 1.0;
-    if (_breathKeyDown) {
-      if (_breathHeldMs < BREATH_MAX_HOLD * 1000) {
-        mult = BREATH_SWAY_MULT;
-      } else {
-        /* Over-held — sway grows back proportionally */
-        var overMs = _breathHeldMs - BREATH_MAX_HOLD * 1000;
-        mult = BREATH_SWAY_MULT + (1.0 - BREATH_SWAY_MULT) *
-               Math.min(overMs / 2000, 1.0);
-      }
-    }
-
-    _swayX = rawX * mult;
-    _swayY = rawY * mult;
-  }
-
-  /* ── DOM update each frame ───────────────────────────────────────── */
-  function _updateDOM() {
-    if (!_overlayEl) return;
-
-    /* Apply sway to reticle wrapper */
-    if (_reticleWrapEl) {
-      _reticleWrapEl.style.transform =
-        'translate(calc(-50% + ' + _swayX.toFixed(1) + 'px),' +
-        'calc(-50% + ' + _swayY.toFixed(1) + 'px))';
-    }
-
-    /* Range display */
-    if (_rangeTextEl) {
-      _rangeTextEl.textContent = _rangeM > 0
-        ? 'RANGE: ' + _rangeM + 'm'
-        : 'RANGE: ---m';
-    }
-
-    /* Wind display */
-    if (_windTextEl) {
-      _windTextEl.textContent = 'WIND: ' + _windSpeed + ' m/s ' + WIND_DIRS[_windDirIdx];
-    }
-
-    /* Ballistic drop indicator */
-    _dropPx = 0;
-    if (_rangeM > DROP_RANGE_THRESHOLD) {
-      _dropPx = (_rangeM - DROP_RANGE_THRESHOLD) * 0.8;
-    }
-
-    if (_dropDotEl && _dropLabelEl) {
-      if (_dropPx > 0) {
-        _dropDotEl.style.display = 'block';
-        _dropDotEl.style.marginTop = _dropPx + 'px';
-        _dropLabelEl.style.display = 'block';
-        _dropLabelEl.style.top = 'calc(50% + ' + _dropPx + 'px)';
-      } else {
-        _dropDotEl.style.display = 'none';
-        _dropLabelEl.style.display = 'none';
-      }
-    }
-
-    /* Wind correction arrow: show when wind >= 4 m/s */
-    if (_windCorrEl) {
-      if (_windSpeed >= 4) {
-        _windCorrEl.style.display = 'block';
-        /* Opposite direction to compensate */
-        var oppIdx = (_windDirIdx + 4) % WIND_DIRS.length;
-        _windCorrEl.textContent = WIND_DIRS[oppIdx];
-        /* Offset correction arrow opposite to wind */
-        var corrPx = _windSpeed * 2;
-        /* Map cardinal direction to x/y offset */
-        var corrX = 0, corrY = 0;
-        var d = _windDirIdx;
-        if (d === 0) { corrX = -corrPx; }            /* → aim left  */
-        else if (d === 1) { corrX = -corrPx; corrY = corrPx; }  /* ↗ */
-        else if (d === 2) { corrY = corrPx; }         /* ↑ aim down  */
-        else if (d === 3) { corrX = corrPx; corrY = corrPx; }   /* ↖ */
-        else if (d === 4) { corrX = corrPx; }         /* ← aim right */
-        else if (d === 5) { corrX = corrPx; corrY = -corrPx; }  /* ↙ */
-        else if (d === 6) { corrY = -corrPx; }        /* ↓ aim up    */
-        else              { corrX = -corrPx; corrY = -corrPx; } /* ↘ */
-        _windCorrEl.style.transform =
-          'translate(calc(-50% + ' + corrX + 'px), calc(-50% + ' + corrY + 'px))';
-      } else {
-        _windCorrEl.style.display = 'none';
-      }
-    }
-  }
-
-  /* ── Show/hide standard crosshair ───────────────────────────────── */
-  function _hideCrosshair() {
-    _stdCrosshairEl = _stdCrosshairEl ||
-      document.getElementById('crosshair') ||
-      document.getElementById('adsReticle') ||
-      document.getElementById('scopeOverlay');
-    if (_stdCrosshairEl) _stdCrosshairEl.style.display = 'none';
-  }
-
-  function _restoreCrosshair() {
-    /* We leave the crosshair hidden-state restoration to ADSSystem */
-  }
-
-  /* ── FOV helpers ─────────────────────────────────────────────────── */
-  function _applyScopeFOV() {
-    window._scopeFOV = SCOPE_FOV;
-    if (_camera) {
-      _camera.fov = SCOPE_FOV;
-      _camera.updateProjectionMatrix();
-    }
-    /* Override ADS system FOV for sniper */
-    if (window.AdsSystem && typeof window.AdsSystem.startADS === 'function') {
-      /* AdsSystem already triggered; we take control of FOV via camera directly */
-    }
+  /* ── FOV application ─────────────────────────────────────────────── */
+  function _applyZoomFOV() {
+    if (!_camera) { return; }
+    _camera.fov = ZOOM_LEVELS[_zoomIdx].fov;
+    _camera.updateProjectionMatrix();
   }
 
   function _restoreFOV() {
-    window._scopeFOV = HIPFIRE_FOV;
+    if (!_camera) { return; }
+    _camera.fov = HIPFIRE_FOV;
+    _camera.updateProjectionMatrix();
+  }
+
+  /* ── Scroll wheel zoom ───────────────────────────────────────────── */
+  function _onWheel(e) {
+    if (!_active) { return; }
+    e.preventDefault();
+    if (e.deltaY > 0) {
+      /* Scroll down — zoom out */
+      _zoomIdx = (_zoomIdx + 1) % ZOOM_LEVELS.length;
+    } else {
+      /* Scroll up — zoom in */
+      _zoomIdx = (_zoomIdx - 1 + ZOOM_LEVELS.length) % ZOOM_LEVELS.length;
+    }
+    _applyZoomFOV();
+    if (_zoomLabelEl) {
+      _zoomLabelEl.textContent = ZOOM_LEVELS[_zoomIdx].label;
+    }
+  }
+
+  /* ── Right-click range finder ────────────────────────────────────── */
+  function _onContextMenu(e) {
+    if (!_active) { return; }
+    e.preventDefault();
+
+    /* Fake range: use camera pitch angle to simulate distance */
+    var angleDeg = 0;
     if (_camera) {
-      _camera.fov = HIPFIRE_FOV;
-      _camera.updateProjectionMatrix();
+      angleDeg = Math.abs(_camera.rotation.x * 180 / Math.PI);
+    }
+    /* Formula: angle gives a proxy — roughly dist / 3 meters */
+    var pseudoDist = (angleDeg + 1) * 47 + Math.random() * 30;
+    _rangeMeters = Math.round(pseudoDist / 3 * 10) / 10;
+
+    if (_rangeTextEl) {
+      _rangeTextEl.textContent = 'RANGE: ' + _rangeMeters.toFixed(0) + 'm';
+    }
+  }
+
+  /* ── Toggle key handler (Ctrl+Shift+Z) ──────────────────────────── */
+  function _onKeyDown(e) {
+    /* Toggle scope: Ctrl+Shift+Z */
+    if (e.ctrlKey && e.shiftKey && (e.key === 'Z' || e.key === 'z')) {
+      e.preventDefault();
+      toggle();
+      return;
+    }
+
+    /* Breath hold: Shift (while scoped) */
+    if (_active && e.key === 'Shift' && !e.ctrlKey) {
+      if (!_breathKeyDown && _breathCooldown <= 0 && !_breathHolding) {
+        _breathKeyDown = true;
+        _breathHolding = true;
+        _breathHoldTimer = BREATH_HOLD_DURATION;
+      }
+    }
+  }
+
+  function _onKeyUp(e) {
+    if (e.key === 'Shift') {
+      _breathKeyDown = false;
+    }
+  }
+
+  /* ── Update sway ─────────────────────────────────────────────────── */
+  function _updateSway(dt) {
+    if (_breathHolding) {
+      /* Frozen — no sway */
+      _swayX = 0;
+      _swayY = 0;
+      return;
+    }
+
+    var t = _elapsedTime;
+    var twoPiFreq = 2 * Math.PI * SWAY_FREQ;
+    _swayX = SWAY_AMP * Math.sin(twoPiFreq * t);
+    _swayY = SWAY_AMP * Math.cos(twoPiFreq * t * 0.7 + 0.4);
+  }
+
+  /* ── Apply sway to camera ────────────────────────────────────────── */
+  function _applyCameraSwayDelta() {
+    if (!_camera) { return; }
+    /* Remove previous sway, apply new */
+    _camera.rotation.y -= _prevSwayX;
+    _camera.rotation.x -= _prevSwayY;
+    _camera.rotation.y += _swayX;
+    _camera.rotation.x += _swayY;
+    _prevSwayX = _swayX;
+    _prevSwayY = _swayY;
+  }
+
+  function _removeCameraSwayDelta() {
+    if (!_camera) { return; }
+    _camera.rotation.y -= _prevSwayX;
+    _camera.rotation.x -= _prevSwayY;
+    _prevSwayX = 0;
+    _prevSwayY = 0;
+  }
+
+  /* ── Update DOM ──────────────────────────────────────────────────── */
+  function _updateDOM() {
+    if (!_overlayEl) { return; }
+
+    /* Reticle sway (DOM offset in pixels equivalent) */
+    if (_reticleWrapEl) {
+      var pxX = _swayX * 3000;
+      var pxY = _swayY * 3000;
+      _reticleWrapEl.style.transform =
+        'translate(calc(-50% + ' + pxX.toFixed(2) + 'px), calc(-50% + ' + pxY.toFixed(2) + 'px))';
+    }
+
+    /* Wind arrow: show with offset proportional to wind speed */
+    if (_windArrowEl) {
+      _windArrowEl.textContent = WIND_ARROWS[_windDirIdx];
+      /* Drift offset: wind pushes reticle left/right/up/down */
+      var driftX = 0;
+      var driftY = 0;
+      /* Map direction index to unit vector */
+      var driftMap = [
+        [1, 0], [0.707, -0.707], [0, -1], [-0.707, -0.707],
+        [-1, 0], [-0.707, 0.707], [0, 1], [0.707, 0.707]
+      ];
+      var dv = driftMap[_windDirIdx];
+      driftX = dv[0] * _windSpeed * 3;
+      driftY = dv[1] * _windSpeed * 3;
+      _windArrowEl.style.transform =
+        'translate(calc(-50% + ' + driftX.toFixed(1) + 'px), calc(-50% + ' + driftY.toFixed(1) + 'px))';
+    }
+
+    /* Wind text in HUD */
+    if (_windTextEl) {
+      _windTextEl.textContent =
+        'WIND: ' + _windSpeed + 'mph ' + WIND_ARROWS[_windDirIdx] + ' ' + WIND_DIRS[_windDirIdx];
+    }
+
+    /* Breath hold text */
+    if (_breathHoldEl && _cooldownEl) {
+      if (_breathHolding) {
+        _breathHoldEl.style.display = 'block';
+        _cooldownEl.style.display = 'none';
+        _breathHoldEl.textContent =
+          'BREATH HOLD ' + _breathHoldTimer.toFixed(1) + 's';
+      } else if (_breathCooldown > 0) {
+        _breathHoldEl.style.display = 'none';
+        _cooldownEl.style.display = 'block';
+        _cooldownEl.textContent =
+          'COOLDOWN ' + _breathCooldown.toFixed(1) + 's';
+      } else {
+        _breathHoldEl.style.display = 'none';
+        _cooldownEl.style.display = 'none';
+      }
     }
   }
 
   /* ── Public: init ────────────────────────────────────────────────── */
   function init(scene, camera) {
+    _scene  = scene  || _scene;
     _camera = camera || _camera;
 
-    if (typeof document === 'undefined') return;
+    if (typeof document === 'undefined') { return; }
 
-    _overlayEl      = _buildOverlay();
-    _reticleWrapEl  = document.getElementById('snscReticleWrap');
-    _rangeTextEl    = document.getElementById('snscRangeText');
-    _windTextEl     = document.getElementById('snscWindText');
-    _dropDotEl      = document.getElementById('snscDropDot');
-    _dropLabelEl    = document.getElementById('snscDropLabel');
-    _windCorrEl     = document.getElementById('snscWindCorr');
+    _overlayEl     = _buildOverlay();
+    _reticleWrapEl = document.getElementById('snscReticleWrap');
+    _rangeTextEl   = document.getElementById('snscRangeText');
+    _windTextEl    = document.getElementById('snscWindText');
+    _windArrowEl   = document.getElementById('snscWindArrow');
+    _zoomLabelEl   = document.getElementById('snscZoomLabel');
+    _breathHoldEl  = document.getElementById('snscBreathHold');
+    _cooldownEl    = document.getElementById('snscCooldown');
+
+    /* Key bindings */
+    document.addEventListener('keydown', _onKeyDown);
+    document.addEventListener('keyup',   _onKeyUp);
+
+    /* Scroll wheel zoom */
+    document.addEventListener('wheel', _onWheel, { passive: false });
+
+    /* Right-click range finder */
+    document.addEventListener('contextmenu', _onContextMenu);
+
+    console.log('[SniperScope] initialized — Ctrl+Shift+Z to toggle');
+  }
+
+  /* ── Public: toggle ──────────────────────────────────────────────── */
+  function toggle() {
+    if (_active) {
+      _deactivate();
+    } else {
+      _activate();
+    }
+  }
+
+  /* ── Internal activate / deactivate ─────────────────────────────── */
+  function _activate() {
+    if (_active) { return; }
+    _active = true;
+    _zoomIdx = 0;
+    _elapsedTime = 0;
+    _swayX = 0; _swayY = 0;
+    _prevSwayX = 0; _prevSwayY = 0;
+    _breathHolding = false;
+    _breathHoldTimer = 0;
+    _breathCooldown = 0;
+    _breathKeyDown = false;
+    _hbReleaseTimer = 0;
 
     _initWind();
 
-    /* Keyboard listeners for breath control */
-    document.addEventListener('keydown', function (e) {
-      if (e.code === 'Space') {
-        _breathKeyDown = true;
-        window._breathControl = true;
-      }
-    });
-    document.addEventListener('keyup', function (e) {
-      if (e.code === 'Space') {
-        _breathKeyDown = false;
-        _breathHeldMs  = 0;
-        window._breathControl = false;
-      }
-    });
+    if (_overlayEl) { _overlayEl.style.display = 'block'; }
+    if (_zoomLabelEl) { _zoomLabelEl.textContent = ZOOM_LEVELS[_zoomIdx].label; }
 
-    console.log('[SniperScope] initialized');
-  }
+    /* Hide standard crosshair if present */
+    var stdCross = document.getElementById('crosshair') ||
+                   document.getElementById('adsReticle');
+    if (stdCross) { stdCross.style.display = 'none'; }
 
-  /* ── Public: activate ────────────────────────────────────────────── */
-  function activate(camera) {
-    if (_active) return;
-    if (camera) _camera = camera;
-
-    _active = true;
-    window._scopeFOV = SCOPE_FOV;
-
-    _applyScopeFOV();
-
-    if (_overlayEl) _overlayEl.style.display = 'block';
-    _hideCrosshair();
-
-    /* Reset breath timer */
-    _breathHeldMs = 0;
+    _applyZoomFOV();
+    _startHeartbeat();
 
     console.log('[SniperScope] activated');
   }
 
-  /* ── Public: deactivate ──────────────────────────────────────────── */
-  function deactivate() {
-    if (!_active) return;
+  function _deactivate() {
+    if (!_active) { return; }
+
+    _removeCameraSwayDelta();
     _active = false;
 
+    if (_overlayEl) { _overlayEl.style.display = 'none'; }
+
+    /* Restore crosshair */
+    var stdCross = document.getElementById('crosshair') ||
+                   document.getElementById('adsReticle');
+    if (stdCross) { stdCross.style.display = ''; }
+
     _restoreFOV();
+    _stopHeartbeat();
 
-    if (_overlayEl) _overlayEl.style.display = 'none';
-    _restoreCrosshair();
-
-    window._breathControl = false;
+    _breathHolding = false;
     _breathKeyDown = false;
-    _breathHeldMs  = 0;
+    _breathHoldTimer = 0;
+    _breathCooldown = 0;
 
     console.log('[SniperScope] deactivated');
   }
 
-  /* ── Public: update (call every frame with delta in seconds) ─────── */
-  function update(delta) {
-    if (!_active) return;
+  /* ── Public: update (dt in seconds) ─────────────────────────────── */
+  function update(dt) {
+    if (!_active) { return; }
 
-    /* Breath timer accumulation */
-    if (_breathKeyDown) {
-      _breathHeldMs += (delta || 0) * 1000;
+    var safeDt = (dt && dt > 0) ? Math.min(dt, 0.1) : 0.016;
+    _elapsedTime += safeDt;
+
+    /* ── Breath hold logic ── */
+    if (_breathHolding) {
+      _breathHoldTimer -= safeDt;
+      if (_breathHoldTimer <= 0 || !_breathKeyDown) {
+        /* Breath hold expired or released */
+        _breathHolding = false;
+        _breathHoldTimer = 0;
+        _breathCooldown = BREATH_HOLD_COOLDOWN;
+        _breathKeyDown = false;
+
+        /* Speed up heartbeat after hold ends */
+        _hbBpm = HB_BPM_RELEASE;
+        _hbReleaseTimer = HB_RELEASE_DECAY;
+        _stopHeartbeat();
+        _scheduleHeartbeat();
+      }
+    } else if (_breathCooldown > 0) {
+      _breathCooldown -= safeDt;
+      if (_breathCooldown < 0) { _breathCooldown = 0; }
     }
 
-    /* Wind cycle */
-    _tickWind();
+    /* ── Heartbeat BPM decay back to normal ── */
+    if (_hbReleaseTimer > 0) {
+      _hbReleaseTimer -= safeDt;
+      var t = Math.max(0, _hbReleaseTimer / HB_RELEASE_DECAY);
+      _hbBpm = HB_BPM_NORMAL + (HB_BPM_RELEASE - HB_BPM_NORMAL) * t;
+      if (_hbReleaseTimer <= 0) {
+        _hbBpm = HB_BPM_NORMAL;
+        _hbReleaseTimer = 0;
+      }
+    }
 
-    /* Range estimation */
-    _updateRange();
+    /* ── Sway ── */
+    _updateSway(safeDt);
+    _applyCameraSwayDelta();
 
-    /* Sway */
-    _calcSway();
-
-    /* Update DOM */
+    /* ── DOM ── */
     _updateDOM();
+  }
+
+  /* ── Public: reset ───────────────────────────────────────────────── */
+  function reset() {
+    _deactivate();
+    _elapsedTime    = 0;
+    _zoomIdx        = 0;
+    _windSpeed      = 0;
+    _windDirIdx     = 0;
+    _rangeMeters    = 0;
+    _hbBpm          = HB_BPM_NORMAL;
+    _hbReleaseTimer = 0;
+    _breathHolding  = false;
+    _breathKeyDown  = false;
+    _breathHoldTimer = 0;
+    _breathCooldown  = 0;
+    _swayX = 0; _swayY = 0;
+    _prevSwayX = 0; _prevSwayY = 0;
+    if (_camera) {
+      _camera.fov = HIPFIRE_FOV;
+      _camera.updateProjectionMatrix();
+    }
+    console.log('[SniperScope] reset');
   }
 
   /* ── Public: isActive ────────────────────────────────────────────── */
@@ -595,19 +822,13 @@ window.SniperScope = (function () {
     return _active;
   }
 
-  /* ── Public: isSniperWeapon (exposed for ADS integration) ───────── */
-  function isSniperWeapon() {
-    return _isSniperWeapon();
-  }
-
   /* ── Expose public API ───────────────────────────────────────────── */
   return {
-    init:           init,
-    activate:       activate,
-    deactivate:     deactivate,
-    update:         update,
-    isActive:       isActive,
-    isSniperWeapon: isSniperWeapon
+    init:     init,
+    update:   update,
+    toggle:   toggle,
+    reset:    reset,
+    isActive: isActive
   };
 
 }());
