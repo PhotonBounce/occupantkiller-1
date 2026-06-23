@@ -1,85 +1,306 @@
-// chemical-warfare.js — Chemical gas grenade / cloud tactical module
-// Key: Ctrl+C to throw chemical grenade (3 charges per level)
-// IIFE module — no let/const anywhere
+// chemical-warfare.js — CBRN / Chemical Warfare module for Three.js FPS
+// Features: enemy chem mortars, gas clouds, player gas canisters (Alt+G),
+//           contamination spread, decontamination, CBRN mask prompts,
+//           gas particle effects, enemy choking, cloud dissipation.
+// IIFE module — var only, no import/export.
 window.ChemicalWarfare = (function () {
   'use strict';
 
-  // ── Constants ─────────────────────────────────────────────────────────────
-  var MAX_ACTIVE       = 2;       // max simultaneous gas clouds
-  var CHARGES_PER_LEVEL = 3;      // grenade charges reset each level
-  var PARTICLE_COUNT   = 8;       // spheres per cloud
-  var PARTICLE_RADIUS  = 0.9;     // SphereGeometry radius
-  var GAS_COLOR        = 0x88FF00;// green-yellow
-  var GAS_OPACITY      = 0.3;
-  var EXPAND_RADIUS    = 5;       // final cloud radius in world units
-  var EXPAND_TIME      = 3;       // seconds to reach full radius
-  var PERSIST_TIME     = 20;      // seconds cloud persists at full size
-  var FADE_TIME        = 3;       // seconds to fade after persist
-  var TOTAL_LIFE       = EXPAND_TIME + PERSIST_TIME + FADE_TIME;
-  var THROW_DISTANCE   = 6;       // units ahead of player
-  var ENEMY_DAMAGE_PER_SEC = 3;   // damage/s to enemies
-  var ENEMY_SLOW_FACTOR    = 0.4; // fraction of normal speed
-  var PLAYER_DAMAGE_PER_SEC = 2;  // damage/s to unmasked player
-  var SCREEN_TINT_FILTER   = 'sepia(0.4) saturate(2) hue-rotate(40deg) brightness(0.85)';
-  var ARC_PEAK         = 3;       // units of arc height during throw
-  var GRENADE_TRAVEL_TIME = 0.6;  // seconds for grenade to travel
+  // ── Constants ────────────────────────────────────────────────────────────────
+  var GAS_COLOR_ENEMY     = 0xaaff00;  // yellow-green (enemy shells / enemy clouds)
+  var GAS_COLOR_PLAYER    = 0x44aaff;  // blue-tinted (player canisters)
+  var CLOUD_PARTICLE_COUNT = 10;       // spheres per cloud
+  var CLOUD_SPHERE_RADIUS  = 0.55;     // SphereGeometry radius for each puff
+  var CLOUD_INIT_RADIUS    = 3;        // starting radius (m)
+  var CLOUD_MAX_RADIUS     = 5;        // max radius after expansion
+  var CLOUD_EXPAND_RATE    = 0.02;     // radius grows 0.02/s
+  var CLOUD_DURATION       = 20;       // seconds at full opacity before fade
+  var CLOUD_FADE_RATE      = 0.04;     // opacity drop per second during fade
+  var CLOUD_INIT_OPACITY   = 0.45;
+  var WIND_SPEED           = 0.3;      // units/s drift
+  var PLAYER_DAMAGE_RATE   = 3;        // HP/s without mask
+  var PLAYER_CANISTER_COUNT = 4;       // player Alt+G grenades
+  var ENEMY_CLOUD_DPS      = 8;        // damage/s to enemies inside player cloud
+  var CONTAMINATION_DURATION = 5;      // seconds "CONTAMINATED" lingers after leaving
+  var CONTAMINATION_DPS    = 1;        // HP/s while contaminated
+  var MORTAR_SHELL_RADIUS  = 0.25;     // SphereGeometry for flying shell
+  var MORTAR_ARC_HEIGHT    = 12;       // peak arc height for enemy shells
+  var MORTAR_TRAVEL_TIME   = 2.8;      // seconds shell is in flight
+  var PARTICLE_COUNT_IN_CLOUD = 20;    // small spiral particles per cloud
+  var POINT_LIGHT_INTENSITY = 0.3;     // dim yellow glow inside cloud
+  var THROW_DISTANCE       = 7;        // units ahead of player
+  var THROW_ARC_HEIGHT     = 4;
+  var THROW_TRAVEL_TIME    = 0.7;      // seconds canister flight
 
-  // ── State ──────────────────────────────────────────────────────────────────
-  var _scene     = null;
-  var _camera    = null;
-  var _charges   = CHARGES_PER_LEVEL;
-  var _clouds    = [];
-  var _grenades  = [];   // in-flight grenade objects
-  var _keyBound  = false;
-  var _hudEl     = null;
-  var _tintActive = false;
-  var _audioCtx  = null;
-  var _hissNode  = null;
-  var _chokeNode = null;
-  var _chokeActive = false;
+  // ── State ────────────────────────────────────────────────────────────────────
+  var _scene    = null;
+  var _camera   = null;
+  var _clouds   = [];      // active gas cloud objects
+  var _shells   = [];      // enemy mortar shells in flight
+  var _canisters = [];     // player gas canisters in flight
+  var _playerCanisters = PLAYER_CANISTER_COUNT;
 
-  // Public readable zone array
-  window._gasZones = [];
+  // Wind — random direction chosen at init
+  var _windX = 0;
+  var _windZ = 0;
 
-  // ── Init ───────────────────────────────────────────────────────────────────
+  // Contamination state
+  var _contaminatedTimer = 0;   // countdown (seconds)
+  var _wasInGas = false;
+
+  // HUD elements
+  var _hudRoot       = null;  // container div
+  var _maskPromptEl  = null;
+  var _contamEl      = null;
+  var _vignetteEl    = null;
+  var _canisterHudEl = null;
+
+  // Vignette fade timer
+  var _vignetteTimeout = null;
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
   function init(scene, camera) {
-    _scene   = scene;
-    _camera  = camera;
-    _charges = CHARGES_PER_LEVEL;
-    _clouds  = [];
-    _grenades = [];
-    window._gasZones = [];
-    _tintActive = false;
-    _removeTint();
-    _ensureHUD();
-    _updateHUD();
-    _bindKey();
+    _scene  = scene;
+    _camera = camera;
+    _clouds = [];
+    _shells = [];
+    _canisters = [];
+    _playerCanisters = PLAYER_CANISTER_COUNT;
+    _contaminatedTimer = 0;
+    _wasInGas = false;
+    window._playerContaminated = false;
+
+    // Random wind direction, constant speed
+    var angle = Math.random() * Math.PI * 2;
+    _windX = Math.cos(angle) * WIND_SPEED;
+    _windZ = Math.sin(angle) * WIND_SPEED;
+
+    _buildHUD();
+    _bindKeys();
+    _updateCanisterHUD();
   }
 
-  // ── Key binding (Ctrl+C) ───────────────────────────────────────────────────
-  function _bindKey() {
-    if (_keyBound) return;
-    _keyBound = true;
+  // ── Key Binding (Alt+G) ───────────────────────────────────────────────────
+  var _keysBound = false;
+  function _bindKeys() {
+    if (_keysBound) return;
+    _keysBound = true;
     document.addEventListener('keydown', function (e) {
-      if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyC' || e.key === 'c' || e.key === 'C')) {
-        // Only intercept if not selecting text (no text selected)
-        if (window.getSelection && window.getSelection().toString().length > 0) return;
+      if (e.altKey && (e.code === 'KeyG' || e.key === 'g' || e.key === 'G')) {
         e.preventDefault();
-        deployGas();
+        throwCanister();
       }
     });
   }
 
-  // ── Deploy grenade ─────────────────────────────────────────────────────────
-  function deployGas() {
+  // ── HUD Build ─────────────────────────────────────────────────────────────
+  function _buildHUD() {
+    if (_hudRoot) return;
+
+    // Root container
+    _hudRoot = document.createElement('div');
+    _hudRoot.id = 'cbrn-hud-root';
+    _hudRoot.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9990;';
+    document.body.appendChild(_hudRoot);
+
+    // Green fog vignette overlay (screen-edge fog when in gas without mask)
+    _vignetteEl = document.createElement('div');
+    _vignetteEl.id = 'cbrn-vignette';
+    _vignetteEl.style.cssText = [
+      'position:absolute',
+      'inset:0',
+      'pointer-events:none',
+      'opacity:0',
+      'transition:opacity 0.3s',
+      'background:radial-gradient(ellipse at center, transparent 40%, rgba(80,200,40,0.55) 100%)',
+    ].join(';');
+    _hudRoot.appendChild(_vignetteEl);
+
+    // "EQUIP GAS MASK [M]" red warning
+    _maskPromptEl = document.createElement('div');
+    _maskPromptEl.id = 'cbrn-mask-prompt';
+    _maskPromptEl.textContent = 'EQUIP GAS MASK [M]';
+    _maskPromptEl.style.cssText = [
+      'position:absolute',
+      'top:22%',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'color:#ff2222',
+      'font-family:monospace',
+      'font-size:22px',
+      'font-weight:bold',
+      'letter-spacing:2px',
+      'text-shadow:0 0 10px #ff0000,0 0 3px #000',
+      'display:none',
+      'animation:cbrn-flash 0.6s infinite alternate',
+    ].join(';');
+    _hudRoot.appendChild(_maskPromptEl);
+
+    // "CONTAMINATED" orange text
+    _contamEl = document.createElement('div');
+    _contamEl.id = 'cbrn-contaminated';
+    _contamEl.textContent = 'CONTAMINATED';
+    _contamEl.style.cssText = [
+      'position:absolute',
+      'top:30%',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'color:#ff8800',
+      'font-family:monospace',
+      'font-size:18px',
+      'font-weight:bold',
+      'letter-spacing:3px',
+      'text-shadow:0 0 8px #ff6600,0 0 3px #000',
+      'display:none',
+    ].join(';');
+    _hudRoot.appendChild(_contamEl);
+
+    // Canister counter (bottom-left)
+    _canisterHudEl = document.createElement('div');
+    _canisterHudEl.id = 'cbrn-canister-hud';
+    _canisterHudEl.style.cssText = [
+      'position:absolute',
+      'bottom:60px',
+      'left:16px',
+      'color:#44aaff',
+      'font-family:monospace',
+      'font-size:14px',
+      'font-weight:bold',
+      'text-shadow:0 0 6px #0066aa,0 0 2px #000',
+      'letter-spacing:1px',
+    ].join(';');
+    _hudRoot.appendChild(_canisterHudEl);
+
+    // Inject keyframe animation for flash
+    if (!document.getElementById('cbrn-anim-style')) {
+      var style = document.createElement('style');
+      style.id = 'cbrn-anim-style';
+      style.textContent = '@keyframes cbrn-flash{from{opacity:1}to{opacity:0.15}}';
+      document.head.appendChild(style);
+    }
+  }
+
+  function _updateCanisterHUD() {
+    if (!_canisterHudEl) return;
+    _canisterHudEl.textContent = '[Alt+G] GAS CAN x' + _playerCanisters;
+  }
+
+  function _showVignette(visible) {
+    if (!_vignetteEl) return;
+    _vignetteEl.style.opacity = visible ? '1' : '0';
+  }
+
+  function _showMaskPrompt(visible) {
+    if (!_maskPromptEl) return;
+    _maskPromptEl.style.display = visible ? 'block' : 'none';
+  }
+
+  function _showContaminated(visible) {
+    if (!_contamEl) return;
+    _contamEl.style.display = visible ? 'block' : 'none';
+  }
+
+  // ── Build Gas Cloud ───────────────────────────────────────────────────────
+  function spawnGasCloud(pos, isPlayer) {
+    if (!_scene) return;
+
+    var color   = isPlayer ? GAS_COLOR_PLAYER : GAS_COLOR_ENEMY;
+    var opacity = CLOUD_INIT_OPACITY;
+
+    // 10 semi-transparent sphere meshes forming the cloud puff
+    var particles = [];
+    for (var i = 0; i < CLOUD_PARTICLE_COUNT; i++) {
+      var geo = new THREE.SphereGeometry(CLOUD_SPHERE_RADIUS, 7, 7);
+      var mat = new THREE.MeshBasicMaterial({
+        color:       color,
+        transparent: true,
+        opacity:     opacity,
+        depthWrite:  false,
+      });
+      var mesh = new THREE.Mesh(geo, mat);
+      // Distribute around circumference
+      var angle = (i / CLOUD_PARTICLE_COUNT) * Math.PI * 2;
+      var r = CLOUD_INIT_RADIUS * 0.6;
+      mesh.userData.angle  = angle;
+      mesh.userData.height = (Math.random() - 0.5) * 1.5;
+      mesh.position.set(
+        pos.x + Math.cos(angle) * r,
+        pos.y + mesh.userData.height,
+        pos.z + Math.sin(angle) * r
+      );
+      _scene.add(mesh);
+      particles.push(mesh);
+    }
+
+    // 20 small spiral particles
+    var spiralParticles = [];
+    for (var si = 0; si < PARTICLE_COUNT_IN_CLOUD; si++) {
+      var sgeo = new THREE.SphereGeometry(0.1, 4, 4);
+      var smat = new THREE.MeshBasicMaterial({
+        color:       color,
+        transparent: true,
+        opacity:     0.6,
+        depthWrite:  false,
+      });
+      var smesh = new THREE.Mesh(sgeo, smat);
+      smesh.userData.spiralAngle  = (si / PARTICLE_COUNT_IN_CLOUD) * Math.PI * 2;
+      smesh.userData.spiralHeight = (si / PARTICLE_COUNT_IN_CLOUD) * 2.5 - 1.25;
+      smesh.userData.spiralR      = 0.5 + Math.random() * 0.8;
+      smesh.position.copy(pos);
+      _scene.add(smesh);
+      spiralParticles.push(smesh);
+    }
+
+    // Dim point light inside cloud for glow effect
+    var light = new THREE.PointLight(0xddff44, POINT_LIGHT_INTENSITY, 6);
+    light.position.set(pos.x, pos.y + 1, pos.z);
+    _scene.add(light);
+
+    var cloud = {
+      pos:            new THREE.Vector3(pos.x, pos.y, pos.z),
+      isPlayer:       !!isPlayer,
+      radius:         CLOUD_INIT_RADIUS,
+      opacity:        opacity,
+      age:            0,             // total age (seconds)
+      fadeStarted:    false,
+      particles:      particles,
+      spiralParticles: spiralParticles,
+      light:          light,
+      spiralTime:     0,
+    };
+
+    _clouds.push(cloud);
+    return cloud;
+  }
+
+  // ── Enemy Mortar Shell ────────────────────────────────────────────────────
+  function _spawnMortarShell(startPos, targetPos) {
+    if (!_scene) return;
+    var geo = new THREE.SphereGeometry(MORTAR_SHELL_RADIUS, 6, 6);
+    var mat = new THREE.MeshBasicMaterial({ color: GAS_COLOR_ENEMY });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(startPos);
+    _scene.add(mesh);
+
+    _shells.push({
+      mesh:       mesh,
+      startPos:   startPos.clone(),
+      endPos:     targetPos.clone(),
+      age:        0,
+      travelTime: MORTAR_TRAVEL_TIME,
+    });
+  }
+
+  // ── Throw Player Gas Canister (Alt+G) ──────────────────────────────────
+  function throwCanister() {
     if (!_scene || !_camera) return;
-    if (_charges <= 0)             { _flashHUD('No charges!'); return; }
-    if (_clouds.length >= MAX_ACTIVE) { _flashHUD('Max gas clouds active!'); return; }
+    if (_playerCanisters <= 0) {
+      _flashMessage('No gas canisters!', '#44aaff');
+      return;
+    }
+    _playerCanisters--;
+    _updateCanisterHUD();
 
-    _charges--;
-    _updateHUD();
-
-    // Determine throw target: 6 units ahead of camera on XZ plane
     var dir = new THREE.Vector3();
     _camera.getWorldDirection(dir);
     dir.y = 0;
@@ -87,229 +308,28 @@ window.ChemicalWarfare = (function () {
     dir.normalize();
 
     var startPos = _camera.position.clone();
-    var endPos = new THREE.Vector3(
+    var endPos   = new THREE.Vector3(
       startPos.x + dir.x * THROW_DISTANCE,
-      0.05,
+      0.1,
       startPos.z + dir.z * THROW_DISTANCE
     );
 
-    // Build a small grenade mesh
-    var grenadeGeo = new THREE.SphereGeometry(0.12, 6, 6);
-    var grenadeMat = new THREE.MeshBasicMaterial({ color: 0x445500 });
-    var grenadeMesh = new THREE.Mesh(grenadeGeo, grenadeMat);
-    grenadeMesh.position.copy(startPos);
-    _scene.add(grenadeMesh);
+    var geo  = new THREE.SphereGeometry(0.14, 6, 6);
+    var mat  = new THREE.MeshBasicMaterial({ color: GAS_COLOR_PLAYER });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(startPos);
+    _scene.add(mesh);
 
-    var grenade = {
-      mesh:      grenadeMesh,
-      startPos:  startPos.clone(),
-      endPos:    endPos.clone(),
-      age:       0,
-      travelTime: GRENADE_TRAVEL_TIME
-    };
-    _grenades.push(grenade);
-
-    _playHissSound();
-  }
-
-  // ── Build a gas cloud at a position ───────────────────────────────────────
-  function _buildCloud(pos) {
-    var particles = [];
-    var geo = new THREE.SphereGeometry(PARTICLE_RADIUS, 6, 6);
-    var mat = new THREE.MeshBasicMaterial({
-      color:       GAS_COLOR,
-      transparent: true,
-      opacity:     GAS_OPACITY,
-      depthWrite:  false
+    _canisters.push({
+      mesh:       mesh,
+      startPos:   startPos.clone(),
+      endPos:     endPos.clone(),
+      age:        0,
+      travelTime: THROW_TRAVEL_TIME,
     });
-
-    for (var i = 0; i < PARTICLE_COUNT; i++) {
-      var mesh = new THREE.Mesh(geo, mat.clone());
-      // Fibonacci sphere distribution
-      var phi   = Math.acos(1 - (2 * (i + 0.5)) / PARTICLE_COUNT);
-      var theta = Math.PI * (1 + Math.sqrt(5)) * i;
-      var ox = Math.sin(phi) * Math.cos(theta);
-      var oy = Math.abs(Math.sin(phi) * Math.sin(theta));
-      var oz = Math.cos(phi);
-      mesh.userData.offset = { x: ox, y: oy, z: oz };
-      mesh.position.set(pos.x, pos.y, pos.z);
-      _scene.add(mesh);
-      particles.push(mesh);
-    }
-
-    return {
-      pos:           new THREE.Vector3(pos.x, pos.y, pos.z),
-      particles:     particles,
-      age:           0,
-      currentRadius: 0
-    };
   }
 
-  // ── Update (called every frame with delta in seconds) ──────────────────────
-  function update(delta) {
-    if (!delta || delta <= 0) delta = 0.016;
-
-    // Wind
-    var windX = (typeof window._windX === 'number') ? window._windX : 0;
-    var windZ = (typeof window._windZ === 'number') ? window._windZ : 0;
-
-    // ── Advance in-flight grenades ─────────────────────────────────────────
-    var aliveGrenades = [];
-    for (var gi = 0; gi < _grenades.length; gi++) {
-      var g = _grenades[gi];
-      g.age += delta;
-      var t = g.age / g.travelTime;
-      if (t >= 1) {
-        // Land: remove grenade mesh, spawn cloud
-        _scene.remove(g.mesh);
-        g.mesh.geometry.dispose();
-        g.mesh.material.dispose();
-        var cloud = _buildCloud(g.endPos);
-        _clouds.push(cloud);
-      } else {
-        // Arc interpolation
-        var ix = g.startPos.x + (g.endPos.x - g.startPos.x) * t;
-        var iz = g.startPos.z + (g.endPos.z - g.startPos.z) * t;
-        var iy = g.startPos.y + ARC_PEAK * 4 * t * (1 - t); // parabola
-        g.mesh.position.set(ix, iy, iz);
-        aliveGrenades.push(g);
-      }
-    }
-    _grenades = aliveGrenades;
-
-    // ── Update gas clouds ──────────────────────────────────────────────────
-    var newClouds = [];
-    window._gasZones = [];
-    var playerInGas = false;
-
-    for (var ci = 0; ci < _clouds.length; ci++) {
-      var cloud = _clouds[ci];
-      cloud.age += delta;
-
-      // Wind drift
-      cloud.pos.x += windX * delta;
-      cloud.pos.z += windZ * delta;
-
-      // Radius expansion
-      var radius;
-      if (cloud.age < EXPAND_TIME) {
-        radius = EXPAND_RADIUS * (cloud.age / EXPAND_TIME);
-      } else {
-        radius = EXPAND_RADIUS;
-      }
-      cloud.currentRadius = radius;
-
-      // Opacity: fade in, persist, fade out
-      var opacity;
-      if (cloud.age < EXPAND_TIME) {
-        opacity = GAS_OPACITY * (cloud.age / EXPAND_TIME);
-      } else if (cloud.age < EXPAND_TIME + PERSIST_TIME) {
-        opacity = GAS_OPACITY;
-      } else {
-        var fp = (cloud.age - EXPAND_TIME - PERSIST_TIME) / FADE_TIME;
-        opacity = GAS_OPACITY * (1 - fp);
-        if (opacity < 0) opacity = 0;
-      }
-
-      // Position particles
-      for (var pi = 0; pi < cloud.particles.length; pi++) {
-        var p = cloud.particles[pi];
-        var off = p.userData.offset;
-        p.position.set(
-          cloud.pos.x + off.x * radius,
-          cloud.pos.y + off.y * radius,
-          cloud.pos.z + off.z * radius
-        );
-        p.material.opacity = opacity;
-      }
-
-      // Publish zone
-      window._gasZones.push({
-        x:      cloud.pos.x,
-        z:      cloud.pos.z,
-        radius: cloud.currentRadius,
-        age:    cloud.age
-      });
-
-      // Check if player camera is inside this cloud
-      if (_camera) {
-        var dx = _camera.position.x - cloud.pos.x;
-        var dz = _camera.position.z - cloud.pos.z;
-        var distSq = dx * dx + dz * dz;
-        if (distSq < radius * radius) {
-          playerInGas = true;
-        }
-      }
-
-      // Damage / slow enemies inside cloud
-      _affectEnemies(cloud, delta);
-
-      // Keep cloud if still alive
-      if (cloud.age < TOTAL_LIFE) {
-        newClouds.push(cloud);
-      } else {
-        _destroyCloud(cloud);
-      }
-    }
-    _clouds = newClouds;
-
-    // ── Player gas effects ─────────────────────────────────────────────────
-    var hasMask = (window._hasGasMask === true);
-    if (playerInGas && !hasMask) {
-      // Apply damage to player
-      _damagePlayer(PLAYER_DAMAGE_PER_SEC * delta);
-      // Screen tint
-      _applyTint();
-      // Choking sound
-      _startChokeSound();
-    } else {
-      _removeTint();
-      _stopChokeSound();
-    }
-  }
-
-  // ── Affect enemies inside a cloud ─────────────────────────────────────────
-  function _affectEnemies(cloud, delta) {
-    var enemies = window._enemies || window._activeEnemies || [];
-    if (!Array.isArray(enemies)) return;
-    for (var ei = 0; ei < enemies.length; ei++) {
-      var enemy = enemies[ei];
-      if (!enemy) continue;
-      var ex = 0, ez = 0;
-      if (enemy.position) {
-        ex = enemy.position.x;
-        ez = enemy.position.z;
-      } else if (enemy.mesh && enemy.mesh.position) {
-        ex = enemy.mesh.position.x;
-        ez = enemy.mesh.position.z;
-      } else {
-        continue;
-      }
-      var ddx = ex - cloud.pos.x;
-      var ddz = ez - cloud.pos.z;
-      if (ddx * ddx + ddz * ddz < cloud.currentRadius * cloud.currentRadius) {
-        // Damage
-        if (typeof enemy.takeDamage === 'function') {
-          enemy.takeDamage(ENEMY_DAMAGE_PER_SEC * delta);
-        } else if (typeof enemy.health === 'number') {
-          enemy.health -= ENEMY_DAMAGE_PER_SEC * delta;
-        }
-        // Slow movement
-        if (typeof enemy.speed === 'number') {
-          enemy._chemSlowedSpeed = enemy._chemSlowedSpeed || enemy.speed;
-          enemy.speed = enemy._chemSlowedSpeed * ENEMY_SLOW_FACTOR;
-          enemy._chemSlowTimer = 0.5; // refresh slow duration
-        }
-        if (typeof enemy.moveSpeed === 'number') {
-          enemy._chemSlowedMoveSpeed = enemy._chemSlowedMoveSpeed || enemy.moveSpeed;
-          enemy.moveSpeed = enemy._chemSlowedMoveSpeed * ENEMY_SLOW_FACTOR;
-          enemy._chemSlowMoveTimer = 0.5;
-        }
-      }
-    }
-  }
-
-  // ── Damage player ──────────────────────────────────────────────────────────
+  // ── Damage Player ─────────────────────────────────────────────────────────
   function _damagePlayer(amount) {
     if (typeof window._playerHealth === 'number') {
       window._playerHealth = Math.max(0, window._playerHealth - amount);
@@ -318,200 +338,359 @@ window.ChemicalWarfare = (function () {
     }
   }
 
-  // ── Destroy a cloud (remove meshes) ───────────────────────────────────────
+  // ── Flash message helper ──────────────────────────────────────────────────
+  function _flashMessage(msg, color) {
+    if (!_canisterHudEl) return;
+    var prev = _canisterHudEl.textContent;
+    var prevColor = _canisterHudEl.style.color;
+    _canisterHudEl.textContent = msg;
+    _canisterHudEl.style.color = color || '#fff';
+    setTimeout(function () {
+      _canisterHudEl.textContent = prev;
+      _canisterHudEl.style.color = prevColor;
+    }, 1400);
+  }
+
+  // ── Update In-Flight Shells ───────────────────────────────────────────────
+  function _updateShells(dt) {
+    var alive = [];
+    for (var i = 0; i < _shells.length; i++) {
+      var s = _shells[i];
+      s.age += dt;
+      var t = s.age / s.travelTime;
+      if (t >= 1) {
+        _scene.remove(s.mesh);
+        s.mesh.geometry.dispose();
+        s.mesh.material.dispose();
+        // Impact: spawn enemy gas cloud
+        spawnGasCloud(s.endPos, false);
+      } else {
+        var ix = s.startPos.x + (s.endPos.x - s.startPos.x) * t;
+        var iz = s.startPos.z + (s.endPos.z - s.startPos.z) * t;
+        var iy = s.startPos.y + MORTAR_ARC_HEIGHT * 4 * t * (1 - t);
+        s.mesh.position.set(ix, iy, iz);
+        alive.push(s);
+      }
+    }
+    _shells = alive;
+  }
+
+  // ── Update In-Flight Canisters ────────────────────────────────────────────
+  function _updateCanisters(dt) {
+    var alive = [];
+    for (var i = 0; i < _canisters.length; i++) {
+      var c = _canisters[i];
+      c.age += dt;
+      var t = c.age / c.travelTime;
+      if (t >= 1) {
+        _scene.remove(c.mesh);
+        c.mesh.geometry.dispose();
+        c.mesh.material.dispose();
+        // Impact: spawn PLAYER gas cloud (blue, non-damaging to player, 8 dps enemies)
+        spawnGasCloud(c.endPos, true);
+      } else {
+        var ix = c.startPos.x + (c.endPos.x - c.startPos.x) * t;
+        var iz = c.startPos.z + (c.endPos.z - c.startPos.z) * t;
+        var iy = c.startPos.y + THROW_ARC_HEIGHT * 4 * t * (1 - t);
+        c.mesh.position.set(ix, iy, iz);
+        alive.push(c);
+      }
+    }
+    _canisters = alive;
+  }
+
+  // ── Update Clouds ──────────────────────────────────────────────────────────
+  function _updateClouds(dt) {
+    var newClouds = [];
+    var playerInGas    = false;
+    var playerUnmasked = false;
+
+    for (var ci = 0; ci < _clouds.length; ci++) {
+      var cloud = _clouds[ci];
+      cloud.age += dt;
+      cloud.spiralTime += dt;
+
+      // Contamination spread: radius grows up to max
+      if (cloud.radius < CLOUD_MAX_RADIUS) {
+        cloud.radius += CLOUD_EXPAND_RATE * dt;
+        if (cloud.radius > CLOUD_MAX_RADIUS) cloud.radius = CLOUD_MAX_RADIUS;
+      }
+
+      // Wind drift
+      cloud.pos.x += _windX * dt;
+      cloud.pos.z += _windZ * dt;
+
+      // Dissipation: start fading after CLOUD_DURATION seconds
+      if (cloud.age >= CLOUD_DURATION) {
+        cloud.opacity -= CLOUD_FADE_RATE * dt;
+        if (cloud.opacity < 0) cloud.opacity = 0;
+      }
+
+      // Fully gone?
+      if (cloud.opacity <= 0) {
+        _destroyCloud(cloud);
+        continue;
+      }
+
+      // Update 10 cloud puff meshes
+      for (var pi = 0; pi < cloud.particles.length; pi++) {
+        var p = cloud.particles[pi];
+        var ang = p.userData.angle + cloud.spiralTime * 0.15;
+        var r   = cloud.radius * 0.75;
+        p.position.set(
+          cloud.pos.x + Math.cos(ang) * r,
+          cloud.pos.y + p.userData.height,
+          cloud.pos.z + Math.sin(ang) * r
+        );
+        p.material.opacity = cloud.opacity;
+      }
+
+      // Update 20 spiral particles
+      for (var si = 0; si < cloud.spiralParticles.length; si++) {
+        var sp  = cloud.spiralParticles[si];
+        var sa  = sp.userData.spiralAngle + cloud.spiralTime * 0.9;
+        var sr  = sp.userData.spiralR * (cloud.radius / CLOUD_MAX_RADIUS);
+        sp.position.set(
+          cloud.pos.x + Math.cos(sa) * sr,
+          cloud.pos.y + sp.userData.spiralHeight,
+          cloud.pos.z + Math.sin(sa) * sr
+        );
+        sp.material.opacity = cloud.opacity * 0.7;
+      }
+
+      // Update point light position
+      cloud.light.position.set(cloud.pos.x, cloud.pos.y + 1, cloud.pos.z);
+      cloud.light.intensity = POINT_LIGHT_INTENSITY * (cloud.opacity / CLOUD_INIT_OPACITY);
+
+      // Check player inside cloud
+      if (_camera) {
+        var dx = _camera.position.x - cloud.pos.x;
+        var dz = _camera.position.z - cloud.pos.z;
+        if (dx * dx + dz * dz < cloud.radius * cloud.radius) {
+          playerInGas = true;
+          if (!cloud.isPlayer && !window._gasMaskEquipped) {
+            playerUnmasked = true;
+          }
+        }
+      }
+
+      // Affect enemies
+      _affectEnemies(cloud, dt);
+
+      newClouds.push(cloud);
+    }
+
+    _clouds = newClouds;
+    return { playerInGas: playerInGas, playerUnmasked: playerUnmasked };
+  }
+
+  // ── Affect Enemies in Cloud ───────────────────────────────────────────────
+  function _affectEnemies(cloud, dt) {
+    var enemies = window._enemies || window._activeEnemies || [];
+    if (!Array.isArray(enemies)) return;
+
+    var dps = cloud.isPlayer ? ENEMY_CLOUD_DPS : 0;  // player clouds damage enemies
+
+    for (var ei = 0; ei < enemies.length; ei++) {
+      var e = enemies[ei];
+      if (!e) continue;
+
+      var ex = 0, ez = 0;
+      if (e.mesh && e.mesh.position) {
+        ex = e.mesh.position.x;
+        ez = e.mesh.position.z;
+      } else if (e.position) {
+        ex = e.position.x;
+        ez = e.position.z;
+      } else {
+        continue;
+      }
+
+      var dx = ex - cloud.pos.x;
+      var dz = ez - cloud.pos.z;
+      if (dx * dx + dz * dz < cloud.radius * cloud.radius) {
+        // Enemy is inside cloud
+        e.choked = true;
+        if (typeof e.chokeTimer !== 'number' || e.chokeTimer < 3) {
+          e.chokeTimer = 3;
+        }
+
+        // Coughing animation: oscillate Y position
+        if (e.mesh && e.mesh.position) {
+          e.mesh.position.y += Math.sin(Date.now() * 0.015) * 0.008;
+        }
+
+        // Apply damage from player canisters
+        if (dps > 0) {
+          if (typeof e.takeDamage === 'function') {
+            e.takeDamage(dps * dt);
+          } else if (typeof e.health === 'number') {
+            e.health -= dps * dt;
+          }
+        }
+
+        // Enemy also takes damage from enemy clouds (enemy-on-enemy not applicable;
+        // non-player clouds affect player only, but we can skip enemies for enemy clouds)
+      } else {
+        // Outside cloud — don't reset chokeTimer here (handled by enemy update)
+      }
+    }
+  }
+
+  // ── Destroy Cloud ─────────────────────────────────────────────────────────
   function _destroyCloud(cloud) {
-    for (var i = 0; i < cloud.particles.length; i++) {
-      var p = cloud.particles[i];
-      if (_scene) _scene.remove(p);
+    if (!_scene) return;
+    for (var pi = 0; pi < cloud.particles.length; pi++) {
+      var p = cloud.particles[pi];
+      _scene.remove(p);
       p.geometry.dispose();
       p.material.dispose();
     }
+    for (var si = 0; si < cloud.spiralParticles.length; si++) {
+      var sp = cloud.spiralParticles[si];
+      _scene.remove(sp);
+      sp.geometry.dispose();
+      sp.material.dispose();
+    }
+    _scene.remove(cloud.light);
     cloud.particles = [];
+    cloud.spiralParticles = [];
   }
 
-  // ── Screen tint ────────────────────────────────────────────────────────────
-  function _applyTint() {
-    if (_tintActive) return;
-    _tintActive = true;
-    var canvas = document.getElementById('c') ||
-                 document.querySelector('canvas');
-    if (canvas) canvas.style.filter = SCREEN_TINT_FILTER;
-  }
+  // ── Main Update (called every frame) ──────────────────────────────────────
+  function update(delta) {
+    if (!delta || delta <= 0) delta = 0.016;
+    if (!_scene) return;
 
-  function _removeTint() {
-    if (!_tintActive) return;
-    _tintActive = false;
-    var canvas = document.getElementById('c') ||
-                 document.querySelector('canvas');
-    if (canvas) canvas.style.filter = '';
-  }
+    _updateShells(delta);
+    _updateCanisters(delta);
 
-  // ── Audio ──────────────────────────────────────────────────────────────────
-  function _getAudioCtx() {
-    if (_audioCtx) return _audioCtx;
-    try {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) _audioCtx = new AC();
-    } catch (e) { /* no audio */ }
-    return _audioCtx;
-  }
+    var result = _updateClouds(delta);
+    var playerInGas    = result.playerInGas;
+    var playerUnmasked = result.playerUnmasked;
 
-  function _playHissSound() {
-    var ctx = _getAudioCtx();
-    if (!ctx) return;
-    try {
-      // White noise burst shaped like a hiss
-      var bufSize = ctx.sampleRate * 0.8;
-      var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-      var data = buf.getChannelData(0);
-      for (var i = 0; i < bufSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+    var hasMask = !!window._gasMaskEquipped;
+
+    // ── Player gas exposure ─────────────────────────────────────────────────
+    if (playerInGas) {
+      if (!hasMask) {
+        // Damage
+        _damagePlayer(PLAYER_DAMAGE_RATE * delta);
+        // Show green vignette on screen edges
+        _showVignette(true);
+        // Flash "EQUIP GAS MASK [M]"
+        _showMaskPrompt(true);
+      } else {
+        _showVignette(false);
+        _showMaskPrompt(false);
       }
-      var src = ctx.createBufferSource();
-      src.buffer = buf;
+      _wasInGas = true;
+      _contaminatedTimer = 0;    // reset while still inside
+      window._playerContaminated = false;
+    } else {
+      _showVignette(false);
+      _showMaskPrompt(false);
 
-      // High-pass filter to make it hiss-like
-      var hpf = ctx.createBiquadFilter();
-      hpf.type = 'highpass';
-      hpf.frequency.value = 3000;
-
-      var gainNode = ctx.createGain();
-      gainNode.gain.value = 0.4;
-
-      src.connect(hpf);
-      hpf.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      src.start();
-    } catch (e) { /* ignore */ }
-  }
-
-  function _startChokeSound() {
-    if (_chokeActive) return;
-    _chokeActive = true;
-    var ctx = _getAudioCtx();
-    if (!ctx) return;
-    try {
-      // Periodic choking: low-freq noise gated by an LFO
-      var bufSize = ctx.sampleRate * 2;
-      var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-      var data = buf.getChannelData(0);
-      for (var i = 0; i < bufSize; i++) {
-        data[i] = Math.random() * 2 - 1;
-      }
-      _chokeNode = ctx.createBufferSource();
-      _chokeNode.buffer = buf;
-      _chokeNode.loop = true;
-
-      var lpf = ctx.createBiquadFilter();
-      lpf.type = 'lowpass';
-      lpf.frequency.value = 600;
-
-      var lfo = ctx.createOscillator();
-      lfo.frequency.value = 1.5; // 1.5 Hz gating = choking rhythm
-      var lfoGain = ctx.createGain();
-      lfoGain.gain.value = 0.15;
-      lfo.connect(lfoGain);
-
-      var gainNode = ctx.createGain();
-      gainNode.gain.value = 0.2;
-      lfoGain.connect(gainNode.gain);
-
-      _chokeNode.connect(lpf);
-      lpf.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      _chokeNode.start();
-      lfo.start();
-
-      _hissNode = { chokeNode: _chokeNode, lfo: lfo, gainNode: gainNode };
-    } catch (e) { _chokeActive = false; }
-  }
-
-  function _stopChokeSound() {
-    if (!_chokeActive) return;
-    _chokeActive = false;
-    try {
-      if (_hissNode) {
-        if (_hissNode.chokeNode) _hissNode.chokeNode.stop();
-        if (_hissNode.lfo) _hissNode.lfo.stop();
-        _hissNode = null;
-      }
-      if (_chokeNode) {
-        _chokeNode.stop();
-        _chokeNode = null;
-      }
-    } catch (e) { /* already stopped */ }
-  }
-
-  // ── HUD ────────────────────────────────────────────────────────────────────
-  function _ensureHUD() {
-    if (_hudEl) return;
-    _hudEl = document.createElement('div');
-    _hudEl.id = 'chem-warfare-hud';
-    _hudEl.style.cssText = [
-      'position:fixed',
-      'bottom:16px',
-      'right:16px',
-      'color:#88FF00',
-      'font-family:monospace',
-      'font-size:15px',
-      'font-weight:bold',
-      'text-shadow:0 0 6px #44aa00,0 0 2px #000',
-      'pointer-events:none',
-      'z-index:9999',
-      'user-select:none',
-      'letter-spacing:1px'
-    ].join(';');
-    document.body.appendChild(_hudEl);
-  }
-
-  function _updateHUD() {
-    if (!_hudEl) _ensureHUD();
-    _hudEl.textContent = '☣ GAS \xD7' + _charges;
-  }
-
-  function _flashHUD(msg) {
-    if (!_hudEl) _ensureHUD();
-    var prev = _hudEl.textContent;
-    _hudEl.textContent = msg;
-    _hudEl.style.color = '#ffee44';
-    setTimeout(function () {
-      _hudEl.textContent = prev;
-      _hudEl.style.color = '#88FF00';
-    }, 1200);
-  }
-
-  // ── Reset (called between levels) ─────────────────────────────────────────
-  function reset() {
-    // Remove all in-flight grenades
-    for (var gi = 0; gi < _grenades.length; gi++) {
-      if (_grenades[gi].mesh && _scene) {
-        _scene.remove(_grenades[gi].mesh);
-        _grenades[gi].mesh.geometry.dispose();
-        _grenades[gi].mesh.material.dispose();
+      // Just left the cloud
+      if (_wasInGas) {
+        _wasInGas = false;
+        // Start contamination countdown
+        _contaminatedTimer = CONTAMINATION_DURATION;
+        window._playerContaminated = true;
       }
     }
-    _grenades = [];
 
-    // Remove all clouds
-    for (var ci = 0; ci < _clouds.length; ci++) {
-      _destroyCloud(_clouds[ci]);
+    // ── Contamination lingering ──────────────────────────────────────────────
+    if (_contaminatedTimer > 0) {
+      _contaminatedTimer -= delta;
+      window._playerContaminated = true;
+      _showContaminated(true);
+      // 1 HP/s while contaminated
+      _damagePlayer(CONTAMINATION_DPS * delta);
+      if (_contaminatedTimer <= 0) {
+        _contaminatedTimer = 0;
+        window._playerContaminated = false;
+        _showContaminated(false);
+      }
+    } else if (!playerInGas) {
+      _showContaminated(false);
+    }
+
+    // ── Choke timer tick-down for enemies ──────────────────────────────────
+    var enemies = window._enemies || window._activeEnemies || [];
+    if (Array.isArray(enemies)) {
+      for (var ei = 0; ei < enemies.length; ei++) {
+        var e = enemies[ei];
+        if (!e) continue;
+        if (e.choked && typeof e.chokeTimer === 'number') {
+          e.chokeTimer -= delta;
+          if (e.chokeTimer <= 0) {
+            e.choked = false;
+            e.chokeTimer = 0;
+          }
+        }
+      }
+    }
+  }
+
+  // ── Public: trigger enemy mortar chem shell ───────────────────────────────
+  // Call this from enemy-mortar-team.js or game manager
+  function fireEnemyMortarShell(fromPos, targetPos) {
+    _spawnMortarShell(fromPos, targetPos);
+  }
+
+  // ── Reset ────────────────────────────────────────────────────────────────
+  function reset() {
+    // Remove shells
+    for (var si = 0; si < _shells.length; si++) {
+      if (_shells[si].mesh && _scene) {
+        _scene.remove(_shells[si].mesh);
+        _shells[si].mesh.geometry.dispose();
+        _shells[si].mesh.material.dispose();
+      }
+    }
+    _shells = [];
+
+    // Remove canisters
+    for (var ci = 0; ci < _canisters.length; ci++) {
+      if (_canisters[ci].mesh && _scene) {
+        _scene.remove(_canisters[ci].mesh);
+        _canisters[ci].mesh.geometry.dispose();
+        _canisters[ci].mesh.material.dispose();
+      }
+    }
+    _canisters = [];
+
+    // Destroy all clouds
+    for (var ki = 0; ki < _clouds.length; ki++) {
+      _destroyCloud(_clouds[ki]);
     }
     _clouds = [];
 
-    window._gasZones = [];
-    _charges = CHARGES_PER_LEVEL;
-    _tintActive = false;
-    _removeTint();
-    _stopChokeSound();
-    _updateHUD();
+    _playerCanisters = PLAYER_CANISTER_COUNT;
+    _contaminatedTimer = 0;
+    _wasInGas = false;
+    window._playerContaminated = false;
+
+    // Re-randomise wind
+    var angle = Math.random() * Math.PI * 2;
+    _windX = Math.cos(angle) * WIND_SPEED;
+    _windZ = Math.sin(angle) * WIND_SPEED;
+
+    _showVignette(false);
+    _showMaskPrompt(false);
+    _showContaminated(false);
+    _updateCanisterHUD();
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
   return {
-    init:      init,
-    update:    update,
-    deployGas: deployGas,
-    reset:     reset
+    init:                 init,
+    update:               update,
+    spawnGasCloud:        spawnGasCloud,
+    throwCanister:        throwCanister,
+    fireEnemyMortarShell: fireEnemyMortarShell,
+    reset:                reset,
   };
 
 })();
