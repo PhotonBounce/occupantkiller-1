@@ -1,1006 +1,883 @@
-/**
- * fortification-builder.js — Player-built defensive fortifications
- * Toggle build mode with B key.
- * IIFE pattern, all var, no import/export.
- *
- * Structures (cycle with scroll or 1-5 keys):
- *   1 — SANDBAG WALL    : BoxGeometry 2×1×0.5, tan, 200 HP, blocks bullets
- *   2 — BARBED WIRE     : 3 flat boxes in row, silver, slows enemies 60%
- *   3 — WATCH TOWER     : 2 stacked boxes, sniper platform
- *   4 — BUNKER          : U-shape of 3 boxes, 400 HP, player can crouch inside
- *   5 — MG NEST         : sandbag half-circle + auto-targeting gun, 15 dmg, 300 RPM
- *
- * Resources: start 50 materials, pickups spawn randomly as grey boxes.
- * Max 8 simultaneous structures.
- * Each structure has HP bar. Enemies damage on contact (20 dmg/s).
- * Destroyed: 6 debris particles, scale.y collapse over 0.5s.
- */
+/* ───────────────────────────────────────────────────────────────────────────
+   FORTIFICATION BUILDER — real-time defensive structure placement & upgrade
+   Press B to toggle build mode. Cycle structures with 1-6 keys or scroll wheel.
+   Left-click places, right-click upgrades placed structures.
+   ─────────────────────────────────────────────────────────────────────────── */
+
 window.FortificationBuilder = (function () {
   'use strict';
 
-  /* ── Constants ────────────────────────────────────────────────────── */
-  var MAX_STRUCTURES = 8;
-  var PICKUP_INTERVAL = 30; // seconds between material pickups spawning
-  var PICKUP_VALUE    = 10; // materials per pickup
-  var PICKUP_RANGE    = 2;  // distance to collect pickup
-  var ENEMY_DAMAGE_PS = 20; // damage per second from enemy contact
-  var MG_RANGE        = 20; // metres MG nest auto-targets
-  var MG_DAMAGE       = 15;
-  var MG_RPM          = 300;
-  var MG_FIRE_INTERVAL = 60 / MG_RPM; // seconds between shots
-  var COLLAPSE_TIME   = 0.5; // seconds for destroy animation
-  var DEBRIS_COUNT    = 6;
-  var GHOST_OPACITY   = 0.5;
-  var PLACEMENT_DIST  = 5;   // how far in front of camera to project ghost
-
-  var STRUCTURE_DEFS = [
-    null, // index 0 unused — 1-based
+  /* ── Structure Definitions ─────────────────────────────────────────────── */
+  var STRUCTURE_TYPES = [
     {
       id: 'SANDBAG_WALL',
-      label: 'SANDBAG WALL',
-      cost: 5,
-      hp: 200,
-      color: 0xC8A87A,    // tan
-      build: buildSandbagWall
-    },
-    {
-      id: 'BARBED_WIRE',
-      label: 'BARBED WIRE',
-      cost: 3,
-      hp: 80,
-      color: 0xAAAAAA,    // silver
-      build: buildBarbedWire
+      label: 'Sandbag Wall',
+      cost: 10,
+      hp: 150,
+      color: 0xC2B280,
+      w: 3, h: 1, d: 1,
+      blocksBullets: true,
+      blocksMovement: true,
+      slowEnemy: 0,
+      desc: 'Blocks movement + bullets'
     },
     {
       id: 'WATCH_TOWER',
-      label: 'WATCH TOWER',
-      cost: 12,
-      hp: 250,
-      color: 0x8B7355,    // dark wood
-      build: buildWatchTower
+      label: 'Watch Tower',
+      cost: 25,
+      hp: 200,
+      color: 0x8B4513,
+      w: 2, h: 5, d: 2,
+      blocksBullets: false,
+      blocksMovement: false,
+      climbable: true,
+      desc: 'Climbable tower (E), elevation advantage'
     },
     {
-      id: 'BUNKER',
-      label: 'BUNKER',
-      cost: 20,
-      hp: 400,
-      color: 0x6E7059,    // olive grey
-      build: buildBunker
+      id: 'WIRE_OBSTACLE',
+      label: 'Wire Obstacle',
+      cost: 5,
+      hp: 60,
+      color: 0x555555,
+      w: 4, h: 0.3, d: 0.3,
+      blocksBullets: false,
+      blocksMovement: false,
+      slowEnemy: 0.7,
+      desc: 'Slows enemies 70%, not bulletproof'
     },
     {
       id: 'MG_NEST',
-      label: 'MG NEST',
-      cost: 25,
-      hp: 300,
-      color: 0xC8A060,    // sandbag
-      build: buildMgNest
+      label: 'MG Nest',
+      cost: 30,
+      hp: 180,
+      color: 0x4A3728,
+      w: 2, h: 1, d: 1,
+      blocksBullets: true,
+      blocksMovement: true,
+      autoFire: true,
+      autoFireRate: 0.5,
+      autoFireDmg: 10,
+      autoFireRange: 15,
+      desc: 'Auto-fires at nearest enemy every 0.5s (10 dmg, 15 range)'
+    },
+    {
+      id: 'TANK_TRAP',
+      label: 'Tank Trap',
+      cost: 15,
+      hp: 250,
+      color: 0x888888,
+      w: 2, h: 1.5, d: 2,
+      blocksBullets: false,
+      blocksMovement: true,
+      blocksVehicles: true,
+      desc: 'Stops vehicles, blocks infantry'
+    },
+    {
+      id: 'OBS_POST',
+      label: 'Observation Post',
+      cost: 20,
+      hp: 120,
+      color: 0x6B8E5A,
+      w: 1, h: 3, d: 1,
+      blocksBullets: false,
+      blocksMovement: false,
+      mountable: true,
+      detectionBonus: 0.30,
+      desc: 'Mount (E), binocular zoom (Z), +30% detection range'
     }
   ];
 
-  /* ── Private state ───────────────────────────────────────────────── */
-  var _scene        = null;
-  var _camera       = null;
-  var _controls     = null; // PointerLockControls reference (optional)
+  /* ── Private State ─────────────────────────────────────────────────────── */
+  var _scene          = null;
+  var _camera         = null;
+  var _enemies        = null;
 
-  var _active       = false;  // build mode on/off
-  var _selectedIdx  = 1;      // current structure type (1-5)
-  var _materials    = 50;     // player's material count
-  var _structures   = [];     // placed structure objects
-  var _pickups      = [];     // material pickup objects
-  var _ghost        = null;   // preview mesh
-  var _ghostValid   = false;
+  var _buildMode      = false;
+  var _selectedIndex  = 0;
+  var _buildPoints    = 100;
+  var _structures     = [];
+  var _maxStructures  = 12;
 
-  var _hudEl        = null;   // build mode HUD DOM element
-  var _matEl        = null;   // material counter DOM element
-  var _warnEl       = null;   // MAX FORTIFICATIONS warning
+  var _ghost          = null;
+  var _ghostMats      = [];
+  var _ghostValid     = false;
 
-  var _mousePos     = { x: 0, y: 0 };  // normalised NDC
-  var _groundPlane  = null;   // THREE.Plane for raycasting onto y=0
+  var _raycaster      = null;
+  var _mouse          = null;
+  var _groundPlane    = null;
 
-  var _keyHandler   = null;
-  var _mouseHandler = null;
-  var _clickHandler = null;
-  var _wheelHandler = null;
+  var _hudEl          = null;
+  var _upgradeMenuEl  = null;
+  var _upgradeTarget  = null;
 
-  var _pickupTimer  = 0;
-  var _clock        = null;
+  var _repairing      = null;
+  var _repairTimer    = 0;
+  var _repairDuration = 2.0;
 
-  /* ── Geometry builders ───────────────────────────────────────────── */
+  var _mgTimers       = {};
+  var _idCounter      = 0;
 
-  function buildSandbagWall(color) {
-    var root = new THREE.Group();
-    var geo  = new THREE.BoxGeometry(2, 1, 0.5);
-    var mat  = new THREE.MeshLambertMaterial({ color: color });
-    var mesh = new THREE.Mesh(geo, mat);
-    mesh.position.y = 0.5;
-    root.add(mesh);
-    root.userData.colliderSize = { x: 2, y: 1, z: 0.5 };
-    return root;
+  var _onKeyDown      = null;
+  var _onWheel        = null;
+  var _onClick        = null;
+  var _onContextMenu  = null;
+
+  /* ════════════════════════════════════════════════════════════════════════
+     HELPERS
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function _makeMat(color, opacity, transparent) {
+    return new THREE.MeshLambertMaterial({
+      color: color,
+      opacity: opacity !== undefined ? opacity : 1.0,
+      transparent: transparent !== undefined ? transparent : false
+    });
   }
 
-  function buildBarbedWire(color) {
-    var root = new THREE.Group();
-    var mat  = new THREE.MeshLambertMaterial({ color: color });
-    for (var i = 0; i < 3; i++) {
-      var geo  = new THREE.BoxGeometry(0.8, 0.1, 0.3);
-      var mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set((i - 1) * 1.0, 0.05, 0);
-      root.add(mesh);
+  function _makeBox(w, h, d, mat) {
+    var geo = new THREE.BoxGeometry(w, h, d);
+    return new THREE.Mesh(geo, mat);
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     MESH FACTORY — builds a Group for any structure type
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function _buildStructureMesh(type, opacity, transparent) {
+    var group = new THREE.Group();
+    var mat, mesh, mat2, mesh2, i, rung;
+
+    if (type.id === 'SANDBAG_WALL') {
+      mat = _makeMat(type.color, opacity, transparent);
+      mesh = _makeBox(type.w, type.h, type.d, mat);
+      mesh.position.y = type.h / 2;
+      group.add(mesh);
+      if (transparent) { _ghostMats.push(mat); }
+
+    } else if (type.id === 'WATCH_TOWER') {
+      mat = _makeMat(type.color, opacity, transparent);
+      mesh = _makeBox(type.w, type.h, type.d, mat);
+      mesh.position.y = type.h / 2;
+      group.add(mesh);
+      if (transparent) { _ghostMats.push(mat); }
+      // Ladder rungs
+      mat2 = _makeMat(0x5C3317, opacity, transparent);
+      if (transparent) { _ghostMats.push(mat2); }
+      for (i = 0; i < 5; i++) {
+        rung = _makeBox(0.08, 0.06, 0.4, mat2);
+        rung.position.set(-type.w / 2 + 0.04, 0.5 + i * 0.85, 0);
+        group.add(rung);
+      }
+
+    } else if (type.id === 'WIRE_OBSTACLE') {
+      mat = _makeMat(type.color, opacity, transparent);
+      mesh = _makeBox(type.w, type.h, type.d, mat);
+      mesh.position.y = type.h / 2;
+      group.add(mesh);
+      if (transparent) { _ghostMats.push(mat); }
+      // Second wire strand
+      mat2 = _makeMat(0x333333, opacity, transparent);
+      if (transparent) { _ghostMats.push(mat2); }
+      mesh2 = _makeBox(type.w, 0.04, 0.04, mat2);
+      mesh2.position.y = type.h + 0.08;
+      group.add(mesh2);
+
+    } else if (type.id === 'MG_NEST') {
+      mat = _makeMat(type.color, opacity, transparent);
+      mesh = _makeBox(type.w, type.h, type.d, mat);
+      mesh.position.y = type.h / 2 - 0.2;
+      group.add(mesh);
+      if (transparent) { _ghostMats.push(mat); }
+      // Horizontal MG barrel
+      mat2 = _makeMat(0x222222, opacity, transparent);
+      if (transparent) { _ghostMats.push(mat2); }
+      var barrelGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.2, 8);
+      var barrel = new THREE.Mesh(barrelGeo, mat2);
+      barrel.rotation.z = Math.PI / 2;
+      barrel.position.set(type.w / 2 + 0.3, type.h / 2, 0);
+      group.add(barrel);
+
+    } else if (type.id === 'TANK_TRAP') {
+      mat = _makeMat(type.color, opacity, transparent);
+      if (transparent) { _ghostMats.push(mat); }
+      var boxA = _makeBox(type.w, type.h, 0.4, mat);
+      boxA.position.y = type.h / 2;
+      group.add(boxA);
+      var boxB = _makeBox(0.4, type.h, type.d, mat);
+      boxB.position.y = type.h / 2;
+      group.add(boxB);
+      mat2 = _makeMat(0x777777, opacity, transparent);
+      if (transparent) { _ghostMats.push(mat2); }
+      var crossA = _makeBox(type.w * 0.9, 0.3, 0.3, mat2);
+      crossA.rotation.y = Math.PI / 4;
+      crossA.position.y = type.h * 0.6;
+      group.add(crossA);
+      var crossB = _makeBox(type.w * 0.9, 0.3, 0.3, mat2);
+      crossB.rotation.y = -Math.PI / 4;
+      crossB.position.y = type.h * 0.6;
+      group.add(crossB);
+
+    } else if (type.id === 'OBS_POST') {
+      mat = _makeMat(type.color, opacity, transparent);
+      mesh = _makeBox(type.w, type.h, type.d, mat);
+      mesh.position.y = type.h / 2;
+      group.add(mesh);
+      if (transparent) { _ghostMats.push(mat); }
+      mat2 = _makeMat(0x4A6640, opacity, transparent);
+      if (transparent) { _ghostMats.push(mat2); }
+      var platform = _makeBox(type.w + 0.4, 0.1, type.d + 0.4, mat2);
+      platform.position.y = type.h + 0.05;
+      group.add(platform);
     }
-    root.userData.colliderSize = { x: 3, y: 0.1, z: 0.3 };
-    root.userData.isBarbedWire = true;
-    return root;
+
+    return group;
   }
 
-  function buildWatchTower(color) {
-    var root = new THREE.Group();
-    var mat  = new THREE.MeshLambertMaterial({ color: color });
-    // Base pillar
-    var baseGeo  = new THREE.BoxGeometry(1, 3, 1);
-    var base     = new THREE.Mesh(baseGeo, mat);
-    base.position.y = 1.5;
-    root.add(base);
-    // Top platform
-    var topGeo   = new THREE.BoxGeometry(1, 1, 1);
-    var top      = new THREE.Mesh(topGeo, mat);
-    top.position.y = 3.5;
-    root.add(top);
-    root.userData.colliderSize = { x: 1, y: 4, z: 1 };
-    root.userData.isWatchTower = true;
-    return root;
+  /* ════════════════════════════════════════════════════════════════════════
+     GHOST PREVIEW
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function _createGhost() {
+    _destroyGhost();
+    _ghostMats = [];
+    var type = STRUCTURE_TYPES[_selectedIndex];
+    _ghost = _buildStructureMesh(type, 0.4, true);
+    _scene.add(_ghost);
   }
 
-  function buildBunker(color) {
-    var root = new THREE.Group();
-    var mat  = new THREE.MeshLambertMaterial({ color: color });
-    // Back wall
-    var backGeo  = new THREE.BoxGeometry(3, 1.5, 0.5);
-    var back     = new THREE.Mesh(backGeo, mat);
-    back.position.set(0, 0.75, -1.25);
-    root.add(back);
-    // Left wall
-    var leftGeo  = new THREE.BoxGeometry(0.5, 1.5, 2.5);
-    var left     = new THREE.Mesh(leftGeo, mat);
-    left.position.set(-1.5, 0.75, 0);
-    root.add(left);
-    // Right wall
-    var rightGeo = new THREE.BoxGeometry(0.5, 1.5, 2.5);
-    var right    = new THREE.Mesh(rightGeo, mat);
-    right.position.set(1.5, 0.75, 0);
-    root.add(right);
-    root.userData.colliderSize = { x: 3.5, y: 1.5, z: 2.5 };
-    root.userData.isBunker = true;
-    return root;
-  }
-
-  function buildMgNest(color) {
-    var root = new THREE.Group();
-    var matSandbag = new THREE.MeshLambertMaterial({ color: color });
-    var matGun     = new THREE.MeshLambertMaterial({ color: 0x222222 });
-    var matBarrel  = new THREE.MeshLambertMaterial({ color: 0x111111 });
-
-    // Sandbag half-circle: 5 boxes arranged in arc
-    var numBags = 5;
-    for (var i = 0; i < numBags; i++) {
-      var angle = (Math.PI / (numBags - 1)) * i; // 0 to PI arc (front open)
-      var radius = 1.2;
-      var bagGeo = new THREE.BoxGeometry(0.7, 0.6, 0.5);
-      var bag    = new THREE.Mesh(bagGeo, matSandbag);
-      bag.position.x = Math.cos(angle) * radius;
-      bag.position.y = 0.3;
-      bag.position.z = Math.sin(angle) * radius;
-      bag.rotation.y = angle + Math.PI / 2;
-      root.add(bag);
-    }
-
-    // Gun body
-    var bodyGeo  = new THREE.BoxGeometry(0.25, 0.25, 0.8);
-    var body     = new THREE.Mesh(bodyGeo, matGun);
-    body.position.set(0, 0.7, 0);
-    root.add(body);
-
-    // Barrel
-    var barrelGeo = new THREE.BoxGeometry(0.1, 0.1, 0.8);
-    var barrel    = new THREE.Mesh(barrelGeo, matBarrel);
-    barrel.position.set(0, 0.7, -0.8);
-    root.add(barrel);
-    root.userData.mgBarrel  = barrel;
-    root.userData.mgBody    = body;
-
-    root.userData.colliderSize = { x: 2.5, y: 0.6, z: 2.5 };
-    root.userData.isMgNest     = true;
-    root.userData.mgCooldown   = 0;
-    return root;
-  }
-
-  /* ── Ghost (preview) mesh ────────────────────────────────────────── */
-
-  function _buildGhostMesh(defIdx) {
-    var def  = STRUCTURE_DEFS[defIdx];
-    var real = def.build(def.color);
-    var ghostGroup = new THREE.Group();
-
-    real.traverse(function (child) {
-      if (child.isMesh) {
-        var ghostGeo = child.geometry.clone();
-        var ghostMat = new THREE.MeshBasicMaterial({
-          color: 0x00ff00,
-          wireframe: true,
-          transparent: true,
-          opacity: GHOST_OPACITY
-        });
-        var ghost = new THREE.Mesh(ghostGeo, ghostMat);
-        ghost.position.copy(child.position);
-        ghost.rotation.copy(child.rotation);
-        ghost.scale.copy(child.scale);
-        ghostGroup.add(ghost);
+  function _destroyGhost() {
+    if (!_ghost) { return; }
+    _scene.remove(_ghost);
+    _ghost.traverse(function (obj) {
+      if (obj.geometry) { obj.geometry.dispose(); }
+      if (obj.material) {
+        var mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        var k;
+        for (k = 0; k < mats.length; k++) { mats[k].dispose(); }
       }
     });
-
-    // Dispose real mesh (just used for shape)
-    real.traverse(function (child) {
-      if (child.isMesh) {
-        child.geometry.dispose();
-        if (child.material && child.material.dispose) child.material.dispose();
-      }
-    });
-
-    ghostGroup.userData.ghostMats = [];
-    ghostGroup.traverse(function (child) {
-      if (child.isMesh) ghostGroup.userData.ghostMats.push(child.material);
-    });
-
-    return ghostGroup;
+    _ghost = null;
+    _ghostMats = [];
   }
 
-  function _setGhostColor(valid) {
-    if (!_ghost) return;
-    var col = valid ? 0x00ff00 : 0xff2222;
-    _ghost.traverse(function (child) {
-      if (child.isMesh) child.material.color.setHex(col);
-    });
-  }
-
-  function _removeGhost() {
-    if (_ghost) {
-      _scene.remove(_ghost);
-      _ghost.traverse(function (child) {
-        if (child.isMesh) {
-          child.geometry.dispose();
-          child.material.dispose();
-        }
-      });
-      _ghost = null;
+  function _setGhostValidity(valid) {
+    _ghostValid = valid;
+    var color = valid ? 0x00FF44 : 0xFF2222;
+    var j;
+    for (j = 0; j < _ghostMats.length; j++) {
+      _ghostMats[j].color.setHex(color);
+      _ghostMats[j].opacity = 0.4;
     }
   }
 
-  /* ── Raycasting: project onto ground plane ───────────────────────── */
+  function _updateGhostPosition() {
+    if (!_ghost || !_camera) { return; }
 
-  function _getGroundPosition() {
-    if (!_scene || !_camera) return null;
-    var raycaster = new THREE.Raycaster();
-    var ndcX = (_mousePos.x / window.innerWidth) * 2 - 1;
-    var ndcY = -(_mousePos.y / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera({ x: ndcX, y: ndcY }, _camera);
+    _raycaster.setFromCamera(_mouse, _camera);
     var target = new THREE.Vector3();
-    var hit = raycaster.ray.intersectPlane(_groundPlane, target);
-    return hit ? target : null;
-  }
+    var hit = _raycaster.ray.intersectPlane(_groundPlane, target);
 
-  /* ── Overlap detection ───────────────────────────────────────────── */
-
-  function _overlaps(pos, defIdx) {
-    var def  = STRUCTURE_DEFS[defIdx];
-    var sz   = def.build(def.color).userData.colliderSize || { x: 2, y: 2, z: 2 };
-    // Dispose the temporary mesh used for collider lookup
-    // (we just need the size from userData)
-    for (var i = 0; i < _structures.length; i++) {
-      var s = _structures[i];
-      var dx = Math.abs(s.group.position.x - pos.x);
-      var dz = Math.abs(s.group.position.z - pos.z);
-      var half = (sz.x + (s.def.build(s.def.color).userData.colliderSize || { x: 2 }).x) * 0.5;
-      if (dx < half && dz < half) return true;
-    }
-    return false;
-  }
-
-  /* ── Place structure ─────────────────────────────────────────────── */
-
-  function _placeStructure(pos) {
-    var def = STRUCTURE_DEFS[_selectedIdx];
-    if (!def) return;
-
-    if (_structures.length >= MAX_STRUCTURES) {
-      _showWarning('MAX FORTIFICATIONS REACHED');
-      return;
-    }
-    if (_materials < def.cost) {
-      _showWarning('NOT ENOUGH MATERIALS (' + def.cost + ' needed)');
-      return;
-    }
-    if (_overlaps(pos, _selectedIdx)) {
-      _showWarning('CANNOT PLACE — OVERLAPPING');
+    if (!hit) {
+      _ghost.visible = false;
       return;
     }
 
-    _materials -= def.cost;
-    _updateMatHud();
+    _ghost.visible = true;
+    // Snap to 0.5-unit grid
+    target.x = Math.round(target.x * 2) / 2;
+    target.z = Math.round(target.z * 2) / 2;
+    target.y = 0;
 
-    var group = def.build(def.color);
-    group.position.copy(pos);
-    _scene.add(group);
-
-    var hpBar = _createHpBar(def.hp);
-    group.add(hpBar.container);
-    hpBar.container.position.y = 3.0;
-
-    var sObj = {
-      group:      group,
-      def:        def,
-      hp:         def.hp,
-      maxHp:      def.hp,
-      hpBar:      hpBar,
-      collapsing: false,
-      collapseT:  0,
-      rotation:   0   // build-mode WASD rotation
-    };
-    _structures.push(sObj);
-
-    if (typeof window.AudioSystem !== 'undefined') {
-      window.AudioSystem.playFortificationBuild();
-    }
+    _ghost.position.copy(target);
+    _setGhostValidity(_isValidPlacement(target));
   }
 
-  /* ── HP bar ──────────────────────────────────────────────────────── */
+  /* ════════════════════════════════════════════════════════════════════════
+     PLACEMENT VALIDATION
+  ════════════════════════════════════════════════════════════════════════ */
 
-  function _createHpBar(maxHp) {
-    // We'll represent the HP bar as a 3D sprite-like pair of thin boxes
-    // (background grey, foreground green)
-    var container = new THREE.Group();
+  function _isValidPlacement(pos) {
+    if (_structures.length >= _maxStructures) { return false; }
 
-    var bgGeo  = new THREE.BoxGeometry(1.2, 0.08, 0.02);
-    var bgMat  = new THREE.MeshBasicMaterial({ color: 0x333333 });
-    var bg     = new THREE.Mesh(bgGeo, bgMat);
-    container.add(bg);
+    var type = STRUCTURE_TYPES[_selectedIndex];
+    if (_buildPoints < type.cost) { return false; }
 
-    var fgGeo  = new THREE.BoxGeometry(1.2, 0.08, 0.02);
-    var fgMat  = new THREE.MeshBasicMaterial({ color: 0x44ff44 });
-    var fg     = new THREE.Mesh(fgGeo, fgMat);
-    fg.position.z = 0.02;
-    container.add(fg);
+    var minDist = Math.max(type.w, type.d) * 0.6;
+    var i, s, dx, dz, dist;
+    for (i = 0; i < _structures.length; i++) {
+      s = _structures[i];
+      dx = s.mesh.position.x - pos.x;
+      dz = s.mesh.position.z - pos.z;
+      dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < minDist) { return false; }
+    }
 
-    container.rotation.x = -Math.PI / 8; // tilt toward player slightly
-
-    return {
-      container: container,
-      fg:        fg,
-      maxHp:     maxHp,
-      update: function (currentHp) {
-        var pct = Math.max(0, currentHp / maxHp);
-        fg.scale.x = pct;
-        fg.position.x = -(1.2 * (1 - pct)) * 0.5;
-        var col = pct > 0.5 ? 0x44ff44 : pct > 0.25 ? 0xffaa00 : 0xff2222;
-        fgMat.color.setHex(col);
-      }
-    };
+    return true;
   }
 
-  /* ── Debris ──────────────────────────────────────────────────────── */
+  /* ════════════════════════════════════════════════════════════════════════
+     PLACE STRUCTURE
+  ════════════════════════════════════════════════════════════════════════ */
 
-  function _spawnDebris(pos, color) {
-    for (var i = 0; i < DEBRIS_COUNT; i++) {
-      var geo = new THREE.BoxGeometry(
-        0.2 + Math.random() * 0.3,
-        0.2 + Math.random() * 0.3,
-        0.2 + Math.random() * 0.3
-      );
-      var mat   = new THREE.MeshLambertMaterial({ color: 0x6B4F35 });
-      var mesh  = new THREE.Mesh(geo, mat);
-      mesh.position.copy(pos);
-      mesh.position.x += (Math.random() - 0.5) * 2;
-      mesh.position.y += Math.random() * 1;
-      mesh.position.z += (Math.random() - 0.5) * 2;
-      mesh.userData.vel = new THREE.Vector3(
-        (Math.random() - 0.5) * 4,
-        2 + Math.random() * 3,
-        (Math.random() - 0.5) * 4
-      );
-      mesh.userData.life = 2.0; // seconds
-      _scene.add(mesh);
-      _debrisParticles.push(mesh);
-    }
-  }
+  function _placeStructure() {
+    if (!_ghost || !_ghostValid) { return; }
 
-  var _debrisParticles = [];
+    var type = STRUCTURE_TYPES[_selectedIndex];
+    _buildPoints -= type.cost;
 
-  function _updateDebris(dt) {
-    for (var i = _debrisParticles.length - 1; i >= 0; i--) {
-      var p = _debrisParticles[i];
-      p.userData.vel.y -= 9.8 * dt;
-      p.position.addScaledVector(p.userData.vel, dt);
-      if (p.position.y < 0) {
-        p.position.y = 0;
-        p.userData.vel.y = 0;
-      }
-      p.userData.life -= dt;
-      if (p.userData.life <= 0) {
-        _scene.remove(p);
-        p.geometry.dispose();
-        p.material.dispose();
-        _debrisParticles.splice(i, 1);
-      }
-    }
-  }
-
-  /* ── Material pickups ────────────────────────────────────────────── */
-
-  function _spawnPickup() {
-    var geo  = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-    var mat  = new THREE.MeshLambertMaterial({ color: 0x888888 });
-    var mesh = new THREE.Mesh(geo, mat);
-    // Random position around player area
-    var angle = Math.random() * Math.PI * 2;
-    var dist  = 8 + Math.random() * 20;
-    var px = 0, pz = 0;
-    if (_camera) {
-      px = _camera.position.x;
-      pz = _camera.position.z;
-    }
-    mesh.position.set(
-      px + Math.cos(angle) * dist,
-      0.2,
-      pz + Math.sin(angle) * dist
-    );
-    mesh.userData.isMatPickup = true;
-    mesh.userData.bobOffset = Math.random() * Math.PI * 2;
+    var mesh = _buildStructureMesh(type, 1.0, false);
+    mesh.position.copy(_ghost.position);
     _scene.add(mesh);
-    _pickups.push(mesh);
+
+    var id = 'fort_' + (++_idCounter);
+    var structure = {
+      id: id,
+      type: type,
+      mesh: mesh,
+      hp: type.hp,
+      maxHp: type.hp,
+      reinforced: false,
+      camouflaged: false
+    };
+
+    _structures.push(structure);
+
+    if (type.autoFire) {
+      _mgTimers[id] = 0;
+    }
+
+    _updateHUD();
   }
 
-  function _updatePickups(dt, elapsed) {
-    if (!_camera) return;
-    var camPos = _camera.position;
+  /* ════════════════════════════════════════════════════════════════════════
+     DAMAGE & REPAIR
+  ════════════════════════════════════════════════════════════════════════ */
 
-    for (var i = _pickups.length - 1; i >= 0; i--) {
-      var p = _pickups[i];
-      // Bob up and down
-      p.position.y = 0.2 + Math.sin(elapsed * 2 + p.userData.bobOffset) * 0.1;
-      p.rotation.y += dt * 1.5;
-
-      // Collect if near player
-      var dx = p.position.x - camPos.x;
-      var dz = p.position.z - camPos.z;
-      var dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist < PICKUP_RANGE) {
-        _materials += PICKUP_VALUE;
-        _updateMatHud();
-        _scene.remove(p);
-        p.geometry.dispose();
-        p.material.dispose();
-        _pickups.splice(i, 1);
-        _showPickupNotif('+' + PICKUP_VALUE + ' MATERIALS');
-      }
+  function _damageStructure(structure, amount) {
+    structure.hp = Math.max(0, structure.hp - amount);
+    var ratio = structure.hp / structure.maxHp;
+    structure.mesh.scale.y = Math.max(0.2, ratio);
+    structure.mesh.position.y = -(1 - Math.max(0.2, ratio)) * 0.3;
+    if (structure.hp <= 0) {
+      _removeStructure(structure);
     }
   }
 
-  /* ── MG Nest auto-targeting ──────────────────────────────────────── */
+  function _removeStructure(structure) {
+    _scene.remove(structure.mesh);
+    structure.mesh.traverse(function (obj) {
+      if (obj.geometry) { obj.geometry.dispose(); }
+      if (obj.material) {
+        var mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        var k;
+        for (k = 0; k < mats.length; k++) { mats[k].dispose(); }
+      }
+    });
+    delete _mgTimers[structure.id];
+    var idx = _structures.indexOf(structure);
+    if (idx !== -1) { _structures.splice(idx, 1); }
+    if (_upgradeTarget === structure) { _hideUpgradeMenu(); }
+  }
 
-  function _updateMgNests(dt) {
-    var enemies = [];
-    // Try to get enemies from common game globals
-    if (window._enemies && window._enemies.length) enemies = window._enemies;
-    else if (window.Enemies && window.Enemies.getList) enemies = window.Enemies.getList();
+  function _startRepair(structure) {
+    if (_repairing) { return; }
+    _repairing = structure;
+    _repairTimer = 0;
+  }
 
-    for (var i = 0; i < _structures.length; i++) {
-      var s = _structures[i];
-      if (!s.def || s.def.id !== 'MG_NEST') continue;
-      if (s.collapsing) continue;
+  /* ════════════════════════════════════════════════════════════════════════
+     MG NEST AUTO-FIRE
+  ════════════════════════════════════════════════════════════════════════ */
 
-      s.group.userData.mgCooldown -= dt;
+  function _updateMGNests(dt) {
+    var i, s, type, nearest, nearestDist, j, e, dx, dz, dist;
+    for (i = 0; i < _structures.length; i++) {
+      s = _structures[i];
+      type = s.type;
+      if (!type.autoFire) { continue; }
 
-      // Find nearest enemy in range
-      var nearest = null;
-      var nearDist = MG_RANGE;
-      for (var j = 0; j < enemies.length; j++) {
-        var e = enemies[j];
-        if (!e || !e.position) continue;
-        var ep = e.position || (e.mesh && e.mesh.position) || (e.group && e.group.position);
-        if (!ep) continue;
-        var dx = ep.x - s.group.position.x;
-        var dz = ep.z - s.group.position.z;
-        var d  = Math.sqrt(dx * dx + dz * dz);
-        if (d < nearDist) {
-          nearDist = d;
+      _mgTimers[s.id] = (_mgTimers[s.id] || 0) - dt;
+      if (_mgTimers[s.id] > 0) { continue; }
+
+      _mgTimers[s.id] = type.autoFireRate;
+
+      if (!_enemies || !_enemies.length) { continue; }
+      nearest = null;
+      nearestDist = type.autoFireRange;
+
+      for (j = 0; j < _enemies.length; j++) {
+        e = _enemies[j];
+        if (!e || !e.mesh || !e.mesh.position) { continue; }
+        dx = e.mesh.position.x - s.mesh.position.x;
+        dz = e.mesh.position.z - s.mesh.position.z;
+        dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < nearestDist) {
+          nearestDist = dist;
           nearest = e;
         }
       }
 
-      if (nearest && s.group.userData.mgCooldown <= 0) {
-        s.group.userData.mgCooldown = MG_FIRE_INTERVAL;
-        // Rotate barrel toward enemy
-        var barrel = s.group.userData.mgBarrel;
-        var body   = s.group.userData.mgBody;
-        var ep2 = nearest.position || (nearest.mesh && nearest.mesh.position) || (nearest.group && nearest.group.position);
-        if (barrel && ep2) {
-          var dx2 = ep2.x - s.group.position.x;
-          var dz2 = ep2.z - s.group.position.z;
-          var targetAngle = Math.atan2(dx2, dz2);
-          s.group.rotation.y = targetAngle;
+      if (nearest) {
+        if (typeof nearest.takeDamage === 'function') {
+          nearest.takeDamage(type.autoFireDmg);
+        } else if (nearest.hp !== undefined) {
+          nearest.hp -= type.autoFireDmg;
         }
-        // Deal damage
-        if (nearest.hp !== undefined) {
-          nearest.hp -= MG_DAMAGE;
-        } else if (nearest.takeDamage) {
-          nearest.takeDamage(MG_DAMAGE, 'mg_nest');
-        } else if (typeof window.Enemies !== 'undefined' && window.Enemies.damageEnemy) {
-          window.Enemies.damageEnemy(nearest, MG_DAMAGE);
-        }
-        if (typeof window.AudioSystem !== 'undefined') {
-          window.AudioSystem.playGunshot();
-        }
+        _mgFlash(s);
       }
     }
   }
 
-  /* ── Enemy damage to structures ──────────────────────────────────── */
-
-  function _updateEnemyDamage(dt) {
-    var enemies = [];
-    if (window._enemies && window._enemies.length) enemies = window._enemies;
-    else if (window.Enemies && window.Enemies.getList) enemies = window.Enemies.getList();
-
-    for (var i = 0; i < _structures.length; i++) {
-      var s = _structures[i];
-      if (s.collapsing) continue;
-      for (var j = 0; j < enemies.length; j++) {
-        var e = enemies[j];
-        if (!e) continue;
-        var ep = e.position || (e.mesh && e.mesh.position) || (e.group && e.group.position);
-        if (!ep) continue;
-        var dx = ep.x - s.group.position.x;
-        var dz = ep.z - s.group.position.z;
-        var dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist < 1.5) {
-          s.hp -= ENEMY_DAMAGE_PS * dt;
-          s.hpBar.update(s.hp);
-          if (s.hp <= 0) {
-            _beginCollapse(s);
-          }
-        }
-      }
-    }
-  }
-
-  /* ── Barbed wire: slow enemies ───────────────────────────────────── */
-
-  function _updateBarbedWire() {
-    var enemies = [];
-    if (window._enemies && window._enemies.length) enemies = window._enemies;
-    else if (window.Enemies && window.Enemies.getList) enemies = window.Enemies.getList();
-
-    for (var i = 0; i < _structures.length; i++) {
-      var s = _structures[i];
-      if (!s.def || s.def.id !== 'BARBED_WIRE') continue;
-      if (s.collapsing) continue;
-      for (var j = 0; j < enemies.length; j++) {
-        var e = enemies[j];
-        if (!e) continue;
-        var ep = e.position || (e.mesh && e.mesh.position) || (e.group && e.group.position);
-        if (!ep) continue;
-        var dx = ep.x - s.group.position.x;
-        var dz = ep.z - s.group.position.z;
-        if (Math.abs(dx) < 1.5 && Math.abs(dz) < 0.5) {
-          if (e.speedMultiplier !== undefined) {
-            e.speedMultiplier = 0.4; // 60% slow
-          } else if (e.speed !== undefined && !e._bbSlowed) {
-            e._bbOrigSpeed = e.speed;
-            e.speed *= 0.4;
-            e._bbSlowed = true;
-          }
-        } else {
-          // Restore speed if escaped wire
-          if (e._bbSlowed) {
-            e.speed = e._bbOrigSpeed || e.speed;
-            e._bbSlowed = false;
-          }
-        }
-      }
-    }
-  }
-
-  /* ── Structure collapse animation ───────────────────────────────── */
-
-  function _beginCollapse(s) {
-    if (s.collapsing) return;
-    s.collapsing = true;
-    s.collapseT  = 0;
-    _spawnDebris(s.group.position.clone(), s.def.color);
-  }
-
-  function _updateCollapses(dt) {
-    for (var i = _structures.length - 1; i >= 0; i--) {
-      var s = _structures[i];
-      if (!s.collapsing) continue;
-      s.collapseT += dt;
-      var pct = Math.min(1, s.collapseT / COLLAPSE_TIME);
-      s.group.scale.y = 1 - pct;
-      if (pct >= 1) {
-        _scene.remove(s.group);
-        _disposeGroup(s.group);
-        _structures.splice(i, 1);
-      }
-    }
-  }
-
-  function _disposeGroup(group) {
-    group.traverse(function (child) {
-      if (child.isMesh) {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material.forEach(function (m) { m.dispose(); });
-          } else {
-            child.material.dispose();
-          }
-        }
+  function _mgFlash(structure) {
+    structure.mesh.traverse(function (obj) {
+      if (obj.isMesh && obj.geometry && obj.geometry.type === 'CylinderGeometry') {
+        var savedHex = obj.material.color.getHex();
+        obj.material.color.setHex(0xFFFF88);
+        setTimeout(function () {
+          if (obj.material) { obj.material.color.setHex(savedHex); }
+        }, 80);
       }
     });
   }
 
-  /* ── HUD ─────────────────────────────────────────────────────────── */
+  /* ════════════════════════════════════════════════════════════════════════
+     UPGRADE MENU
+  ════════════════════════════════════════════════════════════════════════ */
 
-  function _createHud() {
-    if (_hudEl) return;
-
-    _hudEl = document.createElement('div');
-    _hudEl.id = 'fortification-builder-hud';
-    _hudEl.style.cssText = [
-      'display:none',
+  function _createUpgradeMenuDOM() {
+    _upgradeMenuEl = document.createElement('div');
+    _upgradeMenuEl.id = 'fortUpgradeMenu';
+    _upgradeMenuEl.style.cssText = [
       'position:fixed',
-      'bottom:140px',
+      'top:50%',
       'left:50%',
-      'transform:translateX(-50%)',
-      'background:rgba(0,0,0,0.75)',
-      'border:1px solid rgba(255,200,100,0.5)',
-      'border-radius:6px',
-      'padding:8px 16px',
+      'transform:translate(-50%,-50%)',
+      'background:rgba(10,20,10,0.92)',
+      'color:#EEE',
+      'padding:14px 18px',
       'font-family:monospace',
       'font-size:12px',
-      'color:#fff',
-      'z-index:300',
-      'pointer-events:none',
-      'text-align:center',
-      'min-width:300px'
-    ].join(';');
-
-    _hudEl.innerHTML =
-      '<div style="color:#ffcc44;font-size:13px;margin-bottom:4px">&#9874; BUILD MODE</div>' +
-      '<div id="fb-sel-label" style="color:#aaf;font-size:14px;font-weight:bold;margin-bottom:4px"></div>' +
-      '<div style="font-size:10px;color:#aaa;margin-bottom:2px">1-5: select &nbsp; Scroll: cycle &nbsp; WASD: rotate</div>' +
-      '<div style="font-size:10px;color:#aaa">LMB: place &nbsp; RMB/B: cancel &amp; exit</div>' +
-      '<div id="fb-mat-count" style="color:#8c6;font-size:11px;margin-top:4px"></div>' +
-      '<div id="fb-struct-count" style="color:#aaa;font-size:10px;margin-top:2px"></div>';
-    document.body.appendChild(_hudEl);
-
-    _matEl = document.getElementById('fb-mat-count');
-
-    _warnEl = document.createElement('div');
-    _warnEl.id = 'fb-warn';
-    _warnEl.style.cssText = [
+      'border:1px solid #4A8A4A',
+      'border-radius:4px',
       'display:none',
-      'position:fixed',
-      'top:30%',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'background:rgba(255,40,0,0.85)',
-      'border:2px solid #ff4444',
-      'border-radius:6px',
-      'padding:8px 22px',
-      'font-family:monospace',
-      'font-size:14px',
-      'color:#fff',
-      'z-index:310',
-      'pointer-events:none',
-      'text-align:center'
+      'min-width:220px',
+      'z-index:10000'
     ].join(';');
-    document.body.appendChild(_warnEl);
+    document.body.appendChild(_upgradeMenuEl);
   }
 
-  function _showHud() {
-    if (_hudEl) {
-      _hudEl.style.display = 'block';
-      _updateHudSel();
-      _updateMatHud();
-    }
-  }
+  function _showUpgradeMenu(structure) {
+    _upgradeTarget = structure;
+    if (!_upgradeMenuEl) { _createUpgradeMenuDOM(); }
 
-  function _hideHud() {
-    if (_hudEl) _hudEl.style.display = 'none';
-  }
+    _upgradeMenuEl.innerHTML = '';
 
-  function _updateHudSel() {
-    var selEl = document.getElementById('fb-sel-label');
-    if (selEl && STRUCTURE_DEFS[_selectedIdx]) {
-      var def = STRUCTURE_DEFS[_selectedIdx];
-      selEl.textContent = '[' + _selectedIdx + '] ' + def.label + '  (' + def.cost + ' mat)';
-    }
-    var cntEl = document.getElementById('fb-struct-count');
-    if (cntEl) {
-      cntEl.textContent = 'Structures: ' + _structures.length + ' / ' + MAX_STRUCTURES;
-    }
-  }
+    var title = document.createElement('div');
+    title.style.cssText = 'font-weight:bold;margin-bottom:6px;color:#FFD700;font-size:13px;';
+    title.textContent = structure.type.label + ' — UPGRADE';
+    _upgradeMenuEl.appendChild(title);
 
-  function _updateMatHud() {
-    if (_matEl) _matEl.textContent = 'Materials: ' + _materials;
-    _updateHudSel();
-  }
+    var hpBar = document.createElement('div');
+    hpBar.style.cssText = 'margin-bottom:8px;font-size:11px;color:#ccc;';
+    hpBar.textContent = 'HP: ' + Math.round(structure.hp) + ' / ' + structure.maxHp;
+    _upgradeMenuEl.appendChild(hpBar);
 
-  var _warnTimer = 0;
-  function _showWarning(msg) {
-    if (_warnEl) {
-      _warnEl.textContent = msg;
-      _warnEl.style.display = 'block';
-      _warnTimer = 2.0;
-    }
-  }
-
-  function _showPickupNotif(msg) {
-    var notif = document.getElementById('pickup-notif');
-    if (notif) {
-      notif.textContent = msg;
-      setTimeout(function () { notif.textContent = ''; }, 1500);
-    }
-  }
-
-  /* ── Build mode toggle & ghost rotation ─────────────────────────── */
-
-  var _ghostRotation = 0;
-  var _rotKeys       = { w: false, a: false, s: false, d: false };
-
-  function _toggleBuildMode() {
-    _active = !_active;
-    if (_active) {
-      _showHud();
-      _refreshGhost();
+    var done1El, done2El;
+    if (!structure.reinforced) {
+      _upgradeMenuEl.appendChild(_makeUpgradeButton(
+        'Reinforce (+50 HP) [15 BP]',
+        function () { _upgradeReinforce(structure); }
+      ));
     } else {
-      _hideHud();
-      _removeGhost();
-    }
-  }
-
-  function _refreshGhost() {
-    _removeGhost();
-    if (!_active || !_scene) return;
-    _ghost = _buildGhostMesh(_selectedIdx);
-    _ghost.rotation.y = _ghostRotation;
-    _scene.add(_ghost);
-  }
-
-  /* ── Input handlers ──────────────────────────────────────────────── */
-
-  function _onKey(e) {
-    var key = (e.key || '').toLowerCase();
-
-    if (key === 'b') {
-      _toggleBuildMode();
-      return;
+      done1El = document.createElement('div');
+      done1El.style.cssText = 'color:#888;font-size:11px;margin-bottom:4px;';
+      done1El.textContent = 'Reinforce: DONE';
+      _upgradeMenuEl.appendChild(done1El);
     }
 
-    if (!_active) return;
-
-    // Structure selection 1-5
-    if (key >= '1' && key <= '5') {
-      _selectedIdx = parseInt(key, 10);
-      _updateHudSel();
-      _refreshGhost();
-      return;
-    }
-
-    // WASD rotation
-    if (key === 'w') _rotKeys.w = (e.type === 'keydown');
-    if (key === 'a') _rotKeys.a = (e.type === 'keydown');
-    if (key === 's') _rotKeys.s = (e.type === 'keydown');
-    if (key === 'd') _rotKeys.d = (e.type === 'keydown');
-
-    if (key === 'escape') {
-      _active = false;
-      _hideHud();
-      _removeGhost();
-    }
-  }
-
-  function _onMouseMove(e) {
-    _mousePos.x = e.clientX;
-    _mousePos.y = e.clientY;
-  }
-
-  function _onClick(e) {
-    if (!_active) return;
-
-    if (e.button === 0) {
-      // Left click — place
-      var pos = _getGroundPosition();
-      if (pos && _ghostValid) {
-        _placeStructure(pos);
-        _updateHudSel();
-      } else if (pos && !_ghostValid) {
-        _showWarning('INVALID PLACEMENT');
-      }
-    } else if (e.button === 2) {
-      // Right click — cancel / exit build mode
-      _active = false;
-      _hideHud();
-      _removeGhost();
-    }
-  }
-
-  function _onWheel(e) {
-    if (!_active) return;
-    if (e.deltaY > 0) {
-      _selectedIdx = (_selectedIdx % 5) + 1;
+    if (!structure.camouflaged) {
+      _upgradeMenuEl.appendChild(_makeUpgradeButton(
+        'Camouflage (enemies ignore) [10 BP]',
+        function () { _upgradeCamo(structure); }
+      ));
     } else {
-      _selectedIdx = ((_selectedIdx - 2 + 5) % 5) + 1;
+      done2El = document.createElement('div');
+      done2El.style.cssText = 'color:#888;font-size:11px;margin-bottom:4px;';
+      done2El.textContent = 'Camouflage: DONE';
+      _upgradeMenuEl.appendChild(done2El);
     }
-    _updateHudSel();
-    _refreshGhost();
+
+    var closeBtn = _makeUpgradeButton('Close', function () { _hideUpgradeMenu(); });
+    closeBtn.style.background = '#444';
+    _upgradeMenuEl.appendChild(closeBtn);
+
+    _upgradeMenuEl.style.display = 'block';
   }
 
-  /* ── Public API ──────────────────────────────────────────────────── */
-
-  function init(scene, camera, controls) {
-    _scene    = scene;
-    _camera   = camera;
-    _controls = controls || null;
-    _clock    = new THREE.Clock();
-
-    _groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-
-    _createHud();
-
-    _keyHandler   = _onKey;
-    _mouseHandler = _onMouseMove;
-    _clickHandler = _onClick;
-    _wheelHandler = _onWheel;
-
-    document.addEventListener('keydown', _keyHandler);
-    document.addEventListener('keyup',   _keyHandler);
-    document.addEventListener('mousemove', _mouseHandler);
-    document.addEventListener('mousedown', _clickHandler);
-    document.addEventListener('wheel', _wheelHandler, { passive: true });
-
-    // Spawn initial pickups
-    for (var i = 0; i < 3; i++) {
-      _spawnPickup();
-    }
-
-    console.log('[FortificationBuilder] init — B to toggle build mode, 50 materials');
+  function _makeUpgradeButton(label, fn) {
+    var btn = document.createElement('button');
+    btn.textContent = label;
+    btn.style.cssText = [
+      'display:block',
+      'width:100%',
+      'margin-bottom:4px',
+      'padding:5px 8px',
+      'background:#2A4A2A',
+      'color:#EEE',
+      'border:1px solid #555',
+      'cursor:pointer',
+      'font-size:11px',
+      'text-align:left'
+    ].join(';');
+    btn.addEventListener('click', fn);
+    return btn;
   }
 
-  var _elapsed = 0;
+  function _hideUpgradeMenu() {
+    if (_upgradeMenuEl) { _upgradeMenuEl.style.display = 'none'; }
+    _upgradeTarget = null;
+  }
 
-  function update(dt) {
-    if (!dt || isNaN(dt)) dt = 0.016;
-    _elapsed += dt;
-    _pickupTimer += dt;
+  function _upgradeReinforce(structure) {
+    if (_buildPoints < 15) { return; }
+    _buildPoints -= 15;
+    structure.reinforced = true;
+    structure.maxHp += 50;
+    structure.hp = Math.min(structure.hp + 50, structure.maxHp);
+    _hideUpgradeMenu();
+    _updateHUD();
+  }
 
-    // Ghost rotation from held WASD keys
-    if (_active && _ghost) {
-      var rotSpeed = 2.0; // rad/s
-      if (_rotKeys.a) _ghostRotation += rotSpeed * dt;
-      if (_rotKeys.d) _ghostRotation -= rotSpeed * dt;
-      _ghost.rotation.y = _ghostRotation;
-
-      // Update ghost position
-      var gpos = _getGroundPosition();
-      if (gpos) {
-        _ghost.position.copy(gpos);
-        var invalid = _overlaps(gpos, _selectedIdx) || _structures.length >= MAX_STRUCTURES;
-        _ghostValid = !invalid;
-        _setGhostColor(_ghostValid);
-      }
-    }
-
-    // Warning timer
-    if (_warnTimer > 0) {
-      _warnTimer -= dt;
-      if (_warnTimer <= 0 && _warnEl) {
-        _warnEl.style.display = 'none';
-      }
-    }
-
-    // Pickup spawn
-    if (_pickupTimer >= PICKUP_INTERVAL) {
-      _pickupTimer = 0;
-      _spawnPickup();
-    }
-
-    _updatePickups(dt, _elapsed);
-    _updateCollapses(dt);
-    _updateDebris(dt);
-    _updateEnemyDamage(dt);
-    _updateBarbedWire();
-    _updateMgNests(dt);
-
-    // Keep HP bars facing camera
-    if (_camera) {
-      for (var i = 0; i < _structures.length; i++) {
-        var s = _structures[i];
-        if (s.hpBar && s.hpBar.container) {
-          s.hpBar.container.quaternion.copy(_camera.quaternion);
+  function _upgradeCamo(structure) {
+    if (_buildPoints < 10) { return; }
+    _buildPoints -= 10;
+    structure.camouflaged = true;
+    structure.mesh.traverse(function (obj) {
+      if (obj.isMesh && obj.material) {
+        var mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        var k;
+        for (k = 0; k < mats.length; k++) {
+          mats[k].color.setHex(0x3A5A2A);
         }
       }
+    });
+    _hideUpgradeMenu();
+    _updateHUD();
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     HUD
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function _createHUD() {
+    if (_hudEl) { return; }
+    _hudEl = document.createElement('div');
+    _hudEl.id = 'fortBuildHUD';
+    _hudEl.style.cssText = [
+      'position:fixed',
+      'bottom:20px',
+      'right:20px',
+      'background:rgba(0,0,0,0.75)',
+      'color:#EEE',
+      'padding:10px 14px',
+      'font-family:monospace',
+      'font-size:12px',
+      'border:1px solid #555',
+      'border-radius:4px',
+      'display:none',
+      'min-width:200px',
+      'pointer-events:none',
+      'z-index:9990'
+    ].join(';');
+    document.body.appendChild(_hudEl);
+  }
+
+  function _updateHUD() {
+    if (!_hudEl) { return; }
+
+    if (!_buildMode) {
+      _hudEl.style.display = 'none';
+      return;
     }
+
+    _hudEl.style.display = 'block';
+    var type = STRUCTURE_TYPES[_selectedIndex];
+    var slotsUsed = _structures.length;
+    var structList = '';
+    var k, t, active, affordable;
+    for (k = 0; k < STRUCTURE_TYPES.length; k++) {
+      t = STRUCTURE_TYPES[k];
+      active = (k === _selectedIndex) ? '&#9654; ' : '&nbsp;&nbsp;';
+      affordable = (_buildPoints >= t.cost) ? '#AEF' : '#F88';
+      structList += '<span style="color:' + affordable + '">' + active + (k + 1) + '. ' + t.label + ' (' + t.cost + ' BP)</span><br>';
+    }
+
+    _hudEl.innerHTML = [
+      '<div style="color:#FFD700;font-weight:bold;margin-bottom:6px;">-- BUILD MODE --</div>',
+      structList,
+      '<div style="margin-top:6px;border-top:1px solid #444;padding-top:6px;">',
+      '<span style="color:#7CF">SELECTED: </span><b>' + type.label + '</b><br>',
+      '<span style="color:#7CF">COST: </span>' + type.cost + ' BP&nbsp;|&nbsp;<span style="color:#7CF">DESC: </span>' + type.desc + '<br>',
+      '<span style="color:#FFD700">BUILD POINTS: ' + _buildPoints + '</span><br>',
+      '<span style="color:#aaa">STRUCTURES: ' + slotsUsed + ' / ' + _maxStructures + '</span>',
+      '</div>',
+      '<div style="margin-top:4px;color:#888;font-size:10px;">[B] Toggle &nbsp;[1-6] Select &nbsp;[Scroll] Cycle &nbsp;[E] Repair</div>'
+    ].join('');
   }
 
-  function build(structureType, position) {
-    var idx = typeof structureType === 'number' ? structureType : 1;
-    idx = Math.max(1, Math.min(5, idx));
-    var pos = position || (_camera ? _camera.position.clone().add(new THREE.Vector3(0, 0, -3)) : new THREE.Vector3(0, 0, 0));
-    var prevIdx = _selectedIdx;
-    _selectedIdx = idx;
-    _placeStructure(pos);
-    _selectedIdx = prevIdx;
-  }
+  /* ════════════════════════════════════════════════════════════════════════
+     E/Z KEY ACTIONS
+  ════════════════════════════════════════════════════════════════════════ */
 
-  function demolish(index) {
-    if (index === undefined) {
-      // Demolish most recently placed
-      if (_structures.length > 0) {
-        _beginCollapse(_structures[_structures.length - 1]);
+  function _getNearestStructure(maxDist) {
+    if (!_camera) { return null; }
+    var camPos = _camera.position;
+    var nearest = null;
+    var nearestDist = maxDist;
+    var i, s, dx, dz, dist;
+    for (i = 0; i < _structures.length; i++) {
+      s = _structures[i];
+      dx = s.mesh.position.x - camPos.x;
+      dz = s.mesh.position.z - camPos.z;
+      dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = s;
       }
-    } else if (_structures[index]) {
-      _beginCollapse(_structures[index]);
     }
+    return nearest;
+  }
+
+  function _tryRepairNearest() {
+    var nearest = _getNearestStructure(3.0);
+    if (nearest && nearest.hp < nearest.maxHp) {
+      _startRepair(nearest);
+    }
+  }
+
+  function _tryZoomObsPost() {
+    var nearest = _getNearestStructure(2.5);
+    if (!nearest || nearest.type.id !== 'OBS_POST') { return; }
+    if (_camera && _camera.fov !== undefined) {
+      _camera.fov = (_camera.fov < 45) ? 75 : 30;
+      _camera.updateProjectionMatrix();
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     RIGHT-CLICK — open upgrade menu for nearest structure
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function _onRightClick(e) {
+    e.preventDefault();
+    if (_buildMode) { return; }
+    var nearest = _getNearestStructure(5.0);
+    if (nearest) {
+      _showUpgradeMenu(nearest);
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     BUILD MODE TOGGLE & STRUCTURE SELECTION
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function _toggleBuildMode() {
+    _buildMode = !_buildMode;
+    if (_buildMode) {
+      _createGhost();
+    } else {
+      _destroyGhost();
+      _hideUpgradeMenu();
+    }
+    _updateHUD();
+  }
+
+  function _selectStructure(index) {
+    if (index < 0 || index >= STRUCTURE_TYPES.length) { return; }
+    _selectedIndex = index;
+    if (_buildMode) { _createGhost(); }
+    _updateHUD();
+  }
+
+  function _cyclePrev() {
+    _selectedIndex = (_selectedIndex - 1 + STRUCTURE_TYPES.length) % STRUCTURE_TYPES.length;
+    if (_buildMode) { _createGhost(); }
+    _updateHUD();
+  }
+
+  function _cycleNext() {
+    _selectedIndex = (_selectedIndex + 1) % STRUCTURE_TYPES.length;
+    if (_buildMode) { _createGhost(); }
+    _updateHUD();
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     EVENT BINDING
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function _bindEvents() {
+    _onKeyDown = function (e) {
+      var num;
+      if (e.key === 'b' || e.key === 'B') {
+        _toggleBuildMode();
+        return;
+      }
+      num = parseInt(e.key, 10);
+      if (num >= 1 && num <= 6) {
+        _selectStructure(num - 1);
+        return;
+      }
+      if ((e.key === 'e' || e.key === 'E') && !_buildMode) {
+        _tryRepairNearest();
+        return;
+      }
+      if ((e.key === 'z' || e.key === 'Z') && !_buildMode) {
+        _tryZoomObsPost();
+        return;
+      }
+      if (e.key === 'Escape' && _upgradeMenuEl && _upgradeMenuEl.style.display !== 'none') {
+        _hideUpgradeMenu();
+      }
+    };
+
+    _onWheel = function (e) {
+      if (!_buildMode) { return; }
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        _cyclePrev();
+      } else {
+        _cycleNext();
+      }
+    };
+
+    _onClick = function (e) {
+      if (!_buildMode) { return; }
+      if (e.button !== 0) { return; }
+      _placeStructure();
+    };
+
+    _onContextMenu = _onRightClick;
+
+    window.addEventListener('keydown', _onKeyDown);
+    window.addEventListener('wheel', _onWheel, { passive: false });
+    window.addEventListener('click', _onClick);
+    window.addEventListener('contextmenu', _onContextMenu);
+  }
+
+  function _unbindEvents() {
+    if (_onKeyDown)     { window.removeEventListener('keydown', _onKeyDown); }
+    if (_onWheel)       { window.removeEventListener('wheel', _onWheel); }
+    if (_onClick)       { window.removeEventListener('click', _onClick); }
+    if (_onContextMenu) { window.removeEventListener('contextmenu', _onContextMenu); }
+    _onKeyDown = _onWheel = _onClick = _onContextMenu = null;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     PUBLIC API
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function init(options) {
+    options = options || {};
+    _scene   = options.scene   || (window.GameState && window.GameState.scene)  || null;
+    _camera  = options.camera  || (window.GameState && window.GameState.camera) || null;
+    _enemies = options.enemies || null;
+
+    if (options.buildPoints   !== undefined) { _buildPoints   = options.buildPoints; }
+    if (options.maxStructures !== undefined) { _maxStructures = options.maxStructures; }
+
+    // Lazy-init Three.js helpers that require THREE to be available
+    _raycaster   = new THREE.Raycaster();
+    _mouse       = new THREE.Vector2(0, 0);
+    _groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+    _createHUD();
+    _bindEvents();
+    _updateHUD();
+  }
+
+  function update(dt) {
+    if (!_scene || !_camera) { return; }
+
+    if (_buildMode && _ghost) {
+      _updateGhostPosition();
+    }
+
+    // Repair tick
+    if (_repairing) {
+      _repairTimer += dt;
+      if (_repairTimer >= _repairDuration) {
+        _repairing.hp = Math.min(_repairing.maxHp, _repairing.hp + 30);
+        var ratio = _repairing.hp / _repairing.maxHp;
+        _repairing.mesh.scale.y = Math.max(0.2, ratio);
+        _repairing.mesh.position.y = -(1 - Math.max(0.2, ratio)) * 0.3;
+        _repairing = null;
+        _repairTimer = 0;
+      }
+    }
+
+    _updateMGNests(dt);
   }
 
   function reset() {
-    // Remove all structures
-    for (var i = _structures.length - 1; i >= 0; i--) {
-      _scene.remove(_structures[i].group);
-      _disposeGroup(_structures[i].group);
+    var i;
+
+    _buildMode     = false;
+    _buildPoints   = 100;
+    _selectedIndex = 0;
+
+    _destroyGhost();
+    _hideUpgradeMenu();
+
+    for (i = _structures.length - 1; i >= 0; i--) {
+      _removeStructure(_structures[i]);
     }
     _structures = [];
+    _mgTimers   = {};
+    _repairing  = null;
+    _repairTimer = 0;
 
-    // Remove all pickups
-    for (var j = _pickups.length - 1; j >= 0; j--) {
-      _scene.remove(_pickups[j]);
-      _pickups[j].geometry.dispose();
-      _pickups[j].material.dispose();
-    }
-    _pickups = [];
+    _unbindEvents();
 
-    // Remove all debris
-    for (var k = _debrisParticles.length - 1; k >= 0; k--) {
-      _scene.remove(_debrisParticles[k]);
-      _debrisParticles[k].geometry.dispose();
-      _debrisParticles[k].material.dispose();
-    }
-    _debrisParticles = [];
+    if (_hudEl) { _hudEl.style.display = 'none'; }
+  }
 
-    _removeGhost();
-    _active    = false;
-    _materials = 50;
-    _hideHud();
-    _updateMatHud();
-    _pickupTimer = 0;
-    _elapsed     = 0;
+  /* ── Extra public helpers ─────────────────────────────────────────────── */
 
-    // Respawn initial pickups
-    if (_scene) {
-      for (var m = 0; m < 3; m++) {
-        _spawnPickup();
+  function damageStructureAt(worldPos, amount, radius) {
+    radius = radius || 1.0;
+    var i, s, dx, dz, dist;
+    for (i = 0; i < _structures.length; i++) {
+      s = _structures[i];
+      dx = s.mesh.position.x - worldPos.x;
+      dz = s.mesh.position.z - worldPos.z;
+      dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist <= radius) {
+        _damageStructure(s, amount);
       }
     }
+  }
 
-    console.log('[FortificationBuilder] reset');
+  function getStructures() {
+    return _structures.slice();
+  }
+
+  function getBuildPoints() {
+    return _buildPoints;
+  }
+
+  function addBuildPoints(amount) {
+    _buildPoints += amount;
+    _updateHUD();
   }
 
   return {
-    init:     init,
-    update:   update,
-    build:    build,
-    demolish: demolish,
-    reset:    reset
+    init: init,
+    update: update,
+    reset: reset,
+    damageStructureAt: damageStructureAt,
+    getStructures: getStructures,
+    getBuildPoints: getBuildPoints,
+    addBuildPoints: addBuildPoints
   };
 
-})();
+}());

@@ -1713,6 +1713,17 @@ const GameManager = (function () {
     try { if (window.RadioBeacon && RadioBeacon.init) RadioBeacon.init(_scene, _camera); } catch (e) {}
     try { if (window.BodyDrag && BodyDrag.init) BodyDrag.init(_scene, _camera); } catch (e) {}
     try { if (window.PsyOps && PsyOps.init) PsyOps.init(_scene, _camera); } catch (e) {}
+    // Wave 28 modules
+    try { if (window.AmbushSystem && AmbushSystem.init) AmbushSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.FieldHospital && FieldHospital.init) FieldHospital.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReconSatellite && ReconSatellite.init) ReconSatellite.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortificationBuilder && FortificationBuilder.init) FortificationBuilder.init(_scene, _camera); } catch (e) {}
+    try { if (window.NavalCombat && NavalCombat.init) NavalCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.CounterSniper && CounterSniper.init) CounterSniper.init(_scene, _camera); } catch (e) {}
+    try { if (window.ExplosiveOrdnance && ExplosiveOrdnance.init) ExplosiveOrdnance.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChainOfCommand && ChainOfCommand.init) ChainOfCommand.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeatherEffects && WeatherEffects.init) WeatherEffects.init(_scene, _camera); } catch (e) {}
+    try { if (window.ObjectiveTracker && ObjectiveTracker.init) ObjectiveTracker.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8222,6 +8233,16 @@ const GameManager = (function () {
       if (window.RadioBeacon) RadioBeacon.update(delta);
       if (window.BodyDrag) BodyDrag.update(delta);
       if (window.PsyOps) PsyOps.update(delta);
+      if (window.AmbushSystem) AmbushSystem.update(delta);
+      if (window.FieldHospital) FieldHospital.update(delta);
+      if (window.ReconSatellite) ReconSatellite.update(delta);
+      if (window.FortificationBuilder) FortificationBuilder.update(delta);
+      if (window.NavalCombat) NavalCombat.update(delta);
+      if (window.CounterSniper) CounterSniper.update(delta);
+      if (window.ExplosiveOrdnance) ExplosiveOrdnance.update(delta);
+      if (window.ChainOfCommand) ChainOfCommand.update(delta);
+      if (window.WeatherEffects) WeatherEffects.update(delta);
+      if (window.ObjectiveTracker) ObjectiveTracker.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
