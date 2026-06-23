@@ -1,82 +1,122 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   VEHICLE CONVOY — Enemy armored convoy with ambush mission
+   VEHICLE CONVOY — Multi-vehicle escort mission with route protection,
+   ambush response, IED threat, and convoy integrity scoring.
    ───────────────────────────────────────────────────────────────────────────
-   3-vehicle convoy: lead armored car → cargo truck → rear escort.
-   Each vehicle has 4 cylindrical wheels that rotate as the vehicle moves.
-   Convoy follows a 6-waypoint loop. When within 30 units of player:
-     - window._convoyNearby = true
-     - "CONVOY INCOMING" HUD alert + arrow indicator
-   Objective: destroy all 3 before they complete the loop.
-   Escort vehicles carry 2 gunners each (HP 50, fire at player within 40 u).
-   Cargo truck destruction triggers secondary ammo cook-off explosion.
-   If convoy escapes: -100 score, window._convoyEscaped = true.
-   Destroying truck drops loot (calls AirdropSupply.spawnCrate or Box mesh).
-   New convoy spawns every 120 s (max 1 active).
+   Convoy composition (4 vehicles in column):
+     [0] Lead Humvee      — box 3×2×1.5, olive 0x4A5240, HP 200
+     [1] Cargo Truck A    — cab 2×2×2.5 + flatbed 5×1×2, HP 300
+     [2] Cargo Truck B    — same geometry, HP 300
+     [3] Trail Humvee     — same as lead, HP 200
 
-   Public API  window.VehicleConvoy = { init(scene, camera), update(dt), spawnConvoy(), reset }
+   Route: 8 waypoints forming a Z-shape across the map.
+   Player: escort on foot or board any vehicle (press E within 3 units).
+   Spacing: 3-unit gap; if lead stops, all stop within 2 s.
+   Ambush events: enemies spawn at 3 predetermined waypoint intervals.
+   IED: one route segment has a buried IED — defuse or boom.
+   Scoring:
+     vehicles delivered × 250 = base (max 1000)
+     +200 bonus if all 4 delivered with no damage (intact)
+     -100 per crew KIA (2 per destroyed Humvee = up to -400)
+
+   Public API  window.VehicleConvoy = { init(scene, camera), update(dt), reset() }
    ═══════════════════════════════════════════════════════════════════════════ */
 window.VehicleConvoy = (function () {
   'use strict';
 
   /* ── Constants ─────────────────────────────────────────────────────────── */
-  var CONVOY_SPEED       = 8;     // m/s
-  var VEHICLE_SPACING    = 6;     // units between vehicles
-  var WP_REACH           = 4;     // waypoint advance threshold
-  var AMBUSH_DIST        = 30;    // trigger distance
-  var GUNNER_FIRE_DIST   = 40;    // gunner engagement distance
-  var GUNNER_FIRE_RATE   = 1.5;   // seconds between shots
-  var GUNNER_DAMAGE      = 8;     // damage per gunner shot
-  var SPAWN_INTERVAL     = 120;   // seconds between convoy spawns
-  var COOK_OFF_DELAY     = 2;     // seconds before secondary explosion
-  var COOK_OFF_RADIUS    = 5;     // metres radius
-  var COOK_OFF_DAMAGE    = 60;    // damage from cook-off
-  var SMOKE_COUNT        = 10;    // rising smoke spheres per wreck
-  var MAX_CONVOYS        = 1;
+  var CONVOY_SPEED         = 4;      // units/s normal travel
+  var VEHICLE_SPACING      = 3;      // gap between vehicles
+  var WP_REACH             = 4;      // distance to advance waypoint
+  var STOP_PROPAGATION_T   = 2.0;    // seconds for full convoy to halt after lead stops
+  var BOARD_RANGE          = 3;      // units — press E within this to board
+  var HUMVEE_HP            = 200;
+  var TRUCK_HP             = 300;
+  var IED_SEGMENT          = 4;      // IED appears between waypoint 4→5
+  var IED_TRIGGER_DIST     = 2.5;    // vehicle drives over IED within this radius
+  var IED_DEFUSE_DIST      = 2.0;    // player must be within this to defuse
+  var IED_EXPLOSION_RANGE  = 8;
+  var IED_EXPLOSION_DAMAGE = 120;
+  var AMBUSH_WP            = [2, 4, 6]; // waypoint indices that trigger ambush
+  var AMBUSH_ENEMY_COUNT   = 3;      // 2-4 enemies per ambush (set per wave)
+  var AMBUSH_HOLD_DIST     = 30;     // convoy stops if enemies within this range
+  var CREW_PER_HUMVEE      = 2;      // simulated crew KIA per destroyed Humvee
+  var SCORE_PER_VEHICLE    = 250;
+  var SCORE_BONUS_INTACT   = 200;
+  var SCORE_CREW_KIA       = -100;
+  var OLIVE                = 0x4A5240;
 
-  /* ── Waypoints: 6-point loop around the map ────────────────────────────── */
+  /* ── Z-shape Route: 8 waypoints ─────────────────────────────────────── */
   var WAYPOINTS = [
-    { x:  80, z:   0 },
-    { x:  60, z: -60 },
-    { x:   0, z: -80 },
-    { x: -60, z: -60 },
-    { x: -80, z:   0 },
-    { x:   0, z:  80 },
+    { x: -80, z: -60 },   // WP 0 — start, far left
+    { x: -30, z: -60 },   // WP 1 — move right
+    { x:  30, z: -20 },   // WP 2 — diagonal cross (ambush!)
+    { x:  80, z: -20 },   // WP 3 — far right mid
+    { x:  80, z:  20 },   // WP 4 — same right, shift depth (IED here→5)
+    { x: -30, z:  20 },   // WP 5 — diagonal cross (ambush!)
+    { x: -80, z:  60 },   // WP 6 — far left far (ambush!)
+    { x:   0, z:  60 },   // WP 7 — extraction zone
   ];
 
   /* ── Module state ───────────────────────────────────────────────────────── */
-  var _scene        = null;
-  var _camera       = null;
-  var _inited       = false;
-  var _convoys      = [];       // active convoy instances
-  var _spawnTimer   = 0;        // countdown to next spawn
-  var _pendingCookOffs = [];    // { timer, x, y, z }
+  var _scene       = null;
+  var _camera      = null;
+  var _inited      = false;
 
-  /* ── HUD elements ───────────────────────────────────────────────────────── */
-  var _alertEl      = null;
-  var _arrowEl      = null;
-  var _alertTimer   = 0;
+  /* Convoy state */
+  var _vehicles    = [];   // array of vehicle objects
+  var _wpIndex     = 0;    // leader's current target waypoint
+  var _missionDone = false;
+  var _missionStarted = false;
+
+  /* Boarding */
+  var _boardedVehicleIdx = -1;  // which vehicle player is riding (-1 = none)
+
+  /* Convoy halt */
+  var _leadStopped        = false;
+  var _stopPropagateTimer = 0;
+  var _haltReason         = '';  // 'ambush' | 'ied' | ''
+  var _convoyHalted       = false;
+
+  /* Ambush state */
+  var _ambushTriggered = [false, false, false]; // per AMBUSH_WP entry
+  var _activeEnemies   = [];   // { mesh, hp, pos, fireCooldown, dead }
+  var _ambushActive    = false;
+
+  /* IED state */
+  var _iedSpawned    = false;
+  var _iedDefused    = false;
+  var _iedDetonated  = false;
+  var _iedMesh       = null;
+  var _iedPos        = null;   // THREE.Vector3
+
+  /* Scoring */
+  var _crewKIA         = 0;
+  var _vehiclesIntact  = [true, true, true, true]; // starts all intact
+
+  /* HUD elements */
+  var _hudEl           = null;
+  var _miniConvoyEl    = null;
+  var _contactEl       = null;
+  var _contactTimer    = 0;
+  var _defusePromptEl  = null;
+
+  /* Particle/fire pools */
+  var _fires  = [];   // { mesh, age }
+  var _smokes = [];   // { mesh, vy, life, age }
 
   /* ════════════════════════════════════════════════════════════════════════
      HELPERS
   ═══════════════════════════════════════════════════════════════════════ */
 
-  function _getScene() {
-    return _scene || window._gameScene || null;
-  }
-
-  function _getCamera() {
-    return _camera || window._camera || null;
-  }
+  function _getScene() { return _scene || window._gameScene || null; }
+  function _getCamera() { return _camera || window._camera || null; }
 
   function _getPlayerPos() {
-    if (window.GameManager && window.GameManager.getPlayerPosition) {
-      return window.GameManager.getPlayerPosition();
-    }
+    if (window.GameManager && window.GameManager.getPlayerPosition) return window.GameManager.getPlayerPosition();
     if (window._playerPos) return window._playerPos;
     if (window.player && window.player.position) return window.player.position;
     var cam = _getCamera();
-    if (cam) return cam.position;
-    return null;
+    return cam ? cam.position : null;
   }
 
   function _dist2D(ax, az, bx, bz) {
@@ -98,7 +138,16 @@ window.VehicleConvoy = (function () {
     return 0;
   }
 
-  function _toast(msg, color) {
+  function _lerp(a, b, t) { return a + (b - a) * t; }
+
+  function _lerpAngle(from, to, t) {
+    var diff = to - from;
+    while (diff > Math.PI)  diff -= 2 * Math.PI;
+    while (diff < -Math.PI) diff += 2 * Math.PI;
+    return from + diff * t;
+  }
+
+  function _toast(msg) {
     if (window.HUD && window.HUD.showToast) {
       window.HUD.showToast(msg);
     } else {
@@ -109,7 +158,7 @@ window.VehicleConvoy = (function () {
   function _addScore(delta) {
     if (window.GameManager && window.GameManager.addScore) {
       window.GameManager.addScore(delta);
-    } else if (window._score !== undefined) {
+    } else if (typeof window._score === 'number') {
       window._score += delta;
     }
   }
@@ -117,543 +166,483 @@ window.VehicleConvoy = (function () {
   function _playerTakeDamage(amt) {
     if (window.GameManager && window.GameManager.damagePlayer) {
       window.GameManager.damagePlayer(amt);
-    } else if (window._playerHP !== undefined) {
+    } else if (typeof window._playerHP === 'number') {
       window._playerHP = Math.max(0, window._playerHP - amt);
     }
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     HUD — alert banner + convoy arrow
-  ═══════════════════════════════════════════════════════════════════════ */
-
-  function _ensureAlertEl() {
-    if (_alertEl) return;
-    _alertEl = document.createElement('div');
-    _alertEl.id = 'convoy-alert';
-    _alertEl.style.cssText = [
-      'position:fixed',
-      'top:18%',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'padding:10px 28px',
-      'background:rgba(255,80,0,0.85)',
-      'color:#fff',
-      'font-family:monospace',
-      'font-size:22px',
-      'font-weight:bold',
-      'letter-spacing:4px',
-      'border:2px solid #ff6600',
-      'box-shadow:0 0 24px #ff6600',
-      'pointer-events:none',
-      'z-index:9100',
-      'display:none',
-      'text-align:center',
-    ].join(';');
-    document.body.appendChild(_alertEl);
-  }
-
-  function _ensureArrowEl() {
-    if (_arrowEl) return;
-    _arrowEl = document.createElement('div');
-    _arrowEl.id = 'convoy-arrow';
-    _arrowEl.style.cssText = [
-      'position:fixed',
-      'top:50%',
-      'left:50%',
-      'transform:translate(-50%,-50%)',
-      'font-size:36px',
-      'color:#ff6600',
-      'text-shadow:0 0 12px #ff6600',
-      'pointer-events:none',
-      'z-index:9101',
-      'display:none',
-    ].join(';');
-    _arrowEl.textContent = '▶';
-    document.body.appendChild(_arrowEl);
-  }
-
-  function _showConvoyAlert() {
-    _ensureAlertEl();
-    _alertEl.textContent = '⚠ CONVOY INCOMING ⚠';
-    _alertEl.style.display = 'block';
-    _alertTimer = 4;
-  }
-
-  function _showConvoyEscaped() {
-    _ensureAlertEl();
-    _alertEl.textContent = '✗ CONVOY ESCAPED';
-    _alertEl.style.background = 'rgba(200,0,0,0.85)';
-    _alertEl.style.borderColor = '#ff0000';
-    _alertEl.style.display = 'block';
-    _alertTimer = 5;
-    _toast('CONVOY ESCAPED! -100 score');
-    _addScore(-100);
-    window._convoyEscaped = true;
-  }
-
-  function _updateHUD(dt, convoy) {
-    /* alert timer */
-    if (_alertTimer > 0) {
-      _alertTimer -= dt;
-      if (_alertTimer <= 0 && _alertEl) {
-        _alertEl.style.display = 'none';
-      }
-    }
-
-    /* arrow pointing toward convoy leader */
-    _ensureArrowEl();
-    if (!convoy || !convoy.active) {
-      _arrowEl.style.display = 'none';
-      return;
-    }
-
-    var playerPos = _getPlayerPos();
-    var cam = _getCamera();
-    if (!playerPos || !cam) { _arrowEl.style.display = 'none'; return; }
-
-    var leader = convoy.vehicles[0];
-    if (!leader || leader.destroyed) { _arrowEl.style.display = 'none'; return; }
-
-    /* 2-D angle from player to convoy leader, relative to camera yaw */
-    var dx = leader.mesh.position.x - playerPos.x;
-    var dz = leader.mesh.position.z - playerPos.z;
-    var worldAngle = Math.atan2(dx, dz);
-
-    /* camera forward yaw */
-    var camYaw = 0;
-    if (cam.getWorldDirection) {
-      var fwd = new THREE.Vector3();
-      cam.getWorldDirection(fwd);
-      camYaw = Math.atan2(fwd.x, fwd.z);
-    }
-
-    var relAngle = worldAngle - camYaw;
-    /* edge position on screen */
-    var margin = 80;
-    var hw = window.innerWidth / 2 - margin;
-    var hh = window.innerHeight / 2 - margin;
-    var ex = Math.sin(relAngle) * hw;
-    var ey = -Math.cos(relAngle) * hh;
-
-    _arrowEl.style.display = 'block';
-    _arrowEl.style.transform = 'translate(calc(-50% + ' + ex + 'px), calc(-50% + ' + ey + 'px)) rotate(' + (relAngle * 180 / Math.PI) + 'deg)';
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     MINIMAP ICON — truck emoji on TacticalMinimap/TacticalMap canvas
-  ═══════════════════════════════════════════════════════════════════════ */
-
-  function _updateMinimap(convoy) {
-    if (!convoy || !convoy.active) return;
-    var leader = convoy.vehicles[0];
-    if (!leader || leader.destroyed) return;
-
-    var map = window.TacticalMinimap || window.TacticalMap;
-    if (!map || !map.addCustomIcon) return; // graceful — no minimap API
-    try {
-      map.addCustomIcon({
-        id: 'convoy_icon',
-        x: leader.mesh.position.x,
-        z: leader.mesh.position.z,
-        label: '🚛',
-        color: '#ff6600',
-      });
-    } catch (e) {}
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      MESH BUILDERS
   ═══════════════════════════════════════════════════════════════════════ */
 
-  function _makeMaterial(color) {
+  function _mat(color) {
     return new THREE.MeshLambertMaterial({ color: color });
   }
 
-  /* Build 4 wheels for a vehicle and attach to chassis group */
-  function _addWheels(group, bodyW, bodyH, bodyD) {
-    var wheelR  = 0.35;
-    var wheelT  = 0.25;
-    var wGeo    = new THREE.CylinderGeometry(wheelR, wheelR, wheelT, 10);
-    var wMat    = new THREE.MeshLambertMaterial({ color: 0x222222 });
-
-    /* positions: front-left, front-right, rear-left, rear-right */
+  function _addWheels(group, w, h, d) {
+    var wR  = 0.35;
+    var wT  = 0.22;
+    var geo = new THREE.CylinderGeometry(wR, wR, wT, 8);
+    var mat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+    var xO  = w / 2 + wT / 2;
+    var yO  = -(h / 2) + wR * 0.8;
     var offsets = [
-      { x: -(bodyW / 2 + wheelT / 2), z:  bodyD / 3 },
-      { x:  (bodyW / 2 + wheelT / 2), z:  bodyD / 3 },
-      { x: -(bodyW / 2 + wheelT / 2), z: -bodyD / 3 },
-      { x:  (bodyW / 2 + wheelT / 2), z: -bodyD / 3 },
+      { x: -xO, z:  d * 0.3 },
+      { x:  xO, z:  d * 0.3 },
+      { x: -xO, z: -d * 0.3 },
+      { x:  xO, z: -d * 0.3 },
     ];
-
     var wheels = [];
-    for (var i = 0; i < offsets.length; i++) {
-      var w = new THREE.Mesh(wGeo, wMat);
-      /* rotate to horizontal (cylinder axis is Y by default, we want Z) */
-      w.rotation.z = Math.PI / 2;
-      w.position.set(offsets[i].x, -(bodyH / 2 - wheelR), offsets[i].z);
-      group.add(w);
-      wheels.push(w);
+    for (var i = 0; i < 4; i++) {
+      var wm = new THREE.Mesh(geo, mat);
+      wm.rotation.z = Math.PI / 2;
+      wm.position.set(offsets[i].x, yO, offsets[i].z);
+      group.add(wm);
+      wheels.push(wm);
     }
     return wheels;
   }
 
-  function _buildLeadCar() {
+  function _buildHumvee() {
     var group = new THREE.Group();
-    var geo   = new THREE.BoxGeometry(3, 1.2, 1.5);
-    var mat   = _makeMaterial(0x2d4a2d); /* dark green */
-    var body  = new THREE.Mesh(geo, mat);
+    /* Body 3×2×1.5 */
+    var body = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 1.5), _mat(OLIVE));
     body.castShadow = true;
     group.add(body);
-    var wheels = _addWheels(group, 3, 1.2, 1.5);
-    group._wheels = wheels;
+    /* Roof gun mount */
+    var turret = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.6), _mat(0x2a2e28));
+    turret.position.set(0, 1.2, 0.2);
+    group.add(turret);
+    group._wheels = _addWheels(group, 3, 2, 1.5);
+    group._bodyH  = 2;
+    group._type   = 'humvee';
     return group;
   }
 
   function _buildCargoTruck() {
     var group = new THREE.Group();
-    var geo   = new THREE.BoxGeometry(4, 2, 1.8);
-    var mat   = _makeMaterial(0xc3b280); /* khaki */
-    var body  = new THREE.Mesh(geo, mat);
-    body.castShadow = true;
-    group.add(body);
-    var wheels = _addWheels(group, 4, 2, 1.8);
-    group._wheels = wheels;
+    /* Cab 2×2×2.5 — front */
+    var cab = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2.5), _mat(OLIVE));
+    cab.position.set(0, 0, -1.75);  // forward
+    cab.castShadow = true;
+    group.add(cab);
+    /* Flatbed 5×1×2 — rear */
+    var bed = new THREE.Mesh(new THREE.BoxGeometry(5, 1, 2), _mat(0x3d4035));
+    bed.position.set(0, -0.5, 1.5);  // behind cab, lower
+    bed.castShadow = true;
+    group.add(bed);
+    /* Cargo box on bed */
+    var cargo = new THREE.Mesh(new THREE.BoxGeometry(4, 1.4, 1.8), _mat(0x5a5e52));
+    cargo.position.set(0, 0.7, 1.5);
+    group.add(cargo);
+    group._wheels = _addWheels(group, 5, 2, 4.5);
+    group._bodyH  = 2;
+    group._type   = 'truck';
     return group;
-  }
-
-  function _buildEscortCar() {
-    return _buildLeadCar(); /* same geometry as lead */
-  }
-
-  /* Build 2 gunner pawns sitting on roof of an escort vehicle */
-  function _buildGunners(escortGroup, bodyH) {
-    var gunners = [];
-    var gGeo = new THREE.BoxGeometry(0.4, 0.8, 0.4);
-    var gMat = new THREE.MeshLambertMaterial({ color: 0x3a3a3a });
-    var xOffsets = [-0.6, 0.6];
-    for (var i = 0; i < 2; i++) {
-      var g = new THREE.Mesh(gGeo, gMat);
-      g.position.set(xOffsets[i], bodyH / 2 + 0.4, 0);
-      escortGroup.add(g);
-      gunners.push({ mesh: g, hp: 50, fireCooldown: Math.random() * GUNNER_FIRE_RATE, alive: true });
-    }
-    return gunners;
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     EXPLOSION & SMOKE VFX
-  ═══════════════════════════════════════════════════════════════════════ */
-
-  function _spawnExplosionLight(pos) {
-    var sc = _getScene();
-    if (!sc) return;
-    var light = new THREE.PointLight(0xff6600, 8, 20);
-    light.position.copy(pos);
-    light.position.y += 1;
-    sc.add(light);
-    /* fade out */
-    var elapsed = 0;
-    var tid = setInterval(function () {
-      elapsed += 0.05;
-      light.intensity = Math.max(0, 8 - elapsed * 20);
-      if (elapsed >= 0.4) {
-        sc.remove(light);
-        clearInterval(tid);
-      }
-    }, 50);
-  }
-
-  function _spawnSmoke(pos) {
-    var sc = _getScene();
-    if (!sc) return;
-    var smokes = [];
-    var sMat = new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.7 });
-    for (var i = 0; i < SMOKE_COUNT; i++) {
-      var sGeo = new THREE.SphereGeometry(0.25 + Math.random() * 0.25, 6, 6);
-      var s = new THREE.Mesh(sGeo, sMat.clone());
-      s.position.set(
-        pos.x + (Math.random() - 0.5) * 2,
-        pos.y + 0.5,
-        pos.z + (Math.random() - 0.5) * 2
-      );
-      s._vy    = 1.5 + Math.random() * 2;
-      s._life  = 2 + Math.random() * 1.5;
-      s._age   = 0;
-      sc.add(s);
-      smokes.push(s);
-    }
-    /* animate smoke on interval */
-    var interval = setInterval(function () {
-      var allDone = true;
-      for (var j = 0; j < smokes.length; j++) {
-        var s = smokes[j];
-        if (!s._done) {
-          s._age += 0.05;
-          s.position.y += s._vy * 0.05;
-          s.material.opacity = Math.max(0, 0.7 * (1 - s._age / s._life));
-          if (s._age >= s._life) {
-            sc.remove(s);
-            s._done = true;
-          } else {
-            allDone = false;
-          }
-        }
-      }
-      if (allDone) clearInterval(interval);
-    }, 50);
-  }
-
-  function _destroyVehicleVFX(veh) {
-    var pos = veh.mesh.position;
-    _spawnExplosionLight(pos);
-    _spawnSmoke(pos);
-    if (window.AudioSystem && window.AudioSystem.playExplosion) {
-      window.AudioSystem.playExplosion();
-    }
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     LOOT DROP — truck cargo
-  ═══════════════════════════════════════════════════════════════════════ */
-
-  function _spawnLoot(pos) {
-    /* Try AirdropSupply.spawnCrate first */
-    if (window.AirdropSupply && window.AirdropSupply.spawnCrate) {
-      try { window.AirdropSupply.spawnCrate(pos.x, pos.y, pos.z); return; } catch (e) {}
-    }
-    /* Fallback: simple loot box */
-    var sc = _getScene();
-    if (!sc) return;
-    var geo = new THREE.BoxGeometry(1, 1, 1);
-    var mat = new THREE.MeshLambertMaterial({ color: 0xffd700 });
-    var box = new THREE.Mesh(geo, mat);
-    box.position.copy(pos);
-    box.position.y += 0.5;
-    sc.add(box);
-    box._isLoot = true;
-    box._convoyLoot = true;
-    /* Make it collectible */
-    if (!window._convoyLootBoxes) window._convoyLootBoxes = [];
-    window._convoyLootBoxes.push(box);
-    _toast('SUPPLY CRATE DROPPED — ammo + health inside!');
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     COOK-OFF — secondary explosion from truck ammo
-  ═══════════════════════════════════════════════════════════════════════ */
-
-  function _triggerCookOff(pos) {
-    _pendingCookOffs.push({ timer: COOK_OFF_DELAY, x: pos.x, y: pos.y, z: pos.z });
-  }
-
-  function _updateCookOffs(dt) {
-    for (var i = _pendingCookOffs.length - 1; i >= 0; i--) {
-      var co = _pendingCookOffs[i];
-      co.timer -= dt;
-      if (co.timer <= 0) {
-        _pendingCookOffs.splice(i, 1);
-        var coPos = new THREE.Vector3(co.x, co.y, co.z);
-        _spawnExplosionLight(coPos);
-        _spawnSmoke(coPos);
-        _toast('AMMO COOK-OFF! Secondary explosion!');
-        /* damage player if within radius */
-        var pPos = _getPlayerPos();
-        if (pPos) {
-          var d = _dist3D(pPos, coPos);
-          if (d < COOK_OFF_RADIUS) {
-            var dmg = Math.round(COOK_OFF_DAMAGE * (1 - d / COOK_OFF_RADIUS));
-            _playerTakeDamage(dmg);
-          }
-        }
-        if (window.AudioSystem && window.AudioSystem.playExplosion) {
-          window.AudioSystem.playExplosion();
-        }
-      }
-    }
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      VEHICLE OBJECT FACTORY
   ═══════════════════════════════════════════════════════════════════════ */
 
-  function _makeVehicle(type, index) {
-    var mesh, hp, bodyH;
-    if (type === 'lead' || type === 'escort') {
-      mesh  = (type === 'lead') ? _buildLeadCar() : _buildEscortCar();
-      hp    = 200;
-      bodyH = 1.2;
+  function _makeVehicle(role, idx) {
+    var mesh, maxHp;
+    if (role === 'humvee') {
+      mesh  = _buildHumvee();
+      maxHp = HUMVEE_HP;
     } else {
       mesh  = _buildCargoTruck();
-      hp    = 150;
-      bodyH = 2;
+      maxHp = TRUCK_HP;
     }
 
     var sc = _getScene();
     if (sc) sc.add(mesh);
 
-    var gunners = [];
-    if (type === 'escort') {
-      gunners = _buildGunners(mesh, bodyH);
-    }
-
     return {
-      type:        type,
-      index:       index,   /* 0=lead, 1=truck, 2=escort */
+      role:        role,     // 'humvee' or 'truck'
+      idx:         idx,      // 0-3
       mesh:        mesh,
-      hp:          hp,
-      maxHp:       hp,
+      hp:          maxHp,
+      maxHp:       maxHp,
       destroyed:   false,
-      wrecked:     false,   /* static wreck left behind */
-      gunners:     gunners,
+      damageTaken: 0,
       _wheelAngle: 0,
+      _heading:    0,        // current facing angle (radians)
+      _stopTimer:  0,        // stop propagation timer for this vehicle
+      _isStopped:  false,
     };
   }
 
   /* ════════════════════════════════════════════════════════════════════════
-     CONVOY FACTORY
+     IED
   ═══════════════════════════════════════════════════════════════════════ */
 
-  function _createConvoy() {
+  function _spawnIED() {
+    if (_iedSpawned) return;
     var sc = _getScene();
-    if (!sc) return null;
+    if (!sc) return;
 
-    /* Start position: first waypoint */
-    var wp0 = WAYPOINTS[0];
-    var startX = wp0.x;
-    var startZ = wp0.z;
-    var startY = _terrainY(startX, startZ) + 0.9;
+    /* Place IED midway between WP[IED_SEGMENT] and WP[IED_SEGMENT+1] */
+    var wpa = WAYPOINTS[IED_SEGMENT];
+    var wpb = WAYPOINTS[IED_SEGMENT + 1];
+    var mx  = (wpa.x + wpb.x) / 2;
+    var mz  = (wpa.z + wpb.z) / 2;
+    var my  = _terrainY(mx, mz);
 
-    var vehicles = [
-      _makeVehicle('lead',   0),
-      _makeVehicle('truck',  1),
-      _makeVehicle('escort', 2),
-    ];
+    _iedPos = new THREE.Vector3(mx, my + 0.05, mz);
 
-    /* Stagger positions along convoy's initial direction (toward wp[1]) */
-    var wp1 = WAYPOINTS[1];
-    var dx = wp1.x - wp0.x, dz = wp1.z - wp0.z;
-    var len = Math.sqrt(dx * dx + dz * dz);
-    var nx = dx / len, nz = dz / len;
+    /* Small buried box — darker than terrain */
+    var geo = new THREE.BoxGeometry(0.6, 0.15, 0.6);
+    var mat = new THREE.MeshLambertMaterial({ color: 0x2a1800, emissive: 0x330000 });
+    _iedMesh = new THREE.Mesh(geo, mat);
+    _iedMesh.position.copy(_iedPos);
+    sc.add(_iedMesh);
 
-    for (var i = 0; i < vehicles.length; i++) {
-      var offset = i * VEHICLE_SPACING;
-      vehicles[i].mesh.position.set(
-        startX - nx * offset,
-        startY,
-        startZ - nz * offset
-      );
-    }
-
-    var convoy = {
-      vehicles:      vehicles,
-      wpIndex:       0,       /* leader's current waypoint target */
-      active:        true,
-      nearbyAlerted: false,
-      escaped:       false,
-      destroyCount:  0,
-    };
-
-    return convoy;
+    _iedSpawned   = true;
+    _iedDefused   = false;
+    _iedDetonated = false;
+    _toast('IED DETECTED ON ROUTE — defuse before convoy reaches segment 5!');
+    window._iedOnRoute = true;
   }
 
-  /* ════════════════════════════════════════════════════════════════════════
-     DESTROY A VEHICLE
-  ═══════════════════════════════════════════════════════════════════════ */
+  function _detonateIED(triggerVeh) {
+    if (_iedDetonated || _iedDefused) return;
+    _iedDetonated = true;
+    window._iedOnRoute = false;
 
-  function _destroyVehicle(convoy, veh) {
-    if (veh.destroyed) return;
-    veh.destroyed = true;
+    var sc = _getScene();
+    if (sc && _iedMesh) sc.remove(_iedMesh);
+    _iedMesh = null;
 
-    _destroyVehicleVFX(veh);
-
-    /* Remove gunners from scene */
-    for (var g = 0; g < veh.gunners.length; g++) {
-      veh.gunners[g].alive = false;
-      veh.mesh.remove(veh.gunners[g].mesh);
+    /* VFX */
+    if (_iedPos) {
+      _spawnFireAt(_iedPos, 3.0);
+      _spawnSmokeAt(_iedPos, 12);
+      _spawnExplosionLight(_iedPos, 0xff4400, 12, 25);
     }
 
-    /* Leave a static wreck (darken the mesh) */
-    veh.mesh.traverse(function (child) {
-      if (child.isMesh && child.material) {
-        child.material = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
-      }
-    });
-    veh.wrecked = true;
+    if (window.AudioSystem && window.AudioSystem.playExplosion) {
+      window.AudioSystem.playExplosion();
+    }
+    _toast('IED DETONATED! Vehicle hit!');
 
-    convoy.destroyCount++;
-
-    /* Truck-specific */
-    if (veh.type === 'truck') {
-      _spawnLoot(veh.mesh.position);
-      _triggerCookOff(veh.mesh.position);
-      _toast('CARGO TRUCK DESTROYED — COOK-OFF INCOMING!');
-    } else {
-      _toast((veh.type === 'lead' ? 'LEAD VEHICLE' : 'REAR ESCORT') + ' DESTROYED!');
+    /* Damage the triggering vehicle */
+    if (triggerVeh) {
+      _damageVehicle(triggerVeh, IED_EXPLOSION_DAMAGE);
     }
 
-    _addScore(150);
-
-    /* Check mission complete */
-    if (convoy.destroyCount >= 3) {
-      _toast('ALL CONVOY VEHICLES DESTROYED! Mission complete!');
-      convoy.active = false;
-      window._convoyNearby = false;
-    }
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     DAMAGE API — called by weapons/explosions to damage a convoy vehicle
-  ═══════════════════════════════════════════════════════════════════════ */
-
-  function _damageVehicle(convoy, veh, amount) {
-    if (veh.destroyed) return;
-    veh.hp -= amount;
-    if (veh.hp <= 0) {
-      _destroyVehicle(convoy, veh);
-    }
-  }
-
-  /* Expose a global hook so other systems can damage convoy vehicles */
-  function _buildHitTestHook(convoy) {
-    if (!window._convoyHitTargets) window._convoyHitTargets = [];
-    for (var i = 0; i < convoy.vehicles.length; i++) {
-      (function (veh, idx) {
-        window._convoyHitTargets.push({
-          mesh:    veh.mesh,
-          onHit:   function (damage) { _damageVehicle(convoy, veh, damage || 10); },
-          convoy:  convoy,
-        });
-      })(convoy.vehicles[i], i);
-    }
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     GUNNER AI — fire at player
-  ═══════════════════════════════════════════════════════════════════════ */
-
-  function _updateGunners(dt, veh) {
-    if (veh.destroyed || veh.type !== 'escort') return;
+    /* Damage player if nearby */
     var pPos = _getPlayerPos();
-    if (!pPos) return;
-    var d = _dist2D(veh.mesh.position.x, veh.mesh.position.z, pPos.x, pPos.z);
-    if (d > GUNNER_FIRE_DIST) return;
+    if (pPos && _iedPos) {
+      var d = _dist3D(pPos, _iedPos);
+      if (d < IED_EXPLOSION_RANGE) {
+        var dmg = Math.round(IED_EXPLOSION_DAMAGE * (1 - d / IED_EXPLOSION_RANGE));
+        _playerTakeDamage(dmg);
+      }
+    }
+  }
 
-    for (var g = 0; g < veh.gunners.length; g++) {
-      var gn = veh.gunners[g];
-      if (!gn.alive) continue;
-      gn.fireCooldown -= dt;
-      if (gn.fireCooldown <= 0) {
-        gn.fireCooldown = GUNNER_FIRE_RATE + (Math.random() - 0.5) * 0.5;
-        /* Simple hit probability (30%) — player can dodge */
-        if (Math.random() < 0.30) {
-          _playerTakeDamage(GUNNER_DAMAGE);
-          if (window.AudioSystem && window.AudioSystem.playHit) {
-            window.AudioSystem.playHit();
+  function _defuseIED() {
+    if (_iedDefused || _iedDetonated || !_iedSpawned) return;
+    _iedDefused = true;
+    window._iedOnRoute = false;
+
+    var sc = _getScene();
+    if (sc && _iedMesh) sc.remove(_iedMesh);
+    _iedMesh = null;
+
+    _toast('IED DEFUSED! Route clear.');
+    _addScore(300);
+    if (_defusePromptEl) _defusePromptEl.style.display = 'none';
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     AMBUSH SPAWNING
+  ═══════════════════════════════════════════════════════════════════════ */
+
+  function _spawnAmbushAt(wpIdx) {
+    var sc = _getScene();
+    if (!sc) return;
+
+    var wp    = WAYPOINTS[wpIdx];
+    var count = 2 + Math.floor(Math.random() * 3); // 2-4
+    var geo   = new THREE.BoxGeometry(0.5, 1.8, 0.5);
+    var mat   = new THREE.MeshLambertMaterial({ color: 0x8B0000 });
+    var wpXZ  = { x: wp.x, z: wp.z };
+
+    /* Spawn from flanks (perpendicular to convoy direction) */
+    for (var i = 0; i < count; i++) {
+      var side   = (i % 2 === 0) ? 1 : -1;
+      var spread = 8 + Math.random() * 6;
+      var ex     = wp.x + side * spread;
+      var ez     = wp.z + (Math.random() - 0.5) * 10;
+      var ey     = _terrainY(ex, ez) + 0.9;
+
+      var m = new THREE.Mesh(geo, mat);
+      m.position.set(ex, ey, ez);
+      sc.add(m);
+
+      _activeEnemies.push({
+        mesh:         m,
+        hp:           60,
+        fireCooldown: 1 + Math.random() * 2,
+        dead:         false,
+        wpTarget:     wpXZ,
+      });
+    }
+
+    _ambushActive = true;
+    _convoyHalted = true;
+    _haltReason   = 'ambush';
+
+    /* Find direction of enemies relative to convoy */
+    var leader = _vehicles[0];
+    var dir    = 'FLANK';
+    if (leader && !leader.destroyed) {
+      var dx = wp.x - leader.mesh.position.x;
+      var dz = wp.z - leader.mesh.position.z;
+      var a  = Math.atan2(dx, dz) * 180 / Math.PI;
+      if (a > -45 && a < 45)        dir = 'NORTH';
+      else if (a >= 45 && a < 135)  dir = 'EAST';
+      else if (a >= 135 || a < -135) dir = 'SOUTH';
+      else                           dir = 'WEST';
+    }
+    _showContact(dir);
+    _toast('CONTACT ' + dir + '! Eliminate hostiles to resume convoy!');
+
+    /* Passengers dismount and crouch (visual: sink vehicle Y slightly) */
+    for (var v = 0; v < _vehicles.length; v++) {
+      if (!_vehicles[v].destroyed) {
+        _vehicles[v]._isStopped = true;
+      }
+    }
+  }
+
+  function _updateAmbushEnemies(dt) {
+    if (!_ambushActive) return;
+
+    var pPos   = _getPlayerPos();
+    var allDead = true;
+
+    for (var i = 0; i < _activeEnemies.length; i++) {
+      var e = _activeEnemies[i];
+      if (e.dead) continue;
+      allDead = false;
+
+      /* Fire at player */
+      if (pPos) {
+        e.fireCooldown -= dt;
+        var dist = _dist2D(e.mesh.position.x, e.mesh.position.z, pPos.x, pPos.z);
+        if (e.fireCooldown <= 0 && dist < 40) {
+          e.fireCooldown = 1.5 + Math.random() * 1.5;
+          if (Math.random() < 0.25) {
+            _playerTakeDamage(12);
           }
         }
-        /* Muzzle flash on gunner */
-        if (window.AudioSystem && window.AudioSystem.playGunshot) {
-          window.AudioSystem.playGunshot();
+
+        /* Slow advance toward convoy */
+        if (dist > 5) {
+          var dx = pPos.x - e.mesh.position.x;
+          var dz = pPos.z - e.mesh.position.z;
+          var dl = Math.sqrt(dx * dx + dz * dz);
+          if (dl > 0.01) {
+            e.mesh.position.x += (dx / dl) * 1.5 * dt;
+            e.mesh.position.z += (dz / dl) * 1.5 * dt;
+          }
         }
+      }
+    }
+
+    if (allDead) {
+      _ambushActive  = false;
+      _convoyHalted  = false;
+      _haltReason    = '';
+      /* Resume vehicles */
+      for (var vi = 0; vi < _vehicles.length; vi++) {
+        _vehicles[vi]._isStopped = false;
+        _vehicles[vi]._stopTimer = 0;
+      }
+      _activeEnemies = [];
+      _toast('HOSTILES ELIMINATED — CONVOY RESUMING');
+    }
+  }
+
+  /* Called by weapons / hit system */
+  function damageEnemy(enemyMesh, amount) {
+    for (var i = 0; i < _activeEnemies.length; i++) {
+      var e = _activeEnemies[i];
+      if (e.dead) continue;
+      if (e.mesh === enemyMesh) {
+        e.hp -= (amount || 10);
+        if (e.hp <= 0) {
+          e.dead = true;
+          var sc = _getScene();
+          if (sc) sc.remove(e.mesh);
+          _addScore(50);
+        }
+        break;
+      }
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     VEHICLE DAMAGE & DESTRUCTION
+  ═══════════════════════════════════════════════════════════════════════ */
+
+  function _damageVehicle(veh, amount) {
+    if (veh.destroyed) return;
+    veh.hp        -= amount;
+    veh.damageTaken += amount;
+    _vehiclesIntact[veh.idx] = false;
+
+    /* Flash red tint */
+    veh.mesh.traverse(function (child) {
+      if (child.isMesh && child.material) {
+        child.material.emissive = new THREE.Color(0.4, 0, 0);
+      }
+    });
+    setTimeout(function () {
+      if (!veh.destroyed) {
+        veh.mesh.traverse(function (child) {
+          if (child.isMesh && child.material) {
+            child.material.emissive = new THREE.Color(0, 0, 0);
+          }
+        });
+      }
+    }, 200);
+
+    if (veh.hp <= 0) {
+      _destroyVehicle(veh);
+    }
+  }
+
+  function _destroyVehicle(veh) {
+    if (veh.destroyed) return;
+    veh.destroyed = true;
+    veh.hp        = 0;
+
+    /* VFX */
+    var pos = veh.mesh.position;
+    _spawnFireAt(pos, 5.0);
+    _spawnSmokeAt(pos, 16);
+    _spawnExplosionLight(pos, 0xff5500, 10, 20);
+
+    if (window.AudioSystem && window.AudioSystem.playExplosion) {
+      window.AudioSystem.playExplosion();
+    }
+
+    /* Darken wreck */
+    veh.mesh.traverse(function (child) {
+      if (child.isMesh) {
+        child.material = new THREE.MeshLambertMaterial({ color: 0x111111 });
+      }
+    });
+
+    if (veh.role === 'humvee') {
+      _crewKIA += CREW_PER_HUMVEE;
+      _toast('HUMVEE DESTROYED — ' + CREW_PER_HUMVEE + ' CREW KIA!');
+    } else {
+      _toast('CARGO TRUCK DESTROYED!');
+    }
+
+    /* Check if we can bypass wreck — mark convoy to steer around */
+    _scheduleBypass(veh);
+  }
+
+  function _scheduleBypass(destroyedVeh) {
+    /* Mark the destroyed vehicle as a bypass obstacle.
+       Followers will receive a lateral offset for 8 s. */
+    destroyedVeh._bypassOffset = 5;   // lateral offset units
+    destroyedVeh._bypassTimer  = 8;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     VFX — fire, smoke, light
+  ═══════════════════════════════════════════════════════════════════════ */
+
+  function _spawnFireAt(pos, life) {
+    var sc = _getScene();
+    if (!sc) return;
+    var geo = new THREE.SphereGeometry(0.5 + Math.random() * 0.4, 6, 6);
+    var mat = new THREE.MeshBasicMaterial({
+      color:       0xff4400,
+      transparent: true,
+      opacity:     0.9,
+    });
+    var m = new THREE.Mesh(geo, mat);
+    m.position.set(pos.x + (Math.random() - 0.5), pos.y + 0.5, pos.z + (Math.random() - 0.5));
+    sc.add(m);
+    _fires.push({ mesh: m, age: 0, life: life || 4, mat: mat });
+  }
+
+  function _spawnSmokeAt(pos, count) {
+    var sc = _getScene();
+    if (!sc) return;
+    var cnt = count || 8;
+    for (var i = 0; i < cnt; i++) {
+      var geo = new THREE.SphereGeometry(0.3 + Math.random() * 0.3, 5, 5);
+      var mat = new THREE.MeshBasicMaterial({
+        color:       0x111111,
+        transparent: true,
+        opacity:     0.7,
+      });
+      var m = new THREE.Mesh(geo, mat);
+      m.position.set(
+        pos.x + (Math.random() - 0.5) * 2,
+        pos.y + 0.5 + Math.random(),
+        pos.z + (Math.random() - 0.5) * 2
+      );
+      sc.add(m);
+      _smokes.push({
+        mesh: m,
+        mat:  mat,
+        vy:   1.5 + Math.random() * 2,
+        life: 2.5 + Math.random() * 1.5,
+        age:  0,
+      });
+    }
+  }
+
+  function _spawnExplosionLight(pos, color, intensity, distance) {
+    var sc = _getScene();
+    if (!sc) return;
+    var light = new THREE.PointLight(color || 0xff4400, intensity || 8, distance || 20);
+    light.position.set(pos.x, pos.y + 1, pos.z);
+    sc.add(light);
+    var elapsed = 0;
+    var interval = setInterval(function () {
+      elapsed += 0.05;
+      light.intensity = Math.max(0, (intensity || 8) - elapsed * 22);
+      if (elapsed >= 0.5) {
+        sc.remove(light);
+        clearInterval(interval);
+      }
+    }, 50);
+  }
+
+  function _updateVFX(dt) {
+    var sc = _getScene();
+    /* Fires */
+    for (var i = _fires.length - 1; i >= 0; i--) {
+      var f = _fires[i];
+      f.age += dt;
+      f.mesh.position.y += 1.5 * dt;
+      f.mesh.scale.setScalar(_lerp(1, 0.2, f.age / f.life));
+      if (f.mat) f.mat.opacity = Math.max(0, 0.9 * (1 - f.age / f.life));
+      if (f.age >= f.life) {
+        if (sc) sc.remove(f.mesh);
+        _fires.splice(i, 1);
+      }
+    }
+    /* Smokes */
+    for (var j = _smokes.length - 1; j >= 0; j--) {
+      var s = _smokes[j];
+      s.age += dt;
+      s.mesh.position.y += s.vy * dt;
+      if (s.mat) s.mat.opacity = Math.max(0, 0.7 * (1 - s.age / s.life));
+      if (s.age >= s.life) {
+        if (sc) sc.remove(s.mesh);
+        _smokes.splice(j, 1);
       }
     }
   }
@@ -662,146 +651,586 @@ window.VehicleConvoy = (function () {
      CONVOY MOVEMENT
   ═══════════════════════════════════════════════════════════════════════ */
 
-  function _updateConvoy(dt, convoy) {
-    if (!convoy.active) return;
+  function _updateConvoyMovement(dt) {
+    if (!_missionStarted || _missionDone) return;
 
-    var vehicles = convoy.vehicles;
-    var leader   = vehicles[0];
+    var leader = _vehicles[0];
 
-    /* Advance leader along waypoints */
-    var targetWp = WAYPOINTS[convoy.wpIndex % WAYPOINTS.length];
-    var lx = leader.destroyed ? (vehicles[1] && !vehicles[1].destroyed ? vehicles[1].mesh.position.x : null) : leader.mesh.position.x;
-    var lz = leader.destroyed ? (vehicles[1] && !vehicles[1].destroyed ? vehicles[1].mesh.position.z : null) : leader.mesh.position.z;
+    /* Find effective leader (first non-destroyed vehicle) */
+    var effectiveLeader = null;
+    for (var v = 0; v < _vehicles.length; v++) {
+      if (!_vehicles[v].destroyed) { effectiveLeader = _vehicles[v]; break; }
+    }
+    if (!effectiveLeader) return;
 
-    if (lx !== null) {
-      var dToWp = _dist2D(lx, lz, targetWp.x, targetWp.z);
-      if (dToWp < WP_REACH) {
-        convoy.wpIndex++;
-        /* Check escape: completed full loop (all 6 waypoints) */
-        if (convoy.wpIndex >= WAYPOINTS.length) {
-          _onConvoyEscape(convoy);
+    /* Advance waypoint for effective leader */
+    if (!_convoyHalted && !_leadStopped) {
+      var wp  = WAYPOINTS[_wpIndex];
+      var lx  = effectiveLeader.mesh.position.x;
+      var lz  = effectiveLeader.mesh.position.z;
+      var dWp = _dist2D(lx, lz, wp.x, wp.z);
+
+      if (dWp < WP_REACH) {
+        _wpIndex++;
+
+        /* Spawn IED when convoy is about to enter IED segment */
+        if (_wpIndex === IED_SEGMENT && !_iedSpawned) {
+          _spawnIED();
+        }
+
+        /* Check ambush triggers */
+        for (var ai = 0; ai < AMBUSH_WP.length; ai++) {
+          if (_wpIndex === AMBUSH_WP[ai] && !_ambushTriggered[ai]) {
+            _ambushTriggered[ai] = true;
+            _spawnAmbushAt(AMBUSH_WP[ai]);
+          }
+        }
+
+        if (_wpIndex >= WAYPOINTS.length) {
+          _finishMission();
           return;
         }
-        targetWp = WAYPOINTS[convoy.wpIndex % WAYPOINTS.length];
       }
     }
 
     /* Move each vehicle */
-    for (var i = 0; i < vehicles.length; i++) {
-      var veh = vehicles[i];
+    for (var i = 0; i < _vehicles.length; i++) {
+      var veh = _vehicles[i];
       if (veh.destroyed) continue;
+      if (_convoyHalted && !_ambushActive) continue; // only ambush can halt
 
-      var targetX, targetZ;
-      if (i === 0) {
-        /* Leader follows waypoints */
-        targetX = targetWp.x;
-        targetZ = targetWp.z;
-      } else {
-        /* Follower trails previous vehicle */
-        var prev = vehicles[i - 1];
-        /* Find a point VEHICLE_SPACING behind the previous vehicle */
-        var pdx = veh.mesh.position.x - prev.mesh.position.x;
-        var pdz = veh.mesh.position.z - prev.mesh.position.z;
-        var pdist = Math.sqrt(pdx * pdx + pdz * pdz);
-        if (pdist < 0.01) { targetX = prev.mesh.position.x - 1; targetZ = prev.mesh.position.z; }
-        else {
-          /* Move toward the slot behind previous vehicle */
-          var slotX = prev.mesh.position.x - (pdx / pdist) * VEHICLE_SPACING;
-          var slotZ = prev.mesh.position.z - (pdz / pdist) * VEHICLE_SPACING;
-          targetX = slotX;
-          targetZ = slotZ;
+      /* Determine stop state from propagation */
+      var effectiveStopped = veh._isStopped;
+      if (!effectiveStopped && _convoyHalted) effectiveStopped = true;
+
+      if (effectiveStopped) {
+        /* Animate stop timer */
+        if (veh._stopTimer > 0) {
+          veh._stopTimer -= dt;
+          if (veh._stopTimer < 0) veh._stopTimer = 0;
         }
+        continue;
+      }
+
+      /* Compute target */
+      var targetX, targetZ;
+      if (veh === effectiveLeader) {
+        var twp = WAYPOINTS[_wpIndex];
+        targetX = twp.x;
+        targetZ = twp.z;
+      } else {
+        /* Follow the vehicle ahead in the original order */
+        var prev = null;
+        for (var pi = veh.idx - 1; pi >= 0; pi--) {
+          if (!_vehicles[pi].destroyed) { prev = _vehicles[pi]; break; }
+        }
+        if (!prev) { prev = effectiveLeader; }
+
+        /* Slot: VEHICLE_SPACING behind prev, in prev's backward direction */
+        var hdx = veh.mesh.position.x - prev.mesh.position.x;
+        var hdz = veh.mesh.position.z - prev.mesh.position.z;
+        var hdl = Math.sqrt(hdx * hdx + hdz * hdz);
+        if (hdl < 0.01) { hdx = 0; hdz = 1; hdl = 1; }
+        var slotX = prev.mesh.position.x + (hdx / hdl) * VEHICLE_SPACING;
+        var slotZ = prev.mesh.position.z + (hdz / hdl) * VEHICLE_SPACING;
+
+        /* Lateral bypass offset around a destroyed wreck */
+        for (var wi = 0; wi < _vehicles.length; wi++) {
+          var wv = _vehicles[wi];
+          if (!wv.destroyed || !wv._bypassOffset) continue;
+          wv._bypassTimer -= dt;
+          if (wv._bypassTimer <= 0) { wv._bypassOffset = 0; continue; }
+          var bDist = _dist2D(slotX, slotZ, wv.mesh.position.x, wv.mesh.position.z);
+          if (bDist < 6) {
+            slotX += wv._bypassOffset;
+          }
+        }
+
+        targetX = slotX;
+        targetZ = slotZ;
       }
 
       var dvx = targetX - veh.mesh.position.x;
       var dvz = targetZ - veh.mesh.position.z;
       var dvd = Math.sqrt(dvx * dvx + dvz * dvz);
-      if (dvd < 0.01) continue;
+      if (dvd < 0.1) continue;
 
-      var nx2 = dvx / dvd;
-      var nz2 = dvz / dvd;
-      var speed = (i === 0) ? CONVOY_SPEED : Math.min(CONVOY_SPEED, dvd / dt);
+      var nx2   = dvx / dvd;
+      var nz2   = dvz / dvd;
+      var speed = Math.min(CONVOY_SPEED, dvd / dt);
 
-      /* Apply movement */
       veh.mesh.position.x += nx2 * speed * dt;
       veh.mesh.position.z += nz2 * speed * dt;
-      veh.mesh.position.y = _terrainY(veh.mesh.position.x, veh.mesh.position.z) + 0.9;
+      veh.mesh.position.y  = _terrainY(veh.mesh.position.x, veh.mesh.position.z) + 1.0;
 
-      /* Face direction of travel */
-      veh.mesh.rotation.y = Math.atan2(nx2, nz2);
+      /* Smooth heading lerp */
+      var targetHeading = Math.atan2(nx2, nz2);
+      veh._heading      = _lerpAngle(veh._heading, targetHeading, Math.min(1, dt * 3));
+      veh.mesh.rotation.y = veh._heading;
 
-      /* Rotate wheels */
-      veh._wheelAngle += speed * dt * 2;
+      /* Wheel spin */
+      veh._wheelAngle += speed * dt * 2.5;
       if (veh.mesh._wheels) {
-        for (var w = 0; w < veh.mesh._wheels.length; w++) {
-          /* wheel rotation around their local Z axis (since we rotated cylinder to Z) */
-          veh.mesh._wheels[w].rotation.x = veh._wheelAngle;
+        for (var wi2 = 0; wi2 < veh.mesh._wheels.length; wi2++) {
+          veh.mesh._wheels[wi2].rotation.x = veh._wheelAngle;
+        }
+      }
+
+      /* IED check — vehicle drives over IED */
+      if (_iedSpawned && !_iedDefused && !_iedDetonated && _iedPos) {
+        var iedDist = _dist2D(
+          veh.mesh.position.x, veh.mesh.position.z,
+          _iedPos.x, _iedPos.z
+        );
+        if (iedDist < IED_TRIGGER_DIST) {
+          _detonateIED(veh);
         }
       }
     }
+  }
 
-    /* Ambush proximity check */
+  /* ════════════════════════════════════════════════════════════════════════
+     MISSION FINISH
+  ═══════════════════════════════════════════════════════════════════════ */
+
+  function _finishMission() {
+    _missionDone = true;
+    _convoyHalted = false;
+
+    /* Count delivered vehicles */
+    var delivered   = 0;
+    var allIntact   = true;
+    for (var i = 0; i < _vehicles.length; i++) {
+      if (!_vehicles[i].destroyed) delivered++;
+      if (!_vehiclesIntact[i])     allIntact = false;
+    }
+
+    var score = delivered * SCORE_PER_VEHICLE;
+    if (allIntact && delivered === 4) score += SCORE_BONUS_INTACT;
+    var crewPenalty = _crewKIA * SCORE_CREW_KIA;
+    score += crewPenalty;
+
+    _addScore(score);
+    window._convoyMissionScore = score;
+
+    var msg = 'CONVOY EXTRACTED: ' + delivered + '/4 VEHICLES DELIVERED | SCORE +' + score;
+    if (allIntact && delivered === 4) msg += ' (+200 INTACT BONUS)';
+    if (_crewKIA > 0) msg += ' | ' + _crewKIA + ' CREW KIA (-' + Math.abs(crewPenalty) + ')';
+    _toast(msg);
+    _updateHUD();
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     BOARDING
+  ═══════════════════════════════════════════════════════════════════════ */
+
+  function _checkBoardInput() {
+    /* Triggered externally; also check via _keyE flag */
+    if (!window._keyE && !window._boardConvoyPressed) return;
+    window._keyE               = false;
+    window._boardConvoyPressed = false;
+
     var pPos = _getPlayerPos();
-    if (pPos) {
-      for (var vi = 0; vi < vehicles.length; vi++) {
-        if (vehicles[vi].destroyed) continue;
-        var dd = _dist2D(vehicles[vi].mesh.position.x, vehicles[vi].mesh.position.z, pPos.x, pPos.z);
-        if (dd < AMBUSH_DIST) {
-          if (!window._convoyNearby) {
-            window._convoyNearby = true;
-            _showConvoyAlert();
-          }
-          if (!convoy.nearbyAlerted) {
-            convoy.nearbyAlerted = true;
-          }
-          break;
-        }
-      }
-      /* Clear flag when all vehicles move away */
-      var anyNear = false;
-      for (var vi2 = 0; vi2 < vehicles.length; vi2++) {
-        if (vehicles[vi2].destroyed) continue;
-        var dd2 = _dist2D(vehicles[vi2].mesh.position.x, vehicles[vi2].mesh.position.z, pPos.x, pPos.z);
-        if (dd2 < AMBUSH_DIST) { anyNear = true; break; }
-      }
-      if (!anyNear) window._convoyNearby = false;
+    if (!pPos) return;
+
+    /* Disembark if already boarded */
+    if (_boardedVehicleIdx >= 0) {
+      _toast('DISEMBARKED VEHICLE ' + (_boardedVehicleIdx + 1));
+      _boardedVehicleIdx = -1;
+      return;
     }
 
-    /* Update gunners on escort vehicles */
-    for (var vi3 = 0; vi3 < vehicles.length; vi3++) {
-      _updateGunners(dt, vehicles[vi3]);
+    /* Find closest vehicle within BOARD_RANGE */
+    var best  = -1;
+    var bestD = BOARD_RANGE;
+    for (var i = 0; i < _vehicles.length; i++) {
+      if (_vehicles[i].destroyed) continue;
+      var d = _dist3D(pPos, _vehicles[i].mesh.position);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+
+    if (best >= 0) {
+      _boardedVehicleIdx = best;
+      _toast('BOARDED VEHICLE ' + (best + 1) + ' — press E to disembark');
+    }
+  }
+
+  function _updateBoardedPlayer(dt) {
+    if (_boardedVehicleIdx < 0) return;
+    var veh = _vehicles[_boardedVehicleIdx];
+    if (!veh || veh.destroyed) {
+      _boardedVehicleIdx = -1;
+      return;
+    }
+
+    /* Move player to ride-along position */
+    var cam = _getCamera();
+    if (cam) {
+      cam.position.x = veh.mesh.position.x;
+      cam.position.y = veh.mesh.position.y + 2.5;
+      cam.position.z = veh.mesh.position.z;
+    }
+    if (window._playerPos) {
+      window._playerPos.x = veh.mesh.position.x;
+      window._playerPos.y = veh.mesh.position.y + 1.0;
+      window._playerPos.z = veh.mesh.position.z;
     }
   }
 
   /* ════════════════════════════════════════════════════════════════════════
-     ESCAPE
+     IED DEFUSE PROMPT
   ═══════════════════════════════════════════════════════════════════════ */
 
-  function _onConvoyEscape(convoy) {
-    convoy.active  = false;
-    convoy.escaped = true;
-    window._convoyNearby = false;
-    _showConvoyEscaped();
-    _addScore(-100);   /* also inside _showConvoyEscaped, guarded by flag */
+  function _checkDefusePrompt() {
+    if (!_iedSpawned || _iedDefused || _iedDetonated || !_iedPos) return;
+
+    var pPos = _getPlayerPos();
+    if (!pPos) return;
+
+    var d = _dist3D(pPos, _iedPos);
+    if (d < IED_DEFUSE_DIST) {
+      _showDefusePrompt(true);
+      /* F key or _defusePressed */
+      if (window._keyF || window._defuseIEDPressed) {
+        window._keyF              = false;
+        window._defuseIEDPressed  = false;
+        _defuseIED();
+      }
+    } else {
+      _showDefusePrompt(false);
+    }
   }
 
   /* ════════════════════════════════════════════════════════════════════════
-     PUBLIC — spawnConvoy
+     HUD
   ═══════════════════════════════════════════════════════════════════════ */
 
-  function spawnConvoy() {
-    if (_convoys.length >= MAX_CONVOYS) return null;
+  function _ensureHUD() {
+    if (_hudEl) return;
+
+    /* Main status bar */
+    _hudEl = document.createElement('div');
+    _hudEl.id = 'convoy-escort-hud';
+    _hudEl.style.cssText = [
+      'position:fixed',
+      'bottom:90px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'background:rgba(0,0,0,0.78)',
+      'color:#a8ff80',
+      'font-family:monospace',
+      'font-size:13px',
+      'padding:8px 18px',
+      'border:1px solid #4A5240',
+      'border-radius:4px',
+      'pointer-events:none',
+      'z-index:8900',
+      'min-width:340px',
+      'text-align:center',
+    ].join(';');
+    document.body.appendChild(_hudEl);
+
+    /* Mini convoy diagram */
+    _miniConvoyEl = document.createElement('div');
+    _miniConvoyEl.id = 'convoy-mini-diagram';
+    _miniConvoyEl.style.cssText = [
+      'position:fixed',
+      'bottom:135px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'background:rgba(0,0,0,0.6)',
+      'color:#fff',
+      'font-family:monospace',
+      'font-size:11px',
+      'padding:4px 12px',
+      'border:1px solid #333',
+      'border-radius:4px',
+      'pointer-events:none',
+      'z-index:8900',
+      'white-space:nowrap',
+    ].join(';');
+    document.body.appendChild(_miniConvoyEl);
+
+    /* CONTACT alert */
+    _contactEl = document.createElement('div');
+    _contactEl.id = 'convoy-contact';
+    _contactEl.style.cssText = [
+      'position:fixed',
+      'top:15%',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'padding:12px 32px',
+      'background:rgba(200,0,0,0.88)',
+      'color:#fff',
+      'font-family:monospace',
+      'font-size:24px',
+      'font-weight:bold',
+      'letter-spacing:5px',
+      'border:2px solid #ff0000',
+      'box-shadow:0 0 28px #ff0000',
+      'pointer-events:none',
+      'z-index:9100',
+      'display:none',
+      'text-align:center',
+    ].join(';');
+    document.body.appendChild(_contactEl);
+
+    /* Defuse prompt */
+    _defusePromptEl = document.createElement('div');
+    _defusePromptEl.id = 'convoy-defuse-prompt';
+    _defusePromptEl.style.cssText = [
+      'position:fixed',
+      'top:45%',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'padding:8px 20px',
+      'background:rgba(180,100,0,0.9)',
+      'color:#fff',
+      'font-family:monospace',
+      'font-size:16px',
+      'border:1px solid #ffaa00',
+      'pointer-events:none',
+      'z-index:9000',
+      'display:none',
+      'text-align:center',
+    ].join(';');
+    _defusePromptEl.textContent = '[F] DEFUSE IED';
+    document.body.appendChild(_defusePromptEl);
+  }
+
+  function _showContact(dir) {
+    _ensureHUD();
+    _contactEl.textContent = 'CONTACT ' + dir + '!';
+    _contactEl.style.display = 'block';
+    _contactTimer = 5;
+  }
+
+  function _showDefusePrompt(visible) {
+    if (_defusePromptEl) {
+      _defusePromptEl.style.display = visible ? 'block' : 'none';
+    }
+  }
+
+  function _vehicleHealthColor(veh) {
+    if (veh.destroyed) return '#444';
+    var pct = veh.hp / veh.maxHp;
+    if (pct > 0.6) return '#44ff44';
+    if (pct > 0.3) return '#ffcc00';
+    return '#ff3300';
+  }
+
+  function _vehicleIcon(veh) {
+    if (veh.destroyed) return '[XX]';
+    var pct = veh.hp / veh.maxHp;
+    if (veh.role === 'humvee') {
+      return pct > 0.5 ? '[HV]' : '[H!]';
+    }
+    return pct > 0.5 ? '[TK]' : '[T!]';
+  }
+
+  function _updateHUD() {
+    _ensureHUD();
+
+    /* Count alive vehicles */
+    var alive = 0;
+    for (var i = 0; i < _vehicles.length; i++) {
+      if (!_vehicles[i].destroyed) alive++;
+    }
+
+    var wp      = Math.min(_wpIndex, WAYPOINTS.length - 1);
+    var speed   = _convoyHalted ? 0.0 : CONVOY_SPEED;
+    var statusLine = 'CONVOY STATUS: ' + alive + '/4 VEHICLES | SPEED: ' + speed.toFixed(1) +
+                     ' | NEXT WP: ' + wp;
+    if (_missionDone) statusLine = 'MISSION COMPLETE — ' + alive + '/4 EXTRACTED';
+    if (_ambushActive) statusLine += ' | !AMBUSH!';
+    if (_iedSpawned && !_iedDefused && !_iedDetonated) statusLine += ' | IED ON ROUTE';
+    if (_boardedVehicleIdx >= 0) statusLine += ' | RIDING V' + (_boardedVehicleIdx + 1);
+
+    _hudEl.textContent = statusLine;
+
+    /* Mini diagram */
+    var diag = '';
+    for (var j = 0; j < _vehicles.length; j++) {
+      var veh = _vehicles[j];
+      var col = _vehicleHealthColor(veh);
+      var ico = _vehicleIcon(veh);
+      diag += '<span style="color:' + col + '">' + ico + '</span>';
+      if (j < _vehicles.length - 1) diag += ' &rarr; ';
+    }
+    _miniConvoyEl.innerHTML = 'LEAD &rarr; ' + diag + ' &rarr; TRAIL';
+
+    /* HP bars above each vehicle (world-to-screen) */
+    _updateVehicleHPBars();
+  }
+
+  /* Per-vehicle HP bars using screen-space overlay divs */
+  var _hpBarEls = [];
+
+  function _ensureHPBars() {
+    while (_hpBarEls.length < _vehicles.length) {
+      var bar = document.createElement('div');
+      bar.style.cssText = [
+        'position:fixed',
+        'width:60px',
+        'height:7px',
+        'background:#222',
+        'border:1px solid #555',
+        'pointer-events:none',
+        'z-index:8800',
+        'display:none',
+      ].join(';');
+      var fill = document.createElement('div');
+      fill.style.cssText = 'height:100%;width:100%;background:#44ff44;transition:width 0.1s';
+      bar.appendChild(fill);
+
+      var label = document.createElement('div');
+      label.style.cssText = [
+        'position:absolute',
+        'top:-14px',
+        'left:0',
+        'font-family:monospace',
+        'font-size:9px',
+        'color:#ccc',
+        'white-space:nowrap',
+      ].join(';');
+      bar.appendChild(label);
+
+      document.body.appendChild(bar);
+      _hpBarEls.push({ bar: bar, fill: fill, label: label });
+    }
+  }
+
+  function _updateVehicleHPBars() {
+    var cam = _getCamera();
+    if (!cam) return;
+    _ensureHPBars();
+
+    for (var i = 0; i < _vehicles.length; i++) {
+      var veh   = _vehicles[i];
+      var barEl = _hpBarEls[i];
+      if (!barEl) continue;
+
+      if (veh.destroyed) {
+        barEl.bar.style.display = 'none';
+        continue;
+      }
+
+      /* Project vehicle position to screen */
+      var worldPos = new THREE.Vector3(
+        veh.mesh.position.x,
+        veh.mesh.position.y + 3,
+        veh.mesh.position.z
+      );
+      var projected = worldPos.clone().project(cam);
+
+      /* Only show if in front and on-screen */
+      if (projected.z > 1 || projected.z < -1) {
+        barEl.bar.style.display = 'none';
+        continue;
+      }
+
+      var sx = (projected.x * 0.5 + 0.5) * window.innerWidth;
+      var sy = (-projected.y * 0.5 + 0.5) * window.innerHeight;
+
+      if (sx < -100 || sx > window.innerWidth + 100 ||
+          sy < -50  || sy > window.innerHeight + 50) {
+        barEl.bar.style.display = 'none';
+        continue;
+      }
+
+      barEl.bar.style.display  = 'block';
+      barEl.bar.style.left     = (sx - 30) + 'px';
+      barEl.bar.style.top      = sy + 'px';
+
+      var pct = Math.max(0, veh.hp / veh.maxHp);
+      barEl.fill.style.width      = (pct * 100) + '%';
+      barEl.fill.style.background = _vehicleHealthColor(veh);
+
+      var roleName = veh.role === 'humvee' ? (veh.idx === 0 ? 'LEAD HV' : 'TRAIL HV') :
+                     ('TRUCK ' + (veh.idx === 1 ? 'A' : 'B'));
+      barEl.label.textContent = roleName + ' ' + veh.hp + '/' + veh.maxHp;
+    }
+  }
+
+  function _updateContactTimer(dt) {
+    if (_contactTimer > 0) {
+      _contactTimer -= dt;
+      if (_contactTimer <= 0 && _contactEl) {
+        _contactEl.style.display = 'none';
+      }
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     CONVOY INITIALIZATION
+  ═══════════════════════════════════════════════════════════════════════ */
+
+  function _spawnConvoy() {
     var sc = _getScene();
-    if (!sc) { console.warn('[VehicleConvoy] No scene — cannot spawn'); return null; }
+    if (!sc) { console.warn('[VehicleConvoy] No scene'); return; }
 
-    var convoy = _createConvoy();
-    if (!convoy) return null;
+    /* Roles in order: lead humvee, truck A, truck B, trail humvee */
+    var roles = ['humvee', 'truck', 'truck', 'humvee'];
+    _vehicles  = [];
 
-    _convoys.push(convoy);
-    _buildHitTestHook(convoy);
-    _spawnTimer = SPAWN_INTERVAL;
-    _toast('CONVOY SPAWNED — destroy it before it escapes!');
-    return convoy;
+    var wp0 = WAYPOINTS[0];
+    var wp1 = WAYPOINTS[1];
+    var dxR = wp1.x - wp0.x;
+    var dzR = wp1.z - wp0.z;
+    var lenR = Math.sqrt(dxR * dxR + dzR * dzR);
+    var nxR  = dxR / lenR;
+    var nzR  = dzR / lenR;
+
+    for (var i = 0; i < 4; i++) {
+      var veh    = _makeVehicle(roles[i], i);
+      var offset = i * (VEHICLE_SPACING + 2);
+      veh.mesh.position.set(
+        wp0.x - nxR * offset,
+        _terrainY(wp0.x - nxR * offset, wp0.z - nzR * offset) + 1.0,
+        wp0.z - nzR * offset
+      );
+      veh._heading = Math.atan2(nxR, nzR);
+      veh.mesh.rotation.y = veh._heading;
+      _vehicles.push(veh);
+    }
+
+    _wpIndex       = 0;
+    _missionDone   = false;
+    _missionStarted = true;
+    _convoyHalted  = false;
+    _leadStopped   = false;
+    _boardedVehicleIdx = -1;
+    _crewKIA       = 0;
+    _vehiclesIntact = [true, true, true, true];
+    _ambushTriggered = [false, false, false];
+    _activeEnemies = [];
+    _ambushActive  = false;
+    _iedSpawned    = false;
+    _iedDefused    = false;
+    _iedDetonated  = false;
+    _iedMesh       = null;
+    _iedPos        = null;
+    _fires         = [];
+    _smokes        = [];
+
+    window._convoyVehicles    = _vehicles;
+    window._convoyHitTargets  = [];
+
+    /* Register hit targets */
+    for (var hi = 0; hi < _vehicles.length; hi++) {
+      (function (veh) {
+        window._convoyHitTargets.push({
+          mesh:  veh.mesh,
+          onHit: function (dmg) { _damageVehicle(veh, dmg || 10); },
+        });
+      })(_vehicles[hi]);
+    }
+
+    /* Register enemy hit targets */
+    window._convoyEnemyTargets = _activeEnemies;
+
+    _toast('CONVOY ESCORT MISSION STARTED — protect the convoy to the extraction zone!');
+    _toast('Press E to board a vehicle. Press F near IED marker to defuse.');
   }
 
   /* ════════════════════════════════════════════════════════════════════════
@@ -812,13 +1241,11 @@ window.VehicleConvoy = (function () {
     _scene   = scene  || null;
     _camera  = camera || null;
     _inited  = true;
-    _convoys = [];
-    _spawnTimer = SPAWN_INTERVAL;
-    window._convoyNearby  = false;
-    window._convoyEscaped = false;
-    if (!window._convoyLootBoxes) window._convoyLootBoxes = [];
-    if (!window._convoyHitTargets) window._convoyHitTargets = [];
-    console.log('[VehicleConvoy] init');
+
+    _ensureHUD();
+    _spawnConvoy();
+
+    console.log('[VehicleConvoy] init — escort mission started');
   }
 
   /* ════════════════════════════════════════════════════════════════════════
@@ -826,74 +1253,27 @@ window.VehicleConvoy = (function () {
   ═══════════════════════════════════════════════════════════════════════ */
 
   function update(dt) {
-    if (!_inited) return;
+    if (!_inited || !_missionStarted) return;
 
-    /* Auto-spawn timer */
-    _spawnTimer -= dt;
-    if (_spawnTimer <= 0) {
-      /* Only spawn if no active convoy */
-      var hasActive = false;
-      for (var i = 0; i < _convoys.length; i++) {
-        if (_convoys[i].active) { hasActive = true; break; }
-      }
-      if (!hasActive) {
-        spawnConvoy();
-      } else {
-        _spawnTimer = 5; /* retry shortly */
-      }
-    }
+    /* Boarding */
+    _checkBoardInput();
+    _updateBoardedPlayer(dt);
 
-    /* Update cook-offs */
-    _updateCookOffs(dt);
+    /* IED defuse prompt */
+    _checkDefusePrompt();
 
-    /* Update each convoy */
-    for (var c = 0; c < _convoys.length; c++) {
-      var convoy = _convoys[c];
-      if (!convoy.active) continue;
-      _updateConvoy(dt, convoy);
-    }
+    /* Convoy movement */
+    _updateConvoyMovement(dt);
 
-    /* Prune inactive convoys */
-    for (var ci = _convoys.length - 1; ci >= 0; ci--) {
-      if (!_convoys[ci].active) _convoys.splice(ci, 1);
-    }
+    /* Ambush enemy AI */
+    _updateAmbushEnemies(dt);
+
+    /* VFX */
+    _updateVFX(dt);
 
     /* HUD */
-    var activeConvoy = null;
-    for (var ca = 0; ca < _convoys.length; ca++) {
-      if (_convoys[ca].active) { activeConvoy = _convoys[ca]; break; }
-    }
-    _updateHUD(dt, activeConvoy);
-    _updateMinimap(activeConvoy);
-
-    /* Loot box pickup check */
-    if (window._convoyLootBoxes && window._convoyLootBoxes.length > 0) {
-      var pPos2 = _getPlayerPos();
-      if (pPos2) {
-        var sc = _getScene();
-        for (var li = window._convoyLootBoxes.length - 1; li >= 0; li--) {
-          var lb = window._convoyLootBoxes[li];
-          var ldist = _dist3D(pPos2, lb.position);
-          if (ldist < 2) {
-            /* Collect */
-            if (sc) sc.remove(lb);
-            window._convoyLootBoxes.splice(li, 1);
-            _toast('SUPPLY CRATE COLLECTED — ammo + health restored!');
-            _addScore(50);
-            /* Restore player HP/ammo */
-            if (window.GameManager && window.GameManager.healPlayer) {
-              window.GameManager.healPlayer(30);
-            } else if (window._playerHP !== undefined) {
-              window._playerHP = Math.min((window._playerMaxHP || 100), window._playerHP + 30);
-            }
-          }
-        }
-      }
-    }
-
-    /* Hit-test: check if bullet hit any convoy vehicle */
-    /* This hook lets Weapons system call _convoyHitTargets[i].onHit(damage) */
-    /* (registration is done in _buildHitTestHook) */
+    _updateContactTimer(dt);
+    _updateHUD();
   }
 
   /* ════════════════════════════════════════════════════════════════════════
@@ -902,27 +1282,68 @@ window.VehicleConvoy = (function () {
 
   function reset() {
     var sc = _getScene();
-    for (var c = 0; c < _convoys.length; c++) {
-      var conv = _convoys[c];
-      for (var v = 0; v < conv.vehicles.length; v++) {
-        if (sc) sc.remove(conv.vehicles[v].mesh);
-      }
+
+    /* Remove vehicle meshes */
+    for (var i = 0; i < _vehicles.length; i++) {
+      if (sc) sc.remove(_vehicles[i].mesh);
     }
-    _convoys       = [];
-    _pendingCookOffs = [];
-    _spawnTimer    = SPAWN_INTERVAL;
-    window._convoyNearby  = false;
-    window._convoyEscaped = false;
-    window._convoyHitTargets = [];
-    if (window._convoyLootBoxes) {
-      for (var li = 0; li < window._convoyLootBoxes.length; li++) {
-        if (sc) sc.remove(window._convoyLootBoxes[li]);
-      }
-      window._convoyLootBoxes = [];
+    _vehicles = [];
+
+    /* Remove IED */
+    if (sc && _iedMesh) sc.remove(_iedMesh);
+    _iedMesh = null;
+
+    /* Remove enemy meshes */
+    for (var ei = 0; ei < _activeEnemies.length; ei++) {
+      if (sc) sc.remove(_activeEnemies[ei].mesh);
     }
-    if (_alertEl) _alertEl.style.display = 'none';
-    if (_arrowEl) _arrowEl.style.display = 'none';
-    _alertTimer = 0;
+    _activeEnemies = [];
+
+    /* Remove VFX */
+    for (var fi = 0; fi < _fires.length; fi++) {
+      if (sc) sc.remove(_fires[fi].mesh);
+    }
+    _fires = [];
+    for (var si = 0; si < _smokes.length; si++) {
+      if (sc) sc.remove(_smokes[si].mesh);
+    }
+    _smokes = [];
+
+    /* Remove HP bars */
+    for (var bi = 0; bi < _hpBarEls.length; bi++) {
+      var b = _hpBarEls[bi];
+      if (b.bar && b.bar.parentNode) b.bar.parentNode.removeChild(b.bar);
+    }
+    _hpBarEls = [];
+
+    /* Hide HUD */
+    if (_hudEl)          _hudEl.style.display          = 'none';
+    if (_miniConvoyEl)   _miniConvoyEl.style.display    = 'none';
+    if (_contactEl)      _contactEl.style.display       = 'none';
+    if (_defusePromptEl) _defusePromptEl.style.display  = 'none';
+
+    /* Reset state */
+    _missionDone        = false;
+    _missionStarted     = false;
+    _wpIndex            = 0;
+    _convoyHalted       = false;
+    _leadStopped        = false;
+    _boardedVehicleIdx  = -1;
+    _crewKIA            = 0;
+    _iedSpawned         = false;
+    _iedDefused         = false;
+    _iedDetonated       = false;
+    _iedPos             = null;
+    _ambushActive       = false;
+    _ambushTriggered    = [false, false, false];
+    _contactTimer       = 0;
+    _vehiclesIntact     = [true, true, true, true];
+    window._iedOnRoute          = false;
+    window._convoyVehicles      = [];
+    window._convoyHitTargets    = [];
+    window._convoyEnemyTargets  = [];
+    window._convoyMissionScore  = 0;
+
     console.log('[VehicleConvoy] reset');
   }
 
@@ -931,10 +1352,11 @@ window.VehicleConvoy = (function () {
   ═══════════════════════════════════════════════════════════════════════ */
 
   return {
-    init:         init,
-    update:       update,
-    spawnConvoy:  spawnConvoy,
-    reset:        reset,
+    init:        init,
+    update:      update,
+    reset:       reset,
+    damageEnemy: damageEnemy,
+    defuseIED:   _defuseIED,
   };
 
 })();

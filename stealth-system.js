@@ -1,318 +1,127 @@
-// stealth-system.js — Noise/Visibility Stealth Mechanics for OccupantKiller
-// IIFE pattern, all var (no let/const), pure browser JS, no imports/exports
+// stealth-system.js — Full Stealth Mechanics Module for OccupantKiller
+// IIFE pattern, all var (no let/const), pure browser JS, THREE global
 //
 // Public API:
-//   StealthSystem.init(scene, camera)
+//   StealthSystem.init(scene, camera, options)
 //   StealthSystem.update(dt)
-//   StealthSystem.onPlayerFired()
-//   StealthSystem.onPlayerMoved(speed)
-//   StealthSystem.getStealthLevel()
 //   StealthSystem.reset()
-//
-// Globals exposed:
-//   window._stealthLevel  — 0.0 (invisible) to 1.0 (fully visible)
+//   StealthSystem.addNoise(amount)          — external noise event
+//   StealthSystem.onPlayerFired(weaponName) — call on every shot
+//   StealthSystem.onPlayerMoved(mode)       — 'still'|'crouch'|'walk'|'run'
+//   StealthSystem.onExplosionNearby()       — call when explosion heard near player
+//   StealthSystem.registerEnemy(enemyObj)   — register an enemy for detection cones
+//   StealthSystem.unregisterEnemy(enemyObj) — remove enemy
+//   StealthSystem.getGhostScore()           — current ghost meter 0-1
+//   StealthSystem.isGhosting()              — true if level is ghost-run so far
 
 window.StealthSystem = (function () {
   'use strict';
 
-  // ─────────────────────────────────── config
-  var NOISE_DECAY_RATE        = 1 / 3;      // full bar decays to 0 in 3s
-  var NOISE_FIRE_LEVEL        = 1.0;
-  var NOISE_SPRINT_LEVEL      = 0.5;
-  var NOISE_WALK_LEVEL        = 0.25;
-  var NOISE_CROUCH_LEVEL      = 0.0;
+  // ─────────────────────────────────────────────── CONSTANTS
 
-  var VISIBILITY_RUNNING      = 0.8;
-  var VISIBILITY_WALKING      = 0.4;
-  var VISIBILITY_CROUCHING    = 0.1;
-  var VISIBILITY_FIRED_LEVEL  = 1.0;
-  var VISIBILITY_FIRED_DECAY  = 2.0;       // seconds at 1.0 after firing
+  // Noise levels (0-100 scale mapped to 0-1 internally)
+  var NOISE_WALK          = 10;   // % per event
+  var NOISE_RUN           = 35;
+  var NOISE_SHOOT         = 80;
+  var NOISE_EXPLOSION     = 100;
+  var NOISE_CROUCH_WALK   = 5;
+  var NOISE_SUPPRESSED    = 15;   // shoot with silenced/suppressed weapon
 
-  var DETECT_HIGH_RANGE       = 25;        // units — stealthLevel > 0.6
-  var DETECT_MED_RANGE        = 12;        // units — stealthLevel 0.3-0.6
-  var DETECT_LOW_THRESH       = 0.3;       // below = no detection (unless noise)
-  var DETECT_HIGH_THRESH      = 0.6;
+  var NOISE_DECAY_PER_SEC = 30;   // %/s passive decay
 
-  var STEALTH_KILL_RANGE      = 2;         // units
-  var STEALTH_KILL_THRESH     = 0.2;       // _stealthLevel must be below this
-  var STEALTH_KILL_SCORE      = 200;
-  var STEALTH_KILL_LERP_DUR   = 0.5;       // seconds camera lerp to enemy
-  var STEALTH_KILL_FLASH_DUR  = 0.2;       // seconds black flash
-  var STEALTH_KILL_ANIM_DUR   = 1.2;       // total animation duration
+  // Shadow detection
+  var SHADOW_LIGHT_DIST   = 15;   // units — if further than this from any light → in shadow
+  var SHADOW_DETECT_MULT  = 0.60; // detection range multiplier while in shadow (−40%)
 
-  var FOOTSTEP_WALK_INTERVAL  = 0.4;       // seconds
-  var FOOTSTEP_RUN_INTERVAL   = 0.2;       // seconds
-  var FOOTSTEP_FREQ           = 80;        // Hz — very low frequency
-  var FOOTSTEP_GAIN           = 0.05;
-  var FOOTSTEP_NOISE_RADIUS   = 8;         // units for walking, 14 for running
+  // Detection cone parameters
+  var CONE_RANGE          = 20;   // units
+  var CONE_ANGLE_DEG      = 45;   // half-angle of FOV cone
+  var CONE_ANGLE_RAD      = CONE_ANGLE_DEG * Math.PI / 180;
 
-  var DECOY_RANGE             = 10;        // metres
-  var DECOY_NOISE_RADIUS      = 12;        // units — enemies react to pebble
-  var DECOY_ATTRACT_DURATION  = 4.0;       // seconds enemies look at noise point
-  var DECOY_SPHERE_RADIUS     = 0.08;
+  // Detection timing (seconds to transition between stages)
+  var SUSPICIOUS_FILL_TIME = 2.5; // seconds at suspicious before going DETECTED
+  var SEARCH_DURATION      = 8.0; // seconds in SEARCH state
+  var SEARCH_SWEEP_SPEED   = 1.2; // rad/s sweep
 
-  var DETECTION_WARN_DUR      = 1.0;       // seconds for eye icon flash
-  var DETECTED_WARN_DUR       = 2.0;       // seconds for DETECTED flash
+  // Silent takedown
+  var TAKEDOWN_RANGE       = 1.5;
+  var TAKEDOWN_ANIM_DUR    = 0.5; // scale collapse duration
+  var TAKEDOWN_SCORE       = 200;
 
-  var HUD_ID                  = 'stealth-system-hud';
-  var NOISE_METER_ID          = 'stealth-noise-meter';
-  var EYE_ICON_ID             = 'stealth-eye-icon';
-  var ALERT_BANNER_ID         = 'stealth-alert-banner';
-  var STYLE_ID                = 'stealth-system-style';
+  // Ghost meter
+  var GHOST_FILL_RATE      = 0.04; // per second while undetected
+  var GHOST_DRAIN_AMOUNT   = 0.3;  // drained when alarm triggered
 
-  // ─────────────────────────────────── state
-  var _scene          = null;
-  var _camera         = null;
-  var _inited         = false;
+  // Alarm
+  var ALARM_RADIUS         = 30;   // units — enemies alerted
+  var ALARM_FLASH_DUR      = 1.0;  // seconds of red screen flash
+  var ALARM_TONE_FREQ      = 880;  // Hz
+  var ALARM_TONE_DUR       = 1.0;  // seconds
 
-  var _noiseLevel     = 0;           // 0-1, current noise meter fill
-  var _stealthLevel   = 0;           // 0-1, current visibility
+  // Detection stage identifiers
+  var STAGE_UNDETECTED  = 0;
+  var STAGE_SUSPICIOUS  = 1;
+  var STAGE_DETECTED    = 2;
+  var STAGE_SEARCHING   = 3;
 
-  var _firedTimer     = 0;           // countdown — stays at 1.0 for 2s after firing
-  var _moveSpeed      = 0;           // last reported move speed (0=still,1=walk,2=run)
-  var _isCrouching    = false;
+  // Cone colours
+  var COLOR_GREEN  = 0x00ff44;
+  var COLOR_YELLOW = 0xffcc00;
+  var COLOR_RED    = 0xff2200;
 
-  var _footstepTimer  = 0;           // countdown to next footstep
-  var _audioCtx       = null;
+  // ─────────────────────────────────────────────── STATE
 
-  // stealth kill state
-  var _stealthKillActive  = false;
-  var _stealthKillTimer   = 0;
-  var _stealthKillTarget  = null;
-  var _stealthKillCamStart = null;
-  var _stealthKillCamTarget = null;
-  var _flashEl            = null;
+  var _scene      = null;
+  var _camera     = null;
+  var _inited     = false;
 
-  // whistle decoy
-  var _decoyMesh      = null;
-  var _decoyActive    = false;
-  var _decoyTimer     = 0;
-  var _decoyPos       = null;
-  var _decoyVel       = null;
-  var _decoyLanded    = false;
-  var _decoyNoiseTimer = 0;
+  // Noise meter 0-100
+  var _noisePct   = 0;
 
-  // detection warning
-  var _detectWarnTimer = 0;
-  var _detectedTimer   = 0;
+  // Player movement mode
+  var _moveMode   = 'still'; // 'still'|'crouch'|'walk'|'run'
 
-  // DOM handles
-  var _hudEl          = null;
-  var _noiseMeterFillEl = null;
-  var _eyeIconEl      = null;
-  var _alertBannerEl  = null;
-  var _styleEl        = null;
+  // Shadow state
+  var _inShadow   = false;
 
-  // global flag
-  window._stealthLevel = 0;
+  // Ghost tracking
+  var _ghostMeter        = 0;    // 0-1
+  var _ghostKills        = 0;    // kills while ghost-running
+  var _alarmEverTriggered = false;
+  var _ghostBonus        = 1.0;  // score multiplier
+  var _levelComplete     = false;
 
-  // ─────────────────────────────────── CSS
-  function _injectStyles() {
-    if (_styleEl) return;
-    _styleEl = document.createElement('style');
-    _styleEl.id = STYLE_ID;
-    _styleEl.textContent = [
-      '@keyframes stealthEyePulse {',
-      '  0%,100% { transform: scale(1); opacity: 1; }',
-      '  50%      { transform: scale(1.25); opacity: 0.6; }',
-      '}',
-      '@keyframes stealthDetectedFlash {',
-      '  0%,100% { opacity: 1; }',
-      '  50%      { opacity: 0.3; }',
-      '}',
-      '@keyframes stealthKillFlash {',
-      '  0%   { opacity: 1; }',
-      '  100% { opacity: 0; }',
-      '}',
-      // Noise meter container — bottom-left, 60px circle
-      '#' + NOISE_METER_ID + ' {',
-      '  position: fixed;',
-      '  bottom: 90px;',
-      '  left: 20px;',
-      '  width: 60px;',
-      '  height: 60px;',
-      '  z-index: 300;',
-      '  pointer-events: none;',
-      '}',
-      '#' + NOISE_METER_ID + ' canvas {',
-      '  width: 60px;',
-      '  height: 60px;',
-      '}',
-      // Eye icon — centre screen
-      '#' + EYE_ICON_ID + ' {',
-      '  position: fixed;',
-      '  top: 44%;',
-      '  left: 50%;',
-      '  transform: translate(-50%, -50%);',
-      '  font-size: 48px;',
-      '  pointer-events: none;',
-      '  z-index: 500;',
-      '  display: none;',
-      '  text-shadow: 0 0 12px currentColor;',
-      '  transition: color 0.2s;',
-      '}',
-      // Alert banner
-      '#' + ALERT_BANNER_ID + ' {',
-      '  position: fixed;',
-      '  top: 38%;',
-      '  left: 50%;',
-      '  transform: translate(-50%, -50%);',
-      '  font-family: monospace;',
-      '  font-size: 36px;',
-      '  font-weight: bold;',
-      '  letter-spacing: 8px;',
-      '  pointer-events: none;',
-      '  z-index: 501;',
-      '  display: none;',
-      '  text-shadow: 0 0 16px currentColor;',
-      '  animation: stealthDetectedFlash 0.4s ease-in-out infinite;',
-      '}',
-      // Stealth HUD eye meter (bottom-left above noise meter)
-      '#stealth-eye-meter {',
-      '  position: fixed;',
-      '  bottom: 160px;',
-      '  left: 20px;',
-      '  width: 60px;',
-      '  font-size: 10px;',
-      '  color: #fff;',
-      '  font-family: monospace;',
-      '  pointer-events: none;',
-      '  z-index: 300;',
-      '  text-align: center;',
-      '}',
-      '#stealth-eye-meter-eye {',
-      '  font-size: 28px;',
-      '  display: block;',
-      '  line-height: 1;',
-      '  text-shadow: 0 0 8px currentColor;',
-      '  transition: color 0.3s;',
-      '}',
-      '#stealth-eye-meter-label {',
-      '  display: block;',
-      '  font-size: 9px;',
-      '  opacity: 0.7;',
-      '  letter-spacing: 1px;',
-      '}',
-      // Kill flash overlay
-      '#stealth-kill-flash {',
-      '  position: fixed;',
-      '  top: 0; left: 0; right: 0; bottom: 0;',
-      '  background: #000;',
-      '  pointer-events: none;',
-      '  z-index: 9999;',
-      '  display: none;',
-      '  opacity: 0;',
-      '}'
-    ].join('\n');
-    document.head.appendChild(_styleEl);
-  }
+  // Alarm state
+  var _alarmFlashTimer   = 0;
+  var _alarmActive       = false;
 
-  // ─────────────────────────────────── HUD build
-  function _buildHUD() {
-    if (_hudEl) return;
+  // Exposed warning state
+  var _exposedPulseTimer = 0;
+  var _isExposed         = false;
 
-    _injectStyles();
+  // Audio context
+  var _audioCtx          = null;
 
-    // Noise meter (canvas-based arc)
-    var nmEl = document.createElement('div');
-    nmEl.id = NOISE_METER_ID;
-    var nmCanvas = document.createElement('canvas');
-    nmCanvas.width  = 60;
-    nmCanvas.height = 60;
-    nmEl.appendChild(nmCanvas);
-    document.body.appendChild(nmEl);
+  // Registered enemies: array of { obj, cone, stage, suspTimer, searchTimer, searchAngle, originalSpeed }
+  var _enemies = [];
 
-    // Stealth eye meter
-    var eyeMeter = document.createElement('div');
-    eyeMeter.id = 'stealth-eye-meter';
-    var eyeSpan = document.createElement('span');
-    eyeSpan.id = 'stealth-eye-meter-eye';
-    eyeSpan.textContent = '👁';
-    var labelSpan = document.createElement('span');
-    labelSpan.id = 'stealth-eye-meter-label';
-    labelSpan.textContent = 'STEALTH';
-    eyeMeter.appendChild(eyeSpan);
-    eyeMeter.appendChild(labelSpan);
-    document.body.appendChild(eyeMeter);
+  // Takedown state
+  var _takedownActive    = false;
+  var _takedownTarget    = null;
+  var _takedownTimer     = 0;
+  var _takedownOrigScaleY = 1;
 
-    // Eye icon (centre screen alert)
-    _eyeIconEl = document.createElement('div');
-    _eyeIconEl.id = EYE_ICON_ID;
-    _eyeIconEl.textContent = '👁';
-    document.body.appendChild(_eyeIconEl);
+  // DOM elements
+  var _canvasNoise       = null;  // canvas for noise meter
+  var _ghostIndicatorEl  = null;  // ghost meter top-right
+  var _exposedEl         = null;  // EXPOSED warning
+  var _alarmEl           = null;  // red alarm overlay
+  var _ghostTitleEl      = null;  // "GHOST OPERATIVE" title
+  var _hudStyleEl        = null;
 
-    // Alert banner
-    _alertBannerEl = document.createElement('div');
-    _alertBannerEl.id = ALERT_BANNER_ID;
-    _alertBannerEl.textContent = 'DETECTED';
-    document.body.appendChild(_alertBannerEl);
+  // ─────────────────────────────────────────────── AUDIO
 
-    // Kill flash overlay
-    _flashEl = document.createElement('div');
-    _flashEl.id = 'stealth-kill-flash';
-    document.body.appendChild(_flashEl);
-
-    _hudEl = nmEl;
-    _noiseMeterFillEl = nmCanvas;
-  }
-
-  // ─────────────────────────────────── noise arc renderer
-  function _drawNoiseMeter(level) {
-    var canvas = _noiseMeterFillEl;
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
-    var w = canvas.width;
-    var h = canvas.height;
-    var cx = w / 2;
-    var cy = h / 2;
-    var r = (w / 2) - 4;
-
-    ctx.clearRect(0, 0, w, h);
-
-    // Background ring
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 6;
-    ctx.stroke();
-
-    if (level > 0) {
-      var startAngle = -Math.PI / 2;
-      var endAngle   = startAngle + (Math.PI * 2 * level);
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, startAngle, endAngle);
-      var alpha = 0.7 + level * 0.3;
-      ctx.strokeStyle = 'rgba(255,255,255,' + alpha + ')';
-      ctx.lineWidth = 6;
-      ctx.stroke();
-    }
-
-    // Label
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.font = '8px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('NOISE', cx, cy);
-  }
-
-  // ─────────────────────────────────── eye meter renderer
-  function _drawEyeMeter(level) {
-    var eyeEl = document.getElementById('stealth-eye-meter-eye');
-    if (!eyeEl) return;
-    var color;
-    if (level < 0.3) {
-      color = '#00ff88';        // green — hidden
-    } else if (level < 0.6) {
-      color = '#ffcc00';        // yellow — suspicious
-    } else {
-      color = '#ff3333';        // red — detected
-    }
-    eyeEl.style.color = color;
-    eyeEl.style.opacity = String(0.3 + level * 0.7);
-  }
-
-  // ─────────────────────────────────── audio
-  function _getAudioCtx() {
+  function _getAudio() {
     if (_audioCtx) return _audioCtx;
     try {
       _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -322,583 +131,812 @@ window.StealthSystem = (function () {
     return _audioCtx;
   }
 
-  function _playFootstepNoise() {
-    var ctx = _getAudioCtx();
-    if (!ctx) return;
-    try {
-      var bufSize = ctx.sampleRate * 0.05;
-      var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-      var data = buf.getChannelData(0);
-      for (var i = 0; i < bufSize; i++) {
-        data[i] = (Math.random() * 2 - 1);
-      }
-      var src = ctx.createBufferSource();
-      src.buffer = buf;
-
-      var filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = FOOTSTEP_FREQ;
-
-      var gain = ctx.createGain();
-      gain.gain.value = FOOTSTEP_GAIN;
-
-      src.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      src.start();
-    } catch (e) { /* silent fail */ }
-  }
-
-  function _playDecoyThud() {
-    var ctx = _getAudioCtx();
+  function _playAlarmTone() {
+    var ctx = _getAudio();
     if (!ctx) return;
     try {
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(200, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.3);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.type = 'square';
+      osc.frequency.value = ALARM_TONE_FREQ;
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + ALARM_TONE_DUR);
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.4);
-    } catch (e) { /* silent fail */ }
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + ALARM_TONE_DUR);
+    } catch (e) { /* silent */ }
   }
 
-  // ─────────────────────────────────── keyboard
-  function _onKeyDown(e) {
-    // F key — stealth kill
-    if (e.code === 'KeyF' && !e.repeat) {
-      _tryStealthKill();
+  // ─────────────────────────────────────────────── HUD BUILD
+
+  function _injectStyles() {
+    if (_hudStyleEl) return;
+    _hudStyleEl = document.createElement('style');
+    _hudStyleEl.id = 'stealth-system-styles';
+    _hudStyleEl.textContent = [
+      '@keyframes stealthExposedPulse {',
+      '  0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1);}',
+      '  50%{opacity:0.4;transform:translate(-50%,-50%) scale(1.08);}',
+      '}',
+      '@keyframes stealthAlarmFlash {',
+      '  0%,100%{opacity:0.55;} 50%{opacity:0.1;}',
+      '}',
+      '@keyframes stealthGhostTitle {',
+      '  0%{opacity:0;letter-spacing:2px;}',
+      '  20%{opacity:1;letter-spacing:12px;}',
+      '  80%{opacity:1;letter-spacing:12px;}',
+      '  100%{opacity:0;letter-spacing:20px;}',
+      '}',
+      '#ss-noise-wrap {',
+      '  position:fixed;bottom:24px;left:24px;',
+      '  width:72px;height:72px;',
+      '  pointer-events:none;z-index:400;',
+      '}',
+      '#ss-noise-canvas {display:block;}',
+      '#ss-ghost-wrap {',
+      '  position:fixed;top:18px;right:22px;',
+      '  width:52px;',
+      '  pointer-events:none;z-index:400;',
+      '  display:flex;flex-direction:column;align-items:center;gap:4px;',
+      '}',
+      '#ss-ghost-icon {',
+      '  font-size:26px;line-height:1;',
+      '  text-shadow:0 0 8px rgba(255,255,255,0.6);',
+      '  transition:color 0.4s;',
+      '}',
+      '#ss-ghost-bar-outer {',
+      '  width:40px;height:5px;',
+      '  background:rgba(255,255,255,0.15);',
+      '  border-radius:3px;overflow:hidden;',
+      '}',
+      '#ss-ghost-bar-inner {',
+      '  height:100%;width:0%;',
+      '  background:#00ffcc;',
+      '  border-radius:3px;',
+      '  transition:width 0.3s;',
+      '}',
+      '#ss-ghost-label {',
+      '  font-family:monospace;font-size:8px;',
+      '  color:rgba(255,255,255,0.6);letter-spacing:1px;',
+      '}',
+      '#ss-exposed {',
+      '  position:fixed;top:42%;left:50%;',
+      '  transform:translate(-50%,-50%);',
+      '  font-family:monospace;font-size:20px;font-weight:bold;',
+      '  letter-spacing:6px;color:#ff8800;',
+      '  text-shadow:0 0 14px #ff8800;',
+      '  pointer-events:none;z-index:500;display:none;',
+      '  animation:stealthExposedPulse 0.8s ease-in-out infinite;',
+      '}',
+      '#ss-alarm-overlay {',
+      '  position:fixed;inset:0;',
+      '  background:rgba(255,0,0,0.55);',
+      '  pointer-events:none;z-index:490;display:none;',
+      '  animation:stealthAlarmFlash 0.35s ease-in-out infinite;',
+      '}',
+      '#ss-ghost-title {',
+      '  position:fixed;top:38%;left:50%;',
+      '  transform:translate(-50%,-50%);',
+      '  font-family:monospace;font-size:32px;font-weight:bold;',
+      '  color:#00ffcc;letter-spacing:12px;',
+      '  text-shadow:0 0 20px #00ffcc;',
+      '  pointer-events:none;z-index:600;display:none;',
+      '  animation:stealthGhostTitle 3.5s ease-in-out forwards;',
+      '}'
+    ].join('\n');
+    document.head.appendChild(_hudStyleEl);
+  }
+
+  function _buildHUD() {
+    _injectStyles();
+
+    // Noise meter canvas — bottom-left
+    var noiseWrap = document.createElement('div');
+    noiseWrap.id = 'ss-noise-wrap';
+    _canvasNoise = document.createElement('canvas');
+    _canvasNoise.id = 'ss-noise-canvas';
+    _canvasNoise.width  = 72;
+    _canvasNoise.height = 72;
+    noiseWrap.appendChild(_canvasNoise);
+    document.body.appendChild(noiseWrap);
+
+    // Ghost indicator — top-right
+    var ghostWrap = document.createElement('div');
+    ghostWrap.id = 'ss-ghost-wrap';
+    var ghostIcon = document.createElement('div');
+    ghostIcon.id = 'ss-ghost-icon';
+    ghostIcon.textContent = '👻'; // ghost emoji
+    var ghostBarOuter = document.createElement('div');
+    ghostBarOuter.id = 'ss-ghost-bar-outer';
+    var ghostBarInner = document.createElement('div');
+    ghostBarInner.id = 'ss-ghost-bar-inner';
+    ghostBarOuter.appendChild(ghostBarInner);
+    var ghostLabel = document.createElement('div');
+    ghostLabel.id = 'ss-ghost-label';
+    ghostLabel.textContent = 'GHOST';
+    ghostWrap.appendChild(ghostIcon);
+    ghostWrap.appendChild(ghostBarOuter);
+    ghostWrap.appendChild(ghostLabel);
+    document.body.appendChild(ghostWrap);
+    _ghostIndicatorEl = ghostWrap;
+
+    // EXPOSED warning
+    _exposedEl = document.createElement('div');
+    _exposedEl.id = 'ss-exposed';
+    _exposedEl.textContent = 'EXPOSED';
+    document.body.appendChild(_exposedEl);
+
+    // Alarm red overlay
+    _alarmEl = document.createElement('div');
+    _alarmEl.id = 'ss-alarm-overlay';
+    document.body.appendChild(_alarmEl);
+
+    // Ghost title
+    _ghostTitleEl = document.createElement('div');
+    _ghostTitleEl.id = 'ss-ghost-title';
+    _ghostTitleEl.textContent = 'GHOST OPERATIVE';
+    document.body.appendChild(_ghostTitleEl);
+  }
+
+  // ─────────────────────────────────────────────── NOISE METER DRAW
+
+  function _drawNoiseMeter() {
+    if (!_canvasNoise) return;
+    var ctx = _canvasNoise.getContext('2d');
+    var w   = _canvasNoise.width;
+    var h   = _canvasNoise.height;
+    var cx  = w / 2;
+    var cy  = h / 2;
+    var r   = (w / 2) - 5;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Background track ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 7;
+    ctx.stroke();
+
+    // Filled arc — clockwise from top, proportional to noise
+    var fraction = _noisePct / 100;
+    if (fraction > 0) {
+      var startA = -Math.PI / 2;
+      var endA   = startA + Math.PI * 2 * fraction;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startA, endA);
+      // colour shifts white → orange → red with noise level
+      var rr = 255;
+      var gg = Math.round(255 * (1 - fraction));
+      var bb = Math.round(255 * (1 - fraction));
+      ctx.strokeStyle = 'rgba(' + rr + ',' + gg + ',' + bb + ',0.92)';
+      ctx.lineWidth = 7;
+      ctx.stroke();
     }
-    // Alt+W — whistle decoy
-    if (e.code === 'KeyW' && e.altKey && !e.repeat) {
-      e.preventDefault();
-      _throwDecoy();
+
+    // Centre label
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('NOISE', cx, cy - 5);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fillText(Math.round(_noisePct) + '%', cx, cy + 7);
+  }
+
+  // ─────────────────────────────────────────────── GHOST METER DRAW
+
+  function _drawGhostMeter() {
+    var bar = document.getElementById('ss-ghost-bar-inner');
+    if (bar) {
+      bar.style.width = Math.round(_ghostMeter * 100) + '%';
+    }
+    var icon = document.getElementById('ss-ghost-icon');
+    if (icon) {
+      if (_alarmEverTriggered) {
+        icon.style.color = '#ff4444';
+        icon.style.opacity = '0.5';
+      } else {
+        var g = Math.round(80 + _ghostMeter * 175);
+        icon.style.color = 'rgb(0,' + g + ',200)';
+        icon.style.opacity = String(0.5 + _ghostMeter * 0.5);
+      }
     }
   }
 
-  // ─────────────────────────────────── stealth kill
-  function _tryStealthKill() {
-    if (_stealthKillActive) return;
-    if (window._stealthLevel >= STEALTH_KILL_THRESH) return;
-    if (!window.Enemies || typeof window.Enemies.getAll !== 'function') return;
+  // ─────────────────────────────────────────────── SHADOW CHECK
+
+  function _checkShadow() {
+    if (!_scene || !_camera) { _inShadow = false; return; }
+
+    // If fog present — shadow detection is active; check light distances
+    var hasFog = !!_scene.fog;
+    if (!hasFog) { _inShadow = false; return; }
+
+    var playerPos = _camera.position;
+    var nearestLightDist = Infinity;
+
+    _scene.traverse(function (obj) {
+      if (obj.isLight && (obj.isPointLight || obj.isSpotLight || obj.isDirectionalLight)) {
+        var dx = obj.position.x - playerPos.x;
+        var dy = obj.position.y - playerPos.y;
+        var dz = obj.position.z - playerPos.z;
+        var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < nearestLightDist) nearestLightDist = dist;
+      }
+    });
+
+    _inShadow = (nearestLightDist > SHADOW_LIGHT_DIST);
+  }
+
+  // ─────────────────────────────────────────────── EXPOSED CHECK
+
+  function _checkExposed() {
+    // Exposed: not in shadow, not crouching, noise > 0
+    _isExposed = (!_inShadow && _moveMode !== 'crouch' && _moveMode !== 'still' && _noisePct > 5);
+    if (_exposedEl) {
+      _exposedEl.style.display = _isExposed ? 'block' : 'none';
+    }
+  }
+
+  // ─────────────────────────────────────────────── DETECTION CONE MESH
+
+  function _buildConeMesh() {
+    if (typeof THREE === 'undefined') return null;
+
+    // ConeGeometry(radius, height, radialSegments)
+    // We compute radius from range and angle:  r = range * tan(halfAngle)
+    var coneHeight = CONE_RANGE;
+    var coneRadius = CONE_RANGE * Math.tan(CONE_ANGLE_RAD);
+
+    var geo  = new THREE.ConeGeometry(coneRadius, coneHeight, 16, 1, true);
+    var mat  = new THREE.MeshBasicMaterial({
+      color:       COLOR_GREEN,
+      wireframe:   true,
+      transparent: true,
+      opacity:     0.55
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+
+    // THREE cone opens along Y+; rotate so it points along Z- (forward)
+    mesh.rotation.x = -Math.PI / 2;
+    // Translate so apex is at origin
+    mesh.position.z = -coneHeight / 2;
+
+    // Wrap in a pivot group so the pivot is at the apex
+    var pivot = new THREE.Group();
+    pivot.add(mesh);
+    return pivot;
+  }
+
+  function _setConeColor(enemyData, color) {
+    if (!enemyData.cone) return;
+    enemyData.cone.traverse(function (child) {
+      if (child.isMesh && child.material) {
+        child.material.color.setHex(color);
+      }
+    });
+  }
+
+  // ─────────────────────────────────────────────── ENEMY REGISTRATION
+
+  function registerEnemy(enemyObj) {
+    if (!enemyObj) return;
+
+    // Check not already registered
+    for (var i = 0; i < _enemies.length; i++) {
+      if (_enemies[i].obj === enemyObj) return;
+    }
+
+    var cone = null;
+    if (_scene && typeof THREE !== 'undefined') {
+      cone = _buildConeMesh();
+      if (cone) {
+        _scene.add(cone);
+      }
+    }
+
+    _enemies.push({
+      obj:           enemyObj,
+      cone:          cone,
+      stage:         STAGE_UNDETECTED,
+      suspTimer:     0,
+      searchTimer:   0,
+      searchAngle:   0,
+      originalSpeed: enemyObj.speed || enemyObj.moveSpeed || 1
+    });
+  }
+
+  function unregisterEnemy(enemyObj) {
+    for (var i = 0; i < _enemies.length; i++) {
+      if (_enemies[i].obj === enemyObj) {
+        if (_enemies[i].cone && _scene) {
+          _scene.remove(_enemies[i].cone);
+        }
+        _enemies.splice(i, 1);
+        return;
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────── SILENT TAKEDOWN
+
+  function _tryTakedown() {
+    if (_takedownActive) return;
+    if (_moveMode !== 'crouch') return;
     if (!_camera) return;
 
-    var enemies = window.Enemies.getAll();
     var camPos = _camera.position;
     var nearest = null;
     var nearestDist = Infinity;
+    var nearestData = null;
 
-    for (var i = 0; i < enemies.length; i++) {
-      var en = enemies[i];
+    for (var i = 0; i < _enemies.length; i++) {
+      var data = _enemies[i];
+      var en   = data.obj;
       if (!en || !en.position) continue;
       var dx = en.position.x - camPos.x;
       var dz = en.position.z - camPos.z;
       var dist = Math.sqrt(dx * dx + dz * dz);
       if (dist < nearestDist) {
-        nearestDist = dist;
-        nearest = en;
+        nearestDist  = dist;
+        nearest      = en;
+        nearestData  = data;
       }
     }
 
-    if (!nearest || nearestDist > STEALTH_KILL_RANGE) return;
+    if (!nearest || nearestDist > TAKEDOWN_RANGE) return;
 
-    // Start kill animation
-    _stealthKillActive  = true;
-    _stealthKillTimer   = 0;
-    _stealthKillTarget  = nearest;
+    // Check player is behind enemy (dot product of enemy facing and player→enemy vector)
+    // Approximate: enemy's forward is its mesh rotation on Y axis
+    var behindOk = true;
+    if (nearest.rotation !== undefined) {
+      var enFwdX   = -Math.sin(nearest.rotation.y || 0);
+      var enFwdZ   = -Math.cos(nearest.rotation.y || 0);
+      var toPlayerX = camPos.x - nearest.position.x;
+      var toPlayerZ = camPos.z - nearest.position.z;
+      var len = Math.sqrt(toPlayerX * toPlayerX + toPlayerZ * toPlayerZ);
+      if (len > 0.001) {
+        toPlayerX /= len;
+        toPlayerZ /= len;
+      }
+      // Dot < 0 means player is roughly in front of enemy's facing — they're behind
+      var dot = enFwdX * toPlayerX + enFwdZ * toPlayerZ;
+      behindOk = (dot < 0.2); // allow some tolerance
+    }
 
-    // Save camera start
-    _stealthKillCamStart = {
-      x: _camera.position.x,
-      y: _camera.position.y,
-      z: _camera.position.z,
-      rx: _camera.rotation.x,
-      ry: _camera.rotation.y
-    };
+    if (!behindOk) return;
 
-    // Target: behind enemy
-    var targetPos = {
-      x: nearest.position.x - Math.sin(_camera.rotation.y) * 1.5,
-      y: nearest.position.y + 1.6,
-      z: nearest.position.z - Math.cos(_camera.rotation.y) * 1.5
-    };
-    _stealthKillCamTarget = targetPos;
+    // Begin takedown animation
+    _takedownActive  = true;
+    _takedownTarget  = nearestData;
+    _takedownTimer   = 0;
+    _takedownOrigScaleY = (nearest.scale && nearest.scale.y !== undefined) ? nearest.scale.y : 1;
+
+    // No noise
+    // Score
+    if (typeof window._score !== 'undefined') {
+      window._score += TAKEDOWN_SCORE;
+    }
+    _ghostKills++;
+    _showFloatingText('+' + TAKEDOWN_SCORE + ' STEALTH KILL', '#00ffcc');
+
+    // Remove from detection (mark as done)
+    nearestData.stage = STAGE_UNDETECTED;
   }
 
-  function _updateStealthKill(dt) {
-    if (!_stealthKillActive) return;
+  function _updateTakedown(dt) {
+    if (!_takedownActive || !_takedownTarget) return;
+    _takedownTimer += dt;
+    var progress = _takedownTimer / TAKEDOWN_ANIM_DUR;
+    if (progress > 1) progress = 1;
 
-    _stealthKillTimer += dt;
-    var t = _stealthKillTimer / STEALTH_KILL_ANIM_DUR;
-    if (t > 1) t = 1;
-
-    // Phase 1: camera lerp (0 → LERP_DUR)
-    var lerpFrac = _stealthKillTimer / STEALTH_KILL_LERP_DUR;
-    if (lerpFrac > 1) lerpFrac = 1;
-
-    if (_camera && _stealthKillCamStart && _stealthKillCamTarget) {
-      _camera.position.x = _stealthKillCamStart.x + (_stealthKillCamTarget.x - _stealthKillCamStart.x) * lerpFrac;
-      _camera.position.y = _stealthKillCamStart.y + (_stealthKillCamTarget.y - _stealthKillCamStart.y) * lerpFrac;
-      _camera.position.z = _stealthKillCamStart.z + (_stealthKillCamTarget.z - _stealthKillCamStart.z) * lerpFrac;
+    var en = _takedownTarget.obj;
+    if (en && en.scale) {
+      en.scale.y = _takedownOrigScaleY * (1 - progress);
     }
 
-    // Phase 2: black flash at lerp completion
-    if (_stealthKillTimer >= STEALTH_KILL_LERP_DUR && _stealthKillTimer < STEALTH_KILL_LERP_DUR + STEALTH_KILL_FLASH_DUR) {
-      if (_flashEl) {
-        _flashEl.style.display = 'block';
-        _flashEl.style.opacity = '1';
-        _flashEl.style.animation = 'none';
+    if (progress >= 1) {
+      // Kill the enemy
+      if (en) {
+        if (typeof en.kill === 'function')      en.kill();
+        else if (typeof en.die === 'function')  en.die();
+        else if (typeof en.remove === 'function') en.remove();
       }
-    }
-    // Kill enemy at flash peak
-    if (_stealthKillTimer >= STEALTH_KILL_LERP_DUR + STEALTH_KILL_FLASH_DUR * 0.5 && _stealthKillTarget) {
-      if (typeof _stealthKillTarget.kill === 'function') {
-        _stealthKillTarget.kill();
-      } else if (typeof _stealthKillTarget.die === 'function') {
-        _stealthKillTarget.die();
-      }
-      // Score
-      if (window._score !== undefined) window._score += STEALTH_KILL_SCORE;
-      // Kill feed
-      _addKillFeed('STEALTH KILL');
-      _stealthKillTarget = null;
-    }
-
-    // Phase 3: fade flash out and end
-    if (_stealthKillTimer >= STEALTH_KILL_LERP_DUR + STEALTH_KILL_FLASH_DUR) {
-      if (_flashEl) {
-        var fadeProgress = (_stealthKillTimer - STEALTH_KILL_LERP_DUR - STEALTH_KILL_FLASH_DUR) /
-          (STEALTH_KILL_ANIM_DUR - STEALTH_KILL_LERP_DUR - STEALTH_KILL_FLASH_DUR);
-        if (fadeProgress > 1) fadeProgress = 1;
-        _flashEl.style.opacity = String(1 - fadeProgress);
-      }
-    }
-
-    if (_stealthKillTimer >= STEALTH_KILL_ANIM_DUR) {
-      _stealthKillActive = false;
-      _stealthKillTarget = null;
-      if (_flashEl) {
-        _flashEl.style.display = 'none';
-        _flashEl.style.opacity = '0';
-      }
+      unregisterEnemy(en);
+      _takedownActive = false;
+      _takedownTarget = null;
     }
   }
 
-  // ─────────────────────────────────── kill feed helper
-  function _addKillFeed(msg) {
-    if (window.KillFeed && typeof window.KillFeed.add === 'function') {
-      window.KillFeed.add(msg);
-      return;
+  // ─────────────────────────────────────────────── ALARM
+
+  function _triggerAlarm(sourceEnemy) {
+    if (_alarmActive) return;
+    _alarmActive       = true;
+    _alarmFlashTimer   = ALARM_FLASH_DUR;
+    _alarmEverTriggered = true;
+    _ghostMeter = Math.max(0, _ghostMeter - GHOST_DRAIN_AMOUNT);
+
+    // Show red overlay
+    if (_alarmEl) {
+      _alarmEl.style.display = 'block';
     }
-    // Fallback: brief on-screen message
+
+    // Sound
+    _playAlarmTone();
+
+    // Alert all enemies in radius
+    if (_camera && _scene) {
+      var srcPos = (sourceEnemy && sourceEnemy.position) ? sourceEnemy.position : _camera.position;
+      for (var i = 0; i < _enemies.length; i++) {
+        var data = _enemies[i];
+        var en   = data.obj;
+        if (!en || !en.position) continue;
+        var dx = en.position.x - srcPos.x;
+        var dz = en.position.z - srcPos.z;
+        var dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist <= ALARM_RADIUS) {
+          data.stage = STAGE_DETECTED;
+          _setConeColor(data, COLOR_RED);
+          if (typeof en.alert === 'function')        en.alert();
+          else if (typeof en.alertToPlayer === 'function') en.alertToPlayer();
+        }
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────── DETECTION CONE UPDATE
+
+  function _updateEnemyDetection(dt) {
+    if (!_camera) return;
+    var camPos = _camera.position;
+
+    for (var i = 0; i < _enemies.length; i++) {
+      var data = _enemies[i];
+      var en   = data.obj;
+      if (!en || !en.position) continue;
+
+      // ── Position the cone at enemy location / rotation
+      if (data.cone && _scene) {
+        data.cone.position.copy(en.position);
+        if (en.rotation) {
+          if (data.stage === STAGE_SEARCHING) {
+            // Sweep back and forth
+            data.searchAngle += SEARCH_SWEEP_SPEED * dt;
+            data.cone.rotation.y = en.rotation.y + Math.sin(data.searchAngle) * 1.1;
+          } else {
+            data.cone.rotation.y = en.rotation.y || 0;
+          }
+        }
+      }
+
+      // ── Can the enemy see the player?
+      var dx       = camPos.x - en.position.x;
+      var dz       = camPos.z - en.position.z;
+      var distToPlayer = Math.sqrt(dx * dx + dz * dz);
+
+      // Effective detection range (shadow modifier)
+      var effectiveRange = CONE_RANGE;
+      if (_inShadow) effectiveRange *= SHADOW_DETECT_MULT;
+
+      var canSee = false;
+      if (distToPlayer <= effectiveRange) {
+        // Check angle: angle from enemy forward to player direction
+        var enFacing  = (en.rotation && en.rotation.y !== undefined) ? en.rotation.y : 0;
+        var angleToPlayer = Math.atan2(dx, dz);
+        var angleDiff = angleToPlayer - enFacing;
+        // Normalise to -PI..PI
+        while (angleDiff >  Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        if (Math.abs(angleDiff) <= CONE_ANGLE_RAD) {
+          canSee = true;
+        }
+      }
+
+      // Noise-based detection: if high noise, enemy can hear regardless of cone
+      var noiseTrigger = (_noisePct >= 60 && distToPlayer <= effectiveRange * 0.6);
+      var playerVisible = canSee || noiseTrigger;
+
+      // ── State machine
+      switch (data.stage) {
+
+        case STAGE_UNDETECTED:
+          if (playerVisible) {
+            data.stage     = STAGE_SUSPICIOUS;
+            data.suspTimer = 0;
+            _setConeColor(data, COLOR_YELLOW);
+            // Speed up enemy
+            if (en.speed !== undefined)     en.speed     = data.originalSpeed * 1.5;
+            if (en.moveSpeed !== undefined) en.moveSpeed = data.originalSpeed * 1.5;
+          }
+          break;
+
+        case STAGE_SUSPICIOUS:
+          _setConeColor(data, COLOR_YELLOW);
+          if (playerVisible) {
+            data.suspTimer += dt;
+            if (data.suspTimer >= SUSPICIOUS_FILL_TIME) {
+              data.stage = STAGE_DETECTED;
+              _setConeColor(data, COLOR_RED);
+              _triggerAlarm(en);
+              // Notify enemy AI
+              if (typeof en.engage === 'function')        en.engage();
+              else if (typeof en.combatStart === 'function') en.combatStart();
+            }
+          } else {
+            // Lost sight — go to searching
+            data.stage       = STAGE_SEARCHING;
+            data.searchTimer = 0;
+            data.searchAngle = 0;
+            _setConeColor(data, COLOR_YELLOW);
+            // Reset speed
+            if (en.speed !== undefined)     en.speed     = data.originalSpeed;
+            if (en.moveSpeed !== undefined) en.moveSpeed = data.originalSpeed;
+          }
+          break;
+
+        case STAGE_DETECTED:
+          _setConeColor(data, COLOR_RED);
+          if (!playerVisible) {
+            // Lost the player
+            data.stage       = STAGE_SEARCHING;
+            data.searchTimer = 0;
+            data.searchAngle = 0;
+            _setConeColor(data, COLOR_YELLOW);
+          }
+          break;
+
+        case STAGE_SEARCHING:
+          _setConeColor(data, COLOR_YELLOW);
+          data.searchTimer += dt;
+          if (playerVisible) {
+            // Spotted again
+            data.stage = STAGE_DETECTED;
+            _setConeColor(data, COLOR_RED);
+            _triggerAlarm(en);
+          } else if (data.searchTimer >= SEARCH_DURATION) {
+            // Give up
+            data.stage = STAGE_UNDETECTED;
+            _setConeColor(data, COLOR_GREEN);
+          }
+          break;
+
+        default:
+          data.stage = STAGE_UNDETECTED;
+          _setConeColor(data, COLOR_GREEN);
+          break;
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────── GHOST METER UPDATE
+
+  function _updateGhostMeter(dt) {
+    var anyDetected = false;
+    for (var i = 0; i < _enemies.length; i++) {
+      if (_enemies[i].stage === STAGE_DETECTED) {
+        anyDetected = true;
+        break;
+      }
+    }
+
+    if (!anyDetected && !_alarmEverTriggered) {
+      _ghostMeter += GHOST_FILL_RATE * dt;
+      if (_ghostMeter > 1) _ghostMeter = 1;
+    }
+    // Ghost score multiplier scales with meter
+    _ghostBonus = 1.0 + _ghostMeter * 2.0; // up to 3x at full ghost meter
+  }
+
+  // ─────────────────────────────────────────────── GHOST OPERATIVE REWARD
+
+  function _awardGhostBonus() {
+    if (_levelComplete) return;
+    _levelComplete = true;
+
+    if (!_alarmEverTriggered && _ghostMeter > 0.5) {
+      if (typeof window._score !== 'undefined') {
+        window._score += 1000;
+      }
+      _showGhostTitle();
+    }
+  }
+
+  function _showGhostTitle() {
+    if (!_ghostTitleEl) return;
+    _ghostTitleEl.style.display = 'block';
+    // Re-trigger animation by cloning
+    var clone = _ghostTitleEl.cloneNode(true);
+    _ghostTitleEl.parentNode.replaceChild(clone, _ghostTitleEl);
+    _ghostTitleEl = clone;
+    _ghostTitleEl.style.display = 'block';
+    setTimeout(function () {
+      if (_ghostTitleEl) _ghostTitleEl.style.display = 'none';
+    }, 3500);
+  }
+
+  // ─────────────────────────────────────────────── FLOATING TEXT
+
+  function _showFloatingText(text, color) {
     var el = document.createElement('div');
-    el.textContent = msg;
+    el.textContent = text;
     el.style.cssText = [
       'position:fixed',
-      'top:30%',
+      'top:35%',
       'left:50%',
       'transform:translate(-50%,-50%)',
-      'color:#00ff88',
       'font-family:monospace',
-      'font-size:22px',
+      'font-size:20px',
       'font-weight:bold',
       'letter-spacing:4px',
+      'color:' + (color || '#fff'),
+      'text-shadow:0 0 10px ' + (color || '#fff'),
       'pointer-events:none',
-      'z-index:600',
-      'text-shadow:0 0 10px #00ff88'
+      'z-index:800',
+      'transition:opacity 0.6s'
     ].join(';');
     document.body.appendChild(el);
+    setTimeout(function () { el.style.opacity = '0'; }, 800);
     setTimeout(function () {
       if (el.parentNode) el.parentNode.removeChild(el);
-    }, 2000);
+    }, 1500);
   }
 
-  // ─────────────────────────────────── whistle decoy
-  function _throwDecoy() {
-    if (_decoyActive) return;
-    if (!_camera) return;
-    if (!_scene) return;
+  // ─────────────────────────────────────────────── KEYBOARD
 
-    _decoyActive  = true;
-    _decoyLanded  = false;
-    _decoyTimer   = 0;
-    _decoyNoiseTimer = 0;
-
-    // Create small sphere
-    try {
-      var geo = new THREE.SphereGeometry(DECOY_SPHERE_RADIUS, 6, 6);
-      var mat = new THREE.MeshBasicMaterial({ color: 0x886644 });
-      _decoyMesh = new THREE.Mesh(geo, mat);
-      _decoyMesh.position.copy(_camera.position);
-      _scene.add(_decoyMesh);
-    } catch (e) {
-      _decoyMesh = null;
-    }
-
-    // Launch direction — camera forward
-    var fwd = new THREE.Vector3(0, 0, -1);
-    fwd.applyEuler(_camera.rotation);
-    fwd.normalize();
-
-    _decoyPos = {
-      x: _camera.position.x,
-      y: _camera.position.y,
-      z: _camera.position.z
-    };
-    _decoyVel = {
-      x: fwd.x * (DECOY_RANGE / 1.2),
-      y: 4,
-      z: fwd.z * (DECOY_RANGE / 1.2)
-    };
-  }
-
-  function _updateDecoy(dt) {
-    if (!_decoyActive) return;
-
-    if (!_decoyLanded) {
-      // Simple projectile arc
-      _decoyVel.y -= 18 * dt;   // gravity
-      _decoyPos.x += _decoyVel.x * dt;
-      _decoyPos.y += _decoyVel.y * dt;
-      _decoyPos.z += _decoyVel.z * dt;
-
-      if (_decoyMesh) {
-        _decoyMesh.position.set(_decoyPos.x, _decoyPos.y, _decoyPos.z);
-      }
-
-      // Landed when below ground or after 1.2s
-      _decoyTimer += dt;
-      if (_decoyPos.y <= 0 || _decoyTimer > 1.5) {
-        _decoyPos.y = 0;
-        _decoyLanded = true;
-        _decoyTimer = 0;
-        if (_decoyMesh) {
-          _decoyMesh.position.y = 0;
-        }
-        _playDecoyThud();
-        _attractEnemiesTo(_decoyPos.x, _decoyPos.z, DECOY_NOISE_RADIUS, DECOY_ATTRACT_DURATION);
-      }
-    } else {
-      // Despawn after attract duration
-      _decoyTimer += dt;
-      if (_decoyTimer > DECOY_ATTRACT_DURATION + 0.5) {
-        if (_decoyMesh && _scene) {
-          _scene.remove(_decoyMesh);
-          _decoyMesh = null;
-        }
-        _decoyActive = false;
-        _decoyLanded = false;
-      }
+  function _onKeyDown(e) {
+    if (e.repeat) return;
+    if (e.code === 'KeyF') {
+      _tryTakedown();
     }
   }
 
-  function _attractEnemiesTo(wx, wz, radius, dur) {
-    if (!window.Enemies || typeof window.Enemies.getAll !== 'function') return;
-    var enemies = window.Enemies.getAll();
-    for (var i = 0; i < enemies.length; i++) {
-      var en = enemies[i];
-      if (!en || !en.position) continue;
-      var dx = en.position.x - wx;
-      var dz = en.position.z - wz;
-      var dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist <= radius) {
-        if (typeof en.investigatePoint === 'function') {
-          en.investigatePoint(wx, 0, wz, dur);
-        } else if (typeof en.setTarget === 'function') {
-          en.setTarget({ x: wx, y: 0, z: wz });
-        }
-      }
+  // ─────────────────────────────────────────────── PUBLIC — NOISE EVENTS
+
+  function addNoise(amount) {
+    _noisePct += amount;
+    if (_noisePct > 100) _noisePct = 100;
+    if (_noisePct < 0)   _noisePct = 0;
+  }
+
+  function onPlayerFired(weaponName) {
+    var name = weaponName ? String(weaponName).toLowerCase() : '';
+    var isSilenced = (name.indexOf('suppressed') !== -1 || name.indexOf('silenced') !== -1);
+    addNoise(isSilenced ? NOISE_SUPPRESSED : NOISE_SHOOT);
+  }
+
+  function onPlayerMoved(mode) {
+    // mode: 'still'|'crouch'|'walk'|'run'
+    _moveMode = mode || 'still';
+    switch (_moveMode) {
+      case 'run':         addNoise(NOISE_RUN * 0.05);         break; // per-frame contribution
+      case 'walk':        addNoise(NOISE_WALK * 0.05);        break;
+      case 'crouch':      addNoise(NOISE_CROUCH_WALK * 0.05); break;
+      default:            break;
     }
   }
 
-  // ─────────────────────────────────── enemy detection checks
-  function _checkEnemyDetection() {
-    if (!window.Enemies || typeof window.Enemies.getAll !== 'function') return;
-    if (!_camera) return;
-
-    var sl = window._stealthLevel;
-    var camPos = _camera.position;
-    var detected = false;
-
-    var enemies = window.Enemies.getAll();
-    for (var i = 0; i < enemies.length; i++) {
-      var en = enemies[i];
-      if (!en || !en.position) continue;
-
-      var dx = en.position.x - camPos.x;
-      var dz = en.position.z - camPos.z;
-      var dist = Math.sqrt(dx * dx + dz * dz);
-
-      var detRange = 0;
-      if (sl > DETECT_HIGH_THRESH) {
-        detRange = DETECT_HIGH_RANGE;
-      } else if (sl >= DETECT_LOW_THRESH) {
-        detRange = DETECT_MED_RANGE;
-      } else {
-        // Below 0.3 — only detect via noise
-        if (_noiseLevel > 0.4 && dist < 8) {
-          detRange = 8;
-        }
-      }
-
-      if (detRange > 0 && dist <= detRange) {
-        // Alert enemy
-        if (typeof en.alertToPlayer === 'function') {
-          en.alertToPlayer();
-        } else if (typeof en.alert === 'function') {
-          en.alert();
-        }
-        detected = true;
-      }
-    }
-
-    if (detected) {
-      if (sl > DETECT_HIGH_THRESH) {
-        _triggerDetected();
-      } else {
-        _triggerSuspicious();
-      }
-    }
+  function onExplosionNearby() {
+    addNoise(NOISE_EXPLOSION);
   }
 
-  function _triggerSuspicious() {
-    if (_detectWarnTimer > 0) return;
-    _detectWarnTimer = DETECTION_WARN_DUR;
-    if (_eyeIconEl) {
-      _eyeIconEl.style.display = 'block';
-      _eyeIconEl.style.color = '#ffcc00';
-      _eyeIconEl.style.animation = 'stealthEyePulse 0.5s ease-in-out infinite';
-    }
-  }
+  // ─────────────────────────────────────────────── PUBLIC API
 
-  function _triggerDetected() {
-    if (_detectedTimer > 0) return;
-    _detectedTimer = DETECTED_WARN_DUR;
-    if (_alertBannerEl) {
-      _alertBannerEl.style.display = 'block';
-      _alertBannerEl.style.color = '#ff3333';
-    }
-    if (_eyeIconEl) {
-      _eyeIconEl.style.display = 'block';
-      _eyeIconEl.style.color = '#ff3333';
-      _eyeIconEl.style.animation = 'stealthEyePulse 0.3s ease-in-out infinite';
-    }
-  }
-
-  function _updateDetectionWarnings(dt) {
-    if (_detectWarnTimer > 0) {
-      _detectWarnTimer -= dt;
-      if (_detectWarnTimer <= 0) {
-        _detectWarnTimer = 0;
-        if (_eyeIconEl && _detectedTimer <= 0) {
-          _eyeIconEl.style.display = 'none';
-          _eyeIconEl.style.animation = 'none';
-        }
-      }
-    }
-
-    if (_detectedTimer > 0) {
-      _detectedTimer -= dt;
-      if (_detectedTimer <= 0) {
-        _detectedTimer = 0;
-        if (_alertBannerEl) {
-          _alertBannerEl.style.display = 'none';
-        }
-        if (_eyeIconEl) {
-          _eyeIconEl.style.display = 'none';
-          _eyeIconEl.style.animation = 'none';
-        }
-      }
-    }
-  }
-
-  // ─────────────────────────────────── NightAssault light check
-  function _getLightVisibilityModifier() {
-    if (window.NightAssault && typeof window.NightAssault.getAmbientLight === 'function') {
-      var light = window.NightAssault.getAmbientLight();   // 0-1
-      return light * 0.3;   // bright light adds up to 0.3 to visibility
-    }
-    return 0;
-  }
-
-  // ─────────────────────────────────── public API
-  function init(scene, camera) {
+  function init(scene, camera, options) {
     if (_inited) return;
-    _inited = true;
-    _scene  = scene;
-    _camera = camera;
+    _inited  = true;
+    _scene   = scene  || null;
+    _camera  = camera || null;
 
     _buildHUD();
     document.addEventListener('keydown', _onKeyDown);
-  }
 
-  function onPlayerFired() {
-    // Suppressor reduces noise/visibility
-    var suppressMult = (window._suppressed === true) ? 0.25 : 1.0;
-    _noiseLevel = Math.min(1, NOISE_FIRE_LEVEL * suppressMult);
-    _firedTimer = VISIBILITY_FIRED_DECAY;
-  }
-
-  function onPlayerMoved(speed) {
-    // speed: 0 = still/crouch, 1 = walk, 2 = sprint
-    _moveSpeed   = speed;
-    _isCrouching = (speed === 0);
-  }
-
-  function getStealthLevel() {
-    return window._stealthLevel;
+    // Draw initial state
+    _drawNoiseMeter();
+    _drawGhostMeter();
   }
 
   function update(dt) {
     if (!_inited) return;
+    if (!dt || dt < 0) dt = 0.016;
 
-    // ── Ghost mode override
-    if ((window.PowerupSystem && window._ghostMode) || window._ghostMode) {
-      window._stealthLevel = 0;
-      _stealthLevel = 0;
-      _drawNoiseMeter(0);
-      _drawEyeMeter(0);
-      _updateDecoy(dt);
-      _updateDetectionWarnings(dt);
-      return;
-    }
+    // ── Noise decay
+    _noisePct -= NOISE_DECAY_PER_SEC * dt;
+    if (_noisePct < 0)   _noisePct = 0;
+    if (_noisePct > 100) _noisePct = 100;
 
-    // ── Noise meter update
-    var targetNoise = NOISE_CROUCH_LEVEL;
-    if (_moveSpeed >= 2) {
-      targetNoise = NOISE_SPRINT_LEVEL;
-    } else if (_moveSpeed === 1) {
-      targetNoise = NOISE_WALK_LEVEL;
-    }
-    if (_firedTimer > 0) {
-      var suppressMult = (window._suppressed === true) ? 0.25 : 1.0;
-      targetNoise = Math.max(targetNoise, NOISE_FIRE_LEVEL * suppressMult);
-    }
+    // ── Shadow check
+    _checkShadow();
 
-    if (targetNoise > _noiseLevel) {
-      _noiseLevel = targetNoise;
-    } else {
-      _noiseLevel -= NOISE_DECAY_RATE * dt;
-      if (_noiseLevel < 0) _noiseLevel = 0;
-    }
+    // ── Exposed check
+    _checkExposed();
 
-    // ── Visibility update
-    var baseVis = VISIBILITY_CROUCHING;
-    if (_moveSpeed >= 2) {
-      baseVis = VISIBILITY_RUNNING;
-    } else if (_moveSpeed === 1) {
-      baseVis = VISIBILITY_WALKING;
-    }
+    // ── Detection cones & enemy state machine
+    _updateEnemyDetection(dt);
 
-    if (_firedTimer > 0) {
-      _firedTimer -= dt;
-      var suppressMult2 = (window._suppressed === true) ? 0.25 : 1.0;
-      baseVis = Math.max(baseVis, VISIBILITY_FIRED_LEVEL * suppressMult2);
-      if (_firedTimer < 0) _firedTimer = 0;
-    }
+    // ── Ghost meter
+    _updateGhostMeter(dt);
 
-    baseVis += _getLightVisibilityModifier();
-    if (baseVis > 1) baseVis = 1;
-    if (baseVis < 0) baseVis = 0;
-
-    _stealthLevel = baseVis;
-    window._stealthLevel = _stealthLevel;
-
-    // ── Footstep audio + noise radius
-    if (_moveSpeed > 0) {
-      var footInterval = (_moveSpeed >= 2) ? FOOTSTEP_RUN_INTERVAL : FOOTSTEP_WALK_INTERVAL;
-      _footstepTimer -= dt;
-      if (_footstepTimer <= 0) {
-        _footstepTimer = footInterval;
-        _playFootstepNoise();
-        var noiseRad = (_moveSpeed >= 2) ? 14 : FOOTSTEP_NOISE_RADIUS;
-        _alertEnemiesInRange(noiseRad);
-      }
-    } else {
-      _footstepTimer = 0;
-    }
-
-    // ── Enemy detection
-    _checkEnemyDetection();
-
-    // ── Sub-updates
-    _updateStealthKill(dt);
-    _updateDecoy(dt);
-    _updateDetectionWarnings(dt);
-
-    // ── HUD
-    _drawNoiseMeter(_noiseLevel);
-    _drawEyeMeter(_stealthLevel);
-  }
-
-  function _alertEnemiesInRange(radius) {
-    if (!window.Enemies || typeof window.Enemies.getAll !== 'function') return;
-    if (!_camera) return;
-    var camPos = _camera.position;
-    var enemies = window.Enemies.getAll();
-    for (var i = 0; i < enemies.length; i++) {
-      var en = enemies[i];
-      if (!en || !en.position) continue;
-      var dx = en.position.x - camPos.x;
-      var dz = en.position.z - camPos.z;
-      var dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist <= radius) {
-        if (typeof en.heardNoise === 'function') {
-          en.heardNoise(camPos.x, camPos.z);
-        } else if (typeof en.investigatePoint === 'function') {
-          en.investigatePoint(camPos.x, camPos.y, camPos.z, 2);
-        }
+    // ── Alarm flash timer
+    if (_alarmActive && _alarmFlashTimer > 0) {
+      _alarmFlashTimer -= dt;
+      if (_alarmFlashTimer <= 0) {
+        _alarmFlashTimer = 0;
+        _alarmActive     = false;
+        if (_alarmEl) _alarmEl.style.display = 'none';
       }
     }
+
+    // ── Takedown animation
+    _updateTakedown(dt);
+
+    // ── HUD refresh
+    _drawNoiseMeter();
+    _drawGhostMeter();
   }
 
   function reset() {
-    _noiseLevel         = 0;
-    _stealthLevel       = 0;
-    window._stealthLevel = 0;
-    _firedTimer         = 0;
-    _moveSpeed          = 0;
-    _isCrouching        = false;
-    _footstepTimer      = 0;
-    _stealthKillActive  = false;
-    _stealthKillTimer   = 0;
-    _stealthKillTarget  = null;
-    _decoyActive        = false;
-    _decoyLanded        = false;
-    _decoyTimer         = 0;
-    _detectWarnTimer    = 0;
-    _detectedTimer      = 0;
+    _noisePct           = 0;
+    _moveMode           = 'still';
+    _inShadow           = false;
+    _ghostMeter         = 0;
+    _ghostKills         = 0;
+    _alarmEverTriggered = false;
+    _ghostBonus         = 1.0;
+    _levelComplete      = false;
+    _alarmActive        = false;
+    _alarmFlashTimer    = 0;
+    _isExposed          = false;
+    _takedownActive     = false;
+    _takedownTarget     = null;
+    _takedownTimer      = 0;
 
-    if (_decoyMesh && _scene) {
-      _scene.remove(_decoyMesh);
-      _decoyMesh = null;
+    // Remove all cones
+    for (var i = 0; i < _enemies.length; i++) {
+      if (_enemies[i].cone && _scene) {
+        _scene.remove(_enemies[i].cone);
+      }
     }
-    if (_flashEl) {
-      _flashEl.style.display = 'none';
-      _flashEl.style.opacity = '0';
-    }
-    if (_eyeIconEl) {
-      _eyeIconEl.style.display = 'none';
-    }
-    if (_alertBannerEl) {
-      _alertBannerEl.style.display = 'none';
-    }
+    _enemies = [];
 
-    _drawNoiseMeter(0);
-    _drawEyeMeter(0);
+    // Reset HUD
+    if (_exposedEl)  _exposedEl.style.display  = 'none';
+    if (_alarmEl)    _alarmEl.style.display    = 'none';
+    if (_ghostTitleEl) _ghostTitleEl.style.display = 'none';
+
+    _drawNoiseMeter();
+    _drawGhostMeter();
+  }
+
+  function getGhostScore() {
+    return _ghostMeter;
+  }
+
+  function isGhosting() {
+    return (!_alarmEverTriggered && _ghostMeter > 0);
+  }
+
+  // Expose awardGhostBonus so game manager can call at level end
+  function onLevelComplete() {
+    _awardGhostBonus();
   }
 
   return {
-    init: init,
-    update: update,
-    onPlayerFired: onPlayerFired,
-    onPlayerMoved: onPlayerMoved,
-    getStealthLevel: getStealthLevel,
-    reset: reset
+    init:               init,
+    update:             update,
+    reset:              reset,
+    addNoise:           addNoise,
+    onPlayerFired:      onPlayerFired,
+    onPlayerMoved:      onPlayerMoved,
+    onExplosionNearby:  onExplosionNearby,
+    registerEnemy:      registerEnemy,
+    unregisterEnemy:    unregisterEnemy,
+    getGhostScore:      getGhostScore,
+    isGhosting:         isGhosting,
+    onLevelComplete:    onLevelComplete
   };
 
 })();

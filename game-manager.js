@@ -1724,6 +1724,17 @@ const GameManager = (function () {
     try { if (window.ChainOfCommand && ChainOfCommand.init) ChainOfCommand.init(_scene, _camera); } catch (e) {}
     try { if (window.WeatherEffects && WeatherEffects.init) WeatherEffects.init(_scene, _camera); } catch (e) {}
     try { if (window.ObjectiveTracker && ObjectiveTracker.init) ObjectiveTracker.init(_scene, _camera); } catch (e) {}
+    // Wave 29 modules
+    try { if (window.BattleDamageAssessment && BattleDamageAssessment.init) BattleDamageAssessment.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonerExchange && PrisonerExchange.init) PrisonerExchange.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalRetreat && TacticalRetreat.init) TacticalRetreat.init(_scene, _camera); } catch (e) {}
+    try { if (window.KillHouse && KillHouse.init) KillHouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.MortarCalculator && MortarCalculator.init) MortarCalculator.init(_scene, _camera); } catch (e) {}
+    try { if (window.LogisticsSystem && LogisticsSystem.init) LogisticsSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.StealthSystem && StealthSystem.init) StealthSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanPatrol && UrbanPatrol.init) UrbanPatrol.init(_scene, _camera); } catch (e) {}
+    try { if (window.ElectronicWarfare && ElectronicWarfare.init) ElectronicWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleConvoy && VehicleConvoy.init) VehicleConvoy.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8243,6 +8254,16 @@ const GameManager = (function () {
       if (window.ChainOfCommand) ChainOfCommand.update(delta);
       if (window.WeatherEffects) WeatherEffects.update(delta);
       if (window.ObjectiveTracker) ObjectiveTracker.update(delta);
+      if (window.BattleDamageAssessment) BattleDamageAssessment.update(delta);
+      if (window.PrisonerExchange) PrisonerExchange.update(delta);
+      if (window.TacticalRetreat) TacticalRetreat.update(delta);
+      if (window.KillHouse) KillHouse.update(delta);
+      if (window.MortarCalculator) MortarCalculator.update(delta);
+      if (window.LogisticsSystem) LogisticsSystem.update(delta);
+      if (window.StealthSystem) StealthSystem.update(delta);
+      if (window.UrbanPatrol) UrbanPatrol.update(delta);
+      if (window.ElectronicWarfare) ElectronicWarfare.update(delta);
+      if (window.VehicleConvoy) VehicleConvoy.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
