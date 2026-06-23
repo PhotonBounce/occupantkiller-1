@@ -1751,6 +1751,9 @@ const GameManager = (function () {
     try { if (window.GrenadeTypes && GrenadeTypes.init) GrenadeTypes.init(_scene, _camera); } catch (e) {}
     try { if (window.SentryGun && SentryGun.init) SentryGun.init(_scene, _camera); } catch (e) {}
     try { if (window.BunkerAssault && BunkerAssault.init) BunkerAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirAssault && AirAssault.init) AirAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeatherAmbience && WeatherAmbience.init) WeatherAmbience.init(_scene, _camera); } catch (e) {}
+    try { if (window.ObjectiveCapture && ObjectiveCapture.init) ObjectiveCapture.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8294,6 +8297,9 @@ const GameManager = (function () {
       if (window.GrenadeTypes) GrenadeTypes.update(delta);
       if (window.SentryGun) SentryGun.update(delta);
       if (window.BunkerAssault) BunkerAssault.update(delta);
+      if (window.AirAssault) AirAssault.update(delta);
+      if (window.WeatherAmbience) WeatherAmbience.update(delta);
+      if (window.ObjectiveCapture) ObjectiveCapture.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
