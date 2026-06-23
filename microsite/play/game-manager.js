@@ -1778,6 +1778,12 @@ const GameManager = (function () {
     try { if (window.FirebaseDefense && FirebaseDefense.init) FirebaseDefense.init(_scene, _camera); } catch (e) {}
     try { if (window.IntelNetwork && IntelNetwork.init) IntelNetwork.init(_scene, _camera); } catch (e) {}
     try { if (window.NavalOperations && NavalOperations.init) NavalOperations.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticWarfare && ArcticWarfare.init) ArcticWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleWarfare && JungleWarfare.init) JungleWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.CheckpointAssault && CheckpointAssault.init) CheckpointAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandVehicle && CommandVehicle.init) CommandVehicle.init(_scene, _camera); } catch (e) {}
+    try { if (window.BallisticShieldOps && BallisticShieldOps.init) BallisticShieldOps.init(_scene, _camera); } catch (e) {}
+    try { if (window.RiotResponse && RiotResponse.init) RiotResponse.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8347,6 +8353,12 @@ const GameManager = (function () {
       if (window.FirebaseDefense) FirebaseDefense.update(delta);
       if (window.IntelNetwork) IntelNetwork.update(delta);
       if (window.NavalOperations) NavalOperations.update(delta);
+      if (window.ArcticWarfare) ArcticWarfare.update(delta);
+      if (window.JungleWarfare) JungleWarfare.update(delta);
+      if (window.CheckpointAssault) CheckpointAssault.update(delta);
+      if (window.CommandVehicle) CommandVehicle.update(delta);
+      if (window.BallisticShieldOps) BallisticShieldOps.update(delta);
+      if (window.RiotResponse) RiotResponse.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
