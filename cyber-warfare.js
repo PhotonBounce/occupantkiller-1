@@ -1,897 +1,1197 @@
-// cyber-warfare.js — Cyber Warfare / System Hacking module for Three.js FPS
-// Features: hackable objects (guard towers, turrets, cameras, vehicles),
-//           scan mode (Alt), hack minigame (5x5 bit grid), hack effects per type,
-//           firewall (2-round), counter-hack, data exfil terminal, virus payload.
-// IIFE module — var only, no import/export.
-
 window.CyberWarfare = (function () {
   'use strict';
 
-  // ── Constants ────────────────────────────────────────────────────────────────
-  var SCAN_RANGE          = 15;      // units — cyan outline + label visibility
-  var HACK_RANGE          = 3;       // units — must be within to start hack
-  var GRID_SIZE           = 5;       // 5×5 bit grid
-  var HACK_TIME_LIMIT     = 10;      // seconds per minigame round
-  var GUARD_CONFUSED_TIME = 20;      // seconds guards wander after tower hack
-  var TURRET_FRIENDLY_TIME = 30;     // seconds turret targets enemies
-  var CAMERA_BLIND_TIME   = 999;     // persistent (camera zone awareness -50%)
-  var VEHICLE_CIRCLE_TIME = 15;      // seconds vehicle drives in circles
-  var EXFIL_DURATION      = 8;       // seconds to hold hack on command terminal
-  var EXFIL_SCORE         = 300;     // points awarded for successful data exfil
-  var COUNTER_HACK_DELAY  = 30;      // seconds for enemy counter-hack
-  var VIRUS_PAYLOAD_SLOTS = 3;       // max simultaneous virus infections
+  // ── State ──────────────────────────────────────────────────────────────────
+  var scene = null;
+  var camera = null;
+  var renderer = null;
 
-  // Object type identifiers
-  var TYPE_GUARD_TOWER = 'GUARD_TOWER';
-  var TYPE_TURRET      = 'TURRET';
-  var TYPE_CAMERA      = 'CAMERA';
-  var TYPE_VEHICLE     = 'VEHICLE';
-  var TYPE_TERMINAL    = 'COMMAND_TERMINAL';
+  var active = false;
+  var ownedObjects = [];
 
-  // ── State ────────────────────────────────────────────────────────────────────
-  var _scene        = null;
-  var _camera       = null;
-  var _raycaster    = null;
-  var _hackables    = [];      // { mesh, type, hacked, firewalled, hackRound, outlineMesh, iconMesh, label, counterHackTimer }
-  var _scanActive   = false;
-  var _hudRoot      = null;
-  var _scanOverlay  = null;
-  var _scanHUD      = null;
-  var _minigameRoot = null;
-  var _minigameActive = false;
-  var _minigameTarget = null;  // hackable entry
-  var _minigameGrid   = [];    // flat array of 25 values (0/1)
-  var _minigameGoal   = [];    // target pattern
-  var _minigameCursorX = 0;
-  var _minigameCursorY = 0;
-  var _minigameTimer  = 0;
-  var _minigameRound  = 0;     // 0 or 1 (for firewalled objects, 2 rounds needed)
-  var _exfilTarget    = null;  // terminal being exfiltrated
-  var _exfilTimer     = 0;
-  var _virusPayloadActive = false;
-  var _virusTargets   = [];    // up to VIRUS_PAYLOAD_SLOTS meshes infected simultaneously
-  var _playerExposed  = false; // set externally to trigger counter-hacks
-  var _keysDown       = {};
-  var _prevKeys       = {};
+  // Activation key combo
+  var keys = {};
+  var cKeyTime = 0;
+  var yKeyTime = 0;
+  var COMBO_WINDOW = 400;
 
-  // ── Helper: random bit grid ───────────────────────────────────────────────────
-  function _randomGrid() {
-    var g = [];
-    var i;
-    for (i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
-      g.push(Math.random() < 0.5 ? 0 : 1);
-    }
-    return g;
+  // Room
+  var roomFloor = null;
+  var roomWalls = [];
+
+  // Terminals
+  var terminals = [];
+  // terminal: { mesh, screens[], indicator, position, hacked, hacking, hackProgress,
+  //             firewallActive, firewallHits, firewallMesh, disabled }
+
+  // Central server
+  var centralServer = null;
+  var uploadActive = false;
+  var uploadProgress = 0;
+  var UPLOAD_DURATION = 15;
+  var shutdownTriggered = false;
+  var shutdownLight = null;
+  var shutdownTimer = 0;
+  var rehackRequired = [];
+
+  // Data nodes
+  var dataNodes = [];
+  // dataNode: { mesh, collected, bobOffset }
+  var dataScore = 0;
+
+  // Network visualization
+  var networkLines = null;
+  var networkShown = false;
+  var networkNodeMeshes = [];
+
+  // Guards
+  var guards = [];
+  // guard: { body, head, position, dir, speed, alerted, alertTimer, patrolTarget, hp }
+
+  // Alarm
+  var alarmActive = false;
+  var alarmFlashEl = null;
+  var alarmTimer = 0;
+
+  // Door / keycard
+  var mainDoor = null;
+  var doorOpen = false;
+  var keycard = null;
+  var keycardCollected = false;
+  var officeRoom = null;
+
+  // Payload system
+  var PAYLOADS = ['VIRUS', 'RANSOMWARE', 'BACKDOOR'];
+  var currentPayloadIndex = 0;
+  var ransomwareActive = false;
+  var ransomwareTimer = 0;
+  var backdoorRevealed = false;
+  var supplyCache = null;
+
+  // HUD
+  var hudEl = null;
+
+  // Minimap
+  var minimapEl = null;
+
+  // Hack state
+  var nearTerminalIndex = -1;
+  var hackingTerminalIndex = -1;
+  var HACK_RANGE = 3;
+  var HACK_DURATION = 8;
+
+  // Upload range
+  var UPLOAD_RANGE = 3;
+
+  // Keycard pickup range
+  var KEYCARD_RANGE = 1.5;
+
+  // Supply cache position (revealed via BACKDOOR)
+  var supplyCachePos = { x: 6, y: 0.4, z: 6 };
+
+  // Time accumulator
+  var elapsed = 0;
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function rand(min, max) {
+    return min + Math.random() * (max - min);
   }
 
-  // Generate a goal that differs from current grid by ~5 bits
-  function _generateGoal(current) {
-    var goal = current.slice();
-    var flips = 4 + Math.floor(Math.random() * 4); // 4-7 bits different
-    var i, idx;
-    for (i = 0; i < flips; i++) {
-      idx = Math.floor(Math.random() * (GRID_SIZE * GRID_SIZE));
-      goal[idx] = goal[idx] === 0 ? 1 : 0;
-    }
-    return goal;
+  function dist3(a, b) {
+    var dx = a.x - b.x;
+    var dy = a.y - b.y;
+    var dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
-  function _gridsMatch(a, b) {
-    var i;
-    for (i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) return false;
-    }
-    return true;
+  function distXZ(a, b) {
+    var dx = a.x - b.x;
+    var dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dz * dz);
   }
 
-  // ── HUD Construction ─────────────────────────────────────────────────────────
-  function _buildHUD() {
-    _hudRoot = document.createElement('div');
-    _hudRoot.id = 'cw-hud-root';
-    _hudRoot.style.cssText = [
-      'position:fixed',
-      'top:0','left:0','width:100%','height:100%',
-      'pointer-events:none',
-      'z-index:900',
-      'font-family:monospace'
-    ].join(';');
-    document.body.appendChild(_hudRoot);
-
-    // Scan overlay — subtle desaturate + cyan tint
-    _scanOverlay = document.createElement('div');
-    _scanOverlay.style.cssText = [
-      'position:absolute','top:0','left:0','width:100%','height:100%',
-      'background:rgba(0,255,220,0.06)',
-      'filter:saturate(0.45)',
-      'display:none',
-      'pointer-events:none'
-    ].join(';');
-    _hudRoot.appendChild(_scanOverlay);
-
-    // Scan HUD bar (top-right)
-    _scanHUD = document.createElement('div');
-    _scanHUD.style.cssText = [
-      'position:absolute','top:12px','right:16px',
-      'color:#00ffcc',
-      'font-size:13px',
-      'letter-spacing:2px',
-      'text-shadow:0 0 8px #00ffcc',
-      'display:none',
-      'background:rgba(0,0,0,0.55)',
-      'padding:6px 14px',
-      'border:1px solid #00ffcc55',
-      'border-radius:4px'
-    ].join(';');
-    _hudRoot.appendChild(_scanHUD);
+  function lerpColor(c1, c2, t) {
+    var r1 = (c1 >> 16) & 0xFF;
+    var g1 = (c1 >> 8) & 0xFF;
+    var b1 = c1 & 0xFF;
+    var r2 = (c2 >> 16) & 0xFF;
+    var g2 = (c2 >> 8) & 0xFF;
+    var b2 = c2 & 0xFF;
+    var r = Math.round(r1 + (r2 - r1) * t);
+    var g = Math.round(g1 + (g2 - g1) * t);
+    var b = Math.round(b1 + (b2 - b1) * t);
+    return (r << 16) | (g << 8) | b;
   }
 
-  // ── Minigame UI ──────────────────────────────────────────────────────────────
-  function _buildMinigameUI() {
-    _minigameRoot = document.createElement('div');
-    _minigameRoot.id = 'cw-minigame';
-    _minigameRoot.style.cssText = [
-      'position:fixed','top:50%','left:50%',
-      'transform:translate(-50%,-50%)',
-      'background:rgba(0,8,20,0.95)',
-      'border:2px solid #00ffcc',
-      'border-radius:8px',
-      'padding:20px 28px',
-      'z-index:1100',
-      'color:#00ffcc',
-      'font-family:monospace',
-      'min-width:420px',
-      'box-shadow:0 0 30px #00ffcc55',
-      'pointer-events:none'
-    ].join(';');
-    document.body.appendChild(_minigameRoot);
+  function addOwned(obj) {
+    ownedObjects.push(obj);
+    scene.add(obj);
+    return obj;
   }
 
-  function _renderMinigame() {
-    if (!_minigameRoot || !_minigameTarget) return;
-    var t = _minigameTarget;
-    var label = t.type;
-    var firewallNote = t.firewalled ? ' [FIREWALL — ROUND ' + (_minigameRound + 1) + '/2]' : '';
-    var timerColor = _minigameTimer < 3 ? '#ff4444' : '#00ffcc';
-
-    var html = '<div style="text-align:center;margin-bottom:12px;">';
-    html += '<span style="font-size:16px;letter-spacing:3px;">HACK: ' + label + firewallNote + '</span>';
-    html += '</div>';
-    html += '<div style="text-align:center;margin-bottom:8px;color:' + timerColor + ';">';
-    html += 'TIME: ' + Math.ceil(_minigameTimer) + 's';
-    html += '</div>';
-    html += '<div style="display:flex;gap:24px;justify-content:center;">';
-
-    // Current grid (player edits this)
-    html += '<div>';
-    html += '<div style="font-size:11px;margin-bottom:6px;text-align:center;color:#aaffcc;">YOUR MATRIX</div>';
-    html += '<div style="display:grid;grid-template-columns:repeat(' + GRID_SIZE + ',28px);gap:4px;">';
-    var r, c, idx, isGoal, isCursor, cellBg, cellBorder, cellColor;
-    for (r = 0; r < GRID_SIZE; r++) {
-      for (c = 0; c < GRID_SIZE; c++) {
-        idx = r * GRID_SIZE + c;
-        isCursor = (r === _minigameCursorY && c === _minigameCursorX);
-        isGoal   = (_minigameGrid[idx] === _minigameGoal[idx]);
-        cellBg     = isCursor ? '#00ffcc' : (isGoal ? 'rgba(0,200,80,0.3)' : 'rgba(0,20,40,0.8)');
-        cellBorder = isCursor ? '#ffffff' : (isGoal ? '#00cc44' : '#00ffcc55');
-        cellColor  = isCursor ? '#000' : (isGoal ? '#00ff88' : '#00ffcc');
-        html += '<div style="';
-        html += 'width:28px;height:28px;display:flex;align-items:center;justify-content:center;';
-        html += 'background:' + cellBg + ';';
-        html += 'border:1px solid ' + cellBorder + ';';
-        html += 'color:' + cellColor + ';';
-        html += 'font-size:14px;font-weight:bold;cursor:default;';
-        html += '">' + _minigameGrid[idx] + '</div>';
-      }
-    }
-    html += '</div></div>';
-
-    // Target pattern
-    html += '<div>';
-    html += '<div style="font-size:11px;margin-bottom:6px;text-align:center;color:#aaffcc;">TARGET PATTERN</div>';
-    html += '<div style="display:grid;grid-template-columns:repeat(' + GRID_SIZE + ',28px);gap:4px;">';
-    for (r = 0; r < GRID_SIZE; r++) {
-      for (c = 0; c < GRID_SIZE; c++) {
-        idx = r * GRID_SIZE + c;
-        html += '<div style="';
-        html += 'width:28px;height:28px;display:flex;align-items:center;justify-content:center;';
-        html += 'background:rgba(0,20,40,0.6);border:1px solid #005544;';
-        html += 'color:#66ffaa;font-size:14px;';
-        html += '">' + _minigameGoal[idx] + '</div>';
-      }
-    }
-    html += '</div></div>';
-
-    html += '</div>'; // flex row end
-
-    html += '<div style="text-align:center;margin-top:14px;font-size:11px;color:#55aacc;">';
-    html += 'ARROWS: move cursor  |  ENTER: flip bit  |  ESC: abort';
-    html += '</div>';
-
-    _minigameRoot.innerHTML = html;
-  }
-
-  function _removeMinigameUI() {
-    if (_minigameRoot && _minigameRoot.parentNode) {
-      _minigameRoot.parentNode.removeChild(_minigameRoot);
-      _minigameRoot = null;
-    }
-  }
-
-  // ── Outline helper (cyan EdgesGeometry) ──────────────────────────────────────
-  function _createOutline(mesh) {
-    var edges = new THREE.EdgesGeometry(mesh.geometry);
-    var mat   = new THREE.LineBasicMaterial({ color: 0x00ffcc, linewidth: 2 });
-    var outline = new THREE.LineSegments(edges, mat);
-    outline.visible = false;
-    mesh.add(outline);
-    return outline;
-  }
-
-  // ── Icon sprite above hacked object ──────────────────────────────────────────
-  function _createHackIcon(mesh) {
-    var canvas = document.createElement('canvas');
-    canvas.width  = 64;
-    canvas.height = 64;
-    var ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, 64, 64);
-    ctx.fillStyle = '#00ff88';
-    ctx.font = 'bold 40px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('✔', 32, 32);
-    var tex = new THREE.CanvasTexture(canvas);
-    var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
-    var sprite = new THREE.Sprite(mat);
-    sprite.scale.set(0.8, 0.8, 0.8);
-    var box = new THREE.Box3().setFromObject(mesh);
-    sprite.position.set(0, (box.max.y - box.min.y) * 0.5 + 0.9, 0);
-    sprite.visible = false;
-    mesh.add(sprite);
-    return sprite;
-  }
-
-  // ── Label sprite (object info, shown in scan mode) ───────────────────────────
-  function _createLabel(mesh, type) {
-    var canvas = document.createElement('canvas');
-    canvas.width  = 256;
-    canvas.height = 64;
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'rgba(0,255,204,0.15)';
-    ctx.fillRect(0, 0, 256, 64);
-    ctx.strokeStyle = '#00ffcc';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, 254, 62);
-    ctx.fillStyle = '#00ffcc';
-    ctx.font = 'bold 18px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('[' + type + ']', 128, 32);
-    var tex = new THREE.CanvasTexture(canvas);
-    var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
-    var sprite = new THREE.Sprite(mat);
-    sprite.scale.set(2.5, 0.65, 1);
-    var box = new THREE.Box3().setFromObject(mesh);
-    sprite.position.set(0, (box.max.y - box.min.y) * 0.5 + 1.8, 0);
-    sprite.visible = false;
-    mesh.add(sprite);
-    return sprite;
-  }
-
-  // ── Register a hackable object ────────────────────────────────────────────────
-  function _registerHackable(mesh, type, firewalled) {
-    var entry = {
-      mesh:             mesh,
-      type:             type,
-      hacked:           false,
-      firewalled:       firewalled || false,
-      hackRound:        0,
-      outlineMesh:      _createOutline(mesh),
-      iconMesh:         _createHackIcon(mesh),
-      label:            _createLabel(mesh, type),
-      counterHackTimer: 0,
-      effectTimer:      0
-    };
-    _hackables.push(entry);
-    return entry;
-  }
-
-  // ── Apply hack effect for object type ────────────────────────────────────────
-  function _applyHackEffect(entry) {
-    entry.hacked = true;
-    entry.hackRound = 0;
-    entry.iconMesh.visible = true;
-
-    // Change outline to green
-    entry.outlineMesh.material.color.setHex(0x00ff44);
-
-    switch (entry.type) {
-      case TYPE_GUARD_TOWER:
-        entry.effectTimer = GUARD_CONFUSED_TIME;
-        if (window._guardsConfused !== undefined) {
-          window._guardsConfused = true;
-        }
-        _showHackFeedback('GUARD TOWER HACKED — GUARDS CONFUSED FOR 20s');
-        break;
-
-      case TYPE_TURRET:
-        entry.effectTimer = TURRET_FRIENDLY_TIME;
-        if (entry.mesh._turretFriendlyMode !== undefined) {
-          entry.mesh._turretFriendlyMode = true;
-        }
-        // Expose for external turret systems
-        entry.mesh._cyberFriendly = true;
-        _showHackFeedback('TURRET HACKED — FRIENDLY FIRE MODE ACTIVE');
-        break;
-
-      case TYPE_CAMERA:
-        entry.effectTimer = CAMERA_BLIND_TIME;
-        entry.mesh._cyberBlind = true;
-        if (window._cameraAwarenessMultiplier !== undefined) {
-          window._cameraAwarenessMultiplier = 0.5;
-        }
-        _showHackFeedback('CAMERA DISABLED — ZONE AWARENESS -50%');
-        break;
-
-      case TYPE_VEHICLE:
-        entry.effectTimer = VEHICLE_CIRCLE_TIME;
-        entry.mesh._cyberCircling = true;
-        _showHackFeedback('VEHICLE HACKED — DRIVES IN CIRCLES');
-        break;
-
-      case TYPE_TERMINAL:
-        // Handled via exfil flow; mark hacked for scoring
-        entry.effectTimer = 0;
-        _showHackFeedback('TERMINAL ACCESSED — DATA EXFILTRATION COMPLETE  +' + EXFIL_SCORE);
-        if (window._score !== undefined) {
-          window._score += EXFIL_SCORE;
-        }
-        break;
-    }
-  }
-
-  // ── Feedback flash ────────────────────────────────────────────────────────────
-  function _showHackFeedback(msg) {
-    var el = document.createElement('div');
-    el.style.cssText = [
-      'position:fixed','bottom:22%','left:50%',
-      'transform:translateX(-50%)',
-      'background:rgba(0,8,20,0.88)',
-      'color:#00ffcc',
-      'font-family:monospace',
-      'font-size:14px',
-      'letter-spacing:2px',
-      'padding:8px 20px',
-      'border:1px solid #00ffcc',
-      'border-radius:4px',
-      'z-index:1200',
-      'pointer-events:none',
-      'transition:opacity 1s'
-    ].join(';');
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(function () { el.style.opacity = '0'; }, 2200);
-    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 3300);
-  }
-
-  function _showAlarm() {
-    _showHackFeedback('!! HACK FAILED — ALARM TRIGGERED !!');
-    if (window._triggerAlarm) window._triggerAlarm();
-    if (window._alertLevel !== undefined) window._alertLevel = Math.min((window._alertLevel || 0) + 1, 5);
-  }
-
-  // ── Start minigame ────────────────────────────────────────────────────────────
-  function _startMinigame(entry) {
-    _minigameActive  = true;
-    _minigameTarget  = entry;
-    _minigameGrid    = _randomGrid();
-    _minigameGoal    = _generateGoal(_minigameGrid);
-    _minigameCursorX = 0;
-    _minigameCursorY = 0;
-    _minigameTimer   = HACK_TIME_LIMIT;
-    _buildMinigameUI();
-    _renderMinigame();
-
-    // Lock pointer for keypress capture (blur game controls)
-    if (document.exitPointerLock) document.exitPointerLock();
-  }
-
-  function _endMinigame(success) {
-    _minigameActive = false;
-    _removeMinigameUI();
-
-    if (!_minigameTarget) return;
-    var entry = _minigameTarget;
-    _minigameTarget = null;
-
-    if (!success) {
-      _showAlarm();
-      entry.hackRound = 0;
-      return;
-    }
-
-    // Firewall needs two successful rounds
-    if (entry.firewalled && _minigameRound === 0) {
-      _minigameRound = 1;
-      // Brief pause then second round
-      setTimeout(function () {
-        _showHackFeedback('FIREWALL LAYER 1 BREACHED — ATTEMPTING LAYER 2...');
-        _startMinigame(entry);
-        _minigameRound = 1; // restore after startMinigame resets
-      }, 800);
-      return;
-    }
-
-    // Virus payload: infect multiple objects simultaneously
-    if (_virusPayloadActive && _virusTargets.length > 0) {
-      _applyHackEffect(entry);
-      var vi, vEntry;
-      for (vi = 0; vi < _virusTargets.length && vi < VIRUS_PAYLOAD_SLOTS - 1; vi++) {
-        vEntry = _getEntryByMesh(_virusTargets[vi]);
-        if (vEntry && !vEntry.hacked) _applyHackEffect(vEntry);
-      }
-      _virusPayloadActive = false;
-      _virusTargets = [];
-      _showHackFeedback('VIRUS PAYLOAD DEPLOYED — ' + (vi + 1) + ' SYSTEMS INFECTED');
-      return;
-    }
-
-    _applyHackEffect(entry);
-  }
-
-  // ── Exfil (command terminal hold-hack) ────────────────────────────────────────
-  function _startExfil(entry) {
-    _exfilTarget = entry;
-    _exfilTimer  = 0;
-    _showHackFeedback('DATA EXFILTRATION INITIATED — HOLD H FOR 8s...');
-  }
-
-  function _cancelExfil() {
-    if (_exfilTarget) {
-      _exfilTarget = null;
-      _exfilTimer  = 0;
-      _showHackFeedback('EXFILTRATION ABORTED');
-    }
-  }
-
-  // ── Counter-hack tick ─────────────────────────────────────────────────────────
-  function _tickCounterHack(delta) {
-    var i, entry;
-    if (!_playerExposed) return;
-    for (i = 0; i < _hackables.length; i++) {
-      entry = _hackables[i];
-      if (!entry.hacked) continue;
-      entry.counterHackTimer += delta;
-      if (entry.counterHackTimer >= COUNTER_HACK_DELAY) {
-        entry.hacked = false;
-        entry.counterHackTimer = 0;
-        entry.iconMesh.visible = false;
-        entry.outlineMesh.material.color.setHex(0x00ffcc);
-        // Restore
-        if (entry.type === TYPE_TURRET) entry.mesh._cyberFriendly = false;
-        if (entry.type === TYPE_CAMERA) entry.mesh._cyberBlind = false;
-        if (entry.type === TYPE_VEHICLE) entry.mesh._cyberCircling = false;
-        _showHackFeedback('COUNTER-HACK: ' + entry.type + ' RESTORED BY ENEMY');
-      }
-    }
-  }
-
-  // ── Scan HUD update ───────────────────────────────────────────────────────────
-  function _updateScanHUD() {
-    var total  = _hackables.length;
-    var hacked = 0;
-    var i;
-    for (i = 0; i < _hackables.length; i++) {
-      if (_hackables[i].hacked) hacked++;
-    }
-    if (_scanHUD) {
-      _scanHUD.textContent = 'NETWORKED DEVICES: ' + total + '  |  HACKED: ' + hacked + '/' + total;
-    }
-  }
-
-  // ── Raycaster scan ───────────────────────────────────────────────────────────
-  function _updateScan() {
-    if (!_camera || !_raycaster) return;
-    var i, entry, dist, meshes, hits;
-    meshes = [];
-    for (i = 0; i < _hackables.length; i++) {
-      meshes.push(_hackables[i].mesh);
-    }
-    // Distance-based proximity reveal (not pure raycaster so objects behind walls still
-    // show in scan — intentional "network scan" feel; outline only within 15 units)
-    for (i = 0; i < _hackables.length; i++) {
-      entry = _hackables[i];
-      if (!entry.mesh.parent) continue;
-      var worldPos = new THREE.Vector3();
-      entry.mesh.getWorldPosition(worldPos);
-      dist = _camera.position.distanceTo(worldPos);
-      var inRange = dist <= SCAN_RANGE;
-      entry.outlineMesh.visible = inRange || entry.hacked;
-      entry.label.visible       = inRange && _scanActive;
-    }
-  }
-
-  // ── Key helpers ───────────────────────────────────────────────────────────────
-  function _keyDown(e) { _keysDown[e.code] = true; }
-  function _keyUp(e)   { _keysDown[e.code] = false; }
-
-  function _justPressed(code) {
-    return _keysDown[code] && !_prevKeys[code];
-  }
-
-  // ── Nearest hackable in range ─────────────────────────────────────────────────
-  function _nearestHackable(range) {
-    var best = null;
-    var bestDist = Infinity;
-    var i, entry, pos, dist;
-    for (i = 0; i < _hackables.length; i++) {
-      entry = _hackables[i];
-      if (!entry.mesh.parent) continue;
-      pos = new THREE.Vector3();
-      entry.mesh.getWorldPosition(pos);
-      dist = _camera.position.distanceTo(pos);
-      if (dist <= range && dist < bestDist) {
-        bestDist = dist;
-        best = entry;
-      }
-    }
-    return best;
-  }
-
-  function _getEntryByMesh(mesh) {
-    var i;
-    for (i = 0; i < _hackables.length; i++) {
-      if (_hackables[i].mesh === mesh) return _hackables[i];
-    }
+  function getPlayer() {
+    if (window.player && window.player.position) { return window.player; }
+    if (camera) { return camera; }
     return null;
   }
 
-  // ── Bind keyboard events ──────────────────────────────────────────────────────
-  function _bindKeys() {
-    document.addEventListener('keydown', _keyDown);
-    document.addEventListener('keyup',   _keyUp);
-    document.addEventListener('keydown', _onKeyDownAction);
+  function playerPos() {
+    var p = getPlayer();
+    return p ? p.position : { x: 0, y: 0, z: 0 };
   }
 
-  function _onKeyDownAction(e) {
-    // Minigame controls
-    if (_minigameActive) {
-      switch (e.code) {
-        case 'ArrowLeft':
-          e.preventDefault();
-          _minigameCursorX = (_minigameCursorX - 1 + GRID_SIZE) % GRID_SIZE;
-          _renderMinigame();
+  // ── Build Room ─────────────────────────────────────────────────────────────
+
+  function buildRoom() {
+    // Floor
+    var floorGeo = new THREE.BoxGeometry(20, 0.2, 20);
+    var floorMat = new THREE.MeshLambertMaterial({ color: 0x1A1A2E });
+    roomFloor = new THREE.Mesh(floorGeo, floorMat);
+    roomFloor.position.set(0, -0.1, 0);
+    roomFloor._cyberOwned = true;
+    addOwned(roomFloor);
+
+    // Ceiling
+    var ceilGeo = new THREE.BoxGeometry(20, 0.2, 20);
+    var ceilMat = new THREE.MeshLambertMaterial({ color: 0x111122 });
+    var ceil = new THREE.Mesh(ceilGeo, ceilMat);
+    ceil.position.set(0, 6.1, 0);
+    ceil._cyberOwned = true;
+    addOwned(ceil);
+
+    // Walls (4 sides)
+    var wallMat = new THREE.MeshLambertMaterial({ color: 0x1E1E30 });
+    var wallDefs = [
+      { w: 20, h: 6, d: 0.3, x: 0, y: 3, z: -10 },
+      { w: 20, h: 6, d: 0.3, x: 0, y: 3, z: 10 },
+      { w: 0.3, h: 6, d: 20, x: -10, y: 3, z: 0 },
+      { w: 0.3, h: 6, d: 20, x: 10, y: 3, z: 0 }
+    ];
+    for (var i = 0; i < wallDefs.length; i++) {
+      var wd = wallDefs[i];
+      var wGeo = new THREE.BoxGeometry(wd.w, wd.h, wd.d);
+      var wall = new THREE.Mesh(wGeo, wallMat);
+      wall.position.set(wd.x, wd.y, wd.z);
+      wall._cyberOwned = true;
+      addOwned(wall);
+      roomWalls.push(wall);
+    }
+
+    // Ambient blue light
+    var roomLight = new THREE.AmbientLight(0x111133, 0.8);
+    roomLight._cyberOwned = true;
+    addOwned(roomLight);
+
+    var bluePoint = new THREE.PointLight(0x0033FF, 1.5, 25);
+    bluePoint.position.set(0, 5, 0);
+    bluePoint._cyberOwned = true;
+    addOwned(bluePoint);
+  }
+
+  // ── Build Terminals ────────────────────────────────────────────────────────
+
+  function buildTerminals() {
+    // 4 corners of server room
+    var cornerPositions = [
+      { x: 7, z: -7 },
+      { x: -7, z: -7 },
+      { x: 7, z: 7 },
+      { x: -7, z: 7 }
+    ];
+
+    for (var i = 0; i < 4; i++) {
+      var cp = cornerPositions[i];
+      var faceZ = cp.z < 0 ? -0.45 : 0.45;
+
+      // Body: BoxGeometry 1x2x0.8
+      var bodyGeo = new THREE.BoxGeometry(1, 2, 0.8);
+      var bodyMat = new THREE.MeshLambertMaterial({ color: 0x222233 });
+      var body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.set(cp.x, 1, cp.z);
+      body._cyberOwned = true;
+      addOwned(body);
+
+      // 3x2 grid of GLASS-colored screen panels
+      var screens = [];
+      var screenRows = 2;
+      var screenCols = 3;
+      for (var row = 0; row < screenRows; row++) {
+        for (var col = 0; col < screenCols; col++) {
+          var sGeo = new THREE.BoxGeometry(0.25, 0.7, 0.05);
+          var sMat = new THREE.MeshLambertMaterial({
+            color: 0x80C0FF,
+            emissive: 0x102040,
+            transparent: true,
+            opacity: 0.85
+          });
+          var screen = new THREE.Mesh(sGeo, sMat);
+          var sx = cp.x + (col - 1) * 0.28;
+          var sy = 1 + (row - 0.5) * 0.75;
+          var sz = cp.z + faceZ;
+          screen.position.set(sx, sy, sz);
+          screen._cyberOwned = true;
+          addOwned(screen);
+          screens.push(screen);
+        }
+      }
+
+      // Status indicator light on top
+      var indGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+      var indMat = new THREE.MeshLambertMaterial({ color: 0xFF3300, emissive: 0x330000 });
+      var indicator = new THREE.Mesh(indGeo, indMat);
+      indicator.position.set(cp.x, 2.1, cp.z);
+      indicator._cyberOwned = true;
+      addOwned(indicator);
+
+      terminals.push({
+        mesh: body,
+        screens: screens,
+        indicator: indicator,
+        position: { x: cp.x, y: 1, z: cp.z },
+        hacked: false,
+        hacking: false,
+        hackProgress: 0,
+        firewallActive: false,
+        firewallHits: 0,
+        firewallMesh: null,
+        disabled: false
+      });
+    }
+  }
+
+  // ── Firewall Boss ──────────────────────────────────────────────────────────
+
+  function spawnFirewall(terminalIndex) {
+    var t = terminals[terminalIndex];
+    if (t.firewallMesh) { return; }
+
+    var geo = new THREE.BoxGeometry(3, 3, 3);
+    var mat = new THREE.MeshLambertMaterial({ color: 0xFF0000, emissive: 0x220000 });
+    var mesh = new THREE.Mesh(geo, mat);
+    var offsetZ = t.position.z < 0 ? -4 : 4;
+    mesh.position.set(t.position.x, 1.5, t.position.z + offsetZ);
+    mesh._cyberOwned = true;
+    addOwned(mesh);
+    t.firewallMesh = mesh;
+    t.firewallActive = true;
+    t.firewallHits = 0;
+  }
+
+  function removeFirewall(terminalIndex) {
+    var t = terminals[terminalIndex];
+    if (t.firewallMesh) {
+      scene.remove(t.firewallMesh);
+      var idx = ownedObjects.indexOf(t.firewallMesh);
+      if (idx >= 0) { ownedObjects.splice(idx, 1); }
+      t.firewallMesh = null;
+    }
+    t.firewallActive = false;
+    t.firewallHits = 0;
+  }
+
+  // ── Data Nodes ─────────────────────────────────────────────────────────────
+
+  function buildDataNodes() {
+    var positions = [
+      { x: 3, z: 0 }, { x: -3, z: 0 },
+      { x: 0, z: 3 }, { x: 0, z: -3 },
+      { x: 5, z: 5 }, { x: -5, z: 5 },
+      { x: 5, z: -5 }, { x: -5, z: -5 }
+    ];
+
+    for (var i = 0; i < 8; i++) {
+      var geo = new THREE.SphereGeometry(0.4, 8, 6);
+      var mat = new THREE.MeshLambertMaterial({ color: 0x00FF88, emissive: 0x003322 });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(positions[i].x, 1.5, positions[i].z);
+      mesh._cyberOwned = true;
+      addOwned(mesh);
+      dataNodes.push({
+        mesh: mesh,
+        collected: false,
+        bobOffset: i * 0.8
+      });
+    }
+  }
+
+  // ── Network Visualization ──────────────────────────────────────────────────
+
+  function buildNetworkViz() {
+    if (networkShown) { return; }
+    networkShown = true;
+
+    var netPositions = [
+      { x: 7, y: 3.5, z: -7 },
+      { x: -7, y: 3.5, z: -7 },
+      { x: 7, y: 3.5, z: 7 },
+      { x: -7, y: 3.5, z: 7 },
+      { x: 0, y: 3.5, z: 0 }
+    ];
+
+    for (var i = 0; i < netPositions.length; i++) {
+      var nGeo = new THREE.SphereGeometry(0.12, 6, 4);
+      var nMat = new THREE.MeshLambertMaterial({ color: 0x00FFFF, emissive: 0x003333 });
+      var nMesh = new THREE.Mesh(nGeo, nMat);
+      nMesh.position.set(netPositions[i].x, netPositions[i].y, netPositions[i].z);
+      nMesh._cyberOwned = true;
+      addOwned(nMesh);
+      networkNodeMeshes.push(nMesh);
+    }
+
+    // LineSegments connecting the network nodes
+    var lineVerts = [];
+    var connections = [
+      [0, 4], [1, 4], [2, 4], [3, 4],
+      [0, 1], [2, 3], [0, 2], [1, 3]
+    ];
+    for (var c = 0; c < connections.length; c++) {
+      var a = netPositions[connections[c][0]];
+      var b = netPositions[connections[c][1]];
+      lineVerts.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    }
+
+    var lineGeo = new THREE.BufferGeometry();
+    var vArray = new Float32Array(lineVerts);
+    lineGeo.setAttribute('position', new THREE.BufferAttribute(vArray, 3));
+    var lineMat = new THREE.LineBasicMaterial({ color: 0x00FFFF, opacity: 0.7, transparent: true });
+    networkLines = new THREE.LineSegments(lineGeo, lineMat);
+    networkLines._cyberOwned = true;
+    addOwned(networkLines);
+  }
+
+  // ── Central Server ─────────────────────────────────────────────────────────
+
+  function buildCentralServer() {
+    var geo = new THREE.BoxGeometry(3, 4, 3);
+    var mat = new THREE.MeshLambertMaterial({ color: 0x002244 });
+    centralServer = new THREE.Mesh(geo, mat);
+    centralServer.position.set(0, 2, 0);
+    centralServer._cyberOwned = true;
+    addOwned(centralServer);
+
+    var sLightGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+    var sLightMat = new THREE.MeshLambertMaterial({ color: 0x0088FF, emissive: 0x002244 });
+    var sLight = new THREE.Mesh(sLightGeo, sLightMat);
+    sLight.position.set(0, 4.15, 0);
+    sLight._cyberOwned = true;
+    addOwned(sLight);
+  }
+
+  // ── Guards ─────────────────────────────────────────────────────────────────
+
+  function buildGuard(x, z) {
+    var bodyGeo = new THREE.BoxGeometry(0.6, 1.6, 0.4);
+    var bodyMat = new THREE.MeshLambertMaterial({ color: 0x333366 });
+    var body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.set(x, 0.8, z);
+    body._cyberOwned = true;
+    addOwned(body);
+
+    var headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+    var headMat = new THREE.MeshLambertMaterial({ color: 0x445577 });
+    var head = new THREE.Mesh(headGeo, headMat);
+    head.position.set(x, 1.8, z);
+    head._cyberOwned = true;
+    addOwned(head);
+
+    var dir = Math.random() * Math.PI * 2;
+    return {
+      body: body,
+      head: head,
+      position: { x: x, y: 0.8, z: z },
+      dir: dir,
+      speed: 2.5,
+      alerted: false,
+      alertTimer: 0,
+      patrolTarget: {
+        x: Math.max(-8, Math.min(8, x + Math.cos(dir) * 3)),
+        z: Math.max(-8, Math.min(8, z + Math.sin(dir) * 3))
+      },
+      hp: 3
+    };
+  }
+
+  function buildInitialGuards() {
+    var startPositions = [
+      { x: 0, z: -5 },
+      { x: 0, z: 5 },
+      { x: -5, z: 0 },
+      { x: 5, z: 0 },
+      { x: -3, z: -3 }
+    ];
+    for (var i = 0; i < startPositions.length; i++) {
+      guards.push(buildGuard(startPositions[i].x, startPositions[i].z));
+    }
+  }
+
+  function spawnAlarmGuards() {
+    for (var i = 0; i < 3; i++) {
+      var angle = (i / 3) * Math.PI * 2;
+      var gx = Math.cos(angle) * 8;
+      var gz = Math.sin(angle) * 8;
+      var g = buildGuard(gx, gz);
+      g.alerted = true;
+      g.alertTimer = 15;
+      guards.push(g);
+    }
+  }
+
+  // ── Office, Door, Keycard ──────────────────────────────────────────────────
+
+  function buildOfficeAndDoor() {
+    // Office room: BoxGeometry 10x4x8
+    var offGeo = new THREE.BoxGeometry(10, 4, 8);
+    var offMat = new THREE.MeshLambertMaterial({ color: 0x1A2A1A, opacity: 0.55, transparent: true });
+    officeRoom = new THREE.Mesh(offGeo, offMat);
+    officeRoom.position.set(15, 2, 0);
+    officeRoom._cyberOwned = true;
+    addOwned(officeRoom);
+
+    var ofFloorGeo = new THREE.BoxGeometry(10, 0.15, 8);
+    var ofFloorMat = new THREE.MeshLambertMaterial({ color: 0x182218 });
+    var ofFloor = new THREE.Mesh(ofFloorGeo, ofFloorMat);
+    ofFloor.position.set(15, 0.075, 0);
+    ofFloor._cyberOwned = true;
+    addOwned(ofFloor);
+
+    // Main door: BoxGeometry 0x334433
+    var doorGeo = new THREE.BoxGeometry(0.3, 4, 2.5);
+    var doorMat = new THREE.MeshLambertMaterial({ color: 0x334433 });
+    mainDoor = new THREE.Mesh(doorGeo, doorMat);
+    mainDoor.position.set(10, 2, 0);
+    mainDoor._cyberOwned = true;
+    addOwned(mainDoor);
+
+    // Keycard: BoxGeometry 0x0088FF
+    var kcGeo = new THREE.BoxGeometry(0.3, 0.05, 0.5);
+    var kcMat = new THREE.MeshLambertMaterial({ color: 0x0088FF, emissive: 0x001144 });
+    keycard = new THREE.Mesh(kcGeo, kcMat);
+    keycard.position.set(15, 0.8, -2);
+    keycard._cyberOwned = true;
+    addOwned(keycard);
+
+    // Supply cache (hidden until BACKDOOR payload)
+    var scGeo = new THREE.BoxGeometry(0.8, 0.5, 0.8);
+    var scMat = new THREE.MeshLambertMaterial({ color: 0xFFCC00, emissive: 0x332200 });
+    supplyCache = new THREE.Mesh(scGeo, scMat);
+    supplyCache.position.set(supplyCachePos.x, supplyCachePos.y, supplyCachePos.z);
+    supplyCache.visible = false;
+    supplyCache._cyberOwned = true;
+    addOwned(supplyCache);
+  }
+
+  // ── HUD ───────────────────────────────────────────────────────────────────
+
+  function buildHUD() {
+    if (hudEl) { return; }
+
+    hudEl = document.createElement('div');
+    hudEl.id = 'cyber-hud';
+    hudEl.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);'
+      + 'background:rgba(0,10,30,0.85);color:#00FFAA;font-family:monospace;font-size:13px;'
+      + 'padding:6px 14px;border:1px solid #00FFAA;border-radius:3px;z-index:3000;'
+      + 'pointer-events:none;white-space:nowrap;';
+    document.body.appendChild(hudEl);
+
+    alarmFlashEl = document.createElement('div');
+    alarmFlashEl.id = 'cyber-alarm-flash';
+    alarmFlashEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;'
+      + 'pointer-events:none;z-index:2999;background:rgba(255,0,0,0);'
+      + 'transition:background 0.1s;';
+    document.body.appendChild(alarmFlashEl);
+
+    minimapEl = document.createElement('canvas');
+    minimapEl.id = 'cyber-minimap';
+    minimapEl.width = 120;
+    minimapEl.height = 120;
+    minimapEl.style.cssText = 'position:fixed;bottom:10px;right:10px;'
+      + 'background:rgba(0,5,20,0.85);border:1px solid #00FFAA;border-radius:3px;z-index:3000;';
+    document.body.appendChild(minimapEl);
+  }
+
+  function updateHUD() {
+    if (!hudEl) { return; }
+
+    var hackedCount = 0;
+    for (var i = 0; i < terminals.length; i++) {
+      if (terminals[i].hacked) { hackedCount++; }
+    }
+    var dataCollected = 0;
+    for (var d = 0; d < dataNodes.length; d++) {
+      if (dataNodes[d].collected) { dataCollected++; }
+    }
+    var uploadPct = Math.round(uploadProgress * 100);
+    var payloadName = PAYLOADS[currentPayloadIndex];
+
+    var anyFirewall = false;
+    for (var fi = 0; fi < terminals.length; fi++) {
+      if (terminals[fi].firewallActive) { anyFirewall = true; break; }
+    }
+    var firewallStatus = anyFirewall ? 'ACTIVE' : 'BREACHED';
+
+    var hackingStr = '';
+    if (hackingTerminalIndex >= 0) {
+      var pct = Math.round(terminals[hackingTerminalIndex].hackProgress * 100);
+      hackingStr = ' [HACKING: ' + pct + '%]';
+    }
+
+    var uploadStr = uploadActive ? ' [UPLOADING...]' : '';
+    var alarmStr = alarmActive ? ' [!ALARM!]' : '';
+    var ransomStr = ransomwareActive ? ' [FROZEN ' + Math.round(ransomwareTimer) + 's]' : '';
+
+    var txt = 'CYBER OPS'
+      + ' [HACKED: ' + hackedCount + '/4]'
+      + ' [DATA: ' + dataCollected + '/8]'
+      + ' [UPLOAD: ' + uploadPct + '%]'
+      + ' [PAYLOAD: ' + payloadName + ']'
+      + ' | FIREWALL: ' + firewallStatus
+      + hackingStr + uploadStr + alarmStr + ransomStr;
+
+    if (shutdownTriggered) {
+      hudEl.style.color = '#FF3300';
+      txt = '!! EMERGENCY SHUTDOWN !! ' + txt;
+    } else {
+      hudEl.style.color = '#00FFAA';
+    }
+
+    hudEl.textContent = txt;
+  }
+
+  function updateMinimap() {
+    if (!minimapEl) { return; }
+    var ctx = minimapEl.getContext('2d');
+    var w = minimapEl.width;
+    var h = minimapEl.height;
+    ctx.clearRect(0, 0, w, h);
+
+    function toMap(wx, wz) {
+      return {
+        mx: Math.round((wx + 10) / 20 * w),
+        my: Math.round((wz + 10) / 20 * h)
+      };
+    }
+
+    ctx.strokeStyle = '#00FFAA';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(2, 2, w - 4, h - 4);
+
+    // Terminals
+    for (var i = 0; i < terminals.length; i++) {
+      var t = terminals[i];
+      var tp = toMap(t.position.x, t.position.z);
+      ctx.fillStyle = t.hacked ? '#00FF88' : (t.firewallActive ? '#FF0000' : '#888888');
+      ctx.fillRect(tp.mx - 3, tp.my - 3, 6, 6);
+    }
+
+    // Data nodes
+    for (var d = 0; d < dataNodes.length; d++) {
+      if (!dataNodes[d].collected) {
+        var dnp = toMap(dataNodes[d].mesh.position.x, dataNodes[d].mesh.position.z);
+        ctx.fillStyle = '#00FF88';
+        ctx.beginPath();
+        ctx.arc(dnp.mx, dnp.my, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Supply cache (BACKDOOR revealed)
+    if (backdoorRevealed) {
+      var scp = toMap(supplyCachePos.x, supplyCachePos.z);
+      ctx.fillStyle = '#FFCC00';
+      ctx.fillRect(scp.mx - 3, scp.my - 3, 6, 6);
+    }
+
+    // Guards
+    for (var g = 0; g < guards.length; g++) {
+      var gd = guards[g];
+      if (gd.hp <= 0) { continue; }
+      var gp = toMap(gd.position.x, gd.position.z);
+      ctx.fillStyle = gd.alerted ? '#FF4400' : '#334499';
+      ctx.beginPath();
+      ctx.arc(gp.mx, gp.my, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Central server
+    var csp = toMap(0, 0);
+    ctx.fillStyle = '#0044AA';
+    ctx.fillRect(csp.mx - 5, csp.my - 5, 10, 10);
+
+    // Player
+    var pp = playerPos();
+    var playerMapPos = toMap(pp.x, pp.z);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(playerMapPos.mx, playerMapPos.my, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ── Alarm ──────────────────────────────────────────────────────────────────
+
+  function triggerAlarm() {
+    if (alarmActive) { return; }
+    alarmActive = true;
+    alarmTimer = 5;
+    spawnAlarmGuards();
+
+    if (alarmFlashEl) {
+      alarmFlashEl.style.background = 'rgba(255,0,0,0.45)';
+    }
+    document.body.style.filter = 'brightness(1.8)';
+    var savedFilter = document.body.style.filter;
+    setTimeout(function () {
+      if (alarmFlashEl) { alarmFlashEl.style.background = 'rgba(255,0,0,0)'; }
+      if (document.body.style.filter === savedFilter) {
+        document.body.style.filter = '';
+      }
+    }, 300);
+
+    for (var i = 0; i < guards.length; i++) {
+      guards[i].alerted = true;
+      guards[i].alertTimer = 20;
+    }
+  }
+
+  // ── Emergency Shutdown ─────────────────────────────────────────────────────
+
+  function triggerShutdown() {
+    if (shutdownTriggered) { return; }
+    shutdownTriggered = true;
+    uploadActive = false;
+    if (uploadProgress > 0.74) { uploadProgress = 0.74; }
+
+    shutdownLight = new THREE.PointLight(0xFF0000, 2, 20);
+    shutdownLight.position.set(0, 5, 0);
+    shutdownLight._cyberOwned = true;
+    addOwned(shutdownLight);
+    shutdownTimer = 0;
+
+    // Dim all terminal screens
+    for (var i = 0; i < terminals.length; i++) {
+      for (var s = 0; s < terminals[i].screens.length; s++) {
+        terminals[i].screens[s].material.color.setHex(0x111111);
+        terminals[i].screens[s].material.emissive.setHex(0x000000);
+      }
+    }
+
+    // Reset 2 hacked terminals
+    var hackedIdx = [];
+    for (var j = 0; j < terminals.length; j++) {
+      if (terminals[j].hacked) { hackedIdx.push(j); }
+    }
+    rehackRequired = [];
+    for (var k = 0; k < Math.min(2, hackedIdx.length); k++) {
+      rehackRequired.push(hackedIdx[k]);
+      terminals[hackedIdx[k]].hacked = false;
+      terminals[hackedIdx[k]].hackProgress = 0;
+    }
+  }
+
+  // ── Hacking ────────────────────────────────────────────────────────────────
+
+  function startHack(idx) {
+    if (terminals[idx].hacked) { return; }
+    if (terminals[idx].disabled) { return; }
+    if (terminals[idx].firewallActive) { return; }
+    hackingTerminalIndex = idx;
+    terminals[idx].hacking = true;
+  }
+
+  function abortHack(idx) {
+    if (idx < 0 || idx >= terminals.length) { return; }
+    var wasHacking = terminals[idx].hacking;
+    terminals[idx].hacking = false;
+    hackingTerminalIndex = -1;
+
+    if (wasHacking && terminals[idx].hackProgress > 0 && terminals[idx].hackProgress < 1) {
+      spawnFirewall(idx);
+    }
+  }
+
+  function completeHack(idx) {
+    terminals[idx].hacked = true;
+    terminals[idx].hacking = false;
+    terminals[idx].hackProgress = 1;
+    hackingTerminalIndex = -1;
+
+    for (var s = 0; s < terminals[idx].screens.length; s++) {
+      terminals[idx].screens[s].material.color.setHex(0x00FF44);
+      terminals[idx].screens[s].material.emissive.setHex(0x003311);
+    }
+    terminals[idx].indicator.material.color.setHex(0x00FF44);
+    terminals[idx].indicator.material.emissive.setHex(0x003311);
+
+    // First hack shows network viz
+    var hackedCount = 0;
+    for (var i = 0; i < terminals.length; i++) {
+      if (terminals[i].hacked) { hackedCount++; }
+    }
+    if (hackedCount === 1) {
+      buildNetworkViz();
+    }
+  }
+
+  // ── Payloads ───────────────────────────────────────────────────────────────
+
+  function usePayload() {
+    var payload = PAYLOADS[currentPayloadIndex];
+
+    if (payload === 'VIRUS') {
+      for (var i = 0; i < terminals.length; i++) {
+        if (!terminals[i].hacked && !terminals[i].disabled) {
+          terminals[i].disabled = true;
+          terminals[i].hacked = true;
+          for (var s = 0; s < terminals[i].screens.length; s++) {
+            terminals[i].screens[s].material.color.setHex(0xFF8800);
+            terminals[i].screens[s].material.emissive.setHex(0x220800);
+          }
+          terminals[i].indicator.material.color.setHex(0xFF8800);
+          dataScore += 200;
           break;
-        case 'ArrowRight':
-          e.preventDefault();
-          _minigameCursorX = (_minigameCursorX + 1) % GRID_SIZE;
-          _renderMinigame();
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          _minigameCursorY = (_minigameCursorY - 1 + GRID_SIZE) % GRID_SIZE;
-          _renderMinigame();
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          _minigameCursorY = (_minigameCursorY + 1) % GRID_SIZE;
-          _renderMinigame();
-          break;
-        case 'Enter':
-          e.preventDefault();
-          var idx2 = _minigameCursorY * GRID_SIZE + _minigameCursorX;
-          _minigameGrid[idx2] = _minigameGrid[idx2] === 0 ? 1 : 0;
-          if (_gridsMatch(_minigameGrid, _minigameGoal)) {
-            _endMinigame(true);
-          } else {
-            _renderMinigame();
+        }
+      }
+    } else if (payload === 'RANSOMWARE') {
+      ransomwareActive = true;
+      ransomwareTimer = 10;
+      for (var g = 0; g < guards.length; g++) {
+        guards[g].alerted = false;
+        guards[g].alertTimer = 0;
+      }
+    } else if (payload === 'BACKDOOR') {
+      backdoorRevealed = true;
+      if (supplyCache) { supplyCache.visible = true; }
+    }
+
+    currentPayloadIndex = (currentPayloadIndex + 1) % PAYLOADS.length;
+  }
+
+  // ── Shooting ───────────────────────────────────────────────────────────────
+
+  function handleShoot() {
+    if (!camera) { return; }
+    var dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    var raycaster = new THREE.Raycaster(camera.position.clone(), dir.normalize());
+    var targets = [];
+    for (var i = 0; i < terminals.length; i++) {
+      if (terminals[i].firewallMesh) { targets.push(terminals[i].firewallMesh); }
+    }
+    var hits = raycaster.intersectObjects(targets);
+    if (hits.length > 0) {
+      var hitMesh = hits[0].object;
+      for (var j = 0; j < terminals.length; j++) {
+        if (terminals[j].firewallMesh === hitMesh) {
+          terminals[j].firewallHits++;
+          hitMesh.material.emissive.setHex(0xFF2200);
+          if (terminals[j].firewallHits >= 5) {
+            removeFirewall(j);
           }
           break;
-        case 'Escape':
-          _endMinigame(false);
-          break;
+        }
       }
+    } else {
+      var pp2 = playerPos();
+      if (Math.abs(pp2.x) < 10 && Math.abs(pp2.z) < 10) {
+        triggerAlarm();
+      }
+    }
+  }
+
+  // ── Input ──────────────────────────────────────────────────────────────────
+
+  function onKeyDown(e) {
+    keys[e.code] = true;
+
+    var now = Date.now();
+
+    if (e.code === 'KeyC') { cKeyTime = now; }
+    if (e.code === 'KeyY') { yKeyTime = now; }
+
+    // C+Y combo to activate
+    if (e.code === 'KeyC' || e.code === 'KeyY') {
+      if (cKeyTime > 0 && yKeyTime > 0 && Math.abs(cKeyTime - yKeyTime) <= COMBO_WINDOW) {
+        if (!active) {
+          init();
+        }
+      }
+    }
+
+    if (!active) { return; }
+
+    if (e.code === 'KeyH') {
+      if (nearTerminalIndex >= 0 && hackingTerminalIndex < 0) {
+        startHack(nearTerminalIndex);
+      }
+    }
+
+    if (e.code === 'KeyP') {
+      usePayload();
+    }
+
+    if (e.code === 'KeyF') {
+      handleShoot();
+    }
+
+    if (e.code === 'Tab') {
+      e.preventDefault();
+      currentPayloadIndex = (currentPayloadIndex + 1) % PAYLOADS.length;
+    }
+  }
+
+  function onKeyUp(e) {
+    keys[e.code] = false;
+    if (!active) { return; }
+    if (e.code === 'KeyH') {
+      if (hackingTerminalIndex >= 0) {
+        abortHack(hackingTerminalIndex);
+      }
+    }
+  }
+
+  // ── Update: Guards ─────────────────────────────────────────────────────────
+
+  function updateGuards(dt) {
+    if (ransomwareActive) { return; }
+    var pp = playerPos();
+
+    for (var i = 0; i < guards.length; i++) {
+      var g = guards[i];
+      if (g.hp <= 0) { continue; }
+
+      if (g.alerted && g.alertTimer > 0) {
+        g.alertTimer -= dt;
+        var dx = pp.x - g.position.x;
+        var dz = pp.z - g.position.z;
+        var dl = Math.sqrt(dx * dx + dz * dz);
+        if (dl > 0.5) {
+          g.dir = Math.atan2(dz, dx);
+          g.position.x += Math.cos(g.dir) * g.speed * dt;
+          g.position.z += Math.sin(g.dir) * g.speed * dt;
+          g.position.x = Math.max(-9, Math.min(9, g.position.x));
+          g.position.z = Math.max(-9, Math.min(9, g.position.z));
+        }
+        if (g.alertTimer <= 0) {
+          g.alerted = false;
+        }
+      } else {
+        var ptx = g.patrolTarget.x - g.position.x;
+        var ptz = g.patrolTarget.z - g.position.z;
+        var ptl = Math.sqrt(ptx * ptx + ptz * ptz);
+        if (ptl < 0.5) {
+          var angle = Math.random() * Math.PI * 2;
+          var r = 2 + Math.random() * 4;
+          g.patrolTarget = {
+            x: Math.max(-8, Math.min(8, g.position.x + Math.cos(angle) * r)),
+            z: Math.max(-8, Math.min(8, g.position.z + Math.sin(angle) * r))
+          };
+        } else {
+          g.dir = Math.atan2(ptz, ptx);
+          g.position.x += Math.cos(g.dir) * (g.speed * 0.6) * dt;
+          g.position.z += Math.sin(g.dir) * (g.speed * 0.6) * dt;
+        }
+      }
+
+      g.body.position.set(g.position.x, 0.8, g.position.z);
+      g.body.rotation.y = g.dir;
+      g.head.position.set(g.position.x, 1.8, g.position.z);
+      g.head.rotation.y = g.dir;
+    }
+  }
+
+  // ── Update: Terminals ──────────────────────────────────────────────────────
+
+  function updateTerminals(dt) {
+    var pp = playerPos();
+    nearTerminalIndex = -1;
+
+    for (var i = 0; i < terminals.length; i++) {
+      var t = terminals[i];
+      if (t.hacked || t.disabled || t.firewallActive) { continue; }
+
+      var d = distXZ(pp, t.position);
+      if (d <= HACK_RANGE) {
+        nearTerminalIndex = i;
+      }
+
+      if (t.hacking) {
+        if (d > HACK_RANGE || !keys['KeyH']) {
+          abortHack(i);
+          continue;
+        }
+
+        t.hackProgress += dt / HACK_DURATION;
+        if (t.hackProgress >= 1) {
+          t.hackProgress = 1;
+          completeHack(i);
+          continue;
+        }
+
+        // Screen color lerp from red to green
+        var col = lerpColor(0xFF0000, 0x00FF44, t.hackProgress);
+        for (var s = 0; s < t.screens.length; s++) {
+          t.screens[s].material.color.setHex(col);
+        }
+      }
+    }
+
+    if (hackingTerminalIndex >= 0 && terminals[hackingTerminalIndex].hacked) {
+      hackingTerminalIndex = -1;
+    }
+  }
+
+  // ── Update: Data Nodes ─────────────────────────────────────────────────────
+
+  function updateDataNodes(dt) {
+    var pp = playerPos();
+
+    for (var i = 0; i < dataNodes.length; i++) {
+      var dn = dataNodes[i];
+      if (dn.collected) { continue; }
+
+      dn.mesh.position.y = 1.5 + Math.sin(elapsed * 2 + dn.bobOffset) * 0.2;
+      dn.mesh.rotation.y += dt * 1.5;
+
+      if (dist3(pp, dn.mesh.position) < 0.9) {
+        dn.collected = true;
+        dn.mesh.visible = false;
+        dataScore += 50;
+      }
+    }
+  }
+
+  // ── Update: Upload ─────────────────────────────────────────────────────────
+
+  function updateUpload(dt) {
+    var hackedCount = 0;
+    for (var i = 0; i < terminals.length; i++) {
+      if (terminals[i].hacked) { hackedCount++; }
+    }
+    if (hackedCount < 4) {
+      uploadActive = false;
       return;
     }
 
-    // Scan mode toggle (AltLeft / AltRight)
-    if (e.code === 'AltLeft' || e.code === 'AltRight') {
-      e.preventDefault();
-    }
+    var pp = playerPos();
+    var nearServer = dist3(pp, { x: 0, y: 2, z: 0 }) <= UPLOAD_RANGE + 2;
 
-    // H key — initiate hack
-    if (e.code === 'KeyH' && !_minigameActive) {
-      var nearest = _nearestHackable(HACK_RANGE);
-      if (nearest && !nearest.hacked) {
-        if (nearest.type === TYPE_TERMINAL) {
-          if (!_exfilTarget) _startExfil(nearest);
-        } else {
-          _minigameRound = 0;
-          _startMinigame(nearest);
-        }
+    if (nearServer && keys['KeyU'] && !shutdownTriggered) {
+      uploadActive = true;
+      uploadProgress += dt / UPLOAD_DURATION;
+      if (uploadProgress > 1) { uploadProgress = 1; }
+
+      if (uploadProgress >= 0.75 && !shutdownTriggered) {
+        triggerShutdown();
+      }
+    } else {
+      uploadActive = false;
+    }
+  }
+
+  // ── Update: Shutdown Light Pulse ───────────────────────────────────────────
+
+  function updateShutdown(dt) {
+    if (!shutdownTriggered || !shutdownLight) { return; }
+    shutdownTimer += dt;
+    shutdownLight.intensity = 1.5 + Math.sin(shutdownTimer * 6) * 1.5;
+  }
+
+  // ── Update: Alarm ──────────────────────────────────────────────────────────
+
+  function updateAlarm(dt) {
+    if (!alarmActive) { return; }
+    alarmTimer -= dt;
+    if (alarmTimer <= 0) {
+      alarmActive = false;
+      if (alarmFlashEl) { alarmFlashEl.style.background = 'rgba(255,0,0,0)'; }
+    }
+  }
+
+  // ── Update: Ransomware ─────────────────────────────────────────────────────
+
+  function updateRansomware(dt) {
+    if (!ransomwareActive) { return; }
+    ransomwareTimer -= dt;
+    if (ransomwareTimer <= 0) {
+      ransomwareActive = false;
+      ransomwareTimer = 0;
+    }
+  }
+
+  // ── Update: Keycard ────────────────────────────────────────────────────────
+
+  function updateKeycard() {
+    if (keycardCollected || !keycard) { return; }
+    var pp = playerPos();
+    if (dist3(pp, keycard.position) < KEYCARD_RANGE) {
+      keycardCollected = true;
+      keycard.visible = false;
+      if (mainDoor && !doorOpen) {
+        doorOpen = true;
+        mainDoor.visible = false;
+      }
+    }
+    if (keycard.visible) {
+      keycard.rotation.y += 0.02;
+    }
+  }
+
+  // ── Update: Network Lines ──────────────────────────────────────────────────
+
+  function updateNetworkLines(dt) {
+    if (!networkLines || !networkShown) { return; }
+    networkLines.material.opacity = 0.4 + Math.sin(elapsed * 3) * 0.3;
+    for (var i = 0; i < networkNodeMeshes.length; i++) {
+      networkNodeMeshes[i].rotation.y += dt * 0.8;
+    }
+  }
+
+  // ── Update: Firewall Bosses ────────────────────────────────────────────────
+
+  function updateFirewalls(dt) {
+    for (var i = 0; i < terminals.length; i++) {
+      var t = terminals[i];
+      if (t.firewallMesh && t.firewallActive) {
+        t.firewallMesh.rotation.y += dt * 1.2;
+        t.firewallMesh.rotation.x += dt * 0.7;
+        var pulse = 0.2 + Math.sin(elapsed * 8) * 0.2;
+        t.firewallMesh.material.emissive.setRGB(pulse, 0, 0);
       }
     }
   }
 
-  // ── Public: hackObject (external call) ───────────────────────────────────────
-  function hackObject(mesh) {
-    var entry = _getEntryByMesh(mesh);
-    if (!entry) return false;
-    if (entry.hacked) return false;
-    _minigameRound = 0;
-    _startMinigame(entry);
-    return true;
+  // ── Build All ──────────────────────────────────────────────────────────────
+
+  function buildAll() {
+    buildRoom();
+    buildTerminals();
+    buildDataNodes();
+    buildCentralServer();
+    buildInitialGuards();
+    buildOfficeAndDoor();
+    buildHUD();
   }
 
-  // ── Public: getScanResults ────────────────────────────────────────────────────
-  function getScanResults() {
-    var results = [];
-    var i, entry, pos;
-    for (i = 0; i < _hackables.length; i++) {
-      entry = _hackables[i];
-      pos = new THREE.Vector3();
-      if (entry.mesh.parent) entry.mesh.getWorldPosition(pos);
-      results.push({
-        mesh:       entry.mesh,
-        type:       entry.type,
-        hacked:     entry.hacked,
-        firewalled: entry.firewalled,
-        position:   pos.clone()
-      });
+  // ── Init ───────────────────────────────────────────────────────────────────
+
+  function init(sceneRef, cameraRef, rendererRef) {
+    if (active) { return; }
+
+    scene = sceneRef || window.scene || null;
+    camera = cameraRef || window.camera || null;
+    renderer = rendererRef || window.renderer || null;
+
+    if (!scene && window.GameState) {
+      scene = window.GameState.scene || null;
+      if (!camera) { camera = window.GameState.camera || null; }
     }
-    return results;
+
+    if (!scene) { return; }
+
+    active = true;
+    elapsed = 0;
+    uploadProgress = 0;
+    uploadActive = false;
+    shutdownTriggered = false;
+    shutdownTimer = 0;
+    alarmActive = false;
+    ransomwareActive = false;
+    ransomwareTimer = 0;
+    backdoorRevealed = false;
+    keycardCollected = false;
+    doorOpen = false;
+    networkShown = false;
+    dataScore = 0;
+    currentPayloadIndex = 0;
+    nearTerminalIndex = -1;
+    hackingTerminalIndex = -1;
+    rehackRequired = [];
+    terminals = [];
+    dataNodes = [];
+    guards = [];
+    networkNodeMeshes = [];
+    networkLines = null;
+    roomWalls = [];
+    ownedObjects = [];
+
+    buildAll();
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
   }
 
-  // ── Init ─────────────────────────────────────────────────────────────────────
-  function init(scene, camera) {
-    _scene     = scene;
-    _camera    = camera;
-    _raycaster = new THREE.Raycaster();
-    _hackables = [];
-    _keysDown  = {};
-    _prevKeys  = {};
-    _scanActive        = false;
-    _minigameActive    = false;
-    _minigameTarget    = null;
-    _exfilTarget       = null;
-    _exfilTimer        = 0;
-    _virusPayloadActive = false;
-    _virusTargets      = [];
-    _playerExposed     = false;
+  // ── Update ─────────────────────────────────────────────────────────────────
 
-    _buildHUD();
-    _bindKeys();
+  function update(dt) {
+    if (!active) { return; }
+    if (!dt) { dt = 0.016; }
 
-    // Spawn default hackable objects in the scene (demo objects — integrate
-    // with your world-builder by calling _registerHackable directly)
-    _spawnDefaultHackables();
+    elapsed += dt;
+
+    updateTerminals(dt);
+    updateDataNodes(dt);
+    updateGuards(dt);
+    updateUpload(dt);
+    updateShutdown(dt);
+    updateAlarm(dt);
+    updateRansomware(dt);
+    updateKeycard(dt);
+    updateNetworkLines(dt);
+    updateFirewalls(dt);
+    updateHUD();
+    updateMinimap();
   }
 
-  // ── Default demo hackables ────────────────────────────────────────────────────
-  function _spawnDefaultHackables() {
-    var positions = [
-      { type: TYPE_GUARD_TOWER, x:  12, y: 0, z: -20, fw: false },
-      { type: TYPE_GUARD_TOWER, x: -15, y: 0, z: -18, fw: false },
-      { type: TYPE_TURRET,      x:   8, y: 0, z:  -8, fw: false },
-      { type: TYPE_TURRET,      x: -10, y: 0, z: -12, fw: true  },
-      { type: TYPE_CAMERA,      x:   0, y: 3, z: -15, fw: false },
-      { type: TYPE_VEHICLE,     x:  20, y: 0, z:   5, fw: false },
-      { type: TYPE_TERMINAL,    x:  -5, y: 0, z: -25, fw: true  }
-    ];
+  // ── Reset ──────────────────────────────────────────────────────────────────
 
-    var i, cfg, geo, mat, mesh, color;
-    for (i = 0; i < positions.length; i++) {
-      cfg = positions[i];
-      switch (cfg.type) {
-        case TYPE_GUARD_TOWER:
-          geo   = new THREE.BoxGeometry(2, 5, 2);
-          color = 0x446688;
-          break;
-        case TYPE_TURRET:
-          geo   = new THREE.CylinderGeometry(0.5, 0.8, 1.5, 8);
-          color = 0x884422;
-          break;
-        case TYPE_CAMERA:
-          geo   = new THREE.BoxGeometry(0.4, 0.4, 0.8);
-          color = 0x222222;
-          break;
-        case TYPE_VEHICLE:
-          geo   = new THREE.BoxGeometry(3, 1.5, 5);
-          color = 0x556644;
-          break;
-        case TYPE_TERMINAL:
-          geo   = new THREE.BoxGeometry(1.2, 2, 0.4);
-          color = 0x0a1a2a;
-          break;
-        default:
-          geo   = new THREE.BoxGeometry(1, 1, 1);
-          color = 0x888888;
-      }
-      mat  = new THREE.MeshLambertMaterial({ color: color });
-      mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(cfg.x, cfg.y + (cfg.type === TYPE_CAMERA ? 0 : (cfg.type === TYPE_TURRET ? 0.75 : 0)), cfg.z);
-      _scene.add(mesh);
-      _registerHackable(mesh, cfg.type, cfg.fw);
-    }
-  }
-
-  // ── Update (call every frame) ─────────────────────────────────────────────────
-  function update(delta) {
-    if (!_scene || !_camera) return;
-
-    // Scan mode — Alt held
-    var altHeld = _keysDown['AltLeft'] || _keysDown['AltRight'];
-    if (altHeld !== _scanActive) {
-      _scanActive = altHeld;
-      if (_scanOverlay) _scanOverlay.style.display = _scanActive ? 'block' : 'none';
-      if (_scanHUD)     _scanHUD.style.display     = _scanActive ? 'block' : 'none';
-    }
-
-    // Update scan outlines / labels
-    _updateScan();
-
-    // Update scan HUD counts
-    if (_scanActive) _updateScanHUD();
-
-    // Minigame timer
-    if (_minigameActive) {
-      _minigameTimer -= delta;
-      _renderMinigame();
-      if (_minigameTimer <= 0) {
-        _endMinigame(false);
-      }
-    }
-
-    // Exfil (command terminal hold)
-    if (_exfilTarget) {
-      var hKey = _keysDown['KeyH'];
-      var nearTerm = _nearestHackable(HACK_RANGE);
-      if (hKey && nearTerm && nearTerm === _exfilTarget) {
-        _exfilTimer += delta;
-        // Show progress bar
-        _showExfilProgress(_exfilTimer / EXFIL_DURATION);
-        if (_exfilTimer >= EXFIL_DURATION) {
-          _applyHackEffect(_exfilTarget);
-          _exfilTarget = null;
-          _exfilTimer  = 0;
-        }
-      } else {
-        _cancelExfil();
-      }
-    }
-
-    // Hack effect timers
-    var i, entry;
-    for (i = 0; i < _hackables.length; i++) {
-      entry = _hackables[i];
-      if (entry.hacked && entry.effectTimer > 0) {
-        entry.effectTimer -= delta;
-        if (entry.effectTimer <= 0) {
-          // Effect expired — restore object
-          entry.effectTimer = 0;
-          if (entry.type === TYPE_TURRET)  entry.mesh._cyberFriendly  = false;
-          if (entry.type === TYPE_VEHICLE) entry.mesh._cyberCircling   = false;
-          if (entry.type === TYPE_VEHICLE) {
-            _showHackFeedback('VEHICLE HACK EXPIRED — DRIVING NORMALLY');
-          }
-          // Guards un-confuse
-          if (entry.type === TYPE_GUARD_TOWER && window._guardsConfused !== undefined) {
-            window._guardsConfused = false;
-          }
-        }
-      }
-
-      // Animate vehicle circling via rotation hint
-      if (entry.hacked && entry.type === TYPE_VEHICLE && entry.effectTimer > 0) {
-        entry.mesh.rotation.y += delta * 0.8;
-        entry.mesh.position.x += Math.cos(entry.mesh.rotation.y) * delta * 1.5;
-        entry.mesh.position.z += Math.sin(entry.mesh.rotation.y) * delta * 1.5;
-      }
-    }
-
-    // Counter-hack tick
-    _tickCounterHack(delta);
-
-    // Copy keysDown to prevKeys
-    var k;
-    for (k in _keysDown) {
-      if (Object.prototype.hasOwnProperty.call(_keysDown, k)) {
-        _prevKeys[k] = _keysDown[k];
-      }
-    }
-
-    // Sync player-exposed flag from global state
-    if (window._playerExposed !== undefined) {
-      _playerExposed = window._playerExposed;
-    }
-  }
-
-  // ── Exfil progress bar ────────────────────────────────────────────────────────
-  var _exfilBarEl = null;
-
-  function _showExfilProgress(pct) {
-    if (!_exfilBarEl) {
-      _exfilBarEl = document.createElement('div');
-      _exfilBarEl.style.cssText = [
-        'position:fixed','bottom:18%','left:50%',
-        'transform:translateX(-50%)',
-        'width:260px',
-        'background:rgba(0,8,20,0.9)',
-        'border:1px solid #00ffcc',
-        'border-radius:4px',
-        'padding:8px 14px',
-        'z-index:1150',
-        'pointer-events:none',
-        'font-family:monospace',
-        'color:#00ffcc',
-        'font-size:12px'
-      ].join(';');
-      document.body.appendChild(_exfilBarEl);
-    }
-    var filled = Math.round(pct * 24);
-    var bar = '[' + '█'.repeat(filled) + '░'.repeat(24 - filled) + ']';
-    _exfilBarEl.innerHTML = 'DATA EXFIL: ' + bar + ' ' + Math.round(pct * 100) + '%';
-    if (pct >= 1 && _exfilBarEl.parentNode) {
-      _exfilBarEl.parentNode.removeChild(_exfilBarEl);
-      _exfilBarEl = null;
-    }
-  }
-
-  // ── Virus Payload (crafted at WeaponWorkshop) ─────────────────────────────────
-  function activateVirusPayload(additionalTargetMeshes) {
-    _virusPayloadActive = true;
-    _virusTargets = additionalTargetMeshes || [];
-    _showHackFeedback('VIRUS PAYLOAD LOADED — NEXT HACK INFECTS ' +
-      Math.min(_virusTargets.length + 1, VIRUS_PAYLOAD_SLOTS) + ' SYSTEMS');
-  }
-
-  // ── Reset ─────────────────────────────────────────────────────────────────────
   function reset() {
-    // Remove all hackable meshes and their children from scene
-    var i, entry;
-    for (i = 0; i < _hackables.length; i++) {
-      entry = _hackables[i];
-      if (entry.mesh && entry.mesh.parent) {
-        entry.mesh.parent.remove(entry.mesh);
-      }
+    if (!active) { return; }
+
+    document.removeEventListener('keydown', onKeyDown);
+    document.removeEventListener('keyup', onKeyUp);
+
+    for (var i = 0; i < ownedObjects.length; i++) {
+      if (scene) { scene.remove(ownedObjects[i]); }
+      if (ownedObjects[i].geometry) { ownedObjects[i].geometry.dispose(); }
+      if (ownedObjects[i].material) { ownedObjects[i].material.dispose(); }
     }
-    _hackables = [];
+    ownedObjects = [];
 
-    // End minigame if open
-    if (_minigameActive) _endMinigame(false);
+    if (hudEl && hudEl.parentNode) { hudEl.parentNode.removeChild(hudEl); }
+    hudEl = null;
+    if (alarmFlashEl && alarmFlashEl.parentNode) { alarmFlashEl.parentNode.removeChild(alarmFlashEl); }
+    alarmFlashEl = null;
+    if (minimapEl && minimapEl.parentNode) { minimapEl.parentNode.removeChild(minimapEl); }
+    minimapEl = null;
 
-    // Remove HUD
-    if (_hudRoot && _hudRoot.parentNode) {
-      _hudRoot.parentNode.removeChild(_hudRoot);
-      _hudRoot = null;
-    }
-    if (_exfilBarEl && _exfilBarEl.parentNode) {
-      _exfilBarEl.parentNode.removeChild(_exfilBarEl);
-      _exfilBarEl = null;
-    }
+    document.body.style.filter = '';
 
-    _scanActive         = false;
-    _exfilTarget        = null;
-    _exfilTimer         = 0;
-    _virusPayloadActive = false;
-    _virusTargets       = [];
-    _playerExposed      = false;
-
-    // Remove key listeners
-    document.removeEventListener('keydown', _keyDown);
-    document.removeEventListener('keyup',   _keyUp);
-    document.removeEventListener('keydown', _onKeyDownAction);
+    terminals = [];
+    dataNodes = [];
+    guards = [];
+    networkNodeMeshes = [];
+    networkLines = null;
+    centralServer = null;
+    mainDoor = null;
+    keycard = null;
+    supplyCache = null;
+    officeRoom = null;
+    shutdownLight = null;
+    roomFloor = null;
+    roomWalls = [];
+    keys = {};
+    rehackRequired = [];
+    active = false;
+    scene = null;
+    camera = null;
+    renderer = null;
   }
 
-  // ── Public API ────────────────────────────────────────────────────────────────
+  // ── Public API ─────────────────────────────────────────────────────────────
+
   return {
-    init:                 init,
-    update:               update,
-    hackObject:           hackObject,
-    getScanResults:       getScanResults,
-    reset:                reset,
-    registerHackable:     _registerHackable,
-    activateVirusPayload: activateVirusPayload,
-    setPlayerExposed:     function (v) { _playerExposed = v; }
+    init: init,
+    update: update,
+    reset: reset
   };
 
 }());

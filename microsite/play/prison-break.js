@@ -1,95 +1,109 @@
 window.PrisonBreak = (function () {
   'use strict';
 
-  // ── State ────────────────────────────────────────────────────────────────────
-  var scene, camera, renderer, clock;
-  var active = false;
-  var container;
+  // ── State ─────────────────────────────────────────────────────────────────────
+  var _scene, _camera, _renderer, _clock;
+  var _active = false;
+  var _container;
 
-  // Key tracking
-  var keysDown = {};
-  var keyTimestamps = {};
+  // Key tracking for chord detection
+  var _keysDown = {};
+  var _keyTimestamps = {};
+  var _pTime = 0;
+  var _bTime = 0;
 
-  // Player
-  var player;
-  var playerVelocity = { x: 0, z: 0 };
-  var playerSpeed = 8;
-  var playerCrouching = false;
+  // Player state
+  var _player;
+  var _playerSpeed = 8;
+  var _cameraAngle = 0;
+  var _cameraDistance = 18;
+  var _cameraHeight = 12;
+  var _crouching = false;
 
-  // Camera
-  var cameraAngle = 0;
-  var cameraDistance = 18;
-  var cameraHeight = 12;
+  // Game collections (matching spec variable names)
+  var _prisoners = [];
+  var _guards = [];
+  var _alarmActive = false;
+  var _disguised = false;
+  var _alarmBoxes = [];
+  var _jeep = null;
+  var _dog = null;
 
-  // Game state
-  var freedPrisoners = 0;
-  var totalPrisoners = 5;
-  var alarmActive = false;
-  var alarmTimer = 0;
-  var selectedRoute = 'NORTH';
-  var extractionTimer = 105; // seconds
-  var gameOver = false;
-  var gameWon = false;
-  var disguiseActive = false;
-  var disguiseTimer = 0;
-  var hasKeycard = false;
-  var cellDoorOpen = false;
-
-  // Collections
-  var guards = [];
-  var guardDogs = [];
-  var prisoners = [];
-  var alarmBoxes = [];
-  var extractionZone;
-  var jeep;
-  var jeepOccupants = 0;
-  var commander;
-  var exchangeOffered = false;
-  var exchangeResolved = false;
-  var keycard;
-  var cellDoor;
-  var guardBodies = [];
-  var followingPrisoners = [];
-  var spawnedExtraGuards = false;
+  // Extended state
+  var _group;
+  var _hud;
+  var _guardDogs = [];
+  var _alarmTimer = 0;
+  var _disguiseTimer = 0;
+  var _hasKeycard = false;
+  var _cellDoorOpen = false;
+  var _freedPrisoners = 0;
+  var _totalPrisoners = 5;
+  var _selectedRoute = 'NORTH';
+  var _extractionTimer = 180;
+  var _gameOver = false;
+  var _gameWon = false;
+  var _guardBodies = [];
+  var _followingPrisoners = [];
+  var _spawnedExtraGuards = false;
+  var _keycard = null;
+  var _cellDoor = null;
+  var _commander = null;
+  var _exchangeOffered = false;
+  var _exchangeResolved = false;
+  var _dogChain = null;
+  var _sewerMode = false;
+  var _heliCalled = false;
+  var _heliTimer = 0;
+  var _heliArrived = false;
+  var _heliMesh = null;
+  var _promptElement = null;
+  var _promptTimer = 0;
+  var _audioCtx = null;
+  var _dogBarkTimer = 0;
+  var _dogDetected = false;
 
   // Jeep driving
-  var drivingJeep = false;
-  var jeepSpeed = 12;
-  var jeepVelocity = { x: 0, z: 0 };
-  var jeepAngle = 0;
+  var _drivingJeep = false;
+  var _jeepSpeed = 12;
+  var _jeepVelocity = { x: 0, z: 0 };
+  var _jeepAngle = 0;
+  var _jeepOccupants = 0;
 
-  // HUD
-  var hudElement;
+  // Extraction points
+  var _northExtraction = { x: 0, z: -80 };
+  var _extractionZone = null;
 
-  // Interaction prompts
-  var promptElement;
-  var promptTimer = 0;
+  // Sewer
+  var _sewerEntry = { x: 28, z: 0 };
+  var _sewerExit = { x: 58, z: 0 };
 
-  // North gate position
-  var northGatePos = { x: 0, z: -26 };
+  // Heli LZ
+  var _heliLZ = { x: 0, z: 5, y: 8 };
 
-  // Extraction point
-  var extractionPoint = { x: 0, z: -80 };
-
-  // ── Geometry helpers ─────────────────────────────────────────────────────────
-  function makeMesh(geo, color, wireframe) {
-    var mat = new THREE.MeshLambertMaterial({ color: color, wireframe: !!wireframe });
+  // ── Geometry helpers ──────────────────────────────────────────────────────────
+  function _makeMesh(geo, color) {
+    var mat = new THREE.MeshLambertMaterial({ color: color });
     return new THREE.Mesh(geo, mat);
   }
 
-  function makeBox(w, h, d, color) {
-    return makeMesh(new THREE.BoxGeometry(w, h, d), color);
+  function _makeBox(w, h, d, color) {
+    return _makeMesh(new THREE.BoxGeometry(w, h, d), color);
   }
 
-  function makeCyl(rt, rb, h, segs, color) {
-    return makeMesh(new THREE.CylinderGeometry(rt, rb, h, segs || 8), color);
+  function _makeCyl(rt, rb, h, segs, color) {
+    return _makeMesh(new THREE.CylinderGeometry(rt, rb, h, segs || 8), color);
   }
 
-  function makeSphere(r, color) {
-    return makeMesh(new THREE.SphereGeometry(r, 8, 8), color);
+  function _makeSphere(r, color) {
+    return _makeMesh(new THREE.SphereGeometry(r, 8, 8), color);
   }
 
-  function makeLines(points, color) {
+  function _makeCone(r, h, segs, color) {
+    return _makeMesh(new THREE.ConeGeometry(r, h, segs || 8), color);
+  }
+
+  function _makeLineSegments(points, color) {
     var geo = new THREE.BufferGeometry();
     var verts = [];
     for (var i = 0; i < points.length; i++) {
@@ -100,178 +114,204 @@ window.PrisonBreak = (function () {
     return new THREE.LineSegments(geo, mat);
   }
 
-  function dist2D(a, b) {
+  function _dist2D(a, b) {
     var dx = a.x - b.x;
-    var dz = (a.z || 0) - (b.z || 0);
+    var dz = (a.z !== undefined ? a.z : 0) - (b.z !== undefined ? b.z : 0);
     return Math.sqrt(dx * dx + dz * dz);
   }
 
-  // ── Build prison complex ─────────────────────────────────────────────────────
-  function buildPrison() {
-    // Ground
-    var ground = makeBox(200, 0.2, 200, 0x556644);
-    ground.position.set(0, -0.1, 0);
-    scene.add(ground);
-
-    // Outer walls (perimeter rectangle 50x50 using BoxGeometry segments)
-    var wallMat = new THREE.MeshLambertMaterial({ color: 0x888877 });
-    var wallConfigs = [
-      // north wall
-      { w: 54, h: 6, d: 2, x: 0, z: -27 },
-      // south wall
-      { w: 54, h: 6, d: 2, x: 0, z: 27 },
-      // east wall
-      { w: 2, h: 6, d: 54, x: 27, z: 0 },
-      // west wall
-      { w: 2, h: 6, d: 54, x: -27, z: 0 }
-    ];
-    for (var i = 0; i < wallConfigs.length; i++) {
-      var wc = wallConfigs[i];
-      var wall = new THREE.Mesh(
-        new THREE.BoxGeometry(wc.w, wc.h, wc.d, 6, 2, 1),
-        wallMat
-      );
-      wall.position.set(wc.x, 3, wc.z);
-      scene.add(wall);
+  // ── Audio helpers ─────────────────────────────────────────────────────────────
+  function _initAudio() {
+    try {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      _audioCtx = null;
     }
+  }
 
-    // 4 corner watchtowers (BoxGeometry 3x10x3)
+  function _playBark() {
+    if (!_audioCtx) return;
+    try {
+      var osc = _audioCtx.createOscillator();
+      var gain = _audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(_audioCtx.destination);
+      osc.frequency.value = 440;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.15, _audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.12);
+      osc.start(_audioCtx.currentTime);
+      osc.stop(_audioCtx.currentTime + 0.12);
+    } catch (e) { /* silence */ }
+  }
+
+  // ── Build world ───────────────────────────────────────────────────────────────
+  function _buildPrison() {
+    // Ground
+    var ground = _makeBox(300, 0.2, 300, 0x446633);
+    ground.position.set(0, -0.1, 0);
+    _scene.add(ground);
+
+    // ── Outer walls: 4 BoxGeometry segments 50x6x2 (0x555555) ──────────────────
+    var wallColor = 0x555555;
+    var wN = _makeBox(50, 6, 2, wallColor);
+    wN.position.set(0, 3, -27);
+    _scene.add(wN);
+    var wS = _makeBox(50, 6, 2, wallColor);
+    wS.position.set(0, 3, 27);
+    _scene.add(wS);
+    var wE = _makeBox(2, 6, 50, wallColor);
+    wE.position.set(27, 3, 0);
+    _scene.add(wE);
+    var wW = _makeBox(2, 6, 50, wallColor);
+    wW.position.set(-27, 3, 0);
+    _scene.add(wW);
+
+    // ── 4 corner watchtowers BoxGeometry 3x10x3 (0x444444) ────────────────────
+    var towerColor = 0x444444;
     var towerPositions = [
       { x: -27, z: -27 }, { x: 27, z: -27 },
       { x: -27, z: 27 }, { x: 27, z: 27 }
     ];
-    for (var ti = 0; ti < towerPositions.length; ti++) {
+    for (var ti = 0; ti < 4; ti++) {
       var tp = towerPositions[ti];
-      var tower = makeBox(3, 10, 3, 0x777766);
+      var tower = _makeBox(3, 10, 3, towerColor);
       tower.position.set(tp.x, 5, tp.z);
-      scene.add(tower);
-      // Guard on top
-      var towerGuard = makeCyl(0.4, 0.4, 1.8, 8, 0x334433);
-      towerGuard.position.set(tp.x, 11.9, tp.z);
-      scene.add(towerGuard);
+      _scene.add(tower);
+      var tGuard = _makeCyl(0.4, 0.4, 1.8, 8, 0x334433);
+      tGuard.position.set(tp.x, 11.9, tp.z);
+      _scene.add(tGuard);
     }
 
-    // Central cell block (BoxGeometry 20x8x12)
-    var cellBlock = makeBox(20, 8, 12, 0x998877);
+    // ── Cell block BoxGeometry 20x8x12 (0x555544) ─────────────────────────────
+    var cellBlock = _makeBox(20, 8, 12, 0x555544);
     cellBlock.position.set(0, 4, 5);
-    scene.add(cellBlock);
+    _scene.add(cellBlock);
 
-    // Guard office (BoxGeometry room 4x3x4)
-    var guardOffice = makeBox(4, 3, 4, 0xAA9988);
+    // ── Guard office BoxGeometry 4x3x4 (0x443333) ─────────────────────────────
+    var guardOffice = _makeBox(4, 3, 4, 0x443333);
     guardOffice.position.set(-14, 1.5, 5);
-    scene.add(guardOffice);
+    _scene.add(guardOffice);
 
-    // Keycard in guard office
-    keycard = makeBox(0.3, 0.1, 0.5, 0xFFFF00);
-    keycard.position.set(-14, 3.2, 5);
-    scene.add(keycard);
+    // ── Keycard BoxGeometry 0.3x0.1x0.5 (0xFFFF00) in guard office ────────────
+    _keycard = _makeBox(0.3, 0.1, 0.5, 0xFFFF00);
+    _keycard.position.set(-14, 3.3, 5);
+    _scene.add(_keycard);
 
-    // Cell block door
-    cellDoor = makeBox(1.5, 3, 0.3, 0x555544);
-    cellDoor.position.set(0, 1.5, -0.8);
-    scene.add(cellDoor);
+    // ── Cell block door ────────────────────────────────────────────────────────
+    _cellDoor = _makeBox(2, 4, 0.3, 0x666655);
+    _cellDoor.position.set(0, 2, -1.2);
+    _scene.add(_cellDoor);
 
-    // 5 VIP prisoner cells
+    // ── 5 prisoners: CylinderGeometry (0x8B7355) in BoxGeometry 4x4x4 cells ───
     var cellPositions = [
       { x: -8, z: 5 }, { x: -4, z: 5 }, { x: 0, z: 5 },
       { x: 4, z: 5 }, { x: 8, z: 5 }
     ];
-    for (var ci = 0; ci < cellPositions.length; ci++) {
+    for (var ci = 0; ci < 5; ci++) {
       var cp = cellPositions[ci];
-      // Cell walls (BoxGeometry 4x4x4)
-      var cell = makeBox(4, 4, 4, 0x887766);
+      var cell = _makeBox(4, 4, 4, 0x665544);
       cell.position.set(cp.x, 2, cp.z);
-      scene.add(cell);
+      _scene.add(cell);
 
-      // Bar LineSegments
-      var barPoints = [];
-      for (var b = 0; b < 5; b++) {
-        var bx = cp.x - 1.5 + b * 0.75;
-        barPoints.push({ x: bx, y: 0.2, z: cp.z - 2.1 });
-        barPoints.push({ x: bx, y: 3.8, z: cp.z - 2.1 });
+      var barVerts = [];
+      for (var bi = 0; bi < 5; bi++) {
+        var bx = cp.x - 1.5 + bi * 0.75;
+        barVerts.push({ x: bx, y: 0.2, z: cp.z - 2.1 });
+        barVerts.push({ x: bx, y: 3.8, z: cp.z - 2.1 });
       }
-      var bars = makeLines(barPoints, 0x888888);
-      scene.add(bars);
+      var bars = _makeLineSegments(barVerts, 0x888888);
+      _scene.add(bars);
 
-      // Prisoner (CylinderGeometry crouching, color 0x8B7355)
-      var prisoner = makeCyl(0.35, 0.35, 1.0, 8, 0x8B7355);
+      var prisoner = _makeCyl(0.35, 0.35, 1.0, 8, 0x8B7355);
       prisoner.position.set(cp.x, 0.5, cp.z);
       prisoner.userData = {
         type: 'prisoner',
         index: ci,
         freed: false,
         following: false,
-        highValue: ci === 2
+        highValue: (ci === 2)
       };
-      scene.add(prisoner);
-      prisoners.push(prisoner);
+      _scene.add(prisoner);
+      _prisoners.push(prisoner);
     }
 
-    // Alarm boxes on each wall (BoxGeometry, color 0xFF2200)
-    var alarmPositions = [
-      { x: 0, y: 4, z: -26.5 },  // north
-      { x: 0, y: 4, z: 26.5 },   // south
-      { x: 26.5, y: 4, z: 0 },   // east
-      { x: -26.5, y: 4, z: 0 }   // west
+    // ── Alarm boxes BoxGeometry (0xFF2200) on walls ────────────────────────────
+    var alarmPos = [
+      { x: 0, y: 4, z: -26.5 },
+      { x: 0, y: 4, z: 26.5 },
+      { x: 26.5, y: 4, z: 0 },
+      { x: -26.5, y: 4, z: 0 }
     ];
-    for (var ai = 0; ai < alarmPositions.length; ai++) {
-      var ap = alarmPositions[ai];
-      var alarmBox = makeBox(0.8, 0.8, 0.4, 0xFF2200);
-      alarmBox.position.set(ap.x, ap.y, ap.z);
-      alarmBox.userData = { type: 'alarm', disabled: false };
-      scene.add(alarmBox);
-      alarmBoxes.push(alarmBox);
+    for (var ai = 0; ai < 4; ai++) {
+      var ap = alarmPos[ai];
+      var abox = _makeBox(0.8, 0.8, 0.4, 0xFF2200);
+      abox.position.set(ap.x, ap.y, ap.z);
+      abox.userData = { type: 'alarmBox', disabled: false };
+      _scene.add(abox);
+      _alarmBoxes.push(abox);
     }
 
-    // Jeep at north gate (BoxGeometry 4x2x2.5, color 0x333333)
-    jeep = makeBox(4, 2, 2.5, 0x333333);
-    jeep.position.set(4, 1, -24);
-    jeep.userData = { type: 'jeep' };
-    scene.add(jeep);
+    // ── Jeep BoxGeometry 4x2x2.5 (0x333333) at north gate ─────────────────────
+    _jeep = _makeBox(4, 2, 2.5, 0x333333);
+    _jeep.position.set(4, 1, -24);
+    _jeep.userData = { type: 'jeep' };
+    _scene.add(_jeep);
 
-    // Extraction zone ring (BoxGeometry, color 0x00FF44)
-    extractionZone = makeBox(10, 0.3, 10, 0x00FF44);
-    extractionZone.position.set(extractionPoint.x, 0.15, extractionPoint.z);
-    scene.add(extractionZone);
+    // ── NORTH extraction: van BoxGeometry (0x333366) 60 units north ────────────
+    var van = _makeBox(5, 3, 8, 0x333366);
+    van.position.set(_northExtraction.x, 1.5, _northExtraction.z - 6);
+    _scene.add(van);
 
-    // Van at north extraction
-    var van = makeBox(5, 3, 8, 0x334422);
-    van.position.set(extractionPoint.x, 1.5, extractionPoint.z - 6);
-    scene.add(van);
+    // Extraction zone BoxGeometry (0x00FF44)
+    _extractionZone = _makeBox(12, 0.3, 12, 0x00FF44);
+    _extractionZone.position.set(_northExtraction.x, 0.15, _northExtraction.z);
+    _scene.add(_extractionZone);
 
-    // EAST route - sewer tunnel (underground visual)
-    var tunnel = makeBox(3, 2, 30, 0x554433);
-    tunnel.position.set(30, -1, 0);
-    scene.add(tunnel);
+    // Fence gap north as LineSegments
+    var fenceGap = _makeLineSegments([
+      { x: -3, y: 0, z: -55 }, { x: -3, y: 4, z: -55 },
+      { x: 3, y: 0, z: -55 }, { x: 3, y: 4, z: -55 }
+    ], 0xFFAA00);
+    _scene.add(fenceGap);
 
-    // WEST route - helicopter LZ on roof marker
-    var lzMarker = makeBox(6, 0.2, 6, 0xFFAA00);
-    lzMarker.position.set(-8, 8.1, 5);
-    scene.add(lzMarker);
+    // ── EAST: sewer grate BoxGeometry (0x666666) ───────────────────────────────
+    var sewerGrate = _makeBox(2, 0.2, 2, 0x666666);
+    sewerGrate.position.set(_sewerEntry.x, 0.1, _sewerEntry.z);
+    sewerGrate.userData = { type: 'sewerGrate', open: false };
+    _scene.add(sewerGrate);
 
-    // Enemy commander at gate
-    commander = makeCyl(0.7, 0.7, 2.2, 8, 0x222222);
-    commander.position.set(6, 1.1, -22);
-    commander.userData = { type: 'commander' };
-    scene.add(commander);
+    var sewerTunnel = _makeBox(3, 2, 32, 0x443322);
+    sewerTunnel.position.set(43, -2, 0);
+    _scene.add(sewerTunnel);
 
-    // Lighting
-    var ambient = new THREE.AmbientLight(0x404040, 0.6);
-    scene.add(ambient);
+    // ── WEST: helicopter LZ on roof BoxGeometry 0x00FF88 at y=8 ───────────────
+    var lzPad = _makeBox(6, 0.2, 6, 0x00FF88);
+    lzPad.position.set(_heliLZ.x, _heliLZ.y + 0.1, _heliLZ.z);
+    lzPad.userData = { type: 'heliLZ' };
+    _scene.add(lzPad);
+
+    // ── Enemy commander CylinderGeometry (0x222222) at gate ───────────────────
+    _commander = _makeCyl(0.7, 0.7, 2.2, 8, 0x222222);
+    _commander.position.set(6, 1.1, -22);
+    _commander.userData = { type: 'commander', active: true };
+    _scene.add(_commander);
+
+    // ── Lighting ───────────────────────────────────────────────────────────────
+    var ambient = new THREE.AmbientLight(0x404050, 0.6);
+    _scene.add(ambient);
     var dirLight = new THREE.DirectionalLight(0xffffcc, 0.9);
     dirLight.position.set(10, 20, 10);
-    scene.add(dirLight);
+    _scene.add(dirLight);
 
-    // Searchlight (red when alarm)
-    var pointLight = new THREE.PointLight(0x8888ff, 0.4, 60);
-    pointLight.position.set(0, 15, 0);
-    pointLight.userData = { type: 'searchlight' };
-    scene.add(pointLight);
+    var searchLight = new THREE.PointLight(0x8888ff, 0.5, 80);
+    searchLight.position.set(0, 18, 0);
+    searchLight.userData = { type: 'searchlight' };
+    _scene.add(searchLight);
   }
 
-  // ── Build guards ─────────────────────────────────────────────────────────────
-  function buildGuards() {
-    // 6 patrol guards with 4-point routes
+  // ── Build guards ──────────────────────────────────────────────────────────────
+  function _buildGuards() {
     var patrolRoutes = [
       [{ x: -10, z: -20 }, { x: 10, z: -20 }, { x: 10, z: -10 }, { x: -10, z: -10 }],
       [{ x: -20, z: 0 }, { x: -10, z: 0 }, { x: -10, z: 10 }, { x: -20, z: 10 }],
@@ -282,9 +322,9 @@ window.PrisonBreak = (function () {
     ];
 
     for (var i = 0; i < 6; i++) {
-      var g = makeCyl(0.4, 0.4, 1.8, 8, 0x334433);
-      var startPt = patrolRoutes[i][0];
-      g.position.set(startPt.x, 0.9, startPt.z);
+      var g = _makeCyl(0.4, 0.4, 1.8, 8, 0x334433);
+      var sp = patrolRoutes[i][0];
+      g.position.set(sp.x, 0.9, sp.z);
       g.userData = {
         type: 'guard',
         patrol: true,
@@ -294,22 +334,20 @@ window.PrisonBreak = (function () {
         spottingPlayer: false,
         spotTimer: 0,
         downed: false,
-        alerted: false,
-        alertTarget: null
+        alerted: false
       };
-      scene.add(g);
-      guards.push(g);
+      _scene.add(g);
+      _guards.push(g);
     }
 
-    // 4 static post guards
     var staticPosts = [
-      { x: 0, z: -25 },   // north gate
-      { x: 0, z: 25 },    // south gate
-      { x: 25, z: 0 },    // east
-      { x: -25, z: 0 }    // west
+      { x: 0, z: -25 },
+      { x: 0, z: 25 },
+      { x: 25, z: 0 },
+      { x: -25, z: 0 }
     ];
     for (var j = 0; j < 4; j++) {
-      var sg = makeCyl(0.4, 0.4, 1.8, 8, 0x334433);
+      var sg = _makeCyl(0.4, 0.4, 1.8, 8, 0x334433);
       sg.position.set(staticPosts[j].x, 0.9, staticPosts[j].z);
       sg.userData = {
         type: 'guard',
@@ -319,834 +357,870 @@ window.PrisonBreak = (function () {
         spottingPlayer: false,
         spotTimer: 0,
         downed: false,
-        alerted: false,
-        alertTarget: null
+        alerted: false
       };
-      scene.add(sg);
-      guards.push(sg);
+      _scene.add(sg);
+      _guards.push(sg);
     }
 
-    // Guard dog (CylinderGeometry 0x8B4513 on chain LineSegments)
-    var dog = makeCyl(0.25, 0.25, 0.8, 6, 0x8B4513);
-    dog.position.set(10, 0.4, 10);
-    dog.userData = {
+    // ── Guard dog: CylinderGeometry 0x8B4513 at 0.5x scale on LineSegments leash
+    _dog = _makeCyl(0.25, 0.25, 0.8, 6, 0x8B4513);
+    _dog.scale.set(0.5, 0.5, 0.5);
+    _dog.position.set(10, 0.4, 10);
+    _dog.userData = {
       type: 'dog',
       center: { x: 10, z: 10 },
       angle: 0,
-      radius: 15,
-      speed: 6,
+      orbitRadius: 8,
+      speed: 12,
       detected: false
     };
-    scene.add(dog);
-    guardDogs.push(dog);
+    _scene.add(_dog);
+    _guardDogs.push(_dog);
 
-    // Dog chain LineSegments
-    var chainLines = makeLines([
+    _dogChain = _makeLineSegments([
       { x: 10, y: 0.4, z: 10 },
       { x: 10, y: 0.4, z: 10 }
     ], 0x888888);
-    chainLines.userData = { type: 'dogChain', dog: dog };
-    scene.add(chainLines);
+    _dogChain.userData = { type: 'dogChain' };
+    _scene.add(_dogChain);
   }
 
-  // ── Build player ─────────────────────────────────────────────────────────────
-  function buildPlayer() {
-    player = makeCyl(0.4, 0.4, 1.8, 8, 0x2244AA);
-    player.position.set(0, 0.9, 20);
-    player.userData = { type: 'player' };
-    scene.add(player);
+  // ── Build player ──────────────────────────────────────────────────────────────
+  function _buildPlayer() {
+    _player = _makeCyl(0.4, 0.4, 1.8, 8, 0x2244AA);
+    _player.position.set(0, 0.9, 20);
+    _player.userData = { type: 'player' };
+    _scene.add(_player);
   }
 
-  // ── HUD ──────────────────────────────────────────────────────────────────────
-  function buildHUD() {
-    hudElement = document.createElement('div');
-    hudElement.style.cssText = [
-      'position:fixed',
-      'top:10px',
-      'left:50%',
+  // ── HUD ───────────────────────────────────────────────────────────────────────
+  function _buildHUD() {
+    _hud = document.createElement('div');
+    _hud.style.cssText = [
+      'position:fixed', 'top:10px', 'left:50%',
       'transform:translateX(-50%)',
-      'background:rgba(0,0,0,0.75)',
+      'background:rgba(0,0,0,0.78)',
       'color:#00FF44',
       'font-family:monospace',
       'font-size:14px',
-      'padding:6px 14px',
+      'padding:6px 16px',
       'border:1px solid #00FF44',
       'border-radius:4px',
       'pointer-events:none',
       'z-index:9999',
       'white-space:nowrap'
     ].join(';');
-    document.body.appendChild(hudElement);
+    document.body.appendChild(_hud);
 
-    promptElement = document.createElement('div');
-    promptElement.style.cssText = [
-      'position:fixed',
-      'bottom:60px',
-      'left:50%',
+    _promptElement = document.createElement('div');
+    _promptElement.style.cssText = [
+      'position:fixed', 'bottom:60px', 'left:50%',
       'transform:translateX(-50%)',
-      'background:rgba(0,0,0,0.8)',
+      'background:rgba(0,0,0,0.85)',
       'color:#FFFF00',
       'font-family:monospace',
       'font-size:13px',
-      'padding:5px 12px',
+      'padding:5px 14px',
       'border:1px solid #FFFF00',
       'border-radius:3px',
       'pointer-events:none',
       'z-index:9999',
       'display:none'
     ].join(';');
-    document.body.appendChild(promptElement);
+    document.body.appendChild(_promptElement);
   }
 
-  function formatTime(sec) {
+  function _formatTime(sec) {
     var s = Math.max(0, Math.floor(sec));
     var m = Math.floor(s / 60);
     var r = s % 60;
     return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
   }
 
-  function updateHUD() {
-    if (!hudElement) return;
-    var alarmText = alarmActive ? '<span style="color:#FF2200">ON</span>' : 'OFF';
-    var disguiseText = disguiseActive ? ' [DISGUISE: ' + Math.ceil(disguiseTimer) + 's]' : '';
-    var routeText = selectedRoute;
-    hudElement.innerHTML =
-      'PRISON BREAK [FREED: ' + freedPrisoners + '/' + totalPrisoners + '] ' +
-      '[GUARDS: ' + getActiveGuardCount() + '] ' +
-      '[ALARM: ' + alarmText + '] ' +
-      '[ROUTE: ' + routeText + ']' + disguiseText +
-      ' | EXTRACTION: ' + formatTime(extractionTimer);
-  }
-
-  function getActiveGuardCount() {
-    var count = 0;
-    for (var i = 0; i < guards.length; i++) {
-      if (!guards[i].userData.downed) count++;
+  function _activeGuardCount() {
+    var n = 0;
+    for (var i = 0; i < _guards.length; i++) {
+      if (!_guards[i].userData.downed) n++;
     }
-    return count;
+    return n;
   }
 
-  function showPrompt(text, duration) {
-    if (!promptElement) return;
-    promptElement.textContent = text;
-    promptElement.style.display = 'block';
-    promptTimer = duration || 2;
+  function _updateHUD() {
+    if (!_hud) return;
+    var alarmStr = _alarmActive ? 'ON' : 'OFF';
+    var alarmColor = _alarmActive ? '#FF2200' : '#00FF44';
+    var disguiseStr = _disguised ? ' [DISGUISE:' + Math.ceil(_disguiseTimer) + 's]' : '';
+    var heliStr = (_heliCalled && !_heliArrived) ? ' [HELI:' + Math.ceil(30 - _heliTimer) + 's]' : '';
+    _hud.innerHTML =
+      'PRISON BREAK [FREED: ' + _freedPrisoners + '/' + _totalPrisoners + '] ' +
+      '[GUARDS: ' + _activeGuardCount() + '] ' +
+      '[ALARM: <span style="color:' + alarmColor + '">' + alarmStr + '</span>] ' +
+      '[ROUTE: ' + _selectedRoute + ']' +
+      disguiseStr + heliStr +
+      ' | EXTRACTION: ' + _formatTime(_extractionTimer);
   }
 
-  // ── Guard AI ─────────────────────────────────────────────────────────────────
-  function updateGuards(dt) {
-    var detectionRange = disguiseActive ? 5 : 12;
+  function _showPrompt(text, dur) {
+    if (!_promptElement) return;
+    _promptElement.textContent = text;
+    _promptElement.style.display = 'block';
+    _promptTimer = dur || 2;
+  }
 
-    for (var i = 0; i < guards.length; i++) {
-      var g = guards[i];
+  // ── Guard AI ──────────────────────────────────────────────────────────────────
+  function _updateGuards(dt) {
+    for (var i = 0; i < _guards.length; i++) {
+      var g = _guards[i];
       if (g.userData.downed) continue;
 
       var gx = g.position.x;
       var gz = g.position.z;
-      var px = player.position.x;
-      var pz = player.position.z;
+      var px = _player.position.x;
+      var pz = _player.position.z;
+      var dx = px - gx;
+      var dz = pz - gz;
+      var dLen = Math.sqrt(dx * dx + dz * dz);
 
-      var dToPlayer = Math.sqrt((gx - px) * (gx - px) + (gz - pz) * (gz - pz));
+      // Guard FOV dot product check
+      var gfx = Math.sin(g.rotation.y);
+      var gfz = Math.cos(g.rotation.y);
+      var dotVal = (dLen > 0.001) ? (gfx * (dx / dLen) + gfz * (dz / dLen)) : 0;
 
-      if (alarmActive || g.userData.alerted) {
-        // Converge on player
-        var dx = px - gx;
-        var dz = pz - gz;
-        var len = Math.sqrt(dx * dx + dz * dz);
-        if (len > 1.5) {
+      // Detection: dot>0.5 and distance<20 no disguise; distance<8 with disguise
+      var spotted = false;
+      if (!_disguised) {
+        spotted = (dotVal > 0.5 && dLen < 20);
+      } else {
+        spotted = (dLen < 8);
+      }
+
+      if (_alarmActive || g.userData.alerted) {
+        if (dLen > 1.5) {
           var spd = g.userData.speed * 1.5;
-          g.position.x += (dx / len) * spd * dt;
-          g.position.z += (dz / len) * spd * dt;
+          g.position.x += (dx / dLen) * spd * dt;
+          g.position.z += (dz / dLen) * spd * dt;
           g.rotation.y = Math.atan2(dx, dz);
         }
       } else if (g.userData.patrol) {
-        // Patrol route
         var route = g.userData.route;
-        var target = route[g.userData.routeIndex];
-        var dx2 = target.x - gx;
-        var dz2 = target.z - gz;
-        var d2 = Math.sqrt(dx2 * dx2 + dz2 * dz2);
-        if (d2 < 0.5) {
+        var tgt = route[g.userData.routeIndex];
+        var tdx = tgt.x - gx;
+        var tdz = tgt.z - gz;
+        var td = Math.sqrt(tdx * tdx + tdz * tdz);
+        if (td < 0.5) {
           g.userData.routeIndex = (g.userData.routeIndex + 1) % route.length;
         } else {
-          g.position.x += (dx2 / d2) * g.userData.speed * dt;
-          g.position.z += (dz2 / d2) * g.userData.speed * dt;
-          g.rotation.y = Math.atan2(dx2, dz2);
+          g.position.x += (tdx / td) * g.userData.speed * dt;
+          g.position.z += (tdz / td) * g.userData.speed * dt;
+          g.rotation.y = Math.atan2(tdx, tdz);
         }
-
-        // Spot check
-        if (dToPlayer < detectionRange) {
-          g.userData.spottingPlayer = true;
+        if (spotted) {
           g.userData.spotTimer += dt;
-          if (g.userData.spotTimer > 3) {
-            triggerAlarm();
-          }
+          if (g.userData.spotTimer > 3) _triggerAlarm();
         } else {
-          g.userData.spottingPlayer = false;
           g.userData.spotTimer = Math.max(0, g.userData.spotTimer - dt * 2);
         }
       } else {
-        // Static post
-        if (dToPlayer < detectionRange) {
-          g.userData.spottingPlayer = true;
+        if (spotted) {
           g.userData.spotTimer += dt;
-          if (g.userData.spotTimer > 3) {
-            triggerAlarm();
-          }
+          if (g.userData.spotTimer > 3) _triggerAlarm();
         } else {
-          g.userData.spottingPlayer = false;
           g.userData.spotTimer = Math.max(0, g.userData.spotTimer - dt * 2);
         }
       }
     }
 
-    // Spawn extra guards when alarm first triggers
-    if (alarmActive && !spawnedExtraGuards) {
-      spawnedExtraGuards = true;
+    // Spawn 4 extra guards on alarm
+    if (_alarmActive && !_spawnedExtraGuards) {
+      _spawnedExtraGuards = true;
       for (var s = 0; s < 4; s++) {
-        var angle = (s / 4) * Math.PI * 2;
-        var eg = makeCyl(0.4, 0.4, 1.8, 8, 0x552222);
-        eg.position.set(Math.cos(angle) * 30, 0.9, Math.sin(angle) * 30);
+        var ang = (s / 4) * Math.PI * 2;
+        var eg = _makeCyl(0.4, 0.4, 1.8, 8, 0x552222);
+        eg.position.set(Math.cos(ang) * 32, 0.9, Math.sin(ang) * 32);
         eg.userData = {
-          type: 'guard',
-          patrol: false,
-          speed: 4,
-          spottingPlayer: false,
-          spotTimer: 0,
-          downed: false,
-          alerted: true,
-          alertTarget: null
+          type: 'guard', patrol: false, speed: 4,
+          spottingPlayer: false, spotTimer: 0,
+          downed: false, alerted: true
         };
-        scene.add(eg);
-        guards.push(eg);
+        _scene.add(eg);
+        _guards.push(eg);
       }
     }
   }
 
-  function updateDogs(dt) {
-    for (var i = 0; i < guardDogs.length; i++) {
-      var dog = guardDogs[i];
-      dog.userData.angle += dog.userData.speed * dt * 0.1;
-      var nx = dog.userData.center.x + Math.cos(dog.userData.angle) * dog.userData.radius;
-      var nz = dog.userData.center.z + Math.sin(dog.userData.angle) * dog.userData.radius;
-      dog.position.x = nx;
-      dog.position.z = nz;
+  // ── Dog AI ────────────────────────────────────────────────────────────────────
+  function _updateDog(dt) {
+    if (!_dog) return;
+    _dog.userData.angle += (_dog.userData.speed / _dog.userData.orbitRadius) * dt;
+    var nx = _dog.userData.center.x + Math.cos(_dog.userData.angle) * _dog.userData.orbitRadius;
+    var nz = _dog.userData.center.z + Math.sin(_dog.userData.angle) * _dog.userData.orbitRadius;
+    _dog.position.x = nx;
+    _dog.position.z = nz;
 
-      // Update chain
-      var chain = scene.children.filter(function (c) {
-        return c.userData && c.userData.type === 'dogChain' && c.userData.dog === dog;
-      })[0];
-      if (chain) {
-        var positions = chain.geometry.attributes.position;
-        positions.setXYZ(0, dog.userData.center.x, 0.4, dog.userData.center.z);
-        positions.setXYZ(1, dog.position.x, 0.4, dog.position.z);
-        positions.needsUpdate = true;
+    if (_dogChain) {
+      var pos = _dogChain.geometry.attributes.position;
+      pos.setXYZ(0, _dog.userData.center.x, 0.4, _dog.userData.center.z);
+      pos.setXYZ(1, nx, 0.4, nz);
+      pos.needsUpdate = true;
+    }
+
+    var ddx = nx - _player.position.x;
+    var ddz = nz - _player.position.z;
+    var dd = Math.sqrt(ddx * ddx + ddz * ddz);
+    if (dd < 10) {
+      _dogDetected = true;
+      _dogBarkTimer -= dt;
+      if (_dogBarkTimer <= 0) {
+        _dogBarkTimer = 0.4;
+        _playBark();
       }
+      _triggerAlarm();
+    } else {
+      _dogDetected = false;
+    }
+  }
 
-      // Dog detection (10 units)
-      var ddx = dog.position.x - player.position.x;
-      var ddz = dog.position.z - player.position.z;
-      var dd = Math.sqrt(ddx * ddx + ddz * ddz);
-      if (dd < 10) {
-        dog.userData.detected = true;
-        triggerAlarm();
+  function _triggerAlarm() {
+    if (!_alarmActive) {
+      _alarmActive = true;
+      _showPrompt('!! ALARM TRIGGERED! GUARDS CONVERGING !!', 4);
+      for (var i = 0; i < _scene.children.length; i++) {
+        var c = _scene.children[i];
+        if (c.userData && c.userData.type === 'searchlight') {
+          c.color.setHex(0xFF2200);
+          c.intensity = 1.2;
+        }
+      }
+      for (var j = 0; j < _alarmBoxes.length; j++) {
+        if (!_alarmBoxes[j].userData.disabled) {
+          _alarmBoxes[j].material.emissive = new THREE.Color(0xFF2200);
+          _alarmBoxes[j].material.emissiveIntensity = 0.5;
+        }
       }
     }
   }
 
-  function triggerAlarm() {
-    if (!alarmActive) {
-      alarmActive = true;
-      alarmTimer = 0;
-      showPrompt('ALARM TRIGGERED! GUARDS CONVERGING!', 3);
-      // Red tint on searchlight
-      var lights = scene.children.filter(function (c) {
-        return c.userData && c.userData.type === 'searchlight';
-      });
-      for (var i = 0; i < lights.length; i++) {
-        lights[i].color.setHex(0xFF2200);
-      }
-    }
-  }
-
-  // ── Prisoner following ───────────────────────────────────────────────────────
-  function updatePrisoners(dt) {
-    for (var i = 0; i < prisoners.length; i++) {
-      var p = prisoners[i];
+  // ── Prisoner following ────────────────────────────────────────────────────────
+  function _updatePrisoners(dt) {
+    for (var i = 0; i < _prisoners.length; i++) {
+      var p = _prisoners[i];
       if (!p.userData.following) continue;
 
-      var idx = followingPrisoners.indexOf(p);
-      var targetX, targetZ;
+      var idx = _followingPrisoners.indexOf(p);
+      var tgtX, tgtZ;
       if (idx === 0) {
-        targetX = player.position.x;
-        targetZ = player.position.z + 4;
+        tgtX = _player.position.x;
+        tgtZ = _player.position.z + 3;
       } else {
-        var prevP = followingPrisoners[idx - 1];
-        targetX = prevP.position.x;
-        targetZ = prevP.position.z + 4;
+        var prev = _followingPrisoners[idx - 1];
+        tgtX = prev.position.x;
+        tgtZ = prev.position.z + 3;
       }
 
-      var dx = targetX - p.position.x;
-      var dz = targetZ - p.position.z;
+      var dx = tgtX - p.position.x;
+      var dz = tgtZ - p.position.z;
       var d = Math.sqrt(dx * dx + dz * dz);
       if (d > 1) {
-        var pSpeed = 4; // slower than player
-        p.position.x += (dx / d) * pSpeed * dt;
-        p.position.z += (dz / d) * pSpeed * dt;
+        p.position.x += (dx / d) * 4 * dt;
+        p.position.z += (dz / d) * 4 * dt;
       }
 
-      // If prisoner falls too far behind (sprinting), get captured
-      var distToPlayer = Math.sqrt(
-        Math.pow(p.position.x - player.position.x, 2) +
-        Math.pow(p.position.z - player.position.z, 2)
-      );
-      if (distToPlayer > 20) {
-        // Captured
+      var distToPlayer = _dist2D(p.position, _player.position);
+      if (distToPlayer > 22) {
         p.userData.following = false;
-        var fi = followingPrisoners.indexOf(p);
-        if (fi >= 0) followingPrisoners.splice(fi, 1);
+        var fi = _followingPrisoners.indexOf(p);
+        if (fi >= 0) _followingPrisoners.splice(fi, 1);
         p.material.color.setHex(0xFF4400);
-        showPrompt('A prisoner was captured!', 3);
+        _showPrompt('A prisoner was recaptured!', 3);
       }
     }
   }
 
   // ── Player movement ───────────────────────────────────────────────────────────
-  function updatePlayer(dt) {
-    if (drivingJeep) {
-      updateJeepDriving(dt);
+  function _updatePlayer(dt) {
+    if (_drivingJeep) {
+      _updateJeepDriving(dt);
       return;
     }
 
-    var moveX = 0;
-    var moveZ = 0;
+    var mx = 0, mz = 0;
+    if (_keysDown['KeyW'] || _keysDown['ArrowUp']) mz -= 1;
+    if (_keysDown['KeyS'] || _keysDown['ArrowDown']) mz += 1;
+    if (_keysDown['KeyA'] || _keysDown['ArrowLeft']) mx -= 1;
+    if (_keysDown['KeyD'] || _keysDown['ArrowRight']) mx += 1;
+    if (_keysDown['KeyQ']) _cameraAngle -= 1.5 * dt;
 
-    if (keysDown['KeyW'] || keysDown['ArrowUp']) moveZ -= 1;
-    if (keysDown['KeyS'] || keysDown['ArrowDown']) moveZ += 1;
-    if (keysDown['KeyA'] || keysDown['ArrowLeft']) moveX -= 1;
-    if (keysDown['KeyD'] || keysDown['ArrowRight']) moveX += 1;
-
-    if (keysDown['KeyQ']) cameraAngle -= 1.5 * dt;
-    if (keysDown['KeyE'] && !keysDown['KeyE' + '_action']) cameraAngle += 1.5 * dt;
-
-    var len = Math.sqrt(moveX * moveX + moveZ * moveZ);
+    var len = Math.sqrt(mx * mx + mz * mz);
     if (len > 0) {
-      moveX /= len;
-      moveZ /= len;
-      // Rotate movement by camera angle
-      var ca = cameraAngle;
-      var rx = moveX * Math.cos(ca) + moveZ * Math.sin(ca);
-      var rz = -moveX * Math.sin(ca) + moveZ * Math.cos(ca);
-      player.position.x += rx * playerSpeed * dt;
-      player.position.z += rz * playerSpeed * dt;
-      player.rotation.y = Math.atan2(rx, rz);
+      mx /= len; mz /= len;
+      var ca = _cameraAngle;
+      var rx = mx * Math.cos(ca) + mz * Math.sin(ca);
+      var rz = -mx * Math.sin(ca) + mz * Math.cos(ca);
+      var spd = _crouching ? _playerSpeed * 0.5 : _playerSpeed;
+      _player.position.x += rx * spd * dt;
+      _player.position.z += rz * spd * dt;
+      _player.rotation.y = Math.atan2(rx, rz);
     }
 
-    // Clamp to world bounds
-    player.position.x = Math.max(-45, Math.min(45, player.position.x));
-    player.position.z = Math.max(-45, Math.min(45, player.position.z));
+    _player.position.x = Math.max(-120, Math.min(120, _player.position.x));
+    _player.position.z = Math.max(-120, Math.min(120, _player.position.z));
 
-    // Camera follow
-    camera.position.x = player.position.x + Math.sin(cameraAngle) * cameraDistance;
-    camera.position.z = player.position.z + Math.cos(cameraAngle) * cameraDistance;
-    camera.position.y = cameraHeight;
-    camera.lookAt(player.position);
+    if (_sewerMode) {
+      _player.scale.set(1, 0.667, 1);
+    } else {
+      _player.scale.set(1, 1, 1);
+    }
+
+    _cameraFollow(_player.position);
   }
 
-  function updateJeepDriving(dt) {
-    if (keysDown['KeyW'] || keysDown['ArrowUp']) {
-      jeepVelocity.x += Math.sin(jeepAngle) * jeepSpeed * dt;
-      jeepVelocity.z += Math.cos(jeepAngle) * jeepSpeed * dt;
-    }
-    if (keysDown['KeyS'] || keysDown['ArrowDown']) {
-      jeepVelocity.x -= Math.sin(jeepAngle) * jeepSpeed * 0.6 * dt;
-      jeepVelocity.z -= Math.cos(jeepAngle) * jeepSpeed * 0.6 * dt;
-    }
-    if (keysDown['KeyA'] || keysDown['ArrowLeft']) jeepAngle += 1.5 * dt;
-    if (keysDown['KeyD'] || keysDown['ArrowRight']) jeepAngle -= 1.5 * dt;
-
-    jeepVelocity.x *= 0.92;
-    jeepVelocity.z *= 0.92;
-
-    jeep.position.x += jeepVelocity.x;
-    jeep.position.z += jeepVelocity.z;
-    jeep.rotation.y = jeepAngle;
-
-    player.position.x = jeep.position.x;
-    player.position.z = jeep.position.z;
-
-    camera.position.x = jeep.position.x + Math.sin(cameraAngle) * cameraDistance;
-    camera.position.z = jeep.position.z + Math.cos(cameraAngle) * cameraDistance;
-    camera.position.y = cameraHeight;
-    camera.lookAt(jeep.position);
-
-    // Check extraction zone
-    var dx = jeep.position.x - extractionPoint.x;
-    var dz = jeep.position.z - extractionPoint.z;
-    var d = Math.sqrt(dx * dx + dz * dz);
-    if (d < 8) {
-      triggerVictory();
-    }
+  function _cameraFollow(target) {
+    _camera.position.x = target.x + Math.sin(_cameraAngle) * _cameraDistance;
+    _camera.position.z = target.z + Math.cos(_cameraAngle) * _cameraDistance;
+    _camera.position.y = _cameraHeight;
+    _camera.lookAt(new THREE.Vector3(target.x, 1, target.z));
   }
 
-  // ── Interactions ─────────────────────────────────────────────────────────────
-  function checkInteractions() {
-    var px = player.position.x;
-    var pz = player.position.z;
+  function _updateJeepDriving(dt) {
+    if (!_jeep) return;
+    if (_keysDown['KeyW'] || _keysDown['ArrowUp']) {
+      _jeepVelocity.x += Math.sin(_jeepAngle) * _jeepSpeed * dt;
+      _jeepVelocity.z += Math.cos(_jeepAngle) * _jeepSpeed * dt;
+    }
+    if (_keysDown['KeyS'] || _keysDown['ArrowDown']) {
+      _jeepVelocity.x -= Math.sin(_jeepAngle) * _jeepSpeed * 0.6 * dt;
+      _jeepVelocity.z -= Math.cos(_jeepAngle) * _jeepSpeed * 0.6 * dt;
+    }
+    if (_keysDown['KeyA'] || _keysDown['ArrowLeft']) _jeepAngle += 1.5 * dt;
+    if (_keysDown['KeyD'] || _keysDown['ArrowRight']) _jeepAngle -= 1.5 * dt;
 
-    // Keycard pickup
-    if (keycard && !hasKeycard) {
-      var kd = Math.sqrt(
-        Math.pow(px - keycard.position.x, 2) +
-        Math.pow(pz - keycard.position.z, 2)
-      );
-      if (kd < 2) {
-        showPrompt('[F] Pick up keycard', 0.5);
-        if (keysDown['KeyF']) {
-          hasKeycard = true;
-          scene.remove(keycard);
-          keycard = null;
-          showPrompt('Keycard obtained!', 2);
+    _jeepVelocity.x *= 0.92;
+    _jeepVelocity.z *= 0.92;
+
+    _jeep.position.x += _jeepVelocity.x;
+    _jeep.position.z += _jeepVelocity.z;
+    _jeep.rotation.y = _jeepAngle;
+
+    _player.position.x = _jeep.position.x;
+    _player.position.z = _jeep.position.z;
+
+    _cameraFollow(_jeep.position);
+
+    var d = _dist2D(_jeep.position, { x: _northExtraction.x, z: _northExtraction.z });
+    if (d < 8) _triggerVictory('JEEP EXTRACTION COMPLETE!');
+  }
+
+  // ── Interactions ──────────────────────────────────────────────────────────────
+  function _checkInteractions() {
+    if (_gameOver || _gameWon) return;
+    var px = _player.position.x;
+    var pz = _player.position.z;
+
+    // Keycard (E)
+    if (_keycard && !_hasKeycard) {
+      var kd = _dist2D({ x: px, z: pz }, _keycard.position);
+      if (kd < 3) {
+        _showPrompt('[E] Pick up keycard', 0.5);
+        if (_keysDown['_e_pressed']) {
+          _hasKeycard = true;
+          _scene.remove(_keycard);
+          _keycard = null;
+          _showPrompt('Keycard obtained! Open the cell block with [E]', 3);
+          _keysDown['_e_pressed'] = false;
         }
       }
     }
 
-    // Cell door
-    if (cellDoor && !cellDoorOpen) {
-      var cd = Math.sqrt(
-        Math.pow(px - cellDoor.position.x, 2) +
-        Math.pow(pz - cellDoor.position.z, 2)
-      );
-      if (cd < 3) {
-        if (hasKeycard) {
-          showPrompt('[E] Open cell block door', 0.5);
-          if (keysDown['KeyE_door']) {
-            cellDoorOpen = true;
-            scene.remove(cellDoor);
-            cellDoor = null;
-            showPrompt('Cell block open! Free the prisoners!', 3);
+    // Cell door (E)
+    if (_cellDoor && !_cellDoorOpen) {
+      var cdd = _dist2D({ x: px, z: pz }, _cellDoor.position);
+      if (cdd < 3) {
+        if (_hasKeycard) {
+          _showPrompt('[E] Open cell block', 0.5);
+          if (_keysDown['_e_pressed']) {
+            _cellDoorOpen = true;
+            _scene.remove(_cellDoor);
+            _cellDoor = null;
+            _showPrompt('Cell block open! Free the prisoners with [E]!', 3);
+            _keysDown['_e_pressed'] = false;
           }
         } else {
-          showPrompt('Need keycard to open door', 0.5);
+          _showPrompt('Need keycard! Check guard office.', 0.5);
         }
       }
     }
 
-    // Free prisoners (when cell block is open)
-    if (cellDoorOpen) {
-      for (var i = 0; i < prisoners.length; i++) {
-        var p = prisoners[i];
+    // Free prisoners (E, within 3 units)
+    if (_cellDoorOpen) {
+      for (var pi = 0; pi < _prisoners.length; pi++) {
+        var p = _prisoners[pi];
         if (p.userData.freed) continue;
-        var pd = Math.sqrt(
-          Math.pow(px - p.position.x, 2) +
-          Math.pow(pz - p.position.z, 2)
-        );
+        var pd = _dist2D({ x: px, z: pz }, p.position);
         if (pd < 3) {
-          showPrompt('[F] Free prisoner', 0.5);
-          if (keysDown['KeyF']) {
+          _showPrompt('[E] Free prisoner ' + (pi + 1), 0.5);
+          if (_keysDown['_e_pressed']) {
             p.userData.freed = true;
             p.userData.following = true;
-            p.material.color.setHex(0xAABB88);
-            followingPrisoners.push(p);
-            freedPrisoners++;
-            showPrompt('Prisoner freed! (' + freedPrisoners + '/' + totalPrisoners + ')', 2);
+            p.material.color.setHex(0xAABB77);
+            _followingPrisoners.push(p);
+            _freedPrisoners++;
+            _showPrompt('Prisoner ' + _freedPrisoners + '/' + _totalPrisoners + ' freed!', 2);
+            _keysDown['_e_pressed'] = false;
+            if (_freedPrisoners === _totalPrisoners && _commander) {
+              _showPrompt('All prisoners freed! Commander at gate — [H] accept or [N] reject exchange', 6);
+            }
           }
+          break;
         }
       }
     }
 
-    // Jeep
-    if (jeep) {
-      var jd = Math.sqrt(
-        Math.pow(px - jeep.position.x, 2) +
-        Math.pow(pz - jeep.position.z, 2)
-      );
-      if (jd < 4 && !drivingJeep) {
-        showPrompt('[V] Enter jeep', 0.5);
-        if (keysDown['KeyV']) {
-          drivingJeep = true;
-          jeepOccupants = 1 + followingPrisoners.length;
-          showPrompt('Driving jeep! Head to extraction!', 3);
+    // Sewer grate (E, EAST route)
+    var sgd = _dist2D({ x: px, z: pz }, _sewerEntry);
+    if (sgd < 3 && !_sewerMode && _selectedRoute === 'EAST') {
+      _showPrompt('[E] Enter sewer tunnel (30-unit crawl)', 0.5);
+      if (_keysDown['_e_pressed']) {
+        _sewerMode = true;
+        _player.position.y = -4.5;
+        _player.position.x = _sewerEntry.x + 2;
+        _crouching = true;
+        _showPrompt('Sewer crawl! Head east 30 units to exit.', 4);
+        _keysDown['_e_pressed'] = false;
+      }
+    }
+
+    // Sewer exit
+    if (_sewerMode) {
+      var sexd = _dist2D({ x: px, z: pz }, _sewerExit);
+      if (sexd < 5) {
+        _sewerMode = false;
+        _crouching = false;
+        _player.position.y = 0.9;
+        _triggerVictory('SEWER EXTRACTION COMPLETE!');
+      }
+    }
+
+    // Helicopter LZ (E, WEST route)
+    var hld = Math.sqrt(
+      Math.pow(px - _heliLZ.x, 2) + Math.pow(pz - _heliLZ.z, 2)
+    );
+    if (hld < 5 && _selectedRoute === 'WEST' && !_heliCalled) {
+      _showPrompt('[E] Call helicopter (arrives 30s)', 0.5);
+      if (_keysDown['_e_pressed']) {
+        _heliCalled = true;
+        _heliTimer = 0;
+        _showPrompt('Helicopter en route! 30 seconds...', 4);
+        _keysDown['_e_pressed'] = false;
+      }
+    }
+
+    // Jeep (V)
+    if (_jeep) {
+      var jd = _dist2D({ x: px, z: pz }, _jeep.position);
+      if (jd < 5 && !_drivingJeep) {
+        _showPrompt('[V] Enter jeep (fits 6)', 0.5);
+        if (_keysDown['KeyV']) {
+          _drivingJeep = true;
+          _jeepOccupants = 1 + _followingPrisoners.length;
+          _showPrompt('Driving jeep! (' + _jeepOccupants + ' aboard) Head to extraction!', 4);
+          _keysDown['KeyV'] = false;
         }
       }
     }
 
-    // Exit jeep
-    if (drivingJeep && keysDown['KeyX']) {
-      drivingJeep = false;
-      showPrompt('Exited jeep', 2);
+    // Exit jeep (X)
+    if (_drivingJeep && _keysDown['KeyX']) {
+      _drivingJeep = false;
+      _keysDown['KeyX'] = false;
+      _showPrompt('Exited jeep', 2);
     }
 
-    // Pick up guard uniform from downed guards
-    for (var g = 0; g < guardBodies.length; g++) {
-      var body = guardBodies[g];
-      var bd = Math.sqrt(
-        Math.pow(px - body.position.x, 2) +
-        Math.pow(pz - body.position.z, 2)
-      );
-      if (bd < 2 && !body.userData.uniformTaken) {
-        showPrompt('[G] Grab guard uniform', 0.5);
-        if (keysDown['KeyG']) {
+    // Disguise from body (G)
+    for (var gi = 0; gi < _guardBodies.length; gi++) {
+      var body = _guardBodies[gi];
+      var bd = _dist2D({ x: px, z: pz }, body.position);
+      if (bd < 2.5 && !body.userData.uniformTaken) {
+        _showPrompt('[G] Grab guard uniform (120s disguise)', 0.5);
+        if (_keysDown['KeyG']) {
           body.userData.uniformTaken = true;
-          disguiseActive = true;
-          disguiseTimer = 120;
-          player.material.color.setHex(0x334433);
-          showPrompt('Disguise active! 120s', 3);
+          _disguised = true;
+          _disguiseTimer = 120;
+          _player.material.color.setHex(0x334433);
+          _showPrompt('Disguise active for 120s!', 3);
+          _keysDown['KeyG'] = false;
         }
       }
     }
 
-    // Attack guard (spacebar when close)
-    for (var gi = 0; gi < guards.length; gi++) {
-      var guard = guards[gi];
+    // Take down guard (SPACE)
+    for (var gj = 0; gj < _guards.length; gj++) {
+      var guard = _guards[gj];
       if (guard.userData.downed) continue;
-      var gdd = Math.sqrt(
-        Math.pow(px - guard.position.x, 2) +
-        Math.pow(pz - guard.position.z, 2)
-      );
+      var gdd = _dist2D({ x: px, z: pz }, guard.position);
       if (gdd < 2) {
-        showPrompt('[SPACE] Take down guard', 0.5);
-        if (keysDown['Space']) {
+        _showPrompt('[SPACE] Take down guard', 0.5);
+        if (_keysDown['Space']) {
           guard.userData.downed = true;
-          guard.position.y = -0.5;
+          guard.position.y = -0.4;
           guard.rotation.z = Math.PI / 2;
           guard.material.color.setHex(0x222211);
-          guardBodies.push(guard);
-          showPrompt('Guard taken down! Grab uniform with [G]', 3);
+          _guardBodies.push(guard);
+          _showPrompt('Guard down! Grab uniform with [G]', 3);
+          _keysDown['Space'] = false;
+          break;
         }
       }
     }
 
-    // Shoot alarm boxes (X key)
-    for (var ab = 0; ab < alarmBoxes.length; ab++) {
-      var abox = alarmBoxes[ab];
+    // Shoot alarm box (X, range 8)
+    for (var ai = 0; ai < _alarmBoxes.length; ai++) {
+      var abox = _alarmBoxes[ai];
       if (abox.userData.disabled) continue;
-      var abd = Math.sqrt(
-        Math.pow(px - abox.position.x, 2) +
-        Math.pow(pz - abox.position.z, 2)
-      );
+      var abd = _dist2D({ x: px, z: pz }, abox.position);
       if (abd < 8) {
-        showPrompt('[X] Shoot alarm box', 0.5);
-        if (keysDown['KeyX']) {
+        _showPrompt('[X] Shoot alarm box', 0.5);
+        if (_keysDown['KeyX']) {
           abox.userData.disabled = true;
           abox.material.color.setHex(0x444444);
-          var allDisabled = alarmBoxes.every(function (b) { return b.userData.disabled; });
-          if (allDisabled) {
-            alarmActive = false;
-            showPrompt('All alarms disabled!', 3);
+          abox.material.emissiveIntensity = 0;
+          _keysDown['KeyX'] = false;
+          var allOff = true;
+          for (var aj = 0; aj < _alarmBoxes.length; aj++) {
+            if (!_alarmBoxes[aj].userData.disabled) { allOff = false; break; }
           }
+          if (allOff) {
+            _alarmActive = false;
+            _showPrompt('All alarms disabled!', 3);
+          }
+          break;
         }
       }
     }
 
-    // Commander exchange
-    if (commander && !exchangeResolved) {
-      var comd = Math.sqrt(
-        Math.pow(px - commander.position.x, 2) +
-        Math.pow(pz - commander.position.z, 2)
-      );
-      if (comd < 5) {
-        var hvPrisoner = prisoners.filter(function (p2) { return p2.userData.highValue && p2.userData.freed; })[0];
-        if (hvPrisoner && !exchangeOffered) {
-          exchangeOffered = true;
-          showPrompt('[Y] Accept exchange (1 safe) | [N] Reject (firefight)', 4);
+    // Hostage exchange (H/N keys)
+    if (_commander && _commander.userData.active && !_exchangeResolved && _freedPrisoners === _totalPrisoners) {
+      var comd = _dist2D({ x: px, z: pz }, _commander.position);
+      if (comd < 6) {
+        if (!_exchangeOffered) {
+          _exchangeOffered = true;
+          _showPrompt('Commander: trade 1 prisoner? [H] Accept (+100pts) | [N] Reject (firefight)', 8);
         }
-        if (exchangeOffered) {
-          if (keysDown['KeyY']) {
-            exchangeResolved = true;
-            // 1 prisoner is safe, remove from following
-            var safe = followingPrisoners[0];
-            if (safe) {
-              safe.userData.following = false;
-              var si = followingPrisoners.indexOf(safe);
-              if (si >= 0) followingPrisoners.splice(si, 1);
-              safe.material.color.setHex(0x00FF44);
+        if (_exchangeOffered) {
+          if (_keysDown['KeyH']) {
+            _exchangeResolved = true;
+            var traded = _followingPrisoners.shift();
+            if (traded) {
+              traded.userData.following = false;
+              traded.material.color.setHex(0x00FF44);
             }
-            showPrompt('Exchange accepted. 1 prisoner secured.', 4);
-            commander.userData.type = 'neutral';
-          } else if (keysDown['KeyN']) {
-            exchangeResolved = true;
-            triggerAlarm();
-            showPrompt('Rejected! Firefight started!', 3);
+            _showPrompt('Exchange accepted. 1 prisoner traded, passage secured. +100pts', 5);
+            _commander.userData.active = false;
+            _keysDown['KeyH'] = false;
+          } else if (_keysDown['KeyN']) {
+            _exchangeResolved = true;
+            _triggerAlarm();
+            _showPrompt('Exchange rejected! Firefight!', 3);
+            _keysDown['KeyN'] = false;
           }
         }
       }
     }
 
-    // Route selection (R key)
-    if (keysDown['KeyR']) {
+    // Route select (R)
+    if (_keysDown['_r_pressed']) {
       var routes = ['NORTH', 'EAST', 'WEST'];
-      var ri = routes.indexOf(selectedRoute);
-      selectedRoute = routes[(ri + 1) % routes.length];
-      showPrompt('Route: ' + selectedRoute, 2);
+      var ri = routes.indexOf(_selectedRoute);
+      _selectedRoute = routes[(ri + 1) % 3];
+      _showPrompt('Route: ' + _selectedRoute, 2);
+      _keysDown['_r_pressed'] = false;
     }
 
-    // Cell door E key separate tracking
-    if (keysDown['KeyE'] && cellDoor && !cellDoorOpen && hasKeycard) {
-      var ced = Math.sqrt(
-        Math.pow(px - cellDoor.position.x, 2) +
-        Math.pow(pz - cellDoor.position.z, 2)
-      );
-      if (ced < 3) {
-        cellDoorOpen = true;
-        scene.remove(cellDoor);
-        cellDoor = null;
-        showPrompt('Cell block open! Free the prisoners!', 3);
+    // On-foot extraction (NORTH)
+    if (!_drivingJeep && _selectedRoute === 'NORTH') {
+      var nd = _dist2D({ x: px, z: pz }, { x: _northExtraction.x, z: _northExtraction.z });
+      if (nd < 8 && _freedPrisoners > 0) {
+        _triggerVictory('NORTH EXTRACTION COMPLETE!');
       }
-    }
-
-    // Walking to extraction on foot
-    var exd = Math.sqrt(
-      Math.pow(px - extractionPoint.x, 2) +
-      Math.pow(pz - extractionPoint.z, 2)
-    );
-    if (exd < 8 && !drivingJeep && freedPrisoners > 0) {
-      triggerVictory();
     }
   }
 
-  function triggerVictory() {
-    if (!gameWon) {
-      gameWon = true;
-      showPrompt('EXTRACTION COMPLETE! MISSION SUCCESS! Freed: ' + freedPrisoners + '/' + totalPrisoners, 10);
+  function _triggerVictory(msg) {
+    if (!_gameWon) {
+      _gameWon = true;
+      _showPrompt(msg + ' Freed: ' + _freedPrisoners + '/' + _totalPrisoners + ' — MISSION SUCCESS!', 12);
+    }
+  }
+
+  // ── Helicopter countdown ──────────────────────────────────────────────────────
+  function _updateHelicopter(dt) {
+    if (!_heliCalled || _heliArrived) return;
+    _heliTimer += dt;
+    if (_heliTimer >= 30) {
+      _heliArrived = true;
+      if (!_heliMesh) {
+        _heliMesh = _makeBox(6, 2, 10, 0x223344);
+        _heliMesh.position.set(_heliLZ.x, _heliLZ.y + 4, _heliLZ.z);
+        _scene.add(_heliMesh);
+      }
+      _showPrompt('Helicopter arrived! Reach the rooftop LZ!', 5);
+      var hd = Math.sqrt(
+        Math.pow(_player.position.x - _heliLZ.x, 2) +
+        Math.pow(_player.position.z - _heliLZ.z, 2)
+      );
+      if (hd < 6) {
+        _triggerVictory('HELICOPTER EXTRACTION!');
+      }
     }
   }
 
   // ── Disguise timer ────────────────────────────────────────────────────────────
-  function updateDisguise(dt) {
-    if (!disguiseActive) return;
-    disguiseTimer -= dt;
-    if (disguiseTimer <= 0) {
-      disguiseActive = false;
-      player.material.color.setHex(0x2244AA);
-      showPrompt('Disguise worn off!', 3);
+  function _updateDisguise(dt) {
+    if (!_disguised) return;
+    _disguiseTimer -= dt;
+    if (_disguiseTimer <= 0) {
+      _disguised = false;
+      _player.material.color.setHex(0x2244AA);
+      _showPrompt('Disguise worn off!', 3);
     }
   }
 
   // ── Extraction countdown ──────────────────────────────────────────────────────
-  function updateExtraction(dt) {
-    if (gameWon || gameOver) return;
-    extractionTimer -= dt;
-    if (extractionTimer <= 0) {
-      extractionTimer = 0;
-      gameOver = true;
-      showPrompt('TIME UP! MISSION FAILED!', 10);
+  function _updateExtraction(dt) {
+    if (_gameWon || _gameOver) return;
+    _extractionTimer -= dt;
+    if (_extractionTimer <= 0) {
+      _extractionTimer = 0;
+      _gameOver = true;
+      _showPrompt('TIME UP! MISSION FAILED!', 12);
     }
   }
 
-  // ── Extraction zone pulse animation ─────────────────────────────────────────
-  function updateExtractionZone(dt) {
-    if (!extractionZone) return;
-    extractionZone.rotation.y += dt * 0.5;
-    var s = 1 + 0.1 * Math.sin(Date.now() * 0.003);
-    extractionZone.scale.set(s, 1, s);
-  }
-
-  // ── Keycard spin ─────────────────────────────────────────────────────────────
-  function updateKeycard(dt) {
-    if (!keycard) return;
-    keycard.rotation.y += dt * 2;
-    keycard.position.y = 3.2 + 0.2 * Math.sin(Date.now() * 0.002);
+  // ── Visual updates ────────────────────────────────────────────────────────────
+  function _updateVisuals(dt) {
+    if (_keycard) {
+      _keycard.rotation.y += dt * 2.5;
+      _keycard.position.y = 3.3 + 0.15 * Math.sin(Date.now() * 0.003);
+    }
+    if (_extractionZone) {
+      _extractionZone.rotation.y += dt * 0.4;
+      var s = 1 + 0.08 * Math.sin(Date.now() * 0.004);
+      _extractionZone.scale.set(s, 1, s);
+    }
+    if (_alarmActive) {
+      var flash = 0.4 + 0.4 * Math.abs(Math.sin(Date.now() * 0.006));
+      for (var i = 0; i < _alarmBoxes.length; i++) {
+        if (!_alarmBoxes[i].userData.disabled && _alarmBoxes[i].material.emissive) {
+          _alarmBoxes[i].material.emissiveIntensity = flash;
+        }
+      }
+    }
   }
 
   // ── Prompt fade ───────────────────────────────────────────────────────────────
-  function updatePrompt(dt) {
-    if (promptTimer > 0) {
-      promptTimer -= dt;
-      if (promptTimer <= 0) {
-        promptElement.style.display = 'none';
+  function _updatePrompt(dt) {
+    if (_promptTimer > 0) {
+      _promptTimer -= dt;
+      if (_promptTimer <= 0 && _promptElement) {
+        _promptElement.style.display = 'none';
       }
     }
   }
 
-  // ── Render loop ───────────────────────────────────────────────────────────────
-  function gameLoop() {
-    if (!active) return;
-    requestAnimationFrame(gameLoop);
+  // ── Main game loop ────────────────────────────────────────────────────────────
+  function _gameLoop() {
+    if (!_active) return;
+    requestAnimationFrame(_gameLoop);
 
-    var dt = Math.min(clock.getDelta(), 0.05);
+    var dt = Math.min(_clock.getDelta(), 0.05);
 
-    updatePlayer(dt);
-    updateGuards(dt);
-    updateDogs(dt);
-    updatePrisoners(dt);
-    updateDisguise(dt);
-    updateExtraction(dt);
-    updateExtractionZone(dt);
-    updateKeycard(dt);
-    checkInteractions();
-    updatePrompt(dt);
-    updateHUD();
+    _updatePlayer(dt);
+    _updateGuards(dt);
+    _updateDog(dt);
+    _updatePrisoners(dt);
+    _updateDisguise(dt);
+    _updateExtraction(dt);
+    _updateHelicopter(dt);
+    _checkInteractions();
+    _updateVisuals(dt);
+    _updatePrompt(dt);
+    _updateHUD();
 
-    renderer.render(scene, camera);
+    _renderer.render(_scene, _camera);
   }
 
-  // ── Key events ───────────────────────────────────────────────────────────────
-  function onKeyDown(e) {
-    if (!active) {
-      // Check P+B activation
-      keysDown[e.code] = true;
-      keyTimestamps[e.code] = Date.now();
-      checkActivation();
+  // ── Key events ────────────────────────────────────────────────────────────────
+  function _onKeyDown(e) {
+    _keysDown[e.code] = true;
+    _keyTimestamps[e.code] = Date.now();
+
+    if (e.code === 'KeyP') _pTime = Date.now();
+    if (e.code === 'KeyB') _bTime = Date.now();
+
+    if (!_active) {
+      _checkActivation();
       return;
     }
-    keysDown[e.code] = true;
-    keyTimestamps[e.code] = Date.now();
 
-    // One-shot actions that need edge detection
-    if (e.code === 'KeyE') {
-      // handled in checkInteractions per-frame
+    if (e.code === 'KeyE') _keysDown['_e_pressed'] = true;
+    if (e.code === 'KeyR') _keysDown['_r_pressed'] = true;
+    if (e.code === 'Escape') reset();
+  }
+
+  function _onKeyUp(e) {
+    _keysDown[e.code] = false;
+  }
+
+  function _checkActivation() {
+    if (_keysDown['KeyP'] && _keysDown['KeyB']) {
+      var diff = Math.abs(_pTime - _bTime);
+      if (diff < 400) init();
     }
   }
 
-  function onKeyUp(e) {
-    keysDown[e.code] = false;
-  }
-
-  function checkActivation() {
-    var pDown = keysDown['KeyP'] && keyTimestamps['KeyP'];
-    var bDown = keysDown['KeyB'] && keyTimestamps['KeyB'];
-    if (pDown && bDown) {
-      var diff = Math.abs(keyTimestamps['KeyP'] - keyTimestamps['KeyB']);
-      if (diff < 400) {
-        init();
-      }
-    }
-  }
-
-  // ── Window resize ─────────────────────────────────────────────────────────────
-  function onResize() {
-    if (!active) return;
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+  function _onResize() {
+    if (!_active) return;
+    _camera.aspect = window.innerWidth / window.innerHeight;
+    _camera.updateProjectionMatrix();
+    _renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────────
   function init() {
-    if (active) return;
-    active = true;
+    if (_active) return;
+    _active = true;
 
-    // Reset state
-    freedPrisoners = 0;
-    alarmActive = false;
-    alarmTimer = 0;
-    selectedRoute = 'NORTH';
-    extractionTimer = 105;
-    gameOver = false;
-    gameWon = false;
-    disguiseActive = false;
-    disguiseTimer = 0;
-    hasKeycard = false;
-    cellDoorOpen = false;
-    guards = [];
-    guardDogs = [];
-    prisoners = [];
-    alarmBoxes = [];
-    guardBodies = [];
-    followingPrisoners = [];
-    spawnedExtraGuards = false;
-    drivingJeep = false;
-    jeepOccupants = 0;
-    jeepAngle = 0;
-    jeepVelocity = { x: 0, z: 0 };
-    exchangeOffered = false;
-    exchangeResolved = false;
-    cameraAngle = 0;
-    keysDown = {};
-    keyTimestamps = {};
+    _prisoners = [];
+    _guards = [];
+    _alarmActive = false;
+    _disguised = false;
+    _alarmBoxes = [];
+    _jeep = null;
+    _dog = null;
+    _guardDogs = [];
+    _alarmTimer = 0;
+    _disguiseTimer = 0;
+    _hasKeycard = false;
+    _cellDoorOpen = false;
+    _freedPrisoners = 0;
+    _selectedRoute = 'NORTH';
+    _extractionTimer = 180;
+    _gameOver = false;
+    _gameWon = false;
+    _guardBodies = [];
+    _followingPrisoners = [];
+    _spawnedExtraGuards = false;
+    _keycard = null;
+    _cellDoor = null;
+    _commander = null;
+    _exchangeOffered = false;
+    _exchangeResolved = false;
+    _dogChain = null;
+    _sewerMode = false;
+    _heliCalled = false;
+    _heliTimer = 0;
+    _heliArrived = false;
+    _heliMesh = null;
+    _drivingJeep = false;
+    _jeepSpeed = 12;
+    _jeepVelocity = { x: 0, z: 0 };
+    _jeepAngle = 0;
+    _jeepOccupants = 0;
+    _cameraAngle = 0;
+    _crouching = false;
+    _dogDetected = false;
+    _dogBarkTimer = 0;
+    _keysDown = {};
+    _keyTimestamps = {};
+    _pTime = 0;
+    _bTime = 0;
+    _group = null;
+    _extractionZone = null;
 
-    // Container
-    container = document.createElement('div');
-    container.id = 'prison-break-container';
-    container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9000;background:#000;';
-    document.body.appendChild(container);
+    _container = document.createElement('div');
+    _container.id = 'prison-break-container';
+    _container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9000;background:#000;';
+    document.body.appendChild(_container);
 
-    // Renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = false;
-    container.appendChild(renderer.domElement);
+    _renderer = new THREE.WebGLRenderer({ antialias: true });
+    _renderer.setSize(window.innerWidth, window.innerHeight);
+    _renderer.shadowMap.enabled = false;
+    _container.appendChild(_renderer.domElement);
 
-    // Scene
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x112211);
-    scene.fog = new THREE.Fog(0x112211, 60, 120);
+    _scene = new THREE.Scene();
+    _scene.background = new THREE.Color(0x0a1a0a);
+    _scene.fog = new THREE.Fog(0x0a1a0a, 70, 140);
 
-    // Camera
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
-    camera.position.set(0, cameraHeight, 20 + cameraDistance);
+    _camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 400);
+    _camera.position.set(0, _cameraHeight, 20 + _cameraDistance);
 
-    // Clock
-    clock = new THREE.Clock();
+    _clock = new THREE.Clock();
 
-    // Build world
-    buildPrison();
-    buildGuards();
-    buildPlayer();
-    buildHUD();
+    _initAudio();
+    _buildPrison();
+    _buildGuards();
+    _buildPlayer();
+    _buildHUD();
 
-    // Events
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('resize', onResize);
+    window.addEventListener('keydown', _onKeyDown);
+    window.addEventListener('keyup', _onKeyUp);
+    window.addEventListener('resize', _onResize);
 
-    // ESC to exit
-    window.addEventListener('keydown', function (e) {
-      if (e.code === 'Escape' && active) reset();
-    });
+    _showPrompt('PRISON BREAK — WASD:move  E:interact  G:uniform  V:jeep  X:shoot/exit  H/N:exchange  R:route  SPACE:takedown  Q:cam  ESC:quit', 10);
 
-    showPrompt('PRISON BREAK — WASD move, E door, F free/grab, G uniform, V jeep, X shoot/exit, R route, P+B exit', 8);
-
-    gameLoop();
+    _gameLoop();
   }
 
-  // ── Update (external) ────────────────────────────────────────────────────────
+  // ── Update (external hook) ────────────────────────────────────────────────────
   function update(dt) {
-    // External update hook — game loop is self-contained
+    // External hook — internal loop is self-contained
   }
 
   // ── Reset ─────────────────────────────────────────────────────────────────────
   function reset() {
-    active = false;
+    _active = false;
 
-    window.removeEventListener('keydown', onKeyDown);
-    window.removeEventListener('keyup', onKeyUp);
-    window.removeEventListener('resize', onResize);
+    window.removeEventListener('keydown', _onKeyDown);
+    window.removeEventListener('keyup', _onKeyUp);
+    window.removeEventListener('resize', _onResize);
 
-    if (renderer) {
-      renderer.dispose();
-      renderer = null;
+    if (_renderer) { _renderer.dispose(); _renderer = null; }
+    if (_container && _container.parentNode) {
+      _container.parentNode.removeChild(_container);
+      _container = null;
     }
-    if (container && container.parentNode) {
-      container.parentNode.removeChild(container);
-      container = null;
+    if (_hud && _hud.parentNode) {
+      _hud.parentNode.removeChild(_hud);
+      _hud = null;
     }
-    if (hudElement && hudElement.parentNode) {
-      hudElement.parentNode.removeChild(hudElement);
-      hudElement = null;
+    if (_promptElement && _promptElement.parentNode) {
+      _promptElement.parentNode.removeChild(_promptElement);
+      _promptElement = null;
     }
-    if (promptElement && promptElement.parentNode) {
-      promptElement.parentNode.removeChild(promptElement);
-      promptElement = null;
+    if (_audioCtx) {
+      try { _audioCtx.close(); } catch (e) { /* silence */ }
+      _audioCtx = null;
     }
 
-    scene = null;
-    camera = null;
-    clock = null;
-    guards = [];
-    guardDogs = [];
-    prisoners = [];
-    alarmBoxes = [];
-    guardBodies = [];
-    followingPrisoners = [];
-    keycard = null;
-    cellDoor = null;
-    jeep = null;
-    extractionZone = null;
-    commander = null;
-    keysDown = {};
-    keyTimestamps = {};
+    _scene = null;
+    _camera = null;
+    _clock = null;
+    _prisoners = [];
+    _guards = [];
+    _alarmBoxes = [];
+    _guardBodies = [];
+    _followingPrisoners = [];
+    _guardDogs = [];
+    _keycard = null;
+    _cellDoor = null;
+    _jeep = null;
+    _dog = null;
+    _dogChain = null;
+    _extractionZone = null;
+    _commander = null;
+    _heliMesh = null;
+    _keysDown = {};
+    _keyTimestamps = {};
   }
 
   return { init: init, update: update, reset: reset };

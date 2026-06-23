@@ -1810,6 +1810,14 @@ const GameManager = (function () {
     try { if (window.MountainAssault && MountainAssault.init) MountainAssault.init(_scene, _camera); } catch (e) {}
     try { if (window.MechSuit && MechSuit.init) MechSuit.init(_scene, _camera); } catch (e) {}
     try { if (window.RiverCrossing && RiverCrossing.init) RiverCrossing.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberWarfare && CyberWarfare.init) CyberWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainAssault && TrainAssault.init) TrainAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearShutdown && NuclearShutdown.init) NuclearShutdown.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadioTower && RadioTower.init) RadioTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.MortarBarrage && MortarBarrage.init) MortarBarrage.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankWarfare && TankWarfare.init) TankWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertStorm && DesertStorm.init) DesertStorm.init(_scene, _camera); } catch (e) {}
+    try { if (window.RefugeeConvoy && RefugeeConvoy.init) RefugeeConvoy.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8411,6 +8419,14 @@ const GameManager = (function () {
       if (window.MountainAssault) MountainAssault.update(delta);
       if (window.MechSuit) MechSuit.update(delta);
       if (window.RiverCrossing) RiverCrossing.update(delta);
+      if (window.CyberWarfare) CyberWarfare.update(delta);
+      if (window.TrainAssault) TrainAssault.update(delta);
+      if (window.NuclearShutdown) NuclearShutdown.update(delta);
+      if (window.RadioTower) RadioTower.update(delta);
+      if (window.MortarBarrage) MortarBarrage.update(delta);
+      if (window.TankWarfare) TankWarfare.update(delta);
+      if (window.DesertStorm) DesertStorm.update(delta);
+      if (window.RefugeeConvoy) RefugeeConvoy.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
