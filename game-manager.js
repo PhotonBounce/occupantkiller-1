@@ -1938,6 +1938,16 @@ const GameManager = (function () {
     try { if (window.GhostTown && GhostTown.init) GhostTown.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientTemple && AncientTemple.init) AncientTemple.init(_scene, _camera); } catch (e) {}
     try { if (window.FootballStadium && FootballStadium.init) FootballStadium.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonEscape && PrisonEscape.init) PrisonEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberpunkHeist && CyberpunkHeist.init) CyberpunkHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.AvalancheRescue && AvalancheRescue.init) AvalancheRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.RomanConquest && RomanConquest.init) RomanConquest.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilPlatform && OilPlatform.init) OilPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.SamuraiSiege && SamuraiSiege.init) SamuraiSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodDiamond && BloodDiamond.init) BloodDiamond.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpacePirates && SpacePirates.init) SpacePirates.init(_scene, _camera); } catch (e) {}
+    try { if (window.KungFuTemple && KungFuTemple.init) KungFuTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepSeaBase && DeepSeaBase.init) DeepSeaBase.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8667,6 +8677,16 @@ const GameManager = (function () {
       if (window.GhostTown) GhostTown.update(delta);
       if (window.AncientTemple) AncientTemple.update(delta);
       if (window.FootballStadium) FootballStadium.update(delta);
+      if (window.PrisonEscape) PrisonEscape.update(delta);
+      if (window.CyberpunkHeist) CyberpunkHeist.update(delta);
+      if (window.AvalancheRescue) AvalancheRescue.update(delta);
+      if (window.RomanConquest) RomanConquest.update(delta);
+      if (window.OilPlatform) OilPlatform.update(delta);
+      if (window.SamuraiSiege) SamuraiSiege.update(delta);
+      if (window.BloodDiamond) BloodDiamond.update(delta);
+      if (window.SpacePirates) SpacePirates.update(delta);
+      if (window.KungFuTemple) KungFuTemple.update(delta);
+      if (window.DeepSeaBase) DeepSeaBase.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
