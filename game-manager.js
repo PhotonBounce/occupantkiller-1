@@ -1979,6 +1979,12 @@ const GameManager = (function () {
     try { if (window.GlacierFortress && GlacierFortress.init) GlacierFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.TempleGuardian && TempleGuardian.init) TempleGuardian.init(_scene, _camera); } catch (e) {}
     try { if (window.DrugLabTakedown && DrugLabTakedown.init) DrugLabTakedown.init(_scene, _camera); } catch (e) {}
+    try { if (window.PowerPlantSiege && PowerPlantSiege.init) PowerPlantSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedAsylum && AbandonedAsylum.init) AbandonedAsylum.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticConvoy && ArcticConvoy.init) ArcticConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemicalFactory && ChemicalFactory.init) ChemicalFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.ColosseumBattle && ColosseumBattle.init) ColosseumBattle.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackMarketArms && BlackMarketArms.init) BlackMarketArms.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8749,6 +8755,12 @@ const GameManager = (function () {
     if (window.GlacierFortress) GlacierFortress.update(delta);
     if (window.TempleGuardian) TempleGuardian.update(delta);
     if (window.DrugLabTakedown) DrugLabTakedown.update(delta);
+    if (window.PowerPlantSiege) PowerPlantSiege.update(delta);
+    if (window.AbandonedAsylum) AbandonedAsylum.update(delta);
+    if (window.ArcticConvoy) ArcticConvoy.update(delta);
+    if (window.ChemicalFactory) ChemicalFactory.update(delta);
+    if (window.ColosseumBattle) ColosseumBattle.update(delta);
+    if (window.BlackMarketArms) BlackMarketArms.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
