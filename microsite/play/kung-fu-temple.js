@@ -943,6 +943,8 @@ window.KungFuTemple = (function () {
   // ─── Combat actions ───────────────────────────────────────────────────────
   function doPunch() {
     if (gameOver || gameWon) return;
+    // If staff equipped, LMB does staff sweep instead
+    if (hasStaff) { doStaffAttack(); return; }
     if (punchCooldown > 0) return;
 
     punchCombo++;
@@ -1481,9 +1483,7 @@ window.KungFuTemple = (function () {
     // Block (space)
     blockActive = !!keysDown[' '];
 
-    // Staff attack (LMB if staff equipped — shared with punch via hasStaff flag)
-    // If player has staff, override LMB action handled via doPunch → doStaffAttack
-    // (doPunch calls doStaffAttack automatically when staff equipped)
+    // Staff attack (LMB if staff equipped) is handled inside doPunch
 
     // Wave management
     if (!waveActive) {
@@ -1548,8 +1548,7 @@ window.KungFuTemple = (function () {
     var lookZ = playerPos.z - Math.cos(playerYaw) * Math.cos(playerPitch) * 5;
     camera.lookAt(lookX, lookY, lookZ);
 
-    // Staff attack on LMB when equipped
-    // (handled in doPunch → redirects to doStaffAttack)
+    // Staff attack on LMB when equipped (handled inside doPunch)
 
     updateEnemies(dt);
     updateProjectiles(dt);
@@ -1684,13 +1683,6 @@ window.KungFuTemple = (function () {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
   }
-
-  // ─── Override doPunch to use staff if available ───────────────────────────
-  var _origDoPunch = doPunch;
-  doPunch = function () {
-    if (hasStaff) { doStaffAttack(); return; }
-    _origDoPunch();
-  };
 
   // ─── Event listeners ──────────────────────────────────────────────────────
   window.addEventListener('keydown', onKeyDown);
