@@ -2010,6 +2010,12 @@ const GameManager = (function () {
     try { if (window.DesertFortress && DesertFortress.init) DesertFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.RacingCircuit && RacingCircuit.init) RacingCircuit.init(_scene, _camera); } catch (e) {}
     try { if (window.UndergroundBunker && UndergroundBunker.init) UndergroundBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.CarnivalChaos && CarnivalChaos.init) CarnivalChaos.init(_scene, _camera); } catch (e) {}
+    try { if (window.GlacierBase && GlacierBase.init) GlacierBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.MetroStation && MetroStation.init) MetroStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampVillage && SwampVillage.init) SwampVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostShip && GhostShip.init) GhostShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.SatelliteDish && SatelliteDish.init) SatelliteDish.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8811,6 +8817,12 @@ const GameManager = (function () {
     if (window.DesertFortress) DesertFortress.update(delta);
     if (window.RacingCircuit) RacingCircuit.update(delta);
     if (window.UndergroundBunker) UndergroundBunker.update(delta);
+    if (window.CarnivalChaos) CarnivalChaos.update(delta);
+    if (window.GlacierBase) GlacierBase.update(delta);
+    if (window.MetroStation) MetroStation.update(delta);
+    if (window.SwampVillage) SwampVillage.update(delta);
+    if (window.GhostShip) GhostShip.update(delta);
+    if (window.SatelliteDish) SatelliteDish.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
