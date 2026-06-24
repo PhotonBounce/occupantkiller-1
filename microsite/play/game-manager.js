@@ -2026,6 +2026,10 @@ const GameManager = (function () {
     try { if (window.JungleAirstrip && JungleAirstrip.init) JungleAirstrip.init(_scene, _camera); } catch (e) {}
     try { if (window.SunkenWreck && SunkenWreck.init) SunkenWreck.init(_scene, _camera); } catch (e) {}
     try { if (window.WarCrimesTrial && WarCrimesTrial.init) WarCrimesTrial.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicWasteland && ToxicWasteland.init) ToxicWasteland.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoTrain && CargoTrain.init) CargoTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleRuins && TempleRuins.init) TempleRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedMine && AbandonedMine.init) AbandonedMine.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8843,6 +8847,10 @@ const GameManager = (function () {
     if (window.JungleAirstrip) JungleAirstrip.update(delta);
     if (window.SunkenWreck) SunkenWreck.update(delta);
     if (window.WarCrimesTrial) WarCrimesTrial.update(delta);
+    if (window.ToxicWasteland) ToxicWasteland.update(delta);
+    if (window.CargoTrain) CargoTrain.update(delta);
+    if (window.TempleRuins) TempleRuins.update(delta);
+    if (window.AbandonedMine) AbandonedMine.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
