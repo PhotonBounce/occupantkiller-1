@@ -2132,6 +2132,14 @@ const GameManager = (function () {
     try { if (window.CrystalCaves && CrystalCaves.init) CrystalCaves.init(_scene, _camera); } catch (e) {}
     try { if (window.BioDome && BioDome.init) BioDome.init(_scene, _camera); } catch (e) {}
     try { if (window.WartimeFactory && WartimeFactory.init) WartimeFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceHangar && SpaceHangar.init) SpaceHangar.init(_scene, _camera); } catch (e) {}
+    try { if (window.AmusementPark && AmusementPark.init) AmusementPark.init(_scene, _camera); } catch (e) {}
+    try { if (window.AtlantisRuins && AtlantisRuins.init) AtlantisRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.QuantumLab && QuantumLab.init) QuantumLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.BurningVillage && BurningVillage.init) BurningVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedSchool && AbandonedSchool.init) AbandonedSchool.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalWeapons && OrbitalWeapons.init) OrbitalWeapons.init(_scene, _camera); } catch (e) {}
+    try { if (window.WastelandTown && WastelandTown.init) WastelandTown.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9055,6 +9063,14 @@ const GameManager = (function () {
   if (window.CrystalCaves) CrystalCaves.update(delta);
   if (window.BioDome) BioDome.update(delta);
   if (window.WartimeFactory) WartimeFactory.update(delta);
+  if (window.SpaceHangar) SpaceHangar.update(delta);
+  if (window.AmusementPark) AmusementPark.update(delta);
+  if (window.AtlantisRuins) AtlantisRuins.update(delta);
+  if (window.QuantumLab) QuantumLab.update(delta);
+  if (window.BurningVillage) BurningVillage.update(delta);
+  if (window.AbandonedSchool) AbandonedSchool.update(delta);
+  if (window.OrbitalWeapons) OrbitalWeapons.update(delta);
+  if (window.WastelandTown) WastelandTown.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
