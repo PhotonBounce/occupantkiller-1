@@ -1898,6 +1898,16 @@ const GameManager = (function () {
     try { if (window.TimeHeist && TimeHeist.init) TimeHeist.init(_scene, _camera); } catch (e) {}
     try { if (window.PirateIsland && PirateIsland.init) PirateIsland.init(_scene, _camera); } catch (e) {}
     try { if (window.AvalancheEscape && AvalancheEscape.init) AvalancheEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberWarfare && CyberWarfare.init) CyberWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeOfParis && SiegeOfParis.init) SiegeOfParis.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedMansion && HauntedMansion.init) HauntedMansion.init(_scene, _camera); } catch (e) {}
+    try { if (window.DiamondHeist && DiamondHeist.init) DiamondHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarOf1812 && WarOf1812.init) WarOf1812.init(_scene, _camera); } catch (e) {}
+    try { if (window.Jailbreak && Jailbreak.init) Jailbreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.MeteorStrike && MeteorStrike.init) MeteorStrike.init(_scene, _camera); } catch (e) {}
+    try { if (window.CloneWars && CloneWars.init) CloneWars.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoEscape && VolcanoEscape.init) VolcanoEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.EmbassySiege && EmbassySiege.init) EmbassySiege.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8587,6 +8597,16 @@ const GameManager = (function () {
       if (window.TimeHeist) TimeHeist.update(delta);
       if (window.PirateIsland) PirateIsland.update(delta);
       if (window.AvalancheEscape) AvalancheEscape.update(delta);
+      if (window.CyberWarfare) CyberWarfare.update(delta);
+      if (window.SiegeOfParis) SiegeOfParis.update(delta);
+      if (window.HauntedMansion) HauntedMansion.update(delta);
+      if (window.DiamondHeist) DiamondHeist.update(delta);
+      if (window.WarOf1812) WarOf1812.update(delta);
+      if (window.Jailbreak) Jailbreak.update(delta);
+      if (window.MeteorStrike) MeteorStrike.update(delta);
+      if (window.CloneWars) CloneWars.update(delta);
+      if (window.VolcanoEscape) VolcanoEscape.update(delta);
+      if (window.EmbassySiege) EmbassySiege.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
