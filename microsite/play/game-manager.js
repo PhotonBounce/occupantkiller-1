@@ -2035,6 +2035,12 @@ const GameManager = (function () {
     try { if (window.FloodedCity && FloodedCity.init) FloodedCity.init(_scene, _camera); } catch (e) {}
     try { if (window.ChemicalPlant && ChemicalPlant.init) ChemicalPlant.init(_scene, _camera); } catch (e) {}
     try { if (window.BorderCrossing && BorderCrossing.init) BorderCrossing.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedSatellite && CrashedSatellite.init) CrashedSatellite.init(_scene, _camera); } catch (e) {}
+    try { if (window.PowerGrid && PowerGrid.init) PowerGrid.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineDock && SubmarineDock.init) SubmarineDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.SewageTunnels && SewageTunnels.init) SewageTunnels.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarshipDeck && WarshipDeck.init) WarshipDeck.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedVillage && HauntedVillage.init) HauntedVillage.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8861,6 +8867,12 @@ const GameManager = (function () {
     if (window.FloodedCity) FloodedCity.update(delta);
     if (window.ChemicalPlant) ChemicalPlant.update(delta);
     if (window.BorderCrossing) BorderCrossing.update(delta);
+    if (window.CrashedSatellite) CrashedSatellite.update(delta);
+    if (window.PowerGrid) PowerGrid.update(delta);
+    if (window.SubmarineDock) SubmarineDock.update(delta);
+    if (window.SewageTunnels) SewageTunnels.update(delta);
+    if (window.WarshipDeck) WarshipDeck.update(delta);
+    if (window.HauntedVillage) HauntedVillage.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
