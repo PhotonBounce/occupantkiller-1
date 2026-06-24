@@ -1,28 +1,15 @@
-(function (window) {
+window.TimeHeist = (function () {
   'use strict';
 
   // ─── Constants ────────────────────────────────────────────────────────────
   var ACTIVATION_WINDOW = 400;
-  var TOTAL_TIME = 300; // 5 minutes
-  var PARADOX_INTERVAL = 90;
-  var PORTAL_RADIUS = 3;
-  var ERA_TRANSPORT_DELAY = 2000;
-  var SCORE_COMPLETE = 2000;
-  var SCORE_TIME_BONUS = 500;
-  var TIME_BONUS_THRESHOLD = 180; // under 3 minutes = 120 seconds elapsed
+  var PHASE_TIME = 90;
+  var PHASE_EGYPT = 0;
+  var PHASE_MEDIEVAL = 1;
+  var PHASE_FUTURE = 2;
+  var PHASE_DONE = 3;
 
-  var ERAS = {
-    WILD_WEST: 'WILD WEST 1880',
-    WW2: 'WW2 1944',
-    FUTURE: 'FUTURE 2150',
-    PRESENT: 'PRESENT'
-  };
-
-  var ITEMS = {
-    GOLD_KEY: 'KEY',
-    COMBINATION_CODE: 'CODE',
-    DIAMOND_CHIP: 'CHIP'
-  };
+  var ERA_NAMES = ['ANCIENT EGYPT 1300 BC', 'MEDIEVAL EUROPE 1345 AD', 'NEAR FUTURE 2087 AD'];
 
   // ─── State ────────────────────────────────────────────────────────────────
   var state = {
@@ -30,990 +17,711 @@
     scene: null,
     camera: null,
     renderer: null,
-    player: null,
-    playerMirror: null,
-    currentEra: ERAS.WILD_WEST,
-    timeRemaining: TOTAL_TIME,
-    lastParadoxTime: 0,
-    paradoxStatus: 'STABLE',
-    paradoxFlashTimer: 0,
-    items: {
-      KEY: false,
-      CODE: false,
-      CHIP: false
-    },
-    vaultPanels: [false, false, false],
-    vaultOpen: false,
-    score: 0,
-    completed: false,
-    portalActive: false,
-    portalMesh: null,
-    portalTimer: 0,
-    transportPending: false,
-    transportTimer: 0,
-    nextEra: null,
-    eraObjects: {},
-    enemies: [],
-    paradoxEnemies: [],
-    bullets: [],
-    keys: {},
-    tKeyTime: 0,
-    hKeyTime: 0,
-    tPressed: false,
-    hPressed: false,
-    hudEl: null,
-    timeBarEl: null,
     clock: null,
-    delta: 0,
-    elapsed: 0,
     animId: null,
-    panelInteractTimer: 0,
-    panelInteractCount: 0,
-    terminalDisabled: false,
-    mirrorWarningTimer: 0
+
+    // activation
+    tKeyTime: 0,
+    iKeyTime: 0,
+    tPressed: false,
+    iPressed: false,
+
+    // player
+    playerMesh: null,
+    playerPos: { x: 0, y: 0.9, z: 8 },
+    playerHP: 100,
+    playerStunTimer: 0,
+    playerYaw: 0,
+    pointerLocked: false,
+    moveKeys: {},
+
+    // phase
+    phase: PHASE_EGYPT,
+    phaseTimer: PHASE_TIME,
+    artifactsCollected: 0,
+    artifactThisPhase: false,
+    killsThisPhase: 0,
+    paradoxLevel: 0,
+    ghostBonus: 0,
+    score: 0,
+    gameOver: false,
+    won: false,
+    phaseObjects: [],
+
+    // enemies
+    enemies: [],
+    bullets: [],
+
+    // portal
+    portalMesh: null,
+    portalAngle: 0,
+
+    // phase-specific
+    falsewallOpen: false,
+    drawbridgeLowered: false,
+    laserActive: true,
+    terminalHits: 0,
+    elevatorRiding: false,
+    elevatorTimer: 0,
+    elevatorMesh: null,
+    priestMesh: null,
+    artifactMesh: null,
+    falseWallMesh: null,
+    drawbridgeMesh: null,
+    laserMesh: null,
+    terminals: [],
+    terminalPressed: [],
+
+    // hud
+    hudEl: null,
+
+    // flash
+    flashEl: null,
+    flashTimer: 0
   };
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
-  function makeBox(w, h, d, color) {
+  function makeBox(w, h, d, color, emissive) {
     var geo = new THREE.BoxGeometry(w, h, d);
     var mat = new THREE.MeshLambertMaterial({ color: color });
+    if (emissive !== undefined) {
+      mat.emissive = new THREE.Color(emissive);
+      mat.emissiveIntensity = 0.6;
+    }
     return new THREE.Mesh(geo, mat);
   }
 
-  function makeSphere(r, color, wireframe) {
-    var geo = new THREE.SphereGeometry(r, 16, 16);
-    var mat = new THREE.MeshLambertMaterial({ color: color, wireframe: !!wireframe });
+  function makeCyl(rt, rb, h, segs, color, emissive) {
+    var geo = new THREE.CylinderGeometry(rt, rb, h, segs || 8);
+    var mat = new THREE.MeshLambertMaterial({ color: color });
+    if (emissive !== undefined) {
+      mat.emissive = new THREE.Color(emissive);
+      mat.emissiveIntensity = 0.6;
+    }
     return new THREE.Mesh(geo, mat);
   }
 
-  function makeCylinder(rt, rb, h, color) {
-    var geo = new THREE.CylinderGeometry(rt, rb, h, 12);
+  function makeSphere(r, color) {
+    var geo = new THREE.SphereGeometry(r, 8, 8);
     var mat = new THREE.MeshLambertMaterial({ color: color });
     return new THREE.Mesh(geo, mat);
   }
 
-  function makeLineSegments(points, color) {
+  function makeCone(r, h, segs, color) {
+    var geo = new THREE.ConeGeometry(r, h, segs || 6);
+    var mat = new THREE.MeshLambertMaterial({ color: color });
+    return new THREE.Mesh(geo, mat);
+  }
+
+  function makeLines(pts, color) {
     var geo = new THREE.BufferGeometry();
-    var verts = [];
-    for (var i = 0; i < points.length; i++) {
-      verts.push(points[i].x, points[i].y, points[i].z);
+    var arr = [];
+    for (var i = 0; i < pts.length; i++) {
+      arr.push(pts[i][0], pts[i][1], pts[i][2]);
     }
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
     var mat = new THREE.LineBasicMaterial({ color: color });
     return new THREE.LineSegments(geo, mat);
   }
 
-  function clearEraObjects() {
-    var era = state.eraObjects[state.currentEra];
-    if (!era) { return; }
-    for (var i = 0; i < era.length; i++) {
-      state.scene.remove(era[i]);
-    }
-    state.eraObjects[state.currentEra] = [];
-  }
-
-  function addEraObject(mesh) {
-    if (!state.eraObjects[state.currentEra]) {
-      state.eraObjects[state.currentEra] = [];
-    }
-    state.eraObjects[state.currentEra].push(mesh);
+  function addObj(mesh) {
+    state.phaseObjects.push(mesh);
     state.scene.add(mesh);
     return mesh;
   }
 
-  function clearEnemies() {
-    for (var i = 0; i < state.enemies.length; i++) {
-      state.scene.remove(state.enemies[i].mesh);
-      if (state.enemies[i].hatMesh) {
-        state.scene.remove(state.enemies[i].hatMesh);
-      }
-    }
-    state.enemies = [];
-    for (var j = 0; j < state.paradoxEnemies.length; j++) {
-      state.scene.remove(state.paradoxEnemies[j].mesh);
-    }
-    state.paradoxEnemies = [];
+  function dist3(a, b) {
+    var dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
-  function clearBullets() {
-    for (var i = 0; i < state.bullets.length; i++) {
-      state.scene.remove(state.bullets[i].mesh);
-    }
-    state.bullets = [];
+  function dist2(a, b) {
+    var dx = a.x - b.x, dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dz * dz);
   }
 
-  // ─── Era Builder: Wild West ───────────────────────────────────────────────
-  function buildWildWest() {
-    state.currentEra = ERAS.WILD_WEST;
-    state.eraObjects[ERAS.WILD_WEST] = [];
-
-    // Dirt ground
-    var ground = makeBox(80, 0.5, 80, 0xAA8855);
-    ground.position.set(0, -0.25, 0);
-    addEraObject(ground);
-
-    // Saloon
-    var saloon = makeBox(10, 6, 8, 0xC8A46A);
-    saloon.position.set(-12, 3, -15);
-    addEraObject(saloon);
-    var saloonRoof = makeBox(11, 1, 9, 0x8B5E3C);
-    saloonRoof.position.set(-12, 6.5, -15);
-    addEraObject(saloonRoof);
-    var saloonSign = makeBox(6, 1.5, 0.2, 0xFFD700);
-    saloonSign.position.set(-12, 7.5, -10.6);
-    addEraObject(saloonSign);
-
-    // Bank vault
-    var vault = makeBox(6, 5, 6, 0x8B7355);
-    vault.position.set(12, 2.5, -15);
-    addEraObject(vault);
-    var vaultDoor = makeBox(2.5, 3.5, 0.3, 0x5A4A35);
-    vaultDoor.position.set(12, 1.75, -12.15);
-    addEraObject(vaultDoor);
-
-    // Gold Key item
-    var keyMesh = makeBox(0.5, 0.5, 0.5, 0xFFD700);
-    keyMesh.position.set(12, 1.0, -12);
-    keyMesh.userData.itemType = ITEMS.GOLD_KEY;
-    keyMesh.userData.collected = false;
-    addEraObject(keyMesh);
-
-    // Fences
-    for (var f = -20; f <= 20; f += 5) {
-      var fence = makeBox(0.3, 1.5, 4, 0x8B6914);
-      fence.position.set(f, 0.75, 0);
-      addEraObject(fence);
-    }
-
-    // Water trough
-    var trough = makeBox(4, 0.8, 1, 0x6B4F2A);
-    trough.position.set(0, 0.4, -5);
-    addEraObject(trough);
-
-    // Distant rock
-    var rock = makeBox(3, 2, 3, 0x998877);
-    rock.position.set(20, 1, 5);
-    addEraObject(rock);
-
-    // Ambient light (warm)
-    var ambient = new THREE.AmbientLight(0xFFE5A0, 0.7);
-    ambient.userData.eraLight = true;
-    addEraObject(ambient);
-    var sun = new THREE.DirectionalLight(0xFFCC44, 1.2);
-    sun.position.set(10, 20, 10);
-    sun.userData.eraLight = true;
-    addEraObject(sun);
-
-    // Cowboys
-    state.enemies = [];
-    for (var i = 0; i < 6; i++) {
-      spawnCowboy(
-        (Math.random() - 0.5) * 30,
-        0,
-        (Math.random() - 0.5) * 20 - 5
-      );
-    }
+  function flashScreen(color, duration) {
+    if (!state.flashEl) { return; }
+    state.flashEl.style.background = color;
+    state.flashEl.style.opacity = '0.55';
+    state.flashTimer = duration || 0.25;
   }
 
-  function spawnCowboy(x, y, z) {
-    var body = makeCylinder(0.4, 0.4, 1.6, 0xC8A46A);
-    body.position.set(x, y + 0.8, z);
-    state.scene.add(body);
-    var hat = makeCylinder(0.55, 0.3, 0.6, 0x5A3A1A);
-    hat.position.set(x, y + 1.8, z);
-    state.scene.add(hat);
-    var enemy = {
-      mesh: body,
-      hatMesh: hat,
-      type: 'COWBOY',
-      era: ERAS.WILD_WEST,
-      hp: 2,
-      shootTimer: Math.random() * 2 + 1,
-      moveTimer: Math.random() * 3,
-      alive: true
-    };
-    state.enemies.push(enemy);
-    return enemy;
-  }
-
-  // ─── Era Builder: WW2 ─────────────────────────────────────────────────────
-  function buildWW2() {
-    state.currentEra = ERAS.WW2;
-    state.eraObjects[ERAS.WW2] = [];
-
-    // Grass ground
-    var ground = makeBox(80, 0.5, 80, 0x334433);
-    ground.position.set(0, -0.25, 0);
-    addEraObject(ground);
-
-    // Bunker
-    var bunker = makeBox(14, 4, 10, 0x556644);
-    bunker.position.set(-10, 2, -18);
-    addEraObject(bunker);
-    var bunkerRoof = makeBox(15, 0.8, 11, 0x445533);
-    bunkerRoof.position.set(-10, 4.4, -18);
-    addEraObject(bunkerRoof);
-
-    // HQ building (holds combination code)
-    var hq = makeBox(8, 5, 8, 0x667755);
-    hq.position.set(12, 2.5, -18);
-    addEraObject(hq);
-    var hqSign = makeBox(4, 1, 0.2, 0xCCCC88);
-    hqSign.position.set(12, 5, -14.1);
-    addEraObject(hqSign);
-
-    // Combination code item
-    var codeMesh = makeBox(0.6, 0.4, 0.1, 0xCCCC44);
-    codeMesh.position.set(12, 1.0, -14.5);
-    codeMesh.userData.itemType = ITEMS.COMBINATION_CODE;
-    codeMesh.userData.collected = false;
-    addEraObject(codeMesh);
-
-    // Sandbags
-    for (var s = 0; s < 5; s++) {
-      var bag = makeBox(1.5, 0.8, 0.8, 0xAA9944);
-      bag.position.set(-18 + s * 2, 0.4, -8);
-      addEraObject(bag);
-      var bag2 = makeBox(1.5, 0.8, 0.8, 0x998833);
-      bag2.position.set(-18 + s * 2 + 0.7, 1.0, -8);
-      addEraObject(bag2);
-    }
-
-    // Barbed wire
-    var wire = makeBox(20, 0.3, 0.3, 0x777766);
-    wire.position.set(0, 0.5, -5);
-    addEraObject(wire);
-
-    // Crater
-    var crater = makeBox(4, 0.4, 4, 0x223322);
-    crater.position.set(5, -0.2, 5);
-    addEraObject(crater);
-
-    // Ambient (grey overcast)
-    var ambient = new THREE.AmbientLight(0x88AA88, 0.6);
-    addEraObject(ambient);
-    var overcast = new THREE.DirectionalLight(0xBBCCBB, 0.8);
-    overcast.position.set(-10, 20, 5);
-    addEraObject(overcast);
-
-    // Soldiers
-    state.enemies = [];
-    for (var i = 0; i < 8; i++) {
-      spawnSoldier(
-        (Math.random() - 0.5) * 30,
-        0,
-        (Math.random() - 0.5) * 20 - 5
-      );
-    }
-  }
-
-  function spawnSoldier(x, y, z) {
-    var body = makeBox(0.7, 1.7, 0.5, 0x556644);
-    body.position.set(x, y + 0.85, z);
-    state.scene.add(body);
-    var helmet = makeBox(0.75, 0.4, 0.75, 0x445533);
-    helmet.position.set(x, y + 1.85, z);
-    state.scene.add(helmet);
-    var enemy = {
-      mesh: body,
-      hatMesh: helmet,
-      type: 'SOLDIER',
-      era: ERAS.WW2,
-      hp: 3,
-      shootTimer: Math.random() * 2 + 1.5,
-      moveTimer: Math.random() * 3,
-      alive: true
-    };
-    state.enemies.push(enemy);
-    return enemy;
-  }
-
-  // ─── Era Builder: Future ──────────────────────────────────────────────────
-  function buildFuture() {
-    state.currentEra = ERAS.FUTURE;
-    state.eraObjects[ERAS.FUTURE] = [];
-
-    // Metallic ground
-    var ground = makeBox(80, 0.5, 80, 0x1A1A2E);
-    ground.position.set(0, -0.25, 0);
-    addEraObject(ground);
-
-    // Security vault
-    var secVault = makeBox(10, 8, 10, 0x2A2A4A);
-    secVault.position.set(0, 4, -20);
-    addEraObject(secVault);
-    var secDoor = makeBox(3, 5, 0.3, 0x3A3A6A);
-    secDoor.position.set(0, 2.5, -15.15);
-    addEraObject(secDoor);
-
-    // Diamond chip item
-    var chipMesh = makeBox(0.4, 0.1, 0.4, 0x88FFFF);
-    chipMesh.position.set(0, 1.0, -15.5);
-    chipMesh.userData.itemType = ITEMS.DIAMOND_CHIP;
-    chipMesh.userData.collected = false;
-    addEraObject(chipMesh);
-
-    // Laser grids (LineSegments)
-    var laserPoints1 = [
-      { x: -15, y: 0, z: -10 }, { x: -15, y: 3, z: -10 },
-      { x: -15, y: 3, z: -10 }, { x: 15, y: 3, z: -10 },
-      { x: 15, y: 3, z: -10 }, { x: 15, y: 0, z: -10 },
-      { x: 15, y: 0, z: -10 }, { x: -15, y: 0, z: -10 }
-    ];
-    var laser1 = makeLineSegments(laserPoints1, 0xFF0000);
-    addEraObject(laser1);
-
-    var laserPoints2 = [
-      { x: -10, y: 0, z: -5 }, { x: -10, y: 4, z: -5 },
-      { x: -10, y: 4, z: -5 }, { x: 10, y: 4, z: -5 },
-      { x: 10, y: 4, z: -5 }, { x: 10, y: 0, z: -5 },
-      { x: 10, y: 0, z: -5 }, { x: -10, y: 0, z: -5 }
-    ];
-    var laser2 = makeLineSegments(laserPoints2, 0xFF0000);
-    addEraObject(laser2);
-
-    // Security terminal
-    var terminal = makeBox(1, 2, 0.5, 0x3A5A4A);
-    terminal.position.set(5, 1, -14);
-    terminal.userData.isTerminal = true;
-    addEraObject(terminal);
-    var terminalScreen = makeBox(0.8, 1.2, 0.1, 0x00FF88);
-    terminalScreen.position.set(5, 1.2, -13.76);
-    addEraObject(terminalScreen);
-
-    // Platform structures
-    for (var p = 0; p < 4; p++) {
-      var platform = makeBox(3, 0.3, 3, 0x2A2A5A);
-      platform.position.set(-15 + p * 10, 0.15, 0);
-      addEraObject(platform);
-    }
-
-    // Ambient (blue-purple futuristic)
-    var ambient = new THREE.AmbientLight(0x3333AA, 0.5);
-    addEraObject(ambient);
-    var neon1 = new THREE.PointLight(0x00FFFF, 1.5, 30);
-    neon1.position.set(0, 8, -18);
-    addEraObject(neon1);
-    var neon2 = new THREE.PointLight(0xFF00FF, 1.0, 25);
-    neon2.position.set(-10, 4, 0);
-    addEraObject(neon2);
-
-    // Robot guards
-    state.enemies = [];
-    for (var i = 0; i < 4; i++) {
-      spawnRobot(
-        (Math.random() - 0.5) * 20,
-        0,
-        (Math.random() - 0.5) * 15 - 5
-      );
-    }
-  }
-
-  function spawnRobot(x, y, z) {
-    var body = makeCylinder(0.45, 0.5, 1.8, 0x4A4A5A);
-    body.position.set(x, y + 0.9, z);
-    state.scene.add(body);
-    var head = makeCylinder(0.3, 0.3, 0.5, 0x5A5A6A);
-    head.position.set(x, y + 1.95, z);
-    state.scene.add(head);
-    var enemy = {
-      mesh: body,
-      hatMesh: head,
-      type: 'ROBOT',
-      era: ERAS.FUTURE,
-      hp: 4,
-      shootTimer: Math.random() * 3 + 2,
-      moveTimer: Math.random() * 2,
-      alive: true
-    };
-    state.enemies.push(enemy);
-    return enemy;
-  }
-
-  // ─── Scene Setup ──────────────────────────────────────────────────────────
-  function initScene() {
-    state.scene = new THREE.Scene();
-    state.scene.background = new THREE.Color(0x87CEEB);
-    state.scene.fog = new THREE.Fog(0x87CEEB, 30, 80);
-
-    state.camera = new THREE.PerspectiveCamera(
-      70,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      200
-    );
-    state.camera.position.set(0, 8, 15);
-    state.camera.lookAt(0, 0, 0);
-
-    state.renderer = new THREE.WebGLRenderer({ antialias: true });
-    state.renderer.setSize(window.innerWidth, window.innerHeight);
-    state.renderer.shadowMap.enabled = false;
-
-    var container = document.getElementById('time-heist-canvas');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'time-heist-canvas';
-      container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000;';
-      document.body.appendChild(container);
-    }
-    container.appendChild(state.renderer.domElement);
-
-    // Player
-    state.player = makeBox(0.8, 1.8, 0.8, 0x00AAFF);
-    state.player.position.set(0, 0.9, 5);
-    state.scene.add(state.player);
-
-    // Time device on player
-    var timeDevice = makeBox(0.8, 1.0, 0.8, 0x00FFFF);
-    timeDevice.position.set(0, 0, 0.4);
-    timeDevice.scale.set(0.5, 0.5, 0.5);
-    state.player.add(timeDevice);
-
-    // Player mirror (self version in other era - initially hidden)
-    state.playerMirror = makeBox(0.8, 1.8, 0.8, 0x0055FF);
-    state.playerMirror.position.set(-5, 0.9, -8);
-    state.playerMirror.visible = false;
-    state.scene.add(state.playerMirror);
-
-    state.clock = new THREE.Clock();
-  }
-
-  // ─── HUD ─────────────────────────────────────────────────────────────────
+  // ─── HUD ──────────────────────────────────────────────────────────────────
   function initHUD() {
-    var existing = document.getElementById('time-heist-hud');
-    if (existing) { existing.parentNode.removeChild(existing); }
+    var old = document.getElementById('th-hud');
+    if (old) { old.parentNode.removeChild(old); }
 
     var hud = document.createElement('div');
-    hud.id = 'time-heist-hud';
+    hud.id = 'th-hud';
     hud.style.cssText = [
-      'position:fixed',
-      'top:0',
-      'left:0',
-      'right:0',
-      'z-index:1100',
-      'background:rgba(0,0,0,0.75)',
-      'color:#00FFFF',
-      'font-family:monospace',
-      'font-size:13px',
-      'padding:6px 12px',
-      'display:flex',
-      'flex-direction:column',
-      'gap:3px'
+      'position:fixed', 'top:0', 'left:0', 'right:0',
+      'z-index:2000', 'background:rgba(0,0,0,0.72)',
+      'color:#00FFCC', 'font-family:monospace',
+      'font-size:13px', 'padding:5px 12px',
+      'pointer-events:none', 'white-space:nowrap'
     ].join(';');
-
-    var topLine = document.createElement('div');
-    topLine.id = 'th-top-line';
-    topLine.textContent = 'TIME HEIST [ERA: WILD WEST 1880] [ITEMS: KEY - CODE - CHIP -] [TIME: 05:00] | PARADOX: STABLE';
-    hud.appendChild(topLine);
-
-    var timeBarWrap = document.createElement('div');
-    timeBarWrap.style.cssText = 'width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;';
-    var timeBar = document.createElement('div');
-    timeBar.id = 'th-time-bar';
-    timeBar.style.cssText = 'height:100%;width:100%;background:#00FFFF;transition:width 0.5s linear;';
-    timeBarWrap.appendChild(timeBar);
-    hud.appendChild(timeBarWrap);
-
     document.body.appendChild(hud);
-    state.hudEl = topLine;
-    state.timeBarEl = timeBar;
+    state.hudEl = hud;
+
+    var flash = document.createElement('div');
+    flash.id = 'th-flash';
+    flash.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'bottom:0',
+      'z-index:1999', 'opacity:0', 'pointer-events:none',
+      'transition:opacity 0.15s'
+    ].join(';');
+    document.body.appendChild(flash);
+    state.flashEl = flash;
   }
 
   function updateHUD() {
     if (!state.hudEl) { return; }
-    var mins = Math.floor(state.timeRemaining / 60);
-    var secs = Math.floor(state.timeRemaining % 60);
-    var timeStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
-
-    var keyStr = state.items.KEY ? 'KEY ✓' : 'KEY —';
-    var codeStr = state.items.CODE ? 'CODE ✓' : 'CODE —';
-    var chipStr = state.items.CHIP ? 'CHIP ✓' : 'CHIP —';
-
-    var eraDisplay = state.currentEra;
-    if (state.currentEra === ERAS.PRESENT) { eraDisplay = 'PRESENT'; }
-
-    state.hudEl.textContent = 'TIME HEIST [ERA: ' + eraDisplay + '] [ITEMS: ' + keyStr + ' ' + codeStr + ' ' + chipStr + '] [TIME: ' + timeStr + '] | PARADOX: ' + state.paradoxStatus;
-
-    if (state.timeBarEl) {
-      var pct = (state.timeRemaining / TOTAL_TIME) * 100;
-      state.timeBarEl.style.width = pct + '%';
-      if (pct < 25) {
-        state.timeBarEl.style.background = '#FF4444';
-      } else if (pct < 50) {
-        state.timeBarEl.style.background = '#FFAA00';
-      } else {
-        state.timeBarEl.style.background = '#00FFFF';
-      }
-    }
+    var eraName = ERA_NAMES[state.phase] || 'PRESENT';
+    var t = Math.max(0, Math.ceil(state.phaseTimer));
+    var dx = 0 - state.playerPos.x;
+    var dz = 0 - state.playerPos.z;
+    var pDist = Math.sqrt(dx * dx + dz * dz).toFixed(1);
+    state.hudEl.textContent = [
+      'TIME HEIST',
+      '[PHASE: ' + eraName + ']',
+      '[ARTIFACTS: ' + state.artifactsCollected + '/3]',
+      '[TIME: ' + t + 's]',
+      '[PARADOX LEVEL: ' + state.paradoxLevel + ']',
+      '| PORTAL: ' + pDist + 'm away'
+    ].join(' ');
   }
 
-  function showMessage(msg, color, duration) {
-    var el = document.getElementById('th-message');
+  function showMsg(text, color, duration) {
+    var el = document.getElementById('th-msg');
     if (!el) {
       el = document.createElement('div');
-      el.id = 'th-message';
+      el.id = 'th-msg';
       el.style.cssText = [
-        'position:fixed',
-        'top:50%',
-        'left:50%',
-        'transform:translate(-50%,-50%)',
-        'z-index:1200',
-        'font-family:monospace',
-        'font-size:28px',
-        'font-weight:bold',
-        'text-shadow:0 0 10px currentColor',
-        'pointer-events:none',
-        'transition:opacity 0.5s'
+        'position:fixed', 'top:60px', 'left:50%',
+        'transform:translateX(-50%)',
+        'z-index:2001', 'font-family:monospace',
+        'font-size:20px', 'font-weight:bold',
+        'text-shadow:0 0 8px currentColor',
+        'pointer-events:none', 'text-align:center',
+        'transition:opacity 0.4s'
       ].join(';');
       document.body.appendChild(el);
     }
-    el.style.color = color || '#00FFFF';
+    el.style.color = color || '#00FFCC';
     el.style.opacity = '1';
-    el.textContent = msg;
-    clearTimeout(el._timeout);
-    el._timeout = setTimeout(function () {
-      el.style.opacity = '0';
-    }, duration || 2000);
+    el.textContent = text;
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.style.opacity = '0'; }, (duration || 2000));
+  }
+
+  // ─── Scene ────────────────────────────────────────────────────────────────
+  function initScene() {
+    state.scene = new THREE.Scene();
+    state.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 300);
+    state.camera.position.set(0, 1.7, 10);
+
+    state.renderer = new THREE.WebGLRenderer({ antialias: true });
+    state.renderer.setPixelRatio(window.devicePixelRatio);
+    state.renderer.setSize(window.innerWidth, window.innerHeight);
+
+    var wrap = document.getElementById('th-canvas-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.id = 'th-canvas-wrap';
+      wrap.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:1900;';
+      document.body.appendChild(wrap);
+    }
+    wrap.appendChild(state.renderer.domElement);
+
+    state.clock = new THREE.Clock();
+  }
+
+  function clearPhase() {
+    for (var i = 0; i < state.phaseObjects.length; i++) {
+      state.scene.remove(state.phaseObjects[i]);
+    }
+    state.phaseObjects = [];
+    for (var j = 0; j < state.enemies.length; j++) {
+      state.scene.remove(state.enemies[j].mesh);
+      if (state.enemies[j].head) { state.scene.remove(state.enemies[j].head); }
+    }
+    state.enemies = [];
+    for (var k = 0; k < state.bullets.length; k++) {
+      state.scene.remove(state.bullets[k].mesh);
+    }
+    state.bullets = [];
+    if (state.portalMesh) { state.scene.remove(state.portalMesh); state.portalMesh = null; }
+  }
+
+  // ─── Phase 1: Ancient Egypt ───────────────────────────────────────────────
+  function buildEgypt() {
+    state.scene.background = new THREE.Color(0xE8C46A);
+    state.scene.fog = null;
+
+    // Ground
+    var ground = makeBox(100, 1, 100, 0xDDB870);
+    ground.position.set(0, -0.5, 0);
+    addObj(ground);
+
+    // Pyramid (main)
+    var pyr = makeBox(20, 15, 20, 0xCC9944);
+    pyr.position.set(0, 7.5, -25);
+    addObj(pyr);
+
+    // Inner chamber entrance
+    var chamber = makeBox(8, 5, 6, 0xBB8833);
+    chamber.position.set(0, 2.5, -15);
+    addObj(chamber);
+
+    // False wall (same color as chamber) — blocks secret passage
+    var falseWall = makeBox(3, 4, 0.4, 0xBB8833);
+    falseWall.position.set(-4, 2, -12);
+    addObj(falseWall);
+    state.falseWallMesh = falseWall;
+    state.falsewallOpen = false;
+
+    // Secret passage behind false wall
+    var passage = makeBox(3, 4, 6, 0xAA7722);
+    passage.position.set(-4, 2, -15);
+    addObj(passage);
+
+    // Artifact: golden ankh in inner chamber
+    var ankh = makeBox(0.6, 1.2, 0.2, 0xFFCC00, 0xFFCC00);
+    ankh.position.set(0, 1.5, -22);
+    ankh.userData.isArtifact = true;
+    addObj(ankh);
+    state.artifactMesh = ankh;
+
+    // Obelisks
+    var ob1 = makeBox(1, 8, 1, 0xCC9944);
+    ob1.position.set(14, 4, -10);
+    addObj(ob1);
+    var ob1tip = makeCone(0.7, 1.5, 4, 0xFFCC00);
+    ob1tip.position.set(14, 8.75, -10);
+    addObj(ob1tip);
+
+    var ob2 = makeBox(1, 8, 1, 0xCC9944);
+    ob2.position.set(-14, 4, -10);
+    addObj(ob2);
+    var ob2tip = makeCone(0.7, 1.5, 4, 0xFFCC00);
+    ob2tip.position.set(-14, 8.75, -10);
+    addObj(ob2tip);
+
+    // Desert rocks
+    var rock1 = makeBox(3, 1.5, 2, 0xBBAA88);
+    rock1.position.set(18, 0.75, -5);
+    addObj(rock1);
+    var rock2 = makeBox(2, 1, 1.5, 0xBBAA88);
+    rock2.position.set(-20, 0.5, -8);
+    addObj(rock2);
+
+    // Lighting
+    var amb = new THREE.AmbientLight(0xFFE08A, 0.8);
+    addObj(amb);
+    var sun = new THREE.DirectionalLight(0xFFCC44, 1.3);
+    sun.position.set(15, 30, 10);
+    addObj(sun);
+
+    // Portal
+    buildPortal(0, 0, 0);
+
+    // Enemies: 3 pharaoh guards + 2 guard dogs
+    spawnEgyptGuard(-8, 0, -5);
+    spawnEgyptGuard(8, 0, -5);
+    spawnEgyptGuard(0, 0, -18);
+    spawnGuardDog(-6, 0, 2);
+    spawnGuardDog(6, 0, 2);
+
+    // Paradox: extra guards if previous phase (none for Egypt)
+    // Additional guards for paradox level
+    if (state.paradoxLevel >= 1) {
+      spawnEgyptGuard(-12, 0, -12);
+      spawnEgyptGuard(12, 0, -12);
+    }
+  }
+
+  function spawnEgyptGuard(x, y, z) {
+    var body = makeBox(0.8, 1.6, 0.6, 0x886622);
+    body.position.set(x, y + 0.8, z);
+    state.scene.add(body);
+    var head = makeBox(0.6, 0.6, 0.6, 0xCC9966);
+    head.position.set(x, y + 1.9, z);
+    state.scene.add(head);
+    // Spear
+    var spear = makeBox(0.1, 2.2, 0.1, 0x774411);
+    spear.position.set(x + 0.45, y + 1.1, z);
+    state.scene.add(spear);
+    var enemy = {
+      mesh: body, head: head, extra: spear,
+      type: 'guard', phase: PHASE_EGYPT,
+      hp: 60, maxHP: 60,
+      dmg: 40, range: 3,
+      speed: 1.8, reactTime: 1.2,
+      shootTimer: 1.2 + Math.random() * 0.8,
+      alive: true, shield: false,
+      stunTimer: 0
+    };
+    state.enemies.push(enemy);
+    return enemy;
+  }
+
+  function spawnGuardDog(x, y, z) {
+    var body = makeCyl(0.35, 0.35, 0.7, 6, 0x885533);
+    body.rotation.z = Math.PI / 2;
+    body.position.set(x, y + 0.35, z);
+    state.scene.add(body);
+    var head = makeSphere(0.3, 0x774422);
+    head.position.set(x + 0.5, y + 0.5, z);
+    state.scene.add(head);
+    var enemy = {
+      mesh: body, head: head, extra: null,
+      type: 'dog', phase: PHASE_EGYPT,
+      hp: 30, maxHP: 30,
+      dmg: 20, range: 1.2,
+      speed: 3.5, reactTime: 0.4,
+      shootTimer: 0.4 + Math.random() * 0.3,
+      alive: true, shield: false,
+      stunTimer: 0
+    };
+    state.enemies.push(enemy);
+    return enemy;
+  }
+
+  // ─── Phase 2: Medieval Europe ─────────────────────────────────────────────
+  function buildMedieval(egyptKillCount) {
+    state.scene.background = new THREE.Color(0x88887A);
+    state.scene.fog = new THREE.FogExp2(0x88887A, 0.03);
+
+    // Ground
+    var ground = makeBox(100, 1, 100, 0x666655);
+    ground.position.set(0, -0.5, 0);
+    addObj(ground);
+
+    // Castle walls
+    var castleBase = makeBox(30, 10, 30, 0x888877);
+    castleBase.position.set(0, 5, -20);
+    addObj(castleBase);
+
+    // Castle towers
+    var t1 = makeBox(5, 14, 5, 0x777766);
+    t1.position.set(-12.5, 7, -20);
+    addObj(t1);
+    var t2 = makeBox(5, 14, 5, 0x777766);
+    t2.position.set(12.5, 7, -20);
+    addObj(t2);
+
+    // Battlements (row of merlons)
+    for (var m = -14; m <= 14; m += 4) {
+      var merlon = makeBox(1.5, 2, 1.5, 0x888877);
+      merlon.position.set(m, 10.5, -5.5);
+      addObj(merlon);
+    }
+
+    // Drawbridge (LineSegments mechanism)
+    var dbPts = [
+      [-5, 0, -5], [5, 0, -5],
+      [5, 0, -5], [5, 0, -8],
+      [5, 0, -8], [-5, 0, -8],
+      [-5, 0, -8], [-5, 0, -5]
+    ];
+    var dbLines = makeLines(dbPts, 0x888866);
+    dbLines.position.set(0, 0.1, 0);
+    addObj(dbLines);
+    state.drawbridgeMesh = dbLines;
+    state.drawbridgeLowered = false;
+
+    // Drawbridge solid (visual)
+    var db = makeBox(10, 0.4, 3, 0x776644);
+    db.position.set(0, 0.2, -6.5);
+    addObj(db);
+
+    // Drawbridge mechanism box (shootable)
+    var mechanism = makeBox(1, 1, 0.5, 0x554433);
+    mechanism.position.set(6, 2, -5);
+    mechanism.userData.isMechanism = true;
+    addObj(mechanism);
+
+    // Chapel
+    var chapel = makeBox(10, 8, 8, 0x777766);
+    chapel.position.set(0, 4, -24);
+    addObj(chapel);
+    var steeple = makeCone(2, 5, 4, 0x666655);
+    steeple.position.set(0, 10.5, -24);
+    addObj(steeple);
+
+    // Artifact: holy grail in chapel
+    var grail = makeCyl(0.4, 0.25, 0.8, 8, 0xFFDD88, 0xFFDD88);
+    grail.position.set(0, 0.9, -28);
+    grail.userData.isArtifact = true;
+    addObj(grail);
+    state.artifactMesh = grail;
+
+    // Lighting
+    var amb = new THREE.AmbientLight(0xAAAA99, 0.5);
+    addObj(amb);
+    var moon = new THREE.DirectionalLight(0xCCCCBB, 0.6);
+    moon.position.set(-10, 20, 5);
+    addObj(moon);
+
+    // Portal
+    buildPortal(0, 0, 0);
+
+    // Priest (healing NPC)
+    var priest = makeBox(0.7, 1.6, 0.6, 0x888888);
+    priest.position.set(5, 0.8, -18);
+    addObj(priest);
+    var priestHead = makeBox(0.6, 0.6, 0.6, 0xDDCCBB);
+    priestHead.position.set(5, 1.9, -18);
+    addObj(priestHead);
+    state.priestMesh = priest;
+
+    // 5 base knights
+    var knightCount = 5;
+    // Paradox: Egypt guard kills bring extra knights
+    if (egyptKillCount >= 1) {
+      knightCount += 3;
+      showMsg('PARADOX: Egypt blood echoes — 3 extra knights appear!', '#FF9900', 3000);
+      state.paradoxLevel++;
+    }
+    if (state.paradoxLevel >= 2) {
+      knightCount += 2;
+    }
+    for (var i = 0; i < knightCount; i++) {
+      spawnKnight(
+        (Math.random() - 0.5) * 20,
+        0,
+        (Math.random() - 0.5) * 12 - 8
+      );
+    }
+  }
+
+  function spawnKnight(x, y, z) {
+    var body = makeBox(0.9, 1.7, 0.7, 0x777788);
+    body.position.set(x, y + 0.85, z);
+    state.scene.add(body);
+    var helm = makeBox(0.75, 0.6, 0.75, 0x666677);
+    helm.position.set(x, y + 1.85, z);
+    state.scene.add(helm);
+    // Shield
+    var shield = makeBox(0.1, 1.0, 0.6, 0x555566);
+    shield.position.set(x - 0.55, y + 0.9, z);
+    state.scene.add(shield);
+    var enemy = {
+      mesh: body, head: helm, extra: shield,
+      type: 'knight', phase: PHASE_MEDIEVAL,
+      hp: 120, maxHP: 120,
+      dmg: 60, range: 2,
+      speed: 1.5, reactTime: 0.9,
+      shootTimer: 0.9 + Math.random(),
+      alive: true, shield: true,
+      stunTimer: 0
+    };
+    state.enemies.push(enemy);
+    return enemy;
+  }
+
+  // ─── Phase 3: Near Future 2087 ────────────────────────────────────────────
+  function buildFuture(medievalKillCount) {
+    state.scene.background = new THREE.Color(0x0A1020);
+    state.scene.fog = new THREE.FogExp2(0x0A1020, 0.015);
+
+    // Ground (corporate plaza)
+    var ground = makeBox(100, 1, 100, 0x1A2030);
+    ground.position.set(0, -0.5, 0);
+    addObj(ground);
+
+    // Corporate tower
+    var tower = makeBox(15, 40, 15, 0x334455);
+    tower.position.set(0, 20, -25);
+    addObj(tower);
+
+    // Tower glass panels
+    for (var f = 0; f < 8; f++) {
+      var panel = makeBox(14, 3.5, 0.2, 0x224466);
+      panel.position.set(0, 3 + f * 5, -17.5);
+      addObj(panel);
+    }
+
+    // Neon lights
+    var neon1 = new THREE.PointLight(0x0044FF, 2.0, 35);
+    neon1.position.set(-10, 5, -10);
+    addObj(neon1);
+    var neon2 = new THREE.PointLight(0xFF0044, 2.0, 35);
+    neon2.position.set(10, 5, -10);
+    addObj(neon2);
+    var neon3 = new THREE.PointLight(0x00FFCC, 1.5, 25);
+    neon3.position.set(0, 12, -18);
+    addObj(neon3);
+
+    // Ambient
+    var amb = new THREE.AmbientLight(0x112233, 0.6);
+    addObj(amb);
+
+    // Elevator shaft + cab
+    var shaft = makeCyl(1.5, 1.5, 40, 8, 0x223344);
+    shaft.position.set(8, 20, -18);
+    addObj(shaft);
+    var cab = makeCyl(1.3, 1.3, 2.5, 8, 0x334455);
+    cab.position.set(8, 1.25, -18);
+    addObj(cab);
+    state.elevatorMesh = cab;
+    state.elevatorRiding = false;
+    state.elevatorTimer = 0;
+
+    // Laser grid (3 horizontal beams across corridor)
+    var laserPts = [
+      [-7, 1, -10], [7, 1, -10],
+      [-7, 1.5, -12], [7, 1.5, -12],
+      [-7, 2, -14], [7, 2, -14]
+    ];
+    var laserLines = makeLines(laserPts, 0xFF0000);
+    addObj(laserLines);
+    state.laserMesh = laserLines;
+    state.laserActive = true;
+
+    // 3 terminals to disable laser
+    var termPos = [[-10, 0, -8], [0, 0, -7], [10, 0, -8]];
+    state.terminals = [];
+    state.terminalPressed = [false, false, false];
+    for (var ti = 0; ti < 3; ti++) {
+      var term = makeBox(0.8, 1.8, 0.6, 0x112233);
+      term.position.set(termPos[ti][0], 0.9, termPos[ti][2]);
+      term.userData.terminalIndex = ti;
+      addObj(term);
+      state.terminals.push(term);
+      var screen = makeBox(0.6, 0.8, 0.15, 0x00FF88, 0x00FF88);
+      screen.position.set(termPos[ti][0], 1.3, termPos[ti][2] + 0.38);
+      addObj(screen);
+    }
+
+    // Server room (floor 30 = y ~148)
+    var serverRoom = makeBox(12, 4, 10, 0x223344);
+    serverRoom.position.set(0, 37, -25);
+    addObj(serverRoom);
+
+    // Artifact: quantum CPU in server room
+    var cpu = makeBox(0.8, 0.4, 0.8, 0x00FFFF, 0x00FFFF);
+    cpu.position.set(0, 39.2, -25);
+    cpu.userData.isArtifact = true;
+    addObj(cpu);
+    state.artifactMesh = cpu;
+
+    // Portal
+    buildPortal(0, 0, 0);
+
+    // Security AI speed modifier from medieval kills
+    var aiBoost = 0;
+    if (medievalKillCount >= 1) {
+      aiBoost = 0.4;
+      showMsg('PARADOX: Medieval blood — security AI upgraded!', '#FF4488', 3000);
+      state.paradoxLevel++;
+    }
+    if (state.paradoxLevel >= 3) { aiBoost += 0.3; }
+
+    // 8 security guards (+ paradox extras)
+    var guardCount = 8 + state.paradoxLevel;
+    for (var gi = 0; gi < guardCount; gi++) {
+      spawnSecGuard(
+        (Math.random() - 0.5) * 22,
+        0,
+        (Math.random() - 0.5) * 14 - 5,
+        aiBoost
+      );
+    }
+  }
+
+  function spawnSecGuard(x, y, z, aiBoost) {
+    var body = makeBox(0.8, 1.7, 0.6, 0x223344);
+    body.position.set(x, y + 0.85, z);
+    state.scene.add(body);
+    var head = makeBox(0.65, 0.6, 0.65, 0x334455);
+    head.position.set(x, y + 1.85, z);
+    state.scene.add(head);
+    var ai = aiBoost || 0;
+    var enemy = {
+      mesh: body, head: head, extra: null,
+      type: 'secguard', phase: PHASE_FUTURE,
+      hp: 100, maxHP: 100,
+      dmg: 25, range: 15,
+      speed: 2.2 + ai, reactTime: 0.6 - ai * 0.2,
+      shootTimer: (0.6 - ai * 0.2) + Math.random() * 0.6,
+      alive: true, shield: false,
+      stunTimer: 0,
+      stunDuration: 4,
+      usingTaser: Math.random() < 0.5
+    };
+    state.enemies.push(enemy);
+    return enemy;
   }
 
   // ─── Portal ───────────────────────────────────────────────────────────────
-  function activatePortal() {
-    if (state.portalActive || state.transportPending) { return; }
-    state.portalActive = true;
-    state.portalTimer = 0;
-
-    var portalGeo = new THREE.SphereGeometry(PORTAL_RADIUS, 20, 20);
+  function buildPortal(x, y, z) {
+    var portalGeo = new THREE.CylinderGeometry(2, 2, 0.3, 16);
     var portalMat = new THREE.MeshLambertMaterial({
-      color: 0x00FFFF,
+      color: 0xAA44FF,
+      emissive: new THREE.Color(0xAA44FF),
+      emissiveIntensity: 0.8,
       transparent: true,
-      opacity: 0.5,
-      wireframe: false
+      opacity: 0.85
     });
-    state.portalMesh = new THREE.Mesh(portalGeo, portalMat);
-    state.portalMesh.position.copy(state.player.position);
-    state.portalMesh.position.y = PORTAL_RADIUS;
-    state.scene.add(state.portalMesh);
+    var portal = new THREE.Mesh(portalGeo, portalMat);
+    portal.position.set(x, y + 0.2, z);
+    state.scene.add(portal);
+    state.portalMesh = portal;
+    state.phaseObjects.push(portal);
 
-    showMessage('TIME PORTAL OPENING...', '#00FFFF', ERA_TRANSPORT_DELAY);
-
-    state.transportPending = true;
-    state.transportTimer = ERA_TRANSPORT_DELAY / 1000;
-    state.nextEra = getNextEra();
-  }
-
-  function getNextEra() {
-    if (state.currentEra === ERAS.WILD_WEST) { return ERAS.WW2; }
-    if (state.currentEra === ERAS.WW2) { return ERAS.FUTURE; }
-    if (state.currentEra === ERAS.FUTURE) { return ERAS.PRESENT; }
-    return ERAS.WILD_WEST;
-  }
-
-  function transportToEra(era) {
-    // Clean up portal
-    if (state.portalMesh) {
-      state.scene.remove(state.portalMesh);
-      state.portalMesh = null;
-    }
-    state.portalActive = false;
-
-    // Remove current era visuals
-    var oldObjects = state.eraObjects[state.currentEra] || [];
-    for (var i = 0; i < oldObjects.length; i++) {
-      state.scene.remove(oldObjects[i]);
-    }
-    clearEnemies();
-    clearBullets();
-
-    state.currentEra = era;
-
-    // Show mirror self briefly when jumping
-    state.playerMirror.visible = true;
-    state.playerMirror.position.set(
-      state.player.position.x + 3,
-      state.player.position.y,
-      state.player.position.z - 3
-    );
-    state.mirrorWarningTimer = 3;
-
-    if (era === ERAS.WILD_WEST) {
-      buildWildWest();
-      state.scene.background = new THREE.Color(0xD4A43C);
-      state.scene.fog = new THREE.Fog(0xD4A43C, 30, 80);
-    } else if (era === ERAS.WW2) {
-      buildWW2();
-      state.scene.background = new THREE.Color(0x889988);
-      state.scene.fog = new THREE.Fog(0x889988, 25, 70);
-    } else if (era === ERAS.FUTURE) {
-      buildFuture();
-      state.scene.background = new THREE.Color(0x0A0A1E);
-      state.scene.fog = new THREE.Fog(0x0A0A1E, 20, 60);
-    } else if (era === ERAS.PRESENT) {
-      buildPresent();
-      state.scene.background = new THREE.Color(0x87CEEB);
-      state.scene.fog = new THREE.Fog(0x87CEEB, 30, 80);
-    }
-
-    state.player.position.set(0, 0.9, 5);
-    showMessage('ARRIVED: ' + era, '#00FFFF', 2000);
-    updateHUD();
-  }
-
-  // ─── Era Builder: Present ─────────────────────────────────────────────────
-  function buildPresent() {
-    state.currentEra = ERAS.PRESENT;
-    state.eraObjects[ERAS.PRESENT] = [];
-
-    var ground = makeBox(80, 0.5, 80, 0x448844);
-    ground.position.set(0, -0.25, 0);
-    addEraObject(ground);
-
-    // Present-day bank vault
-    var bank = makeBox(16, 8, 14, 0xCCBBAA);
-    bank.position.set(0, 4, -20);
-    addEraObject(bank);
-
-    // Three panels for vault insertion
-    var panelColors = [0xFFD700, 0xCCCC44, 0x88FFFF];
-    for (var p = 0; p < 3; p++) {
-      var panel = makeBox(1.5, 2, 0.3, panelColors[p]);
-      panel.position.set(-4 + p * 4, 1, -13.2);
-      panel.userData.isPresentPanel = true;
-      panel.userData.panelIndex = p;
-      addEraObject(panel);
-    }
-
-    // Bank sign
-    var sign = makeBox(8, 1.5, 0.2, 0x002266);
-    sign.position.set(0, 9, -13.1);
-    addEraObject(sign);
-
-    var ambient = new THREE.AmbientLight(0xFFFFEE, 0.8);
-    addEraObject(ambient);
-    var sun = new THREE.DirectionalLight(0xFFFFDD, 1.0);
-    sun.position.set(5, 20, 10);
-    addEraObject(sun);
-
-    showMessage('INSERT ALL 3 ITEMS AT THE VAULT PANELS!', '#FFD700', 4000);
-  }
-
-  // ─── Paradox Events ───────────────────────────────────────────────────────
-  function spawnParadoxEnemy() {
-    var enemyType;
-    var x = (Math.random() - 0.5) * 20;
-    var z = (Math.random() - 0.5) * 15 - 5;
-    var enemy = null;
-
-    if (state.currentEra === ERAS.WILD_WEST) {
-      // WW2 soldier in Wild West
-      enemy = spawnSoldier(x, 0, z);
-      enemy.era = ERAS.WW2; // paradox marker
-    } else if (state.currentEra === ERAS.WW2) {
-      // Future robot in 1944
-      enemy = spawnRobot(x, 0, z);
-      enemy.era = ERAS.FUTURE;
-    } else if (state.currentEra === ERAS.FUTURE) {
-      // Cowboy in future
-      enemy = spawnCowboy(x, 0, z);
-      enemy.era = ERAS.WILD_WEST;
-    } else {
-      return;
-    }
-
-    if (enemy) {
-      enemy.isParadox = true;
-      // Tint paradox enemies
-      enemy.mesh.material.color.setHex(0xFF66FF);
-      state.paradoxEnemies.push(enemy);
-      state.paradoxStatus = 'PARADOX!';
-      state.paradoxFlashTimer = 5;
-      showMessage('PARADOX EVENT: ENEMY FROM ANOTHER ERA!', '#FF66FF', 3000);
-    }
+    var portalLight = new THREE.PointLight(0xAA44FF, 1.8, 10);
+    portalLight.position.set(x, y + 1, z);
+    state.scene.add(portalLight);
+    state.phaseObjects.push(portalLight);
   }
 
   // ─── Shooting ─────────────────────────────────────────────────────────────
   function playerShoot() {
-    var bullet = makeSphere(0.15, 0xFFFF00);
-    bullet.position.copy(state.player.position);
-    bullet.position.y += 1;
-    state.scene.add(bullet);
-    // Shoot forward (negative Z in world space from player facing)
     var dir = new THREE.Vector3(0, 0, -1);
-    state.bullets.push({
-      mesh: bullet,
-      velocity: dir.multiplyScalar(0.4),
-      fromPlayer: true,
-      life: 3
-    });
-  }
-
-  function enemyShoot(enemy) {
-    var bullet = makeSphere(0.2, 0xFFAA00);
-    bullet.position.copy(enemy.mesh.position);
-    bullet.position.y += 0.8;
+    dir.applyQuaternion(state.camera.quaternion);
+    var bullet = makeSphere(0.12, 0xFFFF44);
+    bullet.position.copy(state.camera.position);
+    bullet.position.addScaledVector(dir, 0.8);
     state.scene.add(bullet);
-    var dir = new THREE.Vector3().subVectors(state.player.position, enemy.mesh.position).normalize();
     state.bullets.push({
       mesh: bullet,
-      velocity: dir.multiplyScalar(0.25),
-      fromPlayer: false,
-      life: 3
+      vel: dir.multiplyScalar(0.5),
+      fromPlayer: true,
+      life: 2.5
     });
   }
 
-  // ─── Collision / Interaction ───────────────────────────────────────────────
-  function dist2(a, b) {
-    var dx = a.x - b.x;
-    var dz = a.z - b.z;
-    return Math.sqrt(dx * dx + dz * dz);
+  function enemyShoot(e) {
+    var dx = state.playerPos.x - e.mesh.position.x;
+    var dy = (state.playerPos.y + 1.7) - e.mesh.position.y;
+    var dz = state.playerPos.z - e.mesh.position.z;
+    var len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+    var spd = 0.28;
+    var bullet = makeSphere(0.18, e.type === 'secguard' ? 0xFF4400 : 0xFF8800);
+    bullet.position.copy(e.mesh.position);
+    bullet.position.y += 1.0;
+    state.scene.add(bullet);
+    state.bullets.push({
+      mesh: bullet,
+      vel: { x: dx / len * spd, y: dy / len * spd, z: dz / len * spd },
+      fromPlayer: false,
+      life: 2.5,
+      dmg: e.dmg,
+      taser: e.type === 'secguard' && e.usingTaser,
+      stunDur: e.stunDuration || 4
+    });
   }
 
-  function checkItemPickup() {
-    var eraObjs = state.eraObjects[state.currentEra] || [];
-    for (var i = 0; i < eraObjs.length; i++) {
-      var obj = eraObjs[i];
-      if (obj.userData.itemType && !obj.userData.collected) {
-        if (dist2(state.player.position, obj.position) < 1.5) {
-          obj.userData.collected = true;
-          obj.visible = false;
-          var it = obj.userData.itemType;
-          if (it === ITEMS.GOLD_KEY) { state.items.KEY = true; showMessage('GOLD KEY ACQUIRED!', '#FFD700', 2500); }
-          if (it === ITEMS.COMBINATION_CODE) { state.items.CODE = true; showMessage('COMBINATION CODE ACQUIRED!', '#CCCC44', 2500); }
-          if (it === ITEMS.DIAMOND_CHIP) { state.items.CHIP = true; showMessage('DIAMOND CHIP ACQUIRED!', '#88FFFF', 2500); }
-        }
-      }
-    }
-  }
-
-  function checkVaultPanels() {
-    if (state.currentEra !== ERAS.PRESENT) { return; }
-    if (!state.items.KEY || !state.items.CODE || !state.items.CHIP) {
-      showMessage('YOU NEED ALL 3 ITEMS!', '#FF4444', 2000);
-      return;
-    }
-    var eraObjs = state.eraObjects[ERAS.PRESENT] || [];
-    for (var i = 0; i < eraObjs.length; i++) {
-      var obj = eraObjs[i];
-      if (obj.userData.isPresentPanel && !state.vaultPanels[obj.userData.panelIndex]) {
-        if (dist2(state.player.position, obj.position) < 2) {
-          state.vaultPanels[obj.userData.panelIndex] = true;
-          obj.material.color.setHex(0x00FF00);
-          showMessage('PANEL ' + (obj.userData.panelIndex + 1) + ' ACTIVATED!', '#00FF00', 1500);
-          if (state.vaultPanels[0] && state.vaultPanels[1] && state.vaultPanels[2]) {
-            triggerVaultOpen();
-          }
-          return;
-        }
-      }
-    }
-  }
-
-  function checkTerminal() {
-    if (state.currentEra !== ERAS.FUTURE) { return; }
-    if (state.terminalDisabled) { showMessage('TERMINAL ALREADY DISABLED', '#888888', 1000); return; }
-    var eraObjs = state.eraObjects[ERAS.FUTURE] || [];
-    for (var i = 0; i < eraObjs.length; i++) {
-      if (eraObjs[i].userData.isTerminal) {
-        if (dist2(state.player.position, eraObjs[i].position) < 2) {
-          state.terminalDisabled = true;
-          eraObjs[i].material.color.setHex(0x444444);
-          showMessage('SECURITY TERMINAL DISABLED!', '#00FF88', 2000);
-          return;
-        }
-      }
-    }
-    // If not near terminal, check vault panels (present era)
-    checkVaultPanels();
-  }
-
-  function triggerVaultOpen() {
-    state.vaultOpen = true;
-    state.completed = true;
-    state.score += SCORE_COMPLETE;
-    if (state.timeRemaining > TIME_BONUS_THRESHOLD) {
-      state.score += SCORE_TIME_BONUS;
-      showMessage('VAULT OPEN! TIME HEIST COMPLETE! +2500 SCORE (TIME BONUS!)', '#FFD700', 6000);
-    } else {
-      showMessage('VAULT OPEN! TIME HEIST COMPLETE! +2000 SCORE', '#00FFFF', 6000);
-    }
-    updateHUD();
-  }
-
-  function checkMirrorSelf() {
-    if (!state.playerMirror.visible) { return; }
-    var d = dist2(state.player.position, state.playerMirror.position);
-    if (d < 1.5) {
-      // Warning: touching yourself = timeline collapse
-      triggerTimelineCollapse();
-    } else if (d < 4) {
-      showMessage('WARNING: DO NOT APPROACH YOUR OTHER SELF!', '#FFAA00', 1500);
-    }
-  }
-
-  function triggerTimelineCollapse() {
-    showMessage('TIMELINE COLLAPSE! PARADOX RESET!', '#FF0000', 3000);
-    state.score = Math.max(0, state.score - 100);
-    state.items = { KEY: false, CODE: false, CHIP: false };
-    state.vaultPanels = [false, false, false];
-    state.timeRemaining = TOTAL_TIME;
-    state.paradoxStatus = 'COLLAPSED';
-    state.paradoxFlashTimer = 3;
-    state.playerMirror.visible = false;
-    transportToEra(ERAS.WILD_WEST);
-  }
-
-  // ─── Update Loop ──────────────────────────────────────────────────────────
-  function update(delta) {
-    if (!state.active || state.completed) { return; }
-
-    state.timeRemaining -= delta;
-    if (state.timeRemaining <= 0) {
-      state.timeRemaining = 0;
-      showMessage('TIMELINE CLOSED! GAME OVER!', '#FF0000', 5000);
-      state.completed = true;
-      state.active = false;
-      return;
-    }
-
-    state.elapsed += delta;
-
-    // Portal pulse animation
-    if (state.portalMesh) {
-      state.portalTimer += delta;
-      var pulse = 0.8 + 0.2 * Math.sin(state.portalTimer * 4);
-      state.portalMesh.scale.set(pulse, pulse, pulse);
-    }
-
-    // Transport countdown
-    if (state.transportPending) {
-      state.transportTimer -= delta;
-      if (state.transportTimer <= 0) {
-        state.transportPending = false;
-        transportToEra(state.nextEra);
-      }
-    }
-
-    // Player movement
-    updatePlayerMovement(delta);
-
-    // Mirror self logic
-    if (state.playerMirror.visible) {
-      state.mirrorWarningTimer -= delta;
-      if (state.mirrorWarningTimer <= 0) {
-        state.playerMirror.visible = false;
-      }
-      checkMirrorSelf();
-      // Slowly move mirror away
-      state.playerMirror.position.x += Math.sin(state.elapsed) * 0.02;
-    }
-
-    // Enemy AI
-    updateEnemies(delta);
-
-    // Bullet movement
-    updateBullets(delta);
-
-    // Item pickup
-    checkItemPickup();
-
-    // Paradox events
-    if (state.elapsed - state.lastParadoxTime > PARADOX_INTERVAL) {
-      state.lastParadoxTime = state.elapsed;
-      if (state.currentEra !== ERAS.PRESENT) {
-        spawnParadoxEnemy();
-      }
-    }
-
-    // Paradox flash timer
-    if (state.paradoxFlashTimer > 0) {
-      state.paradoxFlashTimer -= delta;
-      if (state.paradoxFlashTimer <= 0) {
-        state.paradoxStatus = 'STABLE';
-      }
-    }
-
-    updateHUD();
-  }
-
-  function updatePlayerMovement(delta) {
-    var speed = 5 * delta;
-    var moved = false;
-
-    if (state.keys['ArrowLeft'] || state.keys['KeyA']) {
-      state.player.position.x -= speed;
-      moved = true;
-    }
-    if (state.keys['ArrowRight'] || state.keys['KeyD']) {
-      state.player.position.x += speed;
-      moved = true;
-    }
-    if (state.keys['ArrowUp'] || state.keys['KeyW']) {
-      state.player.position.z -= speed;
-      moved = true;
-    }
-    if (state.keys['ArrowDown'] || state.keys['KeyS']) {
-      state.player.position.z += speed;
-      moved = true;
-    }
-
-    // Clamp player
-    state.player.position.x = Math.max(-35, Math.min(35, state.player.position.x));
-    state.player.position.z = Math.max(-30, Math.min(15, state.player.position.z));
-    state.player.position.y = 0.9;
-
-    // Camera follow
-    state.camera.position.x = state.player.position.x;
-    state.camera.position.z = state.player.position.z + 15;
-    state.camera.position.y = 8;
-    state.camera.lookAt(state.player.position);
-  }
-
-  function updateEnemies(delta) {
-    var allEnemies = state.enemies.concat(state.paradoxEnemies);
-    for (var i = 0; i < allEnemies.length; i++) {
-      var e = allEnemies[i];
-      if (!e.alive) { continue; }
-
-      // Move toward player
-      e.moveTimer -= delta;
-      if (e.moveTimer <= 0) {
-        e.moveTimer = Math.random() * 2 + 1;
-        var dx = state.player.position.x - e.mesh.position.x;
-        var dz = state.player.position.z - e.mesh.position.z;
-        var dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist > 0) {
-          var spd = 1.5 * delta * 60;
-          e.mesh.position.x += (dx / dist) * spd * delta;
-          e.mesh.position.z += (dz / dist) * spd * delta;
-          if (e.hatMesh) {
-            e.hatMesh.position.x = e.mesh.position.x;
-            e.hatMesh.position.z = e.mesh.position.z;
-          }
-        }
-      }
-
-      // Shoot at player
-      e.shootTimer -= delta;
-      if (e.shootTimer <= 0) {
-        var baseInterval = (e.type === 'COWBOY') ? 2 : (e.type === 'SOLDIER') ? 2.5 : 3;
-        e.shootTimer = baseInterval + Math.random();
-        var pd = dist2(e.mesh.position, state.player.position);
-        if (pd < 20) {
-          enemyShoot(e);
-        }
-      }
-
-      // Melee contact
-      if (dist2(e.mesh.position, state.player.position) < 1.2) {
-        showMessage('HIT BY ENEMY!', '#FF4444', 800);
-      }
-    }
-  }
-
-  function updateBullets(delta) {
+  // ─── Update: bullets ──────────────────────────────────────────────────────
+  function updateBullets(dt) {
     for (var i = state.bullets.length - 1; i >= 0; i--) {
       var b = state.bullets[i];
-      b.mesh.position.add(b.velocity);
-      b.life -= delta;
+      b.mesh.position.x += b.vel.x;
+      b.mesh.position.y += b.vel.y;
+      b.mesh.position.z += b.vel.z;
+      b.life -= dt;
 
       if (b.life <= 0) {
         state.scene.remove(b.mesh);
@@ -1022,84 +730,493 @@
       }
 
       if (b.fromPlayer) {
-        // Check enemy hits
-        var allEnemies = state.enemies.concat(state.paradoxEnemies);
-        for (var j = 0; j < allEnemies.length; j++) {
-          var e = allEnemies[j];
+        var hit = false;
+        for (var j = 0; j < state.enemies.length; j++) {
+          var e = state.enemies[j];
           if (!e.alive) { continue; }
-          if (dist2(b.mesh.position, e.mesh.position) < 1.0) {
-            e.hp--;
+          if (dist3(b.mesh.position, e.mesh.position) < 1.1) {
+            var dmg = 30;
+            // Shield halves damage from front
+            if (e.shield && e.type === 'knight') {
+              var fwd = { x: e.mesh.position.x - state.playerPos.x, z: e.mesh.position.z - state.playerPos.z };
+              var len2 = Math.sqrt(fwd.x * fwd.x + fwd.z * fwd.z) || 1;
+              fwd.x /= len2; fwd.z /= len2;
+              // if bullet came from roughly the same direction knight faces
+              var dot = fwd.x * b.vel.x + fwd.z * b.vel.z;
+              if (dot > 0) { dmg = Math.floor(dmg * 0.5); }
+            }
+            e.hp -= dmg;
             if (e.hp <= 0) {
-              e.alive = false;
-              state.scene.remove(e.mesh);
-              if (e.hatMesh) { state.scene.remove(e.hatMesh); }
-              state.score += 50;
+              killEnemy(e);
             }
             state.scene.remove(b.mesh);
             state.bullets.splice(i, 1);
+            hit = true;
             break;
           }
         }
+        if (hit) { continue; }
 
-        // Check mirror self (paradox trigger)
-        if (state.playerMirror.visible && b.fromPlayer) {
-          if (state.bullets[i] && dist2(b.mesh.position, state.playerMirror.position) < 1.5) {
-            triggerTimelineCollapse();
+        // Shoot drawbridge mechanism
+        if (state.phase === PHASE_MEDIEVAL && !state.drawbridgeLowered) {
+          var mechMesh = null;
+          for (var mo = 0; mo < state.phaseObjects.length; mo++) {
+            if (state.phaseObjects[mo].userData.isMechanism) {
+              mechMesh = state.phaseObjects[mo];
+              break;
+            }
+          }
+          if (mechMesh && dist3(b.mesh.position, mechMesh.position) < 1.5) {
+            state.drawbridgeLowered = true;
+            mechMesh.material.color.setHex(0x00FF44);
+            showMsg('DRAWBRIDGE LOWERED!', '#AAFFAA', 2000);
             state.scene.remove(b.mesh);
             state.bullets.splice(i, 1);
           }
         }
+      } else {
+        // Enemy bullet hits player
+        var pp = state.playerPos;
+        var pdx = b.mesh.position.x - pp.x;
+        var pdy = b.mesh.position.y - (pp.y + 1.0);
+        var pdz = b.mesh.position.z - pp.z;
+        if (Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz) < 0.8) {
+          state.playerHP -= b.dmg;
+          if (b.taser) {
+            state.playerStunTimer = b.stunDur;
+            showMsg('STUNNED!', '#FFAA00', 1500);
+          }
+          if (state.playerHP <= 0) {
+            state.playerHP = 0;
+            triggerDeath('ELIMINATED');
+          }
+          state.scene.remove(b.mesh);
+          state.bullets.splice(i, 1);
+        }
       }
     }
+  }
+
+  function killEnemy(e) {
+    e.alive = false;
+    e.mesh.visible = false;
+    if (e.head) { e.head.visible = false; }
+    if (e.extra) { e.extra.visible = false; }
+    state.killsThisPhase++;
+    state.score += 50;
+  }
+
+  // ─── Update: enemies ──────────────────────────────────────────────────────
+  function updateEnemies(dt) {
+    for (var i = 0; i < state.enemies.length; i++) {
+      var e = state.enemies[i];
+      if (!e.alive) { continue; }
+
+      // Stun
+      if (e.stunTimer > 0) { e.stunTimer -= dt; continue; }
+
+      var pp = state.playerPos;
+      var dx = pp.x - e.mesh.position.x;
+      var dz = pp.z - e.mesh.position.z;
+      var d = Math.sqrt(dx * dx + dz * dz) || 1;
+
+      // Move toward player
+      if (d > e.range * 0.8) {
+        var spd = e.speed * dt;
+        e.mesh.position.x += (dx / d) * spd;
+        e.mesh.position.z += (dz / d) * spd;
+        if (e.head) {
+          e.head.position.x = e.mesh.position.x;
+          e.head.position.z = e.mesh.position.z;
+        }
+        if (e.extra) {
+          e.extra.position.x = e.mesh.position.x - (e.type === 'knight' ? 0.55 : 0.45);
+          e.extra.position.z = e.mesh.position.z;
+        }
+      }
+
+      // Attack timer
+      e.shootTimer -= dt;
+      if (e.shootTimer <= 0) {
+        e.shootTimer = e.reactTime + Math.random() * 0.8;
+        if (d <= e.range) {
+          if (e.type === 'guard' || e.type === 'knight') {
+            // Melee — check range
+            if (d <= e.range) {
+              state.playerHP -= e.dmg;
+              if (state.playerStunTimer <= 0) {
+                showMsg(e.type === 'guard' ? 'SPEAR HIT! -' + e.dmg + ' HP' : 'SWORD STRIKE! -' + e.dmg + ' HP', '#FF4444', 800);
+              }
+              if (state.playerHP <= 0) { state.playerHP = 0; triggerDeath('DEFEATED'); }
+            }
+          } else if (e.type === 'dog') {
+            if (d <= e.range) {
+              state.playerHP -= e.dmg;
+              showMsg('DOG BITE! -' + e.dmg + ' HP', '#FF8844', 800);
+              if (state.playerHP <= 0) { state.playerHP = 0; triggerDeath('MAULED'); }
+            }
+          } else if (e.type === 'secguard') {
+            enemyShoot(e);
+          }
+        } else if (e.type === 'secguard' && d <= e.range) {
+          enemyShoot(e);
+        }
+      }
+    }
+  }
+
+  // ─── Priest healing ───────────────────────────────────────────────────────
+  function updatePriest(dt) {
+    if (!state.priestMesh || state.phase !== PHASE_MEDIEVAL) { return; }
+    var dx = state.playerPos.x - state.priestMesh.position.x;
+    var dz = state.playerPos.z - state.priestMesh.position.z;
+    var d = Math.sqrt(dx * dx + dz * dz);
+    if (d <= 4) {
+      state.playerHP = Math.min(100, state.playerHP + 5 * dt);
+    }
+  }
+
+  // ─── Elevator ─────────────────────────────────────────────────────────────
+  function updateElevator(dt) {
+    if (!state.elevatorRiding || state.phase !== PHASE_FUTURE) { return; }
+    state.elevatorTimer -= dt;
+    if (state.elevatorMesh) {
+      var progress = 1 - Math.max(0, state.elevatorTimer / 5);
+      state.elevatorMesh.position.y = 1.25 + progress * 36;
+      state.playerPos.y = state.elevatorMesh.position.y + 1.8;
+    }
+    if (state.elevatorTimer <= 0) {
+      state.elevatorRiding = false;
+      state.playerPos.y = 38.5;
+      showMsg('FLOOR 30 — SERVER ROOM', '#00FFCC', 2000);
+    }
+  }
+
+  // ─── Interact (E key) ─────────────────────────────────────────────────────
+  function onInteract() {
+    // Portal check
+    if (state.portalMesh) {
+      var dx = state.playerPos.x - state.portalMesh.position.x;
+      var dz = state.playerPos.z - state.portalMesh.position.z;
+      if (Math.sqrt(dx * dx + dz * dz) < 2.5) {
+        enterPortal();
+        return;
+      }
+    }
+
+    if (state.phase === PHASE_EGYPT) {
+      // False wall
+      if (!state.falsewallOpen && state.falseWallMesh) {
+        var fdx = state.playerPos.x - state.falseWallMesh.position.x;
+        var fdz = state.playerPos.z - state.falseWallMesh.position.z;
+        if (Math.sqrt(fdx * fdx + fdz * fdz) < 2.5) {
+          state.falsewallOpen = true;
+          state.falseWallMesh.visible = false;
+          showMsg('SECRET PASSAGE OPENED!', '#FFDD00', 2000);
+          return;
+        }
+      }
+    }
+
+    if (state.phase === PHASE_MEDIEVAL) {
+      // (Drawbridge lowered by shooting mechanism)
+      showMsg('Shoot the mechanism to lower drawbridge!', '#CCCCAA', 1500);
+    }
+
+    if (state.phase === PHASE_FUTURE) {
+      // Elevator
+      if (state.elevatorMesh && !state.elevatorRiding) {
+        var edx = state.playerPos.x - state.elevatorMesh.position.x;
+        var edz = state.playerPos.z - state.elevatorMesh.position.z;
+        if (Math.sqrt(edx * edx + edz * edz) < 2.5) {
+          state.elevatorRiding = true;
+          state.elevatorTimer = 5;
+          showMsg('ELEVATOR ASCENDING — FLOOR 30 IN 5s', '#00FFCC', 5000);
+          return;
+        }
+      }
+
+      // Terminals for laser grid
+      for (var ti = 0; ti < state.terminals.length; ti++) {
+        if (!state.terminalPressed[ti]) {
+          var t = state.terminals[ti];
+          var tdx = state.playerPos.x - t.position.x;
+          var tdz = state.playerPos.z - t.position.z;
+          if (Math.sqrt(tdx * tdx + tdz * tdz) < 2) {
+            state.terminalPressed[ti] = true;
+            t.material.color.setHex(0x00FF44);
+            state.terminalHits++;
+            showMsg('TERMINAL ' + (ti + 1) + '/3 ACTIVATED', '#00FF88', 1500);
+            if (state.terminalHits >= 3) {
+              state.laserActive = false;
+              if (state.laserMesh) { state.laserMesh.visible = false; }
+              showMsg('LASER GRID DISABLED!', '#00FF88', 2500);
+            }
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // ─── Artifact pickup ──────────────────────────────────────────────────────
+  function checkArtifact() {
+    if (state.artifactThisPhase || !state.artifactMesh) { return; }
+    var dx = state.playerPos.x - state.artifactMesh.position.x;
+    var dy = (state.playerPos.y + 0.5) - state.artifactMesh.position.y;
+    var dz = state.playerPos.z - state.artifactMesh.position.z;
+    if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 1.8) {
+      state.artifactThisPhase = true;
+      state.artifactMesh.visible = false;
+      var names = ['GOLDEN ANKH', 'HOLY GRAIL', 'QUANTUM CPU'];
+      showMsg(names[state.phase] + ' SECURED!', '#FFD700', 3000);
+      flashScreen('#FFD700', 0.5);
+    }
+  }
+
+  // ─── Portal entry ─────────────────────────────────────────────────────────
+  function enterPortal() {
+    if (!state.artifactThisPhase) {
+      showMsg('COLLECT THE ARTIFACT FIRST!', '#FF4444', 2000);
+      return;
+    }
+    state.artifactsCollected++;
+    state.score += 1000;
+
+    // Ghost bonus
+    if (state.killsThisPhase === 0) {
+      state.score += 1000;
+      state.ghostBonus++;
+      showMsg('GHOST BONUS! No kills — +1000 score!', '#AAFFFF', 3000);
+    } else if (state.killsThisPhase > 3) {
+      state.paradoxLevel++;
+      showMsg('EXCESS KILLS — PARADOX LEVEL ' + state.paradoxLevel + '!', '#FF6600', 2500);
+    }
+
+    flashScreen('#AA44FF', 0.6);
+
+    if (state.phase < PHASE_FUTURE) {
+      var killedThisPhase = state.killsThisPhase;
+      state.killsThisPhase = 0;
+      state.artifactThisPhase = false;
+      clearPhase();
+      state.phase++;
+      state.phaseTimer = PHASE_TIME;
+      state.playerPos.x = 0;
+      state.playerPos.y = 0.9;
+      state.playerPos.z = 8;
+
+      if (state.phase === PHASE_MEDIEVAL) {
+        buildMedieval(killedThisPhase);
+        showMsg('PORTAL: MEDIEVAL EUROPE 1345 AD', '#CC88FF', 3000);
+      } else if (state.phase === PHASE_FUTURE) {
+        buildFuture(killedThisPhase);
+        showMsg('PORTAL: NEAR FUTURE 2087 AD', '#CC88FF', 3000);
+      }
+    } else {
+      // Won
+      triggerWin();
+    }
+  }
+
+  // ─── Win / Lose ───────────────────────────────────────────────────────────
+  function triggerWin() {
+    state.won = true;
+    state.gameOver = true;
+    state.score += 2000;
+    clearPhase();
+    state.scene.background = new THREE.Color(0x002244);
+
+    var banner = document.createElement('div');
+    banner.id = 'th-end';
+    banner.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'bottom:0',
+      'z-index:3000', 'background:rgba(0,0,30,0.92)',
+      'color:#FFD700', 'font-family:monospace',
+      'display:flex', 'flex-direction:column',
+      'align-items:center', 'justify-content:center',
+      'font-size:28px', 'text-align:center', 'gap:16px'
+    ].join(';');
+    banner.innerHTML = [
+      '<div style="font-size:42px;color:#AA44FF">TIME HEIST COMPLETE!</div>',
+      '<div>All 3 artifacts recovered — present restored.</div>',
+      '<div style="color:#00FFCC">SCORE: ' + state.score + '</div>',
+      '<div style="color:#AAFFAA">ARTIFACTS: 3/3 | PARADOX LEVEL: ' + state.paradoxLevel + ' | GHOST BONUSES: ' + state.ghostBonus + '</div>',
+      '<div style="font-size:16px;color:#888;margin-top:20px">Press R to play again</div>'
+    ].join('');
+    document.body.appendChild(banner);
+  }
+
+  function triggerDeath(reason) {
+    state.gameOver = true;
+    var banner = document.createElement('div');
+    banner.id = 'th-end';
+    banner.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'bottom:0',
+      'z-index:3000', 'background:rgba(30,0,0,0.92)',
+      'color:#FF4444', 'font-family:monospace',
+      'display:flex', 'flex-direction:column',
+      'align-items:center', 'justify-content:center',
+      'font-size:28px', 'text-align:center', 'gap:16px'
+    ].join(';');
+    banner.innerHTML = [
+      '<div style="font-size:42px">TIME HEIST FAILED</div>',
+      '<div>' + reason + ' in ' + ERA_NAMES[state.phase] + '</div>',
+      '<div style="color:#FFAA44">SCORE: ' + state.score + '</div>',
+      '<div style="color:#FFCCAA">ARTIFACTS: ' + state.artifactsCollected + '/3</div>',
+      '<div style="font-size:16px;color:#888;margin-top:20px">Press R to try again</div>'
+    ].join('');
+    document.body.appendChild(banner);
+    flashScreen('#FF0000', 0.8);
+  }
+
+  function triggerTimerDeath() {
+    state.playerHP = 0;
+    triggerDeath('TIMER EXPIRED');
+  }
+
+  // ─── Player movement (FPS) ────────────────────────────────────────────────
+  function updatePlayer(dt) {
+    if (state.playerStunTimer > 0) {
+      state.playerStunTimer -= dt;
+      return;
+    }
+
+    var speed = 5 * dt;
+    var fwd = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, state.playerYaw, 0));
+    var right = new THREE.Vector3(1, 0, 0).applyEuler(new THREE.Euler(0, state.playerYaw, 0));
+
+    if (state.moveKeys['KeyW'] || state.moveKeys['ArrowUp']) {
+      state.playerPos.x += fwd.x * speed;
+      state.playerPos.z += fwd.z * speed;
+    }
+    if (state.moveKeys['KeyS'] || state.moveKeys['ArrowDown']) {
+      state.playerPos.x -= fwd.x * speed;
+      state.playerPos.z -= fwd.z * speed;
+    }
+    if (state.moveKeys['KeyA'] || state.moveKeys['ArrowLeft']) {
+      state.playerPos.x -= right.x * speed;
+      state.playerPos.z -= right.z * speed;
+    }
+    if (state.moveKeys['KeyD'] || state.moveKeys['ArrowRight']) {
+      state.playerPos.x += right.x * speed;
+      state.playerPos.z += right.z * speed;
+    }
+
+    // Clamp horizontal
+    state.playerPos.x = Math.max(-45, Math.min(45, state.playerPos.x));
+    state.playerPos.z = Math.max(-40, Math.min(12, state.playerPos.z));
+
+    // Elevator sets y; otherwise ground
+    if (!state.elevatorRiding) {
+      state.playerPos.y = 0.9;
+    }
+
+    // Camera
+    state.camera.position.set(
+      state.playerPos.x,
+      state.playerPos.y + 0.8,
+      state.playerPos.z
+    );
+    state.camera.rotation.order = 'YXP';
+    state.camera.rotation.y = state.playerYaw;
+    state.camera.rotation.x = state.playerPitch || 0;
+  }
+
+  // ─── Portal spin ──────────────────────────────────────────────────────────
+  function updatePortal(dt) {
+    if (!state.portalMesh) { return; }
+    state.portalAngle += dt * 1.5;
+    state.portalMesh.rotation.y = state.portalAngle;
+    var pulse = 1 + 0.12 * Math.sin(state.portalAngle * 3);
+    state.portalMesh.scale.set(pulse, 1, pulse);
+  }
+
+  // ─── Stun flash ───────────────────────────────────────────────────────────
+  function updateFlash(dt) {
+    if (state.flashTimer > 0 && state.flashEl) {
+      state.flashTimer -= dt;
+      if (state.flashTimer <= 0) {
+        state.flashEl.style.opacity = '0';
+      }
+    }
+  }
+
+  // ─── Render loop ──────────────────────────────────────────────────────────
+  function loop() {
+    if (!state.active) { return; }
+    state.animId = requestAnimationFrame(loop);
+    var dt = Math.min(state.clock.getDelta(), 0.1);
+
+    if (!state.gameOver) {
+      // Phase timer
+      state.phaseTimer -= dt;
+      if (state.phaseTimer <= 0) {
+        state.phaseTimer = 0;
+        triggerTimerDeath();
+      }
+
+      updatePlayer(dt);
+      updateEnemies(dt);
+      updateBullets(dt);
+      checkArtifact();
+      updatePriest(dt);
+      updateElevator(dt);
+      updatePortal(dt);
+      updateFlash(dt);
+      updateHUD();
+    }
+
+    state.renderer.render(state.scene, state.camera);
   }
 
   // ─── Input ────────────────────────────────────────────────────────────────
-  function onKeyDown(e) {
+  var playerPitch = 0;
+
+  function onKeyDown(ev) {
+    if (state.gameOver) {
+      if (ev.code === 'KeyR') { reset(); }
+      return;
+    }
     if (!state.active) { return; }
-    state.keys[e.code] = true;
 
-    // T+H simultaneous activation
-    if (e.code === 'KeyT') {
-      state.tKeyTime = Date.now();
-      state.tPressed = true;
-      if (state.hPressed && (Date.now() - state.hKeyTime) < ACTIVATION_WINDOW) {
-        activatePortal();
-      }
-    }
-    if (e.code === 'KeyH') {
-      state.hKeyTime = Date.now();
-      state.hPressed = true;
-      if (state.tPressed && (Date.now() - state.tKeyTime) < ACTIVATION_WINDOW) {
-        activatePortal();
-      }
-    }
+    state.moveKeys[ev.code] = true;
 
-    // T alone = activate portal (time device)
-    if (e.code === 'KeyT' && !e.repeat) {
-      // also check if H was recently pressed
+    // T+I simultaneous = no-op (handled in activation outside game)
+    if (ev.code === 'Space') { playerShoot(); }
+    if (ev.code === 'KeyE') { onInteract(); }
+    if (ev.code === 'KeyQ') {
+      // Look left shortcut
+      state.playerYaw += 0.08;
     }
+    if (ev.code === 'KeyR') { reset(); }
+  }
 
-    // Shoot
-    if (e.code === 'Space') {
-      if (!state.transportPending) {
-        playerShoot();
-      }
-    }
+  function onKeyUp(ev) {
+    state.moveKeys[ev.code] = false;
+  }
 
-    // E = interact
-    if (e.code === 'KeyE') {
-      if (state.currentEra === ERAS.FUTURE) {
-        checkTerminal();
-      } else if (state.currentEra === ERAS.PRESENT) {
-        checkVaultPanels();
-      }
+  function onMouseMove(ev) {
+    if (!state.active || !state.pointerLocked) { return; }
+    state.playerYaw -= ev.movementX * 0.002;
+    playerPitch -= ev.movementY * 0.002;
+    playerPitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, playerPitch));
+    state.playerPitch = playerPitch;
+    state.camera.rotation.x = playerPitch;
+  }
+
+  function onMouseDown() {
+    if (!state.active || state.gameOver) { return; }
+    if (!state.pointerLocked) {
+      var el = state.renderer.domElement;
+      if (el.requestPointerLock) { el.requestPointerLock(); }
+    } else {
+      playerShoot();
     }
   }
 
-  function onKeyUp(e) {
-    state.keys[e.code] = false;
-    if (e.code === 'KeyT') { state.tPressed = false; }
-    if (e.code === 'KeyH') { state.hPressed = false; }
+  function onPLChange() {
+    state.pointerLocked = document.pointerLockElement === state.renderer.domElement;
   }
 
   function onResize() {
@@ -1109,98 +1226,148 @@
     state.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  // ─── Render Loop ──────────────────────────────────────────────────────────
-  function renderLoop() {
-    if (!state.active) { return; }
-    state.animId = requestAnimationFrame(renderLoop);
-    var delta = state.clock.getDelta();
-    update(delta);
-    state.renderer.render(state.scene, state.camera);
+  // ─── Activation: T+I ──────────────────────────────────────────────────────
+  function onActivationKeyDown(ev) {
+    if (state.active) { return; }
+    if (ev.code === 'KeyT') {
+      state.tKeyTime = Date.now();
+      state.tPressed = true;
+      if (state.iPressed && (Date.now() - state.iKeyTime) < ACTIVATION_WINDOW) { init(); }
+    }
+    if (ev.code === 'KeyI') {
+      state.iKeyTime = Date.now();
+      state.iPressed = true;
+      if (state.tPressed && (Date.now() - state.tKeyTime) < ACTIVATION_WINDOW) { init(); }
+    }
   }
 
-  // ─── Cleanup ──────────────────────────────────────────────────────────────
-  function destroy() {
-    state.active = false;
+  function onActivationKeyUp(ev) {
+    if (ev.code === 'KeyT') { state.tPressed = false; }
+    if (ev.code === 'KeyI') { state.iPressed = false; }
+  }
+
+  // ─── Destroy helpers ──────────────────────────────────────────────────────
+  function destroyDOM() {
+    var ids = ['th-canvas-wrap', 'th-hud', 'th-msg', 'th-flash', 'th-end'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el) { el.parentNode.removeChild(el); }
+    }
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────────────
+  function init() {
+    if (state.active) { reset(); return; }
+
+    // Listen for activation outside active state
+    document.removeEventListener('keydown', onActivationKeyDown);
+    document.removeEventListener('keyup', onActivationKeyUp);
+
+    destroyDOM();
+
+    // Reset state
+    state.active = true;
+    state.phase = PHASE_EGYPT;
+    state.phaseTimer = PHASE_TIME;
+    state.artifactsCollected = 0;
+    state.artifactThisPhase = false;
+    state.killsThisPhase = 0;
+    state.paradoxLevel = 0;
+    state.ghostBonus = 0;
+    state.score = 0;
+    state.gameOver = false;
+    state.won = false;
+    state.playerPos = { x: 0, y: 0.9, z: 8 };
+    state.playerHP = 100;
+    state.playerStunTimer = 0;
+    state.playerYaw = Math.PI;
+    playerPitch = 0;
+    state.playerPitch = 0;
+    state.pointerLocked = false;
+    state.moveKeys = {};
+    state.phaseObjects = [];
+    state.enemies = [];
+    state.bullets = [];
+    state.portalMesh = null;
+    state.portalAngle = 0;
+    state.falsewallOpen = false;
+    state.drawbridgeLowered = false;
+    state.laserActive = true;
+    state.terminalHits = 0;
+    state.elevatorRiding = false;
+    state.elevatorTimer = 0;
+    state.elevatorMesh = null;
+    state.priestMesh = null;
+    state.artifactMesh = null;
+    state.falseWallMesh = null;
+    state.drawbridgeMesh = null;
+    state.laserMesh = null;
+    state.terminals = [];
+    state.terminalPressed = [];
+    state.flashTimer = 0;
+
+    initScene();
+    initHUD();
+    buildEgypt();
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('pointerlockchange', onPLChange);
+    window.addEventListener('resize', onResize);
+
+    showMsg('TIME HEIST — Click to lock mouse | WASD move | SPACE shoot | E interact | R reset', '#AA88FF', 6000);
+
+    loop();
+  }
+
+  // ─── Reset ────────────────────────────────────────────────────────────────
+  function reset() {
     if (state.animId) { cancelAnimationFrame(state.animId); state.animId = null; }
+
     document.removeEventListener('keydown', onKeyDown);
     document.removeEventListener('keyup', onKeyUp);
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mousedown', onMouseDown);
+    document.removeEventListener('pointerlockchange', onPLChange);
     window.removeEventListener('resize', onResize);
 
-    var container = document.getElementById('time-heist-canvas');
-    if (container) { container.parentNode.removeChild(container); }
-    var hud = document.getElementById('time-heist-hud');
-    if (hud) { hud.parentNode.removeChild(hud); }
-    var msg = document.getElementById('th-message');
-    if (msg) { msg.parentNode.removeChild(msg); }
-
+    clearPhase();
     if (state.renderer) {
       state.renderer.dispose();
       state.renderer = null;
     }
     state.scene = null;
     state.camera = null;
-    state.enemies = [];
-    state.paradoxEnemies = [];
-    state.bullets = [];
-    state.eraObjects = {};
-    state.keys = {};
-  }
+    state.clock = null;
+    state.active = false;
+    state.gameOver = false;
+    state.won = false;
 
-  // ─── Init ─────────────────────────────────────────────────────────────────
-  function init() {
-    // Reset state
-    state.active = true;
-    state.timeRemaining = TOTAL_TIME;
-    state.elapsed = 0;
-    state.lastParadoxTime = 0;
-    state.paradoxStatus = 'STABLE';
-    state.paradoxFlashTimer = 0;
-    state.items = { KEY: false, CODE: false, CHIP: false };
-    state.vaultPanels = [false, false, false];
-    state.vaultOpen = false;
-    state.score = 0;
-    state.completed = false;
-    state.portalActive = false;
-    state.portalMesh = null;
-    state.portalTimer = 0;
-    state.transportPending = false;
-    state.transportTimer = 0;
-    state.nextEra = null;
-    state.eraObjects = {};
-    state.enemies = [];
-    state.paradoxEnemies = [];
-    state.bullets = [];
-    state.keys = {};
-    state.tKeyTime = 0;
-    state.hKeyTime = 0;
+    destroyDOM();
+
+    // Re-register activation
     state.tPressed = false;
-    state.hPressed = false;
-    state.terminalDisabled = false;
-    state.mirrorWarningTimer = 0;
-
-    initScene();
-    initHUD();
-    buildWildWest();
-    state.scene.background = new THREE.Color(0xD4A43C);
-    state.scene.fog = new THREE.Fog(0xD4A43C, 30, 80);
-    state.currentEra = ERAS.WILD_WEST;
-
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
-    window.addEventListener('resize', onResize);
-
-    showMessage('TIME HEIST - T+H to open portal | SPACE to shoot | E to interact', '#00FFFF', 5000);
-
-    renderLoop();
+    state.iPressed = false;
+    document.addEventListener('keydown', onActivationKeyDown);
+    document.addEventListener('keyup', onActivationKeyUp);
   }
+
+  // ─── Update (external hook) ───────────────────────────────────────────────
+  function update() {
+    // Called externally if needed; internal loop handles itself
+  }
+
+  // ─── Activation listeners (pre-game) ─────────────────────────────────────
+  document.addEventListener('keydown', onActivationKeyDown);
+  document.addEventListener('keyup', onActivationKeyUp);
 
   // ─── Public API ───────────────────────────────────────────────────────────
-  window.TimeHeist = {
+  return {
     init: init,
-    destroy: destroy,
-    getState: function () { return state; },
-    getScore: function () { return state.score; },
-    isActive: function () { return state.active; }
+    update: update,
+    reset: reset
   };
 
-}(window));
+}());
