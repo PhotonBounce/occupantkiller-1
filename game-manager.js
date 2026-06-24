@@ -2095,6 +2095,11 @@ const GameManager = (function () {
     try { if (window.SportsStadium && SportsStadium.init) SportsStadium.init(_scene, _camera); } catch (e) {}
     try { if (window.NukeTransport && NukeTransport.init) NukeTransport.init(_scene, _camera); } catch (e) {}
     try { if (window.AbandonedFactory && AbandonedFactory.init) AbandonedFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampBase && SwampBase.init) SwampBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedCastle && HauntedCastle.init) HauntedCastle.init(_scene, _camera); } catch (e) {}
+    try { if (window.CliffFortress && CliffFortress.init) CliffFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.ServerFarm && ServerFarm.init) ServerFarm.init(_scene, _camera); } catch (e) {}
+    try { if (window.CityBank && CityBank.init) CityBank.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8981,6 +8986,11 @@ const GameManager = (function () {
     if (window.SportsStadium) SportsStadium.update(delta);
     if (window.NukeTransport) NukeTransport.update(delta);
     if (window.AbandonedFactory) AbandonedFactory.update(delta);
+  if (window.SwampBase) SwampBase.update(delta);
+  if (window.HauntedCastle) HauntedCastle.update(delta);
+  if (window.CliffFortress) CliffFortress.update(delta);
+  if (window.ServerFarm) ServerFarm.update(delta);
+  if (window.CityBank) CityBank.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
