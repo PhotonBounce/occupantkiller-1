@@ -2030,6 +2030,11 @@ const GameManager = (function () {
     try { if (window.CargoTrain && CargoTrain.init) CargoTrain.init(_scene, _camera); } catch (e) {}
     try { if (window.TempleRuins && TempleRuins.init) TempleRuins.init(_scene, _camera); } catch (e) {}
     try { if (window.AbandonedMine && AbandonedMine.init) AbandonedMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenTundra && FrozenTundra.init) FrozenTundra.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoIsland && VolcanoIsland.init) VolcanoIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodedCity && FloodedCity.init) FloodedCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemicalPlant && ChemicalPlant.init) ChemicalPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.BorderCrossing && BorderCrossing.init) BorderCrossing.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8851,6 +8856,11 @@ const GameManager = (function () {
     if (window.CargoTrain) CargoTrain.update(delta);
     if (window.TempleRuins) TempleRuins.update(delta);
     if (window.AbandonedMine) AbandonedMine.update(delta);
+    if (window.FrozenTundra) FrozenTundra.update(delta);
+    if (window.VolcanoIsland) VolcanoIsland.update(delta);
+    if (window.FloodedCity) FloodedCity.update(delta);
+    if (window.ChemicalPlant) ChemicalPlant.update(delta);
+    if (window.BorderCrossing) BorderCrossing.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
