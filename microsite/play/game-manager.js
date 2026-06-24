@@ -2016,6 +2016,16 @@ const GameManager = (function () {
     try { if (window.SwampVillage && SwampVillage.init) SwampVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.GhostShip && GhostShip.init) GhostShip.init(_scene, _camera); } catch (e) {}
     try { if (window.SatelliteDish && SatelliteDish.init) SatelliteDish.init(_scene, _camera); } catch (e) {}
+    try { if (window.EmbassyRaid && EmbassyRaid.init) EmbassyRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.CruiseShip && CruiseShip.init) CruiseShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerComplex && BunkerComplex.init) BunkerComplex.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirportSiege && AirportSiege.init) AirportSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountainVillage && MountainVillage.init) MountainVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.RefineryAssault && RefineryAssault.init) RefineryAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceDebris && SpaceDebris.init) SpaceDebris.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleAirstrip && JungleAirstrip.init) JungleAirstrip.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenWreck && SunkenWreck.init) SunkenWreck.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCrimesTrial && WarCrimesTrial.init) WarCrimesTrial.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8823,6 +8833,16 @@ const GameManager = (function () {
     if (window.SwampVillage) SwampVillage.update(delta);
     if (window.GhostShip) GhostShip.update(delta);
     if (window.SatelliteDish) SatelliteDish.update(delta);
+    if (window.EmbassyRaid) EmbassyRaid.update(delta);
+    if (window.CruiseShip) CruiseShip.update(delta);
+    if (window.BunkerComplex) BunkerComplex.update(delta);
+    if (window.AirportSiege) AirportSiege.update(delta);
+    if (window.MountainVillage) MountainVillage.update(delta);
+    if (window.RefineryAssault) RefineryAssault.update(delta);
+    if (window.SpaceDebris) SpaceDebris.update(delta);
+    if (window.JungleAirstrip) JungleAirstrip.update(delta);
+    if (window.SunkenWreck) SunkenWreck.update(delta);
+    if (window.WarCrimesTrial) WarCrimesTrial.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
