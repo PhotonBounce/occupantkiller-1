@@ -2087,6 +2087,14 @@ const GameManager = (function () {
     try { if (window.ResearchVessel && ResearchVessel.init) ResearchVessel.init(_scene, _camera); } catch (e) {}
     try { if (window.StormDrain && StormDrain.init) StormDrain.init(_scene, _camera); } catch (e) {}
     try { if (window.ThroneRoom && ThroneRoom.init) ThroneRoom.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleOutpost && JungleOutpost.init) JungleOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.NavalYard && NavalYard.init) NavalYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceShelf && IceShelf.init) IceShelf.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuinsAssault && RuinsAssault.init) RuinsAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.AircraftCarrier && AircraftCarrier.init) AircraftCarrier.init(_scene, _camera); } catch (e) {}
+    try { if (window.SportsStadium && SportsStadium.init) SportsStadium.init(_scene, _camera); } catch (e) {}
+    try { if (window.NukeTransport && NukeTransport.init) NukeTransport.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedFactory && AbandonedFactory.init) AbandonedFactory.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8965,6 +8973,14 @@ const GameManager = (function () {
     if (window.ResearchVessel) ResearchVessel.update(delta);
     if (window.StormDrain) StormDrain.update(delta);
     if (window.ThroneRoom) ThroneRoom.update(delta);
+    if (window.JungleOutpost) JungleOutpost.update(delta);
+    if (window.NavalYard) NavalYard.update(delta);
+    if (window.IceShelf) IceShelf.update(delta);
+    if (window.RuinsAssault) RuinsAssault.update(delta);
+    if (window.AircraftCarrier) AircraftCarrier.update(delta);
+    if (window.SportsStadium) SportsStadium.update(delta);
+    if (window.NukeTransport) NukeTransport.update(delta);
+    if (window.AbandonedFactory) AbandonedFactory.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
