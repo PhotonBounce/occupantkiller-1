@@ -2140,6 +2140,14 @@ const GameManager = (function () {
     try { if (window.AbandonedSchool && AbandonedSchool.init) AbandonedSchool.init(_scene, _camera); } catch (e) {}
     try { if (window.OrbitalWeapons && OrbitalWeapons.init) OrbitalWeapons.init(_scene, _camera); } catch (e) {}
     try { if (window.WastelandTown && WastelandTown.init) WastelandTown.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilRefinery && OilRefinery.init) OilRefinery.init(_scene, _camera); } catch (e) {}
+    try { if (window.ColosseumSiege && ColosseumSiege.init) ColosseumSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenDestroyer && SunkenDestroyer.init) SunkenDestroyer.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoonOutpost && MoonOutpost.init) MoonOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberFortress && CyberFortress.init) CyberFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.PharaohTomb && PharaohTomb.init) PharaohTomb.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaCaves && LavaCaves.init) LavaCaves.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormCarrier && StormCarrier.init) StormCarrier.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9071,6 +9079,14 @@ const GameManager = (function () {
   if (window.AbandonedSchool) AbandonedSchool.update(delta);
   if (window.OrbitalWeapons) OrbitalWeapons.update(delta);
   if (window.WastelandTown) WastelandTown.update(delta);
+  if (window.OilRefinery) OilRefinery.update(delta);
+  if (window.ColosseumSiege) ColosseumSiege.update(delta);
+  if (window.SunkenDestroyer) SunkenDestroyer.update(delta);
+  if (window.MoonOutpost) MoonOutpost.update(delta);
+  if (window.CyberFortress) CyberFortress.update(delta);
+  if (window.PharaohTomb) PharaohTomb.update(delta);
+  if (window.LavaCaves) LavaCaves.update(delta);
+  if (window.StormCarrier) StormCarrier.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
