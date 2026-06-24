@@ -2064,6 +2064,9 @@ const GameManager = (function () {
     try { if (window.JungleFortress && JungleFortress.init) JungleFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.BridgeAssault && BridgeAssault.init) BridgeAssault.init(_scene, _camera); } catch (e) {}
     try { if (window.SpaceWreckage && SpaceWreckage.init) SpaceWreckage.init(_scene, _camera); } catch (e) {}
+    try { if (window.UndergroundLab && UndergroundLab.init) UndergroundLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.HospitalRaid && HospitalRaid.init) HospitalRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeaponsDepot && WeaponsDepot.init) WeaponsDepot.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8919,6 +8922,9 @@ const GameManager = (function () {
     if (window.JungleFortress) JungleFortress.update(delta);
     if (window.BridgeAssault) BridgeAssault.update(delta);
     if (window.SpaceWreckage) SpaceWreckage.update(delta);
+    if (window.UndergroundLab) UndergroundLab.update(delta);
+    if (window.HospitalRaid) HospitalRaid.update(delta);
+    if (window.WeaponsDepot) WeaponsDepot.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
