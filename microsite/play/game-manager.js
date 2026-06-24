@@ -1908,6 +1908,16 @@ const GameManager = (function () {
     try { if (window.CloneWars && CloneWars.init) CloneWars.init(_scene, _camera); } catch (e) {}
     try { if (window.VolcanoEscape && VolcanoEscape.init) VolcanoEscape.init(_scene, _camera); } catch (e) {}
     try { if (window.EmbassySiege && EmbassySiege.init) EmbassySiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightRaid && NightRaid.init) NightRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.KungFuDojo && KungFuDojo.init) KungFuDojo.init(_scene, _camera); } catch (e) {}
+    try { if (window.RefugeeConvoy && RefugeeConvoy.init) RefugeeConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.MarsColony && MarsColony.init) MarsColony.init(_scene, _camera); } catch (e) {}
+    try { if (window.SharkAttack && SharkAttack.init) SharkAttack.init(_scene, _camera); } catch (e) {}
+    try { if (window.ColosseumBoss && ColosseumBoss.init) ColosseumBoss.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepCover && DeepCover.init) DeepCover.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpySatellite && SpySatellite.init) SpySatellite.init(_scene, _camera); } catch (e) {}
+    try { if (window.GladiatorArena && GladiatorArena.init) GladiatorArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.NukeLaunch && NukeLaunch.init) NukeLaunch.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8607,6 +8617,16 @@ const GameManager = (function () {
       if (window.CloneWars) CloneWars.update(delta);
       if (window.VolcanoEscape) VolcanoEscape.update(delta);
       if (window.EmbassySiege) EmbassySiege.update(delta);
+      if (window.NightRaid) NightRaid.update(delta);
+      if (window.KungFuDojo) KungFuDojo.update(delta);
+      if (window.RefugeeConvoy) RefugeeConvoy.update(delta);
+      if (window.MarsColony) MarsColony.update(delta);
+      if (window.SharkAttack) SharkAttack.update(delta);
+      if (window.ColosseumBoss) ColosseumBoss.update(delta);
+      if (window.DeepCover) DeepCover.update(delta);
+      if (window.SpySatellite) SpySatellite.update(delta);
+      if (window.GladiatorArena) GladiatorArena.update(delta);
+      if (window.NukeLaunch) NukeLaunch.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
