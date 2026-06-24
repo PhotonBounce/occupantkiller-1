@@ -1918,6 +1918,16 @@ const GameManager = (function () {
     try { if (window.SpySatellite && SpySatellite.init) SpySatellite.init(_scene, _camera); } catch (e) {}
     try { if (window.GladiatorArena && GladiatorArena.init) GladiatorArena.init(_scene, _camera); } catch (e) {}
     try { if (window.NukeLaunch && NukeLaunch.init) NukeLaunch.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageTrain && HostageTrain.init) HostageTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterCrisis && WaterCrisis.init) WaterCrisis.init(_scene, _camera); } catch (e) {}
+    try { if (window.MidnightCoup && MidnightCoup.init) MidnightCoup.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueOutbreak && PlagueOutbreak.init) PlagueOutbreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalDefense && OrbitalDefense.init) OrbitalDefense.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenVessel && SunkenVessel.init) SunkenVessel.init(_scene, _camera); } catch (e) {}
+    try { if (window.HighriseHostage && HighriseHostage.init) HighriseHostage.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarlordHunt && WarlordHunt.init) WarlordHunt.init(_scene, _camera); } catch (e) {}
+    try { if (window.SupplyDepot && SupplyDepot.init) SupplyDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertAmbush && DesertAmbush.init) DesertAmbush.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8627,6 +8637,16 @@ const GameManager = (function () {
       if (window.SpySatellite) SpySatellite.update(delta);
       if (window.GladiatorArena) GladiatorArena.update(delta);
       if (window.NukeLaunch) NukeLaunch.update(delta);
+      if (window.HostageTrain) HostageTrain.update(delta);
+      if (window.WaterCrisis) WaterCrisis.update(delta);
+      if (window.MidnightCoup) MidnightCoup.update(delta);
+      if (window.PlagueOutbreak) PlagueOutbreak.update(delta);
+      if (window.OrbitalDefense) OrbitalDefense.update(delta);
+      if (window.SunkenVessel) SunkenVessel.update(delta);
+      if (window.HighriseHostage) HighriseHostage.update(delta);
+      if (window.WarlordHunt) WarlordHunt.update(delta);
+      if (window.SupplyDepot) SupplyDepot.update(delta);
+      if (window.DesertAmbush) DesertAmbush.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
