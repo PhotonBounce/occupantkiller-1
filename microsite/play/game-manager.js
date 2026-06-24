@@ -1888,6 +1888,16 @@ const GameManager = (function () {
     try { if (window.BlackSite && BlackSite.init) BlackSite.init(_scene, _camera); } catch (e) {}
     try { if (window.SpaceMarines && SpaceMarines.init) SpaceMarines.init(_scene, _camera); } catch (e) {}
     try { if (window.OilWar && OilWar.init) OilWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.MechAssault && MechAssault.init) MechAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleAmbush && JungleAmbush.init) JungleAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.CultBunker && CultBunker.init) CultBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearWinter && NuclearWinter.init) NuclearWinter.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressAssault && FortressAssault.init) FortressAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.RobotUprising && RobotUprising.init) RobotUprising.init(_scene, _camera); } catch (e) {}
+    try { if (window.DrugCartel && DrugCartel.init) DrugCartel.init(_scene, _camera); } catch (e) {}
+    try { if (window.TimeHeist && TimeHeist.init) TimeHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateIsland && PirateIsland.init) PirateIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.AvalancheEscape && AvalancheEscape.init) AvalancheEscape.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8567,6 +8577,16 @@ const GameManager = (function () {
       if (window.BlackSite) BlackSite.update(delta);
       if (window.SpaceMarines) SpaceMarines.update(delta);
       if (window.OilWar) OilWar.update(delta);
+      if (window.MechAssault) MechAssault.update(delta);
+      if (window.JungleAmbush) JungleAmbush.update(delta);
+      if (window.CultBunker) CultBunker.update(delta);
+      if (window.NuclearWinter) NuclearWinter.update(delta);
+      if (window.FortressAssault) FortressAssault.update(delta);
+      if (window.RobotUprising) RobotUprising.update(delta);
+      if (window.DrugCartel) DrugCartel.update(delta);
+      if (window.TimeHeist) TimeHeist.update(delta);
+      if (window.PirateIsland) PirateIsland.update(delta);
+      if (window.AvalancheEscape) AvalancheEscape.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
