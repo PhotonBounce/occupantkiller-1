@@ -2164,6 +2164,14 @@ const GameManager = (function () {
     try { if (window.LaserFacility && LaserFacility.init) LaserFacility.init(_scene, _camera); } catch (e) {}
     try { if (window.SubmarineBay && SubmarineBay.init) SubmarineBay.init(_scene, _camera); } catch (e) {}
     try { if (window.HeistVault && HeistVault.init) HeistVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.Catacombs && Catacombs.init) Catacombs.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedTrain && CrashedTrain.init) CrashedTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrystalPalace && CrystalPalace.init) CrystalPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeltaForce && DeltaForce.init) DeltaForce.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonTower && PrisonTower.init) PrisonTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.RobotFactory && RobotFactory.init) RobotFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarMemorial && WarMemorial.init) WarMemorial.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonYard && PrisonYard.init) PrisonYard.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9119,6 +9127,14 @@ const GameManager = (function () {
   if (window.LaserFacility) LaserFacility.update(delta);
   if (window.SubmarineBay) SubmarineBay.update(delta);
   if (window.HeistVault) HeistVault.update(delta);
+  if (window.Catacombs) Catacombs.update(delta);
+  if (window.CrashedTrain) CrashedTrain.update(delta);
+  if (window.CrystalPalace) CrystalPalace.update(delta);
+  if (window.DeltaForce) DeltaForce.update(delta);
+  if (window.PrisonTower) PrisonTower.update(delta);
+  if (window.RobotFactory) RobotFactory.update(delta);
+  if (window.WarMemorial) WarMemorial.update(delta);
+  if (window.PrisonYard) PrisonYard.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
