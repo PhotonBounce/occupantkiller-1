@@ -1985,6 +1985,7 @@ const GameManager = (function () {
     try { if (window.ChemicalFactory && ChemicalFactory.init) ChemicalFactory.init(_scene, _camera); } catch (e) {}
     try { if (window.ColosseumBattle && ColosseumBattle.init) ColosseumBattle.init(_scene, _camera); } catch (e) {}
     try { if (window.BlackMarketArms && BlackMarketArms.init) BlackMarketArms.init(_scene, _camera); } catch (e) {}
+    try { if (window.HarborBlockade && HarborBlockade.init) HarborBlockade.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8761,6 +8762,7 @@ const GameManager = (function () {
     if (window.ChemicalFactory) ChemicalFactory.update(delta);
     if (window.ColosseumBattle) ColosseumBattle.update(delta);
     if (window.BlackMarketArms) BlackMarketArms.update(delta);
+    if (window.HarborBlockade) HarborBlockade.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
