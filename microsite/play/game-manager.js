@@ -1952,6 +1952,13 @@ const GameManager = (function () {
     try { if (window.VikingLongship && VikingLongship.init) VikingLongship.init(_scene, _camera); } catch (e) {}
     try { if (window.GuerrillaWar && GuerrillaWar.init) GuerrillaWar.init(_scene, _camera); } catch (e) {}
     try { if (window.SkyscraperSiege && SkyscraperSiege.init) SkyscraperSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoPlanejack && CargoPlanejack.init) CargoPlanejack.init(_scene, _camera); } catch (e) {}
+    try { if (window.BankHeist && BankHeist.init) BankHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberEspionage && CyberEspionage.init) CyberEspionage.init(_scene, _camera); } catch (e) {}
+    try { if (window.InsurgentCamp && InsurgentCamp.init) InsurgentCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoonbaseAssault && MoonbaseAssault.init) MoonbaseAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.WitnessProtection && WitnessProtection.init) WitnessProtection.init(_scene, _camera); } catch (e) {}
+    try { if (window.CartelCompound && CartelCompound.init) CartelCompound.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8695,6 +8702,13 @@ const GameManager = (function () {
       if (window.VikingLongship) VikingLongship.update(delta);
       if (window.GuerrillaWar) GuerrillaWar.update(delta);
       if (window.SkyscraperSiege) SkyscraperSiege.update(delta);
+      if (window.CargoPlanejack) CargoPlanejack.update(delta);
+      if (window.BankHeist) BankHeist.update(delta);
+      if (window.CyberEspionage) CyberEspionage.update(delta);
+      if (window.InsurgentCamp) InsurgentCamp.update(delta);
+      if (window.MoonbaseAssault) MoonbaseAssault.update(delta);
+      if (window.WitnessProtection) WitnessProtection.update(delta);
+      if (window.CartelCompound) CartelCompound.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
