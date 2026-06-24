@@ -2081,6 +2081,12 @@ const GameManager = (function () {
     try { if (window.FloatingPlatform && FloatingPlatform.init) FloatingPlatform.init(_scene, _camera); } catch (e) {}
     try { if (window.WarFactory && WarFactory.init) WarFactory.init(_scene, _camera); } catch (e) {}
     try { if (window.IcePalace && IcePalace.init) IcePalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoBase && VolcanoBase.init) VolcanoBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.UndergroundCity && UndergroundCity.init) UndergroundCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastalVillage && CoastalVillage.init) CoastalVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.ResearchVessel && ResearchVessel.init) ResearchVessel.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormDrain && StormDrain.init) StormDrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThroneRoom && ThroneRoom.init) ThroneRoom.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8953,6 +8959,12 @@ const GameManager = (function () {
     if (window.FloatingPlatform) FloatingPlatform.update(delta);
     if (window.WarFactory) WarFactory.update(delta);
     if (window.IcePalace) IcePalace.update(delta);
+    if (window.VolcanoBase) VolcanoBase.update(delta);
+    if (window.UndergroundCity) UndergroundCity.update(delta);
+    if (window.CoastalVillage) CoastalVillage.update(delta);
+    if (window.ResearchVessel) ResearchVessel.update(delta);
+    if (window.StormDrain) StormDrain.update(delta);
+    if (window.ThroneRoom) ThroneRoom.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
