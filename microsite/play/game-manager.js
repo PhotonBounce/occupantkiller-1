@@ -2178,6 +2178,8 @@ const GameManager = (function () {
     try { if (window.GasPlatform && GasPlatform.init) GasPlatform.init(_scene, _camera); } catch (e) {}
     try { if (window.Monorail && Monorail.init) Monorail.init(_scene, _camera); } catch (e) {}
     try { if (window.ArchaeologicalDig && ArchaeologicalDig.init) ArchaeologicalDig.init(_scene, _camera); } catch (e) {}
+    try { if (window.CaveNetwork && CaveNetwork.init) CaveNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.RooftopChase && RooftopChase.init) RooftopChase.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9147,6 +9149,8 @@ const GameManager = (function () {
   if (window.GasPlatform) GasPlatform.update(delta);
   if (window.Monorail) Monorail.update(delta);
   if (window.ArchaeologicalDig) ArchaeologicalDig.update(delta);
+  if (window.CaveNetwork) CaveNetwork.update(delta);
+  if (window.RooftopChase) RooftopChase.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
