@@ -1974,6 +1974,11 @@ const GameManager = (function () {
     try { if (window.BioLabOutbreak && BioLabOutbreak.init) BioLabOutbreak.init(_scene, _camera); } catch (e) {}
     try { if (window.AntarcticStation && AntarcticStation.init) AntarcticStation.init(_scene, _camera); } catch (e) {}
     try { if (window.TimeParadox && TimeParadox.init) TimeParadox.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightMarketRaid && NightMarketRaid.init) NightMarketRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineHunter && SubmarineHunter.init) SubmarineHunter.init(_scene, _camera); } catch (e) {}
+    try { if (window.GlacierFortress && GlacierFortress.init) GlacierFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleGuardian && TempleGuardian.init) TempleGuardian.init(_scene, _camera); } catch (e) {}
+    try { if (window.DrugLabTakedown && DrugLabTakedown.init) DrugLabTakedown.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8739,6 +8744,11 @@ const GameManager = (function () {
     if (window.BioLabOutbreak) BioLabOutbreak.update(delta);
     if (window.AntarcticStation) AntarcticStation.update(delta);
     if (window.TimeParadox) TimeParadox.update(delta);
+    if (window.NightMarketRaid) NightMarketRaid.update(delta);
+    if (window.SubmarineHunter) SubmarineHunter.update(delta);
+    if (window.GlacierFortress) GlacierFortress.update(delta);
+    if (window.TempleGuardian) TempleGuardian.update(delta);
+    if (window.DrugLabTakedown) DrugLabTakedown.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
