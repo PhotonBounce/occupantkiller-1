@@ -1960,6 +1960,15 @@ const GameManager = (function () {
     try { if (window.WitnessProtection && WitnessProtection.init) WitnessProtection.init(_scene, _camera); } catch (e) {}
     try { if (window.CartelCompound && CartelCompound.init) CartelCompound.init(_scene, _camera); } catch (e) {}
     try { if (window.TokyoShowdown && TokyoShowdown.init) TokyoShowdown.init(_scene, _camera); } catch (e) {}
+    try { if (window.DoomsdayVault && DoomsdayVault.init) DoomsdayVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.AztecRuins && AztecRuins.init) AztecRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.CiaSafehouse && CiaSafehouse.init) CiaSafehouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonArena && NeonArena.init) NeonArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostOps && GhostOps.init) GhostOps.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmsSmuggler && ArmsSmuggler.init) ArmsSmuggler.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceStationSiege && SpaceStationSiege.init) SpaceStationSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonRiotResponse && PrisonRiotResponse.init) PrisonRiotResponse.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleCombat && JungleCombat.init) JungleCombat.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8711,6 +8720,15 @@ const GameManager = (function () {
       if (window.WitnessProtection) WitnessProtection.update(delta);
       if (window.CartelCompound) CartelCompound.update(delta);
       if (window.TokyoShowdown) TokyoShowdown.update(delta);
+    if (window.DoomsdayVault) DoomsdayVault.update(delta);
+    if (window.AztecRuins) AztecRuins.update(delta);
+    if (window.CiaSafehouse) CiaSafehouse.update(delta);
+    if (window.NeonArena) NeonArena.update(delta);
+    if (window.GhostOps) GhostOps.update(delta);
+    if (window.ArmsSmuggler) ArmsSmuggler.update(delta);
+    if (window.SpaceStationSiege) SpaceStationSiege.update(delta);
+    if (window.PrisonRiotResponse) PrisonRiotResponse.update(delta);
+    if (window.JungleCombat) JungleCombat.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
