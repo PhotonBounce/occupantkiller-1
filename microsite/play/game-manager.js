@@ -1969,6 +1969,11 @@ const GameManager = (function () {
     try { if (window.SpaceStationSiege && SpaceStationSiege.init) SpaceStationSiege.init(_scene, _camera); } catch (e) {}
     try { if (window.PrisonRiotResponse && PrisonRiotResponse.init) PrisonRiotResponse.init(_scene, _camera); } catch (e) {}
     try { if (window.JungleCombat && JungleCombat.init) JungleCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainHijack && TrainHijack.init) TrainHijack.init(_scene, _camera); } catch (e) {}
+    try { if (window.BountyHunter && BountyHunter.init) BountyHunter.init(_scene, _camera); } catch (e) {}
+    try { if (window.BioLabOutbreak && BioLabOutbreak.init) BioLabOutbreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.AntarcticStation && AntarcticStation.init) AntarcticStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.TimeParadox && TimeParadox.init) TimeParadox.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8729,6 +8734,11 @@ const GameManager = (function () {
     if (window.SpaceStationSiege) SpaceStationSiege.update(delta);
     if (window.PrisonRiotResponse) PrisonRiotResponse.update(delta);
     if (window.JungleCombat) JungleCombat.update(delta);
+    if (window.TrainHijack) TrainHijack.update(delta);
+    if (window.BountyHunter) BountyHunter.update(delta);
+    if (window.BioLabOutbreak) BioLabOutbreak.update(delta);
+    if (window.AntarcticStation) AntarcticStation.update(delta);
+    if (window.TimeParadox) TimeParadox.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
