@@ -1,66 +1,97 @@
 window.GladiatorArena = (function () {
   'use strict';
 
-  // ─── Key tracking ────────────────────────────────────────────────────────────
+  // ─── Activation key tracking (G + A within 400ms) ────────────────────────────
   var keysDown = {};
   var gDownAt = 0;
   var aDownAt = 0;
   var ACTIVATION_WINDOW = 400;
   var active = false;
+
+  // ─── Three.js handles ────────────────────────────────────────────────────────
   var scene, camera, renderer, animFrameId;
 
   // ─── Game state ──────────────────────────────────────────────────────────────
-  var playerHP = 100;
-  var playerMaxHP = 100;
-  var currentWeapon = 1; // 1=SWORD 2=TRIDENT 3=SHIELD+MACE 4=BOW
-  var weaponNames = { 1: 'SWORD', 2: 'TRIDENT', 3: 'SHIELD+MACE', 4: 'BOW' };
-  var crowdFavor = 50; // 0-100
-  var currentWave = 1;
-  var totalWaves = 6;
-  var enemies = [];
-  var projectiles = [];
-  var netObjects = [];
-  var arrowObjects = [];
-  var crowdFigures = [];
-  var gateObjects = [];
-  var pickupObjects = [];
-  var lion = null;
-  var lionStunned = false;
-  var lionStunTimer = 0;
-  var rollCooldown = 0;
-  var rollActive = false;
-  var rollTimer = 0;
-  var rollDirX = 0;
-  var rollDirZ = 0;
-  var netCooldown = 0;
-  var crowdWaving = false;
-  var crowdWaveTimer = 0;
-  var playerMesh = null;
-  var playerPos = { x: 0, y: 0, z: 10 };
+  var playerHP = 150;
+  var playerMaxHP = 150;
+  var playerPos = { x: 0, y: 0.5, z: 14 };
   var playerVelX = 0;
   var playerVelZ = 0;
-  var clock = { last: 0 };
-  var comboBonusMult = 1;
-  var comboTimer = 0;
-  var waveEnemiesLeft = 0;
-  var waveCleared = false;
-  var waveTransitionTimer = 0;
+  var currentRound = 0;
+  var totalRounds = 5;
+  var roundActive = false;
   var gameOver = false;
   var gameWon = false;
-  var audioCtx = null;
-  var hudEl = null;
-  var crowdStatus = 'CHEERING';
-  var shieldActive = false;
+  var score = 0;
+  var crowdApproval = 50;
+  var roundTransitionTimer = 0;
+  var roundTransitionActive = false;
+  var mercyKillPending = false;
+  var mercyKillTimer = 0;
+  var moveDir = { x: 0, z: -1 };
+
+  // ─── Attack / weapon state ────────────────────────────────────────────────────
   var attackCooldown = 0;
-  var guardAttacking = false;
-  var guardAttackTimer = 0;
-  var guardMeshes = [];
-  var bossEnemy = null;
+  var equippedWeapon = 'gladius';
+  var shieldEquipped = false;
+  var netCooldown = 0;
+  var NET_COOLDOWN = 8;
+  var lastSwingTime = 0;
+  var dodgeDetected = false;
+  var dodgeCheckTimer = 0;
+  var dodgeLight = null;
+  var dodgeLightTimer = 0;
 
-  // Movement direction for roll
-  var moveDir = { x: 0, z: 0 };
+  // ─── Entity lists ─────────────────────────────────────────────────────────────
+  var enemies = [];
+  var pickups = [];
+  var projectiles = [];
+  var crowdBlocks = [];
+  var chariot = null;
+  var chariotLaps = 0;
+  var chariotAngle = 0;
+  var chariotActive = false;
+  var lionMesh = null;
+  var lionPos = { x: -18, y: 0.5, z: -14 };
+  var lionHP = 60;
+  var lionActive = false;
+  var lionAttackCooldown = 0;
+  var cageDoor = null;
+  var cageDoorOpen = false;
+  var giftMesh = null;
+  var giftActive = false;
+  var giftPos = { x: 0, y: 0, z: 0 };
 
-  // ─── Helpers ─────────────────────────────────────────────────────────────────
+  // ─── Player mesh ──────────────────────────────────────────────────────────────
+  var playerMesh = null;
+  var playerWeaponMesh = null;
+  var playerShieldMesh = null;
+
+  // ─── Environment ──────────────────────────────────────────────────────────────
+  var emperorMesh = null;
+  var emperorThumbMesh = null;
+  var emperorThumbState = 'neutral';
+  var emperorThumbTimer = 0;
+  var portcullisMesh = null;
+  var portcullisOpen = false;
+  var portcullisTimer = 0;
+
+  // ─── HUD ─────────────────────────────────────────────────────────────────────
+  var hudEl = null;
+  var msgEl = null;
+
+  // ─── Audio ───────────────────────────────────────────────────────────────────
+  var audioCtx = null;
+
+  // ─── Clock ───────────────────────────────────────────────────────────────────
+  var clock = { last: 0 };
+
+  // ─── Keys ────────────────────────────────────────────────────────────────────
+  var keys = {};
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  HELPERS
+  // ─────────────────────────────────────────────────────────────────────────────
   function clamp(v, mn, mx) { return v < mn ? mn : v > mx ? mx : v; }
   function dist2d(a, b) {
     var dx = a.x - b.x, dz = a.z - b.z;
@@ -68,1439 +99,1349 @@ window.GladiatorArena = (function () {
   }
   function randRange(a, b) { return a + Math.random() * (b - a); }
 
-  // ─── Audio ───────────────────────────────────────────────────────────────────
-  function initAudio() {
+  function playBeep(freq, dur, vol) {
+    if (!audioCtx) return;
     try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (e) { audioCtx = null; }
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol || 0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.start();
+      osc.stop(audioCtx.currentTime + dur);
+    } catch (e) {}
   }
 
-  function playCrowdRoar() {
-    if (!audioCtx) return;
-    var bufSize = audioCtx.sampleRate * 0.6;
-    var buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-    var data = buf.getChannelData(0);
-    for (var i = 0; i < bufSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * 0.3;
-    }
-    var src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    var filt = audioCtx.createBiquadFilter();
-    filt.type = 'bandpass';
-    filt.frequency.value = 200;
-    filt.Q.value = 0.5;
-    src.connect(filt);
-    var gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-    filt.connect(gain);
-    gain.connect(audioCtx.destination);
-    src.start();
+  function setCrowdApproval(delta) {
+    crowdApproval = clamp(crowdApproval + delta, 0, 100);
   }
 
-  function playSwoosh() {
-    if (!audioCtx) return;
-    var osc = audioCtx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
-    var gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.15);
+  function emperorMood() {
+    if (crowdApproval > 70) return 'PLEASED';
+    if (crowdApproval < 30) return 'ANGRY';
+    return 'NEUTRAL';
   }
 
-  function playBoos() {
-    if (!audioCtx) return;
-    var bufSize = audioCtx.sampleRate * 0.8;
-    var buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-    var data = buf.getChannelData(0);
-    for (var i = 0; i < bufSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * 0.15;
-    }
-    var src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    var filt = audioCtx.createBiquadFilter();
-    filt.type = 'lowpass';
-    filt.frequency.value = 150;
-    src.connect(filt);
-    var gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
-    filt.connect(gain);
-    gain.connect(audioCtx.destination);
-    src.start();
-  }
-
-  // ─── Three.js scene setup ────────────────────────────────────────────────────
-  function buildScene() {
-    var THREE = window.THREE;
-    if (!THREE) { console.warn('GladiatorArena: THREE not found'); return false; }
-
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87CEEB);
-    scene.fog = new THREE.Fog(0x87CEEB, 60, 120);
-
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.set(0, 28, 38);
-    camera.lookAt(0, 0, 0);
-
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.domElement.id = 'gladiator-canvas';
-    renderer.domElement.style.cssText = 'position:fixed;top:0;left:0;z-index:9000;';
-    document.body.appendChild(renderer.domElement);
-
-    // Lighting
-    var ambient = new THREE.AmbientLight(0xfff8e1, 0.6);
-    scene.add(ambient);
-    var sun = new THREE.DirectionalLight(0xffffff, 1.2);
-    sun.position.set(20, 40, 10);
-    sun.castShadow = true;
-    scene.add(sun);
-
-    buildArena(THREE);
-    buildPlayer(THREE);
-    buildHUD();
-    spawnWave(THREE, currentWave);
-
-    return true;
-  }
-
-  // ─── Arena construction ──────────────────────────────────────────────────────
-  function buildArena(THREE) {
-    // Sand floor – CylinderGeometry r=25 h=0.5
-    var floorGeo = new THREE.CylinderGeometry(25, 25, 0.5, 48);
-    var floorMat = new THREE.MeshLambertMaterial({ color: 0xD4A017 });
-    var floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.position.y = -0.25;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    // Surrounding walls – 10 arch segments around perimeter
-    var stoneMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
-    for (var i = 0; i < 10; i++) {
-      var angle = (i / 10) * Math.PI * 2;
-      var wx = Math.cos(angle) * 26;
-      var wz = Math.sin(angle) * 26;
-
-      // Main wall block
-      var wallGeo = new THREE.BoxGeometry(4.5, 8, 2.5);
-      var wall = new THREE.Mesh(wallGeo, stoneMat);
-      wall.position.set(wx, 4, wz);
-      wall.rotation.y = -angle;
-      wall.castShadow = true;
-      wall.receiveShadow = true;
-      scene.add(wall);
-
-      // Arch top
-      var archGeo = new THREE.BoxGeometry(4.5, 1.5, 2.5);
-      var arch = new THREE.Mesh(archGeo, new THREE.MeshLambertMaterial({ color: 0x7A6545 }));
-      arch.position.set(wx, 8.75, wz);
-      arch.rotation.y = -angle;
-      scene.add(arch);
-
-      // Gate at south position (segment 5)
-      if (i === 5) {
-        var gateGeo = new THREE.BoxGeometry(3, 6, 0.5);
-        var gateMat = new THREE.MeshLambertMaterial({ color: 0x5C3A1E });
-        var gate = new THREE.Mesh(gateGeo, gateMat);
-        gate.position.set(wx * 0.9, 3, wz * 0.9);
-        gate.rotation.y = -angle;
-        gate.userData.isGate = true;
-        scene.add(gate);
-        gateObjects.push(gate);
-      }
-    }
-
-    // VIP box at north (0xCC0000)
-    var vipGeo = new THREE.BoxGeometry(5, 4, 3);
-    var vipMat = new THREE.MeshLambertMaterial({ color: 0xCC0000 });
-    var vip = new THREE.Mesh(vipGeo, vipMat);
-    vip.position.set(0, 5, -28);
-    vip.castShadow = true;
-    scene.add(vip);
-
-    // VIP box railing
-    var railGeo = new THREE.BoxGeometry(5.5, 0.3, 0.3);
-    var railMat = new THREE.MeshLambertMaterial({ color: 0xFFD700 });
-    var rail = new THREE.Mesh(railGeo, railMat);
-    rail.position.set(0, 7.15, -26.65);
-    scene.add(rail);
-
-    // Crowd figures – 30 spectators in tiers
-    buildCrowd(THREE);
-  }
-
-  function buildCrowd(THREE) {
-    var colors = [0xFFE0BD, 0xD4A373, 0x8B5E3C, 0xF2D2BD];
-    var robeColors = [0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0xFED766, 0x2AB7CA, 0xF0B429];
-
-    for (var i = 0; i < 30; i++) {
-      var angle = (i / 30) * Math.PI * 2;
-      var tier = Math.floor(i / 10); // 0, 1, 2
-      var radius = 27 + tier * 1.5;
-      var height = 9 + tier * 2;
-
-      var bodyGeo = new THREE.BoxGeometry(0.6, 1.2, 0.4);
-      var bodyMat = new THREE.MeshLambertMaterial({ color: robeColors[i % robeColors.length] });
-      var body = new THREE.Mesh(bodyGeo, bodyMat);
-
-      var headGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
-      var headMat = new THREE.MeshLambertMaterial({ color: colors[i % colors.length] });
-      var head = new THREE.Mesh(headGeo, headMat);
-      head.position.y = 0.825;
-      body.add(head);
-
-      // Arm for waving
-      var armGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
-      var armMat = new THREE.MeshLambertMaterial({ color: colors[i % colors.length] });
-      var arm = new THREE.Mesh(armGeo, armMat);
-      arm.position.set(0.4, 0.3, 0);
-      arm.rotation.z = -0.3;
-      body.add(arm);
-      body.userData.arm = arm;
-      body.userData.baseArmRotZ = -0.3;
-      body.userData.wavePhase = Math.random() * Math.PI * 2;
-
-      body.position.set(
-        Math.cos(angle) * radius,
-        height,
-        Math.sin(angle) * radius
-      );
-      body.lookAt(0, height, 0);
-      scene.add(body);
-      crowdFigures.push(body);
-    }
-  }
-
-  // ─── Player ───────────────────────────────────────────────────────────────────
-  function buildPlayer(THREE) {
-    var group = new THREE.Group();
-
-    // Body
-    var bodyGeo = new THREE.BoxGeometry(0.8, 1.4, 0.5);
-    var bodyMat = new THREE.MeshLambertMaterial({ color: 0x4169E1 });
-    var body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.7;
-    group.add(body);
-
-    // Head
-    var headGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-    var headMat = new THREE.MeshLambertMaterial({ color: 0xFFE0BD });
-    var head = new THREE.Mesh(headGeo, headMat);
-    head.position.y = 1.7;
-    group.add(head);
-
-    // Helmet
-    var helmGeo = new THREE.BoxGeometry(0.65, 0.35, 0.65);
-    var helmMat = new THREE.MeshLambertMaterial({ color: 0xC0C0C0 });
-    var helm = new THREE.Mesh(helmGeo, helmMat);
-    helm.position.y = 2.12;
-    group.add(helm);
-
-    group.position.set(playerPos.x, playerPos.y, playerPos.z);
-    group.castShadow = true;
-    scene.add(group);
-    playerMesh = group;
-
-    buildWeaponVisual(THREE, group);
-  }
-
-  function buildWeaponVisual(THREE, parent) {
-    // Remove old weapon
-    while (parent.userData.weaponGroup && parent.userData.weaponGroup.parent) {
-      parent.remove(parent.userData.weaponGroup);
-    }
-
-    var wg = new THREE.Group();
-
-    if (currentWeapon === 1) {
-      // SWORD – BoxGeometry blade
-      var bladeGeo = new THREE.BoxGeometry(0.12, 0.9, 0.08);
-      var bladeMat = new THREE.MeshLambertMaterial({ color: 0xC0C0C0 });
-      var blade = new THREE.Mesh(bladeGeo, bladeMat);
-      blade.position.set(0.5, 1.0, 0.2);
-      wg.add(blade);
-      var guardGeo = new THREE.BoxGeometry(0.4, 0.1, 0.1);
-      var guard = new THREE.Mesh(guardGeo, new THREE.MeshLambertMaterial({ color: 0xFFD700 }));
-      guard.position.set(0.5, 0.6, 0.2);
-      wg.add(guard);
-    } else if (currentWeapon === 2) {
-      // TRIDENT – LineSegments + SphereGeometry tip
-      var tridentMat = new THREE.LineBasicMaterial({ color: 0x885500 });
-      var pts = [];
-      pts.push(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1.4, 0));
-      pts.push(new THREE.Vector3(-0.2, 1.1, 0), new THREE.Vector3(-0.2, 1.4, 0));
-      pts.push(new THREE.Vector3(0.2, 1.1, 0), new THREE.Vector3(0.2, 1.4, 0));
-      var tridentGeo = new THREE.BufferGeometry().setFromPoints(pts);
-      var tridentLine = new THREE.LineSegments(tridentGeo, tridentMat);
-      tridentLine.position.set(0.5, 0.5, 0.2);
-      wg.add(tridentLine);
-      var tipGeo = new THREE.SphereGeometry(0.08, 6, 6);
-      var tip = new THREE.Mesh(tipGeo, new THREE.MeshLambertMaterial({ color: 0xC0C0C0 }));
-      tip.position.set(0.5, 1.95, 0.2);
-      wg.add(tip);
-    } else if (currentWeapon === 3) {
-      // SHIELD + MACE
-      var shieldGeo = new THREE.BoxGeometry(0.1, 1.0, 0.7);
-      var shieldMesh = new THREE.Mesh(shieldGeo, new THREE.MeshLambertMaterial({ color: 0x8B0000 }));
-      shieldMesh.position.set(-0.55, 0.9, 0.1);
-      wg.add(shieldMesh);
-      var maceStickGeo = new THREE.BoxGeometry(0.1, 0.8, 0.1);
-      var maceStick = new THREE.Mesh(maceStickGeo, new THREE.MeshLambertMaterial({ color: 0x5C3A1E }));
-      maceStick.position.set(0.5, 0.9, 0.2);
-      wg.add(maceStick);
-      var maceHeadGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-      var maceHead = new THREE.Mesh(maceHeadGeo, new THREE.MeshLambertMaterial({ color: 0x888888 }));
-      maceHead.position.set(0.5, 1.35, 0.2);
-      wg.add(maceHead);
-    } else if (currentWeapon === 4) {
-      // BOW
-      var bowPts = [];
-      for (var bi = 0; bi <= 8; bi++) {
-        var ba = (bi / 8) * Math.PI;
-        bowPts.push(new THREE.Vector3(Math.cos(ba) * 0.4, Math.sin(ba) * 0.8, 0));
-      }
-      var bowGeo = new THREE.BufferGeometry().setFromPoints(bowPts);
-      var bowLine = new THREE.Line(bowGeo, new THREE.LineBasicMaterial({ color: 0x5C3A1E }));
-      bowLine.position.set(0.5, 0.6, 0.2);
-      wg.add(bowLine);
-      var stringPts = [new THREE.Vector3(0.9, 0.6, 0.2), new THREE.Vector3(0.1, 1.4, 0.2)];
-      var stringGeo = new THREE.BufferGeometry().setFromPoints(stringPts);
-      var stringLine = new THREE.Line(stringGeo, new THREE.LineBasicMaterial({ color: 0xDDDDDD }));
-      wg.add(stringLine);
-    }
-
-    parent.add(wg);
-    parent.userData.weaponGroup = wg;
-  }
-
-  // ─── Enemy spawning ──────────────────────────────────────────────────────────
-  function spawnWave(THREE, wave) {
-    enemies = [];
-    lion = null;
-    waveCleared = false;
-
-    var count = wave < 6 ? wave + 2 : 0; // wave 6 is boss only
-    var isBossWave = (wave === 6);
-
-    // Clear old enemies from scene
-    // (handled by removing mesh in killEnemy)
-
-    if (isBossWave) {
-      spawnBoss(THREE);
-      waveEnemiesLeft = 1;
-    } else {
-      for (var i = 0; i < count; i++) {
-        spawnEnemy(THREE, i, wave);
-      }
-      // Spawn lion on wave 3+
-      if (wave >= 3) {
-        spawnLion(THREE);
-      }
-      waveEnemiesLeft = count + (wave >= 3 ? 1 : 0);
-    }
-  }
-
-  function spawnEnemy(THREE, index, wave) {
-    var angle = (index / 6) * Math.PI * 2 + Math.random() * 0.5;
-    var spawnRadius = 20;
-    var ex = Math.cos(angle) * spawnRadius;
-    var ez = Math.sin(angle) * spawnRadius;
-
-    var scale = randRange(1.0, 1.3);
-    var hp = Math.floor(randRange(80, 200));
-    var weaponType = Math.floor(Math.random() * 4) + 1;
-    var speed = randRange(2.5, 4.5);
-
-    var group = new THREE.Group();
-
-    // Body
-    var bodyMat = new THREE.MeshLambertMaterial({ color: 0xC0392B });
-    var bodyGeo = new THREE.BoxGeometry(0.8 * scale, 1.4 * scale, 0.5 * scale);
-    var body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.7 * scale;
-    group.add(body);
-
-    // Head
-    var headGeo = new THREE.BoxGeometry(0.6 * scale, 0.6 * scale, 0.6 * scale);
-    var head = new THREE.Mesh(headGeo, new THREE.MeshLambertMaterial({ color: 0xFFE0BD }));
-    head.position.y = 1.7 * scale;
-    group.add(head);
-
-    // Helmet (varied colors)
-    var helmColors = [0x888888, 0xFFD700, 0x8B4513, 0x2F4F4F];
-    var helmGeo = new THREE.BoxGeometry(0.65 * scale, 0.35 * scale, 0.65 * scale);
-    var helm = new THREE.Mesh(helmGeo, new THREE.MeshLambertMaterial({ color: helmColors[index % helmColors.length] }));
-    helm.position.y = 2.12 * scale;
-    group.add(helm);
-
-    // Add weapon visual to enemy
-    addEnemyWeapon(THREE, group, weaponType, scale);
-
-    group.position.set(ex, 0, ez);
-    group.castShadow = true;
-    scene.add(group);
-
-    var enemyData = {
-      mesh: group,
-      hp: hp,
-      maxHp: hp,
-      scale: scale,
-      speed: speed,
-      weaponType: weaponType,
-      x: ex,
-      z: ez,
-      attackCooldown: randRange(1.5, 3.0),
-      attackTimer: 0,
-      snared: false,
-      snareTimer: 0,
-      downed: false,
-      dead: false,
-      isLion: false,
-      isBoss: false,
-      animPhase: Math.random() * Math.PI * 2
-    };
-
-    enemies.push(enemyData);
-  }
-
-  function addEnemyWeapon(THREE, group, weaponType, scale) {
-    var wg = new THREE.Group();
-    if (weaponType === 1) {
-      var bGeo = new THREE.BoxGeometry(0.12 * scale, 0.9 * scale, 0.08 * scale);
-      var blade = new THREE.Mesh(bGeo, new THREE.MeshLambertMaterial({ color: 0xAAAAAA }));
-      blade.position.set(0.5 * scale, 1.0 * scale, 0.2 * scale);
-      wg.add(blade);
-    } else if (weaponType === 2) {
-      var tGeo = new THREE.SphereGeometry(0.08 * scale, 4, 4);
-      var tip = new THREE.Mesh(tGeo, new THREE.MeshLambertMaterial({ color: 0x885500 }));
-      tip.position.set(0.5 * scale, 1.5 * scale, 0.2 * scale);
-      wg.add(tip);
-    } else if (weaponType === 3) {
-      var sGeo = new THREE.BoxGeometry(0.1 * scale, 0.9 * scale, 0.65 * scale);
-      var shield = new THREE.Mesh(sGeo, new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
-      shield.position.set(-0.5 * scale, 0.9 * scale, 0.1 * scale);
-      wg.add(shield);
-    } else if (weaponType === 4) {
-      var aGeo = new THREE.SphereGeometry(0.1 * scale, 4, 4);
-      var arrowTip = new THREE.Mesh(aGeo, new THREE.MeshLambertMaterial({ color: 0xC0C0C0 }));
-      arrowTip.position.set(0.5 * scale, 1.0 * scale, 0.2 * scale);
-      wg.add(arrowTip);
-    }
-    group.add(wg);
-  }
-
-  function spawnLion(THREE) {
-    var lionGroup = new THREE.Group();
-
-    // Body SphereGeometry r=1
-    var bodyGeo = new THREE.SphereGeometry(1, 10, 10);
-    var bodyMat = new THREE.MeshLambertMaterial({ color: 0xC8A04A });
-    var body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 1;
-    lionGroup.add(body);
-
-    // Mane BoxGeometry
-    var maneGeo = new THREE.BoxGeometry(1.8, 1.8, 1.0);
-    var maneMat = new THREE.MeshLambertMaterial({ color: 0x7B5E2A });
-    var mane = new THREE.Mesh(maneGeo, maneMat);
-    mane.position.set(0, 1.1, 0.3);
-    lionGroup.add(mane);
-
-    // Head
-    var headGeo = new THREE.BoxGeometry(0.7, 0.6, 0.7);
-    var headMesh = new THREE.Mesh(headGeo, bodyMat);
-    headMesh.position.set(0, 1.2, 0.9);
-    lionGroup.add(headMesh);
-
-    // Legs
-    var legMat = new THREE.MeshLambertMaterial({ color: 0xC8A04A });
-    var legPositions = [[-0.5, 0.3, -0.5], [0.5, 0.3, -0.5], [-0.5, 0.3, 0.3], [0.5, 0.3, 0.3]];
-    for (var li = 0; li < legPositions.length; li++) {
-      var legGeo = new THREE.BoxGeometry(0.3, 0.8, 0.3);
-      var leg = new THREE.Mesh(legGeo, legMat);
-      leg.position.set(legPositions[li][0], legPositions[li][1], legPositions[li][2]);
-      lionGroup.add(leg);
-    }
-
-    lionGroup.position.set(-18, 0, -18);
-    scene.add(lionGroup);
-
-    lion = {
-      mesh: lionGroup,
-      hp: 150,
-      maxHp: 150,
-      speed: 15,
-      x: -18,
-      z: -18,
-      downed: false,
-      dead: false,
-      stunned: false,
-      stunTimer: 0,
-      attackCooldown: 2.0,
-      attackTimer: 0,
-      isLion: true,
-      isBoss: false,
-      snared: false,
-      snareTimer: 0,
-      animPhase: 0
-    };
-    enemies.push(lion);
-  }
-
-  function spawnBoss(THREE) {
-    var group = new THREE.Group();
-    var sc = 1.5;
-
-    // Armored body layers
-    var bodyGeo = new THREE.BoxGeometry(0.9 * sc, 1.5 * sc, 0.6 * sc);
-    var body = new THREE.Mesh(bodyGeo, new THREE.MeshLambertMaterial({ color: 0x8B0000 }));
-    body.position.y = 0.75 * sc;
-    group.add(body);
-
-    // Chest armor
-    var chestGeo = new THREE.BoxGeometry(1.0 * sc, 0.9 * sc, 0.2 * sc);
-    var chest = new THREE.Mesh(chestGeo, new THREE.MeshLambertMaterial({ color: 0x2F2F2F }));
-    chest.position.set(0, 1.1 * sc, 0.35 * sc);
-    group.add(chest);
-
-    // Shoulder pads
-    var shoulGeo = new THREE.BoxGeometry(0.4 * sc, 0.35 * sc, 0.4 * sc);
-    var shoulMat = new THREE.MeshLambertMaterial({ color: 0x1A1A1A });
-    [-1, 1].forEach(function (side) {
-      var shoul = new THREE.Mesh(shoulGeo, shoulMat);
-      shoul.position.set(side * 0.7 * sc, 1.5 * sc, 0.05 * sc);
-      group.add(shoul);
-    });
-
-    // Head
-    var headGeo = new THREE.BoxGeometry(0.7 * sc, 0.7 * sc, 0.7 * sc);
-    var head = new THREE.Mesh(headGeo, new THREE.MeshLambertMaterial({ color: 0xFFE0BD }));
-    head.position.y = 2.0 * sc;
-    group.add(head);
-
-    // Full helmet
-    var helmGeo = new THREE.BoxGeometry(0.8 * sc, 0.8 * sc, 0.8 * sc);
-    var helm = new THREE.Mesh(helmGeo, new THREE.MeshLambertMaterial({ color: 0x8B0000 }));
-    helm.position.y = 2.45 * sc;
-    group.add(helm);
-
-    // Boss weapon (giant sword)
-    var bSwordGeo = new THREE.BoxGeometry(0.2 * sc, 1.4 * sc, 0.12 * sc);
-    var bSword = new THREE.Mesh(bSwordGeo, new THREE.MeshLambertMaterial({ color: 0xFF4444 }));
-    bSword.position.set(0.7 * sc, 1.5 * sc, 0.3 * sc);
-    group.add(bSword);
-
-    group.position.set(0, 0, -15);
-    scene.add(group);
-
-    var boss = {
-      mesh: group,
-      hp: 400,
-      maxHp: 400,
-      scale: sc,
-      speed: 4.5,
-      weaponType: 1,
-      x: 0,
-      z: -15,
-      attackCooldown: 1.2,
-      attackTimer: 0,
-      snared: false,
-      snareTimer: 0,
-      downed: false,
-      dead: false,
-      isLion: false,
-      isBoss: true,
-      animPhase: 0
-    };
-    enemies.push(boss);
-    bossEnemy = boss;
-  }
-
-  // ─── HUD ──────────────────────────────────────────────────────────────────────
-  function buildHUD() {
-    hudEl = document.createElement('div');
-    hudEl.id = 'gladiator-hud';
-    hudEl.style.cssText = [
-      'position:fixed',
-      'top:12px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'z-index:9100',
-      'font-family:monospace',
-      'font-size:14px',
-      'color:#FFD700',
-      'background:rgba(0,0,0,0.65)',
-      'padding:7px 18px',
-      'border:1px solid #8B7355',
-      'border-radius:4px',
-      'white-space:nowrap',
-      'text-shadow:1px 1px 0 #000',
-      'pointer-events:none'
-    ].join(';');
-    document.body.appendChild(hudEl);
-    updateHUD();
-  }
-
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  HUD
+  // ─────────────────────────────────────────────────────────────────────────────
   function updateHUD() {
     if (!hudEl) return;
-    var cs = crowdStatus;
-    var favor = Math.round(crowdFavor);
-    var wname = weaponNames[currentWeapon] || 'SWORD';
-    hudEl.textContent = 'ARENA [WAVE: ' + currentWave + '/' + totalWaves + '] [WEAPON: ' + wname + '] [FAVOR: ' + favor + '%] [HP: ' + Math.max(0, Math.round(playerHP)) + '] | CROWD: ' + cs;
+    var enemyHP = 0;
+    var i;
+    for (i = 0; i < enemies.length; i++) {
+      if (enemies[i].hp > 0) enemyHP += enemies[i].hp;
+    }
+    var netStr = netCooldown > 0 ? (netCooldown.toFixed(1) + 's') : 'READY';
+    var shieldStr = shieldEquipped ? 'YES' : 'NO';
+    hudEl.textContent =
+      'GLADIATOR ARENA [ROUND: ' + currentRound + '/5]' +
+      ' [ENEMY HP: ' + Math.ceil(enemyHP) + ']' +
+      ' [CROWD: ' + Math.round(crowdApproval) + '%]' +
+      ' [EMPEROR: ' + emperorMood() + ']' +
+      ' | NET: ' + netStr +
+      ' SHIELD: ' + shieldStr;
   }
 
-  // ─── Input handling ───────────────────────────────────────────────────────────
-  function onKeyDown(e) {
-    var k = e.key.toLowerCase();
+  function showMsg(txt, dur) {
+    if (!msgEl) return;
+    msgEl.textContent = txt;
+    msgEl.style.opacity = '1';
+    if (dur) {
+      setTimeout(function () { if (msgEl) msgEl.style.opacity = '0'; }, dur * 1000);
+    }
+  }
 
-    if (!active) {
-      if (k === 'g') { keysDown['g'] = true; gDownAt = Date.now(); }
-      if (k === 'a') { keysDown['a'] = true; aDownAt = Date.now(); }
-      checkActivation();
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  SCENE SETUP
+  // ─────────────────────────────────────────────────────────────────────────────
+  function buildScene() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x88AACC);
+    scene.fog = new THREE.Fog(0x88AACC, 40, 90);
+
+    var ambient = new THREE.AmbientLight(0xFFDDAA, 0.6);
+    scene.add(ambient);
+    var sun = new THREE.DirectionalLight(0xFFEECC, 1.0);
+    sun.position.set(10, 20, 10);
+    scene.add(sun);
+
+    dodgeLight = new THREE.PointLight(0xFFCC44, 0, 20);
+    dodgeLight.position.set(0, 6, 0);
+    scene.add(dodgeLight);
+
+    buildArena();
+    buildCrowd();
+    buildEmperorBox();
+    buildGladiatorGate();
+    buildWeaponPickups();
+    buildPlayer();
+  }
+
+  function buildArena() {
+    var floorGeo = new THREE.PlaneGeometry(40, 40);
+    var floorMat = new THREE.MeshLambertMaterial({ color: 0xDDBB88 });
+    var floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
+
+    var wallMat = new THREE.MeshLambertMaterial({ color: 0x887755 });
+    var nw = new THREE.Mesh(new THREE.BoxGeometry(50, 6, 2), wallMat);
+    nw.position.set(0, 3, -21);
+    scene.add(nw);
+    var sw = new THREE.Mesh(new THREE.BoxGeometry(50, 6, 2), wallMat);
+    sw.position.set(0, 3, 21);
+    scene.add(sw);
+    var ew = new THREE.Mesh(new THREE.BoxGeometry(2, 6, 40), wallMat);
+    ew.position.set(21, 3, 0);
+    scene.add(ew);
+    var ww = new THREE.Mesh(new THREE.BoxGeometry(2, 6, 40), wallMat);
+    ww.position.set(-21, 3, 0);
+    scene.add(ww);
+
+    // 8 arch LineSegments around perimeter
+    var archMat = new THREE.LineBasicMaterial({ color: 0xCCAA66 });
+    var archPositions = [
+      [-10, 21, false], [0, 21, false], [10, 21, false],
+      [-10, -21, false], [0, -21, false], [10, -21, false],
+      [-21, 0, true], [21, 0, true]
+    ];
+    var ai;
+    for (ai = 0; ai < archPositions.length; ai++) {
+      var ap = archPositions[ai];
+      var pts = new Float32Array([
+        -1.5, 0, 0,  -1.5, 4, 0,
+         1.5, 0, 0,   1.5, 4, 0,
+        -1.5, 4, 0,   0,   5.5, 0,
+         0,   5.5, 0, 1.5, 4, 0
+      ]);
+      var archGeo = new THREE.BufferGeometry();
+      archGeo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
+      var archLine = new THREE.LineSegments(archGeo, archMat);
+      archLine.position.set(ap[0], 0, ap[1]);
+      if (ap[2]) archLine.rotation.y = Math.PI / 2;
+      scene.add(archLine);
+    }
+
+    // Stand tiers
+    var standMat = new THREE.MeshLambertMaterial({ color: 0x998866 });
+    var ns1 = new THREE.Mesh(new THREE.BoxGeometry(50, 3, 8), standMat);
+    ns1.position.set(0, 1.5, -27);
+    scene.add(ns1);
+    var ns2 = new THREE.Mesh(new THREE.BoxGeometry(50, 3, 6), standMat);
+    ns2.position.set(0, 4.5, -31);
+    scene.add(ns2);
+    var ss1 = new THREE.Mesh(new THREE.BoxGeometry(50, 3, 8), standMat);
+    ss1.position.set(0, 1.5, 27);
+    scene.add(ss1);
+    var ss2 = new THREE.Mesh(new THREE.BoxGeometry(50, 3, 6), standMat);
+    ss2.position.set(0, 4.5, 31);
+    scene.add(ss2);
+    var es1 = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 40), standMat);
+    es1.position.set(27, 1.5, 0);
+    scene.add(es1);
+    var es2 = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 40), standMat);
+    es2.position.set(31, 4.5, 0);
+    scene.add(es2);
+    var ws1 = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 40), standMat);
+    ws1.position.set(-27, 1.5, 0);
+    scene.add(ws1);
+    var ws2 = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 40), standMat);
+    ws2.position.set(-31, 4.5, 0);
+    scene.add(ws2);
+  }
+
+  function buildCrowd() {
+    var crowdColors = [0x884422, 0x448822, 0x6666AA, 0xAA5533, 0x336644];
+    var positions = [];
+    var i;
+    for (i = -22; i <= 22; i += 2.2) {
+      positions.push([i, 3.5, -25.5]);
+      positions.push([i, 6.5, -30.0]);
+    }
+    for (i = -22; i <= 22; i += 2.2) {
+      positions.push([i, 3.5, 25.5]);
+      positions.push([i, 6.5, 30.0]);
+    }
+    for (i = -18; i <= 18; i += 2.2) {
+      positions.push([25.5, 3.5, i]);
+      positions.push([30.0, 6.5, i]);
+      positions.push([-25.5, 3.5, i]);
+      positions.push([-30.0, 6.5, i]);
+    }
+    while (positions.length > 200) positions.pop();
+
+    for (i = 0; i < positions.length; i++) {
+      var col = crowdColors[Math.floor(Math.random() * crowdColors.length)];
+      var bodyGeo = new THREE.BoxGeometry(0.8, 1.2, 0.6);
+      var bodyMat = new THREE.MeshLambertMaterial({ color: col });
+      var body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.set(positions[i][0], positions[i][1] + 0.6, positions[i][2]);
+      scene.add(body);
+      var headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+      var headMat = new THREE.MeshLambertMaterial({ color: 0xDDB899 });
+      var head = new THREE.Mesh(headGeo, headMat);
+      head.position.set(positions[i][0], positions[i][1] + 1.55, positions[i][2]);
+      scene.add(head);
+      crowdBlocks.push({ body: body, head: head, baseY: positions[i][1] + 0.6, phase: Math.random() * Math.PI * 2 });
+    }
+  }
+
+  function buildEmperorBox() {
+    var platMat = new THREE.MeshLambertMaterial({ color: 0xFFDD44 });
+    var plat = new THREE.Mesh(new THREE.BoxGeometry(8, 1, 5), platMat);
+    plat.position.set(0, 7, -28);
+    scene.add(plat);
+
+    var throneMat = new THREE.MeshLambertMaterial({ color: 0xCC9900 });
+    var throne = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3, 1), throneMat);
+    throne.position.set(0, 9, -30);
+    scene.add(throne);
+
+    var empMat = new THREE.MeshLambertMaterial({ color: 0x552222 });
+    emperorMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2, 0.8), empMat);
+    emperorMesh.position.set(0, 9, -29);
+    scene.add(emperorMesh);
+
+    var empHeadMat = new THREE.MeshLambertMaterial({ color: 0xDDAA88 });
+    var empHead = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), empHeadMat);
+    empHead.position.set(0, 10.5, -29);
+    scene.add(empHead);
+
+    var crownMat = new THREE.MeshLambertMaterial({ color: 0xFFCC00 });
+    var crown = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.5, 8), crownMat);
+    crown.position.set(0, 11.05, -29);
+    scene.add(crown);
+
+    var thumbMat = new THREE.MeshLambertMaterial({ color: 0xDDDDDD });
+    emperorThumbMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.9, 0.3), thumbMat);
+    emperorThumbMesh.position.set(0.9, 9.5, -28.8);
+    scene.add(emperorThumbMesh);
+  }
+
+  function buildGladiatorGate() {
+    var frameMat = new THREE.MeshLambertMaterial({ color: 0x554433 });
+    var frameL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6, 0.5), frameMat);
+    frameL.position.set(-3, 3, 20.5);
+    scene.add(frameL);
+    var frameR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6, 0.5), frameMat);
+    frameR.position.set(3, 3, 20.5);
+    scene.add(frameR);
+    var frameTop = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.5, 0.5), frameMat);
+    frameTop.position.set(0, 6.25, 20.5);
+    scene.add(frameTop);
+
+    // Portcullis bars as LineSegments
+    var barPtsArr = [
+      -2.5, 0, 0,  -2.5, 6, 0,
+      -1.5, 0, 0,  -1.5, 6, 0,
+      -0.5, 0, 0,  -0.5, 6, 0,
+       0.5, 0, 0,   0.5, 6, 0,
+       1.5, 0, 0,   1.5, 6, 0,
+       2.5, 0, 0,   2.5, 6, 0,
+      -2.8, 1.5, 0, 2.8, 1.5, 0,
+      -2.8, 3.5, 0, 2.8, 3.5, 0,
+      -2.8, 5.5, 0, 2.8, 5.5, 0
+    ];
+    var barGeo = new THREE.BufferGeometry();
+    barGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(barPtsArr), 3));
+    var barMat = new THREE.LineBasicMaterial({ color: 0x443322 });
+    portcullisMesh = new THREE.LineSegments(barGeo, barMat);
+    portcullisMesh.position.set(0, 0, 20.5);
+    scene.add(portcullisMesh);
+
+    // Cage door for lion (west side)
+    var cagePtsArr = [
+      -1.5, 0, 0, -1.5, 3, 0,
+      -0.75, 0, 0, -0.75, 3, 0,
+       0, 0, 0,  0, 3, 0,
+       0.75, 0, 0,  0.75, 3, 0,
+       1.5, 0, 0,  1.5, 3, 0,
+      -1.8, 1, 0, 1.8, 1, 0,
+      -1.8, 2, 0, 1.8, 2, 0
+    ];
+    var cageGeo = new THREE.BufferGeometry();
+    cageGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(cagePtsArr), 3));
+    var cageMat = new THREE.LineBasicMaterial({ color: 0x665544 });
+    cageDoor = new THREE.LineSegments(cageGeo, cageMat);
+    cageDoor.position.set(-20, 0, -5);
+    cageDoor.rotation.y = Math.PI / 2;
+    scene.add(cageDoor);
+  }
+
+  function buildWeaponPickups() {
+    spawnPickup('gladius',  5, 0,  5);
+    spawnPickup('net',     -6, 0,  3);
+    spawnPickup('trident',  8, 0, -4);
+    spawnPickup('shield',  -8, 0, -6);
+  }
+
+  function spawnPickup(type, x, y, z) {
+    var mesh;
+    if (type === 'gladius') {
+      mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 1.0, 0.15),
+        new THREE.MeshLambertMaterial({ color: 0xCCCCCC })
+      );
+    } else if (type === 'net') {
+      mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.6, 0.5, 0.15, 8),
+        new THREE.MeshLambertMaterial({ color: 0xCC8833 })
+      );
+    } else if (type === 'trident') {
+      var tPts = new Float32Array([
+        0, 0, 0,  0, 1.4, 0,
+        -0.3, 1.4, 0, -0.3, 2.0, 0,
+         0.0, 1.4, 0,  0.0, 2.0, 0,
+         0.3, 1.4, 0,  0.3, 2.0, 0,
+        -0.3, 1.0, 0,  0.3, 1.0, 0
+      ]);
+      var tGeo = new THREE.BufferGeometry();
+      tGeo.setAttribute('position', new THREE.BufferAttribute(tPts, 3));
+      mesh = new THREE.LineSegments(tGeo, new THREE.LineBasicMaterial({ color: 0xAAAAAA }));
+    } else {
+      mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 1.1, 0.12),
+        new THREE.MeshLambertMaterial({ color: 0x886633 })
+      );
+    }
+    mesh.position.set(x, y + 0.5, z);
+    scene.add(mesh);
+    pickups.push({ type: type, mesh: mesh, pos: { x: x, y: y + 0.5, z: z }, active: true });
+  }
+
+  function buildPlayer() {
+    playerMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 1.6, 0.6),
+      new THREE.MeshLambertMaterial({ color: 0xCC9966 })
+    );
+    playerMesh.position.set(playerPos.x, playerPos.y + 0.8, playerPos.z);
+    scene.add(playerMesh);
+
+    playerWeaponMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.8, 0.08),
+      new THREE.MeshLambertMaterial({ color: 0xCCCCCC })
+    );
+    playerWeaponMesh.position.set(playerPos.x + 0.55, playerPos.y + 1.0, playerPos.z);
+    scene.add(playerWeaponMesh);
+
+    playerShieldMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 1.1, 0.12),
+      new THREE.MeshLambertMaterial({ color: 0x886633 })
+    );
+    playerShieldMesh.position.set(playerPos.x - 0.65, playerPos.y + 0.9, playerPos.z);
+    playerShieldMesh.visible = false;
+    scene.add(playerShieldMesh);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  ROUND SETUP
+  // ─────────────────────────────────────────────────────────────────────────────
+  var ENEMY_DEFS = {
+    retiarius:   { hp: 80,  speed: 2.5, damage: 35, attackRange: 3.2, cooldown: 0.9, color: 0x335599, armor: 0,   name: 'Retiarius' },
+    secutor:     { hp: 120, speed: 2.0, damage: 45, attackRange: 2.5, cooldown: 0.8, color: 0x884444, armor: 0,   name: 'Secutor' },
+    dimachaerus: { hp: 80,  speed: 3.0, damage: 40, attackRange: 2.2, cooldown: 0.7, color: 0x664422, armor: 0,   name: 'Dimachaerus' },
+    murmillo:    { hp: 200, speed: 1.5, damage: 55, attackRange: 2.8, cooldown: 1.0, color: 0x445566, armor: 0.5, name: 'Murmillo' },
+    champion:    { hp: 400, speed: 2.2, damage: 65, attackRange: 3.0, cooldown: 0.7, color: 0x883333, armor: 0.2, name: 'Champion Maximus' }
+  };
+
+  function startRound(roundNum) {
+    currentRound = roundNum;
+    roundActive = true;
+    clearEnemies();
+
+    portcullisOpen = true;
+    portcullisTimer = 2.0;
+    portcullisMesh.position.y = 0;
+
+    if (roundNum === 4) spawnChariot();
+
+    if (roundNum === 1) {
+      spawnEnemy('retiarius', -5, 0, -8);
+    } else if (roundNum === 2) {
+      spawnEnemy('secutor', 0, 0, -8);
+    } else if (roundNum === 3) {
+      spawnEnemy('dimachaerus', -4, 0, -8);
+      spawnEnemy('dimachaerus',  4, 0, -8);
+    } else if (roundNum === 4) {
+      spawnEnemy('murmillo', 0, 0, -8);
+    } else if (roundNum === 5) {
+      spawnEnemy('champion', 0, 0, -8);
+    }
+
+    if (roundNum % 2 === 0) spawnLion();
+
+    showMsg('ROUND ' + roundNum + ' - BEGIN!', 2.5);
+    playBeep(880, 0.3);
+  }
+
+  function clearEnemies() {
+    var i;
+    for (i = 0; i < enemies.length; i++) {
+      if (enemies[i].mesh) scene.remove(enemies[i].mesh);
+      if (enemies[i].weaponMesh) scene.remove(enemies[i].weaponMesh);
+      if (enemies[i].netOverlay) scene.remove(enemies[i].netOverlay);
+    }
+    enemies = [];
+    if (lionMesh) { scene.remove(lionMesh); lionMesh = null; }
+    lionActive = false;
+    if (chariot) { scene.remove(chariot); chariot = null; }
+    chariotActive = false;
+  }
+
+  function spawnEnemy(type, x, y, z) {
+    var def = ENEMY_DEFS[type];
+    var mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 1.7, 0.7),
+      new THREE.MeshLambertMaterial({ color: def.color })
+    );
+    mesh.position.set(x, y + 0.85, z);
+    scene.add(mesh);
+
+    var wepMesh = makeEnemyWeaponMesh(type);
+    wepMesh.position.set(x + 0.6, y + 1.0, z);
+    scene.add(wepMesh);
+
+    var enemy = {
+      type: type,
+      hp: def.hp,
+      maxHp: def.hp,
+      speed: def.speed,
+      damage: def.damage,
+      attackRange: def.attackRange,
+      cooldown: def.cooldown,
+      attackTimer: randRange(0.3, 1.0),
+      armor: def.armor || 0,
+      name: def.name,
+      pos: { x: x, y: y + 0.85, z: z },
+      mesh: mesh,
+      weaponMesh: wepMesh,
+      netted: false,
+      nettedTimer: 0,
+      netOverlay: null,
+      pinnedTimer: 0,
+      defeated: false,
+      aiState: 'advance'
+    };
+    enemies.push(enemy);
+    return enemy;
+  }
+
+  function makeEnemyWeaponMesh(type) {
+    if (type === 'retiarius') {
+      return new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 1.5, 6),
+        new THREE.MeshLambertMaterial({ color: 0xAAAAAA })
+      );
+    }
+    if (type === 'champion') {
+      var pts = new Float32Array([
+        0, 0, 0, 0, 1.6, 0,
+        -0.3, 1.6, 0, -0.3, 2.1, 0,
+         0,   1.6, 0,  0,   2.1, 0,
+         0.3, 1.6, 0,  0.3, 2.1, 0
+      ]);
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
+      return new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xDDDDDD }));
+    }
+    return new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, 0.9, 0.1),
+      new THREE.MeshLambertMaterial({ color: 0xCCCCCC })
+    );
+  }
+
+  function spawnLion() {
+    lionHP = 60;
+    lionActive = true;
+    lionPos = { x: -18, y: 0.5, z: -14 };
+    lionAttackCooldown = 1.5;
+    cageDoorOpen = false;
+    if (cageDoor) cageDoor.visible = true;
+    lionMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.55, 1.6, 8),
+      new THREE.MeshLambertMaterial({ color: 0xCC8833 })
+    );
+    lionMesh.rotation.x = Math.PI / 2;
+    lionMesh.position.set(lionPos.x, 0.8, lionPos.z);
+    scene.add(lionMesh);
+    setTimeout(function () {
+      cageDoorOpen = true;
+      if (cageDoor) cageDoor.visible = false;
+    }, 3000);
+    showMsg('A LION ENTERS THE ARENA!', 2.0);
+  }
+
+  function spawnChariot() {
+    chariotActive = true;
+    chariotLaps = 0;
+    chariotAngle = 0;
+    chariot = new THREE.Mesh(
+      new THREE.BoxGeometry(2.5, 1.2, 1.5),
+      new THREE.MeshLambertMaterial({ color: 0xCC8833 })
+    );
+    chariot.position.set(16, 0.6, 0);
+    scene.add(chariot);
+    showMsg('CHARIOT ENTERS! DODGE OR DIE!', 2.5);
+    playBeep(440, 0.5);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  PLAYER ATTACK
+  // ─────────────────────────────────────────────────────────────────────────────
+  function playerAttack() {
+    if (gameOver || gameWon || !roundActive) return;
+    var damage, range, cooldownTime;
+
+    if (equippedWeapon === 'net') {
+      if (netCooldown > 0) {
+        showMsg('NET RECHARGING: ' + netCooldown.toFixed(1) + 's', 1.0);
+        return;
+      }
+      throwNet();
+      netCooldown = NET_COOLDOWN;
+      attackCooldown = 0.5;
       return;
     }
 
-    keysDown[k] = true;
-
-    // Weapon select
-    if (k === '1') { currentWeapon = 1; buildWeaponVisual(window.THREE, playerMesh); updateHUD(); }
-    if (k === '2') { currentWeapon = 2; buildWeaponVisual(window.THREE, playerMesh); updateHUD(); }
-    if (k === '3') { currentWeapon = 3; buildWeaponVisual(window.THREE, playerMesh); updateHUD(); }
-    if (k === '4') { currentWeapon = 4; buildWeaponVisual(window.THREE, playerMesh); updateHUD(); }
-
-    // Net throw
-    if (k === 'n' && netCooldown <= 0) {
-      throwNet();
+    if (equippedWeapon === 'gladius') {
+      damage = 40; range = 2.0; cooldownTime = 0.3;
+    } else if (equippedWeapon === 'trident') {
+      damage = 60; range = 3.0; cooldownTime = 0.5;
+    } else {
+      damage = 20; range = 1.5; cooldownTime = 0.4;
     }
 
-    // Combat roll CTRL
-    if ((k === 'control') && rollCooldown <= 0 && !rollActive) {
-      startRoll();
+    if (attackCooldown > 0) return;
+    attackCooldown = cooldownTime;
+    lastSwingTime = clock.last;
+
+    var i, e, d, dmg;
+    var hit = false;
+    for (i = 0; i < enemies.length; i++) {
+      e = enemies[i];
+      if (e.hp <= 0) continue;
+      d = dist2d(playerPos, e.pos);
+      if (d <= range) {
+        dmg = damage;
+        if (e.netted) dmg *= 2;
+        dmg *= (1 - (e.armor || 0));
+        e.hp -= dmg;
+        setCrowdApproval(5);
+        hit = true;
+        playBeep(660, 0.15);
+
+        if (equippedWeapon === 'trident') {
+          var ep = Math.sqrt(e.pos.x * e.pos.x + e.pos.z * e.pos.z);
+          if (ep > 17) {
+            e.pinnedTimer = 3.0;
+            e.aiState = 'pinned';
+            showMsg('PINNED TO THE WALL!', 1.5);
+          }
+        }
+
+        if (e.hp <= 0) killEnemy(e);
+      }
     }
 
-    // Execution E
-    if (k === 'e') {
-      tryExecution();
+    if (lionActive && lionMesh) {
+      d = dist2d(playerPos, lionPos);
+      if (d <= range) {
+        lionHP -= damage;
+        hit = true;
+        setCrowdApproval(3);
+        if (lionHP <= 0) killLion();
+      }
     }
 
-    // Attack space / click
-    if (k === ' ') {
-      e.preventDefault();
-      doAttack();
-    }
-
-    // Escape to deactivate
-    if (k === 'escape') {
-      deactivate();
+    if (hit && playerWeaponMesh) {
+      playerWeaponMesh.rotation.z = Math.PI / 3;
+      setTimeout(function () { if (playerWeaponMesh) playerWeaponMesh.rotation.z = 0; }, 200);
     }
   }
 
-  function onKeyUp(e) {
-    var k = e.key.toLowerCase();
-    keysDown[k] = false;
-    if (!active) {
-      if (k === 'g') keysDown['g'] = false;
-      if (k === 'a') keysDown['a'] = false;
+  function throwNet() {
+    var netMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
+      new THREE.MeshLambertMaterial({ color: 0xCC8833, wireframe: true })
+    );
+    netMesh.position.set(playerPos.x, 1.0, playerPos.z);
+    scene.add(netMesh);
+    projectiles.push({
+      type: 'net',
+      mesh: netMesh,
+      pos: { x: playerPos.x, y: 1.0, z: playerPos.z },
+      dir: { x: -moveDir.x, z: -moveDir.z },
+      speed: 14,
+      life: 1.5,
+      active: true
+    });
+    playBeep(330, 0.3);
+    showMsg('NET THROWN!', 1.0);
+  }
+
+  function killEnemy(e) {
+    e.hp = 0;
+    e.defeated = true;
+    setCrowdApproval(15);
+    score += 100;
+    playBeep(550, 0.4);
+    mercyKillPending = true;
+    mercyKillTimer = 3.0;
+    showMsg('ENEMY DEFEATED! [M] MERCY | [K] KILL', 3.0);
+  }
+
+  function killLion() {
+    lionActive = false;
+    if (lionMesh) { scene.remove(lionMesh); lionMesh = null; }
+    setCrowdApproval(10);
+    score += 150;
+    showMsg('LION SLAIN!', 1.5);
+    playBeep(440, 0.3);
+  }
+
+  function executeMercy() {
+    if (!mercyKillPending) return;
+    mercyKillPending = false;
+    if (crowdApproval > 70) {
+      showEmperorThumb('up');
+      score += 200;
+      showMsg('EMPEROR GRANTS MERCY! +200 SCORE!', 2.5);
+      playBeep(880, 0.5);
+      finishRound();
+    } else if (crowdApproval < 30) {
+      showEmperorThumb('down');
+      showMsg('EMPEROR DEMANDS BLOOD! ENEMY REVIVED!', 2.5);
+      playBeep(220, 0.6);
+      var i;
+      for (i = enemies.length - 1; i >= 0; i--) {
+        if (enemies[i].defeated) {
+          enemies[i].hp = enemies[i].maxHp * 0.5;
+          enemies[i].defeated = false;
+          enemies[i].aiState = 'advance';
+          break;
+        }
+      }
+    } else {
+      showEmperorThumb('neutral');
+      showMsg('EMPEROR IS UNMOVED. FINISH IT!', 2.0);
     }
   }
 
-  function onMouseDown(e) {
-    if (!active) return;
-    if (e.button === 0) doAttack();
+  function executeKill() {
+    if (!mercyKillPending) return;
+    mercyKillPending = false;
+    setCrowdApproval(-5);
+    score += 50;
+    showMsg('DEATH BLOW!', 1.5);
+    finishRound();
   }
 
-  function checkActivation() {
-    if (keysDown['g'] && keysDown['a']) {
-      var now = Date.now();
-      if (Math.abs(gDownAt - aDownAt) <= ACTIVATION_WINDOW) {
-        activate();
+  function showEmperorThumb(state) {
+    emperorThumbState = state;
+    emperorThumbTimer = 4.0;
+    if (!emperorThumbMesh) return;
+    if (state === 'up') {
+      emperorThumbMesh.material.color.setHex(0x44FF44);
+      emperorThumbMesh.rotation.z = -Math.PI / 4;
+    } else if (state === 'down') {
+      emperorThumbMesh.material.color.setHex(0xFF4444);
+      emperorThumbMesh.rotation.z = Math.PI / 4;
+    } else {
+      emperorThumbMesh.material.color.setHex(0xDDDDDD);
+      emperorThumbMesh.rotation.z = 0;
+    }
+  }
+
+  function finishRound() {
+    roundActive = false;
+    mercyKillPending = false;
+    var i;
+    for (i = 0; i < enemies.length; i++) {
+      if (enemies[i].mesh) scene.remove(enemies[i].mesh);
+      if (enemies[i].weaponMesh) scene.remove(enemies[i].weaponMesh);
+      if (enemies[i].netOverlay) scene.remove(enemies[i].netOverlay);
+    }
+    enemies = [];
+    if (lionMesh) { scene.remove(lionMesh); lionMesh = null; }
+    lionActive = false;
+
+    if (currentRound >= totalRounds) {
+      gameWon = true;
+      showMsg('VICTORY! YOU HAVE EARNED YOUR FREEDOM! SCORE: ' + score, 0);
+      if (hudEl) hudEl.textContent = '-- CHAMPION OF ROME --';
+      playBeep(880, 0.2);
+      setTimeout(function () { playBeep(1100, 0.2); }, 250);
+      setTimeout(function () { playBeep(1320, 0.4); }, 500);
+      return;
+    }
+
+    roundTransitionActive = true;
+    roundTransitionTimer = 3.0;
+    showMsg('ROUND ' + currentRound + ' COMPLETE! Prepare for Round ' + (currentRound + 1) + '...', 3.0);
+
+    if (crowdApproval > 75 && !giftActive) {
+      setTimeout(function () { spawnCrowdGift(); }, 2000);
+    }
+  }
+
+  function spawnCrowdGift() {
+    if (giftActive) return;
+    giftActive = true;
+    var gx = randRange(-8, 8);
+    var gz = randRange(-8, 8);
+    giftPos = { x: gx, y: 0.5, z: gz };
+    giftMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 0.6, 0.6),
+      new THREE.MeshLambertMaterial({ color: 0xFFCC00 })
+    );
+    giftMesh.position.set(gx, 0.5, gz);
+    scene.add(giftMesh);
+    showMsg('THE CROWD THROWS A WEAPON GIFT!', 2.0);
+    playBeep(660, 0.2);
+    setTimeout(function () { playBeep(880, 0.2); }, 200);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  ENEMY AI
+  // ─────────────────────────────────────────────────────────────────────────────
+  function updateEnemies(dt) {
+    var i, e, dx, dz, dist, speed, nx, nz;
+    for (i = 0; i < enemies.length; i++) {
+      e = enemies[i];
+      if (e.hp <= 0) continue;
+
+      if (e.netted) {
+        e.nettedTimer -= dt;
+        if (e.nettedTimer <= 0) {
+          e.netted = false;
+          if (e.netOverlay) { scene.remove(e.netOverlay); e.netOverlay = null; }
+        }
+      }
+
+      if (e.pinnedTimer > 0) {
+        e.pinnedTimer -= dt;
+        e.aiState = 'pinned';
+        if (e.pinnedTimer <= 0) e.aiState = 'advance';
+      }
+
+      if (e.aiState === 'pinned') continue;
+
+      dx = playerPos.x - e.pos.x;
+      dz = playerPos.z - e.pos.z;
+      dist = Math.sqrt(dx * dx + dz * dz);
+      speed = e.speed * (e.netted ? 0.3 : 1.0);
+
+      if (dist > e.attackRange) {
+        nx = dx / dist;
+        nz = dz / dist;
+        e.pos.x += nx * speed * dt;
+        e.pos.z += nz * speed * dt;
+        e.aiState = 'advance';
+      } else {
+        e.attackTimer -= dt;
+        if (e.attackTimer <= 0) {
+          e.attackTimer = e.cooldown;
+          enemyAttack(e, dist);
+        }
+      }
+
+      // Keep in bounds
+      var eRad = Math.sqrt(e.pos.x * e.pos.x + e.pos.z * e.pos.z);
+      if (eRad > 19) {
+        e.pos.x *= 18 / eRad;
+        e.pos.z *= 18 / eRad;
+      }
+
+      if (e.mesh) {
+        e.mesh.position.set(e.pos.x, 0.85, e.pos.z);
+        e.mesh.rotation.y = Math.atan2(dx, dz);
+      }
+      if (e.weaponMesh) {
+        e.weaponMesh.position.set(e.pos.x + 0.6, 1.0, e.pos.z);
+      }
+      if (e.netOverlay) {
+        e.netOverlay.position.set(e.pos.x, 1.0, e.pos.z);
       }
     }
   }
 
-  // ─── Activate / Deactivate ────────────────────────────────────────────────────
-  function activate() {
-    if (active) return;
-    active = true;
-    initAudio();
-    if (!buildScene()) {
-      active = false;
+  function enemyAttack(e, dist) {
+    if (dist > e.attackRange + 0.5) return;
+
+    var dmg = e.damage;
+
+    if (shieldEquipped) {
+      var fwdX = camera ? -Math.sin(camera.rotation.y) : 0;
+      var fwdZ = camera ? -Math.cos(camera.rotation.y) : 0;
+      var ex = e.pos.x - playerPos.x;
+      var ez = e.pos.z - playerPos.z;
+      var dot = fwdX * ex + fwdZ * ez;
+      if (dot < 0) dmg *= 0.3;
+    }
+
+    if (dodgeDetected) {
+      setCrowdApproval(8);
+      triggerDodgeLight();
+      showMsg('DODGE! CROWD GOES WILD!', 1.0);
+      dodgeDetected = false;
       return;
     }
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('resize', onResize);
-    clock.last = performance.now();
-    animFrameId = requestAnimationFrame(gameLoop);
-    playCrowdRoar();
-  }
 
-  function deactivate() {
-    if (!active) return;
-    active = false;
-    if (animFrameId) cancelAnimationFrame(animFrameId);
-    if (renderer) {
-      renderer.domElement.parentNode && renderer.domElement.parentNode.removeChild(renderer.domElement);
-      renderer.dispose();
-      renderer = null;
+    playerHP -= dmg;
+    setCrowdApproval(-10);
+    playBeep(220, 0.2);
+
+    if (playerHP <= 0) {
+      playerHP = 0;
+      gameOver = true;
+      roundActive = false;
+      showMsg('YOU HAVE FALLEN. GAME OVER. Score: ' + score, 0);
+      if (hudEl) hudEl.textContent = '-- DEFEATED IN THE ARENA --';
+      playBeep(110, 1.0);
     }
-    if (hudEl) { hudEl.parentNode && hudEl.parentNode.removeChild(hudEl); hudEl = null; }
-    window.removeEventListener('keydown', onKeyDown);
-    window.removeEventListener('keyup', onKeyUp);
-    window.removeEventListener('mousedown', onMouseDown);
-    window.removeEventListener('resize', onResize);
-    // Reset state
-    enemies = [];
-    projectiles = [];
-    netObjects = [];
-    arrowObjects = [];
-    crowdFigures = [];
-    gateObjects = [];
-    pickupObjects = [];
-    lion = null;
-    playerHP = 100;
-    crowdFavor = 50;
-    currentWave = 1;
-    currentWeapon = 1;
-    gameOver = false;
-    gameWon = false;
-    playerPos = { x: 0, y: 0, z: 10 };
-    rollCooldown = 0;
-    rollActive = false;
-    netCooldown = 0;
-    comboBonusMult = 1;
-    comboTimer = 0;
-    waveEnemiesLeft = 0;
-    bossEnemy = null;
-    scene = null;
-    camera = null;
-    playerMesh = null;
-    crowdStatus = 'CHEERING';
-    keysDown = {};
   }
 
-  function onResize() {
-    if (!renderer || !camera) return;
+  function triggerDodgeLight() {
+    if (!dodgeLight) return;
+    dodgeLight.intensity = 3.0;
+    dodgeLightTimer = 0.6;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  LION AI
+  // ─────────────────────────────────────────────────────────────────────────────
+  function updateLion(dt) {
+    if (!lionActive || !lionMesh || !cageDoorOpen) return;
+
+    var dx = playerPos.x - lionPos.x;
+    var dz = playerPos.z - lionPos.z;
+    var dist = Math.sqrt(dx * dx + dz * dz);
+    var lionSpeed = 5.5;
+
+    if (dist > 1.6) {
+      lionPos.x += (dx / dist) * lionSpeed * dt;
+      lionPos.z += (dz / dist) * lionSpeed * dt;
+    } else {
+      lionAttackCooldown -= dt;
+      if (lionAttackCooldown <= 0) {
+        lionAttackCooldown = 1.2;
+        playerHP -= 30;
+        setCrowdApproval(-8);
+        playBeep(180, 0.25);
+        if (playerHP <= 0) {
+          playerHP = 0;
+          gameOver = true;
+          roundActive = false;
+          showMsg('MAULED BY THE LION. GAME OVER. Score: ' + score, 0);
+          if (hudEl) hudEl.textContent = '-- DEFEATED IN THE ARENA --';
+        }
+      }
+    }
+
+    var lRad = Math.sqrt(lionPos.x * lionPos.x + lionPos.z * lionPos.z);
+    if (lRad > 19) { lionPos.x *= 18 / lRad; lionPos.z *= 18 / lRad; }
+
+    lionMesh.position.set(lionPos.x, 0.8, lionPos.z);
+    lionMesh.rotation.y = Math.atan2(dx, dz) + Math.PI / 2;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  CHARIOT
+  // ─────────────────────────────────────────────────────────────────────────────
+  function updateChariot(dt) {
+    if (!chariotActive || !chariot) return;
+    chariotAngle += dt * 1.8;
+    chariot.position.x = Math.cos(chariotAngle) * 14;
+    chariot.position.z = Math.sin(chariotAngle) * 10;
+    chariot.rotation.y = -chariotAngle - Math.PI / 2;
+
+    if (chariotAngle >= Math.PI * 2 * (chariotLaps + 1)) {
+      chariotLaps++;
+      if (chariotLaps >= 2) {
+        chariotActive = false;
+        scene.remove(chariot);
+        chariot = null;
+        showMsg('CHARIOT EXITS. FIGHT!', 1.5);
+        return;
+      }
+    }
+
+    var cdx = chariot.position.x - playerPos.x;
+    var cdz = chariot.position.z - playerPos.z;
+    var cdist = Math.sqrt(cdx * cdx + cdz * cdz);
+    if (cdist < 2.5) {
+      playerHP -= 80 * dt;
+      setCrowdApproval(-20 * dt);
+      playBeep(200, 0.1);
+      if (playerHP <= 0) {
+        playerHP = 0;
+        gameOver = true;
+        roundActive = false;
+        showMsg('TRAMPLED BY THE CHARIOT. GAME OVER.', 0);
+        if (hudEl) hudEl.textContent = '-- DEFEATED IN THE ARENA --';
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  PROJECTILES
+  // ─────────────────────────────────────────────────────────────────────────────
+  function updateProjectiles(dt) {
+    var i, j, p, e, nd;
+    for (i = projectiles.length - 1; i >= 0; i--) {
+      p = projectiles[i];
+      if (!p.active) { projectiles.splice(i, 1); continue; }
+      p.life -= dt;
+      if (p.life <= 0) {
+        scene.remove(p.mesh);
+        projectiles.splice(i, 1);
+        continue;
+      }
+      p.pos.x += p.dir.x * p.speed * dt;
+      p.pos.z += p.dir.z * p.speed * dt;
+      p.mesh.position.set(p.pos.x, p.pos.y, p.pos.z);
+
+      if (p.type === 'net') {
+        for (j = 0; j < enemies.length; j++) {
+          e = enemies[j];
+          if (e.hp <= 0 || e.netted) continue;
+          nd = dist2d(p.pos, e.pos);
+          if (nd < 1.5) {
+            e.netted = true;
+            e.nettedTimer = 4.0;
+            var ovGeo = new THREE.CylinderGeometry(0.7, 0.7, 1.8, 8);
+            var ovMat = new THREE.MeshLambertMaterial({ color: 0xCC8833, wireframe: true });
+            e.netOverlay = new THREE.Mesh(ovGeo, ovMat);
+            e.netOverlay.position.set(e.pos.x, 1.0, e.pos.z);
+            scene.add(e.netOverlay);
+            showMsg('ENEMY NETTED! 2x DAMAGE!', 1.5);
+            setCrowdApproval(5);
+            scene.remove(p.mesh);
+            p.active = false;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  PICKUPS
+  // ─────────────────────────────────────────────────────────────────────────────
+  function checkPickups() {
+    var i, pk, d;
+    for (i = 0; i < pickups.length; i++) {
+      pk = pickups[i];
+      if (!pk.active) continue;
+      d = dist2d(playerPos, pk.pos);
+      if (d < 1.5) {
+        if (pk.type === 'shield') {
+          showMsg('Press E to equip SHIELD', 0.5);
+        } else {
+          pickupWeapon(pk);
+        }
+      }
+    }
+
+    if (giftActive && giftMesh) {
+      d = dist2d(playerPos, giftPos);
+      if (d < 1.5) {
+        scene.remove(giftMesh);
+        giftMesh = null;
+        giftActive = false;
+        equippedWeapon = 'gladius';
+        updatePlayerWeaponVisual();
+        showMsg('CROWD GIFT: GOLDEN GLADIUS!', 2.0);
+        playBeep(880, 0.3);
+      }
+    }
+  }
+
+  function pickupNearShield() {
+    var i, pk, d;
+    for (i = 0; i < pickups.length; i++) {
+      pk = pickups[i];
+      if (!pk.active || pk.type !== 'shield') continue;
+      d = dist2d(playerPos, pk.pos);
+      if (d < 1.8) {
+        shieldEquipped = true;
+        pk.active = false;
+        scene.remove(pk.mesh);
+        if (playerShieldMesh) playerShieldMesh.visible = true;
+        showMsg('SHIELD EQUIPPED! Blocks 70% frontal damage.', 2.0);
+        playBeep(550, 0.25);
+        return;
+      }
+    }
+  }
+
+  function pickupWeapon(pk) {
+    equippedWeapon = pk.type;
+    pk.active = false;
+    scene.remove(pk.mesh);
+    updatePlayerWeaponVisual();
+    showMsg('PICKED UP: ' + pk.type.toUpperCase(), 1.5);
+    playBeep(660, 0.2);
+  }
+
+  function updatePlayerWeaponVisual() {
+    if (!playerWeaponMesh) return;
+    if (equippedWeapon === 'gladius') {
+      playerWeaponMesh.material.color.setHex(0xCCCCCC);
+      playerWeaponMesh.scale.set(1, 1, 1);
+    } else if (equippedWeapon === 'trident') {
+      playerWeaponMesh.material.color.setHex(0xAAAAAA);
+      playerWeaponMesh.scale.set(1.2, 1.5, 1);
+    } else if (equippedWeapon === 'net') {
+      playerWeaponMesh.material.color.setHex(0xCC8833);
+      playerWeaponMesh.scale.set(1.5, 0.5, 1.5);
+    } else {
+      playerWeaponMesh.material.color.setHex(0x999999);
+      playerWeaponMesh.scale.set(1, 1, 1);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  PLAYER MOVEMENT
+  // ─────────────────────────────────────────────────────────────────────────────
+  function onKey(e, down) {
+    keys[e.code] = down;
+    if (!down) return;
+
+    if (e.code === 'KeyT') {
+      if (equippedWeapon === 'net') playerAttack();
+      else showMsg('Equip a net first (pick it up).', 1.0);
+    }
+    if (e.code === 'KeyE') pickupNearShield();
+    if (e.code === 'Space' || e.code === 'KeyF') playerAttack();
+    if (e.code === 'KeyM') executeMercy();
+    if (e.code === 'KeyK') executeKill();
+  }
+
+  function updatePlayer(dt) {
+    if (gameOver || gameWon) return;
+
+    var speed = 7.0;
+    var dx = 0, dz = 0;
+
+    if (keys['KeyW'] || keys['ArrowUp'])    dz -= 1;
+    if (keys['KeyS'] || keys['ArrowDown'])  dz += 1;
+    if (keys['KeyA'] || keys['ArrowLeft'])  dx -= 1;
+    if (keys['KeyD'] || keys['ArrowRight']) dx += 1;
+
+    if (dx !== 0 || dz !== 0) {
+      var len = Math.sqrt(dx * dx + dz * dz);
+      dx /= len; dz /= len;
+      playerPos.x += dx * speed * dt;
+      playerPos.z += dz * speed * dt;
+      moveDir.x = dx;
+      moveDir.z = dz;
+      dodgeCheckTimer = 0.15;
+    }
+
+    if (dodgeCheckTimer > 0) {
+      dodgeCheckTimer -= dt;
+      var i;
+      for (i = 0; i < enemies.length; i++) {
+        var e = enemies[i];
+        if (e.hp <= 0) continue;
+        if (e.attackTimer < 0.12 && dist2d(playerPos, e.pos) < e.attackRange + 1.5) {
+          dodgeDetected = true;
+        }
+      }
+    }
+
+    var pr = Math.sqrt(playerPos.x * playerPos.x + playerPos.z * playerPos.z);
+    if (pr > 18.5) {
+      playerPos.x = playerPos.x / pr * 18.5;
+      playerPos.z = playerPos.z / pr * 18.5;
+    }
+
+    if (playerMesh) {
+      playerMesh.position.set(playerPos.x, playerPos.y + 0.8, playerPos.z);
+      if (dx !== 0 || dz !== 0) playerMesh.rotation.y = Math.atan2(dx, dz);
+    }
+    if (playerWeaponMesh) {
+      playerWeaponMesh.position.set(playerPos.x + 0.55, playerPos.y + 1.0, playerPos.z);
+    }
+    if (playerShieldMesh) {
+      playerShieldMesh.position.set(playerPos.x - 0.65, playerPos.y + 0.9, playerPos.z);
+      playerShieldMesh.visible = shieldEquipped;
+    }
+
+    if (camera) {
+      camera.position.set(playerPos.x, playerPos.y + 14, playerPos.z + 12);
+      camera.lookAt(playerPos.x, 0, playerPos.z);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  CROWD ANIMATION
+  // ─────────────────────────────────────────────────────────────────────────────
+  function updateCrowd(t) {
+    var excite = crowdApproval / 100;
+    var i, cb, bob;
+    for (i = 0; i < crowdBlocks.length; i++) {
+      cb = crowdBlocks[i];
+      bob = Math.sin(t * 3 + cb.phase) * 0.15 * excite;
+      cb.body.position.y = cb.baseY + bob;
+      cb.head.position.y = cb.baseY + 0.95 + bob;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  PORTCULLIS
+  // ─────────────────────────────────────────────────────────────────────────────
+  function updatePortcullis(dt) {
+    if (!portcullisMesh) return;
+    if (portcullisOpen) {
+      portcullisTimer -= dt;
+      portcullisMesh.position.y = Math.min(portcullisMesh.position.y + dt * 3, 6);
+      if (portcullisTimer <= 0) portcullisOpen = false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  ROUND CHECK
+  // ─────────────────────────────────────────────────────────────────────────────
+  function checkRoundEnd() {
+    if (!roundActive || gameOver || gameWon || mercyKillPending) return;
+    var allDead = true;
+    var i;
+    for (i = 0; i < enemies.length; i++) {
+      if (enemies[i].hp > 0) { allDead = false; break; }
+    }
+    if (allDead && enemies.length > 0) finishRound();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  MAIN LOOP
+  // ─────────────────────────────────────────────────────────────────────────────
+  function loop(timestamp) {
+    if (!active) return;
+    animFrameId = requestAnimationFrame(loop);
+
+    var dt = Math.min((timestamp - clock.last) / 1000, 0.1);
+    clock.last = timestamp;
+    var t = timestamp / 1000;
+
+    if (!gameOver && !gameWon) {
+      if (attackCooldown > 0) attackCooldown -= dt;
+      if (netCooldown > 0) netCooldown -= dt;
+
+      if (mercyKillTimer > 0) {
+        mercyKillTimer -= dt;
+        if (mercyKillTimer <= 0 && mercyKillPending) executeKill();
+      }
+
+      if (emperorThumbTimer > 0) {
+        emperorThumbTimer -= dt;
+        if (emperorThumbTimer <= 0) showEmperorThumb('neutral');
+      }
+
+      if (dodgeLightTimer > 0) {
+        dodgeLightTimer -= dt;
+        dodgeLight.intensity = (dodgeLightTimer / 0.6) * 3.0;
+        if (dodgeLightTimer <= 0) dodgeLight.intensity = 0;
+      }
+
+      if (roundTransitionActive) {
+        roundTransitionTimer -= dt;
+        if (roundTransitionTimer <= 0) {
+          roundTransitionActive = false;
+          startRound(currentRound + 1);
+        }
+      }
+
+      updatePortcullis(dt);
+
+      if (roundActive) {
+        updatePlayer(dt);
+        updateEnemies(dt);
+        updateLion(dt);
+        updateChariot(dt);
+        updateProjectiles(dt);
+        checkPickups();
+        checkRoundEnd();
+      } else {
+        updatePlayer(dt);
+      }
+
+      updateCrowd(t);
+
+      if (emperorMesh) emperorMesh.position.y = 9 + Math.sin(t * 0.8) * 0.05;
+
+      if (giftMesh) {
+        giftMesh.rotation.y += dt * 2;
+        giftMesh.position.y = 0.5 + Math.sin(t * 3) * 0.15;
+      }
+    }
+
+    updateHUD();
+    renderer.render(scene, camera);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  ACTIVATION
+  // ─────────────────────────────────────────────────────────────────────────────
+  function handleKeydown(e) {
+    keysDown[e.code] = true;
+    var now = Date.now();
+    if (e.code === 'KeyG') gDownAt = now;
+    if (e.code === 'KeyA') aDownAt = now;
+
+    if (keysDown['KeyG'] && keysDown['KeyA']) {
+      if (Math.abs(gDownAt - aDownAt) <= ACTIVATION_WINDOW) {
+        if (!active) activate();
+      }
+    }
+
+    if (active) onKey(e, true);
+  }
+
+  function handleKeyup(e) {
+    keysDown[e.code] = false;
+    if (active) onKey(e, false);
+  }
+
+  function handleResize() {
+    if (!active || !renderer || !camera) return;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  // ─── Combat ───────────────────────────────────────────────────────────────────
-  function doAttack() {
-    if (gameOver || gameWon) return;
-    if (attackCooldown > 0) return;
+  function activate() {
+    active = true;
 
-    playSwoosh();
-    triggerCrowdWave();
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
 
-    if (currentWeapon === 1) {
-      // SWORD – short range lunge, 40 damage
-      attackCooldown = 0.55;
-      meleeAttack(3.5, 40);
-    } else if (currentWeapon === 2) {
-      // TRIDENT lunge
-      attackCooldown = 0.7;
-      meleeAttack(4.5, 35);
-    } else if (currentWeapon === 3) {
-      // MACE overhead
-      attackCooldown = 0.9;
-      shieldActive = true;
-      meleeAttack(3.0, 45);
-      setTimeout(function () { shieldActive = false; }, 300);
-    } else if (currentWeapon === 4) {
-      // BOW – fire arrow
-      attackCooldown = 1.0;
-      fireArrow();
-    }
-  }
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.cssText = 'position:fixed;top:0;left:0;z-index:9000;';
+    document.body.appendChild(renderer.domElement);
 
-  function meleeAttack(range, baseDamage) {
-    for (var i = 0; i < enemies.length; i++) {
-      var e = enemies[i];
-      if (e.dead) continue;
-      var d = dist2d(playerPos, { x: e.x, z: e.z });
-      if (d <= range) {
-        var dmg = baseDamage * comboBonusMult;
-        if (e.snared) dmg *= 2;
-        hitEnemy(e, dmg);
-      }
-    }
-  }
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 14, 22);
+    camera.lookAt(0, 0, 0);
 
-  function hitEnemy(e, dmg) {
-    if (e.dead) return;
-    e.hp -= dmg;
-    // Flash red
-    if (e.mesh && e.mesh.children[0]) {
-      var origColor = e.mesh.children[0].material.color.getHex();
-      e.mesh.children[0].material.color.setHex(0xFFFFFF);
-      setTimeout(function () {
-        if (e.mesh && e.mesh.children[0]) e.mesh.children[0].material.color.setHex(origColor);
-      }, 100);
-    }
+    hudEl = document.createElement('div');
+    hudEl.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.72);color:#FFD700;font:bold 13px monospace;padding:7px 14px;z-index:9100;white-space:nowrap;overflow:hidden;';
+    document.body.appendChild(hudEl);
 
-    // Combo
-    comboBonusMult = Math.min(comboBonusMult + 0.2, 3.0);
-    comboTimer = 3.0;
+    msgEl = document.createElement('div');
+    msgEl.style.cssText = 'position:fixed;top:40%;left:50%;transform:translateX(-50%);color:#FFD700;font:bold 28px monospace;text-shadow:2px 2px 8px #000;z-index:9101;text-align:center;transition:opacity 0.5s;pointer-events:none;';
+    document.body.appendChild(msgEl);
 
-    if (e.hp <= 0 && !e.downed) {
-      if (!e.isBoss || e.snared) {
-        killEnemy(e);
-      } else {
-        // Boss requires net
-        e.hp = 1;
-      }
-    } else if (e.hp < e.maxHp * 0.2 && !e.downed && !e.isLion) {
-      e.downed = true;
-      if (e.mesh) e.mesh.rotation.z = Math.PI / 2;
-    }
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = 'X';
+    closeBtn.style.cssText = 'position:fixed;top:8px;right:14px;z-index:9200;background:#550000;color:#fff;border:none;padding:6px 14px;font:bold 16px monospace;cursor:pointer;border-radius:3px;';
+    closeBtn.onclick = deactivate;
+    closeBtn.id = 'gladiator-arena-close';
+    document.body.appendChild(closeBtn);
 
-    addCrowdFavor(8);
-  }
+    var ctrlEl = document.createElement('div');
+    ctrlEl.style.cssText = 'position:fixed;top:8px;left:8px;color:#FFD700;font:11px monospace;z-index:9101;opacity:0.85;';
+    ctrlEl.innerHTML = 'WASD=Move | Space/F=Attack | T=ThrowNet | E=Shield | M=Mercy | K=Kill | G+A=Quit';
+    ctrlEl.id = 'gladiator-arena-ctrl';
+    document.body.appendChild(ctrlEl);
 
-  function killEnemy(e) {
-    if (e.dead) return;
-    e.dead = true;
-    waveEnemiesLeft = Math.max(0, waveEnemiesLeft - 1);
-    if (e.mesh) {
-      scene.remove(e.mesh);
-    }
-    addCrowdFavor(20);
-    playCrowdRoar();
-    triggerCrowdWave();
+    window.addEventListener('resize', handleResize);
 
-    if (waveEnemiesLeft <= 0 && !waveCleared) {
-      waveCleared = true;
-      waveTransitionTimer = 3.0;
-    }
-  }
+    buildScene();
 
-  function tryExecution() {
-    for (var i = 0; i < enemies.length; i++) {
-      var e = enemies[i];
-      if (e.dead || !e.downed) continue;
-      var d = dist2d(playerPos, { x: e.x, z: e.z });
-      if (d <= 3.0) {
-        // Execution move
-        killEnemy(e);
-        addCrowdFavor(150);
-        playCrowdRoar();
-        triggerCrowdWave();
-        return;
-      }
-    }
-  }
+    clock.last = performance.now();
+    animFrameId = requestAnimationFrame(loop);
 
-  function throwNet() {
-    if (!window.THREE) return;
-    netCooldown = 8.0;
-
-    // Direction player is facing (toward nearest enemy or forward)
-    var nearestEnemy = null;
-    var nearestDist = Infinity;
-    for (var i = 0; i < enemies.length; i++) {
-      if (enemies[i].dead) continue;
-      var d = dist2d(playerPos, { x: enemies[i].x, z: enemies[i].z });
-      if (d < nearestDist) { nearestDist = d; nearestEnemy = enemies[i]; }
-    }
-
-    var dirX = 0, dirZ = -1;
-    if (nearestEnemy) {
-      var dx = nearestEnemy.x - playerPos.x;
-      var dz = nearestEnemy.z - playerPos.z;
-      var len = Math.sqrt(dx * dx + dz * dz) || 1;
-      dirX = dx / len;
-      dirZ = dz / len;
-    }
-
-    // Create net as LineSegments
-    var THREE = window.THREE;
-    var netPts = [];
-    for (var row = 0; row <= 4; row++) {
-      for (var col = 0; col < 4; col++) {
-        netPts.push(new THREE.Vector3(col * 0.5 - 1, row * 0.5 - 1, 0));
-        netPts.push(new THREE.Vector3((col + 1) * 0.5 - 1, row * 0.5 - 1, 0));
-      }
-      for (var col2 = 0; col2 <= 4; col2++) {
-        if (row < 4) {
-          netPts.push(new THREE.Vector3(col2 * 0.5 - 1, row * 0.5 - 1, 0));
-          netPts.push(new THREE.Vector3(col2 * 0.5 - 1, (row + 1) * 0.5 - 1, 0));
-        }
-      }
-    }
-    var netGeo = new THREE.BufferGeometry().setFromPoints(netPts);
-    var netMesh = new THREE.LineSegments(netGeo, new THREE.LineBasicMaterial({ color: 0x885500 }));
-    netMesh.position.set(playerPos.x, 1.5, playerPos.z);
-    scene.add(netMesh);
-
-    netObjects.push({
-      mesh: netMesh,
-      x: playerPos.x,
-      z: playerPos.z,
-      vx: dirX * 12,
-      vz: dirZ * 12,
-      life: 1.5,
-      maxRange: 8,
-      startX: playerPos.x,
-      startZ: playerPos.z,
-      landed: false
-    });
-  }
-
-  function fireArrow() {
-    if (!window.THREE) return;
-    var THREE = window.THREE;
-
-    var nearestEnemy = null;
-    var nearestDist = Infinity;
-    for (var i = 0; i < enemies.length; i++) {
-      if (enemies[i].dead) continue;
-      var d = dist2d(playerPos, { x: enemies[i].x, z: enemies[i].z });
-      if (d < nearestDist) { nearestDist = d; nearestEnemy = enemies[i]; }
-    }
-
-    var dirX = 0, dirZ = -1;
-    if (nearestEnemy) {
-      var dx2 = nearestEnemy.x - playerPos.x;
-      var dz2 = nearestEnemy.z - playerPos.z;
-      var len2 = Math.sqrt(dx2 * dx2 + dz2 * dz2) || 1;
-      dirX = dx2 / len2;
-      dirZ = dz2 / len2;
-    }
-
-    var arrowGeo = new THREE.SphereGeometry(0.12, 4, 4);
-    var arrowMesh = new THREE.Mesh(arrowGeo, new THREE.MeshLambertMaterial({ color: 0x885500 }));
-    arrowMesh.position.set(playerPos.x, 1.2, playerPos.z);
-    scene.add(arrowMesh);
-
-    arrowObjects.push({
-      mesh: arrowMesh,
-      x: playerPos.x,
-      y: 1.2,
-      z: playerPos.z,
-      vx: dirX * 50,
-      vy: 8,
-      vz: dirZ * 50,
-      life: 3.0,
-      damage: 50,
-      arc: true
-    });
-  }
-
-  // ─── Roll ─────────────────────────────────────────────────────────────────────
-  function startRoll() {
-    rollActive = true;
-    rollTimer = 0.4;
-    rollCooldown = 3.0;
-    rollDirX = moveDir.x;
-    rollDirZ = moveDir.z;
-    if (rollDirX === 0 && rollDirZ === 0) {
-      rollDirX = 0;
-      rollDirZ = -1;
-    }
-  }
-
-  // ─── Crowd favor ──────────────────────────────────────────────────────────────
-  function addCrowdFavor(amount) {
-    crowdFavor = clamp(crowdFavor + amount, 0, 100);
-    if (crowdFavor >= 100) {
-      crowdFavor = 0;
-      spawnWeaponPickup();
-      crowdStatus = 'ECSTATIC';
-    } else if (crowdFavor > 60) {
-      crowdStatus = 'CHEERING';
-    } else if (crowdFavor > 30) {
-      crowdStatus = 'NEUTRAL';
-    } else {
-      crowdStatus = 'BOOING';
-      if (crowdFavor <= 5) {
-        triggerGuardAttack();
-      }
-    }
-    updateHUD();
-  }
-
-  function spawnWeaponPickup() {
-    if (!window.THREE) return;
-    var THREE = window.THREE;
-    var angle = Math.random() * Math.PI * 2;
-    var px = Math.cos(angle) * randRange(3, 10);
-    var pz = Math.sin(angle) * randRange(3, 10);
-
-    var pickupGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-    var pickupMat = new THREE.MeshLambertMaterial({ color: 0xFFD700 });
-    var pickup = new THREE.Mesh(pickupGeo, pickupMat);
-    pickup.position.set(px, 2.5, pz);
-    scene.add(pickup);
-
-    pickupObjects.push({
-      mesh: pickup,
-      x: px,
-      z: pz,
-      life: 15.0,
-      weaponType: Math.floor(Math.random() * 4) + 1
-    });
-  }
-
-  function triggerCrowdWave() {
-    crowdWaving = true;
-    crowdWaveTimer = 2.0;
-  }
-
-  function triggerGuardAttack() {
-    if (guardAttacking) return;
-    guardAttacking = true;
-    guardAttackTimer = 5.0;
-    crowdStatus = 'HOSTILE';
-    playBoos();
-  }
-
-  // ─── Game loop ────────────────────────────────────────────────────────────────
-  function gameLoop(now) {
-    if (!active) return;
-    animFrameId = requestAnimationFrame(gameLoop);
-
-    var dt = Math.min((now - clock.last) / 1000, 0.05);
-    clock.last = now;
-
-    if (gameOver || gameWon) {
-      renderScene();
-      return;
-    }
-
-    updatePlayer(dt);
-    updateEnemies(dt);
-    updateProjectiles(dt);
-    updateNets(dt);
-    updateArrows(dt);
-    updatePickups(dt);
-    updateCrowd(dt);
-    updateWaveTransition(dt);
-    updateCamera();
-    updateHUD();
-
-    renderScene();
-  }
-
-  function renderScene() {
-    if (renderer && scene && camera) renderer.render(scene, camera);
-  }
-
-  // ─── Player update ────────────────────────────────────────────────────────────
-  function updatePlayer(dt) {
-    // Timers
-    if (attackCooldown > 0) attackCooldown -= dt;
-    if (netCooldown > 0) netCooldown -= dt;
-    if (rollCooldown > 0) rollCooldown -= dt;
-    if (comboTimer > 0) {
-      comboTimer -= dt;
-      if (comboTimer <= 0) comboBonusMult = 1;
-    }
-
-    var speed = 8.0;
-    var inputX = 0, inputZ = 0;
-    if (keysDown['arrowleft'] || keysDown['a']) inputX -= 1;
-    if (keysDown['arrowright'] || keysDown['d']) inputX += 1;
-    if (keysDown['arrowup'] || keysDown['w']) inputZ -= 1;
-    if (keysDown['arrowdown'] || keysDown['s']) inputZ += 1;
-
-    var inputLen = Math.sqrt(inputX * inputX + inputZ * inputZ) || 1;
-    if (inputX !== 0 || inputZ !== 0) {
-      moveDir.x = inputX / inputLen;
-      moveDir.z = inputZ / inputLen;
-    }
-
-    if (rollActive) {
-      rollTimer -= dt;
-      playerPos.x += rollDirX * 14 * dt;
-      playerPos.z += rollDirZ * 14 * dt;
-      if (playerMesh) playerMesh.position.y = Math.sin(rollTimer / 0.4 * Math.PI) * 2;
-      if (rollTimer <= 0) {
-        rollActive = false;
-        if (playerMesh) playerMesh.position.y = 0;
-      }
-    } else {
-      playerPos.x += inputX * speed * dt;
-      playerPos.z += inputZ * speed * dt;
-    }
-
-    // Keep in arena
-    var pDist = Math.sqrt(playerPos.x * playerPos.x + playerPos.z * playerPos.z);
-    if (pDist > 23) {
-      playerPos.x = (playerPos.x / pDist) * 23;
-      playerPos.z = (playerPos.z / pDist) * 23;
-    }
-
-    if (playerMesh) {
-      playerMesh.position.x = playerPos.x;
-      playerMesh.position.z = playerPos.z;
-      if (!rollActive) playerMesh.position.y = 0;
-      if (inputX !== 0 || inputZ !== 0) {
-        playerMesh.rotation.y = Math.atan2(inputX, inputZ) + Math.PI;
-      }
-    }
-
-    // Check pickup collision
-    for (var pi = pickupObjects.length - 1; pi >= 0; pi--) {
-      var pk = pickupObjects[pi];
-      var pkd = dist2d(playerPos, { x: pk.x, z: pk.z });
-      if (pkd < 1.5) {
-        currentWeapon = pk.weaponType;
-        buildWeaponVisual(window.THREE, playerMesh);
-        scene.remove(pk.mesh);
-        pickupObjects.splice(pi, 1);
-        addCrowdFavor(5);
-      }
-    }
-
-    // Guard attacks
-    if (guardAttacking) {
-      guardAttackTimer -= dt;
-      if (guardAttackTimer <= 0) {
-        guardAttacking = false;
-        crowdStatus = 'NEUTRAL';
-      } else {
-        playerHP -= 5 * dt;
-      }
-    }
-
-    if (playerHP <= 0) {
-      gameOver = true;
-      showEndMessage('DEFEATED! Press ESC to exit.');
-    }
-  }
-
-  // ─── Enemy update ─────────────────────────────────────────────────────────────
-  function updateEnemies(dt) {
-    for (var i = 0; i < enemies.length; i++) {
-      var e = enemies[i];
-      if (e.dead) continue;
-
-      // Snare timer
-      if (e.snared) {
-        e.snareTimer -= dt;
-        if (e.snareTimer <= 0) e.snared = false;
-      }
-
-      if (e.downed) {
-        // Downed – wiggle slightly
-        if (e.mesh) {
-          e.mesh.rotation.z = Math.PI / 2 + Math.sin(Date.now() * 0.003) * 0.05;
-        }
-        continue;
-      }
-
-      var effectiveSpeed = e.speed;
-      if (e.snared) effectiveSpeed *= 0.3;
-
-      if (e.isLion) {
-        // Lion behavior
-        if (e.stunned) {
-          e.stunTimer -= dt;
-          if (e.stunTimer <= 0) e.stunned = false;
-        } else {
-          var ldx = playerPos.x - e.x;
-          var ldz = playerPos.z - e.z;
-          var ld = Math.sqrt(ldx * ldx + ldz * ldz) || 1;
-          e.x += (ldx / ld) * effectiveSpeed * dt;
-          e.z += (ldz / ld) * effectiveSpeed * dt;
-          e.mesh.position.x = e.x;
-          e.mesh.position.z = e.z;
-          e.mesh.rotation.y = Math.atan2(ldx, ldz);
-
-          // Animate legs
-          e.animPhase += dt * 8;
-          if (e.mesh.children[3]) e.mesh.children[3].rotation.x = Math.sin(e.animPhase) * 0.5;
-          if (e.mesh.children[4]) e.mesh.children[4].rotation.x = Math.sin(e.animPhase + Math.PI) * 0.5;
-
-          if (ld < 2.0) {
-            e.attackTimer += dt;
-            if (e.attackTimer >= e.attackCooldown) {
-              e.attackTimer = 0;
-              playerHP -= 18;
-              addCrowdFavor(-10);
-              screenShake();
-            }
-          }
-        }
-      } else {
-        // Regular gladiator AI
-        var edx = playerPos.x - e.x;
-        var edz = playerPos.z - e.z;
-        var ed = Math.sqrt(edx * edx + edz * edz) || 1;
-
-        var attackRange = (e.weaponType === 4) ? 15 : 3.5;
-
-        if (ed > attackRange) {
-          e.x += (edx / ed) * effectiveSpeed * dt;
-          e.z += (edz / ed) * effectiveSpeed * dt;
-        }
-
-        // Keep in arena
-        var enemyArenaD = Math.sqrt(e.x * e.x + e.z * e.z);
-        if (enemyArenaD > 23) {
-          e.x = (e.x / enemyArenaD) * 23;
-          e.z = (e.z / enemyArenaD) * 23;
-        }
-
-        if (e.mesh) {
-          e.mesh.position.x = e.x;
-          e.mesh.position.z = e.z;
-          e.mesh.rotation.y = Math.atan2(edx, edz);
-        }
-
-        // Enemy attack
-        if (ed <= attackRange + 0.5) {
-          e.attackTimer += dt;
-          if (e.attackTimer >= e.attackCooldown) {
-            e.attackTimer = 0;
-            enemyAttackPlayer(e);
-          }
-        } else {
-          e.attackTimer = 0;
-        }
-
-        // Bob animation
-        e.animPhase += dt * 3;
-        if (e.mesh) e.mesh.position.y = Math.abs(Math.sin(e.animPhase)) * 0.1;
-      }
-    }
-  }
-
-  function enemyAttackPlayer(e) {
-    var baseDmg = 10 + e.weaponType * 3;
-    var dmg = baseDmg;
-
-    // Shield blocks 80% damage if player has shield+mace
-    if (currentWeapon === 3 && shieldActive) {
-      dmg *= 0.2;
-    }
-
-    if (rollActive) dmg = 0; // dodge during roll
-
-    playerHP -= dmg;
-    if (dmg > 0) {
-      addCrowdFavor(-5);
-      screenShake();
-    }
-  }
-
-  function screenShake() {
-    if (!renderer) return;
-    var orig = { x: renderer.domElement.style.left, y: renderer.domElement.style.top };
-    renderer.domElement.style.left = (Math.random() * 8 - 4) + 'px';
-    renderer.domElement.style.top = (Math.random() * 8 - 4) + 'px';
     setTimeout(function () {
-      if (renderer) {
-        renderer.domElement.style.left = '0';
-        renderer.domElement.style.top = '0';
-      }
-    }, 80);
+      showMsg('WELCOME TO THE COLOSSEUM! Win 5 rounds for FREEDOM!', 3.0);
+      setTimeout(function () { startRound(1); }, 3500);
+    }, 500);
   }
 
-  // ─── Nets update ─────────────────────────────────────────────────────────────
-  function updateNets(dt) {
-    for (var i = netObjects.length - 1; i >= 0; i--) {
-      var n = netObjects[i];
-      n.life -= dt;
-      if (n.life <= 0 || n.landed) {
-        if (n.life <= 0) { scene.remove(n.mesh); netObjects.splice(i, 1); }
-        continue;
-      }
-
-      var travelX = n.x - n.startX;
-      var travelZ = n.z - n.startZ;
-      var traveled = Math.sqrt(travelX * travelX + travelZ * travelZ);
-      if (traveled >= n.maxRange) {
-        n.landed = true;
-        continue;
-      }
-
-      n.x += n.vx * dt;
-      n.z += n.vz * dt;
-      n.mesh.position.x = n.x;
-      n.mesh.position.z = n.z;
-      n.mesh.position.y = 1.5 + Math.sin(traveled * 0.5) * 2;
-      n.mesh.rotation.x += dt * 4;
-
-      // Check hit enemies
-      for (var j = 0; j < enemies.length; j++) {
-        var e = enemies[j];
-        if (e.dead || e.snared) continue;
-        var nd = dist2d({ x: n.x, z: n.z }, { x: e.x, z: e.z });
-        if (nd < 2.0) {
-          e.snared = true;
-          e.snareTimer = 5.0;
-          n.landed = true;
-          n.life = 0;
-          // If boss, allow killing
-          if (e.isBoss) {
-            e.hp = 1;
-            e.downed = true;
-            if (e.mesh) e.mesh.rotation.z = Math.PI / 2;
-          }
-          // If lion, stun
-          if (e.isLion) {
-            e.stunned = true;
-            e.stunTimer = 3.0;
-          }
-          break;
-        }
-      }
-    }
+  function deactivate() {
+    active = false;
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+    if (renderer) { document.body.removeChild(renderer.domElement); renderer.dispose(); renderer = null; }
+    if (hudEl) { document.body.removeChild(hudEl); hudEl = null; }
+    if (msgEl) { document.body.removeChild(msgEl); msgEl = null; }
+    var cb = document.getElementById('gladiator-arena-close');
+    if (cb && cb.parentNode) cb.parentNode.removeChild(cb);
+    var cc = document.getElementById('gladiator-arena-ctrl');
+    if (cc && cc.parentNode) cc.parentNode.removeChild(cc);
+    window.removeEventListener('resize', handleResize);
+    reset();
   }
 
-  // ─── Arrows update ───────────────────────────────────────────────────────────
-  function updateArrows(dt) {
-    for (var i = arrowObjects.length - 1; i >= 0; i--) {
-      var ar = arrowObjects[i];
-      ar.life -= dt;
-      if (ar.life <= 0) {
-        scene.remove(ar.mesh);
-        arrowObjects.splice(i, 1);
-        continue;
-      }
-      ar.x += ar.vx * dt;
-      ar.z += ar.vz * dt;
-      if (ar.arc) {
-        ar.vy -= 9.8 * dt;
-        ar.y += ar.vy * dt;
-      }
-      ar.mesh.position.set(ar.x, ar.y, ar.z);
-
-      if (ar.y < 0) {
-        scene.remove(ar.mesh);
-        arrowObjects.splice(i, 1);
-        continue;
-      }
-
-      for (var j = 0; j < enemies.length; j++) {
-        var e = enemies[j];
-        if (e.dead) continue;
-        var d = dist2d({ x: ar.x, z: ar.z }, { x: e.x, z: e.z });
-        if (d < 1.2) {
-          var dmg = ar.damage * comboBonusMult;
-          if (e.snared) dmg *= 2;
-          hitEnemy(e, dmg);
-          scene.remove(ar.mesh);
-          arrowObjects.splice(i, 1);
-          break;
-        }
-      }
-    }
-  }
-
-  // ─── Pickups update ───────────────────────────────────────────────────────────
-  function updatePickups(dt) {
-    for (var i = pickupObjects.length - 1; i >= 0; i--) {
-      var pk = pickupObjects[i];
-      pk.life -= dt;
-      if (pk.life <= 0) {
-        scene.remove(pk.mesh);
-        pickupObjects.splice(i, 1);
-        continue;
-      }
-      // Bob and spin
-      pk.mesh.position.y = 0.8 + Math.sin(Date.now() * 0.003 + i) * 0.3;
-      pk.mesh.rotation.y += dt * 2;
-    }
-  }
-
-  // ─── Crowd update ────────────────────────────────────────────────────────────
-  function updateCrowd(dt) {
-    if (crowdWaveTimer > 0) crowdWaveTimer -= dt;
-    var doWave = crowdWaveTimer > 0;
-
-    for (var i = 0; i < crowdFigures.length; i++) {
-      var fig = crowdFigures[i];
-      var arm = fig.userData.arm;
-      if (!arm) continue;
-      if (doWave) {
-        var waveAmt = Math.sin(Date.now() * 0.005 + fig.userData.wavePhase) * 0.8;
-        arm.rotation.z = fig.userData.baseArmRotZ + waveAmt;
-      } else {
-        arm.rotation.z = fig.userData.baseArmRotZ;
-      }
-    }
-  }
-
-  // ─── Wave transition ─────────────────────────────────────────────────────────
-  function updateWaveTransition(dt) {
-    if (!waveCleared) return;
-    waveTransitionTimer -= dt;
-    if (waveTransitionTimer <= 0) {
-      waveCleared = false;
-      currentWave++;
-      if (currentWave > totalWaves) {
-        gameWon = true;
-        showEndMessage('VICTORY! Champion of the Colosseum! ESC to exit.');
-        return;
-      }
-      // Clear remaining objects
-      for (var i = 0; i < netObjects.length; i++) scene.remove(netObjects[i].mesh);
-      for (var j = 0; j < arrowObjects.length; j++) scene.remove(arrowObjects[j].mesh);
-      netObjects = [];
-      arrowObjects = [];
-      spawnWave(window.THREE, currentWave);
-    }
-  }
-
-  // ─── Camera update ────────────────────────────────────────────────────────────
-  function updateCamera() {
-    if (!camera) return;
-    var targetX = playerPos.x * 0.3;
-    var targetZ = 38 + playerPos.z * 0.2;
-    camera.position.x += (targetX - camera.position.x) * 0.05;
-    camera.position.z += (targetZ - camera.position.z) * 0.05;
-    camera.lookAt(playerPos.x * 0.2, 0, playerPos.z * 0.2);
-  }
-
-  // ─── End screen ──────────────────────────────────────────────────────────────
-  function showEndMessage(msg) {
-    var el = document.createElement('div');
-    el.id = 'gladiator-end';
-    el.style.cssText = [
-      'position:fixed',
-      'top:50%',
-      'left:50%',
-      'transform:translate(-50%,-50%)',
-      'z-index:9200',
-      'font-family:monospace',
-      'font-size:32px',
-      'font-weight:bold',
-      'color:#FFD700',
-      'background:rgba(0,0,0,0.8)',
-      'padding:24px 40px',
-      'border:3px solid #8B0000',
-      'border-radius:8px',
-      'text-align:center',
-      'pointer-events:none'
-    ].join(';');
-    el.textContent = msg;
-    document.body.appendChild(el);
-  }
-
-  // ─── Init key listeners for activation (before activate()) ───────────────────
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  PUBLIC API
+  // ─────────────────────────────────────────────────────────────────────────────
   function init() {
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('keyup', handleKeyup);
   }
 
-  init();
+  function update() {}
 
-  return {
-    activate: activate,
-    deactivate: deactivate,
-    isActive: function () { return active; }
-  };
+  function reset() {
+    playerHP = 150;
+    playerMaxHP = 150;
+    playerPos = { x: 0, y: 0.5, z: 14 };
+    playerVelX = 0;
+    playerVelZ = 0;
+    currentRound = 0;
+    roundActive = false;
+    gameOver = false;
+    gameWon = false;
+    score = 0;
+    crowdApproval = 50;
+    roundTransitionTimer = 0;
+    roundTransitionActive = false;
+    mercyKillPending = false;
+    mercyKillTimer = 0;
+    moveDir = { x: 0, z: -1 };
+    attackCooldown = 0;
+    equippedWeapon = 'gladius';
+    shieldEquipped = false;
+    netCooldown = 0;
+    dodgeDetected = false;
+    dodgeCheckTimer = 0;
+    dodgeLightTimer = 0;
+    lastSwingTime = 0;
+    enemies = [];
+    pickups = [];
+    projectiles = [];
+    crowdBlocks = [];
+    chariot = null;
+    chariotLaps = 0;
+    chariotAngle = 0;
+    chariotActive = false;
+    lionMesh = null;
+    lionHP = 60;
+    lionActive = false;
+    lionAttackCooldown = 0;
+    cageDoor = null;
+    cageDoorOpen = false;
+    giftMesh = null;
+    giftActive = false;
+    playerMesh = null;
+    playerWeaponMesh = null;
+    playerShieldMesh = null;
+    emperorMesh = null;
+    emperorThumbMesh = null;
+    emperorThumbState = 'neutral';
+    emperorThumbTimer = 0;
+    portcullisMesh = null;
+    portcullisOpen = false;
+    portcullisTimer = 0;
+    scene = null;
+    camera = null;
+    dodgeLight = null;
+    keys = {};
+  }
 
+  return { init: init, update: update, reset: reset };
 }());
