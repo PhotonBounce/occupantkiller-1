@@ -1993,6 +1993,13 @@ const GameManager = (function () {
     try { if (window.SewersEscape && SewersEscape.init) SewersEscape.init(_scene, _camera); } catch (e) {}
     try { if (window.WeaponsFactory && WeaponsFactory.init) WeaponsFactory.init(_scene, _camera); } catch (e) {}
     try { if (window.ResearchStation && ResearchStation.init) ResearchStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.UndergroundFight && UndergroundFight.init) UndergroundFight.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressBreach && FortressBreach.init) FortressBreach.init(_scene, _camera); } catch (e) {}
+    try { if (window.WetlandsAmbush && WetlandsAmbush.init) WetlandsAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceColony && SpaceColony.init) SpaceColony.init(_scene, _camera); } catch (e) {}
+    try { if (window.GlacierCave && GlacierCave.init) GlacierCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedCity && AbandonedCity.init) AbandonedCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirBaseAssault && AirBaseAssault.init) AirBaseAssault.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8777,6 +8784,13 @@ const GameManager = (function () {
     if (window.SewersEscape) SewersEscape.update(delta);
     if (window.WeaponsFactory) WeaponsFactory.update(delta);
     if (window.ResearchStation) ResearchStation.update(delta);
+    if (window.UndergroundFight) UndergroundFight.update(delta);
+    if (window.FortressBreach) FortressBreach.update(delta);
+    if (window.WetlandsAmbush) WetlandsAmbush.update(delta);
+    if (window.SpaceColony) SpaceColony.update(delta);
+    if (window.GlacierCave) GlacierCave.update(delta);
+    if (window.AbandonedCity) AbandonedCity.update(delta);
+    if (window.AirBaseAssault) AirBaseAssault.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
