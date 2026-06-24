@@ -1948,6 +1948,10 @@ const GameManager = (function () {
     try { if (window.SpacePirates && SpacePirates.init) SpacePirates.init(_scene, _camera); } catch (e) {}
     try { if (window.KungFuTemple && KungFuTemple.init) KungFuTemple.init(_scene, _camera); } catch (e) {}
     try { if (window.DeepSeaBase && DeepSeaBase.init) DeepSeaBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleTempleRaid && JungleTempleRaid.init) JungleTempleRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.VikingLongship && VikingLongship.init) VikingLongship.init(_scene, _camera); } catch (e) {}
+    try { if (window.GuerrillaWar && GuerrillaWar.init) GuerrillaWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyscraperSiege && SkyscraperSiege.init) SkyscraperSiege.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8687,6 +8691,10 @@ const GameManager = (function () {
       if (window.SpacePirates) SpacePirates.update(delta);
       if (window.KungFuTemple) KungFuTemple.update(delta);
       if (window.DeepSeaBase) DeepSeaBase.update(delta);
+      if (window.JungleTempleRaid) JungleTempleRaid.update(delta);
+      if (window.VikingLongship) VikingLongship.update(delta);
+      if (window.GuerrillaWar) GuerrillaWar.update(delta);
+      if (window.SkyscraperSiege) SkyscraperSiege.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
