@@ -2074,6 +2074,13 @@ const GameManager = (function () {
     try { if (window.SubmarineHunt && SubmarineHunt.init) SubmarineHunt.init(_scene, _camera); } catch (e) {}
     try { if (window.ArcticStation && ArcticStation.init) ArcticStation.init(_scene, _camera); } catch (e) {}
     try { if (window.CityRooftop && CityRooftop.init) CityRooftop.init(_scene, _camera); } catch (e) {}
+    try { if (window.PowerPlant && PowerPlant.init) PowerPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainStation && TrainStation.init) TrainStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonAmbush && CanyonAmbush.init) CanyonAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.MissileSilo && MissileSilo.init) MissileSilo.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloatingPlatform && FloatingPlatform.init) FloatingPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarFactory && WarFactory.init) WarFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.IcePalace && IcePalace.init) IcePalace.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8939,6 +8946,13 @@ const GameManager = (function () {
     if (window.SubmarineHunt) SubmarineHunt.update(delta);
     if (window.ArcticStation) ArcticStation.update(delta);
     if (window.CityRooftop) CityRooftop.update(delta);
+    if (window.PowerPlant) PowerPlant.update(delta);
+    if (window.TrainStation) TrainStation.update(delta);
+    if (window.CanyonAmbush) CanyonAmbush.update(delta);
+    if (window.MissileSilo) MissileSilo.update(delta);
+    if (window.FloatingPlatform) FloatingPlatform.update(delta);
+    if (window.WarFactory) WarFactory.update(delta);
+    if (window.IcePalace) IcePalace.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
