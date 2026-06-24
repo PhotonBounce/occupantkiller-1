@@ -2056,6 +2056,14 @@ const GameManager = (function () {
     try { if (window.MedievalFortress && MedievalFortress.init) MedievalFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.SkiResort && SkiResort.init) SkiResort.init(_scene, _camera); } catch (e) {}
     try { if (window.JungleRiver && JungleRiver.init) JungleRiver.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerHill && BunkerHill.init) BunkerHill.init(_scene, _camera); } catch (e) {}
+    try { if (window.DataCenter && DataCenter.init) DataCenter.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
+    try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleFortress && JungleFortress.init) JungleFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.BridgeAssault && BridgeAssault.init) BridgeAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceWreckage && SpaceWreckage.init) SpaceWreckage.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8903,6 +8911,14 @@ const GameManager = (function () {
     if (window.MedievalFortress) MedievalFortress.update(delta);
     if (window.SkiResort) SkiResort.update(delta);
     if (window.JungleRiver) JungleRiver.update(delta);
+    if (window.BunkerHill) BunkerHill.update(delta);
+    if (window.DataCenter) DataCenter.update(delta);
+    if (window.AncientColosseum) AncientColosseum.update(delta);
+    if (window.TundraVillage) TundraVillage.update(delta);
+    if (window.SolarFarm) SolarFarm.update(delta);
+    if (window.JungleFortress) JungleFortress.update(delta);
+    if (window.BridgeAssault) BridgeAssault.update(delta);
+    if (window.SpaceWreckage) SpaceWreckage.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
