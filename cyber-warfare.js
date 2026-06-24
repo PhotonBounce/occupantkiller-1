@@ -1,127 +1,135 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   cyber-warfare.js — Cyber Warfare: Cyberspace FPS
+   API: window.CyberWarfare = { init, update, reset }
+   Activation: C + Y simultaneous keypress within 400ms
+   Controls:
+     WASD        → move
+     Mouse       → look
+     Left-click  → firewall punch (LineSegments beam, 40 dmg)
+     Right-click → decoy virus (BoxGeometry at aim point, 8s distraction)
+     E (hold)    → hack nearby node (5s for infrastructure, 10s for AI Core)
+     V           → stealth mode (5s invisibility, 30s cooldown)
+     O           → overclock (2x speed 10s, 45s cooldown)
+   ─────────────────────────────────────────────────────────────────────────── */
 window.CyberWarfare = (function () {
   'use strict';
 
-  // ── State ──────────────────────────────────────────────────────────────────
-  var scene = null;
-  var camera = null;
+  // ── Scene refs ─────────────────────────────────────────────────────────────
+  var scene    = null;
+  var camera   = null;
   var renderer = null;
 
-  var active = false;
+  // ── Module state ───────────────────────────────────────────────────────────
+  var active      = false;
+  var elapsed     = 0;
   var ownedObjects = [];
+  var ownedLights  = [];
 
-  // Activation key combo
-  var keys = {};
-  var cKeyTime = 0;
-  var yKeyTime = 0;
+  // ── Activation combo ───────────────────────────────────────────────────────
+  var keys        = {};
+  var cKeyTime    = 0;
+  var yKeyTime    = 0;
   var COMBO_WINDOW = 400;
 
-  // Room
-  var roomFloor = null;
-  var roomWalls = [];
+  // ── Game state ─────────────────────────────────────────────────────────────
+  var score          = 0;
+  var traceMeter     = 0;      // 0-100 %
+  var gameOver       = false;
+  var gameWon        = false;
+  var nodesHacked    = 0;      // count of infra nodes (0-3) + AI Core
+  var missionFailed  = false;
 
-  // Terminals
-  var terminals = [];
-  // terminal: { mesh, screens[], indicator, position, hacked, hacking, hackProgress,
-  //             firewallActive, firewallHits, firewallMesh, disabled }
+  // ── Player movement ────────────────────────────────────────────────────────
+  var playerYaw   = 0;
+  var playerPitch = 0;
+  var moveSpeed   = 10;
+  var BASE_SPEED  = 10;
 
-  // Central server
-  var centralServer = null;
-  var uploadActive = false;
-  var uploadProgress = 0;
-  var UPLOAD_DURATION = 15;
-  var shutdownTriggered = false;
-  var shutdownLight = null;
-  var shutdownTimer = 0;
-  var rehackRequired = [];
+  // ── Stealth ────────────────────────────────────────────────────────────────
+  var stealthActive    = false;
+  var stealthTimer     = 0;
+  var STEALTH_DURATION = 5;
+  var stealthCooldown  = 0;
+  var STEALTH_COOLDOWN = 30;
 
-  // Data nodes
-  var dataNodes = [];
-  // dataNode: { mesh, collected, bobOffset }
-  var dataScore = 0;
+  // ── Overclock ──────────────────────────────────────────────────────────────
+  var overclockActive    = false;
+  var overclockTimer     = 0;
+  var OVERCLOCK_DURATION = 10;
+  var overclockCooldown  = 0;
+  var OVERCLOCK_COOLDOWN = 45;
 
-  // Network visualization
-  var networkLines = null;
-  var networkShown = false;
-  var networkNodeMeshes = [];
+  // ── Hack state ─────────────────────────────────────────────────────────────
+  var hackingNodeIndex   = -1;
+  var hackProgress       = 0;
+  var HACK_RANGE         = 5;
+  var HACK_DURATION_NODE = 5;
+  var HACK_DURATION_CORE = 10;
 
-  // Guards
-  var guards = [];
-  // guard: { body, head, position, dir, speed, alerted, alertTimer, patrolTarget, hp }
+  // ── Infrastructure nodes ───────────────────────────────────────────────────
+  // node: { mesh, light, type, position, hacked, hacking, hackProgress,
+  //         points, effect, hackDuration, label, glowColor }
+  var infraNodes  = [];
+  var aiCore      = null;
+  var aiCoreLight = null;
 
-  // Alarm
-  var alarmActive = false;
-  var alarmFlashEl = null;
-  var alarmTimer = 0;
+  // ── Environment ────────────────────────────────────────────────────────────
+  var groundGrid     = null;
+  var gridLines      = null;
+  var dataRainStrips = [];
+  var dataNodes      = [];
+  var dataPillars    = [];
 
-  // Door / keycard
-  var mainDoor = null;
-  var doorOpen = false;
-  var keycard = null;
-  var keycardCollected = false;
-  var officeRoom = null;
+  // ── Defenders ──────────────────────────────────────────────────────────────
+  var sentries   = [];
+  var blackIce   = [];
+  var traceProgs = [];
 
-  // Payload system
-  var PAYLOADS = ['VIRUS', 'RANSOMWARE', 'BACKDOOR'];
-  var currentPayloadIndex = 0;
-  var ransomwareActive = false;
-  var ransomwareTimer = 0;
-  var backdoorRevealed = false;
-  var supplyCache = null;
+  // ── Projectiles ────────────────────────────────────────────────────────────
+  var packets = [];
 
-  // HUD
-  var hudEl = null;
+  // ── Decoys ─────────────────────────────────────────────────────────────────
+  var decoys = [];
 
-  // Minimap
-  var minimapEl = null;
+  // ── Punch beam ────────────────────────────────────────────────────────────
+  var punchBeam  = null;
+  var punchTimer = 0;
 
-  // Hack state
-  var nearTerminalIndex = -1;
-  var hackingTerminalIndex = -1;
-  var HACK_RANGE = 3;
-  var HACK_DURATION = 8;
+  // ── ICE kill count ─────────────────────────────────────────────────────────
+  var iceKilled = 0;
 
-  // Upload range
-  var UPLOAD_RANGE = 3;
+  // ── Detected by ICE ────────────────────────────────────────────────────────
+  var detectedByICE = false;
 
-  // Keycard pickup range
-  var KEYCARD_RANGE = 1.5;
+  // ── HUD ───────────────────────────────────────────────────────────────────
+  var hudEl     = null;
+  var overlayEl = null;
 
-  // Supply cache position (revealed via BACKDOOR)
-  var supplyCachePos = { x: 6, y: 0.4, z: 6 };
+  // ── Mouse state ───────────────────────────────────────────────────────────
+  var mouseX       = 0;
+  var mouseY       = 0;
+  var pointerLocked = false;
 
-  // Time accumulator
-  var elapsed = 0;
+  // ── Saved scene state ─────────────────────────────────────────────────────
+  var savedBackground = null;
+  var savedFog        = null;
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // Helpers
+  // ─────────────────────────────────────────────────────────────────────────
 
   function rand(min, max) {
     return min + Math.random() * (max - min);
   }
 
   function dist3(a, b) {
-    var dx = a.x - b.x;
-    var dy = a.y - b.y;
-    var dz = a.z - b.z;
+    var dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
   function distXZ(a, b) {
-    var dx = a.x - b.x;
-    var dz = a.z - b.z;
+    var dx = a.x - b.x, dz = a.z - b.z;
     return Math.sqrt(dx * dx + dz * dz);
-  }
-
-  function lerpColor(c1, c2, t) {
-    var r1 = (c1 >> 16) & 0xFF;
-    var g1 = (c1 >> 8) & 0xFF;
-    var b1 = c1 & 0xFF;
-    var r2 = (c2 >> 16) & 0xFF;
-    var g2 = (c2 >> 8) & 0xFF;
-    var b2 = c2 & 0xFF;
-    var r = Math.round(r1 + (r2 - r1) * t);
-    var g = Math.round(g1 + (g2 - g1) * t);
-    var b = Math.round(b1 + (b2 - b1) * t);
-    return (r << 16) | (g << 8) | b;
   }
 
   function addOwned(obj) {
@@ -130,1068 +138,1177 @@ window.CyberWarfare = (function () {
     return obj;
   }
 
-  function getPlayer() {
-    if (window.player && window.player.position) { return window.player; }
-    if (camera) { return camera; }
-    return null;
+  function addLight(light) {
+    ownedLights.push(light);
+    scene.add(light);
+    return light;
   }
 
-  function playerPos() {
-    var p = getPlayer();
-    return p ? p.position : { x: 0, y: 0, z: 0 };
+  function removeOwned(obj) {
+    scene.remove(obj);
+    var idx = ownedObjects.indexOf(obj);
+    if (idx >= 0) { ownedObjects.splice(idx, 1); }
+    if (obj.geometry) { obj.geometry.dispose(); }
+    if (obj.material) { obj.material.dispose(); }
   }
 
-  // ── Build Room ─────────────────────────────────────────────────────────────
+  function camPos() {
+    if (camera) { return camera.position; }
+    return { x: 0, y: 1.7, z: 0 };
+  }
 
-  function buildRoom() {
-    // Floor
-    var floorGeo = new THREE.BoxGeometry(20, 0.2, 20);
-    var floorMat = new THREE.MeshLambertMaterial({ color: 0x1A1A2E });
-    roomFloor = new THREE.Mesh(floorGeo, floorMat);
-    roomFloor.position.set(0, -0.1, 0);
-    roomFloor._cyberOwned = true;
-    addOwned(roomFloor);
+  // ─────────────────────────────────────────────────────────────────────────
+  // Environment
+  // ─────────────────────────────────────────────────────────────────────────
 
-    // Ceiling
-    var ceilGeo = new THREE.BoxGeometry(20, 0.2, 20);
-    var ceilMat = new THREE.MeshLambertMaterial({ color: 0x111122 });
-    var ceil = new THREE.Mesh(ceilGeo, ceilMat);
-    ceil.position.set(0, 6.1, 0);
-    ceil._cyberOwned = true;
-    addOwned(ceil);
+  function buildEnvironment() {
+    savedBackground = scene.background;
+    savedFog        = scene.fog;
+    scene.background = new THREE.Color(0x000011);
+    scene.fog        = new THREE.FogExp2(0x000022, 0.02);
 
-    // Walls (4 sides)
-    var wallMat = new THREE.MeshLambertMaterial({ color: 0x1E1E30 });
-    var wallDefs = [
-      { w: 20, h: 6, d: 0.3, x: 0, y: 3, z: -10 },
-      { w: 20, h: 6, d: 0.3, x: 0, y: 3, z: 10 },
-      { w: 0.3, h: 6, d: 20, x: -10, y: 3, z: 0 },
-      { w: 0.3, h: 6, d: 20, x: 10, y: 3, z: 0 }
-    ];
-    for (var i = 0; i < wallDefs.length; i++) {
-      var wd = wallDefs[i];
-      var wGeo = new THREE.BoxGeometry(wd.w, wd.h, wd.d);
-      var wall = new THREE.Mesh(wGeo, wallMat);
-      wall.position.set(wd.x, wd.y, wd.z);
-      wall._cyberOwned = true;
-      addOwned(wall);
-      roomWalls.push(wall);
+    var ambient = new THREE.AmbientLight(0x001133, 0.4);
+    addLight(ambient);
+
+    // Ground plane (0x001133)
+    var planeGeo = new THREE.PlaneGeometry(200, 200);
+    var planeMat = new THREE.MeshLambertMaterial({ color: 0x001133 });
+    groundGrid = new THREE.Mesh(planeGeo, planeMat);
+    groundGrid.rotation.x = -Math.PI / 2;
+    groundGrid.position.y = 0;
+    addOwned(groundGrid);
+
+    // LineSegments grid overlay (0x004488)
+    var gridGeo   = new THREE.BufferGeometry();
+    var gridVerts = [];
+    var GRID_SIZE = 200;
+    var GRID_STEP = 4;
+    var gi;
+    for (gi = -GRID_SIZE / 2; gi <= GRID_SIZE / 2; gi += GRID_STEP) {
+      gridVerts.push(gi, 0.05, -GRID_SIZE / 2,  gi, 0.05, GRID_SIZE / 2);
+      gridVerts.push(-GRID_SIZE / 2, 0.05, gi,   GRID_SIZE / 2, 0.05, gi);
+    }
+    gridGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(gridVerts), 3));
+    var gridMat = new THREE.LineBasicMaterial({ color: 0x004488, transparent: true, opacity: 0.6 });
+    gridLines = new THREE.LineSegments(gridGeo, gridMat);
+    addOwned(gridLines);
+
+    // Floating BoxGeometry data nodes (0x003366 emissive)
+    var di;
+    for (di = 0; di < 30; di++) {
+      var dGeo = new THREE.BoxGeometry(rand(0.5, 2), rand(0.5, 2), rand(0.5, 2));
+      var dMat = new THREE.MeshLambertMaterial({ color: 0x003366, emissive: 0x001133 });
+      var dMesh = new THREE.Mesh(dGeo, dMat);
+      dMesh.position.set(rand(-80, 80), rand(2, 12), rand(-80, 80));
+      addOwned(dMesh);
+      dataNodes.push({ mesh: dMesh, rotSpeedY: rand(-0.5, 0.5), rotSpeedX: rand(-0.3, 0.3) });
     }
 
-    // Ambient blue light
-    var roomLight = new THREE.AmbientLight(0x111133, 0.8);
-    roomLight._cyberOwned = true;
-    addOwned(roomLight);
+    // CylinderGeometry data pillars (0x004488)
+    var pi;
+    for (pi = 0; pi < 20; pi++) {
+      var ph   = rand(4, 20);
+      var pGeo = new THREE.CylinderGeometry(0.3, 0.5, ph, 6);
+      var pMat = new THREE.MeshLambertMaterial({ color: 0x004488, emissive: 0x001122 });
+      var pMesh = new THREE.Mesh(pGeo, pMat);
+      pMesh.position.set(rand(-90, 90), ph / 2, rand(-90, 90));
+      addOwned(pMesh);
+      dataPillars.push(pMesh);
 
-    var bluePoint = new THREE.PointLight(0x0033FF, 1.5, 25);
-    bluePoint.position.set(0, 5, 0);
-    bluePoint._cyberOwned = true;
-    addOwned(bluePoint);
-  }
+      var pLight = new THREE.PointLight(0x0044AA, 0.8, 10);
+      pLight.position.set(pMesh.position.x, ph + 0.5, pMesh.position.z);
+      addLight(pLight);
+    }
 
-  // ── Build Terminals ────────────────────────────────────────────────────────
-
-  function buildTerminals() {
-    // 4 corners of server room
-    var cornerPositions = [
-      { x: 7, z: -7 },
-      { x: -7, z: -7 },
-      { x: 7, z: 7 },
-      { x: -7, z: 7 }
-    ];
-
-    for (var i = 0; i < 4; i++) {
-      var cp = cornerPositions[i];
-      var faceZ = cp.z < 0 ? -0.45 : 0.45;
-
-      // Body: BoxGeometry 1x2x0.8
-      var bodyGeo = new THREE.BoxGeometry(1, 2, 0.8);
-      var bodyMat = new THREE.MeshLambertMaterial({ color: 0x222233 });
-      var body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.position.set(cp.x, 1, cp.z);
-      body._cyberOwned = true;
-      addOwned(body);
-
-      // 3x2 grid of GLASS-colored screen panels
-      var screens = [];
-      var screenRows = 2;
-      var screenCols = 3;
-      for (var row = 0; row < screenRows; row++) {
-        for (var col = 0; col < screenCols; col++) {
-          var sGeo = new THREE.BoxGeometry(0.25, 0.7, 0.05);
-          var sMat = new THREE.MeshLambertMaterial({
-            color: 0x80C0FF,
-            emissive: 0x102040,
-            transparent: true,
-            opacity: 0.85
-          });
-          var screen = new THREE.Mesh(sGeo, sMat);
-          var sx = cp.x + (col - 1) * 0.28;
-          var sy = 1 + (row - 0.5) * 0.75;
-          var sz = cp.z + faceZ;
-          screen.position.set(sx, sy, sz);
-          screen._cyberOwned = true;
-          addOwned(screen);
-          screens.push(screen);
-        }
-      }
-
-      // Status indicator light on top
-      var indGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-      var indMat = new THREE.MeshLambertMaterial({ color: 0xFF3300, emissive: 0x330000 });
-      var indicator = new THREE.Mesh(indGeo, indMat);
-      indicator.position.set(cp.x, 2.1, cp.z);
-      indicator._cyberOwned = true;
-      addOwned(indicator);
-
-      terminals.push({
-        mesh: body,
-        screens: screens,
-        indicator: indicator,
-        position: { x: cp.x, y: 1, z: cp.z },
-        hacked: false,
-        hacking: false,
-        hackProgress: 0,
-        firewallActive: false,
-        firewallHits: 0,
-        firewallMesh: null,
-        disabled: false
+    // Data rain: 20 thin BoxGeometry falling strips (0x00FF88, 0.1 x rand-height x 0.1)
+    var ri;
+    for (ri = 0; ri < 20; ri++) {
+      var rh   = rand(1, 5);
+      var rGeo = new THREE.BoxGeometry(0.1, rh, 0.1);
+      var rMat = new THREE.MeshLambertMaterial({
+        color: 0x00FF88, emissive: 0x004422, transparent: true, opacity: 0.85
       });
+      var rMesh = new THREE.Mesh(rGeo, rMat);
+      rMesh.position.set(rand(-50, 50), rand(0, 20), rand(-50, 50));
+      addOwned(rMesh);
+      dataRainStrips.push({ mesh: rMesh, speed: rand(3, 8), resetY: 20 + rh / 2 });
     }
   }
 
-  // ── Firewall Boss ──────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // Infrastructure nodes
+  // ─────────────────────────────────────────────────────────────────────────
 
-  function spawnFirewall(terminalIndex) {
-    var t = terminals[terminalIndex];
-    if (t.firewallMesh) { return; }
+  function buildInfraNodes() {
+    // 1. Power Grid: CylinderGeometry (0x004488 emissive)
+    var powerGeo = new THREE.CylinderGeometry(1.2, 1.5, 4, 8);
+    var powerMat = new THREE.MeshLambertMaterial({ color: 0x004488, emissive: 0x001133 });
+    var powerMesh = new THREE.Mesh(powerGeo, powerMat);
+    powerMesh.position.set(20, 2, 20);
+    addOwned(powerMesh);
+    var powerLight = new THREE.PointLight(0x0066CC, 1.5, 15);
+    powerLight.position.set(20, 5, 20);
+    addLight(powerLight);
+    infraNodes.push({
+      mesh: powerMesh, light: powerLight,
+      type: 'power',
+      position: { x: 20, y: 2, z: 20 },
+      hacked: false, hacking: false, hackProgress: 0,
+      points: 200, effect: 'BLACKOUT', hackDuration: HACK_DURATION_NODE,
+      label: 'POWER GRID', glowColor: 0x0066CC
+    });
 
-    var geo = new THREE.BoxGeometry(3, 3, 3);
-    var mat = new THREE.MeshLambertMaterial({ color: 0xFF0000, emissive: 0x220000 });
+    // 2. Banking node: BoxGeometry (0x004466 emissive)
+    var bankGeo  = new THREE.BoxGeometry(3, 4, 3);
+    var bankMat  = new THREE.MeshLambertMaterial({ color: 0x004466, emissive: 0x001122 });
+    var bankMesh = new THREE.Mesh(bankGeo, bankMat);
+    bankMesh.position.set(-20, 2, 20);
+    addOwned(bankMesh);
+    var bankLight = new THREE.PointLight(0x006688, 1.5, 15);
+    bankLight.position.set(-20, 5, 20);
+    addLight(bankLight);
+    infraNodes.push({
+      mesh: bankMesh, light: bankLight,
+      type: 'banking',
+      position: { x: -20, y: 2, z: 20 },
+      hacked: false, hacking: false, hackProgress: 0,
+      points: 300, effect: 'ECONOMIC CHAOS', hackDuration: HACK_DURATION_NODE,
+      label: 'BANKING NODE', glowColor: 0x006688
+    });
+
+    // 3. Military comms: BoxGeometry (0x003344 emissive)
+    var milGeo  = new THREE.BoxGeometry(4, 3, 2);
+    var milMat  = new THREE.MeshLambertMaterial({ color: 0x003344, emissive: 0x001122 });
+    var milMesh = new THREE.Mesh(milGeo, milMat);
+    milMesh.position.set(-20, 1.5, -20);
+    addOwned(milMesh);
+    var milLight = new THREE.PointLight(0x004466, 1.5, 15);
+    milLight.position.set(-20, 4, -20);
+    addLight(milLight);
+    infraNodes.push({
+      mesh: milMesh, light: milLight,
+      type: 'military',
+      position: { x: -20, y: 1.5, z: -20 },
+      hacked: false, hacking: false, hackProgress: 0,
+      points: 400, effect: 'DEFENSE DISABLED', hackDuration: HACK_DURATION_NODE,
+      label: 'MILITARY COMMS', glowColor: 0x004466
+    });
+  }
+
+  function buildAICore() {
+    // SphereGeometry r=3 (0x00AAFF emissive), hidden until 3 nodes hacked
+    var geo = new THREE.SphereGeometry(3, 16, 12);
+    var mat = new THREE.MeshLambertMaterial({
+      color: 0x00AAFF, emissive: 0x002244, transparent: true, opacity: 0.9
+    });
     var mesh = new THREE.Mesh(geo, mat);
-    var offsetZ = t.position.z < 0 ? -4 : 4;
-    mesh.position.set(t.position.x, 1.5, t.position.z + offsetZ);
-    mesh._cyberOwned = true;
+    mesh.position.set(0, 5, 0);
+    mesh.visible = false;
     addOwned(mesh);
-    t.firewallMesh = mesh;
-    t.firewallActive = true;
-    t.firewallHits = 0;
-  }
 
-  function removeFirewall(terminalIndex) {
-    var t = terminals[terminalIndex];
-    if (t.firewallMesh) {
-      scene.remove(t.firewallMesh);
-      var idx = ownedObjects.indexOf(t.firewallMesh);
-      if (idx >= 0) { ownedObjects.splice(idx, 1); }
-      t.firewallMesh = null;
-    }
-    t.firewallActive = false;
-    t.firewallHits = 0;
-  }
+    aiCoreLight = new THREE.PointLight(0x00AAFF, 2, 30);
+    aiCoreLight.position.set(0, 8, 0);
+    aiCoreLight.visible = false;
+    addLight(aiCoreLight);
 
-  // ── Data Nodes ─────────────────────────────────────────────────────────────
-
-  function buildDataNodes() {
-    var positions = [
-      { x: 3, z: 0 }, { x: -3, z: 0 },
-      { x: 0, z: 3 }, { x: 0, z: -3 },
-      { x: 5, z: 5 }, { x: -5, z: 5 },
-      { x: 5, z: -5 }, { x: -5, z: -5 }
-    ];
-
-    for (var i = 0; i < 8; i++) {
-      var geo = new THREE.SphereGeometry(0.4, 8, 6);
-      var mat = new THREE.MeshLambertMaterial({ color: 0x00FF88, emissive: 0x003322 });
-      var mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(positions[i].x, 1.5, positions[i].z);
-      mesh._cyberOwned = true;
-      addOwned(mesh);
-      dataNodes.push({
-        mesh: mesh,
-        collected: false,
-        bobOffset: i * 0.8
-      });
-    }
-  }
-
-  // ── Network Visualization ──────────────────────────────────────────────────
-
-  function buildNetworkViz() {
-    if (networkShown) { return; }
-    networkShown = true;
-
-    var netPositions = [
-      { x: 7, y: 3.5, z: -7 },
-      { x: -7, y: 3.5, z: -7 },
-      { x: 7, y: 3.5, z: 7 },
-      { x: -7, y: 3.5, z: 7 },
-      { x: 0, y: 3.5, z: 0 }
-    ];
-
-    for (var i = 0; i < netPositions.length; i++) {
-      var nGeo = new THREE.SphereGeometry(0.12, 6, 4);
-      var nMat = new THREE.MeshLambertMaterial({ color: 0x00FFFF, emissive: 0x003333 });
-      var nMesh = new THREE.Mesh(nGeo, nMat);
-      nMesh.position.set(netPositions[i].x, netPositions[i].y, netPositions[i].z);
-      nMesh._cyberOwned = true;
-      addOwned(nMesh);
-      networkNodeMeshes.push(nMesh);
-    }
-
-    // LineSegments connecting the network nodes
-    var lineVerts = [];
-    var connections = [
-      [0, 4], [1, 4], [2, 4], [3, 4],
-      [0, 1], [2, 3], [0, 2], [1, 3]
-    ];
-    for (var c = 0; c < connections.length; c++) {
-      var a = netPositions[connections[c][0]];
-      var b = netPositions[connections[c][1]];
-      lineVerts.push(a.x, a.y, a.z, b.x, b.y, b.z);
-    }
-
-    var lineGeo = new THREE.BufferGeometry();
-    var vArray = new Float32Array(lineVerts);
-    lineGeo.setAttribute('position', new THREE.BufferAttribute(vArray, 3));
-    var lineMat = new THREE.LineBasicMaterial({ color: 0x00FFFF, opacity: 0.7, transparent: true });
-    networkLines = new THREE.LineSegments(lineGeo, lineMat);
-    networkLines._cyberOwned = true;
-    addOwned(networkLines);
-  }
-
-  // ── Central Server ─────────────────────────────────────────────────────────
-
-  function buildCentralServer() {
-    var geo = new THREE.BoxGeometry(3, 4, 3);
-    var mat = new THREE.MeshLambertMaterial({ color: 0x002244 });
-    centralServer = new THREE.Mesh(geo, mat);
-    centralServer.position.set(0, 2, 0);
-    centralServer._cyberOwned = true;
-    addOwned(centralServer);
-
-    var sLightGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-    var sLightMat = new THREE.MeshLambertMaterial({ color: 0x0088FF, emissive: 0x002244 });
-    var sLight = new THREE.Mesh(sLightGeo, sLightMat);
-    sLight.position.set(0, 4.15, 0);
-    sLight._cyberOwned = true;
-    addOwned(sLight);
-  }
-
-  // ── Guards ─────────────────────────────────────────────────────────────────
-
-  function buildGuard(x, z) {
-    var bodyGeo = new THREE.BoxGeometry(0.6, 1.6, 0.4);
-    var bodyMat = new THREE.MeshLambertMaterial({ color: 0x333366 });
-    var body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.set(x, 0.8, z);
-    body._cyberOwned = true;
-    addOwned(body);
-
-    var headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-    var headMat = new THREE.MeshLambertMaterial({ color: 0x445577 });
-    var head = new THREE.Mesh(headGeo, headMat);
-    head.position.set(x, 1.8, z);
-    head._cyberOwned = true;
-    addOwned(head);
-
-    var dir = Math.random() * Math.PI * 2;
-    return {
-      body: body,
-      head: head,
-      position: { x: x, y: 0.8, z: z },
-      dir: dir,
-      speed: 2.5,
-      alerted: false,
-      alertTimer: 0,
-      patrolTarget: {
-        x: Math.max(-8, Math.min(8, x + Math.cos(dir) * 3)),
-        z: Math.max(-8, Math.min(8, z + Math.sin(dir) * 3))
-      },
-      hp: 3
+    aiCore = {
+      mesh: mesh,
+      light: aiCoreLight,
+      position: { x: 0, y: 5, z: 0 },
+      hacked: false,
+      hacking: false,
+      hackProgress: 0,
+      visible: false,
+      hackDuration: HACK_DURATION_CORE
     };
   }
 
-  function buildInitialGuards() {
-    var startPositions = [
-      { x: 0, z: -5 },
-      { x: 0, z: 5 },
-      { x: -5, z: 0 },
-      { x: 5, z: 0 },
-      { x: -3, z: -3 }
+  function revealAICore() {
+    if (!aiCore || aiCore.visible) { return; }
+    aiCore.visible        = true;
+    aiCore.mesh.visible   = true;
+    aiCoreLight.visible   = true;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Defenders
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function buildSentries() {
+    // 6 Firewall sentries: BoxGeometry (0xFF2200 emissive)
+    var patrolPairs = [
+      [{ x: 20, z: 20 }, { x: -20, z: 20 }],
+      [{ x: -20, z: 20 }, { x: -20, z: -20 }],
+      [{ x: -20, z: -20 }, { x: 20, z: -20 }],
+      [{ x: 20, z: -20 }, { x: 20, z: 20 }],
+      [{ x: 0, z: 20 }, { x: 0, z: -20 }],
+      [{ x: -15, z: 0 }, { x: 15, z: 0 }]
     ];
-    for (var i = 0; i < startPositions.length; i++) {
-      guards.push(buildGuard(startPositions[i].x, startPositions[i].z));
+    var i;
+    for (i = 0; i < 6; i++) {
+      var pp   = patrolPairs[i];
+      var geo  = new THREE.BoxGeometry(1.2, 2, 0.8);
+      var mat  = new THREE.MeshLambertMaterial({ color: 0xFF2200, emissive: 0x330000 });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(pp[0].x, 1, pp[0].z);
+      addOwned(mesh);
+
+      var light = new THREE.PointLight(0xFF2200, 1, 8);
+      light.position.set(pp[0].x, 2, pp[0].z);
+      addLight(light);
+
+      sentries.push({
+        mesh: mesh, light: light,
+        position: { x: pp[0].x, y: 1, z: pp[0].z },
+        patrolA: { x: pp[0].x, z: pp[0].z },
+        patrolB: { x: pp[1].x, z: pp[1].z },
+        patrolT: rand(0, Math.PI * 2),
+        speed: 5,
+        hp: 100,
+        shootTimer: rand(1, 3),
+        alive: true,
+        chasing: false,
+        decoyTarget: null
+      });
     }
   }
 
-  function spawnAlarmGuards() {
-    for (var i = 0; i < 3; i++) {
-      var angle = (i / 3) * Math.PI * 2;
-      var gx = Math.cos(angle) * 8;
-      var gz = Math.sin(angle) * 8;
-      var g = buildGuard(gx, gz);
-      g.alerted = true;
-      g.alertTimer = 15;
-      guards.push(g);
+  function buildBlackICE() {
+    // 3 Black ICE hunters: CylinderGeometry (0xFF0000 emissive), 60 dmg melee
+    var positions = [
+      { x: 30, z: 0 },
+      { x: -30, z: 15 },
+      { x: 10, z: -30 }
+    ];
+    var i;
+    for (i = 0; i < 3; i++) {
+      var p    = positions[i];
+      var geo  = new THREE.CylinderGeometry(0.5, 0.8, 2.5, 6);
+      var mat  = new THREE.MeshLambertMaterial({ color: 0xFF0000, emissive: 0x440000 });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(p.x, 1.25, p.z);
+      addOwned(mesh);
+
+      var light = new THREE.PointLight(0xFF0000, 1.2, 10);
+      light.position.set(p.x, 2.5, p.z);
+      addLight(light);
+
+      blackIce.push({
+        mesh: mesh, light: light,
+        position: { x: p.x, y: 1.25, z: p.z },
+        speed: 9,
+        hp: 150,
+        alive: true,
+        meleeTimer: 0,
+        MELEE_CD: 2
+      });
     }
   }
 
-  // ── Office, Door, Keycard ──────────────────────────────────────────────────
+  function buildTraceProgs() {
+    // 2 Trace programs: SphereGeometry (0xFF8800 emissive), orbit AI Core
+    var i;
+    for (i = 0; i < 2; i++) {
+      var geo   = new THREE.SphereGeometry(0.6, 8, 6);
+      var mat   = new THREE.MeshLambertMaterial({ color: 0xFF8800, emissive: 0x331100 });
+      var mesh  = new THREE.Mesh(geo, mat);
+      var startAngle = (i / 2) * Math.PI * 2;
+      mesh.position.set(Math.cos(startAngle) * 6, 5, Math.sin(startAngle) * 6);
+      addOwned(mesh);
 
-  function buildOfficeAndDoor() {
-    // Office room: BoxGeometry 10x4x8
-    var offGeo = new THREE.BoxGeometry(10, 4, 8);
-    var offMat = new THREE.MeshLambertMaterial({ color: 0x1A2A1A, opacity: 0.55, transparent: true });
-    officeRoom = new THREE.Mesh(offGeo, offMat);
-    officeRoom.position.set(15, 2, 0);
-    officeRoom._cyberOwned = true;
-    addOwned(officeRoom);
+      var light = new THREE.PointLight(0xFF8800, 1, 6);
+      light.position.copy(mesh.position);
+      addLight(light);
 
-    var ofFloorGeo = new THREE.BoxGeometry(10, 0.15, 8);
-    var ofFloorMat = new THREE.MeshLambertMaterial({ color: 0x182218 });
-    var ofFloor = new THREE.Mesh(ofFloorGeo, ofFloorMat);
-    ofFloor.position.set(15, 0.075, 0);
-    ofFloor._cyberOwned = true;
-    addOwned(ofFloor);
-
-    // Main door: BoxGeometry 0x334433
-    var doorGeo = new THREE.BoxGeometry(0.3, 4, 2.5);
-    var doorMat = new THREE.MeshLambertMaterial({ color: 0x334433 });
-    mainDoor = new THREE.Mesh(doorGeo, doorMat);
-    mainDoor.position.set(10, 2, 0);
-    mainDoor._cyberOwned = true;
-    addOwned(mainDoor);
-
-    // Keycard: BoxGeometry 0x0088FF
-    var kcGeo = new THREE.BoxGeometry(0.3, 0.05, 0.5);
-    var kcMat = new THREE.MeshLambertMaterial({ color: 0x0088FF, emissive: 0x001144 });
-    keycard = new THREE.Mesh(kcGeo, kcMat);
-    keycard.position.set(15, 0.8, -2);
-    keycard._cyberOwned = true;
-    addOwned(keycard);
-
-    // Supply cache (hidden until BACKDOOR payload)
-    var scGeo = new THREE.BoxGeometry(0.8, 0.5, 0.8);
-    var scMat = new THREE.MeshLambertMaterial({ color: 0xFFCC00, emissive: 0x332200 });
-    supplyCache = new THREE.Mesh(scGeo, scMat);
-    supplyCache.position.set(supplyCachePos.x, supplyCachePos.y, supplyCachePos.z);
-    supplyCache.visible = false;
-    supplyCache._cyberOwned = true;
-    addOwned(supplyCache);
+      traceProgs.push({
+        mesh: mesh, light: light,
+        orbitAngle: startAngle,
+        orbitRadius: 6,
+        orbitSpeed: 0.8,
+        hp: 50,
+        alive: true
+      });
+    }
   }
 
-  // ── HUD ───────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // HUD
+  // ─────────────────────────────────────────────────────────────────────────
 
   function buildHUD() {
     if (hudEl) { return; }
 
     hudEl = document.createElement('div');
-    hudEl.id = 'cyber-hud';
+    hudEl.id = 'cw-hud';
     hudEl.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);'
-      + 'background:rgba(0,10,30,0.85);color:#00FFAA;font-family:monospace;font-size:13px;'
-      + 'padding:6px 14px;border:1px solid #00FFAA;border-radius:3px;z-index:3000;'
-      + 'pointer-events:none;white-space:nowrap;';
+      + 'background:rgba(0,0,17,0.88);color:#00FFAA;font-family:monospace;font-size:12px;'
+      + 'padding:5px 14px;border:1px solid #004488;border-radius:3px;z-index:3100;'
+      + 'pointer-events:none;white-space:nowrap;text-shadow:0 0 6px #00FFAA;';
     document.body.appendChild(hudEl);
 
-    alarmFlashEl = document.createElement('div');
-    alarmFlashEl.id = 'cyber-alarm-flash';
-    alarmFlashEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;'
-      + 'pointer-events:none;z-index:2999;background:rgba(255,0,0,0);'
-      + 'transition:background 0.1s;';
-    document.body.appendChild(alarmFlashEl);
-
-    minimapEl = document.createElement('canvas');
-    minimapEl.id = 'cyber-minimap';
-    minimapEl.width = 120;
-    minimapEl.height = 120;
-    minimapEl.style.cssText = 'position:fixed;bottom:10px;right:10px;'
-      + 'background:rgba(0,5,20,0.85);border:1px solid #00FFAA;border-radius:3px;z-index:3000;';
-    document.body.appendChild(minimapEl);
+    overlayEl = document.createElement('div');
+    overlayEl.id = 'cw-overlay';
+    overlayEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;'
+      + 'pointer-events:none;z-index:3099;display:none;align-items:center;'
+      + 'justify-content:center;font-family:monospace;font-size:32px;font-weight:bold;'
+      + 'text-align:center;color:#00FF88;text-shadow:0 0 20px #00FF88;';
+    document.body.appendChild(overlayEl);
   }
 
   function updateHUD() {
     if (!hudEl) { return; }
 
-    var hackedCount = 0;
-    for (var i = 0; i < terminals.length; i++) {
-      if (terminals[i].hacked) { hackedCount++; }
-    }
-    var dataCollected = 0;
-    for (var d = 0; d < dataNodes.length; d++) {
-      if (dataNodes[d].collected) { dataCollected++; }
-    }
-    var uploadPct = Math.round(uploadProgress * 100);
-    var payloadName = PAYLOADS[currentPayloadIndex];
+    var iceCount = 0, i;
+    for (i = 0; i < sentries.length; i++)   { if (sentries[i].alive)   { iceCount++; } }
+    for (i = 0; i < blackIce.length; i++)   { if (blackIce[i].alive)   { iceCount++; } }
+    for (i = 0; i < traceProgs.length; i++) { if (traceProgs[i].alive) { iceCount++; } }
 
-    var anyFirewall = false;
-    for (var fi = 0; fi < terminals.length; fi++) {
-      if (terminals[fi].firewallActive) { anyFirewall = true; break; }
-    }
-    var firewallStatus = anyFirewall ? 'ACTIVE' : 'BREACHED';
-
-    var hackingStr = '';
-    if (hackingTerminalIndex >= 0) {
-      var pct = Math.round(terminals[hackingTerminalIndex].hackProgress * 100);
-      hackingStr = ' [HACKING: ' + pct + '%]';
-    }
-
-    var uploadStr = uploadActive ? ' [UPLOADING...]' : '';
-    var alarmStr = alarmActive ? ' [!ALARM!]' : '';
-    var ransomStr = ransomwareActive ? ' [FROZEN ' + Math.round(ransomwareTimer) + 's]' : '';
-
-    var txt = 'CYBER OPS'
-      + ' [HACKED: ' + hackedCount + '/4]'
-      + ' [DATA: ' + dataCollected + '/8]'
-      + ' [UPLOAD: ' + uploadPct + '%]'
-      + ' [PAYLOAD: ' + payloadName + ']'
-      + ' | FIREWALL: ' + firewallStatus
-      + hackingStr + uploadStr + alarmStr + ransomStr;
-
-    if (shutdownTriggered) {
-      hudEl.style.color = '#FF3300';
-      txt = '!! EMERGENCY SHUTDOWN !! ' + txt;
+    var stealthStr;
+    if (stealthActive) {
+      stealthStr = 'ACTIVE(' + Math.ceil(stealthTimer) + 's)';
+    } else if (stealthCooldown > 0) {
+      stealthStr = Math.ceil(stealthCooldown) + 's CD';
     } else {
-      hudEl.style.color = '#00FFAA';
+      stealthStr = 'READY';
     }
 
-    hudEl.textContent = txt;
+    var overStr;
+    if (overclockActive) {
+      overStr = '2x(' + Math.ceil(overclockTimer) + 's)';
+    } else if (overclockCooldown > 0) {
+      overStr = Math.ceil(overclockCooldown) + 's CD';
+    } else {
+      overStr = 'READY';
+    }
+
+    var coreStr;
+    if (!aiCore || !aiCore.visible) {
+      coreStr = 'LOCKED';
+    } else if (aiCore.hacked) {
+      coreStr = 'PWNED';
+    } else if (aiCore.hacking) {
+      coreStr = 'HACKING(' + Math.round(aiCore.hackProgress * 100) + '%)';
+    } else {
+      coreStr = 'EXPOSED';
+    }
+
+    var hackStr = '';
+    if (hackingNodeIndex !== -1) {
+      hackStr = ' [HACKING:' + Math.round(hackProgress * 100) + '%]';
+    }
+
+    var traceColor = traceMeter > 75 ? '#FF4400' : (traceMeter > 50 ? '#FFAA00' : '#00FFAA');
+    hudEl.style.color = traceColor;
+    hudEl.style.textShadow = '0 0 6px ' + traceColor;
+
+    hudEl.textContent = 'CYBER WARFARE'
+      + ' [NODES HACKED:' + nodesHacked + '/4]'
+      + ' [ICE:' + iceCount + ']'
+      + ' [TRACE:' + Math.round(traceMeter) + '%]'
+      + ' [STEALTH:' + stealthStr + ']'
+      + ' | AI CORE:' + coreStr
+      + hackStr;
   }
 
-  function updateMinimap() {
-    if (!minimapEl) { return; }
-    var ctx = minimapEl.getContext('2d');
-    var w = minimapEl.width;
-    var h = minimapEl.height;
-    ctx.clearRect(0, 0, w, h);
-
-    function toMap(wx, wz) {
-      return {
-        mx: Math.round((wx + 10) / 20 * w),
-        my: Math.round((wz + 10) / 20 * h)
-      };
-    }
-
-    ctx.strokeStyle = '#00FFAA';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(2, 2, w - 4, h - 4);
-
-    // Terminals
-    for (var i = 0; i < terminals.length; i++) {
-      var t = terminals[i];
-      var tp = toMap(t.position.x, t.position.z);
-      ctx.fillStyle = t.hacked ? '#00FF88' : (t.firewallActive ? '#FF0000' : '#888888');
-      ctx.fillRect(tp.mx - 3, tp.my - 3, 6, 6);
-    }
-
-    // Data nodes
-    for (var d = 0; d < dataNodes.length; d++) {
-      if (!dataNodes[d].collected) {
-        var dnp = toMap(dataNodes[d].mesh.position.x, dataNodes[d].mesh.position.z);
-        ctx.fillStyle = '#00FF88';
-        ctx.beginPath();
-        ctx.arc(dnp.mx, dnp.my, 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    // Supply cache (BACKDOOR revealed)
-    if (backdoorRevealed) {
-      var scp = toMap(supplyCachePos.x, supplyCachePos.z);
-      ctx.fillStyle = '#FFCC00';
-      ctx.fillRect(scp.mx - 3, scp.my - 3, 6, 6);
-    }
-
-    // Guards
-    for (var g = 0; g < guards.length; g++) {
-      var gd = guards[g];
-      if (gd.hp <= 0) { continue; }
-      var gp = toMap(gd.position.x, gd.position.z);
-      ctx.fillStyle = gd.alerted ? '#FF4400' : '#334499';
-      ctx.beginPath();
-      ctx.arc(gp.mx, gp.my, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Central server
-    var csp = toMap(0, 0);
-    ctx.fillStyle = '#0044AA';
-    ctx.fillRect(csp.mx - 5, csp.my - 5, 10, 10);
-
-    // Player
-    var pp = playerPos();
-    var playerMapPos = toMap(pp.x, pp.z);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(playerMapPos.mx, playerMapPos.my, 3, 0, Math.PI * 2);
-    ctx.fill();
+  function showOverlay(msg, color) {
+    if (!overlayEl) { return; }
+    overlayEl.style.display = 'flex';
+    overlayEl.style.color = color || '#00FF88';
+    overlayEl.style.textShadow = '0 0 20px ' + (color || '#00FF88');
+    overlayEl.innerHTML = msg;
   }
 
-  // ── Alarm ──────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // Hacking logic
+  // ─────────────────────────────────────────────────────────────────────────
 
-  function triggerAlarm() {
-    if (alarmActive) { return; }
-    alarmActive = true;
-    alarmTimer = 5;
-    spawnAlarmGuards();
+  function getNearestHackTarget() {
+    var pp   = camPos();
+    var best = -1;
+    var bestD = HACK_RANGE;
+    var i;
 
-    if (alarmFlashEl) {
-      alarmFlashEl.style.background = 'rgba(255,0,0,0.45)';
-    }
-    document.body.style.filter = 'brightness(1.8)';
-    var savedFilter = document.body.style.filter;
-    setTimeout(function () {
-      if (alarmFlashEl) { alarmFlashEl.style.background = 'rgba(255,0,0,0)'; }
-      if (document.body.style.filter === savedFilter) {
-        document.body.style.filter = '';
-      }
-    }, 300);
-
-    for (var i = 0; i < guards.length; i++) {
-      guards[i].alerted = true;
-      guards[i].alertTimer = 20;
-    }
-  }
-
-  // ── Emergency Shutdown ─────────────────────────────────────────────────────
-
-  function triggerShutdown() {
-    if (shutdownTriggered) { return; }
-    shutdownTriggered = true;
-    uploadActive = false;
-    if (uploadProgress > 0.74) { uploadProgress = 0.74; }
-
-    shutdownLight = new THREE.PointLight(0xFF0000, 2, 20);
-    shutdownLight.position.set(0, 5, 0);
-    shutdownLight._cyberOwned = true;
-    addOwned(shutdownLight);
-    shutdownTimer = 0;
-
-    // Dim all terminal screens
-    for (var i = 0; i < terminals.length; i++) {
-      for (var s = 0; s < terminals[i].screens.length; s++) {
-        terminals[i].screens[s].material.color.setHex(0x111111);
-        terminals[i].screens[s].material.emissive.setHex(0x000000);
-      }
+    for (i = 0; i < infraNodes.length; i++) {
+      if (infraNodes[i].hacked) { continue; }
+      var d = distXZ(pp, infraNodes[i].position);
+      if (d < bestD) { bestD = d; best = i; }
     }
 
-    // Reset 2 hacked terminals
-    var hackedIdx = [];
-    for (var j = 0; j < terminals.length; j++) {
-      if (terminals[j].hacked) { hackedIdx.push(j); }
+    if (aiCore && aiCore.visible && !aiCore.hacked) {
+      var dc = distXZ(pp, aiCore.position);
+      if (dc < HACK_RANGE) { return 'core'; }
     }
-    rehackRequired = [];
-    for (var k = 0; k < Math.min(2, hackedIdx.length); k++) {
-      rehackRequired.push(hackedIdx[k]);
-      terminals[hackedIdx[k]].hacked = false;
-      terminals[hackedIdx[k]].hackProgress = 0;
-    }
-  }
 
-  // ── Hacking ────────────────────────────────────────────────────────────────
-
-  function startHack(idx) {
-    if (terminals[idx].hacked) { return; }
-    if (terminals[idx].disabled) { return; }
-    if (terminals[idx].firewallActive) { return; }
-    hackingTerminalIndex = idx;
-    terminals[idx].hacking = true;
-  }
-
-  function abortHack(idx) {
-    if (idx < 0 || idx >= terminals.length) { return; }
-    var wasHacking = terminals[idx].hacking;
-    terminals[idx].hacking = false;
-    hackingTerminalIndex = -1;
-
-    if (wasHacking && terminals[idx].hackProgress > 0 && terminals[idx].hackProgress < 1) {
-      spawnFirewall(idx);
-    }
+    return best;
   }
 
   function completeHack(idx) {
-    terminals[idx].hacked = true;
-    terminals[idx].hacking = false;
-    terminals[idx].hackProgress = 1;
-    hackingTerminalIndex = -1;
+    if (idx === 'core') {
+      aiCore.hacked      = true;
+      aiCore.hacking     = false;
+      aiCore.hackProgress = 1;
+      aiCore.mesh.material.color.setHex(0x00FF88);
+      aiCore.mesh.material.emissive.setHex(0x003322);
+      nodesHacked++;
+      score += 500;
+      gameWon = true;
+      showOverlay('MISSION COMPLETE<br>CYBERSPACE COMPROMISED<br>SCORE: ' + score, '#00FF88');
+    } else {
+      var nd = infraNodes[idx];
+      nd.hacked      = true;
+      nd.hacking     = false;
+      nd.hackProgress = 1;
+      nd.mesh.material.color.setHex(0x00FF88);
+      nd.mesh.material.emissive.setHex(0x002211);
+      nd.light.color.setHex(0x00FF44);
+      nodesHacked++;
+      score += nd.points;
+      traceMeter = Math.max(0, traceMeter - 5);
 
-    for (var s = 0; s < terminals[idx].screens.length; s++) {
-      terminals[idx].screens[s].material.color.setHex(0x00FF44);
-      terminals[idx].screens[s].material.emissive.setHex(0x003311);
+      if (nodesHacked >= 3) {
+        revealAICore();
+      }
     }
-    terminals[idx].indicator.material.color.setHex(0x00FF44);
-    terminals[idx].indicator.material.emissive.setHex(0x003311);
 
-    // First hack shows network viz
-    var hackedCount = 0;
-    for (var i = 0; i < terminals.length; i++) {
-      if (terminals[i].hacked) { hackedCount++; }
-    }
-    if (hackedCount === 1) {
-      buildNetworkViz();
-    }
+    hackingNodeIndex = -1;
+    hackProgress     = 0;
   }
 
-  // ── Payloads ───────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // Combat
+  // ─────────────────────────────────────────────────────────────────────────
 
-  function usePayload() {
-    var payload = PAYLOADS[currentPayloadIndex];
-
-    if (payload === 'VIRUS') {
-      for (var i = 0; i < terminals.length; i++) {
-        if (!terminals[i].hacked && !terminals[i].disabled) {
-          terminals[i].disabled = true;
-          terminals[i].hacked = true;
-          for (var s = 0; s < terminals[i].screens.length; s++) {
-            terminals[i].screens[s].material.color.setHex(0xFF8800);
-            terminals[i].screens[s].material.emissive.setHex(0x220800);
-          }
-          terminals[i].indicator.material.color.setHex(0xFF8800);
-          dataScore += 200;
-          break;
-        }
-      }
-    } else if (payload === 'RANSOMWARE') {
-      ransomwareActive = true;
-      ransomwareTimer = 10;
-      for (var g = 0; g < guards.length; g++) {
-        guards[g].alerted = false;
-        guards[g].alertTimer = 0;
-      }
-    } else if (payload === 'BACKDOOR') {
-      backdoorRevealed = true;
-      if (supplyCache) { supplyCache.visible = true; }
-    }
-
-    currentPayloadIndex = (currentPayloadIndex + 1) % PAYLOADS.length;
-  }
-
-  // ── Shooting ───────────────────────────────────────────────────────────────
-
-  function handleShoot() {
+  function firewallPunch() {
     if (!camera) { return; }
-    var dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    var raycaster = new THREE.Raycaster(camera.position.clone(), dir.normalize());
-    var targets = [];
-    for (var i = 0; i < terminals.length; i++) {
-      if (terminals[i].firewallMesh) { targets.push(terminals[i].firewallMesh); }
+
+    var dir    = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    var origin = camera.position.clone();
+    var end    = origin.clone().addScaledVector(dir, 50);
+
+    var beamGeo = new THREE.BufferGeometry();
+    beamGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+      origin.x, origin.y, origin.z,
+      end.x,    end.y,    end.z
+    ]), 3));
+    var beamMat = new THREE.LineBasicMaterial({ color: 0x00FFFF, linewidth: 2 });
+    var beam    = new THREE.LineSegments(beamGeo, beamMat);
+
+    if (punchBeam) { removeOwned(punchBeam); }
+    punchBeam  = beam;
+    punchTimer = 0.15;
+    addOwned(beam);
+
+    // Raycast damage
+    var raycaster  = new THREE.Raycaster(origin, dir.normalize());
+    var targets    = [];
+    var targetRefs = [];
+    var i;
+
+    for (i = 0; i < sentries.length; i++) {
+      if (sentries[i].alive) {
+        targets.push(sentries[i].mesh);
+        targetRefs.push({ type: 's', idx: i });
+      }
     }
+    for (i = 0; i < blackIce.length; i++) {
+      if (blackIce[i].alive) {
+        targets.push(blackIce[i].mesh);
+        targetRefs.push({ type: 'b', idx: i });
+      }
+    }
+    for (i = 0; i < traceProgs.length; i++) {
+      if (traceProgs[i].alive) {
+        targets.push(traceProgs[i].mesh);
+        targetRefs.push({ type: 't', idx: i });
+      }
+    }
+
     var hits = raycaster.intersectObjects(targets);
     if (hits.length > 0) {
       var hitMesh = hits[0].object;
-      for (var j = 0; j < terminals.length; j++) {
-        if (terminals[j].firewallMesh === hitMesh) {
-          terminals[j].firewallHits++;
-          hitMesh.material.emissive.setHex(0xFF2200);
-          if (terminals[j].firewallHits >= 5) {
-            removeFirewall(j);
-          }
+      for (i = 0; i < targets.length; i++) {
+        if (targets[i] === hitMesh) {
+          applyDamageToICE(targetRefs[i], 40);
           break;
         }
-      }
-    } else {
-      var pp2 = playerPos();
-      if (Math.abs(pp2.x) < 10 && Math.abs(pp2.z) < 10) {
-        triggerAlarm();
       }
     }
   }
 
-  // ── Input ──────────────────────────────────────────────────────────────────
+  function applyDamageToICE(ref, dmg) {
+    if (ref.type === 's') {
+      var s = sentries[ref.idx];
+      if (!s.alive) { return; }
+      s.hp -= dmg;
+      if (s.hp <= 0) { killSentry(ref.idx); }
+    } else if (ref.type === 'b') {
+      var b = blackIce[ref.idx];
+      if (!b.alive) { return; }
+      b.hp -= dmg;
+      if (b.hp <= 0) { killBlackICE(ref.idx); }
+    } else if (ref.type === 't') {
+      var t = traceProgs[ref.idx];
+      if (!t.alive) { return; }
+      t.hp -= dmg;
+      if (t.hp <= 0) { killTraceProg(ref.idx); }
+    }
+  }
+
+  function killSentry(idx) {
+    var s = sentries[idx];
+    s.alive        = false;
+    s.mesh.visible = false;
+    s.light.visible = false;
+    iceKilled++;
+    traceMeter = Math.max(0, traceMeter - 10);
+  }
+
+  function killBlackICE(idx) {
+    var b = blackIce[idx];
+    b.alive        = false;
+    b.mesh.visible = false;
+    b.light.visible = false;
+    iceKilled++;
+    traceMeter = Math.max(0, traceMeter - 10);
+  }
+
+  function killTraceProg(idx) {
+    var t = traceProgs[idx];
+    t.alive        = false;
+    t.mesh.visible = false;
+    t.light.visible = false;
+    iceKilled++;
+    traceMeter = Math.max(0, traceMeter - 10);
+  }
+
+  function spawnDecoy(x, y, z) {
+    var geo  = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+    var mat  = new THREE.MeshLambertMaterial({ color: 0x00FF88, emissive: 0x004422 });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, 0.4, z);
+    addOwned(mesh);
+
+    decoys.push({ mesh: mesh, timer: 8, alive: true, position: { x: x, y: 0.4, z: z } });
+
+    var i;
+    for (i = 0; i < sentries.length; i++) {
+      if (sentries[i].alive) {
+        sentries[i].decoyTarget = { x: x, z: z };
+        sentries[i].chasing     = false;
+      }
+    }
+  }
+
+  function shootPacket(from, to, damage) {
+    var geo  = new THREE.SphereGeometry(0.2, 4, 3);
+    var mat  = new THREE.MeshLambertMaterial({ color: 0xFF4400, emissive: 0x330000 });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(from.x, 1.7, from.z);
+    addOwned(mesh);
+
+    var dx  = to.x - from.x;
+    var dy  = (to.y || 1.7) - 1.7;
+    var dz  = to.z - from.z;
+    var dl  = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+    var spd = 18;
+    packets.push({
+      mesh: mesh,
+      vel:  { x: dx / dl * spd, y: dy / dl * spd, z: dz / dl * spd },
+      damage: damage,
+      life: 3
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Update sub-systems
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function updateEnvironment(dt) {
+    var i;
+
+    // Data rain
+    for (i = 0; i < dataRainStrips.length; i++) {
+      var r = dataRainStrips[i];
+      r.mesh.position.y -= r.speed * dt;
+      if (r.mesh.position.y < -2) {
+        r.mesh.position.y = r.resetY;
+        r.mesh.position.x = rand(-50, 50);
+        r.mesh.position.z = rand(-50, 50);
+      }
+    }
+
+    // Decorative node rotation
+    for (i = 0; i < dataNodes.length; i++) {
+      var dn = dataNodes[i];
+      dn.mesh.rotation.y += dn.rotSpeedY * dt;
+      dn.mesh.rotation.x += dn.rotSpeedX * dt;
+    }
+
+    // Grid flicker
+    if (gridLines) {
+      gridLines.material.opacity = 0.4 + Math.sin(elapsed * 2) * 0.2;
+    }
+
+    // Infra node glow pulse
+    for (i = 0; i < infraNodes.length; i++) {
+      var nd = infraNodes[i];
+      if (!nd.hacked) {
+        nd.light.intensity = 0.8 + Math.sin(elapsed * 3 + i) * 0.4;
+      }
+    }
+
+    // AI core pulse & rotate
+    if (aiCore && aiCore.visible && !aiCore.hacked) {
+      aiCore.mesh.rotation.y += dt * 0.5;
+      aiCoreLight.intensity   = 1.5 + Math.sin(elapsed * 4) * 0.5;
+    }
+  }
+
+  function updateSentries(dt) {
+    var pp = camPos();
+    var i;
+
+    for (i = 0; i < sentries.length; i++) {
+      var s = sentries[i];
+      if (!s.alive) { continue; }
+
+      s.mesh.rotation.y += dt * 1.5;
+
+      var target = null;
+
+      if (s.decoyTarget) {
+        target = s.decoyTarget;
+        var dd = distXZ(s.position, s.decoyTarget);
+        if (dd < 1) { s.decoyTarget = null; }
+      } else if (!stealthActive) {
+        var dp = distXZ(s.position, pp);
+        if (dp < 25) { s.chasing = true;  }
+        if (dp > 35) { s.chasing = false; }
+        if (s.chasing) { target = { x: pp.x, z: pp.z }; }
+      } else {
+        s.chasing = false;
+      }
+
+      if (target) {
+        var tx = target.x - s.position.x;
+        var tz = target.z - s.position.z;
+        var tl = Math.sqrt(tx * tx + tz * tz);
+        if (tl > 0.5) {
+          var ang = Math.atan2(tz, tx);
+          s.position.x += Math.cos(ang) * s.speed * dt;
+          s.position.z += Math.sin(ang) * s.speed * dt;
+          s.mesh.rotation.y = ang + Math.PI / 2;
+        }
+      } else {
+        s.patrolT += dt * 0.3;
+        var pt = (Math.sin(s.patrolT) + 1) * 0.5;
+        s.position.x = s.patrolA.x + (s.patrolB.x - s.patrolA.x) * pt;
+        s.position.z = s.patrolA.z + (s.patrolB.z - s.patrolA.z) * pt;
+      }
+
+      s.mesh.position.set(s.position.x, 1, s.position.z);
+      s.light.position.set(s.position.x, 2, s.position.z);
+
+      if (s.chasing && !stealthActive) {
+        s.shootTimer -= dt;
+        if (s.shootTimer <= 0) {
+          s.shootTimer = rand(1.5, 3.5);
+          shootPacket(s.position, pp, 30);
+        }
+        detectedByICE = true;
+      }
+    }
+  }
+
+  function updateBlackICE(dt) {
+    var pp = camPos();
+    var i;
+
+    for (i = 0; i < blackIce.length; i++) {
+      var b = blackIce[i];
+      if (!b.alive) { continue; }
+
+      b.mesh.rotation.y += dt * 2;
+
+      if (!stealthActive) {
+        var dx = pp.x - b.position.x;
+        var dz = pp.z - b.position.z;
+        var dl = Math.sqrt(dx * dx + dz * dz) || 1;
+        var ang = Math.atan2(dz, dx);
+        b.position.x += Math.cos(ang) * b.speed * dt;
+        b.position.z += Math.sin(ang) * b.speed * dt;
+        b.mesh.position.set(b.position.x, 1.25, b.position.z);
+        b.light.position.set(b.position.x, 2.5, b.position.z);
+
+        if (dl < 2) {
+          b.meleeTimer -= dt;
+          if (b.meleeTimer <= 0) {
+            b.meleeTimer = b.MELEE_CD;
+            takeDamage(60);
+          }
+          detectedByICE = true;
+        }
+      }
+    }
+  }
+
+  function updateTraceProgs(dt) {
+    var pp = camPos();
+    var i;
+
+    for (i = 0; i < traceProgs.length; i++) {
+      var t = traceProgs[i];
+      if (!t.alive) { continue; }
+
+      t.orbitAngle += t.orbitSpeed * dt;
+      var ox = Math.cos(t.orbitAngle) * t.orbitRadius;
+      var oz = Math.sin(t.orbitAngle) * t.orbitRadius;
+      t.mesh.position.set(ox, 5, oz);
+      t.light.position.set(ox, 6, oz);
+
+      // Touch = instant disconnect
+      if (dist3(pp, t.mesh.position) < 1.5) {
+        traceMeter = 100;
+        checkDisconnect();
+      }
+    }
+  }
+
+  function updatePackets(dt) {
+    var pp = camPos();
+    var i;
+
+    for (i = packets.length - 1; i >= 0; i--) {
+      var pk = packets[i];
+      pk.life -= dt;
+      pk.mesh.position.x += pk.vel.x * dt;
+      pk.mesh.position.y += pk.vel.y * dt;
+      pk.mesh.position.z += pk.vel.z * dt;
+
+      if (pk.life <= 0) {
+        removeOwned(pk.mesh);
+        packets.splice(i, 1);
+        continue;
+      }
+
+      if (dist3(pp, pk.mesh.position) < 1.2) {
+        takeDamage(pk.damage);
+        removeOwned(pk.mesh);
+        packets.splice(i, 1);
+      }
+    }
+  }
+
+  function updateDecoys(dt) {
+    var i;
+    for (i = decoys.length - 1; i >= 0; i--) {
+      var d = decoys[i];
+      d.timer -= dt;
+      d.mesh.rotation.y += dt * 3;
+
+      if (d.timer <= 0) {
+        removeOwned(d.mesh);
+        decoys.splice(i, 1);
+        var j;
+        for (j = 0; j < sentries.length; j++) {
+          if (sentries[j].alive) { sentries[j].decoyTarget = null; }
+        }
+      }
+    }
+  }
+
+  function updatePunchBeam(dt) {
+    if (!punchBeam) { return; }
+    punchTimer -= dt;
+    if (punchTimer <= 0) {
+      removeOwned(punchBeam);
+      punchBeam = null;
+    }
+  }
+
+  function updateHacking(dt) {
+    if (!keys['KeyE']) {
+      if (hackingNodeIndex !== -1) {
+        if (hackingNodeIndex === 'core') {
+          if (aiCore) { aiCore.hacking = false; }
+        } else {
+          if (infraNodes[hackingNodeIndex]) { infraNodes[hackingNodeIndex].hacking = false; }
+        }
+        hackingNodeIndex = -1;
+        hackProgress     = 0;
+      }
+      return;
+    }
+
+    var target = getNearestHackTarget();
+    if (target === -1 || target === null || target === undefined) {
+      hackingNodeIndex = -1;
+      hackProgress     = 0;
+      return;
+    }
+
+    if (hackingNodeIndex !== target) {
+      if (hackingNodeIndex !== -1) {
+        if (hackingNodeIndex === 'core' && aiCore) { aiCore.hacking = false; }
+        else if (infraNodes[hackingNodeIndex]) { infraNodes[hackingNodeIndex].hacking = false; }
+      }
+      hackingNodeIndex = target;
+      hackProgress     = 0;
+    }
+
+    var hackDur;
+    if (hackingNodeIndex === 'core') {
+      if (!aiCore || aiCore.hacked) { hackingNodeIndex = -1; return; }
+      aiCore.hacking = true;
+      hackDur = HACK_DURATION_CORE;
+    } else {
+      var nd = infraNodes[hackingNodeIndex];
+      if (!nd || nd.hacked) { hackingNodeIndex = -1; return; }
+      nd.hacking = true;
+      hackDur    = HACK_DURATION_NODE;
+    }
+
+    hackProgress += dt / hackDur;
+    // Staying near node slowly increases trace
+    traceMeter += dt * 1.5;
+    checkDisconnect();
+
+    if (hackProgress >= 1) {
+      completeHack(hackingNodeIndex);
+    }
+  }
+
+  function updateMovement(dt) {
+    if (!camera) { return; }
+
+    // Stealth cooldowns
+    if (stealthActive) {
+      stealthTimer -= dt;
+      if (stealthTimer <= 0) {
+        stealthActive   = false;
+        stealthTimer    = 0;
+        stealthCooldown = STEALTH_COOLDOWN;
+      }
+    } else if (stealthCooldown > 0) {
+      stealthCooldown -= dt;
+      if (stealthCooldown < 0) { stealthCooldown = 0; }
+    }
+
+    // Overclock cooldowns
+    if (overclockActive) {
+      overclockTimer -= dt;
+      if (overclockTimer <= 0) {
+        overclockActive   = false;
+        overclockTimer    = 0;
+        overclockCooldown = OVERCLOCK_COOLDOWN;
+        moveSpeed         = BASE_SPEED;
+      }
+    } else if (overclockCooldown > 0) {
+      overclockCooldown -= dt;
+      if (overclockCooldown < 0) { overclockCooldown = 0; }
+    }
+
+    // Detection trace gain
+    if (detectedByICE && !stealthActive) {
+      traceMeter += 2 * dt;
+      if (traceMeter > 100) { traceMeter = 100; }
+      checkDisconnect();
+    }
+    detectedByICE = false;
+
+    // Mouse look
+    if (pointerLocked) {
+      playerYaw   -= mouseX * 0.002;
+      playerPitch -= mouseY * 0.002;
+      playerPitch  = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, playerPitch));
+      mouseX = 0;
+      mouseY = 0;
+    }
+
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y     = playerYaw;
+    camera.rotation.x     = playerPitch;
+
+    // WASD movement
+    var moveX = 0, moveZ = 0;
+    if (keys['KeyW'] || keys['ArrowUp'])    { moveZ -= 1; }
+    if (keys['KeyS'] || keys['ArrowDown'])  { moveZ += 1; }
+    if (keys['KeyA'] || keys['ArrowLeft'])  { moveX -= 1; }
+    if (keys['KeyD'] || keys['ArrowRight']) { moveX += 1; }
+
+    if (moveX !== 0 || moveZ !== 0) {
+      var fwd   = new THREE.Vector3(0, 0, moveZ).applyEuler(new THREE.Euler(0, playerYaw, 0));
+      var right = new THREE.Vector3(moveX, 0, 0).applyEuler(new THREE.Euler(0, playerYaw, 0));
+      var total = new THREE.Vector3().addVectors(fwd, right).normalize();
+      camera.position.x += total.x * moveSpeed * dt;
+      camera.position.z += total.z * moveSpeed * dt;
+    }
+
+    if (camera.position.y < 1.7) { camera.position.y = 1.7; }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Trace & damage
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function takeDamage(amount) {
+    traceMeter += amount;
+    if (traceMeter > 100) { traceMeter = 100; }
+    checkDisconnect();
+  }
+
+  function checkDisconnect() {
+    if (traceMeter >= 100 && !gameOver) {
+      gameOver      = true;
+      missionFailed = true;
+      showOverlay('DISCONNECT<br>TRACE COMPLETE<br>MISSION FAILED', '#FF2200');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Input
+  // ─────────────────────────────────────────────────────────────────────────
 
   function onKeyDown(e) {
     keys[e.code] = true;
 
     var now = Date.now();
-
     if (e.code === 'KeyC') { cKeyTime = now; }
     if (e.code === 'KeyY') { yKeyTime = now; }
 
-    // C+Y combo to activate
     if (e.code === 'KeyC' || e.code === 'KeyY') {
       if (cKeyTime > 0 && yKeyTime > 0 && Math.abs(cKeyTime - yKeyTime) <= COMBO_WINDOW) {
-        if (!active) {
-          init();
-        }
+        if (!active) { init(); }
       }
     }
 
     if (!active) { return; }
 
-    if (e.code === 'KeyH') {
-      if (nearTerminalIndex >= 0 && hackingTerminalIndex < 0) {
-        startHack(nearTerminalIndex);
+    if (e.code === 'KeyV') {
+      if (!stealthActive && stealthCooldown <= 0) {
+        stealthActive = true;
+        stealthTimer  = STEALTH_DURATION;
       }
     }
 
-    if (e.code === 'KeyP') {
-      usePayload();
-    }
-
-    if (e.code === 'KeyF') {
-      handleShoot();
-    }
-
-    if (e.code === 'Tab') {
-      e.preventDefault();
-      currentPayloadIndex = (currentPayloadIndex + 1) % PAYLOADS.length;
+    if (e.code === 'KeyO') {
+      if (!overclockActive && overclockCooldown <= 0) {
+        overclockActive = true;
+        overclockTimer  = OVERCLOCK_DURATION;
+        moveSpeed       = BASE_SPEED * 2;
+      }
     }
   }
 
   function onKeyUp(e) {
     keys[e.code] = false;
+  }
+
+  function onMouseMove(e) {
+    if (pointerLocked) {
+      mouseX += e.movementX || 0;
+      mouseY += e.movementY || 0;
+    }
+  }
+
+  function onMouseDown(e) {
     if (!active) { return; }
-    if (e.code === 'KeyH') {
-      if (hackingTerminalIndex >= 0) {
-        abortHack(hackingTerminalIndex);
+    if (e.button === 0) {
+      if (!pointerLocked && renderer && renderer.domElement) {
+        renderer.domElement.requestPointerLock();
       }
+      firewallPunch();
     }
   }
 
-  // ── Update: Guards ─────────────────────────────────────────────────────────
-
-  function updateGuards(dt) {
-    if (ransomwareActive) { return; }
-    var pp = playerPos();
-
-    for (var i = 0; i < guards.length; i++) {
-      var g = guards[i];
-      if (g.hp <= 0) { continue; }
-
-      if (g.alerted && g.alertTimer > 0) {
-        g.alertTimer -= dt;
-        var dx = pp.x - g.position.x;
-        var dz = pp.z - g.position.z;
-        var dl = Math.sqrt(dx * dx + dz * dz);
-        if (dl > 0.5) {
-          g.dir = Math.atan2(dz, dx);
-          g.position.x += Math.cos(g.dir) * g.speed * dt;
-          g.position.z += Math.sin(g.dir) * g.speed * dt;
-          g.position.x = Math.max(-9, Math.min(9, g.position.x));
-          g.position.z = Math.max(-9, Math.min(9, g.position.z));
-        }
-        if (g.alertTimer <= 0) {
-          g.alerted = false;
-        }
-      } else {
-        var ptx = g.patrolTarget.x - g.position.x;
-        var ptz = g.patrolTarget.z - g.position.z;
-        var ptl = Math.sqrt(ptx * ptx + ptz * ptz);
-        if (ptl < 0.5) {
-          var angle = Math.random() * Math.PI * 2;
-          var r = 2 + Math.random() * 4;
-          g.patrolTarget = {
-            x: Math.max(-8, Math.min(8, g.position.x + Math.cos(angle) * r)),
-            z: Math.max(-8, Math.min(8, g.position.z + Math.sin(angle) * r))
-          };
-        } else {
-          g.dir = Math.atan2(ptz, ptx);
-          g.position.x += Math.cos(g.dir) * (g.speed * 0.6) * dt;
-          g.position.z += Math.sin(g.dir) * (g.speed * 0.6) * dt;
-        }
-      }
-
-      g.body.position.set(g.position.x, 0.8, g.position.z);
-      g.body.rotation.y = g.dir;
-      g.head.position.set(g.position.x, 1.8, g.position.z);
-      g.head.rotation.y = g.dir;
-    }
+  function onRightClick(e) {
+    if (!active || !camera) { return; }
+    e.preventDefault();
+    var dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    var pos = camera.position.clone().addScaledVector(dir, 15);
+    spawnDecoy(pos.x, pos.y, pos.z);
   }
 
-  // ── Update: Terminals ──────────────────────────────────────────────────────
-
-  function updateTerminals(dt) {
-    var pp = playerPos();
-    nearTerminalIndex = -1;
-
-    for (var i = 0; i < terminals.length; i++) {
-      var t = terminals[i];
-      if (t.hacked || t.disabled || t.firewallActive) { continue; }
-
-      var d = distXZ(pp, t.position);
-      if (d <= HACK_RANGE) {
-        nearTerminalIndex = i;
-      }
-
-      if (t.hacking) {
-        if (d > HACK_RANGE || !keys['KeyH']) {
-          abortHack(i);
-          continue;
-        }
-
-        t.hackProgress += dt / HACK_DURATION;
-        if (t.hackProgress >= 1) {
-          t.hackProgress = 1;
-          completeHack(i);
-          continue;
-        }
-
-        // Screen color lerp from red to green
-        var col = lerpColor(0xFF0000, 0x00FF44, t.hackProgress);
-        for (var s = 0; s < t.screens.length; s++) {
-          t.screens[s].material.color.setHex(col);
-        }
-      }
-    }
-
-    if (hackingTerminalIndex >= 0 && terminals[hackingTerminalIndex].hacked) {
-      hackingTerminalIndex = -1;
-    }
+  function onPointerLockChange() {
+    var el = renderer ? renderer.domElement : null;
+    pointerLocked = (document.pointerLockElement === el);
   }
 
-  // ── Update: Data Nodes ─────────────────────────────────────────────────────
-
-  function updateDataNodes(dt) {
-    var pp = playerPos();
-
-    for (var i = 0; i < dataNodes.length; i++) {
-      var dn = dataNodes[i];
-      if (dn.collected) { continue; }
-
-      dn.mesh.position.y = 1.5 + Math.sin(elapsed * 2 + dn.bobOffset) * 0.2;
-      dn.mesh.rotation.y += dt * 1.5;
-
-      if (dist3(pp, dn.mesh.position) < 0.9) {
-        dn.collected = true;
-        dn.mesh.visible = false;
-        dataScore += 50;
-      }
-    }
-  }
-
-  // ── Update: Upload ─────────────────────────────────────────────────────────
-
-  function updateUpload(dt) {
-    var hackedCount = 0;
-    for (var i = 0; i < terminals.length; i++) {
-      if (terminals[i].hacked) { hackedCount++; }
-    }
-    if (hackedCount < 4) {
-      uploadActive = false;
-      return;
-    }
-
-    var pp = playerPos();
-    var nearServer = dist3(pp, { x: 0, y: 2, z: 0 }) <= UPLOAD_RANGE + 2;
-
-    if (nearServer && keys['KeyU'] && !shutdownTriggered) {
-      uploadActive = true;
-      uploadProgress += dt / UPLOAD_DURATION;
-      if (uploadProgress > 1) { uploadProgress = 1; }
-
-      if (uploadProgress >= 0.75 && !shutdownTriggered) {
-        triggerShutdown();
-      }
-    } else {
-      uploadActive = false;
-    }
-  }
-
-  // ── Update: Shutdown Light Pulse ───────────────────────────────────────────
-
-  function updateShutdown(dt) {
-    if (!shutdownTriggered || !shutdownLight) { return; }
-    shutdownTimer += dt;
-    shutdownLight.intensity = 1.5 + Math.sin(shutdownTimer * 6) * 1.5;
-  }
-
-  // ── Update: Alarm ──────────────────────────────────────────────────────────
-
-  function updateAlarm(dt) {
-    if (!alarmActive) { return; }
-    alarmTimer -= dt;
-    if (alarmTimer <= 0) {
-      alarmActive = false;
-      if (alarmFlashEl) { alarmFlashEl.style.background = 'rgba(255,0,0,0)'; }
-    }
-  }
-
-  // ── Update: Ransomware ─────────────────────────────────────────────────────
-
-  function updateRansomware(dt) {
-    if (!ransomwareActive) { return; }
-    ransomwareTimer -= dt;
-    if (ransomwareTimer <= 0) {
-      ransomwareActive = false;
-      ransomwareTimer = 0;
-    }
-  }
-
-  // ── Update: Keycard ────────────────────────────────────────────────────────
-
-  function updateKeycard() {
-    if (keycardCollected || !keycard) { return; }
-    var pp = playerPos();
-    if (dist3(pp, keycard.position) < KEYCARD_RANGE) {
-      keycardCollected = true;
-      keycard.visible = false;
-      if (mainDoor && !doorOpen) {
-        doorOpen = true;
-        mainDoor.visible = false;
-      }
-    }
-    if (keycard.visible) {
-      keycard.rotation.y += 0.02;
-    }
-  }
-
-  // ── Update: Network Lines ──────────────────────────────────────────────────
-
-  function updateNetworkLines(dt) {
-    if (!networkLines || !networkShown) { return; }
-    networkLines.material.opacity = 0.4 + Math.sin(elapsed * 3) * 0.3;
-    for (var i = 0; i < networkNodeMeshes.length; i++) {
-      networkNodeMeshes[i].rotation.y += dt * 0.8;
-    }
-  }
-
-  // ── Update: Firewall Bosses ────────────────────────────────────────────────
-
-  function updateFirewalls(dt) {
-    for (var i = 0; i < terminals.length; i++) {
-      var t = terminals[i];
-      if (t.firewallMesh && t.firewallActive) {
-        t.firewallMesh.rotation.y += dt * 1.2;
-        t.firewallMesh.rotation.x += dt * 0.7;
-        var pulse = 0.2 + Math.sin(elapsed * 8) * 0.2;
-        t.firewallMesh.material.emissive.setRGB(pulse, 0, 0);
-      }
-    }
-  }
-
-  // ── Build All ──────────────────────────────────────────────────────────────
-
-  function buildAll() {
-    buildRoom();
-    buildTerminals();
-    buildDataNodes();
-    buildCentralServer();
-    buildInitialGuards();
-    buildOfficeAndDoor();
-    buildHUD();
-  }
-
-  // ── Init ───────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // Init
+  // ─────────────────────────────────────────────────────────────────────────
 
   function init(sceneRef, cameraRef, rendererRef) {
     if (active) { return; }
 
-    scene = sceneRef || window.scene || null;
-    camera = cameraRef || window.camera || null;
+    scene    = sceneRef    || window.scene    || null;
+    camera   = cameraRef   || window.camera   || null;
     renderer = rendererRef || window.renderer || null;
 
     if (!scene && window.GameState) {
-      scene = window.GameState.scene || null;
-      if (!camera) { camera = window.GameState.camera || null; }
+      scene    = window.GameState.scene    || null;
+      camera   = camera    || window.GameState.camera    || null;
+      renderer = renderer  || window.GameState.renderer  || null;
     }
 
     if (!scene) { return; }
 
-    active = true;
-    elapsed = 0;
-    uploadProgress = 0;
-    uploadActive = false;
-    shutdownTriggered = false;
-    shutdownTimer = 0;
-    alarmActive = false;
-    ransomwareActive = false;
-    ransomwareTimer = 0;
-    backdoorRevealed = false;
-    keycardCollected = false;
-    doorOpen = false;
-    networkShown = false;
-    dataScore = 0;
-    currentPayloadIndex = 0;
-    nearTerminalIndex = -1;
-    hackingTerminalIndex = -1;
-    rehackRequired = [];
-    terminals = [];
-    dataNodes = [];
-    guards = [];
-    networkNodeMeshes = [];
-    networkLines = null;
-    roomWalls = [];
-    ownedObjects = [];
+    // Reset all state
+    active            = true;
+    elapsed           = 0;
+    score             = 0;
+    traceMeter        = 0;
+    gameOver          = false;
+    gameWon           = false;
+    missionFailed     = false;
+    nodesHacked       = 0;
+    iceKilled         = 0;
+    detectedByICE     = false;
+    hackingNodeIndex  = -1;
+    hackProgress      = 0;
+    stealthActive     = false;
+    stealthTimer      = 0;
+    stealthCooldown   = 0;
+    overclockActive   = false;
+    overclockTimer    = 0;
+    overclockCooldown = 0;
+    moveSpeed         = BASE_SPEED;
+    playerYaw         = 0;
+    playerPitch       = 0;
+    pointerLocked     = false;
+    mouseX            = 0;
+    mouseY            = 0;
+    ownedObjects      = [];
+    ownedLights       = [];
+    infraNodes        = [];
+    sentries          = [];
+    blackIce          = [];
+    traceProgs        = [];
+    packets           = [];
+    decoys            = [];
+    dataRainStrips    = [];
+    dataNodes         = [];
+    dataPillars       = [];
+    aiCore            = null;
+    aiCoreLight       = null;
+    punchBeam         = null;
+    punchTimer        = 0;
+    keys              = {};
 
-    buildAll();
+    if (camera) {
+      camera.position.set(0, 1.7, 30);
+    }
 
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
+    buildEnvironment();
+    buildInfraNodes();
+    buildAICore();
+    buildSentries();
+    buildBlackICE();
+    buildTraceProgs();
+    buildHUD();
+
+    document.addEventListener('keydown',          onKeyDown);
+    document.addEventListener('keyup',            onKeyUp);
+    document.addEventListener('mousemove',        onMouseMove);
+    document.addEventListener('mousedown',        onMouseDown);
+    document.addEventListener('contextmenu',      onRightClick);
+    document.addEventListener('pointerlockchange', onPointerLockChange);
   }
 
-  // ── Update ─────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // Update
+  // ─────────────────────────────────────────────────────────────────────────
 
   function update(dt) {
     if (!active) { return; }
-    if (!dt) { dt = 0.016; }
+    if (!dt || dt <= 0) { dt = 0.016; }
+    if (dt > 0.1) { dt = 0.1; }
 
     elapsed += dt;
 
-    updateTerminals(dt);
-    updateDataNodes(dt);
-    updateGuards(dt);
-    updateUpload(dt);
-    updateShutdown(dt);
-    updateAlarm(dt);
-    updateRansomware(dt);
-    updateKeycard(dt);
-    updateNetworkLines(dt);
-    updateFirewalls(dt);
+    if (gameOver || gameWon) {
+      updateHUD();
+      return;
+    }
+
+    updateMovement(dt);
+    updateHacking(dt);
+    updateEnvironment(dt);
+    updateSentries(dt);
+    updateBlackICE(dt);
+    updateTraceProgs(dt);
+    updatePackets(dt);
+    updateDecoys(dt);
+    updatePunchBeam(dt);
     updateHUD();
-    updateMinimap();
   }
 
-  // ── Reset ──────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // Reset
+  // ─────────────────────────────────────────────────────────────────────────
 
   function reset() {
     if (!active) { return; }
 
-    document.removeEventListener('keydown', onKeyDown);
-    document.removeEventListener('keyup', onKeyUp);
+    document.removeEventListener('keydown',          onKeyDown);
+    document.removeEventListener('keyup',            onKeyUp);
+    document.removeEventListener('mousemove',        onMouseMove);
+    document.removeEventListener('mousedown',        onMouseDown);
+    document.removeEventListener('contextmenu',      onRightClick);
+    document.removeEventListener('pointerlockchange', onPointerLockChange);
 
-    for (var i = 0; i < ownedObjects.length; i++) {
+    if (pointerLocked && document.exitPointerLock) {
+      document.exitPointerLock();
+    }
+
+    var i;
+    for (i = 0; i < ownedObjects.length; i++) {
       if (scene) { scene.remove(ownedObjects[i]); }
       if (ownedObjects[i].geometry) { ownedObjects[i].geometry.dispose(); }
       if (ownedObjects[i].material) { ownedObjects[i].material.dispose(); }
     }
+    for (i = 0; i < ownedLights.length; i++) {
+      if (scene) { scene.remove(ownedLights[i]); }
+    }
+
     ownedObjects = [];
+    ownedLights  = [];
 
-    if (hudEl && hudEl.parentNode) { hudEl.parentNode.removeChild(hudEl); }
-    hudEl = null;
-    if (alarmFlashEl && alarmFlashEl.parentNode) { alarmFlashEl.parentNode.removeChild(alarmFlashEl); }
-    alarmFlashEl = null;
-    if (minimapEl && minimapEl.parentNode) { minimapEl.parentNode.removeChild(minimapEl); }
-    minimapEl = null;
+    if (hudEl    && hudEl.parentNode)    { hudEl.parentNode.removeChild(hudEl);       hudEl    = null; }
+    if (overlayEl && overlayEl.parentNode) { overlayEl.parentNode.removeChild(overlayEl); overlayEl = null; }
 
-    document.body.style.filter = '';
+    if (scene) {
+      scene.background = savedBackground;
+      scene.fog        = savedFog;
+    }
 
-    terminals = [];
-    dataNodes = [];
-    guards = [];
-    networkNodeMeshes = [];
-    networkLines = null;
-    centralServer = null;
-    mainDoor = null;
-    keycard = null;
-    supplyCache = null;
-    officeRoom = null;
-    shutdownLight = null;
-    roomFloor = null;
-    roomWalls = [];
-    keys = {};
-    rehackRequired = [];
-    active = false;
-    scene = null;
-    camera = null;
-    renderer = null;
+    infraNodes     = [];
+    sentries       = [];
+    blackIce       = [];
+    traceProgs     = [];
+    packets        = [];
+    decoys         = [];
+    dataRainStrips = [];
+    dataNodes      = [];
+    dataPillars    = [];
+    aiCore         = null;
+    aiCoreLight    = null;
+    punchBeam      = null;
+    keys           = {};
+    active         = false;
+    scene          = null;
+    camera         = null;
+    renderer       = null;
   }
 
-  // ── Public API ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────────────────────────────────
 
   return {
-    init: init,
+    init:   init,
     update: update,
-    reset: reset
+    reset:  reset
   };
 
 }());
