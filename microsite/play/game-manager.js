@@ -1868,6 +1868,16 @@ const GameManager = (function () {
     try { if (window.MedievalSiege && MedievalSiege.init) MedievalSiege.init(_scene, _camera); } catch (e) {}
     try { if (window.IslandAssault && IslandAssault.init) IslandAssault.init(_scene, _camera); } catch (e) {}
     try { if (window.CyberpunkCity && CyberpunkCity.init) CyberpunkCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepJungle && DeepJungle.init) DeepJungle.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleRoyale && BattleRoyale.init) BattleRoyale.init(_scene, _camera); } catch (e) {}
+    try { if (window.CultCompound && CultCompound.init) CultCompound.init(_scene, _camera); } catch (e) {}
+    try { if (window.HelipadExtraction && HelipadExtraction.init) HelipadExtraction.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertWarfare && DesertWarfare.init) DesertWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanSniper && UrbanSniper.init) UrbanSniper.init(_scene, _camera); } catch (e) {}
+    try { if (window.ConvoyAmbush && ConvoyAmbush.init) ConvoyAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.NukeDisarm && NukeDisarm.init) NukeDisarm.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormTheCastle && StormTheCastle.init) StormTheCastle.init(_scene, _camera); } catch (e) {}
+    try { if (window.CorporateEspionage && CorporateEspionage.init) CorporateEspionage.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8527,6 +8537,16 @@ const GameManager = (function () {
       if (window.MedievalSiege) MedievalSiege.update(delta);
       if (window.IslandAssault) IslandAssault.update(delta);
       if (window.CyberpunkCity) CyberpunkCity.update(delta);
+      if (window.DeepJungle) DeepJungle.update(delta);
+      if (window.BattleRoyale) BattleRoyale.update(delta);
+      if (window.CultCompound) CultCompound.update(delta);
+      if (window.HelipadExtraction) HelipadExtraction.update(delta);
+      if (window.DesertWarfare) DesertWarfare.update(delta);
+      if (window.UrbanSniper) UrbanSniper.update(delta);
+      if (window.ConvoyAmbush) ConvoyAmbush.update(delta);
+      if (window.NukeDisarm) NukeDisarm.update(delta);
+      if (window.StormTheCastle) StormTheCastle.update(delta);
+      if (window.CorporateEspionage) CorporateEspionage.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
