@@ -2188,6 +2188,14 @@ const GameManager = (function () {
     try { if (window.IceFortress && IceFortress.init) IceFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.MerchantShip && MerchantShip.init) MerchantShip.init(_scene, _camera); } catch (e) {}
     try { if (window.HarborCrane && HarborCrane.init) HarborCrane.init(_scene, _camera); } catch (e) {}
+    try { if (window.RacingTrack && RacingTrack.init) RacingTrack.init(_scene, _camera); } catch (e) {}
+    try { if (window.TortureChamber && TortureChamber.init) TortureChamber.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueVillage && PlagueVillage.init) PlagueVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberYacht && CyberYacht.init) CyberYacht.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressPrison && FortressPrison.init) FortressPrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleStadium && BattleStadium.init) BattleStadium.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedLighthouse && HauntedLighthouse.init) HauntedLighthouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonAssault && CanyonAssault.init) CanyonAssault.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9167,6 +9175,14 @@ const GameManager = (function () {
   if (window.IceFortress) IceFortress.update(delta);
   if (window.MerchantShip) MerchantShip.update(delta);
   if (window.HarborCrane) HarborCrane.update(delta);
+  if (window.RacingTrack) RacingTrack.update(delta);
+  if (window.TortureChamber) TortureChamber.update(delta);
+  if (window.PlagueVillage) PlagueVillage.update(delta);
+  if (window.CyberYacht) CyberYacht.update(delta);
+  if (window.FortressPrison) FortressPrison.update(delta);
+  if (window.BattleStadium) BattleStadium.update(delta);
+  if (window.HauntedLighthouse) HauntedLighthouse.update(delta);
+  if (window.CanyonAssault) CanyonAssault.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
