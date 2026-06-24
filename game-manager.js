@@ -1928,6 +1928,16 @@ const GameManager = (function () {
     try { if (window.WarlordHunt && WarlordHunt.init) WarlordHunt.init(_scene, _camera); } catch (e) {}
     try { if (window.SupplyDepot && SupplyDepot.init) SupplyDepot.init(_scene, _camera); } catch (e) {}
     try { if (window.DesertAmbush && DesertAmbush.init) DesertAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoFortress && VolcanoFortress.init) VolcanoFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateRaid && PirateRaid.init) PirateRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineHeist && SubmarineHeist.init) SubmarineHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.CasinoShootout && CasinoShootout.init) CasinoShootout.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticSiege && ArcticSiege.init) ArcticSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.MuseumHeist && MuseumHeist.init) MuseumHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainHeist && TrainHeist.init) TrainHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostTown && GhostTown.init) GhostTown.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientTemple && AncientTemple.init) AncientTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.FootballStadium && FootballStadium.init) FootballStadium.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8647,6 +8657,16 @@ const GameManager = (function () {
       if (window.WarlordHunt) WarlordHunt.update(delta);
       if (window.SupplyDepot) SupplyDepot.update(delta);
       if (window.DesertAmbush) DesertAmbush.update(delta);
+      if (window.VolcanoFortress) VolcanoFortress.update(delta);
+      if (window.PirateRaid) PirateRaid.update(delta);
+      if (window.SubmarineHeist) SubmarineHeist.update(delta);
+      if (window.CasinoShootout) CasinoShootout.update(delta);
+      if (window.ArcticSiege) ArcticSiege.update(delta);
+      if (window.MuseumHeist) MuseumHeist.update(delta);
+      if (window.TrainHeist) TrainHeist.update(delta);
+      if (window.GhostTown) GhostTown.update(delta);
+      if (window.AncientTemple) AncientTemple.update(delta);
+      if (window.FootballStadium) FootballStadium.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
