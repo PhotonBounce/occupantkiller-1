@@ -2172,6 +2172,12 @@ const GameManager = (function () {
     try { if (window.RobotFactory && RobotFactory.init) RobotFactory.init(_scene, _camera); } catch (e) {}
     try { if (window.WarMemorial && WarMemorial.init) WarMemorial.init(_scene, _camera); } catch (e) {}
     try { if (window.PrisonYard && PrisonYard.init) PrisonYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.MineShaft && MineShaft.init) MineShaft.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoTerminal && CargoTerminal.init) CargoTerminal.init(_scene, _camera); } catch (e) {}
+    try { if (window.MilitaryParade && MilitaryParade.init) MilitaryParade.init(_scene, _camera); } catch (e) {}
+    try { if (window.GasPlatform && GasPlatform.init) GasPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.Monorail && Monorail.init) Monorail.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArchaeologicalDig && ArchaeologicalDig.init) ArchaeologicalDig.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9135,6 +9141,12 @@ const GameManager = (function () {
   if (window.RobotFactory) RobotFactory.update(delta);
   if (window.WarMemorial) WarMemorial.update(delta);
   if (window.PrisonYard) PrisonYard.update(delta);
+  if (window.MineShaft) MineShaft.update(delta);
+  if (window.CargoTerminal) CargoTerminal.update(delta);
+  if (window.MilitaryParade) MilitaryParade.update(delta);
+  if (window.GasPlatform) GasPlatform.update(delta);
+  if (window.Monorail) Monorail.update(delta);
+  if (window.ArchaeologicalDig) ArchaeologicalDig.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
