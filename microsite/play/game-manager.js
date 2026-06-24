@@ -2196,6 +2196,12 @@ const GameManager = (function () {
     try { if (window.BattleStadium && BattleStadium.init) BattleStadium.init(_scene, _camera); } catch (e) {}
     try { if (window.HauntedLighthouse && HauntedLighthouse.init) HauntedLighthouse.init(_scene, _camera); } catch (e) {}
     try { if (window.CanyonAssault && CanyonAssault.init) CanyonAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.DemolitionSite && DemolitionSite.init) DemolitionSite.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirshipRaid && AirshipRaid.init) AirshipRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleRun && TempleRun.init) TempleRun.init(_scene, _camera); } catch (e) {}
+    try { if (window.AsteroidBase && AsteroidBase.init) AsteroidBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.FishingVillage && FishingVillage.init) FishingVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.OperaHouse && OperaHouse.init) OperaHouse.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9183,6 +9189,12 @@ const GameManager = (function () {
   if (window.BattleStadium) BattleStadium.update(delta);
   if (window.HauntedLighthouse) HauntedLighthouse.update(delta);
   if (window.CanyonAssault) CanyonAssault.update(delta);
+  if (window.DemolitionSite) DemolitionSite.update(delta);
+  if (window.AirshipRaid) AirshipRaid.update(delta);
+  if (window.TempleRun) TempleRun.update(delta);
+  if (window.AsteroidBase) AsteroidBase.update(delta);
+  if (window.FishingVillage) FishingVillage.update(delta);
+  if (window.OperaHouse) OperaHouse.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
