@@ -1878,6 +1878,16 @@ const GameManager = (function () {
     try { if (window.NukeDisarm && NukeDisarm.init) NukeDisarm.init(_scene, _camera); } catch (e) {}
     try { if (window.StormTheCastle && StormTheCastle.init) StormTheCastle.init(_scene, _camera); } catch (e) {}
     try { if (window.CorporateEspionage && CorporateEspionage.init) CorporateEspionage.init(_scene, _camera); } catch (e) {}
+    try { if (window.AlienMothership && AlienMothership.init) AlienMothership.init(_scene, _camera); } catch (e) {}
+    try { if (window.GoldRush && GoldRush.init) GoldRush.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderwaterRuins && UnderwaterRuins.init) UnderwaterRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticRescue && ArcticRescue.init) ArcticRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.MobWar && MobWar.init) MobWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleOfDoom && TempleOfDoom.init) TempleOfDoom.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirbaseRaid && AirbaseRaid.init) AirbaseRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackSite && BlackSite.init) BlackSite.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceMarines && SpaceMarines.init) SpaceMarines.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilWar && OilWar.init) OilWar.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8547,6 +8557,16 @@ const GameManager = (function () {
       if (window.NukeDisarm) NukeDisarm.update(delta);
       if (window.StormTheCastle) StormTheCastle.update(delta);
       if (window.CorporateEspionage) CorporateEspionage.update(delta);
+      if (window.AlienMothership) AlienMothership.update(delta);
+      if (window.GoldRush) GoldRush.update(delta);
+      if (window.UnderwaterRuins) UnderwaterRuins.update(delta);
+      if (window.ArcticRescue) ArcticRescue.update(delta);
+      if (window.MobWar) MobWar.update(delta);
+      if (window.TempleOfDoom) TempleOfDoom.update(delta);
+      if (window.AirbaseRaid) AirbaseRaid.update(delta);
+      if (window.BlackSite) BlackSite.update(delta);
+      if (window.SpaceMarines) SpaceMarines.update(delta);
+      if (window.OilWar) OilWar.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
