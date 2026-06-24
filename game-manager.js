@@ -2116,6 +2116,14 @@ const GameManager = (function () {
     try { if (window.DesertTemple && DesertTemple.init) DesertTemple.init(_scene, _camera); } catch (e) {}
     try { if (window.MilitaryAcademy && MilitaryAcademy.init) MilitaryAcademy.init(_scene, _camera); } catch (e) {}
     try { if (window.NeonDistrict && NeonDistrict.init) NeonDistrict.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderwaterTemple && UnderwaterTemple.init) UnderwaterTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpacePrison && SpacePrison.init) SpacePrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateGalleon && PirateGalleon.init) PirateGalleon.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedChurch && AbandonedChurch.init) AbandonedChurch.init(_scene, _camera); } catch (e) {}
+    try { if (window.GreekRuins && GreekRuins.init) GreekRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoalMine && CoalMine.init) CoalMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountainFortress && MountainFortress.init) MountainFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmoredTrain && ArmoredTrain.init) ArmoredTrain.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9023,6 +9031,14 @@ const GameManager = (function () {
   if (window.DesertTemple) DesertTemple.update(delta);
   if (window.MilitaryAcademy) MilitaryAcademy.update(delta);
   if (window.NeonDistrict) NeonDistrict.update(delta);
+  if (window.UnderwaterTemple) UnderwaterTemple.update(delta);
+  if (window.SpacePrison) SpacePrison.update(delta);
+  if (window.PirateGalleon) PirateGalleon.update(delta);
+  if (window.AbandonedChurch) AbandonedChurch.update(delta);
+  if (window.GreekRuins) GreekRuins.update(delta);
+  if (window.CoalMine) CoalMine.update(delta);
+  if (window.MountainFortress) MountainFortress.update(delta);
+  if (window.ArmoredTrain) ArmoredTrain.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
