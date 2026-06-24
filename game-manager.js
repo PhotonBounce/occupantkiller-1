@@ -1959,6 +1959,7 @@ const GameManager = (function () {
     try { if (window.MoonbaseAssault && MoonbaseAssault.init) MoonbaseAssault.init(_scene, _camera); } catch (e) {}
     try { if (window.WitnessProtection && WitnessProtection.init) WitnessProtection.init(_scene, _camera); } catch (e) {}
     try { if (window.CartelCompound && CartelCompound.init) CartelCompound.init(_scene, _camera); } catch (e) {}
+    try { if (window.TokyoShowdown && TokyoShowdown.init) TokyoShowdown.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8709,6 +8710,7 @@ const GameManager = (function () {
       if (window.MoonbaseAssault) MoonbaseAssault.update(delta);
       if (window.WitnessProtection) WitnessProtection.update(delta);
       if (window.CartelCompound) CartelCompound.update(delta);
+      if (window.TokyoShowdown) TokyoShowdown.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
