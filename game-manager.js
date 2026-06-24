@@ -2180,6 +2180,14 @@ const GameManager = (function () {
     try { if (window.ArchaeologicalDig && ArchaeologicalDig.init) ArchaeologicalDig.init(_scene, _camera); } catch (e) {}
     try { if (window.CaveNetwork && CaveNetwork.init) CaveNetwork.init(_scene, _camera); } catch (e) {}
     try { if (window.RooftopChase && RooftopChase.init) RooftopChase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TyphoonDeck && TyphoonDeck.init) TyphoonDeck.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampOutpost && SwampOutpost.init) SwampOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenTemple && SunkenTemple.init) SunkenTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.SalvageBarge && SalvageBarge.init) SalvageBarge.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenHarbor && FrozenHarbor.init) FrozenHarbor.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceFortress && IceFortress.init) IceFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.MerchantShip && MerchantShip.init) MerchantShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.HarborCrane && HarborCrane.init) HarborCrane.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9151,6 +9159,14 @@ const GameManager = (function () {
   if (window.ArchaeologicalDig) ArchaeologicalDig.update(delta);
   if (window.CaveNetwork) CaveNetwork.update(delta);
   if (window.RooftopChase) RooftopChase.update(delta);
+  if (window.TyphoonDeck) TyphoonDeck.update(delta);
+  if (window.SwampOutpost) SwampOutpost.update(delta);
+  if (window.SunkenTemple) SunkenTemple.update(delta);
+  if (window.SalvageBarge) SalvageBarge.update(delta);
+  if (window.FrozenHarbor) FrozenHarbor.update(delta);
+  if (window.IceFortress) IceFortress.update(delta);
+  if (window.MerchantShip) MerchantShip.update(delta);
+  if (window.HarborCrane) HarborCrane.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
