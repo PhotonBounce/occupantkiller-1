@@ -2000,6 +2000,16 @@ const GameManager = (function () {
     try { if (window.GlacierCave && GlacierCave.init) GlacierCave.init(_scene, _camera); } catch (e) {}
     try { if (window.AbandonedCity && AbandonedCity.init) AbandonedCity.init(_scene, _camera); } catch (e) {}
     try { if (window.AirBaseAssault && AirBaseAssault.init) AirBaseAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoTemple && VolcanoTemple.init) VolcanoTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.DiamondMine && DiamondMine.init) DiamondMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilRigSiege && OilRigSiege.init) OilRigSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedManor && HauntedManor.init) HauntedManor.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticResearch && ArcticResearch.init) ArcticResearch.init(_scene, _camera); } catch (e) {}
+    try { if (window.RooftopShowdown && RooftopShowdown.init) RooftopShowdown.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderwaterLab && UnderwaterLab.init) UnderwaterLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertFortress && DesertFortress.init) DesertFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.RacingCircuit && RacingCircuit.init) RacingCircuit.init(_scene, _camera); } catch (e) {}
+    try { if (window.UndergroundBunker && UndergroundBunker.init) UndergroundBunker.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8791,6 +8801,16 @@ const GameManager = (function () {
     if (window.GlacierCave) GlacierCave.update(delta);
     if (window.AbandonedCity) AbandonedCity.update(delta);
     if (window.AirBaseAssault) AirBaseAssault.update(delta);
+    if (window.VolcanoTemple) VolcanoTemple.update(delta);
+    if (window.DiamondMine) DiamondMine.update(delta);
+    if (window.OilRigSiege) OilRigSiege.update(delta);
+    if (window.HauntedManor) HauntedManor.update(delta);
+    if (window.ArcticResearch) ArcticResearch.update(delta);
+    if (window.RooftopShowdown) RooftopShowdown.update(delta);
+    if (window.UnderwaterLab) UnderwaterLab.update(delta);
+    if (window.DesertFortress) DesertFortress.update(delta);
+    if (window.RacingCircuit) RacingCircuit.update(delta);
+    if (window.UndergroundBunker) UndergroundBunker.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
