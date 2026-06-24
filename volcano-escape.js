@@ -2,16 +2,17 @@
    volcano-escape.js — Volcano Escape Mini-Game
    API: window.VolcanoEscape = { init, update, reset }
    Controls:
-     V + E (simultaneous, 400ms) → activate volcano escape
+     V + E (simultaneous, 400ms) → activate
      W / S                       → move forward / backward
      A / D                       → strafe left / right
      Space                       → jump
-     Mouse                       → look / aim
-     F                           → collect intel (when near folder)
-     G                           → enter/exit jeep
-     LMB                         → fire at enemies
+     Mouse                       → look
+     E (near survivor/heli/door) → interact
+     F (near C4 target)          → plant C4
+     G                           → detonate C4
+     R                           → use flare gun (if held)
    ─────────────────────────────────────────────────────────────────────────── */
-(function () {
+window.VolcanoEscape = (function () {
   'use strict';
 
   /* ── Scene references ──────────────────────────────────────────────────── */
@@ -19,96 +20,99 @@
   var _camera = null;
   var _canvas = null;
 
-  /* ── Game state ────────────────────────────────────────────────────────── */
-  var _active      = false;
-  var _score       = 0;
-  var _playerHP    = 100;
-  var _playerDead  = false;
-  var _escaped     = false;
-  var _intelCount  = 0;   // 0-3 collected
-  var _inVehicle   = false;
+  /* ── Activation ─────────────────────────────────────────────────────────── */
+  var _active         = false;
+  var _vePressTime    = { V: 0, E: 0 };
+  var VE_WINDOW       = 0.4;
 
-  /* ── Timing ────────────────────────────────────────────────────────────── */
-  var _lastTime       = 0;
-  var _totalTime      = 0;  // seconds elapsed since activation
-  var _lavaRiseTimer  = 0;  // counts up to 30s then raises lava 1 unit
-  var _rockSpawnTimer = 0;
-  var _rockNextSpawn  = 2;  // random 2-5s
+  /* ── Game state ─────────────────────────────────────────────────────────── */
+  var _playerHP         = 100;
+  var _playerDead       = false;
+  var _playerWon        = false;
+  var _gameTimer        = 300;
+  var _survivorsRescued = 0;
+  var _survivorsTotal   = 5;
 
-  /* ── Lava ──────────────────────────────────────────────────────────────── */
-  var _lavaMesh       = null;
-  var _lavaY          = -30;  // starts low inside volcano
-  var _lavaCraterMesh = null;
-  var _lavaLight      = null;
+  /* ── Items held ─────────────────────────────────────────────────────────── */
+  var _hasGasMask        = false;
+  var _gasMaskTimer      = 0;
+  var _hasFireSuit       = false;
+  var _fireSuitTimer     = 0;
+  var _hasFlareGun       = false;
+  var _flareUsed         = false;
+  var _c4Charges         = 0;
+  var _c4Placed          = [];
+  var _flareGunExtraTime = 0;
 
-  /* ── Player position/velocity ──────────────────────────────────────────── */
-  var _playerPos = null;  // THREE.Vector3
-  var _playerVel = null;  // THREE.Vector3
-  var _onGround  = false;
-  var _yaw       = 0;
-  var _pitch     = 0;
+  /* ── Helicopter ─────────────────────────────────────────────────────────── */
+  var _heliFuselage     = null;
+  var _heliMesh         = null;
+  var _heliPos          = null;
+  var _heliArrivalDelay = 60;
+  var _heliDeparted     = false;
+  var _heliBoarding     = false;
+  var _heliBoardTimer   = 0;
 
-  /* ── Player marker (visual stand-in) ──────────────────────────────────── */
+  /* ── Player ──────────────────────────────────────────────────────────────── */
+  var _playerPos  = null;
+  var _playerVel  = null;
+  var _onGround   = false;
+  var _yaw        = 0;
+  var _pitch      = 0;
   var _playerMesh = null;
 
-  /* ── Platforms / steps ─────────────────────────────────────────────────── */
-  var _platforms = [];   // { mesh, minX, maxX, minZ, maxZ, y }
+  /* ── Lava ────────────────────────────────────────────────────────────────── */
+  var _lavaFlows        = [];
+  var _lavaRise         = 0;
+  var _lavaPools        = [];
+  var _lavaContactTimer = 0;
 
-  /* ── Tunnel geometry ───────────────────────────────────────────────────── */
-  var _tunnelMeshes = [];
+  /* ── Pyroclastic bombs ───────────────────────────────────────────────────── */
+  var _bombs     = [];
+  var _bombTimer = 0;
+  var _bombNext  = 15;
 
-  /* ── Falling rocks ─────────────────────────────────────────────────────── */
-  var _rocks   = [];   // { mesh, vel, warning, warned, active }
+  /* ── Environment ─────────────────────────────────────────────────────────── */
+  var _groundMesh        = null;
+  var _volcanoMesh       = null;
+  var _stationMesh       = null;
+  var _stationDoor       = null;
+  var _stationDoorOpen   = false;
+  var _bridgeMesh        = null;
+  var _bridgeCollapsed   = false;
+  var _bridgeSupports    = [];
+  var _smokeLights       = [];
+  var _ashClouds         = [];
+  var _rockfalls         = [];
+  var _rockfallTimer     = 0;
+  var _rockfallNext      = 8;
+  var _groundCracks      = [];
+  var _mudslides         = [];
 
-  /* ── Fireballs (eruption) ──────────────────────────────────────────────── */
-  var _fireballs = [];  // { mesh, vel, life }
+  /* ── Survivors ───────────────────────────────────────────────────────────── */
+  var _survivors = [];
 
-  /* ── Intel folders ─────────────────────────────────────────────────────── */
-  var _intelFolders = [];  // { mesh, collected, pos }
+  /* ── Supplies ────────────────────────────────────────────────────────────── */
+  var _supplies = [];
 
-  /* ── Jeep ──────────────────────────────────────────────────────────────── */
-  var _jeepMesh    = null;
-  var _jeepY       = 0;
-  var _jeepBlocked = false;
+  /* ── Timing ─────────────────────────────────────────────────────────────── */
+  var _lastTime = 0;
 
-  /* ── Enemy guards ──────────────────────────────────────────────────────── */
-  var _enemies = [];  // { mesh, hp, pos, vel, alive, isCommander, fireTimer }
+  /* ── HUD + message ──────────────────────────────────────────────────────── */
+  var _hud        = null;
+  var _messageEl  = null;
+  var _msgTimer   = 0;
 
-  /* ── Enemy commander ───────────────────────────────────────────────────── */
-  var _commanderDefeated = false;
-
-  /* ── Helicopter at summit ──────────────────────────────────────────────── */
-  var _helicopterMesh = null;
-
-  /* ── Buildings ─────────────────────────────────────────────────────────── */
-  var _buildings = [];
-
-  /* ── Eruption state ────────────────────────────────────────────────────── */
-  var _eruptionThresholds = [5, 10, 15, 20];
-  var _eruptionFired      = [false, false, false, false];
-  var _eruptionLight      = null;
-  var _eruptionTimer      = 0;
-
-  /* ── HUD ───────────────────────────────────────────────────────────────── */
-  var _hud = null;
-
-  /* ── Input ─────────────────────────────────────────────────────────────── */
-  var _keys = {};
+  /* ── Input ───────────────────────────────────────────────────────────────── */
+  var _keys   = {};
   var _mouseX = 0;
   var _mouseY = 0;
 
-  /* ── VE activation tracking ────────────────────────────────────────────── */
-  var _vePressTime = { V: 0, E: 0 };
-  var VE_WINDOW    = 0.4;  // 400ms
-
-  /* ── Player bullet projectiles ─────────────────────────────────────────── */
-  var _bullets = [];  // { mesh, vel, life }
-
-  /* ── Bound handlers for cleanup ────────────────────────────────────────── */
-  var _boundKeyDown    = null;
-  var _boundKeyUp      = null;
-  var _boundMouseMove  = null;
-  var _boundMouseClick = null;
+  /* ── Bound handlers ──────────────────────────────────────────────────────── */
+  var _boundKeyDown   = null;
+  var _boundKeyUp     = null;
+  var _boundMouseMove = null;
+  var _boundClick     = null;
 
   /* ════════════════════════════════════════════════════════════════════════
      HELPERS
@@ -118,10 +122,15 @@
     return lo + Math.random() * (hi - lo);
   }
 
-  function fmtTime(sec) {
-    var m = Math.floor(sec / 60);
-    var s = Math.floor(sec % 60);
-    return (m < 10 ? '0' + m : '' + m) + ':' + (s < 10 ? '0' + s : '' + s);
+  function clamp(v, lo, hi) {
+    return v < lo ? lo : v > hi ? hi : v;
+  }
+
+  function dist3(a, b) {
+    var dx = a.x - b.x;
+    var dy = a.y - b.y;
+    var dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
   function distXZ(a, b) {
@@ -130,248 +139,327 @@
     return Math.sqrt(dx * dx + dz * dz);
   }
 
+  function removeFromScene(mesh) {
+    if (mesh && mesh.parent) {
+      mesh.parent.remove(mesh);
+    }
+  }
+
   /* ════════════════════════════════════════════════════════════════════════
-     MESH BUILDERS
+     SCENE BUILDERS
   ════════════════════════════════════════════════════════════════════════ */
 
-  function buildVolcano() {
-    /* Main cone */
-    var coneGeo = new THREE.ConeGeometry(40, 60, 32);
-    var coneMat = new THREE.MeshLambertMaterial({ color: 0x554433 });
-    var cone    = new THREE.Mesh(coneGeo, coneMat);
-    cone.position.set(0, 0, 0);
-    _scene.add(cone);
+  function buildEnvironment() {
+    _scene.background = new THREE.Color(0xCC4400);
+    _scene.fog        = new THREE.FogExp2(0xCC5500, 0.015);
 
-    /* Crater lava — cylinder that rises */
-    var lavaGeo  = new THREE.CylinderGeometry(7, 9, 4, 32);
-    var lavaMat  = new THREE.MeshLambertMaterial({
-      color:   0xFF4400,
-      emissive: 0xFF2200,
-      emissiveIntensity: 0.8
+    var ambLight = new THREE.AmbientLight(0xFF6633, 0.5);
+    _scene.add(ambLight);
+
+    var dirLight = new THREE.DirectionalLight(0xFF8844, 0.9);
+    dirLight.position.set(40, 80, -20);
+    _scene.add(dirLight);
+
+    /* Ground — volcanic rock */
+    var groundGeo = new THREE.PlaneGeometry(200, 200);
+    var groundMat = new THREE.MeshLambertMaterial({ color: 0x222211 });
+    _groundMesh   = new THREE.Mesh(groundGeo, groundMat);
+    _groundMesh.rotation.x = -Math.PI / 2;
+    _groundMesh.position.set(0, 0, 0);
+    _scene.add(_groundMesh);
+
+    /* Main volcano — CylinderGeometry r=15 h=25 at center */
+    var volGeo   = new THREE.CylinderGeometry(0, 15, 25, 16);
+    var volMat   = new THREE.MeshLambertMaterial({ color: 0x332211 });
+    _volcanoMesh = new THREE.Mesh(volGeo, volMat);
+    _volcanoMesh.position.set(0, 12.5, 0);
+    _scene.add(_volcanoMesh);
+
+    /* Smoke PointLights at peak */
+    var peakPositions = [
+      [0, 26, 0], [2, 25, 2], [-2, 25, -2]
+    ];
+    for (var li = 0; li < peakPositions.length; li++) {
+      var pl = new THREE.PointLight(0xFF6600, 2.0, 40);
+      pl.position.set(peakPositions[li][0], peakPositions[li][1], peakPositions[li][2]);
+      _scene.add(pl);
+      _smokeLights.push(pl);
+    }
+
+    /* Lava glow under caldera */
+    var lavaGlow = new THREE.PointLight(0xFF4400, 1.5, 30);
+    lavaGlow.position.set(0, 2, 0);
+    _scene.add(lavaGlow);
+
+    /* Caldera cap */
+    var calGeo = new THREE.CylinderGeometry(2, 4, 1, 12);
+    var calMat = new THREE.MeshLambertMaterial({
+      color: 0xFF4400,
+      emissive: new THREE.Color(0xFF2200),
+      emissiveIntensity: 1
     });
-    _lavaCraterMesh = new THREE.Mesh(lavaGeo, lavaMat);
-    _lavaCraterMesh.position.set(0, _lavaY, 0);
-    _scene.add(_lavaCraterMesh);
+    var calMesh = new THREE.Mesh(calGeo, calMat);
+    calMesh.position.set(0, 25.5, 0);
+    _scene.add(calMesh);
+  }
 
-    /* Main lava fill box (rising floor) */
-    var lavaFillGeo = new THREE.BoxGeometry(76, 6, 76);
-    var lavaFillMat = new THREE.MeshLambertMaterial({
-      color:   0xFF4400,
-      emissive: 0xFF2200,
-      emissiveIntensity: 0.6
+  function buildLavaFlows() {
+    /* 8 strips radiating outward at 45-degree intervals */
+    for (var i = 0; i < 8; i++) {
+      var angleRad    = (i * 45 * Math.PI) / 180;
+      var stripLen    = 60;
+      var stripWidth  = 3;
+      var geo = new THREE.PlaneGeometry(stripWidth, stripLen);
+      var mat = new THREE.MeshLambertMaterial({
+        color: 0xFF4400,
+        emissive: new THREE.Color(0xFF2200),
+        emissiveIntensity: 0.8
+      });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.rotation.z = -angleRad;
+      mesh.position.set(Math.sin(angleRad) * 16, 0.05, Math.cos(angleRad) * 16);
+      mesh.scale.z = 0.01;
+      _scene.add(mesh);
+      _lavaFlows.push({
+        mesh:   mesh,
+        angle:  angleRad,
+        extent: 0,
+        max:    stripLen
+      });
+    }
+  }
+
+  function buildResearchStation() {
+    /* Station: BoxGeometry 20x4x10 */
+    var stGeo    = new THREE.BoxGeometry(20, 4, 10);
+    var stMat    = new THREE.MeshLambertMaterial({ color: 0x445544 });
+    _stationMesh = new THREE.Mesh(stGeo, stMat);
+    _stationMesh.position.set(0, 2, -50);
+    _scene.add(_stationMesh);
+
+    /* Roof detail */
+    var roofGeo  = new THREE.BoxGeometry(21, 0.5, 11);
+    var roofMat  = new THREE.MeshLambertMaterial({ color: 0x334433 });
+    var roofMesh = new THREE.Mesh(roofGeo, roofMat);
+    roofMesh.position.set(0, 4.25, -50);
+    _scene.add(roofMesh);
+
+    /* Station door — south face */
+    var doorGeo  = new THREE.BoxGeometry(2, 3, 0.3);
+    var doorMat  = new THREE.MeshLambertMaterial({ color: 0x334433 });
+    _stationDoor = new THREE.Mesh(doorGeo, doorMat);
+    _stationDoor.position.set(0, 1.5, -44.8);
+    _scene.add(_stationDoor);
+  }
+
+  function buildBridge() {
+    /* Bridge: BoxGeometry crossing lava river gap */
+    var bGeo   = new THREE.BoxGeometry(6, 0.5, 10);
+    var bMat   = new THREE.MeshLambertMaterial({ color: 0x554433 });
+    _bridgeMesh = new THREE.Mesh(bGeo, bMat);
+    _bridgeMesh.position.set(20, 0.25, -25);
+    _scene.add(_bridgeMesh);
+
+    /* Lava river underneath */
+    var riverGeo = new THREE.PlaneGeometry(10, 10);
+    var riverMat = new THREE.MeshLambertMaterial({
+      color: 0xFF4400,
+      emissive: new THREE.Color(0xFF2200),
+      emissiveIntensity: 0.9
     });
-    _lavaMesh = new THREE.Mesh(lavaFillGeo, lavaFillMat);
-    _lavaMesh.position.set(0, _lavaY - 3, 0);
-    _scene.add(_lavaMesh);
+    var riverMesh = new THREE.Mesh(riverGeo, riverMat);
+    riverMesh.rotation.x = -Math.PI / 2;
+    riverMesh.position.set(20, -0.1, -25);
+    _scene.add(riverMesh);
 
-    /* Crater glow light */
-    _lavaLight = new THREE.PointLight(0xFF2200, 2, 60);
-    _lavaLight.position.set(0, _lavaY + 6, 0);
-    _scene.add(_lavaLight);
-
-    /* Eruption point light (starts dim) */
-    _eruptionLight = new THREE.PointLight(0xFF2200, 0, 80);
-    _eruptionLight.position.set(0, 30, 0);
-    _scene.add(_eruptionLight);
+    /* Bridge supports — can be C4'd */
+    var supDefs = [ [17, -25], [23, -25] ];
+    for (var i = 0; i < supDefs.length; i++) {
+      var supGeo  = new THREE.BoxGeometry(1, 3, 1);
+      var supMat  = new THREE.MeshLambertMaterial({ color: 0x443322 });
+      var supMesh = new THREE.Mesh(supGeo, supMat);
+      supMesh.position.set(supDefs[i][0], 1.5, supDefs[i][1]);
+      _scene.add(supMesh);
+      _bridgeSupports.push({ mesh: supMesh, hp: 100 });
+    }
   }
 
-  function buildBase() {
-    /* 3 buildings on the flank of the volcano */
-    var positions = [
-      { x: -18, z: 18, w: 8, h: 10, d: 8 },
-      { x: -28, z:  8, w: 6, h:  8, d: 6 },
-      { x: -22, z: 28, w: 7, h: 12, d: 7 }
+  function buildSurvivors() {
+    /* 5 researchers: 2 station, 1 cliff, 2 beach */
+    var defs = [
+      { x: -2,  y: 1, z: -50, type: 'station' },
+      { x:  2,  y: 1, z: -50, type: 'station' },
+      { x: 35,  y: 1, z: -65, type: 'cliff'   },
+      { x: -15, y: 1, z: -85, type: 'beach'   },
+      { x: -5,  y: 1, z: -82, type: 'beach'   }
     ];
-    for (var i = 0; i < positions.length; i++) {
-      var p   = positions[i];
-      var geo = new THREE.BoxGeometry(p.w, p.h, p.d);
-      var mat = new THREE.MeshLambertMaterial({ color: 0x445544 });
-      var m   = new THREE.Mesh(geo, mat);
-      m.position.set(p.x, p.h / 2, p.z);
-      _scene.add(m);
-      _buildings.push(m);
-    }
-  }
-
-  function buildNorthStairs() {
-    /* 5 step platforms going up north face */
-    for (var i = 0; i < 14; i++) {
-      var geo = new THREE.BoxGeometry(6, 0.8, 3);
-      var mat = new THREE.MeshLambertMaterial({ color: 0x887766 });
-      var m   = new THREE.Mesh(geo, mat);
-      var yp  = -20 + i * 4.5;
-      var zp  = 28 - i * 2.5;
-      m.position.set(0, yp, zp);
-      _scene.add(m);
-      _platforms.push({
-        mesh: m,
-        minX: -3, maxX: 3,
-        minZ: zp - 1.5, maxZ: zp + 1.5,
-        y: yp + 0.4
+    for (var i = 0; i < defs.length; i++) {
+      var d    = defs[i];
+      var geo  = new THREE.BoxGeometry(0.6, 1.8, 0.6);
+      var mat  = new THREE.MeshLambertMaterial({ color: 0xFFDDCC });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(d.x, d.y, d.z);
+      if (d.type === 'station') { mesh.visible = false; }
+      _scene.add(mesh);
+      _survivors.push({
+        mesh:      mesh,
+        pos:       new THREE.Vector3(d.x, d.y, d.z),
+        vel:       new THREE.Vector3(0, 0, 0),
+        type:      d.type,
+        rescued:   false,
+        following: false
       });
     }
-  }
-
-  function buildEastLadder() {
-    /* CylinderGeometry rungs up east face */
-    for (var i = 0; i < 20; i++) {
-      var geo = new THREE.CylinderGeometry(0.15, 0.15, 5, 8);
-      var mat = new THREE.MeshLambertMaterial({ color: 0x888888 });
-      var m   = new THREE.Mesh(geo, mat);
-      m.rotation.z = Math.PI / 2;
-      var yp  = -18 + i * 4;
-      m.position.set(28, yp, 0);
-      _scene.add(m);
-      /* thin platform for each rung */
-      var pgeo = new THREE.BoxGeometry(1.5, 0.3, 1.5);
-      var pmat = new THREE.MeshLambertMaterial({ color: 0x666666 });
-      var pm   = new THREE.Mesh(pgeo, pmat);
-      pm.position.set(28, yp + 0.15, 0);
-      _scene.add(pm);
-      _platforms.push({
-        mesh: pm,
-        minX: 26.25, maxX: 29.75,
-        minZ: -0.75,  maxZ: 0.75,
-        y: yp + 0.15
-      });
-    }
-  }
-
-  function buildWestTunnel() {
-    /* BoxGeometry 3x3x20 tunnel sections on west face */
-    var sections = [
-      { x: -30, y: -15, z: 0, ry: 0 },
-      { x: -32, y:  -5, z: 0, ry: 0.15 },
-      { x: -33, y:   5, z: 0, ry: 0.25 },
-      { x: -31, y:  15, z: 0, ry: 0.1  }
-    ];
-    for (var i = 0; i < sections.length; i++) {
-      var s   = sections[i];
-      var geo = new THREE.BoxGeometry(3, 3, 20);
-      var mat = new THREE.MeshLambertMaterial({
-        color: 0x554433,
-        transparent: true,
-        opacity: 0.85
-      });
-      var m   = new THREE.Mesh(geo, mat);
-      m.position.set(s.x, s.y, s.z);
-      m.rotation.y = s.ry;
-      _scene.add(m);
-      _tunnelMeshes.push(m);
-      /* Floor of each tunnel section as a platform */
-      _platforms.push({
-        mesh: m,
-        minX: s.x - 1.5, maxX: s.x + 1.5,
-        minZ: s.z - 10,   maxZ: s.z + 10,
-        y: s.y - 1.5
-      });
-    }
-  }
-
-  function buildEnemies() {
-    /* 8 enemy guards — positions on and around volcano paths */
-    var positions = [
-      { x:  2,  y: -18, z: 26, isCommander: false },
-      { x: -2,  y: -10, z: 23, isCommander: false },
-      { x:  4,  y:  -2, z: 20, isCommander: false },
-      { x:  26, y: -15, z:  2, isCommander: false },
-      { x:  26, y:  -5, z: -2, isCommander: false },
-      { x: -31, y: -12, z: -3, isCommander: false },
-      { x: -32, y:   2, z:  3, isCommander: false },
-      { x: -20, y: -5,  z: 12, isCommander: true  }  /* commander */
-    ];
-    for (var i = 0; i < positions.length; i++) {
-      var p    = positions[i];
-      var scl  = p.isCommander ? 1.3 : 1.0;
-      var clr  = p.isCommander ? 0xFF4444 : 0x445544;
-      var geo  = new THREE.BoxGeometry(1.2 * scl, 2.4 * scl, 1.2 * scl);
-      var mat  = new THREE.MeshLambertMaterial({ color: clr });
-      var m    = new THREE.Mesh(geo, mat);
-      m.position.set(p.x, p.y, p.z);
-      m.scale.set(scl, scl, scl);
-      _scene.add(m);
-      _enemies.push({
-        mesh:        m,
-        hp:          p.isCommander ? 120 : 50,
-        pos:         new THREE.Vector3(p.x, p.y, p.z),
-        vel:         new THREE.Vector3(0, 0, 0),
-        alive:       true,
-        isCommander: p.isCommander,
-        fireTimer:   randRange(1, 4)
-      });
-    }
-  }
-
-  function buildIntelFolders() {
-    var positions = [
-      { x: -18, y: 6,  z: 18 },
-      { x: -28, y: 5,  z:  8 },
-      { x: -22, y: 7,  z: 28 }
-    ];
-    for (var i = 0; i < positions.length; i++) {
-      var p   = positions[i];
-      var geo = new THREE.BoxGeometry(0.8, 0.6, 1.0);
-      var mat = new THREE.MeshLambertMaterial({
-        color:   0xFFFFAA,
-        emissive: 0xAAAA44,
-        emissiveIntensity: 0.4
-      });
-      var m = new THREE.Mesh(geo, mat);
-      m.position.set(p.x, p.y, p.z);
-      _scene.add(m);
-      _intelFolders.push({
-        mesh:      m,
-        collected: false,
-        pos:       new THREE.Vector3(p.x, p.y, p.z)
-      });
-    }
-  }
-
-  function buildJeep() {
-    var group = new THREE.Group();
-    /* Body */
-    var bodyGeo = new THREE.BoxGeometry(3, 1.2, 5.5);
-    var bodyMat = new THREE.MeshLambertMaterial({ color: 0x664433 });
-    var body    = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.6;
-    group.add(body);
-    /* Wheels */
-    var wGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.4, 12);
-    var wMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
-    var wOffsets = [
-      [-1.5, 0, -1.8],
-      [ 1.5, 0, -1.8],
-      [-1.5, 0,  1.8],
-      [ 1.5, 0,  1.8]
-    ];
-    for (var i = 0; i < wOffsets.length; i++) {
-      var w = new THREE.Mesh(wGeo, wMat);
-      w.rotation.z = Math.PI / 2;
-      w.position.set(wOffsets[i][0], wOffsets[i][1], wOffsets[i][2]);
-      group.add(w);
-    }
-    _jeepY = -10;
-    group.position.set(-14, _jeepY, 14);
-    _scene.add(group);
-    _jeepMesh = group;
   }
 
   function buildHelicopter() {
-    var group = new THREE.Group();
-    /* Body */
-    var bodyGeo = new THREE.BoxGeometry(4, 2, 7);
-    var bodyMat = new THREE.MeshLambertMaterial({ color: 0x445566 });
-    var body    = new THREE.Mesh(bodyGeo, bodyMat);
-    group.add(body);
-    /* Rotor blade */
-    var rotorGeo = new THREE.BoxGeometry(10, 0.15, 0.6);
-    var rotorMat = new THREE.MeshLambertMaterial({ color: 0x333344 });
-    var rotor    = new THREE.Mesh(rotorGeo, rotorMat);
-    rotor.position.y = 1.2;
-    group.add(rotor);
-    group.position.set(0, 57, 0);
-    _scene.add(group);
-    _helicopterMesh = group;
+    _heliPos = new THREE.Vector3(-10, 2, -95);
+
+    /* Fuselage BoxGeometry */
+    var fGeo      = new THREE.BoxGeometry(5, 2, 2);
+    var fMat      = new THREE.MeshLambertMaterial({ color: 0x334455 });
+    _heliFuselage = new THREE.Mesh(fGeo, fMat);
+    _heliFuselage.position.copy(_heliPos);
+    _scene.add(_heliFuselage);
+
+    /* Tail boom */
+    var tailGeo  = new THREE.BoxGeometry(0.5, 0.8, 3);
+    var tailMat  = new THREE.MeshLambertMaterial({ color: 0x334455 });
+    var tailMesh = new THREE.Mesh(tailGeo, tailMat);
+    tailMesh.position.set(_heliPos.x + 3.5, _heliPos.y, _heliPos.z);
+    _scene.add(tailMesh);
+
+    /* Rotor — CylinderGeometry flat disc */
+    var rotorGeo  = new THREE.CylinderGeometry(3, 3, 0.1, 8);
+    var rotorMat  = new THREE.MeshLambertMaterial({ color: 0x223344, transparent: true, opacity: 0.6 });
+    var rotorMesh = new THREE.Mesh(rotorGeo, rotorMat);
+    rotorMesh.position.set(_heliPos.x, _heliPos.y + 1.5, _heliPos.z);
+    _scene.add(rotorMesh);
+
+    /* Landing light */
+    var heliLight = new THREE.PointLight(0xFFFFAA, 1.5, 25);
+    heliLight.position.set(_heliPos.x, _heliPos.y + 3, _heliPos.z);
+    _scene.add(heliLight);
+
+    _heliMesh = _heliFuselage;
+  }
+
+  function buildSupplies() {
+    var defs = [
+      { x:  8,  y: 0.4, z: -48, type: 'gasmask',  color: 0x556655, geom: 'box'  },
+      { x: 25,  y: 0.4, z: -30, type: 'firesuit',  color: 0xCC8833, geom: 'box'  },
+      { x: 30,  y: 0.4, z: -60, type: 'flaregun',  color: 0xFF6600, geom: 'cyl'  },
+      { x: -5,  y: 0.4, z: -43, type: 'c4',        color: 0xFF4400, geom: 'box'  },
+      { x:  5,  y: 0.4, z: -44, type: 'c4',        color: 0xFF4400, geom: 'box'  }
+    ];
+    for (var i = 0; i < defs.length; i++) {
+      var d   = defs[i];
+      var geo = (d.geom === 'cyl')
+        ? new THREE.CylinderGeometry(0.15, 0.15, 0.6, 8)
+        : new THREE.BoxGeometry(0.5, 0.5, 0.5);
+      var mat  = new THREE.MeshLambertMaterial({ color: d.color });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(d.x, d.y, d.z);
+      _scene.add(mesh);
+      _supplies.push({ mesh: mesh, pos: new THREE.Vector3(d.x, d.y, d.z), type: d.type, taken: false });
+    }
+  }
+
+  function buildAshClouds() {
+    var pos = [ [-10, -35], [15, -55], [0, -70], [-20, -80] ];
+    for (var i = 0; i < pos.length; i++) {
+      var geo  = new THREE.SphereGeometry(4, 8, 6);
+      var mat  = new THREE.MeshLambertMaterial({ color: 0x666655, transparent: true, opacity: 0.5 });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(pos[i][0], 2, pos[i][1]);
+      _scene.add(mesh);
+      _ashClouds.push({
+        mesh: mesh,
+        pos:  new THREE.Vector3(pos[i][0], 2, pos[i][1]),
+        vel:  new THREE.Vector3(randRange(-1, 1), 0, randRange(-0.5, 0.5))
+      });
+    }
+  }
+
+  function buildGroundCracks() {
+    var defs = [
+      { x: -5, z: -35, w: 12 },
+      { x:  5, z: -58, w: 8  },
+      { x: -8, z: -75, w: 10 }
+    ];
+    for (var i = 0; i < defs.length; i++) {
+      var d = defs[i];
+      /* LineSegments gap visual */
+      var pts = [
+        new THREE.Vector3(d.x - d.w / 2, 0.1, d.z),
+        new THREE.Vector3(d.x + d.w / 2, 0.1, d.z)
+      ];
+      var lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+      var lineMat = new THREE.LineBasicMaterial({ color: 0xFF2200 });
+      var line    = new THREE.LineSegments(lineGeo, lineMat);
+      _scene.add(line);
+
+      /* Dark gap plane */
+      var pGeo  = new THREE.PlaneGeometry(d.w, 0.5);
+      var pMat  = new THREE.MeshLambertMaterial({ color: 0x110000 });
+      var pMesh = new THREE.Mesh(pGeo, pMat);
+      pMesh.rotation.x = -Math.PI / 2;
+      pMesh.position.set(d.x, 0.08, d.z);
+      _scene.add(pMesh);
+
+      _groundCracks.push({
+        mesh:  pMesh,
+        line:  line,
+        pos:   new THREE.Vector3(d.x, 0, d.z),
+        width: d.w,
+        deadly: true
+      });
+    }
+  }
+
+  function buildMudslides() {
+    var defs = [
+      { x: -18, z: -40, w: 5, depth: 20, dir:  1 },
+      { x:  22, z: -60, w: 5, depth: 20, dir: -1 }
+    ];
+    for (var i = 0; i < defs.length; i++) {
+      var d    = defs[i];
+      var geo  = new THREE.PlaneGeometry(d.w, d.depth);
+      var mat  = new THREE.MeshLambertMaterial({ color: 0x553322, transparent: true, opacity: 0.85 });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(d.x, 0.06, d.z);
+      _scene.add(mesh);
+      _mudslides.push({ mesh: mesh, pos: new THREE.Vector3(d.x, 0, d.z), width: d.w, depth: d.depth, dir: d.dir });
+    }
+  }
+
+  function buildCliffEdge() {
+    var cGeo  = new THREE.BoxGeometry(5, 1, 2);
+    var cMat  = new THREE.MeshLambertMaterial({ color: 0x332211 });
+    var cMesh = new THREE.Mesh(cGeo, cMat);
+    cMesh.position.set(35, 0.5, -65);
+    _scene.add(cMesh);
+  }
+
+  function buildBeachCamp() {
+    /* Sandy north beach */
+    var bGeo  = new THREE.PlaneGeometry(40, 20);
+    var bMat  = new THREE.MeshLambertMaterial({ color: 0xDDCC99 });
+    var bMesh = new THREE.Mesh(bGeo, bMat);
+    bMesh.rotation.x = -Math.PI / 2;
+    bMesh.position.set(-10, 0.02, -95);
+    _scene.add(bMesh);
+
+    /* Tents */
+    for (var i = 0; i < 2; i++) {
+      var tGeo  = new THREE.ConeGeometry(1.5, 2, 6);
+      var tMat  = new THREE.MeshLambertMaterial({ color: 0x446644 });
+      var tMesh = new THREE.Mesh(tGeo, tMat);
+      tMesh.position.set(-20 + i * 8, 1, -90);
+      _scene.add(tMesh);
+    }
   }
 
   /* ════════════════════════════════════════════════════════════════════════
@@ -382,619 +470,817 @@
     _hud = document.createElement('div');
     _hud.id = 'volcano-escape-hud';
     _hud.style.cssText = [
-      'position:fixed',
-      'top:8px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'background:rgba(0,0,0,0.72)',
-      'color:#FF8800',
-      'font:bold 13px/1.4 monospace',
-      'padding:6px 14px',
-      'border-radius:4px',
-      'z-index:9999',
-      'pointer-events:none',
-      'white-space:nowrap',
-      'letter-spacing:0.04em'
+      'position:fixed', 'top:10px', 'left:50%', 'transform:translateX(-50%)',
+      'background:rgba(0,0,0,0.72)', 'color:#FF9944', 'font-family:monospace',
+      'font-size:13px', 'padding:6px 14px', 'border-radius:6px',
+      'pointer-events:none', 'z-index:9999', 'white-space:nowrap',
+      'border:1px solid #FF6600'
     ].join(';');
     document.body.appendChild(_hud);
+    updateHUD();
   }
 
   function updateHUD() {
     if (!_hud) return;
-    var eruptionWarning = '';
-    for (var i = 0; i < _eruptionThresholds.length; i++) {
-      if (!_eruptionFired[i] && _lavaY >= _eruptionThresholds[i] - 3) {
-        eruptionWarning = ' | <span style="color:#FF2200">ERUPTION IMMINENT</span>';
-        break;
+
+    /* Nearest lava distance */
+    var minDist = 9999;
+    var i;
+    if (_playerPos) {
+      for (i = 0; i < _lavaFlows.length; i++) {
+        var f   = _lavaFlows[i];
+        var tx  = Math.sin(f.angle) * (16 + f.extent);
+        var tz  = Math.cos(f.angle) * (16 + f.extent);
+        var dxf = _playerPos.x - tx;
+        var dzf = _playerPos.z - tz;
+        var df  = Math.sqrt(dxf * dxf + dzf * dzf);
+        if (df < minDist) minDist = df;
       }
+      for (i = 0; i < _lavaPools.length; i++) {
+        var pd = distXZ(_playerPos, _lavaPools[i].pos) - _lavaPools[i].radius;
+        if (pd < minDist) minDist = pd;
+      }
+      if (minDist < 0) minDist = 0;
     }
-    var timeLeft = Math.max(0, 300 - _totalTime);
-    _hud.innerHTML =
-      'VOLCANO ' +
-      '[LAVA: Y=' + Math.round(_lavaY) + '] ' +
-      '[ALTITUDE: Y=' + Math.round(_playerPos ? _playerPos.y : 0) + '] ' +
-      '[TIME: ' + fmtTime(timeLeft) + '] ' +
-      '[INTEL: ' + _intelCount + '/3]' +
-      eruptionWarning;
+
+    var mm    = Math.floor(_gameTimer / 60);
+    var ss    = Math.floor(_gameTimer % 60);
+    var ssStr = ss < 10 ? '0' + ss : '' + ss;
+    var mmStr = mm < 10 ? '0' + mm : '' + mm;
+
+    var heliStr;
+    if (_heliBoarding)             heliStr = 'BOARDING';
+    else if (_heliArrivalDelay > 0) heliStr = Math.ceil(_heliArrivalDelay) + 's AWAY';
+    else                           heliStr = 'READY';
+
+    var items = [];
+    if (_hasGasMask  && _gasMaskTimer > 0)   items.push('GASMASK(' + Math.ceil(_gasMaskTimer) + 's)');
+    if (_hasFireSuit && _fireSuitTimer > 0)   items.push('FIRESUIT(' + Math.ceil(_fireSuitTimer) + 's)');
+    if (_hasFlareGun && !_flareUsed)          items.push('FLARE[R]');
+    if (_c4Charges > 0)                       items.push('C4x' + _c4Charges + '[F/G]');
+    var itemStr = items.length ? ' | ' + items.join(' ') : '';
+
+    _hud.textContent =
+      'VOLCANO ESCAPE [HP: ' + Math.ceil(_playerHP) + '] ' +
+      '[SURVIVORS: ' + _survivorsRescued + '/' + _survivorsTotal + '] ' +
+      '[LAVA DISTANCE: ' + minDist.toFixed(1) + 'm] ' +
+      '[TIME: ' + mmStr + ':' + ssStr + '] | HELI: ' + heliStr + itemStr;
   }
 
   function removeHUD() {
-    if (_hud && _hud.parentNode) {
-      _hud.parentNode.removeChild(_hud);
+    if (_hud && _hud.parentNode) { _hud.parentNode.removeChild(_hud); _hud = null; }
+  }
+
+  function showMessage(txt) {
+    if (!_messageEl) {
+      _messageEl = document.createElement('div');
+      _messageEl.style.cssText = [
+        'position:fixed', 'bottom:80px', 'left:50%', 'transform:translateX(-50%)',
+        'background:rgba(0,0,0,0.75)', 'color:#FFBB44', 'font-family:monospace',
+        'font-size:14px', 'padding:6px 16px', 'border-radius:5px',
+        'pointer-events:none', 'z-index:9998'
+      ].join(';');
+      document.body.appendChild(_messageEl);
     }
-    _hud = null;
+    _messageEl.textContent = txt;
+    _messageEl.style.display = 'block';
+    _msgTimer = 3.5;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
-     SPAWN SYSTEMS
-  ════════════════════════════════════════════════════════════════════════ */
-
-  function spawnFallingRock() {
-    /* Random XZ somewhere near player path */
-    var rx   = randRange(-35, 35);
-    var rz   = randRange(-35, 35);
-    var startY = 65;
-
-    /* Warning shadow */
-    var wGeo = new THREE.BoxGeometry(2.5, 0.05, 2.5);
-    var wMat = new THREE.MeshLambertMaterial({
-      color:       0xFF8800,
-      transparent: true,
-      opacity:     0.3
-    });
-    var warning = new THREE.Mesh(wGeo, wMat);
-    warning.position.set(rx, _lavaY + 0.1, rz);
-    _scene.add(warning);
-
-    /* Rock mesh — appears 1 second after warning */
-    var rGeo = new THREE.CylinderGeometry(0.8, 0.8, 1.6, 8);
-    var rMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-    var rock = new THREE.Mesh(rGeo, rMat);
-    rock.position.set(rx, startY, rz);
-    rock.visible = false;
-    _scene.add(rock);
-
-    _rocks.push({
-      mesh:    rock,
-      vel:     new THREE.Vector3(randRange(-2, 2), -18, randRange(-2, 2)),
-      warning: warning,
-      warned:  false,
-      active:  false,
-      warnTimer: 0
-    });
-  }
-
-  function triggerEruption(level) {
-    /* Intensity spike on eruption light */
-    _eruptionLight.intensity = 12;
-    _eruptionTimer = 1.5;
-
-    /* Knockback player */
-    if (_playerVel) {
-      _playerVel.y += 8;
-    }
-
-    /* 20 fireballs launched outward */
-    for (var i = 0; i < 20; i++) {
-      var angle  = (i / 20) * Math.PI * 2;
-      var spread = randRange(0.3, 1.0);
-      var geo    = new THREE.SphereGeometry(0.6, 8, 8);
-      var mat    = new THREE.MeshLambertMaterial({
-        color:   0xFF4400,
-        emissive: 0xFF2200,
-        emissiveIntensity: 1.0
-      });
-      var fb = new THREE.Mesh(geo, mat);
-      fb.position.set(0, 30, 0);
-      _scene.add(fb);
-      _fireballs.push({
-        mesh: fb,
-        vel:  new THREE.Vector3(
-          Math.cos(angle) * 15 * spread,
-          randRange(5, 20),
-          Math.sin(angle) * 15 * spread
-        ),
-        life: 4.0
-      });
-    }
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     ACTIVATION
-  ════════════════════════════════════════════════════════════════════════ */
-
-  function activate() {
-    if (_active) return;
-    _active     = true;
-    _score      = 0;
-    _playerHP   = 100;
-    _playerDead = false;
-    _escaped    = false;
-    _intelCount = 0;
-    _inVehicle  = false;
-    _lavaY      = -30;
-    _lavaRiseTimer  = 0;
-    _rockSpawnTimer = 0;
-    _rockNextSpawn  = randRange(2, 5);
-    _totalTime  = 0;
-    _eruptionFired = [false, false, false, false];
-    _commanderDefeated = false;
-
-    /* Player start position — base of west tunnel */
-    _playerPos = new THREE.Vector3(-22, -15, 14);
-    _playerVel = new THREE.Vector3(0, 0, 0);
-
-    /* Player visual marker */
-    var pGeo = new THREE.BoxGeometry(0.9, 1.8, 0.9);
-    var pMat = new THREE.MeshLambertMaterial({ color: 0x22AAFF });
-    _playerMesh = new THREE.Mesh(pGeo, pMat);
-    _playerMesh.position.copy(_playerPos);
-    _scene.add(_playerMesh);
-
-    buildVolcano();
-    buildBase();
-    buildNorthStairs();
-    buildEastLadder();
-    buildWestTunnel();
-    buildEnemies();
-    buildIntelFolders();
-    buildJeep();
-    buildHelicopter();
-    buildHUD();
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     UPDATE — PHYSICS / MOVEMENT
-  ════════════════════════════════════════════════════════════════════════ */
-
-  function updatePlayer(dt) {
-    if (_playerDead || _escaped) return;
-
-    /* Input direction based on yaw */
-    var forward = new THREE.Vector3(-Math.sin(_yaw), 0, -Math.cos(_yaw));
-    var right   = new THREE.Vector3(Math.cos(_yaw), 0, -Math.sin(_yaw));
-    var move    = new THREE.Vector3(0, 0, 0);
-    var speed   = _inVehicle ? 14 : 6;
-
-    if (_keys['w'] || _keys['W']) move.addScaledVector(forward,  speed);
-    if (_keys['s'] || _keys['S']) move.addScaledVector(forward, -speed);
-    if (_keys['a'] || _keys['A']) move.addScaledVector(right, -speed);
-    if (_keys['d'] || _keys['D']) move.addScaledVector(right,  speed);
-
-    _playerVel.x = move.x;
-    _playerVel.z = move.z;
-
-    /* Jump */
-    if ((_keys[' '] || _keys['Space']) && _onGround) {
-      _playerVel.y = 10;
-      _onGround = false;
-    }
-
-    /* Gravity */
-    _playerVel.y -= 20 * dt;
-
-    /* Integrate */
-    _playerPos.x += _playerVel.x * dt;
-    _playerPos.y += _playerVel.y * dt;
-    _playerPos.z += _playerVel.z * dt;
-
-    /* Ground & platform collision */
-    _onGround = false;
-
-    /* World floor */
-    var worldFloor = -28;
-    if (_playerPos.y < worldFloor) {
-      _playerPos.y = worldFloor;
-      _playerVel.y = 0;
-      _onGround = true;
-    }
-
-    /* Platform standing */
-    for (var i = 0; i < _platforms.length; i++) {
-      var pl = _platforms[i];
-      if (
-        _playerPos.x >= pl.minX - 0.45 && _playerPos.x <= pl.maxX + 0.45 &&
-        _playerPos.z >= pl.minZ - 0.45 && _playerPos.z <= pl.maxZ + 0.45 &&
-        _playerPos.y >= pl.y - 0.2 &&
-        _playerPos.y <= pl.y + 2.5 &&
-        _playerVel.y <= 0
-      ) {
-        _playerPos.y = pl.y + 0.9;
-        _playerVel.y = 0;
-        _onGround = true;
-        break;
-      }
-    }
-
-    /* Jeep ride — block at Y=20 */
-    if (_inVehicle && _jeepMesh) {
-      _jeepMesh.position.copy(_playerPos);
-      _jeepMesh.position.y -= 0.6;
-      if (_playerPos.y >= 20) {
-        _inVehicle   = false;
-        _jeepBlocked = true;
-      }
-    }
-
-    /* Sync mesh */
-    if (_playerMesh) {
-      _playerMesh.position.copy(_playerPos);
-      _playerMesh.rotation.y = _yaw;
-    }
-
-    /* Camera follow */
-    if (_camera) {
-      var camOff = new THREE.Vector3(
-        Math.sin(_yaw) * 5,
-        3,
-        Math.cos(_yaw) * 5
-      );
-      _camera.position.copy(_playerPos).add(camOff);
-      _camera.lookAt(
-        _playerPos.x - Math.sin(_yaw) * 3,
-        _playerPos.y + 1,
-        _playerPos.z - Math.cos(_yaw) * 3
-      );
-    }
-  }
-
-  function updateLava(dt) {
-    /* Slow rise 0.02/s */
-    _lavaY += 0.02 * dt;
-
-    /* Every 30s raises 1 extra unit */
-    _lavaRiseTimer += dt;
-    if (_lavaRiseTimer >= 30) {
-      _lavaRiseTimer -= 30;
-      _lavaY += 1;
-    }
-
-    /* Update meshes */
-    if (_lavaMesh) {
-      _lavaMesh.position.y = _lavaY - 3;
-    }
-    if (_lavaCraterMesh) {
-      _lavaCraterMesh.position.y = _lavaY;
-    }
-    if (_lavaLight) {
-      _lavaLight.position.y = _lavaY + 6;
-    }
-
-    /* Check eruption thresholds */
-    for (var i = 0; i < _eruptionThresholds.length; i++) {
-      if (!_eruptionFired[i] && _lavaY >= _eruptionThresholds[i]) {
-        _eruptionFired[i] = true;
-        triggerEruption(i);
-      }
-    }
-
-    /* Player lava death */
-    if (_playerPos && _playerPos.y <= _lavaY + 0.5 && !_playerDead) {
-      killPlayer('CONSUMED BY LAVA');
-    }
-  }
-
-  function updateRocks(dt) {
-    /* Spawn new rocks */
-    _rockSpawnTimer += dt;
-    if (_rockSpawnTimer >= _rockNextSpawn) {
-      _rockSpawnTimer = 0;
-      _rockNextSpawn  = randRange(2, 5);
-      spawnFallingRock();
-    }
-
-    for (var i = _rocks.length - 1; i >= 0; i--) {
-      var r = _rocks[i];
-      r.warnTimer += dt;
-
-      /* Show rock after 1s warning */
-      if (!r.active && r.warnTimer >= 1.0) {
-        r.active       = true;
-        r.mesh.visible = true;
-      }
-
-      if (r.active) {
-        r.mesh.position.x += r.vel.x * dt;
-        r.mesh.position.y += r.vel.y * dt;
-        r.mesh.position.z += r.vel.z * dt;
-        r.vel.y -= 9.8 * dt;
-
-        /* Hit player */
-        if (_playerPos && !_playerDead) {
-          var dx = r.mesh.position.x - _playerPos.x;
-          var dy = r.mesh.position.y - _playerPos.y;
-          var dz = r.mesh.position.z - _playerPos.z;
-          var dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-          if (dist < 2.0) {
-            _playerHP -= 20;
-            if (_playerHP <= 0) {
-              killPlayer('CRUSHED BY FALLING ROCK');
-            }
-            /* Remove rock */
-            _scene.remove(r.mesh);
-            _scene.remove(r.warning);
-            _rocks.splice(i, 1);
-            continue;
-          }
-        }
-
-        /* Remove when below lava */
-        if (r.mesh.position.y < _lavaY) {
-          _scene.remove(r.mesh);
-          _scene.remove(r.warning);
-          _rocks.splice(i, 1);
-          continue;
-        }
-      }
-
-      /* Remove warning shadow after rock appears or it times out */
-      if (r.warnTimer >= 2.5 && r.warning.parent) {
-        _scene.remove(r.warning);
-      }
-    }
-  }
-
-  function updateFireballs(dt) {
-    for (var i = _fireballs.length - 1; i >= 0; i--) {
-      var fb = _fireballs[i];
-      fb.life -= dt;
-      fb.vel.y -= 9.8 * dt;
-      fb.mesh.position.x += fb.vel.x * dt;
-      fb.mesh.position.y += fb.vel.y * dt;
-      fb.mesh.position.z += fb.vel.z * dt;
-
-      /* Hit player */
-      if (_playerPos && !_playerDead) {
-        var dx = fb.mesh.position.x - _playerPos.x;
-        var dz = fb.mesh.position.z - _playerPos.z;
-        var dy = fb.mesh.position.y - _playerPos.y;
-        if (Math.sqrt(dx*dx + dy*dy + dz*dz) < 1.5) {
-          _playerHP -= 15;
-          if (_playerHP <= 0) killPlayer('KILLED BY ERUPTION');
-          fb.life = 0;
-        }
-      }
-
-      if (fb.life <= 0 || fb.mesh.position.y < _lavaY) {
-        _scene.remove(fb.mesh);
-        _fireballs.splice(i, 1);
-      }
-    }
-  }
-
-  function updateEruptionLight(dt) {
-    if (_eruptionTimer > 0) {
-      _eruptionTimer -= dt;
-      _eruptionLight.intensity = Math.max(0, (_eruptionTimer / 1.5) * 12);
-    } else {
-      _eruptionLight.intensity = 0;
-    }
-  }
-
-  function updateEnemies(dt) {
-    for (var i = 0; i < _enemies.length; i++) {
-      var e = _enemies[i];
-      if (!e.alive) continue;
-
-      /* Simple AI: move toward player then try to shoot */
-      if (_playerPos) {
-        var dx = _playerPos.x - e.pos.x;
-        var dz = _playerPos.z - e.pos.z;
-        var dist = Math.sqrt(dx * dx + dz * dz);
-
-        if (dist < 25 && dist > 2.5) {
-          var spd = e.isCommander ? 3.5 : 2.5;
-          e.pos.x += (dx / dist) * spd * dt;
-          e.pos.z += (dz / dist) * spd * dt;
-        }
-
-        /* Shoot player */
-        e.fireTimer -= dt;
-        if (e.fireTimer <= 0 && dist < 20) {
-          e.fireTimer = e.isCommander ? 1.5 : 2.5;
-          if (!_playerDead) {
-            _playerHP -= e.isCommander ? 15 : 8;
-            if (_playerHP <= 0) killPlayer('SHOT BY ENEMY');
-          }
-        }
-      }
-
-      /* Enemies also flee lava — go up if lava is near */
-      if (e.pos.y <= _lavaY + 2) {
-        e.pos.y += 3 * dt;
-      }
-
-      e.mesh.position.copy(e.pos);
-    }
-  }
-
-  function updateBullets(dt) {
-    for (var i = _bullets.length - 1; i >= 0; i--) {
-      var b = _bullets[i];
-      b.life -= dt;
-      b.mesh.position.x += b.vel.x * dt;
-      b.mesh.position.y += b.vel.y * dt;
-      b.mesh.position.z += b.vel.z * dt;
-
-      /* Check enemy hits */
-      for (var j = 0; j < _enemies.length; j++) {
-        var e = _enemies[j];
-        if (!e.alive) continue;
-        var dx = b.mesh.position.x - e.pos.x;
-        var dy = b.mesh.position.y - e.pos.y;
-        var dz = b.mesh.position.z - e.pos.z;
-        if (Math.sqrt(dx*dx + dy*dy + dz*dz) < 1.8) {
-          e.hp -= 25;
-          b.life = 0;
-          if (e.hp <= 0) {
-            e.alive = false;
-            _scene.remove(e.mesh);
-            if (e.isCommander) {
-              _commanderDefeated = true;
-              _score += 300;
-            } else {
-              _score += 50;
-            }
-          }
-          break;
-        }
-      }
-
-      if (b.life <= 0) {
-        _scene.remove(b.mesh);
-        _bullets.splice(i, 1);
-      }
-    }
-  }
-
-  function updateIntel() {
-    if (!_playerPos) return;
-    for (var i = 0; i < _intelFolders.length; i++) {
-      var f = _intelFolders[i];
-      if (f.collected) continue;
-      if (_keys['f'] || _keys['F']) {
-        var dx = _playerPos.x - f.pos.x;
-        var dz = _playerPos.z - f.pos.z;
-        var dy = _playerPos.y - f.pos.y;
-        if (Math.sqrt(dx*dx + dy*dy + dz*dz) < 3.5) {
-          f.collected = true;
-          _scene.remove(f.mesh);
-          _intelCount++;
-          _score += 150;
-        }
-      }
-      /* Bob animation */
-      f.mesh.position.y = f.pos.y + Math.sin(_totalTime * 2 + i) * 0.15;
-      f.mesh.rotation.y += 0.02;
-    }
-  }
-
-  function updateJeepEntry() {
-    if (!_playerPos || !_jeepMesh || _jeepBlocked) return;
-    if (_keys['g'] || _keys['G']) {
-      var jPos = _jeepMesh.position;
-      var dx   = _playerPos.x - jPos.x;
-      var dz   = _playerPos.z - jPos.z;
-      if (Math.sqrt(dx*dx + dz*dz) < 5 && !_inVehicle) {
-        _inVehicle = true;
-      } else if (_inVehicle) {
-        _inVehicle = false;
-      }
-    }
-    /* Rotor spin on heli */
-    if (_helicopterMesh) {
-      _helicopterMesh.children[1].rotation.y += 0.12;
-    }
-  }
-
-  function checkSummitExtraction() {
-    if (!_playerPos || _escaped || _playerDead) return;
-    /* Helicopter at y=57, summit ~y=55 */
-    var dx = _playerPos.x;
-    var dy = _playerPos.y - 57;
-    var dz = _playerPos.z;
-    if (Math.sqrt(dx*dx + dy*dy + dz*dz) < 8 && _playerPos.y >= 50) {
-      _escaped = true;
-      _score += 500;
-      if (_intelCount === 3) _score += 300;
-      if (_commanderDefeated) _score += 200;
-      showEndMessage('ESCAPED! SCORE: ' + _score);
-    }
-
-    /* If lava reaches y=50, helicopter flies away */
-    if (_lavaY >= 50 && !_escaped) {
-      killPlayer('LAVA REACHED SUMMIT — HELICOPTER GONE');
-    }
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     PLAYER DEATH / WIN
-  ════════════════════════════════════════════════════════════════════════ */
-
-  function killPlayer(reason) {
-    if (_playerDead) return;
-    _playerDead = true;
-    showEndMessage('DEAD: ' + reason + ' | SCORE: ' + _score);
-  }
-
-  function showEndMessage(msg) {
-    var el = document.createElement('div');
-    el.style.cssText = [
-      'position:fixed',
-      'top:50%',
-      'left:50%',
-      'transform:translate(-50%,-50%)',
-      'background:rgba(0,0,0,0.85)',
-      'color:#FF4400',
-      'font:bold 22px monospace',
-      'padding:20px 36px',
-      'border-radius:6px',
-      'z-index:10000',
-      'text-align:center'
-    ].join(';');
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(function () {
-      if (el.parentNode) el.parentNode.removeChild(el);
-    }, 5000);
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     SHOOTING
-  ════════════════════════════════════════════════════════════════════════ */
-
-  function fireShot() {
-    if (!_playerPos || _playerDead) return;
-    var geo = new THREE.SphereGeometry(0.15, 6, 6);
-    var mat = new THREE.MeshLambertMaterial({ color: 0xFFFF44, emissive: 0xFFFF00, emissiveIntensity: 1 });
-    var m   = new THREE.Mesh(geo, mat);
-    m.position.copy(_playerPos);
-    m.position.y += 1;
-    _scene.add(m);
-    var dir = new THREE.Vector3(-Math.sin(_yaw), -Math.sin(_pitch), -Math.cos(_yaw));
-    dir.normalize().multiplyScalar(40);
-    _bullets.push({ mesh: m, vel: dir, life: 2.0 });
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     INPUT HANDLERS
+     INPUT
   ════════════════════════════════════════════════════════════════════════ */
 
   function onKeyDown(e) {
-    _keys[e.key] = true;
-
+    var k   = e.key.toUpperCase();
     var now = performance.now() / 1000;
+    _keys[k] = true;
 
-    if (e.key === 'v' || e.key === 'V') _vePressTime.V = now;
-    if (e.key === 'e' || e.key === 'E') _vePressTime.E = now;
+    if (k === 'V') _vePressTime.V = now;
+    if (k === 'E') _vePressTime.E = now;
 
-    /* Check V+E simultaneous within 400ms */
     if (!_active) {
-      if (
-        (e.key === 'v' || e.key === 'V' || e.key === 'e' || e.key === 'E') &&
-        _vePressTime.V > 0 && _vePressTime.E > 0 &&
-        Math.abs(_vePressTime.V - _vePressTime.E) <= VE_WINDOW
-      ) {
+      if ((k === 'V' || k === 'E') &&
+          _vePressTime.V > 0 && _vePressTime.E > 0 &&
+          Math.abs(_vePressTime.V - _vePressTime.E) < VE_WINDOW) {
         activate();
       }
+      return;
     }
+
+    if (_playerDead || _playerWon) {
+      /* Allow re-activate on V+E */
+      if ((k === 'V' || k === 'E') &&
+          _vePressTime.V > 0 && _vePressTime.E > 0 &&
+          Math.abs(_vePressTime.V - _vePressTime.E) < VE_WINDOW) {
+        reset();
+        activate();
+      }
+      return;
+    }
+
+    if (k === 'E') handleInteract();
+    if (k === 'R' && _hasFlareGun && !_flareUsed) useFlareGun();
+    if (k === 'G') detonateC4();
+    if (k === 'F') plantC4();
   }
 
   function onKeyUp(e) {
-    _keys[e.key] = false;
+    _keys[e.key.toUpperCase()] = false;
   }
 
   function onMouseMove(e) {
     if (!_active) return;
-    _yaw   -= e.movementX * 0.003;
-    _pitch  = Math.max(-1.2, Math.min(1.2, _pitch - e.movementY * 0.003));
-    _mouseX = e.clientX;
-    _mouseY = e.clientY;
+    var sens = 0.002;
+    _yaw   -= e.movementX * sens;
+    _pitch -= e.movementY * sens;
+    _pitch  = clamp(_pitch, -1.2, 1.2);
   }
 
-  function onMouseClick() {
-    if (!_active || _playerDead || _escaped) return;
-    fireShot();
+  function onClick() {
+    if (!_active) return;
+    if (_canvas && document.pointerLockElement !== _canvas) {
+      _canvas.requestPointerLock();
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     INTERACTION
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function handleInteract() {
+    if (!_playerPos) return;
+
+    /* Board helicopter */
+    if (_heliPos && distXZ(_playerPos, _heliPos) < 6 && _heliArrivalDelay <= 0 && !_heliBoarding) {
+      _heliBoarding  = true;
+      _heliBoardTimer = 3;
+      showMessage('Boarding helicopter...');
+      return;
+    }
+
+    /* Rescue survivors */
+    var i;
+    for (i = 0; i < _survivors.length; i++) {
+      var s = _survivors[i];
+      if (s.rescued || s.following) continue;
+      if (dist3(_playerPos, s.pos) > 3) continue;
+
+      if (s.type === 'station') {
+        if (!_stationDoorOpen) {
+          showMessage('Door is blocked! Plant C4 near it (F), then detonate (G).');
+          return;
+        }
+        s.mesh.visible = true;
+      }
+      s.rescued   = true;
+      s.following = true;
+      _survivorsRescued++;
+      var msgs = {
+        station: 'Researcher rescued from station! ',
+        cliff:   'Pulled researcher from cliff! ',
+        beach:   'Convinced researcher to follow! '
+      };
+      showMessage((msgs[s.type] || 'Rescued! ') + _survivorsRescued + '/' + _survivorsTotal);
+      return;
+    }
+
+    /* Pick up supplies */
+    for (i = 0; i < _supplies.length; i++) {
+      var sup = _supplies[i];
+      if (sup.taken) continue;
+      if (dist3(_playerPos, sup.pos) > 2) continue;
+
+      sup.taken = true;
+      removeFromScene(sup.mesh);
+
+      if (sup.type === 'gasmask') {
+        _hasGasMask   = true;
+        _gasMaskTimer = 90;
+        showMessage('Gas mask acquired! Ash damage halved for 90s.');
+      } else if (sup.type === 'firesuit') {
+        _hasFireSuit   = true;
+        _fireSuitTimer = 60;
+        showMessage('Fire-retardant suit on! Lava damage halved for 60s.');
+      } else if (sup.type === 'flaregun') {
+        _hasFlareGun = true;
+        showMessage('Flare gun acquired! Press R to signal helicopter.');
+      } else if (sup.type === 'c4') {
+        _c4Charges++;
+        showMessage('C4 charge acquired! F to plant near target, G to detonate. Charges: ' + _c4Charges);
+      }
+      return;
+    }
+  }
+
+  function plantC4() {
+    if (_c4Charges <= 0 || !_playerPos) return;
+
+    /* Station door */
+    var doorPos = new THREE.Vector3(0, 1.5, -44.8);
+    if (dist3(_playerPos, doorPos) < 4) {
+      _c4Charges--;
+      var g1   = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+      var m1   = new THREE.MeshLambertMaterial({ color: 0xFF4400, emissive: new THREE.Color(0xFF2200), emissiveIntensity: 1 });
+      var mesh1 = new THREE.Mesh(g1, m1);
+      mesh1.position.copy(doorPos);
+      _scene.add(mesh1);
+      _c4Placed.push({ mesh: mesh1, pos: doorPos.clone(), targetId: 'station_door' });
+      showMessage('C4 planted on station door! G to detonate.');
+      return;
+    }
+
+    /* Bridge supports */
+    for (var i = 0; i < _bridgeSupports.length; i++) {
+      var bs = _bridgeSupports[i];
+      if (bs.hp <= 0) continue;
+      if (dist3(_playerPos, bs.mesh.position) < 3) {
+        _c4Charges--;
+        var g2    = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+        var m2    = new THREE.MeshLambertMaterial({ color: 0xFF4400, emissive: new THREE.Color(0xFF2200), emissiveIntensity: 1 });
+        var mesh2 = new THREE.Mesh(g2, m2);
+        mesh2.position.copy(bs.mesh.position);
+        _scene.add(mesh2);
+        _c4Placed.push({ mesh: mesh2, pos: bs.mesh.position.clone(), targetId: 'bridge_support_' + i });
+        showMessage('C4 planted on bridge support! G to detonate.');
+        return;
+      }
+    }
+
+    showMessage('No valid target nearby. Get close to a door or bridge support.');
+  }
+
+  function detonateC4() {
+    if (_c4Placed.length === 0) { showMessage('No C4 placed.'); return; }
+
+    var i;
+    for (i = 0; i < _c4Placed.length; i++) {
+      var charge = _c4Placed[i];
+      removeFromScene(charge.mesh);
+      spawnExplosionAt(charge.pos);
+
+      if (charge.targetId === 'station_door') {
+        removeFromScene(_stationDoor);
+        _stationDoorOpen = true;
+        /* Reveal station survivors */
+        var si;
+        for (si = 0; si < _survivors.length; si++) {
+          if (_survivors[si].type === 'station') _survivors[si].mesh.visible = true;
+        }
+        showMessage('BOOM! Station door blown. Survivors can now exit!');
+
+      } else if (charge.targetId.indexOf('bridge_support_') === 0) {
+        var idx = parseInt(charge.targetId.replace('bridge_support_', ''), 10);
+        if (_bridgeSupports[idx]) {
+          _bridgeSupports[idx].hp = 0;
+          removeFromScene(_bridgeSupports[idx].mesh);
+          /* Check if all supports gone */
+          var allDown = true;
+          var bi;
+          for (bi = 0; bi < _bridgeSupports.length; bi++) {
+            if (_bridgeSupports[bi].hp > 0) { allDown = false; break; }
+          }
+          if (allDown && !_bridgeCollapsed) {
+            _bridgeCollapsed = true;
+            if (_bridgeMesh) _bridgeMesh.position.y -= 5;
+            showMessage('Bridge collapsed into lava!');
+          } else {
+            showMessage('Support blown! Bridge weakened.');
+          }
+        }
+      }
+    }
+    _c4Placed = [];
+  }
+
+  function spawnExplosionAt(pos) {
+    var geo  = new THREE.SphereGeometry(2, 8, 6);
+    var mat  = new THREE.MeshLambertMaterial({
+      color: 0xFF8800,
+      emissive: new THREE.Color(0xFF4400),
+      emissiveIntensity: 2,
+      transparent: true,
+      opacity: 0.8
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(pos);
+    _scene.add(mesh);
+    /* Piggyback on _bombs for self-cleanup */
+    _bombs.push({ mesh: mesh, pos: pos.clone(), vel: new THREE.Vector3(), landed: true, landPos: pos.clone(), timer: 0.5, poolCreated: true, isExplosion: true });
+  }
+
+  function useFlareGun() {
+    _flareUsed   = true;
+    _hasFlareGun = false;
+    _heliArrivalDelay = Math.max(0, _heliArrivalDelay - 30);
+    _flareGunExtraTime = 300;
+
+    var geo  = new THREE.SphereGeometry(0.15, 6, 4);
+    var mat  = new THREE.MeshLambertMaterial({ color: 0xFF6600, emissive: new THREE.Color(0xFF4400), emissiveIntensity: 2 });
+    var fmesh = new THREE.Mesh(geo, mat);
+    if (_playerPos) fmesh.position.copy(_playerPos);
+    _scene.add(fmesh);
+    _bombs.push({
+      mesh: fmesh,
+      vel:  new THREE.Vector3(0, 15, -5),
+      pos:  _playerPos ? _playerPos.clone() : new THREE.Vector3(0, 2, 0),
+      landed: false, landPos: null, timer: 4, poolCreated: true, isFlare: true
+    });
+
+    showMessage('Flare fired! Helicopter alerted — arrives 30s early, waits 5 extra minutes!');
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     PHYSICS / MOVEMENT
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function updatePlayer(dt) {
+    if (!_playerPos || !_playerVel) return;
+
+    var sinY = Math.sin(_yaw);
+    var cosY = Math.cos(_yaw);
+    var mx   = 0;
+    var mz   = 0;
+
+    if (_keys['W']) { mx -= sinY; mz -= cosY; }
+    if (_keys['S']) { mx += sinY; mz += cosY; }
+    if (_keys['A']) { mx -= cosY; mz += sinY; }
+    if (_keys['D']) { mx += cosY; mz -= sinY; }
+
+    var len = Math.sqrt(mx * mx + mz * mz);
+    if (len > 0) { mx /= len; mz /= len; }
+
+    _playerVel.x += mx * 8 * dt * 6;
+    _playerVel.z += mz * 8 * dt * 6;
+    _playerVel.x *= 0.82;
+    _playerVel.z *= 0.82;
+
+    if (_keys[' '] && _onGround) {
+      _playerVel.y = 10;
+      _onGround    = false;
+    }
+
+    if (!_onGround) _playerVel.y -= 20 * dt;
+
+    _playerPos.x += _playerVel.x * dt;
+    _playerPos.y += _playerVel.y * dt;
+    _playerPos.z += _playerVel.z * dt;
+
+    if (_playerPos.y < 1) {
+      _playerPos.y = 1;
+      _playerVel.y = 0;
+      _onGround    = true;
+    }
+
+    _playerPos.x = clamp(_playerPos.x, -95, 95);
+    _playerPos.z = clamp(_playerPos.z, -99, 95);
+
+    _camera.position.set(_playerPos.x, _playerPos.y + 0.6, _playerPos.z);
+    _camera.rotation.order = 'YXZ';
+    _camera.rotation.y     = _yaw;
+    _camera.rotation.x     = _pitch;
+
+    if (_playerMesh) {
+      _playerMesh.position.set(_playerPos.x, _playerPos.y - 0.3, _playerPos.z);
+      _playerMesh.rotation.y = _yaw;
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     HAZARD CHECKS
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function checkLavaContact(dt) {
+    if (!_playerPos) return;
+    var onLava = false;
+    var i;
+
+    /* Near volcano center */
+    var distCenter = Math.sqrt(_playerPos.x * _playerPos.x + _playerPos.z * _playerPos.z);
+    if (distCenter < 14) onLava = true;
+
+    /* Lava flow strips */
+    if (!onLava) {
+      for (i = 0; i < _lavaFlows.length; i++) {
+        var f   = _lavaFlows[i];
+        var mid = 16 + f.extent / 2;
+        var dx  = _playerPos.x - Math.sin(f.angle) * mid;
+        var dz  = _playerPos.z - Math.cos(f.angle) * mid;
+        if (Math.sqrt(dx * dx + dz * dz) < 2.5) { onLava = true; break; }
+      }
+    }
+
+    /* Lava pools */
+    if (!onLava) {
+      for (i = 0; i < _lavaPools.length; i++) {
+        if (distXZ(_playerPos, _lavaPools[i].pos) < _lavaPools[i].radius) { onLava = true; break; }
+      }
+    }
+
+    if (onLava) {
+      _lavaContactTimer += dt;
+      if (_lavaContactTimer > 2) {
+        var dmg = 30 * dt * (_hasFireSuit ? 0.5 : 1);
+        _playerHP -= dmg;
+        if (_playerHP <= 0) killPlayer('Consumed by lava!');
+      }
+    } else {
+      _lavaContactTimer = Math.max(0, _lavaContactTimer - dt * 2);
+    }
+  }
+
+  function checkAshContact(dt) {
+    if (!_playerPos) return;
+    for (var i = 0; i < _ashClouds.length; i++) {
+      if (dist3(_playerPos, _ashClouds[i].pos) < 5) {
+        var dmg = 15 * dt * (_hasGasMask ? 0.5 : 1);
+        _playerHP -= dmg;
+        if (_playerHP <= 0) { killPlayer('Overcome by toxic ash!'); return; }
+      }
+    }
+  }
+
+  function checkCrackFall() {
+    if (!_playerPos) return;
+    for (var i = 0; i < _groundCracks.length; i++) {
+      var c  = _groundCracks[i];
+      var dx = Math.abs(_playerPos.x - c.pos.x);
+      var dz = Math.abs(_playerPos.z - c.pos.z);
+      if (dx < c.width / 2 && dz < 0.45 && c.deadly) {
+        killPlayer('Fell into a ground fissure!');
+        return;
+      }
+    }
+  }
+
+  function checkMudslide(dt) {
+    if (!_playerPos || !_playerVel) return;
+    for (var i = 0; i < _mudslides.length; i++) {
+      var m  = _mudslides[i];
+      var dx = Math.abs(_playerPos.x - m.pos.x);
+      var dz = Math.abs(_playerPos.z - m.pos.z);
+      if (dx < m.width / 2 && dz < m.depth / 2) {
+        _playerVel.x += m.dir * 5 * dt * 4;
+      }
+    }
+  }
+
+  function checkRockfallHit() {
+    if (!_playerPos) return;
+    for (var i = 0; i < _rockfalls.length; i++) {
+      var r = _rockfalls[i];
+      if (!r.active) continue;
+      if (dist3(_playerPos, r.pos) < 1.5) {
+        _playerHP -= 40;
+        r.active = false;
+        removeFromScene(r.mesh);
+        if (r.shadow) removeFromScene(r.shadow);
+        if (_playerHP <= 0) killPlayer('Crushed by falling rock!');
+      }
+    }
+  }
+
+  function killPlayer(msg) {
+    if (_playerDead) return;
+    _playerDead = true;
+    showMessage('YOU DIED: ' + msg + ' | Press V+E to restart.');
+    if (_hud) _hud.textContent = 'GAME OVER — ' + msg + ' | V+E to restart';
+  }
+
+  function winGame() {
+    if (_playerWon) return;
+    _playerWon = true;
+    showMessage('ESCAPED! Survivors: ' + _survivorsRescued + '/' + _survivorsTotal + ' | V+E to restart.');
+    if (_hud) _hud.textContent = 'ESCAPED! Survivors: ' + _survivorsRescued + '/' + _survivorsTotal + ' | V+E to restart';
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     DYNAMIC UPDATES
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function updateLavaFlows(dt) {
+    var i;
+    for (i = 0; i < _lavaFlows.length; i++) {
+      var f = _lavaFlows[i];
+      if (f.extent < f.max) {
+        f.extent += 0.1 * dt;
+        var half = f.extent / 2;
+        f.mesh.scale.z = Math.max(0.01, f.extent / 60);
+        f.mesh.position.x = Math.sin(f.angle) * (16 + half);
+        f.mesh.position.z = Math.cos(f.angle) * (16 + half);
+      }
+    }
+    /* Smoke light flicker */
+    for (i = 0; i < _smokeLights.length; i++) {
+      _smokeLights[i].intensity = 1.5 + Math.sin(performance.now() * 0.003 + i) * 0.5;
+    }
+  }
+
+  function updateBombs(dt) {
+    _bombTimer += dt;
+    if (_bombTimer >= _bombNext) {
+      _bombTimer = 0;
+      spawnBomb();
+    }
+
+    var toRemove = [];
+    var i;
+    for (i = 0; i < _bombs.length; i++) {
+      var bomb = _bombs[i];
+
+      if (bomb.isExplosion) {
+        bomb.timer -= dt;
+        if (bomb.timer <= 0) { removeFromScene(bomb.mesh); toRemove.push(i); continue; }
+        bomb.mesh.scale.setScalar(1 + (0.5 - bomb.timer) * 4);
+        if (bomb.mesh.material) bomb.mesh.material.opacity = Math.max(0, bomb.timer / 0.5);
+        continue;
+      }
+
+      if (bomb.isFlare) {
+        bomb.timer -= dt;
+        if (bomb.timer <= 0) { removeFromScene(bomb.mesh); toRemove.push(i); continue; }
+        bomb.pos.x += bomb.vel.x * dt;
+        bomb.pos.y += bomb.vel.y * dt;
+        bomb.pos.z += bomb.vel.z * dt;
+        bomb.vel.y -= 5 * dt;
+        bomb.mesh.position.copy(bomb.pos);
+        continue;
+      }
+
+      if (bomb.isShadow) {
+        bomb.timer -= dt;
+        if (bomb.timer <= 0) { removeFromScene(bomb.mesh); toRemove.push(i); }
+        continue;
+      }
+
+      if (!bomb.landed) {
+        bomb.vel.y -= 12 * dt;
+        bomb.pos.x += bomb.vel.x * dt;
+        bomb.pos.y += bomb.vel.y * dt;
+        bomb.pos.z += bomb.vel.z * dt;
+        bomb.mesh.position.copy(bomb.pos);
+
+        if (bomb.pos.y <= 0.3) {
+          bomb.landed  = true;
+          bomb.pos.y   = 0.3;
+          bomb.timer   = 30;
+          /* Impact damage */
+          if (_playerPos && dist3(_playerPos, bomb.pos) < 5) {
+            _playerHP -= 100;
+            if (_playerHP <= 0) killPlayer('Direct pyroclastic bomb hit!');
+          }
+          if (!bomb.poolCreated) {
+            bomb.poolCreated = true;
+            spawnLavaPool(bomb.pos.clone());
+          }
+          /* Cleanup shadow if present */
+          if (bomb.shadow) { removeFromScene(bomb.shadow); bomb.shadow = null; }
+        }
+      } else {
+        bomb.timer -= dt;
+        if (bomb.timer <= 0) { removeFromScene(bomb.mesh); toRemove.push(i); }
+      }
+    }
+
+    for (var ri = toRemove.length - 1; ri >= 0; ri--) {
+      _bombs.splice(toRemove[ri], 1);
+    }
+  }
+
+  function spawnBomb() {
+    var tx = randRange(-40, 40);
+    var tz = randRange(-80, 20);
+
+    /* Warning shadow */
+    var shGeo  = new THREE.CylinderGeometry(2, 2, 0.05, 8);
+    var shMat  = new THREE.MeshLambertMaterial({ color: 0xFF2200, transparent: true, opacity: 0.5 });
+    var shMesh = new THREE.Mesh(shGeo, shMat);
+    shMesh.position.set(tx, 0.1, tz);
+    _scene.add(shMesh);
+
+    /* Bomb sphere */
+    var bGeo  = new THREE.SphereGeometry(0.5, 8, 6);
+    var bMat  = new THREE.MeshLambertMaterial({ color: 0xFF4400, emissive: new THREE.Color(0xFF2200), emissiveIntensity: 1.5 });
+    var bMesh = new THREE.Mesh(bGeo, bMat);
+    var startPos = new THREE.Vector3(0, 26, 0);
+    bMesh.position.copy(startPos);
+    _scene.add(bMesh);
+
+    var hangT = 4;
+    var vx    = (tx - 0) / hangT;
+    var vz    = (tz - 0) / hangT;
+    var vy    = (0 - 26 + 0.5 * 12 * hangT * hangT) / hangT;
+
+    _bombs.push({
+      mesh:        bMesh,
+      vel:         new THREE.Vector3(vx, vy, vz),
+      pos:         startPos.clone(),
+      landed:      false,
+      landPos:     null,
+      timer:       0,
+      poolCreated: false,
+      shadow:      shMesh
+    });
+
+    /* Self-cleaning shadow entry */
+    _bombs.push({
+      mesh: shMesh, pos: new THREE.Vector3(), vel: new THREE.Vector3(),
+      landed: true, landPos: null, timer: hangT + 0.5,
+      poolCreated: true, isShadow: true
+    });
+  }
+
+  function spawnLavaPool(pos) {
+    var r    = 3;
+    var geo  = new THREE.CylinderGeometry(r, r, 0.15, 10);
+    var mat  = new THREE.MeshLambertMaterial({ color: 0xFF4400, emissive: new THREE.Color(0xFF2200), emissiveIntensity: 1 });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(pos);
+    mesh.position.y = 0.08;
+    _scene.add(mesh);
+    _lavaPools.push({ mesh: mesh, pos: pos.clone(), radius: r });
+  }
+
+  function updateAshClouds(dt) {
+    for (var i = 0; i < _ashClouds.length; i++) {
+      var c = _ashClouds[i];
+      c.pos.x += c.vel.x * dt;
+      c.pos.z += c.vel.z * dt;
+      if (c.pos.x < -50 || c.pos.x > 50) c.vel.x *= -1;
+      if (c.pos.z < -95 || c.pos.z > 20) c.vel.z *= -1;
+      c.mesh.position.set(c.pos.x, 2 + Math.sin(performance.now() * 0.001 + i) * 0.5, c.pos.z);
+    }
+  }
+
+  function updateRockfalls(dt) {
+    _rockfallTimer += dt;
+    if (_rockfallTimer >= _rockfallNext) {
+      _rockfallTimer = 0;
+      _rockfallNext  = randRange(6, 14);
+      spawnRockfall();
+    }
+
+    for (var i = 0; i < _rockfalls.length; i++) {
+      var r = _rockfalls[i];
+      if (!r.active) continue;
+
+      r.pos.z += r.vel.z * dt;
+      r.pos.x += r.vel.x * dt;
+      r.vel.y -= 10 * dt;
+      r.pos.y += r.vel.y * dt;
+      if (r.pos.y < 0.4) { r.pos.y = 0.4; r.vel.y = 0; }
+
+      r.mesh.position.copy(r.pos);
+      r.mesh.rotation.x += dt * 3;
+      if (r.shadow) r.shadow.position.set(r.pos.x, 0.05, r.pos.z);
+
+      if (r.pos.z > 30 || Math.abs(r.pos.x) > 60) {
+        r.active = false;
+        removeFromScene(r.mesh);
+        if (r.shadow) removeFromScene(r.shadow);
+      }
+    }
+  }
+
+  function spawnRockfall() {
+    var rx = randRange(-20, 20);
+    var rz = randRange(-30, -70);
+
+    var shGeo  = new THREE.CylinderGeometry(1, 1, 0.05, 8);
+    var shMat  = new THREE.MeshLambertMaterial({ color: 0xCC3300, transparent: true, opacity: 0.6 });
+    var shMesh = new THREE.Mesh(shGeo, shMat);
+    shMesh.position.set(rx, 0.05, rz);
+    _scene.add(shMesh);
+
+    var rGeo  = new THREE.CylinderGeometry(0.5, 0.7, 0.8, 6);
+    var rMat  = new THREE.MeshLambertMaterial({ color: 0x443322 });
+    var rMesh = new THREE.Mesh(rGeo, rMat);
+    rMesh.position.set(rx, 15, rz);
+    _scene.add(rMesh);
+
+    _rockfalls.push({
+      mesh:   rMesh,
+      shadow: shMesh,
+      pos:    new THREE.Vector3(rx, 15, rz),
+      vel:    new THREE.Vector3(randRange(-2, 2), -8, randRange(3, 7)),
+      active: true
+    });
+  }
+
+  function updateSurvivors(dt) {
+    for (var i = 0; i < _survivors.length; i++) {
+      var s = _survivors[i];
+      if (!s.following || !s.rescued || !_playerPos) continue;
+      var dx = _playerPos.x - s.pos.x;
+      var dz = _playerPos.z - s.pos.z;
+      var d  = Math.sqrt(dx * dx + dz * dz);
+      if (d > 2.5) {
+        var spd = 8 * 0.8;
+        s.pos.x += (dx / d) * spd * dt;
+        s.pos.z += (dz / d) * spd * dt;
+      }
+      s.pos.y = 1;
+      s.mesh.position.copy(s.pos);
+    }
+  }
+
+  function updateHelicopter(dt) {
+    if (_heliArrivalDelay > 0) _heliArrivalDelay -= dt;
+
+    if (_heliBoarding) {
+      _heliBoardTimer -= dt;
+      if (_heliBoardTimer <= 0) winGame();
+    }
+
+    /* Gentle hover bob */
+    if (_heliFuselage) {
+      _heliFuselage.position.y = 2 + Math.sin(performance.now() * 0.0015) * 0.15;
+    }
+  }
+
+  function updateTimers(dt) {
+    _gameTimer -= dt;
+    if (_gameTimer <= 0 && !_playerWon && !_playerDead) {
+      _gameTimer = 0;
+      if (!_heliBoarding) killPlayer('Time ran out — the island is gone!');
+    }
+
+    if (_hasGasMask) {
+      _gasMaskTimer -= dt;
+      if (_gasMaskTimer <= 0) { _hasGasMask = false; _gasMaskTimer = 0; showMessage('Gas mask depleted!'); }
+    }
+    if (_hasFireSuit) {
+      _fireSuitTimer -= dt;
+      if (_fireSuitTimer <= 0) { _hasFireSuit = false; _fireSuitTimer = 0; showMessage('Fire suit burned through!'); }
+    }
+
+    if (_msgTimer > 0) {
+      _msgTimer -= dt;
+      if (_msgTimer <= 0 && _messageEl) _messageEl.style.display = 'none';
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     ACTIVATE / DEACTIVATE
+  ════════════════════════════════════════════════════════════════════════ */
+
+  function activate() {
+    if (_active) return;
+    _active = true;
+
+    /* Grab scene/camera from globals */
+    if (!_scene  && window.gameScene)  _scene  = window.gameScene;
+    if (!_camera && window.gameCamera) _camera = window.gameCamera;
+    if (!_scene  && window._scene)     _scene  = window._scene;
+    if (!_camera && window._camera)    _camera = window._camera;
+    if (!_canvas) _canvas = document.querySelector('canvas');
+
+    if (!_scene || !_camera) {
+      console.warn('[VolcanoEscape] No Three.js scene/camera found. Cannot activate.');
+      _active = false;
+      return;
+    }
+
+    buildEnvironment();
+    buildLavaFlows();
+    buildResearchStation();
+    buildBridge();
+    buildSurvivors();
+    buildHelicopter();
+    buildSupplies();
+    buildAshClouds();
+    buildGroundCracks();
+    buildMudslides();
+    buildCliffEdge();
+    buildBeachCamp();
+
+    /* Player spawn */
+    _playerPos = new THREE.Vector3(0, 1, 20);
+    _playerVel = new THREE.Vector3(0, 0, 0);
+    _yaw       = Math.PI;
+    _pitch     = 0;
+    _onGround  = true;
+
+    var pmGeo   = new THREE.BoxGeometry(0.5, 1.6, 0.5);
+    var pmMat   = new THREE.MeshLambertMaterial({ color: 0xDD9955 });
+    _playerMesh = new THREE.Mesh(pmGeo, pmMat);
+    _playerMesh.position.copy(_playerPos);
+    _scene.add(_playerMesh);
+
+    buildHUD();
+    _lastTime = performance.now() / 1000;
+
+    if (_canvas) _canvas.requestPointerLock();
+
+    showMessage('VOLCANO ESCAPE — Reach the helicopter on the north beach! E=interact F=C4 G=detonate R=flare');
+  }
+
+  function deactivate() {
+    if (!_active) return;
+    _active = false;
+    if (document.pointerLockElement) document.exitPointerLock();
+    removeHUD();
+    if (_messageEl && _messageEl.parentNode) { _messageEl.parentNode.removeChild(_messageEl); _messageEl = null; }
   }
 
   /* ════════════════════════════════════════════════════════════════════════
@@ -1002,98 +1288,137 @@
   ════════════════════════════════════════════════════════════════════════ */
 
   function init(scene, camera, canvas) {
-    _scene  = scene;
-    _camera = camera;
-    _canvas = canvas;
+    if (scene)  _scene  = scene;
+    if (camera) _camera = camera;
+    if (canvas) _canvas = canvas;
 
-    _boundKeyDown    = onKeyDown;
-    _boundKeyUp      = onKeyUp;
-    _boundMouseMove  = onMouseMove;
-    _boundMouseClick = onMouseClick;
+    _boundKeyDown   = onKeyDown;
+    _boundKeyUp     = onKeyUp;
+    _boundMouseMove = onMouseMove;
+    _boundClick     = onClick;
 
-    window.addEventListener('keydown',    _boundKeyDown);
-    window.addEventListener('keyup',      _boundKeyUp);
-    window.addEventListener('mousemove',  _boundMouseMove);
-    window.addEventListener('click',      _boundMouseClick);
+    document.addEventListener('keydown',   _boundKeyDown);
+    document.addEventListener('keyup',     _boundKeyUp);
+    document.addEventListener('mousemove', _boundMouseMove);
+    document.addEventListener('click',     _boundClick);
+
+    console.log('[VolcanoEscape] Ready. Press V+E simultaneously (within 400ms) to activate.');
   }
 
   function update(timestamp) {
-    var dt = 0;
-    if (_lastTime > 0) {
-      dt = (timestamp - _lastTime) / 1000;
-      if (dt > 0.1) dt = 0.1;
-    }
-    _lastTime = timestamp;
+    var now = timestamp / 1000;
+    var dt  = Math.min(now - _lastTime, 0.1);
+    _lastTime = now;
 
-    if (!_active) return;
+    if (!_active || _playerDead || _playerWon) return;
 
-    _totalTime += dt;
-
-    updateLava(dt);
     updatePlayer(dt);
-    updateRocks(dt);
-    updateFireballs(dt);
-    updateEruptionLight(dt);
-    updateEnemies(dt);
-    updateBullets(dt);
-    updateIntel();
-    updateJeepEntry();
-    checkSummitExtraction();
+    updateLavaFlows(dt);
+    updateBombs(dt);
+    updateAshClouds(dt);
+    updateRockfalls(dt);
+    updateSurvivors(dt);
+    updateHelicopter(dt);
+    updateTimers(dt);
+
+    /* Passive HP regen */
+    if (_playerHP < 100 && _playerHP > 0) _playerHP = Math.min(100, _playerHP + 0.5 * dt);
+
+    checkLavaContact(dt);
+    checkAshContact(dt);
+    checkCrackFall();
+    checkMudslide(dt);
+    checkRockfallHit();
+
     updateHUD();
   }
 
   function reset() {
-    _active     = false;
-    _playerDead = false;
-    _escaped    = false;
+    var i;
 
-    /* Remove all scene objects if scene exists */
-    if (_scene) {
-      var toRemove = [];
-      _scene.traverse(function (obj) {
-        if (obj !== _scene) toRemove.push(obj);
-      });
-      for (var i = 0; i < toRemove.length; i++) {
-        _scene.remove(toRemove[i]);
-      }
-    }
+    /* Remove all scene objects */
+    var toRemove = [];
 
-    /* Clear arrays */
-    _platforms    = [];
-    _tunnelMeshes = [];
-    _rocks        = [];
-    _fireballs    = [];
-    _intelFolders = [];
-    _enemies      = [];
-    _bullets      = [];
-    _buildings    = [];
-    _intelCount   = 0;
-    _score        = 0;
-    _lavaY        = -30;
-    _keys         = {};
-    _vePressTime  = { V: 0, E: 0 };
-    _playerPos    = null;
-    _playerVel    = null;
-    _playerMesh   = null;
-    _lavaMesh     = null;
-    _lavaCraterMesh = null;
-    _lavaLight    = null;
-    _eruptionLight = null;
-    _jeepMesh     = null;
-    _helicopterMesh = null;
+    for (i = 0; i < _lavaFlows.length;   i++) toRemove.push(_lavaFlows[i].mesh);
+    for (i = 0; i < _lavaPools.length;   i++) toRemove.push(_lavaPools[i].mesh);
+    for (i = 0; i < _bombs.length;       i++) toRemove.push(_bombs[i].mesh);
+    for (i = 0; i < _ashClouds.length;   i++) toRemove.push(_ashClouds[i].mesh);
+    for (i = 0; i < _rockfalls.length;   i++) { toRemove.push(_rockfalls[i].mesh); if (_rockfalls[i].shadow) toRemove.push(_rockfalls[i].shadow); }
+    for (i = 0; i < _survivors.length;   i++) toRemove.push(_survivors[i].mesh);
+    for (i = 0; i < _supplies.length;    i++) toRemove.push(_supplies[i].mesh);
+    for (i = 0; i < _groundCracks.length; i++) { toRemove.push(_groundCracks[i].mesh); if (_groundCracks[i].line) toRemove.push(_groundCracks[i].line); }
+    for (i = 0; i < _mudslides.length;   i++) toRemove.push(_mudslides[i].mesh);
+    for (i = 0; i < _c4Placed.length;    i++) toRemove.push(_c4Placed[i].mesh);
+    for (i = 0; i < _bridgeSupports.length; i++) toRemove.push(_bridgeSupports[i].mesh);
+    for (i = 0; i < _smokeLights.length; i++) { if (_smokeLights[i].parent) _smokeLights[i].parent.remove(_smokeLights[i]); }
 
-    removeHUD();
+    if (_groundMesh)   toRemove.push(_groundMesh);
+    if (_volcanoMesh)  toRemove.push(_volcanoMesh);
+    if (_stationMesh)  toRemove.push(_stationMesh);
+    if (_stationDoor)  toRemove.push(_stationDoor);
+    if (_bridgeMesh)   toRemove.push(_bridgeMesh);
+    if (_heliFuselage) toRemove.push(_heliFuselage);
+    if (_playerMesh)   toRemove.push(_playerMesh);
 
-    if (_boundKeyDown)   window.removeEventListener('keydown',   _boundKeyDown);
-    if (_boundKeyUp)     window.removeEventListener('keyup',     _boundKeyUp);
-    if (_boundMouseMove) window.removeEventListener('mousemove', _boundMouseMove);
-    if (_boundMouseClick) window.removeEventListener('click',    _boundMouseClick);
+    for (i = 0; i < toRemove.length; i++) removeFromScene(toRemove[i]);
+
+    /* Reset arrays */
+    _lavaFlows      = [];
+    _lavaPools      = [];
+    _bombs          = [];
+    _ashClouds      = [];
+    _rockfalls      = [];
+    _survivors      = [];
+    _supplies       = [];
+    _groundCracks   = [];
+    _mudslides      = [];
+    _c4Placed       = [];
+    _bridgeSupports = [];
+    _smokeLights    = [];
+
+    /* Reset state */
+    _playerHP          = 100;
+    _playerDead        = false;
+    _playerWon         = false;
+    _gameTimer         = 300;
+    _survivorsRescued  = 0;
+    _hasGasMask        = false;
+    _gasMaskTimer      = 0;
+    _hasFireSuit       = false;
+    _fireSuitTimer     = 0;
+    _hasFlareGun       = false;
+    _flareUsed         = false;
+    _c4Charges         = 0;
+    _flareGunExtraTime = 0;
+    _heliArrivalDelay  = 60;
+    _heliDeparted      = false;
+    _heliBoarding      = false;
+    _heliBoardTimer    = 0;
+    _lavaContactTimer  = 0;
+    _lavaRise          = 0;
+    _bombTimer         = 0;
+    _bombNext          = 15;
+    _rockfallTimer     = 0;
+    _rockfallNext      = 8;
+    _stationDoorOpen   = false;
+    _bridgeCollapsed   = false;
+    _groundMesh        = null;
+    _volcanoMesh       = null;
+    _stationMesh       = null;
+    _stationDoor       = null;
+    _bridgeMesh        = null;
+    _heliFuselage      = null;
+    _heliMesh          = null;
+    _heliPos           = null;
+    _playerPos         = null;
+    _playerVel         = null;
+    _playerMesh        = null;
+    _vePressTime       = { V: 0, E: 0 };
+
+    deactivate();
+    console.log('[VolcanoEscape] Reset complete. Press V+E to play again.');
   }
 
-  window.VolcanoEscape = {
-    init:   init,
-    update: update,
-    reset:  reset
-  };
+  return { init: init, update: update, reset: reset };
 
 }());
