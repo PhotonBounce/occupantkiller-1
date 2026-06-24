@@ -2049,6 +2049,13 @@ const GameManager = (function () {
     try { if (window.JungleCamp && JungleCamp.init) JungleCamp.init(_scene, _camera); } catch (e) {}
     try { if (window.AuctionHouse && AuctionHouse.init) AuctionHouse.init(_scene, _camera); } catch (e) {}
     try { if (window.DamAssault && DamAssault.init) DamAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticOutpost && ArcticOutpost.init) ArcticOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.CourtroomSiege && CourtroomSiege.init) CourtroomSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilPipeline && OilPipeline.init) OilPipeline.init(_scene, _camera); } catch (e) {}
+    try { if (window.TechCampus && TechCampus.init) TechCampus.init(_scene, _camera); } catch (e) {}
+    try { if (window.MedievalFortress && MedievalFortress.init) MedievalFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkiResort && SkiResort.init) SkiResort.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleRiver && JungleRiver.init) JungleRiver.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -8889,6 +8896,13 @@ const GameManager = (function () {
     if (window.JungleCamp) JungleCamp.update(delta);
     if (window.AuctionHouse) AuctionHouse.update(delta);
     if (window.DamAssault) DamAssault.update(delta);
+    if (window.ArcticOutpost) ArcticOutpost.update(delta);
+    if (window.CourtroomSiege) CourtroomSiege.update(delta);
+    if (window.OilPipeline) OilPipeline.update(delta);
+    if (window.TechCampus) TechCampus.update(delta);
+    if (window.MedievalFortress) MedievalFortress.update(delta);
+    if (window.SkiResort) SkiResort.update(delta);
+    if (window.JungleRiver) JungleRiver.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
