@@ -2475,6 +2475,14 @@ const GameManager = (function () {
     try { if (window.SaltFlats && SaltFlats.init) SaltFlats.init(_scene, _camera); } catch (e) {}
     try { if (window.AshPlains && AshPlains.init) AshPlains.init(_scene, _camera); } catch (e) {}
     try { if (window.WarDepot && WarDepot.init) WarDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandCenter && CommandCenter.init) CommandCenter.init(_scene, _camera); } catch (e) {}
+    try { if (window.HighlandFort && HighlandFort.init) HighlandFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodDam && FloodDam.init) FloodDam.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceBreaker && IceBreaker.init) IceBreaker.init(_scene, _camera); } catch (e) {}
+    try { if (window.MissileBase && MissileBase.init) MissileBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WreckYard && WreckYard.init) WreckYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankYard && TankYard.init) TankYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.ForwardBase && ForwardBase.init) ForwardBase.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9990,6 +9998,14 @@ const GameManager = (function () {
     if (window.SaltFlats) SaltFlats.update(delta);
     if (window.AshPlains) AshPlains.update(delta);
     if (window.WarDepot) WarDepot.update(delta);
+    if (window.CommandCenter) CommandCenter.update(delta);
+    if (window.HighlandFort) HighlandFort.update(delta);
+    if (window.FloodDam) FloodDam.update(delta);
+    if (window.IceBreaker) IceBreaker.update(delta);
+    if (window.MissileBase) MissileBase.update(delta);
+    if (window.WreckYard) WreckYard.update(delta);
+    if (window.TankYard) TankYard.update(delta);
+    if (window.ForwardBase) ForwardBase.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
