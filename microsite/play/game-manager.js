@@ -2284,6 +2284,14 @@ const GameManager = (function () {
       try { if (window.HelicopterCrash && HelicopterCrash.init) HelicopterCrash.init(_scene, _camera); } catch (e) {}
       try { if (window.SmugglersDen && SmugglersDen.init) SmugglersDen.init(_scene, _camera); } catch (e) {}
       try { if (window.EarthquakeZone && EarthquakeZone.init) EarthquakeZone.init(_scene, _camera); } catch (e) {}
+      try { if (window.WarlordFortress && WarlordFortress.init) WarlordFortress.init(_scene, _camera); } catch (e) {}
+      try { if (window.CombatHospital && CombatHospital.init) CombatHospital.init(_scene, _camera); } catch (e) {}
+      try { if (window.WinterWarfare && WinterWarfare.init) WinterWarfare.init(_scene, _camera); } catch (e) {}
+      try { if (window.ArmoredConvoy && ArmoredConvoy.init) ArmoredConvoy.init(_scene, _camera); } catch (e) {}
+      try { if (window.CatacombsAssault && CatacombsAssault.init) CatacombsAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.OilPlatformRaid && OilPlatformRaid.init) OilPlatformRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.DesertConvoy && DesertConvoy.init) DesertConvoy.init(_scene, _camera); } catch (e) {}
+      try { if (window.TrenchWarfare && TrenchWarfare.init) TrenchWarfare.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9359,6 +9367,14 @@ const GameManager = (function () {
       if (window.HelicopterCrash) HelicopterCrash.update(delta);
       if (window.SmugglersDen) SmugglersDen.update(delta);
       if (window.EarthquakeZone) EarthquakeZone.update(delta);
+      if (window.WarlordFortress) WarlordFortress.update(delta);
+      if (window.CombatHospital) CombatHospital.update(delta);
+      if (window.WinterWarfare) WinterWarfare.update(delta);
+      if (window.ArmoredConvoy) ArmoredConvoy.update(delta);
+      if (window.CatacombsAssault) CatacombsAssault.update(delta);
+      if (window.OilPlatformRaid) OilPlatformRaid.update(delta);
+      if (window.DesertConvoy) DesertConvoy.update(delta);
+      if (window.TrenchWarfare) TrenchWarfare.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
