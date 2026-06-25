@@ -10507,6 +10507,14 @@ const GameManager = (function () {
     if (window.WarwickRacecourse) WarwickRacecourse.update(delta);
     if (window.ChesterAmphitheatre) ChesterAmphitheatre.update(delta);
     if (window.NorwichCathedral) NorwichCathedral.update(delta);
+    if (window.CambridgeKings) CambridgeKings.update(delta);
+    if (window.ElyCathedral) ElyCathedral.update(delta);
+    if (window.NorfolkBroads) NorfolkBroads.update(delta);
+    if (window.ColchesterCastle) ColchesterCastle.update(delta);
+    if (window.OxfordRadcliffe) OxfordRadcliffe.update(delta);
+    if (window.BlenheimArch) BlenheimArch.update(delta);
+    if (window.WindsorGreatPark) WindsorGreatPark.update(delta);
+    if (window.OldSarum) OldSarum.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
