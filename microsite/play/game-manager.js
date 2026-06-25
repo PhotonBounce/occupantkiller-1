@@ -10476,6 +10476,14 @@ const GameManager = (function () {
     if (window.IsleOfArran) IsleOfArran.update(delta);
     if (window.FalkirkWheel) FalkirkWheel.update(delta);
     if (window.ObanHarbour) ObanHarbour.update(delta);
+    if (window.PerthCathedral) PerthCathedral.update(delta);
+    if (window.DunfermlineAbbey) DunfermlineAbbey.update(delta);
+    if (window.LinlithgowPalace) LinlithgowPalace.update(delta);
+    if (window.JedburghAbbey) JedburghAbbey.update(delta);
+    if (window.KelsoAbbey) KelsoAbbey.update(delta);
+    if (window.DouneCastle) DouneCastle.update(delta);
+    if (window.GlamisCastle) GlamisCastle.update(delta);
+    if (window.DunnottarCastle) DunnottarCastle.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
