@@ -10345,6 +10345,14 @@ const GameManager = (function () {
     if (window.AberystwythPost) AberystwythPost.update(delta);
     if (window.BreconBeacons) BreconBeacons.update(delta);
     if (window.SwanseaDock) SwanseaDock.update(delta);
+    if (window.BristolPort) BristolPort.update(delta);
+    if (window.BathRoman) BathRoman.update(delta);
+    if (window.GlastonburyTor) GlastonburyTor.update(delta);
+    if (window.ExeterKeep) ExeterKeep.update(delta);
+    if (window.DartmoorPost) DartmoorPost.update(delta);
+    if (window.PlymouthFort) PlymouthFort.update(delta);
+    if (window.TintagelPost) TintagelPost.update(delta);
+    if (window.LandsEndBase) LandsEndBase.update(delta);
     if (window.GourockFort) GourockFort.update(delta);
     if (window.KilmacolmBase) KilmacolmBase.update(delta);
     if (window.PortGlasgowPost) PortGlasgowPost.update(delta);
