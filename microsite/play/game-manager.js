@@ -2153,6 +2153,14 @@ const GameManager = (function () {
     try { if (window.ShippingLane && ShippingLane.init) ShippingLane.init(_scene, _camera); } catch (e) {}
     try { if (window.NuclearShelter && NuclearShelter.init) NuclearShelter.init(_scene, _camera); } catch (e) {}
     try { if (window.ChurchSiege && ChurchSiege.init) ChurchSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.ResortSiege && ResortSiege.init) ResortSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightFactory && NightFactory.init) NightFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountaintopBase && MountaintopBase.init) MountaintopBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerNetwork && BunkerNetwork.init) BunkerNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReconPost && ReconPost.init) ReconPost.init(_scene, _camera); } catch (e) {}
+    try { if (window.MuseumAssault && MuseumAssault.init) MuseumAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.StagingArea && StagingArea.init) StagingArea.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostVillage && GhostVillage.init) GhostVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9346,6 +9354,14 @@ const GameManager = (function () {
     if (window.ShippingLane) ShippingLane.update(delta);
     if (window.NuclearShelter) NuclearShelter.update(delta);
     if (window.ChurchSiege) ChurchSiege.update(delta);
+    if (window.ResortSiege) ResortSiege.update(delta);
+    if (window.NightFactory) NightFactory.update(delta);
+    if (window.MountaintopBase) MountaintopBase.update(delta);
+    if (window.BunkerNetwork) BunkerNetwork.update(delta);
+    if (window.ReconPost) ReconPost.update(delta);
+    if (window.MuseumAssault) MuseumAssault.update(delta);
+    if (window.StagingArea) StagingArea.update(delta);
+    if (window.GhostVillage) GhostVillage.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
