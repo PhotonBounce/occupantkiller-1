@@ -10371,6 +10371,14 @@ const GameManager = (function () {
     if (window.HastingsOldTown) HastingsOldTown.update(delta);
     if (window.RyeCobbles) RyeCobbles.update(delta);
     if (window.CanterburyWalls) CanterburyWalls.update(delta);
+    if (window.DoverWhiteCliffs) DoverWhiteCliffs.update(delta);
+    if (window.FolkestoneHarbour) FolkestoneHarbour.update(delta);
+    if (window.MargateDreamland) MargateDreamland.update(delta);
+    if (window.WhitstableHarbour) WhitstableHarbour.update(delta);
+    if (window.MaidstoneMedway) MaidstoneMedway.update(delta);
+    if (window.TunbridgeChalybeate) TunbridgeChalybeate.update(delta);
+    if (window.SevenoaksPark) SevenoaksPark.update(delta);
+    if (window.RochesterMedway) RochesterMedway.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
