@@ -2268,6 +2268,14 @@ const GameManager = (function () {
       try { if (window.SalvageMission && SalvageMission.init) SalvageMission.init(_scene, _camera); } catch (e) {}
       try { if (window.LaboratoryRaid && LaboratoryRaid.init) LaboratoryRaid.init(_scene, _camera); } catch (e) {}
       try { if (window.DamBreak && DamBreak.init) DamBreak.init(_scene, _camera); } catch (e) {}
+      try { if (window.ColiseumBattle && ColiseumBattle.init) ColiseumBattle.init(_scene, _camera); } catch (e) {}
+      try { if (window.TornadoAlley && TornadoAlley.init) TornadoAlley.init(_scene, _camera); } catch (e) {}
+      try { if (window.BiohazardZone && BiohazardZone.init) BiohazardZone.init(_scene, _camera); } catch (e) {}
+      try { if (window.PirateCoveRaid && PirateCoveRaid.init) PirateCoveRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.GhostTownSiege && GhostTownSiege.init) GhostTownSiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.MansionHeist && MansionHeist.init) MansionHeist.init(_scene, _camera); } catch (e) {}
+      try { if (window.ClocktowerRaid && ClocktowerRaid.init) ClocktowerRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.ShipyardAssault && ShipyardAssault.init) ShipyardAssault.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9327,6 +9335,14 @@ const GameManager = (function () {
       if (window.SalvageMission) SalvageMission.update(delta);
       if (window.LaboratoryRaid) LaboratoryRaid.update(delta);
       if (window.DamBreak) DamBreak.update(delta);
+      if (window.ColiseumBattle) ColiseumBattle.update(delta);
+      if (window.TornadoAlley) TornadoAlley.update(delta);
+      if (window.BiohazardZone) BiohazardZone.update(delta);
+      if (window.PirateCoveRaid) PirateCoveRaid.update(delta);
+      if (window.GhostTownSiege) GhostTownSiege.update(delta);
+      if (window.MansionHeist) MansionHeist.update(delta);
+      if (window.ClocktowerRaid) ClocktowerRaid.update(delta);
+      if (window.ShipyardAssault) ShipyardAssault.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
