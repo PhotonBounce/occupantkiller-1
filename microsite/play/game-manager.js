@@ -2276,6 +2276,14 @@ const GameManager = (function () {
       try { if (window.MansionHeist && MansionHeist.init) MansionHeist.init(_scene, _camera); } catch (e) {}
       try { if (window.ClocktowerRaid && ClocktowerRaid.init) ClocktowerRaid.init(_scene, _camera); } catch (e) {}
       try { if (window.ShipyardAssault && ShipyardAssault.init) ShipyardAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.TankFactory && TankFactory.init) TankFactory.init(_scene, _camera); } catch (e) {}
+      try { if (window.SpyCompound && SpyCompound.init) SpyCompound.init(_scene, _camera); } catch (e) {}
+      try { if (window.RocketLaunch && RocketLaunch.init) RocketLaunch.init(_scene, _camera); } catch (e) {}
+      try { if (window.MineshaftCollapse && MineshaftCollapse.init) MineshaftCollapse.init(_scene, _camera); } catch (e) {}
+      try { if (window.AirbaseDefense && AirbaseDefense.init) AirbaseDefense.init(_scene, _camera); } catch (e) {}
+      try { if (window.HelicopterCrash && HelicopterCrash.init) HelicopterCrash.init(_scene, _camera); } catch (e) {}
+      try { if (window.SmugglersDen && SmugglersDen.init) SmugglersDen.init(_scene, _camera); } catch (e) {}
+      try { if (window.EarthquakeZone && EarthquakeZone.init) EarthquakeZone.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9343,6 +9351,14 @@ const GameManager = (function () {
       if (window.MansionHeist) MansionHeist.update(delta);
       if (window.ClocktowerRaid) ClocktowerRaid.update(delta);
       if (window.ShipyardAssault) ShipyardAssault.update(delta);
+      if (window.TankFactory) TankFactory.update(delta);
+      if (window.SpyCompound) SpyCompound.update(delta);
+      if (window.RocketLaunch) RocketLaunch.update(delta);
+      if (window.MineshaftCollapse) MineshaftCollapse.update(delta);
+      if (window.AirbaseDefense) AirbaseDefense.update(delta);
+      if (window.HelicopterCrash) HelicopterCrash.update(delta);
+      if (window.SmugglersDen) SmugglersDen.update(delta);
+      if (window.EarthquakeZone) EarthquakeZone.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
