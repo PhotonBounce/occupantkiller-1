@@ -2105,6 +2105,14 @@ const GameManager = (function () {
     try { if (window.SandstormBase && SandstormBase.init) SandstormBase.init(_scene, _camera); } catch (e) {}
     try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
+    try { if (window.HighriseAssault && HighriseAssault.init) HighriseAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.OvergrownShrine && OvergrownShrine.init) OvergrownShrine.init(_scene, _camera); } catch (e) {}
+    try { if (window.SignalTower && SignalTower.init) SignalTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.AmmoBunker && AmmoBunker.init) AmmoBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.LootVault && LootVault.init) LootVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastalCliff && CoastalCliff.init) CoastalCliff.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalHub && TacticalHub.init) TacticalHub.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9250,6 +9258,14 @@ const GameManager = (function () {
     if (window.SandstormBase) SandstormBase.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
+    if (window.FortressGate) FortressGate.update(delta);
+    if (window.HighriseAssault) HighriseAssault.update(delta);
+    if (window.OvergrownShrine) OvergrownShrine.update(delta);
+    if (window.SignalTower) SignalTower.update(delta);
+    if (window.AmmoBunker) AmmoBunker.update(delta);
+    if (window.LootVault) LootVault.update(delta);
+    if (window.CoastalCliff) CoastalCliff.update(delta);
+    if (window.TacticalHub) TacticalHub.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
