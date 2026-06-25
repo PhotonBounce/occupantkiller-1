@@ -10468,6 +10468,14 @@ const GameManager = (function () {
     if (window.BushmillsDistillery) BushmillsDistillery.update(delta);
     if (window.MussendenTemple) MussendenTemple.update(delta);
     if (window.ColeraineTown) ColeraineTown.update(delta);
+    if (window.BenNevis) BenNevis.update(delta);
+    if (window.InvernessCastle) InvernessCastle.update(delta);
+    if (window.SkyeEileanDonan) SkyeEileanDonan.update(delta);
+    if (window.BalmoralCastle) BalmoralCastle.update(delta);
+    if (window.RosslynChapel) RosslynChapel.update(delta);
+    if (window.IsleOfArran) IsleOfArran.update(delta);
+    if (window.FalkirkWheel) FalkirkWheel.update(delta);
+    if (window.ObanHarbour) ObanHarbour.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
