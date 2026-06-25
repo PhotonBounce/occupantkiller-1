@@ -2097,6 +2097,14 @@ const GameManager = (function () {
     try { if (window.DroneFactory && DroneFactory.init) DroneFactory.init(_scene, _camera); } catch (e) {}
     try { if (window.NightMarket && NightMarket.init) NightMarket.init(_scene, _camera); } catch (e) {}
     try { if (window.WetlandsPatrol && WetlandsPatrol.init) WetlandsPatrol.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearLab && NuclearLab.init) NuclearLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankGraveyard && TankGraveyard.init) TankGraveyard.init(_scene, _camera); } catch (e) {}
+    try { if (window.SatelliteBase && SatelliteBase.init) SatelliteBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarRoom && WarRoom.init) WarRoom.init(_scene, _camera); } catch (e) {}
+    try { if (window.RescueMission && RescueMission.init) RescueMission.init(_scene, _camera); } catch (e) {}
+    try { if (window.SandstormBase && SandstormBase.init) SandstormBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9234,6 +9242,14 @@ const GameManager = (function () {
     if (window.DroneFactory) DroneFactory.update(delta);
     if (window.NightMarket) NightMarket.update(delta);
     if (window.WetlandsPatrol) WetlandsPatrol.update(delta);
+    if (window.NuclearLab) NuclearLab.update(delta);
+    if (window.TankGraveyard) TankGraveyard.update(delta);
+    if (window.SatelliteBase) SatelliteBase.update(delta);
+    if (window.WarRoom) WarRoom.update(delta);
+    if (window.RescueMission) RescueMission.update(delta);
+    if (window.SandstormBase) SandstormBase.update(delta);
+    if (window.SlumWarfare) SlumWarfare.update(delta);
+    if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
