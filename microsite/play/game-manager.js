@@ -2411,6 +2411,14 @@ const GameManager = (function () {
     try { if (window.SkullFortress && SkullFortress.init) SkullFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.PlasmaOutpost && PlasmaOutpost.init) PlasmaOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.SiegePlatform && SiegePlatform.init) SiegePlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodChapel && BloodChapel.init) BloodChapel.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicHarbor && ToxicHarbor.init) ToxicHarbor.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronTower && IronTower.init) IronTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalRelay && OrbitalRelay.init) OrbitalRelay.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleConvoy && BattleConvoy.init) BattleConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.EchoStation && EchoStation.init) EchoStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarheadCache && WarheadCache.init) WarheadCache.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarConvoy && WarConvoy.init) WarConvoy.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9862,6 +9870,14 @@ const GameManager = (function () {
     if (window.SkullFortress) SkullFortress.update(delta);
     if (window.PlasmaOutpost) PlasmaOutpost.update(delta);
     if (window.SiegePlatform) SiegePlatform.update(delta);
+    if (window.BloodChapel) BloodChapel.update(delta);
+    if (window.ToxicHarbor) ToxicHarbor.update(delta);
+    if (window.IronTower) IronTower.update(delta);
+    if (window.OrbitalRelay) OrbitalRelay.update(delta);
+    if (window.BattleConvoy) BattleConvoy.update(delta);
+    if (window.EchoStation) EchoStation.update(delta);
+    if (window.WarheadCache) WarheadCache.update(delta);
+    if (window.WarConvoy) WarConvoy.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
