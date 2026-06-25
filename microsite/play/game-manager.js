@@ -2103,6 +2103,7 @@ const GameManager = (function () {
     try { if (window.WarRoom && WarRoom.init) WarRoom.init(_scene, _camera); } catch (e) {}
     try { if (window.RescueMission && RescueMission.init) RescueMission.init(_scene, _camera); } catch (e) {}
     try { if (window.SandstormBase && SandstormBase.init) SandstormBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarRuins && WarRuins.init) WarRuins.init(_scene, _camera); } catch (e) {}
     try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
@@ -2171,6 +2172,12 @@ const GameManager = (function () {
     try { if (window.ShantyFortress && ShantyFortress.init) ShantyFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffSummit && CliffSummit.init) CliffSummit.init(_scene, _camera); } catch (e) {}
     try { if (window.ToxicPlant && ToxicPlant.init) ToxicPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.CraterWar && CraterWar.init) CraterWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCamp && WarCamp.init) WarCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.SnowFort && SnowFort.init) SnowFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarIsland && WarIsland.init) WarIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepBase && DeepBase.init) DeepBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.VoltBase && VoltBase.init) VoltBase.init(_scene, _camera); } catch (e) {}
     try { if (window.TempleRaid && TempleRaid.init) TempleRaid.init(_scene, _camera); } catch (e) {}
     try { if (window.MagmaBase && MagmaBase.init) MagmaBase.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraBase && TundraBase.init) TundraBase.init(_scene, _camera); } catch (e) {}
@@ -9665,6 +9672,7 @@ const GameManager = (function () {
     if (window.WarRoom) WarRoom.update(delta);
     if (window.RescueMission) RescueMission.update(delta);
     if (window.SandstormBase) SandstormBase.update(delta);
+    if (window.WarRuins) WarRuins.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
@@ -9733,6 +9741,12 @@ const GameManager = (function () {
     if (window.ShantyFortress) ShantyFortress.update(delta);
     if (window.CliffSummit) CliffSummit.update(delta);
     if (window.ToxicPlant) ToxicPlant.update(delta);
+    if (window.CraterWar) CraterWar.update(delta);
+    if (window.WarCamp) WarCamp.update(delta);
+    if (window.SnowFort) SnowFort.update(delta);
+    if (window.WarIsland) WarIsland.update(delta);
+    if (window.DeepBase) DeepBase.update(delta);
+    if (window.VoltBase) VoltBase.update(delta);
     if (window.TempleRaid) TempleRaid.update(delta);
     if (window.MagmaBase) MagmaBase.update(delta);
     if (window.TundraBase) TundraBase.update(delta);
