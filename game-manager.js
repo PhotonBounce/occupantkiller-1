@@ -10532,6 +10532,14 @@ const GameManager = (function () {
     if (window.SouthportPromenade) SouthportPromenade.update(delta);
     if (window.WhitehavenHarbour) WhitehavenHarbour.update(delta);
     if (window.BarrowFurness) BarrowFurness.update(delta);
+    if (window.JerseyIsland) JerseyIsland.update(delta);
+    if (window.GuernseyIsland) GuernseyIsland.update(delta);
+    if (window.IsleOfManPeel) IsleOfManPeel.update(delta);
+    if (window.ShetlandLerwick) ShetlandLerwick.update(delta);
+    if (window.MadridPrado) MadridPrado.update(delta);
+    if (window.LisbonBelem) LisbonBelem.update(delta);
+    if (window.AmsterdamCanals) AmsterdamCanals.update(delta);
+    if (window.BrusselsGrandPlace) BrusselsGrandPlace.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
