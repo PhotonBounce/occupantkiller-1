@@ -10193,6 +10193,14 @@ const GameManager = (function () {
     if (window.RuelPost) RuelPost.update(delta);
     if (window.GilpBase) GilpBase.update(delta);
     if (window.AddCamp) AddCamp.update(delta);
+    if (window.CreranFort) CreranFort.update(delta);
+    if (window.EtiveDock) EtiveDock.update(delta);
+    if (window.SeilBase) SeilBase.update(delta);
+    if (window.LuingKeep) LuingKeep.update(delta);
+    if (window.JuraCamp) JuraCamp.update(delta);
+    if (window.ScarbaPost) ScarbaPost.update(delta);
+    if (window.OronsayFort) OronsayFort.update(delta);
+    if (window.ColonsayBase) ColonsayBase.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
