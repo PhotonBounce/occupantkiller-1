@@ -2176,6 +2176,14 @@ const GameManager = (function () {
         try { if (window.WaxFort && WaxFort.init) WaxFort.init(_scene, _camera); } catch (e) {}
         try { if (window.HexTown && HexTown.init) HexTown.init(_scene, _camera); } catch (e) {}
         try { if (window.KeelYard && KeelYard.init) KeelYard.init(_scene, _camera); } catch (e) {}
+        try { if (window.AshVale && AshVale.init) AshVale.init(_scene, _camera); } catch (e) {}
+        try { if (window.BogMill && BogMill.init) BogMill.init(_scene, _camera); } catch (e) {}
+        try { if (window.LavaKeep && LavaKeep.init) LavaKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.TideGate && TideGate.init) TideGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.ZincMine && ZincMine.init) ZincMine.init(_scene, _camera); } catch (e) {}
+        try { if (window.ClayFort && ClayFort.init) ClayFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.DuskCamp && DuskCamp.init) DuskCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.BoneRidge && BoneRidge.init) BoneRidge.init(_scene, _camera); } catch (e) {}
     try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
@@ -9817,6 +9825,14 @@ const GameManager = (function () {
         if (window.WaxFort) WaxFort.update(delta);
         if (window.HexTown) HexTown.update(delta);
         if (window.KeelYard) KeelYard.update(delta);
+        if (window.AshVale) AshVale.update(delta);
+        if (window.BogMill) BogMill.update(delta);
+        if (window.LavaKeep) LavaKeep.update(delta);
+        if (window.TideGate) TideGate.update(delta);
+        if (window.ZincMine) ZincMine.update(delta);
+        if (window.ClayFort) ClayFort.update(delta);
+        if (window.DuskCamp) DuskCamp.update(delta);
+        if (window.BoneRidge) BoneRidge.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
