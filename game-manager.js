@@ -2200,6 +2200,13 @@ const GameManager = (function () {
         try { if (window.SiltBay && SiltBay.init) SiltBay.init(_scene, _camera); } catch (e) {}
         try { if (window.DuneFort && DuneFort.init) DuneFort.init(_scene, _camera); } catch (e) {}
         try { if (window.RockQuay && RockQuay.init) RockQuay.init(_scene, _camera); } catch (e) {}
+        try { if (window.AshFort && AshFort.init) AshFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.GrimPort && GrimPort.init) GrimPort.init(_scene, _camera); } catch (e) {}
+        try { if (window.FenGate && FenGate.init) FenGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.MossKeep && MossKeep.init) MossKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.RustCamp && RustCamp.init) RustCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.WireFort && WireFort.init) WireFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.ChalkPit && ChalkPit.init) ChalkPit.init(_scene, _camera); } catch (e) {}
     try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
@@ -9865,6 +9872,13 @@ const GameManager = (function () {
         if (window.SiltBay) SiltBay.update(delta);
         if (window.DuneFort) DuneFort.update(delta);
         if (window.RockQuay) RockQuay.update(delta);
+        if (window.AshFort) AshFort.update(delta);
+        if (window.GrimPort) GrimPort.update(delta);
+        if (window.FenGate) FenGate.update(delta);
+        if (window.MossKeep) MossKeep.update(delta);
+        if (window.RustCamp) RustCamp.update(delta);
+        if (window.WireFort) WireFort.update(delta);
+        if (window.ChalkPit) ChalkPit.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
