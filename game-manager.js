@@ -2394,6 +2394,10 @@ const GameManager = (function () {
     try { if (window.LavaTrench && LavaTrench.init) LavaTrench.init(_scene, _camera); } catch (e) {}
     try { if (window.WraithShip && WraithShip.init) WraithShip.init(_scene, _camera); } catch (e) {}
     try { if (window.WarCemetery && WarCemetery.init) WarCemetery.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueCove && PlagueCove.init) PlagueCove.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArenaDome && ArenaDome.init) ArenaDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.MesaOutpost && MesaOutpost.init) MesaOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpireCity && SpireCity.init) SpireCity.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9828,6 +9832,10 @@ const GameManager = (function () {
     if (window.LavaTrench) LavaTrench.update(delta);
     if (window.WraithShip) WraithShip.update(delta);
     if (window.WarCemetery) WarCemetery.update(delta);
+    if (window.PlagueCove) PlagueCove.update(delta);
+    if (window.ArenaDome) ArenaDome.update(delta);
+    if (window.MesaOutpost) MesaOutpost.update(delta);
+    if (window.SpireCity) SpireCity.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
