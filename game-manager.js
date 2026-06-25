@@ -2145,6 +2145,14 @@ const GameManager = (function () {
     try { if (window.RadioBunker && RadioBunker.init) RadioBunker.init(_scene, _camera); } catch (e) {}
     try { if (window.CoastalFortress && CoastalFortress.init) CoastalFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientFort && AncientFort.init) AncientFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenBase && FrozenBase.init) FrozenBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaFlow && LavaFlow.init) LavaFlow.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedPrison && AbandonedPrison.init) AbandonedPrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonBase && CanyonBase.init) CanyonBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.DarkMarket && DarkMarket.init) DarkMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShippingLane && ShippingLane.init) ShippingLane.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearShelter && NuclearShelter.init) NuclearShelter.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChurchSiege && ChurchSiege.init) ChurchSiege.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9330,6 +9338,14 @@ const GameManager = (function () {
     if (window.RadioBunker) RadioBunker.update(delta);
     if (window.CoastalFortress) CoastalFortress.update(delta);
     if (window.AncientFort) AncientFort.update(delta);
+    if (window.FrozenBase) FrozenBase.update(delta);
+    if (window.LavaFlow) LavaFlow.update(delta);
+    if (window.AbandonedPrison) AbandonedPrison.update(delta);
+    if (window.CanyonBase) CanyonBase.update(delta);
+    if (window.DarkMarket) DarkMarket.update(delta);
+    if (window.ShippingLane) ShippingLane.update(delta);
+    if (window.NuclearShelter) NuclearShelter.update(delta);
+    if (window.ChurchSiege) ChurchSiege.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
