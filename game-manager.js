@@ -10580,6 +10580,7 @@ const GameManager = (function () {
     if (window.DubaiBurj) DubaiBurj.update(delta);
     if (window.MuscatSultan) MuscatSultan.update(delta);
     if (window.KabulBalaHissar) KabulBalaHissar.update(delta);
+    if (window.IslamabadFaisal) IslamabadFaisal.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
