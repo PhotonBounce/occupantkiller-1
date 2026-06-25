@@ -39,6 +39,7 @@ window.RockFortress = (function() {
         buildRopeLadders();
         buildPaths();
         buildBoulders();
+        buildRuins();
         buildBarricades();
         setupLighting();
     }
@@ -88,6 +89,21 @@ window.RockFortress = (function() {
         rockBase.receiveShadow = true;
         scene.add(rockBase);
         objects.push(rockBase);
+
+        var cliffDetail1 = new THREE.BoxGeometry(25, 60, 15);
+        var detailMat = new THREE.MeshLambertMaterial({ color: colors.steelGray });
+        var detail1 = new THREE.Mesh(cliffDetail1, detailMat);
+        detail1.position.set(-70, 60, -20);
+        detail1.castShadow = true;
+        scene.add(detail1);
+        objects.push(detail1);
+
+        var cliffDetail2 = new THREE.BoxGeometry(20, 70, 12);
+        var detail2 = new THREE.Mesh(cliffDetail2, detailMat);
+        detail2.position.set(70, 75, -18);
+        detail2.castShadow = true;
+        scene.add(detail2);
+        objects.push(detail2);
     }
 
     function buildFortress() {
@@ -173,14 +189,55 @@ window.RockFortress = (function() {
             objects.push(crate);
         }
 
-        for (var r = 0; r < 12; r++) {
+        for (var r = 0; r < 16; r++) {
             var sandbag = new THREE.BoxGeometry(4, 3, 2);
             var sandbagMat = new THREE.MeshLambertMaterial({ color: colors.rockyBrown });
             var sandbagMesh = new THREE.Mesh(sandbag, sandbagMat);
-            sandbagMesh.position.set(-50 + r * 8, 5, 5);
+            sandbagMesh.position.set(-50 + r * 7, 5, 5);
             sandbagMesh.castShadow = true;
             scene.add(sandbagMesh);
             objects.push(sandbagMesh);
+        }
+
+        for (var s = 0; s < 10; r++) {
+            var sandbag2 = new THREE.BoxGeometry(4, 3, 2);
+            var sandbagMesh2 = new THREE.Mesh(sandbag2, sandbagMat);
+            sandbagMesh2.position.set(-50 + s * 8, 9, 5);
+            sandbagMesh2.castShadow = true;
+            scene.add(sandbagMesh2);
+            objects.push(sandbagMesh2);
+        }
+    }
+
+    function buildRuins() {
+        for (var n = 0; n < 8; n++) {
+            var rubbleGeometry = new THREE.BoxGeometry(3 + Math.random() * 2, 2 + Math.random() * 2, 3 + Math.random() * 2);
+            var rubbleMat = new THREE.MeshLambertMaterial({ color: colors.graniteGray });
+            var rubble = new THREE.Mesh(rubbleGeometry, rubbleMat);
+            rubble.position.set(-60 + n * 15, 3, 20 + Math.random() * 5);
+            rubble.castShadow = true;
+            scene.add(rubble);
+            objects.push(rubble);
+        }
+
+        for (var m = 0; m < 6; m++) {
+            var dustPile = new THREE.SphereGeometry(2 + Math.random() * 1.5, 8, 8);
+            var dustMat = new THREE.MeshLambertMaterial({ color: colors.mountainShadow });
+            var dust = new THREE.Mesh(dustPile, dustMat);
+            dust.position.set(-70 + m * 25, 1, 10);
+            dust.castShadow = true;
+            scene.add(dust);
+            objects.push(dust);
+        }
+
+        for (var p = 0; p < 5; p++) {
+            var storage = new THREE.BoxGeometry(6, 8, 5);
+            var storageMat = new THREE.MeshLambertMaterial({ color: colors.fortressStone });
+            var storageBox = new THREE.Mesh(storage, storageMat);
+            storageBox.position.set(-30 + p * 15, 8, -5);
+            storageBox.castShadow = true;
+            scene.add(storageBox);
+            objects.push(storageBox);
         }
     }
 
@@ -313,12 +370,38 @@ window.RockFortress = (function() {
         barrel3.castShadow = true;
         scene.add(barrel3);
         objects.push(barrel3);
+
+        var shield3 = new THREE.Mesh(gunShield1, shieldMat);
+        shield3.position.set(-5, 115, 20);
+        shield3.castShadow = true;
+        scene.add(shield3);
+        objects.push(shield3);
+
+        var gunBase1 = new THREE.CylinderGeometry(6, 6, 3, 12);
+        var baseMat = new THREE.MeshLambertMaterial({ color: colors.steelGray });
+        var base1 = new THREE.Mesh(gunBase1, baseMat);
+        base1.position.set(-35, 75, 5);
+        base1.castShadow = true;
+        scene.add(base1);
+        objects.push(base1);
+
+        var gunBase2 = new THREE.Mesh(gunBase1, baseMat);
+        gunBase2.position.set(38, 80, 8);
+        gunBase2.castShadow = true;
+        scene.add(gunBase2);
+        objects.push(gunBase2);
+
+        var gunBase3 = new THREE.Mesh(gunBase1, baseMat);
+        gunBase3.position.set(-5, 110, 10);
+        gunBase3.castShadow = true;
+        scene.add(gunBase3);
+        objects.push(gunBase3);
     }
 
     function buildScree() {
         var screeColors = [colors.rockyBrown, colors.graniteGray, colors.mountainShadow, colors.darkGray];
 
-        for (var i = 0; i < 40; i++) {
+        for (var i = 0; i < 25; i++) {
             var screeGeometry = new THREE.SphereGeometry(Math.random() * 4 + 2, 8, 8);
             var screeColor = screeColors[Math.floor(Math.random() * screeColors.length)];
             var screeMat = new THREE.MeshLambertMaterial({ color: screeColor });
@@ -453,6 +536,28 @@ window.RockFortress = (function() {
         rail4.castShadow = true;
         scene.add(rail4);
         objects.push(rail4);
+
+        var platformLevel1 = new THREE.BoxGeometry(14, 2, 14);
+        var platformMat = new THREE.MeshLambertMaterial({ color: colors.steelGray });
+        var plat1 = new THREE.Mesh(platformLevel1, platformMat);
+        plat1.position.set(60, 168, -5);
+        plat1.castShadow = true;
+        scene.add(plat1);
+        objects.push(plat1);
+
+        var platformLevel2 = new THREE.BoxGeometry(12, 2, 12);
+        var plat2 = new THREE.Mesh(platformLevel2, platformMat);
+        plat2.position.set(60, 155, -5);
+        plat2.castShadow = true;
+        scene.add(plat2);
+        objects.push(plat2);
+
+        var platformLevel3 = new THREE.BoxGeometry(10, 2, 10);
+        var plat3 = new THREE.Mesh(platformLevel3, platformMat);
+        plat3.position.set(60, 140, -5);
+        plat3.castShadow = true;
+        scene.add(plat3);
+        objects.push(plat3);
     }
 
     function buildRopeLadders() {
@@ -560,6 +665,44 @@ window.RockFortress = (function() {
         pathEdge2.castShadow = true;
         scene.add(pathEdge2);
         objects.push(pathEdge2);
+
+        var bridge1 = new THREE.BoxGeometry(30, 2, 8);
+        var bridgeMat = new THREE.MeshLambertMaterial({ color: colors.steelGray });
+        var bridgeMesh = new THREE.Mesh(bridge1, bridgeMat);
+        bridgeMesh.position.set(15, 40, 20);
+        bridgeMesh.castShadow = true;
+        scene.add(bridgeMesh);
+        objects.push(bridgeMesh);
+
+        var bridge2 = new THREE.BoxGeometry(28, 2, 8);
+        var bridge2Mesh = new THREE.Mesh(bridge2, bridgeMat);
+        bridge2Mesh.position.set(-15, 35, 18);
+        bridge2Mesh.castShadow = true;
+        scene.add(bridge2Mesh);
+        objects.push(bridge2Mesh);
+
+        var bridgeSupport1 = new THREE.CylinderGeometry(1, 1, 12, 8);
+        var supportMat = new THREE.MeshLambertMaterial({ color: colors.steelGray });
+        var bridgeSupp1 = new THREE.Mesh(bridgeSupport1, supportMat);
+        bridgeSupp1.position.set(0, 33, 20);
+        bridgeSupp1.castShadow = true;
+        scene.add(bridgeSupp1);
+        objects.push(bridgeSupp1);
+
+        var bridgeSupport2 = new THREE.CylinderGeometry(1, 1, 10, 8);
+        var bridgeSupp2 = new THREE.Mesh(bridgeSupport2, supportMat);
+        bridgeSupp2.position.set(-30, 30, 18);
+        bridgeSupp2.castShadow = true;
+        scene.add(bridgeSupp2);
+        objects.push(bridgeSupp2);
+
+        var cornerPost = new THREE.CylinderGeometry(1.5, 1.5, 20, 10);
+        var cornerMat = new THREE.MeshLambertMaterial({ color: colors.steelGray });
+        var corner = new THREE.Mesh(cornerPost, cornerMat);
+        corner.position.set(65, 55, -5);
+        corner.castShadow = true;
+        scene.add(corner);
+        objects.push(corner);
     }
 
     function buildBoulders() {

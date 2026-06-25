@@ -28,6 +28,7 @@ window.CryptKeep = (function() {
         buildTreasure();
         buildArmoury();
         buildStatues();
+        buildChapel();
         setupLighting();
     }
 
@@ -512,47 +513,47 @@ window.CryptKeep = (function() {
         var stoneGray = 0x4a4a4a;
         var darkStone = 0x2a2a2a;
 
-        for (var i = 0; i < 30; i++) {
+        for (var i = 0; i < 35; i++) {
             var ornament = new THREE.SphereGeometry(0.3, 4, 4);
             var ornMat = new THREE.MeshLambertMaterial({ color: boneWhite });
             var ornMesh = new THREE.Mesh(ornament, ornMat);
-            ornMesh.position.set(-24 + (i % 8) * 6, 20 + Math.random() * 4, -32 + (i % 4) * 16);
+            ornMesh.position.set(-26 + (i % 9) * 6, 20 + Math.random() * 4, -32 + (i % 4) * 16);
             scene.add(ornMesh);
             objects.push(ornMesh);
         }
 
-        for (var i = 0; i < 16; i++) {
+        for (var i = 0; i < 20; i++) {
             var coneGeom = new THREE.ConeGeometry(0.6, 1.5, 4);
             var coneMat = new THREE.MeshLambertMaterial({ color: stoneGray });
             var coneMesh = new THREE.Mesh(coneGeom, coneMat);
-            coneMesh.position.set(-26 + i * 4, 4, 8);
+            coneMesh.position.set(-28 + i * 3.5, 4, 8);
             scene.add(coneMesh);
             objects.push(coneMesh);
         }
 
-        for (var i = 0; i < 18; i++) {
+        for (var i = 0; i < 22; i++) {
             var sphGeom = new THREE.SphereGeometry(0.5, 5, 5);
             var sphMat = new THREE.MeshLambertMaterial({ color: 0x8a8a8a });
             var sphMesh = new THREE.Mesh(sphGeom, sphMat);
-            sphMesh.position.set(-20 + i * 2.5, 5, -14);
+            sphMesh.position.set(-22 + i * 2.2, 5, -14);
             scene.add(sphMesh);
             objects.push(sphMesh);
         }
 
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < 12; i++) {
             var miniCone = new THREE.ConeGeometry(0.4, 1, 4);
             var miniMat = new THREE.MeshLambertMaterial({ color: darkStone });
             var miniMesh = new THREE.Mesh(miniCone, miniMat);
-            miniMesh.position.set(-22 + i * 6, 25, 20);
+            miniMesh.position.set(-24 + i * 5, 25, 20);
             scene.add(miniMesh);
             objects.push(miniMesh);
         }
 
-        for (var i = 0; i < 8; i++) {
+        for (var i = 0; i < 12; i++) {
             var finial = new THREE.ConeGeometry(0.3, 0.8, 3);
             var finialMat = new THREE.MeshLambertMaterial({ color: 0xffd700 });
             var finialMesh = new THREE.Mesh(finial, finialMat);
-            finialMesh.position.set(-16 + i * 8, 28, -26);
+            finialMesh.position.set(-18 + i * 6, 28, -26);
             scene.add(finialMesh);
             objects.push(finialMesh);
         }
@@ -562,18 +563,18 @@ window.CryptKeep = (function() {
         var darkStone = 0x2a2a2a;
         var metalGray = 0x505050;
 
-        for (var i = 0; i < 6; i++) {
+        for (var i = 0; i < 8; i++) {
             var vaultBox = new THREE.BoxGeometry(6, 8, 4);
             var vaultMat = new THREE.MeshLambertMaterial({ color: darkStone });
             var vaultMesh = new THREE.Mesh(vaultBox, vaultMat);
-            vaultMesh.position.set(-16 + i * 10, 12, 22);
+            vaultMesh.position.set(-18 + i * 8, 12, 22);
             scene.add(vaultMesh);
             objects.push(vaultMesh);
 
             var doorFrame = new THREE.BoxGeometry(5.5, 7.5, 0.5);
             var doorMat = new THREE.MeshLambertMaterial({ color: metalGray });
             var doorMesh = new THREE.Mesh(doorFrame, doorMat);
-            doorMesh.position.set(-16 + i * 10, 12, 24);
+            doorMesh.position.set(-18 + i * 8, 12, 24);
             scene.add(doorMesh);
             objects.push(doorMesh);
 
@@ -581,7 +582,7 @@ window.CryptKeep = (function() {
             var lockMat = new THREE.MeshLambertMaterial({ color: 0xffd700 });
             var lockMesh = new THREE.Mesh(lock, lockMat);
             lockMesh.rotationX = Math.PI / 2;
-            lockMesh.position.set(-16 + i * 10, 12, 24.3);
+            lockMesh.position.set(-18 + i * 8, 12, 24.3);
             scene.add(lockMesh);
             objects.push(lockMesh);
 
@@ -589,23 +590,23 @@ window.CryptKeep = (function() {
             var handleMat = new THREE.MeshLambertMaterial({ color: 0xc0c0c0 });
             var handleMesh = new THREE.Mesh(handleCyl, handleMat);
             handleMesh.rotationZ = Math.PI / 2;
-            handleMesh.position.set(-16 + i * 10, 12, 23);
+            handleMesh.position.set(-18 + i * 8, 12, 23);
             scene.add(handleMesh);
             objects.push(handleMesh);
         }
 
-        for (var i = 0; i < 8; i++) {
+        for (var i = 0; i < 10; i++) {
             var supportGeom = new THREE.CylinderGeometry(1, 1, 10, 6);
             var supportMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
             var supportMesh = new THREE.Mesh(supportGeom, supportMat);
-            supportMesh.position.set(-20 + i * 7, 15, 25);
+            supportMesh.position.set(-22 + i * 6, 15, 25);
             scene.add(supportMesh);
             objects.push(supportMesh);
 
             var cornerBracket = new THREE.BoxGeometry(1.5, 1.5, 1.5);
             var bracketMat = new THREE.MeshLambertMaterial({ color: metalGray });
             var bracketMesh = new THREE.Mesh(cornerBracket, bracketMat);
-            bracketMesh.position.set(-20 + i * 7, 20, 25);
+            bracketMesh.position.set(-22 + i * 6, 20, 25);
             scene.add(bracketMesh);
             objects.push(bracketMesh);
         }
@@ -616,54 +617,54 @@ window.CryptKeep = (function() {
         var silverColor = 0xc0c0c0;
         var copperColor = 0xb87333;
 
-        for (var i = 0; i < 20; i++) {
+        for (var i = 0; i < 25; i++) {
             var coinGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 6);
             var coinMat = new THREE.MeshLambertMaterial({ color: goldColor });
             var coinMesh = new THREE.Mesh(coinGeom, coinMat);
-            coinMesh.position.set(-16 + (i % 5) * 5, 5 + Math.floor(i / 5) * 1.2, -5);
+            coinMesh.position.set(-18 + (i % 5) * 4, 5 + Math.floor(i / 5) * 1.2, -5);
             scene.add(coinMesh);
             objects.push(coinMesh);
         }
 
-        for (var i = 0; i < 16; i++) {
+        for (var i = 0; i < 20; i++) {
             var gemGeom = new THREE.SphereGeometry(0.25, 4, 4);
             var gemMat = new THREE.MeshLambertMaterial({ color: silverColor });
             var gemMesh = new THREE.Mesh(gemGeom, gemMat);
-            gemMesh.position.set(-12 + (i % 4) * 6, 4 + Math.floor(i / 4) * 1.5, 5);
+            gemMesh.position.set(-14 + (i % 5) * 5, 4 + Math.floor(i / 5) * 1.5, 5);
             scene.add(gemMesh);
             objects.push(gemMesh);
         }
 
-        for (var i = 0; i < 12; i++) {
+        for (var i = 0; i < 14; i++) {
             var treasureBox = new THREE.BoxGeometry(1, 0.8, 1.2);
             var treasureMat = new THREE.MeshLambertMaterial({ color: copperColor });
             var treasureMesh = new THREE.Mesh(treasureBox, treasureMat);
-            treasureMesh.position.set(-10 + i * 3, 3, 15);
+            treasureMesh.position.set(-12 + i * 2.5, 3, 15);
             scene.add(treasureMesh);
             objects.push(treasureMesh);
         }
 
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < 12; i++) {
             var gobletGeom = new THREE.CylinderGeometry(0.4, 0.3, 1, 6);
             var gobletMat = new THREE.MeshLambertMaterial({ color: goldColor });
             var gobletMesh = new THREE.Mesh(gobletGeom, gobletMat);
-            gobletMesh.position.set(8 + i * 3.5, 4, 5);
+            gobletMesh.position.set(6 + i * 3, 4, 5);
             scene.add(gobletMesh);
             objects.push(gobletMesh);
         }
 
-        for (var i = 0; i < 6; i++) {
+        for (var i = 0; i < 8; i++) {
             var reliquaryBox = new THREE.BoxGeometry(2, 1.5, 2);
             var reliquaryMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
             var reliquaryMesh = new THREE.Mesh(reliquaryBox, reliquaryMat);
-            reliquaryMesh.position.set(-12 + i * 6, 6, -15);
+            reliquaryMesh.position.set(-14 + i * 5.5, 6, -15);
             scene.add(reliquaryMesh);
             objects.push(reliquaryMesh);
 
             var reliquaryLid = new THREE.BoxGeometry(2.2, 0.6, 2.2);
             var lidMat = new THREE.MeshLambertMaterial({ color: goldColor });
             var lidMesh = new THREE.Mesh(reliquaryLid, lidMat);
-            lidMesh.position.set(-12 + i * 6, 7.5, -15);
+            lidMesh.position.set(-14 + i * 5.5, 7.5, -15);
             scene.add(lidMesh);
             objects.push(lidMesh);
         }
@@ -674,11 +675,11 @@ window.CryptKeep = (function() {
         var darkGreen = 0x1a3a1a;
         var stoneGray = 0x4a4a4a;
 
-        for (var i = 0; i < 8; i++) {
+        for (var i = 0; i < 10; i++) {
             var rackBox = new THREE.BoxGeometry(2, 6, 1);
             var rackMat = new THREE.MeshLambertMaterial({ color: metalGray });
             var rackMesh = new THREE.Mesh(rackBox, rackMat);
-            rackMesh.position.set(-20 + i * 6, 10, 30);
+            rackMesh.position.set(-22 + i * 5, 10, 30);
             scene.add(rackMesh);
             objects.push(rackMesh);
 
@@ -686,25 +687,25 @@ window.CryptKeep = (function() {
             var weaponMat = new THREE.MeshLambertMaterial({ color: stoneGray });
             var weaponMesh = new THREE.Mesh(weaponHolder, weaponMat);
             weaponMesh.rotationZ = Math.PI / 6;
-            weaponMesh.position.set(-20 + i * 6, 12, 30);
+            weaponMesh.position.set(-22 + i * 5, 12, 30);
             scene.add(weaponMesh);
             objects.push(weaponMesh);
         }
 
-        for (var i = 0; i < 6; i++) {
+        for (var i = 0; i < 8; i++) {
             var shieldBox = new THREE.SphereGeometry(1.2, 6, 6);
             var shieldMat = new THREE.MeshLambertMaterial({ color: darkGreen });
             var shieldMesh = new THREE.Mesh(shieldBox, shieldMat);
-            shieldMesh.position.set(-15 + i * 8, 12, 32);
+            shieldMesh.position.set(-18 + i * 6, 12, 32);
             scene.add(shieldMesh);
             objects.push(shieldMesh);
         }
 
-        for (var i = 0; i < 5; i++) {
+        for (var i = 0; i < 6; i++) {
             var helmetBox = new THREE.SphereGeometry(0.9, 6, 6);
             var helmetMat = new THREE.MeshLambertMaterial({ color: metalGray });
             var helmetMesh = new THREE.Mesh(helmetBox, helmetMat);
-            helmetMesh.position.set(-12 + i * 10, 16, 30);
+            helmetMesh.position.set(-14 + i * 9, 16, 30);
             scene.add(helmetMesh);
             objects.push(helmetMesh);
         }
@@ -743,6 +744,61 @@ window.CryptKeep = (function() {
             scene.add(crownMesh);
             objects.push(crownMesh);
         }
+    }
+
+    function buildChapel() {
+        var stoneGray = 0x4a4a4a;
+        var darkStone = 0x2a2a2a;
+
+        var chapelWall = new THREE.BoxGeometry(10, 15, 0.5);
+        var chapelMat = new THREE.MeshLambertMaterial({ color: stoneGray });
+        var chapelMesh = new THREE.Mesh(chapelWall, chapelMat);
+        chapelMesh.position.set(-26, 12, 0);
+        scene.add(chapelMesh);
+        objects.push(chapelMesh);
+
+        var altarBox = new THREE.BoxGeometry(3, 3, 3);
+        var altarMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+        var altarMesh = new THREE.Mesh(altarBox, altarMat);
+        altarMesh.position.set(-26, 3, -5);
+        scene.add(altarMesh);
+        objects.push(altarMesh);
+
+        var crossBar1 = new THREE.BoxGeometry(0.5, 8, 0.5);
+        var crossMat = new THREE.MeshLambertMaterial({ color: 0xffd700 });
+        var crossMesh1 = new THREE.Mesh(crossBar1, crossMat);
+        crossMesh1.position.set(-26, 8, -7);
+        scene.add(crossMesh1);
+        objects.push(crossMesh1);
+
+        var crossBar2 = new THREE.BoxGeometry(5, 0.5, 0.5);
+        var crossMesh2 = new THREE.Mesh(crossBar2, crossMat);
+        crossMesh2.position.set(-26, 6, -7);
+        scene.add(crossMesh2);
+        objects.push(crossMesh2);
+
+        for (var i = 0; i < 6; i++) {
+            var benchBox = new THREE.BoxGeometry(6, 1, 0.8);
+            var benchMat = new THREE.MeshLambertMaterial({ color: 0x654321 });
+            var benchMesh = new THREE.Mesh(benchBox, benchMat);
+            benchMesh.position.set(-26 + (i % 2) * 8, 2 + (i - i % 2) / 2 * 3, 8 - i * 2);
+            scene.add(benchMesh);
+            objects.push(benchMesh);
+        }
+
+        var cupola = new THREE.CylinderGeometry(3, 3, 2, 8);
+        var cupolaMat = new THREE.MeshLambertMaterial({ color: darkStone });
+        var cupolaMesh = new THREE.Mesh(cupola, cupolaMat);
+        cupolaMesh.position.set(-26, 24, 0);
+        scene.add(cupolaMesh);
+        objects.push(cupolaMesh);
+
+        var spire = new THREE.ConeGeometry(1.5, 4, 6);
+        var spireMat = new THREE.MeshLambertMaterial({ color: 0xc0c0c0 });
+        var spireMesh = new THREE.Mesh(spire, spireMat);
+        spireMesh.position.set(-26, 27, 0);
+        scene.add(spireMesh);
+        objects.push(spireMesh);
     }
 
     function setupLighting() {

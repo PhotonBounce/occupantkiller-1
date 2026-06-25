@@ -2160,6 +2160,14 @@ const GameManager = (function () {
         try { if (window.StormPort && StormPort.init) StormPort.init(_scene, _camera); } catch (e) {}
         try { if (window.RiverGate && RiverGate.init) RiverGate.init(_scene, _camera); } catch (e) {}
         try { if (window.DustHarbor && DustHarbor.init) DustHarbor.init(_scene, _camera); } catch (e) {}
+        try { if (window.GrimYard && GrimYard.init) GrimYard.init(_scene, _camera); } catch (e) {}
+        try { if (window.IronShore && IronShore.init) IronShore.init(_scene, _camera); } catch (e) {}
+        try { if (window.TarPit && TarPit.init) TarPit.init(_scene, _camera); } catch (e) {}
+        try { if (window.SaltLake && SaltLake.init) SaltLake.init(_scene, _camera); } catch (e) {}
+        try { if (window.WarArch && WarArch.init) WarArch.init(_scene, _camera); } catch (e) {}
+        try { if (window.CragFort && CragFort.init) CragFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.VoltDam && VoltDam.init) VoltDam.init(_scene, _camera); } catch (e) {}
+        try { if (window.SootMill && SootMill.init) SootMill.init(_scene, _camera); } catch (e) {}
     try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
@@ -9785,6 +9793,14 @@ const GameManager = (function () {
         if (window.StormPort) StormPort.update(delta);
         if (window.RiverGate) RiverGate.update(delta);
         if (window.DustHarbor) DustHarbor.update(delta);
+        if (window.GrimYard) GrimYard.update(delta);
+        if (window.IronShore) IronShore.update(delta);
+        if (window.TarPit) TarPit.update(delta);
+        if (window.SaltLake) SaltLake.update(delta);
+        if (window.WarArch) WarArch.update(delta);
+        if (window.CragFort) CragFort.update(delta);
+        if (window.VoltDam) VoltDam.update(delta);
+        if (window.SootMill) SootMill.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
