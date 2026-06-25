@@ -2313,6 +2313,14 @@ const GameManager = (function () {
     try { if (window.ConcreteMaze && ConcreteMaze.init) ConcreteMaze.init(_scene, _camera); } catch (e) {}
     try { if (window.SkyPrison && SkyPrison.init) SkyPrison.init(_scene, _camera); } catch (e) {}
     try { if (window.LavaCity && LavaCity.init) LavaCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarZoo && WarZoo.init) WarZoo.init(_scene, _camera); } catch (e) {}
+    try { if (window.NukeCrater && NukeCrater.init) NukeCrater.init(_scene, _camera); } catch (e) {}
+    try { if (window.AmberRuins && AmberRuins.init) AmberRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeltaBase && DeltaBase.init) DeltaBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormShip && StormShip.init) StormShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenCrater && FrozenCrater.init) FrozenCrater.init(_scene, _camera); } catch (e) {}
+    try { if (window.EmberFields && EmberFields.init) EmberFields.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedBay && HauntedBay.init) HauntedBay.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9666,6 +9674,14 @@ const GameManager = (function () {
     if (window.ConcreteMaze) ConcreteMaze.update(delta);
     if (window.SkyPrison) SkyPrison.update(delta);
     if (window.LavaCity) LavaCity.update(delta);
+    if (window.WarZoo) WarZoo.update(delta);
+    if (window.NukeCrater) NukeCrater.update(delta);
+    if (window.AmberRuins) AmberRuins.update(delta);
+    if (window.DeltaBase) DeltaBase.update(delta);
+    if (window.StormShip) StormShip.update(delta);
+    if (window.FrozenCrater) FrozenCrater.update(delta);
+    if (window.EmberFields) EmberFields.update(delta);
+    if (window.HauntedBay) HauntedBay.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
