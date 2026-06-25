@@ -2185,6 +2185,14 @@ const GameManager = (function () {
     try { if (window.ThermalPlant && ThermalPlant.init) ThermalPlant.init(_scene, _camera); } catch (e) {}
     try { if (window.TidalBase && TidalBase.init) TidalBase.init(_scene, _camera); } catch (e) {}
     try { if (window.SkyBase && SkyBase.init) SkyBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.SewerNetwork && SewerNetwork.init) SewerNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.CaveAmbush && CaveAmbush.init) CaveAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.TowerSiege && TowerSiege.init) TowerSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberDome && CyberDome.init) CyberDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleVillage && JungleVillage.init) JungleVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.GlacierVault && GlacierVault.init) GlacierVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormTower && StormTower.init) StormTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubterraneanBase && SubterraneanBase.init) SubterraneanBase.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9410,6 +9418,14 @@ const GameManager = (function () {
     if (window.ThermalPlant) ThermalPlant.update(delta);
     if (window.TidalBase) TidalBase.update(delta);
     if (window.SkyBase) SkyBase.update(delta);
+    if (window.SewerNetwork) SewerNetwork.update(delta);
+    if (window.CaveAmbush) CaveAmbush.update(delta);
+    if (window.TowerSiege) TowerSiege.update(delta);
+    if (window.CyberDome) CyberDome.update(delta);
+    if (window.JungleVillage) JungleVillage.update(delta);
+    if (window.GlacierVault) GlacierVault.update(delta);
+    if (window.StormTower) StormTower.update(delta);
+    if (window.SubterraneanBase) SubterraneanBase.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
