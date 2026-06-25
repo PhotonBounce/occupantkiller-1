@@ -2209,6 +2209,14 @@ const GameManager = (function () {
     try { if (window.OceanPlatform && OceanPlatform.init) OceanPlatform.init(_scene, _camera); } catch (e) {}
     try { if (window.FrozenTemple && FrozenTemple.init) FrozenTemple.init(_scene, _camera); } catch (e) {}
     try { if (window.CargoFortress && CargoFortress.init) CargoFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarBridge && WarBridge.init) WarBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberTrain && CyberTrain.init) CyberTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaBridge && LavaBridge.init) LavaBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicSewer && ToxicSewer.init) ToxicSewer.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceBridge && IceBridge.init) IceBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.MesaFort && MesaFort.init) MesaFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarHospital && WarHospital.init) WarHospital.init(_scene, _camera); } catch (e) {}
+    try { if (window.SandCastle && SandCastle.init) SandCastle.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9458,6 +9466,14 @@ const GameManager = (function () {
     if (window.OceanPlatform) OceanPlatform.update(delta);
     if (window.FrozenTemple) FrozenTemple.update(delta);
     if (window.CargoFortress) CargoFortress.update(delta);
+    if (window.WarBridge) WarBridge.update(delta);
+    if (window.CyberTrain) CyberTrain.update(delta);
+    if (window.LavaBridge) LavaBridge.update(delta);
+    if (window.ToxicSewer) ToxicSewer.update(delta);
+    if (window.IceBridge) IceBridge.update(delta);
+    if (window.MesaFort) MesaFort.update(delta);
+    if (window.WarHospital) WarHospital.update(delta);
+    if (window.SandCastle) SandCastle.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
