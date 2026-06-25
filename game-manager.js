@@ -2252,6 +2252,14 @@ const GameManager = (function () {
       try { if (window.HospitalSiege && HospitalSiege.init) HospitalSiege.init(_scene, _camera); } catch (e) {}
       try { if (window.RacingPit && RacingPit.init) RacingPit.init(_scene, _camera); } catch (e) {}
       try { if (window.WarehouseDistrict && WarehouseDistrict.init) WarehouseDistrict.init(_scene, _camera); } catch (e) {}
+      try { if (window.CyberCity && CyberCity.init) CyberCity.init(_scene, _camera); } catch (e) {}
+      try { if (window.PirateHarbor && PirateHarbor.init) PirateHarbor.init(_scene, _camera); } catch (e) {}
+      try { if (window.SpaceStationAttack && SpaceStationAttack.init) SpaceStationAttack.init(_scene, _camera); } catch (e) {}
+      try { if (window.DustBowl && DustBowl.init) DustBowl.init(_scene, _camera); } catch (e) {}
+      try { if (window.SwampAssault && SwampAssault.init) SwampAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.FactoryTakeover && FactoryTakeover.init) FactoryTakeover.init(_scene, _camera); } catch (e) {}
+      try { if (window.HarborSiege && HarborSiege.init) HarborSiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.MetroAssault && MetroAssault.init) MetroAssault.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9295,6 +9303,14 @@ const GameManager = (function () {
       if (window.HospitalSiege) HospitalSiege.update(delta);
       if (window.RacingPit) RacingPit.update(delta);
       if (window.WarehouseDistrict) WarehouseDistrict.update(delta);
+      if (window.CyberCity) CyberCity.update(delta);
+      if (window.PirateHarbor) PirateHarbor.update(delta);
+      if (window.SpaceStationAttack) SpaceStationAttack.update(delta);
+      if (window.DustBowl) DustBowl.update(delta);
+      if (window.SwampAssault) SwampAssault.update(delta);
+      if (window.FactoryTakeover) FactoryTakeover.update(delta);
+      if (window.HarborSiege) HarborSiege.update(delta);
+      if (window.MetroAssault) MetroAssault.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
