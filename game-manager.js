@@ -2388,6 +2388,12 @@ const GameManager = (function () {
     try { if (window.BlackOps && BlackOps.init) BlackOps.init(_scene, _camera); } catch (e) {}
     try { if (window.CraterCity && CraterCity.init) CraterCity.init(_scene, _camera); } catch (e) {}
     try { if (window.SunkenCarrier && SunkenCarrier.init) SunkenCarrier.init(_scene, _camera); } catch (e) {}
+    try { if (window.NanoCity && NanoCity.init) NanoCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiloComplex && SiloComplex.init) SiloComplex.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyGarden && SkyGarden.init) SkyGarden.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaTrench && LavaTrench.init) LavaTrench.init(_scene, _camera); } catch (e) {}
+    try { if (window.WraithShip && WraithShip.init) WraithShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCemetery && WarCemetery.init) WarCemetery.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9816,6 +9822,12 @@ const GameManager = (function () {
     if (window.BlackOps) BlackOps.update(delta);
     if (window.CraterCity) CraterCity.update(delta);
     if (window.SunkenCarrier) SunkenCarrier.update(delta);
+    if (window.NanoCity) NanoCity.update(delta);
+    if (window.SiloComplex) SiloComplex.update(delta);
+    if (window.SkyGarden) SkyGarden.update(delta);
+    if (window.LavaTrench) LavaTrench.update(delta);
+    if (window.WraithShip) WraithShip.update(delta);
+    if (window.WarCemetery) WarCemetery.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
