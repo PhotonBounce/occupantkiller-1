@@ -2281,6 +2281,22 @@ const GameManager = (function () {
     try { if (window.BurningBridge && BurningBridge.init) BurningBridge.init(_scene, _camera); } catch (e) {}
     try { if (window.DarkCitadel && DarkCitadel.init) DarkCitadel.init(_scene, _camera); } catch (e) {}
     try { if (window.SmokeValley && SmokeValley.init) SmokeValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceFortress && SpaceFortress.init) SpaceFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleArena && BattleArena.init) BattleArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarPort && WarPort.init) WarPort.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronValley && IronValley.init) IronValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaArena && LavaArena.init) LavaArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenLab && SunkenLab.init) SunkenLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.SeaFortress && SeaFortress.init) SeaFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowValley && ShadowValley.init) ShadowValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.AshRuins && AshRuins.init) AshRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrimsonKeep && CrimsonKeep.init) CrimsonKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormValley && StormValley.init) StormValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenValley && FrozenValley.init) FrozenValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.FallenTemple && FallenTemple.init) FallenTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScorchedLab && ScorchedLab.init) ScorchedLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronMarsh && IronMarsh.init) IronMarsh.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceWreck && SpaceWreck.init) SpaceWreck.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9602,6 +9618,22 @@ const GameManager = (function () {
     if (window.BurningBridge) BurningBridge.update(delta);
     if (window.DarkCitadel) DarkCitadel.update(delta);
     if (window.SmokeValley) SmokeValley.update(delta);
+    if (window.SpaceFortress) SpaceFortress.update(delta);
+    if (window.BattleArena) BattleArena.update(delta);
+    if (window.WarPort) WarPort.update(delta);
+    if (window.IronValley) IronValley.update(delta);
+    if (window.LavaArena) LavaArena.update(delta);
+    if (window.SunkenLab) SunkenLab.update(delta);
+    if (window.SeaFortress) SeaFortress.update(delta);
+    if (window.ShadowValley) ShadowValley.update(delta);
+    if (window.AshRuins) AshRuins.update(delta);
+    if (window.CrimsonKeep) CrimsonKeep.update(delta);
+    if (window.StormValley) StormValley.update(delta);
+    if (window.FrozenValley) FrozenValley.update(delta);
+    if (window.FallenTemple) FallenTemple.update(delta);
+    if (window.ScorchedLab) ScorchedLab.update(delta);
+    if (window.IronMarsh) IronMarsh.update(delta);
+    if (window.SpaceWreck) SpaceWreck.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
