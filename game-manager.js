@@ -10361,6 +10361,13 @@ const GameManager = (function () {
     if (window.WinchesterKeep) WinchesterKeep.update(delta);
     if (window.PortsmouthDocks) PortsmouthDocks.update(delta);
     if (window.IsleOfWight) IsleOfWight.update(delta);
+    if (window.SurreyHills) SurreyHills.update(delta);
+    if (window.BrightonPier) BrightonPier.update(delta);
+    if (window.BeachyHead) BeachyHead.update(delta);
+    if (window.HastingsCastle) HastingsCastle.update(delta);
+    if (window.RyeMarsh) RyeMarsh.update(delta);
+    if (window.DoverCliffs) DoverCliffs.update(delta);
+    if (window.CanterburyCathedral) CanterburyCathedral.update(delta);
     if (window.GourockFort) GourockFort.update(delta);
     if (window.KilmacolmBase) KilmacolmBase.update(delta);
     if (window.PortGlasgowPost) PortGlasgowPost.update(delta);
