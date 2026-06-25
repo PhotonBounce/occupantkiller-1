@@ -2403,6 +2403,14 @@ const GameManager = (function () {
     try { if (window.ForgottenLab && ForgottenLab.init) ForgottenLab.init(_scene, _camera); } catch (e) {}
     try { if (window.WarStation && WarStation.init) WarStation.init(_scene, _camera); } catch (e) {}
     try { if (window.PlagueTower && PlagueTower.init) PlagueTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicMine && ToxicMine.init) ToxicMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenReactor && FrozenReactor.init) FrozenReactor.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonBunker && NeonBunker.init) NeonBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertFort && DesertFort.init) DesertFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.MagmaCore && MagmaCore.init) MagmaCore.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkullFortress && SkullFortress.init) SkullFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlasmaOutpost && PlasmaOutpost.init) PlasmaOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegePlatform && SiegePlatform.init) SiegePlatform.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9846,6 +9854,14 @@ const GameManager = (function () {
     if (window.ForgottenLab) ForgottenLab.update(delta);
     if (window.WarStation) WarStation.update(delta);
     if (window.PlagueTower) PlagueTower.update(delta);
+    if (window.ToxicMine) ToxicMine.update(delta);
+    if (window.FrozenReactor) FrozenReactor.update(delta);
+    if (window.NeonBunker) NeonBunker.update(delta);
+    if (window.DesertFort) DesertFort.update(delta);
+    if (window.MagmaCore) MagmaCore.update(delta);
+    if (window.SkullFortress) SkullFortress.update(delta);
+    if (window.PlasmaOutpost) PlasmaOutpost.update(delta);
+    if (window.SiegePlatform) SiegePlatform.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
