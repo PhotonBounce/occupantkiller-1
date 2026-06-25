@@ -10396,6 +10396,14 @@ const GameManager = (function () {
     if (window.BoxHill) BoxHill.update(delta);
     if (window.Chartwell) Chartwell.update(delta);
     if (window.LeedsCastle) LeedsCastle.update(delta);
+    if (window.GiantsCauseway) GiantsCauseway.update(delta);
+    if (window.BelfastTitanic) BelfastTitanic.update(delta);
+    if (window.CarrickfergusCastle) CarrickfergusCastle.update(delta);
+    if (window.DunluceCastle) DunluceCastle.update(delta);
+    if (window.DublinTrinity) DublinTrinity.update(delta);
+    if (window.CliffsOfMoher) CliffsOfMoher.update(delta);
+    if (window.RockOfCashel) RockOfCashel.update(delta);
+    if (window.BlarneyCastle) BlarneyCastle.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
