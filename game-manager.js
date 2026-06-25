@@ -10353,6 +10353,11 @@ const GameManager = (function () {
     if (window.PlymouthFort) PlymouthFort.update(delta);
     if (window.TintagelPost) TintagelPost.update(delta);
     if (window.LandsEndBase) LandsEndBase.update(delta);
+    if (window.DurdleDoor) DurdleDoor.update(delta);
+    if (window.LymeRegis) LymeRegis.update(delta);
+    if (window.CheslBeach) CheslBeach.update(delta);
+    if (window.SalisburySpire) SalisburySpire.update(delta);
+    if (window.StonehengeRing) StonehengeRing.update(delta);
     if (window.GourockFort) GourockFort.update(delta);
     if (window.KilmacolmBase) KilmacolmBase.update(delta);
     if (window.PortGlasgowPost) PortGlasgowPost.update(delta);
