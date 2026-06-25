@@ -2073,6 +2073,14 @@ const GameManager = (function () {
     try { if (window.HarborAssault && HarborAssault.init) HarborAssault.init(_scene, _camera); } catch (e) {}
     try { if (window.CanyonRaid && CanyonRaid.init) CanyonRaid.init(_scene, _camera); } catch (e) {}
     try { if (window.ShippingHub && ShippingHub.init) ShippingHub.init(_scene, _camera); } catch (e) {}
+    try { if (window.DowntownSiege && DowntownSiege.init) DowntownSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.HighwayChase && HighwayChase.init) HighwayChase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterfallAmbush && WaterfallAmbush.init) WaterfallAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShipwreckReef && ShipwreckReef.init) ShipwreckReef.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientRuins && AncientRuins.init) AncientRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.GeothermalPlant && GeothermalPlant.init) GeothermalPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.MissileSiloB && MissileSiloB.init) MissileSiloB.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderwaterCave && UnderwaterCave.init) UnderwaterCave.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9186,6 +9194,14 @@ const GameManager = (function () {
     if (window.HarborAssault) HarborAssault.update(delta);
     if (window.CanyonRaid) CanyonRaid.update(delta);
     if (window.ShippingHub) ShippingHub.update(delta);
+    if (window.DowntownSiege) DowntownSiege.update(delta);
+    if (window.HighwayChase) HighwayChase.update(delta);
+    if (window.WaterfallAmbush) WaterfallAmbush.update(delta);
+    if (window.ShipwreckReef) ShipwreckReef.update(delta);
+    if (window.AncientRuins) AncientRuins.update(delta);
+    if (window.GeothermalPlant) GeothermalPlant.update(delta);
+    if (window.MissileSiloB) MissileSiloB.update(delta);
+    if (window.UnderwaterCave) UnderwaterCave.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
