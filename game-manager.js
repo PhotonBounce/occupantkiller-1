@@ -2329,6 +2329,14 @@ const GameManager = (function () {
     try { if (window.CliffBase && CliffBase.init) CliffBase.init(_scene, _camera); } catch (e) {}
     try { if (window.RustedBay && RustedBay.init) RustedBay.init(_scene, _camera); } catch (e) {}
     try { if (window.EngineRoom && EngineRoom.init) EngineRoom.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemPlant && ChemPlant.init) ChemPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarTower && WarTower.init) WarTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.FungalCave && FungalCave.init) FungalCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadioStation && RadioStation.init) RadioStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperHill && SniperHill.init) SniperHill.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalDrop && OrbitalDrop.init) OrbitalDrop.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceMine && IceMine.init) IceMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicBay && ToxicBay.init) ToxicBay.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9698,6 +9706,14 @@ const GameManager = (function () {
     if (window.CliffBase) CliffBase.update(delta);
     if (window.RustedBay) RustedBay.update(delta);
     if (window.EngineRoom) EngineRoom.update(delta);
+    if (window.ChemPlant) ChemPlant.update(delta);
+    if (window.WarTower) WarTower.update(delta);
+    if (window.FungalCave) FungalCave.update(delta);
+    if (window.RadioStation) RadioStation.update(delta);
+    if (window.SniperHill) SniperHill.update(delta);
+    if (window.OrbitalDrop) OrbitalDrop.update(delta);
+    if (window.IceMine) IceMine.update(delta);
+    if (window.ToxicBay) ToxicBay.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
