@@ -2207,6 +2207,7 @@ const GameManager = (function () {
         try { if (window.RustCamp && RustCamp.init) RustCamp.init(_scene, _camera); } catch (e) {}
         try { if (window.WireFort && WireFort.init) WireFort.init(_scene, _camera); } catch (e) {}
         try { if (window.ChalkPit && ChalkPit.init) ChalkPit.init(_scene, _camera); } catch (e) {}
+        try { if (window.EmberVale && EmberVale.init) EmberVale.init(_scene, _camera); } catch (e) {}
     try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
@@ -9879,6 +9880,7 @@ const GameManager = (function () {
         if (window.RustCamp) RustCamp.update(delta);
         if (window.WireFort) WireFort.update(delta);
         if (window.ChalkPit) ChalkPit.update(delta);
+        if (window.EmberVale) EmberVale.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
