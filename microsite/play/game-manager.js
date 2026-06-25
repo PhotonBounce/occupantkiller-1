@@ -10305,6 +10305,14 @@ const GameManager = (function () {
     if (window.AyrFort) AyrFort.update(delta);
     if (window.CulzeanCastle) CulzeanCastle.update(delta);
     if (window.GirvanBase) GirvanBase.update(delta);
+    if (window.StranraerPort) StranraerPort.update(delta);
+    if (window.GallowayKeep) GallowayKeep.update(delta);
+    if (window.DumfriesPost) DumfriesPost.update(delta);
+    if (window.SolwayBase) SolwayBase.update(delta);
+    if (window.GretnaPost) GretnaPost.update(delta);
+    if (window.JedburghFort) JedburghFort.update(delta);
+    if (window.MelroseAbbey) MelroseAbbey.update(delta);
+    if (window.KelsoKeep) KelsoKeep.update(delta);
     if (window.GourockFort) GourockFort.update(delta);
     if (window.KilmacolmBase) KilmacolmBase.update(delta);
     if (window.PortGlasgowPost) PortGlasgowPost.update(delta);
