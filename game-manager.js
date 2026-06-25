@@ -10452,6 +10452,14 @@ const GameManager = (function () {
     if (window.CelbridgeManor) CelbridgeManor.update(delta);
     if (window.BraySeafront) BraySeafront.update(delta);
     if (window.GreystonesHarbour) GreystonesHarbour.update(delta);
+    if (window.NewryCanal) NewryCanal.update(delta);
+    if (window.ArmaghCathedral) ArmaghCathedral.update(delta);
+    if (window.TyroneSperrins) TyroneSperrins.update(delta);
+    if (window.FermanaghLoughs) FermanaghLoughs.update(delta);
+    if (window.EnniskillenCastle) EnniskillenCastle.update(delta);
+    if (window.StrangfordLough) StrangfordLough.update(delta);
+    if (window.DownpatrickSaint) DownpatrickSaint.update(delta);
+    if (window.AntrimCoast) AntrimCoast.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
