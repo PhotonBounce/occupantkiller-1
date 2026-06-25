@@ -2152,6 +2152,14 @@ const GameManager = (function () {
         try { if (window.BogFort && BogFort.init) BogFort.init(_scene, _camera); } catch (e) {}
         try { if (window.WireNest && WireNest.init) WireNest.init(_scene, _camera); } catch (e) {}
         try { if (window.MudCity && MudCity.init) MudCity.init(_scene, _camera); } catch (e) {}
+        try { if (window.DarkMesa && DarkMesa.init) DarkMesa.init(_scene, _camera); } catch (e) {}
+        try { if (window.RuinPort && RuinPort.init) RuinPort.init(_scene, _camera); } catch (e) {}
+        try { if (window.AshDock && AshDock.init) AshDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.SwampGate && SwampGate.init) SwampGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.FireRidge && FireRidge.init) FireRidge.init(_scene, _camera); } catch (e) {}
+        try { if (window.StormPort && StormPort.init) StormPort.init(_scene, _camera); } catch (e) {}
+        try { if (window.RiverGate && RiverGate.init) RiverGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.DustHarbor && DustHarbor.init) DustHarbor.init(_scene, _camera); } catch (e) {}
     try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
@@ -9769,6 +9777,14 @@ const GameManager = (function () {
         if (window.BogFort) BogFort.update(delta);
         if (window.WireNest) WireNest.update(delta);
         if (window.MudCity) MudCity.update(delta);
+        if (window.DarkMesa) DarkMesa.update(delta);
+        if (window.RuinPort) RuinPort.update(delta);
+        if (window.AshDock) AshDock.update(delta);
+        if (window.SwampGate) SwampGate.update(delta);
+        if (window.FireRidge) FireRidge.update(delta);
+        if (window.StormPort) StormPort.update(delta);
+        if (window.RiverGate) RiverGate.update(delta);
+        if (window.DustHarbor) DustHarbor.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
