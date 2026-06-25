@@ -10411,6 +10411,14 @@ const GameManager = (function () {
     if (window.HampsteadPonds) HampsteadPonds.update(delta);
     if (window.HighgateCemetery) HighgateCemetery.update(delta);
     if (window.AlexandraPalace) AlexandraPalace.update(delta);
+    if (window.EnfieldPalace) EnfieldPalace.update(delta);
+    if (window.EppingForest) EppingForest.update(delta);
+    if (window.ColchesterRoman) ColchesterRoman.update(delta);
+    if (window.ChelmsfordEssex) ChelmsfordEssex.update(delta);
+    if (window.SouthendSeafront) SouthendSeafront.update(delta);
+    if (window.HertfordCastle) HertfordCastle.update(delta);
+    if (window.StAlbansAbbey) StAlbansAbbey.update(delta);
+    if (window.WatfordJunction) WatfordJunction.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
