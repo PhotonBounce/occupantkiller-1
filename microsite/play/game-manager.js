@@ -10297,6 +10297,14 @@ const GameManager = (function () {
     if (window.LochEckCamp) LochEckCamp.update(delta);
     if (window.BenmoreFort) BenmoreFort.update(delta);
     if (window.GreenockDock) GreenockDock.update(delta);
+    if (window.GlasgowCathedral) GlasgowCathedral.update(delta);
+    if (window.ClydeShipyard) ClydeShipyard.update(delta);
+    if (window.GlasgowUni) GlasgowUni.update(delta);
+    if (window.IbroxFort) IbroxFort.update(delta);
+    if (window.PaisleyAbbey) PaisleyAbbey.update(delta);
+    if (window.AyrFort) AyrFort.update(delta);
+    if (window.CulzeanCastle) CulzeanCastle.update(delta);
+    if (window.GirvanBase) GirvanBase.update(delta);
     if (window.GourockFort) GourockFort.update(delta);
     if (window.KilmacolmBase) KilmacolmBase.update(delta);
     if (window.PortGlasgowPost) PortGlasgowPost.update(delta);
