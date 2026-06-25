@@ -2217,6 +2217,14 @@ const GameManager = (function () {
     try { if (window.MesaFort && MesaFort.init) MesaFort.init(_scene, _camera); } catch (e) {}
     try { if (window.WarHospital && WarHospital.init) WarHospital.init(_scene, _camera); } catch (e) {}
     try { if (window.SandCastle && SandCastle.init) SandCastle.init(_scene, _camera); } catch (e) {}
+    try { if (window.DamFortress && DamFortress.init) DamFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedHouse && HauntedHouse.init) HauntedHouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedStation && CrashedStation.init) CrashedStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.SeaCliff && SeaCliff.init) SeaCliff.init(_scene, _camera); } catch (e) {}
+    try { if (window.CliffVillage && CliffVillage.init) CliffVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.DroneBay && DroneBay.init) DroneBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepBunker && DeepBunker.init) DeepBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.MineCart && MineCart.init) MineCart.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9474,6 +9482,14 @@ const GameManager = (function () {
     if (window.MesaFort) MesaFort.update(delta);
     if (window.WarHospital) WarHospital.update(delta);
     if (window.SandCastle) SandCastle.update(delta);
+    if (window.DamFortress) DamFortress.update(delta);
+    if (window.HauntedHouse) HauntedHouse.update(delta);
+    if (window.CrashedStation) CrashedStation.update(delta);
+    if (window.SeaCliff) SeaCliff.update(delta);
+    if (window.CliffVillage) CliffVillage.update(delta);
+    if (window.DroneBay) DroneBay.update(delta);
+    if (window.DeepBunker) DeepBunker.update(delta);
+    if (window.MineCart) MineCart.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
