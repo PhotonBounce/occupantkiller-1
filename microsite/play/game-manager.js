@@ -2225,6 +2225,14 @@ const GameManager = (function () {
     try { if (window.DroneBay && DroneBay.init) DroneBay.init(_scene, _camera); } catch (e) {}
     try { if (window.DeepBunker && DeepBunker.init) DeepBunker.init(_scene, _camera); } catch (e) {}
     try { if (window.MineCart && MineCart.init) MineCart.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterTowerSiege && WaterTowerSiege.init) WaterTowerSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.BioStation && BioStation.init) BioStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrumblingCastle && CrumblingCastle.init) CrumblingCastle.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyTemple && SkyTemple.init) SkyTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonIsland && PrisonIsland.init) PrisonIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.LightningBase && LightningBase.init) LightningBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenLab && FrozenLab.init) FrozenLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrystalCave && CrystalCave.init) CrystalCave.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9490,6 +9498,14 @@ const GameManager = (function () {
     if (window.DroneBay) DroneBay.update(delta);
     if (window.DeepBunker) DeepBunker.update(delta);
     if (window.MineCart) MineCart.update(delta);
+    if (window.WaterTowerSiege) WaterTowerSiege.update(delta);
+    if (window.BioStation) BioStation.update(delta);
+    if (window.CrumblingCastle) CrumblingCastle.update(delta);
+    if (window.SkyTemple) SkyTemple.update(delta);
+    if (window.PrisonIsland) PrisonIsland.update(delta);
+    if (window.LightningBase) LightningBase.update(delta);
+    if (window.FrozenLab) FrozenLab.update(delta);
+    if (window.CrystalCave) CrystalCave.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
