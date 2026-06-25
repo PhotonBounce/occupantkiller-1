@@ -2515,6 +2515,13 @@ const GameManager = (function () {
     try { if (window.MagmaLab && MagmaLab.init) MagmaLab.init(_scene, _camera); } catch (e) {}
     try { if (window.FireBase && FireBase.init) FireBase.init(_scene, _camera); } catch (e) {}
     try { if (window.WarCrypt && WarCrypt.init) WarCrypt.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarPrison && WarPrison.init) WarPrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastLine && CoastLine.init) CoastLine.init(_scene, _camera); } catch (e) {}
+    try { if (window.RockBase && RockBase.init) RockBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.PoisonBase && PoisonBase.init) PoisonBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoonGate && MoonGate.init) MoonGate.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarShip && WarShip.init) WarShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.JadeTemple && JadeTemple.init) JadeTemple.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -10070,6 +10077,13 @@ const GameManager = (function () {
     if (window.MagmaLab) MagmaLab.update(delta);
     if (window.FireBase) FireBase.update(delta);
     if (window.WarCrypt) WarCrypt.update(delta);
+    if (window.WarPrison) WarPrison.update(delta);
+    if (window.CoastLine) CoastLine.update(delta);
+    if (window.RockBase) RockBase.update(delta);
+    if (window.PoisonBase) PoisonBase.update(delta);
+    if (window.MoonGate) MoonGate.update(delta);
+    if (window.WarShip) WarShip.update(delta);
+    if (window.JadeTemple) JadeTemple.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
