@@ -10491,6 +10491,14 @@ const GameManager = (function () {
     if (window.DurhamBridges) DurhamBridges.update(delta);
     if (window.NewcastleTyne) NewcastleTyne.update(delta);
     if (window.HadriansHousesteads) HadriansHousesteads.update(delta);
+    if (window.YorkMinster) YorkMinster.update(delta);
+    if (window.MalhamCove) MalhamCove.update(delta);
+    if (window.ScarboroughCastle) ScarboroughCastle.update(delta);
+    if (window.WhitbyAbbey) WhitbyAbbey.update(delta);
+    if (window.LeedsRoyal) LeedsRoyal.update(delta);
+    if (window.SheffieldSteel) SheffieldSteel.update(delta);
+    if (window.PeakCavern) PeakCavern.update(delta);
+    if (window.LincolnshireFens) LincolnshireFens.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
