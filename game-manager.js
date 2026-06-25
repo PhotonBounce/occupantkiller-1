@@ -10369,6 +10369,12 @@ const GameManager = (function () {
     if (window.DoverCliffs) DoverCliffs.update(delta);
     if (window.CanterburyCathedral) CanterburyCathedral.update(delta);
     if (window.FolkestoneTunnel) FolkestoneTunnel.update(delta);
+    if (window.MargateCoast) MargateCoast.update(delta);
+    if (window.RochesterCastle) RochesterCastle.update(delta);
+    if (window.SouthendPier) SouthendPier.update(delta);
+    if (window.TilburyFort) TilburyFort.update(delta);
+    if (window.GreenwichWharf) GreenwichWharf.update(delta);
+    if (window.TowerLondon) TowerLondon.update(delta);
     if (window.GourockFort) GourockFort.update(delta);
     if (window.KilmacolmBase) KilmacolmBase.update(delta);
     if (window.PortGlasgowPost) PortGlasgowPost.update(delta);
