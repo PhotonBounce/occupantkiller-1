@@ -10177,6 +10177,14 @@ const GameManager = (function () {
     if (window.TeithPost) TeithPost.update(delta);
     if (window.ForthCamp) ForthCamp.update(delta);
     if (window.AllanBase) AllanBase.update(delta);
+    if (window.DochartBase) DochartBase.update(delta);
+    if (window.LenyCamp) LenyCamp.update(delta);
+    if (window.LubnaigFort) LubnaigFort.update(delta);
+    if (window.VenacharKeep) VenacharKeep.update(delta);
+    if (window.KatrinePost) KatrinePost.update(delta);
+    if (window.ArdDock) ArdDock.update(delta);
+    if (window.LomondFort) LomondFort.update(delta);
+    if (window.LongCamp) LongCamp.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
