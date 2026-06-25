@@ -2121,6 +2121,14 @@ const GameManager = (function () {
     try { if (window.CyberBunker && CyberBunker.init) CyberBunker.init(_scene, _camera); } catch (e) {}
     try { if (window.SwampFortress && SwampFortress.init) SwampFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.DuneFortress && DuneFortress.init) DuneFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.EvacuationZone && EvacuationZone.init) EvacuationZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.JunkyardWar && JunkyardWar.init) JunkyardWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.CasinoFloor && CasinoFloor.init) CasinoFloor.init(_scene, _camera); } catch (e) {}
+    try { if (window.MetroHub && MetroHub.init) MetroHub.init(_scene, _camera); } catch (e) {}
+    try { if (window.FactoryAssault && FactoryAssault.init) FactoryAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmoryRaid && ArmoryRaid.init) ArmoryRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandPost && CommandPost.init) CommandPost.init(_scene, _camera); } catch (e) {}
+    try { if (window.QuarantineZone && QuarantineZone.init) QuarantineZone.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9282,6 +9290,14 @@ const GameManager = (function () {
     if (window.CyberBunker) CyberBunker.update(delta);
     if (window.SwampFortress) SwampFortress.update(delta);
     if (window.DuneFortress) DuneFortress.update(delta);
+    if (window.EvacuationZone) EvacuationZone.update(delta);
+    if (window.JunkyardWar) JunkyardWar.update(delta);
+    if (window.CasinoFloor) CasinoFloor.update(delta);
+    if (window.MetroHub) MetroHub.update(delta);
+    if (window.FactoryAssault) FactoryAssault.update(delta);
+    if (window.ArmoryRaid) ArmoryRaid.update(delta);
+    if (window.CommandPost) CommandPost.update(delta);
+    if (window.QuarantineZone) QuarantineZone.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
