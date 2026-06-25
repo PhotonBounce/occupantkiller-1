@@ -10427,6 +10427,14 @@ const GameManager = (function () {
     if (window.HenleyRegatta) HenleyRegatta.update(delta);
     if (window.ReadingTown) ReadingTown.update(delta);
     if (window.WindsorCastle) WindsorCastle.update(delta);
+    if (window.BasingstokeRuins) BasingstokeRuins.update(delta);
+    if (window.FarnboroughAirshow) FarnboroughAirshow.update(delta);
+    if (window.AldershotBarracks) AldershotBarracks.update(delta);
+    if (window.FleetPond) FleetPond.update(delta);
+    if (window.CamberleySandhurst) CamberleySandhurst.update(delta);
+    if (window.WokingMartian) WokingMartian.update(delta);
+    if (window.ReigatePriory) ReigatePriory.update(delta);
+    if (window.LeithHillTower) LeithHillTower.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
