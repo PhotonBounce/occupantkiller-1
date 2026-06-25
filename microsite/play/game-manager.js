@@ -10444,6 +10444,14 @@ const GameManager = (function () {
     if (window.TaraHill) TaraHill.update(delta);
     if (window.LouthVillage) LouthVillage.update(delta);
     if (window.PortumnaCastle) PortumnaCastle.update(delta);
+    if (window.BirrCastle) BirrCastle.update(delta);
+    if (window.OffalyBog) OffalyBog.update(delta);
+    if (window.LaoisRock) LaoisRock.update(delta);
+    if (window.KildareCurragh) KildareCurragh.update(delta);
+    if (window.MaynoothCastle) MaynoothCastle.update(delta);
+    if (window.CelbridgeManor) CelbridgeManor.update(delta);
+    if (window.BraySeafront) BraySeafront.update(delta);
+    if (window.GreystonesHarbour) GreystonesHarbour.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
