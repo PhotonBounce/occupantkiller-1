@@ -2345,6 +2345,14 @@ const GameManager = (function () {
     try { if (window.SteelMill && SteelMill.init) SteelMill.init(_scene, _camera); } catch (e) {}
     try { if (window.AcidMine && AcidMine.init) AcidMine.init(_scene, _camera); } catch (e) {}
     try { if (window.WarResort && WarResort.init) WarResort.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueShip && PlagueShip.init) PlagueShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThunderBase && ThunderBase.init) ThunderBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyBarge && SkyBarge.init) SkyBarge.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenPalace && FrozenPalace.init) FrozenPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberSwamp && CyberSwamp.init) CyberSwamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceTower && IceTower.init) IceTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.CursedShip && CursedShip.init) CursedShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonSwamp && NeonSwamp.init) NeonSwamp.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9730,6 +9738,14 @@ const GameManager = (function () {
     if (window.SteelMill) SteelMill.update(delta);
     if (window.AcidMine) AcidMine.update(delta);
     if (window.WarResort) WarResort.update(delta);
+    if (window.PlagueShip) PlagueShip.update(delta);
+    if (window.ThunderBase) ThunderBase.update(delta);
+    if (window.SkyBarge) SkyBarge.update(delta);
+    if (window.FrozenPalace) FrozenPalace.update(delta);
+    if (window.CyberSwamp) CyberSwamp.update(delta);
+    if (window.IceTower) IceTower.update(delta);
+    if (window.CursedShip) CursedShip.update(delta);
+    if (window.NeonSwamp) NeonSwamp.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
