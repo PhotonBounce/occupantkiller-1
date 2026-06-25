@@ -2499,6 +2499,14 @@ const GameManager = (function () {
     try { if (window.VoidBase && VoidBase.init) VoidBase.init(_scene, _camera); } catch (e) {}
     try { if (window.AcidLake && AcidLake.init) AcidLake.init(_scene, _camera); } catch (e) {}
     try { if (window.StormFortress && StormFortress.init) StormFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrostHarbor && FrostHarbor.init) FrostHarbor.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaRiver && LavaRiver.init) LavaRiver.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeLines && SiegeLines.init) SiegeLines.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostRidge && GhostRidge.init) GhostRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarLab && WarLab.init) WarLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceDock && IceDock.init) IceDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.RubbleCity && RubbleCity.init) RubbleCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.WinterAssault && WinterAssault.init) WinterAssault.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -10038,6 +10046,14 @@ const GameManager = (function () {
     if (window.VoidBase) VoidBase.update(delta);
     if (window.AcidLake) AcidLake.update(delta);
     if (window.StormFortress) StormFortress.update(delta);
+    if (window.FrostHarbor) FrostHarbor.update(delta);
+    if (window.LavaRiver) LavaRiver.update(delta);
+    if (window.SiegeLines) SiegeLines.update(delta);
+    if (window.GhostRidge) GhostRidge.update(delta);
+    if (window.WarLab) WarLab.update(delta);
+    if (window.IceDock) IceDock.update(delta);
+    if (window.RubbleCity) RubbleCity.update(delta);
+    if (window.WinterAssault) WinterAssault.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
