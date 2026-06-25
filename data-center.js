@@ -3,519 +3,574 @@ window.DataCenter = (function() {
 
   var scene = null;
   var camera = null;
-  var sceneObjects = [];
-  var lastKeyPress = null;
-  var keyPressTime = 0;
-  var isVisible = false;
-  var hudElement = null;
+  var meshes = [];
+  var lights = [];
+  var animationData = {};
 
-  var gameState = {
-    serversWiped: 0,
-    totalServers: 6,
-    dataExfiltration: 0,
-    securityDown: 0,
-    totalEnemy: 0
+  var COLORS = {
+    serverBlack: 0x111111,
+    indicatorGreen: 0x00CC44,
+    indicatorBlue: 0x0044FF,
+    steelGray: 0x778899,
+    coolingWhite: 0xEEEEEE,
+    alarmRed: 0xFF2200,
+    darkGray: 0x333333,
+    lightGray: 0xAAAAAA
   };
 
-  var animationRefs = {
-    coolingFans: [],
-    dataLights: [],
-    pulseTime: 0
-  };
+  var spawnPoints = [];
 
   function createServerRack(x, y, z) {
-    var group = new THREE.Group();
+    var rackGroup = new THREE.Group();
 
-    var rackGeometry = new THREE.BoxGeometry(0.8, 2.4, 0.6);
-    var rackMaterial = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
+    var rackGeometry = new THREE.BoxGeometry(0.6, 2.2, 0.8);
+    var rackMaterial = new THREE.MeshStandardMaterial({ color: COLORS.serverBlack });
     var rackMesh = new THREE.Mesh(rackGeometry, rackMaterial);
-    rackMesh.position.set(0, 0, 0);
-    group.add(rackMesh);
+    rackMesh.position.set(0, 1.1, 0);
+    rackGroup.add(rackMesh);
+    meshes.push(rackMesh);
 
-    for (var i = 0; i < 4; i++) {
-      var panelGeometry = new THREE.BoxGeometry(0.75, 0.5, 0.05);
-      var panelMaterial = new THREE.MeshPhongMaterial({
-        color: 0x003366,
-        emissive: 0x0066ff,
-        shininess: 100
+    for (var i = 0; i < 12; i++) {
+      var slotGeometry = new THREE.BoxGeometry(0.55, 0.15, 0.05);
+      var slotMaterial = new THREE.MeshStandardMaterial({ color: COLORS.darkGray });
+      var slotMesh = new THREE.Mesh(slotGeometry, slotMaterial);
+      slotMesh.position.set(0, 1.8 - (i * 0.18), 0.35);
+      rackGroup.add(slotMesh);
+      meshes.push(slotMesh);
+
+      var ledGeometry = new THREE.BoxGeometry(0.08, 0.04, 0.02);
+      var ledMaterial = new THREE.MeshStandardMaterial({
+        color: COLORS.indicatorGreen,
+        emissive: COLORS.indicatorGreen,
+        emissiveIntensity: 0.5
       });
-      var panelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
-      panelMesh.position.set(0, -1.0 + i * 0.55, 0.3);
-      group.add(panelMesh);
+      var ledMesh = new THREE.Mesh(ledGeometry, ledMaterial);
+      ledMesh.position.set(0.22, 1.78 - (i * 0.18), 0.38);
+      rackGroup.add(ledMesh);
+      meshes.push(ledMesh);
 
-      for (var j = 0; j < 3; j++) {
-        var lightGeometry = new THREE.SphereGeometry(0.06, 8, 8);
-        var lightMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        var lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
-        lightMesh.position.set(-0.2 + j * 0.2, -1.0 + i * 0.55, 0.35);
-        group.add(lightMesh);
-
-        animationRefs.dataLights.push({
-          mesh: lightMesh,
-          originalColor: 0x00ff00,
-          time: Math.random() * 2,
-          pattern: Math.floor(Math.random() * 3)
-        });
-      }
+      if (!animationData.ledLights) animationData.ledLights = [];
+      animationData.ledLights.push({
+        mesh: ledMesh,
+        baseIntensity: 0.5,
+        blinkSpeed: 2 + Math.random() * 3,
+        offset: Math.random() * Math.PI * 2
+      });
     }
 
-    group.position.set(x, y, z);
-    scene.add(group);
-    sceneObjects.push(group);
+    var powerGeometry = new THREE.BoxGeometry(0.1, 0.15, 0.25);
+    var powerMaterial = new THREE.MeshStandardMaterial({ color: COLORS.alarmRed });
+    var powerMesh = new THREE.Mesh(powerGeometry, powerMaterial);
+    powerMesh.position.set(-0.3, 0.3, 0.4);
+    rackGroup.add(powerMesh);
+    meshes.push(powerMesh);
 
-    return group;
+    rackGroup.position.set(x, y, z);
+    scene.add(rackGroup);
+    return rackGroup;
   }
 
   function createCoolingUnit(x, y, z) {
-    var group = new THREE.Group();
+    var coolingGroup = new THREE.Group();
 
-    var housingGeometry = new THREE.CylinderGeometry(0.5, 0.5, 1.8, 16);
-    var housingMaterial = new THREE.MeshPhongMaterial({ color: 0x2a2a2a });
+    var housingGeometry = new THREE.BoxGeometry(1.2, 1.0, 0.9);
+    var housingMaterial = new THREE.MeshStandardMaterial({ color: COLORS.coolingWhite });
     var housingMesh = new THREE.Mesh(housingGeometry, housingMaterial);
-    group.add(housingMesh);
+    coolingGroup.add(housingMesh);
+    meshes.push(housingMesh);
 
-    var fanGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.15, 16);
-    var fanMaterial = new THREE.MeshPhongMaterial({ color: 0x444444 });
-    var fanMesh = new THREE.Mesh(fanGeometry, fanMaterial);
-    fanMesh.position.set(0, 0.6, 0);
-    group.add(fanMesh);
-
-    animationRefs.coolingFans.push({
-      mesh: fanMesh,
-      speed: 8
-    });
-
-    var fanGeometry2 = new THREE.CylinderGeometry(0.4, 0.4, 0.15, 16);
-    var fanMesh2 = new THREE.Mesh(fanGeometry2, fanMaterial);
-    fanMesh2.position.set(0, -0.6, 0);
-    group.add(fanMesh2);
-
-    animationRefs.coolingFans.push({
-      mesh: fanMesh2,
-      speed: 8
-    });
-
-    group.position.set(x, y, z);
-    scene.add(group);
-    sceneObjects.push(group);
-
-    return group;
-  }
-
-  function createRaisedFloorPanel(x, y, z) {
-    var group = new THREE.Group();
-
-    var panelGeometry = new THREE.BoxGeometry(1.2, 0.2, 1.2);
-    var panelMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
-    var panelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
-    group.add(panelMesh);
-
-    var edgeGeometry = new THREE.BoxGeometry(1.2, 0.05, 0.1);
-    var edgeMaterial = new THREE.MeshPhongMaterial({ color: 0x555555 });
     for (var i = 0; i < 4; i++) {
-      var edgeMesh = new THREE.Mesh(edgeGeometry, edgeMaterial);
-      var angle = (i * Math.PI) / 2;
-      edgeMesh.position.set(
-        Math.cos(angle) * 0.55,
-        0.12,
-        Math.sin(angle) * 0.55
-      );
-      edgeMesh.rotation.z = angle;
-      group.add(edgeMesh);
+      var fanGeometry = new THREE.CylinderGeometry(0.28, 0.28, 0.08, 32);
+      var fanMaterial = new THREE.MeshStandardMaterial({ color: COLORS.darkGray });
+      var fanMesh = new THREE.Mesh(fanGeometry, fanMaterial);
+      fanMesh.rotation.z = Math.PI / 2;
+      fanMesh.position.set(-0.3 + (i * 0.2), 0.2, 0);
+      coolingGroup.add(fanMesh);
+      meshes.push(fanMesh);
+
+      if (!animationData.fans) animationData.fans = [];
+      animationData.fans.push({ mesh: fanMesh, speed: 5 + Math.random() * 3 });
     }
 
-    group.position.set(x, y, z);
-    scene.add(group);
-    sceneObjects.push(group);
+    var filterGeometry = new THREE.BoxGeometry(1.1, 0.95, 0.15);
+    var filterMaterial = new THREE.MeshStandardMaterial({ color: COLORS.lightGray });
+    var filterMesh = new THREE.Mesh(filterGeometry, filterMaterial);
+    filterMesh.position.set(0, 0, 0.4);
+    coolingGroup.add(filterMesh);
+    meshes.push(filterMesh);
 
-    return group;
+    coolingGroup.position.set(x, y, z);
+    scene.add(coolingGroup);
+    return coolingGroup;
   }
 
-  function createUPSArray(x, y, z) {
-    var group = new THREE.Group();
+  function createFiberCableTray(x, y, z, length) {
+    var trayGroup = new THREE.Group();
 
-    for (var i = 0; i < 3; i++) {
-      for (var j = 0; j < 2; j++) {
-        var upsGeometry = new THREE.BoxGeometry(0.6, 1.0, 0.6);
-        var upsMaterial = new THREE.MeshPhongMaterial({ color: 0x1a1a2e });
-        var upsMesh = new THREE.Mesh(upsGeometry, upsMaterial);
-        upsMesh.position.set(-0.7 + i * 0.8, j * 1.1, 0);
-        group.add(upsMesh);
+    var trayGeometry = new THREE.BoxGeometry(length, 0.15, 0.3);
+    var trayMaterial = new THREE.MeshStandardMaterial({ color: COLORS.steelGray });
+    var trayMesh = new THREE.Mesh(trayGeometry, trayMaterial);
+    trayGroup.add(trayMesh);
+    meshes.push(trayMesh);
 
-        var indicatorGeometry = new THREE.SphereGeometry(0.08, 8, 8);
-        var indicatorMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-        var indicatorMesh = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
-        indicatorMesh.position.set(-0.7 + i * 0.8, j * 1.1 + 0.4, 0.35);
-        group.add(indicatorMesh);
-      }
+    var segmentCount = Math.floor(length / 0.4);
+    for (var i = 0; i < segmentCount; i++) {
+      var ledGeometry = new THREE.BoxGeometry(0.08, 0.06, 0.02);
+      var ledMaterial = new THREE.MeshStandardMaterial({
+        color: COLORS.indicatorBlue,
+        emissive: COLORS.indicatorBlue,
+        emissiveIntensity: 0.6
+      });
+      var ledMesh = new THREE.Mesh(ledGeometry, ledMaterial);
+      ledMesh.position.set(-length / 2 + 0.3 + (i * 0.4), 0.1, 0.2);
+      trayGroup.add(ledMesh);
+      meshes.push(ledMesh);
+
+      if (!animationData.fiberLeds) animationData.fiberLeds = [];
+      animationData.fiberLeds.push({
+        mesh: ledMesh,
+        pulseSpeed: 3 + Math.random() * 2,
+        offset: Math.random() * Math.PI * 2
+      });
     }
 
-    group.position.set(x, y, z);
-    scene.add(group);
-    sceneObjects.push(group);
-
-    return group;
+    trayGroup.position.set(x, y, z);
+    scene.add(trayGroup);
+    return trayGroup;
   }
 
-  function createPatchPanel(x, y, z) {
-    var group = new THREE.Group();
-
-    var backGeometry = new THREE.BoxGeometry(2.0, 1.5, 0.1);
-    var backMaterial = new THREE.MeshPhongMaterial({ color: 0x0a0a0a });
-    var backMesh = new THREE.Mesh(backGeometry, backMaterial);
-    group.add(backMesh);
-
-    var points = [];
-    for (var i = 0; i < 12; i++) {
-      var yPos = 0.6 - (i / 11) * 1.4;
-      for (var j = 0; j < 16; j++) {
-        var xPos = -0.9 + (j / 15) * 1.8;
-
-        var portGeometry = new THREE.SphereGeometry(0.04, 6, 6);
-        var portMaterial = new THREE.MeshPhongMaterial({ color: 0xff6600 });
-        var portMesh = new THREE.Mesh(portGeometry, portMaterial);
-        portMesh.position.set(xPos, yPos, 0.1);
-        group.add(portMesh);
-
-        points.push(new THREE.Vector3(xPos, yPos, 0.1));
-      }
-    }
-
-    for (var k = 0; k < points.length - 16; k++) {
-      if ((k + 1) % 16 !== 0) {
-        var lineGeometry = new THREE.BufferGeometry();
-        lineGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
-          points[k].x, points[k].y, points[k].z,
-          points[k + 16].x, points[k + 16].y, points[k + 16].z
-        ]), 3));
-        var lineMaterial = new THREE.LineBasicMaterial({ color: 0xff6600, linewidth: 2 });
-        var line = new THREE.LineSegments(lineGeometry, lineMaterial);
-        group.add(line);
-      }
-    }
-
-    group.position.set(x, y, z);
-    scene.add(group);
-    sceneObjects.push(group);
-
-    return group;
-  }
-
-  function createCableTray(x, y, z) {
-    var group = new THREE.Group();
-
-    var frameGeometry = new THREE.BoxGeometry(3.0, 0.2, 0.2);
-    var frameMaterial = new THREE.MeshPhongMaterial({ color: 0x444444 });
-
-    var frame1 = new THREE.Mesh(frameGeometry, frameMaterial);
-    frame1.position.set(0, 0.1, 0);
-    group.add(frame1);
-
-    var frame2 = new THREE.Mesh(frameGeometry, frameMaterial);
-    frame2.position.set(0, 0.1, -0.3);
-    group.add(frame2);
-
-    var crossGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.3);
-    for (var i = 0; i < 5; i++) {
-      var crossMesh = new THREE.Mesh(crossGeometry, frameMaterial);
-      crossMesh.position.set(-1.2 + i * 0.6, 0.1, -0.15);
-      group.add(crossMesh);
-    }
-
-    for (var j = 0; j < 6; j++) {
-      var cableGeometry = new THREE.CylinderGeometry(0.08, 0.08, 3.0, 12);
-      var cableMaterial = new THREE.MeshPhongMaterial({ color: 0x6666cc });
-      var cableMesh = new THREE.Mesh(cableGeometry, cableMaterial);
-      cableMesh.rotation.z = Math.PI / 2;
-      cableMesh.position.set(0, 0.3 + j * 0.15, 0);
-      group.add(cableMesh);
-    }
-
-    group.position.set(x, y, z);
-    scene.add(group);
-    sceneObjects.push(group);
-
-    return group;
-  }
-
-  function createSecurityDesk(x, y, z) {
-    var group = new THREE.Group();
-
-    var deskGeometry = new THREE.BoxGeometry(1.5, 0.8, 0.8);
-    var deskMaterial = new THREE.MeshPhongMaterial({ color: 0x2a2a2a });
-    var deskMesh = new THREE.Mesh(deskGeometry, deskMaterial);
-    deskMesh.position.set(0, 0, 0);
-    group.add(deskMesh);
-
-    var monitorGeometry = new THREE.BoxGeometry(0.8, 0.5, 0.1);
-    var monitorMaterial = new THREE.MeshPhongMaterial({
-      color: 0x003366,
-      emissive: 0x0099ff,
-      shininess: 100
-    });
-    var monitorMesh = new THREE.Mesh(monitorGeometry, monitorMaterial);
-    monitorMesh.position.set(0, 0.8, 0);
-    group.add(monitorMesh);
-
-    animationRefs.dataLights.push({
-      mesh: monitorMesh,
-      originalColor: 0x0099ff,
-      time: Math.random() * 2,
-      pattern: 1
-    });
-
-    var chairGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.8, 12);
-    var chairMaterial = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
-    var chairMesh = new THREE.Mesh(chairGeometry, chairMaterial);
-    chairMesh.position.set(0.8, 0, 0);
-    group.add(chairMesh);
-
-    group.position.set(x, y, z);
-    scene.add(group);
-    sceneObjects.push(group);
-
-    return group;
-  }
-
-  function createEnemy(x, y, z, type) {
-    var group = new THREE.Group();
-
-    var bodyGeometry = new THREE.BoxGeometry(0.4, 1.0, 0.3);
-    var bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
-    var bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    bodyMesh.position.set(0, 0, 0);
-    group.add(bodyMesh);
-
-    var headGeometry = new THREE.SphereGeometry(0.2, 8, 8);
-    var headMaterial = new THREE.MeshPhongMaterial({ color: 0xffccaa });
-    var headMesh = new THREE.Mesh(headGeometry, headMaterial);
-    headMesh.position.set(0, 0.65, 0);
-    group.add(headMesh);
-
-    if (type === 'armed') {
-      var gunGeometry = new THREE.BoxGeometry(0.08, 0.3, 0.1);
-      var gunMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
-      var gunMesh = new THREE.Mesh(gunGeometry, gunMaterial);
-      gunMesh.position.set(0.25, 0.2, 0);
-      gunMesh.rotation.z = Math.PI / 6;
-      group.add(gunMesh);
-    }
-
-    group.position.set(x, y, z);
-    group.userData = { type: type, health: 1 };
-    scene.add(group);
-    sceneObjects.push(group);
-
-    return group;
-  }
-
-  function updateDataLights(delta) {
-    animationRefs.pulseTime += delta;
-
-    for (var i = 0; i < animationRefs.dataLights.length; i++) {
-      var light = animationRefs.dataLights[i];
-      light.time += delta;
-
-      var intensity = 0;
-      if (light.pattern === 0) {
-        intensity = Math.abs(Math.sin(light.time * 4)) > 0.5 ? 1 : 0.2;
-      } else if (light.pattern === 1) {
-        intensity = Math.sin(light.time * 3) * 0.5 + 0.5;
-      } else {
-        intensity = (Math.sin(light.time * 6) + 1) / 2;
-      }
-
-      if (light.mesh.material.emissive !== undefined) {
-        var colorVal = light.originalColor === 0x0099ff ? 0x0099ff : 0x00ff00;
-        light.mesh.material.emissive.setHex(intensity > 0.5 ? colorVal : 0x000000);
-      } else {
-        light.mesh.material.color.setHex(intensity > 0.5 ? light.originalColor : 0x003333);
-      }
-    }
-  }
-
-  function updateCoolingFans(delta) {
-    for (var i = 0; i < animationRefs.coolingFans.length; i++) {
-      var fan = animationRefs.coolingFans[i];
-      fan.mesh.rotation.y += fan.speed * delta;
-    }
-  }
-
-  function updateHUD() {
-    if (!hudElement) return;
-
-    var content = 'SERVER RACKS WIPED: ' + gameState.serversWiped + '/' + gameState.totalServers + '<br>' +
-                  'DATA EXFILTRATED: ' + Math.floor(gameState.dataExfiltration) + '%<br>' +
-                  'SECURITY DOWN: ' + gameState.securityDown;
-
-    hudElement.innerHTML = content;
-  }
-
-  function showHUDNotification(message) {
-    if (!hudElement) return;
-
-    var notification = document.createElement('div');
-    notification.style.position = 'fixed';
-    notification.style.top = '50%';
-    notification.style.left = '50%';
-    notification.style.transform = 'translate(-50%, -50%)';
-    notification.style.backgroundColor = 'rgba(0, 255, 100, 0.8)';
-    notification.style.color = '#000000';
-    notification.style.padding = '20px 40px';
-    notification.style.fontSize = '24px';
-    notification.style.fontFamily = 'monospace';
-    notification.style.fontWeight = 'bold';
-    notification.style.zIndex = '10000';
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    setTimeout(function() {
-      notification.remove();
-    }, 2000);
-  }
-
-  function toggleDataCenter() {
-    isVisible = !isVisible;
-    var message = isVisible ? 'DATA CENTER ENTERED' : 'DATA CENTER EXITED';
-    showHUDNotification(message);
-
-    if (isVisible) {
-      gameState.dataExfiltration += 0.5;
-    }
-  }
-
-  function handleKeyDown(event) {
-    var now = Date.now();
-
-    if (event.key === 'd' || event.key === 'D') {
-      if (lastKeyPress === 'd' && now - keyPressTime < 400) {
-        toggleDataCenter();
-        lastKeyPress = null;
-      } else {
-        lastKeyPress = 'd';
-        keyPressTime = now;
-      }
-    } else if (event.key === 'c' || event.key === 'C') {
-      if (lastKeyPress === 'd' && now - keyPressTime < 400) {
-        toggleDataCenter();
-        lastKeyPress = null;
-      }
-    } else {
-      lastKeyPress = null;
-    }
-  }
-
-  var init = function(sceneParam, cameraParam) {
-    scene = sceneParam;
-    camera = cameraParam;
-    sceneObjects = [];
-    animationRefs.coolingFans = [];
-    animationRefs.dataLights = [];
-    gameState.serversWiped = 0;
-    gameState.dataExfiltration = 0;
-    gameState.securityDown = 0;
-
-    scene.background = new THREE.Color(0x0a1428);
-    scene.fog = new THREE.Fog(0x1a2638, 20, 60);
-
-    var light = new THREE.AmbientLight(0x4499ff, 0.6);
-    scene.add(light);
-    sceneObjects.push(light);
-
-    var directionalLight = new THREE.DirectionalLight(0xccddff, 0.8);
-    directionalLight.position.set(5, 8, 5);
-    scene.add(directionalLight);
-    sceneObjects.push(directionalLight);
-
-    var pointLight = new THREE.PointLight(0x0099ff, 0.5, 30);
-    pointLight.position.set(0, 2, 0);
-    scene.add(pointLight);
-    sceneObjects.push(pointLight);
-
-    createServerRack(-4, 1.2, -8);
-    createServerRack(-2, 1.2, -8);
-    createServerRack(0, 1.2, -8);
-    createServerRack(2, 1.2, -8);
-    createServerRack(4, 1.2, -8);
-    createServerRack(6, 1.2, -8);
-
-    createCoolingUnit(-5, 0.9, -2);
-    createCoolingUnit(5, 0.9, -2);
+  function createUPSRoom(x, y, z) {
+    var upsGroup = new THREE.Group();
 
     for (var i = 0; i < 6; i++) {
-      for (var j = 0; j < 4; j++) {
-        createRaisedFloorPanel(-5 + i * 2.5, -0.1, -10 + j * 2.5);
+      var bankGeometry = new THREE.BoxGeometry(0.5, 2.0, 0.6);
+      var bankMaterial = new THREE.MeshStandardMaterial({ color: COLORS.darkGray });
+      var bankMesh = new THREE.Mesh(bankGeometry, bankMaterial);
+      bankMesh.position.set(-1.5 + (i * 0.6), 1.0, 0);
+      upsGroup.add(bankMesh);
+      meshes.push(bankMesh);
+
+      var statusGeometry = new THREE.BoxGeometry(0.1, 0.08, 0.03);
+      var statusMaterial = new THREE.MeshStandardMaterial({
+        color: COLORS.indicatorGreen,
+        emissive: COLORS.indicatorGreen
+      });
+      var statusMesh = new THREE.Mesh(statusGeometry, statusMaterial);
+      statusMesh.position.set(-1.5 + (i * 0.6), 0.2, 0.32);
+      upsGroup.add(statusMesh);
+      meshes.push(statusMesh);
+    }
+
+    upsGroup.position.set(x, y, z);
+    scene.add(upsGroup);
+    spawnPoints.push({ position: new THREE.Vector3(x, y + 0.5, z + 2) });
+    return upsGroup;
+  }
+
+  function createNOCRoom(x, y, z) {
+    var nocGroup = new THREE.Group();
+
+    var deskGeometry = new THREE.BoxGeometry(3.0, 0.8, 1.2);
+    var deskMaterial = new THREE.MeshStandardMaterial({ color: COLORS.darkGray });
+    var deskMesh = new THREE.Mesh(deskGeometry, deskMaterial);
+    deskMesh.position.set(0, 0.4, 0);
+    nocGroup.add(deskMesh);
+    meshes.push(deskMesh);
+
+    for (var i = 0; i < 6; i++) {
+      var screenGeometry = new THREE.BoxGeometry(0.6, 0.45, 0.08);
+      var screenMaterial = new THREE.MeshStandardMaterial({ color: COLORS.indicatorBlue });
+      var screenMesh = new THREE.Mesh(screenGeometry, screenMaterial);
+      screenMesh.position.set(-1.3 + (i * 0.5), 1.2, 0.5);
+      nocGroup.add(screenMesh);
+      meshes.push(screenMesh);
+
+      if (!animationData.screens) animationData.screens = [];
+      animationData.screens.push({
+        mesh: screenMesh,
+        glowIntensity: 0.4,
+        pulseSpeed: 1.5 + Math.random() * 1
+      });
+    }
+
+    var consoleGeometry = new THREE.BoxGeometry(1.2, 0.5, 0.8);
+    var consoleMaterial = new THREE.MeshStandardMaterial({ color: COLORS.serverBlack });
+    var consoleMesh = new THREE.Mesh(consoleGeometry, consoleMaterial);
+    consoleMesh.position.set(0, 1.1, 0);
+    nocGroup.add(consoleMesh);
+    meshes.push(consoleMesh);
+
+    var keyboardGeometry = new THREE.BoxGeometry(0.8, 0.05, 0.3);
+    var keyboardMaterial = new THREE.MeshStandardMaterial({ color: COLORS.lightGray });
+    var keyboardMesh = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
+    keyboardMesh.position.set(0, 1.3, 0.3);
+    nocGroup.add(keyboardMesh);
+    meshes.push(keyboardMesh);
+
+    var progressGeometry = new THREE.BoxGeometry(1.5, 0.15, 0.08);
+    var progressMaterial = new THREE.MeshStandardMaterial({
+      color: COLORS.alarmRed,
+      emissive: COLORS.alarmRed
+    });
+    var progressMesh = new THREE.Mesh(progressGeometry, progressMaterial);
+    progressMesh.position.set(0, 0.3, 0.6);
+    nocGroup.add(progressMesh);
+    meshes.push(progressMesh);
+    animationData.exfilProgress = { mesh: progressMesh, progress: 0 };
+
+    nocGroup.position.set(x, y, z);
+    scene.add(nocGroup);
+    spawnPoints.push({ position: new THREE.Vector3(x, y + 1.0, z + 2) });
+    return nocGroup;
+  }
+
+  function createHalonSystem(x, y, z) {
+    var halonGroup = new THREE.Group();
+
+    for (var i = 0; i < 2; i++) {
+      var tankGeometry = new THREE.CylinderGeometry(0.35, 0.35, 1.8, 16);
+      var tankMaterial = new THREE.MeshStandardMaterial({ color: COLORS.steelGray });
+      var tankMesh = new THREE.Mesh(tankGeometry, tankMaterial);
+      tankMesh.position.set(-0.5 + (i * 1.0), 0.9, 0);
+      halonGroup.add(tankMesh);
+      meshes.push(tankMesh);
+
+      var gaugeGeometry = new THREE.SphereGeometry(0.12, 16, 16);
+      var gaugeMaterial = new THREE.MeshStandardMaterial({ color: COLORS.lightGray });
+      var gaugeMesh = new THREE.Mesh(gaugeGeometry, gaugeMaterial);
+      gaugeMesh.position.set(-0.5 + (i * 1.0), 1.8, 0.35);
+      halonGroup.add(gaugeMesh);
+      meshes.push(gaugeMesh);
+    }
+
+    var pipeGeometry = new THREE.CylinderGeometry(0.08, 0.08, 4.0, 16);
+    var pipeMaterial = new THREE.MeshStandardMaterial({ color: COLORS.darkGray });
+    var pipeMesh = new THREE.Mesh(pipeGeometry, pipeMaterial);
+    pipeMesh.rotation.z = Math.PI / 2;
+    pipeMesh.position.set(0, 2.8, 0);
+    halonGroup.add(pipeMesh);
+    meshes.push(pipeMesh);
+
+    for (var i = 0; i < 8; i++) {
+      var nozzleGeometry = new THREE.ConeGeometry(0.12, 0.35, 12);
+      var nozzleMaterial = new THREE.MeshStandardMaterial({ color: COLORS.steelGray });
+      var nozzleMesh = new THREE.Mesh(nozzleGeometry, nozzleMaterial);
+      nozzleMesh.position.set(-1.8 + (i * 0.5), 2.65, 0);
+      nozzleMesh.rotation.x = Math.PI * 0.3;
+      halonGroup.add(nozzleMesh);
+      meshes.push(nozzleMesh);
+    }
+
+    halonGroup.position.set(x, y, z);
+    scene.add(halonGroup);
+    return halonGroup;
+  }
+
+  function createBiometricDoor(x, y, z) {
+    var doorGroup = new THREE.Group();
+
+    var frameGeometry = new THREE.BoxGeometry(1.2, 2.5, 0.15);
+    var frameMaterial = new THREE.MeshStandardMaterial({ color: COLORS.steelGray });
+    var frameMesh = new THREE.Mesh(frameGeometry, frameMaterial);
+    doorGroup.add(frameMesh);
+    meshes.push(frameMesh);
+
+    var panelGeometry = new THREE.BoxGeometry(1.0, 2.3, 0.08);
+    var panelMaterial = new THREE.MeshStandardMaterial({ color: COLORS.darkGray });
+    var panelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
+    panelMesh.position.set(0, 0, 0.05);
+    doorGroup.add(panelMesh);
+    meshes.push(panelMesh);
+    animationData.doorPanel = { mesh: panelMesh, isOpen: false };
+
+    var scannerGeometry = new THREE.BoxGeometry(0.25, 0.35, 0.08);
+    var scannerMaterial = new THREE.MeshStandardMaterial({
+      color: COLORS.indicatorGreen,
+      emissive: COLORS.indicatorGreen,
+      emissiveIntensity: 0.3
+    });
+    var scannerMesh = new THREE.Mesh(scannerGeometry, scannerMaterial);
+    scannerMesh.position.set(-0.3, 0.8, 0.12);
+    doorGroup.add(scannerMesh);
+    meshes.push(scannerMesh);
+
+    var lockGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.06);
+    var lockMaterial = new THREE.MeshStandardMaterial({ color: COLORS.alarmRed });
+    var lockMesh = new THREE.Mesh(lockGeometry, lockMaterial);
+    lockMesh.position.set(0.3, 1.0, 0.12);
+    doorGroup.add(lockMesh);
+    meshes.push(lockMesh);
+    animationData.lockIndicator = { mesh: lockMesh, locked: true };
+
+    doorGroup.position.set(x, y, z);
+    scene.add(doorGroup);
+    spawnPoints.push({ position: new THREE.Vector3(x + 2, y, z) });
+    return doorGroup;
+  }
+
+  function createPowerDistributionUnit(x, y, z) {
+    var pduGroup = new THREE.Group();
+
+    var cabinetGeometry = new THREE.BoxGeometry(0.5, 2.0, 0.6);
+    var cabinetMaterial = new THREE.MeshStandardMaterial({ color: COLORS.darkGray });
+    var cabinetMesh = new THREE.Mesh(cabinetGeometry, cabinetMaterial);
+    pduGroup.add(cabinetMesh);
+    meshes.push(cabinetMesh);
+
+    for (var i = 0; i < 16; i++) {
+      var outletGeometry = new THREE.BoxGeometry(0.08, 0.08, 0.04);
+      var outletMaterial = new THREE.MeshStandardMaterial({ color: COLORS.alarmRed });
+      var outletMesh = new THREE.Mesh(outletGeometry, outletMaterial);
+      outletMesh.position.set(0.15, 1.8 - (i * 0.23), 0.32);
+      pduGroup.add(outletMesh);
+      meshes.push(outletMesh);
+    }
+
+    var breakerGeometry = new THREE.BoxGeometry(0.12, 0.25, 0.1);
+    var breakerMaterial = new THREE.MeshStandardMaterial({ color: COLORS.lightGray });
+    var breakerMesh = new THREE.Mesh(breakerGeometry, breakerMaterial);
+    breakerMesh.position.set(-0.2, 1.7, 0.35);
+    pduGroup.add(breakerMesh);
+    meshes.push(breakerMesh);
+
+    pduGroup.position.set(x, y, z);
+    scene.add(pduGroup);
+    return pduGroup;
+  }
+
+  function createRaisedFloor(x, y, z, width, depth) {
+    var floorGroup = new THREE.Group();
+
+    var tileSize = 0.6;
+    var tilesX = Math.ceil(width / tileSize);
+    var tilesZ = Math.ceil(depth / tileSize);
+
+    for (var ix = 0; ix < tilesX; ix++) {
+      for (var iz = 0; iz < tilesZ; iz++) {
+        var tileGeometry = new THREE.BoxGeometry(tileSize, 0.01, tileSize);
+        var tileMaterial = new THREE.MeshStandardMaterial({ color: COLORS.lightGray });
+        var tileMesh = new THREE.Mesh(tileGeometry, tileMaterial);
+        tileMesh.position.set(
+          -width / 2 + (ix * tileSize) + tileSize / 2,
+          0,
+          -depth / 2 + (iz * tileSize) + tileSize / 2
+        );
+        floorGroup.add(tileMesh);
+        meshes.push(tileMesh);
       }
     }
 
-    createUPSArray(8, 0.6, -8);
-    createPatchPanel(-8, 1.5, 0);
-    createCableTray(0, 3.5, -5);
-    createSecurityDesk(-7, 0.4, 3);
-
-    createEnemy(-6, 0.5, 5, 'technician');
-    createEnemy(-2, 0.5, 6, 'armed');
-    createEnemy(3, 0.5, 5, 'technician');
-    createEnemy(7, 0.5, 4, 'armed');
-
-    gameState.totalEnemy = 4;
-
-    hudElement = document.createElement('div');
-    hudElement.id = 'data-center-hud';
-    hudElement.style.position = 'fixed';
-    hudElement.style.top = '20px';
-    hudElement.style.right = '20px';
-    hudElement.style.color = '#00ff00';
-    hudElement.style.fontFamily = 'monospace';
-    hudElement.style.fontSize = '14px';
-    hudElement.style.textShadow = '0 0 10px #00ff00';
-    hudElement.style.zIndex = '100';
-    hudElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-    hudElement.style.padding = '10px 15px';
-    hudElement.style.border = '1px solid #00ff00';
-    document.body.appendChild(hudElement);
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    updateHUD();
-  };
-
-  var update = function(delta) {
-    if (!scene) return;
-
-    updateDataLights(delta);
-    updateCoolingFans(delta);
-    updateHUD();
-
-    if (isVisible) {
-      gameState.dataExfiltration += delta * 5;
-      if (gameState.dataExfiltration > 100) {
-        gameState.dataExfiltration = 100;
+    for (var ix = 0; ix < tilesX; ix++) {
+      for (var iz = 0; iz < tilesZ; iz++) {
+        var pedestalGeometry = new THREE.BoxGeometry(0.15, 0.3, 0.15);
+        var pedestalMaterial = new THREE.MeshStandardMaterial({ color: COLORS.steelGray });
+        var pedestalMesh = new THREE.Mesh(pedestalGeometry, pedestalMaterial);
+        pedestalMesh.position.set(
+          -width / 2 + (ix * tileSize) + tileSize / 2,
+          -0.15,
+          -depth / 2 + (iz * tileSize) + tileSize / 2
+        );
+        floorGroup.add(pedestalMesh);
+        meshes.push(pedestalMesh);
       }
     }
-  };
 
-  var reset = function() {
-    for (var i = 0; i < sceneObjects.length; i++) {
-      scene.remove(sceneObjects[i]);
+    floorGroup.position.set(x, y, z);
+    scene.add(floorGroup);
+    return floorGroup;
+  }
+
+  function createCCTVCamera(x, y, z) {
+    var cameraGroup = new THREE.Group();
+
+    var mountGeometry = new THREE.BoxGeometry(0.08, 0.15, 0.08);
+    var mountMaterial = new THREE.MeshStandardMaterial({ color: COLORS.steelGray });
+    var mountMesh = new THREE.Mesh(mountGeometry, mountMaterial);
+    mountMesh.position.set(0, -0.1, 0);
+    cameraGroup.add(mountMesh);
+    meshes.push(mountMesh);
+
+    var bodyGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+    var bodyMaterial = new THREE.MeshStandardMaterial({ color: COLORS.darkGray });
+    var bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    bodyMesh.position.set(0, 0.1, 0);
+    cameraGroup.add(bodyMesh);
+    meshes.push(bodyMesh);
+
+    var lensGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+    var lensMaterial = new THREE.MeshStandardMaterial({ color: COLORS.indicatorBlue });
+    var lensMesh = new THREE.Mesh(lensGeometry, lensMaterial);
+    lensMesh.position.set(0, 0.1, 0.1);
+    cameraGroup.add(lensMesh);
+    meshes.push(lensMesh);
+
+    var indicatorGeometry = new THREE.BoxGeometry(0.06, 0.06, 0.03);
+    var indicatorMaterial = new THREE.MeshStandardMaterial({
+      color: COLORS.indicatorGreen,
+      emissive: COLORS.indicatorGreen
+    });
+    var indicatorMesh = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
+    indicatorMesh.position.set(0.08, 0.15, 0);
+    cameraGroup.add(indicatorMesh);
+    meshes.push(indicatorMesh);
+
+    cameraGroup.position.set(x, y, z);
+    scene.add(cameraGroup);
+    return cameraGroup;
+  }
+
+  function createHotColdAisle(x, y, z, width) {
+    var aisleGroup = new THREE.Group();
+
+    var coldGeometry = new THREE.BoxGeometry(width, 1.8, 0.1);
+    var coldMaterial = new THREE.MeshStandardMaterial({ color: COLORS.indicatorBlue });
+    var coldMesh = new THREE.Mesh(coldGeometry, coldMaterial);
+    coldMesh.position.set(0, 0.9, -0.5);
+    aisleGroup.add(coldMesh);
+    meshes.push(coldMesh);
+
+    var hotGeometry = new THREE.BoxGeometry(width, 1.8, 0.1);
+    var hotMaterial = new THREE.MeshStandardMaterial({ color: COLORS.alarmRed });
+    var hotMesh = new THREE.Mesh(hotGeometry, hotMaterial);
+    hotMesh.position.set(0, 0.9, 0.5);
+    aisleGroup.add(hotMesh);
+    meshes.push(hotMesh);
+
+    aisleGroup.position.set(x, y, z);
+    scene.add(aisleGroup);
+    return aisleGroup;
+  }
+
+  function init(initScene, initCamera) {
+    scene = initScene;
+    camera = initCamera;
+    meshes = [];
+    lights = [];
+    animationData = {};
+
+    createRaisedFloor(0, 0, 0, 20, 20);
+
+    for (var row = 0; row < 4; row++) {
+      for (var col = 0; col < 5; col++) {
+        createServerRack(-8 + (col * 3.5), 0.1, -6 + (row * 3.5));
+      }
+      spawnPoints.push({ position: new THREE.Vector3(-10, 1.0, -8 + (row * 3.5)) });
     }
-    sceneObjects = [];
-    animationRefs.coolingFans = [];
-    animationRefs.dataLights = [];
 
-    if (hudElement && hudElement.parentNode) {
-      hudElement.parentNode.removeChild(hudElement);
-      hudElement = null;
+    for (var i = 0; i < 3; i++) {
+      createCoolingUnit(8, 0.5, -6 + (i * 4));
     }
 
-    document.removeEventListener('keydown', handleKeyDown);
+    createFiberCableTray(-10, 3.0, -8, 18);
+    createFiberCableTray(-10, 3.0, 0, 18);
+    createFiberCableTray(-10, 3.0, 8, 18);
 
-    isVisible = false;
-    lastKeyPress = null;
-    gameState.serversWiped = 0;
-    gameState.dataExfiltration = 0;
-    gameState.securityDown = 0;
-  };
+    createUPSRoom(-8, 0, 9);
+    createNOCRoom(6, 0, -8);
+    createHalonSystem(0, 2.0, 10);
+    createBiometricDoor(-9, 0, -10);
+    createPowerDistributionUnit(4, 0, 8);
+    createPowerDistributionUnit(-6, 0, 10);
+    createHotColdAisle(-5, 0, 0, 8);
+    createHotColdAisle(3, 0, 0, 8);
+
+    createCCTVCamera(-9, 2.8, -9);
+    createCCTVCamera(7, 2.8, 7);
+    createCCTVCamera(-2, 2.8, 9);
+    createCCTVCamera(8, 2.8, -6);
+
+    var ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+    lights.push(ambientLight);
+
+    var pointLight1 = new THREE.PointLight(0x0088FF, 0.6, 20);
+    pointLight1.position.set(6, 2, -8);
+    scene.add(pointLight1);
+    lights.push(pointLight1);
+
+    var pointLight2 = new THREE.PointLight(0xFF2200, 0.5, 15);
+    pointLight2.position.set(-8, 2, 9);
+    scene.add(pointLight2);
+    lights.push(pointLight2);
+
+    return {
+      spawnPoints: spawnPoints,
+      meshes: meshes
+    };
+  }
+
+  function update(delta) {
+    if (animationData.ledLights) {
+      for (var i = 0; i < animationData.ledLights.length; i++) {
+        var led = animationData.ledLights[i];
+        var blink = Math.sin(Date.now() * 0.001 * led.blinkSpeed + led.offset) * 0.5 + 0.5;
+        led.mesh.material.emissiveIntensity = led.baseIntensity * blink;
+      }
+    }
+
+    if (animationData.fans) {
+      for (var i = 0; i < animationData.fans.length; i++) {
+        var fan = animationData.fans[i];
+        fan.mesh.rotation.x += (fan.speed * delta);
+      }
+    }
+
+    if (animationData.fiberLeds) {
+      for (var i = 0; i < animationData.fiberLeds.length; i++) {
+        var fiberLed = animationData.fiberLeds[i];
+        var pulse = Math.sin(Date.now() * 0.001 * fiberLed.pulseSpeed + fiberLed.offset) * 0.5 + 0.5;
+        fiberLed.mesh.material.emissiveIntensity = 0.6 * pulse;
+      }
+    }
+
+    if (animationData.screens) {
+      for (var i = 0; i < animationData.screens.length; i++) {
+        var screen = animationData.screens[i];
+        var screenGlow = Math.sin(Date.now() * 0.001 * screen.pulseSpeed) * 0.3 + 0.4;
+        screen.mesh.material.emissiveIntensity = screenGlow;
+      }
+    }
+
+    if (animationData.exfilProgress) {
+      animationData.exfilProgress.progress = (animationData.exfilProgress.progress + delta * 0.15) % 1.0;
+      var progressScale = animationData.exfilProgress.progress;
+      animationData.exfilProgress.mesh.scale.x = progressScale;
+    }
+
+    if (animationData.doorPanel && animationData.doorPanel.isOpen) {
+      animationData.doorPanel.mesh.position.z += delta * 2.0;
+      if (animationData.doorPanel.mesh.position.z > 1.0) {
+        animationData.doorPanel.isOpen = false;
+      }
+    }
+
+    if (animationData.lockIndicator) {
+      var locked = animationData.lockIndicator.locked;
+      animationData.lockIndicator.mesh.material.color.setHex(
+        locked ? COLORS.alarmRed : COLORS.indicatorGreen
+      );
+      animationData.lockIndicator.mesh.material.emissive.setHex(
+        locked ? COLORS.alarmRed : COLORS.indicatorGreen
+      );
+    }
+  }
+
+  function reset() {
+    for (var i = meshes.length - 1; i >= 0; i--) {
+      if (meshes[i].parent) {
+        meshes[i].parent.remove(meshes[i]);
+      }
+    }
+
+    for (var i = lights.length - 1; i >= 0; i--) {
+      scene.remove(lights[i]);
+    }
+
+    meshes = [];
+    lights = [];
+    spawnPoints = [];
+    animationData = {};
+  }
 
   return {
     init: init,

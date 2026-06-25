@@ -2058,6 +2058,13 @@ const GameManager = (function () {
     try { if (window.JungleRiver && JungleRiver.init) JungleRiver.init(_scene, _camera); } catch (e) {}
     try { if (window.BunkerHill && BunkerHill.init) BunkerHill.init(_scene, _camera); } catch (e) {}
     try { if (window.DataCenter && DataCenter.init) DataCenter.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateFortress && PirateFortress.init) PirateFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.RooftopGarden && RooftopGarden.init) RooftopGarden.init(_scene, _camera); } catch (e) {}
+    try { if (window.BurningCity && BurningCity.init) BurningCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampLab && SwampLab.init) SwampLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloatingIsland && FloatingIsland.init) FloatingIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuralAmbush && RuralAmbush.init) RuralAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.LookoutTower && LookoutTower.init) LookoutTower.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9156,6 +9163,13 @@ const GameManager = (function () {
     if (window.JungleRiver) JungleRiver.update(delta);
     if (window.BunkerHill) BunkerHill.update(delta);
     if (window.DataCenter) DataCenter.update(delta);
+    if (window.PirateFortress) PirateFortress.update(delta);
+    if (window.RooftopGarden) RooftopGarden.update(delta);
+    if (window.BurningCity) BurningCity.update(delta);
+    if (window.SwampLab) SwampLab.update(delta);
+    if (window.FloatingIsland) FloatingIsland.update(delta);
+    if (window.RuralAmbush) RuralAmbush.update(delta);
+    if (window.LookoutTower) LookoutTower.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
