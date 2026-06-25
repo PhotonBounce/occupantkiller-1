@@ -2193,6 +2193,14 @@ const GameManager = (function () {
     try { if (window.GlacierVault && GlacierVault.init) GlacierVault.init(_scene, _camera); } catch (e) {}
     try { if (window.StormTower && StormTower.init) StormTower.init(_scene, _camera); } catch (e) {}
     try { if (window.SubterraneanBase && SubterraneanBase.init) SubterraneanBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeCamp && SiegeCamp.init) SiegeCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoRim && VolcanoRim.init) VolcanoRim.init(_scene, _camera); } catch (e) {}
+    try { if (window.OutpostDelta && OutpostDelta.init) OutpostDelta.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleRuin && JungleRuin.init) JungleRuin.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyCarrier && SkyCarrier.init) SkyCarrier.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertRuins && DesertRuins.init) DesertRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.SnowValley && SnowValley.init) SnowValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuinedFort && RuinedFort.init) RuinedFort.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9426,6 +9434,14 @@ const GameManager = (function () {
     if (window.GlacierVault) GlacierVault.update(delta);
     if (window.StormTower) StormTower.update(delta);
     if (window.SubterraneanBase) SubterraneanBase.update(delta);
+    if (window.SiegeCamp) SiegeCamp.update(delta);
+    if (window.VolcanoRim) VolcanoRim.update(delta);
+    if (window.OutpostDelta) OutpostDelta.update(delta);
+    if (window.JungleRuin) JungleRuin.update(delta);
+    if (window.SkyCarrier) SkyCarrier.update(delta);
+    if (window.DesertRuins) DesertRuins.update(delta);
+    if (window.SnowValley) SnowValley.update(delta);
+    if (window.RuinedFort) RuinedFort.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
