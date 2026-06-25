@@ -2236,6 +2236,14 @@ const GameManager = (function () {
       try { if (window.JungleShrine && JungleShrine.init) JungleShrine.init(_scene, _camera); } catch (e) {}
       try { if (window.LaserGrid && LaserGrid.init) LaserGrid.init(_scene, _camera); } catch (e) {}
       try { if (window.DeathMarch && DeathMarch.init) DeathMarch.init(_scene, _camera); } catch (e) {}
+      try { if (window.BankRobbery && BankRobbery.init) BankRobbery.init(_scene, _camera); } catch (e) {}
+      try { if (window.UndergroundArena && UndergroundArena.init) UndergroundArena.init(_scene, _camera); } catch (e) {}
+      try { if (window.AirfieldAssault && AirfieldAssault.init) AirfieldAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.OilPlatformFire && OilPlatformFire.init) OilPlatformFire.init(_scene, _camera); } catch (e) {}
+      try { if (window.DamControl && DamControl.init) DamControl.init(_scene, _camera); } catch (e) {}
+      try { if (window.ConcertHall && ConcertHall.init) ConcertHall.init(_scene, _camera); } catch (e) {}
+      try { if (window.SewerEscape && SewerEscape.init) SewerEscape.init(_scene, _camera); } catch (e) {}
+      try { if (window.HauntedGalleon && HauntedGalleon.init) HauntedGalleon.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9263,6 +9271,14 @@ const GameManager = (function () {
       if (window.JungleShrine) JungleShrine.update(delta);
       if (window.LaserGrid) LaserGrid.update(delta);
       if (window.DeathMarch) DeathMarch.update(delta);
+      if (window.BankRobbery) BankRobbery.update(delta);
+      if (window.UndergroundArena) UndergroundArena.update(delta);
+      if (window.AirfieldAssault) AirfieldAssault.update(delta);
+      if (window.OilPlatformFire) OilPlatformFire.update(delta);
+      if (window.DamControl) DamControl.update(delta);
+      if (window.ConcertHall) ConcertHall.update(delta);
+      if (window.SewerEscape) SewerEscape.update(delta);
+      if (window.HauntedGalleon) HauntedGalleon.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
