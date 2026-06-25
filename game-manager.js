@@ -10484,6 +10484,14 @@ const GameManager = (function () {
     if (window.DouneCastle) DouneCastle.update(delta);
     if (window.GlamisCastle) GlamisCastle.update(delta);
     if (window.DunnottarCastle) DunnottarCastle.update(delta);
+    if (window.BlairCastle) BlairCastle.update(delta);
+    if (window.CraigmillarCastle) CraigmillarCastle.update(delta);
+    if (window.TantallonCastle) TantallonCastle.update(delta);
+    if (window.DirletonCastle) DirletonCastle.update(delta);
+    if (window.SweetheartAbbey) SweetheartAbbey.update(delta);
+    if (window.DunkeldCathedral) DunkeldCathedral.update(delta);
+    if (window.DrumlanrigCastle) DrumlanrigCastle.update(delta);
+    if (window.ThreeaveCastle) ThreeaveCastle.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
