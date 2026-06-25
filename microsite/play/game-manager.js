@@ -10153,6 +10153,14 @@ const GameManager = (function () {
     if (window.FirthPost) FirthPost.update(delta);
     if (window.KnockCamp) KnockCamp.update(delta);
     if (window.CorrieBase) CorrieBase.update(delta);
+    if (window.LochDock) LochDock.update(delta);
+    if (window.StrathKeep) StrathKeep.update(delta);
+    if (window.KyleCamp) KyleCamp.update(delta);
+    if (window.TarbetBase) TarbetBase.update(delta);
+    if (window.RannochDock) RannochDock.update(delta);
+    if (window.TrossachPost) TrossachPost.update(delta);
+    if (window.AvonKeep) AvonKeep.update(delta);
+    if (window.NessCamp) NessCamp.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
