@@ -1,717 +1,563 @@
-var window = window || {};
-
 window.NavalYard = (function() {
   'use strict';
 
+  var objects = [];
+  var enemies = [];
+  var animations = [];
   var scene = null;
   var camera = null;
-  var sceneObjects = [];
-  var enemies = [];
-  var weldingParticles = [];
-  var crane = null;
-  var craneMissiles = [];
-  var craneHook = null;
-  var hullSections = [];
-  var missileBunker = null;
-  var launchRamp = null;
-  var launchWater = null;
-  var barracksLights = [];
-  var bunkerLight = null;
-  var elapsedTime = 0;
-  var hudElement = null;
-  var gameState = {
-    shipHullProgress: 0,
-    maxProgress: 100,
-    workersDefeated: 0,
-    maxWorkers: 12,
-    missilesSecured: 0,
-    maxMissiles: 8
-  };
 
-  function createDrydockDepression() {
-    // Large sunken drydock basin
-    var drydockGeometry = new THREE.BoxGeometry(40, 8, 50);
-    var drydockMaterial = new THREE.MeshStandardMaterial({ color: 0x4466AA, roughness: 0.6 });
-    var drydock = new THREE.Mesh(drydockGeometry, drydockMaterial);
-    drydock.position.set(0, -6, 0);
-    drydock.castShadow = true;
-    drydock.receiveShadow = true;
-    scene.add(drydock);
-    sceneObjects.push(drydock);
+  var NAVAL_GRAY = 0x5A6B7A;
+  var CONCRETE = 0x888888;
+  var RUST = 0x8B4513;
+  var TORPEDO_GREEN = 0x336633;
+  var WATER_BLUE = 0x1A4A7A;
+  var WARNING_YELLOW = 0xFFCC00;
 
-    // Drydock walls
-    var wallGeometry = new THREE.BoxGeometry(42, 1, 52);
-    var wallMaterial = new THREE.MeshStandardMaterial({ color: 0x555533, roughness: 0.8 });
-    var wallNorth = new THREE.Mesh(wallGeometry, wallMaterial);
-    wallNorth.position.set(0, -2, -27);
-    wallNorth.castShadow = true;
-    wallNorth.receiveShadow = true;
-    scene.add(wallNorth);
-    sceneObjects.push(wallNorth);
+  function createDryDock() {
+    var dockGroup = new THREE.Group();
 
-    var wallSouth = new THREE.Mesh(wallGeometry, wallMaterial);
-    wallSouth.position.set(0, -2, 27);
-    wallSouth.castShadow = true;
-    wallSouth.receiveShadow = true;
-    scene.add(wallSouth);
-    sceneObjects.push(wallSouth);
+    // Main dry dock pit - massive sunken rectangular cavity
+    var pitDepth = 80;
+    var pitWidth = 120;
+    var pitLength = 200;
+
+    // Pit floor
+    var floorGeo = new THREE.BoxGeometry(pitWidth, 2, pitLength);
+    var floorMat = new THREE.MeshStandardMaterial({ color: CONCRETE, roughness: 0.8 });
+    var floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.y = -pitDepth / 2;
+    dockGroup.add(floor);
+    objects.push(floor);
+
+    // Pit walls (4 walls)
+    var wallThickness = 5;
+    var wallHeight = pitDepth;
+
+    // Front wall
+    var frontWallGeo = new THREE.BoxGeometry(pitWidth + 2 * wallThickness, wallHeight, wallThickness);
+    var wallMat = new THREE.MeshStandardMaterial({ color: CONCRETE, roughness: 0.7 });
+    var frontWall = new THREE.Mesh(frontWallGeo, wallMat);
+    frontWall.position.z = pitLength / 2;
+    frontWall.position.y = -pitDepth / 2;
+    dockGroup.add(frontWall);
+    objects.push(frontWall);
+
+    // Back wall
+    var backWall = new THREE.Mesh(frontWallGeo, wallMat);
+    backWall.position.z = -pitLength / 2;
+    backWall.position.y = -pitDepth / 2;
+    dockGroup.add(backWall);
+    objects.push(backWall);
+
+    // Left wall
+    var sideWallGeo = new THREE.BoxGeometry(wallThickness, wallHeight, pitLength);
+    var leftWall = new THREE.Mesh(sideWallGeo, wallMat);
+    leftWall.position.x = -pitWidth / 2;
+    leftWall.position.y = -pitDepth / 2;
+    dockGroup.add(leftWall);
+    objects.push(leftWall);
+
+    // Right wall
+    var rightWall = new THREE.Mesh(sideWallGeo, wallMat);
+    rightWall.position.x = pitWidth / 2;
+    rightWall.position.y = -pitDepth / 2;
+    dockGroup.add(rightWall);
+    objects.push(rightWall);
+
+    return dockGroup;
   }
 
   function createWarshipHull() {
-    // Main hull skeleton - large box frame
-    var mainHullGeometry = new THREE.BoxGeometry(6, 4, 25);
-    var hullMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.7, roughness: 0.3 });
-    var mainHull = new THREE.Mesh(mainHullGeometry, hullMaterial);
-    mainHull.position.set(0, -4, 0);
-    mainHull.castShadow = true;
-    mainHull.receiveShadow = true;
-    scene.add(mainHull);
-    sceneObjects.push(mainHull);
-    hullSections.push(mainHull);
+    var hullGroup = new THREE.Group();
+    hullGroup.position.set(0, -25, 0);
 
-    // Bow section (detached)
-    var bowGeometry = new THREE.BoxGeometry(5, 3.5, 6);
-    var bowMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.7, roughness: 0.3 });
-    var bow = new THREE.Mesh(bowGeometry, bowMaterial);
-    bow.position.set(12, -3, -20);
-    bow.castShadow = true;
-    bow.receiveShadow = true;
-    scene.add(bow);
-    sceneObjects.push(bow);
-    hullSections.push(bow);
+    // Main hull - large curved section approximated with BoxGeometry
+    var hullGeo = new THREE.BoxGeometry(60, 40, 150);
+    var hullMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY, roughness: 0.6, metalness: 0.4 });
+    var hull = new THREE.Mesh(hullGeo, hullMat);
+    hull.castShadow = true;
+    hullGroup.add(hull);
+    objects.push(hull);
 
-    // Stern section
-    var sternGeometry = new THREE.BoxGeometry(5, 3, 5);
-    var stern = new THREE.Mesh(sternGeometry, bowMaterial);
-    stern.position.set(-14, -3.5, 18);
-    stern.castShadow = true;
-    stern.receiveShadow = true;
-    scene.add(stern);
-    sceneObjects.push(stern);
-    hullSections.push(stern);
+    // Superstructure tower
+    var towerGeo = new THREE.BoxGeometry(25, 45, 20);
+    var towerMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY, roughness: 0.5, metalness: 0.5 });
+    var tower = new THREE.Mesh(towerGeo, towerMat);
+    tower.position.set(-15, 25, -50);
+    tower.castShadow = true;
+    hullGroup.add(tower);
+    objects.push(tower);
 
-    // Keel blocks supporting hull
-    var keelBlockGeometry = new THREE.BoxGeometry(1.5, 1, 25);
-    var keelMaterial = new THREE.MeshStandardMaterial({ color: 0x555533, roughness: 0.9 });
-    var keelBlock1 = new THREE.Mesh(keelBlockGeometry, keelMaterial);
-    keelBlock1.position.set(-2.5, -6.5, 0);
-    scene.add(keelBlock1);
-    sceneObjects.push(keelBlock1);
+    // Gun turret base
+    var turretBaseGeo = new THREE.CylinderGeometry(12, 15, 8, 16);
+    var turretMat = new THREE.MeshStandardMaterial({ color: RUST, roughness: 0.7 });
+    var turretBase = new THREE.Mesh(turretBaseGeo, turretMat);
+    turretBase.position.set(20, 22, 60);
+    turretBase.castShadow = true;
+    hullGroup.add(turretBase);
+    objects.push(turretBase);
 
-    var keelBlock2 = new THREE.Mesh(keelBlockGeometry, keelMaterial);
-    keelBlock2.position.set(2.5, -6.5, 0);
-    scene.add(keelBlock2);
-    sceneObjects.push(keelBlock2);
+    // Gun barrel
+    var barrelGeo = new THREE.CylinderGeometry(3, 3, 40, 8);
+    var barrelMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.9 });
+    var barrel = new THREE.Mesh(barrelGeo, barrelMat);
+    barrel.rotation.z = Math.PI / 6;
+    barrel.position.set(25, 28, 70);
+    hullGroup.add(barrel);
+    objects.push(barrel);
 
-    // Hull plate sections leaning
-    var plateMaterial = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.5 });
-    var plateGeometry = new THREE.BoxGeometry(8, 0.3, 6);
-    var plate1 = new THREE.Mesh(plateGeometry, plateMaterial);
-    plate1.position.set(-12, -1, -15);
-    plate1.rotation.z = Math.PI / 6;
-    plate1.castShadow = true;
-    scene.add(plate1);
-    sceneObjects.push(plate1);
+    // Torpedo tubes (3 visible)
+    for (var i = 0; i < 3; i++) {
+      var torpedoTubeGeo = new THREE.CylinderGeometry(4, 4, 15, 8);
+      var tubeMat = new THREE.MeshStandardMaterial({ color: RUST, roughness: 0.6 });
+      var tube = new THREE.Mesh(torpedoTubeGeo, tubeMat);
+      tube.rotation.z = Math.PI / 2;
+      tube.position.set(-25, 5 + i * 8, 0);
+      hullGroup.add(tube);
+      objects.push(tube);
+    }
 
-    var plate2 = new THREE.Mesh(plateGeometry, plateMaterial);
-    plate2.position.set(10, -1, 10);
-    plate2.rotation.z = -Math.PI / 5;
-    plate2.castShadow = true;
-    scene.add(plate2);
-    sceneObjects.push(plate2);
+    return hullGroup;
   }
 
-  function createScaffoldingTower() {
-    // Tall scaffolding frame around hull
-    var frameGeometry = new THREE.CylinderGeometry(0.15, 0.15, 12, 8);
-    var frameMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.7 });
+  function createOverheadCrane() {
+    var craneGroup = new THREE.Group();
+    craneGroup.position.set(30, 20, -80);
 
-    var positions = [
-      [-5, 0, -12],
-      [5, 0, -12],
-      [-5, 0, 12],
-      [5, 0, 12]
-    ];
+    // Main rail beam (horizontal)
+    var railGeo = new THREE.BoxGeometry(150, 4, 8);
+    var railMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY, roughness: 0.6, metalness: 0.5 });
+    var rail = new THREE.Mesh(railGeo, railMat);
+    rail.position.y = 35;
+    craneGroup.add(rail);
+    objects.push(rail);
 
-    positions.forEach(function(pos) {
-      var post = new THREE.Mesh(frameGeometry, frameMaterial);
-      post.position.set(pos[0], pos[1], pos[2]);
-      post.castShadow = true;
-      post.receiveShadow = true;
-      scene.add(post);
-      sceneObjects.push(post);
-    });
-
-    // Horizontal scaffold beams
-    var beamGeometry = new THREE.CylinderGeometry(0.12, 0.12, 10, 8);
-    var beam1 = new THREE.Mesh(beamGeometry, frameMaterial);
-    beam1.rotation.z = Math.PI / 2;
-    beam1.position.set(0, 3, -12);
-    beam1.castShadow = true;
-    scene.add(beam1);
-    sceneObjects.push(beam1);
-
-    var beam2 = new THREE.Mesh(beamGeometry, frameMaterial);
-    beam2.rotation.z = Math.PI / 2;
-    beam2.position.set(0, 3, 12);
-    beam2.castShadow = true;
-    scene.add(beam2);
-    sceneObjects.push(beam2);
-
-    var beam3 = new THREE.Mesh(beamGeometry, frameMaterial);
-    beam3.rotation.x = Math.PI / 2;
-    beam3.position.set(0, 3, 0);
-    beam3.castShadow = true;
-    scene.add(beam3);
-    sceneObjects.push(beam3);
-  }
-
-  function createMobileCrane() {
-    var group = new THREE.Group();
-
-    // Base carriage on rails
-    var carriageGeometry = new THREE.BoxGeometry(3, 1, 2);
-    var carriageMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.6 });
-    var carriage = new THREE.Mesh(carriageGeometry, carriageMaterial);
-    carriage.position.y = 0.5;
-    carriage.castShadow = true;
-    carriage.receiveShadow = true;
-    group.add(carriage);
-
-    // Vertical mast
-    var mastGeometry = new THREE.CylinderGeometry(0.2, 0.2, 10, 12);
-    var mastMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.2 });
-    var mast = new THREE.Mesh(mastGeometry, mastMaterial);
-    mast.position.y = 5.5;
-    mast.castShadow = true;
-    mast.receiveShadow = true;
-    group.add(mast);
-
-    // Jib arm extending
-    var jibGeometry = new THREE.CylinderGeometry(0.15, 0.15, 8, 8);
-    var jib = new THREE.Mesh(jibGeometry, mastMaterial);
-    jib.rotation.z = Math.PI / 2;
-    jib.position.set(4, 9.5, 0);
-    jib.castShadow = true;
-    jib.receiveShadow = true;
-    group.add(jib);
-
-    // Hook and cable
-    var hookGeometry = new THREE.BoxGeometry(0.4, 0.6, 0.4);
-    var hookMaterial = new THREE.MeshStandardMaterial({ color: 0xAAAAAA, metalness: 0.9 });
-    craneHook = new THREE.Mesh(hookGeometry, hookMaterial);
-    craneHook.position.set(4, 6, 0);
-    craneHook.castShadow = true;
-    craneHook.receiveShadow = true;
-    group.add(craneHook);
-
-    // Cable (thin line)
-    var cableGeometry = new THREE.BoxGeometry(0.05, 3.5, 0.05);
-    var cableMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8 });
-    var cable = new THREE.Mesh(cableGeometry, cableMaterial);
-    cable.position.set(4, 7.8, 0);
-    group.add(cable);
-
-    group.position.set(-15, -2, 0);
-    group.craneData = { traversePos: 0, hookHeight: 6 };
-    scene.add(group);
-    sceneObjects.push(group);
-    crane = group;
-  }
-
-  function createPartsWarehouse() {
-    // Large industrial building
-    var warehouseGeometry = new THREE.BoxGeometry(15, 6, 12);
-    var warehouseMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.7 });
-    var warehouse = new THREE.Mesh(warehouseGeometry, warehouseMaterial);
-    warehouse.position.set(20, 2.5, -18);
-    warehouse.castShadow = true;
-    warehouse.receiveShadow = true;
-    scene.add(warehouse);
-    sceneObjects.push(warehouse);
-
-    // Warehouse roof
-    var roofGeometry = new THREE.BoxGeometry(16, 0.5, 13);
-    var roofMaterial = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.8 });
-    var roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.set(20, 6.25, -18);
-    roof.castShadow = true;
-    roof.receiveShadow = true;
-    scene.add(roof);
-    sceneObjects.push(roof);
-
-    // Warehouse doors
-    var doorGeometry = new THREE.BoxGeometry(3, 5, 0.3);
-    var doorMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
-    var door1 = new THREE.Mesh(doorGeometry, doorMaterial);
-    door1.position.set(15, 2.5, -24);
-    scene.add(door1);
-    sceneObjects.push(door1);
-
-    var door2 = new THREE.Mesh(doorGeometry, doorMaterial);
-    door2.position.set(25, 2.5, -24);
-    scene.add(door2);
-    sceneObjects.push(door2);
-  }
-
-  function createLaunchRamp() {
-    // Inclined ramp for ship launch
-    var rampGeometry = new THREE.BoxGeometry(25, 1, 8);
-    var rampMaterial = new THREE.MeshStandardMaterial({ color: 0x555533, roughness: 0.8 });
-    launchRamp = new THREE.Mesh(rampGeometry, rampMaterial);
-    launchRamp.position.set(0, 0, 28);
-    launchRamp.rotation.x = Math.PI / 12;
-    launchRamp.castShadow = true;
-    launchRamp.receiveShadow = true;
-    scene.add(launchRamp);
-    sceneObjects.push(launchRamp);
-    launchRamp.rampData = { waterShimmer: 0 };
-
-    // Water at launch ramp bottom
-    var waterGeometry = new THREE.BoxGeometry(30, 1.5, 12);
-    var waterMaterial = new THREE.MeshStandardMaterial({ color: 0x4466AA, roughness: 0.5, metalness: 0.2 });
-    launchWater = new THREE.Mesh(waterGeometry, waterMaterial);
-    launchWater.position.set(0, -2.5, 35);
-    launchWater.receiveShadow = true;
-    scene.add(launchWater);
-    sceneObjects.push(launchWater);
-    launchWater.waterData = { shimmerTime: 0 };
-  }
-
-  function createWorkerBarracks() {
-    // Modular barracks buildings
-    var barrackGeometry = new THREE.BoxGeometry(8, 4, 6);
-    var barrackMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.7 });
-
-    var barrack1 = new THREE.Mesh(barrackGeometry, barrackMaterial);
-    barrack1.position.set(-25, 1.5, -10);
-    barrack1.castShadow = true;
-    barrack1.receiveShadow = true;
-    scene.add(barrack1);
-    sceneObjects.push(barrack1);
-
-    var barrack2 = new THREE.Mesh(barrackGeometry, barrackMaterial);
-    barrack2.position.set(-25, 1.5, 5);
-    barrack2.castShadow = true;
-    barrack2.receiveShadow = true;
-    scene.add(barrack2);
-    sceneObjects.push(barrack2);
-
-    // Barracks lights (windows with emissive material)
-    var lightGeometry = new THREE.BoxGeometry(1, 0.8, 0.2);
-    var lightMaterial1 = new THREE.MeshStandardMaterial({ color: 0xFFFF00, emissive: 0xFFFF00, emissiveIntensity: 0.6 });
-    var lightMaterial2 = new THREE.MeshStandardMaterial({ color: 0x444444, emissive: 0x000000, emissiveIntensity: 0 });
-
+    // Support columns (4)
+    var columnGeo = new THREE.BoxGeometry(8, 50, 8);
+    var columnMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY, metalness: 0.6 });
+    var positions = [[-60, 17], [60, 17], [-60, -17], [60, -17]];
     for (var i = 0; i < 4; i++) {
-      var light = new THREE.Mesh(lightGeometry, lightMaterial1);
-      light.position.set(-29 + i * 2.5, 2.5, -10.2);
-      light.lightData = { on: true, toggleTime: 0 };
-      scene.add(light);
-      sceneObjects.push(light);
-      barracksLights.push(light);
+      var col = new THREE.Mesh(columnGeo, columnMat);
+      col.position.set(positions[i][0], 17, positions[i][1]);
+      craneGroup.add(col);
+      objects.push(col);
     }
+
+    // Crane arm (rotates)
+    var armGeo = new THREE.BoxGeometry(12, 4, 80);
+    var armMat = new THREE.MeshStandardMaterial({ color: WARNING_YELLOW, roughness: 0.5 });
+    var arm = new THREE.Mesh(armGeo, armMat);
+    arm.position.set(0, 37, 0);
+    craneGroup.add(arm);
+    objects.push(arm);
+    arm.animId = 'crane_arm';
+
+    // Crane hook
+    var hookGeo = new THREE.BoxGeometry(6, 15, 6);
+    var hookMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8 });
+    var hook = new THREE.Mesh(hookGeo, hookMat);
+    hook.position.set(0, 25, 30);
+    craneGroup.add(hook);
+    objects.push(hook);
+
+    // Cable (vertical line segments)
+    var cableGeo = new THREE.BufferGeometry();
+    cableGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+      0, 37, 30, 0, 25, 30
+    ]), 3));
+    var cableMat = new THREE.LineBasicMaterial({ color: 0x444444, linewidth: 2 });
+    var cable = new THREE.LineSegments(cableGeo, cableMat);
+    craneGroup.add(cable);
+
+    return craneGroup;
   }
 
-  function createMissileBunker() {
-    // Underground missile storage bunker
-    var bunkerGeometry = new THREE.BoxGeometry(12, 4, 8);
-    var bunkerMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.85 });
-    missileBunker = new THREE.Mesh(bunkerGeometry, bunkerMaterial);
-    missileBunker.position.set(-25, 1.5, 20);
-    missileBunker.castShadow = true;
-    missileBunker.receiveShadow = true;
-    scene.add(missileBunker);
-    sceneObjects.push(missileBunker);
-    missileBunker.bunkerData = { blinkTime: 0 };
+  function createTorpedoRacks() {
+    var rackGroup = new THREE.Group();
+    rackGroup.position.set(-50, -10, 40);
 
-    // Bunker security light (red blinker)
-    var secLightGeometry = new THREE.SphereGeometry(0.4, 16, 16);
-    var secLightMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000, emissive: 0xFF0000, emissiveIntensity: 0.8 });
-    bunkerLight = new THREE.Mesh(secLightGeometry, secLightMaterial);
-    bunkerLight.position.set(-25, 4, 20);
-    bunkerLight.castShadow = true;
-    scene.add(bunkerLight);
-    sceneObjects.push(bunkerLight);
-    bunkerLight.lightData = { blinkTime: 0 };
-
-    // Anti-ship missiles in storage
-    var missileGeometry = new THREE.ConeGeometry(0.3, 3, 8);
-    var missileMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000, roughness: 0.6 });
-
-    for (var j = 0; j < 8; j++) {
-      var missile = new THREE.Mesh(missileGeometry, missileMaterial);
-      missile.position.set(-30 + (j % 4) * 2, 2 + Math.floor(j / 4) * 1.5, 20);
-      missile.castShadow = true;
-      missile.receiveShadow = true;
-      scene.add(missile);
-      sceneObjects.push(missile);
-      craneMissiles.push(missile);
+    // 4 racks with 5 torpedoes each
+    for (var r = 0; r < 4; r++) {
+      for (var t = 0; t < 5; t++) {
+        var torpGeo = new THREE.CylinderGeometry(3, 2.5, 30, 8);
+        var torpMat = new THREE.MeshStandardMaterial({ color: TORPEDO_GREEN, roughness: 0.4, metalness: 0.3 });
+        var torp = new THREE.Mesh(torpGeo, torpMat);
+        torp.rotation.z = Math.PI / 2;
+        torp.position.set(r * 20, t * 10, 0);
+        rackGroup.add(torp);
+        objects.push(torp);
+      }
     }
-  }
 
-  function createWeldingShop() {
-    // Fabrication shop with welding equipment
-    var shopGeometry = new THREE.BoxGeometry(10, 5, 8);
-    var shopMaterial = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.7 });
-    var shop = new THREE.Mesh(shopGeometry, shopMaterial);
-    shop.position.set(15, 2.5, 12);
-    shop.castShadow = true;
-    shop.receiveShadow = true;
-    scene.add(shop);
-    sceneObjects.push(shop);
-
-    // Welding torch (cylinder)
-    var torchGeometry = new THREE.CylinderGeometry(0.1, 0.1, 2, 8);
-    var torchMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8 });
-    var torch = new THREE.Mesh(torchGeometry, torchMaterial);
-    torch.position.set(15, 3, 12);
-    torch.castShadow = true;
-    scene.add(torch);
-    sceneObjects.push(torch);
-  }
-
-  function createWeldingSparks() {
-    // Emissive welding spark particles
-    var sparkGeometry = new THREE.SphereGeometry(0.15, 8, 8);
-    var sparkMaterial = new THREE.MeshStandardMaterial({ color: 0xFF4400, emissive: 0xFF4400, emissiveIntensity: 1.0 });
-
-    for (var i = 0; i < 30; i++) {
-      var spark = new THREE.Mesh(sparkGeometry, sparkMaterial);
-      spark.position.set(
-        15 + Math.random() * 2 - 1,
-        3 + Math.random() * 2,
-        12 + Math.random() * 2 - 1
-      );
-      spark.scale.set(0.3, 0.3, 0.3);
-      spark.castShadow = true;
-      scene.add(spark);
-      sceneObjects.push(spark);
-      weldingParticles.push({
-        mesh: spark,
-        vx: Math.random() * 2 - 1,
-        vy: Math.random() * 3 + 0.5,
-        vz: Math.random() * 2 - 1,
-        life: 0,
-        maxLife: 1.5
-      });
+    // Rack frame
+    for (var i = 0; i < 6; i++) {
+      var frameGeo = new THREE.BoxGeometry(90, 2, 2);
+      var frameMat = new THREE.MeshStandardMaterial({ color: RUST });
+      var frame = new THREE.Mesh(frameGeo, frameMat);
+      frame.position.y = i * 10 - 25;
+      rackGroup.add(frame);
+      objects.push(frame);
     }
+
+    return rackGroup;
   }
 
-  function createRopeBarriers() {
-    // Rope barriers around dangerous areas
-    var ropeGeometry = new THREE.CylinderGeometry(0.08, 0.08, 1, 6);
-    var ropeMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 });
+  function createFuelDepot() {
+    var depotGroup = new THREE.Group();
+    depotGroup.position.set(60, -15, -60);
 
-    var positions = [
-      [-12, 0.5, -18],
-      [-12, 0.5, 18],
-      [12, 0.5, -18],
-      [12, 0.5, 18]
-    ];
+    // 3 large cylindrical fuel tanks
+    for (var i = 0; i < 3; i++) {
+      var tankGeo = new THREE.CylinderGeometry(15, 15, 35, 16);
+      var tankMat = new THREE.MeshStandardMaterial({ color: RUST, roughness: 0.7 });
+      var tank = new THREE.Mesh(tankGeo, tankMat);
+      tank.position.x = i * 35 - 35;
+      tank.castShadow = true;
+      depotGroup.add(tank);
+      objects.push(tank);
 
-    positions.forEach(function(pos) {
-      var rope = new THREE.Mesh(ropeGeometry, ropeMaterial);
-      rope.position.set(pos[0], pos[1], pos[2]);
-      scene.add(rope);
-      sceneObjects.push(rope);
-    });
+      // Tank top cap
+      var capGeo = new THREE.CylinderGeometry(15, 15, 3, 16);
+      var capMat = new THREE.MeshStandardMaterial({ color: WARNING_YELLOW });
+      var cap = new THREE.Mesh(capGeo, capMat);
+      cap.position.set(i * 35 - 35, 19, 0);
+      depotGroup.add(cap);
+      objects.push(cap);
+
+      // Vent pipe with animation
+      var ventGeo = new THREE.CylinderGeometry(2, 2, 15, 8);
+      var ventMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+      var vent = new THREE.Mesh(ventGeo, ventMat);
+      vent.position.set(i * 35 - 35, 27, 0);
+      depotGroup.add(vent);
+      objects.push(vent);
+      vent.animId = 'vent_' + i;
+    }
+
+    // Pump station
+    var pumpGeo = new THREE.BoxGeometry(20, 8, 10);
+    var pumpMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY });
+    var pump = new THREE.Mesh(pumpGeo, pumpMat);
+    pump.position.set(0, -12, 20);
+    depotGroup.add(pump);
+    objects.push(pump);
+
+    return depotGroup;
+  }
+
+  function createSubmarinePen() {
+    var penGroup = new THREE.Group();
+    penGroup.position.set(-60, -20, 80);
+
+    // Arched tunnel walls (approximated with tall BoxGeometry)
+    var leftWallGeo = new THREE.BoxGeometry(8, 50, 120);
+    var wallMat = new THREE.MeshStandardMaterial({ color: CONCRETE, roughness: 0.8 });
+    var leftWall = new THREE.Mesh(leftWallGeo, wallMat);
+    leftWall.position.x = -35;
+    penGroup.add(leftWall);
+    objects.push(leftWall);
+
+    var rightWall = new THREE.Mesh(leftWallGeo, wallMat);
+    rightWall.position.x = 35;
+    penGroup.add(rightWall);
+    objects.push(rightWall);
+
+    // Tunnel roof
+    var roofGeo = new THREE.BoxGeometry(78, 8, 120);
+    var roofMat = new THREE.MeshStandardMaterial({ color: CONCRETE, roughness: 0.7 });
+    var roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.y = 25;
+    penGroup.add(roof);
+    objects.push(roof);
+
+    // Submarine hull (docked)
+    var subHullGeo = new THREE.BoxGeometry(30, 20, 100);
+    var subMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY, metalness: 0.7 });
+    var subHull = new THREE.Mesh(subHullGeo, subMat);
+    subHull.position.set(0, -5, 0);
+    subHull.castShadow = true;
+    penGroup.add(subHull);
+    objects.push(subHull);
+
+    // Submarine conning tower (command center)
+    var towerGeo = new THREE.BoxGeometry(12, 20, 15);
+    var towerMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY, roughness: 0.6 });
+    var tower = new THREE.Mesh(towerGeo, towerMat);
+    tower.position.set(0, 8, -20);
+    penGroup.add(tower);
+    objects.push(tower);
+
+    // Periscope (rising/falling animation)
+    var periGeo = new THREE.CylinderGeometry(1.5, 1.5, 8, 8);
+    var periMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.9 });
+    var periscope = new THREE.Mesh(periGeo, periMat);
+    periscope.position.set(0, 16, -20);
+    penGroup.add(periscope);
+    objects.push(periscope);
+    periscope.animId = 'periscope';
+
+    return penGroup;
+  }
+
+  function createCommandPier() {
+    var pierGroup = new THREE.Group();
+    pierGroup.position.set(0, 5, -100);
+
+    // Pier deck
+    var deckGeo = new THREE.BoxGeometry(80, 3, 60);
+    var deckMat = new THREE.MeshStandardMaterial({ color: CONCRETE, roughness: 0.8 });
+    var deck = new THREE.Mesh(deckGeo, deckMat);
+    pierGroup.add(deck);
+    objects.push(deck);
+
+    // Support pilings (6)
+    var pilingGeo = new THREE.CylinderGeometry(4, 4, 30, 8);
+    var pilingMat = new THREE.MeshStandardMaterial({ color: RUST, roughness: 0.8 });
+    var pilingPositions = [[-25, -25], [-25, 25], [0, -25], [0, 25], [25, -25], [25, 25]];
+    for (var i = 0; i < 6; i++) {
+      var piling = new THREE.Mesh(pilingGeo, pilingMat);
+      piling.position.set(pilingPositions[i][0], -15, pilingPositions[i][1]);
+      pierGroup.add(piling);
+      objects.push(piling);
+    }
+
+    // Command building
+    var bldgGeo = new THREE.BoxGeometry(30, 20, 25);
+    var bldgMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY });
+    var building = new THREE.Mesh(bldgGeo, bldgMat);
+    building.position.set(-30, 12, 20);
+    building.castShadow = true;
+    pierGroup.add(building);
+    objects.push(building);
+
+    // Radar dome
+    var radarGeo = new THREE.SphereGeometry(8, 16, 16);
+    var radarMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.3 });
+    var radar = new THREE.Mesh(radarGeo, radarMat);
+    radar.position.set(-30, 30, 20);
+    radar.castShadow = true;
+    pierGroup.add(radar);
+    objects.push(radar);
+    radar.animId = 'radar';
+
+    return pierGroup;
+  }
+
+  function createGangplanks() {
+    var plankGroup = new THREE.Group();
+
+    // 2 metal gangplanks connecting to dry dock
+    for (var i = 0; i < 2; i++) {
+      var plankGeo = new THREE.BoxGeometry(8, 2, 50);
+      var plankMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY, roughness: 0.5 });
+      var plank = new THREE.Mesh(plankGeo, plankMat);
+      plank.rotation.z = Math.PI / 8;
+      plank.position.set((i - 0.5) * 40, 5, -30);
+      plank.castShadow = true;
+      plankGroup.add(plank);
+      objects.push(plank);
+    }
+
+    return plankGroup;
+  }
+
+  function createSearchlights() {
+    var lightGroup = new THREE.Group();
+
+    // 2 searchlights (rotating beams)
+    for (var i = 0; i < 2; i++) {
+      var baseGeo = new THREE.CylinderGeometry(5, 6, 4, 16);
+      var baseMat = new THREE.MeshStandardMaterial({ color: NAVAL_GRAY });
+      var base = new THREE.Mesh(baseGeo, baseMat);
+      base.position.set((i - 0.5) * 60, 30, -80);
+      lightGroup.add(base);
+      objects.push(base);
+
+      // Light fixture
+      var fixtureGeo = new THREE.CylinderGeometry(4, 4, 3, 16);
+      var fixtureMat = new THREE.MeshStandardMaterial({ color: RUST });
+      var fixture = new THREE.Mesh(fixtureGeo, fixtureMat);
+      fixture.position.set((i - 0.5) * 60, 33, -80);
+      lightGroup.add(fixture);
+      objects.push(fixture);
+      fixture.animId = 'searchlight_' + i;
+    }
+
+    return lightGroup;
   }
 
   function createEnemies() {
-    // Shipyard workers (white box figures)
-    var positions = [
-      [-8, 0, 0],
-      [8, 0, -5],
-      [0, 0, 8],
-      [-20, 0, -12],
-      [18, 0, 15],
-      [-15, 0, 15],
-      [10, 0, -15],
-      [-5, 0, 20],
-      [25, 0, -8],
-      [-28, 0, -5],
-      [20, 0, 8],
-      [-18, 0, 0]
-    ];
+    enemies = [];
 
-    positions.forEach(function(pos) {
-      var group = new THREE.Group();
+    // Engineer at torpedo racks
+    enemies.push({
+      position: [-50, 0, 40],
+      type: 'engineer',
+      health: 30,
+      speed: 2.5,
+      pathIndex: 0
+    });
 
-      var bodyGeometry = new THREE.BoxGeometry(0.6, 1.5, 0.4);
-      var bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xF5F5F5, roughness: 0.8 });
-      var body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-      body.position.y = 0.75;
-      body.castShadow = true;
-      body.receiveShadow = true;
-      group.add(body);
+    // Guard on command pier
+    enemies.push({
+      position: [0, 10, -100],
+      type: 'guard',
+      health: 40,
+      speed: 2,
+      pathIndex: 0
+    });
 
-      var headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
-      var headMaterial = new THREE.MeshStandardMaterial({ color: 0xFFCDB2, roughness: 0.7 });
-      var head = new THREE.Mesh(headGeometry, headMaterial);
-      head.position.y = 1.8;
-      head.castShadow = true;
-      head.receiveShadow = true;
-      group.add(head);
+    // Technician in dry dock
+    enemies.push({
+      position: [30, -20, 0],
+      type: 'technician',
+      health: 25,
+      speed: 2,
+      pathIndex: 0
+    });
 
-      group.position.set(pos[0], pos[1], pos[2]);
-      group.enemyData = { health: 80, active: true, patrolPos: pos };
-      scene.add(group);
-      sceneObjects.push(group);
-      enemies.push(group);
+    // Engineer at fuel depot
+    enemies.push({
+      position: [60, 0, -60],
+      type: 'engineer',
+      health: 30,
+      speed: 2.5,
+      pathIndex: 0
+    });
+
+    // Guard in submarine pen
+    enemies.push({
+      position: [-60, -5, 80],
+      type: 'guard',
+      health: 40,
+      speed: 2,
+      pathIndex: 0
+    });
+
+    // Patrol guard (roaming)
+    enemies.push({
+      position: [0, -15, 0],
+      type: 'patrol',
+      health: 35,
+      speed: 3,
+      pathIndex: 0
     });
   }
 
-  function createTerrain() {
-    // Concrete ground around shipyard
-    var groundGeometry = new THREE.BoxGeometry(100, 0.5, 100);
-    var groundMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.95 });
-    var ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.position.y = -0.25;
-    ground.receiveShadow = true;
-    scene.add(ground);
-    sceneObjects.push(ground);
-  }
-
-  function updateHUD() {
-    if (!hudElement) return;
-    var hudText = 'HULL ASSEMBLY: ' + gameState.shipHullProgress + '%\n' +
-                  'WORKERS ELIMINATED: ' + gameState.workersDefeated + '/' + gameState.maxWorkers + '\n' +
-                  'MISSILES SECURED: ' + gameState.missilesSecured + '/' + gameState.maxMissiles;
-    hudElement.textContent = hudText;
-  }
-
-  function handleKeyDown(event) {
-    var now = Date.now();
-    if (event.key === 'a' || event.key === 'A') {
-      window.lastAKeyTime = now;
-    }
-    if (event.key === 'o' || event.key === 'O') {
-      if (!window.lastAKeyTime) window.lastAKeyTime = 0;
-      if (now - window.lastAKeyTime < 400) {
-        if (hudElement) {
-          hudElement.style.display = hudElement.style.display === 'none' ? 'block' : 'none';
-        }
-      }
-    }
-  }
-
-  function init(sceneRef, cameraRef) {
-    scene = sceneRef;
-    camera = cameraRef;
-    sceneObjects = [];
+  function init(sceneArg, cameraArg) {
+    scene = sceneArg;
+    camera = cameraArg;
+    objects = [];
     enemies = [];
-    weldingParticles = [];
-    hullSections = [];
-    craneMissiles = [];
-    barracksLights = [];
-    elapsedTime = 0;
-    gameState = {
-      shipHullProgress: 0,
-      maxProgress: 100,
-      workersDefeated: 0,
-      maxWorkers: 12,
-      missilesSecured: 0,
-      maxMissiles: 8
-    };
+    animations = [];
 
-    // Naval shipyard atmosphere
-    scene.background = new THREE.Color(0x8BA0B5);
-    scene.fog = new THREE.Fog(0x8BA0B5, 120, 200);
+    // Create all structures
+    var dryDock = createDryDock();
+    scene.add(dryDock);
 
-    // Lighting
-    var ambientLight = new THREE.AmbientLight(0xCCCCDD, 0.7);
-    scene.add(ambientLight);
+    var warship = createWarshipHull();
+    scene.add(warship);
 
-    var directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.9);
-    directionalLight.position.set(50, 50, 40);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    scene.add(directionalLight);
+    var crane = createOverheadCrane();
+    scene.add(crane);
 
-    // Create all level objects
-    createTerrain();
-    createDrydockDepression();
-    createWarshipHull();
-    createScaffoldingTower();
-    createMobileCrane();
-    createPartsWarehouse();
-    createLaunchRamp();
-    createWorkerBarracks();
-    createMissileBunker();
-    createWeldingShop();
-    createWeldingSparks();
-    createRopeBarriers();
+    var torpedos = createTorpedoRacks();
+    scene.add(torpedos);
+
+    var fuel = createFuelDepot();
+    scene.add(fuel);
+
+    var sub = createSubmarinePen();
+    scene.add(sub);
+
+    var pier = createCommandPier();
+    scene.add(pier);
+
+    var planks = createGangplanks();
+    scene.add(planks);
+
+    var lights = createSearchlights();
+    scene.add(lights);
+
+    // Create enemies
     createEnemies();
 
-    // HUD setup
-    if (!hudElement) {
-      hudElement = document.createElement('div');
-      hudElement.id = 'naval-yard-hud';
-      hudElement.style.position = 'fixed';
-      hudElement.style.top = '20px';
-      hudElement.style.right = '20px';
-      hudElement.style.color = '#00FF00';
-      hudElement.style.fontFamily = 'monospace';
-      hudElement.style.fontSize = '16px';
-      hudElement.style.lineHeight = '1.5';
-      hudElement.style.zIndex = '1000';
-      hudElement.style.textShadow = '0 0 10px rgba(0,255,0,0.5)';
-      document.body.appendChild(hudElement);
-    }
+    // Water/ground plane
+    var waterGeo = new THREE.BoxGeometry(300, 1, 300);
+    var waterMat = new THREE.MeshStandardMaterial({ color: WATER_BLUE, roughness: 0.5 });
+    var water = new THREE.Mesh(waterGeo, waterMat);
+    water.position.y = -50;
+    scene.add(water);
+    objects.push(water);
 
-    updateHUD();
+    // Ambient light
+    var ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
 
-    // Key listener
-    document.addEventListener('keydown', handleKeyDown);
+    // Directional light for shadows
+    var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(50, 100, 50);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    scene.add(dirLight);
   }
 
   function update(delta) {
-    elapsedTime += delta;
+    var time = performance.now() * 0.001;
 
-    // Crane traversal on rails
-    if (crane) {
-      crane.craneData.traversePos += delta * 0.3;
-      var craneX = -15 + Math.sin(crane.craneData.traversePos) * 8;
-      crane.position.x = craneX;
-
-      // Hook bobbing
-      if (craneHook) {
-        craneHook.position.y = 6 + Math.sin(elapsedTime * 2) * 0.3;
+    // Animate crane arm (rotation around Y axis)
+    for (var i = 0; i < objects.length; i++) {
+      if (objects[i].animId === 'crane_arm') {
+        objects[i].rotation.y += delta * 0.5;
+      }
+      // Animate vent pipes (bobbing)
+      if (objects[i].animId && objects[i].animId.indexOf('vent_') === 0) {
+        objects[i].position.y += Math.sin(time * 2) * delta * 0.5;
+      }
+      // Animate submarine periscope (rising/falling)
+      if (objects[i].animId === 'periscope') {
+        objects[i].position.y = 16 + Math.sin(time * 0.8) * 3;
+      }
+      // Animate radar rotation
+      if (objects[i].animId === 'radar') {
+        objects[i].rotation.y += delta * 1.2;
+      }
+      // Animate searchlights
+      if (objects[i].animId && objects[i].animId.indexOf('searchlight_') === 0) {
+        objects[i].rotation.z += delta * 0.8;
       }
     }
 
-    // Welding sparks emissive burst
-    weldingParticles.forEach(function(p) {
-      p.mesh.position.x += p.vx * delta;
-      p.mesh.position.y += p.vy * delta;
-      p.mesh.position.z += p.vz * delta;
-      p.life += delta;
+    // Update enemy positions (simple patrol)
+    for (var e = 0; e < enemies.length; e++) {
+      var enemy = enemies[e];
+      var patrolDist = 30;
 
-      if (p.life > p.maxLife) {
-        p.life = 0;
-        p.mesh.position.set(
-          15 + Math.random() * 2 - 1,
-          3 + Math.random() * 2,
-          12 + Math.random() * 2 - 1
-        );
-      }
-
-      var fadeOut = Math.max(0, 1 - (p.life / p.maxLife));
-      p.mesh.material.emissiveIntensity = fadeOut * 0.8;
-      p.mesh.scale.set(0.3 * fadeOut, 0.3 * fadeOut, 0.3 * fadeOut);
-    });
-
-    // Hull sections slowly moving
-    hullSections.forEach(function(section, idx) {
-      section.position.y += Math.sin(elapsedTime * 0.5 + idx) * 0.0005;
-    });
-
-    // Barracks lights cycling on/off
-    barracksLights.forEach(function(light, idx) {
-      light.lightData.toggleTime += delta;
-      if (light.lightData.toggleTime > 2) {
-        light.lightData.toggleTime = 0;
-        light.lightData.on = !light.lightData.on;
-        if (light.lightData.on) {
-          light.material.color.setHex(0xFFFF00);
-          light.material.emissive.setHex(0xFFFF00);
-          light.material.emissiveIntensity = 0.6;
-        } else {
-          light.material.color.setHex(0x444444);
-          light.material.emissive.setHex(0x000000);
-          light.material.emissiveIntensity = 0;
-        }
-      }
-    });
-
-    // Missile bunker red light blinking
-    if (bunkerLight) {
-      bunkerLight.lightData.blinkTime += delta;
-      var blinkInterval = 0.6;
-      if (bunkerLight.lightData.blinkTime > blinkInterval) {
-        bunkerLight.lightData.blinkTime = 0;
-      }
-      var blinking = bunkerLight.lightData.blinkTime < blinkInterval * 0.5;
-      bunkerLight.material.emissiveIntensity = blinking ? 0.9 : 0.2;
+      // Simple back-and-forth patrol
+      enemy.position[0] += Math.cos(time * enemy.speed * 0.3) * delta * enemy.speed;
+      enemy.position[2] += Math.sin(time * enemy.speed * 0.2) * delta * enemy.speed;
     }
-
-    // Launch ramp water shimmering
-    if (launchWater) {
-      launchWater.waterData.shimmerTime += delta;
-      var shimmer = Math.sin(launchWater.waterData.shimmerTime * 3) * 0.05;
-      launchWater.position.y = -2.5 + shimmer;
-    }
-
-    // Randomly update game state
-    if (Math.random() < 0.008) {
-      if (gameState.shipHullProgress < gameState.maxProgress) {
-        gameState.shipHullProgress += Math.floor(Math.random() * 3) + 1;
-        if (gameState.shipHullProgress > gameState.maxProgress) {
-          gameState.shipHullProgress = gameState.maxProgress;
-        }
-      }
-    }
-
-    if (Math.random() < 0.012) {
-      if (gameState.workersDefeated < gameState.maxWorkers) {
-        gameState.workersDefeated += 1;
-      }
-    }
-
-    if (Math.random() < 0.010) {
-      if (gameState.missilesSecured < gameState.maxMissiles) {
-        gameState.missilesSecured += 1;
-      }
-    }
-
-    updateHUD();
   }
 
   function reset() {
-    // Remove all scene objects
-    sceneObjects.forEach(function(obj) {
-      scene.remove(obj);
-    });
-
-    // Remove welding particles
-    weldingParticles.forEach(function(p) {
-      scene.remove(p.mesh);
-    });
-
-    // Remove enemies
-    enemies.forEach(function(enemy) {
-      scene.remove(enemy);
-    });
-
-    sceneObjects = [];
+    // Clear all objects and enemies
+    for (var i = 0; i < objects.length; i++) {
+      if (objects[i].parent) {
+        objects[i].parent.remove(objects[i]);
+      }
+    }
+    objects = [];
     enemies = [];
-    weldingParticles = [];
-    hullSections = [];
-    craneMissiles = [];
-    barracksLights = [];
-    crane = null;
-    craneHook = null;
-    missileBunker = null;
-    launchRamp = null;
-    launchWater = null;
-    bunkerLight = null;
-    elapsedTime = 0;
-    gameState = {
-      shipHullProgress: 0,
-      maxProgress: 100,
-      workersDefeated: 0,
-      maxWorkers: 12,
-      missilesSecured: 0,
-      maxMissiles: 8
-    };
-
-    updateHUD();
+    animations = [];
   }
 
   return {
     init: init,
     update: update,
-    reset: reset
+    reset: reset,
+    getEnemies: function() { return enemies; },
+    getObjects: function() { return objects; }
   };
 }());

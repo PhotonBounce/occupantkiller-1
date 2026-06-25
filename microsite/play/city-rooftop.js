@@ -1,563 +1,660 @@
 window.CityRooftop = (function() {
   'use strict';
 
-  var scene = null;
-  var camera = null;
-  var rooftopGroup = null;
-  var helicopterLights = [];
-  var hvacFans = [];
-  var antennas = [];
-  var billboards = [];
-  var ziplineCable = null;
-  var animationTime = 0;
+  var meshes = [];
+  var targetMesh = null;
+  var helicopterSpotlight = null;
+  var neonSigns = [];
+  var acUnits = [];
+  var pigeons = [];
+  var windFlags = [];
+  var cityLights = [];
+  var time = 0;
+  var targetPosition = { x: 0, y: 0, z: 0 };
+  var targetVelocity = { x: 0.5, y: 0, z: 0 };
 
-  var init = function(_scene, _camera) {
-    scene = _scene;
-    camera = _camera;
-    rooftopGroup = new THREE.Group();
-    scene.add(rooftopGroup);
+  var colors = {
+    concrete: 0x888888,
+    acWhite: 0xEEEEEE,
+    waterTowerBrown: 0x8B6914,
+    antennaMetal: 0x666666,
+    neonPink: 0xFF1493,
+    nightSky: 0x1A1A2E,
+    steelGray: 0x444444,
+    darkConcrete: 0x555555,
+    roofEdge: 0x333333
+  };
 
-    helicopterLights = [];
-    hvacFans = [];
-    antennas = [];
-    billboards = [];
-    animationTime = 0;
-
-    // Main rooftop floor surface (large flat box)
-    var floorGeometry = new THREE.BoxGeometry(200, 2, 150);
-    var floorMaterial = new THREE.MeshPhongMaterial({ color: 0x444444 });
-    var floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.position.y = 0;
-    floor.castShadow = true;
-    floor.receiveShadow = true;
-    rooftopGroup.add(floor);
-
-    // Parapet walls around roof edge
-    var parapetMaterial = new THREE.MeshPhongMaterial({ color: 0x555555 });
-    var parapetHeight = 1.5;
-    var parapetThickness = 0.3;
-
-    // Front wall
-    var frontWallGeo = new THREE.BoxGeometry(200, parapetHeight, parapetThickness);
-    var frontWall = new THREE.Mesh(frontWallGeo, parapetMaterial);
-    frontWall.position.y = 1;
-    frontWall.position.z = 75;
-    frontWall.castShadow = true;
-    rooftopGroup.add(frontWall);
-
-    // Back wall
-    var backWall = new THREE.Mesh(frontWallGeo, parapetMaterial);
-    backWall.position.y = 1;
-    backWall.position.z = -75;
-    backWall.castShadow = true;
-    rooftopGroup.add(backWall);
-
-    // Left wall
-    var sideWallGeo = new THREE.BoxGeometry(parapetThickness, parapetHeight, 150);
-    var leftWall = new THREE.Mesh(sideWallGeo, parapetMaterial);
-    leftWall.position.y = 1;
-    leftWall.position.x = -100;
-    leftWall.castShadow = true;
-    rooftopGroup.add(leftWall);
-
-    // Right wall
-    var rightWall = new THREE.Mesh(sideWallGeo, parapetMaterial);
-    rightWall.position.y = 1;
-    rightWall.position.x = 100;
-    rightWall.castShadow = true;
-    rooftopGroup.add(rightWall);
-
-    // HVAC units (box clusters)
-    var hvacGroup1 = createHVACUnit(30, 2, 20);
-    hvacGroup1.position.set(-50, 1, -40);
-    rooftopGroup.add(hvacGroup1);
-
-    var hvacGroup2 = createHVACUnit(25, 2, 25);
-    hvacGroup2.position.set(60, 1, 35);
-    rooftopGroup.add(hvacGroup2);
-
-    var hvacGroup3 = createHVACUnit(20, 2, 18);
-    hvacGroup3.position.set(-60, 1, 50);
-    rooftopGroup.add(hvacGroup3);
-
-    // Water tower (cylinder on stilts)
-    var towerGroup = createWaterTower(-70, 15);
-    rooftopGroup.add(towerGroup);
-
-    // Helicopter pad with H marking
-    var heloPadGroup = createHelicopterPad(70, 0, -50);
-    rooftopGroup.add(heloPadGroup);
-
-    // Billboard panels (tall flat boxes with colored faces)
-    var billboard1 = createBillboard(50, 20, 0);
-    rooftopGroup.add(billboard1);
-
-    var billboard2 = createBillboard(-40, 20, -60);
-    rooftopGroup.add(billboard2);
-
-    // Penthouse skylight (glass pyramid)
-    var skylightGeo = new THREE.ConeGeometry(8, 6, 4);
-    var skylightMaterial = new THREE.MeshPhongMaterial({
-      color: 0x88AAFF,
-      transparent: true,
-      opacity: 0.4,
-      side: THREE.DoubleSide
+  function createBuilding(scene, x, y, z, width, depth, height) {
+    var geometry = new THREE.BoxGeometry(width, height, depth);
+    var material = new THREE.MeshStandardMaterial({
+      color: colors.concrete,
+      roughness: 0.8,
+      metalness: 0.1
     });
-    var skylight = new THREE.Mesh(skylightGeo, skylightMaterial);
-    skylight.position.set(0, 3, 20);
-    skylight.castShadow = true;
-    rooftopGroup.add(skylight);
-
-    // Antenna cluster (thin cylinders)
-    var antennaGroup = createAntennaCluster(-45, 25, 45);
-    rooftopGroup.add(antennaGroup);
-
-    // Elevator shaft access hatch (small box with circular ring)
-    var hatchGeo = new THREE.BoxGeometry(4, 0.5, 4);
-    var hatchMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
-    var hatch = new THREE.Mesh(hatchGeo, hatchMaterial);
-    hatch.position.set(40, 1.25, 10);
-    hatch.castShadow = true;
-    rooftopGroup.add(hatch);
-
-    // Ventilation fans (rotating cylinders)
-    var fan1 = createVentilationFan(-20, 3, 30);
-    rooftopGroup.add(fan1);
-
-    var fan2 = createVentilationFan(75, 3, -30);
-    rooftopGroup.add(fan2);
-
-    // Fire escape ladder
-    var ladderGroup = createFireEscapeLadder(95, 5, 60);
-    rooftopGroup.add(ladderGroup);
-
-    // Satellite dish
-    var satelliteGroup = createSatelliteDish(80, 15, 50);
-    rooftopGroup.add(satelliteGroup);
-
-    // Sniper nest sandbag wall
-    var sandbagWallGroup = createSandbagWall(-80, 2, 0);
-    rooftopGroup.add(sandbagWallGroup);
-
-    // Zipline cable (LineSegments between buildings)
-    ziplineCable = createZiplineCable(70, 12, -40, -70, 12, 40);
-    rooftopGroup.add(ziplineCable);
-
-    // Neighboring building silhouettes
-    var neighborBuilding1 = createNeighboringBuilding(140, 18, 30);
-    rooftopGroup.add(neighborBuilding1);
-
-    var neighborBuilding2 = createNeighboringBuilding(-140, 22, -25);
-    rooftopGroup.add(neighborBuilding2);
-
-    return rooftopGroup.children.length;
-  };
-
-  var createHVACUnit = function(width, height, depth) {
-    var group = new THREE.Group();
-    var material = new THREE.MeshPhongMaterial({ color: 0x333333 });
-
-    // Main body
-    var bodyGeo = new THREE.BoxGeometry(width, height, depth);
-    var body = new THREE.Mesh(bodyGeo, material);
-    body.castShadow = true;
-    body.receiveShadow = true;
-    group.add(body);
-
-    // Orange vent opening
-    var ventGeo = new THREE.BoxGeometry(width * 0.6, height * 0.4, 0.5);
-    var ventMaterial = new THREE.MeshPhongMaterial({ color: 0xFF6600 });
-    var vent = new THREE.Mesh(ventGeo, ventMaterial);
-    vent.position.z = depth / 2;
-    vent.castShadow = true;
-    group.add(vent);
-
-    // Spinning fan inside
-    var fanGeo = new THREE.CylinderGeometry(width * 0.25, width * 0.25, 0.3, 8);
-    var fanMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
-    var fan = new THREE.Mesh(fanGeo, fanMaterial);
-    fan.position.set(0, 0, depth / 2 + 0.5);
-    fan.castShadow = true;
-    group.add(fan);
-    hvacFans.push(fan);
-
-    return group;
-  };
-
-  var createWaterTower = function(x, height) {
-    var group = new THREE.Group();
-
-    // Four stilts
-    var stiltMaterial = new THREE.MeshPhongMaterial({ color: 0x777777 });
-    var stiltGeo = new THREE.CylinderGeometry(0.5, 0.5, height, 8);
-
-    var stilt1 = new THREE.Mesh(stiltGeo, stiltMaterial);
-    stilt1.position.set(x - 6, height / 2, -6);
-    stilt1.castShadow = true;
-    group.add(stilt1);
-
-    var stilt2 = new THREE.Mesh(stiltGeo, stiltMaterial);
-    stilt2.position.set(x + 6, height / 2, -6);
-    stilt2.castShadow = true;
-    group.add(stilt2);
-
-    var stilt3 = new THREE.Mesh(stiltGeo, stiltMaterial);
-    stilt3.position.set(x - 6, height / 2, 6);
-    stilt3.castShadow = true;
-    group.add(stilt3);
-
-    var stilt4 = new THREE.Mesh(stiltGeo, stiltMaterial);
-    stilt4.position.set(x + 6, height / 2, 6);
-    stilt4.castShadow = true;
-    group.add(stilt4);
-
-    // Water tank cylinder
-    var tankGeo = new THREE.CylinderGeometry(8, 8, 10, 16);
-    var tankMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
-    var tank = new THREE.Mesh(tankGeo, tankMaterial);
-    tank.position.set(x, height + 5, 0);
-    tank.castShadow = true;
-    tank.receiveShadow = true;
-    group.add(tank);
-
-    return group;
-  };
-
-  var createHelicopterPad = function(x, y, z) {
-    var group = new THREE.Group();
-
-    // Pad surface
-    var padGeo = new THREE.CylinderGeometry(15, 15, 0.5, 32);
-    var padMaterial = new THREE.MeshPhongMaterial({ color: 0x222222 });
-    var pad = new THREE.Mesh(padGeo, padMaterial);
-    pad.position.set(x, y + 1, z);
-    pad.castShadow = true;
-    pad.receiveShadow = true;
-    group.add(pad);
-
-    // Blinking lights around perimeter
-    var lightCount = 8;
-    for (var i = 0; i < lightCount; i++) {
-      var angle = (i / lightCount) * Math.PI * 2;
-      var lightX = x + Math.cos(angle) * 12;
-      var lightZ = z + Math.sin(angle) * 12;
-
-      var lightGeo = new THREE.SphereGeometry(0.4, 8, 8);
-      var lightMaterial = new THREE.MeshPhongMaterial({ color: 0xFF0000 });
-      var light = new THREE.Mesh(lightGeo, lightMaterial);
-      light.position.set(lightX, y + 1.2, lightZ);
-      light.castShadow = true;
-      group.add(light);
-      helicopterLights.push({
-        mesh: light,
-        intensity: 1,
-        phase: i * Math.PI / 4
-      });
-    }
-
-    // H marking on surface
-    var hGeo = new THREE.BoxGeometry(2, 0.2, 2);
-    var hMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
-    var h1 = new THREE.Mesh(hGeo, hMaterial);
-    h1.position.set(x - 2, y + 1.1, z);
-    group.add(h1);
-
-    var h2 = new THREE.Mesh(hGeo, hMaterial);
-    h2.position.set(x + 2, y + 1.1, z);
-    group.add(h2);
-
-    var hBarGeo = new THREE.BoxGeometry(4, 0.2, 2);
-    var hBar = new THREE.Mesh(hBarGeo, hMaterial);
-    hBar.position.set(x, y + 1.1, z);
-    group.add(hBar);
-
-    return group;
-  };
-
-  var createBillboard = function(x, height, z) {
-    var group = new THREE.Group();
-
-    // Support poles
-    var poleGeo = new THREE.CylinderGeometry(1, 1, height, 8);
-    var poleMaterial = new THREE.MeshPhongMaterial({ color: 0x444444 });
-
-    var pole1 = new THREE.Mesh(poleGeo, poleMaterial);
-    pole1.position.set(x - 6, height / 2, z);
-    pole1.castShadow = true;
-    group.add(pole1);
-
-    var pole2 = new THREE.Mesh(poleGeo, poleMaterial);
-    pole2.position.set(x + 6, height / 2, z);
-    pole2.castShadow = true;
-    group.add(pole2);
-
-    // Billboard panel
-    var panelGeo = new THREE.BoxGeometry(16, height - 2, 1);
-    var panelMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
-    var panel = new THREE.Mesh(panelGeo, panelMaterial);
-    panel.position.set(x, height / 2, z + 1);
-    panel.castShadow = true;
-    panel.receiveShadow = true;
-    group.add(panel);
-    billboards.push(panel);
-
-    // Colored accent stripes
-    var stripe1Geo = new THREE.BoxGeometry(16, 2, 0.5);
-    var stripe1Material = new THREE.MeshPhongMaterial({ color: 0xFF6600 });
-    var stripe1 = new THREE.Mesh(stripe1Geo, stripe1Material);
-    stripe1.position.set(x, height * 0.25, z + 1.5);
-    group.add(stripe1);
-
-    var stripe2Material = new THREE.MeshPhongMaterial({ color: 0x00CCFF });
-    var stripe2 = new THREE.Mesh(stripe1Geo, stripe2Material);
-    stripe2.position.set(x, height * 0.75, z + 1.5);
-    group.add(stripe2);
-
-    return group;
-  };
-
-  var createAntennaCluster = function(x, height, z) {
-    var group = new THREE.Group();
-
-    // Multiple thin antenna cylinders
-    var antennaCount = 6;
-    for (var i = 0; i < antennaCount; i++) {
-      var offsetX = (i % 3) * 4 - 4;
-      var offsetZ = Math.floor(i / 3) * 4 - 2;
-
-      var antennaGeo = new THREE.CylinderGeometry(0.2, 0.2, height, 6);
-      var antennaMaterial = new THREE.MeshPhongMaterial({ color: 0xAAAAAA });
-      var antenna = new THREE.Mesh(antennaGeo, antennaMaterial);
-      antenna.position.set(x + offsetX, height / 2, z + offsetZ);
-      antenna.castShadow = true;
-      group.add(antenna);
-      antennas.push({
-        mesh: antenna,
-        baseHeight: height / 2,
-        phase: i * Math.PI / 3
-      });
-
-      // Signal indicator light on top
-      var lightGeo = new THREE.SphereGeometry(0.3, 8, 8);
-      var lightMaterial = new THREE.MeshPhongMaterial({ color: 0xFF0000 });
-      var light = new THREE.Mesh(lightGeo, lightMaterial);
-      light.position.set(x + offsetX, height + 0.5, z + offsetZ);
-      group.add(light);
-    }
-
-    return group;
-  };
-
-  var createVentilationFan = function(x, y, z) {
-    var group = new THREE.Group();
-
-    // Fan housing
-    var housingGeo = new THREE.CylinderGeometry(2, 2, 1, 8);
-    var housingMaterial = new THREE.MeshPhongMaterial({ color: 0x555555 });
-    var housing = new THREE.Mesh(housingGeo, housingMaterial);
-    housing.position.set(x, y, z);
-    housing.castShadow = true;
-    group.add(housing);
-
-    // Rotating fan blades
-    var bladeGeo = new THREE.BoxGeometry(3, 0.3, 0.5);
-    var bladeMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
-    for (var i = 0; i < 4; i++) {
-      var blade = new THREE.Mesh(bladeGeo, bladeMaterial);
-      blade.position.set(x, y + 0.5, z);
-      blade.rotation.z = (i / 4) * Math.PI * 2;
-      blade.castShadow = true;
-      group.add(blade);
-      hvacFans.push(blade);
-    }
-
-    return group;
-  };
-
-  var createFireEscapeLadder = function(x, width, z) {
-    var group = new THREE.Group();
-
-    // Two vertical rails
-    var railGeo = new THREE.CylinderGeometry(0.2, 0.2, 25, 6);
-    var railMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
-
-    var rail1 = new THREE.Mesh(railGeo, railMaterial);
-    rail1.position.set(x - 1, 12.5, z);
-    rail1.castShadow = true;
-    group.add(rail1);
-
-    var rail2 = new THREE.Mesh(railGeo, railMaterial);
-    rail2.position.set(x + 1, 12.5, z);
-    rail2.castShadow = true;
-    group.add(rail2);
-
-    // Rungs
-    var rungGeo = new THREE.CylinderGeometry(0.15, 0.15, 2.5, 6);
-    var rungMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
-    for (var i = 0; i < 8; i++) {
-      var rung = new THREE.Mesh(rungGeo, rungMaterial);
-      rung.rotation.z = Math.PI / 2;
-      rung.position.set(x, 3 + i * 3, z);
-      rung.castShadow = true;
-      group.add(rung);
-    }
-
-    return group;
-  };
-
-  var createSatelliteDish = function(x, height, z) {
-    var group = new THREE.Group();
-
-    // Support pole
-    var poleGeo = new THREE.CylinderGeometry(0.5, 0.5, height - 2, 8);
-    var poleMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
-    var pole = new THREE.Mesh(poleGeo, poleMaterial);
-    pole.position.set(x, (height - 2) / 2, z);
-    pole.castShadow = true;
-    group.add(pole);
-
-    // Dish (hemisphere)
-    var dishGeo = new THREE.SphereGeometry(4, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
-    var dishMaterial = new THREE.MeshPhongMaterial({
-      color: 0xCCCCCC,
-      metalness: 0.8,
-      roughness: 0.2
-    });
-    var dish = new THREE.Mesh(dishGeo, dishMaterial);
-    dish.position.set(x, height - 2, z);
-    dish.rotation.x = Math.PI / 4;
-    dish.castShadow = true;
-    group.add(dish);
-
-    return group;
-  };
-
-  var createSandbagWall = function(x, y, z) {
-    var group = new THREE.Group();
-
-    var bagMaterial = new THREE.MeshPhongMaterial({ color: 0x8B6F47 });
-    var bagGeo = new THREE.BoxGeometry(1.5, 0.8, 1);
-
-    // Create wall pattern
-    for (var i = 0; i < 6; i++) {
-      for (var j = 0; j < 3; j++) {
-        var bag = new THREE.Mesh(bagGeo, bagMaterial);
-        bag.position.set(x + i * 1.5 - 3.75, y + j * 0.8, z);
-        bag.castShadow = true;
-        bag.receiveShadow = true;
-        group.add(bag);
-      }
-    }
-
-    return group;
-  };
-
-  var createZiplineCable = function(x1, y1, z1, x2, y2, z2) {
-    var material = new THREE.LineBasicMaterial({ color: 0x444444, linewidth: 3 });
-    var geometry = new THREE.BufferGeometry();
-
-    // Create cable with slight curve
-    var points = [];
-    for (var i = 0; i <= 20; i++) {
-      var t = i / 20;
-      var x = x1 + (x2 - x1) * t;
-      var y = y1 + (y2 - y1) * t + Math.sin(t * Math.PI) * 2;
-      var z = z1 + (z2 - z1) * t;
-      points.push(new THREE.Vector3(x, y, z));
-    }
-
-    geometry.setFromPoints(points);
-    return new THREE.LineSegments(geometry, material);
-  };
-
-  var createNeighboringBuilding = function(x, height, z) {
-    var group = new THREE.Group();
-
-    var buildingGeo = new THREE.BoxGeometry(30, height, 25);
-    var buildingMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
-    var building = new THREE.Mesh(buildingGeo, buildingMaterial);
-    building.position.set(x, height / 2, z);
+    var building = new THREE.Mesh(geometry, material);
+    building.position.set(x, y, z);
     building.castShadow = true;
     building.receiveShadow = true;
-    group.add(building);
+    scene.add(building);
+    meshes.push(building);
+    return building;
+  }
 
-    // Window pattern
-    var windowGeo = new THREE.BoxGeometry(2, 2, 0.5);
-    var windowMaterial = new THREE.MeshPhongMaterial({ color: 0x112244 });
-    for (var i = 0; i < 3; i++) {
-      for (var j = 0; j < 4; j++) {
-        var window_obj = new THREE.Mesh(windowGeo, windowMaterial);
-        window_obj.position.set(
-          x - 10 + i * 10,
-          3 + j * height / 3.5,
-          z + 12.5
-        );
-        group.add(window_obj);
+  function createRooftop(scene, x, y, z, width, depth) {
+    var geometry = new THREE.BoxGeometry(width, 0.5, depth);
+    var material = new THREE.MeshStandardMaterial({
+      color: colors.darkConcrete,
+      roughness: 0.9,
+      metalness: 0.05
+    });
+    var rooftop = new THREE.Mesh(geometry, material);
+    rooftop.position.set(x, y, z);
+    rooftop.castShadow = true;
+    rooftop.receiveShadow = true;
+    scene.add(rooftop);
+    meshes.push(rooftop);
+    return rooftop;
+  }
+
+  function createWaterTower(scene, x, y, z) {
+    var geometry = new THREE.CylinderGeometry(2, 2, 4, 16);
+    var material = new THREE.MeshStandardMaterial({
+      color: colors.waterTowerBrown,
+      roughness: 0.7,
+      metalness: 0.3
+    });
+    var tower = new THREE.Mesh(geometry, material);
+    tower.position.set(x, y, z);
+    tower.castShadow = true;
+    tower.receiveShadow = true;
+    scene.add(tower);
+    meshes.push(tower);
+
+    var topGeometry = new THREE.CylinderGeometry(2.5, 2.5, 0.3, 16);
+    var topMaterial = new THREE.MeshStandardMaterial({
+      color: colors.roofEdge,
+      roughness: 0.6,
+      metalness: 0.4
+    });
+    var top = new THREE.Mesh(topGeometry, topMaterial);
+    top.position.set(x, y + 2.3, z);
+    top.castShadow = true;
+    top.receiveShadow = true;
+    scene.add(top);
+    meshes.push(top);
+
+    return tower;
+  }
+
+  function createAntennaMast(scene, x, y, z) {
+    var poleGeometry = new THREE.CylinderGeometry(0.15, 0.15, 6, 8);
+    var metalMaterial = new THREE.MeshStandardMaterial({
+      color: colors.antennaMetal,
+      roughness: 0.4,
+      metalness: 0.9
+    });
+    var pole = new THREE.Mesh(poleGeometry, metalMaterial);
+    pole.position.set(x, y + 3, z);
+    pole.castShadow = true;
+    pole.receiveShadow = true;
+    scene.add(pole);
+    meshes.push(pole);
+
+    var points = [
+      new THREE.Vector3(x, y + 5, z),
+      new THREE.Vector3(x + 1.5, y + 6.5, z),
+      new THREE.Vector3(x - 1.5, y + 6.5, z),
+      new THREE.Vector3(x, y + 5, z)
+    ];
+    var geometry = new THREE.BufferGeometry().setFromPoints(points);
+    var material = new THREE.LineBasicMaterial({ color: colors.antennaMetal, linewidth: 2 });
+    var lines = new THREE.LineSegments(geometry, material);
+    scene.add(lines);
+    meshes.push(lines);
+
+    return pole;
+  }
+
+  function createACUnit(scene, x, y, z) {
+    var mainGeometry = new THREE.BoxGeometry(1.5, 0.8, 1.5);
+    var metalMaterial = new THREE.MeshStandardMaterial({
+      color: colors.acWhite,
+      roughness: 0.5,
+      metalness: 0.6
+    });
+    var unit = new THREE.Mesh(mainGeometry, metalMaterial);
+    unit.position.set(x, y, z);
+    unit.castShadow = true;
+    unit.receiveShadow = true;
+    scene.add(unit);
+    meshes.push(unit);
+    acUnits.push(unit);
+
+    var fanGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.1, 16);
+    var fan = new THREE.Mesh(fanGeometry, metalMaterial);
+    fan.position.set(x, y + 0.5, z);
+    fan.castShadow = true;
+    fan.receiveShadow = true;
+    scene.add(fan);
+    meshes.push(fan);
+    acUnits.push(fan);
+
+    return unit;
+  }
+
+  function createSkylight(scene, x, y, z) {
+    var geometry = new THREE.BoxGeometry(1.2, 0.1, 1.2);
+    var material = new THREE.MeshStandardMaterial({
+      color: 0xAAAAAA,
+      roughness: 0.1,
+      metalness: 0.8,
+      transparent: true,
+      opacity: 0.6
+    });
+    var skylight = new THREE.Mesh(geometry, material);
+    skylight.position.set(x, y, z);
+    skylight.castShadow = true;
+    skylight.receiveShadow = true;
+    scene.add(skylight);
+    meshes.push(skylight);
+    return skylight;
+  }
+
+  function createRailing(scene, x, y, z, length, isVertical) {
+    var posts = [];
+    var postCount = Math.ceil(length / 1.5);
+
+    for (var i = 0; i < postCount; i++) {
+      var offsetX = isVertical ? 0 : (i * (length / postCount) - length / 2);
+      var offsetZ = isVertical ? (i * (length / postCount) - length / 2) : 0;
+
+      var postGeometry = new THREE.BoxGeometry(0.1, 1, 0.1);
+      var material = new THREE.MeshStandardMaterial({
+        color: colors.steelGray,
+        roughness: 0.6,
+        metalness: 0.7
+      });
+      var post = new THREE.Mesh(postGeometry, material);
+      post.position.set(x + offsetX, y + 0.5, z + offsetZ);
+      post.castShadow = true;
+      post.receiveShadow = true;
+      scene.add(post);
+      meshes.push(post);
+      posts.push(post);
+    }
+
+    var railGeometry = new THREE.BoxGeometry(length, 0.08, 0.1);
+    var railMaterial = new THREE.MeshStandardMaterial({
+      color: colors.steelGray,
+      roughness: 0.6,
+      metalness: 0.7
+    });
+    var rail = new THREE.Mesh(railGeometry, railMaterial);
+    rail.position.set(x, y + 1, z);
+    rail.castShadow = true;
+    rail.receiveShadow = true;
+    scene.add(rail);
+    meshes.push(rail);
+
+    return posts;
+  }
+
+  function createSatelliteDish(scene, x, y, z) {
+    var supportGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.5, 8);
+    var metalMaterial = new THREE.MeshStandardMaterial({
+      color: colors.antennaMetal,
+      roughness: 0.5,
+      metalness: 0.8
+    });
+    var support = new THREE.Mesh(supportGeometry, metalMaterial);
+    support.position.set(x, y + 0.75, z);
+    support.castShadow = true;
+    support.receiveShadow = true;
+    scene.add(support);
+    meshes.push(support);
+
+    var dishGeometry = new THREE.SphereGeometry(1.2, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.5);
+    var dish = new THREE.Mesh(dishGeometry, metalMaterial);
+    dish.position.set(x, y + 1.8, z);
+    dish.rotation.x = 0.4;
+    dish.rotation.z = 0.2;
+    dish.castShadow = true;
+    dish.receiveShadow = true;
+    scene.add(dish);
+    meshes.push(dish);
+
+    return dish;
+  }
+
+  function createVentilationPipe(scene, x, y, z) {
+    var pipeGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 8);
+    var pipeMaterial = new THREE.MeshStandardMaterial({
+      color: colors.steelGray,
+      roughness: 0.7,
+      metalness: 0.6
+    });
+    var pipe = new THREE.Mesh(pipeGeometry, pipeMaterial);
+    pipe.position.set(x, y + 0.75, z);
+    pipe.castShadow = true;
+    pipe.receiveShadow = true;
+    scene.add(pipe);
+    meshes.push(pipe);
+
+    var capGeometry = new THREE.ConeGeometry(0.35, 0.4, 8);
+    var capMaterial = new THREE.MeshStandardMaterial({
+      color: colors.roofEdge,
+      roughness: 0.6,
+      metalness: 0.5
+    });
+    var cap = new THREE.Mesh(capGeometry, capMaterial);
+    cap.position.set(x, y + 1.5, z);
+    cap.castShadow = true;
+    cap.receiveShadow = true;
+    scene.add(cap);
+    meshes.push(cap);
+
+    return pipe;
+  }
+
+  function createNeonSign(scene, x, y, z, width) {
+    var signGeometry = new THREE.BoxGeometry(width, 0.3, 0.1);
+    var signMaterial = new THREE.MeshStandardMaterial({
+      color: colors.neonPink,
+      emissive: colors.neonPink,
+      emissiveIntensity: 0.7,
+      roughness: 0.3,
+      metalness: 0.8
+    });
+    var sign = new THREE.Mesh(signGeometry, signMaterial);
+    sign.position.set(x, y, z);
+    sign.castShadow = true;
+    sign.receiveShadow = true;
+    scene.add(sign);
+    meshes.push(sign);
+    neonSigns.push({
+      mesh: sign,
+      baseIntensity: 0.7,
+      flickerSpeed: 3 + Math.random() * 2
+    });
+
+    return sign;
+  }
+
+  function createStairs(scene, x, y, z) {
+    var stepCount = 5;
+    var stepHeight = 0.3;
+    var stepDepth = 0.4;
+
+    for (var i = 0; i < stepCount; i++) {
+      var stepGeometry = new THREE.BoxGeometry(2, stepHeight, stepDepth);
+      var stepMaterial = new THREE.MeshStandardMaterial({
+        color: colors.concrete,
+        roughness: 0.8,
+        metalness: 0.1
+      });
+      var step = new THREE.Mesh(stepGeometry, stepMaterial);
+      step.position.set(x, y + (i * stepHeight), z + (i * stepDepth));
+      step.castShadow = true;
+      step.receiveShadow = true;
+      scene.add(step);
+      meshes.push(step);
+    }
+  }
+
+  function createWindFlag(scene, x, y, z) {
+    var flagGeometry = new THREE.BoxGeometry(0.8, 0.5, 0.02);
+    var flagMaterial = new THREE.MeshStandardMaterial({
+      color: 0xFF6B35,
+      roughness: 0.5,
+      metalness: 0.2
+    });
+    var flag = new THREE.Mesh(flagGeometry, flagMaterial);
+    flag.position.set(x, y, z);
+    flag.castShadow = true;
+    flag.receiveShadow = true;
+    scene.add(flag);
+    meshes.push(flag);
+    windFlags.push({
+      mesh: flag,
+      baseRotation: flag.rotation.y,
+      frequency: 2 + Math.random()
+    });
+
+    return flag;
+  }
+
+  function createTargetFigure(scene, startX, startY, startZ) {
+    var bodyGeometry = new THREE.BoxGeometry(0.4, 1.5, 0.3);
+    var skinMaterial = new THREE.MeshStandardMaterial({
+      color: 0xCC8855,
+      roughness: 0.6,
+      metalness: 0.1
+    });
+    var body = new THREE.Mesh(bodyGeometry, skinMaterial);
+    body.position.set(startX, startY + 0.75, startZ);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    scene.add(body);
+    meshes.push(body);
+
+    var headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+    var head = new THREE.Mesh(headGeometry, skinMaterial);
+    head.position.set(startX, startY + 2.2, startZ);
+    head.castShadow = true;
+    head.receiveShadow = true;
+    scene.add(head);
+    meshes.push(head);
+
+    var armGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
+    var armMaterial = new THREE.MeshStandardMaterial({
+      color: 0xDD9966,
+      roughness: 0.6,
+      metalness: 0.1
+    });
+    var leftArm = new THREE.Mesh(armGeometry, armMaterial);
+    leftArm.position.set(startX - 0.5, startY + 1, startZ);
+    leftArm.castShadow = true;
+    leftArm.receiveShadow = true;
+    scene.add(leftArm);
+    meshes.push(leftArm);
+
+    var rightArm = new THREE.Mesh(armGeometry, armMaterial);
+    rightArm.position.set(startX + 0.5, startY + 1, startZ);
+    rightArm.castShadow = true;
+    rightArm.receiveShadow = true;
+    scene.add(rightArm);
+    meshes.push(rightArm);
+
+    var legGeometry = new THREE.BoxGeometry(0.2, 0.9, 0.2);
+    var legMaterial = new THREE.MeshStandardMaterial({
+      color: 0x333333,
+      roughness: 0.7,
+      metalness: 0.1
+    });
+    var leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+    leftLeg.position.set(startX - 0.2, startY + 0.3, startZ);
+    leftLeg.castShadow = true;
+    leftLeg.receiveShadow = true;
+    scene.add(leftLeg);
+    meshes.push(leftLeg);
+
+    var rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+    rightLeg.position.set(startX + 0.2, startY + 0.3, startZ);
+    rightLeg.castShadow = true;
+    rightLeg.receiveShadow = true;
+    scene.add(rightLeg);
+    meshes.push(rightLeg);
+
+    targetMesh = body;
+    targetPosition.x = startX;
+    targetPosition.y = startY;
+    targetPosition.z = startZ;
+
+    return {
+      body: body,
+      head: head,
+      leftArm: leftArm,
+      rightArm: rightArm,
+      leftLeg: leftLeg,
+      rightLeg: rightLeg
+    };
+  }
+
+  function createPigeon(scene, x, y, z) {
+    var bodyGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+    var birdMaterial = new THREE.MeshStandardMaterial({
+      color: 0x666666,
+      roughness: 0.8,
+      metalness: 0.1
+    });
+    var body = new THREE.Mesh(bodyGeometry, birdMaterial);
+    body.position.set(x, y, z);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    scene.add(body);
+    meshes.push(body);
+
+    var headGeometry = new THREE.SphereGeometry(0.06, 8, 8);
+    var head = new THREE.Mesh(headGeometry, birdMaterial);
+    head.position.set(x + 0.08, y + 0.05, z);
+    head.castShadow = true;
+    head.receiveShadow = true;
+    scene.add(head);
+    meshes.push(head);
+
+    return {
+      body: body,
+      head: head,
+      startX: x,
+      startY: y,
+      startZ: z,
+      vx: (Math.random() - 0.5) * 2,
+      vz: (Math.random() - 0.5) * 2
+    };
+  }
+
+  function createHelicopterSpotlight(scene) {
+    var light = new THREE.SpotLight(0xFFFFFF, 1.5, 150, Math.PI / 6, 0.8, 2);
+    light.position.set(40, 60, 20);
+    light.target.position.set(25, 20, 0);
+    light.castShadow = true;
+    scene.add(light);
+    scene.add(light.target);
+
+    helicopterSpotlight = light;
+    return light;
+  }
+
+  function createCityLights(scene) {
+    var positions = [
+      { x: -80, y: 5, z: -60 },
+      { x: -70, y: 8, z: 50 },
+      { x: 60, y: 6, z: -70 },
+      { x: 75, y: 7, z: 40 },
+      { x: -50, y: 4, z: 80 },
+      { x: 40, y: 6, z: 70 }
+    ];
+
+    positions.forEach(function(pos) {
+      var light = new THREE.PointLight(0xFFCCFF, 0.3, 200);
+      light.position.set(pos.x, pos.y, pos.z);
+      scene.add(light);
+      cityLights.push(light);
+    });
+  }
+
+  function init(scene, camera) {
+    time = 0;
+    meshes = [];
+    neonSigns = [];
+    acUnits = [];
+    pigeons = [];
+    windFlags = [];
+    cityLights = [];
+
+    var ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.5);
+    scene.add(ambientLight);
+
+    var directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.8);
+    directionalLight.position.set(50, 40, 30);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.camera.left = -100;
+    directionalLight.shadow.camera.right = 100;
+    directionalLight.shadow.camera.top = 100;
+    directionalLight.shadow.camera.bottom = -100;
+    scene.add(directionalLight);
+
+    var building1 = createBuilding(scene, 0, -5, 0, 20, 20, 30);
+    var rooftop1 = createRooftop(scene, 0, 15, 0, 20, 20);
+
+    var building2 = createBuilding(scene, 30, -6, 0, 18, 18, 32);
+    var rooftop2 = createRooftop(scene, 30, 16, 0, 18, 18);
+
+    var building3 = createBuilding(scene, -35, -7, 0, 22, 22, 28);
+    var rooftop3 = createRooftop(scene, -35, 14, 0, 22, 22);
+
+    var building4 = createBuilding(scene, 0, -6, 40, 16, 16, 26);
+    var rooftop4 = createRooftop(scene, 0, 13, 40, 16, 16);
+
+    var building5 = createBuilding(scene, 30, -5, 45, 20, 20, 30);
+    var rooftop5 = createRooftop(scene, 30, 15, 45, 20, 20);
+
+    var building6 = createBuilding(scene, -30, -8, 35, 18, 18, 24);
+    var rooftop6 = createRooftop(scene, -30, 12, 35, 18, 18);
+
+    var building7 = createBuilding(scene, -60, -4, 10, 24, 24, 35);
+    var rooftop7 = createRooftop(scene, -60, 17.5, 10, 24, 24);
+
+    var building8 = createBuilding(scene, 60, -7, -20, 20, 20, 28);
+    var rooftop8 = createRooftop(scene, 60, 14, -20, 20, 20);
+
+    createWaterTower(scene, 5, 16, 5);
+    createWaterTower(scene, 28, 17, 10);
+    createWaterTower(scene, -32, 15, 5);
+
+    createAntennaMast(scene, 10, 15, -8);
+    createAntennaMast(scene, -25, 14, 15);
+    createAntennaMast(scene, 35, 16, 25);
+
+    createACUnit(scene, 5, 15.5, 8);
+    createACUnit(scene, 3, 15.5, -6);
+    createACUnit(scene, -3, 15.5, 10);
+    createACUnit(scene, 28, 16.5, 8);
+    createACUnit(scene, 32, 16.5, -5);
+    createACUnit(scene, -28, 14.5, 8);
+    createACUnit(scene, -35, 14.5, 10);
+    createACUnit(scene, 58, 14.5, -8);
+
+    createSkylight(scene, 8, 15.25, 2);
+    createSkylight(scene, -5, 15.25, 12);
+    createSkylight(scene, 28, 16.25, 5);
+    createSkylight(scene, -32, 14.25, -5);
+
+    createRailing(scene, 10, 15, 10.5, 16, false);
+    createRailing(scene, 30, 16, 9.5, 14, false);
+    createRailing(scene, -35, 14, 11.5, 20, false);
+
+    createSatelliteDish(scene, -8, 15, 6);
+    createSatelliteDish(scene, 25, 16, -8);
+    createSatelliteDish(scene, -32, 14, 12);
+
+    createVentilationPipe(scene, 0, 15, -10);
+    createVentilationPipe(scene, 15, 16, 8);
+    createVentilationPipe(scene, -20, 14, 15);
+    createVentilationPipe(scene, 32, 16, 10);
+
+    createNeonSign(scene, 62, 15, -18, 12);
+    createNeonSign(scene, -65, 18, 12, 14);
+    createNeonSign(scene, 10, 16, 48, 10);
+
+    createStairs(scene, 12, 15, 18);
+    createStairs(scene, -28, 14, 25);
+
+    createWindFlag(scene, -55, 18, 8);
+    createWindFlag(scene, 50, 15, -18);
+
+    createTargetFigure(scene, 0, 15, 0);
+
+    for (var i = 0; i < 8; i++) {
+      var px = (Math.random() - 0.5) * 80;
+      var pz = (Math.random() - 0.5) * 80;
+      var py = 25 + Math.random() * 15;
+      pigeons.push(createPigeon(scene, px, py, pz));
+    }
+
+    createHelicopterSpotlight(scene);
+    createCityLights(scene);
+  }
+
+  function update(delta) {
+    time += delta;
+
+    if (targetMesh) {
+      targetPosition.x += targetVelocity.x * delta;
+      targetPosition.z += targetVelocity.z * delta;
+
+      if (targetPosition.x > 50 || targetPosition.x < -70) {
+        targetVelocity.x *= -1;
       }
+      if (targetPosition.z > 50 || targetPosition.z < -20) {
+        targetVelocity.z *= -1;
+      }
+
+      targetMesh.position.x = targetPosition.x;
+      targetMesh.position.z = targetPosition.z;
     }
 
-    return group;
-  };
+    neonSigns.forEach(function(sign) {
+      var flicker = Math.sin(time * sign.flickerSpeed) * 0.3 + 0.7;
+      sign.mesh.material.emissiveIntensity = sign.baseIntensity * flicker;
+    });
 
-  var update = function(delta) {
-    animationTime += delta;
+    acUnits.forEach(function(unit) {
+      if (unit.rotation) {
+        unit.rotation.y += 0.02;
+      }
+    });
 
-    // Helicopter pad lights blinking
-    for (var i = 0; i < helicopterLights.length; i++) {
-      var light = helicopterLights[i];
-      var blinkValue = Math.sin(animationTime * 3 + light.phase) * 0.5 + 0.5;
-      light.mesh.material.emissive.setHex(0xFF0000);
-      light.mesh.material.emissiveIntensity = blinkValue;
+    pigeons.forEach(function(pigeon) {
+      pigeon.body.position.x += pigeon.vx * delta;
+      pigeon.body.position.z += pigeon.vz * delta;
+      pigeon.head.position.x = pigeon.body.position.x + 0.08;
+      pigeon.head.position.z = pigeon.body.position.z;
+
+      if (Math.random() > 0.98) {
+        pigeon.vx = (Math.random() - 0.5) * 3;
+        pigeon.vz = (Math.random() - 0.5) * 3;
+      }
+
+      if (pigeon.body.position.x > 50 || pigeon.body.position.x < -80) {
+        pigeon.vx *= -1;
+      }
+      if (pigeon.body.position.z > 50 || pigeon.body.position.z < -80) {
+        pigeon.vz *= -1;
+      }
+    });
+
+    windFlags.forEach(function(flag) {
+      flag.mesh.rotation.z = Math.sin(time * flag.frequency) * 0.3;
+    });
+
+    if (helicopterSpotlight) {
+      helicopterSpotlight.position.x = 40 + Math.sin(time * 0.3) * 30;
+      helicopterSpotlight.position.z = 20 + Math.cos(time * 0.25) * 25;
+      helicopterSpotlight.target.position.x = helicopterSpotlight.position.x - 15;
+      helicopterSpotlight.target.position.z = helicopterSpotlight.position.z - 10;
     }
 
-    // HVAC fans spinning
-    for (var j = 0; j < hvacFans.length; j++) {
-      hvacFans[j].rotation.z += delta * 5;
-    }
+    cityLights.forEach(function(light, idx) {
+      var flicker = Math.sin(time * (0.5 + idx * 0.1)) * 0.1 + 0.3;
+      light.intensity = Math.max(0.1, 0.3 + flicker);
+    });
+  }
 
-    // Zipline swaying
-    if (ziplineCable) {
-      ziplineCable.rotation.z = Math.sin(animationTime * 0.5) * 0.05;
-    }
-
-    // Billboard light flickering
-    for (var k = 0; k < billboards.length; k++) {
-      var flickerValue = Math.random() * 0.3 + 0.7;
-      billboards[k].material.emissive.setHex(0xFFFFFF);
-      billboards[k].material.emissiveIntensity = flickerValue * 0.1;
-    }
-
-    // Antenna signal blink and sway
-    for (var m = 0; m < antennas.length; m++) {
-      var antenna = antennas[m];
-      var swayAmount = Math.sin(animationTime * 0.8 + antenna.phase) * 0.02;
-      antenna.mesh.position.x += swayAmount;
-
-      // Signal blink
-      var children = antenna.mesh.parent.children;
-      var lightIndex = antenna.mesh.parent.children.indexOf(antenna.mesh) + 1;
-      if (lightIndex < children.length) {
-        var signalLight = children[lightIndex];
-        if (signalLight && signalLight.material) {
-          var blinkInt = Math.sin(animationTime * 2 + antenna.phase) * 0.5 + 0.5;
-          signalLight.material.emissiveIntensity = blinkInt;
+  function reset() {
+    meshes.forEach(function(mesh) {
+      if (mesh.geometry) mesh.geometry.dispose();
+      if (mesh.material) {
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach(function(m) { m.dispose(); });
+        } else {
+          mesh.material.dispose();
         }
       }
-    }
-  };
-
-  var reset = function() {
-    if (rooftopGroup && scene) {
-      scene.remove(rooftopGroup);
-    }
-    rooftopGroup = null;
-    helicopterLights = [];
-    hvacFans = [];
-    antennas = [];
-    billboards = [];
-    ziplineCable = null;
-    animationTime = 0;
-  };
+    });
+    meshes = [];
+    neonSigns = [];
+    acUnits = [];
+    pigeons = [];
+    windFlags = [];
+    cityLights = [];
+    targetMesh = null;
+    helicopterSpotlight = null;
+    time = 0;
+  }
 
   return {
     init: init,
