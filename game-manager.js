@@ -2369,6 +2369,14 @@ const GameManager = (function () {
     try { if (window.VoidStation && VoidStation.init) VoidStation.init(_scene, _camera); } catch (e) {}
     try { if (window.LavaDome && LavaDome.init) LavaDome.init(_scene, _camera); } catch (e) {}
     try { if (window.SandFortress && SandFortress.init) SandFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.BoneTemple && BoneTemple.init) BoneTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberRuins && CyberRuins.init) CyberRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormBase && StormBase.init) StormBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepBunker && DeepBunker.init) DeepBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarMuseum && WarMuseum.init) WarMuseum.init(_scene, _camera); } catch (e) {}
+    try { if (window.RustPalace && RustPalace.init) RustPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleFort && JungleFort.init) JungleFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.FlameShrine && FlameShrine.init) FlameShrine.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9778,6 +9786,14 @@ const GameManager = (function () {
     if (window.VoidStation) VoidStation.update(delta);
     if (window.LavaDome) LavaDome.update(delta);
     if (window.SandFortress) SandFortress.update(delta);
+    if (window.BoneTemple) BoneTemple.update(delta);
+    if (window.CyberRuins) CyberRuins.update(delta);
+    if (window.StormBase) StormBase.update(delta);
+    if (window.DeepBunker) DeepBunker.update(delta);
+    if (window.WarMuseum) WarMuseum.update(delta);
+    if (window.RustPalace) RustPalace.update(delta);
+    if (window.JungleFort) JungleFort.update(delta);
+    if (window.FlameShrine) FlameShrine.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
