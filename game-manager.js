@@ -2233,6 +2233,14 @@ const GameManager = (function () {
     try { if (window.LightningBase && LightningBase.init) LightningBase.init(_scene, _camera); } catch (e) {}
     try { if (window.FrozenLab && FrozenLab.init) FrozenLab.init(_scene, _camera); } catch (e) {}
     try { if (window.CrystalCave && CrystalCave.init) CrystalCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.DataVault && DataVault.init) DataVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaFortress && LavaFortress.init) LavaFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.SandStorm && SandStorm.init) SandStorm.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearSilo && NuclearSilo.init) NuclearSilo.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuinedFactory && RuinedFactory.init) RuinedFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScorchedCitadel && ScorchedCitadel.init) ScorchedCitadel.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidPlant && AcidPlant.init) AcidPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertLab && DesertLab.init) DesertLab.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9506,6 +9514,14 @@ const GameManager = (function () {
     if (window.LightningBase) LightningBase.update(delta);
     if (window.FrozenLab) FrozenLab.update(delta);
     if (window.CrystalCave) CrystalCave.update(delta);
+    if (window.DataVault) DataVault.update(delta);
+    if (window.LavaFortress) LavaFortress.update(delta);
+    if (window.SandStorm) SandStorm.update(delta);
+    if (window.NuclearSilo) NuclearSilo.update(delta);
+    if (window.RuinedFactory) RuinedFactory.update(delta);
+    if (window.ScorchedCitadel) ScorchedCitadel.update(delta);
+    if (window.AcidPlant) AcidPlant.update(delta);
+    if (window.DesertLab) DesertLab.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
