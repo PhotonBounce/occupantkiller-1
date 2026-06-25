@@ -10249,6 +10249,14 @@ const GameManager = (function () {
     if (window.LochLomondFort) LochLomondFort.update(delta);
     if (window.ArrocharBase) ArrocharBase.update(delta);
     if (window.TarbetCamp) TarbetCamp.update(delta);
+    if (window.HelensburghBase) HelensburghBase.update(delta);
+    if (window.GarelochheadFort) GarelochheadFort.update(delta);
+    if (window.FaslaneDock) FaslaneDock.update(delta);
+    if (window.CoulportKeep) CoulportKeep.update(delta);
+    if (window.DunoonPost) DunoonPost.update(delta);
+    if (window.StrachurBase) StrachurBase.update(delta);
+    if (window.LochEckCamp) LochEckCamp.update(delta);
+    if (window.BenmoreFort) BenmoreFort.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
