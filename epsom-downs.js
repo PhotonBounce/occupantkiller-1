@@ -13,231 +13,163 @@ window.EpsomDowns = (function() {
     var OZ = 0;
 
     /* ── helper: make a mesh, add to scene + objects[] ── */
-    function addmesh(geo, color, x, y, z, rx, ry, rz, sx, sy, sz) {
+    function addmesh(geo, color, x, y, z, ry) {
         var mat = new THREE.MeshLambertMaterial({ color: color });
         var mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(OX + x, y, OZ + z);
-        if (rx) mesh.rotation.x = rx;
         if (ry) mesh.rotation.y = ry;
-        if (rz) mesh.rotation.z = rz;
-        if (sx !== undefined) mesh.scale.set(sx, sy, sz);
         scene.add(mesh);
         objects.push(mesh);
         return mesh;
     }
 
-    /* ── 1. Main grandstand ── */
+    /* ── 1. Main grandstand — Victorian red brick + cream tiers ── */
+    /* Objects: 4 */
     function buildgrandstand() {
         /* Red brick base: 80 wide x 20 deep x 6 tall */
         addmesh(new THREE.BoxGeometry(80, 6, 20), 0x992222, 0, 3, -30);
-
         /* Cream upper tier: 80 wide x 16 deep x 9 tall */
         addmesh(new THREE.BoxGeometry(80, 9, 16), 0xF5F0E0, 0, 10.5, -28);
-
-        /* Roof ridge: 80 wide x 2 deep x 1.5 tall */
+        /* Roof ridge beam */
         addmesh(new THREE.BoxGeometry(80, 1.5, 2), 0x888888, 0, 15.75, -21);
-
-        /* 5 arched viewing bay pillars across front — BoxGeometry approximation */
-        var bayOffsets = [-32, -16, 0, 16, 32];
-        for (var i = 0; i < bayOffsets.length; i++) {
-            /* Left pier */
-            addmesh(new THREE.BoxGeometry(1.5, 9, 1.5), 0xE0D8C0, bayOffsets[i] - 5, 10.5, -20.5);
-            /* Right pier */
-            addmesh(new THREE.BoxGeometry(1.5, 9, 1.5), 0xE0D8C0, bayOffsets[i] + 5, 10.5, -20.5);
-            /* Arch lintel */
-            addmesh(new THREE.BoxGeometry(10, 1.5, 1.5), 0xD0C8B0, bayOffsets[i], 15, -20.5);
-        }
-
-        /* Viewing terrace steps — 3 tiers */
-        addmesh(new THREE.BoxGeometry(78, 1, 4), 0xCCBB99, 0, 7.5, -22);
-        addmesh(new THREE.BoxGeometry(78, 1, 4), 0xCCBB99, 0, 5.5, -18);
-        addmesh(new THREE.BoxGeometry(78, 1, 4), 0xCCBB99, 0, 3.5, -14);
+        /* Viewing terrace step band */
+        addmesh(new THREE.BoxGeometry(78, 2, 6), 0xCCBB99, 0, 1, -18);
     }
 
-    /* ── 2. Parade ring — octagonal fence, grass centre ── */
+    /* ── 2. Parade ring — octagonal fence (4 sections) + grass centre ── */
+    /* Objects: 5 */
     function buildparadering() {
-        /* Green grass centre 16x0.3x16 */
+        /* Green grass centre */
         addmesh(new THREE.BoxGeometry(16, 0.3, 16), 0x3A7A2A, 40, 0.15, 20);
-
-        /* 8 fence sections forming octagon approximation */
-        var fenceAngle = Math.PI / 4;
-        var fenceR = 11;
-        for (var f = 0; f < 8; f++) {
-            var angle = f * fenceAngle;
-            var fx = OX + 40 + Math.sin(angle) * fenceR;
-            var fz = OZ + 20 + Math.cos(angle) * fenceR;
-            var mat = new THREE.MeshLambertMaterial({ color: 0x888855 });
-            var geo = new THREE.BoxGeometry(7.5, 1.2, 0.2);
-            var mesh = new THREE.Mesh(geo, mat);
-            mesh.position.set(fx, 0.6, fz);
-            mesh.rotation.y = angle;
-            scene.add(mesh);
-            objects.push(mesh);
+        /* 4 fence sections on cardinal sides */
+        var fa = Math.PI / 2;
+        var fr = 11;
+        for (var f = 0; f < 4; f++) {
+            var ang = f * fa;
+            var fmat = new THREE.MeshLambertMaterial({ color: 0x888855 });
+            var fgeo = new THREE.BoxGeometry(10, 1.2, 0.25);
+            var fm = new THREE.Mesh(fgeo, fmat);
+            fm.position.set(OX + 40 + Math.sin(ang) * fr, 0.6, OZ + 20 + Math.cos(ang) * fr);
+            fm.rotation.y = ang;
+            scene.add(fm);
+            objects.push(fm);
         }
     }
 
     /* ── 3. Winners' enclosure ── */
+    /* Objects: 5 */
     function buildwinnersenclosure() {
-        /* Three rail fence sides: front, left, right */
-        /* Front rail */
-        addmesh(new THREE.BoxGeometry(20, 1.2, 0.2), 0xFFFFFF, -50, 0.6, 10);
-        /* Left rail */
-        addmesh(new THREE.BoxGeometry(0.2, 1.2, 12), 0xFFFFFF, -60, 0.6, 16);
-        /* Right rail */
-        addmesh(new THREE.BoxGeometry(0.2, 1.2, 12), 0xFFFFFF, -40, 0.6, 16);
-
-        /* Second rail tier — 0.8m higher */
-        addmesh(new THREE.BoxGeometry(20, 1.2, 0.2), 0xFFFFFF, -50, 1.8, 10);
-        addmesh(new THREE.BoxGeometry(0.2, 1.2, 12), 0xFFFFFF, -60, 1.8, 16);
-        addmesh(new THREE.BoxGeometry(0.2, 1.2, 12), 0xFFFFFF, -40, 1.8, 16);
-
-        /* Presentation podium — 3 steps */
+        addmesh(new THREE.BoxGeometry(20, 2.0, 0.25), 0xFFFFFF, -50, 1.0, 10);
+        addmesh(new THREE.BoxGeometry(0.25, 2.0, 12), 0xFFFFFF, -60, 1.0, 16);
+        addmesh(new THREE.BoxGeometry(0.25, 2.0, 12), 0xFFFFFF, -40, 1.0, 16);
+        /* Presentation podium steps */
         addmesh(new THREE.BoxGeometry(6, 0.5, 4), 0xE8E0D0, -50, 0.25, 18);
-        addmesh(new THREE.BoxGeometry(4, 1.0, 4), 0xD8D0C0, -50, 0.75, 18);
-        addmesh(new THREE.BoxGeometry(2, 1.5, 4), 0xC8C0B0, -50, 1.25, 18);
+        addmesh(new THREE.BoxGeometry(3, 1.2, 3), 0xC8C0B0, -50, 0.85, 18);
     }
 
-    /* ── 4. Race track rail — 2 parallel fence lines ── */
+    /* ── 4. Race track rail — 2 long parallel rails + 6 posts ── */
+    /* Objects: 8 */
     function buildtrackrail() {
-        /* White track rails, thin boxes 60x0.2x1.5 */
-        /* Inner rail */
         addmesh(new THREE.BoxGeometry(60, 0.2, 1.5), 0xFFFFFF, 0, 1.0, 5);
-        /* Outer rail */
         addmesh(new THREE.BoxGeometry(60, 0.2, 1.5), 0xFFFFFF, 0, 1.0, -5);
-
-        /* Rail posts every 10 units along inner */
-        for (var i = -25; i <= 25; i += 10) {
-            addmesh(new THREE.BoxGeometry(0.3, 1.5, 0.3), 0xFFFFFF, i, 0.75, 5);
-            addmesh(new THREE.BoxGeometry(0.3, 1.5, 0.3), 0xFFFFFF, i, 0.75, -5);
+        var px = [-20, 0, 20];
+        for (var p = 0; p < 3; p++) {
+            addmesh(new THREE.BoxGeometry(0.3, 1.5, 0.3), 0xDDDDDD, px[p], 0.75, 5);
+            addmesh(new THREE.BoxGeometry(0.3, 1.5, 0.3), 0xDDDDDD, px[p], 0.75, -5);
         }
     }
 
     /* ── 5. Tote building — modern betting hall ── */
+    /* Objects: 3 */
     function buildtotebuilding() {
-        /* Main hall 25x6x12 */
         addmesh(new THREE.BoxGeometry(25, 6, 12), 0x778899, -80, 3, 40);
-        /* Roof overhang */
         addmesh(new THREE.BoxGeometry(27, 0.4, 14), 0x667788, -80, 6.2, 40);
-        /* Entrance canopy */
-        addmesh(new THREE.BoxGeometry(8, 0.4, 4), 0x5A6A7A, -80, 4, 34);
-        /* Signage board */
         addmesh(new THREE.BoxGeometry(12, 2, 0.3), 0x334455, -80, 7.5, 33.8);
     }
 
-    /* ── 6. Water tower ── */
+    /* ── 6. Water tower — cylinder stem + tank + sphere dome ── */
+    /* Objects: 3 */
     function buildwatertower() {
-        /* Stem */
-        addmesh(new THREE.CylinderGeometry(1, 1, 14, 8), 0x999988, 60, 7, -50);
-        /* Tank body */
-        addmesh(new THREE.CylinderGeometry(4, 4, 6, 12), 0x999988, 60, 17, -50);
-        /* Dome cap */
-        addmesh(new THREE.SphereGeometry(4, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), 0x999988, 60, 20, -50);
-        /* Legs — 4 supports */
-        var legpos = [[3, 3], [-3, 3], [3, -3], [-3, -3]];
-        for (var l = 0; l < legpos.length; l++) {
-            var lgeo = new THREE.CylinderGeometry(0.25, 0.35, 8, 6);
-            var lmat = new THREE.MeshLambertMaterial({ color: 0x888877 });
-            var lmesh = new THREE.Mesh(lgeo, lmat);
-            lmesh.position.set(OX + 60 + legpos[l][0], 4, OZ - 50 + legpos[l][1]);
-            scene.add(lmesh);
-            objects.push(lmesh);
-        }
+        addmesh(new THREE.CylinderGeometry(1, 1.2, 14, 8), 0x999988, 60, 7, -50);
+        addmesh(new THREE.CylinderGeometry(4, 4, 6, 10), 0x999988, 60, 17, -50);
+        addmesh(new THREE.SphereGeometry(4, 10, 6), 0x999988, 60, 20, -50);
     }
 
     /* ── 7. Hospital / medical tent ── */
+    /* Objects: 6 */
     function buildhospitaltent() {
-        /* 3 box sections forming tent floor */
         addmesh(new THREE.BoxGeometry(10, 0.2, 6), 0xFFFFFF, 80, 0.1, 30);
-        /* Wall sections */
-        addmesh(new THREE.BoxGeometry(10, 3, 0.2), 0xFFFFFF, 80, 1.5, 27);
-        addmesh(new THREE.BoxGeometry(10, 3, 0.2), 0xFFFFFF, 80, 1.5, 33);
-        addmesh(new THREE.BoxGeometry(0.2, 3, 6), 0xFFFFFF, 75, 1.5, 30);
-        addmesh(new THREE.BoxGeometry(0.2, 3, 6), 0xFFFFFF, 85, 1.5, 30);
-        /* Raised roof ridge box */
-        addmesh(new THREE.BoxGeometry(10, 0.4, 0.4), 0xEEEEEE, 80, 4.0, 30);
-        /* Roof slopes: two slanted boxes */
-        addmesh(new THREE.BoxGeometry(10, 0.2, 3.6), 0xFFFFFF, 80, 3.25, 28.2, -0.45, 0, 0);
-        addmesh(new THREE.BoxGeometry(10, 0.2, 3.6), 0xFFFFFF, 80, 3.25, 31.8, 0.45, 0, 0);
+        addmesh(new THREE.BoxGeometry(10, 3, 0.2), 0xFFFFFF, 80, 1.6, 27);
+        addmesh(new THREE.BoxGeometry(10, 3, 0.2), 0xFFFFFF, 80, 1.6, 33);
+        addmesh(new THREE.BoxGeometry(0.2, 3, 6), 0xFFFFFF, 75, 1.6, 30);
+        addmesh(new THREE.BoxGeometry(0.2, 3, 6), 0xFFFFFF, 85, 1.6, 30);
+        addmesh(new THREE.BoxGeometry(10, 1.5, 6), 0xF0F0F0, 80, 4.25, 30);
     }
 
-    /* ── 8. Surrey Downs trees — 15 wind-sculpted ── */
+    /* ── 8. Surrey Downs trees — 6 wind-sculpted ── */
+    /* Objects: 12 (trunk + canopy each) */
     function buildtrees() {
-        var treedata = [
-            [20, 60], [-30, 70], [50, 80], [-60, 55], [10, 90],
-            [-20, 100], [40, 65], [-50, 90], [70, 75], [-10, 50],
-            [30, 110], [-40, 45], [60, 95], [-70, 65], [15, 75]
+        var td = [
+            [20, 60, 0.9], [-30, 70, 1.0], [50, 80, 0.85],
+            [-60, 55, 1.1], [10, 90, 0.95], [-20, 100, 0.8]
         ];
-        for (var t = 0; t < treedata.length; t++) {
-            var tx = treedata[t][0];
-            var tz = treedata[t][1];
-            /* Trunk */
+        for (var t = 0; t < td.length; t++) {
+            var tx = td[t][0];
+            var tz = td[t][1];
+            var sc = td[t][2];
             var trgeo = new THREE.CylinderGeometry(0.25, 0.4, 2.5, 6);
             var trmat = new THREE.MeshLambertMaterial({ color: 0x5A3A1A });
             var trmesh = new THREE.Mesh(trgeo, trmat);
             trmesh.position.set(OX + tx, 1.25, OZ + tz);
             scene.add(trmesh);
             objects.push(trmesh);
-            /* Canopy sphere, slightly flattened */
             var cgeo = new THREE.SphereGeometry(2, 8, 6);
             var cmat = new THREE.MeshLambertMaterial({ color: 0x4A7A2A });
             var cmesh = new THREE.Mesh(cgeo, cmat);
-            cmesh.position.set(OX + tx + (t % 3 - 1) * 0.4, 4.0, OZ + tz);
-            cmesh.scale.set(1.0, 0.7, 1.0);
+            cmesh.position.set(OX + tx, 4.0, OZ + tz);
+            cmesh.scale.set(sc, 0.7, sc);
             scene.add(cmesh);
             objects.push(cmesh);
         }
     }
 
-    /* ── 9. Car park — 4 rows x 3 cars, 12 total ── */
+    /* ── 9. Car park — 6 car shapes ── */
+    /* Objects: 6 */
     function buildcarpark() {
-        var carcolors = [0x334466, 0x773333, 0x555555, 0x446644, 0x886633, 0x444466,
-                         0x663344, 0x336655, 0x776644, 0x445566, 0x664433, 0x556644];
-        var carindex = 0;
-        for (var row = 0; row < 4; row++) {
-            for (var col = 0; col < 3; col++) {
-                if (carindex >= 12) break;
-                var cx = -100 + col * 4;
-                var cz = 50 + row * 5;
-                addmesh(new THREE.BoxGeometry(2, 1.2, 4), carcolors[carindex], cx, 0.6, cz);
-                /* Cabin roof */
-                addmesh(new THREE.BoxGeometry(1.6, 0.6, 2.4), carcolors[carindex], cx, 1.5, cz);
-                carindex++;
-            }
-        }
-    }
-
-    /* ── 10. Race day hospitality marquees — 6 tents ── */
-    function buildmarquees() {
-        var marqueepos = [
-            [20, -60], [38, -60], [56, -60],
-            [20, -75], [38, -75], [56, -75]
+        var cdata = [
+            [-100, 50, 0x334466], [-95, 50, 0x773333], [-90, 50, 0x555555],
+            [-100, 56, 0x446644], [-95, 56, 0x886633], [-90, 56, 0x444466]
         ];
-        for (var m = 0; m < marqueepos.length; m++) {
-            var mx = marqueepos[m][0];
-            var mz = marqueepos[m][1];
-            /* Main body 10x4x6 */
-            addmesh(new THREE.BoxGeometry(10, 4, 6), 0xF5F0E8, mx, 2, mz);
-            /* Tent ridge: narrow box along top */
-            addmesh(new THREE.BoxGeometry(10, 0.5, 0.4), 0xE0D8D0, mx, 4.25, mz);
-            /* Two roof slope panels */
-            addmesh(new THREE.BoxGeometry(10, 0.2, 3.4), 0xF8F4EE, mx, 4.0, mz - 1.7, -0.35, 0, 0);
-            addmesh(new THREE.BoxGeometry(10, 0.2, 3.4), 0xF8F4EE, mx, 4.0, mz + 1.7, 0.35, 0, 0);
+        for (var c = 0; c < cdata.length; c++) {
+            addmesh(new THREE.BoxGeometry(2.2, 1.4, 4.5), cdata[c][2], cdata[c][0], 0.7, cdata[c][1]);
         }
     }
 
-    /* ── LineSegments bounding box outline for orientation ── */
+    /* ── 10. Race day hospitality marquees — 4 tents ── */
+    /* Objects: 8 (body + ridge roof each) */
+    function buildmarquees() {
+        var mdata = [
+            [20, -60], [38, -60], [20, -75], [38, -75]
+        ];
+        for (var m = 0; m < mdata.length; m++) {
+            var mx = mdata[m][0];
+            var mz = mdata[m][1];
+            addmesh(new THREE.BoxGeometry(10, 4, 6), 0xF5F0E8, mx, 2, mz);
+            addmesh(new THREE.BoxGeometry(10, 1.5, 7), 0xE8E4DC, mx, 4.75, mz);
+        }
+    }
+
+    /* ── LineSegments boundary outline ── */
+    /* Objects: 1 */
     function buildoutline() {
-        var pts = [
-            /* Ground rectangle perimeter */
+        var pts = new Float32Array([
             -90, 0, -50,   90, 0, -50,
              90, 0, -50,   90, 0, 120,
              90, 0, 120,  -90, 0, 120,
             -90, 0, 120,  -90, 0, -50
-        ];
-        var buf = new Float32Array(pts.length);
-        for (var i = 0; i < pts.length; i++) buf[i] = pts[i];
+        ]);
         var geom = new THREE.BufferGeometry();
-        geom.setAttribute('position', new THREE.BufferAttribute(buf, 3));
+        geom.setAttribute('position', new THREE.BufferAttribute(pts, 3));
         var lmat = new THREE.LineBasicMaterial({ color: 0x444433 });
         var lines = new THREE.LineSegments(geom, lmat);
         lines.position.set(OX, 0, OZ);
@@ -245,12 +177,16 @@ window.EpsomDowns = (function() {
         objects.push(lines);
     }
 
-    /* ── Flat ground slab for the whole area ── */
+    /* ── Ground slab ── */
+    /* Objects: 1 */
     function buildground() {
         addmesh(new THREE.BoxGeometry(220, 0.5, 200), 0x5A8A40, 0, -0.25, 35);
     }
 
-    /* ── init / build / update / reset ── */
+    /* ─────────────────────────────────────────────────────────────── */
+    /* Total: 4+5+5+8+3+3+6+12+6+8+1+1 = 62  (within 55-70 target)  */
+    /* ─────────────────────────────────────────────────────────────── */
+
     function init(sceneRef, cameraRef) {
         scene = sceneRef;
         camera = cameraRef;
@@ -274,7 +210,7 @@ window.EpsomDowns = (function() {
     }
 
     function update(delta) {
-        /* static scene — no per-frame animation needed */
+        /* static environment — no per-frame animation */
     }
 
     function reset() {
