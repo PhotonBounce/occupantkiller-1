@@ -2081,6 +2081,14 @@ const GameManager = (function () {
     try { if (window.GeothermalPlant && GeothermalPlant.init) GeothermalPlant.init(_scene, _camera); } catch (e) {}
     try { if (window.MissileSiloB && MissileSiloB.init) MissileSiloB.init(_scene, _camera); } catch (e) {}
     try { if (window.UnderwaterCave && UnderwaterCave.init) UnderwaterCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.ForestAmbush && ForestAmbush.init) ForestAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArenaCombat && ArenaCombat.init) ArenaCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoObservatory && VolcanoObservatory.init) VolcanoObservatory.init(_scene, _camera); } catch (e) {}
+    try { if (window.MiningColony && MiningColony.init) MiningColony.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirshipBattle && AirshipBattle.init) AirshipBattle.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonEscapeB && PrisonEscapeB.init) PrisonEscapeB.init(_scene, _camera); } catch (e) {}
+    try { if (window.IslandBase && IslandBase.init) IslandBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberVault && CyberVault.init) CyberVault.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9202,6 +9210,14 @@ const GameManager = (function () {
     if (window.GeothermalPlant) GeothermalPlant.update(delta);
     if (window.MissileSiloB) MissileSiloB.update(delta);
     if (window.UnderwaterCave) UnderwaterCave.update(delta);
+    if (window.ForestAmbush) ForestAmbush.update(delta);
+    if (window.ArenaCombat) ArenaCombat.update(delta);
+    if (window.VolcanoObservatory) VolcanoObservatory.update(delta);
+    if (window.MiningColony) MiningColony.update(delta);
+    if (window.AirshipBattle) AirshipBattle.update(delta);
+    if (window.PrisonEscapeB) PrisonEscapeB.update(delta);
+    if (window.IslandBase) IslandBase.update(delta);
+    if (window.CyberVault) CyberVault.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
