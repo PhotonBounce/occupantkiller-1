@@ -10500,6 +10500,14 @@ const GameManager = (function () {
     if (window.LakeDistrict) LakeDistrict.update(delta);
     if (window.RiponCathedral) RiponCathedral.update(delta);
     if (window.BoltonAbbey) BoltonAbbey.update(delta);
+    if (window.HexhamAbbey) HexhamAbbey.update(delta);
+    if (window.BeamishMuseum) BeamishMuseum.update(delta);
+    if (window.LiverpoolDocks) LiverpoolDocks.update(delta);
+    if (window.ManchesterSpinningfields) ManchesterSpinningfields.update(delta);
+    if (window.ChatsworthHouse) ChatsworthHouse.update(delta);
+    if (window.LincolnCathedral) LincolnCathedral.update(delta);
+    if (window.BeverleyMinster) BeverleyMinster.update(delta);
+    if (window.HumberBridge) HumberBridge.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
