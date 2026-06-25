@@ -2244,6 +2244,14 @@ const GameManager = (function () {
       try { if (window.ConcertHall && ConcertHall.init) ConcertHall.init(_scene, _camera); } catch (e) {}
       try { if (window.SewerEscape && SewerEscape.init) SewerEscape.init(_scene, _camera); } catch (e) {}
       try { if (window.HauntedGalleon && HauntedGalleon.init) HauntedGalleon.init(_scene, _camera); } catch (e) {}
+      try { if (window.AvalancheZone && AvalancheZone.init) AvalancheZone.init(_scene, _camera); } catch (e) {}
+      try { if (window.MountainRescue && MountainRescue.init) MountainRescue.init(_scene, _camera); } catch (e) {}
+      try { if (window.ShoppingDistrict && ShoppingDistrict.init) ShoppingDistrict.init(_scene, _camera); } catch (e) {}
+      try { if (window.SnowfieldBattle && SnowfieldBattle.init) SnowfieldBattle.init(_scene, _camera); } catch (e) {}
+      try { if (window.ZooBreakout && ZooBreakout.init) ZooBreakout.init(_scene, _camera); } catch (e) {}
+      try { if (window.HospitalSiege && HospitalSiege.init) HospitalSiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.RacingPit && RacingPit.init) RacingPit.init(_scene, _camera); } catch (e) {}
+      try { if (window.WarehouseDistrict && WarehouseDistrict.init) WarehouseDistrict.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9279,6 +9287,14 @@ const GameManager = (function () {
       if (window.ConcertHall) ConcertHall.update(delta);
       if (window.SewerEscape) SewerEscape.update(delta);
       if (window.HauntedGalleon) HauntedGalleon.update(delta);
+      if (window.AvalancheZone) AvalancheZone.update(delta);
+      if (window.MountainRescue) MountainRescue.update(delta);
+      if (window.ShoppingDistrict) ShoppingDistrict.update(delta);
+      if (window.SnowfieldBattle) SnowfieldBattle.update(delta);
+      if (window.ZooBreakout) ZooBreakout.update(delta);
+      if (window.HospitalSiege) HospitalSiege.update(delta);
+      if (window.RacingPit) RacingPit.update(delta);
+      if (window.WarehouseDistrict) WarehouseDistrict.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
