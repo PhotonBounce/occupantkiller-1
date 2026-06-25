@@ -10548,6 +10548,11 @@ const GameManager = (function () {
     if (window.HelsinkiCathedral) HelsinkiCathedral.update(delta);
     if (window.AthensAcropolis) AthensAcropolis.update(delta);
     if (window.BudapestParliament) BudapestParliament.update(delta);
+    if (window.RomeColosseum) RomeColosseum.update(delta);
+    if (window.CopenhagenNyhavn) CopenhagenNyhavn.update(delta);
+    if (window.ZurichOldTown) ZurichOldTown.update(delta);
+    if (window.BarcelonaSagrada) BarcelonaSagrada.update(delta);
+    if (window.LisbonAlfama) LisbonAlfama.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
