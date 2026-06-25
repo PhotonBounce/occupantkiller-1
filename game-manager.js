@@ -10499,6 +10499,14 @@ const GameManager = (function () {
     if (window.SheffieldSteel) SheffieldSteel.update(delta);
     if (window.PeakCavern) PeakCavern.update(delta);
     if (window.LincolnshireFens) LincolnshireFens.update(delta);
+    if (window.NottinghamCastle) NottinghamCastle.update(delta);
+    if (window.SherwoodForest) SherwoodForest.update(delta);
+    if (window.LeicesterCathedral) LeicesterCathedral.update(delta);
+    if (window.CoventryPhoenix) CoventryPhoenix.update(delta);
+    if (window.BirminghamBullring) BirminghamBullring.update(delta);
+    if (window.WarwickRacecourse) WarwickRacecourse.update(delta);
+    if (window.ChesterAmphitheatre) ChesterAmphitheatre.update(delta);
+    if (window.NorwichCathedral) NorwichCathedral.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
