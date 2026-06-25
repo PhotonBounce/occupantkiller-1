@@ -10368,6 +10368,7 @@ const GameManager = (function () {
     if (window.RyeMarsh) RyeMarsh.update(delta);
     if (window.DoverCliffs) DoverCliffs.update(delta);
     if (window.CanterburyCathedral) CanterburyCathedral.update(delta);
+    if (window.FolkestoneTunnel) FolkestoneTunnel.update(delta);
     if (window.GourockFort) GourockFort.update(delta);
     if (window.KilmacolmBase) KilmacolmBase.update(delta);
     if (window.PortGlasgowPost) PortGlasgowPost.update(delta);
