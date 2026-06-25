@@ -2220,6 +2220,14 @@ const GameManager = (function () {
       try { if (window.CustomsPost && CustomsPost.init) CustomsPost.init(_scene, _camera); } catch (e) {}
       try { if (window.JungleLab && JungleLab.init) JungleLab.init(_scene, _camera); } catch (e) {}
       try { if (window.SatelliteStation && SatelliteStation.init) SatelliteStation.init(_scene, _camera); } catch (e) {}
+      try { if (window.DestroyerEscort && DestroyerEscort.init) DestroyerEscort.init(_scene, _camera); } catch (e) {}
+      try { if (window.CoastalBattery && CoastalBattery.init) CoastalBattery.init(_scene, _camera); } catch (e) {}
+      try { if (window.PrisonColony && PrisonColony.init) PrisonColony.init(_scene, _camera); } catch (e) {}
+      try { if (window.AsteroidField && AsteroidField.init) AsteroidField.init(_scene, _camera); } catch (e) {}
+      try { if (window.VolcanoLair && VolcanoLair.init) VolcanoLair.init(_scene, _camera); } catch (e) {}
+      try { if (window.SeaFort && SeaFort.init) SeaFort.init(_scene, _camera); } catch (e) {}
+      try { if (window.FuelDepot && FuelDepot.init) FuelDepot.init(_scene, _camera); } catch (e) {}
+      try { if (window.DerelictTown && DerelictTown.init) DerelictTown.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9231,6 +9239,14 @@ const GameManager = (function () {
       if (window.CustomsPost) CustomsPost.update(delta);
       if (window.JungleLab) JungleLab.update(delta);
       if (window.SatelliteStation) SatelliteStation.update(delta);
+      if (window.DestroyerEscort) DestroyerEscort.update(delta);
+      if (window.CoastalBattery) CoastalBattery.update(delta);
+      if (window.PrisonColony) PrisonColony.update(delta);
+      if (window.AsteroidField) AsteroidField.update(delta);
+      if (window.VolcanoLair) VolcanoLair.update(delta);
+      if (window.SeaFort) SeaFort.update(delta);
+      if (window.FuelDepot) FuelDepot.update(delta);
+      if (window.DerelictTown) DerelictTown.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
