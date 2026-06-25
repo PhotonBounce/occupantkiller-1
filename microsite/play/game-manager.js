@@ -10540,6 +10540,14 @@ const GameManager = (function () {
     if (window.LisbonBelem) LisbonBelem.update(delta);
     if (window.AmsterdamCanals) AmsterdamCanals.update(delta);
     if (window.BrusselsGrandPlace) BrusselsGrandPlace.update(delta);
+    if (window.ViennaSchonbrunn) ViennaSchonbrunn.update(delta);
+    if (window.PragueCastle) PragueCastle.update(delta);
+    if (window.WarsawOldTown) WarsawOldTown.update(delta);
+    if (window.StockholmGamlaStan) StockholmGamlaStan.update(delta);
+    if (window.OsloVigeland) OsloVigeland.update(delta);
+    if (window.HelsinkiCathedral) HelsinkiCathedral.update(delta);
+    if (window.AthensAcropolis) AthensAcropolis.update(delta);
+    if (window.BudapestParliament) BudapestParliament.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
