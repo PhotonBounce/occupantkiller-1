@@ -10363,6 +10363,14 @@ const GameManager = (function () {
     if (window.SouthamptonDocks3) SouthamptonDocks3.update(delta);
     if (window.NewForestPonies) NewForestPonies.update(delta);
     if (window.SwindonRailway) SwindonRailway.update(delta);
+    if (window.GuildfordSurrey) GuildfordSurrey.update(delta);
+    if (window.ChichesterCathedral) ChichesterCathedral.update(delta);
+    if (window.ArundelWestSussex) ArundelWestSussex.update(delta);
+    if (window.BrightonPavilion) BrightonPavilion.update(delta);
+    if (window.LewesDowns) LewesDowns.update(delta);
+    if (window.HastingsOldTown) HastingsOldTown.update(delta);
+    if (window.RyeCobbles) RyeCobbles.update(delta);
+    if (window.CanterburyWalls) CanterburyWalls.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
