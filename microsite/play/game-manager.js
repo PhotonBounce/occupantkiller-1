@@ -10217,6 +10217,14 @@ const GameManager = (function () {
     if (window.CollPost) CollPost.update(delta);
     if (window.LismoreFort) LismoreFort.update(delta);
     if (window.KerreraBase) KerreraBase.update(delta);
+    if (window.ObanFort) ObanFort.update(delta);
+    if (window.SeilSound) SeilSound.update(delta);
+    if (window.GarvellachBase) GarvellachBase.update(delta);
+    if (window.LuingSound) LuingSound.update(delta);
+    if (window.ScarbaCamp) ScarbaCamp.update(delta);
+    if (window.CorryvreckanPost) CorryvreckanPost.update(delta);
+    if (window.CraignishFort) CraignishFort.update(delta);
+    if (window.MelfortBase) MelfortBase.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
