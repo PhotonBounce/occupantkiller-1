@@ -2212,6 +2212,14 @@ const GameManager = (function () {
       try { if (window.RefugeeCamp && RefugeeCamp.init) RefugeeCamp.init(_scene, _camera); } catch (e) {}
       try { if (window.NuclearConvoy && NuclearConvoy.init) NuclearConvoy.init(_scene, _camera); } catch (e) {}
       try { if (window.PowerSubstation && PowerSubstation.init) PowerSubstation.init(_scene, _camera); } catch (e) {}
+      try { if (window.SubmarinePen && SubmarinePen.init) SubmarinePen.init(_scene, _camera); } catch (e) {}
+      try { if (window.TorpedoFactory && TorpedoFactory.init) TorpedoFactory.init(_scene, _camera); } catch (e) {}
+      try { if (window.MunitionsDepot && MunitionsDepot.init) MunitionsDepot.init(_scene, _camera); } catch (e) {}
+      try { if (window.AbandonedMall && AbandonedMall.init) AbandonedMall.init(_scene, _camera); } catch (e) {}
+      try { if (window.GoldVault && GoldVault.init) GoldVault.init(_scene, _camera); } catch (e) {}
+      try { if (window.CustomsPost && CustomsPost.init) CustomsPost.init(_scene, _camera); } catch (e) {}
+      try { if (window.JungleLab && JungleLab.init) JungleLab.init(_scene, _camera); } catch (e) {}
+      try { if (window.SatelliteStation && SatelliteStation.init) SatelliteStation.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9215,6 +9223,14 @@ const GameManager = (function () {
       if (window.RefugeeCamp) RefugeeCamp.update(delta);
       if (window.NuclearConvoy) NuclearConvoy.update(delta);
       if (window.PowerSubstation) PowerSubstation.update(delta);
+      if (window.SubmarinePen) SubmarinePen.update(delta);
+      if (window.TorpedoFactory) TorpedoFactory.update(delta);
+      if (window.MunitionsDepot) MunitionsDepot.update(delta);
+      if (window.AbandonedMall) AbandonedMall.update(delta);
+      if (window.GoldVault) GoldVault.update(delta);
+      if (window.CustomsPost) CustomsPost.update(delta);
+      if (window.JungleLab) JungleLab.update(delta);
+      if (window.SatelliteStation) SatelliteStation.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
