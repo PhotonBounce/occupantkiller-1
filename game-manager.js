@@ -2353,6 +2353,14 @@ const GameManager = (function () {
     try { if (window.IceTower && IceTower.init) IceTower.init(_scene, _camera); } catch (e) {}
     try { if (window.CursedShip && CursedShip.init) CursedShip.init(_scene, _camera); } catch (e) {}
     try { if (window.NeonSwamp && NeonSwamp.init) NeonSwamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCathedral && WarCathedral.init) WarCathedral.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodSwamp && BloodSwamp.init) BloodSwamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.MechBay && MechBay.init) MechBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.GravityWell && GravityWell.init) GravityWell.init(_scene, _camera); } catch (e) {}
+    try { if (window.PoisonGrove && PoisonGrove.init) PoisonGrove.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticLab && ArcticLab.init) ArcticLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrenchWar && TrenchWar.init) TrenchWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderseaDome && UnderseaDome.init) UnderseaDome.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9746,6 +9754,14 @@ const GameManager = (function () {
     if (window.IceTower) IceTower.update(delta);
     if (window.CursedShip) CursedShip.update(delta);
     if (window.NeonSwamp) NeonSwamp.update(delta);
+    if (window.WarCathedral) WarCathedral.update(delta);
+    if (window.BloodSwamp) BloodSwamp.update(delta);
+    if (window.MechBay) MechBay.update(delta);
+    if (window.GravityWell) GravityWell.update(delta);
+    if (window.PoisonGrove) PoisonGrove.update(delta);
+    if (window.ArcticLab) ArcticLab.update(delta);
+    if (window.TrenchWar) TrenchWar.update(delta);
+    if (window.UnderseaDome) UnderseaDome.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
