@@ -2089,6 +2089,14 @@ const GameManager = (function () {
     try { if (window.PrisonEscapeB && PrisonEscapeB.init) PrisonEscapeB.init(_scene, _camera); } catch (e) {}
     try { if (window.IslandBase && IslandBase.init) IslandBase.init(_scene, _camera); } catch (e) {}
     try { if (window.CyberVault && CyberVault.init) CyberVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.HelipadAssault && HelipadAssault.init) HelipadAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemicalDepot && ChemicalDepot.init) ChemicalDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.MonasteryRaid && MonasteryRaid.init) MonasteryRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.PipelineSabotage && PipelineSabotage.init) PipelineSabotage.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceCave && IceCave.init) IceCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.DroneFactory && DroneFactory.init) DroneFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightMarket && NightMarket.init) NightMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.WetlandsPatrol && WetlandsPatrol.init) WetlandsPatrol.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9218,6 +9226,14 @@ const GameManager = (function () {
     if (window.PrisonEscapeB) PrisonEscapeB.update(delta);
     if (window.IslandBase) IslandBase.update(delta);
     if (window.CyberVault) CyberVault.update(delta);
+    if (window.HelipadAssault) HelipadAssault.update(delta);
+    if (window.ChemicalDepot) ChemicalDepot.update(delta);
+    if (window.MonasteryRaid) MonasteryRaid.update(delta);
+    if (window.PipelineSabotage) PipelineSabotage.update(delta);
+    if (window.IceCave) IceCave.update(delta);
+    if (window.DroneFactory) DroneFactory.update(delta);
+    if (window.NightMarket) NightMarket.update(delta);
+    if (window.WetlandsPatrol) WetlandsPatrol.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
