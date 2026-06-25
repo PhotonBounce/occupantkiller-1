@@ -10435,6 +10435,14 @@ const GameManager = (function () {
     if (window.WokingMartian) WokingMartian.update(delta);
     if (window.ReigatePriory) ReigatePriory.update(delta);
     if (window.LeithHillTower) LeithHillTower.update(delta);
+    if (window.CrawleyGatwick) CrawleyGatwick.update(delta);
+    if (window.HorshamMarket) HorshamMarket.update(delta);
+    if (window.WorthingSeafront) WorthingSeafront.update(delta);
+    if (window.ShorehamPort) ShorehamPort.update(delta);
+    if (window.SouthamptonCommon) SouthamptonCommon.update(delta);
+    if (window.EastleighSpitfire) EastleighSpitfire.update(delta);
+    if (window.FarehamHarbour) FarehamHarbour.update(delta);
+    if (window.GosportFerries) GosportFerries.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
