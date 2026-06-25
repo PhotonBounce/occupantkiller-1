@@ -10420,6 +10420,14 @@ const GameManager = (function () {
     if (window.WaterfordViking) WaterfordViking.update(delta);
     if (window.CorkButter) CorkButter.update(delta);
     if (window.LimerickCity) LimerickCity.update(delta);
+    if (window.TipperaryRock) TipperaryRock.update(delta);
+    if (window.CahirCastle) CahirCastle.update(delta);
+    if (window.SligoAbbey) SligoAbbey.update(delta);
+    if (window.DonegalCastle) DonegalCastle.update(delta);
+    if (window.RoscommonCastle) RoscommonCastle.update(delta);
+    if (window.Letterkenny) Letterkenny.update(delta);
+    if (window.Inishowen) Inishowen.update(delta);
+    if (window.CashelTown) CashelTown.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
