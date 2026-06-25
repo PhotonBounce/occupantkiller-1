@@ -2337,6 +2337,14 @@ const GameManager = (function () {
     try { if (window.OrbitalDrop && OrbitalDrop.init) OrbitalDrop.init(_scene, _camera); } catch (e) {}
     try { if (window.IceMine && IceMine.init) IceMine.init(_scene, _camera); } catch (e) {}
     try { if (window.ToxicBay && ToxicBay.init) ToxicBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeadSea && DeadSea.init) DeadSea.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaTubes && LavaTubes.init) LavaTubes.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarTrain && WarTrain.init) WarTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowReef && ShadowReef.init) ShadowReef.init(_scene, _camera); } catch (e) {}
+    try { if (window.BoneYard && BoneYard.init) BoneYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.SteelMill && SteelMill.init) SteelMill.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidMine && AcidMine.init) AcidMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarResort && WarResort.init) WarResort.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9714,6 +9722,14 @@ const GameManager = (function () {
     if (window.OrbitalDrop) OrbitalDrop.update(delta);
     if (window.IceMine) IceMine.update(delta);
     if (window.ToxicBay) ToxicBay.update(delta);
+    if (window.DeadSea) DeadSea.update(delta);
+    if (window.LavaTubes) LavaTubes.update(delta);
+    if (window.WarTrain) WarTrain.update(delta);
+    if (window.ShadowReef) ShadowReef.update(delta);
+    if (window.BoneYard) BoneYard.update(delta);
+    if (window.SteelMill) SteelMill.update(delta);
+    if (window.AcidMine) AcidMine.update(delta);
+    if (window.WarResort) WarResort.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
