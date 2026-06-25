@@ -10321,6 +10321,14 @@ const GameManager = (function () {
     if (window.BamburghKeep) BamburghKeep.update(delta);
     if (window.LindisfarnePost) LindisfarnePost.update(delta);
     if (window.YorkshireDales) YorkshireDales.update(delta);
+    if (window.YorkKeep) YorkKeep.update(delta);
+    if (window.LeedsFort) LeedsFort.update(delta);
+    if (window.SheffieldPost) SheffieldPost.update(delta);
+    if (window.PeakDistrict) PeakDistrict.update(delta);
+    if (window.NottinghamFort) NottinghamFort.update(delta);
+    if (window.LincolnKeep) LincolnKeep.update(delta);
+    if (window.LeicesterBase) LeicesterBase.update(delta);
+    if (window.DerbyFort) DerbyFort.update(delta);
     if (window.GourockFort) GourockFort.update(delta);
     if (window.KilmacolmBase) KilmacolmBase.update(delta);
     if (window.PortGlasgowPost) PortGlasgowPost.update(delta);
