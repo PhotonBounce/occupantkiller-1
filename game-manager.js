@@ -2304,6 +2304,14 @@ const GameManager = (function () {
         try { if (window.CloughBase && CloughBase.init) CloughBase.init(_scene, _camera); } catch (e) {}
         try { if (window.SykeCamp && SykeCamp.init) SykeCamp.init(_scene, _camera); } catch (e) {}
         try { if (window.DaleKeep && DaleKeep.init) DaleKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.GladePost && GladePost.init) GladePost.init(_scene, _camera); } catch (e) {}
+        try { if (window.CombeKeep && CombeKeep.init) CombeKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.WickBase && WickBase.init) WickBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.NookCamp && NookCamp.init) NookCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.WealdFort && WealdFort.init) WealdFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.ChaseDock && ChaseDock.init) ChaseDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.DenePost && DenePost.init) DenePost.init(_scene, _camera); } catch (e) {}
+        try { if (window.GroveKeep && GroveKeep.init) GroveKeep.init(_scene, _camera); } catch (e) {}
     try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
@@ -10073,6 +10081,14 @@ const GameManager = (function () {
         if (window.CloughBase) CloughBase.update(delta);
         if (window.SykeCamp) SykeCamp.update(delta);
         if (window.DaleKeep) DaleKeep.update(delta);
+        if (window.GladePost) GladePost.update(delta);
+        if (window.CombeKeep) CombeKeep.update(delta);
+        if (window.WickBase) WickBase.update(delta);
+        if (window.NookCamp) NookCamp.update(delta);
+        if (window.WealdFort) WealdFort.update(delta);
+        if (window.ChaseDock) ChaseDock.update(delta);
+        if (window.DenePost) DenePost.update(delta);
+        if (window.GroveKeep) GroveKeep.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
