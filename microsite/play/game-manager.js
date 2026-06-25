@@ -10553,6 +10553,9 @@ const GameManager = (function () {
     if (window.ZurichOldTown) ZurichOldTown.update(delta);
     if (window.BarcelonaSagrada) BarcelonaSagrada.update(delta);
     if (window.LisbonAlfama) LisbonAlfama.update(delta);
+    if (window.ZagrebCathedral) ZagrebCathedral.update(delta);
+    if (window.LjubljanaCastle) LjubljanaCastle.update(delta);
+    if (window.BucharestPalace) BucharestPalace.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
