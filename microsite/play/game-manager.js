@@ -10348,6 +10348,13 @@ const GameManager = (function () {
     if (window.BristolPort) BristolPort.update(delta);
     if (window.BathRoman) BathRoman.update(delta);
     if (window.GlastonburyTor) GlastonburyTor.update(delta);
+    if (window.WellsCathedral) WellsCathedral.update(delta);
+    if (window.SherborneAbbey) SherborneAbbey.update(delta);
+    if (window.ShaftesburyGoldHill) ShaftesburyGoldHill.update(delta);
+    if (window.BournemouthPier) BournemouthPier.update(delta);
+    if (window.DorchesterRoman) DorchesterRoman.update(delta);
+    if (window.BathRomanSpa) BathRomanSpa.update(delta);
+    if (window.StonehengsPlain) StonehengsPlain.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
