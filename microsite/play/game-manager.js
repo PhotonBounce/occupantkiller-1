@@ -10492,6 +10492,14 @@ const GameManager = (function () {
     if (window.DunkeldCathedral) DunkeldCathedral.update(delta);
     if (window.DrumlanrigCastle) DrumlanrigCastle.update(delta);
     if (window.ThreeaveCastle) ThreeaveCastle.update(delta);
+    if (window.NewcastleQuayside) NewcastleQuayside.update(delta);
+    if (window.HarrogateSpa) HarrogateSpa.update(delta);
+    if (window.FountainsAbbey) FountainsAbbey.update(delta);
+    if (window.BamburghCastle) BamburghCastle.update(delta);
+    if (window.LindisfarnePriory) LindisfarnePriory.update(delta);
+    if (window.LakeDistrict) LakeDistrict.update(delta);
+    if (window.RiponCathedral) RiponCathedral.update(delta);
+    if (window.BoltonAbbey) BoltonAbbey.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
