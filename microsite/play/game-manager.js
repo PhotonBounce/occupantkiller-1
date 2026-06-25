@@ -10403,6 +10403,14 @@ const GameManager = (function () {
     if (window.RegentStreet) RegentStreet.update(delta);
     if (window.StPaulsDome) StPaulsDome.update(delta);
     if (window.TowerBridgeLondon) TowerBridgeLondon.update(delta);
+    if (window.CanaryWharfDocks) CanaryWharfDocks.update(delta);
+    if (window.HackneyMarshes) HackneyMarshes.update(delta);
+    if (window.StratfordOlympic) StratfordOlympic.update(delta);
+    if (window.IslingtonCanal) IslingtonCanal.update(delta);
+    if (window.CamdenMarket) CamdenMarket.update(delta);
+    if (window.HampsteadPonds) HampsteadPonds.update(delta);
+    if (window.HighgateCemetery) HighgateCemetery.update(delta);
+    if (window.AlexandraPalace) AlexandraPalace.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
