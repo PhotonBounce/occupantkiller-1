@@ -2204,6 +2204,14 @@ const GameManager = (function () {
     try { if (window.OperaHouse && OperaHouse.init) OperaHouse.init(_scene, _camera); } catch (e) {}
     try { if (window.CityHall && CityHall.init) CityHall.init(_scene, _camera); } catch (e) {}
     try { if (window.VolcanoSummit && VolcanoSummit.init) VolcanoSummit.init(_scene, _camera); } catch (e) {}
+      try { if (window.FloatingFortress && FloatingFortress.init) FloatingFortress.init(_scene, _camera); } catch (e) {}
+      try { if (window.Slaughterhouse && Slaughterhouse.init) Slaughterhouse.init(_scene, _camera); } catch (e) {}
+      try { if (window.TrainGraveyard && TrainGraveyard.init) TrainGraveyard.init(_scene, _camera); } catch (e) {}
+      try { if (window.SewagePlant && SewagePlant.init) SewagePlant.init(_scene, _camera); } catch (e) {}
+      try { if (window.UniversityRaid && UniversityRaid.init) UniversityRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.RefugeeCamp && RefugeeCamp.init) RefugeeCamp.init(_scene, _camera); } catch (e) {}
+      try { if (window.NuclearConvoy && NuclearConvoy.init) NuclearConvoy.init(_scene, _camera); } catch (e) {}
+      try { if (window.PowerSubstation && PowerSubstation.init) PowerSubstation.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9199,6 +9207,14 @@ const GameManager = (function () {
   if (window.OperaHouse) OperaHouse.update(delta);
   if (window.CityHall) CityHall.update(delta);
   if (window.VolcanoSummit) VolcanoSummit.update(delta);
+      if (window.FloatingFortress) FloatingFortress.update(delta);
+      if (window.Slaughterhouse) Slaughterhouse.update(delta);
+      if (window.TrainGraveyard) TrainGraveyard.update(delta);
+      if (window.SewagePlant) SewagePlant.update(delta);
+      if (window.UniversityRaid) UniversityRaid.update(delta);
+      if (window.RefugeeCamp) RefugeeCamp.update(delta);
+      if (window.NuclearConvoy) NuclearConvoy.update(delta);
+      if (window.PowerSubstation) PowerSubstation.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
