@@ -10412,6 +10412,14 @@ const GameManager = (function () {
     if (window.Connemara) Connemara.update(delta);
     if (window.Powerscourt) Powerscourt.update(delta);
     if (window.DinglePeninsula) DinglePeninsula.update(delta);
+    if (window.GalwayCity) GalwayCity.update(delta);
+    if (window.AranIslands) AranIslands.update(delta);
+    if (window.BurrenLandscape) BurrenLandscape.update(delta);
+    if (window.HookLighthouse) HookLighthouse.update(delta);
+    if (window.KilkennyCastle) KilkennyCastle.update(delta);
+    if (window.WaterfordViking) WaterfordViking.update(delta);
+    if (window.CorkButter) CorkButter.update(delta);
+    if (window.LimerickCity) LimerickCity.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
