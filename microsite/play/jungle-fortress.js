@@ -1,635 +1,786 @@
-var window = window || {};
-
 window.JungleFortress = (function() {
   'use strict';
 
-  var scene = null;
-  var camera = null;
-  var sceneObjects = [];
-  var enemies = [];
-  var hudElement = null;
-  var gameState = {
-    tunnelNetworkCleared: 0,
-    maxTunnels: 4,
-    guerrillasDown: 0,
-    trapsDisarmed: 0,
-    maxTraps: 6
+  // Color constants
+  var BAMBOO_TAN = 0xDEB887;
+  var JUNGLE_GREEN = 0x228B22;
+  var DARK_JUNGLE = 0x0D3B0D;
+  var MUD_BROWN = 0x6B4226;
+  var FIRE_ORANGE = 0xFF6600;
+  var THATCHED_ROOF = 0xC8A05A;
+
+  // Game state
+  var state = {
+    fortress: null,
+    guards: [],
+    fireParticles: [],
+    vines: [],
+    treeSway: 0,
+    soundPhase: 0,
+    tunnelOpen: false,
+    warlordAnimation: 0
   };
-  var tripwires = [];
-  var canopies = [];
-  var campfireLights = [];
-  var elapsedTime = 0;
-  var lastJKeyTime = 0;
-  var lastFKeyTime = 0;
-  var hudVisible = true;
 
-  // ============================================================================
-  // SCENE BUILDERS: Jungle Fortress Components
-  // ============================================================================
+  function init(scene, camera) {
+    state.fortress = {};
+    state.guards = [];
+    state.fireParticles = [];
+    state.vines = [];
+    state.treeSway = 0;
+    state.soundPhase = 0;
+    state.tunnelOpen = false;
+    state.warlordAnimation = 0;
 
-  function createBermWalls() {
-    // Earthwork berm walls - long angled box mounds
-    var bermPositions = [
-      { x: -15, z: -5, length: 30 },
-      { x: 15, z: 5, length: 28 },
-      { x: 0, z: -20, length: 25 }
-    ];
+    // Build bamboo palisade perimeter wall
+    buildBambooPalisade(scene);
 
-    bermPositions.forEach(function(berm) {
-      var geometry = new THREE.BoxGeometry(2, 1.5, berm.length);
-      var material = new THREE.MeshStandardMaterial({
-        color: 0x6B5D4F,
-        roughness: 0.95,
-        metalness: 0
-      });
-      var mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(berm.x, 0.75, berm.z);
-      mesh.rotation.z = Math.random() * 0.15 - 0.075;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      scene.add(mesh);
-      sceneObjects.push(mesh);
-    });
+    // Build 4 elevated watchtowers
+    buildWatchtowers(scene);
+
+    // Build thatched command building
+    buildCommandBuilding(scene);
+
+    // Build tunnel entrance hatch
+    buildTunnelEntrance(scene);
+
+    // Build munitions bunker with crates
+    buildMunitionsBunker(scene);
+
+    // Build drug processing lab
+    buildDrugLab(scene);
+
+    // Build jungle trees with canopy
+    buildJungleTrees(scene);
+
+    // Build vine-covered walls
+    buildVineCoveredWalls(scene);
+
+    // Build jeep vehicle
+    buildJeep(scene);
+
+    // Build fire pit
+    buildFirePit(scene);
+
+    // Build bamboo cage (prisoner cell)
+    buildBambooCage(scene);
+
+    // Build rope bridge between towers
+    buildRopeBridge(scene);
+
+    // Spawn guards
+    spawnGuards(scene);
+
+    // Set up ground
+    buildGround(scene);
   }
 
-  function createBambooWatchtower() {
-    var group = new THREE.Group();
+  function buildGround(scene) {
+    var groundGeom = new THREE.BoxGeometry(200, 1, 200);
+    var groundMat = new THREE.MeshStandardMaterial({ color: MUD_BROWN, roughness: 0.9 });
+    var ground = new THREE.Mesh(groundGeom, groundMat);
+    ground.receiveShadow = true;
+    ground.position.y = -1;
+    scene.add(ground);
+    state.fortress.ground = ground;
+  }
 
-    // Four bamboo poles (cylinders)
-    var polePositions = [
-      [-1.5, 0, -1.5],
-      [1.5, 0, -1.5],
-      [-1.5, 0, 1.5],
-      [1.5, 0, 1.5]
-    ];
+  function buildBambooPalisade(scene) {
+    var palisadeGroup = new THREE.Group();
+    var perimeter = 150;
+    var numPoles = 40;
+    var poleSpacing = (perimeter * Math.PI * 2) / numPoles;
 
-    polePositions.forEach(function(pos) {
-      var geometry = new THREE.CylinderGeometry(0.25, 0.3, 8, 12);
-      var material = new THREE.MeshStandardMaterial({
-        color: 0x9B8B4C,
-        roughness: 0.8
-      });
-      var pole = new THREE.Mesh(geometry, material);
-      pole.position.set(pos[0], 4, pos[2]);
+    for (var i = 0; i < numPoles; i++) {
+      var angle = (i / numPoles) * Math.PI * 2;
+      var x = Math.cos(angle) * perimeter;
+      var z = Math.sin(angle) * perimeter;
+
+      // Bamboo pole (tall cylinder)
+      var poleGeom = new THREE.CylinderGeometry(0.6, 0.6, 8, 12);
+      var poleMat = new THREE.MeshStandardMaterial({ color: BAMBOO_TAN, roughness: 0.7 });
+      var pole = new THREE.Mesh(poleGeom, poleMat);
+      pole.position.set(x, 4, z);
       pole.castShadow = true;
       pole.receiveShadow = true;
-      group.add(pole);
-    });
+      palisadeGroup.add(pole);
 
-    // Platform (box)
-    var platformGeometry = new THREE.BoxGeometry(4, 0.4, 4);
-    var platformMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8B7355,
-      roughness: 0.85
-    });
-    var platform = new THREE.Mesh(platformGeometry, platformMaterial);
-    platform.position.y = 8;
-    platform.castShadow = true;
-    platform.receiveShadow = true;
-    group.add(platform);
-
-    // Roof structure (cone)
-    var roofGeometry = new THREE.ConeGeometry(2.5, 1.5, 8);
-    var roofMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4A3C2A,
-      roughness: 0.9
-    });
-    var roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.y = 9;
-    roof.castShadow = true;
-    roof.receiveShadow = true;
-    group.add(roof);
-
-    group.position.set(12, 0, -15);
-    scene.add(group);
-    sceneObjects.push(group);
-  }
-
-  function createBunkerEntrance() {
-    // Box tunnel opening in the ground
-    var geometry = new THREE.BoxGeometry(3, 2, 4);
-    var material = new THREE.MeshStandardMaterial({
-      color: 0x3D3530,
-      roughness: 0.95,
-      metalness: 0
-    });
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(-8, -0.5, 8);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-    sceneObjects.push(mesh);
-  }
-
-  function createTripwireLines() {
-    // Tripwires at ankle height (LineSegments)
-    var tripwirePositions = [
-      { start: [-10, 0.3, 0], end: [-5, 0.3, 0] },
-      { start: [0, 0.3, -8], end: [5, 0.3, -8] },
-      { start: [8, 0.3, 5], end: [8, 0.3, 12] },
-      { start: [-12, 0.3, 15], end: [-5, 0.3, 18] }
-    ];
-
-    tripwirePositions.forEach(function(wire, idx) {
-      var geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.BufferAttribute(
-        new Float32Array([
-          wire.start[0], wire.start[1], wire.start[2],
-          wire.end[0], wire.end[1], wire.end[2]
-        ]),
-        3
-      ));
-      var material = new THREE.LineBasicMaterial({
-        color: 0x333333,
-        linewidth: 2
-      });
-      var line = new THREE.LineSegments(geometry, material);
-      scene.add(line);
-      sceneObjects.push(line);
-      tripwires.push({
-        line: line,
-        triggered: false,
-        triggerTime: -1000,
-        originalColor: 0x333333
-      });
-    });
-  }
-
-  function createPunjiTrapPits() {
-    // Box recessed areas for punji traps
-    var pitPositions = [
-      { x: -18, z: 10 },
-      { x: 5, z: 20 },
-      { x: 20, z: -10 }
-    ];
-
-    pitPositions.forEach(function(pit) {
-      var geometry = new THREE.BoxGeometry(2, 1, 2);
-      var material = new THREE.MeshStandardMaterial({
-        color: 0x2A2520,
-        roughness: 0.95,
-        metalness: 0
-      });
-      var mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(pit.x, -0.5, pit.z);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      scene.add(mesh);
-      sceneObjects.push(mesh);
-    });
-  }
-
-  function createHammocks() {
-    // Hammocks slung between tree trunks (LineSegments)
-    var hammockPositions = [
-      {
-        start: [-20, 3, -12],
-        end: [-15, 3.2, -12]
-      },
-      {
-        start: [18, 2.8, 10],
-        end: [22, 3, 10]
+      // Horizontal bamboo connector
+      if (i % 3 === 0) {
+        var nextAngle = ((i + 1) / numPoles) * Math.PI * 2;
+        var nextX = Math.cos(nextAngle) * perimeter;
+        var nextZ = Math.sin(nextAngle) * perimeter;
+        var distance = Math.sqrt((nextX - x) ** 2 + (nextZ - z) ** 2);
+        var connectorGeom = new THREE.BoxGeometry(distance, 0.4, 0.4);
+        var connectorMat = new THREE.MeshStandardMaterial({ color: BAMBOO_TAN, roughness: 0.7 });
+        var connector = new THREE.Mesh(connectorGeom, connectorMat);
+        connector.position.set((x + nextX) / 2, 6, (z + nextZ) / 2);
+        connector.lookAt(nextX, 6, nextZ);
+        connector.castShadow = true;
+        palisadeGroup.add(connector);
       }
+    }
+
+    scene.add(palisadeGroup);
+    state.fortress.palisade = palisadeGroup;
+  }
+
+  function buildWatchtowers(scene) {
+    var positions = [
+      { x: 80, z: 80 },
+      { x: -80, z: 80 },
+      { x: -80, z: -80 },
+      { x: 80, z: -80 }
     ];
 
-    hammockPositions.forEach(function(hammock) {
-      var geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.BufferAttribute(
-        new Float32Array([
-          hammock.start[0], hammock.start[1], hammock.start[2],
-          hammock.end[0], hammock.end[1], hammock.end[2]
-        ]),
-        3
-      ));
-      var material = new THREE.LineBasicMaterial({
-        color: 0x8B5A3C,
-        linewidth: 3
+    var towersGroup = new THREE.Group();
+
+    positions.forEach(function(pos) {
+      // Wooden stilts
+      for (var sx = -3; sx <= 3; sx += 6) {
+        for (var sz = -3; sz <= 3; sz += 6) {
+          var stiltGeom = new THREE.CylinderGeometry(0.5, 0.5, 6, 8);
+          var stiltMat = new THREE.MeshStandardMaterial({ color: 0x654321, roughness: 0.8 });
+          var stilt = new THREE.Mesh(stiltGeom, stiltMat);
+          stilt.position.set(pos.x + sx, 3, pos.z + sz);
+          stilt.castShadow = true;
+          towersGroup.add(stilt);
+        }
+      }
+
+      // Platform
+      var platformGeom = new THREE.BoxGeometry(8, 0.5, 8);
+      var platformMat = new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.8 });
+      var platform = new THREE.Mesh(platformGeom, platformMat);
+      platform.position.set(pos.x, 6, pos.z);
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      towersGroup.add(platform);
+
+      // Guard rails
+      for (var r = 0; r < 4; r++) {
+        var railGeom = new THREE.BoxGeometry(8, 1.5, 0.3);
+        var railMat = new THREE.MeshStandardMaterial({ color: BAMBOO_TAN, roughness: 0.7 });
+        var rail = new THREE.Mesh(railGeom, railMat);
+        if (r === 0) rail.position.set(pos.x, 6.75, pos.z + 4);
+        if (r === 1) rail.position.set(pos.x, 6.75, pos.z - 4);
+        if (r === 2) rail.position.set(pos.x + 4, 6.75, pos.z);
+        if (r === 3) rail.position.set(pos.x - 4, 6.75, pos.z);
+        rail.castShadow = true;
+        towersGroup.add(rail);
+      }
+
+      // Spotlight on tower
+      var spotLight = new THREE.SpotLight(0xFFFFFF, 1, 100, Math.PI / 4, 0.5, 1);
+      spotLight.position.set(pos.x, 7, pos.z);
+      spotLight.target.position.set(pos.x, 0, pos.z);
+      towersGroup.add(spotLight);
+      towersGroup.add(spotLight.target);
+    });
+
+    scene.add(towersGroup);
+    state.fortress.towers = towersGroup;
+  }
+
+  function buildCommandBuilding(scene) {
+    var buildingGroup = new THREE.Group();
+
+    // Main building structure (box)
+    var bodyGeom = new THREE.BoxGeometry(12, 6, 10);
+    var bodyMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
+    var body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.position.set(0, 3, 0);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    buildingGroup.add(body);
+
+    // Thatched cone roof
+    var roofGeom = new THREE.ConeGeometry(7.5, 4, 32);
+    var roofMat = new THREE.MeshStandardMaterial({ color: THATCHED_ROOF, roughness: 0.9 });
+    var roof = new THREE.Mesh(roofGeom, roofMat);
+    roof.position.set(0, 7, 0);
+    roof.castShadow = true;
+    buildingGroup.add(roof);
+
+    // Door
+    var doorGeom = new THREE.BoxGeometry(2, 3, 0.2);
+    var doorMat = new THREE.MeshStandardMaterial({ color: 0x654321, roughness: 0.7 });
+    var door = new THREE.Mesh(doorGeom, doorMat);
+    door.position.set(0, 2, 5.1);
+    door.castShadow = true;
+    buildingGroup.add(door);
+
+    // Windows
+    for (var w = 0; w < 3; w++) {
+      var windowGeom = new THREE.BoxGeometry(1.5, 1.5, 0.1);
+      var windowMat = new THREE.MeshStandardMaterial({ color: 0x87CEEB, roughness: 0.3, metalness: 0.6 });
+      var window = new THREE.Mesh(windowGeom, windowMat);
+      window.position.set((w - 1) * 3, 4, -5.1);
+      window.castShadow = true;
+      buildingGroup.add(window);
+    }
+
+    // Interior light (warlord presence)
+    var ambientLight = new THREE.PointLight(0xFF8C00, 0.8, 50);
+    ambientLight.position.set(0, 4, 0);
+    buildingGroup.add(ambientLight);
+
+    scene.add(buildingGroup);
+    state.fortress.commandBuilding = buildingGroup;
+  }
+
+  function buildTunnelEntrance(scene) {
+    var tunnelGroup = new THREE.Group();
+
+    // Hatch door (metal)
+    var hatchGeom = new THREE.BoxGeometry(4, 4, 0.3);
+    var hatchMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.6, metalness: 0.8 });
+    var hatch = new THREE.Mesh(hatchGeom, hatchMat);
+    hatch.position.set(-40, 0.15, 40);
+    hatch.castShadow = true;
+    tunnelGroup.add(hatch);
+
+    // Circular tunnel entrance frame
+    var frameGeom = new THREE.CylinderGeometry(2.2, 2.2, 0.5, 32);
+    var frameMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.7 });
+    var frame = new THREE.Mesh(frameGeom, frameMat);
+    frame.position.set(-40, -1, 40);
+    frame.castShadow = true;
+    tunnelGroup.add(frame);
+
+    scene.add(tunnelGroup);
+    state.fortress.tunnel = { group: tunnelGroup, hatch: hatch };
+  }
+
+  function buildMunitionsBunker(scene) {
+    var bunkerGroup = new THREE.Group();
+
+    // Bunker structure (reinforced box)
+    var bunkerGeom = new THREE.BoxGeometry(10, 4, 8);
+    var bunkerMat = new THREE.MeshStandardMaterial({ color: 0x556B2F, roughness: 0.9 });
+    var bunker = new THREE.Mesh(bunkerGeom, bunkerMat);
+    bunker.position.set(50, 2, 20);
+    bunker.castShadow = true;
+    bunker.receiveShadow = true;
+    bunkerGroup.add(bunker);
+
+    // Ammo crates
+    for (var cx = -3; cx <= 3; cx += 3) {
+      for (var cy = 0; cy < 2; cy++) {
+        for (var cz = -2; cz <= 2; cz += 2) {
+          var crateGeom = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+          var crateMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.7 });
+          var crate = new THREE.Mesh(crateGeom, crateMat);
+          crate.position.set(50 + cx, 3 + cy * 1.6, 20 + cz);
+          crate.castShadow = true;
+          crate.receiveShadow = true;
+          bunkerGroup.add(crate);
+        }
+      }
+    }
+
+    scene.add(bunkerGroup);
+    state.fortress.bunker = bunkerGroup;
+  }
+
+  function buildDrugLab(scene) {
+    var labGroup = new THREE.Group();
+
+    // Lab building
+    var labGeom = new THREE.BoxGeometry(14, 5, 12);
+    var labMat = new THREE.MeshStandardMaterial({ color: 0x696969, roughness: 0.8 });
+    var lab = new THREE.Mesh(labGeom, labMat);
+    lab.position.set(-50, 2.5, 20);
+    lab.castShadow = true;
+    lab.receiveShadow = true;
+    labGroup.add(lab);
+
+    // Processing tables
+    for (var t = 0; t < 3; t++) {
+      var tableTopGeom = new THREE.BoxGeometry(3, 0.3, 2);
+      var tableTopMat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.6 });
+      var tableTop = new THREE.Mesh(tableTopGeom, tableTopMat);
+      tableTop.position.set(-50 + (t - 1) * 4, 2.5, 20);
+      tableTop.castShadow = true;
+      labGroup.add(tableTop);
+
+      // Table legs
+      for (var leg = 0; leg < 4; leg++) {
+        var legGeom = new THREE.CylinderGeometry(0.15, 0.15, 2, 8);
+        var legMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7 });
+        var legOffset = leg < 2 ? -1 : 1;
+        var legPos = leg % 2 === 0 ? -0.8 : 0.8;
+        var legMesh = new THREE.Mesh(legGeom, legMat);
+        legMesh.position.set(-50 + (t - 1) * 4 + legPos, 1.5, 20 + legOffset);
+        legMesh.castShadow = true;
+        labGroup.add(legMesh);
+      }
+    }
+
+    // Chemical containers (emissive green)
+    for (var c = 0; c < 5; c++) {
+      var containerGeom = new THREE.CylinderGeometry(0.4, 0.4, 1.5, 12);
+      var containerMat = new THREE.MeshStandardMaterial({
+        color: JUNGLE_GREEN,
+        emissive: 0x00FF00,
+        emissiveIntensity: 0.3,
+        roughness: 0.5
       });
-      var line = new THREE.LineSegments(geometry, material);
-      scene.add(line);
-      sceneObjects.push(line);
-    });
+      var container = new THREE.Mesh(containerGeom, containerMat);
+      container.position.set(-50 + (c - 2) * 2, 3.2, 20);
+      container.castShadow = true;
+      labGroup.add(container);
+    }
+
+    scene.add(labGroup);
+    state.fortress.lab = labGroup;
   }
 
-  function createSupplyTunnelOpening() {
-    // Box hatch opening
-    var geometry = new THREE.BoxGeometry(1.5, 1, 1.5);
-    var material = new THREE.MeshStandardMaterial({
-      color: 0x4A4035,
-      roughness: 0.9
-    });
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(10, -0.3, -18);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-    sceneObjects.push(mesh);
-  }
+  function buildJungleTrees(scene) {
+    var treesGroup = new THREE.Group();
 
-  function createDenseJungleTrees() {
-    // Dense cylinder trunks with sphere canopies
+    // Scatter trees around fortress perimeter
     var treePositions = [
-      { x: -25, z: -20 },
-      { x: -20, z: 5 },
-      { x: 25, z: -15 },
-      { x: 22, z: 18 },
-      { x: -15, z: 20 },
-      { x: 8, z: -25 },
-      { x: -30, z: 10 },
-      { x: 28, z: 8 },
-      { x: 0, z: -30 },
-      { x: 18, z: -20 },
-      { x: -22, z: -28 },
-      { x: 25, z: 25 }
+      { x: 120, z: 0 },
+      { x: -120, z: 0 },
+      { x: 0, z: 120 },
+      { x: 0, z: -120 },
+      { x: 100, z: 100 },
+      { x: -100, z: 100 },
+      { x: -100, z: -100 },
+      { x: 100, z: -100 },
+      { x: 130, z: 30 },
+      { x: -130, z: 30 },
+      { x: 30, z: 130 },
+      { x: -30, z: 130 },
+      { x: 30, z: -130 },
+      { x: -30, z: -130 },
+      { x: 90, z: -50 }
     ];
 
-    treePositions.forEach(function(treePos, idx) {
-      var group = new THREE.Group();
-
+    treePositions.forEach(function(pos, idx) {
       // Trunk (cylinder)
-      var trunkGeometry = new THREE.CylinderGeometry(0.6, 0.8, 12, 8);
-      var trunkMaterial = new THREE.MeshStandardMaterial({
-        color: 0x5C4033,
-        roughness: 0.95
-      });
-      var trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-      trunk.position.y = 6;
+      var trunkGeom = new THREE.CylinderGeometry(1.5, 2, 12, 12);
+      var trunkMat = new THREE.MeshStandardMaterial({ color: 0x3D2817, roughness: 0.9 });
+      var trunk = new THREE.Mesh(trunkGeom, trunkMat);
+      trunk.position.set(pos.x, 6, pos.z);
       trunk.castShadow = true;
       trunk.receiveShadow = true;
-      group.add(trunk);
+      treesGroup.add(trunk);
 
       // Canopy (sphere)
-      var canopyGeometry = new THREE.SphereGeometry(5, 12, 12);
-      var canopyMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2D5C2D,
-        roughness: 0.85
-      });
-      var canopy = new THREE.Mesh(canopyGeometry, canopyMaterial);
-      canopy.position.y = 10;
-      canopy.scale.set(1, 1.2, 1);
+      var canopyGeom = new THREE.SphereGeometry(6, 16, 16);
+      var canopyMat = new THREE.MeshStandardMaterial({ color: JUNGLE_GREEN, roughness: 0.8 });
+      var canopy = new THREE.Mesh(canopyGeom, canopyMat);
+      canopy.position.set(pos.x, 10, pos.z);
       canopy.castShadow = true;
       canopy.receiveShadow = true;
-      group.add(canopy);
+      treesGroup.add(canopy);
 
-      group.position.set(treePos.x, 0, treePos.z);
-      group.treeData = {
-        baseY: 10,
-        oscillation: Math.random() * Math.PI * 2,
-        canopy: canopy
-      };
+      // Vine decoration
+      var vineGeom = new THREE.BoxGeometry(0.2, 8, 0.2);
+      var vineMat = new THREE.MeshStandardMaterial({ color: DARK_JUNGLE, roughness: 0.8 });
+      var vine = new THREE.Mesh(vineGeom, vineMat);
+      vine.position.set(pos.x - 1, 8, pos.z);
+      treesGroup.add(vine);
 
-      scene.add(group);
-      sceneObjects.push(group);
-      canopies.push(group.treeData);
+      state.vines.push({ mesh: vine, originalPos: { x: vine.position.x, y: vine.position.y, z: vine.position.z }, idx: idx });
     });
+
+    scene.add(treesGroup);
+    state.fortress.trees = treesGroup;
   }
 
-  function createCampfire() {
-    var group = new THREE.Group();
+  function buildVineCoveredWalls(scene) {
+    var vineWallGroup = new THREE.Group();
 
-    // Fire logs (boxes)
-    var logGeometry = new THREE.BoxGeometry(0.3, 0.3, 2);
-    var logMaterial = new THREE.MeshStandardMaterial({
-      color: 0x3D2817,
-      roughness: 0.95
+    // Vine-covered wall panels
+    var wallPositions = [
+      { x: -30, z: -50, rot: 0 },
+      { x: 30, z: -50, rot: 0 },
+      { x: -50, z: 30, rot: Math.PI / 2 },
+      { x: -50, z: -30, rot: Math.PI / 2 }
+    ];
+
+    wallPositions.forEach(function(pos) {
+      var wallGeom = new THREE.BoxGeometry(15, 5, 0.3);
+      var wallMat = new THREE.MeshStandardMaterial({
+        color: DARK_JUNGLE,
+        emissive: JUNGLE_GREEN,
+        emissiveIntensity: 0.2,
+        roughness: 0.9
+      });
+      var wall = new THREE.Mesh(wallGeom, wallMat);
+      wall.position.set(pos.x, 2.5, pos.z);
+      wall.rotation.y = pos.rot;
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      vineWallGroup.add(wall);
     });
 
-    var log1 = new THREE.Mesh(logGeometry, logMaterial);
-    log1.rotation.z = Math.PI / 4;
-    log1.position.set(0, 0.2, 0);
-    group.add(log1);
-
-    var log2 = new THREE.Mesh(logGeometry, logMaterial);
-    log2.rotation.z = -Math.PI / 4;
-    log2.position.set(0, 0.2, 0);
-    group.add(log2);
-
-    // Fire light
-    var fireLight = new THREE.PointLight(0xFF6600, 2, 15);
-    fireLight.position.set(0, 1.5, 0);
-    fireLight.castShadow = true;
-    group.add(fireLight);
-    campfireLights.push({
-      light: fireLight,
-      baseIntensity: 2,
-      flickerPhase: Math.random() * Math.PI * 2
-    });
-
-    group.position.set(-10, 0.5, -12);
-    scene.add(group);
-    sceneObjects.push(group);
+    scene.add(vineWallGroup);
+    state.fortress.vineWalls = vineWallGroup;
   }
 
-  // ============================================================================
-  // ENEMY CREATION
-  // ============================================================================
+  function buildJeep(scene) {
+    var jeepGroup = new THREE.Group();
 
-  function createTunnelFighterEnemy() {
-    var group = new THREE.Group();
-
-    // Body (green camouflage box, crouching - low Y)
-    var bodyGeometry = new THREE.BoxGeometry(0.6, 1, 0.4);
-    var bodyMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4A6B3A,
-      roughness: 0.8
-    });
-    var body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.position.y = 0.3;
+    // Jeep body
+    var bodyGeom = new THREE.BoxGeometry(2, 1.5, 4);
+    var bodyMat = new THREE.MeshStandardMaterial({ color: 0x2F4F2F, roughness: 0.7 });
+    var body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.position.set(40, 0.75, -30);
     body.castShadow = true;
     body.receiveShadow = true;
-    group.add(body);
+    jeepGroup.add(body);
 
-    // Head (small sphere)
-    var headGeometry = new THREE.SphereGeometry(0.25, 8, 8);
-    var headMaterial = new THREE.MeshStandardMaterial({
-      color: 0x3D5C2D,
-      roughness: 0.75
-    });
-    var head = new THREE.Mesh(headGeometry, headMaterial);
-    head.position.set(0, 1.2, 0);
-    head.castShadow = true;
-    head.receiveShadow = true;
-    group.add(head);
+    // Roof (canvas)
+    var roofGeom = new THREE.BoxGeometry(1.8, 1, 3.5);
+    var roofMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
+    var roof = new THREE.Mesh(roofGeom, roofMat);
+    roof.position.set(40, 1.5, -30);
+    jeepGroup.add(roof);
 
-    // Rifle (box)
-    var rifleGeometry = new THREE.BoxGeometry(0.1, 0.1, 1);
-    var rifleMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1A1A1A,
-      roughness: 0.9
-    });
-    var rifle = new THREE.Mesh(rifleGeometry, rifleMaterial);
-    rifle.position.set(0.3, 0.8, -0.5);
-    rifle.rotation.z = 0.3;
-    rifle.castShadow = true;
-    group.add(rifle);
-
-    var startX = (Math.random() - 0.5) * 40;
-    var startZ = (Math.random() - 0.5) * 40;
-    group.position.set(startX, 0, startZ);
-
-    group.enemyData = {
-      position: new THREE.Vector3(startX, 0, startZ),
-      speed: 1 + Math.random() * 2,
-      angle: Math.random() * Math.PI * 2,
-      patrolRadius: 8
-    };
-
-    scene.add(group);
-    sceneObjects.push(group);
-    enemies.push(group);
-  }
-
-  function createWatchtowerSentry() {
-    var group = new THREE.Group();
-
-    // Body
-    var bodyGeometry = new THREE.BoxGeometry(0.4, 0.8, 0.3);
-    var bodyMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5C7A4A,
-      roughness: 0.8
-    });
-    var body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.position.y = 0.2;
-    body.castShadow = true;
-    body.receiveShadow = true;
-    group.add(body);
-
-    // Head
-    var headGeometry = new THREE.SphereGeometry(0.2, 8, 8);
-    var headMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4A6B3A,
-      roughness: 0.75
-    });
-    var head = new THREE.Mesh(headGeometry, headMaterial);
-    head.position.set(0, 1, 0);
-    head.castShadow = true;
-    group.add(head);
-
-    group.position.set(12, 8.5, -15);
-    group.enemyData = {
-      position: new THREE.Vector3(12, 8.5, -15),
-      speed: 0,
-      angle: 0,
-      patrolRadius: 0
-    };
-
-    scene.add(group);
-    sceneObjects.push(group);
-    enemies.push(group);
-  }
-
-  // ============================================================================
-  // ANIMATIONS & UPDATES
-  // ============================================================================
-
-  function updateTripwires(delta) {
-    tripwires.forEach(function(wire, idx) {
-      // Occasionally trigger
-      if (Math.random() < 0.01) {
-        wire.triggered = true;
-        wire.triggerTime = elapsedTime;
-        wire.line.material.color.setHex(0xFF0000);
-        wire.line.material.emissive.setHex(0xFF3300);
-      }
-
-      // Reset after flash
-      if (wire.triggered && (elapsedTime - wire.triggerTime) > 0.15) {
-        wire.triggered = false;
-        wire.line.material.color.setHex(wire.originalColor);
-        wire.line.material.emissive.setHex(0x000000);
-      }
-    });
-  }
-
-  function updateCanopies(delta) {
-    canopies.forEach(function(canopyData) {
-      var oscillation = Math.sin(elapsedTime * 0.6 + canopyData.oscillation) * 0.3;
-      canopyData.canopy.position.y = canopyData.baseY + oscillation;
-    });
-  }
-
-  function updateCampfire(delta) {
-    campfireLights.forEach(function(fire) {
-      var flicker = Math.sin(elapsedTime * 4 + fire.flickerPhase) * 0.4 + 1;
-      fire.light.intensity = fire.baseIntensity * flicker;
-    });
-  }
-
-  function updateEnemies(delta) {
-    enemies.forEach(function(enemy) {
-      var data = enemy.enemyData;
-
-      // Patrol behavior
-      if (data.patrolRadius > 0) {
-        data.angle += (Math.random() - 0.5) * 0.1;
-        var targetX = Math.cos(data.angle) * data.patrolRadius;
-        var targetZ = Math.sin(data.angle) * data.patrolRadius;
-
-        data.position.x += (targetX - data.position.x) * 0.05;
-        data.position.z += (targetZ - data.position.z) * 0.05;
-      }
-
-      enemy.position.copy(data.position);
-    });
-  }
-
-  function updateHUD() {
-    if (!hudElement) return;
-
-    var hudText = 'TUNNEL NETWORK CLEARED: ' + gameState.tunnelNetworkCleared + '/' + gameState.maxTunnels + '\n' +
-                  'GUERRILLAS DOWN: ' + gameState.guerrillasDown + '\n' +
-                  'TRAPS DISARMED: ' + gameState.trapsDisarmed + '/' + gameState.maxTraps;
-
-    hudElement.textContent = hudText;
-    hudElement.style.display = hudVisible ? 'block' : 'none';
-  }
-
-  function createHUD() {
-    if (!hudElement) {
-      hudElement = document.createElement('div');
-      hudElement.id = 'jungle-fortress-hud';
-      hudElement.style.cssText = 'position: absolute; top: 20px; left: 20px; color: #00FF00; ' +
-                                  'font-family: monospace; font-size: 14px; white-space: pre; ' +
-                                  'background: rgba(0, 0, 0, 0.8); padding: 10px; border: 2px solid #00FF00; ' +
-                                  'z-index: 100; text-shadow: 0 0 8px #00FF00; letter-spacing: 1px;';
-      document.body.appendChild(hudElement);
+    // Wheels
+    for (var w = 0; w < 4; w++) {
+      var wheelGeom = new THREE.CylinderGeometry(0.6, 0.6, 0.6, 12);
+      var wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.3 });
+      var wheel = new THREE.Mesh(wheelGeom, wheelMat);
+      var xOffset = (w < 2 ? -1 : 1) * 1;
+      var zOffset = (w % 2 === 0 ? -1 : 1) * 1.5;
+      wheel.position.set(40 + xOffset, 0.6, -30 + zOffset);
+      wheel.rotation.z = Math.PI / 2;
+      wheel.castShadow = true;
+      jeepGroup.add(wheel);
     }
-    updateHUD();
+
+    // Machine gun mount
+    var gunGeom = new THREE.CylinderGeometry(0.2, 0.2, 1.5, 8);
+    var gunMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6, metalness: 0.8 });
+    var gun = new THREE.Mesh(gunGeom, gunMat);
+    gun.position.set(40, 1.8, -30);
+    gun.rotation.z = Math.PI / 4;
+    gun.castShadow = true;
+    jeepGroup.add(gun);
+
+    scene.add(jeepGroup);
+    state.fortress.jeep = jeepGroup;
   }
 
-  function setupKeyListener() {
-    document.addEventListener('keydown', function(event) {
-      var now = Date.now();
+  function buildFirePit(scene) {
+    var pitGroup = new THREE.Group();
 
-      if (event.key.toLowerCase() === 'j') {
-        lastJKeyTime = now;
-      }
+    // Stone ring
+    var ringGeom = new THREE.CylinderGeometry(2, 2, 0.5, 32);
+    var ringMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.9 });
+    var ring = new THREE.Mesh(ringGeom, ringMat);
+    ring.position.set(0, 0.25, -20);
+    ring.castShadow = true;
+    ring.receiveShadow = true;
+    pitGroup.add(ring);
 
-      if (event.key.toLowerCase() === 'f') {
-        if (now - lastJKeyTime < 400) {
-          hudVisible = !hudVisible;
-          var notif = document.createElement('div');
-          notif.textContent = hudVisible ? 'HUD: ON' : 'HUD: OFF';
-          notif.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); ' +
-                                'color: #00FF00; font-family: monospace; font-size: 20px; ' +
-                                'background: rgba(0, 0, 0, 0.9); padding: 20px; z-index: 200; ' +
-                                'border: 3px solid #00FF00; pointer-events: none; ' +
-                                'text-shadow: 0 0 10px #00FF00;';
-          document.body.appendChild(notif);
-          setTimeout(function() { notif.remove(); }, 1000);
-        }
-        lastFKeyTime = now;
-      }
-    });
-  }
+    // Fire glow
+    var fireLight = new THREE.PointLight(FIRE_ORANGE, 1.5, 30);
+    fireLight.position.set(0, 2, -20);
+    pitGroup.add(fireLight);
 
-  // ============================================================================
-  // PUBLIC API
-  // ============================================================================
-
-  function init(sceneParam, cameraParam) {
-    scene = sceneParam;
-    camera = cameraParam;
-
-    // Setup scene
-    scene.background = new THREE.Color(0x1a2a1a);
-    scene.fog = new THREE.FogExp2(0x0d2d0d, 0.15);
-
-    // Lighting - oppressive jungle heat, dim dappled light
-    var ambientLight = new THREE.AmbientLight(0x4a6a4a, 0.5);
-    scene.add(ambientLight);
-
-    var directionalLight = new THREE.DirectionalLight(0xffee99, 0.4);
-    directionalLight.position.set(15, 15, 10);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    directionalLight.shadow.camera.left = -50;
-    directionalLight.shadow.camera.right = 50;
-    directionalLight.shadow.camera.top = 50;
-    directionalLight.shadow.camera.bottom = -50;
-    scene.add(directionalLight);
-
-    // Create scene elements
-    createDenseJungleTrees();
-    createBermWalls();
-    createBambooWatchtower();
-    createBunkerEntrance();
-    createTripwireLines();
-    createPunjiTrapPits();
-    createHammocks();
-    createSupplyTunnelOpening();
-    createCampfire();
-
-    // Create enemies
-    for (var i = 0; i < 3; i++) {
-      createTunnelFighterEnemy();
+    // Initialize fire particles
+    for (var fp = 0; fp < 20; fp++) {
+      var particleGeom = new THREE.SphereGeometry(0.15, 4, 4);
+      var particleMat = new THREE.MeshStandardMaterial({
+        color: FIRE_ORANGE,
+        emissive: FIRE_ORANGE,
+        emissiveIntensity: 0.8
+      });
+      var particle = new THREE.Mesh(particleGeom, particleMat);
+      particle.position.set(0 + (Math.random() - 0.5) * 2, Math.random() * 3, -20 + (Math.random() - 0.5) * 2);
+      pitGroup.add(particle);
+      state.fireParticles.push({
+        mesh: particle,
+        vx: (Math.random() - 0.5) * 0.05,
+        vy: Math.random() * 0.08,
+        vz: (Math.random() - 0.5) * 0.05,
+        life: Math.random()
+      });
     }
-    createWatchtowerSentry();
 
-    // Setup HUD and input
-    createHUD();
-    setupKeyListener();
+    scene.add(pitGroup);
+    state.fortress.firePit = pitGroup;
+  }
+
+  function buildBambooCage(scene) {
+    var cageGroup = new THREE.Group();
+
+    // Cage frame (bamboo poles)
+    var frameBars = [
+      // Vertical bars
+      { start: { x: -2, y: 0, z: -2 }, end: { x: -2, y: 3, z: -2 } },
+      { start: { x: 2, y: 0, z: -2 }, end: { x: 2, y: 3, z: -2 } },
+      { start: { x: -2, y: 0, z: 2 }, end: { x: -2, y: 3, z: 2 } },
+      { start: { x: 2, y: 0, z: 2 }, end: { x: 2, y: 3, z: 2 } },
+      // Horizontal top bars
+      { start: { x: -2, y: 3, z: -2 }, end: { x: 2, y: 3, z: -2 } },
+      { start: { x: -2, y: 3, z: 2 }, end: { x: 2, y: 3, z: 2 } },
+      { start: { x: -2, y: 3, z: -2 }, end: { x: -2, y: 3, z: 2 } },
+      { start: { x: 2, y: 3, z: -2 }, end: { x: 2, y: 3, z: 2 } }
+    ];
+
+    frameBars.forEach(function(bar) {
+      var dx = bar.end.x - bar.start.x;
+      var dy = bar.end.y - bar.start.y;
+      var dz = bar.end.z - bar.start.z;
+      var length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      var barGeom = new THREE.BoxGeometry(length, 0.3, 0.3);
+      var barMat = new THREE.MeshStandardMaterial({ color: BAMBOO_TAN, roughness: 0.7 });
+      var barMesh = new THREE.Mesh(barGeom, barMat);
+
+      barMesh.position.set(
+        (bar.start.x + bar.end.x) / 2,
+        (bar.start.y + bar.end.y) / 2,
+        (bar.start.z + bar.end.z) / 2
+      );
+
+      barMesh.lookAt(bar.end.x, bar.end.y, bar.end.z);
+      barMesh.castShadow = true;
+      cageGroup.add(barMesh);
+    });
+
+    // Door
+    var doorGeom = new THREE.BoxGeometry(1.5, 2.5, 0.2);
+    var doorMat = new THREE.MeshStandardMaterial({ color: BAMBOO_TAN, roughness: 0.7 });
+    var door = new THREE.Mesh(doorGeom, doorMat);
+    door.position.set(-2, 1.25, -2.1);
+    door.castShadow = true;
+    cageGroup.add(door);
+
+    cageGroup.position.set(-60, 0, -40);
+    scene.add(cageGroup);
+    state.fortress.cage = cageGroup;
+  }
+
+  function buildRopeBridge(scene) {
+    var bridgeGroup = new THREE.Group();
+
+    // Rope bridge between towers (using LineSegments)
+    var points = [];
+    var segments = 20;
+    for (var i = 0; i <= segments; i++) {
+      var t = i / segments;
+      var x = 80 * (1 - t) + (-80) * t;
+      var z = 80 * (1 - t) + 80 * t;
+      var sag = Math.sin(t * Math.PI) * 3;
+      points.push(new THREE.Vector3(x, 6 + sag, z));
+    }
+
+    var ropeMaterial = new THREE.LineBasicMaterial({ color: 0x8B4513, linewidth: 3 });
+    var ropeGeometry = new THREE.BufferGeometry().setFromPoints(points);
+    var rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
+    bridgeGroup.add(rope);
+
+    // Wooden planks
+    for (var p = 0; p < segments; p++) {
+      var plankGeom = new THREE.BoxGeometry(2, 0.3, 0.5);
+      var plankMat = new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.8 });
+      var plank = new THREE.Mesh(plankGeom, plankMat);
+      var t = p / segments;
+      var x = 80 * (1 - t) + (-80) * t;
+      var z = 80 * (1 - t) + 80 * t;
+      var sag = Math.sin(t * Math.PI) * 3;
+      plank.position.set(x, 6 + sag, z);
+      plank.castShadow = true;
+      bridgeGroup.add(plank);
+    }
+
+    scene.add(bridgeGroup);
+    state.fortress.bridge = bridgeGroup;
+  }
+
+  function spawnGuards(scene) {
+    // Create guard patrol paths
+    var guardPaths = [
+      // Perimeter patrol
+      [
+        new THREE.Vector3(100, 0, 0),
+        new THREE.Vector3(70, 0, 70),
+        new THREE.Vector3(0, 0, 100),
+        new THREE.Vector3(-70, 0, 70),
+        new THREE.Vector3(-100, 0, 0),
+        new THREE.Vector3(-70, 0, -70),
+        new THREE.Vector3(0, 0, -100),
+        new THREE.Vector3(70, 0, -70)
+      ],
+      // Tower to tower
+      [
+        new THREE.Vector3(80, 0, 80),
+        new THREE.Vector3(-80, 0, 80),
+        new THREE.Vector3(-80, 0, -80),
+        new THREE.Vector3(80, 0, -80)
+      ],
+      // Center compound
+      [
+        new THREE.Vector3(0, 0, -20),
+        new THREE.Vector3(40, 0, -30),
+        new THREE.Vector3(40, 0, 20),
+        new THREE.Vector3(0, 0, 0)
+      ]
+    ];
+
+    guardPaths.forEach(function(path, idx) {
+      // Guard body
+      var bodyGeom = new THREE.BoxGeometry(1, 1.8, 0.6);
+      var bodyMat = new THREE.MeshStandardMaterial({ color: 0x556B2F, roughness: 0.7 });
+      var body = new THREE.Mesh(bodyGeom, bodyMat);
+      body.castShadow = true;
+      body.receiveShadow = true;
+      scene.add(body);
+
+      // Guard head
+      var headGeom = new THREE.SphereGeometry(0.4, 8, 8);
+      var headMat = new THREE.MeshStandardMaterial({ color: 0xC39C68, roughness: 0.7 });
+      var head = new THREE.Mesh(headGeom, headMat);
+      head.position.set(0, 1.2, 0);
+      head.castShadow = true;
+      body.add(head);
+
+      // Guard weapon
+      var gunGeom = new THREE.BoxGeometry(0.2, 0.1, 1.5);
+      var gunMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6, metalness: 0.8 });
+      var gun = new THREE.Mesh(gunGeom, gunMat);
+      gun.position.set(0.3, 0.5, 0.5);
+      gun.rotation.z = Math.PI / 6;
+      gun.castShadow = true;
+      body.add(gun);
+
+      state.guards.push({
+        body: body,
+        path: path,
+        pathIndex: 0,
+        speed: 0.01 + Math.random() * 0.01,
+        progress: Math.random()
+      });
+    });
   }
 
   function update(delta) {
-    elapsedTime += delta;
+    // Update fire pit flickering
+    updateFirePit(delta);
 
-    updateTripwires(delta);
-    updateCanopies(delta);
-    updateCampfire(delta);
-    updateEnemies(delta);
-    updateHUD();
+    // Update guard patrols
+    updateGuards(delta);
+
+    // Update bird animations and vines
+    updateVines(delta);
+
+    // Update tunnel hatch on approach (would check player distance in real game)
+    updateTunnelHatch(delta);
+
+    // Update warlord animation
+    updateWarlord(delta);
+  }
+
+  function updateFirePit(delta) {
+    state.fireParticles.forEach(function(particle) {
+      particle.mesh.position.x += particle.vx;
+      particle.mesh.position.y += particle.vy;
+      particle.mesh.position.z += particle.vz;
+
+      particle.life -= delta * 0.5;
+      if (particle.life <= 0) {
+        particle.mesh.position.set(
+          (Math.random() - 0.5) * 2,
+          Math.random() * 0.5,
+          -20 + (Math.random() - 0.5) * 2
+        );
+        particle.life = 1;
+        particle.vy = Math.random() * 0.08;
+      }
+
+      var opacity = Math.max(0, particle.life);
+      particle.mesh.material.opacity = opacity;
+    });
+  }
+
+  function updateGuards(delta) {
+    state.guards.forEach(function(guard) {
+      guard.progress += guard.speed * delta;
+
+      if (guard.progress >= 1) {
+        guard.pathIndex = (guard.pathIndex + 1) % guard.path.length;
+        guard.progress = 0;
+      }
+
+      var currentWaypoint = guard.path[guard.pathIndex];
+      var nextWaypoint = guard.path[(guard.pathIndex + 1) % guard.path.length];
+
+      var x = currentWaypoint.x + (nextWaypoint.x - currentWaypoint.x) * guard.progress;
+      var z = currentWaypoint.z + (nextWaypoint.z - currentWaypoint.z) * guard.progress;
+
+      guard.body.position.set(x, 0.9, z);
+
+      // Face direction of movement
+      var direction = new THREE.Vector3(nextWaypoint.x - x, 0, nextWaypoint.z - z);
+      if (direction.length() > 0) {
+        direction.normalize();
+        guard.body.lookAt(guard.body.position.x + direction.x, guard.body.position.y, guard.body.position.z + direction.z);
+      }
+    });
+  }
+
+  function updateVines(delta) {
+    state.soundPhase += delta * 0.5;
+
+    state.vines.forEach(function(vine) {
+      var sway = Math.sin(state.soundPhase + vine.idx * 0.5) * 0.5;
+      vine.mesh.position.x = vine.originalPos.x + sway;
+      vine.mesh.position.y = vine.originalPos.y + Math.cos(state.soundPhase * 2 + vine.idx) * 0.3;
+    });
+
+    // Tree canopy shadow movement
+    state.treeSway += delta;
+  }
+
+  function updateTunnelHatch(delta) {
+    // Simulate hatch opening on approach
+    if (state.fortress.tunnel && state.fortress.tunnel.hatch) {
+      state.warlordAnimation += delta;
+      var hatchAngle = Math.sin(state.warlordAnimation * 0.3) * 0.2;
+      state.fortress.tunnel.hatch.rotation.z = hatchAngle;
+    }
+  }
+
+  function updateWarlord(delta) {
+    // Warlord boss pacing in command building
+    state.warlordAnimation += delta * 0.3;
+    if (state.fortress.commandBuilding) {
+      var pace = Math.sin(state.warlordAnimation) * 2;
+      state.fortress.commandBuilding.children[0].position.z = pace;
+    }
   }
 
   function reset() {
-    // Remove all scene objects
-    sceneObjects.forEach(function(obj) {
-      scene.remove(obj);
-      if (obj.geometry) {
-        obj.geometry.dispose();
-      }
-      if (obj.material) {
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach(function(mat) {
-            mat.dispose();
-          });
-        } else {
-          obj.material.dispose();
-        }
+    // Clear all fortress objects
+    state.guards.forEach(function(guard) {
+      if (guard.body && guard.body.parent) {
+        guard.body.parent.remove(guard.body);
       }
     });
+    state.guards = [];
 
-    // Remove lights
-    var lightsToRemove = [];
-    scene.children.forEach(function(child) {
-      if (child instanceof THREE.Light) {
-        lightsToRemove.push(child);
+    state.fireParticles.forEach(function(particle) {
+      if (particle.mesh && particle.mesh.parent) {
+        particle.mesh.parent.remove(particle.mesh);
       }
     });
-    lightsToRemove.forEach(function(light) {
-      scene.remove(light);
-    });
+    state.fireParticles = [];
 
-    // Remove HUD
-    if (hudElement && hudElement.parentNode) {
-      hudElement.parentNode.removeChild(hudElement);
-      hudElement = null;
-    }
+    state.vines = [];
+    state.treeSway = 0;
+    state.soundPhase = 0;
+    state.tunnelOpen = false;
+    state.warlordAnimation = 0;
 
-    // Reset all state
-    sceneObjects = [];
-    enemies = [];
-    tripwires = [];
-    canopies = [];
-    campfireLights = [];
-    gameState.tunnelNetworkCleared = 0;
-    gameState.guerrillasDown = 0;
-    gameState.trapsDisarmed = 0;
-    elapsedTime = 0;
-    lastJKeyTime = 0;
-    lastFKeyTime = 0;
-    hudVisible = true;
+    // Groups will be removed by scene cleanup
+    state.fortress = null;
   }
 
   return {

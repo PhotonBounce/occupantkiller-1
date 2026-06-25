@@ -1952,7 +1952,7 @@ const GameManager = (function () {
     try { if (window.VikingLongship && VikingLongship.init) VikingLongship.init(_scene, _camera); } catch (e) {}
     try { if (window.GuerrillaWar && GuerrillaWar.init) GuerrillaWar.init(_scene, _camera); } catch (e) {}
     try { if (window.SkyscraperSiege && SkyscraperSiege.init) SkyscraperSiege.init(_scene, _camera); } catch (e) {}
-    try { if (window.CargoPlanejack && CargoPlanejack.init) CargoPlanejack.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoPlane && CargoPlane.init) CargoPlane.init(_scene, _camera); } catch (e) {}
     try { if (window.BankHeist && BankHeist.init) BankHeist.init(_scene, _camera); } catch (e) {}
     try { if (window.CyberEspionage && CyberEspionage.init) CyberEspionage.init(_scene, _camera); } catch (e) {}
     try { if (window.InsurgentCamp && InsurgentCamp.init) InsurgentCamp.init(_scene, _camera); } catch (e) {}
@@ -1987,7 +1987,7 @@ const GameManager = (function () {
     try { if (window.BlackMarketArms && BlackMarketArms.init) BlackMarketArms.init(_scene, _camera); } catch (e) {}
     try { if (window.HarborBlockade && HarborBlockade.init) HarborBlockade.init(_scene, _camera); } catch (e) {}
     try { if (window.MountainPass && MountainPass.init) MountainPass.init(_scene, _camera); } catch (e) {}
-    try { if (window.BankVaultHeist && BankVaultHeist.init) BankVaultHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.BankVault && BankVault.init) BankVault.init(_scene, _camera); } catch (e) {}
     try { if (window.IslandFortress && IslandFortress.init) IslandFortress.init(_scene, _camera); } catch (e) {}
     try { if (window.TrainStationSiege && TrainStationSiege.init) TrainStationSiege.init(_scene, _camera); } catch (e) {}
     try { if (window.SewersEscape && SewersEscape.init) SewersEscape.init(_scene, _camera); } catch (e) {}
@@ -9050,7 +9050,7 @@ const GameManager = (function () {
       if (window.VikingLongship) VikingLongship.update(delta);
       if (window.GuerrillaWar) GuerrillaWar.update(delta);
       if (window.SkyscraperSiege) SkyscraperSiege.update(delta);
-      if (window.CargoPlanejack) CargoPlanejack.update(delta);
+      if (window.CargoPlane) CargoPlane.update(delta);
       if (window.BankHeist) BankHeist.update(delta);
       if (window.CyberEspionage) CyberEspionage.update(delta);
       if (window.InsurgentCamp) InsurgentCamp.update(delta);
@@ -9085,7 +9085,7 @@ const GameManager = (function () {
     if (window.BlackMarketArms) BlackMarketArms.update(delta);
     if (window.HarborBlockade) HarborBlockade.update(delta);
     if (window.MountainPass) MountainPass.update(delta);
-    if (window.BankVaultHeist) BankVaultHeist.update(delta);
+    if (window.BankVault) BankVault.update(delta);
     if (window.IslandFortress) IslandFortress.update(delta);
     if (window.TrainStationSiege) TrainStationSiege.update(delta);
     if (window.SewersEscape) SewersEscape.update(delta);
