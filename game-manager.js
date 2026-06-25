@@ -2398,6 +2398,11 @@ const GameManager = (function () {
     try { if (window.ArenaDome && ArenaDome.init) ArenaDome.init(_scene, _camera); } catch (e) {}
     try { if (window.MesaOutpost && MesaOutpost.init) MesaOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.SpireCity && SpireCity.init) SpireCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowMarket && ShadowMarket.init) ShadowMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.PolarSiege && PolarSiege.init) PolarSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.ForgottenLab && ForgottenLab.init) ForgottenLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarStation && WarStation.init) WarStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueTower && PlagueTower.init) PlagueTower.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9836,6 +9841,11 @@ const GameManager = (function () {
     if (window.ArenaDome) ArenaDome.update(delta);
     if (window.MesaOutpost) MesaOutpost.update(delta);
     if (window.SpireCity) SpireCity.update(delta);
+    if (window.ShadowMarket) ShadowMarket.update(delta);
+    if (window.PolarSiege) PolarSiege.update(delta);
+    if (window.ForgottenLab) ForgottenLab.update(delta);
+    if (window.WarStation) WarStation.update(delta);
+    if (window.PlagueTower) PlagueTower.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
