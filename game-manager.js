@@ -2377,6 +2377,10 @@ const GameManager = (function () {
     try { if (window.RustPalace && RustPalace.init) RustPalace.init(_scene, _camera); } catch (e) {}
     try { if (window.JungleFort && JungleFort.init) JungleFort.init(_scene, _camera); } catch (e) {}
     try { if (window.FlameShrine && FlameShrine.init) FlameShrine.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidCrater && AcidCrater.init) AcidCrater.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalBase && OrbitalBase.init) OrbitalBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TarPits && TarPits.init) TarPits.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrystalMine && CrystalMine.init) CrystalMine.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9794,6 +9798,10 @@ const GameManager = (function () {
     if (window.RustPalace) RustPalace.update(delta);
     if (window.JungleFort) JungleFort.update(delta);
     if (window.FlameShrine) FlameShrine.update(delta);
+    if (window.AcidCrater) AcidCrater.update(delta);
+    if (window.OrbitalBase) OrbitalBase.update(delta);
+    if (window.TarPits) TarPits.update(delta);
+    if (window.CrystalMine) CrystalMine.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
