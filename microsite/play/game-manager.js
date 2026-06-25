@@ -10556,6 +10556,14 @@ const GameManager = (function () {
     if (window.ZagrebCathedral) ZagrebCathedral.update(delta);
     if (window.LjubljanaCastle) LjubljanaCastle.update(delta);
     if (window.BucharestPalace) BucharestPalace.update(delta);
+    if (window.SofiaAlexander) SofiaAlexander.update(delta);
+    if (window.RigaOldTown) RigaOldTown.update(delta);
+    if (window.TallinnOldTown) TallinnOldTown.update(delta);
+    if (window.VilniusCathedral) VilniusCathedral.update(delta);
+    if (window.MinskIndependence) MinskIndependence.update(delta);
+    if (window.ChisinauTriumph) ChisinauTriumph.update(delta);
+    if (window.TiranaSkanderbeg) TiranaSkanderbeg.update(delta);
+    if (window.SkopjeOldBazaar) SkopjeOldBazaar.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
