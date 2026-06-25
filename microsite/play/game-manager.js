@@ -2305,6 +2305,14 @@ const GameManager = (function () {
     try { if (window.SteelDome && SteelDome.init) SteelDome.init(_scene, _camera); } catch (e) {}
     try { if (window.BuriedCity && BuriedCity.init) BuriedCity.init(_scene, _camera); } catch (e) {}
     try { if (window.MagmaBridge && MagmaBridge.init) MagmaBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.VaporStation && VaporStation.init) VaporStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarChurch && WarChurch.init) WarChurch.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenDock && FrozenDock.init) FrozenDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.RustCanyon && RustCanyon.init) RustCanyon.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidBay && AcidBay.init) AcidBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.ConcreteMaze && ConcreteMaze.init) ConcreteMaze.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyPrison && SkyPrison.init) SkyPrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaCity && LavaCity.init) LavaCity.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9650,6 +9658,14 @@ const GameManager = (function () {
     if (window.SteelDome) SteelDome.update(delta);
     if (window.BuriedCity) BuriedCity.update(delta);
     if (window.MagmaBridge) MagmaBridge.update(delta);
+    if (window.VaporStation) VaporStation.update(delta);
+    if (window.WarChurch) WarChurch.update(delta);
+    if (window.FrozenDock) FrozenDock.update(delta);
+    if (window.RustCanyon) RustCanyon.update(delta);
+    if (window.AcidBay) AcidBay.update(delta);
+    if (window.ConcreteMaze) ConcreteMaze.update(delta);
+    if (window.SkyPrison) SkyPrison.update(delta);
+    if (window.LavaCity) LavaCity.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
