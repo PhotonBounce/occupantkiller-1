@@ -2459,6 +2459,22 @@ const GameManager = (function () {
     try { if (window.SandDunes && SandDunes.init) SandDunes.init(_scene, _camera); } catch (e) {}
     try { if (window.SwampRefinery && SwampRefinery.init) SwampRefinery.init(_scene, _camera); } catch (e) {}
     try { if (window.RooftopSiege && RooftopSiege.init) RooftopSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenBase && SunkenBase.init) SunkenBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodCity && FloodCity.init) FloodCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastGuard && CoastGuard.init) CoastGuard.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonFort && CanyonFort.init) CanyonFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperRidge && SniperRidge.init) SniperRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.HarborFort && HarborFort.init) HarborFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.TundraCamp && TundraCamp.init) TundraCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilDepot && OilDepot.init) OilDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleCrater && BattleCrater.init) BattleCrater.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanDecay && UrbanDecay.init) UrbanDecay.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarAirfield && WarAirfield.init) WarAirfield.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaBase && LavaBase.init) LavaBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormIsland && StormIsland.init) StormIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.SaltFlats && SaltFlats.init) SaltFlats.init(_scene, _camera); } catch (e) {}
+    try { if (window.AshPlains && AshPlains.init) AshPlains.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarDepot && WarDepot.init) WarDepot.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9958,6 +9974,22 @@ const GameManager = (function () {
     if (window.SandDunes) SandDunes.update(delta);
     if (window.SwampRefinery) SwampRefinery.update(delta);
     if (window.RooftopSiege) RooftopSiege.update(delta);
+    if (window.SunkenBase) SunkenBase.update(delta);
+    if (window.FloodCity) FloodCity.update(delta);
+    if (window.CoastGuard) CoastGuard.update(delta);
+    if (window.CanyonFort) CanyonFort.update(delta);
+    if (window.SniperRidge) SniperRidge.update(delta);
+    if (window.HarborFort) HarborFort.update(delta);
+    if (window.TundraCamp) TundraCamp.update(delta);
+    if (window.OilDepot) OilDepot.update(delta);
+    if (window.BattleCrater) BattleCrater.update(delta);
+    if (window.UrbanDecay) UrbanDecay.update(delta);
+    if (window.WarAirfield) WarAirfield.update(delta);
+    if (window.LavaBase) LavaBase.update(delta);
+    if (window.StormIsland) StormIsland.update(delta);
+    if (window.SaltFlats) SaltFlats.update(delta);
+    if (window.AshPlains) AshPlains.update(delta);
+    if (window.WarDepot) WarDepot.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
