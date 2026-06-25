@@ -2169,6 +2169,14 @@ const GameManager = (function () {
     try { if (window.SunkenShip && SunkenShip.init) SunkenShip.init(_scene, _camera); } catch (e) {}
     try { if (window.RadarDome && RadarDome.init) RadarDome.init(_scene, _camera); } catch (e) {}
     try { if (window.ShantyFortress && ShantyFortress.init) ShantyFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.CliffSummit && CliffSummit.init) CliffSummit.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicPlant && ToxicPlant.init) ToxicPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleRaid && TempleRaid.init) TempleRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.MagmaBase && MagmaBase.init) MagmaBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TundraBase && TundraBase.init) TundraBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalPlatform && OrbitalPlatform.init) OrbitalPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrenchAssault && TrenchAssault.init) TrenchAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterfallBase && WaterfallBase.init) WaterfallBase.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9378,6 +9386,14 @@ const GameManager = (function () {
     if (window.SunkenShip) SunkenShip.update(delta);
     if (window.RadarDome) RadarDome.update(delta);
     if (window.ShantyFortress) ShantyFortress.update(delta);
+    if (window.CliffSummit) CliffSummit.update(delta);
+    if (window.ToxicPlant) ToxicPlant.update(delta);
+    if (window.TempleRaid) TempleRaid.update(delta);
+    if (window.MagmaBase) MagmaBase.update(delta);
+    if (window.TundraBase) TundraBase.update(delta);
+    if (window.OrbitalPlatform) OrbitalPlatform.update(delta);
+    if (window.TrenchAssault) TrenchAssault.update(delta);
+    if (window.WaterfallBase) WaterfallBase.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
