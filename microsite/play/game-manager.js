@@ -10419,6 +10419,14 @@ const GameManager = (function () {
     if (window.HertfordCastle) HertfordCastle.update(delta);
     if (window.StAlbansAbbey) StAlbansAbbey.update(delta);
     if (window.WatfordJunction) WatfordJunction.update(delta);
+    if (window.LutonTown) LutonTown.update(delta);
+    if (window.BedfordEmbankment) BedfordEmbankment.update(delta);
+    if (window.MiltonKeynesGrid) MiltonKeynesGrid.update(delta);
+    if (window.OxfordSpires) OxfordSpires.update(delta);
+    if (window.BlenheimPalace) BlenheimPalace.update(delta);
+    if (window.HenleyRegatta) HenleyRegatta.update(delta);
+    if (window.ReadingTown) ReadingTown.update(delta);
+    if (window.WindsorCastle) WindsorCastle.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
