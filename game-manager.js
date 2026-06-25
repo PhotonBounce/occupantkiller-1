@@ -2443,6 +2443,14 @@ const GameManager = (function () {
     try { if (window.GlacierBunker && GlacierBunker.init) GlacierBunker.init(_scene, _camera); } catch (e) {}
     try { if (window.PalaceRuins && PalaceRuins.init) PalaceRuins.init(_scene, _camera); } catch (e) {}
     try { if (window.DamStation && DamStation.init) DamStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.Shipyard && Shipyard.init) Shipyard.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpacePort && SpacePort.init) SpacePort.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenRiver && FrozenRiver.init) FrozenRiver.init(_scene, _camera); } catch (e) {}
+    try { if (window.AvalanchePass && AvalanchePass.init) AvalanchePass.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerCity && BunkerCity.init) BunkerCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarlordPalace && WarlordPalace.init) WarlordPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScrapYard && ScrapYard.init) ScrapYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandShip && CommandShip.init) CommandShip.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9926,6 +9934,14 @@ const GameManager = (function () {
     if (window.GlacierBunker) GlacierBunker.update(delta);
     if (window.PalaceRuins) PalaceRuins.update(delta);
     if (window.DamStation) DamStation.update(delta);
+    if (window.Shipyard) Shipyard.update(delta);
+    if (window.SpacePort) SpacePort.update(delta);
+    if (window.FrozenRiver) FrozenRiver.update(delta);
+    if (window.AvalanchePass) AvalanchePass.update(delta);
+    if (window.BunkerCity) BunkerCity.update(delta);
+    if (window.WarlordPalace) WarlordPalace.update(delta);
+    if (window.ScrapYard) ScrapYard.update(delta);
+    if (window.CommandShip) CommandShip.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
