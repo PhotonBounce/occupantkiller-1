@@ -10459,6 +10459,14 @@ const GameManager = (function () {
     if (window.CheddarGorge) CheddarGorge.update(delta);
     if (window.BristolClifton) BristolClifton.update(delta);
     if (window.BathCircus) BathCircus.update(delta);
+    if (window.ExeterQuay) ExeterQuay.update(delta);
+    if (window.DartmoorPrison) DartmoorPrison.update(delta);
+    if (window.PlymouthBarbican) PlymouthBarbican.update(delta);
+    if (window.TintagelCastle) TintagelCastle.update(delta);
+    if (window.PadstowHarbour) PadstowHarbour.update(delta);
+    if (window.TruroRoyal) TruroRoyal.update(delta);
+    if (window.PenzanceCauseway) PenzanceCauseway.update(delta);
+    if (window.LandsEnd) LandsEnd.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
