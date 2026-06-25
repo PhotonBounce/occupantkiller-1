@@ -10233,6 +10233,14 @@ const GameManager = (function () {
     if (window.KilberryPost) KilberryPost.update(delta);
     if (window.OtterFerry) OtterFerry.update(delta);
     if (window.InverarayCastle) InverarayCastle.update(delta);
+    if (window.DalmallyFort) DalmallyFort.update(delta);
+    if (window.LochAweBase) LochAweBase.update(delta);
+    if (window.KilchurnKeep) KilchurnKeep.update(delta);
+    if (window.TaynuiltCamp) TaynuiltCamp.update(delta);
+    if (window.ConnelPost) ConnelPost.update(delta);
+    if (window.GlenOrchyFort) GlenOrchyFort.update(delta);
+    if (window.TyndrumBase) TyndrumBase.update(delta);
+    if (window.CrianlarichCamp) CrianlarichCamp.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
