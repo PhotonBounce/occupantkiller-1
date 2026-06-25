@@ -10516,6 +10516,14 @@ const GameManager = (function () {
     if (window.BuryStEdmunds) BuryStEdmunds.update(delta);
     if (window.GreatYarmouth) GreatYarmouth.update(delta);
     if (window.KingsLynn) KingsLynn.update(delta);
+    if (window.MatlockBath) MatlockBath.update(delta);
+    if (window.BuxtonSpa) BuxtonSpa.update(delta);
+    if (window.StamfordTown) StamfordTown.update(delta);
+    if (window.NorthamptonCastle) NorthamptonCastle.update(delta);
+    if (window.WiganPier) WiganPier.update(delta);
+    if (window.GrimsbyDocks) GrimsbyDocks.update(delta);
+    if (window.MiddlesbroughTransporter) MiddlesbroughTransporter.update(delta);
+    if (window.IpswichWaterfront) IpswichWaterfront.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
