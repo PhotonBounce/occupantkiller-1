@@ -10376,6 +10376,10 @@ const GameManager = (function () {
     if (window.SevenSisters) SevenSisters.update(delta);
     if (window.BirlingGap) BirlingGap.update(delta);
     if (window.KentOast) KentOast.update(delta);
+    if (window.LondonEye) LondonEye.update(delta);
+    if (window.GreenwichObservatory) GreenwichObservatory.update(delta);
+    if (window.HamptonCourt) HamptonCourt.update(delta);
+    if (window.KewGardens) KewGardens.update(delta);
     if (window.DoverWhiteCliffs) DoverWhiteCliffs.update(delta);
     if (window.FolkestoneHarbour) FolkestoneHarbour.update(delta);
     if (window.MargateDreamland) MargateDreamland.update(delta);
@@ -10389,6 +10393,9 @@ const GameManager = (function () {
     if (window.GreenwichPark) GreenwichPark.update(delta);
     if (window.WoolwichBarracks) WoolwichBarracks.update(delta);
     if (window.CrystalPalacePark) CrystalPalacePark.update(delta);
+    if (window.BoxHill) BoxHill.update(delta);
+    if (window.Chartwell) Chartwell.update(delta);
+    if (window.LeedsCastle) LeedsCastle.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
