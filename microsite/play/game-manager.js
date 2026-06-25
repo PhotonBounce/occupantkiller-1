@@ -2249,6 +2249,14 @@ const GameManager = (function () {
     try { if (window.FortressRuins && FortressRuins.init) FortressRuins.init(_scene, _camera); } catch (e) {}
     try { if (window.BattleDepot && BattleDepot.init) BattleDepot.init(_scene, _camera); } catch (e) {}
     try { if (window.FrozenFortress && FrozenFortress.init) FrozenFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaTemple && LavaTemple.init) LavaTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.MagmaCave && MagmaCave.init) MagmaCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyStation && SkyStation.init) SkyStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodArena && BloodArena.init) BloodArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.SnowFortress && SnowFortress.init) SnowFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.WinterBase && WinterBase.init) WinterBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberStation && CyberStation.init) CyberStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.BurningTemple && BurningTemple.init) BurningTemple.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9538,6 +9546,14 @@ const GameManager = (function () {
     if (window.FortressRuins) FortressRuins.update(delta);
     if (window.BattleDepot) BattleDepot.update(delta);
     if (window.FrozenFortress) FrozenFortress.update(delta);
+    if (window.LavaTemple) LavaTemple.update(delta);
+    if (window.MagmaCave) MagmaCave.update(delta);
+    if (window.SkyStation) SkyStation.update(delta);
+    if (window.BloodArena) BloodArena.update(delta);
+    if (window.SnowFortress) SnowFortress.update(delta);
+    if (window.WinterBase) WinterBase.update(delta);
+    if (window.CyberStation) CyberStation.update(delta);
+    if (window.BurningTemple) BurningTemple.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
