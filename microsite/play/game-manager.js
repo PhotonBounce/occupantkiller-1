@@ -2292,6 +2292,14 @@ const GameManager = (function () {
       try { if (window.OilPlatformRaid && OilPlatformRaid.init) OilPlatformRaid.init(_scene, _camera); } catch (e) {}
       try { if (window.DesertConvoy && DesertConvoy.init) DesertConvoy.init(_scene, _camera); } catch (e) {}
       try { if (window.TrenchWarfare && TrenchWarfare.init) TrenchWarfare.init(_scene, _camera); } catch (e) {}
+      try { if (window.SunkenCity && SunkenCity.init) SunkenCity.init(_scene, _camera); } catch (e) {}
+      try { if (window.SpaceBattle && SpaceBattle.init) SpaceBattle.init(_scene, _camera); } catch (e) {}
+      try { if (window.SubmarineBase && SubmarineBase.init) SubmarineBase.init(_scene, _camera); } catch (e) {}
+      try { if (window.RebelOutpost && RebelOutpost.init) RebelOutpost.init(_scene, _camera); } catch (e) {}
+      try { if (window.FortressSiege && FortressSiege.init) FortressSiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.BattleshipDeck && BattleshipDeck.init) BattleshipDeck.init(_scene, _camera); } catch (e) {}
+      try { if (window.StadiumRiot && StadiumRiot.init) StadiumRiot.init(_scene, _camera); } catch (e) {}
+      try { if (window.TradingPost && TradingPost.init) TradingPost.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9375,6 +9383,14 @@ const GameManager = (function () {
       if (window.OilPlatformRaid) OilPlatformRaid.update(delta);
       if (window.DesertConvoy) DesertConvoy.update(delta);
       if (window.TrenchWarfare) TrenchWarfare.update(delta);
+      if (window.SunkenCity) SunkenCity.update(delta);
+      if (window.SpaceBattle) SpaceBattle.update(delta);
+      if (window.SubmarineBase) SubmarineBase.update(delta);
+      if (window.RebelOutpost) RebelOutpost.update(delta);
+      if (window.FortressSiege) FortressSiege.update(delta);
+      if (window.BattleshipDeck) BattleshipDeck.update(delta);
+      if (window.StadiumRiot) StadiumRiot.update(delta);
+      if (window.TradingPost) TradingPost.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
