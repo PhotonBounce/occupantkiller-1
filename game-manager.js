@@ -10209,6 +10209,14 @@ const GameManager = (function () {
     if (window.KnapdalePost) KnapdalePost.update(delta);
     if (window.SaddellFort) SaddellFort.update(delta);
     if (window.CarradaleBase) CarradaleBase.update(delta);
+    if (window.CampbeltownFort) CampbeltownFort.update(delta);
+    if (window.SouthendBase) SouthendBase.update(delta);
+    if (window.MullCamp) MullCamp.update(delta);
+    if (window.StaffaKeep) StaffaKeep.update(delta);
+    if (window.TireeDock) TireeDock.update(delta);
+    if (window.CollPost) CollPost.update(delta);
+    if (window.LismoreFort) LismoreFort.update(delta);
+    if (window.KerreraBase) KerreraBase.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
