@@ -10524,6 +10524,14 @@ const GameManager = (function () {
     if (window.GrimsbyDocks) GrimsbyDocks.update(delta);
     if (window.MiddlesbroughTransporter) MiddlesbroughTransporter.update(delta);
     if (window.IpswichWaterfront) IpswichWaterfront.update(delta);
+    if (window.CarlisleCathedral) CarlisleCathedral.update(delta);
+    if (window.LancasterCastle) LancasterCastle.update(delta);
+    if (window.SunderlandWearmouth) SunderlandWearmouth.update(delta);
+    if (window.HartlepoolHistoric) HartlepoolHistoric.update(delta);
+    if (window.PrestonDocks) PrestonDocks.update(delta);
+    if (window.SouthportPromenade) SouthportPromenade.update(delta);
+    if (window.WhitehavenHarbour) WhitehavenHarbour.update(delta);
+    if (window.BarrowFurness) BarrowFurness.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
