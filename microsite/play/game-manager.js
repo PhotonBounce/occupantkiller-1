@@ -10265,6 +10265,14 @@ const GameManager = (function () {
     if (window.LargsBase) LargsBase.update(delta);
     if (window.MillportKeep) MillportKeep.update(delta);
     if (window.KilbirnieFort) KilbirnieFort.update(delta);
+    if (window.IrvineBase) IrvineBase.update(delta);
+    if (window.KilmarnockFort) KilmarnockFort.update(delta);
+    if (window.AyrDock) AyrDock.update(delta);
+    if (window.PrestwickPost) PrestwickPost.update(delta);
+    if (window.TroonCamp) TroonCamp.update(delta);
+    if (window.ArdrossanBase) ArdrossanBase.update(delta);
+    if (window.SaltcoatsKeep) SaltcoatsKeep.update(delta);
+    if (window.ArranFort) ArranFort.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
