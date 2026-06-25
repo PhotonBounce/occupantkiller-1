@@ -2137,6 +2137,14 @@ const GameManager = (function () {
     try { if (window.RuinsCity && RuinsCity.init) RuinsCity.init(_scene, _camera); } catch (e) {}
     try { if (window.FuelStation && FuelStation.init) FuelStation.init(_scene, _camera); } catch (e) {}
     try { if (window.BeachLanding && BeachLanding.init) BeachLanding.init(_scene, _camera); } catch (e) {}
+    try { if (window.RooftopSniper && RooftopSniper.init) RooftopSniper.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedChopper && CrashedChopper.init) CrashedChopper.init(_scene, _camera); } catch (e) {}
+    try { if (window.PalaceRaid && PalaceRaid.init) PalaceRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodZone && FloodZone.init) FloodZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScrapyardSiege && ScrapyardSiege.init) ScrapyardSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadioBunker && RadioBunker.init) RadioBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastalFortress && CoastalFortress.init) CoastalFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientFort && AncientFort.init) AncientFort.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9314,6 +9322,14 @@ const GameManager = (function () {
     if (window.RuinsCity) RuinsCity.update(delta);
     if (window.FuelStation) FuelStation.update(delta);
     if (window.BeachLanding) BeachLanding.update(delta);
+    if (window.RooftopSniper) RooftopSniper.update(delta);
+    if (window.CrashedChopper) CrashedChopper.update(delta);
+    if (window.PalaceRaid) PalaceRaid.update(delta);
+    if (window.FloodZone) FloodZone.update(delta);
+    if (window.ScrapyardSiege) ScrapyardSiege.update(delta);
+    if (window.RadioBunker) RadioBunker.update(delta);
+    if (window.CoastalFortress) CoastalFortress.update(delta);
+    if (window.AncientFort) AncientFort.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
