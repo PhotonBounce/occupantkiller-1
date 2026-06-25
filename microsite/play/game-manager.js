@@ -2265,6 +2265,14 @@ const GameManager = (function () {
     try { if (window.CrystalVault && CrystalVault.init) CrystalVault.init(_scene, _camera); } catch (e) {}
     try { if (window.VolcanicCity && VolcanicCity.init) VolcanicCity.init(_scene, _camera); } catch (e) {}
     try { if (window.LightningTower && LightningTower.init) LightningTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.MidnightBase && MidnightBase.init) MidnightBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WreckedCity && WreckedCity.init) WreckedCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowLab && ShadowLab.init) ShadowLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronKeep && IronKeep.init) IronKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.MetalMarsh && MetalMarsh.init) MetalMarsh.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThunderKeep && ThunderKeep.init) ThunderKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoPeak && VolcanoPeak.init) VolcanoPeak.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicMarsh && ToxicMarsh.init) ToxicMarsh.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9570,6 +9578,14 @@ const GameManager = (function () {
     if (window.CrystalVault) CrystalVault.update(delta);
     if (window.VolcanicCity) VolcanicCity.update(delta);
     if (window.LightningTower) LightningTower.update(delta);
+    if (window.MidnightBase) MidnightBase.update(delta);
+    if (window.WreckedCity) WreckedCity.update(delta);
+    if (window.ShadowLab) ShadowLab.update(delta);
+    if (window.IronKeep) IronKeep.update(delta);
+    if (window.MetalMarsh) MetalMarsh.update(delta);
+    if (window.ThunderKeep) ThunderKeep.update(delta);
+    if (window.VolcanoPeak) VolcanoPeak.update(delta);
+    if (window.ToxicMarsh) ToxicMarsh.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
