@@ -2191,6 +2191,7 @@ const GameManager = (function () {
         try { if (window.DustPit && DustPit.init) DustPit.init(_scene, _camera); } catch (e) {}
         try { if (window.MudPass && MudPass.init) MudPass.init(_scene, _camera); } catch (e) {}
         try { if (window.CoalBay && CoalBay.init) CoalBay.init(_scene, _camera); } catch (e) {}
+        try { if (window.FlintWall && FlintWall.init) FlintWall.init(_scene, _camera); } catch (e) {}
     try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
     try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
     try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
@@ -9847,6 +9848,7 @@ const GameManager = (function () {
         if (window.DustPit) DustPit.update(delta);
         if (window.MudPass) MudPass.update(delta);
         if (window.CoalBay) CoalBay.update(delta);
+        if (window.FlintWall) FlintWall.update(delta);
     if (window.SlumWarfare) SlumWarfare.update(delta);
     if (window.CliffOutpost) CliffOutpost.update(delta);
     if (window.FortressGate) FortressGate.update(delta);
