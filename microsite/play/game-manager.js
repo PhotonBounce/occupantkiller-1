@@ -2427,6 +2427,14 @@ const GameManager = (function () {
     try { if (window.JungleRuins && JungleRuins.init) JungleRuins.init(_scene, _camera); } catch (e) {}
     try { if (window.ThunderTower && ThunderTower.init) ThunderTower.init(_scene, _camera); } catch (e) {}
     try { if (window.MidnightRaid && MidnightRaid.init) MidnightRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.RustFactory && RustFactory.init) RustFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.DustStorm && DustStorm.init) DustStorm.init(_scene, _camera); } catch (e) {}
+    try { if (window.AssaultCamp && AssaultCamp.init) AssaultCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.StoneQuarry && StoneQuarry.init) StoneQuarry.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarzoneMarket && WarzoneMarket.init) WarzoneMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.RidgeBase && RidgeBase.init) RidgeBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.PoisonLake && PoisonLake.init) PoisonLake.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyDock && SkyDock.init) SkyDock.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9894,6 +9902,14 @@ const GameManager = (function () {
     if (window.JungleRuins) JungleRuins.update(delta);
     if (window.ThunderTower) ThunderTower.update(delta);
     if (window.MidnightRaid) MidnightRaid.update(delta);
+    if (window.RustFactory) RustFactory.update(delta);
+    if (window.DustStorm) DustStorm.update(delta);
+    if (window.AssaultCamp) AssaultCamp.update(delta);
+    if (window.StoneQuarry) StoneQuarry.update(delta);
+    if (window.WarzoneMarket) WarzoneMarket.update(delta);
+    if (window.RidgeBase) RidgeBase.update(delta);
+    if (window.PoisonLake) PoisonLake.update(delta);
+    if (window.SkyDock) SkyDock.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
