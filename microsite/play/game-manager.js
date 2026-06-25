@@ -10564,6 +10564,14 @@ const GameManager = (function () {
     if (window.ChisinauTriumph) ChisinauTriumph.update(delta);
     if (window.TiranaSkanderbeg) TiranaSkanderbeg.update(delta);
     if (window.SkopjeOldBazaar) SkopjeOldBazaar.update(delta);
+    if (window.TbilisiNarikala) TbilisiNarikala.update(delta);
+    if (window.YerevanCascade) YerevanCascade.update(delta);
+    if (window.BakuFlameTowers) BakuFlameTowers.update(delta);
+    if (window.TashkentChorsu) TashkentChorsu.update(delta);
+    if (window.AlmatyMedeu) AlmatyMedeu.update(delta);
+    if (window.BishkekAlaToo) BishkekAlaToo.update(delta);
+    if (window.AshgabatMarble) AshgabatMarble.update(delta);
+    if (window.DushanbeRudaki) DushanbeRudaki.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
