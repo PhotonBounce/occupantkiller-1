@@ -8872,6 +8872,13 @@ const GameManager = (function () {
       if (window.ArcticWarfare) ArcticWarfare.update(delta);
       if (window.JungleWarfare) JungleWarfare.update(delta);
       if (window.CheckpointAssault) CheckpointAssault.update(delta);
+      if (window.NukeSilo) NukeSilo.update(delta);
+      if (window.DetentionCenter) DetentionCenter.update(delta);
+      if (window.ArtMuseum) ArtMuseum.update(delta);
+      if (window.CraterBase) CraterBase.update(delta);
+      if (window.TsunamiZone) TsunamiZone.update(delta);
+      if (window.FrozenBunker) FrozenBunker.update(delta);
+      if (window.MobCasino) MobCasino.update(delta);
       if (window.CommandVehicle) CommandVehicle.update(delta);
       if (window.BallisticShieldOps) BallisticShieldOps.update(delta);
       if (window.RiotResponse) RiotResponse.update(delta);
