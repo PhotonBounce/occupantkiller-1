@@ -2260,6 +2260,14 @@ const GameManager = (function () {
       try { if (window.FactoryTakeover && FactoryTakeover.init) FactoryTakeover.init(_scene, _camera); } catch (e) {}
       try { if (window.HarborSiege && HarborSiege.init) HarborSiege.init(_scene, _camera); } catch (e) {}
       try { if (window.MetroAssault && MetroAssault.init) MetroAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.EmbassyTakeover && EmbassyTakeover.init) EmbassyTakeover.init(_scene, _camera); } catch (e) {}
+      try { if (window.CemeterySiege && CemeterySiege.init) CemeterySiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.BridgeBattle && BridgeBattle.init) BridgeBattle.init(_scene, _camera); } catch (e) {}
+      try { if (window.SatelliteCrash && SatelliteCrash.init) SatelliteCrash.init(_scene, _camera); } catch (e) {}
+      try { if (window.PyramidRaid && PyramidRaid.init) PyramidRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.SalvageMission && SalvageMission.init) SalvageMission.init(_scene, _camera); } catch (e) {}
+      try { if (window.LaboratoryRaid && LaboratoryRaid.init) LaboratoryRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.DamBreak && DamBreak.init) DamBreak.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9311,6 +9319,14 @@ const GameManager = (function () {
       if (window.FactoryTakeover) FactoryTakeover.update(delta);
       if (window.HarborSiege) HarborSiege.update(delta);
       if (window.MetroAssault) MetroAssault.update(delta);
+      if (window.EmbassyTakeover) EmbassyTakeover.update(delta);
+      if (window.CemeterySiege) CemeterySiege.update(delta);
+      if (window.BridgeBattle) BridgeBattle.update(delta);
+      if (window.SatelliteCrash) SatelliteCrash.update(delta);
+      if (window.PyramidRaid) PyramidRaid.update(delta);
+      if (window.SalvageMission) SalvageMission.update(delta);
+      if (window.LaboratoryRaid) LaboratoryRaid.update(delta);
+      if (window.DamBreak) DamBreak.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
