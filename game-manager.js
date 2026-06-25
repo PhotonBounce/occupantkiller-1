@@ -10475,6 +10475,14 @@ const GameManager = (function () {
     if (window.TenbyTown) TenbyTown.update(delta);
     if (window.SnowdoniaSummit) SnowdoniaSummit.update(delta);
     if (window.ConwyCastle) ConwyCastle.update(delta);
+    if (window.EdinburghCastle) EdinburghCastle.update(delta);
+    if (window.StirlingBrig) StirlingBrig.update(delta);
+    if (window.LochNess) LochNess.update(delta);
+    if (window.GlencoeValley) GlencoeValley.update(delta);
+    if (window.FortWilliam) FortWilliam.update(delta);
+    if (window.IsleOfSkye) IsleOfSkye.update(delta);
+    if (window.StAndrews) StAndrews.update(delta);
+    if (window.LochLomond) LochLomond.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
