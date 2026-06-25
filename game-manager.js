@@ -10467,6 +10467,14 @@ const GameManager = (function () {
     if (window.TruroRoyal) TruroRoyal.update(delta);
     if (window.PenzanceCauseway) PenzanceCauseway.update(delta);
     if (window.LandsEnd) LandsEnd.update(delta);
+    if (window.CardiffMillennium) CardiffMillennium.update(delta);
+    if (window.CardiffBay) CardiffBay.update(delta);
+    if (window.CaerphillyCastle) CaerphillyCastle.update(delta);
+    if (window.PenYFan) PenYFan.update(delta);
+    if (window.SwanseaMumbles) SwanseaMumbles.update(delta);
+    if (window.TenbyTown) TenbyTown.update(delta);
+    if (window.SnowdoniaSummit) SnowdoniaSummit.update(delta);
+    if (window.ConwyCastle) ConwyCastle.update(delta);
     if (window.ExeterKeep) ExeterKeep.update(delta);
     if (window.DartmoorPost) DartmoorPost.update(delta);
     if (window.PlymouthFort) PlymouthFort.update(delta);
