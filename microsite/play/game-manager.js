@@ -2228,6 +2228,14 @@ const GameManager = (function () {
       try { if (window.SeaFort && SeaFort.init) SeaFort.init(_scene, _camera); } catch (e) {}
       try { if (window.FuelDepot && FuelDepot.init) FuelDepot.init(_scene, _camera); } catch (e) {}
       try { if (window.DerelictTown && DerelictTown.init) DerelictTown.init(_scene, _camera); } catch (e) {}
+      try { if (window.MethLab && MethLab.init) MethLab.init(_scene, _camera); } catch (e) {}
+      try { if (window.CargoFreighter && CargoFreighter.init) CargoFreighter.init(_scene, _camera); } catch (e) {}
+      try { if (window.IceFortressInterior && IceFortressInterior.init) IceFortressInterior.init(_scene, _camera); } catch (e) {}
+      try { if (window.ReactorCore && ReactorCore.init) ReactorCore.init(_scene, _camera); } catch (e) {}
+      try { if (window.GladiatorPit && GladiatorPit.init) GladiatorPit.init(_scene, _camera); } catch (e) {}
+      try { if (window.JungleShrine && JungleShrine.init) JungleShrine.init(_scene, _camera); } catch (e) {}
+      try { if (window.LaserGrid && LaserGrid.init) LaserGrid.init(_scene, _camera); } catch (e) {}
+      try { if (window.DeathMarch && DeathMarch.init) DeathMarch.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
     try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
@@ -9247,6 +9255,14 @@ const GameManager = (function () {
       if (window.SeaFort) SeaFort.update(delta);
       if (window.FuelDepot) FuelDepot.update(delta);
       if (window.DerelictTown) DerelictTown.update(delta);
+      if (window.MethLab) MethLab.update(delta);
+      if (window.CargoFreighter) CargoFreighter.update(delta);
+      if (window.IceFortressInterior) IceFortressInterior.update(delta);
+      if (window.ReactorCore) ReactorCore.update(delta);
+      if (window.GladiatorPit) GladiatorPit.update(delta);
+      if (window.JungleShrine) JungleShrine.update(delta);
+      if (window.LaserGrid) LaserGrid.update(delta);
+      if (window.DeathMarch) DeathMarch.update(delta);
       if (window.BountySystem) BountySystem.update(delta);
       if (window.CrouchSystem) CrouchSystem.update(delta);
       if (window.RadioSupport) RadioSupport.update(delta);
