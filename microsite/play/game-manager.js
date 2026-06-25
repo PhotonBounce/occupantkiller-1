@@ -10313,6 +10313,14 @@ const GameManager = (function () {
     if (window.JedburghFort) JedburghFort.update(delta);
     if (window.MelroseAbbey) MelroseAbbey.update(delta);
     if (window.KelsoKeep) KelsoKeep.update(delta);
+    if (window.BerwickFort) BerwickFort.update(delta);
+    if (window.HadriansWall) HadriansWall.update(delta);
+    if (window.AlnwickCastle) AlnwickCastle.update(delta);
+    if (window.NewcastleKeep) NewcastleKeep.update(delta);
+    if (window.DurhamCathedral) DurhamCathedral.update(delta);
+    if (window.BamburghKeep) BamburghKeep.update(delta);
+    if (window.LindisfarnePost) LindisfarnePost.update(delta);
+    if (window.YorkshireDales) YorkshireDales.update(delta);
     if (window.GourockFort) GourockFort.update(delta);
     if (window.KilmacolmBase) KilmacolmBase.update(delta);
     if (window.PortGlasgowPost) PortGlasgowPost.update(delta);
