@@ -2129,6 +2129,14 @@ const GameManager = (function () {
     try { if (window.ArmoryRaid && ArmoryRaid.init) ArmoryRaid.init(_scene, _camera); } catch (e) {}
     try { if (window.CommandPost && CommandPost.init) CommandPost.init(_scene, _camera); } catch (e) {}
     try { if (window.QuarantineZone && QuarantineZone.init) QuarantineZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterTreatment && WaterTreatment.init) WaterTreatment.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountainShrine && MountainShrine.init) MountainShrine.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirborneAssault && AirborneAssault.init) AirborneAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.MineComplex && MineComplex.init) MineComplex.init(_scene, _camera); } catch (e) {}
+    try { if (window.SatelliteLaunch && SatelliteLaunch.init) SatelliteLaunch.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuinsCity && RuinsCity.init) RuinsCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.FuelStation && FuelStation.init) FuelStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.BeachLanding && BeachLanding.init) BeachLanding.init(_scene, _camera); } catch (e) {}
     try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
     try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
     try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
@@ -9298,6 +9306,14 @@ const GameManager = (function () {
     if (window.ArmoryRaid) ArmoryRaid.update(delta);
     if (window.CommandPost) CommandPost.update(delta);
     if (window.QuarantineZone) QuarantineZone.update(delta);
+    if (window.WaterTreatment) WaterTreatment.update(delta);
+    if (window.MountainShrine) MountainShrine.update(delta);
+    if (window.AirborneAssault) AirborneAssault.update(delta);
+    if (window.MineComplex) MineComplex.update(delta);
+    if (window.SatelliteLaunch) SatelliteLaunch.update(delta);
+    if (window.RuinsCity) RuinsCity.update(delta);
+    if (window.FuelStation) FuelStation.update(delta);
+    if (window.BeachLanding) BeachLanding.update(delta);
     if (window.AncientColosseum) AncientColosseum.update(delta);
     if (window.TundraVillage) TundraVillage.update(delta);
     if (window.SolarFarm) SolarFarm.update(delta);
