@@ -4,632 +4,324 @@ window.CanterburyWalls = (function() {
     var scene = null;
     var camera = null;
     var objects = [];
-
-    var X_OFFSET = 10520;
+    var BASE_X = 16400;
+    var BASE_Z = 0;
 
     function init(sceneRef, cameraRef) {
         scene = sceneRef;
         camera = cameraRef;
-        objects = [];
-        build();
     }
 
-    function addMesh(mesh) {
+    function makeMesh(geometry, color) {
+        var mat = new THREE.MeshLambertMaterial({ color: color });
+        return new THREE.Mesh(geometry, mat);
+    }
+
+    function addObj(mesh) {
         scene.add(mesh);
         objects.push(mesh);
-    }
-
-    function makeMaterial(color) {
-        return new THREE.MeshLambertMaterial({ color: color });
+        return mesh;
     }
 
     function buildCityWalls() {
-        // Roman/medieval flint walls — rectangle encircling the city
-        // North wall
-        var wallGeoN = new THREE.BoxGeometry(300, 12, 5);
-        var wallMatN = makeMaterial(0x8B7355);
-        var wallN = new THREE.Mesh(wallGeoN, wallMatN);
-        wallN.position.set(X_OFFSET, 6, -150);
-        addMesh(wallN);
+        var wallColor = 0x555545;
+        var towerColor = 0x4A4A3A;
 
-        // South wall
-        var wallGeoS = new THREE.BoxGeometry(300, 12, 5);
-        var wallMatS = makeMaterial(0x8B7355);
-        var wallS = new THREE.Mesh(wallGeoS, wallMatS);
-        wallS.position.set(X_OFFSET, 6, 150);
-        addMesh(wallS);
-
-        // East wall
-        var wallGeoE = new THREE.BoxGeometry(5, 12, 300);
-        var wallMatE = makeMaterial(0x8B7355);
-        var wallE = new THREE.Mesh(wallGeoE, wallMatE);
-        wallE.position.set(X_OFFSET + 150, 6, 0);
-        addMesh(wallE);
-
-        // West wall
-        var wallGeoW = new THREE.BoxGeometry(5, 12, 300);
-        var wallMatW = makeMaterial(0x8B7355);
-        var wallW = new THREE.Mesh(wallGeoW, wallMatW);
-        wallW.position.set(X_OFFSET - 150, 6, 0);
-        addMesh(wallW);
-
-        // Flint dark layer (Roman foundation) bottom band
-        var foundGeoN = new THREE.BoxGeometry(300, 4, 5);
-        var foundMat = makeMaterial(0x5A5A5A);
-        var foundN = new THREE.Mesh(foundGeoN, foundMat);
-        foundN.position.set(X_OFFSET, 2, -150);
-        addMesh(foundN);
-
-        var foundGeoS = new THREE.BoxGeometry(300, 4, 5);
-        var foundMatS = makeMaterial(0x5A5A5A);
-        var foundS = new THREE.Mesh(foundGeoS, foundMatS);
-        foundS.position.set(X_OFFSET, 2, 150);
-        addMesh(foundS);
-
-        var foundGeoE = new THREE.BoxGeometry(5, 4, 300);
-        var foundMatE = makeMaterial(0x5A5A5A);
-        var foundE = new THREE.Mesh(foundGeoE, foundMatE);
-        foundE.position.set(X_OFFSET + 150, 2, 0);
-        addMesh(foundE);
-
-        var foundGeoW = new THREE.BoxGeometry(5, 4, 300);
-        var foundMatW = makeMaterial(0x5A5A5A);
-        var foundW = new THREE.Mesh(foundGeoW, foundMatW);
-        foundW.position.set(X_OFFSET - 150, 2, 0);
-        addMesh(foundW);
-
-        // Crenellated parapet — merlons along top of walls
-        buildMerlons();
-
-        // Interval towers — 6 round towers
-        buildIntervalTowers();
-    }
-
-    function buildMerlons() {
-        var merMat = makeMaterial(0x9B8365);
-        var merGeo = new THREE.BoxGeometry(8, 4, 6);
-
-        // North wall merlons
-        var positions = [-100, -50, 0, 50, 100];
-        for (var i = 0; i < positions.length; i++) {
-            var mer = new THREE.Mesh(merGeo, merMat);
-            mer.position.set(X_OFFSET + positions[i], 14, -150);
-            addMesh(mer);
-        }
-
-        // South wall merlons
-        for (var j = 0; j < positions.length; j++) {
-            var merS = new THREE.Mesh(merGeo, merMat);
-            merS.position.set(X_OFFSET + positions[j], 14, 150);
-            addMesh(merS);
-        }
-
-        var merGeoSide = new THREE.BoxGeometry(6, 4, 8);
-        var positionsZ = [-100, -50, 0, 50, 100];
-
-        // East wall merlons
-        for (var k = 0; k < positionsZ.length; k++) {
-            var merE = new THREE.Mesh(merGeoSide, merMat);
-            merE.position.set(X_OFFSET + 150, 14, positionsZ[k]);
-            addMesh(merE);
-        }
-
-        // West wall merlons
-        for (var m = 0; m < positionsZ.length; m++) {
-            var merW = new THREE.Mesh(merGeoSide, merMat);
-            merW.position.set(X_OFFSET - 150, 14, positionsZ[m]);
-            addMesh(merW);
-        }
-    }
-
-    function buildIntervalTowers() {
-        // 6 interval towers — round cylinders
-        var towerMat = makeMaterial(0x7A6B4A);
-        var towerPositions = [
-            [X_OFFSET - 150, 0, -75],
-            [X_OFFSET - 150, 0, 75],
-            [X_OFFSET + 150, 0, -75],
-            [X_OFFSET + 150, 0, 75],
-            [X_OFFSET - 50, 0, -150],
-            [X_OFFSET + 50, 0, -150]
+        // 6 wall sections forming the city circuit
+        var wallSections = [
+            { w: 2,  h: 10, d: 50, x: 0,    y: 5,  z: 25   },
+            { w: 50, h: 10, d: 2,  x: 25,   y: 5,  z: 0    },
+            { w: 2,  h: 10, d: 40, x: 50,   y: 5,  z: -20  },
+            { w: 40, h: 10, d: 2,  x: 25,   y: 5,  z: -40  },
+            { w: 2,  h: 10, d: 50, x: 0,    y: 5,  z: -65  },
+            { w: 50, h: 10, d: 2,  x: -25,  y: 5,  z: -40  }
         ];
 
-        for (var i = 0; i < towerPositions.length; i++) {
-            var tGeo = new THREE.CylinderGeometry(5, 5, 16, 12);
-            var tower = new THREE.Mesh(tGeo, towerMat);
-            tower.position.set(towerPositions[i][0], 8, towerPositions[i][2]);
-            addMesh(tower);
+        for (var i = 0; i < wallSections.length; i++) {
+            var ws = wallSections[i];
+            var wallMesh = makeMesh(new THREE.BoxGeometry(ws.w, ws.h, ws.d), wallColor);
+            wallMesh.position.set(BASE_X + ws.x, ws.y, BASE_Z + ws.z);
+            addObj(wallMesh);
+        }
 
-            // Cap
-            var capGeo = new THREE.CylinderGeometry(5.5, 5.5, 2, 12);
-            var capMat = makeMaterial(0x6B5C3A);
-            var cap = new THREE.Mesh(capGeo, capMat);
-            cap.position.set(towerPositions[i][0], 17, towerPositions[i][2]);
-            addMesh(cap);
+        // 12 rectangular towers spaced along the walls
+        var towers = [
+            { x: 0,    z: 0   },
+            { x: 0,    z: 50  },
+            { x: 0,    z: -50 },
+            { x: 16,   z: 0   },
+            { x: 32,   z: 0   },
+            { x: 50,   z: 0   },
+            { x: 50,   z: -20 },
+            { x: 50,   z: -40 },
+            { x: 25,   z: -40 },
+            { x: 0,    z: -40 },
+            { x: -25,  z: -40 },
+            { x: -25,  z: -20 }
+        ];
+
+        for (var t = 0; t < towers.length; t++) {
+            var tw = towers[t];
+            var towerMesh = makeMesh(new THREE.BoxGeometry(5, 14, 5), towerColor);
+            towerMesh.position.set(BASE_X + tw.x, 7, BASE_Z + tw.z);
+            addObj(towerMesh);
         }
     }
 
     function buildWestgateTowers() {
-        // Two massive round flanking towers
-        var towMatL = makeMaterial(0x8B7355);
-        var towMatR = makeMaterial(0x8B7355);
+        var stoneColor = 0x6B6B5A;
+        var darkColor = 0x1A1A1A;
 
-        // Left tower (north)
-        var leftGeo = new THREE.CylinderGeometry(8, 8, 22, 16);
-        var leftTower = new THREE.Mesh(leftGeo, towMatL);
-        leftTower.position.set(X_OFFSET - 170, 11, 0);
-        addMesh(leftTower);
+        // Twin drum towers — CylinderGeometry r=6 h=22 seg=8
+        var drumGeoL = new THREE.CylinderGeometry(6, 6, 22, 8);
+        var drumL = makeMesh(drumGeoL, stoneColor);
+        drumL.position.set(BASE_X - 7, 11, BASE_Z + 80);
+        addObj(drumL);
 
-        // Right tower
-        var rightGeo = new THREE.CylinderGeometry(8, 8, 22, 16);
-        var rightTower = new THREE.Mesh(rightGeo, towMatR);
-        rightTower.position.set(X_OFFSET - 152, 11, 0);
-        addMesh(rightTower);
+        var drumGeoR = new THREE.CylinderGeometry(6, 6, 22, 8);
+        var drumR = makeMesh(drumGeoR, stoneColor);
+        drumR.position.set(BASE_X + 7, 11, BASE_Z + 80);
+        addObj(drumR);
 
-        // Machicolation ledge left
-        var machLGeo = new THREE.CylinderGeometry(9.5, 9.5, 2, 16);
-        var machMat = makeMaterial(0x6B5C3A);
-        var machL = new THREE.Mesh(machLGeo, machMat);
-        machL.position.set(X_OFFSET - 170, 23, 0);
-        addMesh(machL);
+        // Connecting gate span 14×22×6
+        var spanMesh = makeMesh(new THREE.BoxGeometry(14, 22, 6), stoneColor);
+        spanMesh.position.set(BASE_X, 11, BASE_Z + 80);
+        addObj(spanMesh);
 
-        // Machicolation ledge right
-        var machRGeo = new THREE.CylinderGeometry(9.5, 9.5, 2, 16);
-        var machR = new THREE.Mesh(machRGeo, machMat);
-        machR.position.set(X_OFFSET - 152, 23, 0);
-        addMesh(machR);
+        // Large arch opening dark inset 8×14
+        var archMesh = makeMesh(new THREE.BoxGeometry(8, 14, 7), darkColor);
+        archMesh.position.set(BASE_X, 7, BASE_Z + 80);
+        addObj(archMesh);
 
-        // Battlements top left
-        var battL1Geo = new THREE.BoxGeometry(4, 3, 4);
-        var battMat = makeMaterial(0x9B8365);
-        for (var i = 0; i < 8; i++) {
-            var angle = (i / 8) * Math.PI * 2;
-            var bx = Math.cos(angle) * 7;
-            var bz = Math.sin(angle) * 7;
-            var battL = new THREE.Mesh(battL1Geo, battMat);
-            battL.position.set(X_OFFSET - 170 + bx, 25.5, bz);
-            addMesh(battL);
+        // Crenellated top — 8 merlons BoxGeometry 2×3×2
+        for (var c = 0; c < 8; c++) {
+            var merlonMesh = makeMesh(new THREE.BoxGeometry(2, 3, 2), stoneColor);
+            merlonMesh.position.set(BASE_X - 7 + (c * 2), 23.5, BASE_Z + 80);
+            addObj(merlonMesh);
         }
-
-        // Battlements top right
-        for (var j = 0; j < 8; j++) {
-            var angleR = (j / 8) * Math.PI * 2;
-            var rx = Math.cos(angleR) * 7;
-            var rz = Math.sin(angleR) * 7;
-            var battR = new THREE.Mesh(battL1Geo, battMat);
-            battR.position.set(X_OFFSET - 152 + rx, 25.5, rz);
-            addMesh(battR);
-        }
-
-        // Central arch passage (archway lintel and piers)
-        var archLintelGeo = new THREE.BoxGeometry(18, 3, 4);
-        var archMat = makeMaterial(0x7A6B4A);
-        var archLintel = new THREE.Mesh(archLintelGeo, archMat);
-        archLintel.position.set(X_OFFSET - 161, 10, 0);
-        addMesh(archLintel);
-
-        // Arch piers
-        var pierGeo = new THREE.BoxGeometry(3, 10, 4);
-        var pierL = new THREE.Mesh(pierGeo, archMat);
-        pierL.position.set(X_OFFSET - 169, 5, 0);
-        addMesh(pierL);
-
-        var pierR = new THREE.Mesh(pierGeo, archMat);
-        pierR.position.set(X_OFFSET - 153, 5, 0);
-        addMesh(pierR);
-
-        // Gatehouse connecting block
-        var gateBlockGeo = new THREE.BoxGeometry(18, 22, 12);
-        var gateBlockMat = makeMaterial(0x8B7355);
-        var gateBlock = new THREE.Mesh(gateBlockGeo, gateBlockMat);
-        gateBlock.position.set(X_OFFSET - 161, 11, 0);
-        addMesh(gateBlock);
     }
 
-    function buildDaneJohnMound() {
-        // Roman burial mound — cylinder base with cone top
-        var moundGeo = new THREE.CylinderGeometry(18, 22, 10, 16);
-        var moundMat = makeMaterial(0x4A7C3F);
-        var mound = new THREE.Mesh(moundGeo, moundMat);
-        mound.position.set(X_OFFSET + 80, 5, 100);
-        addMesh(mound);
+    function buildChristchurchGate() {
+        var limestoneColor = 0xD4C5A9;
+        var heraldryColor = 0x8B0000;
+        var darkColor = 0x1A1A1A;
 
-        var peakGeo = new THREE.ConeGeometry(18, 8, 16);
-        var peakMat = makeMaterial(0x3A6B2F);
-        var peak = new THREE.Mesh(peakGeo, peakMat);
-        peak.position.set(X_OFFSET + 80, 14, 100);
-        addMesh(peak);
+        // Main gatehouse 16×8d×20h
+        var gateMesh = makeMesh(new THREE.BoxGeometry(16, 20, 8), limestoneColor);
+        gateMesh.position.set(BASE_X + 60, 10, BASE_Z + 20);
+        addObj(gateMesh);
 
-        // Garden paths (flat boxes radiating)
-        var pathMat = makeMaterial(0xC8B880);
-        var pathDirs = [
-            [0, 30],
-            [30, 0],
-            [0, -30],
-            [-30, 0]
+        // Gate arch dark inset
+        var gateArchMesh = makeMesh(new THREE.BoxGeometry(6, 10, 9), darkColor);
+        gateArchMesh.position.set(BASE_X + 60, 5, BASE_Z + 20);
+        addObj(gateArchMesh);
+
+        // 4 heraldic shields 2×3×0.3 in niches
+        var shieldOffsets = [
+            { x: -5, y: 14 },
+            { x: -2, y: 14 },
+            { x:  2, y: 14 },
+            { x:  5, y: 14 }
         ];
-
-        for (var i = 0; i < pathDirs.length; i++) {
-            var pathGeo = new THREE.BoxGeometry(
-                Math.abs(pathDirs[i][0]) > 0 ? 30 : 4,
-                0.5,
-                Math.abs(pathDirs[i][1]) > 0 ? 30 : 4
-            );
-            var path = new THREE.Mesh(pathGeo, pathMat);
-            path.position.set(
-                X_OFFSET + 80 + pathDirs[i][0],
-                0.25,
-                100 + pathDirs[i][1]
-            );
-            addMesh(path);
+        for (var s = 0; s < shieldOffsets.length; s++) {
+            var sp = shieldOffsets[s];
+            var shieldMesh = makeMesh(new THREE.BoxGeometry(2, 3, 0.3), heraldryColor);
+            shieldMesh.position.set(BASE_X + 60 + sp.x, sp.y, BASE_Z + 16.1);
+            addObj(shieldMesh);
         }
 
-        // Garden grass base
-        var gardenGeo = new THREE.BoxGeometry(80, 0.3, 80);
-        var gardenMat = makeMaterial(0x5A9E50);
-        var garden = new THREE.Mesh(gardenGeo, gardenMat);
-        garden.position.set(X_OFFSET + 80, 0.15, 100);
-        addMesh(garden);
+        // 2 flanking pinnacles 2×2×8
+        var pinnacleL = makeMesh(new THREE.BoxGeometry(2, 8, 2), limestoneColor);
+        pinnacleL.position.set(BASE_X + 52, 24, BASE_Z + 20);
+        addObj(pinnacleL);
 
-        // Obelisk/monument near mound
-        var obeliskBaseGeo = new THREE.BoxGeometry(4, 2, 4);
-        var obeliskMat = makeMaterial(0xB0A080);
-        var obeliskBase = new THREE.Mesh(obeliskBaseGeo, obeliskMat);
-        obeliskBase.position.set(X_OFFSET + 60, 1, 80);
-        addMesh(obeliskBase);
-
-        var obeliskGeo = new THREE.BoxGeometry(2, 12, 2);
-        var obelisk = new THREE.Mesh(obeliskGeo, obeliskMat);
-        obelisk.position.set(X_OFFSET + 60, 8, 80);
-        addMesh(obelisk);
-
-        var obeliskTopGeo = new THREE.ConeGeometry(1.5, 3, 4);
-        var obeliskTop = new THREE.Mesh(obeliskTopGeo, obeliskMat);
-        obeliskTop.position.set(X_OFFSET + 60, 15.5, 80);
-        addMesh(obeliskTop);
+        var pinnacleR = makeMesh(new THREE.BoxGeometry(2, 8, 2), limestoneColor);
+        pinnacleR.position.set(BASE_X + 68, 24, BASE_Z + 20);
+        addObj(pinnacleR);
     }
 
     function buildRiverStour() {
-        // Meandering River Stour through the city
-        // Represented as a series of flat box segments at slightly different angles
+        var waterColor = 0x1B6CA8;
+        var timberColor = 0xF5DEB3;
 
-        var riverMat = makeMaterial(0x3A7EC8);
-
-        // River segments meandering west to east through city
-        var segments = [
-            { x: X_OFFSET - 130, z: -30, w: 40, l: 10, ry: 0.1 },
-            { x: X_OFFSET - 90, z: -20, w: 40, l: 10, ry: -0.05 },
-            { x: X_OFFSET - 50, z: -25, w: 40, l: 10, ry: 0.08 },
-            { x: X_OFFSET - 10, z: -20, w: 40, l: 10, ry: -0.06 },
-            { x: X_OFFSET + 30, z: -15, w: 40, l: 10, ry: 0.1 },
-            { x: X_OFFSET + 70, z: -20, w: 40, l: 10, ry: -0.05 },
-            { x: X_OFFSET + 110, z: -30, w: 40, l: 10, ry: 0.07 }
+        // 3 water tiles 15×0.4×20
+        var waterOffsets = [
+            { x: -40, z: 10 },
+            { x: -40, z: 30 },
+            { x: -40, z: 50 }
         ];
-
-        for (var i = 0; i < segments.length; i++) {
-            var seg = segments[i];
-            var riverGeo = new THREE.BoxGeometry(seg.w, 0.4, seg.l);
-            var riverSeg = new THREE.Mesh(riverGeo, riverMat);
-            riverSeg.position.set(seg.x, 0.2, seg.z);
-            riverSeg.rotation.y = seg.ry;
-            addMesh(riverSeg);
+        for (var w = 0; w < waterOffsets.length; w++) {
+            var wt = waterOffsets[w];
+            var waterMesh = makeMesh(new THREE.BoxGeometry(15, 0.4, 20), waterColor);
+            waterMesh.position.set(BASE_X + wt.x, 0.2, BASE_Z + wt.z);
+            addObj(waterMesh);
         }
 
-        // Riverbanks
-        var bankMat = makeMaterial(0x8B6914);
-        for (var j = 0; j < segments.length; j++) {
-            var s = segments[j];
-            var bankGeoN = new THREE.BoxGeometry(s.w, 0.6, 2);
-            var bankN = new THREE.Mesh(bankGeoN, bankMat);
-            bankN.position.set(s.x, 0.3, s.z - s.l / 2 - 1);
-            bankN.rotation.y = s.ry;
-            addMesh(bankN);
+        // Weaver's House 12×8×10
+        var weaverMesh = makeMesh(new THREE.BoxGeometry(12, 8, 10), timberColor);
+        weaverMesh.position.set(BASE_X - 28, 4, BASE_Z + 30);
+        addObj(weaverMesh);
 
-            var bankGeoS = new THREE.BoxGeometry(s.w, 0.6, 2);
-            var bankS = new THREE.Mesh(bankGeoS, bankMat);
-            bankS.position.set(s.x, 0.3, s.z + s.l / 2 + 1);
-            bankS.rotation.y = s.ry;
-            addMesh(bankS);
-        }
-
-        // Punts / boats on river
-        buildBoats();
-
-        // Stone bridge over river
-        buildStourBridge();
-    }
-
-    function buildBoats() {
-        // Simple punt shapes — flat box hull
-        var boatMat = makeMaterial(0x8B4513);
-        var puntPositions = [
-            [X_OFFSET - 40, -22],
-            [X_OFFSET + 20, -18],
-            [X_OFFSET + 70, -23]
-        ];
-
-        for (var i = 0; i < puntPositions.length; i++) {
-            var hullGeo = new THREE.BoxGeometry(6, 0.8, 2.5);
-            var hull = new THREE.Mesh(hullGeo, boatMat);
-            hull.position.set(puntPositions[i][0], 0.8, puntPositions[i][1]);
-            addMesh(hull);
-
-            // Punt pole
-            var poleMat = makeMaterial(0xA0522D);
-            var poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 5, 4);
-            var pole = new THREE.Mesh(poleGeo, poleMat);
-            pole.rotation.z = 0.3;
-            pole.position.set(puntPositions[i][0] + 1, 3, puntPositions[i][1]);
-            addMesh(pole);
-        }
-    }
-
-    function buildStourBridge() {
-        // Medieval stone bridge over the Stour
-        var bridgeMat = makeMaterial(0x9B8B6B);
-        var bridgeDeckGeo = new THREE.BoxGeometry(12, 0.8, 14);
-        var bridgeDeck = new THREE.Mesh(bridgeDeckGeo, bridgeMat);
-        bridgeDeck.position.set(X_OFFSET, 1, -22);
-        addMesh(bridgeDeck);
-
-        // Bridge arch piers
-        var bridgePierGeo = new THREE.BoxGeometry(3, 3, 2);
-        var pierL = new THREE.Mesh(bridgePierGeo, bridgeMat);
-        pierL.position.set(X_OFFSET - 3, 0.5, -22);
-        addMesh(pierL);
-
-        var pierR = new THREE.Mesh(bridgePierGeo, bridgeMat);
-        pierR.position.set(X_OFFSET + 3, 0.5, -22);
-        addMesh(pierR);
-
-        // Bridge parapets
-        var bParGeo = new THREE.BoxGeometry(12, 1, 0.5);
-        var parN = new THREE.Mesh(bParGeo, bridgeMat);
-        parN.position.set(X_OFFSET, 2, -27);
-        addMesh(parN);
-
-        var parS = new THREE.Mesh(bParGeo, bridgeMat);
-        parS.position.set(X_OFFSET, 2, -17);
-        addMesh(parS);
+        // Overhanging upper storey 13×4×6
+        var upperMesh = makeMesh(new THREE.BoxGeometry(13, 4, 6), timberColor);
+        upperMesh.position.set(BASE_X - 28, 10, BASE_Z + 30);
+        addObj(upperMesh);
     }
 
     function buildPilgrimsWay() {
-        // Cobbled street — dark grey surface
-        var cobbleMat = makeMaterial(0x5C5C5C);
-        var cobbleGeo = new THREE.BoxGeometry(200, 0.3, 8);
-        var cobble = new THREE.Mesh(cobbleGeo, cobbleMat);
-        cobble.position.set(X_OFFSET, 0.15, 40);
-        addMesh(cobble);
+        var cobbleColor = 0xC0B0A0;
+        var buildingColors = [0xF5DEB3, 0xE8D5B0, 0xDDD0A0];
 
-        // Medieval timber-framed buildings along the Pilgrim's Way
-        buildTimberBuildings();
+        // Cobbled street 8×0.3×50
+        var streetMesh = makeMesh(new THREE.BoxGeometry(8, 0.3, 50), cobbleColor);
+        streetMesh.position.set(BASE_X + 30, 0.15, BASE_Z - 10);
+        addObj(streetMesh);
 
-        // Inn signs
-        buildInnSigns();
-    }
-
-    function buildTimberBuildings() {
-        // Buildings on north side of street
-        var buildingDataN = [
-            { x: X_OFFSET - 90, z: 50, w: 14, h: 10, d: 12 },
-            { x: X_OFFSET - 70, z: 50, w: 12, h: 12, d: 12 },
-            { x: X_OFFSET - 48, z: 50, w: 14, h: 9, d: 12 },
-            { x: X_OFFSET - 28, z: 50, w: 12, h: 11, d: 12 },
-            { x: X_OFFSET - 8, z: 50, w: 14, h: 10, d: 12 },
-            { x: X_OFFSET + 14, z: 50, w: 12, h: 13, d: 12 },
-            { x: X_OFFSET + 34, z: 50, w: 14, h: 9, d: 12 },
-            { x: X_OFFSET + 54, z: 50, w: 12, h: 11, d: 12 },
-            { x: X_OFFSET + 74, z: 50, w: 14, h: 10, d: 12 },
-            { x: X_OFFSET + 94, z: 50, w: 12, h: 12, d: 12 }
+        // 6 medieval buildings flanking the street
+        var buildingDefs = [
+            { side: -8, z: -30 },
+            { side: -8, z: -10 },
+            { side: -8, z:  10 },
+            { side:  8, z: -30 },
+            { side:  8, z: -10 },
+            { side:  8, z:  10 }
         ];
 
-        var wallColors = [0xD4B896, 0xC8A87A, 0xDECBA0, 0xC0A878, 0xD8BC94];
-        var timberMat = makeMaterial(0x4A3728);
+        for (var b = 0; b < buildingDefs.length; b++) {
+            var bd = buildingDefs[b];
+            var bColor = buildingColors[b % 3];
 
-        for (var i = 0; i < buildingDataN.length; i++) {
-            var b = buildingDataN[i];
-            var wallColor = wallColors[i % wallColors.length];
-            var wallMat = makeMaterial(wallColor);
+            // Ground floor 8×10×8
+            var bMesh = makeMesh(new THREE.BoxGeometry(8, 10, 8), bColor);
+            bMesh.position.set(BASE_X + 30 + bd.side, 5, BASE_Z + bd.z);
+            addObj(bMesh);
 
-            // Main building body
-            var bodyGeo = new THREE.BoxGeometry(b.w, b.h, b.d);
-            var body = new THREE.Mesh(bodyGeo, wallMat);
-            body.position.set(b.x, b.h / 2, b.z);
-            addMesh(body);
-
-            // Timber frame overlay (slightly proud of wall)
-            var timberHGeo = new THREE.BoxGeometry(b.w, 0.5, b.d + 0.2);
-            var timberH1 = new THREE.Mesh(timberHGeo, timberMat);
-            timberH1.position.set(b.x, b.h * 0.33, b.z);
-            addMesh(timberH1);
-
-            var timberH2 = new THREE.Mesh(timberHGeo, timberMat);
-            timberH2.position.set(b.x, b.h * 0.66, b.z);
-            addMesh(timberH2);
-
-            // Roof
-            var roofGeo = new THREE.BoxGeometry(b.w + 1, 1, b.d + 1);
-            var roofMat = makeMaterial(0x6B3A2A);
-            var roof = new THREE.Mesh(roofGeo, roofMat);
-            roof.position.set(b.x, b.h + 0.5, b.z);
-            addMesh(roof);
-
-            // Roof ridge
-            var ridgeGeo = new THREE.BoxGeometry(b.w - 2, 4, 1);
-            var ridge = new THREE.Mesh(ridgeGeo, roofMat);
-            ridge.position.set(b.x, b.h + 3, b.z);
-            addMesh(ridge);
-
-            // Chimney
-            var chimneyGeo = new THREE.BoxGeometry(2, 5, 2);
-            var chimneyMat = makeMaterial(0x8B6B5A);
-            var chimney = new THREE.Mesh(chimneyGeo, chimneyMat);
-            chimney.position.set(b.x + b.w * 0.3, b.h + 5, b.z);
-            addMesh(chimney);
-        }
-
-        // Buildings on south side
-        var buildingDataS = [
-            { x: X_OFFSET - 80, z: 30, w: 14, h: 10, d: 12 },
-            { x: X_OFFSET - 58, z: 30, w: 12, h: 12, d: 12 },
-            { x: X_OFFSET - 36, z: 30, w: 14, h: 9, d: 12 },
-            { x: X_OFFSET - 14, z: 30, w: 12, h: 11, d: 12 },
-            { x: X_OFFSET + 8, z: 30, w: 14, h: 10, d: 12 },
-            { x: X_OFFSET + 30, z: 30, w: 12, h: 13, d: 12 },
-            { x: X_OFFSET + 52, z: 30, w: 14, h: 9, d: 12 },
-            { x: X_OFFSET + 74, z: 30, w: 12, h: 11, d: 12 }
-        ];
-
-        for (var j = 0; j < buildingDataS.length; j++) {
-            var bs = buildingDataS[j];
-            var wallColorS = wallColors[j % wallColors.length];
-            var wallMatS = makeMaterial(wallColorS);
-
-            var bodyGeoS = new THREE.BoxGeometry(bs.w, bs.h, bs.d);
-            var bodyS = new THREE.Mesh(bodyGeoS, wallMatS);
-            bodyS.position.set(bs.x, bs.h / 2, bs.z);
-            addMesh(bodyS);
-
-            var timberHGeoS = new THREE.BoxGeometry(bs.w, 0.5, bs.d + 0.2);
-            var timberHS = new THREE.Mesh(timberHGeoS, timberMat);
-            timberHS.position.set(bs.x, bs.h * 0.5, bs.z);
-            addMesh(timberHS);
-
-            var roofGeoS = new THREE.BoxGeometry(bs.w + 1, 1, bs.d + 1);
-            var roofMatS = makeMaterial(0x7A3B2B);
-            var roofS = new THREE.Mesh(roofGeoS, roofMatS);
-            roofS.position.set(bs.x, bs.h + 0.5, bs.z);
-            addMesh(roofS);
-
-            var ridgeGeoS = new THREE.BoxGeometry(bs.w - 2, 4, 1);
-            var ridgeS = new THREE.Mesh(ridgeGeoS, roofMatS);
-            ridgeS.position.set(bs.x, bs.h + 3, bs.z);
-            addMesh(ridgeS);
+            // Jettied upper floor 9×4×4 overhanging
+            var jMesh = makeMesh(new THREE.BoxGeometry(9, 4, 4), bColor);
+            jMesh.position.set(BASE_X + 30 + bd.side, 12, BASE_Z + bd.z);
+            addObj(jMesh);
         }
     }
 
-    function buildInnSigns() {
-        // Inn sign posts and boards
-        var postMat = makeMaterial(0x5A3A20);
-        var signMat = makeMaterial(0xC8A050);
+    function buildDaneJohnMound() {
+        var grassColor = 0x3A7A3A;
+        var stoneColor = 0x888877;
+        var limestoneColor = 0xD4C5A9;
 
-        var signPositions = [
-            X_OFFSET - 70,
-            X_OFFSET - 10,
-            X_OFFSET + 50
+        // Roman burial mound SphereGeometry r=14 half above ground
+        var moundMesh = makeMesh(new THREE.SphereGeometry(14, 16, 16), grassColor);
+        moundMesh.position.set(BASE_X - 60, 0, BASE_Z - 60);
+        addObj(moundMesh);
+
+        // Column monument CylinderGeometry r=1.5 h=16 seg=6
+        var columnMesh = makeMesh(new THREE.CylinderGeometry(1.5, 1.5, 16, 6), stoneColor);
+        columnMesh.position.set(BASE_X - 60, 22, BASE_Z - 60);
+        addObj(columnMesh);
+
+        // Obelisk BoxGeometry 1×20×1
+        var obeliskMesh = makeMesh(new THREE.BoxGeometry(1, 20, 1), limestoneColor);
+        obeliskMesh.position.set(BASE_X - 60, 40, BASE_Z - 60);
+        addObj(obeliskMesh);
+    }
+
+    function buildRomanWalls() {
+        var romanColor = 0xD4A574;
+
+        // Low Roman wall sections exposed at base 2×4×40
+        var romanDefs = [
+            { x: 0,   z: 10,  w: 2,  d: 40 },
+            { x: 20,  z: 0,   w: 40, d: 2  },
+            { x: 50,  z: -10, w: 2,  d: 40 },
+            { x: 20,  z: -40, w: 40, d: 2  }
         ];
 
-        for (var i = 0; i < signPositions.length; i++) {
-            // Vertical post
-            var postGeo = new THREE.CylinderGeometry(0.2, 0.2, 8, 6);
-            var post = new THREE.Mesh(postGeo, postMat);
-            post.position.set(signPositions[i], 4, 44);
-            addMesh(post);
-
-            // Horizontal arm
-            var armGeo = new THREE.BoxGeometry(3, 0.3, 0.3);
-            var arm = new THREE.Mesh(armGeo, postMat);
-            arm.position.set(signPositions[i] + 1.5, 7, 44);
-            addMesh(arm);
-
-            // Sign board
-            var boardGeo = new THREE.BoxGeometry(3, 2, 0.2);
-            var board = new THREE.Mesh(boardGeo, signMat);
-            board.position.set(signPositions[i] + 1.5, 6, 44);
-            addMesh(board);
+        for (var r = 0; r < romanDefs.length; r++) {
+            var rd = romanDefs[r];
+            var romanMesh = makeMesh(new THREE.BoxGeometry(rd.w, 4, rd.d), romanColor);
+            romanMesh.position.set(BASE_X + rd.x, 2, BASE_Z + rd.z);
+            addObj(romanMesh);
         }
     }
 
-    function buildGroundPlane() {
-        // Ground for the Canterbury area
-        var groundGeo = new THREE.BoxGeometry(400, 0.5, 400);
-        var groundMat = makeMaterial(0x7A9B6A);
-        var ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.position.set(X_OFFSET, -0.25, 0);
-        addMesh(ground);
-    }
+    function buildStAugustinesAbbey() {
+        var stoneColor = 0x888877;
+        var darkColor = 0x1A1A1A;
+        var grassColor = 0x2D7A2D;
 
-    function buildCathedral() {
-        // Canterbury Cathedral silhouette in background
-        var cathedralMat = makeMaterial(0x9B8B6B);
-
-        // Nave
-        var naveGeo = new THREE.BoxGeometry(30, 18, 70);
-        var nave = new THREE.Mesh(naveGeo, cathedralMat);
-        nave.position.set(X_OFFSET + 20, 9, -60);
-        addMesh(nave);
-
-        // Nave roof
-        var naveRoofGeo = new THREE.BoxGeometry(31, 4, 71);
-        var roofMat = makeMaterial(0x7A7060);
-        var naveRoof = new THREE.Mesh(naveRoofGeo, roofMat);
-        naveRoof.position.set(X_OFFSET + 20, 20, -60);
-        addMesh(naveRoof);
-
-        // Central tower (Bell Harry Tower)
-        var ctGeo = new THREE.BoxGeometry(14, 40, 14);
-        var ct = new THREE.Mesh(ctGeo, cathedralMat);
-        ct.position.set(X_OFFSET + 20, 20, -55);
-        addMesh(ct);
-
-        // Tower crown
-        var crownGeo = new THREE.BoxGeometry(15, 4, 15);
-        var crown = new THREE.Mesh(crownGeo, cathedralMat);
-        crown.position.set(X_OFFSET + 20, 42, -55);
-        addMesh(crown);
-
-        // Pinnacles on tower corners
-        var pinnMat = makeMaterial(0x8A7A5A);
-        var pinnPositions = [
-            [X_OFFSET + 13, 46, -62],
-            [X_OFFSET + 27, 46, -62],
-            [X_OFFSET + 13, 46, -48],
-            [X_OFFSET + 27, 46, -48]
+        // 4 low foundation walls 2×5×40
+        var foundDefs = [
+            { x: 100, z: -80,  w: 2,  d: 40 },
+            { x: 120, z: -60,  w: 40, d: 2  },
+            { x: 140, z: -80,  w: 2,  d: 40 },
+            { x: 120, z: -100, w: 40, d: 2  }
         ];
 
-        for (var i = 0; i < pinnPositions.length; i++) {
-            var pinnGeo = new THREE.ConeGeometry(1.5, 6, 4);
-            var pinn = new THREE.Mesh(pinnGeo, pinnMat);
-            pinn.position.set(pinnPositions[i][0], pinnPositions[i][1], pinnPositions[i][2]);
-            addMesh(pinn);
+        for (var f = 0; f < foundDefs.length; f++) {
+            var fd = foundDefs[f];
+            var fdMesh = makeMesh(new THREE.BoxGeometry(fd.w, 5, fd.d), stoneColor);
+            fdMesh.position.set(BASE_X + fd.x, 2.5, BASE_Z + fd.z);
+            addObj(fdMesh);
         }
 
-        // Northwest tower
-        var nwtGeo = new THREE.BoxGeometry(10, 28, 10);
-        var nwt = new THREE.Mesh(nwtGeo, cathedralMat);
-        nwt.position.set(X_OFFSET + 8, 14, -88);
-        addMesh(nwt);
+        // 2 standing arch fragments 12×16×2 with dark 8×10 arch insets
+        var archPositions = [
+            { x: 100, z: -80 },
+            { x: 140, z: -80 }
+        ];
 
-        // Southwest tower
-        var swtGeo = new THREE.BoxGeometry(10, 28, 10);
-        var swt = new THREE.Mesh(swtGeo, cathedralMat);
-        swt.position.set(X_OFFSET + 32, 14, -88);
-        addMesh(swt);
+        for (var a = 0; a < archPositions.length; a++) {
+            var ap = archPositions[a];
+
+            var archFrameMesh = makeMesh(new THREE.BoxGeometry(12, 16, 2), stoneColor);
+            archFrameMesh.position.set(BASE_X + ap.x, 8, BASE_Z + ap.z);
+            addObj(archFrameMesh);
+
+            var archInsetMesh = makeMesh(new THREE.BoxGeometry(8, 10, 3), darkColor);
+            archInsetMesh.position.set(BASE_X + ap.x, 6, BASE_Z + ap.z);
+            addObj(archInsetMesh);
+        }
+
+        // Grass courtyard 40×0.5×30
+        var courtyardMesh = makeMesh(new THREE.BoxGeometry(40, 0.5, 30), grassColor);
+        courtyardMesh.position.set(BASE_X + 120, 0.25, BASE_Z - 80);
+        addObj(courtyardMesh);
     }
 
     function build() {
-        buildGroundPlane();
         buildCityWalls();
         buildWestgateTowers();
-        buildDaneJohnMound();
+        buildChristchurchGate();
         buildRiverStour();
         buildPilgrimsWay();
-        buildCathedral();
+        buildDaneJohnMound();
+        buildRomanWalls();
+        buildStAugustinesAbbey();
     }
 
     function update(delta) {
-        // No animated elements currently
+        // Static environment — no per-frame updates required
     }
 
     function reset() {
-        for (var i = 0; i < objects.length; i++) {
-            scene.remove(objects[i]);
+        for (var i = objects.length - 1; i >= 0; i--) {
+            if (scene) {
+                scene.remove(objects[i]);
+            }
+            if (objects[i].geometry) {
+                objects[i].geometry.dispose();
+            }
+            if (objects[i].material) {
+                objects[i].material.dispose();
+            }
         }
         objects = [];
-        scene = null;
-        camera = null;
     }
 
-    return { init: init, update: update, reset: reset };
+    return {
+        init: init,
+        build: build,
+        update: update,
+        reset: reset
+    };
 
 }());

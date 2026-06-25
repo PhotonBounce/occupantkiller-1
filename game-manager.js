@@ -10371,6 +10371,11 @@ const GameManager = (function () {
     if (window.HastingsOldTown) HastingsOldTown.update(delta);
     if (window.RyeCobbles) RyeCobbles.update(delta);
     if (window.CanterburyWalls) CanterburyWalls.update(delta);
+    if (window.RyeTown) RyeTown.update(delta);
+    if (window.BodiamCastle) BodiamCastle.update(delta);
+    if (window.SevenSisters) SevenSisters.update(delta);
+    if (window.BirlingGap) BirlingGap.update(delta);
+    if (window.KentOast) KentOast.update(delta);
     if (window.DoverWhiteCliffs) DoverWhiteCliffs.update(delta);
     if (window.FolkestoneHarbour) FolkestoneHarbour.update(delta);
     if (window.MargateDreamland) MargateDreamland.update(delta);
@@ -10530,6 +10535,7 @@ const GameManager = (function () {
     if (window.IsleOfWight) IsleOfWight.update(delta);
     if (window.SurreyHills) SurreyHills.update(delta);
     if (window.BrightonPier) BrightonPier.update(delta);
+    if (window.DoverCastle) DoverCastle.update(delta);
     if (window.BeachyHead) BeachyHead.update(delta);
     if (window.HastingsCastle) HastingsCastle.update(delta);
     if (window.RyeMarsh) RyeMarsh.update(delta);
