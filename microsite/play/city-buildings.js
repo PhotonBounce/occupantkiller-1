@@ -18,6 +18,8 @@ const CityBuildings = (function () {
     REINFORCED: 14, FENCE: 15,   RUBBLE: 16,   SANDBAG: 17,
     CAR: 28,       DOOR: 29,     BLUE_TILE: 64, WHITE_TILE: 65,
     LIGHT: 27,     BUSH: 26,     FLAG: 38,     BANNER: 39,
+    UKR_BLUE: 66,  UKR_YELLOW: 67, UKR_FLAG: 68, UKR_BANNER: 69,
+    TRYZUB: 70,    UKR_VEHICLE: 71,
   };
 
   // ── Building shape templates (voxel dimensions) ─────────

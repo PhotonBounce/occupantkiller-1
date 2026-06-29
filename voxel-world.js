@@ -444,6 +444,12 @@ window.VoxelWorld = (function () {
     [BLOCK.SANDBOX]:    0xFFF8DC,  // sand color
     [BLOCK.BLUE_TILE]:  0x0057B8,  // Ukrainian blue tile (hallways)
     [BLOCK.WHITE_TILE]: 0xF0F0F0,  // white tile (upper hallway walls)
+    [BLOCK.UKR_BLUE]:    0x0057B7,  // Ukrainian blue
+    [BLOCK.UKR_YELLOW]:  0xFFD700,  // Ukrainian yellow
+    [BLOCK.UKR_FLAG]:    0x0057B7,  // Ukrainian flag (blue stripe)
+    [BLOCK.UKR_BANNER]:  0xFFD700,  // Ukrainian banner (yellow stripe)
+    [BLOCK.TRYZUB]:      0xFFD700,  // Tryzub trident symbol (gold)
+    [BLOCK.UKR_VEHICLE]: 0x4B5320,  // NATO green Ukrainian vehicle
   };
   // Expose BLOCK_COLORS globally for legacy/stray references
   if (typeof window !== 'undefined') window.BLOCK_COLORS = BLOCK_COLORS;
@@ -467,6 +473,67 @@ window.VoxelWorld = (function () {
     // Barriers
     setBlock(ox + 3, getTerrainHeight(ox + 3, oz) + 1, oz, BLOCK.FENCE);
     setBlock(ox + 3, getTerrainHeight(ox + 3, oz + 4) + 1, oz + 4, BLOCK.FENCE);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  //  UKRAINIAN LIBERATION DECORATIONS — added for Russian-territory stages
+  // ════════════════════════════════════════════════════════════════
+
+  // Ukrainian flag: vertical blue/yellow stripes on a metal pole, 2-3 wide, 4-5 tall
+  function ukrainianFlag(ox, oy, oz) {
+    for (var fy = 0; fy < 5; fy++) setBlock(ox, oy + fy, oz, BLOCK.METAL); // pole
+    setBlock(ox + 1, oy + 4, oz, BLOCK.UKR_BLUE);   setBlock(ox + 2, oy + 4, oz, BLOCK.UKR_BLUE);
+    setBlock(ox + 1, oy + 3, oz, BLOCK.UKR_BLUE);   setBlock(ox + 2, oy + 3, oz, BLOCK.UKR_BLUE);
+    setBlock(ox + 1, oy + 2, oz, BLOCK.UKR_YELLOW); setBlock(ox + 2, oy + 2, oz, BLOCK.UKR_YELLOW);
+    setBlock(ox + 1, oy + 1, oz, BLOCK.UKR_YELLOW); setBlock(ox + 2, oy + 1, oz, BLOCK.UKR_YELLOW);
+  }
+
+  // Ukrainian banner: horizontal blue/yellow banner attached to buildings
+  function ukrainianBanner(ox, oy, oz, width) {
+    width = width || 3;
+    for (var bx = 0; bx < width; bx++) {
+      setBlock(ox + bx, oy, oz, BLOCK.UKR_BLUE);
+      setBlock(ox + bx, oy - 1, oz, BLOCK.UKR_YELLOW);
+    }
+  }
+
+  // Simplified Tryzub (trident) symbol — gold on blue background, 3x3
+  function tryzubSymbol(ox, oy, oz) {
+    setBlock(ox,     oy,     oz, BLOCK.UKR_BLUE);
+    setBlock(ox + 1, oy,     oz, BLOCK.TRYZUB);
+    setBlock(ox + 2, oy,     oz, BLOCK.UKR_BLUE);
+    setBlock(ox,     oy + 1, oz, BLOCK.TRYZUB);
+    setBlock(ox + 1, oy + 1, oz, BLOCK.TRYZUB);
+    setBlock(ox + 2, oy + 1, oz, BLOCK.TRYZUB);
+    setBlock(ox,     oy + 2, oz, BLOCK.UKR_BLUE);
+    setBlock(ox + 1, oy + 2, oz, BLOCK.TRYZUB);
+    setBlock(ox + 2, oy + 2, oz, BLOCK.UKR_BLUE);
+  }
+
+  // Ukrainian road markings: blue/yellow alternating stripes on asphalt
+  function ukrainianRoadMarkings(x1, z1, x2, z2, width) {
+    const w = width || 3;
+    const dx = x2 - x1, dz = z2 - z1;
+    const steps = Math.max(Math.abs(dx), Math.abs(dz));
+    for (var s = 0; s <= steps; s++) {
+      var rx = x1 + Math.round(dx * s / steps);
+      var rz = z1 + Math.round(dz * s / steps);
+      var ry = getTerrainHeight(rx, rz);
+      if (s % 4 === 0 || s % 4 === 1) {
+        setBlock(rx, ry, rz, BLOCK.UKR_BLUE);
+      } else {
+        setBlock(rx, ry, rz, BLOCK.UKR_YELLOW);
+      }
+    }
+  }
+
+  // Ukrainian military vehicle: NATO green with blue/yellow markings
+  function ukrainianVehicle(ox, oz) {
+    var h = getTerrainHeight(ox, oz);
+    setBlock(ox,     h, oz,     BLOCK.UKR_VEHICLE);
+    setBlock(ox + 1, h, oz,     BLOCK.UKR_VEHICLE);
+    setBlock(ox,     h + 1, oz, BLOCK.UKR_BLUE);
+    setBlock(ox + 1, h + 1, oz, BLOCK.UKR_YELLOW);
   }
 
   // ── City Event System (moved to top level for global access) ──
@@ -6965,6 +7032,15 @@ window.VoxelWorld = (function () {
       generateBridge(0, 0, 60, 6);
       generateBridgeFortification(10, 10);
       generateBridgeFortification(-10, -10);
+      // Ukrainian flags on bridge towers
+      ukrainianFlag(0,  getTerrainHeight(0, 0) + 3, 0);
+      ukrainianFlag(30, getTerrainHeight(30, 0) + 3, 0);
+      ukrainianFlag(-30, getTerrainHeight(-30, 0) + 3, 0);
+      // Blue/yellow road markings on bridge
+      ukrainianRoadMarkings(-30, 0, 30, 0, 6);
+      // Ukrainian military checkpoint flags
+      ukrainianFlag(25, getTerrainHeight(25, 0) + 1, 0);
+      ukrainianFlag(25, getTerrainHeight(25, 0) + 1, 3);
       generateCheckpoint(25, 0, true);
       generateAntiTankHedgehogs(8);
       generateDroneNest(35, 35);
@@ -6984,6 +7060,24 @@ window.VoxelWorld = (function () {
       generateUkrainianApartment(20, -20, 10);
       generateUkrainianApartment(-20, 20, 8);
       generateUkrainianApartment(20, 20, 10);
+      // Ukrainian flags on liberated apartment buildings
+      ukrainianFlag(-20, getTerrainHeight(-20, -20) + 25, -20);
+      ukrainianFlag(20,  getTerrainHeight(20, -20) + 31, -20);
+      ukrainianFlag(-20, getTerrainHeight(-20, 20) + 25, 20);
+      ukrainianFlag(20,  getTerrainHeight(20, 20) + 31, 20);
+      // Ukrainian banners on building facades
+      ukrainianBanner(-18, getTerrainHeight(-18, -20) + 20, -20, 4);
+      ukrainianBanner(18,  getTerrainHeight(18, -20) + 26, -20, 4);
+      // Tryzub graffiti on walls
+      tryzubSymbol(-15, getTerrainHeight(-15, -15) + 5, -15);
+      tryzubSymbol(15,  getTerrainHeight(15, 15) + 5, 15);
+      // Ukrainian military vehicles (NATO green with markings)
+      ukrainianVehicle(-10, 0);
+      ukrainianVehicle(10, 5);
+      ukrainianVehicle(0, -10);
+      // Blue/yellow road markings on main streets
+      ukrainianRoadMarkings(-35, 35, 35, 35, 3);
+      ukrainianRoadMarkings(-35, -35, 35, -35, 3);
       generateCheckpoint(0, 35, false);
       generateCheckpoint(0, -35, false);
       generateDefensivePosition(-35, 0);
@@ -7023,6 +7117,19 @@ window.VoxelWorld = (function () {
       // Naval base — docks, cranes, coastal fortifications
       generateBridge(0, 20, 40, 5);
       generateBridgeFortification(0, 40);
+      // Ukrainian naval ensign on ships (blue with yellow trident)
+      ukrainianFlag(0,  getTerrainHeight(0, 20) + 3, 20);
+      ukrainianFlag(20, getTerrainHeight(20, 20) + 3, 20);
+      ukrainianFlag(-20, getTerrainHeight(-20, 20) + 3, 20);
+      // Ukrainian marine corps markings on coastal buildings
+      ukrainianBanner(-30, getTerrainHeight(-30, -30) + 6, -30, 5);
+      ukrainianBanner(30,  getTerrainHeight(30, -30) + 6, -30, 5);
+      // Tryzub symbols on captured naval buildings
+      tryzubSymbol(-25, getTerrainHeight(-25, -25) + 5, -25);
+      tryzubSymbol(25,  getTerrainHeight(25, -25) + 5, -25);
+      // Ukrainian coast guard markings
+      ukrainianVehicle(-15, 15);
+      ukrainianVehicle(15, 15);
       generateIndustrialComplex(-30, -30);
       generateAmmoDepot(30, 30);
       generateAntiAirPosition(-25, 25);
@@ -7069,6 +7176,21 @@ window.VoxelWorld = (function () {
       generateTrenchNetwork(0, 0);
       generateMinefield(-20, -20);
       generateMinefield(20, 20);
+      // Ukrainian flags on mining buildings
+      ukrainianFlag(-30, getTerrainHeight(-30, 30) + 7, 30);
+      ukrainianFlag(30,  getTerrainHeight(30, -30) + 7, -30);
+      // Blue/yellow banners on worker housing
+      ukrainianBanner(-48, getTerrainHeight(-48, -20) + 27, -20, 4);
+      ukrainianBanner(-48, getTerrainHeight(-48, 5) + 18, 5, 4);
+      ukrainianBanner(35,  getTerrainHeight(35, -18) + 27, -18, 4);
+      ukrainianBanner(35,  getTerrainHeight(35, 8) + 18, 8, 4);
+      // Ukrainian mechanized infantry markings
+      ukrainianVehicle(-15, -15);
+      ukrainianVehicle(15, 15);
+      ukrainianVehicle(-15, 15);
+      ukrainianVehicle(15, -15);
+      // Tryzub on liberated industrial structures
+      tryzubSymbol(0, getTerrainHeight(0, 0) + 3, 0);
       generateIndustrialComplex(-30, 30);
       generateSaltMine(30, -30);
       generatePowerLines(0, 0, 6);
@@ -7090,6 +7212,23 @@ window.VoxelWorld = (function () {
       generateBunker(20, 20);
       generateBunker(-20, 20);
       generateBunker(20, -20);
+      // Ukrainian flag on city hall (main bunker as stand-in)
+      ukrainianFlag(-20, getTerrainHeight(-20, -20) + 5, -20);
+      ukrainianFlag(20,  getTerrainHeight(20, 20) + 5, 20);
+      // Blue/yellow banners on main streets
+      ukrainianBanner(0, getTerrainHeight(0, 30) + 4, 30, 5);
+      ukrainianBanner(0, getTerrainHeight(0, -30) + 4, -30, 5);
+      // Ukrainian territorial defense vehicles
+      ukrainianVehicle(-10, 10);
+      ukrainianVehicle(10, -10);
+      ukrainianVehicle(-10, -10);
+      ukrainianVehicle(10, 10);
+      // Road signs in Ukrainian (blue/yellow blocks as markers)
+      ukrainianRoadMarkings(-30, 0, 30, 0, 3);
+      ukrainianRoadMarkings(0, -30, 0, 30, 3);
+      // Tryzub symbols at key intersections
+      tryzubSymbol(-15, getTerrainHeight(-15, 0) + 3, 0);
+      tryzubSymbol(15,  getTerrainHeight(15, 0) + 3, 0);
       generateAntiTankHedgehogs(12);
       generateCheckpoint(0, 30, true);
       generateCheckpoint(0, -30, true);
@@ -7117,6 +7256,24 @@ window.VoxelWorld = (function () {
 } else if (level.id === 'KREMLIN') {
       // The final showdown — the actual Kremlin, St Basil's & Red Square
       generateMoscowCityExtension(0, 0);
+      // Additional Ukrainian flags around the Kremlin perimeter
+      ukrainianFlag(-40, getTerrainHeight(-40, -40) + 1, -40);
+      ukrainianFlag(40,  getTerrainHeight(40, -40) + 1, -40);
+      ukrainianFlag(-40, getTerrainHeight(-40, 40) + 1, 40);
+      ukrainianFlag(40,  getTerrainHeight(40, 40) + 1, 40);
+      // Blue/yellow banners on captured buildings
+      ukrainianBanner(-25, getTerrainHeight(-25, -25) + 36, -25, 5);
+      ukrainianBanner(25,  getTerrainHeight(25, -25) + 36, -25, 5);
+      ukrainianBanner(-25, getTerrainHeight(-25, 25) + 36, 25, 5);
+      ukrainianBanner(25,  getTerrainHeight(25, 25) + 36, 25, 5);
+      // Tryzub on captured Kremlin structures
+      tryzubSymbol(-15, getTerrainHeight(-15, -15) + 3, -15);
+      tryzubSymbol(15,  getTerrainHeight(15, 15) + 3, 15);
+      // Ukrainian special forces vehicles
+      ukrainianVehicle(-30, -30);
+      ukrainianVehicle(30, 30);
+      ukrainianVehicle(-30, 30);
+      ukrainianVehicle(30, -30);
       generateUkrainianApartment(-25, -25, 12);
       generateUkrainianApartment(25, -25, 12);
       generateUkrainianApartment(-25, 25, 12);
@@ -7200,6 +7357,23 @@ window.VoxelWorld = (function () {
       // SIEGE OF MOSCOW — Ukrainian fighters storm the capital. The full
       // Kremlin, St Basil's & Red Square, ringed by Russian defenders.
       generateMoscowCityExtension(0, 0);
+      // Extra Ukrainian flags at the assault staging points
+      ukrainianFlag(48, getTerrainHeight(48, -10) + 28, -10);
+      ukrainianFlag(48, getTerrainHeight(48, 12) + 19, 12);
+      // Blue/yellow banners on liberated buildings near Red Square
+      ukrainianBanner(48, getTerrainHeight(48, -10) + 25, -10, 4);
+      ukrainianBanner(48, getTerrainHeight(48, 12) + 16, 12, 4);
+      // Tryzub graffiti on Kremlin walls (outer side)
+      tryzubSymbol(-35, getTerrainHeight(-35, 0) + 8, 0);
+      tryzubSymbol(35,  getTerrainHeight(35, 0) + 8, 0);
+      tryzubSymbol(0,   getTerrainHeight(0, -35) + 8, -35);
+      tryzubSymbol(0,   getTerrainHeight(0, 35) + 8, 35);
+      // Ukrainian assault vehicles
+      ukrainianVehicle(40, 20);
+      ukrainianVehicle(40, -20);
+      ukrainianVehicle(-40, 20);
+      ukrainianVehicle(-40, -20);
+
       // Russian last-ditch defensive ring around the Kremlin walls.
       generateDefensivePosition(-44, 0);
       generateDefensivePosition(44, 0);

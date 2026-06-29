@@ -37,6 +37,19 @@ const DroneSystem = (function () {
     enemy_fpv:      { speed: 22, health: 10,  battery: 30,  damage: 100, range: 40 },
     enemy_observer: { speed: 5,  health: 45,  battery: 200, damage: 0,   range: 120 },
   };
+  const DRONE_AMMO = {
+    recon:          0,
+    fpv_attack:     1,
+    bomb:           4,
+    surveillance:   0,
+    kamikaze:       1,
+    incendiary:     1,
+    baba_yaga:      6,
+    bayraktar:      4,
+    enemy_bomber:   3,
+    enemy_fpv:      1,
+    enemy_observer: 0,
+  };
   const TB2_ALT = 35;        // loiter altitude
   const TB2_ORBIT_R = 40;    // orbit radius around loiter center
   const TB2_MISSILES = 4;    // MAM-L payload
@@ -381,8 +394,10 @@ const DroneSystem = (function () {
       mesh:     null,
       alive:    true,
       active:   true,  // powered on
-      hasPayload: type === DRONE_TYPE.BOMB || type === DRONE_TYPE.ENEMY_BOMBER || type === DRONE_TYPE.INCENDIARY || type === DRONE_TYPE.BABA_YAGA,
-      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5 : undefined,
+      hasPayload: (DRONE_AMMO[type] || 0) > 0,
+      payloadCount: type === DRONE_TYPE.BABA_YAGA ? (DRONE_AMMO[type] || 0) : undefined,
+      ammo: DRONE_AMMO[type] || 0,
+      maxAmmo: DRONE_AMMO[type] || 0,
       _babaDropCooldown: 0,
 
       // AI patrol (for surveillance drones)
@@ -1169,8 +1184,9 @@ const DroneSystem = (function () {
 
   function dropPayload(droneId) {
     const drone = drones.find(d => d.id === droneId);
-    if (!drone || !drone.hasPayload) return false;
-    drone.hasPayload = false;
+    if (!drone || !drone.hasPayload || drone.ammo <= 0) return false;
+    drone.ammo = Math.max(0, drone.ammo - 1);
+    if (drone.ammo <= 0) drone.hasPayload = false;
     // Remove payload mesh
     drone.mesh.children.forEach(child => {
       if (child.userData.isPayload) child.visible = false;
@@ -1192,16 +1208,17 @@ const DroneSystem = (function () {
 
   function dropFire(droneId) {
     const drone = drones.find(d => d.id === droneId);
-    if (!drone || (drone.type !== DRONE_TYPE.INCENDIARY && drone.type !== DRONE_TYPE.BABA_YAGA) || !drone.hasPayload) return false;
+    if (!drone || (drone.type !== DRONE_TYPE.INCENDIARY && drone.type !== DRONE_TYPE.BABA_YAGA) || !drone.hasPayload || drone.ammo <= 0) return false;
+    drone.ammo = Math.max(0, drone.ammo - 1);
     if (drone.type === DRONE_TYPE.BABA_YAGA) {
-      drone.payloadCount = (drone.payloadCount || 1) - 1;
+      drone.payloadCount = drone.ammo;
       if (drone.payloadCount <= 0) drone.hasPayload = false;
       var _byHid = false;
       drone.mesh.children.forEach(function(ch) {
         if (!_byHid && ch.userData.isPayload && ch.visible) { ch.visible = false; _byHid = true; }
       });
     } else {
-      drone.hasPayload = false;
+      if (drone.ammo <= 0) drone.hasPayload = false;
       drone.mesh.children.forEach(function(ch) { if (ch.userData.isPayload) ch.visible = false; });
     }
     const dropPos = drone.position.clone();
@@ -1247,7 +1264,10 @@ const DroneSystem = (function () {
 
   function fireAttack(droneId) {
     const drone = drones.find(d => d.id === droneId);
-    if (!drone || drone.type !== DRONE_TYPE.FPV_ATTACK) return false;
+    if (!drone || (drone.type !== DRONE_TYPE.FPV_ATTACK && drone.type !== DRONE_TYPE.KAMIKAZE)) return false;
+    if (drone.ammo <= 0) return false;
+    drone.ammo = 0;
+    drone.hasPayload = false;
     // FPV kamikaze: damage enemies, player, NPCs, terrain at drone position, destroy drone
     if (typeof Enemies !== 'undefined') {
       Enemies.damageInRadius(drone.position, 4, drone.damage);
@@ -1295,6 +1315,40 @@ const DroneSystem = (function () {
     createDroneExplosion(drone.position.clone());
     if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playGunshot('launcher');
     destroyDrone(drone);
+    return true;
+  }
+
+  function firePossessed(droneId) {
+    const drone = drones.find(d => d.id === droneId && d.alive);
+    if (!drone) return false;
+    if (drone.ammo <= 0) {
+      try { if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('❌ OUT OF AMMO', '#ff4444'); } catch (e) {}
+      return false;
+    }
+    if (drone.type === DRONE_TYPE.FPV_ATTACK || drone.type === DRONE_TYPE.KAMIKAZE) {
+      return fireAttack(drone.id);
+    } else if (drone.type === DRONE_TYPE.BOMB) {
+      return dropPayload(drone.id);
+    } else if (drone.type === DRONE_TYPE.INCENDIARY || drone.type === DRONE_TYPE.BABA_YAGA) {
+      return dropFire(drone.id);
+    }
+    return false;
+  }
+
+  function restockAmmo(droneId) {
+    const drone = drones.find(d => d.id === droneId && d.alive);
+    if (!drone) return false;
+    var base = DRONE_AMMO[drone.type] || 0;
+    drone.ammo = base;
+    drone.maxAmmo = base;
+    drone.hasPayload = base > 0;
+    if (drone.type === DRONE_TYPE.BABA_YAGA) drone.payloadCount = base;
+    // Restore payload mesh visibility
+    if (drone.mesh) {
+      drone.mesh.children.forEach(function(ch) {
+        if (ch.userData.isPayload) ch.visible = true;
+      });
+    }
     return true;
   }
 
@@ -1578,6 +1632,8 @@ const DroneSystem = (function () {
     callBayraktar,
     dropPayload,
     fireAttack,
+    firePossessed,
+    restockAmmo,
     setPatrol,
     damageDrone,
     destroyDrone,

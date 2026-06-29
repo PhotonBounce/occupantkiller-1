@@ -927,9 +927,9 @@ const GameManager = (function () {
       sunIntensity: 0.9,
       exposure:     0.9,
       bradleyAssault: true,
-      hintWeapons:  ['M2A2 Bradley (25mm Bushmaster)','M240 Coax','TOW-2'],
-      description:  '47th Mechanized Brigade. A Russian platoon is dug into the treeline. Mount the Bradley and rake the woods with the 25mm.',
-      objective:    'Drive the Bradley. Rake the treeline with the 25mm Bushmaster. Clear every occupant from the woods.',
+      hintWeapons:  ['M2A2 Bradley (25mm Bushmaster)','M240 Coax','TOW-2','Smoke Screen'],
+      description:  '47th Mechanized Brigade, Zaporizhzhia axis. Mounted in a Bradley M2A2 IFV, breach Russian treeline defenses. Open wheat field, trench lines, dugouts, dragon\'s teeth. Engage enemy FPV drones with the 25mm.',
+      objective:    'BREACH THE TREELINE: Drive the Bradley M2A2. Destroy 50% of Russian positions. Clear trench lines, dugouts, and bunkers. Shoot down enemy FPV drones with the 25mm. Protect friendly infantry. Call mortar support [M].',
     },
     {
       id:           20,
@@ -5293,14 +5293,7 @@ const GameManager = (function () {
       if (mouseDown || touch.firing) {
         const drone = DroneSystem.getPossessed();
         if (drone) {
-          if (drone.type === 'fpv_attack') {
-            DroneSystem.fireAttack(drone.id);
-          } else if (drone.type === 'bomb' && drone.hasPayload) {
-            DroneSystem.dropPayload(drone.id);
-          } else if ((drone.type === 'incendiary' || drone.type === 'baba_yaga') && drone.hasPayload) {
-            DroneSystem.dropFire(drone.id);
-            if (drone.type === 'baba_yaga') HUD.notifyPickup('🔥 THERMITE DROPPED!', '#ff8800');
-          }
+          DroneSystem.firePossessed(drone.id);
         }
         mouseNewPress = false;
       }
