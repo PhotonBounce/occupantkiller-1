@@ -6818,12 +6818,13 @@ const GameManager = (function () {
         HUD.updateStageProgress(currentWave, STAGES[currentStage].wavesPerStage);
       }
 
-      // B23: Feedback screen shake
+      // B23: Feedback screen shake (reduced 60% when ADS zoomed for stability)
       if (typeof Feedback !== 'undefined') {
         var shake = Feedback.getShakeOffset ? Feedback.getShakeOffset() : null;
         if (shake && _camera) {
-          _camera.position.x += shake.x * 0.01;
-          _camera.position.y += shake.y * 0.01;
+          var _shakeMult = (Weapons.isZoomed && Weapons.isZoomed()) ? 0.004 : 0.01;
+          _camera.position.x += shake.x * _shakeMult;
+          _camera.position.y += shake.y * _shakeMult;
         }
       }
 

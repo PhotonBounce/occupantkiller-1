@@ -2384,6 +2384,71 @@ const Weapons = (() => {
     if (o.bipod) { const l1 = _P(_B(0.008, 0.10, 0.008, _pal.blk()), X - 0.03, Y - 0.06, muzZ + 0.08); l1.rotation.z = 0.3; const l2 = l1.clone(); l2.position.x = X + 0.03; l2.rotation.z = -0.3; g.add(l1, l2); }
     // belt feed (MG)
     if (o.belt) g.add(_P(_B(0.045, 0.02, 0.06, _pal.gm()), X - 0.03, Y - 0.03, recvFront + 0.04));
+    // butt-pad on stock (rubber pad at the rear)
+    if (o.stock) {
+      const buttZ = recvBack + (o.stock === 'wood' ? 0.16 : o.stock === 'tube' ? 0.14 : o.stock === 'fixed' ? 0.14 : 0.15);
+      g.add(_P(_B(0.052, 0.062, 0.01, _M(0x080808, 0.2, 0.9)), X, Y - 0.005, buttZ));
+    }
+    // trigger guard (curved ring below receiver)
+    if (o.grip !== false) {
+      const tgMat = _M(0x1a1c20, 0.5, 0.6);
+      const tg = _P(_T(0.014, 0.04, tgMat, 8), X, Y - 0.022, mz + 0.015);
+      tg.rotation.x = Math.PI / 2; g.add(tg);
+      // trigger blade
+      g.add(_P(_B(0.005, 0.015, 0.006, _M(0x888888, 0.7, 0.3)), X, Y - 0.032, mz + 0.01));
+    }
+    // ejection port (right side of receiver)
+    if (o.ejection !== false) {
+      const portMat = _M(0x0a0a0c, 0.3, 0.8);
+      const port = _P(_B(0.022, 0.001, 0.055, portMat), X + 0.027, Y + 0.018, recvCz - 0.02);
+      port.rotation.z = 0.12; g.add(port);
+      // dust cover line above port
+      g.add(_P(_B(0.020, 0.001, 0.058, _M(0x111114, 0.4, 0.6)), X + 0.028, Y + 0.022, recvCz - 0.02));
+    }
+    // forward assist / bolt catch detail
+    if (o.forwardAssist !== false) {
+      g.add(_P(_B(0.008, 0.014, 0.006, _M(0x2a2a2e, 0.6, 0.4)), X + 0.030, Y + 0.028, recvCz - 0.06));
+    }
+    // handguard vent slots (if not already added)
+    if (o.hg && o.hg !== 'tube') {
+      const ventMat = _M(0x05050a, 0.2, 0.9);
+      const vZ = recvFront - hgLen / 2 + 0.01;
+      for (let v = 0; v < 4; v++) {
+        g.add(_P(_B(0.035, 0.001, 0.005, ventMat), X, Y + 0.042, vZ - hgLen * 0.35 + v * (hgLen * 0.22)));
+      }
+    }
+    // pistol grip checkering + finger grooves
+    if (o.grip !== false) {
+      WD.checkering(g, X, Y - 0.06, recvBack - 0.03, 0.032, 0.085, { color: 0x111114 });
+      WD.fingerGrooves(g, X, Y - 0.035, recvBack - 0.03, 4, 0.032);
+    }
+    // magazine baseplate and witness holes
+    if (o.mag && o.mag !== 'none') {
+      const magBaseZ = mz + (o.mag === 'curved' ? -0.065 : -0.05);
+      const magBaseY = Y - (o.mag === 'curved' ? 0.155 : o.mag === 'straight' ? 0.088 : 0.07);
+      const basePlate = _P(_B(0.032, 0.008, 0.048, _M(0x080808, 0.3, 0.8)), X, magBaseY, magBaseZ);
+      g.add(basePlate);
+      if (o.mag === 'straight' || o.mag === 'curved') {
+        WD.magWitnessHoles(g, X, magBaseY + 0.04, magBaseZ + 0.025, 4);
+      }
+    }
+    // top rail picatinny segments (if rail specified)
+    if (o.rail) {
+      WD.picatinnyRail(g, X, Y + 0.058, recvCz, recvLen * 0.8, { width: 0.022, height: 0.008 });
+    }
+    // enhanced iron sights with protective ears and elevation wheel
+    if (o.sights !== false) {
+      // Add WD iron sights on top of the basic ones for extra detail
+      WD.ironSights(g, new THREE.Vector3(X, Y + 0.052, muzZ + 0.06), new THREE.Vector3(X, Y + 0.052, recvFront - 0.01), { aperture: o.scope ? false : true });
+    }
+    // sling swivel on stock
+    if (o.stock) {
+      WD.slingSwivel(g, X, Y - 0.04, recvBack + 0.12);
+    }
+    // serial stamp on receiver
+    WD.serialStamp(g, X + 0.028, Y + 0.005, recvCz - 0.04, 0.030);
+    // receiver ribs (top cover detail)
+    WD.receiverRibs(g, X, Y + 0.052, recvCz - 0.02, recvLen * 0.6, 5);
     return g;
   }
 
@@ -2397,17 +2462,51 @@ const Weapons = (() => {
     // driven by WeaponDetails.triggerSlideAnim via userData._anim.slide).
     const slide = new THREE.Group(); slide.name = '_slide';
     slide.add(_P(_B(0.034, 0.04, len, slideMat), X, Y + 0.02, z));               // slide body
-    slide.add(_P(_B(0.014, 0.008, 0.014, slideMat), X, Y + 0.043, z + len / 2 - 0.01)); // rear sight
-    slide.add(_P(_B(0.008, 0.008, 0.008, slideMat), X, Y + 0.043, z - len / 2 + 0.01)); // front sight
+    // Slide serrations (front and rear)
+    const serrMat = _M(0x1a1c20, 0.5, 0.6);
+    for (let s = 0; s < 6; s++) {
+      const serr = _P(_B(0.001, 0.012, 0.008, serrMat), X + 0.018, Y + 0.02, z + len * 0.35 - s * 0.012);
+      slide.add(serr);
+      const serr2 = serr.clone(); serr2.position.z = z - len * 0.35 + s * 0.012; slide.add(serr2);
+    }
+    // Dovetail rear sight with white dot
+    const rearSight = _P(_B(0.014, 0.012, 0.014, slideMat), X, Y + 0.045, z + len / 2 - 0.01);
+    slide.add(rearSight);
+    const rearDot = _P(_B(0.002, 0.002, 0.002, _M(0xffffff, 0.1, 0.2)), X, Y + 0.052, z + len / 2 - 0.01);
+    slide.add(rearDot);
+    // Front sight post with protective ears
+    const frontBase = _P(_B(0.010, 0.008, 0.010, slideMat), X, Y + 0.042, z - len / 2 + 0.01);
+    slide.add(frontBase);
+    const frontPost = _P(_B(0.003, 0.010, 0.003, _M(0xffffff, 0.1, 0.2)), X, Y + 0.050, z - len / 2 + 0.01);
+    slide.add(frontPost);
     g.add(slide);
     g.userData._anim = { slide: slide, slideHome: slide.position.z };
+    // Frame detail (under the slide)
     g.add(_P(_B(0.03, 0.02, len - 0.015, _pal.poly()), X, Y - 0.008, z));  // frame
-    g.add(_P(_T(0.008, 0.03, _pal.steel(), 12), X, Y + 0.02, z - len / 2 - 0.01)); // muzzle (fixed barrel)
+    // Trigger guard (curved)
+    const tgMat = _M(0x1a1c20, 0.5, 0.6);
+    const tg = _P(_T(0.012, 0.03, tgMat, 8), X, Y - 0.025, z + 0.03);
+    tg.rotation.x = Math.PI / 2; g.add(tg);
+    // Trigger
+    g.add(_P(_B(0.005, 0.012, 0.006, _M(0x888888, 0.7, 0.3)), X, Y - 0.035, z + 0.02));
+    // Grip with checkering and finger grooves
     const gp = _P(_B(0.03, 0.085, 0.036, o.grip ? o.grip() : _pal.poly()), X, Y - 0.07, z + 0.045); gp.rotation.x = 0.18; g.add(gp);
-    g.add(_P(_B(0.026, 0.006, 0.05, _pal.poly()), X, Y - 0.045, z + 0.02));  // guard bottom (Z)
-    g.add(_P(_B(0.026, 0.03, 0.008, _pal.poly()), X, Y - 0.03, z - 0.005));  // guard front
-    g.add(_P(_B(0.01, 0.014, 0.006, _M(0x888888)), X, Y - 0.035, z + 0.015)); // trigger
+    WD.checkering(g, X, Y - 0.07, z + 0.045, 0.03, 0.085, { color: 0x111114 });
+    WD.fingerGrooves(g, X, Y - 0.045, z + 0.045, 3, 0.03);
+    // Magazine baseplate
+    g.add(_P(_B(0.028, 0.008, 0.040, _M(0x080808, 0.3, 0.8)), X, Y - 0.120, z + 0.045));
+    // Barrel (fixed)
+    g.add(_P(_T(0.008, 0.03, _pal.steel(), 12), X, Y + 0.02, z - len / 2 - 0.01)); // muzzle
+    // Muzzle crown detail
+    WD.muzzleCrown(g, X, Y + 0.02, z - len / 2 - 0.028, 0.008);
+    // Suppressor (if equipped)
     if (o.supp) g.add(_P(_T(0.018, 0.10, _pal.blk(), 14), X, Y + 0.02, z - len / 2 - 0.05)); // suppressor
+    // Serial stamp on frame
+    WD.serialStamp(g, X + 0.018, Y - 0.015, z + 0.02, 0.020);
+    // Safety lever
+    WD.safetySelector(g, X + 0.018, Y + 0.005, z + 0.06, { marks: ['S', 'F'] });
+    // Accessory rail under barrel
+    WD.picatinnyRail(g, X, Y - 0.020, z - 0.04, 0.06, { width: 0.018, height: 0.005 });
     return g;
   }
 
@@ -2419,15 +2518,45 @@ const Weapons = (() => {
     const X = 0.17, Y = -0.115;
     const len = o.len || 0.55, r = o.r || 0.03, tube = (o.tube || _pal.tube)();
     const cz = -0.24, front = cz - len / 2, back = cz + len / 2;
+    // Main tube with subtle heat-shield texture segments
     g.add(_P(_T(r, len, tube, 18), X, Y, cz));
+    // Tube bands / heat shields
+    if (o.hs) {
+      g.add(_P(_T(r * 1.48, 0.08, _pal.wood(), 16), X, Y, cz - 0.08));
+      g.add(_P(_T(r * 1.48, 0.08, _pal.wood(), 16), X, Y, cz + 0.06));
+      // Vent slots between shields
+      WD.heatShieldVents(g, X, Y + r * 1.5, cz - 0.01, 4, 0.10);
+    }
+    // Rear cone / booster
     if (o.rear === 'cone') { const c = _CONE(r * 1.5, 0.10, tube, 18); c.rotation.x = Math.PI / 2; g.add(_P(c, X, Y, back + 0.04)); }
+    // Warhead
     if (o.warhead) { const wm = _M(0x4a4233, 0.4, 0.6); g.add(_P(_T(0.034, 0.10, wm, 16), X, Y, front - 0.05)); g.add(_P(_CONE(0.034, 0.09, wm, 16), X, Y, front - 0.135)); }
-    if (o.hs) { g.add(_P(_T(r * 1.45, 0.08, _pal.wood(), 16), X, Y, cz - 0.08)); g.add(_P(_T(r * 1.45, 0.08, _pal.wood(), 16), X, Y, cz + 0.06)); }
-    if (o.optic) { g.add(_P(_B(0.05, 0.05, 0.07, _pal.blk()), X, Y + 0.055, cz + 0.02)); }
-    else if (o.sight) { g.add(_P(_B(0.016, 0.05, 0.016, _pal.blk()), X, Y + 0.052, front + 0.10)); }
+    // Optic / sight unit
+    if (o.optic) {
+      g.add(_P(_B(0.05, 0.05, 0.07, _pal.blk()), X, Y + 0.055, cz + 0.02));
+      // Lens detail
+      g.add(_P(_T(0.012, 0.005, _M(0x112233, 0.1, 0.1), 8), X, Y + 0.055, cz + 0.055));
+    }
+    else if (o.sight) {
+      g.add(_P(_B(0.016, 0.05, 0.016, _pal.blk()), X, Y + 0.052, front + 0.10));
+      // Leaf sight elevation wheel
+      g.add(_P(_T(0.008, 0.008, _M(0x222222, 0.5, 0.5), 8), X, Y + 0.078, front + 0.10));
+    }
+    // CLU (Command Launch Unit) box
     if (o.clu) { g.add(_P(_B(0.085, 0.10, 0.10, (o.cluColor || _pal.tan)()), X, Y + 0.005, back - 0.06)); }
+    // Primary pistol grip
     const gp = _P(_B(0.035, 0.085, 0.04, _pal.poly()), X, Y - 0.07, cz + 0.04); gp.rotation.x = 0.12; g.add(gp);
-    if (o.grip2) { const g2 = _P(_B(0.03, 0.07, 0.035, _pal.poly()), X, Y - 0.055, cz - 0.10); g2.rotation.x = -0.12; g.add(g2); }
+    WD.checkering(g, X, Y - 0.07, cz + 0.04, 0.035, 0.085, { color: 0x111114 });
+    // Forward grip (second grip)
+    if (o.grip2) { const g2 = _P(_B(0.03, 0.07, 0.035, _pal.poly()), X, Y - 0.055, cz - 0.10); g2.rotation.x = -0.12; g.add(g2); WD.checkering(g, X, Y - 0.055, cz - 0.10, 0.03, 0.07, { color: 0x111114 }); }
+    // Shoulder pad at rear
+    g.add(_P(_B(0.05, 0.06, 0.015, _M(0x080808, 0.2, 0.9)), X, Y - 0.005, back + 0.01));
+    // Sling swivel
+    WD.slingSwivel(g, X, Y - 0.04, back - 0.02);
+    // Trigger guard
+    const tgMat = _M(0x1a1c20, 0.5, 0.6);
+    const tg = _P(_T(0.015, 0.04, tgMat, 8), X, Y - 0.02, cz + 0.04);
+    tg.rotation.x = Math.PI / 2; g.add(tg);
     return g;
   }
 
@@ -5794,6 +5923,15 @@ const Weapons = (() => {
       _fireKickRot *= (1 - Math.min(1, delta * 15));
       _fireKickZ *= (1 - Math.min(1, delta * 12));
 
+      // ADS dynamic scale: interpolate from base scale to larger ADS scale
+      var _baseScale = 0.62;
+      if (cur().type === 'PISTOL') _baseScale = 0.55;
+      else if (['LMG','HMG','HMG_HEAVY','MACHINEGUN','MINIGUN'].indexOf(cur().type) >= 0) _baseScale = 0.52;
+      var _adsScaleTarget = _baseScale * (1 + _adsLerp * 0.35); // 1.0 in hip, 1.35 in full ADS
+      var _curScale = mesh.scale.x;
+      var _newScale = _curScale + (_adsScaleTarget - _curScale) * Math.min(1, delta * 8);
+      if (Math.abs(_newScale - _curScale) > 0.0001) mesh.scale.set(_newScale, _newScale, _newScale);
+
       // ADS iron-sight / scope alignment offset
       var _adsOff = (typeof WeaponDetails !== 'undefined' && WeaponDetails.getAdsOffset)
         ? WeaponDetails.getAdsOffset(cur(), _adsLerp) : { x: 0, y: 0, z: 0 };
@@ -5801,6 +5939,8 @@ const Weapons = (() => {
       mesh.position.z = recoilOffsetZ + recoilOffset + _sprintLowerZ + _fireKickZ + _adsOff.z;
       mesh.position.y = recoilOffsetY + switchY + swayY + _sprintLowerY + _inertiaY + _adsLerp * 0.03 + _adsOff.y;
       mesh.rotation.x = reloadAnimAngle + _sprintLowerRotX - _fireKickRot;
+      // Slight upward tilt in ADS so sights align with camera center
+      mesh.rotation.y = _adsLerp * 0.08;
     }
 
     // Weapon inspect animation
@@ -6393,6 +6533,78 @@ const Weapons = (() => {
       if (a.recoilMult) stats.recoilY *= a.recoilMult;
     }
     return stats;
+  }
+
+  // ── WeaponDetails polyfill (ADS offsets, zoom FOV, recoiling parts) ──
+  // If weapon-details.js is not loaded, this polyfill ensures ADS / zoom works.
+  if (typeof window !== 'undefined' && typeof window.WeaponDetails === 'undefined') {
+    window.WeaponDetails = {
+      // ADS offset: moves gun from hip-fire position to sight alignment.
+      // Returns {x,y,z} added to mesh.position in update().
+      getAdsOffset: function (wep, lerp) {
+        if (!wep || lerp <= 0) return { x: 0, y: 0, z: 0 };
+        var t = lerp;
+        var o = { PISTOL: { x: -0.14, y: 0.055, z: 0.035 },
+                  RIFLE: { x: -0.11, y: 0.045, z: 0.025 },
+                  ASSAULT_RIFLE: { x: -0.11, y: 0.045, z: 0.025 },
+                  SMG: { x: -0.12, y: 0.050, z: 0.030 },
+                  LMG: { x: -0.09, y: 0.040, z: 0.020 },
+                  HMG: { x: -0.08, y: 0.035, z: 0.015 },
+                  HMG_HEAVY: { x: -0.08, y: 0.035, z: 0.015 },
+                  MACHINEGUN: { x: -0.09, y: 0.040, z: 0.020 },
+                  MINIGUN: { x: -0.08, y: 0.035, z: 0.015 },
+                  SNIPER: { x: -0.12, y: 0.060, z: 0.030 },
+                  LAUNCHER: { x: -0.10, y: 0.040, z: 0.025 },
+                  AT: { x: -0.10, y: 0.040, z: 0.025 },
+                  ATGM: { x: -0.10, y: 0.040, z: 0.025 },
+                  AT_HEAVY: { x: -0.10, y: 0.040, z: 0.025 },
+                  AT_LIGHT: { x: -0.10, y: 0.040, z: 0.025 },
+                  AA: { x: -0.10, y: 0.040, z: 0.025 },
+                  SHOTGUN: { x: -0.11, y: 0.045, z: 0.025 },
+                  MELEE: { x: 0, y: 0, z: 0 },
+                  GRENADE: { x: -0.08, y: 0.035, z: 0.020 },
+                  THERMOBARIC: { x: -0.08, y: 0.035, z: 0.020 },
+                  SMOKE: { x: -0.08, y: 0.035, z: 0.020 },
+                  FLASHBANG: { x: -0.08, y: 0.035, z: 0.020 },
+                  EXPLOSIVE: { x: -0.08, y: 0.035, z: 0.020 },
+                  MINE: { x: -0.08, y: 0.035, z: 0.020 },
+                  INCENDIARY: { x: -0.08, y: 0.035, z: 0.020 },
+                };
+        var base = o[wep.type] || o.RIFLE;
+        return { x: base.x * t, y: base.y * t, z: base.z * t };
+      },
+      // Per-weapon zoom FOV (degrees). Lower = more zoom.
+      getZoomFov: function (type) {
+        var fovs = { PISTOL: 35, RIFLE: 25, ASSAULT_RIFLE: 25, SMG: 30, LMG: 28, HMG: 28,
+                     HMG_HEAVY: 26, MACHINEGUN: 28, MINIGUN: 30, SNIPER: 12, LAUNCHER: 30,
+                     AT: 30, ATGM: 20, AT_HEAVY: 18, AT_LIGHT: 32, AA: 25, SHOTGUN: 30,
+                     MELEE: 75, GRENADE: 40, THERMOBARIC: 35, SMOKE: 40, FLASHBANG: 40,
+                     EXPLOSIVE: 40, MINE: 40, INCENDIARY: 40 };
+        return fovs[type] || 25;
+      },
+      // Animate recoiling parts (bolt, slide) on fire and reload.
+      update: function (delta, mesh, wep, state, fired, zoomed) {
+        if (!mesh || !mesh.userData || !mesh.userData._anim) return;
+        var anim = mesh.userData._anim;
+        var speed = 12;
+        // Bolt recoil (rifles, LMGs, etc.)
+        if (anim.bolt && anim.boltHome != null) {
+          var target = fired ? anim.boltHome - 0.045 : anim.boltHome;
+          var cur = anim.bolt.position.z;
+          anim.bolt.position.z += (target - cur) * Math.min(1, delta * speed);
+        }
+        // Slide recoil (pistols)
+        if (anim.slide && anim.slideHome != null) {
+          var target2 = fired ? anim.slideHome - 0.035 : anim.slideHome;
+          var cur2 = anim.slide.position.z;
+          anim.slide.position.z += (target2 - cur2) * Math.min(1, delta * speed);
+        }
+      },
+      // Fallback enhanceMesh (does nothing but prevents errors)
+      enhanceMesh: function (mesh, wep, idx) {},
+      // Fallback upgradeMaterials (does nothing)
+      upgradeMaterials: function (mesh) {},
+    };
   }
 
   return {
