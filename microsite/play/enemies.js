@@ -19,7 +19,206 @@ const Enemies = (() => {
   // Shared blood particle resources (pool geometry + 2 materials)
   var _bloodGeo = new THREE.BoxGeometry(1, 1, 1);
   var _bloodMatDark = new THREE.MeshLambertMaterial({ color: 0x880000 });
-  var _bloodMatLight = new THREE.MeshLambertMaterial({ color: 0xaa0000 });
+  // ── Enemy mesh object pool (pre-allocated to avoid GC stutter) ──
+  const _ENEMY_POOL_SIZE = 40;
+  const _enemyPool = [];
+  const _geoBox1x1 = new THREE.BoxGeometry(1, 1, 1);
+  const _geoSniper = new THREE.BoxGeometry(0.5, 1.8, 0.5);
+  const _geoHeavy  = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+  const _geoKamikaze = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+  const _geoDog    = new THREE.BoxGeometry(0.6, 0.6, 0.9);
+  const _geoDrone  = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+
+  function _poolTypeForName(typeName) {
+    if (typeName === 'SNIPER' || typeName === 'SNIPER_ELITE' || typeName === 'HEAVY_SNIPER') return 'sniper';
+    if (typeName === 'ARMORED' || typeName === 'SHIELD_BEARER' || typeName === 'BTR' || typeName === 'TANK' || typeName === 'ASSAULT_MECH') return 'heavy';
+    if (typeName === 'BOMBER' || typeName === 'KAMIKAZE_DRONE') return 'kamikaze';
+    if (typeName === 'OFFICER' || typeName === 'COMMISSAR') return 'officer';
+    if (typeName === 'WAR_DOG') return 'dog';
+    if (typeName === 'DRONE_OP') return 'drone';
+    return 'infantry';
+  }
+
+  function _makePoolMesh(type, geo, color, emissive) {
+    const mat = new THREE.MeshLambertMaterial({ color: color });
+    if (emissive) mat.emissive = new THREE.Color(emissive);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.visible = false;
+    mesh.position.set(0, -1000, 0);
+    mesh.userData.parts = [mesh];
+    mesh.userData.headMesh = mesh;
+    mesh.userData.hitbox = mesh;
+    mesh.userData.faction = 'occupant';
+    mesh.userData._poolType = type;
+    mesh.userData._origColor = color;
+    mesh.userData._origEmissive = emissive || 0x000000;
+    return { mesh: mesh, type: type, active: false, inUse: false };
+  }
+
+  function initEnemyPool() {
+    if (_enemyPool.length > 0) return;
+    const counts = [
+      { type: 'infantry', geo: _geoBox1x1, color: 0x4a6a3a, count: 18 },
+      { type: 'sniper',   geo: _geoSniper, color: 0x2a3a2a, count: 5 },
+      { type: 'heavy',    geo: _geoHeavy,  color: 0x1a1a1a, count: 5 },
+      { type: 'kamikaze', geo: _geoKamikaze, color: 0xff0000, emissive: 0x880000, count: 4 },
+      { type: 'officer',  geo: _geoBox1x1, color: 0x2244aa, count: 4 },
+      { type: 'dog',      geo: _geoDog,    color: 0x554433, count: 2 },
+      { type: 'drone',    geo: _geoDrone,  color: 0x666666, count: 2 },
+    ];
+    for (let t = 0; t < counts.length; t++) {
+      const c = counts[t];
+      for (let i = 0; i < c.count; i++) {
+        _enemyPool.push(_makePoolMesh(c.type, c.geo, c.color, c.emissive));
+      }
+    }
+  }
+
+  function acquireEnemy(typeName) {
+    initEnemyPool();
+    const poolType = _poolTypeForName(typeName);
+    for (let i = 0; i < _enemyPool.length; i++) {
+      const entry = _enemyPool[i];
+      if (!entry.inUse && entry.type === poolType) {
+        entry.inUse = true;
+        entry.active = true;
+        entry.mesh.visible = true;
+        entry.mesh.scale.set(1, 1, 1);
+        entry.mesh.rotation.set(0, 0, 0);
+        return entry.mesh;
+      }
+    }
+    for (let i = 0; i < _enemyPool.length; i++) {
+      const entry = _enemyPool[i];
+      if (!entry.inUse) {
+        entry.inUse = true;
+        entry.active = true;
+        entry.mesh.visible = true;
+        entry.mesh.scale.set(1, 1, 1);
+        entry.mesh.rotation.set(0, 0, 0);
+        console.warn('[Enemies] Pool type mismatch — reusing', entry.type, 'for', poolType);
+        return entry.mesh;
+      }
+    }
+    console.warn('[Enemies] Enemy pool exhausted (size', _ENEMY_POOL_SIZE, ') — creating new mesh for', typeName);
+    const pType = _poolTypeForName(typeName);
+    let geo = _geoBox1x1, color = 0x4a6a3a;
+    if (pType === 'sniper') { geo = _geoSniper; color = 0x2a3a2a; }
+    else if (pType === 'heavy') { geo = _geoHeavy; color = 0x1a1a1a; }
+    else if (pType === 'kamikaze') { geo = _geoKamikaze; color = 0xff0000; }
+    else if (pType === 'officer') { color = 0x2244aa; }
+    else if (pType === 'dog') { geo = _geoDog; color = 0x554433; }
+    else if (pType === 'drone') { geo = _geoDrone; color = 0x666666; }
+    const mat = new THREE.MeshLambertMaterial({ color: color });
+    if (pType === 'kamikaze') mat.emissive = new THREE.Color(0x880000);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.userData.parts = [mesh];
+    mesh.userData.headMesh = mesh;
+    mesh.userData.hitbox = mesh;
+    mesh.userData.faction = 'occupant';
+    mesh.userData._poolType = pType;
+    mesh.userData._origColor = color;
+    mesh.userData._origEmissive = (pType === 'kamikaze') ? 0x880000 : 0x000000;
+    return mesh;
+  }
+
+  function releaseEnemy(mesh) {
+    if (!mesh) return;
+    for (var i = mesh.children.length - 1; i >= 0; i--) {
+      var child = mesh.children[i];
+      mesh.remove(child);
+      if (child.geometry && child.geometry !== _attackerTagGeo && child.type !== 'Sprite') child.geometry.dispose();
+      if (child.material) child.material.dispose();
+    }
+    if (scene) scene.remove(mesh);
+    mesh.visible = false;
+    mesh.position.set(0, -1000, 0);
+    mesh.rotation.set(0, 0, 0);
+    mesh.scale.set(1, 1, 1);
+    if (mesh.material) {
+      if (mesh.userData._origColor !== undefined) mesh.material.color.setHex(mesh.userData._origColor);
+      if (mesh.material.emissive && mesh.userData._origEmissive !== undefined) mesh.material.emissive.setHex(mesh.userData._origEmissive);
+    }
+    delete mesh.userData.origColor;
+    for (var i = 0; i < _enemyPool.length; i++) {
+      if (_enemyPool[i].mesh === mesh) {
+        _enemyPool[i].inUse = false;
+        _enemyPool[i].active = false;
+        break;
+      }
+    }
+  }
+  initEnemyPool();
+
+  // ── Object pools ───────────────────────────────────────────
+  // Pre-allocated damage-number sprites to avoid per-hit GC
+  const _DMG_POOL_SIZE = 48;
+  const _dmgPool = [];
+  const _bloodDecalPool = [];
+  const _BLOOD_POOL_SIZE = 64;
+  function _initDmgPool() {
+    if (_dmgPool.length > 0) return;
+    for (var i = 0; i < _DMG_POOL_SIZE; i++) {
+      var c = document.createElement('canvas');
+      c.width = 64; c.height = 32;
+      var tex = new THREE.CanvasTexture(c);
+      var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+      var sprite = new THREE.Sprite(mat);
+      sprite.scale.set(1.2, 0.6, 1);
+      sprite.visible = false;
+      _dmgPool.push({ sprite: sprite, mat: mat, tex: tex, canvas: c, active: false, life: 0, vy: 2.5 });
+    }
+  }
+  function _initBloodDecalPool() {
+    if (_bloodDecalPool.length > 0) return;
+    for (var i = 0; i < _BLOOD_POOL_SIZE; i++) {
+      var mat = new THREE.MeshBasicMaterial({
+        color: 0x550000, transparent: true, opacity: 0.85,
+        depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1,
+      });
+      var mesh = new THREE.Mesh(_decalGeo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.visible = false;
+      _bloodDecalPool.push({ mesh: mesh, mat: mat, active: false, life: 0, maxLife: 30 });
+    }
+  }
+  function _acquireDmgNumber() {
+    _initDmgPool();
+    for (var i = 0; i < _dmgPool.length; i++) {
+      if (!_dmgPool[i].active) { _dmgPool[i].active = true; return _dmgPool[i]; }
+    }
+    // Pool exhausted — reuse oldest active (LRU-style)
+    var oldest = _dmgPool[0];
+    for (var j = 1; j < _dmgPool.length; j++) {
+      if (_dmgPool[j].life < oldest.life) oldest = _dmgPool[j];
+    }
+    oldest.active = true;
+    return oldest;
+  }
+  function _releaseDmgNumber(item) {
+    item.active = false;
+    item.sprite.visible = false;
+    if (scene) scene.remove(item.sprite);
+    item.life = 0;
+  }
+  function _acquireBloodDecal() {
+    _initBloodDecalPool();
+    for (var i = 0; i < _bloodDecalPool.length; i++) {
+      if (!_bloodDecalPool[i].active) { _bloodDecalPool[i].active = true; return _bloodDecalPool[i]; }
+    }
+    var oldest = _bloodDecalPool[0];
+    for (var j = 1; j < _bloodDecalPool.length; j++) {
+      if (_bloodDecalPool[j].life < oldest.life) oldest = _bloodDecalPool[j];
+    }
+    oldest.active = true;
+    return oldest;
+  }
+  function _releaseBloodDecal(item) {
+    item.active = false;
+    item.mesh.visible = false;
+    if (scene) scene.remove(item.mesh);
+    item.life = 0;
+  }
 
   // ── Floating damage numbers ────────────────────────────────
   const _dmgNumbers = [];
@@ -51,56 +250,38 @@ const Enemies = (() => {
 
   function spawnDmgNumber(pos, amount, isHeadshot) {
     if (!scene) return;
-      var canvas = document.createElement('canvas');
-      canvas.width = 64; canvas.height = 32;
-      var ctx = canvas.getContext('2d');
-      if (!scene) {
-        console.error('[Enemies.startWave] scene is null! Wave:', w, 'Stage:', stageId);
-        throw new Error('[Enemies] scene is null in startWave!');
-      }
+    var item = _acquireDmgNumber();
+    var ctx = item.canvas.getContext('2d');
+    ctx.clearRect(0, 0, 64, 32);
     ctx.font = 'bold 24px monospace';
     ctx.fillStyle = isHeadshot ? '#ff4444' : '#ffcc00';
     ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
     var txt = Math.round(amount).toString();
     ctx.strokeText(txt, 4, 24);
     ctx.fillText(txt, 4, 24);
-    var tex = new THREE.CanvasTexture(canvas);
-    var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
-    var sprite = new THREE.Sprite(mat);
-    sprite.scale.set(1.2, 0.6, 1);
-    sprite.position.copy(pos);
-    sprite.position.y += 1.5 + Math.random() * 0.5;
-    sprite.position.x += (Math.random() - 0.5) * 0.4;
-    if (scene) scene.add(sprite);
-    else console.warn('[Enemies] Skipped sprite add: scene is null', sprite);
-    _dmgNumbers.push({ sprite: sprite, life: 0.8, vy: 2.5 });
+    item.tex.needsUpdate = true;
+    item.sprite.visible = true;
+    item.sprite.position.copy(pos);
+    item.sprite.position.y += 1.5 + Math.random() * 0.5;
+    item.sprite.position.x += (Math.random() - 0.5) * 0.4;
+    item.sprite.material.opacity = 1;
+    item.life = 0.8;
+    item.vy = 2.5;
+    if (scene) scene.add(item.sprite);
+    else console.warn('[Enemies] Skipped sprite add: scene is null', item.sprite);
+    _dmgNumbers.push(item);
   }
   function updateDmgNumbers(delta) {
-    // Defensive: null-slot pattern to avoid index corruption
     for (var i = _dmgNumbers.length - 1; i >= 0; i--) {
       var d = _dmgNumbers[i];
-      if (!d || !d.sprite || !d.sprite.material) {
-        _dmgNumbers[i] = null;
-        continue;
-      }
-      if (!scene) {
-        console.error('[Enemies] scene is null in add (dmg sprite)', d.sprite);
-        _dmgNumbers[i] = null;
-        continue;
-      }
+      if (!d || !d.active || !d.sprite) { _dmgNumbers.splice(i, 1); continue; }
       d.sprite.position.y += d.vy * delta;
       d.life -= delta;
       d.sprite.material.opacity = Math.max(0, d.life / 0.8);
       if (d.life <= 0) {
-        if (scene) scene.remove(d.sprite);
-        if (d.sprite.material.map) d.sprite.material.map.dispose();
-        d.sprite.material.dispose();
-        _dmgNumbers[i] = null;
+        _releaseDmgNumber(d);
+        _dmgNumbers.splice(i, 1);
       }
-    }
-    // Compact array to remove nulls
-    for (let i = _dmgNumbers.length - 1; i >= 0; i--) {
-      if (_dmgNumbers[i] === null) _dmgNumbers.splice(i, 1);
     }
   }
 
@@ -973,12 +1154,12 @@ const Enemies = (() => {
   // Each stage has a signature enemy pool + a chance to pull from it
   var STAGE_ROSTER = {
     1: { bias: 0.50, pool: ['PARATROOP','PARATROOP','CONSCRIPT','DRONE_OP','STORMER'] },             // Hostomel — VDV airborne assault
-    2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','SNIPER'] },                 // Avdiivka — industrial defenders + snipers (per objective)
+    2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','SNIPER'] },                // Avdiivka — defenders + snipers as per objective
     3: { bias: 0.50, pool: ['STORMER','MORTAR','ARMORED','SABOTEUR','WAGNER'] },                    // Bakhmut — Wagner meat-grinder + heavy mortar
-    4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor (lure them into river)
+    4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor drowned in Dnipro
     5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER'] },       // Mariupol — CQB in steelworks
-    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — air+sea (naval marines + drones)
-    7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+Spetsnaz (per objective)
+    6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — naval marines landing + air+sea drones
+    7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+mutant+Spetsnaz (objective says "Spetsnaz")
     8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER'] }, // Moscow — elite FSB
     9: { bias: 0.55, pool: ['BTR','DRONE_OP','HEAVY_SNIPER','STORMER','MORTAR'] },                  // Sevastopol — naval base
     10:{ bias: 0.60, pool: ['KADYROVITE','WAGNER','COMMISSAR','MORTAR','ARMORED'] },                 // Donbas — entrenched
@@ -989,7 +1170,7 @@ const Enemies = (() => {
     15:{ bias: 0.55, pool: ['PARATROOP','DRONE_OP','SPETSNAZ','KAMIKAZE_DRONE','SNIPER_ELITE'] },   // Saky Airbase — airborne raiders
     16:{ bias: 0.60, pool: ['TANK','ARMORED','BTR','HEAVY_SNIPER','MORTAR'] },                      // Vuhledar — tank graveyard columns
     17:{ bias: 0.55, pool: ['SNIPER','MORTAR','HEAVY_SNIPER','BTR','COMMISSAR'] },                  // Antonov Bridge — precision snipers + artillery (precision weapons required)
-    18:{ bias: 0.70, pool: ['KAMIKAZE_DRONE','DRONE_OP','EW_OPERATOR','SPETSNAZ','ENGINEER'] },     // Refinery — drone-heavy industrial guards
+    18:{ bias: 0.70, pool: ['KAMIKAZE_DRONE','DRONE_OP','EW_OPERATOR','SPETSNAZ','ENGINEER'] },     // Refinery — drone-heavy industrial
   };
 
   // ── Choose a type appropriate for the current wave + stage ──
@@ -1856,7 +2037,7 @@ const Enemies = (() => {
         }
       }
     }
-    const mesh  = buildMesh(typeCfg);
+    const mesh = acquireEnemy(typeName);
     // Attach rank-based weapon visual to enemy mesh
     attachWeaponVisual(mesh, typeCfg);
     mesh.position.set(sx, sy, sz);
@@ -2012,9 +2193,10 @@ const Enemies = (() => {
     }
 
     // Spawn each member at their formation offset
+    // Note: no y in fpos — spawnOne computes terrain height via getTopSolidY
     for (var fi = 0; fi < _formOrder.length; fi++) {
       var foff = getFormationWorldPos(group, fi, _formOrder.length);
-      var fpos = new THREE.Vector3(center.x + foff.x, center.y, center.z + foff.z);
+      var fpos = { x: center.x + foff.x, z: center.z + foff.z };
       var fidx = spawnOne(_formOrder[fi].type, groupId, fpos);
       enemies[fidx].squadRole = _formOrder[fi].role;
       group.members.push(fidx);
@@ -2129,16 +2311,15 @@ const Enemies = (() => {
       }
     }
 
-    // Update persistent blood decals (fade out, then dispose)
+    // Update persistent blood decals (fade out, then release to pool)
     for (var bd = bloodDecals.length - 1; bd >= 0; bd--) {
       var dec = bloodDecals[bd];
       dec.life -= delta;
-      if (dec.life <= 5 && dec.material) {
-        dec.material.opacity = Math.max(0, (dec.life / 5) * 0.85);
+      if (dec.life <= 5 && dec.mat) {
+        dec.mat.opacity = Math.max(0, (dec.life / 5) * 0.85);
       }
       if (dec.life <= 0) {
-        if (scene) scene.remove(dec.mesh);
-        if (dec.material && dec.material.dispose) dec.material.dispose();
+        _releaseBloodDecal(dec);
         bloodDecals.splice(bd, 1);
       }
     }
@@ -2256,8 +2437,7 @@ const Enemies = (() => {
             if (scene) scene.remove(e._laserLine);
             e._laserLine = null;
           }
-          disposeMeshTree(e.mesh);
-          if (scene) scene.remove(e.mesh);
+          releaseEnemy(e.mesh);
           if (e.hpBar) {
             disposeMeshTree(e.hpBar.group);
             if (scene) scene.remove(e.hpBar.group);
@@ -3040,7 +3220,7 @@ const Enemies = (() => {
         var etResult = null;
         // Sync shorthand position props for EnemyTypes functions
         e.x = e.mesh.position.x; e.y = e.mesh.position.y; e.z = e.mesh.position.z;
-        switch (e.typeCfg.name) {
+        switch (e.typeName) {
           case 'BOMBER':
             etResult = EnemyTypes.updateBomber(e, playerPos, delta);
             if (etResult && etResult.detonate) {
@@ -3177,8 +3357,8 @@ const Enemies = (() => {
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
-                  EnemyTypes.TYPES[e.typeCfg.name] && EnemyTypes.TYPES[e.typeCfg.name].name)
-                  ? EnemyTypes.TYPES[e.typeCfg.name].name : (e.typeCfg.name || 'BOSS');
+                  EnemyTypes.TYPES[e.typeName] && EnemyTypes.TYPES[e.typeName].name)
+                  ? EnemyTypes.TYPES[e.typeName].name : (e.typeCfg.name || 'BOSS');
                 HUD.showBossBar(_bossDisplayName, e.hp, e.maxHp);
               }
             }
@@ -3423,14 +3603,14 @@ const Enemies = (() => {
           if (!drone.alive || !drone.active) continue;
           var droneDist = e.mesh.position.distanceTo(drone.position);
           // Enemies shoot at drones within 18 range, DRONE_OP type has 30 range
-          var droneEngageRange = e.typeCfg.name === 'DRONE_OP' ? 30 : 18;
+          var droneEngageRange = e.typeName === 'DRONE_OP' ? 30 : 18;
           if (droneDist < droneEngageRange) {
             if (!e._droneFireTimer) e._droneFireTimer = 0;
             e._droneFireTimer -= delta;
             if (e._droneFireTimer <= 0) {
               // Accuracy depends on distance and enemy type
-              var droneHitChance = e.typeCfg.name === 'DRONE_OP' ? 0.35 :
-                                   e.typeCfg.name === 'SNIPER' ? 0.25 : 0.12;
+              var droneHitChance = e.typeName === 'DRONE_OP' ? 0.35 :
+                                   e.typeName === 'SNIPER' ? 0.25 : 0.12;
               if (Math.random() < droneHitChance) {
                 DroneSystem.damageDrone(drone.id, e.attackDmg * 0.6);
               }
@@ -3494,8 +3674,9 @@ const Enemies = (() => {
       var _barWorthy = false;
       for (var _bwi = 0; _bwi < enemies.length; _bwi++) {
         var _bwe = enemies[_bwi];
-        if (_bwe && _bwe.alive && (_bwe.isBoss || _bwe.type === 'BOSS' ||
-            (_bwe.typeCfg && (_bwe.typeCfg.name === 'TANK' || _bwe.typeCfg.name === 'BTR')))) {
+        if (_bwe && _bwe.alive && (_bwe.isBoss ||
+            (_bwe.typeCfg && (_bwe.typeCfg.role === 'boss' ||
+             _bwe.typeName === 'TANK' || _bwe.typeName === 'BTR')))) {
           _barWorthy = true; break;
         }
       }
@@ -3826,7 +4007,7 @@ const Enemies = (() => {
     }
 
     // Shield bearer: route damage through EnemyTypes shield check
-    if (typeof EnemyTypes !== 'undefined' && enemy.typeCfg && enemy.typeCfg.name === 'SHIELD_BEARER') {
+    if (typeof EnemyTypes !== 'undefined' && enemy.typeName === 'SHIELD_BEARER') {
       var fromAngle = 0;
       if (_playerPos) {
         fromAngle = Math.atan2(_playerPos.x - enemy.mesh.position.x, _playerPos.z - enemy.mesh.position.z);
@@ -3838,7 +4019,7 @@ const Enemies = (() => {
       }
     }
     // Tank armor: route damage through directional armor reduction
-    if (typeof EnemyTypes !== 'undefined' && enemy.typeCfg && enemy.typeCfg.name === 'TANK') {
+    if (typeof EnemyTypes !== 'undefined' && enemy.typeName === 'TANK') {
       var tankAngle = 0;
       if (_playerPos) {
         tankAngle = Math.atan2(_playerPos.x - enemy.mesh.position.x, _playerPos.z - enemy.mesh.position.z);
@@ -3950,24 +4131,24 @@ const Enemies = (() => {
       // Spawn persistent blood pool decal on the ground at corpse position
       if (scene && enemy.mesh) {
         try {
-          var decalMat = new THREE.MeshBasicMaterial({
-            color: 0x550000, transparent: true, opacity: 0.85,
-            depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1,
-          });
-          var decal = new THREE.Mesh(_decalGeo, decalMat);
-          decal.rotation.x = -Math.PI / 2;
+          var item = _acquireBloodDecal();
           var _wtD = weaponType || '';
           var _isExplD = (_wtD === 'AT' || _wtD === 'ATGM' || _wtD === 'THERMOBARIC' ||
                           _wtD === 'EXPLOSIVE' || _wtD === 'INCENDIARY' || _wtD === 'GRENADE');
           var radius = _isExplD ? (1.4 + Math.random() * 1.0) : (0.6 + Math.random() * 0.8);
-          decal.scale.set(radius, radius, 1);
-          decal.position.set(
+          item.mat.color.setHex(0x550000);
+          item.mat.opacity = 0.85;
+          item.mesh.scale.set(radius, radius, 1);
+          item.mesh.position.set(
             enemy.mesh.position.x,
-            enemy.mesh.position.y + 0.02 - 0.5, // slightly above ground/foot level
+            enemy.mesh.position.y + 0.02 - 0.5,
             enemy.mesh.position.z
           );
-          scene.add(decal);
-          bloodDecals.push({ mesh: decal, material: decalMat, life: 30, maxLife: 30 });
+          item.mesh.visible = true;
+          item.life = 30;
+          item.maxLife = 30;
+          scene.add(item.mesh);
+          bloodDecals.push(item);
         } catch (eD) {}
       }
       // Heavier blood spray on the killing blow (on top of the wound spray
@@ -4121,8 +4302,7 @@ const Enemies = (() => {
     enemies.forEach(e => {
       if (!e) return; // null = already removed
       if (scene) {
-        disposeMeshTree(e.mesh);
-        scene.remove(e.mesh);
+        releaseEnemy(e.mesh);
         if (e.hpBar) {
           disposeMeshTree(e.hpBar.group);
           scene.remove(e.hpBar.group);
@@ -4226,7 +4406,7 @@ const Enemies = (() => {
     },
     spawnReinforcement: function (x, z, count) {
       count = count || 2;
-      var types = ['CONSCRIPT', 'CONSCRIPT', 'STORMER', 'ARMORED'];
+      var types = ['CONSCRIPT', 'CONSCRIPT', 'STORMER', 'ENGINEER'];
       for (var ri = 0; ri < count; ri++) {
         var tp = types[Math.floor(Math.random() * types.length)];
         spawnOne(tp, -1, { x: x + (Math.random() - 0.5) * 8, z: z + (Math.random() - 0.5) * 8 });

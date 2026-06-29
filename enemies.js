@@ -19,7 +19,136 @@ const Enemies = (() => {
   // Shared blood particle resources (pool geometry + 2 materials)
   var _bloodGeo = new THREE.BoxGeometry(1, 1, 1);
   var _bloodMatDark = new THREE.MeshLambertMaterial({ color: 0x880000 });
-  var _bloodMatLight = new THREE.MeshLambertMaterial({ color: 0xaa0000 });
+  // ── Enemy mesh object pool (pre-allocated to avoid GC stutter) ──
+  const _ENEMY_POOL_SIZE = 40;
+  const _enemyPool = [];
+  const _geoBox1x1 = new THREE.BoxGeometry(1, 1, 1);
+  const _geoSniper = new THREE.BoxGeometry(0.5, 1.8, 0.5);
+  const _geoHeavy  = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+  const _geoKamikaze = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+  const _geoDog    = new THREE.BoxGeometry(0.6, 0.6, 0.9);
+  const _geoDrone  = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+
+  function _poolTypeForName(typeName) {
+    if (typeName === 'SNIPER' || typeName === 'SNIPER_ELITE' || typeName === 'HEAVY_SNIPER') return 'sniper';
+    if (typeName === 'ARMORED' || typeName === 'SHIELD_BEARER' || typeName === 'BTR' || typeName === 'TANK' || typeName === 'ASSAULT_MECH') return 'heavy';
+    if (typeName === 'BOMBER' || typeName === 'KAMIKAZE_DRONE') return 'kamikaze';
+    if (typeName === 'OFFICER' || typeName === 'COMMISSAR') return 'officer';
+    if (typeName === 'WAR_DOG') return 'dog';
+    if (typeName === 'DRONE_OP') return 'drone';
+    return 'infantry';
+  }
+
+  function _makePoolMesh(type, geo, color, emissive) {
+    const mat = new THREE.MeshLambertMaterial({ color: color });
+    if (emissive) mat.emissive = new THREE.Color(emissive);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.visible = false;
+    mesh.position.set(0, -1000, 0);
+    mesh.userData.parts = [mesh];
+    mesh.userData.headMesh = mesh;
+    mesh.userData.hitbox = mesh;
+    mesh.userData.faction = 'occupant';
+    mesh.userData._poolType = type;
+    mesh.userData._origColor = color;
+    mesh.userData._origEmissive = emissive || 0x000000;
+    return { mesh: mesh, type: type, active: false, inUse: false };
+  }
+
+  function initEnemyPool() {
+    if (_enemyPool.length > 0) return;
+    const counts = [
+      { type: 'infantry', geo: _geoBox1x1, color: 0x4a6a3a, count: 18 },
+      { type: 'sniper',   geo: _geoSniper, color: 0x2a3a2a, count: 5 },
+      { type: 'heavy',    geo: _geoHeavy,  color: 0x1a1a1a, count: 5 },
+      { type: 'kamikaze', geo: _geoKamikaze, color: 0xff0000, emissive: 0x880000, count: 4 },
+      { type: 'officer',  geo: _geoBox1x1, color: 0x2244aa, count: 4 },
+      { type: 'dog',      geo: _geoDog,    color: 0x554433, count: 2 },
+      { type: 'drone',    geo: _geoDrone,  color: 0x666666, count: 2 },
+    ];
+    for (let t = 0; t < counts.length; t++) {
+      const c = counts[t];
+      for (let i = 0; i < c.count; i++) {
+        _enemyPool.push(_makePoolMesh(c.type, c.geo, c.color, c.emissive));
+      }
+    }
+  }
+
+  function acquireEnemy(typeName) {
+    initEnemyPool();
+    const poolType = _poolTypeForName(typeName);
+    for (let i = 0; i < _enemyPool.length; i++) {
+      const entry = _enemyPool[i];
+      if (!entry.inUse && entry.type === poolType) {
+        entry.inUse = true;
+        entry.active = true;
+        entry.mesh.visible = true;
+        entry.mesh.scale.set(1, 1, 1);
+        entry.mesh.rotation.set(0, 0, 0);
+        return entry.mesh;
+      }
+    }
+    for (let i = 0; i < _enemyPool.length; i++) {
+      const entry = _enemyPool[i];
+      if (!entry.inUse) {
+        entry.inUse = true;
+        entry.active = true;
+        entry.mesh.visible = true;
+        entry.mesh.scale.set(1, 1, 1);
+        entry.mesh.rotation.set(0, 0, 0);
+        console.warn('[Enemies] Pool type mismatch — reusing', entry.type, 'for', poolType);
+        return entry.mesh;
+      }
+    }
+    console.warn('[Enemies] Enemy pool exhausted (size', _ENEMY_POOL_SIZE, ') — creating new mesh for', typeName);
+    const pType = _poolTypeForName(typeName);
+    let geo = _geoBox1x1, color = 0x4a6a3a;
+    if (pType === 'sniper') { geo = _geoSniper; color = 0x2a3a2a; }
+    else if (pType === 'heavy') { geo = _geoHeavy; color = 0x1a1a1a; }
+    else if (pType === 'kamikaze') { geo = _geoKamikaze; color = 0xff0000; }
+    else if (pType === 'officer') { color = 0x2244aa; }
+    else if (pType === 'dog') { geo = _geoDog; color = 0x554433; }
+    else if (pType === 'drone') { geo = _geoDrone; color = 0x666666; }
+    const mat = new THREE.MeshLambertMaterial({ color: color });
+    if (pType === 'kamikaze') mat.emissive = new THREE.Color(0x880000);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.userData.parts = [mesh];
+    mesh.userData.headMesh = mesh;
+    mesh.userData.hitbox = mesh;
+    mesh.userData.faction = 'occupant';
+    mesh.userData._poolType = pType;
+    mesh.userData._origColor = color;
+    mesh.userData._origEmissive = (pType === 'kamikaze') ? 0x880000 : 0x000000;
+    return mesh;
+  }
+
+  function releaseEnemy(mesh) {
+    if (!mesh) return;
+    for (var i = mesh.children.length - 1; i >= 0; i--) {
+      var child = mesh.children[i];
+      mesh.remove(child);
+      if (child.geometry && child.geometry !== _attackerTagGeo && child.type !== 'Sprite') child.geometry.dispose();
+      if (child.material) child.material.dispose();
+    }
+    if (scene) scene.remove(mesh);
+    mesh.visible = false;
+    mesh.position.set(0, -1000, 0);
+    mesh.rotation.set(0, 0, 0);
+    mesh.scale.set(1, 1, 1);
+    if (mesh.material) {
+      if (mesh.userData._origColor !== undefined) mesh.material.color.setHex(mesh.userData._origColor);
+      if (mesh.material.emissive && mesh.userData._origEmissive !== undefined) mesh.material.emissive.setHex(mesh.userData._origEmissive);
+    }
+    delete mesh.userData.origColor;
+    for (var i = 0; i < _enemyPool.length; i++) {
+      if (_enemyPool[i].mesh === mesh) {
+        _enemyPool[i].inUse = false;
+        _enemyPool[i].active = false;
+        break;
+      }
+    }
+  }
+  initEnemyPool();
 
   // ── Object pools ───────────────────────────────────────────
   // Pre-allocated damage-number sprites to avoid per-hit GC
@@ -1908,7 +2037,7 @@ const Enemies = (() => {
         }
       }
     }
-    const mesh  = buildMesh(typeCfg);
+    const mesh = acquireEnemy(typeName);
     // Attach rank-based weapon visual to enemy mesh
     attachWeaponVisual(mesh, typeCfg);
     mesh.position.set(sx, sy, sz);
@@ -2308,8 +2437,7 @@ const Enemies = (() => {
             if (scene) scene.remove(e._laserLine);
             e._laserLine = null;
           }
-          disposeMeshTree(e.mesh);
-          if (scene) scene.remove(e.mesh);
+          releaseEnemy(e.mesh);
           if (e.hpBar) {
             disposeMeshTree(e.hpBar.group);
             if (scene) scene.remove(e.hpBar.group);
@@ -4174,8 +4302,7 @@ const Enemies = (() => {
     enemies.forEach(e => {
       if (!e) return; // null = already removed
       if (scene) {
-        disposeMeshTree(e.mesh);
-        scene.remove(e.mesh);
+        releaseEnemy(e.mesh);
         if (e.hpBar) {
           disposeMeshTree(e.hpBar.group);
           scene.remove(e.hpBar.group);
