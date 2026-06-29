@@ -22,7 +22,7 @@ const MissionSystem = (function () {
             //   M240C 7.62mm coax. Press B to enter/exit. WASD drive, mouse aim turret.
             bradley_mission: {
               name: 'Bradley IFV Assault',
-              description: 'Drive the M2A3 Bradley. Use the M242 Bushmaster 25mm chain gun and M240 coax to clear {kills} Russian occupants ambushing from the woods.',
+              description: 'Forest ambush ahead. Bradley IFV recommended — 25mm Bushmaster and M240 coax will tear through their lines. Clear every occupant.',
               tier: 5,
               generate() {
                 var killTarget = 18 + Math.floor(Math.random() * 7); // 18-24
@@ -77,7 +77,7 @@ const MissionSystem = (function () {
                       Bradley.spawnAt(new THREE.Vector3(bx, by, bz));
                     }
                     if (typeof HUD !== 'undefined' && HUD.showToast) {
-                      HUD.showToast('🚛 BRADLEY READY — Press B to mount. M242 Bushmaster 25mm + M240 coax.', 5000, '#a0c878');
+                      HUD.showToast('🚛 BRADLEY SPAWNED — Press G to mount. M242 Bushmaster 25mm + M240 coax.', 5000, '#a0c878');
                     }
                   } catch (eBR) {}
                 } catch (eAll) {}
@@ -216,8 +216,8 @@ const MissionSystem = (function () {
             },
         // Airborne Assault (Hostomel)
         airborne_assault: {
-          name: 'Airborne Assault',
-          description: 'Repel Russian airborne troops and secure the landing zone.',
+          name: 'Defend Antonov Airport from VDV Assault',
+          description: 'Feb 24, 2022. Russian VDV paratroopers are landing at Hostomel. Defend the Antonov Airport — the An-225 Mriya and Kyiv itself are at stake. 4th Rapid Reaction Brigade, hold the line.',
           tier: 4,
           generate() {
             var playerPos = new THREE.Vector3(0, 0, 0);
@@ -244,7 +244,7 @@ const MissionSystem = (function () {
               spawnedEnemyIds: [],
               waveTimer: 1.0,
               state: 'waiting',
-              objectiveText: 'Prepare for airborne assault...',
+              objectiveText: 'Prepare for VDV airborne assault on Antonov Airport...',
             };
           },
           update(mission, delta) {
@@ -255,14 +255,14 @@ const MissionSystem = (function () {
               if (mission.waveTimer <= 0) {
                 mission.state = 'spawning';
               } else {
-                mission.objectiveText = `Next paratrooper wave in ${Math.ceil(mission.waveTimer)}s...`;
+                mission.objectiveText = `Next VDV paratrooper wave in ${Math.ceil(mission.waveTimer)}s...`;
               }
             }
 
             if (mission.state === 'spawning') {
               var zone = mission.landingZones[mission.completedWaves % mission.landingZones.length];
               var count = 5 + mission.completedWaves * 2;
-              var types = ['CONSCRIPT', 'STORMER', 'ARMORED'];
+              var types = ['PARATROOP', 'PARATROOP', 'CONSCRIPT', 'STORMER'];
               mission.spawnedEnemyIds = [];
               for (var i = 0; i < count; i++) {
                 var tp = types[Math.floor(Math.random() * types.length)];
@@ -279,7 +279,7 @@ const MissionSystem = (function () {
               }
               mission.state = 'active';
               if (typeof HUD !== 'undefined' && HUD.showToast) {
-                HUD.showToast(`🪂 WAVE ${mission.completedWaves + 1} PARATROOPERS INBOUND!`, 4000, '#ff4444');
+                HUD.showToast(`🪂 VDV WAVE ${mission.completedWaves + 1} INBOUND! Protect the An-225 Mriya!`, 4000, '#ff4444');
               }
             }
 
@@ -293,14 +293,14 @@ const MissionSystem = (function () {
                   aliveCount++;
                 }
               }
-              mission.objectiveText = `Repel airborne assault: Wave ${mission.completedWaves + 1}/${mission.waves} (${aliveCount} hostiles alive)`;
+              mission.objectiveText = `Repel VDV assault at Antonov Airport: Wave ${mission.completedWaves + 1}/${mission.waves} (${aliveCount} hostiles alive)`;
               if (aliveCount === 0) {
                 mission.completedWaves++;
                 if (mission.completedWaves < mission.waves) {
                   mission.state = 'waiting';
                   mission.waveTimer = 6.0;
                   if (typeof HUD !== 'undefined' && HUD.showToast) {
-                    HUD.showToast(`✓ WAVE ${mission.completedWaves} REPELLED! Next drop imminent.`, 4000, '#88ff88');
+                    HUD.showToast(`✓ WAVE ${mission.completedWaves} REPELLED! VDV falling back. Next drop imminent.`, 4000, '#88ff88');
                   }
                 }
               }
@@ -365,6 +365,7 @@ const MissionSystem = (function () {
             } else if (mission.timeLimit <= 0) {
               mission.timerExpiries = (mission.timerExpiries || 0) + 1;
               if (mission.timerExpiries >= 3) {
+                // Mission fails after 3 expiries — mark as failed and stop update
                 mission.timeLimit = -999;
                 if (typeof HUD !== 'undefined' && HUD.showToast) {
                   HUD.showToast('❌ BREAKOUT FAILED — encirclement holds.', 5000, '#ff3333');
@@ -409,41 +410,36 @@ const MissionSystem = (function () {
           failed(mission) { return !mission.reached && mission.timeLimit === -999; },
         },
     gather: {
-      name: 'Resource Gathering',
-      description: 'Collect {amount} {resource} from the world.',
+      name: 'Intel Sweep',
+      description: 'Eliminate Russian occupants to gather battlefield intelligence.',
       tier: 1,
       generate() {
-        const resources = ['wood', 'metal', 'stone'];
-        const res = resources[Math.floor(Math.random() * resources.length)];
-        const amount = 20 + Math.floor(Math.random() * 40);
+        const amount = 15 + Math.floor(Math.random() * 20);
         return {
           type: MISSION_TYPE.GATHER,
-          resource: res,
           targetAmount: amount,
           currentAmount: 0,
         };
       },
       check(mission) {
-        mission.objectiveText = `Gather ${mission.resource.toUpperCase()}: ${mission.currentAmount}/${mission.targetAmount}`;
+        mission.objectiveText = `Eliminate: ${mission.currentAmount}/${mission.targetAmount}`;
         return mission.currentAmount >= mission.targetAmount;
       },
     },
     expand: {
-      name: 'Base Expansion',
-      description: 'Build {count} new structure(s).',
+      name: 'Hold the Line',
+      description: 'Defend your position through multiple full waves without retreating.',
       tier: 2,
       generate() {
         return {
           type: MISSION_TYPE.EXPAND,
-          targetCount: 1 + Math.floor(Math.random() * 2),
-          startCount: (typeof Building !== 'undefined' && Building.getStructures) ? Building.getStructures().length : 0,
+          targetCount: 2 + Math.floor(Math.random() * 2),
+          completedWaves: 0,
         };
       },
       check(mission) {
-        var cur = (typeof Building !== 'undefined' && Building.getStructures) ? Building.getStructures().length : 0;
-        var built = cur - mission.startCount;
-        mission.objectiveText = `Build structures: ${built}/${mission.targetCount}`;
-        return cur >= mission.startCount + mission.targetCount;
+        mission.objectiveText = `Survive waves: ${mission.completedWaves}/${mission.targetCount}`;
+        return mission.completedWaves >= mission.targetCount;
       },
     },
     recon: {
@@ -489,7 +485,7 @@ const MissionSystem = (function () {
     },
     defense: {
       name: 'Defensive Survival',
-      description: 'Survive {waves} enemy waves without losing your base.',
+      description: 'Survive multiple enemy assault waves. Each completed wave counts toward the objective.',
       tier: 3,
       generate() {
         return {
@@ -687,7 +683,7 @@ const MissionSystem = (function () {
     },
     infiltrate: {
       name: 'Infiltrate the Occupants',
-      description: 'You are inserted in a Russian uniform. Walk among them, then eliminate {kills} occupants. Disguise breaks when you attack — survive the response.',
+      description: 'You are inserted in a Russian uniform. Walk among them, then eliminate the target occupants. Disguise breaks when you attack — survive the response.',
       tier: 4,
       generate() {
         const kills = 8 + Math.floor(Math.random() * 5);
@@ -727,7 +723,7 @@ const MissionSystem = (function () {
         var spawnedEnemyIds = [];
         try {
           if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-            var types = ['CONSCRIPT', 'STORMER', 'ARMORED'];
+            var types = ['CONSCRIPT', 'SNIPER', 'ENGINEER'];
             for (var f = 0; f < building.floors; f++) {
               for (var n = 0; n < 2; n++) {
                 var tp = types[Math.floor(Math.random() * types.length)];
@@ -919,13 +915,13 @@ const MissionSystem = (function () {
 
   function onWaveCompleted() {
     for (const m of activeMissions) {
-      if (m.data.type === MISSION_TYPE.DEFENSE) {
+      if (m.data.type === MISSION_TYPE.DEFENSE || m.data.type === MISSION_TYPE.EXPAND) {
         m.data.completedWaves++;
       }
     }
   }
 
-  // INFILTRATE: called every time the player kills a Russian occupant.
+  // INFILTRATE / GATHER: called every time the player kills a Russian occupant.
   function onEnemyKilled() {
     for (const m of activeMissions) {
       if (m.data.type === MISSION_TYPE.INFILTRATE) {
@@ -934,6 +930,9 @@ const MissionSystem = (function () {
         const blown = (typeof Enemies !== 'undefined' && Enemies.isDisguiseBlown) ? Enemies.isDisguiseBlown() : true;
         if (!blown) m.data.stealthKills++;
         else m.data.disguiseBlown = true;
+      }
+      if (m.data.type === MISSION_TYPE.GATHER) {
+        m.data.currentAmount++;
       }
     }
   }
@@ -967,7 +966,7 @@ const MissionSystem = (function () {
     { id: 'knife_only',     name: 'Knife Only',        desc: 'Use only melee weapons',                     reward: 400, check: function (s) { return s.kills > 0 && s.meleeKills === s.kills; } },
     { id: 'pacifist_start', name: 'Pacifist Start',    desc: 'Don\'t kill for the first 15 seconds',       reward: 150, check: function (s) { return s.firstKillTime >= 15; } },
     { id: 'conserve_ammo',  name: 'Conserve Ammo',     desc: 'Finish wave with >50% ammo remaining',       reward: 200, check: function (s) { return s.ammoPercent > 50; } },
-    { id: 'ghost',          name: 'Ghost',             desc: 'Don\'t get spotted for 30 seconds',          reward: 300, check: function (s) { return s.undetectedTime >= 30; } },
+    { id: 'quick_draw',     name: 'Quick Draw',        desc: 'Get first kill within 5 seconds',             reward: 250, check: function (s) { return s.firstKillTime > 0 && s.firstKillTime <= 5; } },
     { id: 'collateral',     name: 'Collateral',        desc: 'Kill 3+ enemies with one explosive',         reward: 350, check: function (s) { return s.maxExplosiveKill >= 3; } },
     { id: 'marksman',       name: 'Marksman',          desc: '>80% accuracy this wave',                    reward: 250, check: function (s) { return s.shotsFired > 0 && (s.shotsHit / s.shotsFired) > 0.8; } },
     { id: 'survivor',       name: 'Survivor',          desc: 'Finish wave with less than 20 HP',           reward: 200, check: function (s) { return s.hpAtEnd < 20 && s.hpAtEnd > 0; } },
@@ -996,112 +995,7 @@ const MissionSystem = (function () {
     return activeSideObj;
   }
 
-  /* ── 2. Mission Chains ───────────────────────────────────────────── */
-  const MISSION_CHAINS = [
-            // Bradley IFV Forest Road Mission
-            {
-              id: 'bradley_forest',
-              name: 'Bradley Forest Road',
-              stages: [
-                { name: 'Convoy Start', type: 'bradley_mission', desc: 'Defend the convoy while riding the Bradley IFV through a Ukrainian forest road.' },
-                { name: 'Ambush Defense', type: MISSION_TYPE.DEFENSE, desc: 'Repel ambushes and protect the convoy.' },
-                { name: 'Breakout', type: MISSION_TYPE.ESCORT, desc: 'Escort survivors to safety after exiting the vehicle.' }
-              ]
-            },
-        // Hostomel Airport Assault (campaign & skirmish)
-        {
-          id: 'hostomel_airport',
-          name: 'Hostomel Airport Assault',
-          stages: [
-            { name: 'Repel Airborne', type: 'airborne_assault', desc: 'Defend against Russian VDV landings' },
-            { name: 'Secure Runway', type: MISSION_TYPE.DEFENSE, desc: 'Hold the runway for reinforcements' },
-            { name: 'Counterattack', type: MISSION_TYPE.ESCORT, desc: 'Lead a counterattack to clear the airport' }
-          ]
-        },
-        // Kyiv Siege: First Day (campaign)
-        {
-          id: 'kyiv_siege_day1',
-          name: 'Kyiv Siege: First Day',
-          stages: [
-            { name: 'Urban Defense', type: MISSION_TYPE.DEFENSE, desc: 'Hold defensive lines in Kyiv suburbs' },
-            { name: 'Breakout', type: 'urban_breakout', desc: 'Break out of partial encirclement' },
-            { name: 'Rescue Civilians', type: MISSION_TYPE.ESCORT, desc: 'Escort civilians to safety' }
-          ]
-        },
-    {
-      id: 'operation_viper',
-      name: 'Operation Viper',
-      stages: [
-        { name: 'Recon',        type: MISSION_TYPE.RECON,    desc: 'Scout enemy stronghold locations' },
-        { name: 'Assassinate',  type: MISSION_TYPE.DEFENSE,  desc: 'Eliminate the garrison commander' },
-        { name: 'Extract',      type: MISSION_TYPE.ESCORT,   desc: 'Extract intel to base safely' },
-      ],
-    },
-    {
-      id: 'supply_line',
-      name: 'Supply Line',
-      stages: [
-        { name: 'Gather Resources', type: MISSION_TYPE.GATHER,  desc: 'Collect supplies for the convoy' },
-        { name: 'Defend Convoy',     type: MISSION_TYPE.DEFENSE, desc: 'Protect the supply convoy from ambush' },
-        { name: 'Deliver Supplies',  type: MISSION_TYPE.ESCORT,  desc: 'Deliver supplies to the forward base' },
-      ],
-    },
-    {
-      id: 'liberation',
-      name: 'Liberation',
-      stages: [
-        { name: 'Capture Zone',       type: MISSION_TYPE.EXPAND,   desc: 'Seize the occupied territory' },
-        { name: 'Eliminate Garrison',  type: MISSION_TYPE.DEFENSE,  desc: 'Wipe out remaining enemy forces' },
-        { name: 'Rebuild',            type: MISSION_TYPE.EXPAND,   desc: 'Reconstruct the liberated zone' },
-      ],
-    },
-    {
-      id: 'deep_strike',
-      name: 'Deep Strike',
-      stages: [
-        { name: 'Scout',          type: MISSION_TYPE.RECON,    desc: 'Locate the target bridge' },
-        { name: 'Demolish Bridge', type: MISSION_TYPE.DEFENSE, desc: 'Plant charges and defend the site' },
-        { name: 'Escape',         type: MISSION_TYPE.ESCORT,   desc: 'Escape the blast zone before reinforcements arrive' },
-      ],
-    },
-  ];
-
-  let activeChain = null;
-  let chainProgress = 0;
-
-  function startChain(chainId) {
-    var chain = MISSION_CHAINS.find(function (c) { return c.id === chainId; });
-    if (!chain) return null;
-    activeChain = chain;
-    chainProgress = 0;
-    var stage = chain.stages[0];
-    return generateMission(stage.type);
-  }
-
-  function advanceChain() {
-    if (!activeChain) return null;
-    chainProgress++;
-    if (chainProgress >= activeChain.stages.length) {
-      var finished = { chain: activeChain.name, completed: true };
-      activeChain = null;
-      chainProgress = 0;
-      return finished;
-    }
-    var stage = activeChain.stages[chainProgress];
-    return generateMission(stage.type);
-  }
-
-  function getChainProgress() {
-    if (!activeChain) return null;
-    return {
-      chain: activeChain,
-      current: chainProgress,
-      total: activeChain.stages.length,
-      stage: activeChain.stages[chainProgress] || null,
-    };
-  }
-
-  /* ── 3. Dynamic Mission Difficulty ───────────────────────────────── */
+  /* ── 2. Dynamic Mission Difficulty ───────────────────────────────── */
   function scaleMission(mission, playerLevel) {
     var factor = 1 + (playerLevel - 1) * 0.15;
     var d = mission.data;
@@ -1162,11 +1056,6 @@ const MissionSystem = (function () {
     generateSideObjective,
     checkSideObjective,
     getSideObjective,
-    /* Mission Chains */
-    MISSION_CHAINS,
-    startChain,
-    advanceChain,
-    getChainProgress,
     /* Dynamic Difficulty */
     scaleMission,
     /* Mission Timer */

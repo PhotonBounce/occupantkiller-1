@@ -3111,6 +3111,7 @@ window.VoxelWorld = (function () {
     }
   }
 
+  // ── Kyiv City Extension: landmarks, suburbs, river, approach ──────────
   function generateKyivCityExtension(ox, oz) {
     function gh(x, z) { return getTerrainHeight(x, z); }
 
@@ -4648,17 +4649,20 @@ window.VoxelWorld = (function () {
     // Colourful onion dome (St Basil's). mat = bulb colour material.
     function monion(cx, cz, topY, mat, drumH) {
       drumH = drumH || 2;
+      // drum
       for (var dy = 0; dy < drumH; dy++) {
         setBlock(cx, topY - dy, cz, BLOCK.STONE);
         setBlock(cx - 1, topY - dy, cz, BLOCK.STONE); setBlock(cx + 1, topY - dy, cz, BLOCK.STONE);
         setBlock(cx, topY - dy, cz - 1, BLOCK.STONE); setBlock(cx, topY - dy, cz + 1, BLOCK.STONE);
       }
+      // onion bulb — wide base tapering to a point, in the dome's colour
       var bulb = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]];
       for (var bi = 0; bi < bulb.length; bi++) setBlock(cx + bulb[bi][0], topY + 1, cz + bulb[bi][1], mat);
       setBlock(cx, topY + 2, cz, mat);
       setBlock(cx - 1, topY + 2, cz, mat); setBlock(cx + 1, topY + 2, cz, mat);
       setBlock(cx, topY + 2, cz - 1, mat); setBlock(cx, topY + 2, cz + 1, mat);
       setBlock(cx, topY + 3, cz, mat);
+      // gilded Orthodox cross finial
       setBlock(cx, topY + 4, cz, BLOCK.STONE);
       setBlock(cx, topY + 5, cz, BLOCK.LIGHT);
       setBlock(cx - 1, topY + 5, cz, BLOCK.LIGHT); setBlock(cx + 1, topY + 5, cz, BLOCK.LIGHT);
@@ -4670,14 +4674,16 @@ window.VoxelWorld = (function () {
       var by = gh(cx, cz);
       for (var y = 1; y <= h; y++) {
         for (var tx = -1; tx <= 1; tx++) { for (var tz = -1; tz <= 1; tz++) {
-          if (tx === 0 && tz === 0 && y < h) continue;
+          if (tx === 0 && tz === 0 && y < h) continue; // hollow shaft
           setBlock(cx + tx, by + y, cz + tz, BLOCK.BRICK);
         } }
       }
+      // green tented roof (METAL drum tapering to a point)
       setBlock(cx - 1, by + h + 1, cz, BLOCK.METAL); setBlock(cx + 1, by + h + 1, cz, BLOCK.METAL);
       setBlock(cx, by + h + 1, cz - 1, BLOCK.METAL); setBlock(cx, by + h + 1, cz + 1, BLOCK.METAL);
       setBlock(cx, by + h + 2, cz, BLOCK.METAL);
       setBlock(cx, by + h + 3, cz, BLOCK.METAL);
+      // ruby star (red brick + gilded glow)
       setBlock(cx, by + h + 4, cz, BLOCK.BRICK);
       setBlock(cx, by + h + 5, cz, BLOCK.LIGHT);
       return by;
@@ -4686,11 +4692,12 @@ window.VoxelWorld = (function () {
     // Ukrainian flag — blue over yellow on a metal pole (raised over the Kremlin).
     function mflag(x, by, z) {
       for (var fy = 1; fy <= 4; fy++) setBlock(x, by + fy, z, BLOCK.METAL);
-      setBlock(x + 1, by + 4, z, BLOCK.GLASS); setBlock(x + 2, by + 4, z, BLOCK.GLASS);
-      setBlock(x + 1, by + 3, z, BLOCK.LIGHT); setBlock(x + 2, by + 3, z, BLOCK.LIGHT);
+      setBlock(x + 1, by + 4, z, BLOCK.GLASS); setBlock(x + 2, by + 4, z, BLOCK.GLASS);   // blue band
+      setBlock(x + 1, by + 3, z, BLOCK.LIGHT); setBlock(x + 2, by + 3, z, BLOCK.LIGHT);   // yellow band
     }
 
     // ── A. The Kremlin wall — red-brick fortress with swallowtail merlons ─
+    // Rectangle: west x=ox-30, east x=ox+10, north z=oz-18, south z=oz+18.
     var kwW = ox - 30, kwE = ox + 10, kwN = oz - 18, kwS = oz + 18, KWH = 6;
     function wallRun(x1, z1, x2, z2) {
       var dx = x2 - x1, dz = z2 - z1;
@@ -4700,44 +4707,52 @@ window.VoxelWorld = (function () {
         var wz = z1 + Math.round(dz * s / steps);
         var wy = gh(wx, wz);
         for (var y = 1; y <= KWH; y++) setBlock(wx, wy + y, wz, BLOCK.BRICK);
+        // swallowtail merlons — every 2nd block gets a tooth
         if (s % 2 === 0) setBlock(wx, wy + KWH + 1, wz, BLOCK.BRICK);
       }
     }
-    wallRun(kwW, kwN, kwE, kwN);
-    wallRun(kwW, kwS, kwE, kwS);
-    wallRun(kwW, kwN, kwW, kwS);
-    wallRun(kwE, kwN, kwE, kwS);
+    wallRun(kwW, kwN, kwE, kwN);   // north
+    wallRun(kwW, kwS, kwE, kwS);   // south
+    wallRun(kwW, kwN, kwW, kwS);   // west
+    wallRun(kwE, kwN, kwE, kwS);   // east (faces Red Square)
 
+    // Corner + gate towers; Spasskaya at the middle of the east wall.
     mtower(kwW, kwN, 10); mtower(kwE, kwN, 10);
     mtower(kwW, kwS, 10); mtower(kwE, kwS, 10);
-    var spasskZ = oz;
+    var spasskZ = oz;            // Spasskaya Tower — the famous clock gate
     var spY = mtower(kwE, spasskZ, 14);
-    setBlock(kwE, spY + 9, spasskZ - 1, BLOCK.GLASS);
+    setBlock(kwE, spY + 9, spasskZ - 1, BLOCK.GLASS);   // clock faces
     setBlock(kwE, spY + 9, spasskZ + 1, BLOCK.GLASS);
+    // Ukrainian flags raised over the Kremlin towers — the objective.
     mflag(kwE, spY + 14, spasskZ);
     mflag(kwW, gh(kwW, kwN) + 10, kwN);
     mflag(kwE, gh(kwE, kwS) + 10, kwS);
 
-    // ── B. Kremlin Senate — neoclassical, green dome + flag ──────────────
+    // ── B. Kremlin Senate — neoclassical, green dome + tricolour-turned-flag
     (function () { var x = ox - 22, z = oz - 6, by = mbox(x, z, 14, 10, 8, BLOCK.STONE, 3);
+      // green dome (METAL) on the centre
       monion(x + 7, z + 5, by + 9, BLOCK.METAL, 3);
       mflag(x + 7, by + 9 + 6, z + 5); })();
 
-    // ── C. Grand Kremlin Palace — long riverfront facade ─────────────────
+    // ── C. Grand Kremlin Palace — long yellow-white riverfront facade ────
     (function () { var x = ox - 30, z = oz + 8, by = mbox(x, z, 22, 8, 7, BLOCK.STONE, 2);
       for (var c = 0; c < 9; c++) setBlock(x + 2 + c * 2, by + 8, z, BLOCK.STONE); })();
 
-    // ── D. St Basil's Cathedral — 9 colourful onion domes ────────────────
+    // ── D. St Basil's Cathedral — the showpiece: 9 colourful onion domes ─
+    // Sits on Red Square just off the Kremlin's SE corner.
     (function () {
       var bx = ox + 26, bz = oz + 12;
       var by = mbox(bx, bz, 9, 9, 7, BLOCK.BRICK, 0);
+      // Central tent tower (tallest), then 8 chapels around it.
+      // Tent spire
       for (var ty = 8; ty <= 15; ty++) {
         var tw = ty < 12 ? 1 : 0;
         setBlock(bx + 4, by + ty, bz + 4, BLOCK.BRICK);
         if (tw) { setBlock(bx + 3, by + ty, bz + 4, BLOCK.BRICK); setBlock(bx + 5, by + ty, bz + 4, BLOCK.BRICK);
                   setBlock(bx + 4, by + ty, bz + 3, BLOCK.BRICK); setBlock(bx + 4, by + ty, bz + 5, BLOCK.BRICK); }
       }
-      monion(bx + 4, bz + 4, by + 16, BLOCK.LIGHT, 1);
+      monion(bx + 4, bz + 4, by + 16, BLOCK.LIGHT, 1);   // gilded central
+      // 8 surrounding domes, each a different colour for the iconic swirl.
       var domes = [
         [1, 1, BLOCK.BLUE_TILE],  [7, 1, BLOCK.LIGHT],
         [1, 7, BLOCK.BRICK],      [7, 7, BLOCK.ROOFTILE],
@@ -4749,7 +4764,7 @@ window.VoxelWorld = (function () {
       }
     })();
 
-    // ── E. Red Square — open cobbled plaza ───────────────────────────────
+    // ── E. Red Square — open cobbled plaza between Kremlin wall and GUM ──
     for (var rqx = ox + 12; rqx <= ox + 40; rqx++) {
       for (var rqz = oz - 16; rqz <= oz + 16; rqz++) {
         var rqy = gh(rqx, rqz);
@@ -4766,13 +4781,13 @@ window.VoxelWorld = (function () {
         } }
       } })();
 
-    // ── G. GUM department store — long glass-arcade facade ───────────────
+    // ── G. GUM department store — long ornate glass-arcade facade ────────
     (function () { var x = ox + 40, z = oz - 16, by = mbox(x, z, 4, 32, 7, BLOCK.STONE, 0);
       for (var az = 1; az < 31; az++) { if (az % 2 === 1) { setBlock(x, by + 3, z + az, BLOCK.GLASS); setBlock(x, by + 5, z + az, BLOCK.GLASS); } } })();
 
     // ── H. Cathedral of Christ the Saviour — huge gilded central dome ────
     (function () { var x = ox - 56, z = oz + 4, by = mbox(x, z, 14, 14, 10, BLOCK.WHITE_TILE, 3);
-      monion(x + 7, z + 7, by + 11, BLOCK.LIGHT, 4);
+      monion(x + 7, z + 7, by + 11, BLOCK.LIGHT, 4);                 // giant gold dome
       var c = [[3, 3], [11, 3], [3, 11], [11, 11]];
       for (var i = 0; i < c.length; i++) monion(x + c[i][0], z + c[i][1], by + 10, BLOCK.LIGHT, 2); })();
 
@@ -4785,11 +4800,12 @@ window.VoxelWorld = (function () {
           for (var yy = 1; yy <= 7; yy++) if (edge || yy === 7) setBlock(x + (5 - tw / 2 | 0) + tx, base + yy, z + (5 - tw / 2 | 0) + tz, BLOCK.STONE);
         } }
       }
+      // central spire + star
       var sx = x + 5, sz = z + 5, stop = by + 35;
       for (var sy = 1; sy <= 8; sy++) setBlock(sx, stop + sy, sz, BLOCK.METAL);
       setBlock(sx, stop + 9, sz, BLOCK.LIGHT); })();
 
-    // ── J. Ostankino-style TV tower — tall tapering needle ───────────────
+    // ── J. Ostankino-style TV tower — tall tapering needle (north skyline)
     (function () { var x = ox - 10, z = oz - 74, by = gh(x, z);
       for (var y = 1; y <= 46; y++) { var w = y < 14 ? 2 : y < 30 ? 1 : 0;
         setBlock(x, by + y, z, BLOCK.CONCRETE);
@@ -5852,105 +5868,223 @@ window.VoxelWorld = (function () {
 
   /* ── Prebuilt: Full Hostomel Airport Complex ───────────────────── */
   function generateHostomelAirport(ox, oz) {
-    const levelSamples = [
-      getTerrainHeight(ox - 32, oz),
-      getTerrainHeight(ox, oz),
-      getTerrainHeight(ox + 32, oz),
-      getTerrainHeight(ox - 8, oz + 20),
-      getTerrainHeight(ox + 16, oz + 22),
-    ];
-    const airportBaseY = Math.round(levelSamples.reduce((sum, value) => sum + value, 0) / levelSamples.length);
+    // ─── Flatten entire airport footprint ────────────────────────────────
+    var lSamples = [];
+    for (var ls = -6; ls <= 6; ls++) {
+      lSamples.push(getTerrainHeight(ox + ls * 11, oz));
+      lSamples.push(getTerrainHeight(ox, oz + ls * 9));
+    }
+    var base = Math.round(lSamples.reduce(function(a, b) { return a + b; }, 0) / lSamples.length);
+    levelArea(ox - 72, ox + 72, oz - 52, oz + 64, base, BLOCK.DIRT, BLOCK.DIRT);
+    var by = base;
+    function sf(x, z, blk) { setBlock(x, by, z, blk); }
 
-    // Flatten the whole airport footprint before stamping the runway, hangars, and terminal.
-    levelArea(ox - 44, ox + 44, oz - 32, oz + 34, airportBaseY, BLOCK.DIRT, BLOCK.DIRT);
-
-    // Main runway (extended, 80 blocks long x 8 wide)
-    generateRunway(ox - 40, oz, 80, 8);
-
-    // Parallel taxiway
-    for (let x = ox - 35; x < ox + 35; x++) {
-      for (let w = 0; w < 4; w++) {
-        const ty = getTerrainHeight(x, oz + 14);
-        setBlock(x, ty, oz + 14 + w, BLOCK.ASPHALT);
+    // ─── 1. MAIN RUNWAY (130 long × 6 wide) ─────────────────────────────
+    for (var rx = ox - 65; rx <= ox + 65; rx++) {
+      for (var rw = -3; rw <= 2; rw++) { sf(rx, oz + rw, BLOCK.ASPHALT); }
+      if (Math.abs(rx - ox) % 4 < 2) setBlock(rx, by, oz, BLOCK.WHITE_TILE);
+      if (rx >= ox - 65 && rx <= ox - 58 || rx >= ox + 58 && rx <= ox + 65) {
+        for (var tb = -3; tb <= 2; tb++) {
+          if ((tb + 3) % 2 === 0) setBlock(rx, by, oz + tb, BLOCK.WHITE_TILE);
+        }
       }
     }
 
-    // Full terminal building
-    generateHostomelTerminal(ox - 12, oz + 20);
+    // ─── 2. PARALLEL SECONDARY RUNWAY (110 × 4) ─────────────────────────
+    for (var rx2 = ox - 55; rx2 <= ox + 55; rx2++) {
+      for (var rw2 = 0; rw2 <= 3; rw2++) { sf(rx2, oz + 14 + rw2, BLOCK.ASPHALT); }
+      if (Math.abs(rx2 - ox) % 3 === 0) setBlock(rx2, by, oz + 16, BLOCK.WHITE_TILE);
+    }
 
-    // Control tower (tall, 8 floors)
-    const ctOx = ox + 16, ctOz = oz + 22;
-    const ctH = getTerrainHeight(ctOx, ctOz);
-    // Tower shaft
-    for (let y = 1; y <= 12; y++) {
-      for (let x = 0; x < 3; x++) {
-        for (let z = 0; z < 3; z++) {
-          if (x === 0 || x === 2 || z === 0 || z === 2) {
-            setBlock(ctOx + x, ctH + y, ctOz + z, BLOCK.REINFORCED);
-          } else {
-            setBlock(ctOx + x, ctH + y, ctOz + z, BLOCK.AIR);
+    // ─── 3. EAST/WEST TAXIWAYS (runways → apron) ────────────────────────
+    for (var tz = oz; tz <= oz + 38; tz++) {
+      for (var tw = 0; tw < 4; tw++) {
+        sf(ox + 52 + tw, tz, BLOCK.ASPHALT);
+        sf(ox - 55 + tw, tz, BLOCK.ASPHALT);
+      }
+    }
+
+    // ─── 4. CONCRETE APRON ───────────────────────────────────────────────
+    for (var ax = ox - 52; ax <= ox + 54; ax++) {
+      for (var az = oz + 20; az <= oz + 40; az++) { sf(ax, az, BLOCK.CONCRETE); }
+    }
+    for (var st = 0; st < 9; st++) {
+      var stx = ox - 48 + st * 12;
+      for (var stz = oz + 21; stz <= oz + 24; stz++) {
+        sf(stx, stz, BLOCK.WHITE_TILE); sf(stx + 1, stz, BLOCK.WHITE_TILE);
+      }
+    }
+
+    // ─── 5. MAIN PASSENGER TERMINAL (40×14×7) ───────────────────────────
+    var tmx = ox - 17, tmz = oz + 42;
+    for (var tbx = 0; tbx < 40; tbx++) {
+      for (var tbz = 0; tbz < 14; tbz++) {
+        for (var tby = 1; tby <= 7; tby++) {
+          var isTwall = (tbx === 0 || tbx === 39 || tbz === 0 || tbz === 13 || tby === 7);
+          if (isTwall) {
+            setBlock(tmx + tbx, by + tby, tmz + tbz, BLOCK.CONCRETE);
+          } else if (tby >= 2 && tby <= 6 && tbx % 4 === 1 && (tbz === 0 || tbz === 13)) {
+            setBlock(tmx + tbx, by + tby, tmz + tbz, BLOCK.GLASS);
           }
         }
       }
     }
-    // Observation deck at top (glass)
-    for (let x = -1; x < 4; x++) {
-      for (let z = -1; z < 4; z++) {
-        setBlock(ctOx + x, ctH + 13, ctOz + z, BLOCK.REINFORCED);
-        if (x === -1 || x === 3 || z === -1 || z === 3) {
-          setBlock(ctOx + x, ctH + 14, ctOz + z, BLOCK.GLASS);
-          setBlock(ctOx + x, ctH + 15, ctOz + z, BLOCK.GLASS);
-        }
-        setBlock(ctOx + x, ctH + 16, ctOz + z, BLOCK.METAL);
-      }
+    for (var tfx = 1; tfx < 39; tfx++) {
+      for (var tfz = 1; tfz < 13; tfz++) { setBlock(tmx + tfx, by, tmz + tfz, BLOCK.LINOLEUM); }
     }
-    // Radar dome on top
-    setBlock(ctOx + 1, ctH + 17, ctOz + 1, BLOCK.METAL);
-    setBlock(ctOx + 1, ctH + 18, ctOz + 1, BLOCK.ELECTRONICS);
+    for (var cx2 = tmx + 8; cx2 <= tmx + 32; cx2++) {
+      setBlock(cx2, by + 8, tmz, BLOCK.GLASS);
+      setBlock(cx2, by + 8, tmz - 1, BLOCK.GLASS);
+    }
+    for (var dri = 0; dri < 4; dri++) {
+      var drx = tmx + 8 + dri * 8;
+      setBlock(drx, by + 1, tmz, BLOCK.AIR); setBlock(drx, by + 2, tmz, BLOCK.AIR);
+      setBlock(drx + 1, by + 1, tmz, BLOCK.AIR); setBlock(drx + 1, by + 2, tmz, BLOCK.AIR);
+    }
 
-    // Hangars (3 large)
-    for (let hi = 0; hi < 3; hi++) {
-      const hx = ox - 30 + hi * 20;
-      const hz = oz - 8;
-      const hH = getTerrainHeight(hx, hz);
-      // Hangar building 10x8x6
-      for (let y = 1; y <= 6; y++) {
-        for (let x = 0; x < 10; x++) {
-          setBlock(hx + x, hH + y, hz, BLOCK.METAL);
-          setBlock(hx + x, hH + y, hz + 7, BLOCK.METAL);
-          if (x === 0 || x === 9) {
-            for (let z = 0; z < 8; z++) {
-              setBlock(hx + x, hH + y, hz + z, BLOCK.METAL);
-            }
+    // ─── 6. AN-225 MRIYA MEGA HANGAR (32×22×14) ─────────────────────────
+    // The Antonov An-225 was destroyed here on 27 Feb 2022.
+    var hgx = ox - 70, hgz = oz + 40;
+    for (var hbx = 0; hbx < 32; hbx++) {
+      for (var hbz = 0; hbz < 22; hbz++) {
+        for (var hby = 1; hby <= 14; hby++) {
+          if (hbx === 0 || hbx === 31 || hbz === 0 || hbz === 21 || hby === 14) {
+            setBlock(hgx + hbx, by + hby, hgz + hbz, BLOCK.METAL);
           }
         }
       }
-      // Hangar roof
-      for (let x = 0; x < 10; x++) {
-        for (let z = 0; z < 8; z++) {
-          setBlock(hx + x, hH + 7, hz + z, BLOCK.SHINGLE);
+    }
+    for (var hrx = 1; hrx < 31; hrx++) {
+      for (var hrz = 1; hrz < 21; hrz++) { setBlock(hgx + hrx, by + 14, hgz + hrz, BLOCK.SHINGLE); }
+    }
+    for (var hdx = 3; hdx < 29; hdx++) {
+      for (var hdy = 1; hdy <= 12; hdy++) { setBlock(hgx + hdx, by + hdy, hgz, BLOCK.AIR); }
+    }
+    for (var hfx = 1; hfx < 31; hfx++) {
+      for (var hfz = 1; hfz < 21; hfz++) { setBlock(hgx + hfx, by, hgz + hfz, BLOCK.CONCRETE); }
+    }
+    // AN-225 wreckage (fuselage + wings + fire at nose)
+    for (var fn = 0; fn < 26; fn++) {
+      setBlock(hgx + 3 + fn, by + 1, hgz + 10, BLOCK.RUBBLE);
+      setBlock(hgx + 3 + fn, fn < 20 ? by + 3 : by + 2, hgz + 10, BLOCK.RUBBLE);
+    }
+    for (var wn = 0; wn < 14; wn++) {
+      setBlock(hgx + 10, by + 1, hgz + 4 + wn, BLOCK.RUBBLE);
+      setBlock(hgx + 10, by + 2, hgz + 4 + wn, BLOCK.RUBBLE);
+    }
+    for (var np = -1; np <= 1; np++) {
+      setBlock(hgx + 4, by + 1, hgz + 10 + np, BLOCK.FIRE);
+      setBlock(hgx + 5, by + 2, hgz + 10 + np, BLOCK.FIRE);
+    }
+
+    // ─── 7. FIVE CARGO HANGARS (south of runways) ───────────────────────
+    for (var hni = 0; hni < 5; hni++) {
+      var sHx = ox - 60 + hni * 26, sHz = oz - 24;
+      for (var shby = 1; shby <= 7; shby++) {
+        for (var shbx = 0; shbx < 12; shbx++) {
+          setBlock(sHx + shbx, by + shby, sHz, BLOCK.METAL);
+          setBlock(sHx + shbx, by + shby, sHz + 9, BLOCK.METAL);
+          if (shbx === 0 || shbx === 11) {
+            for (var shz = 0; shz < 10; shz++) setBlock(sHx + shbx, by + shby, sHz + shz, BLOCK.METAL);
+          }
+        }
+        for (var srx = 0; srx < 12; srx++) {
+          for (var srz = 0; srz < 10; srz++) setBlock(sHx + srx, by + 8, sHz + srz, BLOCK.SHINGLE);
         }
       }
-      // Hangar bay door (open)
-      for (let dx = 2; dx < 8; dx++) {
-        for (let dy = 1; dy <= 4; dy++) {
-          setBlock(hx + dx, hH + dy, hz, BLOCK.AIR);
+      for (var shdx = 2; shdx < 10; shdx++) {
+        for (var shdy = 1; shdy <= 5; shdy++) setBlock(sHx + shdx, by + shdy, sHz + 9, BLOCK.AIR);
+      }
+      for (var shfx = 1; shfx < 11; shfx++) {
+        for (var shfz = 1; shfz < 9; shfz++) setBlock(sHx + shfx, by, sHz + shfz, BLOCK.CONCRETE);
+      }
+    }
+
+    // ─── 8. CONTROL TOWER (4×4 shaft, 22 high + 8×8 cab) ───────────────
+    var ctX = ox + 28, ctZ = oz + 44;
+    for (var cty = 1; cty <= 22; cty++) {
+      for (var ctx = 0; ctx < 4; ctx++) {
+        for (var ctz = 0; ctz < 4; ctz++) {
+          if (ctx === 0 || ctx === 3 || ctz === 0 || ctz === 3) {
+            setBlock(ctX + ctx, by + cty, ctZ + ctz, BLOCK.REINFORCED);
+          }
         }
       }
-      // Hangar floor
-      for (let x = 0; x < 10; x++) {
-        for (let z = 0; z < 8; z++) {
-          setBlock(hx + x, hH, hz + z, BLOCK.CONCRETE);
+    }
+    for (var odx = -2; odx < 6; odx++) {
+      for (var odz = -2; odz < 6; odz++) {
+        setBlock(ctX + odx, by + 23, ctZ + odz, BLOCK.REINFORCED);
+        if (odx === -2 || odx === 5 || odz === -2 || odz === 5) {
+          setBlock(ctX + odx, by + 24, ctZ + odz, BLOCK.GLASS);
+          setBlock(ctX + odx, by + 25, ctZ + odz, BLOCK.GLASS);
+          setBlock(ctX + odx, by + 26, ctZ + odz, BLOCK.REINFORCED);
+        }
+      }
+    }
+    setBlock(ctX + 1, by + 27, ctZ + 1, BLOCK.METAL);
+    setBlock(ctX + 1, by + 28, ctZ + 1, BLOCK.ELECTRONICS);
+    setBlock(ctX + 2, by + 28, ctZ + 2, BLOCK.METAL);
+    setBlock(ctX, by + 28, ctZ + 2, BLOCK.METAL);
+
+    // ─── 9. VDV HELICOPTER PADS (3 circular pads, south of runways) ─────
+    // Mi-8 assault landing zones from Feb 24, 2022
+    var padPos = [[ox - 28, oz - 40], [ox, oz - 42], [ox + 28, oz - 40]];
+    for (var pi = 0; pi < 3; pi++) {
+      var ppx = padPos[pi][0], ppz = padPos[pi][1];
+      for (var pdx = -7; pdx <= 7; pdx++) {
+        for (var pdz = -7; pdz <= 7; pdz++) {
+          var dd = pdx * pdx + pdz * pdz;
+          if (dd <= 49) sf(ppx + pdx, ppz + pdz, BLOCK.ASPHALT);
+          if (dd >= 44 && dd <= 51) setBlock(ppx + pdx, by, ppz + pdz, BLOCK.WHITE_TILE);
+        }
+      }
+      for (var hi2 = -3; hi2 <= 3; hi2++) {
+        sf(ppx - 2, ppz + hi2, BLOCK.WHITE_TILE); sf(ppx + 2, ppz + hi2, BLOCK.WHITE_TILE);
+      }
+      sf(ppx - 1, ppz, BLOCK.WHITE_TILE); sf(ppx, ppz, BLOCK.WHITE_TILE); sf(ppx + 1, ppz, BLOCK.WHITE_TILE);
+    }
+
+    // ─── 10. PERIMETER FENCE ─────────────────────────────────────────────
+    for (var pfx = ox - 70; pfx <= ox + 70; pfx++) {
+      setBlock(pfx, by, oz - 50, BLOCK.FENCE); setBlock(pfx, by + 1, oz - 50, BLOCK.FENCE);
+      setBlock(pfx, by, oz + 62, BLOCK.FENCE); setBlock(pfx, by + 1, oz + 62, BLOCK.FENCE);
+    }
+    for (var pfz = oz - 50; pfz <= oz + 62; pfz++) {
+      setBlock(ox - 70, by, pfz, BLOCK.FENCE); setBlock(ox - 70, by + 1, pfz, BLOCK.FENCE);
+      setBlock(ox + 70, by, pfz, BLOCK.FENCE); setBlock(ox + 70, by + 1, pfz, BLOCK.FENCE);
+    }
+    // Main gate (north approach)
+    for (var go = -4; go <= 4; go++) {
+      setBlock(ox + go, by, oz - 50, BLOCK.ASPHALT);
+      setBlock(ox + go, by + 1, oz - 50, BLOCK.AIR);
+      setBlock(ox + go, by + 2, oz - 50, BLOCK.AIR);
+    }
+    for (var gph = 1; gph <= 3; gph++) {
+      for (var gpx = -8; gpx <= -5; gpx++) setBlock(ox + gpx, by + gph, oz - 50, BLOCK.CONCRETE);
+      for (var gpx2 = 5; gpx2 <= 8; gpx2++) setBlock(ox + gpx2, by + gph, oz - 50, BLOCK.CONCRETE);
+    }
+
+    // ─── 11. FUEL DEPOT ──────────────────────────────────────────────────
+    for (var fdi = 0; fdi < 4; fdi++) {
+      for (var fdj = 0; fdj < 3; fdj++) {
+        setBlock(ox + 38 + fdi * 3, by + 1, oz + 52 + fdj * 3, BLOCK.FUEL_BARREL);
+      }
+    }
+    for (var ftbx = 0; ftbx < 10; ftbx++) {
+      for (var ftbz = 0; ftbz < 8; ftbz++) {
+        if (ftbx === 0 || ftbx === 9 || ftbz === 0 || ftbz === 7) {
+          setBlock(ox + 35 + ftbx, by + 1, oz + 49 + ftbz, BLOCK.METAL);
+          setBlock(ox + 35 + ftbx, by + 2, oz + 49 + ftbz, BLOCK.METAL);
         }
       }
     }
 
-    // Apron/parking area (concrete pads between runway and terminal)
-    for (let x = ox - 20; x < ox + 20; x++) {
-      for (let z = oz + 8; z < oz + 18; z++) {
-        const apH = getTerrainHeight(x, z);
-        setBlock(x, apH, z, BLOCK.CONCRETE);
-      }
+    // ─── 12. ROAD WAYPOINTS ──────────────────────────────────────────────
+    for (var wpx = ox - 60; wpx <= ox + 60; wpx += 10) {
+      _roadWaypoints.push(new THREE.Vector3(wpx, by + 0.5, oz));
+    }
+    for (var wpz2 = oz - 45; wpz2 <= oz + 55; wpz2 += 10) {
+      _roadWaypoints.push(new THREE.Vector3(ox, by + 0.5, wpz2));
     }
   }
 
@@ -6254,12 +6388,112 @@ window.VoxelWorld = (function () {
     generateCityRoads(level.id);
     if (level.id === 'HOSTOMEL') {
       generateHostomelAirport(0, 0);
-      generateUkrainianApartment(-35, -30, 6);
-      generateUkrainianApartment(-35, -50, 12);
-      generateUkrainianApartment(25, -35, 6);
-      // Enemy drone nests around the airport perimeter
-      generateDroneNest(40, 25);
-      generateDroneNest(-38, 20);
+      // ── Residential blocks south-east of the airport (town of Hostomel)
+      // Real: Hostomel is south/south-east of the airport, ~17,000 population
+      generateUkrainianApartment(80, -30, 6);
+      generateUkrainianApartment(80, -50, 9);
+      generateUkrainianApartment(80, -68, 6);
+      generateUkrainianApartment(95, -40, 9);
+      generateUkrainianApartment(110, -25, 6);
+      generateUkrainianApartment(105, -60, 9);
+      // ── Battle damage in Hostomel town (40% of buildings destroyed)
+      generateBurningRuin(75, -15);
+      generateBurningRuin(90, -55);
+      generateBurningRuin(115, -40);
+      generateBurningRuin(100, 5);
+      generateBurningRuin(85, 15);
+      // ── Wrecked civilian cars along Hostomel roads
+      generateWreckedCar(82, -22);
+      generateWreckedCar(88, -45);
+      generateWreckedCar(92, -65);
+      generateWreckedCar(108, -35);
+      generateWreckedCar(98, 8);
+      // ── Enemy drone nests — placed outside the airport perimeter fence
+      generateDroneNest(80, -20);
+      generateDroneNest(-80, -18);
+      generateDroneNest(60, 50);
+      // ── Russian VDV anti-air gun emplacements flanking the runway
+      // Historical: VDV brought ZU-23-2 AA guns and MANPADS
+      generateAntiAirPosition(-30, 35);
+      generateAntiAirPosition(30, 35);
+      generateAntiAirPosition(0, 55);
+      // ── Ukrainian National Guard defensive positions (4th Rapid Reaction Brigade)
+      // Historical: ~200-300 National Guard defenders with small arms, MANPADS, BTRs
+      generateDefensivePosition(-25, 15);
+      generateDefensivePosition(25, 15);
+      generateDefensivePosition(0, 30);
+      generateDefensivePosition(-15, 40);
+      generateDefensivePosition(15, 40);
+      // ── Trenches and foxholes along the southern front line
+      (function () {
+        for (var tx = -50; tx <= 50; tx += 8) {
+          var tz = 18 + Math.floor(Math.random() * 4);
+          var th2 = getTerrainHeight(tx, tz);
+          setBlock(tx, th2, tz, BLOCK.DIRT);
+          setBlock(tx, th2 + 1, tz, BLOCK.SANDBAG);
+          setBlock(tx + 1, th2, tz, BLOCK.DIRT);
+          setBlock(tx + 1, th2 + 1, tz, BLOCK.SANDBAG);
+        }
+      })();
+      // ── Craters from artillery / rocket strikes on the airfield
+      (function () {
+        var craterPositions = [[-20, 5], [10, 8], [-35, 15], [25, 20], [0, 45], [-15, 50], [20, 48]];
+        for (var ci = 0; ci < craterPositions.length; ci++) {
+          var cx = craterPositions[ci][0], cz = craterPositions[ci][1];
+          for (var cr = 0; cr < 3; cr++) {
+            for (var crz = -1; crz <= 1; crz++) {
+              setBlock(cx + cr - 1, 1, cz + crz, BLOCK.DIRT);
+              setBlock(cx + cr - 1, 2, cz + crz, BLOCK.RUBBLE);
+            }
+          }
+          // Scorch marks (blackened rubble around crater)
+          for (var sc = 0; sc < 8; sc++) {
+            var sAng = Math.random() * Math.PI * 2;
+            var sRad = 2 + Math.random() * 3;
+            var sx = cx + Math.round(Math.cos(sAng) * sRad);
+            var sz = cz + Math.round(Math.sin(sAng) * sRad);
+            var shy = getTerrainHeight(sx, sz);
+            setBlock(sx, shy, sz, BLOCK.RUBBLE);
+          }
+        }
+      })();
+      // ── Burn marks and scorched earth around Hangar 1 (An-225 destroyed)
+      (function () {
+        for (var bx = -70; bx <= -35; bx++) {
+          for (var bz = 35; bz <= 60; bz++) {
+            if (Math.random() < 0.08) {
+              var by3 = getTerrainHeight(bx, bz);
+              setBlock(bx, by3, bz, BLOCK.RUBBLE);
+            }
+          }
+        }
+      })();
+      // ── Russian BMD/BTR vehicle wrecks from the battle
+      generateWreckedCar(-10, 28);
+      generateWreckedCar(12, 32);
+      generateWreckedCar(-5, 48);
+      // ── Smoke plumes / burning wreckage (FUEL_BARREL blocks = fire)
+      (function () {
+        var fireSpots = [[-50, 45], [-40, 50], [5, 52], [15, 55], [-25, 42]];
+        for (var fi = 0; fi < fireSpots.length; fi++) {
+          var fx = fireSpots[fi][0], fz = fireSpots[fi][1];
+          var fy = getTerrainHeight(fx, fz);
+          setBlock(fx, fy, fz, BLOCK.FUEL_BARREL);
+          setBlock(fx + 1, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx, fy, fz + 1, BLOCK.RUBBLE);
+          setBlock(fx - 1, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx, fy + 1, fz, BLOCK.FUEL_BARREL);
+        }
+      })();
+      // ── Ukrainian flag at the terminal (symbolic — defenders held for hours)
+      (function () {
+        var fy2 = getTerrainHeight(-15, -25);
+        for (var fp = 0; fp < 8; fp++) setBlock(-15, fy2 + 1 + fp, -25, BLOCK.METAL);
+        setBlock(-14, fy2 + 6, -25, BLOCK.CONCRETE);   // blue
+        setBlock(-13, fy2 + 6, -25, BLOCK.CONCRETE);
+        setBlock(-14, fy2 + 7, -25, BLOCK.LIGHT);      // yellow
+        setBlock(-13, fy2 + 7, -25, BLOCK.LIGHT);
+      })();
     } else if (level.id === 'AVDIIVKA') {
       // Coking plant district — dense apartment blocks (west/east flanks)
       generateUkrainianApartment(-20, -20, 6);
@@ -6407,33 +6641,184 @@ window.VoxelWorld = (function () {
       // the player can use it as a backstop firing position
       generateDefensivePosition(-20, 26);
       generateDefensivePosition(18, 26);
-      // ── Extended Kyiv residential districts ──
-      // Western residential corridor (Shevchenkivskyi district style)
+      // ── Second fallback defense line at z=37-40 ──────────────
+      // Sandbag wall with shooting gaps, flanked by concrete extensions
+      (function () {
+        for (var sl = -13; sl <= 13; sl++) {
+          if (Math.abs(sl) <= 3) continue; // keep center lane open
+          var slh = getTerrainHeight(sl, 38);
+          setBlock(sl, slh,     38, BLOCK.SANDBAG);
+          setBlock(sl, slh + 1, 38, BLOCK.SANDBAG);
+          setBlock(sl, slh + 2, 38, BLOCK.CONCRETE);
+          setBlock(sl, slh,     40, BLOCK.SANDBAG);
+          setBlock(sl, slh + 1, 40, BLOCK.SANDBAG);
+        }
+        for (var sl2 = 37; sl2 <= 42; sl2++) {
+          var slhL = getTerrainHeight(-13, sl2);
+          setBlock(-13, slhL, sl2, BLOCK.CONCRETE);
+          setBlock(-13, slhL + 1, sl2, BLOCK.CONCRETE);
+          var slhR = getTerrainHeight(13, sl2);
+          setBlock(13, slhR, sl2, BLOCK.CONCRETE);
+          setBlock(13, slhR + 1, sl2, BLOCK.CONCRETE);
+        }
+      })();
+      // ── Anti-tank earthwork ditch at z=56-57 ─────────────────
+      // Berm of DIRT + SANDBAG on the south (player) side
+      (function () {
+        for (var dd = -14; dd <= 14; dd++) {
+          var ddh = getTerrainHeight(dd, 56);
+          // Carve two-block ditch
+          setBlock(dd, ddh, 56, 0);
+          setBlock(dd, ddh, 57, 0);
+          // Defensive berm facing enemy approach
+          setBlock(dd, ddh,     55, BLOCK.DIRT);
+          setBlock(dd, ddh + 1, 55, BLOCK.SANDBAG);
+          setBlock(dd, ddh + 2, 55, BLOCK.SANDBAG);
+        }
+      })();
+      // ── Outer defensive infantry positions ───────────────────
+      generateDefensivePosition(-18, 40);
+      generateDefensivePosition(18, 40);
+      generateDefensivePosition(0, 46);
+      // ── Additional bomb craters in the deep approach corridor ─
+      (function () {
+        var deepCraters = [[3, 118], [-5, 130], [7, 142], [-2, 152], [5, 163], [-8, 176]];
+        for (var dc = 0; dc < deepCraters.length; dc++) {
+          var dcx = deepCraters[dc][0], dcz = deepCraters[dc][1];
+          for (var dcr = -1; dcr <= 1; dcr++) {
+            for (var dcz2 = -1; dcz2 <= 1; dcz2++) {
+              setBlock(dcx + dcr, 1, dcz + dcz2, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
+      // ── Elevated sniper platform on the roof of the left flank building ──
+      (function () {
+        var spBase = getTerrainHeight(-15, 4) + 9;
+        for (var spx = -17; spx <= -13; spx++) {
+          for (var spz = 3; spz <= 6; spz++) {
+            setBlock(spx, spBase, spz, BLOCK.CONCRETE);
+          }
+        }
+        // Sandbag parapet on three sides (open toward enemy north)
+        for (var pi = -17; pi <= -13; pi++) {
+          setBlock(pi, spBase + 1, 3, BLOCK.SANDBAG);
+        }
+        setBlock(-17, spBase + 1, 4, BLOCK.SANDBAG);
+        setBlock(-17, spBase + 1, 5, BLOCK.SANDBAG);
+        setBlock(-13, spBase + 1, 4, BLOCK.SANDBAG);
+        setBlock(-13, spBase + 1, 5, BLOCK.SANDBAG);
+        setBlock(-15, spBase + 2, 3, BLOCK.SANDBAG); // raised center parapet for prone firing
+      })();
+      // ── Mirror observation post on the right flank ───────────────
+      (function () {
+        var opBase = getTerrainHeight(15, 4) + 9;
+        for (var opx = 13; opx <= 17; opx++) {
+          for (var opz = 3; opz <= 6; opz++) {
+            setBlock(opx, opBase, opz, BLOCK.CONCRETE);
+          }
+        }
+        for (var opi = 13; opi <= 17; opi++) {
+          setBlock(opi, opBase + 1, 3, BLOCK.SANDBAG);
+        }
+        setBlock(13, opBase + 1, 4, BLOCK.SANDBAG);
+        setBlock(13, opBase + 1, 5, BLOCK.SANDBAG);
+        setBlock(17, opBase + 1, 4, BLOCK.SANDBAG);
+        setBlock(17, opBase + 1, 5, BLOCK.SANDBAG);
+        setBlock(15, opBase + 2, 3, BLOCK.SANDBAG);
+      })();
+      // ── Tank hull-down berms — dug-in firing positions for vehicles ──
+      // Two berms flanking the center, z=28-30, vehicles crest the berm to fire
+      (function () {
+        var sides = [[-12, 29], [12, 29], [-12, 45], [12, 45]];
+        for (var bmi = 0; bmi < sides.length; bmi++) {
+          var bmx = sides[bmi][0], bmz = sides[bmi][1];
+          var bmh = getTerrainHeight(bmx, bmz);
+          // Build a 3×3 raised earth mound
+          for (var dx = -1; dx <= 1; dx++) {
+            for (var dz = 0; dz <= 2; dz++) {
+              setBlock(bmx + dx, bmh,     bmz + dz, BLOCK.DIRT);
+              setBlock(bmx + dx, bmh + 1, bmz + dz, BLOCK.SANDBAG);
+            }
+          }
+          // Hull-down lip (one extra row higher at front)
+          for (var dx2 = -1; dx2 <= 1; dx2++) {
+            setBlock(bmx + dx2, bmh + 2, bmz, BLOCK.SANDBAG);
+          }
+        }
+      })();
+      // ── Third fortified line at z=67-70 ──────────────────────────
+      // Mixed concrete wall with METAL reinforced corners
+      (function () {
+        for (var tl = -15; tl <= 15; tl++) {
+          if (Math.abs(tl) <= 3) continue;
+          var tlh = getTerrainHeight(tl, 68);
+          setBlock(tl, tlh,     68, BLOCK.CONCRETE);
+          setBlock(tl, tlh + 1, 68, BLOCK.CONCRETE);
+          setBlock(tl, tlh + 2, 68, BLOCK.CONCRETE);
+          setBlock(tl, tlh,     70, BLOCK.SANDBAG);
+          setBlock(tl, tlh + 1, 70, BLOCK.SANDBAG);
+        }
+        // METAL corner bastions for extra protection
+        for (var tlz = 66; tlz <= 72; tlz++) {
+          var tlhL = getTerrainHeight(-15, tlz);
+          setBlock(-15, tlhL,     tlz, BLOCK.METAL);
+          setBlock(-15, tlhL + 1, tlz, BLOCK.METAL);
+          var tlhR = getTerrainHeight(15, tlz);
+          setBlock(15, tlhR,     tlz, BLOCK.METAL);
+          setBlock(15, tlhR + 1, tlz, BLOCK.METAL);
+        }
+      })();
+      // ── Additional defensive positions at third line ─────────────
+      generateDefensivePosition(-12, 67);
+      generateDefensivePosition(12, 67);
+      // ── Minefield markers (METAL spikes) scattered across wide approach ──
+      // Danger zone: z=80-110, both flanks beyond x=±10
+      (function () {
+        var minePositions = [
+          [-14, 82], [14, 85], [-16, 91], [18, 94], [-12, 103],
+          [16, 88], [-18, 97], [12, 108], [-13, 115], [17, 112],
+        ];
+        for (var mi = 0; mi < minePositions.length; mi++) {
+          var mx = minePositions[mi][0], mz = minePositions[mi][1];
+          var mh = getTerrainHeight(mx, mz);
+          setBlock(mx, mh, mz, BLOCK.METAL);
+          setBlock(mx, mh + 1, mz, BLOCK.METAL); // stake
+        }
+      })();
+      // ── Fourth deep fallback line at z=96-98 ─────────────────────
+      (function () {
+        for (var fl = -12; fl <= 12; fl++) {
+          if (Math.abs(fl) <= 2) continue;
+          var flh = getTerrainHeight(fl, 97);
+          setBlock(fl, flh,     97, BLOCK.SANDBAG);
+          setBlock(fl, flh + 1, 97, BLOCK.SANDBAG);
+          setBlock(fl, flh,     99, BLOCK.DIRT);
+          setBlock(fl, flh + 1, 99, BLOCK.SANDBAG);
+        }
+      })();
+      generateDefensivePosition(-8, 96);
+      generateDefensivePosition(8, 96);
+      // ── Wrecked supply trucks — additional cover in approach zone ─
+      generateWreckedCar(-9, 74);
+      generateWreckedCar(8, 80);
+      generateWreckedCar(-6, 92);
+      // ── Extended Kyiv residential districts (supplement CityExtension) ──
+      // Western corridor (Shevchenkivskyi district)
       generateUkrainianApartment(-45, -25, 9);
       generateUkrainianApartment(-45, 5, 12);
       generateUkrainianApartment(-45, 35, 9);
       generateUkrainianApartment(-60, -10, 6);
       generateUkrainianApartment(-60, 20, 9);
-      // Eastern residential corridor (Pecherskyi district style)
-      generateUkrainianApartment(38, -20, 12);
-      generateUkrainianApartment(38, 10, 9);
-      generateUkrainianApartment(38, 38, 6);
-      generateUkrainianApartment(55, -5, 9);
-      generateUkrainianApartment(55, 25, 12);
       // Northern approach boulevard flanking buildings
       generateUkrainianApartment(-22, 55, 9);
       generateUkrainianApartment(18, 55, 12);
       generateUkrainianApartment(-22, 80, 6);
       generateUkrainianApartment(18, 80, 9);
-      // Deep north (Obolon district) — tall Soviet-era blocks
+      // Deep north (Obolon district — Soviet-era tall blocks)
       generateUkrainianApartment(-30, 110, 12);
       generateUkrainianApartment(0, 115, 9);
       generateUkrainianApartment(25, 110, 12);
-      // Cross-street blocks (Lesia Ukrainka / Baseina area)
-      generateUkrainianApartment(-28, -45, 9);
-      generateUkrainianApartment(22, -45, 12);
-      generateUkrainianApartment(-28, -70, 6);
-      generateUkrainianApartment(22, -70, 9);
       // Burning ruins from Russian bombardment
       generateBurningRuin(-48, -50);
       generateBurningRuin(42, -52);
@@ -6606,6 +6991,7 @@ window.VoxelWorld = (function () {
       // SIEGE OF MOSCOW — Ukrainian fighters storm the capital. The full
       // Kremlin, St Basil's & Red Square, ringed by Russian defenders.
       generateMoscowCityExtension(0, 0);
+      // Russian last-ditch defensive ring around the Kremlin walls.
       generateDefensivePosition(-44, 0);
       generateDefensivePosition(44, 0);
       generateDefensivePosition(0, -44);
@@ -6615,6 +7001,7 @@ window.VoxelWorld = (function () {
       generateCheckpoint(44, 22, true);
       generateCheckpoint(44, -22, true);
       generateRazorWireField(40, 0);
+      // Ukrainian assault staging south of Red Square (player approach).
       generateUkrainianApartment(48, -10, 9);
       generateUkrainianApartment(48, 12, 6);
       generateBurningRuin(38, 40);

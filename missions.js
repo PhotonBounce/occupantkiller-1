@@ -216,8 +216,8 @@ const MissionSystem = (function () {
             },
         // Airborne Assault (Hostomel)
         airborne_assault: {
-          name: 'Airborne Assault',
-          description: 'Repel Russian airborne troops and secure the landing zone.',
+          name: 'Defend Antonov Airport from VDV Assault',
+          description: 'Feb 24, 2022. Russian VDV paratroopers are landing at Hostomel. Defend the Antonov Airport — the An-225 Mriya and Kyiv itself are at stake. 4th Rapid Reaction Brigade, hold the line.',
           tier: 4,
           generate() {
             var playerPos = new THREE.Vector3(0, 0, 0);
@@ -244,7 +244,7 @@ const MissionSystem = (function () {
               spawnedEnemyIds: [],
               waveTimer: 1.0,
               state: 'waiting',
-              objectiveText: 'Prepare for airborne assault...',
+              objectiveText: 'Prepare for VDV airborne assault on Antonov Airport...',
             };
           },
           update(mission, delta) {
@@ -255,7 +255,7 @@ const MissionSystem = (function () {
               if (mission.waveTimer <= 0) {
                 mission.state = 'spawning';
               } else {
-                mission.objectiveText = `Next paratrooper wave in ${Math.ceil(mission.waveTimer)}s...`;
+                mission.objectiveText = `Next VDV paratrooper wave in ${Math.ceil(mission.waveTimer)}s...`;
               }
             }
 
@@ -279,7 +279,7 @@ const MissionSystem = (function () {
               }
               mission.state = 'active';
               if (typeof HUD !== 'undefined' && HUD.showToast) {
-                HUD.showToast(`🪂 WAVE ${mission.completedWaves + 1} PARATROOPERS INBOUND!`, 4000, '#ff4444');
+                HUD.showToast(`🪂 VDV WAVE ${mission.completedWaves + 1} INBOUND! Protect the An-225 Mriya!`, 4000, '#ff4444');
               }
             }
 
@@ -293,14 +293,14 @@ const MissionSystem = (function () {
                   aliveCount++;
                 }
               }
-              mission.objectiveText = `Repel airborne assault: Wave ${mission.completedWaves + 1}/${mission.waves} (${aliveCount} hostiles alive)`;
+              mission.objectiveText = `Repel VDV assault at Antonov Airport: Wave ${mission.completedWaves + 1}/${mission.waves} (${aliveCount} hostiles alive)`;
               if (aliveCount === 0) {
                 mission.completedWaves++;
                 if (mission.completedWaves < mission.waves) {
                   mission.state = 'waiting';
                   mission.waveTimer = 6.0;
                   if (typeof HUD !== 'undefined' && HUD.showToast) {
-                    HUD.showToast(`✓ WAVE ${mission.completedWaves} REPELLED! Next drop imminent.`, 4000, '#88ff88');
+                    HUD.showToast(`✓ WAVE ${mission.completedWaves} REPELLED! VDV falling back. Next drop imminent.`, 4000, '#88ff88');
                   }
                 }
               }

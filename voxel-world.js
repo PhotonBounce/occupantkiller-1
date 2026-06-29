@@ -6388,18 +6388,112 @@ window.VoxelWorld = (function () {
     generateCityRoads(level.id);
     if (level.id === 'HOSTOMEL') {
       generateHostomelAirport(0, 0);
-      // Residential blocks east of the airport (town of Hostomel)
+      // ── Residential blocks south-east of the airport (town of Hostomel)
+      // Real: Hostomel is south/south-east of the airport, ~17,000 population
       generateUkrainianApartment(80, -30, 6);
       generateUkrainianApartment(80, -50, 9);
       generateUkrainianApartment(80, -68, 6);
       generateUkrainianApartment(95, -40, 9);
-      // Enemy drone nests — placed outside the airport perimeter fence
+      generateUkrainianApartment(110, -25, 6);
+      generateUkrainianApartment(105, -60, 9);
+      // ── Battle damage in Hostomel town (40% of buildings destroyed)
+      generateBurningRuin(75, -15);
+      generateBurningRuin(90, -55);
+      generateBurningRuin(115, -40);
+      generateBurningRuin(100, 5);
+      generateBurningRuin(85, 15);
+      // ── Wrecked civilian cars along Hostomel roads
+      generateWreckedCar(82, -22);
+      generateWreckedCar(88, -45);
+      generateWreckedCar(92, -65);
+      generateWreckedCar(108, -35);
+      generateWreckedCar(98, 8);
+      // ── Enemy drone nests — placed outside the airport perimeter fence
       generateDroneNest(80, -20);
       generateDroneNest(-80, -18);
-      // Russian VDV anti-air gun emplacements flanking the runway
+      generateDroneNest(60, 50);
+      // ── Russian VDV anti-air gun emplacements flanking the runway
+      // Historical: VDV brought ZU-23-2 AA guns and MANPADS
       generateAntiAirPosition(-30, 35);
       generateAntiAirPosition(30, 35);
       generateAntiAirPosition(0, 55);
+      // ── Ukrainian National Guard defensive positions (4th Rapid Reaction Brigade)
+      // Historical: ~200-300 National Guard defenders with small arms, MANPADS, BTRs
+      generateDefensivePosition(-25, 15);
+      generateDefensivePosition(25, 15);
+      generateDefensivePosition(0, 30);
+      generateDefensivePosition(-15, 40);
+      generateDefensivePosition(15, 40);
+      // ── Trenches and foxholes along the southern front line
+      (function () {
+        for (var tx = -50; tx <= 50; tx += 8) {
+          var tz = 18 + Math.floor(Math.random() * 4);
+          var th2 = getTerrainHeight(tx, tz);
+          setBlock(tx, th2, tz, BLOCK.DIRT);
+          setBlock(tx, th2 + 1, tz, BLOCK.SANDBAG);
+          setBlock(tx + 1, th2, tz, BLOCK.DIRT);
+          setBlock(tx + 1, th2 + 1, tz, BLOCK.SANDBAG);
+        }
+      })();
+      // ── Craters from artillery / rocket strikes on the airfield
+      (function () {
+        var craterPositions = [[-20, 5], [10, 8], [-35, 15], [25, 20], [0, 45], [-15, 50], [20, 48]];
+        for (var ci = 0; ci < craterPositions.length; ci++) {
+          var cx = craterPositions[ci][0], cz = craterPositions[ci][1];
+          for (var cr = 0; cr < 3; cr++) {
+            for (var crz = -1; crz <= 1; crz++) {
+              setBlock(cx + cr - 1, 1, cz + crz, BLOCK.DIRT);
+              setBlock(cx + cr - 1, 2, cz + crz, BLOCK.RUBBLE);
+            }
+          }
+          // Scorch marks (blackened rubble around crater)
+          for (var sc = 0; sc < 8; sc++) {
+            var sAng = Math.random() * Math.PI * 2;
+            var sRad = 2 + Math.random() * 3;
+            var sx = cx + Math.round(Math.cos(sAng) * sRad);
+            var sz = cz + Math.round(Math.sin(sAng) * sRad);
+            var shy = getTerrainHeight(sx, sz);
+            setBlock(sx, shy, sz, BLOCK.RUBBLE);
+          }
+        }
+      })();
+      // ── Burn marks and scorched earth around Hangar 1 (An-225 destroyed)
+      (function () {
+        for (var bx = -70; bx <= -35; bx++) {
+          for (var bz = 35; bz <= 60; bz++) {
+            if (Math.random() < 0.08) {
+              var by3 = getTerrainHeight(bx, bz);
+              setBlock(bx, by3, bz, BLOCK.RUBBLE);
+            }
+          }
+        }
+      })();
+      // ── Russian BMD/BTR vehicle wrecks from the battle
+      generateWreckedCar(-10, 28);
+      generateWreckedCar(12, 32);
+      generateWreckedCar(-5, 48);
+      // ── Smoke plumes / burning wreckage (FUEL_BARREL blocks = fire)
+      (function () {
+        var fireSpots = [[-50, 45], [-40, 50], [5, 52], [15, 55], [-25, 42]];
+        for (var fi = 0; fi < fireSpots.length; fi++) {
+          var fx = fireSpots[fi][0], fz = fireSpots[fi][1];
+          var fy = getTerrainHeight(fx, fz);
+          setBlock(fx, fy, fz, BLOCK.FUEL_BARREL);
+          setBlock(fx + 1, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx, fy, fz + 1, BLOCK.RUBBLE);
+          setBlock(fx - 1, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx, fy + 1, fz, BLOCK.FUEL_BARREL);
+        }
+      })();
+      // ── Ukrainian flag at the terminal (symbolic — defenders held for hours)
+      (function () {
+        var fy2 = getTerrainHeight(-15, -25);
+        for (var fp = 0; fp < 8; fp++) setBlock(-15, fy2 + 1 + fp, -25, BLOCK.METAL);
+        setBlock(-14, fy2 + 6, -25, BLOCK.CONCRETE);   // blue
+        setBlock(-13, fy2 + 6, -25, BLOCK.CONCRETE);
+        setBlock(-14, fy2 + 7, -25, BLOCK.LIGHT);      // yellow
+        setBlock(-13, fy2 + 7, -25, BLOCK.LIGHT);
+      })();
     } else if (level.id === 'AVDIIVKA') {
       // Coking plant district — dense apartment blocks (west/east flanks)
       generateUkrainianApartment(-20, -20, 6);

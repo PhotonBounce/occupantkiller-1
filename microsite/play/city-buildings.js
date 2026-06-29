@@ -222,6 +222,53 @@ const CityBuildings = (function () {
     }
   }
 
+  function controlTower(ox, oz, gy, w, d, h) {
+    // Standalone airport control tower with observation cab
+    // Shaft
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        for (var z = 0; z < d; z++) {
+          var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+          if (isWall) {
+            setBlock(ox + x, gy + y, oz + z, y < h - 4 ? PAL.CONCRETE : PAL.REINFORCED);
+          }
+        }
+      }
+    }
+    // Observation cab (glass-enclosed, wider than shaft)
+    var cabY = gy + h - 4;
+    var cabOverhang = 2;
+    for (var cx = -cabOverhang; cx < w + cabOverhang; cx++) {
+      for (var cz = -cabOverhang; cz < d + cabOverhang; cz++) {
+        for (var cy = 0; cy < 4; cy++) {
+          var isCabWall = cx === -cabOverhang || cx === w + cabOverhang - 1 || cz === -cabOverhang || cz === d + cabOverhang - 1;
+          var isCabRoof = cy === 3;
+          if (isCabWall || isCabRoof) {
+            var bt = isCabRoof ? PAL.CONCRETE : PAL.GLASS;
+            setBlock(ox + cx, cabY + cy, oz + cz, bt);
+          }
+        }
+      }
+    }
+    // Radar/antenna on top
+    var topY = gy + h + 1;
+    for (var ay = 0; ay < 4; ay++) {
+      setBlock(ox + Math.floor(w / 2), topY + ay, oz + Math.floor(d / 2), PAL.METAL);
+    }
+    // Cross-shaped antenna
+    setBlock(ox + Math.floor(w / 2) - 1, topY + 2, oz + Math.floor(d / 2), PAL.METAL);
+    setBlock(ox + Math.floor(w / 2) + 1, topY + 2, oz + Math.floor(d / 2), PAL.METAL);
+    setBlock(ox + Math.floor(w / 2), topY + 2, oz + Math.floor(d / 2) - 1, PAL.METAL);
+    setBlock(ox + Math.floor(w / 2), topY + 2, oz + Math.floor(d / 2) + 1, PAL.METAL);
+    // Damage: skip some blocks for destroyed look
+    for (var dmg = 0; dmg < 3; dmg++) {
+      var dmgX = ox + Math.floor(Math.random() * w);
+      var dmgY = gy + Math.floor(Math.random() * h);
+      var dmgZ = oz + Math.floor(Math.random() * d);
+      setBlock(dmgX, dmgY, dmgZ, PAL.AIR);
+    }
+  }
+
   function warehouse(ox, oz, gy, w, d, h) {
     // Simple warehouse with corrugated metal walls
     for (var y = 0; y < h; y++) {
@@ -451,45 +498,63 @@ const CityBuildings = (function () {
   const CITIES = {};
 
   // ═══════════════════════════════════════════════════════════
-  // 1. HOSTOMEL AIRPORT (Kyiv region)
+  // 1. HOSTOMEL AIRPORT (Kyiv region) — Antonov Airport / Gostomel
+  // Historical references:
+  //   • Built 1959, 3.5 km runway (one of Europe's longest), 56 m wide
+  //   • Home of Antonov Design Bureau and An-225 Mriya
+  //   • Feb 24 2022: ~34 Russian helicopters (Ka-52/Mi-8) assaulted with VDV
+  //   • 4th Rapid Reaction Brigade (National Guard) defended with ~200-300 men
+  //   • An-225 Mriya destroyed in Hangar 1 on/after Feb 27 2022
+  //   • Control tower and administration building destroyed
+  //   • Intense fighting south of hangars, front line on division road
+  //   • 40% of Hostomel town buildings destroyed (~4,500 of 11,800)
   // ═══════════════════════════════════════════════════════════
   CITIES.hostomel = [
-    // Airport buildings
-    { type: 'airportTerminal', params: [40, 12, 6], x: -20, z: -30, note: 'Antonov Airport Terminal' },
-    { type: 'hangar', params: [25, 15, 8], x: -30, z: -10, note: 'Hangar 1 (An-225 Mriya)' },
-    { type: 'hangar', params: [20, 12, 6], x: 10, z: -15, note: 'Hangar 2' },
-    { type: 'hangar', params: [20, 12, 6], x: 35, z: -15, note: 'Hangar 3' },
-    { type: 'controlTower', params: [], x: 0, z: -40, note: 'ATC Tower' },
-    // Town buildings
-    { type: 'sovietApartment', params: [16, 8, 5, 0.3], x: -40, z: 20, note: 'Soviet apartment block (damaged)' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: 25, note: 'Soviet apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 4, 0.4], x: 0, z: 30, note: 'Soviet apartment block (heavily damaged)' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: 20, z: 20, note: 'Admin building' },
-    { type: 'warehouse', params: [15, 10, 4], x: 40, z: 15, note: 'Warehouse' },
-    { type: 'warehouse', params: [12, 8, 4], x: -15, z: 40, note: 'Storage depot' },
-    { type: 'ruinedBuilding', params: [10, 8, 4, 2.5], x: 30, z: 35, note: 'Destroyed school' },
-    { type: 'ruinedBuilding', params: [8, 6, 3, 2.0], x: 45, z: 25, note: 'Ruined house' },
-    { type: 'monument', params: ['tank'], x: 50, z: 40, note: 'Tank monument' },
-    { type: 'bunker', params: [], x: -10, z: -20, note: 'Air raid shelter' },
-    { type: 'bunker', params: [], x: 15, z: -25, note: 'Fuel bunker' },
-    { type: 'industrialFactory', params: [20, 12, 5], x: -35, z: -35, note: 'Maintenance hangar' },
-    { type: 'bridge', params: [30, 4, 2], x: -40, z: 0, note: 'Bridge over creek' },
-    { type: 'radarStation', params: [], x: 25, z: -35, note: 'Radar station' },
-    { type: 'ruinedBuilding', params: [12, 8, 3, 1.5], x: 35, z: 10, note: 'Damaged office' },
-    { type: 'sovietApartment', params: [14, 7, 4, 0.2], x: -25, z: 45, note: 'Residential block' },
-    { type: 'warehouse', params: [10, 8, 3], x: 10, z: 45, note: 'Civilian warehouse' },
-    { type: 'officeBuilding', params: [8, 6, 3], x: 30, z: 45, note: 'Medical clinic' },
-    { type: 'monument', params: ['obelisk'], x: 0, z: 50, note: 'War memorial' },
-    { type: 'ruinedBuilding', params: [14, 10, 4, 2.0], x: -45, z: 10, note: 'Ruined apartment' },
-    { type: 'bunker', params: [], x: 45, z: -10, note: 'Ammo bunker' },
-    { type: 'industrialFactory', params: [15, 10, 4], x: -50, z: -20, note: 'Workshop' },
-    { type: 'ruinedBuilding', params: [8, 6, 3, 1.0], x: 50, z: 0, note: 'Shop ruins' },
-    { type: 'warehouse', params: [12, 8, 4], x: 20, z: -10, note: 'Cargo warehouse' },
-    { type: 'sovietApartment', params: [12, 6, 3, 0.1], x: -5, z: 15, note: 'Small apartment' },
-    { type: 'orthodoxChurch', params: [8, 10, 6], x: 40, z: -40, note: 'St. George Church' },
-    { type: 'ruinedBuilding', params: [10, 8, 4, 2.0], x: -35, z: 5, note: 'Destroyed building' },
-    { type: 'bunker', params: [], x: 5, z: 5, note: 'Command bunker' },
-    { type: 'monument', params: ['tank'], x: -50, z: 50, note: 'T-34 monument' },
+    // ── Airport core buildings (north of town, west of Kyiv) ──
+    { type: 'airportTerminal', params: [40, 14, 6], x: -15, z: -25, note: 'Antonov Airport Terminal (admin building, partially destroyed)' },
+    { type: 'hangar', params: [32, 22, 14], x: -35, z: 10, note: 'Hangar 1 — An-225 Mriya (destroyed Feb 27, 2022)' },
+    { type: 'hangar', params: [28, 18, 10], x: 5, z: 12, note: 'Hangar 2 — An-124 Ruslan / Antonov offices' },
+    { type: 'hangar', params: [24, 14, 8], x: 40, z: 8, note: 'Hangar 3 — An-22 Antei / museum storage' },
+    { type: 'controlTower', params: [4, 4, 22], x: 25, z: -20, note: 'ATC Tower (destroyed by shelling, Feb 2022)' },
+    { type: 'officeBuilding', params: [12, 10, 4], x: -5, z: -45, note: 'Antonov Administration Building (destroyed)' },
+    { type: 'warehouse', params: [15, 10, 4], x: 35, z: 15, note: 'Cargo Warehouse' },
+    { type: 'warehouse', params: [12, 8, 3], x: 35, z: -5, note: 'Aviation Museum / Spare Parts' },
+    { type: 'industrialFactory', params: [18, 12, 5], x: -45, z: -15, note: 'Maintenance Workshop' },
+    { type: 'warehouse', params: [14, 10, 4], x: -50, z: 25, note: 'Fuel Depot' },
+
+    // ── Battlefield — VDV assault aftermath (Feb 24-25, 2022) ──
+    { type: 'monument', params: ['tank'], x: 0, z: 35, note: 'Destroyed BMD-2 VDV vehicle' },
+    { type: 'ruinedBuilding', params: [10, 8, 4, 2.5], x: -15, z: 25, note: 'VDV Mi-8 helicopter wreck (shot down by MANPADS)' },
+    { type: 'ruinedBuilding', params: [8, 6, 3, 2.0], x: 15, z: 30, note: 'Burned Russian supply truck' },
+    { type: 'ruinedBuilding', params: [6, 4, 2, 1.0], x: 5, z: 45, note: 'BTR wreckage from Ukrainian counter-attack' },
+    { type: 'bunker', params: [], x: -20, z: -5, note: 'Ukrainian National Guard trench (4th Rapid Reaction Brigade)' },
+    { type: 'bunker', params: [], x: 20, z: -5, note: 'Ukrainian ZU-23-2 anti-air position' },
+    { type: 'bunker', params: [], x: 0, z: 20, note: 'Front line trench — division road (Feb 24, 2022)' },
+    { type: 'bunker', params: [], x: -35, z: 35, note: 'VDV landing zone foxhole' },
+    { type: 'radarStation', params: [], x: 30, z: -40, note: 'Airport radar station' },
+
+    // ── Aircraft destroyed / damaged on the apron ──
+    { type: 'ruinedBuilding', params: [14, 10, 4, 2.0], x: -30, z: 45, note: 'An-74 wreckage (destroyed on apron)' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.5], x: 10, z: 50, note: 'An-26 wreckage (destroyed on apron)' },
+    { type: 'monument', params: ['tank'], x: -50, z: 50, note: 'An-22 Antei memorial wreck' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -10, z: 55, note: 'Damaged An-124 hangar' },
+
+    // ── Town of Hostomel (south-east of airport, ~17,000 pop) ──
+    { type: 'sovietApartment', params: [16, 8, 5, 0.4], x: 50, z: 25, note: 'Soviet apartment (damaged by shelling)' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.3], x: 65, z: 15, note: 'Soviet apartment block' },
+    { type: 'sovietApartment', params: [14, 7, 4, 0.5], x: 55, z: 40, note: 'Residential block (heavily damaged — 40% of Hostomel destroyed)' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 70, z: 30, note: 'Soviet apartment block' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: 60, z: -10, note: 'Hostomel Town Hall' },
+    { type: 'warehouse', params: [12, 8, 3], x: 75, z: 20, note: 'Civilian warehouse' },
+    { type: 'orthodoxChurch', params: [8, 10, 6], x: 45, z: -35, note: 'St. George Church' },
+    { type: 'ruinedBuilding', params: [10, 8, 4, 2.0], x: 80, z: 10, note: 'Destroyed school (4 schools damaged in Hostomel)' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.5], x: 50, z: 55, note: 'Ruined apartment block' },
+    { type: 'monument', params: ['obelisk'], x: 65, z: -25, note: 'Hostomel War Memorial' },
+    { type: 'bunker', params: [], x: 55, z: 5, note: 'Civil defense shelter' },
+    { type: 'warehouse', params: [10, 8, 3], x: 85, z: 35, note: 'Shop (grocery store — 17 stores destroyed)' },
+    { type: 'ruinedBuilding', params: [8, 6, 3, 1.5], x: 40, z: 50, note: 'Burned house' },
+    { type: 'industrialFactory', params: [15, 10, 4], x: 75, z: -5, note: 'VETROPAK Glass Factory (damaged)' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.8], x: 90, z: 20, note: 'Destroyed kindergarten (2 kindergartens damaged)' },
   ];
 
   // ═══════════════════════════════════════════════════════════
@@ -1176,26 +1241,26 @@ const CityBuildings = (function () {
   const ROADS = {};
 
   ROADS.hostomel = [
-    // Road 1: Main runway approach (north-south)
-    [[-40, -50], [-40, -30], [-40, -10], [-40, 10], [-40, 30], [-40, 50]],
-    // Road 2: Cross runway (east-west)
-    [[-50, -20], [-30, -20], [-10, -20], [10, -20], [30, -20], [50, -20]],
-    // Road 3: Town main street
-    [[-50, 20], [-30, 20], [-10, 20], [10, 20], [30, 20], [50, 20]],
-    // Road 4: Airport perimeter road
-    [[-50, -40], [-30, -40], [0, -40], [30, -40], [50, -40]],
-    // Road 5: Town ring road (north)
-    [[-50, 10], [-30, 10], [-10, 10], [10, 10], [30, 10], [50, 10]],
-    // Road 6: Town ring road (south)
+    // Road 1: Main runway (east-west, 3.5 km representation)
+    [[-60, 0], [-40, 0], [-20, 0], [0, 0], [20, 0], [40, 0], [60, 0]],
+    // Road 2: Taxiway from runway to apron (north-south)
+    [[-40, -20], [-40, 0], [-40, 20], [-40, 40]],
+    // Road 3: Apron service road (east-west along terminal)
     [[-50, 40], [-30, 40], [-10, 40], [10, 40], [30, 40], [50, 40]],
-    // Road 7: Airport to town connector
-    [[0, -30], [0, -10], [0, 10], [0, 30]],
-    // Road 8: East-west secondary
-    [[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]],
-    // Road 9: Northwest diagonal
-    [[-50, -30], [-40, -20], [-30, -10], [-20, 0], [-10, 10]],
-    // Road 10: Southeast diagonal
-    [[10, 10], [20, 20], [30, 30], [40, 40], [50, 50]],
+    // Road 4: Highway E373 — Bucha to Horenka approach (west-east)
+    [[-70, -50], [-50, -40], [-30, -30], [-10, -20], [10, -20], [30, -30], [50, -40], [70, -50]],
+    // Road 5: P02 road — Demydiv approach (south-east)
+    [[20, 60], [30, 50], [40, 40], [50, 30], [60, 20], [70, 10]],
+    // Road 6: Airport perimeter road (west side)
+    [[-60, -50], [-60, -30], [-60, -10], [-60, 10], [-60, 30], [-60, 50]],
+    // Road 7: Hostomel town main street (north-south through town)
+    [[60, -30], [60, -10], [60, 10], [60, 30], [60, 50], [60, 70]],
+    // Road 8: Hostomel town cross street (east-west)
+    [[40, 20], [50, 20], [60, 20], [70, 20], [80, 20], [90, 20]],
+    // Road 9: Southern parallel (town ring)
+    [[40, 50], [50, 50], [60, 50], [70, 50], [80, 50]],
+    // Road 10: Northern approach to airport from Kyiv
+    [[0, -60], [0, -40], [0, -20], [0, 0]],
   ];
 
   ROADS.avdiivka = [
@@ -1654,6 +1719,7 @@ const CityBuildings = (function () {
     hangar: hangar,
     warehouse: warehouse,
     officeBuilding: officeBuilding,
+    controlTower: controlTower,
     monument: monument,
     bridge: bridge,
     radarStation: radarStation,
