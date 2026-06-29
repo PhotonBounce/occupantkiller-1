@@ -109,17 +109,17 @@ const GameManager = (function () {
   // Footstep dust puffs (visible when sprinting)
   var _footstepPuffs = [];
   var _footstepPuffGeo = null;
+  var _footstepPuffMat = null; // shared material to avoid per-puff allocation
   function _spawnFootstepPuff() {
     if (!_scene) return;
     if (!_footstepPuffGeo) _footstepPuffGeo = new THREE.PlaneGeometry(0.5, 0.5);
+    if (!_footstepPuffMat) _footstepPuffMat = new THREE.MeshBasicMaterial({
+      color: 0xb0a080, transparent: true, opacity: 0.45, depthWrite: false,
+    });
     var groundY = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
       ? VoxelWorld.getTerrainHeight(player.position.x, player.position.z)
       : (player.position.y - player.height);
-    var mat = new THREE.MeshBasicMaterial({
-      color: 0xb0a080, transparent: true, opacity: 0.45,
-      depthWrite: false,
-    });
-    var puff = new THREE.Mesh(_footstepPuffGeo, mat);
+    var puff = new THREE.Mesh(_footstepPuffGeo, _footstepPuffMat);
     puff.rotation.x = -Math.PI / 2;
     puff.position.set(
       player.position.x + (Math.random() - 0.5) * 0.2,
@@ -129,7 +129,7 @@ const GameManager = (function () {
     var s = 0.4 + Math.random() * 0.2;
     puff.scale.set(s, s, 1);
     _scene.add(puff);
-    _footstepPuffs.push({ mesh: puff, material: mat, life: 0.5, maxLife: 0.5 });
+    _footstepPuffs.push({ mesh: puff, material: _footstepPuffMat, life: 0.5, maxLife: 0.5 });
     // Cap puff count for perf
     if (_footstepPuffs.length > 24) {
       var oldP = _footstepPuffs.shift();
@@ -148,7 +148,7 @@ const GameManager = (function () {
       p.mesh.position.y += delta * 0.15;
       if (p.life <= 0) {
         if (_scene) _scene.remove(p.mesh);
-        if (p.material && p.material.dispose) p.material.dispose();
+        // NOTE: material is shared (_footstepPuffMat), do NOT dispose
         _footstepPuffs.splice(pi, 1);
       }
     }
@@ -161,7 +161,8 @@ const GameManager = (function () {
     if (!_threatEl) return;
     var threatNear = false;
     if (typeof Enemies !== 'undefined' && Enemies.getAll && _camera) {
-      var fwd = _camera.getWorldDirection(new THREE.Vector3());
+      _camera.getWorldDirection(_gmTmp1); // reuse pre-allocated temp
+      var fwd = _gmTmp1;
       var pp = player.position;
       var list = Enemies.getAll();
       for (var ii = 0; ii < list.length; ii++) {
@@ -6917,7 +6918,8 @@ const GameManager = (function () {
       // ── Crosshair target tint: red when aimed at enemy (cheap dot-product check) ──
       try {
         if (HUD.setCrosshairTarget && _camera && Enemies.getAll) {
-          var _camFwd = _camera.getWorldDirection(new THREE.Vector3());
+          _camera.getWorldDirection(_gmTmp2); // reuse pre-allocated temp
+          var _camFwd = _gmTmp2;
           var _camPos = _camera.position;
           var _onTarget = false;
           var _onTargetDist = 0;
