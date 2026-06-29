@@ -1774,6 +1774,70 @@ window.VoxelWorld = (function () {
     }
   }
 
+  /* ── City Blueprint Integration ───────────────────────────────────── */
+  // Generate buildings from city-buildings.js blueprint data for a given stage
+  function generateCityFromBlueprints(levelId) {
+    if (typeof CityBuildings === 'undefined' || !CityBuildings.STAGE_MAP) return;
+    var cityKey = CityBuildings.STAGE_MAP[levelId];
+    if (!cityKey) return;
+    var cityData = CityBuildings.CITIES[cityKey];
+    if (!cityData) return;
+    for (var i = 0; i < cityData.length; i++) {
+      var b = cityData[i];
+      var gy = getTerrainHeight(b.x, b.z);
+      var fn = CityBuildings[b.type];
+      if (typeof fn !== 'function') continue;
+      // Call template with all params: fn(x, z, gy, ...params)
+      var args = [b.x, b.z, gy];
+      if (b.params && b.params.length) {
+        for (var pi = 0; pi < b.params.length; pi++) args.push(b.params[pi]);
+      }
+      fn.apply(null, args);
+      // Register building in _buildings for mission targeting
+      try {
+        var bw = 10, bd = 10, bh = 6, bfloors = 3;
+        if (b.type === 'sovietApartment') { bw = b.params[0] || 16; bd = b.params[1] || 8; bfloors = b.params[2] || 5; bh = bfloors * 3 + 1; }
+        else if (b.type === 'orthodoxChurch') { bw = b.params[0] || 8; bd = b.params[1] || 10; bh = b.params[2] || 6; }
+        else if (b.type === 'industrialFactory') { bw = b.params[0] || 20; bd = b.params[1] || 12; bh = b.params[2] || 5; }
+        else if (b.type === 'airportTerminal') { bw = b.params[0] || 20; bd = b.params[1] || 10; bh = b.params[2] || 4; }
+        else if (b.type === 'hangar') { bw = b.params[0] || 20; bd = b.params[1] || 12; bh = b.params[2] || 6; }
+        else if (b.type === 'warehouse') { bw = b.params[0] || 15; bd = b.params[1] || 10; bh = b.params[2] || 4; }
+        else if (b.type === 'officeBuilding') { bw = b.params[0] || 10; bd = b.params[1] || 8; bfloors = b.params[2] || 4; bh = bfloors * 3 + 1; }
+        else if (b.type === 'ruinedBuilding') { bw = b.params[0] || 10; bd = b.params[1] || 8; bh = b.params[2] || 3; }
+        else if (b.type === 'bunker') { bw = 6; bd = 6; bh = 3; }
+        else if (b.type === 'radarStation') { bw = 4; bd = 4; bh = 8; }
+        else if (b.type === 'monument') { bw = 4; bd = 4; bh = 12; }
+        else if (b.type === 'bridge') { bw = b.params[0] || 20; bd = b.params[1] || 4; bh = b.params[2] || 2; }
+        var totalBlocks = bw * bd * bh;
+        _buildings.push({
+          x: b.x, z: b.z, w: bw, d: bd, h: bh, floors: bfloors,
+          kind: b.type === 'sovietApartment' ? 'apartment' : (b.type === 'officeBuilding' ? 'office' : b.type),
+          baseY: gy, blocksRemaining: totalBlocks, totalBlocks: totalBlocks,
+          floorH: 3, cz: b.z + Math.floor(bd / 2), note: b.note || ''
+        });
+      } catch (e) { /* ignore registration errors */ }
+    }
+  }
+
+  // Generate roads from city-buildings.js road data for a given stage
+  function generateCityRoads(levelId) {
+    if (typeof CityBuildings === 'undefined' || !CityBuildings.STAGE_MAP) return;
+    var cityKey = CityBuildings.STAGE_MAP[levelId];
+    if (!cityKey) return;
+    var roads = CityBuildings.ROADS[cityKey];
+    if (!roads) return;
+    for (var ri = 0; ri < roads.length; ri++) {
+      var road = roads[ri];
+      if (!road || road.length < 2) continue;
+      for (var wi = 0; wi < road.length - 1; wi++) {
+        var p1 = road[wi];
+        var p2 = road[wi + 1];
+        if (!p1 || !p2 || p1.length < 2 || p2.length < 2) continue;
+        generateRoad(p1[0], p1[1], p2[0], p2[1], 3);
+      }
+    }
+  }
+
   function generateMarsh(count) {
     for (let m = 0; m < count; m++) {
       const mx = randInWorld();
@@ -6185,6 +6249,9 @@ window.VoxelWorld = (function () {
       [ -80,   0,  -80, -80, 3],   // west connector
       [  80,   0,   80,  80, 3],   // east connector
     ]);
+    // Generate city-specific buildings and roads from blueprints (30+ buildings, 10 roads per city)
+    generateCityFromBlueprints(level.id);
+    generateCityRoads(level.id);
     if (level.id === 'HOSTOMEL') {
       generateHostomelAirport(0, 0);
       generateUkrainianApartment(-35, -30, 6);

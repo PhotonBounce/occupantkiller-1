@@ -3925,29 +3925,50 @@ const GameManager = (function () {
     var transportMinWave = tankFocus ? 2 : 5;
     var extraTanks = tankFocus ? 1 + Math.min(3, Math.floor(w / 2)) : 0;
 
+    // Helper: pick a random road waypoint for vehicle spawning (tanks/BMPs only on roads)
+    var _roadWPs = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getRoadWaypoints) ? VoxelWorld.getRoadWaypoints() : [];
+    function _roadSpawnPos(minDist) {
+      if (_roadWPs.length > 0) {
+        var _rIdx = Math.floor(Math.random() * _roadWPs.length);
+        var _rwp = _roadWPs[_rIdx];
+        // Ensure it's far enough from player if minDist specified
+        if (minDist) {
+          var _rpd = new THREE.Vector3(_rwp.x, 0, _rwp.z).distanceTo(player.position);
+          if (_rpd < minDist) {
+            // Try a few more times
+            for (var _rt = 0; _rt < 5; _rt++) {
+              _rIdx = Math.floor(Math.random() * _roadWPs.length);
+              _rwp = _roadWPs[_rIdx];
+              _rpd = new THREE.Vector3(_rwp.x, 0, _rwp.z).distanceTo(player.position);
+              if (_rpd >= minDist) break;
+            }
+          }
+        }
+        return { x: _rwp.x, z: _rwp.z };
+      }
+      // Fallback: random position (if no roads)
+      var _fa = Math.random() * Math.PI * 2;
+      var _fd = (minDist || 35) + Math.random() * 10;
+      return { x: Math.cos(_fa) * _fd, z: Math.sin(_fa) * _fd };
+    }
+
     if (w >= armorMinWave && !capitalDefense) {
-      var enemySpawnAngle = Math.random() * Math.PI * 2;
-      var enemySpawnDist = 35 + Math.random() * 10;
-      var evx = Math.cos(enemySpawnAngle) * enemySpawnDist;
-      var evz = Math.sin(enemySpawnAngle) * enemySpawnDist;
+      var _rsp = _roadSpawnPos(30);
+      var evx = _rsp.x, evz = _rsp.z;
       var evy = VoxelWorld.getTerrainHeight(evx, evz);
       VehicleSystem.spawnEnemy(evx, evy, evz, 'combat');
       HUD.notifyPickup('⚠ ENEMY ARMOR SPOTTED!', '#ff4444');
     }
     if (w >= transportMinWave && !capitalDefense) {
-      var evAngle2 = Math.random() * Math.PI * 2;
-      var evDist2 = 30 + Math.random() * 10;
-      var evx2 = Math.cos(evAngle2) * evDist2;
-      var evz2 = Math.sin(evAngle2) * evDist2;
+      var _rsp2 = _roadSpawnPos(25);
+      var evx2 = _rsp2.x, evz2 = _rsp2.z;
       var evy2 = VoxelWorld.getTerrainHeight(evx2, evz2);
       VehicleSystem.spawnEnemy(evx2, evy2, evz2, 'transport');
     }
-    // tankFocus extra armored column — convoy-style spawn pattern
+    // tankFocus extra armored column — convoy-style spawn pattern on roads
     for (var et = 0; et < extraTanks; et++) {
-      var convoyAngle = (et / Math.max(1, extraTanks)) * Math.PI * 0.6 - Math.PI * 0.3 + (Math.random() - 0.5) * 0.4;
-      var convoyDist = 38 + et * 6 + Math.random() * 6;
-      var ctx = Math.cos(convoyAngle) * convoyDist;
-      var ctz = Math.sin(convoyAngle) * convoyDist;
+      var _rsp3 = _roadSpawnPos(35);
+      var ctx = _rsp3.x, ctz = _rsp3.z;
       var cty = VoxelWorld.getTerrainHeight(ctx, ctz);
       VehicleSystem.spawnEnemy(ctx, cty, ctz, 'combat');
     }
@@ -4255,10 +4276,8 @@ const GameManager = (function () {
       HUD.notifyPickup('⚠ HEAVY ARMORED COUNTER-ATTACK — GRAB ANTI-TANK WEAPONS!', '#ff8800');
       // Extra BTR spawn from wave 1 to reflect "tanks and mech infantry counter-attack"
       if (!capitalDefense && typeof VehicleSystem !== 'undefined') {
-        var _bgrA = Math.random() * Math.PI * 2;
-        var _bgrD = 35 + Math.random() * 10;
-        var _bgrX = Math.cos(_bgrA) * _bgrD;
-        var _bgrZ = Math.sin(_bgrA) * _bgrD;
+        var _bgrSP = _roadSpawnPos(35);
+        var _bgrX = _bgrSP.x, _bgrZ = _bgrSP.z;
         VehicleSystem.spawnEnemy(_bgrX, VoxelWorld.getTerrainHeight(_bgrX, _bgrZ), _bgrZ, 'combat');
       }
     }

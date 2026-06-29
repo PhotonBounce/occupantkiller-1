@@ -1081,6 +1081,14 @@
 
 <!-- Core modules (order matters: dependencies first) -->
 <script src="voxel-world.js?v=20260429b"></script>
+<script>
+  // Bridge: export voxel-world block functions so city-buildings.js templates can use them
+  if (typeof window !== 'undefined' && window.VoxelWorld) {
+    window.setBlock = window.VoxelWorld.setBlock;
+    window.getTerrainHeight = window.VoxelWorld.getTerrainHeight;
+  }
+</script>
+<script src="city-buildings.js?v=20260429b"></script>
 <script src="camera-system.js?v=20260429b"></script>
 <script src="time-system.js?v=20260429b"></script>
 <!-- economy.js REMOVED: dead blockchain/economy code stripped -->
