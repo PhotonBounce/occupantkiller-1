@@ -6257,60 +6257,151 @@ const GameManager = (function () {
     }
   }
 
-  /* ── Main Update Loop ────────────────────────────────────────────── */
+  /* ── Aggressive Performance System ────────────────────────────────── */
   let prevTime = performance.now();
   var _fpsAccum = 0;
   var _fpsSamples = 0;
   var _perfCheckTimer = 0;
   var _qualityReduced = false;
   var _perfLevel = 0;            // current auto-optimization tier (0 = full quality)
-  var _PERF_MAX_LEVEL = 3;
+  var _PERF_MAX_LEVEL = 5;       // 0-5: ULTRA, HIGH, MEDIUM, LOW, VERY_LOW, MINIMAL
   var _lowFpsStreak = 0;
   var _highFpsStreak = 0;
   var _baseFogFar = isMobile ? 55 : 120;
   var _baseShadowsEnabled = true;
   var _basePixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.1 : 1.5);
+  var _currentMaxEnemies = 40;   // dynamic enemy cap based on perf level
+  var _currentMaxParticles = 200; // dynamic particle cap
+  var _currentMaxVehicles = 6;   // dynamic vehicle cap
+  var _currentMaxDrones = 4;     // dynamic drone cap
+  var _buildingLodEnabled = false; // building LOD toggle
+  var _textureQuality = 1.0;     // texture scale (1.0 = full, 0.5 = half)
+  var _frameSkip = 0;            // frames to skip (0 = none, 1 = render every 2nd, 2 = every 3rd)
+  var _frameSkipCounter = 0;
 
   var _cullDistance = 9999;   // mobile draw-distance cull radius (world units); ∞ on desktop
   // Pick a sane starting tier from the device class so weak hardware doesn't boot
   // at ULTRA and crawl down over ~12s of stutter. Mobile starts reduced; very weak
   // phones (low RAM / few cores) or the WebGL "compatibility" fallback start lower.
   function _computeInitialPerfLevel() {
-    if (!isMobile) return (_rendererProfile === 'compatibility') ? 2 : 0;
+    if (!isMobile) return (_rendererProfile === 'compatibility') ? 3 : 0;
     var mem = navigator.deviceMemory || 4;        // GB, Chrome-only (≈4 on midrange)
     var cores = navigator.hardwareConcurrency || 4;
     var weak = (mem <= 3) || (cores <= 4) || _rendererProfile === 'compatibility';
-    return weak ? 3 : 2;                           // LOW for weak phones, MEDIUM otherwise
+    return weak ? 5 : 3;                           // VERY_LOW for weak phones, LOW otherwise
   }
   function _applyPerfLevel(level, fps, silent) {
     _perfLevel = Math.max(0, Math.min(level, _PERF_MAX_LEVEL));
     _qualityReduced = _perfLevel > 0;
     try {
-      var pr, fogFar, shadows, cull;
-      // Mobile never gets real-time shadows at any tier (tiled GPUs choke on them).
-      if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled && !isMobile; _lowEndVFX = false; cull = isMobile ? 95 : 9999; }
-      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 58 : 90; shadows = false; _lowEndVFX = false; cull = isMobile ? 82 : 9999; }
-      else if (_perfLevel === 2) { pr = 1.0; fogFar = isMobile ? 52 : 60; shadows = false; _lowEndVFX = true; cull = 70; }
-      else                       { pr = 0.7; fogFar = 44; shadows = false; _lowEndVFX = true; cull = 56; }
-      _cullDistance = cull;
-      // Decorative-light/VFX kill switch: always on for mobile; weak desktops join at tier >= 2.
-      var _nowLowSpec = isMobile || _perfLevel >= 2;
-      // Leaving low-spec (e.g. a weak desktop recovering tiers): un-hide any terrain
-      // chunks the distance-cull hid, so they can't stay permanently invisible once
-      // the per-frame cull stops running.
-      if (!_nowLowSpec && window.__OK_LOWSPEC && window.VoxelWorld && VoxelWorld.cullChunks && _camera) {
-        try { VoxelWorld.cullChunks(_camera.position.x, _camera.position.z, 999999); } catch (_eRC) {}
+      var pr, fogFar, shadows, cull, maxEnemies, maxParts, maxVeh, maxDrones, texQ, fSkip;
+      // Six tiers: ULTRA → HIGH → MEDIUM → LOW → VERY_LOW → MINIMAL
+      if (_perfLevel === 0) {      // ULTRA
+        pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled && !isMobile;
+        _lowEndVFX = false; cull = isMobile ? 95 : 9999;
+        maxEnemies = 40; maxParts = 200; maxVeh = 6; maxDrones = 4; texQ = 1.0; fSkip = 0;
+      } else if (_perfLevel === 1) { // HIGH
+        pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 58 : 90; shadows = false;
+        _lowEndVFX = false; cull = isMobile ? 82 : 120;
+        maxEnemies = 32; maxParts = 150; maxVeh = 5; maxDrones = 3; texQ = 1.0; fSkip = 0;
+      } else if (_perfLevel === 2) { // MEDIUM
+        pr = 1.0; fogFar = isMobile ? 52 : 70; shadows = false;
+        _lowEndVFX = true; cull = 70;
+        maxEnemies = 24; maxParts = 100; maxVeh = 4; maxDrones = 2; texQ = 0.8; fSkip = 0;
+      } else if (_perfLevel === 3) { // LOW
+        pr = 0.8; fogFar = 48; shadows = false;
+        _lowEndVFX = true; cull = 56;
+        maxEnemies = 16; maxParts = 60; maxVeh = 3; maxDrones = 2; texQ = 0.6; fSkip = 0;
+      } else if (_perfLevel === 4) { // VERY_LOW
+        pr = 0.6; fogFar = 40; shadows = false;
+        _lowEndVFX = true; cull = 44;
+        maxEnemies = 10; maxParts = 30; maxVeh = 2; maxDrones = 1; texQ = 0.5; fSkip = 1;
+      } else {                       // MINIMAL
+        pr = 0.5; fogFar = 32; shadows = false;
+        _lowEndVFX = true; cull = 36;
+        maxEnemies = 6; maxParts = 15; maxVeh = 1; maxDrones = 1; texQ = 0.4; fSkip = 2;
       }
-      window.__OK_LOWSPEC = _nowLowSpec;
+      _cullDistance = cull;
+      _currentMaxEnemies = maxEnemies;
+      _currentMaxParticles = maxParts;
+      _currentMaxVehicles = maxVeh;
+      _currentMaxDrones = maxDrones;
+      _textureQuality = texQ;
+      _frameSkip = fSkip;
+      _buildingLodEnabled = (_perfLevel >= 3);
+
+      // Apply settings
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
       if (sunLight) sunLight.castShadow = shadows;
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
       if (_scene && _scene.fog) _scene.fog.far = fogFar;
-      var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW'][_perfLevel] || 'L' + _perfLevel;
+
+      // Enforce enemy caps
+      if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+        var elist = Enemies.getAll();
+        if (elist && elist.length > maxEnemies) {
+          // Despawn excess enemies (furthest from player)
+          var px = player.position.x, pz = player.position.z;
+          elist.sort(function(a, b) {
+            if (!a || !a.mesh) return 1;
+            if (!b || !b.mesh) return -1;
+            var da = (a.mesh.position.x - px) * (a.mesh.position.x - px) + (a.mesh.position.z - pz) * (a.mesh.position.z - pz);
+            var db = (b.mesh.position.x - px) * (b.mesh.position.x - px) + (b.mesh.position.z - pz) * (b.mesh.position.z - pz);
+            return db - da; // furthest first
+          });
+          for (var ei = maxEnemies; ei < elist.length; ei++) {
+            var ee = elist[ei];
+            if (ee && ee.alive) { ee.alive = false; if (ee.mesh) ee.mesh.visible = false; }
+          }
+        }
+      }
+
+      // Enforce vehicle caps
+      if (typeof VehicleSystem !== 'undefined' && VehicleSystem.getVehicles) {
+        var vlist = VehicleSystem.getVehicles();
+        if (vlist && vlist.length > maxVeh) {
+          for (var vi = maxVeh; vi < vlist.length; vi++) {
+            var vv = vlist[vi];
+            if (vv && vv.mesh) { vv.mesh.visible = false; }
+          }
+        }
+      }
+
+      // Enforce drone caps
+      if (typeof DroneSystem !== 'undefined' && DroneSystem.getDrones) {
+        var dlist = DroneSystem.getDrones();
+        if (dlist && dlist.length > maxDrones) {
+          for (var di = maxDrones; di < dlist.length; di++) {
+            var dd = dlist[di];
+            if (dd && dd.mesh) { dd.mesh.visible = false; }
+          }
+        }
+      }
+
+      // Particle cap enforcement
+      if (typeof Tracers !== 'undefined' && Tracers.setMaxParticles) {
+        Tracers.setMaxParticles(maxParts);
+      }
+
+      // Texture quality (if renderer supports)
+      if (_renderer && _renderer.capabilities && _renderer.capabilities.maxTextureSize) {
+        var maxTex = Math.floor(4096 * texQ);
+        if (_renderer.capabilities.maxTextureSize > maxTex) {
+          // This is a hint - actual texture resize would require regenerating materials
+        }
+      }
+
+      var _nowLowSpec = isMobile || _perfLevel >= 2;
+      if (!_nowLowSpec && window.__OK_LOWSPEC && window.VoxelWorld && VoxelWorld.cullChunks && _camera) {
+        try { VoxelWorld.cullChunks(_camera.position.x, _camera.position.z, 999999); } catch (_eRC) {}
+      }
+      window.__OK_LOWSPEC = _nowLowSpec;
+
+      var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW','VERY_LOW','MINIMAL'][_perfLevel] || 'L' + _perfLevel;
       if (!silent && typeof HUD !== 'undefined' && HUD.notifyPickup) {
         HUD.notifyPickup('⚙ Quality: ' + _qlabel + ' (auto-calibrated, FPS≈' + (fps ? fps.toFixed(0) : '?') + ')', '#88ccff');
       }
-      console.log('[PERF] quality -> ' + _qlabel + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ', cull=' + cull + ')');
+      console.log('[PERF] quality -> ' + _qlabel + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ', enemies=' + maxEnemies + ', particles=' + maxParts + ', cull=' + cull + ')');
     } catch (e) {}
   }
   var _lowEndVFX = false;
@@ -6345,9 +6436,122 @@ const GameManager = (function () {
         }
       }
     }
+    // Vehicle cull
+    if (typeof VehicleSystem !== 'undefined' && VehicleSystem.getVehicles) {
+      var vlist;
+      try { vlist = VehicleSystem.getVehicles(); } catch (_e) { vlist = null; }
+      if (vlist) {
+        for (var vi = 0; vi < vlist.length; vi++) {
+          var v = vlist[vi];
+          if (!v || !v.mesh) continue;
+          var vdx = v.mesh.position.x - cx, vdz = v.mesh.position.z - cz;
+          var vfar = (vdx * vdx + vdz * vdz) > cull2;
+          if (vfar) {
+            if (!v._distCulled && v.mesh.visible) { v.mesh.visible = false; v._distCulled = true; }
+          } else if (v._distCulled) {
+            v.mesh.visible = true; v._distCulled = false;
+          }
+        }
+      }
+    }
+    // NPC cull
+    if (typeof NPCSystem !== 'undefined' && NPCSystem.getAll) {
+      var nlist;
+      try { nlist = NPCSystem.getAll(); } catch (_e) { nlist = null; }
+      if (nlist) {
+        for (var ni = 0; ni < nlist.length; ni++) {
+          var n = nlist[ni];
+          if (!n || !n.mesh) continue;
+          var ndx = n.mesh.position.x - cx, ndz = n.mesh.position.z - cz;
+          var nfar = (ndx * ndx + ndz * ndz) > cull2;
+          if (nfar) {
+            if (!n._distCulled && n.mesh.visible) { n.mesh.visible = false; n._distCulled = true; }
+          } else if (n._distCulled) {
+            n.mesh.visible = true; n._distCulled = false;
+          }
+        }
+      }
+    }
+    // Pickup cull
+    if (typeof Pickups !== 'undefined' && Pickups.getAll) {
+      var plist;
+      try { plist = Pickups.getAll(); } catch (_e) { plist = null; }
+      if (plist) {
+        for (var pi = 0; pi < plist.length; pi++) {
+          var p = plist[pi];
+          if (!p || !p.mesh) continue;
+          var pdx = p.mesh.position.x - cx, pdz = p.mesh.position.z - cz;
+          var pfar = (pdx * pdx + pdz * pdz) > cull2;
+          if (pfar) {
+            if (!p._distCulled && p.mesh.visible) { p.mesh.visible = false; p._distCulled = true; }
+          } else if (p._distCulled) {
+            p.mesh.visible = true; p._distCulled = false;
+          }
+        }
+      }
+    }
   }
-
-  function update() {
+  // Building LOD: replace distant buildings with simple boxes
+  function _updateBuildingLOD() {
+    if (!_buildingLodEnabled || !_camera || !window.VoxelWorld || !VoxelWorld.getBuildings) return;
+    var blist = VoxelWorld.getBuildings();
+    if (!blist) return;
+    var cx = _camera.position.x, cz = _camera.position.z;
+    var lodDist2 = 900; // 30 units squared
+    var veryLodDist2 = 2500; // 50 units squared
+    for (var bi = 0; bi < blist.length; bi++) {
+      var b = blist[bi];
+      if (!b || !b.mesh) continue;
+      var bdx = b.x - cx, bdz = b.z - cz;
+      var bd2 = bdx * bdx + bdz * bdz;
+      if (bd2 > veryLodDist2) {
+        // Very far: hide entirely or show as 1-block marker
+        if (b.mesh.visible) b.mesh.visible = false;
+      } else if (bd2 > lodDist2) {
+        // Far: show simplified version (if available)
+        if (!b._lodSimplified) {
+          // Hide detailed children, show simple box
+          b.mesh.visible = true;
+          if (b.mesh.children) {
+            for (var ci = 0; ci < b.mesh.children.length; ci++) {
+              var child = b.mesh.children[ci];
+              if (child) child.visible = (ci === 0); // only show first child (base box)
+            }
+          }
+        }
+      } else {
+        // Near: show full detail
+        if (!b.mesh.visible) b.mesh.visible = true;
+        if (b.mesh.children) {
+          for (var ci = 0; ci < b.mesh.children.length; ci++) {
+            var child = b.mesh.children[ci];
+            if (child) child.visible = true;
+          }
+        }
+      }
+    }
+  }
+  // Frame skip for very low FPS: skip rendering every Nth frame
+  function _shouldRenderFrame() {
+    if (_frameSkip <= 0) return true;
+    _frameSkipCounter = (_frameSkipCounter + 1) % (_frameSkip + 1);
+    return _frameSkipCounter === 0;
+  }
+  // Particle budget enforcement
+  function _enforceParticleBudget() {
+    if (_currentMaxParticles <= 0) return;
+    // Count active particles across all systems
+    var totalParticles = 0;
+    if (typeof Tracers !== 'undefined' && Tracers.getActiveParticleCount) {
+      totalParticles += Tracers.getActiveParticleCount();
+    }
+    // If over budget, cull oldest particles
+    if (totalParticles > _currentMaxParticles && typeof Tracers !== 'undefined' && Tracers.cullOldestParticles) {
+      Tracers.cullOldestParticles(totalParticles - _currentMaxParticles);
+    }
+  }
+  // Auto-quality check interval (run every 1.5 seconds)
+  var _AUTO_QUALITY_INTERVAL = 1.5;  function update() {
     requestAnimationFrame(update);
 
     const now = performance.now();
@@ -6365,7 +6569,7 @@ const GameManager = (function () {
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
-    if (_perfCheckTimer > 2 && _fpsSamples > 8) {
+    if (_perfCheckTimer > _AUTO_QUALITY_INTERVAL && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
       if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
       else if (avgFps > 52) { _highFpsStreak++; _lowFpsStreak = 0; }
@@ -7960,7 +8164,17 @@ const GameManager = (function () {
         renderCam = window.GameManager.__mortarCam;
       }
     } catch (eMR) {}
-    _renderer.render(_scene, renderCam);
+
+    // Frame skip for very low FPS (render every Nth frame when struggling)
+    if (_shouldRenderFrame()) {
+      _renderer.render(_scene, renderCam);
+    }
+
+    // Building LOD update (throttled to every 8th frame)
+    if ((_cullTick & 7) === 0) _updateBuildingLOD();
+
+    // Particle budget enforcement (every frame)
+    _enforceParticleBudget();
   }
 
   /* ── Extended HUD Updates ────────────────────────────────────────── */
