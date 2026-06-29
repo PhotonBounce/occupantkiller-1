@@ -161,17 +161,26 @@ const GameManager = (function () {
   // Footstep dust puffs (visible when sprinting)
   var _footstepPuffs = [];
   var _footstepPuffGeo = null;
-  var _footstepPuffMat = null; // shared material to avoid per-puff allocation
+  var _footstepPuffMats = []; // material pool: 8 pre-allocated materials for per-puff opacity
+  var _footstepPuffMatIdx = 0;
+  function _initFootstepPuffMats() {
+    if (_footstepPuffMats.length) return;
+    for (var i = 0; i < 8; i++) {
+      _footstepPuffMats.push(new THREE.MeshBasicMaterial({
+        color: 0xb0a080, transparent: true, opacity: 0.45, depthWrite: false,
+      }));
+    }
+  }
   function _spawnFootstepPuff() {
     if (!_scene) return;
     if (!_footstepPuffGeo) _footstepPuffGeo = new THREE.PlaneGeometry(0.5, 0.5);
-    if (!_footstepPuffMat) _footstepPuffMat = new THREE.MeshBasicMaterial({
-      color: 0xb0a080, transparent: true, opacity: 0.45, depthWrite: false,
-    });
+    _initFootstepPuffMats();
+    var mat = _footstepPuffMats[_footstepPuffMatIdx % _footstepPuffMats.length];
+    _footstepPuffMatIdx++;
     var groundY = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
       ? VoxelWorld.getTerrainHeight(player.position.x, player.position.z)
       : (player.position.y - player.height);
-    var puff = new THREE.Mesh(_footstepPuffGeo, _footstepPuffMat);
+    var puff = new THREE.Mesh(_footstepPuffGeo, mat);
     puff.rotation.x = -Math.PI / 2;
     puff.position.set(
       player.position.x + (Math.random() - 0.5) * 0.2,
@@ -181,12 +190,12 @@ const GameManager = (function () {
     var s = 0.4 + Math.random() * 0.2;
     puff.scale.set(s, s, 1);
     _scene.add(puff);
-    _footstepPuffs.push({ mesh: puff, material: _footstepPuffMat, life: 0.5, maxLife: 0.5 });
+    _footstepPuffs.push({ mesh: puff, material: mat, life: 0.5, maxLife: 0.5 });
     // Cap puff count for perf
     if (_footstepPuffs.length > 24) {
       var oldP = _footstepPuffs.shift();
       if (oldP.mesh && _scene) _scene.remove(oldP.mesh);
-      if (oldP.material && oldP.material.dispose) oldP.material.dispose();
+      // NOTE: material is from pool, do NOT dispose
     }
   }
   function _updateFootstepPuffs(delta) {
@@ -200,7 +209,7 @@ const GameManager = (function () {
       p.mesh.position.y += delta * 0.15;
       if (p.life <= 0) {
         if (_scene) _scene.remove(p.mesh);
-        // NOTE: material is shared (_footstepPuffMat), do NOT dispose
+        // NOTE: material is from pool, do NOT dispose
         _footstepPuffs.splice(pi, 1);
       }
     }
