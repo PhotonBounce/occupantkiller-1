@@ -1785,6 +1785,21 @@ html.is-mobile #tank-hud {
   #premium-tiers-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
+  /* Ensure pause overlay is visible on mobile (audit #24) */
+  #overlay-pause,
+  #inventory-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 300 !important;
+    background: rgba(0,0,0,0.92) !important;
+    display: none;
+  }
+  #overlay-pause[style*="flex"],
+  #inventory-overlay[style*="flex"] {
+    display: flex !important;
+  }
 }
 @media (max-width: 480px) {
   html.is-mobile #hud { --mobile-touch-reserve: 88px; }

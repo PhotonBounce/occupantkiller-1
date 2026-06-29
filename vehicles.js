@@ -1927,12 +1927,14 @@ const VehicleSystem = (function () {
     );
     _vTmp2.copy(origin);
     _vTmp2.y += 1.6; // Turret height
+    // Spawn slightly forward of the muzzle to avoid self-collision with vehicle/wall
+    _vTmp2.addScaledVector(dir, 0.5);
     mesh.position.copy(_vTmp2);
     mesh.lookAt(_vTmp2.x + dir.x, _vTmp2.y + dir.y, _vTmp2.z + dir.z);
     _scene.add(mesh);
     turretProjectiles.push({
       mesh: mesh, dir: dir.clone(), speed: TURRET_PROJ_SPEED,
-      damage: damage, life: 3.0, _spawnImmunity: 0.15,
+      damage: damage, life: 3.0, _spawnImmunity: 0.25,
       spawnPos: _vTmp2.clone(),
     });
   }
@@ -1982,10 +1984,12 @@ const VehicleSystem = (function () {
       // Check terrain collision (skip during spawn immunity or if too close to spawn position to prevent self-collision)
       let terrainHit = null;
       if (!hit && typeof VoxelWorld !== 'undefined') {
-        if (p._spawnImmunity > 0 || (p.spawnPos && p.mesh.position.distanceTo(p.spawnPos) < 3.0)) {
+        if (p._spawnImmunity > 0 || (p.spawnPos && p.mesh.position.distanceTo(p.spawnPos) < 4.0)) {
           p._spawnImmunity -= delta;
         } else {
           _vTmp2.copy(p.mesh.position);
+          // Offset ray origin slightly forward to avoid detecting the block we're already inside
+          _vTmp2.addScaledVector(p.dir, 0.2);
           const fakeCamera = {
             position: _vTmp2,
             getWorldDirection: function(v) { return v.copy(p.dir); },

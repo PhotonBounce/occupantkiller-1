@@ -452,6 +452,14 @@ const HUD = (() => {
       // Hide locked slots to prevent overflow
       s.style.display = isLocked ? 'none' : '';
     });
+    // Defensive: hide hand-grenade section for launcher weapons (audit #19)
+    if (typeof Weapons !== 'undefined' && Weapons.getWeaponDef) {
+      var _wdef = Weapons.getWeaponDef(idx);
+      var _launcherTypes = { AT:1, ATGM:1, AT_HEAVY:1, AT_LIGHT:1, AA:1, GRENADE:1, THERMOBARIC:1, SMOKE:1, FLASHBANG:1, EXPLOSIVE:1, MINE:1, INCENDIARY:1 };
+      if (_wdef && _wdef.type && _launcherTypes[_wdef.type]) {
+        showGrenadeSection(false);
+      }
+    }
     // Brief switch banner (skip first call at game start)
     if (_lastWeaponName != null && name !== _lastWeaponName) _showWeaponSwitchBanner(name);
     _lastWeaponName = name;
