@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <script>
@@ -1078,17 +1078,15 @@
      async + onerror so a slow/blocked CDN can't stall game boot.
      blockchain.js only references window.ethers inside async functions,
      so missing ethers only breaks web3 features, not gameplay. -->
-<script async src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"
-        onerror="console.warn('[BOOT] ethers CDN failed; web3 features disabled');"></script>
 
 <!-- Core modules (order matters: dependencies first) -->
 <script src="voxel-world.js?v=20260429b"></script>
 <script src="camera-system.js?v=20260429b"></script>
 <script src="time-system.js?v=20260429b"></script>
-<script src="economy.js?v=20260429b"></script>
+<!-- economy.js REMOVED: dead blockchain/economy code stripped -->
 <script src="api-client.js?v=20260429b"></script>
-<script src="blockchain.js?v=20260429b"></script>
-<script src="marketplace.js?v=20260429b"></script>
+<!-- blockchain.js REMOVED: dead web3 code stripped -->
+<!-- marketplace.js REMOVED: dead web3 code stripped -->
 <script src="skills.js?v=20260429b"></script>
 <script src="ranks.js?v=20260429b"></script>
 <script src="building.js?v=20260429b"></script>
@@ -1231,7 +1229,6 @@
 <script src="weather-system.js?v=20260429b"></script>
 <script src="ml-system.js?v=20260429b"></script>
 <script src="npc-ml.js?v=20260429b"></script>
-<script src="tokenomics.js?v=20260429b"></script>
 <script src="tracers.js?v=20260429b"></script>
 <script src="stage-vfx.js?v=20260429b"></script>
 <script src="flags.js?v=20260429b"></script>

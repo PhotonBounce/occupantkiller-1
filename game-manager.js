@@ -66,6 +66,59 @@
       _startBootTimeout();
     }
   }
+
+  // ── Dead-code stubs (blockchain / economy / marketplace stripped) ──
+  if (typeof window !== 'undefined') {
+    if (typeof window.Economy === 'undefined') {
+      window.Economy = {
+        init: function(){},
+        addCurrency: function(){},
+        add: function(){},
+        spend: function(){ return true; },
+        spendMultiple: function(){ return true; },
+        hasMultiple: function(){ return true; },
+        getResources: function(){ return { wood:0, metal:0, electronics:0, fuel:0, stone:0, food:0 }; },
+        getCurrency: function(){ return 0; },
+        produce: function(){},
+        processInvestments: function(){},
+        triggerRandomEvent: function(){},
+        getActiveEvent: function(){ return null; },
+        refreshBlackMarket: function(){},
+        spendCurrency: function(){},
+        weeklyUpdate: function(){}
+      };
+    }
+    if (typeof window.Marketplace === 'undefined') {
+      window.Marketplace = {
+        setOKC: function(){},
+        getOKC: function(){ return 0; },
+        addOKC: function(){},
+        awardCustomOKC: function(){},
+        onWaveClear: function(){},
+        onStageClear: function(){},
+        mintStageBadge: function(){ return false; },
+        isPremium: function(){ return false; },
+        initBackendSync: function(){ return Promise.resolve(false); }
+      };
+    }
+    if (typeof window.Blockchain === 'undefined') {
+      window.Blockchain = {
+        connect: function(){ return Promise.resolve(false); },
+        isConnected: function(){ return false; },
+        getAccount: function(){ return null; },
+        getBalanceStr: function(){ return '0.00'; },
+        on: function(){}
+      };
+    }
+    if (typeof window.Tokenomics === 'undefined') {
+      window.Tokenomics = {
+        getLiveStats: function(){ return { totalSupply:0, circulating:0, yourBalance:0, premiumActive:false, currentRateUSD:0, okcPerDollar:0 }; },
+        getFiatPacks: function(){ return []; },
+        getPackById: function(){ return null; }
+      };
+    }
+  }
+
 /* ───────────────────────────────────────────────────────────────────────
    GAME MANAGER — central orchestrator for all hybrid game systems
    ─────────────────────────────────────────────────────────────────────── */
