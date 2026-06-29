@@ -21,6 +21,76 @@ const Enemies = (() => {
   var _bloodMatDark = new THREE.MeshLambertMaterial({ color: 0x880000 });
   var _bloodMatLight = new THREE.MeshLambertMaterial({ color: 0xaa0000 });
 
+  // ── Object pools ───────────────────────────────────────────
+  // Pre-allocated damage-number sprites to avoid per-hit GC
+  const _DMG_POOL_SIZE = 48;
+  const _dmgPool = [];
+  const _bloodDecalPool = [];
+  const _BLOOD_POOL_SIZE = 64;
+  function _initDmgPool() {
+    if (_dmgPool.length > 0) return;
+    for (var i = 0; i < _DMG_POOL_SIZE; i++) {
+      var c = document.createElement('canvas');
+      c.width = 64; c.height = 32;
+      var tex = new THREE.CanvasTexture(c);
+      var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+      var sprite = new THREE.Sprite(mat);
+      sprite.scale.set(1.2, 0.6, 1);
+      sprite.visible = false;
+      _dmgPool.push({ sprite: sprite, mat: mat, tex: tex, canvas: c, active: false, life: 0, vy: 2.5 });
+    }
+  }
+  function _initBloodDecalPool() {
+    if (_bloodDecalPool.length > 0) return;
+    for (var i = 0; i < _BLOOD_POOL_SIZE; i++) {
+      var mat = new THREE.MeshBasicMaterial({
+        color: 0x550000, transparent: true, opacity: 0.85,
+        depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1,
+      });
+      var mesh = new THREE.Mesh(_decalGeo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.visible = false;
+      _bloodDecalPool.push({ mesh: mesh, mat: mat, active: false, life: 0, maxLife: 30 });
+    }
+  }
+  function _acquireDmgNumber() {
+    _initDmgPool();
+    for (var i = 0; i < _dmgPool.length; i++) {
+      if (!_dmgPool[i].active) { _dmgPool[i].active = true; return _dmgPool[i]; }
+    }
+    // Pool exhausted — reuse oldest active (LRU-style)
+    var oldest = _dmgPool[0];
+    for (var j = 1; j < _dmgPool.length; j++) {
+      if (_dmgPool[j].life < oldest.life) oldest = _dmgPool[j];
+    }
+    oldest.active = true;
+    return oldest;
+  }
+  function _releaseDmgNumber(item) {
+    item.active = false;
+    item.sprite.visible = false;
+    if (scene) scene.remove(item.sprite);
+    item.life = 0;
+  }
+  function _acquireBloodDecal() {
+    _initBloodDecalPool();
+    for (var i = 0; i < _bloodDecalPool.length; i++) {
+      if (!_bloodDecalPool[i].active) { _bloodDecalPool[i].active = true; return _bloodDecalPool[i]; }
+    }
+    var oldest = _bloodDecalPool[0];
+    for (var j = 1; j < _bloodDecalPool.length; j++) {
+      if (_bloodDecalPool[j].life < oldest.life) oldest = _bloodDecalPool[j];
+    }
+    oldest.active = true;
+    return oldest;
+  }
+  function _releaseBloodDecal(item) {
+    item.active = false;
+    item.mesh.visible = false;
+    if (scene) scene.remove(item.mesh);
+    item.life = 0;
+  }
+
   // ── Floating damage numbers ────────────────────────────────
   const _dmgNumbers = [];
 
@@ -51,56 +121,38 @@ const Enemies = (() => {
 
   function spawnDmgNumber(pos, amount, isHeadshot) {
     if (!scene) return;
-      var canvas = document.createElement('canvas');
-      canvas.width = 64; canvas.height = 32;
-      var ctx = canvas.getContext('2d');
-      if (!scene) {
-        console.error('[Enemies.startWave] scene is null! Wave:', w, 'Stage:', stageId);
-        throw new Error('[Enemies] scene is null in startWave!');
-      }
+    var item = _acquireDmgNumber();
+    var ctx = item.canvas.getContext('2d');
+    ctx.clearRect(0, 0, 64, 32);
     ctx.font = 'bold 24px monospace';
     ctx.fillStyle = isHeadshot ? '#ff4444' : '#ffcc00';
     ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
     var txt = Math.round(amount).toString();
     ctx.strokeText(txt, 4, 24);
     ctx.fillText(txt, 4, 24);
-    var tex = new THREE.CanvasTexture(canvas);
-    var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
-    var sprite = new THREE.Sprite(mat);
-    sprite.scale.set(1.2, 0.6, 1);
-    sprite.position.copy(pos);
-    sprite.position.y += 1.5 + Math.random() * 0.5;
-    sprite.position.x += (Math.random() - 0.5) * 0.4;
-    if (scene) scene.add(sprite);
-    else console.warn('[Enemies] Skipped sprite add: scene is null', sprite);
-    _dmgNumbers.push({ sprite: sprite, life: 0.8, vy: 2.5 });
+    item.tex.needsUpdate = true;
+    item.sprite.visible = true;
+    item.sprite.position.copy(pos);
+    item.sprite.position.y += 1.5 + Math.random() * 0.5;
+    item.sprite.position.x += (Math.random() - 0.5) * 0.4;
+    item.sprite.material.opacity = 1;
+    item.life = 0.8;
+    item.vy = 2.5;
+    if (scene) scene.add(item.sprite);
+    else console.warn('[Enemies] Skipped sprite add: scene is null', item.sprite);
+    _dmgNumbers.push(item);
   }
   function updateDmgNumbers(delta) {
-    // Defensive: null-slot pattern to avoid index corruption
     for (var i = _dmgNumbers.length - 1; i >= 0; i--) {
       var d = _dmgNumbers[i];
-      if (!d || !d.sprite || !d.sprite.material) {
-        _dmgNumbers[i] = null;
-        continue;
-      }
-      if (!scene) {
-        console.error('[Enemies] scene is null in add (dmg sprite)', d.sprite);
-        _dmgNumbers[i] = null;
-        continue;
-      }
+      if (!d || !d.active || !d.sprite) { _dmgNumbers.splice(i, 1); continue; }
       d.sprite.position.y += d.vy * delta;
       d.life -= delta;
       d.sprite.material.opacity = Math.max(0, d.life / 0.8);
       if (d.life <= 0) {
-        if (scene) scene.remove(d.sprite);
-        if (d.sprite.material.map) d.sprite.material.map.dispose();
-        d.sprite.material.dispose();
-        _dmgNumbers[i] = null;
+        _releaseDmgNumber(d);
+        _dmgNumbers.splice(i, 1);
       }
-    }
-    // Compact array to remove nulls
-    for (let i = _dmgNumbers.length - 1; i >= 0; i--) {
-      if (_dmgNumbers[i] === null) _dmgNumbers.splice(i, 1);
     }
   }
 
@@ -2130,16 +2182,15 @@ const Enemies = (() => {
       }
     }
 
-    // Update persistent blood decals (fade out, then dispose)
+    // Update persistent blood decals (fade out, then release to pool)
     for (var bd = bloodDecals.length - 1; bd >= 0; bd--) {
       var dec = bloodDecals[bd];
       dec.life -= delta;
-      if (dec.life <= 5 && dec.material) {
-        dec.material.opacity = Math.max(0, (dec.life / 5) * 0.85);
+      if (dec.life <= 5 && dec.mat) {
+        dec.mat.opacity = Math.max(0, (dec.life / 5) * 0.85);
       }
       if (dec.life <= 0) {
-        if (scene) scene.remove(dec.mesh);
-        if (dec.material && dec.material.dispose) dec.material.dispose();
+        _releaseBloodDecal(dec);
         bloodDecals.splice(bd, 1);
       }
     }
@@ -3952,24 +4003,24 @@ const Enemies = (() => {
       // Spawn persistent blood pool decal on the ground at corpse position
       if (scene && enemy.mesh) {
         try {
-          var decalMat = new THREE.MeshBasicMaterial({
-            color: 0x550000, transparent: true, opacity: 0.85,
-            depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1,
-          });
-          var decal = new THREE.Mesh(_decalGeo, decalMat);
-          decal.rotation.x = -Math.PI / 2;
+          var item = _acquireBloodDecal();
           var _wtD = weaponType || '';
           var _isExplD = (_wtD === 'AT' || _wtD === 'ATGM' || _wtD === 'THERMOBARIC' ||
                           _wtD === 'EXPLOSIVE' || _wtD === 'INCENDIARY' || _wtD === 'GRENADE');
           var radius = _isExplD ? (1.4 + Math.random() * 1.0) : (0.6 + Math.random() * 0.8);
-          decal.scale.set(radius, radius, 1);
-          decal.position.set(
+          item.mat.color.setHex(0x550000);
+          item.mat.opacity = 0.85;
+          item.mesh.scale.set(radius, radius, 1);
+          item.mesh.position.set(
             enemy.mesh.position.x,
-            enemy.mesh.position.y + 0.02 - 0.5, // slightly above ground/foot level
+            enemy.mesh.position.y + 0.02 - 0.5,
             enemy.mesh.position.z
           );
-          scene.add(decal);
-          bloodDecals.push({ mesh: decal, material: decalMat, life: 30, maxLife: 30 });
+          item.mesh.visible = true;
+          item.life = 30;
+          item.maxLife = 30;
+          scene.add(item.mesh);
+          bloodDecals.push(item);
         } catch (eD) {}
       }
       // Heavier blood spray on the killing blow (on top of the wound spray
