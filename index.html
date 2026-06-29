@@ -547,23 +547,26 @@
 
   <!-- Start screen -->
   <div id="overlay-start" class="overlay">
-    <div class="start-card">
-      <!-- ── Hero header ─────────────────────────────────── -->
-      <header class="start-hero">
-        <div id="level-badge">HYBRID VOXEL WARFARE · 18 STAGES</div>
-        <h1>OCCUPANT KILLER</h1>
-        <p class="start-tagline">Ukraine. Voxel world. Build. Command. Fight.</p>
+    <div class="voxel-menu-bg"></div>
+    <div class="voxel-menu-content">
+      <header class="voxel-hero">
+        <div class="voxel-badge">HYBRID VOXEL WARFARE · 20 STAGES</div>
+        <h1 class="voxel-title">OCCUPANT KILLER</h1>
+        <p class="voxel-tagline">Ukraine. Voxel world. Build. Command. Fight.</p>
       </header>
 
-      <!-- ── Primary CTAs ────────────────────────────────── -->
-      <div class="start-cta-row">
-        <button class="btn btn-primary" id="quick-start-btn" style="display:none">▶ QUICK START</button>
-        <button class="btn btn-primary" id="start-btn">▶ START MISSION</button>
-        <button class="btn btn-continue" id="continue-btn" style="display:none">📂 CONTINUE · Stage <span id="continue-stage">1</span> · Wave <span id="continue-wave">1</span></button>
-      </div>
+      <nav class="voxel-main-nav">
+        <button class="voxel-btn voxel-btn-primary" id="quick-start-btn" style="display:none">▶ QUICK START</button>
+        <button class="voxel-btn voxel-btn-primary" id="start-btn">▶ NEW GAME</button>
+        <button class="voxel-btn voxel-btn-continue" id="continue-btn" style="display:none">📂 CONTINUE · Stage <span id="continue-stage">1</span> · Wave <span id="continue-wave">1</span></button>
+        <button class="voxel-btn" id="btn-select-stage">🗺 SELECT STAGE</button>
+        <button class="voxel-btn" id="btn-settings-start">⚙ SETTINGS</button>
+        <button class="voxel-btn" id="btn-leaderboard-start">🏆 LEADERBOARD</button>
+        <button class="voxel-btn" id="btn-credits-start">📜 CREDITS</button>
+      </nav>
       <p id="quick-start-hint" style="display:none;color:#777;font-size:11px;margin:4px 0 12px;text-align:center">First time? Quick Start jumps straight in. <a href="#" id="show-advanced-start" style="color:#88ccff">Show loadout options</a></p>
 
-      <!-- ── Loadout grid (advanced) ─────────────────────── -->
+      <!-- Loadout grid (advanced) -->
       <div id="advanced-start-section" class="start-grid">
 
         <section class="start-section">
@@ -720,6 +723,48 @@
         </section>
 
       </div>
+    
+
+      <!-- Settings panel -->
+      <div id="start-settings-panel" class="voxel-panel" style="display:none">
+        <div class="voxel-panel-title">⚙ SETTINGS <button class="voxel-panel-close" onclick="document.getElementById('start-settings-panel').style.display='none'">✕</button></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <h4 style="font-size:12px;color:#aaa;letter-spacing:2px;margin-bottom:8px">GRAPHICS</h4>
+            <button class="btn pill" id="perf-mode-btn" style="border-color:#888;color:#888;width:100%;margin:4px 0" title="Disable heavy cosmetic effects for higher FPS (reloads)">⚡ PERFORMANCE: OFF</button>
+          </div>
+          <div>
+            <h4 style="font-size:12px;color:#aaa;letter-spacing:2px;margin-bottom:8px">AUDIO</h4>
+            <div style="color:#888;font-size:11px;margin-bottom:4px">Music Volume</div>
+            <input type="range" min="0" max="100" value="50" style="width:100%;accent-color:#ff4444" id="start-music-vol">
+          </div>
+        </div>
+        <div style="margin-top:12px;color:#666;font-size:11px;text-align:center">More settings available in-game via the pause menu.</div>
+      </div>
+
+      <!-- Leaderboard panel -->
+      <div id="start-leaderboard-panel" class="voxel-panel" style="display:none">
+        <div class="voxel-panel-title">🏆 LEADERBOARD <button class="voxel-panel-close" onclick="document.getElementById('start-leaderboard-panel').style.display='none'">✕</button></div>
+        <div id="start-leaderboard-content" style="font-size:12px;line-height:1.8;color:#ccc">
+          <div style="text-align:center;color:#888;padding:12px">No scores yet. Play a mission to set a record!</div>
+        </div>
+      </div>
+
+      <!-- Credits panel -->
+      <div id="start-credits-panel" class="voxel-panel" style="display:none">
+        <div class="voxel-panel-title">📜 CREDITS <button class="voxel-panel-close" onclick="document.getElementById('start-credits-panel').style.display='none'">✕</button></div>
+        <div style="font-size:12px;line-height:1.8;color:#ccc">
+          <p><strong style="color:#ffd700">OccupantKiller</strong> — Hybrid Voxel Warfare</p>
+          <p style="color:#888">Built with Three.js, passion, and resistance.</p>
+          <p style="color:#888">🇺🇦 Slava Ukraini · Heroyam Slava</p>
+          <p style="color:#666;font-size:11px;margin-top:12px">All music, code, and assets are original or licensed.</p>
+        </div>
+      </div>
+
+      <div class="voxel-menu-footer">
+        <div class="voxel-ticker"><span>🇺🇦 Slava Ukraini! · Fight for freedom · Every block matters · Built for Ukraine · v2.0.4-kyiv</span></div>
+        <div class="voxel-version">v2.0.4 — KYIV BUILD</div>
+      </div>
     </div>
 
     <div id="controls-hint">
@@ -728,15 +773,34 @@
     </div>
   </div>
 
-  <!-- Pause screen (legacy fallback — redirects to unified inventory overlay) -->
+  <!-- Pause screen -->
   <div id="overlay-pause" class="overlay" style="display:none">
-    <h1>PAUSED</h1>
-    <p>Game paused. Press <kbd>R</kbd> to resume or <kbd>Q</kbd> to quit.</p>
-    <button class="btn" id="pause-resume-btn">▶ [R]ESUME</button>
-    <button class="btn" id="pause-quit-btn" style="margin-top:8px;border-color:#888;color:#888">✕ [Q]UIT TO MENU</button>
+    <div class="pause-side-panel" id="pause-mission-panel">
+      <h3>📍 MISSION OBJECTIVES</h3>
+      <div id="pause-objectives">
+        <div class="pause-objective-row">Survive all enemy waves</div>
+        <div class="pause-objective-row">Eliminate all occupants</div>
+      </div>
+    </div>
+
+    <div class="pause-center-panel">
+      <h1>PAUSED</h1>
+      <button class="voxel-btn voxel-btn-primary" id="pause-resume-btn">▶ RESUME</button>
+      <button class="voxel-btn" id="pause-restart-btn" style="border-color:#ffaa00;color:#ffaa00">↺ RESTART WAVE</button>
+      <button class="voxel-btn" id="pause-settings-btn" style="border-color:#00ccff;color:#00ccff">⚙ SETTINGS</button>
+      <button class="voxel-btn" id="pause-inventory-btn" style="border-color:#ffd700;color:#ffd700">📦 INVENTORY</button>
+      <button class="voxel-btn" id="pause-quit-btn" style="border-color:#888;color:#888">✕ QUIT TO MENU</button>
+    </div>
+
+    <div class="pause-side-panel" id="pause-stats-panel">
+      <h3>📊 CURRENT STATS</h3>
+      <div class="pause-stat-row"><span>WAVE</span> <span id="pause-stat-wave">1</span></div>
+      <div class="pause-stat-row"><span>KILLS</span> <span id="pause-stat-kills">0</span></div>
+      <div class="pause-stat-row"><span>SCORE</span> <span id="pause-stat-score">0</span></div>
+      <div class="pause-stat-row"><span>TIME</span> <span id="pause-stat-time">00:00</span></div>
+      <div class="pause-stat-row"><span>STAGE</span> <span id="pause-stat-stage">HOSTOMEL</span></div>
+    </div>
   </div>
-
-
 
   <!-- Drone Controls HUD (shown while piloting) -->
   <div id="drone-controls-hud" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);border:1px solid #00ccff;border-radius:8px;padding:10px 18px;z-index:120;text-align:center;pointer-events:none">
@@ -1608,6 +1672,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('start-btn').addEventListener('click', function () {
     if (GameManager.requestFullscreenAndLockLandscape) GameManager.requestFullscreenAndLockLandscape();
     window.showLoading('GENERATING TERRAIN...');
+    window._sessionStartTime = performance.now();
     setTimeout(function() { GameManager.startGame(); window.hideLoading(); }, 1200);
   });
 
@@ -1808,32 +1873,96 @@ document.addEventListener('DOMContentLoaded', function () {
     }, true); // capture phase: beat the in-game keydown listeners
   })();
 
-  // Auto-redirect any legacy showOverlay('pause') call into the unified menu.
-  // Keeps a single source of truth for "the menu" so the user never sees
-  // two different pause UIs.
+  // Auto-redirect observer removed — pause overlay now has its own dedicated UI
+  // (see togglePause() in game-manager.js)
+
+  // ── New Start Menu button wiring ────────────────────────
   (function () {
-    var pauseOv = document.getElementById('overlay-pause');
-    if (!pauseOv) return;
-    var observer = new MutationObserver(function () {
-      if (pauseOv.style.display !== 'none' && pauseOv.style.display !== '') {
-        // Don't redirect during automated Puppeteer testing so legacy pause screen is captured correctly
-        if (navigator.webdriver || navigator.userAgent.indexOf('HeadlessChrome') !== -1) {
-          return;
-        }
-        // Hide it and route to inventory-overlay instead
-        pauseOv.style.display = 'none';
-        var inv = document.getElementById('inventory-overlay');
-        if (inv && GameManager && typeof GameManager.showInventory === 'function') {
-          try { GameManager.showInventory(); } catch (_) {}
-          inv.style.display = 'flex';
-          if (typeof document.exitPointerLock === 'function' && document.pointerLockElement) {
-            try { document.exitPointerLock(); } catch (_) {}
+    var advSection = document.getElementById('advanced-start-section');
+    var settingsPanel = document.getElementById('start-settings-panel');
+    var leaderboardPanel = document.getElementById('start-leaderboard-panel');
+    var creditsPanel = document.getElementById('start-credits-panel');
+
+    function hideAllPanels() {
+      if (advSection) advSection.style.display = 'none';
+      if (settingsPanel) settingsPanel.style.display = 'none';
+      if (leaderboardPanel) leaderboardPanel.style.display = 'none';
+      if (creditsPanel) creditsPanel.style.display = 'none';
+    }
+
+    var btnSelectStage = document.getElementById('btn-select-stage');
+    if (btnSelectStage) {
+      btnSelectStage.addEventListener('click', function () {
+        hideAllPanels();
+        if (advSection) advSection.style.display = (advSection.style.display === 'none' || !advSection.style.display) ? '' : 'none';
+      });
+    }
+
+    var btnSettings = document.getElementById('btn-settings-start');
+    if (btnSettings) {
+      btnSettings.addEventListener('click', function () {
+        hideAllPanels();
+        if (settingsPanel) settingsPanel.style.display = 'block';
+      });
+    }
+
+    var btnLeaderboard = document.getElementById('btn-leaderboard-start');
+    if (btnLeaderboard) {
+      btnLeaderboard.addEventListener('click', function () {
+        hideAllPanels();
+        if (leaderboardPanel) leaderboardPanel.style.display = 'block';
+        // Populate leaderboard if available
+        var content = document.getElementById('start-leaderboard-content');
+        if (content && typeof Leaderboard !== 'undefined' && Leaderboard.getScores) {
+          var scores = Leaderboard.getScores();
+          if (scores && scores.length) {
+            content.innerHTML = scores.map(function(s, i) {
+              return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">' +
+                '<span>' + (i + 1) + '. ' + (s.name || 'Anonymous') + '</span>' +
+                '<span style="color:#ffd700">' + s.score + '</span></div>';
+            }).join('');
           }
-          document.body.style.cursor = 'auto';
         }
-      }
-    });
-    observer.observe(pauseOv, { attributes: true, attributeFilter: ['style'] });
+      });
+    }
+
+    var btnCredits = document.getElementById('btn-credits-start');
+    if (btnCredits) {
+      btnCredits.addEventListener('click', function () {
+        hideAllPanels();
+        if (creditsPanel) creditsPanel.style.display = 'block';
+      });
+    }
+  })();
+
+  // ── Pause Menu button wiring ────────────────────────
+  (function () {
+    var pauseRestart = document.getElementById('pause-restart-btn');
+    if (pauseRestart) {
+      pauseRestart.addEventListener('click', function () {
+        if (GameManager.resumeFromPause) GameManager.resumeFromPause();
+        // Restart current wave
+        var currentWave = GameManager.getCurrentWave ? GameManager.getCurrentWave() : 0;
+        if (GameManager.beginWave) GameManager.beginWave(currentWave);
+      });
+    }
+
+    var pauseSettings = document.getElementById('pause-settings-btn');
+    if (pauseSettings) {
+      pauseSettings.addEventListener('click', function () {
+        // Toggle a simple settings alert for now; full settings panel can be expanded later
+        alert('Settings: Use Performance Mode toggle in the start menu, or press , (comma) to toggle music in-game.');
+      });
+    }
+
+    var pauseInventory = document.getElementById('pause-inventory-btn');
+    if (pauseInventory) {
+      pauseInventory.addEventListener('click', function () {
+        var pauseOv = document.getElementById('overlay-pause');
+        if (pauseOv) pauseOv.style.display = 'none';
+        GameManager.toggleInventory();
+      });
+    }
   })();
 
   // ── Inventory Button (in-game HUD) ────────────────────────

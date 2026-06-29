@@ -2278,21 +2278,7 @@ const GameManager = (function () {
           _skipNextEsc = false;
           return; // Let the browser handle fullscreen exit without toggling pause
         }
-        if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
-          gameState = STATE.PAUSED;
-          var invOv = document.getElementById('inventory-overlay');
-          if (invOv) {
-            showInventory();
-            invOv.style.display = 'flex';
-          }
-          _releaseMouseForUI();
-        } else if (gameState === STATE.PAUSED) {
-          gameState = STATE.PLAYING;
-          var invOv = document.getElementById('inventory-overlay');
-          if (invOv) invOv.style.display = 'none';
-          hideOverlays();
-          requestPointerLock();
-        }
+        togglePause();
       }
     });
 
@@ -2428,18 +2414,7 @@ const GameManager = (function () {
         // Ignore transient lock loss right after starting/resuming (slow PCs).
         if (performance.now() < _pointerLockGraceUntil) return;
         if (!isMobile) {
-          // Unified menu: route to inventory-overlay (pause + inventory + shop in one).
-          // Avoids the "4 different menus" complaint.
-          gameState = STATE.PAUSED;
-          var invOv = document.getElementById('inventory-overlay');
-          if (invOv) {
-            if (typeof showInventory === 'function') showInventory();
-            invOv.style.display = 'flex';
-          } else {
-            showOverlay('pause');
-          }
-          _releaseMouseForUI();
-          if (typeof updateMobileControlsVisibility === 'function') updateMobileControlsVisibility();
+          togglePause();
         }
       }
     });
@@ -2655,16 +2630,7 @@ const GameManager = (function () {
 
   function showOverlay(name) {
     document.querySelectorAll('.overlay').forEach(function (el) { el.style.display = 'none'; });
-    // Unified pause: redirect legacy 'pause' to inventory-overlay
-    if (name === 'pause') {
-      var inv = document.getElementById('inventory-overlay');
-      if (inv) {
-        if (typeof showInventory === 'function') showInventory();
-        inv.style.display = 'flex';
-        _releaseMouseForUI();
-        return;
-      }
-    }
+    // Show the requested overlay directly (pause now has its own dedicated UI)
     var el = document.getElementById('overlay-' + name);
     if (el) el.style.display = 'flex';
     _releaseMouseForUI();
@@ -3123,8 +3089,12 @@ const GameManager = (function () {
     if (window.AudioSystem && typeof window.AudioSystem.resume === 'function') {
       window.AudioSystem.resume();
     }
-    // Start battle music
-    if (window.AudioSystem.playMusic) window.AudioSystem.playMusic('battle');
+    // Start battle music — randomly select from available styles
+    var _musicStyles = ['battle', 'ambient', 'victory'];
+    var _randomStyle = _musicStyles[Math.floor(Math.random() * _musicStyles.length)];
+    if (window.AudioSystem.playMusic) window.AudioSystem.playMusic(_randomStyle);
+    // TODO: Add actual track filenames to _musicStyles array above when MP3 tracks are available
+    // Example: _musicStyles = ['battle', 'ambient', 'victory', 'gamemusic/Glory%20to%20Ukraine.mp3'];
     if (window.AudioSystem.resetFirstBlood) window.AudioSystem.resetFirstBlood();
     gameState = STATE.PLAYING;
     // Reset input tips so fresh session shows tutorials again
@@ -8466,25 +8436,7 @@ const GameManager = (function () {
     btnPause.addEventListener('touchstart', function (e) {
       e.preventDefault();
       // Direct pause toggle — synthetic keyboard events are unreliable on mobile Safari
-      if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
-        gameState = STATE.PAUSED;
-        var invOv = document.getElementById('inventory-overlay');
-        if (invOv) {
-          try { if (typeof showInventory === 'function') showInventory(); } catch (e) {}
-          invOv.style.display = 'flex';
-        } else {
-          showOverlay('pause');
-        }
-        _releaseMouseForUI();
-        if (typeof updateMobileControlsVisibility === 'function') updateMobileControlsVisibility();
-      } else if (gameState === STATE.PAUSED) {
-        gameState = STATE.PLAYING;
-        var invOv2 = document.getElementById('inventory-overlay');
-        if (invOv2) invOv2.style.display = 'none';
-        hideOverlays();
-        requestPointerLock();
-        if (typeof updateMobileControlsVisibility === 'function') updateMobileControlsVisibility();
-      }
+      togglePause();
     }, { passive: false });
 
     // Restore gyro preference (if previously enabled and no permission gate needed)
@@ -8574,6 +8526,44 @@ const GameManager = (function () {
       updateMobileControlsVisibility();
       requestPointerLock();
     }
+  }
+
+  function togglePause() {
+    var pauseOverlay = document.getElementById('overlay-pause');
+    var invOverlay = document.getElementById('inventory-overlay');
+    if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
+      gameState = STATE.PAUSED;
+      if (pauseOverlay) { pauseOverlay.style.display = 'flex'; }
+      if (invOverlay) invOverlay.style.display = 'none';
+      _updatePauseStats();
+      _releaseMouseForUI();
+      updateMobileControlsVisibility();
+    } else if (gameState === STATE.PAUSED) {
+      gameState = STATE.PLAYING;
+      if (pauseOverlay) pauseOverlay.style.display = 'none';
+      if (invOverlay) invOverlay.style.display = 'none';
+      hideOverlays();
+      updateMobileControlsVisibility();
+      requestPointerLock();
+    }
+  }
+
+  function _updatePauseStats() {
+    var w = document.getElementById('pause-stat-wave');
+    var k = document.getElementById('pause-stat-kills');
+    var s = document.getElementById('pause-stat-score');
+    var t = document.getElementById('pause-stat-time');
+    var st = document.getElementById('pause-stat-stage');
+    if (w) w.textContent = (typeof currentWave !== 'undefined' ? currentWave + 1 : 1);
+    if (k) k.textContent = (player && typeof player.kills !== 'undefined' ? player.kills : 0);
+    if (s) s.textContent = (player && typeof player.score !== 'undefined' ? player.score : 0);
+    if (t) {
+      var secs = Math.floor((typeof performance !== 'undefined' && window._sessionStartTime) ? (performance.now() - window._sessionStartTime) / 1000 : 0);
+      var mm = Math.floor(secs / 60).toString().padStart(2, '0');
+      var ss = (secs % 60).toString().padStart(2, '0');
+      t.textContent = mm + ':' + ss;
+    }
+    if (st) st.textContent = (typeof STAGES !== 'undefined' && typeof currentStage !== 'undefined' && STAGES[currentStage]) ? STAGES[currentStage].name : 'HOSTOMEL';
   }
 
   function resumeFromPause() {
@@ -9433,6 +9423,7 @@ const GameManager = (function () {
     hideOverlays,
     requestPointerLock,
     toggleInventory,
+    togglePause,
     showInventory,
     resumeFromPause,
     quitToMenu,
