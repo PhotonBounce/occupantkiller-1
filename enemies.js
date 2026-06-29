@@ -19,6 +19,7 @@ const Enemies = (() => {
   // Shared blood particle resources (pool geometry + 2 materials)
   var _bloodGeo = new THREE.BoxGeometry(1, 1, 1);
   var _bloodMatDark = new THREE.MeshLambertMaterial({ color: 0x880000 });
+  var _bloodMatLight = new THREE.MeshLambertMaterial({ color: 0xcc0000 });
   // ── Enemy mesh object pool (pre-allocated to avoid GC stutter) ──
   const _ENEMY_POOL_SIZE = 40;
   const _enemyPool = [];

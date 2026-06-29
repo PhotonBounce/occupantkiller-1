@@ -6,6 +6,7 @@
 const CityBuildings = (function () {
   'use strict';
   const PAL = { AIR:0, CONCRETE:9, BRICK:10, GLASS:11, WOOD:4, METAL:5, STONE:3, PLASTER:20, ROOFTILE:19, ASPHALT:18, SAND:7, DIRT:1, GRASS:2, REINFORCED:14, FENCE:15, RUBBLE:16, SANDBAG:17, CAR:28, DOOR:29, BLUE_TILE:64, WHITE_TILE:65, LIGHT:27, BUSH:26, FLAG:38, BANNER:39 };
+  var CITIES = {};
 
   // ── sovietApartment ──
   function sovietApartment(ox, oz, gy, w, d, floors, damage, color) {

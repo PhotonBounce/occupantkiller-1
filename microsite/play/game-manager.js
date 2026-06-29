@@ -104,10 +104,14 @@
     if (typeof window.Blockchain === 'undefined') {
       window.Blockchain = {
         connect: function(){ return Promise.resolve(false); },
+        disconnect: function(){},
         isConnected: function(){ return false; },
         getAccount: function(){ return null; },
+        getShortAddr: function(){ return '0x...'; },
+        getBalance: function(){ return 0; },
         getBalanceStr: function(){ return '0.00'; },
-        on: function(){}
+        on: function(){},
+        onEvent: function(cb){}
       };
     }
     if (typeof window.Tokenomics === 'undefined') {
