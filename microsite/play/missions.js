@@ -155,110 +155,306 @@ const MissionSystem = (function () {
                 return aliveCount === 0;
               },
             },
-            // Bradley Treeline Assault — set-piece for stage 19. Drive the M2A2 Bradley
-            // with the rapid-fire 25mm and rake a Russian platoon dug into a destructible
-            // treeline, the way Ukraine's 47th Mech Brigade clears woodlines.
+            // Bradley Assault: Treeline Breach — Ukrainian 47th Mech Bde counter-offensive
+            // Realistic: open wheat field → treeline with trenches, dugouts, dragon's teeth, bunkers.
+            // Waves: infantry → MG nests → BMP → FPV drones → full assault with tanks + drones.
+            // Based on 2023 Zaporizhzhia counter-offensive (Robotyne direction).
             bradley_assault: {
-              name: 'Treeline Assault',
-              description: '47th Brigade — Russian infantry is dug into the woods ahead. Mount the Bradley and rake the treeline with the 25mm.',
+              name: 'Bradley Assault: Treeline Breach',
+              description: 'Mounted in a Bradley M2 IFV, breach Russian treeline defenses. Engage trench lines, dugouts, and enemy positions. Watch for enemy FPV drones overhead.',
               tier: 6,
               generate() {
-                var killTarget = 42 + Math.floor(Math.random() * 14); // 42-55 (desktop set-piece)
-                // Mobile/low-spec: halve the ambush force so the Bradley showcase stays
-                // readable and performant on weak GPUs (you still have a 25mm tank).
-                if (typeof window !== 'undefined' && window.__OK_LOWSPEC) killTarget = Math.round(killTarget * 0.5); // ~21-27
-                var spawned = 0;
-                var spawnPositions = [];
-                var spawnedEnemyIds = [];
+                var playerPos = new THREE.Vector3(0, 0, 0);
                 try {
-                  var playerPos = new THREE.Vector3(0, 0, 0);
-                  try {
-                    if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
-                      var p = GameManager.getPlayer();
-                      if (p && p.position) playerPos.copy(p.position);
-                    }
-                  } catch (e) {}
-                  // Treeline corridor ahead of the player (~95 units out).
-                  var fwdAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw)
-                    ? CameraSystem.getYaw() : Math.random() * Math.PI * 2;
-                  var fwd = new THREE.Vector3(Math.sin(fwdAngle), 0, Math.cos(fwdAngle));
-                  var center = playerPos.clone().add(fwd.clone().multiplyScalar(95));
-                  function _terrainY(x, z) {
-                    try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) return VoxelWorld.getTerrainHeight(x, z) || 0; } catch (e2) {}
-                    return 0;
+                  if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
+                    var p = GameManager.getPlayer();
+                    if (p && p.position) playerPos.copy(p.position);
                   }
-                  // Build a destructible treeline: 3 staggered rows the 25mm can fell.
-                  try {
-                    if (typeof WorldFeatures !== 'undefined' && WorldFeatures.spawnTree) {
-                      for (var row = 0; row < 3; row++) {
-                        for (var tcol = -8; tcol <= 8; tcol++) {
-                          if (Math.random() < 0.25) continue; // gaps in the line
-                          var lux = tcol * 5 + (Math.random() - 0.5) * 3;
-                          var luz = row * 9 + (Math.random() - 0.5) * 4;
-                          var lrx = lux * fwd.z + luz * fwd.x;
-                          var lrz = -lux * fwd.x + luz * fwd.z;
-                          var tx = center.x + lrx;
-                          var tz = center.z + lrz;
-                          WorldFeatures.spawnTree(tx, _terrainY(tx, tz), tz);
+                } catch (e) {}
+                var fwdAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw)
+                  ? CameraSystem.getYaw() : Math.random() * Math.PI * 2;
+                var fwd = new THREE.Vector3(Math.sin(fwdAngle), 0, Math.cos(fwdAngle));
+                // Treeline is ~100 units ahead
+                var center = playerPos.clone().add(fwd.clone().multiplyScalar(100));
+                function _terrainY(x, z) {
+                  try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) return VoxelWorld.getTerrainHeight(x, z) || 0; } catch (e2) {}
+                  return 0;
+                }
+                // ── Build terrain: trench line, dugouts, dragon's teeth, bunkers ──
+                try {
+                  if (typeof CityBuildings !== 'undefined') {
+                    // Main trench line (zigzag, ~80 units long, perpendicular to fwd)
+                    var trenchLeft = new THREE.Vector3().copy(center).add(new THREE.Vector3(-fwd.z * 40, 0, fwd.x * 40));
+                    var trenchRight = new THREE.Vector3().copy(center).add(new THREE.Vector3(fwd.z * 40, 0, -fwd.x * 40));
+                    CityBuildings.trenchLine(trenchLeft.x, trenchLeft.z, _terrainY(trenchLeft.x, trenchLeft.z), 80, fwdAngle);
+                    // Dugouts (3 covered positions in the treeline)
+                    for (var dgi = -1; dgi <= 1; dgi++) {
+                      var dgp = center.clone().add(new THREE.Vector3(dgi * 22, 0, -fwd.z * dgi * 22)); // offset along treeline
+                      CityBuildings.dugout(dgp.x, dgp.z, _terrainY(dgp.x, dgp.z));
+                    }
+                    // Dragon's teeth anti-tank obstacles (2 lines between player and treeline)
+                    for (var dtRow = 0; dtRow < 2; dtRow++) {
+                      var dtCenter = playerPos.clone().add(fwd.clone().multiplyScalar(55 + dtRow * 15));
+                      CityBuildings.dragonsTeeth(dtCenter.x, dtCenter.z, _terrainY(dtCenter.x, dtCenter.z), 12, fwdAngle + Math.PI / 2);
+                    }
+                    // Bunkers (2 reinforced positions, one on each flank)
+                    var bnkLeft = center.clone().add(new THREE.Vector3(-fwd.z * 30, 0, fwd.x * 30));
+                    var bnkRight = center.clone().add(new THREE.Vector3(fwd.z * 30, 0, -fwd.x * 30));
+                    CityBuildings.bunker(bnkLeft.x, bnkLeft.z, _terrainY(bnkLeft.x, bnkLeft.z));
+                    CityBuildings.bunker(bnkRight.x, bnkRight.z, _terrainY(bnkRight.x, bnkRight.z));
+                  }
+                } catch (eTerr) {}
+                // Build destructible treeline: 3 staggered rows of trees + burned ones
+                try {
+                  if (typeof WorldFeatures !== 'undefined' && WorldFeatures.spawnTree) {
+                    for (var row = 0; row < 3; row++) {
+                      for (var tcol = -10; tcol <= 10; tcol++) {
+                        if (Math.random() < 0.2) continue; // gaps
+                        var lux = tcol * 4.5 + (Math.random() - 0.5) * 3;
+                        var luz = row * 8 + (Math.random() - 0.5) * 4;
+                        var lrx = lux * fwd.z + luz * fwd.x;
+                        var lrz = -lux * fwd.x + luz * fwd.z;
+                        var tx = center.x + lrx;
+                        var tz = center.z + lrz;
+                        var ty = _terrainY(tx, tz);
+                        WorldFeatures.spawnTree(tx, ty, tz);
+                        // Burned/cratered trees (20% chance)
+                        if (Math.random() < 0.2) {
+                          try { if (WorldFeatures.damageTree) WorldFeatures.damageTree({x:tx,y:ty,z:tz}, 80); } catch(e){}
                         }
                       }
                     }
-                  } catch (eTL) {}
-                  // Dig the platoon into the treeline.
+                  }
+                } catch (eTL) {}
+
+                // ── Wave spawn tables ──
+                var waves = [
+                  // Wave 1: Infantry trenches only (learn 25mm)
+                  { types: ['CONSCRIPT','CONSCRIPT','STORMER','STORMER','ENGINEER'], count: 14, label: 'Trench infantry' },
+                  // Wave 2: Add MG nests (use TOW for bunkers)
+                  { types: ['CONSCRIPT','STORMER','ENGINEER','SNIPER','WAGNER'], count: 16, label: 'MG nests + dugouts' },
+                  // Wave 3: Add enemy BMP (use TOW)
+                  { types: ['CONSCRIPT','STORMER','ENGINEER','WAGNER','SPETSNAZ','BTR'], count: 18, label: 'BTR support' },
+                  // Wave 4: Enemy FPV drones introduced
+                  { types: ['CONSCRIPT','STORMER','ENGINEER','SNIPER','DRONE_OP','KADYROVITE'], count: 20, label: 'FPV drone threat' },
+                  // Wave 5: Full assault with tank + multiple drones
+                  { types: ['CONSCRIPT','STORMER','ENGINEER','SNIPER','WAGNER','SPETSNAZ','TANK','DRONE_OP'], count: 24, label: 'Full armor + drone swarm' }
+                ];
+                var spawnedEnemyIds = [];
+                var spawnPositions = [];
+                var totalSpawned = 0;
+                var waveIndex = 0;
+                var waveState = 'spawning'; // spawning | active | waiting
+                var waveTimer = 2.0;
+                var dragonsTeethDestroyed = 0;
+                var dragonsTeethTotal = 24; // 2 rows of 12
+                var friendlyInfantryIds = [];
+                var dronesShotDown = 0;
+
+                // Spawn first wave immediately
+                function _spawnWave(wi) {
+                  var w = waves[wi];
+                  var spawnedW = 0;
                   if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-                    var types = ['CONSCRIPT', 'STORMER', 'ENGINEER', 'SNIPER', 'WAGNER', 'SPETSNAZ'];
-                    for (var i = 0; i < killTarget; i++) {
-                      var ux = (Math.random() - 0.5) * 80;
-                      var uz = (Math.random() - 0.5) * 28;
+                    for (var i = 0; i < w.count; i++) {
+                      var ux = (Math.random() - 0.5) * 70;
+                      var uz = (Math.random() - 0.5) * 24;
                       var rx = ux * fwd.z + uz * fwd.x;
                       var rz = -ux * fwd.x + uz * fwd.z;
                       var ex = center.x + rx;
                       var ez = center.z + rz;
                       try {
-                        var tp = types[Math.floor(Math.random() * types.length)];
+                        var tp = w.types[Math.floor(Math.random() * w.types.length)];
                         var spawnedEnemy = Enemies.spawnSingle(tp, { x: ex, y: _terrainY(ex, ez) + 1, z: ez });
                         if (spawnedEnemy) {
                           spawnedEnemyIds.push(spawnedEnemy.id);
-                          spawned++;
+                          spawnedW++;
+                          spawnPositions.push({ x: ex, z: ez });
                         }
-                        spawnPositions.push({ x: ex, z: ez });
                       } catch (eS) {}
                     }
                   }
-                  // Roll out the Bradley right beside the player.
-                  try {
-                    if (typeof Bradley !== 'undefined' && Bradley.spawnAt) {
-                      var bx = playerPos.x + 4, bz = playerPos.z;
-                      Bradley.spawnAt(new THREE.Vector3(bx, _terrainY(bx, bz), bz));
+                  totalSpawned += spawnedW;
+                  // Spawn enemy FPV drones on wave 4+
+                  if (wi >= 3 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+                    var droneCount = wi === 3 ? 2 : 4;
+                    for (var di = 0; di < droneCount; di++) {
+                      var dx = center.x + (Math.random() - 0.5) * 40;
+                      var dz = center.z + (Math.random() - 0.5) * 20;
+                      var dh = _terrainY(dx, dz) + 12 + Math.random() * 8;
+                      try { DroneSystem.spawn(dx, dh, dz, 'enemy_fpv'); } catch (eD) {}
                     }
-                    if (typeof HUD !== 'undefined' && HUD.showToast) {
-                      HUD.showToast('🚛 BRADLEY — Press B to mount. 25mm Bushmaster (RAPID). Rake the treeline.', 6000, '#a0c878');
+                  }
+                  // Wave 5: enemy recon drone
+                  if (wi >= 4 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+                    try { DroneSystem.spawn(center.x + 30, _terrainY(center.x, center.z) + 25, center.z + 10, 'enemy_observer'); } catch (eD) {}
+                  }
+                  _notify('⚠️ WAVE ' + (wi + 1) + '/5: ' + w.label + ' — ' + spawnedW + ' hostiles', '#ffaa44', 4000);
+                  return spawnedW;
+                }
+                _spawnWave(0);
+
+                // Spawn friendly Ukrainian infantry squad (follows behind Bradley)
+                try {
+                  if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
+                    for (var fi = 0; fi < 4; fi++) {
+                      var fAngle = fwdAngle + Math.PI + (Math.random() - 0.5) * 0.8;
+                      var fDist = 8 + fi * 3;
+                      var fx = playerPos.x + Math.sin(fAngle) * fDist;
+                      var fz = playerPos.z + Math.cos(fAngle) * fDist;
+                      var fNPC = NPCSystem.spawn(fx, _terrainY(fx, fz), fz, 'infantry');
+                      if (fNPC && fNPC.id) friendlyInfantryIds.push(fNPC.id);
                     }
-                  } catch (eBR) {}
-                } catch (eAll) {}
+                  }
+                } catch (eNPC) {}
+
+                // Spawn friendly recon drone overhead
+                try {
+                  if (typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+                    DroneSystem.spawn(playerPos.x, _terrainY(playerPos.x, playerPos.z) + 30, playerPos.z, 'recon');
+                  }
+                } catch (eD) {}
+
+                // Roll out the Bradley right beside the player.
+                try {
+                  if (typeof Bradley !== 'undefined' && Bradley.spawnAt) {
+                    var bx = playerPos.x + 4, bz = playerPos.z;
+                    Bradley.spawnAt(new THREE.Vector3(bx, _terrainY(bx, bz), bz));
+                  }
+                  if (typeof HUD !== 'undefined' && HUD.showToast) {
+                    HUD.showToast('🚛 BRADLEY M2A2 — Press B to mount. 25mm Bushmaster | TOW [3] | Smoke [4] | Mortar [M]. Breach the treeline!', 8000, '#a0c878');
+                  }
+                } catch (eBR) {}
+
                 return {
                   type: 'bradley_assault',
-                  killTarget: killTarget,
-                  kills: 0,
-                  spawned: spawned,
+                  waves: waves,
+                  waveIndex: waveIndex,
+                  waveState: waveState,
+                  waveTimer: waveTimer,
+                  spawned: totalSpawned,
                   spawnedEnemyIds: spawnedEnemyIds,
                   spawnPositions: spawnPositions,
+                  friendlyInfantryIds: friendlyInfantryIds,
+                  dragonsTeethTotal: dragonsTeethTotal,
+                  dragonsTeethDestroyed: dragonsTeethDestroyed,
+                  dronesShotDown: dronesShotDown,
                   startTime: Date.now(),
-                  objectiveText: '47th Brigade — clear the treeline...',
+                  objectiveText: 'WAVE 1/5: Clear trench infantry — 25mm Bushmaster ready',
+                  fwd: fwd,
+                  center: center,
                 };
               },
-              check(mission) {
-                if (mission.spawned === 0) { mission.objectiveText = 'Clear the treeline: complete'; return true; }
-                if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) return false;
+              update(mission, delta) {
+                if (!mission || mission.waveState === 'complete') return;
+                mission.waveTimer -= delta;
+                // Count alive enemies
                 var aliveCount = 0;
-                var allEnemies = Enemies.getAll();
-                for (var id of mission.spawnedEnemyIds) {
-                  var found = allEnemies.find(e => e && e.id === id);
-                  if (found && found.alive) aliveCount++;
+                if (typeof Enemies !== 'undefined' && Enemies.getAll && mission.spawnedEnemyIds) {
+                  var all = Enemies.getAll();
+                  for (var id of mission.spawnedEnemyIds) {
+                    var found = all.find(e => e && e.id === id);
+                    if (found && found.alive) aliveCount++;
+                  }
                 }
                 mission.kills = mission.spawned - aliveCount;
-                mission.objectiveText = `47th Brigade — clear the treeline: ${mission.kills}/${mission.spawned}`;
-                return aliveCount === 0;
+                // Check for friendly infantry casualties
+                var friendlyAlive = 0;
+                if (typeof NPCSystem !== 'undefined' && NPCSystem.getAll && mission.friendlyInfantryIds) {
+                  var npcs = NPCSystem.getAll();
+                  for (var fid of mission.friendlyInfantryIds) {
+                    var nf = npcs.find(n => n && n.id === fid);
+                    if (nf && nf.alive) friendlyAlive++;
+                  }
+                }
+                // Track drones shot down (by checking enemy_fpv drones)
+                if (typeof DroneSystem !== 'undefined' && DroneSystem.getAll) {
+                  var drones = DroneSystem.getAll();
+                  var enemyFPVs = drones.filter(d => d && d.type === 'enemy_fpv');
+                  mission.dronesShotDown = (mission.waveIndex >= 3) ? (mission.dronesShotDown || 0) : 0;
+                }
+                // Wave progression
+                if (mission.waveState === 'active') {
+                  if (aliveCount === 0) {
+                    mission.waveIndex++;
+                    if (mission.waveIndex >= mission.waves.length) {
+                      mission.waveState = 'complete';
+                      mission.objectiveText = '✓ TREELINE BREACHED — All Russian positions cleared!';
+                      _notify('✓ MISSION COMPLETE: Treeline breached. 47th Brigade advances.', '#44ff88', 5000);
+                      return;
+                    }
+                    mission.waveState = 'waiting';
+                    mission.waveTimer = 5.0;
+                    _notify('✓ WAVE ' + mission.waveIndex + ' CLEARED — Next wave in 5s', '#44ff88', 3000);
+                  } else {
+                    mission.objectiveText = 'WAVE ' + (mission.waveIndex + 1) + '/5: ' + mission.waves[mission.waveIndex].label + ' — ' + aliveCount + ' remain | Friendlies: ' + friendlyAlive + '/4';
+                  }
+                } else if (mission.waveState === 'waiting') {
+                  if (mission.waveTimer <= 0) {
+                    mission.waveState = 'active';
+                    var spawnedW = 0;
+                    var w = mission.waves[mission.waveIndex];
+                    if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+                      for (var i = 0; i < w.count; i++) {
+                        var ux = (Math.random() - 0.5) * 70;
+                        var uz = (Math.random() - 0.5) * 24;
+                        var rx = ux * mission.fwd.z + uz * mission.fwd.x;
+                        var rz = -ux * mission.fwd.x + uz * mission.fwd.z;
+                        var ex = mission.center.x + rx;
+                        var ez = mission.center.z + rz;
+                        try {
+                          var tp = w.types[Math.floor(Math.random() * w.types.length)];
+                          var spawnedEnemy = Enemies.spawnSingle(tp, { x: ex, y: _terrainY(ex, ez) + 1, z: ez });
+                          if (spawnedEnemy) {
+                            mission.spawnedEnemyIds.push(spawnedEnemy.id);
+                            spawnedW++;
+                            mission.spawned++;
+                          }
+                        } catch (eS) {}
+                      }
+                    }
+                    // Enemy FPV drones on waves 4+
+                    if (mission.waveIndex >= 3 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+                      var dCount = mission.waveIndex === 3 ? 2 : 4;
+                      for (var di = 0; di < dCount; di++) {
+                        var dx = mission.center.x + (Math.random() - 0.5) * 40;
+                        var dz = mission.center.z + (Math.random() - 0.5) * 20;
+                        var dh = _terrainY(dx, dz) + 12 + Math.random() * 8;
+                        try { DroneSystem.spawn(dx, dh, dz, 'enemy_fpv'); } catch (eD) {}
+                      }
+                    }
+                    // Wave 5: enemy recon + tank
+                    if (mission.waveIndex >= 4 && typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+                      try { DroneSystem.spawn(mission.center.x + 30, _terrainY(mission.center.x, mission.center.z) + 25, mission.center.z + 10, 'enemy_observer'); } catch (eD) {}
+                    }
+                    _notify('⚠️ WAVE ' + (mission.waveIndex + 1) + '/5: ' + w.label + ' — ' + spawnedW + ' hostiles inbound', '#ff4444', 4000);
+                  } else {
+                    mission.objectiveText = 'Next wave in ' + Math.ceil(mission.waveTimer) + 's...';
+                  }
+                }
+              },
+              check(mission) {
+                if (!mission) return false;
+                if (mission.waveState === 'complete') return true;
+                if (mission.spawned === 0) return false;
+                // Primary: destroy 50% of Russian positions + reach final wave
+                var aliveCount = 0;
+                if (typeof Enemies !== 'undefined' && Enemies.getAll && mission.spawnedEnemyIds) {
+                  var all = Enemies.getAll();
+                  for (var id of mission.spawnedEnemyIds) {
+                    var found = all.find(e => e && e.id === id);
+                    if (found && found.alive) aliveCount++;
+                  }
+                }
+                // Win condition: all 5 waves cleared
+                if (mission.waveState === 'complete') return true;
+                // Also win if >50% cleared and on final wave with few remaining
+                if (mission.waveIndex >= 4 && aliveCount <= 2 && mission.spawned > 20) {
+                  mission.waveState = 'complete';
+                  mission.objectiveText = '✓ TREELINE BREACHED — Russian defense collapsed!';
+                  return true;
+                }
+                return false;
               },
             },
         // Airborne Assault (Hostomel)

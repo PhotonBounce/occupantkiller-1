@@ -1604,6 +1604,170 @@ const CityBuildings = (function () {
     'siegeMoscow': 'siegeMoscow',
   };
 
+  // ── Treeline / Trench Warfare Templates (Ukraine 2023-2024) ──
+
+  function trenchLine(ox, oz, gy, length, direction) {
+    // Zigzag trench pattern with sandbag walls, wooden supports, firing steps
+    // direction: angle in radians, perpendicular to trench line
+    var perpX = Math.sin(direction), perpZ = Math.cos(direction);
+    var segLen = 8; // length of each zigzag segment
+    var segCount = Math.floor(length / segLen);
+    for (var seg = 0; seg < segCount; seg++) {
+      var segOffset = (seg - segCount / 2) * segLen;
+      var sx = ox + perpX * segOffset;
+      var sz = oz + perpZ * segOffset;
+      var zig = (seg % 2 === 0) ? 1 : -1;
+      // Trench floor (dug down 1 block)
+      for (var t = -2; t <= 2; t++) {
+        for (var d = 0; d < 3; d++) {
+          var tx = Math.round(sx + perpZ * t * zig);
+          var tz = Math.round(sz - perpX * t * zig);
+          setBlock(tx, gy - 1, tz, PAL.DIRT);
+          if (d === 0) setBlock(tx, gy, tz, PAL.AIR); // walkable floor
+        }
+      }
+      // Sandbag walls on both sides
+      for (var sb = -1; sb <= 1; sb += 2) {
+        for (var sbi = -2; sbi <= 2; sbi++) {
+          var sbx = Math.round(sx + perpZ * sbi + perpX * 2.5 * sb);
+          var sbz = Math.round(sz - perpX * sbi + perpZ * 2.5 * sb);
+          if (Math.random() < 0.85) {
+            setBlock(sbx, gy, sbz, PAL.SANDBAG);
+            if (Math.random() < 0.5) setBlock(sbx, gy + 1, sbz, PAL.SANDBAG);
+          }
+        }
+      }
+      // Wooden support posts every other segment
+      if (seg % 2 === 0) {
+        var wx = Math.round(sx), wz = Math.round(sz);
+        setBlock(wx, gy, wz, PAL.WOOD);
+        setBlock(wx, gy + 1, wz, PAL.WOOD);
+      }
+      // Firing step (raised dirt on one side)
+      for (var fs = -2; fs <= 2; fs++) {
+        var fsx = Math.round(sx + perpZ * fs + perpX * 1.8);
+        var fsz = Math.round(sz - perpX * fs + perpZ * 1.8);
+        setBlock(fsx, gy - 0.5, fsz, PAL.DIRT);
+      }
+    }
+  }
+
+  function dugout(ox, oz, gy) {
+    // Covered bunker with firing slit, sandbag roof, wooden supports
+    // 5x4x3 hollow structure
+    for (var x = -2; x <= 2; x++) {
+      for (var z = -2; z <= 2; z++) {
+        for (var y = 0; y < 3; y++) {
+          var isWall = x === -2 || x === 2 || z === -2 || z === 2;
+          var isRoof = y === 2;
+          if (isWall || isRoof) {
+            var mat = (y === 0) ? PAL.DIRT : ((y === 2) ? PAL.SANDBAG : PAL.WOOD);
+            setBlock(ox + x, gy + y, oz + z, mat);
+          } else {
+            setBlock(ox + x, gy + y, oz + z, PAL.AIR);
+          }
+        }
+      }
+    }
+    // Firing slit (front wall, 2 blocks wide, 1 high)
+    setBlock(ox, gy + 1, oz + 2, PAL.AIR);
+    setBlock(ox + 1, gy + 1, oz + 2, PAL.AIR);
+    // Sandbag reinforcements around entrance
+    setBlock(ox - 1, gy, oz + 3, PAL.SANDBAG);
+    setBlock(ox + 2, gy, oz + 3, PAL.SANDBAG);
+    setBlock(ox - 1, gy + 1, oz + 3, PAL.SANDBAG);
+    setBlock(ox + 2, gy + 1, oz + 3, PAL.SANDBAG);
+    // Wooden support beam over entrance
+    for (var bx = -1; bx <= 2; bx++) {
+      setBlock(ox + bx, gy + 2, oz + 2, PAL.WOOD);
+    }
+    // Internal ammo crate
+    setBlock(ox - 1, gy, oz - 1, PAL.METAL);
+  }
+
+  function dragonsTeeth(ox, oz, gy, count, direction) {
+    // Concrete anti-tank obstacles ("pyramids") in a staggered line
+    // Based on Russian Surovikin line defenses in Zaporizhzhia
+    var perpX = Math.sin(direction), perpZ = Math.cos(direction);
+    for (var i = 0; i < count; i++) {
+      var offset = (i - count / 2) * 3.5;
+      var stagger = (i % 2 === 0) ? 0 : 1.5;
+      var dx = ox + perpX * offset + perpZ * stagger;
+      var dz = oz + perpZ * offset - perpX * stagger;
+      // Concrete pyramid (3-high stepped)
+      var bx = Math.round(dx), bz = Math.round(dz);
+      setBlock(bx, gy, bz, PAL.CONCRETE);
+      setBlock(bx + 1, gy, bz, PAL.CONCRETE);
+      setBlock(bx, gy, bz + 1, PAL.CONCRETE);
+      setBlock(bx + 1, gy, bz + 1, PAL.CONCRETE);
+      setBlock(bx, gy + 1, bz, PAL.CONCRETE);
+      setBlock(bx + 1, gy + 1, bz, PAL.CONCRETE);
+      setBlock(bx, gy + 1, bz + 1, PAL.CONCRETE);
+      setBlock(bx + 1, gy + 1, bz + 1, PAL.CONCRETE);
+      setBlock(bx, gy + 2, bz, PAL.CONCRETE);
+      setBlock(bx + 1, gy + 2, bz, PAL.CONCRETE);
+      setBlock(bx, gy + 2, bz + 1, PAL.CONCRETE);
+      setBlock(bx + 1, gy + 2, bz + 1, PAL.CONCRETE);
+      setBlock(bx, gy + 3, bz, PAL.CONCRETE);
+      setBlock(bx + 1, gy + 3, bz, PAL.CONCRETE);
+      setBlock(bx, gy + 3, bz + 1, PAL.CONCRETE);
+      setBlock(bx + 1, gy + 3, bz + 1, PAL.CONCRETE);
+      // Optional: top cap
+      if (Math.random() < 0.3) {
+        setBlock(bx, gy + 4, bz, PAL.CONCRETE);
+      }
+    }
+  }
+
+  function bunker(ox, oz, gy) {
+    // Reinforced concrete bunker with machine gun port
+    // 7x6x4 structure with reinforced walls and overhead cover
+    for (var x = -3; x <= 3; x++) {
+      for (var z = -3; z <= 3; z++) {
+        for (var y = 0; y < 4; y++) {
+          var isWall = x === -3 || x === 3 || z === -3 || z === 3;
+          var isRoof = y === 3;
+          var isFloor = y === 0;
+          if (isWall || isRoof || isFloor) {
+            var mat = isRoof ? PAL.REINFORCED : (isFloor ? PAL.CONCRETE : PAL.CONCRETE);
+            // 20% chance of reinforced wall blocks
+            if (isWall && !isFloor && Math.random() < 0.3) mat = PAL.REINFORCED;
+            setBlock(ox + x, gy + y, oz + z, mat);
+          } else {
+            setBlock(ox + x, gy + y, oz + z, PAL.AIR);
+          }
+        }
+      }
+    }
+    // Machine gun port (front, centered, 1x1)
+    setBlock(ox, gy + 1, oz + 3, PAL.AIR);
+    setBlock(ox, gy + 2, oz + 3, PAL.AIR);
+    // Entry (rear, offset)
+    setBlock(ox + 2, gy, oz - 3, PAL.AIR);
+    setBlock(ox + 2, gy + 1, oz - 3, PAL.AIR);
+    // Blast baffle at entry
+    setBlock(ox + 2, gy, oz - 4, PAL.SANDBAG);
+    setBlock(ox + 2, gy + 1, oz - 4, PAL.SANDBAG);
+    // Reinforced firing table inside
+    setBlock(ox - 1, gy, oz + 2, PAL.CONCRETE);
+    setBlock(ox - 1, gy + 1, oz + 2, PAL.CONCRETE);
+    // Overhead earth cover (2 layers of dirt on roof)
+    for (var x = -3; x <= 3; x++) {
+      for (var z = -3; z <= 3; z++) {
+        setBlock(ox + x, gy + 4, oz + z, PAL.DIRT);
+        if (Math.random() < 0.5) setBlock(ox + x, gy + 5, oz + z, PAL.DIRT);
+      }
+    }
+    // Camo netting supports (4 corners)
+    var corners = [[-3, -3], [3, -3], [-3, 3], [3, 3]];
+    for (var ci = 0; ci < corners.length; ci++) {
+      var cx = corners[ci][0], cz = corners[ci][1];
+      for (var ch = 4; ch <= 6; ch++) {
+        setBlock(ox + cx, gy + ch, oz + cz, PAL.WOOD);
+      }
+    }
+  }
+
   // ── Public API ────────────────────────────────────────────
   return {
     CITIES: CITIES,
@@ -1621,6 +1785,9 @@ const CityBuildings = (function () {
     monument: monument,
     bridge: bridge,
     radarStation: radarStation,
+    trenchLine: trenchLine,
+    dugout: dugout,
+    dragonsTeeth: dragonsTeeth,
     bunker: bunker,
     ruinedBuilding: ruinedBuilding,
   };

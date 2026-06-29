@@ -2756,22 +2756,23 @@ const GameManager = (function () {
     var payloadDisp = document.getElementById('drone-payload-display');
     var modeEl = document.getElementById('drone-view-mode');
 
-    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON' };
+    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON', kamikaze: 'KAMIKAZE', incendiary: 'INCENDIARY', baba_yaga: 'BABA YAGA', bayraktar: 'BAYRAKTAR', enemy_bomber: 'ENEMY BOMBER', enemy_fpv: 'ENEMY FPV', enemy_observer: 'ENEMY OBSERVER' };
     if (typeLabel) typeLabel.textContent = '\u2014 ' + (names[droneType] || droneType.toUpperCase());
     if (modeEl) modeEl.textContent = 'EYE';
 
-    if (droneType === 'fpv_attack') {
-      if (actionText) actionText.textContent = 'Kamikaze Dive';
-      if (actionHint) actionHint.style.display = '';
-      if (payloadDisp) payloadDisp.style.display = 'none';
-    } else if (droneType === 'bomb') {
-      if (actionText) actionText.textContent = 'Drop Bomb';
-      if (actionHint) actionHint.style.display = '';
-      if (payloadDisp) payloadDisp.style.display = '';
-    } else {
-      if (actionHint) actionHint.style.display = 'none';
-      if (payloadDisp) payloadDisp.style.display = 'none';
-    }
+    var actionMap = {
+      fpv_attack: 'Kamikaze Dive',
+      kamikaze: 'Self-Destruct',
+      bomb: 'Drop Bomb',
+      incendiary: 'Drop Fire',
+      baba_yaga: 'Drop Thermite',
+      enemy_bomber: 'Drop Bomb',
+      enemy_fpv: 'Kamikaze Dive',
+    };
+    var hasAmmo = actionMap[droneType] !== undefined;
+    if (actionText) actionText.textContent = actionMap[droneType] || 'No Weapon';
+    if (actionHint) actionHint.style.display = hasAmmo ? '' : 'none';
+    if (payloadDisp) payloadDisp.style.display = hasAmmo ? '' : 'none';
   }
 
   function hideDroneControlsHUD() {
@@ -2832,6 +2833,9 @@ const GameManager = (function () {
     var battEl = document.getElementById('drone-battery-display');
     var hpEl = document.getElementById('drone-hp-display');
     var payloadEl = document.getElementById('drone-payload-display');
+    var ammoEl = document.getElementById('drone-ammo-display');
+    var ammoBarOuter = document.getElementById('drone-ammo-bar-outer');
+    var ammoBarInner = document.getElementById('drone-ammo-bar-inner');
     var nestHint = document.getElementById('drone-nest-hint');
     var viewEl = document.getElementById('drone-view-mode');
     var altEl = document.getElementById('drone-altitude-display');
@@ -2894,12 +2898,29 @@ const GameManager = (function () {
       }
     }
     if (payloadEl) {
-      if (drone.type === 'bomb') {
+      var maxAmmo = drone.maxAmmo || 0;
+      if (maxAmmo > 0) {
         payloadEl.style.display = '';
-        payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
-        payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';
+        payloadEl.textContent = drone.ammo > 0 ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD EMPTY';
+        payloadEl.style.color = drone.ammo > 0 ? '#ffaa00' : '#666';
       } else {
         payloadEl.style.display = 'none';
+      }
+    }
+    if (ammoEl) {
+      var maxAmmo = drone.maxAmmo || 0;
+      var ammo = drone.ammo || 0;
+      if (maxAmmo > 0) {
+        ammoEl.parentElement.style.display = '';
+        ammoEl.textContent = ammo + '/' + maxAmmo;
+        if (ammoBarOuter) ammoBarOuter.style.display = 'inline-block';
+        if (ammoBarInner) {
+          ammoBarInner.style.width = (maxAmmo > 0 ? (ammo / maxAmmo * 100) : 0) + '%';
+          ammoBarInner.style.background = ammo > 0 ? '#ffaa00' : '#666';
+        }
+      } else {
+        ammoEl.parentElement.style.display = 'none';
+        if (ammoBarOuter) ammoBarOuter.style.display = 'none';
       }
     }
 

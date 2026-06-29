@@ -1029,7 +1029,8 @@ const DroneSystem = (function () {
           drone.velocity.x = 0;
           drone.velocity.z = 0;
           // Drop the payload
-          drone.hasPayload = false;
+          drone.ammo = Math.max(0, drone.ammo - 1);
+          if (drone.ammo <= 0) drone.hasPayload = false;
           drone.mesh.children.forEach(function (c) { if (c.userData.isPayload) c.visible = false; });
           var dropPos = drone.position.clone();
           dropPos.y = nearestEnemy.mesh.position.y;
@@ -1089,7 +1090,8 @@ const DroneSystem = (function () {
           }
           var _byHide = false;
           drone.mesh.children.forEach(function(c) { if (!_byHide && c.userData.isPayload && c.visible) { c.visible = false; _byHide = true; } });
-          drone.payloadCount = (drone.payloadCount || 1) - 1;
+          drone.ammo = Math.max(0, drone.ammo - 1);
+          drone.payloadCount = drone.ammo;
           if (drone.payloadCount <= 0) drone.hasPayload = false;
           if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playGunshot) window.AudioSystem.playGunshot('launcher');
           if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('🔥 BABA YAGA DROPS THERMITE!', '#ff6600');

@@ -824,6 +824,10 @@
       <span style="color:#99ddff">LINK <span id="drone-distance-display">0</span>m</span>
       <span style="color:#99ddff">SIG <span id="drone-link-quality">GOOD</span></span>
       <span style="color:#66ddff"><span id="drone-remote-status">REMOTE STABLE</span></span>
+      <span style="color:#ffaa00">🔫 <span id="drone-ammo-display">0/0</span></span>
+      <span id="drone-ammo-bar-outer" style="display:none;width:60px;height:6px;background:#333;border-radius:3px;overflow:hidden;vertical-align:middle;margin-left:4px">
+        <span id="drone-ammo-bar-inner" style="display:block;height:100%;width:100%;background:#ffaa00"></span>
+      </span>
       <span id="drone-payload-display" style="color:#ffaa00;display:none">\uD83D\uDCA3 PAYLOAD READY</span>
       <span id="drone-nest-hint" style="color:#ff8888;display:none">\u25B6 Nest nearby! Dive to destroy!</span>
     </div>
@@ -1564,7 +1568,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '15': '15 · Vuhledar Tank Graveyard — Ambush and shatter the Russian armored assault.',
       '16': '16 · Antonov Bridge Strike — Strike the Kherson crossing.',
       '17': '17 · Refinery Strike — FPV-drone-only set-piece. Pilot kamikaze drones into the target.',
-      '18': '18 · Treeline Assault — Drive the M2A2 Bradley (47th Mech Bde). Rake a dug-in Russian platoon out of the woods with the rapid-fire 25mm Bushmaster. Set-piece — no survival waves.',
+      '18': '18 · Treeline Assault — Bradley M2A2 IFV (47th Mech Bde, Zaporizhzhia). Breach Russian treeline defenses: trenches, dugouts, dragon\'s teeth, bunkers. 5-wave assault with FPV drones. 25mm Bushmaster + TOW-2 + smoke + mortar support.',
     };
     var mapBtns = document.querySelectorAll('.map-btn');
     function setActiveMap(stage) {
