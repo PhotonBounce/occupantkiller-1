@@ -15,6 +15,53 @@ const MissionSystem = (function () {
     CLEAR_BUILDING: 'clear_building',
   });
 
+
+  /* ── City Detection ──────────────────────────────────────────────── */
+  function getCurrentCity() {
+    try {
+      if (typeof GameManager !== 'undefined' && GameManager.getCurrentStage) {
+        var stage = GameManager.getCurrentStage();
+        if (stage && stage.id) return stage.id;
+      }
+    } catch (e) {}
+    return 'UNKNOWN';
+  }
+  function getCityLandmark(city) {
+    var landmarks = {
+      KYIV: 'St. Sophia Cathedral',
+      MOSCOW: 'Red Square',
+      MARIUPOL: 'Azovstal steelworks',
+      KHERSON: 'Antonivsky Bridge',
+      BAKHMUT: 'Bakhmut Fortress',
+      AVDIIVKA: 'AKHZ coking plant',
+      SEVASTOPOL: 'Sevastopol Bay',
+      BELGOROD: 'Belgorod city center',
+      KREMLIN: 'the Kremlin',
+      HOSTOMEL: 'Antonov Airport',
+      CRIMEA: 'Crimea Bridge',
+      CHORNOBYL: 'Chornobyl NPP',
+      DONBAS: 'Donbas mining complex',
+      SNAKE: 'Snake Island lighthouse',
+      SAKY: 'Saky Airbase',
+      VUHLEDAR: 'Vuhledar fortifications',
+      ANTONOV: 'Antonov Airport',
+    };
+    return landmarks[city] || 'the occupied zone';
+  }
+  function getCityDefenseLine(city) {
+    var lines = {
+      KYIV: 'Maidan line / Dnipro embankment',
+      MOSCOW: 'Garden Ring defensive line',
+      MARIUPOL: 'Azovstal perimeter',
+      KHERSON: 'Dnipro riverfront',
+      BAKHMUT: 'Bakhmut Fortress ruins',
+      AVDIIVKA: 'AKHZ industrial perimeter',
+      SEVASTOPOL: 'Coastal defense batteries',
+      BELGOROD: 'Border checkpoint line',
+      KREMLIN: 'Kremlin walls',
+    };
+    return lines[city] || 'the forward line';
+  }
   /* ── Templates ───────────────────────────────────────────────────── */
   const TEMPLATES = {
             // Bradley IFV Assault — drive M2A3 Bradley, clear forest ambush
@@ -311,7 +358,7 @@ const MissionSystem = (function () {
         // Urban Breakout (Kyiv)
         urban_breakout: {
           name: 'Urban Breakout',
-          description: 'Break out of encirclement and reach friendly lines.',
+          description: 'Break out of Kyiv encirclement along Khreshchatyk and reach friendly lines beyond the Dnipro.',
           tier: 5,
           generate() {
             var playerPos = new THREE.Vector3(0, 0, 0);
@@ -340,7 +387,7 @@ const MissionSystem = (function () {
               timeLimit: 180,
               ambushSpawned: false,
               distanceToDest: Math.round(dist),
-              objectiveText: 'Break out of encirclement!',
+              objectiveText: 'Break out of Kyiv encirclement via Khreshchatyk!',
               timerExpiries: 0,
             };
           },
@@ -411,18 +458,23 @@ const MissionSystem = (function () {
         },
     gather: {
       name: 'Intel Sweep',
-      description: 'Eliminate Russian occupants to gather battlefield intelligence.',
+      description: 'Eliminate Russian occupants to gather battlefield intelligence from the occupied zone.',
       tier: 1,
       generate() {
+        var city = getCurrentCity();
+        var landmark = getCityLandmark(city);
         const amount = 15 + Math.floor(Math.random() * 20);
         return {
           type: MISSION_TYPE.GATHER,
+          city: city,
+          landmark: landmark,
           targetAmount: amount,
           currentAmount: 0,
         };
       },
       check(mission) {
-        mission.objectiveText = `Eliminate: ${mission.currentAmount}/${mission.targetAmount}`;
+        var landmark = mission.landmark || 'the occupied zone';
+        mission.objectiveText = `Eliminate near ${landmark}: ${mission.currentAmount}/${mission.targetAmount}`;
         return mission.currentAmount >= mission.targetAmount;
       },
     },
@@ -444,9 +496,11 @@ const MissionSystem = (function () {
     },
     recon: {
       name: 'Drone Reconnaissance',
-      description: 'Scout 3 locations with a recon drone. Fly drone within 10m of each target.',
+      description: 'Scout 3 locations near enemy positions with a recon drone. Fly drone within 10m of each target.',
       tier: 2,
       generate() {
+        var city = getCurrentCity();
+        var landmark = getCityLandmark(city);
         var _playerPos = new THREE.Vector3(0, 0, 0);
         try {
           if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
@@ -466,6 +520,8 @@ const MissionSystem = (function () {
         }
         return {
           type: MISSION_TYPE.RECON,
+          city: city,
+          landmark: landmark,
           targetPoints: points,
           scoutedPoints: points.map(function () { return false; }),
           scoutedCount: 0,
@@ -478,38 +534,44 @@ const MissionSystem = (function () {
       },
       check(mission) {
         var secs = Math.max(0, Math.ceil(mission.timeLimit));
-        mission.objectiveText = 'Drone Recon: ' + mission.scoutedCount + '/' + mission.targetCount + ' scouted (' + secs + 's)';
+        var landmark = mission.landmark || 'the target zone';
+        mission.objectiveText = 'Drone Recon near ' + landmark + ': ' + mission.scoutedCount + '/' + mission.targetCount + ' scouted (' + secs + 's)';
         return mission.scoutedCount >= mission.targetCount;
       },
       failed(mission) { return mission.timeLimit <= 0 && mission.scoutedCount < mission.targetCount; },
     },
     defense: {
       name: 'Defensive Survival',
-      description: 'Survive multiple enemy assault waves. Each completed wave counts toward the objective.',
+      description: 'Survive multiple enemy assault waves on the forward defensive line. Each completed wave counts toward the objective.',
       tier: 3,
       generate() {
+        var city = getCurrentCity();
+        var line = getCityDefenseLine(city);
         return {
           type: MISSION_TYPE.DEFENSE,
           targetWaves: 3 + Math.floor(Math.random() * 3),
           completedWaves: 0,
           baseHealthStart: 100,
+          city: city,
+          line: line,
         };
       },
       check(mission) {
-        mission.objectiveText = `Survival: Complete Wave ${mission.completedWaves}/${mission.targetWaves}`;
+        var line = mission.line || 'the forward line';
+        mission.objectiveText = `Survival on ${line}: Complete Wave ${mission.completedWaves}/${mission.targetWaves}`;
         return mission.completedWaves >= mission.targetWaves;
       },
     },
     kyiv_defense: {
       name: 'Defend the Capital',
-      description: 'Feb 2022. Stop every Russian armored column before it breaches the Maidan line. Kyiv must not fall.',
+      description: 'Feb 2022. Stop every Russian armored column before it breaches the Maidan line. Defend St. Sophia Cathedral, hold the Dnipro embankment, and protect Pechersk Lavra. Kyiv must not fall.',
       tier: 5,
       generate() {
         return {
           type: 'kyiv_defense',
           targetWaves: 8,
           completedWaves: 0,
-          objectiveText: 'Hold the line — columns inbound',
+          objectiveText: 'Hold the Maidan line — St. Sophia and Dnipro must be defended',
         };
       },
       update(mission) {
@@ -517,7 +579,7 @@ const MissionSystem = (function () {
           var w = (typeof GameManager !== 'undefined' && GameManager.getCurrentWave) ? GameManager.getCurrentWave() : 1;
           mission.completedWaves = Math.max(mission.completedWaves, w - 1);
           var hp = (typeof ConvoySystem !== 'undefined') ? ConvoySystem.getCityHP() : 100;
-          mission.objectiveText = 'Defend Kyiv: wave ' + w + '/' + mission.targetWaves + ' — city integrity ' + hp + '%';
+          mission.objectiveText = 'Defend Kyiv (Maidan/St. Sophia/Dnipro): wave ' + w + '/' + mission.targetWaves + ' — city integrity ' + hp + '%';
         } catch (e) {}
       },
       check(mission) { return mission.completedWaves >= mission.targetWaves; },
@@ -525,9 +587,11 @@ const MissionSystem = (function () {
     },
     escort: {
       name: 'Logistics Escort',
-      description: 'Escort supply convoy to destination safely.',
+      description: 'Escort supply convoy through hostile territory to the designated safe zone.',
       tier: 3,
       generate() {
+        var city = getCurrentCity();
+        var landmark = getCityLandmark(city);
         var playerPos = new THREE.Vector3(0, 0, 0);
         try {
           if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
@@ -549,6 +613,8 @@ const MissionSystem = (function () {
         } catch (e) {}
         return {
           type: MISSION_TYPE.ESCORT,
+          city: city,
+          landmark: landmark,
           destination: dest,
           convoyHealth: 100,
           arrived: false,
@@ -706,9 +772,11 @@ const MissionSystem = (function () {
     },
     clear_building: {
       name: 'Clear the Building',
-      description: 'Russian occupants have holed up inside an apartment block. Enter and eliminate every hostile on every floor.',
+      description: 'Russian occupants have holed up inside a strategic building. Enter and eliminate every hostile on every floor.',
       tier: 3,
       generate() {
+        var city = getCurrentCity();
+        var landmark = getCityLandmark(city);
         var building = null;
         try {
           if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getBuildings) {
@@ -742,6 +810,8 @@ const MissionSystem = (function () {
         return {
           type: MISSION_TYPE.CLEAR_BUILDING,
           building: building,
+          city: city,
+          landmark: landmark,
           spawned: spawned,
           spawnedEnemyIds: spawnedEnemyIds,
           remaining: spawned,

@@ -561,155 +561,150 @@ const CityBuildings = (function () {
   // 2. AVDIIVKA (Donetsk region, industrial city)
   // ═══════════════════════════════════════════════════════════
   CITIES.avdiivka = [
-    // Industrial core
-    { type: 'industrialFactory', params: [40, 25, 8], x: 0, z: 0, note: 'Avdiivka Coke Plant (AKHZ) main hall' },
-    { type: 'industrialFactory', params: [30, 15, 6], x: -35, z: -10, note: 'Coke Plant Hall 2' },
-    { type: 'industrialFactory', params: [25, 15, 6], x: 35, z: -10, note: 'Coke Plant Hall 3' },
-    { type: 'industrialFactory', params: [20, 12, 5], x: 0, z: -30, note: 'Chemical processing' },
-    { type: 'warehouse', params: [30, 12, 5], x: -40, z: 15, note: 'Coal storage' },
-    { type: 'warehouse', params: [25, 10, 5], x: 35, z: 15, note: 'Product warehouse' },
-    // Residential
-    { type: 'sovietApartment', params: [18, 9, 6, 0.5], x: -50, z: -30, note: 'Apartment block (damaged)' },
-    { type: 'sovietApartment', params: [18, 9, 6, 0.6], x: -30, z: -35, note: 'Apartment block (heavily damaged)' },
-    { type: 'sovietApartment', params: [18, 9, 5, 0.4], x: -10, z: -40, note: 'Apartment block (ruined)' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.3], x: 15, z: -40, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.5], x: 35, z: -35, note: 'Apartment block (damaged)' },
-    { type: 'sovietApartment', params: [16, 8, 4, 0.2], x: 50, z: -25, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [14, 7, 4, 0.3], x: -55, z: -10, note: 'Small apartment' },
-    { type: 'sovietApartment', params: [14, 7, 4, 0.4], x: 55, z: -10, note: 'Small apartment (damaged)' },
-    // Town infrastructure
-    { type: 'officeBuilding', params: [10, 8, 4], x: -45, z: 35, note: 'City administration' },
-    { type: 'school', params: [12, 10, 3], x: -25, z: 35, note: 'School No. 1 (destroyed)' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: 0, z: 35, note: 'Church of the Annunciation' },
-    { type: 'warehouse', params: [12, 8, 3], x: 25, z: 35, note: 'Market warehouse' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 2.5], x: 45, z: 35, note: 'Ruined shop' },
-    { type: 'bunker', params: [], x: -20, z: -20, note: 'Plant shelter' },
-    { type: 'bunker', params: [], x: 20, z: -20, note: 'Underground control room' },
-    { type: 'monument', params: ['obelisk'], x: 50, z: 10, note: 'Labor monument' },
-    { type: 'ruinedBuilding', params: [14, 8, 4, 2.0], x: -35, z: 25, note: 'Ruined factory office' },
-    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: 40, z: -30, note: 'Ruined house' },
-    { type: 'industrialFactory', params: [15, 10, 4], x: -20, z: 20, note: 'Brick factory' },
-    { type: 'warehouse', params: [15, 10, 4], x: 10, z: 20, note: 'Ceramic storage' },
-    { type: 'ruinedBuilding', params: [12, 8, 3, 2.0], x: 30, z: 25, note: 'Destroyed dormitory' },
-    { type: 'sovietApartment', params: [12, 6, 3, 0.2], x: -50, z: 10, note: 'Workers housing' },
-    { type: 'ruinedBuilding', params: [10, 8, 4, 2.5], x: 50, z: 30, note: 'Destroyed hospital' },
-    { type: 'bunker', params: [], x: 0, z: 15, note: 'Civil defense bunker' },
-    { type: 'monument', params: ['tank'], x: -40, z: -40, note: 'WWII tank monument' },
-    { type: 'radarStation', params: [], x: 45, z: -45, note: 'EW radar station' },
-  ];
+    { type: 'industrialFactory', params: [40, 25, 8], x: -20, z: -20, note: 'Avdiivka Coke Plant (AKHZ) main hall — northwest industrial core' },
+    { type: 'industrialFactory', params: [30, 15, 6], x: -55, z: -30, note: 'Coke Plant Hall 2 — northwest' },
+    { type: 'industrialFactory', params: [25, 15, 6], x: 15, z: -30, note: 'Coke Plant Hall 3 — north' },
+    { type: 'industrialFactory', params: [20, 12, 5], x: -20, z: -50, note: 'Chemical processing — north of plant' },
+    { type: 'warehouse', params: [30, 12, 5], x: -60, z: 5, note: 'Coal storage — west of plant' },
+    { type: 'warehouse', params: [25, 10, 5], x: 15, z: 5, note: 'Product warehouse — east of plant' },
+    { type: 'sovietApartment', params: [18, 9, 6, 0.5], x: 10, z: -20, note: 'Apartment block (damaged) — southeast of plant' },
+    { type: 'sovietApartment', params: [18, 9, 6, 0.6], x: 30, z: -25, note: 'Apartment block (heavily damaged) — southeast' },
+    { type: 'sovietApartment', params: [18, 9, 5, 0.4], x: 50, z: -30, note: 'Apartment block (ruined) — southeast' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.3], x: 15, z: -40, note: 'Apartment block — south' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.5], x: 35, z: -35, note: 'Apartment block (damaged) — south' },
+    { type: 'sovietApartment', params: [16, 8, 4, 0.2], x: 55, z: -25, note: 'Apartment block — far southeast' },
+    { type: 'sovietApartment', params: [14, 7, 4, 0.3], x: -65, z: -10, note: 'Small apartment — west of plant' },
+    { type: 'sovietApartment', params: [14, 7, 4, 0.4], x: 65, z: -10, note: 'Small apartment (damaged) — far east' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: 0, z: 20, note: 'City administration — south of industrial zone' },
+    { type: 'school', params: [12, 10, 3], x: 20, z: 20, note: 'School No. 1 (destroyed) — south' },
+    { type: 'orthodoxChurch', params: [8, 10, 5], x: 40, z: 20, note: 'Church of the Annunciation — south residential' },
+    { type: 'warehouse', params: [12, 8, 3], x: 60, z: 20, note: 'Market warehouse — southeast' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 2.5], x: 80, z: 20, note: 'Ruined shop — southeast' },
+    { type: 'bunker', params: [], x: -40, z: -20, note: 'Plant shelter — AKHZ underground' },
+    { type: 'bunker', params: [], x: 0, z: -20, note: 'Underground control room — AKHZ' },
+    { type: 'monument', params: ['obelisk'], x: 70, z: 0, note: 'Labor monument — east' },
+    { type: 'ruinedBuilding', params: [14, 8, 4, 2.0], x: -45, z: 10, note: 'Ruined factory office — west of plant' },
+    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: 50, z: -40, note: 'Ruined house — south' },
+    { type: 'industrialFactory', params: [15, 10, 4], x: -30, z: 10, note: 'Brick factory — west' },
+    { type: 'warehouse', params: [15, 10, 4], x: 0, z: 10, note: 'Ceramic storage — west' },
+    { type: 'ruinedBuilding', params: [12, 8, 3, 2.0], x: 30, z: 10, note: 'Destroyed dormitory — southwest' },
+    { type: 'sovietApartment', params: [12, 6, 3, 0.2], x: -70, z: 0, note: 'Workers housing — far west' },
+    { type: 'ruinedBuilding', params: [10, 8, 4, 2.5], x: 75, z: 15, note: 'Destroyed hospital — southeast' },
+    { type: 'bunker', params: [], x: -20, z: 0, note: 'Civil defense bunker — center' },
+    { type: 'monument', params: ['tank'], x: -60, z: -50, note: 'WWII tank monument — northwest' },
+    { type: 'radarStation', params: [], x: 65, z: -45, note: 'EW radar station — northeast' },
+  ];;
 
   // ═══════════════════════════════════════════════════════════
   // 3. BAKHMUT (Donetsk region, heavily destroyed)
   // ═══════════════════════════════════════════════════════════
   CITIES.bakhmut = [
-    { type: 'ruinedBuilding', params: [18, 10, 6, 3.0], x: 0, z: 0, note: 'Bakhmut Fortress ruins' },
-    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: -20, z: -15, note: 'Ruined apartment' },
-    { type: 'ruinedBuilding', params: [16, 9, 6, 2.8], x: 20, z: -15, note: 'Ruined apartment' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -35, z: -5, note: 'Ruined office' },
-    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 35, z: -5, note: 'Ruined school' },
-    { type: 'ruinedBuilding', params: [10, 8, 4, 2.0], x: -15, z: 15, note: 'Ruined shop' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.2], x: 15, z: 15, note: 'Ruined market' },
-    { type: 'ruinedBuilding', params: [16, 10, 6, 3.0], x: -40, z: 10, note: 'Heavily damaged building' },
-    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 40, z: 10, note: 'Heavily damaged building' },
-    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: -25, z: 30, note: 'Ruined house' },
-    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: 25, z: 30, note: 'Ruined house' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -50, z: -20, note: 'Ruined building' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 50, z: -20, note: 'Ruined building' },
-    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: -10, z: -30, note: 'Ruined apartment' },
-    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 10, z: -30, note: 'Ruined apartment' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 2.0], x: -45, z: 25, note: 'Ruined shop' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 2.0], x: 45, z: 25, note: 'Ruined shop' },
-    { type: 'ruinedBuilding', params: [16, 10, 6, 2.8], x: 0, z: -45, note: 'Ruined hotel' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -30, z: 40, note: 'Ruined building' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 30, z: 40, note: 'Ruined building' },
-    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: -50, z: 40, note: 'Ruined house' },
-    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: 50, z: 40, note: 'Ruined house' },
-    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: -20, z: -45, note: 'Ruined apartment' },
-    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 20, z: -45, note: 'Ruined apartment' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -55, z: 0, note: 'Ruined building' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 55, z: 0, note: 'Ruined building' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.8], x: -35, z: -35, note: 'Ruined building' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.8], x: 35, z: -35, note: 'Ruined building' },
-    { type: 'monument', params: ['obelisk'], x: 0, z: 50, note: 'Damaged war memorial' },
-    { type: 'bunker', params: [], x: 0, z: 0, note: 'Bakhmut shelter' },
-  ];
+    { type: 'ruinedBuilding', params: [18, 10, 6, 3.0], x: 0, z: 0, note: 'Bakhmut Fortress ruins — central market and embankment area' },
+    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: -20, z: -15, note: 'Ruined apartment — west of fortress' },
+    { type: 'ruinedBuilding', params: [16, 9, 6, 2.8], x: 20, z: -15, note: 'Ruined apartment — east of fortress' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -35, z: -5, note: 'Ruined office — north of center' },
+    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 35, z: -5, note: 'Ruined school — north of center' },
+    { type: 'ruinedBuilding', params: [10, 8, 4, 2.0], x: -15, z: 15, note: 'Ruined shop — south of center' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.2], x: 15, z: 15, note: 'Ruined market — south of center' },
+    { type: 'ruinedBuilding', params: [16, 10, 6, 3.0], x: -40, z: 10, note: 'Heavily damaged building — west' },
+    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 40, z: 10, note: 'Heavily damaged building — east' },
+    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: -25, z: 30, note: 'Ruined house — southwest' },
+    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: 25, z: 30, note: 'Ruined house — southeast' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -50, z: -20, note: 'Ruined building — far west' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 50, z: -20, note: 'Ruined building — far east' },
+    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: -10, z: -30, note: 'Ruined apartment — north of center' },
+    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 10, z: -30, note: 'Ruined apartment — north of center' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 2.0], x: -45, z: 25, note: 'Ruined shop — southwest' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 2.0], x: 45, z: 25, note: 'Ruined shop — southeast' },
+    { type: 'ruinedBuilding', params: [16, 10, 6, 2.8], x: 0, z: -45, note: 'Ruined hotel — north' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -30, z: 40, note: 'Ruined building — southwest' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 30, z: 40, note: 'Ruined building — southeast' },
+    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: -50, z: 40, note: 'Ruined house — far southwest' },
+    { type: 'ruinedBuilding', params: [10, 6, 3, 1.5], x: 50, z: 40, note: 'Ruined house — far southeast' },
+    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: -20, z: -45, note: 'Ruined apartment — northwest' },
+    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 20, z: -45, note: 'Ruined apartment — northeast' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -55, z: 0, note: 'Ruined building — west' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 55, z: 0, note: 'Ruined building — east' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.8], x: -35, z: -35, note: 'Ruined building — northwest' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.8], x: 35, z: -35, note: 'Ruined building — northeast' },
+    { type: 'monument', params: ['obelisk'], x: 0, z: 50, note: 'Damaged war memorial — south of center' },
+    { type: 'bunker', params: [], x: 0, z: 0, note: 'Bakhmut shelter — fortress area' },
+  ];;
 
   // ═══════════════════════════════════════════════════════════
   // 4. KHERSON (Dnipro river crossing, port city)
   // ═══════════════════════════════════════════════════════════
   CITIES.kherson = [
-    { type: 'bridge', params: [40, 6, 4], x: -20, z: 0, note: 'Antonivsky Bridge' },
-    { type: 'officeBuilding', params: [12, 10, 5], x: -30, z: -20, note: 'Port administration' },
-    { type: 'warehouse', params: [25, 12, 5], x: -10, z: -25, note: 'Port warehouse' },
-    { type: 'warehouse', params: [20, 10, 4], x: 15, z: -25, note: 'Cargo storage' },
-    { type: 'industrialFactory', params: [20, 12, 5], x: 40, z: -20, note: 'Shipyard workshop' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: -10, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: -10, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: -10, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: -10, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: -10, note: 'Apartment block' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: -45, z: 10, note: 'City hall' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: -25, z: 10, note: 'St. Catherine Church' },
-    { type: 'warehouse', params: [15, 10, 4], x: -5, z: 15, note: 'Market' },
-    { type: 'warehouse', params: [12, 8, 4], x: 15, z: 15, note: 'Storage depot' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: 35, z: 15, note: 'Bank building' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: 30, note: 'Residential block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: 30, note: 'Residential block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: 30, note: 'Residential block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: 30, note: 'Residential block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: 30, note: 'Residential block' },
-    { type: 'monument', params: ['obelisk'], x: -50, z: 20, note: 'Suvorov monument' },
-    { type: 'monument', params: ['obelisk'], x: 50, z: 20, note: 'Potemkin monument' },
-    { type: 'warehouse', params: [15, 10, 4], x: -30, z: 45, note: 'Railway depot' },
-    { type: 'warehouse', params: [15, 10, 4], x: -10, z: 45, note: 'Grain elevator' },
-    { type: 'industrialFactory', params: [18, 12, 5], x: 15, z: 45, note: 'Factory' },
-    { type: 'warehouse', params: [12, 8, 4], x: 40, z: 45, note: 'Cold storage' },
-    { type: 'bunker', params: [], x: -15, z: -5, note: 'River defense bunker' },
-    { type: 'bunker', params: [], x: 15, z: -5, note: 'Command bunker' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: -50, z: -30, note: 'Damaged warehouse' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.2], x: 50, z: -30, note: 'Damaged building' },
-  ];
+    { type: 'bridge', params: [40, 6, 4], x: 0, z: 40, note: 'Antonivsky Bridge — crosses Dnipro south of city' },
+    { type: 'officeBuilding', params: [12, 10, 5], x: -30, z: -20, note: 'Port administration — Dnipro riverfront, west bank' },
+    { type: 'warehouse', params: [25, 12, 5], x: -10, z: -25, note: 'Port warehouse — Dnipro riverfront' },
+    { type: 'warehouse', params: [20, 10, 4], x: 15, z: -25, note: 'Cargo storage — Dnipro riverfront' },
+    { type: 'industrialFactory', params: [20, 12, 5], x: 40, z: -20, note: 'Shipyard workshop — Dnipro riverfront' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: -10, note: 'Apartment block — west bank residential' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: -10, note: 'Apartment block — west bank' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: -10, note: 'Apartment block — city center' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: -10, note: 'Apartment block — city center' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: -10, note: 'Apartment block — east approach' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: -45, z: 10, note: 'City hall — central Kherson' },
+    { type: 'orthodoxChurch', params: [8, 10, 5], x: -25, z: 10, note: 'St. Catherine Church — central Kherson' },
+    { type: 'warehouse', params: [15, 10, 4], x: -5, z: 15, note: 'Market — central Kherson' },
+    { type: 'warehouse', params: [12, 8, 4], x: 15, z: 15, note: 'Storage depot — central Kherson' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: 35, z: 15, note: 'Bank building — central Kherson' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: 30, note: 'Residential block — south of center' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: 30, note: 'Residential block — south of center' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: 30, note: 'Residential block — south of center' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: 30, note: 'Residential block — south of center' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: 30, note: 'Residential block — south of center' },
+    { type: 'monument', params: ['obelisk'], x: -50, z: 20, note: 'Suvorov monument — west of center' },
+    { type: 'monument', params: ['obelisk'], x: 50, z: 20, note: 'Potemkin monument — east of center' },
+    { type: 'warehouse', params: [15, 10, 4], x: -30, z: 45, note: 'Railway depot — south' },
+    { type: 'warehouse', params: [15, 10, 4], x: -10, z: 45, note: 'Grain elevator — south' },
+    { type: 'industrialFactory', params: [18, 12, 5], x: 15, z: 45, note: 'Factory — south industrial' },
+    { type: 'warehouse', params: [12, 8, 4], x: 40, z: 45, note: 'Cold storage — south' },
+    { type: 'bunker', params: [], x: -15, z: -5, note: 'River defense bunker — Dnipro embankment' },
+    { type: 'bunker', params: [], x: 15, z: -5, note: 'Command bunker — Dnipro embankment' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: -50, z: -30, note: 'Damaged warehouse — port area' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.2], x: 50, z: -30, note: 'Damaged building — port area' },
+  ];;
 
   // ═══════════════════════════════════════════════════════════
   // 5. MARIUPOL STEELWORKS (Azovstal industrial complex)
   // ═══════════════════════════════════════════════════════════
   CITIES.mariupol = [
-    // Azovstal complex core
-    { type: 'industrialFactory', params: [50, 30, 10], x: 0, z: 0, note: 'Azovstal Blast Furnace Hall' },
-    { type: 'industrialFactory', params: [40, 20, 8], x: -45, z: -10, note: 'Rolling Mill 1' },
-    { type: 'industrialFactory', params: [35, 18, 7], x: 45, z: -10, note: 'Rolling Mill 2' },
-    { type: 'industrialFactory', params: [30, 15, 6], x: -40, z: -35, note: 'Coking Plant' },
-    { type: 'industrialFactory', params: [30, 15, 6], x: 40, z: -35, note: 'Sinter Plant' },
-    { type: 'warehouse', params: [40, 15, 6], x: -50, z: 15, note: 'Raw Material Storage' },
-    { type: 'warehouse', params: [35, 12, 5], x: 50, z: 15, note: 'Finished Steel Warehouse' },
-    { type: 'industrialFactory', params: [25, 15, 5], x: 0, z: -30, note: 'Converter Shop' },
-    { type: 'industrialFactory', params: [20, 12, 5], x: -25, z: 20, note: 'Pipe Mill' },
-    { type: 'industrialFactory', params: [20, 12, 5], x: 25, z: 20, note: 'Wire Mill' },
-    // City buildings around steelworks
-    { type: 'sovietApartment', params: [16, 8, 5, 0.5], x: -60, z: -20, note: 'Damaged apartment (east)' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.6], x: -60, z: 0, note: 'Heavily damaged apartment' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.7], x: -60, z: 20, note: 'Ruined apartment' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.5], x: 60, z: -20, note: 'Damaged apartment (west)' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.6], x: 60, z: 0, note: 'Heavily damaged apartment' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.7], x: 60, z: 20, note: 'Ruined apartment' },
-    { type: 'ruinedBuilding', params: [14, 10, 5, 2.5], x: -40, z: 40, note: 'Ruined Drama Theater' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -20, z: 40, note: 'Ruined museum' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 2.0], x: 0, z: 40, note: 'Ruined shop' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 20, z: 40, note: 'Ruined house' },
-    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 40, z: 40, note: 'Ruined school' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: -30, z: -50, note: 'St. Michael Cathedral (damaged)' },
-    { type: 'monument', params: ['tank'], x: -20, z: -50, note: 'Tank monument' },
-    { type: 'warehouse', params: [15, 10, 4], x: 0, z: -50, note: 'Port warehouse' },
-    { type: 'warehouse', params: [12, 8, 4], x: 20, z: -50, note: 'Harbor storage' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 2.0], x: 40, z: -50, note: 'Ruined building' },
+    { type: 'industrialFactory', params: [50, 30, 10], x: 0, z: -20, note: 'Azovstal Blast Furnace Hall — north of center, industrial heart' },
+    { type: 'industrialFactory', params: [40, 20, 8], x: -45, z: -25, note: 'Azovstal Rolling Mill 1 — northwest industrial zone' },
+    { type: 'industrialFactory', params: [35, 18, 7], x: 45, z: -25, note: 'Azovstal Rolling Mill 2 — northeast industrial zone' },
+    { type: 'industrialFactory', params: [30, 15, 6], x: -40, z: -45, note: 'Azovstal Coking Plant — north' },
+    { type: 'industrialFactory', params: [30, 15, 6], x: 40, z: -45, note: 'Azovstal Sinter Plant — north' },
+    { type: 'warehouse', params: [40, 15, 6], x: -50, z: -5, note: 'Raw Material Storage — west of Azovstal' },
+    { type: 'warehouse', params: [35, 12, 5], x: 50, z: -5, note: 'Finished Steel Warehouse — east of Azovstal' },
+    { type: 'industrialFactory', params: [25, 15, 5], x: 0, z: -50, note: 'Azovstal Converter Shop — north' },
+    { type: 'industrialFactory', params: [20, 12, 5], x: -25, z: -10, note: 'Azovstal Pipe Mill' },
+    { type: 'industrialFactory', params: [20, 12, 5], x: 25, z: -10, note: 'Azovstal Wire Mill' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.5], x: -60, z: 15, note: 'Damaged apartment (east) — residential near industrial zone' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.6], x: -60, z: 35, note: 'Heavily damaged apartment — east residential' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.7], x: -60, z: 55, note: 'Ruined apartment — east residential' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.5], x: 60, z: 15, note: 'Damaged apartment (west) — residential near coast' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.6], x: 60, z: 35, note: 'Heavily damaged apartment — west residential' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.7], x: 60, z: 55, note: 'Ruined apartment — west residential' },
+    { type: 'ruinedBuilding', params: [14, 10, 5, 2.5], x: -20, z: 25, note: 'Ruined Drama Theater — city center, Freedom Square area' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -5, z: 25, note: 'Ruined Kuindzhi Art Center — city center' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 2.0], x: 15, z: 25, note: 'Ruined shop — city center' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 30, z: 25, note: 'Ruined house — city center' },
+    { type: 'ruinedBuilding', params: [14, 8, 5, 2.5], x: 45, z: 25, note: 'Ruined school — city center' },
+    { type: 'orthodoxChurch', params: [8, 10, 5], x: -30, z: 50, note: 'St. Michael Cathedral (damaged) — near coast' },
+    { type: 'monument', params: ['tank'], x: -20, z: 50, note: 'Tank monument — near Sea of Azov coast' },
+    { type: 'warehouse', params: [15, 10, 4], x: 0, z: 50, note: 'Port warehouse — Sea of Azov coast' },
+    { type: 'warehouse', params: [12, 8, 4], x: 20, z: 50, note: 'Harbor storage — Sea of Azov coast' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 2.0], x: 40, z: 50, note: 'Ruined building — coastal area' },
     { type: 'bunker', params: [], x: -10, z: -10, note: 'Bunker under steelworks' },
-    { type: 'bunker', params: [], x: 10, z: -10, note: 'Underground tunnel entrance' },
-    { type: 'bunker', params: [], x: -10, z: 10, note: 'Shelter' },
-    { type: 'bunker', params: [], x: 10, z: 10, note: 'Ammo storage' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -55, z: -40, note: 'Ruined building' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 55, z: -40, note: 'Ruined building' },
-    { type: 'monument', params: ['obelisk'], x: 0, z: 50, note: 'Memorial' },
-  ];
+    { type: 'bunker', params: [], x: 10, z: -10, note: 'Underground tunnel entrance — Azovstal' },
+    { type: 'bunker', params: [], x: -10, z: 10, note: 'Shelter — industrial zone' },
+    { type: 'bunker', params: [], x: 10, z: 10, note: 'Ammo storage — industrial zone' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: -55, z: -40, note: 'Ruined building — north industrial' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 2.0], x: 55, z: -40, note: 'Ruined building — north industrial' },
+    { type: 'monument', params: ['obelisk'], x: 0, z: 60, note: 'Memorial — Sea of Azov coast' },
+  ];;
 
   // ═══════════════════════════════════════════════════════════
   // 6. CRIMEA BRIDGE (Kerch Strait)
@@ -793,76 +788,89 @@ const CityBuildings = (function () {
   // 8. OUTER MOSCOW (Suburbs, FSB/Rosgvardiya defense)
   // ═══════════════════════════════════════════════════════════
   CITIES.moscow = [
-    { type: 'sovietApartment', params: [18, 10, 9, 0.1], x: -40, z: -30, note: '9-story apartment' },
+    { type: 'kremlinWall', params: [80, 60, 8], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, Moskva River to south' },
+    { type: 'orthodoxChurch', params: [10, 12, 8], x: -15, z: -5, note: 'Assumption Cathedral — inside Kremlin, west side' },
+    { type: 'orthodoxChurch', params: [10, 12, 8], x: 0, z: -5, note: 'Archangel Cathedral — inside Kremlin, center' },
+    { type: 'orthodoxChurch', params: [10, 12, 8], x: 15, z: -5, note: 'Annunciation Cathedral — inside Kremlin, east side' },
+    { type: 'officeBuilding', params: [6, 6, 12], x: -8, z: 8, note: 'Ivan the Great Bell Tower — inside Kremlin, tallest structure' },
+    { type: 'officeBuilding', params: [14, 10, 5], x: -20, z: 10, note: 'Senate building — inside Kremlin, west' },
+    { type: 'officeBuilding', params: [14, 10, 5], x: 20, z: 10, note: 'Presidential residence — inside Kremlin, east' },
+    { type: 'orthodoxChurch', params: [10, 10, 8], x: 0, z: 35, note: 'St. Basil\'s Cathedral — south end of Red Square' },
+    { type: 'officeBuilding', params: [12, 8, 4], x: -30, z: 30, note: 'State Historical Museum — north of Red Square' },
+    { type: 'officeBuilding', params: [12, 8, 4], x: 30, z: 30, note: 'GUM Department Store — east side of Red Square' },
+    { type: 'monument', params: ['obelisk'], x: -12, z: 28, note: 'Lenin Mausoleum — against Kremlin wall, Red Square west side' },
+    { type: 'monument', params: ['obelisk'], x: 12, z: 28, note: 'Minin & Pozharsky Monument — Red Square, near St. Basil\'s' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: -40, z: -20, note: 'Lubyanka FSB HQ — northeast of Kremlin, former KGB' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: 40, z: -20, note: 'MVD headquarters — east of Kremlin' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: -35, z: -40, note: 'Bolshoi Theatre — north of Kremlin, Theater Square' },
+    { type: 'officeBuilding', params: [16, 14, 10], x: -55, z: 55, note: 'Moscow State University Main Building — Sparrow Hills (Vorobyovy Gory), southwest' },
+    { type: 'monument', params: ['obelisk'], x: -50, z: 60, note: 'Sparrow Hills observation point — elevated above Moskva River' },
+    { type: 'sovietApartment', params: [18, 10, 9, 0.1], x: -40, z: -30, note: '9-story apartment — north of Kremlin' },
     { type: 'sovietApartment', params: [18, 10, 9, 0.1], x: -20, z: -30, note: '9-story apartment' },
     { type: 'sovietApartment', params: [18, 10, 9, 0.1], x: 0, z: -30, note: '9-story apartment' },
     { type: 'sovietApartment', params: [18, 10, 9, 0.1], x: 20, z: -30, note: '9-story apartment' },
     { type: 'sovietApartment', params: [18, 10, 9, 0.1], x: 40, z: -30, note: '9-story apartment' },
-    { type: 'sovietApartment', params: [16, 8, 12, 0.1], x: -50, z: -10, note: '12-story tower' },
+    { type: 'sovietApartment', params: [16, 8, 12, 0.1], x: -50, z: -10, note: '12-story tower — inner ring' },
     { type: 'sovietApartment', params: [16, 8, 12, 0.1], x: -25, z: -10, note: '12-story tower' },
     { type: 'sovietApartment', params: [16, 8, 12, 0.1], x: 0, z: -10, note: '12-story tower' },
     { type: 'sovietApartment', params: [16, 8, 12, 0.1], x: 25, z: -10, note: '12-story tower' },
     { type: 'sovietApartment', params: [16, 8, 12, 0.1], x: 50, z: -10, note: '12-story tower' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: -40, z: 15, note: 'FSB office building' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: -15, z: 15, note: 'Rosgvardiya HQ' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: 15, z: 15, note: 'Police station' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: 40, z: 15, note: 'Military office' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: -50, z: 35, note: 'St. Nicholas Church' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: 50, z: 35, note: 'St. George Church' },
-    { type: 'warehouse', params: [15, 10, 4], x: -30, z: 35, note: 'Supermarket' },
-    { type: 'warehouse', params: [15, 10, 4], x: 0, z: 35, note: 'Shopping center' },
-    { type: 'warehouse', params: [15, 10, 4], x: 30, z: 35, note: 'Cinema' },
-    { type: 'school', params: [12, 10, 3], x: -45, z: 50, note: 'School No. 12' },
+    { type: 'orthodoxChurch', params: [8, 10, 5], x: -50, z: 35, note: 'St. Nicholas Church — north of city' },
+    { type: 'orthodoxChurch', params: [8, 10, 5], x: 50, z: 35, note: 'St. George Church — east of city' },
+    { type: 'warehouse', params: [15, 10, 4], x: -30, z: 35, note: 'Supermarket — northeast' },
+    { type: 'warehouse', params: [15, 10, 4], x: 0, z: 35, note: 'Shopping center — near Red Square' },
+    { type: 'warehouse', params: [15, 10, 4], x: 30, z: 35, note: 'Cinema — east of Red Square' },
+    { type: 'school', params: [12, 10, 3], x: -45, z: 50, note: 'School No. 12 — outer ring' },
     { type: 'school', params: [12, 10, 3], x: -15, z: 50, note: 'School No. 15' },
     { type: 'school', params: [12, 10, 3], x: 15, z: 50, note: 'School No. 23' },
     { type: 'school', params: [12, 10, 3], x: 45, z: 50, note: 'School No. 31' },
-    { type: 'bunker', params: [], x: -20, z: 0, note: 'Civil defense shelter' },
+    { type: 'bunker', params: [], x: -20, z: 0, note: 'Civil defense shelter — inner ring' },
     { type: 'bunker', params: [], x: 20, z: 0, note: 'Civil defense shelter' },
-    { type: 'bunker', params: [], x: -20, z: 25, note: 'Civil defense shelter' },
+    { type: 'bunker', params: [], x: -20, z: 25, note: 'Civil defense shelter — outer ring' },
     { type: 'bunker', params: [], x: 20, z: 25, note: 'Civil defense shelter' },
-    { type: 'monument', params: ['tank'], x: -50, z: -50, note: 'T-72 monument' },
-    { type: 'monument', params: ['tank'], x: 50, z: -50, note: 'T-80 monument' },
-    { type: 'monument', params: ['obelisk'], x: 0, z: -50, note: 'WWII memorial' },
-    { type: 'industrialFactory', params: [15, 10, 4], x: -35, z: 50, note: 'Garage' },
-    { type: 'industrialFactory', params: [15, 10, 4], x: 35, z: 50, note: 'Bus depot' },
-  ];
+    { type: 'monument', params: ['tank'], x: -50, z: -50, note: 'T-72 monument — northwest' },
+    { type: 'monument', params: ['tank'], x: 50, z: -50, note: 'T-80 monument — northeast' },
+    { type: 'monument', params: ['obelisk'], x: 0, z: -50, note: 'WWII memorial — north of Kremlin' },
+    { type: 'industrialFactory', params: [15, 10, 4], x: -35, z: 50, note: 'Garage — outer ring' },
+    { type: 'industrialFactory', params: [15, 10, 4], x: 35, z: 50, note: 'Bus depot — outer ring' },
+  ];;
 
   // ═══════════════════════════════════════════════════════════
   // 9. SEVASTOPOL NAVAL BASE (Crimea, Black Sea Fleet)
   // ═══════════════════════════════════════════════════════════
   CITIES.sevastopol = [
-    { type: 'industrialFactory', params: [30, 15, 6], x: 0, z: -30, note: 'Shipyard dry dock' },
-    { type: 'industrialFactory', params: [25, 12, 5], x: -35, z: -30, note: 'Repair workshop' },
-    { type: 'industrialFactory', params: [25, 12, 5], x: 35, z: -30, note: 'Submarine pen' },
-    { type: 'warehouse', params: [20, 10, 4], x: -50, z: -15, note: 'Naval stores' },
-    { type: 'warehouse', params: [20, 10, 4], x: 50, z: -15, note: 'Ammunition depot' },
-    { type: 'officeBuilding', params: [12, 10, 5], x: -30, z: -5, note: 'Black Sea Fleet HQ' },
-    { type: 'officeBuilding', params: [12, 10, 5], x: 30, z: -5, note: 'Admiralty building' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: -15, z: -5, note: 'St. Vladimir Cathedral' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: 15, z: -5, note: 'St. Nicholas Cathedral' },
-    { type: 'monument', params: ['obelisk'], x: 0, z: 15, note: 'Monument to Sunken Ships' },
-    { type: 'monument', params: ['obelisk'], x: -40, z: 15, note: 'Nakhimov monument' },
-    { type: 'monument', params: ['obelisk'], x: 40, z: 15, note: 'Kornilov monument' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: 30, note: 'Naval housing' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: 30, note: 'Naval housing' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: 30, note: 'Naval housing' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: 30, note: 'Naval housing' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: 30, note: 'Naval housing' },
-    { type: 'warehouse', params: [15, 10, 4], x: -50, z: 45, note: 'Port warehouse' },
-    { type: 'warehouse', params: [15, 10, 4], x: -25, z: 45, note: 'Port warehouse' },
-    { type: 'warehouse', params: [15, 10, 4], x: 0, z: 45, note: 'Port warehouse' },
-    { type: 'warehouse', params: [15, 10, 4], x: 25, z: 45, note: 'Port warehouse' },
-    { type: 'warehouse', params: [15, 10, 4], x: 50, z: 45, note: 'Port warehouse' },
-    { type: 'bunker', params: [], x: -20, z: -15, note: 'Coastal defense bunker' },
-    { type: 'bunker', params: [], x: 20, z: -15, note: 'Coastal defense bunker' },
-    { type: 'bunker', params: [], x: -15, z: 20, note: 'Underground command center' },
-    { type: 'bunker', params: [], x: 15, z: 20, note: 'Ammo bunker' },
-    { type: 'radarStation', params: [], x: -50, z: -40, note: 'Coastal radar' },
-    { type: 'radarStation', params: [], x: 50, z: -40, note: 'Coastal radar' },
-    { type: 'monument', params: ['tank'], x: -30, z: -50, note: 'IS-2 tank monument' },
-    { type: 'monument', params: ['tank'], x: 30, z: -50, note: 'T-34 tank monument' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.0], x: 0, z: 50, note: 'Damaged port building' },
-  ];
+    { type: 'industrialFactory', params: [30, 15, 6], x: 0, z: -20, note: 'Shipyard dry dock — Sevastopol Bay, north side' },
+    { type: 'industrialFactory', params: [25, 12, 5], x: -35, z: -20, note: 'Repair workshop — Sevastopol Bay, west' },
+    { type: 'industrialFactory', params: [25, 12, 5], x: 35, z: -20, note: 'Submarine pen — Sevastopol Bay, east' },
+    { type: 'warehouse', params: [20, 10, 4], x: -50, z: -5, note: 'Naval stores — west of bay' },
+    { type: 'warehouse', params: [20, 10, 4], x: 50, z: -5, note: 'Ammunition depot — east of bay' },
+    { type: 'officeBuilding', params: [12, 10, 5], x: -30, z: 5, note: 'Black Sea Fleet HQ — north shore, west' },
+    { type: 'officeBuilding', params: [12, 10, 5], x: 30, z: 5, note: 'Admiralty building — north shore, east' },
+    { type: 'orthodoxChurch', params: [8, 10, 5], x: -15, z: 5, note: 'St. Vladimir Cathedral — north shore, center-west' },
+    { type: 'orthodoxChurch', params: [8, 10, 5], x: 15, z: 5, note: 'St. Nicholas Cathedral — north shore, center-east' },
+    { type: 'monument', params: ['obelisk'], x: 0, z: 25, note: 'Monument to Sunken Ships — Sevastopol Bay waterfront' },
+    { type: 'monument', params: ['obelisk'], x: -40, z: 25, note: 'Nakhimov monument — west waterfront' },
+    { type: 'monument', params: ['obelisk'], x: 40, z: 25, note: 'Kornilov monument — east waterfront' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: 40, note: 'Naval housing — north of city' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: 40, note: 'Naval housing — north' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: 40, note: 'Naval housing — north' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: 40, note: 'Naval housing — north' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: 40, note: 'Naval housing — north' },
+    { type: 'warehouse', params: [15, 10, 4], x: -50, z: 55, note: 'Port warehouse — north' },
+    { type: 'warehouse', params: [15, 10, 4], x: -25, z: 55, note: 'Port warehouse — north' },
+    { type: 'warehouse', params: [15, 10, 4], x: 0, z: 55, note: 'Port warehouse — north' },
+    { type: 'warehouse', params: [15, 10, 4], x: 25, z: 55, note: 'Port warehouse — north' },
+    { type: 'warehouse', params: [15, 10, 4], x: 50, z: 55, note: 'Port warehouse — north' },
+    { type: 'bunker', params: [], x: -20, z: -5, note: 'Coastal defense bunker — Sevastopol Bay shore' },
+    { type: 'bunker', params: [], x: 20, z: -5, note: 'Coastal defense bunker — Sevastopol Bay shore' },
+    { type: 'bunker', params: [], x: -15, z: 30, note: 'Underground command center — north' },
+    { type: 'bunker', params: [], x: 15, z: 30, note: 'Ammo bunker — north' },
+    { type: 'radarStation', params: [], x: -50, z: -40, note: 'Coastal radar — west entrance to bay' },
+    { type: 'radarStation', params: [], x: 50, z: -40, note: 'Coastal radar — east entrance to bay' },
+    { type: 'monument', params: ['tank'], x: -30, z: -50, note: 'IS-2 tank monument — west coastal defense' },
+    { type: 'monument', params: ['tank'], x: 30, z: -50, note: 'T-34 tank monument — east coastal defense' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.0], x: 0, z: 60, note: 'Damaged port building — north' },
+  ];;
 
   // ═══════════════════════════════════════════════════════════
   // 10. DONBAS FINAL PUSH (Mining/industrial region)
@@ -904,127 +912,119 @@ const CityBuildings = (function () {
   // 11. BELGOROD OFFENSIVE (Russian border city)
   // ═══════════════════════════════════════════════════════════
   CITIES.belgorod = [
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: -20, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: -20, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: -20, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: -20, note: 'Apartment block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: -20, note: 'Apartment block' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: -40, z: 0, note: 'Admin building' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: -20, z: 0, note: 'Police station' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: 0, z: 0, note: 'City hall' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: 20, z: 0, note: 'Military office' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: 40, z: 0, note: 'FSB office' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: -30, z: 20, note: 'St. Trinity Church' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: 30, z: 20, note: 'St. Mary Church' },
-    { type: 'warehouse', params: [15, 10, 4], x: -10, z: 20, note: 'Market' },
-    { type: 'warehouse', params: [15, 10, 4], x: 10, z: 20, note: 'Shopping center' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: 40, note: 'Residential block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: 40, note: 'Residential block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: 40, note: 'Residential block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: 40, note: 'Residential block' },
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: 40, note: 'Residential block' },
-    { type: 'monument', params: ['obelisk'], x: -50, z: -40, note: 'Border monument' },
-    { type: 'monument', params: ['tank'], x: 50, z: -40, note: 'T-90 monument' },
-    { type: 'monument', params: ['obelisk'], x: 0, z: -40, note: 'Victory monument' },
-    { type: 'bunker', params: [], x: -20, z: -10, note: 'Military bunker' },
-    { type: 'bunker', params: [], x: 20, z: -10, note: 'Military bunker' },
-    { type: 'bunker', params: [], x: -20, z: 30, note: 'Civil defense bunker' },
-    { type: 'bunker', params: [], x: 20, z: 30, note: 'Civil defense bunker' },
-    { type: 'industrialFactory', params: [15, 10, 4], x: -50, z: 10, note: 'Factory' },
-    { type: 'industrialFactory', params: [15, 10, 4], x: 50, z: 10, note: 'Factory' },
-    { type: 'warehouse', params: [12, 8, 3], x: -50, z: 30, note: 'Warehouse' },
-    { type: 'warehouse', params: [12, 8, 3], x: 50, z: 30, note: 'Warehouse' },
-  ];
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: -20, note: 'Apartment block — city center north' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: -20, note: 'Apartment block — city center north' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: -20, note: 'Apartment block — city center north' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: -20, note: 'Apartment block — city center north' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: -20, note: 'Apartment block — city center north' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: -40, z: 0, note: 'Admin building — city center' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: -20, z: 0, note: 'Police station — city center' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: 0, z: 0, note: 'City hall — city center' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: 20, z: 0, note: 'Military office — city center' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: 40, z: 0, note: 'FSB office — city center' },
+    { type: 'orthodoxChurch', params: [8, 10, 5], x: -30, z: 20, note: 'St. Trinity Church — city center south' },
+    { type: 'orthodoxChurch', params: [8, 10, 5], x: 30, z: 20, note: 'St. Mary Church — city center south' },
+    { type: 'warehouse', params: [15, 10, 4], x: -10, z: 20, note: 'Market — city center south' },
+    { type: 'warehouse', params: [15, 10, 4], x: 10, z: 20, note: 'Shopping center — city center south' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: 40, note: 'Residential block — south' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: 40, note: 'Residential block — south' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: 40, note: 'Residential block — south' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: 40, note: 'Residential block — south' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: 40, note: 'Residential block — south' },
+    { type: 'monument', params: ['obelisk'], x: -50, z: -40, note: 'Border monument — north, toward Ukraine' },
+    { type: 'monument', params: ['tank'], x: 50, z: -40, note: 'T-90 monument — northeast' },
+    { type: 'monument', params: ['obelisk'], x: 0, z: -40, note: 'Victory monument — north' },
+    { type: 'bunker', params: [], x: -20, z: -10, note: 'Military bunker — north of center' },
+    { type: 'bunker', params: [], x: 20, z: -10, note: 'Military bunker — north of center' },
+    { type: 'bunker', params: [], x: -20, z: 30, note: 'Civil defense bunker — south' },
+    { type: 'bunker', params: [], x: 20, z: 30, note: 'Civil defense bunker — south' },
+    { type: 'industrialFactory', params: [15, 10, 4], x: -50, z: 10, note: 'Factory — west' },
+    { type: 'industrialFactory', params: [15, 10, 4], x: 50, z: 10, note: 'Factory — east' },
+    { type: 'warehouse', params: [12, 8, 3], x: -50, z: 30, note: 'Warehouse — west' },
+    { type: 'warehouse', params: [12, 8, 3], x: 50, z: 30, note: 'Warehouse — east' },
+  ];;
 
   // ═══════════════════════════════════════════════════════════
   // 12. KREMLIN SHOWDOWN (Moscow Kremlin & Red Square)
   // ═══════════════════════════════════════════════════════════
   CITIES.kremlin = [
-    // Kremlin walls (simplified rectangular fortification)
-    { type: 'kremlinWall', params: [80, 60, 8], x: -40, z: -30, note: 'Kremlin walls' },
-    // Inside the Kremlin
-    { type: 'orthodoxChurch', params: [10, 12, 8], x: -20, z: -10, note: 'Assumption Cathedral' },
-    { type: 'orthodoxChurch', params: [10, 12, 8], x: 0, z: -10, note: 'Archangel Cathedral' },
-    { type: 'orthodoxChurch', params: [10, 12, 8], x: 20, z: -10, note: 'Annunciation Cathedral' },
-    { type: 'orthodoxChurch', params: [8, 10, 6], x: -30, z: -10, note: 'Church of the Deposition' },
-    { type: 'orthodoxChurch', params: [8, 10, 6], x: 30, z: -10, note: 'Church of the Twelve Apostles' },
-    // Ivan the Great Bell Tower
-    { type: 'officeBuilding', params: [6, 6, 12], x: -10, z: 5, note: 'Ivan the Great Bell Tower' },
-    { type: 'officeBuilding', params: [6, 6, 12], x: 10, z: 5, note: 'Tsar Bell Tower' },
-    // Government buildings
-    { type: 'officeBuilding', params: [14, 10, 5], x: -25, z: 15, note: 'Senate building' },
-    { type: 'officeBuilding', params: [14, 10, 5], x: 25, z: 15, note: 'Presidential residence' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: -10, z: 20, note: 'Armory Chamber' },
-    { type: 'officeBuilding', params: [10, 8, 4], x: 10, z: 20, note: 'Diamond Fund' },
-    // Red Square (south of Kremlin)
-    { type: 'orthodoxChurch', params: [10, 10, 8], x: 0, z: 35, note: 'St. Basil Cathedral' },
-    { type: 'officeBuilding', params: [12, 8, 4], x: -30, z: 35, note: 'State Historical Museum' },
-    { type: 'officeBuilding', params: [12, 8, 4], x: 30, z: 35, note: 'GUM Department Store' },
-    { type: 'monument', params: ['obelisk'], x: -15, z: 35, note: 'Lenin Mausoleum' },
-    { type: 'monument', params: ['obelisk'], x: 15, z: 35, note: 'Minin & Pozharsky' },
-    // Lubyanka/FSB
-    { type: 'officeBuilding', params: [12, 10, 6], x: -50, z: 0, note: 'Lubyanka FSB HQ' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: 50, z: 0, note: 'MVD headquarters' },
-    // Surrounding
-    { type: 'sovietApartment', params: [16, 8, 6, 0.1], x: -50, z: -30, note: 'Hotel National' },
-    { type: 'sovietApartment', params: [16, 8, 6, 0.1], x: 50, z: -30, note: 'Rossiya Hotel' },
-    { type: 'officeBuilding', params: [10, 8, 5], x: -50, z: 30, note: 'Moscow State University' },
-    { type: 'officeBuilding', params: [10, 8, 5], x: 50, z: 30, note: 'Bolshoi Theatre' },
-    { type: 'monument', params: ['motherland'], x: 0, z: -50, note: 'Motherland Calls' },
-    { type: 'monument', params: ['tank'], x: -40, z: 50, note: 'Tank monument' },
-    { type: 'monument', params: ['tank'], x: 40, z: 50, note: 'Tank monument' },
-    { type: 'bunker', params: [], x: -20, z: 0, note: 'Kremlin bunker' },
-    { type: 'bunker', params: [], x: 20, z: 0, note: 'FSB bunker' },
-  ];
+    { type: 'kremlinWall', params: [80, 60, 8], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, Moskva River to south' },
+    { type: 'orthodoxChurch', params: [10, 12, 8], x: -20, z: -10, note: 'Assumption Cathedral — inside Kremlin, west' },
+    { type: 'orthodoxChurch', params: [10, 12, 8], x: 0, z: -10, note: 'Archangel Cathedral — inside Kremlin, center' },
+    { type: 'orthodoxChurch', params: [10, 12, 8], x: 20, z: -10, note: 'Annunciation Cathedral — inside Kremlin, east' },
+    { type: 'orthodoxChurch', params: [8, 10, 6], x: -30, z: -10, note: 'Church of the Deposition — inside Kremlin, far west' },
+    { type: 'orthodoxChurch', params: [8, 10, 6], x: 30, z: -10, note: 'Church of the Twelve Apostles — inside Kremlin, far east' },
+    { type: 'officeBuilding', params: [6, 6, 12], x: -10, z: 5, note: 'Ivan the Great Bell Tower — inside Kremlin' },
+    { type: 'officeBuilding', params: [6, 6, 12], x: 10, z: 5, note: 'Tsar Bell Tower — inside Kremlin' },
+    { type: 'officeBuilding', params: [14, 10, 5], x: -25, z: 15, note: 'Senate building — inside Kremlin' },
+    { type: 'officeBuilding', params: [14, 10, 5], x: 25, z: 15, note: 'Presidential residence — inside Kremlin' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: -10, z: 20, note: 'Armory Chamber — inside Kremlin' },
+    { type: 'officeBuilding', params: [10, 8, 4], x: 10, z: 20, note: 'Diamond Fund — inside Kremlin' },
+    { type: 'orthodoxChurch', params: [10, 10, 8], x: 0, z: 35, note: 'St. Basil\'s Cathedral — south end of Red Square' },
+    { type: 'officeBuilding', params: [12, 8, 4], x: -30, z: 35, note: 'State Historical Museum — north of Red Square' },
+    { type: 'officeBuilding', params: [12, 8, 4], x: 30, z: 35, note: 'GUM Department Store — east of Red Square' },
+    { type: 'monument', params: ['obelisk'], x: -15, z: 35, note: 'Lenin Mausoleum — against Kremlin wall' },
+    { type: 'monument', params: ['obelisk'], x: 15, z: 35, note: 'Minin & Pozharsky — Red Square' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: -50, z: 0, note: 'Lubyanka FSB HQ — northeast of Kremlin' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: 50, z: 0, note: 'MVD headquarters — east of Kremlin' },
+    { type: 'sovietApartment', params: [16, 8, 6, 0.1], x: -50, z: -30, note: 'Hotel National — northwest' },
+    { type: 'sovietApartment', params: [16, 8, 6, 0.1], x: 50, z: -30, note: 'Rossiya Hotel — northeast' },
+    { type: 'officeBuilding', params: [10, 8, 5], x: -50, z: 30, note: 'Moscow State University — northwest, near Sparrow Hills' },
+    { type: 'officeBuilding', params: [10, 8, 5], x: 50, z: 30, note: 'Bolshoi Theatre — northeast, Theater Square' },
+    { type: 'monument', params: ['motherland'], x: 0, z: -50, note: 'Motherland Calls — Victory Park, north of Kremlin' },
+    { type: 'monument', params: ['tank'], x: -40, z: 50, note: 'Tank monument — southwest' },
+    { type: 'monument', params: ['tank'], x: 40, z: 50, note: 'Tank monument — southeast' },
+    { type: 'bunker', params: [], x: -20, z: 0, note: 'Kremlin bunker — inside walls' },
+    { type: 'bunker', params: [], x: 20, z: 0, note: 'FSB bunker — near Lubyanka' },
+  ];;
 
   // ═══════════════════════════════════════════════════════════
   // 13. BATTLE OF KYIV (Kyiv city center, Maidan)
   // ═══════════════════════════════════════════════════════════
   CITIES.kyiv = [
-    // Maidan central plaza
-    { type: 'monument', params: ['obelisk'], x: 0, z: 0, note: 'Independence Monument' },
-    { type: 'officeBuilding', params: [14, 10, 8], x: -20, z: -15, note: 'Trade Unions Building' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: 20, z: -15, note: 'Ukraine Hotel' },
-    { type: 'officeBuilding', params: [10, 8, 6], x: -30, z: -5, note: 'Globus Shopping' },
-    { type: 'officeBuilding', params: [10, 8, 6], x: 30, z: -5, note: 'TSUM Kyiv' },
-    // Khreshchatyk Boulevard (main street)
-    { type: 'officeBuilding', params: [12, 8, 6], x: -40, z: 15, note: 'Kyiv City Council' },
-    { type: 'officeBuilding', params: [10, 8, 5], x: -20, z: 15, note: 'Post Office' },
-    { type: 'officeBuilding', params: [10, 8, 5], x: 0, z: 15, note: 'National Bank' },
-    { type: 'officeBuilding', params: [10, 8, 5], x: 20, z: 15, note: 'Ministry Building' },
-    { type: 'officeBuilding', params: [12, 8, 6], x: 40, z: 15, note: 'Parliament Building' },
-    // Pechersk Lavra area
-    { type: 'orthodoxChurch', params: [12, 14, 8], x: -50, z: -30, note: 'St. Sophia Cathedral' },
-    { type: 'orthodoxChurch', params: [10, 12, 7], x: -30, z: -30, note: 'St. Michael Cathedral' },
-    { type: 'orthodoxChurch', params: [14, 16, 10], x: -50, z: -50, note: 'Kyiv Pechersk Lavra' },
-    { type: 'orthodoxChurch', params: [10, 10, 6], x: -30, z: -50, note: 'St. Andrew Church' },
-    // Golden domes
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: 30, z: -30, note: 'St. Volodymyr Cathedral' },
-    { type: 'orthodoxChurch', params: [8, 10, 5], x: 50, z: -30, note: 'St. Nicholas Church' },
-    // Residential
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: 30, note: 'Khreshchatyk apartment' },
+    { type: 'monument', params: ['obelisk'], x: 0, z: 0, note: 'Independence Monument — Maidan Nezalezhnosti (center of Kyiv)' },
+    { type: 'officeBuilding', params: [14, 10, 8], x: -20, z: -5, note: 'Trade Unions Building — west side of Maidan' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: 20, z: -5, note: 'Ukraine Hotel — east side of Maidan' },
+    { type: 'officeBuilding', params: [10, 8, 6], x: -30, z: 5, note: 'Globus Shopping — south of Maidan on Khreshchatyk' },
+    { type: 'officeBuilding', params: [10, 8, 6], x: 30, z: 5, note: 'TSUM Kyiv — south of Maidan' },
+    { type: 'officeBuilding', params: [12, 8, 6], x: -40, z: 15, note: 'Kyiv City Council — west Khreshchatyk' },
+    { type: 'officeBuilding', params: [10, 8, 5], x: -20, z: 15, note: 'Post Office — Khreshchatyk' },
+    { type: 'officeBuilding', params: [10, 8, 5], x: 0, z: 15, note: 'National Bank — Khreshchatyk' },
+    { type: 'officeBuilding', params: [10, 8, 5], x: 20, z: 15, note: 'Ministry Building — Khreshchatyk' },
+    { type: 'officeBuilding', params: [14, 10, 6], x: 40, z: 15, note: 'Cabinet of Ministers — east end of Khreshchatyk' },
+    { type: 'officeBuilding', params: [16, 12, 6], x: 18, z: -10, note: 'Verkhovna Rada (Parliament) — Hrushevsky St, government quarter' },
+    { type: 'officeBuilding', params: [12, 10, 5], x: 15, z: -8, note: 'Cabinet of Ministers — near Parliament' },
+    { type: 'orthodoxChurch', params: [12, 14, 8], x: -20, z: -18, note: 'St. Sophia Cathedral — Upper Town, NW of Maidan (UNESCO World Heritage)' },
+    { type: 'orthodoxChurch', params: [10, 12, 7], x: -12, z: -15, note: 'St. Michael\'s Golden-Domed Monastery — near St. Sophia, overlooking Maidan' },
+    { type: 'orthodoxChurch', params: [8, 10, 6], x: -22, z: -8, note: 'St. Andrew\'s Church — above Andriyivskyy Descent, Upper Town' },
+    { type: 'ruinedBuilding', params: [10, 8, 4, 1.0], x: -25, z: -5, note: 'Andriyivskyy Descent — historic cobblestone street to Podil' },
+    { type: 'ruinedBuilding', params: [8, 6, 3, 0.5], x: -28, z: 5, note: 'Bulgakov Museum — Podil district' },
+    { type: 'orthodoxChurch', params: [14, 16, 10], x: 22, z: 20, note: 'Kyiv Pechersk Lavra — SE of center, on Dnipro uplands (UNESCO)' },
+    { type: 'orthodoxChurch', params: [10, 10, 6], x: 18, z: 15, note: 'Church of the Savior at Berestove — near Lavra' },
+    { type: 'monument', params: ['motherland'], x: 28, z: 38, note: 'Motherland Monument (62m) — south of Lavra, on Dnipro River slope' },
+    { type: 'monument', params: ['obelisk'], x: -50, z: 0, note: 'Taras Shevchenko monument — near university' },
+    { type: 'monument', params: ['obelisk'], x: 45, z: 10, note: 'Dnipro River embankment — east of city center' },
+    { type: 'monument', params: ['obelisk'], x: 48, z: 25, note: 'Dnipro River embankment — near Pechersk' },
+    { type: 'monument', params: ['obelisk'], x: 50, z: 40, note: 'Dnipro River embankment — near Motherland Monument' },
+    { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -40, z: 30, note: 'Khreshchatyk apartment — Shevchenkivskyi district' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: -20, z: 30, note: 'Khreshchatyk apartment' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 0, z: 30, note: 'Khreshchatyk apartment' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 20, z: 30, note: 'Khreshchatyk apartment' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.2], x: 40, z: 30, note: 'Khreshchatyk apartment' },
-    { type: 'sovietApartment', params: [16, 8, 6, 0.2], x: -40, z: 45, note: 'Pechersk apartment' },
+    { type: 'sovietApartment', params: [16, 8, 6, 0.2], x: -40, z: 45, note: 'Pechersk apartment — near Dnipro' },
     { type: 'sovietApartment', params: [16, 8, 6, 0.2], x: -20, z: 45, note: 'Pechersk apartment' },
     { type: 'sovietApartment', params: [16, 8, 6, 0.2], x: 0, z: 45, note: 'Pechersk apartment' },
     { type: 'sovietApartment', params: [16, 8, 6, 0.2], x: 20, z: 45, note: 'Pechersk apartment' },
     { type: 'sovietApartment', params: [16, 8, 6, 0.2], x: 40, z: 45, note: 'Pechersk apartment' },
-    // Motherland Monument
-    { type: 'monument', params: ['motherland'], x: 50, z: 0, note: 'Motherland Monument (62m)' },
-    { type: 'monument', params: ['obelisk'], x: -50, z: 0, note: 'Taras Shevchenko monument' },
-    // Metro
-    { type: 'bunker', params: [], x: -10, z: 10, note: 'Maidan Metro station' },
+    { type: 'bunker', params: [], x: -10, z: 10, note: 'Maidan Metro station — blue line' },
     { type: 'bunker', params: [], x: 10, z: 10, note: 'Khreshchatyk Metro station' },
     { type: 'bunker', params: [], x: -10, z: -10, note: 'Teatralna Metro station' },
     { type: 'bunker', params: [], x: 10, z: -10, note: 'Ploshcha Lva Tolstoho Metro' },
-    { type: 'officeBuilding', params: [10, 8, 5], x: 50, z: 15, note: 'Olympic Stadium' },
-    { type: 'officeBuilding', params: [10, 8, 5], x: 50, z: -15, note: 'VDNG Expo Center' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: 0, z: -25, note: 'Damaged building' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.2], x: 25, z: -25, note: 'Damaged building' },
-  ];
+    { type: 'officeBuilding', params: [10, 8, 5], x: 50, z: 15, note: 'Olympic Stadium — east of center, near Dnipro' },
+    { type: 'officeBuilding', params: [10, 8, 5], x: 45, z: -5, note: 'VDNG Expo Center — east of Maidan' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: 0, z: -25, note: 'Damaged building — northern approach' },
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.2], x: 25, z: -25, note: 'Damaged building — near Lavra approach' },
+  ];;
 
   // ═══════════════════════════════════════════════════════════
   // 14. SNAKE ISLAND DEFENSE (Small island, Black Sea)
@@ -1195,46 +1195,42 @@ const CityBuildings = (function () {
   // 20. SIEGE OF MOSCOW (Final battle, Kremlin area)
   // ═══════════════════════════════════════════════════════════
   CITIES.siegeMoscow = [
-    // Kremlin walls
-    { type: 'kremlinWall', params: [80, 60, 8], x: -40, z: -30, note: 'Kremlin walls' },
-    // Red Square
-    { type: 'orthodoxChurch', params: [10, 10, 8], x: 0, z: 35, note: 'St. Basil Cathedral' },
-    { type: 'officeBuilding', params: [12, 8, 4], x: -30, z: 35, note: 'Historical Museum' },
-    { type: 'officeBuilding', params: [12, 8, 4], x: 30, z: 35, note: 'GUM Department Store' },
-    { type: 'monument', params: ['obelisk'], x: -15, z: 35, note: 'Lenin Mausoleum' },
-    // Inside Kremlin
-    { type: 'orthodoxChurch', params: [10, 12, 8], x: -20, z: -10, note: 'Assumption Cathedral' },
-    { type: 'orthodoxChurch', params: [10, 12, 8], x: 0, z: -10, note: 'Archangel Cathedral' },
-    { type: 'orthodoxChurch', params: [10, 12, 8], x: 20, z: -10, note: 'Annunciation Cathedral' },
-    { type: 'officeBuilding', params: [6, 6, 12], x: -10, z: 5, note: 'Ivan Bell Tower' },
-    { type: 'officeBuilding', params: [6, 6, 12], x: 10, z: 5, note: 'Tsar Bell Tower' },
-    { type: 'officeBuilding', params: [14, 10, 5], x: -25, z: 15, note: 'Senate' },
-    { type: 'officeBuilding', params: [14, 10, 5], x: 25, z: 15, note: 'Presidential Residence' },
-    // Surrounding Moscow
-    { type: 'sovietApartment', params: [18, 10, 12, 0.2], x: -50, z: -50, note: 'Moscow high-rise' },
+    { type: 'kremlinWall', params: [80, 60, 8], x: 0, z: 0, note: 'Kremlin walls — final showdown location' },
+    { type: 'orthodoxChurch', params: [10, 10, 8], x: 0, z: 35, note: 'St. Basil\'s Cathedral — south end of Red Square' },
+    { type: 'officeBuilding', params: [12, 8, 4], x: -30, z: 35, note: 'Historical Museum — north of Red Square' },
+    { type: 'officeBuilding', params: [12, 8, 4], x: 30, z: 35, note: 'GUM Department Store — east of Red Square' },
+    { type: 'monument', params: ['obelisk'], x: -15, z: 35, note: 'Lenin Mausoleum — against Kremlin wall' },
+    { type: 'orthodoxChurch', params: [10, 12, 8], x: -20, z: -10, note: 'Assumption Cathedral — inside Kremlin' },
+    { type: 'orthodoxChurch', params: [10, 12, 8], x: 0, z: -10, note: 'Archangel Cathedral — inside Kremlin' },
+    { type: 'orthodoxChurch', params: [10, 12, 8], x: 20, z: -10, note: 'Annunciation Cathedral — inside Kremlin' },
+    { type: 'officeBuilding', params: [6, 6, 12], x: -10, z: 5, note: 'Ivan Bell Tower — inside Kremlin' },
+    { type: 'officeBuilding', params: [6, 6, 12], x: 10, z: 5, note: 'Tsar Bell Tower — inside Kremlin' },
+    { type: 'officeBuilding', params: [14, 10, 5], x: -25, z: 15, note: 'Senate — inside Kremlin' },
+    { type: 'officeBuilding', params: [14, 10, 5], x: 25, z: 15, note: 'Presidential Residence — inside Kremlin' },
+    { type: 'sovietApartment', params: [18, 10, 12, 0.2], x: -50, z: -50, note: 'Moscow high-rise — northwest' },
     { type: 'sovietApartment', params: [18, 10, 12, 0.2], x: -25, z: -50, note: 'Moscow high-rise' },
     { type: 'sovietApartment', params: [18, 10, 12, 0.2], x: 0, z: -50, note: 'Moscow high-rise' },
     { type: 'sovietApartment', params: [18, 10, 12, 0.2], x: 25, z: -50, note: 'Moscow high-rise' },
     { type: 'sovietApartment', params: [18, 10, 12, 0.2], x: 50, z: -50, note: 'Moscow high-rise' },
-    { type: 'sovietApartment', params: [18, 10, 9, 0.2], x: -50, z: -30, note: 'Moscow apartment' },
-    { type: 'sovietApartment', params: [18, 10, 9, 0.2], x: 50, z: -30, note: 'Moscow apartment' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: -50, z: 0, note: 'Lubyanka FSB' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: 50, z: 0, note: 'MVD HQ' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: -50, z: 20, note: 'Defense Ministry' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: 50, z: 20, note: 'Foreign Ministry' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: -50, z: 40, note: 'State Duma' },
-    { type: 'officeBuilding', params: [12, 10, 6], x: 50, z: 40, note: 'Federation Council' },
-    { type: 'monument', params: ['motherland'], x: 0, z: -60, note: 'Motherland Calls (62m)' },
-    { type: 'monument', params: ['tank'], x: -40, z: 50, note: 'T-14 Armata monument' },
-    { type: 'monument', params: ['tank'], x: 40, z: 50, note: 'T-90 monument' },
-    { type: 'monument', params: ['obelisk'], x: 0, z: 50, note: 'Victory Monument' },
-    { type: 'bunker', params: [], x: -20, z: 0, note: 'Kremlin nuclear bunker' },
-    { type: 'bunker', params: [], x: 20, z: 0, note: 'FSB command bunker' },
-    { type: 'bunker', params: [], x: -20, z: 25, note: 'Metro-2 secret line' },
-    { type: 'bunker', params: [], x: 20, z: 25, note: 'Metro-2 secret line' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: -30, z: 50, note: 'Damaged building' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: 30, z: 50, note: 'Damaged building' },
-  ];
+    { type: 'sovietApartment', params: [18, 10, 9, 0.2], x: -50, z: -30, note: 'Moscow apartment — west' },
+    { type: 'sovietApartment', params: [18, 10, 9, 0.2], x: 50, z: -30, note: 'Moscow apartment — east' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: -50, z: 0, note: 'Lubyanka FSB — northeast of Kremlin' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: 50, z: 0, note: 'MVD HQ — east of Kremlin' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: -50, z: 20, note: 'Defense Ministry — northwest' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: 50, z: 20, note: 'Foreign Ministry — northeast' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: -50, z: 40, note: 'State Duma — northwest' },
+    { type: 'officeBuilding', params: [12, 10, 6], x: 50, z: 40, note: 'Federation Council — northeast' },
+    { type: 'monument', params: ['motherland'], x: 0, z: -60, note: 'Motherland Calls (62m) — Victory Park' },
+    { type: 'monument', params: ['tank'], x: -40, z: 50, note: 'T-14 Armata monument — southwest' },
+    { type: 'monument', params: ['tank'], x: 40, z: 50, note: 'T-90 monument — southeast' },
+    { type: 'monument', params: ['obelisk'], x: 0, z: 50, note: 'Victory Monument — south of Kremlin' },
+    { type: 'bunker', params: [], x: -20, z: 0, note: 'Kremlin nuclear bunker — deep under walls' },
+    { type: 'bunker', params: [], x: 20, z: 0, note: 'FSB command bunker — near Lubyanka' },
+    { type: 'bunker', params: [], x: -20, z: 25, note: 'Metro-2 secret line — northwest' },
+    { type: 'bunker', params: [], x: 20, z: 25, note: 'Metro-2 secret line — northeast' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: -30, z: 50, note: 'Damaged building — southwest approach' },
+    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: 30, z: 50, note: 'Damaged building — southeast approach' },
+  ];;
 
   // ── Road Networks ─────────────────────────────────────────
   // Each city has 10 main roads as arrays of waypoints (x, z)
@@ -1264,96 +1260,56 @@ const CityBuildings = (function () {
   ];
 
   ROADS.avdiivka = [
-    // Road 1: Main industrial highway (north-south through plant)
-    [[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]],
-    // Road 2: East-west highway (coke plant road)
-    [[-50, -10], [-30, -10], [-10, -10], [10, -10], [30, -10], [50, -10]],
-    // Road 3: Residential street (north)
-    [[-50, -30], [-30, -30], [-10, -30], [10, -30], [30, -30], [50, -30]],
-    // Road 4: Residential street (south)
-    [[-50, 20], [-30, 20], [-10, 20], [10, 20], [30, 20], [50, 20]],
-    // Road 5: Plant perimeter road (west)
-    [[-40, -40], [-40, -20], [-40, 0], [-40, 20], [-40, 40]],
-    // Road 6: Plant perimeter road (east)
-    [[40, -40], [40, -20], [40, 0], [40, 20], [40, 40]],
-    // Road 7: Town center ring
-    [[-20, -10], [-20, 10], [0, 10], [20, 10], [20, -10]],
-    // Road 8: West diagonal
-    [[-50, -40], [-40, -30], [-30, -20], [-20, -10], [-10, 0]],
-    // Road 9: East diagonal
-    [[10, 0], [20, 10], [30, 20], [40, 30], [50, 40]],
-    // Road 10: Southern bypass
-    [[-50, 40], [-25, 40], [0, 40], [25, 40], [50, 40]],
-  ];
+    [[[-20, -50], [-20, -30], [-20, -10], [-20, 10], [-20, 30], [-20, 50]]],
+    [[[-50, -10], [-30, -10], [-10, -10], [10, -10], [30, -10], [50, -10]]],
+    [[[-50, -30], [-30, -30], [-10, -30], [10, -30], [30, -30], [50, -30]]],
+    [[[-50, 20], [-30, 20], [-10, 20], [10, 20], [30, 20], [50, 20]]],
+    [[[-40, -40], [-40, -20], [-40, 0], [-40, 20], [-40, 40]]],
+    [[[40, -40], [40, -20], [40, 0], [40, 20], [40, 40]]],
+    [[[-20, -10], [-20, 10], [0, 10], [20, 10], [20, -10]]],
+    [[[-50, -40], [-40, -30], [-30, -20], [-20, -10], [-10, 0]]],
+    [[[10, 0], [20, 10], [30, 20], [40, 30], [50, 40]]],
+    [[[-50, 40], [-25, 40], [0, 40], [25, 40], [50, 40]]],
+  ];;
 
   ROADS.bakhmut = [
-    // Road 1: Main street (heavily cratered)
-    [[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]],
-    // Road 2: Cross street
-    [[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]],
-    // Road 3: Northern ring (damaged)
-    [[-50, -20], [-25, -20], [0, -20], [25, -20], [50, -20]],
-    // Road 4: Southern ring (damaged)
-    [[-50, 20], [-25, 20], [0, 20], [25, 20], [50, 20]],
-    // Road 5: West approach
-    [[-50, -40], [-50, -20], [-50, 0], [-50, 20], [-50, 40]],
-    // Road 6: East approach
-    [[50, -40], [50, -20], [50, 0], [50, 20], [50, 40]],
-    // Road 7: Northwest diagonal (destroyed)
-    [[-50, -50], [-40, -40], [-30, -30], [-20, -20], [-10, -10]],
-    // Road 8: Northeast diagonal (destroyed)
-    [[10, -10], [20, -20], [30, -30], [40, -40], [50, -50]],
-    // Road 9: Southwest diagonal (destroyed)
-    [[-10, 10], [-20, 20], [-30, 30], [-40, 40], [-50, 50]],
-    // Road 10: Southeast diagonal (destroyed)
-    [[10, 10], [20, 20], [30, 30], [40, 40], [50, 50]],
-  ];
+    [[[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]]],
+    [[[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]]],
+    [[[-50, -20], [-25, -20], [0, -20], [25, -20], [50, -20]]],
+    [[[-50, 20], [-25, 20], [0, 20], [25, 20], [50, 20]]],
+    [[[-50, -40], [-50, -20], [-50, 0], [-50, 20], [-50, 40]]],
+    [[[50, -40], [50, -20], [50, 0], [50, 20], [50, 40]]],
+    [[[-50, -50], [-40, -40], [-30, -30], [-20, -20], [-10, -10]]],
+    [[[10, -10], [20, -20], [30, -30], [40, -40], [50, -50]]],
+    [[[-10, 10], [-20, 20], [-30, 30], [-40, 40], [-50, 50]]],
+    [[[10, 10], [20, 20], [30, 30], [40, 40], [50, 50]]],
+  ];;
 
   ROADS.kherson = [
-    // Road 1: Dnipro embankment (main road along river)
-    [[-50, -25], [-30, -25], [-10, -25], [10, -25], [30, -25], [50, -25]],
-    // Road 2: Bridge approach (west bank)
-    [[-20, -50], [-20, -30], [-20, -10], [-20, 10], [-20, 30], [-20, 50]],
-    // Road 3: Bridge approach (east bank)
-    [[20, -50], [20, -30], [20, -10], [20, 10], [20, 30], [20, 50]],
-    // Road 4: Suvorov Street (main avenue)
-    [[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]],
-    // Road 5: Northern residential ring
-    [[-50, -15], [-30, -15], [-10, -15], [10, -15], [30, -15], [50, -15]],
-    // Road 6: Southern residential ring
-    [[-50, 15], [-30, 15], [-10, 15], [10, 15], [30, 15], [50, 15]],
-    // Road 7: Port road (west)
-    [[-50, -35], [-30, -35], [-10, -35], [10, -35], [30, -35]],
-    // Road 8: Industrial road (east)
-    [[-30, 35], [-10, 35], [10, 35], [30, 35], [50, 35]],
-    // Road 9: Diagonal cross
-    [[-50, -50], [-30, -30], [-10, -10], [10, 10], [30, 30], [50, 50]],
-    // Road 10: Diagonal cross
-    [[50, -50], [30, -30], [10, -10], [-10, 10], [-30, 30], [-50, 50]],
-  ];
+    [[[-50, -25], [-30, -25], [-10, -25], [10, -25], [30, -25], [50, -25]]],
+    [[[-20, -50], [-20, -30], [-20, -10], [-20, 10], [-20, 30], [-20, 50]]],
+    [[[20, -50], [20, -30], [20, -10], [20, 10], [20, 30], [20, 50]]],
+    [[[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]]],
+    [[[-50, -15], [-30, -15], [-10, -15], [10, -15], [30, -15], [50, -15]]],
+    [[[-50, 15], [-30, 15], [-10, 15], [10, 15], [30, 15], [50, 15]]],
+    [[[-50, -35], [-30, -35], [-10, -35], [10, -35], [30, -35]]],
+    [[[-30, 35], [-10, 35], [10, 35], [30, 35], [50, 35]]],
+    [[[-50, -50], [-30, -30], [-10, -10], [10, 10], [30, 30], [50, 50]]],
+    [[[50, -50], [30, -30], [10, -10], [-10, 10], [-30, 30], [-50, 50]]],
+  ];;
 
   ROADS.mariupol = [
-    // Road 1: Port highway (north-south along coast)
-    [[-50, -50], [-50, -30], [-50, -10], [-50, 10], [-50, 30], [-50, 50]],
-    // Road 2: Coast road (east-west along sea)
-    [[-50, -50], [-30, -50], [-10, -50], [10, -50], [30, -50], [50, -50]],
-    // Road 3: Azovstal plant road (through factory)
-    [[0, -40], [0, -20], [0, 0], [0, 20], [0, 40]],
-    // Road 4: Eastern ring road
-    [[50, -50], [50, -30], [50, -10], [50, 10], [50, 30], [50, 50]],
-    // Road 5: Northern cross road
-    [[-50, -30], [-30, -30], [-10, -30], [10, -30], [30, -30], [50, -30]],
-    // Road 6: Southern cross road
-    [[-50, 30], [-30, 30], [-10, 30], [10, 30], [30, 30], [50, 30]],
-    // Road 7: City center diagonal
-    [[-50, -20], [-30, -10], [-10, 0], [10, 0], [30, 10], [50, 20]],
-    // Road 8: Plant access road (west)
-    [[-40, -40], [-40, -20], [-40, 0], [-40, 20], [-40, 40]],
-    // Road 9: Plant access road (east)
-    [[40, -40], [40, -20], [40, 0], [40, 20], [40, 40]],
-    // Road 10: Coastal highway (main port route)
-    [[-50, -40], [-30, -40], [0, -40], [30, -40], [50, -40]],
-  ];
+    [[[-50, 50], [-50, 30], [-50, 10], [-50, -10], [-50, -30], [-50, -50]]],
+    [[[-50, 50], [-30, 50], [-10, 50], [10, 50], [30, 50], [50, 50]]],
+    [[[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]]],
+    [[[50, 50], [50, 30], [50, 10], [50, -10], [50, -30], [50, -50]]],
+    [[[-50, 30], [-30, 30], [-10, 30], [10, 30], [30, 30], [50, 30]]],
+    [[[-50, -30], [-30, -30], [-10, -30], [10, -30], [30, -30], [50, -30]]],
+    [[[-50, -10], [-30, -10], [-10, 0], [10, 0], [30, 10], [50, 20]]],
+    [[[-40, -40], [-40, -20], [-40, 0], [-40, 20], [-40, 40]]],
+    [[[40, -40], [40, -20], [40, 0], [40, 20], [40, 40]]],
+    [[[-50, 40], [-30, 40], [0, 40], [30, 40], [50, 40]]],
+  ];;
 
   ROADS.crimea = [
     // Road 1: Bridge approach (Taman side)
@@ -1402,50 +1358,30 @@ const CityBuildings = (function () {
   ];
 
   ROADS.moscow = [
-    // Road 1: Outer Ring Road (MKAD) north
-    [[-50, -50], [-25, -50], [0, -50], [25, -50], [50, -50]],
-    // Road 2: Outer Ring Road (MKAD) south
-    [[-50, 50], [-25, 50], [0, 50], [25, 50], [50, 50]],
-    // Road 3: Main radial highway (north-south)
-    [[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]],
-    // Road 4: Garden Ring east-west
-    [[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]],
-    // Road 5: Northern residential
-    [[-50, -25], [-25, -25], [0, -25], [25, -25], [50, -25]],
-    // Road 6: Southern residential
-    [[-50, 25], [-25, 25], [0, 25], [25, 25], [50, 25]],
-    // Road 7: Western radial
-    [[-50, -50], [-50, -25], [-50, 0], [-50, 25], [-50, 50]],
-    // Road 8: Eastern radial
-    [[50, -50], [50, -25], [50, 0], [50, 25], [50, 50]],
-    // Road 9: Diagonal northeast
-    [[-50, -50], [-25, -25], [0, 0], [25, 25], [50, 50]],
-    // Road 10: Diagonal northwest
-    [[50, -50], [25, -25], [0, 0], [-25, 25], [-50, 50]],
-  ];
+    [[[0, -50], [0, -30], [0, -10], [0, 0], [0, 10], [0, 30], [0, 50]]],
+    [[[-50, 0], [-30, 0], [-10, 0], [0, 0], [10, 0], [30, 0], [50, 0]]],
+    [[[-30, 30], [-10, 30], [10, 30], [30, 30]]],
+    [[[-50, -20], [-25, -20], [0, -20], [25, -20], [50, -20]]],
+    [[[-50, 50], [-25, 50], [0, 50], [25, 50], [50, 50]]],
+    [[[-50, -50], [-50, -25], [-50, 0], [-50, 25], [-50, 50]]],
+    [[[50, -50], [50, -25], [50, 0], [50, 25], [50, 50]]],
+    [[[-50, -50], [-25, -50], [0, -50], [25, -50], [50, -50]]],
+    [[[-40, -20], [-30, -10], [-20, 0], [-10, 10], [0, 20]]],
+    [[[-35, -40], [-25, -30], [-15, -20], [-5, -10]]],
+  ];;
 
   ROADS.sevastopol = [
-    // Road 1: Coastal highway (Sevastopol Bay)
-    [[-50, -50], [-30, -50], [-10, -50], [10, -50], [30, -50], [50, -50]],
-    // Road 2: Main naval base road
-    [[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]],
-    // Road 3: Northern defense line
-    [[-50, -30], [-30, -30], [-10, -30], [10, -30], [30, -30], [50, -30]],
-    // Road 4: Southern port road
-    [[-50, 30], [-30, 30], [-10, 30], [10, 30], [30, 30], [50, 30]],
-    // Road 5: Western perimeter
-    [[-50, -50], [-50, -30], [-50, -10], [-50, 10], [-50, 30], [-50, 50]],
-    // Road 6: Eastern perimeter
-    [[50, -50], [50, -30], [50, -10], [50, 10], [50, 30], [50, 50]],
-    // Road 7: Inner ring
-    [[-30, -20], [-30, 0], [-30, 20], [-10, 20], [10, 20], [30, 20]],
-    // Road 8: Harbor road (north)
-    [[-40, -40], [-20, -40], [0, -40], [20, -40], [40, -40]],
-    // Road 9: Harbor road (south)
-    [[-40, 40], [-20, 40], [0, 40], [20, 40], [40, 40]],
-    // Road 10: Coastal defense road
-    [[-50, -10], [-30, -10], [-10, -10], [10, -10], [30, -10], [50, -10]],
-  ];
+    [[[-50, -50], [-30, -50], [-10, -50], [10, -50], [30, -50], [50, -50]]],
+    [[[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]]],
+    [[[-50, -30], [-30, -30], [-10, -30], [10, -30], [30, -30], [50, -30]]],
+    [[[-50, 30], [-30, 30], [-10, 30], [10, 30], [30, 30], [50, 30]]],
+    [[[-50, -50], [-50, -30], [-50, -10], [-50, 10], [-50, 30], [-50, 50]]],
+    [[[50, -50], [50, -30], [50, -10], [50, 10], [50, 30], [50, 50]]],
+    [[[-30, -20], [-30, 0], [-30, 20], [-10, 20], [10, 20], [30, 20]]],
+    [[[-40, -40], [-20, -40], [0, -40], [20, -40], [40, -40]]],
+    [[[-40, 40], [-20, 40], [0, 40], [20, 40], [40, 40]]],
+    [[[-50, -10], [-30, -10], [-10, -10], [10, -10], [30, -10], [50, -10]]],
+  ];;
 
   ROADS.donbas = [
     // Road 1: Mining highway (main transport)
@@ -1471,73 +1407,43 @@ const CityBuildings = (function () {
   ];
 
   ROADS.belgorod = [
-    // Road 1: Main highway (north-south)
-    [[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]],
-    // Road 2: Main highway (east-west)
-    [[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]],
-    // Road 3: Northern ring
-    [[-50, -20], [-25, -20], [0, -20], [25, -20], [50, -20]],
-    // Road 4: Southern ring
-    [[-50, 20], [-25, 20], [0, 20], [25, 20], [50, 20]],
-    // Road 5: Western ring
-    [[-50, -50], [-50, -25], [-50, 0], [-50, 25], [-50, 50]],
-    // Road 6: Eastern ring
-    [[50, -50], [50, -25], [50, 0], [50, 25], [50, 50]],
-    // Road 7: Industrial road (north)
-    [[-30, -40], [-10, -40], [10, -40], [30, -40]],
-    // Road 8: Industrial road (south)
-    [[-30, 40], [-10, 40], [10, 40], [30, 40]],
-    // Road 9: Diagonal
-    [[-50, -50], [-25, -25], [0, 0], [25, 25], [50, 50]],
-    // Road 10: Diagonal
-    [[50, -50], [25, -25], [0, 0], [-25, 25], [-50, 50]],
-  ];
+    [[[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]]],
+    [[[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]]],
+    [[[-50, -20], [-25, -20], [0, -20], [25, -20], [50, -20]]],
+    [[[-50, 20], [-25, 20], [0, 20], [25, 20], [50, 20]]],
+    [[[-50, -50], [-50, -25], [-50, 0], [-50, 25], [-50, 50]]],
+    [[[50, -50], [50, -25], [50, 0], [50, 25], [50, 50]]],
+    [[[-30, -40], [-10, -40], [10, -40], [30, -40]]],
+    [[[-30, 40], [-10, 40], [10, 40], [30, 40]]],
+    [[[-50, -50], [-25, -25], [0, 0], [25, 25], [50, 50]]],
+    [[[50, -50], [25, -25], [0, 0], [-25, 25], [-50, 50]]],
+  ];;
 
   ROADS.kremlin = [
-    // Road 1: Red Square (north-south axis)
-    [[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]],
-    // Road 2: Kremlin embankment (east-west)
-    [[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]],
-    // Road 3: Tverskaya Street (north approach)
-    [[0, -50], [0, -35], [0, -20], [-10, -10], [-20, 0]],
-    // Road 4: Manezhnaya Square ring
-    [[-20, -20], [0, -20], [20, -20], [20, 0], [20, 20], [0, 20], [-20, 20], [-20, 0]],
-    // Road 5: Northern Boulevard
-    [[-50, -35], [-25, -35], [0, -35], [25, -35], [50, -35]],
-    // Road 6: Southern Boulevard
-    [[-50, 35], [-25, 35], [0, 35], [25, 35], [50, 35]],
-    // Road 7: Western radial
-    [[-50, -50], [-50, -25], [-50, 0], [-50, 25], [-50, 50]],
-    // Road 8: Eastern radial
-    [[50, -50], [50, -25], [50, 0], [50, 25], [50, 50]],
-    // Road 9: Inner ring (Garden Ring)
-    [[-30, -30], [-30, 0], [-30, 30], [0, 30], [30, 30], [30, 0], [30, -30], [0, -30]],
-    // Road 10: Outer ring (Boulevard Ring)
-    [[-50, -50], [-50, 0], [-50, 50], [0, 50], [50, 50], [50, 0], [50, -50], [0, -50]],
-  ];
+    [[[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]]],
+    [[[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]]],
+    [[[0, -50], [0, -35], [0, -20], [-10, -10], [-20, 0]]],
+    [[[-20, -20], [0, -20], [20, -20], [20, 0], [20, 20], [0, 20], [-20, 20], [-20, 0]]],
+    [[[-50, -35], [-25, -35], [0, -35], [25, -35], [50, -35]]],
+    [[[-50, 35], [-25, 35], [0, 35], [25, 35], [50, 35]]],
+    [[[-50, -50], [-50, -25], [-50, 0], [-50, 25], [-50, 50]]],
+    [[[50, -50], [50, -25], [50, 0], [50, 25], [50, 50]]],
+    [[[-30, -30], [-30, 0], [-30, 30], [0, 30], [30, 30], [30, 0], [30, -30], [0, -30]]],
+    [[[-50, -50], [-50, 0], [-50, 50], [0, 50], [50, 50], [50, 0], [50, -50], [0, -50]]],
+  ];;
 
   ROADS.kyiv = [
-    // Road 1: Khreshchatyk Boulevard (main street)
-    [[0, -50], [0, -30], [0, -10], [0, 10], [0, 30], [0, 50]],
-    // Road 2: Maidan cross (Institutska)
-    [[-50, 0], [-30, 0], [-10, 0], [10, 0], [30, 0], [50, 0]],
-    // Road 3: Hrushevsky Street (government quarter)
-    [[-50, -20], [-30, -20], [-10, -20], [10, -20], [30, -20], [50, -20]],
-    // Road 4: Pechersk residential
-    [[-50, 20], [-30, 20], [-10, 20], [10, 20], [30, 20], [50, 20]],
-    // Road 5: Dnipro embankment (upper city)
-    [[-50, -40], [-30, -40], [-10, -40], [10, -40], [30, -40], [50, -40]],
-    // Road 6: Pechersk Lavra approach
-    [[-50, 40], [-30, 40], [-10, 40], [10, 40], [30, 40], [50, 40]],
-    // Road 7: Western radial (Bohdan Khmelnytsky)
-    [[-50, -50], [-50, -25], [-50, 0], [-50, 25], [-50, 50]],
-    // Road 8: Eastern radial (Lesya Ukrainka)
-    [[50, -50], [50, -25], [50, 0], [50, 25], [50, 50]],
-    // Road 9: Diagonal (Tolstoho)
-    [[-50, -50], [-25, -25], [0, 0], [25, 25], [50, 50]],
-    // Road 10: Diagonal (Lva Tolstoho)
-    [[50, -50], [25, -25], [0, 0], [-25, 25], [-50, 50]],
-  ];
+    [[[-50, 0], [-30, 0], [-10, 0], [0, 0], [10, 0], [30, 0], [50, 0]]],
+    [[[0, -50], [0, -30], [0, -10], [0, 0], [0, 10], [0, 30]]],
+    [[[15, -50], [15, -30], [15, -10], [15, 10], [15, 30]]],
+    [[[45, -50], [45, -30], [45, -10], [45, 10], [45, 30], [45, 50]]],
+    [[[-18, -50], [-18, -30], [-18, -10], [-18, 10]]],
+    [[[-20, -15], [-22, -5], [-25, 5], [-28, 15]]],
+    [[[10, 10], [15, 15], [20, 20], [25, 30], [28, 40]]],
+    [[[-50, -20], [-35, -20], [-20, -18], [-15, -15]]],
+    [[[30, -20], [40, -10], [45, 0], [48, 20], [50, 40]]],
+    [[[-10, 30], [10, 30], [25, 30], [40, 30], [50, 30]]],
+  ];;
 
   ROADS.snakeIsland = [
     // Small island — minimal road network
@@ -1660,27 +1566,17 @@ const CityBuildings = (function () {
   ];
 
   ROADS.siegeMoscow = [
-    // Road 1: Red Square axis (north-south)
-    [[0, -60], [0, -40], [0, -20], [0, 0], [0, 20], [0, 40], [0, 60]],
-    // Road 2: Kremlin embankment (east-west)
-    [[-60, 0], [-40, 0], [-20, 0], [0, 0], [20, 0], [40, 0], [60, 0]],
-    // Road 3: Tverskaya approach
-    [[0, -60], [-10, -50], [-20, -40], [-30, -30]],
-    // Road 4: Garden Ring (inner)
-    [[-30, -30], [-30, 0], [-30, 30], [0, 30], [30, 30], [30, 0], [30, -30], [0, -30]],
-    // Road 5: Boulevard Ring (outer)
-    [[-50, -50], [-50, 0], [-50, 50], [0, 50], [50, 50], [50, 0], [50, -50], [0, -50]],
-    // Road 6: Northern highway
-    [[-60, -40], [-30, -40], [0, -40], [30, -40], [60, -40]],
-    // Road 7: Southern highway
-    [[-60, 40], [-30, 40], [0, 40], [30, 40], [60, 40]],
-    // Road 8: Western highway
-    [[-40, -60], [-40, -30], [-40, 0], [-40, 30], [-40, 60]],
-    // Road 9: Eastern highway
-    [[40, -60], [40, -30], [40, 0], [40, 30], [40, 60]],
-    // Road 10: Outer ring (MKAD)
-    [[-60, -60], [-60, 0], [-60, 60], [0, 60], [60, 60], [60, 0], [60, -60], [0, -60]],
-  ];
+    [[[0, -60], [0, -40], [0, -20], [0, 0], [0, 20], [0, 40], [0, 60]]],
+    [[[-60, 0], [-40, 0], [-20, 0], [0, 0], [20, 0], [40, 0], [60, 0]]],
+    [[[0, -60], [-10, -50], [-20, -40], [-30, -30]]],
+    [[[-30, -30], [-30, 0], [-30, 30], [0, 30], [30, 30], [30, 0], [30, -30], [0, -30]]],
+    [[[-50, -50], [-50, 0], [-50, 50], [0, 50], [50, 50], [50, 0], [50, -50], [0, -50]]],
+    [[[-60, -40], [-30, -40], [0, -40], [30, -40], [60, -40]]],
+    [[[-60, 40], [-30, 40], [0, 40], [30, 40], [60, 40]]],
+    [[[-40, -60], [-40, -30], [-40, 0], [-40, 30], [-40, 60]]],
+    [[[40, -60], [40, -30], [40, 0], [40, 30], [40, 60]]],
+    [[[-60, -60], [-60, 0], [-60, 60], [0, 60], [60, 60], [60, 0], [60, -60], [0, -60]]],
+  ];;
 
   // ── Map stage names to city keys ──────────────────────────
   const STAGE_MAP = {

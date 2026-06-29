@@ -6511,7 +6511,29 @@ window.VoxelWorld = (function () {
       generateDroneNest(35, -35);
       generateDroneNest(-35, -55);
       generateDroneNest(30, 15);
-    } else if (level.id === 'BAKHMUT') {
+    
+      // Flat steppe terrain — Donbas plain
+      (function () {
+        for (var fx = -50; fx <= 50; fx++) {
+          for (var fz = -50; fz <= 50; fz++) {
+            var fh = getTerrainHeight(fx, fz);
+            setBlock(fx, fh, fz, BLOCK.GRASS);
+          }
+        }
+      })();
+      // Industrial slag heaps near coking plant
+      (function () {
+        for (var hx = -60; hx <= -30; hx++) {
+          for (var hz = -40; hz <= -20; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+            if (Math.abs(hx + 45) < 8 && Math.abs(hz + 30) < 8) {
+              setBlock(hx, hh + 2, hz, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
+} else if (level.id === 'BAKHMUT') {
       // Total destruction — bombed apartments, rubble streets
       generateUkrainianApartment(-25, -20, 6);
       generateUkrainianApartment(-25, -42, 6);
@@ -6529,13 +6551,59 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, -30);
       generateDroneNest(-40, -10);
       generateDroneNest(20, 30);
-    } else if (level.id === 'KHERSON') {
+    
+      // Bakhmutka River — small river running east-west through city center
+      (function () {
+        for (var rx = -55; rx <= 55; rx++) {
+          var rz = Math.floor(Math.sin(rx * 0.07) * 3);
+          for (var rw = 0; rw < 2; rw++) {
+            var rrz = rz + rw;
+            var rh = getTerrainHeight(rx, rrz);
+            for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+              setBlock(rx, ry, rrz, BLOCK.WATER);
+            }
+          }
+        }
+      })();
+      // Low hills around Bakhmut (Donbas ridge)
+      (function () {
+        for (var hx = -50; hx <= -30; hx++) {
+          for (var hz = -30; hz <= 30; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+          }
+        }
+      })();
+} else if (level.id === 'KHERSON') {
       generateUkrainianApartment(-30, -25, 12);
       generateUkrainianApartment(-30, -47, 6);
       generateUkrainianApartment(20, -30, 6);
       generateDroneNest(35, -40);
       generateDroneNest(-35, -55);
-    } else if (level.id === 'KYIV') {
+    
+      // Dnipro River — wide river south of the city, flat steppe terrain
+      (function () {
+        for (var rx = -55; rx <= 55; rx++) {
+          var rz = 40 + Math.floor(Math.sin(rx * 0.04) * 3);
+          for (var rw = 0; rw < 5; rw++) {
+            var rrz = rz + rw;
+            var rh = getTerrainHeight(rx, rrz);
+            for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+              setBlock(rx, ry, rrz, BLOCK.WATER);
+            }
+          }
+        }
+      })();
+      // Flat steppe around Kherson
+      (function () {
+        for (var fx = -50; fx <= 50; fx++) {
+          for (var fz = -50; fz <= 30; fz++) {
+            var fh = getTerrainHeight(fx, fz);
+            setBlock(fx, fh, fz, BLOCK.GRASS);
+          }
+        }
+      })();
+} else if (level.id === 'KYIV') {
       // Real-map recreation: Maidan Nezalezhnosti / Khreshchatyk approach
       // where Russian armored columns were stopped on the road into Kyiv
       generateKyivMaidanSquare(0, 0);
@@ -6823,7 +6891,43 @@ window.VoxelWorld = (function () {
       generateBurningRuin(-48, -50);
       generateBurningRuin(42, -52);
       generateBurningRuin(-5, 95);
-    } else if (level.id === 'MARIUPOL') {
+    
+      // Dnipro River — runs east-west, east of city center (real geography)
+      (function () {
+        for (var rx = -55; rx <= 55; rx++) {
+          var rz = 45 + Math.floor(Math.sin(rx * 0.08) * 4);
+          for (var rw = 0; rw < 4; rw++) {
+            var rrz = rz + rw;
+            var rh = getTerrainHeight(rx, rrz);
+            for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+              setBlock(rx, ry, rrz, BLOCK.WATER);
+            }
+          }
+        }
+      })();
+      // Dnipro River west bank hills (Pechersk uplands, ~15m elevation)
+      (function () {
+        for (var hx = 35; hx <= 55; hx++) {
+          for (var hz = 30; hz <= 60; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+            setBlock(hx, hh + 2, hz, BLOCK.DIRT);
+          }
+        }
+      })();
+      // Kyiv west bank hills (Upper Town / St. Sophia area)
+      (function () {
+        for (var hx = -55; hx <= -30; hx++) {
+          for (var hz = -20; hz <= 15; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+            if (Math.abs(hx + 40) < 10 && Math.abs(hz - 0) < 8) {
+              setBlock(hx, hh + 2, hz, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
+} else if (level.id === 'MARIUPOL') {
       // Azovstal steelworks — industrial hellscape
       generateIndustrialComplex(0, 0);
       generateBurningRuin(-20, -20);
@@ -6833,7 +6937,30 @@ window.VoxelWorld = (function () {
       generateAmmoDepot(-30, 30);
       generateDroneNest(40, 40);
       generateDroneNest(-40, -40);
-    } else if (level.id === 'CRIMEA') {
+    
+      // Sea of Azov coast — flat shoreline south of the city
+      (function () {
+        for (var cx = -60; cx <= 60; cx++) {
+          var cz = 55 + Math.floor(Math.sin(cx * 0.05) * 2);
+          for (var cw = 0; cw < 5; cw++) {
+            var ccz = cz + cw;
+            var ch = getTerrainHeight(cx, ccz);
+            for (var cy = ch; cy >= Math.max(0, ch - 2); cy--) {
+              setBlock(cx, cy, ccz, BLOCK.WATER);
+            }
+          }
+        }
+      })();
+      // Flat steppe terrain north of Azovstal
+      (function () {
+        for (var fx = -50; fx <= 50; fx++) {
+          for (var fz = -55; fz <= -40; fz++) {
+            var fh = getTerrainHeight(fx, fz);
+            setBlock(fx, fh, fz, BLOCK.GRASS);
+          }
+        }
+      })();
+} else if (level.id === 'CRIMEA') {
       // Crimea Bridge — long span over water
       generateBridge(0, 0, 60, 6);
       generateBridgeFortification(10, 10);
@@ -6865,7 +6992,34 @@ window.VoxelWorld = (function () {
       generateBarbedWire(0, 0, 20, false);
       generateDroneNest(45, 45);
       generateDroneNest(-45, -45);
-    } else if (level.id === 'SEVASTOPOL') {
+    
+      // Moskva River — curves south of the Kremlin (real geography)
+      (function () {
+        for (var rx = -55; rx <= 55; rx++) {
+          var rz = 50 + Math.floor(Math.sin(rx * 0.06) * 6) + Math.floor(Math.cos(rx * 0.03) * 3);
+          for (var rw = 0; rw < 3; rw++) {
+            var rrz = rz + rw;
+            var rh = getTerrainHeight(rx, rrz);
+            for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+              setBlock(rx, ry, rrz, BLOCK.WATER);
+            }
+          }
+        }
+      })();
+      // Sparrow Hills (Vorobyovy Gory) — elevated terrain southwest of center
+      (function () {
+        for (var hx = -60; hx <= -40; hx++) {
+          for (var hz = 50; hz <= 70; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+            setBlock(hx, hh + 2, hz, BLOCK.DIRT);
+            if (Math.abs(hx + 50) < 6 && Math.abs(hz - 60) < 6) {
+              setBlock(hx, hh + 3, hz, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
+} else if (level.id === 'SEVASTOPOL') {
       // Naval base — docks, cranes, coastal fortifications
       generateBridge(0, 20, 40, 5);
       generateBridgeFortification(0, 40);
@@ -6874,7 +7028,43 @@ window.VoxelWorld = (function () {
       generateAntiAirPosition(-25, 25);
       generateDroneNest(40, 0);
       generateDroneNest(-40, 0);
-    } else if (level.id === 'DONBAS') {
+    
+      // Sevastopol Bay — water indentation from north
+      (function () {
+        for (var bz = -55; bz <= -30; bz++) {
+          var bx = Math.floor(Math.sin(bz * 0.06) * 5);
+          for (var bw = 0; bw < 6; bw++) {
+            var bbx = bx + bw;
+            var bh = getTerrainHeight(bbx, bz);
+            for (var by = bh; by >= Math.max(0, bh - 2); by--) {
+              setBlock(bbx, by, bz, BLOCK.WATER);
+            }
+          }
+        }
+      })();
+      // Sea of Azov coast — south edge
+      (function () {
+        for (var cx = -60; cx <= 60; cx++) {
+          var cz = 55 + Math.floor(Math.sin(cx * 0.04) * 2);
+          for (var cw = 0; cw < 5; cw++) {
+            var ccz = cz + cw;
+            var ch = getTerrainHeight(cx, ccz);
+            for (var cy = ch; cy >= Math.max(0, ch - 2); cy--) {
+              setBlock(cx, cy, ccz, BLOCK.WATER);
+            }
+          }
+        }
+      })();
+      // Coastal hills
+      (function () {
+        for (var hx = -50; hx <= 50; hx++) {
+          for (var hz = 30; hz <= 50; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+          }
+        }
+      })();
+} else if (level.id === 'DONBAS') {
       // Mining country — trenches, slag heaps, industrial ruins, urban fringes
       generateTrenchNetwork(0, 0);
       generateMinefield(-20, -20);
@@ -6905,7 +7095,26 @@ window.VoxelWorld = (function () {
       generateCheckpoint(0, -30, true);
       generateDroneNest(35, 35);
       generateDroneNest(-35, -35);
-    } else if (level.id === 'KREMLIN') {
+    
+      // Flat steppe — Russian borderland
+      (function () {
+        for (var fx = -50; fx <= 50; fx++) {
+          for (var fz = -50; fz <= 50; fz++) {
+            var fh = getTerrainHeight(fx, fz);
+            setBlock(fx, fh, fz, BLOCK.GRASS);
+          }
+        }
+      })();
+      // Northern border hills
+      (function () {
+        for (var hx = -50; hx <= 50; hx++) {
+          for (var hz = -55; hz <= -40; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+          }
+        }
+      })();
+} else if (level.id === 'KREMLIN') {
       // The final showdown — the actual Kremlin, St Basil's & Red Square
       generateMoscowCityExtension(0, 0);
       generateUkrainianApartment(-25, -25, 12);
