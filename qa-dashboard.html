@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OccupantKiller QA Dashboard</title>
+<style>
+  body { font-family: monospace; background:#0a0a0a; color:#0f0; margin:0; padding:20px; }
+  h1 { color:#0f0; border-bottom:2px solid #0f0; padding-bottom:10px; }
+  .panel { background:#111; border:1px solid #222; padding:15px; margin:15px 0; border-radius:4px; }
+  .panel h2 { color:#ff0; margin-top:0; }
+  .err { color:#f44; border-bottom:1px solid #333; padding:6px 0; font-size:13px; }
+  .err .time { color:#888; font-size:11px; }
+  .screenshot { display:inline-block; margin:10px; border:2px solid #333; border-radius:4px; overflow:hidden; width:320px; }
+  .screenshot img { width:100%; display:block; }
+  .screenshot .meta { background:#222; color:#aaa; padding:6px; font-size:11px; }
+  button { background:#0f0; color:#000; border:none; padding:10px 20px; font-size:16px; cursor:pointer; font-family:monospace; font-weight:bold; }
+  button:hover { background:#0c0; }
+  #capture-btn { background:#f80; }
+  #capture-btn:hover { background:#fa0; }
+  .status { color:#888; font-size:12px; }
+</style>
+</head>
+<body>
+<h1>🔍 OccupantKiller QA Dashboard</h1>
+<div class="status">Auto-refreshes every 3 seconds. Open this while testing the game.</div>
+
+<div class="panel">
+  <h2>🖼️ Screenshot Capture</h2>
+  <p>Click to capture the game screen and upload to QA folder.</p>
+  <button id="capture-btn" onclick="captureScreenshot()">📸 CAPTURE SCREENSHOT</button>
+  <span id="capture-status" class="status"></span>
+</div>
+
+<div class="panel">
+  <h2>🐛 Latest Errors</h2>
+  <div id="errors-list">Loading...</div>
+</div>
+
+<div class="panel">
+  <h2>📁 QA Screenshots</h2>
+  <div id="screenshots-grid">Loading...</div>
+</div>
+
+<script>
+async function loadErrors() {
+  try {
+    const res = await fetch('/qa-errors');
+    const data = await res.json();
+    const el = document.getElementById('errors-list');
+    if (!data.errors || data.errors.length === 0) {
+      el.innerHTML = '<div class="status">No errors logged yet.</div>';
+      return;
+    }
+    el.innerHTML = data.errors.slice().reverse().map(e => 
+      `<div class="err"><span class="time">${e.receivedAt || '?'}</span> <strong>${e.type}</strong><br/>${e.msg}</div>`
+    ).join('');
+  } catch (err) {
+    document.getElementById('errors-list').innerHTML = '<div class="err">Failed to load errors: ' + err.message + '</div>';
+  }
+}
+
+async function loadScreenshots() {
+  try {
+    const res = await fetch('/qa-list');
+    const data = await res.json();
+    const el = document.getElementById('screenshots-grid');
+    if (!data.files || data.files.length === 0) {
+      el.innerHTML = '<div class="status">No screenshots yet.</div>';
+      return;
+    }
+    el.innerHTML = data.files.slice().reverse().map(f => 
+      `<div class="screenshot"><img src="qa-screenshots/${f.name}"/><div class="meta">${f.name} — ${Math.round(f.size/1024)}KB</div></div>`
+    ).join('');
+  } catch (err) {
+    document.getElementById('screenshots-grid').innerHTML = '<div class="err">Failed to load screenshots: ' + err.message + '</div>';
+  }
+}
+
+async function captureScreenshot() {
+  const status = document.getElementById('capture-status');
+  status.textContent = 'Capturing...';
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' } });
+    const track = stream.getVideoTracks()[0];
+    const cap = new ImageCapture(track);
+    const bitmap = await cap.grabFrame();
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+    track.stop();
+    const dataUrl = canvas.toDataURL('image/png');
+    await fetch('/qa-screenshot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: dataUrl })
+    });
+    status.textContent = '✅ Screenshot saved!';
+    setTimeout(() => status.textContent = '', 2000);
+    loadScreenshots();
+  } catch (err) {
+    status.textContent = '❌ ' + err.message;
+  }
+}
+
+// Auto-refresh
+loadErrors(); loadScreenshots();
+setInterval(() => { loadErrors(); loadScreenshots(); }, 3000);
+</script>
+</body>
+</html>

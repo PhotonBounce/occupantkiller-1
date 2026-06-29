@@ -48,6 +48,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <style>
+    #startup-error-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); color:#ff4444; z-index:999999; font-family:monospace; font-size:14px; padding:20px; overflow:auto; display:none; }
+    #startup-error-overlay h1 { color:#ff4444; margin-top:0; }
+    #startup-error-overlay .err { color:#ff8888; border-bottom:1px solid #333; padding:8px 0; }
+    #startup-error-overlay .stack { color:#aaa; font-size:12px; margin-left:20px; }
+    #startup-error-overlay button { background:#ff4444; color:#fff; border:none; padding:10px 20px; font-size:16px; cursor:pointer; margin-top:20px; }
+  </style>
+  <script>
+  (function() {
+    var errors = [];
+    function showOverlay() {
+      var el = document.getElementById('startup-error-overlay');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'startup-error-overlay';
+        el.innerHTML = '<h1>⚠️ STARTUP ERROR</h1><div id="startup-error-list"></div><button onclick="location.reload()">Reload</button>';
+        document.body.appendChild(el);
+      }
+      var list = document.getElementById('startup-error-list');
+      list.innerHTML = errors.map(function(e) {
+        return '<div class="err"><strong>' + (e.type || 'ERROR') + '</strong> at ' + e.time + '<br/>' + e.msg + (e.stack ? '<div class="stack">' + e.stack + '</div>' : '') + '</div>';
+      }).join('');
+      el.style.display = 'block';
+    }
+    function logError(type, msg, stack) {
+      errors.push({ type: type, msg: msg, stack: stack, time: new Date().toLocaleTimeString() });
+      if (errors.length > 10) errors.shift();
+      if (document.body) showOverlay();
+      try {
+        fetch('/qa-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: type, msg: msg, stack: stack, url: location.href, ua: navigator.userAgent }) });
+      } catch (_) {}
+    }
+    window.onerror = function(msg, url, line, col, err) {
+      logError('JS ERROR', msg + ' at ' + url + ':' + line + ':' + col, err && err.stack ? err.stack : '');
+      return false;
+    };
+    window.addEventListener('unhandledrejection', function(e) {
+      logError('PROMISE REJECTION', e.reason && e.reason.message ? e.reason.message : String(e.reason), e.reason && e.reason.stack ? e.reason.stack : '');
+    });
+    var _origConsoleError = console.error;
+    console.error = function() {
+      var args = Array.prototype.slice.call(arguments);
+      logError('CONSOLE ERROR', args.join(' '), '');
+      _origConsoleError.apply(console, args);
+    };
+    window._startupErrors = errors;
+  })();
+  </script>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
   <title>OccupantKiller — Hybrid Voxel Warfare</title>

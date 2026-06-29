@@ -1,4 +1,4 @@
-﻿const http = require('http');
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
@@ -72,6 +72,82 @@ server = http.createServer((req, res) => {
       res.writeHead(500, { 'Content-Type': 'application/json', ...SECURITY_HEADERS });
       return res.end(JSON.stringify({ error: 'Unable to read music directory' }));
     }
+  }
+
+  // QA error log endpoint — captures JS errors from browser crash reporter
+  if (req.url === '/qa-log') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        const logLine = JSON.stringify({ ...payload, receivedAt: new Date().toISOString() }) + '\n';
+        const qaDir = path.join(ROOT, 'qa-screenshots');
+        if (!fs.existsSync(qaDir)) fs.mkdirSync(qaDir);
+        fs.appendFileSync(path.join(qaDir, 'errors.jsonl'), logLine);
+        console.log('[QA-LOG]', payload.type, payload.msg.substring(0, 120));
+      } catch (e) {}
+      res.writeHead(200, { 'Content-Type': 'text/plain', ...SECURITY_HEADERS });
+      return res.end('ok');
+    });
+    return;
+  }
+
+  // QA errors list endpoint
+  if (req.url === '/qa-errors') {
+    try {
+      const qaDir = path.join(ROOT, 'qa-screenshots');
+      const filePath = path.join(qaDir, 'errors.jsonl');
+      let errors = [];
+      if (fs.existsSync(filePath)) {
+        const lines = fs.readFileSync(filePath, 'utf8').split('\n').filter(Boolean);
+        errors = lines.slice(-50).map(line => JSON.parse(line));
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json', ...SECURITY_HEADERS });
+      return res.end(JSON.stringify({ errors }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json', ...SECURITY_HEADERS });
+      return res.end(JSON.stringify({ error: e.message }));
+    }
+  }
+
+  // QA screenshot list endpoint
+  if (req.url === '/qa-list') {
+    try {
+      const qaDir = path.join(ROOT, 'qa-screenshots');
+      let files = [];
+      if (fs.existsSync(qaDir)) {
+        files = fs.readdirSync(qaDir)
+          .filter(f => f.endsWith('.png'))
+          .map(f => ({ name: f, size: fs.statSync(path.join(qaDir, f)).size }));
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json', ...SECURITY_HEADERS });
+      return res.end(JSON.stringify({ files }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json', ...SECURITY_HEADERS });
+      return res.end(JSON.stringify({ error: e.message }));
+    }
+  }
+
+  // QA screenshot upload endpoint
+  if (req.url === '/qa-screenshot') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        const imgData = payload.image.replace(/^data:image\/png;base64,/, '');
+        const buf = Buffer.from(imgData, 'base64');
+        const qaDir = path.join(ROOT, 'qa-screenshots');
+        if (!fs.existsSync(qaDir)) fs.mkdirSync(qaDir);
+        const filename = `qa-${Date.now()}.png`;
+        fs.writeFileSync(path.join(qaDir, filename), buf);
+        console.log('[QA-SCREENSHOT] saved', filename, buf.length, 'bytes');
+      } catch (e) {}
+      res.writeHead(200, { 'Content-Type': 'text/plain', ...SECURITY_HEADERS });
+      return res.end('ok');
+    });
+    return;
   }
 
   let url;
