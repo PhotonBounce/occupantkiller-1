@@ -1027,19 +1027,19 @@ const GameManager = (function () {
   const PLAYER_RADIUS = 0.35; // approximate half-width for wall collision
 
   /* ── Mobile Detection ──────────────────────────────────────────── */
-  // iPadOS 13+ identifies as Mac; treat touch-capable devices as mobile.
   const _uaIsMobile = /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|PlayBook|BB10|Opera Mini/i.test(navigator.userAgent);
   const _isIpadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-  const _isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  const isMobile = _uaIsMobile || _isIpadOS || (_isTouch && Math.min(window.innerWidth, window.innerHeight) < 900);
+  const _isCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const _isFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+  const _screenW = window.screen ? window.screen.width : window.innerWidth;
+  const _screenH = window.screen ? window.screen.height : window.innerHeight;
+  const _screenSmall = Math.min(_screenW, _screenH) <= 1024;
+  const _uaIsDesktop = /Windows NT|Mac OS X|Linux|X11/i.test(navigator.userAgent) && !_uaIsMobile;
+  // Desktop override: if UA says desktop OS and not mobile, NEVER treat as mobile
+  const isMobile = _uaIsMobile || _isIpadOS || (!_uaIsDesktop && _isCoarsePointer && _screenSmall);
   if (isMobile) {
     try { document.documentElement.classList.add('is-mobile'); } catch (e) {}
   }
-  // Low-spec rendering flag, read by decorative systems to skip expensive extras
-  // (per-NPC tactical-flashlight spotlights, per-shot muzzle/explosion point lights,
-  // etc.). Mobile defaults to low-spec; the adaptive governor can also flip it on
-  // for weak desktops. Set this as early as possible — before any enemy/NPC spawns —
-  // so those systems see it the moment they build meshes.
   try { window.__OK_LOWSPEC = !!isMobile; } catch (e) {}
 
   /* ── Input State ─────────────────────────────────────────────────── */
@@ -8648,6 +8648,13 @@ const GameManager = (function () {
         releaseDroneRemote();
       } else {
         tapVirtualKey('KeyF');
+      }
+    });
+    bindTapButton('btn-drone', function () {
+      if (DroneSystem.isPossessing()) {
+        releaseDroneRemote();
+      } else {
+        showDroneSelection();
       }
     });
     bindTapButton('btn-vehicle', function () { tapVirtualKey('KeyG'); });

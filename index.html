@@ -677,8 +677,8 @@
           <div class="start-section-title">🚁 DRONE</div>
           <div id="start-drone-row" class="start-section-row">
             <button class="btn pill start-drone-btn" data-drone="" style="border-color:#888;color:#888">🚶 None</button>
-            <button class="btn pill start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444">🎯 FPV Attack</button>
-            <button class="btn pill start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff">👁 Surveillance</button>
+            <button class="btn pill start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444">🎯 FPV Kamikaze</button>
+            <button class="btn pill start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff">👁 Surveillance + LMG</button>
             <button class="btn pill start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00">💣 Bomber</button>
           </div>
           <p id="start-drone-desc" class="start-section-desc">No drone — fight on foot (default).</p>
@@ -1166,6 +1166,32 @@
     </div>
   </div>
 
+  <!-- Drone Selection Overlay (in-game) -->
+  <div id="overlay-drone-select" class="overlay" style="display:none;flex-direction:column;align-items:center;justify-content:center;z-index:300">
+    <div style="background:rgba(0,0,0,0.92);border:2px solid #00ccff;border-radius:12px;padding:24px 28px;max-width:520px;width:90vw;text-align:center;font-family:monospace">
+      <div style="color:#00ccff;font-size:18px;font-weight:bold;margin-bottom:4px">🚁 SELECT DRONE</div>
+      <div style="color:#888;font-size:11px;margin-bottom:16px">Press [F] in-game to open this menu</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:16px">
+        <button class="btn pill" data-drone-type="fpv_attack" style="border-color:#ff4444;color:#ff4444;flex:1;min-width:140px;padding:10px 14px;text-align:left">
+          <div style="font-size:14px;font-weight:bold">🎯 FPV KAMIKAZE</div>
+          <div style="font-size:10px;color:#aaa;margin-top:4px">High-speed one-way strike. Explodes on contact with enemy or building.</div>
+          <div style="font-size:10px;color:#ff4444;margin-top:4px">1 use | 8m blast radius</div>
+        </button>
+        <button class="btn pill" data-drone-type="bomb" style="border-color:#ffaa00;color:#ffaa00;flex:1;min-width:140px;padding:10px 14px;text-align:left">
+          <div style="font-size:14px;font-weight:bold">💣 BOMBER</div>
+          <div style="font-size:10px;color:#aaa;margin-top:4px">Hover and drop gravity grenades. Auto-returns when empty.</div>
+          <div style="font-size:10px;color:#ffaa00;margin-top:4px">6 grenades | 5m blast radius</div>
+        </button>
+        <button class="btn pill" data-drone-type="surveillance" style="border-color:#00ccff;color:#00ccff;flex:1;min-width:140px;padding:10px 14px;text-align:left">
+          <div style="font-size:14px;font-weight:bold">👁 SURVEILLANCE + LMG</div>
+          <div style="font-size:10px;color:#aaa;margin-top:4px">Slow recon drone with PKM light machine gun. Hover indefinitely.</div>
+          <div style="font-size:10px;color:#00ccff;margin-top:4px">30 LMG rounds | Recon + fire support</div>
+        </button>
+      </div>
+      <div style="color:#666;font-size:10px">WASD · Move | SPACE · Up | SHIFT · Down | LMB · Attack | F · Exit</div>
+    </div>
+  </div>
+
   <!-- Mobile Controls -->
   <div id="mobile-controls" style="display:none">
     <!-- Left joystick area -->
@@ -1176,7 +1202,8 @@
 
     <div id="mobile-utility" class="mobile-ctrl">
       <button id="btn-aim" class="mobile-btn utility-btn emphasis" title="Aim / Alt Fire">◎</button>
-      <button id="btn-use" class="mobile-btn utility-btn" title="Use / Interact / Drone">✋</button>
+      <button id="btn-use" class="mobile-btn utility-btn" title="Use / Interact">✋</button>
+      <button id="btn-drone" class="mobile-btn utility-btn" title="Drone Selection">🚁</button>
       <button id="btn-vehicle" class="mobile-btn utility-btn" title="Enter Vehicle">🚗</button>
       <button id="btn-build" class="mobile-btn utility-btn" title="Build Mode">🔨</button>
       <button id="btn-view" class="mobile-btn utility-btn" title="Switch Camera">👁</button>
@@ -1637,9 +1664,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.__chosenDroneType = ''; // empty = none
     var droneDescs = {
       '': 'No drone — fight on foot (default)',
-      fpv_attack: 'FPV Attack — kamikaze drone, dives into targets',
-      surveillance: 'Surveillance — scout battlefield, mark enemies',
-      bomb: 'Bomber — heavy payload, drop munitions on targets'
+      fpv_attack: 'FPV Kamikaze — high-speed one-way strike, explodes on contact. 1 use, 8m blast radius.',
+      surveillance: 'Surveillance + LMG — slow recon drone with PKM machine gun. Hover indefinitely, 30 LMG rounds.',
+      bomb: 'Bomber — hover and drop gravity grenades. 6 grenades, auto-returns when empty. 5m blast radius.'
     };
     var btns = document.querySelectorAll('.start-drone-btn');
     var desc = document.getElementById('start-drone-desc');

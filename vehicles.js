@@ -614,7 +614,12 @@ const VehicleSystem = (function () {
     }
     _playerBodyMesh = buildPlayerBodyMesh();
     // Position on top of vehicle (emerging from hatch)
-    _playerBodyMesh.position.set(0, 1.4, 0);
+    // Bradley-specific: position body mesh higher for open turret
+    if (vehicle.isBradley) {
+      _playerBodyMesh.position.set(0, 2.3, 0);
+    } else {
+      _playerBodyMesh.position.set(0, 1.4, 0);
+    }
     vehicle.mesh.add(_playerBodyMesh);
   }
 
@@ -685,6 +690,18 @@ const VehicleSystem = (function () {
       wrecked: false,
       wreckTimer: 0,
       wreckSmokeTimer: 0,
+      // Bradley-specific
+      isBradley: type === 'bradley',
+      bushAmmo: type === 'bradley' ? 150 : 0,
+      bushCooldown: 0,
+      coaxAmmo: type === 'bradley' ? 800 : 0,
+      coaxCooldown: 0,
+      coaxHeat: 0,
+      coaxOverheated: false,
+      towAmmo: type === 'bradley' ? 2 : 0,
+      towReloading: false,
+      towReloadTimer: 0,
+      crewPosition: type === 'bradley' ? 1 : 0, // 0=driver, 1=gunner, 2=commander
       // Antenna spring state
       antennaVelX: 0,
       antennaVelZ: 0,
@@ -699,7 +716,7 @@ const VehicleSystem = (function () {
       _headlightsOn: false,
     };
 
-    vehicle.mesh = type === 'tank' ? buildTankMesh() : buildVehicleMesh(type);
+    vehicle.mesh = type === 'tank' ? buildTankMesh() : type === 'bradley' ? buildBradleyMesh() : buildVehicleMesh(type);
     vehicle.mesh.position.copy(vehicle.position);
     vehicle.mesh.userData.vehicleId = vehicle.id;
 
@@ -737,6 +754,10 @@ const VehicleSystem = (function () {
     // Tank-specific notification
     if (v.isTank && typeof HUD !== 'undefined' && HUD.notifyPickup) {
       HUD.notifyPickup('\uD83D\uDE94 TANK ENTERED! LMB=Cannon RMB=MG T=Toggle View', '#00ff88');
+    }
+    // Bradley-specific notification
+    if (v.isBradley && typeof HUD !== 'undefined' && HUD.notifyPickup) {
+      HUD.notifyPickup('\uD83D\uDE81 BRADLEY M2A2 — Gunner seat. LMB=25mm Bushmaster RMB=TOW T=Toggle View', '#00ff88');
     }
     return true;
   }
@@ -916,11 +937,15 @@ const VehicleSystem = (function () {
   function isInVehicle() { return _occupiedVehicle !== null; }
 
   /* ── Vehicle Input ───────────────────────────────────────────────── */
-  const _vKeys = { w: false, a: false, s: false, d: false, up: false, down: false, fire: false, mgFire: false };
+  const _vKeys = { w: false, a: false, s: false, d: false, up: false, down: false, fire: false, mgFire: false, towFire: false };
   function setVehicleKey(key, pressed) {
     if (key in _vKeys) _vKeys[key] = pressed;
     // Update MG firing state on occupied tank
     if (key === 'mgFire' && _occupiedVehicle && _occupiedVehicle.isTank) {
+      _occupiedVehicle.mgFiring = pressed;
+    }
+    // Update MG firing state on occupied Bradley (coax)
+    if (key === 'mgFire' && _occupiedVehicle && _occupiedVehicle.isBradley) {
       _occupiedVehicle.mgFiring = pressed;
     }
   }
@@ -951,13 +976,25 @@ const VehicleSystem = (function () {
         updatePlayerVehicle(v, delta);
         // Tank turret follows camera
         if (v.isTank) updateTankTurret(v, delta);
+        // Bradley turret follows camera
+        if (v.isBradley) updateBradleyTurret(v, delta);
         // Player vehicle fires with mouse/fire key
         if (_vKeys.fire && v.damage > 0 && v.fireCooldown <= 0) {
-          fireTurret(v);
+          if (v.isBradley) fireBradleyBushmaster(v);
+          else fireTurret(v);
         }
         // Tank MG fire (secondary fire key)
         if (v.isTank && v.mgFiring && v.mgCooldown <= 0 && v.mgAmmo > 0) {
           fireTankMG(v);
+        }
+        // Bradley coax fire (secondary fire key — when not using TOW)
+        if (v.isBradley && v.mgFiring && v.coaxCooldown <= 0 && v.coaxAmmo > 0 && !_vKeys.towFire) {
+          fireBradleyCoax(v);
+        }
+        // Bradley TOW fire (R key or right-click)
+        if (v.isBradley && _vKeys.towFire && !v.towReloading && v.towAmmo > 0) {
+          fireBradleyTOW(v);
+          _vKeys.towFire = false; // one-shot
         }
         // NPC gunner fires at nearby enemies while player drives
         if (v.occupiedByNPC && v.npcGunner && v.damage > 0) {
@@ -1022,10 +1059,10 @@ const VehicleSystem = (function () {
       v.mesh.position.copy(v.position);
       v.mesh.rotation.copy(v.rotation);
 
-      if (v.isTank) updateTankEffects(v, delta);
+      if (v.isTank || v.isBradley) updateTankEffects(v, delta);
 
       // Tank idle engine vibration — subtle camera rumble when stationary
-      if (v.isTank && v === _occupiedVehicle) {
+      if ((v.isTank || v.isBradley) && v === _occupiedVehicle) {
         var hSpd = Math.sqrt(v.velocity.x * v.velocity.x + v.velocity.z * v.velocity.z);
         if (hSpd < 0.5 && typeof CameraSystem !== 'undefined' && CameraSystem.shake) {
           v._idleVibTimer = (v._idleVibTimer || 0) + delta;
@@ -1305,24 +1342,29 @@ const VehicleSystem = (function () {
 
   function updatePlayerVehicle(v, delta) {
     // Use vehicle's own rotation for movement direction (not camera yaw)
-    // This prevents the vehicle from flying off based on where the camera looks
     const vYaw = v.rotation.y;
     _vTmp1.set(-Math.sin(vYaw), 0, -Math.cos(vYaw));
 
     const accel = v.speed * 2;
 
-    if (_vKeys.w) v.velocity.addScaledVector(_vTmp1, accel * delta);
-    if (_vKeys.s) v.velocity.addScaledVector(_vTmp1, -accel * delta * 0.5);
-    if (_vKeys.a) v.rotation.y += delta * 1.5;
-    if (_vKeys.d) v.rotation.y -= delta * 1.5;
-    // Track turn rate for hull roll
-    v._turnRate = (_vKeys.a ? 1.5 : 0) + (_vKeys.d ? -1.5 : 0);
+    // Bradley gunner seat: AI driver auto-forwards toward treeline
+    if (v.isBradley && v.crewPosition === 1) {
+      const autoSpeed = v.speed * 0.35;
+      v.velocity.addScaledVector(_vTmp1, autoSpeed * delta * 2);
+      // Track turn rate for hull roll (AI makes slight adjustments)
+      v._turnRate = (Math.sin(Date.now() * 0.001) * 0.3);
+    } else {
+      if (_vKeys.w) v.velocity.addScaledVector(_vTmp1, accel * delta);
+      if (_vKeys.s) v.velocity.addScaledVector(_vTmp1, -accel * delta * 0.5);
+      if (_vKeys.a) v.rotation.y += delta * 1.5;
+      if (_vKeys.d) v.rotation.y -= delta * 1.5;
+      v._turnRate = (_vKeys.a ? 1.5 : 0) + (_vKeys.d ? -1.5 : 0);
+    }
 
     if (v.flying) {
       if (_vKeys.up) v.velocity.y += accel * delta * 0.5;
       if (_vKeys.down) v.velocity.y -= accel * delta * 0.5;
     } else {
-      // Ground vehicles cannot have vertical input — zero out any Y velocity from movement
       v.velocity.y = Math.min(v.velocity.y, 0);
     }
 
@@ -1333,7 +1375,6 @@ const VehicleSystem = (function () {
       v.velocity.x *= scale;
       v.velocity.z *= scale;
     }
-    // Update engine sound with current speed
     if (typeof AudioSystem !== 'undefined' && AudioSystem.updateEngine) AudioSystem.updateEngine(hSpeed);
   }
 
@@ -1997,6 +2038,66 @@ const VehicleSystem = (function () {
         break;
       }
     }
+  }
+
+  /* ── Bradley Turret Rotation (follows camera yaw) ──────────────── */
+  function updateBradleyTurret(v, delta) {
+    if (!v.isBradley || !v.mesh) return;
+    var camYaw = CameraSystem.getYaw();
+    var camPitch = CameraSystem.getPitch();
+    var targetTurretYaw = camYaw - v.rotation.y;
+    var targetTurretPitch = Math.max(-0.25, Math.min(0.35, camPitch));
+    var diff = targetTurretYaw - v.turretYaw;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    var pitchDiff = targetTurretPitch - v.turretPitch;
+    v.turretYaw += diff * Math.min(1, delta * 5);
+    v.turretPitch += pitchDiff * Math.min(1, delta * 6);
+    v.turretSfxTimer = Math.max(0, (v.turretSfxTimer || 0) - delta);
+    if (v === _occupiedVehicle && v.turretSfxTimer <= 0 && (Math.abs(diff) > 0.03 || Math.abs(pitchDiff) > 0.018)) {
+      v.turretSfxTimer = 0.07;
+      if (typeof AudioSystem !== 'undefined' && AudioSystem.playTurretTraverse) {
+        AudioSystem.playTurretTraverse();
+      }
+    }
+    for (var ci = 0; ci < v.mesh.children.length; ci++) {
+      if (v.mesh.children[ci].userData && v.mesh.children[ci].userData.isTurret) {
+        v.mesh.children[ci].rotation.y = v.turretYaw;
+        for (var ti = 0; ti < v.mesh.children[ci].children.length; ti++) {
+          var turretChild = v.mesh.children[ci].children[ti];
+          if (turretChild.userData && (turretChild.userData.isMainGun || turretChild.userData.isTankMuzzle || turretChild.userData.isCoaxMG)) {
+            turretChild.rotation.x = (turretChild.userData.baseRotationX || (Math.PI / 2)) - v.turretPitch;
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  function getBradleyWeaponMountWorld(v, mountType, outPos) {
+    if (!v || !v.mesh || !outPos) return false;
+    for (var ci = 0; ci < v.mesh.children.length; ci++) {
+      var child = v.mesh.children[ci];
+      if (!(child.userData && child.userData.isTurret)) continue;
+      for (var ti = 0; ti < child.children.length; ti++) {
+        var turretChild = child.children[ti];
+        if (mountType === 'bushmaster' && turretChild.userData && turretChild.userData.isTankMuzzle) {
+          turretChild.getWorldPosition(outPos);
+          outPos.z -= 0.12;
+          return true;
+        }
+        if (mountType === 'coax' && turretChild.userData && turretChild.userData.isCoaxMG) {
+          outPos.set(0, 0, turretChild.userData.coaxTipOffset || 0.75);
+          turretChild.localToWorld(outPos);
+          return true;
+        }
+        if (mountType === 'tow' && turretChild.userData && turretChild.userData.isTowLauncher) {
+          turretChild.getWorldPosition(outPos);
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   function getTankWeaponMountWorld(v, mountType, outPos) {
