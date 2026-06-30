@@ -1896,6 +1896,15 @@ const GameManager = (function () {
                 }
               }
             }
+            // Check VehicleSystem Bradley proximity
+            if (!_bradleyMounted) {
+              var _bradleyVeh = VehicleSystem.getNearby(player.position, 7).find(function(vv) { return vv.isBradley; });
+              if (_bradleyVeh) {
+                VehicleSystem.enter(_bradleyVeh.id);
+                HUD.notifyPickup('🚁 MOUNTED BRADLEY M2A2 — Gunner seat active', '#a0c878');
+                _bradleyMounted = true;
+              }
+            }
             if (!_bradleyMounted) {
               const nearby = VehicleSystem.getNearby(player.position, 5);
               if (nearby.length > 0) {
@@ -2252,6 +2261,15 @@ const GameManager = (function () {
         if (e.code === 'Digit0') Weapons.switchTo(9);
         if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
         if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
+        // Bradley TOW fire with R key
+        if (e.code === 'KeyR' && VehicleSystem.isInVehicle()) {
+          var occ = VehicleSystem.getOccupied();
+          if (occ && occ.isBradley) {
+            VehicleSystem.setVehicleKey('towFire', true);
+            // Don't fall through to reload
+            return;
+          }
+        }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
 
         // Build mode: template selection
@@ -2350,6 +2368,7 @@ const GameManager = (function () {
         if (e.code === 'KeyD') VehicleSystem.setVehicleKey('d', false);
         if (e.code === 'Space')     VehicleSystem.setVehicleKey('up', false);
         if (e.code === 'ShiftLeft') VehicleSystem.setVehicleKey('down', false);
+        if (e.code === 'KeyR') VehicleSystem.setVehicleKey('towFire', false);
       }
     });
 
@@ -2409,6 +2428,11 @@ const GameManager = (function () {
             VehicleSystem.setVehicleKey('mgFire', true);
             return;
           }
+          // Bradley TOW: RMB fires TOW missile
+          if (occ && occ.isBradley) {
+            VehicleSystem.setVehicleKey('towFire', true);
+            return;
+          }
         }
         // Minecraft-style building: right-click with shovel places a block
         if (Weapons.getCurrentType() === 'MELEE') {
@@ -2425,6 +2449,7 @@ const GameManager = (function () {
         // Stop tank MG fire on RMB release
         if (VehicleSystem.isInVehicle()) {
           VehicleSystem.setVehicleKey('mgFire', false);
+          VehicleSystem.setVehicleKey('towFire', false);
         }
         Weapons.handleRightUp();
       }
@@ -3770,6 +3795,16 @@ const GameManager = (function () {
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
       if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
         HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
+      }
+      // Spawn Bradley via VehicleSystem and auto-enter player as gunner
+      var playerSpawn = player.position.clone();
+      var _bradleyV = VehicleSystem.spawn(playerSpawn.x, playerSpawn.y, playerSpawn.z, 'bradley');
+      if (_bradleyV) {
+        _bradleyV.rotation.y = Math.PI; // Face toward treeline (positive Z)
+        VehicleSystem.enter(_bradleyV.id);
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+          HUD.notifyPickup('🚁 BRADLEY M2A2 — Gunner seat. AI driver advancing. 25mm Bushmaster ready!', '#a0c878');
+        }
       }
       if (typeof MissionSystem !== 'undefined' && MissionSystem.generateMission) {
         MissionSystem.generateMission('bradley_assault');

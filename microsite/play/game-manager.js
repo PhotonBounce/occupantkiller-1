@@ -1610,12 +1610,17 @@ const GameManager = (function () {
       } catch (_edr) {}
       if (reward > 0 && typeof Marketplace !== 'undefined') {
         if (Marketplace.awardCustomOKC) {
-          Marketplace.awardCustomOKC(reward, 'mission_complete', {
+          var _awardPromise = Marketplace.awardCustomOKC(reward, 'mission_complete', {
             missionName: mission && mission.name ? mission.name : null,
             missionType: mission && mission.type ? mission.type : null,
-          }).then(function () {
-            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
           });
+          if (_awardPromise && typeof _awardPromise.then === 'function') {
+            _awardPromise.then(function () {
+              if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+            });
+          } else if (HUD && HUD.updateOKC) {
+            HUD.updateOKC(Marketplace.getOKC());
+          }
         } else {
           Marketplace.addOKC(reward);
         }
@@ -1820,10 +1825,18 @@ const GameManager = (function () {
             }
             } // end mt && mt.config
           }
-          // Priority 3: possess nearest drone or launch one
+          // Priority 3: show drone selection overlay (if not near a friendly drone to link)
           if (!fHandled) {
-            var linkedDrone = connectOrLaunchDrone('recon');
-            if (linkedDrone) {
+            var nearestDrone = getNearestFriendlyDrone(20);
+            if (nearestDrone) {
+              DroneSystem.possess(nearestDrone.id);
+              showDroneControlsHUD(nearestDrone.type);
+              if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+                HUD.notifyPickup('REMOTE LINKED: ' + (nearestDrone.type || 'DRONE').toUpperCase() + ' [T] VIEW [F] EXIT', '#00ccff');
+              }
+              fHandled = true;
+            } else {
+              showDroneSelection();
               fHandled = true;
             }
           }
@@ -1881,6 +1894,15 @@ const GameManager = (function () {
                   HUD.notifyPickup('🚛 MOUNTED BRADLEY — M242 Bushmaster ready', '#a0c878');
                   _bradleyMounted = true;
                 }
+              }
+            }
+            // Check VehicleSystem Bradley proximity
+            if (!_bradleyMounted) {
+              var _bradleyVeh = VehicleSystem.getNearby(player.position, 7).find(function(vv) { return vv.isBradley; });
+              if (_bradleyVeh) {
+                VehicleSystem.enter(_bradleyVeh.id);
+                HUD.notifyPickup('🚁 MOUNTED BRADLEY M2A2 — Gunner seat active', '#a0c878');
+                _bradleyMounted = true;
               }
             }
             if (!_bradleyMounted) {
@@ -2239,6 +2261,15 @@ const GameManager = (function () {
         if (e.code === 'Digit0') Weapons.switchTo(9);
         if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
         if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
+        // Bradley TOW fire with R key
+        if (e.code === 'KeyR' && VehicleSystem.isInVehicle()) {
+          var occ = VehicleSystem.getOccupied();
+          if (occ && occ.isBradley) {
+            VehicleSystem.setVehicleKey('towFire', true);
+            // Don't fall through to reload
+            return;
+          }
+        }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
 
         // Build mode: template selection
@@ -2337,6 +2368,7 @@ const GameManager = (function () {
         if (e.code === 'KeyD') VehicleSystem.setVehicleKey('d', false);
         if (e.code === 'Space')     VehicleSystem.setVehicleKey('up', false);
         if (e.code === 'ShiftLeft') VehicleSystem.setVehicleKey('down', false);
+        if (e.code === 'KeyR') VehicleSystem.setVehicleKey('towFire', false);
       }
     });
 
@@ -2394,6 +2426,11 @@ const GameManager = (function () {
           var occ = VehicleSystem.getOccupied();
           if (occ && occ.isTank) {
             VehicleSystem.setVehicleKey('mgFire', true);
+            return;
+          }
+          // Bradley TOW: RMB fires TOW missile
+          if (occ && occ.isBradley) {
+            VehicleSystem.setVehicleKey('towFire', true);
             return;
           }
         }
@@ -2751,7 +2788,7 @@ const GameManager = (function () {
     if (!drone) return;
 
     if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
-      var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER' };
+      var names = { fpv_attack: 'FPV KAMIKAZE', surveillance: 'SURVEILLANCE LMG', bomb: 'BOMBER' };
       HUD.notifyPickup('\uD83D\uDEE9 ' + (names[droneType] || 'DRONE') + ' LAUNCHED! [T] VIEW [F] EXIT', '#00ccff');
     }
 
@@ -2782,14 +2819,15 @@ const GameManager = (function () {
     var payloadDisp = document.getElementById('drone-payload-display');
     var modeEl = document.getElementById('drone-view-mode');
 
-    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON', kamikaze: 'KAMIKAZE', incendiary: 'INCENDIARY', baba_yaga: 'BABA YAGA', bayraktar: 'BAYRAKTAR', enemy_bomber: 'ENEMY BOMBER', enemy_fpv: 'ENEMY FPV', enemy_observer: 'ENEMY OBSERVER' };
+    var names = { fpv_attack: 'FPV KAMIKAZE', surveillance: 'SURVEILLANCE LMG', bomb: 'BOMBER', recon: 'RECON', kamikaze: 'KAMIKAZE', incendiary: 'INCENDIARY', baba_yaga: 'BABA YAGA', bayraktar: 'BAYRAKTAR', enemy_bomber: 'ENEMY BOMBER', enemy_fpv: 'ENEMY FPV', enemy_observer: 'ENEMY OBSERVER' };
     if (typeLabel) typeLabel.textContent = '\u2014 ' + (names[droneType] || droneType.toUpperCase());
     if (modeEl) modeEl.textContent = 'EYE';
 
     var actionMap = {
       fpv_attack: 'Kamikaze Dive',
       kamikaze: 'Self-Destruct',
-      bomb: 'Drop Bomb',
+      bomb: 'Drop Grenade',
+      surveillance: 'Fire LMG',
       incendiary: 'Drop Fire',
       baba_yaga: 'Drop Thermite',
       enemy_bomber: 'Drop Bomb',
@@ -2927,7 +2965,11 @@ const GameManager = (function () {
       var maxAmmo = drone.maxAmmo || 0;
       if (maxAmmo > 0) {
         payloadEl.style.display = '';
-        payloadEl.textContent = drone.ammo > 0 ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD EMPTY';
+        if (drone.type === 'surveillance') {
+          payloadEl.textContent = drone.ammo > 0 ? '🔫 LMG READY' : '🔫 LMG EMPTY';
+        } else {
+          payloadEl.textContent = drone.ammo > 0 ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD EMPTY';
+        }
         payloadEl.style.color = drone.ammo > 0 ? '#ffaa00' : '#666';
       } else {
         payloadEl.style.display = 'none';
@@ -4750,11 +4792,16 @@ const GameManager = (function () {
       });
       if (sideResult && sideResult.completed) {
         if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
-          Marketplace.awardCustomOKC(sideResult.reward, 'side_objective', {
+          var _awardPromise = Marketplace.awardCustomOKC(sideResult.reward, 'side_objective', {
             name: sideResult.name || 'side-objective', wave: currentWave,
-          }).then(function () {
-            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
           });
+          if (_awardPromise && typeof _awardPromise.then === 'function') {
+            _awardPromise.then(function () {
+              if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+            });
+          } else if (HUD && HUD.updateOKC) {
+            HUD.updateOKC(Marketplace.getOKC());
+          }
         } else if (typeof Marketplace !== 'undefined') {
           Marketplace.addOKC(sideResult.reward);
         }
@@ -5844,12 +5891,17 @@ const GameManager = (function () {
         for (var cbi = 0; cbi < completedBounties.length; cbi++) {
           HUD.notifyPickup('💰 BOUNTY COMPLETE! +' + escapeHTML(completedBounties[cbi].reward) + ' OKC', '#ffaa00');
           if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
-            Marketplace.awardCustomOKC(completedBounties[cbi].reward, 'bounty_reward', {
+            var _awardPromise = Marketplace.awardCustomOKC(completedBounties[cbi].reward, 'bounty_reward', {
               bountyId: completedBounties[cbi].id || null,
               bountyType: completedBounties[cbi].type || null,
-            }).then(function () {
-              if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
             });
+            if (_awardPromise && typeof _awardPromise.then === 'function') {
+              _awardPromise.then(function () {
+                if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+              });
+            } else if (HUD && HUD.updateOKC) {
+              HUD.updateOKC(Marketplace.getOKC());
+            }
           } else if (typeof Marketplace !== 'undefined') {
             Marketplace.addOKC(completedBounties[cbi].reward);
           }
@@ -8087,11 +8139,16 @@ const GameManager = (function () {
               if (reward) {
                 HUD.notifyPickup('✅ MISSION COMPLETE! +' + reward.okc + ' OKC +' + reward.xp + ' XP', '#44ff88');
                 if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
-                  Marketplace.awardCustomOKC(reward.okc, 'mission_type_complete', {
+                  var _awardPromise = Marketplace.awardCustomOKC(reward.okc, 'mission_type_complete', {
                     missionType: _completingType,
-                  }).then(function () {
-                    if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
                   });
+                  if (_awardPromise && typeof _awardPromise.then === 'function') {
+                    _awardPromise.then(function () {
+                      if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+                    });
+                  } else if (HUD && HUD.updateOKC) {
+                    HUD.updateOKC(Marketplace.getOKC());
+                  }
                 } else if (typeof Marketplace !== 'undefined') {
                   Marketplace.addOKC(reward.okc);
                 }
@@ -8615,6 +8672,13 @@ const GameManager = (function () {
         releaseDroneRemote();
       } else {
         tapVirtualKey('KeyF');
+      }
+    });
+    bindTapButton('btn-drone', function () {
+      if (DroneSystem.isPossessing()) {
+        releaseDroneRemote();
+      } else {
+        showDroneSelection();
       }
     });
     bindTapButton('btn-vehicle', function () { tapVirtualKey('KeyG'); });
