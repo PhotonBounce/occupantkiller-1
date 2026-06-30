@@ -53,3 +53,5 @@ wp-integration/
 tools/*.jpg
 tools/*.png
 tools/*.jpeg
+qa-screenshots/
+qa-*.png
