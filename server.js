@@ -222,11 +222,9 @@ server = http.createServer((req, res) => {
       console.log(`[SERVER][200][JS] url=${url} filePath=${filePath}`);
     }
 
-    // Cache-Control: cache JS/CSS/images for 1 hour, HTML for 5 min
-    if (ext === '.html') {
-      headers['Cache-Control'] = 'public, max-age=300';
-    } else if (ext === '.js' || ext === '.css') {
-      headers['Cache-Control'] = 'public, max-age=3600';
+    // Cache-Control: no cache during development (always get fresh files)
+    if (ext === '.html' || ext === '.js' || ext === '.css') {
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
     } else if ([
       '.png', '.jpg', '.gif', '.svg', '.ico', '.glb', '.wav', '.mp3', '.ogg'
     ].indexOf(ext) !== -1) {

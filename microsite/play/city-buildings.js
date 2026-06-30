@@ -212,7 +212,7 @@ const CityBuildings = (function () {
   }
 
   // ── azovstalComplex ──
-  function azovstalComplex(ox, oz, gy, w, d, h) {
+  function azovstalComplex(ox, oz, gy, w, d, h, color) { color = color || PAL.METAL;
     for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) { var bt = color; if (y === 0) bt = PAL.CONCRETE; if (isRoof) bt = PAL.ROOFTILE; setBlock(ox + x, gy + y, oz + z, bt); } } } }
     var bfX = ox + Math.floor(w / 2), bfZ = oz + Math.floor(d / 3);
     for (var y = 0; y < h + 15; y++) { var radius = (y < h) ? 4 : Math.max(2, 4 - Math.floor((y - h) / 4)); for (var dx = -radius; dx <= radius; dx++) { for (var dz = -radius; dz <= radius; dz++) { if (dx * dx + dz * dz <= radius * radius + 1) setBlock(bfX + dx, gy + y, bfZ + dz, PAL.METAL); } } }
