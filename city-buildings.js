@@ -1062,7 +1062,9 @@ const CityBuildings = (function () {
     { type: 'trenches', params: [15, 9], x: -15, z: 25, note: 'Secondary trench' },
     { type: 'trenches', params: [15, 9], x: 15, z: 25, note: 'Secondary trench' },
   ];
-  CITIES.siegeMoscow = [
+
+  // ═══════════════════════════════════════════════════════════
+  // SIEGEMOSCOW
   // ═══════════════════════════════════════════════════════════
   CITIES.siegeMoscow = [
     { type: 'kremlinWall', params: [80, 60, 8], x: 0, z: 0, note: 'Kremlin walls — final showdown location' },
