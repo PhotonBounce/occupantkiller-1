@@ -29,8 +29,7 @@ const VehicleSystem = (function () {
     turret_rover: { speed: 5,  health: 250, seats: 0,  armor: 3,  flying: false, damage: 35, ai: true },
     tank:         { speed: 8,  health: 800, seats: 3,  armor: 6,  flying: false, damage: 200, cannonReload: 3.0, mgDamage: 15, mgRate: 0.1 },
     bradley:      { speed: 12, health: 500, seats: 3,  armor: 4,  flying: false, damage: 70, bushRate: 0.30, coaxRate: 0.085, towAmmo: 2 },
-
-  /* ── State ───────────────────────────────────────────────────────── */
+  };
   const vehicles = [];
   let _scene = null;
   let nextId = 1;
