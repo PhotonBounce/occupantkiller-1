@@ -1145,11 +1145,16 @@ function completeWave() {
     });
     if (sideResult && sideResult.completed) {
       if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
-        Marketplace.awardCustomOKC(sideResult.reward, 'side_objective', {
+        var _awardPromise = Marketplace.awardCustomOKC(sideResult.reward, 'side_objective', {
           name: sideResult.name || 'side-objective', wave: currentWave,
-        }).then(function () {
-          if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
         });
+        if (_awardPromise && typeof _awardPromise.then === 'function') {
+          _awardPromise.then(function () {
+            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+          });
+        } else if (HUD && HUD.updateOKC) {
+          HUD.updateOKC(Marketplace.getOKC());
+        }
       } else if (typeof Marketplace !== 'undefined') {
         Marketplace.addOKC(sideResult.reward);
       }

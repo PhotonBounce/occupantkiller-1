@@ -7,7 +7,7 @@ def main(ctx):
     
     async def test():
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=True, args=["--disable-cache", "--incognito", "--disk-cache-size=0", "--disable-application-cache"])
             context = await browser.new_context(viewport={"width": 1920, "height": 1080})
             page = await context.new_page()
             

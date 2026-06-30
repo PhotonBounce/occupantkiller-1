@@ -580,12 +580,17 @@ const CombatManager = (function() {
         for (var cbi = 0; cbi < completedBounties.length; cbi++) {
           HUD.notifyPickup('💰 BOUNTY COMPLETE! +' + escapeHTML(completedBounties[cbi].reward) + ' OKC', '#ffaa00');
           if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
-            Marketplace.awardCustomOKC(completedBounties[cbi].reward, 'bounty_reward', {
+            var _awardPromise = Marketplace.awardCustomOKC(completedBounties[cbi].reward, 'bounty_reward', {
               bountyId: completedBounties[cbi].id || null,
               bountyType: completedBounties[cbi].type || null,
-            }).then(function () {
-              if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
             });
+            if (_awardPromise && typeof _awardPromise.then === 'function') {
+              _awardPromise.then(function () {
+                if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+              });
+            } else if (HUD && HUD.updateOKC) {
+              HUD.updateOKC(Marketplace.getOKC());
+            }
           } else if (typeof Marketplace !== 'undefined') {
             Marketplace.addOKC(completedBounties[cbi].reward);
           }

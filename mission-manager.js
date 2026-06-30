@@ -151,11 +151,16 @@ const MissionManager = (function() {
             if (reward) {
               _safeNotify('\u2705 MISSION COMPLETE! +' + reward.okc + ' OKC +' + reward.xp + ' XP', '#44ff88');
               if (typeof Marketplace !== 'undefined' && Marketplace.awardCustomOKC) {
-                Marketplace.awardCustomOKC(reward.okc, 'mission_type_complete', {
+                var _awardPromise = Marketplace.awardCustomOKC(reward.okc, 'mission_type_complete', {
                   missionType: _completingType,
-                }).then(function () {
-                  if (typeof HUD !== 'undefined' && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
                 });
+                if (_awardPromise && typeof _awardPromise.then === 'function') {
+                  _awardPromise.then(function () {
+                    if (typeof HUD !== 'undefined' && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+                  });
+                } else if (typeof HUD !== 'undefined' && HUD.updateOKC) {
+                  HUD.updateOKC(Marketplace.getOKC());
+                }
               } else if (typeof Marketplace !== 'undefined') {
                 Marketplace.addOKC(reward.okc);
               }
