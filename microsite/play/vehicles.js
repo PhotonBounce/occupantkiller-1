@@ -1940,6 +1940,7 @@ const VehicleSystem = (function () {
   function updateTurretProjectiles(delta) {
     for (let i = turretProjectiles.length - 1; i >= 0; i--) {
       const p = turretProjectiles[i];
+      if (!p || !p.mesh || !p.dir) continue; // Defensive: skip dead/invalid projectiles
       // Gravity drop for cannon shells (realistic arc)
       if (p.isCannonShell) {
         p.dir.y -= 4.8 * delta / p.speed;  // ~4.8 m/s² effective gravity scaled to speed
@@ -1950,29 +1951,35 @@ const VehicleSystem = (function () {
       // Check enemy collision
       let hit = false;
       if (typeof Enemies !== 'undefined') {
-        const enemyMeshes = Enemies.getEnemyMeshes();
-        _vRaycaster.set(p.mesh.position, p.dir);
-        _vRaycaster.near = 0;
-        _vRaycaster.far = p.speed * delta + 0.5;
-        const hits = _vRaycaster.intersectObjects(enemyMeshes, true);
-        if (hits.length > 0) {
-          hit = true;
-          const enemy = Enemies.findByMesh(hits[0].object);
-          if (enemy && enemy.alive) {
-            Enemies.damage(enemy, p.damage);
-          }
-          // Cannon shell: splash damage to nearby enemies
-          if (p.isCannonShell) {
-            var shellPos = p.mesh.position;
-            var splashRadius = 6;
-            var allE = Enemies.getAll ? Enemies.getAll() : [];
-            for (var se = 0; se < allE.length; se++) {
-              var sEnemy = allE[se];
-              if (!sEnemy.alive || !sEnemy.mesh || sEnemy === enemy) continue;
-              var sDist = shellPos.distanceTo(sEnemy.mesh.position);
-              if (sDist < splashRadius) {
-                var splashDmg = Math.floor(p.damage * 0.5 * (1 - sDist / splashRadius));
-                if (splashDmg > 0) Enemies.damage(sEnemy, splashDmg);
+        const enemyMeshes = (Enemies.getEnemyMeshes() || []).filter(function(m) {
+          return m && m.matrixWorld && m.parent !== null && m.visible !== false;
+        });
+        if (enemyMeshes.length > 0) {
+          _vRaycaster.set(p.mesh.position, p.dir);
+          _vRaycaster.near = 0;
+          _vRaycaster.far = p.speed * delta + 0.5;
+          // Set a fake camera to prevent THREE.Sprite raycast errors
+          if (!_vRaycaster.camera) _vRaycaster.camera = { isPerspectiveCamera: true };
+          const hits = _vRaycaster.intersectObjects(enemyMeshes, true);
+          if (hits.length > 0) {
+            hit = true;
+            const enemy = Enemies.findByMesh(hits[0].object);
+            if (enemy && enemy.alive) {
+              Enemies.damage(enemy, p.damage);
+            }
+            // Cannon shell: splash damage to nearby enemies
+            if (p.isCannonShell) {
+              var shellPos = p.mesh.position;
+              var splashRadius = 6;
+              var allE = Enemies.getAll ? Enemies.getAll() : [];
+              for (var se = 0; se < allE.length; se++) {
+                var sEnemy = allE[se];
+                if (!sEnemy.alive || !sEnemy.mesh || sEnemy === enemy) continue;
+                var sDist = shellPos.distanceTo(sEnemy.mesh.position);
+                if (sDist < splashRadius) {
+                  var splashDmg = Math.floor(p.damage * 0.5 * (1 - sDist / splashRadius));
+                  if (splashDmg > 0) Enemies.damage(sEnemy, splashDmg);
+                }
               }
             }
           }
