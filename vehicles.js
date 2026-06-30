@@ -17,6 +17,7 @@ const VehicleSystem = (function () {
     PLANE:      'plane',
     TURRET_ROVER: 'turret_rover',
     TANK:       'tank',
+    BRADLEY:    'bradley',
   });
 
   const VEHICLE_STATS = {
@@ -27,7 +28,7 @@ const VehicleSystem = (function () {
     plane:        { speed: 35, health: 120, seats: 2,  armor: 1,  flying: true },
     turret_rover: { speed: 5,  health: 250, seats: 0,  armor: 3,  flying: false, damage: 35, ai: true },
     tank:         { speed: 8,  health: 800, seats: 3,  armor: 6,  flying: false, damage: 200, cannonReload: 3.0, mgDamage: 15, mgRate: 0.1 },
-  };
+    bradley:      { speed: 12, health: 500, seats: 3,  armor: 4,  flying: false, damage: 70, bushRate: 0.30, coaxRate: 0.085, towAmmo: 2 },
 
   /* ── State ───────────────────────────────────────────────────────── */
   const vehicles = [];
@@ -381,6 +382,161 @@ const VehicleSystem = (function () {
       reverseLight.position.set(rl * 0.55, 0.64, 2.46);
       reverseLight.userData.isReverseLight = true;
       group.add(reverseLight);
+    }
+
+    group.castShadow = true;
+    return group;
+  }
+
+  /* ── Build Bradley M2A2 Mesh ─────────────────────────────────────── */
+  function buildBradleyMesh() {
+    var group = new THREE.Group();
+    var matHull = new THREE.MeshLambertMaterial({ color: 0x4A5530 }); // olive drab
+    var matDark = new THREE.MeshLambertMaterial({ color: 0x2A3318 });
+    var matTrack = new THREE.MeshLambertMaterial({ color: 0x1A1A1A });
+    var matGun = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    var matERA = new THREE.MeshLambertMaterial({ color: 0x5A6540 });
+
+    // Hull: 6.5m long × 3.2m wide × 2.5m tall (at voxel scale)
+    var hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.6, 6.5), matHull);
+    hull.position.set(0, 1.05, 0);
+    group.add(hull);
+
+    // Front glacis (sloped armor)
+    var glacis = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.0, 1.6), matHull);
+    glacis.position.set(0, 1.05, -3.6);
+    glacis.rotation.x = -0.55;
+    group.add(glacis);
+
+    // Tracks (left and right) with road wheels
+    for (var side = -1; side <= 1; side += 2) {
+      var trackHousing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 6.3), matTrack);
+      trackHousing.position.set(side * 1.85, 0.45, 0);
+      group.add(trackHousing);
+      for (var w = 0; w < 6; w++) {
+        var wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.35, 12), matGun);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(side * 1.85, 0.45, -2.6 + w * 1.05);
+        wheel.userData.isWheel = true;
+        group.add(wheel);
+      }
+    }
+
+    // ERA blocks on sides (Ukrainian ODS-SA upgrade)
+    for (var side = -1; side <= 1; side += 2) {
+      for (var b = 0; b < 6; b++) {
+        var era = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.55, 0.85), matERA);
+        era.position.set(side * 1.7, 0.95, -2.6 + b * 1.05);
+        group.add(era);
+      }
+    }
+
+    // Turret group
+    var turretGroup = new THREE.Group();
+    turretGroup.position.set(0, 1.85, -0.4);
+    turretGroup.userData.isTurret = true;
+
+    // Turret body (open-top for gunner gameplay)
+    var turretBody = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.85, 2.4), matHull);
+    turretBody.position.set(0, 0.3, 0);
+    turretGroup.add(turretBody);
+
+    // Commander's cupola (right side)
+    var cupola = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.3, 12), matDark);
+    cupola.position.set(0.5, 0.7, -0.2);
+    turretGroup.add(cupola);
+
+    // Gunner's sight (left side)
+    var sight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.25, 0.35), matGun);
+    sight.position.set(-0.45, 0.5, 0.7);
+    turretGroup.add(sight);
+
+    // Gun mount group (for pitch)
+    var gunMount = new THREE.Group();
+    gunMount.position.set(0, 0.05, 0.6);
+    turretGroup.add(gunMount);
+
+    // Mantlet
+    var mantlet = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.6), matHull);
+    gunMount.add(mantlet);
+
+    // 25mm Bushmaster barrel
+    var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 2.6, 12), matGun);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.05, 1.55);
+    barrel.userData.isMainGun = true;
+    barrel.userData.baseZ = 1.55;
+    barrel.userData.baseRotationX = Math.PI / 2;
+    gunMount.add(barrel);
+
+    // Muzzle brake
+    var muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 12), matGun);
+    muzzle.rotation.x = Math.PI / 2;
+    muzzle.position.set(0, 0.05, 2.95);
+    muzzle.userData.isTankMuzzle = true;
+    muzzle.userData.baseRotationX = Math.PI / 2;
+    gunMount.add(muzzle);
+
+    // Coaxial M240
+    var coax = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 1.4, 10), matGun);
+    coax.rotation.x = Math.PI / 2;
+    coax.position.set(-0.35, 0, 0.95);
+    coax.userData.isCoaxMG = true;
+    coax.userData.coaxTipOffset = 0.75;
+    coax.userData.baseRotationX = Math.PI / 2;
+    gunMount.add(coax);
+
+    // TOW launcher (right side of turret)
+    var towGroup = new THREE.Group();
+    towGroup.position.set(1.0, 0.25, 0.0);
+    turretGroup.add(towGroup);
+    var towHousing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.5, 1.4), new THREE.MeshLambertMaterial({ color: 0x3A4528 }));
+    towGroup.add(towHousing);
+    var towL = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.5, 10), matGun);
+    towL.rotation.x = Math.PI / 2;
+    towL.position.set(0, 0.12, 0.05);
+    towGroup.add(towL);
+    var towR = towL.clone();
+    towR.position.y = -0.12;
+    towGroup.add(towR);
+    towGroup.userData.isTowLauncher = true;
+
+    // Smoke grenade launchers (2 banks of 4)
+    for (var sgBank = 0; sgBank < 2; sgBank++) {
+      for (var sg = 0; sg < 4; sg++) {
+        var d = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.22, 8), matGun);
+        d.position.set(-0.75 + sgBank * 1.5 + sg * 0.16, 0.42, -1.15);
+        d.rotation.x = -0.45;
+        turretGroup.add(d);
+      }
+    }
+
+    // Antennas
+    var ant1 = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.025, 1.8, 6), matGun);
+    ant1.position.set(-0.85, 0.95, -0.9);
+    ant1.userData.isAntenna = true;
+    turretGroup.add(ant1);
+    var ant2 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 1.4, 6), new THREE.MeshLambertMaterial({ color: 0x222244 }));
+    ant2.position.set(0.6, 0.95, -1.0);
+    ant2.userData.isAntenna = true;
+    turretGroup.add(ant2);
+
+    group.add(turretGroup);
+
+    // Headlights
+    for (var hl = -1; hl <= 1; hl += 2) {
+      var light = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 8), new THREE.MeshLambertMaterial({ color: 0xffffaa }));
+      light.rotation.x = Math.PI / 2;
+      light.position.set(hl * 0.9, 0.75, -3.5);
+      group.add(light);
+      var spot = new THREE.SpotLight(0xffffcc, 0, 25, Math.PI / 6, 0.6, 1.5);
+      spot.position.set(hl * 0.9, 0.75, -3.5);
+      var spotTarget = new THREE.Object3D();
+      spotTarget.position.set(hl * 0.9, 0.3, -12);
+      group.add(spotTarget);
+      spot.target = spotTarget;
+      spot.userData.isHeadlight = true;
+      group.add(spot);
     }
 
     group.castShadow = true;

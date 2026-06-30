@@ -107,14 +107,35 @@
 </head>
   <body>
     <!-- ── Boot Preloader (gates GameManager.init until everything is ready) ── -->
-    <div id="boot-preloader" style="position:fixed;inset:0;z-index:99998;background:#0a0a0a;color:#aaa;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;text-align:center;padding:24px">
-      <div style="font-size:32px;letter-spacing:6px;color:#ff4444;text-shadow:0 0 20px #ff4444;margin-bottom:6px">OCCUPANT KILLER</div>
-      <div style="font-size:12px;color:#666;margin-bottom:24px;letter-spacing:2px">LOADING ASSETS</div>
-      <div id="boot-progress-bar-track" style="width:min(420px,80vw);height:14px;background:#111;border:1px solid #333;border-radius:7px;overflow:hidden">
-        <div id="boot-progress-bar-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#ff4444,#ffaa00);transition:width 0.18s ease"></div>
+    <div id="boot-preloader" style="position:fixed;inset:0;z-index:99998;background:radial-gradient(ellipse at center,#0a0a1a 0%,#050510 100%);color:#aaa;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;text-align:center;padding:24px">
+      <!-- Tryzub (Ukrainian trident) -->
+      <div style="margin-bottom:10px;filter:drop-shadow(0 0 10px rgba(255,215,0,0.5))">
+        <svg width="52" height="66" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 2L32 28" stroke="#0057B8" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M14 18C14 18 20 10 32 10C44 10 50 18 50 18" stroke="#0057B8" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M6 34C6 34 16 22 32 22C48 22 58 34 58 34" stroke="#0057B8" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M32 26L32 56" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M18 46C18 46 24 56 32 56C40 56 46 46 46 46" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M22 60L32 78L42 60" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 40C10 40 18 54 32 54C46 54 54 40 54 40" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="font-size:28px;font-weight:700;color:#FFD700;margin-bottom:4px;letter-spacing:3px;text-shadow:0 0 16px rgba(255,215,0,0.3)">OCCUPANT KILLER</div>
+      <div style="font-size:10px;color:#0057B8;margin-bottom:22px;letter-spacing:4px;font-weight:700">UKRAINIAN VOXEL DEFENSE FORCE</div>
+      <div id="boot-progress-bar-track" style="width:min(420px,80vw);height:14px;background:#111;border:1px solid #333;border-radius:7px;overflow:hidden;position:relative">
+        <div id="boot-progress-bar-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#0057B8,#FFD700);transition:width 0.4s ease;position:relative">
+          <div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent);animation:bootShimmer 1.5s infinite"></div>
+        </div>
       </div>
       <div id="boot-progress-label" style="font-size:11px;color:#888;margin-top:10px;letter-spacing:1px">0% — Initializing…</div>
-      <div id="boot-progress-detail" style="font-size:10px;color:#444;margin-top:4px;height:14px">&nbsp;</div>
+      <div id="boot-progress-comment" style="font-size:12px;color:#FFD700;margin-top:6px;min-height:16px;font-weight:700;letter-spacing:0.5px;text-shadow:0 0 6px rgba(255,215,0,0.2);transition:opacity 0.3s ease"></div>
+      <div id="boot-spinner" style="width:10px;height:10px;background:#0057B8;border-radius:50%;margin-top:12px;animation:bootPulse 1.2s ease-in-out infinite;box-shadow:0 0 6px rgba(0,87,184,0.6)"></div>
+      <div id="boot-elapsed" style="font-size:10px;color:#444;margin-top:8px">Elapsed: 0.0s</div>
+      <div id="boot-tip" style="font-size:10px;color:#555;margin-top:10px;max-width:min(420px,80vw);font-style:italic;min-height:28px;line-height:1.4;transition:opacity 0.5s ease"></div>
+      <style>
+        @keyframes bootShimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+        @keyframes bootPulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.6);opacity:0.6} }
+      </style>
     </div>
     <!-- ── Button Loading Overlay ── -->
     <div id="btn-loading-overlay" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,0.75);flex-direction:column;align-items:center;justify-content:center;font-family:monospace;text-align:center;padding:24px">
@@ -129,13 +150,39 @@
     <script src="page-prelude.js?v=20260429b"></script>
     <script>
     // Loader percentage updater — always show and update percent
+    window.__bootStartTime = Date.now();
     window.__bootProgress = function(pct, label, detail) {
       var bar = document.getElementById('boot-progress-bar-fill');
       var lbl = document.getElementById('boot-progress-label');
-      var det = document.getElementById('boot-progress-detail');
+      var com = document.getElementById('boot-progress-comment');
+      var ela = document.getElementById('boot-elapsed');
       if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
       if (lbl) lbl.textContent = (pct|0) + '% — ' + (label || 'Loading…');
-      if (det) det.textContent = detail || '\u00A0';
+      if (com) {
+        var stages = [
+          {pct:0,comment:'Initializing combat engine...'},
+          {pct:5,comment:'Initializing combat engine...'},
+          {pct:10,comment:'Loading voxel terrain system...'},
+          {pct:15,comment:'Checking audio modules...'},
+          {pct:20,comment:'Preloading weapon assets...'},
+          {pct:30,comment:'Generating city blueprints...'},
+          {pct:40,comment:'Building terrain meshes...'},
+          {pct:50,comment:'Loading sound effects...'},
+          {pct:60,comment:'Spawning enemies...'},
+          {pct:70,comment:'Setting up mission objectives...'},
+          {pct:80,comment:'Preloading textures...'},
+          {pct:90,comment:'Finalizing combat AI...'},
+          {pct:95,comment:'Almost ready...'},
+          {pct:100,comment:'Slava Ukraini!'}
+        ];
+        var c = '';
+        for (var i = 0; i < stages.length; i++) { if (pct >= stages[i].pct) c = stages[i].comment; }
+        if (c && com.textContent !== c) { com.style.opacity = '0'; setTimeout(function(){ if(com){com.textContent=c;com.style.opacity='1';} },150); }
+      }
+      if (ela) {
+        var elapsed = ((Date.now() - (window.__bootStartTime||Date.now())) / 1000).toFixed(1);
+        ela.textContent = 'Elapsed: ' + elapsed + 's';
+      }
     };
     // Ensure loader always shows percent at boot
     window.__bootProgress(0, 'Initializing…', '');
@@ -1416,33 +1463,99 @@ document.addEventListener('DOMContentLoaded', function () {
   'use strict';
 
   // ── Boot Preloader ────────────────────────────────────
-  var __bootStages = [
-    { pct: 5,  label: 'parsing scripts' },
-    { pct: 25, label: 'checking modules' },
-    { pct: 50, label: 'loading audio system' },
-    { pct: 70, label: 'building voxel world' },
-    { pct: 90, label: 'spawning entities' },
-    { pct: 100, label: 'ready' }
+  var __bootTips = [
+    "Tip: Press Q to deploy drones",
+    "Tip: Use G to mount vehicles",
+    "Bravery takes you through the most unimaginable hardships to finally reward you with victory — Zelenskyy",
+    "Tip: Press R to reload your weapon",
+    "Tip: Press E to interact with objects",
+    "Strength is not only in weapons, but in the will to defend what is yours — Zelenskyy",
+    "Tip: Destroy enemy nests to stop reinforcements",
+    "Tip: Collect resources to build defenses",
+    "Nobody is going to break us. We are strong. We are Ukrainians — Zelenskyy",
+    "Tip: Use the mouse wheel to switch weapons",
+    "Tip: Press Shift to sprint",
+    "Tip: Press Space to jump"
   ];
+  var __bootTipIndex = 0;
+  var __bootTipTimer = null;
+
+  function rotateBootTip() {
+    var tipEl = document.getElementById('boot-tip');
+    if (!tipEl) return;
+    tipEl.style.opacity = '0';
+    setTimeout(function() {
+      if (tipEl) { tipEl.textContent = __bootTips[__bootTipIndex % __bootTips.length]; tipEl.style.opacity = '1'; }
+      __bootTipIndex++;
+    }, 250);
+  }
+  function startBootTips() {
+    rotateBootTip();
+    __bootTipTimer = setInterval(rotateBootTip, 4200);
+  }
+  function stopBootTips() {
+    if (__bootTipTimer) { clearInterval(__bootTipTimer); __bootTipTimer = null; }
+  }
+
+  var __bootStages = [
+    { pct: 0,  label: 'Initializing…', comment: 'Initializing combat engine...' },
+    { pct: 5,  label: 'parsing scripts', comment: 'Initializing combat engine...' },
+    { pct: 10, label: 'loading modules', comment: 'Loading voxel terrain system...' },
+    { pct: 15, label: 'checking modules', comment: 'Checking audio modules...' },
+    { pct: 20, label: 'preloading assets', comment: 'Preloading weapon assets...' },
+    { pct: 25, label: 'starting game manager', comment: 'Preloading weapon assets...' },
+    { pct: 30, label: 'camera', comment: 'Generating city blueprints...' },
+    { pct: 35, label: 'voxel world', comment: 'Generating city blueprints...' },
+    { pct: 40, label: 'time', comment: 'Building terrain meshes...' },
+    { pct: 45, label: 'building', comment: 'Building terrain meshes...' },
+    { pct: 50, label: 'audio', comment: 'Loading sound effects...' },
+    { pct: 60, label: 'spawning entities', comment: 'Spawning enemies...' },
+    { pct: 70, label: 'setting up missions', comment: 'Setting up mission objectives...' },
+    { pct: 80, label: 'preloading textures', comment: 'Preloading textures...' },
+    { pct: 90, label: 'finalizing AI', comment: 'Finalizing combat AI...' },
+    { pct: 95, label: 'almost ready', comment: 'Almost ready...' },
+    { pct: 100, label: 'ready', comment: 'Slava Ukraini!' }
+  ];
+  function findBootComment(pct) {
+    var comment = '';
+    for (var i = 0; i < __bootStages.length; i++) {
+      if (pct >= __bootStages[i].pct) comment = __bootStages[i].comment;
+    }
+    return comment;
+  }
+
   function setBootProgress(pct, label, detail) {
     var fill = document.getElementById('boot-progress-bar-fill');
     var lab  = document.getElementById('boot-progress-label');
-    var det  = document.getElementById('boot-progress-detail');
+    var com  = document.getElementById('boot-progress-comment');
+    var ela  = document.getElementById('boot-elapsed');
     if (fill) fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
     if (lab)  lab.textContent = Math.round(pct) + '% — ' + (label || '');
-    if (det)  det.textContent = detail || '\u00a0';
+    if (com) {
+      var c = findBootComment(pct);
+      if (c && com.textContent !== c) {
+        com.style.opacity = '0';
+        setTimeout(function() { if (com) { com.textContent = c; com.style.opacity = '1'; } }, 150);
+      }
+    }
+    if (ela) {
+      var elapsed = ((Date.now() - (window.__bootStartTime || Date.now())) / 1000).toFixed(1);
+      ela.textContent = 'Elapsed: ' + elapsed + 's';
+    }
   }
   function hideBootPreloader() {
+    stopBootTips();
     var pre = document.getElementById('boot-preloader');
     if (pre) {
-      pre.style.transition = 'opacity 0.35s ease';
+      pre.style.transition = 'opacity 0.5s ease';
       pre.style.opacity = '0';
-      setTimeout(function () { if (pre.parentNode) pre.parentNode.removeChild(pre); }, 400);
+      setTimeout(function () { if (pre && pre.parentNode) pre.parentNode.removeChild(pre); }, 550);
     }
   }
   // Expose so GameManager can drive progress from inside init()
   window.__bootProgress = setBootProgress;
   window.__bootHide = hideBootPreloader;
+  startBootTips();
 
   // Verify required modules before booting GameManager
   var REQUIRED_MODULES = [
@@ -1465,11 +1578,10 @@ document.addEventListener('DOMContentLoaded', function () {
     setBootProgress(modulePct, 'checking modules', missing.length ? 'waiting: ' + missing.slice(0,3).join(', ') : 'all modules loaded');
 
     if (missing.length === 0 && typeof window.GameManager.init === 'function') {
-      setBootProgress(30, 'starting game manager', '');
       try {
         window.GameManager.init();
-        setBootProgress(100, 'ready', '');
-        setTimeout(hideBootPreloader, 220);
+        setBootProgress(100, 'ready', 'Slava Ukraini!');
+        setTimeout(hideBootPreloader, 420);
       } catch (e) {
         var ov = document.getElementById('error-overlay');
         var errMsg = (e && e.message ? e.message : String(e));

@@ -1436,8 +1436,24 @@ const GameManager = (function () {
     // during the ~1s init() blocks the main thread; otherwise it looks
     // frozen on desktop (and worse on mobile / slow GPUs).
     var _initStep = 0;
-    var _initSteps = 14;
+    var _initSteps = 16;
     var _bootErrors = [];
+    var _bootStepMap = {
+      'renderer': { pct: 25, comment: 'Preloading weapon assets...' },
+      'camera':   { pct: 30, comment: 'Generating city blueprints...' },
+      'voxel world': { pct: 35, comment: 'Generating city blueprints...' },
+      'time':     { pct: 40, comment: 'Building terrain meshes...' },
+      'building': { pct: 45, comment: 'Building terrain meshes...' },
+      'audio':    { pct: 50, comment: 'Loading sound effects...' },
+      'npc system': { pct: 60, comment: 'Spawning enemies...' },
+      'drones':   { pct: 65, comment: 'Spawning enemies...' },
+      'vehicles': { pct: 70, comment: 'Setting up mission objectives...' },
+      'progression': { pct: 75, comment: 'Setting up mission objectives...' },
+      'missions': { pct: 80, comment: 'Preloading textures...' },
+      'tracers':  { pct: 85, comment: 'Preloading textures...' },
+      'weather':  { pct: 90, comment: 'Finalizing combat AI...' },
+      'environment': { pct: 95, comment: 'Almost ready...' }
+    };
     function _safeInit(label, fn) {
       try {
         fn();
@@ -1448,12 +1464,15 @@ const GameManager = (function () {
     }
     function _bootStep(label) {
       _initStep++;
+      var map = _bootStepMap[label];
+      var pct = map ? map.pct : 30 + Math.round((_initStep / _initSteps) * 65);
       if (typeof window.__bootProgress === 'function') {
-        var pct = 30 + Math.round((_initStep / _initSteps) * 65); // 30→95
         var detail = _bootErrors.length ? 'warnings: ' + _bootErrors.slice(-2).join('; ') : '';
         try { window.__bootProgress(pct, label, detail); } catch (e) {}
       }
     }
+
+    _bootStep('renderer');
 
     _safeInit('camera', function () { if (CameraSystem && typeof CameraSystem.init === 'function') CameraSystem.init(_camera); });
     _bootStep('camera');
@@ -1464,6 +1483,8 @@ const GameManager = (function () {
     _bootStep('time');
     _safeInit('building', function () { if (Building && typeof Building.init === 'function') Building.init(_scene); });
     _bootStep('building');
+    _safeInit('audio', function () { if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init(); });
+    _bootStep('audio');
     _safeInit('npc system', function () { if (NPCSystem && typeof NPCSystem.init === 'function') NPCSystem.init(_scene); });
     _bootStep('npc system');
     _safeInit('drones', function () {
@@ -1489,9 +1510,9 @@ const GameManager = (function () {
     _safeInit('tracers', function () { if (typeof Tracers !== 'undefined' && Tracers && typeof Tracers.init === 'function') Tracers.init(_scene); });
     _bootStep('tracers');
 
-    // Audio, Weather & ML systems
-    _safeInit('audio', function () { if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init(); });
+    // Weather & ML systems
     _safeInit('weather', function () { if (WeatherSystem && typeof WeatherSystem.init === 'function') WeatherSystem.init(_scene, _camera); });
+    _bootStep('weather');
     _safeInit('ml', function () { if (MLSystem && typeof MLSystem.init === 'function') MLSystem.init(); });
     _safeInit('stagevfx', function () { if (typeof StageVFX !== 'undefined' && StageVFX && typeof StageVFX.init === 'function') StageVFX.init(_scene); });
     _safeInit('flags', function () {
@@ -1511,6 +1532,7 @@ const GameManager = (function () {
       }
     });
     _safeInit('environment', function () { if (typeof Environment !== 'undefined' && Environment.init) Environment.init(_scene, _camera); });
+    _bootStep('environment');
 
     // ── New feature systems init ──────────────────────────
     if (typeof CombatExtras !== 'undefined' && CombatExtras && typeof CombatExtras.reset === 'function') CombatExtras.reset();

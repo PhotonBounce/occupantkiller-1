@@ -26,9 +26,9 @@ const DroneSystem = (function () {
 
   const DRONE_STATS = {
     recon:          { speed: 12, health: 30,  battery: 120, damage: 0,   range: 80 },
-    fpv_attack:     { speed: 18, health: 15,  battery: 45,  damage: 80,  range: 50 },
+    fpv_attack:     { speed: 25, health: 15,  battery: 45,  damage: 120, range: 50 },
     bomb:           { speed: 8,  health: 40,  battery: 90,  damage: 200, range: 60 },
-    surveillance:   { speed: 6,  health: 50,  battery: 300, damage: 0,   range: 100 },
+    surveillance:   { speed: 6,  health: 50,  battery: 300, damage: 15,  range: 100 },
     kamikaze:       { speed: 25, health: 8,   battery: 20,  damage: 120, range: 35 },
     incendiary:     { speed: 10, health: 25,  battery: 60,  damage: 60,  range: 70 },
     baba_yaga:      { speed: 5,  health: 100, battery: 150, damage: 90,  range: 60 },
@@ -40,8 +40,8 @@ const DroneSystem = (function () {
   const DRONE_AMMO = {
     recon:          0,
     fpv_attack:     1,
-    bomb:           4,
-    surveillance:   0,
+    bomb:           6,
+    surveillance:   30,
     kamikaze:       1,
     incendiary:     1,
     baba_yaga:      6,
@@ -635,6 +635,10 @@ const DroneSystem = (function () {
   var _droneMotorActive = false;
   /* ── Bayraktar TB2: fixed-wing orbit + MAM-L auto-engage ──────────── */
   var _mamls = [];   // in-flight guided missiles { pos, vel, target, life, mesh }
+  /* ── Bomber gravity grenades ──────────────────────────────────────── */
+  var _fallingBombs = []; // { pos, vel, life, mesh, damage }
+  /* ── Surveillance LMG tracers ───────────────────────────────────── */
+  var _lmgTracers = []; // { pos, vel, life, mesh }
 
   function _tb2PickTarget(drone) {
     if (typeof Enemies === 'undefined' || !Enemies.getAll) return null;
@@ -740,6 +744,124 @@ const DroneSystem = (function () {
     }
   }
 
+  /* ── Falling gravity grenades (bomber drone) ────────────────────── */
+  function _spawnFallingBomb(drone, dropPos) {
+    var geo = new THREE.SphereGeometry(0.12, 6, 6);
+    var mat = new THREE.MeshBasicMaterial({ color: 0x336611 });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(dropPos);
+    if (_scene) _scene.add(mesh);
+    _fallingBombs.push({
+      pos: dropPos.clone(),
+      vel: new THREE.Vector3(0, -2, 0),
+      life: 8,
+      mesh: mesh,
+      damage: drone.damage || 200,
+    });
+  }
+
+  function _updateFallingBombs(delta) {
+    for (var i = _fallingBombs.length - 1; i >= 0; i--) {
+      var b = _fallingBombs[i];
+      b.life -= delta;
+      b.vel.y -= 18 * delta; // gravity
+      b.pos.addScaledVector(b.vel, delta);
+      b.mesh.position.copy(b.pos);
+      var groundH = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
+        ? VoxelWorld.getTerrainHeight(b.pos.x, b.pos.z) : 0;
+      if (b.pos.y <= groundH + 0.5 || b.life <= 0) {
+        b.pos.y = Math.max(b.pos.y, groundH + 0.5);
+        if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+          Enemies.damageInRadius(b.pos, 5, b.damage);
+        }
+        createDroneExplosion(b.pos);
+        try { if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion(); } catch (e) {}
+        if (_scene && b.mesh) _scene.remove(b.mesh);
+        _fallingBombs.splice(i, 1);
+      }
+    }
+  }
+
+  /* ── Surveillance LMG tracer system ─────────────────────────────── */
+  function _spawnLmgTracer(fromPos, dir) {
+    var geo = new THREE.CylinderGeometry(0.02, 0.02, 0.4, 4);
+    var mat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(fromPos);
+    mesh.lookAt(fromPos.clone().add(dir));
+    mesh.rotateX(Math.PI / 2);
+    if (_scene) _scene.add(mesh);
+    _lmgTracers.push({
+      pos: fromPos.clone(),
+      vel: dir.clone().multiplyScalar(90),
+      life: 0.6,
+      mesh: mesh,
+    });
+    try { if (typeof AudioSystem !== 'undefined' && AudioSystem.playGunshot) AudioSystem.playGunshot('rifle'); } catch (e) {}
+  }
+
+  function _updateLmgTracers(delta) {
+    for (var i = _lmgTracers.length - 1; i >= 0; i--) {
+      var t = _lmgTracers[i];
+      t.life -= delta;
+      t.pos.addScaledVector(t.vel, delta);
+      t.mesh.position.copy(t.pos);
+      if (t.life <= 0) {
+        if (_scene && t.mesh) _scene.remove(t.mesh);
+        _lmgTracers.splice(i, 1);
+        continue;
+      }
+      // Hit test against enemies
+      if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+        var elist = Enemies.getAll();
+        for (var ei = 0; ei < elist.length; ei++) {
+          var en = elist[ei];
+          if (!en || !en.alive || !en.mesh) continue;
+          var dx = en.mesh.position.x - t.pos.x;
+          var dy = en.mesh.position.y - t.pos.y;
+          var dz = en.mesh.position.z - t.pos.z;
+          if (dx * dx + dy * dy + dz * dz < 2.25) { // 1.5m radius
+            try { Enemies.damage(en, 12); } catch (e) {}
+            if (_scene && t.mesh) _scene.remove(t.mesh);
+            _lmgTracers.splice(i, 1);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  function fireGun(droneId) {
+    const drone = drones.find(d => d.id === droneId);
+    if (!drone || drone.type !== DRONE_TYPE.SURVEILLANCE || drone.ammo <= 0) return false;
+    drone.ammo = Math.max(0, drone.ammo - 1);
+    var yaw = (typeof CameraSystem !== 'undefined') ? CameraSystem.getYaw() : drone.rotation.y;
+    var pitch = (typeof CameraSystem !== 'undefined') ? CameraSystem.getPitch() : 0;
+    var dir = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
+    var muzzle = drone.position.clone().add(dir.clone().multiplyScalar(0.6));
+    _spawnLmgTracer(muzzle, dir);
+    // Direct hit scan at 40m
+    var hitScan = dir.clone().multiplyScalar(40).add(drone.position);
+    if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+      var elist = Enemies.getAll();
+      var best = null, bestDist = Infinity;
+      for (var ei = 0; ei < elist.length; ei++) {
+        var en = elist[ei];
+        if (!en || !en.alive || !en.mesh) continue;
+        var enPos = en.mesh.position.clone();
+        var toEnemy = enPos.sub(drone.position);
+        var proj = toEnemy.dot(dir);
+        if (proj < 0 || proj > 40) continue;
+        var perp = toEnemy.clone().sub(dir.clone().multiplyScalar(proj));
+        if (perp.length() < 2.0 && proj < bestDist) { bestDist = proj; best = en; }
+      }
+      if (best) {
+        try { Enemies.damage(best, 12); } catch (e) {}
+      }
+    }
+    return true;
+  }
+
   /* ── Call-in: Bayraktar on station (90s cooldown) ─────────────────── */
   var _tb2Cooldown = 0; // timestamp (ms) when next call is allowed
   function callBayraktar(centerOverride) {
@@ -769,6 +891,8 @@ const DroneSystem = (function () {
 
   function update(delta) {
     _updateMamls(delta);
+    _updateFallingBombs(delta);
+    _updateLmgTracers(delta);
     var nearestDroneDist = Infinity;
     for (const drone of drones) {
       if (!drone.alive || !drone.active) continue;
@@ -903,7 +1027,7 @@ const DroneSystem = (function () {
       -drone.velocity.x * 0.02
     );
 
-    // FPV auto-explode on contact: if within 1.5m of any enemy, kamikaze
+    // FPV auto-explode on contact: if within 2.5m of any enemy, kamikaze
     if (drone.type === DRONE_TYPE.FPV_ATTACK) {
       var _hitEnemy = false;
       if (typeof Enemies !== 'undefined' && Enemies.getAll) {
@@ -925,8 +1049,26 @@ const DroneSystem = (function () {
           if (drone.position.distanceTo(_vv.mesh.position) < 2.5) { _hitEnemy = true; break; }
         }
       }
+      // Building / terrain contact: if drone is inside a solid block, explode
+      if (!_hitEnemy && typeof VoxelWorld !== 'undefined' && VoxelWorld.getBlock) {
+        var bx = Math.round(drone.position.x);
+        var by = Math.round(drone.position.y);
+        var bz = Math.round(drone.position.z);
+        var block = VoxelWorld.getBlock(bx, by, bz);
+        if (block && block !== 0 && block !== 8) { _hitEnemy = true; } // 8 = water
+      }
       if (_hitEnemy) {
         fireAttack(drone.id);
+      }
+    }
+
+    // Bomber auto-return when depleted
+    if (drone.type === DRONE_TYPE.BOMB && drone.ammo <= 0 && !drone._returning) {
+      drone._returning = true;
+      try { if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('🚁 BOMBER RETURNING — payload empty', '#ffaa00'); } catch (e) {}
+      // Release possession so player isn't stuck
+      if (drone === _possessedDrone) {
+        release();
       }
     }
   }
@@ -1193,19 +1335,12 @@ const DroneSystem = (function () {
     drone.mesh.children.forEach(child => {
       if (child.userData.isPayload) child.visible = false;
     });
-    // Bomb falls to ground level before exploding
-    const dropPos = drone.position.clone();
-    if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
-      dropPos.y = VoxelWorld.getTerrainHeight(Math.round(dropPos.x), Math.round(dropPos.z)) + 0.5;
-    } else {
-      dropPos.y -= 1;
+    // Spawn gravity grenade that falls and explodes on contact
+    _spawnFallingBomb(drone, drone.position.clone());
+    if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playGunshot) {
+      window.AudioSystem.playGunshot('launcher');
     }
-    if (typeof Enemies !== 'undefined') {
-      Enemies.damageInRadius(dropPos, 6, drone.damage);
-    }
-    createDroneExplosion(dropPos);
-    if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playGunshot('launcher');
-    return { position: dropPos, damage: drone.damage };
+    return { position: drone.position.clone(), damage: drone.damage };
   }
 
   function dropFire(droneId) {
@@ -1270,9 +1405,11 @@ const DroneSystem = (function () {
     if (drone.ammo <= 0) return false;
     drone.ammo = 0;
     drone.hasPayload = false;
+    const EXP_RADIUS = 8;
+    const EXP_DAMAGE = drone.damage || 120;
     // FPV kamikaze: damage enemies, player, NPCs, terrain at drone position, destroy drone
     if (typeof Enemies !== 'undefined') {
-      Enemies.damageInRadius(drone.position, 4, drone.damage);
+      Enemies.damageInRadius(drone.position, EXP_RADIUS, EXP_DAMAGE);
     }
     // Player damage
     try {
@@ -1282,9 +1419,9 @@ const DroneSystem = (function () {
         const ddy = player.position.y - drone.position.y;
         const ddz = player.position.z - drone.position.z;
         const ddist = Math.sqrt(ddx*ddx + ddy*ddy + ddz*ddz);
-        if (ddist < 4) {
-          const falloff = 1 - (ddist / 4) * 0.5;
-          player.hp = Math.max(1, (player.hp || 100) - Math.floor(drone.damage * falloff));
+        if (ddist < EXP_RADIUS) {
+          const falloff = 1 - (ddist / EXP_RADIUS) * 0.5;
+          player.hp = Math.max(1, (player.hp || 100) - Math.floor(EXP_DAMAGE * falloff));
           if (typeof HUD !== 'undefined' && HUD.setHealth) HUD.setHealth(player.hp, player.maxHp || 100);
           if (typeof HUD !== 'undefined' && HUD.showDamageFlash) HUD.showDamageFlash(0xff3300, 0.4);
         }
@@ -1293,19 +1430,19 @@ const DroneSystem = (function () {
     // NPC damage
     try {
       if (typeof NPCSystem !== 'undefined' && NPCSystem.damageInRadius) {
-        NPCSystem.damageInRadius(drone.position, 4, drone.damage);
+        NPCSystem.damageInRadius(drone.position, EXP_RADIUS, EXP_DAMAGE);
       }
     } catch (e) {}
-    // Terrain destruction
+    // Terrain destruction — larger crater for FPV
     try {
       if (typeof VoxelWorld !== 'undefined' && VoxelWorld.setBlock) {
         const cx = Math.round(drone.position.x);
         const cy = Math.round(drone.position.y);
         const cz = Math.round(drone.position.z);
-        for (let bx = -1; bx <= 1; bx++) {
-          for (let by = -1; by <= 1; by++) {
-            for (let bz = -1; bz <= 1; bz++) {
-              if (Math.abs(bx) + Math.abs(by) + Math.abs(bz) <= 2) {
+        for (let bx = -2; bx <= 2; bx++) {
+          for (let by = -2; by <= 2; by++) {
+            for (let bz = -2; bz <= 2; bz++) {
+              if (Math.abs(bx) + Math.abs(by) + Math.abs(bz) <= 3) {
                 var vy = cy + by;
                 if (vy > 0) VoxelWorld.setBlock(cx + bx, vy, cz + bz, 0);
               }
@@ -1315,7 +1452,13 @@ const DroneSystem = (function () {
       }
     } catch (e) {}
     createDroneExplosion(drone.position.clone());
-    if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playGunshot('launcher');
+    if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playExplosion) {
+      window.AudioSystem.playExplosion();
+    }
+    // Camera shake for possessed FPV kamikaze
+    if (drone === _possessedDrone && typeof Feedback !== 'undefined' && Feedback.screenShake) {
+      Feedback.screenShake(1.2);
+    }
     destroyDrone(drone);
     return true;
   }
@@ -1333,6 +1476,8 @@ const DroneSystem = (function () {
       return dropPayload(drone.id);
     } else if (drone.type === DRONE_TYPE.INCENDIARY || drone.type === DRONE_TYPE.BABA_YAGA) {
       return dropFire(drone.id);
+    } else if (drone.type === DRONE_TYPE.SURVEILLANCE) {
+      return fireGun(drone.id);
     }
     return false;
   }
@@ -1633,7 +1778,9 @@ const DroneSystem = (function () {
     callRecon,
     callBayraktar,
     dropPayload,
+    dropFire,
     fireAttack,
+    fireGun,
     firePossessed,
     restockAmmo,
     setPatrol,
