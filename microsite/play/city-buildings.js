@@ -116,7 +116,7 @@ const CityBuildings = (function () {
           var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
           var isRoof = y === h - 1;
           if (isWall || isRoof) {
-            var bt = color;
+            var bt = PAL.BRICK;
             if (y === 0) bt = PAL.STONE;
             if (isRoof) bt = PAL.ROOFTILE;
             setBlock(ox + x, gy + y, oz + z, bt);
