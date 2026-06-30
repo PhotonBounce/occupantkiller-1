@@ -2449,6 +2449,7 @@ const GameManager = (function () {
         // Stop tank MG fire on RMB release
         if (VehicleSystem.isInVehicle()) {
           VehicleSystem.setVehicleKey('mgFire', false);
+          VehicleSystem.setVehicleKey('towFire', false);
         }
         Weapons.handleRightUp();
       }
@@ -3794,6 +3795,16 @@ const GameManager = (function () {
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
       if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
         HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
+      }
+      // Spawn Bradley via VehicleSystem and auto-enter player as gunner
+      var playerSpawn = player.position.clone();
+      var _bradleyV = VehicleSystem.spawn(playerSpawn.x, playerSpawn.y, playerSpawn.z, 'bradley');
+      if (_bradleyV) {
+        _bradleyV.rotation.y = Math.PI; // Face toward treeline (positive Z)
+        VehicleSystem.enter(_bradleyV.id);
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+          HUD.notifyPickup('🚁 BRADLEY M2A2 — Gunner seat. AI driver advancing. 25mm Bushmaster ready!', '#a0c878');
+        }
       }
       if (typeof MissionSystem !== 'undefined' && MissionSystem.generateMission) {
         MissionSystem.generateMission('bradley_assault');

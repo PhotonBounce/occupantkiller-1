@@ -314,6 +314,71 @@ const CityBuildings = (function () {
   // ── school ──
   function school(ox, oz, gy, w, d, h, color) { color = color || PAL.CONCRETE; for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) { var bt = (y === 0) ? PAL.BRICK : color; if (isRoof) bt = PAL.ROOFTILE; setBlock(ox + x, gy + y, oz + z, bt); } } } } for (var y = 2; y < h - 1; y += 2) { for (var x = 1; x < w - 1; x += 2) setBlock(ox + x, gy + y, oz + d - 1, PAL.GLASS); } setBlock(ox + Math.floor(w / 2), gy, oz + d - 1, PAL.AIR); setBlock(ox + Math.floor(w / 2), gy + 1, oz + d - 1, PAL.AIR); setBlock(ox + Math.floor(w / 2) - 1, gy, oz + d, PAL.STONE); setBlock(ox + Math.floor(w / 2), gy, oz + d, PAL.STONE); setBlock(ox + Math.floor(w / 2) + 1, gy, oz + d, PAL.STONE); }
 
+  // ── trenchLine (alias for trenches with more control) ──
+  function trenchLine(ox, oz, gy, length, angle) {
+    length = length || 20;
+    for (var i = 0; i < length; i++) {
+      var tx = ox + Math.cos(angle || 0) * i;
+      var tz = oz + Math.sin(angle || 0) * i;
+      var ix = Math.round(tx), iz = Math.round(tz);
+      setBlock(ix, gy, iz, PAL.DIRT);
+      setBlock(ix, gy, iz + 1, PAL.DIRT);
+      setBlock(ix, gy + 1, iz, PAL.DIRT);
+      setBlock(ix, gy + 1, iz + 1, PAL.DIRT);
+      setBlock(ix, gy - 1, iz, PAL.DIRT);
+      setBlock(ix, gy - 1, iz + 1, PAL.DIRT);
+      setBlock(ix, gy + 2, iz - 1, PAL.SANDBAG);
+      setBlock(ix, gy + 2, iz + 2, PAL.SANDBAG);
+    }
+  }
+
+  // ── dugout (covered fighting position) ──
+  function dugout(ox, oz, gy) {
+    for (var y = 0; y < 3; y++) {
+      for (var x = -2; x <= 2; x++) {
+        for (var z = -2; z <= 2; z++) {
+          var isWall = Math.abs(x) === 2 || Math.abs(z) === 2 || y === 0;
+          if (isWall) setBlock(ox + x, gy + y - 1, oz + z, PAL.DIRT);
+          else setBlock(ox + x, gy + y - 1, oz + z, PAL.AIR);
+        }
+      }
+    }
+    // Roof cover (wood/logs)
+    for (var x = -2; x <= 2; x++) {
+      for (var z = -2; z <= 2; z++) {
+        setBlock(ox + x, gy + 2, oz + z, PAL.WOOD);
+      }
+    }
+    // Sandbag parapet on front
+    for (var x = -2; x <= 2; x++) {
+      setBlock(ox + x, gy + 1, oz + 2, PAL.SANDBAG);
+      setBlock(ox + x, gy + 2, oz + 2, PAL.SANDBAG);
+    }
+  }
+
+  // ── wheatField (golden wheat blocks) ──
+  function wheatField(ox, oz, gy, width, depth) {
+    width = width || 20;
+    depth = depth || 20;
+    for (var x = 0; x < width; x++) {
+      for (var z = 0; z < depth; z++) {
+        var wx = ox + x, wz = oz + z;
+        // Slight height variation for natural look
+        var h = gy + Math.floor(Math.random() * 2);
+        setBlock(wx, h, wz, PAL.WOOD); // golden wheat color
+        // Add some taller stalks
+        if (Math.random() < 0.15) {
+          setBlock(wx, h + 1, wz, PAL.WOOD);
+        }
+      }
+    }
+  }
+
+  // ── dragonsTeeth (alias for dragonTeeth) ──
+  function dragonsTeeth(ox, oz, gy, count, angle) {
+    dragonTeeth(ox, oz, gy, count);
+  }
+
   // ═══════════════════════════════════════════════════════════
   // HOSTOMEL
   // ═══════════════════════════════════════════════════════════
@@ -972,16 +1037,17 @@ const CityBuildings = (function () {
   // TREELINE
   // ═══════════════════════════════════════════════════════════
   CITIES.treeline = [
-    { type: 'trenches', params: [20, 9], x: -20, z: -15, note: 'Forward trench bunker' },
-    { type: 'trenches', params: [20, 9], x: -10, z: -15, note: 'Trench bunker' },
-    { type: 'trenches', params: [20, 9], x: 0, z: -15, note: 'Trench bunker' },
-    { type: 'trenches', params: [20, 9], x: 10, z: -15, note: 'Trench bunker' },
-    { type: 'trenches', params: [20, 9], x: 20, z: -15, note: 'Trench bunker' },
-    { type: 'bunker', params: [], x: -20, z: -5, note: 'Trench bunker' },
-    { type: 'bunker', params: [], x: -10, z: -5, note: 'Trench bunker' },
+    { type: 'wheatField', params: [60, 40], x: -30, z: -20, note: 'Wheat field — approach to treeline' },
+    { type: 'trenches', params: [20, 9], x: -20, z: -15, note: 'Forward trench line' },
+    { type: 'trenches', params: [20, 9], x: -10, z: -15, note: 'Forward trench line' },
+    { type: 'trenches', params: [20, 9], x: 0, z: -15, note: 'Forward trench line' },
+    { type: 'trenches', params: [20, 9], x: 10, z: -15, note: 'Forward trench line' },
+    { type: 'trenches', params: [20, 9], x: 20, z: -15, note: 'Forward trench line' },
+    { type: 'dugout', params: [], x: -20, z: -5, note: 'Covered fighting position' },
+    { type: 'dugout', params: [], x: -10, z: -5, note: 'Covered fighting position' },
     { type: 'bunker', params: [], x: 0, z: -5, note: 'Command bunker' },
-    { type: 'bunker', params: [], x: 10, z: -5, note: 'Trench bunker' },
-    { type: 'bunker', params: [], x: 20, z: -5, note: 'Trench bunker' },
+    { type: 'dugout', params: [], x: 10, z: -5, note: 'Covered fighting position' },
+    { type: 'dugout', params: [], x: 20, z: -5, note: 'Covered fighting position' },
     { type: 'bunker', params: [], x: -15, z: 5, note: 'Rear bunker' },
     { type: 'bunker', params: [], x: 0, z: 5, note: 'Rear bunker' },
     { type: 'bunker', params: [], x: 15, z: 5, note: 'Rear bunker' },
@@ -991,6 +1057,11 @@ const CityBuildings = (function () {
     { type: 'dragonTeeth', params: [10, 9], x: 40, z: -5, note: 'Anti-tank obstacles' },
     { type: 'dragonTeeth', params: [10, 9], x: -40, z: 10, note: 'Anti-tank obstacles' },
     { type: 'dragonTeeth', params: [10, 9], x: 40, z: 10, note: 'Anti-tank obstacles' },
+    { type: 'ruinedBuilding', params: [8, 6, 3, 0.4, 16], x: -25, z: 15, note: 'Burned-out farmhouse' },
+    { type: 'ruinedBuilding', params: [6, 6, 2, 0.6, 16], x: 25, z: 15, note: 'Destroyed shed' },
+    { type: 'trenches', params: [15, 9], x: -15, z: 25, note: 'Secondary trench' },
+    { type: 'trenches', params: [15, 9], x: 15, z: 25, note: 'Secondary trench' },
+  ];
     { type: 'ruinedBuilding', params: [8, 6, 2, 1.0, 16], x: -25, z: 15, note: 'Destroyed hut' },
     { type: 'ruinedBuilding', params: [8, 6, 2, 1.0, 9], x: 25, z: 15, note: 'Destroyed hut' },
   ];
@@ -1079,6 +1150,7 @@ const CityBuildings = (function () {
     officeBuilding: officeBuilding, controlTower: controlTower, monument: monument,
     bridge: bridge, radarStation: radarStation, bunker: bunker,
     ruinedBuilding: ruinedBuilding, school: school,
+    trenchLine: trenchLine, dugout: dugout, wheatField: wheatField, dragonsTeeth: dragonsTeeth,
   };
 })();
 if (typeof window !== 'undefined') { window.CityBuildings = CityBuildings; }

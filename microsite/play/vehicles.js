@@ -17,6 +17,7 @@ const VehicleSystem = (function () {
     PLANE:      'plane',
     TURRET_ROVER: 'turret_rover',
     TANK:       'tank',
+    BRADLEY:    'bradley',
   });
 
   const VEHICLE_STATS = {
@@ -27,7 +28,7 @@ const VehicleSystem = (function () {
     plane:        { speed: 35, health: 120, seats: 2,  armor: 1,  flying: true },
     turret_rover: { speed: 5,  health: 250, seats: 0,  armor: 3,  flying: false, damage: 35, ai: true },
     tank:         { speed: 8,  health: 800, seats: 3,  armor: 6,  flying: false, damage: 200, cannonReload: 3.0, mgDamage: 15, mgRate: 0.1 },
-  };
+    bradley:      { speed: 12, health: 500, seats: 3,  armor: 4,  flying: false, damage: 70, bushRate: 0.30, coaxRate: 0.085, towAmmo: 2 },
 
   /* ── State ───────────────────────────────────────────────────────── */
   const vehicles = [];
@@ -387,6 +388,161 @@ const VehicleSystem = (function () {
     return group;
   }
 
+  /* ── Build Bradley M2A2 Mesh ─────────────────────────────────────── */
+  function buildBradleyMesh() {
+    var group = new THREE.Group();
+    var matHull = new THREE.MeshLambertMaterial({ color: 0x4A5530 }); // olive drab
+    var matDark = new THREE.MeshLambertMaterial({ color: 0x2A3318 });
+    var matTrack = new THREE.MeshLambertMaterial({ color: 0x1A1A1A });
+    var matGun = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    var matERA = new THREE.MeshLambertMaterial({ color: 0x5A6540 });
+
+    // Hull: 6.5m long × 3.2m wide × 2.5m tall (at voxel scale)
+    var hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.6, 6.5), matHull);
+    hull.position.set(0, 1.05, 0);
+    group.add(hull);
+
+    // Front glacis (sloped armor)
+    var glacis = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.0, 1.6), matHull);
+    glacis.position.set(0, 1.05, -3.6);
+    glacis.rotation.x = -0.55;
+    group.add(glacis);
+
+    // Tracks (left and right) with road wheels
+    for (var side = -1; side <= 1; side += 2) {
+      var trackHousing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 6.3), matTrack);
+      trackHousing.position.set(side * 1.85, 0.45, 0);
+      group.add(trackHousing);
+      for (var w = 0; w < 6; w++) {
+        var wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.35, 12), matGun);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(side * 1.85, 0.45, -2.6 + w * 1.05);
+        wheel.userData.isWheel = true;
+        group.add(wheel);
+      }
+    }
+
+    // ERA blocks on sides (Ukrainian ODS-SA upgrade)
+    for (var side = -1; side <= 1; side += 2) {
+      for (var b = 0; b < 6; b++) {
+        var era = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.55, 0.85), matERA);
+        era.position.set(side * 1.7, 0.95, -2.6 + b * 1.05);
+        group.add(era);
+      }
+    }
+
+    // Turret group
+    var turretGroup = new THREE.Group();
+    turretGroup.position.set(0, 1.85, -0.4);
+    turretGroup.userData.isTurret = true;
+
+    // Turret body (open-top for gunner gameplay)
+    var turretBody = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.85, 2.4), matHull);
+    turretBody.position.set(0, 0.3, 0);
+    turretGroup.add(turretBody);
+
+    // Commander's cupola (right side)
+    var cupola = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.3, 12), matDark);
+    cupola.position.set(0.5, 0.7, -0.2);
+    turretGroup.add(cupola);
+
+    // Gunner's sight (left side)
+    var sight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.25, 0.35), matGun);
+    sight.position.set(-0.45, 0.5, 0.7);
+    turretGroup.add(sight);
+
+    // Gun mount group (for pitch)
+    var gunMount = new THREE.Group();
+    gunMount.position.set(0, 0.05, 0.6);
+    turretGroup.add(gunMount);
+
+    // Mantlet
+    var mantlet = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.6), matHull);
+    gunMount.add(mantlet);
+
+    // 25mm Bushmaster barrel
+    var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 2.6, 12), matGun);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.05, 1.55);
+    barrel.userData.isMainGun = true;
+    barrel.userData.baseZ = 1.55;
+    barrel.userData.baseRotationX = Math.PI / 2;
+    gunMount.add(barrel);
+
+    // Muzzle brake
+    var muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 12), matGun);
+    muzzle.rotation.x = Math.PI / 2;
+    muzzle.position.set(0, 0.05, 2.95);
+    muzzle.userData.isTankMuzzle = true;
+    muzzle.userData.baseRotationX = Math.PI / 2;
+    gunMount.add(muzzle);
+
+    // Coaxial M240
+    var coax = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 1.4, 10), matGun);
+    coax.rotation.x = Math.PI / 2;
+    coax.position.set(-0.35, 0, 0.95);
+    coax.userData.isCoaxMG = true;
+    coax.userData.coaxTipOffset = 0.75;
+    coax.userData.baseRotationX = Math.PI / 2;
+    gunMount.add(coax);
+
+    // TOW launcher (right side of turret)
+    var towGroup = new THREE.Group();
+    towGroup.position.set(1.0, 0.25, 0.0);
+    turretGroup.add(towGroup);
+    var towHousing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.5, 1.4), new THREE.MeshLambertMaterial({ color: 0x3A4528 }));
+    towGroup.add(towHousing);
+    var towL = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.5, 10), matGun);
+    towL.rotation.x = Math.PI / 2;
+    towL.position.set(0, 0.12, 0.05);
+    towGroup.add(towL);
+    var towR = towL.clone();
+    towR.position.y = -0.12;
+    towGroup.add(towR);
+    towGroup.userData.isTowLauncher = true;
+
+    // Smoke grenade launchers (2 banks of 4)
+    for (var sgBank = 0; sgBank < 2; sgBank++) {
+      for (var sg = 0; sg < 4; sg++) {
+        var d = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.22, 8), matGun);
+        d.position.set(-0.75 + sgBank * 1.5 + sg * 0.16, 0.42, -1.15);
+        d.rotation.x = -0.45;
+        turretGroup.add(d);
+      }
+    }
+
+    // Antennas
+    var ant1 = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.025, 1.8, 6), matGun);
+    ant1.position.set(-0.85, 0.95, -0.9);
+    ant1.userData.isAntenna = true;
+    turretGroup.add(ant1);
+    var ant2 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 1.4, 6), new THREE.MeshLambertMaterial({ color: 0x222244 }));
+    ant2.position.set(0.6, 0.95, -1.0);
+    ant2.userData.isAntenna = true;
+    turretGroup.add(ant2);
+
+    group.add(turretGroup);
+
+    // Headlights
+    for (var hl = -1; hl <= 1; hl += 2) {
+      var light = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 8), new THREE.MeshLambertMaterial({ color: 0xffffaa }));
+      light.rotation.x = Math.PI / 2;
+      light.position.set(hl * 0.9, 0.75, -3.5);
+      group.add(light);
+      var spot = new THREE.SpotLight(0xffffcc, 0, 25, Math.PI / 6, 0.6, 1.5);
+      spot.position.set(hl * 0.9, 0.75, -3.5);
+      var spotTarget = new THREE.Object3D();
+      spotTarget.position.set(hl * 0.9, 0.3, -12);
+      group.add(spotTarget);
+      spot.target = spotTarget;
+      spot.userData.isHeadlight = true;
+      group.add(spot);
+    }
+
+    group.castShadow = true;
+    return group;
+  }
+
   /* ── Player Body Mesh (half-body visible from vehicle hatch) ───── */
   function buildPlayerBodyMesh() {
     const body = new THREE.Group();
@@ -458,7 +614,12 @@ const VehicleSystem = (function () {
     }
     _playerBodyMesh = buildPlayerBodyMesh();
     // Position on top of vehicle (emerging from hatch)
-    _playerBodyMesh.position.set(0, 1.4, 0);
+    // Bradley-specific: position body mesh higher for open turret
+    if (vehicle.isBradley) {
+      _playerBodyMesh.position.set(0, 2.3, 0);
+    } else {
+      _playerBodyMesh.position.set(0, 1.4, 0);
+    }
     vehicle.mesh.add(_playerBodyMesh);
   }
 
@@ -529,6 +690,18 @@ const VehicleSystem = (function () {
       wrecked: false,
       wreckTimer: 0,
       wreckSmokeTimer: 0,
+      // Bradley-specific
+      isBradley: type === 'bradley',
+      bushAmmo: type === 'bradley' ? 150 : 0,
+      bushCooldown: 0,
+      coaxAmmo: type === 'bradley' ? 800 : 0,
+      coaxCooldown: 0,
+      coaxHeat: 0,
+      coaxOverheated: false,
+      towAmmo: type === 'bradley' ? 2 : 0,
+      towReloading: false,
+      towReloadTimer: 0,
+      crewPosition: type === 'bradley' ? 1 : 0, // 0=driver, 1=gunner, 2=commander
       // Antenna spring state
       antennaVelX: 0,
       antennaVelZ: 0,
@@ -543,7 +716,7 @@ const VehicleSystem = (function () {
       _headlightsOn: false,
     };
 
-    vehicle.mesh = type === 'tank' ? buildTankMesh() : buildVehicleMesh(type);
+    vehicle.mesh = type === 'tank' ? buildTankMesh() : type === 'bradley' ? buildBradleyMesh() : buildVehicleMesh(type);
     vehicle.mesh.position.copy(vehicle.position);
     vehicle.mesh.userData.vehicleId = vehicle.id;
 
@@ -581,6 +754,10 @@ const VehicleSystem = (function () {
     // Tank-specific notification
     if (v.isTank && typeof HUD !== 'undefined' && HUD.notifyPickup) {
       HUD.notifyPickup('\uD83D\uDE94 TANK ENTERED! LMB=Cannon RMB=MG T=Toggle View', '#00ff88');
+    }
+    // Bradley-specific notification
+    if (v.isBradley && typeof HUD !== 'undefined' && HUD.notifyPickup) {
+      HUD.notifyPickup('\uD83D\uDE81 BRADLEY M2A2 — Gunner seat. LMB=25mm Bushmaster RMB=TOW T=Toggle View', '#00ff88');
     }
     return true;
   }
@@ -760,11 +937,15 @@ const VehicleSystem = (function () {
   function isInVehicle() { return _occupiedVehicle !== null; }
 
   /* ── Vehicle Input ───────────────────────────────────────────────── */
-  const _vKeys = { w: false, a: false, s: false, d: false, up: false, down: false, fire: false, mgFire: false };
+  const _vKeys = { w: false, a: false, s: false, d: false, up: false, down: false, fire: false, mgFire: false, towFire: false };
   function setVehicleKey(key, pressed) {
     if (key in _vKeys) _vKeys[key] = pressed;
     // Update MG firing state on occupied tank
     if (key === 'mgFire' && _occupiedVehicle && _occupiedVehicle.isTank) {
+      _occupiedVehicle.mgFiring = pressed;
+    }
+    // Update MG firing state on occupied Bradley (coax)
+    if (key === 'mgFire' && _occupiedVehicle && _occupiedVehicle.isBradley) {
       _occupiedVehicle.mgFiring = pressed;
     }
   }
@@ -790,18 +971,44 @@ const VehicleSystem = (function () {
       // Fire cooldown
       if (v.fireCooldown > 0) v.fireCooldown -= delta;
       if (v.mgCooldown > 0) v.mgCooldown -= delta;
+      // Bradley-specific cooldowns
+      if (v.isBradley) {
+        if (v.bushCooldown > 0) v.bushCooldown -= delta;
+        if (v.coaxCooldown > 0) v.coaxCooldown -= delta;
+        if (v.towReloading) {
+          v.towReloadTimer -= delta;
+          if (v.towReloadTimer <= 0) {
+            v.towReloading = false;
+            if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+              HUD.notifyPickup('🔄 TOW reloaded!', '#44ff88');
+            }
+          }
+        }
+      }
 
       if (v === _occupiedVehicle) {
         updatePlayerVehicle(v, delta);
         // Tank turret follows camera
         if (v.isTank) updateTankTurret(v, delta);
+        // Bradley turret follows camera
+        if (v.isBradley) updateBradleyTurret(v, delta);
         // Player vehicle fires with mouse/fire key
         if (_vKeys.fire && v.damage > 0 && v.fireCooldown <= 0) {
-          fireTurret(v);
+          if (v.isBradley) fireBradleyBushmaster(v);
+          else fireTurret(v);
         }
         // Tank MG fire (secondary fire key)
         if (v.isTank && v.mgFiring && v.mgCooldown <= 0 && v.mgAmmo > 0) {
           fireTankMG(v);
+        }
+        // Bradley coax fire (secondary fire key — when not using TOW)
+        if (v.isBradley && v.mgFiring && v.coaxCooldown <= 0 && v.coaxAmmo > 0 && !_vKeys.towFire) {
+          fireBradleyCoax(v);
+        }
+        // Bradley TOW fire (R key or right-click)
+        if (v.isBradley && _vKeys.towFire && !v.towReloading && v.towAmmo > 0) {
+          fireBradleyTOW(v);
+          _vKeys.towFire = false; // one-shot
         }
         // NPC gunner fires at nearby enemies while player drives
         if (v.occupiedByNPC && v.npcGunner && v.damage > 0) {
@@ -866,10 +1073,10 @@ const VehicleSystem = (function () {
       v.mesh.position.copy(v.position);
       v.mesh.rotation.copy(v.rotation);
 
-      if (v.isTank) updateTankEffects(v, delta);
+      if (v.isTank || v.isBradley) updateTankEffects(v, delta);
 
       // Tank idle engine vibration — subtle camera rumble when stationary
-      if (v.isTank && v === _occupiedVehicle) {
+      if ((v.isTank || v.isBradley) && v === _occupiedVehicle) {
         var hSpd = Math.sqrt(v.velocity.x * v.velocity.x + v.velocity.z * v.velocity.z);
         if (hSpd < 0.5 && typeof CameraSystem !== 'undefined' && CameraSystem.shake) {
           v._idleVibTimer = (v._idleVibTimer || 0) + delta;
@@ -1149,24 +1356,29 @@ const VehicleSystem = (function () {
 
   function updatePlayerVehicle(v, delta) {
     // Use vehicle's own rotation for movement direction (not camera yaw)
-    // This prevents the vehicle from flying off based on where the camera looks
     const vYaw = v.rotation.y;
     _vTmp1.set(-Math.sin(vYaw), 0, -Math.cos(vYaw));
 
     const accel = v.speed * 2;
 
-    if (_vKeys.w) v.velocity.addScaledVector(_vTmp1, accel * delta);
-    if (_vKeys.s) v.velocity.addScaledVector(_vTmp1, -accel * delta * 0.5);
-    if (_vKeys.a) v.rotation.y += delta * 1.5;
-    if (_vKeys.d) v.rotation.y -= delta * 1.5;
-    // Track turn rate for hull roll
-    v._turnRate = (_vKeys.a ? 1.5 : 0) + (_vKeys.d ? -1.5 : 0);
+    // Bradley gunner seat: AI driver auto-forwards toward treeline
+    if (v.isBradley && v.crewPosition === 1) {
+      const autoSpeed = v.speed * 0.35;
+      v.velocity.addScaledVector(_vTmp1, autoSpeed * delta * 2);
+      // Track turn rate for hull roll (AI makes slight adjustments)
+      v._turnRate = (Math.sin(Date.now() * 0.001) * 0.3);
+    } else {
+      if (_vKeys.w) v.velocity.addScaledVector(_vTmp1, accel * delta);
+      if (_vKeys.s) v.velocity.addScaledVector(_vTmp1, -accel * delta * 0.5);
+      if (_vKeys.a) v.rotation.y += delta * 1.5;
+      if (_vKeys.d) v.rotation.y -= delta * 1.5;
+      v._turnRate = (_vKeys.a ? 1.5 : 0) + (_vKeys.d ? -1.5 : 0);
+    }
 
     if (v.flying) {
       if (_vKeys.up) v.velocity.y += accel * delta * 0.5;
       if (_vKeys.down) v.velocity.y -= accel * delta * 0.5;
     } else {
-      // Ground vehicles cannot have vertical input — zero out any Y velocity from movement
       v.velocity.y = Math.min(v.velocity.y, 0);
     }
 
@@ -1177,7 +1389,6 @@ const VehicleSystem = (function () {
       v.velocity.x *= scale;
       v.velocity.z *= scale;
     }
-    // Update engine sound with current speed
     if (typeof AudioSystem !== 'undefined' && AudioSystem.updateEngine) AudioSystem.updateEngine(hSpeed);
   }
 
@@ -1655,6 +1866,8 @@ const VehicleSystem = (function () {
     if (!_scene || v.fireCooldown > 0 || v.damage <= 0) return;
     // Tank uses specific cannon fire
     if (v.isTank) { fireTankCannon(v); return; }
+    // Bradley uses Bushmaster
+    if (v.isBradley) { fireBradleyBushmaster(v); return; }
     v.fireCooldown = v.fireRate;
     // Fire in the direction the camera is facing (player-controlled) — includes pitch for helicopters/infantry
     const yaw = CameraSystem.getYaw();
@@ -1806,6 +2019,161 @@ const VehicleSystem = (function () {
     }
   }
 
+  /* ── Bradley Bushmaster Fire (LMB — 25mm chain gun) ────────────── */
+  function fireBradleyBushmaster(v) {
+    if (!_scene || v.bushCooldown > 0 || v.bushAmmo <= 0) return;
+    var stats = VEHICLE_STATS[v.type];
+    v.bushCooldown = stats.bushRate || 0.30;
+    v.fireCooldown = stats.bushRate || 0.30;
+    v.bushAmmo--;
+
+    var camYaw = CameraSystem.getYaw();
+    var camPitch = CameraSystem.getPitch();
+    var spread = 0.015;
+    _vTmp1.set(
+      -Math.sin(camYaw) * Math.cos(camPitch) + (Math.random() - 0.5) * spread,
+      Math.sin(camPitch) + (Math.random() - 0.5) * spread,
+      -Math.cos(camYaw) * Math.cos(camPitch) + (Math.random() - 0.5) * spread
+    ).normalize();
+
+    if (!getBradleyWeaponMountWorld(v, 'bushmaster', _vTmp2)) {
+      _vTmp2.copy(v.position);
+      _vTmp2.y += 2.2;
+      _vTmp2.x += -Math.sin(camYaw) * 3.5;
+      _vTmp2.z += -Math.cos(camYaw) * 3.5;
+    }
+
+    var bulletMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 0.35, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffaa22 })
+    );
+    bulletMesh.position.copy(_vTmp2);
+    bulletMesh.lookAt(_vTmp2.x + _vTmp1.x, _vTmp2.y + _vTmp1.y, _vTmp2.z + _vTmp1.z);
+    _scene.add(bulletMesh);
+    turretProjectiles.push({
+      mesh: bulletMesh, dir: _vTmp1.clone(), speed: 120,
+      damage: stats.damage || 70, life: 2.0, isCannonShell: false,
+      _spawnImmunity: 0.08,
+      spawnPos: _vTmp2.clone(),
+    });
+
+    if (v.bushAmmo % 4 === 0 && typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
+      Tracers.spawnTracer(_vTmp2, _vTmp1, 0xffaa44, 120);
+    }
+    if (typeof AudioSystem !== 'undefined' && AudioSystem.playGunshot) AudioSystem.playGunshot('hmg');
+    spawnMGCasing(_vTmp2, camYaw);
+    // MG strobe flash light
+    if (_scene) {
+      if (!_mgStrobeLight) {
+        _mgStrobeLight = new THREE.PointLight(0xffdd44, 0, 10);
+        _scene.add(_mgStrobeLight);
+      }
+      _mgStrobeLight.position.copy(_vTmp2);
+      _mgStrobeLight.intensity = 1.5;
+      _mgStrobeTimer = 0.06;
+    }
+  }
+
+  /* ── Bradley TOW Fire (RMB / R key — anti-armor missile) ───────── */
+  function fireBradleyTOW(v) {
+    if (!_scene || v.towReloading || v.towAmmo <= 0) return;
+    v.towAmmo--;
+    v.towReloading = true;
+    v.towReloadTimer = 4.0;
+
+    var camYaw = CameraSystem.getYaw();
+    var camPitch = CameraSystem.getPitch();
+    _vTmp1.set(
+      -Math.sin(camYaw) * Math.cos(camPitch),
+      Math.sin(camPitch),
+      -Math.cos(camYaw) * Math.cos(camPitch)
+    ).normalize();
+
+    if (!getBradleyWeaponMountWorld(v, 'tow', _vTmp2)) {
+      _vTmp2.copy(v.position);
+      _vTmp2.y += 2.2;
+      _vTmp2.x += -Math.sin(camYaw) * 3.5;
+      _vTmp2.z += -Math.cos(camYaw) * 3.5;
+    }
+
+    var missileMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.06, 0.8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xccffcc })
+    );
+    missileMesh.position.copy(_vTmp2);
+    missileMesh.lookAt(_vTmp2.x + _vTmp1.x, _vTmp2.y + _vTmp1.y, _vTmp2.z + _vTmp1.z);
+    _scene.add(missileMesh);
+    turretProjectiles.push({
+      mesh: missileMesh, dir: _vTmp1.clone(), speed: 45,
+      damage: 600, life: 8.0, isCannonShell: true,
+      _spawnImmunity: 0.15,
+      spawnPos: _vTmp2.clone(),
+      isTOW: true,
+    });
+
+    if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.05, 0.2);
+    if (typeof AudioSystem !== 'undefined' && AudioSystem.playGunshot) AudioSystem.playGunshot('launcher');
+    if (typeof Tracers !== 'undefined' && Tracers.spawnMuzzleFlash) {
+      Tracers.spawnMuzzleFlash(_vTmp2, _vTmp1);
+    }
+    if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+      HUD.notifyPickup('\uD83D\uDE80 TOW FIRED! ' + v.towAmmo + ' missile(s) left. Reloading...', '#ffaa00');
+    }
+  }
+
+  /* ── Bradley Coax Fire (M240 — 7.62mm) ─────────────────────────── */
+  function fireBradleyCoax(v) {
+    if (!_scene || v.coaxCooldown > 0 || v.coaxAmmo <= 0) return;
+    var stats = VEHICLE_STATS[v.type];
+    v.coaxCooldown = stats.coaxRate || 0.085;
+    v.coaxAmmo--;
+
+    var camYaw = CameraSystem.getYaw();
+    var camPitch = CameraSystem.getPitch();
+    var spread = 0.02;
+    _vTmp1.set(
+      -Math.sin(camYaw) * Math.cos(camPitch) + (Math.random() - 0.5) * spread,
+      Math.sin(camPitch) + (Math.random() - 0.5) * spread,
+      -Math.cos(camYaw) * Math.cos(camPitch) + (Math.random() - 0.5) * spread
+    ).normalize();
+
+    if (!getBradleyWeaponMountWorld(v, 'coax', _vTmp2)) {
+      _vTmp2.copy(v.position);
+      _vTmp2.y += 2.0;
+      _vTmp2.x += -Math.sin(camYaw) * 2.5;
+      _vTmp2.z += -Math.cos(camYaw) * 2.5;
+    }
+
+    var bulletMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.04, 0.2),
+      new THREE.MeshBasicMaterial({ color: 0xffcc22 })
+    );
+    bulletMesh.position.copy(_vTmp2);
+    bulletMesh.lookAt(_vTmp2.x + _vTmp1.x, _vTmp2.y + _vTmp1.y, _vTmp2.z + _vTmp1.z);
+    _scene.add(bulletMesh);
+    turretProjectiles.push({
+      mesh: bulletMesh, dir: _vTmp1.clone(), speed: TANK_MG_PROJ_SPEED,
+      damage: 15, life: 2.0, isCannonShell: false,
+      _spawnImmunity: 0.08,
+      spawnPos: _vTmp2.clone(),
+    });
+
+    if (v.coaxAmmo % 3 === 0 && typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
+      Tracers.spawnTracer(_vTmp2, _vTmp1, 0xffcc44, 100);
+    }
+    if (typeof AudioSystem !== 'undefined' && AudioSystem.playGunshot) AudioSystem.playGunshot('hmg');
+    spawnMGCasing(_vTmp2, camYaw);
+    if (_scene) {
+      if (!_mgStrobeLight) {
+        _mgStrobeLight = new THREE.PointLight(0xffdd44, 0, 10);
+        _scene.add(_mgStrobeLight);
+      }
+      _mgStrobeLight.position.copy(_vTmp2);
+      _mgStrobeLight.intensity = 1.0;
+      _mgStrobeTimer = 0.05;
+    }
+  }
+
   /* ── Tank Turret Rotation (follows camera yaw) ──────────────────── */
   function updateTankTurret(v, delta) {
     if (!v.isTank || !v.mesh) return;
@@ -1841,6 +2209,66 @@ const VehicleSystem = (function () {
         break;
       }
     }
+  }
+
+  /* ── Bradley Turret Rotation (follows camera yaw) ──────────────── */
+  function updateBradleyTurret(v, delta) {
+    if (!v.isBradley || !v.mesh) return;
+    var camYaw = CameraSystem.getYaw();
+    var camPitch = CameraSystem.getPitch();
+    var targetTurretYaw = camYaw - v.rotation.y;
+    var targetTurretPitch = Math.max(-0.25, Math.min(0.35, camPitch));
+    var diff = targetTurretYaw - v.turretYaw;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    var pitchDiff = targetTurretPitch - v.turretPitch;
+    v.turretYaw += diff * Math.min(1, delta * 5);
+    v.turretPitch += pitchDiff * Math.min(1, delta * 6);
+    v.turretSfxTimer = Math.max(0, (v.turretSfxTimer || 0) - delta);
+    if (v === _occupiedVehicle && v.turretSfxTimer <= 0 && (Math.abs(diff) > 0.03 || Math.abs(pitchDiff) > 0.018)) {
+      v.turretSfxTimer = 0.07;
+      if (typeof AudioSystem !== 'undefined' && AudioSystem.playTurretTraverse) {
+        AudioSystem.playTurretTraverse();
+      }
+    }
+    for (var ci = 0; ci < v.mesh.children.length; ci++) {
+      if (v.mesh.children[ci].userData && v.mesh.children[ci].userData.isTurret) {
+        v.mesh.children[ci].rotation.y = v.turretYaw;
+        for (var ti = 0; ti < v.mesh.children[ci].children.length; ti++) {
+          var turretChild = v.mesh.children[ci].children[ti];
+          if (turretChild.userData && (turretChild.userData.isMainGun || turretChild.userData.isTankMuzzle || turretChild.userData.isCoaxMG)) {
+            turretChild.rotation.x = (turretChild.userData.baseRotationX || (Math.PI / 2)) - v.turretPitch;
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  function getBradleyWeaponMountWorld(v, mountType, outPos) {
+    if (!v || !v.mesh || !outPos) return false;
+    for (var ci = 0; ci < v.mesh.children.length; ci++) {
+      var child = v.mesh.children[ci];
+      if (!(child.userData && child.userData.isTurret)) continue;
+      for (var ti = 0; ti < child.children.length; ti++) {
+        var turretChild = child.children[ti];
+        if (mountType === 'bushmaster' && turretChild.userData && turretChild.userData.isTankMuzzle) {
+          turretChild.getWorldPosition(outPos);
+          outPos.z -= 0.12;
+          return true;
+        }
+        if (mountType === 'coax' && turretChild.userData && turretChild.userData.isCoaxMG) {
+          outPos.set(0, 0, turretChild.userData.coaxTipOffset || 0.75);
+          turretChild.localToWorld(outPos);
+          return true;
+        }
+        if (mountType === 'tow' && turretChild.userData && turretChild.userData.isTowLauncher) {
+          turretChild.getWorldPosition(outPos);
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   function getTankWeaponMountWorld(v, mountType, outPos) {
@@ -1927,12 +2355,14 @@ const VehicleSystem = (function () {
     );
     _vTmp2.copy(origin);
     _vTmp2.y += 1.6; // Turret height
+    // Spawn slightly forward of the muzzle to avoid self-collision with vehicle/wall
+    _vTmp2.addScaledVector(dir, 0.5);
     mesh.position.copy(_vTmp2);
     mesh.lookAt(_vTmp2.x + dir.x, _vTmp2.y + dir.y, _vTmp2.z + dir.z);
     _scene.add(mesh);
     turretProjectiles.push({
       mesh: mesh, dir: dir.clone(), speed: TURRET_PROJ_SPEED,
-      damage: damage, life: 3.0, _spawnImmunity: 0.15,
+      damage: damage, life: 3.0, _spawnImmunity: 0.25,
       spawnPos: _vTmp2.clone(),
     });
   }
@@ -1995,10 +2425,12 @@ const VehicleSystem = (function () {
       // Check terrain collision (skip during spawn immunity or if too close to spawn position to prevent self-collision)
       let terrainHit = null;
       if (!hit && typeof VoxelWorld !== 'undefined') {
-        if (p._spawnImmunity > 0 || (p.spawnPos && p.mesh.position.distanceTo(p.spawnPos) < 3.0)) {
+        if (p._spawnImmunity > 0 || (p.spawnPos && p.mesh.position.distanceTo(p.spawnPos) < 4.0)) {
           p._spawnImmunity -= delta;
         } else {
           _vTmp2.copy(p.mesh.position);
+          // Offset ray origin slightly forward to avoid detecting the block we're already inside
+          _vTmp2.addScaledVector(p.dir, 0.2);
           const fakeCamera = {
             position: _vTmp2,
             getWorldDirection: function(v) { return v.copy(p.dir); },
@@ -2064,7 +2496,7 @@ const VehicleSystem = (function () {
       detachPlayerBody();
       exit();
     }
-    if (v.isTank && v.mesh) {
+    if ((v.isTank || v.isBradley) && v.mesh) {
       v.wrecked = true;
       v.wreckTimer = 14;
       v.wreckSmokeTimer = 0.05;
@@ -2342,6 +2774,11 @@ const VehicleSystem = (function () {
     getTankAmmo: getTankAmmo,
     isTankReloading: isTankReloading,
     getTankReloadProgress: getTankReloadProgress,
+    // Bradley System
+    fireBradleyBushmaster: fireBradleyBushmaster,
+    fireBradleyTOW: fireBradleyTOW,
+    fireBradleyCoax: fireBradleyCoax,
+    getBradleyWeaponMountWorld: getBradleyWeaponMountWorld,
     // Diagnostic: live count of in-flight projectiles fired by player vehicle.
     getProjectileCount: function () { return turretProjectiles.length; },
     // Diagnostic: snapshot of vehicle input keys (test harness only)

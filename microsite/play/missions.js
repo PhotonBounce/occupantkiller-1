@@ -315,14 +315,11 @@ const MissionSystem = (function () {
                   }
                 } catch (eD) {}
 
-                // Roll out the Bradley right beside the player.
+                // Bradley is now spawned via VehicleSystem in game-manager.js startWave()
+                // (auto-entered as gunner). Mission terrain + enemies still generated here.
                 try {
-                  if (typeof Bradley !== 'undefined' && Bradley.spawnAt) {
-                    var bx = playerPos.x + 4, bz = playerPos.z;
-                    Bradley.spawnAt(new THREE.Vector3(bx, _terrainY(bx, bz), bz));
-                  }
                   if (typeof HUD !== 'undefined' && HUD.showToast) {
-                    HUD.showToast('🚛 BRADLEY M2A2 — Press B to mount. 25mm Bushmaster | TOW [3] | Smoke [4] | Mortar [M]. Breach the treeline!', 8000, '#a0c878');
+                    HUD.showToast('🌾 WHEAT FIELD — Advancing toward treeline. 25mm Bushmaster | TOW [R/RMB] | Coax [hold RMB]. Clear the trenches!', 8000, '#a0c878');
                   }
                 } catch (eBR) {}
 
