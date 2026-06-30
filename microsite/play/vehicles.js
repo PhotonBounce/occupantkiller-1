@@ -1960,7 +1960,13 @@ const VehicleSystem = (function () {
           _vRaycaster.far = p.speed * delta + 0.5;
           // Set a fake camera to prevent THREE.Sprite raycast errors
           if (!_vRaycaster.camera) _vRaycaster.camera = { isPerspectiveCamera: true };
-          const hits = _vRaycaster.intersectObjects(enemyMeshes, true);
+          var hits = [];
+          try {
+            hits = _vRaycaster.intersectObjects(enemyMeshes, true);
+          } catch (e) {
+            // Three.js raycast can fail on malformed meshes — ignore and continue
+            hits = [];
+          }
           if (hits.length > 0) {
             hit = true;
             const enemy = Enemies.findByMesh(hits[0].object);
