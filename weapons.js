@@ -5072,7 +5072,12 @@ const Weapons = (() => {
       _projRaycaster.set(p.mesh.position, p.dir);
       _projRaycaster.near = 0;
       _projRaycaster.far = p.speed * delta + 0.5;
-      const hits = _projRaycaster.intersectObjects(enemyMeshes, true);
+      // Sprites (health bars, alert icons) cannot be raycast without camera — filter them
+      let hits = [];
+      try {
+        const nonSpriteMeshes = enemyMeshes.filter(function(m) { return m && !(m instanceof THREE.Sprite); });
+        hits = _projRaycaster.intersectObjects(nonSpriteMeshes, true);
+      } catch (_e) { hits = []; }
       if (hits.length > 0) hit = true;
       // Friendly fire: projectiles can also hit NPCs
       if (!hit && typeof NPCSystem !== 'undefined' && NPCSystem.getAll) {
