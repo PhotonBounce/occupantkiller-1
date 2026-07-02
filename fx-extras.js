@@ -37,7 +37,7 @@
   window.addEventListener('resize', sizeCanvas);
   function seedParticles() {
     particles = [];
-    for (var i = 0; i < 32; i++) {
+    for (var i = 0; i < 20; i++) {
       particles.push({
         x: Math.random() * pcanvas.width, y: Math.random() * pcanvas.height,
         r: 0.6 + Math.random() * 2.2, vx: (Math.random() - 0.5) * 12, vy: -6 - Math.random() * 16,
@@ -101,11 +101,15 @@
     // Particles
     if (partOn && pctx) {
       pctx.clearRect(0, 0, pcanvas.width, pcanvas.height);
-      for (var i = 0; i < particles.length; i++) {
+      var activeCount = 0;
+      for (var i = 0; i < particles.length && activeCount < 50; i++) {
         var p = particles[i];
         p.x += p.vx * dt; p.y += p.vy * dt;
         if (p.y < -10) { p.y = pcanvas.height + 10; p.x = Math.random() * pcanvas.width; }
         if (p.x < -10) p.x = pcanvas.width + 10; if (p.x > pcanvas.width + 10) p.x = -10;
+        // Screen-bounds cull: skip drawing off-screen particles
+        if (p.x < -20 || p.x > pcanvas.width + 20 || p.y < -20 || p.y > pcanvas.height + 20) continue;
+        activeCount++;
         pctx.beginPath();
         pctx.fillStyle = 'hsla(' + p.hue + ',90%,60%,' + p.a + ')';
         pctx.shadowColor = 'hsla(' + p.hue + ',90%,60%,.8)'; pctx.shadowBlur = 6;

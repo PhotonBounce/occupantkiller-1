@@ -321,7 +321,7 @@ window.Bradley = (function () {
     var smokeStatus = _smokeCharges + '/4 SMK';
     var heatStr = _coaxOverheated ? '🔥 OVERHEAT!' : ('HEAT ' + Math.round(_coaxHeat * 100) + '%');
     var mortarStr = _mortarCooldown <= 0 ? 'MORTAR READY [M]' : ('MORTAR ' + Math.ceil(_mortarCooldown) + 's');
-    var msg = '🚛 BRADLEY — POS: ' + posName + ' | 25mm [LMB] | Coax [RMB] (' + heatStr + ') | TOW [3] (' + towStatus + ') | Smoke [4] (' + smokeStatus + ') | ' + mortarStr;
+    var msg = '🚛 BRADLEY — POS: ' + posName + ' | 25mm [LMB] | TOW [RMB/R] (' + towStatus + ') | Smoke [4] (' + smokeStatus + ') | ' + mortarStr;
     try { if (window.HUD && window.HUD.showToast) window.HUD.showToast(msg, 5000, '#88ff88'); } catch (e) {}
   }
 
@@ -823,7 +823,7 @@ window.Bradley = (function () {
     else if (ev.code === 'Digit1') _switchCrewPosition(0);
     else if (ev.code === 'Digit2') _switchCrewPosition(1);
     else if (ev.code === 'Digit3') _switchCrewPosition(2);
-    else if (ev.code === 'KeyT' && !ev.repeat) { if (_crewPosition === 2) fireTOW(); else _switchCrewPosition(2); }
+    else if (ev.code === 'KeyR' && !ev.repeat) fireTOW();
     else if (ev.code === 'KeyX' && !ev.repeat) launchSmoke();
     else if (ev.code === 'KeyM' && !ev.repeat) callMortar();
   }
@@ -844,11 +844,14 @@ window.Bradley = (function () {
   function _onMouseDown(ev) {
     if (!_active) { return; }
     if (ev.button === 0) _firingBush = true;
-    else if (ev.button === 2) _firingCoax = true;
+    else if (ev.button === 2) {
+      // RMB fires TOW missile (anti-armor)
+      fireTOW();
+    }
   }
   function _onMouseUp(ev) {
     if (ev.button === 0) _firingBush = false;
-    else if (ev.button === 2) _firingCoax = false;
+    else if (ev.button === 2) { /* TOW is one-shot, nothing to release */ }
   }
 
   function _bind() {

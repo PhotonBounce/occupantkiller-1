@@ -70,6 +70,11 @@ const DroneSystem = (function () {
   var _activeExplosions = [];
   var _droneCacheDirty = true;
   var _cacheStamp = 1;
+  var _onAmmoChange = null;  // callback(drone) when ammo changes
+
+  function _notifyAmmoChange(drone) {
+    if (typeof _onAmmoChange === 'function' && drone) _onAmmoChange(drone);
+  }
 
   /* ── Drone Nests ─────────────────────────────────────────────────── */
   var _droneNests = [];  // { x, y, z, alive, hp, mesh }
@@ -835,6 +840,7 @@ const DroneSystem = (function () {
     const drone = drones.find(d => d.id === droneId);
     if (!drone || drone.type !== DRONE_TYPE.SURVEILLANCE || drone.ammo <= 0) return false;
     drone.ammo = Math.max(0, drone.ammo - 1);
+    _notifyAmmoChange(drone);
     var yaw = (typeof CameraSystem !== 'undefined') ? CameraSystem.getYaw() : drone.rotation.y;
     var pitch = (typeof CameraSystem !== 'undefined') ? CameraSystem.getPitch() : 0;
     var dir = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
@@ -1127,6 +1133,7 @@ const DroneSystem = (function () {
           drone.velocity.z = 0;
           // Drop the payload
           drone.ammo = Math.max(0, drone.ammo - 1);
+          _notifyAmmoChange(drone);
           if (drone.ammo <= 0) drone.hasPayload = false;
           drone.mesh.children.forEach(function (c) { if (c.userData.isPayload) c.visible = false; });
           var dropPos = drone.position.clone();
@@ -1189,6 +1196,7 @@ const DroneSystem = (function () {
           drone.mesh.children.forEach(function(c) { if (!_byHide && c.userData.isPayload && c.visible) { c.visible = false; _byHide = true; } });
           drone.ammo = Math.max(0, drone.ammo - 1);
           drone.payloadCount = drone.ammo;
+          _notifyAmmoChange(drone);
           if (drone.payloadCount <= 0) drone.hasPayload = false;
           if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playGunshot) window.AudioSystem.playGunshot('launcher');
           if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('🔥 BABA YAGA DROPS THERMITE!', '#ff6600');
@@ -1285,6 +1293,7 @@ const DroneSystem = (function () {
     const drone = drones.find(d => d.id === droneId);
     if (!drone || !drone.hasPayload || drone.ammo <= 0) return false;
     drone.ammo = Math.max(0, drone.ammo - 1);
+    _notifyAmmoChange(drone);
     if (drone.ammo <= 0) drone.hasPayload = false;
     // Remove payload mesh
     drone.mesh.children.forEach(child => {
@@ -1302,6 +1311,7 @@ const DroneSystem = (function () {
     const drone = drones.find(d => d.id === droneId);
     if (!drone || (drone.type !== DRONE_TYPE.INCENDIARY && drone.type !== DRONE_TYPE.BABA_YAGA) || !drone.hasPayload || drone.ammo <= 0) return false;
     drone.ammo = Math.max(0, drone.ammo - 1);
+    _notifyAmmoChange(drone);
     if (drone.type === DRONE_TYPE.BABA_YAGA) {
       drone.payloadCount = drone.ammo;
       if (drone.payloadCount <= 0) drone.hasPayload = false;
@@ -1359,6 +1369,7 @@ const DroneSystem = (function () {
     if (!drone || (drone.type !== DRONE_TYPE.FPV_ATTACK && drone.type !== DRONE_TYPE.KAMIKAZE)) return false;
     if (drone.ammo <= 0) return false;
     drone.ammo = 0;
+    _notifyAmmoChange(drone);
     drone.hasPayload = false;
     const EXP_RADIUS = 8;
     const EXP_DAMAGE = drone.damage || 120;
@@ -1449,6 +1460,7 @@ const DroneSystem = (function () {
     var base = DRONE_AMMO[drone.type] || 0;
     drone.ammo = base;
     drone.maxAmmo = base;
+    _notifyAmmoChange(drone);
     drone.hasPayload = base > 0;
     if (drone.type === DRONE_TYPE.BABA_YAGA) drone.payloadCount = base;
     // Restore payload mesh visibility
@@ -1830,6 +1842,8 @@ const DroneSystem = (function () {
     getAliveNestCount: getAliveNestCount,
     damageNest: damageNest,
     getNearestNest: getNearestNest,
+    // Ammo change callback
+    onAmmoChange: function(cb) { _onAmmoChange = cb; },
   };
 })();
 

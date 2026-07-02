@@ -1489,7 +1489,7 @@ const GameManager = (function () {
 
     _safeInit('camera', function () { if (CameraSystem && typeof CameraSystem.init === 'function') CameraSystem.init(_camera); });
     _bootStep('camera');
-    _safeInit('voxel world', function () { if (window.VoxelWorld && typeof window.VoxelWorld.init === 'function') window.VoxelWorld.init(_scene); });
+    _safeInit('voxel world', function () { if (window.VoxelWorld && typeof window.VoxelWorld.init === 'function') window.VoxelWorld.init(_scene, _camera ? _camera.position : null); });
     _bootStep('voxel world');
 
     _safeInit('time', function () { if (TimeSystem && typeof TimeSystem.init === 'function') TimeSystem.init(_scene, sunLight, ambLight, hemiLight); });
@@ -2853,6 +2853,13 @@ const GameManager = (function () {
     if (actionText) actionText.textContent = actionMap[droneType] || 'No Weapon';
     if (actionHint) actionHint.style.display = hasAmmo ? '' : 'none';
     if (payloadDisp) payloadDisp.style.display = hasAmmo ? '' : 'none';
+
+    // Wire ammo change callback so HUD updates immediately when ammo is spent
+    if (typeof DroneSystem !== 'undefined' && DroneSystem.onAmmoChange) {
+      DroneSystem.onAmmoChange(function(drone) {
+        updateDroneControlsHUD();
+      });
+    }
   }
 
   function hideDroneControlsHUD() {
@@ -2994,17 +3001,51 @@ const GameManager = (function () {
     if (ammoEl) {
       var maxAmmo = drone.maxAmmo || 0;
       var ammo = drone.ammo || 0;
+      var ammoWrap = document.getElementById('drone-ammo-display-wrap');
+      var ammoLarge = document.getElementById('drone-ammo-large');
       if (maxAmmo > 0) {
-        ammoEl.parentElement.style.display = '';
-        ammoEl.textContent = ammo + '/' + maxAmmo;
-        if (ammoBarOuter) ammoBarOuter.style.display = 'inline-block';
+        if (ammoWrap) ammoWrap.style.display = '';
+        // Show type-specific ammo text with colors
+        var ammoText = '';
+        var ammoColor = '#ffaa00';
+        var barClass = '';
+        if (drone.type === 'fpv_attack' || drone.type === 'kamikaze') {
+          ammoText = ammo + ' STRIKE' + (ammo !== 1 ? 'S' : '');
+          ammoColor = '#ff4444';
+          barClass = 'ammo-fpv';
+        } else if (drone.type === 'bomb') {
+          ammoText = ammo + ' GRENADE' + (ammo !== 1 ? 'S' : '');
+          ammoColor = '#ffaa00';
+          barClass = 'ammo-bomb';
+        } else if (drone.type === 'surveillance') {
+          ammoText = ammo + ' LMG ROUND' + (ammo !== 1 ? 'S' : '');
+          ammoColor = '#00ccff';
+          barClass = 'ammo-surveillance';
+        } else {
+          ammoText = ammo + '/' + maxAmmo;
+        }
+        ammoEl.textContent = ammoText;
+        ammoEl.style.color = ammoColor;
+        if (ammoBarOuter) {
+          ammoBarOuter.style.display = 'inline-block';
+          ammoBarOuter.style.width = '100px';
+          ammoBarOuter.style.height = '10px';
+        }
         if (ammoBarInner) {
           ammoBarInner.style.width = (maxAmmo > 0 ? (ammo / maxAmmo * 100) : 0) + '%';
-          ammoBarInner.style.background = ammo > 0 ? '#ffaa00' : '#666';
+          ammoBarInner.className = 'ammo-bar-inner ' + (ammo > 0 ? barClass : 'ammo-empty');
+          ammoBarInner.style.background = ammo > 0 ? ammoColor : '#666';
+        }
+        // Large prominent display
+        if (ammoLarge) {
+          ammoLarge.style.display = 'block';
+          ammoLarge.textContent = ammoText;
+          ammoLarge.style.color = ammoColor;
         }
       } else {
-        ammoEl.parentElement.style.display = 'none';
+        if (ammoWrap) ammoWrap.style.display = 'none';
         if (ammoBarOuter) ammoBarOuter.style.display = 'none';
+        if (ammoLarge) ammoLarge.style.display = 'none';
       }
     }
 
@@ -3821,6 +3862,30 @@ const GameManager = (function () {
           HUD.notifyPickup('🚁 BRADLEY M2A2 — Gunner seat. AI driver advancing. 25mm Bushmaster ready!', '#a0c878');
         }
       }
+      // ── Ukrainian NPC infantry follow behind the Bradley ──
+      (function () {
+        if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
+          for (var i = 0; i < 5; i++) {
+            var angle = Math.PI + (Math.random() - 0.5) * 0.8; // behind the Bradley
+            var dist = 6 + Math.random() * 4;
+            var nx = playerSpawn.x + Math.cos(angle) * dist;
+            var nz = playerSpawn.z + Math.sin(angle) * dist;
+            var nh = VoxelWorld.getTerrainHeight(nx, nz);
+            NPCSystem.spawn(nx, nh, nz, 'infantry');
+          }
+        }
+      })();
+      // ── Enemy FPV kamikaze drones targeting the Bradley ──
+      (function () {
+        if (typeof DroneSystem !== 'undefined' && DroneSystem.spawn) {
+          for (var i = 0; i < 4; i++) {
+            var dx = playerSpawn.x + (Math.random() - 0.5) * 60;
+            var dz = playerSpawn.z + 20 + Math.random() * 40; // ahead in the treeline
+            var dh = VoxelWorld.getTerrainHeight(dx, dz) + 8 + Math.random() * 6;
+            DroneSystem.spawn(dx, dh, dz, 'fpv_attack');
+          }
+        }
+      })();
       if (typeof MissionSystem !== 'undefined' && MissionSystem.generateMission) {
         MissionSystem.generateMission('bradley_assault');
       }
@@ -6382,7 +6447,7 @@ const GameManager = (function () {
   var _perfCheckTimer = 0;
   var _qualityReduced = false;
   var _perfLevel = 0;            // current auto-optimization tier (0 = full quality)
-  var _PERF_MAX_LEVEL = 5;       // 0-5: ULTRA, HIGH, MEDIUM, LOW, VERY_LOW, MINIMAL
+  var _PERF_MAX_LEVEL = 6;       // 0-6: ULTRA, HIGH, MEDIUM, LOW, VERY_LOW, MINIMAL, ULTRA_LOW
   var _lowFpsStreak = 0;
   var _highFpsStreak = 0;
   var _baseFogFar = isMobile ? 55 : 120;
@@ -6398,22 +6463,58 @@ const GameManager = (function () {
   var _frameSkipCounter = 0;
 
   var _cullDistance = 9999;   // mobile draw-distance cull radius (world units); ∞ on desktop
+
+  // Quick startup benchmark: render 1000 boxes, measure time to choose initial tier
+  function _startupBenchmark() {
+    try {
+      var benchScene = new THREE.Scene();
+      var benchCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+      var benchRenderer = new THREE.WebGLRenderer({ antialias: false });
+      benchRenderer.setSize(256, 256);
+      benchRenderer.setPixelRatio(1);
+      var geo = new THREE.BoxGeometry(1, 1, 1);
+      var mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      var mesh = new THREE.InstancedMesh(geo, mat, 1000);
+      var dummy = new THREE.Object3D();
+      for (var i = 0; i < 1000; i++) {
+        dummy.position.set(Math.random() * 100 - 50, Math.random() * 100 - 50, Math.random() * 100 - 50);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      }
+      benchScene.add(mesh);
+      var start = performance.now();
+      for (var f = 0; f < 10; f++) {
+        benchRenderer.render(benchScene, benchCamera);
+      }
+      var elapsed = performance.now() - start;
+      var fps = 1000 / (elapsed / 10);
+      benchRenderer.dispose();
+      if (fps < 30) return 5; // VERY_LOW
+      if (fps < 60) return 3; // LOW
+      return 0; // ULTRA
+    } catch (e) {
+      return 3; // fallback to LOW
+    }
+  }
+
   // Pick a sane starting tier from the device class so weak hardware doesn't boot
   // at ULTRA and crawl down over ~12s of stutter. Mobile starts reduced; very weak
   // phones (low RAM / few cores) or the WebGL "compatibility" fallback start lower.
   function _computeInitialPerfLevel() {
+    var bench = _startupBenchmark();
+    if (bench > 0) return bench;
     if (!isMobile) return (_rendererProfile === 'compatibility') ? 3 : 0;
-    var mem = navigator.deviceMemory || 4;        // GB, Chrome-only (≈4 on midrange)
+    var mem = navigator.deviceMemory || 4;
     var cores = navigator.hardwareConcurrency || 4;
     var weak = (mem <= 3) || (cores <= 4) || _rendererProfile === 'compatibility';
-    return weak ? 5 : 3;                           // VERY_LOW for weak phones, LOW otherwise
+    return weak ? 5 : 3;
   }
   function _applyPerfLevel(level, fps, silent) {
     _perfLevel = Math.max(0, Math.min(level, _PERF_MAX_LEVEL));
     _qualityReduced = _perfLevel > 0;
     try {
       var pr, fogFar, shadows, cull, maxEnemies, maxParts, maxVeh, maxDrones, texQ, fSkip;
-      // Six tiers: ULTRA → HIGH → MEDIUM → LOW → VERY_LOW → MINIMAL
+      // Seven tiers: ULTRA → HIGH → MEDIUM → LOW → VERY_LOW → MINIMAL → ULTRA_LOW
       if (_perfLevel === 0) {      // ULTRA
         pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled && !isMobile;
         _lowEndVFX = false; cull = isMobile ? 95 : 9999;
@@ -6434,10 +6535,14 @@ const GameManager = (function () {
         pr = 0.6; fogFar = 40; shadows = false;
         _lowEndVFX = true; cull = 44;
         maxEnemies = 10; maxParts = 30; maxVeh = 2; maxDrones = 1; texQ = 0.5; fSkip = 1;
-      } else {                       // MINIMAL
+      } else if (_perfLevel === 5) { // MINIMAL
         pr = 0.5; fogFar = 32; shadows = false;
         _lowEndVFX = true; cull = 36;
         maxEnemies = 6; maxParts = 15; maxVeh = 1; maxDrones = 1; texQ = 0.4; fSkip = 2;
+      } else {                       // ULTRA_LOW
+        pr = 0.4; fogFar = 60; shadows = false;
+        _lowEndVFX = true; cull = 60;
+        maxEnemies = 4; maxParts = 0; maxVeh = 0; maxDrones = 0; texQ = 0.3; fSkip = 3;
       }
       _cullDistance = cull;
       _currentMaxEnemies = maxEnemies;
@@ -6515,7 +6620,7 @@ const GameManager = (function () {
       }
       window.__OK_LOWSPEC = _nowLowSpec;
 
-      var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW','VERY_LOW','MINIMAL'][_perfLevel] || 'L' + _perfLevel;
+      var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW','VERY_LOW','MINIMAL','ULTRA_LOW'][_perfLevel] || 'L' + _perfLevel;
       if (!silent && typeof HUD !== 'undefined' && HUD.notifyPickup) {
         HUD.notifyPickup('⚙ Quality: ' + _qlabel + ' (auto-calibrated, FPS≈' + (fps ? fps.toFixed(0) : '?') + ')', '#88ccff');
       }
@@ -6689,14 +6794,16 @@ const GameManager = (function () {
     _perfCheckTimer += delta;
     if (_perfCheckTimer > _AUTO_QUALITY_INTERVAL && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
-      if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
+      if (avgFps < 15) { _lowFpsStreak++; _highFpsStreak = 0; }
       else if (avgFps > 52) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
-      // Severe stutter (< 24 fps): drop two tiers at once instead of waiting for a
-      // streak — a struggling device should bail out of heavy settings immediately.
-      var _dropBy = (avgFps < 24) ? 2 : (_lowFpsStreak >= 2 ? 1 : 0);
-      if (_dropBy && _perfLevel < _PERF_MAX_LEVEL) {
-        _applyPerfLevel(_perfLevel + _dropBy, avgFps);
+      // Severe stutter (< 10 fps): drop to LOWEST immediately
+      if (avgFps < 10 && _lowFpsStreak >= 1) {
+        _applyPerfLevel(_PERF_MAX_LEVEL, avgFps);
+        _lowFpsStreak = 0;
+      } else if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
+        // FPS < 15 for ~3 seconds: drop one tier
+        _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
       }
       // Recover slowly when there's headroom, but never bring a phone back below
@@ -7523,7 +7630,7 @@ const GameManager = (function () {
       }
 
       // Voxel chunk rebuilds
-      VoxelWorld.updateDirtyChunks();
+      VoxelWorld.updateDirtyChunks(_camera);
 
       // Update loot particles
       updateLootParticles(delta);
@@ -8593,6 +8700,16 @@ const GameManager = (function () {
       document.addEventListener('touchcancel', _onAimTouchEnd, { passive: true });
     }
 
+    function _hapticFeedback(el, pattern) {
+      if (el) {
+        el.classList.add('haptic-pulse');
+        setTimeout(function() { el.classList.remove('haptic-pulse'); }, 150);
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(pattern || 20); } catch (er) {}
+      }
+    }
+
     // Fire button
     const btnFire = document.getElementById('btn-fire');
     btnFire.addEventListener('touchstart', function (e) {
@@ -8600,6 +8717,7 @@ const GameManager = (function () {
       touch.firing = true;
       mouseNewPress = true;
       btnFire.classList.add('active');
+      _hapticFeedback(btnFire, 15);
     }, { passive: false });
     btnFire.addEventListener('touchend', function () {
       touch.firing = false;
@@ -8618,6 +8736,7 @@ const GameManager = (function () {
         e.preventDefault();
         setMobileAim(true);
         btnAim.classList.add('active');
+        _hapticFeedback(btnAim, 15);
       }, { passive: false });
       btnAim.addEventListener('touchend', function () {
         setMobileAim(false);
@@ -8636,7 +8755,7 @@ const GameManager = (function () {
       Weapons.forceReload();
       if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload();
       MLSystem.onReload();
-      if (navigator.vibrate) { try { navigator.vibrate([10, 40, 10]); } catch (er) {} }
+      _hapticFeedback(btnReload, [10, 40, 10]);
       btnReload.classList.add('active');
     }, { passive: false });
     btnReload.addEventListener('touchend', function () { btnReload.classList.remove('active'); });
@@ -8647,6 +8766,7 @@ const GameManager = (function () {
       e.preventDefault();
       touch.jumping = true;
       btnJump.classList.add('active');
+      _hapticFeedback(btnJump, 15);
     }, { passive: false });
     btnJump.addEventListener('touchend', function () {
       touch.jumping = false;
@@ -8663,6 +8783,7 @@ const GameManager = (function () {
       e.preventDefault();
       touch.sprinting = !touch.sprinting;
       btnSprint.classList.toggle('active', touch.sprinting);
+      _hapticFeedback(btnSprint, touch.sprinting ? 30 : 15);
     }, { passive: false });
 
     // Weapon prev/next
@@ -8672,12 +8793,14 @@ const GameManager = (function () {
       e.preventDefault();
       Weapons.switchPrev();
       btnPrev.classList.add('active');
+      _hapticFeedback(btnPrev, 15);
     }, { passive: false });
     btnPrev.addEventListener('touchend', function () { btnPrev.classList.remove('active'); });
     btnNext.addEventListener('touchstart', function (e) {
       e.preventDefault();
       Weapons.switchNext();
       btnNext.classList.add('active');
+      _hapticFeedback(btnNext, 15);
     }, { passive: false });
     btnNext.addEventListener('touchend', function () { btnNext.classList.remove('active'); });
 
@@ -8688,6 +8811,7 @@ const GameManager = (function () {
         e.preventDefault();
         handler();
         btn.classList.add('active');
+        _hapticFeedback(btn, 15);
       }, { passive: false });
       btn.addEventListener('touchend', function () { btn.classList.remove('active'); });
       btn.addEventListener('touchcancel', function () { btn.classList.remove('active'); });

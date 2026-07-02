@@ -379,11 +379,241 @@ const CityBuildings = (function () {
     dragonTeeth(ox, oz, gy, count);
   }
 
+// ── smokestack ──
+function smokestack(ox, oz, gy, h, color) {
+  color = color || PAL.BRICK;
+  h = h || 20;
+  for (var y = 0; y < h; y++) {
+    var w = (y < 4) ? 3 : (y < h - 4) ? 2 : 1;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -w; z <= w; z++) {
+        var isWall = Math.abs(x) === w || Math.abs(z) === w;
+        if (isWall) setBlock(ox + x, gy + y, oz + z, color);
+      }
+    }
+  }
+  setBlock(ox, gy + h, oz, PAL.LIGHT);
+}
+
+// ── damagedBuilding ──
+function damagedBuilding(ox, oz, gy, w, d, h, color) {
+  color = color || PAL.CONCRETE;
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      for (var z = 0; z < d; z++) {
+        var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+        var isRoof = y === h - 1;
+        if (isWall || isRoof) {
+          var distFromCenter = Math.abs(x - w/2) + Math.abs(z - d/2) + Math.abs(y - h/2);
+          if (distFromCenter < 4 && Math.random() < 0.5) continue;
+          if (Math.random() < 0.2) continue;
+          var bt = (y === 0) ? PAL.BRICK : color;
+          if (isRoof && Math.random() < 0.5) bt = PAL.RUBBLE;
+          setBlock(ox + x, gy + y, oz + z, bt);
+        }
+      }
+    }
+  }
+}
+
+// ── sandbagWall ──
+function sandbagWall(ox, oz, gy, length, color) {
+  color = color || PAL.SANDBAG;
+  length = length || 10;
+  for (var i = 0; i < length; i++) {
+    setBlock(ox + i, gy, oz, color);
+    setBlock(ox + i, gy + 1, oz, color);
+    if (i % 2 === 0) setBlock(ox + i, gy + 2, oz, color);
+    setBlock(ox + i, gy, oz + 1, color);
+    setBlock(ox + i, gy + 1, oz + 1, color);
+  }
+}
+
+// ── observationPost ──
+function observationPost(ox, oz, gy, h, color) {
+  color = color || PAL.WOOD;
+  h = h || 6;
+  for (var y = 0; y < h; y++) {
+    setBlock(ox - 1, gy + y, oz - 1, color);
+    setBlock(ox + 1, gy + y, oz - 1, color);
+    setBlock(ox - 1, gy + y, oz + 1, color);
+    setBlock(ox + 1, gy + y, oz + 1, color);
+  }
+  for (var x = -2; x <= 2; x++) {
+    for (var z = -2; z <= 2; z++) {
+      setBlock(ox + x, gy + h, oz + z, color);
+      setBlock(ox + x, gy + h + 1, oz + z, PAL.SANDBAG);
+    }
+  }
+  for (var x = -1; x <= 1; x++) {
+    for (var z = -1; z <= 1; z++) {
+      setBlock(ox + x, gy + h + 2, oz + z, PAL.METAL);
+    }
+  }
+}
+
+// ── flareStack ──
+function flareStack(ox, oz, gy, h) {
+  h = h || 12;
+  for (var y = 0; y < h; y++) {
+    var w = (y < 3) ? 2 : 1;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -w; z <= w; z++) {
+        if (Math.abs(x) === w || Math.abs(z) === w) setBlock(ox + x, gy + y, oz + z, PAL.METAL);
+      }
+    }
+  }
+  setBlock(ox, gy + h, oz, PAL.FIRE);
+  setBlock(ox, gy + h + 1, oz, PAL.FIRE);
+  setBlock(ox + 1, gy + h, oz, PAL.FIRE);
+  setBlock(ox - 1, gy + h, oz, PAL.FIRE);
+}
+
+// ── lighthouse ──
+function lighthouse(ox, oz, gy, h) {
+  h = h || 15;
+  for (var y = 0; y < h; y++) {
+    var w = (y < 4) ? 3 : (y < h - 4) ? 2 : 3;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -w; z <= w; z++) {
+        var isWall = Math.abs(x) === w || Math.abs(z) === w;
+        if (isWall) {
+          var bt = (y < 4) ? PAL.STONE : (y < h - 4) ? PAL.CONCRETE : PAL.GLASS;
+          setBlock(ox + x, gy + y, oz + z, bt);
+        }
+      }
+    }
+  }
+  setBlock(ox, gy + h, oz, PAL.LIGHT);
+}
+
+// ── barricade ──
+function barricade(ox, oz, gy, length) {
+  length = length || 8;
+  for (var i = 0; i < length; i++) {
+    setBlock(ox + i, gy, oz, PAL.CONCRETE);
+    setBlock(ox + i, gy + 1, oz, PAL.CONCRETE);
+    if (i % 3 === 0) setBlock(ox + i, gy + 2, oz, PAL.METAL);
+  }
+}
+
+// ── tankTrap ──
+function tankTrap(ox, oz, gy, count) {
+  count = count || 6;
+  for (var i = 0; i < count; i++) {
+    var tx = ox + (i % 3) * 3;
+    var tz = oz + Math.floor(i / 3) * 3;
+    for (var y = 0; y < 3; y++) {
+      for (var x = 0; x < 2; x++) {
+        for (var z = 0; z < 2; z++) {
+          setBlock(tx + x, gy + y, tz + z, PAL.CONCRETE);
+        }
+      }
+    }
+    setBlock(tx, gy + 3, tz, PAL.METAL);
+    setBlock(tx + 1, gy + 3, tz + 1, PAL.METAL);
+  }
+}
+
+// ── propagandaBillboard ──
+function propagandaBillboard(ox, oz, gy, w, h) {
+  w = w || 8; h = h || 4;
+  for (var y = 0; y < h + 2; y++) {
+    setBlock(ox, gy + y, oz, PAL.METAL);
+    setBlock(ox + w - 1, gy + y, oz, PAL.METAL);
+  }
+  for (var x = 0; x < w; x++) {
+    for (var y = 2; y < h + 2; y++) {
+      setBlock(ox + x, gy + y, oz, PAL.BANNER);
+    }
+  }
+}
+
+// ── mineHeadframe ──
+function mineHeadframe(ox, oz, gy, h) {
+  h = h || 14;
+  for (var y = 0; y < h; y++) {
+    var spread = Math.floor((h - y) / 3);
+    setBlock(ox - spread, gy + y, oz, PAL.METAL);
+    setBlock(ox + spread, gy + y, oz, PAL.METAL);
+    setBlock(ox - spread, gy + y, oz + 2, PAL.METAL);
+    setBlock(ox + spread, gy + y, oz + 2, PAL.METAL);
+  }
+  for (var x = -4; x <= 4; x++) {
+    setBlock(ox + x, gy + h - 1, oz + 1, PAL.METAL);
+  }
+  setBlock(ox, gy + h - 2, oz + 1, PAL.METAL);
+}
+
+// ── spoilTip ──
+function spoilTip(ox, oz, gy, w, h) {
+  w = w || 12; h = h || 8;
+  for (var y = 0; y < h; y++) {
+    var radius = Math.floor(w * (1 - y / h) / 2);
+    for (var x = -radius; x <= radius; x++) {
+      for (var z = -radius; z <= radius; z++) {
+        if (x*x + z*z <= radius*radius + 2) {
+          setBlock(ox + x, gy + y, oz + z, PAL.DIRT);
+        }
+      }
+    }
+  }
+}
+
+// ── portCrane ──
+function portCrane(ox, oz, gy, h) {
+  h = h || 12;
+  for (var y = 0; y < h; y++) {
+    setBlock(ox, gy + y, oz, PAL.METAL);
+    setBlock(ox + 1, gy + y, oz, PAL.METAL);
+    setBlock(ox, gy + y, oz + 1, PAL.METAL);
+    setBlock(ox + 1, gy + y, oz + 1, PAL.METAL);
+  }
+  for (var x = 0; x < 10; x++) {
+    setBlock(ox + 2 + x, gy + h - 2, oz, PAL.METAL);
+  }
+  for (var x = 0; x < 4; x++) {
+    setBlock(ox - 1 - x, gy + h - 2, oz, PAL.METAL);
+  }
+  setBlock(ox + 8, gy + h - 4, oz, PAL.METAL);
+}
+
+// ── metroEntrance ──
+function metroEntrance(ox, oz, gy, color) {
+  color = color || PAL.BLUE_TILE;
+  for (var x = -2; x <= 2; x++) {
+    for (var z = 0; z <= 3; z++) {
+      setBlock(ox + x, gy + 3, oz + z, PAL.METAL);
+    }
+  }
+  for (var y = 0; y < 3; y++) {
+    for (var x = -1; x <= 1; x++) {
+      setBlock(ox + x, gy + y, oz, color);
+      setBlock(ox + x, gy + y, oz + 2, color);
+    }
+  }
+  setBlock(ox, gy + 4, oz + 1, color);
+  setBlock(ox - 1, gy + 3, oz + 1, color);
+  setBlock(ox + 1, gy + 3, oz + 1, color);
+}
+
+// ── fountain ──
+function fountain(ox, oz, gy) {
+  for (var x = -2; x <= 2; x++) {
+    for (var z = -2; z <= 2; z++) {
+      setBlock(ox + x, gy, oz + z, PAL.STONE);
+    }
+  }
+  setBlock(ox, gy + 1, oz, PAL.WATER);
+  setBlock(ox, gy + 2, oz, PAL.STONE);
+}
+
+
   // ═══════════════════════════════════════════════════════════
   // HOSTOMEL
   // ═══════════════════════════════════════════════════════════
   CITIES.hostomel = [
-    { type: 'airportTerminal', params: [40, 14, 6, 9], x: -15, z: -25, note: 'Antonov Airport Terminal (admin building, partially destroyed)' },
+{ type: 'airportTerminal', params: [40, 14, 6, 9], x: -15, z: -25, note: 'Antonov Airport Terminal (admin building, partially destroyed)' },
     { type: 'hangar', params: [32, 22, 14, 9], x: -35, z: 10, note: 'Hangar 1 — An-225 Mriya (destroyed Feb 27, 2022)' },
     { type: 'hangar', params: [28, 18, 10, 9], x: 5, z: 12, note: 'Hangar 2 — An-124 Ruslan / Antonov offices' },
     { type: 'hangar', params: [24, 14, 8, 9], x: 40, z: 8, note: 'Hangar 3 — An-22 Antei / museum storage' },
@@ -421,13 +651,23 @@ const CityBuildings = (function () {
     { type: 'ruinedBuilding', params: [8, 6, 3, 1.5, 10], x: 40, z: 50, note: 'Burned house' },
     { type: 'industrialFactory', params: [15, 10, 4, 92], x: 75, z: -5, note: 'VETROPAK Glass Factory (damaged)' },
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.8, 72], x: 90, z: 20, note: 'Destroyed kindergarten (2 kindergartens damaged)' },
+    { type: 'smokestack', params: [25, 92], x: -55, z: -35, note: 'Power plant smokestack' },
+    { type: 'smokestack', params: [20, 93], x: -52, z: -35, note: 'Power plant smokestack 2' },
+    { type: 'hangar', params: [20, 14, 6, 5], x: -60, z: 10, note: 'Aircraft revetment' },
+    { type: 'hangar', params: [20, 14, 6, 93], x: 55, z: 10, note: 'Aircraft revetment 2' },
+    { type: 'damagedBuilding', params: [12, 8, 4, 16], x: -25, z: -50, note: 'Ruined airport hotel' },
+    { type: 'damagedBuilding', params: [10, 6, 3, 9], x: 35, z: -50, note: 'Ruined cafeteria' },
+    { type: 'sandbagWall', params: [15, 17], x: -10, z: -35, note: 'Perimeter sandbag wall' },
+    { type: 'sandbagWall', params: [12, 17], x: 10, z: -35, note: 'Checkpoint sandbag wall' },
+    { type: 'observationPost', params: [8, 109], x: 45, z: -30, note: 'Guard tower' },
+    { type: 'observationPost', params: [8, 109], x: -45, z: -30, note: 'Guard tower 2' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // KYIV
   // ═══════════════════════════════════════════════════════════
   CITIES.kyiv = [
-    { type: 'monument', params: ["obelisk", 9], x: 0, z: 0, note: 'Independence Monument — Maidan Nezalezhnosti (center of Kyiv)' },
+{ type: 'monument', params: ["obelisk", 9], x: 0, z: 0, note: 'Independence Monument — Maidan Nezalezhnosti (center of Kyiv)' },
     { type: 'officeBuilding', params: [14, 10, 8, 9], x: -20, z: -5, note: 'Trade Unions Building — west side of Maidan' },
     { type: 'officeBuilding', params: [12, 10, 6, 80], x: 20, z: -5, note: 'Ukraine Hotel — east side of Maidan' },
     { type: 'officeBuilding', params: [10, 8, 6, 82], x: -30, z: 5, note: 'Globus Shopping — south of Maidan on Khreshchatyk' },
@@ -469,13 +709,23 @@ const CityBuildings = (function () {
     { type: 'officeBuilding', params: [10, 8, 5, 103], x: 45, z: -5, note: 'VDNG Expo Center — east of Maidan' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 1.5, 10], x: 0, z: -25, note: 'Damaged building — northern approach' },
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.2, 72], x: 25, z: -25, note: 'Damaged building — near Lavra approach' },
+    { type: 'metroEntrance', params: [64], x: -15, z: 25, note: 'Metro Arsenalna (world's deepest)' },
+    { type: 'metroEntrance', params: [64], x: 15, z: 25, note: 'Metro Pecherska' },
+    { type: 'fountain', params: [], x: -5, z: 5, note: 'Maidan fountain' },
+    { type: 'fountain', params: [], x: 5, z: 5, note: 'Maidan fountain 2' },
+    { type: 'bridge', params: [25, 6, 3], x: 45, z: 30, note: 'Dnipro embankment bridge' },
+    { type: 'portCrane', params: [10], x: 48, z: 15, note: 'Dnipro river port crane' },
+    { type: 'damagedBuilding', params: [12, 8, 4, 84], x: -45, z: 30, note: 'Khreshchatyk building (damaged)' },
+    { type: 'damagedBuilding', params: [12, 8, 4, 85], x: 35, z: 30, note: 'Khreshchatyk building (damaged) 2' },
+    { type: 'officeBuilding', params: [10, 8, 6, 89], x: -55, z: 10, note: 'TV Tower base' },
+    { type: 'monument', params: ["obelisk", 9], x: 55, z: 25, note: 'Dnipro hills monument' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // MOSCOW
   // ═══════════════════════════════════════════════════════════
   CITIES.moscow = [
-    { type: 'kremlinWall', params: [80, 60, 8, 9], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, red brick, towers with green roofs and ruby stars, Spasskaya Tower with clock' },
+{ type: 'kremlinWall', params: [80, 60, 8, 9], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, red brick, towers with green roofs and ruby stars, Spasskaya Tower with clock' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 10], x: -15, z: -5, note: 'Assumption Cathedral — inside Kremlin, west side' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 20], x: 0, z: -5, note: 'Archangel Cathedral — inside Kremlin, center' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 65], x: 15, z: -5, note: 'Annunciation Cathedral — inside Kremlin, east side' },
@@ -520,13 +770,23 @@ const CityBuildings = (function () {
     { type: 'monument', params: ["obelisk", 9], x: 0, z: -50, note: 'WWII memorial — north of Kremlin' },
     { type: 'industrialFactory', params: [15, 10, 4, 5], x: -35, z: 50, note: 'Garage — outer ring' },
     { type: 'industrialFactory', params: [15, 10, 4, 92], x: 35, z: 50, note: 'Bus depot — outer ring' },
+    { type: 'metroEntrance', params: [64], x: -35, z: -5, note: 'Metro entrance (Arbatskaya)' },
+    { type: 'metroEntrance', params: [64], x: 35, z: -5, note: 'Metro entrance (Kurskaya)' },
+    { type: 'metroEntrance', params: [64], x: -35, z: 25, note: 'Metro entrance (Taganskaya)' },
+    { type: 'metroEntrance', params: [64], x: 35, z: 25, note: 'Metro entrance (Okhotny Ryad)' },
+    { type: 'industrialFactory', params: [18, 12, 5, 92], x: -60, z: -20, note: 'Factory (northwest)' },
+    { type: 'industrialFactory', params: [18, 12, 5, 93], x: 60, z: -20, note: 'Factory (northeast)' },
+    { type: 'officeBuilding', params: [10, 8, 4, 94], x: -55, z: 35, note: 'Police station' },
+    { type: 'officeBuilding', params: [10, 8, 4, 95], x: 55, z: 35, note: 'Police station 2' },
+    { type: 'propagandaBillboard', params: [8, 4], x: -45, z: 15, note: 'Propaganda billboard' },
+    { type: 'propagandaBillboard', params: [8, 4], x: 45, z: 15, note: 'Propaganda billboard 2' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // MARIUPOL
   // ═══════════════════════════════════════════════════════════
   CITIES.mariupol = [
-    { type: 'azovstalComplex', params: [50, 30, 10, 9], x: 0, z: -20, note: 'Azovstal Blast Furnace Hall — north of center, industrial heart (blast furnaces, cooling towers, smokestacks)' },
+{ type: 'azovstalComplex', params: [50, 30, 10, 9], x: 0, z: -20, note: 'Azovstal Blast Furnace Hall — north of center, industrial heart (blast furnaces, cooling towers, smokestacks)' },
     { type: 'azovstalComplex', params: [40, 20, 8, 9], x: -45, z: -25, note: 'Azovstal Rolling Mill 1 — northwest industrial zone' },
     { type: 'azovstalComplex', params: [35, 18, 7, 9], x: 45, z: -25, note: 'Azovstal Rolling Mill 2 — northeast industrial zone' },
     { type: 'industrialFactory', params: [30, 15, 6, 5], x: -40, z: -45, note: 'Azovstal Coking Plant — north' },
@@ -559,13 +819,23 @@ const CityBuildings = (function () {
     { type: 'ruinedBuilding', params: [12, 8, 4, 2.0, 113], x: -55, z: -40, note: 'Ruined building — north industrial' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 2.0, 16], x: 55, z: -40, note: 'Ruined building — north industrial' },
     { type: 'monument', params: ["obelisk", 9], x: 0, z: 60, note: 'Memorial — Sea of Azov coast' },
+    { type: 'smokestack', params: [30, 93], x: -15, z: -55, note: 'Azovstal smokestack 1' },
+    { type: 'smokestack', params: [30, 94], x: -5, z: -55, note: 'Azovstal smokestack 2' },
+    { type: 'smokestack', params: [30, 95], x: 5, z: -55, note: 'Azovstal smokestack 3' },
+    { type: 'smokestack', params: [30, 92], x: 15, z: -55, note: 'Azovstal smokestack 4' },
+    { type: 'damagedBuilding', params: [20, 12, 6, 16], x: -35, z: -5, note: 'Blast furnace building (ruined)' },
+    { type: 'damagedBuilding', params: [20, 12, 6, 9], x: 35, z: -5, note: 'Steel mill (ruined)' },
+    { type: 'damagedBuilding', params: [16, 10, 5, 72], x: -55, z: 10, note: 'Residential ruins (east)' },
+    { type: 'damagedBuilding', params: [16, 10, 5, 81], x: 55, z: 10, note: 'Residential ruins (west)' },
+    { type: 'damagedBuilding', params: [14, 8, 4, 113], x: -20, z: 35, note: 'Factory office ruins' },
+    { type: 'damagedBuilding', params: [14, 8, 4, 78], x: 20, z: 35, note: 'Factory workshop ruins' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // AVDIIVKA
   // ═══════════════════════════════════════════════════════════
   CITIES.avdiivka = [
-    { type: 'industrialFactory', params: [40, 25, 8, 5], x: -20, z: -20, note: 'Avdiivka Coke Plant (AKHZ) main hall — northwest industrial core' },
+{ type: 'industrialFactory', params: [40, 25, 8, 5], x: -20, z: -20, note: 'Avdiivka Coke Plant (AKHZ) main hall — northwest industrial core' },
     { type: 'industrialFactory', params: [30, 15, 6, 92], x: -55, z: -30, note: 'Coke Plant Hall 2 — northwest' },
     { type: 'industrialFactory', params: [25, 15, 6, 93], x: 15, z: -30, note: 'Coke Plant Hall 3 — north' },
     { type: 'industrialFactory', params: [20, 12, 5, 94], x: -20, z: -50, note: 'Chemical processing — north of plant' },
@@ -597,13 +867,23 @@ const CityBuildings = (function () {
     { type: 'bunker', params: [], x: -20, z: 0, note: 'Civil defense bunker — center' },
     { type: 'monument', params: ["tank", 9], x: -60, z: -50, note: 'WWII tank monument — northwest' },
     { type: 'radarStation', params: [], x: 65, z: -45, note: 'EW radar station — northeast' },
+    { type: 'smokestack', params: [28, 72], x: -30, z: -40, note: 'Coke plant smokestack 1' },
+    { type: 'smokestack', params: [28, 73], x: -25, z: -40, note: 'Coke plant smokestack 2' },
+    { type: 'smokestack', params: [28, 74], x: -20, z: -40, note: 'Coke plant smokestack 3' },
+    { type: 'smokestack', params: [28, 78], x: -15, z: -40, note: 'Coke plant smokestack 4' },
+    { type: 'industrialFactory', params: [30, 6, 4, 94], x: -10, z: -40, note: 'Conveyor belt structure' },
+    { type: 'damagedBuilding', params: [14, 10, 5, 80], x: -5, z: 30, note: 'Administrative building (damaged)' },
+    { type: 'damagedBuilding', params: [10, 8, 6, 81], x: 25, z: 30, note: 'Water tower base' },
+    { type: 'warehouse', params: [20, 12, 5, 93], x: -50, z: 30, note: 'Central warehouse' },
+    { type: 'sandbagWall', params: [18, 17], x: -5, z: 45, note: 'Factory perimeter sandbags' },
+    { type: 'bunker', params: [], x: 10, z: -40, note: 'Coke plant shelter' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // BAKHMUT
   // ═══════════════════════════════════════════════════════════
   CITIES.bakhmut = [
-    { type: 'ruinedBuilding', params: [18, 10, 6, 3.0, 16], x: 0, z: 0, note: 'Bakhmut Fortress ruins — central market and embankment area (18th century)' },
+{ type: 'ruinedBuilding', params: [18, 10, 6, 3.0, 16], x: 0, z: 0, note: 'Bakhmut Fortress ruins — central market and embankment area (18th century)' },
     { type: 'ruinedBuilding', params: [14, 8, 5, 2.5, 9], x: -20, z: -15, note: 'Ruined apartment — west of fortress' },
     { type: 'ruinedBuilding', params: [16, 9, 6, 2.8, 10], x: 20, z: -15, note: 'Ruined apartment — east of fortress' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 2.0, 72], x: -35, z: -5, note: 'Ruined office — north of center' },
@@ -635,13 +915,23 @@ const CityBuildings = (function () {
     { type: 'bunker', params: [], x: 0, z: 0, note: 'Bakhmut shelter — fortress area' },
     { type: 'school', params: [10, 8, 3, 9], x: -10, z: -20, note: 'Museum of Local Lore (destroyed)' },
     { type: 'ruinedBuilding', params: [8, 6, 3, 2.0, 81], x: 15, z: -20, note: 'Destroyed apartment (post-2022)' },
+    { type: 'damagedBuilding', params: [18, 10, 6, 16], x: -10, z: -15, note: 'Ruined apartment block (heavy shelling)' },
+    { type: 'damagedBuilding', params: [18, 10, 6, 9], x: 10, z: -15, note: 'Ruined apartment block (collapsed)' },
+    { type: 'damagedBuilding', params: [16, 8, 5, 10], x: 0, z: 15, note: 'Ruined apartment (roof collapse)' },
+    { type: 'damagedBuilding', params: [14, 8, 5, 72], x: -30, z: 15, note: 'Ruined school (direct hit)' },
+    { type: 'damagedBuilding', params: [14, 8, 5, 81], x: 30, z: 15, note: 'Ruined hospital (direct hit)' },
+    { type: 'damagedBuilding', params: [12, 6, 4, 113], x: -15, z: 30, note: 'Collapsed house' },
+    { type: 'damagedBuilding', params: [12, 6, 4, 78], x: 15, z: 30, note: 'Collapsed house 2' },
+    { type: 'damagedBuilding', params: [10, 6, 3, 16], x: 0, z: 35, note: 'Shell crater ruin' },
+    { type: 'damagedBuilding', params: [10, 6, 3, 9], x: -25, z: -30, note: 'Burned-out shop' },
+    { type: 'damagedBuilding', params: [10, 6, 3, 10], x: 25, z: -30, note: 'Burned-out shop 2' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // KHERSON
   // ═══════════════════════════════════════════════════════════
   CITIES.kherson = [
-    { type: 'antonovskyBridge', params: [50, 6, 4, 9], x: 0, z: 40, note: 'Antonivsky Bridge — crosses Dnipro south of city (cable-stayed, bombed)' },
+{ type: 'antonovskyBridge', params: [50, 6, 4, 9], x: 0, z: 40, note: 'Antonivsky Bridge — crosses Dnipro south of city (cable-stayed, bombed)' },
     { type: 'officeBuilding', params: [12, 10, 5, 9], x: -30, z: -20, note: 'Port administration — Dnipro riverfront, west bank' },
     { type: 'warehouse', params: [25, 12, 5, 5], x: -10, z: -25, note: 'Port warehouse — Dnipro riverfront' },
     { type: 'warehouse', params: [20, 10, 4, 94], x: 15, z: -25, note: 'Cargo storage — Dnipro riverfront' },
@@ -671,13 +961,23 @@ const CityBuildings = (function () {
     { type: 'bunker', params: [], x: 15, z: -5, note: 'Command bunker — Dnipro embankment' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 1.5, 16], x: -50, z: -30, note: 'Damaged warehouse — port area' },
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.2, 9], x: 50, z: -30, note: 'Damaged building — port area' },
+    { type: 'bridge', params: [30, 6, 3], x: -15, z: 30, note: 'Dnipro embankment bridge' },
+    { type: 'portCrane', params: [12], x: -20, z: -35, note: 'Port crane 1' },
+    { type: 'portCrane', params: [12], x: 0, z: -35, note: 'Port crane 2' },
+    { type: 'portCrane', params: [12], x: 20, z: -35, note: 'Port crane 3' },
+    { type: 'monument', params: ["obelisk", 9], x: 0, z: -45, note: 'Soviet monument on embankment' },
+    { type: 'damagedBuilding', params: [14, 8, 4, 80], x: -30, z: 35, note: 'Ferry terminal (damaged)' },
+    { type: 'damagedBuilding', params: [12, 8, 4, 81], x: 30, z: 35, note: 'River station (damaged)' },
+    { type: 'bridge', params: [20, 4, 2], x: -10, z: 50, note: 'Pier walkway' },
+    { type: 'bunker', params: [], x: -35, z: 25, note: 'Dnipro riverbank bunker' },
+    { type: 'bunker', params: [], x: 35, z: 25, note: 'Dnipro riverbank bunker 2' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // CRIMEA
   // ═══════════════════════════════════════════════════════════
   CITIES.crimea = [
-    { type: 'crimeaBridge', params: [60, 6, 3, 9], x: -30, z: 0, note: 'Crimea Bridge (road) — Kerch Strait, 19km, road + rail' },
+{ type: 'crimeaBridge', params: [60, 6, 3, 9], x: -30, z: 0, note: 'Crimea Bridge (road) — Kerch Strait, 19km, road + rail' },
     { type: 'crimeaBridge', params: [60, 4, 2, 9], x: -30, z: 8, note: 'Crimea Bridge (rail) — Kerch Strait' },
     { type: 'industrialFactory', params: [20, 10, 5, 5], x: -40, z: -20, note: 'Bridge control station' },
     { type: 'warehouse', params: [15, 10, 4, 5], x: -40, z: 20, note: 'Toll plaza building' },
@@ -707,13 +1007,23 @@ const CityBuildings = (function () {
     { type: 'warehouse', params: [12, 8, 3, 113], x: 15, z: 30, note: 'Port storage' },
     { type: 'monument', params: ["tank", 9], x: -40, z: 40, note: 'Coastal defense monument' },
     { type: 'monument', params: ["tank", 9], x: 40, z: 40, note: 'Coastal defense monument' },
+    { type: 'lighthouse', params: [15], x: -50, z: -50, note: 'Kerch Strait lighthouse' },
+    { type: 'coastalFort', params: [], x: 50, z: -50, note: 'Coastal fortification (east)' },
+    { type: 'coastalFort', params: [], x: -50, z: 50, note: 'Coastal fortification (west)' },
+    { type: 'coastalFort', params: [], x: 50, z: 50, note: 'Coastal fortification (south)' },
+    { type: 'damagedBuilding', params: [16, 10, 5, 9], x: -30, z: -30, note: 'Naval base (damaged)' },
+    { type: 'damagedBuilding', params: [16, 10, 5, 80], x: 30, z: -30, note: 'Naval base (damaged) 2' },
+    { type: 'bunker', params: [], x: 0, z: -30, note: 'Bridge support bunker' },
+    { type: 'radarStation', params: [], x: 0, z: 40, note: 'Southern radar station' },
+    { type: 'sandbagWall', params: [14, 17], x: -20, z: 25, note: 'Bridge defense sandbags' },
+    { type: 'sandbagWall', params: [14, 17], x: 20, z: 25, note: 'Bridge defense sandbags 2' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // CHORNOBYL
   // ═══════════════════════════════════════════════════════════
   CITIES.chornobyl = [
-    { type: 'sarcophagus', params: [], x: 0, z: -40, note: 'Chornobyl NPP Reactor 4 — New Safe Confinement (steel arch)' },
+{ type: 'sarcophagus', params: [], x: 0, z: -40, note: 'Chornobyl NPP Reactor 4 — New Safe Confinement (steel arch)' },
     { type: 'industrialFactory', params: [25, 15, 6, 5], x: -35, z: -40, note: 'Reactor 3' },
     { type: 'industrialFactory', params: [25, 15, 6, 92], x: 35, z: -40, note: 'Reactor 2' },
     { type: 'industrialFactory', params: [20, 15, 6, 93], x: -60, z: -40, note: 'Reactor 1' },
@@ -748,13 +1058,23 @@ const CityBuildings = (function () {
     { type: 'dugaRadar', params: [], x: 55, z: 0, note: 'Duga radar base (Chernobyl-2)' },
     { type: 'monument', params: ["obelisk", 9], x: -50, z: -60, note: 'Liquidators memorial' },
     { type: 'monument', params: ["obelisk", 9], x: 50, z: -60, note: 'Firefighters memorial' },
+    { type: 'coolingTower', params: [18, 9], x: -25, z: -70, note: 'Cooling Tower 3' },
+    { type: 'coolingTower', params: [18, 9], x: 25, z: -70, note: 'Cooling Tower 4' },
+    { type: 'damagedBuilding', params: [14, 10, 4, 16], x: -60, z: 50, note: 'Pripyat swimming pool (abandoned)' },
+    { type: 'damagedBuilding', params: [12, 8, 3, 9], x: 60, z: 50, note: 'Pripyat kindergarten (abandoned)' },
+    { type: 'damagedBuilding', params: [16, 10, 5, 80], x: -50, z: 70, note: 'Pripyat hospital (abandoned)' },
+    { type: 'damagedBuilding', params: [20, 12, 4, 81], x: 50, z: 70, note: 'Jupiter factory (abandoned)' },
+    { type: 'bunker', params: [], x: -30, z: -20, note: 'Shelter near Reactor 3' },
+    { type: 'bunker', params: [], x: 30, z: -20, note: 'Shelter near Reactor 2' },
+    { type: 'monument', params: ["obelisk", 9], x: 0, z: 85, note: 'Pripyat sign monument' },
+    { type: 'monument', params: ["obelisk", 9], x: -70, z: 0, note: 'Duga memorial' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // SEVASTOPOL
   // ═══════════════════════════════════════════════════════════
   CITIES.sevastopol = [
-    { type: 'industrialFactory', params: [30, 15, 6, 5], x: 0, z: -20, note: 'Shipyard dry dock — Sevastopol Bay, north side' },
+{ type: 'industrialFactory', params: [30, 15, 6, 5], x: 0, z: -20, note: 'Shipyard dry dock — Sevastopol Bay, north side' },
     { type: 'industrialFactory', params: [25, 12, 5, 92], x: -35, z: -20, note: 'Repair workshop — Sevastopol Bay, west' },
     { type: 'industrialFactory', params: [25, 12, 5, 93], x: 35, z: -20, note: 'Submarine pen — Sevastopol Bay, east' },
     { type: 'warehouse', params: [20, 10, 4, 5], x: -50, z: -5, note: 'Naval stores — west of bay' },
@@ -785,13 +1105,23 @@ const CityBuildings = (function () {
     { type: 'coastalFort', params: [], x: -30, z: -50, note: 'Coastal battery — west' },
     { type: 'coastalFort', params: [], x: 30, z: -50, note: 'Coastal battery — east' },
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.0, 16], x: 0, z: 60, note: 'Damaged port building — north' },
+    { type: 'hangar', params: [25, 15, 6, 5], x: -55, z: -30, note: 'Submarine pen (west)' },
+    { type: 'hangar', params: [25, 15, 6, 92], x: 55, z: -30, note: 'Submarine pen (east)' },
+    { type: 'portCrane', params: [12], x: -40, z: -5, note: 'Harbor crane 1' },
+    { type: 'portCrane', params: [12], x: 40, z: -5, note: 'Harbor crane 2' },
+    { type: 'portCrane', params: [12], x: -40, z: 15, note: 'Harbor crane 3' },
+    { type: 'portCrane', params: [12], x: 40, z: 15, note: 'Harbor crane 4' },
+    { type: 'kremlinWall', params: [30, 20, 5, 105], x: -20, z: 60, note: 'Fortress walls (north)' },
+    { type: 'kremlinWall', params: [30, 20, 5, 105], x: 20, z: 60, note: 'Fortress walls (northeast)' },
+    { type: 'officeBuilding', params: [14, 10, 4, 9], x: 0, z: 55, note: 'Command center' },
+    { type: 'bunker', params: [], x: -30, z: 40, note: 'Naval command bunker' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // DONBAS
   // ═══════════════════════════════════════════════════════════
   CITIES.donbas = [
-    { type: 'industrialFactory', params: [35, 20, 8, 5], x: 0, z: 0, note: 'Mine shaft complex' },
+{ type: 'industrialFactory', params: [35, 20, 8, 5], x: 0, z: 0, note: 'Mine shaft complex' },
     { type: 'industrialFactory', params: [25, 15, 6, 92], x: -40, z: -10, note: 'Processing plant' },
     { type: 'industrialFactory', params: [25, 15, 6, 93], x: 40, z: -10, note: 'Processing plant' },
     { type: 'industrialFactory', params: [20, 12, 5, 94], x: 0, z: -25, note: 'Coal washery' },
@@ -821,13 +1151,23 @@ const CityBuildings = (function () {
     { type: 'warehouse', params: [12, 8, 3, 95], x: 10, z: 45, note: 'Storage' },
     { type: 'industrialFactory', params: [15, 10, 4, 95], x: -50, z: -35, note: 'Power substation' },
     { type: 'industrialFactory', params: [15, 10, 4, 96], x: 50, z: -35, note: 'Power substation' },
+    { type: 'mineHeadframe', params: [14], x: -20, z: -15, note: 'Mine headframe 1' },
+    { type: 'mineHeadframe', params: [14], x: 20, z: -15, note: 'Mine headframe 2' },
+    { type: 'mineHeadframe', params: [12], x: 0, z: -35, note: 'Mine headframe 3' },
+    { type: 'spoilTip', params: [14, 8], x: -45, z: -5, note: 'Spoil tip (west)' },
+    { type: 'spoilTip', params: [14, 8], x: 45, z: -5, note: 'Spoil tip (east)' },
+    { type: 'industrialFactory', params: [20, 10, 4, 94], x: -30, z: -45, note: 'Coal processing (west)' },
+    { type: 'industrialFactory', params: [20, 10, 4, 95], x: 30, z: -45, note: 'Coal processing (east)' },
+    { type: 'warehouse', params: [18, 8, 3, 93], x: -10, z: -45, note: 'Rail loading facility' },
+    { type: 'warehouse', params: [18, 8, 3, 96], x: 10, z: -45, note: 'Rail loading facility 2' },
+    { type: 'bunker', params: [], x: 0, z: -55, note: 'Mine shaft shelter' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // BELGOROD
   // ═══════════════════════════════════════════════════════════
   CITIES.belgorod = [
-    { type: 'sovietApartment', params: [16, 8, 5, 0.2, 9], x: -40, z: -20, note: 'Apartment block — city center north' },
+{ type: 'sovietApartment', params: [16, 8, 5, 0.2, 9], x: -40, z: -20, note: 'Apartment block — city center north' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.2, 80], x: -20, z: -20, note: 'Apartment block — city center north' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.2, 81], x: 0, z: -20, note: 'Apartment block — city center north' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.2, 82], x: 20, z: -20, note: 'Apartment block — city center north' },
@@ -857,13 +1197,23 @@ const CityBuildings = (function () {
     { type: 'industrialFactory', params: [15, 10, 4, 92], x: 50, z: 10, note: 'Factory — east' },
     { type: 'warehouse', params: [12, 8, 3, 93], x: -50, z: 30, note: 'Warehouse — west' },
     { type: 'warehouse', params: [12, 8, 3, 95], x: 50, z: 30, note: 'Warehouse — east' },
+    { type: 'kremlinWall', params: [20, 8, 4, 9], x: -60, z: -20, note: 'Border checkpoint gate' },
+    { type: 'hangar', params: [20, 12, 4, 5], x: -55, z: 10, note: 'Military barracks (west)' },
+    { type: 'hangar', params: [20, 12, 4, 92], x: 55, z: 10, note: 'Military barracks (east)' },
+    { type: 'warehouse', params: [25, 15, 5, 93], x: -55, z: -40, note: 'Supply depot' },
+    { type: 'warehouse', params: [25, 15, 5, 94], x: 55, z: -40, note: 'Supply depot 2' },
+    { type: 'radarStation', params: [], x: -40, z: -50, note: 'Air defense radar' },
+    { type: 'radarStation', params: [], x: 40, z: -50, note: 'Air defense radar 2' },
+    { type: 'officeBuilding', params: [14, 10, 4, 95], x: -30, z: -45, note: 'Railway station' },
+    { type: 'officeBuilding', params: [14, 10, 4, 96], x: 30, z: -45, note: 'Railway station 2' },
+    { type: 'sandbagWall', params: [20, 17], x: -10, z: -55, note: 'Border sandbag wall' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // KREMLIN
   // ═══════════════════════════════════════════════════════════
   CITIES.kremlin = [
-    { type: 'kremlinWall', params: [80, 60, 8, 9], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, red brick, towers with green roofs and ruby stars' },
+{ type: 'kremlinWall', params: [80, 60, 8, 9], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, red brick, towers with green roofs and ruby stars' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 10], x: -20, z: -10, note: 'Assumption Cathedral — inside Kremlin, west' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 20], x: 0, z: -10, note: 'Archangel Cathedral — inside Kremlin, center' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 65], x: 20, z: -10, note: 'Annunciation Cathedral — inside Kremlin, east' },
@@ -891,13 +1241,23 @@ const CityBuildings = (function () {
     { type: 'monument', params: ["tank", 9], x: 40, z: 50, note: 'Tank monument — southeast' },
     { type: 'bunker', params: [], x: -20, z: 0, note: 'Kremlin bunker — inside walls' },
     { type: 'bunker', params: [], x: 20, z: 0, note: 'FSB bunker — near Lubyanka' },
+    { type: 'monument', params: ["obelisk", 9], x: -40, z: 35, note: 'Red Square podium' },
+    { type: 'monument', params: ["obelisk", 9], x: 40, z: 35, note: 'Red Square podium 2' },
+    { type: 'monument', params: ["obelisk", 9], x: -25, z: 35, note: 'Red Square podium 3' },
+    { type: 'monument', params: ["obelisk", 9], x: 25, z: 35, note: 'Red Square podium 4' },
+    { type: 'officeBuilding', params: [8, 6, 10, 3], x: -35, z: -10, note: 'Spasskaya Tower (red star)' },
+    { type: 'officeBuilding', params: [8, 6, 10, 105], x: 35, z: -10, note: 'Trinity Tower' },
+    { type: 'officeBuilding', params: [8, 6, 10, 10], x: -35, z: 10, note: 'Nikolskaya Tower' },
+    { type: 'officeBuilding', params: [8, 6, 10, 20], x: 35, z: 10, note: 'Troitskaya Tower' },
+    { type: 'fountain', params: [], x: -10, z: 45, note: 'Red Square fountain' },
+    { type: 'fountain', params: [], x: 10, z: 45, note: 'Red Square fountain 2' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // SNAKEISLAND
   // ═══════════════════════════════════════════════════════════
   CITIES.snakeIsland = [
-    { type: 'bunker', params: [], x: 0, z: 0, note: 'Main bunker' },
+{ type: 'bunker', params: [], x: 0, z: 0, note: 'Main bunker' },
     { type: 'bunker', params: [], x: -10, z: -10, note: 'Coastal defense bunker' },
     { type: 'bunker', params: [], x: 10, z: -10, note: 'Coastal defense bunker' },
     { type: 'bunker', params: [], x: -10, z: 10, note: 'Coastal defense bunker' },
@@ -908,13 +1268,23 @@ const CityBuildings = (function () {
     { type: 'warehouse', params: [8, 6, 3], x: 5, z: 5, note: 'Equipment shed' },
     { type: 'ruinedBuilding', params: [6, 6, 2, 1.0], x: -8, z: 0, note: 'Damaged structure' },
     { type: 'ruinedBuilding', params: [6, 6, 2, 1.0], x: 8, z: 0, note: 'Damaged structure' },
+    { type: 'lighthouse', params: [10], x: 5, z: -5, note: 'Snake Island lighthouse' },
+    { type: 'damagedBuilding', params: [6, 6, 2, 16], x: -5, z: -5, note: 'Small garrison building' },
+    { type: 'ukrainianFlag', params: [3, 3, 3], x: 0, z: 8, note: 'Ukrainian flagpole' },
+    { type: 'coastalFort', params: [], x: -8, z: 8, note: 'Coastal defense (west)' },
+    { type: 'coastalFort', params: [], x: 8, z: 8, note: 'Coastal defense (east)' },
+    { type: 'coastalFort', params: [], x: -8, z: -8, note: 'Coastal defense (northwest)' },
+    { type: 'coastalFort', params: [], x: 8, z: -8, note: 'Coastal defense (northeast)' },
+    { type: 'sandbagWall', params: [8, 17], x: -4, z: 0, note: 'Garrison sandbag wall' },
+    { type: 'observationPost', params: [6, 109], x: 0, z: -8, note: 'Observation post' },
+    { type: 'bunker', params: [], x: 5, z: 5, note: 'Ammo bunker' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // SAKY
   // ═══════════════════════════════════════════════════════════
   CITIES.saky = [
-    { type: 'airportTerminal', params: [20, 10, 4, 9], x: 0, z: -20, note: 'Airbase control tower' },
+{ type: 'airportTerminal', params: [20, 10, 4, 9], x: 0, z: -20, note: 'Airbase control tower' },
     { type: 'hangar', params: [25, 15, 6, 9], x: -30, z: -10, note: 'Aircraft hangar 1' },
     { type: 'hangar', params: [25, 15, 6, 9], x: 30, z: -10, note: 'Aircraft hangar 2' },
     { type: 'hangar', params: [20, 12, 5, 9], x: -30, z: 10, note: 'Aircraft hangar 3' },
@@ -934,13 +1304,23 @@ const CityBuildings = (function () {
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 9], x: 20, z: 20, note: 'Damaged building' },
     { type: 'ruinedBuilding', params: [8, 6, 2, 1.0, 10], x: -10, z: 40, note: 'Craters' },
     { type: 'ruinedBuilding', params: [8, 6, 2, 1.0, 72], x: 10, z: 40, note: 'Craters' },
+    { type: 'smokestack', params: [15, 92], x: -15, z: 40, note: 'Airfield smokestack' },
+    { type: 'hangar', params: [18, 10, 4, 9], x: -20, z: 50, note: 'Aircraft shelter 1' },
+    { type: 'hangar', params: [18, 10, 4, 9], x: 0, z: 50, note: 'Aircraft shelter 2' },
+    { type: 'hangar', params: [18, 10, 4, 9], x: 20, z: 50, note: 'Aircraft shelter 3' },
+    { type: 'damagedBuilding', params: [10, 8, 3, 16], x: -35, z: 40, note: 'Fuel depot (damaged)' },
+    { type: 'damagedBuilding', params: [10, 8, 3, 9], x: 35, z: 40, note: 'Fuel depot (damaged) 2' },
+    { type: 'bunker', params: [], x: -10, z: 40, note: 'Ammunition bunker' },
+    { type: 'bunker', params: [], x: 10, z: 40, note: 'Ammunition bunker 2' },
+    { type: 'sandbagWall', params: [12, 17], x: -15, z: -40, note: 'Perimeter sandbag wall' },
+    { type: 'sandbagWall', params: [12, 17], x: 15, z: -40, note: 'Perimeter sandbag wall 2' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // VUHLEDAR
   // ═══════════════════════════════════════════════════════════
   CITIES.vuhledar = [
-    { type: 'sovietApartment', params: [16, 8, 5, 0.5, 9], x: -30, z: -20, note: 'Damaged apartment' },
+{ type: 'sovietApartment', params: [16, 8, 5, 0.5, 9], x: -30, z: -20, note: 'Damaged apartment' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.6, 80], x: -10, z: -20, note: 'Heavily damaged apartment' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.7, 81], x: 10, z: -20, note: 'Ruined apartment' },
     { type: 'sovietApartment', params: [16, 8, 5, 0.5, 82], x: 30, z: -20, note: 'Damaged apartment' },
@@ -970,13 +1350,23 @@ const CityBuildings = (function () {
     { type: 'ruinedBuilding', params: [12, 8, 3, 2.0, 72], x: -50, z: 10, note: 'Ruined building' },
     { type: 'ruinedBuilding', params: [12, 8, 3, 2.0, 81], x: 50, z: 10, note: 'Ruined building' },
     { type: 'bunker', params: [], x: 0, z: 15, note: 'Trench bunker' },
+    { type: 'mineHeadframe', params: [12], x: -15, z: -5, note: 'Coal mine shaft 1' },
+    { type: 'mineHeadframe', params: [12], x: 15, z: -5, note: 'Coal mine shaft 2' },
+    { type: 'spoilTip', params: [12, 6], x: -40, z: -15, note: 'Mine tailings (west)' },
+    { type: 'spoilTip', params: [12, 6], x: 40, z: -15, note: 'Mine tailings (east)' },
+    { type: 'warehouse', params: [20, 8, 3, 93], x: -30, z: 40, note: 'Rail loading facility' },
+    { type: 'warehouse', params: [20, 8, 3, 94], x: 30, z: 40, note: 'Rail loading facility 2' },
+    { type: 'damagedBuilding', params: [14, 8, 4, 16], x: -20, z: 40, note: 'Worker housing (ruined)' },
+    { type: 'damagedBuilding', params: [14, 8, 4, 9], x: 0, z: 40, note: 'Worker housing (ruined) 2' },
+    { type: 'damagedBuilding', params: [14, 8, 4, 10], x: 20, z: 40, note: 'Worker housing (ruined) 3' },
+    { type: 'bunker', params: [], x: 0, z: 20, note: 'Mine shelter' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // ANTONOV
   // ═══════════════════════════════════════════════════════════
   CITIES.antonov = [
-    { type: 'antonovskyBridge', params: [50, 6, 4, 9], x: -25, z: 0, note: 'Antonovsky Bridge (damaged) — cable-stayed, bombed sections' },
+{ type: 'antonovskyBridge', params: [50, 6, 4, 9], x: -25, z: 0, note: 'Antonovsky Bridge (damaged) — cable-stayed, bombed sections' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 2.0, 16], x: -40, z: -15, note: 'Bridge checkpoint (ruined)' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 2.0, 9], x: 40, z: -15, note: 'Bridge checkpoint (ruined)' },
     { type: 'bunker', params: [], x: -20, z: -10, note: 'Bridge defense bunker' },
@@ -1003,13 +1393,23 @@ const CityBuildings = (function () {
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 113], x: 30, z: 40, note: 'Damaged house' },
     { type: 'sovietApartment', params: [12, 6, 3, 0.2, 20], x: -50, z: 30, note: 'Small apartment' },
     { type: 'sovietApartment', params: [12, 6, 3, 0.2, 84], x: 50, z: 30, note: 'Small apartment' },
+    { type: 'bridge', params: [30, 6, 3], x: -15, z: -20, note: 'Bridge approach (west)' },
+    { type: 'bridge', params: [30, 6, 3], x: -15, z: 20, note: 'Bridge approach (east)' },
+    { type: 'damagedBuilding', params: [10, 6, 3, 16], x: -50, z: -15, note: 'Checkpoint (west)' },
+    { type: 'damagedBuilding', params: [10, 6, 3, 9], x: 50, z: -15, note: 'Checkpoint (east)' },
+    { type: 'damagedBuilding', params: [8, 6, 2, 10], x: -50, z: 15, note: 'River bank ruin' },
+    { type: 'damagedBuilding', params: [8, 6, 2, 72], x: 50, z: 15, note: 'River bank ruin 2' },
+    { type: 'bunker', params: [], x: -35, z: -5, note: 'Bridge pillar bunker' },
+    { type: 'bunker', params: [], x: 35, z: -5, note: 'Bridge pillar bunker 2' },
+    { type: 'bunker', params: [], x: -35, z: 5, note: 'Bridge pillar bunker 3' },
+    { type: 'bunker', params: [], x: 35, z: 5, note: 'Bridge pillar bunker 4' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // REFINERY
   // ═══════════════════════════════════════════════════════════
   CITIES.refinery = [
-    { type: 'distillationTower', params: [20, 9], x: 0, z: 0, note: 'Main distillation tower' },
+{ type: 'distillationTower', params: [20, 9], x: 0, z: 0, note: 'Main distillation tower' },
     { type: 'distillationTower', params: [16, 9], x: -25, z: -10, note: 'Cracking unit' },
     { type: 'distillationTower', params: [16, 9], x: 25, z: -10, note: 'Reforming unit' },
     { type: 'industrialFactory', params: [25, 15, 6, 5], x: -30, z: -35, note: 'Hydrotreater' },
@@ -1031,13 +1431,23 @@ const CityBuildings = (function () {
     { type: 'monument', params: ["tank", 9], x: 50, z: 0, note: 'Security monument' },
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 16], x: -30, z: 30, note: 'Damaged tank' },
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 9], x: 30, z: 30, note: 'Damaged tank' },
+    { type: 'flareStack', params: [12], x: -15, z: -50, note: 'Flare stack 1' },
+    { type: 'flareStack', params: [12], x: 15, z: -50, note: 'Flare stack 2' },
+    { type: 'flareStack', params: [10], x: 0, z: -55, note: 'Flare stack 3' },
+    { type: 'storageTank', params: [5, 6, 9], x: -35, z: 35, note: 'Oil storage tank 5' },
+    { type: 'storageTank', params: [5, 6, 9], x: -20, z: 35, note: 'Oil storage tank 6' },
+    { type: 'storageTank', params: [5, 6, 9], x: 20, z: 35, note: 'Oil storage tank 7' },
+    { type: 'storageTank', params: [5, 6, 9], x: 35, z: 35, note: 'Oil storage tank 8' },
+    { type: 'damagedBuilding', params: [12, 8, 4, 80], x: -10, z: 45, note: 'Control room (damaged)' },
+    { type: 'damagedBuilding', params: [12, 8, 4, 81], x: 10, z: 45, note: 'Pipeline control (damaged)' },
+    { type: 'industrialFactory', params: [25, 4, 3, 93], x: -30, z: 0, note: 'Pipeline network' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // TREELINE
   // ═══════════════════════════════════════════════════════════
   CITIES.treeline = [
-    { type: 'wheatField', params: [60, 40], x: -30, z: -20, note: 'Wheat field — approach to treeline' },
+{ type: 'wheatField', params: [60, 40], x: -30, z: -20, note: 'Wheat field — approach to treeline' },
     { type: 'trenches', params: [20, 9], x: -20, z: -15, note: 'Forward trench line' },
     { type: 'trenches', params: [20, 9], x: -10, z: -15, note: 'Forward trench line' },
     { type: 'trenches', params: [20, 9], x: 0, z: -15, note: 'Forward trench line' },
@@ -1061,13 +1471,23 @@ const CityBuildings = (function () {
     { type: 'ruinedBuilding', params: [6, 6, 2, 0.6, 16], x: 25, z: 15, note: 'Destroyed shed' },
     { type: 'trenches', params: [15, 9], x: -15, z: 25, note: 'Secondary trench' },
     { type: 'trenches', params: [15, 9], x: 15, z: 25, note: 'Secondary trench' },
+    { type: 'observationPost', params: [6, 109], x: -25, z: -20, note: 'Forward observation post' },
+    { type: 'observationPost', params: [6, 109], x: 25, z: -20, note: 'Forward observation post 2' },
+    { type: 'sandbagWall', params: [20, 17], x: -30, z: -15, note: 'Main sandbag wall' },
+    { type: 'sandbagWall', params: [20, 17], x: 30, z: -15, note: 'Main sandbag wall 2' },
+    { type: 'sandbagWall', params: [15, 17], x: -15, z: 20, note: 'Rear sandbag wall' },
+    { type: 'sandbagWall', params: [15, 17], x: 15, z: 20, note: 'Rear sandbag wall 2' },
+    { type: 'wheatField', params: [30, 20], x: -50, z: -30, note: 'Wheat field (west)' },
+    { type: 'wheatField', params: [30, 20], x: 50, z: -30, note: 'Wheat field (east)' },
+    { type: 'bunker', params: [], x: -25, z: 5, note: 'Command bunker' },
+    { type: 'bunker', params: [], x: 25, z: 5, note: 'Command bunker 2' }
   ];
 
   // ═══════════════════════════════════════════════════════════
   // SIEGEMOSCOW
   // ═══════════════════════════════════════════════════════════
   CITIES.siegeMoscow = [
-    { type: 'kremlinWall', params: [80, 60, 8], x: 0, z: 0, note: 'Kremlin walls — final showdown location' },
+{ type: 'kremlinWall', params: [80, 60, 8], x: 0, z: 0, note: 'Kremlin walls — final showdown location' },
     { type: 'stBasilCathedral', params: [], x: 0, z: 35, note: 'St. Basil’s Cathedral — south end of Red Square' },
     { type: 'stateHistoricalMuseum', params: [12, 8, 4], x: -30, z: 35, note: 'Historical Museum — north of Red Square' },
     { type: 'gumDepartmentStore', params: [12, 8, 4], x: 30, z: 35, note: 'GUM Department Store — east of Red Square' },
@@ -1102,30 +1522,240 @@ const CityBuildings = (function () {
     { type: 'bunker', params: [], x: 20, z: 25, note: 'Metro-2 secret line — northeast' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: -30, z: 50, note: 'Damaged building — southwest approach' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: 30, z: 50, note: 'Damaged building — southeast approach' },
+    { type: 'propagandaBillboard', params: [10, 5], x: -35, z: 30, note: 'Propaganda screen (west)' },
+    { type: 'propagandaBillboard', params: [10, 5], x: 35, z: 30, note: 'Propaganda screen (east)' },
+    { type: 'propagandaBillboard', params: [10, 5], x: -20, z: 45, note: 'Propaganda screen (southwest)' },
+    { type: 'propagandaBillboard', params: [10, 5], x: 20, z: 45, note: 'Propaganda screen (southeast)' },
+    { type: 'barricade', params: [12], x: -30, z: 40, note: 'Barricade (southwest)' },
+    { type: 'barricade', params: [12], x: 30, z: 40, note: 'Barricade (southeast)' },
+    { type: 'barricade', params: [12], x: -15, z: 50, note: 'Barricade (south)' },
+    { type: 'tankTrap', params: [6], x: -40, z: 45, note: 'Tank traps (southwest)' },
+    { type: 'tankTrap', params: [6], x: 40, z: 45, note: 'Tank traps (southeast)' },
+    { type: 'tankTrap', params: [6], x: 0, z: 55, note: 'Tank traps (south)' }
   ];
 
   // ── Road Networks ─────────────────────────────────────────
   const ROADS = {};
-  ROADS.hostomel = [[[-60,0],[-40,0],[-20,0],[0,0],[20,0],[40,0],[60,0]],[[-40,-20],[-40,0],[-40,20],[-40,40]],[[-50,40],[-30,40],[-10,40],[10,40],[30,40],[50,40]],[[-70,-50],[-50,-40],[-30,-30],[-10,-20],[10,-20],[30,-30],[50,-40],[70,-50]],[[20,60],[30,50],[40,40],[50,30],[60,20],[70,10]],[[-60,-50],[-60,-30],[-60,-10],[-60,10],[-60,30],[-60,50]],[[60,-30],[60,-10],[60,10],[60,30],[60,50],[60,70]],[[40,20],[50,20],[60,20],[70,20],[80,20],[90,20]],[[40,50],[50,50],[60,50],[70,50],[80,50]],[[0,-60],[0,-40],[0,-20],[0,0]]];
-  ROADS.avdiivka = [[[-20,-50],[-20,-30],[-20,-10],[-20,10],[-20,30],[-20,50]],[[-50,-10],[-30,-10],[-10,-10],[10,-10],[30,-10],[50,-10]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,20],[-30,20],[-10,20],[10,20],[30,20],[50,20]],[[-40,-40],[-40,-20],[-40,0],[-40,20],[-40,40]],[[40,-40],[40,-20],[40,0],[40,20],[40,40]],[[-20,-10],[-20,10],[0,10],[20,10],[20,-10]],[[-50,-40],[-40,-30],[-30,-20],[-20,-10],[-10,0]],[[10,0],[20,10],[30,20],[40,30],[50,40]],[[-50,40],[-25,40],[0,40],[25,40],[50,40]]];
-  ROADS.bakhmut = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,20],[-25,20],[0,20],[25,20],[50,20]],[[-50,-40],[-50,-20],[-50,0],[-50,20],[-50,40]],[[50,-40],[50,-20],[50,0],[50,20],[50,40]],[[-50,-50],[-40,-40],[-30,-30],[-20,-20],[-10,-10]],[[10,-10],[20,-20],[30,-30],[40,-40],[50,-50]],[[-10,10],[-20,20],[-30,30],[-40,40],[-50,50]],[[10,10],[20,20],[30,30],[40,40],[50,50]]];
-  ROADS.kherson = [[[-50,-25],[-30,-25],[-10,-25],[10,-25],[30,-25],[50,-25]],[[-20,-50],[-20,-30],[-20,-10],[-20,10],[-20,30],[-20,50]],[[20,-50],[20,-30],[20,-10],[20,10],[20,30],[20,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-15],[-30,-15],[-10,-15],[10,-15],[30,-15],[50,-15]],[[-50,15],[-30,15],[-10,15],[10,15],[30,15],[50,15]],[[-50,-35],[-30,-35],[-10,-35],[10,-35],[30,-35]],[[-30,35],[-10,35],[10,35],[30,35],[50,35]],[[-50,-50],[-30,-30],[-10,-10],[10,10],[30,30],[50,50]],[[50,-50],[30,-30],[10,-10],[-10,10],[-30,30],[-50,50]]];
-  ROADS.mariupol = [[[-50,50],[-50,30],[-50,10],[-50,-10],[-50,-30],[-50,-50]],[[-50,50],[-30,50],[-10,50],[10,50],[30,50],[50,50]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[50,50],[50,30],[50,10],[50,-10],[50,-30],[50,-50]],[[-50,30],[-30,30],[-10,30],[10,30],[30,30],[50,30]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,-10],[-30,-10],[-10,0],[10,0],[30,10],[50,20]],[[-40,-40],[-40,-20],[-40,0],[-40,20],[-40,40]],[[40,-40],[40,-20],[40,0],[40,20],[40,40]],[[-50,40],[-30,40],[0,40],[30,40],[50,40]]];
-  ROADS.crimea = [[[-50,0],[-40,0],[-30,0],[-20,0]],[[20,0],[30,0],[40,0],[50,0]],[[-50,-20],[-40,-20],[-30,-20],[-20,-20]],[[-50,20],[-40,20],[-30,20],[-20,20]],[[20,-20],[30,-20],[40,-20],[50,-20]],[[20,20],[30,20],[40,20],[50,20]],[[-50,-10],[-40,-10],[-30,-10]],[[30,-10],[40,-10],[50,-10]],[[-45,-15],[-45,0],[-45,15]],[[45,-15],[45,0],[45,15]]];
-  ROADS.chornobyl = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-50],[-30,-50],[-10,-50],[10,-50],[30,-50],[50,-50]],[[-50,-20],[-30,-20],[-10,-20],[10,-20],[30,-20],[50,-20]],[[-50,20],[-30,20],[-10,20],[10,20],[30,20],[50,20]],[[-50,-50],[-50,-30],[-50,-10],[-50,10],[-50,30],[-50,50]],[[50,-50],[50,-30],[50,-10],[50,10],[50,30],[50,50]],[[-20,-70],[0,-70],[20,-70]],[[-30,20],[-30,0],[-30,-20],[-30,-40]],[[-50,50],[-30,30],[-10,10],[10,-10],[30,-30],[50,-50]]];
-  ROADS.moscow = [[[0,-50],[0,-30],[0,-10],[0,0],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[0,0],[10,0],[30,0],[50,0]],[[-30,30],[-10,30],[10,30],[30,30]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,50],[-25,50],[0,50],[25,50],[50,50]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-50,-50],[-25,-50],[0,-50],[25,-50],[50,-50]],[[-40,-20],[-30,-10],[-20,0],[-10,10],[0,20]],[[-35,-40],[-25,-30],[-15,-20],[-5,-10]]];
-  ROADS.sevastopol = [[[-50,-50],[-30,-50],[-10,-50],[10,-50],[30,-50],[50,-50]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,30],[-30,30],[-10,30],[10,30],[30,30],[50,30]],[[-50,-50],[-50,-30],[-50,-10],[-50,10],[-50,30],[-50,50]],[[50,-50],[50,-30],[50,-10],[50,10],[50,30],[50,50]],[[-30,-20],[-30,0],[-30,20],[-10,20],[10,20],[30,20]],[[-40,-40],[-20,-40],[0,-40],[20,-40],[40,-40]],[[-40,40],[-20,40],[0,40],[20,40],[40,40]],[[-50,-10],[-30,-10],[-10,-10],[10,-10],[30,-10],[50,-10]]];
-  ROADS.donbas = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,20],[-25,20],[0,20],[25,20],[50,20]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-40,-40],[-40,-20],[-40,0],[-40,20],[-40,40]],[[40,-40],[40,-20],[40,0],[40,20],[40,40]],[[-50,-50],[-25,-25],[0,0],[25,25],[50,50]],[[50,-50],[25,-25],[0,0],[-25,25],[-50,50]]];
-  ROADS.belgorod = [[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,20],[-25,20],[0,20],[25,20],[50,20]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-40],[-10,-40],[10,-40],[30,-40]],[[-30,40],[-10,40],[10,40],[30,40]],[[-50,-50],[-25,-25],[0,0],[25,25],[50,50]],[[50,-50],[25,-25],[0,0],[-25,25],[-50,50]]];
-  ROADS.kremlin = [[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-35],[0,-20],[-10,-10],[-20,0]],[[-20,-20],[0,-20],[20,-20],[20,0],[20,20],[0,20],[-20,20],[-20,0]],[[-50,-35],[-25,-35],[0,-35],[25,-35],[50,-35]],[[-50,35],[-25,35],[0,35],[25,35],[50,35]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-30],[-30,0],[-30,30],[0,30],[30,30],[30,0],[30,-30],[0,-30]],[[-50,-50],[-50,0],[-50,50],[0,50],[50,50],[50,0],[50,-50],[0,-50]]];
-  ROADS.kyiv = [[[-50,0],[-30,0],[-10,0],[0,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30]],[[15,-50],[15,-30],[15,-10],[15,10],[15,30]],[[45,-50],[45,-30],[45,-10],[45,10],[45,30],[45,50]],[[-18,-50],[-18,-30],[-18,-10],[-18,10]],[[-20,-15],[-22,-5],[-25,5],[-28,15]],[[10,10],[15,15],[20,20],[25,30],[28,40]],[[-50,-20],[-35,-20],[-20,-18],[-15,-15]],[[30,-20],[40,-10],[45,0],[48,20],[50,40]],[[-10,30],[10,30],[25,30],[40,30],[50,30]]];
-  ROADS.snakeIsland = [[[-10,0],[0,0],[10,0]],[[0,-10],[0,0],[0,10]],[[-8,-8],[0,0],[8,8]],[[8,-8],[0,0],[-8,8]],[[-5,-5],[5,-5]],[[-5,5],[5,5]],[[-5,-5],[-5,5]],[[5,-5],[5,5]],[[-10,-5],[-10,5]],[[10,-5],[10,5]]];
-  ROADS.saky = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-30],[-25,-30],[0,-30],[25,-30],[50,-30]],[[-50,30],[-25,30],[0,30],[25,30],[50,30]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-20],[-30,0],[-30,20]],[[30,-20],[30,0],[30,20]],[[-20,20],[0,20],[20,20]],[[-15,-15],[0,-15],[15,-15]]];
-  ROADS.vuhledar = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,20],[-25,20],[0,20],[25,20],[50,20]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-40],[-30,-20],[-30,0],[-30,20]],[[30,-40],[30,-20],[30,0],[30,20]],[[-50,-50],[-25,-25],[0,0],[25,25],[50,50]],[[50,-50],[25,-25],[0,0],[-25,25],[-50,50]]];
-  ROADS.antonov = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-20],[-30,-20],[-10,-20],[0,-20]],[[0,-20],[10,-20],[30,-20],[50,-20]],[[-50,0],[-50,-20],[-50,-40]],[[50,0],[50,-20],[50,-40]],[[-50,-30],[-30,-30],[-10,-30]],[[10,-30],[30,-30],[50,-30]],[[-40,10],[-40,30],[-40,50]],[[40,10],[40,30],[40,50]],[[-20,-10],[-20,10],[-20,30]]];
-  ROADS.refinery = [[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-30],[-25,-30],[0,-30],[25,-30],[50,-30]],[[-50,30],[-25,30],[0,30],[25,30],[50,30]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-20],[-30,0],[-30,20]],[[30,-20],[30,0],[30,20]],[[-20,20],[0,20],[20,20]],[[-20,-20],[0,-20],[20,-20]]];
-  ROADS.treeline = [[[-30,-30],[-20,-20],[-10,-10],[0,0],[10,10],[20,20]],[[-30,30],[-20,20],[-10,10],[0,0],[10,-10],[20,-20]],[[-30,0],[-20,0],[-10,0],[0,0],[10,0],[20,0]],[[0,-30],[0,-20],[0,-10],[0,0],[0,10],[0,20]],[[-20,-20],[0,-20],[20,-20]],[[-20,20],[0,20],[20,20]],[[-20,-20],[-20,0],[-20,20]],[[20,-20],[20,0],[20,20]],[[-40,-10],[-30,-10],[-20,-10]],[[20,10],[30,10],[40,10]]];
-  ROADS.siegeMoscow = [[[0,-60],[0,-40],[0,-20],[0,0],[0,20],[0,40],[0,60]],[[-60,0],[-40,0],[-20,0],[0,0],[20,0],[40,0],[60,0]],[[0,-60],[-10,-50],[-20,-40],[-30,-30]],[[-30,-30],[-30,0],[-30,30],[0,30],[30,30],[30,0],[30,-30],[0,-30]],[[-50,-50],[-50,0],[-50,50],[0,50],[50,50],[50,0],[50,-50],[0,-50]],[[-60,-40],[-30,-40],[0,-40],[30,-40],[60,-40]],[[-60,40],[-30,40],[0,40],[30,40],[60,40]],[[-40,-60],[-40,-30],[-40,0],[-40,30],[-40,60]],[[40,-60],[40,-30],[40,0],[40,30],[40,60]],[[-60,-60],[-60,0],[-60,60],[0,60],[60,60],[60,0],[60,-60],[0,-60]]];
+  ROADS.hostomel = [[[-60,0],[-40,0],[-20,0],[0,0],[20,0],[40,0],[60,0]],[[-40,-20],[-40,0],[-40,20],[-40,40]],[[-50,40],[-30,40],[-10,40],[10,40],[30,40],[50,40]],[[-70,-50],[-50,-40],[-30,-30],[-10,-20],[10,-20],[30,-30],[50,-40],[70,-50]],[[20,60],[30,50],[40,40],[50,30],[60,20],[70,10]],[[-60,-50],[-60,-30],[-60,-10],[-60,10],[-60,30],[-60,50]],[[60,-30],[60,-10],[60,10],[60,30],[60,50],[60,70]],[[40,20],[50,20],[60,20],[70,20],[80,20],[90,20]],[[40,50],[50,50],[60,50],[70,50],[80,50]],[[0,-60],[0,-40],[0,-20],[0,0]]],
+[[-80, 0], [-60, 0], [-40, 0]],
+[[40, 0], [60, 0], [80, 0]],
+[[-80, -30], [-60, -20], [-40, -10]],
+[[80, -30], [60, -20], [40, -10]],
+[[-80, 30], [-60, 20], [-40, 10]],
+[[80, 30], [60, 20], [40, 10]],
+[[-80, -50], [-60, -40], [-40, -30]],
+[[80, -50], [60, -40], [40, -30]],
+[[-80, 50], [-60, 40], [-40, 30]],
+[[80, 50], [60, 40], [40, 30]]];
+  ROADS.avdiivka = [[[-20,-50],[-20,-30],[-20,-10],[-20,10],[-20,30],[-20,50]],[[-50,-10],[-30,-10],[-10,-10],[10,-10],[30,-10],[50,-10]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,20],[-30,20],[-10,20],[10,20],[30,20],[50,20]],[[-40,-40],[-40,-20],[-40,0],[-40,20],[-40,40]],[[40,-40],[40,-20],[40,0],[40,20],[40,40]],[[-20,-10],[-20,10],[0,10],[20,10],[20,-10]],[[-50,-40],[-40,-30],[-30,-20],[-20,-10],[-10,0]],[[10,0],[20,10],[30,20],[40,30],[50,40]],[[-50,40],[-25,40],[0,40],[25,40],[50,40]]],
+[[-80, -20], [-60, -20], [-40, -20]],
+[[80, -20], [60, -20], [40, -20]],
+[[-80, 30], [-60, 30], [-40, 30]],
+[[80, 30], [60, 30], [40, 30]],
+[[-80, -40], [-60, -40], [-40, -40]],
+[[80, -40], [60, -40], [40, -40]],
+[[-80, 0], [-60, 0], [-40, 0]],
+[[80, 0], [60, 0], [40, 0]],
+[[-80, 50], [-60, 50], [-40, 50]],
+[[80, 50], [60, 50], [40, 50]]];
+  ROADS.bakhmut = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,20],[-25,20],[0,20],[25,20],[50,20]],[[-50,-40],[-50,-20],[-50,0],[-50,20],[-50,40]],[[50,-40],[50,-20],[50,0],[50,20],[50,40]],[[-50,-50],[-40,-40],[-30,-30],[-20,-20],[-10,-10]],[[10,-10],[20,-20],[30,-30],[40,-40],[50,-50]],[[-10,10],[-20,20],[-30,30],[-40,40],[-50,50]],[[10,10],[20,20],[30,30],[40,40],[50,50]]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[50, 0], [60, 0], [70, 0]],
+[[0, -70], [0, -60], [0, -50]],
+[[0, 50], [0, 60], [0, 70]],
+[[-70, -30], [-60, -30], [-50, -30]],
+[[50, -30], [60, -30], [70, -30]],
+[[-70, 30], [-60, 30], [-50, 30]],
+[[50, 30], [60, 30], [70, 30]],
+[[-70, -50], [-60, -50], [-50, -50]],
+[[50, -50], [60, -50], [70, -50]]];
+  ROADS.kherson = [[[-50,-25],[-30,-25],[-10,-25],[10,-25],[30,-25],[50,-25]],[[-20,-50],[-20,-30],[-20,-10],[-20,10],[-20,30],[-20,50]],[[20,-50],[20,-30],[20,-10],[20,10],[20,30],[20,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-15],[-30,-15],[-10,-15],[10,-15],[30,-15],[50,-15]],[[-50,15],[-30,15],[-10,15],[10,15],[30,15],[50,15]],[[-50,-35],[-30,-35],[-10,-35],[10,-35],[30,-35]],[[-30,35],[-10,35],[10,35],[30,35],[50,35]],[[-50,-50],[-30,-30],[-10,-10],[10,10],[30,30],[50,50]],[[50,-50],[30,-30],[10,-10],[-10,10],[-30,30],[-50,50]]],
+[[-60, -35], [-50, -30], [-40, -25]],
+[[60, -35], [50, -30], [40, -25]],
+[[-60, 35], [-50, 30], [-40, 25]],
+[[60, 35], [50, 30], [40, 25]],
+[[-60, -45], [-50, -35], [-40, -25]],
+[[60, -45], [50, -35], [40, -25]],
+[[-60, 45], [-50, 35], [-40, 25]],
+[[60, 45], [50, 35], [40, 25]],
+[[-30, 50], [-20, 45], [-10, 40]],
+[[30, 50], [20, 45], [10, 40]]];
+  ROADS.mariupol = [[[-50,50],[-50,30],[-50,10],[-50,-10],[-50,-30],[-50,-50]],[[-50,50],[-30,50],[-10,50],[10,50],[30,50],[50,50]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[50,50],[50,30],[50,10],[50,-10],[50,-30],[50,-50]],[[-50,30],[-30,30],[-10,30],[10,30],[30,30],[50,30]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,-10],[-30,-10],[-10,0],[10,0],[30,10],[50,20]],[[-40,-40],[-40,-20],[-40,0],[-40,20],[-40,40]],[[40,-40],[40,-20],[40,0],[40,20],[40,40]],[[-50,40],[-30,40],[0,40],[30,40],[50,40]]],
+[[-70, -50], [-60, -50], [-50, -50]],
+[[70, -50], [60, -50], [50, -50]],
+[[-70, 60], [-60, 60], [-50, 60]],
+[[70, 60], [60, 60], [50, 60]],
+[[-70, -30], [-60, -30], [-50, -30]],
+[[70, -30], [60, -30], [50, -30]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]],
+[[-70, 30], [-60, 30], [-50, 30]],
+[[70, 30], [60, 30], [50, 30]]];
+  ROADS.crimea = [[[-50,0],[-40,0],[-30,0],[-20,0]],[[20,0],[30,0],[40,0],[50,0]],[[-50,-20],[-40,-20],[-30,-20],[-20,-20]],[[-50,20],[-40,20],[-30,20],[-20,20]],[[20,-20],[30,-20],[40,-20],[50,-20]],[[20,20],[30,20],[40,20],[50,20]],[[-50,-10],[-40,-10],[-30,-10]],[[30,-10],[40,-10],[50,-10]],[[-45,-15],[-45,0],[-45,15]],[[45,-15],[45,0],[45,15]]],
+[[-70, -30], [-60, -20], [-50, -10]],
+[[70, -30], [60, -20], [50, -10]],
+[[-70, 30], [-60, 20], [-50, 10]],
+[[70, 30], [60, 20], [50, 10]],
+[[-70, -50], [-60, -40], [-50, -30]],
+[[70, -50], [60, -40], [50, -30]],
+[[-70, 50], [-60, 40], [-50, 30]],
+[[70, 50], [60, 40], [50, 30]],
+[[-60, -40], [-50, -30], [-40, -20]],
+[[60, -40], [50, -30], [40, -20]]];
+  ROADS.chornobyl = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-50],[-30,-50],[-10,-50],[10,-50],[30,-50],[50,-50]],[[-50,-20],[-30,-20],[-10,-20],[10,-20],[30,-20],[50,-20]],[[-50,20],[-30,20],[-10,20],[10,20],[30,20],[50,20]],[[-50,-50],[-50,-30],[-50,-10],[-50,10],[-50,30],[-50,50]],[[50,-50],[50,-30],[50,-10],[50,10],[50,30],[50,50]],[[-20,-70],[0,-70],[20,-70]],[[-30,20],[-30,0],[-30,-20],[-30,-40]],[[-50,50],[-30,30],[-10,10],[10,-10],[30,-30],[50,-50]]],
+[[-70, -70], [-50, -70], [-30, -70]],
+[[70, -70], [50, -70], [30, -70]],
+[[-70, 70], [-50, 70], [-30, 70]],
+[[70, 70], [50, 70], [30, 70]],
+[[-70, -40], [-50, -40], [-30, -40]],
+[[70, -40], [50, -40], [30, -40]],
+[[-70, 40], [-50, 40], [-30, 40]],
+[[70, 40], [50, 40], [30, 40]],
+[[-70, 0], [-50, 0], [-30, 0]],
+[[70, 0], [50, 0], [30, 0]]];
+  ROADS.moscow = [[[0,-50],[0,-30],[0,-10],[0,0],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[0,0],[10,0],[30,0],[50,0]],[[-30,30],[-10,30],[10,30],[30,30]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,50],[-25,50],[0,50],[25,50],[50,50]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-50,-50],[-25,-50],[0,-50],[25,-50],[50,-50]],[[-40,-20],[-30,-10],[-20,0],[-10,10],[0,20]],[[-35,-40],[-25,-30],[-15,-20],[-5,-10]]],
+[[-70, -30], [-60, -20], [-50, -10]],
+[[70, -30], [60, -20], [50, -10]],
+[[-70, 30], [-60, 20], [-50, 10]],
+[[70, 30], [60, 20], [50, 10]],
+[[-70, -50], [-60, -40], [-50, -30]],
+[[70, -50], [60, -40], [50, -30]],
+[[-70, 50], [-60, 40], [-50, 30]],
+[[70, 50], [60, 40], [50, 30]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]]];
+  ROADS.sevastopol = [[[-50,-50],[-30,-50],[-10,-50],[10,-50],[30,-50],[50,-50]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,30],[-30,30],[-10,30],[10,30],[30,30],[50,30]],[[-50,-50],[-50,-30],[-50,-10],[-50,10],[-50,30],[-50,50]],[[50,-50],[50,-30],[50,-10],[50,10],[50,30],[50,50]],[[-30,-20],[-30,0],[-30,20],[-10,20],[10,20],[30,20]],[[-40,-40],[-20,-40],[0,-40],[20,-40],[40,-40]],[[-40,40],[-20,40],[0,40],[20,40],[40,40]],[[-50,-10],[-30,-10],[-10,-10],[10,-10],[30,-10],[50,-10]]],
+[[-70, -50], [-60, -50], [-50, -50]],
+[[70, -50], [60, -50], [50, -50]],
+[[-70, 70], [-60, 70], [-50, 70]],
+[[70, 70], [60, 70], [50, 70]],
+[[-70, -20], [-60, -20], [-50, -20]],
+[[70, -20], [60, -20], [50, -20]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]],
+[[-70, 20], [-60, 20], [-50, 20]],
+[[70, 20], [60, 20], [50, 20]]];
+  ROADS.donbas = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,20],[-25,20],[0,20],[25,20],[50,20]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-40,-40],[-40,-20],[-40,0],[-40,20],[-40,40]],[[40,-40],[40,-20],[40,0],[40,20],[40,40]],[[-50,-50],[-25,-25],[0,0],[25,25],[50,50]],[[50,-50],[25,-25],[0,0],[-25,25],[-50,50]]],
+[[-70, -40], [-60, -30], [-50, -20]],
+[[70, -40], [60, -30], [50, -20]],
+[[-70, 40], [-60, 30], [-50, 20]],
+[[70, 40], [60, 30], [50, 20]],
+[[-70, -60], [-60, -50], [-50, -40]],
+[[70, -60], [60, -50], [50, -40]],
+[[-70, 60], [-60, 50], [-50, 40]],
+[[70, 60], [60, 50], [50, 40]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]]];
+  ROADS.belgorod = [[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,20],[-25,20],[0,20],[25,20],[50,20]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-40],[-10,-40],[10,-40],[30,-40]],[[-30,40],[-10,40],[10,40],[30,40]],[[-50,-50],[-25,-25],[0,0],[25,25],[50,50]],[[50,-50],[25,-25],[0,0],[-25,25],[-50,50]]],
+[[-70, -30], [-60, -20], [-50, -10]],
+[[70, -30], [60, -20], [50, -10]],
+[[-70, 30], [-60, 20], [-50, 10]],
+[[70, 30], [60, 20], [50, 10]],
+[[-70, -50], [-60, -40], [-50, -30]],
+[[70, -50], [60, -40], [50, -30]],
+[[-70, 50], [-60, 40], [-50, 30]],
+[[70, 50], [60, 40], [50, 30]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]]];
+  ROADS.kremlin = [[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-35],[0,-20],[-10,-10],[-20,0]],[[-20,-20],[0,-20],[20,-20],[20,0],[20,20],[0,20],[-20,20],[-20,0]],[[-50,-35],[-25,-35],[0,-35],[25,-35],[50,-35]],[[-50,35],[-25,35],[0,35],[25,35],[50,35]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-30],[-30,0],[-30,30],[0,30],[30,30],[30,0],[30,-30],[0,-30]],[[-50,-50],[-50,0],[-50,50],[0,50],[50,50],[50,0],[50,-50],[0,-50]]],
+[[-70, -50], [-60, -40], [-50, -30]],
+[[70, -50], [60, -40], [50, -30]],
+[[-70, 50], [-60, 40], [-50, 30]],
+[[70, 50], [60, 40], [50, 30]],
+[[-70, -20], [-60, -20], [-50, -20]],
+[[70, -20], [60, -20], [50, -20]],
+[[-70, 20], [-60, 20], [-50, 20]],
+[[70, 20], [60, 20], [50, 20]],
+[[-70, -50], [-70, 0], [-70, 50]],
+[[70, -50], [70, 0], [70, 50]]];
+  ROADS.kyiv = [[[-50,0],[-30,0],[-10,0],[0,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30]],[[15,-50],[15,-30],[15,-10],[15,10],[15,30]],[[45,-50],[45,-30],[45,-10],[45,10],[45,30],[45,50]],[[-18,-50],[-18,-30],[-18,-10],[-18,10]],[[-20,-15],[-22,-5],[-25,5],[-28,15]],[[10,10],[15,15],[20,20],[25,30],[28,40]],[[-50,-20],[-35,-20],[-20,-18],[-15,-15]],[[30,-20],[40,-10],[45,0],[48,20],[50,40]],[[-10,30],[10,30],[25,30],[40,30],[50,30]]],
+[[-70, -30], [-60, -20], [-50, -10]],
+[[70, -30], [60, -20], [50, -10]],
+[[-70, 30], [-60, 20], [-50, 10]],
+[[70, 30], [60, 20], [50, 10]],
+[[-70, -50], [-60, -40], [-50, -30]],
+[[70, -50], [60, -40], [50, -30]],
+[[-70, 50], [-60, 40], [-50, 30]],
+[[70, 50], [60, 40], [50, 30]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]]];
+  ROADS.snakeIsland = [[[-10,0],[0,0],[10,0]],[[0,-10],[0,0],[0,10]],[[-8,-8],[0,0],[8,8]],[[8,-8],[0,0],[-8,8]],[[-5,-5],[5,-5]],[[-5,5],[5,5]],[[-5,-5],[-5,5]],[[5,-5],[5,5]],[[-10,-5],[-10,5]],[[10,-5],[10,5]]],
+[[-15, -5], [-10, 0], [-5, 5]],
+[[15, -5], [10, 0], [5, 5]],
+[[-15, 5], [-10, 0], [-5, -5]],
+[[15, 5], [10, 0], [5, -5]],
+[[-12, -12], [-6, -6], [0, 0]],
+[[12, -12], [6, -6], [0, 0]],
+[[-12, 12], [-6, 6], [0, 0]],
+[[12, 12], [6, 6], [0, 0]],
+[[-5, -15], [0, -10], [5, -5]],
+[[-5, 15], [0, 10], [5, 5]]];
+  ROADS.saky = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-30],[-25,-30],[0,-30],[25,-30],[50,-30]],[[-50,30],[-25,30],[0,30],[25,30],[50,30]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-20],[-30,0],[-30,20]],[[30,-20],[30,0],[30,20]],[[-20,20],[0,20],[20,20]],[[-15,-15],[0,-15],[15,-15]]],
+[[-70, -50], [-60, -40], [-50, -30]],
+[[70, -50], [60, -40], [50, -30]],
+[[-70, 50], [-60, 40], [-50, 30]],
+[[70, 50], [60, 40], [50, 30]],
+[[-70, -20], [-60, -20], [-50, -20]],
+[[70, -20], [60, -20], [50, -20]],
+[[-70, 20], [-60, 20], [-50, 20]],
+[[70, 20], [60, 20], [50, 20]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]]];
+  ROADS.vuhledar = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,20],[-25,20],[0,20],[25,20],[50,20]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-40],[-30,-20],[-30,0],[-30,20]],[[30,-40],[30,-20],[30,0],[30,20]],[[-50,-50],[-25,-25],[0,0],[25,25],[50,50]],[[50,-50],[25,-25],[0,0],[-25,25],[-50,50]]],
+[[-70, -40], [-60, -30], [-50, -20]],
+[[70, -40], [60, -30], [50, -20]],
+[[-70, 40], [-60, 30], [-50, 20]],
+[[70, 40], [60, 30], [50, 20]],
+[[-70, -60], [-60, -50], [-50, -40]],
+[[70, -60], [60, -50], [50, -40]],
+[[-70, 60], [-60, 50], [-50, 40]],
+[[70, 60], [60, 50], [50, 40]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]]];
+  ROADS.antonov = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-20],[-30,-20],[-10,-20],[0,-20]],[[0,-20],[10,-20],[30,-20],[50,-20]],[[-50,0],[-50,-20],[-50,-40]],[[50,0],[50,-20],[50,-40]],[[-50,-30],[-30,-30],[-10,-30]],[[10,-30],[30,-30],[50,-30]],[[-40,10],[-40,30],[-40,50]],[[40,10],[40,30],[40,50]],[[-20,-10],[-20,10],[-20,30]]],
+[[-70, -30], [-60, -20], [-50, -10]],
+[[70, -30], [60, -20], [50, -10]],
+[[-70, 30], [-60, 20], [-50, 10]],
+[[70, 30], [60, 20], [50, 10]],
+[[-70, -50], [-60, -40], [-50, -30]],
+[[70, -50], [60, -40], [50, -30]],
+[[-70, 50], [-60, 40], [-50, 30]],
+[[70, 50], [60, 40], [50, 30]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]]];
+  ROADS.refinery = [[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-30],[-25,-30],[0,-30],[25,-30],[50,-30]],[[-50,30],[-25,30],[0,30],[25,30],[50,30]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-20],[-30,0],[-30,20]],[[30,-20],[30,0],[30,20]],[[-20,20],[0,20],[20,20]],[[-20,-20],[0,-20],[20,-20]]],
+[[-70, -50], [-60, -40], [-50, -30]],
+[[70, -50], [60, -40], [50, -30]],
+[[-70, 50], [-60, 40], [-50, 30]],
+[[70, 50], [60, 40], [50, 30]],
+[[-70, -20], [-60, -20], [-50, -20]],
+[[70, -20], [60, -20], [50, -20]],
+[[-70, 20], [-60, 20], [-50, 20]],
+[[70, 20], [60, 20], [50, 20]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]]];
+  ROADS.treeline = [[[-30,-30],[-20,-20],[-10,-10],[0,0],[10,10],[20,20]],[[-30,30],[-20,20],[-10,10],[0,0],[10,-10],[20,-20]],[[-30,0],[-20,0],[-10,0],[0,0],[10,0],[20,0]],[[0,-30],[0,-20],[0,-10],[0,0],[0,10],[0,20]],[[-20,-20],[0,-20],[20,-20]],[[-20,20],[0,20],[20,20]],[[-20,-20],[-20,0],[-20,20]],[[20,-20],[20,0],[20,20]],[[-40,-10],[-30,-10],[-20,-10]],[[20,10],[30,10],[40,10]]],
+[[-50, -40], [-40, -30], [-30, -20]],
+[[50, -40], [40, -30], [30, -20]],
+[[-50, 40], [-40, 30], [-30, 20]],
+[[50, 40], [40, 30], [30, 20]],
+[[-50, -50], [-30, -30], [-10, -10]],
+[[50, -50], [30, -30], [10, -10]],
+[[-50, 50], [-30, 30], [-10, 10]],
+[[50, 50], [30, 30], [10, 10]],
+[[-40, 0], [-20, 0], [0, 0]],
+[[40, 0], [20, 0], [0, 0]]];
+  ROADS.siegeMoscow = [[[0,-60],[0,-40],[0,-20],[0,0],[0,20],[0,40],[0,60]],[[-60,0],[-40,0],[-20,0],[0,0],[20,0],[40,0],[60,0]],[[0,-60],[-10,-50],[-20,-40],[-30,-30]],[[-30,-30],[-30,0],[-30,30],[0,30],[30,30],[30,0],[30,-30],[0,-30]],[[-50,-50],[-50,0],[-50,50],[0,50],[50,50],[50,0],[50,-50],[0,-50]],[[-60,-40],[-30,-40],[0,-40],[30,-40],[60,-40]],[[-60,40],[-30,40],[0,40],[30,40],[60,40]],[[-40,-60],[-40,-30],[-40,0],[-40,30],[-40,60]],[[40,-60],[40,-30],[40,0],[40,30],[40,60]],[[-60,-60],[-60,0],[-60,60],[0,60],[60,60],[60,0],[60,-60],[0,-60]]],
+[[-70, -60], [-60, -50], [-50, -40]],
+[[70, -60], [60, -50], [50, -40]],
+[[-70, 60], [-60, 50], [-50, 40]],
+[[70, 60], [60, 50], [50, 40]],
+[[-70, -30], [-60, -30], [-50, -30]],
+[[70, -30], [60, -30], [50, -30]],
+[[-70, 30], [-60, 30], [-50, 30]],
+[[70, 30], [60, 30], [50, 30]],
+[[-70, 0], [-60, 0], [-50, 0]],
+[[70, 0], [60, 0], [50, 0]]];
 
   // ── Map stage names to city keys ──────────────────────────
   const STAGE_MAP = { HOSTOMEL:'hostomel', AVDIIVKA:'avdiivka', BAKHMUT:'bakhmut', KHERSON:'kherson', MARIUPOL:'mariupol', CRIMEA:'crimea', CHORNOBYL:'chornobyl', MOSCOW:'moscow', SEVASTOPOL:'sevastopol', DONBAS:'donbas', BELGOROD:'belgorod', KREMLIN:'kremlin', KYIV:'kyiv', SNAKE:'snakeIsland', SAKY:'saky', VUHLEDAR:'vuhledar', ANTONOV:'antonov', REFINERY:'refinery', TREELINE:'treeline', SIEGE:'siegeMoscow' };
@@ -1148,6 +1778,11 @@ const CityBuildings = (function () {
     bridge: bridge, radarStation: radarStation, bunker: bunker,
     ruinedBuilding: ruinedBuilding, school: school,
     trenchLine: trenchLine, dugout: dugout, wheatField: wheatField, dragonsTeeth: dragonsTeeth,
+    smokestack: smokestack, damagedBuilding: damagedBuilding, sandbagWall: sandbagWall,
+    observationPost: observationPost, flareStack: flareStack, lighthouse: lighthouse,
+    barricade: barricade, tankTrap: tankTrap, propagandaBillboard: propagandaBillboard,
+    mineHeadframe: mineHeadframe, spoilTip: spoilTip, portCrane: portCrane,
+    metroEntrance: metroEntrance, fountain: fountain,
   };
 })();
 if (typeof window !== 'undefined') { window.CityBuildings = CityBuildings; }

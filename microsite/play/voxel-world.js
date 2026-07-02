@@ -210,6 +210,7 @@ window.VoxelWorld = (function () {
     FACADE_MUSTARD:  125,
     FACADE_CINNAMON: 126,
     FACADE_INDIGO:   127,
+    ROAD:            128,
   });
   if (typeof window !== 'undefined') window.BLOCK = BLOCK;
 
@@ -568,6 +569,7 @@ window.VoxelWorld = (function () {
     [BLOCK.FACADE_MUSTARD]:   0xFFDB58,
     [BLOCK.FACADE_CINNAMON]:  0xD2691E,
     [BLOCK.FACADE_INDIGO]:    0x4B0082,
+    [BLOCK.ROAD]:             0x34363A,
   };
   // Expose BLOCK_COLORS globally for legacy/stray references
   if (typeof window !== 'undefined') window.BLOCK_COLORS = BLOCK_COLORS;

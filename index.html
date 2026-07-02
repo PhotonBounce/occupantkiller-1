@@ -670,33 +670,33 @@
 
         <section class="start-section">
           <div class="start-section-title">🎖 ROLE</div>
-          <div id="start-role-select" class="start-section-row">
-            <button class="btn pill" id="start-role-brigade" style="border-color:#0af;color:#0af">🎖 ASSAULT BRIGADE</button>
-            <button class="btn pill" id="start-role-lonewolf" style="border-color:#fa0;color:#fa0">🐺 LONE WOLF</button>
+          <div id="start-role-select" class="start-selector-group">
+            <button class="selector-btn active" id="start-role-brigade" style="border-color:#0af;color:#0af"><span class="preview-icon">🎖</span> ASSAULT BRIGADE</button>
+            <button class="selector-btn" id="start-role-lonewolf" style="border-color:#888;color:#888"><span class="preview-icon">🐺</span> LONE WOLF</button>
           </div>
           <p id="start-role-desc" class="start-section-desc">Brigade: fight alongside your squad. Lone Wolf: observe &amp; engage freestyle.</p>
         </section>
 
         <section class="start-section">
           <div class="start-section-title">🚁 DRONE</div>
-          <div id="start-drone-row" class="start-section-row">
-            <button class="btn pill start-drone-btn" data-drone="" style="border-color:#888;color:#888">🚶 None</button>
-            <button class="btn pill start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444">🎯 FPV Kamikaze</button>
-            <button class="btn pill start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff">👁 Surveillance + LMG</button>
-            <button class="btn pill start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00">💣 Bomber</button>
+          <div id="start-drone-row" class="start-selector-group">
+            <button class="selector-btn start-drone-btn" data-drone="" style="border-color:#888;color:#888"><span class="preview-icon">🚶</span> None</button>
+            <button class="selector-btn start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444"><span class="preview-icon">🎯</span> FPV Kamikaze</button>
+            <button class="selector-btn start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff"><span class="preview-icon">👁</span> Surveillance + LMG</button>
+            <button class="selector-btn start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00"><span class="preview-icon">💣</span> Bomber</button>
           </div>
           <p id="start-drone-desc" class="start-section-desc">No drone — fight on foot (default).</p>
         </section>
 
         <section class="start-section start-section-wide">
           <div class="start-section-title">🪖 SQUAD FORMATION</div>
-          <div id="formation-select" class="start-section-row">
-            <button class="btn pill formation-btn active-formation" data-formation="wedge" style="border-color:#0af;color:#0af">▲ WEDGE</button>
-            <button class="btn pill formation-btn" data-formation="line" style="border-color:#888;color:#888">━ LINE</button>
-            <button class="btn pill formation-btn" data-formation="diamond" style="border-color:#888;color:#888">◆ DIAMOND</button>
-            <button class="btn pill formation-btn" data-formation="column" style="border-color:#888;color:#888">| COLUMN</button>
-            <button class="btn pill formation-btn" data-formation="echelon_l" style="border-color:#888;color:#888">◁ ECHELON-L</button>
-            <button class="btn pill formation-btn" data-formation="echelon_r" style="border-color:#888;color:#888">▷ ECHELON-R</button>
+          <div id="formation-select" class="start-selector-group">
+            <button class="selector-btn formation-btn active" data-formation="wedge" style="border-color:#0af;color:#0af"><span class="preview-icon">▲</span> WEDGE</button>
+            <button class="selector-btn formation-btn" data-formation="line" style="border-color:#888;color:#888"><span class="preview-icon">━</span> LINE</button>
+            <button class="selector-btn formation-btn" data-formation="diamond" style="border-color:#888;color:#888"><span class="preview-icon">◆</span> DIAMOND</button>
+            <button class="selector-btn formation-btn" data-formation="column" style="border-color:#888;color:#888"><span class="preview-icon">|</span> COLUMN</button>
+            <button class="selector-btn formation-btn" data-formation="echelon_l" style="border-color:#888;color:#888"><span class="preview-icon">◁</span> ECHELON-L</button>
+            <button class="selector-btn formation-btn" data-formation="echelon_r" style="border-color:#888;color:#888"><span class="preview-icon">▷</span> ECHELON-R</button>
           </div>
           <p id="formation-desc" class="start-section-desc">Wedge: V-shape assault — pointman leads, squad fans out behind. Enemy picks formation randomly.</p>
         </section>
@@ -732,54 +732,60 @@
 
         <section class="start-section start-section-wide">
           <div class="start-section-title">📋 CUSTOM MISSIONS</div>
-          <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px">
+            <div class="start-mission-card">
+              <div class="mission-icon">✈</div>
               <div style="flex:1">
-                <div style="color:#0af;font-weight:bold;font-size:14px">✈ HOSTOMEL — VDV AIRBORNE ASSAULT</div>
-                <div style="color:#ccc;font-size:13px;margin-top:3px">Feb 24 2022 — Russian VDV Mi-8 helicopters land inside the airport. Hold the perimeter.</div>
+                <div class="mission-title" style="color:#0af">HOSTOMEL — VDV AIRBORNE ASSAULT</div>
+                <div class="mission-desc">Feb 24 2022 — Russian VDV Mi-8 helicopters land inside the airport. Hold the perimeter.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="0" data-formation="diamond" style="border-color:#0af;color:#0af;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="0" data-formation="diamond" style="border-color:#0af;color:#0af">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px">
+            <div class="start-mission-card">
+              <div class="mission-icon">🏛</div>
               <div style="flex:1">
-                <div style="color:#ffcc00;font-weight:bold;font-size:14px">🏛 KYIV — STOP THE COLUMN</div>
-                <div style="color:#ccc;font-size:13px;margin-top:3px">Feb–Apr 2022 — Russian armor pushes down Khreshchatyk. Maidan must not fall.</div>
+                <div class="mission-title" style="color:#ffcc00">KYIV — STOP THE COLUMN</div>
+                <div class="mission-desc">Feb–Apr 2022 — Russian armor pushes down Khreshchatyk. Maidan must not fall.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="12" data-formation="line" style="border-color:#ffcc00;color:#ffcc00;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="12" data-formation="line" style="border-color:#ffcc00;color:#ffcc00">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px">
+            <div class="start-mission-card">
+              <div class="mission-icon">⚙</div>
               <div style="flex:1">
-                <div style="color:#ff6622;font-weight:bold;font-size:14px">⚙ MARIUPOL — LAST STAND</div>
-                <div style="color:#ccc;font-size:13px;margin-top:3px">Azovstal steelworks — no retreat, no surrender. Survive all 7 waves in the inferno.</div>
+                <div class="mission-title" style="color:#ff6622">MARIUPOL — LAST STAND</div>
+                <div class="mission-desc">Azovstal steelworks — no retreat, no surrender. Survive all 7 waves in the inferno.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="4" data-formation="wedge" style="border-color:#ff6622;color:#ff6622;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="4" data-formation="wedge" style="border-color:#ff6622;color:#ff6622">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px">
+            <div class="start-mission-card">
+              <div class="mission-icon">💀</div>
               <div style="flex:1">
-                <div style="color:#88ff88;font-weight:bold;font-size:14px">💀 BAKHMUT — GRINDING DEFENCE</div>
-                <div style="color:#ccc;font-size:13px;margin-top:3px">Total urban destruction. Wagner mercenary assault from all directions. Stay alive.</div>
+                <div class="mission-title" style="color:#88ff88">BAKHMUT — GRINDING DEFENCE</div>
+                <div class="mission-desc">Total urban destruction. Wagner mercenary assault from all directions. Stay alive.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="2" data-formation="echelon_l" style="border-color:#88ff88;color:#88ff88;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="2" data-formation="echelon_l" style="border-color:#88ff88;color:#88ff88">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px">
+            <div class="start-mission-card">
+              <div class="mission-icon">🚛</div>
               <div style="flex:1">
-                <div style="color:#a0c878;font-weight:bold;font-size:14px">🚛 TREELINE — BRADLEY ASSAULT</div>
-                <div style="color:#ccc;font-size:13px;margin-top:3px">47th Mech Bde, Zaporizhzhia axis. Bradley M2A2 IFV breaches Russian treeline defenses: trenches, dugouts, dragon's teeth, bunkers. Shoot down FPV drones. 5-wave assault.</div>
+                <div class="mission-title" style="color:#a0c878">TREELINE — BRADLEY ASSAULT</div>
+                <div class="mission-desc">47th Mech Bde, Zaporizhzhia axis. Bradley M2A2 IFV breaches Russian treeline defenses: trenches, dugouts, dragon's teeth, bunkers. 5-wave assault.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="18" data-formation="line" style="border-color:#a0c878;color:#a0c878;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="18" data-formation="line" style="border-color:#a0c878;color:#a0c878">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px">
+            <div class="start-mission-card">
+              <div class="mission-icon">☭</div>
               <div style="flex:1">
-                <div style="color:#ff5544;font-weight:bold;font-size:14px">☭ SIEGE OF MOSCOW — STORM THE KREMLIN</div>
-                <div style="color:#ccc;font-size:13px;margin-top:3px">The capital falls. Fight across Red Square, breach the Kremlin walls past St Basil's, raise the flag over the Senate. 10 waves, maximum difficulty.</div>
+                <div class="mission-title" style="color:#ff5544">SIEGE OF MOSCOW — STORM THE KREMLIN</div>
+                <div class="mission-desc">The capital falls. Fight across Red Square, breach the Kremlin walls past St Basil's, raise the flag over the Senate. 10 waves, maximum difficulty.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="19" data-formation="wedge" style="border-color:#ff5544;color:#ff5544;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="19" data-formation="wedge" style="border-color:#ff5544;color:#ff5544">▶ START</button>
             </div>
 
           </div>
@@ -787,16 +793,26 @@
 
         <section class="start-section start-section-wide">
           <div class="start-section-title">🎮 CHALLENGE MODE</div>
-          <div id="challenge-select" class="start-section-row">
-            <button class="btn pill challenge-btn" data-mode="" style="border-color:#888;color:#888">🎮 Normal</button>
-            <button class="btn pill challenge-btn" data-mode="HARDCORE" style="border-color:#ff4444;color:#ff4444">💀 Hardcore</button>
-            <button class="btn pill challenge-btn" data-mode="SPEEDRUN" style="border-color:#00ccff;color:#00ccff">⏱ Speedrun</button>
-            <button class="btn pill challenge-btn" data-mode="PACIFIST" style="border-color:#88ff88;color:#88ff88">🕊 Pacifist</button>
-            <button class="btn pill challenge-btn" data-mode="ONE_SHOT" style="border-color:#ffcc00;color:#ffcc00">🎱 One Shot</button>
-            <button class="btn pill challenge-btn" data-mode="SNIPER_ONLY" style="border-color:#44ff88;color:#44ff88">🔭 Sniper</button>
-            <button class="btn pill challenge-btn" data-mode="NIGHT_OPS" style="border-color:#6644ff;color:#6644ff">🌙 Night Ops</button>
+          <div id="challenge-select" class="start-selector-group">
+            <button class="selector-btn challenge-btn" data-mode=""><span class="preview-icon">🎮</span> Normal</button>
+            <button class="selector-btn challenge-btn" data-mode="HARDCORE"><span class="preview-icon">💀</span> Hardcore</button>
+            <button class="selector-btn challenge-btn" data-mode="SPEEDRUN"><span class="preview-icon">⏱</span> Speedrun</button>
+            <button class="selector-btn challenge-btn" data-mode="PACIFIST"><span class="preview-icon">🕊</span> Pacifist</button>
+            <button class="selector-btn challenge-btn" data-mode="ONE_SHOT"><span class="preview-icon">🎱</span> One Shot</button>
+            <button class="selector-btn challenge-btn" data-mode="SNIPER_ONLY"><span class="preview-icon">🔭</span> Sniper</button>
+            <button class="selector-btn challenge-btn" data-mode="NIGHT_OPS"><span class="preview-icon">🌙</span> Night Ops</button>
           </div>
           <p id="challenge-desc" class="start-section-desc"></p>
+        </section>
+
+        <section class="start-section start-section-wide">
+          <div id="start-news-section">
+            <div class="news-title">📰 LATEST UPDATES</div>
+            <div class="news-item"><span class="news-badge new">NEW</span> v2.0.4 Kyiv Build — Bradley IFV, FPV drones, improved mobile HUD</div>
+            <div class="news-item"><span class="news-badge">FIX</span> Mobile touch controls now 56px minimum for better accessibility</div>
+            <div class="news-item"><span class="news-badge new">NEW</span> Drone ammo display with real-time counters for all drone types</div>
+            <div class="news-item"><span class="news-badge">FIX</span> Inventory overlay redesigned with tabs, cards, and visual polish</div>
+          </div>
         </section>
 
         <section class="start-section start-section-wide">
@@ -923,13 +939,17 @@
       <span style="color:#99ddff">LINK <span id="drone-distance-display">0</span>m</span>
       <span style="color:#99ddff">SIG <span id="drone-link-quality">GOOD</span></span>
       <span style="color:#66ddff"><span id="drone-remote-status">REMOTE STABLE</span></span>
-      <span style="color:#ffaa00">🔫 <span id="drone-ammo-display">0/0</span></span>
-      <span id="drone-ammo-bar-outer" style="display:none;width:60px;height:6px;background:#333;border-radius:3px;overflow:hidden;vertical-align:middle;margin-left:4px">
-        <span id="drone-ammo-bar-inner" style="display:block;height:100%;width:100%;background:#ffaa00"></span>
+      <span id="drone-ammo-display-wrap" style="display:none">
+        <span id="drone-ammo-label" style="color:#ffaa00">AMMO</span>
+        <span id="drone-ammo-display" style="color:#ffaa00;font-weight:bold">0/0</span>
+        <span id="drone-ammo-bar-outer" style="display:none;width:60px;height:6px;background:#333;border-radius:3px;overflow:hidden;vertical-align:middle;margin-left:4px">
+          <span id="drone-ammo-bar-inner" style="display:block;height:100%;width:100%;background:#ffaa00"></span>
+        </span>
       </span>
       <span id="drone-payload-display" style="color:#ffaa00;display:none">\uD83D\uDCA3 PAYLOAD READY</span>
       <span id="drone-nest-hint" style="color:#ff8888;display:none">\u25B6 Nest nearby! Dive to destroy!</span>
     </div>
+    <div id="drone-ammo-large" style="margin-top:8px;font-size:18px;font-weight:bold;letter-spacing:2px;text-shadow:0 0 10px currentColor;display:none"></div>
   </div>
 
   <!-- Tank Interior View Overlay (periscope reticle) -->
@@ -1040,12 +1060,12 @@
 
   <!-- Inventory / Pause overlay (unified) -->
   <div id="inventory-overlay" class="overlay" style="display:none;justify-content:flex-start;overflow-y:auto;padding:8px 0">
-    <div class="overlay-content" style="max-width:700px;max-height:90vh;overflow-y:auto">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h1 style="margin:0;">⏸ PAUSED / INVENTORY</h1>
+    <div class="overlay-content" style="max-width:760px;max-height:92vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h1 style="margin:0">⏸ PAUSED / INVENTORY</h1>
         <div>
-          <button class="btn" id="inv-resume-btn" onclick="document.getElementById('btn-pause').dispatchEvent(new Event('touchstart'))" style="font-size:12px;padding:4px 12px;margin-right:8px;">▶ RESUME</button>
-          <button class="btn" id="inv-quit-btn" onclick="if(typeof quitToMenu === 'function') quitToMenu();" style="font-size:12px;padding:4px 12px;border-color:#888;color:#888;">⏹ QUIT</button>
+          <button class="btn" id="inv-resume-btn" onclick="document.getElementById('btn-pause').dispatchEvent(new Event('touchstart'))" style="font-size:13px;padding:6px 14px;margin-right:8px;border-color:#44aaff;color:#44aaff">▶ RESUME</button>
+          <button class="btn" id="inv-quit-btn" onclick="if(typeof quitToMenu === 'function') quitToMenu();" style="font-size:13px;padding:6px 14px;border-color:#888;color:#888">⏹ QUIT</button>
         </div>
       </div>
 
@@ -1058,7 +1078,7 @@
         <div id="inv-pol-display" style="color:#8247e5;font-size:13px;display:none">💎 0.00 POL</div>
       </div>
 
-      <!-- Tab Navigation (desktop hotkeys: 1=Inventory 2=Shop 3=Sell 4=Premium 5=Assets) -->
+      <!-- Tab Navigation -->
       <div id="inv-tabs" style="display:flex;gap:4px;margin:8px 0">
         <button class="btn inv-tab active" data-tab="inventory" data-hotkey="Digit1" style="font-size:11px;padding:4px 10px;border-color:#fff;color:#fff;flex:1">📦 [1] Inventory</button>
         <button class="btn inv-tab" data-tab="shop" data-hotkey="Digit2" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">🛒 [2] Shop</button>
@@ -1068,96 +1088,113 @@
         <button class="btn inv-tab" data-tab="crypto" data-hotkey="Digit6" style="font-size:11px;padding:4px 10px;border-color:#ffd500;color:#ffd500;flex:1">🔗 [6] Crypto</button>
       </div>
 
-      <!-- ── TAB: Inventory ──────────────────────────────── -->
+      <!-- TAB: Inventory -->
       <div id="inv-panel-inventory" class="inv-panel">
-        <!-- Role Select -->
-        <div id="pause-role-select" style="margin:8px 0">
-          <span style="color:#aaa;font-size:13px">ROLE:</span>
-          <button class="btn" id="role-brigade-btn" style="font-size:12px;padding:4px 12px;border-color:#0af;color:#0af;display:inline-block;margin:0 4px">🎖 ASSAULT BRIGADE</button>
-          <button class="btn" id="role-lonewolf-btn" style="font-size:12px;padding:4px 12px;border-color:#fa0;color:#fa0;display:inline-block;margin:0 4px">🐺 LONE WOLF</button>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🎖</span> ROLE</div>
+          <div id="pause-role-select" style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn pill" id="role-brigade-btn" style="font-size:12px;padding:6px 14px;border-color:#0af;color:#0af">🎖 ASSAULT BRIGADE</button>
+            <button class="btn pill" id="role-lonewolf-btn" style="font-size:12px;padding:6px 14px;border-color:#fa0;color:#fa0">🐺 LONE WOLF</button>
+          </div>
         </div>
 
-        <!-- Materials / Resources Section -->
-        <div id="materials-section" style="background:rgba(0,0,0,0.4);border:1px solid #555;border-radius:6px;padding:10px;margin:10px 0">
-          <h3 style="margin:0 0 8px 0;color:#ffcc00;font-size:14px">📦 COLLECTED MATERIALS</h3>
-          <div id="materials-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:13px"></div>
-          <div id="currency-display" style="margin-top:8px;font-size:14px;color:#ffd700;text-align:center"></div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">📦</span> COLLECTED MATERIALS</div>
+          <div id="materials-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:13px"></div>
+          <div id="currency-display" style="margin-top:10px;font-size:15px;color:#ffd700;text-align:center;font-weight:bold"></div>
         </div>
 
-        <!-- Weapon Switching Section -->
-        <h3 style="margin:10px 0 6px 0;color:#ff8844;font-size:14px">🔫 WEAPONS (click to equip)</h3>
-        <div id="inventory-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0;"></div>
-        <div id="pause-weapons-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px auto;max-width:500px;font-size:11px"></div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🔫</span> WEAPONS (click to equip)</div>
+          <div id="inventory-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0"></div>
+          <div id="pause-weapons-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px auto;max-width:500px;font-size:12px"></div>
+        </div>
 
-        <!-- Player Stats -->
-        <div id="player-stats" style="text-align:left;font-size:14px;margin:10px 0;background:rgba(0,0,0,0.3);padding:8px;border-radius:4px"></div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">📊</span> PLAYER STATS</div>
+          <div id="player-stats" style="text-align:left;font-size:14px;background:rgba(0,0,0,0.2);padding:10px;border-radius:6px;line-height:1.8"></div>
+        </div>
       </div>
 
-      <!-- ── TAB: Shop ───────────────────────────────────── -->
+      <!-- TAB: Shop -->
       <div id="inv-panel-shop" class="inv-panel" style="display:none">
-        <h3 style="color:#ffd700;font-size:14px;margin:6px 0">🛒 ITEM SHOP</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Buy items with OKC or POL. 10% of POL purchases go to 🇺🇦 Ukraine defense fund.</p>
-        <div id="shop-items-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
-        <h3 style="color:#ffd700;font-size:14px;margin:12px 0 6px 0">💱 CURRENCY EXCHANGE</h3>
-        <div style="display:flex;gap:8px;margin:6px 0">
-          <button class="btn" id="convert-okc-gold-btn" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">100 OKC → 1000 Gold</button>
-          <button class="btn" id="convert-gold-okc-btn" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">1000 Gold → 100 OKC</button>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🛒</span> ITEM SHOP</div>
+          <p style="color:#8899bb;font-size:12px;margin-bottom:10px">Buy items with OKC or POL. 10% of POL purchases go to 🇺🇦 Ukraine defense fund.</p>
+          <div id="shop-items-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+        </div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">💱</span> CURRENCY EXCHANGE</div>
+          <div style="display:flex;gap:8px;margin:6px 0">
+            <button class="btn" id="convert-okc-gold-btn" style="font-size:12px;padding:6px 12px;border-color:#ffd700;color:#ffd700;flex:1">100 OKC → 1000 Gold</button>
+            <button class="btn" id="convert-gold-okc-btn" style="font-size:12px;padding:6px 12px;border-color:#ffd700;color:#ffd700;flex:1">1000 Gold → 100 OKC</button>
+          </div>
         </div>
       </div>
 
-      <!-- ── TAB: Sell ───────────────────────────────────── -->
+      <!-- TAB: Sell -->
       <div id="inv-panel-sell" class="inv-panel" style="display:none">
-        <h3 style="color:#ff8844;font-size:14px;margin:6px 0">💰 SELL WEAPONS &amp; AMMO</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Sell surplus weapons for OKC or POL crypto. Starter weapons cannot be sold.</p>
-        <div id="sell-weapons-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
-        <h3 style="color:#ff8844;font-size:14px;margin:12px 0 6px 0">📦 SELL AMMO</h3>
-        <div id="sell-ammo-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
-      </div>
-
-      <!-- ── TAB: Premium ────────────────────────────────── -->
-      <div id="inv-panel-premium" class="inv-panel" style="display:none">
-        <h3 style="color:#8247e5;font-size:14px;margin:6px 0">⭐ PREMIUM SUBSCRIPTIONS</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Boost your OKC earnings, unlock exclusive content, and get shop discounts! 10% of POL goes to 🇺🇦 Ukraine.</p>
-        <div id="premium-status" style="background:rgba(130,71,229,0.1);border:1px solid #8247e5;border-radius:6px;padding:8px;margin:6px 0;font-size:12px;color:#8247e5;display:none"></div>
-        <div id="premium-tiers-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0"></div>
-      </div>
-
-      <!-- ── TAB: Assets ─────────────────────────────────── -->
-      <div id="inv-panel-assets" class="inv-panel" style="display:none">
-        <h3 style="color:#00ffcc;font-size:14px;margin:6px 0">🎨 GAME ASSETS</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Exclusive skins, emotes, titles &amp; trails. Buy with OKC or POL. 10% of POL goes to 🇺🇦 Ukraine.</p>
-        <div id="assets-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
-      </div>
-
-      <!-- ── TAB: Crypto / Blockchain ─────────────────────── -->
-      <div id="inv-panel-crypto" class="inv-panel" style="display:none">
-        <h3 style="color:#ffd500;font-size:14px;margin:6px 0">🔗 BLOCKCHAIN &amp; NFT GUIDE</h3>
-        <div style="background:rgba(0,0,0,0.4);border:1px solid #ffd500;border-radius:6px;padding:10px;margin:8px 0;font-size:12px;line-height:1.6;color:#ddd">
-          <div style="color:#ffd500;font-weight:bold;margin-bottom:4px">🪙 What is OKC?</div>
-          <div style="margin-bottom:10px">OKC (Occupant Killer Coin) is the in-game currency you earn by destroying blocks, killing enemies, and completing waves. Every bullet that shatters terrain earns you <b>+1 OKC</b>. Save up OKC to buy weapons, skins, and premium boosts — or convert it to on-chain tokens later.</div>
-
-          <div style="color:#8247e5;font-weight:bold;margin-bottom:4px">💎 What is POL?</div>
-          <div style="margin-bottom:10px">POL (Polygon) is the real blockchain currency used for NFT minting and premium purchases. When you connect your MetaMask wallet, you can convert OKC to POL at a fixed rate, or spend POL directly on exclusive Veteran NFTs and weapon skins.</div>
-
-          <div style="color:#00ffcc;font-weight:bold;margin-bottom:4px">🎨 What are NFTs here?</div>
-          <div style="margin-bottom:10px">Veteran NFTs are soulbound tokens that prove your combat record — kills, prestige level, and medals — forever on the Polygon blockchain. Weapons NFTs let you own unique gun skins that persist across devices. 10% of every POL purchase goes to the <b>🇺🇦 Ukrainian defense wallet</b>.</div>
-
-          <div style="color:#ff8844;font-weight:bold;margin-bottom:4px">🦊 How do I connect?</div>
-          <div style="margin-bottom:10px">Click <b>Connect Wallet</b> above. You need the MetaMask browser extension (or any WalletConnect-compatible app). Make sure you're on the <b>Polygon Mainnet</b>. No wallet? No problem — you can still earn OKC and play everything for free.</div>
-
-          <div style="color:#0af;font-weight:bold;margin-bottom:4px">🔄 Conversion Flow</div>
-          <div style="margin-bottom:4px">1. Earn OKC in-game (bullets → blocks → OKC)<br>2. Connect wallet on Polygon<br>3. Convert OKC → POL (or OKC → Gold)<br>4. Mint Veteran NFT or buy Weapon Skin NFT<br>5. Trade on OpenSea or keep forever</div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">💰</span> SELL WEAPONS &amp; AMMO</div>
+          <p style="color:#8899bb;font-size:12px;margin-bottom:10px">Sell surplus weapons for OKC or POL crypto. Starter weapons cannot be sold.</p>
+          <div id="sell-weapons-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#888;margin-top:4px">Contracts: OKC_Token · OccupantVeteranNFT · OccupantWeaponsNFT · OccupantMarket</div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">📦</span> SELL AMMO</div>
+          <div id="sell-ammo-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+        </div>
       </div>
 
-      <!-- ── Ukraine Donation Info ────────────────────────── -->
+      <!-- TAB: Premium -->
+      <div id="inv-panel-premium" class="inv-panel" style="display:none">
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">⭐</span> PREMIUM SUBSCRIPTIONS</div>
+          <p style="color:#8899bb;font-size:12px;margin-bottom:10px">Boost your OKC earnings, unlock exclusive content, and get shop discounts! 10% of POL goes to 🇺🇦 Ukraine.</p>
+          <div id="premium-status" style="background:rgba(130,71,229,0.1);border:1px solid #8247e5;border-radius:6px;padding:8px;margin:6px 0;font-size:12px;color:#8247e5;display:none"></div>
+          <div id="premium-tiers-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Assets -->
+      <div id="inv-panel-assets" class="inv-panel" style="display:none">
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🎨</span> GAME ASSETS</div>
+          <p style="color:#8899bb;font-size:12px;margin-bottom:10px">Exclusive skins, emotes, titles &amp; trails. Buy with OKC or POL. 10% of POL goes to 🇺🇦 Ukraine.</p>
+          <div id="assets-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Crypto / Blockchain -->
+      <div id="inv-panel-crypto" class="inv-panel" style="display:none">
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🔗</span> BLOCKCHAIN &amp; NFT GUIDE</div>
+          <div style="background:rgba(0,0,0,0.3);border:1px solid rgba(68,136,255,0.2);border-radius:8px;padding:14px;margin:8px 0;font-size:13px;line-height:1.7;color:#ccd8ff">
+            <div style="color:#ffd500;font-weight:bold;margin-bottom:6px">🪙 What is OKC?</div>
+            <div style="margin-bottom:12px">OKC (Occupant Killer Coin) is the in-game currency you earn by destroying blocks, killing enemies, and completing waves. Every bullet that shatters terrain earns you <b>+1 OKC</b>. Save up OKC to buy weapons, skins, and premium boosts — or convert it to on-chain tokens later.</div>
+
+            <div style="color:#8247e5;font-weight:bold;margin-bottom:6px">💎 What is POL?</div>
+            <div style="margin-bottom:12px">POL (Polygon) is the real blockchain currency used for NFT minting and premium purchases. When you connect your MetaMask wallet, you can convert OKC to POL at a fixed rate, or spend POL directly on exclusive Veteran NFTs and weapon skins.</div>
+
+            <div style="color:#00ffcc;font-weight:bold;margin-bottom:6px">🎨 What are NFTs here?</div>
+            <div style="margin-bottom:12px">Veteran NFTs are soulbound tokens that prove your combat record — kills, prestige level, and medals — forever on the Polygon blockchain. Weapons NFTs let you own unique gun skins that persist across devices. 10% of every POL purchase goes to the <b>🇺🇦 Ukrainian defense wallet</b>.</div>
+
+            <div style="color:#ff8844;font-weight:bold;margin-bottom:6px">🦊 How do I connect?</div>
+            <div style="margin-bottom:12px">Click <b>Connect Wallet</b> above. You need the MetaMask browser extension (or any WalletConnect-compatible app). Make sure you're on the <b>Polygon Mainnet</b>. No wallet? No problem — you can still earn OKC and play everything for free.</div>
+
+            <div style="color:#0af;font-weight:bold;margin-bottom:6px">🔄 Conversion Flow</div>
+            <div style="margin-bottom:4px">1. Earn OKC in-game (bullets → blocks → OKC)<br>2. Connect wallet on Polygon<br>3. Convert OKC → POL (or OKC → Gold)<br>4. Mint Veteran NFT or buy Weapon Skin NFT<br>5. Trade on OpenSea or keep forever</div>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:10px;color:#666;margin-top:4px">Contracts: OKC_Token · OccupantVeteranNFT · OccupantWeaponsNFT · OccupantMarket</div>
+      </div>
+
+      <!-- Ukraine Donation Info -->
       <div id="ukraine-donation-banner" style="background:linear-gradient(90deg,rgba(0,87,183,0.2),rgba(255,215,0,0.2));border:1px solid #ffd700;border-radius:6px;padding:8px;margin:10px 0;text-align:center">
         <div style="font-size:13px;color:#ffd700">🇺🇦 10% of all POL proceeds go to Ukrainian defense</div>
         <div style="font-size:10px;color:#aaa;margin-top:2px">Wallet: 0x165C…e14</div>
       </div>
 
-      <!-- Pause Controls — sticky footer so resume/quit are always reachable on mobile -->
+      <!-- Pause Controls — sticky footer -->
       <div id="inv-sticky-footer" style="position:sticky;bottom:0;background:linear-gradient(0deg,rgba(10,10,10,0.97) 60%,transparent);padding:8px 0 4px;margin-top:12px;z-index:5;text-align:center">
         <button class="btn" id="stealth-toggle-btn" style="border-color:#0f6;color:#0f6;font-size:11px;padding:4px 10px">👻 [S] STEALTH</button>
         <button class="btn" id="pause-god-mode-btn" style="font-size:11px;padding:4px 10px;border-color:#ff0;color:#ff0;display:inline-block;margin:0 4px;text-shadow:0 0 8px #ff0">⚡ [G] GOD</button>

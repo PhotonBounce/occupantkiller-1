@@ -2058,6 +2058,18 @@ const Enemies = (() => {
     mesh.userData.headMesh = detailGroup.userData.headMesh;
     mesh.userData.hitbox   = detailGroup.userData.hitbox;
     mesh.userData.parts    = detailGroup.userData.parts;
+    // Tag children with LOD level based on geometry size
+    mesh.traverse(function(child) {
+      if (child.isMesh && child.geometry && child.geometry.parameters) {
+        var p = child.geometry.parameters;
+        var vol = (p.width || 1) * (p.height || 1) * (p.depth || 1);
+        if (vol < 0.001) child.userData.lodLevel = 2;
+        else if (vol < 0.01) child.userData.lodLevel = 1;
+        else child.userData.lodLevel = 0;
+      } else if (child.isMesh) {
+        child.userData.lodLevel = 1;
+      }
+    });
     // Hide the original pool box geometry so only detailed parts show
     mesh.material.transparent = true;
     mesh.material.opacity = 0;
@@ -2300,6 +2312,20 @@ const Enemies = (() => {
     spawnQueue  = Array.from({ length: extraCount }, () => pickTypeForPlan(w, battlePlan));
     var spawnIntervalMultiplier = battlePlan && isFinite(battlePlan.spawnIntervalMultiplier) ? battlePlan.spawnIntervalMultiplier : 1;
     spawnTimer  = (Math.max(0.3, 2.0 - stageNum * 0.15) + Math.random() * 1.5) * spawnIntervalMultiplier;
+  }
+
+  // ── Enemy mesh LOD (distance-based detail culling) ─────────────────
+  function updateEnemyLOD(enemy, distToPlayer) {
+    if (!enemy || !enemy.mesh) return;
+    var lod = distToPlayer > 50 ? 0 : (distToPlayer > 20 ? 1 : 2);
+    enemy.mesh.traverse(function(child) {
+      if (child.isMesh) {
+        var childLOD = child.userData.lodLevel || 0;
+        child.visible = childLOD <= lod;
+      }
+    });
+    // Always keep the invisible hitbox so raycaster works
+    if (enemy.mesh.userData.hitbox) enemy.mesh.userData.hitbox.visible = false;
   }
 
   // ── Per-frame update ──────────────────────────────────────
@@ -2552,6 +2578,7 @@ const Enemies = (() => {
       const dirToPlayer = _tmpVec3
         .subVectors(playerPos, e.mesh.position).setY(0);
       const distToPlayer = dirToPlayer.length();
+      updateEnemyLOD(e, distToPlayer);
 
       // Medic behavior: heal wounded groupmates instead of fighting
       if (e.squadRole === SQUAD_ROLE.MEDIC && !e.playerSpotted) {

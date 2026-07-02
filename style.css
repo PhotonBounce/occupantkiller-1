@@ -2557,3 +2557,766 @@ html:not(.is-mobile) #bradley-btn:hover {
 #overlay-start::-webkit-scrollbar-track { background: #111; }
 #overlay-start::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   POLISHED INVENTORY / PAUSE OVERLAY (v3 redesign)
+   ═══════════════════════════════════════════════════════════════════════ */
+#inventory-overlay {
+  background: rgba(4, 8, 20, 0.92) !important;
+  backdrop-filter: blur(16px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.2) !important;
+}
+#inventory-overlay .overlay-content {
+  background: linear-gradient(180deg, rgba(14, 22, 42, 0.97) 0%, rgba(8, 14, 28, 0.98) 100%);
+  border: 1px solid rgba(68, 136, 255, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(68,136,255,0.08);
+  padding: 24px 28px;
+  color: #e0e8ff;
+}
+#inventory-overlay h1 {
+  font-size: 24px;
+  letter-spacing: 4px;
+  color: #fff;
+  text-shadow: 0 0 12px rgba(68,136,255,0.4);
+  margin-bottom: 0;
+}
+
+/* Wallet bar — prominent with gold accent */
+#inv-wallet-bar {
+  background: linear-gradient(90deg, rgba(130,71,229,0.15), rgba(255,215,0,0.08)) !important;
+  border: 1px solid rgba(130,71,229,0.5) !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 0 16px rgba(130,71,229,0.12), inset 0 0 20px rgba(255,215,0,0.03);
+  margin: 12px 0 !important;
+}
+#inv-okc-display {
+  font-size: 18px !important;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255,215,0,0.3);
+}
+#inv-wallet-info button {
+  border-radius: 6px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+  transition: all 0.2s ease;
+}
+#inv-wallet-info button:hover {
+  background: rgba(130,71,229,0.2) !important;
+  box-shadow: 0 0 12px rgba(130,71,229,0.3);
+  transform: translateY(-1px);
+}
+
+/* Tab buttons — actual tab styling with active state */
+#inv-tabs {
+  gap: 6px !important;
+  margin: 14px 0 !important;
+  padding: 4px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+#inv-tabs .inv-tab {
+  position: relative;
+  flex: 1;
+  padding: 10px 8px !important;
+  font-size: 13px !important;
+  letter-spacing: 1px;
+  border-radius: 8px !important;
+  border: 1px solid transparent !important;
+  background: rgba(255,255,255,0.03);
+  color: #8899bb;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+}
+#inv-tabs .inv-tab:hover {
+  background: rgba(255,255,255,0.07);
+  color: #ccd8ff;
+  transform: translateY(-1px);
+}
+#inv-tabs .inv-tab.active {
+  background: linear-gradient(180deg, rgba(68,136,255,0.2), rgba(68,136,255,0.08));
+  border-color: rgba(68,136,255,0.5) !important;
+  color: #fff;
+  box-shadow: 0 0 16px rgba(68,136,255,0.15), inset 0 0 8px rgba(68,136,255,0.05);
+  font-weight: bold;
+}
+#inv-tabs .inv-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: #44aaff;
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(68,136,255,0.6);
+}
+
+/* Section separators */
+.inv-section {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 12px 0;
+}
+.inv-section-title {
+  font-size: 15px;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(68,136,255,0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.inv-section-title .icon {
+  font-size: 18px;
+}
+
+/* Item cards */
+.inv-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-align: center;
+  font-size: 14px;
+  color: #ccd8ff;
+}
+.inv-card:hover {
+  background: linear-gradient(180deg, rgba(68,136,255,0.12), rgba(68,136,255,0.04));
+  border-color: rgba(68,136,255,0.4);
+  box-shadow: 0 0 16px rgba(68,136,255,0.12);
+  transform: translateY(-2px);
+}
+.inv-card.active {
+  border-color: #44ff88;
+  background: linear-gradient(180deg, rgba(68,255,136,0.12), rgba(68,255,136,0.04));
+  box-shadow: 0 0 16px rgba(68,255,136,0.15);
+}
+.inv-card.locked {
+  opacity: 0.35;
+  cursor: default;
+  filter: grayscale(0.7);
+}
+.inv-card.locked:hover {
+  transform: none;
+  border-color: rgba(255,255,255,0.1);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+
+/* Role buttons in inventory */
+#pause-role-select button {
+  font-size: 13px !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+}
+#pause-role-select button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 12px currentColor;
+}
+
+/* Sticky footer with prominent Back to Game button */
+#inv-sticky-footer {
+  background: linear-gradient(0deg, rgba(4,8,20,0.98) 40%, rgba(4,8,20,0.85) 70%, transparent) !important;
+  padding: 16px 0 8px !important;
+  margin-top: 16px !important;
+}
+#inv-sticky-footer #resume-btn {
+  background: linear-gradient(90deg, rgba(68,136,255,0.2), rgba(68,255,136,0.15)) !important;
+  border-color: #44aaff !important;
+  color: #fff !important;
+  font-size: 18px !important;
+  padding: 14px 36px !important;
+  letter-spacing: 3px;
+  border-radius: 10px !important;
+  box-shadow: 0 0 20px rgba(68,136,255,0.2);
+  transition: all 0.2s ease;
+}
+#inv-sticky-footer #resume-btn:hover {
+  background: linear-gradient(90deg, rgba(68,136,255,0.35), rgba(68,255,136,0.25)) !important;
+  box-shadow: 0 0 30px rgba(68,136,255,0.35);
+  transform: translateY(-2px) scale(1.02);
+}
+#inv-sticky-footer #quit-btn {
+  font-size: 12px !important;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+#inv-sticky-footer #quit-btn:hover {
+  opacity: 1;
+  color: #ff8888 !important;
+  border-color: #ff8888 !important;
+}
+
+/* Ukraine donation banner */
+#ukraine-donation-banner {
+  background: linear-gradient(90deg, rgba(0,87,183,0.25), rgba(255,215,0,0.15)) !important;
+  border: 1px solid rgba(255,215,0,0.4) !important;
+  border-radius: 10px !important;
+  padding: 12px !important;
+  box-shadow: 0 0 16px rgba(0,87,183,0.1), inset 0 0 20px rgba(255,215,0,0.03);
+}
+#ukraine-donation-banner div:first-child {
+  font-size: 15px !important;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255,215,0,0.2);
+}
+
+/* Grid improvements */
+#materials-grid,
+#inventory-grid,
+#pause-weapons-grid,
+#shop-items-grid,
+#sell-weapons-grid,
+#sell-ammo-grid,
+#assets-grid,
+#premium-tiers-grid {
+  gap: 10px !important;
+}
+#materials-grid .inv-card,
+#shop-items-grid .inv-card,
+#sell-weapons-grid .inv-card,
+#sell-ammo-grid .inv-card,
+#assets-grid .inv-card {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#materials-grid .inv-card .name,
+#shop-items-grid .inv-card .name,
+#sell-weapons-grid .inv-card .name {
+  font-weight: bold;
+  color: #fff;
+  font-size: 14px;
+}
+#materials-grid .inv-card .meta,
+#shop-items-grid .inv-card .meta,
+#sell-weapons-grid .inv-card .meta {
+  font-size: 12px;
+  color: #8899bb;
+}
+#materials-grid .inv-card .price,
+#shop-items-grid .inv-card .price {
+  font-size: 13px;
+  color: #ffd700;
+  font-weight: bold;
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   START MENU POLISH (v3 redesign)
+   ═══════════════════════════════════════════════════════════════════════ */
+#overlay-start {
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(255,68,68,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(0,87,183,0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at center top, rgba(40,10,10,0.55) 0%, rgba(0,0,0,0.92) 70%) !important;
+}
+
+/* Animated background particles */
+#overlay-start::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,68,68,0.06) 0%, transparent 25%),
+    radial-gradient(circle at 70% 60%, rgba(0,87,183,0.08) 0%, transparent 30%),
+    radial-gradient(circle at 50% 80%, rgba(255,215,0,0.05) 0%, transparent 20%);
+  animation: startMenuGlow 8s ease-in-out infinite alternate;
+}
+@keyframes startMenuGlow {
+  0%   { opacity: 0.6; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Larger title with military stencil effect */
+.voxel-title {
+  font-size: 64px !important;
+  letter-spacing: 14px !important;
+  font-weight: 900 !important;
+  text-shadow:
+    0 0 10px rgba(255,68,68,0.5),
+    0 0 30px rgba(255,68,68,0.2),
+    0 0 60px rgba(255,68,68,0.1),
+    3px 3px 0 rgba(0,0,0,0.8),
+    -1px -1px 0 rgba(255,255,255,0.1) !important;
+  position: relative;
+}
+.voxel-title::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ff4444, transparent);
+  box-shadow: 0 0 12px rgba(255,68,68,0.5);
+}
+.voxel-badge {
+  font-size: 14px !important;
+  letter-spacing: 5px !important;
+  padding: 8px 20px !important;
+  border-radius: 4px !important;
+  background: rgba(255,170,0,0.08) !important;
+  border: 1px solid rgba(255,170,0,0.35) !important;
+}
+.voxel-tagline {
+  font-size: 16px !important;
+  letter-spacing: 4px !important;
+  color: #ccd8ff !important;
+  margin-top: 8px !important;
+  text-shadow: 0 0 8px rgba(100,150,255,0.2);
+}
+
+/* Mission cards on start screen */
+.start-mission-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 16px 18px;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: default;
+}
+.start-mission-card:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+  border-color: rgba(68,136,255,0.3);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 16px rgba(68,136,255,0.08);
+  transform: translateX(4px);
+}
+.start-mission-card .mission-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.start-mission-card .mission-title {
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.start-mission-card .mission-desc {
+  font-size: 13px;
+  color: #aabbcc;
+  line-height: 1.5;
+}
+.start-mission-card .mission-btn {
+  flex-shrink: 0;
+  padding: 10px 18px !important;
+  font-size: 13px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+}
+.start-mission-card .mission-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 16px currentColor;
+}
+
+/* News / Updates section */
+#start-news-section {
+  background: linear-gradient(180deg, rgba(68,136,255,0.06), rgba(68,136,255,0.02));
+  border: 1px solid rgba(68,136,255,0.15);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 10px 0;
+}
+#start-news-section .news-title {
+  font-size: 14px;
+  color: #44aaff;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#start-news-section .news-item {
+  font-size: 13px;
+  color: #aabbcc;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#start-news-section .news-item:last-child { border-bottom: none; }
+#start-news-section .news-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255,68,68,0.15);
+  color: #ff8888;
+  white-space: nowrap;
+}
+#start-news-section .news-badge.new { background: rgba(68,255,136,0.15); color: #44ff88; }
+
+/* Role / Drone / Formation selectors with visual previews */
+.start-selector-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.start-selector-group .selector-btn {
+  position: relative;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.03);
+  color: #8899bb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Courier New', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.start-selector-group .selector-btn:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.3);
+  color: #ccd8ff;
+  transform: translateY(-2px);
+}
+.start-selector-group .selector-btn.active {
+  background: rgba(0,170,255,0.12);
+  border-color: #0af;
+  color: #0af;
+  box-shadow: 0 0 16px rgba(0,170,255,0.15);
+  font-weight: bold;
+}
+.start-selector-group .selector-btn .preview-icon {
+  font-size: 18px;
+}
+
+/* Map buttons */
+#map-select .map-btn {
+  position: relative;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+#map-select .map-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+#map-select .map-btn.active-map {
+  background: rgba(0,170,255,0.12) !important;
+  box-shadow: 0 0 12px rgba(0,170,255,0.2);
+  font-weight: bold;
+}
+
+/* Launch button */
+#launch-selected-map {
+  padding: 14px 32px !important;
+  font-size: 16px !important;
+  border-radius: 10px !important;
+  letter-spacing: 2px !important;
+  transition: all 0.2s ease !important;
+}
+#launch-selected-map:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 24px rgba(0,170,255,0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DRONE AMMO HUD
+   ═══════════════════════════════════════════════════════════════════════ */
+#drone-controls-hud {
+  background: rgba(4, 8, 16, 0.85) !important;
+  border: 1px solid rgba(0, 204, 255, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 14px 24px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.5), 0 0 24px rgba(0,204,255,0.06);
+  backdrop-filter: blur(8px);
+  min-width: 320px;
+}
+#drone-ammo-display-large {
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-top: 6px;
+  text-shadow: 0 0 8px currentColor;
+}
+#drone-ammo-bar-outer {
+  width: 100px !important;
+  height: 10px !important;
+  background: rgba(0,0,0,0.5) !important;
+  border-radius: 5px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+  box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+}
+#drone-ammo-bar-inner {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease, background 0.3s ease;
+  box-shadow: 0 0 8px currentColor;
+}
+#drone-ammo-bar-inner.ammo-fpv { background: linear-gradient(90deg, #ff4444, #ff8888); }
+#drone-ammo-bar-inner.ammo-bomb { background: linear-gradient(90deg, #ffaa00, #ffcc00); }
+#drone-ammo-bar-inner.ammo-surveillance { background: linear-gradient(90deg, #00ccff, #88eeff); }
+#drone-ammo-bar-inner.ammo-empty { background: #444; box-shadow: none; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE UI IMPROVEMENTS (v3 touch targets)
+   ═══════════════════════════════════════════════════════════════════════ */
+.mobile-btn {
+  min-width: 56px !important;
+  min-height: 56px !important;
+  width: 64px !important;
+  height: 64px !important;
+  font-size: 26px !important;
+  transition: all 0.15s ease;
+}
+.mobile-btn:active, .mobile-btn.active {
+  transform: scale(0.92);
+  background: rgba(255,255,255,0.35) !important;
+}
+.mobile-btn.sm {
+  min-width: 48px !important;
+  min-height: 48px !important;
+  width: 52px !important;
+  height: 52px !important;
+  font-size: 20px !important;
+}
+
+/* Utility buttons */
+.utility-btn {
+  min-width: 48px !important;
+  min-height: 48px !important;
+  width: 52px !important;
+  height: 52px !important;
+  font-size: 22px !important;
+  border-radius: 14px !important;
+}
+
+/* Fire button — larger and more prominent */
+.fire-btn {
+  min-width: 80px !important;
+  min-height: 80px !important;
+  width: 88px !important;
+  height: 88px !important;
+  font-size: 36px !important;
+  background: rgba(255,50,50,0.35) !important;
+  border-color: rgba(255,80,80,0.6) !important;
+  box-shadow: 0 0 20px rgba(255,50,50,0.2);
+}
+.fire-btn:active, .fire-btn.active {
+  background: rgba(255,80,80,0.55) !important;
+  box-shadow: 0 0 30px rgba(255,50,50,0.4);
+}
+
+/* Joystick zones — larger */
+#joystick-zone {
+  width: 180px !important;
+  height: 180px !important;
+}
+#joystick-base {
+  width: 180px !important;
+  height: 180px !important;
+  background: rgba(255,255,255,0.12) !important;
+  border: 2px solid rgba(255,255,255,0.35) !important;
+}
+#joystick-thumb {
+  width: 76px !important;
+  height: 76px !important;
+  left: 52px !important;
+  top: 52px !important;
+  background: rgba(255,255,255,0.5) !important;
+  box-shadow: 0 0 12px rgba(255,255,255,0.3);
+}
+#aim-joystick-zone {
+  width: 180px !important;
+  height: 180px !important;
+}
+#aim-joystick-base {
+  width: 180px !important;
+  height: 180px !important;
+  background: rgba(255,80,80,0.15) !important;
+  border: 2px solid rgba(255,120,120,0.35) !important;
+}
+#aim-joystick-thumb {
+  width: 76px !important;
+  height: 76px !important;
+  left: 52px !important;
+  top: 52px !important;
+  background: rgba(255,120,120,0.5) !important;
+  box-shadow: 0 0 12px rgba(255,100,100,0.3);
+}
+
+/* Mobile action buttons spacing */
+#mobile-actions {
+  gap: 10px !important;
+  right: 16px !important;
+  bottom: 210px !important;
+}
+#mobile-utility {
+  gap: 10px !important;
+  right: 16px !important;
+  bottom: 400px !important;
+}
+
+/* Pause button */
+#btn-pause {
+  min-width: 52px !important;
+  min-height: 52px !important;
+  width: 56px !important;
+  height: 56px !important;
+  font-size: 26px !important;
+}
+
+/* Look zone — larger */
+#mobile-look-zone {
+  right: 14px !important;
+  bottom: 300px !important;
+  width: min(36vw, 180px) !important;
+  height: min(36vw, 180px) !important;
+  border-radius: 30px !important;
+}
+
+/* Haptic feedback visual indicator */
+.mobile-btn.haptic-pulse {
+  animation: hapticPulse 0.15s ease-out;
+}
+@keyframes hapticPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.88); filter: brightness(1.4); }
+  100% { transform: scale(1); }
+}
+
+/* Mobile landscape overrides for larger buttons */
+@media (orientation: landscape) {
+  html.is-mobile .mobile-btn {
+    min-width: 52px !important;
+    min-height: 52px !important;
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 24px !important;
+  }
+  html.is-mobile .mobile-btn.sm {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
+  html.is-mobile #mobile-actions #btn-fire {
+    min-width: 76px !important;
+    min-height: 76px !important;
+    width: 84px !important;
+    height: 84px !important;
+    font-size: 32px !important;
+  }
+  html.is-mobile .utility-btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 20px !important;
+  }
+  html.is-mobile #joystick-zone {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  html.is-mobile #joystick-base {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  html.is-mobile #joystick-thumb {
+    width: 64px !important;
+    height: 64px !important;
+    left: 43px !important;
+    top: 43px !important;
+  }
+  html.is-mobile #aim-joystick-zone {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  html.is-mobile #aim-joystick-base {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  html.is-mobile #aim-joystick-thumb {
+    width: 64px !important;
+    height: 64px !important;
+    left: 43px !important;
+    top: 43px !important;
+  }
+}
+
+/* Small phone landscape */
+@media (orientation: landscape) and (max-height: 420px) {
+  html.is-mobile .mobile-btn {
+    min-width: 48px !important;
+    min-height: 48px !important;
+    width: 52px !important;
+    height: 52px !important;
+    font-size: 20px !important;
+  }
+  html.is-mobile .mobile-btn.sm {
+    min-width: 40px !important;
+    min-height: 40px !important;
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 16px !important;
+  }
+  html.is-mobile #mobile-actions #btn-fire {
+    min-width: 64px !important;
+    min-height: 64px !important;
+    width: 72px !important;
+    height: 72px !important;
+    font-size: 26px !important;
+  }
+  html.is-mobile .utility-btn {
+    min-width: 40px !important;
+    min-height: 40px !important;
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 18px !important;
+  }
+  html.is-mobile #joystick-zone,
+  html.is-mobile #joystick-base,
+  html.is-mobile #aim-joystick-zone,
+  html.is-mobile #aim-joystick-base {
+    width: 130px !important;
+    height: 130px !important;
+  }
+  html.is-mobile #joystick-thumb,
+  html.is-mobile #aim-joystick-thumb {
+    width: 54px !important;
+    height: 54px !important;
+    left: 38px !important;
+    top: 38px !important;
+  }
+}
+
