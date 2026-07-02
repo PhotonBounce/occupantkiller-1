@@ -1435,6 +1435,23 @@ const Enemies = (() => {
 
     group.add(torso, head);
 
+    // ── Simple legs (always present for basic humanoid shape) ──
+    const legL = new THREE.Mesh(
+      new THREE.BoxGeometry(0.21 * s, 0.55 * s, 0.21 * s),
+      new THREE.MeshLambertMaterial({ color: typeCfg.limbColor })
+    );
+    legL.position.set(-0.14 * s, 0.28 * s, 0);
+    const legR = legL.clone();
+    legR.position.set(0.14 * s, 0.28 * s, 0);
+    const armL = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18 * s, 0.52 * s, 0.18 * s),
+      new THREE.MeshLambertMaterial({ color: typeCfg.limbColor })
+    );
+    armL.position.set(-0.35 * s, 0.82 * s, 0);
+    const armR = armL.clone();
+    armR.position.set(0.35 * s, 0.82 * s, 0);
+    group.add(legL, legR, armL, armR);
+
     if (detailLevel >= 1) {
     // ── Helmet — composite 6B47 Ratnik (shell + brim + nape) ──
     const helmetZTex = getCachedTex('helmet_' + typeCfg.helmetColor, function() {
@@ -1470,36 +1487,12 @@ const Enemies = (() => {
     const helmet = helmetShell; // backward-compat reference
     group.add(helmetShell, helmetCrown, helmetBrim, helmetNape, helmetCw);
 
-    // ── Legs (camo textured, darker variant) ──────────────
-    const legCamo = getCachedTex('camo_dark', function() {
-      return makeEMRCamoTexture('dark');
-    });
-    const legL = new THREE.Mesh(
-      new THREE.BoxGeometry(0.21 * s, 0.55 * s, 0.21 * s),
-      new THREE.MeshLambertMaterial({ map: legCamo })
-    );
-    legL.position.set(-0.14 * s, 0.28 * s, 0);
-    const legR = legL.clone();
-    legR.position.set(0.14 * s, 0.28 * s, 0);
-
-    // ── Left arm with WHITE ARMBAND (Russian ID marking) ──
-    const armbandTex = getCachedTex('armband_' + typeCfg.limbColor, function() {
-      return makeWhiteArmbandTexture(typeCfg.limbColor);
-    });
-    const armL = new THREE.Mesh(
-      new THREE.BoxGeometry(0.18 * s, 0.52 * s, 0.18 * s),
-      new THREE.MeshLambertMaterial({ map: detailLevel >= 2 ? armbandTex : null, color: typeCfg.limbColor })
-    );
-    armL.position.set(-0.35 * s, 0.82 * s, 0);
-
-    // ── Right arm (plain camo) ────────────────────────────
-    const armR = new THREE.Mesh(
-      new THREE.BoxGeometry(0.18 * s, 0.52 * s, 0.18 * s),
-      new THREE.MeshLambertMaterial({ map: camoTex })
-    );
-    armR.position.set(0.35 * s, 0.82 * s, 0);
-
-    group.add(helmet, legL, legR, armL, armR);
+    // Replace simple legs with camo textured versions
+    legL.material = new THREE.MeshLambertMaterial({ map: getCachedTex('camo_dark', function() { return makeEMRCamoTexture('dark'); }) });
+    legR.material = legL.material;
+    armL.material = new THREE.MeshLambertMaterial({ map: getCachedTex('armband_' + typeCfg.limbColor, function() { return makeWhiteArmbandTexture(typeCfg.limbColor); }) });
+    armR.material = new THREE.MeshLambertMaterial({ map: camoTex });
+    group.add(helmet);
     }
 
     if (detailLevel >= 2) {
