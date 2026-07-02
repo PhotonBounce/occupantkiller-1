@@ -326,8 +326,8 @@ canvas {
   text-shadow: 0 0 20px currentColor, 0 0 40px rgba(255,68,68,0.3);
 }
 .start-tagline {
-  color: #aaa;
-  font-size: 13px;
+  color: #ddd;
+  font-size: 14px;
   letter-spacing: 2px;
   margin: 0;
 }
@@ -364,20 +364,21 @@ canvas {
   margin-top: 14px;
 }
 .start-section {
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px;
-  padding: 12px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 .start-section-wide { grid-column: 1 / -1; }
 .start-section-title {
-  color: #ddd;
-  font-size: 11px;
+  color: #fff;
+  font-size: 16px;
   letter-spacing: 3px;
   font-weight: bold;
-  margin-bottom: 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  padding-bottom: 6px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  padding-bottom: 8px;
 }
 .start-section-row {
   display: flex;
@@ -386,16 +387,16 @@ canvas {
   justify-content: center;
 }
 .start-section-desc {
-  color: #777;
-  font-size: 11px;
-  margin: 6px 0 0;
+  color: #ccc;
+  font-size: 13px;
+  margin: 8px 0 0;
   text-align: center;
   letter-spacing: 0.5px;
 }
 .btn.pill {
   margin-top: 0;
-  padding: 6px 12px;
-  font-size: 11px;
+  padding: 10px 16px;
+  font-size: 14px;
   letter-spacing: 1.5px;
   border-radius: 14px;
   border-width: 1px;
@@ -406,16 +407,19 @@ canvas {
 }
 #start-weapons-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
-  gap: 4px;
-  font-size: 10px;
-  margin-top: 4px;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 6px;
+  font-size: 13px;
+  margin-top: 6px;
 }
 @media (max-width: 700px) {
   .start-card { padding: 18px 14px 14px; max-width: 100%; }
   .start-grid { grid-template-columns: 1fr; }
-  .start-hero h1 { font-size: 32px; letter-spacing: 5px; }
-  .start-cta-row .btn { padding: 12px 22px; font-size: 14px; letter-spacing: 3px; }
+  .start-hero h1 { font-size: 36px; letter-spacing: 5px; }
+  .start-cta-row .btn { padding: 14px 28px; font-size: 15px; letter-spacing: 3px; }
+  .btn.pill { font-size: 13px; padding: 8px 14px; }
+  .start-section-title { font-size: 14px; }
+  .start-section-desc { font-size: 12px; }
 }
 
 #overlay-start::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
@@ -2272,11 +2276,11 @@ html:not(.is-mobile) #bradley-btn:hover {
 }
 .voxel-badge {
   display: inline-block;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 4px;
   color: var(--voxel-amber);
   border: 1px solid rgba(255,170,0,0.3);
-  padding: 4px 14px;
+  padding: 6px 16px;
   background: rgba(255,170,0,0.06);
   text-transform: uppercase;
   margin-bottom: 10px;
@@ -2295,8 +2299,8 @@ html:not(.is-mobile) #bradley-btn:hover {
   font-family: 'Courier New', Courier, monospace;
 }
 .voxel-tagline {
-  color: #999;
-  font-size: 13px;
+  color: #ddd;
+  font-size: 14px;
   letter-spacing: 3px;
   margin: 4px 0 0;
 }
@@ -2377,7 +2381,7 @@ html:not(.is-mobile) #bradley-btn:hover {
   to   { opacity: 1; transform: translateY(0); }
 }
 .voxel-panel-title {
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 4px;
   color: var(--voxel-red);
   text-transform: uppercase;
@@ -2533,10 +2537,13 @@ html:not(.is-mobile) #bradley-btn:hover {
   .pause-side-panel { display: none; } /* Hide side panels on small screens to save space */
 }
 @media (max-width: 700px) {
-  .voxel-title { font-size: 32px; letter-spacing: 5px; }
+  .voxel-title { font-size: 36px; letter-spacing: 5px; }
   .voxel-main-nav { max-width: 100%; padding: 0 12px; }
-  .voxel-btn { font-size: 13px; padding: 12px 20px; }
+  .voxel-btn { font-size: 14px; padding: 14px 24px; }
   .voxel-menu-footer { padding-bottom: 16px; }
+  .btn.pill { font-size: 13px; padding: 8px 14px; }
+  .start-section-title { font-size: 14px; }
+  .start-section-desc { font-size: 12px; }
 }
 
 /* Start overlay specific overrides to keep it scrollable */

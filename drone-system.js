@@ -26,7 +26,7 @@ const DroneSystem = (function () {
 
   const DRONE_STATS = {
     recon:          { speed: 12, health: 30,  battery: 120, damage: 0,   range: 80 },
-    fpv_attack:     { speed: 25, health: 15,  battery: 45,  damage: 120, range: 50 },
+    fpv_attack:     { speed: 25, health: 15,  battery: 45,  damage: 150, range: 50 },
     bomb:           { speed: 8,  health: 40,  battery: 90,  damage: 200, range: 60 },
     surveillance:   { speed: 6,  health: 50,  battery: 300, damage: 15,  range: 100 },
     kamikaze:       { speed: 25, health: 8,   battery: 20,  damage: 120, range: 35 },
@@ -1105,53 +1105,8 @@ const DroneSystem = (function () {
           drone.velocity.z = (fdz / fd) * drone.speed;
           drone.mesh.rotation.y = Math.atan2(drone.velocity.x, drone.velocity.z);
         } else {
-          // Impact — damage in radius, terrain destruction, player/NPC damage, self-destruct
-          if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
-            Enemies.damageInRadius(drone.position, 4, drone.damage);
-          }
-          // Damage player if too close
-          try {
-            const player = window.GameManager && window.GameManager.getPlayer && window.GameManager.getPlayer();
-            if (player && player.position && !player.godMode) {
-              const ddx = player.position.x - drone.position.x;
-              const ddy = player.position.y - drone.position.y;
-              const ddz = player.position.z - drone.position.z;
-              const ddist = Math.sqrt(ddx*ddx + ddy*ddy + ddz*ddz);
-              if (ddist < 4) {
-                const falloff = 1 - (ddist / 4) * 0.5;
-                player.hp = Math.max(1, (player.hp || 100) - Math.floor(drone.damage * falloff));
-                if (typeof HUD !== 'undefined' && HUD.setHealth) HUD.setHealth(player.hp, player.maxHp || 100);
-                if (typeof HUD !== 'undefined' && HUD.showDamageFlash) HUD.showDamageFlash(0xff3300, 0.4);
-              }
-            }
-          } catch (e) {}
-          // Damage friendly NPCs if too close
-          try {
-            if (typeof NPCSystem !== 'undefined' && NPCSystem.damageInRadius) {
-              NPCSystem.damageInRadius(drone.position, 4, drone.damage);
-            }
-          } catch (e) {}
-          // Terrain destruction — carve a crater
-          try {
-            if (typeof VoxelWorld !== 'undefined' && VoxelWorld.setBlock) {
-              const cx = Math.round(drone.position.x);
-              const cy = Math.round(drone.position.y);
-              const cz = Math.round(drone.position.z);
-              for (let bx = -1; bx <= 1; bx++) {
-                for (let by = -1; by <= 1; by++) {
-                  for (let bz = -1; bz <= 1; bz++) {
-                    if (Math.abs(bx) + Math.abs(by) + Math.abs(bz) <= 2) {
-                      var vy = cy + by;
-                      if (vy > 0) VoxelWorld.setBlock(cx + bx, vy, cz + bz, 0);
-                    }
-                  }
-                }
-              }
-            }
-          } catch (e) {}
-          createDroneExplosion(drone.position.clone());
-          if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playExplosion) window.AudioSystem.playExplosion();
-          destroyDrone(drone);
+          // Impact — centralized kamikaze explosion via fireAttack
+          fireAttack(drone.id);
           return;
         }
         return;
@@ -1455,10 +1410,16 @@ const DroneSystem = (function () {
     if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playExplosion) {
       window.AudioSystem.playExplosion();
     }
-    // Camera shake for possessed FPV kamikaze
-    if (drone === _possessedDrone && typeof Feedback !== 'undefined' && Feedback.screenShake) {
+    // Screen shake for all FPV kamikaze explosions (not just possessed)
+    if (typeof Feedback !== 'undefined' && Feedback.screenShake) {
       Feedback.screenShake(1.2);
     }
+    // "KAMIKAZE STRIKE" notification
+    try {
+      if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+        HUD.notifyPickup('💥 KAMIKAZE STRIKE!', '#ff4400');
+      }
+    } catch (e) {}
     destroyDrone(drone);
     return true;
   }
@@ -1501,6 +1462,7 @@ const DroneSystem = (function () {
 
   function createDroneExplosion(pos) {
     if (!_scene) return;
+    // Central flash sphere
     const flashGeo = new THREE.SphereGeometry(2, 8, 8);
     const flashMat = new THREE.MeshBasicMaterial({
       color: 0xff6600, transparent: true, opacity: 0.9,
@@ -1529,6 +1491,56 @@ const DroneSystem = (function () {
     explosion.interval = fadeInterval;
     _explosionIntervals.push(fadeInterval);
     _activeExplosions.push(explosion);
+
+    // Particle burst — debris shards flying outward
+    const particleCount = 24;
+    const particles = [];
+    const debrisGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+    const debrisColors = [0xff4400, 0xff8800, 0xffaa00, 0x555555, 0x333333];
+    for (var pi = 0; pi < particleCount; pi++) {
+      var debrisMat = new THREE.MeshBasicMaterial({
+        color: debrisColors[pi % debrisColors.length],
+        transparent: true, opacity: 0.9
+      });
+      var debris = new THREE.Mesh(debrisGeo, debrisMat);
+      debris.position.copy(pos);
+      // Random outward velocity
+      var theta = Math.random() * Math.PI * 2;
+      var phi = Math.random() * Math.PI;
+      var speed = 3 + Math.random() * 8;
+      debris.userData.velocity = new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta) * speed,
+        Math.cos(phi) * speed + 2,
+        Math.sin(phi) * Math.sin(theta) * speed
+      );
+      debris.userData.life = 0.6 + Math.random() * 0.4;
+      debris.userData.maxLife = debris.userData.life;
+      _scene.add(debris);
+      particles.push({ mesh: debris, material: debrisMat, vel: debris.userData.velocity, life: debris.userData.life, maxLife: debris.userData.maxLife });
+    }
+    // Animate debris
+    var pInterval = setInterval(function() {
+      var active = false;
+      for (var pi = particles.length - 1; pi >= 0; pi--) {
+        var p = particles[pi];
+        p.life -= 0.016;
+        p.mesh.position.addScaledVector(p.vel, 0.016);
+        p.vel.y -= 9.8 * 0.016; // gravity
+        p.mesh.rotation.x += p.vel.z * 0.016;
+        p.mesh.rotation.y += p.vel.x * 0.016;
+        p.material.opacity = Math.max(0, (p.life / p.maxLife) * 0.9);
+        if (p.life <= 0) {
+          if (_scene) _scene.remove(p.mesh);
+          p.material.dispose();
+          particles.splice(pi, 1);
+        } else {
+          active = true;
+        }
+      }
+      if (!active) {
+        clearInterval(pInterval);
+      }
+    }, 16);
   }
 
   function setPatrol(droneId, points) {
