@@ -368,7 +368,7 @@
         <span id="vehicle-health-val">200/200</span>
       </div>
       <div id="vehicle-hud-speed">0 km/h</div>
-      <div id="vehicle-hud-controls">WASD · Drive | SPACE · Up | SHIFT · Down | G · Exit | T · View | LMB · Fire</div>
+      <div id="vehicle-hud-controls">WASD · Drive | SPACE · Up | SHIFT · Down | Shift+G · Exit | T · View | LMB · Fire</div>
       <div id="vehicle-hijack-bar" style="display:none">
         <div id="vehicle-hijack-fill"></div>
         <span id="vehicle-hijack-text">HIJACKING…</span>
@@ -2061,13 +2061,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (sb) sb.click();
           }
           break;
-        case 'KeyG':
-          if (isInventoryOpen()) {
-            e.preventDefault();
-            var gb = document.getElementById('pause-god-mode-btn');
-            if (gb) gb.click();
-          }
-          break;
         case 'Digit1': if (isInventoryOpen()) { e.preventDefault(); clickTab('inventory'); } break;
         case 'Digit2': if (isInventoryOpen()) { e.preventDefault(); clickTab('shop'); } break;
         case 'Digit3': if (isInventoryOpen()) { e.preventDefault(); clickTab('sell'); } break;
@@ -2448,13 +2441,32 @@ document.addEventListener('DOMContentLoaded', function () {
       pauseBtn.style.color = active ? '#0f0' : '#ff0';
       pauseBtn.textContent = active ? '⚡ GOD MODE: ON' : '⚡ GOD MODE';
     }
-    // In-game HUD button
+    // In-game HUD button (prominent top-left)
     var hudBtn = document.getElementById('hud-god-mode-btn');
     if (hudBtn) {
-      hudBtn.style.borderColor = active ? '#0f0' : 'rgba(255,255,0,0.5)';
+      hudBtn.style.borderColor = active ? '#0f0' : 'rgba(255,255,0,0.8)';
       hudBtn.style.color = active ? '#0f0' : '#ff0';
-      hudBtn.style.textShadow = active ? '0 0 6px #0f0' : '0 0 6px #ff0';
-      hudBtn.textContent = active ? '⚡ GOD: ON' : '⚡ GOD';
+      hudBtn.style.textShadow = active ? '0 0 8px #0f0' : '0 0 8px #ff0';
+      hudBtn.style.boxShadow = active ? '0 0 16px rgba(0,255,0,0.3)' : '0 0 12px rgba(255,255,0,0.2)';
+      hudBtn.textContent = active ? '⚡ GOD: ON' : '⚡ GOD: OFF';
+    }
+    // Mobile floating button
+    var mobileBtn = document.getElementById('mobile-god-mode-btn');
+    if (mobileBtn) {
+      mobileBtn.style.borderColor = active ? '#0f0' : 'rgba(255,255,0,0.8)';
+      mobileBtn.style.color = active ? '#0f0' : '#ff0';
+      mobileBtn.style.textShadow = active ? '0 0 6px #0f0' : '0 0 6px #ff0';
+      mobileBtn.style.boxShadow = active ? '0 0 16px rgba(0,255,0,0.3)' : '0 0 12px rgba(255,255,0,0.2)';
+      mobileBtn.textContent = active ? '⚡ ON' : '⚡ OFF';
+    }
+    // Mobile in-game button
+    var btnGodMobile = document.getElementById('btn-god-mobile');
+    if (btnGodMobile) {
+      btnGodMobile.style.borderColor = active ? '#0f0' : 'rgba(255,255,0,0.8)';
+      btnGodMobile.style.color = active ? '#0f0' : '#ff0';
+      btnGodMobile.style.textShadow = active ? '0 0 6px #0f0' : '0 0 6px #ff0';
+      btnGodMobile.style.boxShadow = active ? '0 0 16px rgba(0,255,0,0.3)' : '0 0 12px rgba(255,255,0,0.2)';
+      btnGodMobile.textContent = active ? '⚡ ON' : '⚡ OFF';
     }
   }
   document.getElementById('god-mode-btn').addEventListener('click', function () {
@@ -2467,6 +2479,20 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   var _hudGod = document.getElementById('hud-god-mode-btn');
   if (_hudGod) _hudGod.addEventListener('click', function (e) {
+    e.stopPropagation();
+    GameManager.toggleGodMode();
+    updateGodModeButtons();
+  });
+
+  // Mobile God Mode buttons
+  var _mobileGod = document.getElementById('mobile-god-mode-btn');
+  if (_mobileGod) _mobileGod.addEventListener('click', function (e) {
+    e.stopPropagation();
+    GameManager.toggleGodMode();
+    updateGodModeButtons();
+  });
+  var _btnGodMobile = document.getElementById('btn-god-mobile');
+  if (_btnGodMobile) _btnGodMobile.addEventListener('click', function (e) {
     e.stopPropagation();
     GameManager.toggleGodMode();
     updateGodModeButtons();

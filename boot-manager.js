@@ -681,6 +681,16 @@ const BootManager = (function () {
     }, holdMs || 70);
   }
 
+  function tapVirtualKeyWithShift(code, holdMs) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ShiftLeft', key: 'Shift', shiftKey: true, bubbles: true, cancelable: true }));
+    var key = getKeyValueFromCode(code);
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: code, key: key, shiftKey: true, bubbles: true, cancelable: true }));
+    window.setTimeout(function () {
+      document.dispatchEvent(new KeyboardEvent('keyup', { code: code, key: key, shiftKey: true, bubbles: true, cancelable: true }));
+      document.dispatchEvent(new KeyboardEvent('keyup', { code: 'ShiftLeft', key: 'Shift', shiftKey: false, bubbles: true, cancelable: true }));
+    }, holdMs || 70);
+  }
+
   function setMobileAim(active) {
     if (_deps.isInVehicle()) {
       var occupied = _deps.getOccupiedVehicle();
@@ -1273,7 +1283,7 @@ const BootManager = (function () {
     document.addEventListener('keydown', function (e) {
       keys[e.code] = true;
 
-      if (e.code === 'KeyG' && e.ctrlKey && e.shiftKey) {
+      if (e.code === 'KeyG' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         _deps.toggleGodMode();
         return;
@@ -1389,7 +1399,7 @@ const BootManager = (function () {
           _deps.toggleDroneRemoteView();
         }
 
-        if (e.code === 'KeyG') {
+        if (e.code === 'KeyG' && e.shiftKey) {
           if (_deps.isBradleyActive()) {
             _deps.exitBradley();
             _deps.notifyPickup('🚛 DISMOUNTED BRADLEY', '#a0c878');
@@ -2251,7 +2261,7 @@ const BootManager = (function () {
         tapVirtualKey('KeyF');
       }
     });
-    bindTapButton('btn-vehicle', function () { tapVirtualKey('KeyG'); });
+    bindTapButton('btn-vehicle', function () { tapVirtualKeyWithShift('KeyG'); });
     bindTapButton('btn-build', function () { tapVirtualKey('KeyB'); });
 
     document.querySelectorAll('.build-opt[data-template]').forEach(function (el) {

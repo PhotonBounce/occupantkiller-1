@@ -36,6 +36,7 @@ var ScreenEffects = (function () {
 
   var _bloodAlpha   = 0;   // current alpha (fades to 0)
   var _crackAlpha   = 0;
+  var _crackFadeTimer = 0; // auto-fade timer for cracks
   var _empTimer     = 0;   // seconds remaining
   var _vigTimer     = 0;
   var _lastHp       = 100;
@@ -188,16 +189,21 @@ var ScreenEffects = (function () {
       }
     }
 
-    // Crack visibility based on HP
+    // Crack visibility based on HP + auto-fade timer
     if (_crackCanvas) {
       var hpFrac = _maxHp > 0 ? _lastHp / _maxHp : 1;
-      if (hpFrac < CFG.CRACK_HP_FRAC) {
+      if (hpFrac < CFG.CRACK_HP_FRAC && _crackFadeTimer > 0) {
         var heavy = hpFrac < CFG.CRACK_HEAVY_FRAC;
         if (!_crackDrawn) _drawCracks(heavy);
-        _crackAlpha = Math.min(1, (CFG.CRACK_HP_FRAC - hpFrac) / CFG.CRACK_HP_FRAC * 1.4);
+        var hpAlpha = Math.min(1, (CFG.CRACK_HP_FRAC - hpFrac) / CFG.CRACK_HP_FRAC * 1.4);
+        _crackAlpha = hpAlpha * (_crackFadeTimer / CFG.CRACK_FADE_SEC);
+        _crackFadeTimer -= dt;
+        if (_crackFadeTimer < 0) _crackFadeTimer = 0;
         _crackCanvas.style.opacity = String(_crackAlpha);
       } else {
         if (_crackDrawn) { _crackDrawn = false; }
+        _crackFadeTimer = 0;
+        _crackAlpha = 0;
         _crackCanvas.style.opacity = '0';
       }
     }
@@ -242,6 +248,10 @@ var ScreenEffects = (function () {
       if (_crackDrawn && hp > 0 && newFrac >= CFG.CRACK_HP_FRAC) {
         // HP recovered above crack threshold — clear cracks
         _crackDrawn = false;
+      }
+      // Reset crack fade timer when damage is taken below threshold
+      if (newFrac < CFG.CRACK_HP_FRAC) {
+        _crackFadeTimer = CFG.CRACK_FADE_SEC;
       }
     }
   }
@@ -297,9 +307,16 @@ var ScreenEffects = (function () {
     _raf = requestAnimationFrame(_tick);
   }
 
+  function fadeCrack() {
+    if (_crackFadeTimer > 0) {
+      _crackFadeTimer = Math.min(_crackFadeTimer, 0.5); // fade quickly on vehicle exit
+    }
+  }
+
   return {
     init:         init,
     triggerEMP:   triggerEMP,
+    fadeCrack:    fadeCrack,
     _onHealthSet: _onHealthSet,
   };
 })();

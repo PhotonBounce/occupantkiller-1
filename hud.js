@@ -1288,11 +1288,11 @@ const HUD = (() => {
       }
     } else {
       if (vehicle.flying) {
-        vhControlsEl.textContent = 'WASD · Fly | SPACE · Ascend | SHIFT · Descend | G · Exit | T · View | LMB · Fire';
+        vhControlsEl.textContent = 'WASD · Fly | SPACE · Ascend | SHIFT · Descend | Shift+G · Exit | T · View | LMB · Fire';
       } else if (vehicle.damage > 0) {
-        vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View | LMB · Fire Turret';
+        vhControlsEl.textContent = 'WASD · Drive | Shift+G · Exit | T · View | LMB · Fire Turret';
       } else {
-        vhControlsEl.textContent = 'WASD · Drive | G · Exit | T · View';
+        vhControlsEl.textContent = 'WASD · Drive | Shift+G · Exit | T · View';
       }
     }
   }

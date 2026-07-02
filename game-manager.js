@@ -1268,6 +1268,16 @@ const GameManager = (function () {
     }, holdMs || 70);
   }
 
+  function tapVirtualKeyWithShift(code, holdMs) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ShiftLeft', key: 'Shift', shiftKey: true, bubbles: true, cancelable: true }));
+    var key = getKeyValueFromCode(code);
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: code, key: key, shiftKey: true, bubbles: true, cancelable: true }));
+    window.setTimeout(function () {
+      document.dispatchEvent(new KeyboardEvent('keyup', { code: code, key: key, shiftKey: true, bubbles: true, cancelable: true }));
+      document.dispatchEvent(new KeyboardEvent('keyup', { code: 'ShiftLeft', key: 'Shift', shiftKey: false, bubbles: true, cancelable: true }));
+    }, holdMs || 70);
+  }
+
   function setMobileAim(active) {
     if (VehicleSystem && VehicleSystem.isInVehicle && VehicleSystem.isInVehicle()) {
       var occupied = VehicleSystem.getOccupied ? VehicleSystem.getOccupied() : null;
@@ -1663,15 +1673,15 @@ const GameManager = (function () {
     var _rp0 = roadWPs.length > 2 ? roadWPs[2] : new THREE.Vector3(8, 0, 20);
     var _rp1 = roadWPs.length > 6 ? roadWPs[6] : new THREE.Vector3(12, 0, 20);
     var _rp2 = roadWPs.length > 10 ? roadWPs[10] : new THREE.Vector3(-8, 0, 20);
-    var vh = window.VoxelWorld.getTerrainHeight(_rp0.x, _rp0.z);
+    var vh = window.VoxelWorld.getTerrainHeight(_rp0.x, _rp0.z) + 0.5;
     VehicleSystem.spawn(_rp0.x, vh, _rp0.z, 'transport');
-    var startVh2 = window.VoxelWorld.getTerrainHeight(_rp1.x, _rp1.z);
+    var startVh2 = window.VoxelWorld.getTerrainHeight(_rp1.x, _rp1.z) + 0.7;
     VehicleSystem.spawn(_rp1.x, startVh2, _rp1.z, 'combat');
-    var startVh3 = window.VoxelWorld.getTerrainHeight(_rp2.x, _rp2.z);
+    var startVh3 = window.VoxelWorld.getTerrainHeight(_rp2.x, _rp2.z) + 0.5;
     VehicleSystem.spawn(_rp2.x, startVh3, _rp2.z, 'turret_rover');
     // Spawn a tank near the player start
     var _rp3 = roadWPs.length > 14 ? roadWPs[14] : new THREE.Vector3(0, 0, 15);
-    var startVh4 = window.VoxelWorld.getTerrainHeight(_rp3.x, _rp3.z);
+    var startVh4 = window.VoxelWorld.getTerrainHeight(_rp3.x, _rp3.z) + 0.6;
     VehicleSystem.spawn(_rp3.x, startVh4, _rp3.z, 'tank');
 
     // Spawn starter drones
@@ -1732,8 +1742,8 @@ const GameManager = (function () {
     document.addEventListener('keydown', function (e) {
       keys[e.code] = true;
 
-      // Cheat: Ctrl+Shift+G toggles God Mode (works in any state for QA convenience)
-      if (e.code === 'KeyG' && e.ctrlKey && e.shiftKey) {
+      // God Mode toggle (G key — works in any state for QA convenience)
+      if (e.code === 'KeyG' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         toggleGodMode();
         return;
@@ -1866,12 +1876,13 @@ const GameManager = (function () {
           toggleDroneRemoteView();
         }
 
-        // Vehicle enter/exit/hijack
-        if (e.code === 'KeyG') {
+        // Vehicle enter/exit/hijack (Shift+G)
+        if (e.code === 'KeyG' && e.shiftKey) {
           // Bradley IFV: check exit first so pilot can always dismount.
           if (typeof Bradley !== 'undefined' && Bradley.isActive && Bradley.isActive()) {
             Bradley.exit();
             HUD.notifyPickup('🚛 DISMOUNTED BRADLEY', '#a0c878');
+            if (typeof ScreenEffects !== 'undefined' && ScreenEffects.fadeCrack) ScreenEffects.fadeCrack();
           } else if (VehicleSystem.isHijacking()) {
             // Cancel hijack if pressing G again during hijack
             VehicleSystem.cancelHijack();
@@ -1883,6 +1894,7 @@ const GameManager = (function () {
               player.position.copy(exitPos);
               player.position.y += player.height;
             }
+            if (typeof ScreenEffects !== 'undefined' && ScreenEffects.fadeCrack) ScreenEffects.fadeCrack();
           } else {
             // Check Bradley proximity before falling to VehicleSystem
             var _bradleyMounted = false;
@@ -3323,14 +3335,14 @@ const GameManager = (function () {
     var _sp0 = _rwps.length > 2 ? _rwps[2] : new THREE.Vector3(8, 0, 20);
     var _sp1 = _rwps.length > 6 ? _rwps[6] : new THREE.Vector3(12, 0, 20);
     var _sp2 = _rwps.length > 10 ? _rwps[10] : new THREE.Vector3(-8, 0, 20);
-    var sgVh = window.VoxelWorld.getTerrainHeight(_sp0.x, _sp0.z);
+    var sgVh = window.VoxelWorld.getTerrainHeight(_sp0.x, _sp0.z) + 0.5;
     VehicleSystem.spawn(_sp0.x, sgVh, _sp0.z, 'transport');
-    var sgVh2 = window.VoxelWorld.getTerrainHeight(_sp1.x, _sp1.z);
+    var sgVh2 = window.VoxelWorld.getTerrainHeight(_sp1.x, _sp1.z) + 0.7;
     VehicleSystem.spawn(_sp1.x, sgVh2, _sp1.z, 'combat');
-    var sgVh3 = window.VoxelWorld.getTerrainHeight(_sp2.x, _sp2.z);
+    var sgVh3 = window.VoxelWorld.getTerrainHeight(_sp2.x, _sp2.z) + 0.5;
     VehicleSystem.spawn(_sp2.x, sgVh3, _sp2.z, 'turret_rover');
     var _sp3 = _rwps.length > 14 ? _rwps[14] : new THREE.Vector3(0, 0, 15);
-    var sgVh4 = window.VoxelWorld.getTerrainHeight(_sp3.x, _sp3.z);
+    var sgVh4 = window.VoxelWorld.getTerrainHeight(_sp3.x, _sp3.z) + 0.6;
     VehicleSystem.spawn(_sp3.x, sgVh4, _sp3.z, 'tank');
 
     // Respawn drones
@@ -3693,15 +3705,15 @@ const GameManager = (function () {
     var _nsp0 = _nsWps.length > 2 ? _nsWps[2] : new THREE.Vector3(8, 0, 20);
     var _nsp1 = _nsWps.length > 6 ? _nsWps[6] : new THREE.Vector3(12, 0, 20);
     var _nsp2 = _nsWps.length > 10 ? _nsWps[10] : new THREE.Vector3(-8, 0, 20);
-    var vh = VoxelWorld.getTerrainHeight(_nsp0.x, _nsp0.z);
+    var vh = VoxelWorld.getTerrainHeight(_nsp0.x, _nsp0.z) + 0.5;
     VehicleSystem.clear();
     VehicleSystem.spawn(_nsp0.x, vh, _nsp0.z, 'transport');
-    var vh2 = VoxelWorld.getTerrainHeight(_nsp1.x, _nsp1.z);
+    var vh2 = VoxelWorld.getTerrainHeight(_nsp1.x, _nsp1.z) + 0.7;
     VehicleSystem.spawn(_nsp1.x, vh2, _nsp1.z, 'combat');
-    var vh3 = VoxelWorld.getTerrainHeight(_nsp2.x, _nsp2.z);
+    var vh3 = VoxelWorld.getTerrainHeight(_nsp2.x, _nsp2.z) + 0.5;
     VehicleSystem.spawn(_nsp2.x, vh3, _nsp2.z, 'turret_rover');
     var _nsp3 = _nsWps.length > 14 ? _nsWps[14] : new THREE.Vector3(0, 0, 15);
-    var vh4 = VoxelWorld.getTerrainHeight(_nsp3.x, _nsp3.z);
+    var vh4 = VoxelWorld.getTerrainHeight(_nsp3.x, _nsp3.z) + 0.6;
     VehicleSystem.spawn(_nsp3.x, vh4, _nsp3.z, 'tank');
 
     // Spawn drones
@@ -3800,7 +3812,7 @@ const GameManager = (function () {
       }
       // Spawn Bradley via VehicleSystem and auto-enter player as gunner
       var playerSpawn = player.position.clone();
-      var _bradleyV = VehicleSystem.spawn(playerSpawn.x, playerSpawn.y, playerSpawn.z, 'bradley');
+      var _bradleyV = VehicleSystem.spawn(playerSpawn.x, VoxelWorld.getTerrainHeight(playerSpawn.x, playerSpawn.z) + 1.05, playerSpawn.z, 'bradley');
       if (_bradleyV) {
         _bradleyV.rotation.y = Math.PI; // Face toward treeline (positive Z)
         VehicleSystem.enter(_bradleyV.id);
@@ -4037,21 +4049,21 @@ const GameManager = (function () {
     if (w >= armorMinWave && !capitalDefense) {
       var _rsp = _roadSpawnPos(30);
       var evx = _rsp.x, evz = _rsp.z;
-      var evy = VoxelWorld.getTerrainHeight(evx, evz);
+      var evy = VoxelWorld.getTerrainHeight(evx, evz) + 0.7;
       VehicleSystem.spawnEnemy(evx, evy, evz, 'combat');
       HUD.notifyPickup('⚠ ENEMY ARMOR SPOTTED!', '#ff4444');
     }
     if (w >= transportMinWave && !capitalDefense) {
       var _rsp2 = _roadSpawnPos(25);
       var evx2 = _rsp2.x, evz2 = _rsp2.z;
-      var evy2 = VoxelWorld.getTerrainHeight(evx2, evz2);
+      var evy2 = VoxelWorld.getTerrainHeight(evx2, evz2) + 0.5;
       VehicleSystem.spawnEnemy(evx2, evy2, evz2, 'transport');
     }
     // tankFocus extra armored column — convoy-style spawn pattern on roads
     for (var et = 0; et < extraTanks; et++) {
       var _rsp3 = _roadSpawnPos(35);
       var ctx = _rsp3.x, ctz = _rsp3.z;
-      var cty = VoxelWorld.getTerrainHeight(ctx, ctz);
+      var cty = VoxelWorld.getTerrainHeight(ctx, ctz) + 0.7;
       VehicleSystem.spawnEnemy(ctx, cty, ctz, 'combat');
     }
     if (tankFocus && w === 1) {
@@ -4360,7 +4372,7 @@ const GameManager = (function () {
       if (!capitalDefense && typeof VehicleSystem !== 'undefined') {
         var _bgrSP = _roadSpawnPos(35);
         var _bgrX = _bgrSP.x, _bgrZ = _bgrSP.z;
-        VehicleSystem.spawnEnemy(_bgrX, VoxelWorld.getTerrainHeight(_bgrX, _bgrZ), _bgrZ, 'combat');
+        VehicleSystem.spawnEnemy(_bgrX, VoxelWorld.getTerrainHeight(_bgrX, _bgrZ) + 0.7, _bgrZ, 'combat');
       }
     }
     // Saky airbase (id 15): extra drone spawns each wave + jammer hint at wave 1
@@ -7912,7 +7924,7 @@ const GameManager = (function () {
         MissionSystem.updateMissionTimer(delta);
       }
 
-      // Hand-thrown grenades (player-thrown via KeyG when no nearby vehicle)
+      // Hand-thrown grenades (player-thrown via Shift+G when no nearby vehicle)
       updateHandGrenades(delta);
 
       // World features update (fires, trees, mines, airdrops, smoke)
@@ -8694,7 +8706,7 @@ const GameManager = (function () {
         showDroneSelection();
       }
     });
-    bindTapButton('btn-vehicle', function () { tapVirtualKey('KeyG'); });
+    bindTapButton('btn-vehicle', function () { tapVirtualKeyWithShift('KeyG'); });
     bindTapButton('btn-build', function () { tapVirtualKey('KeyB'); });
     // Build-opt tap: select template directly on mobile
     document.querySelectorAll('.build-opt[data-template]').forEach(function (el) {
