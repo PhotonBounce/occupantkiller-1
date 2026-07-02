@@ -1909,6 +1909,26 @@ function fountain(ox, oz, gy) {
   // ── Map stage names to city keys ──────────────────────────
   const STAGE_MAP = { HOSTOMEL:'hostomel', AVDIIVKA:'avdiivka', BAKHMUT:'bakhmut', KHERSON:'kherson', MARIUPOL:'mariupol', CRIMEA:'crimea', CHORNOBYL:'chornobyl', MOSCOW:'moscow', SEVASTOPOL:'sevastopol', DONBAS:'donbas', BELGOROD:'belgorod', KREMLIN:'kremlin', KYIV:'kyiv', SNAKE:'snakeIsland', SAKY:'saky', VUHLEDAR:'vuhledar', ANTONOV:'antonov', REFINERY:'refinery', TREELINE:'treeline', SIEGE:'siegeMoscow' };
 
+  // Stub for wrecked BTR vehicles used in treeline/urban missions
+  function generateWreckedBTR(x, z) {
+    if (typeof setBlock === 'undefined') return;
+    var gy = (typeof getTerrainHeight === 'function') ? getTerrainHeight(x, z) : 0;
+    var h = 3, w = 5, d = 3;
+    var color = PAL.RUST || PAL.BRICK;
+    for (var bx = 0; bx < w; bx++) {
+      for (var bz = 0; bz < d; bz++) {
+        for (var by = 0; by < h; by++) {
+          if (bx === 0 || bx === w-1 || bz === 0 || bz === d-1 || by === h-1 || by === 0) {
+            setBlock(x + bx, gy + by, z + bz, color);
+          }
+        }
+      }
+    }
+    // Wheels
+    setBlock(x, gy, z + 1, PAL.METAL_DARK);
+    setBlock(x + w - 1, gy, z + 1, PAL.METAL_DARK);
+  }
+
   // ── Public API ────────────────────────────────────────────
   return {
     CITIES: CITIES, ROADS: ROADS, STAGE_MAP: STAGE_MAP,
