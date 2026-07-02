@@ -1155,15 +1155,20 @@ html.is-mobile #wave-announce.visible { animation: fadeInOutMobile 2.5s forwards
   border-color: #44ff88;
 }
 .mobile-btn.sm {
-  width: 44px; height: 44px;
-  font-size: 18px;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  width: 56px !important;
+  height: 56px !important;
+  font-size: 20px !important;
 }
 
 .utility-btn {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  font-size: 20px;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 14px !important;
+  font-size: 22px !important;
   background: rgba(14, 20, 28, 0.55);
   border-color: rgba(170, 225, 255, 0.26);
 }
@@ -2561,7 +2566,7 @@ html:not(.is-mobile) #bradley-btn:hover {
    POLISHED INVENTORY / PAUSE OVERLAY (v3 redesign)
    ═══════════════════════════════════════════════════════════════════════ */
 #inventory-overlay {
-  background: rgba(4, 8, 20, 0.92) !important;
+  background: rgba(5, 5, 10, 0.95) !important;
   backdrop-filter: blur(16px) saturate(1.2) !important;
   -webkit-backdrop-filter: blur(16px) saturate(1.2) !important;
 }
@@ -2620,7 +2625,7 @@ html:not(.is-mobile) #bradley-btn:hover {
   position: relative;
   flex: 1;
   padding: 10px 8px !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
   letter-spacing: 1px;
   border-radius: 8px !important;
   border: 1px solid transparent !important;
@@ -2819,8 +2824,8 @@ html:not(.is-mobile) #bradley-btn:hover {
    ═══════════════════════════════════════════════════════════════════════ */
 #overlay-start {
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(255,68,68,0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(0,87,183,0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 20%, rgba(0,87,183,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(255,215,0,0.08) 0%, transparent 50%),
     radial-gradient(ellipse at center top, rgba(40,10,10,0.55) 0%, rgba(0,0,0,0.92) 70%) !important;
 }
 
@@ -2832,9 +2837,9 @@ html:not(.is-mobile) #bradley-btn:hover {
   z-index: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(circle at 20% 30%, rgba(255,68,68,0.06) 0%, transparent 25%),
-    radial-gradient(circle at 70% 60%, rgba(0,87,183,0.08) 0%, transparent 30%),
-    radial-gradient(circle at 50% 80%, rgba(255,215,0,0.05) 0%, transparent 20%);
+    radial-gradient(circle at 20% 30%, rgba(0,87,183,0.1) 0%, transparent 25%),
+    radial-gradient(circle at 70% 60%, rgba(255,215,0,0.08) 0%, transparent 30%),
+    radial-gradient(circle at 50% 80%, rgba(0,87,183,0.06) 0%, transparent 20%);
   animation: startMenuGlow 8s ease-in-out infinite alternate;
 }
 @keyframes startMenuGlow {
@@ -2845,7 +2850,7 @@ html:not(.is-mobile) #bradley-btn:hover {
 
 /* Larger title with military stencil effect */
 .voxel-title {
-  font-size: 64px !important;
+  font-size: 72px !important;
   letter-spacing: 14px !important;
   font-weight: 900 !important;
   text-shadow:
@@ -3188,11 +3193,11 @@ html:not(.is-mobile) #bradley-btn:hover {
 
 /* Pause button */
 #btn-pause {
-  min-width: 52px !important;
-  min-height: 52px !important;
-  width: 56px !important;
-  height: 56px !important;
-  font-size: 26px !important;
+  min-width: 60px !important;
+  min-height: 60px !important;
+  width: 64px !important;
+  height: 64px !important;
+  font-size: 28px !important;
 }
 
 /* Look zone — larger */
@@ -3238,10 +3243,10 @@ html:not(.is-mobile) #bradley-btn:hover {
     font-size: 32px !important;
   }
   html.is-mobile .utility-btn {
-    min-width: 44px !important;
-    min-height: 44px !important;
-    width: 48px !important;
-    height: 48px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
+    width: 56px !important;
+    height: 56px !important;
     font-size: 20px !important;
   }
   html.is-mobile #joystick-zone {
@@ -3277,31 +3282,31 @@ html:not(.is-mobile) #bradley-btn:hover {
 /* Small phone landscape */
 @media (orientation: landscape) and (max-height: 420px) {
   html.is-mobile .mobile-btn {
-    min-width: 48px !important;
-    min-height: 48px !important;
-    width: 52px !important;
-    height: 52px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
+    width: 56px !important;
+    height: 56px !important;
     font-size: 20px !important;
   }
   html.is-mobile .mobile-btn.sm {
-    min-width: 40px !important;
-    min-height: 40px !important;
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 16px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 18px !important;
   }
   html.is-mobile #mobile-actions #btn-fire {
-    min-width: 64px !important;
-    min-height: 64px !important;
-    width: 72px !important;
-    height: 72px !important;
-    font-size: 26px !important;
+    min-width: 76px !important;
+    min-height: 76px !important;
+    width: 84px !important;
+    height: 84px !important;
+    font-size: 32px !important;
   }
   html.is-mobile .utility-btn {
-    min-width: 40px !important;
-    min-height: 40px !important;
-    width: 44px !important;
-    height: 44px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
+    width: 56px !important;
+    height: 56px !important;
     font-size: 18px !important;
   }
   html.is-mobile #joystick-zone,

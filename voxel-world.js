@@ -1093,9 +1093,10 @@ window.VoxelWorld = (function () {
 
   // ── LOD + Frustum helpers ───────────────────────────────────────
   function getLODScale(distance) {
-    if (distance > 80) return 4;  // far: 25% density
-    if (distance > 40) return 2;  // medium: 50% density
-    return 1;                     // close: full detail
+    if (distance >= 120) return 0;  // too far: don't rebuild
+    if (distance >= 80) return 3;   // far: ~33% density (skip every 3rd)
+    if (distance >= 40) return 2;   // medium: 50% density (skip every 2nd)
+    return 1;                       // close: full detail
   }
 
   const _frustum = new THREE.Frustum();
@@ -1146,6 +1147,13 @@ window.VoxelWorld = (function () {
       const dz = cz - cameraPos.z;
       const dist = Math.sqrt(dx * dx + dz * dz);
       lodScale = getLODScale(dist);
+    }
+
+    // Distance >= 120: hide chunk entirely, don't build mesh
+    if (lodScale === 0) {
+      chunk.dirty = false;
+      chunk._lastLOD = 0;
+      return;
     }
 
     // For LOD > 1, use InstancedMesh (larger cubes, fewer vertices)
@@ -1404,20 +1412,19 @@ window.VoxelWorld = (function () {
     rebuildAll();
   }
 
+  var _chunkRebuildQueue = [];
+
   function rebuildAll(cameraPos) {
-    // PRELOAD: build every chunk synchronously up-front. The budgeted
-    // updateDirtyChunks() path is for runtime block edits only — using it
-    // here causes visible pop-in on spawn (only 4 chunks/frame appear).
+    // Queue all dirty chunks and process them incrementally via updateDirtyChunks
+    // to avoid a single-frame stall that freezes the game for seconds.
+    _chunkRebuildQueue = [];
     for (const chunk of chunks.values()) {
       chunk.dirty = true;
-    }
-    if (typeof chunks !== 'object' || !chunks.values) return;
-    for (const chunk of chunks.values()) {
-      if (chunk.dirty) buildChunkMesh(chunk, _scene, cameraPos);
+      _chunkRebuildQueue.push(chunk);
     }
   }
 
-  let _rebuildBudget = 2; // max chunks to rebuild per frame (runtime edits only)
+  let _rebuildBudget = 2; // max chunks to rebuild per frame (runtime edits + queue)
   // Distance-cull terrain chunk meshes (low-spec/mobile). Chunks beyond the radius
   // are hidden — they sit past the fog wall anyway, so it's invisible to the player
   // but removes ~1000 terrain draw calls + their triangles. Purely visual: terrain
@@ -1459,6 +1466,56 @@ window.VoxelWorld = (function () {
       frustum = new THREE.Frustum().setFromProjectionMatrix(_projMatrix);
     }
     const maxRebuildDist = 150; // world units
+
+    // Process queued rebuilds first (from rebuildAll)
+    while (_chunkRebuildQueue.length > 0 && count < _rebuildBudget) {
+      const chunk = _chunkRebuildQueue.shift();
+      if (!chunk || !chunk.dirty) continue;
+      // Skip chunks too far from camera
+      if (camPos) {
+        const cx = chunk.cx * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const cz = chunk.cz * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const dx = cx - camPos.x;
+        const dz = cz - camPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist > maxRebuildDist) {
+          chunk.dirty = false;
+          continue;
+        }
+        // Don't rebuild at all if >= 120 (lodScale 0)
+        if (dist >= 120) {
+          chunk.dirty = false;
+          continue;
+        }
+      }
+      // Frustum cull: skip chunks completely outside view
+      if (frustum) {
+        _chunkBoxMin.set(chunk.cx * CHUNK_SIZE, 0, chunk.cz * CHUNK_SIZE);
+        _chunkBoxMax.set((chunk.cx + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunk.cz + 1) * CHUNK_SIZE);
+        _chunkBox.set(_chunkBoxMin, _chunkBoxMax);
+        if (!frustum.intersectsBox(_chunkBox)) continue;
+      }
+      // Skip if LOD hasn't changed and mesh already exists
+      if (camPos && chunk._lastLOD !== undefined && chunk.mesh) {
+        const cx = chunk.cx * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const cz = chunk.cz * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const dx = cx - camPos.x;
+        const dz = cz - camPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const neededLOD = getLODScale(dist);
+        if (neededLOD === 0) {
+          chunk.dirty = false;
+          continue;
+        }
+        if (chunk._lastLOD === neededLOD) {
+          chunk.dirty = false;
+          continue;
+        }
+      }
+      buildChunkMesh(chunk, _scene, camPos);
+      count++;
+    }
+
     for (const chunk of chunks.values()) {
       if (!chunk.dirty) continue;
       // Skip chunks too far from camera
@@ -6715,6 +6772,9 @@ window.VoxelWorld = (function () {
       generateHostomelAirport(0, 0);
       // ── Residential blocks south-east of the airport (town of Hostomel)
       // Real: Hostomel is south/south-east of the airport, ~17,000 population
+      // Real: Antonov Airport has a 3,500m east-west runway, 56m wide
+      // Real: Two giant hangars on the east end housed the An-225 Mriya
+      // Real: No giant passenger terminal — it's a cargo/testing facility
       generateUkrainianApartment(80, -30, 6);
       generateUkrainianApartment(80, -50, 9);
       generateUkrainianApartment(80, -68, 6);
@@ -6795,7 +6855,7 @@ window.VoxelWorld = (function () {
       })();
       // ── Runway and taxiway markings (ASPHALT strips with METAL edge lights) ──
       (function () {
-        // Main runway (east-west)
+        // Main runway (east-west) — real: 3,500m x 56m, game: scaled to 120 blocks
         for (var rx = -60; rx <= 60; rx++) {
           for (var rz = -2; rz <= 2; rz++) {
             var rh = getTerrainHeight(rx, rz);
@@ -7350,6 +7410,9 @@ window.VoxelWorld = (function () {
       })();
 } else if (level.id === 'MARIUPOL') {
       // Azovstal steelworks — industrial hellscape: smokestacks, fires, factory rubble
+      // Real: Mariupol is on the Sea of Azov coast, 6 miles from shore
+      // Real: Kalmius and Kalchik rivers run through the city
+      // Real: 95%+ of buildings were destroyed during the 3-month siege
       generateIndustrialComplex(0, 0);
       generateBurningRuin(-20, -20);
       generateBurningRuin(20, 20);
@@ -7408,6 +7471,19 @@ window.VoxelWorld = (function () {
       generateWreckedBTR(20, 15);
       generateWreckedCar(-5, 25);
       generateWreckedCar(5, 25);
+      // ── Kalmius River — runs north of Azovstal, dividing industrial and residential zones ──
+      (function () {
+        for (var rx = -60; rx <= 60; rx++) {
+          var rz = -25 + Math.floor(Math.sin(rx * 0.05) * 2);
+          for (var rw = 0; rw < 3; rw++) {
+            var rrz = rz + rw;
+            var rh = getTerrainHeight(rx, rrz);
+            for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+              setBlock(rx, ry, rrz, BLOCK.WATER);
+            }
+          }
+        }
+      })();
       // Sea of Azov coast — flat shoreline south of the city
       (function () {
         for (var cx = -60; cx <= 60; cx++) {
@@ -7428,6 +7504,23 @@ window.VoxelWorld = (function () {
             var fh = getTerrainHeight(fx, fz);
             setBlock(fx, fh, fz, BLOCK.GRASS);
           }
+        }
+      })();
+      // ── Drama Theater — bombed with 'CHILDREN' sign painted outside (March 16, 2022) ──
+      (function () {
+        var tx = -20, tz = 30;
+        var th = getTerrainHeight(tx, tz);
+        // Theater building (ruined)
+        for (var x = -5; x <= 5; x++) {
+          for (var z = 0; z <= 6; z++) {
+            for (var y = 0; y < 4; y++) {
+              setBlock(tx + x, th + y, tz + z, BLOCK.RUBBLE);
+            }
+          }
+        }
+        // 'CHILDREN' sign painted on pavement (white blocks)
+        for (var cx = -3; cx <= 3; cx++) {
+          setBlock(tx + cx, th, tz + 8, BLOCK.CONCRETE);
         }
       })();
 } else if (level.id === 'CRIMEA') {
@@ -7520,12 +7613,21 @@ window.VoxelWorld = (function () {
     } else if (level.id === 'MOSCOW') {
       // Kremlin outskirts — dense Soviet city blocks, ring roads, industrial areas
       // NO Ukrainian blue/yellow — this is Russian territory, feels like Moscow
+      // Real: Moscow outer suburbs are dominated by khrushchevka (5-story prefab)
+      // and microrayony (clustered apartment blocks), yellowish brick, MKAD ring
       generateMoscowCityExtension(0, 0);
       // Soviet apartment blocks (north of Kremlin, characteristic 9-12 story)
       generateUkrainianApartment(-20, -20, 8);
       generateUkrainianApartment(20, -20, 10);
       generateUkrainianApartment(-20, 20, 8);
       generateUkrainianApartment(20, 20, 10);
+      // Khrushchevka blocks (5-story prefab, yellowish brick — typical Moscow suburbs)
+      generateUkrainianApartment(-35, -15, 5);
+      generateUkrainianApartment(-35, 15, 5);
+      generateUkrainianApartment(35, -15, 5);
+      generateUkrainianApartment(35, 15, 5);
+      generateUkrainianApartment(-15, -35, 5);
+      generateUkrainianApartment(15, -35, 5);
       // Russian checkpoints (NOT Ukrainian)
       generateCheckpoint(0, 35, false);
       generateCheckpoint(0, -35, false);

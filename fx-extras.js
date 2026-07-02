@@ -32,12 +32,24 @@
   var pcanvas = el('canvas', 'position:fixed;inset:0;pointer-events:none;z-index:945;opacity:0;transition:opacity .5s;');
   var pctx = pcanvas.getContext('2d');
   var particles = [], partOn = false;
+  var _maxParticles = 50;
+  function setMaxParticles(n) {
+    _maxParticles = Math.max(0, Math.min(50, Math.floor(n)));
+    seedParticles();
+  }
   function sizeCanvas() { pcanvas.width = window.innerWidth; pcanvas.height = window.innerHeight; }
   sizeCanvas();
   window.addEventListener('resize', sizeCanvas);
   function seedParticles() {
     particles = [];
-    for (var i = 0; i < 20; i++) {
+    var count = _maxParticles;
+    try {
+      var perf = (typeof GameManager !== 'undefined' && GameManager._perfLevel !== undefined) ? GameManager._perfLevel : 0;
+      if (perf >= 6) count = 0;
+      else if (perf >= 3) count = 10;
+      else if (perf >= 2) count = 20;
+    } catch (e) {}
+    for (var i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * pcanvas.width, y: Math.random() * pcanvas.height,
         r: 0.6 + Math.random() * 2.2, vx: (Math.random() - 0.5) * 12, vy: -6 - Math.random() * 16,
@@ -102,7 +114,7 @@
     if (partOn && pctx) {
       pctx.clearRect(0, 0, pcanvas.width, pcanvas.height);
       var activeCount = 0;
-      for (var i = 0; i < particles.length && activeCount < 50; i++) {
+      for (var i = 0; i < particles.length && activeCount < _maxParticles; i++) {
         var p = particles[i];
         p.x += p.vx * dt; p.y += p.vy * dt;
         if (p.y < -10) { p.y = pcanvas.height + 10; p.x = Math.random() * pcanvas.width; }
@@ -124,6 +136,7 @@
     cinematic: setCinematic,
     particles: setParticles,
     titleCard: function (txt, kicker) { showCard(txt || 'TREELINE ASSAULT', kicker); },
+    setMaxParticles: setMaxParticles,
     _cine: cine, _canvas: pcanvas, _card: card
   };
 })();

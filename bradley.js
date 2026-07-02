@@ -42,6 +42,11 @@ window.Bradley = (function () {
   var _shoulderSide = 1;        // +1 right, -1 left
   // Crew positions: 0=driver, 1=gunner(default), 2=commander
   var _crewPosition = 1;
+  var _aiDriver = false;      // AI auto-drive forward (treeline assault mode)
+  var _aiSpeed = 0;             // current AI speed
+  var _aiMaxSpeed = 6;          // slow crawl through wheat field
+  var _aiActive = false;        // AI driver is currently moving the vehicle
+
   // Fire timing
   var _bushCool = 0;            // 0.30s cyclic = 200 rpm
   var _coaxCool = 0;            // 0.085s = 700 rpm
@@ -79,10 +84,10 @@ window.Bradley = (function () {
   var BUSH_RPM_INTERVAL = 0.30;   // 200 rpm cyclic (authentic)
   var BUSH_RPM_RAPID    = 0.075;  // ~800 rpm arcade "gatling" mode
   var COAX_RPM_INTERVAL = 0.085;  // ~700 rpm
-  var BUSH_DMG_HE = 70, BUSH_AOE = 2.6;
-  var BUSH_DMG_AP = 95;
+  var BUSH_DMG_HE = 150, BUSH_AOE = 2.6;  // 150 damage to infantry
+  var BUSH_DMG_AP = 50;                 // 50 damage to light vehicles
   var COAX_DMG = 20;
-  var TOW_DMG = 600;              // one-shot kill on tanks
+  var TOW_DMG = 300;              // 300 damage anti-armor (2 missiles)
   var TOW_SPEED = 35;             // m/s
   var TOW_RANGE = 220;            // max effective range in game units
   var DRIVE_ACCEL = 7.5, DRIVE_MAX = 14, DRIVE_FRICTION = 3.0;
@@ -292,10 +297,12 @@ window.Bradley = (function () {
       }
     }
     _active = true;
+    _aiDriver = true;  // AI driver auto-advances for treeline assault
+    _aiSpeed = 0;
     _camYaw = _vehicle.group.rotation.y;
     _camPitch = -0.22;
     _turretYaw = 0; _turretPitch = 0;
-    _crewPosition = 1; // default to gunner
+    _crewPosition = 1; // default to gunner (open turret, exposed to air)
     _ensureChaseCam();
     if (_gameCam && _vehicle && _vehicle.group) {
       _gameCam.position.copy(_vehicle.group.position).add(new THREE.Vector3(0, 1.25, -2.1));
@@ -314,6 +321,12 @@ window.Bradley = (function () {
     _showCrewHUD();
     try { window.AudioSystem && window.AudioSystem.playVehicleIdle && (_vehicle.idleHandle = window.AudioSystem.playVehicleIdle(800)); } catch (e) {}
   }
+
+  function setAIDriver(on) {
+    _aiDriver = !!on;
+    if (!on) _aiSpeed = 0;
+  }
+  function getAIDriver() { return _aiDriver; }
 
   function _showCrewHUD() {
     var posName = ['DRIVER', 'GUNNER', 'COMMANDER'][_crewPosition];
@@ -729,7 +742,15 @@ window.Bradley = (function () {
 
     if (!_active || !_vehicle) return;
 
-    // Drive (only if driver position or gunner with override)
+    // AI driver auto-forward (treeline assault mode) — overrides manual WASD
+    if (_aiDriver && _active && _vehicle) {
+      _aiSpeed = Math.min(_aiMaxSpeed, _aiSpeed + DRIVE_ACCEL * dt * 0.5);
+      var fx = -Math.sin(_vehicle.yaw), fz = -Math.cos(_vehicle.yaw);
+      _vehicle.vx += fx * _aiSpeed * dt * 0.8;
+      _vehicle.vz += fz * _aiSpeed * dt * 0.8;
+    }
+
+    // Drive (only if driver position or gunner with override; AI handles forward)
     var fwdInput = (_key.w ? 1 : 0) - (_key.s ? 1 : 0);
     var turnInput = (_key.a ? 1 : 0) - (_key.d ? 1 : 0);
     _vehicle.yaw += turnInput * TURN_RATE * dt * (Math.abs(fwdInput) > 0.05 ? 1 : 0.5);
@@ -889,6 +910,7 @@ window.Bradley = (function () {
     getTOWAmmo: function() { return _towAmmo; },
     getSmokeCharges: function() { return _smokeCharges; },
     getCoaxHeat: function() { return _coaxHeat; },
-    getMortarCooldown: function() { return _mortarCooldown; }
+    getMortarCooldown: function() { return _mortarCooldown; },
+    setAIDriver: setAIDriver, getAIDriver: getAIDriver
   };
 })();

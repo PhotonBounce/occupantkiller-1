@@ -2984,70 +2984,7 @@ const GameManager = (function () {
         }
       }
     }
-    if (payloadEl) {
-      var maxAmmo = drone.maxAmmo || 0;
-      if (maxAmmo > 0) {
-        payloadEl.style.display = '';
-        if (drone.type === 'surveillance') {
-          payloadEl.textContent = drone.ammo > 0 ? '🔫 LMG READY' : '🔫 LMG EMPTY';
-        } else {
-          payloadEl.textContent = drone.ammo > 0 ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD EMPTY';
-        }
-        payloadEl.style.color = drone.ammo > 0 ? '#ffaa00' : '#666';
-      } else {
-        payloadEl.style.display = 'none';
-      }
-    }
-    if (ammoEl) {
-      var maxAmmo = drone.maxAmmo || 0;
-      var ammo = drone.ammo || 0;
-      var ammoWrap = document.getElementById('drone-ammo-display-wrap');
-      var ammoLarge = document.getElementById('drone-ammo-large');
-      if (maxAmmo > 0) {
-        if (ammoWrap) ammoWrap.style.display = '';
-        // Show type-specific ammo text with colors
-        var ammoText = '';
-        var ammoColor = '#ffaa00';
-        var barClass = '';
-        if (drone.type === 'fpv_attack' || drone.type === 'kamikaze') {
-          ammoText = ammo + ' STRIKE' + (ammo !== 1 ? 'S' : '');
-          ammoColor = '#ff4444';
-          barClass = 'ammo-fpv';
-        } else if (drone.type === 'bomb') {
-          ammoText = ammo + ' GRENADE' + (ammo !== 1 ? 'S' : '');
-          ammoColor = '#ffaa00';
-          barClass = 'ammo-bomb';
-        } else if (drone.type === 'surveillance') {
-          ammoText = ammo + ' LMG ROUND' + (ammo !== 1 ? 'S' : '');
-          ammoColor = '#00ccff';
-          barClass = 'ammo-surveillance';
-        } else {
-          ammoText = ammo + '/' + maxAmmo;
-        }
-        ammoEl.textContent = ammoText;
-        ammoEl.style.color = ammoColor;
-        if (ammoBarOuter) {
-          ammoBarOuter.style.display = 'inline-block';
-          ammoBarOuter.style.width = '100px';
-          ammoBarOuter.style.height = '10px';
-        }
-        if (ammoBarInner) {
-          ammoBarInner.style.width = (maxAmmo > 0 ? (ammo / maxAmmo * 100) : 0) + '%';
-          ammoBarInner.className = 'ammo-bar-inner ' + (ammo > 0 ? barClass : 'ammo-empty');
-          ammoBarInner.style.background = ammo > 0 ? ammoColor : '#666';
-        }
-        // Large prominent display
-        if (ammoLarge) {
-          ammoLarge.style.display = 'block';
-          ammoLarge.textContent = ammoText;
-          ammoLarge.style.color = ammoColor;
-        }
-      } else {
-        if (ammoWrap) ammoWrap.style.display = 'none';
-        if (ammoBarOuter) ammoBarOuter.style.display = 'none';
-        if (ammoLarge) ammoLarge.style.display = 'none';
-      }
-    }
+    updateDroneAmmoUI(drone.type, drone.ammo, drone.maxAmmo);
 
     // Nest proximity hint
     if (nestHint && typeof DroneSystem.getNearestNest === 'function') {
@@ -3067,6 +3004,104 @@ const GameManager = (function () {
       } else {
         nestHint.style.display = 'none';
       }
+    }
+  }
+
+  /* ── Drone ammo UI update (external callable) ────────────────────── */
+  function updateDroneAmmoUI(type, current, max) {
+    var ammoEl = document.getElementById('drone-ammo-display');
+    var ammoBarInner = document.getElementById('drone-ammo-bar-inner');
+    var ammoBarOuter = document.getElementById('drone-ammo-bar-outer');
+    var ammoLarge = document.getElementById('drone-ammo-large');
+    var ammoWrap = document.getElementById('drone-ammo-display-wrap');
+    var payloadEl = document.getElementById('drone-payload-display');
+
+    var ammo = current || 0;
+    var maxAmmo = max || 0;
+
+    if (maxAmmo <= 0) {
+      if (ammoWrap) ammoWrap.style.display = 'none';
+      if (ammoBarOuter) ammoBarOuter.style.display = 'none';
+      if (ammoLarge) ammoLarge.style.display = 'none';
+      if (payloadEl) payloadEl.style.display = 'none';
+      return;
+    }
+
+    if (ammoWrap) ammoWrap.style.display = '';
+
+    var ammoText = '';
+    var ammoColor = '#ffaa00';
+    var barClass = '';
+
+    if (type === 'fpv_attack' || type === 'kamikaze') {
+      if (ammo > 0) {
+        ammoText = '💥 ' + ammo + ' STRIKE' + (ammo !== 1 ? 'S' : '');
+      } else {
+        ammoText = 'DEPLETED';
+      }
+      ammoColor = '#ff4444';
+      barClass = 'ammo-fpv';
+    } else if (type === 'bomb') {
+      if (ammo > 0) {
+        ammoText = '💣 ' + ammo + '/' + maxAmmo + ' GRENADE' + (maxAmmo !== 1 ? 'S' : '');
+      } else {
+        ammoText = 'EMPTY — RETURNING';
+      }
+      ammoColor = '#ffaa00';
+      barClass = 'ammo-bomb';
+    } else if (type === 'surveillance') {
+      if (ammo > 0) {
+        ammoText = '🔫 ' + ammo + '/' + maxAmmo + ' LMG';
+      } else {
+        ammoText = 'RELOADING';
+      }
+      ammoColor = '#00ccff';
+      barClass = 'ammo-surveillance';
+    } else {
+      ammoText = ammo + '/' + maxAmmo;
+    }
+
+    if (ammoEl) {
+      ammoEl.textContent = ammoText;
+      ammoEl.style.color = ammoColor;
+    }
+    if (ammoBarOuter) {
+      ammoBarOuter.style.display = 'inline-block';
+      ammoBarOuter.style.width = '100px';
+      ammoBarOuter.style.height = '10px';
+    }
+    if (ammoBarInner) {
+      ammoBarInner.style.width = (maxAmmo > 0 ? (ammo / maxAmmo * 100) : 0) + '%';
+      ammoBarInner.className = (ammo > 0 ? barClass : 'ammo-empty');
+      // Clear inline background so CSS gradient classes take effect
+      ammoBarInner.style.background = '';
+    }
+    if (ammoLarge) {
+      ammoLarge.style.display = 'block';
+      ammoLarge.textContent = ammoText;
+      ammoLarge.style.color = ammoColor;
+    }
+
+    if (payloadEl) {
+      payloadEl.style.display = '';
+      if (type === 'surveillance') {
+        payloadEl.textContent = ammo > 0 ? '🔫 LMG READY' : '🔫 LMG EMPTY';
+      } else {
+        payloadEl.textContent = ammo > 0 ? '💣 PAYLOAD READY' : '💣 PAYLOAD EMPTY';
+      }
+      payloadEl.style.color = ammo > 0 ? ammoColor : '#666';
+    }
+
+    // FPV depleted: auto-exit after brief delay
+    if ((type === 'fpv_attack' || type === 'kamikaze') && ammo <= 0 && _droneControlsVisible) {
+      setTimeout(function() {
+        if (DroneSystem.isPossessing && DroneSystem.isPossessing()) {
+          releaseDroneRemote();
+          if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+            HUD.notifyPickup('💥 KAMIKAZE STRIKE COMPLETE — DRONE DESTROYED', '#ff4444');
+          }
+        }
+      }, 800);
     }
   }
 
@@ -3852,14 +3887,24 @@ const GameManager = (function () {
       if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
         HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
       }
-      // Spawn Bradley via VehicleSystem and auto-enter player as gunner
+      // Spawn Bradley via standalone Bradley module and auto-enter player as gunner
       var playerSpawn = player.position.clone();
-      var _bradleyV = VehicleSystem.spawn(playerSpawn.x, VoxelWorld.getTerrainHeight(playerSpawn.x, playerSpawn.z) + 1.05, playerSpawn.z, 'bradley');
-      if (_bradleyV) {
-        _bradleyV.rotation.y = Math.PI; // Face toward treeline (positive Z)
-        VehicleSystem.enter(_bradleyV.id);
+      var _bradleyPos = new THREE.Vector3(playerSpawn.x, VoxelWorld.getTerrainHeight(playerSpawn.x, playerSpawn.z) + 1.05, playerSpawn.z);
+      if (typeof Bradley !== 'undefined' && Bradley.spawnAt && Bradley.enter) {
+        Bradley.spawnAt(_bradleyPos);
+        Bradley.enter();
         if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
-          HUD.notifyPickup('🚁 BRADLEY M2A2 — Gunner seat. AI driver advancing. 25mm Bushmaster ready!', '#a0c878');
+          HUD.notifyPickup('🚛 BRADLEY M2A2 — Gunner seat. AI driver advancing. 25mm Bushmaster ready!', '#a0c878');
+        }
+      } else {
+        // Fallback: VehicleSystem if Bradley module unavailable
+        var _bradleyV = VehicleSystem.spawn(playerSpawn.x, VoxelWorld.getTerrainHeight(playerSpawn.x, playerSpawn.z) + 1.05, playerSpawn.z, 'bradley');
+        if (_bradleyV) {
+          _bradleyV.rotation.y = Math.PI;
+          VehicleSystem.enter(_bradleyV.id);
+          if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+            HUD.notifyPickup('🚁 BRADLEY M2A2 — Gunner seat. AI driver advancing. 25mm Bushmaster ready!', '#a0c878');
+          }
         }
       }
       // ── Ukrainian NPC infantry follow behind the Bradley ──
@@ -6467,30 +6512,13 @@ const GameManager = (function () {
   // Quick startup benchmark: render 1000 boxes, measure time to choose initial tier
   function _startupBenchmark() {
     try {
-      var benchScene = new THREE.Scene();
-      var benchCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-      var benchRenderer = new THREE.WebGLRenderer({ antialias: false });
-      benchRenderer.setSize(256, 256);
-      benchRenderer.setPixelRatio(1);
-      var geo = new THREE.BoxGeometry(1, 1, 1);
-      var mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      var mesh = new THREE.InstancedMesh(geo, mat, 1000);
-      var dummy = new THREE.Object3D();
-      for (var i = 0; i < 1000; i++) {
-        dummy.position.set(Math.random() * 100 - 50, Math.random() * 100 - 50, Math.random() * 100 - 50);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(i, dummy.matrix);
-      }
-      benchScene.add(mesh);
-      var start = performance.now();
-      for (var f = 0; f < 10; f++) {
-        benchRenderer.render(benchScene, benchCamera);
-      }
-      var elapsed = performance.now() - start;
-      var fps = 1000 / (elapsed / 10);
-      benchRenderer.dispose();
-      if (fps < 30) return 5; // VERY_LOW
-      if (fps < 60) return 3; // LOW
+      var perfStart = performance.now();
+      var benchGeo = new THREE.BoxGeometry(1,1,1);
+      var benchMat = new THREE.MeshBasicMaterial({color:0xffffff});
+      for (var i=0; i<1000; i++) { new THREE.Mesh(benchGeo, benchMat); }
+      var perfTime = performance.now() - perfStart;
+      if (perfTime > 50) return 6; // ULTRA_LOW
+      if (perfTime > 30) return 3; // LOW
       return 0; // ULTRA
     } catch (e) {
       return 3; // fallback to LOW
@@ -6524,21 +6552,21 @@ const GameManager = (function () {
         _lowEndVFX = false; cull = isMobile ? 82 : 120;
         maxEnemies = 32; maxParts = 150; maxVeh = 5; maxDrones = 3; texQ = 1.0; fSkip = 0;
       } else if (_perfLevel === 2) { // MEDIUM
-        pr = 1.0; fogFar = isMobile ? 52 : 70; shadows = false;
-        _lowEndVFX = true; cull = 70;
-        maxEnemies = 24; maxParts = 100; maxVeh = 4; maxDrones = 2; texQ = 0.8; fSkip = 0;
+        pr = 1.0; fogFar = 100; shadows = false;
+        _lowEndVFX = true; cull = 100;
+        maxEnemies = 24; maxParts = 50; maxVeh = 4; maxDrones = 2; texQ = 0.8; fSkip = 0;
       } else if (_perfLevel === 3) { // LOW
-        pr = 0.8; fogFar = 48; shadows = false;
-        _lowEndVFX = true; cull = 56;
-        maxEnemies = 16; maxParts = 60; maxVeh = 3; maxDrones = 2; texQ = 0.6; fSkip = 0;
+        pr = 0.8; fogFar = 80; shadows = false;
+        _lowEndVFX = true; cull = 80;
+        maxEnemies = 16; maxParts = 20; maxVeh = 3; maxDrones = 2; texQ = 0.6; fSkip = 0;
       } else if (_perfLevel === 4) { // VERY_LOW
-        pr = 0.6; fogFar = 40; shadows = false;
-        _lowEndVFX = true; cull = 44;
-        maxEnemies = 10; maxParts = 30; maxVeh = 2; maxDrones = 1; texQ = 0.5; fSkip = 1;
+        pr = 0.6; fogFar = 70; shadows = false;
+        _lowEndVFX = true; cull = 70;
+        maxEnemies = 10; maxParts = 10; maxVeh = 2; maxDrones = 1; texQ = 0.5; fSkip = 1;
       } else if (_perfLevel === 5) { // MINIMAL
-        pr = 0.5; fogFar = 32; shadows = false;
-        _lowEndVFX = true; cull = 36;
-        maxEnemies = 6; maxParts = 15; maxVeh = 1; maxDrones = 1; texQ = 0.4; fSkip = 2;
+        pr = 0.5; fogFar = 60; shadows = false;
+        _lowEndVFX = true; cull = 60;
+        maxEnemies = 6; maxParts = 5; maxVeh = 1; maxDrones = 1; texQ = 0.4; fSkip = 2;
       } else {                       // ULTRA_LOW
         pr = 0.4; fogFar = 60; shadows = false;
         _lowEndVFX = true; cull = 60;
@@ -6552,6 +6580,8 @@ const GameManager = (function () {
       _textureQuality = texQ;
       _frameSkip = fSkip;
       _buildingLodEnabled = (_perfLevel >= 3);
+      window.__OK_NO_HP_BARS = (_perfLevel >= 6);
+      window.__OK_NO_DECO_LIGHTS = (_perfLevel >= 6);
 
       // Apply settings
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
@@ -6773,8 +6803,8 @@ const GameManager = (function () {
       Tracers.cullOldestParticles(totalParticles - _currentMaxParticles);
     }
   }
-  // Auto-quality check interval (run every 1.5 seconds)
-  var _AUTO_QUALITY_INTERVAL = 1.5;  function update() {
+  // Auto-quality check interval (run every 1.0 seconds)
+  var _AUTO_QUALITY_INTERVAL = 1.0;  function update() {
     requestAnimationFrame(update);
 
     const now = performance.now();
@@ -6794,15 +6824,26 @@ const GameManager = (function () {
     _perfCheckTimer += delta;
     if (_perfCheckTimer > _AUTO_QUALITY_INTERVAL && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
-      if (avgFps < 15) { _lowFpsStreak++; _highFpsStreak = 0; }
+      if (avgFps < 20) { _lowFpsStreak++; _highFpsStreak = 0; }
       else if (avgFps > 52) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
-      // Severe stutter (< 10 fps): drop to LOWEST immediately
-      if (avgFps < 10 && _lowFpsStreak >= 1) {
-        _applyPerfLevel(_PERF_MAX_LEVEL, avgFps);
+      // FPS < 10 for 2 seconds → ULTRA_LOW
+      if (avgFps < 10 && _lowFpsStreak >= 2) {
+        _applyPerfLevel(6, avgFps);
         _lowFpsStreak = 0;
-      } else if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
-        // FPS < 15 for ~3 seconds: drop one tier
+      }
+      // FPS < 15 for 3 seconds → LOW
+      else if (avgFps < 15 && _lowFpsStreak >= 3) {
+        _applyPerfLevel(3, avgFps);
+        _lowFpsStreak = 0;
+      }
+      // FPS < 20 for 5 seconds → MEDIUM
+      else if (avgFps < 20 && _lowFpsStreak >= 5) {
+        _applyPerfLevel(2, avgFps);
+        _lowFpsStreak = 0;
+      }
+      // Standard drop one tier after sustained low FPS
+      else if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
       }
@@ -9970,6 +10011,7 @@ const GameManager = (function () {
         }
       }
     },
+    updateDroneAmmoUI,
     // --- CRITICAL: Export drone selection functions for browser QA ---
     showDroneSelection: showDroneSelection,
     selectAndLaunchDrone: selectAndLaunchDrone,
@@ -9991,5 +10033,6 @@ if (typeof globalThis !== 'undefined') globalThis.GameManager = GameManager;
 if (typeof window !== 'undefined') {
   window.showDroneSelection = GameManager.showDroneSelection;
   window.selectAndLaunchDrone = GameManager.selectAndLaunchDrone;
+  window.updateDroneAmmoUI = GameManager.updateDroneAmmoUI;
   console.log('[QA] window.showDroneSelection and selectAndLaunchDrone assigned');
 }

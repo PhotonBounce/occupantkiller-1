@@ -1410,6 +1410,10 @@ const Enemies = (() => {
     const group = new THREE.Group();
     const s     = typeCfg.scale;
 
+    // ── Enemy mesh LOD ─────────────────────────────────────
+    var _perfLevel = (typeof GameManager !== 'undefined' && GameManager._perfLevel !== undefined) ? GameManager._perfLevel : 0;
+    var detailLevel = window.__OK_LOWSPEC || _perfLevel >= 3 ? 0 : (_perfLevel === 2 ? 1 : 2);
+
     // Generate EMR Digital Flora camo texture for this unit (cached by variant)
     const camoTex = getCachedTex('camo_' + (typeCfg.camoVariant || 'light'), function() {
       return makeEMRCamoTexture(typeCfg.camoVariant || 'light');
@@ -1418,7 +1422,7 @@ const Enemies = (() => {
     // ── Torso (camo textured) ─────────────────────────────
     const torso = new THREE.Mesh(
       new THREE.BoxGeometry(0.52 * s, 0.7 * s, 0.26 * s),
-      new THREE.MeshLambertMaterial({ map: camoTex })
+      new THREE.MeshLambertMaterial({ map: detailLevel >= 1 ? camoTex : null, color: typeCfg.bodyColor })
     );
     torso.position.y = 0.85 * s;
 
@@ -1429,6 +1433,9 @@ const Enemies = (() => {
     );
     head.position.y = 1.4 * s;
 
+    group.add(torso, head);
+
+    if (detailLevel >= 1) {
     // ── Helmet — composite 6B47 Ratnik (shell + brim + nape) ──
     const helmetZTex = getCachedTex('helmet_' + typeCfg.helmetColor, function() {
       return makeHelmetZTexture(typeCfg.helmetColor);
@@ -1481,7 +1488,7 @@ const Enemies = (() => {
     });
     const armL = new THREE.Mesh(
       new THREE.BoxGeometry(0.18 * s, 0.52 * s, 0.18 * s),
-      new THREE.MeshLambertMaterial({ map: armbandTex })
+      new THREE.MeshLambertMaterial({ map: detailLevel >= 2 ? armbandTex : null, color: typeCfg.limbColor })
     );
     armL.position.set(-0.35 * s, 0.82 * s, 0);
 
@@ -1492,7 +1499,10 @@ const Enemies = (() => {
     );
     armR.position.set(0.35 * s, 0.82 * s, 0);
 
-    group.add(torso, head, helmet, legL, legR, armL, armR);
+    group.add(helmet, legL, legR, armL, armR);
+    }
+
+    if (detailLevel >= 2) {
 
     // ── Body Armor (6B45 vest over torso) ─────────────────
     const vest = new THREE.Mesh(
@@ -1625,6 +1635,7 @@ const Enemies = (() => {
     const eyeR = eyeL.clone();
     eyeR.position.set(0.08 * s, 1.42 * s, 0.18 * s);
     group.add(eyeL, eyeR);
+    }
 
     // Invisible hitbox — use transparent+opacity:0 so Raycaster still detects it
     const hitbox = new THREE.Mesh(
@@ -1637,8 +1648,19 @@ const Enemies = (() => {
     group.userData.headMesh = head;
     group.userData.hitbox   = hitbox;
     // Include ALL mesh parts so raycaster can detect hits on vest, boots, equipment
-    group.userData.parts    = [torso, head, helmet, legL, legR, armL, armR, hitbox,
-                               vest, canteen, radio, belt, eyeL, eyeR];
+    var _parts = [torso, head, hitbox];
+    if (typeof helmet !== 'undefined') _parts.push(helmet);
+    if (typeof legL !== 'undefined') _parts.push(legL);
+    if (typeof legR !== 'undefined') _parts.push(legR);
+    if (typeof armL !== 'undefined') _parts.push(armL);
+    if (typeof armR !== 'undefined') _parts.push(armR);
+    if (typeof vest !== 'undefined') _parts.push(vest);
+    if (typeof canteen !== 'undefined') _parts.push(canteen);
+    if (typeof radio !== 'undefined') _parts.push(radio);
+    if (typeof belt !== 'undefined') _parts.push(belt);
+    if (typeof eyeL !== 'undefined') _parts.push(eyeL);
+    if (typeof eyeR !== 'undefined') _parts.push(eyeR);
+    group.userData.parts = _parts;
     // Add boots and knee pads from the group's children
     group.children.forEach(function (child) {
       if (group.userData.parts.indexOf(child) < 0) {
@@ -1871,6 +1893,8 @@ const Enemies = (() => {
   };
 
   function attachWeaponVisual(mesh, typeCfg) {
+    var _perfLevel = (typeof GameManager !== 'undefined' && GameManager._perfLevel !== undefined) ? GameManager._perfLevel : 0;
+    if (window.__OK_LOWSPEC || _perfLevel >= 3) return; // skip weapon on LOW/ULTRA_LOW
     const wInfo = ENEMY_WEAPON_VISUALS[typeCfg.name];
     if (!wInfo) return;
     const s = typeCfg.scale;
