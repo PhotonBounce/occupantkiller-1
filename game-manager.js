@@ -6586,8 +6586,27 @@ const GameManager = (function () {
       // Apply settings
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
       if (sunLight) sunLight.castShadow = shadows;
+      if (sunLight && sunLight.shadow) {
+        var _sres = _perfLevel === 0 ? 1024 : (_perfLevel <= 1 ? 512 : 256);
+        if (sunLight.shadow.mapSize.width !== _sres) {
+          sunLight.shadow.mapSize.set(_sres, _sres);
+          sunLight.shadow.map && sunLight.shadow.map.setSize(_sres, _sres);
+        }
+      }
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
       if (_scene && _scene.fog) _scene.fog.far = fogFar;
+
+      // PointLight cull: remove excess dynamic lights when quality drops
+      if (_perfLevel >= 3 && _scene) {
+        var _plc = 0, _removed = 0;
+        _scene.traverse(function(obj) {
+          if (obj instanceof THREE.PointLight) {
+            _plc++;
+            if (_plc > 3) { _scene.remove(obj); obj.dispose && obj.dispose(); _removed++; }
+          }
+        });
+        if (_removed > 0) console.log('[PERF] removed ' + _removed + ' excess PointLights');
+      }
 
       // Enforce enemy caps
       if (typeof Enemies !== 'undefined' && Enemies.getAll) {
