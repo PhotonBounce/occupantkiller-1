@@ -668,7 +668,7 @@ const CombatManager = (function() {
       }
 
       // Play-to-Earn: award OKC for kills
-      if (typeof Marketplace !== 'undefined') {
+      if (Marketplace && typeof Marketplace.onKill === 'function') {
         Marketplace.onKill(isHeadshot);
         if (player.killStreak === 3 || player.killStreak === 5 || player.killStreak >= 10) {
           Marketplace.onStreak(player.killStreak);

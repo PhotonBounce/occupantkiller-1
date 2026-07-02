@@ -5075,7 +5075,9 @@ const Weapons = (() => {
       // Sprites (health bars, alert icons) cannot be raycast without camera — filter them
       let hits = [];
       try {
-        const nonSpriteMeshes = enemyMeshes.filter(function(m) { return m && !(m instanceof THREE.Sprite); });
+        const nonSpriteMeshes = enemyMeshes.filter(function(m) {
+          return m && m.parent && !(m instanceof THREE.Sprite);
+        });
         hits = _projRaycaster.intersectObjects(nonSpriteMeshes, true);
       } catch (_e) { hits = []; }
       if (hits.length > 0) hit = true;

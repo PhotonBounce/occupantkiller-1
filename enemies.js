@@ -1547,7 +1547,8 @@ const Enemies = (() => {
     group.add(belt);
 
     // ── Boots (dark brown — historically accurate) ────────
-    for (const legMesh of [legL, legR]) {
+    if (typeof legL !== 'undefined') {
+      for (const legMesh of [legL, legR]) {
       const boot = new THREE.Mesh(
         new THREE.BoxGeometry(0.24 * s, 0.22 * s, 0.26 * s),
         new THREE.MeshLambertMaterial({ color: 0x2A1A0A })
@@ -1574,6 +1575,7 @@ const Enemies = (() => {
       kneePad.position.y = 0.18 * s;
       kneePad.position.z = 0.12 * s;
       group.add(kneePad);
+    }
     }
 
     // ── Tactical gloves (black) on hands ──────────────────
@@ -1816,10 +1818,14 @@ const Enemies = (() => {
           }
           group.add(chair);
           // Hide legs (sit pose) — fold them under seat
-          legL.position.set(-0.14 * s, 0.42 * s, 0.20 * s);
-          legL.rotation.x = -1.2;
-          legR.position.set(0.14 * s, 0.42 * s, 0.20 * s);
-          legR.rotation.x = -1.2;
+          if (typeof legL !== 'undefined') {
+            legL.position.set(-0.14 * s, 0.42 * s, 0.20 * s);
+            legL.rotation.x = -1.2;
+          }
+          if (typeof legR !== 'undefined') {
+            legR.position.set(0.14 * s, 0.42 * s, 0.20 * s);
+            legR.rotation.x = -1.2;
+          }
 
         } else if (wv === 2) {
           // Crutches: two angled sticks under armpits.
@@ -4323,7 +4329,7 @@ const Enemies = (() => {
       if (ce.alive) {
         _cachedAlive.push(ce);
         var pp = ce.mesh.userData.parts;
-        if (pp) { for (var pi = 0; pi < pp.length; pi++) _cachedMeshes.push(pp[pi]); }
+        if (pp) { for (var pi = 0; pi < pp.length; pi++) { if (pp[pi]) _cachedMeshes.push(pp[pi]); } }
         else _cachedMeshes.push(ce.mesh);
       }
     }

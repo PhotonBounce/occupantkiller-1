@@ -7069,8 +7069,8 @@ window.VoxelWorld = (function () {
       // ── Wrecked military vehicles (T-72, BTR, trucks) ──
       generateWreckedTank(-15, -5);
       generateWreckedTank(20, 10);
-      generateWreckedBTR(-5, 20);
-      generateWreckedBTR(30, -15);
+      if (typeof generateWreckedBTR === 'function') generateWreckedBTR(-5, 20);
+      if (typeof generateWreckedBTR === 'function') generateWreckedBTR(30, -15);
       generateWreckedCar(-25, 25);
       generateWreckedCar(10, 30);
       generateWreckedCar(-35, -10);
@@ -7522,8 +7522,8 @@ window.VoxelWorld = (function () {
       generateWreckedTank(-10, -5);
       generateWreckedTank(10, -5);
       generateWreckedTank(0, 10);
-      generateWreckedBTR(-20, 15);
-      generateWreckedBTR(20, 15);
+      if (typeof generateWreckedBTR === 'function') generateWreckedBTR(-20, 15);
+      if (typeof generateWreckedBTR === 'function') generateWreckedBTR(20, 15);
       generateWreckedCar(-5, 25);
       generateWreckedCar(5, 25);
       // ── Kalmius River — runs north of Azovstal, dividing industrial and residential zones ──
@@ -8156,8 +8156,8 @@ window.VoxelWorld = (function () {
       generateDroneNest(-20, 30);
       generateDroneNest(20, 30);
       // ── Wrecked Russian vehicles (abandoned BTRs, supply trucks) ──
-      generateWreckedBTR(-15, 5);
-      generateWreckedBTR(12, 8);
+      if (typeof generateWreckedBTR === 'function') generateWreckedBTR(-15, 5);
+      if (typeof generateWreckedBTR === 'function') generateWreckedBTR(12, 8);
       generateWreckedCar(-8, 12);
       generateWreckedCar(8, 10);
       // ── Burn marks and scorched earth in the wheat field ──

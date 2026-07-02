@@ -103,7 +103,7 @@
     /* Performance Mode: skip heavy cosmetic full-screen FX layers. Default ON (game is heavy); eye-candy is opt-in via the ⚡ PERFORMANCE toggle; persisted. */
     window.__OK_PERF = (function(){ try { var v = localStorage.getItem('ok_perf_mode'); if (v==='0') return false; if (v==='1') return true; return true; } catch(e){ return true; } })();
   </script>
-  <link rel="stylesheet" href="style.css?v=20260429b" />
+  <link rel="stylesheet" href="style.css?v=20260702b" />
 </head>
   <body>
     <!-- ── Boot Preloader (gates GameManager.init until everything is ready) ── -->
@@ -147,7 +147,7 @@
       <!-- Retry button injected by JS if needed -->
     </div>
     <div id="conn-status" style="position:fixed;top:4px;right:8px;z-index:9999;font-family:monospace;font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(34,34,34,0.7);color:#fff;border:1px solid rgba(68,68,68,0.5);">Srv <span id="conn-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle;"></span></div>
-    <script src="page-prelude.js?v=20260429b"></script>
+    <script src="page-prelude.js?v=20260702b"></script>
     <script>
     // Loader percentage updater — always show and update percent
     window.__bootStartTime = Date.now();
@@ -1317,7 +1317,7 @@
 </div>
 
 <!-- Three.js r137 (local copy, patched for CVE XSS < 0.137.0) -->
-<script src="three.min.js?v=20260429b"></script>
+<script src="three.min.js?v=20260702b"></script>
 
 <!-- ethers v6 (CDN — used by blockchain.js for contract calls).
      async + onerror so a slow/blocked CDN can't stall game boot.
@@ -1325,7 +1325,7 @@
      so missing ethers only breaks web3 features, not gameplay. -->
 
 <!-- Core modules (order matters: dependencies first) -->
-<script src="voxel-world.js?v=20260429b"></script>
+<script src="voxel-world.js?v=20260702b"></script>
 <script>
   // Bridge: export voxel-world block functions so city-buildings.js templates can use them
   if (typeof window !== 'undefined' && window.VoxelWorld) {
@@ -1333,23 +1333,23 @@
     window.getTerrainHeight = window.VoxelWorld.getTerrainHeight;
   }
 </script>
-<script src="city-buildings.js?v=20260429b"></script>
-<script src="camera-system.js?v=20260429b"></script>
-<script src="time-system.js?v=20260429b"></script>
-<script src="economy.js?v=20260429b"></script>
-<script src="api-client.js?v=20260429b"></script>
-<script src="blockchain.js?v=20260429b"></script>
-<script src="marketplace.js?v=20260429b"></script>
-<script src="skills.js?v=20260429b"></script>
-<script src="ranks.js?v=20260429b"></script>
-<script src="building.js?v=20260429b"></script>
-<script src="npc-system.js?v=20260429b"></script>
-<script src="drone-system.js?v=20260429b"></script>
-<script src="vehicles.js?v=20260429b"></script>
-<script src="automation.js?v=20260429b"></script>
-<script src="missions.js?v=20260429b"></script>
-<script src="pickups.js?v=20260429b"></script>
-<script src="hud.js?v=20260429b"></script>
+<script src="city-buildings.js?v=20260702b"></script>
+<script src="camera-system.js?v=20260702b"></script>
+<script src="time-system.js?v=20260702b"></script>
+<script src="economy.js?v=20260702b"></script>
+<script src="api-client.js?v=20260702b"></script>
+<script src="blockchain.js?v=20260702b"></script>
+<script src="marketplace.js?v=20260702b"></script>
+<script src="skills.js?v=20260702b"></script>
+<script src="ranks.js?v=20260702b"></script>
+<script src="building.js?v=20260702b"></script>
+<script src="npc-system.js?v=20260702b"></script>
+<script src="drone-system.js?v=20260702b"></script>
+<script src="vehicles.js?v=20260702b"></script>
+<script src="automation.js?v=20260702b"></script>
+<script src="missions.js?v=20260702b"></script>
+<script src="pickups.js?v=20260702b"></script>
+<script src="hud.js?v=20260702b"></script>
 <script src="hud-extras.js?v=20260615a"></script>
 <script src="hud-extras2.js?v=20260615b"></script>
 <script src="hud-extras3.js?v=20260615c"></script>
@@ -1467,52 +1467,52 @@
 <script src="building-collapse.js?v=20260616d"></script>
 <script src="grenade-arc-preview.js?v=20260616d"></script>
     <script src="dynamic-crosshair.js?v=20260616d"></script>
-<script src="weapon-details.js?v=20260429b"></script>
-  <script src="weapons-data.js?v=20260429b"></script>
-<script src="weapons.js?v=20260429b"></script>
-<script src="enemies.js?v=20260429b"></script>
-<script src="convoy-system.js?v=20260429b"></script>
-<script src="audio-system.js?v=20260429b"></script>
-<script src="jukebox.js?v=20260429b"></script>
-<script src="birds.js?v=20260429b"></script>
-<script src="premium.js?v=20260429b"></script>
-<script src="lottery.js?v=20260429b"></script>
-<script src="mortar.js?v=20260429b"></script>
-<script src="bradley.js?v=20260429b"></script>
-<script src="gyro.js?v=20260429b"></script>
-<script src="weather-system.js?v=20260429b"></script>
-<script src="ml-system.js?v=20260429b"></script>
-<script src="npc-ml.js?v=20260429b"></script>
-<script src="tracers.js?v=20260429b"></script>
-<script src="stage-vfx.js?v=20260429b"></script>
-<script src="flags.js?v=20260429b"></script>
-<script src="environment.js?v=20260429b"></script>
+<script src="weapon-details.js?v=20260702b"></script>
+  <script src="weapons-data.js?v=20260702b"></script>
+<script src="weapons.js?v=20260702b"></script>
+<script src="enemies.js?v=20260702b"></script>
+<script src="convoy-system.js?v=20260702b"></script>
+<script src="audio-system.js?v=20260702b"></script>
+<script src="jukebox.js?v=20260702b"></script>
+<script src="birds.js?v=20260702b"></script>
+<script src="premium.js?v=20260702b"></script>
+<script src="lottery.js?v=20260702b"></script>
+<script src="mortar.js?v=20260702b"></script>
+<script src="bradley.js?v=20260702b"></script>
+<script src="gyro.js?v=20260702b"></script>
+<script src="weather-system.js?v=20260702b"></script>
+<script src="ml-system.js?v=20260702b"></script>
+<script src="npc-ml.js?v=20260702b"></script>
+<script src="tracers.js?v=20260702b"></script>
+<script src="stage-vfx.js?v=20260702b"></script>
+<script src="flags.js?v=20260702b"></script>
+<script src="environment.js?v=20260702b"></script>
 
 <!-- New feature modules (59 features) -->
-<script src="combat-extras.js?v=20260429b"></script>
-<script src="traversal.js?v=20260429b"></script>
-<script src="enemy-types.js?v=20260429b"></script>
-<script src="world-features.js?v=20260429b"></script>
-<script src="perks.js?v=20260429b"></script>
-<script src="mission-types.js?v=20260429b"></script>
-<script src="feedback.js?v=20260429b"></script>
-<script src="progression.js?v=20260429b"></script>
-<script src="refinery-strike.js?v=20260429b"></script>
-<script src="enemy-artillery.js?v=20260429b"></script>
+<script src="combat-extras.js?v=20260702b"></script>
+<script src="traversal.js?v=20260702b"></script>
+<script src="enemy-types.js?v=20260702b"></script>
+<script src="world-features.js?v=20260702b"></script>
+<script src="perks.js?v=20260702b"></script>
+<script src="mission-types.js?v=20260702b"></script>
+<script src="feedback.js?v=20260702b"></script>
+<script src="progression.js?v=20260702b"></script>
+<script src="refinery-strike.js?v=20260702b"></script>
+<script src="enemy-artillery.js?v=20260702b"></script>
 
 
-<script src="game-constants.js?v=20260429b-static"></script>
-<script src="player-state.js?v=20260429b-static"></script>
-<script src="wave-manager.js?v=20260429b-static"></script>
-<script src="boot-manager.js?v=20260429b-static"></script>
-<script src="fx-manager.js?v=20260429b-static"></script>
-<script src="input-manager.js?v=20260429b-static"></script>
-<script src="save-manager.js?v=20260429b-static"></script>
-<script src="combat-manager.js?v=20260429b-static"></script>
-<script src="ui-manager.js?v=20260429b-static"></script>
-<script src="mission-manager.js?v=20260429b-static"></script>
-<script src="bradley.js?v=20260429b-static"></script>
-<script src="game-manager.js?v=20260429b-static"></script>
+<script src="game-constants.js?v=20260702b-static"></script>
+<script src="player-state.js?v=20260702b-static"></script>
+<script src="wave-manager.js?v=20260702b-static"></script>
+<script src="boot-manager.js?v=20260702b-static"></script>
+<script src="fx-manager.js?v=20260702b-static"></script>
+<script src="input-manager.js?v=20260702b-static"></script>
+<script src="save-manager.js?v=20260702b-static"></script>
+<script src="combat-manager.js?v=20260702b-static"></script>
+<script src="ui-manager.js?v=20260702b-static"></script>
+<script src="mission-manager.js?v=20260702b-static"></script>
+<script src="bradley.js?v=20260702b-static"></script>
+<script src="game-manager.js?v=20260702b-static"></script>
 
 
 <!-- Defensive global export for VoxelWorld and AudioSystem -->
