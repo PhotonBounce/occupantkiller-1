@@ -1303,7 +1303,6 @@ const GameManager = (function () {
   /* ── Init ────────────────────────────────────────────────────────── */
   function init() {
     _clearBootTimeout(); // Boot succeeded, clear timeout
-    _bootStep('init');
     // Keep the start-screen badge in sync with the real stage count so it
     // never drifts from STAGES (was hardcoded "12" while STAGES has grown).
     try {
@@ -1483,6 +1482,8 @@ const GameManager = (function () {
         try { window.__bootProgress(pct, label, detail); } catch (e) {}
       }
     }
+
+    _bootStep('init');
 
     _bootStep('renderer');
 
