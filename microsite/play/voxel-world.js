@@ -6926,6 +6926,61 @@ window.VoxelWorld = (function () {
         setBlock(-14, fy2 + 7, -25, BLOCK.LIGHT);      // yellow
         setBlock(-13, fy2 + 7, -25, BLOCK.LIGHT);
       })();
+      // ── Irpin River — runs south of the airport (real geography: river south of Hostomel)
+      (function () {
+        for (var rx = -60; rx <= 60; rx++) {
+          var rz = 65 + Math.floor(Math.sin(rx * 0.06) * 4);
+          for (var rw = 0; rw < 4; rw++) {
+            var rrz = rz + rw;
+            var rh = getTerrainHeight(rx, rrz);
+            for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+              setBlock(rx, ry, rrz, BLOCK.WATER);
+            }
+          }
+          // Sand banks on river edges
+          var rrzEdge = rz - 1;
+          var rhEdge = getTerrainHeight(rx, rrzEdge);
+          setBlock(rx, rhEdge, rrzEdge, BLOCK.SAND);
+          var rrzEdge2 = rz + 4;
+          var rhEdge2 = getTerrainHeight(rx, rrzEdge2);
+          setBlock(rx, rhEdge2, rrzEdge2, BLOCK.SAND);
+        }
+      })();
+      // ── Forest patches north and west of the airport (Pinus sylvestris typical of Kyiv Oblast)
+      (function () {
+        var forests = [[-40, -40, 12], [-55, -20, 10], [-30, -60, 8], [50, -80, 10]];
+        for (var fi = 0; fi < forests.length; fi++) {
+          var fcx = forests[fi][0], fcz = forests[fi][1], fr = forests[fi][2];
+          for (var fx = fcx - fr; fx <= fcx + fr; fx++) {
+            for (var fz = fcz - fr; fz <= fcz + fr; fz++) {
+              if ((fx - fcx) * (fx - fcx) + (fz - fcz) * (fz - fcz) <= fr * fr && Math.random() < 0.65) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 2, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx + 1, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx - 1, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx, fh + 3, fz + 1, BLOCK.BUSH);
+                setBlock(fx, fh + 3, fz - 1, BLOCK.BUSH);
+                setBlock(fx, fh + 4, fz, BLOCK.BUSH);
+              }
+            }
+          }
+        }
+      })();
+      // ── Flat airport elevation (~110m) — level the runway area
+      (function () {
+        for (var lx = -70; lx <= 70; lx++) {
+          for (var lz = -10; lz <= 20; lz++) {
+            var lh = getTerrainHeight(lx, lz);
+            if (lh !== 3) {
+              setBlock(lx, 3, lz, BLOCK.GRASS);
+              setBlock(lx, 2, lz, BLOCK.DIRT);
+              setBlock(lx, 1, lz, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
     } else if (level.id === 'AVDIIVKA') {
       // Coking plant district — dense apartment blocks (west/east flanks)
       generateUkrainianApartment(-20, -20, 6);
@@ -7107,6 +7162,70 @@ window.VoxelWorld = (function () {
           for (var hz = -30; hz <= 30; hz++) {
             var hh = getTerrainHeight(hx, hz);
             setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+          }
+        }
+      })();
+      // ── Salt mines — underground white salt chambers (Bakhmut rock salt deposits)
+      (function () {
+        var smx = -25, smz = -25;
+        var smy = 1; // deep underground
+        for (var dx = -5; dx <= 5; dx++) {
+          for (var dz = -5; dz <= 5; dz++) {
+            for (var dy = 0; dy < 4; dy++) {
+              setBlock(smx + dx, smy + dy, smz + dz, BLOCK.WHITE_TILE);
+            }
+          }
+        }
+        // Salt pillars
+        for (var dx = -5; dx <= 5; dx += 3) {
+          for (var dz = -5; dz <= 5; dz += 3) {
+            for (var dy = 0; dy < 6; dy++) {
+              setBlock(smx + dx, smy + dy, smz + dz, BLOCK.WHITE_TILE);
+            }
+          }
+        }
+        // Salt mine entrance shaft
+        for (var dy = 1; dy < 8; dy++) {
+          setBlock(smx + 6, dy, smz, BLOCK.AIR);
+          setBlock(smx + 6, dy, smz + 1, BLOCK.AIR);
+        }
+        setBlock(smx + 6, 8, smz, BLOCK.METAL);
+        setBlock(smx + 6, 8, smz + 1, BLOCK.METAL);
+      })();
+      // ── Additional Donbas ridges (eastern and southern ridges around Bakhmut)
+      (function () {
+        for (var hx = 30; hx <= 50; hx++) {
+          for (var hz = -20; hz <= 20; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+            setBlock(hx, hh + 2, hz, BLOCK.DIRT);
+          }
+        }
+        for (var hx = -20; hx <= 20; hx++) {
+          for (var hz = 40; hz <= 55; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+          }
+        }
+      })();
+      // ── Bakhmut forest clusters (scattered pine and oak groves in the valley)
+      (function () {
+        var clusters = [[-40, -40, 5], [35, 30, 6], [0, -50, 7], [-10, 35, 5]];
+        for (var ci = 0; ci < clusters.length; ci++) {
+          var cx = clusters[ci][0], cz = clusters[ci][1], cr = clusters[ci][2];
+          for (var fx = cx - cr; fx <= cx + cr; fx++) {
+            for (var fz = cz - cr; fz <= cz + cr; fz++) {
+              if ((fx - cx) * (fx - cx) + (fz - cz) * (fz - cz) <= cr * cr && Math.random() < 0.55) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 2, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx + 1, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx - 1, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx, fh + 3, fz + 1, BLOCK.BUSH);
+                setBlock(fx, fh + 3, fz - 1, BLOCK.BUSH);
+              }
+            }
           }
         }
       })();
@@ -7463,6 +7582,48 @@ window.VoxelWorld = (function () {
           }
         }
       })();
+      // ── Dnipro River sand banks (Pechersk and Trukhaniv islands edges)
+      (function () {
+        for (var rx = -55; rx <= 55; rx++) {
+          var rz = 45 + Math.floor(Math.sin(rx * 0.08) * 4);
+          var rh = getTerrainHeight(rx, rz - 1);
+          setBlock(rx, rh, rz - 1, BLOCK.SAND);
+          var rh2 = getTerrainHeight(rx, rz + 4);
+          setBlock(rx, rh2, rz + 4, BLOCK.SAND);
+        }
+      })();
+      // ── Left bank flat terrain (Darnytskyi district — flat eastern Kyiv)
+      (function () {
+        for (var fx = -55; fx <= 55; fx++) {
+          for (var fz = 55; fz <= 75; fz++) {
+            var fh = getTerrainHeight(fx, fz);
+            if (fh > 3) {
+              setBlock(fx, 3, fz, BLOCK.GRASS);
+              setBlock(fx, 2, fz, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
+      // ── Forest clusters along the river banks (Kyiv parks and greenways)
+      (function () {
+        var clusters = [[-30, 50, 6], [0, 52, 8], [25, 48, 7], [-45, 58, 5]];
+        for (var ci = 0; ci < clusters.length; ci++) {
+          var cx = clusters[ci][0], cz = clusters[ci][1], cr = clusters[ci][2];
+          for (var fx = cx - cr; fx <= cx + cr; fx++) {
+            for (var fz = cz - cr; fz <= cz + cr; fz++) {
+              if ((fx - cx) * (fx - cx) + (fz - cz) * (fz - cz) <= cr * cr && Math.random() < 0.6) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 2, fz, BLOCK.BUSH);
+                setBlock(fx + 1, fh + 2, fz, BLOCK.BUSH);
+                setBlock(fx - 1, fh + 2, fz, BLOCK.BUSH);
+                setBlock(fx, fh + 2, fz + 1, BLOCK.BUSH);
+                setBlock(fx, fh + 2, fz - 1, BLOCK.BUSH);
+              }
+            }
+          }
+        }
+      })();
 } else if (level.id === 'MARIUPOL') {
       // Azovstal steelworks — industrial hellscape: smokestacks, fires, factory rubble
       // Real: Mariupol is on the Sea of Azov coast, 6 miles from shore
@@ -7576,6 +7737,53 @@ window.VoxelWorld = (function () {
         // 'CHILDREN' sign painted on pavement (white blocks)
         for (var cx = -3; cx <= 3; cx++) {
           setBlock(tx + cx, th, tz + 8, BLOCK.CONCRETE);
+        }
+      })();
+      // ── Sand banks on Sea of Azov coast and Kalmius River
+      (function () {
+        for (var cx = -60; cx <= 60; cx++) {
+          var cz = 55 + Math.floor(Math.sin(cx * 0.05) * 2);
+          var ch = getTerrainHeight(cx, cz - 1);
+          setBlock(cx, ch, cz - 1, BLOCK.SAND);
+        }
+        for (var rx = -60; rx <= 60; rx++) {
+          var rz = -25 + Math.floor(Math.sin(rx * 0.05) * 2);
+          var rh = getTerrainHeight(rx, rz - 1);
+          setBlock(rx, rh, rz - 1, BLOCK.SAND);
+          var rh2 = getTerrainHeight(rx, rz + 3);
+          setBlock(rx, rh2, rz + 3, BLOCK.SAND);
+        }
+      })();
+      // ── Flat industrial terrain — level factory floor area around Azovstal
+      (function () {
+        for (var lx = -30; lx <= 30; lx++) {
+          for (var lz = -30; lz <= 30; lz++) {
+            var lh = getTerrainHeight(lx, lz);
+            if (lh > 2) {
+              setBlock(lx, 2, lz, BLOCK.ASPHALT);
+              setBlock(lx, 1, lz, BLOCK.CONCRETE);
+            }
+          }
+        }
+      })();
+      // ── Sparse coastal forest patches (Mariupol outskirts had small groves)
+      (function () {
+        var groves = [[-40, 40, 5], [30, 45, 6], [0, 48, 4]];
+        for (var gi = 0; gi < groves.length; gi++) {
+          var gcx = groves[gi][0], gcz = groves[gi][1], gr = groves[gi][2];
+          for (var fx = gcx - gr; fx <= gcx + gr; fx++) {
+            for (var fz = gcz - gr; fz <= gcz + gr; fz++) {
+              if ((fx - gcx) * (fx - gcx) + (fz - gcz) * (fz - gcz) <= gr * gr && Math.random() < 0.55) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 2, fz, BLOCK.BUSH);
+                setBlock(fx + 1, fh + 2, fz, BLOCK.BUSH);
+                setBlock(fx - 1, fh + 2, fz, BLOCK.BUSH);
+                setBlock(fx, fh + 2, fz + 1, BLOCK.BUSH);
+                setBlock(fx, fh + 2, fz - 1, BLOCK.BUSH);
+              }
+            }
+          }
         }
       })();
 } else if (level.id === 'CRIMEA') {
@@ -7705,6 +7913,63 @@ window.VoxelWorld = (function () {
           setBlock(40 + off, y, -40 + 1, BLOCK.METAL);
         }
       })();
+      // ── Cooling pond (massive water reservoir next to Chornobyl NPP)
+      (function () {
+        var cx = -60, cz = -60;
+        for (var dx = -15; dx <= 15; dx++) {
+          for (var dz = -15; dz <= 15; dz++) {
+            if (dx * dx + dz * dz <= 200) {
+              var ch = getTerrainHeight(cx + dx, cz + dz);
+              for (var cy = ch; cy >= Math.max(0, ch - 3); cy--) {
+                setBlock(cx + dx, cy, cz + dz, BLOCK.WATER);
+              }
+            }
+          }
+        }
+        // Concrete embankment around the pond
+        for (var dx = -16; dx <= 16; dx++) {
+          for (var dz = -16; dz <= 16; dz++) {
+            if (dx * dx + dz * dz > 180 && dx * dx + dz * dz <= 260) {
+              var ch = getTerrainHeight(cx + dx, cz + dz);
+              setBlock(cx + dx, ch, cz + dz, BLOCK.CONCRETE);
+              setBlock(cx + dx, ch + 1, cz + dz, BLOCK.CONCRETE);
+            }
+          }
+        }
+      })();
+      // ── Flat Pripyat basin — level the ghost city terrain
+      (function () {
+        for (var fx = -30; fx <= 30; fx++) {
+          for (var fz = -30; fz <= 30; fz++) {
+            var fh = getTerrainHeight(fx, fz);
+            if (fh > 3) {
+              setBlock(fx, 3, fz, BLOCK.GRASS);
+              setBlock(fx, 2, fz, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
+      // ── Additional pine forests (Pripyat basin is surrounded by dense pine woodland)
+      (function () {
+        var forests = [[-50, 0, 10], [50, 0, 10], [0, 50, 8], [0, -50, 8]];
+        for (var fi = 0; fi < forests.length; fi++) {
+          var fcx = forests[fi][0], fcz = forests[fi][1], fr = forests[fi][2];
+          for (var fx = fcx - fr; fx <= fcx + fr; fx++) {
+            for (var fz = fcz - fr; fz <= fcz + fr; fz++) {
+              if ((fx - fcx) * (fx - fcx) + (fz - fcz) * (fz - fcz) <= fr * fr && Math.random() < 0.65) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh + 1, fz, BLOCK.BRICK); // red-brown pine from radiation
+                setBlock(fx, fh + 2, fz, BLOCK.BRICK);
+                setBlock(fx, fh + 3, fz, BLOCK.BRICK);
+                setBlock(fx + 1, fh + 2, fz, BLOCK.BRICK);
+                setBlock(fx - 1, fh + 2, fz, BLOCK.BRICK);
+                setBlock(fx, fh + 2, fz + 1, BLOCK.BRICK);
+                setBlock(fx, fh + 2, fz - 1, BLOCK.BRICK);
+              }
+            }
+          }
+        }
+      })();
     } else if (level.id === 'MOSCOW') {
       // Kremlin outskirts — dense Soviet city blocks, ring roads, industrial areas
       // NO Ukrainian blue/yellow — this is Russian territory, feels like Moscow
@@ -7766,6 +8031,64 @@ window.VoxelWorld = (function () {
           var rh = getTerrainHeight(rx, rz);
           setBlock(rx, rh, rz, BLOCK.ASPHALT);
           setBlock(rx + 1, rh, rz, BLOCK.ASPHALT);
+        }
+      })();
+      // ── Kremlin hill (Borovitsky Hill) — raised terrain where the Kremlin sits
+      (function () {
+        for (var hx = -15; hx <= 15; hx++) {
+          for (var hz = -15; hz <= 15; hz++) {
+            if (hx * hx + hz * hz <= 180) {
+              var hh = getTerrainHeight(hx, hz);
+              setBlock(hx, hh + 1, hz, BLOCK.STONE);
+              setBlock(hx, hh + 2, hz, BLOCK.STONE);
+            }
+          }
+        }
+      })();
+      // ── Moskva River sand banks on both shores
+      (function () {
+        for (var rx = -55; rx <= 55; rx++) {
+          var rz = 50 + Math.floor(Math.sin(rx * 0.06) * 6) + Math.floor(Math.cos(rx * 0.03) * 3);
+          var rh = getTerrainHeight(rx, rz - 1);
+          setBlock(rx, rh, rz - 1, BLOCK.SAND);
+          var rh2 = getTerrainHeight(rx, rz + 3);
+          setBlock(rx, rh2, rz + 3, BLOCK.SAND);
+        }
+      })();
+      // ── Flat surrounds (Moscow outskirts — flat river valley terrain)
+      (function () {
+        for (var fx = -50; fx <= 50; fx++) {
+          for (var fz = -50; fz <= 40; fz++) {
+            if (fx * fx + fz * fz > 400) {
+              var fh = getTerrainHeight(fx, fz);
+              if (fh > 3) {
+                setBlock(fx, 3, fz, BLOCK.GRASS);
+                setBlock(fx, 2, fz, BLOCK.DIRT);
+              }
+            }
+          }
+        }
+      })();
+      // ── Birch forest patches (Moscow is famous for its birch groves)
+      (function () {
+        var groves = [[-45, -45, 8], [45, -45, 7], [-45, 35, 6], [45, 35, 8]];
+        for (var gi = 0; gi < groves.length; gi++) {
+          var gcx = groves[gi][0], gcz = groves[gi][1], gr = groves[gi][2];
+          for (var fx = gcx - gr; fx <= gcx + gr; fx++) {
+            for (var fz = gcz - gr; fz <= gcz + gr; fz++) {
+              if ((fx - gcx) * (fx - gcx) + (fz - gcz) * (fz - gcz) <= gr * gr && Math.random() < 0.5) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 2, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx + 1, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx - 1, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx, fh + 3, fz + 1, BLOCK.BUSH);
+                setBlock(fx, fh + 3, fz - 1, BLOCK.BUSH);
+                setBlock(fx, fh + 4, fz, BLOCK.BUSH);
+              }
+            }
+          }
         }
       })();
 } else if (level.id === 'SEVASTOPOL') {
@@ -7973,6 +8296,59 @@ window.VoxelWorld = (function () {
       generateDroneNest(-45, 0);
       generateDroneNest(0, 45);
       generateDroneNest(0, -45);
+      // ── Moskva River bend — curves south and west around the Kremlin hill
+      (function () {
+        for (var rx = -55; rx <= 55; rx++) {
+          var rz = 55 + Math.floor(Math.sin(rx * 0.05) * 8) + Math.floor(Math.cos(rx * 0.03) * 4);
+          for (var rw = 0; rw < 3; rw++) {
+            var rrz = rz + rw;
+            var rh = getTerrainHeight(rx, rrz);
+            for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+              setBlock(rx, ry, rrz, BLOCK.WATER);
+            }
+          }
+          // Sand banks
+          var rhBank = getTerrainHeight(rx, rz - 1);
+          setBlock(rx, rhBank, rz - 1, BLOCK.SAND);
+          var rhBank2 = getTerrainHeight(rx, rz + 3);
+          setBlock(rx, rhBank2, rz + 3, BLOCK.SAND);
+        }
+      })();
+      // ── Kremlin hill (Borovitsky Hill) — raised bedrock where the fortress walls stand
+      (function () {
+        for (var hx = -12; hx <= 12; hx++) {
+          for (var hz = -12; hz <= 12; hz++) {
+            if (hx * hx + hz * hz <= 130) {
+              var hh = getTerrainHeight(hx, hz);
+              setBlock(hx, hh + 1, hz, BLOCK.STONE);
+              setBlock(hx, hh + 2, hz, BLOCK.STONE);
+              if (hx * hx + hz * hz <= 60) {
+                setBlock(hx, hh + 3, hz, BLOCK.STONE);
+              }
+            }
+          }
+        }
+      })();
+      // ── Red Square flat cobblestones — flat plaza south of the Kremlin walls
+      (function () {
+        for (var fx = -20; fx <= 20; fx++) {
+          for (var fz = 25; fz <= 45; fz++) {
+            var fh = getTerrainHeight(fx, fz);
+            setBlock(fx, 3, fz, BLOCK.CONCRETE);
+            setBlock(fx, 2, fz, BLOCK.STONE);
+          }
+        }
+      })();
+      // ── Alexandrovsky Garden — trees along the Kremlin wall
+      (function () {
+        for (var tx = -15; tx <= 15; tx += 2) {
+          var th = getTerrainHeight(tx, 22);
+          setBlock(tx, th + 1, 22, BLOCK.WOOD);
+          setBlock(tx, th + 2, 22, BLOCK.BUSH);
+          setBlock(tx + 1, th + 2, 22, BLOCK.BUSH);
+          setBlock(tx - 1, th + 2, 22, BLOCK.BUSH);
+        }
+      })();
     } else if (level.id === 'SNAKE') {
       // Snake Island — small rocky outpost, lighthouse, coastal guns
       generateCommTower(0, 0);
@@ -8191,6 +8567,58 @@ window.VoxelWorld = (function () {
           for (var fz = 35; fz <= 50; fz++) {
             var fh = getTerrainHeight(fx, fz);
             setBlock(fx, fh, fz, BLOCK.GRASS);
+          }
+        }
+      })();
+      // ── Rolling hills (Zaporizhzhia steppe has gentle undulations)
+      (function () {
+        for (var hx = -55; hx <= 55; hx++) {
+          for (var hz = 50; hz <= 70; hz++) {
+            var hh = getTerrainHeight(hx, hz);
+            setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+            if (Math.abs(hx) < 15 && Math.abs(hz - 60) < 8) {
+              setBlock(hx, hh + 2, hz, BLOCK.DIRT);
+            }
+          }
+        }
+      })();
+      // ── Small stream running through the wheat field (irrigation channel)
+      (function () {
+        for (var sx = -40; sx <= 40; sx++) {
+          var sz = -15 + Math.floor(Math.sin(sx * 0.1) * 2);
+          for (var sw = 0; sw < 2; sw++) {
+            var ssz = sz + sw;
+            var sh = getTerrainHeight(sx, ssz);
+            for (var sy = sh; sy >= Math.max(0, sh - 1); sy--) {
+              setBlock(sx, sy, ssz, BLOCK.WATER);
+            }
+          }
+          // Mud banks
+          var shBank = getTerrainHeight(sx, sz - 1);
+          setBlock(sx, shBank, sz - 1, BLOCK.DIRT);
+          var shBank2 = getTerrainHeight(sx, sz + 2);
+          setBlock(sx, shBank2, sz + 2, BLOCK.DIRT);
+        }
+      })();
+      // ── Forest clearings — clusters of trees with open gaps (real steppe shelter belts)
+      (function () {
+        var clearings = [[-20, 55, 7], [15, 60, 6], [0, 70, 5], [-35, 65, 6]];
+        for (var ci = 0; ci < clearings.length; ci++) {
+          var cx = clearings[ci][0], cz = clearings[ci][1], cr = clearings[ci][2];
+          for (var fx = cx - cr; fx <= cx + cr; fx++) {
+            for (var fz = cz - cr; fz <= cz + cr; fz++) {
+              if ((fx - cx) * (fx - cx) + (fz - cz) * (fz - cz) <= cr * cr && Math.random() < 0.5) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 2, fz, BLOCK.WOOD);
+                setBlock(fx, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx + 1, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx - 1, fh + 3, fz, BLOCK.BUSH);
+                setBlock(fx, fh + 3, fz + 1, BLOCK.BUSH);
+                setBlock(fx, fh + 3, fz - 1, BLOCK.BUSH);
+                setBlock(fx, fh + 4, fz, BLOCK.BUSH);
+              }
+            }
           }
         }
       })();
