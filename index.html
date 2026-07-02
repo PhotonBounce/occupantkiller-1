@@ -124,7 +124,7 @@
       <div style="font-size:10px;color:#0057B8;margin-bottom:22px;letter-spacing:4px;font-weight:700">UKRAINIAN VOXEL DEFENSE FORCE</div>
       <div id="boot-progress-bar-track" style="width:min(420px,80vw);height:14px;background:#111;border:1px solid #333;border-radius:7px;overflow:hidden;position:relative">
         <div id="boot-progress-bar-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#0057B8,#FFD700);transition:width 0.4s ease;position:relative">
-          <div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent);animation:bootShimmer 1.5s infinite"></div>
+          <div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent);animation:bootShimmer 1.5s infinite"></div>
         </div>
       </div>
       <div id="boot-progress-label" style="font-size:11px;color:#888;margin-top:10px;letter-spacing:1px">0% — Initializing…</div>
@@ -252,7 +252,7 @@
       <div id="grenade-section" style="text-align:center;min-width:60px;display:none">
         <div id="grenade-label" style="font-size:10px;color:#aaa;letter-spacing:1px">GRENADES</div>
         <div id="grenade-display" style="font-size:22px;color:#a8e063;font-weight:bold">5</div>
-        <div id="grenade-keyhint" style="font-size:9px;color:#888;letter-spacing:1px">G to throw</div>
+        <div id="grenade-keyhint" style="font-size:9px;color:#888;letter-spacing:1px">Shift+G to throw</div>
       </div>
 
       <div id="weapon-section">
@@ -291,10 +291,11 @@
     <!-- Controls legend (top-right, collapsible with ?) ─────────────────────── -->
     <button id="controls-legend-toggle" style="position:absolute;top:30px;right:12px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.25);color:#ccc;width:22px;height:22px;border-radius:50%;font-size:12px;font-family:monospace;z-index:211;cursor:pointer;padding:0;line-height:20px;text-align:center" title="Toggle controls (?)">?</button>
     <div id="controls-legend" style="display:none">
+      <div>G · God Mode</div>
       <div>V · Camera Mode</div>
       <div>B · Build Mode</div>
       <div>F · Possess Drone</div>
-      <div>G · Enter Vehicle</div>
+      <div>Shift+G · Enter Vehicle</div>
       <div>` · Stealth Mode</div>
       <div>, · Toggle Music</div>
       <div>I / TAB · Inventory</div>
@@ -409,8 +410,11 @@
     <!-- Inventory Button (always visible) -->
     <button id="inventory-btn" style="position:fixed;top:4px;right:72px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Open Inventory (I key)">📦 INV</button>
 
-    <!-- In-game God Mode toggle (always visible) -->
-    <button id="hud-god-mode-btn" style="position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">⚡ GOD</button>
+    <!-- In-game God Mode toggle (prominent, always visible) -->
+    <button id="hud-god-mode-btn" style="position:fixed;top:8px;left:8px;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,0,0.8);color:#ff0;padding:6px 14px;border-radius:6px;font-size:14px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 8px #ff0;min-height:42px;font-weight:bold;box-shadow:0 0 12px rgba(255,255,0,0.2);transition:all 0.2s" title="Toggle God Mode (G key) — all weapons + invincible">⚡ GOD: OFF</button>
+
+    <!-- Mobile floating God Mode button -->
+    <button id="mobile-god-mode-btn" style="display:none;position:fixed;bottom:80px;left:12px;width:56px;height:56px;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,0,0.8);color:#ff0;border-radius:50%;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0;font-weight:bold;box-shadow:0 0 12px rgba(255,255,0,0.2);transition:all 0.2s" title="Toggle God Mode">⚡ GOD</button>
 
     <!-- Jukebox (MP3 + Procedural) -->
     <button id="jukebox-btn" style="position:fixed;top:4px;right:224px;background:rgba(0,0,0,0.5);border:1px solid rgba(0,90,255,0.5);color:#ffd500;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #005abd" title="Jukebox — Game Music (J key)">🎵 JUKEBOX</button>
@@ -1245,6 +1249,9 @@
     <!-- Inventory/Pause button -->
     <button id="btn-pause" class="mobile-btn pause-btn">⏸</button>
 
+    <!-- Mobile floating God Mode button -->
+    <button id="btn-god-mobile" class="mobile-btn" style="position:absolute;bottom:80px;left:12px;width:56px;height:56px;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,0,0.8);color:#ff0;border-radius:50%;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0;font-weight:bold;box-shadow:0 0 12px rgba(255,255,0,0.2);transition:all 0.2s">⚡ GOD</button>
+
     <!-- Look zone for tap-to-shoot (covers right half of screen) -->
     <div id="mobile-look-zone" class="mobile-ctrl">
       <div class="mobile-look-label">LOOK / TAP TO SHOOT</div>
@@ -1606,25 +1613,31 @@ document.addEventListener('DOMContentLoaded', function () {
     setBootProgress(modulePct, 'checking modules', missing.length ? 'waiting: ' + missing.slice(0,3).join(', ') : 'all modules loaded');
 
     if (missing.length === 0 && typeof window.GameManager.init === 'function') {
-      try {
-        window.GameManager.init();
-        setBootProgress(100, 'ready', 'Slava Ukraini!');
-        setTimeout(hideBootPreloader, 420);
-      } catch (e) {
-        var ov = document.getElementById('error-overlay');
-        var errMsg = (e && e.message ? e.message : String(e));
-        var errStack = (e && e.stack ? e.stack : '');
-        if (ov) {
-          ov.style.display = 'block';
-          ov.innerHTML = '<div style="font-family:monospace;font-size:13px;line-height:1.4">' +
-            '<div style="color:#ff6464;font-weight:bold;font-size:16px;margin-bottom:8px">BOOT ERROR</div>' +
-            '<div style="color:#ffaa44;margin-bottom:8px">' + errMsg.replace(/</g, '&lt;') + '</div>' +
-            '<pre style="color:#aaa;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:40vh;overflow:auto">' + errStack.replace(/</g, '&lt;') + '</pre>' +
-            '<div style="margin-top:12px;color:#888">Try reloading the page (Ctrl+Shift+R).</div>' +
-            '</div>';
-        }
-        console.error('[BOOT]', e);
-      }
+      // Yield to the browser so the progress bar can render before the heavy
+      // synchronous init() blocks the main thread.
+      requestAnimationFrame(function () {
+        setTimeout(function () {
+          try {
+            window.GameManager.init();
+            setBootProgress(100, 'ready', 'Slava Ukraini!');
+            setTimeout(hideBootPreloader, 420);
+          } catch (e) {
+            var ov = document.getElementById('error-overlay');
+            var errMsg = (e && e.message ? e.message : String(e));
+            var errStack = (e && e.stack ? e.stack : '');
+            if (ov) {
+              ov.style.display = 'block';
+              ov.innerHTML = '<div style="font-family:monospace;font-size:13px;line-height:1.4">' +
+                '<div style="color:#ff6464;font-weight:bold;font-size:16px;margin-bottom:8px">BOOT ERROR</div>' +
+                '<div style="color:#ffaa44;margin-bottom:8px">' + errMsg.replace(/</g, '&lt;') + '</div>' +
+                '<pre style="color:#aaa;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:40vh;overflow:auto">' + errStack.replace(/</g, '&lt;') + '</pre>' +
+                '<div style="margin-top:12px;color:#888">Try reloading the page (Ctrl+Shift+R).</div>' +
+                '</div>';
+            }
+            console.error('[BOOT]', e);
+          }
+        }, 50);
+      });
     } else if (a < 6000) {
       // 6000 * 20ms = 120s. Slow mobile networks need much more than 30s
       // to download & parse ~16,500 LOC + ethers CDN. Keep waiting silently.

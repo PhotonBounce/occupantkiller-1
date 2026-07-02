@@ -18,6 +18,7 @@ var ScreenEffects = (function () {
     CRACK_HP_FRAC:    0.22,  // crack appears below this HP fraction
     CRACK_HEAVY_FRAC: 0.10,  // heavy crack pattern below this
     EMP_DURATION:     0.25,  // seconds for EMP static
+    CRACK_FADE_SEC:   5,     // auto-fade cracks after 5 seconds
     VIGNETTE_DURATION:0.35,  // red vignette flash duration
     DESAT_MIN_ALPHA:  0.0,
     DESAT_MAX_ALPHA:  0.5,   // grey overlay alpha at 0 HP

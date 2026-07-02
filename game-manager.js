@@ -1293,6 +1293,7 @@ const GameManager = (function () {
   /* ── Init ────────────────────────────────────────────────────────── */
   function init() {
     _clearBootTimeout(); // Boot succeeded, clear timeout
+    _bootStep('init');
     // Keep the start-screen badge in sync with the real stage count so it
     // never drifts from STAGES (was hardcoded "12" while STAGES has grown).
     try {
@@ -1439,6 +1440,7 @@ const GameManager = (function () {
     var _initSteps = 16;
     var _bootErrors = [];
     var _bootStepMap = {
+      'init':     { pct: 20, comment: 'Initializing engine...' },
       'renderer': { pct: 25, comment: 'Preloading weapon assets...' },
       'camera':   { pct: 30, comment: 'Generating city blueprints...' },
       'voxel world': { pct: 35, comment: 'Generating city blueprints...' },

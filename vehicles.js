@@ -30,6 +30,17 @@ const VehicleSystem = (function () {
     tank:         { speed: 8,  health: 800, seats: 3,  armor: 6,  flying: false, damage: 200, cannonReload: 3.0, mgDamage: 15, mgRate: 0.1 },
     bradley:      { speed: 12, health: 500, seats: 3,  armor: 4,  flying: false, damage: 70, bushRate: 0.30, coaxRate: 0.085, towAmmo: 2 },
   };
+  const VEHICLE_SPAWN_OFFSET = {
+    transport:    0.5,
+    combat:       0.7,
+    logistics:    0.5,
+    helicopter:   0,
+    plane:        0,
+    turret_rover: 0.5,
+    tank:         0.6,
+    bradley:      1.05,
+  };
+
   const vehicles = [];
   let _scene = null;
   let nextId = 1;
@@ -645,6 +656,10 @@ const VehicleSystem = (function () {
   function spawn(x, y, z, type) {
     type = type || VEHICLE_TYPE.TRANSPORT;
     const stats = VEHICLE_STATS[type];
+    // Ensure vehicle spawns above terrain (getTerrainHeight + vehicle-specific offset)
+    var terrainH = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ? VoxelWorld.getTerrainHeight(x, z) : 0;
+    var heightOffset = VEHICLE_SPAWN_OFFSET[type] || 0.5;
+    y = Math.max(y, terrainH + heightOffset);
     const vehicle = {
       id: nextId++,
       type,
@@ -900,6 +915,8 @@ const VehicleSystem = (function () {
       if (typeof HUD !== 'undefined' && HUD.hideVehicleHUD) HUD.hideVehicleHUD();
       // Stop engine sound
       if (typeof AudioSystem !== 'undefined' && AudioSystem.stopEngine) AudioSystem.stopEngine();
+      // Fade out cracked screen on vehicle exit
+      if (typeof ScreenEffects !== 'undefined' && ScreenEffects.fadeCrack) ScreenEffects.fadeCrack();
       return exitPos;
     }
     return null;
