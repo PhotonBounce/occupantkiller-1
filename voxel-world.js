@@ -6967,6 +6967,10 @@ window.VoxelWorld = (function () {
       })();
 } else if (level.id === 'BAKHMUT') {
       // TOTAL DESTRUCTION — every building damaged or destroyed, rubble everywhere
+      // Real: Bakhmut is in a basin, Bakhmutka River runs through center
+      // Real: Freedom Square is the historic heart, surrounded by apartment blocks
+      // Real: Salt industry is a major economic feature (Bakhmut rock salt deposits)
+      // Real: Donbas steppe — flat with low rolling hills and coal spoil tips
       generateUkrainianApartment(-25, -20, 6);
       generateUkrainianApartment(-25, -42, 6);
       generateUkrainianApartment(15, -15, 12);
@@ -6983,6 +6987,57 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, -30);
       generateDroneNest(-40, -10);
       generateDroneNest(20, 30);
+      // ── Freedom Square area — historic center, now ruined ──
+      (function () {
+        var fsx = 0, fsz = 0;
+        var fsh = getTerrainHeight(fsx, fsz);
+        // Central square pavement (broken concrete)
+        for (var x = -8; x <= 8; x++) {
+          for (var z = -8; z <= 8; z++) {
+            if (Math.random() < 0.6) {
+              setBlock(fsx + x, fsh, fsz + z, BLOCK.CONCRETE);
+            } else {
+              setBlock(fsx + x, fsh, fsz + z, BLOCK.RUBBLE);
+            }
+          }
+        }
+        // City Culture Center (ruined, south of square)
+        for (var x = -6; x <= 6; x++) {
+          for (var z = 9; z <= 14; z++) {
+            for (var y = 0; y < 3; y++) {
+              setBlock(fsx + x, fsh + y, fsz + z, BLOCK.RUBBLE);
+            }
+          }
+        }
+        // City hall (west of square, ruined)
+        for (var x = -14; x <= -9; x++) {
+          for (var z = -4; z <= 4; z++) {
+            for (var y = 0; y < 3; y++) {
+              setBlock(fsx + x, fsh + y, fsz + z, BLOCK.RUBBLE);
+            }
+          }
+        }
+      })();
+      // ── Salt industry — Bakhmut is the largest salt center in Ukraine ──
+      (function () {
+        var sIx = -30, sIz = -30;
+        var sIh = getTerrainHeight(sIx, sIz);
+        // Salt processing plant (industrial factory)
+        for (var x = -8; x <= 8; x++) {
+          for (var z = -6; z <= 6; z++) {
+            for (var y = 0; y < 4; y++) {
+              setBlock(sIx + x, sIh + y, sIz + z, BLOCK.METAL);
+            }
+          }
+        }
+        // Salt mine headframe (tall structure)
+        for (var y = 0; y < 12; y++) {
+          setBlock(sIx, sIh + y, sIz, BLOCK.METAL);
+          setBlock(sIx + 1, sIh + y, sIz, BLOCK.METAL);
+          setBlock(sIx, sIh + y, sIz + 1, BLOCK.METAL);
+          setBlock(sIx + 1, sIh + y, sIz + 1, BLOCK.METAL);
+        }
+      })();
       // ── Rubble EVERYWHERE — no intact street remains ──
       (function () {
         for (var rx = -55; rx <= 55; rx += 2) {
@@ -7542,6 +7597,10 @@ window.VoxelWorld = (function () {
       generateDroneNest(35, 35);
     } else if (level.id === 'CHORNOBYL') {
       // Irradiated exclusion zone — abandoned, broken, cratered, overgrown
+      // Real: Pripyat is a ghost city with 16-story apartment blocks, schools, hospital
+      // Real: Duga radar is 150m tall, 700m long — hidden in the forest
+      // Real: Red Forest — 1,500 ha of pine trees killed by acute radiation
+      // Real: Jupiter factory, swimming pool, amusement park ferris wheel
       generateBrokenTrees(20);
       generateCraters(8);
       generateRuins(6);
@@ -7600,6 +7659,42 @@ window.VoxelWorld = (function () {
       generateWreckedCar(10, 0);
       generateWreckedCar(0, -10);
       generateWreckedCar(0, 10);
+      // ── Jupiter factory (abandoned military electronics plant) ──
+      (function () {
+        var jx = 50, jz = 70;
+        var jh = getTerrainHeight(jx, jz);
+        for (var x = -10; x <= 10; x++) {
+          for (var z = -6; z <= 6; z++) {
+            for (var y = 0; y < 4; y++) {
+              setBlock(jx + x, jh + y, jz + z, BLOCK.METAL);
+            }
+          }
+        }
+        // Broken roof sections
+        for (var x = -5; x <= 5; x++) {
+          for (var z = -3; z <= 3; z++) {
+            if (Math.random() < 0.4) {
+              setBlock(jx + x, jh + 4, jz + z, BLOCK.RUBBLE);
+            }
+          }
+        }
+      })();
+      // ── Swimming pool (Lazurny — abandoned, empty) ──
+      (function () {
+        var px = -50, pz = 50;
+        var ph = getTerrainHeight(px, pz);
+        for (var x = -8; x <= 8; x++) {
+          for (var z = -5; z <= 5; z++) {
+            // Pool basin (empty, cracked concrete)
+            setBlock(px + x, ph, pz + z, BLOCK.CONCRETE);
+            if (Math.abs(x) === 8 || Math.abs(z) === 5) {
+              // Pool walls
+              setBlock(px + x, ph + 1, pz + z, BLOCK.CONCRETE);
+              setBlock(px + x, ph + 2, pz + z, BLOCK.CONCRETE);
+            }
+          }
+        }
+      })();
       // ── Duga radar array (massive steel structure) ──
       (function () {
         for (var y = 0; y < 20; y++) {
@@ -7816,8 +7911,11 @@ window.VoxelWorld = (function () {
 } else if (level.id === 'KREMLIN') {
       // The final showdown — authentic Kremlin, St Basil's & Red Square
       // Russian Orthodox colors: red brick, gold domes, green roofs. No Ukrainian blue/yellow.
+      // Real: Kremlin sits on Borovitsky Hill above the Moskva River
+      // Real: Red Square is flat cobblestones, south of the Kremlin walls
+      // Real: Spasskaya Tower has a clock (Kremlin Chimes) and red star
       generateMoscowCityExtension(0, 0);
-      // Authentic Kremlin Spasskaya Tower (red brick, green roof, gold star)
+      // Authentic Kremlin Spasskaya Tower (red brick, green roof, gold star + clock)
       (function () {
         for (var y = 0; y < 12; y++) {
           for (var x = -3; x <= 3; x++) {
@@ -7840,6 +7938,22 @@ window.VoxelWorld = (function () {
         setBlock(-1, 13, 35, BLOCK.LIGHT);
         setBlock(0, 13, 36, BLOCK.LIGHT);
         setBlock(0, 13, 34, BLOCK.LIGHT);
+        // Clock face on the tower (Spasskaya Tower — Kremlin Chimes)
+        setBlock(0, 8, 38, BLOCK.LIGHT);
+        setBlock(1, 8, 38, BLOCK.LIGHT);
+        setBlock(-1, 8, 38, BLOCK.LIGHT);
+        setBlock(0, 9, 38, BLOCK.LIGHT);
+        setBlock(0, 7, 38, BLOCK.LIGHT);
+      })();
+      // GUM Department Store — east side of Red Square (glass roof arcade)
+      (function () {
+        for (var x = 20; x <= 30; x++) {
+          for (var z = 30; z <= 38; z++) {
+            for (var y = 0; y < 4; y++) {
+              setBlock(x, y, z, BLOCK.GLASS);
+            }
+          }
+        }
       })();
       // Authentic Soviet/Russian apartment blocks near the Kremlin
       generateUkrainianApartment(-25, -25, 12);
@@ -7966,6 +8080,9 @@ window.VoxelWorld = (function () {
       // Bradley M2A2 breaches the line. Wheat field → treeline → trenches →
       // dugouts → dragon's teeth → bunkers. NO Ukrainian blue/yellow — this
       // is Russian-held territory until the Bradley punches through.
+      // Real: Zaporizhzhia Oblast is in the southern Ukrainian steppe
+      // Real: Chernozem (black earth) soils — world's most fertile farmland
+      // Real: Winter wheat is the dominant crop; tree lines are shelter belts
       // ── Wheat field (golden SAND blocks = dry Ukrainian wheat) ──
       (function () {
         for (var wx = -40; wx <= 40; wx++) {
@@ -8053,6 +8170,19 @@ window.VoxelWorld = (function () {
           setBlock(fx + 1, fy, fz, BLOCK.RUBBLE);
           setBlock(fx, fy, fz + 1, BLOCK.RUBBLE);
           setBlock(fx - 1, fy, fz, BLOCK.RUBBLE);
+        }
+      })();
+      // ── Shelter belt tree lines (windbreaks between fields) ──
+      (function () {
+        for (var tx = -50; tx <= 50; tx += 2) {
+          var th = getTerrainHeight(tx, 38);
+          setBlock(tx, th + 1, 38, BLOCK.BUSH);
+          setBlock(tx, th + 2, 38, BLOCK.BUSH);
+        }
+        for (var tx = -50; tx <= 50; tx += 2) {
+          var th = getTerrainHeight(tx, 45);
+          setBlock(tx, th + 1, 45, BLOCK.BUSH);
+          setBlock(tx, th + 2, 45, BLOCK.BUSH);
         }
       })();
       // ── Flat steppe terrain beyond the wheat field ──

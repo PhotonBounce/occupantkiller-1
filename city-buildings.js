@@ -613,7 +613,7 @@ function fountain(ox, oz, gy) {
   // HOSTOMEL
   // ═══════════════════════════════════════════════════════════
   CITIES.hostomel = [
-{ type: 'airportTerminal', params: [40, 14, 6, 9], x: -15, z: -25, note: 'Antonov Airport Terminal (admin building, partially destroyed)' },
+{ type: 'airportTerminal', params: [40, 14, 6, 9], x: -15, z: -25, note: 'Antonov Airport Terminal — real: 3,500m east-west runway, 56m wide, no passenger terminal (cargo/testing facility)' },
     { type: 'hangar', params: [32, 22, 14, 9], x: -35, z: 10, note: 'Hangar 1 — An-225 Mriya (destroyed Feb 27, 2022)' },
     { type: 'hangar', params: [28, 18, 10, 9], x: 5, z: 12, note: 'Hangar 2 — An-124 Ruslan / Antonov offices' },
     { type: 'hangar', params: [24, 14, 8, 9], x: 40, z: 8, note: 'Hangar 3 — An-22 Antei / museum storage' },
@@ -787,6 +787,7 @@ function fountain(ox, oz, gy) {
   // ═══════════════════════════════════════════════════════════
   CITIES.mariupol = [
 { type: 'azovstalComplex', params: [50, 30, 10, 9], x: 0, z: -20, note: 'Azovstal Blast Furnace Hall — north of center, industrial heart (blast furnaces, cooling towers, smokestacks)' },
+    { type: 'dramaTheater', params: [14, 10, 5, 65], x: -20, z: 25, note: 'Ruined Drama Theater — city center, Freedom Square area (modernist, bombed March 16 2022 with CHILDREN sign painted outside)' },
     { type: 'azovstalComplex', params: [40, 20, 8, 9], x: -45, z: -25, note: 'Azovstal Rolling Mill 1 — northwest industrial zone' },
     { type: 'azovstalComplex', params: [35, 18, 7, 9], x: 45, z: -25, note: 'Azovstal Rolling Mill 2 — northeast industrial zone' },
     { type: 'industrialFactory', params: [30, 15, 6, 5], x: -40, z: -45, note: 'Azovstal Coking Plant — north' },
@@ -883,7 +884,9 @@ function fountain(ox, oz, gy) {
   // BAKHMUT
   // ═══════════════════════════════════════════════════════════
   CITIES.bakhmut = [
-{ type: 'ruinedBuilding', params: [18, 10, 6, 3.0, 16], x: 0, z: 0, note: 'Bakhmut Fortress ruins — central market and embankment area (18th century)' },
+{ type: 'ruinedBuilding', params: [18, 10, 6, 3.0, 16], x: 0, z: 0, note: 'Freedom Square — historic heart of Bakhmut, now completely ruined (City Culture Center, city hall, market)' },
+    { type: 'industrialFactory', params: [18, 12, 5, 5], x: -30, z: -30, note: 'Salt processing plant — Bakhmut is the largest salt center in Ukraine (rock salt deposits)' },
+    { type: 'ruinedBuilding', params: [18, 10, 6, 3.0, 16], x: 0, z: 0, note: 'Bakhmut Fortress ruins — central market and embankment area (18th century)' },
     { type: 'ruinedBuilding', params: [14, 8, 5, 2.5, 9], x: -20, z: -15, note: 'Ruined apartment — west of fortress' },
     { type: 'ruinedBuilding', params: [16, 9, 6, 2.8, 10], x: 20, z: -15, note: 'Ruined apartment — east of fortress' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 2.0, 72], x: -35, z: -5, note: 'Ruined office — north of center' },
@@ -1023,7 +1026,9 @@ function fountain(ox, oz, gy) {
   // CHORNOBYL
   // ═══════════════════════════════════════════════════════════
   CITIES.chornobyl = [
-{ type: 'sarcophagus', params: [], x: 0, z: -40, note: 'Chornobyl NPP Reactor 4 — New Safe Confinement (steel arch)' },
+{ type: 'sarcophagus', params: [], x: 0, z: -40, note: 'Chornobyl NPP Reactor 4 — New Safe Confinement (steel arch, 2016)' },
+    { type: 'industrialFactory', params: [20, 12, 4, 81], x: 50, z: 70, note: 'Jupiter factory — abandoned military electronics plant in Pripyat' },
+    { type: 'damagedBuilding', params: [16, 10, 5, 80], x: -50, z: 50, note: 'Pripyat swimming pool (Lazurny) — abandoned, empty basin' },
     { type: 'industrialFactory', params: [25, 15, 6, 5], x: -35, z: -40, note: 'Reactor 3' },
     { type: 'industrialFactory', params: [25, 15, 6, 92], x: 35, z: -40, note: 'Reactor 2' },
     { type: 'industrialFactory', params: [20, 15, 6, 93], x: -60, z: -40, note: 'Reactor 1' },
@@ -1213,7 +1218,7 @@ function fountain(ox, oz, gy) {
   // KREMLIN
   // ═══════════════════════════════════════════════════════════
   CITIES.kremlin = [
-{ type: 'kremlinWall', params: [80, 60, 8, 9], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, red brick, towers with green roofs and ruby stars' },
+{ type: 'kremlinWall', params: [80, 60, 8, 9], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, red brick, towers with green roofs and ruby stars (Spasskaya Tower has clock + red star)' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 10], x: -20, z: -10, note: 'Assumption Cathedral — inside Kremlin, west' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 20], x: 0, z: -10, note: 'Archangel Cathedral — inside Kremlin, center' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 65], x: 20, z: -10, note: 'Annunciation Cathedral — inside Kremlin, east' },

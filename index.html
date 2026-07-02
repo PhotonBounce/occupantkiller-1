@@ -647,6 +647,17 @@
   <!-- Start screen -->
   <div id="overlay-start" class="overlay">
     <div class="voxel-menu-bg"></div>
+    <div class="start-trident-watermark" aria-hidden="true">
+      <svg width="64" height="80" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 2L32 28" stroke="#0057B8" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M14 18C14 18 20 10 32 10C44 10 50 18 50 18" stroke="#0057B8" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M6 34C6 34 16 22 32 22C48 22 58 34 58 34" stroke="#0057B8" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M32 26L32 56" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M18 46C18 46 24 56 32 56C40 56 46 46 46 46" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M22 60L32 78L42 60" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 40C10 40 18 54 32 54C46 54 54 40 54 40" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+    </div>
     <div class="voxel-menu-content">
       <header class="voxel-hero">
         <div class="voxel-badge">HYBRID VOXEL WARFARE · 20 STAGES</div>
@@ -1100,7 +1111,7 @@
 
         <div class="inv-section">
           <div class="inv-section-title"><span class="icon">📦</span> COLLECTED MATERIALS</div>
-          <div id="materials-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:13px"></div>
+          <div id="materials-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:14px"></div>
           <div id="currency-display" style="margin-top:10px;font-size:15px;color:#ffd700;text-align:center;font-weight:bold"></div>
         </div>
 
@@ -1120,7 +1131,7 @@
       <div id="inv-panel-shop" class="inv-panel" style="display:none">
         <div class="inv-section">
           <div class="inv-section-title"><span class="icon">🛒</span> ITEM SHOP</div>
-          <p style="color:#8899bb;font-size:12px;margin-bottom:10px">Buy items with OKC or POL. 10% of POL purchases go to 🇺🇦 Ukraine defense fund.</p>
+          <p style="color:#8899bb;font-size:14px;margin-bottom:10px">Buy items with OKC or POL. 10% of POL purchases go to 🇺🇦 Ukraine defense fund.</p>
           <div id="shop-items-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
         </div>
         <div class="inv-section">
@@ -1136,7 +1147,7 @@
       <div id="inv-panel-sell" class="inv-panel" style="display:none">
         <div class="inv-section">
           <div class="inv-section-title"><span class="icon">💰</span> SELL WEAPONS &amp; AMMO</div>
-          <p style="color:#8899bb;font-size:12px;margin-bottom:10px">Sell surplus weapons for OKC or POL crypto. Starter weapons cannot be sold.</p>
+          <p style="color:#8899bb;font-size:14px;margin-bottom:10px">Sell surplus weapons for OKC or POL crypto. Starter weapons cannot be sold.</p>
           <div id="sell-weapons-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
         </div>
         <div class="inv-section">
@@ -1149,7 +1160,7 @@
       <div id="inv-panel-premium" class="inv-panel" style="display:none">
         <div class="inv-section">
           <div class="inv-section-title"><span class="icon">⭐</span> PREMIUM SUBSCRIPTIONS</div>
-          <p style="color:#8899bb;font-size:12px;margin-bottom:10px">Boost your OKC earnings, unlock exclusive content, and get shop discounts! 10% of POL goes to 🇺🇦 Ukraine.</p>
+          <p style="color:#8899bb;font-size:14px;margin-bottom:10px">Boost your OKC earnings, unlock exclusive content, and get shop discounts! 10% of POL goes to 🇺🇦 Ukraine.</p>
           <div id="premium-status" style="background:rgba(130,71,229,0.1);border:1px solid #8247e5;border-radius:6px;padding:8px;margin:6px 0;font-size:12px;color:#8247e5;display:none"></div>
           <div id="premium-tiers-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0"></div>
         </div>
@@ -1159,7 +1170,7 @@
       <div id="inv-panel-assets" class="inv-panel" style="display:none">
         <div class="inv-section">
           <div class="inv-section-title"><span class="icon">🎨</span> GAME ASSETS</div>
-          <p style="color:#8899bb;font-size:12px;margin-bottom:10px">Exclusive skins, emotes, titles &amp; trails. Buy with OKC or POL. 10% of POL goes to 🇺🇦 Ukraine.</p>
+          <p style="color:#8899bb;font-size:14px;margin-bottom:10px">Exclusive skins, emotes, titles & trails. Buy with OKC or POL. 10% of POL goes to 🇺🇦 Ukraine.</p>
           <div id="assets-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
         </div>
       </div>
@@ -1185,12 +1196,12 @@
             <div style="margin-bottom:4px">1. Earn OKC in-game (bullets → blocks → OKC)<br>2. Connect wallet on Polygon<br>3. Convert OKC → POL (or OKC → Gold)<br>4. Mint Veteran NFT or buy Weapon Skin NFT<br>5. Trade on OpenSea or keep forever</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#666;margin-top:4px">Contracts: OKC_Token · OccupantVeteranNFT · OccupantWeaponsNFT · OccupantMarket</div>
+        <div style="text-align:center;font-size:14px;color:#666;margin-top:4px">Contracts: OKC_Token · OccupantVeteranNFT · OccupantWeaponsNFT · OccupantMarket</div>
       </div>
 
       <!-- Ukraine Donation Info -->
       <div id="ukraine-donation-banner" style="background:linear-gradient(90deg,rgba(0,87,183,0.2),rgba(255,215,0,0.2));border:1px solid #ffd700;border-radius:6px;padding:8px;margin:10px 0;text-align:center">
-        <div style="font-size:13px;color:#ffd700">🇺🇦 10% of all POL proceeds go to Ukrainian defense</div>
+        <div style="font-size:14px;color:#ffd700">🇺🇦 10% of all POL proceeds go to Ukrainian defense</div>
         <div style="font-size:10px;color:#aaa;margin-top:2px">Wallet: 0x165C…e14</div>
       </div>
 
