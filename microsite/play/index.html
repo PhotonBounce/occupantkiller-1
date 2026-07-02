@@ -103,7 +103,7 @@
     /* Performance Mode: skip heavy cosmetic full-screen FX layers. Default ON (game is heavy); eye-candy is opt-in via the ⚡ PERFORMANCE toggle; persisted. */
     window.__OK_PERF = (function(){ try { var v = localStorage.getItem('ok_perf_mode'); if (v==='0') return false; if (v==='1') return true; return true; } catch(e){ return true; } })();
   </script>
-  <link rel="stylesheet" href="style.css?v=20260429b" />
+  <link rel="stylesheet" href="style.css?v=20260702b" />
 </head>
   <body>
     <!-- ── Boot Preloader (gates GameManager.init until everything is ready) ── -->
@@ -124,7 +124,7 @@
       <div style="font-size:10px;color:#0057B8;margin-bottom:22px;letter-spacing:4px;font-weight:700">UKRAINIAN VOXEL DEFENSE FORCE</div>
       <div id="boot-progress-bar-track" style="width:min(420px,80vw);height:14px;background:#111;border:1px solid #333;border-radius:7px;overflow:hidden;position:relative">
         <div id="boot-progress-bar-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#0057B8,#FFD700);transition:width 0.4s ease;position:relative">
-          <div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent);animation:bootShimmer 1.5s infinite"></div>
+          <div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent);animation:bootShimmer 1.5s infinite"></div>
         </div>
       </div>
       <div id="boot-progress-label" style="font-size:11px;color:#888;margin-top:10px;letter-spacing:1px">0% — Initializing…</div>
@@ -147,7 +147,7 @@
       <!-- Retry button injected by JS if needed -->
     </div>
     <div id="conn-status" style="position:fixed;top:4px;right:8px;z-index:9999;font-family:monospace;font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(34,34,34,0.7);color:#fff;border:1px solid rgba(68,68,68,0.5);">Srv <span id="conn-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle;"></span></div>
-    <script src="page-prelude.js?v=20260429b"></script>
+    <script src="page-prelude.js?v=20260702b"></script>
     <script>
     // Loader percentage updater — always show and update percent
     window.__bootStartTime = Date.now();
@@ -252,7 +252,7 @@
       <div id="grenade-section" style="text-align:center;min-width:60px;display:none">
         <div id="grenade-label" style="font-size:10px;color:#aaa;letter-spacing:1px">GRENADES</div>
         <div id="grenade-display" style="font-size:22px;color:#a8e063;font-weight:bold">5</div>
-        <div id="grenade-keyhint" style="font-size:9px;color:#888;letter-spacing:1px">G to throw</div>
+        <div id="grenade-keyhint" style="font-size:9px;color:#888;letter-spacing:1px">Shift+G to throw</div>
       </div>
 
       <div id="weapon-section">
@@ -291,10 +291,11 @@
     <!-- Controls legend (top-right, collapsible with ?) ─────────────────────── -->
     <button id="controls-legend-toggle" style="position:absolute;top:30px;right:12px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.25);color:#ccc;width:22px;height:22px;border-radius:50%;font-size:12px;font-family:monospace;z-index:211;cursor:pointer;padding:0;line-height:20px;text-align:center" title="Toggle controls (?)">?</button>
     <div id="controls-legend" style="display:none">
+      <div>G · God Mode</div>
       <div>V · Camera Mode</div>
       <div>B · Build Mode</div>
       <div>F · Possess Drone</div>
-      <div>G · Enter Vehicle</div>
+      <div>Shift+G · Enter Vehicle</div>
       <div>` · Stealth Mode</div>
       <div>, · Toggle Music</div>
       <div>I / TAB · Inventory</div>
@@ -367,7 +368,7 @@
         <span id="vehicle-health-val">200/200</span>
       </div>
       <div id="vehicle-hud-speed">0 km/h</div>
-      <div id="vehicle-hud-controls">WASD · Drive | SPACE · Up | SHIFT · Down | G · Exit | T · View | LMB · Fire</div>
+      <div id="vehicle-hud-controls">WASD · Drive | SPACE · Up | SHIFT · Down | Shift+G · Exit | T · View | LMB · Fire</div>
       <div id="vehicle-hijack-bar" style="display:none">
         <div id="vehicle-hijack-fill"></div>
         <span id="vehicle-hijack-text">HIJACKING…</span>
@@ -409,8 +410,11 @@
     <!-- Inventory Button (always visible) -->
     <button id="inventory-btn" style="position:fixed;top:4px;right:72px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Open Inventory (I key)">📦 INV</button>
 
-    <!-- In-game God Mode toggle (always visible) -->
-    <button id="hud-god-mode-btn" style="position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">⚡ GOD</button>
+    <!-- In-game God Mode toggle (prominent, always visible) -->
+    <button id="hud-god-mode-btn" style="position:fixed;top:8px;left:8px;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,0,0.8);color:#ff0;padding:6px 14px;border-radius:6px;font-size:14px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 8px #ff0;min-height:42px;font-weight:bold;box-shadow:0 0 12px rgba(255,255,0,0.2);transition:all 0.2s" title="Toggle God Mode (G key) — all weapons + invincible">⚡ GOD: OFF</button>
+
+    <!-- Mobile floating God Mode button -->
+    <button id="mobile-god-mode-btn" style="display:none;position:fixed;bottom:80px;left:12px;width:56px;height:56px;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,0,0.8);color:#ff0;border-radius:50%;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0;font-weight:bold;box-shadow:0 0 12px rgba(255,255,0,0.2);transition:all 0.2s" title="Toggle God Mode">⚡ GOD</button>
 
     <!-- Jukebox (MP3 + Procedural) -->
     <button id="jukebox-btn" style="position:fixed;top:4px;right:224px;background:rgba(0,0,0,0.5);border:1px solid rgba(0,90,255,0.5);color:#ffd500;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #005abd" title="Jukebox — Game Music (J key)">🎵 JUKEBOX</button>
@@ -643,6 +647,17 @@
   <!-- Start screen -->
   <div id="overlay-start" class="overlay">
     <div class="voxel-menu-bg"></div>
+    <div class="start-trident-watermark" aria-hidden="true">
+      <svg width="64" height="80" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 2L32 28" stroke="#0057B8" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M14 18C14 18 20 10 32 10C44 10 50 18 50 18" stroke="#0057B8" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M6 34C6 34 16 22 32 22C48 22 58 34 58 34" stroke="#0057B8" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M32 26L32 56" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M18 46C18 46 24 56 32 56C40 56 46 46 46 46" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M22 60L32 78L42 60" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 40C10 40 18 54 32 54C46 54 54 40 54 40" stroke="#FFD700" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+    </div>
     <div class="voxel-menu-content">
       <header class="voxel-hero">
         <div class="voxel-badge">HYBRID VOXEL WARFARE · 20 STAGES</div>
@@ -659,40 +674,40 @@
         <button class="voxel-btn" id="btn-leaderboard-start">🏆 LEADERBOARD</button>
         <button class="voxel-btn" id="btn-credits-start">📜 CREDITS</button>
       </nav>
-      <p id="quick-start-hint" style="display:none;color:#777;font-size:11px;margin:4px 0 12px;text-align:center">First time? Quick Start jumps straight in. <a href="#" id="show-advanced-start" style="color:#88ccff">Show loadout options</a></p>
+      <p id="quick-start-hint" style="display:none;color:#aaa;font-size:13px;margin:6px 0 14px;text-align:center">First time? Quick Start jumps straight in. <a href="#" id="show-advanced-start" style="color:#88ccff">Show loadout options</a></p>
 
       <!-- Loadout grid (advanced) -->
       <div id="advanced-start-section" class="start-grid">
 
         <section class="start-section">
           <div class="start-section-title">🎖 ROLE</div>
-          <div id="start-role-select" class="start-section-row">
-            <button class="btn pill" id="start-role-brigade" style="border-color:#0af;color:#0af">🎖 ASSAULT BRIGADE</button>
-            <button class="btn pill" id="start-role-lonewolf" style="border-color:#fa0;color:#fa0">🐺 LONE WOLF</button>
+          <div id="start-role-select" class="start-selector-group">
+            <button class="selector-btn active" id="start-role-brigade" style="border-color:#0af;color:#0af"><span class="preview-icon">🎖</span> ASSAULT BRIGADE</button>
+            <button class="selector-btn" id="start-role-lonewolf" style="border-color:#888;color:#888"><span class="preview-icon">🐺</span> LONE WOLF</button>
           </div>
           <p id="start-role-desc" class="start-section-desc">Brigade: fight alongside your squad. Lone Wolf: observe &amp; engage freestyle.</p>
         </section>
 
         <section class="start-section">
           <div class="start-section-title">🚁 DRONE</div>
-          <div id="start-drone-row" class="start-section-row">
-            <button class="btn pill start-drone-btn" data-drone="" style="border-color:#888;color:#888">🚶 None</button>
-            <button class="btn pill start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444">🎯 FPV Kamikaze</button>
-            <button class="btn pill start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff">👁 Surveillance + LMG</button>
-            <button class="btn pill start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00">💣 Bomber</button>
+          <div id="start-drone-row" class="start-selector-group">
+            <button class="selector-btn start-drone-btn" data-drone="" style="border-color:#888;color:#888"><span class="preview-icon">🚶</span> None</button>
+            <button class="selector-btn start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444"><span class="preview-icon">🎯</span> FPV Kamikaze</button>
+            <button class="selector-btn start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff"><span class="preview-icon">👁</span> Surveillance + LMG</button>
+            <button class="selector-btn start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00"><span class="preview-icon">💣</span> Bomber</button>
           </div>
           <p id="start-drone-desc" class="start-section-desc">No drone — fight on foot (default).</p>
         </section>
 
         <section class="start-section start-section-wide">
           <div class="start-section-title">🪖 SQUAD FORMATION</div>
-          <div id="formation-select" class="start-section-row">
-            <button class="btn pill formation-btn active-formation" data-formation="wedge" style="border-color:#0af;color:#0af">▲ WEDGE</button>
-            <button class="btn pill formation-btn" data-formation="line" style="border-color:#888;color:#888">━ LINE</button>
-            <button class="btn pill formation-btn" data-formation="diamond" style="border-color:#888;color:#888">◆ DIAMOND</button>
-            <button class="btn pill formation-btn" data-formation="column" style="border-color:#888;color:#888">| COLUMN</button>
-            <button class="btn pill formation-btn" data-formation="echelon_l" style="border-color:#888;color:#888">◁ ECHELON-L</button>
-            <button class="btn pill formation-btn" data-formation="echelon_r" style="border-color:#888;color:#888">▷ ECHELON-R</button>
+          <div id="formation-select" class="start-selector-group">
+            <button class="selector-btn formation-btn active" data-formation="wedge" style="border-color:#0af;color:#0af"><span class="preview-icon">▲</span> WEDGE</button>
+            <button class="selector-btn formation-btn" data-formation="line" style="border-color:#888;color:#888"><span class="preview-icon">━</span> LINE</button>
+            <button class="selector-btn formation-btn" data-formation="diamond" style="border-color:#888;color:#888"><span class="preview-icon">◆</span> DIAMOND</button>
+            <button class="selector-btn formation-btn" data-formation="column" style="border-color:#888;color:#888"><span class="preview-icon">|</span> COLUMN</button>
+            <button class="selector-btn formation-btn" data-formation="echelon_l" style="border-color:#888;color:#888"><span class="preview-icon">◁</span> ECHELON-L</button>
+            <button class="selector-btn formation-btn" data-formation="echelon_r" style="border-color:#888;color:#888"><span class="preview-icon">▷</span> ECHELON-R</button>
           </div>
           <p id="formation-desc" class="start-section-desc">Wedge: V-shape assault — pointman leads, squad fans out behind. Enemy picks formation randomly.</p>
         </section>
@@ -722,60 +737,66 @@
             <button class="btn pill map-btn" data-stage="19" style="border-color:#ff5544;color:#ff5544">19 ☭ SIEGE OF MOSCOW</button>
           </div>
           <p id="map-desc" class="start-section-desc">Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
-          <button id="launch-selected-map" class="btn pill" style="margin-top:8px;border-color:#0af;color:#0af;font-weight:700;letter-spacing:0.5px">▶ LAUNCH SELECTED MAP</button>
-          <p class="start-section-desc" style="opacity:0.6;font-size:10px;margin-top:4px">All 20 maps unlocked for testing — pick any map and launch directly.</p>
+          <button id="launch-selected-map" class="btn pill" style="margin-top:10px;border-color:#0af;color:#0af;font-weight:700;letter-spacing:0.5px;padding:12px 24px;font-size:15px">▶ LAUNCH SELECTED MAP</button>
+          <p class="start-section-desc" style="opacity:0.7;font-size:12px;margin-top:6px">All 20 maps unlocked for testing — pick any map and launch directly.</p>
         </section>
 
         <section class="start-section start-section-wide">
           <div class="start-section-title">📋 CUSTOM MISSIONS</div>
-          <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+            <div class="start-mission-card">
+              <div class="mission-icon">✈</div>
               <div style="flex:1">
-                <div style="color:#0af;font-weight:bold;font-size:12px">✈ HOSTOMEL — VDV AIRBORNE ASSAULT</div>
-                <div style="color:#aaa;font-size:11px;margin-top:2px">Feb 24 2022 — Russian VDV Mi-8 helicopters land inside the airport. Hold the perimeter.</div>
+                <div class="mission-title" style="color:#0af">HOSTOMEL — VDV AIRBORNE ASSAULT</div>
+                <div class="mission-desc">Feb 24 2022 — Russian VDV Mi-8 helicopters land inside the airport. Hold the perimeter.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="0" data-formation="diamond" style="border-color:#0af;color:#0af;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="0" data-formation="diamond" style="border-color:#0af;color:#0af">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+            <div class="start-mission-card">
+              <div class="mission-icon">🏛</div>
               <div style="flex:1">
-                <div style="color:#ffcc00;font-weight:bold;font-size:12px">🏛 KYIV — STOP THE COLUMN</div>
-                <div style="color:#aaa;font-size:11px;margin-top:2px">Feb–Apr 2022 — Russian armor pushes down Khreshchatyk. Maidan must not fall.</div>
+                <div class="mission-title" style="color:#ffcc00">KYIV — STOP THE COLUMN</div>
+                <div class="mission-desc">Feb–Apr 2022 — Russian armor pushes down Khreshchatyk. Maidan must not fall.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="12" data-formation="line" style="border-color:#ffcc00;color:#ffcc00;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="12" data-formation="line" style="border-color:#ffcc00;color:#ffcc00">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+            <div class="start-mission-card">
+              <div class="mission-icon">⚙</div>
               <div style="flex:1">
-                <div style="color:#ff6622;font-weight:bold;font-size:12px">⚙ MARIUPOL — LAST STAND</div>
-                <div style="color:#aaa;font-size:11px;margin-top:2px">Azovstal steelworks — no retreat, no surrender. Survive all 7 waves in the inferno.</div>
+                <div class="mission-title" style="color:#ff6622">MARIUPOL — LAST STAND</div>
+                <div class="mission-desc">Azovstal steelworks — no retreat, no surrender. Survive all 7 waves in the inferno.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="4" data-formation="wedge" style="border-color:#ff6622;color:#ff6622;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="4" data-formation="wedge" style="border-color:#ff6622;color:#ff6622">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+            <div class="start-mission-card">
+              <div class="mission-icon">💀</div>
               <div style="flex:1">
-                <div style="color:#88ff88;font-weight:bold;font-size:12px">💀 BAKHMUT — GRINDING DEFENCE</div>
-                <div style="color:#aaa;font-size:11px;margin-top:2px">Total urban destruction. Wagner mercenary assault from all directions. Stay alive.</div>
+                <div class="mission-title" style="color:#88ff88">BAKHMUT — GRINDING DEFENCE</div>
+                <div class="mission-desc">Total urban destruction. Wagner mercenary assault from all directions. Stay alive.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="2" data-formation="echelon_l" style="border-color:#88ff88;color:#88ff88;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="2" data-formation="echelon_l" style="border-color:#88ff88;color:#88ff88">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+            <div class="start-mission-card">
+              <div class="mission-icon">🚛</div>
               <div style="flex:1">
-                <div style="color:#a0c878;font-weight:bold;font-size:12px">🚛 TREELINE — BRADLEY ASSAULT</div>
-                <div style="color:#aaa;font-size:11px;margin-top:2px">47th Mech Bde, Zaporizhzhia axis. Bradley M2A2 IFV breaches Russian treeline defenses: trenches, dugouts, dragon's teeth, bunkers. Shoot down FPV drones. 5-wave assault.</div>
+                <div class="mission-title" style="color:#a0c878">TREELINE — BRADLEY ASSAULT</div>
+                <div class="mission-desc">47th Mech Bde, Zaporizhzhia axis. Bradley M2A2 IFV breaches Russian treeline defenses: trenches, dugouts, dragon's teeth, bunkers. 5-wave assault.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="18" data-formation="line" style="border-color:#a0c878;color:#a0c878;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="18" data-formation="line" style="border-color:#a0c878;color:#a0c878">▶ START</button>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.35);border:1px solid #444;border-radius:6px;padding:8px 12px">
+            <div class="start-mission-card">
+              <div class="mission-icon">☭</div>
               <div style="flex:1">
-                <div style="color:#ff5544;font-weight:bold;font-size:12px">☭ SIEGE OF MOSCOW — STORM THE KREMLIN</div>
-                <div style="color:#aaa;font-size:11px;margin-top:2px">The capital falls. Fight across Red Square, breach the Kremlin walls past St Basil's, raise the flag over the Senate. 10 waves, maximum difficulty.</div>
+                <div class="mission-title" style="color:#ff5544">SIEGE OF MOSCOW — STORM THE KREMLIN</div>
+                <div class="mission-desc">The capital falls. Fight across Red Square, breach the Kremlin walls past St Basil's, raise the flag over the Senate. 10 waves, maximum difficulty.</div>
               </div>
-              <button class="btn pill mission-start-btn" data-stage="19" data-formation="wedge" style="border-color:#ff5544;color:#ff5544;white-space:nowrap;flex-shrink:0">▶ START</button>
+              <button class="btn pill mission-start-btn mission-btn" data-stage="19" data-formation="wedge" style="border-color:#ff5544;color:#ff5544">▶ START</button>
             </div>
 
           </div>
@@ -783,16 +804,26 @@
 
         <section class="start-section start-section-wide">
           <div class="start-section-title">🎮 CHALLENGE MODE</div>
-          <div id="challenge-select" class="start-section-row">
-            <button class="btn pill challenge-btn" data-mode="" style="border-color:#888;color:#888">🎮 Normal</button>
-            <button class="btn pill challenge-btn" data-mode="HARDCORE" style="border-color:#ff4444;color:#ff4444">💀 Hardcore</button>
-            <button class="btn pill challenge-btn" data-mode="SPEEDRUN" style="border-color:#00ccff;color:#00ccff">⏱ Speedrun</button>
-            <button class="btn pill challenge-btn" data-mode="PACIFIST" style="border-color:#88ff88;color:#88ff88">🕊 Pacifist</button>
-            <button class="btn pill challenge-btn" data-mode="ONE_SHOT" style="border-color:#ffcc00;color:#ffcc00">🎱 One Shot</button>
-            <button class="btn pill challenge-btn" data-mode="SNIPER_ONLY" style="border-color:#44ff88;color:#44ff88">🔭 Sniper</button>
-            <button class="btn pill challenge-btn" data-mode="NIGHT_OPS" style="border-color:#6644ff;color:#6644ff">🌙 Night Ops</button>
+          <div id="challenge-select" class="start-selector-group">
+            <button class="selector-btn challenge-btn" data-mode=""><span class="preview-icon">🎮</span> Normal</button>
+            <button class="selector-btn challenge-btn" data-mode="HARDCORE"><span class="preview-icon">💀</span> Hardcore</button>
+            <button class="selector-btn challenge-btn" data-mode="SPEEDRUN"><span class="preview-icon">⏱</span> Speedrun</button>
+            <button class="selector-btn challenge-btn" data-mode="PACIFIST"><span class="preview-icon">🕊</span> Pacifist</button>
+            <button class="selector-btn challenge-btn" data-mode="ONE_SHOT"><span class="preview-icon">🎱</span> One Shot</button>
+            <button class="selector-btn challenge-btn" data-mode="SNIPER_ONLY"><span class="preview-icon">🔭</span> Sniper</button>
+            <button class="selector-btn challenge-btn" data-mode="NIGHT_OPS"><span class="preview-icon">🌙</span> Night Ops</button>
           </div>
           <p id="challenge-desc" class="start-section-desc"></p>
+        </section>
+
+        <section class="start-section start-section-wide">
+          <div id="start-news-section">
+            <div class="news-title">📰 LATEST UPDATES</div>
+            <div class="news-item"><span class="news-badge new">NEW</span> v2.0.4 Kyiv Build — Bradley IFV, FPV drones, improved mobile HUD</div>
+            <div class="news-item"><span class="news-badge">FIX</span> Mobile touch controls now 56px minimum for better accessibility</div>
+            <div class="news-item"><span class="news-badge new">NEW</span> Drone ammo display with real-time counters for all drone types</div>
+            <div class="news-item"><span class="news-badge">FIX</span> Inventory overlay redesigned with tabs, cards, and visual polish</div>
+          </div>
         </section>
 
         <section class="start-section start-section-wide">
@@ -800,10 +831,10 @@
           <div id="start-weapons-grid"></div>
         </section>
 
-        <section class="start-section">
+        <section class="start-section start-section-wide">
           <div class="start-section-title">⚡ CHEATS</div>
           <div id="god-mode-select" class="start-section-row">
-            <button class="btn pill" id="god-mode-btn" style="border-color:#ff0;color:#ff0;text-shadow:0 0 6px #ff0">⚡ GOD MODE</button>
+            <button class="btn pill" id="god-mode-btn" style="border-color:#ff0;color:#ff0;text-shadow:0 0 8px #ff0;font-size:15px;padding:12px 22px;background:rgba(255,255,0,0.08);box-shadow:0 0 12px rgba(255,255,0,0.15)">⚡ GOD MODE</button>
             <button class="btn pill" id="perf-mode-btn" style="border-color:#888;color:#888" title="Disable heavy cosmetic effects for higher FPS (reloads)">⚡ PERFORMANCE: OFF</button>
           </div>
           <p id="god-mode-desc" class="start-section-desc" style="display:none">All weapons · Infinite health · Invisible to enemies</p>
@@ -825,34 +856,34 @@
         <div class="voxel-panel-title">⚙ SETTINGS <button class="voxel-panel-close" onclick="document.getElementById('start-settings-panel').style.display='none'">✕</button></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
-            <h4 style="font-size:12px;color:#aaa;letter-spacing:2px;margin-bottom:8px">GRAPHICS</h4>
+            <h4 style="font-size:14px;color:#ddd;letter-spacing:2px;margin-bottom:10px">GRAPHICS</h4>
             <button class="btn pill" id="perf-mode-btn" style="border-color:#888;color:#888;width:100%;margin:4px 0" title="Disable heavy cosmetic effects for higher FPS (reloads)">⚡ PERFORMANCE: OFF</button>
           </div>
           <div>
-            <h4 style="font-size:12px;color:#aaa;letter-spacing:2px;margin-bottom:8px">AUDIO</h4>
-            <div style="color:#888;font-size:11px;margin-bottom:4px">Music Volume</div>
+            <h4 style="font-size:14px;color:#ddd;letter-spacing:2px;margin-bottom:10px">AUDIO</h4>
+            <div style="color:#ccc;font-size:13px;margin-bottom:6px">Music Volume</div>
             <input type="range" min="0" max="100" value="50" style="width:100%;accent-color:#ff4444" id="start-music-vol">
           </div>
         </div>
-        <div style="margin-top:12px;color:#666;font-size:11px;text-align:center">More settings available in-game via the pause menu.</div>
+        <div style="margin-top:14px;color:#888;font-size:13px;text-align:center">More settings available in-game via the pause menu.</div>
       </div>
 
       <!-- Leaderboard panel -->
       <div id="start-leaderboard-panel" class="voxel-panel" style="display:none">
         <div class="voxel-panel-title">🏆 LEADERBOARD <button class="voxel-panel-close" onclick="document.getElementById('start-leaderboard-panel').style.display='none'">✕</button></div>
-        <div id="start-leaderboard-content" style="font-size:12px;line-height:1.8;color:#ccc">
-          <div style="text-align:center;color:#888;padding:12px">No scores yet. Play a mission to set a record!</div>
+        <div id="start-leaderboard-content" style="font-size:14px;line-height:1.8;color:#ddd">
+          <div style="text-align:center;color:#aaa;padding:14px">No scores yet. Play a mission to set a record!</div>
         </div>
       </div>
 
       <!-- Credits panel -->
       <div id="start-credits-panel" class="voxel-panel" style="display:none">
         <div class="voxel-panel-title">📜 CREDITS <button class="voxel-panel-close" onclick="document.getElementById('start-credits-panel').style.display='none'">✕</button></div>
-        <div style="font-size:12px;line-height:1.8;color:#ccc">
+        <div style="font-size:14px;line-height:1.8;color:#ddd">
           <p><strong style="color:#ffd700">OccupantKiller</strong> — Hybrid Voxel Warfare</p>
-          <p style="color:#888">Built with Three.js, passion, and resistance.</p>
-          <p style="color:#888">🇺🇦 Slava Ukraini · Heroyam Slava</p>
-          <p style="color:#666;font-size:11px;margin-top:12px">All music, code, and assets are original or licensed.</p>
+          <p style="color:#bbb">Built with Three.js, passion, and resistance.</p>
+          <p style="color:#bbb">🇺🇦 Slava Ukraini · Heroyam Slava</p>
+          <p style="color:#888;font-size:13px;margin-top:14px">All music, code, and assets are original or licensed.</p>
         </div>
       </div>
 
@@ -864,7 +895,7 @@
 
     <div id="controls-hint">
       WASD · MOVE &nbsp;|&nbsp; MOUSE · AIM &nbsp;|&nbsp; LMB · FIRE &nbsp;|&nbsp; R · RELOAD &nbsp;|&nbsp; 1-0 · WEAPON &nbsp;|&nbsp; SHIFT · SPRINT &nbsp;|&nbsp; SPACE · JUMP<br/>
-      V · CAMERA MODE &nbsp;|&nbsp; B · BUILD &nbsp;|&nbsp; F · DRONE &nbsp;|&nbsp; G · VEHICLE &nbsp;|&nbsp; Q/E · SCROLL WEAPONS &nbsp;|&nbsp; TAB · INVENTORY &nbsp;|&nbsp; ESC · PAUSE
+      G · GOD MODE &nbsp;|&nbsp; V · CAMERA MODE &nbsp;|&nbsp; B · BUILD &nbsp;|&nbsp; F · DRONE &nbsp;|&nbsp; Shift+G · VEHICLE &nbsp;|&nbsp; Q/E · SCROLL WEAPONS &nbsp;|&nbsp; TAB · INVENTORY &nbsp;|&nbsp; ESC · PAUSE
     </div>
   </div>
 
@@ -919,13 +950,17 @@
       <span style="color:#99ddff">LINK <span id="drone-distance-display">0</span>m</span>
       <span style="color:#99ddff">SIG <span id="drone-link-quality">GOOD</span></span>
       <span style="color:#66ddff"><span id="drone-remote-status">REMOTE STABLE</span></span>
-      <span style="color:#ffaa00">🔫 <span id="drone-ammo-display">0/0</span></span>
-      <span id="drone-ammo-bar-outer" style="display:none;width:60px;height:6px;background:#333;border-radius:3px;overflow:hidden;vertical-align:middle;margin-left:4px">
-        <span id="drone-ammo-bar-inner" style="display:block;height:100%;width:100%;background:#ffaa00"></span>
+      <span id="drone-ammo-display-wrap" style="display:none">
+        <span id="drone-ammo-label" style="color:#ffaa00">AMMO</span>
+        <span id="drone-ammo-display" style="color:#ffaa00;font-weight:bold">0/0</span>
+        <span id="drone-ammo-bar-outer" style="display:none;width:60px;height:6px;background:#333;border-radius:3px;overflow:hidden;vertical-align:middle;margin-left:4px">
+          <span id="drone-ammo-bar-inner" style="display:block;height:100%;width:100%;background:#ffaa00"></span>
+        </span>
       </span>
       <span id="drone-payload-display" style="color:#ffaa00;display:none">\uD83D\uDCA3 PAYLOAD READY</span>
       <span id="drone-nest-hint" style="color:#ff8888;display:none">\u25B6 Nest nearby! Dive to destroy!</span>
     </div>
+    <div id="drone-ammo-large" style="margin-top:8px;font-size:18px;font-weight:bold;letter-spacing:2px;text-shadow:0 0 10px currentColor;display:none"></div>
   </div>
 
   <!-- Tank Interior View Overlay (periscope reticle) -->
@@ -953,7 +988,7 @@
       <span class="tank-hud-cannon"><kbd>LMB</kbd> Cannon</span>
       <span class="tank-hud-mg"><kbd>RMB</kbd> Machine Gun</span>
       <span><kbd>T</kbd> Toggle View</span>
-      <span><kbd>G</kbd> Exit</span>
+      <span><kbd>Shift+G</kbd> Exit</span>
     </div>
     <div class="tank-hud-stats">
       <span class="tank-hud-cannon">Cannon: <span id="tank-cannon-ammo">20</span>/<span id="tank-cannon-max">20</span></span>
@@ -1036,12 +1071,12 @@
 
   <!-- Inventory / Pause overlay (unified) -->
   <div id="inventory-overlay" class="overlay" style="display:none;justify-content:flex-start;overflow-y:auto;padding:8px 0">
-    <div class="overlay-content" style="max-width:700px;max-height:90vh;overflow-y:auto">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h1 style="margin:0;">⏸ PAUSED / INVENTORY</h1>
+    <div class="overlay-content" style="max-width:760px;max-height:92vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h1 style="margin:0">⏸ PAUSED / INVENTORY</h1>
         <div>
-          <button class="btn" id="inv-resume-btn" onclick="document.getElementById('btn-pause').dispatchEvent(new Event('touchstart'))" style="font-size:12px;padding:4px 12px;margin-right:8px;">▶ RESUME</button>
-          <button class="btn" id="inv-quit-btn" onclick="if(typeof quitToMenu === 'function') quitToMenu();" style="font-size:12px;padding:4px 12px;border-color:#888;color:#888;">⏹ QUIT</button>
+          <button class="btn" id="inv-resume-btn" onclick="document.getElementById('btn-pause').dispatchEvent(new Event('touchstart'))" style="font-size:13px;padding:6px 14px;margin-right:8px;border-color:#44aaff;color:#44aaff">▶ RESUME</button>
+          <button class="btn" id="inv-quit-btn" onclick="if(typeof quitToMenu === 'function') quitToMenu();" style="font-size:13px;padding:6px 14px;border-color:#888;color:#888">⏹ QUIT</button>
         </div>
       </div>
 
@@ -1054,7 +1089,7 @@
         <div id="inv-pol-display" style="color:#8247e5;font-size:13px;display:none">💎 0.00 POL</div>
       </div>
 
-      <!-- Tab Navigation (desktop hotkeys: 1=Inventory 2=Shop 3=Sell 4=Premium 5=Assets) -->
+      <!-- Tab Navigation -->
       <div id="inv-tabs" style="display:flex;gap:4px;margin:8px 0">
         <button class="btn inv-tab active" data-tab="inventory" data-hotkey="Digit1" style="font-size:11px;padding:4px 10px;border-color:#fff;color:#fff;flex:1">📦 [1] Inventory</button>
         <button class="btn inv-tab" data-tab="shop" data-hotkey="Digit2" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">🛒 [2] Shop</button>
@@ -1064,96 +1099,113 @@
         <button class="btn inv-tab" data-tab="crypto" data-hotkey="Digit6" style="font-size:11px;padding:4px 10px;border-color:#ffd500;color:#ffd500;flex:1">🔗 [6] Crypto</button>
       </div>
 
-      <!-- ── TAB: Inventory ──────────────────────────────── -->
+      <!-- TAB: Inventory -->
       <div id="inv-panel-inventory" class="inv-panel">
-        <!-- Role Select -->
-        <div id="pause-role-select" style="margin:8px 0">
-          <span style="color:#aaa;font-size:13px">ROLE:</span>
-          <button class="btn" id="role-brigade-btn" style="font-size:12px;padding:4px 12px;border-color:#0af;color:#0af;display:inline-block;margin:0 4px">🎖 ASSAULT BRIGADE</button>
-          <button class="btn" id="role-lonewolf-btn" style="font-size:12px;padding:4px 12px;border-color:#fa0;color:#fa0;display:inline-block;margin:0 4px">🐺 LONE WOLF</button>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🎖</span> ROLE</div>
+          <div id="pause-role-select" style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn pill" id="role-brigade-btn" style="font-size:12px;padding:6px 14px;border-color:#0af;color:#0af">🎖 ASSAULT BRIGADE</button>
+            <button class="btn pill" id="role-lonewolf-btn" style="font-size:12px;padding:6px 14px;border-color:#fa0;color:#fa0">🐺 LONE WOLF</button>
+          </div>
         </div>
 
-        <!-- Materials / Resources Section -->
-        <div id="materials-section" style="background:rgba(0,0,0,0.4);border:1px solid #555;border-radius:6px;padding:10px;margin:10px 0">
-          <h3 style="margin:0 0 8px 0;color:#ffcc00;font-size:14px">📦 COLLECTED MATERIALS</h3>
-          <div id="materials-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:13px"></div>
-          <div id="currency-display" style="margin-top:8px;font-size:14px;color:#ffd700;text-align:center"></div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">📦</span> COLLECTED MATERIALS</div>
+          <div id="materials-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:14px"></div>
+          <div id="currency-display" style="margin-top:10px;font-size:15px;color:#ffd700;text-align:center;font-weight:bold"></div>
         </div>
 
-        <!-- Weapon Switching Section -->
-        <h3 style="margin:10px 0 6px 0;color:#ff8844;font-size:14px">🔫 WEAPONS (click to equip)</h3>
-        <div id="inventory-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0;"></div>
-        <div id="pause-weapons-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px auto;max-width:500px;font-size:11px"></div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🔫</span> WEAPONS (click to equip)</div>
+          <div id="inventory-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0"></div>
+          <div id="pause-weapons-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px auto;max-width:500px;font-size:12px"></div>
+        </div>
 
-        <!-- Player Stats -->
-        <div id="player-stats" style="text-align:left;font-size:14px;margin:10px 0;background:rgba(0,0,0,0.3);padding:8px;border-radius:4px"></div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">📊</span> PLAYER STATS</div>
+          <div id="player-stats" style="text-align:left;font-size:14px;background:rgba(0,0,0,0.2);padding:10px;border-radius:6px;line-height:1.8"></div>
+        </div>
       </div>
 
-      <!-- ── TAB: Shop ───────────────────────────────────── -->
+      <!-- TAB: Shop -->
       <div id="inv-panel-shop" class="inv-panel" style="display:none">
-        <h3 style="color:#ffd700;font-size:14px;margin:6px 0">🛒 ITEM SHOP</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Buy items with OKC or POL. 10% of POL purchases go to 🇺🇦 Ukraine defense fund.</p>
-        <div id="shop-items-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
-        <h3 style="color:#ffd700;font-size:14px;margin:12px 0 6px 0">💱 CURRENCY EXCHANGE</h3>
-        <div style="display:flex;gap:8px;margin:6px 0">
-          <button class="btn" id="convert-okc-gold-btn" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">100 OKC → 1000 Gold</button>
-          <button class="btn" id="convert-gold-okc-btn" style="font-size:11px;padding:4px 10px;border-color:#ffd700;color:#ffd700;flex:1">1000 Gold → 100 OKC</button>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🛒</span> ITEM SHOP</div>
+          <p style="color:#8899bb;font-size:14px;margin-bottom:10px">Buy items with OKC or POL. 10% of POL purchases go to 🇺🇦 Ukraine defense fund.</p>
+          <div id="shop-items-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+        </div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">💱</span> CURRENCY EXCHANGE</div>
+          <div style="display:flex;gap:8px;margin:6px 0">
+            <button class="btn" id="convert-okc-gold-btn" style="font-size:12px;padding:6px 12px;border-color:#ffd700;color:#ffd700;flex:1">100 OKC → 1000 Gold</button>
+            <button class="btn" id="convert-gold-okc-btn" style="font-size:12px;padding:6px 12px;border-color:#ffd700;color:#ffd700;flex:1">1000 Gold → 100 OKC</button>
+          </div>
         </div>
       </div>
 
-      <!-- ── TAB: Sell ───────────────────────────────────── -->
+      <!-- TAB: Sell -->
       <div id="inv-panel-sell" class="inv-panel" style="display:none">
-        <h3 style="color:#ff8844;font-size:14px;margin:6px 0">💰 SELL WEAPONS &amp; AMMO</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Sell surplus weapons for OKC or POL crypto. Starter weapons cannot be sold.</p>
-        <div id="sell-weapons-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
-        <h3 style="color:#ff8844;font-size:14px;margin:12px 0 6px 0">📦 SELL AMMO</h3>
-        <div id="sell-ammo-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
-      </div>
-
-      <!-- ── TAB: Premium ────────────────────────────────── -->
-      <div id="inv-panel-premium" class="inv-panel" style="display:none">
-        <h3 style="color:#8247e5;font-size:14px;margin:6px 0">⭐ PREMIUM SUBSCRIPTIONS</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Boost your OKC earnings, unlock exclusive content, and get shop discounts! 10% of POL goes to 🇺🇦 Ukraine.</p>
-        <div id="premium-status" style="background:rgba(130,71,229,0.1);border:1px solid #8247e5;border-radius:6px;padding:8px;margin:6px 0;font-size:12px;color:#8247e5;display:none"></div>
-        <div id="premium-tiers-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0"></div>
-      </div>
-
-      <!-- ── TAB: Assets ─────────────────────────────────── -->
-      <div id="inv-panel-assets" class="inv-panel" style="display:none">
-        <h3 style="color:#00ffcc;font-size:14px;margin:6px 0">🎨 GAME ASSETS</h3>
-        <p style="color:#888;font-size:11px;margin-bottom:8px">Exclusive skins, emotes, titles &amp; trails. Buy with OKC or POL. 10% of POL goes to 🇺🇦 Ukraine.</p>
-        <div id="assets-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
-      </div>
-
-      <!-- ── TAB: Crypto / Blockchain ─────────────────────── -->
-      <div id="inv-panel-crypto" class="inv-panel" style="display:none">
-        <h3 style="color:#ffd500;font-size:14px;margin:6px 0">🔗 BLOCKCHAIN &amp; NFT GUIDE</h3>
-        <div style="background:rgba(0,0,0,0.4);border:1px solid #ffd500;border-radius:6px;padding:10px;margin:8px 0;font-size:12px;line-height:1.6;color:#ddd">
-          <div style="color:#ffd500;font-weight:bold;margin-bottom:4px">🪙 What is OKC?</div>
-          <div style="margin-bottom:10px">OKC (Occupant Killer Coin) is the in-game currency you earn by destroying blocks, killing enemies, and completing waves. Every bullet that shatters terrain earns you <b>+1 OKC</b>. Save up OKC to buy weapons, skins, and premium boosts — or convert it to on-chain tokens later.</div>
-
-          <div style="color:#8247e5;font-weight:bold;margin-bottom:4px">💎 What is POL?</div>
-          <div style="margin-bottom:10px">POL (Polygon) is the real blockchain currency used for NFT minting and premium purchases. When you connect your MetaMask wallet, you can convert OKC to POL at a fixed rate, or spend POL directly on exclusive Veteran NFTs and weapon skins.</div>
-
-          <div style="color:#00ffcc;font-weight:bold;margin-bottom:4px">🎨 What are NFTs here?</div>
-          <div style="margin-bottom:10px">Veteran NFTs are soulbound tokens that prove your combat record — kills, prestige level, and medals — forever on the Polygon blockchain. Weapons NFTs let you own unique gun skins that persist across devices. 10% of every POL purchase goes to the <b>🇺🇦 Ukrainian defense wallet</b>.</div>
-
-          <div style="color:#ff8844;font-weight:bold;margin-bottom:4px">🦊 How do I connect?</div>
-          <div style="margin-bottom:10px">Click <b>Connect Wallet</b> above. You need the MetaMask browser extension (or any WalletConnect-compatible app). Make sure you're on the <b>Polygon Mainnet</b>. No wallet? No problem — you can still earn OKC and play everything for free.</div>
-
-          <div style="color:#0af;font-weight:bold;margin-bottom:4px">🔄 Conversion Flow</div>
-          <div style="margin-bottom:4px">1. Earn OKC in-game (bullets → blocks → OKC)<br>2. Connect wallet on Polygon<br>3. Convert OKC → POL (or OKC → Gold)<br>4. Mint Veteran NFT or buy Weapon Skin NFT<br>5. Trade on OpenSea or keep forever</div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">💰</span> SELL WEAPONS &amp; AMMO</div>
+          <p style="color:#8899bb;font-size:14px;margin-bottom:10px">Sell surplus weapons for OKC or POL crypto. Starter weapons cannot be sold.</p>
+          <div id="sell-weapons-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#888;margin-top:4px">Contracts: OKC_Token · OccupantVeteranNFT · OccupantWeaponsNFT · OccupantMarket</div>
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">📦</span> SELL AMMO</div>
+          <div id="sell-ammo-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+        </div>
       </div>
 
-      <!-- ── Ukraine Donation Info ────────────────────────── -->
+      <!-- TAB: Premium -->
+      <div id="inv-panel-premium" class="inv-panel" style="display:none">
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">⭐</span> PREMIUM SUBSCRIPTIONS</div>
+          <p style="color:#8899bb;font-size:14px;margin-bottom:10px">Boost your OKC earnings, unlock exclusive content, and get shop discounts! 10% of POL goes to 🇺🇦 Ukraine.</p>
+          <div id="premium-status" style="background:rgba(130,71,229,0.1);border:1px solid #8247e5;border-radius:6px;padding:8px;margin:6px 0;font-size:12px;color:#8247e5;display:none"></div>
+          <div id="premium-tiers-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Assets -->
+      <div id="inv-panel-assets" class="inv-panel" style="display:none">
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🎨</span> GAME ASSETS</div>
+          <p style="color:#8899bb;font-size:14px;margin-bottom:10px">Exclusive skins, emotes, titles & trails. Buy with OKC or POL. 10% of POL goes to 🇺🇦 Ukraine.</p>
+          <div id="assets-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Crypto / Blockchain -->
+      <div id="inv-panel-crypto" class="inv-panel" style="display:none">
+        <div class="inv-section">
+          <div class="inv-section-title"><span class="icon">🔗</span> BLOCKCHAIN &amp; NFT GUIDE</div>
+          <div style="background:rgba(0,0,0,0.3);border:1px solid rgba(68,136,255,0.2);border-radius:8px;padding:14px;margin:8px 0;font-size:13px;line-height:1.7;color:#ccd8ff">
+            <div style="color:#ffd500;font-weight:bold;margin-bottom:6px">🪙 What is OKC?</div>
+            <div style="margin-bottom:12px">OKC (Occupant Killer Coin) is the in-game currency you earn by destroying blocks, killing enemies, and completing waves. Every bullet that shatters terrain earns you <b>+1 OKC</b>. Save up OKC to buy weapons, skins, and premium boosts — or convert it to on-chain tokens later.</div>
+
+            <div style="color:#8247e5;font-weight:bold;margin-bottom:6px">💎 What is POL?</div>
+            <div style="margin-bottom:12px">POL (Polygon) is the real blockchain currency used for NFT minting and premium purchases. When you connect your MetaMask wallet, you can convert OKC to POL at a fixed rate, or spend POL directly on exclusive Veteran NFTs and weapon skins.</div>
+
+            <div style="color:#00ffcc;font-weight:bold;margin-bottom:6px">🎨 What are NFTs here?</div>
+            <div style="margin-bottom:12px">Veteran NFTs are soulbound tokens that prove your combat record — kills, prestige level, and medals — forever on the Polygon blockchain. Weapons NFTs let you own unique gun skins that persist across devices. 10% of every POL purchase goes to the <b>🇺🇦 Ukrainian defense wallet</b>.</div>
+
+            <div style="color:#ff8844;font-weight:bold;margin-bottom:6px">🦊 How do I connect?</div>
+            <div style="margin-bottom:12px">Click <b>Connect Wallet</b> above. You need the MetaMask browser extension (or any WalletConnect-compatible app). Make sure you're on the <b>Polygon Mainnet</b>. No wallet? No problem — you can still earn OKC and play everything for free.</div>
+
+            <div style="color:#0af;font-weight:bold;margin-bottom:6px">🔄 Conversion Flow</div>
+            <div style="margin-bottom:4px">1. Earn OKC in-game (bullets → blocks → OKC)<br>2. Connect wallet on Polygon<br>3. Convert OKC → POL (or OKC → Gold)<br>4. Mint Veteran NFT or buy Weapon Skin NFT<br>5. Trade on OpenSea or keep forever</div>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:14px;color:#666;margin-top:4px">Contracts: OKC_Token · OccupantVeteranNFT · OccupantWeaponsNFT · OccupantMarket</div>
+      </div>
+
+      <!-- Ukraine Donation Info -->
       <div id="ukraine-donation-banner" style="background:linear-gradient(90deg,rgba(0,87,183,0.2),rgba(255,215,0,0.2));border:1px solid #ffd700;border-radius:6px;padding:8px;margin:10px 0;text-align:center">
-        <div style="font-size:13px;color:#ffd700">🇺🇦 10% of all POL proceeds go to Ukrainian defense</div>
+        <div style="font-size:14px;color:#ffd700">🇺🇦 10% of all POL proceeds go to Ukrainian defense</div>
         <div style="font-size:10px;color:#aaa;margin-top:2px">Wallet: 0x165C…e14</div>
       </div>
 
-      <!-- Pause Controls — sticky footer so resume/quit are always reachable on mobile -->
+      <!-- Pause Controls — sticky footer -->
       <div id="inv-sticky-footer" style="position:sticky;bottom:0;background:linear-gradient(0deg,rgba(10,10,10,0.97) 60%,transparent);padding:8px 0 4px;margin-top:12px;z-index:5;text-align:center">
         <button class="btn" id="stealth-toggle-btn" style="border-color:#0f6;color:#0f6;font-size:11px;padding:4px 10px">👻 [S] STEALTH</button>
         <button class="btn" id="pause-god-mode-btn" style="font-size:11px;padding:4px 10px;border-color:#ff0;color:#ff0;display:inline-block;margin:0 4px;text-shadow:0 0 8px #ff0">⚡ [G] GOD</button>
@@ -1245,6 +1297,9 @@
     <!-- Inventory/Pause button -->
     <button id="btn-pause" class="mobile-btn pause-btn">⏸</button>
 
+    <!-- Mobile floating God Mode button -->
+    <button id="btn-god-mobile" class="mobile-btn" style="position:absolute;bottom:80px;left:12px;width:56px;height:56px;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,0,0.8);color:#ff0;border-radius:50%;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0;font-weight:bold;box-shadow:0 0 12px rgba(255,255,0,0.2);transition:all 0.2s">⚡ GOD</button>
+
     <!-- Look zone for tap-to-shoot (covers right half of screen) -->
     <div id="mobile-look-zone" class="mobile-ctrl">
       <div class="mobile-look-label">LOOK / TAP TO SHOOT</div>
@@ -1262,7 +1317,7 @@
 </div>
 
 <!-- Three.js r137 (local copy, patched for CVE XSS < 0.137.0) -->
-<script src="three.min.js?v=20260429b"></script>
+<script src="three.min.js?v=20260702b"></script>
 
 <!-- ethers v6 (CDN — used by blockchain.js for contract calls).
      async + onerror so a slow/blocked CDN can't stall game boot.
@@ -1270,7 +1325,7 @@
      so missing ethers only breaks web3 features, not gameplay. -->
 
 <!-- Core modules (order matters: dependencies first) -->
-<script src="voxel-world.js?v=20260429b"></script>
+<script src="voxel-world.js?v=20260702b"></script>
 <script>
   // Bridge: export voxel-world block functions so city-buildings.js templates can use them
   if (typeof window !== 'undefined' && window.VoxelWorld) {
@@ -1278,23 +1333,23 @@
     window.getTerrainHeight = window.VoxelWorld.getTerrainHeight;
   }
 </script>
-<script src="city-buildings.js?v=20260429b"></script>
-<script src="camera-system.js?v=20260429b"></script>
-<script src="time-system.js?v=20260429b"></script>
-<script src="economy.js?v=20260429b"></script>
-<script src="api-client.js?v=20260429b"></script>
-<script src="blockchain.js?v=20260429b"></script>
-<script src="marketplace.js?v=20260429b"></script>
-<script src="skills.js?v=20260429b"></script>
-<script src="ranks.js?v=20260429b"></script>
-<script src="building.js?v=20260429b"></script>
-<script src="npc-system.js?v=20260429b"></script>
-<script src="drone-system.js?v=20260429b"></script>
-<script src="vehicles.js?v=20260429b"></script>
-<script src="automation.js?v=20260429b"></script>
-<script src="missions.js?v=20260429b"></script>
-<script src="pickups.js?v=20260429b"></script>
-<script src="hud.js?v=20260429b"></script>
+<script src="city-buildings.js?v=20260702b"></script>
+<script src="camera-system.js?v=20260702b"></script>
+<script src="time-system.js?v=20260702b"></script>
+<script src="economy.js?v=20260702b"></script>
+<script src="api-client.js?v=20260702b"></script>
+<script src="blockchain.js?v=20260702b"></script>
+<script src="marketplace.js?v=20260702b"></script>
+<script src="skills.js?v=20260702b"></script>
+<script src="ranks.js?v=20260702b"></script>
+<script src="building.js?v=20260702b"></script>
+<script src="npc-system.js?v=20260702b"></script>
+<script src="drone-system.js?v=20260702b"></script>
+<script src="vehicles.js?v=20260702b"></script>
+<script src="automation.js?v=20260702b"></script>
+<script src="missions.js?v=20260702b"></script>
+<script src="pickups.js?v=20260702b"></script>
+<script src="hud.js?v=20260702b"></script>
 <script src="hud-extras.js?v=20260615a"></script>
 <script src="hud-extras2.js?v=20260615b"></script>
 <script src="hud-extras3.js?v=20260615c"></script>
@@ -1412,52 +1467,52 @@
 <script src="building-collapse.js?v=20260616d"></script>
 <script src="grenade-arc-preview.js?v=20260616d"></script>
     <script src="dynamic-crosshair.js?v=20260616d"></script>
-<script src="weapon-details.js?v=20260429b"></script>
-  <script src="weapons-data.js?v=20260429b"></script>
-<script src="weapons.js?v=20260429b"></script>
-<script src="enemies.js?v=20260429b"></script>
-<script src="convoy-system.js?v=20260429b"></script>
-<script src="audio-system.js?v=20260429b"></script>
-<script src="jukebox.js?v=20260429b"></script>
-<script src="birds.js?v=20260429b"></script>
-<script src="premium.js?v=20260429b"></script>
-<script src="lottery.js?v=20260429b"></script>
-<script src="mortar.js?v=20260429b"></script>
-<script src="bradley.js?v=20260429b"></script>
-<script src="gyro.js?v=20260429b"></script>
-<script src="weather-system.js?v=20260429b"></script>
-<script src="ml-system.js?v=20260429b"></script>
-<script src="npc-ml.js?v=20260429b"></script>
-<script src="tracers.js?v=20260429b"></script>
-<script src="stage-vfx.js?v=20260429b"></script>
-<script src="flags.js?v=20260429b"></script>
-<script src="environment.js?v=20260429b"></script>
+<script src="weapon-details.js?v=20260702b"></script>
+  <script src="weapons-data.js?v=20260702b"></script>
+<script src="weapons.js?v=20260702b"></script>
+<script src="enemies.js?v=20260702b"></script>
+<script src="convoy-system.js?v=20260702b"></script>
+<script src="audio-system.js?v=20260702b"></script>
+<script src="jukebox.js?v=20260702b"></script>
+<script src="birds.js?v=20260702b"></script>
+<script src="premium.js?v=20260702b"></script>
+<script src="lottery.js?v=20260702b"></script>
+<script src="mortar.js?v=20260702b"></script>
+<script src="bradley.js?v=20260702b"></script>
+<script src="gyro.js?v=20260702b"></script>
+<script src="weather-system.js?v=20260702b"></script>
+<script src="ml-system.js?v=20260702b"></script>
+<script src="npc-ml.js?v=20260702b"></script>
+<script src="tracers.js?v=20260702b"></script>
+<script src="stage-vfx.js?v=20260702b"></script>
+<script src="flags.js?v=20260702b"></script>
+<script src="environment.js?v=20260702b"></script>
 
 <!-- New feature modules (59 features) -->
-<script src="combat-extras.js?v=20260429b"></script>
-<script src="traversal.js?v=20260429b"></script>
-<script src="enemy-types.js?v=20260429b"></script>
-<script src="world-features.js?v=20260429b"></script>
-<script src="perks.js?v=20260429b"></script>
-<script src="mission-types.js?v=20260429b"></script>
-<script src="feedback.js?v=20260429b"></script>
-<script src="progression.js?v=20260429b"></script>
-<script src="refinery-strike.js?v=20260429b"></script>
-<script src="enemy-artillery.js?v=20260429b"></script>
+<script src="combat-extras.js?v=20260702b"></script>
+<script src="traversal.js?v=20260702b"></script>
+<script src="enemy-types.js?v=20260702b"></script>
+<script src="world-features.js?v=20260702b"></script>
+<script src="perks.js?v=20260702b"></script>
+<script src="mission-types.js?v=20260702b"></script>
+<script src="feedback.js?v=20260702b"></script>
+<script src="progression.js?v=20260702b"></script>
+<script src="refinery-strike.js?v=20260702b"></script>
+<script src="enemy-artillery.js?v=20260702b"></script>
 
 
-<script src="game-constants.js?v=20260429b-static"></script>
-<script src="player-state.js?v=20260429b-static"></script>
-<script src="wave-manager.js?v=20260429b-static"></script>
-<script src="boot-manager.js?v=20260429b-static"></script>
-<script src="fx-manager.js?v=20260429b-static"></script>
-<script src="input-manager.js?v=20260429b-static"></script>
-<script src="save-manager.js?v=20260429b-static"></script>
-<script src="combat-manager.js?v=20260429b-static"></script>
-<script src="ui-manager.js?v=20260429b-static"></script>
-<script src="mission-manager.js?v=20260429b-static"></script>
-<script src="bradley.js?v=20260429b-static"></script>
-<script src="game-manager.js?v=20260429b-static"></script>
+<script src="game-constants.js?v=20260702b-static"></script>
+<script src="player-state.js?v=20260702b-static"></script>
+<script src="wave-manager.js?v=20260702b-static"></script>
+<script src="boot-manager.js?v=20260702b-static"></script>
+<script src="fx-manager.js?v=20260702b-static"></script>
+<script src="input-manager.js?v=20260702b-static"></script>
+<script src="save-manager.js?v=20260702b-static"></script>
+<script src="combat-manager.js?v=20260702b-static"></script>
+<script src="ui-manager.js?v=20260702b-static"></script>
+<script src="mission-manager.js?v=20260702b-static"></script>
+<script src="bradley.js?v=20260702b-static"></script>
+<script src="game-manager.js?v=20260702b-static"></script>
 
 
 <!-- Defensive global export for VoxelWorld and AudioSystem -->
@@ -1606,25 +1661,31 @@ document.addEventListener('DOMContentLoaded', function () {
     setBootProgress(modulePct, 'checking modules', missing.length ? 'waiting: ' + missing.slice(0,3).join(', ') : 'all modules loaded');
 
     if (missing.length === 0 && typeof window.GameManager.init === 'function') {
-      try {
-        window.GameManager.init();
-        setBootProgress(100, 'ready', 'Slava Ukraini!');
-        setTimeout(hideBootPreloader, 420);
-      } catch (e) {
-        var ov = document.getElementById('error-overlay');
-        var errMsg = (e && e.message ? e.message : String(e));
-        var errStack = (e && e.stack ? e.stack : '');
-        if (ov) {
-          ov.style.display = 'block';
-          ov.innerHTML = '<div style="font-family:monospace;font-size:13px;line-height:1.4">' +
-            '<div style="color:#ff6464;font-weight:bold;font-size:16px;margin-bottom:8px">BOOT ERROR</div>' +
-            '<div style="color:#ffaa44;margin-bottom:8px">' + errMsg.replace(/</g, '&lt;') + '</div>' +
-            '<pre style="color:#aaa;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:40vh;overflow:auto">' + errStack.replace(/</g, '&lt;') + '</pre>' +
-            '<div style="margin-top:12px;color:#888">Try reloading the page (Ctrl+Shift+R).</div>' +
-            '</div>';
-        }
-        console.error('[BOOT]', e);
-      }
+      // Yield to the browser so the progress bar can render before the heavy
+      // synchronous init() blocks the main thread.
+      requestAnimationFrame(function () {
+        setTimeout(function () {
+          try {
+            window.GameManager.init();
+            setBootProgress(100, 'ready', 'Slava Ukraini!');
+            setTimeout(hideBootPreloader, 420);
+          } catch (e) {
+            var ov = document.getElementById('error-overlay');
+            var errMsg = (e && e.message ? e.message : String(e));
+            var errStack = (e && e.stack ? e.stack : '');
+            if (ov) {
+              ov.style.display = 'block';
+              ov.innerHTML = '<div style="font-family:monospace;font-size:13px;line-height:1.4">' +
+                '<div style="color:#ff6464;font-weight:bold;font-size:16px;margin-bottom:8px">BOOT ERROR</div>' +
+                '<div style="color:#ffaa44;margin-bottom:8px">' + errMsg.replace(/</g, '&lt;') + '</div>' +
+                '<pre style="color:#aaa;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:40vh;overflow:auto">' + errStack.replace(/</g, '&lt;') + '</pre>' +
+                '<div style="margin-top:12px;color:#888">Try reloading the page (Ctrl+Shift+R).</div>' +
+                '</div>';
+            }
+            console.error('[BOOT]', e);
+          }
+        }, 50);
+      });
     } else if (a < 6000) {
       // 6000 * 20ms = 120s. Slow mobile networks need much more than 30s
       // to download & parse ~16,500 LOC + ethers CDN. Keep waiting silently.
@@ -1675,11 +1736,11 @@ document.addEventListener('DOMContentLoaded', function () {
       for (var i = 0; i < btns.length; i++) {
         var v = btns[i].getAttribute('data-drone') || '';
         if (v === window.__chosenDroneType) {
+          btns[i].classList.add('active');
           btns[i].style.boxShadow = '0 0 12px currentColor';
-          btns[i].style.background = 'rgba(255,255,255,0.08)';
         } else {
+          btns[i].classList.remove('active');
           btns[i].style.boxShadow = '';
-          btns[i].style.background = '';
         }
       }
       if (desc) desc.textContent = droneDescs[window.__chosenDroneType] || droneDescs[''];
@@ -1711,13 +1772,11 @@ document.addEventListener('DOMContentLoaded', function () {
       for (var i = 0; i < fbtn.length; i++) {
         var v = fbtn[i].getAttribute('data-formation') || '';
         if (v === window.__chosenFormation) {
-          fbtn[i].style.boxShadow = '0 0 12px #0af';
-          fbtn[i].style.background = 'rgba(0,170,255,0.12)';
+          fbtn[i].classList.add('active');
           fbtn[i].style.borderColor = '#0af';
           fbtn[i].style.color = '#0af';
         } else {
-          fbtn[i].style.boxShadow = '';
-          fbtn[i].style.background = '';
+          fbtn[i].classList.remove('active');
           fbtn[i].style.borderColor = '#888';
           fbtn[i].style.color = '#888';
         }
@@ -1991,9 +2050,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Role selection ──────────────────────────────────────
   document.getElementById('start-role-brigade').addEventListener('click', function () {
     GameManager.setRole('brigade');
+    document.getElementById('start-role-brigade').classList.add('active');
+    document.getElementById('start-role-lonewolf').classList.remove('active');
   });
   document.getElementById('start-role-lonewolf').addEventListener('click', function () {
     GameManager.setRole('lonewolf');
+    document.getElementById('start-role-lonewolf').classList.add('active');
+    document.getElementById('start-role-brigade').classList.remove('active');
   });
   document.getElementById('role-brigade-btn').addEventListener('click', function () {
     GameManager.setRole('brigade');
@@ -2046,13 +2109,6 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             var sb = document.getElementById('stealth-toggle-btn');
             if (sb) sb.click();
-          }
-          break;
-        case 'KeyG':
-          if (isInventoryOpen()) {
-            e.preventDefault();
-            var gb = document.getElementById('pause-god-mode-btn');
-            if (gb) gb.click();
           }
           break;
         case 'Digit1': if (isInventoryOpen()) { e.preventDefault(); clickTab('inventory'); } break;
@@ -2435,13 +2491,32 @@ document.addEventListener('DOMContentLoaded', function () {
       pauseBtn.style.color = active ? '#0f0' : '#ff0';
       pauseBtn.textContent = active ? '⚡ GOD MODE: ON' : '⚡ GOD MODE';
     }
-    // In-game HUD button
+    // In-game HUD button (prominent top-left)
     var hudBtn = document.getElementById('hud-god-mode-btn');
     if (hudBtn) {
-      hudBtn.style.borderColor = active ? '#0f0' : 'rgba(255,255,0,0.5)';
+      hudBtn.style.borderColor = active ? '#0f0' : 'rgba(255,255,0,0.8)';
       hudBtn.style.color = active ? '#0f0' : '#ff0';
-      hudBtn.style.textShadow = active ? '0 0 6px #0f0' : '0 0 6px #ff0';
-      hudBtn.textContent = active ? '⚡ GOD: ON' : '⚡ GOD';
+      hudBtn.style.textShadow = active ? '0 0 8px #0f0' : '0 0 8px #ff0';
+      hudBtn.style.boxShadow = active ? '0 0 16px rgba(0,255,0,0.3)' : '0 0 12px rgba(255,255,0,0.2)';
+      hudBtn.textContent = active ? '⚡ GOD: ON' : '⚡ GOD: OFF';
+    }
+    // Mobile floating button
+    var mobileBtn = document.getElementById('mobile-god-mode-btn');
+    if (mobileBtn) {
+      mobileBtn.style.borderColor = active ? '#0f0' : 'rgba(255,255,0,0.8)';
+      mobileBtn.style.color = active ? '#0f0' : '#ff0';
+      mobileBtn.style.textShadow = active ? '0 0 6px #0f0' : '0 0 6px #ff0';
+      mobileBtn.style.boxShadow = active ? '0 0 16px rgba(0,255,0,0.3)' : '0 0 12px rgba(255,255,0,0.2)';
+      mobileBtn.textContent = active ? '⚡ ON' : '⚡ OFF';
+    }
+    // Mobile in-game button
+    var btnGodMobile = document.getElementById('btn-god-mobile');
+    if (btnGodMobile) {
+      btnGodMobile.style.borderColor = active ? '#0f0' : 'rgba(255,255,0,0.8)';
+      btnGodMobile.style.color = active ? '#0f0' : '#ff0';
+      btnGodMobile.style.textShadow = active ? '0 0 6px #0f0' : '0 0 6px #ff0';
+      btnGodMobile.style.boxShadow = active ? '0 0 16px rgba(0,255,0,0.3)' : '0 0 12px rgba(255,255,0,0.2)';
+      btnGodMobile.textContent = active ? '⚡ ON' : '⚡ OFF';
     }
   }
   document.getElementById('god-mode-btn').addEventListener('click', function () {
@@ -2454,6 +2529,20 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   var _hudGod = document.getElementById('hud-god-mode-btn');
   if (_hudGod) _hudGod.addEventListener('click', function (e) {
+    e.stopPropagation();
+    GameManager.toggleGodMode();
+    updateGodModeButtons();
+  });
+
+  // Mobile God Mode buttons
+  var _mobileGod = document.getElementById('mobile-god-mode-btn');
+  if (_mobileGod) _mobileGod.addEventListener('click', function (e) {
+    e.stopPropagation();
+    GameManager.toggleGodMode();
+    updateGodModeButtons();
+  });
+  var _btnGodMobile = document.getElementById('btn-god-mobile');
+  if (_btnGodMobile) _btnGodMobile.addEventListener('click', function (e) {
     e.stopPropagation();
     GameManager.toggleGodMode();
     updateGodModeButtons();
@@ -2479,9 +2568,9 @@ document.addEventListener('DOMContentLoaded', function () {
       var mode = this.getAttribute('data-mode');
       // Reset all button highlights
       for (var j = 0; j < challengeBtns.length; j++) {
-        challengeBtns[j].style.background = 'transparent';
+        challengeBtns[j].classList.remove('active');
       }
-      this.style.background = 'rgba(255,255,255,0.1)';
+      this.classList.add('active');
       if (typeof Progression !== 'undefined') {
         if (mode) {
           Progression.setChallenge(mode);

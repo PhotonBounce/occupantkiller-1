@@ -4,6 +4,11 @@
 const MissionSystem = (function () {
   'use strict';
 
+  /* ── helpers ──────────────────────────────────────────────────────── */
+  function _notify(msg, color, time) {
+    try { if (window.HUD && HUD.notifyPickup) HUD.notifyPickup(msg, color || '#ffaa44', time || 3000); } catch(e){}
+  }
+
   /* ── Mission Types ───────────────────────────────────────────────── */
   const MISSION_TYPE = Object.freeze({
     GATHER:         'gather',
