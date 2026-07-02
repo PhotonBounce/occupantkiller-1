@@ -4649,6 +4649,59 @@ const Weapons = (() => {
   let _muzzleSmoke = null;
   let _muzzleSmokeTimer = 0;
   const _MUZZLE_SMOKE_LIFE = 0.45;
+  // ── Shell ejection ──
+  const _shells = [];
+  const _MAX_SHELLS = 20;
+  const _shellGeo = new THREE.CylinderGeometry(0.003, 0.003, 0.012, 6);
+  const _shellMat = new THREE.MeshBasicMaterial({ color: 0xccaa44 });
+  function _spawnShell(pos) {
+    if (_shells.length >= _MAX_SHELLS) {
+      var old = _shells.shift();
+      if (old && old.mesh) { _scene.remove(old.mesh); }
+    }
+    var shell = new THREE.Mesh(_shellGeo, _shellMat);
+    shell.position.copy(pos);
+    // Eject to the right and slightly up/back
+    var vel = new THREE.Vector3(0.08 + Math.random() * 0.04, 0.06 + Math.random() * 0.03, -0.04 + Math.random() * 0.02);
+    if (_camera) {
+      var right = new THREE.Vector3(1, 0, 0).applyQuaternion(_camera.quaternion);
+      var up = new THREE.Vector3(0, 1, 0).applyQuaternion(_camera.quaternion);
+      var back = new THREE.Vector3(0, 0, 1).applyQuaternion(_camera.quaternion);
+      vel = right.multiplyScalar(0.08 + Math.random() * 0.04)
+        .add(up.multiplyScalar(0.06 + Math.random() * 0.03))
+        .add(back.multiplyScalar(-0.04 + Math.random() * 0.02));
+    }
+    _scene.add(shell);
+    _shells.push({ mesh: shell, vel: vel, life: 1.2, rot: new THREE.Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10) });
+  }
+  function _updateShells(delta) {
+    for (var si = _shells.length - 1; si >= 0; si--) {
+      var sh = _shells[si];
+      sh.life -= delta;
+      if (sh.life <= 0) {
+        _scene.remove(sh.mesh);
+        _shells.splice(si, 1);
+        continue;
+      }
+      // Gravity + velocity
+      sh.vel.y -= delta * 9.8;
+      sh.mesh.position.add(sh.vel.clone().multiplyScalar(delta));
+      sh.mesh.rotation.x += sh.rot.x * delta;
+      sh.mesh.rotation.y += sh.rot.y * delta;
+      sh.mesh.rotation.z += sh.rot.z * delta;
+      // Ground bounce (very simple)
+      if (sh.vel.y < 0 && typeof VoxelWorld !== 'undefined') {
+        var gnd = VoxelWorld.getTerrainHeight(sh.mesh.position.x, sh.mesh.position.z);
+        if (sh.mesh.position.y < gnd + 0.01) {
+          sh.mesh.position.y = gnd + 0.01;
+          sh.vel.y *= -0.4;
+          sh.vel.x *= 0.7;
+          sh.vel.z *= 0.7;
+          sh.rot.multiplyScalar(0.5);
+        }
+      }
+    }
+  }
 
   function createMuzzleFlash(scene, camera) {
     _scene = scene;
@@ -4726,6 +4779,12 @@ const Weapons = (() => {
       _muzzleSmoke.rotation.z = Math.random() * Math.PI * 2;
       _muzzleSmoke.scale.setScalar((0.6 + Math.random() * 0.2) * 0.5);
       _muzzleSmokeTimer = _MUZZLE_SMOKE_LIFE;
+    }
+    // Shell ejection
+    if (_camera && _shells.length < _MAX_SHELLS) {
+      var _shellPos = new THREE.Vector3(0.12, -0.08, -0.35);
+      _shellPos.applyMatrix4(_camera.matrixWorld);
+      _spawnShell(_shellPos);
     }
     // Shell casing eject for hitscan/shotgun weapons
     if (_camera && typeof Tracers !== 'undefined' && Tracers.spawnCasing) {
@@ -5829,6 +5888,8 @@ const Weapons = (() => {
       _muzzleSmoke.scale.y += delta * 0.6;
       if (_muzzleSmokeTimer <= 0) _muzzleSmoke.visible = false;
     }
+    // Shell ejection physics
+    _updateShells(delta);
 
     // Projectiles
     updateProjectiles(delta);
