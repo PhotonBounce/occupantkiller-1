@@ -1091,35 +1091,129 @@ window.VoxelWorld = (function () {
     return BLOCK_TRANSPARENT.has(getBlock(wx, wy, wz));
   }
 
-  function buildChunkMesh(chunk, scene) {
+  // ── LOD + Frustum helpers ───────────────────────────────────────
+  function getLODScale(distance) {
+    if (distance > 80) return 4;  // far: 25% density
+    if (distance > 40) return 2;  // medium: 50% density
+    return 1;                     // close: full detail
+  }
+
+  const _frustum = new THREE.Frustum();
+  const _projMatrix = new THREE.Matrix4();
+  const _chunkBox = new THREE.Box3();
+  const _chunkBoxMin = new THREE.Vector3();
+  const _chunkBoxMax = new THREE.Vector3();
+  const _dummy = new THREE.Object3D();
+
+  function buildChunkMesh(chunk, scene, cameraPos) {
+    // Dispose existing mesh (supports both Group and Mesh)
     if (chunk.mesh) {
-      if (scene) scene.remove(chunk.mesh);
-      chunk.mesh.geometry.dispose();
+      if (Array.isArray(chunk.mesh)) {
+        chunk.mesh.forEach(m => {
+          if (scene) scene.remove(m);
+          if (m.geometry) m.geometry.dispose();
+          if (m.material) m.material.dispose();
+        });
+      } else {
+        if (scene) scene.remove(chunk.mesh);
+        if (chunk.mesh.geometry) chunk.mesh.geometry.dispose();
+        if (chunk.mesh.material) {
+          if (Array.isArray(chunk.mesh.material)) {
+            chunk.mesh.material.forEach(m => m.dispose());
+          } else {
+            chunk.mesh.material.dispose();
+          }
+        }
+      }
       chunk.mesh = null;
     }
     if (chunk.waterMesh) {
       if (scene) scene.remove(chunk.waterMesh);
-      chunk.waterMesh.geometry.dispose();
+      if (chunk.waterMesh.geometry) chunk.waterMesh.geometry.dispose();
+      if (chunk.waterMesh.material) chunk.waterMesh.material.dispose();
       chunk.waterMesh = null;
     }
 
+    const ox = chunk.cx * CHUNK_SIZE;
+    const oz = chunk.cz * CHUNK_SIZE;
+
+    // LOD scale based on distance from camera
+    let lodScale = 1;
+    if (cameraPos) {
+      const cx = ox + CHUNK_SIZE * 0.5;
+      const cz = oz + CHUNK_SIZE * 0.5;
+      const dx = cx - cameraPos.x;
+      const dz = cz - cameraPos.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      lodScale = getLODScale(dist);
+    }
+
+    // For LOD > 1, use InstancedMesh (larger cubes, fewer vertices)
+    if (lodScale > 1) {
+      const blockCounts = new Map();
+      for (let ly = 0; ly < CHUNK_HEIGHT; ly += lodScale) {
+        for (let lz = 0; lz < CHUNK_SIZE; lz += lodScale) {
+          for (let lx = 0; lx < CHUNK_SIZE; lx += lodScale) {
+            const bt = chunk.data[blockIndex(lx, ly, lz)];
+            if (bt === BLOCK.AIR || bt === BLOCK.WATER) continue;
+            blockCounts.set(bt, (blockCounts.get(bt) || 0) + 1);
+          }
+        }
+      }
+
+      const group = new THREE.Group();
+      const scale = lodScale * BLOCK_SIZE;
+
+      for (const [bt, count] of blockCounts) {
+        const geo = new THREE.BoxGeometry(scale, scale, scale);
+        const mat = new THREE.MeshLambertMaterial({ color: BLOCK_COLORS[bt] || 0xFF00FF });
+        const inst = new THREE.InstancedMesh(geo, mat, count);
+        inst.castShadow = false;
+        inst.receiveShadow = true;
+        inst.userData.isVoxelTerrain = true;
+
+        let idx = 0;
+        for (let ly = 0; ly < CHUNK_HEIGHT; ly += lodScale) {
+          for (let lz = 0; lz < CHUNK_SIZE; lz += lodScale) {
+            for (let lx = 0; lx < CHUNK_SIZE; lx += lodScale) {
+              if (chunk.data[blockIndex(lx, ly, lz)] !== bt) continue;
+              _dummy.position.set(
+                ox + (lx + (lodScale - 1) * 0.5) * BLOCK_SIZE,
+                (ly + (lodScale - 1) * 0.5) * BLOCK_SIZE,
+                oz + (lz + (lodScale - 1) * 0.5) * BLOCK_SIZE
+              );
+              _dummy.scale.set(1, 1, 1);
+              _dummy.updateMatrix();
+              inst.setMatrixAt(idx++, _dummy.matrix);
+            }
+          }
+        }
+        inst.instanceMatrix.needsUpdate = true;
+        group.add(inst);
+      }
+
+      if (group.children.length > 0) {
+        if (scene) scene.add(group);
+        chunk.mesh = group;
+      }
+      chunk.dirty = false;
+      chunk._lastLOD = lodScale;
+      return;
+    }
+
+    // LOD === 1: full detail with face-culled merged geometry
     const positions = [];
     const normals   = [];
     const colors    = [];
     const indices   = [];
     let vertCount   = 0;
 
-    // Separate arrays for water geometry
     const wPositions = [];
     const wNormals   = [];
     const wColors    = [];
     const wIndices   = [];
     let wVertCount   = 0;
 
-    const ox = chunk.cx * CHUNK_SIZE;
-    const oz = chunk.cz * CHUNK_SIZE;
-
-    // AO darkening factors: index = occlusion level (0=full shadow, 3=no shadow)
     const AO_CURVE = [0.32, 0.55, 0.78, 1.0];
 
     for (let ly = 0; ly < CHUNK_HEIGHT; ly++) {
@@ -1140,21 +1234,18 @@ window.VoxelWorld = (function () {
             const nbz = wz + fnz;
 
             const nb = getBlock(nbx, nby, nbz);
-            // For water blocks: only draw face if neighbor is AIR (skip water-to-water)
             if (isWater) {
               if (nb !== BLOCK.AIR) continue;
             } else {
               if (!BLOCK_TRANSPARENT.has(nb)) continue;
             }
 
-            // Pick target arrays (water vs solid)
             const tPos = isWater ? wPositions : positions;
             const tNrm = isWater ? wNormals : normals;
             const tCol = isWater ? wColors : colors;
             const tIdx = isWater ? wIndices : indices;
             let tVert = isWater ? wVertCount : vertCount;
 
-            // Determine the two tangent axes for AO sampling
             let t0, t1;
             if (fnx !== 0) { t0 = 1; t1 = 2; }
             else if (fny !== 0) { t0 = 0; t1 = 2; }
@@ -1162,11 +1253,9 @@ window.VoxelWorld = (function () {
 
             const aoVals = [];
             for (const c of face.corners) {
-              // Direction from face center to this corner along each tangent
               const d0 = c[t0] === 0 ? -1 : 1;
               const d1 = c[t1] === 0 ? -1 : 1;
 
-              // Three AO neighbor offsets from the face-neighbor block
               const s1 = [0, 0, 0]; s1[t0] = d0;
               const s2 = [0, 0, 0]; s2[t1] = d1;
 
@@ -1176,7 +1265,7 @@ window.VoxelWorld = (function () {
 
               const ao = (side1 && side2) ? 0 : 3 - (side1 + side2 + corn);
               aoVals.push(ao);
-              const f = isWater ? 1.0 : AO_CURVE[ao]; // no AO darkening on water
+              const f = isWater ? 1.0 : AO_CURVE[ao];
 
               tPos.push(
                 (lx + c[0]) * BLOCK_SIZE,
@@ -1187,7 +1276,6 @@ window.VoxelWorld = (function () {
               tCol.push(col.r * f, col.g * f, col.b * f);
             }
 
-            // Flip quad when AO is anisotropic to avoid ugly diagonal artifact
             if (aoVals[0] + aoVals[2] > aoVals[1] + aoVals[3]) {
               tIdx.push(
                 tVert, tVert + 1, tVert + 2,
@@ -1205,10 +1293,8 @@ window.VoxelWorld = (function () {
       }
     }
 
+    if (vertCount === 0 && wVertCount === 0) { chunk.dirty = false; chunk._lastLOD = 1; return; }
 
-    if (vertCount === 0 && wVertCount === 0) { chunk.dirty = false; return; }
-
-    // Solid terrain mesh
     if (vertCount > 0) {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -1229,7 +1315,6 @@ window.VoxelWorld = (function () {
       chunk.mesh = mesh;
     }
 
-    // Transparent water mesh
     if (wVertCount > 0) {
       const wGeo = new THREE.BufferGeometry();
       wGeo.setAttribute('position', new THREE.Float32BufferAttribute(wPositions, 3));
@@ -1253,13 +1338,14 @@ window.VoxelWorld = (function () {
     }
 
     chunk.dirty = false;
+    chunk._lastLOD = 1;
   }
 
   /* ── World Init & Update ─────────────────────────────────────────── */
   let _scene = null;
   const HALF = Math.floor(WORLD_CHUNKS / 2);
 
-  function init(scene) {
+  function init(scene, cameraPos) {
     _scene = scene || null;
     chunks.clear();
 
@@ -1272,23 +1358,36 @@ window.VoxelWorld = (function () {
     }
 
     // Build all meshes
-    rebuildAll();
+    rebuildAll(cameraPos);
     if (Math.random() < 0.2) triggerCityEvent('fire');
   }
 
   function regenerate() {
-    // Remove all existing chunk meshes
+    // Remove all existing chunk meshes (supports Mesh, Group, and Arrays)
     for (const chunk of chunks.values()) {
       if (chunk.mesh) {
         _scene.remove(chunk.mesh);
-        chunk.mesh.geometry.dispose();
-        chunk.mesh.material.dispose();
+        if (Array.isArray(chunk.mesh)) {
+          chunk.mesh.forEach(m => {
+            if (m.geometry) m.geometry.dispose();
+            if (m.material) m.material.dispose();
+          });
+        } else if (chunk.mesh.geometry) {
+          chunk.mesh.geometry.dispose();
+          if (chunk.mesh.material) {
+            if (Array.isArray(chunk.mesh.material)) {
+              chunk.mesh.material.forEach(m => m.dispose());
+            } else {
+              chunk.mesh.material.dispose();
+            }
+          }
+        }
         chunk.mesh = null;
       }
       if (chunk.waterMesh) {
         _scene.remove(chunk.waterMesh);
-        chunk.waterMesh.geometry.dispose();
-        chunk.waterMesh.material.dispose();
+        if (chunk.waterMesh.geometry) chunk.waterMesh.geometry.dispose();
+        if (chunk.waterMesh.material) chunk.waterMesh.material.dispose();
         chunk.waterMesh = null;
       }
     }
@@ -1305,7 +1404,7 @@ window.VoxelWorld = (function () {
     rebuildAll();
   }
 
-  function rebuildAll() {
+  function rebuildAll(cameraPos) {
     // PRELOAD: build every chunk synchronously up-front. The budgeted
     // updateDirtyChunks() path is for runtime block edits only — using it
     // here causes visible pop-in on spawn (only 4 chunks/frame appear).
@@ -1314,25 +1413,27 @@ window.VoxelWorld = (function () {
     }
     if (typeof chunks !== 'object' || !chunks.values) return;
     for (const chunk of chunks.values()) {
-      if (chunk.dirty) buildChunkMesh(chunk, _scene);
+      if (chunk.dirty) buildChunkMesh(chunk, _scene, cameraPos);
     }
   }
 
-  let _rebuildBudget = 4; // max chunks to rebuild per frame (runtime edits only)
+  let _rebuildBudget = 2; // max chunks to rebuild per frame (runtime edits only)
   // Distance-cull terrain chunk meshes (low-spec/mobile). Chunks beyond the radius
   // are hidden — they sit past the fog wall anyway, so it's invisible to the player
   // but removes ~1000 terrain draw calls + their triangles. Purely visual: terrain
   // height, collisions and block raycasts all read the voxel data array, not meshes.
   function cullChunks(camX, camZ, dist) {
     if (!dist || dist <= 0 || typeof chunks !== 'object' || !chunks.values) return;
-    const keep = dist + 24;               // pad ~one chunk half-diagonal so edge chunks stay
+    const keep = dist + 24;
     const keep2 = keep * keep;
     const half = CHUNK_SIZE * BLOCK_SIZE * 0.5;
     for (const chunk of chunks.values()) {
       const m = chunk.mesh;
       if (!m) continue;
-      const dx = (m.position.x + half) - camX;
-      const dz = (m.position.z + half) - camZ;
+      const cx = chunk.cx * CHUNK_SIZE + half;
+      const cz = chunk.cz * CHUNK_SIZE + half;
+      const dx = cx - camX;
+      const dz = cz - camZ;
       const far = (dx * dx + dz * dz) > keep2;
       if (far) {
         if (m.visible) m.visible = false;
@@ -1344,22 +1445,59 @@ window.VoxelWorld = (function () {
     }
   }
 
-  function updateDirtyChunks() {
+  function updateDirtyChunks(camera) {
     let count = 0;
     if (typeof chunks !== 'object' || !chunks.values) {
       console.warn('[VoxelWorld] updateDirtyChunks called with invalid context:', this);
       return {};
     }
+    // Build frustum from camera for culling
+    let frustum = null;
+    const camPos = camera ? camera.position : null;
+    if (camera && camera.projectionMatrix && camera.matrixWorldInverse) {
+      _projMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      frustum = new THREE.Frustum().setFromProjectionMatrix(_projMatrix);
+    }
+    const maxRebuildDist = 150; // world units
     for (const chunk of chunks.values()) {
-      if (chunk.dirty) {
-        buildChunkMesh(chunk, _scene);
-        count++;
-        if (count >= _rebuildBudget) break;
+      if (!chunk.dirty) continue;
+      // Skip chunks too far from camera
+      if (camPos) {
+        const cx = chunk.cx * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const cz = chunk.cz * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const dx = cx - camPos.x;
+        const dz = cz - camPos.z;
+        if (Math.sqrt(dx * dx + dz * dz) > maxRebuildDist) {
+          chunk.dirty = false;
+          continue;
+        }
       }
+      // Frustum cull: skip chunks completely outside view
+      if (frustum) {
+        _chunkBoxMin.set(chunk.cx * CHUNK_SIZE, 0, chunk.cz * CHUNK_SIZE);
+        _chunkBoxMax.set((chunk.cx + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunk.cz + 1) * CHUNK_SIZE);
+        _chunkBox.set(_chunkBoxMin, _chunkBoxMax);
+        if (!frustum.intersectsBox(_chunkBox)) continue;
+      }
+      // Skip if LOD hasn't changed and mesh already exists
+      if (camPos && chunk._lastLOD !== undefined && chunk.mesh) {
+        const cx = chunk.cx * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const cz = chunk.cz * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const dx = cx - camPos.x;
+        const dz = cz - camPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const neededLOD = getLODScale(dist);
+        if (chunk._lastLOD === neededLOD) {
+          chunk.dirty = false;
+          continue;
+        }
+      }
+      buildChunkMesh(chunk, _scene, camPos);
+      count++;
+      if (count >= _rebuildBudget) break;
     }
     // Update city events/disasters
-    if (typeof updateCityEvents === 'function') updateCityEvents(1/60); // assume 60fps step
-    // No return value needed; function is for side effects only
+    if (typeof updateCityEvents === 'function') updateCityEvents(1 / 60);
   }
 
   /* ── Raycast Helpers for Block Interaction ────────────────────────── */
@@ -6655,6 +6793,53 @@ window.VoxelWorld = (function () {
           }
         }
       })();
+      // ── Runway and taxiway markings (ASPHALT strips with METAL edge lights) ──
+      (function () {
+        // Main runway (east-west)
+        for (var rx = -60; rx <= 60; rx++) {
+          for (var rz = -2; rz <= 2; rz++) {
+            var rh = getTerrainHeight(rx, rz);
+            setBlock(rx, rh, rz, BLOCK.ASPHALT);
+          }
+          // Edge lights every 10 blocks
+          if (rx % 10 === 0) {
+            setBlock(rx, getTerrainHeight(rx, -3) + 1, -3, BLOCK.LIGHT);
+            setBlock(rx, getTerrainHeight(rx, 3) + 1, 3, BLOCK.LIGHT);
+          }
+        }
+        // Taxiway (north-south connecting to apron)
+        for (var tz = -10; tz <= 30; tz++) {
+          for (var tx = -2; tx <= 2; tx++) {
+            var th = getTerrainHeight(tx, tz);
+            setBlock(tx, th, tz, BLOCK.ASPHALT);
+          }
+        }
+        // Apron area (concrete pads near hangars)
+        for (var ax = -35; ax <= -15; ax++) {
+          for (var az = 8; az <= 18; az++) {
+            var ah = getTerrainHeight(ax, az);
+            setBlock(ax, ah, az, BLOCK.CONCRETE);
+          }
+        }
+      })();
+      // ── Control tower (tall concrete structure) ──
+      (function () {
+        var ctx = 15, ctz = 10;
+        var cth = getTerrainHeight(ctx, ctz);
+        for (var y = 0; y < 12; y++) {
+          for (var x = -1; x <= 1; x++) {
+            for (var z = -1; z <= 1; z++) {
+              setBlock(ctx + x, cth + y, ctz + z, BLOCK.CONCRETE);
+            }
+          }
+        }
+        // Glass observation deck
+        for (var x = -2; x <= 2; x++) {
+          for (var z = -2; z <= 2; z++) {
+            setBlock(ctx + x, cth + 12, ctz + z, BLOCK.GLASS);
+          }
+        }
+      })();
       // ── Russian BMD/BTR vehicle wrecks from the battle
       generateWreckedCar(-10, 28);
       generateWreckedCar(12, 32);
@@ -6721,7 +6906,7 @@ window.VoxelWorld = (function () {
         }
       })();
 } else if (level.id === 'BAKHMUT') {
-      // Total destruction — bombed apartments, rubble streets
+      // TOTAL DESTRUCTION — every building damaged or destroyed, rubble everywhere
       generateUkrainianApartment(-25, -20, 6);
       generateUkrainianApartment(-25, -42, 6);
       generateUkrainianApartment(15, -15, 12);
@@ -6738,7 +6923,56 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, -30);
       generateDroneNest(-40, -10);
       generateDroneNest(20, 30);
-    
+      // ── Rubble EVERYWHERE — no intact street remains ──
+      (function () {
+        for (var rx = -55; rx <= 55; rx += 2) {
+          for (var rz = -55; rz <= 55; rz += 2) {
+            if (Math.random() < 0.35) {
+              var rh = getTerrainHeight(rx, rz);
+              setBlock(rx, rh, rz, BLOCK.RUBBLE);
+              if (Math.random() < 0.2) setBlock(rx, rh + 1, rz, BLOCK.RUBBLE);
+            }
+          }
+        }
+      })();
+      // ── Craters from months of artillery bombardment ──
+      (function () {
+        var craterPositions = [[-20, -15], [10, -8], [-5, 5], [25, 12], [-30, 20], [15, 25], [-10, -30], [30, -25], [0, 40], [-40, 35], [40, 40]];
+        for (var ci = 0; ci < craterPositions.length; ci++) {
+          var cx = craterPositions[ci][0], cz = craterPositions[ci][1];
+          for (var cr = -2; cr <= 2; cr++) {
+            for (var crz = -2; crz <= 2; crz++) {
+              if (cr * cr + crz * crz <= 5) {
+                var cry = getTerrainHeight(cx + cr, cz + crz);
+                setBlock(cx + cr, cry, cz + crz, BLOCK.DIRT);
+                setBlock(cx + cr, cry + 1, cz + crz, BLOCK.RUBBLE);
+              }
+            }
+          }
+        }
+      })();
+      // ── Wrecked military vehicles (T-72, BTR, trucks) ──
+      generateWreckedTank(-15, -5);
+      generateWreckedTank(20, 10);
+      generateWreckedBTR(-5, 20);
+      generateWreckedBTR(30, -15);
+      generateWreckedCar(-25, 25);
+      generateWreckedCar(10, 30);
+      generateWreckedCar(-35, -10);
+      generateWreckedCar(35, 5);
+      // ── Burned-out ruins and fires (no intact structures) ──
+      (function () {
+        var fireSpots = [[-15, -15], [5, -20], [-10, 10], [20, 20], [-30, 30], [30, -30], [0, -40], [15, -45]];
+        for (var fi = 0; fi < fireSpots.length; fi++) {
+          var fx = fireSpots[fi][0], fz = fireSpots[fi][1];
+          var fy = getTerrainHeight(fx, fz);
+          setBlock(fx, fy, fz, BLOCK.FUEL_BARREL);
+          setBlock(fx + 1, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx, fy, fz + 1, BLOCK.RUBBLE);
+          setBlock(fx - 1, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx, fy + 1, fz, BLOCK.FUEL_BARREL);
+        }
+      })();
       // Bakhmutka River — small river running east-west through city center
       (function () {
         for (var rx = -55; rx <= 55; rx++) {
@@ -7115,7 +7349,7 @@ window.VoxelWorld = (function () {
         }
       })();
 } else if (level.id === 'MARIUPOL') {
-      // Azovstal steelworks — industrial hellscape
+      // Azovstal steelworks — industrial hellscape: smokestacks, fires, factory rubble
       generateIndustrialComplex(0, 0);
       generateBurningRuin(-20, -20);
       generateBurningRuin(20, 20);
@@ -7124,7 +7358,56 @@ window.VoxelWorld = (function () {
       generateAmmoDepot(-30, 30);
       generateDroneNest(40, 40);
       generateDroneNest(-40, -40);
-    
+      // ── Smokestacks (tall industrial chimneys) ──
+      (function () {
+        var stacks = [[-15, -10], [15, -10], [0, -15], [-20, 5], [20, 5]];
+        for (var si = 0; si < stacks.length; si++) {
+          var sx = stacks[si][0], sz = stacks[si][1];
+          var sh = getTerrainHeight(sx, sz);
+          for (var y = 0; y < 18; y++) {
+            setBlock(sx, sh + y, sz, BLOCK.METAL);
+            setBlock(sx + 1, sh + y, sz, BLOCK.METAL);
+            setBlock(sx, sh + y, sz + 1, BLOCK.METAL);
+            setBlock(sx + 1, sh + y, sz + 1, BLOCK.METAL);
+          }
+          // Fire / smoke at top
+          setBlock(sx, sh + 18, sz, BLOCK.FIRE);
+          setBlock(sx + 1, sh + 18, sz, BLOCK.FIRE);
+        }
+      })();
+      // ── Factory rubble and debris everywhere ──
+      (function () {
+        for (var rx = -40; rx <= 40; rx += 2) {
+          for (var rz = -40; rz <= 40; rz += 2) {
+            if (Math.random() < 0.25) {
+              var rh = getTerrainHeight(rx, rz);
+              setBlock(rx, rh, rz, BLOCK.RUBBLE);
+              if (Math.random() < 0.15) setBlock(rx, rh + 1, rz, BLOCK.RUBBLE);
+            }
+          }
+        }
+      })();
+      // ── Industrial fires and burning fuel barrels ──
+      (function () {
+        var fireSpots = [[-10, -10], [10, -10], [0, 0], [-15, 15], [15, 15], [-25, -25], [25, -25]];
+        for (var fi = 0; fi < fireSpots.length; fi++) {
+          var fx = fireSpots[fi][0], fz = fireSpots[fi][1];
+          var fy = getTerrainHeight(fx, fz);
+          setBlock(fx, fy, fz, BLOCK.FUEL_BARREL);
+          setBlock(fx + 1, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx, fy, fz + 1, BLOCK.RUBBLE);
+          setBlock(fx - 1, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx, fy + 1, fz, BLOCK.FUEL_BARREL);
+        }
+      })();
+      // ── Wrecked tanks and APCs from the siege ──
+      generateWreckedTank(-10, -5);
+      generateWreckedTank(10, -5);
+      generateWreckedTank(0, 10);
+      generateWreckedBTR(-20, 15);
+      generateWreckedBTR(20, 15);
+      generateWreckedCar(-5, 25);
+      generateWreckedCar(5, 25);
       // Sea of Azov coast — flat shoreline south of the city
       (function () {
         for (var cx = -60; cx <= 60; cx++) {
@@ -7165,7 +7448,7 @@ window.VoxelWorld = (function () {
       generateAntiTankHedgehogs(8);
       generateDroneNest(35, 35);
     } else if (level.id === 'CHORNOBYL') {
-      // Irradiated exclusion zone — abandoned, broken, cratered
+      // Irradiated exclusion zone — abandoned, broken, cratered, overgrown
       generateBrokenTrees(20);
       generateCraters(8);
       generateRuins(6);
@@ -7174,30 +7457,76 @@ window.VoxelWorld = (function () {
       generateWatchtower(0, -30);
       generateWatchtower(0, 30);
       generateDroneNest(40, -40);
+      // ── Red Forest (pine trees turned red-brown from radiation) ──
+      (function () {
+        for (var rx = -40; rx <= 40; rx += 3) {
+          for (var rz = -40; rz <= 40; rz += 3) {
+            if (Math.random() < 0.6) {
+              var rh = getTerrainHeight(rx, rz);
+              setBlock(rx, rh + 1, rz, BLOCK.BRICK);   // red-brown trunks
+              setBlock(rx, rh + 2, rz, BLOCK.BRICK);
+              setBlock(rx, rh + 3, rz, BLOCK.BRICK);
+              setBlock(rx + 1, rh + 2, rz, BLOCK.BRICK);
+              setBlock(rx - 1, rh + 2, rz, BLOCK.BRICK);
+              setBlock(rx, rh + 2, rz + 1, BLOCK.BRICK);
+              setBlock(rx, rh + 2, rz - 1, BLOCK.BRICK);
+            }
+          }
+        }
+      })();
+      // ── Radiation warning signs (triangles on poles) ──
+      (function () {
+        var signs = [[-30, -30], [30, 30], [-30, 30], [30, -30], [0, 0], [-15, 15], [15, -15]];
+        for (var si = 0; si < signs.length; si++) {
+          var sx = signs[si][0], sz = signs[si][1];
+          var sh = getTerrainHeight(sx, sz);
+          setBlock(sx, sh + 1, sz, BLOCK.METAL);   // pole
+          setBlock(sx, sh + 2, sz, BLOCK.METAL);
+          setBlock(sx, sh + 3, sz, BLOCK.METAL);
+          setBlock(sx, sh + 4, sz, BLOCK.SIGN);    // warning sign triangle
+        }
+      })();
+      // ── Overgrown vegetation (bush / grass reclaiming concrete) ──
+      (function () {
+        for (var ox = -50; ox <= 50; ox++) {
+          for (var oz = -50; oz <= 50; oz++) {
+            if (Math.random() < 0.15) {
+              var oh = getTerrainHeight(ox, oz);
+              setBlock(ox, oh + 1, oz, BLOCK.BUSH);
+            }
+          }
+        }
+      })();
+      // ── Abandoned Pripyat apartment blocks (overgrown, crumbling) ──
+      generateUkrainianApartment(-25, -25, 6);
+      generateUkrainianApartment(25, -25, 6);
+      generateUkrainianApartment(-25, 25, 6);
+      generateUkrainianApartment(25, 25, 6);
+      // ── Wrecked vehicles (abandoned during evacuation) ──
+      generateWreckedCar(-10, 0);
+      generateWreckedCar(10, 0);
+      generateWreckedCar(0, -10);
+      generateWreckedCar(0, 10);
+      // ── Duga radar array (massive steel structure) ──
+      (function () {
+        for (var y = 0; y < 20; y++) {
+          var off = Math.floor(y * 0.6);
+          setBlock(-40 - off, y, -40, BLOCK.METAL);
+          setBlock(-40 - off, y, -40 + 1, BLOCK.METAL);
+          setBlock(40 + off, y, -40, BLOCK.METAL);
+          setBlock(40 + off, y, -40 + 1, BLOCK.METAL);
+        }
+      })();
     } else if (level.id === 'MOSCOW') {
-      // Kremlin outskirts — dense city blocks, checkpoints, barricades
+      // Kremlin outskirts — dense Soviet city blocks, ring roads, industrial areas
+      // NO Ukrainian blue/yellow — this is Russian territory, feels like Moscow
+      generateMoscowCityExtension(0, 0);
+      // Soviet apartment blocks (north of Kremlin, characteristic 9-12 story)
       generateUkrainianApartment(-20, -20, 8);
       generateUkrainianApartment(20, -20, 10);
       generateUkrainianApartment(-20, 20, 8);
       generateUkrainianApartment(20, 20, 10);
-      // Ukrainian flags on liberated apartment buildings
-      ukrainianFlag(-20, getTerrainHeight(-20, -20) + 25, -20);
-      ukrainianFlag(20,  getTerrainHeight(20, -20) + 31, -20);
-      ukrainianFlag(-20, getTerrainHeight(-20, 20) + 25, 20);
-      ukrainianFlag(20,  getTerrainHeight(20, 20) + 31, 20);
-      // Ukrainian banners on building facades
-      ukrainianBanner(-18, getTerrainHeight(-18, -20) + 20, -20, 4);
-      ukrainianBanner(18,  getTerrainHeight(18, -20) + 26, -20, 4);
-      // Tryzub graffiti on walls
-      tryzubSymbol(-15, getTerrainHeight(-15, -15) + 5, -15);
-      tryzubSymbol(15,  getTerrainHeight(15, 15) + 5, 15);
-      // Ukrainian military vehicles (NATO green with markings)
-      ukrainianVehicle(-10, 0);
-      ukrainianVehicle(10, 5);
-      ukrainianVehicle(0, -10);
-      // Blue/yellow road markings on main streets
-      ukrainianRoadMarkings(-35, 35, 35, 35, 3);
-      ukrainianRoadMarkings(-35, -35, 35, -35, 3);
+      // Russian checkpoints (NOT Ukrainian)
       generateCheckpoint(0, 35, false);
       generateCheckpoint(0, -35, false);
       generateDefensivePosition(-35, 0);
@@ -7206,7 +7535,6 @@ window.VoxelWorld = (function () {
       generateBarbedWire(0, 0, 20, false);
       generateDroneNest(45, 45);
       generateDroneNest(-45, -45);
-    
       // Moskva River — curves south of the Kremlin (real geography)
       (function () {
         for (var rx = -55; rx <= 55; rx++) {
@@ -7231,6 +7559,16 @@ window.VoxelWorld = (function () {
               setBlock(hx, hh + 3, hz, BLOCK.DIRT);
             }
           }
+        }
+      })();
+      // Moscow Ring Road (MKAD) — asphalt ring around the city center
+      (function () {
+        for (var angle = 0; angle < Math.PI * 2; angle += 0.05) {
+          var rx = Math.round(Math.cos(angle) * 55);
+          var rz = Math.round(Math.sin(angle) * 55);
+          var rh = getTerrainHeight(rx, rz);
+          setBlock(rx, rh, rz, BLOCK.ASPHALT);
+          setBlock(rx + 1, rh, rz, BLOCK.ASPHALT);
         }
       })();
 } else if (level.id === 'SEVASTOPOL') {
@@ -7374,26 +7712,34 @@ window.VoxelWorld = (function () {
         }
       })();
 } else if (level.id === 'KREMLIN') {
-      // The final showdown — the actual Kremlin, St Basil's & Red Square
+      // The final showdown — authentic Kremlin, St Basil's & Red Square
+      // Russian Orthodox colors: red brick, gold domes, green roofs. No Ukrainian blue/yellow.
       generateMoscowCityExtension(0, 0);
-      // Additional Ukrainian flags around the Kremlin perimeter
-      ukrainianFlag(-40, getTerrainHeight(-40, -40) + 1, -40);
-      ukrainianFlag(40,  getTerrainHeight(40, -40) + 1, -40);
-      ukrainianFlag(-40, getTerrainHeight(-40, 40) + 1, 40);
-      ukrainianFlag(40,  getTerrainHeight(40, 40) + 1, 40);
-      // Blue/yellow banners on captured buildings
-      ukrainianBanner(-25, getTerrainHeight(-25, -25) + 36, -25, 5);
-      ukrainianBanner(25,  getTerrainHeight(25, -25) + 36, -25, 5);
-      ukrainianBanner(-25, getTerrainHeight(-25, 25) + 36, 25, 5);
-      ukrainianBanner(25,  getTerrainHeight(25, 25) + 36, 25, 5);
-      // Tryzub on captured Kremlin structures
-      tryzubSymbol(-15, getTerrainHeight(-15, -15) + 3, -15);
-      tryzubSymbol(15,  getTerrainHeight(15, 15) + 3, 15);
-      // Ukrainian special forces vehicles
-      ukrainianVehicle(-30, -30);
-      ukrainianVehicle(30, 30);
-      ukrainianVehicle(-30, 30);
-      ukrainianVehicle(30, -30);
+      // Authentic Kremlin Spasskaya Tower (red brick, green roof, gold star)
+      (function () {
+        for (var y = 0; y < 12; y++) {
+          for (var x = -3; x <= 3; x++) {
+            for (var z = -3; z <= 3; z++) {
+              if (Math.abs(x) === 3 || Math.abs(z) === 3) {
+                setBlock(x, y, z + 35, BLOCK.BRICK);
+              }
+            }
+          }
+        }
+        // Green roof (Russian Kremlin tower style)
+        for (var x = -3; x <= 3; x++) {
+          for (var z = -3; z <= 3; z++) {
+            setBlock(x, 12, z + 35, BLOCK.BUSH); // BUSH = dark green
+          }
+        }
+        // Gold star on top (LIGHT = warm gold)
+        setBlock(0, 13, 35, BLOCK.LIGHT);
+        setBlock(1, 13, 35, BLOCK.LIGHT);
+        setBlock(-1, 13, 35, BLOCK.LIGHT);
+        setBlock(0, 13, 36, BLOCK.LIGHT);
+        setBlock(0, 13, 34, BLOCK.LIGHT);
+      })();
+      // Authentic Soviet/Russian apartment blocks near the Kremlin
       generateUkrainianApartment(-25, -25, 12);
       generateUkrainianApartment(25, -25, 12);
       generateUkrainianApartment(-25, 25, 12);
@@ -7512,6 +7858,111 @@ window.VoxelWorld = (function () {
       generateDroneNest(60, 30);
       generateDroneNest(-60, 30);
       generateDroneNest(0, 60);
+    } else if (level.id === 'TREELINE') {
+      // ═══ TREELINE ASSAULT — Zaporizhzhia axis ═══
+      // Russian defensive positions in a treeline. Ukrainian 47th Mech Bde
+      // Bradley M2A2 breaches the line. Wheat field → treeline → trenches →
+      // dugouts → dragon's teeth → bunkers. NO Ukrainian blue/yellow — this
+      // is Russian-held territory until the Bradley punches through.
+      // ── Wheat field (golden SAND blocks = dry Ukrainian wheat) ──
+      (function () {
+        for (var wx = -40; wx <= 40; wx++) {
+          for (var wz = -35; wz <= -5; wz++) {
+            var wh = getTerrainHeight(wx, wz);
+            setBlock(wx, wh, wz, BLOCK.SAND);
+            // Taller wheat stalks scattered
+            if (Math.random() < 0.12) setBlock(wx, wh + 1, wz, BLOCK.SAND);
+          }
+        }
+      })();
+      // ── Tree line (dense BUSH blocks forming a forest wall) ──
+      (function () {
+        for (var tx = -45; tx <= 45; tx++) {
+          for (var tz = -4; tz <= 4; tz++) {
+            var th = getTerrainHeight(tx, tz);
+            // Main tree trunk / canopy wall
+            if (Math.random() < 0.85) {
+              setBlock(tx, th + 1, tz, BLOCK.BUSH);
+              setBlock(tx, th + 2, tz, BLOCK.BUSH);
+              if (Math.random() < 0.4) setBlock(tx, th + 3, tz, BLOCK.BUSH);
+            }
+            // Tree roots / underbrush
+            if (Math.random() < 0.3) setBlock(tx, th, tz, BLOCK.DIRT);
+          }
+        }
+      })();
+      // ── Trenches (zigzag Russian defensive line) ──
+      (function () {
+        for (var tx = -35; tx <= 35; tx += 3) {
+          var tz = 8 + Math.floor(Math.sin(tx * 0.15) * 2);
+          var th = getTerrainHeight(tx, tz);
+          // Carve trench
+          setBlock(tx, th, tz, BLOCK.AIR);
+          setBlock(tx, th - 1, tz, BLOCK.AIR);
+          setBlock(tx + 1, th, tz, BLOCK.AIR);
+          setBlock(tx + 1, th - 1, tz, BLOCK.AIR);
+          // Sandbag parapet
+          setBlock(tx, th + 1, tz - 1, BLOCK.SANDBAG);
+          setBlock(tx + 1, th + 1, tz - 1, BLOCK.SANDBAG);
+          setBlock(tx, th + 2, tz - 1, BLOCK.SANDBAG);
+          // Dirt mound on rear
+          setBlock(tx, th, tz + 1, BLOCK.DIRT);
+          setBlock(tx + 1, th, tz + 1, BLOCK.DIRT);
+        }
+      })();
+      // ── Dugouts (covered fighting positions) ──
+      placeDugout(-25, getTerrainHeight(-25, 15), 15, 5);
+      placeDugout(-10, getTerrainHeight(-10, 15), 15, 5);
+      placeDugout(10, getTerrainHeight(10, 15), 15, 5);
+      placeDugout(25, getTerrainHeight(25, 15), 15, 5);
+      // ── Dragon's teeth (anti-tank concrete pyramids) ──
+      (function () {
+        for (var dx = -35; dx <= 35; dx += 4) {
+          var dz = 22 + (dx % 8 === 0 ? 0 : 2);
+          var dh = getTerrainHeight(dx, dz);
+          setBlock(dx, dh, dz, BLOCK.CONCRETE);
+          setBlock(dx, dh + 1, dz, BLOCK.CONCRETE);
+          setBlock(dx + 1, dh, dz, BLOCK.CONCRETE);
+          setBlock(dx + 1, dh + 1, dz, BLOCK.CONCRETE);
+          setBlock(dx, dh + 2, dz, BLOCK.CONCRETE);
+        }
+      })();
+      // ── Bunkers (reinforced concrete command posts) ──
+      generateBunker(-15, 28);
+      generateBunker(0, 28);
+      generateBunker(15, 28);
+      // ── Enemy FPV drone nests (kamikaze drones targeting the Bradley) ──
+      generateDroneNest(-30, 20);
+      generateDroneNest(30, 20);
+      generateDroneNest(-20, 30);
+      generateDroneNest(20, 30);
+      // ── Wrecked Russian vehicles (abandoned BTRs, supply trucks) ──
+      generateWreckedBTR(-15, 5);
+      generateWreckedBTR(12, 8);
+      generateWreckedCar(-8, 12);
+      generateWreckedCar(8, 10);
+      // ── Burn marks and scorched earth in the wheat field ──
+      (function () {
+        var fireSpots = [[-20, -15], [-5, -20], [10, -18], [25, -12], [-15, -8], [5, -10]];
+        for (var fi = 0; fi < fireSpots.length; fi++) {
+          var fx = fireSpots[fi][0], fz = fireSpots[fi][1];
+          var fy = getTerrainHeight(fx, fz);
+          setBlock(fx, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx + 1, fy, fz, BLOCK.RUBBLE);
+          setBlock(fx, fy, fz + 1, BLOCK.RUBBLE);
+          setBlock(fx - 1, fy, fz, BLOCK.RUBBLE);
+        }
+      })();
+      // ── Flat steppe terrain beyond the wheat field ──
+      (function () {
+        for (var fx = -50; fx <= 50; fx++) {
+          for (var fz = 35; fz <= 50; fz++) {
+            var fh = getTerrainHeight(fx, fz);
+            setBlock(fx, fh, fz, BLOCK.GRASS);
+          }
+        }
+      })();
+      // ── NO Ukrainian blue/yellow — Russian territory until breached ──
     }
     // ── War-zone ruined homes & commercial buildings (every stage) ──
     // Real Ukraine war reference: Mariupol, Bakhmut, Avdiivka districts
@@ -7542,10 +7993,25 @@ window.VoxelWorld = (function () {
   }
 
   function dispose() {
-    // Dispose all chunk meshes/materials
+    // Dispose all chunk meshes/materials (supports Mesh, Group, and Arrays)
     for (const chunk of chunks.values()) {
-      if (chunk.mesh && chunk.mesh.geometry) chunk.mesh.geometry.dispose();
-      if (chunk.mesh && chunk.mesh.material) chunk.mesh.material.dispose();
+      if (chunk.mesh) {
+        if (Array.isArray(chunk.mesh)) {
+          chunk.mesh.forEach(m => {
+            if (m.geometry) m.geometry.dispose();
+            if (m.material) m.material.dispose();
+          });
+        } else if (chunk.mesh.geometry) {
+          chunk.mesh.geometry.dispose();
+          if (chunk.mesh.material) {
+            if (Array.isArray(chunk.mesh.material)) {
+              chunk.mesh.material.forEach(m => m.dispose());
+            } else {
+              chunk.mesh.material.dispose();
+            }
+          }
+        }
+      }
       if (chunk.waterMesh && chunk.waterMesh.geometry) chunk.waterMesh.geometry.dispose();
       if (chunk.waterMesh && chunk.waterMesh.material) chunk.waterMesh.material.dispose();
     }
@@ -7576,6 +8042,7 @@ window.VoxelWorld = (function () {
     updateDirtyChunks: typeof updateDirtyChunks === 'function' ? updateDirtyChunks : function () {},
     cullChunks: typeof cullChunks === 'function' ? cullChunks : function () {},
     rebuildAll: typeof rebuildAll === 'function' ? rebuildAll : function () {},
+    getLODScale: typeof getLODScale === 'function' ? getLODScale : function () { return 1; },
     scatterResources,
     worldToChunk,
     getLevelDef,

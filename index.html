@@ -1725,11 +1725,11 @@ document.addEventListener('DOMContentLoaded', function () {
       for (var i = 0; i < btns.length; i++) {
         var v = btns[i].getAttribute('data-drone') || '';
         if (v === window.__chosenDroneType) {
+          btns[i].classList.add('active');
           btns[i].style.boxShadow = '0 0 12px currentColor';
-          btns[i].style.background = 'rgba(255,255,255,0.08)';
         } else {
+          btns[i].classList.remove('active');
           btns[i].style.boxShadow = '';
-          btns[i].style.background = '';
         }
       }
       if (desc) desc.textContent = droneDescs[window.__chosenDroneType] || droneDescs[''];
@@ -1761,13 +1761,11 @@ document.addEventListener('DOMContentLoaded', function () {
       for (var i = 0; i < fbtn.length; i++) {
         var v = fbtn[i].getAttribute('data-formation') || '';
         if (v === window.__chosenFormation) {
-          fbtn[i].style.boxShadow = '0 0 12px #0af';
-          fbtn[i].style.background = 'rgba(0,170,255,0.12)';
+          fbtn[i].classList.add('active');
           fbtn[i].style.borderColor = '#0af';
           fbtn[i].style.color = '#0af';
         } else {
-          fbtn[i].style.boxShadow = '';
-          fbtn[i].style.background = '';
+          fbtn[i].classList.remove('active');
           fbtn[i].style.borderColor = '#888';
           fbtn[i].style.color = '#888';
         }
@@ -2041,9 +2039,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Role selection ──────────────────────────────────────
   document.getElementById('start-role-brigade').addEventListener('click', function () {
     GameManager.setRole('brigade');
+    document.getElementById('start-role-brigade').classList.add('active');
+    document.getElementById('start-role-lonewolf').classList.remove('active');
   });
   document.getElementById('start-role-lonewolf').addEventListener('click', function () {
     GameManager.setRole('lonewolf');
+    document.getElementById('start-role-lonewolf').classList.add('active');
+    document.getElementById('start-role-brigade').classList.remove('active');
   });
   document.getElementById('role-brigade-btn').addEventListener('click', function () {
     GameManager.setRole('brigade');
@@ -2555,9 +2557,9 @@ document.addEventListener('DOMContentLoaded', function () {
       var mode = this.getAttribute('data-mode');
       // Reset all button highlights
       for (var j = 0; j < challengeBtns.length; j++) {
-        challengeBtns[j].style.background = 'transparent';
+        challengeBtns[j].classList.remove('active');
       }
-      this.style.background = 'rgba(255,255,255,0.1)';
+      this.classList.add('active');
       if (typeof Progression !== 'undefined') {
         if (mode) {
           Progression.setChallenge(mode);
