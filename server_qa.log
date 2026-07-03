@@ -9055,3 +9055,727 @@
 [SERVER][200][JS] url=/game-manager.js filePath=D:\occupantkiller\occupantkiller\game-manager.js
 [SERVER] Requested URL: /gamemusic/manifest.json | SafePath: \gamemusic\manifest.json | FilePath: D:\occupantkiller\occupantkiller\gamemusic\manifest.json
 [SERVER] Requested URL: /gamemusic/Glory to Ukraine.mp3 | SafePath: \gamemusic\Glory to Ukraine.mp3 | FilePath: D:\occupantkiller\occupantkiller\gamemusic\Glory to Ukraine.mp3
+[SERVER] Requested URL: /index.html | SafePath: \index.html | FilePath: D:\occupantkiller\occupantkiller\index.html
+[SERVER] Requested URL: /style.css | SafePath: \style.css | FilePath: D:\occupantkiller\occupantkiller\style.css
+[SERVER] Requested URL: /page-prelude.js | SafePath: \page-prelude.js | FilePath: D:\occupantkiller\occupantkiller\page-prelude.js
+[SERVER][200][JS] url=/page-prelude.js filePath=D:\occupantkiller\occupantkiller\page-prelude.js
+[SERVER] Requested URL: /three.min.js | SafePath: \three.min.js | FilePath: D:\occupantkiller\occupantkiller\three.min.js
+[SERVER] Requested URL: /voxel-world.js | SafePath: \voxel-world.js | FilePath: D:\occupantkiller\occupantkiller\voxel-world.js
+[SERVER][200][JS] url=/voxel-world.js filePath=D:\occupantkiller\occupantkiller\voxel-world.js
+[SERVER] Requested URL: /city-buildings.js | SafePath: \city-buildings.js | FilePath: D:\occupantkiller\occupantkiller\city-buildings.js
+[SERVER] Requested URL: /camera-system.js | SafePath: \camera-system.js | FilePath: D:\occupantkiller\occupantkiller\camera-system.js
+[SERVER][200][JS] url=/three.min.js filePath=D:\occupantkiller\occupantkiller\three.min.js
+[SERVER] Requested URL: /time-system.js | SafePath: \time-system.js | FilePath: D:\occupantkiller\occupantkiller\time-system.js
+[SERVER][200][JS] url=/city-buildings.js filePath=D:\occupantkiller\occupantkiller\city-buildings.js
+[SERVER][200][JS] url=/camera-system.js filePath=D:\occupantkiller\occupantkiller\camera-system.js
+[SERVER][200][JS] url=/time-system.js filePath=D:\occupantkiller\occupantkiller\time-system.js
+[SERVER] Requested URL: /economy.js | SafePath: \economy.js | FilePath: D:\occupantkiller\occupantkiller\economy.js
+[SERVER][200][JS] url=/economy.js filePath=D:\occupantkiller\occupantkiller\economy.js
+[SERVER] Requested URL: /api-client.js | SafePath: \api-client.js | FilePath: D:\occupantkiller\occupantkiller\api-client.js
+[SERVER][200][JS] url=/api-client.js filePath=D:\occupantkiller\occupantkiller\api-client.js
+[SERVER] Requested URL: /blockchain.js | SafePath: \blockchain.js | FilePath: D:\occupantkiller\occupantkiller\blockchain.js
+[SERVER][200][JS] url=/blockchain.js filePath=D:\occupantkiller\occupantkiller\blockchain.js
+[SERVER] Requested URL: /marketplace.js | SafePath: \marketplace.js | FilePath: D:\occupantkiller\occupantkiller\marketplace.js
+[SERVER][200][JS] url=/marketplace.js filePath=D:\occupantkiller\occupantkiller\marketplace.js
+[SERVER] Requested URL: /skills.js | SafePath: \skills.js | FilePath: D:\occupantkiller\occupantkiller\skills.js
+[SERVER][200][JS] url=/skills.js filePath=D:\occupantkiller\occupantkiller\skills.js
+[SERVER] Requested URL: /ranks.js | SafePath: \ranks.js | FilePath: D:\occupantkiller\occupantkiller\ranks.js
+[SERVER] Requested URL: /building.js | SafePath: \building.js | FilePath: D:\occupantkiller\occupantkiller\building.js
+[SERVER] Requested URL: /npc-system.js | SafePath: \npc-system.js | FilePath: D:\occupantkiller\occupantkiller\npc-system.js
+[SERVER][200][JS] url=/ranks.js filePath=D:\occupantkiller\occupantkiller\ranks.js
+[SERVER][200][JS] url=/building.js filePath=D:\occupantkiller\occupantkiller\building.js
+[SERVER][200][JS] url=/npc-system.js filePath=D:\occupantkiller\occupantkiller\npc-system.js
+[SERVER] Requested URL: /drone-system.js | SafePath: \drone-system.js | FilePath: D:\occupantkiller\occupantkiller\drone-system.js
+[SERVER][200][JS] url=/drone-system.js filePath=D:\occupantkiller\occupantkiller\drone-system.js
+[SERVER] Requested URL: /vehicles.js | SafePath: \vehicles.js | FilePath: D:\occupantkiller\occupantkiller\vehicles.js
+[SERVER][200][JS] url=/vehicles.js filePath=D:\occupantkiller\occupantkiller\vehicles.js
+[SERVER] Requested URL: /automation.js | SafePath: \automation.js | FilePath: D:\occupantkiller\occupantkiller\automation.js
+[SERVER][200][JS] url=/automation.js filePath=D:\occupantkiller\occupantkiller\automation.js
+[SERVER] Requested URL: /missions.js | SafePath: \missions.js | FilePath: D:\occupantkiller\occupantkiller\missions.js
+[SERVER] Requested URL: /pickups.js | SafePath: \pickups.js | FilePath: D:\occupantkiller\occupantkiller\pickups.js
+[SERVER][200][JS] url=/pickups.js filePath=D:\occupantkiller\occupantkiller\pickups.js
+[SERVER][200][JS] url=/missions.js filePath=D:\occupantkiller\occupantkiller\missions.js
+[SERVER] Requested URL: /hud.js | SafePath: \hud.js | FilePath: D:\occupantkiller\occupantkiller\hud.js
+[SERVER] Requested URL: /hud-extras.js | SafePath: \hud-extras.js | FilePath: D:\occupantkiller\occupantkiller\hud-extras.js
+[SERVER] Requested URL: /hud-extras2.js | SafePath: \hud-extras2.js | FilePath: D:\occupantkiller\occupantkiller\hud-extras2.js
+[SERVER][200][JS] url=/hud.js filePath=D:\occupantkiller\occupantkiller\hud.js
+[SERVER] Requested URL: /hud-extras3.js | SafePath: \hud-extras3.js | FilePath: D:\occupantkiller\occupantkiller\hud-extras3.js
+[SERVER][200][JS] url=/hud-extras.js filePath=D:\occupantkiller\occupantkiller\hud-extras.js
+[SERVER][200][JS] url=/hud-extras2.js filePath=D:\occupantkiller\occupantkiller\hud-extras2.js
+[SERVER][200][JS] url=/hud-extras3.js filePath=D:\occupantkiller\occupantkiller\hud-extras3.js
+[SERVER] Requested URL: /hud-extras4.js | SafePath: \hud-extras4.js | FilePath: D:\occupantkiller\occupantkiller\hud-extras4.js
+[SERVER][200][JS] url=/hud-extras4.js filePath=D:\occupantkiller\occupantkiller\hud-extras4.js
+[SERVER] Requested URL: /match-stats.js | SafePath: \match-stats.js | FilePath: D:\occupantkiller\occupantkiller\match-stats.js
+[SERVER][200][JS] url=/match-stats.js filePath=D:\occupantkiller\occupantkiller\match-stats.js
+[SERVER] Requested URL: /fx-extras.js | SafePath: \fx-extras.js | FilePath: D:\occupantkiller\occupantkiller\fx-extras.js
+[SERVER] Requested URL: /extras-panel.js | SafePath: \extras-panel.js | FilePath: D:\occupantkiller\occupantkiller\extras-panel.js
+[SERVER][200][JS] url=/fx-extras.js filePath=D:\occupantkiller\occupantkiller\fx-extras.js
+[SERVER][200][JS] url=/extras-panel.js filePath=D:\occupantkiller\occupantkiller\extras-panel.js
+[SERVER] Requested URL: /screen-effects.js | SafePath: \screen-effects.js | FilePath: D:\occupantkiller\occupantkiller\screen-effects.js
+[SERVER][200][JS] url=/screen-effects.js filePath=D:\occupantkiller\occupantkiller\screen-effects.js
+[SERVER] Requested URL: /airstrike.js | SafePath: \airstrike.js | FilePath: D:\occupantkiller\occupantkiller\airstrike.js
+[SERVER][200][JS] url=/airstrike.js filePath=D:\occupantkiller\occupantkiller\airstrike.js
+[SERVER] Requested URL: /suppression.js | SafePath: \suppression.js | FilePath: D:\occupantkiller\occupantkiller\suppression.js
+[SERVER] Requested URL: /airdrop.js | SafePath: \airdrop.js | FilePath: D:\occupantkiller\occupantkiller\airdrop.js
+[SERVER] Requested URL: /weather-gameplay.js | SafePath: \weather-gameplay.js | FilePath: D:\occupantkiller\occupantkiller\weather-gameplay.js
+[SERVER] Requested URL: /takedown.js | SafePath: \takedown.js | FilePath: D:\occupantkiller\occupantkiller\takedown.js
+[SERVER] Requested URL: /dog-tags.js | SafePath: \dog-tags.js | FilePath: D:\occupantkiller\occupantkiller\dog-tags.js
+[SERVER] Requested URL: /mission-briefing.js | SafePath: \mission-briefing.js | FilePath: D:\occupantkiller\occupantkiller\mission-briefing.js
+[SERVER][200][JS] url=/suppression.js filePath=D:\occupantkiller\occupantkiller\suppression.js
+[SERVER][200][JS] url=/weather-gameplay.js filePath=D:\occupantkiller\occupantkiller\weather-gameplay.js
+[SERVER][200][JS] url=/airdrop.js filePath=D:\occupantkiller\occupantkiller\airdrop.js
+[SERVER][200][JS] url=/takedown.js filePath=D:\occupantkiller\occupantkiller\takedown.js
+[SERVER][200][JS] url=/dog-tags.js filePath=D:\occupantkiller\occupantkiller\dog-tags.js
+[SERVER][200][JS] url=/mission-briefing.js filePath=D:\occupantkiller\occupantkiller\mission-briefing.js
+[SERVER] Requested URL: /minimap.js | SafePath: \minimap.js | FilePath: D:\occupantkiller\occupantkiller\minimap.js
+[SERVER] Requested URL: /kill-streak.js | SafePath: \kill-streak.js | FilePath: D:\occupantkiller\occupantkiller\kill-streak.js
+[SERVER] Requested URL: /smoke-grenade.js | SafePath: \smoke-grenade.js | FilePath: D:\occupantkiller\occupantkiller\smoke-grenade.js
+[SERVER] Requested URL: /after-action.js | SafePath: \after-action.js | FilePath: D:\occupantkiller\occupantkiller\after-action.js
+[SERVER] Requested URL: /medic-pack.js | SafePath: \medic-pack.js | FilePath: D:\occupantkiller\occupantkiller\medic-pack.js
+[SERVER] Requested URL: /claymore.js | SafePath: \claymore.js | FilePath: D:\occupantkiller\occupantkiller\claymore.js
+[SERVER][200][JS] url=/minimap.js filePath=D:\occupantkiller\occupantkiller\minimap.js
+[SERVER][200][JS] url=/kill-streak.js filePath=D:\occupantkiller\occupantkiller\kill-streak.js
+[SERVER][200][JS] url=/claymore.js filePath=D:\occupantkiller\occupantkiller\claymore.js
+[SERVER][200][JS] url=/medic-pack.js filePath=D:\occupantkiller\occupantkiller\medic-pack.js
+[SERVER][200][JS] url=/smoke-grenade.js filePath=D:\occupantkiller\occupantkiller\smoke-grenade.js
+[SERVER][200][JS] url=/after-action.js filePath=D:\occupantkiller\occupantkiller\after-action.js
+[SERVER] Requested URL: /night-vision.js | SafePath: \night-vision.js | FilePath: D:\occupantkiller\occupantkiller\night-vision.js
+[SERVER] Requested URL: /intel-intercept.js | SafePath: \intel-intercept.js | FilePath: D:\occupantkiller\occupantkiller\intel-intercept.js
+[SERVER] Requested URL: /fpv-drone.js | SafePath: \fpv-drone.js | FilePath: D:\occupantkiller\occupantkiller\fpv-drone.js
+[SERVER] Requested URL: /binoculars.js | SafePath: \binoculars.js | FilePath: D:\occupantkiller\occupantkiller\binoculars.js
+[SERVER] Requested URL: /controls-hud.js | SafePath: \controls-hud.js | FilePath: D:\occupantkiller\occupantkiller\controls-hud.js
+[SERVER] Requested URL: /achievements.js | SafePath: \achievements.js | FilePath: D:\occupantkiller\occupantkiller\achievements.js
+[SERVER][200][JS] url=/night-vision.js filePath=D:\occupantkiller\occupantkiller\night-vision.js
+[SERVER][200][JS] url=/intel-intercept.js filePath=D:\occupantkiller\occupantkiller\intel-intercept.js
+[SERVER][200][JS] url=/binoculars.js filePath=D:\occupantkiller\occupantkiller\binoculars.js
+[SERVER][200][JS] url=/achievements.js filePath=D:\occupantkiller\occupantkiller\achievements.js
+[SERVER][200][JS] url=/fpv-drone.js filePath=D:\occupantkiller\occupantkiller\fpv-drone.js
+[SERVER][200][JS] url=/controls-hud.js filePath=D:\occupantkiller\occupantkiller\controls-hud.js
+[SERVER] Requested URL: /morale.js | SafePath: \morale.js | FilePath: D:\occupantkiller\occupantkiller\morale.js
+[SERVER] Requested URL: /compass.js | SafePath: \compass.js | FilePath: D:\occupantkiller\occupantkiller\compass.js
+[SERVER] Requested URL: /kill-feed.js | SafePath: \kill-feed.js | FilePath: D:\occupantkiller\occupantkiller\kill-feed.js
+[SERVER] Requested URL: /recon-uav.js | SafePath: \recon-uav.js | FilePath: D:\occupantkiller\occupantkiller\recon-uav.js
+[SERVER] Requested URL: /flashbang.js | SafePath: \flashbang.js | FilePath: D:\occupantkiller\occupantkiller\flashbang.js
+[SERVER] Requested URL: /blood-decals.js | SafePath: \blood-decals.js | FilePath: D:\occupantkiller\occupantkiller\blood-decals.js
+[SERVER][200][JS] url=/morale.js filePath=D:\occupantkiller\occupantkiller\morale.js
+[SERVER][200][JS] url=/compass.js filePath=D:\occupantkiller\occupantkiller\compass.js
+[SERVER][200][JS] url=/kill-feed.js filePath=D:\occupantkiller\occupantkiller\kill-feed.js
+[SERVER][200][JS] url=/flashbang.js filePath=D:\occupantkiller\occupantkiller\flashbang.js
+[SERVER][200][JS] url=/recon-uav.js filePath=D:\occupantkiller\occupantkiller\recon-uav.js
+[SERVER][200][JS] url=/blood-decals.js filePath=D:\occupantkiller\occupantkiller\blood-decals.js
+[SERVER] Requested URL: /squadmate.js | SafePath: \squadmate.js | FilePath: D:\occupantkiller\occupantkiller\squadmate.js
+[SERVER] Requested URL: /shockwave.js | SafePath: \shockwave.js | FilePath: D:\occupantkiller\occupantkiller\shockwave.js
+[SERVER] Requested URL: /armor-plates.js | SafePath: \armor-plates.js | FilePath: D:\occupantkiller\occupantkiller\armor-plates.js
+[SERVER] Requested URL: /signal-flare.js | SafePath: \signal-flare.js | FilePath: D:\occupantkiller\occupantkiller\signal-flare.js
+[SERVER] Requested URL: /turret.js | SafePath: \turret.js | FilePath: D:\occupantkiller\occupantkiller\turret.js
+[SERVER] Requested URL: /enemy-flinch.js | SafePath: \enemy-flinch.js | FilePath: D:\occupantkiller\occupantkiller\enemy-flinch.js
+[SERVER][200][JS] url=/signal-flare.js filePath=D:\occupantkiller\occupantkiller\signal-flare.js
+[SERVER][200][JS] url=/shockwave.js filePath=D:\occupantkiller\occupantkiller\shockwave.js
+[SERVER][200][JS] url=/squadmate.js filePath=D:\occupantkiller\occupantkiller\squadmate.js
+[SERVER][200][JS] url=/armor-plates.js filePath=D:\occupantkiller\occupantkiller\armor-plates.js
+[SERVER][200][JS] url=/turret.js filePath=D:\occupantkiller\occupantkiller\turret.js
+[SERVER] Requested URL: /kill-meter.js | SafePath: \kill-meter.js | FilePath: D:\occupantkiller\occupantkiller\kill-meter.js
+[SERVER] Requested URL: /wave-progress.js | SafePath: \wave-progress.js | FilePath: D:\occupantkiller\occupantkiller\wave-progress.js
+[SERVER][200][JS] url=/enemy-flinch.js filePath=D:\occupantkiller\occupantkiller\enemy-flinch.js
+[SERVER][200][JS] url=/wave-progress.js filePath=D:\occupantkiller\occupantkiller\wave-progress.js
+[SERVER][200][JS] url=/kill-meter.js filePath=D:\occupantkiller\occupantkiller\kill-meter.js
+[SERVER] Requested URL: /incendiary.js | SafePath: \incendiary.js | FilePath: D:\occupantkiller\occupantkiller\incendiary.js
+[SERVER] Requested URL: /ghost-camo.js | SafePath: \ghost-camo.js | FilePath: D:\occupantkiller\occupantkiller\ghost-camo.js
+[SERVER] Requested URL: /barrel-traps.js | SafePath: \barrel-traps.js | FilePath: D:\occupantkiller\occupantkiller\barrel-traps.js
+[SERVER] Requested URL: /napalm-strike.js | SafePath: \napalm-strike.js | FilePath: D:\occupantkiller\occupantkiller\napalm-strike.js
+[SERVER] Requested URL: /critical-hud.js | SafePath: \critical-hud.js | FilePath: D:\occupantkiller\occupantkiller\critical-hud.js
+[SERVER] Requested URL: /muzzle-flash.js | SafePath: \muzzle-flash.js | FilePath: D:\occupantkiller\occupantkiller\muzzle-flash.js
+[SERVER][200][JS] url=/incendiary.js filePath=D:\occupantkiller\occupantkiller\incendiary.js
+[SERVER][200][JS] url=/ghost-camo.js filePath=D:\occupantkiller\occupantkiller\ghost-camo.js
+[SERVER][200][JS] url=/napalm-strike.js filePath=D:\occupantkiller\occupantkiller\napalm-strike.js
+[SERVER][200][JS] url=/barrel-traps.js filePath=D:\occupantkiller\occupantkiller\barrel-traps.js
+[SERVER][200][JS] url=/muzzle-flash.js filePath=D:\occupantkiller\occupantkiller\muzzle-flash.js
+[SERVER][200][JS] url=/critical-hud.js filePath=D:\occupantkiller\occupantkiller\critical-hud.js
+[SERVER] Requested URL: /supply-drop.js | SafePath: \supply-drop.js | FilePath: D:\occupantkiller\occupantkiller\supply-drop.js
+[SERVER][200][JS] url=/supply-drop.js filePath=D:\occupantkiller\occupantkiller\supply-drop.js
+[SERVER] Requested URL: /lightning-strike.js | SafePath: \lightning-strike.js | FilePath: D:\occupantkiller\occupantkiller\lightning-strike.js
+[SERVER] Requested URL: /black-hole.js | SafePath: \black-hole.js | FilePath: D:\occupantkiller\occupantkiller\black-hole.js
+[SERVER] Requested URL: /time-bomb.js | SafePath: \time-bomb.js | FilePath: D:\occupantkiller\occupantkiller\time-bomb.js
+[SERVER] Requested URL: /force-blast.js | SafePath: \force-blast.js | FilePath: D:\occupantkiller\occupantkiller\force-blast.js
+[SERVER] Requested URL: /target-painter.js | SafePath: \target-painter.js | FilePath: D:\occupantkiller\occupantkiller\target-painter.js
+[SERVER] Requested URL: /cryo-grenade.js | SafePath: \cryo-grenade.js | FilePath: D:\occupantkiller\occupantkiller\cryo-grenade.js
+[SERVER][200][JS] url=/lightning-strike.js filePath=D:\occupantkiller\occupantkiller\lightning-strike.js
+[SERVER][200][JS] url=/black-hole.js filePath=D:\occupantkiller\occupantkiller\black-hole.js
+[SERVER][200][JS] url=/time-bomb.js filePath=D:\occupantkiller\occupantkiller\time-bomb.js
+[SERVER][200][JS] url=/force-blast.js filePath=D:\occupantkiller\occupantkiller\force-blast.js
+[SERVER][200][JS] url=/target-painter.js filePath=D:\occupantkiller\occupantkiller\target-painter.js
+[SERVER][200][JS] url=/cryo-grenade.js filePath=D:\occupantkiller\occupantkiller\cryo-grenade.js
+[SERVER] Requested URL: /cluster-bomb.js | SafePath: \cluster-bomb.js | FilePath: D:\occupantkiller\occupantkiller\cluster-bomb.js
+[SERVER] Requested URL: /railgun.js | SafePath: \railgun.js | FilePath: D:\occupantkiller\occupantkiller\railgun.js
+[SERVER][200][JS] url=/cluster-bomb.js filePath=D:\occupantkiller\occupantkiller\cluster-bomb.js
+[SERVER] Requested URL: /vortex-cannon.js | SafePath: \vortex-cannon.js | FilePath: D:\occupantkiller\occupantkiller\vortex-cannon.js
+[SERVER] Requested URL: /emp-pulse.js | SafePath: \emp-pulse.js | FilePath: D:\occupantkiller\occupantkiller\emp-pulse.js
+[SERVER] Requested URL: /adrenaline-shot.js | SafePath: \adrenaline-shot.js | FilePath: D:\occupantkiller\occupantkiller\adrenaline-shot.js
+[SERVER] Requested URL: /quantum-shift.js | SafePath: \quantum-shift.js | FilePath: D:\occupantkiller\occupantkiller\quantum-shift.js
+[SERVER] Requested URL: /orbital-laser.js | SafePath: \orbital-laser.js | FilePath: D:\occupantkiller\occupantkiller\orbital-laser.js
+[SERVER][200][JS] url=/railgun.js filePath=D:\occupantkiller\occupantkiller\railgun.js
+[SERVER][200][JS] url=/emp-pulse.js filePath=D:\occupantkiller\occupantkiller\emp-pulse.js
+[SERVER][200][JS] url=/vortex-cannon.js filePath=D:\occupantkiller\occupantkiller\vortex-cannon.js
+[SERVER][200][JS] url=/adrenaline-shot.js filePath=D:\occupantkiller\occupantkiller\adrenaline-shot.js
+[SERVER][200][JS] url=/quantum-shift.js filePath=D:\occupantkiller\occupantkiller\quantum-shift.js
+[SERVER][200][JS] url=/orbital-laser.js filePath=D:\occupantkiller\occupantkiller\orbital-laser.js
+[SERVER] Requested URL: /berserker-mode.js | SafePath: \berserker-mode.js | FilePath: D:\occupantkiller\occupantkiller\berserker-mode.js
+[SERVER][200][JS] url=/berserker-mode.js filePath=D:\occupantkiller\occupantkiller\berserker-mode.js
+[SERVER] Requested URL: /war-cry.js | SafePath: \war-cry.js | FilePath: D:\occupantkiller\occupantkiller\war-cry.js
+[SERVER] Requested URL: /sniper-scope.js | SafePath: \sniper-scope.js | FilePath: D:\occupantkiller\occupantkiller\sniper-scope.js
+[SERVER] Requested URL: /inferno-wall.js | SafePath: \inferno-wall.js | FilePath: D:\occupantkiller\occupantkiller\inferno-wall.js
+[SERVER] Requested URL: /shield-bubble.js | SafePath: \shield-bubble.js | FilePath: D:\occupantkiller\occupantkiller\shield-bubble.js
+[SERVER] Requested URL: /tactical-nuke.js | SafePath: \tactical-nuke.js | FilePath: D:\occupantkiller\occupantkiller\tactical-nuke.js
+[SERVER] Requested URL: /objective-tracker.js | SafePath: \objective-tracker.js | FilePath: D:\occupantkiller\occupantkiller\objective-tracker.js
+[SERVER][200][JS] url=/war-cry.js filePath=D:\occupantkiller\occupantkiller\war-cry.js
+[SERVER][200][JS] url=/inferno-wall.js filePath=D:\occupantkiller\occupantkiller\inferno-wall.js
+[SERVER][200][JS] url=/shield-bubble.js filePath=D:\occupantkiller\occupantkiller\shield-bubble.js
+[SERVER][200][JS] url=/objective-tracker.js filePath=D:\occupantkiller\occupantkiller\objective-tracker.js
+[SERVER][200][JS] url=/sniper-scope.js filePath=D:\occupantkiller\occupantkiller\sniper-scope.js
+[SERVER][200][JS] url=/tactical-nuke.js filePath=D:\occupantkiller\occupantkiller\tactical-nuke.js
+[SERVER] Requested URL: /wave-intro-card.js | SafePath: \wave-intro-card.js | FilePath: D:\occupantkiller\occupantkiller\wave-intro-card.js
+[SERVER] Requested URL: /ammo-warning.js | SafePath: \ammo-warning.js | FilePath: D:\occupantkiller\occupantkiller\ammo-warning.js
+[SERVER][200][JS] url=/wave-intro-card.js filePath=D:\occupantkiller\occupantkiller\wave-intro-card.js
+[SERVER] Requested URL: /tactical-hud-frame.js | SafePath: \tactical-hud-frame.js | FilePath: D:\occupantkiller\occupantkiller\tactical-hud-frame.js
+[SERVER] Requested URL: /boss-warning.js | SafePath: \boss-warning.js | FilePath: D:\occupantkiller\occupantkiller\boss-warning.js
+[SERVER] Requested URL: /precision-shot-award.js | SafePath: \precision-shot-award.js | FilePath: D:\occupantkiller\occupantkiller\precision-shot-award.js
+[SERVER] Requested URL: /kill-combo-announce.js | SafePath: \kill-combo-announce.js | FilePath: D:\occupantkiller\occupantkiller\kill-combo-announce.js
+[SERVER] Requested URL: /hit-marker.js | SafePath: \hit-marker.js | FilePath: D:\occupantkiller\occupantkiller\hit-marker.js
+[SERVER][200][JS] url=/ammo-warning.js filePath=D:\occupantkiller\occupantkiller\ammo-warning.js
+[SERVER][200][JS] url=/tactical-hud-frame.js filePath=D:\occupantkiller\occupantkiller\tactical-hud-frame.js
+[SERVER][200][JS] url=/boss-warning.js filePath=D:\occupantkiller\occupantkiller\boss-warning.js
+[SERVER][200][JS] url=/precision-shot-award.js filePath=D:\occupantkiller\occupantkiller\precision-shot-award.js
+[SERVER][200][JS] url=/kill-combo-announce.js filePath=D:\occupantkiller\occupantkiller\kill-combo-announce.js
+[SERVER][200][JS] url=/hit-marker.js filePath=D:\occupantkiller\occupantkiller\hit-marker.js
+[SERVER] Requested URL: /enemy-healthbars.js | SafePath: \enemy-healthbars.js | FilePath: D:\occupantkiller\occupantkiller\enemy-healthbars.js
+[SERVER] Requested URL: /kill-announcer.js | SafePath: \kill-announcer.js | FilePath: D:\occupantkiller\occupantkiller\kill-announcer.js
+[SERVER] Requested URL: /radar-minimap.js | SafePath: \radar-minimap.js | FilePath: D:\occupantkiller\occupantkiller\radar-minimap.js
+[SERVER] Requested URL: /screen-blood.js | SafePath: \screen-blood.js | FilePath: D:\occupantkiller\occupantkiller\screen-blood.js
+[SERVER] Requested URL: /wave-timer.js | SafePath: \wave-timer.js | FilePath: D:\occupantkiller\occupantkiller\wave-timer.js
+[SERVER][200][JS] url=/kill-announcer.js filePath=D:\occupantkiller\occupantkiller\kill-announcer.js
+[SERVER][200][JS] url=/enemy-healthbars.js filePath=D:\occupantkiller\occupantkiller\enemy-healthbars.js
+[SERVER] Requested URL: /enemy-counter.js | SafePath: \enemy-counter.js | FilePath: D:\occupantkiller\occupantkiller\enemy-counter.js
+[SERVER][200][JS] url=/radar-minimap.js filePath=D:\occupantkiller\occupantkiller\radar-minimap.js
+[SERVER][200][JS] url=/wave-timer.js filePath=D:\occupantkiller\occupantkiller\wave-timer.js
+[SERVER][200][JS] url=/screen-blood.js filePath=D:\occupantkiller\occupantkiller\screen-blood.js
+[SERVER][200][JS] url=/enemy-counter.js filePath=D:\occupantkiller\occupantkiller\enemy-counter.js
+[SERVER] Requested URL: /damage-direction.js | SafePath: \damage-direction.js | FilePath: D:\occupantkiller\occupantkiller\damage-direction.js
+[SERVER] Requested URL: /offscreen-arrows.js | SafePath: \offscreen-arrows.js | FilePath: D:\occupantkiller\occupantkiller\offscreen-arrows.js
+[SERVER][200][JS] url=/offscreen-arrows.js filePath=D:\occupantkiller\occupantkiller\offscreen-arrows.js
+[SERVER] Requested URL: /proximity-warning.js | SafePath: \proximity-warning.js | FilePath: D:\occupantkiller\occupantkiller\proximity-warning.js
+[SERVER][200][JS] url=/damage-direction.js filePath=D:\occupantkiller\occupantkiller\damage-direction.js
+[SERVER] Requested URL: /session-score.js | SafePath: \session-score.js | FilePath: D:\occupantkiller\occupantkiller\session-score.js
+[SERVER] Requested URL: /accuracy-tracker.js | SafePath: \accuracy-tracker.js | FilePath: D:\occupantkiller\occupantkiller\accuracy-tracker.js
+[SERVER] Requested URL: /ambient-particles.js | SafePath: \ambient-particles.js | FilePath: D:\occupantkiller\occupantkiller\ambient-particles.js
+[SERVER] Requested URL: /low-ammo-warning.js | SafePath: \low-ammo-warning.js | FilePath: D:\occupantkiller\occupantkiller\low-ammo-warning.js
+[SERVER] Requested URL: /kill-distance.js | SafePath: \kill-distance.js | FilePath: D:\occupantkiller\occupantkiller\kill-distance.js
+[SERVER][200][JS] url=/session-score.js filePath=D:\occupantkiller\occupantkiller\session-score.js
+[SERVER][200][JS] url=/accuracy-tracker.js filePath=D:\occupantkiller\occupantkiller\accuracy-tracker.js
+[SERVER][200][JS] url=/proximity-warning.js filePath=D:\occupantkiller\occupantkiller\proximity-warning.js
+[SERVER][200][JS] url=/ambient-particles.js filePath=D:\occupantkiller\occupantkiller\ambient-particles.js
+[SERVER][200][JS] url=/low-ammo-warning.js filePath=D:\occupantkiller\occupantkiller\low-ammo-warning.js
+[SERVER][200][JS] url=/kill-distance.js filePath=D:\occupantkiller\occupantkiller\kill-distance.js
+[SERVER] Requested URL: /footstep-dust.js | SafePath: \footstep-dust.js | FilePath: D:\occupantkiller\occupantkiller\footstep-dust.js
+[SERVER] Requested URL: /death-recap.js | SafePath: \death-recap.js | FilePath: D:\occupantkiller\occupantkiller\death-recap.js
+[SERVER] Requested URL: /combo-counter.js | SafePath: \combo-counter.js | FilePath: D:\occupantkiller\occupantkiller\combo-counter.js
+[SERVER] Requested URL: /tactical-compass.js | SafePath: \tactical-compass.js | FilePath: D:\occupantkiller\occupantkiller\tactical-compass.js
+[SERVER] Requested URL: /voice-lines.js | SafePath: \voice-lines.js | FilePath: D:\occupantkiller\occupantkiller\voice-lines.js
+[SERVER] Requested URL: /shell-eject.js | SafePath: \shell-eject.js | FilePath: D:\occupantkiller\occupantkiller\shell-eject.js
+[SERVER][200][JS] url=/death-recap.js filePath=D:\occupantkiller\occupantkiller\death-recap.js
+[SERVER][200][JS] url=/footstep-dust.js filePath=D:\occupantkiller\occupantkiller\footstep-dust.js
+[SERVER][200][JS] url=/tactical-compass.js filePath=D:\occupantkiller\occupantkiller\tactical-compass.js
+[SERVER][200][JS] url=/combo-counter.js filePath=D:\occupantkiller\occupantkiller\combo-counter.js
+[SERVER][200][JS] url=/voice-lines.js filePath=D:\occupantkiller\occupantkiller\voice-lines.js
+[SERVER][200][JS] url=/shell-eject.js filePath=D:\occupantkiller\occupantkiller\shell-eject.js
+[SERVER] Requested URL: /wave-intel.js | SafePath: \wave-intel.js | FilePath: D:\occupantkiller\occupantkiller\wave-intel.js
+[SERVER] Requested URL: /reload-bar.js | SafePath: \reload-bar.js | FilePath: D:\occupantkiller\occupantkiller\reload-bar.js
+[SERVER] Requested URL: /performance-medal.js | SafePath: \performance-medal.js | FilePath: D:\occupantkiller\occupantkiller\performance-medal.js
+[SERVER] Requested URL: /explosion-ring.js | SafePath: \explosion-ring.js | FilePath: D:\occupantkiller\occupantkiller\explosion-ring.js
+[SERVER] Requested URL: /cinematic-letterbox.js | SafePath: \cinematic-letterbox.js | FilePath: D:\occupantkiller\occupantkiller\cinematic-letterbox.js
+[SERVER] Requested URL: /battle-rating.js | SafePath: \battle-rating.js | FilePath: D:\occupantkiller\occupantkiller\battle-rating.js
+[SERVER][200][JS] url=/reload-bar.js filePath=D:\occupantkiller\occupantkiller\reload-bar.js
+[SERVER][200][JS] url=/performance-medal.js filePath=D:\occupantkiller\occupantkiller\performance-medal.js
+[SERVER][200][JS] url=/wave-intel.js filePath=D:\occupantkiller\occupantkiller\wave-intel.js
+[SERVER][200][JS] url=/explosion-ring.js filePath=D:\occupantkiller\occupantkiller\explosion-ring.js
+[SERVER][200][JS] url=/battle-rating.js filePath=D:\occupantkiller\occupantkiller\battle-rating.js
+[SERVER][200][JS] url=/cinematic-letterbox.js filePath=D:\occupantkiller\occupantkiller\cinematic-letterbox.js
+[SERVER] Requested URL: /wave-scoreboard.js | SafePath: \wave-scoreboard.js | FilePath: D:\occupantkiller\occupantkiller\wave-scoreboard.js
+[SERVER] Requested URL: /streak-fire.js | SafePath: \streak-fire.js | FilePath: D:\occupantkiller\occupantkiller\streak-fire.js
+[SERVER] Requested URL: /low-hp-breathing.js | SafePath: \low-hp-breathing.js | FilePath: D:\occupantkiller\occupantkiller\low-hp-breathing.js
+[SERVER] Requested URL: /kill-milestone.js | SafePath: \kill-milestone.js | FilePath: D:\occupantkiller\occupantkiller\kill-milestone.js
+[SERVER] Requested URL: /stats-overlay.js | SafePath: \stats-overlay.js | FilePath: D:\occupantkiller\occupantkiller\stats-overlay.js
+[SERVER] Requested URL: /threat-lock-indicator.js | SafePath: \threat-lock-indicator.js | FilePath: D:\occupantkiller\occupantkiller\threat-lock-indicator.js
+[SERVER][200][JS] url=/wave-scoreboard.js filePath=D:\occupantkiller\occupantkiller\wave-scoreboard.js
+[SERVER][200][JS] url=/streak-fire.js filePath=D:\occupantkiller\occupantkiller\streak-fire.js
+[SERVER][200][JS] url=/low-hp-breathing.js filePath=D:\occupantkiller\occupantkiller\low-hp-breathing.js
+[SERVER][200][JS] url=/kill-milestone.js filePath=D:\occupantkiller\occupantkiller\kill-milestone.js
+[SERVER][200][JS] url=/stats-overlay.js filePath=D:\occupantkiller\occupantkiller\stats-overlay.js
+[SERVER][200][JS] url=/threat-lock-indicator.js filePath=D:\occupantkiller\occupantkiller\threat-lock-indicator.js
+[SERVER] Requested URL: /kill-streak-timer.js | SafePath: \kill-streak-timer.js | FilePath: D:\occupantkiller\occupantkiller\kill-streak-timer.js
+[SERVER][200][JS] url=/kill-streak-timer.js filePath=D:\occupantkiller\occupantkiller\kill-streak-timer.js
+[SERVER] Requested URL: /npc-bark-label.js | SafePath: \npc-bark-label.js | FilePath: D:\occupantkiller\occupantkiller\npc-bark-label.js
+[SERVER] Requested URL: /wave-countdown.js | SafePath: \wave-countdown.js | FilePath: D:\occupantkiller\occupantkiller\wave-countdown.js
+[SERVER][200][JS] url=/npc-bark-label.js filePath=D:\occupantkiller\occupantkiller\npc-bark-label.js
+[SERVER] Requested URL: /stage-name-splash.js | SafePath: \stage-name-splash.js | FilePath: D:\occupantkiller\occupantkiller\stage-name-splash.js
+[SERVER] Requested URL: /compass-strip.js | SafePath: \compass-strip.js | FilePath: D:\occupantkiller\occupantkiller\compass-strip.js
+[SERVER] Requested URL: /damage-log.js | SafePath: \damage-log.js | FilePath: D:\occupantkiller\occupantkiller\damage-log.js
+[SERVER] Requested URL: /survivor-clock.js | SafePath: \survivor-clock.js | FilePath: D:\occupantkiller\occupantkiller\survivor-clock.js
+[SERVER][200][JS] url=/compass-strip.js filePath=D:\occupantkiller\occupantkiller\compass-strip.js
+[SERVER][200][JS] url=/wave-countdown.js filePath=D:\occupantkiller\occupantkiller\wave-countdown.js
+[SERVER][200][JS] url=/damage-log.js filePath=D:\occupantkiller\occupantkiller\damage-log.js
+[SERVER][200][JS] url=/stage-name-splash.js filePath=D:\occupantkiller\occupantkiller\stage-name-splash.js
+[SERVER] Requested URL: /building-collapse.js | SafePath: \building-collapse.js | FilePath: D:\occupantkiller\occupantkiller\building-collapse.js
+[SERVER][200][JS] url=/survivor-clock.js filePath=D:\occupantkiller\occupantkiller\survivor-clock.js
+[SERVER][200][JS] url=/building-collapse.js filePath=D:\occupantkiller\occupantkiller\building-collapse.js
+[SERVER] Requested URL: /grenade-arc-preview.js | SafePath: \grenade-arc-preview.js | FilePath: D:\occupantkiller\occupantkiller\grenade-arc-preview.js
+[SERVER][200][JS] url=/grenade-arc-preview.js filePath=D:\occupantkiller\occupantkiller\grenade-arc-preview.js
+[SERVER] Requested URL: /dynamic-crosshair.js | SafePath: \dynamic-crosshair.js | FilePath: D:\occupantkiller\occupantkiller\dynamic-crosshair.js
+[SERVER] Requested URL: /weapon-details.js | SafePath: \weapon-details.js | FilePath: D:\occupantkiller\occupantkiller\weapon-details.js
+[SERVER] Requested URL: /weapons-data.js | SafePath: \weapons-data.js | FilePath: D:\occupantkiller\occupantkiller\weapons-data.js
+[SERVER] Requested URL: /weapons.js | SafePath: \weapons.js | FilePath: D:\occupantkiller\occupantkiller\weapons.js
+[SERVER] Requested URL: /enemies.js | SafePath: \enemies.js | FilePath: D:\occupantkiller\occupantkiller\enemies.js
+[SERVER] Requested URL: /convoy-system.js | SafePath: \convoy-system.js | FilePath: D:\occupantkiller\occupantkiller\convoy-system.js
+[SERVER][200][JS] url=/dynamic-crosshair.js filePath=D:\occupantkiller\occupantkiller\dynamic-crosshair.js
+[SERVER][200][JS] url=/weapon-details.js filePath=D:\occupantkiller\occupantkiller\weapon-details.js
+[SERVER][200][JS] url=/weapons-data.js filePath=D:\occupantkiller\occupantkiller\weapons-data.js
+[SERVER][200][JS] url=/weapons.js filePath=D:\occupantkiller\occupantkiller\weapons.js
+[SERVER][200][JS] url=/convoy-system.js filePath=D:\occupantkiller\occupantkiller\convoy-system.js
+[SERVER][200][JS] url=/enemies.js filePath=D:\occupantkiller\occupantkiller\enemies.js
+[SERVER] Requested URL: /audio-system.js | SafePath: \audio-system.js | FilePath: D:\occupantkiller\occupantkiller\audio-system.js
+[SERVER] Requested URL: /jukebox.js | SafePath: \jukebox.js | FilePath: D:\occupantkiller\occupantkiller\jukebox.js
+[SERVER][200][JS] url=/audio-system.js filePath=D:\occupantkiller\occupantkiller\audio-system.js
+[SERVER] Requested URL: /birds.js | SafePath: \birds.js | FilePath: D:\occupantkiller\occupantkiller\birds.js
+[SERVER][200][JS] url=/jukebox.js filePath=D:\occupantkiller\occupantkiller\jukebox.js
+[SERVER] Requested URL: /premium.js | SafePath: \premium.js | FilePath: D:\occupantkiller\occupantkiller\premium.js
+[SERVER][200][JS] url=/birds.js filePath=D:\occupantkiller\occupantkiller\birds.js
+[SERVER][200][JS] url=/premium.js filePath=D:\occupantkiller\occupantkiller\premium.js
+[SERVER] Requested URL: /lottery.js | SafePath: \lottery.js | FilePath: D:\occupantkiller\occupantkiller\lottery.js
+[SERVER] Requested URL: /mortar.js | SafePath: \mortar.js | FilePath: D:\occupantkiller\occupantkiller\mortar.js
+[SERVER][200][JS] url=/lottery.js filePath=D:\occupantkiller\occupantkiller\lottery.js
+[SERVER] Requested URL: /bradley.js | SafePath: \bradley.js | FilePath: D:\occupantkiller\occupantkiller\bradley.js
+[SERVER] Requested URL: /gyro.js | SafePath: \gyro.js | FilePath: D:\occupantkiller\occupantkiller\gyro.js
+[SERVER][200][JS] url=/mortar.js filePath=D:\occupantkiller\occupantkiller\mortar.js
+[SERVER] Requested URL: /weather-system.js | SafePath: \weather-system.js | FilePath: D:\occupantkiller\occupantkiller\weather-system.js
+[SERVER] Requested URL: /ml-system.js | SafePath: \ml-system.js | FilePath: D:\occupantkiller\occupantkiller\ml-system.js
+[SERVER][200][JS] url=/bradley.js filePath=D:\occupantkiller\occupantkiller\bradley.js
+[SERVER][200][JS] url=/gyro.js filePath=D:\occupantkiller\occupantkiller\gyro.js
+[SERVER][200][JS] url=/ml-system.js filePath=D:\occupantkiller\occupantkiller\ml-system.js
+[SERVER][200][JS] url=/weather-system.js filePath=D:\occupantkiller\occupantkiller\weather-system.js
+[SERVER] Requested URL: /npc-ml.js | SafePath: \npc-ml.js | FilePath: D:\occupantkiller\occupantkiller\npc-ml.js
+[SERVER][200][JS] url=/npc-ml.js filePath=D:\occupantkiller\occupantkiller\npc-ml.js
+[SERVER] Requested URL: /tracers.js | SafePath: \tracers.js | FilePath: D:\occupantkiller\occupantkiller\tracers.js
+[SERVER][200][JS] url=/tracers.js filePath=D:\occupantkiller\occupantkiller\tracers.js
+[SERVER] Requested URL: /stage-vfx.js | SafePath: \stage-vfx.js | FilePath: D:\occupantkiller\occupantkiller\stage-vfx.js
+[SERVER] Requested URL: /flags.js | SafePath: \flags.js | FilePath: D:\occupantkiller\occupantkiller\flags.js
+[SERVER] Requested URL: /environment.js | SafePath: \environment.js | FilePath: D:\occupantkiller\occupantkiller\environment.js
+[SERVER] Requested URL: /combat-extras.js | SafePath: \combat-extras.js | FilePath: D:\occupantkiller\occupantkiller\combat-extras.js
+[SERVER] Requested URL: /traversal.js | SafePath: \traversal.js | FilePath: D:\occupantkiller\occupantkiller\traversal.js
+[SERVER] Requested URL: /enemy-types.js | SafePath: \enemy-types.js | FilePath: D:\occupantkiller\occupantkiller\enemy-types.js
+[SERVER][200][JS] url=/stage-vfx.js filePath=D:\occupantkiller\occupantkiller\stage-vfx.js
+[SERVER][200][JS] url=/flags.js filePath=D:\occupantkiller\occupantkiller\flags.js
+[SERVER][200][JS] url=/combat-extras.js filePath=D:\occupantkiller\occupantkiller\combat-extras.js
+[SERVER][200][JS] url=/environment.js filePath=D:\occupantkiller\occupantkiller\environment.js
+[SERVER][200][JS] url=/traversal.js filePath=D:\occupantkiller\occupantkiller\traversal.js
+[SERVER][200][JS] url=/enemy-types.js filePath=D:\occupantkiller\occupantkiller\enemy-types.js
+[SERVER] Requested URL: /world-features.js | SafePath: \world-features.js | FilePath: D:\occupantkiller\occupantkiller\world-features.js
+[SERVER] Requested URL: /perks.js | SafePath: \perks.js | FilePath: D:\occupantkiller\occupantkiller\perks.js
+[SERVER] Requested URL: /mission-types.js | SafePath: \mission-types.js | FilePath: D:\occupantkiller\occupantkiller\mission-types.js
+[SERVER] Requested URL: /feedback.js | SafePath: \feedback.js | FilePath: D:\occupantkiller\occupantkiller\feedback.js
+[SERVER] Requested URL: /progression.js | SafePath: \progression.js | FilePath: D:\occupantkiller\occupantkiller\progression.js
+[SERVER] Requested URL: /refinery-strike.js | SafePath: \refinery-strike.js | FilePath: D:\occupantkiller\occupantkiller\refinery-strike.js
+[SERVER][200][JS] url=/world-features.js filePath=D:\occupantkiller\occupantkiller\world-features.js
+[SERVER][200][JS] url=/perks.js filePath=D:\occupantkiller\occupantkiller\perks.js
+[SERVER][200][JS] url=/mission-types.js filePath=D:\occupantkiller\occupantkiller\mission-types.js
+[SERVER][200][JS] url=/feedback.js filePath=D:\occupantkiller\occupantkiller\feedback.js
+[SERVER][200][JS] url=/progression.js filePath=D:\occupantkiller\occupantkiller\progression.js
+[SERVER][200][JS] url=/refinery-strike.js filePath=D:\occupantkiller\occupantkiller\refinery-strike.js
+[SERVER] Requested URL: /enemy-artillery.js | SafePath: \enemy-artillery.js | FilePath: D:\occupantkiller\occupantkiller\enemy-artillery.js
+[SERVER] Requested URL: /game-constants.js | SafePath: \game-constants.js | FilePath: D:\occupantkiller\occupantkiller\game-constants.js
+[SERVER] Requested URL: /player-state.js | SafePath: \player-state.js | FilePath: D:\occupantkiller\occupantkiller\player-state.js
+[SERVER] Requested URL: /wave-manager.js | SafePath: \wave-manager.js | FilePath: D:\occupantkiller\occupantkiller\wave-manager.js
+[SERVER] Requested URL: /boot-manager.js | SafePath: \boot-manager.js | FilePath: D:\occupantkiller\occupantkiller\boot-manager.js
+[SERVER] Requested URL: /fx-manager.js | SafePath: \fx-manager.js | FilePath: D:\occupantkiller\occupantkiller\fx-manager.js
+[SERVER][200][JS] url=/enemy-artillery.js filePath=D:\occupantkiller\occupantkiller\enemy-artillery.js
+[SERVER][200][JS] url=/player-state.js filePath=D:\occupantkiller\occupantkiller\player-state.js
+[SERVER][200][JS] url=/wave-manager.js filePath=D:\occupantkiller\occupantkiller\wave-manager.js
+[SERVER][200][JS] url=/boot-manager.js filePath=D:\occupantkiller\occupantkiller\boot-manager.js
+[SERVER][200][JS] url=/game-constants.js filePath=D:\occupantkiller\occupantkiller\game-constants.js
+[SERVER][200][JS] url=/fx-manager.js filePath=D:\occupantkiller\occupantkiller\fx-manager.js
+[SERVER] Requested URL: /input-manager.js | SafePath: \input-manager.js | FilePath: D:\occupantkiller\occupantkiller\input-manager.js
+[SERVER] Requested URL: /save-manager.js | SafePath: \save-manager.js | FilePath: D:\occupantkiller\occupantkiller\save-manager.js
+[SERVER] Requested URL: /combat-manager.js | SafePath: \combat-manager.js | FilePath: D:\occupantkiller\occupantkiller\combat-manager.js
+[SERVER] Requested URL: /ui-manager.js | SafePath: \ui-manager.js | FilePath: D:\occupantkiller\occupantkiller\ui-manager.js
+[SERVER][200][JS] url=/input-manager.js filePath=D:\occupantkiller\occupantkiller\input-manager.js
+[SERVER] Requested URL: /mission-manager.js | SafePath: \mission-manager.js | FilePath: D:\occupantkiller\occupantkiller\mission-manager.js
+[SERVER] Requested URL: /bradley.js | SafePath: \bradley.js | FilePath: D:\occupantkiller\occupantkiller\bradley.js
+[SERVER][200][JS] url=/save-manager.js filePath=D:\occupantkiller\occupantkiller\save-manager.js
+[SERVER][200][JS] url=/combat-manager.js filePath=D:\occupantkiller\occupantkiller\combat-manager.js
+[SERVER][200][JS] url=/ui-manager.js filePath=D:\occupantkiller\occupantkiller\ui-manager.js
+[SERVER][200][JS] url=/mission-manager.js filePath=D:\occupantkiller\occupantkiller\mission-manager.js
+[SERVER][200][JS] url=/bradley.js filePath=D:\occupantkiller\occupantkiller\bradley.js
+[SERVER] Requested URL: /game-manager.js | SafePath: \game-manager.js | FilePath: D:\occupantkiller\occupantkiller\game-manager.js
+[SERVER][200][JS] url=/game-manager.js filePath=D:\occupantkiller\occupantkiller\game-manager.js
+[SERVER] Requested URL: /gamemusic/manifest.json | SafePath: \gamemusic\manifest.json | FilePath: D:\occupantkiller\occupantkiller\gamemusic\manifest.json
+[SERVER] Requested URL: /gamemusic/Glory to Ukraine.mp3 | SafePath: \gamemusic\Glory to Ukraine.mp3 | FilePath: D:\occupantkiller\occupantkiller\gamemusic\Glory to Ukraine.mp3
+[SERVER] Requested URL: /index.html | SafePath: \index.html | FilePath: D:\occupantkiller\occupantkiller\index.html
+[SERVER] Requested URL: /style.css | SafePath: \style.css | FilePath: D:\occupantkiller\occupantkiller\style.css
+[SERVER] Requested URL: /page-prelude.js | SafePath: \page-prelude.js | FilePath: D:\occupantkiller\occupantkiller\page-prelude.js
+[SERVER][200][JS] url=/page-prelude.js filePath=D:\occupantkiller\occupantkiller\page-prelude.js
+[SERVER] Requested URL: /three.min.js | SafePath: \three.min.js | FilePath: D:\occupantkiller\occupantkiller\three.min.js
+[SERVER] Requested URL: /voxel-world.js | SafePath: \voxel-world.js | FilePath: D:\occupantkiller\occupantkiller\voxel-world.js
+[SERVER] Requested URL: /city-buildings.js | SafePath: \city-buildings.js | FilePath: D:\occupantkiller\occupantkiller\city-buildings.js
+[SERVER][200][JS] url=/voxel-world.js filePath=D:\occupantkiller\occupantkiller\voxel-world.js
+[SERVER] Requested URL: /camera-system.js | SafePath: \camera-system.js | FilePath: D:\occupantkiller\occupantkiller\camera-system.js
+[SERVER][200][JS] url=/three.min.js filePath=D:\occupantkiller\occupantkiller\three.min.js
+[SERVER] Requested URL: /time-system.js | SafePath: \time-system.js | FilePath: D:\occupantkiller\occupantkiller\time-system.js
+[SERVER][200][JS] url=/city-buildings.js filePath=D:\occupantkiller\occupantkiller\city-buildings.js
+[SERVER][200][JS] url=/camera-system.js filePath=D:\occupantkiller\occupantkiller\camera-system.js
+[SERVER][200][JS] url=/time-system.js filePath=D:\occupantkiller\occupantkiller\time-system.js
+[SERVER] Requested URL: /economy.js | SafePath: \economy.js | FilePath: D:\occupantkiller\occupantkiller\economy.js
+[SERVER][200][JS] url=/economy.js filePath=D:\occupantkiller\occupantkiller\economy.js
+[SERVER] Requested URL: /api-client.js | SafePath: \api-client.js | FilePath: D:\occupantkiller\occupantkiller\api-client.js
+[SERVER] Requested URL: /blockchain.js | SafePath: \blockchain.js | FilePath: D:\occupantkiller\occupantkiller\blockchain.js
+[SERVER][200][JS] url=/api-client.js filePath=D:\occupantkiller\occupantkiller\api-client.js
+[SERVER][200][JS] url=/blockchain.js filePath=D:\occupantkiller\occupantkiller\blockchain.js
+[SERVER] Requested URL: /marketplace.js | SafePath: \marketplace.js | FilePath: D:\occupantkiller\occupantkiller\marketplace.js
+[SERVER][200][JS] url=/marketplace.js filePath=D:\occupantkiller\occupantkiller\marketplace.js
+[SERVER] Requested URL: /skills.js | SafePath: \skills.js | FilePath: D:\occupantkiller\occupantkiller\skills.js
+[SERVER][200][JS] url=/skills.js filePath=D:\occupantkiller\occupantkiller\skills.js
+[SERVER] Requested URL: /ranks.js | SafePath: \ranks.js | FilePath: D:\occupantkiller\occupantkiller\ranks.js
+[SERVER] Requested URL: /building.js | SafePath: \building.js | FilePath: D:\occupantkiller\occupantkiller\building.js
+[SERVER] Requested URL: /npc-system.js | SafePath: \npc-system.js | FilePath: D:\occupantkiller\occupantkiller\npc-system.js
+[SERVER][200][JS] url=/building.js filePath=D:\occupantkiller\occupantkiller\building.js
+[SERVER][200][JS] url=/ranks.js filePath=D:\occupantkiller\occupantkiller\ranks.js
+[SERVER][200][JS] url=/npc-system.js filePath=D:\occupantkiller\occupantkiller\npc-system.js
+[SERVER] Requested URL: /drone-system.js | SafePath: \drone-system.js | FilePath: D:\occupantkiller\occupantkiller\drone-system.js
+[SERVER][200][JS] url=/drone-system.js filePath=D:\occupantkiller\occupantkiller\drone-system.js
+[SERVER] Requested URL: /vehicles.js | SafePath: \vehicles.js | FilePath: D:\occupantkiller\occupantkiller\vehicles.js
+[SERVER] Requested URL: /automation.js | SafePath: \automation.js | FilePath: D:\occupantkiller\occupantkiller\automation.js
+[SERVER][200][JS] url=/automation.js filePath=D:\occupantkiller\occupantkiller\automation.js
+[SERVER][200][JS] url=/vehicles.js filePath=D:\occupantkiller\occupantkiller\vehicles.js
+[SERVER] Requested URL: /missions.js | SafePath: \missions.js | FilePath: D:\occupantkiller\occupantkiller\missions.js
+[SERVER][200][JS] url=/missions.js filePath=D:\occupantkiller\occupantkiller\missions.js
+[SERVER] Requested URL: /pickups.js | SafePath: \pickups.js | FilePath: D:\occupantkiller\occupantkiller\pickups.js
+[SERVER][200][JS] url=/pickups.js filePath=D:\occupantkiller\occupantkiller\pickups.js
+[SERVER] Requested URL: /hud.js | SafePath: \hud.js | FilePath: D:\occupantkiller\occupantkiller\hud.js
+[SERVER][200][JS] url=/hud.js filePath=D:\occupantkiller\occupantkiller\hud.js
+[SERVER] Requested URL: /hud-extras.js | SafePath: \hud-extras.js | FilePath: D:\occupantkiller\occupantkiller\hud-extras.js
+[SERVER][200][JS] url=/hud-extras.js filePath=D:\occupantkiller\occupantkiller\hud-extras.js
+[SERVER] Requested URL: /hud-extras2.js | SafePath: \hud-extras2.js | FilePath: D:\occupantkiller\occupantkiller\hud-extras2.js
+[SERVER][200][JS] url=/hud-extras2.js filePath=D:\occupantkiller\occupantkiller\hud-extras2.js
+[SERVER] Requested URL: /hud-extras3.js | SafePath: \hud-extras3.js | FilePath: D:\occupantkiller\occupantkiller\hud-extras3.js
+[SERVER] Requested URL: /hud-extras4.js | SafePath: \hud-extras4.js | FilePath: D:\occupantkiller\occupantkiller\hud-extras4.js
+[SERVER][200][JS] url=/hud-extras3.js filePath=D:\occupantkiller\occupantkiller\hud-extras3.js
+[SERVER][200][JS] url=/hud-extras4.js filePath=D:\occupantkiller\occupantkiller\hud-extras4.js
+[SERVER] Requested URL: /match-stats.js | SafePath: \match-stats.js | FilePath: D:\occupantkiller\occupantkiller\match-stats.js
+[SERVER][200][JS] url=/match-stats.js filePath=D:\occupantkiller\occupantkiller\match-stats.js
+[SERVER] Requested URL: /fx-extras.js | SafePath: \fx-extras.js | FilePath: D:\occupantkiller\occupantkiller\fx-extras.js
+[SERVER][200][JS] url=/fx-extras.js filePath=D:\occupantkiller\occupantkiller\fx-extras.js
+[SERVER] Requested URL: /extras-panel.js | SafePath: \extras-panel.js | FilePath: D:\occupantkiller\occupantkiller\extras-panel.js
+[SERVER][200][JS] url=/extras-panel.js filePath=D:\occupantkiller\occupantkiller\extras-panel.js
+[SERVER] Requested URL: /screen-effects.js | SafePath: \screen-effects.js | FilePath: D:\occupantkiller\occupantkiller\screen-effects.js
+[SERVER][200][JS] url=/screen-effects.js filePath=D:\occupantkiller\occupantkiller\screen-effects.js
+[SERVER] Requested URL: /airstrike.js | SafePath: \airstrike.js | FilePath: D:\occupantkiller\occupantkiller\airstrike.js
+[SERVER] Requested URL: /suppression.js | SafePath: \suppression.js | FilePath: D:\occupantkiller\occupantkiller\suppression.js
+[SERVER] Requested URL: /airdrop.js | SafePath: \airdrop.js | FilePath: D:\occupantkiller\occupantkiller\airdrop.js
+[SERVER][200][JS] url=/suppression.js filePath=D:\occupantkiller\occupantkiller\suppression.js
+[SERVER][200][JS] url=/airstrike.js filePath=D:\occupantkiller\occupantkiller\airstrike.js
+[SERVER] Requested URL: /weather-gameplay.js | SafePath: \weather-gameplay.js | FilePath: D:\occupantkiller\occupantkiller\weather-gameplay.js
+[SERVER][200][JS] url=/airdrop.js filePath=D:\occupantkiller\occupantkiller\airdrop.js
+[SERVER] Requested URL: /takedown.js | SafePath: \takedown.js | FilePath: D:\occupantkiller\occupantkiller\takedown.js
+[SERVER] Requested URL: /dog-tags.js | SafePath: \dog-tags.js | FilePath: D:\occupantkiller\occupantkiller\dog-tags.js
+[SERVER][200][JS] url=/weather-gameplay.js filePath=D:\occupantkiller\occupantkiller\weather-gameplay.js
+[SERVER][200][JS] url=/takedown.js filePath=D:\occupantkiller\occupantkiller\takedown.js
+[SERVER][200][JS] url=/dog-tags.js filePath=D:\occupantkiller\occupantkiller\dog-tags.js
+[SERVER] Requested URL: /mission-briefing.js | SafePath: \mission-briefing.js | FilePath: D:\occupantkiller\occupantkiller\mission-briefing.js
+[SERVER] Requested URL: /minimap.js | SafePath: \minimap.js | FilePath: D:\occupantkiller\occupantkiller\minimap.js
+[SERVER][200][JS] url=/minimap.js filePath=D:\occupantkiller\occupantkiller\minimap.js
+[SERVER][200][JS] url=/mission-briefing.js filePath=D:\occupantkiller\occupantkiller\mission-briefing.js
+[SERVER] Requested URL: /kill-streak.js | SafePath: \kill-streak.js | FilePath: D:\occupantkiller\occupantkiller\kill-streak.js
+[SERVER][200][JS] url=/kill-streak.js filePath=D:\occupantkiller\occupantkiller\kill-streak.js
+[SERVER] Requested URL: /smoke-grenade.js | SafePath: \smoke-grenade.js | FilePath: D:\occupantkiller\occupantkiller\smoke-grenade.js
+[SERVER] Requested URL: /after-action.js | SafePath: \after-action.js | FilePath: D:\occupantkiller\occupantkiller\after-action.js
+[SERVER] Requested URL: /medic-pack.js | SafePath: \medic-pack.js | FilePath: D:\occupantkiller\occupantkiller\medic-pack.js
+[SERVER][200][JS] url=/after-action.js filePath=D:\occupantkiller\occupantkiller\after-action.js
+[SERVER][200][JS] url=/smoke-grenade.js filePath=D:\occupantkiller\occupantkiller\smoke-grenade.js
+[SERVER][200][JS] url=/medic-pack.js filePath=D:\occupantkiller\occupantkiller\medic-pack.js
+[SERVER] Requested URL: /claymore.js | SafePath: \claymore.js | FilePath: D:\occupantkiller\occupantkiller\claymore.js
+[SERVER] Requested URL: /night-vision.js | SafePath: \night-vision.js | FilePath: D:\occupantkiller\occupantkiller\night-vision.js
+[SERVER][200][JS] url=/claymore.js filePath=D:\occupantkiller\occupantkiller\claymore.js
+[SERVER][200][JS] url=/night-vision.js filePath=D:\occupantkiller\occupantkiller\night-vision.js
+[SERVER] Requested URL: /intel-intercept.js | SafePath: \intel-intercept.js | FilePath: D:\occupantkiller\occupantkiller\intel-intercept.js
+[SERVER][200][JS] url=/intel-intercept.js filePath=D:\occupantkiller\occupantkiller\intel-intercept.js
+[SERVER] Requested URL: /fpv-drone.js | SafePath: \fpv-drone.js | FilePath: D:\occupantkiller\occupantkiller\fpv-drone.js
+[SERVER] Requested URL: /binoculars.js | SafePath: \binoculars.js | FilePath: D:\occupantkiller\occupantkiller\binoculars.js
+[SERVER] Requested URL: /controls-hud.js | SafePath: \controls-hud.js | FilePath: D:\occupantkiller\occupantkiller\controls-hud.js
+[SERVER] Requested URL: /achievements.js | SafePath: \achievements.js | FilePath: D:\occupantkiller\occupantkiller\achievements.js
+[SERVER] Requested URL: /morale.js | SafePath: \morale.js | FilePath: D:\occupantkiller\occupantkiller\morale.js
+[SERVER] Requested URL: /compass.js | SafePath: \compass.js | FilePath: D:\occupantkiller\occupantkiller\compass.js
+[SERVER][200][JS] url=/fpv-drone.js filePath=D:\occupantkiller\occupantkiller\fpv-drone.js
+[SERVER][200][JS] url=/controls-hud.js filePath=D:\occupantkiller\occupantkiller\controls-hud.js
+[SERVER][200][JS] url=/binoculars.js filePath=D:\occupantkiller\occupantkiller\binoculars.js
+[SERVER][200][JS] url=/achievements.js filePath=D:\occupantkiller\occupantkiller\achievements.js
+[SERVER][200][JS] url=/morale.js filePath=D:\occupantkiller\occupantkiller\morale.js
+[SERVER][200][JS] url=/compass.js filePath=D:\occupantkiller\occupantkiller\compass.js
+[SERVER] Requested URL: /kill-feed.js | SafePath: \kill-feed.js | FilePath: D:\occupantkiller\occupantkiller\kill-feed.js
+[SERVER] Requested URL: /recon-uav.js | SafePath: \recon-uav.js | FilePath: D:\occupantkiller\occupantkiller\recon-uav.js
+[SERVER] Requested URL: /flashbang.js | SafePath: \flashbang.js | FilePath: D:\occupantkiller\occupantkiller\flashbang.js
+[SERVER] Requested URL: /blood-decals.js | SafePath: \blood-decals.js | FilePath: D:\occupantkiller\occupantkiller\blood-decals.js
+[SERVER] Requested URL: /squadmate.js | SafePath: \squadmate.js | FilePath: D:\occupantkiller\occupantkiller\squadmate.js
+[SERVER] Requested URL: /shockwave.js | SafePath: \shockwave.js | FilePath: D:\occupantkiller\occupantkiller\shockwave.js
+[SERVER][200][JS] url=/flashbang.js filePath=D:\occupantkiller\occupantkiller\flashbang.js
+[SERVER][200][JS] url=/kill-feed.js filePath=D:\occupantkiller\occupantkiller\kill-feed.js
+[SERVER][200][JS] url=/recon-uav.js filePath=D:\occupantkiller\occupantkiller\recon-uav.js
+[SERVER][200][JS] url=/shockwave.js filePath=D:\occupantkiller\occupantkiller\shockwave.js
+[SERVER][200][JS] url=/squadmate.js filePath=D:\occupantkiller\occupantkiller\squadmate.js
+[SERVER][200][JS] url=/blood-decals.js filePath=D:\occupantkiller\occupantkiller\blood-decals.js
+[SERVER] Requested URL: /armor-plates.js | SafePath: \armor-plates.js | FilePath: D:\occupantkiller\occupantkiller\armor-plates.js
+[SERVER] Requested URL: /signal-flare.js | SafePath: \signal-flare.js | FilePath: D:\occupantkiller\occupantkiller\signal-flare.js
+[SERVER][200][JS] url=/armor-plates.js filePath=D:\occupantkiller\occupantkiller\armor-plates.js
+[SERVER][200][JS] url=/signal-flare.js filePath=D:\occupantkiller\occupantkiller\signal-flare.js
+[SERVER] Requested URL: /turret.js | SafePath: \turret.js | FilePath: D:\occupantkiller\occupantkiller\turret.js
+[SERVER] Requested URL: /enemy-flinch.js | SafePath: \enemy-flinch.js | FilePath: D:\occupantkiller\occupantkiller\enemy-flinch.js
+[SERVER] Requested URL: /kill-meter.js | SafePath: \kill-meter.js | FilePath: D:\occupantkiller\occupantkiller\kill-meter.js
+[SERVER] Requested URL: /wave-progress.js | SafePath: \wave-progress.js | FilePath: D:\occupantkiller\occupantkiller\wave-progress.js
+[SERVER] Requested URL: /incendiary.js | SafePath: \incendiary.js | FilePath: D:\occupantkiller\occupantkiller\incendiary.js
+[SERVER][200][JS] url=/turret.js filePath=D:\occupantkiller\occupantkiller\turret.js
+[SERVER] Requested URL: /ghost-camo.js | SafePath: \ghost-camo.js | FilePath: D:\occupantkiller\occupantkiller\ghost-camo.js
+[SERVER][200][JS] url=/enemy-flinch.js filePath=D:\occupantkiller\occupantkiller\enemy-flinch.js
+[SERVER][200][JS] url=/kill-meter.js filePath=D:\occupantkiller\occupantkiller\kill-meter.js
+[SERVER][200][JS] url=/wave-progress.js filePath=D:\occupantkiller\occupantkiller\wave-progress.js
+[SERVER] Requested URL: /barrel-traps.js | SafePath: \barrel-traps.js | FilePath: D:\occupantkiller\occupantkiller\barrel-traps.js
+[SERVER][200][JS] url=/incendiary.js filePath=D:\occupantkiller\occupantkiller\incendiary.js
+[SERVER][200][JS] url=/ghost-camo.js filePath=D:\occupantkiller\occupantkiller\ghost-camo.js
+[SERVER][200][JS] url=/barrel-traps.js filePath=D:\occupantkiller\occupantkiller\barrel-traps.js
+[SERVER] Requested URL: /napalm-strike.js | SafePath: \napalm-strike.js | FilePath: D:\occupantkiller\occupantkiller\napalm-strike.js
+[SERVER] Requested URL: /critical-hud.js | SafePath: \critical-hud.js | FilePath: D:\occupantkiller\occupantkiller\critical-hud.js
+[SERVER] Requested URL: /muzzle-flash.js | SafePath: \muzzle-flash.js | FilePath: D:\occupantkiller\occupantkiller\muzzle-flash.js
+[SERVER] Requested URL: /supply-drop.js | SafePath: \supply-drop.js | FilePath: D:\occupantkiller\occupantkiller\supply-drop.js
+[SERVER] Requested URL: /lightning-strike.js | SafePath: \lightning-strike.js | FilePath: D:\occupantkiller\occupantkiller\lightning-strike.js
+[SERVER] Requested URL: /black-hole.js | SafePath: \black-hole.js | FilePath: D:\occupantkiller\occupantkiller\black-hole.js
+[SERVER][200][JS] url=/napalm-strike.js filePath=D:\occupantkiller\occupantkiller\napalm-strike.js
+[SERVER][200][JS] url=/critical-hud.js filePath=D:\occupantkiller\occupantkiller\critical-hud.js
+[SERVER][200][JS] url=/muzzle-flash.js filePath=D:\occupantkiller\occupantkiller\muzzle-flash.js
+[SERVER] Requested URL: /time-bomb.js | SafePath: \time-bomb.js | FilePath: D:\occupantkiller\occupantkiller\time-bomb.js
+[SERVER][200][JS] url=/supply-drop.js filePath=D:\occupantkiller\occupantkiller\supply-drop.js
+[SERVER][200][JS] url=/lightning-strike.js filePath=D:\occupantkiller\occupantkiller\lightning-strike.js
+[SERVER][200][JS] url=/black-hole.js filePath=D:\occupantkiller\occupantkiller\black-hole.js
+[SERVER] Requested URL: /force-blast.js | SafePath: \force-blast.js | FilePath: D:\occupantkiller\occupantkiller\force-blast.js
+[SERVER] Requested URL: /target-painter.js | SafePath: \target-painter.js | FilePath: D:\occupantkiller\occupantkiller\target-painter.js
+[SERVER][200][JS] url=/time-bomb.js filePath=D:\occupantkiller\occupantkiller\time-bomb.js
+[SERVER][200][JS] url=/force-blast.js filePath=D:\occupantkiller\occupantkiller\force-blast.js
+[SERVER][200][JS] url=/target-painter.js filePath=D:\occupantkiller\occupantkiller\target-painter.js
+[SERVER] Requested URL: /cryo-grenade.js | SafePath: \cryo-grenade.js | FilePath: D:\occupantkiller\occupantkiller\cryo-grenade.js
+[SERVER] Requested URL: /cluster-bomb.js | SafePath: \cluster-bomb.js | FilePath: D:\occupantkiller\occupantkiller\cluster-bomb.js
+[SERVER] Requested URL: /railgun.js | SafePath: \railgun.js | FilePath: D:\occupantkiller\occupantkiller\railgun.js
+[SERVER] Requested URL: /vortex-cannon.js | SafePath: \vortex-cannon.js | FilePath: D:\occupantkiller\occupantkiller\vortex-cannon.js
+[SERVER] Requested URL: /emp-pulse.js | SafePath: \emp-pulse.js | FilePath: D:\occupantkiller\occupantkiller\emp-pulse.js
+[SERVER] Requested URL: /adrenaline-shot.js | SafePath: \adrenaline-shot.js | FilePath: D:\occupantkiller\occupantkiller\adrenaline-shot.js
+[SERVER][200][JS] url=/cryo-grenade.js filePath=D:\occupantkiller\occupantkiller\cryo-grenade.js
+[SERVER][200][JS] url=/cluster-bomb.js filePath=D:\occupantkiller\occupantkiller\cluster-bomb.js
+[SERVER][200][JS] url=/railgun.js filePath=D:\occupantkiller\occupantkiller\railgun.js
+[SERVER][200][JS] url=/vortex-cannon.js filePath=D:\occupantkiller\occupantkiller\vortex-cannon.js
+[SERVER][200][JS] url=/adrenaline-shot.js filePath=D:\occupantkiller\occupantkiller\adrenaline-shot.js
+[SERVER][200][JS] url=/emp-pulse.js filePath=D:\occupantkiller\occupantkiller\emp-pulse.js
+[SERVER] Requested URL: /quantum-shift.js | SafePath: \quantum-shift.js | FilePath: D:\occupantkiller\occupantkiller\quantum-shift.js
+[SERVER] Requested URL: /orbital-laser.js | SafePath: \orbital-laser.js | FilePath: D:\occupantkiller\occupantkiller\orbital-laser.js
+[SERVER] Requested URL: /berserker-mode.js | SafePath: \berserker-mode.js | FilePath: D:\occupantkiller\occupantkiller\berserker-mode.js
+[SERVER] Requested URL: /war-cry.js | SafePath: \war-cry.js | FilePath: D:\occupantkiller\occupantkiller\war-cry.js
+[SERVER] Requested URL: /sniper-scope.js | SafePath: \sniper-scope.js | FilePath: D:\occupantkiller\occupantkiller\sniper-scope.js
+[SERVER] Requested URL: /inferno-wall.js | SafePath: \inferno-wall.js | FilePath: D:\occupantkiller\occupantkiller\inferno-wall.js
+[SERVER][200][JS] url=/orbital-laser.js filePath=D:\occupantkiller\occupantkiller\orbital-laser.js
+[SERVER][200][JS] url=/berserker-mode.js filePath=D:\occupantkiller\occupantkiller\berserker-mode.js
+[SERVER][200][JS] url=/quantum-shift.js filePath=D:\occupantkiller\occupantkiller\quantum-shift.js
+[SERVER][200][JS] url=/inferno-wall.js filePath=D:\occupantkiller\occupantkiller\inferno-wall.js
+[SERVER][200][JS] url=/sniper-scope.js filePath=D:\occupantkiller\occupantkiller\sniper-scope.js
+[SERVER][200][JS] url=/war-cry.js filePath=D:\occupantkiller\occupantkiller\war-cry.js
+[SERVER] Requested URL: /shield-bubble.js | SafePath: \shield-bubble.js | FilePath: D:\occupantkiller\occupantkiller\shield-bubble.js
+[SERVER] Requested URL: /tactical-nuke.js | SafePath: \tactical-nuke.js | FilePath: D:\occupantkiller\occupantkiller\tactical-nuke.js
+[SERVER] Requested URL: /objective-tracker.js | SafePath: \objective-tracker.js | FilePath: D:\occupantkiller\occupantkiller\objective-tracker.js
+[SERVER] Requested URL: /wave-intro-card.js | SafePath: \wave-intro-card.js | FilePath: D:\occupantkiller\occupantkiller\wave-intro-card.js
+[SERVER] Requested URL: /ammo-warning.js | SafePath: \ammo-warning.js | FilePath: D:\occupantkiller\occupantkiller\ammo-warning.js
+[SERVER] Requested URL: /tactical-hud-frame.js | SafePath: \tactical-hud-frame.js | FilePath: D:\occupantkiller\occupantkiller\tactical-hud-frame.js
+[SERVER][200][JS] url=/shield-bubble.js filePath=D:\occupantkiller\occupantkiller\shield-bubble.js
+[SERVER][200][JS] url=/tactical-nuke.js filePath=D:\occupantkiller\occupantkiller\tactical-nuke.js
+[SERVER][200][JS] url=/objective-tracker.js filePath=D:\occupantkiller\occupantkiller\objective-tracker.js
+[SERVER][200][JS] url=/wave-intro-card.js filePath=D:\occupantkiller\occupantkiller\wave-intro-card.js
+[SERVER][200][JS] url=/ammo-warning.js filePath=D:\occupantkiller\occupantkiller\ammo-warning.js
+[SERVER][200][JS] url=/tactical-hud-frame.js filePath=D:\occupantkiller\occupantkiller\tactical-hud-frame.js
+[SERVER] Requested URL: /boss-warning.js | SafePath: \boss-warning.js | FilePath: D:\occupantkiller\occupantkiller\boss-warning.js
+[SERVER] Requested URL: /precision-shot-award.js | SafePath: \precision-shot-award.js | FilePath: D:\occupantkiller\occupantkiller\precision-shot-award.js
+[SERVER] Requested URL: /kill-combo-announce.js | SafePath: \kill-combo-announce.js | FilePath: D:\occupantkiller\occupantkiller\kill-combo-announce.js
+[SERVER] Requested URL: /hit-marker.js | SafePath: \hit-marker.js | FilePath: D:\occupantkiller\occupantkiller\hit-marker.js
+[SERVER] Requested URL: /enemy-healthbars.js | SafePath: \enemy-healthbars.js | FilePath: D:\occupantkiller\occupantkiller\enemy-healthbars.js
+[SERVER] Requested URL: /kill-announcer.js | SafePath: \kill-announcer.js | FilePath: D:\occupantkiller\occupantkiller\kill-announcer.js
+[SERVER][200][JS] url=/boss-warning.js filePath=D:\occupantkiller\occupantkiller\boss-warning.js
+[SERVER][200][JS] url=/precision-shot-award.js filePath=D:\occupantkiller\occupantkiller\precision-shot-award.js
+[SERVER][200][JS] url=/kill-combo-announce.js filePath=D:\occupantkiller\occupantkiller\kill-combo-announce.js
+[SERVER][200][JS] url=/enemy-healthbars.js filePath=D:\occupantkiller\occupantkiller\enemy-healthbars.js
+[SERVER][200][JS] url=/hit-marker.js filePath=D:\occupantkiller\occupantkiller\hit-marker.js
+[SERVER][200][JS] url=/kill-announcer.js filePath=D:\occupantkiller\occupantkiller\kill-announcer.js
+[SERVER] Requested URL: /radar-minimap.js | SafePath: \radar-minimap.js | FilePath: D:\occupantkiller\occupantkiller\radar-minimap.js
+[SERVER] Requested URL: /screen-blood.js | SafePath: \screen-blood.js | FilePath: D:\occupantkiller\occupantkiller\screen-blood.js
+[SERVER] Requested URL: /wave-timer.js | SafePath: \wave-timer.js | FilePath: D:\occupantkiller\occupantkiller\wave-timer.js
+[SERVER] Requested URL: /enemy-counter.js | SafePath: \enemy-counter.js | FilePath: D:\occupantkiller\occupantkiller\enemy-counter.js
+[SERVER] Requested URL: /damage-direction.js | SafePath: \damage-direction.js | FilePath: D:\occupantkiller\occupantkiller\damage-direction.js
+[SERVER] Requested URL: /offscreen-arrows.js | SafePath: \offscreen-arrows.js | FilePath: D:\occupantkiller\occupantkiller\offscreen-arrows.js
+[SERVER][200][JS] url=/screen-blood.js filePath=D:\occupantkiller\occupantkiller\screen-blood.js
+[SERVER][200][JS] url=/wave-timer.js filePath=D:\occupantkiller\occupantkiller\wave-timer.js
+[SERVER][200][JS] url=/enemy-counter.js filePath=D:\occupantkiller\occupantkiller\enemy-counter.js
+[SERVER][200][JS] url=/damage-direction.js filePath=D:\occupantkiller\occupantkiller\damage-direction.js
+[SERVER][200][JS] url=/offscreen-arrows.js filePath=D:\occupantkiller\occupantkiller\offscreen-arrows.js
+[SERVER][200][JS] url=/radar-minimap.js filePath=D:\occupantkiller\occupantkiller\radar-minimap.js
+[SERVER] Requested URL: /proximity-warning.js | SafePath: \proximity-warning.js | FilePath: D:\occupantkiller\occupantkiller\proximity-warning.js
+[SERVER] Requested URL: /session-score.js | SafePath: \session-score.js | FilePath: D:\occupantkiller\occupantkiller\session-score.js
+[SERVER] Requested URL: /accuracy-tracker.js | SafePath: \accuracy-tracker.js | FilePath: D:\occupantkiller\occupantkiller\accuracy-tracker.js
+[SERVER] Requested URL: /ambient-particles.js | SafePath: \ambient-particles.js | FilePath: D:\occupantkiller\occupantkiller\ambient-particles.js
+[SERVER] Requested URL: /low-ammo-warning.js | SafePath: \low-ammo-warning.js | FilePath: D:\occupantkiller\occupantkiller\low-ammo-warning.js
+[SERVER] Requested URL: /kill-distance.js | SafePath: \kill-distance.js | FilePath: D:\occupantkiller\occupantkiller\kill-distance.js
+[SERVER][200][JS] url=/session-score.js filePath=D:\occupantkiller\occupantkiller\session-score.js
+[SERVER][200][JS] url=/proximity-warning.js filePath=D:\occupantkiller\occupantkiller\proximity-warning.js
+[SERVER][200][JS] url=/accuracy-tracker.js filePath=D:\occupantkiller\occupantkiller\accuracy-tracker.js
+[SERVER][200][JS] url=/ambient-particles.js filePath=D:\occupantkiller\occupantkiller\ambient-particles.js
+[SERVER][200][JS] url=/low-ammo-warning.js filePath=D:\occupantkiller\occupantkiller\low-ammo-warning.js
+[SERVER][200][JS] url=/kill-distance.js filePath=D:\occupantkiller\occupantkiller\kill-distance.js
+[SERVER] Requested URL: /footstep-dust.js | SafePath: \footstep-dust.js | FilePath: D:\occupantkiller\occupantkiller\footstep-dust.js
+[SERVER] Requested URL: /death-recap.js | SafePath: \death-recap.js | FilePath: D:\occupantkiller\occupantkiller\death-recap.js
+[SERVER] Requested URL: /combo-counter.js | SafePath: \combo-counter.js | FilePath: D:\occupantkiller\occupantkiller\combo-counter.js
+[SERVER] Requested URL: /tactical-compass.js | SafePath: \tactical-compass.js | FilePath: D:\occupantkiller\occupantkiller\tactical-compass.js
+[SERVER] Requested URL: /voice-lines.js | SafePath: \voice-lines.js | FilePath: D:\occupantkiller\occupantkiller\voice-lines.js
+[SERVER] Requested URL: /shell-eject.js | SafePath: \shell-eject.js | FilePath: D:\occupantkiller\occupantkiller\shell-eject.js
+[SERVER][200][JS] url=/death-recap.js filePath=D:\occupantkiller\occupantkiller\death-recap.js
+[SERVER][200][JS] url=/footstep-dust.js filePath=D:\occupantkiller\occupantkiller\footstep-dust.js
+[SERVER][200][JS] url=/combo-counter.js filePath=D:\occupantkiller\occupantkiller\combo-counter.js
+[SERVER][200][JS] url=/tactical-compass.js filePath=D:\occupantkiller\occupantkiller\tactical-compass.js
+[SERVER][200][JS] url=/shell-eject.js filePath=D:\occupantkiller\occupantkiller\shell-eject.js
+[SERVER][200][JS] url=/voice-lines.js filePath=D:\occupantkiller\occupantkiller\voice-lines.js
+[SERVER] Requested URL: /wave-intel.js | SafePath: \wave-intel.js | FilePath: D:\occupantkiller\occupantkiller\wave-intel.js
+[SERVER] Requested URL: /reload-bar.js | SafePath: \reload-bar.js | FilePath: D:\occupantkiller\occupantkiller\reload-bar.js
+[SERVER] Requested URL: /performance-medal.js | SafePath: \performance-medal.js | FilePath: D:\occupantkiller\occupantkiller\performance-medal.js
+[SERVER] Requested URL: /explosion-ring.js | SafePath: \explosion-ring.js | FilePath: D:\occupantkiller\occupantkiller\explosion-ring.js
+[SERVER] Requested URL: /cinematic-letterbox.js | SafePath: \cinematic-letterbox.js | FilePath: D:\occupantkiller\occupantkiller\cinematic-letterbox.js
+[SERVER] Requested URL: /battle-rating.js | SafePath: \battle-rating.js | FilePath: D:\occupantkiller\occupantkiller\battle-rating.js
+[SERVER][200][JS] url=/reload-bar.js filePath=D:\occupantkiller\occupantkiller\reload-bar.js
+[SERVER][200][JS] url=/performance-medal.js filePath=D:\occupantkiller\occupantkiller\performance-medal.js
+[SERVER][200][JS] url=/wave-intel.js filePath=D:\occupantkiller\occupantkiller\wave-intel.js
+[SERVER][200][JS] url=/cinematic-letterbox.js filePath=D:\occupantkiller\occupantkiller\cinematic-letterbox.js
+[SERVER][200][JS] url=/explosion-ring.js filePath=D:\occupantkiller\occupantkiller\explosion-ring.js
+[SERVER][200][JS] url=/battle-rating.js filePath=D:\occupantkiller\occupantkiller\battle-rating.js
+[SERVER] Requested URL: /wave-scoreboard.js | SafePath: \wave-scoreboard.js | FilePath: D:\occupantkiller\occupantkiller\wave-scoreboard.js
+[SERVER] Requested URL: /streak-fire.js | SafePath: \streak-fire.js | FilePath: D:\occupantkiller\occupantkiller\streak-fire.js
+[SERVER] Requested URL: /low-hp-breathing.js | SafePath: \low-hp-breathing.js | FilePath: D:\occupantkiller\occupantkiller\low-hp-breathing.js
+[SERVER] Requested URL: /kill-milestone.js | SafePath: \kill-milestone.js | FilePath: D:\occupantkiller\occupantkiller\kill-milestone.js
+[SERVER] Requested URL: /stats-overlay.js | SafePath: \stats-overlay.js | FilePath: D:\occupantkiller\occupantkiller\stats-overlay.js
+[SERVER] Requested URL: /threat-lock-indicator.js | SafePath: \threat-lock-indicator.js | FilePath: D:\occupantkiller\occupantkiller\threat-lock-indicator.js
+[SERVER][200][JS] url=/wave-scoreboard.js filePath=D:\occupantkiller\occupantkiller\wave-scoreboard.js
+[SERVER][200][JS] url=/low-hp-breathing.js filePath=D:\occupantkiller\occupantkiller\low-hp-breathing.js
+[SERVER][200][JS] url=/streak-fire.js filePath=D:\occupantkiller\occupantkiller\streak-fire.js
+[SERVER][200][JS] url=/kill-milestone.js filePath=D:\occupantkiller\occupantkiller\kill-milestone.js
+[SERVER][200][JS] url=/stats-overlay.js filePath=D:\occupantkiller\occupantkiller\stats-overlay.js
+[SERVER][200][JS] url=/threat-lock-indicator.js filePath=D:\occupantkiller\occupantkiller\threat-lock-indicator.js
+[SERVER] Requested URL: /kill-streak-timer.js | SafePath: \kill-streak-timer.js | FilePath: D:\occupantkiller\occupantkiller\kill-streak-timer.js
+[SERVER] Requested URL: /npc-bark-label.js | SafePath: \npc-bark-label.js | FilePath: D:\occupantkiller\occupantkiller\npc-bark-label.js
+[SERVER] Requested URL: /wave-countdown.js | SafePath: \wave-countdown.js | FilePath: D:\occupantkiller\occupantkiller\wave-countdown.js
+[SERVER] Requested URL: /stage-name-splash.js | SafePath: \stage-name-splash.js | FilePath: D:\occupantkiller\occupantkiller\stage-name-splash.js
+[SERVER][200][JS] url=/kill-streak-timer.js filePath=D:\occupantkiller\occupantkiller\kill-streak-timer.js
+[SERVER] Requested URL: /compass-strip.js | SafePath: \compass-strip.js | FilePath: D:\occupantkiller\occupantkiller\compass-strip.js
+[SERVER] Requested URL: /damage-log.js | SafePath: \damage-log.js | FilePath: D:\occupantkiller\occupantkiller\damage-log.js
+[SERVER][200][JS] url=/npc-bark-label.js filePath=D:\occupantkiller\occupantkiller\npc-bark-label.js
+[SERVER][200][JS] url=/wave-countdown.js filePath=D:\occupantkiller\occupantkiller\wave-countdown.js
+[SERVER][200][JS] url=/stage-name-splash.js filePath=D:\occupantkiller\occupantkiller\stage-name-splash.js
+[SERVER] Requested URL: /survivor-clock.js | SafePath: \survivor-clock.js | FilePath: D:\occupantkiller\occupantkiller\survivor-clock.js
+[SERVER][200][JS] url=/compass-strip.js filePath=D:\occupantkiller\occupantkiller\compass-strip.js
+[SERVER][200][JS] url=/damage-log.js filePath=D:\occupantkiller\occupantkiller\damage-log.js
+[SERVER][200][JS] url=/survivor-clock.js filePath=D:\occupantkiller\occupantkiller\survivor-clock.js
+[SERVER] Requested URL: /building-collapse.js | SafePath: \building-collapse.js | FilePath: D:\occupantkiller\occupantkiller\building-collapse.js
+[SERVER][200][JS] url=/building-collapse.js filePath=D:\occupantkiller\occupantkiller\building-collapse.js
+[SERVER] Requested URL: /grenade-arc-preview.js | SafePath: \grenade-arc-preview.js | FilePath: D:\occupantkiller\occupantkiller\grenade-arc-preview.js
+[SERVER][200][JS] url=/grenade-arc-preview.js filePath=D:\occupantkiller\occupantkiller\grenade-arc-preview.js
+[SERVER] Requested URL: /dynamic-crosshair.js | SafePath: \dynamic-crosshair.js | FilePath: D:\occupantkiller\occupantkiller\dynamic-crosshair.js
+[SERVER] Requested URL: /weapon-details.js | SafePath: \weapon-details.js | FilePath: D:\occupantkiller\occupantkiller\weapon-details.js
+[SERVER] Requested URL: /weapons-data.js | SafePath: \weapons-data.js | FilePath: D:\occupantkiller\occupantkiller\weapons-data.js
+[SERVER][200][JS] url=/dynamic-crosshair.js filePath=D:\occupantkiller\occupantkiller\dynamic-crosshair.js
+[SERVER] Requested URL: /weapons.js | SafePath: \weapons.js | FilePath: D:\occupantkiller\occupantkiller\weapons.js
+[SERVER][200][JS] url=/weapons-data.js filePath=D:\occupantkiller\occupantkiller\weapons-data.js
+[SERVER] Requested URL: /enemies.js | SafePath: \enemies.js | FilePath: D:\occupantkiller\occupantkiller\enemies.js
+[SERVER][200][JS] url=/weapon-details.js filePath=D:\occupantkiller\occupantkiller\weapon-details.js
+[SERVER][200][JS] url=/weapons.js filePath=D:\occupantkiller\occupantkiller\weapons.js
+[SERVER] Requested URL: /convoy-system.js | SafePath: \convoy-system.js | FilePath: D:\occupantkiller\occupantkiller\convoy-system.js
+[SERVER][200][JS] url=/convoy-system.js filePath=D:\occupantkiller\occupantkiller\convoy-system.js
+[SERVER][200][JS] url=/enemies.js filePath=D:\occupantkiller\occupantkiller\enemies.js
+[SERVER] Requested URL: /audio-system.js | SafePath: \audio-system.js | FilePath: D:\occupantkiller\occupantkiller\audio-system.js
+[SERVER][200][JS] url=/audio-system.js filePath=D:\occupantkiller\occupantkiller\audio-system.js
+[SERVER] Requested URL: /jukebox.js | SafePath: \jukebox.js | FilePath: D:\occupantkiller\occupantkiller\jukebox.js
+[SERVER] Requested URL: /birds.js | SafePath: \birds.js | FilePath: D:\occupantkiller\occupantkiller\birds.js
+[SERVER] Requested URL: /premium.js | SafePath: \premium.js | FilePath: D:\occupantkiller\occupantkiller\premium.js
+[SERVER][200][JS] url=/birds.js filePath=D:\occupantkiller\occupantkiller\birds.js
+[SERVER][200][JS] url=/premium.js filePath=D:\occupantkiller\occupantkiller\premium.js
+[SERVER] Requested URL: /lottery.js | SafePath: \lottery.js | FilePath: D:\occupantkiller\occupantkiller\lottery.js
+[SERVER] Requested URL: /mortar.js | SafePath: \mortar.js | FilePath: D:\occupantkiller\occupantkiller\mortar.js
+[SERVER] Requested URL: /bradley.js | SafePath: \bradley.js | FilePath: D:\occupantkiller\occupantkiller\bradley.js
+[SERVER][200][JS] url=/jukebox.js filePath=D:\occupantkiller\occupantkiller\jukebox.js
+[SERVER] Requested URL: /gyro.js | SafePath: \gyro.js | FilePath: D:\occupantkiller\occupantkiller\gyro.js
+[SERVER] Requested URL: /weather-system.js | SafePath: \weather-system.js | FilePath: D:\occupantkiller\occupantkiller\weather-system.js
+[SERVER][200][JS] url=/mortar.js filePath=D:\occupantkiller\occupantkiller\mortar.js
+[SERVER][200][JS] url=/lottery.js filePath=D:\occupantkiller\occupantkiller\lottery.js
+[SERVER][200][JS] url=/bradley.js filePath=D:\occupantkiller\occupantkiller\bradley.js
+[SERVER] Requested URL: /ml-system.js | SafePath: \ml-system.js | FilePath: D:\occupantkiller\occupantkiller\ml-system.js
+[SERVER][200][JS] url=/gyro.js filePath=D:\occupantkiller\occupantkiller\gyro.js
+[SERVER][200][JS] url=/weather-system.js filePath=D:\occupantkiller\occupantkiller\weather-system.js
+[SERVER][200][JS] url=/ml-system.js filePath=D:\occupantkiller\occupantkiller\ml-system.js
+[SERVER] Requested URL: /npc-ml.js | SafePath: \npc-ml.js | FilePath: D:\occupantkiller\occupantkiller\npc-ml.js
+[SERVER] Requested URL: /tracers.js | SafePath: \tracers.js | FilePath: D:\occupantkiller\occupantkiller\tracers.js
+[SERVER][200][JS] url=/npc-ml.js filePath=D:\occupantkiller\occupantkiller\npc-ml.js
+[SERVER] Requested URL: /stage-vfx.js | SafePath: \stage-vfx.js | FilePath: D:\occupantkiller\occupantkiller\stage-vfx.js
+[SERVER] Requested URL: /flags.js | SafePath: \flags.js | FilePath: D:\occupantkiller\occupantkiller\flags.js
+[SERVER][200][JS] url=/tracers.js filePath=D:\occupantkiller\occupantkiller\tracers.js
+[SERVER] Requested URL: /environment.js | SafePath: \environment.js | FilePath: D:\occupantkiller\occupantkiller\environment.js
+[SERVER][200][JS] url=/stage-vfx.js filePath=D:\occupantkiller\occupantkiller\stage-vfx.js
+[SERVER] Requested URL: /combat-extras.js | SafePath: \combat-extras.js | FilePath: D:\occupantkiller\occupantkiller\combat-extras.js
+[SERVER][200][JS] url=/flags.js filePath=D:\occupantkiller\occupantkiller\flags.js
+[SERVER][200][JS] url=/environment.js filePath=D:\occupantkiller\occupantkiller\environment.js
+[SERVER][200][JS] url=/combat-extras.js filePath=D:\occupantkiller\occupantkiller\combat-extras.js
+[SERVER] Requested URL: /traversal.js | SafePath: \traversal.js | FilePath: D:\occupantkiller\occupantkiller\traversal.js
+[SERVER][200][JS] url=/traversal.js filePath=D:\occupantkiller\occupantkiller\traversal.js
+[SERVER] Requested URL: /enemy-types.js | SafePath: \enemy-types.js | FilePath: D:\occupantkiller\occupantkiller\enemy-types.js
+[SERVER][200][JS] url=/enemy-types.js filePath=D:\occupantkiller\occupantkiller\enemy-types.js
+[SERVER] Requested URL: /world-features.js | SafePath: \world-features.js | FilePath: D:\occupantkiller\occupantkiller\world-features.js
+[SERVER][200][JS] url=/world-features.js filePath=D:\occupantkiller\occupantkiller\world-features.js
+[SERVER] Requested URL: /perks.js | SafePath: \perks.js | FilePath: D:\occupantkiller\occupantkiller\perks.js
+[SERVER] Requested URL: /mission-types.js | SafePath: \mission-types.js | FilePath: D:\occupantkiller\occupantkiller\mission-types.js
+[SERVER] Requested URL: /feedback.js | SafePath: \feedback.js | FilePath: D:\occupantkiller\occupantkiller\feedback.js
+[SERVER][200][JS] url=/perks.js filePath=D:\occupantkiller\occupantkiller\perks.js
+[SERVER] Requested URL: /progression.js | SafePath: \progression.js | FilePath: D:\occupantkiller\occupantkiller\progression.js
+[SERVER][200][JS] url=/mission-types.js filePath=D:\occupantkiller\occupantkiller\mission-types.js
+[SERVER] Requested URL: /refinery-strike.js | SafePath: \refinery-strike.js | FilePath: D:\occupantkiller\occupantkiller\refinery-strike.js
+[SERVER][200][JS] url=/feedback.js filePath=D:\occupantkiller\occupantkiller\feedback.js
+[SERVER][200][JS] url=/progression.js filePath=D:\occupantkiller\occupantkiller\progression.js
+[SERVER] Requested URL: /enemy-artillery.js | SafePath: \enemy-artillery.js | FilePath: D:\occupantkiller\occupantkiller\enemy-artillery.js
+[SERVER][200][JS] url=/refinery-strike.js filePath=D:\occupantkiller\occupantkiller\refinery-strike.js
+[SERVER][200][JS] url=/enemy-artillery.js filePath=D:\occupantkiller\occupantkiller\enemy-artillery.js
+[SERVER] Requested URL: /game-constants.js | SafePath: \game-constants.js | FilePath: D:\occupantkiller\occupantkiller\game-constants.js
+[SERVER][200][JS] url=/game-constants.js filePath=D:\occupantkiller\occupantkiller\game-constants.js
+[SERVER] Requested URL: /player-state.js | SafePath: \player-state.js | FilePath: D:\occupantkiller\occupantkiller\player-state.js
+[SERVER][200][JS] url=/player-state.js filePath=D:\occupantkiller\occupantkiller\player-state.js
+[SERVER] Requested URL: /wave-manager.js | SafePath: \wave-manager.js | FilePath: D:\occupantkiller\occupantkiller\wave-manager.js
+[SERVER] Requested URL: /boot-manager.js | SafePath: \boot-manager.js | FilePath: D:\occupantkiller\occupantkiller\boot-manager.js
+[SERVER][200][JS] url=/wave-manager.js filePath=D:\occupantkiller\occupantkiller\wave-manager.js
+[SERVER] Requested URL: /fx-manager.js | SafePath: \fx-manager.js | FilePath: D:\occupantkiller\occupantkiller\fx-manager.js
+[SERVER] Requested URL: /input-manager.js | SafePath: \input-manager.js | FilePath: D:\occupantkiller\occupantkiller\input-manager.js
+[SERVER][200][JS] url=/boot-manager.js filePath=D:\occupantkiller\occupantkiller\boot-manager.js
+[SERVER] Requested URL: /save-manager.js | SafePath: \save-manager.js | FilePath: D:\occupantkiller\occupantkiller\save-manager.js
+[SERVER][200][JS] url=/fx-manager.js filePath=D:\occupantkiller\occupantkiller\fx-manager.js
+[SERVER][200][JS] url=/input-manager.js filePath=D:\occupantkiller\occupantkiller\input-manager.js
+[SERVER][200][JS] url=/save-manager.js filePath=D:\occupantkiller\occupantkiller\save-manager.js
+[SERVER] Requested URL: /combat-manager.js | SafePath: \combat-manager.js | FilePath: D:\occupantkiller\occupantkiller\combat-manager.js
+[SERVER][200][JS] url=/combat-manager.js filePath=D:\occupantkiller\occupantkiller\combat-manager.js
+[SERVER] Requested URL: /ui-manager.js | SafePath: \ui-manager.js | FilePath: D:\occupantkiller\occupantkiller\ui-manager.js
+[SERVER][200][JS] url=/ui-manager.js filePath=D:\occupantkiller\occupantkiller\ui-manager.js
+[SERVER] Requested URL: /mission-manager.js | SafePath: \mission-manager.js | FilePath: D:\occupantkiller\occupantkiller\mission-manager.js
+[SERVER] Requested URL: /bradley.js | SafePath: \bradley.js | FilePath: D:\occupantkiller\occupantkiller\bradley.js
+[SERVER] Requested URL: /game-manager.js | SafePath: \game-manager.js | FilePath: D:\occupantkiller\occupantkiller\game-manager.js
+[SERVER][200][JS] url=/mission-manager.js filePath=D:\occupantkiller\occupantkiller\mission-manager.js
+[SERVER][200][JS] url=/bradley.js filePath=D:\occupantkiller\occupantkiller\bradley.js
+[SERVER][200][JS] url=/game-manager.js filePath=D:\occupantkiller\occupantkiller\game-manager.js
+[SERVER] Requested URL: /gamemusic/manifest.json | SafePath: \gamemusic\manifest.json | FilePath: D:\occupantkiller\occupantkiller\gamemusic\manifest.json
+[SERVER] Requested URL: /gamemusic/Glory to Ukraine.mp3 | SafePath: \gamemusic\Glory to Ukraine.mp3 | FilePath: D:\occupantkiller\occupantkiller\gamemusic\Glory to Ukraine.mp3
