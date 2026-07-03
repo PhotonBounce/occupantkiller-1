@@ -8647,6 +8647,1414 @@ window.VoxelWorld = (function () {
         if (getTerrainHeight(cx, cz) > 0) generateWreckedConvoy(cx, cz);
       }
     } catch (e) { console.warn('destroyedVehicles generation skipped:', e); }
+    // ── REALISTIC TERRAIN UPGRADES (all 20 stages) ─────────────────────────
+    (function upgradeRealisticTerrain() {
+      var levelId = level.id;
+      if (levelId === 'HOSTOMEL') {
+        // Stage 0: Hostomel Airport — canals, NW forests, runway sand banks
+        // Canal/ditch network (reclaimed marshlands)
+        (function() {
+          for (var cx = -40; cx <= 40; cx++) {
+            var cz = 30 + Math.floor(Math.sin(cx * 0.08) * 2);
+            for (var cw = 0; cw < 2; cw++) {
+              var ccz = cz + cw;
+              var ch = getTerrainHeight(cx, ccz);
+              for (var cy = ch; cy >= Math.max(0, ch - 1); cy--) {
+                setBlock(cx, cy, ccz, BLOCK.WATER);
+              }
+            }
+            var db = getTerrainHeight(cx, cz - 1);
+            setBlock(cx, db, cz - 1, BLOCK.DIRT);
+            var db2 = getTerrainHeight(cx, cz + 2);
+            setBlock(cx, db2, cz + 2, BLOCK.DIRT);
+          }
+        })();
+        // Dense forest clusters northwest (Moshchun, Horenka area)
+        (function() {
+          var forests = [[-50, -60, 10], [-70, -40, 8], [-60, -80, 9], [-45, -90, 7]];
+          for (var fi = 0; fi < forests.length; fi++) {
+            var fcx = forests[fi][0], fcz = forests[fi][1], fr = forests[fi][2];
+            for (var fx = fcx - fr; fx <= fcx + fr; fx++) {
+              for (var fz = fcz - fr; fz <= fcz + fr; fz++) {
+                if ((fx - fcx)*(fx - fcx) + (fz - fcz)*(fz - fcz) <= fr*fr && Math.random() < 0.6) {
+                  var fh = getTerrainHeight(fx, fz);
+                  setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                  setBlock(fx, fh + 2, fz, BLOCK.WOOD);
+                  setBlock(fx, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx + 1, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx - 1, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx, fh + 3, fz + 1, BLOCK.BUSH);
+                  setBlock(fx, fh + 3, fz - 1, BLOCK.BUSH);
+                }
+              }
+            }
+          }
+        })();
+        // Wide flat runway area (level additional west/east apron)
+        (function() {
+          for (var lx = -80; lx <= 80; lx++) {
+            for (var lz = -15; lz <= 25; lz++) {
+              var lh = getTerrainHeight(lx, lz);
+              if (lh > 3) {
+                setBlock(lx, 3, lz, BLOCK.GRASS);
+                setBlock(lx, 2, lz, BLOCK.DIRT);
+              }
+            }
+          }
+        })();
+      } else if (levelId === 'KYIV') {
+        // Stage 1: Kyiv Capital — urban grid, river islands, agriculture
+        // Dnipro River to east with sandy banks (enhanced width)
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = 50 + Math.floor(Math.sin(rx * 0.06) * 4);
+            for (var rw = 0; rw < 6; rw++) {
+              var rrz = rz + rw;
+              var rh = getTerrainHeight(rx, rrz);
+              for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+                setBlock(rx, ry, rrz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, sb, rz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(rx, rz + 6);
+            setBlock(rx, sb2, rz + 6, BLOCK.SAND);
+          }
+        })();
+        // River islands (Trukhaniv-style)
+        (function() {
+          var islands = [[-20, 55, 4], [15, 58, 3]];
+          for (var ii = 0; ii < islands.length; ii++) {
+            var ix = islands[ii][0], iz = islands[ii][1], ir = islands[ii][2];
+            for (var fx = ix - ir; fx <= ix + ir; fx++) {
+              for (var fz = iz - ir; fz <= iz + ir; fz++) {
+                if ((fx - ix)*(fx - ix) + (fz - iz)*(fz - iz) <= ir*ir) {
+                  var ih = getTerrainHeight(fx, fz);
+                  setBlock(fx, ih, fz, BLOCK.SAND);
+                  setBlock(fx, ih + 1, fz, BLOCK.GRASS);
+                  if (Math.random() < 0.3) {
+                    setBlock(fx, ih + 2, fz, BLOCK.BUSH);
+                  }
+                }
+              }
+            }
+          }
+        })();
+        // Right bank slightly elevated (Pechersk uplands)
+        (function() {
+          for (var hx = 40; hx <= 65; hx++) {
+            for (var hz = 35; hz <= 65; hz++) {
+              var hh = getTerrainHeight(hx, hz);
+              setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+              if (Math.abs(hx - 52) < 8 && Math.abs(hz - 50) < 8) {
+                setBlock(hx, hh + 2, hz, BLOCK.DIRT);
+              }
+            }
+          }
+        })();
+        // Left bank flat (Darnytskyi)
+        (function() {
+          for (var fx = -70; fx <= 70; fx++) {
+            for (var fz = 60; fz <= 85; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              if (fh > 3) {
+                setBlock(fx, 3, fz, BLOCK.GRASS);
+                setBlock(fx, 2, fz, BLOCK.DIRT);
+              }
+            }
+          }
+        })();
+        // Urban grid roads
+        (function() {
+          for (var gx = -50; gx <= 50; gx += 20) {
+            for (var gz = -50; gz <= 50; gz++) {
+              var gh = getTerrainHeight(gx, gz);
+              if (gh > 1) setBlock(gx, gh, gz, BLOCK.ASPHALT);
+            }
+          }
+          for (var gz = -50; gz <= 50; gz += 20) {
+            for (var gx = -50; gx <= 50; gx++) {
+              var gh = getTerrainHeight(gx, gz);
+              if (gh > 1) setBlock(gx, gh, gz, BLOCK.ASPHALT);
+            }
+          }
+        })();
+      } else if (levelId === 'MOSCOW') {
+        // Stage 2: Outer Moscow — Moskva River meanders, flat terrain, canal
+        // Moskva River with enhanced meanders
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = 50 + Math.floor(Math.sin(rx * 0.06) * 6) + Math.floor(Math.cos(rx * 0.03) * 3);
+            for (var rw = 0; rw < 4; rw++) {
+              var rrz = rz + rw;
+              var rh = getTerrainHeight(rx, rrz);
+              for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+                setBlock(rx, ry, rrz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, sb, rz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(rx, rz + 4);
+            setBlock(rx, sb2, rz + 4, BLOCK.SAND);
+          }
+        })();
+        // Moscow Canal parallel to river (north of city)
+        (function() {
+          for (var cx = -70; cx <= 70; cx++) {
+            var cz = -35 + Math.floor(Math.sin(cx * 0.04) * 2);
+            for (var cw = 0; cw < 3; cw++) {
+              var ccz = cz + cw;
+              var ch = getTerrainHeight(cx, ccz);
+              for (var cy = ch; cy >= Math.max(0, ch - 2); cy--) {
+                setBlock(cx, cy, ccz, BLOCK.WATER);
+              }
+            }
+            var cb = getTerrainHeight(cx, cz - 1);
+            setBlock(cx, cb, cz - 1, BLOCK.SAND);
+            var cb2 = getTerrainHeight(cx, cz + 3);
+            setBlock(cx, cb2, cz + 3, BLOCK.SAND);
+          }
+        })();
+        // Flat terrain around Moscow outskirts
+        (function() {
+          for (var fx = -60; fx <= 60; fx++) {
+            for (var fz = -60; fz <= 40; fz++) {
+              if (fx*fx + fz*fz > 400) {
+                var fh = getTerrainHeight(fx, fz);
+                if (fh > 3) {
+                  setBlock(fx, 3, fz, BLOCK.GRASS);
+                  setBlock(fx, 2, fz, BLOCK.DIRT);
+                }
+              }
+            }
+          }
+        })();
+        // Birch forest groves
+        (function() {
+          var groves = [[-50, -50, 8], [50, -50, 7], [-50, 30, 6], [50, 30, 8]];
+          for (var gi = 0; gi < groves.length; gi++) {
+            var gcx = groves[gi][0], gcz = groves[gi][1], gr = groves[gi][2];
+            for (var fx = gcx - gr; fx <= gcx + gr; fx++) {
+              for (var fz = gcz - gr; fz <= gcz + gr; fz++) {
+                if ((fx - gcx)*(fx - gcx) + (fz - gcz)*(fz - gcz) <= gr*gr && Math.random() < 0.5) {
+                  var fh = getTerrainHeight(fx, fz);
+                  setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                  setBlock(fx, fh + 2, fz, BLOCK.WOOD);
+                  setBlock(fx, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx + 1, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx - 1, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx, fh + 3, fz + 1, BLOCK.BUSH);
+                  setBlock(fx, fh + 3, fz - 1, BLOCK.BUSH);
+                  setBlock(fx, fh + 4, fz, BLOCK.BUSH);
+                }
+              }
+            }
+          }
+        })();
+      } else if (levelId === 'MARIUPOL') {
+        // Stage 3: Mariupol Azovstal — sea coast, steppe, undulating terrain
+        // Sea coast to south (enhanced)
+        (function() {
+          for (var cx = -70; cx <= 70; cx++) {
+            var cz = 60 + Math.floor(Math.sin(cx * 0.05) * 3);
+            for (var cw = 0; cw < 6; cw++) {
+              var ccz = cz + cw;
+              var ch = getTerrainHeight(cx, ccz);
+              for (var cy = ch; cy >= Math.max(0, ch - 2); cy--) {
+                setBlock(cx, cy, ccz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(cx, cz - 1);
+            setBlock(cx, sb, cz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(cx, cz + 6);
+            setBlock(cx, sb2, cz + 6, BLOCK.SAND);
+          }
+        })();
+        // Kalmius River channel (enhanced)
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = -30 + Math.floor(Math.sin(rx * 0.05) * 2);
+            for (var rw = 0; rw < 3; rw++) {
+              var rrz = rz + rw;
+              var rh = getTerrainHeight(rx, rrz);
+              for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+                setBlock(rx, ry, rrz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, sb, rz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(rx, rz + 3);
+            setBlock(rx, sb2, rz + 3, BLOCK.SAND);
+          }
+        })();
+        // Slightly undulating terrain (low hills north of plant)
+        (function() {
+          for (var hx = -50; hx <= 50; hx++) {
+            for (var hz = -70; hz <= -40; hz++) {
+              var hh = getTerrainHeight(hx, hz);
+              setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+            }
+          }
+        })();
+        // Flat steppe with scattered trees (acacia, poplar, chestnut)
+        (function() {
+          var groves = [[-40, -60, 5], [30, -55, 6], [0, -65, 4], [-20, -50, 5]];
+          for (var gi = 0; gi < groves.length; gi++) {
+            var gcx = groves[gi][0], gcz = groves[gi][1], gr = groves[gi][2];
+            for (var fx = gcx - gr; fx <= gcx + gr; fx++) {
+              for (var fz = gcz - gr; fz <= gcz + gr; fz++) {
+                if ((fx - gcx)*(fx - gcx) + (fz - gcz)*(fz - gcz) <= gr*gr && Math.random() < 0.5) {
+                  var fh = getTerrainHeight(fx, fz);
+                  setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                  setBlock(fx, fh + 2, fz, BLOCK.WOOD);
+                  setBlock(fx, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx + 1, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx - 1, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx, fh + 3, fz + 1, BLOCK.BUSH);
+                  setBlock(fx, fh + 3, fz - 1, BLOCK.BUSH);
+                }
+              }
+            }
+          }
+        })();
+        // Industrial zone steel plant (expanded)
+        (function() {
+          for (var ix = -25; ix <= 25; ix++) {
+            for (var iz = -25; iz <= 25; iz++) {
+              var ih = getTerrainHeight(ix, iz);
+              if (ih > 2) {
+                setBlock(ix, 2, iz, BLOCK.ASPHALT);
+                setBlock(ix, 1, iz, BLOCK.CONCRETE);
+              }
+            }
+          }
+        })();
+      } else if (levelId === 'BAKHMUT') {
+        // Stage 4: Bakhmut Fortress — river bridges, salt mine entrances, rolling hills
+        // Bakhmutka River with bridges (enhanced)
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = Math.floor(Math.sin(rx * 0.07) * 3);
+            for (var rw = 0; rw < 3; rw++) {
+              var rrz = rz + rw;
+              var rh = getTerrainHeight(rx, rrz);
+              for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+                setBlock(rx, ry, rrz, BLOCK.WATER);
+              }
+            }
+            // Bridge at x = 0
+            if (Math.abs(rx) < 4) {
+              var brh = getTerrainHeight(rx, rz);
+              setBlock(rx, brh + 1, rz, BLOCK.CONCRETE);
+              setBlock(rx, brh + 1, rz + 1, BLOCK.CONCRETE);
+              setBlock(rx, brh + 1, rz + 2, BLOCK.CONCRETE);
+            }
+            var sb = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, sb, rz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(rx, rz + 3);
+            setBlock(rx, sb2, rz + 3, BLOCK.SAND);
+          }
+        })();
+        // Rolling low hills (Donbas steppe)
+        (function() {
+          for (var hx = -60; hx <= -30; hx++) {
+            for (var hz = -30; hz <= 30; hz++) {
+              var hh = getTerrainHeight(hx, hz);
+              setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+            }
+          }
+          for (var hx = 30; hx <= 60; hx++) {
+            for (var hz = -20; hz <= 20; hz++) {
+              var hh = getTerrainHeight(hx, hz);
+              setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+              if (Math.abs(hx - 45) < 6 && Math.abs(hz) < 6) {
+                setBlock(hx, hh + 2, hz, BLOCK.DIRT);
+              }
+            }
+          }
+        })();
+        // Salt mine entrances (white blocks)
+        (function() {
+          var entrances = [[-25, -25], [25, 25]];
+          for (var ei = 0; ei < entrances.length; ei++) {
+            var ex = entrances[ei][0], ez = entrances[ei][1];
+            var eh = getTerrainHeight(ex, ez);
+            for (var y = 0; y < 4; y++) {
+              setBlock(ex, eh + y, ez, BLOCK.WHITE_TILE);
+              setBlock(ex + 1, eh + y, ez, BLOCK.WHITE_TILE);
+              setBlock(ex, eh + y, ez + 1, BLOCK.WHITE_TILE);
+              setBlock(ex + 1, eh + y, ez + 1, BLOCK.WHITE_TILE);
+            }
+            setBlock(ex, eh + 4, ez, BLOCK.WHITE_TILE);
+            setBlock(ex + 1, eh + 4, ez, BLOCK.WHITE_TILE);
+            setBlock(ex, eh + 4, ez + 1, BLOCK.WHITE_TILE);
+            setBlock(ex + 1, eh + 4, ez + 1, BLOCK.WHITE_TILE);
+            setBlock(ex, eh + 1, ez, BLOCK.AIR);
+            setBlock(ex + 1, eh + 1, ez, BLOCK.AIR);
+          }
+        })();
+        // Industrial zone (factories east)
+        (function() {
+          for (var ix = 30; ix <= 50; ix++) {
+            for (var iz = -30; iz <= -10; iz++) {
+              var ih = getTerrainHeight(ix, iz);
+              if (ih > 2) {
+                setBlock(ix, 2, iz, BLOCK.ASPHALT);
+                setBlock(ix, 1, iz, BLOCK.CONCRETE);
+              }
+            }
+          }
+        })();
+        // Flat steppe with occasional hills
+        (function() {
+          for (var fx = -70; fx <= 70; fx++) {
+            for (var fz = -70; fz <= 70; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.GRASS);
+            }
+          }
+        })();
+      } else if (levelId === 'KREMLIN') {
+        // Stage 5: Kremlin Showdown — river bend, hill, Red Square, embankment
+        // Moskva River bend (enhanced)
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = 55 + Math.floor(Math.sin(rx * 0.05) * 8) + Math.floor(Math.cos(rx * 0.03) * 4);
+            for (var rw = 0; rw < 4; rw++) {
+              var rrz = rz + rw;
+              var rh = getTerrainHeight(rx, rrz);
+              for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+                setBlock(rx, ry, rrz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, sb, rz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(rx, rz + 4);
+            setBlock(rx, sb2, rz + 4, BLOCK.SAND);
+          }
+        })();
+        // Kremlin hill (Borovitsky Hill) — raised terrain
+        (function() {
+          for (var hx = -15; hx <= 15; hx++) {
+            for (var hz = -15; hz <= 15; hz++) {
+              if (hx*hx + hz*hz <= 180) {
+                var hh = getTerrainHeight(hx, hz);
+                setBlock(hx, hh + 1, hz, BLOCK.STONE);
+                setBlock(hx, hh + 2, hz, BLOCK.STONE);
+                if (hx*hx + hz*hz <= 80) {
+                  setBlock(hx, hh + 3, hz, BLOCK.STONE);
+                }
+              }
+            }
+          }
+        })();
+        // Red Square large open area
+        (function() {
+          for (var fx = -25; fx <= 25; fx++) {
+            for (var fz = 20; fz <= 50; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, 3, fz, BLOCK.CONCRETE);
+              setBlock(fx, 2, fz, BLOCK.STONE);
+            }
+          }
+        })();
+        // River embankment (stone walls along river)
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = 55 + Math.floor(Math.sin(rx * 0.05) * 8) + Math.floor(Math.cos(rx * 0.03) * 4);
+            var rh = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, rh + 1, rz - 1, BLOCK.STONE);
+            setBlock(rx, rh + 2, rz - 1, BLOCK.STONE);
+            var rh2 = getTerrainHeight(rx, rz + 4);
+            setBlock(rx, rh2 + 1, rz + 4, BLOCK.STONE);
+            setBlock(rx, rh2 + 2, rz + 4, BLOCK.STONE);
+          }
+        })();
+      } else if (levelId === 'TREELINE') {
+        // Stage 6: Treeline Assault — forest/wheat alternation, mixed trees, rolling hills
+        // Forest clusters alternating with wheat fields
+        (function() {
+          var clusters = [[-30, -20, 8], [0, -25, 7], [25, -20, 8], [-15, 55, 6], [15, 60, 7]];
+          for (var ci = 0; ci < clusters.length; ci++) {
+            var cx = clusters[ci][0], cz = clusters[ci][1], cr = clusters[ci][2];
+            for (var fx = cx - cr; fx <= cx + cr; fx++) {
+              for (var fz = cz - cr; fz <= cz + cr; fz++) {
+                if ((fx - cx)*(fx - cx) + (fz - cz)*(fz - cz) <= cr*cr && Math.random() < 0.55) {
+                  var fh = getTerrainHeight(fx, fz);
+                  setBlock(fx, fh + 1, fz, BLOCK.WOOD);
+                  setBlock(fx, fh + 2, fz, BLOCK.WOOD);
+                  setBlock(fx, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx + 1, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx - 1, fh + 3, fz, BLOCK.BUSH);
+                  setBlock(fx, fh + 3, fz + 1, BLOCK.BUSH);
+                  setBlock(fx, fh + 3, fz - 1, BLOCK.BUSH);
+                  setBlock(fx, fh + 4, fz, BLOCK.BUSH);
+                }
+              }
+            }
+          }
+        })();
+        // Mixed pine and deciduous (use BRICK for pine trunks)
+        (function() {
+          var pines = [[-20, 50, 5], [10, 55, 6], [0, 65, 4]];
+          for (var pi = 0; pi < pines.length; pi++) {
+            var px = pines[pi][0], pz = pines[pi][1], pr = pines[pi][2];
+            for (var fx = px - pr; fx <= px + pr; fx++) {
+              for (var fz = pz - pr; fz <= pz + pr; fz++) {
+                if ((fx - px)*(fx - px) + (fz - pz)*(fz - pz) <= pr*pr && Math.random() < 0.6) {
+                  var fh = getTerrainHeight(fx, fz);
+                  setBlock(fx, fh + 1, fz, BLOCK.BRICK);
+                  setBlock(fx, fh + 2, fz, BLOCK.BRICK);
+                  setBlock(fx, fh + 3, fz, BLOCK.BRICK);
+                  setBlock(fx + 1, fh + 3, fz, BLOCK.BRICK);
+                  setBlock(fx - 1, fh + 3, fz, BLOCK.BRICK);
+                  setBlock(fx, fh + 3, fz + 1, BLOCK.BRICK);
+                  setBlock(fx, fh + 3, fz - 1, BLOCK.BRICK);
+                }
+              }
+            }
+          }
+        })();
+        // Rolling hills (enhanced)
+        (function() {
+          for (var hx = -60; hx <= 60; hx++) {
+            for (var hz = 55; hz <= 75; hz++) {
+              var hh = getTerrainHeight(hx, hz);
+              setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+            }
+          }
+        })();
+      } else if (levelId === 'CHORNOBYL') {
+        // Stage 7: Chornobyl Exclusion — Pripyat River, marsh, cooling pond, abandoned buildings
+        // Pripyat River with meanders
+        (function() {
+          for (var rx = -80; rx <= 80; rx++) {
+            var rz = -40 + Math.floor(Math.sin(rx * 0.04) * 6) + Math.floor(Math.cos(rx * 0.02) * 3);
+            for (var rw = 0; rw < 4; rw++) {
+              var rrz = rz + rw;
+              var rh = getTerrainHeight(rx, rrz);
+              for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+                setBlock(rx, ry, rrz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, sb, rz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(rx, rz + 4);
+            setBlock(rx, sb2, rz + 4, BLOCK.SAND);
+          }
+        })();
+        // Large cooling pond (rectangular water — already present, enhance)
+        (function() {
+          for (var dx = -20; dx <= 20; dx++) {
+            for (var dz = -20; dz <= 20; dz++) {
+              var ch = getTerrainHeight(dx, dz);
+              for (var cy = ch; cy >= Math.max(0, ch - 3); cy--) {
+                setBlock(dx, cy, dz, BLOCK.WATER);
+              }
+            }
+          }
+          // Concrete embankment
+          for (var dx = -21; dx <= 21; dx++) {
+            for (var dz = -21; dz <= 21; dz++) {
+              if (Math.abs(dx) === 21 || Math.abs(dz) === 21) {
+                var ch = getTerrainHeight(dx, dz);
+                setBlock(dx, ch, dz, BLOCK.CONCRETE);
+                setBlock(dx, ch + 1, dz, BLOCK.CONCRETE);
+              }
+            }
+          }
+        })();
+        // Marshy areas (wetlands with mud)
+        (function() {
+          var marshes = [[-30, 30, 8], [30, 30, 7], [0, 50, 9]];
+          for (var mi = 0; mi < marshes.length; mi++) {
+            var mx = marshes[mi][0], mz = marshes[mi][1], mr = marshes[mi][2];
+            for (var fx = mx - mr; fx <= mx + mr; fx++) {
+              for (var fz = mz - mr; fz <= mz + mr; fz++) {
+                if ((fx - mx)*(fx - mx) + (fz - mz)*(fz - mz) <= mr*mr && Math.random() < 0.5) {
+                  var fh = getTerrainHeight(fx, fz);
+                  setBlock(fx, fh, fz, BLOCK.DIRT);
+                  if (Math.random() < 0.3) {
+                    setBlock(fx, fh + 1, fz, BLOCK.WATER);
+                  }
+                  if (Math.random() < 0.2) {
+                    setBlock(fx, fh + 1, fz, BLOCK.BUSH);
+                  }
+                }
+              }
+            }
+          }
+        })();
+        // Flat terrain (level ghost city)
+        (function() {
+          for (var fx = -40; fx <= 40; fx++) {
+            for (var fz = -40; fz <= 40; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              if (fh > 3) {
+                setBlock(fx, 3, fz, BLOCK.GRASS);
+                setBlock(fx, 2, fz, BLOCK.DIRT);
+              }
+            }
+          }
+        })();
+        // Abandoned buildings (ruins)
+        (function() {
+          var ruins = [[-35, -35], [35, -35], [-35, 35], [35, 35], [0, -45], [0, 45]];
+          for (var ri = 0; ri < ruins.length; ri++) {
+            var rx = ruins[ri][0], rz = ruins[ri][1];
+            var rh = getTerrainHeight(rx, rz);
+            for (var x = -3; x <= 3; x++) {
+              for (var z = -3; z <= 3; z++) {
+                for (var y = 0; y < 3; y++) {
+                  setBlock(rx + x, rh + y, rz + z, BLOCK.RUBBLE);
+                }
+              }
+            }
+          }
+        })();
+      } else if (levelId === 'CRIMEA') {
+        // Stage 8: Crimea Bridge — strait water, Taman flat/marshy, Kerch hilly, sand spits
+        // Strait water between two landmasses
+        (function() {
+          for (var fx = -80; fx <= 80; fx++) {
+            for (var fz = -10; fz <= 10; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              for (var fy = fh; fy >= Math.max(0, fh - 3); fy--) {
+                setBlock(fx, fy, fz, BLOCK.WATER);
+              }
+            }
+          }
+        })();
+        // Taman Peninsula side (flat, marshy, west)
+        (function() {
+          for (var fx = -80; fx <= -20; fx++) {
+            for (var fz = -60; fz <= 60; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              if (fh > 2) {
+                setBlock(fx, 2, fz, BLOCK.DIRT);
+                setBlock(fx, 1, fz, BLOCK.DIRT);
+              }
+              if (Math.random() < 0.1) {
+                setBlock(fx, fh + 1, fz, BLOCK.WATER);
+              }
+            }
+          }
+        })();
+        // Kerch Peninsula side (hilly, east)
+        (function() {
+          for (var fx = 20; fx <= 80; fx++) {
+            for (var fz = -60; fz <= 60; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh + 1, fz, BLOCK.DIRT);
+              if (Math.abs(fx - 50) < 12 && Math.abs(fz) < 12) {
+                setBlock(fx, fh + 2, fz, BLOCK.DIRT);
+                setBlock(fx, fh + 3, fz, BLOCK.STONE);
+              }
+            }
+          }
+        })();
+        // Sand spits
+        (function() {
+          for (var sx = -15; sx <= 15; sx++) {
+            var sz = 15 + Math.floor(Math.sin(sx * 0.15) * 3);
+            var sh = getTerrainHeight(sx, sz);
+            setBlock(sx, sh, sz, BLOCK.SAND);
+            setBlock(sx, sh + 1, sz, BLOCK.SAND);
+            var sz2 = -15 + Math.floor(Math.sin(sx * 0.15) * 3);
+            var sh2 = getTerrainHeight(sx, sz2);
+            setBlock(sx, sh2, sz2, BLOCK.SAND);
+            setBlock(sx, sh2 + 1, sz2, BLOCK.SAND);
+          }
+        })();
+        // Tuzla Island (small island in strait)
+        (function() {
+          for (var fx = -8; fx <= 8; fx++) {
+            for (var fz = -8; fz <= 8; fz++) {
+              if (fx*fx + fz*fz <= 30) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh, fz, BLOCK.SAND);
+                setBlock(fx, fh + 1, fz, BLOCK.SAND);
+              }
+            }
+          }
+        })();
+      } else if (levelId === 'KHERSON') {
+        // Stage 9: Kherson Dnipro — wide river, agriculture, flood plains, islands
+        // Wide Dnipro River
+        (function() {
+          for (var rx = -80; rx <= 80; rx++) {
+            var rz = 45 + Math.floor(Math.sin(rx * 0.04) * 4);
+            for (var rw = 0; rw < 7; rw++) {
+              var rrz = rz + rw;
+              var rh = getTerrainHeight(rx, rrz);
+              for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+                setBlock(rx, ry, rrz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, sb, rz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(rx, rz + 7);
+            setBlock(rx, sb2, rz + 7, BLOCK.SAND);
+          }
+        })();
+        // Right bank flat with agriculture (field patterns)
+        (function() {
+          for (var fx = -70; fx <= 70; fx++) {
+            for (var fz = -70; fz <= 35; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.GRASS);
+              if (Math.abs(fx) % 8 === 0 || Math.abs(fz) % 8 === 0) {
+                setBlock(fx, fh + 1, fz, BLOCK.DIRT);
+              }
+            }
+          }
+        })();
+        // Flood plain areas
+        (function() {
+          for (var fx = -70; fx <= 70; fx++) {
+            for (var fz = 35; fz <= 42; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.DIRT);
+              if (Math.random() < 0.2) {
+                setBlock(fx, fh + 1, fz, BLOCK.WATER);
+              }
+            }
+          }
+        })();
+        // River islands
+        (function() {
+          var islands = [[-30, 50, 4], [0, 52, 3], [25, 48, 4]];
+          for (var ii = 0; ii < islands.length; ii++) {
+            var ix = islands[ii][0], iz = islands[ii][1], ir = islands[ii][2];
+            for (var fx = ix - ir; fx <= ix + ir; fx++) {
+              for (var fz = iz - ir; fz <= iz + ir; fz++) {
+                if ((fx - ix)*(fx - ix) + (fz - iz)*(fz - iz) <= ir*ir) {
+                  var ih = getTerrainHeight(fx, fz);
+                  setBlock(fx, ih, fz, BLOCK.SAND);
+                  setBlock(fx, ih + 1, fz, BLOCK.GRASS);
+                  if (Math.random() < 0.3) {
+                    setBlock(fx, ih + 2, fz, BLOCK.BUSH);
+                  }
+                }
+              }
+            }
+          }
+        })();
+      } else if (levelId === 'AVDIIVKA') {
+        // Stage 10: Avdiivka Coke Plant — industrial complex, smokestacks, rail, waste
+        // Large industrial complex (expanded flat factory floor)
+        (function() {
+          for (var ix = -40; ix <= 40; ix++) {
+            for (var iz = -40; iz <= 40; iz++) {
+              var ih = getTerrainHeight(ix, iz);
+              if (ih > 2) {
+                setBlock(ix, 2, iz, BLOCK.ASPHALT);
+                setBlock(ix, 1, iz, BLOCK.CONCRETE);
+              }
+            }
+          }
+        })();
+        // Smoke stacks
+        (function() {
+          var stacks = [[-20, -20], [20, -20], [0, 0], [-20, 20], [20, 20]];
+          for (var si = 0; si < stacks.length; si++) {
+            var sx = stacks[si][0], sz = stacks[si][1];
+            var sh = getTerrainHeight(sx, sz);
+            for (var y = 0; y < 18; y++) {
+              setBlock(sx, sh + y, sz, BLOCK.METAL);
+              setBlock(sx + 1, sh + y, sz, BLOCK.METAL);
+              setBlock(sx, sh + y, sz + 1, BLOCK.METAL);
+              setBlock(sx + 1, sh + y, sz + 1, BLOCK.METAL);
+            }
+            setBlock(sx, sh + 18, sz, BLOCK.FIRE);
+            setBlock(sx + 1, sh + 18, sz, BLOCK.FIRE);
+          }
+        })();
+        // Rail lines
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = 30;
+            var rh = getTerrainHeight(rx, rz);
+            setBlock(rx, rh, rz, BLOCK.METAL);
+            setBlock(rx, rh + 1, rz, BLOCK.METAL);
+            var rz2 = 33;
+            var rh2 = getTerrainHeight(rx, rz2);
+            setBlock(rx, rh2, rz2, BLOCK.METAL);
+            setBlock(rx, rh2 + 1, rz2, BLOCK.METAL);
+          }
+        })();
+        // Industrial waste areas (dark rubble)
+        (function() {
+          for (var wx = -50; wx <= 50; wx += 2) {
+            for (var wz = -50; wz <= 50; wz += 2) {
+              if (Math.random() < 0.15) {
+                var wh = getTerrainHeight(wx, wz);
+                setBlock(wx, wh, wz, BLOCK.RUBBLE);
+                setBlock(wx, wh + 1, wz, BLOCK.RUBBLE);
+              }
+            }
+          }
+        })();
+        // Flat terrain
+        (function() {
+          for (var fx = -70; fx <= 70; fx++) {
+            for (var fz = -70; fz <= 70; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.GRASS);
+            }
+          }
+        })();
+      } else if (levelId === 'SEVASTOPOL') {
+        // Stage 11: Sevastopol Naval — coastal bay, hilly terrain, harbor piers, submarine tunnel
+        // Coastal bay (enhanced water indentation)
+        (function() {
+          for (var bz = -70; bz <= -20; bz++) {
+            var bx = Math.floor(Math.sin(bz * 0.06) * 8);
+            for (var bw = 0; bw < 8; bw++) {
+              var bbx = bx + bw;
+              var bh = getTerrainHeight(bbx, bz);
+              for (var by = bh; by >= Math.max(0, bh - 2); by--) {
+                setBlock(bbx, by, bz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(bx - 1, bz);
+            setBlock(bx - 1, sb, bz, BLOCK.SAND);
+            var sb2 = getTerrainHeight(bx + 8, bz);
+            setBlock(bx + 8, sb2, bz, BLOCK.SAND);
+          }
+        })();
+        // Hilly terrain (Crimean hills up to 200m)
+        (function() {
+          for (var hx = -60; hx <= 60; hx++) {
+            for (var hz = 30; hz <= 60; hz++) {
+              var hh = getTerrainHeight(hx, hz);
+              setBlock(hx, hh + 1, hz, BLOCK.DIRT);
+              if (Math.abs(hx) < 15 && Math.abs(hz - 45) < 10) {
+                setBlock(hx, hh + 2, hz, BLOCK.DIRT);
+                setBlock(hx, hh + 3, hz, BLOCK.STONE);
+              }
+            }
+          }
+        })();
+        // Harbor with piers
+        (function() {
+          var piers = [[-10, -40], [10, -40], [0, -50]];
+          for (var pi = 0; pi < piers.length; pi++) {
+            var px = piers[pi][0], pz = piers[pi][1];
+            for (var dx = -3; dx <= 3; dx++) {
+              for (var dz = 0; dz <= 12; dz++) {
+                var ph = getTerrainHeight(px + dx, pz + dz);
+                setBlock(px + dx, ph, pz + dz, BLOCK.CONCRETE);
+                setBlock(px + dx, ph + 1, pz + dz, BLOCK.CONCRETE);
+              }
+            }
+          }
+        })();
+        // Naval buildings
+        (function() {
+          var buildings = [[-20, -30], [20, -30], [0, -35]];
+          for (var bi = 0; bi < buildings.length; bi++) {
+            var bx = buildings[bi][0], bz = buildings[bi][1];
+            var bh = getTerrainHeight(bx, bz);
+            for (var x = -4; x <= 4; x++) {
+              for (var z = -3; z <= 3; z++) {
+                for (var y = 0; y < 4; y++) {
+                  setBlock(bx + x, bh + y, bz + z, BLOCK.METAL);
+                }
+              }
+            }
+          }
+        })();
+        // Submarine tunnel entrance
+        (function() {
+          var tx = 0, tz = -60;
+          var th = getTerrainHeight(tx, tz);
+          for (var x = -3; x <= 3; x++) {
+            for (var z = 0; z <= 4; z++) {
+              for (var y = 0; y < 5; y++) {
+                if (Math.abs(x) < 2 && z < 4 && y < 4) {
+                  setBlock(tx + x, th + y, tz + z, BLOCK.AIR);
+                } else {
+                  setBlock(tx + x, th + y, tz + z, BLOCK.CONCRETE);
+                }
+              }
+            }
+          }
+          setBlock(tx, th + 4, tz + 4, BLOCK.CONCRETE);
+          setBlock(tx + 1, th + 4, tz + 4, BLOCK.CONCRETE);
+          setBlock(tx - 1, th + 4, tz + 4, BLOCK.CONCRETE);
+        })();
+        // Sea of Azov coast south
+        (function() {
+          for (var cx = -70; cx <= 70; cx++) {
+            var cz = 60 + Math.floor(Math.sin(cx * 0.04) * 2);
+            for (var cw = 0; cw < 5; cw++) {
+              var ccz = cz + cw;
+              var ch = getTerrainHeight(cx, ccz);
+              for (var cy = ch; cy >= Math.max(0, ch - 2); cy--) {
+                setBlock(cx, cy, ccz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(cx, cz - 1);
+            setBlock(cx, sb, cz - 1, BLOCK.SAND);
+          }
+        })();
+      } else if (levelId === 'DONBAS') {
+        // Stage 12: Donbas Mining — slag heaps, mine headframes, rail, industrial
+        // Slag heaps (cone-shaped hills of dark blocks)
+        (function() {
+          var heaps = [[-30, -30, 10], [30, 30, 8], [0, -40, 9], [-40, 10, 7]];
+          for (var hi = 0; hi < heaps.length; hi++) {
+            var hx = heaps[hi][0], hz = heaps[hi][1], hr = heaps[hi][2];
+            for (var fx = hx - hr; fx <= hx + hr; fx++) {
+              for (var fz = hz - hr; fz <= hz + hr; fz++) {
+                var dist = Math.sqrt((fx - hx)*(fx - hx) + (fz - hz)*(fz - hz));
+                if (dist <= hr) {
+                  var fh = getTerrainHeight(fx, fz);
+                  var height = Math.floor((hr - dist) * 0.6);
+                  for (var y = 0; y <= height; y++) {
+                    setBlock(fx, fh + y, fz, BLOCK.DIRT);
+                  }
+                }
+              }
+            }
+          }
+        })();
+        // Mine headframes (tall metal towers)
+        (function() {
+          var mines = [[-30, -30], [30, 30], [0, -40]];
+          for (var mi = 0; mi < mines.length; mi++) {
+            var mx = mines[mi][0], mz = mines[mi][1];
+            var mh = getTerrainHeight(mx, mz);
+            for (var y = 0; y < 14; y++) {
+              setBlock(mx, mh + y, mz, BLOCK.METAL);
+              setBlock(mx + 1, mh + y, mz, BLOCK.METAL);
+              setBlock(mx, mh + y, mz + 1, BLOCK.METAL);
+              setBlock(mx + 1, mh + y, mz + 1, BLOCK.METAL);
+            }
+            for (var dx = -2; dx <= 3; dx++) {
+              setBlock(mx + dx, mh + 12, mz, BLOCK.METAL);
+              setBlock(mx + dx, mh + 12, mz + 1, BLOCK.METAL);
+            }
+          }
+        })();
+        // Rail lines
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = 0;
+            var rh = getTerrainHeight(rx, rz);
+            setBlock(rx, rh, rz, BLOCK.METAL);
+            setBlock(rx, rh + 1, rz, BLOCK.METAL);
+            var rz2 = 3;
+            var rh2 = getTerrainHeight(rx, rz2);
+            setBlock(rx, rh2, rz2, BLOCK.METAL);
+            setBlock(rx, rh2 + 1, rz2, BLOCK.METAL);
+          }
+        })();
+        // Flat surroundings
+        (function() {
+          for (var fx = -70; fx <= 70; fx++) {
+            for (var fz = -70; fz <= 70; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.GRASS);
+            }
+          }
+        })();
+        // Industrial buildings (expanded)
+        (function() {
+          for (var ix = -20; ix <= 20; ix++) {
+            for (var iz = -20; iz <= 20; iz++) {
+              var ih = getTerrainHeight(ix, iz);
+              if (ih > 2) {
+                setBlock(ix, 2, iz, BLOCK.ASPHALT);
+                setBlock(ix, 1, iz, BLOCK.CONCRETE);
+              }
+            }
+          }
+        })();
+      } else if (levelId === 'BELGOROD') {
+        // Stage 13: Belgorod Offensive — flat farmland, village outskirts, border, roads
+        // Flat farmland (field patterns)
+        (function() {
+          for (var fx = -70; fx <= 70; fx++) {
+            for (var fz = -70; fz <= 70; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.GRASS);
+              if (Math.abs(fx) % 10 === 0 || Math.abs(fz) % 10 === 0) {
+                setBlock(fx, fh + 1, fz, BLOCK.DIRT);
+              }
+            }
+          }
+        })();
+        // Small village outskirts
+        (function() {
+          var homes = [[-20, -20], [20, -20], [-20, 20], [20, 20], [0, 0]];
+          for (var hi = 0; hi < homes.length; hi++) {
+            var hx = homes[hi][0], hz = homes[hi][1];
+            var hh = getTerrainHeight(hx, hz);
+            for (var x = -2; x <= 2; x++) {
+              for (var z = -2; z <= 2; z++) {
+                for (var y = 0; y < 3; y++) {
+                  setBlock(hx + x, hh + y, hz + z, BLOCK.BRICK);
+                }
+              }
+            }
+            setBlock(hx, hh + 3, hz, BLOCK.ROOFTILE);
+          }
+        })();
+        // Border area markers
+        (function() {
+          for (var bx = -70; bx <= 70; bx += 10) {
+            var bz = -50;
+            var bh = getTerrainHeight(bx, bz);
+            setBlock(bx, bh + 1, bz, BLOCK.METAL);
+            setBlock(bx, bh + 2, bz, BLOCK.METAL);
+            setBlock(bx, bh + 3, bz, BLOCK.SIGN);
+          }
+        })();
+        // Roads (dirt farm roads)
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = 10;
+            var rh = getTerrainHeight(rx, rz);
+            setBlock(rx, rh, rz, BLOCK.DIRT);
+            var rz2 = -10;
+            var rh2 = getTerrainHeight(rx, rz2);
+            setBlock(rx, rh2, rz2, BLOCK.DIRT);
+          }
+        })();
+      } else if (levelId === 'SNAKE') {
+        // Stage 14: Snake Island — small rocky island, lighthouse, no vegetation
+        // Small island surrounded by water
+        (function() {
+          for (var fx = -20; fx <= 20; fx++) {
+            for (var fz = -20; fz <= 20; fz++) {
+              if (fx*fx + fz*fz <= 80) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh, fz, BLOCK.STONE);
+                setBlock(fx, fh + 1, fz, BLOCK.STONE);
+                if (fx*fx + fz*fz <= 40) {
+                  setBlock(fx, fh + 2, fz, BLOCK.STONE);
+                }
+              } else {
+                var fh = getTerrainHeight(fx, fz);
+                for (var fy = fh; fy >= Math.max(0, fh - 3); fy--) {
+                  setBlock(fx, fy, fz, BLOCK.WATER);
+                }
+              }
+            }
+          }
+        })();
+        // Rocky terrain (exposed stone)
+        (function() {
+          for (var fx = -15; fx <= 15; fx++) {
+            for (var fz = -15; fz <= 15; fz++) {
+              if (fx*fx + fz*fz <= 60) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh + 2, fz, BLOCK.STONE);
+                if (Math.random() < 0.3) {
+                  setBlock(fx, fh + 3, fz, BLOCK.STONE);
+                }
+              }
+            }
+          }
+        })();
+        // Lighthouse structure
+        (function() {
+          var lx = 0, lz = 0;
+          var lh = getTerrainHeight(lx, lz);
+          for (var y = 0; y < 12; y++) {
+            setBlock(lx, lh + y, lz, BLOCK.WHITE_TILE);
+            setBlock(lx + 1, lh + y, lz, BLOCK.WHITE_TILE);
+            setBlock(lx, lh + y, lz + 1, BLOCK.WHITE_TILE);
+            setBlock(lx + 1, lh + y, lz + 1, BLOCK.WHITE_TILE);
+          }
+          setBlock(lx, lh + 12, lz, BLOCK.LIGHT);
+          setBlock(lx + 1, lh + 12, lz, BLOCK.LIGHT);
+          setBlock(lx, lh + 12, lz + 1, BLOCK.LIGHT);
+          setBlock(lx + 1, lh + 12, lz + 1, BLOCK.LIGHT);
+        })();
+        // No vegetation — ensure all trees/bushes are removed
+        (function() {
+          for (var fx = -20; fx <= 20; fx++) {
+            for (var fz = -20; fz <= 20; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              var top = getBlock(fx, fh + 1, fz);
+              if (top === BLOCK.WOOD || top === BLOCK.BUSH || top === BLOCK.BRICK) {
+                setBlock(fx, fh + 1, fz, BLOCK.AIR);
+              }
+              var top2 = getBlock(fx, fh + 2, fz);
+              if (top2 === BLOCK.WOOD || top2 === BLOCK.BUSH || top2 === BLOCK.BRICK) {
+                setBlock(fx, fh + 2, fz, BLOCK.AIR);
+              }
+            }
+          }
+        })();
+      } else if (levelId === 'SAKY') {
+        // Stage 15: Saky Airbase — long runway, hangars, flat dry steppe, coastal area
+        // Long flat runway (enhanced leveling)
+        (function() {
+          for (var lx = -60; lx <= 60; lx++) {
+            for (var lz = -10; lz <= 10; lz++) {
+              var lh = getTerrainHeight(lx, lz);
+              if (lh > 3) {
+                setBlock(lx, 3, lz, BLOCK.GRASS);
+                setBlock(lx, 2, lz, BLOCK.DIRT);
+              }
+            }
+          }
+        })();
+        // Hangars
+        (function() {
+          var hangars = [[-30, -30], [30, -30], [-30, 30], [30, 30]];
+          for (var hi = 0; hi < hangars.length; hi++) {
+            var hx = hangars[hi][0], hz = hangars[hi][1];
+            var hh = getTerrainHeight(hx, hz);
+            for (var x = -5; x <= 5; x++) {
+              for (var z = -4; z <= 4; z++) {
+                for (var y = 0; y < 5; y++) {
+                  setBlock(hx + x, hh + y, hz + z, BLOCK.METAL);
+                }
+              }
+            }
+            for (var x = -5; x <= 5; x++) {
+              for (var z = -4; z <= 4; z++) {
+                setBlock(hx + x, hh + 5, hz + z, BLOCK.CONCRETE);
+              }
+            }
+          }
+        })();
+        // Flat dry steppe
+        (function() {
+          for (var fx = -70; fx <= 70; fx++) {
+            for (var fz = -70; fz <= 70; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.GRASS);
+            }
+          }
+        })();
+        // Sparse vegetation
+        (function() {
+          for (var fx = -70; fx <= 70; fx += 3) {
+            for (var fz = -70; fz <= 70; fz += 3) {
+              if (Math.random() < 0.08) {
+                var fh = getTerrainHeight(fx, fz);
+                setBlock(fx, fh + 1, fz, BLOCK.BUSH);
+              }
+            }
+          }
+        })();
+        // Coastal area nearby
+        (function() {
+          for (var cx = -70; cx <= 70; cx++) {
+            var cz = 65 + Math.floor(Math.sin(cx * 0.04) * 2);
+            for (var cw = 0; cw < 5; cw++) {
+              var ccz = cz + cw;
+              var ch = getTerrainHeight(cx, ccz);
+              for (var cy = ch; cy >= Math.max(0, ch - 2); cy--) {
+                setBlock(cx, cy, ccz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(cx, cz - 1);
+            setBlock(cx, sb, cz - 1, BLOCK.SAND);
+          }
+        })();
+      } else if (levelId === 'VUHLEDAR') {
+        // Stage 16: Vuhledar Coal — flat-topped slag heaps, mine buildings, rail
+        // Flat-topped slag heaps (plateau hills)
+        (function() {
+          var heaps = [[-30, -30, 10], [30, 30, 8], [0, -40, 9], [-40, 10, 7]];
+          for (var hi = 0; hi < heaps.length; hi++) {
+            var hx = heaps[hi][0], hz = heaps[hi][1], hr = heaps[hi][2];
+            for (var fx = hx - hr; fx <= hx + hr; fx++) {
+              for (var fz = hz - hr; fz <= hz + hr; fz++) {
+                var dist = Math.sqrt((fx - hx)*(fx - hx) + (fz - hz)*(fz - hz));
+                if (dist <= hr) {
+                  var fh = getTerrainHeight(fx, fz);
+                  var height = Math.floor((hr - dist) * 0.5);
+                  for (var y = 0; y <= height + 2; y++) {
+                    setBlock(fx, fh + y, fz, BLOCK.DIRT);
+                  }
+                  if (dist <= hr * 0.4) {
+                    setBlock(fx, fh + height + 2, fz, BLOCK.ASPHALT);
+                  }
+                }
+              }
+            }
+          }
+        })();
+        // Mine buildings
+        (function() {
+          var mines = [[-30, -30], [30, 30], [0, -40]];
+          for (var mi = 0; mi < mines.length; mi++) {
+            var mx = mines[mi][0], mz = mines[mi][1];
+            var mh = getTerrainHeight(mx, mz);
+            for (var x = -4; x <= 4; x++) {
+              for (var z = -4; z <= 4; z++) {
+                for (var y = 0; y < 4; y++) {
+                  setBlock(mx + x, mh + y, mz + z, BLOCK.METAL);
+                }
+              }
+            }
+          }
+        })();
+        // Rail lines
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = 0;
+            var rh = getTerrainHeight(rx, rz);
+            setBlock(rx, rh, rz, BLOCK.METAL);
+            setBlock(rx, rh + 1, rz, BLOCK.METAL);
+            var rz2 = 3;
+            var rh2 = getTerrainHeight(rx, rz2);
+            setBlock(rx, rh2, rz2, BLOCK.METAL);
+            setBlock(rx, rh2 + 1, rz2, BLOCK.METAL);
+          }
+        })();
+        // Flat surroundings
+        (function() {
+          for (var fx = -70; fx <= 70; fx++) {
+            for (var fz = -70; fz <= 70; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.GRASS);
+            }
+          }
+        })();
+      } else if (levelId === 'ANTONOV') {
+        // Stage 17: Antonov Bridge — large bridge, wide Dnipro, floodplain
+        // Large bridge spanning river (enhanced)
+        (function() {
+          for (var bx = -40; bx <= 40; bx++) {
+            var bz = 0;
+            var bh = getTerrainHeight(bx, bz);
+            setBlock(bx, bh + 3, bz, BLOCK.CONCRETE);
+            setBlock(bx, bh + 3, bz + 1, BLOCK.CONCRETE);
+            setBlock(bx, bh + 3, bz + 2, BLOCK.CONCRETE);
+            if (bx % 10 === 0) {
+              for (var y = bh; y <= bh + 3; y++) {
+                setBlock(bx, y, bz, BLOCK.CONCRETE);
+                setBlock(bx, y, bz + 2, BLOCK.CONCRETE);
+              }
+            }
+          }
+        })();
+        // Wide Dnipro River
+        (function() {
+          for (var rx = -80; rx <= 80; rx++) {
+            var rz = -5 + Math.floor(Math.sin(rx * 0.04) * 3);
+            for (var rw = 0; rw < 8; rw++) {
+              var rrz = rz + rw;
+              var rh = getTerrainHeight(rx, rrz);
+              for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+                setBlock(rx, ry, rrz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, sb, rz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(rx, rz + 8);
+            setBlock(rx, sb2, rz + 8, BLOCK.SAND);
+          }
+        })();
+        // Floodplain
+        (function() {
+          for (var fx = -80; fx <= 80; fx++) {
+            for (var fz = -15; fz <= -8; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.DIRT);
+              if (Math.random() < 0.15) {
+                setBlock(fx, fh + 1, fz, BLOCK.WATER);
+              }
+            }
+            for (var fz = 8; fz <= 15; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, fh, fz, BLOCK.DIRT);
+              if (Math.random() < 0.15) {
+                setBlock(fx, fh + 1, fz, BLOCK.WATER);
+              }
+            }
+          }
+        })();
+        // Flat banks
+        (function() {
+          for (var fx = -80; fx <= 80; fx++) {
+            for (var fz = -70; fz <= -20; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              if (fh > 3) {
+                setBlock(fx, 3, fz, BLOCK.GRASS);
+                setBlock(fx, 2, fz, BLOCK.DIRT);
+              }
+            }
+            for (var fz = 20; fz <= 70; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              if (fh > 3) {
+                setBlock(fx, 3, fz, BLOCK.GRASS);
+                setBlock(fx, 2, fz, BLOCK.DIRT);
+              }
+            }
+          }
+        })();
+      } else if (levelId === 'REFINERY') {
+        // Stage 18: Oil Refinery — storage tanks, pipelines, flat industrial, smoke/fire
+        // Storage tanks (round structures using stone blocks)
+        (function() {
+          var tanks = [[-20, -20], [20, -20], [-20, 20], [20, 20], [0, 0]];
+          for (var ti = 0; ti < tanks.length; ti++) {
+            var tx = tanks[ti][0], tz = tanks[ti][1];
+            var th = getTerrainHeight(tx, tz);
+            for (var dx = -3; dx <= 3; dx++) {
+              for (var dz = -3; dz <= 3; dz++) {
+                if (dx*dx + dz*dz <= 9) {
+                  for (var y = 0; y < 6; y++) {
+                    setBlock(tx + dx, th + y, tz + dz, BLOCK.STONE);
+                  }
+                  setBlock(tx + dx, th + 6, tz + dz, BLOCK.METAL);
+                }
+              }
+            }
+          }
+        })();
+        // Pipelines
+        (function() {
+          for (var px = -40; px <= 40; px++) {
+            var pz = 0;
+            var ph = getTerrainHeight(px, pz);
+            setBlock(px, ph + 1, pz, BLOCK.METAL);
+            var pz2 = 10;
+            var ph2 = getTerrainHeight(px, pz2);
+            setBlock(px, ph2 + 1, pz2, BLOCK.METAL);
+          }
+          for (var pz = -40; pz <= 40; pz++) {
+            var px = 0;
+            var ph = getTerrainHeight(px, pz);
+            setBlock(px, ph + 1, pz, BLOCK.METAL);
+            var px2 = -10;
+            var ph2 = getTerrainHeight(px2, pz);
+            setBlock(px2, ph2 + 1, pz, BLOCK.METAL);
+          }
+        })();
+        // Flat industrial zone
+        (function() {
+          for (var fx = -40; fx <= 40; fx++) {
+            for (var fz = -40; fz <= 40; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              if (fh > 2) {
+                setBlock(fx, 2, fz, BLOCK.ASPHALT);
+                setBlock(fx, 1, fz, BLOCK.CONCRETE);
+              }
+            }
+          }
+        })();
+        // Smoke/fire effects
+        (function() {
+          var fires = [[-15, -15], [15, -15], [0, 10], [-10, 10], [10, 10]];
+          for (var fi = 0; fi < fires.length; fi++) {
+            var fx = fires[fi][0], fz = fires[fi][1];
+            var fy = getTerrainHeight(fx, fz);
+            setBlock(fx, fy, fz, BLOCK.FUEL_BARREL);
+            setBlock(fx + 1, fy, fz, BLOCK.RUBBLE);
+            setBlock(fx, fy, fz + 1, BLOCK.RUBBLE);
+            setBlock(fx, fy + 1, fz, BLOCK.FUEL_BARREL);
+          }
+        })();
+      } else if (levelId === 'SIEGE') {
+        // Stage 19: Siege of Moscow — dense urban, Kremlin walls, Red Square, river, government buildings
+        // Dense urban center (grid of streets)
+        (function() {
+          for (var gx = -40; gx <= 40; gx += 12) {
+            for (var gz = -40; gz <= 40; gz++) {
+              var gh = getTerrainHeight(gx, gz);
+              if (gh > 1) setBlock(gx, gh, gz, BLOCK.ASPHALT);
+            }
+          }
+          for (var gz = -40; gz <= 40; gz += 12) {
+            for (var gx = -40; gx <= 40; gx++) {
+              var gh = getTerrainHeight(gx, gz);
+              if (gh > 1) setBlock(gx, gh, gz, BLOCK.ASPHALT);
+            }
+          }
+        })();
+        // Kremlin walls (red brick perimeter)
+        (function() {
+          for (var wx = -18; wx <= 18; wx++) {
+            var wh = getTerrainHeight(wx, -18);
+            setBlock(wx, wh, -18, BLOCK.BRICK);
+            setBlock(wx, wh + 1, -18, BLOCK.BRICK);
+            setBlock(wx, wh + 2, -18, BLOCK.BRICK);
+            wh = getTerrainHeight(wx, 18);
+            setBlock(wx, wh, 18, BLOCK.BRICK);
+            setBlock(wx, wh + 1, 18, BLOCK.BRICK);
+            setBlock(wx, wh + 2, 18, BLOCK.BRICK);
+          }
+          for (var wz = -18; wz <= 18; wz++) {
+            var wh = getTerrainHeight(-18, wz);
+            setBlock(-18, wh, wz, BLOCK.BRICK);
+            setBlock(-18, wh + 1, wz, BLOCK.BRICK);
+            setBlock(-18, wh + 2, wz, BLOCK.BRICK);
+            wh = getTerrainHeight(18, wz);
+            setBlock(18, wh, wz, BLOCK.BRICK);
+            setBlock(18, wh + 1, wz, BLOCK.BRICK);
+            setBlock(18, wh + 2, wz, BLOCK.BRICK);
+          }
+        })();
+        // Red Square (open plaza)
+        (function() {
+          for (var fx = -25; fx <= 25; fx++) {
+            for (var fz = 20; fz <= 50; fz++) {
+              var fh = getTerrainHeight(fx, fz);
+              setBlock(fx, 3, fz, BLOCK.CONCRETE);
+              setBlock(fx, 2, fz, BLOCK.STONE);
+            }
+          }
+        })();
+        // Moskva River
+        (function() {
+          for (var rx = -70; rx <= 70; rx++) {
+            var rz = 55 + Math.floor(Math.sin(rx * 0.05) * 8) + Math.floor(Math.cos(rx * 0.03) * 4);
+            for (var rw = 0; rw < 4; rw++) {
+              var rrz = rz + rw;
+              var rh = getTerrainHeight(rx, rrz);
+              for (var ry = rh; ry >= Math.max(0, rh - 2); ry--) {
+                setBlock(rx, ry, rrz, BLOCK.WATER);
+              }
+            }
+            var sb = getTerrainHeight(rx, rz - 1);
+            setBlock(rx, sb, rz - 1, BLOCK.SAND);
+            var sb2 = getTerrainHeight(rx, rz + 4);
+            setBlock(rx, sb2, rz + 4, BLOCK.SAND);
+          }
+        })();
+        // Government buildings (ministries)
+        (function() {
+          var gov = [[-30, 0], [30, 0], [0, -30], [0, 30]];
+          for (var gi = 0; gi < gov.length; gi++) {
+            var gx = gov[gi][0], gz = gov[gi][1];
+            var gh = getTerrainHeight(gx, gz);
+            for (var x = -5; x <= 5; x++) {
+              for (var z = -4; z <= 4; z++) {
+                for (var y = 0; y < 6; y++) {
+                  setBlock(gx + x, gh + y, gz + z, BLOCK.CONCRETE);
+                }
+              }
+            }
+            setBlock(gx, gh + 6, gz, BLOCK.LIGHT);
+          }
+        })();
+        // Defensive positions (Russian last-ditch)
+        (function() {
+          var defenses = [[-40, -40], [40, -40], [-40, 40], [40, 40], [0, 40], [0, -40]];
+          for (var di = 0; di < defenses.length; di++) {
+            var dx = defenses[di][0], dz = defenses[di][1];
+            var dh = getTerrainHeight(dx, dz);
+            setBlock(dx, dh, dz, BLOCK.CONCRETE);
+            setBlock(dx, dh + 1, dz, BLOCK.CONCRETE);
+            setBlock(dx + 1, dh, dz, BLOCK.CONCRETE);
+            setBlock(dx - 1, dh, dz, BLOCK.CONCRETE);
+            setBlock(dx, dh, dz + 1, BLOCK.CONCRETE);
+            setBlock(dx, dh, dz - 1, BLOCK.CONCRETE);
+          }
+        })();
+      }
+    })();
     rebuildAll();
     _levelSpawnPoint = resolveLevelSpawnPoint(level);
     return level;
