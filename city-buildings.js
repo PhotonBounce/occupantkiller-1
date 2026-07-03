@@ -19,9 +19,154 @@ const CityBuildings = (function () {
   };
   var CITIES = {};
 
+  // ── Global detail level (can be overridden per-building) ──
+  var GLOBAL_DETAIL = (typeof window !== 'undefined' && window.detailLevel) || 0;
+  var GLOBAL_DAMAGE = (typeof window !== 'undefined' && window.destructionLevel) || 0;
+
+  // ── Helpers: interiors, damage, rooftops, ground details ──
+  function _isDamagedSkip(damage, x, y, z, w, h, d) {
+    if (!damage || damage <= 0) return false;
+    // Concentrate damage toward corners and center
+    var cx = w / 2, cz = d / 2, cy = h / 2;
+    var distFromCenter = Math.abs(x - cx) + Math.abs(z - cz) + Math.abs(y - cy) * 0.5;
+    if (distFromCenter < 4 && Math.random() < damage * 0.5) return true;
+    if (Math.random() < damage * 0.15) return true;
+    return false;
+  }
+  function _addRubble(ox, gy, oz, w, d, damage) {
+    if (!damage || damage <= 0) return;
+    var count = Math.floor(damage * 20);
+    for (var i = 0; i < count; i++) {
+      var rx = ox + Math.floor(Math.random() * w);
+      var rz = oz + Math.floor(Math.random() * d);
+      var bt = (Math.random() < 0.5) ? PAL.RUBBLE : PAL.DIRT;
+      setBlock(rx, gy - 1, rz, bt);
+      if (Math.random() < 0.3) setBlock(rx, gy - 2, rz, bt);
+      if (Math.random() < 0.2) setBlock(rx + 1, gy - 1, rz, bt);
+      if (Math.random() < 0.2) setBlock(rx, gy - 1, rz + 1, bt);
+    }
+  }
+  function _addRooftopAC(ox, gy, oz, w, d) {
+    var acX = ox + 2, acZ = oz + 2;
+    if (acX < ox + w - 2 && acZ < oz + d - 2) {
+      setBlock(acX, gy, acZ, PAL.METAL);
+      setBlock(acX + 1, gy, acZ, PAL.METAL);
+      setBlock(acX, gy, acZ + 1, PAL.METAL);
+      setBlock(acX + 1, gy, acZ + 1, PAL.METAL);
+      setBlock(acX, gy + 1, acZ, PAL.METAL_DARK);
+      setBlock(acX + 1, gy + 1, acZ + 1, PAL.METAL_DARK);
+      // Fan grille
+      setBlock(acX, gy + 1, acZ + 1, PAL.FENCE);
+      setBlock(acX + 1, gy + 1, acZ, PAL.FENCE);
+    }
+  }
+  function _addRooftopWaterTank(ox, gy, oz, w, d) {
+    var tx = ox + w - 3, tz = oz + d - 3;
+    if (tx > ox + 2 && tz > oz + 2) {
+      setBlock(tx, gy, tz, PAL.CONCRETE);
+      setBlock(tx + 1, gy, tz, PAL.CONCRETE);
+      setBlock(tx, gy, tz + 1, PAL.CONCRETE);
+      setBlock(tx + 1, gy, tz + 1, PAL.CONCRETE);
+      setBlock(tx, gy + 1, tz, PAL.CONCRETE);
+      setBlock(tx + 1, gy + 1, tz + 1, PAL.CONCRETE);
+    }
+  }
+  function _addRooftopAntenna(ox, gy, oz, w, d) {
+    var ax = ox + Math.floor(w / 2), az = oz + Math.floor(d / 2);
+    for (var ay = 0; ay < 4 + Math.floor(Math.random() * 3); ay++) setBlock(ax, gy + ay, az, PAL.METAL);
+    setBlock(ax + 1, gy + 2, az, PAL.METAL);
+    setBlock(ax - 1, gy + 2, az, PAL.METAL);
+    setBlock(ax, gy + 2, az + 1, PAL.METAL);
+    setBlock(ax, gy + 2, az - 1, PAL.METAL);
+  }
+  function _addRooftopSatelliteDish(ox, gy, oz, w, d) {
+    var sx = ox + w - 2, sz = oz + 2;
+    if (sx > ox + 1) {
+      setBlock(sx, gy, sz, PAL.METAL);
+      setBlock(sx, gy + 1, sz, PAL.METAL);
+      setBlock(sx + 1, gy + 1, sz, PAL.METAL);
+      setBlock(sx - 1, gy + 1, sz, PAL.METAL);
+      setBlock(sx, gy + 1, sz + 1, PAL.METAL);
+      setBlock(sx, gy + 1, sz - 1, PAL.METAL);
+    }
+  }
+  function _addRooftopElevatorRoom(ox, gy, oz, w, d) {
+    var ex = ox + Math.floor(w / 2) - 1, ez = oz + d - 2;
+    if (ex > ox && ez > oz) {
+      for (var x = 0; x < 3; x++) {
+        for (var z = 0; z < 2; z++) {
+          setBlock(ex + x, gy, ez + z, PAL.CONCRETE);
+          if (x === 0 || x === 2 || z === 0) {
+            setBlock(ex + x, gy + 1, ez + z, PAL.CONCRETE);
+          } else {
+            setBlock(ex + x, gy + 1, ez + z, PAL.GLASS);
+          }
+        }
+      }
+      setBlock(ex, gy + 2, ez, PAL.CONCRETE);
+      setBlock(ex + 2, gy + 2, ez, PAL.CONCRETE);
+      setBlock(ex, gy + 2, ez + 1, PAL.CONCRETE);
+      setBlock(ex + 2, gy + 2, ez + 1, PAL.CONCRETE);
+    }
+  }
+  function _addHelipad(ox, gy, oz, w, d) {
+    if (w >= 12 && d >= 10) {
+      var hx = ox + Math.floor(w / 2) - 2, hz = oz + Math.floor(d / 2) - 2;
+      for (var x = 0; x < 5; x++) {
+        for (var z = 0; z < 5; z++) {
+          setBlock(hx + x, gy, hz + z, (x === 2 || z === 2) ? PAL.WHITE_TILE : PAL.ASPHALT);
+        }
+      }
+      // H mark
+      setBlock(hx + 1, gy + 1, hz + 2, PAL.WHITE_TILE);
+      setBlock(hx + 3, gy + 1, hz + 2, PAL.WHITE_TILE);
+      setBlock(hx + 2, gy + 1, hz + 1, PAL.WHITE_TILE);
+      setBlock(hx + 2, gy + 1, hz + 3, PAL.WHITE_TILE);
+    }
+  }
+  function _addGroundSteps(ox, gy, oz, w, d) {
+    var mx = ox + Math.floor(w / 2);
+    setBlock(mx - 1, gy - 1, oz - 1, PAL.STONE);
+    setBlock(mx, gy - 1, oz - 1, PAL.STONE);
+    setBlock(mx + 1, gy - 1, oz - 1, PAL.STONE);
+  }
+  function _addGroundTrashBins(ox, gy, oz, w, d) {
+    setBlock(ox + 1, gy, oz + d + 1, PAL.METAL_DARK);
+    setBlock(ox + w - 2, gy, oz + d + 1, PAL.METAL_DARK);
+  }
+  function _addGroundStreetLamp(ox, gy, oz, w, d) {
+    var lx = ox + w + 1, lz = oz + Math.floor(d / 2);
+    setBlock(lx, gy, lz, PAL.METAL);
+    setBlock(lx, gy + 1, lz, PAL.METAL);
+    setBlock(lx, gy + 2, lz, PAL.METAL);
+    setBlock(lx, gy + 3, lz, PAL.LIGHT);
+  }
+  function _addGroundBollards(ox, gy, oz, w, d) {
+    setBlock(ox - 1, gy, oz + 1, PAL.CONCRETE);
+    setBlock(ox - 1, gy, oz + d - 2, PAL.CONCRETE);
+    setBlock(ox + w, gy, oz + 1, PAL.CONCRETE);
+    setBlock(ox + w, gy, oz + d - 2, PAL.CONCRETE);
+  }
+  function _addGroundBench(ox, gy, oz, w, d) {
+    var bx = ox + 2, bz = oz + d + 1;
+    setBlock(bx, gy, bz, PAL.WOOD);
+    setBlock(bx + 1, gy, bz, PAL.WOOD);
+    setBlock(bx + 2, gy, bz, PAL.WOOD);
+    setBlock(bx, gy, bz + 1, PAL.METAL_DARK);
+    setBlock(bx + 2, gy, bz + 1, PAL.METAL_DARK);
+  }
+  function _addGroundFence(ox, gy, oz, w, d) {
+    for (var x = 0; x < w; x += 2) {
+      setBlock(ox + x, gy, oz + d + 1, PAL.FENCE);
+    }
+  }
+
+
   // ── sovietApartment ──
-  function sovietApartment(ox, oz, gy, w, d, floors, damage, color) {
+  function sovietApartment(ox, oz, gy, w, d, floors, damage, color, detailLevel) {
     color = color || PAL.CONCRETE;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    damage = (typeof damage === 'number') ? damage : GLOBAL_DAMAGE;
     var h = floors * 3 + 1;
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
@@ -34,17 +179,58 @@ const CityBuildings = (function () {
             if (isRoof) bt = PAL.ROOFTILE;
             else if (y === 0) bt = PAL.BRICK;
             else if ((x === 3 || x === w - 4) && (z === 0 || z === d - 1)) bt = PAL.CONCRETE;
-            if (damage > 0 && Math.random() < damage * 0.15) continue;
+            // Soviet texture: rust stains on concrete
+            if (bt === PAL.CONCRETE && Math.random() < 0.15) bt = PAL.METAL_RUST;
+            if (bt === PAL.CONCRETE && y > 0 && Math.random() < 0.1) bt = PAL.CONCRETE_DARK;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
             setBlock(ox + x, gy + y, oz + z, bt);
           }
+          // Windows with glass panes
           if (isWall && !isRoof && !isFloor && y > 0) {
             if ((y % 3 === 1 || y % 3 === 2) && (x % 3 === 1 || z % 3 === 1)) {
-              if (Math.random() > 0.3) setBlock(ox + x, gy + y, oz + z, PAL.GLASS);
+              if (Math.random() > 0.3) {
+                if (damage > 0 && Math.random() < damage * 0.5) {
+                  // Broken window - missing glass or exposed rebar
+                  if (Math.random() < 0.3) setBlock(ox + x, gy + y, oz + z, PAL.REINFORCED);
+                } else {
+                  setBlock(ox + x, gy + y, oz + z, PAL.GLASS);
+                }
+              }
             }
           }
         }
       }
     }
+    // Interior: hollow with floors, rooms, staircases
+    if (detailLevel >= 1) {
+      for (var f = 1; f < floors; f++) {
+        var fy = gy + f * 3;
+        // Floor slabs
+        for (var x = 1; x < w - 1; x++) {
+          for (var z = 1; z < d - 1; z++) {
+            setBlock(ox + x, fy, oz + z, PAL.CONCRETE);
+          }
+        }
+        // Interior walls creating rooms (every 4 blocks)
+        for (var x = 4; x < w - 1; x += 4) {
+          for (var z = 1; z < d - 1; z++) {
+            if (z % 3 !== 0) { // doorways every 3 blocks
+              setBlock(ox + x, fy + 1, oz + z, PAL.CONCRETE_LIGHT);
+              setBlock(ox + x, fy + 2, oz + z, PAL.CONCRETE_LIGHT);
+            }
+          }
+        }
+        // Staircase in center
+        var sx = Math.floor(w / 2);
+        var sz = Math.floor(d / 2);
+        setBlock(ox + sx, fy + 1, oz + sz, PAL.CONCRETE);
+        setBlock(ox + sx, fy + 2, oz + sz, PAL.CONCRETE);
+        setBlock(ox + sx + 1, fy + 1, oz + sz, PAL.CONCRETE);
+        setBlock(ox + sx + 1, fy + 2, oz + sz, PAL.CONCRETE);
+      }
+    }
+    // Balconies (existing)
     for (var f = 1; f < floors; f++) {
       var by = gy + f * 3 + 1;
       for (var bx = 1; bx < w - 1; bx++) {
@@ -54,15 +240,36 @@ const CityBuildings = (function () {
         }
       }
     }
+    // Entrance
     setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR);
     setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR);
+    // Stairwell window
     for (var sy = 1; sy < h - 1; sy++) {
       if (sy % 3 === 1) setBlock(ox + w - 1, gy + sy, oz + Math.floor(d / 2), PAL.GLASS);
     }
+    // Rooftop details
+    if (detailLevel >= 1) {
+      _addRooftopAC(ox, gy + h, oz, w, d);
+      _addRooftopWaterTank(ox, gy + h, oz, w, d);
+      _addRooftopAntenna(ox, gy + h, oz, w, d);
+      if (floors >= 5) _addHelipad(ox, gy + h, oz, w, d);
+    }
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundSteps(ox, gy, oz, w, d);
+      _addGroundTrashBins(ox, gy, oz, w, d);
+      _addGroundStreetLamp(ox, gy, oz, w, d);
+    }
+    // Damage: rubble piles at base
+    _addRubble(ox, gy, oz, w, d, damage);
   }
 
+
   // ── orthodoxChurch ──
-  function orthodoxChurch(ox, oz, gy, w, d, h, color) { color = color || PAL.BRICK;
+  function orthodoxChurch(ox, oz, gy, w, d, h, color, detailLevel, damaged) {
+    color = color || PAL.BRICK;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    var damage = damaged ? 0.6 : (GLOBAL_DAMAGE || 0);
     var cx = ox + Math.floor(w / 2), cz = oz + Math.floor(d / 2);
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
@@ -72,6 +279,11 @@ const CityBuildings = (function () {
           if (isWall || isRoof) {
             var bt = (y === 0) ? PAL.STONE : color;
             if (y > h - 3) bt = PAL.PLASTER;
+            // Church textures: gold domes, brick walls
+            if (y > h - 4 && y < h - 1) bt = PAL.BRICK_YELLOW; // gold accent band
+            if (isWall && y > 1 && y < h - 3 && Math.random() < 0.08) bt = PAL.BRICK_DARK_RED;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
             setBlock(ox + x, gy + y, oz + z, bt);
           }
         }
@@ -85,7 +297,10 @@ const CityBuildings = (function () {
         for (var x = 0; x < towerSize; x++) {
           for (var z = 0; z < towerSize; z++) {
             var isWall = x === 0 || x === towerSize - 1 || z === 0 || z === towerSize - 1;
-            if (isWall) setBlock(tx + x, gy + y, tz + z, color);
+            if (isWall) {
+              if (damage > 0 && Math.random() < damage * 0.1) continue;
+              setBlock(tx + x, gy + y, tz + z, color);
+            }
           }
         }
       }
@@ -94,17 +309,76 @@ const CityBuildings = (function () {
       setBlock(tx, domeY, tz + 1, PAL.METAL); setBlock(tx + 2, domeY, tz + 1, PAL.METAL);
       setBlock(tx + 1, domeY, tz, PAL.METAL); setBlock(tx + 1, domeY, tz + 2, PAL.METAL);
       setBlock(tx + 1, domeY + 2, tz + 1, PAL.METAL);
+      // Cross on each tower dome
+      if (detailLevel >= 1) {
+        setBlock(tx + 1, domeY + 3, tz + 1, PAL.METAL);
+        setBlock(tx + 1, domeY + 4, tz + 1, PAL.METAL);
+        setBlock(tx, domeY + 3, tz + 1, PAL.METAL);
+        setBlock(tx + 2, domeY + 3, tz + 1, PAL.METAL);
+      }
     }
     var domeY = gy + h + 2;
     for (var dx = -2; dx <= 2; dx++) {
       for (var dz = -2; dz <= 2; dz++) {
         for (var dy = 0; dy < 3; dy++) {
-          if (Math.abs(dx) + Math.abs(dz) + dy <= 3) setBlock(cx + dx, domeY + dy, cz + dz, PAL.METAL);
+          if (Math.abs(dx) + Math.abs(dz) + dy <= 3) {
+            var bt = PAL.METAL;
+            if (dy < 2 && detailLevel >= 1) bt = PAL.BRICK_YELLOW; // gold dome
+            if (damage > 0 && Math.random() < damage * 0.15) continue;
+            setBlock(cx + dx, domeY + dy, cz + dz, bt);
+          }
         }
       }
     }
+    // Cross on main dome
+    if (detailLevel >= 1) {
+      setBlock(cx, domeY + 3, cz, PAL.METAL);
+      setBlock(cx, domeY + 4, cz, PAL.METAL);
+      setBlock(cx - 1, domeY + 3, cz, PAL.METAL);
+      setBlock(cx + 1, domeY + 3, cz, PAL.METAL);
+    }
+    // Interior: nave, altar, pews
+    if (detailLevel >= 1) {
+      // Nave floor
+      for (var x = 1; x < w - 1; x++) {
+        for (var z = 1; z < d - 1; z++) {
+          setBlock(ox + x, gy, oz + z, PAL.STONE_MARBLE);
+        }
+      }
+      // Altar at far end
+      for (var x = cx - 1; x <= cx + 1; x++) {
+        setBlock(x, gy + 1, oz + 2, PAL.STONE);
+        setBlock(x, gy + 2, oz + 2, PAL.STONE);
+      }
+      // Pews (wooden benches)
+      for (var z = 4; z < d - 3; z += 2) {
+        for (var x = 1; x < w - 1; x++) {
+          if (x % 3 === 1) {
+            setBlock(ox + x, gy + 1, oz + z, PAL.WOOD_DARK);
+            setBlock(ox + x, gy + 1, oz + z + 1, PAL.WOOD_DARK);
+          }
+        }
+      }
+      // Interior columns
+      for (var y = 1; y < h - 3; y++) {
+        setBlock(ox + 2, gy + y, oz + 2, PAL.STONE_MARBLE);
+        setBlock(ox + w - 3, gy + y, oz + 2, PAL.STONE_MARBLE);
+        setBlock(ox + 2, gy + y, oz + d - 3, PAL.STONE_MARBLE);
+        setBlock(ox + w - 3, gy + y, oz + d - 3, PAL.STONE_MARBLE);
+      }
+    }
+    // Entrance
     setBlock(cx, gy, oz + d - 1, PAL.AIR); setBlock(cx, gy + 1, oz + d - 1, PAL.AIR); setBlock(cx, gy + 2, oz + d - 1, PAL.AIR);
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundSteps(ox, gy, oz, w, d);
+      _addGroundBench(ox, gy, oz, w, d);
+      _addGroundFence(ox, gy, oz, w, d);
+    }
+    // Damage rubble
+    _addRubble(ox, gy, oz, w, d, damage);
   }
+
 
   // ── kyivBaroqueChurch ──
   function kyivBaroqueChurch(ox, oz, gy, w, d, h, domeCount) {
@@ -204,12 +478,83 @@ const CityBuildings = (function () {
   }
 
   // ── industrialFactory ──
-  function industrialFactory(ox, oz, gy, w, d, h, color) { color = color || PAL.METAL;
-    for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) { var bt = color; if (y === 0) bt = PAL.CONCRETE; if (isRoof) { var saw = (x + z) % 4 < 2; bt = saw ? PAL.METAL : PAL.GLASS; } setBlock(ox + x, gy + y, oz + z, bt); } } } }
-    for (var si = 0; si < 2; si++) { var sx = ox + Math.floor(w / 3) + si * Math.floor(w / 3); var sz = oz + Math.floor(d / 2); for (var y = 0; y < h + 12; y++) { var bt = (y % 4 < 2) ? PAL.BRICK : PAL.WHITE_TILE; setBlock(sx, gy + y, sz, bt); setBlock(sx + 1, gy + y, sz, bt); setBlock(sx, gy + y, sz + 1, bt); setBlock(sx + 1, gy + y, sz + 1, bt); } }
-    for (var x = 2; x < w - 2; x += 4) { setBlock(ox + x, gy + h, oz + 2, PAL.METAL); setBlock(ox + x, gy + h + 1, oz + 2, PAL.METAL); }
-    setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy + 1, oz, PAL.AIR);
+  function industrialFactory(ox, oz, gy, w, d, h, color, detailLevel, damaged) {
+    color = color || PAL.METAL;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    var damage = damaged ? 0.6 : (GLOBAL_DAMAGE || 0);
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        for (var z = 0; z < d; z++) {
+          var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+          var isRoof = y === h - 1;
+          if (isWall || isRoof) {
+            var bt = color;
+            if (y === 0) bt = PAL.CONCRETE;
+            if (isRoof) { var saw = (x + z) % 4 < 2; bt = saw ? PAL.METAL : PAL.GLASS; }
+            // Industrial textures: corrugated metal, rust
+            if (bt === PAL.METAL && Math.random() < 0.2) bt = PAL.METAL_RUST;
+            if (isWall && y > 1 && Math.random() < 0.1) bt = PAL.CONCRETE_DARK;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+        }
+      }
+    }
+    // Smokestacks
+    for (var si = 0; si < 2; si++) {
+      var sx = ox + Math.floor(w / 3) + si * Math.floor(w / 3);
+      var sz = oz + Math.floor(d / 2);
+      for (var y = 0; y < h + 12; y++) {
+        var bt = (y % 4 < 2) ? PAL.BRICK : PAL.WHITE_TILE;
+        if (damage > 0 && Math.random() < damage * 0.1) continue;
+        setBlock(sx, gy + y, sz, bt);
+        setBlock(sx + 1, gy + y, sz, bt);
+        setBlock(sx, gy + y, sz + 1, bt);
+        setBlock(sx + 1, gy + y, sz + 1, bt);
+      }
+      // Smokestack tops with fire if damaged
+      if (damage > 0) {
+        setBlock(sx, gy + h + 12, sz, PAL.FIRE);
+        setBlock(sx + 1, gy + h + 12, sz, PAL.FIRE);
+      }
+    }
+    // Roof pipes
+    for (var x = 2; x < w - 2; x += 4) {
+      setBlock(ox + x, gy + h, oz + 2, PAL.METAL);
+      setBlock(ox + x, gy + h + 1, oz + 2, PAL.METAL);
+    }
+    // Interior: machinery, pipes
+    if (detailLevel >= 1) {
+      // Interior machinery blocks
+      for (var x = 2; x < w - 2; x += 3) {
+        for (var z = 2; z < d - 2; z += 3) {
+          setBlock(ox + x, gy + 1, oz + z, PAL.METAL_DARK);
+          setBlock(ox + x, gy + 2, oz + z, PAL.METAL_DARK);
+          // Pipe connections
+          if (x < w - 4) setBlock(ox + x + 1, gy + 2, oz + z, PAL.METAL_RUST);
+          if (z < d - 4) setBlock(ox + x, gy + 2, oz + z + 1, PAL.METAL_RUST);
+        }
+      }
+      // Overhead pipes
+      for (var x = 2; x < w - 2; x++) {
+        setBlock(ox + x, gy + h - 2, oz + Math.floor(d / 2), PAL.METAL_RUST);
+      }
+    }
+    // Entrance
+    setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2) + 1, gy, oz, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2) + 1, gy + 1, oz, PAL.AIR);
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundBollards(ox, gy, oz, w, d);
+      _addGroundSteps(ox, gy, oz, w, d);
+    }
+    // Damage rubble
+    _addRubble(ox, gy, oz, w, d, damage);
   }
+
 
   // ── azovstalComplex ──
   function azovstalComplex(ox, oz, gy, w, d, h, color) { color = color || PAL.METAL;
@@ -294,7 +639,173 @@ const CityBuildings = (function () {
   function warehouse(ox, oz, gy, w, d, h, color) { color = color || PAL.METAL; for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) setBlock(ox + x, gy + y, oz + z, color); } } } for (var x = 0; x < w; x++) setBlock(ox + x, gy, oz + d, PAL.CONCRETE); setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy + 1, oz, PAL.AIR); }
 
   // ── officeBuilding ──
-  function officeBuilding(ox, oz, gy, w, d, floors, color) { color = color || PAL.CONCRETE; var h = floors * 3 + 1; for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) { var bt = color; if (isWall && y > 0 && y < h - 1) { if (x % 2 === 0 || z % 2 === 0) bt = color; else bt = PAL.GLASS; } setBlock(ox + x, gy + y, oz + z, bt); } } } } for (var x = -1; x < w + 1; x++) setBlock(ox + x, gy + 2, oz + d, PAL.CONCRETE); setBlock(ox + Math.floor(w / 2), gy, oz + d - 1, PAL.AIR); setBlock(ox + Math.floor(w / 2), gy + 1, oz + d - 1, PAL.AIR); }
+  function officeBuilding(ox, oz, gy, w, d, floors, color, detailLevel, damaged) {
+    color = color || PAL.CONCRETE;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    var damage = damaged ? 0.6 : (GLOBAL_DAMAGE || 0);
+    var h = floors * 3 + 1;
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        for (var z = 0; z < d; z++) {
+          var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+          var isRoof = y === h - 1;
+          if (isWall || isRoof) {
+            var bt = color;
+            if (isWall && y > 0 && y < h - 1) {
+              if (x % 2 === 0 || z % 2 === 0) bt = color;
+              else bt = PAL.GLASS;
+            }
+            // Office textures: glass curtain walls, reflective surfaces
+            if (bt === PAL.CONCRETE && Math.random() < 0.15) bt = PAL.CONCRETE_LIGHT;
+            if (bt === PAL.GLASS && Math.random() < 0.3) bt = PAL.GLASS_BLUE;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+          // Broken glass for damaged buildings
+          if (isWall && !isRoof && y > 0 && y < h - 1) {
+            if ((x % 2 !== 0 && z % 2 !== 0) && damage > 0 && Math.random() < damage * 0.4) {
+              setBlock(ox + x, gy + y, oz + z, PAL.AIR);
+            }
+          }
+        }
+      }
+    }
+    // Interior: cubicle floors, glass walls
+    if (detailLevel >= 1) {
+      for (var f = 1; f < floors; f++) {
+        var fy = gy + f * 3;
+        // Floor slabs
+        for (var x = 1; x < w - 1; x++) {
+          for (var z = 1; z < d - 1; z++) {
+            setBlock(ox + x, fy, oz + z, PAL.CONCRETE_LIGHT);
+          }
+        }
+        // Cubicle walls (glass partitions)
+        for (var x = 2; x < w - 2; x += 3) {
+          for (var z = 1; z < d - 1; z++) {
+            if (z % 2 !== 0) {
+              setBlock(ox + x, fy + 1, oz + z, PAL.GLASS_BLUE);
+              setBlock(ox + x, fy + 2, oz + z, PAL.GLASS_BLUE);
+            }
+          }
+        }
+        // Central elevator shaft
+        var ex = Math.floor(w / 2);
+        var ez = Math.floor(d / 2);
+        setBlock(ox + ex, fy + 1, oz + ez, PAL.METAL_DARK);
+        setBlock(ox + ex, fy + 2, oz + ez, PAL.METAL_DARK);
+      }
+    }
+    // Entrance canopy
+    for (var x = -1; x < w + 1; x++) setBlock(ox + x, gy + 2, oz + d, PAL.CONCRETE);
+    // Entrance
+    setBlock(ox + Math.floor(w / 2), gy, oz + d - 1, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2), gy + 1, oz + d - 1, PAL.AIR);
+    // Rooftop details
+    if (detailLevel >= 1) {
+      _addRooftopAC(ox, gy + h, oz, w, d);
+      _addRooftopWaterTank(ox, gy + h, oz, w, d);
+      _addRooftopAntenna(ox, gy + h, oz, w, d);
+      if (floors >= 6) _addHelipad(ox, gy + h, oz, w, d);
+    }
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundSteps(ox, gy, oz, w, d);
+      _addGroundBollards(ox, gy, oz, w, d);
+      _addGroundStreetLamp(ox, gy, oz, w, d);
+    }
+    // Damage rubble
+    _addRubble(ox, gy, oz, w, d, damage);
+  }
+
+
+  // ── residentialHouse ──
+  function residentialHouse(ox, oz, gy, w, d, h, color, detailLevel, damaged) {
+    color = color || PAL.BRICK;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    var damage = damaged ? 0.6 : (GLOBAL_DAMAGE || 0);
+    // Main house shell
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        for (var z = 0; z < d; z++) {
+          var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+          var isRoof = y === h - 1;
+          if (isWall || isRoof) {
+            var bt = (y === 0) ? PAL.STONE : color;
+            if (isRoof) bt = PAL.ROOFTILE;
+            // Residential textures: brick, wood trim, colorful balconies
+            if (isWall && y > 0 && y < h - 1 && Math.random() < 0.1) bt = PAL.WOOD;
+            if (isWall && y > 1 && y < h - 2 && x % 4 === 0) bt = PAL.WOOD_LIGHT; // wood trim
+            if (isRoof && Math.random() < 0.15) bt = PAL.ROOF_DARK_BROWN;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+        }
+      }
+    }
+    // Interior: rooms, furniture blocks
+    if (detailLevel >= 1) {
+      // Floor
+      for (var x = 1; x < w - 1; x++) {
+        for (var z = 1; z < d - 1; z++) {
+          setBlock(ox + x, gy, oz + z, PAL.WOOD_LIGHT);
+        }
+      }
+      // Interior walls (living room / kitchen / bedroom)
+      for (var y = 1; y < h - 1; y++) {
+        // Wall dividing living room and kitchen
+        for (var z = 1; z < d - 1; z++) {
+          if (z !== Math.floor(d / 2)) {
+            setBlock(ox + Math.floor(w / 2), gy + y, oz + z, PAL.WOOD);
+          }
+        }
+        // Wall for bedroom
+        for (var x = 1; x < w - 1; x++) {
+          if (x !== Math.floor(w / 3)) {
+            setBlock(ox + x, gy + y, oz + Math.floor(d / 2), PAL.WOOD);
+          }
+        }
+      }
+      // Furniture: table in kitchen
+      setBlock(ox + 2, gy + 1, oz + 2, PAL.WOOD_DARK);
+      setBlock(ox + 2, gy + 1, oz + 3, PAL.WOOD_DARK);
+      // Bed in bedroom
+      setBlock(ox + w - 3, gy + 1, oz + d - 3, PAL.WOOD_RED);
+      setBlock(ox + w - 2, gy + 1, oz + d - 3, PAL.WOOD_RED);
+      // Windows with glass
+      for (var y = 1; y < h - 1; y++) {
+        setBlock(ox + 1, gy + y, oz + d - 1, PAL.GLASS);
+        setBlock(ox + w - 2, gy + y, oz + d - 1, PAL.GLASS);
+      }
+    }
+    // Chimney
+    var cx = ox + Math.floor(w / 2) + 1;
+    var cz = oz + Math.floor(d / 2) + 1;
+    for (var y = h; y < h + 3; y++) {
+      setBlock(cx, gy + y, cz, PAL.BRICK);
+    }
+    // Entrance
+    setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR);
+    // Rooftop details
+    if (detailLevel >= 1) {
+      _addRooftopAntenna(ox, gy + h + 3, oz, w, d);
+      _addRooftopSatelliteDish(ox, gy + h + 3, oz, w, d);
+    }
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundSteps(ox, gy, oz, w, d);
+      _addGroundBench(ox, gy, oz, w, d);
+      _addGroundFence(ox, gy, oz, w, d);
+      // Flower pots
+      setBlock(ox + 1, gy, oz + d + 1, PAL.BUSH);
+      setBlock(ox + w - 2, gy, oz + d + 1, PAL.BUSH);
+    }
+    // Damage rubble
+    _addRubble(ox, gy, oz, w, d, damage);
+  }
 
   // ── monument ──
   function monument(ox, oz, gy, type) { if (type === 'obelisk') { for (var y = 0; y < 12; y++) { var sz = Math.max(1, 2 - Math.floor(y / 4)); for (var x = -sz; x <= sz; x++) { for (var z = -sz; z <= sz; z++) setBlock(ox + x, gy + y, oz + z, PAL.STONE); } } setBlock(ox, gy + 12, oz, PAL.METAL); setBlock(ox + 1, gy + 12, oz, PAL.METAL); setBlock(ox - 1, gy + 12, oz, PAL.METAL); setBlock(ox, gy + 12, oz + 1, PAL.METAL); setBlock(ox, gy + 12, oz - 1, PAL.METAL); setBlock(ox, gy + 13, oz, PAL.METAL); } else if (type === 'tank') { for (var y = 0; y < 3; y++) { for (var x = -2; x <= 2; x++) { for (var z = -2; z <= 2; z++) setBlock(ox + x, gy + y, oz + z, PAL.CONCRETE); } } for (var x = -2; x <= 2; x++) { for (var z = -3; z <= 3; z++) setBlock(ox + x, gy + 3, oz + z, PAL.METAL); } for (var x = -1; x <= 1; x++) { for (var z = -1; z <= 1; z++) setBlock(ox + x, gy + 4, oz + z, PAL.METAL); } for (var z = 0; z < 5; z++) setBlock(ox, gy + 4, oz + 2 + z, PAL.METAL); } else if (type === 'motherland') { for (var y = 0; y < 15; y++) { var sz = Math.max(0, 3 - Math.floor(y / 3)); for (var x = -sz; x <= sz; x++) { for (var z = -sz; z <= sz; z++) setBlock(ox + x, gy + y, oz + z, PAL.STONE); } } for (var y = 5; y < 18; y++) setBlock(ox + 2, gy + y, oz, PAL.METAL); for (var x = -2; x <= 0; x++) { for (var y = 6; y < 12; y++) setBlock(ox + x, gy + y, oz - 1, PAL.METAL); } } }
@@ -1948,7 +2459,7 @@ function fountain(ox, oz, gy) {
     trenches: trenches, dragonTeeth: dragonTeeth, coastalFort: coastalFort,
     monumentToSunkenShips: monumentToSunkenShips, snakeIslandBorderPost: snakeIslandBorderPost,
     airportTerminal: airportTerminal, hangar: hangar, warehouse: warehouse,
-    officeBuilding: officeBuilding, controlTower: controlTower, monument: monument,
+    officeBuilding: officeBuilding, residentialHouse: residentialHouse, controlTower: controlTower, monument: monument,
     bridge: bridge, radarStation: radarStation, bunker: bunker,
     ruinedBuilding: ruinedBuilding, school: school,
     trenchLine: trenchLine, dugout: dugout, wheatField: wheatField, dragonsTeeth: dragonsTeeth,
