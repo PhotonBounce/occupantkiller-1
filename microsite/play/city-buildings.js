@@ -19,9 +19,154 @@ const CityBuildings = (function () {
   };
   var CITIES = {};
 
+  // ── Global detail level (can be overridden per-building) ──
+  var GLOBAL_DETAIL = (typeof window !== 'undefined' && window.detailLevel) || 0;
+  var GLOBAL_DAMAGE = (typeof window !== 'undefined' && window.destructionLevel) || 0;
+
+  // ── Helpers: interiors, damage, rooftops, ground details ──
+  function _isDamagedSkip(damage, x, y, z, w, h, d) {
+    if (!damage || damage <= 0) return false;
+    // Concentrate damage toward corners and center
+    var cx = w / 2, cz = d / 2, cy = h / 2;
+    var distFromCenter = Math.abs(x - cx) + Math.abs(z - cz) + Math.abs(y - cy) * 0.5;
+    if (distFromCenter < 4 && Math.random() < damage * 0.5) return true;
+    if (Math.random() < damage * 0.15) return true;
+    return false;
+  }
+  function _addRubble(ox, gy, oz, w, d, damage) {
+    if (!damage || damage <= 0) return;
+    var count = Math.floor(damage * 20);
+    for (var i = 0; i < count; i++) {
+      var rx = ox + Math.floor(Math.random() * w);
+      var rz = oz + Math.floor(Math.random() * d);
+      var bt = (Math.random() < 0.5) ? PAL.RUBBLE : PAL.DIRT;
+      setBlock(rx, gy - 1, rz, bt);
+      if (Math.random() < 0.3) setBlock(rx, gy - 2, rz, bt);
+      if (Math.random() < 0.2) setBlock(rx + 1, gy - 1, rz, bt);
+      if (Math.random() < 0.2) setBlock(rx, gy - 1, rz + 1, bt);
+    }
+  }
+  function _addRooftopAC(ox, gy, oz, w, d) {
+    var acX = ox + 2, acZ = oz + 2;
+    if (acX < ox + w - 2 && acZ < oz + d - 2) {
+      setBlock(acX, gy, acZ, PAL.METAL);
+      setBlock(acX + 1, gy, acZ, PAL.METAL);
+      setBlock(acX, gy, acZ + 1, PAL.METAL);
+      setBlock(acX + 1, gy, acZ + 1, PAL.METAL);
+      setBlock(acX, gy + 1, acZ, PAL.METAL_DARK);
+      setBlock(acX + 1, gy + 1, acZ + 1, PAL.METAL_DARK);
+      // Fan grille
+      setBlock(acX, gy + 1, acZ + 1, PAL.FENCE);
+      setBlock(acX + 1, gy + 1, acZ, PAL.FENCE);
+    }
+  }
+  function _addRooftopWaterTank(ox, gy, oz, w, d) {
+    var tx = ox + w - 3, tz = oz + d - 3;
+    if (tx > ox + 2 && tz > oz + 2) {
+      setBlock(tx, gy, tz, PAL.CONCRETE);
+      setBlock(tx + 1, gy, tz, PAL.CONCRETE);
+      setBlock(tx, gy, tz + 1, PAL.CONCRETE);
+      setBlock(tx + 1, gy, tz + 1, PAL.CONCRETE);
+      setBlock(tx, gy + 1, tz, PAL.CONCRETE);
+      setBlock(tx + 1, gy + 1, tz + 1, PAL.CONCRETE);
+    }
+  }
+  function _addRooftopAntenna(ox, gy, oz, w, d) {
+    var ax = ox + Math.floor(w / 2), az = oz + Math.floor(d / 2);
+    for (var ay = 0; ay < 4 + Math.floor(Math.random() * 3); ay++) setBlock(ax, gy + ay, az, PAL.METAL);
+    setBlock(ax + 1, gy + 2, az, PAL.METAL);
+    setBlock(ax - 1, gy + 2, az, PAL.METAL);
+    setBlock(ax, gy + 2, az + 1, PAL.METAL);
+    setBlock(ax, gy + 2, az - 1, PAL.METAL);
+  }
+  function _addRooftopSatelliteDish(ox, gy, oz, w, d) {
+    var sx = ox + w - 2, sz = oz + 2;
+    if (sx > ox + 1) {
+      setBlock(sx, gy, sz, PAL.METAL);
+      setBlock(sx, gy + 1, sz, PAL.METAL);
+      setBlock(sx + 1, gy + 1, sz, PAL.METAL);
+      setBlock(sx - 1, gy + 1, sz, PAL.METAL);
+      setBlock(sx, gy + 1, sz + 1, PAL.METAL);
+      setBlock(sx, gy + 1, sz - 1, PAL.METAL);
+    }
+  }
+  function _addRooftopElevatorRoom(ox, gy, oz, w, d) {
+    var ex = ox + Math.floor(w / 2) - 1, ez = oz + d - 2;
+    if (ex > ox && ez > oz) {
+      for (var x = 0; x < 3; x++) {
+        for (var z = 0; z < 2; z++) {
+          setBlock(ex + x, gy, ez + z, PAL.CONCRETE);
+          if (x === 0 || x === 2 || z === 0) {
+            setBlock(ex + x, gy + 1, ez + z, PAL.CONCRETE);
+          } else {
+            setBlock(ex + x, gy + 1, ez + z, PAL.GLASS);
+          }
+        }
+      }
+      setBlock(ex, gy + 2, ez, PAL.CONCRETE);
+      setBlock(ex + 2, gy + 2, ez, PAL.CONCRETE);
+      setBlock(ex, gy + 2, ez + 1, PAL.CONCRETE);
+      setBlock(ex + 2, gy + 2, ez + 1, PAL.CONCRETE);
+    }
+  }
+  function _addHelipad(ox, gy, oz, w, d) {
+    if (w >= 12 && d >= 10) {
+      var hx = ox + Math.floor(w / 2) - 2, hz = oz + Math.floor(d / 2) - 2;
+      for (var x = 0; x < 5; x++) {
+        for (var z = 0; z < 5; z++) {
+          setBlock(hx + x, gy, hz + z, (x === 2 || z === 2) ? PAL.WHITE_TILE : PAL.ASPHALT);
+        }
+      }
+      // H mark
+      setBlock(hx + 1, gy + 1, hz + 2, PAL.WHITE_TILE);
+      setBlock(hx + 3, gy + 1, hz + 2, PAL.WHITE_TILE);
+      setBlock(hx + 2, gy + 1, hz + 1, PAL.WHITE_TILE);
+      setBlock(hx + 2, gy + 1, hz + 3, PAL.WHITE_TILE);
+    }
+  }
+  function _addGroundSteps(ox, gy, oz, w, d) {
+    var mx = ox + Math.floor(w / 2);
+    setBlock(mx - 1, gy - 1, oz - 1, PAL.STONE);
+    setBlock(mx, gy - 1, oz - 1, PAL.STONE);
+    setBlock(mx + 1, gy - 1, oz - 1, PAL.STONE);
+  }
+  function _addGroundTrashBins(ox, gy, oz, w, d) {
+    setBlock(ox + 1, gy, oz + d + 1, PAL.METAL_DARK);
+    setBlock(ox + w - 2, gy, oz + d + 1, PAL.METAL_DARK);
+  }
+  function _addGroundStreetLamp(ox, gy, oz, w, d) {
+    var lx = ox + w + 1, lz = oz + Math.floor(d / 2);
+    setBlock(lx, gy, lz, PAL.METAL);
+    setBlock(lx, gy + 1, lz, PAL.METAL);
+    setBlock(lx, gy + 2, lz, PAL.METAL);
+    setBlock(lx, gy + 3, lz, PAL.LIGHT);
+  }
+  function _addGroundBollards(ox, gy, oz, w, d) {
+    setBlock(ox - 1, gy, oz + 1, PAL.CONCRETE);
+    setBlock(ox - 1, gy, oz + d - 2, PAL.CONCRETE);
+    setBlock(ox + w, gy, oz + 1, PAL.CONCRETE);
+    setBlock(ox + w, gy, oz + d - 2, PAL.CONCRETE);
+  }
+  function _addGroundBench(ox, gy, oz, w, d) {
+    var bx = ox + 2, bz = oz + d + 1;
+    setBlock(bx, gy, bz, PAL.WOOD);
+    setBlock(bx + 1, gy, bz, PAL.WOOD);
+    setBlock(bx + 2, gy, bz, PAL.WOOD);
+    setBlock(bx, gy, bz + 1, PAL.METAL_DARK);
+    setBlock(bx + 2, gy, bz + 1, PAL.METAL_DARK);
+  }
+  function _addGroundFence(ox, gy, oz, w, d) {
+    for (var x = 0; x < w; x += 2) {
+      setBlock(ox + x, gy, oz + d + 1, PAL.FENCE);
+    }
+  }
+
+
   // ── sovietApartment ──
-  function sovietApartment(ox, oz, gy, w, d, floors, damage, color) {
+  function sovietApartment(ox, oz, gy, w, d, floors, damage, color, detailLevel) {
     color = color || PAL.CONCRETE;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    damage = (typeof damage === 'number') ? damage : GLOBAL_DAMAGE;
     var h = floors * 3 + 1;
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
@@ -34,17 +179,58 @@ const CityBuildings = (function () {
             if (isRoof) bt = PAL.ROOFTILE;
             else if (y === 0) bt = PAL.BRICK;
             else if ((x === 3 || x === w - 4) && (z === 0 || z === d - 1)) bt = PAL.CONCRETE;
-            if (damage > 0 && Math.random() < damage * 0.15) continue;
+            // Soviet texture: rust stains on concrete
+            if (bt === PAL.CONCRETE && Math.random() < 0.15) bt = PAL.METAL_RUST;
+            if (bt === PAL.CONCRETE && y > 0 && Math.random() < 0.1) bt = PAL.CONCRETE_DARK;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
             setBlock(ox + x, gy + y, oz + z, bt);
           }
+          // Windows with glass panes
           if (isWall && !isRoof && !isFloor && y > 0) {
             if ((y % 3 === 1 || y % 3 === 2) && (x % 3 === 1 || z % 3 === 1)) {
-              if (Math.random() > 0.3) setBlock(ox + x, gy + y, oz + z, PAL.GLASS);
+              if (Math.random() > 0.3) {
+                if (damage > 0 && Math.random() < damage * 0.5) {
+                  // Broken window - missing glass or exposed rebar
+                  if (Math.random() < 0.3) setBlock(ox + x, gy + y, oz + z, PAL.REINFORCED);
+                } else {
+                  setBlock(ox + x, gy + y, oz + z, PAL.GLASS);
+                }
+              }
             }
           }
         }
       }
     }
+    // Interior: hollow with floors, rooms, staircases
+    if (detailLevel >= 1) {
+      for (var f = 1; f < floors; f++) {
+        var fy = gy + f * 3;
+        // Floor slabs
+        for (var x = 1; x < w - 1; x++) {
+          for (var z = 1; z < d - 1; z++) {
+            setBlock(ox + x, fy, oz + z, PAL.CONCRETE);
+          }
+        }
+        // Interior walls creating rooms (every 4 blocks)
+        for (var x = 4; x < w - 1; x += 4) {
+          for (var z = 1; z < d - 1; z++) {
+            if (z % 3 !== 0) { // doorways every 3 blocks
+              setBlock(ox + x, fy + 1, oz + z, PAL.CONCRETE_LIGHT);
+              setBlock(ox + x, fy + 2, oz + z, PAL.CONCRETE_LIGHT);
+            }
+          }
+        }
+        // Staircase in center
+        var sx = Math.floor(w / 2);
+        var sz = Math.floor(d / 2);
+        setBlock(ox + sx, fy + 1, oz + sz, PAL.CONCRETE);
+        setBlock(ox + sx, fy + 2, oz + sz, PAL.CONCRETE);
+        setBlock(ox + sx + 1, fy + 1, oz + sz, PAL.CONCRETE);
+        setBlock(ox + sx + 1, fy + 2, oz + sz, PAL.CONCRETE);
+      }
+    }
+    // Balconies (existing)
     for (var f = 1; f < floors; f++) {
       var by = gy + f * 3 + 1;
       for (var bx = 1; bx < w - 1; bx++) {
@@ -54,15 +240,36 @@ const CityBuildings = (function () {
         }
       }
     }
+    // Entrance
     setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR);
     setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR);
+    // Stairwell window
     for (var sy = 1; sy < h - 1; sy++) {
       if (sy % 3 === 1) setBlock(ox + w - 1, gy + sy, oz + Math.floor(d / 2), PAL.GLASS);
     }
+    // Rooftop details
+    if (detailLevel >= 1) {
+      _addRooftopAC(ox, gy + h, oz, w, d);
+      _addRooftopWaterTank(ox, gy + h, oz, w, d);
+      _addRooftopAntenna(ox, gy + h, oz, w, d);
+      if (floors >= 5) _addHelipad(ox, gy + h, oz, w, d);
+    }
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundSteps(ox, gy, oz, w, d);
+      _addGroundTrashBins(ox, gy, oz, w, d);
+      _addGroundStreetLamp(ox, gy, oz, w, d);
+    }
+    // Damage: rubble piles at base
+    _addRubble(ox, gy, oz, w, d, damage);
   }
 
+
   // ── orthodoxChurch ──
-  function orthodoxChurch(ox, oz, gy, w, d, h, color) { color = color || PAL.BRICK;
+  function orthodoxChurch(ox, oz, gy, w, d, h, color, detailLevel, damaged) {
+    color = color || PAL.BRICK;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    var damage = damaged ? 0.6 : (GLOBAL_DAMAGE || 0);
     var cx = ox + Math.floor(w / 2), cz = oz + Math.floor(d / 2);
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
@@ -72,6 +279,11 @@ const CityBuildings = (function () {
           if (isWall || isRoof) {
             var bt = (y === 0) ? PAL.STONE : color;
             if (y > h - 3) bt = PAL.PLASTER;
+            // Church textures: gold domes, brick walls
+            if (y > h - 4 && y < h - 1) bt = PAL.BRICK_YELLOW; // gold accent band
+            if (isWall && y > 1 && y < h - 3 && Math.random() < 0.08) bt = PAL.BRICK_DARK_RED;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
             setBlock(ox + x, gy + y, oz + z, bt);
           }
         }
@@ -85,7 +297,10 @@ const CityBuildings = (function () {
         for (var x = 0; x < towerSize; x++) {
           for (var z = 0; z < towerSize; z++) {
             var isWall = x === 0 || x === towerSize - 1 || z === 0 || z === towerSize - 1;
-            if (isWall) setBlock(tx + x, gy + y, tz + z, color);
+            if (isWall) {
+              if (damage > 0 && Math.random() < damage * 0.1) continue;
+              setBlock(tx + x, gy + y, tz + z, color);
+            }
           }
         }
       }
@@ -94,17 +309,76 @@ const CityBuildings = (function () {
       setBlock(tx, domeY, tz + 1, PAL.METAL); setBlock(tx + 2, domeY, tz + 1, PAL.METAL);
       setBlock(tx + 1, domeY, tz, PAL.METAL); setBlock(tx + 1, domeY, tz + 2, PAL.METAL);
       setBlock(tx + 1, domeY + 2, tz + 1, PAL.METAL);
+      // Cross on each tower dome
+      if (detailLevel >= 1) {
+        setBlock(tx + 1, domeY + 3, tz + 1, PAL.METAL);
+        setBlock(tx + 1, domeY + 4, tz + 1, PAL.METAL);
+        setBlock(tx, domeY + 3, tz + 1, PAL.METAL);
+        setBlock(tx + 2, domeY + 3, tz + 1, PAL.METAL);
+      }
     }
     var domeY = gy + h + 2;
     for (var dx = -2; dx <= 2; dx++) {
       for (var dz = -2; dz <= 2; dz++) {
         for (var dy = 0; dy < 3; dy++) {
-          if (Math.abs(dx) + Math.abs(dz) + dy <= 3) setBlock(cx + dx, domeY + dy, cz + dz, PAL.METAL);
+          if (Math.abs(dx) + Math.abs(dz) + dy <= 3) {
+            var bt = PAL.METAL;
+            if (dy < 2 && detailLevel >= 1) bt = PAL.BRICK_YELLOW; // gold dome
+            if (damage > 0 && Math.random() < damage * 0.15) continue;
+            setBlock(cx + dx, domeY + dy, cz + dz, bt);
+          }
         }
       }
     }
+    // Cross on main dome
+    if (detailLevel >= 1) {
+      setBlock(cx, domeY + 3, cz, PAL.METAL);
+      setBlock(cx, domeY + 4, cz, PAL.METAL);
+      setBlock(cx - 1, domeY + 3, cz, PAL.METAL);
+      setBlock(cx + 1, domeY + 3, cz, PAL.METAL);
+    }
+    // Interior: nave, altar, pews
+    if (detailLevel >= 1) {
+      // Nave floor
+      for (var x = 1; x < w - 1; x++) {
+        for (var z = 1; z < d - 1; z++) {
+          setBlock(ox + x, gy, oz + z, PAL.STONE_MARBLE);
+        }
+      }
+      // Altar at far end
+      for (var x = cx - 1; x <= cx + 1; x++) {
+        setBlock(x, gy + 1, oz + 2, PAL.STONE);
+        setBlock(x, gy + 2, oz + 2, PAL.STONE);
+      }
+      // Pews (wooden benches)
+      for (var z = 4; z < d - 3; z += 2) {
+        for (var x = 1; x < w - 1; x++) {
+          if (x % 3 === 1) {
+            setBlock(ox + x, gy + 1, oz + z, PAL.WOOD_DARK);
+            setBlock(ox + x, gy + 1, oz + z + 1, PAL.WOOD_DARK);
+          }
+        }
+      }
+      // Interior columns
+      for (var y = 1; y < h - 3; y++) {
+        setBlock(ox + 2, gy + y, oz + 2, PAL.STONE_MARBLE);
+        setBlock(ox + w - 3, gy + y, oz + 2, PAL.STONE_MARBLE);
+        setBlock(ox + 2, gy + y, oz + d - 3, PAL.STONE_MARBLE);
+        setBlock(ox + w - 3, gy + y, oz + d - 3, PAL.STONE_MARBLE);
+      }
+    }
+    // Entrance
     setBlock(cx, gy, oz + d - 1, PAL.AIR); setBlock(cx, gy + 1, oz + d - 1, PAL.AIR); setBlock(cx, gy + 2, oz + d - 1, PAL.AIR);
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundSteps(ox, gy, oz, w, d);
+      _addGroundBench(ox, gy, oz, w, d);
+      _addGroundFence(ox, gy, oz, w, d);
+    }
+    // Damage rubble
+    _addRubble(ox, gy, oz, w, d, damage);
   }
+
 
   // ── kyivBaroqueChurch ──
   function kyivBaroqueChurch(ox, oz, gy, w, d, h, domeCount) {
@@ -204,12 +478,83 @@ const CityBuildings = (function () {
   }
 
   // ── industrialFactory ──
-  function industrialFactory(ox, oz, gy, w, d, h, color) { color = color || PAL.METAL;
-    for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) { var bt = color; if (y === 0) bt = PAL.CONCRETE; if (isRoof) { var saw = (x + z) % 4 < 2; bt = saw ? PAL.METAL : PAL.GLASS; } setBlock(ox + x, gy + y, oz + z, bt); } } } }
-    for (var si = 0; si < 2; si++) { var sx = ox + Math.floor(w / 3) + si * Math.floor(w / 3); var sz = oz + Math.floor(d / 2); for (var y = 0; y < h + 12; y++) { var bt = (y % 4 < 2) ? PAL.BRICK : PAL.WHITE_TILE; setBlock(sx, gy + y, sz, bt); setBlock(sx + 1, gy + y, sz, bt); setBlock(sx, gy + y, sz + 1, bt); setBlock(sx + 1, gy + y, sz + 1, bt); } }
-    for (var x = 2; x < w - 2; x += 4) { setBlock(ox + x, gy + h, oz + 2, PAL.METAL); setBlock(ox + x, gy + h + 1, oz + 2, PAL.METAL); }
-    setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy + 1, oz, PAL.AIR);
+  function industrialFactory(ox, oz, gy, w, d, h, color, detailLevel, damaged) {
+    color = color || PAL.METAL;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    var damage = damaged ? 0.6 : (GLOBAL_DAMAGE || 0);
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        for (var z = 0; z < d; z++) {
+          var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+          var isRoof = y === h - 1;
+          if (isWall || isRoof) {
+            var bt = color;
+            if (y === 0) bt = PAL.CONCRETE;
+            if (isRoof) { var saw = (x + z) % 4 < 2; bt = saw ? PAL.METAL : PAL.GLASS; }
+            // Industrial textures: corrugated metal, rust
+            if (bt === PAL.METAL && Math.random() < 0.2) bt = PAL.METAL_RUST;
+            if (isWall && y > 1 && Math.random() < 0.1) bt = PAL.CONCRETE_DARK;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+        }
+      }
+    }
+    // Smokestacks
+    for (var si = 0; si < 2; si++) {
+      var sx = ox + Math.floor(w / 3) + si * Math.floor(w / 3);
+      var sz = oz + Math.floor(d / 2);
+      for (var y = 0; y < h + 12; y++) {
+        var bt = (y % 4 < 2) ? PAL.BRICK : PAL.WHITE_TILE;
+        if (damage > 0 && Math.random() < damage * 0.1) continue;
+        setBlock(sx, gy + y, sz, bt);
+        setBlock(sx + 1, gy + y, sz, bt);
+        setBlock(sx, gy + y, sz + 1, bt);
+        setBlock(sx + 1, gy + y, sz + 1, bt);
+      }
+      // Smokestack tops with fire if damaged
+      if (damage > 0) {
+        setBlock(sx, gy + h + 12, sz, PAL.FIRE);
+        setBlock(sx + 1, gy + h + 12, sz, PAL.FIRE);
+      }
+    }
+    // Roof pipes
+    for (var x = 2; x < w - 2; x += 4) {
+      setBlock(ox + x, gy + h, oz + 2, PAL.METAL);
+      setBlock(ox + x, gy + h + 1, oz + 2, PAL.METAL);
+    }
+    // Interior: machinery, pipes
+    if (detailLevel >= 1) {
+      // Interior machinery blocks
+      for (var x = 2; x < w - 2; x += 3) {
+        for (var z = 2; z < d - 2; z += 3) {
+          setBlock(ox + x, gy + 1, oz + z, PAL.METAL_DARK);
+          setBlock(ox + x, gy + 2, oz + z, PAL.METAL_DARK);
+          // Pipe connections
+          if (x < w - 4) setBlock(ox + x + 1, gy + 2, oz + z, PAL.METAL_RUST);
+          if (z < d - 4) setBlock(ox + x, gy + 2, oz + z + 1, PAL.METAL_RUST);
+        }
+      }
+      // Overhead pipes
+      for (var x = 2; x < w - 2; x++) {
+        setBlock(ox + x, gy + h - 2, oz + Math.floor(d / 2), PAL.METAL_RUST);
+      }
+    }
+    // Entrance
+    setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2) + 1, gy, oz, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2) + 1, gy + 1, oz, PAL.AIR);
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundBollards(ox, gy, oz, w, d);
+      _addGroundSteps(ox, gy, oz, w, d);
+    }
+    // Damage rubble
+    _addRubble(ox, gy, oz, w, d, damage);
   }
+
 
   // ── azovstalComplex ──
   function azovstalComplex(ox, oz, gy, w, d, h, color) { color = color || PAL.METAL;
@@ -294,7 +639,173 @@ const CityBuildings = (function () {
   function warehouse(ox, oz, gy, w, d, h, color) { color = color || PAL.METAL; for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) setBlock(ox + x, gy + y, oz + z, color); } } } for (var x = 0; x < w; x++) setBlock(ox + x, gy, oz + d, PAL.CONCRETE); setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy, oz, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy + 1, oz, PAL.AIR); }
 
   // ── officeBuilding ──
-  function officeBuilding(ox, oz, gy, w, d, floors, color) { color = color || PAL.CONCRETE; var h = floors * 3 + 1; for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) { var bt = color; if (isWall && y > 0 && y < h - 1) { if (x % 2 === 0 || z % 2 === 0) bt = color; else bt = PAL.GLASS; } setBlock(ox + x, gy + y, oz + z, bt); } } } } for (var x = -1; x < w + 1; x++) setBlock(ox + x, gy + 2, oz + d, PAL.CONCRETE); setBlock(ox + Math.floor(w / 2), gy, oz + d - 1, PAL.AIR); setBlock(ox + Math.floor(w / 2), gy + 1, oz + d - 1, PAL.AIR); }
+  function officeBuilding(ox, oz, gy, w, d, floors, color, detailLevel, damaged) {
+    color = color || PAL.CONCRETE;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    var damage = damaged ? 0.6 : (GLOBAL_DAMAGE || 0);
+    var h = floors * 3 + 1;
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        for (var z = 0; z < d; z++) {
+          var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+          var isRoof = y === h - 1;
+          if (isWall || isRoof) {
+            var bt = color;
+            if (isWall && y > 0 && y < h - 1) {
+              if (x % 2 === 0 || z % 2 === 0) bt = color;
+              else bt = PAL.GLASS;
+            }
+            // Office textures: glass curtain walls, reflective surfaces
+            if (bt === PAL.CONCRETE && Math.random() < 0.15) bt = PAL.CONCRETE_LIGHT;
+            if (bt === PAL.GLASS && Math.random() < 0.3) bt = PAL.GLASS_BLUE;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+          // Broken glass for damaged buildings
+          if (isWall && !isRoof && y > 0 && y < h - 1) {
+            if ((x % 2 !== 0 && z % 2 !== 0) && damage > 0 && Math.random() < damage * 0.4) {
+              setBlock(ox + x, gy + y, oz + z, PAL.AIR);
+            }
+          }
+        }
+      }
+    }
+    // Interior: cubicle floors, glass walls
+    if (detailLevel >= 1) {
+      for (var f = 1; f < floors; f++) {
+        var fy = gy + f * 3;
+        // Floor slabs
+        for (var x = 1; x < w - 1; x++) {
+          for (var z = 1; z < d - 1; z++) {
+            setBlock(ox + x, fy, oz + z, PAL.CONCRETE_LIGHT);
+          }
+        }
+        // Cubicle walls (glass partitions)
+        for (var x = 2; x < w - 2; x += 3) {
+          for (var z = 1; z < d - 1; z++) {
+            if (z % 2 !== 0) {
+              setBlock(ox + x, fy + 1, oz + z, PAL.GLASS_BLUE);
+              setBlock(ox + x, fy + 2, oz + z, PAL.GLASS_BLUE);
+            }
+          }
+        }
+        // Central elevator shaft
+        var ex = Math.floor(w / 2);
+        var ez = Math.floor(d / 2);
+        setBlock(ox + ex, fy + 1, oz + ez, PAL.METAL_DARK);
+        setBlock(ox + ex, fy + 2, oz + ez, PAL.METAL_DARK);
+      }
+    }
+    // Entrance canopy
+    for (var x = -1; x < w + 1; x++) setBlock(ox + x, gy + 2, oz + d, PAL.CONCRETE);
+    // Entrance
+    setBlock(ox + Math.floor(w / 2), gy, oz + d - 1, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2), gy + 1, oz + d - 1, PAL.AIR);
+    // Rooftop details
+    if (detailLevel >= 1) {
+      _addRooftopAC(ox, gy + h, oz, w, d);
+      _addRooftopWaterTank(ox, gy + h, oz, w, d);
+      _addRooftopAntenna(ox, gy + h, oz, w, d);
+      if (floors >= 6) _addHelipad(ox, gy + h, oz, w, d);
+    }
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundSteps(ox, gy, oz, w, d);
+      _addGroundBollards(ox, gy, oz, w, d);
+      _addGroundStreetLamp(ox, gy, oz, w, d);
+    }
+    // Damage rubble
+    _addRubble(ox, gy, oz, w, d, damage);
+  }
+
+
+  // ── residentialHouse ──
+  function residentialHouse(ox, oz, gy, w, d, h, color, detailLevel, damaged) {
+    color = color || PAL.BRICK;
+    detailLevel = detailLevel || GLOBAL_DETAIL;
+    var damage = damaged ? 0.6 : (GLOBAL_DAMAGE || 0);
+    // Main house shell
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        for (var z = 0; z < d; z++) {
+          var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+          var isRoof = y === h - 1;
+          if (isWall || isRoof) {
+            var bt = (y === 0) ? PAL.STONE : color;
+            if (isRoof) bt = PAL.ROOFTILE;
+            // Residential textures: brick, wood trim, colorful balconies
+            if (isWall && y > 0 && y < h - 1 && Math.random() < 0.1) bt = PAL.WOOD;
+            if (isWall && y > 1 && y < h - 2 && x % 4 === 0) bt = PAL.WOOD_LIGHT; // wood trim
+            if (isRoof && Math.random() < 0.15) bt = PAL.ROOF_DARK_BROWN;
+            // Damage
+            if (_isDamagedSkip(damage, x, y, z, w, h, d)) continue;
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+        }
+      }
+    }
+    // Interior: rooms, furniture blocks
+    if (detailLevel >= 1) {
+      // Floor
+      for (var x = 1; x < w - 1; x++) {
+        for (var z = 1; z < d - 1; z++) {
+          setBlock(ox + x, gy, oz + z, PAL.WOOD_LIGHT);
+        }
+      }
+      // Interior walls (living room / kitchen / bedroom)
+      for (var y = 1; y < h - 1; y++) {
+        // Wall dividing living room and kitchen
+        for (var z = 1; z < d - 1; z++) {
+          if (z !== Math.floor(d / 2)) {
+            setBlock(ox + Math.floor(w / 2), gy + y, oz + z, PAL.WOOD);
+          }
+        }
+        // Wall for bedroom
+        for (var x = 1; x < w - 1; x++) {
+          if (x !== Math.floor(w / 3)) {
+            setBlock(ox + x, gy + y, oz + Math.floor(d / 2), PAL.WOOD);
+          }
+        }
+      }
+      // Furniture: table in kitchen
+      setBlock(ox + 2, gy + 1, oz + 2, PAL.WOOD_DARK);
+      setBlock(ox + 2, gy + 1, oz + 3, PAL.WOOD_DARK);
+      // Bed in bedroom
+      setBlock(ox + w - 3, gy + 1, oz + d - 3, PAL.WOOD_RED);
+      setBlock(ox + w - 2, gy + 1, oz + d - 3, PAL.WOOD_RED);
+      // Windows with glass
+      for (var y = 1; y < h - 1; y++) {
+        setBlock(ox + 1, gy + y, oz + d - 1, PAL.GLASS);
+        setBlock(ox + w - 2, gy + y, oz + d - 1, PAL.GLASS);
+      }
+    }
+    // Chimney
+    var cx = ox + Math.floor(w / 2) + 1;
+    var cz = oz + Math.floor(d / 2) + 1;
+    for (var y = h; y < h + 3; y++) {
+      setBlock(cx, gy + y, cz, PAL.BRICK);
+    }
+    // Entrance
+    setBlock(ox + Math.floor(w / 2), gy, oz, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2), gy + 1, oz, PAL.AIR);
+    // Rooftop details
+    if (detailLevel >= 1) {
+      _addRooftopAntenna(ox, gy + h + 3, oz, w, d);
+      _addRooftopSatelliteDish(ox, gy + h + 3, oz, w, d);
+    }
+    // Ground-level details
+    if (detailLevel >= 1) {
+      _addGroundSteps(ox, gy, oz, w, d);
+      _addGroundBench(ox, gy, oz, w, d);
+      _addGroundFence(ox, gy, oz, w, d);
+      // Flower pots
+      setBlock(ox + 1, gy, oz + d + 1, PAL.BUSH);
+      setBlock(ox + w - 2, gy, oz + d + 1, PAL.BUSH);
+    }
+    // Damage rubble
+    _addRubble(ox, gy, oz, w, d, damage);
+  }
 
   // ── monument ──
   function monument(ox, oz, gy, type) { if (type === 'obelisk') { for (var y = 0; y < 12; y++) { var sz = Math.max(1, 2 - Math.floor(y / 4)); for (var x = -sz; x <= sz; x++) { for (var z = -sz; z <= sz; z++) setBlock(ox + x, gy + y, oz + z, PAL.STONE); } } setBlock(ox, gy + 12, oz, PAL.METAL); setBlock(ox + 1, gy + 12, oz, PAL.METAL); setBlock(ox - 1, gy + 12, oz, PAL.METAL); setBlock(ox, gy + 12, oz + 1, PAL.METAL); setBlock(ox, gy + 12, oz - 1, PAL.METAL); setBlock(ox, gy + 13, oz, PAL.METAL); } else if (type === 'tank') { for (var y = 0; y < 3; y++) { for (var x = -2; x <= 2; x++) { for (var z = -2; z <= 2; z++) setBlock(ox + x, gy + y, oz + z, PAL.CONCRETE); } } for (var x = -2; x <= 2; x++) { for (var z = -3; z <= 3; z++) setBlock(ox + x, gy + 3, oz + z, PAL.METAL); } for (var x = -1; x <= 1; x++) { for (var z = -1; z <= 1; z++) setBlock(ox + x, gy + 4, oz + z, PAL.METAL); } for (var z = 0; z < 5; z++) setBlock(ox, gy + 4, oz + 2 + z, PAL.METAL); } else if (type === 'motherland') { for (var y = 0; y < 15; y++) { var sz = Math.max(0, 3 - Math.floor(y / 3)); for (var x = -sz; x <= sz; x++) { for (var z = -sz; z <= sz; z++) setBlock(ox + x, gy + y, oz + z, PAL.STONE); } } for (var y = 5; y < 18; y++) setBlock(ox + 2, gy + y, oz, PAL.METAL); for (var x = -2; x <= 0; x++) { for (var y = 6; y < 12; y++) setBlock(ox + x, gy + y, oz - 1, PAL.METAL); } } }
@@ -613,7 +1124,7 @@ function fountain(ox, oz, gy) {
   // HOSTOMEL
   // ═══════════════════════════════════════════════════════════
   CITIES.hostomel = [
-{ type: 'airportTerminal', params: [40, 14, 6, 9], x: -15, z: -25, note: 'Antonov Airport Terminal (admin building, partially destroyed)' },
+{ type: 'airportTerminal', params: [40, 14, 6, 9], x: -15, z: -25, note: 'Antonov Airport Terminal — real: 3,500m east-west runway, 56m wide, no passenger terminal (cargo/testing facility)' },
     { type: 'hangar', params: [32, 22, 14, 9], x: -35, z: 10, note: 'Hangar 1 — An-225 Mriya (destroyed Feb 27, 2022)' },
     { type: 'hangar', params: [28, 18, 10, 9], x: 5, z: 12, note: 'Hangar 2 — An-124 Ruslan / Antonov offices' },
     { type: 'hangar', params: [24, 14, 8, 9], x: 40, z: 8, note: 'Hangar 3 — An-22 Antei / museum storage' },
@@ -650,7 +1161,7 @@ function fountain(ox, oz, gy) {
     { type: 'warehouse', params: [10, 8, 3, 10], x: 85, z: 35, note: 'Shop (grocery store — 17 stores destroyed)' },
     { type: 'ruinedBuilding', params: [8, 6, 3, 1.5, 10], x: 40, z: 50, note: 'Burned house' },
     { type: 'industrialFactory', params: [15, 10, 4, 92], x: 75, z: -5, note: 'VETROPAK Glass Factory (damaged)' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.8, 72], x: 90, z: 20, note: 'Destroyed kindergarten (2 kindergartens damaged)' },,
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.8, 72], x: 90, z: 20, note: 'Destroyed kindergarten (2 kindergartens damaged)' },
     { type: 'smokestack', params: [25, 92], x: -55, z: -35, note: 'Power plant smokestack' },
     { type: 'smokestack', params: [20, 93], x: -52, z: -35, note: 'Power plant smokestack 2' },
     { type: 'hangar', params: [20, 14, 6, 5], x: -60, z: 10, note: 'Aircraft revetment' },
@@ -708,7 +1219,7 @@ function fountain(ox, oz, gy) {
     { type: 'officeBuilding', params: [10, 8, 5, 102], x: 50, z: 15, note: 'Olympic Stadium — east of center, near Dnipro' },
     { type: 'officeBuilding', params: [10, 8, 5, 103], x: 45, z: -5, note: 'VDNG Expo Center — east of Maidan' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 1.5, 10], x: 0, z: -25, note: 'Damaged building — northern approach' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.2, 72], x: 25, z: -25, note: 'Damaged building — near Lavra approach' },,
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.2, 72], x: 25, z: -25, note: 'Damaged building — near Lavra approach' },
     { type: 'metroEntrance', params: [64], x: -15, z: 25, note: "Metro Arsenalna (world's deepest)" },
     { type: 'metroEntrance', params: [64], x: 15, z: 25, note: 'Metro Pecherska' },
     { type: 'fountain', params: [], x: -5, z: 5, note: 'Maidan fountain' },
@@ -769,7 +1280,7 @@ function fountain(ox, oz, gy) {
     { type: 'monument', params: ["tank", 9], x: 50, z: -50, note: 'T-80 monument — northeast' },
     { type: 'monument', params: ["obelisk", 9], x: 0, z: -50, note: 'WWII memorial — north of Kremlin' },
     { type: 'industrialFactory', params: [15, 10, 4, 5], x: -35, z: 50, note: 'Garage — outer ring' },
-    { type: 'industrialFactory', params: [15, 10, 4, 92], x: 35, z: 50, note: 'Bus depot — outer ring' },,
+    { type: 'industrialFactory', params: [15, 10, 4, 92], x: 35, z: 50, note: 'Bus depot — outer ring' },
     { type: 'metroEntrance', params: [64], x: -35, z: -5, note: 'Metro entrance (Arbatskaya)' },
     { type: 'metroEntrance', params: [64], x: 35, z: -5, note: 'Metro entrance (Kurskaya)' },
     { type: 'metroEntrance', params: [64], x: -35, z: 25, note: 'Metro entrance (Taganskaya)' },
@@ -787,6 +1298,7 @@ function fountain(ox, oz, gy) {
   // ═══════════════════════════════════════════════════════════
   CITIES.mariupol = [
 { type: 'azovstalComplex', params: [50, 30, 10, 9], x: 0, z: -20, note: 'Azovstal Blast Furnace Hall — north of center, industrial heart (blast furnaces, cooling towers, smokestacks)' },
+    { type: 'dramaTheater', params: [14, 10, 5, 65], x: -20, z: 25, note: 'Ruined Drama Theater — city center, Freedom Square area (modernist, bombed March 16 2022 with CHILDREN sign painted outside)' },
     { type: 'azovstalComplex', params: [40, 20, 8, 9], x: -45, z: -25, note: 'Azovstal Rolling Mill 1 — northwest industrial zone' },
     { type: 'azovstalComplex', params: [35, 18, 7, 9], x: 45, z: -25, note: 'Azovstal Rolling Mill 2 — northeast industrial zone' },
     { type: 'industrialFactory', params: [30, 15, 6, 5], x: -40, z: -45, note: 'Azovstal Coking Plant — north' },
@@ -818,7 +1330,7 @@ function fountain(ox, oz, gy) {
     { type: 'bunker', params: [], x: 10, z: 10, note: 'Ammo storage — industrial zone' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 2.0, 113], x: -55, z: -40, note: 'Ruined building — north industrial' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 2.0, 16], x: 55, z: -40, note: 'Ruined building — north industrial' },
-    { type: 'monument', params: ["obelisk", 9], x: 0, z: 60, note: 'Memorial — Sea of Azov coast' },,
+    { type: 'monument', params: ["obelisk", 9], x: 0, z: 60, note: 'Memorial — Sea of Azov coast' },
     { type: 'smokestack', params: [30, 93], x: -15, z: -55, note: 'Azovstal smokestack 1' },
     { type: 'smokestack', params: [30, 94], x: -5, z: -55, note: 'Azovstal smokestack 2' },
     { type: 'smokestack', params: [30, 95], x: 5, z: -55, note: 'Azovstal smokestack 3' },
@@ -866,7 +1378,7 @@ function fountain(ox, oz, gy) {
     { type: 'ruinedBuilding', params: [10, 8, 4, 2.5, 81], x: 75, z: 15, note: 'Destroyed hospital — southeast' },
     { type: 'bunker', params: [], x: -20, z: 0, note: 'Civil defense bunker — center' },
     { type: 'monument', params: ["tank", 9], x: -60, z: -50, note: 'WWII tank monument — northwest' },
-    { type: 'radarStation', params: [], x: 65, z: -45, note: 'EW radar station — northeast' },,
+    { type: 'radarStation', params: [], x: 65, z: -45, note: 'EW radar station — northeast' },
     { type: 'smokestack', params: [28, 72], x: -30, z: -40, note: 'Coke plant smokestack 1' },
     { type: 'smokestack', params: [28, 73], x: -25, z: -40, note: 'Coke plant smokestack 2' },
     { type: 'smokestack', params: [28, 74], x: -20, z: -40, note: 'Coke plant smokestack 3' },
@@ -883,7 +1395,9 @@ function fountain(ox, oz, gy) {
   // BAKHMUT
   // ═══════════════════════════════════════════════════════════
   CITIES.bakhmut = [
-{ type: 'ruinedBuilding', params: [18, 10, 6, 3.0, 16], x: 0, z: 0, note: 'Bakhmut Fortress ruins — central market and embankment area (18th century)' },
+{ type: 'ruinedBuilding', params: [18, 10, 6, 3.0, 16], x: 0, z: 0, note: 'Freedom Square — historic heart of Bakhmut, now completely ruined (City Culture Center, city hall, market)' },
+    { type: 'industrialFactory', params: [18, 12, 5, 5], x: -30, z: -30, note: 'Salt processing plant — Bakhmut is the largest salt center in Ukraine (rock salt deposits)' },
+    { type: 'ruinedBuilding', params: [18, 10, 6, 3.0, 16], x: 0, z: 0, note: 'Bakhmut Fortress ruins — central market and embankment area (18th century)' },
     { type: 'ruinedBuilding', params: [14, 8, 5, 2.5, 9], x: -20, z: -15, note: 'Ruined apartment — west of fortress' },
     { type: 'ruinedBuilding', params: [16, 9, 6, 2.8, 10], x: 20, z: -15, note: 'Ruined apartment — east of fortress' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 2.0, 72], x: -35, z: -5, note: 'Ruined office — north of center' },
@@ -914,7 +1428,7 @@ function fountain(ox, oz, gy) {
     { type: 'monument', params: ["obelisk", 9], x: 0, z: 50, note: 'Damaged war memorial — south of center' },
     { type: 'bunker', params: [], x: 0, z: 0, note: 'Bakhmut shelter — fortress area' },
     { type: 'school', params: [10, 8, 3, 9], x: -10, z: -20, note: 'Museum of Local Lore (destroyed)' },
-    { type: 'ruinedBuilding', params: [8, 6, 3, 2.0, 81], x: 15, z: -20, note: 'Destroyed apartment (post-2022)' },,
+    { type: 'ruinedBuilding', params: [8, 6, 3, 2.0, 81], x: 15, z: -20, note: 'Destroyed apartment (post-2022)' },
     { type: 'damagedBuilding', params: [18, 10, 6, 16], x: -10, z: -15, note: 'Ruined apartment block (heavy shelling)' },
     { type: 'damagedBuilding', params: [18, 10, 6, 9], x: 10, z: -15, note: 'Ruined apartment block (collapsed)' },
     { type: 'damagedBuilding', params: [16, 8, 5, 10], x: 0, z: 15, note: 'Ruined apartment (roof collapse)' },
@@ -960,7 +1474,7 @@ function fountain(ox, oz, gy) {
     { type: 'bunker', params: [], x: -15, z: -5, note: 'River defense bunker — Dnipro embankment' },
     { type: 'bunker', params: [], x: 15, z: -5, note: 'Command bunker — Dnipro embankment' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 1.5, 16], x: -50, z: -30, note: 'Damaged warehouse — port area' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.2, 9], x: 50, z: -30, note: 'Damaged building — port area' },,
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.2, 9], x: 50, z: -30, note: 'Damaged building — port area' },
     { type: 'bridge', params: [30, 6, 3], x: -15, z: 30, note: 'Dnipro embankment bridge' },
     { type: 'portCrane', params: [12], x: -20, z: -35, note: 'Port crane 1' },
     { type: 'portCrane', params: [12], x: 0, z: -35, note: 'Port crane 2' },
@@ -1006,7 +1520,7 @@ function fountain(ox, oz, gy) {
     { type: 'warehouse', params: [12, 8, 3, 81], x: -15, z: 30, note: 'Port storage' },
     { type: 'warehouse', params: [12, 8, 3, 113], x: 15, z: 30, note: 'Port storage' },
     { type: 'monument', params: ["tank", 9], x: -40, z: 40, note: 'Coastal defense monument' },
-    { type: 'monument', params: ["tank", 9], x: 40, z: 40, note: 'Coastal defense monument' },,
+    { type: 'monument', params: ["tank", 9], x: 40, z: 40, note: 'Coastal defense monument' },
     { type: 'lighthouse', params: [15], x: -50, z: -50, note: 'Kerch Strait lighthouse' },
     { type: 'coastalFort', params: [], x: 50, z: -50, note: 'Coastal fortification (east)' },
     { type: 'coastalFort', params: [], x: -50, z: 50, note: 'Coastal fortification (west)' },
@@ -1023,7 +1537,9 @@ function fountain(ox, oz, gy) {
   // CHORNOBYL
   // ═══════════════════════════════════════════════════════════
   CITIES.chornobyl = [
-{ type: 'sarcophagus', params: [], x: 0, z: -40, note: 'Chornobyl NPP Reactor 4 — New Safe Confinement (steel arch)' },
+{ type: 'sarcophagus', params: [], x: 0, z: -40, note: 'Chornobyl NPP Reactor 4 — New Safe Confinement (steel arch, 2016)' },
+    { type: 'industrialFactory', params: [20, 12, 4, 81], x: 50, z: 70, note: 'Jupiter factory — abandoned military electronics plant in Pripyat' },
+    { type: 'damagedBuilding', params: [16, 10, 5, 80], x: -50, z: 50, note: 'Pripyat swimming pool (Lazurny) — abandoned, empty basin' },
     { type: 'industrialFactory', params: [25, 15, 6, 5], x: -35, z: -40, note: 'Reactor 3' },
     { type: 'industrialFactory', params: [25, 15, 6, 92], x: 35, z: -40, note: 'Reactor 2' },
     { type: 'industrialFactory', params: [20, 15, 6, 93], x: -60, z: -40, note: 'Reactor 1' },
@@ -1057,7 +1573,7 @@ function fountain(ox, oz, gy) {
     { type: 'dugaRadar', params: [], x: -55, z: 0, note: 'Duga radar base (Chernobyl-2)' },
     { type: 'dugaRadar', params: [], x: 55, z: 0, note: 'Duga radar base (Chernobyl-2)' },
     { type: 'monument', params: ["obelisk", 9], x: -50, z: -60, note: 'Liquidators memorial' },
-    { type: 'monument', params: ["obelisk", 9], x: 50, z: -60, note: 'Firefighters memorial' },,
+    { type: 'monument', params: ["obelisk", 9], x: 50, z: -60, note: 'Firefighters memorial' },
     { type: 'coolingTower', params: [18, 9], x: -25, z: -70, note: 'Cooling Tower 3' },
     { type: 'coolingTower', params: [18, 9], x: 25, z: -70, note: 'Cooling Tower 4' },
     { type: 'damagedBuilding', params: [14, 10, 4, 16], x: -60, z: 50, note: 'Pripyat swimming pool (abandoned)' },
@@ -1104,7 +1620,7 @@ function fountain(ox, oz, gy) {
     { type: 'radarStation', params: [], x: 50, z: -40, note: 'Coastal radar — east entrance to bay' },
     { type: 'coastalFort', params: [], x: -30, z: -50, note: 'Coastal battery — west' },
     { type: 'coastalFort', params: [], x: 30, z: -50, note: 'Coastal battery — east' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.0, 16], x: 0, z: 60, note: 'Damaged port building — north' },,
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.0, 16], x: 0, z: 60, note: 'Damaged port building — north' },
     { type: 'hangar', params: [25, 15, 6, 5], x: -55, z: -30, note: 'Submarine pen (west)' },
     { type: 'hangar', params: [25, 15, 6, 92], x: 55, z: -30, note: 'Submarine pen (east)' },
     { type: 'portCrane', params: [12], x: -40, z: -5, note: 'Harbor crane 1' },
@@ -1150,7 +1666,7 @@ function fountain(ox, oz, gy) {
     { type: 'warehouse', params: [12, 8, 3, 93], x: -10, z: 45, note: 'Tool shed' },
     { type: 'warehouse', params: [12, 8, 3, 95], x: 10, z: 45, note: 'Storage' },
     { type: 'industrialFactory', params: [15, 10, 4, 95], x: -50, z: -35, note: 'Power substation' },
-    { type: 'industrialFactory', params: [15, 10, 4, 96], x: 50, z: -35, note: 'Power substation' },,
+    { type: 'industrialFactory', params: [15, 10, 4, 96], x: 50, z: -35, note: 'Power substation' },
     { type: 'mineHeadframe', params: [14], x: -20, z: -15, note: 'Mine headframe 1' },
     { type: 'mineHeadframe', params: [14], x: 20, z: -15, note: 'Mine headframe 2' },
     { type: 'mineHeadframe', params: [12], x: 0, z: -35, note: 'Mine headframe 3' },
@@ -1196,7 +1712,7 @@ function fountain(ox, oz, gy) {
     { type: 'industrialFactory', params: [15, 10, 4, 5], x: -50, z: 10, note: 'Factory — west' },
     { type: 'industrialFactory', params: [15, 10, 4, 92], x: 50, z: 10, note: 'Factory — east' },
     { type: 'warehouse', params: [12, 8, 3, 93], x: -50, z: 30, note: 'Warehouse — west' },
-    { type: 'warehouse', params: [12, 8, 3, 95], x: 50, z: 30, note: 'Warehouse — east' },,
+    { type: 'warehouse', params: [12, 8, 3, 95], x: 50, z: 30, note: 'Warehouse — east' },
     { type: 'kremlinWall', params: [20, 8, 4, 9], x: -60, z: -20, note: 'Border checkpoint gate' },
     { type: 'hangar', params: [20, 12, 4, 5], x: -55, z: 10, note: 'Military barracks (west)' },
     { type: 'hangar', params: [20, 12, 4, 92], x: 55, z: 10, note: 'Military barracks (east)' },
@@ -1213,7 +1729,7 @@ function fountain(ox, oz, gy) {
   // KREMLIN
   // ═══════════════════════════════════════════════════════════
   CITIES.kremlin = [
-{ type: 'kremlinWall', params: [80, 60, 8, 9], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, red brick, towers with green roofs and ruby stars' },
+{ type: 'kremlinWall', params: [80, 60, 8, 9], x: 0, z: 0, note: 'Kremlin walls — triangular fortification, red brick, towers with green roofs and ruby stars (Spasskaya Tower has clock + red star)' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 10], x: -20, z: -10, note: 'Assumption Cathedral — inside Kremlin, west' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 20], x: 0, z: -10, note: 'Archangel Cathedral — inside Kremlin, center' },
     { type: 'orthodoxChurch', params: [10, 12, 8, 65], x: 20, z: -10, note: 'Annunciation Cathedral — inside Kremlin, east' },
@@ -1240,7 +1756,7 @@ function fountain(ox, oz, gy) {
     { type: 'monument', params: ["tank", 9], x: -40, z: 50, note: 'Tank monument — southwest' },
     { type: 'monument', params: ["tank", 9], x: 40, z: 50, note: 'Tank monument — southeast' },
     { type: 'bunker', params: [], x: -20, z: 0, note: 'Kremlin bunker — inside walls' },
-    { type: 'bunker', params: [], x: 20, z: 0, note: 'FSB bunker — near Lubyanka' },,
+    { type: 'bunker', params: [], x: 20, z: 0, note: 'FSB bunker — near Lubyanka' },
     { type: 'monument', params: ["obelisk", 9], x: -40, z: 35, note: 'Red Square podium' },
     { type: 'monument', params: ["obelisk", 9], x: 40, z: 35, note: 'Red Square podium 2' },
     { type: 'monument', params: ["obelisk", 9], x: -25, z: 35, note: 'Red Square podium 3' },
@@ -1267,7 +1783,7 @@ function fountain(ox, oz, gy) {
     { type: 'warehouse', params: [8, 6, 3], x: -5, z: 5, note: 'Supply shed' },
     { type: 'warehouse', params: [8, 6, 3], x: 5, z: 5, note: 'Equipment shed' },
     { type: 'ruinedBuilding', params: [6, 6, 2, 1.0], x: -8, z: 0, note: 'Damaged structure' },
-    { type: 'ruinedBuilding', params: [6, 6, 2, 1.0], x: 8, z: 0, note: 'Damaged structure' },,
+    { type: 'ruinedBuilding', params: [6, 6, 2, 1.0], x: 8, z: 0, note: 'Damaged structure' },
     { type: 'lighthouse', params: [10], x: 5, z: -5, note: 'Snake Island lighthouse' },
     { type: 'damagedBuilding', params: [6, 6, 2, 16], x: -5, z: -5, note: 'Small garrison building' },
     { type: 'ukrainianFlag', params: [3, 3, 3], x: 0, z: 8, note: 'Ukrainian flagpole' },
@@ -1303,7 +1819,7 @@ function fountain(ox, oz, gy) {
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 16], x: -20, z: 20, note: 'Damaged hangar' },
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 9], x: 20, z: 20, note: 'Damaged building' },
     { type: 'ruinedBuilding', params: [8, 6, 2, 1.0, 10], x: -10, z: 40, note: 'Craters' },
-    { type: 'ruinedBuilding', params: [8, 6, 2, 1.0, 72], x: 10, z: 40, note: 'Craters' },,
+    { type: 'ruinedBuilding', params: [8, 6, 2, 1.0, 72], x: 10, z: 40, note: 'Craters' },
     { type: 'smokestack', params: [15, 92], x: -15, z: 40, note: 'Airfield smokestack' },
     { type: 'hangar', params: [18, 10, 4, 9], x: -20, z: 50, note: 'Aircraft shelter 1' },
     { type: 'hangar', params: [18, 10, 4, 9], x: 0, z: 50, note: 'Aircraft shelter 2' },
@@ -1349,7 +1865,7 @@ function fountain(ox, oz, gy) {
     { type: 'ruinedBuilding', params: [10, 6, 3, 1.5, 10], x: 10, z: 45, note: 'Ruined house' },
     { type: 'ruinedBuilding', params: [12, 8, 3, 2.0, 72], x: -50, z: 10, note: 'Ruined building' },
     { type: 'ruinedBuilding', params: [12, 8, 3, 2.0, 81], x: 50, z: 10, note: 'Ruined building' },
-    { type: 'bunker', params: [], x: 0, z: 15, note: 'Trench bunker' },,
+    { type: 'bunker', params: [], x: 0, z: 15, note: 'Trench bunker' },
     { type: 'mineHeadframe', params: [12], x: -15, z: -5, note: 'Coal mine shaft 1' },
     { type: 'mineHeadframe', params: [12], x: 15, z: -5, note: 'Coal mine shaft 2' },
     { type: 'spoilTip', params: [12, 6], x: -40, z: -15, note: 'Mine tailings (west)' },
@@ -1392,7 +1908,7 @@ function fountain(ox, oz, gy) {
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 81], x: -30, z: 40, note: 'Damaged house' },
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 113], x: 30, z: 40, note: 'Damaged house' },
     { type: 'sovietApartment', params: [12, 6, 3, 0.2, 20], x: -50, z: 30, note: 'Small apartment' },
-    { type: 'sovietApartment', params: [12, 6, 3, 0.2, 84], x: 50, z: 30, note: 'Small apartment' },,
+    { type: 'sovietApartment', params: [12, 6, 3, 0.2, 84], x: 50, z: 30, note: 'Small apartment' },
     { type: 'bridge', params: [30, 6, 3], x: -15, z: -20, note: 'Bridge approach (west)' },
     { type: 'bridge', params: [30, 6, 3], x: -15, z: 20, note: 'Bridge approach (east)' },
     { type: 'damagedBuilding', params: [10, 6, 3, 16], x: -50, z: -15, note: 'Checkpoint (west)' },
@@ -1430,7 +1946,7 @@ function fountain(ox, oz, gy) {
     { type: 'monument', params: ["obelisk", 9], x: -50, z: 0, note: 'Industrial monument' },
     { type: 'monument', params: ["tank", 9], x: 50, z: 0, note: 'Security monument' },
     { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 16], x: -30, z: 30, note: 'Damaged tank' },
-    { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 9], x: 30, z: 30, note: 'Damaged tank' },,
+    { type: 'ruinedBuilding', params: [10, 8, 3, 1.5, 9], x: 30, z: 30, note: 'Damaged tank' },
     { type: 'flareStack', params: [12], x: -15, z: -50, note: 'Flare stack 1' },
     { type: 'flareStack', params: [12], x: 15, z: -50, note: 'Flare stack 2' },
     { type: 'flareStack', params: [10], x: 0, z: -55, note: 'Flare stack 3' },
@@ -1470,7 +1986,7 @@ function fountain(ox, oz, gy) {
     { type: 'ruinedBuilding', params: [8, 6, 3, 0.4, 16], x: -25, z: 15, note: 'Burned-out farmhouse' },
     { type: 'ruinedBuilding', params: [6, 6, 2, 0.6, 16], x: 25, z: 15, note: 'Destroyed shed' },
     { type: 'trenches', params: [15, 9], x: -15, z: 25, note: 'Secondary trench' },
-    { type: 'trenches', params: [15, 9], x: 15, z: 25, note: 'Secondary trench' },,
+    { type: 'trenches', params: [15, 9], x: 15, z: 25, note: 'Secondary trench' },
     { type: 'observationPost', params: [6, 109], x: -25, z: -20, note: 'Forward observation post' },
     { type: 'observationPost', params: [6, 109], x: 25, z: -20, note: 'Forward observation post 2' },
     { type: 'sandbagWall', params: [20, 17], x: -30, z: -15, note: 'Main sandbag wall' },
@@ -1521,7 +2037,7 @@ function fountain(ox, oz, gy) {
     { type: 'bunker', params: [], x: -20, z: 25, note: 'Metro-2 secret line — northwest' },
     { type: 'bunker', params: [], x: 20, z: 25, note: 'Metro-2 secret line — northeast' },
     { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: -30, z: 50, note: 'Damaged building — southwest approach' },
-    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: 30, z: 50, note: 'Damaged building — southeast approach' },,
+    { type: 'ruinedBuilding', params: [12, 8, 4, 1.5], x: 30, z: 50, note: 'Damaged building — southeast approach' },
     { type: 'propagandaBillboard', params: [10, 5], x: -35, z: 30, note: 'Propaganda screen (west)' },
     { type: 'propagandaBillboard', params: [10, 5], x: 35, z: 30, note: 'Propaganda screen (east)' },
     { type: 'propagandaBillboard', params: [10, 5], x: -20, z: 45, note: 'Propaganda screen (southwest)' },
@@ -1536,56 +2052,109 @@ function fountain(ox, oz, gy) {
 
   // ── Road Networks ─────────────────────────────────────────
   const ROADS = {};
-  ROADS.hostomel = [[[-60,0],[-40,0],[-20,0],[0,0],[20,0],[40,0],[60,0]],[[-40,-20],[-40,0],[-40,20],[-40,40]],[[-50,40],[-30,40],[-10,40],[10,40],[30,40],[50,40]],[[-70,-50],[-50,-40],[-30,-30],[-10,-20],[10,-20],[30,-30],[50,-40],[70,-50]],[[20,60],[30,50],[40,40],[50,30],[60,20],[70,10]],[[-60,-50],[-60,-30],[-60,-10],[-60,10],[-60,30],[-60,50]],[[60,-30],[60,-10],[60,10],[60,30],[60,50],[60,70]],[[40,20],[50,20],[60,20],[70,20],[80,20],[90,20]],[[40,50],[50,50],[60,50],[70,50],[80,50]],[[0,-60],[0,-40],[0,-20],[0,0]]],
-[[-80, 0], [-60, 0], [-40, 0]],
-[[40, 0], [60, 0], [80, 0]],
-[[-80, -30], [-60, -20], [-40, -10]],
-[[80, -30], [60, -20], [40, -10]],
-[[-80, 30], [-60, 20], [-40, 10]],
-[[80, 30], [60, 20], [40, 10]],
-[[-80, -50], [-60, -40], [-40, -30]],
-[[80, -50], [60, -40], [40, -30]],
-[[-80, 50], [-60, 40], [-40, 30]],
-  ROADS.avdiivka = [[[-20,-50],[-20,-30],[-20,-10],[-20,10],[-20,30],[-20,50]],[[-50,-10],[-30,-10],[-10,-10],[10,-10],[30,-10],[50,-10]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,20],[-30,20],[-10,20],[10,20],[30,20],[50,20]],[[-40,-40],[-40,-20],[-40,0],[-40,20],[-40,40]],[[40,-40],[40,-20],[40,0],[40,20],[40,40]],[[-20,-10],[-20,10],[0,10],[20,10],[20,-10]],[[-50,-40],[-40,-30],[-30,-20],[-20,-10],[-10,0]],[[10,0],[20,10],[30,20],[40,30],[50,40]],[[-50,40],[-25,40],[0,40],[25,40],[50,40]]],
-[[-80, -20], [-60, -20], [-40, -20]],
-[[80, -20], [60, -20], [40, -20]],
-[[-80, 30], [-60, 30], [-40, 30]],
-[[80, 30], [60, 30], [40, 30]],
-[[-80, -40], [-60, -40], [-40, -40]],
-[[80, -40], [60, -40], [40, -40]],
-[[-80, 0], [-60, 0], [-40, 0]],
-[[80, 0], [60, 0], [40, 0]],
-[[-80, 50], [-60, 50], [-40, 50]],
-  ROADS.bakhmut = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,20],[-25,20],[0,20],[25,20],[50,20]],[[-50,-40],[-50,-20],[-50,0],[-50,20],[-50,40]],[[50,-40],[50,-20],[50,0],[50,20],[50,40]],[[-50,-50],[-40,-40],[-30,-30],[-20,-20],[-10,-10]],[[10,-10],[20,-20],[30,-30],[40,-40],[50,-50]],[[-10,10],[-20,20],[-30,30],[-40,40],[-50,50]],[[10,10],[20,20],[30,30],[40,40],[50,50]]],
-[[-70, 0], [-60, 0], [-50, 0]],
-[[50, 0], [60, 0], [70, 0]],
-[[0, -70], [0, -60], [0, -50]],
-[[0, 50], [0, 60], [0, 70]],
-[[-70, -30], [-60, -30], [-50, -30]],
-[[50, -30], [60, -30], [70, -30]],
-[[-70, 30], [-60, 30], [-50, 30]],
-[[50, 30], [60, 30], [70, 30]],
-[[-70, -50], [-60, -50], [-50, -50]],
-  ROADS.kherson = [[[-50,-25],[-30,-25],[-10,-25],[10,-25],[30,-25],[50,-25]],[[-20,-50],[-20,-30],[-20,-10],[-20,10],[-20,30],[-20,50]],[[20,-50],[20,-30],[20,-10],[20,10],[20,30],[20,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-15],[-30,-15],[-10,-15],[10,-15],[30,-15],[50,-15]],[[-50,15],[-30,15],[-10,15],[10,15],[30,15],[50,15]],[[-50,-35],[-30,-35],[-10,-35],[10,-35],[30,-35]],[[-30,35],[-10,35],[10,35],[30,35],[50,35]],[[-50,-50],[-30,-30],[-10,-10],[10,10],[30,30],[50,50]],[[50,-50],[30,-30],[10,-10],[-10,10],[-30,30],[-50,50]]],
-[[-60, -35], [-50, -30], [-40, -25]],
-[[60, -35], [50, -30], [40, -25]],
-[[-60, 35], [-50, 30], [-40, 25]],
-[[60, 35], [50, 30], [40, 25]],
-[[-60, -45], [-50, -35], [-40, -25]],
-[[60, -45], [50, -35], [40, -25]],
-[[-60, 45], [-50, 35], [-40, 25]],
-[[60, 45], [50, 35], [40, 25]],
-[[-30, 50], [-20, 45], [-10, 40]],
-  ROADS.mariupol = [[[-50,50],[-50,30],[-50,10],[-50,-10],[-50,-30],[-50,-50]],[[-50,50],[-30,50],[-10,50],[10,50],[30,50],[50,50]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[50,50],[50,30],[50,10],[50,-10],[50,-30],[50,-50]],[[-50,30],[-30,30],[-10,30],[10,30],[30,30],[50,30]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,-10],[-30,-10],[-10,0],[10,0],[30,10],[50,20]],[[-40,-40],[-40,-20],[-40,0],[-40,20],[-40,40]],[[40,-40],[40,-20],[40,0],[40,20],[40,40]],[[-50,40],[-30,40],[0,40],[30,40],[50,40]]],
-[[-70, -50], [-60, -50], [-50, -50]],
-[[70, -50], [60, -50], [50, -50]],
-[[-70, 60], [-60, 60], [-50, 60]],
-[[70, 60], [60, 60], [50, 60]],
-[[-70, -30], [-60, -30], [-50, -30]],
-[[70, -30], [60, -30], [50, -30]],
-[[-70, 0], [-60, 0], [-50, 0]],
-[[70, 0], [60, 0], [50, 0]],
-[[-70, 30], [-60, 30], [-50, 30]],
+  ROADS.hostomel = [
+    // Main runway (Antonov Airport — Hostomel's 3500m runway, east-west)
+    [[-55,0],[-40,0],[-25,0],[-10,0],[0,0],[10,0],[25,0],[40,0],[55,0]],
+    // Parallel taxiway (north of runway)
+    [[-50,8],[-35,8],[-20,8],[-5,8],[10,8],[25,8],[40,8],[50,8]],
+    // South taxiway (for runway access)
+    [[-50,-8],[-35,-8],[-20,-8],[-5,-8],[10,-8],[25,-8],[40,-8],[50,-8]],
+    // Terminal apron (main parking area near terminal)
+    [[-10,12],[0,12],[10,12],[20,12],[30,12]],
+    // Antonov factory access (north of airport, where the An-225 was built)
+    [[-20,20],[-20,30],[-20,40],[-20,50]],
+    // Perimeter road (follows airport fence, roughly rectangular)
+    [[-45,-30],[-45,-15],[-45,0],[-45,15],[-45,30],[-35,40],[-20,45],[0,45],[20,45],[35,40],[45,30],[45,15],[45,0],[45,-15],[45,-30],[35,-40],[20,-45],[0,-45],[-20,-45],[-35,-40],[-45,-30]],
+    // Vokzalna St approach (town access from south)
+    [[0,-50],[0,-40],[0,-30],[0,-20],[0,-10]],
+    // Kyiv–Hostomel highway (Bucha road, northwest approach)
+    [[-50,-20],[-40,-15],[-30,-10],[-20,-5],[-10,0]],
+    // Irpin river bridge access (southwest)
+    [[-30,-50],[-25,-40],[-20,-30],[-15,-20]],
+    // Air traffic control tower access spur
+    [[30,10],[35,15],[40,20],[42,25]]
+  ],
+  [
+    [[-70, 0], [-60, 0], [-55, 0]],
+    [[70, 0], [60, 0], [55, 0]],
+    [[-70, 8], [-60, 8], [-50, 8]],
+    [[70, 8], [60, 8], [50, 8]],
+    [[-70, -30], [-60, -30], [-50, -30]],
+    [[70, -30], [60, -30], [50, -30]],
+    [[-70, 50], [-60, 50], [-50, 50]],
+    [[70, 50], [60, 50], [50, 50]],
+    [[0, -60], [0, -55], [0, -50]],
+    [[-40, -50], [-35, -45], [-30, -40]]
+  ];
+  ROADS.avdiivka = [[[-20,-50],[-20,-30],[-20,-10],[-20,10],[-20,30],[-20,50]],[[-50,-10],[-30,-10],[-10,-10],[10,-10],[30,-10],[50,-10]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,20],[-30,20],[-10,20],[10,20],[30,20],[50,20]],[[-40,-40],[-40,-20],[-40,0],[-40,20],[-40,40]],[[40,-40],[40,-20],[40,0],[40,20],[40,40]],[[-20,-10],[-20,10],[0,10],[20,10],[20,-10]],[[-50,-40],[-40,-30],[-30,-20],[-20,-10],[-10,0]],[[10,0],[20,10],[30,20],[40,30],[50,40]],[[-50,40],[-25,40],[0,40],[25,40],[50,40]]];
+  ROADS.bakhmut = [
+    // H32 highway (Bakhmut–Lysychansk) — main east-west road through city
+    [[-55,0],[-40,0],[-25,0],[-10,0],[0,0],[10,0],[25,0],[40,0],[55,0]],
+    // Bakhmutovka River (runs north-south, divides city) — road follows riverbank
+    [[0,-55],[0,-40],[0,-25],[0,-10],[0,0],[0,10],[0,25],[0,40],[0,55]],
+    // River crossing bridges (east-west over Bakhmutovka)
+    [[-20,-15],[0,-15],[20,-15]],
+    [[-20,15],[0,15],[20,15]],
+    // Patrice Lumumba St (north-south, main residential artery)
+    [[-25,-50],[-25,-30],[-25,-10],[-25,0],[-25,10],[-25,30],[-25,50]],
+    // Levanevskoho St (parallel, east side)
+    [[25,-50],[25,-30],[25,-10],[25,0],[25,10],[25,30],[25,50]],
+    // Artem St (diagonal, industrial district northeast)
+    [[-40,-40],[-30,-30],[-20,-20],[-10,-10],[0,0],[10,10],[20,20],[30,30],[40,40]],
+    // Chaykovskoho / market ring (historic center, near city council)
+    [[-10,-10],[-5,-5],[0,0],[5,-5],[10,-10],[5,-15],[0,-20],[-5,-15],[-10,-10]],
+    // Eastern industrial access (towards Soledar)
+    [[40,-30],[45,-20],[50,-10],[55,0],[50,10],[45,20],[40,30]],
+    // Southern approach (Kramatorsk road)
+    [[0,40],[0,50],[0,60]]
+  ],
+  [
+    [[-70, 0], [-60, 0], [-55, 0]],
+    [[70, 0], [60, 0], [55, 0]],
+    [[0, -70], [0, -60], [0, -55]],
+    [[0, 70], [0, 60], [0, 55]],
+    [[-70, -30], [-60, -30], [-50, -30]],
+    [[70, -30], [60, -30], [50, -30]],
+    [[-70, 30], [-60, 30], [-50, 30]],
+    [[70, 30], [60, 30], [50, 30]],
+    [[-70, -50], [-60, -50], [-50, -50]],
+    [[70, -50], [60, -50], [50, -50]]
+  ];
+  ROADS.kherson = [[[-50,-25],[-30,-25],[-10,-25],[10,-25],[30,-25],[50,-25]],[[-20,-50],[-20,-30],[-20,-10],[-20,10],[-20,30],[-20,50]],[[20,-50],[20,-30],[20,-10],[20,10],[20,30],[20,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[-50,-15],[-30,-15],[-10,-15],[10,-15],[30,-15],[50,-15]],[[-50,15],[-30,15],[-10,15],[10,15],[30,15],[50,15]],[[-50,-35],[-30,-35],[-10,-35],[10,-35],[30,-35]],[[-30,35],[-10,35],[10,35],[30,35],[50,35]],[[-50,-50],[-30,-30],[-10,-10],[10,10],[30,30],[50,50]],[[50,-50],[30,-30],[10,-10],[-10,10],[-30,30],[-50,50]]];
+  ROADS.mariupol = [
+    // Azovstal steelworks main east-west internal road (works transport)
+    [[-50,0],[-35,0],[-20,0],[-5,0],[10,0],[25,0],[40,0],[50,0]],
+    // North-south internal plant road (crosses the main east-west)
+    [[0,-50],[0,-35],[0,-20],[0,-5],[0,10],[0,25],[0,40],[0,50]],
+    // Port access road — leads south to Sea of Azov
+    [[-20,30],[-18,40],[-15,50],[-12,60]],
+    // Coastal highway (Mariupol–Berdyansk, runs east-west along shore)
+    [[-50,55],[-30,55],[-10,55],[10,55],[30,55],[50,55]],
+    // Kalmius River crossing (north of steelworks)
+    [[-50,-25],[-30,-25],[-10,-25],[10,-25],[30,-25],[50,-25]],
+    // M14 highway (Dnipro–Mariupol) — approaches from north
+    [[0,-55],[0,-45],[0,-35],[0,-25]],
+    // Factory rail siding (straight industrial spur)
+    [[-40,-15],[-30,-15],[-20,-15],[-10,-15],[0,-15],[10,-15],[20,-15],[30,-15],[40,-15]],
+    // Residential access (Levoberezhny district)
+    [[-35,25],[-25,30],[-15,35],[-5,40]],
+    // Central city market ring (historic center near Drama Theatre)
+    [[-15,-15],[-10,-10],[-5,-5],[0,0],[-5,5],[-10,10],[-15,15],[-20,10],[-25,5],[-30,0],[-25,-5],[-20,-10],[-15,-15]],
+    // Steelworks loading dock spur (west side)
+    [[-45,-5],[-45,5],[-45,15],[-45,25]]
+  ],
+  [
+    [[-70, 0], [-60, 0], [-55, 0]],
+    [[70, 0], [60, 0], [55, 0]],
+    [[-70, 55], [-60, 55], [-50, 55]],
+    [[70, 55], [60, 55], [50, 55]],
+    [[-70, -25], [-60, -25], [-50, -25]],
+    [[70, -25], [60, -25], [50, -25]],
+    [[-70, -55], [-60, -55], [-50, -55]],
+    [[70, -55], [60, -55], [50, -55]],
+    [[0, 65], [0, 60], [0, 55]],
+    [[-30, 65], [-25, 60], [-20, 55]]
+  ];
   ROADS.crimea = [[[-50,0],[-40,0],[-30,0],[-20,0]],[[20,0],[30,0],[40,0],[50,0]],[[-50,-20],[-40,-20],[-30,-20],[-20,-20]],[[-50,20],[-40,20],[-30,20],[-20,20]],[[20,-20],[30,-20],[40,-20],[50,-20]],[[20,20],[30,20],[40,20],[50,20]],[[-50,-10],[-40,-10],[-30,-10]],[[30,-10],[40,-10],[50,-10]],[[-45,-15],[-45,0],[-45,15]],[[45,-15],[45,0],[45,15]]],
 [[-70, -30], [-60, -20], [-50, -10]],
 [[70, -30], [60, -20], [50, -10]],
@@ -1596,26 +2165,74 @@ function fountain(ox, oz, gy) {
 [[-70, 50], [-60, 40], [-50, 30]],
 [[70, 50], [60, 40], [50, 30]],
 [[-60, -40], [-50, -30], [-40, -20]],
-  ROADS.chornobyl = [[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-50],[-30,-50],[-10,-50],[10,-50],[30,-50],[50,-50]],[[-50,-20],[-30,-20],[-10,-20],[10,-20],[30,-20],[50,-20]],[[-50,20],[-30,20],[-10,20],[10,20],[30,20],[50,20]],[[-50,-50],[-50,-30],[-50,-10],[-50,10],[-50,30],[-50,50]],[[50,-50],[50,-30],[50,-10],[50,10],[50,30],[50,50]],[[-20,-70],[0,-70],[20,-70]],[[-30,20],[-30,0],[-30,-20],[-30,-40]],[[-50,50],[-30,30],[-10,10],[10,-10],[30,-30],[50,-50]]],
-[[-70, -70], [-50, -70], [-30, -70]],
-[[70, -70], [50, -70], [30, -70]],
-[[-70, 70], [-50, 70], [-30, 70]],
-[[70, 70], [50, 70], [30, 70]],
-[[-70, -40], [-50, -40], [-30, -40]],
-[[70, -40], [50, -40], [30, -40]],
-[[-70, 40], [-50, 40], [-30, 40]],
-[[70, 40], [50, 40], [30, 40]],
-[[-70, 0], [-50, 0], [-30, 0]],
-  ROADS.moscow = [[[0,-50],[0,-30],[0,-10],[0,0],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[0,0],[10,0],[30,0],[50,0]],[[-30,30],[-10,30],[10,30],[30,30]],[[-50,-20],[-25,-20],[0,-20],[25,-20],[50,-20]],[[-50,50],[-25,50],[0,50],[25,50],[50,50]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-50,-50],[-25,-50],[0,-50],[25,-50],[50,-50]],[[-40,-20],[-30,-10],[-20,0],[-10,10],[0,20]],[[-35,-40],[-25,-30],[-15,-20],[-5,-10]]],
-[[-70, -30], [-60, -20], [-50, -10]],
-[[70, -30], [60, -20], [50, -10]],
-[[-70, 30], [-60, 20], [-50, 10]],
-[[70, 30], [60, 20], [50, 10]],
-[[-70, -50], [-60, -40], [-50, -30]],
-[[70, -50], [60, -40], [50, -30]],
-[[-70, 50], [-60, 40], [-50, 30]],
-[[70, 50], [60, 40], [50, 30]],
-[[-70, 0], [-60, 0], [-50, 0]],
+  ROADS.chornobyl = [
+    // Pripyat central avenue (Lenina Prospekt) — main east-west through ghost city
+    [[-55,0],[-40,0],[-25,0],[-10,0],[0,0],[10,0],[25,0],[40,0],[55,0]],
+    // Kurchatova St — north-south (to the NPP, reactor access road)
+    [[0,-55],[0,-40],[0,-25],[0,-10],[0,0],[0,10],[0,25],[0,40],[0,55]],
+    // Duga radar access road (northeast, leading to the steel over-the-horizon array)
+    [[40,40],[45,35],[50,30],[55,25],[60,20],[65,15],[70,10]],
+    // Pripyat northern road (to the NPP, past the Jupiter factory)
+    [[-30,-40],[-20,-45],[-10,-50],[0,-52],[10,-50],[20,-45],[30,-40]],
+    // Southern forest road (Red Forest edge, radiation zone perimeter)
+    [[-50,40],[-35,45],[-20,48],[0,50],[20,48],[35,45],[50,40]],
+    // Eastern approach (Kyiv–Chernobyl highway, P-02)
+    [[-55,-20],[-45,-25],[-35,-30],[-25,-35],[-15,-40]],
+    // Western approach (Belarus border, abandoned checkpoint road)
+    [[55,-20],[45,-25],[35,-30],[25,-35],[15,-40]],
+    // Stadium "Avanhard" access (northwest Pripyat)
+    [[-40,-10],[-35,-5],[-30,0],[-25,5],[-20,10]],
+    // Palace of Culture "Energetik" ring (central Pripyat plaza)
+    [[-5,-5],[0,-8],[5,-5],[8,0],[5,5],[0,8],[-5,5],[-8,0],[-5,-5]],
+    // Chernobyl-2 military town access (Duga workers' settlement)
+    [[55,10],[60,15],[65,20],[70,25]]
+  ],
+  [
+    [[-70, -70], [-60, -70], [-50, -70]],
+    [[70, -70], [60, -70], [50, -70]],
+    [[-70, 70], [-60, 70], [-50, 70]],
+    [[70, 70], [60, 70], [50, 70]],
+    [[-70, -40], [-60, -40], [-50, -40]],
+    [[70, -40], [60, -40], [50, -40]],
+    [[-70, 40], [-60, 40], [-50, 40]],
+    [[70, 40], [60, 40], [50, 40]],
+    [[-70, 0], [-60, 0], [-50, 0]],
+    [[70, 0], [60, 0], [50, 0]]
+  ];
+  ROADS.moscow = [
+    // Tverskaya — main north-south spine (Red Square to Belorussky)
+    [[0,-55],[0,-40],[0,-25],[0,-10],[0,0],[0,10],[0,25],[0,40],[0,55]],
+    // Garden Ring (Sadovoye Koltso) — circular boulevard around center
+    [[-40,-40],[-30,-48],[-15,-52],[0,-54],[15,-52],[30,-48],[40,-40],[48,-30],[52,-15],[54,0],[52,15],[48,30],[40,40],[30,48],[15,52],[0,54],[-15,52],[-30,48],[-40,40],[-48,30],[-52,15],[-54,0],[-52,-15],[-48,-30],[-40,-40]],
+    // Arbat — historic west-east diagonal (Old Arbat)
+    [[-45,-15],[-35,-10],[-25,-5],[-15,0],[-5,5],[5,10],[15,15],[25,20],[35,25]],
+    // Novy Arbat — parallel modern avenue
+    [[-45,-25],[-35,-20],[-25,-15],[-15,-10],[-5,-5],[5,0],[15,5],[25,10],[35,15]],
+    // Kutuzovsky Prospekt — westward (Moscow's Champs-Élysées)
+    [[-50,-20],[-40,-20],[-30,-20],[-20,-20],[-10,-20],[0,-20],[10,-20],[20,-20],[30,-20],[40,-20],[50,-20]],
+    // Leningradsky Prospekt — northwest radial
+    [[-35,-35],[-25,-30],[-15,-25],[-5,-20],[0,-15],[5,-10]],
+    // Taganskaya / Volgogradsky — southeast radial
+    [[35,35],[25,30],[15,25],[5,20],[0,15],[-5,10]],
+    // Ostozhenka — south-west cultural district
+    [[-30,20],[-20,25],[-10,30],[0,35],[10,40],[20,45]],
+    // MKAD segment (Moscow Ring Road) — outer ring partial
+    [[-55,-30],[-50,-40],[-40,-50],[-30,-55]],
+    // Sparrow Hills access (Vorobyovy Gory) — southwest
+    [[-50,50],[-45,55],[-40,60],[-35,65]]
+  ],
+  [
+    [[-70, -30], [-60, -20], [-55, -10]],
+    [[70, -30], [60, -20], [55, -10]],
+    [[-70, 30], [-60, 20], [-55, 10]],
+    [[70, 30], [60, 20], [55, 10]],
+    [[-70, -50], [-60, -40], [-55, -30]],
+    [[70, -50], [60, -40], [55, -30]],
+    [[-70, 50], [-60, 40], [-55, 30]],
+    [[70, 50], [60, 40], [55, 30]],
+    [[-70, 0], [-60, 0], [-55, 0]],
+    [[70, 0], [60, 0], [55, 0]]
+  ];
   ROADS.sevastopol = [[[-50,-50],[-30,-50],[-10,-50],[10,-50],[30,-50],[50,-50]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,-30],[-30,-30],[-10,-30],[10,-30],[30,-30],[50,-30]],[[-50,30],[-30,30],[-10,30],[10,30],[30,30],[50,30]],[[-50,-50],[-50,-30],[-50,-10],[-50,10],[-50,30],[-50,50]],[[50,-50],[50,-30],[50,-10],[50,10],[50,30],[50,50]],[[-30,-20],[-30,0],[-30,20],[-10,20],[10,20],[30,20]],[[-40,-40],[-20,-40],[0,-40],[20,-40],[40,-40]],[[-40,40],[-20,40],[0,40],[20,40],[40,40]],[[-50,-10],[-30,-10],[-10,-10],[10,-10],[30,-10],[50,-10]]],
 [[-70, -50], [-60, -50], [-50, -50]],
 [[70, -50], [60, -50], [50, -50]],
@@ -1646,26 +2263,80 @@ function fountain(ox, oz, gy) {
 [[-70, 50], [-60, 40], [-50, 30]],
 [[70, 50], [60, 40], [50, 30]],
 [[-70, 0], [-60, 0], [-50, 0]],
-  ROADS.kremlin = [[[0,-50],[0,-30],[0,-10],[0,10],[0,30],[0,50]],[[-50,0],[-30,0],[-10,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-35],[0,-20],[-10,-10],[-20,0]],[[-20,-20],[0,-20],[20,-20],[20,0],[20,20],[0,20],[-20,20],[-20,0]],[[-50,-35],[-25,-35],[0,-35],[25,-35],[50,-35]],[[-50,35],[-25,35],[0,35],[25,35],[50,35]],[[-50,-50],[-50,-25],[-50,0],[-50,25],[-50,50]],[[50,-50],[50,-25],[50,0],[50,25],[50,50]],[[-30,-30],[-30,0],[-30,30],[0,30],[30,30],[30,0],[30,-30],[0,-30]],[[-50,-50],[-50,0],[-50,50],[0,50],[50,50],[50,0],[50,-50],[0,-50]]],
-[[-70, -50], [-60, -40], [-50, -30]],
-[[70, -50], [60, -40], [50, -30]],
-[[-70, 50], [-60, 40], [-50, 30]],
-[[70, 50], [60, 40], [50, 30]],
-[[-70, -20], [-60, -20], [-50, -20]],
-[[70, -20], [60, -20], [50, -20]],
-[[-70, 20], [-60, 20], [-50, 20]],
-[[70, 20], [60, 20], [50, 20]],
-[[-70, -50], [-70, 0], [-70, 50]],
-  ROADS.kyiv = [[[-50,0],[-30,0],[-10,0],[0,0],[10,0],[30,0],[50,0]],[[0,-50],[0,-30],[0,-10],[0,10],[0,30]],[[15,-50],[15,-30],[15,-10],[15,10],[15,30]],[[45,-50],[45,-30],[45,-10],[45,10],[45,30],[45,50]],[[-18,-50],[-18,-30],[-18,-10],[-18,10]],[[-20,-15],[-22,-5],[-25,5],[-28,15]],[[10,10],[15,15],[20,20],[25,30],[28,40]],[[-50,-20],[-35,-20],[-20,-18],[-15,-15]],[[30,-20],[40,-10],[45,0],[48,20],[50,40]],[[-10,30],[10,30],[25,30],[40,30],[50,30]]],
-[[-70, -30], [-60, -20], [-50, -10]],
-[[70, -30], [60, -20], [50, -10]],
-[[-70, 30], [-60, 20], [-50, 10]],
-[[70, 30], [60, 20], [50, 10]],
-[[-70, -50], [-60, -40], [-50, -30]],
-[[70, -50], [60, -40], [50, -30]],
-[[-70, 50], [-60, 40], [-50, 30]],
-[[70, 50], [60, 40], [50, 30]],
-[[-70, 0], [-60, 0], [-50, 0]],
+  ROADS.kremlin = [
+    // Red Square perimeter (rectangle around the square, south of Kremlin wall)
+    [[-20,-20],[-20,-10],[-20,0],[-20,10],[-20,20]],
+    [[20,-20],[20,-10],[20,0],[20,10],[20,20]],
+    [[-20,-20],[-10,-20],[0,-20],[10,-20],[20,-20]],
+    [[-20,20],[-10,20],[0,20],[10,20],[20,20]],
+    // Kremlin wall inner ring (cathedral square, internal Kremlin roads)
+    [[-15,-15],[-15,-5],[-15,5],[-15,15]],
+    [[15,-15],[15,-5],[15,5],[15,15]],
+    [[-15,-15],[-5,-15],[5,-15],[15,-15]],
+    [[-15,15],[-5,15],[5,15],[15,15]],
+    // Kitay-gorod wall road (outer ring, medieval merchant quarter)
+    [[-35,-35],[-35,-20],[-35,0],[-35,20],[-35,35]],
+    [[35,-35],[35,-20],[35,0],[35,20],[35,35]],
+    [[-35,-35],[-20,-35],[0,-35],[20,-35],[35,-35]],
+    [[-35,35],[-20,35],[0,35],[20,35],[35,35]],
+    // Tverskaya approach (main road to Red Square, north)
+    [[0,-50],[0,-40],[0,-30],[0,-20],[0,-10]],
+    // Volkhonka / Znamenka (southwest approach, toward Moscow River)
+    [[-25,-35],[-20,-25],[-15,-15],[-10,-10],[-5,-5]],
+    // Varvarka St (east of Kremlin, Kitay-gorod merchant street)
+    [[25,-35],[20,-25],[15,-15],[10,-10],[5,-5]],
+    // Bol'shaya Ordynka (southern approach)
+    [[0,30],[0,40],[0,50]],
+    // Moskvoretskaya embankment (along the river, south)
+    [[-40,50],[-20,50],[0,50],[20,50],[40,50]]
+  ],
+  [
+    [[-70, -50], [-60, -40], [-50, -30]],
+    [[70, -50], [60, -40], [50, -30]],
+    [[-70, 50], [-60, 40], [-50, 30]],
+    [[70, 50], [60, 40], [50, 30]],
+    [[-70, -20], [-60, -20], [-50, -20]],
+    [[70, -20], [60, -20], [50, -20]],
+    [[-70, 20], [-60, 20], [-50, 20]],
+    [[70, 20], [60, 20], [50, 20]],
+    [[-70, -50], [-70, 0], [-70, 50]],
+    [[70, -50], [70, 0], [70, 50]]
+  ];
+  ROADS.kyiv = [
+    // Khreshchatyk — main east-west avenue (wide boulevard)
+    [[-55,0],[-40,0],[-25,0],[-10,0],[0,0],[10,0],[25,0],[40,0],[55,0]],
+    // Maidan Nezalezhnosti — ring around Independence Square
+    [[-12,-12],[-8,-15],[0,-16],[8,-15],[12,-12],[15,-8],[16,0],[15,8],[12,12],[8,15],[0,16],[-8,15],[-12,12],[-15,8],[-16,0],[-15,-8],[-12,-12]],
+    // Volodymyrska — north-south arterial (left of Maidan)
+    [[-20,-50],[-20,-30],[-20,-10],[-20,0],[-20,10],[-20,30],[-20,50]],
+    // Instytutska — north-south (right of Maidan, leads to Govt quarter)
+    [[20,-50],[20,-30],[20,-10],[20,0],[20,10],[20,30],[20,50]],
+    // Hrushevskoho — east-west south of Maidan (govt district)
+    [[-50,15],[-30,15],[-10,15],[0,15],[10,15],[30,15],[50,15]],
+    // Lavra hill access — winding road up to Pechersk Lavra (southeast)
+    [[30,30],[35,25],[38,18],[40,10],[42,0],[40,-10],[38,-20],[35,-30]],
+    // Dnipro river embankment — south edge
+    [[-50,55],[-30,55],[-10,55],[0,55],[10,55],[30,55],[50,55]],
+    // Metro bridge approach (north-south overpass)
+    [[0,30],[0,40],[0,50],[0,55]],
+    // Bessarabska Square — small diagonal market area
+    [[-10,30],[-5,25],[0,20],[5,15]],
+    // Arsenalna (world\'s deepest metro) — south of Lavra
+    [[30,-40],[30,-30],[30,-20],[35,-15],[40,-10]]
+  ],
+  [
+    // Edge spurs extending outward
+    [[-70,0],[-60,0],[-55,0]],
+    [[55,0],[60,0],[70,0]],
+    [[-70,15],[-60,15],[-50,15]],
+    [[70,15],[60,15],[50,15]],
+    [[-20,-60],[-20,-50],[-20,-40]],
+    [[20,-60],[20,-50],[20,-40]],
+    [[-20,60],[-20,50],[-20,40]],
+    [[20,60],[20,50],[20,40]],
+    [[30,60],[35,50],[38,40]],
+    [[-50,65],[-30,65],[-10,65]]
+  ];
   ROADS.snakeIsland = [[[-10,0],[0,0],[10,0]],[[0,-10],[0,0],[0,10]],[[-8,-8],[0,0],[8,8]],[[8,-8],[0,0],[-8,8]],[[-5,-5],[5,-5]],[[-5,5],[5,5]],[[-5,-5],[-5,5]],[[5,-5],[5,5]],[[-10,-5],[-10,5]],[[10,-5],[10,5]]],
 [[-15, -5], [-10, 0], [-5, 5]],
 [[15, -5], [10, 0], [5, 5]],
@@ -1716,16 +2387,39 @@ function fountain(ox, oz, gy) {
 [[-70, 20], [-60, 20], [-50, 20]],
 [[70, 20], [60, 20], [50, 20]],
 [[-70, 0], [-60, 0], [-50, 0]],
-  ROADS.treeline = [[[-30,-30],[-20,-20],[-10,-10],[0,0],[10,10],[20,20]],[[-30,30],[-20,20],[-10,10],[0,0],[10,-10],[20,-20]],[[-30,0],[-20,0],[-10,0],[0,0],[10,0],[20,0]],[[0,-30],[0,-20],[0,-10],[0,0],[0,10],[0,20]],[[-20,-20],[0,-20],[20,-20]],[[-20,20],[0,20],[20,20]],[[-20,-20],[-20,0],[-20,20]],[[20,-20],[20,0],[20,20]],[[-40,-10],[-30,-10],[-20,-10]],[[20,10],[30,10],[40,10]]],
-[[-50, -40], [-40, -30], [-30, -20]],
-[[50, -40], [40, -30], [30, -20]],
-[[-50, 40], [-40, 30], [-30, 20]],
-[[50, 40], [40, 30], [30, 20]],
-[[-50, -50], [-30, -30], [-10, -10]],
-[[50, -50], [30, -30], [10, -10]],
-[[-50, 50], [-30, 30], [-10, 10]],
-[[50, 50], [30, 30], [10, 10]],
-[[-40, 0], [-20, 0], [0, 0]],
+  ROADS.treeline = [
+    // Main east-west rural road (gravel farm track, approaches the treeline)
+    [[-55, -20], [-40, -20], [-25, -20], [-10, -20], [0, -20], [10, -20], [25, -20], [40, -20], [55, -20]],
+    // North-south logging trail (cuts through the tree line)
+    [[0, -40], [0, -30], [0, -20], [0, -10], [0, 0], [0, 10], [0, 20], [0, 30]],
+    // Access track to dragon's teeth line (perpendicular to treeline)
+    [[-20, -5], [-10, 0], [0, 5], [10, 10], [20, 15]],
+    // Dugout access path (zigzag to fighting positions)
+    [[-25, 10], [-20, 12], [-15, 15], [-10, 18], [-5, 20]],
+    [[5, 20], [10, 18], [15, 15], [20, 12], [25, 10]],
+    // Farm track (south of wheat field, parallel to main road)
+    [[-50, -35], [-35, -35], [-20, -35], [-5, -35], [10, -35], [25, -35], [40, -35], [50, -35]],
+    // Forward observation post track (angled toward enemy line)
+    [[-30, -10], [-20, 0], [-10, 10], [0, 20], [10, 30]],
+    // Supply truck fallback route (curved, away from direct fire)
+    [[30, -10], [35, 0], [40, 10], [45, 20], [50, 30]],
+    // Artillery battery access (spur from logging trail)
+    [[-15, 30], [-10, 35], [-5, 40], [0, 45]],
+    // Perimeter patrol path (follows edge of treeline)
+    [[-40, -4], [-30, -3], [-20, -2], [-10, -1], [0, 0], [10, -1], [20, -2], [30, -3], [40, -4]]
+  ],
+  [
+    [[-65, -20], [-60, -20], [-55, -20]],
+    [[65, -20], [60, -20], [55, -20]],
+    [[0, -50], [0, -45], [0, -40]],
+    [[0, 40], [0, 45], [0, 50]],
+    [[-50, -50], [-40, -45], [-30, -40]],
+    [[50, -50], [40, -45], [30, -40]],
+    [[-50, 50], [-40, 45], [-30, 40]],
+    [[50, 50], [40, 45], [30, 40]],
+    [[-40, 0], [-20, 0], [0, 0]],
+    [[40, 0], [20, 0], [0, 0]]
+  ];
   ROADS.siegeMoscow = [[[0,-60],[0,-40],[0,-20],[0,0],[0,20],[0,40],[0,60]],[[-60,0],[-40,0],[-20,0],[0,0],[20,0],[40,0],[60,0]],[[0,-60],[-10,-50],[-20,-40],[-30,-30]],[[-30,-30],[-30,0],[-30,30],[0,30],[30,30],[30,0],[30,-30],[0,-30]],[[-50,-50],[-50,0],[-50,50],[0,50],[50,50],[50,0],[50,-50],[0,-50]],[[-60,-40],[-30,-40],[0,-40],[30,-40],[60,-40]],[[-60,40],[-30,40],[0,40],[30,40],[60,40]],[[-40,-60],[-40,-30],[-40,0],[-40,30],[-40,60]],[[40,-60],[40,-30],[40,0],[40,30],[40,60]],[[-60,-60],[-60,0],[-60,60],[0,60],[60,60],[60,0],[60,-60],[0,-60]]];
 
   // ── Map stage names to city keys ──────────────────────────
@@ -1765,7 +2459,7 @@ function fountain(ox, oz, gy) {
     trenches: trenches, dragonTeeth: dragonTeeth, coastalFort: coastalFort,
     monumentToSunkenShips: monumentToSunkenShips, snakeIslandBorderPost: snakeIslandBorderPost,
     airportTerminal: airportTerminal, hangar: hangar, warehouse: warehouse,
-    officeBuilding: officeBuilding, controlTower: controlTower, monument: monument,
+    officeBuilding: officeBuilding, residentialHouse: residentialHouse, controlTower: controlTower, monument: monument,
     bridge: bridge, radarStation: radarStation, bunker: bunker,
     ruinedBuilding: ruinedBuilding, school: school,
     trenchLine: trenchLine, dugout: dugout, wheatField: wheatField, dragonsTeeth: dragonsTeeth,
