@@ -1,0 +1,1 @@
+{"action":"evaluate","args":{"code":"document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); setTimeout(()=>document.dispatchEvent(new KeyboardEvent('keyup',{key:'Escape',bubbles:true})),100);"},"session":"ok-game-qa"}
