@@ -1,0 +1,152 @@
+BUILDING REFERENCE DOCUMENTATION
+================================
+
+Based on real-world research for OccupantKiller game building overhaul.
+
+=== HOSTOMEL (Stage 0) ===
+Reference: Antonov Airport (GML/UKKM)
+- Control Tower: Tall narrow concrete, glass windows, antenna on top
+- Hangars: Large arched metal buildings, 50m wide
+- Administrative Building: 3-story Soviet office, rectangular
+- An-225 Mriya: World's largest cargo aircraft, destroyed 2022
+- Fuel Storage: Cylindrical white tanks, 10m tall
+- Radar Dome: White sphere on 5m pedestal
+
+Real features: Airport was first major battle of invasion (Feb 24, 2022)
+Russian airborne assault repelled by Ukrainian National Guard.
+
+=== KYIV (Stage 1) ===
+Reference: Maidan Nezalezhnosti, Independence Monument
+- Independence Monument: 62m tall white marble column, golden Berehynia statue
+- Hotel Ukraina: Stalinist skyscraper, 198m tall, 28 floors
+- Khreshchatyk: Main street, Stalinist Empire style, chestnut trees
+- St. Sophia Cathedral: Byzantine, 11th century, golden domes, UNESCO
+- Golden Gate: Medieval fortress gate, reconstructed 1982
+- Kyiv-Pechersk Lavra: Monastery, golden domes, caves below
+- Central Post Office: 1952-1957, Soviet neoclassical
+
+=== MOSCOW (Stage 2/5/19) ===
+Reference: Kremlin, Red Square, St. Basil's
+- St. Basil's Cathedral: 1555-1561, colorful onion domes, 9 towers
+- Kremlin Wall: 2.2km red brick, 20 towers, 15th-17th century
+- Spasskaya Tower: 71m tall, red star, clock
+- Lenin Mausoleum: Red/black granite pyramid, 1924
+- Seven Sisters: Stalinist skyscrapers, 1947-1953
+- Bolshoi Theater: Classical columns, 1825
+- Christ the Savior: 1883, white with golden domes, 103m tall
+- Ostankino Tower: 540m tall, lattice structure, 1967
+
+=== MARIUPOL (Stage 3) ===
+Reference: Azovstal, Port of Mariupol
+- Azovstal: 10km² steel plant, blast furnaces, coke ovens, underground tunnels
+- Ilyich Iron & Steel: Second plant, ~40,000 workers
+- Port: Cranes, shipping containers, grain elevators
+- Drama Theater: 1960, large modernist building (destroyed 2022)
+- Lighthouse: White tower, Sea of Azov coast
+
+Real features: City of 450,000, almost completely destroyed in siege.
+Azovstal became symbol of resistance (April-May 2022).
+
+=== BAKHMUT (Stage 4) ===
+Reference: Bakhmut Fortress, Salt Mines
+- Bakhmut Fortress: 17th century, stone walls, ramparts
+- St. Nicolas Church: 1797, white with blue domes
+- St. John Baptist: 1861, belfry prominent
+- Railway College: 120+ years old, brick, 3-story
+- Salt Mine Entrance: White tunnel entrance, industrial buildings
+- City Center: 4-10 story panel apartment blocks
+- Bakhmutka River: Runs through city, 2 bridges
+
+Real features: 10-month battle (Aug 2022-May 2023), city completely destroyed.
+100,000 Russian casualties to capture.
+
+=== CHORNOBYL (Stage 7) ===
+Reference: Exclusion Zone, Pripyat
+- Reactor 4 Sarcophagus: New Safe Confinement, 110m tall arch, 2016
+- Duga Radar: 150m tall steel antenna array, "Russian Woodpecker"
+- Abandoned Pripyat: 16-story panel apartments, crumbling
+- Pripyat School: 3-story, Soviet murals, abandoned 1986
+- Pripyat Hotel: 10-story, Polissya Hotel
+- Amusement Park: Ferris wheel (never opened), bumper cars
+- Swimming Pool: Azure Pool, rectangular, diving board
+- Red Forest: Scots pine, dead from radiation, reddish-brown
+
+Real features: 1986 disaster, 30km exclusion zone, Pripyat evacuated in hours.
+
+=== CRIMEA BRIDGE (Stage 8) ===
+Reference: Kerch Strait Bridge
+- Bridge: 19km long, 4-lane highway + rail, opened 2018
+- Tuzla Island: Small sandy island in Kerch Strait
+- Kerch Fortress: Ancient stone walls, 15th century
+- Port of Kerch: Ferry terminal, small harbor
+
+=== SEVASTOPOL (Stage 11) ===
+Reference: Naval Base, Black Sea Fleet
+- Grafskaya Wharf: Stone pier with classical columns
+- Balaklava Submarine Base: Underground tunnels, dry dock
+- St. Vladimir Cathedral: White with golden domes, 19th century
+- Panorama Museum: Circular building, Defense of Sevastopol 1854-55
+- Coastal Fortresses: Stone walls with cannons
+
+=== DONBAS (Stage 12) ===
+Reference: Mining Region
+- Mine Headframe: Tall steel tower with winding wheels
+- Slag Heap (Terrikon): Artificial cone-shaped hill, 100-200m tall
+- Coal Processing Plant: Conveyor belts, sorting equipment
+- Worker Housing: 2-story brick with small balconies
+- Culture Palace: Soviet-era community center
+
+=== SNAKE ISLAND (Stage 14) ===
+Reference: Zmiinyi Island
+- Lighthouse: White tower, 40m tall, 1842
+- Border Post: Small building with Ukrainian flag
+- Defensive Positions: Trenches, sandbags, concrete bunkers
+- Helipad: Concrete landing pad, small
+- Radio Tower: Tall metal antenna
+
+Real features: Famous "Russian warship, go f*** yourself" incident (Feb 2022).
+Island traded hands multiple times.
+
+=== SAKY (Stage 15) ===
+Reference: Airbase, Crimea
+- Main Runway: 3km long, 60m wide, concrete
+- Hangars: Large arched metal buildings
+- Control Tower: Glass windows, radar on top
+- Fuel Depot: Cylindrical tanks, underground pipelines
+- Barracks: 2-story long buildings, Soviet standard
+
+=== VUHLEDAR (Stage 16) ===
+Reference: Coal Mining Town
+- Mine Headframe: Tall steel structure, winding gear
+- Coal Slag Heap: Flat-topped conical hill, terraced
+- Coal Preparation Plant: Industrial buildings, conveyors
+- Thermal Power Plant: Tall chimneys, cooling towers
+- Worker Housing: 5-story panel blocks, Soviet standard
+
+=== ANTONOV BRIDGE (Stage 17) ===
+Reference: Dnipro Crossing, Kherson
+- Bridge: Road/rail bridge, 1.4km long, 30 spans
+- Bridge Towers: Concrete pylons, 20m tall
+- Kherson Side: Fortifications, trenches, bunkers
+- Russian Side: Checkpoint, barriers, guardhouse
+- Pontoon Bridge: Floating sections, military construction
+
+=== OIL REFINERY (Stage 18) ===
+Reference: Petrochemical Complex
+- Distillation Tower: 50m tall, pipes and platforms
+- Storage Tanks: 10+ large cylindrical tanks, 20m tall
+- Flare Stack: Tall pipe with constant flame
+- Pipeline Manifold: Network of pipes connecting units
+- Catalytic Cracker: Complex industrial structure
+- Cooling Tower: Hyperbolic concrete, 40m tall
+
+=== SIEGE OF MOSCOW (Stage 19) ===
+Reference: Final Assault Scenario
+- Kremlin Wall: Red brick, defensive positions
+- Red Square: Large plaza, cobblestones
+- St. Basil's: Colorful domes, damaged
+- Barricades: Concrete blocks, sandbags, burning vehicles
+- Government Buildings: White facades, bullet holes
+- Metro Entrances: M signs, used as bomb shelters
+
+=== END OF REFERENCE DOCUMENTATION ===

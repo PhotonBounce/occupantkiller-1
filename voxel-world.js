@@ -8702,6 +8702,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        aircraftMonument(31, getTerrainHeight(31, -36), -36, 0.8);
+        radarDome(-15, getTerrainHeight(-15, -19), -19, 1.0);
+        runway(44, getTerrainHeight(44, -37), -37, 1.3);
+        fuelStorageTank(19, getTerrainHeight(19, -39), -39, 1.2);
+        parkingGarage(-46, getTerrainHeight(-46, -47), -47, 0.9);
+        controlTower(-21, getTerrainHeight(-21, 14), 14, 1.2);
+        hangar(21, getTerrainHeight(21, -25), -25, 1.3);
+        watchtower(39, getTerrainHeight(39, 19), 19, 1.1);
+        storageBunker(7, getTerrainHeight(7, 25), 25, 1.0);
+        helipad(-50, getTerrainHeight(-50, 47), 47, 1.4);
+        playground(-7, getTerrainHeight(-7, -15), -15, 0.9);
+        marketStall(-37, getTerrainHeight(-37, -39), -39, 1.1);
+        warehouse(-6, getTerrainHeight(-6, 27), 27, 1.0);
+        industrialFactory(43, getTerrainHeight(43, 8), 8, 1.2);
+        gasStation(-40, getTerrainHeight(-40, 20), 20, 1.0);
+        recyclingCenter(29, getTerrainHeight(29, -4), -4, 1.2);
+        residentialHouse(-45, getTerrainHeight(-45, 34), 34, 1.0);
+        postOffice(-40, getTerrainHeight(-40, -21), -21, 1.4);
+        gasStation(-15, getTerrainHeight(-15, 8), 8, 1.2);
+        parkingLot(-30, getTerrainHeight(-30, -3), -3, 1.0);
+        fireDepartment(39, getTerrainHeight(39, 37), 37, 1.3);
+        waterTreatment(31, getTerrainHeight(31, -29), -29, 1.2);
+        library(-30, getTerrainHeight(-30, 9), 9, 1.1);
+        recyclingCenter(38, getTerrainHeight(38, 21), 21, 1.0);
+        cityHall(48, getTerrainHeight(48, 49), 49, 0.8);
+        industrialFactory(-10, getTerrainHeight(-10, 1), 1, 1.0);
+        cafe(22, getTerrainHeight(22, 41), 41, 1.0);
+        concertHall(0, getTerrainHeight(0, 32), 32, 1.1);
+        sportsComplex(-33, getTerrainHeight(-33, -19), -19, 1.3);
+        techPark(-17, getTerrainHeight(-17, 45), 45, 1.2);
+        substation(1, getTerrainHeight(1, -4), -4, 1.0);
+        trainStation(15, getTerrainHeight(15, 13), 13, 0.9);
+        officeBuilding(-36, getTerrainHeight(-36, -31), -31, 1.2);
+        playground(26, getTerrainHeight(26, -42), -42, 1.1);
+        waterTreatment(9, getTerrainHeight(9, 17), 17, 1.0);
+        dataCenter(-49, getTerrainHeight(-49, 37), 37, 1.3);
+        techPark(46, getTerrainHeight(46, -16), -16, 1.3);
+        marketStall(-36, getTerrainHeight(-36, -13), -13, 1.1);
+        gymnasium(-50, getTerrainHeight(-50, 42), 42, 1.4);
+        sportsComplex(14, getTerrainHeight(14, 47), 47, 0.9);
+        hospitalBuilding(30, getTerrainHeight(30, -12), -12, 1.4);
+        university(27, getTerrainHeight(27, -25), -25, 0.9);
+        apartmentBlock(19, getTerrainHeight(19, 49), 49, 1.4);
+        sovietApartment(26, getTerrainHeight(26, -9), -9, 1.1);
+        policeStation(-4, getTerrainHeight(-4, -11), -11, 1.0);
+        library(22, getTerrainHeight(22, -40), -40, 0.9);
+        concertHall(-42, getTerrainHeight(-42, 47), 47, 1.2);
+        trainStation(-34, getTerrainHeight(-34, 34), 34, 1.1);
+        dataCenter(-29, getTerrainHeight(-29, -17), -17, 1.2);
+        waterTreatment(4, getTerrainHeight(4, -23), -23, 1.5);
+        // === End generated buildings ===
       } else if (levelId === 'KYIV') {
         // Stage 1: Kyiv Capital — urban grid, river islands, agriculture
         // Dnipro River to east with sandy banks (enhanced width)
@@ -8779,6 +8831,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        independenceMonument(46, getTerrainHeight(46, 43), 43, 1.3);
+        goldenGate(41, getTerrainHeight(41, -11), -11, 1.1);
+        governmentHouse(35, getTerrainHeight(35, 33), 33, 1.1);
+        embankmentBuilding(16, getTerrainHeight(16, 7), 7, 0.9);
+        olympicStadium(-22, getTerrainHeight(-22, -42), -42, 1.0);
+        suspensionBridge(25, getTerrainHeight(25, 20), 20, 1.0);
+        observationTower(-22, getTerrainHeight(-22, -50), -50, 0.8);
+        monument(30, getTerrainHeight(30, -43), -43, 1.0);
+        fountain(-46, getTerrainHeight(-46, -8), -8, 0.8);
+        parkBench(-20, getTerrainHeight(-20, -15), -15, 1.3);
+        cafe(19, getTerrainHeight(19, -34), -34, 1.3);
+        powerPlant(23, getTerrainHeight(23, 10), 10, 1.0);
+        cinema(2, getTerrainHeight(2, -26), -26, 0.9);
+        playground(-5, getTerrainHeight(-5, 4), 4, 1.1);
+        officeBuilding(36, getTerrainHeight(36, 33), 33, 1.5);
+        hospitalBuilding(-43, getTerrainHeight(-43, 1), 1, 1.3);
+        hospitalBuilding(-19, getTerrainHeight(-19, -26), -26, 0.9);
+        swimmingPool(-33, getTerrainHeight(-33, 4), 4, 0.9);
+        gymnasium(-19, getTerrainHeight(-19, -41), -41, 1.1);
+        dataCenter(-38, getTerrainHeight(-38, -44), -44, 1.3);
+        techPark(-49, getTerrainHeight(-49, -39), -39, 1.4);
+        library(-29, getTerrainHeight(-29, 2), 2, 1.1);
+        cafe(1, getTerrainHeight(1, -43), -43, 0.9);
+        sovietApartment(-1, getTerrainHeight(-1, -17), -17, 1.4);
+        gymnasium(-14, getTerrainHeight(-14, 4), 4, 1.3);
+        dataCenter(34, getTerrainHeight(34, 41), 41, 1.1);
+        hotelBuilding(-13, getTerrainHeight(-13, -23), -23, 1.5);
+        substation(44, getTerrainHeight(44, 19), 19, 0.8);
+        cityHall(-43, getTerrainHeight(-43, -44), -44, 1.2);
+        university(17, getTerrainHeight(17, -30), -30, 0.8);
+        university(-40, getTerrainHeight(-40, -27), -27, 0.8);
+        residentialHouse(36, getTerrainHeight(36, -20), -20, 1.1);
+        powerPlant(-19, getTerrainHeight(-19, 24), 24, 1.2);
+        sewagePlant(-40, getTerrainHeight(-40, 3), 3, 1.3);
+        powerPlant(16, getTerrainHeight(16, -10), -10, 1.5);
+        cafe(35, getTerrainHeight(35, 41), 41, 1.0);
+        sportsComplex(0, getTerrainHeight(0, -34), -34, 1.3);
+        bank(8, getTerrainHeight(8, -10), -10, 1.5);
+        residentialHouse(-49, getTerrainHeight(-49, 8), 8, 1.2);
+        powerPlant(-38, getTerrainHeight(-38, -41), -41, 1.2);
+        university(-17, getTerrainHeight(-17, -34), -34, 1.5);
+        residentialHouse(-19, getTerrainHeight(-19, -3), -3, 1.0);
+        swimmingPool(19, getTerrainHeight(19, 40), 40, 1.0);
+        researchLab(-49, getTerrainHeight(-49, 35), 35, 1.4);
+        bank(34, getTerrainHeight(34, -37), -37, 1.5);
+        trainStation(-17, getTerrainHeight(-17, -36), -36, 1.4);
+        dataCenter(-31, getTerrainHeight(-31, -16), -16, 1.0);
+        cafe(41, getTerrainHeight(41, -7), -7, 0.9);
+        recyclingCenter(-17, getTerrainHeight(-17, 14), 14, 1.1);
+        officeBuilding(-39, getTerrainHeight(-39, 31), 31, 1.1);
+        // === End generated buildings ===
       } else if (levelId === 'MOSCOW') {
         // Stage 2: Outer Moscow — Moskva River meanders, flat terrain, canal
         // Moskva River with enhanced meanders
@@ -8851,6 +8955,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        redSquarePlaza(-15, getTerrainHeight(-15, -45), -45, 0.8);
+        spasskayaTower(48, getTerrainHeight(48, -34), -34, 1.2);
+        gumDepartmentStore(-17, getTerrainHeight(-17, -30), -30, 1.3);
+        christSaviorCathedral(20, getTerrainHeight(20, 40), 40, 1.1);
+        ostankinoTower(-49, getTerrainHeight(-49, -36), -36, 0.9);
+        kremlinSenate(38, getTerrainHeight(38, -31), -31, 1.2);
+        kremlinArsenal(-3, getTerrainHeight(-3, 24), 24, 1.2);
+        grandKremlinPalace(5, getTerrainHeight(5, -34), -34, 0.8);
+        tsarCannon(-4, getTerrainHeight(-4, -45), -45, 1.4);
+        tsarBell(-24, getTerrainHeight(-24, 37), 37, 1.0);
+        hospitalBuilding(-5, getTerrainHeight(-5, 49), 49, 1.2);
+        statue(29, getTerrainHeight(29, 45), 45, 0.9);
+        library(-30, getTerrainHeight(-30, -28), -28, 1.4);
+        orthodoxChurch(-28, getTerrainHeight(-28, 44), 44, 1.4);
+        statue(35, getTerrainHeight(35, 44), 44, 1.4);
+        fireDepartment(-30, getTerrainHeight(-30, 50), 50, 1.3);
+        gasStation(-46, getTerrainHeight(-46, 10), 10, 1.0);
+        gymnasium(-6, getTerrainHeight(-6, -11), -11, 1.4);
+        museum(-22, getTerrainHeight(-22, -47), -47, 1.3);
+        metroEntrance(-8, getTerrainHeight(-8, -15), -15, 1.4);
+        fireDepartment(-6, getTerrainHeight(-6, 32), 32, 1.2);
+        techPark(-8, getTerrainHeight(-8, -47), -47, 0.9);
+        sportsComplex(-28, getTerrainHeight(-28, 24), 24, 1.5);
+        sportsComplex(-46, getTerrainHeight(-46, -37), -37, 1.2);
+        warehouse(43, getTerrainHeight(43, 50), 50, 1.0);
+        waterTreatment(15, getTerrainHeight(15, -36), -36, 1.1);
+        powerPlant(-26, getTerrainHeight(-26, -18), -18, 0.8);
+        playground(-50, getTerrainHeight(-50, 16), 16, 1.4);
+        techPark(37, getTerrainHeight(37, 42), 42, 1.5);
+        hotelBuilding(-4, getTerrainHeight(-4, 5), 5, 0.8);
+        marketStall(29, getTerrainHeight(29, -10), -10, 1.3);
+        policeStation(42, getTerrainHeight(42, -12), -12, 1.2);
+        statue(-9, getTerrainHeight(-9, 1), 1, 1.3);
+        dataCenter(-34, getTerrainHeight(-34, -26), -26, 1.1);
+        gasStation(36, getTerrainHeight(36, 45), 45, 1.4);
+        sewagePlant(22, getTerrainHeight(22, -12), -12, 1.1);
+        sovietApartment(-12, getTerrainHeight(-12, -14), -14, 0.9);
+        substation(27, getTerrainHeight(27, 33), 33, 1.0);
+        swimmingPool(6, getTerrainHeight(6, 36), 36, 0.9);
+        cinema(44, getTerrainHeight(44, -29), -29, 1.3);
+        postOffice(15, getTerrainHeight(15, 34), 34, 1.2);
+        marketStall(-39, getTerrainHeight(-39, 46), 46, 1.0);
+        bank(-22, getTerrainHeight(-22, -25), -25, 0.9);
+        industrialFactory(-19, getTerrainHeight(-19, 10), 10, 1.2);
+        residentialHouse(8, getTerrainHeight(8, 3), 3, 1.4);
+        powerPlant(-26, getTerrainHeight(-26, 41), 41, 1.3);
+        concertHall(1, getTerrainHeight(1, -19), -19, 0.9);
+        sovietApartment(46, getTerrainHeight(46, 48), 48, 1.4);
+        playground(-22, getTerrainHeight(-22, -28), -28, 1.4);
+        researchLab(9, getTerrainHeight(9, -44), -44, 1.2);
+        // === End generated buildings ===
       } else if (levelId === 'MARIUPOL') {
         // Stage 3: Mariupol Azovstal — sea coast, steppe, undulating terrain
         // Sea coast to south (enhanced)
@@ -8929,6 +9085,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        portCrane(-35, getTerrainHeight(-35, 8), 8, 0.9);
+        shippingContainer(9, getTerrainHeight(9, 35), 35, 1.2);
+        lighthouse(21, getTerrainHeight(21, 26), 26, 1.0);
+        grainElevator(46, getTerrainHeight(46, 6), 6, 1.2);
+        coastalFortress(42, getTerrainHeight(42, 14), 14, 1.1);
+        shipyard(20, getTerrainHeight(20, 7), 7, 1.4);
+        dryDock(45, getTerrainHeight(45, 10), 10, 1.1);
+        fishMarket(46, getTerrainHeight(46, -19), -19, 1.4);
+        seasidePromenade(-15, getTerrainHeight(-15, 48), 48, 1.3);
+        beachHotel(12, getTerrainHeight(12, 30), 30, 1.0);
+        swimmingPool(-41, getTerrainHeight(-41, 41), 41, 1.0);
+        fireDepartment(-8, getTerrainHeight(-8, -10), -10, 1.4);
+        schoolBuilding(-33, getTerrainHeight(-33, -31), -31, 1.0);
+        waterTower(40, getTerrainHeight(40, -23), -23, 0.8);
+        statue(-8, getTerrainHeight(-8, 19), 19, 1.1);
+        officeBuilding(-24, getTerrainHeight(-24, 3), 3, 1.1);
+        substation(39, getTerrainHeight(39, -48), -48, 1.4);
+        powerPlant(-2, getTerrainHeight(-2, 11), 11, 0.8);
+        warehouse(-12, getTerrainHeight(-12, 46), 46, 1.1);
+        statue(18, getTerrainHeight(18, 45), 45, 1.3);
+        waterTreatment(-22, getTerrainHeight(-22, 12), 12, 1.0);
+        playground(12, getTerrainHeight(12, -47), -47, 1.1);
+        metroEntrance(42, getTerrainHeight(42, -29), -29, 1.4);
+        trainStation(29, getTerrainHeight(29, 18), 18, 0.8);
+        metroEntrance(25, getTerrainHeight(25, 22), 22, 1.3);
+        schoolBuilding(32, getTerrainHeight(32, 4), 4, 0.9);
+        gymnasium(-27, getTerrainHeight(-27, -44), -44, 1.0);
+        cityHall(-23, getTerrainHeight(-23, 8), 8, 1.0);
+        gasStation(-15, getTerrainHeight(-15, 46), 46, 1.5);
+        statue(-18, getTerrainHeight(-18, -40), -40, 1.1);
+        techPark(-44, getTerrainHeight(-44, -6), -6, 1.0);
+        residentialHouse(49, getTerrainHeight(49, 33), 33, 0.8);
+        orthodoxChurch(-19, getTerrainHeight(-19, -25), -25, 1.4);
+        sewagePlant(-31, getTerrainHeight(-31, -20), -20, 0.9);
+        policeStation(22, getTerrainHeight(22, -23), -23, 1.1);
+        sportsComplex(48, getTerrainHeight(48, -3), -3, 0.9);
+        waterTreatment(45, getTerrainHeight(45, 41), 41, 0.9);
+        apartmentBlock(-11, getTerrainHeight(-11, -37), -37, 1.2);
+        bank(23, getTerrainHeight(23, 36), 36, 1.4);
+        gasStation(0, getTerrainHeight(0, 41), 41, 0.9);
+        substation(38, getTerrainHeight(38, 30), 30, 1.0);
+        bank(37, getTerrainHeight(37, 26), 26, 1.4);
+        powerPlant(50, getTerrainHeight(50, -45), -45, 1.0);
+        playground(34, getTerrainHeight(34, -3), -3, 0.8);
+        marketStall(-49, getTerrainHeight(-49, 3), 3, 1.4);
+        hospitalBuilding(5, getTerrainHeight(5, -4), -4, 1.2);
+        gymnasium(40, getTerrainHeight(40, -31), -31, 1.1);
+        researchLab(33, getTerrainHeight(33, -16), -16, 1.2);
+        techPark(49, getTerrainHeight(49, 11), 11, 1.1);
+        substation(-16, getTerrainHeight(-16, -9), -9, 1.4);
+        // === End generated buildings ===
       } else if (levelId === 'BAKHMUT') {
         // Stage 4: Bakhmut Fortress — river bridges, salt mine entrances, rolling hills
         // Bakhmutka River with bridges (enhanced)
@@ -9014,6 +9222,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        bakhmutFortress(-39, getTerrainHeight(-39, -15), -15, 1.4);
+        railwayStation(-19, getTerrainHeight(-19, 46), 46, 1.1);
+        saltMineEntrance(28, getTerrainHeight(28, 35), 35, 1.1);
+        marketHall(-47, getTerrainHeight(-47, 13), 13, 1.4);
+        defensivePosition(-27, getTerrainHeight(-27, 12), 12, 0.9);
+        watchtower(-17, getTerrainHeight(-17, -7), -7, 1.0);
+        guardPost(26, getTerrainHeight(26, 39), 39, 1.4);
+        burningBuilding(21, getTerrainHeight(21, -49), -49, 1.2);
+        memorialPlaque(-26, getTerrainHeight(-26, -40), -40, 1.0);
+        abandonedHotel(2, getTerrainHeight(2, 12), 12, 1.2);
+        library(38, getTerrainHeight(38, 10), 10, 1.3);
+        concertHall(7, getTerrainHeight(7, -48), -48, 0.9);
+        museum(1, getTerrainHeight(1, 38), 38, 1.0);
+        substation(-3, getTerrainHeight(-3, 10), 10, 1.2);
+        warehouse(4, getTerrainHeight(4, 45), 45, 1.2);
+        warehouse(39, getTerrainHeight(39, 8), 8, 1.0);
+        sportsComplex(-21, getTerrainHeight(-21, -35), -35, 1.3);
+        cityHall(-35, getTerrainHeight(-35, 45), 45, 1.2);
+        shoppingMall(-26, getTerrainHeight(-26, -23), -23, 1.3);
+        fireDepartment(42, getTerrainHeight(42, 25), 25, 1.5);
+        researchLab(26, getTerrainHeight(26, -14), -14, 1.5);
+        hotelBuilding(-13, getTerrainHeight(-13, -21), -21, 1.1);
+        bank(-49, getTerrainHeight(-49, 40), 40, 1.2);
+        fireDepartment(-45, getTerrainHeight(-45, -44), -44, 1.2);
+        trainStation(31, getTerrainHeight(31, 46), 46, 1.1);
+        sovietApartment(23, getTerrainHeight(23, -14), -14, 1.1);
+        swimmingPool(-7, getTerrainHeight(-7, -27), -27, 1.5);
+        sportsComplex(11, getTerrainHeight(11, -36), -36, 1.4);
+        metroEntrance(12, getTerrainHeight(12, -41), -41, 1.2);
+        officeBuilding(-31, getTerrainHeight(-31, -31), -31, 1.4);
+        bank(-40, getTerrainHeight(-40, -19), -19, 0.9);
+        statue(27, getTerrainHeight(27, 26), 26, 1.4);
+        museum(49, getTerrainHeight(49, 16), 16, 1.1);
+        swimmingPool(-12, getTerrainHeight(-12, 25), 25, 1.5);
+        bank(22, getTerrainHeight(22, 29), 29, 0.8);
+        hospitalBuilding(47, getTerrainHeight(47, -24), -24, 1.2);
+        sportsComplex(34, getTerrainHeight(34, -40), -40, 0.9);
+        shoppingMall(20, getTerrainHeight(20, -41), -41, 0.9);
+        statue(7, getTerrainHeight(7, 38), 38, 1.2);
+        postOffice(-46, getTerrainHeight(-46, -21), -21, 1.0);
+        postOffice(39, getTerrainHeight(39, 8), 8, 0.8);
+        museum(-17, getTerrainHeight(-17, 50), 50, 1.4);
+        substation(34, getTerrainHeight(34, -25), -25, 1.1);
+        techPark(-22, getTerrainHeight(-22, 32), 32, 0.9);
+        fireDepartment(-32, getTerrainHeight(-32, -41), -41, 0.8);
+        bank(26, getTerrainHeight(26, 45), 45, 1.4);
+        postOffice(6, getTerrainHeight(6, -35), -35, 1.1);
+        bank(39, getTerrainHeight(39, 1), 1, 1.5);
+        university(19, getTerrainHeight(19, 13), 13, 1.1);
+        waterTreatment(-45, getTerrainHeight(-45, 5), 5, 1.3);
+        // === End generated buildings ===
       } else if (levelId === 'KREMLIN') {
         // Stage 5: Kremlin Showdown — river bend, hill, Red Square, embankment
         // Moskva River bend (enhanced)
@@ -9070,6 +9330,58 @@ window.VoxelWorld = (function () {
             setBlock(rx, rh2 + 2, rz + 4, BLOCK.STONE);
           }
         })();
+        // === Generated buildings ===
+        spasskayaTower(27, getTerrainHeight(27, -18), -18, 0.8);
+        grandKremlinPalace(-21, getTerrainHeight(-21, 36), 36, 1.4);
+        tsarCannon(23, getTerrainHeight(23, 25), 25, 1.5);
+        tsarBell(47, getTerrainHeight(47, 36), 36, 1.4);
+        kremlinSenate(23, getTerrainHeight(23, -45), -45, 1.3);
+        kremlinArsenal(-28, getTerrainHeight(-28, 10), 10, 1.2);
+        redSquarePlaza(6, getTerrainHeight(6, -15), -15, 0.9);
+        victoryArch(24, getTerrainHeight(24, 5), 5, 1.2);
+        monument(12, getTerrainHeight(12, -39), -39, 1.1);
+        statue(2, getTerrainHeight(2, -8), -8, 1.0);
+        hospitalBuilding(-30, getTerrainHeight(-30, -8), -8, 1.1);
+        concertHall(-14, getTerrainHeight(-14, 34), 34, 1.5);
+        dataCenter(-46, getTerrainHeight(-46, 8), 8, 0.9);
+        sportsComplex(-9, getTerrainHeight(-9, -36), -36, 1.5);
+        metroEntrance(15, getTerrainHeight(15, -50), -50, 1.3);
+        techPark(9, getTerrainHeight(9, 2), 2, 0.8);
+        researchLab(-4, getTerrainHeight(-4, 29), 29, 1.3);
+        recyclingCenter(6, getTerrainHeight(6, 47), 47, 0.8);
+        fireDepartment(20, getTerrainHeight(20, -34), -34, 1.4);
+        swimmingPool(39, getTerrainHeight(39, 12), 12, 0.9);
+        recyclingCenter(27, getTerrainHeight(27, -20), -20, 1.3);
+        bank(20, getTerrainHeight(20, -49), -49, 1.2);
+        schoolBuilding(-22, getTerrainHeight(-22, -36), -36, 1.1);
+        policeStation(32, getTerrainHeight(32, -31), -31, 1.1);
+        postOffice(15, getTerrainHeight(15, 40), 40, 1.0);
+        cinema(10, getTerrainHeight(10, -19), -19, 1.1);
+        waterTower(-1, getTerrainHeight(-1, -26), -26, 1.4);
+        university(45, getTerrainHeight(45, -33), -33, 1.4);
+        fireDepartment(48, getTerrainHeight(48, 3), 3, 1.0);
+        university(-16, getTerrainHeight(-16, -50), -50, 1.0);
+        bank(25, getTerrainHeight(25, 24), 24, 1.5);
+        concertHall(-31, getTerrainHeight(-31, 7), 7, 1.2);
+        warehouse(-8, getTerrainHeight(-8, 20), 20, 1.3);
+        gasStation(8, getTerrainHeight(8, -9), -9, 1.4);
+        library(23, getTerrainHeight(23, -1), -1, 1.0);
+        statue(-45, getTerrainHeight(-45, -10), -10, 1.3);
+        gasStation(-1, getTerrainHeight(-1, 34), 34, 1.4);
+        waterTower(13, getTerrainHeight(13, -46), -46, 0.9);
+        substation(-8, getTerrainHeight(-8, -38), -38, 1.4);
+        swimmingPool(-38, getTerrainHeight(-38, 17), 17, 1.4);
+        sovietApartment(42, getTerrainHeight(42, -32), -32, 1.1);
+        waterTower(-41, getTerrainHeight(-41, 10), 10, 1.3);
+        sportsComplex(-7, getTerrainHeight(-7, 29), 29, 1.3);
+        schoolBuilding(-8, getTerrainHeight(-8, 36), 36, 1.4);
+        gasStation(-10, getTerrainHeight(-10, 30), 30, 1.3);
+        concertHall(19, getTerrainHeight(19, -46), -46, 1.2);
+        library(30, getTerrainHeight(30, 37), 37, 1.4);
+        museum(45, getTerrainHeight(45, -39), -39, 1.1);
+        hospitalBuilding(47, getTerrainHeight(47, 31), 31, 1.3);
+        hospitalBuilding(6, getTerrainHeight(6, -29), -29, 1.3);
+        // === End generated buildings ===
       } else if (levelId === 'TREELINE') {
         // Stage 6: Treeline Assault — forest/wheat alternation, mixed trees, rolling hills
         // Forest clusters alternating with wheat fields
@@ -9124,6 +9436,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        forestRangerStation(-47, getTerrainHeight(-47, -45), -45, 1.0);
+        huntingLodge(-43, getTerrainHeight(-43, -13), -13, 1.1);
+        sawmill(5, getTerrainHeight(5, -32), -32, 1.0);
+        woodenChurch(2, getTerrainHeight(2, 22), 22, 1.3);
+        windmill(-27, getTerrainHeight(-27, -29), -29, 0.9);
+        farmhouse(28, getTerrainHeight(28, -2), -2, 1.2);
+        barn(-20, getTerrainHeight(-20, 13), 13, 1.4);
+        well(-32, getTerrainHeight(-32, -21), -21, 1.1);
+        pier(-18, getTerrainHeight(-18, 8), 8, 1.0);
+        defensivePosition(-49, getTerrainHeight(-49, 9), 9, 1.4);
+        techPark(-30, getTerrainHeight(-30, -41), -41, 1.1);
+        warehouse(25, getTerrainHeight(25, -12), -12, 1.2);
+        playground(38, getTerrainHeight(38, -18), -18, 1.1);
+        bank(-25, getTerrainHeight(-25, -1), -1, 1.4);
+        hospitalBuilding(-20, getTerrainHeight(-20, -2), -2, 1.2);
+        powerPlant(-13, getTerrainHeight(-13, 39), 39, 1.0);
+        metroEntrance(-15, getTerrainHeight(-15, -49), -49, 1.2);
+        officeBuilding(27, getTerrainHeight(27, 45), 45, 1.1);
+        postOffice(49, getTerrainHeight(49, -21), -21, 1.2);
+        warehouse(-22, getTerrainHeight(-22, 31), 31, 0.9);
+        sportsComplex(36, getTerrainHeight(36, 46), 46, 1.3);
+        trainStation(30, getTerrainHeight(30, -38), -38, 1.4);
+        industrialFactory(-11, getTerrainHeight(-11, 50), 50, 1.1);
+        substation(-4, getTerrainHeight(-4, 43), 43, 0.9);
+        postOffice(-9, getTerrainHeight(-9, 45), 45, 1.1);
+        hotelBuilding(-34, getTerrainHeight(-34, 50), 50, 1.2);
+        parkingLot(17, getTerrainHeight(17, 14), 14, 1.4);
+        apartmentBlock(-18, getTerrainHeight(-18, 11), 11, 1.5);
+        postOffice(45, getTerrainHeight(45, -7), -7, 1.4);
+        gymnasium(-41, getTerrainHeight(-41, -32), -32, 1.3);
+        museum(36, getTerrainHeight(36, 42), 42, 1.3);
+        metroEntrance(21, getTerrainHeight(21, -4), -4, 0.9);
+        metroEntrance(-49, getTerrainHeight(-49, -17), -17, 1.2);
+        gymnasium(-3, getTerrainHeight(-3, 36), 36, 1.3);
+        sportsComplex(24, getTerrainHeight(24, -2), -2, 1.4);
+        parkingLot(-37, getTerrainHeight(-37, 36), 36, 1.0);
+        orthodoxChurch(29, getTerrainHeight(29, 21), 21, 1.0);
+        sewagePlant(-22, getTerrainHeight(-22, 32), 32, 0.8);
+        gymnasium(39, getTerrainHeight(39, -12), -12, 1.3);
+        policeStation(-33, getTerrainHeight(-33, -45), -45, 1.5);
+        bank(13, getTerrainHeight(13, -36), -36, 0.9);
+        techPark(-33, getTerrainHeight(-33, -1), -1, 1.1);
+        techPark(3, getTerrainHeight(3, 25), 25, 1.3);
+        waterTower(3, getTerrainHeight(3, 33), 33, 0.9);
+        concertHall(28, getTerrainHeight(28, 2), 2, 1.5);
+        fireDepartment(-46, getTerrainHeight(-46, 38), 38, 1.1);
+        swimmingPool(6, getTerrainHeight(6, -20), -20, 1.4);
+        hospitalBuilding(37, getTerrainHeight(37, -3), -3, 1.2);
+        warehouse(-43, getTerrainHeight(-43, 0), 0, 1.0);
+        policeStation(8, getTerrainHeight(8, -39), -39, 1.3);
+        // === End generated buildings ===
       } else if (levelId === 'CHORNOBYL') {
         // Stage 7: Chornobyl Exclusion — Pripyat River, marsh, cooling pond, abandoned buildings
         // Pripyat River with meanders
@@ -9212,6 +9576,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        abandonedPripyatApartment(32, getTerrainHeight(32, 31), 31, 1.2);
+        abandonedSchool(-48, getTerrainHeight(-48, -44), -44, 1.4);
+        abandonedHotel(-19, getTerrainHeight(-19, -34), -34, 1.4);
+        amusementPark(-24, getTerrainHeight(-24, -42), -42, 1.4);
+        swimmingPool(20, getTerrainHeight(20, -24), -24, 1.2);
+        abandonedSupermarket(-21, getTerrainHeight(-21, -8), -8, 1.3);
+        watchtower(50, getTerrainHeight(50, 26), 26, 0.8);
+        monitoringStation(-32, getTerrainHeight(-32, -34), -34, 1.2);
+        burningBuilding(-28, getTerrainHeight(-28, -36), -36, 1.3);
+        monument(-47, getTerrainHeight(-47, -34), -34, 0.8);
+        library(25, getTerrainHeight(25, -9), -9, 0.8);
+        sportsComplex(-44, getTerrainHeight(-44, -34), -34, 1.3);
+        researchLab(-36, getTerrainHeight(-36, 45), 45, 0.8);
+        swimmingPool(49, getTerrainHeight(49, -4), -4, 1.2);
+        hospitalBuilding(7, getTerrainHeight(7, 14), 14, 1.0);
+        sewagePlant(-45, getTerrainHeight(-45, 43), 43, 1.3);
+        researchLab(-12, getTerrainHeight(-12, 8), 8, 1.3);
+        orthodoxChurch(-43, getTerrainHeight(-43, 11), 11, 1.4);
+        playground(37, getTerrainHeight(37, -37), -37, 1.1);
+        swimmingPool(-41, getTerrainHeight(-41, -40), -40, 1.0);
+        waterTower(-42, getTerrainHeight(-42, -34), -34, 1.0);
+        recyclingCenter(24, getTerrainHeight(24, 20), 20, 1.3);
+        gasStation(26, getTerrainHeight(26, 17), 17, 1.0);
+        university(27, getTerrainHeight(27, 5), 5, 0.9);
+        policeStation(33, getTerrainHeight(33, 33), 33, 1.4);
+        dataCenter(42, getTerrainHeight(42, -23), -23, 1.1);
+        museum(2, getTerrainHeight(2, -7), -7, 1.4);
+        metroEntrance(3, getTerrainHeight(3, 43), 43, 0.9);
+        playground(-10, getTerrainHeight(-10, 35), 35, 1.0);
+        waterTower(37, getTerrainHeight(37, 10), 10, 0.8);
+        schoolBuilding(-39, getTerrainHeight(-39, 5), 5, 0.9);
+        parkingLot(-34, getTerrainHeight(-34, 21), 21, 0.8);
+        dataCenter(21, getTerrainHeight(21, -8), -8, 1.3);
+        statue(-5, getTerrainHeight(-5, 35), 35, 1.5);
+        playground(42, getTerrainHeight(42, -44), -44, 1.5);
+        waterTreatment(-11, getTerrainHeight(-11, -5), -5, 0.9);
+        university(-23, getTerrainHeight(-23, -31), -31, 1.3);
+        museum(-37, getTerrainHeight(-37, -6), -6, 1.4);
+        parkingLot(-36, getTerrainHeight(-36, 47), 47, 1.0);
+        museum(4, getTerrainHeight(4, 21), 21, 1.5);
+        sewagePlant(28, getTerrainHeight(28, 36), 36, 1.2);
+        orthodoxChurch(27, getTerrainHeight(27, 34), 34, 1.4);
+        fireDepartment(-47, getTerrainHeight(-47, -27), -27, 1.0);
+        bank(-7, getTerrainHeight(-7, -6), -6, 0.8);
+        waterTower(22, getTerrainHeight(22, 34), 34, 1.1);
+        waterTower(44, getTerrainHeight(44, 31), 31, 1.5);
+        schoolBuilding(45, getTerrainHeight(45, 17), 17, 1.0);
+        statue(8, getTerrainHeight(8, -7), -7, 0.9);
+        bank(42, getTerrainHeight(42, -9), -9, 1.3);
+        powerPlant(26, getTerrainHeight(26, -40), -40, 1.4);
+        // === End generated buildings ===
       } else if (levelId === 'CRIMEA') {
         // Stage 8: Crimea Bridge — strait water, Taman flat/marshy, Kerch hilly, sand spits
         // Strait water between two landmasses
@@ -9278,6 +9694,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        beachHotel(-31, getTerrainHeight(-31, -30), -30, 1.3);
+        borderCheckpoint(-44, getTerrainHeight(-44, 36), 36, 0.9);
+        tollBooth(6, getTerrainHeight(6, 34), 34, 1.1);
+        lighthouse(27, getTerrainHeight(27, 6), 6, 1.1);
+        coastalFortress(-23, getTerrainHeight(-23, 46), 46, 1.2);
+        pier(-6, getTerrainHeight(-6, 5), 5, 0.9);
+        seasidePromenade(36, getTerrainHeight(36, 36), 36, 1.2);
+        suspensionBridge(17, getTerrainHeight(17, 35), 35, 1.0);
+        observationTower(-22, getTerrainHeight(-22, 0), 0, 1.5);
+        monument(-43, getTerrainHeight(-43, -50), -50, 0.9);
+        cafe(48, getTerrainHeight(48, -33), -33, 1.3);
+        postOffice(-9, getTerrainHeight(-9, -35), -35, 0.8);
+        playground(-28, getTerrainHeight(-28, -34), -34, 1.1);
+        museum(14, getTerrainHeight(14, 21), 21, 1.4);
+        warehouse(-41, getTerrainHeight(-41, 0), 0, 1.4);
+        industrialFactory(5, getTerrainHeight(5, -48), -48, 1.1);
+        residentialHouse(-10, getTerrainHeight(-10, 23), 23, 1.1);
+        metroEntrance(40, getTerrainHeight(40, 31), 31, 1.1);
+        policeStation(1, getTerrainHeight(1, -48), -48, 1.5);
+        apartmentBlock(29, getTerrainHeight(29, 8), 8, 1.4);
+        parkingLot(-39, getTerrainHeight(-39, 5), 5, 1.4);
+        library(5, getTerrainHeight(5, 25), 25, 1.1);
+        schoolBuilding(0, getTerrainHeight(0, -11), -11, 1.3);
+        museum(-8, getTerrainHeight(-8, 49), 49, 0.9);
+        university(31, getTerrainHeight(31, -36), -36, 1.2);
+        hotelBuilding(49, getTerrainHeight(49, -6), -6, 1.0);
+        waterTower(-20, getTerrainHeight(-20, -37), -37, 0.9);
+        hotelBuilding(-28, getTerrainHeight(-28, 27), 27, 0.9);
+        residentialHouse(-28, getTerrainHeight(-28, 48), 48, 1.2);
+        gymnasium(46, getTerrainHeight(46, 22), 22, 1.3);
+        swimmingPool(37, getTerrainHeight(37, 22), 22, 1.3);
+        sewagePlant(-9, getTerrainHeight(-9, 30), 30, 1.0);
+        swimmingPool(-42, getTerrainHeight(-42, 10), 10, 1.1);
+        bank(-15, getTerrainHeight(-15, 25), 25, 0.8);
+        university(-41, getTerrainHeight(-41, -11), -11, 1.1);
+        industrialFactory(-43, getTerrainHeight(-43, -3), -3, 1.4);
+        residentialHouse(32, getTerrainHeight(32, -39), -39, 1.2);
+        university(-1, getTerrainHeight(-1, 9), 9, 1.2);
+        industrialFactory(7, getTerrainHeight(7, 23), 23, 1.3);
+        cityHall(27, getTerrainHeight(27, 10), 10, 1.2);
+        officeBuilding(7, getTerrainHeight(7, -37), -37, 1.4);
+        marketStall(41, getTerrainHeight(41, -40), -40, 1.2);
+        shoppingMall(-45, getTerrainHeight(-45, -19), -19, 1.3);
+        swimmingPool(17, getTerrainHeight(17, 16), 16, 1.2);
+        parkingLot(-3, getTerrainHeight(-3, -14), -14, 1.1);
+        marketStall(36, getTerrainHeight(36, 26), 26, 0.8);
+        recyclingCenter(32, getTerrainHeight(32, -8), -8, 0.8);
+        hospitalBuilding(21, getTerrainHeight(21, 36), 36, 1.1);
+        sportsComplex(42, getTerrainHeight(42, 34), 34, 1.5);
+        waterTreatment(-31, getTerrainHeight(-31, -8), -8, 0.9);
+        // === End generated buildings ===
       } else if (levelId === 'KHERSON') {
         // Stage 9: Kherson Dnipro — wide river, agriculture, flood plains, islands
         // Wide Dnipro River
@@ -9340,6 +9808,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        riverPort(34, getTerrainHeight(34, -32), -32, 1.4);
+        ferryTerminal(-11, getTerrainHeight(-11, 33), 33, 1.3);
+        grainElevator(0, getTerrainHeight(0, -34), -34, 1.2);
+        shippingContainer(-40, getTerrainHeight(-40, -11), -11, 1.2);
+        portCrane(32, getTerrainHeight(32, -8), -8, 1.4);
+        suspensionBridge(35, getTerrainHeight(35, 39), 39, 1.4);
+        pontoonBridge(44, getTerrainHeight(44, 37), 37, 1.4);
+        defensivePosition(-39, getTerrainHeight(-39, 32), 32, 1.3);
+        watchtower(15, getTerrainHeight(15, -4), -4, 0.8);
+        monument(-11, getTerrainHeight(-11, -27), -27, 1.5);
+        marketStall(48, getTerrainHeight(48, 12), 12, 0.9);
+        trainStation(-31, getTerrainHeight(-31, -41), -41, 1.0);
+        hospitalBuilding(14, getTerrainHeight(14, 48), 48, 1.2);
+        researchLab(-46, getTerrainHeight(-46, 34), 34, 1.0);
+        sewagePlant(-34, getTerrainHeight(-34, 26), 26, 1.1);
+        apartmentBlock(-27, getTerrainHeight(-27, 38), 38, 1.3);
+        apartmentBlock(42, getTerrainHeight(42, 6), 6, 0.8);
+        parkingLot(36, getTerrainHeight(36, 42), 42, 1.0);
+        swimmingPool(28, getTerrainHeight(28, -14), -14, 1.3);
+        swimmingPool(-21, getTerrainHeight(-21, 18), 18, 1.0);
+        cinema(-26, getTerrainHeight(-26, -3), -3, 1.3);
+        powerPlant(6, getTerrainHeight(6, 9), 9, 1.3);
+        gasStation(14, getTerrainHeight(14, 17), 17, 1.1);
+        apartmentBlock(-25, getTerrainHeight(-25, 27), 27, 0.9);
+        sportsComplex(-44, getTerrainHeight(-44, 32), 32, 1.1);
+        parkingLot(20, getTerrainHeight(20, -37), -37, 1.3);
+        researchLab(-35, getTerrainHeight(-35, -14), -14, 0.9);
+        apartmentBlock(-16, getTerrainHeight(-16, 7), 7, 1.4);
+        waterTower(5, getTerrainHeight(5, -39), -39, 1.5);
+        museum(7, getTerrainHeight(7, -6), -6, 1.5);
+        statue(-44, getTerrainHeight(-44, 0), 0, 1.2);
+        library(-1, getTerrainHeight(-1, -40), -40, 1.1);
+        orthodoxChurch(-10, getTerrainHeight(-10, -38), -38, 1.4);
+        marketStall(-32, getTerrainHeight(-32, -33), -33, 0.8);
+        cinema(39, getTerrainHeight(39, -33), -33, 1.3);
+        cinema(7, getTerrainHeight(7, 28), 28, 0.8);
+        schoolBuilding(-48, getTerrainHeight(-48, -18), -18, 1.0);
+        waterTower(20, getTerrainHeight(20, 43), 43, 1.2);
+        playground(-36, getTerrainHeight(-36, 49), 49, 1.0);
+        bank(-35, getTerrainHeight(-35, -44), -44, 1.0);
+        recyclingCenter(29, getTerrainHeight(29, 8), 8, 0.8);
+        concertHall(26, getTerrainHeight(26, 18), 18, 0.8);
+        university(23, getTerrainHeight(23, -20), -20, 1.3);
+        postOffice(4, getTerrainHeight(4, -50), -50, 1.2);
+        library(23, getTerrainHeight(23, 3), 3, 0.9);
+        schoolBuilding(17, getTerrainHeight(17, -4), -4, 0.8);
+        researchLab(19, getTerrainHeight(19, 14), 14, 1.4);
+        university(20, getTerrainHeight(20, -48), -48, 1.1);
+        cinema(-45, getTerrainHeight(-45, 31), 31, 1.1);
+        parkingLot(-18, getTerrainHeight(-18, 45), 45, 0.8);
+        // === End generated buildings ===
       } else if (levelId === 'AVDIIVKA') {
         // Stage 10: Avdiivka Coke Plant — industrial complex, smokestacks, rail, waste
         // Large industrial complex (expanded flat factory floor)
@@ -9404,6 +9924,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        industrialFactory(50, getTerrainHeight(50, -42), -42, 1.0);
+        cokeOven(43, getTerrainHeight(43, 34), 34, 1.2);
+        powerSubstation(48, getTerrainHeight(48, 24), 24, 1.3);
+        defensivePosition(-8, getTerrainHeight(-8, -33), -33, 0.8);
+        burningBuilding(19, getTerrainHeight(19, -7), -7, 1.4);
+        bakhmutFortress(-28, getTerrainHeight(-28, 49), 49, 1.3);
+        guardPost(39, getTerrainHeight(39, 11), 11, 1.2);
+        ammoBunker(-33, getTerrainHeight(-33, -42), -42, 1.3);
+        storageBunker(8, getTerrainHeight(8, -46), -46, 1.0);
+        monument(-45, getTerrainHeight(-45, -25), -25, 1.4);
+        cityHall(-11, getTerrainHeight(-11, 15), 15, 1.1);
+        techPark(10, getTerrainHeight(10, -18), -18, 0.8);
+        hotelBuilding(-14, getTerrainHeight(-14, -5), -5, 1.4);
+        officeBuilding(33, getTerrainHeight(33, -8), -8, 1.0);
+        parkingLot(5, getTerrainHeight(5, 1), 1, 1.3);
+        gasStation(-7, getTerrainHeight(-7, -27), -27, 1.1);
+        concertHall(-3, getTerrainHeight(-3, 16), 16, 1.0);
+        schoolBuilding(43, getTerrainHeight(43, 4), 4, 0.9);
+        waterTreatment(-27, getTerrainHeight(-27, 19), 19, 1.0);
+        hospitalBuilding(-40, getTerrainHeight(-40, -9), -9, 1.3);
+        bank(7, getTerrainHeight(7, 27), 27, 1.3);
+        apartmentBlock(38, getTerrainHeight(38, 6), 6, 1.0);
+        industrialFactory(43, getTerrainHeight(43, -5), -5, 1.2);
+        playground(-15, getTerrainHeight(-15, 31), 31, 1.5);
+        officeBuilding(-41, getTerrainHeight(-41, 35), 35, 1.2);
+        parkingLot(15, getTerrainHeight(15, 45), 45, 1.3);
+        orthodoxChurch(-32, getTerrainHeight(-32, 27), 27, 1.3);
+        swimmingPool(-46, getTerrainHeight(-46, -34), -34, 0.8);
+        parkingLot(-4, getTerrainHeight(-4, -1), -1, 1.5);
+        industrialFactory(27, getTerrainHeight(27, -31), -31, 1.3);
+        parkingLot(-3, getTerrainHeight(-3, 6), 6, 1.3);
+        powerPlant(-33, getTerrainHeight(-33, 17), 17, 1.1);
+        cityHall(33, getTerrainHeight(33, -15), -15, 1.0);
+        policeStation(-47, getTerrainHeight(-47, 44), 44, 0.9);
+        researchLab(-1, getTerrainHeight(-1, 21), 21, 0.9);
+        sportsComplex(40, getTerrainHeight(40, 7), 7, 1.0);
+        sewagePlant(-14, getTerrainHeight(-14, 38), 38, 1.4);
+        concertHall(-25, getTerrainHeight(-25, -35), -35, 0.9);
+        residentialHouse(7, getTerrainHeight(7, -28), -28, 1.4);
+        swimmingPool(-39, getTerrainHeight(-39, 37), 37, 1.5);
+        cityHall(35, getTerrainHeight(35, -6), -6, 1.3);
+        dataCenter(19, getTerrainHeight(19, -13), -13, 1.4);
+        apartmentBlock(41, getTerrainHeight(41, 40), 40, 1.4);
+        recyclingCenter(-28, getTerrainHeight(-28, -4), -4, 1.2);
+        policeStation(-25, getTerrainHeight(-25, -33), -33, 1.0);
+        concertHall(-47, getTerrainHeight(-47, -4), -4, 1.2);
+        parkingLot(9, getTerrainHeight(9, 20), 20, 0.9);
+        schoolBuilding(-42, getTerrainHeight(-42, -11), -11, 1.1);
+        cinema(17, getTerrainHeight(17, 2), 2, 1.3);
+        powerPlant(-41, getTerrainHeight(-41, -34), -34, 1.5);
+        // === End generated buildings ===
       } else if (levelId === 'SEVASTOPOL') {
         // Stage 11: Sevastopol Naval — coastal bay, hilly terrain, harbor piers, submarine tunnel
         // Coastal bay (enhanced water indentation)
@@ -9499,6 +10071,58 @@ window.VoxelWorld = (function () {
             setBlock(cx, sb, cz - 1, BLOCK.SAND);
           }
         })();
+        // === Generated buildings ===
+        navalHQ(32, getTerrainHeight(32, -41), -41, 1.1);
+        submarineBase(37, getTerrainHeight(37, 16), 16, 1.0);
+        coastalFortress(49, getTerrainHeight(49, 20), 20, 1.2);
+        portCrane(-27, getTerrainHeight(-27, 48), 48, 1.5);
+        shipyard(5, getTerrainHeight(5, 14), 14, 1.4);
+        dryDock(-43, getTerrainHeight(-43, -35), -35, 1.2);
+        lighthouse(-12, getTerrainHeight(-12, -29), -29, 0.9);
+        pier(40, getTerrainHeight(40, -22), -22, 1.0);
+        helipad(16, getTerrainHeight(16, -14), -14, 1.4);
+        monument(-18, getTerrainHeight(-18, -25), -25, 1.2);
+        dataCenter(-15, getTerrainHeight(-15, -34), -34, 1.2);
+        sewagePlant(18, getTerrainHeight(18, -39), -39, 1.2);
+        apartmentBlock(25, getTerrainHeight(25, 24), 24, 0.9);
+        sewagePlant(42, getTerrainHeight(42, 27), 27, 1.0);
+        powerPlant(-45, getTerrainHeight(-45, -47), -47, 0.9);
+        powerPlant(-17, getTerrainHeight(-17, 33), 33, 0.9);
+        powerPlant(3, getTerrainHeight(3, 29), 29, 1.2);
+        concertHall(30, getTerrainHeight(30, 19), 19, 1.0);
+        bank(11, getTerrainHeight(11, -19), -19, 1.4);
+        metroEntrance(-12, getTerrainHeight(-12, 8), 8, 0.9);
+        officeBuilding(-30, getTerrainHeight(-30, 6), 6, 1.1);
+        gymnasium(-24, getTerrainHeight(-24, -7), -7, 1.2);
+        cityHall(41, getTerrainHeight(41, -10), -10, 1.3);
+        warehouse(1, getTerrainHeight(1, -34), -34, 1.3);
+        university(21, getTerrainHeight(21, -37), -37, 1.0);
+        gymnasium(-35, getTerrainHeight(-35, -16), -16, 1.1);
+        waterTower(-38, getTerrainHeight(-38, -44), -44, 1.0);
+        gasStation(28, getTerrainHeight(28, 3), 3, 1.0);
+        apartmentBlock(-9, getTerrainHeight(-9, 23), 23, 1.3);
+        hotelBuilding(47, getTerrainHeight(47, -30), -30, 1.1);
+        university(9, getTerrainHeight(9, 13), 13, 1.4);
+        concertHall(-48, getTerrainHeight(-48, -39), -39, 1.5);
+        university(8, getTerrainHeight(8, -20), -20, 1.0);
+        warehouse(-44, getTerrainHeight(-44, -44), -44, 1.0);
+        waterTreatment(33, getTerrainHeight(33, 36), 36, 1.1);
+        techPark(-49, getTerrainHeight(-49, -37), -37, 1.1);
+        sportsComplex(43, getTerrainHeight(43, -4), -4, 1.3);
+        parkingLot(-45, getTerrainHeight(-45, 1), 1, 0.8);
+        dataCenter(-26, getTerrainHeight(-26, -4), -4, 1.2);
+        residentialHouse(-1, getTerrainHeight(-1, 14), 14, 1.1);
+        dataCenter(-15, getTerrainHeight(-15, 29), 29, 1.3);
+        policeStation(-34, getTerrainHeight(-34, -38), -38, 1.1);
+        marketStall(21, getTerrainHeight(21, -4), -4, 1.3);
+        hotelBuilding(27, getTerrainHeight(27, 15), 15, 1.1);
+        industrialFactory(-45, getTerrainHeight(-45, -46), -46, 0.9);
+        marketStall(10, getTerrainHeight(10, 16), 16, 1.1);
+        waterTreatment(15, getTerrainHeight(15, -33), -33, 1.0);
+        sewagePlant(-10, getTerrainHeight(-10, -30), -30, 1.1);
+        sewagePlant(44, getTerrainHeight(44, -12), -12, 1.2);
+        university(15, getTerrainHeight(15, 18), 18, 1.1);
+        // === End generated buildings ===
       } else if (levelId === 'DONBAS') {
         // Stage 12: Donbas Mining — slag heaps, mine headframes, rail, industrial
         // Slag heaps (cone-shaped hills of dark blocks)
@@ -9572,6 +10196,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        industrialFactory(22, getTerrainHeight(22, -12), -12, 1.1);
+        cokeOven(-48, getTerrainHeight(-48, -3), -3, 1.0);
+        powerSubstation(-36, getTerrainHeight(-36, 3), 3, 1.2);
+        slagHeap(42, getTerrainHeight(42, 38), 38, 1.2);
+        boilerHouse(26, getTerrainHeight(26, 10), 10, 1.0);
+        bathhouse(33, getTerrainHeight(33, 50), 50, 1.5);
+        canteen(24, getTerrainHeight(24, 23), 23, 1.0);
+        railwayStation(-44, getTerrainHeight(-44, 24), 24, 1.1);
+        defensivePosition(17, getTerrainHeight(17, 30), 30, 1.3);
+        burningBuilding(49, getTerrainHeight(49, -2), -2, 0.9);
+        library(-46, getTerrainHeight(-46, 23), 23, 1.5);
+        policeStation(-26, getTerrainHeight(-26, -48), -48, 1.1);
+        statue(-31, getTerrainHeight(-31, 2), 2, 1.3);
+        statue(14, getTerrainHeight(14, 49), 49, 1.2);
+        cinema(44, getTerrainHeight(44, 43), 43, 0.8);
+        trainStation(16, getTerrainHeight(16, -24), -24, 1.2);
+        cinema(17, getTerrainHeight(17, -2), -2, 1.0);
+        shoppingMall(8, getTerrainHeight(8, 18), 18, 1.0);
+        warehouse(36, getTerrainHeight(36, 48), 48, 1.4);
+        sportsComplex(28, getTerrainHeight(28, 11), 11, 0.9);
+        library(-15, getTerrainHeight(-15, 21), 21, 1.0);
+        bank(48, getTerrainHeight(48, -14), -14, 1.3);
+        concertHall(-10, getTerrainHeight(-10, 11), 11, 1.0);
+        fireDepartment(-14, getTerrainHeight(-14, -35), -35, 1.2);
+        techPark(-2, getTerrainHeight(-2, 0), 0, 1.4);
+        waterTower(-13, getTerrainHeight(-13, -45), -45, 1.0);
+        schoolBuilding(-6, getTerrainHeight(-6, 6), 6, 1.3);
+        cinema(-23, getTerrainHeight(-23, -25), -25, 1.4);
+        fireDepartment(21, getTerrainHeight(21, 39), 39, 1.0);
+        hospitalBuilding(28, getTerrainHeight(28, 44), 44, 1.2);
+        library(-44, getTerrainHeight(-44, 35), 35, 1.4);
+        museum(31, getTerrainHeight(31, -21), -21, 0.8);
+        statue(-8, getTerrainHeight(-8, 41), 41, 1.1);
+        trainStation(-50, getTerrainHeight(-50, 20), 20, 1.5);
+        apartmentBlock(2, getTerrainHeight(2, 33), 33, 1.5);
+        cinema(11, getTerrainHeight(11, 33), 33, 0.9);
+        postOffice(-9, getTerrainHeight(-9, -14), -14, 1.3);
+        schoolBuilding(33, getTerrainHeight(33, 23), 23, 1.0);
+        industrialFactory(-28, getTerrainHeight(-28, 3), 3, 1.4);
+        shoppingMall(-46, getTerrainHeight(-46, 0), 0, 1.4);
+        shoppingMall(45, getTerrainHeight(45, -13), -13, 1.4);
+        sovietApartment(-12, getTerrainHeight(-12, 22), 22, 1.2);
+        marketStall(-14, getTerrainHeight(-14, 8), 8, 1.5);
+        techPark(17, getTerrainHeight(17, 13), 13, 1.4);
+        trainStation(14, getTerrainHeight(14, 9), 9, 1.0);
+        policeStation(-8, getTerrainHeight(-8, -30), -30, 1.3);
+        sportsComplex(41, getTerrainHeight(41, -27), -27, 0.8);
+        marketStall(-13, getTerrainHeight(-13, 22), 22, 1.3);
+        hotelBuilding(-28, getTerrainHeight(-28, 28), 28, 1.4);
+        metroEntrance(4, getTerrainHeight(4, 15), 15, 1.0);
+        // === End generated buildings ===
       } else if (levelId === 'BELGOROD') {
         // Stage 13: Belgorod Offensive — flat farmland, village outskirts, border, roads
         // Flat farmland (field patterns)
@@ -9623,6 +10299,58 @@ window.VoxelWorld = (function () {
             setBlock(rx, rh2, rz2, BLOCK.DIRT);
           }
         })();
+        // === Generated buildings ===
+        victoryArch(1, getTerrainHeight(1, 35), 35, 0.9);
+        militaryBarracks(-33, getTerrainHeight(-33, 11), 11, 1.0);
+        railwayStation(-19, getTerrainHeight(-19, -50), -50, 1.0);
+        monument(-20, getTerrainHeight(-20, 7), 7, 1.3);
+        statue(-8, getTerrainHeight(-8, -12), -12, 1.2);
+        fountain(23, getTerrainHeight(23, -49), -49, 1.0);
+        parkBench(-4, getTerrainHeight(-4, 38), 38, 1.0);
+        governmentHouse(35, getTerrainHeight(35, -35), -35, 1.1);
+        hospital(-30, getTerrainHeight(-30, 1), 1, 1.3);
+        schoolBuilding(40, getTerrainHeight(40, 48), 48, 1.0);
+        policeStation(31, getTerrainHeight(31, -13), -13, 1.1);
+        museum(-22, getTerrainHeight(-22, -33), -33, 1.1);
+        gymnasium(45, getTerrainHeight(45, 27), 27, 1.1);
+        dataCenter(10, getTerrainHeight(10, 46), 46, 1.2);
+        cafe(47, getTerrainHeight(47, -19), -19, 1.3);
+        waterTreatment(50, getTerrainHeight(50, -40), -40, 1.2);
+        researchLab(40, getTerrainHeight(40, -4), -4, 0.9);
+        powerPlant(-36, getTerrainHeight(-36, -43), -43, 1.4);
+        university(-25, getTerrainHeight(-25, 23), 23, 1.2);
+        apartmentBlock(-9, getTerrainHeight(-9, 16), 16, 1.1);
+        cafe(41, getTerrainHeight(41, 24), 24, 1.1);
+        university(7, getTerrainHeight(7, -43), -43, 1.1);
+        university(3, getTerrainHeight(3, 8), 8, 1.2);
+        dataCenter(9, getTerrainHeight(9, 36), 36, 1.4);
+        orthodoxChurch(0, getTerrainHeight(0, -18), -18, 1.4);
+        cafe(24, getTerrainHeight(24, -41), -41, 0.8);
+        warehouse(39, getTerrainHeight(39, -42), -42, 1.2);
+        officeBuilding(-42, getTerrainHeight(-42, 10), 10, 0.8);
+        statue(-27, getTerrainHeight(-27, 48), 48, 0.9);
+        statue(-3, getTerrainHeight(-3, -2), -2, 1.1);
+        gasStation(-2, getTerrainHeight(-2, -40), -40, 1.3);
+        techPark(-33, getTerrainHeight(-33, 33), 33, 1.4);
+        policeStation(-28, getTerrainHeight(-28, 18), 18, 1.1);
+        trainStation(43, getTerrainHeight(43, -22), -22, 1.4);
+        orthodoxChurch(-12, getTerrainHeight(-12, 9), 9, 1.3);
+        techPark(4, getTerrainHeight(4, 18), 18, 1.1);
+        museum(-19, getTerrainHeight(-19, 8), 8, 1.0);
+        fireDepartment(-26, getTerrainHeight(-26, 42), 42, 1.3);
+        industrialFactory(34, getTerrainHeight(34, 3), 3, 1.2);
+        orthodoxChurch(-20, getTerrainHeight(-20, -24), -24, 0.8);
+        waterTreatment(-46, getTerrainHeight(-46, 7), 7, 1.2);
+        officeBuilding(-19, getTerrainHeight(-19, 44), 44, 0.8);
+        swimmingPool(-21, getTerrainHeight(-21, 19), 19, 1.0);
+        officeBuilding(-33, getTerrainHeight(-33, 14), 14, 1.5);
+        museum(43, getTerrainHeight(43, 23), 23, 1.0);
+        waterTreatment(48, getTerrainHeight(48, 36), 36, 1.4);
+        library(-12, getTerrainHeight(-12, -32), -32, 1.5);
+        researchLab(-22, getTerrainHeight(-22, 2), 2, 1.0);
+        officeBuilding(21, getTerrainHeight(21, 25), 25, 1.4);
+        shoppingMall(30, getTerrainHeight(30, 36), 36, 1.1);
+        // === End generated buildings ===
       } else if (levelId === 'SNAKE') {
         // Stage 14: Snake Island — small rocky island, lighthouse, no vegetation
         // Small island surrounded by water
@@ -9690,6 +10418,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        lighthouse(13, getTerrainHeight(13, -44), -44, 1.5);
+        coastalFortress(32, getTerrainHeight(32, 35), 35, 1.1);
+        defensivePosition(17, getTerrainHeight(17, -10), -10, 1.3);
+        watchtower(2, getTerrainHeight(2, -31), -31, 1.0);
+        borderCheckpoint(-27, getTerrainHeight(-27, 46), 46, 1.2);
+        pier(-20, getTerrainHeight(-20, -22), -22, 1.0);
+        observationTower(40, getTerrainHeight(40, -32), -32, 1.4);
+        monument(-43, getTerrainHeight(-43, 21), 21, 1.1);
+        beachHotel(3, getTerrainHeight(3, 21), 21, 1.2);
+        shippingContainer(-1, getTerrainHeight(-1, -19), -19, 1.0);
+        marketStall(32, getTerrainHeight(32, -40), -40, 1.4);
+        parkingLot(-39, getTerrainHeight(-39, 18), 18, 1.3);
+        hotelBuilding(-44, getTerrainHeight(-44, -16), -16, 1.1);
+        waterTreatment(27, getTerrainHeight(27, -45), -45, 1.4);
+        hotelBuilding(47, getTerrainHeight(47, 25), 25, 1.3);
+        dataCenter(-23, getTerrainHeight(-23, 11), 11, 0.9);
+        marketStall(-12, getTerrainHeight(-12, -49), -49, 0.9);
+        hotelBuilding(44, getTerrainHeight(44, -35), -35, 1.3);
+        cinema(-19, getTerrainHeight(-19, 39), 39, 1.2);
+        cafe(0, getTerrainHeight(0, -20), -20, 1.2);
+        postOffice(-2, getTerrainHeight(-2, 9), 9, 1.2);
+        warehouse(-11, getTerrainHeight(-11, -17), -17, 1.1);
+        concertHall(9, getTerrainHeight(9, -38), -38, 1.4);
+        cinema(47, getTerrainHeight(47, -10), -10, 1.4);
+        parkingLot(-10, getTerrainHeight(-10, 2), 2, 0.8);
+        museum(44, getTerrainHeight(44, -32), -32, 0.8);
+        dataCenter(24, getTerrainHeight(24, 24), 24, 1.3);
+        postOffice(-31, getTerrainHeight(-31, -25), -25, 1.0);
+        gasStation(22, getTerrainHeight(22, -19), -19, 1.1);
+        marketStall(-18, getTerrainHeight(-18, 47), 47, 1.4);
+        concertHall(8, getTerrainHeight(8, -29), -29, 1.3);
+        warehouse(-29, getTerrainHeight(-29, -33), -33, 1.3);
+        concertHall(-27, getTerrainHeight(-27, 19), 19, 1.5);
+        officeBuilding(17, getTerrainHeight(17, -46), -46, 1.4);
+        residentialHouse(35, getTerrainHeight(35, -44), -44, 1.3);
+        statue(-33, getTerrainHeight(-33, 30), 30, 1.0);
+        waterTower(-49, getTerrainHeight(-49, -23), -23, 1.2);
+        parkingLot(-43, getTerrainHeight(-43, 29), 29, 1.2);
+        sewagePlant(11, getTerrainHeight(11, 34), 34, 1.1);
+        sovietApartment(18, getTerrainHeight(18, 20), 20, 1.1);
+        orthodoxChurch(17, getTerrainHeight(17, 42), 42, 1.0);
+        postOffice(-48, getTerrainHeight(-48, 14), 14, 1.4);
+        playground(-28, getTerrainHeight(-28, -37), -37, 1.4);
+        researchLab(-31, getTerrainHeight(-31, -20), -20, 0.9);
+        researchLab(-18, getTerrainHeight(-18, -5), -5, 1.0);
+        metroEntrance(-40, getTerrainHeight(-40, -3), -3, 1.5);
+        gymnasium(22, getTerrainHeight(22, -19), -19, 1.5);
+        museum(-12, getTerrainHeight(-12, 37), 37, 1.4);
+        schoolBuilding(33, getTerrainHeight(33, 33), 33, 1.3);
+        schoolBuilding(1, getTerrainHeight(1, -2), -2, 1.1);
+        // === End generated buildings ===
       } else if (levelId === 'SAKY') {
         // Stage 15: Saky Airbase — long runway, hangars, flat dry steppe, coastal area
         // Long flat runway (enhanced leveling)
@@ -9759,6 +10539,58 @@ window.VoxelWorld = (function () {
             setBlock(cx, sb, cz - 1, BLOCK.SAND);
           }
         })();
+        // === Generated buildings ===
+        aircraftMonument(10, getTerrainHeight(10, -43), -43, 1.2);
+        radarDome(39, getTerrainHeight(39, -29), -29, 0.9);
+        runway(5, getTerrainHeight(5, 32), 32, 1.3);
+        fuelStorageTank(22, getTerrainHeight(22, -38), -38, 1.4);
+        parkingGarage(-45, getTerrainHeight(-45, -21), -21, 0.9);
+        hangar(38, getTerrainHeight(38, 22), 22, 1.1);
+        controlTower(-45, getTerrainHeight(-45, -41), -41, 1.3);
+        watchtower(-15, getTerrainHeight(-15, 19), 19, 1.2);
+        storageBunker(-46, getTerrainHeight(-46, -28), -28, 1.5);
+        helipad(-10, getTerrainHeight(-10, -48), -48, 1.5);
+        substation(-32, getTerrainHeight(-32, 46), 46, 1.4);
+        metroEntrance(-41, getTerrainHeight(-41, -12), -12, 0.9);
+        library(22, getTerrainHeight(22, -1), -1, 1.3);
+        techPark(-8, getTerrainHeight(-8, -1), -1, 1.3);
+        trainStation(38, getTerrainHeight(38, 42), 42, 0.9);
+        warehouse(-44, getTerrainHeight(-44, -38), -38, 1.1);
+        residentialHouse(-7, getTerrainHeight(-7, 27), 27, 1.3);
+        waterTreatment(0, getTerrainHeight(0, 49), 49, 1.0);
+        recyclingCenter(-16, getTerrainHeight(-16, 50), 50, 1.5);
+        concertHall(-21, getTerrainHeight(-21, -5), -5, 1.2);
+        gasStation(5, getTerrainHeight(5, -27), -27, 1.3);
+        gasStation(-40, getTerrainHeight(-40, 48), 48, 1.2);
+        library(41, getTerrainHeight(41, -41), -41, 0.9);
+        waterTower(-2, getTerrainHeight(-2, 41), 41, 1.3);
+        waterTower(44, getTerrainHeight(44, -1), -1, 1.0);
+        hospitalBuilding(-39, getTerrainHeight(-39, -50), -50, 1.5);
+        swimmingPool(-4, getTerrainHeight(-4, 47), 47, 1.0);
+        trainStation(-39, getTerrainHeight(-39, -27), -27, 1.1);
+        dataCenter(21, getTerrainHeight(21, 15), 15, 1.1);
+        orthodoxChurch(-39, getTerrainHeight(-39, -5), -5, 1.2);
+        waterTreatment(26, getTerrainHeight(26, 50), 50, 1.0);
+        gasStation(-49, getTerrainHeight(-49, -13), -13, 1.1);
+        schoolBuilding(42, getTerrainHeight(42, 21), 21, 1.4);
+        library(23, getTerrainHeight(23, 16), 16, 0.9);
+        gasStation(-29, getTerrainHeight(-29, -33), -33, 1.0);
+        fireDepartment(13, getTerrainHeight(13, -32), -32, 0.8);
+        playground(-15, getTerrainHeight(-15, 3), 3, 1.0);
+        residentialHouse(-4, getTerrainHeight(-4, -18), -18, 1.5);
+        recyclingCenter(13, getTerrainHeight(13, 26), 26, 1.2);
+        gymnasium(-37, getTerrainHeight(-37, -33), -33, 1.0);
+        metroEntrance(-8, getTerrainHeight(-8, 29), 29, 1.1);
+        marketStall(6, getTerrainHeight(6, -8), -8, 1.1);
+        waterTreatment(-33, getTerrainHeight(-33, -12), -12, 1.0);
+        hotelBuilding(11, getTerrainHeight(11, -10), -10, 0.9);
+        metroEntrance(-10, getTerrainHeight(-10, -13), -13, 1.3);
+        recyclingCenter(12, getTerrainHeight(12, 23), 23, 1.3);
+        cityHall(-2, getTerrainHeight(-2, -15), -15, 1.4);
+        metroEntrance(-4, getTerrainHeight(-4, -36), -36, 1.5);
+        hotelBuilding(25, getTerrainHeight(25, 19), 19, 0.9);
+        dataCenter(-47, getTerrainHeight(-47, 43), 43, 1.1);
+        // === End generated buildings ===
       } else if (levelId === 'VUHLEDAR') {
         // Stage 16: Vuhledar Coal — flat-topped slag heaps, mine buildings, rail
         // Flat-topped slag heaps (plateau hills)
@@ -9820,6 +10652,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        industrialFactory(40, getTerrainHeight(40, -24), -24, 1.1);
+        cokeOven(-13, getTerrainHeight(-13, 38), 38, 0.8);
+        powerSubstation(2, getTerrainHeight(2, 36), 36, 1.1);
+        slagHeap(31, getTerrainHeight(31, -12), -12, 1.0);
+        defensivePosition(34, getTerrainHeight(34, -31), -31, 1.3);
+        burningBuilding(-2, getTerrainHeight(-2, -41), -41, 1.1);
+        bakhmutFortress(26, getTerrainHeight(26, 11), 11, 1.2);
+        guardPost(18, getTerrainHeight(18, 14), 14, 1.4);
+        railwayStation(38, getTerrainHeight(38, 3), 3, 1.2);
+        monument(-4, getTerrainHeight(-4, 39), 39, 1.4);
+        techPark(26, getTerrainHeight(26, 31), 31, 1.4);
+        hospitalBuilding(48, getTerrainHeight(48, -19), -19, 1.3);
+        warehouse(-29, getTerrainHeight(-29, 32), 32, 1.2);
+        powerPlant(32, getTerrainHeight(32, 36), 36, 1.3);
+        marketStall(5, getTerrainHeight(5, -37), -37, 0.8);
+        sportsComplex(-22, getTerrainHeight(-22, 15), 15, 1.3);
+        dataCenter(24, getTerrainHeight(24, 38), 38, 1.2);
+        swimmingPool(-3, getTerrainHeight(-3, 0), 0, 1.1);
+        substation(38, getTerrainHeight(38, 14), 14, 0.9);
+        orthodoxChurch(11, getTerrainHeight(11, -37), -37, 1.0);
+        schoolBuilding(-36, getTerrainHeight(-36, 43), 43, 0.9);
+        bank(-7, getTerrainHeight(-7, 8), 8, 1.3);
+        researchLab(11, getTerrainHeight(11, -6), -6, 1.1);
+        swimmingPool(42, getTerrainHeight(42, 39), 39, 1.1);
+        residentialHouse(-12, getTerrainHeight(-12, -45), -45, 1.4);
+        policeStation(-48, getTerrainHeight(-48, -7), -7, 1.3);
+        apartmentBlock(44, getTerrainHeight(44, -19), -19, 1.2);
+        dataCenter(-30, getTerrainHeight(-30, -8), -8, 1.2);
+        gymnasium(-21, getTerrainHeight(-21, 1), 1, 1.2);
+        shoppingMall(31, getTerrainHeight(31, 34), 34, 1.1);
+        orthodoxChurch(44, getTerrainHeight(44, 28), 28, 1.4);
+        swimmingPool(25, getTerrainHeight(25, 4), 4, 1.1);
+        cafe(-24, getTerrainHeight(-24, -15), -15, 1.3);
+        residentialHouse(23, getTerrainHeight(23, -37), -37, 1.4);
+        techPark(-27, getTerrainHeight(-27, -4), -4, 1.0);
+        gymnasium(-36, getTerrainHeight(-36, -17), -17, 1.3);
+        concertHall(17, getTerrainHeight(17, 31), 31, 1.0);
+        gasStation(28, getTerrainHeight(28, 0), 0, 1.2);
+        warehouse(-5, getTerrainHeight(-5, 8), 8, 1.2);
+        bank(28, getTerrainHeight(28, 25), 25, 0.9);
+        trainStation(-10, getTerrainHeight(-10, -35), -35, 1.0);
+        policeStation(-27, getTerrainHeight(-27, -3), -3, 1.3);
+        university(-1, getTerrainHeight(-1, 3), 3, 1.2);
+        powerPlant(-1, getTerrainHeight(-1, 4), 4, 0.9);
+        recyclingCenter(18, getTerrainHeight(18, 38), 38, 1.4);
+        shoppingMall(21, getTerrainHeight(21, -29), -29, 1.1);
+        trainStation(-27, getTerrainHeight(-27, -10), -10, 1.4);
+        sewagePlant(-44, getTerrainHeight(-44, -5), -5, 1.5);
+        concertHall(-33, getTerrainHeight(-33, -26), -26, 1.4);
+        dataCenter(14, getTerrainHeight(14, 33), 33, 1.1);
+        // === End generated buildings ===
       } else if (levelId === 'ANTONOV') {
         // Stage 17: Antonov Bridge — large bridge, wide Dnipro, floodplain
         // Large bridge spanning river (enhanced)
@@ -9893,6 +10777,58 @@ window.VoxelWorld = (function () {
             }
           }
         })();
+        // === Generated buildings ===
+        aircraftMonument(37, getTerrainHeight(37, 12), 12, 1.1);
+        radarDome(6, getTerrainHeight(6, 12), 12, 0.9);
+        runway(22, getTerrainHeight(22, -47), -47, 1.4);
+        fuelStorageTank(-22, getTerrainHeight(-22, -13), -13, 0.8);
+        parkingGarage(-22, getTerrainHeight(-22, 18), 18, 1.0);
+        hangar(49, getTerrainHeight(49, 8), 8, 1.2);
+        controlTower(48, getTerrainHeight(48, 48), 48, 1.1);
+        watchtower(15, getTerrainHeight(15, -36), -36, 1.2);
+        storageBunker(-16, getTerrainHeight(-16, 49), 49, 1.2);
+        helipad(-4, getTerrainHeight(-4, 19), 19, 1.4);
+        industrialFactory(47, getTerrainHeight(47, 42), 42, 1.1);
+        cafe(4, getTerrainHeight(4, -37), -37, 1.3);
+        library(-12, getTerrainHeight(-12, -46), -46, 1.1);
+        warehouse(-39, getTerrainHeight(-39, 6), 6, 1.4);
+        policeStation(49, getTerrainHeight(49, -20), -20, 0.9);
+        substation(38, getTerrainHeight(38, -6), -6, 1.4);
+        sewagePlant(30, getTerrainHeight(30, 4), 4, 0.9);
+        trainStation(50, getTerrainHeight(50, -24), -24, 1.4);
+        officeBuilding(22, getTerrainHeight(22, -6), -6, 1.2);
+        waterTreatment(18, getTerrainHeight(18, -29), -29, 1.0);
+        postOffice(-13, getTerrainHeight(-13, 23), 23, 1.0);
+        university(36, getTerrainHeight(36, -38), -38, 0.9);
+        statue(-43, getTerrainHeight(-43, -15), -15, 1.4);
+        trainStation(39, getTerrainHeight(39, -34), -34, 1.0);
+        cityHall(-19, getTerrainHeight(-19, 47), 47, 1.4);
+        metroEntrance(12, getTerrainHeight(12, -32), -32, 1.2);
+        fireDepartment(30, getTerrainHeight(30, 3), 3, 1.1);
+        residentialHouse(31, getTerrainHeight(31, 48), 48, 0.9);
+        university(45, getTerrainHeight(45, -15), -15, 1.3);
+        parkingLot(8, getTerrainHeight(8, 12), 12, 1.0);
+        sovietApartment(49, getTerrainHeight(49, 43), 43, 0.9);
+        gymnasium(31, getTerrainHeight(31, 35), 35, 1.3);
+        residentialHouse(18, getTerrainHeight(18, 0), 0, 1.0);
+        playground(-23, getTerrainHeight(-23, 13), 13, 1.0);
+        postOffice(-7, getTerrainHeight(-7, 20), 20, 1.2);
+        powerPlant(12, getTerrainHeight(12, 50), 50, 1.0);
+        officeBuilding(-45, getTerrainHeight(-45, -38), -38, 1.2);
+        gymnasium(-48, getTerrainHeight(-48, -35), -35, 1.5);
+        apartmentBlock(6, getTerrainHeight(6, 8), 8, 0.8);
+        playground(-25, getTerrainHeight(-25, 38), 38, 1.4);
+        bank(-30, getTerrainHeight(-30, -15), -15, 0.9);
+        parkingLot(-18, getTerrainHeight(-18, -40), -40, 1.1);
+        apartmentBlock(-44, getTerrainHeight(-44, 0), 0, 1.2);
+        museum(4, getTerrainHeight(4, 33), 33, 0.9);
+        hospitalBuilding(-50, getTerrainHeight(-50, -23), -23, 1.1);
+        trainStation(25, getTerrainHeight(25, -22), -22, 1.2);
+        swimmingPool(-49, getTerrainHeight(-49, -49), -49, 1.3);
+        policeStation(4, getTerrainHeight(4, 38), 38, 0.9);
+        residentialHouse(-21, getTerrainHeight(-21, -1), -1, 0.9);
+        hospitalBuilding(-37, getTerrainHeight(-37, -10), -10, 1.1);
+        // === End generated buildings ===
       } else if (levelId === 'REFINERY') {
         // Stage 18: Oil Refinery — storage tanks, pipelines, flat industrial, smoke/fire
         // Storage tanks (round structures using stone blocks)
@@ -9956,6 +10892,58 @@ window.VoxelWorld = (function () {
             setBlock(fx, fy + 1, fz, BLOCK.FUEL_BARREL);
           }
         })();
+        // === Generated buildings ===
+        industrialFactory(-12, getTerrainHeight(-12, -33), -33, 1.1);
+        fuelStorageTank(46, getTerrainHeight(46, -33), -33, 1.2);
+        catalyticCracker(36, getTerrainHeight(36, -32), -32, 0.8);
+        powerSubstation(22, getTerrainHeight(22, -49), -49, 1.2);
+        cokeOven(-29, getTerrainHeight(-29, 6), 6, 1.0);
+        boilerHouse(-23, getTerrainHeight(-23, 30), 30, 1.3);
+        burningBuilding(2, getTerrainHeight(2, 28), 28, 1.3);
+        defensivePosition(-23, getTerrainHeight(-23, -39), -39, 1.4);
+        shippingContainer(-33, getTerrainHeight(-33, 46), 46, 0.9);
+        monument(43, getTerrainHeight(43, -1), -1, 1.0);
+        playground(-10, getTerrainHeight(-10, -33), -33, 1.0);
+        schoolBuilding(-19, getTerrainHeight(-19, 20), 20, 1.2);
+        waterTreatment(-14, getTerrainHeight(-14, 49), 49, 1.5);
+        orthodoxChurch(34, getTerrainHeight(34, -12), -12, 0.9);
+        waterTreatment(15, getTerrainHeight(15, -26), -26, 1.3);
+        postOffice(32, getTerrainHeight(32, -44), -44, 1.3);
+        library(13, getTerrainHeight(13, -1), -1, 0.9);
+        concertHall(31, getTerrainHeight(31, 26), 26, 0.8);
+        sovietApartment(-4, getTerrainHeight(-4, -10), -10, 0.9);
+        powerPlant(3, getTerrainHeight(3, -4), -4, 1.2);
+        shoppingMall(47, getTerrainHeight(47, 10), 10, 1.5);
+        residentialHouse(-48, getTerrainHeight(-48, 25), 25, 0.8);
+        sportsComplex(-23, getTerrainHeight(-23, -45), -45, 1.4);
+        metroEntrance(14, getTerrainHeight(14, -14), -14, 1.2);
+        university(48, getTerrainHeight(48, 3), 3, 1.1);
+        metroEntrance(-40, getTerrainHeight(-40, 31), 31, 1.2);
+        sewagePlant(-31, getTerrainHeight(-31, -15), -15, 0.9);
+        schoolBuilding(15, getTerrainHeight(15, -24), -24, 1.5);
+        waterTower(18, getTerrainHeight(18, -9), -9, 1.1);
+        recyclingCenter(47, getTerrainHeight(47, 33), 33, 1.3);
+        residentialHouse(-11, getTerrainHeight(-11, 39), 39, 1.1);
+        library(-43, getTerrainHeight(-43, -19), -19, 0.9);
+        playground(-36, getTerrainHeight(-36, 8), 8, 1.2);
+        officeBuilding(-11, getTerrainHeight(-11, 35), 35, 1.3);
+        shoppingMall(-35, getTerrainHeight(-35, -49), -49, 1.3);
+        sovietApartment(-30, getTerrainHeight(-30, 13), 13, 1.5);
+        researchLab(16, getTerrainHeight(16, 50), 50, 1.4);
+        sportsComplex(-29, getTerrainHeight(-29, -3), -3, 0.9);
+        fireDepartment(43, getTerrainHeight(43, -35), -35, 1.3);
+        orthodoxChurch(-8, getTerrainHeight(-8, 4), 4, 1.0);
+        residentialHouse(-17, getTerrainHeight(-17, 41), 41, 1.5);
+        recyclingCenter(-41, getTerrainHeight(-41, 13), 13, 1.1);
+        parkingLot(-43, getTerrainHeight(-43, 13), 13, 1.4);
+        apartmentBlock(-3, getTerrainHeight(-3, -30), -30, 1.0);
+        hospitalBuilding(23, getTerrainHeight(23, 36), 36, 1.3);
+        museum(44, getTerrainHeight(44, 15), 15, 0.8);
+        sovietApartment(-19, getTerrainHeight(-19, -45), -45, 1.1);
+        gasStation(-31, getTerrainHeight(-31, -28), -28, 1.5);
+        industrialFactory(20, getTerrainHeight(20, 41), 41, 1.3);
+        statue(-22, getTerrainHeight(-22, -9), -9, 1.0);
+        // === End generated buildings ===
       } else if (levelId === 'SIEGE') {
         // Stage 19: Siege of Moscow — dense urban, Kremlin walls, Red Square, river, government buildings
         // Dense urban center (grid of streets)
@@ -10053,6 +11041,58 @@ window.VoxelWorld = (function () {
             setBlock(dx, dh, dz - 1, BLOCK.CONCRETE);
           }
         })();
+        // === Generated buildings ===
+        redSquarePlaza(42, getTerrainHeight(42, -10), -10, 1.0);
+        spasskayaTower(-41, getTerrainHeight(-41, 23), 23, 1.1);
+        gumDepartmentStore(14, getTerrainHeight(14, 36), 36, 1.4);
+        christSaviorCathedral(-28, getTerrainHeight(-28, -22), -22, 1.4);
+        ostankinoTower(-45, getTerrainHeight(-45, 1), 1, 0.8);
+        kremlinSenate(9, getTerrainHeight(9, -14), -14, 1.3);
+        kremlinArsenal(-11, getTerrainHeight(-11, -9), -9, 0.9);
+        grandKremlinPalace(8, getTerrainHeight(8, -49), -49, 1.1);
+        tsarCannon(-13, getTerrainHeight(-13, 22), 22, 1.3);
+        tsarBell(44, getTerrainHeight(44, 29), 29, 1.0);
+        parkingLot(25, getTerrainHeight(25, 13), 13, 1.5);
+        hotelBuilding(43, getTerrainHeight(43, 19), 19, 1.3);
+        library(-31, getTerrainHeight(-31, -50), -50, 1.5);
+        orthodoxChurch(-21, getTerrainHeight(-21, 19), 19, 1.0);
+        sovietApartment(-8, getTerrainHeight(-8, -50), -50, 1.3);
+        gasStation(44, getTerrainHeight(44, 43), 43, 1.0);
+        cafe(17, getTerrainHeight(17, -20), -20, 1.1);
+        officeBuilding(-32, getTerrainHeight(-32, 41), 41, 1.0);
+        industrialFactory(-21, getTerrainHeight(-21, 16), 16, 1.1);
+        parkingLot(8, getTerrainHeight(8, 45), 45, 0.9);
+        hospitalBuilding(14, getTerrainHeight(14, -33), -33, 1.2);
+        metroEntrance(-41, getTerrainHeight(-41, 25), 25, 1.2);
+        playground(34, getTerrainHeight(34, -34), -34, 1.0);
+        sportsComplex(-10, getTerrainHeight(-10, 0), 0, 1.3);
+        cityHall(-10, getTerrainHeight(-10, 7), 7, 1.0);
+        residentialHouse(-25, getTerrainHeight(-25, -33), -33, 1.3);
+        substation(-37, getTerrainHeight(-37, -31), -31, 0.9);
+        swimmingPool(9, getTerrainHeight(9, -10), -10, 1.1);
+        techPark(-5, getTerrainHeight(-5, 48), 48, 0.9);
+        bank(9, getTerrainHeight(9, -17), -17, 1.4);
+        schoolBuilding(-30, getTerrainHeight(-30, 37), 37, 1.0);
+        waterTreatment(-45, getTerrainHeight(-45, -23), -23, 1.4);
+        cityHall(-32, getTerrainHeight(-32, -39), -39, 1.3);
+        warehouse(0, getTerrainHeight(0, 15), 15, 0.8);
+        bank(-17, getTerrainHeight(-17, -28), -28, 0.8);
+        metroEntrance(7, getTerrainHeight(7, 21), 21, 1.3);
+        library(-38, getTerrainHeight(-38, 9), 9, 0.9);
+        trainStation(-35, getTerrainHeight(-35, -49), -49, 0.8);
+        museum(-34, getTerrainHeight(-34, -25), -25, 1.4);
+        parkingLot(37, getTerrainHeight(37, 30), 30, 1.5);
+        schoolBuilding(24, getTerrainHeight(24, 25), 25, 1.0);
+        residentialHouse(-48, getTerrainHeight(-48, -42), -42, 0.9);
+        swimmingPool(-34, getTerrainHeight(-34, -39), -39, 1.4);
+        marketStall(-35, getTerrainHeight(-35, -45), -45, 1.5);
+        officeBuilding(-29, getTerrainHeight(-29, 23), 23, 1.1);
+        metroEntrance(13, getTerrainHeight(13, -47), -47, 1.1);
+        playground(-28, getTerrainHeight(-28, -5), -5, 1.0);
+        shoppingMall(-15, getTerrainHeight(-15, -15), -15, 1.1);
+        waterTower(-46, getTerrainHeight(-46, 28), 28, 1.2);
+        library(32, getTerrainHeight(32, -13), -13, 1.1);
+        // === End generated buildings ===
       }
     })();
     rebuildAll();

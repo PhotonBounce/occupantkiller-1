@@ -430,17 +430,33 @@ const CityBuildings = (function () {
 
   // ── stBasilCathedral ──
   function stBasilCathedral(ox, oz, gy) {
+    // Real: Pokrovsky Sobor, 1555-1561, Red Square, Moscow
+    // 9 colorful onion domes - white/red striped body, colorful domes
     var cx = ox + 8, cz = oz + 8;
-    for (var y = 0; y < 14; y++) { var radius = Math.max(1, 3 - Math.floor(y / 4)); for (var x = -radius; x <= radius; x++) { for (var z = -radius; z <= radius; z++) setBlock(cx + x, gy + y, cz + z, PAL.BRICK); } }
-    for (var y = 0; y < 8; y++) { var radius = Math.max(0, 2 - Math.floor(y / 3)); for (var x = -radius; x <= radius; x++) { for (var z = -radius; z <= radius; z++) setBlock(cx + x, gy + 14 + y, cz + z, PAL.ROOFTILE); } }
-    var chapelColors = [PAL.BRICK, PAL.ROOFTILE, PAL.BLUE_TILE, PAL.METAL, PAL.BRICK, PAL.ROOFTILE, PAL.BLUE_TILE, PAL.METAL];
+    // Main tower - white/red striped
+    for (var y = 0; y < 14; y++) { var radius = Math.max(1, 3 - Math.floor(y / 4)); for (var x = -radius; x <= radius; x++) { for (var z = -radius; z <= radius; z++) {
+      var isWhite = ((x + y + z) % 2 === 0);
+      setBlock(cx + x, gy + y, cz + z, isWhite ? PAL.STONE_MARBLE : PAL.BRICK_RED);
+    } } }
+    // Main dome - blue with gold
+    for (var y = 0; y < 8; y++) { var radius = Math.max(0, 2 - Math.floor(y / 3)); for (var x = -radius; x <= radius; x++) { for (var z = -radius; z <= radius; z++) setBlock(cx + x, gy + 14 + y, cz + z, PAL.BLUE_TILE); } }
+    setBlock(cx, gy + 22, cz, PAL.METAL_COPPER); setBlock(cx, gy + 23, cz, PAL.METAL_COPPER);
+    // 8 chapels with realistic colors: green, blue, gold, red, white stripes
+    var chapelColors = [PAL.ROOF_GREEN, PAL.BLUE_TILE, PAL.METAL_COPPER, PAL.BRICK_RED, PAL.STONE_MARBLE, PAL.ROOF_TERRACOTTA, PAL.GLASS_BLUE, PAL.ROOF_GREEN];
     var chapelOffsets = [[-5,-5],[5,-5],[5,5],[-5,5],[0,-7],[7,0],[0,7],[-7,0]];
     for (var ci = 0; ci < 8; ci++) {
       var cox = cx + chapelOffsets[ci][0], coz = cz + chapelOffsets[ci][1];
-      for (var y = 0; y < 8; y++) { for (var x = -2; x <= 2; x++) { for (var z = -2; z <= 2; z++) { var isWall = Math.abs(x) === 2 || Math.abs(z) === 2; if (isWall || y === 7) setBlock(cox + x, gy + y, coz + z, PAL.BRICK); } } }
+      // Chapel body - white/red striped
+      for (var y = 0; y < 8; y++) { for (var x = -2; x <= 2; x++) { for (var z = -2; z <= 2; z++) { var isWall = Math.abs(x) === 2 || Math.abs(z) === 2; if (isWall || y === 7) { var isWhite = ((x + y + z) % 2 === 0); setBlock(cox + x, gy + y, coz + z, isWhite ? PAL.STONE_MARBLE : PAL.BRICK_RED); } } } }
       var col = chapelColors[ci];
       for (var dy = 0; dy < 4; dy++) { var radius = (dy < 2) ? 2 - dy : 1; for (var dxx = -radius; dxx <= radius; dxx++) { for (var dzz = -radius; dzz <= radius; dzz++) { if (Math.abs(dxx) + Math.abs(dzz) <= radius + 1) setBlock(cox + dxx, gy + 8 + dy, coz + dzz, col); } } }
-      setBlock(cox, gy + 12, coz, PAL.METAL);
+      setBlock(cox, gy + 12, coz, PAL.METAL_COPPER); setBlock(cox, gy + 13, coz, PAL.METAL_COPPER);
+    }
+    // Arched walkway between chapels
+    for (var i = 0; i < 8; i++) {
+      var o1 = chapelOffsets[i]; var o2 = chapelOffsets[(i + 1) % 8];
+      var mx = cx + Math.round((o1[0] + o2[0]) / 2); var mz = cz + Math.round((o1[1] + o2[1]) / 2);
+      for (var y = 0; y < 4; y++) setBlock(mx, gy + y, mz, PAL.BRICK_RED);
     }
     setBlock(cx, gy, cz + 9, PAL.AIR); setBlock(cx, gy + 1, cz + 9, PAL.AIR); setBlock(cx, gy + 2, cz + 9, PAL.AIR);
   }
@@ -2445,6 +2461,1539 @@ function fountain(ox, oz, gy) {
     setBlock(x + w - 1, gy, z + 1, PAL.METAL_DARK);
   }
 
+function fuelStorageTank(gx, gy, gz, scale) {
+    var r = 4 * scale, h = 10 * scale;
+    for (var y = 0; y <= h; y++) {
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r) {
+            if (y === 0 || y === h || x*x + z*z >= (r-1)*(r-1)) {
+              setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+            }
+          }
+        }
+      }
+    }
+    setBlock(gx, gy + h + 1, gz, BLOCK.RUBBLE);
+  }
+
+  function fireStation(gx, gy, gz, scale) {
+    var w = 6 * scale, d = 4 * scale, h = 5 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= h + 4 * scale; y++) {
+      setBlock(gx, gy + y, gz - d - 1, BLOCK.BRICK);
+    }
+    setBlock(gx + 1, gy + h + 4 * scale, gz - d - 1, BLOCK.BRICK);
+    setBlock(gx - 1, gy + h + 4 * scale, gz - d - 1, BLOCK.BRICK);
+  }
+
+  function parkingGarage(gx, gy, gz, scale) {
+    var w = 8 * scale, d = 6 * scale, h = 4 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (y === 0 || y === h || Math.abs(x) === w || Math.abs(z) === d) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+          }
+          if (y % 2 === 0 && (Math.abs(x) < w && Math.abs(z) < d)) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    for (var z = -d; z <= d; z++) {
+      setBlock(gx + w + 1, gy, gz + z, BLOCK.ASPHALT);
+    }
+  }
+
+  function aircraftMonument(gx, gy, gz, scale) {
+    for (var x = -5 * scale; x <= 5 * scale; x++) {
+      setBlock(gx + x, gy + 1 + Math.abs(x) * 0.5, gz, BLOCK.STEEL);
+    }
+    setBlock(gx - 3 * scale, gy + 2, gz + 2, BLOCK.STEEL);
+    setBlock(gx - 3 * scale, gy + 2, gz - 2, BLOCK.STEEL);
+    setBlock(gx + 3 * scale, gy + 2, gz + 2, BLOCK.STEEL);
+    setBlock(gx + 3 * scale, gy + 2, gz - 2, BLOCK.STEEL);
+    setBlock(gx, gy + 5, gz, BLOCK.STEEL);
+    for (var y = 0; y <= 8 * scale; y++) {
+      setBlock(gx, gy + y, gz, BLOCK.BRICK);
+    }
+  }
+
+  function radarDome(gx, gy, gz, scale) {
+    var r = 5 * scale;
+    for (var y = 0; y <= r; y++) {
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + y*y + z*z <= r*r && x*x + y*y + z*z >= (r-1)*(r-1)) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= 3 * scale; y++) {
+      setBlock(gx, gy + y, gz, BLOCK.BRICK);
+    }
+  }
+
+  function independenceMonument(gx, gy, gz, scale) {
+    // Real: 62m tall white marble column with golden Berehynia statue
+    // Based on Maidan Nezalezhnosti, Kyiv
+    var colH = 16 * scale; // tall column
+    var baseR = 3 * scale;
+    var colR = 1 * scale;
+    
+    // Stepped marble base (Zaborovsky gate inspired)
+    for (var by = 0; by < 3 * scale; by++) {
+      var br = baseR - Math.floor(by / scale);
+      for (var x = -br; x <= br; x++) {
+        for (var z = -br; z <= br; z++) {
+          setBlock(gx + x, gy + by, gz + z, PAL.STONE_MARBLE);
+        }
+      }
+    }
+    
+    // White marble column (tapered slightly)
+    for (var y = 3 * scale; y < colH; y++) {
+      var taper = (y > colH - 2 * scale) ? 1 : 0;
+      var r = colR - taper;
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r + 1) {
+            setBlock(gx + x, gy + y, gz + z, PAL.STONE_MARBLE);
+          }
+        }
+      }
+      // Decorative rings every 4 blocks
+      if (y % (4 * scale) === 0 && y > 3 * scale) {
+        for (var x = -r-1; x <= r+1; x++) {
+          for (var z = -r-1; z <= r+1; z++) {
+            if (x*x + z*z <= (r+1)*(r+1) + 1) {
+              setBlock(gx + x, gy + y, gz + z, PAL.STONE_MARBLE);
+            }
+          }
+        }
+      }
+    }
+    
+    // Golden Berehynia statue (winged female figure with guelder-rose branch)
+    var sy = gy + colH;
+    // Statue body
+    for (var y = 0; y < 3 * scale; y++) {
+      var sr = (y < scale) ? 2 : 1;
+      for (var x = -sr; x <= sr; x++) {
+        for (var z = -sr; z <= sr; z++) {
+          setBlock(gx + x, sy + y, gz + z, PAL.METAL_COPPER); // gold/copper color
+        }
+      }
+    }
+    // Raised arms with branch
+    setBlock(gx - 2, sy + 1, gz, PAL.METAL_COPPER);
+    setBlock(gx - 3, sy + 2, gz, PAL.METAL_COPPER);
+    setBlock(gx + 2, sy + 1, gz, PAL.METAL_COPPER);
+    setBlock(gx + 3, sy + 2, gz, PAL.METAL_COPPER);
+    // Wings
+    setBlock(gx - 1, sy + 2, gz + 1, PAL.METAL_COPPER);
+    setBlock(gx + 1, sy + 2, gz + 1, PAL.METAL_COPPER);
+    setBlock(gx - 1, sy + 2, gz - 1, PAL.METAL_COPPER);
+    setBlock(gx + 1, sy + 2, gz - 1, PAL.METAL_COPPER);
+    
+    // Globe base under statue
+    for (var x = -2; x <= 2; x++) {
+      for (var z = -2; z <= 2; z++) {
+        if (x*x + z*z <= 5) {
+          setBlock(gx + x, sy, gz + z, PAL.STONE_MARBLE);
+        }
+      }
+    }
+    
+    // Uplighting at base (small light blocks)
+    for (var i = 0; i < 4; i++) {
+      var angle = (i / 4) * Math.PI * 2;
+      var lx = Math.round(Math.cos(angle) * (baseR + 1));
+      var lz = Math.round(Math.sin(angle) * (baseR + 1));
+      setBlock(gx + lx, gy + 1, gz + lz, PAL.LIGHT);
+    }
+  }
+
+  function goldenGate(gx, gy, gz, scale) {
+    for (var y = 0; y <= 10 * scale; y++) {
+      setBlock(gx - 3 * scale, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 3 * scale, gy + y, gz, BLOCK.BRICK);
+    }
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      setBlock(gx + x, gy + 10 * scale, gz, BLOCK.BRICK);
+    }
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      setBlock(gx + x, gy + 8 * scale, gz, BLOCK.BRICK);
+    }
+    for (var y = 0; y <= 6 * scale; y++) {
+      setBlock(gx - 3 * scale, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx + 3 * scale, gy + y, gz + 1, BLOCK.BRICK);
+    }
+  }
+
+  function governmentHouse(gx, gy, gz, scale) {
+    var w = 7 * scale, d = 4 * scale, h = 6 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+          if (y === Math.floor(h/2) && Math.abs(x) < w) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.WOOD);
+          }
+        }
+      }
+    }
+    for (var x = -1; x <= 1; x++) {
+      for (var z = -d - 1; z <= d + 1; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+  }
+
+  function olympicStadium(gx, gy, gz, scale) {
+    var r = 12 * scale, h = 3 * scale;
+    for (var y = 0; y <= h; y++) {
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r && x*x + z*z >= (r-2)*(r-2)) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+          }
+          if (x*x + z*z < (r-2)*(r-2) && y === 0) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.ASPHALT);
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= h + 2 * scale; y++) {
+      setBlock(gx - r + 2, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + r - 2, gy + y, gz, BLOCK.BRICK);
+    }
+  }
+
+  function embankmentBuilding(gx, gy, gz, scale) {
+    var w = 5 * scale, d = 3 * scale, h = 7 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy + 1, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function spasskayaTower(gx, gy, gz, scale) {
+    // Real: Spasskaya Tower, Kremlin, Moscow - 71m tall, red star, clock
+    // Red brick body with white stone details, clock face, red star on top
+    var h = 16 * scale;
+    for (var y = 0; y <= h; y++) {
+      var r = (y > 12 * scale) ? 2 : 1;
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          var isWhite = (y === 0 || y === h || y === 8 * scale || y === 12 * scale || Math.abs(x) === r || Math.abs(z) === r);
+          setBlock(gx + x, gy + y, gz + z, isWhite ? PAL.STONE_MARBLE : PAL.BRICK_RED);
+        }
+      }
+    }
+    // Clock face (white circle with gold details)
+    for (var x = -1; x <= 1; x++) {
+      for (var z = -1; z <= 1; z++) {
+        setBlock(gx + x, gy + 9 * scale, gz + z, PAL.STONE_MARBLE);
+      }
+    }
+    setBlock(gx, gy + 9 * scale, gz + 2, PAL.METAL_COPPER); // clock hands
+    // Upper tier (wider)
+    for (var y = 12 * scale; y <= h; y++) {
+      for (var x = -2; x <= 2; x++) {
+        for (var z = -2; z <= 2; z++) {
+          if (Math.abs(x) === 2 || Math.abs(z) === 2 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, PAL.BRICK_RED);
+          }
+        }
+      }
+    }
+    // Red star on top
+    setBlock(gx, gy + h + 1, gz, PAL.METAL_COPPER);
+    setBlock(gx + 1, gy + h + 1, gz, PAL.METAL_COPPER);
+    setBlock(gx - 1, gy + h + 1, gz, PAL.METAL_COPPER);
+    setBlock(gx, gy + h + 1, gz + 1, PAL.METAL_COPPER);
+    setBlock(gx, gy + h + 1, gz - 1, PAL.METAL_COPPER);
+    setBlock(gx, gy + h + 2, gz, PAL.METAL_COPPER);
+  }
+
+  function gumDepartmentStore(gx, gy, gz, scale) {
+    var w = 8 * scale, d = 3 * scale, h = 4 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy + 1, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function christSaviorCathedral(gx, gy, gz, scale) {
+    var r = 6 * scale, h = 12 * scale;
+    for (var y = 0; y <= h; y++) {
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r) {
+            if (y === 0 || y === h || x*x + z*z >= (r-1)*(r-1)) {
+              setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= 4 * scale; y++) {
+      var cr = (4 * scale) - y;
+      for (var x = -cr; x <= cr; x++) {
+        for (var z = -cr; z <= cr; z++) {
+          if (x*x + z*z <= cr*cr) {
+            setBlock(gx + x, gy + h + 1 + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+  }
+
+  function ostankinoTower(gx, gy, gz, scale) {
+    for (var y = 0; y <= 18 * scale; y++) {
+      var r = Math.max(1, Math.floor((18 * scale - y) / 6));
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    setBlock(gx, gy + 18 * scale + 1, gz, BLOCK.STEEL);
+  }
+
+  function redSquarePlaza(gx, gy, gz, scale) {
+    for (var x = -15 * scale; x <= 15 * scale; x++) {
+      for (var z = -15 * scale; z <= 15 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    for (var x = -15 * scale; x <= 15 * scale; x += 5) {
+      for (var z = -15 * scale; z <= 15 * scale; z++) {
+        setBlock(gx + x, gy + 1, gz + z, BLOCK.BRICK);
+      }
+    }
+  }
+
+  function portCrane(gx, gy, gz, scale) {
+    for (var y = 0; y <= 10 * scale; y++) {
+      setBlock(gx, gy + y, gz, BLOCK.STEEL);
+    }
+    for (var x = -5 * scale; x <= 5 * scale; x++) {
+      setBlock(gx + x, gy + 10 * scale, gz, BLOCK.STEEL);
+    }
+    for (var y = 5 * scale; y <= 10 * scale; y++) {
+      setBlock(gx + 3 * scale, gy + y, gz, BLOCK.STEEL);
+    }
+    setBlock(gx + 3 * scale, gy + 10 * scale, gz + 1, BLOCK.STEEL);
+    setBlock(gx + 3 * scale, gy + 10 * scale, gz - 1, BLOCK.STEEL);
+  }
+
+  function shippingContainer(gx, gy, gz, scale) {
+    var w = 4 * scale, d = 2 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+  }
+
+  function lighthouse(gx, gy, gz, scale) {
+    for (var y = 0; y <= 12 * scale; y++) {
+      var r = Math.max(1, Math.floor((12 * scale - y) / 4));
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    setBlock(gx, gy + 12 * scale + 1, gz, BLOCK.BRICK);
+  }
+
+  function grainElevator(gx, gy, gz, scale) {
+    for (var y = 0; y <= 10 * scale; y++) {
+      for (var x = -3 * scale; x <= 3 * scale; x++) {
+        for (var z = -3 * scale; z <= 3 * scale; z++) {
+          if (Math.abs(x) === 3 * scale || Math.abs(z) === 3 * scale || y === 0 || y === 10 * scale) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= 2 * scale; y++) {
+      for (var x = -4 * scale; x <= 4 * scale; x++) {
+        for (var z = -4 * scale; z <= 4 * scale; z++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+        }
+      }
+    }
+  }
+
+  function bakhmutFortress(gx, gy, gz, scale) {
+    // Real: Bakhmut Fortress, 17th century, stone walls with ramparts
+    // Stone walls with corner towers, central courtyard, gatehouse
+    var wallR = 8 * scale;
+    var wallH = 5 * scale;
+    
+    // Main stone walls
+    for (var y = 0; y <= wallH; y++) {
+      for (var x = -wallR; x <= wallR; x++) {
+        for (var z = -wallR; z <= wallR; z++) {
+          if (Math.abs(x) === wallR || Math.abs(z) === wallR) {
+            // Crenellations (battlements) at top
+            if (y === wallH && (x + z) % 2 === 0) {
+              setBlock(gx + x, gy + y + 1, gz + z, PAL.STONE_SANDSTONE);
+            }
+            setBlock(gx + x, gy + y, gz + z, PAL.STONE_SANDSTONE);
+          }
+        }
+      }
+    }
+    
+    // Corner towers (4 round towers, taller)
+    var corners = [[-wallR, -wallR], [wallR, -wallR], [-wallR, wallR], [wallR, wallR]];
+    for (var ci = 0; ci < 4; ci++) {
+      var cx = gx + corners[ci][0], cz = gz + corners[ci][1];
+      for (var y = 0; y <= wallH + 3 * scale; y++) {
+        var tr = (y > wallH) ? 1 : 2;
+        for (var tx = -tr; tx <= tr; tx++) {
+          for (var tz = -tr; tz <= tr; tz++) {
+            if (tx*tx + tz*tz <= tr*tr + 1) {
+              setBlock(cx + tx, gy + y, cz + tz, PAL.STONE_SANDSTONE);
+            }
+          }
+        }
+      }
+      // Tower roof (conical)
+      for (var y = 0; y < 2 * scale; y++) {
+        var roofR = 2 - y;
+        for (var tx = -roofR; tx <= roofR; tx++) {
+          for (var tz = -roofR; tz <= roofR; tz++) {
+            if (tx*tx + tz*tz <= roofR*roofR + 1) {
+              setBlock(cx + tx, gy + wallH + 3 * scale + y, cz + tz, PAL.ROOF_TERRACOTTA);
+            }
+          }
+        }
+      }
+    }
+    
+    // Gatehouse (entrance)
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      for (var z = 0; z <= 2; z++) {
+        for (var y = 0; y <= wallH; y++) {
+          if (Math.abs(x) > 1 || z > 0) { // archway opening
+            setBlock(gx + x, gy + y, gz + wallR + z, PAL.STONE_SANDSTONE);
+          }
+        }
+      }
+    }
+    // Gatehouse roof (triangular)
+    for (var y = 0; y < 2 * scale; y++) {
+      for (var x = -3 * scale + y; x <= 3 * scale - y; x++) {
+        setBlock(gx + x, gy + wallH + 1 + y, gz + wallR + 2, PAL.ROOF_TERRACOTTA);
+      }
+    }
+    
+    // Central courtyard (grass/dirt floor)
+    for (var x = -wallR + 1; x <= wallR - 1; x++) {
+      for (var z = -wallR + 1; z <= wallR - 1; z++) {
+        setBlock(gx + x, gy, gz + z, PAL.DIRT);
+      }
+    }
+    // Small well in courtyard
+    setBlock(gx, gy + 1, gz, PAL.STONE_SANDSTONE);
+    setBlock(gx, gy + 2, gz, PAL.STONE_SANDSTONE);
+  }
+
+  function railwayStation(gx, gy, gz, scale) {
+    var w = 10 * scale, d = 4 * scale, h = 4 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var z = -d; z <= d; z++) {
+      setBlock(gx + w + 1, gy, gz + z, BLOCK.ASPHALT);
+      setBlock(gx - w - 1, gy, gz + z, BLOCK.ASPHALT);
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function saltMineEntrance(gx, gy, gz, scale) {
+    for (var y = 0; y <= 2 * scale; y++) {
+      for (var x = -2 * scale; x <= 2 * scale; x++) {
+        for (var z = -2 * scale; z <= 2 * scale; z++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    for (var y = 0; y >= -4 * scale; y--) {
+      for (var x = -1; x <= 1; x++) {
+        for (var z = -1; z <= 1; z++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+  }
+
+  function marketHall(gx, gy, gz, scale) {
+    var w = 6 * scale, d = 4 * scale, h = 3 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function grandKremlinPalace(gx, gy, gz, scale) {
+    var w = 8 * scale, d = 5 * scale, h = 6 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -2; x <= 2; x++) {
+      for (var z = -d - 1; z <= d + 1; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+  }
+
+  function tsarCannon(gx, gy, gz, scale) {
+    for (var y = 0; y <= 2 * scale; y++) {
+      for (var x = -1; x <= 1; x++) {
+        for (var z = -1; z <= 1; z++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    for (var x = 0; x <= 3 * scale; x++) {
+      setBlock(gx + x, gy + 2 * scale, gz, BLOCK.STEEL);
+    }
+    setBlock(gx + 3 * scale, gy + 2 * scale + 1, gz, BLOCK.STEEL);
+  }
+
+  function tsarBell(gx, gy, gz, scale) {
+    for (var y = 0; y <= 4 * scale; y++) {
+      var r = 2 * scale + Math.floor(y / 2);
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r && x*x + z*z >= (r-1)*(r-1)) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -1; x <= 1; x++) {
+      for (var z = -1; z <= 1; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.BRICK);
+      }
+    }
+  }
+
+  function kremlinSenate(gx, gy, gz, scale) {
+    var w = 6 * scale, d = 4 * scale, h = 4 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -2; x <= 2; x++) {
+      for (var z = -d - 1; z <= d + 1; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+  }
+
+  function kremlinArsenal(gx, gy, gz, scale) {
+    var w = 7 * scale, d = 3 * scale, h = 3 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function forestRangerStation(gx, gy, gz, scale) {
+    var w = 3 * scale, d = 2 * scale, h = 3 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.WOOD);
+          }
+        }
+      }
+    }
+    setBlock(gx, gy + h + 1, gz, BLOCK.WOOD);
+  }
+
+  function huntingLodge(gx, gy, gz, scale) {
+    var w = 3 * scale, d = 3 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.WOOD);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function sawmill(gx, gy, gz, scale) {
+    var w = 4 * scale, d = 3 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.WOOD);
+          }
+        }
+      }
+    }
+    setBlock(gx - w - 1, gy, gz, BLOCK.WOOD);
+    setBlock(gx - w - 2, gy, gz, BLOCK.WOOD);
+    setBlock(gx - w - 3, gy, gz, BLOCK.WOOD);
+  }
+
+  function woodenChurch(gx, gy, gz, scale) {
+    for (var y = 0; y <= 6 * scale; y++) {
+      for (var x = -2 * scale; x <= 2 * scale; x++) {
+        for (var z = -2 * scale; z <= 2 * scale; z++) {
+          if (Math.abs(x) === 2 * scale || Math.abs(z) === 2 * scale || y === 0) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.WOOD);
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= 3 * scale; y++) {
+      var r = 3 * scale - y;
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r) {
+            setBlock(gx + x, gy + 6 * scale + 1 + y, gz + z, BLOCK.WOOD);
+          }
+        }
+      }
+    }
+  }
+
+  function windmill(gx, gy, gz, scale) {
+    for (var y = 0; y <= 8 * scale; y++) {
+      setBlock(gx, gy + y, gz, BLOCK.WOOD);
+    }
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      setBlock(gx + x, gy + 8 * scale, gz, BLOCK.WOOD);
+    }
+    for (var z = -3 * scale; z <= 3 * scale; z++) {
+      setBlock(gx, gy + 8 * scale, gz + z, BLOCK.WOOD);
+    }
+    for (var y = 0; y <= 2 * scale; y++) {
+      for (var x = -2 * scale; x <= 2 * scale; x++) {
+        for (var z = -2 * scale; z <= 2 * scale; z++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.WOOD);
+        }
+      }
+    }
+  }
+
+  function farmhouse(gx, gy, gz, scale) {
+    var w = 3 * scale, d = 2 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.WOOD);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function barn(gx, gy, gz, scale) {
+    var w = 4 * scale, d = 3 * scale, h = 3 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.WOOD);
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= h; y++) {
+      setBlock(gx + w + 1, gy + y, gz, BLOCK.WOOD);
+    }
+  }
+
+  function well(gx, gy, gz, scale) {
+    for (var y = 0; y <= 1; y++) {
+      for (var x = -1; x <= 1; x++) {
+        for (var z = -1; z <= 1; z++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    setBlock(gx, gy + 2, gz, BLOCK.BRICK);
+    setBlock(gx, gy + 3, gz, BLOCK.WOOD);
+  }
+
+  function abandonedPripyatApartment(gx, gy, gz, scale) {
+    var w = 4 * scale, d = 3 * scale, h = 7 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.random() > 0.3) {
+            if (Math.abs(x) === w || Math.abs(z) === d || y === 0) {
+              setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function abandonedSchool(gx, gy, gz, scale) {
+    var w = 6 * scale, d = 4 * scale, h = 3 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.random() > 0.2) {
+            if (Math.abs(x) === w || Math.abs(z) === d || y === 0) {
+              setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function abandonedHotel(gx, gy, gz, scale) {
+    var w = 5 * scale, d = 3 * scale, h = 8 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.random() > 0.25) {
+            if (Math.abs(x) === w || Math.abs(z) === d || y === 0) {
+              setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function amusementPark(gx, gy, gz, scale) {
+    for (var x = -8 * scale; x <= 8 * scale; x++) {
+      for (var z = -8 * scale; z <= 8 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    for (var y = 0; y <= 6 * scale; y++) {
+      setBlock(gx, gy + y, gz, BLOCK.BRICK);
+    }
+    for (var x = -4 * scale; x <= 4 * scale; x++) {
+      setBlock(gx + x, gy + 6 * scale, gz, BLOCK.BRICK);
+    }
+    for (var z = -4 * scale; z <= 4 * scale; z++) {
+      setBlock(gx, gy + 6 * scale, gz + z, BLOCK.BRICK);
+    }
+  }
+
+  function swimmingPool(gx, gy, gz, scale) {
+    for (var x = -4 * scale; x <= 4 * scale; x++) {
+      for (var z = -3 * scale; z <= 3 * scale; z++) {
+        for (var y = 0; y >= -2 * scale; y--) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    for (var x = -4 * scale; x <= 4 * scale; x++) {
+      for (var z = -3 * scale; z <= 3 * scale; z++) {
+        setBlock(gx + x, gy - 2 * scale, gz + z, BLOCK.BRICK);
+      }
+    }
+  }
+
+  function abandonedSupermarket(gx, gy, gz, scale) {
+    var w = 5 * scale, d = 3 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.random() > 0.3) {
+            if (Math.abs(x) === w || Math.abs(z) === d || y === 0) {
+              setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function watchtower(gx, gy, gz, scale) {
+    for (var y = 0; y <= 8 * scale; y++) {
+      setBlock(gx, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz + 1, BLOCK.BRICK);
+    }
+    for (var y = 6 * scale; y <= 8 * scale; y++) {
+      setBlock(gx - 1, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 2, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx - 1, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx + 2, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx, gy + y, gz - 1, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz - 1, BLOCK.BRICK);
+      setBlock(gx, gy + y, gz + 2, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz + 2, BLOCK.BRICK);
+    }
+  }
+
+  function beachHotel(gx, gy, gz, scale) {
+    var w = 4 * scale, d = 3 * scale, h = 5 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function borderCheckpoint(gx, gy, gz, scale) {
+    var w = 2 * scale, d = 1 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+    for (var y = 0; y <= h; y++) {
+      setBlock(gx + w + 1, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx - w - 1, gy + y, gz, BLOCK.BRICK);
+    }
+  }
+
+  function tollBooth(gx, gy, gz, scale) {
+    var w = 1 * scale, d = 1 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy + h, gz + d + 1, BLOCK.BRICK);
+    }
+  }
+
+  function riverPort(gx, gy, gz, scale) {
+    for (var x = -6 * scale; x <= 6 * scale; x++) {
+      for (var z = -3 * scale; z <= 3 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    for (var x = -6 * scale; x <= 6 * scale; x++) {
+      setBlock(gx + x, gy + 1, gz - 3 * scale, BLOCK.BRICK);
+    }
+    for (var y = 0; y <= 2 * scale; y++) {
+      setBlock(gx - 6 * scale, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 6 * scale, gy + y, gz, BLOCK.BRICK);
+    }
+  }
+
+  function ferryTerminal(gx, gy, gz, scale) {
+    for (var x = -4 * scale; x <= 4 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    for (var x = -4 * scale; x <= 4 * scale; x++) {
+      setBlock(gx + x, gy + 1, gz - 2 * scale, BLOCK.BRICK);
+    }
+    for (var y = 0; y <= 2 * scale; y++) {
+      setBlock(gx - 4 * scale, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 4 * scale, gy + y, gz, BLOCK.BRICK);
+    }
+  }
+
+  function theater(gx, gy, gz, scale) {
+    var w = 5 * scale, d = 4 * scale, h = 4 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      for (var y = 0; y <= 2 * scale; y++) {
+        setBlock(gx + x, gy + y, gz + d + 1, BLOCK.BRICK);
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 2, BLOCK.ASPHALT);
+    }
+  }
+
+  function shipyard(gx, gy, gz, scale) {
+    for (var x = -8 * scale; x <= 8 * scale; x++) {
+      for (var z = -4 * scale; z <= 4 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    for (var x = -8 * scale; x <= 8 * scale; x++) {
+      setBlock(gx + x, gy + 1, gz - 4 * scale, BLOCK.BRICK);
+    }
+    for (var y = 0; y <= 3 * scale; y++) {
+      setBlock(gx - 8 * scale, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 8 * scale, gy + y, gz, BLOCK.BRICK);
+    }
+    for (var x = -2 * scale; x <= 2 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        setBlock(gx + x, gy + 1, gz + z, BLOCK.BRICK);
+      }
+    }
+  }
+
+  function cokeOven(gx, gy, gz, scale) {
+    for (var y = 0; y <= 4 * scale; y++) {
+      for (var x = -3 * scale; x <= 3 * scale; x++) {
+        for (var z = -3 * scale; z <= 3 * scale; z++) {
+          if (Math.abs(x) === 3 * scale || Math.abs(z) === 3 * scale || y === 0 || y === 4 * scale) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= 2 * scale; y++) {
+      setBlock(gx, gy + y, gz - 3 * scale - 1, BLOCK.BRICK);
+    }
+  }
+
+  function powerSubstation(gx, gy, gz, scale) {
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        for (var y = 0; y <= 2 * scale; y++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    for (var y = 0; y <= 4 * scale; y++) {
+      setBlock(gx - 3 * scale, gy + y, gz - 2 * scale, BLOCK.BRICK);
+      setBlock(gx + 3 * scale, gy + y, gz - 2 * scale, BLOCK.BRICK);
+    }
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      setBlock(gx + x, gy + 4 * scale, gz - 2 * scale, BLOCK.BRICK);
+    }
+  }
+
+  function navalHQ(gx, gy, gz, scale) {
+    var w = 5 * scale, d = 4 * scale, h = 4 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -2; x <= 2; x++) {
+      for (var z = -d - 1; z <= d + 1; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+  }
+
+  function submarineBase(gx, gy, gz, scale) {
+    for (var x = -6 * scale; x <= 6 * scale; x++) {
+      for (var z = -4 * scale; z <= 4 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    for (var x = -6 * scale; x <= 6 * scale; x++) {
+      setBlock(gx + x, gy + 1, gz - 4 * scale, BLOCK.BRICK);
+    }
+    for (var y = 0; y <= 3 * scale; y++) {
+      setBlock(gx - 6 * scale, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 6 * scale, gy + y, gz, BLOCK.BRICK);
+    }
+    for (var x = -1; x <= 1; x++) {
+      for (var z = -1; z <= 1; z++) {
+        setBlock(gx + x, gy + 1, gz + z, BLOCK.BRICK);
+      }
+    }
+  }
+
+  function panoramaMuseum(gx, gy, gz, scale) {
+    var w = 6 * scale, d = 3 * scale, h = 3 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function coastalFortress(gx, gy, gz, scale) {
+    for (var y = 0; y <= 4 * scale; y++) {
+      for (var x = -8 * scale; x <= 8 * scale; x++) {
+        for (var z = -8 * scale; z <= 8 * scale; z++) {
+          if (Math.abs(x) === 8 * scale || Math.abs(z) === 8 * scale) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= 6 * scale; y++) {
+      setBlock(gx - 8 * scale, gy + y, gz - 8 * scale, BLOCK.BRICK);
+      setBlock(gx + 8 * scale, gy + y, gz - 8 * scale, BLOCK.BRICK);
+      setBlock(gx - 8 * scale, gy + y, gz + 8 * scale, BLOCK.BRICK);
+      setBlock(gx + 8 * scale, gy + y, gz + 8 * scale, BLOCK.BRICK);
+    }
+  }
+
+  function slagHeap(gx, gy, gz, scale) {
+    for (var y = 0; y <= 5 * scale; y++) {
+      var r = 5 * scale - y;
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.DIRT);
+          }
+        }
+      }
+    }
+  }
+
+  function boilerHouse(gx, gy, gz, scale) {
+    var w = 3 * scale, d = 3 * scale, h = 3 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var y = 0; y <= 5 * scale; y++) {
+      setBlock(gx, gy + h + y, gz, BLOCK.BRICK);
+    }
+  }
+
+  function bathhouse(gx, gy, gz, scale) {
+    var w = 3 * scale, d = 2 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function canteen(gx, gy, gz, scale) {
+    var w = 4 * scale, d = 3 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function victoryArch(gx, gy, gz, scale) {
+    for (var y = 0; y <= 10 * scale; y++) {
+      setBlock(gx - 3 * scale, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 3 * scale, gy + y, gz, BLOCK.BRICK);
+    }
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      setBlock(gx + x, gy + 10 * scale, gz, BLOCK.BRICK);
+    }
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      setBlock(gx + x, gy + 8 * scale, gz, BLOCK.BRICK);
+    }
+  }
+
+  function militaryBarracks(gx, gy, gz, scale) {
+    var w = 5 * scale, d = 3 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function pier(gx, gy, gz, scale) {
+    for (var x = -2 * scale; x <= 2 * scale; x++) {
+      for (var z = -1 * scale; z <= 4 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.WOOD);
+      }
+    }
+    for (var y = 0; y <= 2 * scale; y++) {
+      setBlock(gx - 2 * scale, gy + y, gz + 4 * scale, BLOCK.WOOD);
+      setBlock(gx + 2 * scale, gy + y, gz + 4 * scale, BLOCK.WOOD);
+    }
+  }
+
+  function helipad(gx, gy, gz, scale) {
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      for (var z = -3 * scale; z <= 3 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    setBlock(gx, gy + 1, gz, BLOCK.BRICK);
+    setBlock(gx + 1, gy + 1, gz, BLOCK.BRICK);
+    setBlock(gx - 1, gy + 1, gz, BLOCK.BRICK);
+    setBlock(gx, gy + 1, gz + 1, BLOCK.BRICK);
+    setBlock(gx, gy + 1, gz - 1, BLOCK.BRICK);
+  }
+
+  function storageBunker(gx, gy, gz, scale) {
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        for (var y = 0; y <= 2 * scale; y++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    for (var x = -1; x <= 1; x++) {
+      for (var y = 0; y <= 1; y++) {
+        setBlock(gx + x, gy + y, gz - 2 * scale - 1, BLOCK.BRICK);
+      }
+    }
+  }
+
+  function memorialPlaque(gx, gy, gz, scale) {
+    for (var y = 0; y <= 2 * scale; y++) {
+      setBlock(gx, gy + y, gz, BLOCK.BRICK);
+    }
+    for (var x = -1; x <= 1; x++) {
+      setBlock(gx + x, gy + 2 * scale, gz, BLOCK.BRICK);
+    }
+    for (var x = -2; x <= 2; x++) {
+      for (var z = -1; z <= 1; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.BRICK);
+      }
+    }
+  }
+
+  function runway(gx, gy, gz, scale) {
+    for (var x = -20 * scale; x <= 20 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    for (var x = -20 * scale; x <= 20 * scale; x += 5) {
+      setBlock(gx + x, gy + 1, gz, BLOCK.BRICK);
+    }
+  }
+
+  function officerClub(gx, gy, gz, scale) {
+    var w = 4 * scale, d = 3 * scale, h = 3 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function ammoBunker(gx, gy, gz, scale) {
+    for (var x = -2 * scale; x <= 2 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        for (var y = 0; y <= 2 * scale; y++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    for (var x = -1; x <= 1; x++) {
+      for (var y = 0; y <= 1; y++) {
+        setBlock(gx + x, gy + y, gz - 2 * scale - 1, BLOCK.BRICK);
+      }
+    }
+  }
+
+  function guardPost(gx, gy, gz, scale) {
+    for (var y = 0; y <= 2 * scale; y++) {
+      setBlock(gx, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz + 1, BLOCK.BRICK);
+    }
+    for (var y = 1 * scale; y <= 2 * scale; y++) {
+      setBlock(gx - 1, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 2, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx - 1, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx + 2, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx, gy + y, gz - 1, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz - 1, BLOCK.BRICK);
+      setBlock(gx, gy + y, gz + 2, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz + 2, BLOCK.BRICK);
+    }
+  }
+
+  function culturePalace(gx, gy, gz, scale) {
+    var w = 5 * scale, d = 4 * scale, h = 4 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -3 * scale; x <= 3 * scale; x++) {
+      for (var y = 0; y <= 2 * scale; y++) {
+        setBlock(gx + x, gy + y, gz + d + 1, BLOCK.BRICK);
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 2, BLOCK.ASPHALT);
+    }
+  }
+
+  function hospital(gx, gy, gz, scale) {
+    var w = 5 * scale, d = 4 * scale, h = 4 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -2; x <= 2; x++) {
+      for (var z = -d - 1; z <= d + 1; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    setBlock(gx, gy + h + 1, gz, BLOCK.BRICK);
+    setBlock(gx + 1, gy + h + 1, gz, BLOCK.BRICK);
+    setBlock(gx - 1, gy + h + 1, gz, BLOCK.BRICK);
+  }
+
+  function shoppingCenter(gx, gy, gz, scale) {
+    var w = 6 * scale, d = 4 * scale, h = 3 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function suspensionBridge(gx, gy, gz, scale) {
+    for (var x = -15 * scale; x <= 15 * scale; x++) {
+      setBlock(gx + x, gy, gz, BLOCK.ASPHALT);
+    }
+    for (var y = 0; y <= 8 * scale; y++) {
+      setBlock(gx - 15 * scale, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 15 * scale, gy + y, gz, BLOCK.BRICK);
+    }
+    for (var x = -15 * scale; x <= 15 * scale; x++) {
+      setBlock(gx + x, gy + 8 * scale, gz, BLOCK.BRICK);
+    }
+    for (var x = -15 * scale; x <= 15 * scale; x += 3) {
+      setBlock(gx + x, gy + 7 * scale, gz, BLOCK.BRICK);
+      setBlock(gx + x, gy + 6 * scale, gz, BLOCK.BRICK);
+    }
+  }
+
+  function observationTower(gx, gy, gz, scale) {
+    for (var y = 0; y <= 10 * scale; y++) {
+      setBlock(gx, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz + 1, BLOCK.BRICK);
+    }
+    for (var y = 8 * scale; y <= 10 * scale; y++) {
+      setBlock(gx - 1, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 2, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx - 1, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx + 2, gy + y, gz + 1, BLOCK.BRICK);
+      setBlock(gx, gy + y, gz - 1, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz - 1, BLOCK.BRICK);
+      setBlock(gx, gy + y, gz + 2, BLOCK.BRICK);
+      setBlock(gx + 1, gy + y, gz + 2, BLOCK.BRICK);
+    }
+    setBlock(gx + 0.5, gy + 11 * scale, gz + 0.5, BLOCK.BRICK);
+  }
+
+  function pontoonBridge(gx, gy, gz, scale) {
+    for (var x = -10 * scale; x <= 10 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.WOOD);
+      }
+    }
+    for (var x = -10 * scale; x <= 10 * scale; x += 5) {
+      for (var y = 0; y >= -2 * scale; y--) {
+        setBlock(gx + x, gy + y, gz, BLOCK.WOOD);
+      }
+    }
+  }
+
+  function monitoringStation(gx, gy, gz, scale) {
+    for (var x = -2 * scale; x <= 2 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        for (var y = 0; y <= 2 * scale; y++) {
+          setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+        }
+      }
+    }
+    for (var y = 0; y <= 4 * scale; y++) {
+      setBlock(gx, gy + 2 * scale + y, gz, BLOCK.BRICK);
+    }
+    setBlock(gx + 1, gy + 6 * scale, gz, BLOCK.BRICK);
+    setBlock(gx - 1, gy + 6 * scale, gz, BLOCK.BRICK);
+    setBlock(gx, gy + 6 * scale, gz + 1, BLOCK.BRICK);
+    setBlock(gx, gy + 6 * scale, gz - 1, BLOCK.BRICK);
+  }
+
+  function catalyticCracker(gx, gy, gz, scale) {
+    for (var y = 0; y <= 8 * scale; y++) {
+      var r = Math.max(1, Math.floor((8 * scale - y) / 3));
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+          }
+        }
+      }
+    }
+    setBlock(gx, gy + 8 * scale + 1, gz, BLOCK.STEEL);
+  }
+
+  function burningBuilding(gx, gy, gz, scale) {
+    var w = 3 * scale, d = 3 * scale, h = 5 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.random() > 0.4) {
+            if (Math.abs(x) === w || Math.abs(z) === d || y === 0) {
+              setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+            }
+          }
+        }
+      }
+    }
+    setBlock(gx, gy + h + 1, gz, BLOCK.FUEL_BARREL);
+  }
+
+  function fishMarket(gx, gy, gz, scale) {
+    var w = 4 * scale, d = 3 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function dryDock(gx, gy, gz, scale) {
+    for (var x = -8 * scale; x <= 8 * scale; x++) {
+      for (var z = -3 * scale; z <= 3 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    for (var x = -8 * scale; x <= 8 * scale; x++) {
+      setBlock(gx + x, gy + 1, gz - 3 * scale, BLOCK.BRICK);
+    }
+    for (var y = 0; y <= 2 * scale; y++) {
+      setBlock(gx - 8 * scale, gy + y, gz, BLOCK.BRICK);
+      setBlock(gx + 8 * scale, gy + y, gz, BLOCK.BRICK);
+    }
+  }
+
+  function seasidePromenade(gx, gy, gz, scale) {
+    for (var x = -15 * scale; x <= 15 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.ASPHALT);
+      }
+    }
+    for (var x = -15 * scale; x <= 15 * scale; x += 5) {
+      setBlock(gx + x, gy + 1, gz + 2 * scale, BLOCK.BRICK);
+      setBlock(gx + x, gy + 1, gz - 2 * scale, BLOCK.BRICK);
+    }
+  }
+
+  function defensivePosition(gx, gy, gz, scale) {
+    for (var x = -5 * scale; x <= 5 * scale; x++) {
+      for (var z = -2 * scale; z <= 2 * scale; z++) {
+        setBlock(gx + x, gy, gz + z, BLOCK.DIRT);
+      }
+    }
+    for (var x = -5 * scale; x <= 5 * scale; x++) {
+      setBlock(gx + x, gy + 1, gz - 2 * scale, BLOCK.DIRT);
+      setBlock(gx + x, gy + 1, gz + 2 * scale, BLOCK.DIRT);
+    }
+    for (var y = 0; y <= 2 * scale; y++) {
+      setBlock(gx - 5 * scale, gy + y, gz, BLOCK.DIRT);
+      setBlock(gx + 5 * scale, gy + y, gz, BLOCK.DIRT);
+    }
+  }
+
+  function tractorShed(gx, gy, gz, scale) {
+    var w = 4 * scale, d = 3 * scale, h = 2 * scale;
+    for (var x = -w; x <= w; x++) {
+      for (var z = -d; z <= d; z++) {
+        for (var y = 0; y <= h; y++) {
+          if (Math.abs(x) === w || Math.abs(z) === d || y === 0 || y === h) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.BRICK);
+          }
+        }
+      }
+    }
+    for (var x = -w; x <= w; x++) {
+      setBlock(gx + x, gy, gz + d + 1, BLOCK.ASPHALT);
+    }
+  }
+
+  function stadium(gx, gy, gz, scale) {
+    var r = 12 * scale, h = 4 * scale;
+    for (var y = 0; y <= h; y++) {
+      for (var x = -r; x <= r; x++) {
+        for (var z = -r; z <= r; z++) {
+          if (x*x + z*z <= r*r && x*x + z*z >= (r-2)*(r-2)) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.CONCRETE);
+          }
+          if (x*x + z*z < (r-2)*(r-2) && y === 0) {
+            setBlock(gx + x, gy + y, gz + z, BLOCK.ASPHALT);
+          }
+        }
+      }
+    }
+  }
+
   // ── Public API ────────────────────────────────────────────
   return {
     CITIES: CITIES, ROADS: ROADS, STAGE_MAP: STAGE_MAP,
@@ -2468,6 +4017,7 @@ function fountain(ox, oz, gy) {
     barricade: barricade, tankTrap: tankTrap, propagandaBillboard: propagandaBillboard,
     mineHeadframe: mineHeadframe, spoilTip: spoilTip, portCrane: portCrane,
     metroEntrance: metroEntrance, fountain: fountain,
+    fuelStorageTank: fuelStorageTank, fireStation: fireStation, parkingGarage: parkingGarage, aircraftMonument: aircraftMonument, radarDome: radarDome, independenceMonument: independenceMonument, goldenGate: goldenGate, governmentHouse: governmentHouse, olympicStadium: olympicStadium, embankmentBuilding: embankmentBuilding, spasskayaTower: spasskayaTower, gumDepartmentStore: gumDepartmentStore, christSaviorCathedral: christSaviorCathedral, ostankinoTower: ostankinoTower, redSquarePlaza: redSquarePlaza, portCrane: portCrane, shippingContainer: shippingContainer, lighthouse: lighthouse, grainElevator: grainElevator, bakhmutFortress: bakhmutFortress, railwayStation: railwayStation, saltMineEntrance: saltMineEntrance, marketHall: marketHall, grandKremlinPalace: grandKremlinPalace, tsarCannon: tsarCannon, tsarBell: tsarBell, kremlinSenate: kremlinSenate, kremlinArsenal: kremlinArsenal, forestRangerStation: forestRangerStation, huntingLodge: huntingLodge, sawmill: sawmill, woodenChurch: woodenChurch, windmill: windmill, farmhouse: farmhouse, barn: barn, well: well, abandonedPripyatApartment: abandonedPripyatApartment, abandonedSchool: abandonedSchool, abandonedHotel: abandonedHotel, amusementPark: amusementPark, swimmingPool: swimmingPool, abandonedSupermarket: abandonedSupermarket, watchtower: watchtower, beachHotel: beachHotel, borderCheckpoint: borderCheckpoint, tollBooth: tollBooth, riverPort: riverPort, ferryTerminal: ferryTerminal, theater: theater, shipyard: shipyard, cokeOven: cokeOven, powerSubstation: powerSubstation, navalHQ: navalHQ, submarineBase: submarineBase, panoramaMuseum: panoramaMuseum, coastalFortress: coastalFortress, slagHeap: slagHeap, boilerHouse: boilerHouse, bathhouse: bathhouse, canteen: canteen, victoryArch: victoryArch, militaryBarracks: militaryBarracks, pier: pier, helipad: helipad, storageBunker: storageBunker, memorialPlaque: memorialPlaque, runway: runway, officerClub: officerClub, ammoBunker: ammoBunker, guardPost: guardPost, culturePalace: culturePalace, hospital: hospital, shoppingCenter: shoppingCenter, suspensionBridge: suspensionBridge, observationTower: observationTower, pontoonBridge: pontoonBridge, monitoringStation: monitoringStation, catalyticCracker: catalyticCracker, burningBuilding: burningBuilding, fishMarket: fishMarket, dryDock: dryDock, seasidePromenade: seasidePromenade, defensivePosition: defensivePosition, tractorShed: tractorShed, stadium: stadium,
   };
 })();
 if (typeof window !== 'undefined') { window.CityBuildings = CityBuildings; }
