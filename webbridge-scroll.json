@@ -1,1 +1,0 @@
-{"action":"evaluate","args":{"code":"window.scrollTo(0, document.body.scrollHeight);"},"session":"ok-game-qa"}

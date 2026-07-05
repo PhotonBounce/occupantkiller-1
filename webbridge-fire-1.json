@@ -1,1 +1,0 @@
-{"action":"evaluate","args":{"code":"var ev=new MouseEvent('mousedown',{button:0,bubbles:true,clientX:window.innerWidth/2,clientY:window.innerHeight/2}); document.dispatchEvent(ev); setTimeout(()=>{var ev2=new MouseEvent('mouseup',{button:0,bubbles:true});document.dispatchEvent(ev2)},100);"},"session":"ok-game-qa"}

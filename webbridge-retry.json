@@ -1,1 +1,0 @@
-{"action":"evaluate","args":{"code":"(() => { const btns = [...document.querySelectorAll('button')]; const btn = btns.find(b => b.textContent.includes('Retry')); if (btn) { btn.click(); return 'clicked'; } return 'not found'; })()"},"session":"game-qa"}

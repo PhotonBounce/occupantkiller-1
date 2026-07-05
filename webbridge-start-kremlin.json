@@ -1,1 +1,0 @@
-{"action":"evaluate","args":{"code":"window.__QA_START_STAGE = 5; window.__QA_MODE = true; var btn = document.querySelector('button'); if(btn) btn.click();"},"session":"ok-game-qa"}

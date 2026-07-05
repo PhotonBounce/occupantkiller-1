@@ -1,1 +1,0 @@
-{"action":"evaluate","args":{"code":"JSON.stringify({errors:window.__errors||[],consoleErrors:(()=>{var e=[];for(var i=0;i<Math.min((window._consoleErrors||[]).length,20);i++)e.push(window._consoleErrors[i]);return e;})()})"},"session":"ok-game-qa"}
