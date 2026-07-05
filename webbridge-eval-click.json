@@ -1,0 +1,1 @@
+{"action":"evaluate","args":{"code":"document.querySelectorAll('button').forEach(function(b){if(b.textContent.includes('QUICK'))b.click();});"},"session":"building-qa"}

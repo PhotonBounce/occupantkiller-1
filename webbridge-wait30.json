@@ -1,0 +1,1 @@
+{"action":"evaluate","args":{"code":"(async () => { await new Promise(r => setTimeout(r, 30000)); return { ready: typeof GameManager !== 'undefined' && GameManager.gameReady, stage: typeof GameManager !== 'undefined' ? GameManager.currentStage : null }; })()"},"session":"game-qa"}

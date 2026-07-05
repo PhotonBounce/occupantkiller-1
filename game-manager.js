@@ -52,7 +52,7 @@
   }
   function _startBootTimeout() {
     if (_bootTimeout) clearTimeout(_bootTimeout);
-    _bootTimeout = setTimeout(_showBootTimeoutError, 15000);
+    _bootTimeout = setTimeout(_showBootTimeoutError, 45000);
   }
   function _clearBootTimeout() {
     if (_bootTimeout) { clearTimeout(_bootTimeout); _bootTimeout = null; }
