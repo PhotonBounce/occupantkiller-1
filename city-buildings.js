@@ -382,50 +382,149 @@ const CityBuildings = (function () {
 
   // ── kyivBaroqueChurch ──
   function kyivBaroqueChurch(ox, oz, gy, w, d, h, domeCount) {
+    // Real: St. Sophia's Cathedral / St. Michael's Golden-Domed Monastery style
+    // Ukrainian Baroque (Cossack Baroque): pear-shaped bulbous domes, 
+    // white/gold contrast, ornate decoration, elongated proportions
+    // Built 11th-18th century, UNESCO World Heritage
+    
     domeCount = domeCount || 5;
     var cx = ox + Math.floor(w / 2), cz = oz + Math.floor(d / 2);
+    var detail = (typeof window !== 'undefined' && window.detailLevel) || 0;
+    
+    // --- Main body (white plaster with blue/artificial stone accents) ---
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
         for (var z = 0; z < d; z++) {
           var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
           var isRoof = y === h - 1;
           if (isWall || isRoof) {
-            var bt = PAL.BRICK;
-            if (y === 0) bt = PAL.STONE;
-            if (isRoof) bt = PAL.ROOFTILE;
+            var bt = PAL.WHITE_TILE; // White plaster
+            if (y === 0) bt = PAL.STONE; // Stone foundation
+            if (isRoof) bt = PAL.ROOFTILE; // Dark roof
+            // Horizontal cornice bands
+            if (y === Math.floor(h / 3) || y === Math.floor(h * 2 / 3)) bt = PAL.STONE_LIMESTONE;
+            // Vertical pilasters (decorative columns on corners)
+            if ((x === 0 || x === w - 1) && (z === 0 || z === d - 1)) bt = PAL.STONE_LIMESTONE;
+            // Arched windows (blue/artificial stone frames)
+            if (y > 2 && y < h - 2 && z === d - 1 && (x === 3 || x === w - 4)) {
+              bt = PAL.BLUE_TILE; // Window frames
+            }
             setBlock(ox + x, gy + y, oz + z, bt);
           }
         }
       }
     }
+    
+    // --- Onion domes (Ukrainian Baroque: pear-shaped, bulbous, gilded) ---
+    // Central dome largest, 4 corner domes smaller (like St. Sophia)
     var domePositions = [[cx, cz]];
     if (domeCount >= 5) {
-      domePositions.push([ox + 2, oz + 2], [ox + w - 3, oz + 2], [ox + 2, oz + d - 3], [ox + w - 3, oz + d - 3]);
+      var cornerOffset = Math.floor(Math.min(w, d) / 4);
+      domePositions.push(
+        [ox + cornerOffset, oz + cornerOffset],
+        [ox + w - 1 - cornerOffset, oz + cornerOffset],
+        [ox + cornerOffset, oz + d - 1 - cornerOffset],
+        [ox + w - 1 - cornerOffset, oz + d - 1 - cornerOffset]
+      );
     }
+    
     for (var di = 0; di < domePositions.length; di++) {
       var dx = domePositions[di][0], dz = domePositions[di][1];
       var domeY = gy + h;
-      for (var dy = 0; dy < 4; dy++) {
-        var radius = (dy < 2) ? 2 - dy : 1;
+      var isCentral = (di === 0);
+      var domeH = isCentral ? 6 : 4;
+      
+      // Onion dome shape: wide base, narrow neck, bulbous top, small cupola
+      for (var dy = 0; dy < domeH; dy++) {
+        var progress = dy / domeH;
+        // Pear-shaped profile: starts wide, narrows, then bulges slightly
+        var radius;
+        if (progress < 0.3) {
+          radius = (isCentral ? 3 : 2) * (1 - progress * 0.5); // Wide base tapering
+        } else if (progress < 0.7) {
+          radius = (isCentral ? 2.5 : 1.5) * (0.85 + Math.sin((progress - 0.3) * Math.PI / 0.4) * 0.3); // Bulbous
+        } else {
+          radius = (isCentral ? 2 : 1) * (1 - (progress - 0.7) * 2); // Taper to point
+        }
+        radius = Math.max(1, Math.floor(radius));
+        
         for (var dxx = -radius; dxx <= radius; dxx++) {
           for (var dzz = -radius; dzz <= radius; dzz++) {
-            if (Math.abs(dxx) + Math.abs(dzz) <= radius + 1) setBlock(dx + dxx, domeY + dy, dz + dzz, PAL.METAL);
+            if (dxx * dxx + dzz * dzz <= radius * radius + 1) {
+              var bt = PAL.METAL_COPPER; // Gilded dome
+              if (detail > 0 && dy < 2) bt = PAL.STONE_LIMESTONE; // White base
+              setBlock(dx + dxx, domeY + dy, dz + dzz, bt);
+            }
           }
         }
       }
-      setBlock(dx, domeY + 4, dz, PAL.METAL); setBlock(dx, domeY + 5, dz, PAL.METAL);
+      
+      // Cupola (small dome on top) with cross
+      setBlock(dx, domeY + domeH, dz, PAL.METAL_COPPER);
+      setBlock(dx + 1, domeY + domeH, dz, PAL.METAL_COPPER);
+      setBlock(dx - 1, domeY + domeH, dz, PAL.METAL_COPPER);
+      setBlock(dx, domeY + domeH, dz + 1, PAL.METAL_COPPER);
+      setBlock(dx, domeY + domeH, dz - 1, PAL.METAL_COPPER);
+      
+      // Orthodox cross (3-bar)
+      setBlock(dx, domeY + domeH + 1, dz, PAL.METAL); // Vertical
+      setBlock(dx, domeY + domeH + 2, dz, PAL.METAL);
+      setBlock(dx, domeY + domeH + 3, dz, PAL.METAL);
+      setBlock(dx + 1, domeY + domeH + 2, dz, PAL.METAL); // Horizontal bar
+      setBlock(dx - 1, domeY + domeH + 2, dz, PAL.METAL);
+      setBlock(dx + 1, domeY + domeH + 1, dz, PAL.METAL); // Slanted footbar
+      setBlock(dx - 1, domeY + domeH + 1, dz, PAL.METAL);
     }
+    
+    // --- Bell tower (separate, tall, multi-tiered) ---
     var bx = ox + w, bz = oz + Math.floor(d / 2);
-    for (var y = 0; y < h + 6; y++) {
-      for (var tx = 0; tx < 3; tx++) {
-        for (var tz = 0; tz < 3; tz++) {
-          var isWall = tx === 0 || tx === 2 || tz === 0 || tz === 2;
-          if (isWall) { var bt = (y % 4 < 2) ? PAL.BLUE_TILE : PAL.WHITE_TILE; setBlock(bx + tx, gy + y, bz + tz, bt); }
+    for (var y = 0; y < h + 10; y++) {
+      for (var tx = 0; tx < 4; tx++) {
+        for (var tz = 0; tz < 4; tz++) {
+          var isWall = tx === 0 || tx === 3 || tz === 0 || tz === 3;
+          if (isWall) {
+            var bt = (y % 3 < 2) ? PAL.WHITE_TILE : PAL.STONE_LIMESTONE; // White with stone bands
+            // Arched openings at belfry level (where bells hang)
+            if (y > h + 4 && y < h + 9 && (tx === 1 || tx === 2 || tz === 1 || tz === 2)) {
+              bt = PAL.AIR; // Open belfry
+            }
+            setBlock(bx + tx, gy + y, bz + tz, bt);
+          }
         }
       }
     }
-    setBlock(bx + 1, gy + h + 6, bz + 1, PAL.METAL); setBlock(bx + 1, gy + h + 7, bz + 1, PAL.METAL);
-    setBlock(cx, gy, oz + d - 1, PAL.AIR); setBlock(cx, gy + 1, oz + d - 1, PAL.AIR); setBlock(cx, gy + 2, oz + d - 1, PAL.AIR);
+    // Bell tower dome
+    for (var dy = 0; dy < 5; dy++) {
+      var radius = (dy < 2) ? 2 : (dy < 4) ? 1 : 0;
+      for (var dxx = -radius; dxx <= radius; dxx++) {
+        for (var dzz = -radius; dzz <= radius; dzz++) {
+          setBlock(bx + 1 + dxx, gy + h + 10 + dy, bz + 1 + dzz, PAL.METAL_COPPER);
+        }
+      }
+    }
+    setBlock(bx + 1, gy + h + 15, bz + 1, PAL.METAL); // Cross on bell tower
+    setBlock(bx + 1, gy + h + 16, bz + 1, PAL.METAL);
+    
+    // --- Main entrance (3-arched portal) ---
+    setBlock(cx, gy, oz + d - 1, PAL.AIR);     // Center arch
+    setBlock(cx, gy + 1, oz + d - 1, PAL.AIR);
+    setBlock(cx, gy + 2, oz + d - 1, PAL.AIR);
+    setBlock(cx - 1, gy, oz + d - 1, PAL.AIR); // Left arch
+    setBlock(cx - 1, gy + 1, oz + d - 1, PAL.AIR);
+    setBlock(cx - 1, gy + 2, oz + d - 1, PAL.AIR);
+    setBlock(cx + 1, gy, oz + d - 1, PAL.AIR); // Right arch
+    setBlock(cx + 1, gy + 1, oz + d - 1, PAL.AIR);
+    setBlock(cx + 1, gy + 2, oz + d - 1, PAL.AIR);
+    
+    // --- Fresco decorations (if detail enabled) ---
+    if (detail > 0) {
+      // Decorative wall patterns (blue/gold mosaics on front facade)
+      for (var x = 2; x < w - 2; x += 4) {
+        for (var y = 3; y < h - 3; y += 4) {
+          setBlock(ox + x, gy + y, oz + d, PAL.BLUE_TILE);
+        }
+      }
+    }
   }
 
   // ── stBasilCathedral ──
@@ -463,24 +562,248 @@ const CityBuildings = (function () {
 
   // ── motherlandMonument ──
   function motherlandMonument(ox, oz, gy) {
-    for (var y = 0; y < 20; y++) { for (var x = -6; x <= 6; x++) { for (var z = -4; z <= 4; z++) setBlock(ox + x, gy + y, oz + z, PAL.CONCRETE); } }
-    for (var y = 0; y < 30; y++) { var sz = Math.max(1, 4 - Math.floor(y / 8)); for (var x = -sz; x <= sz; x++) { for (var z = -sz; z <= sz; z++) setBlock(ox + x, gy + 20 + y, oz + z, PAL.METAL); } }
-    for (var i = 0; i < 10; i++) { setBlock(ox + 4 + Math.floor(i / 3), gy + 35 + i, oz, PAL.METAL); setBlock(ox + 5 + Math.floor(i / 3), gy + 35 + i, oz, PAL.METAL); }
-    for (var x = -6; x <= -2; x++) { for (var y = 28; y < 36; y++) setBlock(ox + x, gy + y, oz - 3, PAL.METAL); }
-    setBlock(ox - 4, gy + 32, oz - 4, PAL.BRICK); setBlock(ox - 4, gy + 33, oz - 4, PAL.BRICK); setBlock(ox - 4, gy + 34, oz - 4, PAL.BRICK);
-    setBlock(ox - 5, gy + 32, oz - 4, PAL.BRICK); setBlock(ox - 3, gy + 32, oz - 4, PAL.BRICK);
-    for (var sx = -7; sx <= 7; sx++) { setBlock(ox + sx, gy, oz + 5, PAL.STONE); setBlock(ox + sx, gy + 1, oz + 6, PAL.STONE); }
+    // Real: Motherland Monument (Rodina Mat), Kyiv, Dnipro slope
+    // Built 1978-1981, 62m tall, stainless steel, 102m total with pedestal
+    // Woman in "shawl" holding sword and shield, facing east toward Moscow
+    // Shield: 13x8m with hammer and sickle, Sword: 16m long
+    // Now called "Mother Ukraine" (sickle/hammer removed from shield in 2023)
+    
+    var detail = (typeof window !== 'undefined' && window.detailLevel) || 0;
+    
+    // --- Pedestal/Base Building (museum of Great Patriotic War) ---
+    // Trapezoidal, flared at bottom, 42m tall
+    for (var y = 0; y < 24; y++) {
+      var flareW = Math.floor(y / 6) + 1;
+      var flareD = Math.floor(y / 8) + 1;
+      for (var x = -6 - flareW; x <= 6 + flareW; x++) {
+        for (var z = -4 - flareD; z <= 4 + flareD; z++) {
+          var isWall = Math.abs(x) === 6 + flareW || Math.abs(z) === 4 + flareD;
+          if (isWall || y === 23) {
+            var bt = PAL.CONCRETE;
+            if (y === 0) bt = PAL.STONE; // Granite base
+            // Art deco / geometric relief bands
+            if (y % 6 === 0 && y > 0) bt = PAL.STONE_LIMESTONE;
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+        }
+      }
+    }
+    
+    // --- Colonnade/torso (sheath-like concrete body) ---
+    for (var y = 24; y < 45; y++) {
+      var sz = Math.max(2, 5 - Math.floor((y - 24) / 7));
+      for (var x = -sz; x <= sz; x++) {
+        for (var z = -sz; z <= sz; z++) {
+          var isSurface = Math.abs(x) === sz || Math.abs(z) === sz;
+          if (isSurface || y === 44) {
+            var bt = PAL.CONCRETE;
+            // Vertical lines creating draped effect (shawl)
+            if (x % 2 === 0) bt = PAL.STONE_LIMESTONE;
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+        }
+      }
+    }
+    
+    // --- Head and neck area ---
+    for (var y = 45; y < 52; y++) {
+      var sz = Math.max(2, 3 - Math.floor((y - 45) / 4));
+      for (var x = -sz; x <= sz; x++) {
+        for (var z = -sz; z <= sz; z++) {
+          setBlock(ox + x, gy + y, oz + z, PAL.METAL); // Stainless steel
+        }
+      }
+    }
+    
+    // Crown / flame on head
+    for (var x = -1; x <= 1; x++) {
+      for (var z = -1; z <= 1; z++) {
+        setBlock(ox + x, gy + 52, oz + z, PAL.METAL);
+      }
+    }
+    setBlock(ox, gy + 53, oz, PAL.LIGHT); // Beacon at top
+    
+    // --- Sword (raised right hand, 16m long, 9 tons) ---
+    // Sweeps up from right shoulder toward northeast
+    for (var i = 0; i < 18; i++) {
+      var sx = ox + 3 + Math.floor(i / 3);
+      var sy = gy + 38 + i;
+      // Sword blade - wide base narrowing to point
+      var sw = (i < 6) ? 2 : (i < 12) ? 1 : 0;
+      for (var dx = -sw; dx <= sw; dx++) {
+        setBlock(sx + dx, sy, oz, PAL.METAL);
+        setBlock(sx + dx, sy, oz + 1, PAL.METAL);
+      }
+    }
+    // Sword tip (pointed)
+    setBlock(ox + 9, gy + 56, oz, PAL.METAL);
+    setBlock(ox + 9, gy + 56, oz + 1, PAL.METAL);
+    setBlock(ox + 10, gy + 57, oz, PAL.METAL);
+    
+    // --- Shield (left hand, 13x8m, oval/trapezoid) ---
+    // Faces forward with slight tilt
+    for (var x = -7; x <= -2; x++) {
+      for (var y = 35; y < 45; y++) {
+        // Oval shape: wider in middle
+        var centerY = 40;
+        var dy = Math.abs(y - centerY);
+        var maxX = 7 - Math.floor(dy / 2.5);
+        if (Math.abs(x) <= maxX) {
+          setBlock(ox + x, gy + y, oz - 4, PAL.METAL);
+          setBlock(ox + x, gy + y, oz - 3, PAL.METAL);
+          // Shield detail: geometric patterns (trident/symbol area)
+          if (x > -6 && x < -3 && y > 37 && y < 43) {
+            setBlock(ox + x, gy + y, oz - 2, PAL.METAL_COPPER); // Golden accent
+          }
+        }
+      }
+    }
+    
+    // --- Draped fabric / shawl flowing back ---
+    for (var x = -8; x <= 8; x++) {
+      for (var y = 30; y < 45; y++) {
+        var backZ = oz - 3 - Math.floor((y - 30) / 3);
+        if (Math.abs(x) <= 7 && Math.abs(x) >= 3) {
+          setBlock(ox + x, gy + y, backZ, PAL.METAL);
+          setBlock(ox + x, gy + y, backZ - 1, PAL.METAL);
+        }
+      }
+    }
+    
+    // --- Base platform with eternal flame ---
+    for (var sx = -8; sx <= 8; sx++) {
+      setBlock(ox + sx, gy, oz + 5, PAL.STONE);
+      setBlock(ox + sx, gy + 1, oz + 6, PAL.STONE);
+    }
+    // Eternal flame
+    setBlock(ox, gy + 2, oz + 6, PAL.FIRE);
+    setBlock(ox + 1, gy + 2, oz + 6, PAL.FIRE);
+    setBlock(ox - 1, gy + 2, oz + 6, PAL.FIRE);
+    setBlock(ox, gy + 3, oz + 6, PAL.FIRE);
+    
+    // --- Side platform with geometric patterns ---
+    if (detail > 0) {
+      for (var sx = -10; sx <= 10; sx++) {
+        for (var sz = -8; sz <= 8; sz++) {
+          if (Math.abs(sx) > 8 || Math.abs(sz) > 6) {
+            setBlock(ox + sx, gy, oz + sz, PAL.STONE);
+          }
+        }
+      }
+    }
   }
 
   // ── kremlinWall ──
   function kremlinWall(ox, oz, gy, w, d, h) {
-    for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isEdge = x === 0 || x === w - 1 || z === 0 || z === d - 1; if (isEdge) { for (var y = 0; y < h; y++) { var bt = PAL.BRICK; if (y === h - 1 && (x + z) % 2 === 0) bt = PAL.AIR; setBlock(ox + x, gy + y, oz + z, bt); } } } }
-    var towerPositions = [[0,0],[Math.floor(w/2),0],[w-1,0],[0,Math.floor(d/2)],[w-1,Math.floor(d/2)],[0,d-1],[Math.floor(w/2),d-1],[w-1,d-1]];
+    // Real: Moscow Kremlin walls, 1485-1495, red brick with crenellations
+    // 2.235km long, 5-19m tall, 20 towers (with Kutafya bastion)
+    // Red brick, white stone trim, distinctive swallowtail crenellations
+    // Corner towers: round, with ruby star (since 1937)
+    // Trinity Tower: 80m, tallest
+    // Spasskaya: clock tower with Kremlin chimes
+    // Borovitskaya: main entrance near Red Square
+    
+    var detail = (typeof window !== 'undefined' && window.detailLevel) || 0;
+    
+    // --- Main wall (red brick, white stone base, swallowtail crenellations) ---
+    for (var x = 0; x < w; x++) {
+      for (var z = 0; z < d; z++) {
+        var isEdge = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+        if (isEdge) {
+          for (var y = 0; y < h; y++) {
+            var bt = PAL.BRICK; // Red brick
+            // White stone base (Armenian limestone, 1.5m tall)
+            if (y === 0) bt = PAL.STONE_LIMESTONE;
+            // White stone trim at corners
+            if (y === 1 && (x === 0 || x === w - 1 || z === 0 || z === d - 1)) bt = PAL.STONE_LIMESTONE;
+            // Swallowtail crenellations at top (zigzag pattern)
+            if (y === h - 1) {
+              var crenX = (x + z) % 2 === 0;
+              if (!crenX) bt = PAL.AIR; // Swallowtail gaps
+            }
+            // Arrow slits (loopholes) at mid-height
+            if (y === Math.floor(h / 2) && (x % 4 === 0 || z % 4 === 0)) {
+              bt = PAL.AIR;
+            }
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+        }
+      }
+    }
+    
+    // --- Towers (8 positions: corners + midpoints) ---
+    var towerPositions = [
+      [0, 0],                    // Corner (Srednyaya Arsenalnaya)
+      [Math.floor(w / 2), 0],    // Mid-north (Trinity/Троицкая)
+      [w - 1, 0],                // Corner (Komendantskaya)
+      [0, Math.floor(d / 2)],    // Mid-west (Borovitskaya)
+      [w - 1, Math.floor(d / 2)], // Mid-east (Vodovzvodnaya)
+      [0, d - 1],                // Corner (Blagoveshenskaya)
+      [Math.floor(w / 2), d - 1], // Mid-south (Spasskaya - clock tower)
+      [w - 1, d - 1]             // Corner (Tsarskaya)
+    ];
+    
     for (var ti = 0; ti < towerPositions.length; ti++) {
       var tx = ox + towerPositions[ti][0], tz = oz + towerPositions[ti][1];
-      for (var y = 0; y < h + 6; y++) { for (var dx = -1; dx <= 1; dx++) { for (var dz = -1; dz <= 1; dz++) { var bt = PAL.BRICK; if (y > h + 2) bt = PAL.ROOFTILE; setBlock(tx + dx, gy + y, tz + dz, bt); } } }
-      setBlock(tx, gy + h + 6, tz, PAL.METAL); setBlock(tx + 1, gy + h + 6, tz, PAL.METAL); setBlock(tx - 1, gy + h + 6, tz, PAL.METAL); setBlock(tx, gy + h + 6, tz + 1, PAL.METAL); setBlock(tx, gy + h + 6, tz - 1, PAL.METAL);
-      if (ti === 1) { setBlock(tx, gy + h + 2, tz + 2, PAL.WHITE_TILE); setBlock(tx + 1, gy + h + 2, tz + 2, PAL.WHITE_TILE); setBlock(tx - 1, gy + h + 2, tz + 2, PAL.WHITE_TILE); setBlock(tx, gy + h + 3, tz + 2, PAL.WHITE_TILE); setBlock(tx, gy + h + 1, tz + 2, PAL.WHITE_TILE); }
+      var towerH = (ti === 1 || ti === 6) ? h + 12 : h + 6; // Trinity and Spasskaya are taller
+      var towerW = (ti === 1 || ti === 6) ? 3 : 2; // Wider base for main towers
+      
+      // Tower base (white stone, red brick upper)
+      for (var y = 0; y < towerH; y++) {
+        for (var dx = -towerW; dx <= towerW; dx++) {
+          for (var dz = -towerW; dz <= towerW; dz++) {
+            var bt = PAL.BRICK;
+            if (y < 2) bt = PAL.STONE_LIMESTONE; // White stone base
+            if (y > towerH - 3) bt = PAL.ROOFTILE; // Dark roof/terracotta
+            // Tapered walls for round towers
+            if (y > h + 2 && Math.abs(dx) === towerW && Math.abs(dz) === towerW) continue;
+            setBlock(tx + dx, gy + y, tz + dz, bt);
+          }
+        }
+      }
+      
+      // Tower roof (octagonal/terracotta tent roof)
+      for (var y = 0; y < 3; y++) {
+        var roofR = 2 - y;
+        for (var dx = -roofR; dx <= roofR; dx++) {
+          for (var dz = -roofR; dz <= roofR; dz++) {
+            setBlock(tx + dx, gy + towerH + y, tz + dz, PAL.ROOFTILE);
+          }
+        }
+      }
+      
+      // Spire with ruby star (5-pointed, since 1937 on main towers)
+      if (ti === 1 || ti === 6 || ti === 4) { // Trinity, Spasskaya, Vodovzvodnaya
+        setBlock(tx, gy + towerH + 3, tz, PAL.METAL); // Gold spire
+        setBlock(tx + 1, gy + towerH + 3, tz, PAL.METAL);
+        setBlock(tx - 1, gy + towerH + 3, tz, PAL.METAL);
+        setBlock(tx, gy + towerH + 3, tz + 1, PAL.METAL);
+        setBlock(tx, gy + towerH + 3, tz - 1, PAL.METAL);
+        // Ruby star (red glass/metal)
+        setBlock(tx, gy + towerH + 4, tz, PAL.METAL_COPPER);
+        setBlock(tx, gy + towerH + 5, tz, PAL.METAL_COPPER);
+      }
+      
+      // Spasskaya clock (ti === 6) - Kremlin chimes
+      if (ti === 6) {
+        // White clock face with gold frame
+        for (var cx = -1; cx <= 1; cx++) {
+          for (var cy = 0; cy < 2; cy++) {
+            setBlock(tx + cx, gy + h + 2 + cy, tz + 2, PAL.WHITE_TILE);
+          }
+        }
+        // Clock hands (gold)
+        setBlock(tx, gy + h + 3, tz + 3, PAL.METAL_COPPER);
+        setBlock(tx + 1, gy + h + 3, tz + 3, PAL.METAL_COPPER);
+      }
+      
+      // Borovitskaya main gate arch (ti === 3)
+      if (ti === 3) {
+        setBlock(tx, gy, tz + 2, PAL.AIR); // Arch opening
+        setBlock(tx, gy + 1, tz + 2, PAL.AIR);
+        setBlock(tx + 1, gy, tz + 2, PAL.AIR);
+        setBlock(tx + 1, gy + 1, tz + 2, PAL.AIR);
+      }
     }
   }
 
@@ -573,13 +896,132 @@ const CityBuildings = (function () {
 
 
   // ── azovstalComplex ──
-  function azovstalComplex(ox, oz, gy, w, d, h, color) { color = color || PAL.METAL;
-    for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) { var bt = color; if (y === 0) bt = PAL.CONCRETE; if (isRoof) bt = PAL.ROOFTILE; setBlock(ox + x, gy + y, oz + z, bt); } } } }
+  function azovstalComplex(ox, oz, gy, w, d, h, color) {
+    // Real: Azovstal Iron and Steel Works, Mariupol
+    // Founded 1930, massive Soviet-era steelworks covering 11km²
+    // Features: blast furnaces, converter shops, open-hearth furnaces, 
+    //   rolling mills, cooling towers, coke ovens, smokestacks, overhead cranes
+    color = color || PAL.METAL;
+    var damage = (typeof window !== 'undefined' && window.destructionLevel) || 0.8; // Heavily damaged in 2022 siege
+    
+    // Main industrial hall (massive, corrugated steel roof)
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        for (var z = 0; z < d; z++) {
+          var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+          var isRoof = y === h - 1;
+          if (isWall || isRoof) {
+            var bt = color;
+            if (y === 0) bt = PAL.CONCRETE;
+            if (isRoof) bt = PAL.ROOFTILE;
+            // Damage: large hole in roof from shelling
+            if (damage > 0.5 && isRoof && x > w / 2 - 3 && x < w / 2 + 3 && z > d / 2 - 3 && z < d / 2 + 3) continue;
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+        }
+      }
+    }
+    
+    // Blast furnace (central, much taller than main hall, cylindrical)
     var bfX = ox + Math.floor(w / 2), bfZ = oz + Math.floor(d / 3);
-    for (var y = 0; y < h + 15; y++) { var radius = (y < h) ? 4 : Math.max(2, 4 - Math.floor((y - h) / 4)); for (var dx = -radius; dx <= radius; dx++) { for (var dz = -radius; dz <= radius; dz++) { if (dx * dx + dz * dz <= radius * radius + 1) setBlock(bfX + dx, gy + y, bfZ + dz, PAL.METAL); } } }
-    for (var ci = 0; ci < 2; ci++) { var cx = ox + 5 + ci * (w - 10), cz = oz + d - 8; for (var y = 0; y < 18; y++) { var radius = 3 + Math.floor(Math.sin(y * 0.15) * 2); for (var dx = -radius; dx <= radius; dx++) { for (var dz = -radius; dz <= radius; dz++) { if (dx * dx + dz * dz <= radius * radius + 1) setBlock(cx + dx, gy + y, cz + dz, PAL.CONCRETE); } } } }
-    for (var si = 0; si < 4; si++) { var sx = ox + 3 + si * Math.floor(w / 4); var sz = oz + Math.floor(d / 2) + 5; for (var y = 0; y < h + 10; y++) { var bt = (y % 4 < 2) ? PAL.BRICK : PAL.WHITE_TILE; setBlock(sx, gy + y, sz, bt); setBlock(sx + 1, gy + y, sz, bt); setBlock(sx, gy + y, sz + 1, bt); setBlock(sx + 1, gy + y, sz + 1, bt); } }
-    for (var x = 0; x < w; x += 3) { setBlock(ox + x, gy + h, oz + Math.floor(d / 2), PAL.METAL); setBlock(ox + x, gy + h + 1, oz + Math.floor(d / 2), PAL.METAL); }
+    for (var y = 0; y < h + 20; y++) {
+      var radius = (y < h) ? 5 : Math.max(3, 5 - Math.floor((y - h) / 3));
+      for (var dx = -radius; dx <= radius; dx++) {
+        for (var dz = -radius; dz <= radius; dz++) {
+          if (dx * dx + dz * dz <= radius * radius + 1) {
+            var bt = PAL.METAL;
+            if (y > h + 10) bt = PAL.RUST; // Rusted upper section
+            if (y > h + 15) bt = PAL.BRICK; // Brick lined top
+            setBlock(bfX + dx, gy + y, bfZ + dz, bt);
+          }
+        }
+      }
+      // Furnace throat/mouth
+      if (y === h + 20 - 1) {
+        for (var dx = -2; dx <= 2; dx++) {
+          for (var dz = -2; dz <= 2; dz++) setBlock(bfX + dx, gy + y + 1, bfZ + dz, PAL.FIRE);
+        }
+      }
+    }
+    
+    // Converter shop with converter vessels (pear-shaped, tilted)
+    for (var ci = 0; ci < 2; ci++) {
+      var cx = ox + 5 + ci * (w - 10), cz = oz + d - 8;
+      for (var y = 0; y < h + 8; y++) {
+        var radius = (y < h / 2) ? 3 : (y < h + 4) ? 4 : 3;
+        for (var dx = -radius; dx <= radius; dx++) {
+          for (var dz = -radius; dz <= radius; dz++) {
+            if (dx * dx + dz * dz <= radius * radius + 1) {
+              setBlock(cx + dx, gy + y, cz + dz, PAL.CONCRETE);
+            }
+          }
+        }
+      }
+      // Converter vessel opening (hot metal pour)
+      setBlock(cx, gy + h + 8, cz, PAL.FIRE);
+      setBlock(cx + 1, gy + h + 8, cz, PAL.FIRE);
+      setBlock(cx - 1, gy + h + 8, cz, PAL.FIRE);
+    }
+    
+    // Smokestacks (4 tall, flared at top)
+    for (var si = 0; si < 4; si++) {
+      var sx = ox + 3 + si * Math.floor(w / 4);
+      var sz = oz + Math.floor(d / 2) + 5;
+      for (var y = 0; y < h + 15; y++) {
+        var flare = (y > h + 10) ? 1 : 0;
+        var bt = (y % 4 < 2) ? PAL.BRICK : PAL.WHITE_TILE; // Red/white banded
+        if (y > h + 12) bt = PAL.RUST; // Rusted top
+        for (var dx = -1 - flare; dx <= 1 + flare; dx++) {
+          for (var dz = -1 - flare; dz <= 1 + flare; dz++) {
+            setBlock(sx + dx, gy + y, sz + dz, bt);
+          }
+        }
+      }
+      // Smoke particles at top
+      setBlock(sx, gy + h + 15, sz, PAL.SMOKE);
+      setBlock(sx + 1, gy + h + 16, sz + 1, PAL.SMOKE);
+      setBlock(sx - 1, gy + h + 17, sz - 1, PAL.SMOKE);
+    }
+    
+    // Overhead crane gantry rails (running length of hall)
+    for (var x = 0; x < w; x += 3) {
+      setBlock(ox + x, gy + h, oz + Math.floor(d / 2), PAL.METAL);
+      setBlock(ox + x, gy + h + 1, oz + Math.floor(d / 2), PAL.METAL);
+    }
+    
+    // Overhead crane (movable)
+    var craneX = ox + Math.floor(w / 2);
+    for (var z = 0; z < d; z++) {
+      setBlock(craneX, gy + h + 2, oz + z, PAL.METAL);
+    }
+    // Crane hook
+    setBlock(craneX, gy + h + 1, oz + Math.floor(d / 2), PAL.METAL);
+    setBlock(craneX, gy + h, oz + Math.floor(d / 2), PAL.METAL);
+    
+    // Rubble and debris (heavy damage from 2022 siege)
+    if (damage > 0.3) {
+      for (var i = 0; i < Math.floor(damage * 50); i++) {
+        var rx = ox + Math.floor(Math.random() * w);
+        var ry = gy + Math.floor(Math.random() * 2);
+        var rz = oz + Math.floor(Math.random() * d);
+        setBlock(rx, ry, rz, PAL.RUBBLE);
+      }
+    }
+    
+    // Slag heaps near the complex
+    for (var i = 0; i < 8; i++) {
+      var slX = ox + Math.floor(Math.random() * w);
+      var slZ = oz + d + 2 + Math.floor(Math.random() * 8);
+      var slH = 3 + Math.floor(Math.random() * 4);
+      for (var y = 0; y < slH; y++) {
+        var slR = Math.floor((slH - y) / 2) + 1;
+        for (var dx = -slR; dx <= slR; dx++) {
+          for (var dz = -slR; dz <= slR; dz++) {
+            setBlock(slX + dx, gy + y, slZ + dz, PAL.RUBBLE);
+          }
+        }
+      }
+    }
   }
 
   // ── coolingTower ──
@@ -616,13 +1058,360 @@ const CityBuildings = (function () {
   function sarcophagus(ox, oz, gy) { for (var y = 0; y < 12; y++) { for (var x = -12; x <= 12; x++) { for (var z = -8; z <= 8; z++) { var archHeight = Math.sqrt(144 - x * x) * 0.6; if (y < archHeight && Math.abs(z) === 8) setBlock(ox + x, gy + y, oz + z, PAL.METAL); if (y >= archHeight - 1 && y < archHeight + 1 && Math.abs(x) <= 12) setBlock(ox + x, gy + y, oz + z, PAL.METAL); } } } for (var y = 0; y < 6; y++) { for (var x = -8; x <= 8; x++) { for (var z = -5; z <= 5; z++) setBlock(ox + x, gy - 6 + y, oz + z, PAL.CONCRETE); } } }
 
   // ── pripyatFerrisWheel ──
-  function pripyatFerrisWheel(ox, oz, gy) { for (var y = 0; y < 12; y++) setBlock(ox, gy + y, oz, PAL.METAL); for (var angle = 0; angle < Math.PI * 2; angle += 0.2) { var wx = Math.round(Math.cos(angle) * 6); var wy = Math.round(Math.sin(angle) * 6); setBlock(ox + wx, gy + 12 + wy, oz, PAL.METAL); if (angle % 0.6 < 0.2) setBlock(ox + wx, gy + 12 + wy - 1, oz, PAL.GLASS); } for (var y = 0; y < 12; y++) { setBlock(ox + 3, gy + y, oz, PAL.METAL); setBlock(ox - 3, gy + y, oz, PAL.METAL); } }
+  function pripyatFerrisWheel(ox, oz, gy) {
+    // Real: Ferris wheel in Pripyat amusement park, Chornobyl exclusion zone
+    // Built 1986, never opened due to Chornobyl disaster (April 26, 1986)
+    // 26m tall, 36 cabins, now iconic rusting symbol of abandoned Soviet city
+    // Abandoned, rusted, vegetation growing on it
+    
+    var detail = (typeof window !== 'undefined' && window.detailLevel) || 0;
+    
+    // --- Central support tower (A-frame, rusted steel) ---
+    for (var y = 0; y < 16; y++) {
+      var bt = (y % 3 === 0) ? PAL.RUST : PAL.METAL;
+      setBlock(ox, gy + y, oz, bt);           // Main vertical
+      setBlock(ox + 1, gy + y, oz, bt);      // Thickness
+      setBlock(ox, gy + y, oz + 1, bt);
+      setBlock(ox + 1, gy + y, oz + 1, bt);
+    }
+    
+    // A-frame legs (spreading outward for stability)
+    for (var y = 0; y < 12; y++) {
+      var spread = Math.floor(y / 3);
+      var bt = (y % 3 === 0) ? PAL.RUST : PAL.METAL;
+      setBlock(ox - 2 - spread, gy + y, oz, bt);     // Left leg
+      setBlock(ox + 3 + spread, gy + y, oz, bt);     // Right leg
+      setBlock(ox - 2 - spread, gy + y, oz + 1, bt);
+      setBlock(ox + 3 + spread, gy + y, oz + 1, bt);
+    }
+    
+    // Cross-bracing between legs
+    for (var y = 3; y < 10; y += 3) {
+      for (var dx = -2; dx <= 3; dx++) {
+        setBlock(ox + dx, gy + y, oz, PAL.METAL);
+      }
+    }
+    
+    // --- The wheel (spoked, rusted, 36m diameter = 18 voxel radius) ---
+    var wheelY = gy + 16;
+    var wheelR = 9; // 18m radius, total 36m
+    
+    // Rim (rusted, discontinuous where damaged)
+    for (var angle = 0; angle < Math.PI * 2; angle += 0.15) {
+      var wx = Math.round(Math.cos(angle) * wheelR);
+      var wy = Math.round(Math.sin(angle) * wheelR);
+      var bt = (Math.random() < 0.1) ? PAL.AIR : PAL.RUST; // Some missing segments
+      setBlock(ox + wx, wheelY + wy, oz, bt);
+      setBlock(ox + wx, wheelY + wy, oz + 1, bt); // Thickness
+    }
+    
+    // Spokes (radiating from center, 8 spokes)
+    for (var si = 0; si < 8; si++) {
+      var angle = (si / 8) * Math.PI * 2;
+      for (var r = 2; r < wheelR; r += 2) {
+        var sx = Math.round(Math.cos(angle) * r);
+        var sy = Math.round(Math.sin(angle) * r);
+        setBlock(ox + sx, wheelY + sy, oz, PAL.RUST);
+      }
+    }
+    
+    // Center hub
+    for (var dx = -1; dx <= 1; dx++) {
+      for (var dy = -1; dy <= 1; dy++) {
+        for (var dz = -1; dz <= 1; dz++) {
+          setBlock(ox + dx, wheelY + dy, oz + dz, PAL.RUST);
+        }
+      }
+    }
+    
+    // --- Gondolas/cabins (36 total, hanging at angles) ---
+    for (var ci = 0; ci < 8; ci++) {
+      var angle = (ci / 8) * Math.PI * 2;
+      var wx = Math.round(Math.cos(angle) * wheelR);
+      var wy = Math.round(Math.sin(angle) * wheelR);
+      
+      // Hanging bracket
+      setBlock(ox + wx, wheelY + wy - 1, oz, PAL.METAL);
+      setBlock(ox + wx, wheelY + wy - 2, oz, PAL.METAL);
+      
+      // Cabin (small box, some broken)
+      var cabinH = (Math.random() < 0.3) ? 1 : 2; // Some collapsed
+      for (var cy = 0; cy < cabinH; cy++) {
+        for (var cx = -1; cx <= 1; cx++) {
+          for (var cz = 0; cz <= 1; cz++) {
+            var bt = (Math.random() < 0.2) ? PAL.AIR : PAL.RUST; // Some broken cabins
+            setBlock(ox + wx + cx, wheelY + wy - 3 - cy, oz + cz, bt);
+          }
+        }
+      }
+    }
+    
+    // --- Overgrown vegetation (abandoned for 38+ years) ---
+    if (detail > 0) {
+      for (var i = 0; i < 20; i++) {
+        var vx = ox + Math.floor((Math.random() - 0.5) * 20);
+        var vz = oz + Math.floor((Math.random() - 0.5) * 20);
+        var vh = 1 + Math.floor(Math.random() * 3);
+        for (var y = 0; y < vh; y++) {
+          setBlock(vx, gy + y, vz, PAL.LEAVES);
+        }
+      }
+    }
+    
+    // --- Rubble and debris around base ---
+    for (var i = 0; i < 15; i++) {
+      var rx = ox + Math.floor((Math.random() - 0.5) * 10);
+      var rz = oz + Math.floor((Math.random() - 0.5) * 10);
+      setBlock(rx, gy, rz, PAL.RUBBLE);
+    }
+  }
 
   // ── crimeaBridge ──
-  function crimeaBridge(ox, oz, gy, length, width, height) { length = length || 60; width = width || 6; height = height || 3; for (var x = 0; x < length; x++) { for (var z = 0; z < width; z++) { setBlock(ox + x, gy + height, oz + z, PAL.ASPHALT); if (z === 0 || z === width - 1) setBlock(ox + x, gy + height + 1, oz + z, PAL.METAL); } if (x % 12 === 0) { for (var y = 0; y < height; y++) { for (var z = 0; z < width; z++) setBlock(ox + x, gy + y, oz + z, PAL.CONCRETE); } } } for (var x = 0; x < length; x++) { for (var z = -2; z < width + 2; z++) setBlock(ox + x, gy + height - 2, oz + z, PAL.METAL); } }
+  function crimeaBridge(ox, oz, gy, length, width, height) {
+    // Real: Crimean Bridge (Kerch Strait Bridge), opened 2018 (road), 2019 (rail)
+    // 19km total, road + rail parallel bridges
+    // Designed for 4 lanes road + 2 track rail, 35m clearance
+    // Attacked multiple times (Oct 2022 truck bomb, July 2023 drone strike, 2024)
+    // Features: parallel road and rail, navigation arches, Tuzla Island crossing
+    length = length || 60;
+    width = width || 6;
+    height = height || 3;
+    
+    var damage = (typeof window !== 'undefined' && window.destructionLevel) || 0.2; // Partially damaged
+    var detail = (typeof window !== 'undefined' && window.detailLevel) || 0;
+    
+    // --- Road bridge (upper deck, asphalt, wider) ---
+    for (var x = 0; x < length; x++) {
+      for (var z = 0; z < width; z++) {
+        // Road surface (asphalt)
+        setBlock(ox + x, gy + height + 2, oz + z, PAL.ASPHALT);
+        // Guard rails (metal)
+        if (z === 0 || z === width - 1) {
+          setBlock(ox + x, gy + height + 3, oz + z, PAL.METAL);
+        }
+        // Center divider
+        if (z === Math.floor(width / 2)) {
+          setBlock(ox + x, gy + height + 3, oz + z, PAL.CONCRETE);
+        }
+      }
+    }
+    
+    // --- Rail bridge (lower deck, narrower, parallel) ---
+    for (var x = 0; x < length; x++) {
+      for (var z = 0; z < 3; z++) { // Narrower rail deck
+        setBlock(ox + x, gy + height, oz + z - 5, PAL.CONCRETE); // Rail deck
+        // Rail tracks
+        if (z === 0 || z === 2) {
+          setBlock(ox + x, gy + height + 1, oz + z - 5, PAL.METAL);
+        }
+      }
+    }
+    
+    // --- Support pillars (every 12 blocks, massive concrete) ---
+    for (var x = 0; x < length; x += 12) {
+      for (var y = 0; y < height + 2; y++) {
+        for (var z = 0; z < width; z++) {
+          setBlock(ox + x, gy + y, oz + z, PAL.CONCRETE);
+          setBlock(ox + x + 1, gy + y, oz + z, PAL.CONCRETE);
+          // Rail bridge supports
+          setBlock(ox + x, gy + y, oz + z - 5, PAL.CONCRETE);
+          setBlock(ox + x + 1, gy + y, oz + z - 5, PAL.CONCRETE);
+        }
+      }
+      // Foundation (wider at base, underwater)
+      for (var y = 0; y < 3; y++) {
+        for (var z = -2; z < width + 2; z++) {
+          for (var dx = -1; dx <= 2; dx++) {
+            setBlock(ox + x + dx, gy - 1 - y, oz + z, PAL.CONCRETE);
+          }
+        }
+      }
+    }
+    
+    // --- Truss/cable stays (diagonal supports) ---
+    for (var x = 6; x < length; x += 12) {
+      // Diagonal supports from pillar top to deck edges
+      for (var i = 0; i < 6; i++) {
+        var dx = ox + x + i;
+        var dy = gy + height + 2 - i;
+        setBlock(dx, dy, oz, PAL.METAL);
+        setBlock(dx, dy, oz + width - 1, PAL.METAL);
+      }
+    }
+    
+    // --- Navigation arch (higher clearance section for ships) ---
+    if (length > 40) {
+      var archCenter = Math.floor(length / 2);
+      var archWidth = 12;
+      var archHeight = 8;
+      // Tall arch supports
+      for (var y = 0; y < height + archHeight; y++) {
+        for (var z = 0; z < width; z++) {
+          setBlock(ox + archCenter - archWidth / 2, gy + y, oz + z, PAL.CONCRETE);
+          setBlock(ox + archCenter + archWidth / 2, gy + y, oz + z, PAL.CONCRETE);
+        }
+      }
+      // Arch curve (top connecting the two tall supports)
+      for (var dx = -archWidth / 2; dx <= archWidth / 2; dx++) {
+        var archY = Math.floor(Math.sqrt(archWidth * archWidth / 4 - dx * dx) * archHeight / (archWidth / 2));
+        for (var z = 0; z < width; z++) {
+          setBlock(ox + archCenter + dx, gy + height + archHeight - archY, oz + z, PAL.METAL);
+        }
+      }
+      // Road deck continues through arch (higher here)
+      for (var x = archCenter - archWidth / 2; x <= archCenter + archWidth / 2; x++) {
+        for (var z = 0; z < width; z++) {
+          setBlock(ox + x, gy + height + 2, oz + z, PAL.ASPHALT);
+        }
+      }
+    }
+    
+    // --- Damage from attacks (if destruction enabled) ---
+    if (damage > 0.1) {
+      // Collapsed section (like 2022 truck bomb damage)
+      var damageX = ox + Math.floor(length * 0.6);
+      for (var x = 0; x < 8; x++) {
+        for (var z = 0; z < width; z++) {
+          setBlock(damageX + x, gy + height + 2, oz + z, PAL.AIR); // Road deck collapsed
+          setBlock(damageX + x, gy + height + 3, oz + z, PAL.AIR); // Guard rails gone
+        }
+        // Hanging twisted metal
+        for (var y = 0; y < 3; y++) {
+          setBlock(damageX + x, gy + height + 2 - y, oz + Math.floor(width / 2), PAL.METAL);
+        }
+      }
+      // Debris in water below
+      for (var i = 0; i < 20; i++) {
+        var rx = damageX + Math.floor(Math.random() * 8);
+        var rz = oz + Math.floor(Math.random() * width);
+        setBlock(rx, gy - 1, rz, PAL.RUBBLE);
+        setBlock(rx, gy - 2, rz, PAL.RUBBLE);
+      }
+    }
+    
+    // --- Lower deck structure (connecting road and rail) ---
+    for (var x = 0; x < length; x++) {
+      for (var z = -2; z < width + 2; z++) {
+        setBlock(ox + x, gy + height - 2, oz + z, PAL.METAL);
+      }
+    }
+  }
 
   // ── dramaTheater ──
-  function dramaTheater(ox, oz, gy, w, d, h, color) { color = color || PAL.WHITE_TILE; for (var y = 0; y < h; y++) { for (var x = 0; x < w; x++) { for (var z = 0; z < d; z++) { var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1; var isRoof = y === h - 1; if (isWall || isRoof) { var bt = color; if (isRoof) bt = PAL.ROOFTILE; if (x > w / 2 && y > h / 2 && Math.random() < 0.5) continue; setBlock(ox + x, gy + y, oz + z, bt); } } } } for (var sx = 2; sx < w - 2; sx++) setBlock(ox + sx, gy + h - 2, oz + d, PAL.WHITE_TILE); setBlock(ox + Math.floor(w / 2), gy, oz + d - 1, PAL.AIR); setBlock(ox + Math.floor(w / 2), gy + 1, oz + d - 1, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy, oz + d - 1, PAL.AIR); setBlock(ox + Math.floor(w / 2) + 1, gy + 1, oz + d - 1, PAL.AIR); }
+  function dramaTheater(ox, oz, gy, w, d, h, color) { 
+    // Real: Donetsk Academic Regional Drama Theater, Mariupol
+    // Built 1956-1960s, Soviet Monumental Classicism
+    // Pediment with sculptural composition of steelworkers & husbandmen
+    // Large portico with 6 columns, triangular pediment, symmetrical facade
+    // Destroyed March 16, 2022 — show partial collapse
+    color = color || PAL.WHITE_TILE;
+    var detail = (typeof window !== 'undefined' && window.detailLevel) || 0;
+    var damage = (typeof window !== 'undefined' && window.destructionLevel) || 0.3; // Mariupol was heavily damaged
+    
+    // Main building body - symmetrical, white plaster with stone base
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        for (var z = 0; z < d; z++) {
+          var isWall = x === 0 || x === w - 1 || z === 0 || z === d - 1;
+          var isRoof = y === h - 1;
+          if (isWall || isRoof) {
+            // Skip damaged central section (where bomb hit)
+            if (x > w / 2 - 1 && x < w / 2 + 2 && y > h / 2 && z === d - 1 && damage > 0.2) continue;
+            
+            var bt = color;
+            if (y === 0) bt = PAL.STONE; // Stone foundation
+            if (y === 1) bt = PAL.STONE_LIMESTONE; // Limestone base
+            if (isRoof) bt = PAL.ROOFTILE;
+            
+            // Horizontal banding (classic Soviet monumental style)
+            if (y === Math.floor(h / 3) || y === Math.floor(h * 2 / 3)) bt = PAL.STONE_LIMESTONE;
+            
+            // Front facade (z = d - 1) gets special treatment
+            if (z === d - 1 && x > 2 && x < w - 3) {
+              // Main entrance area - 6 column portico
+              if (y > 0 && y < h - 2) {
+                var colSpacing = Math.floor((w - 6) / 7);
+                var isColumn = false;
+                for (var ci = 0; ci < 6; ci++) {
+                  var cx = 3 + ci * colSpacing + Math.floor(colSpacing / 2);
+                  if (x === cx || x === cx + 1) isColumn = true;
+                }
+                if (isColumn) bt = PAL.STONE_MARBLE; // White marble columns
+              }
+            }
+            
+            setBlock(ox + x, gy + y, oz + z, bt);
+          }
+        }
+      }
+    }
+    
+    // Triangular pediment above portico
+    var pedimentW = w - 6;
+    var pedimentH = 4;
+    for (var py = 0; py < pedimentH; py++) {
+      var pw = pedimentW - py * 2;
+      var startX = ox + 3 + py;
+      for (var px = 0; px < pw; px++) {
+        setBlock(startX + px, gy + h + py, oz + d - 1, PAL.STONE_LIMESTONE);
+        setBlock(startX + px, gy + h + py, oz + d - 2, PAL.STONE_LIMESTONE);
+      }
+    }
+    
+    // Sculptural composition on pediment (steelworkers & husbandmen - simplified)
+    if (detail > 0) {
+      var scY = gy + h + 1;
+      var scX = ox + Math.floor(w / 2);
+      setBlock(scX, scY, oz + d, PAL.STONE); // Central figure
+      setBlock(scX - 1, scY, oz + d, PAL.STONE); // Left figure
+      setBlock(scX + 1, scY, oz + d, PAL.STONE); // Right figure
+      setBlock(scX - 2, scY - 1, oz + d, PAL.STONE); // Lower left
+      setBlock(scX + 2, scY - 1, oz + d, PAL.STONE); // Lower right
+    }
+    
+    // Grand entrance stairs
+    for (var sx = 3; sx < w - 3; sx++) {
+      setBlock(ox + sx, gy - 1, oz + d, PAL.STONE);
+      setBlock(ox + sx, gy - 1, oz + d + 1, PAL.STONE);
+    }
+    
+    // Entrance doors (double, wide)
+    setBlock(ox + Math.floor(w / 2) - 1, gy, oz + d - 1, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2) - 1, gy + 1, oz + d - 1, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2), gy, oz + d - 1, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2), gy + 1, oz + d - 1, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2) + 1, gy, oz + d - 1, PAL.AIR);
+    setBlock(ox + Math.floor(w / 2) + 1, gy + 1, oz + d - 1, PAL.AIR);
+    
+    // Side windows - tall, arched tops
+    for (var y = 2; y < h - 2; y++) {
+      for (var x = 2; x < w - 2; x += 3) {
+        if (x > w / 2 - 3 && x < w / 2 + 3) continue; // Skip center (portico)
+        setBlock(ox + x, gy + y, oz + d - 1, PAL.GLASS);
+        setBlock(ox + x + 1, gy + y, oz + d - 1, PAL.GLASS);
+      }
+    }
+    
+    // Rubble from bomb damage
+    if (damage > 0.1) {
+      for (var i = 0; i < Math.floor(damage * 30); i++) {
+        var rx = ox + Math.floor(w / 2) + Math.floor((Math.random() - 0.5) * 6);
+        var ry = gy + Math.floor(Math.random() * h / 2);
+        var rz = oz + d - 1 + Math.floor(Math.random() * 3);
+        setBlock(rx, ry, rz, PAL.RUBBLE);
+      }
+    }
+    
+    // "CHILDREN" sign in front (Russian bombing tragedy, March 16 2022)
+    if (detail > 0) {
+      var signY = gy - 1;
+      var signZ = oz + d + 2;
+      // Simple representation: white stone blocks on ground spelling out sign area
+      for (var sx = 2; sx < w - 2; sx++) {
+        setBlock(ox + sx, signY, signZ, PAL.ASPHALT);
+      }
+    }
+  }
 
   // ── antonovskyBridge ──
   function antonovskyBridge(ox, oz, gy, length, width, height) { length = length || 50; width = width || 6; height = height || 5; for (var x = 0; x < length; x++) { for (var z = 0; z < width; z++) { if (x > 20 && x < 30) continue; setBlock(ox + x, gy + height, oz + z, PAL.ASPHALT); if (z === 0 || z === width - 1) setBlock(ox + x, gy + height + 1, oz + z, PAL.METAL); } if (x === 10 || x === 40) { for (var y = 0; y < height + 12; y++) { for (var pz = -1; pz <= 1; pz++) setBlock(ox + x, gy + y, oz + Math.floor(width / 2) + pz, PAL.CONCRETE); } for (var c = 0; c < 10; c++) { setBlock(ox + x + c, gy + height + 10 - c, oz + Math.floor(width / 2), PAL.METAL); setBlock(ox + x - c, gy + height + 10 - c, oz + Math.floor(width / 2), PAL.METAL); } } if (x % 10 === 0) { for (var y = 0; y < height; y++) { for (var z = 0; z < width; z++) setBlock(ox + x, gy + y, oz + z, PAL.CONCRETE); } } } }
@@ -824,7 +1613,148 @@ const CityBuildings = (function () {
   }
 
   // ── monument ──
-  function monument(ox, oz, gy, type) { if (type === 'obelisk') { for (var y = 0; y < 12; y++) { var sz = Math.max(1, 2 - Math.floor(y / 4)); for (var x = -sz; x <= sz; x++) { for (var z = -sz; z <= sz; z++) setBlock(ox + x, gy + y, oz + z, PAL.STONE); } } setBlock(ox, gy + 12, oz, PAL.METAL); setBlock(ox + 1, gy + 12, oz, PAL.METAL); setBlock(ox - 1, gy + 12, oz, PAL.METAL); setBlock(ox, gy + 12, oz + 1, PAL.METAL); setBlock(ox, gy + 12, oz - 1, PAL.METAL); setBlock(ox, gy + 13, oz, PAL.METAL); } else if (type === 'tank') { for (var y = 0; y < 3; y++) { for (var x = -2; x <= 2; x++) { for (var z = -2; z <= 2; z++) setBlock(ox + x, gy + y, oz + z, PAL.CONCRETE); } } for (var x = -2; x <= 2; x++) { for (var z = -3; z <= 3; z++) setBlock(ox + x, gy + 3, oz + z, PAL.METAL); } for (var x = -1; x <= 1; x++) { for (var z = -1; z <= 1; z++) setBlock(ox + x, gy + 4, oz + z, PAL.METAL); } for (var z = 0; z < 5; z++) setBlock(ox, gy + 4, oz + 2 + z, PAL.METAL); } else if (type === 'motherland') { for (var y = 0; y < 15; y++) { var sz = Math.max(0, 3 - Math.floor(y / 3)); for (var x = -sz; x <= sz; x++) { for (var z = -sz; z <= sz; z++) setBlock(ox + x, gy + y, oz + z, PAL.STONE); } } for (var y = 5; y < 18; y++) setBlock(ox + 2, gy + y, oz, PAL.METAL); for (var x = -2; x <= 0; x++) { for (var y = 6; y < 12; y++) setBlock(ox + x, gy + y, oz - 1, PAL.METAL); } } }
+  function monument(ox, oz, gy, type) {
+    if (type === 'obelisk') {
+      // Kyiv Independence Monument (Berehynia) on Maidan Nezalezhnosti
+      // Real: 62m tall white marble column, stepped base, golden statue on top
+      var detail = (typeof window !== 'undefined' && window.detailLevel) || 0;
+      
+      // Stepped marble base (inspired by Zaborovsky gate)
+      for (var by = 0; by < 4; by++) {
+        var br = 4 - by;
+        for (var x = -br; x <= br; x++) {
+          for (var z = -br; z <= br; z++) {
+            setBlock(ox + x, gy + by, oz + z, PAL.STONE_MARBLE);
+          }
+        }
+      }
+      
+      // White marble column (tapered, with decorative rings)
+      var colH = 22;
+      for (var y = 4; y < colH; y++) {
+        var taper = (y > colH - 3) ? 1 : 0;
+        var r = 2 - taper;
+        for (var x = -r; x <= r; x++) {
+          for (var z = -r; z <= r; z++) {
+            if (x * x + z * z <= r * r + 1) {
+              setBlock(ox + x, gy + y, oz + z, PAL.STONE_MARBLE);
+            }
+          }
+        }
+        // Decorative ring every 5 blocks
+        if (y % 5 === 0 && y > 4) {
+          for (var x = -r - 1; x <= r + 1; x++) {
+            for (var z = -r - 1; z <= r + 1; z++) {
+              if (x * x + z * z <= (r + 1) * (r + 1) + 1 && x * x + z * z > r * r) {
+                setBlock(ox + x, gy + y, oz + z, PAL.STONE_LIMESTONE);
+              }
+            }
+          }
+        }
+      }
+      
+      // Golden statue of Berehynia (guardian spirit) on top
+      // Raised arms holding a branch of guelder rose
+      var sy = gy + colH;
+      // Globe/pedestal under statue
+      for (var y = 0; y < 3; y++) {
+        var sr = 2 - y;
+        for (var x = -sr; x <= sr; x++) {
+          for (var z = -sr; z <= sr; z++) {
+            setBlock(ox + x, sy + y, oz + z, PAL.STONE_MARBLE);
+          }
+        }
+      }
+      
+      // Statue body (simplified figure)
+      for (var y = 0; y < 6; y++) {
+        var sr = Math.max(0, 1 - Math.floor(y / 3));
+        for (var x = -sr; x <= sr; x++) {
+          for (var z = -sr; z <= sr; z++) {
+            setBlock(ox + x, sy + 3 + y, oz + z, PAL.METAL_COPPER); // Bronze/gold color
+          }
+        }
+      }
+      
+      // Raised arms with branch
+      setBlock(ox - 2, sy + 5, oz, PAL.METAL_COPPER);
+      setBlock(ox - 3, sy + 6, oz, PAL.METAL_COPPER);
+      setBlock(ox + 2, sy + 5, oz, PAL.METAL_COPPER);
+      setBlock(ox + 3, sy + 6, oz, PAL.METAL_COPPER);
+      
+      // Wing-like elements
+      if (detail > 0) {
+        for (var dx = -4; dx <= 4; dx++) {
+          var wingY = sy + 5 - Math.abs(dx) * 0.5;
+          setBlock(ox + dx, Math.floor(wingY), oz + 1, PAL.METAL_COPPER);
+          setBlock(ox + dx, Math.floor(wingY), oz - 1, PAL.METAL_COPPER);
+        }
+      }
+      
+      // Uplighting effect (light blocks at base)
+      for (var angle = 0; angle < 4; angle++) {
+        var lx = ox + Math.cos(angle * Math.PI / 2) * 3;
+        var lz = oz + Math.sin(angle * Math.PI / 2) * 3;
+        setBlock(Math.round(lx), gy + 1, Math.round(lz), PAL.LIGHT);
+      }
+      
+    } else if (type === 'tank') {
+      // Tank monument (common in Soviet cities)
+      for (var y = 0; y < 3; y++) {
+        for (var x = -2; x <= 2; x++) {
+          for (var z = -2; z <= 2; z++) setBlock(ox + x, gy + y, oz + z, PAL.CONCRETE);
+        }
+      }
+      for (var x = -2; x <= 2; x++) {
+        for (var z = -3; z <= 3; z++) setBlock(ox + x, gy + 3, oz + z, PAL.METAL);
+      }
+      for (var x = -1; x <= 1; x++) {
+        for (var z = -1; z <= 1; z++) setBlock(ox + x, gy + 4, oz + z, PAL.METAL);
+      }
+      for (var z = 0; z < 5; z++) setBlock(ox, gy + 4, oz + 2 + z, PAL.METAL);
+      
+    } else if (type === 'motherland') {
+      // Motherland Monument, Kyiv (Rodina Mat)
+      // Real: 62m tall, stainless steel, sword + shield, on Dnipro slope
+      // Base building
+      for (var y = 0; y < 15; y++) {
+        var sz = Math.max(0, 3 - Math.floor(y / 3));
+        for (var x = -sz; x <= sz; x++) {
+          for (var z = -sz; z <= sz; z++) setBlock(ox + x, gy + y, oz + z, PAL.STONE);
+        }
+      }
+      // Column/torso
+      for (var y = 5; y < 25; y++) {
+        var sz = Math.max(0, 2 - Math.floor((y - 5) / 8));
+        for (var x = -sz; x <= sz; x++) {
+          for (var z = -sz; z <= sz; z++) setBlock(ox + x + 2, gy + y, oz + z, PAL.METAL);
+        }
+      }
+      // Sword (raised right arm)
+      for (var y = 15; y < 35; y++) {
+        setBlock(ox + 4 + Math.floor((y - 15) / 8), gy + y, oz, PAL.METAL);
+        setBlock(ox + 5 + Math.floor((y - 15) / 8), gy + y, oz, PAL.METAL);
+      }
+      // Shield (left arm)
+      for (var x = -6; x <= -2; x++) {
+        for (var y = 20; y < 30; y++) {
+          setBlock(ox + x, gy + y, oz - 3, PAL.METAL);
+          setBlock(ox + x, gy + y, oz - 2, PAL.METAL);
+        }
+      }
+      // Head
+      for (var x = -1; x <= 3; x++) {
+        for (var z = -1; z <= 1; z++) {
+          setBlock(ox + x + 2, gy + 28, oz + z, PAL.METAL);
+          setBlock(ox + x + 2, gy + 29, oz + z, PAL.METAL);
+        }
+      }
+      // Flame/crown at top
+      setBlock(ox + 2, gy + 30, oz, PAL.LIGHT);
+      setBlock(ox + 3, gy + 30, oz, PAL.LIGHT);
+      setBlock(ox + 2, gy + 31, oz, PAL.LIGHT);
+    }
+  }
 
   // ── bridge ──
   function bridge(ox, oz, gy, length, width, height) { for (var x = 0; x < length; x++) { for (var z = 0; z < width; z++) { setBlock(ox + x, gy + height, oz + z, PAL.ASPHALT); if (z === 0 || z === width - 1) setBlock(ox + x, gy + height + 1, oz + z, PAL.METAL); } if (x % 8 === 0) { for (var y = 0; y < height; y++) { for (var z = 0; z < width; z++) setBlock(ox + x, gy + y, oz + z, PAL.CONCRETE); } } } }
