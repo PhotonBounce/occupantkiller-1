@@ -10581,6 +10581,13 @@ const GameManager = (function () {
     if (window.MuscatSultan) MuscatSultan.update(delta);
     if (window.KabulBalaHissar) KabulBalaHissar.update(delta);
     if (window.IslamabadFaisal) IslamabadFaisal.update(delta);
+    if (window.DelhiRedfort) DelhiRedfort.update(delta);
+    if (window.KathmanduSwayambhu) KathmanduSwayambhu.update(delta);
+    if (window.DhakaLalbagh) DhakaLalbagh.update(delta);
+    if (window.ColomboLotus) ColomboLotus.update(delta);
+    if (window.YangonShwedagon) YangonShwedagon.update(delta);
+    if (window.BangkokGrandPalace) BangkokGrandPalace.update(delta);
+    if (window.PhnompenhPalace) PhnompenhPalace.update(delta);
     if (window.CroydonTower) CroydonTower.update(delta);
     if (window.WimbledonCourts) WimbledonCourts.update(delta);
     if (window.RichmondDeer) RichmondDeer.update(delta);
