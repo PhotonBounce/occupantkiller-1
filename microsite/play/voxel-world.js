@@ -1318,7 +1318,11 @@ window.VoxelWorld = (function () {
     if (index >= 0 && index < LEVELS.length) return LEVELS[index];
     const cityIdx = (index - LEVELS.length) % PROC_CITIES.length;
     const themeNames = Object.keys(THEMES);
-    const theme = themeNames[Math.floor(seededRandom(index * 7, index * 13) * themeNames.length)];
+    // Deterministic per-index theme — must not depend on the currently active
+    // theme's seed (getLevelDef can run before init, and results must be stable).
+    const themeHash = Math.sin(index * 12.9898 * 7 + index * 78.233 * 13) * 43758.5453;
+    const themeRoll = themeHash - Math.floor(themeHash);
+    const theme = themeNames[Math.floor(themeRoll * themeNames.length)] || themeNames[0];
     return {
       id: 'PROC_' + index,
       name: PROC_CITIES[cityIdx],
