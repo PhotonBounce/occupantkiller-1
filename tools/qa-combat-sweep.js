@@ -38,4 +38,16 @@ for (const [idx, label] of stages){
     }
   }catch(e){ crashes++; console.log('CRASH', label, '::', (e.stack||e.message).split('\n').slice(0,3).join(' | ').slice(0,300)); try{EN.clear();}catch(_){} }
 }
+// Long-sim pass: grenades/mortars only fire after sustained contact — 2500 ticks on one stage
+try{
+  VW.generateLevel(0);
+  const sp2=VW.getSpawnPoint();
+  const p2=new THREE.Vector3(sp2.x, sp2.y+2, sp2.z);
+  EN.startWave(3, scene, 2.0, null, 'HOSTOMEL', null, p2);
+  let hits2=0;
+  for (let f=0; f<2500; f++) EN.update(0.016, p2, ()=>{hits2++;}, ()=>{});
+  console.log('long-sim ok | hits:', hits2, '| alive:', EN.getAliveCount());
+  if (hits2===0) { crashes++; console.log('LONG-SIM SUSPECT: zero hits in 2500 ticks'); }
+  EN.clear();
+}catch(e){ crashes++; console.log('LONG-SIM CRASH ::', (e.stack||e.message).split('\n').slice(0,3).join(' | ').slice(0,300)); }
 console.log('COMBAT SWEEP DONE crashes='+crashes);
