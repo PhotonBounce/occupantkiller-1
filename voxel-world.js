@@ -20805,7 +20805,7 @@ window.VoxelWorld = (function () {
       generateAirportControlTower(20, -30);   // ATC tower east of main terminal
       generateAircraftHangar(-50, -25);        // Antonov cargo hangar (NW apron)
       generateCargoTerminal(60, 15);           // Freight terminal (east end)
-    } else if (level.id === 'AVDIIVKA') {
+    } else if (level.id === 'AVDIIVKA' && index <= 50) {
       // Avdiivka Coke and Chemical Plant — industrial fortress, most fortified Ukrainian position
       // The coking plant (AKHZ) was Europe's largest — defended for 2+ years
       // Industrial core: the AKHZ plant itself
@@ -21615,7 +21615,7 @@ window.VoxelWorld = (function () {
       generatePropagandaPoster(_scene, -35, 2, 5, 3);
       generateWarMural(_scene, 0, 1, -20, 8);
       generateWarMural(_scene, 25, 1, 15, 6);
-    } else if (level.id === 'SEVASTOPOL') {
+    } else if (level.id === 'SEVASTOPOL' && index <= 50) {
       // Sevastopol Black Sea Fleet HQ — massive naval base, coastal city, fortifications
       // Naval infrastructure (Inkerman Bay / Severnaya Bay docks)
       generateBridge(0, 20, 40, 5);            // Severnaya Bay bridge
@@ -21810,7 +21810,7 @@ window.VoxelWorld = (function () {
       generateCraters(12);
       generateDroneNest(45, 45); generateDroneNest(-45, -45);
       generateAntiAirPosition(-35, 35); generateAntiAirPosition(35, -35);
-    } else if (level.id === 'MELITOPOL') {
+    } else if (level.id === 'MELITOPOL' && index <= 50) {
       // Melitopol — city in Zaporizhzhia oblast, occupied by Russia in March 2022 (day 5 of invasion).
       // Mayor Ivan Fedorov was kidnapped; city became hub of partisan resistance.
       generateMelitopolCityHall(0, -5);
@@ -21918,7 +21918,7 @@ window.VoxelWorld = (function () {
       generateDroneNest(45, 42); generateDroneNest(-45, -40); generateDroneNest(45, -40);
       generateAntiAirPosition(-40, 30); generateAntiAirPosition(38, -30);
       generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
-    } else if (level.id === 'MYKOLAIV') {
+    } else if (level.id === 'MYKOLAIV' && index <= 50) {
       // Mykolaiv — southern Ukraine port on Southern Bug, defended against Russian advance 2022
       generateMykolaivAdminBuilding(-8, -10);    // Regional admin hit by Neptune missile March 2022
       generateMykolaivPort(25, -30);             // Southern Bug river port + grain terminal
@@ -22012,7 +22012,7 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, 38); generateDroneNest(-40, -38);
       generateAntiAirPosition(-36, 25); generateAntiAirPosition(32, -25);
       generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
-    } else if (level.id === 'POLTAVA') {
+    } else if (level.id === 'POLTAVA' && index <= 50) {
       // Poltava — central Ukraine; site of 1709 battle; Russian missile strike killed 51 in 2024
       generatePoltavaRotunda(0, -5);
       generatePoltavaAssumptionCathedral(-20, 12);
@@ -22029,7 +22029,7 @@ window.VoxelWorld = (function () {
       generateDroneNest(42, 40); generateDroneNest(-42, -40);
       generateAntiAirPosition(-38, 28); generateAntiAirPosition(34, -28);
       generateCheckpoint(0, -50, false); generateCheckpoint(-48, 0, true);
-    } else if (level.id === 'LUHANSK') {
+    } else if (level.id === 'LUHANSK' && index <= 50) {
       // Luhansk — Russian-occupied since 2014; LPR "capital"; key rail/road hub
       generateLuhanskDramaTheater(-5, -18);
       generateLuhanskRailStation(18, 15);
@@ -22063,7 +22063,7 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, 38); generateDroneNest(-40, -38);
       generateAntiAirPosition(-36, 25); generateAntiAirPosition(32, -25);
       generateCheckpoint(0, -48, false); generateCheckpoint(-45, 0, true);
-    } else if (level.id === 'RIVNE') {
+    } else if (level.id === 'RIVNE' && index <= 50) {
       // Rivne — northwest Ukraine administrative center; key western logistics hub
       generateRivneDramaTheater(-5, -15);
       generateUkrainianApartment(-28, -22, 9); generateUkrainianApartment(28, -18, 6);
@@ -22746,7 +22746,7 @@ window.VoxelWorld = (function () {
       generateRefineryDistillationTower(-5, -38);  // Primary distillation column + flare stack
       generateRefinerySphere(20, -28);              // LPG spherical storage tank on legs
       generateCoolingTower(-32, 12);               // Industrial hyperbolic cooling tower
-    } else if (level.id === 'BERDIANSK') {
+    } else if (level.id === 'BERDIANSK' && index <= 50) {
       generateBerdianskyLighthouse(-20, -18);
       generateBerdianskyPort(10, 10);
       generateUkrainianApartment(-28, -22, 6); generateUkrainianApartment(28, -18, 9);
@@ -22830,7 +22830,7 @@ window.VoxelWorld = (function () {
       generateDroneNest(40, 38); generateDroneNest(-40, -38);
       generateAntiAirPosition(-32, 26); generateAntiAirPosition(30, -26);
       generateCheckpoint(0, -45, false); generateCheckpoint(-42, 0, true);
-    } else if (level.id === 'IZIUM') {
+    } else if (level.id === 'IZIUM' && index <= 50) {
       // Izium (Izyum) — liberated September 2022; 440 graves discovered in forest nearby
       // Kharkiv Oblast city on Siversky Donets river; occupied March–Sep 2022
       // Liberation revealed evidence of systematic Russian war crimes
@@ -22864,7 +22864,7 @@ window.VoxelWorld = (function () {
       generateTrenchNetwork(0, -20); generateTrenchNetwork(-20, 20);
       generateDroneNest(35, 35); generateDroneNest(-35, -35);
       generateAntiAirPosition(-28, -28); generateAntiAirPosition(28, 28);
-    } else if (level.id === 'KREMENCHUK') {
+    } else if (level.id === 'KREMENCHUK' && index <= 50) {
       generateCheckpoint(0, -35);
       generateBunker(-20, 8); generateBunker(20, 8);
       generateKremenchukShoppingCentre(0, 0);
