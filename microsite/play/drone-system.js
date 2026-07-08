@@ -401,7 +401,7 @@ const DroneSystem = (function () {
 
   /* ── Spawn Drone ─────────────────────────────────────────────────── */
   function spawn(x, y, z, type) {
-    type = type || DRONE_TYPE.RECON;
+    type = (type && DRONE_STATS[type]) ? type : DRONE_TYPE.RECON; // unknown type falls back to recon instead of crashing
     const stats = DRONE_STATS[type];
     const drone = {
       id: nextId++,
