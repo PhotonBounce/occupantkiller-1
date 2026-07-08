@@ -1709,7 +1709,21 @@ window.VoxelWorld = (function () {
 
     if (best) return best;
 
-    const fallbackGround = getTerrainHeight(0, 0);
+    // Last resort: spiral outward from origin for any clear ground —
+    // dense levels (proc cities) can bury every listed candidate in structures.
+    for (let r = 2; r <= 40; r += 2) {
+      for (let a = 0; a < 16; a++) {
+        const ang = (a / 16) * Math.PI * 2;
+        const sx = Math.round(Math.cos(ang) * r);
+        const sz = Math.round(Math.sin(ang) * r);
+        const gy = getTerrainHeight(sx, sz);
+        if (isSpawnAreaClear(sx, sz, gy, level && level.spawnLookTarget)) {
+          return { x: sx, y: gy, z: sz };
+        }
+      }
+    }
+    // Absolute fallback: stand ON TOP of whatever occupies the origin, never inside it.
+    const fallbackGround = (typeof getTopSolidY === 'function') ? getTopSolidY(0, 0) : getTerrainHeight(0, 0);
     return { x: 0, y: fallbackGround, z: 0 };
   }
 

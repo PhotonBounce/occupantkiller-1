@@ -18,7 +18,25 @@ const N=parseInt(process.argv[2]||'128',10), START=parseInt(process.argv[3]||'0'
 let ok=0, fails=[];
 for (let i=START;i<N;i++){
   t=Date.now();
-  try{ VW.generateLevel(i); ok++; const ms=Date.now()-t; if(ms>4000) console.log('slow level',i,VW.getLevelDef(i).id,ms+'ms'); }
+  try{
+    VW.generateLevel(i); ok++;
+    const def=VW.getLevelDef(i);
+    // spawn validity: game's own spawn point must have 2 clear blocks
+    const sp=VW.getSpawnPoint();
+    if (sp && VW.isSolid){
+      const bx=Math.round(sp.x), bz=Math.round(sp.z), by=Math.round(sp.y);
+      if (VW.isSolid(bx, by+1, bz) || VW.isSolid(bx, by+2, bz)) console.log('SPAWN EMBEDDED level', i, def.id, JSON.stringify(sp));
+    }
+    // candidate audit: all candidates fully blocked would strand the fallback
+    if (def.spawnCandidates && VW.isSolid && VW.getTopSolidY){
+      let open=0;
+      for (const cnd of def.spawnCandidates){
+        const gy=VW.getTopSolidY(cnd.x, cnd.z);
+        if (!VW.isSolid(cnd.x, gy+1, cnd.z) && !VW.isSolid(cnd.x, gy+2, cnd.z)) open++;
+      }
+      if (open===0) console.log('ALL CANDIDATES BLOCKED level', i, def.id);
+    }
+  }
   catch(e){ fails.push([i, VW.getLevelDef(i).id||'?', e.message.slice(0,140)]); }
 }
 console.log('SWEEP DONE ok='+ok+' fail='+fails.length);
