@@ -483,7 +483,7 @@ const VehicleSystem = (function () {
 
   /* ── Spawn ───────────────────────────────────────────────────────── */
   function spawn(x, y, z, type) {
-    type = type || VEHICLE_TYPE.TRANSPORT;
+    type = (type && VEHICLE_STATS[type]) ? type : VEHICLE_TYPE.TRANSPORT; // unknown type falls back instead of crashing
     const stats = VEHICLE_STATS[type];
     const vehicle = {
       id: nextId++,
