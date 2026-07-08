@@ -1463,6 +1463,7 @@ const Enemies = (() => {
   function buildMesh(typeCfg) {
     const group = new THREE.Group();
     const s     = typeCfg.scale;
+    const typeName = typeCfg.name; // type key, e.g. 'OFFICER' — used by elite gear blocks below
 
     // Generate EMR Digital Flora camo texture for this unit (cached by variant)
     const camoTex = getCachedTex('camo_' + (typeCfg.camoVariant || 'light'), function() {
@@ -2027,6 +2028,7 @@ const Enemies = (() => {
     const wInfo = ENEMY_WEAPON_VISUALS[typeCfg.name];
     if (!wInfo) return;
     const s = typeCfg.scale;
+    const typeName = typeCfg.name; // type key — used by optic/bipod blocks below
     if (wInfo.len <= 0) return; // melee/explosive vest — no weapon mesh
 
     // ── Weapon barrel ──
