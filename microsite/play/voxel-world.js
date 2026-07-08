@@ -1722,9 +1722,14 @@ window.VoxelWorld = (function () {
         }
       }
     }
-    // Absolute fallback: stand ON TOP of whatever occupies the origin, never inside it.
-    const fallbackGround = (typeof getTopSolidY === 'function') ? getTopSolidY(0, 0) : getTerrainHeight(0, 0);
-    return { x: 0, y: fallbackGround, z: 0 };
+    // Absolute fallback: scan the origin column from the sky down for the highest
+    // standable spot (solid footing, 2 air above) — overhang/interior safe.
+    for (let fy = CHUNK_HEIGHT - 3; fy >= 1; fy--) {
+      if (isSolid(0, fy, 0) && !isSolid(0, fy + 1, 0) && !isSolid(0, fy + 2, 0)) {
+        return { x: 0, y: fy, z: 0 };
+      }
+    }
+    return { x: 0, y: getTerrainHeight(0, 0), z: 0 };
   }
 
   function getSpawnPoint() {
@@ -23238,6 +23243,61 @@ window.VoxelWorld = (function () {
       generateDroneNest(42, 40); generateDroneNest(-42, -40);
       generateAntiAirPosition(-36, 28); generateAntiAirPosition(34, -28);
       generateCheckpoint(0, -44, false); generateCheckpoint(-40, 0, true);
+    } else if (level.id === 'DONETSK_AIRPORT') {
+      // Donetsk International — 242-day siege; terminal ruins, tower, jet graveyard
+      generateRunway(0, 0, 70, 8);
+      generateAirportControlTower(-15, -20);
+      generateAircraftHangar(-35, -10); generateAircraftHangar(-35, 14);
+      generateCargoTerminal(25, -22);
+      generateHostomelTerminal(20, 18);
+      generateDestroyedJet(-8, 8); generateDestroyedJet(12, -4); generateDestroyedJet(34, 6);
+      generateTrenchNetwork(-25, 28); generateTrenchNetwork(25, 32);
+      generateSniperNest(-42, -30); generateSniperNest(40, -32);
+      generateMortarPit(-30, -34); generateArtilleryBattery(36, -38);
+      generateWreckedTank(-18, 24); generateWreckedAPC(6, 30); generateWreckedConvoy(-38, 34);
+      generateCraters(20);
+    } else if (level.id === 'BAKHMUT_STREETS') {
+      // Bakhmut street-by-street — arena, hotel, winery caves, the meat grinder line
+      generateBakhmutMeatGrinder(0, 0);
+      generateBakhmutArena(-25, -18);
+      generateBakhmutHotel(22, -20);
+      generateArtemivskWinery(30, 22);
+      generateUkrainianApartment(-32, 10, 7); generateUkrainianApartment(-30, 28, 5);
+      generateUkrainianApartment(28, 6, 6);
+      generateRuinedHouse(-12, 22); generateRuinedHouse(10, -32); generateRuinedHouse(-24, -30);
+      generateTrenchNetwork(0, 30); generateTrenchNetwork(-18, -12);
+      generateBurningRuin(-36, -8); generateBurningRuin(34, -6); generateBurningRuin(14, 26);
+      generateWreckedTank(-8, -24); generateWreckedAPC(18, 14); generateWreckedConvoy(-30, 34);
+      generateSniperNest(-40, -36); generateSniperNest(38, -36);
+      generateCraters(24);
+    } else if (level.id === 'BLACK_SEA_HQ') {
+      // Black Sea Fleet HQ, Sevastopol — command block, radar ring, harbour AA belt
+      generateDonetskAdminHQ(0, -10);
+      generateSovietAdminBuilding(-25, -14);
+      generateCommandPost(20, -16);
+      generateRadarTower(-32, -28); generateRadarTower(30, -30);
+      generateCommTower(0, -34);
+      generateBerdianskyPort(25, 22);
+      generateAntiAirPosition(-30, 12); generateAntiAirPosition(32, 8); generateAntiAirPosition(0, 34);
+      generateBarbedWire(-15, -40, 24, true); generateBarbedWire(15, -40, 24, true);
+      generateCheckpoint(0, 28, false);
+      generateFuelDepot(-28, 26);
+      generateWreckedAPC(-12, 20); generateCraters(10);
+    } else if (level.id === 'FINAL_SIEGE') {
+      // Final Battle: the Kremlin under full siege — breached square, artillery ring
+      generateKremlinWall(0, -8);
+      generateKremlinPalace(0, -14);
+      generateSpasskayaTower(0, 12);
+      generateLeninMausoleum(-14, 16);
+      generateRedSquare(0, 36);
+      generateStBasils(18, 52);
+      generateArtilleryBattery(-36, 30); generateArtilleryBattery(36, 32);
+      generateTrenchNetwork(-20, 40); generateTrenchNetwork(20, 44);
+      generateAntiAirPosition(-32, -30); generateAntiAirPosition(32, -32);
+      generateWreckedTank(-10, 30); generateWreckedTank(12, 38); generateWreckedAPC(-22, 46); generateWreckedConvoy(30, -20);
+      generateBurningRuin(-30, 12); generateBurningRuin(30, 14);
+      generateCheckpoint(0, 56, false);
+      generateCraters(26);
     } else if (level.id === 'AVDIIVKA') {
       generateAvdiivkaRuins(0, 0);
       generateUkrainianApartment(-32, -30, 6); generateUkrainianApartment(28, -30, 5);
