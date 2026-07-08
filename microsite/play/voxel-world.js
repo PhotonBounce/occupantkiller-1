@@ -9441,6 +9441,7 @@ window.VoxelWorld = (function () {
     const floorH = 3;                  // 3 blocks per floor
 
     for (let floor = 0; floor < floors; floor++) {
+      const partX = Math.floor(w / 2);
       const baseY = surfH + 1 + floor * floorH;
 
       // Floor surface
@@ -9478,7 +9479,6 @@ window.VoxelWorld = (function () {
         }
 
         // Interior partition wall (divides rooms)
-        const partX = Math.floor(w / 2);
         for (let z = 1; z < d - 1; z++) {
           if (z !== Math.floor(d / 2)) { // doorway gap
             setBlock(ox + partX, baseY + y, oz + z, BLOCK.PLASTER);
