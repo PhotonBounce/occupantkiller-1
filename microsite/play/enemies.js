@@ -1257,7 +1257,7 @@ const Enemies = (() => {
     scene.add(mesh);
     _enemyGrenades.push({ mesh: mesh, vx: vx, vy: vy, vz: vz, life: t + 0.5, dmg: 35, radius: 4, _trailT: 0, _beaconMat: beaconMat });
   }
-  function updateEnemyGrenades(delta, playerPos) {
+  function updateEnemyGrenades(delta, playerPos, onPlayerHit) {
     var _nearestG = Infinity;
     for (var i = _enemyGrenades.length - 1; i >= 0; i--) {
       var g = _enemyGrenades[i];
@@ -2573,7 +2573,7 @@ const Enemies = (() => {
     updateBarkSprites(delta);
 
     // Update enemy grenades
-    updateEnemyGrenades(delta, playerPos);
+    updateEnemyGrenades(delta, playerPos, onPlayerHit);
 
     // Corpse cap: if too many corpses linger, accelerate fade on oldest to keep perf stable
     var _corpseCount = 0;
