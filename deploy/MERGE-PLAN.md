@@ -1,0 +1,34 @@
+# Dev → Live merge plan (pending user go-ahead: "deploy everything")
+
+## Trees
+- **Live** (`gh-pages`, tip `df3b42c`): curated ~179-script build, 20 levels, newer UI
+  (drone-ammo HUD, inventory, start menu, mobile), LOD/culling perf layer.
+- **Dev** (`claude/peaceful-cannon-oqez4t`, PR #3): full tree — bundled loading (90 tags,
+  ~3s core-ready), 128 unique levels (dup-stage + endgame fixes), QA'd enemies/weapons/
+  drones/vehicles/missions, 6 QA gate tools.
+
+## Compatibility recon (2026-07-09)
+- Live `game-manager` calls `VoxelWorld.*`: init, generateLevel, get/setBlock, isSolid,
+  raycastBlock, getTerrainHeight, getTopSolidY, getBuildings, getRoadWaypoints,
+  updateDirtyChunks, **cullChunks**.
+- Dev `voxel-world` satisfies all EXCEPT `cullChunks` (and `getLODScale`) — the live
+  tree's LOD/frustum-culling additions.
+
+## Strategy (live-first, minimal blast radius)
+1. Base = live tree (preserves their UI + packaging).
+2. Port `cullChunks` + `getLODScale` implementations from live `voxel-world.js` into dev
+   `voxel-world.js` (or land them on dev first so both trees share one file).
+3. Replace live `voxel-world.js` with the dev version (128 levels + all fixes) once (2) done.
+4. Replace live `enemies.js` with dev version ONLY after diffing their HUD hooks
+   (their build predates the typeName elite-gear blocks; dev version is QA'd but must not
+   break their drone-ammo HUD integration).
+5. Leave live `index.html`/HUD/menu untouched (their newer UI wins).
+6. Do NOT port the bundling to live — live is already a curated 179-tag build.
+7. Gate before push: run tools/qa-level-sweep.js + qa-combat-sweep.js against the merged
+   worktree (tools read ./voxel-world.js etc. — run from the worktree root with
+   three.min.js present).
+8. Bump cache-busters on every replaced file; fast-forward push to gh-pages.
+
+## Already deployed to live
+`df3b42c` — grenade crash fix, overhang-safe spawn fallback, deterministic proc themes,
+drone/vehicle spawn hardening.
