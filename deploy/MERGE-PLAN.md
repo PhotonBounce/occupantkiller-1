@@ -34,8 +34,8 @@
 drone/vehicle spawn hardening.
 
 ## Update (post world-engine staging)
-- World-engine merge staged as `deploy/live-worldengine-20260709.patch` (commit 41e69d8
-  in worktree) — 20/20 live stages gate clean. Awaiting deploy consent.
+- World-engine merge DEPLOYED to live 2026-07-09 (`df3b42c..41e69d8` on gh-pages) —
+  20/20 live stages gated clean before push; patch retained for reference.
 - Enemies API recon: live game-manager calls (clear, damage, damageInRadius, findByMesh,
   getAliveCount, getAll, getAssaultGroups, getEnemyMeshes, setPlayerStealth, spawnSingle,
   startWave, tagAttacker, update) are ALL exported by dev enemies.js — swap is API-safe
