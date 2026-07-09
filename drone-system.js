@@ -381,7 +381,7 @@ const DroneSystem = (function () {
 
   /* ── Spawn Drone ─────────────────────────────────────────────────── */
   function spawn(x, y, z, type) {
-    type = type || DRONE_TYPE.RECON;
+    type = (type && DRONE_STATS[type]) ? type : DRONE_TYPE.RECON;
     const stats = DRONE_STATS[type];
     const drone = {
       id: nextId++,

@@ -654,7 +654,7 @@ const VehicleSystem = (function () {
 
   /* ── Spawn ───────────────────────────────────────────────────────── */
   function spawn(x, y, z, type) {
-    type = type || VEHICLE_TYPE.TRANSPORT;
+    type = (type && VEHICLE_STATS[type]) ? type : VEHICLE_TYPE.TRANSPORT;
     const stats = VEHICLE_STATS[type];
     // Ensure vehicle spawns above terrain (getTerrainHeight + vehicle-specific offset)
     var terrainH = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ? VoxelWorld.getTerrainHeight(x, z) : 0;
