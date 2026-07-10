@@ -904,35 +904,122 @@ window.VoxelWorld = (function () {
     return BLOCK_TRANSPARENT.has(getBlock(wx, wy, wz));
   }
 
-  function buildChunkMesh(chunk, scene) {
+  function buildChunkMesh(chunk, scene, cameraPos) {
+    // Dispose existing mesh (supports both Group and Mesh)
     if (chunk.mesh) {
-      if (scene) scene.remove(chunk.mesh);
-      chunk.mesh.geometry.dispose();
+      if (Array.isArray(chunk.mesh)) {
+        chunk.mesh.forEach(m => {
+          if (scene) scene.remove(m);
+          if (m.geometry) m.geometry.dispose();
+          if (m.material) m.material.dispose();
+        });
+      } else {
+        if (scene) scene.remove(chunk.mesh);
+        if (chunk.mesh.geometry) chunk.mesh.geometry.dispose();
+        if (chunk.mesh.material) {
+          if (Array.isArray(chunk.mesh.material)) {
+            chunk.mesh.material.forEach(m => m.dispose());
+          } else {
+            chunk.mesh.material.dispose();
+          }
+        }
+      }
       chunk.mesh = null;
     }
     if (chunk.waterMesh) {
       if (scene) scene.remove(chunk.waterMesh);
-      chunk.waterMesh.geometry.dispose();
+      if (chunk.waterMesh.geometry) chunk.waterMesh.geometry.dispose();
+      if (chunk.waterMesh.material) chunk.waterMesh.material.dispose();
       chunk.waterMesh = null;
     }
 
+    const ox = chunk.cx * CHUNK_SIZE;
+    const oz = chunk.cz * CHUNK_SIZE;
+
+    // LOD scale based on distance from camera
+    let lodScale = 1;
+    if (cameraPos) {
+      const cx = ox + CHUNK_SIZE * 0.5;
+      const cz = oz + CHUNK_SIZE * 0.5;
+      const dx = cx - cameraPos.x;
+      const dz = cz - cameraPos.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      lodScale = getLODScale(dist);
+    }
+
+    // Distance >= 120: hide chunk entirely, don't build mesh
+    if (lodScale === 0) {
+      chunk.dirty = false;
+      chunk._lastLOD = 0;
+      return;
+    }
+
+    // For LOD > 1, use InstancedMesh (larger cubes, fewer vertices)
+    if (lodScale > 1) {
+      const blockCounts = new Map();
+      for (let ly = 0; ly < CHUNK_HEIGHT; ly += lodScale) {
+        for (let lz = 0; lz < CHUNK_SIZE; lz += lodScale) {
+          for (let lx = 0; lx < CHUNK_SIZE; lx += lodScale) {
+            const bt = chunk.data[blockIndex(lx, ly, lz)];
+            if (bt === BLOCK.AIR || bt === BLOCK.WATER) continue;
+            blockCounts.set(bt, (blockCounts.get(bt) || 0) + 1);
+          }
+        }
+      }
+
+      const group = new THREE.Group();
+      const scale = lodScale * BLOCK_SIZE;
+
+      for (const [bt, count] of blockCounts) {
+        const geo = new THREE.BoxGeometry(scale, scale, scale);
+        const mat = new THREE.MeshLambertMaterial({ color: BLOCK_COLORS[bt] || 0xFF00FF });
+        const inst = new THREE.InstancedMesh(geo, mat, count);
+        inst.castShadow = false;
+        inst.receiveShadow = true;
+        inst.userData.isVoxelTerrain = true;
+
+        let idx = 0;
+        for (let ly = 0; ly < CHUNK_HEIGHT; ly += lodScale) {
+          for (let lz = 0; lz < CHUNK_SIZE; lz += lodScale) {
+            for (let lx = 0; lx < CHUNK_SIZE; lx += lodScale) {
+              if (chunk.data[blockIndex(lx, ly, lz)] !== bt) continue;
+              _dummy.position.set(
+                ox + (lx + (lodScale - 1) * 0.5) * BLOCK_SIZE,
+                (ly + (lodScale - 1) * 0.5) * BLOCK_SIZE,
+                oz + (lz + (lodScale - 1) * 0.5) * BLOCK_SIZE
+              );
+              _dummy.scale.set(1, 1, 1);
+              _dummy.updateMatrix();
+              inst.setMatrixAt(idx++, _dummy.matrix);
+            }
+          }
+        }
+        inst.instanceMatrix.needsUpdate = true;
+        group.add(inst);
+      }
+
+      if (group.children.length > 0) {
+        if (scene) scene.add(group);
+        chunk.mesh = group;
+      }
+      chunk.dirty = false;
+      chunk._lastLOD = lodScale;
+      return;
+    }
+
+    // LOD === 1: full detail with face-culled merged geometry
     const positions = [];
     const normals   = [];
     const colors    = [];
     const indices   = [];
     let vertCount   = 0;
 
-    // Separate arrays for water geometry
     const wPositions = [];
     const wNormals   = [];
     const wColors    = [];
     const wIndices   = [];
     let wVertCount   = 0;
 
-    const ox = chunk.cx * CHUNK_SIZE;
-    const oz = chunk.cz * CHUNK_SIZE;
-
-    // AO darkening factors: index = occlusion level (0=full shadow, 3=no shadow)
     const AO_CURVE = [0.32, 0.55, 0.78, 1.0];
 
     for (let ly = 0; ly < CHUNK_HEIGHT; ly++) {
@@ -953,21 +1040,18 @@ window.VoxelWorld = (function () {
             const nbz = wz + fnz;
 
             const nb = getBlock(nbx, nby, nbz);
-            // For water blocks: only draw face if neighbor is AIR (skip water-to-water)
             if (isWater) {
               if (nb !== BLOCK.AIR) continue;
             } else {
               if (!BLOCK_TRANSPARENT.has(nb)) continue;
             }
 
-            // Pick target arrays (water vs solid)
             const tPos = isWater ? wPositions : positions;
             const tNrm = isWater ? wNormals : normals;
             const tCol = isWater ? wColors : colors;
             const tIdx = isWater ? wIndices : indices;
             let tVert = isWater ? wVertCount : vertCount;
 
-            // Determine the two tangent axes for AO sampling
             let t0, t1;
             if (fnx !== 0) { t0 = 1; t1 = 2; }
             else if (fny !== 0) { t0 = 0; t1 = 2; }
@@ -975,11 +1059,9 @@ window.VoxelWorld = (function () {
 
             const aoVals = [];
             for (const c of face.corners) {
-              // Direction from face center to this corner along each tangent
               const d0 = c[t0] === 0 ? -1 : 1;
               const d1 = c[t1] === 0 ? -1 : 1;
 
-              // Three AO neighbor offsets from the face-neighbor block
               const s1 = [0, 0, 0]; s1[t0] = d0;
               const s2 = [0, 0, 0]; s2[t1] = d1;
 
@@ -989,7 +1071,7 @@ window.VoxelWorld = (function () {
 
               const ao = (side1 && side2) ? 0 : 3 - (side1 + side2 + corn);
               aoVals.push(ao);
-              const f = isWater ? 1.0 : AO_CURVE[ao]; // no AO darkening on water
+              const f = isWater ? 1.0 : AO_CURVE[ao];
 
               tPos.push(
                 (lx + c[0]) * BLOCK_SIZE,
@@ -1000,7 +1082,6 @@ window.VoxelWorld = (function () {
               tCol.push(col.r * f, col.g * f, col.b * f);
             }
 
-            // Flip quad when AO is anisotropic to avoid ugly diagonal artifact
             if (aoVals[0] + aoVals[2] > aoVals[1] + aoVals[3]) {
               tIdx.push(
                 tVert, tVert + 1, tVert + 2,
@@ -1018,10 +1099,8 @@ window.VoxelWorld = (function () {
       }
     }
 
+    if (vertCount === 0 && wVertCount === 0) { chunk.dirty = false; chunk._lastLOD = 1; return; }
 
-    if (vertCount === 0 && wVertCount === 0) { chunk.dirty = false; return; }
-
-    // Solid terrain mesh
     if (vertCount > 0) {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -1042,7 +1121,6 @@ window.VoxelWorld = (function () {
       chunk.mesh = mesh;
     }
 
-    // Transparent water mesh
     if (wVertCount > 0) {
       const wGeo = new THREE.BufferGeometry();
       wGeo.setAttribute('position', new THREE.Float32BufferAttribute(wPositions, 3));
@@ -1066,6 +1144,7 @@ window.VoxelWorld = (function () {
     }
 
     chunk.dirty = false;
+    chunk._lastLOD = 1;
   }
 
   /* ── World Init & Update ─────────────────────────────────────────── */
@@ -1118,39 +1197,125 @@ window.VoxelWorld = (function () {
     rebuildAll();
   }
 
-  function rebuildAll() {
-    // PRELOAD: build every chunk synchronously up-front. The budgeted
-    // updateDirtyChunks() path is for runtime block edits only — using it
-    // here causes visible pop-in on spawn (only 4 chunks/frame appear).
+  let _chunkRebuildQueue = [];
+  let _rebuildBudget = 2;
+  function rebuildAll(cameraPos) {
+    // Queue all dirty chunks and process them incrementally via updateDirtyChunks
+    // to avoid a single-frame stall that freezes the game for seconds.
+    _chunkRebuildQueue = [];
     for (const chunk of chunks.values()) {
       chunk.dirty = true;
-    }
-    if (typeof chunks !== 'object' || !chunks.values) return;
-    for (const chunk of chunks.values()) {
-      if (chunk.dirty) buildChunkMesh(chunk, _scene);
+      _chunkRebuildQueue.push(chunk);
     }
   }
 
-  let _rebuildBudget = 4; // max chunks to rebuild per frame (runtime edits only)
-  function updateDirtyChunks() {
+  function updateDirtyChunks(camera) {
     let count = 0;
     if (typeof chunks !== 'object' || !chunks.values) {
       console.warn('[VoxelWorld] updateDirtyChunks called with invalid context:', this);
       return {};
     }
-    for (const chunk of chunks.values()) {
-      if (chunk.dirty) {
-        buildChunkMesh(chunk, _scene);
-        count++;
-        if (count >= _rebuildBudget) break;
+    // Build frustum from camera for culling
+    let frustum = null;
+    const camPos = camera ? camera.position : null;
+    if (camera && camera.projectionMatrix && camera.matrixWorldInverse) {
+      _projMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      frustum = new THREE.Frustum().setFromProjectionMatrix(_projMatrix);
+    }
+    const maxRebuildDist = 150; // world units
+
+    // Process queued rebuilds first (from rebuildAll)
+    while (_chunkRebuildQueue.length > 0 && count < _rebuildBudget) {
+      const chunk = _chunkRebuildQueue.shift();
+      if (!chunk || !chunk.dirty) continue;
+      // Skip chunks too far from camera
+      if (camPos) {
+        const cx = chunk.cx * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const cz = chunk.cz * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const dx = cx - camPos.x;
+        const dz = cz - camPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist > maxRebuildDist) {
+          chunk.dirty = false;
+          continue;
+        }
+        // Don't rebuild at all if >= 120 (lodScale 0)
+        if (dist >= 120) {
+          chunk.dirty = false;
+          continue;
+        }
       }
+      // Frustum cull: skip chunks completely outside view
+      if (frustum) {
+        _chunkBoxMin.set(chunk.cx * CHUNK_SIZE, 0, chunk.cz * CHUNK_SIZE);
+        _chunkBoxMax.set((chunk.cx + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunk.cz + 1) * CHUNK_SIZE);
+        _chunkBox.set(_chunkBoxMin, _chunkBoxMax);
+        if (!frustum.intersectsBox(_chunkBox)) continue;
+      }
+      // Skip if LOD hasn't changed and mesh already exists
+      if (camPos && chunk._lastLOD !== undefined && chunk.mesh) {
+        const cx = chunk.cx * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const cz = chunk.cz * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const dx = cx - camPos.x;
+        const dz = cz - camPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const neededLOD = getLODScale(dist);
+        if (neededLOD === 0) {
+          chunk.dirty = false;
+          continue;
+        }
+        if (chunk._lastLOD === neededLOD) {
+          chunk.dirty = false;
+          continue;
+        }
+      }
+      buildChunkMesh(chunk, _scene, camPos);
+      count++;
+    }
+
+    for (const chunk of chunks.values()) {
+      if (!chunk.dirty) continue;
+      // Skip chunks too far from camera
+      if (camPos) {
+        const cx = chunk.cx * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const cz = chunk.cz * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const dx = cx - camPos.x;
+        const dz = cz - camPos.z;
+        if (Math.sqrt(dx * dx + dz * dz) > maxRebuildDist) {
+          chunk.dirty = false;
+          continue;
+        }
+      }
+      // Frustum cull: skip chunks completely outside view
+      if (frustum) {
+        _chunkBoxMin.set(chunk.cx * CHUNK_SIZE, 0, chunk.cz * CHUNK_SIZE);
+        _chunkBoxMax.set((chunk.cx + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunk.cz + 1) * CHUNK_SIZE);
+        _chunkBox.set(_chunkBoxMin, _chunkBoxMax);
+        if (!frustum.intersectsBox(_chunkBox)) continue;
+      }
+      // Skip if LOD hasn't changed and mesh already exists
+      if (camPos && chunk._lastLOD !== undefined && chunk.mesh) {
+        const cx = chunk.cx * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const cz = chunk.cz * CHUNK_SIZE + CHUNK_SIZE * 0.5;
+        const dx = cx - camPos.x;
+        const dz = cz - camPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const neededLOD = getLODScale(dist);
+        if (chunk._lastLOD === neededLOD) {
+          chunk.dirty = false;
+          continue;
+        }
+      }
+      buildChunkMesh(chunk, _scene, camPos);
+      count++;
+      if (count >= _rebuildBudget) break;
     }
     // Update city events/disasters
-    if (typeof updateCityEvents === 'function') updateCityEvents(1/60); // assume 60fps step
-    // No return value needed; function is for side effects only
+    if (typeof updateCityEvents === 'function') updateCityEvents(1 / 60);
   }
 
   /* ── Raycast Helpers for Block Interaction ────────────────────────── */
+
   function raycastBlock(camera, maxDist) {
     maxDist = maxDist || 8;
     const dir = new THREE.Vector3();
