@@ -1556,9 +1556,9 @@ const GameManager = (function () {
 
     // Birds + Mortar + MortarEmplacement + Premium + Lottery + Gyro
     try { if (window.Birds   && Birds.init)   Birds.init(_scene); } catch (e) {}
-    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, _controls); } catch (e) {}
+    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, null); } catch (e) {}
     try { if (window.MortarEmplacement && MortarEmplacement.init) MortarEmplacement.init(_scene, _camera); } catch (e) {}
-    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, _controls); } catch (e) {}
+    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, null); } catch (e) {}
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
     try { if (window.MissionDebrief && MissionDebrief.init) MissionDebrief.init(); } catch (e) {}
@@ -3096,8 +3096,13 @@ const GameManager = (function () {
       }, 10000);
     });
 
-    // Set player spawn on terrain — search outward if (0,0) lands in water
+    // Set player spawn on terrain — prefer the level's validated spawn point
+    // (clearance-checked candidates + spiral fallback inside voxel-world).
     var sx = 0, sz = 0, spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
+    if (window.VoxelWorld.getSpawnPoint) {
+      var _vsp = window.VoxelWorld.getSpawnPoint();
+      if (_vsp && typeof _vsp.x === 'number') { sx = _vsp.x; sz = _vsp.z; spawnH = _vsp.y; }
+    }
     var BLOCK_WATER = 8;
     function _isWaterCol(x, z, h) {
       var b = window.VoxelWorld.getBlock ? window.VoxelWorld.getBlock(Math.floor(x), Math.floor(h), Math.floor(z)) : 0;
@@ -4666,6 +4671,10 @@ const GameManager = (function () {
         payloadEl.style.display = '';
         payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
         payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';
+      } else if (typeof drone.payloadCount === 'number') {
+        payloadEl.style.display = '';
+        payloadEl.textContent = '\uD83C\uDFAF CHARGES [\u00D7' + drone.payloadCount + ']';
+        payloadEl.style.color = drone.payloadCount > 0 ? '#ffaa00' : '#666';
       } else {
         payloadEl.style.display = 'none';
       }
