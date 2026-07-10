@@ -969,6 +969,12 @@ const GameManager = (function () {
       }
       return false;
     }
+    if (VW.getSpawnPoint) {
+      var _vsp = VW.getSpawnPoint();
+      if (_vsp && typeof _vsp.x === 'number' && !wet(_vsp.x, _vsp.z)) {
+        return { x: _vsp.x, z: _vsp.z, h: _vsp.y };
+      }
+    }
     if (!wet(0, 0)) return { x: 0, z: 0, h: VW.getTerrainHeight(0, 0) };
     for (var r = 3; r <= 70; r += 3) {
       for (var a = 0; a < 16; a++) {
@@ -1558,8 +1564,8 @@ const GameManager = (function () {
     if (typeof Progression !== 'undefined' && Progression && typeof Progression.init === 'function') Progression.init();
     // Birds + Mortar + Premium + Lottery + Gyro
     try { if (window.Birds   && Birds.init)   Birds.init(_scene); } catch (e) {}
-    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, _controls); } catch (e) {}
-    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, _controls); } catch (e) {}
+    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, null); } catch (e) {}
+    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, null); } catch (e) {}
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
@@ -3085,9 +3091,9 @@ const GameManager = (function () {
     if (payloadEl) {
       payloadEl.style.display = '';
       if (type === 'surveillance') {
-        payloadEl.textContent = ammo > 0 ? '🔫 LMG READY' : '🔫 LMG EMPTY';
+        payloadEl.textContent = ammo > 0 ? '🔫 LMG [×' + ammo + ']' : '🔫 LMG EMPTY';
       } else {
-        payloadEl.textContent = ammo > 0 ? '💣 PAYLOAD READY' : '💣 PAYLOAD EMPTY';
+        payloadEl.textContent = ammo > 0 ? '💣 PAYLOAD [×' + ammo + ']' : '💣 PAYLOAD EMPTY';
       }
       payloadEl.style.color = ammo > 0 ? ammoColor : '#666';
     }

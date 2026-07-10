@@ -2997,6 +2997,7 @@ const Enemies = (() => {
         // Face toward target
         e.mesh.lookAt(moveTarget.x, e.mesh.position.y, moveTarget.z);
 
+        e.mesh.rotation.y += Math.PI; // model faces +Z; lookAt aims -Z
         // Leg swing animation
         var prevLeg = e.legAngle;
         e.legAngle += e.legDir * (e.speed / 2.2) * 4 * delta;
@@ -3021,6 +3022,7 @@ const Enemies = (() => {
         var sStep = e.speed * 0.4 * delta;
         e.mesh.position.addScaledVector(strafe, sStep);
         e.mesh.lookAt(playerPos.x, e.mesh.position.y, playerPos.z);
+        e.mesh.rotation.y += Math.PI; // model faces +Z; lookAt aims -Z
         // Subtle leg animation at half speed
         e.legAngle += e.legDir * (e.speed / 4.4) * 4 * delta;
         if (Math.abs(e.legAngle) > 0.3) e.legDir *= -1;
@@ -3074,6 +3076,7 @@ const Enemies = (() => {
             e.mesh.position.y = (window.VoxelWorld.getTopSolidY ? window.VoxelWorld.getTopSolidY(e.mesh.position.x, e.mesh.position.z) : window.VoxelWorld.getTerrainHeight(e.mesh.position.x, e.mesh.position.z) + 1);
           }
           e.mesh.lookAt(e.mesh.position.x + awayDir.x, e.mesh.position.y, e.mesh.position.z + awayDir.z);
+          e.mesh.rotation.y += Math.PI; // model faces +Z; lookAt aims -Z
         }
         if (e._retreatTimer <= 0) e.retreating = false;
         // Update HP bar and continue
