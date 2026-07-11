@@ -40,3 +40,14 @@ drone/vehicle spawn hardening.
   getAliveCount, getAll, getAssaultGroups, getEnemyMeshes, setPlayerStealth, spawnSingle,
   startWave, tagAttacker, update) are ALL exported by dev enemies.js — swap is API-safe
   whenever we choose to unify combat too.
+
+## Live-tree QA sweep (2026-07-10, opus loop)
+Ran node harness sweeps against the LIVE gh-pages tree (what players actually run):
+- **CRITICAL FOUND+FIXED**: live `enemies.js` `buildMesh` threw `legL is not defined`
+  (unguarded, at every `spawnOne`) → **no enemy ever spawned**. Swapped in the QA'd
+  enemies.js; verified spawn+fight clean on live stages 0/2/7/13. Deployed `578e017`.
+- Levels 0-59: 60/60 generate clean.
+- Weapons: 117/117 build+switch+fire clean (loaded via weapons-data.js).
+- DroneSystem / VehicleSystem / UkrainianTactics: init+spawn+800 ticks clean.
+Live deploy chain now: df3b42c → 41e69d8 (world engine) → 578568e (LOD/lag) →
+3604ffd (audit fixes) → 578e017 (enemy spawn crash).
