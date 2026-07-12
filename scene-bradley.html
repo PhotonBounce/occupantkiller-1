@@ -1,0 +1,80 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#8fb8e0;overflow:hidden}</style></head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<script>window.WORLD_CHUNKS = 3; window.CHUNK_SIZE = 32; window.CHUNK_HEIGHT = 64;</script>
+<script src="three.min.js"></script>
+<script src="voxel-world.js"></script>
+<script src="bradley.js"></script>
+<script>
+(function(){
+  var THREE = window.THREE, VW = window.VoxelWorld, B = VW.BLOCK;
+  var canvas = document.getElementById('c');
+  var renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true, preserveDrawingBuffer:true});
+  renderer.setSize(1280,720,false);
+  renderer.setClearColor(0x9ec5e8, 1);
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x9ec5e8);
+  scene.fog = new THREE.Fog(0x9ec5e8, 60, 150);
+  var hemi = new THREE.HemisphereLight(0xffffff, 0x556b2f, 1.05); scene.add(hemi);
+  var sun = new THREE.DirectionalLight(0xfff2d0, 1.15); sun.position.set(40,80,30); scene.add(sun);
+
+  // Real voxel terrain — TREELINE level ("Drive the Bradley, rake the woods")
+  VW.init(scene);
+  VW.generateLevel(99);
+  var gy = VW.getTerrainHeight(0,0);
+
+  // Plant a real treeline ~24 blocks ahead (WOOD trunk + PARK_TREE canopy)
+  function tree(tx,tz){
+    var h = VW.getTerrainHeight(tx,tz);
+    for(var t=1;t<=4;t++) VW.setBlock(tx,h+t,tz,B.WOOD);
+    for(var dx=-2;dx<=2;dx++)for(var dz=-2;dz<=2;dz++)for(var dy=4;dy<=7;dy++){
+      if(Math.abs(dx)+Math.abs(dz)+Math.abs(dy-5) <= 4) VW.setBlock(tx+dx,h+dy,tz+dz,B.PARK_TREE);
+    }
+  }
+  for(var row=0; row<3; row++){
+    for(var tx=-30; tx<=30; tx+=5){
+      tree(tx + (row%2?2:0), 26 + row*6 + ((tx*7)%3));
+    }
+  }
+  VW.rebuildAll();
+  // Force full synchronous mesh build (drain the rebuild queue)
+  for(var f=0; f<400; f++) VW.updateDirtyChunks(null);
+
+  // Real Bradley IFV
+  window._gameScene = scene;
+  var cam = new THREE.PerspectiveCamera(72, 1280/720, 0.1, 600);
+  Bradley.init(scene, cam);
+  var veh = Bradley.spawnAt({x:0, y:gy+1, z:0});
+
+  // Aim the whole vehicle's turret/gun forward toward the treeline (+z)
+  if (veh && veh.turret) { try { veh.turret.rotation.y = 0; } catch(e){} }
+
+  // Muzzle flash at the 25mm Bushmaster barrel tip + tracers streaking into the woods
+  var barrelTipZ = 5.4, barrelY = gy + 3.2;
+  var flash = new THREE.Mesh(new THREE.SphereGeometry(0.55,12,12), new THREE.MeshBasicMaterial({color:0xffe066}));
+  flash.position.set(0.0, barrelY, barrelTipZ); scene.add(flash);
+  var flash2 = new THREE.Mesh(new THREE.ConeGeometry(0.42,2.2,12), new THREE.MeshBasicMaterial({color:0xff9a10}));
+  flash2.position.set(0, barrelY, barrelTipZ+1.1); flash2.rotation.x = Math.PI/2; scene.add(flash2);
+  var fl = new THREE.PointLight(0xffcc66, 4, 40); fl.position.set(0,barrelY,barrelTipZ); scene.add(fl);
+  // tracer rounds streaking from barrel toward the treeline
+  for(var tr=0; tr<7; tr++){
+    var tz = barrelTipZ + 3 + tr*3.2;
+    var tracer = new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,2.6,6), new THREE.MeshBasicMaterial({color:0xfff2a0}));
+    tracer.position.set((tr*0.12), barrelY - tr*0.03, tz); tracer.rotation.x = Math.PI/2; scene.add(tracer);
+  }
+  // impact bursts shredding the treeline
+  for(var im=0; im<5; im++){
+    var burst = new THREE.Mesh(new THREE.SphereGeometry(1.0,10,10), new THREE.MeshBasicMaterial({color:0xffe6b0, transparent:true, opacity:0.9}));
+    burst.position.set((im-2)*7, gy+5+(im%2), 27 + (im%3)*3); scene.add(burst);
+  }
+
+  // First-person gunner view: low, just behind the turret, sighting down the barrel at the woods
+  cam.position.set(0.0, gy + 3.55, -7.6);
+  cam.lookAt(new THREE.Vector3(0, gy + 4.0, 30));
+
+  renderer.render(scene, cam);
+  // second render after a tick to ensure everything is flushed
+  requestAnimationFrame(function(){ renderer.render(scene, cam); window.__RENDERED = true; });
+})();
+</script>
+</body></html>
