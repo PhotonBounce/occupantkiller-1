@@ -1,360 +1,93 @@
-/* ============================================================
- *  PERKS.JS — 8 new player perk/ability features
- *  Features: perk system, killstreak rewards, field bandage,
- *  adrenaline rush, dead eye, scavenger, ghost, juggernaut
- * ============================================================ */
-const Perks = (function () {
+window.Perks = (function() {
   'use strict';
 
-  /* ── Perk Definitions ──────────────────────── */
-  const PERK_LIST = {
-        // NEW: Drone Recon
-        DRONE_RECON: {
-          id: 'DRONE_RECON', name: 'Drone Recon', icon: '🛰️',
-          desc: 'Call in a recon drone to scout enemy positions. 90s cooldown.',
-          effect: function () {
-            if (typeof DroneSystem !== 'undefined' && DroneSystem.callRecon) {
-              DroneSystem.callRecon();
-            }
-          },
-          cooldown: 90
-        },
-        // NEW: Artillery Strike
-        ARTILLERY_STRIKE: {
-          id: 'ARTILLERY_STRIKE', name: 'Artillery Strike', icon: '💥',
-          desc: 'Call in an artillery barrage on your position. 120s cooldown.',
-          effect: function () {
-            if (typeof DroneSystem !== 'undefined' && DroneSystem.callArtilleryStrike) {
-              // Fire at player position (pulled from GameManager if available)
-              var gm = (typeof GameManager !== 'undefined') ? GameManager : null;
-              var pl = gm && gm.getPlayer ? gm.getPlayer() : null;
-              var pos = pl && pl.position ? pl.position.clone() : new THREE.Vector3(0, 0, 0);
-              DroneSystem.callArtilleryStrike(pos);
-            }
-          },
-          cooldown: 120
-        },
-    // Feature 33: Field Bandage
-    FIELD_BANDAGE: {
-      id: 'FIELD_BANDAGE', name: 'Field Bandage', icon: '🩹',
-      desc: 'Press H to heal 30 HP over 5 seconds. 30s cooldown.',
-      healTotal: 30, healDuration: 5, cooldown: 30
-    },
-    // Feature 34: Adrenaline Rush
-    ADRENALINE: {
-      id: 'ADRENALINE', name: 'Adrenaline Rush', icon: '⚡',
-      desc: 'Multi-kills grant 40% speed boost for 4 seconds.',
-      speedBoost: 0.4, duration: 4, killThreshold: 2
-    },
-    // Feature 35: Dead Eye
-    DEAD_EYE: {
-      id: 'DEAD_EYE', name: 'Dead Eye', icon: '🎯',
-      desc: 'Every 8th kill guarantees a critical hit (3× damage).',
-      killInterval: 8, critMult: 3.0
-    },
-    // Feature 36: Scavenger
-    SCAVENGER: {
-      id: 'SCAVENGER', name: 'Scavenger', icon: '🔄',
-      desc: 'Auto-loot ammo from killed enemies within 5m.',
-      range: 5, ammoPerKill: 10
-    },
-    // Feature 37: Ghost
-    GHOST: {
-      id: 'GHOST', name: 'Ghost', icon: '👻',
-      desc: 'Enemies detect you 50% slower. Reduced footstep sound.',
-      detectionMult: 0.5, footstepMult: 0.3
-    },
-    // Feature 38: Juggernaut
-    JUGGERNAUT: {
-      id: 'JUGGERNAUT', name: 'Juggernaut', icon: '🛡️',
-      desc: 'Take 25% less damage. Move 10% slower.',
-      damageMult: 0.75, speedMult: 0.9
-    },
-    // Extra perks for variety
-    QUICK_HANDS: {
-      id: 'QUICK_HANDS', name: 'Quick Hands', icon: '🖐️',
-      desc: 'Reload 35% faster. Swap weapons instantly.',
-      reloadMult: 0.65, swapTime: 0
-    },
-    MARATHON: {
-      id: 'MARATHON', name: 'Marathon', icon: '🏃',
-      desc: 'Unlimited sprint. Stamina drains 60% slower.',
-      staminaMult: 0.4
-    },
-    EXPLOSIVE_EXPERT: {
-      id: 'EXPLOSIVE_EXPERT', name: 'Explosive Expert', icon: '💣',
-      desc: 'Grenades and explosions deal 35% more damage. Grenade fuse reduced by 0.5s.',
-      damageMult: 1.35, fuseSub: 0.5
-    },
-    MARKSMAN: {
-      id: 'MARKSMAN', name: 'Marksman', icon: '🔭',
-      desc: 'Headshots grant a 30% damage boost to your next shot (3s window).',
-      damageMult: 1.30, duration: 3.0
+  var PERKS = [
+    { id: 'IRON_LUNGS',    name: 'Iron Lungs',       icon: '🫁', desc: 'Sprint does not reduce accuracy; stamina drains 30% slower', apply: function(p) { p._perkIronLungs = true; } },
+    { id: 'EXTRA_MAG',     name: 'Extended Mag',      icon: '📦', desc: '+30% max ammo for all weapons', apply: function(p) { p.maxAmmo = Math.round((p.maxAmmo || 90) * 1.3); p.ammo = Math.min(p.maxAmmo, (p.ammo || 30) + 15); } },
+    { id: 'MEDIC_BELT',    name: 'Medic Belt',        icon: '🏥', desc: 'Bandages heal 25 extra HP', apply: function(p) { p._perkMedicBelt = true; } },
+    { id: 'IRON_SKIN',     name: 'Iron Skin',         icon: '🛡', desc: 'Max armor increased by 30, gain 20 armor now', apply: function(p) { p.maxArmor = (p.maxArmor || 100) + 30; p.armor = Math.min(p.maxArmor, (p.armor || 0) + 20); } },
+    { id: 'HEADHUNTER',    name: 'Headhunter',        icon: '🎯', desc: 'Headshots do 1.5x more damage', apply: function(p) { p._perkHeadshot = true; } },
+    { id: 'TACTICAL_VEST', name: 'Tactical Vest',     icon: '🦺', desc: 'Take 15% less damage from all sources', apply: function(p) { p._perkDamageReduction = (p._perkDamageReduction || 1.0) * 0.85; } },
+    { id: 'SCAVENGER',     name: 'Scavenger',         icon: '🔍', desc: 'Enemy kills have 25% chance to drop ammo', apply: function(p) { p._perkScavenger = true; } },
+    { id: 'DOUBLE_TIME',   name: 'Double Time',       icon: '⚡', desc: 'Move 15% faster permanently', apply: function(p) { p._perkSpeedMult = (p._perkSpeedMult || 1.0) * 1.15; } },
+    { id: 'GRENADIER',     name: 'Grenadier Training',icon: '💣', desc: 'Start each level with 3 extra grenades', apply: function(p) { p.grenades = (p.grenades || 5) + 3; } },
+    { id: 'EAGLE_EYE',     name: 'Eagle Eye',         icon: '👁', desc: 'Enemies appear highlighted (red glow) through walls', apply: function(p) { p._perkEagleEye = true; } },
+    { id: 'LIFESTEAL',     name: 'Lifesteal',         icon: '❤', desc: 'Each kill restores 3 HP (max 30 per wave)', apply: function(p) { p._perkLifesteal = true; } },
+    { id: 'INCENDIARY',    name: 'Incendiary Rounds', icon: '🔥', desc: 'Bullets have 20% chance to set enemies on fire (+5 DPS for 3s)', apply: function(p) { p._perkIncendiary = true; } },
+    { id: 'COMMS_JAM',     name: 'Comms Jammer',      icon: '📡', desc: 'Enemy call-for-backup radius reduced 50%', apply: function(p) { p._perkCommsJam = true; } },
+    { id: 'STEADY_HAND',   name: 'Steady Hand',       icon: '🖐', desc: 'Weapon recoil reduced 35%', apply: function(p) { p._perkSteadyHand = true; } },
+    { id: 'CLAYMORES',     name: 'Claymore Expert',   icon: '💥', desc: 'Start each level with 2 extra mines', apply: function(p) { if (typeof Mines !== 'undefined') Mines.addStartingMines(2); } },
+  ];
+
+  var _unlockedPerks = [];
+  var _perkChoices = [];
+  var _overlayEl = null;
+  var _onChosenCallback = null;
+
+  function showPerkSelect(player, onChosen) {
+    _onChosenCallback = onChosen;
+    // Pick 3 random perks not yet owned
+    var available = PERKS.filter(function(p) { return _unlockedPerks.indexOf(p.id) < 0; });
+    // Shuffle
+    for (var i = available.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = available[i]; available[i] = available[j]; available[j] = tmp;
     }
-  };
+    _perkChoices = available.slice(0, 3);
 
-  /* ── Killstreak Rewards (Feature 32) ───────── */
-  const KILLSTREAKS = {
-    3:  { id: 'UAV',       name: 'UAV Scan',        icon: '📡', desc: 'Reveals all enemies for 15s', duration: 15 },
-    5:  { id: 'ARTILLERY', name: 'Artillery Strike', icon: '💥', desc: 'Call artillery on target area', damage: 200, radius: 10 },
-    7:  { id: 'AIRSTRIKE', name: 'Air Strike',       icon: '✈️', desc: 'Carpet bomb a line', damage: 300, width: 6, length: 25 },
-    10: { id: 'GUNSHIP',   name: 'Gunship Support',  icon: '🚁', desc: 'AI gunship attacks enemies for 20s', duration: 20, dps: 40 },
-    15: { id: 'NUKE',      name: 'Tactical Nuke',    icon: '☢️', desc: 'Ends the wave. Kills all enemies.', endsWave: true },
-    20: { id: 'ORBITAL',   name: 'Orbital Strike',   icon: '🛰️', desc: 'Massive area denial for 30s', duration: 30, damage: 500, radius: 20 }
-  };
+    // Build overlay
+    _overlayEl = document.createElement('div');
+    _overlayEl.id = 'perk-select-overlay';
+    _overlayEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9800;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;';
 
-  /* ── State ──────────────────────────────────── */
-  const MAX_PERKS = 3;
-  let equipped = [];
-  let killCount = 0;
-  let multiKillTimer = 0;
-  let multiKillCount = 0;
-  let deadEyeCounter = 0;
+    var html = '<div style="text-align:center;margin-bottom:20px"><div style="font-size:14px;color:#888;letter-spacing:3px">MISSION COMPLETE</div><div style="font-size:24px;color:#ffd700;font-weight:bold;margin-top:6px">CHOOSE YOUR PERK</div></div><div style="display:flex;gap:16px">';
 
-  // Perk-specific timers
-  let bandageActive = false, bandageTimer = 0, bandageCooldown = 0, bandageHealRate = 0;
-  let adrenalineActive = false, adrenalineTimer = 0;
-  let uavActive = false, uavTimer = 0;
-  let gunshipActive = false, gunshipTimer = 0;
-  let pendingStreaks = [];
-  let activeCooldowns = {};
-  let marksmanActive = false, marksmanTimer = 0;
+    for (var k = 0; k < _perkChoices.length; k++) {
+      var perk = _perkChoices[k];
+      html += '<div class="perk-card" data-perk-idx="' + k + '" style="background:rgba(20,20,30,0.95);border:2px solid #334;border-radius:8px;padding:20px 16px;width:160px;text-align:center;cursor:pointer;transition:border-color 0.2s,transform 0.15s" onmouseover="this.style.borderColor=\'#ffd700\';this.style.transform=\'scale(1.05)\'" onmouseout="this.style.borderColor=\'#334\';this.style.transform=\'scale(1)\'">';
+      html += '<div style="font-size:40px;margin-bottom:10px">' + perk.icon + '</div>';
+      html += '<div style="color:#fff;font-weight:bold;font-size:13px;margin-bottom:8px">' + perk.name + '</div>';
+      html += '<div style="color:#aaa;font-size:11px;line-height:1.4">' + perk.desc + '</div>';
+      html += '</div>';
+    }
+    html += '</div><div style="margin-top:18px;font-size:11px;color:#555">[Right-click to skip]</div>';
+
+    _overlayEl.innerHTML = html;
+    document.body.appendChild(_overlayEl);
+
+    // Click handler
+    _overlayEl.addEventListener('click', function(e) {
+      var card = e.target.closest('[data-perk-idx]');
+      if (!card) return;
+      var idx = parseInt(card.getAttribute('data-perk-idx'), 10);
+      var chosen = _perkChoices[idx];
+      if (!chosen) return;
+      chosen.apply(player);
+      _unlockedPerks.push(chosen.id);
+      document.body.removeChild(_overlayEl);
+      _overlayEl = null;
+      if (_onChosenCallback) _onChosenCallback(chosen.id);
+      if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+        HUD.notifyPickup(chosen.icon + ' PERK: ' + chosen.name, '#ffd700');
+      }
+    });
+    _overlayEl.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      if (_overlayEl) { document.body.removeChild(_overlayEl); _overlayEl = null; }
+      if (_onChosenCallback) _onChosenCallback(null);
+    });
+  }
 
   function reset() {
-    equipped = [];
-    killCount = 0; multiKillTimer = 0; multiKillCount = 0; deadEyeCounter = 0;
-    bandageActive = false; bandageTimer = 0; bandageCooldown = 0;
-    adrenalineActive = false; adrenalineTimer = 0;
-    uavActive = false; uavTimer = 0;
-    gunshipActive = false; gunshipTimer = 0;
-    pendingStreaks = [];
-    activeCooldowns = {};
-    marksmanActive = false; marksmanTimer = 0;
-  }
-
-  /* ── Feature 32: Perk System ───────────────── */
-  function equipPerk(perkId) {
-    if (equipped.length >= MAX_PERKS) return false;
-    if (equipped.includes(perkId)) return false;
-    if (!PERK_LIST[perkId]) return false;
-    equipped.push(perkId);
-    return true;
-  }
-
-  function unequipPerk(perkId) {
-    const idx = equipped.indexOf(perkId);
-    if (idx === -1) return false;
-    equipped.splice(idx, 1);
-    return true;
-  }
-
-  function hasPerk(perkId) { return equipped.includes(perkId); }
-  function getEquipped() { return equipped.map(id => PERK_LIST[id]); }
-
-  function activatePerk(perkId) {
-    if (!hasPerk(perkId)) return false;
-    const perk = PERK_LIST[perkId];
-    if (!perk || typeof perk.effect !== 'function') return false;
-    if ((activeCooldowns[perkId] || 0) > 0) return false;
-    perk.effect();
-    if (perk.cooldown) activeCooldowns[perkId] = perk.cooldown;
-    return perk;
-  }
-
-  /* ── Feature 32: Killstreak Rewards ────────── */
-  const MULTI_KILL_MSGS = ['', '', '💀 DOUBLE KILL!', '💀💀 TRIPLE KILL!', '🔥 QUADRUPLE KILL!', '🔥🔥 RAMPAGE!', '⚡ UNSTOPPABLE!'];
-
-  function onKill() {
-    killCount++;
-    multiKillCount++;
-    multiKillTimer = 3; // 3s window for multi-kill
-    deadEyeCounter++;
-
-    // Multi-kill announcements
-    if (multiKillCount >= 2) {
-      var _mkMsg = multiKillCount < MULTI_KILL_MSGS.length
-        ? MULTI_KILL_MSGS[multiKillCount]
-        : '⚡ UNSTOPPABLE!';
-      if (_mkMsg && typeof HUD !== 'undefined' && HUD.showToast) {
-        HUD.showToast(_mkMsg, 2000, multiKillCount >= 4 ? '#cc4400' : '#aa2200');
-      }
-      if (typeof AudioSystem !== 'undefined' && AudioSystem.playMultiKill) {
-        AudioSystem.playMultiKill(multiKillCount);
-      }
-    }
-
-    // Check killstreak
-    if (KILLSTREAKS[killCount]) {
-      pendingStreaks.push({ ...KILLSTREAKS[killCount] });
-    }
-
-    // Adrenaline check
-    if (hasPerk('ADRENALINE') && multiKillCount >= PERK_LIST.ADRENALINE.killThreshold) {
-      adrenalineActive = true;
-      adrenalineTimer = PERK_LIST.ADRENALINE.duration;
+    _unlockedPerks = [];
+    _perkChoices = [];
+    if (_overlayEl && document.body.contains(_overlayEl)) {
+      document.body.removeChild(_overlayEl);
+      _overlayEl = null;
     }
   }
 
-  function onHeadshot() {
-    if (!hasPerk('MARKSMAN')) return;
-    marksmanActive = true;
-    marksmanTimer = PERK_LIST.MARKSMAN.duration;
-  }
+  function getUnlocked() { return _unlockedPerks.slice(); }
 
-  function resetStreak() { killCount = 0; }
-
-  function getAvailableStreaks() { return pendingStreaks; }
-
-  function activateStreak(index) {
-    if (index < 0 || index >= pendingStreaks.length) return null;
-    const streak = pendingStreaks.splice(index, 1)[0];
-
-    if (streak.id === 'UAV') { uavActive = true; uavTimer = streak.duration; }
-    if (streak.id === 'GUNSHIP') { gunshipActive = true; gunshipTimer = streak.duration; }
-
-    return streak;
-  }
-
-  /* ── Feature 34: Field Bandage ─────────────── */
-  function useBandage() {
-    if (!hasPerk('FIELD_BANDAGE') || bandageActive || bandageCooldown > 0) return false;
-    const p = PERK_LIST.FIELD_BANDAGE;
-    bandageActive = true;
-    bandageTimer = p.healDuration;
-    bandageHealRate = p.healTotal / p.healDuration;
-    bandageCooldown = p.cooldown;
-    return true;
-  }
-
-  /* ── Feature 35: Dead Eye Check ────────────── */
-  function isDeadEyeShot() {
-    if (!hasPerk('DEAD_EYE')) return false;
-    if (deadEyeCounter >= PERK_LIST.DEAD_EYE.killInterval) {
-      deadEyeCounter = 0;
-      return true;
-    }
-    return false;
-  }
-
-  function getDeadEyeMult() { return PERK_LIST.DEAD_EYE.critMult; }
-
-  /* ── Modifier Getters ──────────────────────── */
-  function getDamageTakenMult() {
-    return hasPerk('JUGGERNAUT') ? PERK_LIST.JUGGERNAUT.damageMult : 1.0;
-  }
-
-  function getSpeedMult() {
-    let mult = 1.0;
-    if (hasPerk('JUGGERNAUT')) mult *= PERK_LIST.JUGGERNAUT.speedMult;
-    if (adrenalineActive) mult *= (1 + PERK_LIST.ADRENALINE.speedBoost);
-    return mult;
-  }
-
-  function getDetectionMult() {
-    return hasPerk('GHOST') ? PERK_LIST.GHOST.detectionMult : 1.0;
-  }
-
-  function getReloadMult() {
-    return hasPerk('QUICK_HANDS') ? PERK_LIST.QUICK_HANDS.reloadMult : 1.0;
-  }
-
-  function getStaminaMult() {
-    return hasPerk('MARATHON') ? PERK_LIST.MARATHON.staminaMult : 1.0;
-  }
-
-  function getExplosiveDamageMult() {
-    return hasPerk('EXPLOSIVE_EXPERT') ? PERK_LIST.EXPLOSIVE_EXPERT.damageMult : 1.0;
-  }
-
-  function getGrenadeFuseSub() {
-    return hasPerk('EXPLOSIVE_EXPERT') ? PERK_LIST.EXPLOSIVE_EXPERT.fuseSub : 0;
-  }
-
-  function getMarksmanMult() {
-    return (hasPerk('MARKSMAN') && marksmanActive) ? PERK_LIST.MARKSMAN.damageMult : 1.0;
-  }
-
-  function consumeMarksman() {
-    if (!marksmanActive) return false;
-    marksmanActive = false;
-    marksmanTimer = 0;
-    return true;
-  }
-
-  function getScavengerRange() {
-    return hasPerk('SCAVENGER') ? PERK_LIST.SCAVENGER.range : 0;
-  }
-
-  function getScavengerAmmo() {
-    return hasPerk('SCAVENGER') ? PERK_LIST.SCAVENGER.ammoPerKill : 0;
-  }
-
-  function isUAVActive() { return uavActive; }
-  function isGunshipActive() { return gunshipActive; }
-
-  /* ── Update ────────────────────────────────── */
-  function update(dt) {
-    // Multi-kill timer
-    if (multiKillTimer > 0) {
-      multiKillTimer -= dt;
-      if (multiKillTimer <= 0) multiKillCount = 0;
-    }
-
-    // Bandage
-    let healThisTick = 0;
-    if (bandageActive) {
-      bandageTimer -= dt;
-      healThisTick = bandageHealRate * dt;
-      if (bandageTimer <= 0) bandageActive = false;
-    }
-    if (bandageCooldown > 0) bandageCooldown -= dt;
-
-    for (const perkId in activeCooldowns) {
-      activeCooldowns[perkId] = Math.max(0, activeCooldowns[perkId] - dt);
-    }
-
-    // Adrenaline
-    if (adrenalineActive) {
-      adrenalineTimer -= dt;
-      if (adrenalineTimer <= 0) adrenalineActive = false;
-    }
-
-    // UAV
-    if (uavActive) {
-      uavTimer -= dt;
-      if (uavTimer <= 0) uavActive = false;
-    }
-
-    // Gunship
-    let gunshipDPS = 0;
-    if (gunshipActive) {
-      gunshipTimer -= dt;
-      gunshipDPS = 40; // damage per second to random enemy
-      if (gunshipTimer <= 0) gunshipActive = false;
-    }
-
-    // Marksman window
-    if (marksmanActive) {
-      marksmanTimer -= dt;
-      if (marksmanTimer <= 0) { marksmanActive = false; }
-    }
-
-    return { healThisTick, gunshipDPS };
-  }
-
-  return {
-    PERK_LIST, KILLSTREAKS, MAX_PERKS,
-    reset, update,
-    equipPerk, unequipPerk, hasPerk, getEquipped,
-    activatePerk,
-    onKill, onHeadshot, resetStreak, getAvailableStreaks, activateStreak,
-    useBandage,
-    isDeadEyeShot, getDeadEyeMult,
-    getDamageTakenMult, getSpeedMult, getDetectionMult,
-    getReloadMult, getStaminaMult,
-    getExplosiveDamageMult, getGrenadeFuseSub,
-    getMarksmanMult, consumeMarksman,
-    getScavengerRange, getScavengerAmmo,
-    isUAVActive, isGunshipActive
-  };
+  return { showPerkSelect: showPerkSelect, reset: reset, getUnlocked: getUnlocked, PERKS: PERKS };
 })();

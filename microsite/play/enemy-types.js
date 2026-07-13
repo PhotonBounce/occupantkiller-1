@@ -21,6 +21,60 @@ const EnemyTypes = (function () {
       spawnMessage: '⚠️ ENEMY COMMANDER APPROACHING!'
     },
 
+    // ── Stage-Specific Boss Types (Stages 1-4) ──────────────
+
+    // Stage 1: HOSTOMEL AIRPORT — VDV Airborne Assault Colonel
+    BOSS_HOSTOMEL: {
+      id: 'BOSS_HOSTOMEL', name: 'VDV Assault Colonel', tier: 3,
+      hp: 600, speed: 2.2, damage: 40, attackRange: 12,
+      color: 0x4466cc, scale: 1.65, xpReward: 220,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🪂 VDV ASSAULT COLONEL DROPS IN!',
+      behavior: 'boss',
+      rageThreshold: 0.5, rageDamageMult: 1.5,
+      summonTypes: ['PARATROOP', 'DRONE_OP'], summonCount: 3, summonInterval: 12
+    },
+
+    // Stage 2: AVDIIVKA — Siege Commander in armored vest
+    BOSS_AVDIIVKA: {
+      id: 'BOSS_AVDIIVKA', name: 'Avdiivka Siege Commander', tier: 3,
+      hp: 650, speed: 1.3, damage: 50, attackRange: 10,
+      color: 0x664422, scale: 1.70, xpReward: 260,
+      abilities: ['summon_reinforcements', 'rage_mode', 'bunker_shield'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🏭 SIEGE COMMANDER BREAKS THROUGH THE LINE!',
+      behavior: 'boss',
+      rageThreshold: 0.45, rageDamageMult: 1.4,
+      summonTypes: ['ARMORED', 'STORMER'], summonCount: 3, summonInterval: 15
+    },
+
+    // Stage 3: BAKHMUT RUINS — Wagner Group Butcher
+    BOSS_BAKHMUT: {
+      id: 'BOSS_BAKHMUT', name: 'Bakhmut Butcher (Wagner Lt.)', tier: 3,
+      hp: 700, speed: 2.0, damage: 60, attackRange: 8,
+      color: 0x442200, scale: 1.75, xpReward: 300,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT', 'RARE_WEAPON'],
+      spawnMessage: '☠ WAGNER BUTCHER STORMS THE RUINS!',
+      behavior: 'boss',
+      rageThreshold: 0.5, rageDamageMult: 1.8,
+      summonTypes: ['WAGNER', 'CONSCRIPT', 'CONSCRIPT'], summonCount: 4, summonInterval: 10
+    },
+
+    // Stage 4: KHERSON — Occupation Commissioner
+    BOSS_KHERSON: {
+      id: 'BOSS_KHERSON', name: 'Kherson Occupation Commissioner', tier: 3,
+      hp: 550, speed: 1.6, damage: 35, attackRange: 15,
+      color: 0x446622, scale: 1.60, xpReward: 240,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🪖 OCCUPATION COMMISSIONER TAKES THE FIELD!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.3,
+      summonTypes: ['BTR', 'SNIPER', 'CONSCRIPT'], summonCount: 3, summonInterval: 14
+    },
+
     // ── Stage-Specific Boss Types (Stages 5-12) ──────────────
 
     // Stage 5: MARIUPOL STEELWORKS — Forge Master amid molten steel
@@ -198,6 +252,423 @@ const EnemyTypes = (function () {
       summonTypes: ['SPETSNAZ', 'ASSAULT_MECH', 'THERMOBARIC', 'SWARM_OP'], summonCount: 5, summonInterval: 15,
       zombie: true, baldHead: true
     },
+
+    // New city bosses — Slavutych through Hostomel Airport
+    BOSS_SLAVUTYCH: {
+      id: 'BOSS_SLAVUTYCH', name: 'Exclusion Zone Warden', tier: 3,
+      hp: 800, speed: 1.3, damage: 50, attackRange: 18,
+      color: 0x2a4a22, scale: 1.6, xpReward: 350,
+      abilities: ['summon_reinforcements', 'radiation_burst'],
+      lootTable: ['MEDKIT', 'RARE_WEAPON', 'ARMOR'],
+      spawnMessage: '☢ THE EXCLUSION ZONE WARDEN EMERGES FROM THE REACTOR SHADOW!',
+      behavior: 'boss'
+    },
+    BOSS_KREMENCHUK: {
+      id: 'BOSS_KREMENCHUK', name: 'Missile Strike Commander', tier: 3,
+      hp: 900, speed: 1.4, damage: 55, attackRange: 20,
+      color: 0x553311, scale: 1.7, xpReward: 380,
+      abilities: ['summon_reinforcements', 'artillery_call'],
+      lootTable: ['MEDKIT', 'RARE_WEAPON', 'XP_BOOST'],
+      spawnMessage: '🚀 THE MISSILE STRIKE COMMANDER CALLS IN ANOTHER SALVO!',
+      behavior: 'boss',
+      artilleryDamage: 80, artilleryRadius: 4, artilleryInterval: 12
+    },
+    BOSS_CHERKASY: {
+      id: 'BOSS_CHERKASY', name: 'Dnipro River Blockade General', tier: 3,
+      hp: 950, speed: 1.3, damage: 60, attackRange: 18,
+      color: 0x2a3344, scale: 1.7, xpReward: 400,
+      abilities: ['summon_reinforcements', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '⚔ THE DNIPRO BLOCKADE GENERAL TAKES THE BRIDGE!',
+      behavior: 'boss'
+    },
+    BOSS_DNIPRO_METRO: {
+      id: 'BOSS_DNIPRO_METRO', name: 'Industrial Zone Overseer', tier: 4,
+      hp: 1100, speed: 1.4, damage: 65, attackRange: 20,
+      color: 0x334455, scale: 1.8, xpReward: 450,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '🏭 THE INDUSTRIAL ZONE OVERSEER DEPLOYS HIS GARRISON!',
+      behavior: 'boss',
+      artilleryDamage: 90, artilleryRadius: 4, artilleryInterval: 10,
+      rageThreshold: 0.4, rageDamageMult: 1.6
+    },
+    BOSS_AZOVSTAL: {
+      id: 'BOSS_AZOVSTAL', name: 'Azovstal Siege Marshal', tier: 4,
+      hp: 1500, speed: 1.2, damage: 80, attackRange: 22,
+      color: 0x221111, scale: 2.0, xpReward: 600,
+      abilities: ['summon_reinforcements', 'rage_mode', 'artillery_call', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '⚙ THE AZOVSTAL SIEGE MARSHAL BRINGS THE STEEL WORKS DOWN!',
+      behavior: 'boss',
+      artilleryDamage: 100, artilleryRadius: 5, artilleryInterval: 8,
+      rageThreshold: 0.35, rageDamageMult: 1.8,
+      summonTypes: ['SPETSNAZ', 'MORTAR', 'COMMISSAR'], summonCount: 4, summonInterval: 14
+    },
+    BOSS_KHERSON_BRIDGE: {
+      id: 'BOSS_KHERSON_BRIDGE', name: 'River Crossing General', tier: 4,
+      hp: 1200, speed: 1.4, damage: 70, attackRange: 20,
+      color: 0x334466, scale: 1.8, xpReward: 500,
+      abilities: ['summon_reinforcements', 'rocket_salvo', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'XP_BOOST'],
+      spawnMessage: '🌊 THE RIVER CROSSING GENERAL HOLDS THE ANTONIVKA BRIDGE!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+    BOSS_ZAPORIZHZHIA_NPP: {
+      id: 'BOSS_ZAPORIZHZHIA_NPP', name: 'Nuclear Plant Commandant', tier: 5,
+      hp: 2000, speed: 1.3, damage: 90, attackRange: 25,
+      color: 0x446633, scale: 2.2, xpReward: 750,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode', 'radiation_burst'],
+      lootTable: ['LEGENDARY_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '☢ THE NUCLEAR PLANT COMMANDANT TRIGGERS REACTOR ALERT!',
+      behavior: 'boss',
+      artilleryDamage: 110, artilleryRadius: 5, artilleryInterval: 9,
+      rageThreshold: 0.3, rageDamageMult: 2.0,
+      summonTypes: ['SPETSNAZ', 'MORTAR', 'THERMOBARIC'], summonCount: 4, summonInterval: 12
+    },
+    BOSS_KRAMATORSK_STATION: {
+      id: 'BOSS_KRAMATORSK_STATION', name: 'Railway Massacre Colonel', tier: 4,
+      hp: 1300, speed: 1.5, damage: 75, attackRange: 20,
+      color: 0x443322, scale: 1.9, xpReward: 550,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '💀 THE RAILWAY MASSACRE COLONEL ARRIVES BY ARMORED TRAIN!',
+      behavior: 'boss',
+      artilleryDamage: 95, artilleryRadius: 4, artilleryInterval: 10,
+      rageThreshold: 0.35, rageDamageMult: 1.7
+    },
+    BOSS_BUCHA_MEMORIAL: {
+      id: 'BOSS_BUCHA_MEMORIAL', name: 'Bucha Occupation Commander', tier: 4,
+      hp: 1400, speed: 1.4, damage: 80, attackRange: 22,
+      color: 0x333322, scale: 2.0, xpReward: 600,
+      abilities: ['summon_reinforcements', 'rage_mode', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '💀 THE BUCHA OCCUPATION COMMANDER MUST BE BROUGHT TO JUSTICE!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.9,
+      summonTypes: ['KADYROVITE', 'SPETSNAZ', 'COMMISSAR'], summonCount: 5, summonInterval: 13
+    },
+    BOSS_HOSTOMEL_AIRPORT_RAID: {
+      id: 'BOSS_HOSTOMEL_AIRPORT_RAID', name: 'VDV Heliborne Strike Colonel', tier: 4,
+      hp: 1200, speed: 1.6, damage: 70, attackRange: 18,
+      color: 0x334433, scale: 1.8, xpReward: 520,
+      abilities: ['summon_reinforcements', 'rocket_salvo', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'XP_BOOST'],
+      spawnMessage: '🚁 THE VDV HELIBORNE STRIKE COLONEL DESCENDS ON HOSTOMEL!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+    BOSS_MARIUPOL_DRAMA: {
+      id: 'BOSS_MARIUPOL_DRAMA', name: 'Mariupol Theatre Siege Commander', tier: 5,
+      hp: 1600, speed: 1.3, damage: 90, attackRange: 22,
+      color: 0x332211, scale: 2.1, xpReward: 700,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode', 'fortify'],
+      lootTable: ['LEGENDARY_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '💀 THE THEATRE SIEGE COMMANDER — ДЕТИ WERE WRITTEN ON THE FLOOR. BRING JUSTICE!',
+      behavior: 'boss',
+      artilleryDamage: 110, artilleryRadius: 5, artilleryInterval: 9,
+      rageThreshold: 0.3, rageDamageMult: 2.0,
+      summonTypes: ['KADYROVITE', 'WAGNER', 'COMMISSAR'], summonCount: 5, summonInterval: 12
+    },
+    BOSS_SEVERODONETSK_AZOT: {
+      id: 'BOSS_SEVERODONETSK_AZOT', name: 'AZOT Chemical Plant Overseer', tier: 4,
+      hp: 1350, speed: 1.4, damage: 80, attackRange: 20,
+      color: 0x223311, scale: 1.9, xpReward: 580,
+      abilities: ['summon_reinforcements', 'smoke_screen', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'MEDKIT', 'ARMOR'],
+      spawnMessage: '☠ THE AZOT PLANT OVERSEER THREATENS CHEMICAL CATASTROPHE — STOP HIM NOW!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+    BOSS_LVIV_OLD_TOWN: {
+      id: 'BOSS_LVIV_OLD_TOWN', name: 'Lviv Saboteur Colonel', tier: 3,
+      hp: 1100, speed: 1.7, damage: 65, attackRange: 18,
+      color: 0x334422, scale: 1.8, xpReward: 480,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '⚔ THE LVIV SABOTEUR COLONEL TARGETS THE CITY OF LIONS — DEFEND ITS WALLS!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.65
+    },
+    BOSS_ODESSA_CATACOMBS: {
+      id: 'BOSS_ODESSA_CATACOMBS', name: 'Black Sea Amphibious Strike General', tier: 4,
+      hp: 1250, speed: 1.5, damage: 75, attackRange: 20,
+      color: 0x223355, scale: 1.9, xpReward: 540,
+      abilities: ['summon_reinforcements', 'rocket_salvo', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '⚓ THE BLACK SEA STRIKE GENERAL EMERGES FROM THE CATACOMBS — HOLD ODESSA!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.75
+    },
+    BOSS_KHMELNYTSKYI: {
+      id: 'BOSS_KHMELNYTSKYI', name: 'Podolian Siege Commander', tier: 3,
+      hp: 1150, speed: 1.6, damage: 68, attackRange: 18,
+      color: 0x334433, scale: 1.85, xpReward: 500,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '⚔ THE PODOLIAN SIEGE COMMANDER STORMS THE FORTRESS WALLS — DEFEND KHMELNYTSKYI!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.65
+    },
+    BOSS_NIKOPOL: {
+      id: 'BOSS_NIKOPOL', name: 'Dnipro Bombardment General', tier: 4,
+      hp: 1300, speed: 1.45, damage: 78, attackRange: 22,
+      color: 0x223322, scale: 1.9, xpReward: 550,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '💀 THE DNIPRO BOMBARDMENT GENERAL CROSSES THE RIVER — DEFEND THE STEEL CITY!',
+      behavior: 'boss',
+      artilleryDamage: 88, artilleryRadius: 4, artilleryInterval: 11,
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+    BOSS_UZHHOROD: {
+      id: 'BOSS_UZHHOROD', name: 'Carpathian Saboteur Colonel', tier: 3,
+      hp: 1050, speed: 1.7, damage: 60, attackRange: 16,
+      color: 0x445533, scale: 1.8, xpReward: 460,
+      abilities: ['summon_reinforcements', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🏔 THE CARPATHIAN SABOTEUR COLONEL APPROACHES NATO\'S DOORSTEP — STOP HIM AT UZHHOROD!',
+      behavior: 'boss',
+      rageThreshold: 0.45, rageDamageMult: 1.6
+    },
+    BOSS_DEBALTSEVE: {
+      id: 'BOSS_DEBALTSEVE', name: 'DNR Winter Siege Commander', tier: 4,
+      hp: 1350, speed: 1.4, damage: 82, attackRange: 20,
+      color: 0x445566, scale: 1.95, xpReward: 580,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '❄ THE DNR WINTER SIEGE COMMANDER STORMS DEBALTSEVE — HOLD THE CORRIDOR!',
+      behavior: 'boss',
+      artilleryDamage: 90, artilleryRadius: 4, artilleryInterval: 10,
+      rageThreshold: 0.35, rageDamageMult: 1.8,
+      summonTypes: ['WAGNER', 'SPETSNAZ', 'KADYROVITE'], summonCount: 4, summonInterval: 15
+    },
+    BOSS_IRPIN: {
+      id: 'BOSS_IRPIN', name: 'Kyiv Advance Column General', tier: 3,
+      hp: 1100, speed: 1.55, damage: 65, attackRange: 18,
+      color: 0x334433, scale: 1.85, xpReward: 490,
+      abilities: ['summon_reinforcements', 'rage_mode', 'smoke_screen'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🌉 THE KYIV ADVANCE COLUMN GENERAL CROSSES THE IRPIN RIVER — CUT HIM OFF!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+    BOSS_LYSYCHANSK: {
+      id: 'BOSS_LYSYCHANSK', name: 'LPR Hilltop Assault General', tier: 4,
+      hp: 1400, speed: 1.45, damage: 80, attackRange: 22,
+      color: 0x3a2810, scale: 2.0, xpReward: 600,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '⛽ THE LPR HILLTOP ASSAULT GENERAL TAKES THE REFINERY HEIGHTS — RETAKE THEM!',
+      behavior: 'boss',
+      artilleryDamage: 95, artilleryRadius: 4.5, artilleryInterval: 9,
+      rageThreshold: 0.3, rageDamageMult: 1.9
+    },
+    BOSS_ENERGODAR: {
+      id: 'BOSS_ENERGODAR', name: 'Nuclear City Occupation Commander', tier: 4,
+      hp: 1280, speed: 1.4, damage: 75, attackRange: 20,
+      color: 0x223322, scale: 1.9, xpReward: 560,
+      abilities: ['summon_reinforcements', 'artillery_call', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'RARE_WEAPON', 'ARMOR', 'MEDKIT'],
+      spawnMessage: '☢ THE NUCLEAR CITY OCCUPATION COMMANDER CONTROLS ENERGODAR — TAKE IT BACK!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+    BOSS_KHERSON_CITY: {
+      id: 'BOSS_KHERSON_CITY', name: 'Kherson Occupation General', tier: 3,
+      hp: 1150, speed: 1.5, damage: 68, attackRange: 19,
+      color: 0x334422, scale: 1.85, xpReward: 510,
+      abilities: ['summon_reinforcements', 'rage_mode', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🌻 THE KHERSON OCCUPATION GENERAL FLEES FREEDOM SQUARE — CATCH HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.65
+    },
+
+    BOSS_KUPYANSK: {
+      id: 'BOSS_KUPYANSK', name: 'Kharkiv Rail Logistics Colonel', tier: 3,
+      hp: 1200, speed: 1.6, damage: 72, attackRange: 20,
+      color: 0x334422, scale: 1.85, xpReward: 530,
+      abilities: ['summon_reinforcements', 'airstrike', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'AMMO'],
+      spawnMessage: '🚂 THE RAIL LOGISTICS COLONEL CONTROLS THE JUNCTION — TAKE HIM DOWN!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+
+    BOSS_ROBOTYNE: {
+      id: 'BOSS_ROBOTYNE', name: 'Zaporizhzhia Line Breaker General', tier: 4,
+      hp: 1450, speed: 1.4, damage: 85, attackRange: 22,
+      color: 0x443322, scale: 1.9, xpReward: 620,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'rage_mode', 'minefield'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '💨 THE LINE BREAKER GENERAL COMMANDS THE MINED FIELDS — BREACH HIS PERIMETER!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+
+    BOSS_CHASIV_YAR: {
+      id: 'BOSS_CHASIV_YAR', name: 'Canal City Siege Commander', tier: 4,
+      hp: 1500, speed: 1.35, damage: 90, attackRange: 23,
+      color: 0x221122, scale: 1.95, xpReward: 660,
+      abilities: ['mortar_barrage', 'drone_swarm', 'summon_reinforcements', 'rage_mode'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🌊 THE CANAL SIEGE COMMANDER HOLDS THE LAST CROSSING — STOP HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.85
+    },
+
+    BOSS_TORETSK: {
+      id: 'BOSS_TORETSK', name: 'Donbas Mine District Warlord', tier: 4,
+      hp: 1380, speed: 1.45, damage: 80, attackRange: 20,
+      color: 0x1a1a33, scale: 1.88, xpReward: 590,
+      abilities: ['tunnel_ambush', 'summon_reinforcements', 'rage_mode', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '⛏ THE MINE DISTRICT WARLORD EMERGES FROM THE TUNNELS — FIGHT!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.75
+    },
+
+    BOSS_VOLCHANSK: {
+      id: 'BOSS_VOLCHANSK', name: 'Russian Border Assault General', tier: 4,
+      hp: 1420, speed: 1.5, damage: 82, attackRange: 21,
+      color: 0x441111, scale: 1.9, xpReward: 610,
+      abilities: ['airstrike', 'summon_reinforcements', 'rage_mode', 'mortar_barrage'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: '🇷🇺 THE BORDER ASSAULT GENERAL CROSSES FROM RUSSIA — REPEL THE INVASION!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+
+    BOSS_MELITOPOL: {
+      id: 'BOSS_MELITOPOL', name: 'The Occupier', tier: 3,
+      hp: 1300, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x1a2211, scale: 1.85, xpReward: 570,
+      abilities: ['fortify', 'summon_reinforcements', 'mortar_barrage'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'AMMO'],
+      spawnMessage: 'THE OCCUPIER TIGHTENS HIS GRIP ON MELITOPOL — BREAK HIS CONTROL!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+
+    BOSS_AVDIIVKA: {
+      id: 'BOSS_AVDIIVKA', name: 'Coke Plant Commander', tier: 5,
+      hp: 1800, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x111111, scale: 2.0, xpReward: 750,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'rage_mode', 'drone_swarm', 'tunnel_ambush'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'THE COKE PLANT COMMANDER EMERGES FROM THE INDUSTRIAL FORTRESS — DESTROY HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.9
+    },
+
+    BOSS_ZAPORIZHZHIA_CITY: {
+      id: 'BOSS_ZAPORIZHZHIA_CITY', name: 'Nuclear Zone Marshal', tier: 4,
+      hp: 1500, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x1a1122, scale: 1.92, xpReward: 650,
+      abilities: ['airstrike', 'drone_swarm', 'summon_reinforcements', 'fortify'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'THE NUCLEAR ZONE MARSHAL THREATENS THE DAM AND PLANT — STOP HIM NOW!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+
+    BOSS_SUMY_CITY: {
+      id: 'BOSS_SUMY_CITY', name: 'Border Invader', tier: 3,
+      hp: 1250, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x223322, scale: 1.82, xpReward: 545,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'AMMO'],
+      spawnMessage: 'THE BORDER INVADER SHELLS SUMY FROM ACROSS THE LINE — ELIMINATE HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.4, rageDamageMult: 1.7
+    },
+
+    BOSS_DONETSK_CITY: {
+      id: 'BOSS_DONETSK_CITY', name: 'DPR Commander', tier: 5,
+      hp: 2000, speed: 2.0, damage: 45, attackRange: 12,
+      color: 0x0d0d11, scale: 2.05, xpReward: 820,
+      abilities: ['airstrike', 'mortar_barrage', 'summon_reinforcements', 'rage_mode', 'drone_swarm', 'fortify'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'THE DPR COMMANDER COMMANDS THE OCCUPIED CAPITAL — TAKE HIM DOWN!',
+      behavior: 'boss',
+      rageThreshold: 0.25, rageDamageMult: 2.0
+    },
+
+    BOSS_CRIMEA_BRIDGE: {
+      id: 'BOSS_CRIMEA_BRIDGE', name: 'Bridge Garrison Commander', tier: 5,
+      hp: 2200, speed: 2.1, damage: 50, attackRange: 14,
+      color: 0x001122, scale: 2.1, xpReward: 880,
+      abilities: ['airstrike', 'mortar_barrage', 'summon_reinforcements', 'rage_mode'],
+      lootTable: ['LEGENDARY_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'BRIDGE GARRISON COMMANDER DEFENDS THE KERCH STRAIT — TAKE THE BRIDGE!',
+      behavior: 'boss',
+      rageThreshold: 0.25, rageDamageMult: 2.1
+    },
+
+    BOSS_SEVASTOPOL: {
+      id: 'BOSS_SEVASTOPOL', name: 'Black Sea Fleet Admiral', tier: 4,
+      hp: 1600, speed: 1.9, damage: 42, attackRange: 12,
+      color: 0x001a2a, scale: 2.0, xpReward: 720,
+      abilities: ['airstrike', 'mortar_barrage', 'summon_reinforcements', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'BLACK SEA FLEET ADMIRAL COMMANDS THE HARBOR — SINK HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.9
+    },
+
+    BOSS_LUHANSK: {
+      id: 'BOSS_LUHANSK', name: 'LPR Military Governor', tier: 4,
+      hp: 1500, speed: 1.8, damage: 40, attackRange: 12,
+      color: 0x110a00, scale: 1.95, xpReward: 680,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'fortify', 'rage_mode'],
+      lootTable: ['RARE_WEAPON', 'ARMOR', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'LPR MILITARY GOVERNOR CONTROLS THE INDUSTRIAL HUB — ELIMINATE HIM!',
+      behavior: 'boss',
+      rageThreshold: 0.3, rageDamageMult: 1.85
+    },
+
+    BOSS_STAROBILSK: {
+      id: 'BOSS_STAROBILSK', name: 'Logistics Commander', tier: 3,
+      hp: 1300, speed: 1.7, damage: 35, attackRange: 10,
+      color: 0x1a1000, scale: 1.9, xpReward: 600,
+      abilities: ['mortar_barrage', 'summon_reinforcements', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'LOGISTICS COMMANDER RUNS THE SUPPLY HUB — CUT HIM OFF!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.75
+    },
+
+    BOSS_BERDIANSK: {
+      id: 'BOSS_BERDIANSK', name: 'Azov Port Commandant', tier: 3,
+      hp: 1350, speed: 1.8, damage: 36, attackRange: 11,
+      color: 0x0a1522, scale: 1.9, xpReward: 620,
+      abilities: ['airstrike', 'summon_reinforcements', 'fortify'],
+      lootTable: ['RARE_WEAPON', 'MEDKIT', 'XP_BOOST'],
+      spawnMessage: 'AZOV PORT COMMANDANT CONTROLS THE HARBOR — TAKE THE PORT!',
+      behavior: 'boss',
+      rageThreshold: 0.35, rageDamageMult: 1.8
+    },
+
+    BOSS_POLTAVA: { type: 'BOSS_POLTAVA', hp: 1400, speed: 1.5, damage: 22, fireRate: 0.9, tier: 3, name: 'Colonel Petrenko',    color: 0x3a5a1a, scale: 1.9, reward: 3000 },
+    BOSS_MYKOLAIV: { type: 'BOSS_MYKOLAIV', hp: 1550, speed: 1.6, damage: 24, fireRate: 0.8, tier: 3, name: 'Admiral Volkov',      color: 0x1a2a4a, scale: 2.0, reward: 3200 },
+    BOSS_RIVNE: { type: 'BOSS_RIVNE', hp: 1350, speed: 1.7, damage: 20, fireRate: 1.0, tier: 3, name: 'Mykola "Ядерний"',    color: 0x2a1a4a, scale: 1.8, reward: 2900 },
+    BOSS_KREMENCHUK: { type: 'BOSS_KREMENCHUK', hp: 1600, speed: 1.5, damage: 26, fireRate: 0.8, tier: 4, name: 'Lt. General Shapkin', color: 0x4a2a1a, scale: 2.1, reward: 3400 },
+    BOSS_NOVOROSSIYSK:     { type: 'BOSS_NOVOROSSIYSK',     hp: 2000, speed: 1.4, damage: 30, fireRate: 0.7,  tier: 5, name: 'Admiral Osipov',      color: 0x0a1a2a, scale: 2.3, reward: 4000 },
+    BOSS_SAINT_PETERSBURG: { type: 'BOSS_SAINT_PETERSBURG', hp: 2200, speed: 1.4, damage: 32, fireRate: 0.65, tier: 5, name: 'General Surovikin',    color: 0x0a1a2a, scale: 2.4, reward: 4500 },
+    BOSS_PSKOV:            { type: 'BOSS_PSKOV',            hp: 1500, speed: 1.7, damage: 22, fireRate: 0.9,  tier: 3, name: 'Major Ignatenko',      color: 0x2a2a3a, scale: 1.9, reward: 3100 },
+    BOSS_MURMANSK:         { type: 'BOSS_MURMANSK',         hp: 1800, speed: 1.5, damage: 28, fireRate: 0.75, tier: 4, name: 'Admiral Moiseev',      color: 0x0a1a3a, scale: 2.1, reward: 3800 },
+    BOSS_VORONEZH:         { type: 'BOSS_VORONEZH',         hp: 1650, speed: 1.6, damage: 25, fireRate: 0.8,  tier: 4, name: 'Col. Prigozhin-2',    color: 0x2a1a0a, scale: 2.0, reward: 3500 },
+    BOSS_YEYSK:            { type: 'BOSS_YEYSK',            hp: 2400, speed: 1.3, damage: 35, fireRate: 0.6,  tier: 5, name: 'General Gerasimov',   color: 0x0a0a1a, scale: 2.5, reward: 5000 },
+    BOSS_MELITOPOL_2:      { type: 'BOSS_MELITOPOL_2',      hp: 1900, speed: 1.6, damage: 28, fireRate: 0.75, tier: 4, name: 'Col. Saldatenko',      color: 0x2a1a00, scale: 2.0, reward: 3900 },
+    BOSS_TOKMAK:           { type: 'BOSS_TOKMAK',           hp: 1700, speed: 1.7, damage: 25, fireRate: 0.8,  tier: 4, name: 'Maj. Kovtun',          color: 0x1a1500, scale: 1.9, reward: 3600 },
+    BOSS_ARMYANSK:         { type: 'BOSS_ARMYANSK',         hp: 1600, speed: 1.5, damage: 23, fireRate: 0.85, tier: 3, name: 'Gen. Mizintsev',       color: 0x001a1a, scale: 1.9, reward: 3300 },
+    BOSS_IZIUM:            { type: 'BOSS_IZIUM',            hp: 1750, speed: 1.6, damage: 26, fireRate: 0.78, tier: 4, name: 'Col. Korolkov',        color: 0x1a1200, scale: 2.0, reward: 3700 },
+    BOSS_ALCHEVSK:         { type: 'BOSS_ALCHEVSK',         hp: 2500, speed: 1.3, damage: 38, fireRate: 0.6,  tier: 5, name: 'Gen. Lapin "Steel"',   color: 0x1a0a00, scale: 2.6, reward: 5500 },
+    BOSS_KIEV_NIGHT:       { type: 'BOSS_KIEV_NIGHT',       hp: 2800, speed: 1.4, damage: 40, fireRate: 0.55, tier: 5, name: 'Night Commander',        color: 0x080810, scale: 2.4, reward: 6000 },
+    BOSS_ODESSA_PORT:      { type: 'BOSS_ODESSA_PORT',      hp: 3200, speed: 1.2, damage: 45, fireRate: 0.5,  tier: 5, name: 'Port Admiral',           color: 0x0a1a2a, scale: 2.5, reward: 6500 },
+    BOSS_BELGOROD_NIGHT:   { type: 'BOSS_BELGOROD_NIGHT',   hp: 2600, speed: 1.3, damage: 42, fireRate: 0.52, tier: 5, name: 'Belgorod General',       color: 0x100808, scale: 1.5, reward: 7000 },
 
     // Feature 17: Suicide Bomber
     BOMBER: {
@@ -404,6 +875,60 @@ const EnemyTypes = (function () {
       swarmSize: 8, droneDamage: 40, droneSpeed: 15, droneHP: 8,
       swarmInterval: 8,
       behavior: 'send_swarm'
+    },
+
+    // Basic sniper (referenced by boss summons — light version of SNIPER_ELITE)
+    SNIPER: {
+      id: 'SNIPER', name: 'Russian Sniper', tier: 2,
+      hp: 55, speed: 0.9, damage: 55, attackRange: 32,
+      color: 0x556644, scale: 1.05, xpReward: 85,
+      fireRate: 3.5, accuracy: 0.85,
+      behavior: 'snipe'
+    },
+
+    // Recon trooper — fast scout who spots player and buffs nearby allies
+    RECON: {
+      id: 'RECON', name: 'GRU Recon Trooper', tier: 2,
+      hp: 60, speed: 3.0, damage: 28, attackRange: 20,
+      color: 0x445533, scale: 0.95, xpReward: 80,
+      spottingRange: 35, spottingBonus: 0.25,
+      behavior: 'scout'
+    },
+
+    // Grenadier — throws grenades before closing to melee
+    GRENADIER: {
+      id: 'GRENADIER', name: 'Grenadier', tier: 2,
+      hp: 90, speed: 1.4, damage: 45, attackRange: 18,
+      color: 0x664422, scale: 1.1, xpReward: 95,
+      grenadeRange: 22, grenadeDamage: 80, grenadeRadius: 4.5, grenadeRate: 5.0,
+      behavior: 'grenadier'
+    },
+
+    // Javelin operator — fires guided AT missiles, huge area damage
+    JAVELIN_OP: {
+      id: 'JAVELIN_OP', name: 'Javelin Operator', tier: 3,
+      hp: 75, speed: 0.8, damage: 120, attackRange: 40,
+      color: 0x334455, scale: 1.1, xpReward: 130,
+      missileSpeed: 10, blastRadius: 6, reloadTime: 8.0,
+      behavior: 'javelin'
+    },
+
+    // Tunneler — appears from ground via tunnel entrance, surprise attack
+    TUNNELER: {
+      id: 'TUNNELER', name: 'Tunnel Infiltrator', tier: 2,
+      hp: 80, speed: 2.2, damage: 38, attackRange: 3,
+      color: 0x332211, scale: 1.0, xpReward: 90,
+      tunnelCooldown: 12, tunnelRange: 8,
+      behavior: 'tunnel_ambush'
+    },
+
+    // Commissar — political officer, forces nearby allies into rage (damage buff for allies)
+    COMMISSAR_FIELD: {
+      id: 'COMMISSAR_FIELD', name: 'Field Commissar', tier: 3,
+      hp: 110, speed: 1.1, damage: 42, attackRange: 16,
+      color: 0x880000, scale: 1.15, xpReward: 115,
+      rallyRadius: 12, rallyDamageMult: 1.4, rallyInterval: 8,
+      behavior: 'rally'
     }
   };
 
@@ -412,11 +937,11 @@ const EnemyTypes = (function () {
     1:  { types: ['CONSCRIPT'], weights: [1] },
     2:  { types: ['CONSCRIPT', 'BOMBER'], weights: [0.8, 0.2] },
     3:  { types: ['CONSCRIPT', 'STORMER', 'WAR_DOG'], weights: [0.5, 0.3, 0.2] },
-    4:  { types: ['CONSCRIPT', 'STORMER', 'SNIPER_ELITE', 'MEDIC'], weights: [0.4, 0.3, 0.15, 0.15] },
-    5:  { types: ['BOSS', 'STORMER', 'SHIELD_BEARER'], weights: [0.05, 0.5, 0.45] },
-    6:  { types: ['STORMER', 'ARMORED', 'ENGINEER', 'BOMBER'], weights: [0.3, 0.3, 0.2, 0.2] },
-    7:  { types: ['ARMORED', 'SNIPER_ELITE', 'MORTAR', 'MEDIC'], weights: [0.3, 0.25, 0.25, 0.2] },
-    8:  { types: ['ARMORED', 'SHIELD_BEARER', 'ENGINEER', 'MORTAR'], weights: [0.3, 0.25, 0.25, 0.2] },
+    4:  { types: ['CONSCRIPT', 'SNIPER', 'GRENADIER', 'MEDIC'], weights: [0.4, 0.2, 0.25, 0.15] },
+    5:  { types: ['BOSS', 'STORMER', 'RECON', 'GRENADIER'], weights: [0.05, 0.4, 0.3, 0.25] },
+    6:  { types: ['STORMER', 'ARMORED', 'GRENADIER', 'RECON'], weights: [0.3, 0.3, 0.25, 0.15] },
+    7:  { types: ['ARMORED', 'SNIPER_ELITE', 'TUNNELER', 'MEDIC'], weights: [0.3, 0.25, 0.25, 0.2] },
+    8:  { types: ['ARMORED', 'SHIELD_BEARER', 'GRENADIER', 'TUNNELER'], weights: [0.3, 0.25, 0.25, 0.2] },
     9:  { types: ['BOSS', 'ARMORED', 'SNIPER_ELITE', 'BOMBER', 'WAR_DOG'], weights: [0.05, 0.3, 0.25, 0.2, 0.2] },
     10: { types: ['BOSS', 'ARMORED', 'SHIELD_BEARER', 'MORTAR', 'SNIPER_ELITE', 'MEDIC'], weights: [0.1, 0.25, 0.2, 0.15, 0.15, 0.15] },
     // Stage 5+ waves: introduce new types
@@ -426,9 +951,9 @@ const EnemyTypes = (function () {
     14: { types: ['TANK', 'SPETSNAZ', 'OFFICER', 'MORTAR', 'DRONE_OP'], weights: [0.08, 0.25, 0.17, 0.25, 0.25] },
     15: { types: ['BOSS', 'TANK', 'SPETSNAZ', 'KAMIKAZE_DRONE', 'FLAMETHROWER', 'OFFICER'], weights: [0.08, 0.12, 0.2, 0.2, 0.2, 0.2] },
     // Stages 9-10: Naval & Donbas endgame waves
-    16: { types: ['HEAVY_SNIPER', 'BTR', 'SPETSNAZ', 'DRONE_OP', 'SHIELD_BEARER', 'SWARM_OP'], weights: [0.12, 0.12, 0.2, 0.2, 0.16, 0.2] },
-    17: { types: ['COMMISSAR', 'WAGNER', 'KADYROVITE', 'FLAMETHROWER', 'MORTAR'], weights: [0.1, 0.25, 0.2, 0.25, 0.2] },
-    18: { types: ['THERMOBARIC', 'TANK', 'HEAVY_SNIPER', 'SPETSNAZ', 'EW_OPERATOR'], weights: [0.1, 0.15, 0.2, 0.3, 0.25] },
+    16: { types: ['HEAVY_SNIPER', 'BTR', 'SPETSNAZ', 'DRONE_OP', 'RECON', 'SWARM_OP'], weights: [0.12, 0.12, 0.2, 0.2, 0.16, 0.2] },
+    17: { types: ['COMMISSAR_FIELD', 'GRENADIER', 'KADYROVITE', 'FLAMETHROWER', 'JAVELIN_OP'], weights: [0.1, 0.25, 0.2, 0.25, 0.2] },
+    18: { types: ['THERMOBARIC', 'JAVELIN_OP', 'HEAVY_SNIPER', 'TUNNELER', 'EW_OPERATOR'], weights: [0.1, 0.15, 0.2, 0.3, 0.25] },
     19: { types: ['BOSS', 'THERMOBARIC', 'COMMISSAR', 'BTR', 'SWARM_OP', 'HEAVY_SNIPER', 'DRONE_OP'], weights: [0.07, 0.13, 0.1, 0.18, 0.22, 0.18, 0.12] },
     20: { types: ['BOSS', 'ASSAULT_MECH', 'TANK', 'THERMOBARIC', 'SWARM_OP', 'SPETSNAZ', 'DRONE_OP'], weights: [0.08, 0.05, 0.13, 0.18, 0.22, 0.2, 0.14] },
     // Stages 11-12: Belgorod & Kremlin — maximum intensity
@@ -1036,6 +1561,10 @@ const EnemyTypes = (function () {
 
   /* ── Stage-Specific Boss Selection ─────────── */
   const STAGE_BOSS_MAP = {
+    1:  'BOSS_HOSTOMEL',      // VDV Airborne Assault Colonel
+    2:  'BOSS_AVDIIVKA',      // Avdiivka Siege Commander
+    3:  'BOSS_BAKHMUT',       // Bakhmut Butcher (Wagner Lt.)
+    4:  'BOSS_KHERSON',       // Kherson Occupation Commissioner
     5:  'BOSS_MARIUPOL',      // Azovstal Forge Master
     6:  'BOSS_CRIMEA',        // Kerch Bridge Admiral
     7:  'BOSS_CHORNOBYL',     // Irradiated Stalker
@@ -1050,11 +1579,67 @@ const EnemyTypes = (function () {
     16: 'BOSS_VUHLEDAR',      // Tank Corps Colonel
     17: 'BOSS_ANTONOV',       // Logistics Rear Admiral
     // 18 (Refinery FPV) is droneOnly/single-wave — no boss needed
+    // New city levels — keyed by string level ID
+    SLAVUTYCH:            'BOSS_SLAVUTYCH',
+    KREMENCHUK:           'BOSS_KREMENCHUK',
+    CHERKASY:             'BOSS_CHERKASY',
+    DNIPRO_METRO:         'BOSS_DNIPRO_METRO',
+    AZOVSTAL:             'BOSS_AZOVSTAL',
+    KHERSON_BRIDGE:       'BOSS_KHERSON_BRIDGE',
+    ZAPORIZHZHIA_NPP:     'BOSS_ZAPORIZHZHIA_NPP',
+    KRAMATORSK_STATION:   'BOSS_KRAMATORSK_STATION',
+    BUCHA_MEMORIAL:       'BOSS_BUCHA_MEMORIAL',
+    HOSTOMEL_AIRPORT_RAID: 'BOSS_HOSTOMEL_AIRPORT_RAID',
+    MARIUPOL_DRAMA:       'BOSS_MARIUPOL_DRAMA',
+    SEVERODONETSK_AZOT:   'BOSS_SEVERODONETSK_AZOT',
+    LVIV_OLD_TOWN:        'BOSS_LVIV_OLD_TOWN',
+    ODESSA_CATACOMBS:     'BOSS_ODESSA_CATACOMBS',
+    KHMELNYTSKYI:         'BOSS_KHMELNYTSKYI',
+    NIKOPOL:              'BOSS_NIKOPOL',
+    UZHHOROD:             'BOSS_UZHHOROD',
+    DEBALTSEVE:           'BOSS_DEBALTSEVE',
+    IRPIN:                'BOSS_IRPIN',
+    LYSYCHANSK:           'BOSS_LYSYCHANSK',
+    ENERGODAR:            'BOSS_ENERGODAR',
+    KHERSON_CITY:         'BOSS_KHERSON_CITY',
+    KUPYANSK:             'BOSS_KUPYANSK',
+    ROBOTYNE:             'BOSS_ROBOTYNE',
+    CHASIV_YAR:           'BOSS_CHASIV_YAR',
+    TORETSK:              'BOSS_TORETSK',
+    VOLCHANSK:            'BOSS_VOLCHANSK',
+    MELITOPOL:            'BOSS_MELITOPOL',
+    AVDIIVKA:             'BOSS_AVDIIVKA',
+    ZAPORIZHZHIA_CITY:    'BOSS_ZAPORIZHZHIA_CITY',
+    SUMY_CITY:            'BOSS_SUMY_CITY',
+    DONETSK_CITY:         'BOSS_DONETSK_CITY',
+    CRIMEA_BRIDGE:        'BOSS_CRIMEA_BRIDGE',
+    SEVASTOPOL:           'BOSS_SEVASTOPOL',
+    LUHANSK:              'BOSS_LUHANSK',
+    STAROBILSK:           'BOSS_STAROBILSK',
+    BERDIANSK:            'BOSS_BERDIANSK',
+    POLTAVA:              'BOSS_POLTAVA',
+    MYKOLAIV:             'BOSS_MYKOLAIV',
+    RIVNE:                'BOSS_RIVNE',
+    KREMENCHUK:           'BOSS_KREMENCHUK',
+    NOVOROSSIYSK:         'BOSS_NOVOROSSIYSK',
+    SAINT_PETERSBURG:     'BOSS_SAINT_PETERSBURG',
+    PSKOV:                'BOSS_PSKOV',
+    MURMANSK:             'BOSS_MURMANSK',
+    VORONEZH:             'BOSS_VORONEZH',
+    YEYSK:                'BOSS_YEYSK',
+    MELITOPOL_2:          'BOSS_MELITOPOL_2',
+    TOKMAK:               'BOSS_TOKMAK',
+    ARMYANSK:             'BOSS_ARMYANSK',
+    IZIUM:                'BOSS_IZIUM',
+    ALCHEVSK:             'BOSS_ALCHEVSK',
+    KIEV_NIGHT_RAID:      'BOSS_KIEV_NIGHT',
+    ODESSA_PORT_NIGHT:    'BOSS_ODESSA_PORT',
+    BELGOROD_NIGHT:       'BOSS_BELGOROD_NIGHT',
   };
 
   /**
-   * Returns the boss type ID for a given stage (1-based stage id).
-   * Stages 1-4 use the generic 'BOSS'. Stages 5-12 have unique bosses.
+   * Returns the boss type ID for a given stage (1-based stage id or level string ID).
+   * All combat stages have unique named bosses.
    */
   function getBossForStage(stageId) {
     return STAGE_BOSS_MAP[stageId] || 'BOSS';

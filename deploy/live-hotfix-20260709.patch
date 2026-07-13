@@ -1,0 +1,127 @@
+From df3b42c31b8968a113c6d63586f00245aedc9a13 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 9 Jul 2026 05:09:22 +0000
+Subject: [PATCH] fix: enemy grenade crash (onPlayerHit threading),
+ deterministic proc level themes, overhang-safe spawn fallback, spawn-type
+ hardening for drones/vehicles; bump cache-busters
+
+---
+ drone-system.js |  2 +-
+ enemies.js      |  4 ++--
+ index.html      |  8 ++++----
+ vehicles.js     |  2 +-
+ voxel-world.js  | 10 +++++++++-
+ 5 files changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/drone-system.js b/drone-system.js
+index 0f6a8f4..7e81460 100644
+--- a/drone-system.js
++++ b/drone-system.js
+@@ -381,7 +381,7 @@ const DroneSystem = (function () {
+ 
+   /* ── Spawn Drone ─────────────────────────────────────────────────── */
+   function spawn(x, y, z, type) {
+-    type = type || DRONE_TYPE.RECON;
++    type = (type && DRONE_STATS[type]) ? type : DRONE_TYPE.RECON;
+     const stats = DRONE_STATS[type];
+     const drone = {
+       id: nextId++,
+diff --git a/enemies.js b/enemies.js
+index e5d2fdf..efe07cf 100644
+--- a/enemies.js
++++ b/enemies.js
+@@ -1111,7 +1111,7 @@ const Enemies = (() => {
+     scene.add(mesh);
+     _enemyGrenades.push({ mesh: mesh, vx: vx, vy: vy, vz: vz, life: t + 0.5, dmg: 35, radius: 4, _trailT: 0, _beaconMat: beaconMat });
+   }
+-  function updateEnemyGrenades(delta, playerPos) {
++  function updateEnemyGrenades(delta, playerPos, onPlayerHit) {
+     var _nearestG = Infinity;
+     for (var i = _enemyGrenades.length - 1; i >= 0; i--) {
+       var g = _enemyGrenades[i];
+@@ -2420,7 +2420,7 @@ const Enemies = (() => {
+     updateBarkSprites(delta);
+ 
+     // Update enemy grenades
+-    updateEnemyGrenades(delta, playerPos);
++    updateEnemyGrenades(delta, playerPos, onPlayerHit);
+ 
+     // Corpse cap: if too many corpses linger, accelerate fade on oldest to keep perf stable
+     var _corpseCount = 0;
+diff --git a/index.html b/index.html
+index ff10e15..dde301c 100644
+--- a/index.html
++++ b/index.html
+@@ -1325,7 +1325,7 @@
+      so missing ethers only breaks web3 features, not gameplay. -->
+ 
+ <!-- Core modules (order matters: dependencies first) -->
+-<script src="voxel-world.js?v=20260429b"></script>
++<script src="voxel-world.js?v=20260709a"></script>
+ <script>
+   // Bridge: export voxel-world block functions so city-buildings.js templates can use them
+   if (typeof window !== 'undefined' && window.VoxelWorld) {
+@@ -1344,8 +1344,8 @@
+ <script src="ranks.js?v=20260429b"></script>
+ <script src="building.js?v=20260429b"></script>
+ <script src="npc-system.js?v=20260429b"></script>
+-<script src="drone-system.js?v=20260429b"></script>
+-<script src="vehicles.js?v=20260429b"></script>
++<script src="drone-system.js?v=20260709a"></script>
++<script src="vehicles.js?v=20260709a"></script>
+ <script src="automation.js?v=20260429b"></script>
+ <script src="missions.js?v=20260429b"></script>
+ <script src="pickups.js?v=20260429b"></script>
+@@ -1470,7 +1470,7 @@
+ <script src="weapon-details.js?v=20260429b"></script>
+   <script src="weapons-data.js?v=20260429b"></script>
+ <script src="weapons.js?v=20260429b"></script>
+-<script src="enemies.js?v=20260429b"></script>
++<script src="enemies.js?v=20260709a"></script>
+ <script src="convoy-system.js?v=20260429b"></script>
+ <script src="audio-system.js?v=20260429b"></script>
+ <script src="jukebox.js?v=20260429b"></script>
+diff --git a/vehicles.js b/vehicles.js
+index cdcd720..8c9d4df 100644
+--- a/vehicles.js
++++ b/vehicles.js
+@@ -654,7 +654,7 @@ const VehicleSystem = (function () {
+ 
+   /* ── Spawn ───────────────────────────────────────────────────────── */
+   function spawn(x, y, z, type) {
+-    type = type || VEHICLE_TYPE.TRANSPORT;
++    type = (type && VEHICLE_STATS[type]) ? type : VEHICLE_TYPE.TRANSPORT;
+     const stats = VEHICLE_STATS[type];
+     // Ensure vehicle spawns above terrain (getTerrainHeight + vehicle-specific offset)
+     var terrainH = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ? VoxelWorld.getTerrainHeight(x, z) : 0;
+diff --git a/voxel-world.js b/voxel-world.js
+index 1ed0d56..38af9f9 100644
+--- a/voxel-world.js
++++ b/voxel-world.js
+@@ -1646,7 +1646,9 @@ window.VoxelWorld = (function () {
+     if (index >= 0 && index < LEVELS.length) return LEVELS[index];
+     const cityIdx = (index - LEVELS.length) % PROC_CITIES.length;
+     const themeNames = Object.keys(THEMES);
+-    const theme = themeNames[Math.floor(seededRandom(index * 7, index * 13) * themeNames.length)];
++    const themeHash = Math.sin(index * 12.9898 * 7 + index * 78.233 * 13) * 43758.5453;
++    const themeRoll = themeHash - Math.floor(themeHash);
++    const theme = themeNames[Math.floor(themeRoll * themeNames.length)] || themeNames[0];
+     return {
+       id: 'PROC_' + index,
+       name: PROC_CITIES[cityIdx],
+@@ -2060,6 +2062,12 @@ window.VoxelWorld = (function () {
+       }
+     }
+ 
++    // Absolute fallback: highest standable spot in the origin column (overhang/interior safe).
++    for (let fy = CHUNK_HEIGHT - 3; fy >= 1; fy--) {
++      if (isSolid(0, fy, 0) && !isSolid(0, fy + 1, 0) && !isSolid(0, fy + 2, 0)) {
++        return { x: 0, y: fy, z: 0 };
++      }
++    }
+     const fallbackGround = getTerrainHeight(0, 0);
+     return { x: 0, y: fallbackGround, z: 0 };
+   }
+-- 
+2.43.0
+

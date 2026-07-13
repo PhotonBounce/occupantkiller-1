@@ -236,7 +236,9 @@ const HUD = (() => {
   function hide() { el.hud.style.display = 'none'; }
 
   function setScore(v)   {
-    el.score.textContent   = 'SCORE: '   + v;
+    var scoreText = 'SCORE: ' + v;
+    if (window._prestigeLevel > 0) { scoreText += ' ' + '⭐'.repeat(Math.min(window._prestigeLevel, 5)); }
+    el.score.textContent   = scoreText;
     // Brief pulse-pop when score updates
     el.score.style.transition = 'none';
     el.score.style.transform = 'scale(1.18)';
@@ -417,20 +419,169 @@ const HUD = (() => {
     _sprintEl.style.opacity = String(v * 0.6);
   }
 
-  function setAmmo(clip, reserve, clipSize) {
+  // ── Ammo Display Enhancements ─────────────────────────────────────
+  // Inject CSS for critical ammo flash animation (called once)
+  var _ammoStylesInjected = false;
+  function _injectStyles() {
+    if (_ammoStylesInjected) return;
+    _ammoStylesInjected = true;
+    var st = document.createElement('style');
+    st.id = 'ammo-enhance-styles';
+    st.textContent = '.ammo-critical { animation: ammoBlink 0.5s infinite; color: #ff2200 !important; }'
+      + '@keyframes ammoBlink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }';
+    document.head.appendChild(st);
+  }
+
+  // Build and inject the SVG magazine ring next to the ammo counter
+  var _ammoRingEl = null;
+  function _buildAmmoRing() {
+    if (_ammoRingEl || !el.ammo) return;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '60');
+    svg.setAttribute('height', '60');
+    svg.style.cssText = 'position:absolute;left:-68px;top:50%;transform:translateY(-50%);pointer-events:none;';
+    svg.id = 'ammo-ring-svg';
+
+    // Background track circle
+    var track = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    track.setAttribute('cx', '30');
+    track.setAttribute('cy', '30');
+    track.setAttribute('r', '26');
+    track.setAttribute('fill', 'none');
+    track.setAttribute('stroke', 'rgba(255,255,255,0.1)');
+    track.setAttribute('stroke-width', '4');
+    svg.appendChild(track);
+
+    // Animated foreground arc
+    var arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    arc.setAttribute('cx', '30');
+    arc.setAttribute('cy', '30');
+    arc.setAttribute('r', '26');
+    arc.setAttribute('fill', 'none');
+    arc.setAttribute('stroke', '#00cc44');
+    arc.setAttribute('stroke-width', '4');
+    arc.setAttribute('stroke-linecap', 'round');
+    // Start arc from top (-90deg = rotate -90)
+    arc.setAttribute('transform', 'rotate(-90 30 30)');
+    arc.style.transition = 'stroke-dasharray 0.18s ease-out, stroke 0.18s ease-out';
+    arc.id = 'ammoRing';
+    svg.appendChild(arc);
+
+    // Inject relative positioning on parent if needed
+    var parent = el.ammo.parentNode;
+    if (parent) {
+      var pos = window.getComputedStyle(parent).position;
+      if (pos === 'static') parent.style.position = 'relative';
+      parent.insertBefore(svg, el.ammo);
+    }
+    _ammoRingEl = arc;
+  }
+
+  // Update the ring arc (current / max)
+  function updateAmmoRing(current, max) {
+    var pct = (max > 0) ? Math.max(0, Math.min(1, current / max)) : 0;
+    var circumference = 2 * Math.PI * 26; // r=26
+    var dash = pct * circumference;
+    var ringEl = document.getElementById('ammoRing');
+    if (ringEl) {
+      ringEl.setAttribute('stroke-dasharray', dash + ' ' + circumference);
+      ringEl.setAttribute('stroke', pct > 0.5 ? '#00cc44' : pct > 0.25 ? '#ffcc00' : '#ff4400');
+    }
+  }
+
+  // Reserve ammo breakdown element (id="ammoReserve" showing "RES: XX")
+  var _ammoReserveBreakEl = null;
+  function _ensureAmmoReserveBreak() {
+    if (_ammoReserveBreakEl || !el.ammo) return;
+    _ammoReserveBreakEl = document.createElement('div');
+    _ammoReserveBreakEl.id = 'ammoReserve';
+    _ammoReserveBreakEl.style.cssText = 'font-size:10px;color:#44aa44;letter-spacing:1px;margin-top:2px;font-family:monospace;';
+    var parent = el.ammo.parentNode;
+    if (parent) parent.appendChild(_ammoReserveBreakEl);
+  }
+
+  // Reload bar element (id="reloadBar") shown during reload
+  var _reloadBarEl = null;
+  var _reloadBarFillEl = null;
+  function _ensureReloadBar() {
+    if (_reloadBarEl) return;
+    _reloadBarEl = document.createElement('div');
+    _reloadBarEl.id = 'reloadBar';
+    _reloadBarEl.style.cssText = 'width:120px;height:4px;background:rgba(0,0,0,0.6);border:1px solid #333;border-radius:2px;overflow:hidden;margin-bottom:4px;display:none;';
+    _reloadBarFillEl = document.createElement('div');
+    _reloadBarFillEl.style.cssText = 'height:100%;width:0%;background:#00cc44;transition:width 0.05s linear;';
+    _reloadBarEl.appendChild(_reloadBarFillEl);
+    var parent = el.ammo ? el.ammo.parentNode : null;
+    if (parent) parent.insertBefore(_reloadBarEl, el.ammo);
+  }
+
+  // Ammo type badge element
+  var _ammoTypeBadgeEl = null;
+  function _ensureAmmoTypeBadge() {
+    if (_ammoTypeBadgeEl || !el.ammo) return;
+    _ammoTypeBadgeEl = document.createElement('span');
+    _ammoTypeBadgeEl.id = 'ammoTypeBadge';
+    _ammoTypeBadgeEl.style.cssText = 'display:inline-block;margin-left:6px;padding:1px 5px;border-radius:3px;background:rgba(0,0,0,0.55);border:1px solid #444;color:#aaa;font-size:10px;font-family:monospace;letter-spacing:1px;vertical-align:middle;';
+    el.ammo.parentNode && el.ammo.parentNode.insertBefore(_ammoTypeBadgeEl, el.ammo.nextSibling);
+  }
+
+  // Show/update the reload progress bar (called from showReload or separately)
+  function updateReloadBar(progress) {
+    _ensureReloadBar();
+    if (!_reloadBarEl) return;
+    if (progress == null || progress < 0) {
+      _reloadBarEl.style.display = 'none';
+      return;
+    }
+    _reloadBarEl.style.display = 'block';
+    if (_reloadBarFillEl) _reloadBarFillEl.style.width = (Math.max(0, Math.min(1, progress)) * 100).toFixed(1) + '%';
+  }
+
+  // Update ammo type badge from weapon's ammoType property
+  function updateAmmoTypeBadge(ammoType) {
+    _ensureAmmoTypeBadge();
+    if (!_ammoTypeBadgeEl) return;
+    var label = ammoType || '';
+    _ammoTypeBadgeEl.textContent = label;
+    var typeColors = { '5.56': '#88ffaa', '7.62': '#ffcc44', '9mm': '#aaddff', '12GA': '#ff8844', 'RPG': '#ff4444', '.50': '#ff6600', '40mm': '#ffaa00' };
+    _ammoTypeBadgeEl.style.color = typeColors[label] || '#aaa';
+    _ammoTypeBadgeEl.style.display = label ? 'inline-block' : 'none';
+  }
+
+  function setAmmo(clip, reserve, clipSize, ammoType) {
     if (!el.ammo || !el.ammoRes) return;
+    _injectStyles();
+    _buildAmmoRing();
+    _ensureAmmoReserveBreak();
     el.ammo.textContent    = clip;
     el.ammoRes.textContent = '/ ' + reserve;
+
+    // Magazine ring indicator
+    if (typeof clip === 'number' && clipSize) {
+      updateAmmoRing(clip, clipSize);
+    }
+
+    // Critical ammo flash (≤5 rounds)
+    if (typeof clip === 'number' && clip <= 5 && clip > 0) {
+      el.ammo.classList.add('ammo-critical');
+    } else {
+      el.ammo.classList.remove('ammo-critical');
+    }
+
     // Low ammo warning flash + sound
     if (clipSize && typeof clip === 'number' && clip > 0 && clip <= clipSize * 0.25) {
-      el.ammo.style.color = '#ff4444';
-      el.ammo.style.animation = 'lowAmmoFlash 0.4s infinite';
+      if (!el.ammo.classList.contains('ammo-critical')) {
+        el.ammo.style.color = '#ff4444';
+        el.ammo.style.animation = 'lowAmmoFlash 0.4s infinite';
+      }
       if (window.AudioSystem && AudioSystem.playLowAmmo) AudioSystem.playLowAmmo();
     } else if (clipSize && typeof clip === 'number' && clip > 0 && clip <= clipSize * 0.5) {
       // Half-clip warning: yellow tint, no flash
-      el.ammo.style.color = '#ffcc44';
-      el.ammo.style.animation = '';
-    } else {
+      if (!el.ammo.classList.contains('ammo-critical')) {
+        el.ammo.style.color = '#ffcc44';
+        el.ammo.style.animation = '';
+      }
+    } else if (!el.ammo.classList.contains('ammo-critical')) {
       el.ammo.style.color = '';
       el.ammo.style.animation = '';
     }
@@ -440,6 +591,17 @@ const HUD = (() => {
     } else {
       el.ammoRes.style.color = '';
     }
+    // Reserve breakdown
+    if (_ammoReserveBreakEl) {
+      if (typeof reserve === 'number') {
+        _ammoReserveBreakEl.textContent = 'RES: ' + Math.max(0, reserve);
+        _ammoReserveBreakEl.style.color = reserve <= 0 ? '#ff6666' : '#44aa44';
+      } else {
+        _ammoReserveBreakEl.textContent = '';
+      }
+    }
+    // Ammo type badge
+    if (ammoType !== undefined) updateAmmoTypeBadge(ammoType);
   }
 
   function setWeapon(name, idx) {
@@ -482,6 +644,8 @@ const HUD = (() => {
   function showReload(on, progress) {
     if (on) el.reload.classList.add('visible');
     else    el.reload.classList.remove('visible');
+    // Inline reload bar next to ammo counter
+    updateReloadBar(on ? (progress || 0) : -1);
     // Lazy-create a progress bar under the reload indicator
     var rb = document.getElementById('reload-progress-bar');
     if (on) {
@@ -721,7 +885,15 @@ const HUD = (() => {
       var st = GameManager.getCurrentStage();
       if (st && st.name) stageName = '<p style="font-size:12px;color:#aaa;margin-top:2px">' + escapeHTML(st.name) + '</p>';
     }
-    el.waveAnn.innerHTML = '<h2>WAVE ' + escapeHTML(number) + progress + '</h2><p>' + escapeHTML(enemyCount) + ' OCCUPANTS STORMING</p>' + stageName;
+    // Active modifier chips
+    var chips = '';
+    var weatherIcons = { rain: '🌧', snow: '❄', fog: '🌫', sandstorm: '💨', clear: '' };
+    var wType = (typeof Weather !== 'undefined' && Weather.getCurrent) ? Weather.getCurrent() : 'clear';
+    if (wType && wType !== 'clear') chips += '<span style="font-size:10px;background:rgba(0,0,0,0.5);padding:1px 5px;border-radius:3px;margin:0 2px">' + (weatherIcons[wType] || '') + ' ' + wType.toUpperCase() + '</span>';
+    if (window._nvgActive) chips += '<span style="font-size:10px;background:rgba(0,204,68,0.3);padding:1px 5px;border-radius:3px;margin:0 2px">🟢 NVG</span>';
+    if (window._prestigeLevel > 0) chips += '<span style="font-size:10px;background:rgba(255,215,0,0.2);padding:1px 5px;border-radius:3px;margin:0 2px">⭐ P' + window._prestigeLevel + '</span>';
+    var chipsHtml = chips ? '<div style="margin-top:4px">' + chips + '</div>' : '';
+    el.waveAnn.innerHTML = '<h2>WAVE ' + escapeHTML(number) + progress + '</h2><p>' + escapeHTML(enemyCount) + ' OCCUPANTS STORMING</p>' + stageName + chipsHtml;
     el.waveAnn.classList.remove('visible');
     void el.waveAnn.offsetWidth;
     el.waveAnn.classList.add('visible');
@@ -863,7 +1035,7 @@ const HUD = (() => {
   function setMinimapJammed(jammed) { _minimapJammed = !!jammed; }
   function setCompassJammed(jammed) { _compassJammed = !!jammed; }
 
-  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups, opts) {
+  function updateMinimap(px, pz, pyaw, enemies, npcs, vehicles, drones, pickups) {
     if (!minimapCtx) return;
     const ctx = minimapCtx;
     ctx.clearRect(0, 0, MM_SIZE, MM_SIZE);
@@ -886,9 +1058,8 @@ const HUD = (() => {
     ctx.arc(MM_HALF, MM_HALF, MM_HALF - 2, 0, Math.PI * 2);
     ctx.clip();
 
-    var _uavOn = opts && opts.uav;
     // Background
-    ctx.fillStyle = _uavOn ? 'rgba(0,20,15,0.90)' : 'rgba(10,15,10,0.85)';
+    ctx.fillStyle = 'rgba(10,15,10,0.85)';
     ctx.fillRect(0, 0, MM_SIZE, MM_SIZE);
 
     // Grid (rotates with player)
@@ -1051,34 +1222,6 @@ const HUD = (() => {
       var cx = MM_HALF + Math.sin(ca) * (MM_HALF - 10);
       var cy = MM_HALF - Math.cos(ca) * (MM_HALF - 10);
       ctx.fillText(dirs[ci].label, cx, cy + 3);
-    }
-
-    // UAV: rotating sweep line + teal enemy highlighting
-    if (_uavOn) {
-      var _uavAngle = (performance.now() * 0.002) % (Math.PI * 2);
-      // Sweep arc (fading green sector behind sweep line)
-      ctx.save();
-      ctx.translate(MM_HALF, MM_HALF);
-      var _grad = ctx.createConicalGradient ? null : null; // not standard — use arc fill
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, MM_HALF - 2, _uavAngle - 1.1, _uavAngle, false);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(0,255,180,0.10)';
-      ctx.fill();
-      // Sweep line
-      ctx.strokeStyle = 'rgba(0,255,150,0.7)';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(_uavAngle) * (MM_HALF - 2), Math.sin(_uavAngle) * (MM_HALF - 2));
-      ctx.stroke();
-      ctx.restore();
-      // UAV label
-      ctx.fillStyle = 'rgba(0,255,150,0.75)';
-      ctx.font = 'bold 9px monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText('UAV', 6, MM_SIZE - 6);
     }
 
     ctx.restore();
@@ -1591,6 +1734,76 @@ const HUD = (() => {
     setTimeout(function () { waveStatsEl.style.display = 'none'; }, 5000);
   }
 
+  // ── Feature 51: Level Grade Overlay ─────────────────────────────
+  function showLevelGrade(stats) {
+    // stats: { score, kills, headshots, shots, damageTaken, wavesCompleted, totalWaves, levelName, time }
+    // Calculate grade: S(90+%), A(75-89%), B(60-74%), C(45-59%), D(<45%)
+
+    // Score base: headshot ratio, accuracy, damage avoided, wave completion
+    var accuracy = stats.shots > 0 ? (stats.headshots / stats.shots) * 100 : 0;
+    var damagePenalty = Math.min(50, stats.damageTaken / 10);
+    var completionBonus = stats.wavesCompleted >= stats.totalWaves ? 20 : 0;
+    var headshotBonus = Math.min(30, (stats.headshots / Math.max(1, stats.kills)) * 60);
+
+    var gradeScore = completionBonus + headshotBonus + (accuracy * 0.3) - damagePenalty;
+    gradeScore = Math.max(0, Math.min(100, gradeScore));
+
+    var grade, gradeColor, gradeGlow;
+    if (gradeScore >= 85) { grade = 'S'; gradeColor = '#ffd700'; gradeGlow = '#ff8800'; }
+    else if (gradeScore >= 70) { grade = 'A'; gradeColor = '#44ff88'; gradeGlow = '#00cc55'; }
+    else if (gradeScore >= 55) { grade = 'B'; gradeColor = '#44aaff'; gradeGlow = '#0066cc'; }
+    else if (gradeScore >= 40) { grade = 'C'; gradeColor = '#ffaa44'; gradeGlow = '#cc6600'; }
+    else { grade = 'D'; gradeColor = '#ff4444'; gradeGlow = '#cc0000'; }
+
+    // Create overlay element
+    var overlay = document.createElement('div');
+    overlay.id = 'level-grade-overlay';
+    overlay.style.cssText = [
+      'position:fixed;top:0;left:0;width:100%;height:100%;',
+      'background:rgba(0,0,0,0.75);z-index:9500;',
+      'display:flex;align-items:center;justify-content:center;',
+      'font-family:monospace;',
+    ].join('');
+
+    var timeStr = Math.floor(stats.time / 60) + 'm ' + Math.floor(stats.time % 60) + 's';
+
+    overlay.innerHTML = [
+      '<div style="text-align:center;padding:30px;max-width:380px;background:rgba(0,0,0,0.85);border:2px solid ' + gradeColor + ';border-radius:8px">',
+      '<div style="font-size:12px;color:#aaa;margin-bottom:6px;letter-spacing:3px">MISSION COMPLETE</div>',
+      '<div style="font-size:18px;color:#fff;margin-bottom:12px">' + escapeHTML(stats.levelName || 'LEVEL') + '</div>',
+      '<div style="font-size:80px;font-weight:bold;color:' + gradeColor + ';text-shadow:0 0 30px ' + gradeGlow + ';line-height:1;margin:8px 0">' + grade + '</div>',
+      '<div style="width:200px;height:6px;background:#333;border-radius:3px;margin:8px auto">',
+      '<div style="height:100%;width:' + gradeScore.toFixed(0) + '%;background:' + gradeColor + ';border-radius:3px;transition:width 1s"></div>',
+      '</div>',
+      '<div style="font-size:11px;color:#888;margin-bottom:14px">' + gradeScore.toFixed(0) + ' / 100</div>',
+      '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:14px">',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#9760; Kills</td><td style="text-align:right;color:#fff;padding:3px 8px">' + (stats.kills || 0) + '</td></tr>',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#127919; Headshots</td><td style="text-align:right;color:#ffd700;padding:3px 8px">' + (stats.headshots || 0) + '</td></tr>',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#128162; Damage Taken</td><td style="text-align:right;color:#ff6644;padding:3px 8px">' + Math.round(stats.damageTaken || 0) + '</td></tr>',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#9201; Time</td><td style="text-align:right;color:#88aaff;padding:3px 8px">' + timeStr + '</td></tr>',
+      '<tr><td style="color:#aaa;padding:3px 8px">&#127754; Waves</td><td style="text-align:right;color:#88ff88;padding:3px 8px">' + (stats.wavesCompleted || 0) + '/' + (stats.totalWaves || '?') + '</td></tr>',
+      '</table>',
+      '<div style="font-size:11px;color:#555">[Click or press any key to continue]</div>',
+      '</div>'
+    ].join('');
+
+    document.body.appendChild(overlay);
+
+    // Remove on click or keypress
+    function _remove() {
+      document.body.removeChild(overlay);
+      document.removeEventListener('keydown', _remove);
+      overlay.removeEventListener('click', _remove);
+    }
+    overlay.addEventListener('click', _remove);
+    document.addEventListener('keydown', _remove);
+
+    // Auto-remove after 8 seconds
+    setTimeout(function() {
+      if (document.body.contains(overlay)) _remove();
+    }, 8000);
+  }
+
   // ── Feature 43: Death Statistics ─────────────────────────────────
   function showDeathStats(stats) {
     var el = document.getElementById('dead-statistics');
@@ -1610,78 +1823,115 @@ const HUD = (() => {
   }
 
   // ── B22: Boss Health Bar ─────────────────────────────────────────
-  let _bossBarEl = null;
-  let _bossBarFill = null;
-  let _bossBarName = null;
-  let _bossBarPhase = null;
-  let _bossLastPhase = 0;
+  var _bossBarEl = null;
+  var _bossNameEl = null;
+  var _bossHpFillEl = null;
+  var _bossHpEl = null;
+  var _bossLastHp = 1;
+  var _bossMaxHp = 1;
+  var _bossFlashTimer = 0;
 
-  function showBossBar(name, hp, maxHp) {
+  function showBossBar(bossName, currentHp, maxHp) {
+    _bossMaxHp = maxHp || 1;
+    _bossLastHp = _bossLastHp;
+
     if (!_bossBarEl) {
+      // Create elements
       _bossBarEl = document.createElement('div');
       _bossBarEl.id = 'boss-health-bar';
-      _bossBarEl.style.cssText = 'position:fixed;top:5%;left:50%;transform:translateX(-50%);width:420px;background:rgba(0,0,0,0.75);border:2px solid #cc0000;border-radius:4px;padding:5px 6px;z-index:200;text-align:center;display:none;';
-      _bossBarName = document.createElement('div');
-      _bossBarName.style.cssText = 'color:#ff4444;font-size:14px;font-weight:bold;margin-bottom:3px;letter-spacing:1px;';
-      var _bossBarTrack = document.createElement('div');
-      _bossBarTrack.style.cssText = 'background:rgba(80,0,0,0.4);border-radius:3px;overflow:hidden;position:relative;';
-      _bossBarFill = document.createElement('div');
-      _bossBarFill.style.cssText = 'height:14px;background:linear-gradient(90deg,#cc0000,#ff4444);border-radius:3px;transition:width 0.25s ease-out;';
-      _bossBarPhase = document.createElement('div');
-      _bossBarPhase.style.cssText = 'position:absolute;right:5px;top:0;height:100%;line-height:14px;font-size:10px;color:rgba(255,255,255,0.7);font-weight:bold;';
-      _bossBarTrack.appendChild(_bossBarFill);
-      _bossBarTrack.appendChild(_bossBarPhase);
-      _bossBarEl.appendChild(_bossBarName);
-      _bossBarEl.appendChild(_bossBarTrack);
-      document.body.appendChild(_bossBarEl);
-      // Inject keyframe animation for enrage pulse
-      if (!document.getElementById('_bossBarKf')) {
+      _bossBarEl.style.cssText = [
+        'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);',
+        'width:500px;max-width:80vw;',
+        'z-index:7000;pointer-events:none;',
+        'text-align:center;',
+        'animation:bossBarFadeIn 0.5s ease forwards;',
+      ].join('');
+
+      // Add CSS animation
+      if (!document.getElementById('boss-bar-style')) {
         var style = document.createElement('style');
-        style.id = '_bossBarKf';
-        style.textContent = '@keyframes bossRage{0%,100%{border-color:#cc0000}50%{border-color:#ff2200;box-shadow:0 0 10px #ff2200}}' +
-          '@keyframes bossEnrage{0%,100%{border-color:#ff6600}50%{border-color:#ffaa00;box-shadow:0 0 14px #ff8800}}';
+        style.id = 'boss-bar-style';
+        style.textContent = [
+          '@keyframes bossBarFadeIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }',
+          '@keyframes bossBarFlash { 0%,100% { filter:none; } 50% { filter:brightness(3) sepia(1) saturate(5); } }',
+          '.boss-hp-flash { animation: bossBarFlash 0.2s ease; }',
+        ].join('');
         document.head.appendChild(style);
       }
-    }
-    var pct = maxHp > 0 ? hp / maxHp : 0;
-    _bossBarName.textContent = '☠ ' + name;
-    _bossBarFill.style.width = Math.max(0, pct * 100) + '%';
-    _bossBarEl.style.display = 'block';
 
-    // Phase coloring + border pulse
-    var newPhase;
-    if (pct <= 0.33) {
-      newPhase = 3;
-      _bossBarFill.style.background = 'linear-gradient(90deg,#880000,#cc0000,#ff2200)';
-      _bossBarEl.style.animation = 'bossRage 0.7s infinite';
-      _bossBarEl.style.borderColor = '#ff2200';
-      if (_bossBarPhase) _bossBarPhase.textContent = '⚡ ENRAGED';
-    } else if (pct <= 0.66) {
-      newPhase = 2;
-      _bossBarFill.style.background = 'linear-gradient(90deg,#aa3300,#ee5500)';
-      _bossBarEl.style.animation = 'bossEnrage 1.2s infinite';
-      _bossBarEl.style.borderColor = '#ee5500';
-      if (_bossBarPhase) _bossBarPhase.textContent = '⚠ WOUNDED';
+      _bossNameEl = document.createElement('div');
+      _bossNameEl.style.cssText = [
+        'font-family:monospace;font-size:14px;letter-spacing:3px;',
+        'color:#cc0000;text-transform:uppercase;margin-bottom:6px;',
+        'text-shadow:0 0 10px rgba(200,0,0,0.8);',
+      ].join('');
+
+      var barOuter = document.createElement('div');
+      barOuter.style.cssText = [
+        'width:100%;height:14px;',
+        'background:rgba(20,0,0,0.8);',
+        'border:1px solid rgba(200,0,0,0.4);',
+        'border-radius:2px;',
+        'overflow:hidden;',
+        'position:relative;',
+      ].join('');
+
+      _bossHpFillEl = document.createElement('div');
+      _bossHpFillEl.style.cssText = [
+        'height:100%;width:100%;',
+        'background:linear-gradient(90deg, #8b0000, #cc0000, #ff2200);',
+        'transition:width 0.3s ease;',
+        'position:relative;',
+      ].join('');
+      // Shine effect
+      _bossHpFillEl.innerHTML = '<div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(rgba(255,255,255,0.15),transparent);"></div>';
+
+      _bossHpEl = document.createElement('div');
+      _bossHpEl.style.cssText = [
+        'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);',
+        'font-family:monospace;font-size:9px;color:rgba(255,200,200,0.9);',
+        'pointer-events:none;',
+      ].join('');
+
+      barOuter.appendChild(_bossHpFillEl);
+      barOuter.appendChild(_bossHpEl);
+      _bossBarEl.appendChild(_bossNameEl);
+      _bossBarEl.appendChild(barOuter);
+      document.body.appendChild(_bossBarEl);
+    }
+
+    // Update content
+    _bossNameEl.textContent = bossName || 'BOSS';
+    var pct = Math.max(0, Math.min(100, (currentHp / _bossMaxHp) * 100));
+    _bossHpFillEl.style.width = pct + '%';
+    _bossHpEl.textContent = Math.round(currentHp) + ' / ' + Math.round(_bossMaxHp);
+
+    // Flash on damage
+    if (currentHp < _bossLastHp) {
+      _bossHpFillEl.classList.remove('boss-hp-flash');
+      void _bossHpFillEl.offsetWidth; // reflow
+      _bossHpFillEl.classList.add('boss-hp-flash');
+    }
+    _bossLastHp = currentHp;
+
+    // Color transition near death
+    if (pct < 25) {
+      _bossHpFillEl.style.background = 'linear-gradient(90deg, #4a0000, #8b0000, #cc0000)';
+    } else if (pct < 50) {
+      _bossHpFillEl.style.background = 'linear-gradient(90deg, #6b0000, #aa0000, #dd1100)';
     } else {
-      newPhase = 1;
-      _bossBarFill.style.background = 'linear-gradient(90deg,#cc0000,#ff4444)';
-      _bossBarEl.style.animation = '';
-      _bossBarEl.style.borderColor = '#cc0000';
-      if (_bossBarPhase) _bossBarPhase.textContent = '';
+      _bossHpFillEl.style.background = 'linear-gradient(90deg, #8b0000, #cc0000, #ff2200)';
     }
-    // Toast on phase transition
-    if (newPhase > _bossLastPhase && _bossLastPhase > 0) {
-      if (typeof showToast === 'function') {
-        showToast(newPhase === 2 ? '⚠ BOSS WOUNDED — WATCH OUT!' : '⚡ BOSS ENRAGED — EXTREME DANGER!', 3000,
-          newPhase === 3 ? '#ff2200' : '#ee5500');
-      }
-    }
-    _bossLastPhase = newPhase;
   }
 
   function hideBossBar() {
-    if (_bossBarEl) _bossBarEl.style.display = 'none';
-    _bossLastPhase = 0;
+    if (_bossBarEl) {
+      document.body.removeChild(_bossBarEl);
+      _bossBarEl = null;
+      _bossNameEl = null;
+      _bossHpFillEl = null;
+      _bossHpEl = null;
+    }
   }
 
   // ── B22: XP Progress Bar ────────────────────────────────────────
@@ -1898,6 +2148,68 @@ const HUD = (() => {
     setTimeout(function () { if (entry.parentNode) entry.remove(); }, 5000);
   }
 
+  // ── Floating Damage Numbers ──────────────────────────────────────
+  function showDamageNumber(screenX, screenY, amount, isCrit) {
+    var el = document.createElement('div');
+    el.style.cssText = [
+      'position:fixed;',
+      'left:' + screenX + 'px;',
+      'top:' + screenY + 'px;',
+      'font-family:monospace;',
+      'font-size:' + (isCrit ? '22' : '16') + 'px;',
+      'font-weight:bold;',
+      'color:' + (isCrit ? '#ff4444' : '#ffdd44') + ';',
+      'text-shadow:1px 1px 2px #000;',
+      'pointer-events:none;',
+      'z-index:9000;',
+      'transition:transform 0.8s ease-out, opacity 0.8s ease-out;',
+      'transform:translateY(0px);',
+      'opacity:1;',
+    ].join('');
+    el.textContent = (isCrit ? '💥 ' : '') + Math.round(amount);
+    document.body.appendChild(el);
+    // Animate upward and fade
+    requestAnimationFrame(function() {
+      el.style.transform = 'translateY(-' + (isCrit ? 70 : 45) + 'px)';
+      el.style.opacity = '0';
+    });
+    setTimeout(function() {
+      if (document.body.contains(el)) document.body.removeChild(el);
+    }, 850);
+  }
+
+  // ── Kill Feed ─────────────────────────────────────────────────────
+  // Lazily create the kill-feed container if it doesn't exist in the DOM
+  var _killFeedContainer = null;
+  (function initKillFeedContainer() {
+    var existing = document.getElementById('kill-feed');
+    if (existing) {
+      _killFeedContainer = existing;
+      // Ensure correct positioning styles are applied
+      _killFeedContainer.style.cssText = 'position:fixed;top:60px;right:8px;width:220px;z-index:800;pointer-events:none;';
+    } else {
+      _killFeedContainer = document.createElement('div');
+      _killFeedContainer.id = 'kill-feed';
+      _killFeedContainer.style.cssText = 'position:fixed;top:60px;right:8px;width:220px;z-index:800;pointer-events:none;';
+      document.body.appendChild(_killFeedContainer);
+    }
+  })();
+
+  function addKillFeedEntry(killerName, victimName, weaponIcon) {
+    var container = document.getElementById('kill-feed');
+    if (!container) container = _killFeedContainer;
+    if (!container) return;
+    var entry = document.createElement('div');
+    entry.style.cssText = 'background:rgba(0,0,0,0.65);border-left:2px solid #ff4444;padding:3px 6px;margin-bottom:3px;font-size:11px;font-family:monospace;color:#fff;border-radius:2px;transition:opacity 1s;';
+    entry.innerHTML = '<span style="color:#44ff88">' + escapeHTML(killerName) + '</span> ' + (weaponIcon || '🔫') + ' <span style="color:#ff8888">' + escapeHTML(victimName) + '</span>';
+    container.appendChild(entry);
+    // Cap at 5 entries
+    while (container.children.length > 5) container.removeChild(container.firstChild);
+    // Fade out after 4s
+    setTimeout(function() { entry.style.opacity = '0'; }, 4000);
+    setTimeout(function() { if (container.contains(entry)) container.removeChild(entry); }, 5000);
+  }
+
   // ── B22: Grenade Indicator ───────────────────────────────────────
   function showGrenadeWarning(direction) {
     var el = document.getElementById('grenade-warning');
@@ -2014,6 +2326,14 @@ const HUD = (() => {
   // Restore shown weapons from localStorage
   try { var _sw = localStorage.getItem('ok_shown_weapons'); if (_sw) _shownWeapons = JSON.parse(_sw); } catch(e){}
 
+  // ── Weapon Wheel state vars ──
+  var _weaponWheelEl = null;
+  var _weaponWheelActive = false;
+  var _weaponWheelSelected = -1;
+  var _weaponWheelItems = [];
+  var _weaponWheelCenterX = 0;
+  var _weaponWheelCenterY = 0;
+
   function showWeaponUnlockCard(weaponDef) {
     if (!weaponDef || !weaponDef.name) return;
     // Only show the big card on FIRST ever unlock of this weapon
@@ -2052,8 +2372,518 @@ const HUD = (() => {
     }, 2800);
   }
 
+  // ── Weapon Wheel Functions ──
+  function showWeaponWheel(weapons, currentIdx) {
+    if (_weaponWheelEl) return;
+    _weaponWheelActive = true;
+    _weaponWheelItems = weapons;
+    _weaponWheelSelected = currentIdx;
+    _weaponWheelCenterX = window.innerWidth / 2;
+    _weaponWheelCenterY = window.innerHeight / 2;
+
+    _weaponWheelEl = document.createElement('div');
+    _weaponWheelEl.id = 'weapon-wheel';
+    _weaponWheelEl.style.cssText = [
+      'position:fixed;top:0;left:0;width:100%;height:100%;',
+      'z-index:8500;pointer-events:none;',
+    ].join('');
+
+    // Background circle
+    var bg = document.createElement('div');
+    bg.style.cssText = [
+      'position:absolute;',
+      'left:' + (_weaponWheelCenterX - 160) + 'px;',
+      'top:' + (_weaponWheelCenterY - 160) + 'px;',
+      'width:320px;height:320px;',
+      'background:rgba(0,0,0,0.75);',
+      'border-radius:50%;',
+      'border:2px solid rgba(255,200,50,0.3);',
+    ].join('');
+    _weaponWheelEl.appendChild(bg);
+
+    // Center label
+    var centerLabel = document.createElement('div');
+    centerLabel.id = 'ww-center';
+    centerLabel.style.cssText = [
+      'position:absolute;',
+      'left:' + (_weaponWheelCenterX - 40) + 'px;',
+      'top:' + (_weaponWheelCenterY - 12) + 'px;',
+      'width:80px;text-align:center;',
+      'font-family:monospace;font-size:11px;color:#888;pointer-events:none;',
+    ].join('');
+    centerLabel.textContent = 'SELECT';
+    _weaponWheelEl.appendChild(centerLabel);
+
+    // Weapon slots
+    var n = Math.min(weapons.length, 8);
+    for (var i = 0; i < n; i++) {
+      var angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+      var radius = 110;
+      var sx = _weaponWheelCenterX + radius * Math.cos(angle) - 35;
+      var sy = _weaponWheelCenterY + radius * Math.sin(angle) - 30;
+      var slot = document.createElement('div');
+      slot.id = 'ww-slot-' + i;
+      var isActive = (i === currentIdx);
+      slot.style.cssText = [
+        'position:absolute;',
+        'left:' + sx + 'px;top:' + sy + 'px;',
+        'width:70px;height:60px;',
+        'text-align:center;',
+        'background:' + (isActive ? 'rgba(255,200,50,0.2)' : 'rgba(255,255,255,0.05)') + ';',
+        'border:1px solid ' + (isActive ? '#ffd700' : 'rgba(255,255,255,0.15)') + ';',
+        'border-radius:5px;padding:2px;',
+        'font-family:monospace;pointer-events:none;',
+      ].join('');
+      slot.innerHTML = '<div style="font-size:22px">' + (weapons[i].icon || '🔫') + '</div>' +
+        '<div style="font-size:9px;color:' + (isActive ? '#ffd700' : '#aaa') + ';overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' + escapeHTML(weapons[i].name || '') + '</div>';
+      _weaponWheelEl.appendChild(slot);
+    }
+
+    document.body.appendChild(_weaponWheelEl);
+  }
+
+  function updateWeaponWheelMouse(mouseX, mouseY) {
+    if (!_weaponWheelEl || !_weaponWheelActive) return _weaponWheelSelected;
+    var dx = mouseX - _weaponWheelCenterX;
+    var dy = mouseY - _weaponWheelCenterY;
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 20) return _weaponWheelSelected; // too close to center, no change
+    var angle = Math.atan2(dy, dx) + Math.PI/2;
+    if (angle < 0) angle += 2 * Math.PI;
+    var n = Math.min(_weaponWheelItems.length, 8);
+    var newIdx = Math.floor((angle / (2 * Math.PI)) * n) % n;
+    if (newIdx !== _weaponWheelSelected) {
+      _weaponWheelSelected = newIdx;
+      // Update slot visuals
+      for (var i = 0; i < n; i++) {
+        var slot = document.getElementById('ww-slot-' + i);
+        if (!slot) continue;
+        var active = (i === newIdx);
+        slot.style.background = active ? 'rgba(255,200,50,0.2)' : 'rgba(255,255,255,0.05)';
+        slot.style.borderColor = active ? '#ffd700' : 'rgba(255,255,255,0.15)';
+        if (slot.querySelector('div:last-child')) {
+          slot.querySelector('div:last-child').style.color = active ? '#ffd700' : '#aaa';
+        }
+      }
+      // Update center label
+      var cl = document.getElementById('ww-center');
+      if (cl && _weaponWheelItems[newIdx]) cl.textContent = _weaponWheelItems[newIdx].name || '';
+    }
+    return _weaponWheelSelected;
+  }
+
+  function hideWeaponWheel() {
+    _weaponWheelActive = false;
+    if (_weaponWheelEl) {
+      document.body.removeChild(_weaponWheelEl);
+      _weaponWheelEl = null;
+    }
+    return _weaponWheelSelected;
+  }
+
+  // ── Sniper Scope Overlay (ADS) ──
+  var _scopeEl = null;
+  var _scopeActive = false;
+  var _scopeSwayX = 0;
+  var _scopeSwayY = 0;
+  var _scopeBreathTimer = 0;
+  var _scopeZoom = 4.0;
+
+  function showScope(zoomLevel) {
+    _scopeZoom = zoomLevel || 4.0;
+    _scopeActive = true;
+
+    if (!_scopeEl) {
+      _scopeEl = document.createElement('div');
+      _scopeEl.id = 'scope-overlay';
+      _scopeEl.style.cssText = [
+        'position:fixed;top:0;left:0;width:100%;height:100%;',
+        'z-index:8800;pointer-events:none;',
+        'background:rgba(0,0,0,0.92);',
+      ].join('');
+
+      // Scope lens circle (clear circle in center)
+      var lensSize = Math.min(window.innerWidth, window.innerHeight) * 0.65;
+      var lens = document.createElement('div');
+      lens.id = 'scope-lens';
+      lens.style.cssText = [
+        'position:absolute;top:50%;left:50%;',
+        'transform:translate(-50%,-50%);',
+        'width:' + lensSize + 'px;height:' + lensSize + 'px;',
+        'border-radius:50%;',
+        'background:transparent;',
+        'box-shadow:0 0 0 ' + (window.innerWidth) + 'px rgba(0,0,0,0.92);',
+        'border:3px solid rgba(80,80,80,0.8);',
+        'overflow:hidden;',
+      ].join('');
+
+      // Crosshair
+      var crosshair = document.createElement('div');
+      crosshair.id = 'scope-crosshair';
+      crosshair.style.cssText = [
+        'position:absolute;top:50%;left:50%;',
+        'transform:translate(-50%,-50%);',
+        'pointer-events:none;',
+      ].join('');
+      crosshair.innerHTML = [
+        // Horizontal line
+        '<div style="position:absolute;top:0;left:' + (-lensSize/2) + 'px;width:' + lensSize + 'px;height:1px;background:rgba(255,255,255,0.8);"></div>',
+        // Vertical line
+        '<div style="position:absolute;top:' + (-lensSize/2) + 'px;left:0;width:1px;height:' + lensSize + 'px;background:rgba(255,255,255,0.8);"></div>',
+        // Center dot
+        '<div style="position:absolute;top:-2px;left:-2px;width:4px;height:4px;border-radius:50%;background:#ff2200;"></div>',
+        // Mil-dot markings (horizontal)
+        '<div style="position:absolute;top:-1px;left:' + (-lensSize*0.25 - 2) + 'px;width:4px;height:2px;background:rgba(255,255,255,0.6)"></div>',
+        '<div style="position:absolute;top:-1px;left:' + (lensSize*0.25 - 2) + 'px;width:4px;height:2px;background:rgba(255,255,255,0.6)"></div>',
+        '<div style="position:absolute;top:-1px;left:' + (-lensSize*0.125 - 2) + 'px;width:3px;height:2px;background:rgba(255,255,255,0.4)"></div>',
+        '<div style="position:absolute;top:-1px;left:' + (lensSize*0.125 - 2) + 'px;width:3px;height:2px;background:rgba(255,255,255,0.4)"></div>',
+      ].join('');
+
+      // Zoom level indicator
+      var zoomLabel = document.createElement('div');
+      zoomLabel.id = 'scope-zoom-label';
+      zoomLabel.style.cssText = [
+        'position:absolute;bottom:' + (window.innerHeight/2 - lensSize/2 + 10) + 'px;',
+        'right:' + (window.innerWidth/2 - lensSize/2 + 10) + 'px;',
+        'font-family:monospace;font-size:11px;color:rgba(200,200,200,0.6);',
+      ].join('');
+      zoomLabel.textContent = _scopeZoom.toFixed(1) + 'x';
+
+      // Lens reflection/tint
+      var tint = document.createElement('div');
+      tint.style.cssText = [
+        'position:absolute;top:0;left:0;width:100%;height:100%;',
+        'border-radius:50%;',
+        'background:radial-gradient(ellipse, rgba(0,20,40,0.1) 0%, rgba(0,30,60,0.25) 100%);',
+        'pointer-events:none;',
+      ].join('');
+
+      lens.appendChild(crosshair);
+      lens.appendChild(tint);
+      _scopeEl.appendChild(lens);
+      _scopeEl.appendChild(zoomLabel);
+      document.body.appendChild(_scopeEl);
+      _scopeEl._lens = lens;
+      _scopeEl._crosshair = crosshair;
+      _scopeEl._zoomLabel = zoomLabel;
+    }
+
+    _scopeEl.style.display = 'block';
+    // Hide default crosshair if it exists
+    var defaultCH = document.getElementById('crosshair');
+    if (defaultCH) defaultCH.style.visibility = 'hidden';
+  }
+
+  function hideScope() {
+    _scopeActive = false;
+    if (_scopeEl) _scopeEl.style.display = 'none';
+    // Restore default crosshair
+    var defaultCH = document.getElementById('crosshair');
+    if (defaultCH) defaultCH.style.visibility = '';
+  }
+
+  function updateScope(delta) {
+    if (!_scopeActive || !_scopeEl || !_scopeEl._crosshair) return;
+    _scopeBreathTimer += delta;
+    // Slow sine wave for breath
+    _scopeSwayX = Math.sin(_scopeBreathTimer * 0.8) * 3;
+    _scopeSwayY = Math.cos(_scopeBreathTimer * 0.6) * 2;
+    // Apply to crosshair
+    _scopeEl._crosshair.style.transform = 'translate(calc(-50% + ' + _scopeSwayX + 'px), calc(-50% + ' + _scopeSwayY + 'px))';
+  }
+
+  // ── Kill Streak Counter ────────────────────────────────────────────
+  var _killStreakEl = null;
+  var _killStreakBonusEl = null;
+  var _killStreakFadeTimer = null;
+  var _killStreakPulseStyleId = 'ks-pulse-kf';
+
+  function updateKillStreak(streak, bonusName) {
+    if (!_killStreakEl) {
+      _killStreakEl = document.createElement('div');
+      _killStreakEl.style.cssText = 'position:fixed;top:90px;right:15px;font-family:monospace;font-size:26px;font-weight:bold;pointer-events:none;z-index:210;text-align:right;transition:opacity 0.4s;text-shadow:0 0 8px currentColor;';
+      document.body.appendChild(_killStreakEl);
+      _killStreakBonusEl = document.createElement('div');
+      _killStreakBonusEl.style.cssText = 'font-size:12px;letter-spacing:2px;margin-top:2px;text-align:right;';
+      _killStreakEl.appendChild(_killStreakBonusEl);
+      if (!document.getElementById(_killStreakPulseStyleId)) {
+        var st = document.createElement('style');
+        st.id = _killStreakPulseStyleId;
+        st.textContent = '@keyframes ksCrimsonPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.6) drop-shadow(0 0 8px #cc0000)}}';
+        document.head.appendChild(st);
+      }
+    }
+    if (!streak || streak <= 0) {
+      clearTimeout(_killStreakFadeTimer);
+      _killStreakFadeTimer = setTimeout(function() {
+        if (_killStreakEl) _killStreakEl.style.opacity = '0';
+      }, 2000);
+      return;
+    }
+    clearTimeout(_killStreakFadeTimer);
+    _killStreakEl.style.opacity = '1';
+    var color;
+    if (streak >= 10) {
+      color = '#cc0000';
+      _killStreakEl.style.animation = 'ksCrimsonPulse 0.7s ease-in-out infinite';
+    } else if (streak >= 5) {
+      color = '#ff2222';
+      _killStreakEl.style.animation = '';
+    } else {
+      color = '#ff8800';
+      _killStreakEl.style.animation = '';
+    }
+    _killStreakEl.style.color = color;
+    _killStreakEl.firstChild.nodeType === 3
+      ? (_killStreakEl.firstChild.textContent = '🔥 \xD7' + streak)
+      : null;
+    // Set text node at start (before the bonus child div)
+    if (_killStreakEl.childNodes[0] && _killStreakEl.childNodes[0].nodeType === 3) {
+      _killStreakEl.childNodes[0].textContent = '🔥 \xD7' + streak;
+    } else {
+      _killStreakEl.insertBefore(document.createTextNode('🔥 \xD7' + streak), _killStreakEl.firstChild);
+    }
+    if (_killStreakBonusEl) {
+      if (bonusName) {
+        _killStreakBonusEl.textContent = bonusName.toUpperCase();
+        _killStreakBonusEl.style.color = color;
+        _killStreakBonusEl.style.display = 'block';
+      } else {
+        _killStreakBonusEl.style.display = 'none';
+      }
+    }
+  }
+
+  // ── Score Multiplier Display ───────────────────────────────────────
+  var _scoreMultEl = null;
+  var _scoreMultPulseId = 'sm-pulse-kf';
+
+  function updateScoreMult(mult) {
+    if (!_scoreMultEl) {
+      _scoreMultEl = document.createElement('div');
+      _scoreMultEl.style.cssText = 'position:fixed;right:15px;font-family:monospace;font-size:16px;font-weight:bold;pointer-events:none;z-index:210;text-align:right;transition:opacity 0.3s;';
+      // Position below kill streak counter (90px + ~60px)
+      _scoreMultEl.style.top = '152px';
+      document.body.appendChild(_scoreMultEl);
+      if (!document.getElementById(_scoreMultPulseId)) {
+        var st = document.createElement('style');
+        st.id = _scoreMultPulseId;
+        st.textContent = '@keyframes smGoldPulse{0%,100%{text-shadow:0 0 6px #ffcc00}50%{text-shadow:0 0 18px #ffcc00,0 0 30px #ff8800}}';
+        document.head.appendChild(st);
+      }
+    }
+    if (!mult || mult <= 1.0) {
+      _scoreMultEl.style.opacity = '0';
+      return;
+    }
+    _scoreMultEl.style.opacity = '1';
+    _scoreMultEl.textContent = 'SCORE \xD7' + mult.toFixed(1);
+    if (mult > 2.0) {
+      _scoreMultEl.style.color = '#ffd700';
+      _scoreMultEl.style.animation = 'smGoldPulse 0.9s ease-in-out infinite';
+    } else {
+      _scoreMultEl.style.color = '#ffcc44';
+      _scoreMultEl.style.animation = '';
+      _scoreMultEl.style.textShadow = '0 0 6px #ff8800';
+    }
+  }
+
+  // ── Wave Timer ────────────────────────────────────────────────────
+  var _waveTimerEl = null;
+
+  function _fmtWaveTime(s) {
+    var m = Math.floor(Math.max(0, s) / 60);
+    var sec = Math.floor(Math.max(0, s) % 60);
+    return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function showWaveTimer(seconds) {
+    if (!_waveTimerEl) {
+      _waveTimerEl = document.createElement('div');
+      _waveTimerEl.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);font-family:monospace;font-size:15px;font-weight:bold;color:#fff;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.2);border-radius:4px;padding:3px 12px;pointer-events:none;z-index:130;letter-spacing:2px;transition:color 0.3s,border-color 0.3s;';
+      document.body.appendChild(_waveTimerEl);
+    }
+    _waveTimerEl.style.display = 'block';
+    _waveTimerEl.textContent = 'WAVE ENDS IN ' + _fmtWaveTime(seconds);
+    _waveTimerEl.style.color = '#ffffff';
+    _waveTimerEl.style.borderColor = 'rgba(255,255,255,0.2)';
+  }
+
+  function updateWaveTimer(secondsLeft) {
+    if (!_waveTimerEl || _waveTimerEl.style.display === 'none') return;
+    _waveTimerEl.textContent = 'WAVE ENDS IN ' + _fmtWaveTime(secondsLeft);
+    if (secondsLeft < 30) {
+      _waveTimerEl.style.color = '#ff3333';
+      _waveTimerEl.style.borderColor = 'rgba(255,50,50,0.5)';
+    } else {
+      _waveTimerEl.style.color = '#ffffff';
+      _waveTimerEl.style.borderColor = 'rgba(255,255,255,0.2)';
+    }
+  }
+
+  function hideWaveTimer() {
+    if (_waveTimerEl) _waveTimerEl.style.display = 'none';
+  }
+
+  // ── Combo Chain Display ───────────────────────────────────────────
+  var _comboEl = null;
+  var _comboClearTimer = null;
+  var _comboBounceId = 'combo-bounce-kf';
+
+  function showCombo(count, multiplier) {
+    if (!_comboEl) {
+      _comboEl = document.createElement('div');
+      _comboEl.style.cssText = 'position:fixed;left:15px;font-family:monospace;font-size:18px;font-weight:bold;pointer-events:none;z-index:210;transition:opacity 0.3s;opacity:0;';
+      // Position below ammo area — ammo is typically bottom-left ~80px from bottom
+      _comboEl.style.bottom = '130px';
+      document.body.appendChild(_comboEl);
+      if (!document.getElementById(_comboBounceId)) {
+        var st = document.createElement('style');
+        st.id = _comboBounceId;
+        st.textContent = '@keyframes comboBounce{0%{transform:scale(1.5)}100%{transform:scale(1)}}';
+        document.head.appendChild(st);
+      }
+    }
+    clearTimeout(_comboClearTimer);
+    var color;
+    var shadow = '';
+    if (count >= 5) {
+      color = '#ff2222';
+      shadow = '0 0 10px #ff0000,0 0 18px #aa0000';
+    } else if (count >= 4) {
+      color = '#ff8800';
+      shadow = '0 0 8px #ff4400';
+    } else if (count >= 3) {
+      color = '#ffcc00';
+    } else {
+      color = '#ffffff';
+    }
+    _comboEl.style.color = color;
+    _comboEl.style.textShadow = shadow;
+    _comboEl.style.animation = 'none';
+    void _comboEl.offsetHeight; // reflow to retrigger
+    _comboEl.style.animation = 'comboBounce 0.2s ease-out forwards';
+    _comboEl.textContent = '💥 COMBO \xD7' + count + ' (x' + (multiplier || 1).toFixed(1) + ')';
+    _comboEl.style.opacity = '1';
+    _comboClearTimer = setTimeout(function() {
+      if (_comboEl) _comboEl.style.opacity = '0';
+    }, 2000);
+  }
+
+  function clearCombo() {
+    clearTimeout(_comboClearTimer);
+    if (_comboEl) _comboEl.style.opacity = '0';
+  }
+
+  // ── Objective Marker (screen-edge arrow) ─────────────────────────
+  var _objMarkerEl = null;
+  var _objMarkerLabel = '';
+  var _objMarkerWorldPos = null;
+
+  function setObjective(text, worldPos3D, camera) {
+    _objMarkerLabel = text || '';
+    _objMarkerWorldPos = worldPos3D || null;
+    if (!_objMarkerEl) {
+      _objMarkerEl = document.createElement('div');
+      _objMarkerEl.style.cssText = 'position:fixed;pointer-events:none;z-index:215;font-family:monospace;font-size:13px;font-weight:bold;color:#ff6600;text-shadow:0 1px 4px #000,0 0 8px #ff4400;transition:opacity 0.2s;display:none;white-space:nowrap;';
+      document.body.appendChild(_objMarkerEl);
+    }
+    if (!text) {
+      _objMarkerEl.style.display = 'none';
+      return;
+    }
+    _objMarkerEl.style.display = 'block';
+    if (camera) updateObjectiveArrow(camera);
+  }
+
+  function updateObjectiveArrow(camera) {
+    if (!_objMarkerEl || !_objMarkerWorldPos || !camera) return;
+    var pos3 = _objMarkerWorldPos;
+    var vec = new THREE.Vector3(pos3.x, pos3.y || 0, pos3.z);
+    var camPos = camera.getWorldPosition ? camera.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3();
+    var dist = Math.round(camPos.distanceTo(vec));
+    vec.project(camera);
+    var behind = vec.z > 1;
+    var sx = (vec.x * 0.5 + 0.5) * window.innerWidth;
+    var sy = (-vec.y * 0.5 + 0.5) * window.innerHeight;
+    if (behind) { sx = window.innerWidth - sx; sy = window.innerHeight * 0.85; }
+    var margin = 40;
+    var onScreen = !behind && sx >= margin && sx <= window.innerWidth - margin && sy >= margin && sy <= window.innerHeight - margin;
+    if (onScreen) {
+      // Show chevron label above world position
+      _objMarkerEl.style.left = sx + 'px';
+      _objMarkerEl.style.top = (sy - 30) + 'px';
+      _objMarkerEl.style.transform = 'translate(-50%, 0)';
+      _objMarkerEl.innerHTML = '► ' + _objMarkerLabel + ' (' + dist + 'm)';
+    } else {
+      // Clamp to screen edge and rotate arrow toward target
+      var cx = window.innerWidth / 2;
+      var cy = window.innerHeight / 2;
+      var ang = Math.atan2(sy - cy, sx - cx);
+      var ex = cx + Math.cos(ang) * (Math.min(cx, cy) - margin);
+      var ey = cy + Math.sin(ang) * (Math.min(cx, cy) - margin);
+      ex = Math.max(margin, Math.min(window.innerWidth - margin, ex));
+      ey = Math.max(margin, Math.min(window.innerHeight - margin, ey));
+      var arrowDeg = (ang * 180 / Math.PI) + 90;
+      _objMarkerEl.style.left = ex + 'px';
+      _objMarkerEl.style.top = ey + 'px';
+      _objMarkerEl.style.transform = 'translate(-50%, -50%)';
+      _objMarkerEl.innerHTML = '<span style="display:inline-block;transform:rotate(' + arrowDeg + 'deg);font-size:22px">►</span><br><span style="font-size:11px">' + _objMarkerLabel + ' (' + dist + 'm)</span>';
+    }
+  }
+
+  function clearObjective() {
+    _objMarkerLabel = '';
+    _objMarkerWorldPos = null;
+    if (_objMarkerEl) _objMarkerEl.style.display = 'none';
+  }
+
+  // ── Better Crosshair Dynamic Spread (lerped) ──────────────────────
+  // Replaces the existing instant setCrosshairSpread with a lerping version.
+  // _chSpreadCurrent tracks the current visual spread; caller sets _chSpreadTarget
+  // by calling setCrosshairSpread(amount) each frame.
+  var _chSpreadCurrent = 0;
+  var _chSpreadTarget = 0;
+  var _chSpreadLastTime = 0;
+  // Inject transition-smoothed spread CSS once
+  (function() {
+    if (!document.getElementById('ch-spread-kf')) {
+      var st = document.createElement('style');
+      st.id = 'ch-spread-kf';
+      // Ensure crosshair lines use a smooth CSS transition as a fallback
+      st.textContent = '#crosshair .cl-top,#crosshair .cl-bottom,#crosshair .cl-left,#crosshair .cl-right{transition:transform 0.05s linear;}';
+      document.head.appendChild(st);
+    }
+  })();
+
+  function setCrosshairSpread(amount) {
+    _chSpreadTarget = Math.max(0, Math.min(1, amount || 0));
+    var now = performance.now();
+    var dt = _chSpreadLastTime > 0 ? Math.min(0.1, (now - _chSpreadLastTime) / 1000) : 0.016;
+    _chSpreadLastTime = now;
+    // Lerp at rate 6/sec
+    var rate = 6 * dt;
+    _chSpreadCurrent += (_chSpreadTarget - _chSpreadCurrent) * Math.min(1, rate);
+    if (!_chLineCache) {
+      _chLineCache = {
+        top:    document.querySelector('#crosshair .cl-top'),
+        bottom: document.querySelector('#crosshair .cl-bottom'),
+        left:   document.querySelector('#crosshair .cl-left'),
+        right:  document.querySelector('#crosshair .cl-right'),
+      };
+    }
+    // 0 = ±8px from center, 1.0 = ±32px from center
+    var base = 8;
+    var range = 24; // 32 - 8
+    var px = Math.round(base + _chSpreadCurrent * range);
+    if (_chLineCache.top)    _chLineCache.top.style.transform    = 'translateY(-' + px + 'px)';
+    if (_chLineCache.bottom) _chLineCache.bottom.style.transform = 'translateY(' + px + 'px)';
+    if (_chLineCache.left)   _chLineCache.left.style.transform   = 'translateX(-' + px + 'px)';
+    if (_chLineCache.right)  _chLineCache.right.style.transform  = 'translateX(' + px + 'px)';
+  }
+
   // ── Last Wave Summary Overlay ──
-  let _waveSummaryEl = null;
+  var _waveSummaryEl = null;
   function showWaveSummary(stats) {
     if (!_waveSummaryEl) {
       _waveSummaryEl = document.createElement('div');
@@ -2078,7 +2908,7 @@ const HUD = (() => {
     show, hide,
     setScore, setWave, setKills, setEnemies, setStage,
     setWaveProgress,
-    setHealth, setAmmo, setWeapon, showReload,
+    setHealth, setAmmo, setWeapon, showReload, updateAmmoRing, updateReloadBar, updateAmmoTypeBadge,
     flashHit, flashDamage, flashHeal, showBloodDrops,
     showHeadshot, notifyPickup, showToast, setCrosshairSpread, setCrosshairTarget, setRangeReadout, setSprintIntensity, setGrenadeWarning, setHandGrenades, showGrenadeSection, showLockOn,
     announceWave, announceStage,
@@ -2096,7 +2926,7 @@ const HUD = (() => {
     showFogOfWar, showRadiation,
     addCombatLog, showAchievement,
     showTacticalMap, isTacticalMapVisible, updateTacticalMap,
-    showSupplyMenu, showFieldPromotion, showWaveStats,
+    showSupplyMenu, showFieldPromotion, showWaveStats, showLevelGrade,
     showDeathStats, updateOKC,
     // ── B22: New HUD ──
     showBossBar, hideBossBar,
@@ -2115,8 +2945,38 @@ const HUD = (() => {
     showNPCText, _updateNPCTextPositions,
     // ── Targeting Assistant ──
     updateTargetAssist,
-    showWaveSummary,
+    // ── NVG Indicator ──
+    updateNvgIndicator,
+    // ── Floating Damage Numbers + Kill Feed ──
+    showDamageNumber,
+    addKillFeedEntry,
+    // ── Weapon Wheel ──
+    showWeaponWheel, updateWeaponWheelMouse, hideWeaponWheel,
+    // ── Sniper Scope ADS ──
+    showScope: showScope, hideScope: hideScope, updateScope: updateScope, isScopeActive: function() { return _scopeActive; },
+    // ── Kill Streak Counter ──
+    updateKillStreak,
+    // ── Score Multiplier Display ──
+    updateScoreMult,
+    // ── Wave Timer ──
+    showWaveTimer, updateWaveTimer, hideWaveTimer,
+    // ── Combo Chain Display ──
+    showCombo, clearCombo,
+    // ── Objective Marker ──
+    setObjective, updateObjectiveArrow, clearObjective,
   };
+
+  function updateNvgIndicator() {
+    var badge = document.getElementById('nvg-indicator');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'nvg-indicator';
+      badge.textContent = 'NVG';
+      badge.style.cssText = 'position:fixed;top:12px;right:120px;background:#00cc44;color:#000;font-family:monospace;font-size:13px;font-weight:bold;padding:3px 8px;border-radius:3px;z-index:9000;display:none;letter-spacing:2px;';
+      document.body.appendChild(badge);
+    }
+    badge.style.display = window._nvgActive ? 'block' : 'none';
+  }
 })();
 
 if (typeof window !== 'undefined') window.HUD = HUD;

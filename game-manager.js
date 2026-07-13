@@ -1,6 +1,9 @@
     // ── Drone Selection Overlay ──
     var _droneSelectionCallback = null;
 
+    // ── Loadout result from pre-stage selection ──
+    var _loadoutResult = null;
+
     function showDroneSelection(callback) {
       // Export to window for global access (always)
       if (typeof window !== 'undefined') window.showDroneSelection = showDroneSelection;
@@ -88,26 +91,6 @@ const GameManager = (function () {
     WIN:         'win',
   });
 
-  /* ── Persistent Settings (saved to localStorage) ──────────────── */
-  var _mouseSensitivity = (function() {
-    var v = parseFloat(localStorage.getItem('ok_sensitivity'));
-    return (isNaN(v) || v <= 0) ? 1.0 : v;
-  })();
-  var _audioVolume = (function() {
-    var v = parseFloat(localStorage.getItem('ok_volume'));
-    return (isNaN(v) || v < 0) ? 0.5 : v;
-  })();
-
-  function setMouseSensitivity(v) {
-    _mouseSensitivity = Math.max(0.1, Math.min(5.0, parseFloat(v) || 1.0));
-    localStorage.setItem('ok_sensitivity', _mouseSensitivity);
-  }
-  function setAudioVolume(v) {
-    _audioVolume = Math.max(0, Math.min(1.0, parseFloat(v) || 0.5));
-    localStorage.setItem('ok_volume', _audioVolume);
-    if (typeof AudioSystem !== 'undefined' && AudioSystem.setVolume) AudioSystem.setVolume(_audioVolume);
-  }
-
   /* ── Core State ──────────────────────────────────────────────────── */
   let gameState     = STATE.MENU;
   let _scene        = null;
@@ -120,10 +103,25 @@ const GameManager = (function () {
   var _gmTmp3 = new THREE.Vector3();
   var _gmNewPos = new THREE.Vector3();
   var _waveStartTimer = null;
+  var _levelStartTime = 0;  // Date.now() timestamp when the current level began
   var _defeatReason = null; // custom defeat banner (e.g. 'KYIV HAS FALLEN'); null = 'YOU DIED'
   var _hudSlowTimer = 0; // throttle slow HUD updates (dailies, bounties, prestige)
   var _musicIntTimer = 0; // throttle music intensity calc
   var _buildMatHud = null; // cached DOM ref for build materials HUD
+  var _weaponWheelHeld = false; // tracks whether Q is held for weapon wheel
+  var _bossBarShowing = false; // tracks whether boss health bar is currently visible
+
+  // ── Muzzle flash PointLight — scene-space burst on every shot (Task 2) ──
+  var _muzzleFlash = null;
+
+  // ── Weapon idle sway time accumulator (Task 1) ────────────────────────
+  var _swayTime = 0;
+
+  // ── Sniper scope overlay DOM element (Task 3) ─────────────────────────
+  var _gmScopeEl = null;
+
+  // Killstreak time scale (1.0 = normal, <1.0 = slow motion via KillStreak module)
+  window._killstreakTimeScale = 1.0;
 
   // Footstep dust puffs (visible when sprinting)
   var _footstepPuffs = [];
@@ -172,6 +170,43 @@ const GameManager = (function () {
       }
     }
   }
+  // ── Muzzle flash PointLight: burst of warm light at barrel tip ──────
+  function doMuzzleFlash() {
+    if (!_muzzleFlash && typeof THREE !== 'undefined' && _scene) {
+      _muzzleFlash = new THREE.PointLight(0xffffaa, 8, 4);
+      _scene.add(_muzzleFlash);
+    }
+    if (_muzzleFlash && _camera) {
+      _muzzleFlash.intensity = 8;
+      _muzzleFlash.position.copy(_camera.position);
+      var _mfDir = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
+      _muzzleFlash.position.addScaledVector(_mfDir, 1.2);
+      setTimeout(function() { if (_muzzleFlash) _muzzleFlash.intensity = 0; }, 40);
+    }
+  }
+
+  // ── Scope overlay: create SVG vignette+crosshair for sniper rifles ───
+  function _gmCreateScopeOverlay() {
+    var existing = document.getElementById('scope-overlay');
+    if (existing) { _gmScopeEl = existing; return; }
+    var scopeEl = document.createElement('div');
+    scopeEl.id = 'scope-overlay';
+    scopeEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;display:none;';
+    scopeEl.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<defs><radialGradient id="sg" cx="50%" cy="50%" r="45%"><stop offset="40%" stop-color="transparent"/><stop offset="80%" stop-color="rgba(0,0,0,0.7)"/><stop offset="100%" stop-color="rgba(0,0,0,0.95)"/></radialGradient></defs>' +
+      '<rect width="100" height="100" fill="url(#sg)"/>' +
+      '<line x1="50" y1="0" x2="50" y2="100" stroke="rgba(0,255,0,0.7)" stroke-width="0.2"/>' +
+      '<line x1="0" y1="50" x2="100" y2="50" stroke="rgba(0,255,0,0.7)" stroke-width="0.2"/>' +
+      '<circle cx="50" cy="50" r="0.4" fill="rgba(0,255,0,0.9)"/>' +
+      '<line x1="50" y1="40" x2="50" y2="38" stroke="rgba(0,255,0,0.6)" stroke-width="0.3"/>' +
+      '<line x1="50" y1="60" x2="50" y2="62" stroke="rgba(0,255,0,0.6)" stroke-width="0.3"/>' +
+      '<line x1="40" y1="50" x2="38" y2="50" stroke="rgba(0,255,0,0.6)" stroke-width="0.3"/>' +
+      '<line x1="60" y1="50" x2="62" y2="50" stroke="rgba(0,255,0,0.6)" stroke-width="0.3"/>' +
+      '</svg>';
+    document.body.appendChild(scopeEl);
+    _gmScopeEl = scopeEl;
+  }
+
   // ── Threat-behind warning glow ───────────────────────────────────
   var _threatEl = null;
   var _threatOpacity = 0;
@@ -212,6 +247,11 @@ const GameManager = (function () {
   var _domSwim = null, _domBreathContainer = null, _domBreathBar = null;
   var _domMantle = null;
 
+  /* ── Prestige State ─────────────────────────────────────────────── */
+  window._prestigeLevel = parseInt(localStorage.getItem('okk_prestige') || '0');
+  window._prestigeScoreMult = 1 + (window._prestigeLevel * 0.25);
+  window._prestigeFireRate = 1 + (window._prestigeLevel * 0.05);
+
   /* ── Player State ────────────────────────────────────────────────── */
   const GOD_MODE_HP = 999999;
   const player = {
@@ -242,6 +282,9 @@ const GameManager = (function () {
     lastDamageTime: 0,        // time since last damage (for health regen)
     // ── Throwables ──
     grenades:   5,            // hand grenades on player; default 5, unlimited in god mode
+    grenadeType: 'FRAG',      // current grenade type: FRAG, SMOKE, FLASHBANG
+    smokeGrenades: 2,         // smoke grenade count
+    flashGrenades: 2,         // flashbang grenade count
     // ── Loot & Building ──
     lootParticles: [],        // active loot particles in world
     buildMaterials: { wood: 0, stone: 0, metal: 0, dirt: 0, sand: 0, brick: 0 },
@@ -306,10 +349,6 @@ const GameManager = (function () {
     { id: 'CHEMICAL',       label: '☣ CHEMICAL ATTACK!',       color: '#aaff00', chance: 0.05 },
     { id: 'EMP',            label: '⚡ EMP BLAST!',             color: '#4400ff', chance: 0.04 },
     { id: 'TUNNEL_BREACH',  label: '🕳 TUNNEL BREACH!',        color: '#884400', chance: 0.06 },
-    { id: 'PARTISAN_HELP', label: '🤝 PARTISANS JOIN THE FIGHT!', color: '#88ff44', chance: 0.06 },
-    { id: 'OWN_GOAL',      label: '😂 RUSSIAN FRIENDLY FIRE!',    color: '#ffff00', chance: 0.04 },
-    { id: 'INTEL_BREACH',  label: '📡 INTEL BREACH — ENEMY POS!', color: '#00ffcc', chance: 0.05 },
-    { id: 'MEDIC_EVAC',    label: '🏥 MEDIC TEAM INBOUND!',        color: '#ff88aa', chance: 0.05 },
   ];
 
   function triggerBattlefieldEvent() {
@@ -454,79 +493,6 @@ const GameManager = (function () {
             x: player.position.x + Math.cos(_tbYaw + ta) * td,
             z: player.position.z + Math.sin(_tbYaw + ta) * td
           });
-        }
-        break;
-      case 'PARTISAN_HELP':
-        // Local partisans spawn and fight alongside player — variety pack
-        if (typeof NPCSystem !== 'undefined' && NPCSystem.spawn) {
-          for (let i = 0; i < 4; i++) {
-            const _pa = Math.random() * Math.PI * 2;
-            const _pd = 5 + Math.random() * 8;
-            const _px2 = player.position.x + Math.cos(_pa) * _pd;
-            const _pz2 = player.position.z + Math.sin(_pa) * _pd;
-            const _ph = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_px2, _pz2) : 0;
-            NPCSystem.spawn(_px2, _ph, _pz2, ['infantry', 'specialist', 'medic'][Math.floor(Math.random() * 3)]);
-          }
-        }
-        if (typeof Economy !== 'undefined') Economy.addCurrency(30);
-        break;
-      case 'OWN_GOAL':
-        // Russian units fire on their own — causes explosions near enemy clusters
-        var _ogAll = Enemies.getAll();
-        var _ogKilled = 0;
-        for (let i = 0; i < Math.min(_ogAll.length, 8); i++) {
-          if (_ogAll[i].alive && _ogAll[i].mesh) {
-            var _ogPos = _ogAll[i].mesh.position;
-            if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_ogPos.clone(), 3);
-            Enemies.damageInRadius(_ogPos, 5, 70);
-            if (!_ogAll[i].alive) _ogKilled++;
-          }
-        }
-        if (_ogKilled > 0) {
-          HUD.showToast('😂 ' + _ogKilled + ' killed by own side!', 2500, '#ffff00');
-          player.score += _ogKilled * 15;
-        }
-        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.08, 1.0);
-        break;
-      case 'INTEL_BREACH':
-        // Reveal all enemy positions on minimap for 30s (mimic UAV briefly)
-        if (typeof Perks !== 'undefined' && Perks.activateStreak) {
-          // Temporarily mark all enemies as spotted for minimap
-          var _ibAll = Enemies.getAll();
-          for (let i = 0; i < _ibAll.length; i++) {
-            if (_ibAll[i].alive) {
-              _ibAll[i]._intelRevealed = true;
-              _ibAll[i].playerSpotted = true;
-            }
-          }
-          setTimeout(function() {
-            var _ibAll2 = Enemies.getAll();
-            for (let i = 0; i < _ibAll2.length; i++) {
-              if (_ibAll2[i]._intelRevealed) {
-                _ibAll2[i]._intelRevealed = false;
-                // Don't clear playerSpotted if they're genuinely tracking player
-              }
-            }
-          }, 30000);
-        }
-        HUD.showToast('📡 ALL ENEMY POSITIONS REVEALED (30s)', 3000, '#00ffcc');
-        break;
-      case 'MEDIC_EVAC':
-        // Medic team arrives: heal player + spawn healing pickups
-        {
-          var _mevHeal = Math.min(40, player.maxHp - player.hp);
-          player.hp = Math.min(player.hp + 40, player.maxHp);
-          if (HUD.setHealth) HUD.setHealth(player.hp, player.maxHp);
-          // Also spawn 2 medkits nearby
-          for (let i = 0; i < 2; i++) {
-            const _mx = player.position.x + (Math.random()-0.5) * 6;
-            const _mz = player.position.z + (Math.random()-0.5) * 6;
-            const _mh = window.VoxelWorld ? window.VoxelWorld.getTerrainHeight(_mx, _mz) : 0;
-            if (typeof Pickups !== 'undefined' && Pickups.spawn) {
-              Pickups.spawn(new THREE.Vector3(_mx, _mh, _mz), 'MEDKIT');
-            }
-          }
-          if (_mevHeal > 0) HUD.notifyPickup('🏥 MEDIC: +' + _mevHeal + ' HP', '#ff88aa');
         }
         break;
     }
@@ -957,21 +923,6 @@ const GameManager = (function () {
   var _lastKillPos = null;  // position of most recent enemy kill
   var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
 
-  /* ── Smoke Zone System ─────────────────────────────────────── */
-  var _activeSmokeZones = []; // [{x, z, radius, timer}]
-  window._activeSmokeZones = _activeSmokeZones; // exposed for enemies.js detection
-
-  function addSmokeZone(x, z, radius, duration) {
-    _activeSmokeZones.push({ x: x, z: z, radius: radius || 6, timer: duration || 18 });
-  }
-
-  function updateSmokeZones(delta) {
-    for (var si = _activeSmokeZones.length - 1; si >= 0; si--) {
-      _activeSmokeZones[si].timer -= delta;
-      if (_activeSmokeZones[si].timer <= 0) _activeSmokeZones.splice(si, 1);
-    }
-  }
-
   /* ── Suppression System (near-miss visual response) ──────────── */
   var _suppressionLevel = 0;  // 0→1
   var _suppressionDecay = 0.5; // per second
@@ -1005,6 +956,30 @@ const GameManager = (function () {
   var _currentFOV = 75;
   var _targetFOV = 75;
   var _killFovKick = 0; // additive FOV bump on kill, decays
+  var _killStreak = 0;
+  var _killStreakTimer = 0;
+  var _killStreakMult = 1;
+
+  /* ── Score Chain (kill chain multiplier) ────────────────────────── */
+  var _scoreChain = 1;       // current multiplier (1, 2, 3, 4, or 5)
+  var _chainTimer = 0;       // seconds since last kill
+  var _chainExpiry = 5.0;    // chain resets after 5s without a kill
+  var _chainKills = 0;       // kills in current chain
+  var _chainEl = null;
+  function _updateChainDisplay() {
+    if (!_chainEl) {
+      _chainEl = document.createElement('div');
+      _chainEl.id = 'chain-multiplier';
+      _chainEl.style.cssText = 'position:fixed;top:80px;right:12px;font-family:monospace;font-size:22px;font-weight:bold;color:#ffdd00;text-shadow:0 0 8px #ff8800;z-index:500;pointer-events:none;transition:opacity 0.3s;';
+      document.body.appendChild(_chainEl);
+    }
+    if (_scoreChain > 1) {
+      _chainEl.textContent = 'x' + _scoreChain + ' CHAIN';
+      _chainEl.style.opacity = '1';
+    } else {
+      _chainEl.style.opacity = '0';
+    }
+  }
 
   /* ── Physics Constants ───────────────────────────────────────────── */
   const MOVE_SPEED   = 6.0;
@@ -1168,19 +1143,6 @@ const GameManager = (function () {
     var topY = (typeof window.VoxelWorld.getTopSolidY === 'function')
       ? window.VoxelWorld.getTopSolidY(player.position.x, player.position.z)
       : window.VoxelWorld.getTerrainHeight(player.position.x, player.position.z) + 1;
-    // Step up over persistent frozen corpses (max radius 0.8, adds 0.55 height)
-    if (window._corpseObstacles && window._corpseObstacles.length > 0) {
-      var _px2 = player.position.x, _pz2 = player.position.z;
-      for (var _ci = 0; _ci < window._corpseObstacles.length; _ci++) {
-        var _co = window._corpseObstacles[_ci];
-        var _cdx = _px2 - _co.x, _cdz = _pz2 - _co.z;
-        if (_cdx * _cdx + _cdz * _cdz < 0.64) {
-          var _corpseTop = _co.y + 0.55;
-          if (_corpseTop > topY) topY = _corpseTop;
-          break;
-        }
-      }
-    }
     var terrainY = topY + player.height;
     var gap = player.position.y - terrainY;
 
@@ -1296,22 +1258,89 @@ const GameManager = (function () {
     } catch (_e) {}
     try {
       _renderer = createRendererWithFallback();
-        // Mobile: begin at HIGH quality tier (1) instead of ULTRA (0).
-        // The adaptive system can scale back up if the device handles it.
-        if (isMobile) {
-          setTimeout(function() {
-            if (_perfLevel === 0) _applyPerfLevel(1, null);
-          }, 3000); // after 3s of gameplay data
-        }
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
-        window._gameScene = _scene; // CollapsePhysics + WorldFeatures use this without circular dep
-        let stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
+        if (typeof Mines !== 'undefined') Mines.init(_scene);
+        if (window.TripwireIED) TripwireIED.init(_scene, _camera);
+        if (window.LootDrops) LootDrops.init(_scene);
+        if (window.WaveEvents) WaveEvents.init(_scene);
+        if (window.BountySystem) BountySystem.init(_scene);
+        if (window.VehicleEnemies) VehicleEnemies.init(_scene);
+        window._takeVehicleRamDamage = function(dmg) { onPlayerHit(dmg, null); };
+        window._takeBTRDamage        = function(dmg) { onPlayerHit(dmg, null); };
+        window._takeDamageFromWaveEvent = function(dmg) { onPlayerHit(dmg, null); };
+        if (window.Destructibles) Destructibles.init(_scene);
+        if (window.StaminaSystem) StaminaSystem.init();
+        if (window.Grapple) Grapple.init(_scene, _camera);
+        if (window.ZiplineGrapple) ZiplineGrapple.init(_scene, _camera);
+        if (window.Wingsuit) Wingsuit.init(_scene, _camera);
+        if (window.ScavengeSystem) ScavengeSystem.init(_scene, _camera);
+        if (window.CrouchSystem) CrouchSystem.init();
+        if (window.SpecialGrenades) SpecialGrenades.init(_scene, _camera, function(enemyCallback) {
+            var enemies = Enemies ? Enemies.getAll() : [];
+            for (var i = 0; i < enemies.length; i++) {
+                if (enemies[i] && !enemies[i].dead) enemyCallback(enemies[i]);
+            }
+        });
+        if (window.BloodEffects) BloodEffects.init(_scene, _camera);
+        if (window.BallisticShield) BallisticShield.init(_scene, _camera);
+        if (window.MeleeKnife) MeleeKnife.init(_scene, _camera);
+        if (window.RadioSupport) RadioSupport.init(_scene, function(pos, radius, callback) {
+          var enemies = (typeof Enemies !== 'undefined' && Enemies.getAll) ? Enemies.getAll() : [];
+          for (var _rsi = 0; _rsi < enemies.length; _rsi++) {
+            var _rse = enemies[_rsi];
+            if (!_rse || _rse.hp <= 0 || !_rse.alive || !_rse.mesh) continue;
+            var _rsdx = _rse.mesh.position.x - pos.x;
+            var _rsdz = _rse.mesh.position.z - pos.z;
+            if (Math.sqrt(_rsdx*_rsdx + _rsdz*_rsdz) < radius) {
+              if (typeof Enemies !== 'undefined' && Enemies.damage) Enemies.damage(_rse, 9999);
+              player.kills++;
+            }
+          }
+          if (callback) callback();
+        });
+        if (window.ClaymoreMines) ClaymoreMines.init(_scene, function(pos, isPlayer) {
+          if (isPlayer) { _takeDamage(45); }
+        });
+        if (typeof ArmorSystem !== 'undefined') ArmorSystem.init(_scene);
+        if (window.GasMask) GasMask.init(_scene);
+        if (typeof HazardZones !== 'undefined') HazardZones.init(_scene);
+        if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
+        if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
+        if (typeof NightVision !== 'undefined') NightVision.init(_renderer.domElement, _scene);
+        if (window.WeatherEffects) WeatherEffects.init(_scene);
+        if (typeof ExplosiveBarrels !== 'undefined') {
+          ExplosiveBarrels.init(_scene, function(x, y, z, radius, damage) {
+            // AoE damage to enemies in radius
+            if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+              var _aeList = Enemies.getAll();
+              for (var _aei = 0; _aei < _aeList.length; _aei++) {
+                var _ae = _aeList[_aei];
+                if (!_ae || !_ae.mesh || _ae.hp <= 0) continue;
+                var _aedx = _ae.mesh.position.x - x;
+                var _aedz = _ae.mesh.position.z - z;
+                var _aedist = Math.sqrt(_aedx*_aedx + _aedz*_aedz);
+                if (_aedist < radius) {
+                  var _aedmg = damage * (1 - _aedist / radius);
+                  if (Enemies.damage) Enemies.damage(_ae, _aedmg);
+                }
+              }
+            }
+            // Damage player if nearby
+            var _pldx = player.position.x - x;
+            var _pldz = player.position.z - z;
+            var _pldist = Math.sqrt(_pldx*_pldx + _pldz*_pldz);
+            if (_pldist < radius) {
+              var _pldmg = damage * 0.5 * (1 - _pldist / radius);
+              player.hp = Math.max(0, player.hp - _pldmg);
+            }
+          });
+        }
+        var stageCfg = (typeof getCurrentStageConfig === 'function') ? getCurrentStageConfig() : null;
         let fogColor = stageCfg && stageCfg.fogColor !== undefined ? stageCfg.fogColor : 0xFFD700;
         // Fog color must match background to avoid visible horizon seam (audit #17)
         _scene.background = new THREE.Color(fogColor);
-        // Mobile: tighter fog near (12) makes objects fade sooner, cutting GPU triangle count.
-        _scene.fog = new THREE.Fog(fogColor, isMobile ? 12 : 18, isMobile ? 55 : 120);
+        _scene.fog = new THREE.Fog(fogColor, 18, isMobile ? 55 : 120);
 
         // If running in compatibility mode, show a warning overlay
         if (_rendererProfile === 'compatibility') {
@@ -1352,6 +1381,8 @@ const GameManager = (function () {
     // Near plane lowered 0.1 -> 0.02 so the close first-person weapon model
     // isn't sliced open by near-clipping (player was seeing inside the guns).
     _camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.02, isMobile ? 140 : 200);
+
+    if (typeof CompanionDrone !== 'undefined') CompanionDrone.init(_scene, _camera);
 
     // Lighting — Ukrainian theme
     ambLight = new THREE.AmbientLight(0x888866, 0.8);
@@ -1488,12 +1519,9 @@ const GameManager = (function () {
     _bootStep('tracers');
 
     // Audio, Weather & ML systems
-    _safeInit('audio', function () {
-      if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init();
-      // Apply saved volume after init
-      if (window.AudioSystem && window.AudioSystem.setVolume) window.AudioSystem.setVolume(_audioVolume);
-    });
+    _safeInit('audio', function () { if (window.AudioSystem && typeof window.AudioSystem.init === 'function') window.AudioSystem.init(); });
     _safeInit('weather', function () { if (WeatherSystem && typeof WeatherSystem.init === 'function') WeatherSystem.init(_scene, _camera); });
+    _safeInit('weather-particles', function () { if (typeof Weather !== 'undefined' && Weather.init && _scene) { Weather.init(_scene, _camera); } });
     _safeInit('ml', function () { if (MLSystem && typeof MLSystem.init === 'function') MLSystem.init(); });
     _safeInit('stagevfx', function () { if (typeof StageVFX !== 'undefined' && StageVFX && typeof StageVFX.init === 'function') StageVFX.init(_scene); });
     _safeInit('flags', function () {
@@ -1523,13 +1551,1460 @@ const GameManager = (function () {
     if (typeof MissionTypes !== 'undefined' && MissionTypes && typeof MissionTypes.clear === 'function') MissionTypes.clear();
     if (typeof Feedback !== 'undefined' && Feedback && typeof Feedback.init === 'function') Feedback.init();
     if (typeof Progression !== 'undefined' && Progression && typeof Progression.init === 'function') Progression.init();
-    // Birds + Mortar + Premium + Lottery + Gyro
+    // Tactical minimap
+    try { if (typeof Minimap !== 'undefined' && Minimap.init) Minimap.init(typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []); } catch (eMM) {}
+
+    // Birds + Mortar + MortarEmplacement + Premium + Lottery + Gyro
     try { if (window.Birds   && Birds.init)   Birds.init(_scene); } catch (e) {}
-    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, _controls); } catch (e) {}
-    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, _controls); } catch (e) {}
+    try { if (window.Mortar  && Mortar.init)  Mortar.init(_scene, _camera, null); } catch (e) {}
+    try { if (window.MortarEmplacement && MortarEmplacement.init) MortarEmplacement.init(_scene, _camera); } catch (e) {}
+    try { if (window.Bradley && Bradley.init) Bradley.init(_scene, _camera, null); } catch (e) {}
     try { if (window.Premium && Premium.init) Premium.init(); } catch (e) {}
     try { if (window.Lottery && Lottery.init) Lottery.init(); } catch (e) {}
+    try { if (window.MissionDebrief && MissionDebrief.init) MissionDebrief.init(); } catch (e) {}
+    try { if (window.LevelBriefing && LevelBriefing.init) LevelBriefing.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
+    if (typeof EnemyChatter !== 'undefined' && _camera) EnemyChatter.init(_camera);
+    try { if (window.DamageNumbers) DamageNumbers.init(_scene, _camera); } catch (e) {}
+    // ADS (Aim Down Sights) system
+    try { if (window.ADSSystem && ADSSystem.init) ADSSystem.init(_scene, _camera); } catch (eADS) { console.warn('[ADSSystem] init failed', eADS); }
+    // Companion radio tactical chatter
+    try { if (window.CompanionRadio && CompanionRadio.init) CompanionRadio.init(); } catch (eCR) {}
+    // Bullet-time power-up
+    try { if (window.TimeWarp && TimeWarp.init) TimeWarp.init(); } catch (eTW) { console.warn('[TimeWarp] init failed', eTW); }
+    // Surrender system
+    try { if (window.SurrenderSystem) SurrenderSystem.init(_scene); } catch (eSS) { console.warn('[SurrenderSystem] init failed', eSS); }
+    // Suppression system
+    try { if (window.SuppressionSystem) SuppressionSystem.init(_scene, _camera); } catch (eSup) { console.warn('[SuppressionSystem] init failed', eSup); }
+    // Freeze grenade
+    try { if (window.FreezeGrenade && FreezeGrenade.init) FreezeGrenade.init(_scene, _camera); } catch (eFG) { console.warn('[FreezeGrenade] init failed', eFG); }
+    try { if (window.KillCam && KillCam.init) KillCam.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShieldBubble && ShieldBubble.init) ShieldBubble.init(_scene, _camera); } catch (e) {}
+    try { if (window.TripwireTrap && TripwireTrap.init) TripwireTrap.init(_scene, _camera); } catch (e) {}
+    try { if (window.BulletTime && BulletTime.init) BulletTime.init(); } catch (e) {}
+    try { if (window.MountedTurret && MountedTurret.init) MountedTurret.init(_scene, _camera); } catch (e) {}
+    try { if (window.DynamicWeather && DynamicWeather.init) DynamicWeather.init(_scene); } catch (e) {}
+    try { if (window.ObjectiveSystem && ObjectiveSystem.init) ObjectiveSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.ClusterBomb && ClusterBomb.init) ClusterBomb.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalMinimap && TacticalMinimap.init) TacticalMinimap.init(_scene, _camera); } catch (e) {}
+    try { if (window.KillFeedEvents && KillFeedEvents.init) KillFeedEvents.init(); } catch (e) {}
+    try { if (window.BossFinalForm && BossFinalForm.init) BossFinalForm.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadarPulse && RadarPulse.init) RadarPulse.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeaponWear && WeaponWear.init) WeaponWear.init(); } catch (e) {}
+    try { if (window.Nanobots && Nanobots.init) Nanobots.init(); } catch (e) {}
+    try { if (window.AmmoTypes && AmmoTypes.init) AmmoTypes.init(); } catch (e) {}
+    try { if (window.PlayerCallouts && PlayerCallouts.init) PlayerCallouts.init(_camera); } catch (e) {}
+    try { if (window.DriveableCar && DriveableCar.init) DriveableCar.init(_scene, _camera); } catch (e) {}
+    try { if (window.FPVKamikaze && FPVKamikaze.init) FPVKamikaze.init(_scene, _camera); } catch (e) {}
+    try { if (window.EMPPulse && EMPPulse.init) EMPPulse.init(_scene, _camera); } catch (e) {}
+    try { if (window.InventorySystem && InventorySystem.init) InventorySystem.init(); } catch (e) {}
+    try { if (window.MeleeSystem && MeleeSystem.init) MeleeSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperScope && SniperScope.init) SniperScope.init(_scene, _camera); } catch (e) {}
+    try { if (window.ParachuteDrop && ParachuteDrop.init) ParachuteDrop.init(_scene, _camera); } catch (e) {}
+    try { if (window.LandmineField && LandmineField.init) LandmineField.init(_scene, _camera); } catch (e) {}
+    try { if (window.SmokeLauncher && SmokeLauncher.init) SmokeLauncher.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirStrike && AirStrike.init) AirStrike.init(_scene, _camera); } catch (e) {}
+    try { if (window.WallBreach && WallBreach.init) WallBreach.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatRoll && CombatRoll.init) CombatRoll.init(_scene, _camera); } catch (e) {}
+    try { if (window.DogTagCollector && DogTagCollector.init) DogTagCollector.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemySniper && EnemySniper.init) EnemySniper.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleWreck && VehicleWreck.init) VehicleWreck.init(_scene, _camera); } catch (e) {}
+    try { if (window.SuppressorKit && SuppressorKit.init) SuppressorKit.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattlefieldPromotions && BattlefieldPromotions.init) BattlefieldPromotions.init(); } catch (e) {}
+    try { if (window.HostageRescue && HostageRescue.init) HostageRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.GrenadeLauncherGL && GrenadeLauncherGL.init) GrenadeLauncherGL.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlayerDeathSequence && PlayerDeathSequence.init) PlayerDeathSequence.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalReload && TacticalReload.init) TacticalReload.init(_scene, _camera); } catch (e) {}
+    try { if (window.ClaymoreDirectional && ClaymoreDirectional.init) ClaymoreDirectional.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightAssault && NightAssault.init) NightAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleTurret && VehicleTurret.init) VehicleTurret.init(_scene, _camera); } catch (e) {}
+    try { if (window.IntelDocuments && IntelDocuments.init) IntelDocuments.init(_scene, _camera); } catch (e) {}
+    try { if (window.BodyArmorVest && BodyArmorVest.init) BodyArmorVest.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArtilleryBarrage && ArtilleryBarrage.init) ArtilleryBarrage.init(_scene, _camera); } catch (e) {}
+    try { if (window.RiotShieldPickup && RiotShieldPickup.init) RiotShieldPickup.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScoreMultiplier && ScoreMultiplier.init) ScoreMultiplier.init(); } catch (e) {}
+    try { if (window.HeliExtraction && HeliExtraction.init) HeliExtraction.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemicalWarfare && ChemicalWarfare.init) ChemicalWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemyTankDestroyer && EnemyTankDestroyer.init) EnemyTankDestroyer.init(_scene, _camera); } catch (e) {}
+    try { if (window.FlashbangSystem && FlashbangSystem.init) FlashbangSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemyEngineer && EnemyEngineer.init) EnemyEngineer.init(_scene, _camera); } catch (e) {}
+    try { if (window.RappellingSystem && RappellingSystem.init) RappellingSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.BulletCam && BulletCam.init) BulletCam.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReconDrone && ReconDrone.init) ReconDrone.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerBuster && BunkerBuster.init) BunkerBuster.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalMap && TacticalMap.init) TacticalMap.init(_scene, _camera); } catch (e) {}
+    // Wave 21 modules
+    try { if (window.VehiclePhysics && VehiclePhysics.init) VehiclePhysics.init(_scene, _camera); } catch (e) {}
+    try { if (window.DecoyFlare && DecoyFlare.init) DecoyFlare.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortificationBuilder && FortificationBuilder.init) FortificationBuilder.init(_scene, _camera); } catch (e) {}
+    try { if (window.MortarStrikeSystem && MortarStrikeSystem.init) MortarStrikeSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemyMedicNPC && EnemyMedicNPC.init) EnemyMedicNPC.init(_scene, _camera); } catch (e) {}
+    try { if (window.ExplosiveBarrelChain && ExplosiveBarrelChain.init) ExplosiveBarrelChain.init(_scene, _camera); } catch (e) {}
+    try { if (window.PowerupSystem && PowerupSystem.init) PowerupSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaveAnnouncement && WaveAnnouncement.init) WaveAnnouncement.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnvironmentalHazards && EnvironmentalHazards.init) EnvironmentalHazards.init(_scene, _camera); } catch (e) {}
+    // Wave 22 modules
+    try { if (window.CaptureZone && CaptureZone.init) CaptureZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirdropSupply && AirdropSupply.init) AirdropSupply.init(_scene, _camera); } catch (e) {}
+    try { if (window.StealthSystem && StealthSystem.init) StealthSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.EnemyCoordinator && EnemyCoordinator.init) EnemyCoordinator.init(_scene, _camera); } catch (e) {}
+    try { if (window.HelicopterGunship && HelicopterGunship.init) HelicopterGunship.init(_scene, _camera); } catch (e) {}
+    try { if (window.JavelinLauncher && JavelinLauncher.init) JavelinLauncher.init(_scene, _camera); } catch (e) {}
+    try { if (window.TimedCharges && TimedCharges.init) TimedCharges.init(_scene, _camera); } catch (e) {}
+    try { if (window.SoldierSkillTree && SoldierSkillTree.init) SoldierSkillTree.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShieldGenerator && ShieldGenerator.init) ShieldGenerator.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatXPSystem && CombatXPSystem.init) CombatXPSystem.init(_scene, _camera); } catch (e) {}
+    // Loose modules (Waves 21-22 extras)
+    try { if (window.LootSystem && LootSystem.init) LootSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.ProximityMine && ProximityMine.init) ProximityMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalShield && TacticalShield.init) TacticalShield.init(_scene, _camera); } catch (e) {}
+    // Wave 23 modules
+    try { if (window.MineSweeper && MineSweeper.init) MineSweeper.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperNest && SniperNest.init) SniperNest.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleConvoy && VehicleConvoy.init) VehicleConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeaponWorkshop && WeaponWorkshop.init) WeaponWorkshop.init(_scene, _camera); } catch (e) {}
+    try { if (window.SquadTactics && SquadTactics.init) SquadTactics.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleReplay && BattleReplay.init) BattleReplay.init(_scene, _camera); } catch (e) {}
+    try { if (window.DynamicEvents && DynamicEvents.init) DynamicEvents.init(_scene, _camera); } catch (e) {}
+    try { if (window.PropagandaSystem && PropagandaSystem.init) PropagandaSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankControls && TankControls.init) TankControls.init(_scene, _camera); } catch (e) {}
+    try { if (window.NBCProtection && NBCProtection.init) NBCProtection.init(_scene, _camera); } catch (e) {}
+    // Wave 24 modules
+    try { if (window.ArtilleryBattery && ArtilleryBattery.init) ArtilleryBattery.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanDestruction && UrbanDestruction.init) UrbanDestruction.init(_scene, _camera); } catch (e) {}
+    try { if (window.MedicStation && MedicStation.init) MedicStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeatherSystem && WeatherSystem.init) WeatherSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmorSystem && ArmorSystem.init) ArmorSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerAssault && BunkerAssault.init) BunkerAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.SignalIntelligence && SignalIntelligence.init) SignalIntelligence.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReconDrone && ReconDrone.init) ReconDrone.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightVision && NightVision.init) NightVision.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirSupport && AirSupport.init) AirSupport.init(_scene, _camera); } catch (e) {}
+    // Wave 25 modules
+    try { if (window.SatelliteUplink && SatelliteUplink.init) SatelliteUplink.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonerRescue && PrisonerRescue.init) PrisonerRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeEngine && SiegeEngine.init) SiegeEngine.init(_scene, _camera); } catch (e) {}
+    try { if (window.SmokeGrenade && SmokeGrenade.init) SmokeGrenade.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortifiedOutpost && FortifiedOutpost.init) FortifiedOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatKnife && CombatKnife.init) CombatKnife.init(_scene, _camera); } catch (e) {}
+    try { if (window.MinefieldMapper && MinefieldMapper.init) MinefieldMapper.init(_scene, _camera); } catch (e) {}
+    try { if (window.FieldComms && FieldComms.init) FieldComms.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrophySystem && TrophySystem.init) TrophySystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.ExtractionZone && ExtractionZone.init) ExtractionZone.init(_scene, _camera); } catch (e) {}
+    // Wave 26 modules
+    try { if (window.AmphibiousAssault && AmphibiousAssault.init) AmphibiousAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.SupplyChain && SupplyChain.init) SupplyChain.init(_scene, _camera); } catch (e) {}
+    try { if (window.RiotControl && RiotControl.init) RiotControl.init(_scene, _camera); } catch (e) {}
+    try { if (window.ElectromagneticPulse && ElectromagneticPulse.init) ElectromagneticPulse.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageNegotiation && HostageNegotiation.init) HostageNegotiation.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberWarfare && CyberWarfare.init) CyberWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.AntiAir && AntiAir.init) AntiAir.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackMarket && BlackMarket.init) BlackMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.BallisticCalculator && BallisticCalculator.init) BallisticCalculator.init(_scene, _camera); } catch (e) {}
+    try { if (window.TunnelSystem && TunnelSystem.init) TunnelSystem.init(_scene, _camera); } catch (e) {}
+    // Wave 27 modules
+    try { if (window.VehicleRepair && VehicleRepair.init) VehicleRepair.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostRecon && GhostRecon.init) GhostRecon.init(_scene, _camera); } catch (e) {}
+    try { if (window.LandslideEvent && LandslideEvent.init) LandslideEvent.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCrimesDetector && WarCrimesDetector.init) WarCrimesDetector.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandoRaid && CommandoRaid.init) CommandoRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.IntelligenceBriefing && IntelligenceBriefing.init) IntelligenceBriefing.init(_scene, _camera); } catch (e) {}
+    try { if (window.ParachuteDrop && ParachuteDrop.init) ParachuteDrop.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadioBeacon && RadioBeacon.init) RadioBeacon.init(_scene, _camera); } catch (e) {}
+    try { if (window.BodyDrag && BodyDrag.init) BodyDrag.init(_scene, _camera); } catch (e) {}
+    try { if (window.PsyOps && PsyOps.init) PsyOps.init(_scene, _camera); } catch (e) {}
+    // Wave 28 modules
+    try { if (window.AmbushSystem && AmbushSystem.init) AmbushSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.FieldHospital && FieldHospital.init) FieldHospital.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReconSatellite && ReconSatellite.init) ReconSatellite.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortificationBuilder && FortificationBuilder.init) FortificationBuilder.init(_scene, _camera); } catch (e) {}
+    try { if (window.NavalCombat && NavalCombat.init) NavalCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.CounterSniper && CounterSniper.init) CounterSniper.init(_scene, _camera); } catch (e) {}
+    try { if (window.ExplosiveOrdnance && ExplosiveOrdnance.init) ExplosiveOrdnance.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChainOfCommand && ChainOfCommand.init) ChainOfCommand.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeatherEffects && WeatherEffects.init) WeatherEffects.init(_scene, _camera); } catch (e) {}
+    try { if (window.ObjectiveTracker && ObjectiveTracker.init) ObjectiveTracker.init(_scene, _camera); } catch (e) {}
+    // Wave 29 modules
+    try { if (window.BattleDamageAssessment && BattleDamageAssessment.init) BattleDamageAssessment.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonerExchange && PrisonerExchange.init) PrisonerExchange.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalRetreat && TacticalRetreat.init) TacticalRetreat.init(_scene, _camera); } catch (e) {}
+    try { if (window.KillHouse && KillHouse.init) KillHouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.MortarCalculator && MortarCalculator.init) MortarCalculator.init(_scene, _camera); } catch (e) {}
+    try { if (window.LogisticsSystem && LogisticsSystem.init) LogisticsSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.StealthSystem && StealthSystem.init) StealthSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanPatrol && UrbanPatrol.init) UrbanPatrol.init(_scene, _camera); } catch (e) {}
+    try { if (window.ElectronicWarfare && ElectronicWarfare.init) ElectronicWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleConvoy && VehicleConvoy.init) VehicleConvoy.init(_scene, _camera); } catch (e) {}
+    // Wave 30 modules
+    try { if (window.BreachingCharges && BreachingCharges.init) BreachingCharges.init(_scene, _camera); } catch (e) {}
+    try { if (window.CasualtyEvacuation && CasualtyEvacuation.init) CasualtyEvacuation.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightVision && NightVision.init) NightVision.init(_scene, _camera); } catch (e) {}
+    try { if (window.FireSupport && FireSupport.init) FireSupport.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShieldSystem && ShieldSystem.init) ShieldSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.MineField && MineField.init) MineField.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankCommander && TankCommander.init) TankCommander.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatMedic && CombatMedic.init) CombatMedic.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeWarfare && SiegeWarfare.init) SiegeWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperRifle && SniperRifle.init) SniperRifle.init(_scene, _camera); } catch (e) {}
+    // Wave 31 modules
+    try { if (window.RappellingSystem && RappellingSystem.init) RappellingSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.GrenadeTypes && GrenadeTypes.init) GrenadeTypes.init(_scene, _camera); } catch (e) {}
+    try { if (window.SentryGun && SentryGun.init) SentryGun.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerAssault && BunkerAssault.init) BunkerAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirAssault && AirAssault.init) AirAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeatherAmbience && WeatherAmbience.init) WeatherAmbience.init(_scene, _camera); } catch (e) {}
+    try { if (window.ObjectiveCapture && ObjectiveCapture.init) ObjectiveCapture.init(_scene, _camera); } catch (e) {}
+    try { if (window.TunnelNetwork && TunnelNetwork.init) TunnelNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.MeleeCombat && MeleeCombat.init) MeleeCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleDamage && VehicleDamage.init) VehicleDamage.init(_scene, _camera); } catch (e) {}
+    // Wave 32 modules
+    try { if (window.SupplyDrop && SupplyDrop.init) SupplyDrop.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageRescue && HostageRescue.init) HostageRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.MapSystem && MapSystem.init) MapSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.DecoySystem && DecoySystem.init) DecoySystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatDrone && CombatDrone.init) CombatDrone.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmorSystem && ArmorSystem.init) ArmorSystem.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortifiedRetreat && FortifiedRetreat.init) FortifiedRetreat.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeatherStorm && WeatherStorm.init) WeatherStorm.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpecialForces && SpecialForces.init) SpecialForces.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandBunker && CommandBunker.init) CommandBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatSwimming && CombatSwimming.init) CombatSwimming.init(_scene, _camera); } catch (e) {}
+    try { if (window.AerialDogfight && AerialDogfight.init) AerialDogfight.init(_scene, _camera); } catch (e) {}
+    try { if (window.ForwardObserver && ForwardObserver.init) ForwardObserver.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatJump && CombatJump.init) CombatJump.init(_scene, _camera); } catch (e) {}
+    try { if (window.CombatEngineering && CombatEngineering.init) CombatEngineering.init(_scene, _camera); } catch (e) {}
+    try { if (window.IEDDisposal && IEDDisposal.init) IEDDisposal.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattlefieldTriage && BattlefieldTriage.init) BattlefieldTriage.init(_scene, _camera); } catch (e) {}
+    try { if (window.FirebaseDefense && FirebaseDefense.init) FirebaseDefense.init(_scene, _camera); } catch (e) {}
+    try { if (window.IntelNetwork && IntelNetwork.init) IntelNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.NavalOperations && NavalOperations.init) NavalOperations.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticWarfare && ArcticWarfare.init) ArcticWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleWarfare && JungleWarfare.init) JungleWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.CheckpointAssault && CheckpointAssault.init) CheckpointAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandVehicle && CommandVehicle.init) CommandVehicle.init(_scene, _camera); } catch (e) {}
+    try { if (window.BallisticShieldOps && BallisticShieldOps.init) BallisticShieldOps.init(_scene, _camera); } catch (e) {}
+    try { if (window.RiotResponse && RiotResponse.init) RiotResponse.init(_scene, _camera); } catch (e) {}
+    try { if (window.FactorySabotage && FactorySabotage.init) FactorySabotage.init(_scene, _camera); } catch (e) {}
+    try { if (window.POWEscape && POWEscape.init) POWEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.AmbushNetwork && AmbushNetwork.init) AmbushNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.EscapeEvade && EscapeEvade.init) EscapeEvade.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanWarfare && UrbanWarfare.init) UrbanWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.RescueDownedPilot && RescueDownedPilot.init) RescueDownedPilot.init(_scene, _camera); } catch (e) {}
+    try { if (window.ConvoyEscort && ConvoyEscort.init) ConvoyEscort.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepRecon && DeepRecon.init) DeepRecon.init(_scene, _camera); } catch (e) {}
+    try { if (window.SupplyChainAttack && SupplyChainAttack.init) SupplyChainAttack.init(_scene, _camera); } catch (e) {}
+    try { if (window.MassSurrender && MassSurrender.init) MassSurrender.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeTower && SiegeTower.init) SiegeTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperHunt && SniperHunt.init) SniperHunt.init(_scene, _camera); } catch (e) {}
+    try { if (window.VehicleRecovery && VehicleRecovery.init) VehicleRecovery.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageStandoff && HostageStandoff.init) HostageStandoff.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightVisionOps && NightVisionOps.init) NightVisionOps.init(_scene, _camera); } catch (e) {}
+    try { if (window.BridgeDemolition && BridgeDemolition.init) BridgeDemolition.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArtilleryDuel && ArtilleryDuel.init) ArtilleryDuel.init(_scene, _camera); } catch (e) {}
+    try { if (window.TunnelWarfare && TunnelWarfare.init) TunnelWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.CarrierAssault && CarrierAssault.init) CarrierAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.DroneSwarm && DroneSwarm.init) DroneSwarm.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemBioResponse && ChemBioResponse.init) ChemBioResponse.init(_scene, _camera); } catch (e) {}
+    try { if (window.MedevacOps && MedevacOps.init) MedevacOps.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonBreak && PrisonBreak.init) PrisonBreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountainAssault && MountainAssault.init) MountainAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.MechSuit && MechSuit.init) MechSuit.init(_scene, _camera); } catch (e) {}
+    try { if (window.RiverCrossing && RiverCrossing.init) RiverCrossing.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberWarfare && CyberWarfare.init) CyberWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainAssault && TrainAssault.init) TrainAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearShutdown && NuclearShutdown.init) NuclearShutdown.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadioTower && RadioTower.init) RadioTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.MortarBarrage && MortarBarrage.init) MortarBarrage.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankWarfare && TankWarfare.init) TankWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertStorm && DesertStorm.init) DesertStorm.init(_scene, _camera); } catch (e) {}
+    try { if (window.RefugeeConvoy && RefugeeConvoy.init) RefugeeConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackOpsExtraction && BlackOpsExtraction.init) BlackOpsExtraction.init(_scene, _camera); } catch (e) {}
+    try { if (window.ZeroGravityCombat && ZeroGravityCombat.init) ZeroGravityCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.DroneRacing && DroneRacing.init) DroneRacing.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateShipBattle && PirateShipBattle.init) PirateShipBattle.init(_scene, _camera); } catch (e) {}
+    try { if (window.GladiatorArena && GladiatorArena.init) GladiatorArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.HeistPlanning && HeistPlanning.init) HeistPlanning.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderwaterBase && UnderwaterBase.init) UnderwaterBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.ZombieOutbreak && ZombieOutbreak.init) ZombieOutbreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoEscape && VolcanoEscape.init) VolcanoEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.FactionStandoff && FactionStandoff.init) FactionStandoff.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientSiege && AncientSiege.init) AncientSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.MechWarfare && MechWarfare.init) MechWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.DrugLord && DrugLord.init) DrugLord.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoonBase && MoonBase.init) MoonBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonRiot && PrisonRiot.init) PrisonRiot.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticBase && ArcticBase.init) ArcticBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TimeHeist && TimeHeist.init) TimeHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.AlienInvasion && AlienInvasion.init) AlienInvasion.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberHeist && CyberHeist.init) CyberHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainRobbery && TrainRobbery.init) TrainRobbery.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleTemple && JungleTemple.init) JungleTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearPlant && NuclearPlant.init) NuclearPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.CasinoHeist && CasinoHeist.init) CasinoHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilRig && OilRig.init) OilRig.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyFortress && SkyFortress.init) SkyFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineWarfare && SubmarineWarfare.init) SubmarineWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.BioLab && BioLab.init) BioLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.Assassination && Assassination.init) Assassination.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeDefense && SiegeDefense.init) SiegeDefense.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostMission && GhostMission.init) GhostMission.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceStation && SpaceStation.init) SpaceStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateCove && PirateCove.init) PirateCove.init(_scene, _camera); } catch (e) {}
+    try { if (window.GladiatorColosseum && GladiatorColosseum.init) GladiatorColosseum.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerBreach && BunkerBreach.init) BunkerBreach.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoAssault && VolcanoAssault.init) VolcanoAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoShip && CargoShip.init) CargoShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarzoneHospital && WarzoneHospital.init) WarzoneHospital.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmsDealer && ArmsDealer.init) ArmsDealer.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageCrisis && HostageCrisis.init) HostageCrisis.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankBattalion && TankBattalion.init) TankBattalion.init(_scene, _camera); } catch (e) {}
+    try { if (window.ZombieApocalypse && ZombieApocalypse.init) ZombieApocalypse.init(_scene, _camera); } catch (e) {}
+    try { if (window.SamuraiDuel && SamuraiDuel.init) SamuraiDuel.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearSubmarine && NuclearSubmarine.init) NuclearSubmarine.init(_scene, _camera); } catch (e) {}
+    try { if (window.RebelUprising && RebelUprising.init) RebelUprising.init(_scene, _camera); } catch (e) {}
+    try { if (window.MiningDisaster && MiningDisaster.init) MiningDisaster.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonBreak && PrisonBreak.init) PrisonBreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.RacingCombat && RacingCombat.init) RacingCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.MedievalSiege && MedievalSiege.init) MedievalSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.IslandAssault && IslandAssault.init) IslandAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberpunkCity && CyberpunkCity.init) CyberpunkCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepJungle && DeepJungle.init) DeepJungle.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleRoyale && BattleRoyale.init) BattleRoyale.init(_scene, _camera); } catch (e) {}
+    try { if (window.CultCompound && CultCompound.init) CultCompound.init(_scene, _camera); } catch (e) {}
+    try { if (window.HelipadExtraction && HelipadExtraction.init) HelipadExtraction.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertWarfare && DesertWarfare.init) DesertWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanSniper && UrbanSniper.init) UrbanSniper.init(_scene, _camera); } catch (e) {}
+    try { if (window.ConvoyAmbush && ConvoyAmbush.init) ConvoyAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.NukeDisarm && NukeDisarm.init) NukeDisarm.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormTheCastle && StormTheCastle.init) StormTheCastle.init(_scene, _camera); } catch (e) {}
+    try { if (window.CorporateEspionage && CorporateEspionage.init) CorporateEspionage.init(_scene, _camera); } catch (e) {}
+    try { if (window.AlienMothership && AlienMothership.init) AlienMothership.init(_scene, _camera); } catch (e) {}
+    try { if (window.GoldRush && GoldRush.init) GoldRush.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderwaterRuins && UnderwaterRuins.init) UnderwaterRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticRescue && ArcticRescue.init) ArcticRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.MobWar && MobWar.init) MobWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleOfDoom && TempleOfDoom.init) TempleOfDoom.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirbaseRaid && AirbaseRaid.init) AirbaseRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackSite && BlackSite.init) BlackSite.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceMarines && SpaceMarines.init) SpaceMarines.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilWar && OilWar.init) OilWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.MechAssault && MechAssault.init) MechAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleAmbush && JungleAmbush.init) JungleAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.CultBunker && CultBunker.init) CultBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearWinter && NuclearWinter.init) NuclearWinter.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressAssault && FortressAssault.init) FortressAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.RobotUprising && RobotUprising.init) RobotUprising.init(_scene, _camera); } catch (e) {}
+    try { if (window.DrugCartel && DrugCartel.init) DrugCartel.init(_scene, _camera); } catch (e) {}
+    try { if (window.TimeHeist && TimeHeist.init) TimeHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateIsland && PirateIsland.init) PirateIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.AvalancheEscape && AvalancheEscape.init) AvalancheEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberWarfare && CyberWarfare.init) CyberWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeOfParis && SiegeOfParis.init) SiegeOfParis.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedMansion && HauntedMansion.init) HauntedMansion.init(_scene, _camera); } catch (e) {}
+    try { if (window.DiamondHeist && DiamondHeist.init) DiamondHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarOf1812 && WarOf1812.init) WarOf1812.init(_scene, _camera); } catch (e) {}
+    try { if (window.Jailbreak && Jailbreak.init) Jailbreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.MeteorStrike && MeteorStrike.init) MeteorStrike.init(_scene, _camera); } catch (e) {}
+    try { if (window.CloneWars && CloneWars.init) CloneWars.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoEscape && VolcanoEscape.init) VolcanoEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.EmbassySiege && EmbassySiege.init) EmbassySiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightRaid && NightRaid.init) NightRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.KungFuDojo && KungFuDojo.init) KungFuDojo.init(_scene, _camera); } catch (e) {}
+    try { if (window.RefugeeConvoy && RefugeeConvoy.init) RefugeeConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.MarsColony && MarsColony.init) MarsColony.init(_scene, _camera); } catch (e) {}
+    try { if (window.SharkAttack && SharkAttack.init) SharkAttack.init(_scene, _camera); } catch (e) {}
+    try { if (window.ColosseumBoss && ColosseumBoss.init) ColosseumBoss.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepCover && DeepCover.init) DeepCover.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpySatellite && SpySatellite.init) SpySatellite.init(_scene, _camera); } catch (e) {}
+    try { if (window.GladiatorArena && GladiatorArena.init) GladiatorArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.NukeLaunch && NukeLaunch.init) NukeLaunch.init(_scene, _camera); } catch (e) {}
+    try { if (window.HostageTrain && HostageTrain.init) HostageTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterCrisis && WaterCrisis.init) WaterCrisis.init(_scene, _camera); } catch (e) {}
+    try { if (window.MidnightCoup && MidnightCoup.init) MidnightCoup.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueOutbreak && PlagueOutbreak.init) PlagueOutbreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalDefense && OrbitalDefense.init) OrbitalDefense.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenVessel && SunkenVessel.init) SunkenVessel.init(_scene, _camera); } catch (e) {}
+    try { if (window.HighriseHostage && HighriseHostage.init) HighriseHostage.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarlordHunt && WarlordHunt.init) WarlordHunt.init(_scene, _camera); } catch (e) {}
+    try { if (window.SupplyDepot && SupplyDepot.init) SupplyDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertAmbush && DesertAmbush.init) DesertAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoFortress && VolcanoFortress.init) VolcanoFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateRaid && PirateRaid.init) PirateRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineHeist && SubmarineHeist.init) SubmarineHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.CasinoShootout && CasinoShootout.init) CasinoShootout.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticSiege && ArcticSiege.init) ArcticSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.MuseumHeist && MuseumHeist.init) MuseumHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainHeist && TrainHeist.init) TrainHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostTown && GhostTown.init) GhostTown.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientTemple && AncientTemple.init) AncientTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.FootballStadium && FootballStadium.init) FootballStadium.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonEscape && PrisonEscape.init) PrisonEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberpunkHeist && CyberpunkHeist.init) CyberpunkHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.AvalancheRescue && AvalancheRescue.init) AvalancheRescue.init(_scene, _camera); } catch (e) {}
+    try { if (window.RomanConquest && RomanConquest.init) RomanConquest.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilPlatform && OilPlatform.init) OilPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.SamuraiSiege && SamuraiSiege.init) SamuraiSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodDiamond && BloodDiamond.init) BloodDiamond.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpacePirates && SpacePirates.init) SpacePirates.init(_scene, _camera); } catch (e) {}
+    try { if (window.KungFuTemple && KungFuTemple.init) KungFuTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepSeaBase && DeepSeaBase.init) DeepSeaBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleTempleRaid && JungleTempleRaid.init) JungleTempleRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.VikingLongship && VikingLongship.init) VikingLongship.init(_scene, _camera); } catch (e) {}
+    try { if (window.GuerrillaWar && GuerrillaWar.init) GuerrillaWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyscraperSiege && SkyscraperSiege.init) SkyscraperSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoPlane && CargoPlane.init) CargoPlane.init(_scene, _camera); } catch (e) {}
+    try { if (window.BankHeist && BankHeist.init) BankHeist.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberEspionage && CyberEspionage.init) CyberEspionage.init(_scene, _camera); } catch (e) {}
+    try { if (window.InsurgentCamp && InsurgentCamp.init) InsurgentCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoonbaseAssault && MoonbaseAssault.init) MoonbaseAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.WitnessProtection && WitnessProtection.init) WitnessProtection.init(_scene, _camera); } catch (e) {}
+    try { if (window.CartelCompound && CartelCompound.init) CartelCompound.init(_scene, _camera); } catch (e) {}
+    try { if (window.TokyoShowdown && TokyoShowdown.init) TokyoShowdown.init(_scene, _camera); } catch (e) {}
+    try { if (window.DoomsdayVault && DoomsdayVault.init) DoomsdayVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.AztecRuins && AztecRuins.init) AztecRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.CiaSafehouse && CiaSafehouse.init) CiaSafehouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonArena && NeonArena.init) NeonArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostOps && GhostOps.init) GhostOps.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmsSmuggler && ArmsSmuggler.init) ArmsSmuggler.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceStationSiege && SpaceStationSiege.init) SpaceStationSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonRiotResponse && PrisonRiotResponse.init) PrisonRiotResponse.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleCombat && JungleCombat.init) JungleCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainHijack && TrainHijack.init) TrainHijack.init(_scene, _camera); } catch (e) {}
+    try { if (window.BountyHunter && BountyHunter.init) BountyHunter.init(_scene, _camera); } catch (e) {}
+    try { if (window.BioLabOutbreak && BioLabOutbreak.init) BioLabOutbreak.init(_scene, _camera); } catch (e) {}
+    try { if (window.AntarcticStation && AntarcticStation.init) AntarcticStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.TimeParadox && TimeParadox.init) TimeParadox.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightMarketRaid && NightMarketRaid.init) NightMarketRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineHunter && SubmarineHunter.init) SubmarineHunter.init(_scene, _camera); } catch (e) {}
+    try { if (window.GlacierFortress && GlacierFortress.init) GlacierFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleGuardian && TempleGuardian.init) TempleGuardian.init(_scene, _camera); } catch (e) {}
+    try { if (window.DrugLabTakedown && DrugLabTakedown.init) DrugLabTakedown.init(_scene, _camera); } catch (e) {}
+    try { if (window.PowerPlantSiege && PowerPlantSiege.init) PowerPlantSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedAsylum && AbandonedAsylum.init) AbandonedAsylum.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticConvoy && ArcticConvoy.init) ArcticConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemicalFactory && ChemicalFactory.init) ChemicalFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.ColosseumBattle && ColosseumBattle.init) ColosseumBattle.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackMarketArms && BlackMarketArms.init) BlackMarketArms.init(_scene, _camera); } catch (e) {}
+    try { if (window.HarborBlockade && HarborBlockade.init) HarborBlockade.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountainPass && MountainPass.init) MountainPass.init(_scene, _camera); } catch (e) {}
+    try { if (window.BankVault && BankVault.init) BankVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.IslandFortress && IslandFortress.init) IslandFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainStationSiege && TrainStationSiege.init) TrainStationSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.SewersEscape && SewersEscape.init) SewersEscape.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeaponsFactory && WeaponsFactory.init) WeaponsFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.ResearchStation && ResearchStation.init) ResearchStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.UndergroundFight && UndergroundFight.init) UndergroundFight.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressBreach && FortressBreach.init) FortressBreach.init(_scene, _camera); } catch (e) {}
+    try { if (window.WetlandsAmbush && WetlandsAmbush.init) WetlandsAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceColony && SpaceColony.init) SpaceColony.init(_scene, _camera); } catch (e) {}
+    try { if (window.GlacierCave && GlacierCave.init) GlacierCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedCity && AbandonedCity.init) AbandonedCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirBaseAssault && AirBaseAssault.init) AirBaseAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoTemple && VolcanoTemple.init) VolcanoTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.DiamondMine && DiamondMine.init) DiamondMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilRigSiege && OilRigSiege.init) OilRigSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedManor && HauntedManor.init) HauntedManor.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticResearch && ArcticResearch.init) ArcticResearch.init(_scene, _camera); } catch (e) {}
+    try { if (window.RooftopShowdown && RooftopShowdown.init) RooftopShowdown.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderwaterLab && UnderwaterLab.init) UnderwaterLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertFortress && DesertFortress.init) DesertFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.RacingCircuit && RacingCircuit.init) RacingCircuit.init(_scene, _camera); } catch (e) {}
+    try { if (window.UndergroundBunker && UndergroundBunker.init) UndergroundBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.CarnivalChaos && CarnivalChaos.init) CarnivalChaos.init(_scene, _camera); } catch (e) {}
+    try { if (window.GlacierBase && GlacierBase.init) GlacierBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.MetroStation && MetroStation.init) MetroStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampVillage && SwampVillage.init) SwampVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostShip && GhostShip.init) GhostShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.SatelliteDish && SatelliteDish.init) SatelliteDish.init(_scene, _camera); } catch (e) {}
+    try { if (window.EmbassyRaid && EmbassyRaid.init) EmbassyRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.CruiseShip && CruiseShip.init) CruiseShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerComplex && BunkerComplex.init) BunkerComplex.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirportSiege && AirportSiege.init) AirportSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountainVillage && MountainVillage.init) MountainVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.RefineryAssault && RefineryAssault.init) RefineryAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceDebris && SpaceDebris.init) SpaceDebris.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleAirstrip && JungleAirstrip.init) JungleAirstrip.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenWreck && SunkenWreck.init) SunkenWreck.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCrimesTrial && WarCrimesTrial.init) WarCrimesTrial.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicWasteland && ToxicWasteland.init) ToxicWasteland.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoTrain && CargoTrain.init) CargoTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleRuins && TempleRuins.init) TempleRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedMine && AbandonedMine.init) AbandonedMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenTundra && FrozenTundra.init) FrozenTundra.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoIsland && VolcanoIsland.init) VolcanoIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodedCity && FloodedCity.init) FloodedCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemicalPlant && ChemicalPlant.init) ChemicalPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.BorderCrossing && BorderCrossing.init) BorderCrossing.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedSatellite && CrashedSatellite.init) CrashedSatellite.init(_scene, _camera); } catch (e) {}
+    try { if (window.PowerGrid && PowerGrid.init) PowerGrid.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineDock && SubmarineDock.init) SubmarineDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.SewageTunnels && SewageTunnels.init) SewageTunnels.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarshipDeck && WarshipDeck.init) WarshipDeck.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedVillage && HauntedVillage.init) HauntedVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.AircraftHangar && AircraftHangar.init) AircraftHangar.init(_scene, _camera); } catch (e) {}
+    try { if (window.ClockTower && ClockTower.init) ClockTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceElevator && SpaceElevator.init) SpaceElevator.init(_scene, _camera); } catch (e) {}
+    try { if (window.CitySewer && CitySewer.init) CitySewer.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearBunker && NuclearBunker.init) NuclearBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleCamp && JungleCamp.init) JungleCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.AuctionHouse && AuctionHouse.init) AuctionHouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.DamAssault && DamAssault.init) DamAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticOutpost && ArcticOutpost.init) ArcticOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.CourtroomSiege && CourtroomSiege.init) CourtroomSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilPipeline && OilPipeline.init) OilPipeline.init(_scene, _camera); } catch (e) {}
+    try { if (window.TechCampus && TechCampus.init) TechCampus.init(_scene, _camera); } catch (e) {}
+    try { if (window.MedievalFortress && MedievalFortress.init) MedievalFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkiResort && SkiResort.init) SkiResort.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleRiver && JungleRiver.init) JungleRiver.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerHill && BunkerHill.init) BunkerHill.init(_scene, _camera); } catch (e) {}
+    try { if (window.DataCenter && DataCenter.init) DataCenter.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateFortress && PirateFortress.init) PirateFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.RooftopGarden && RooftopGarden.init) RooftopGarden.init(_scene, _camera); } catch (e) {}
+    try { if (window.BurningCity && BurningCity.init) BurningCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampLab && SwampLab.init) SwampLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloatingIsland && FloatingIsland.init) FloatingIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuralAmbush && RuralAmbush.init) RuralAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.LookoutTower && LookoutTower.init) LookoutTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.UndergroundMarket && UndergroundMarket.init) UndergroundMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyPlatform && SkyPlatform.init) SkyPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainDepot && TrainDepot.init) TrainDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalStation && OrbitalStation.init) OrbitalStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertOutpost && DesertOutpost.init) DesertOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.HarborAssault && HarborAssault.init) HarborAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonRaid && CanyonRaid.init) CanyonRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShippingHub && ShippingHub.init) ShippingHub.init(_scene, _camera); } catch (e) {}
+    try { if (window.DowntownSiege && DowntownSiege.init) DowntownSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.HighwayChase && HighwayChase.init) HighwayChase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterfallAmbush && WaterfallAmbush.init) WaterfallAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShipwreckReef && ShipwreckReef.init) ShipwreckReef.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientRuins && AncientRuins.init) AncientRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.GeothermalPlant && GeothermalPlant.init) GeothermalPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.MissileSiloB && MissileSiloB.init) MissileSiloB.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderwaterCave && UnderwaterCave.init) UnderwaterCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.ForestAmbush && ForestAmbush.init) ForestAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArenaCombat && ArenaCombat.init) ArenaCombat.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoObservatory && VolcanoObservatory.init) VolcanoObservatory.init(_scene, _camera); } catch (e) {}
+    try { if (window.MiningColony && MiningColony.init) MiningColony.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirshipBattle && AirshipBattle.init) AirshipBattle.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonEscapeB && PrisonEscapeB.init) PrisonEscapeB.init(_scene, _camera); } catch (e) {}
+    try { if (window.IslandBase && IslandBase.init) IslandBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberVault && CyberVault.init) CyberVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.HelipadAssault && HelipadAssault.init) HelipadAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemicalDepot && ChemicalDepot.init) ChemicalDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.MonasteryRaid && MonasteryRaid.init) MonasteryRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.PipelineSabotage && PipelineSabotage.init) PipelineSabotage.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceCave && IceCave.init) IceCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.DroneFactory && DroneFactory.init) DroneFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightMarket && NightMarket.init) NightMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.WetlandsPatrol && WetlandsPatrol.init) WetlandsPatrol.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearLab && NuclearLab.init) NuclearLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankGraveyard && TankGraveyard.init) TankGraveyard.init(_scene, _camera); } catch (e) {}
+    try { if (window.SatelliteBase && SatelliteBase.init) SatelliteBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarRoom && WarRoom.init) WarRoom.init(_scene, _camera); } catch (e) {}
+    try { if (window.RescueMission && RescueMission.init) RescueMission.init(_scene, _camera); } catch (e) {}
+    try { if (window.SandstormBase && SandstormBase.init) SandstormBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarRuins && WarRuins.init) WarRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.FogValley && FogValley.init) FogValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampFort && SwampFort.init) SwampFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormBeach && StormBeach.init) StormBeach.init(_scene, _camera); } catch (e) {}
+    try { if (window.AshFields && AshFields.init) AshFields.init(_scene, _camera); } catch (e) {}
+    try { if (window.MidnightPort && MidnightPort.init) MidnightPort.init(_scene, _camera); } catch (e) {}
+    try { if (window.FireCamp && FireCamp.init) FireCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronWall && IronWall.init) IronWall.init(_scene, _camera); } catch (e) {}
+    try { if (window.VaporZone && VaporZone.init) VaporZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicSwamp && ToxicSwamp.init) ToxicSwamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadarHill && RadarHill.init) RadarHill.init(_scene, _camera); } catch (e) {}
+    try { if (window.RebelCamp && RebelCamp.init) RebelCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeathRidge && DeathRidge.init) DeathRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostFort && GhostFort.init) GhostFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidMarsh && AcidMarsh.init) AcidMarsh.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarRelic && WarRelic.init) WarRelic.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormWall && StormWall.init) StormWall.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberGrid && CyberGrid.init) CyberGrid.init(_scene, _camera); } catch (e) {}
+    try { if (window.RustBelt && RustBelt.init) RustBelt.init(_scene, _camera); } catch (e) {}
+    try { if (window.RockFortress && RockFortress.init) RockFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.WireZone && WireZone.init) WireZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueZone && PlagueZone.init) PlagueZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlastCrater && BlastCrater.init) BlastCrater.init(_scene, _camera); } catch (e) {}
+    try { if (window.SteelCity && SteelCity.init) SteelCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.DarkHarbor && DarkHarbor.init) DarkHarbor.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodTide && BloodTide.init) BloodTide.init(_scene, _camera); } catch (e) {}
+    try { if (window.CaveFortress && CaveFortress.init) CaveFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.AshLake && AshLake.init) AshLake.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaRidge && LavaRidge.init) LavaRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.Oremine && Oremine.init) Oremine.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrenchCity && TrenchCity.init) TrenchCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.BombRange && BombRange.init) BombRange.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrostKeep && FrostKeep.init) FrostKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.WarChapel && WarChapel.init) WarChapel.init(_scene, _camera); } catch (e) {}
+        try { if (window.BrokenDam && BrokenDam.init) BrokenDam.init(_scene, _camera); } catch (e) {}
+        try { if (window.EchoValley && EchoValley.init) EchoValley.init(_scene, _camera); } catch (e) {}
+        try { if (window.SlagHeap && SlagHeap.init) SlagHeap.init(_scene, _camera); } catch (e) {}
+        try { if (window.CryptKeep && CryptKeep.init) CryptKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.SkyCitadel && SkyCitadel.init) SkyCitadel.init(_scene, _camera); } catch (e) {}
+        try { if (window.WarGallery && WarGallery.init) WarGallery.init(_scene, _camera); } catch (e) {}
+        try { if (window.SaltMine && SaltMine.init) SaltMine.init(_scene, _camera); } catch (e) {}
+        try { if (window.WarBunker && WarBunker.init) WarBunker.init(_scene, _camera); } catch (e) {}
+        try { if (window.MachineShop && MachineShop.init) MachineShop.init(_scene, _camera); } catch (e) {}
+        try { if (window.GlacierFort && GlacierFort.init) GlacierFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.IronDepot && IronDepot.init) IronDepot.init(_scene, _camera); } catch (e) {}
+        try { if (window.RustYard && RustYard.init) RustYard.init(_scene, _camera); } catch (e) {}
+        try { if (window.BogFort && BogFort.init) BogFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.WireNest && WireNest.init) WireNest.init(_scene, _camera); } catch (e) {}
+        try { if (window.MudCity && MudCity.init) MudCity.init(_scene, _camera); } catch (e) {}
+        try { if (window.DarkMesa && DarkMesa.init) DarkMesa.init(_scene, _camera); } catch (e) {}
+        try { if (window.RuinPort && RuinPort.init) RuinPort.init(_scene, _camera); } catch (e) {}
+        try { if (window.AshDock && AshDock.init) AshDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.SwampGate && SwampGate.init) SwampGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.FireRidge && FireRidge.init) FireRidge.init(_scene, _camera); } catch (e) {}
+        try { if (window.StormPort && StormPort.init) StormPort.init(_scene, _camera); } catch (e) {}
+        try { if (window.RiverGate && RiverGate.init) RiverGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.DustHarbor && DustHarbor.init) DustHarbor.init(_scene, _camera); } catch (e) {}
+        try { if (window.GrimYard && GrimYard.init) GrimYard.init(_scene, _camera); } catch (e) {}
+        try { if (window.IronShore && IronShore.init) IronShore.init(_scene, _camera); } catch (e) {}
+        try { if (window.TarPit && TarPit.init) TarPit.init(_scene, _camera); } catch (e) {}
+        try { if (window.SaltLake && SaltLake.init) SaltLake.init(_scene, _camera); } catch (e) {}
+        try { if (window.WarArch && WarArch.init) WarArch.init(_scene, _camera); } catch (e) {}
+        try { if (window.CragFort && CragFort.init) CragFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.VoltDam && VoltDam.init) VoltDam.init(_scene, _camera); } catch (e) {}
+        try { if (window.SootMill && SootMill.init) SootMill.init(_scene, _camera); } catch (e) {}
+        try { if (window.PipeYard && PipeYard.init) PipeYard.init(_scene, _camera); } catch (e) {}
+        try { if (window.CoalRidge && CoalRidge.init) CoalRidge.init(_scene, _camera); } catch (e) {}
+        try { if (window.GunWharf && GunWharf.init) GunWharf.init(_scene, _camera); } catch (e) {}
+        try { if (window.OrePit && OrePit.init) OrePit.init(_scene, _camera); } catch (e) {}
+        try { if (window.FogBase && FogBase.init) FogBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.WaxFort && WaxFort.init) WaxFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.HexTown && HexTown.init) HexTown.init(_scene, _camera); } catch (e) {}
+        try { if (window.KeelYard && KeelYard.init) KeelYard.init(_scene, _camera); } catch (e) {}
+        try { if (window.AshVale && AshVale.init) AshVale.init(_scene, _camera); } catch (e) {}
+        try { if (window.BogMill && BogMill.init) BogMill.init(_scene, _camera); } catch (e) {}
+        try { if (window.LavaKeep && LavaKeep.init) LavaKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.TideGate && TideGate.init) TideGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.ZincMine && ZincMine.init) ZincMine.init(_scene, _camera); } catch (e) {}
+        try { if (window.ClayFort && ClayFort.init) ClayFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.DuskCamp && DuskCamp.init) DuskCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.BoneRidge && BoneRidge.init) BoneRidge.init(_scene, _camera); } catch (e) {}
+        try { if (window.FogMill && FogMill.init) FogMill.init(_scene, _camera); } catch (e) {}
+        try { if (window.SaltFlat && SaltFlat.init) SaltFlat.init(_scene, _camera); } catch (e) {}
+        try { if (window.WarCove && WarCove.init) WarCove.init(_scene, _camera); } catch (e) {}
+        try { if (window.IronGrove && IronGrove.init) IronGrove.init(_scene, _camera); } catch (e) {}
+        try { if (window.DustPit && DustPit.init) DustPit.init(_scene, _camera); } catch (e) {}
+        try { if (window.MudPass && MudPass.init) MudPass.init(_scene, _camera); } catch (e) {}
+        try { if (window.CoalBay && CoalBay.init) CoalBay.init(_scene, _camera); } catch (e) {}
+        try { if (window.FlintWall && FlintWall.init) FlintWall.init(_scene, _camera); } catch (e) {}
+        try { if (window.StormGate && StormGate.init) StormGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.TarDock && TarDock.init) TarDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.OilDrum && OilDrum.init) OilDrum.init(_scene, _camera); } catch (e) {}
+        try { if (window.PineFort && PineFort.init) PineFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.CragMill && CragMill.init) CragMill.init(_scene, _camera); } catch (e) {}
+        try { if (window.SiltBay && SiltBay.init) SiltBay.init(_scene, _camera); } catch (e) {}
+        try { if (window.DuneFort && DuneFort.init) DuneFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.RockQuay && RockQuay.init) RockQuay.init(_scene, _camera); } catch (e) {}
+        try { if (window.AshFort && AshFort.init) AshFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.GrimPort && GrimPort.init) GrimPort.init(_scene, _camera); } catch (e) {}
+        try { if (window.FenGate && FenGate.init) FenGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.MossKeep && MossKeep.init) MossKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.RustCamp && RustCamp.init) RustCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.WireFort && WireFort.init) WireFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.ChalkPit && ChalkPit.init) ChalkPit.init(_scene, _camera); } catch (e) {}
+        try { if (window.EmberVale && EmberVale.init) EmberVale.init(_scene, _camera); } catch (e) {}
+        try { if (window.GlassDome && GlassDome.init) GlassDome.init(_scene, _camera); } catch (e) {}
+        try { if (window.LochGate && LochGate.init) LochGate.init(_scene, _camera); } catch (e) {}
+        try { if (window.CokeYard && CokeYard.init) CokeYard.init(_scene, _camera); } catch (e) {}
+        try { if (window.PeatBog && PeatBog.init) PeatBog.init(_scene, _camera); } catch (e) {}
+        try { if (window.IronTomb && IronTomb.init) IronTomb.init(_scene, _camera); } catch (e) {}
+        try { if (window.WeldYard && WeldYard.init) WeldYard.init(_scene, _camera); } catch (e) {}
+        try { if (window.BileFort && BileFort.init) BileFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.MastHill && MastHill.init) MastHill.init(_scene, _camera); } catch (e) {}
+    try { if (window.ClayDock && ClayDock.init) ClayDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrostCamp && FrostCamp.init) FrostCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.RockLab && RockLab.init) RockLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.HempCamp && HempCamp.init) HempCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.FumeGate && FumeGate.init) FumeGate.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoalDock && CoalDock.init) CoalDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.MudKeep && MudKeep.init) MudKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.GustBase && GustBase.init) GustBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.SlagPit && SlagPit.init) SlagPit.init(_scene, _camera); } catch (e) {}
+    try { if (window.BoneKeep && BoneKeep.init) BoneKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.WireCamp && WireCamp.init) WireCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.PeatFort && PeatFort.init) PeatFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.LimeDock && LimeDock.init) LimeDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronWharf && IronWharf.init) IronWharf.init(_scene, _camera); } catch (e) {}
+    try { if (window.CragBase && CragBase.init) CragBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.FlakTower && FlakTower.init) FlakTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.VoltKeep && VoltKeep.init) VoltKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.DuskForge && DuskForge.init) DuskForge.init(_scene, _camera); } catch (e) {}
+    try { if (window.SandKeep && SandKeep.init) SandKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.FenDock && FenDock.init) FenDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.TarBase && TarBase.init) TarBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.LochFort && LochFort.init) LochFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.StoneBay && StoneBay.init) StoneBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.MireCamp && MireCamp.init) MireCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.ZincKeep && ZincKeep.init) ZincKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrowBase && CrowBase.init) CrowBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.BarkCamp && BarkCamp.init) BarkCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.GaleFort && GaleFort.init) GaleFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.KeelDock && KeelDock.init) KeelDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronRidge && IronRidge.init) IronRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.AshTower && AshTower.init) AshTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.MudGate && MudGate.init) MudGate.init(_scene, _camera); } catch (e) {}
+    try { if (window.GrubCamp && GrubCamp.init) GrubCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.VineFort && VineFort.init) VineFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.SeedBase && SeedBase.init) SeedBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.HornKeep && HornKeep.init) HornKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReelDock && ReelDock.init) ReelDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.ClayRidge && ClayRidge.init) ClayRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.DriftCamp && DriftCamp.init) DriftCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.PikeGate && PikeGate.init) PikeGate.init(_scene, _camera); } catch (e) {}
+    try { if (window.GoreKeep && GoreKeep.init) GoreKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThornBase && ThornBase.init) ThornBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.FellCamp && FellCamp.init) FellCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.SootBase && SootBase.init) SootBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.MossDock && MossDock.init) MossDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceRidge && IceRidge.init) IceRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.BrineGate && BrineGate.init) BrineGate.init(_scene, _camera); } catch (e) {}
+    try { if (window.KelpCamp && KelpCamp.init) KelpCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.DuneCamp && DuneCamp.init) DuneCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.HazeFort && HazeFort.init) HazeFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.ArchCamp && ArchCamp.init) ArchCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.QuayKeep && QuayKeep.init) QuayKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.RustRidge && RustRidge.init) RustRidge.init(_scene, _camera); } catch (e) {}
+        try { if (window.BileCamp && BileCamp.init) BileCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.GritDock && GritDock.init) GritDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.JadeFort && JadeFort.init) JadeFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.MesaPost && MesaPost.init) MesaPost.init(_scene, _camera); } catch (e) {}
+        try { if (window.CoveBase && CoveBase.init) CoveBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.GlenFort && GlenFort.init) GlenFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.ValeCamp && ValeCamp.init) ValeCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.ReefKeep && ReefKeep.init) ReefKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.PeatDock && PeatDock.init) PeatDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.HolmCamp && HolmCamp.init) HolmCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.CragKeep && CragKeep.init) CragKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.LochBase && LochBase.init) LochBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.TarnKeep && TarnKeep.init) TarnKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.FossCamp && FossCamp.init) FossCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.MireDock && MireDock.init) MireDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.KnollPost && KnollPost.init) KnollPost.init(_scene, _camera); } catch (e) {}
+        try { if (window.BraeFort && BraeFort.init) BraeFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.BurnCamp && BurnCamp.init) BurnCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.FellKeep && FellKeep.init) FellKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.SumpBase && SumpBase.init) SumpBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.RiftCamp && RiftCamp.init) RiftCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.GustKeep && GustKeep.init) GustKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.ScudPost && ScudPost.init) ScudPost.init(_scene, _camera); } catch (e) {}
+        try { if (window.WoldCamp && WoldCamp.init) WoldCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.FenKeep && FenKeep.init) FenKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.CistDock && CistDock.init) CistDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.PikeFort && PikeFort.init) PikeFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.ShawCamp && ShawCamp.init) ShawCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.GillDock && GillDock.init) GillDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.HoltKeep && HoltKeep.init) HoltKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.MerePost && MerePost.init) MerePost.init(_scene, _camera); } catch (e) {}
+        try { if (window.BeckFort && BeckFort.init) BeckFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.CloughBase && CloughBase.init) CloughBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.SykeCamp && SykeCamp.init) SykeCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.DaleKeep && DaleKeep.init) DaleKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.GladePost && GladePost.init) GladePost.init(_scene, _camera); } catch (e) {}
+        try { if (window.CombeKeep && CombeKeep.init) CombeKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.WickBase && WickBase.init) WickBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.NookCamp && NookCamp.init) NookCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.WealdFort && WealdFort.init) WealdFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.ChaseDock && ChaseDock.init) ChaseDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.DenePost && DenePost.init) DenePost.init(_scene, _camera); } catch (e) {}
+        try { if (window.GroveKeep && GroveKeep.init) GroveKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.FenBase && FenBase.init) FenBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.LeatCamp && LeatCamp.init) LeatCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.CarrKeep && CarrKeep.init) CarrKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.HoweFort && HoweFort.init) HoweFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.StrathPost && StrathPost.init) StrathPost.init(_scene, _camera); } catch (e) {}
+        try { if (window.ShielDock && ShielDock.init) ShielDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.CroftCamp && CroftCamp.init) CroftCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.InchPost && InchPost.init) InchPost.init(_scene, _camera); } catch (e) {}
+        try { if (window.BreckBase && BreckBase.init) BreckBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.LinksCamp && LinksCamp.init) LinksCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.HeathKeep && HeathKeep.init) HeathKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.MossFort && MossFort.init) MossFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.SladePost && SladePost.init) SladePost.init(_scene, _camera); } catch (e) {}
+        try { if (window.CoombDock && CoombDock.init) CoombDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.HangerCamp && HangerCamp.init) HangerCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.BoltKeep && BoltKeep.init) BoltKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.BieldBase && BieldBase.init) BieldBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.ScarpCamp && ScarpCamp.init) ScarpCamp.init(_scene, _camera); } catch (e) {}
+        try { if (window.LoughPost && LoughPost.init) LoughPost.init(_scene, _camera); } catch (e) {}
+        try { if (window.HaughKeep && HaughKeep.init) HaughKeep.init(_scene, _camera); } catch (e) {}
+        try { if (window.CleuchDock && CleuchDock.init) CleuchDock.init(_scene, _camera); } catch (e) {}
+        try { if (window.CarseFort && CarseFort.init) CarseFort.init(_scene, _camera); } catch (e) {}
+        try { if (window.KnapBase && KnapBase.init) KnapBase.init(_scene, _camera); } catch (e) {}
+        try { if (window.YairCamp && YairCamp.init) YairCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.SlumWarfare && SlumWarfare.init) SlumWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.CliffOutpost && CliffOutpost.init) CliffOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressGate && FortressGate.init) FortressGate.init(_scene, _camera); } catch (e) {}
+    try { if (window.HighriseAssault && HighriseAssault.init) HighriseAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.OvergrownShrine && OvergrownShrine.init) OvergrownShrine.init(_scene, _camera); } catch (e) {}
+    try { if (window.SignalTower && SignalTower.init) SignalTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.AmmoBunker && AmmoBunker.init) AmmoBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.LootVault && LootVault.init) LootVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastalCliff && CoastalCliff.init) CoastalCliff.init(_scene, _camera); } catch (e) {}
+    try { if (window.TacticalHub && TacticalHub.init) TacticalHub.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubwayAssault && SubwayAssault.init) SubwayAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoDock && CargoDock.init) CargoDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.WinterVillage && WinterVillage.init) WinterVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonTowerB && PrisonTowerB.init) PrisonTowerB.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirfieldRaid && AirfieldRaid.init) AirfieldRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberBunker && CyberBunker.init) CyberBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampFortress && SwampFortress.init) SwampFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.DuneFortress && DuneFortress.init) DuneFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.EvacuationZone && EvacuationZone.init) EvacuationZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.JunkyardWar && JunkyardWar.init) JunkyardWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.CasinoFloor && CasinoFloor.init) CasinoFloor.init(_scene, _camera); } catch (e) {}
+    try { if (window.MetroHub && MetroHub.init) MetroHub.init(_scene, _camera); } catch (e) {}
+    try { if (window.FactoryAssault && FactoryAssault.init) FactoryAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmoryRaid && ArmoryRaid.init) ArmoryRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandPost && CommandPost.init) CommandPost.init(_scene, _camera); } catch (e) {}
+    try { if (window.QuarantineZone && QuarantineZone.init) QuarantineZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterTreatment && WaterTreatment.init) WaterTreatment.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountainShrine && MountainShrine.init) MountainShrine.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirborneAssault && AirborneAssault.init) AirborneAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.MineComplex && MineComplex.init) MineComplex.init(_scene, _camera); } catch (e) {}
+    try { if (window.SatelliteLaunch && SatelliteLaunch.init) SatelliteLaunch.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuinsCity && RuinsCity.init) RuinsCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.FuelStation && FuelStation.init) FuelStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.BeachLanding && BeachLanding.init) BeachLanding.init(_scene, _camera); } catch (e) {}
+    try { if (window.RooftopSniper && RooftopSniper.init) RooftopSniper.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedChopper && CrashedChopper.init) CrashedChopper.init(_scene, _camera); } catch (e) {}
+    try { if (window.PalaceRaid && PalaceRaid.init) PalaceRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodZone && FloodZone.init) FloodZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScrapyardSiege && ScrapyardSiege.init) ScrapyardSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadioBunker && RadioBunker.init) RadioBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastalFortress && CoastalFortress.init) CoastalFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientFort && AncientFort.init) AncientFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenBase && FrozenBase.init) FrozenBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaFlow && LavaFlow.init) LavaFlow.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedPrison && AbandonedPrison.init) AbandonedPrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonBase && CanyonBase.init) CanyonBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.DarkMarket && DarkMarket.init) DarkMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShippingLane && ShippingLane.init) ShippingLane.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearShelter && NuclearShelter.init) NuclearShelter.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChurchSiege && ChurchSiege.init) ChurchSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.ResortSiege && ResortSiege.init) ResortSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.NightFactory && NightFactory.init) NightFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountaintopBase && MountaintopBase.init) MountaintopBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerNetwork && BunkerNetwork.init) BunkerNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReconPost && ReconPost.init) ReconPost.init(_scene, _camera); } catch (e) {}
+    try { if (window.MuseumAssault && MuseumAssault.init) MuseumAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.StagingArea && StagingArea.init) StagingArea.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostVillage && GhostVillage.init) GhostVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.RiotZone && RiotZone.init) RiotZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.Colosseum && Colosseum.init) Colosseum.init(_scene, _camera); } catch (e) {}
+    try { if (window.MazeFortress && MazeFortress.init) MazeFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceHub && SpaceHub.init) SpaceHub.init(_scene, _camera); } catch (e) {}
+    try { if (window.PolarStation && PolarStation.init) PolarStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenShip && SunkenShip.init) SunkenShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadarDome && RadarDome.init) RadarDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShantyFortress && ShantyFortress.init) ShantyFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.CliffSummit && CliffSummit.init) CliffSummit.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicPlant && ToxicPlant.init) ToxicPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.CraterWar && CraterWar.init) CraterWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCamp && WarCamp.init) WarCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.SnowFort && SnowFort.init) SnowFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarIsland && WarIsland.init) WarIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepBase && DeepBase.init) DeepBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.VoltBase && VoltBase.init) VoltBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleRaid && TempleRaid.init) TempleRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.MagmaBase && MagmaBase.init) MagmaBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TundraBase && TundraBase.init) TundraBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalPlatform && OrbitalPlatform.init) OrbitalPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrenchAssault && TrenchAssault.init) TrenchAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterfallBase && WaterfallBase.init) WaterfallBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.VaultRaid && VaultRaid.init) VaultRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceDock && SpaceDock.init) SpaceDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaCave && LavaCave.init) LavaCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonCity && NeonCity.init) NeonCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressPeak && FortressPeak.init) FortressPeak.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThermalPlant && ThermalPlant.init) ThermalPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.TidalBase && TidalBase.init) TidalBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyBase && SkyBase.init) SkyBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.SewerNetwork && SewerNetwork.init) SewerNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.CaveAmbush && CaveAmbush.init) CaveAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.TowerSiege && TowerSiege.init) TowerSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberDome && CyberDome.init) CyberDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleVillage && JungleVillage.init) JungleVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.GlacierVault && GlacierVault.init) GlacierVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormTower && StormTower.init) StormTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubterraneanBase && SubterraneanBase.init) SubterraneanBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeCamp && SiegeCamp.init) SiegeCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoRim && VolcanoRim.init) VolcanoRim.init(_scene, _camera); } catch (e) {}
+    try { if (window.OutpostDelta && OutpostDelta.init) OutpostDelta.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleRuin && JungleRuin.init) JungleRuin.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyCarrier && SkyCarrier.init) SkyCarrier.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertRuins && DesertRuins.init) DesertRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.SnowValley && SnowValley.init) SnowValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuinedFort && RuinedFort.init) RuinedFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoralReef && CoralReef.init) CoralReef.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateBay && PirateBay.init) PirateBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressUnderground && FortressUnderground.init) FortressUnderground.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodedMall && FloodedMall.init) FloodedMall.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountainMonastery && MountainMonastery.init) MountainMonastery.init(_scene, _camera); } catch (e) {}
+    try { if (window.OceanPlatform && OceanPlatform.init) OceanPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenTemple && FrozenTemple.init) FrozenTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoFortress && CargoFortress.init) CargoFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarBridge && WarBridge.init) WarBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberTrain && CyberTrain.init) CyberTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaBridge && LavaBridge.init) LavaBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicSewer && ToxicSewer.init) ToxicSewer.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceBridge && IceBridge.init) IceBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.MesaFort && MesaFort.init) MesaFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarHospital && WarHospital.init) WarHospital.init(_scene, _camera); } catch (e) {}
+    try { if (window.SandCastle && SandCastle.init) SandCastle.init(_scene, _camera); } catch (e) {}
+    try { if (window.DamFortress && DamFortress.init) DamFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedHouse && HauntedHouse.init) HauntedHouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedStation && CrashedStation.init) CrashedStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.SeaCliff && SeaCliff.init) SeaCliff.init(_scene, _camera); } catch (e) {}
+    try { if (window.CliffVillage && CliffVillage.init) CliffVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.DroneBay && DroneBay.init) DroneBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepBunker && DeepBunker.init) DeepBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.MineCart && MineCart.init) MineCart.init(_scene, _camera); } catch (e) {}
+    try { if (window.WaterTowerSiege && WaterTowerSiege.init) WaterTowerSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.BioStation && BioStation.init) BioStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrumblingCastle && CrumblingCastle.init) CrumblingCastle.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyTemple && SkyTemple.init) SkyTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonIsland && PrisonIsland.init) PrisonIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.LightningBase && LightningBase.init) LightningBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenLab && FrozenLab.init) FrozenLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrystalCave && CrystalCave.init) CrystalCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.DataVault && DataVault.init) DataVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaFortress && LavaFortress.init) LavaFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.SandStorm && SandStorm.init) SandStorm.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearSilo && NuclearSilo.init) NuclearSilo.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuinedFactory && RuinedFactory.init) RuinedFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScorchedCitadel && ScorchedCitadel.init) ScorchedCitadel.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidPlant && AcidPlant.init) AcidPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertLab && DesertLab.init) DesertLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormBunker && StormBunker.init) StormBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoPort && CargoPort.init) CargoPort.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarMarket && WarMarket.init) WarMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShipGraveyard && ShipGraveyard.init) ShipGraveyard.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlastedBridge && BlastedBridge.init) BlastedBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressRuins && FortressRuins.init) FortressRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleDepot && BattleDepot.init) BattleDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenFortress && FrozenFortress.init) FrozenFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaTemple && LavaTemple.init) LavaTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.MagmaCave && MagmaCave.init) MagmaCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyStation && SkyStation.init) SkyStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodArena && BloodArena.init) BloodArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.SnowFortress && SnowFortress.init) SnowFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.WinterBase && WinterBase.init) WinterBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberStation && CyberStation.init) CyberStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.BurningTemple && BurningTemple.init) BurningTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueTown && PlagueTown.init) PlagueTown.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowPalace && ShadowPalace.init) ShadowPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarSubmarine && WarSubmarine.init) WarSubmarine.init(_scene, _camera); } catch (e) {}
+    try { if (window.SteelCanyon && SteelCanyon.init) SteelCanyon.init(_scene, _camera); } catch (e) {}
+    try { if (window.FireTemple && FireTemple.init) FireTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrystalVault && CrystalVault.init) CrystalVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanicCity && VolcanicCity.init) VolcanicCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.LightningTower && LightningTower.init) LightningTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.MidnightBase && MidnightBase.init) MidnightBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WreckedCity && WreckedCity.init) WreckedCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowLab && ShadowLab.init) ShadowLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronKeep && IronKeep.init) IronKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.MetalMarsh && MetalMarsh.init) MetalMarsh.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThunderKeep && ThunderKeep.init) ThunderKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoPeak && VolcanoPeak.init) VolcanoPeak.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicMarsh && ToxicMarsh.init) ToxicMarsh.init(_scene, _camera); } catch (e) {}
+    try { if (window.CitySiege && CitySiege.init) CitySiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarDocks && WarDocks.init) WarDocks.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicFacility && ToxicFacility.init) ToxicFacility.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedShip && CrashedShip.init) CrashedShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoltenKeep && MoltenKeep.init) MoltenKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.BurningBridge && BurningBridge.init) BurningBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.DarkCitadel && DarkCitadel.init) DarkCitadel.init(_scene, _camera); } catch (e) {}
+    try { if (window.SmokeValley && SmokeValley.init) SmokeValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceFortress && SpaceFortress.init) SpaceFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleArena && BattleArena.init) BattleArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarPort && WarPort.init) WarPort.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronValley && IronValley.init) IronValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaArena && LavaArena.init) LavaArena.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenLab && SunkenLab.init) SunkenLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.SeaFortress && SeaFortress.init) SeaFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowValley && ShadowValley.init) ShadowValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.AshRuins && AshRuins.init) AshRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrimsonKeep && CrimsonKeep.init) CrimsonKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormValley && StormValley.init) StormValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenValley && FrozenValley.init) FrozenValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.FallenTemple && FallenTemple.init) FallenTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScorchedLab && ScorchedLab.init) ScorchedLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronMarsh && IronMarsh.init) IronMarsh.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceWreck && SpaceWreck.init) SpaceWreck.init(_scene, _camera); } catch (e) {}
+    try { if (window.DustValley && DustValley.init) DustValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostFortress && GhostFortress.init) GhostFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.QuantumBase && QuantumBase.init) QuantumBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlasmaTower && PlasmaTower.init) PlasmaTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicLab && ToxicLab.init) ToxicLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.SteelDome && SteelDome.init) SteelDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.BuriedCity && BuriedCity.init) BuriedCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.MagmaBridge && MagmaBridge.init) MagmaBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.VaporStation && VaporStation.init) VaporStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarChurch && WarChurch.init) WarChurch.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenDock && FrozenDock.init) FrozenDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.RustCanyon && RustCanyon.init) RustCanyon.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidBay && AcidBay.init) AcidBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.ConcreteMaze && ConcreteMaze.init) ConcreteMaze.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyPrison && SkyPrison.init) SkyPrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaCity && LavaCity.init) LavaCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarZoo && WarZoo.init) WarZoo.init(_scene, _camera); } catch (e) {}
+    try { if (window.NukeCrater && NukeCrater.init) NukeCrater.init(_scene, _camera); } catch (e) {}
+    try { if (window.AmberRuins && AmberRuins.init) AmberRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeltaBase && DeltaBase.init) DeltaBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormShip && StormShip.init) StormShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenCrater && FrozenCrater.init) FrozenCrater.init(_scene, _camera); } catch (e) {}
+    try { if (window.EmberFields && EmberFields.init) EmberFields.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedBay && HauntedBay.init) HauntedBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.FlamePit && FlamePit.init) FlamePit.init(_scene, _camera); } catch (e) {}
+    try { if (window.NanoLab && NanoLab.init) NanoLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenPalace && SunkenPalace.init) SunkenPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarGarden && WarGarden.init) WarGarden.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleCanyon && BattleCanyon.init) BattleCanyon.init(_scene, _camera); } catch (e) {}
+    try { if (window.CliffBase && CliffBase.init) CliffBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.RustedBay && RustedBay.init) RustedBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.EngineRoom && EngineRoom.init) EngineRoom.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemPlant && ChemPlant.init) ChemPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarTower && WarTower.init) WarTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.FungalCave && FungalCave.init) FungalCave.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadioStation && RadioStation.init) RadioStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperHill && SniperHill.init) SniperHill.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalDrop && OrbitalDrop.init) OrbitalDrop.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceMine && IceMine.init) IceMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicBay && ToxicBay.init) ToxicBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeadSea && DeadSea.init) DeadSea.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaTubes && LavaTubes.init) LavaTubes.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarTrain && WarTrain.init) WarTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowReef && ShadowReef.init) ShadowReef.init(_scene, _camera); } catch (e) {}
+    try { if (window.BoneYard && BoneYard.init) BoneYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.SteelMill && SteelMill.init) SteelMill.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidMine && AcidMine.init) AcidMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarResort && WarResort.init) WarResort.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueShip && PlagueShip.init) PlagueShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThunderBase && ThunderBase.init) ThunderBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyBarge && SkyBarge.init) SkyBarge.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenPalace && FrozenPalace.init) FrozenPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberSwamp && CyberSwamp.init) CyberSwamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceTower && IceTower.init) IceTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.CursedShip && CursedShip.init) CursedShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonSwamp && NeonSwamp.init) NeonSwamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCathedral && WarCathedral.init) WarCathedral.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodSwamp && BloodSwamp.init) BloodSwamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.MechBay && MechBay.init) MechBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.GravityWell && GravityWell.init) GravityWell.init(_scene, _camera); } catch (e) {}
+    try { if (window.PoisonGrove && PoisonGrove.init) PoisonGrove.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticLab && ArcticLab.init) ArcticLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrenchWar && TrenchWar.init) TrenchWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderseaDome && UnderseaDome.init) UnderseaDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.SolarForge && SolarForge.init) SolarForge.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronCitadel && IronCitadel.init) IronCitadel.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarShrine && WarShrine.init) WarShrine.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueLab && PlagueLab.init) PlagueLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeathValley && DeathValley.init) DeathValley.init(_scene, _camera); } catch (e) {}
+    try { if (window.VoidStation && VoidStation.init) VoidStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaDome && LavaDome.init) LavaDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.SandFortress && SandFortress.init) SandFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.BoneTemple && BoneTemple.init) BoneTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberRuins && CyberRuins.init) CyberRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormBase && StormBase.init) StormBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeepBunker && DeepBunker.init) DeepBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarMuseum && WarMuseum.init) WarMuseum.init(_scene, _camera); } catch (e) {}
+    try { if (window.RustPalace && RustPalace.init) RustPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleFort && JungleFort.init) JungleFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.FlameShrine && FlameShrine.init) FlameShrine.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidCrater && AcidCrater.init) AcidCrater.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalBase && OrbitalBase.init) OrbitalBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TarPits && TarPits.init) TarPits.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrystalMine && CrystalMine.init) CrystalMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueSwamp && PlagueSwamp.init) PlagueSwamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenKeep && FrozenKeep.init) FrozenKeep.init(_scene, _camera); } catch (e) {}
+    try { if (window.MunitionsPlant && MunitionsPlant.init) MunitionsPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.TriageZone && TriageZone.init) TriageZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackOps && BlackOps.init) BlackOps.init(_scene, _camera); } catch (e) {}
+    try { if (window.CraterCity && CraterCity.init) CraterCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenCarrier && SunkenCarrier.init) SunkenCarrier.init(_scene, _camera); } catch (e) {}
+    try { if (window.NanoCity && NanoCity.init) NanoCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiloComplex && SiloComplex.init) SiloComplex.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyGarden && SkyGarden.init) SkyGarden.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaTrench && LavaTrench.init) LavaTrench.init(_scene, _camera); } catch (e) {}
+    try { if (window.WraithShip && WraithShip.init) WraithShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCemetery && WarCemetery.init) WarCemetery.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueCove && PlagueCove.init) PlagueCove.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArenaDome && ArenaDome.init) ArenaDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.MesaOutpost && MesaOutpost.init) MesaOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpireCity && SpireCity.init) SpireCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowMarket && ShadowMarket.init) ShadowMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.PolarSiege && PolarSiege.init) PolarSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.ForgottenLab && ForgottenLab.init) ForgottenLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarStation && WarStation.init) WarStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueTower && PlagueTower.init) PlagueTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicMine && ToxicMine.init) ToxicMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenReactor && FrozenReactor.init) FrozenReactor.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonBunker && NeonBunker.init) NeonBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertFort && DesertFort.init) DesertFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.MagmaCore && MagmaCore.init) MagmaCore.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkullFortress && SkullFortress.init) SkullFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlasmaOutpost && PlasmaOutpost.init) PlasmaOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegePlatform && SiegePlatform.init) SiegePlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodChapel && BloodChapel.init) BloodChapel.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicHarbor && ToxicHarbor.init) ToxicHarbor.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronTower && IronTower.init) IronTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalRelay && OrbitalRelay.init) OrbitalRelay.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleConvoy && BattleConvoy.init) BattleConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.EchoStation && EchoStation.init) EchoStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarheadCache && WarheadCache.init) WarheadCache.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarConvoy && WarConvoy.init) WarConvoy.init(_scene, _camera); } catch (e) {}
+    try { if (window.AshCitadel && AshCitadel.init) AshCitadel.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoltenBridge && MoltenBridge.init) MoltenBridge.init(_scene, _camera); } catch (e) {}
+    try { if (window.VoidLab && VoidLab.init) VoidLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.BlackMarch && BlackMarch.init) BlackMarch.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceCarrier && IceCarrier.init) IceCarrier.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleRuins && JungleRuins.init) JungleRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThunderTower && ThunderTower.init) ThunderTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.MidnightRaid && MidnightRaid.init) MidnightRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.RustFactory && RustFactory.init) RustFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.DustStorm && DustStorm.init) DustStorm.init(_scene, _camera); } catch (e) {}
+    try { if (window.AssaultCamp && AssaultCamp.init) AssaultCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.StoneQuarry && StoneQuarry.init) StoneQuarry.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarzoneMarket && WarzoneMarket.init) WarzoneMarket.init(_scene, _camera); } catch (e) {}
+    try { if (window.RidgeBase && RidgeBase.init) RidgeBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.PoisonLake && PoisonLake.init) PoisonLake.init(_scene, _camera); } catch (e) {}
+    try { if (window.SkyDock && SkyDock.init) SkyDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaCore && LavaCore.init) LavaCore.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonSubway && NeonSubway.init) NeonSubway.init(_scene, _camera); } catch (e) {}
+    try { if (window.CopperMine && CopperMine.init) CopperMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.WastelandHub && WastelandHub.init) WastelandHub.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrenchLine && TrenchLine.init) TrenchLine.init(_scene, _camera); } catch (e) {}
+    try { if (window.GlacierBunker && GlacierBunker.init) GlacierBunker.init(_scene, _camera); } catch (e) {}
+    try { if (window.PalaceRuins && PalaceRuins.init) PalaceRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.DamStation && DamStation.init) DamStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.Shipyard && Shipyard.init) Shipyard.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpacePort && SpacePort.init) SpacePort.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenRiver && FrozenRiver.init) FrozenRiver.init(_scene, _camera); } catch (e) {}
+    try { if (window.AvalanchePass && AvalanchePass.init) AvalanchePass.init(_scene, _camera); } catch (e) {}
+    try { if (window.BunkerCity && BunkerCity.init) BunkerCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarlordPalace && WarlordPalace.init) WarlordPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScrapYard && ScrapYard.init) ScrapYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandShip && CommandShip.init) CommandShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertBase && DesertBase.init) DesertBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainWreck && TrainWreck.init) TrainWreck.init(_scene, _camera); } catch (e) {}
+    try { if (window.CaveTemple && CaveTemple.init) CaveTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostFactory && GhostFactory.init) GhostFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.BombShelter && BombShelter.init) BombShelter.init(_scene, _camera); } catch (e) {}
+    try { if (window.SandDunes && SandDunes.init) SandDunes.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampRefinery && SwampRefinery.init) SwampRefinery.init(_scene, _camera); } catch (e) {}
+    try { if (window.RooftopSiege && RooftopSiege.init) RooftopSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenBase && SunkenBase.init) SunkenBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodCity && FloodCity.init) FloodCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastGuard && CoastGuard.init) CoastGuard.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonFort && CanyonFort.init) CanyonFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperRidge && SniperRidge.init) SniperRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.HarborFort && HarborFort.init) HarborFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.TundraCamp && TundraCamp.init) TundraCamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilDepot && OilDepot.init) OilDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleCrater && BattleCrater.init) BattleCrater.init(_scene, _camera); } catch (e) {}
+    try { if (window.UrbanDecay && UrbanDecay.init) UrbanDecay.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarAirfield && WarAirfield.init) WarAirfield.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaBase && LavaBase.init) LavaBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormIsland && StormIsland.init) StormIsland.init(_scene, _camera); } catch (e) {}
+    try { if (window.SaltFlats && SaltFlats.init) SaltFlats.init(_scene, _camera); } catch (e) {}
+    try { if (window.AshPlains && AshPlains.init) AshPlains.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarDepot && WarDepot.init) WarDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.CommandCenter && CommandCenter.init) CommandCenter.init(_scene, _camera); } catch (e) {}
+    try { if (window.HighlandFort && HighlandFort.init) HighlandFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodDam && FloodDam.init) FloodDam.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceBreaker && IceBreaker.init) IceBreaker.init(_scene, _camera); } catch (e) {}
+    try { if (window.MissileBase && MissileBase.init) MissileBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WreckYard && WreckYard.init) WreckYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankYard && TankYard.init) TankYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.ForwardBase && ForwardBase.init) ForwardBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeathSwamp && DeathSwamp.init) DeathSwamp.init(_scene, _camera); } catch (e) {}
+    try { if (window.SteelFortress && SteelFortress.init) SteelFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.PoisonMarsh && PoisonMarsh.init) PoisonMarsh.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleMaze && JungleMaze.init) JungleMaze.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarGate && WarGate.init) WarGate.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonRuins && NeonRuins.init) NeonRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.DarkWoods && DarkWoods.init) DarkWoods.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShadowBase && ShadowBase.init) ShadowBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueCity && PlagueCity.init) PlagueCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThunderRidge && ThunderRidge.init) ThunderRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodPlains && FloodPlains.init) FloodPlains.init(_scene, _camera); } catch (e) {}
+    try { if (window.NuclearWaste && NuclearWaste.init) NuclearWaste.init(_scene, _camera); } catch (e) {}
+    try { if (window.BloodRiver && BloodRiver.init) BloodRiver.init(_scene, _camera); } catch (e) {}
+    try { if (window.VoidBase && VoidBase.init) VoidBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.AcidLake && AcidLake.init) AcidLake.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormFortress && StormFortress.init) StormFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrostHarbor && FrostHarbor.init) FrostHarbor.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaRiver && LavaRiver.init) LavaRiver.init(_scene, _camera); } catch (e) {}
+    try { if (window.SiegeLines && SiegeLines.init) SiegeLines.init(_scene, _camera); } catch (e) {}
+    try { if (window.GhostRidge && GhostRidge.init) GhostRidge.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarLab && WarLab.init) WarLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceDock && IceDock.init) IceDock.init(_scene, _camera); } catch (e) {}
+    try { if (window.RubbleCity && RubbleCity.init) RubbleCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.WinterAssault && WinterAssault.init) WinterAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.CryptBase && CryptBase.init) CryptBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarDome && WarDome.init) WarDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.HarborRaid && HarborRaid.init) HarborRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.ReefBase && ReefBase.init) ReefBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonWar && CanyonWar.init) CanyonWar.init(_scene, _camera); } catch (e) {}
+    try { if (window.MagmaLab && MagmaLab.init) MagmaLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.FireBase && FireBase.init) FireBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarCrypt && WarCrypt.init) WarCrypt.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarPrison && WarPrison.init) WarPrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastLine && CoastLine.init) CoastLine.init(_scene, _camera); } catch (e) {}
+    try { if (window.RockBase && RockBase.init) RockBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.PoisonBase && PoisonBase.init) PoisonBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoonGate && MoonGate.init) MoonGate.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarShip && WarShip.init) WarShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.JadeTemple && JadeTemple.init) JadeTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientColosseum && AncientColosseum.init) AncientColosseum.init(_scene, _camera); } catch (e) {}
+    try { if (window.TundraVillage && TundraVillage.init) TundraVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.SolarFarm && SolarFarm.init) SolarFarm.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleFortress && JungleFortress.init) JungleFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.BridgeAssault && BridgeAssault.init) BridgeAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceWreckage && SpaceWreckage.init) SpaceWreckage.init(_scene, _camera); } catch (e) {}
+    try { if (window.UndergroundLab && UndergroundLab.init) UndergroundLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.HospitalRaid && HospitalRaid.init) HospitalRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeaponsDepot && WeaponsDepot.init) WeaponsDepot.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaCavern && LavaCavern.init) LavaCavern.init(_scene, _camera); } catch (e) {}
+    try { if (window.NavalBase && NavalBase.init) NavalBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.ChemFactory && ChemFactory.init) ChemFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.PalaceGardens && PalaceGardens.init) PalaceGardens.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineHunt && SubmarineHunt.init) SubmarineHunt.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArcticStation && ArcticStation.init) ArcticStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.CityRooftop && CityRooftop.init) CityRooftop.init(_scene, _camera); } catch (e) {}
+    try { if (window.PowerPlant && PowerPlant.init) PowerPlant.init(_scene, _camera); } catch (e) {}
+    try { if (window.TrainStation && TrainStation.init) TrainStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonAmbush && CanyonAmbush.init) CanyonAmbush.init(_scene, _camera); } catch (e) {}
+    try { if (window.MissileSilo && MissileSilo.init) MissileSilo.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloatingPlatform && FloatingPlatform.init) FloatingPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarFactory && WarFactory.init) WarFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.IcePalace && IcePalace.init) IcePalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoBase && VolcanoBase.init) VolcanoBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.UndergroundCity && UndergroundCity.init) UndergroundCity.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoastalVillage && CoastalVillage.init) CoastalVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.ResearchVessel && ResearchVessel.init) ResearchVessel.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormDrain && StormDrain.init) StormDrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.ThroneRoom && ThroneRoom.init) ThroneRoom.init(_scene, _camera); } catch (e) {}
+    try { if (window.JungleOutpost && JungleOutpost.init) JungleOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.NavalYard && NavalYard.init) NavalYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceShelf && IceShelf.init) IceShelf.init(_scene, _camera); } catch (e) {}
+    try { if (window.RuinsAssault && RuinsAssault.init) RuinsAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.AircraftCarrier && AircraftCarrier.init) AircraftCarrier.init(_scene, _camera); } catch (e) {}
+    try { if (window.SportsStadium && SportsStadium.init) SportsStadium.init(_scene, _camera); } catch (e) {}
+    try { if (window.NukeTransport && NukeTransport.init) NukeTransport.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedFactory && AbandonedFactory.init) AbandonedFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampBase && SwampBase.init) SwampBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedCastle && HauntedCastle.init) HauntedCastle.init(_scene, _camera); } catch (e) {}
+    try { if (window.CliffFortress && CliffFortress.init) CliffFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.ServerFarm && ServerFarm.init) ServerFarm.init(_scene, _camera); } catch (e) {}
+    try { if (window.CityBank && CityBank.init) CityBank.init(_scene, _camera); } catch (e) {}
+    try { if (window.AncientPyramid && AncientPyramid.init) AncientPyramid.init(_scene, _camera); } catch (e) {}
+    try { if (window.ToxicJungle && ToxicJungle.init) ToxicJungle.init(_scene, _camera); } catch (e) {}
+    try { if (window.HarborDefense && HarborDefense.init) HarborDefense.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceDerelict && SpaceDerelict.init) SpaceDerelict.init(_scene, _camera); } catch (e) {}
+    try { if (window.MedievalDungeon && MedievalDungeon.init) MedievalDungeon.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberLab && CyberLab.init) CyberLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.BorderFort && BorderFort.init) BorderFort.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedHotel && HauntedHotel.init) HauntedHotel.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormCoast && StormCoast.init) StormCoast.init(_scene, _camera); } catch (e) {}
+    try { if (window.RadiationZone && RadiationZone.init) RadiationZone.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedSpaceship && CrashedSpaceship.init) CrashedSpaceship.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceCavern && IceCavern.init) IceCavern.init(_scene, _camera); } catch (e) {}
+    try { if (window.FloodedSubway && FloodedSubway.init) FloodedSubway.init(_scene, _camera); } catch (e) {}
+    try { if (window.DesertTemple && DesertTemple.init) DesertTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.MilitaryAcademy && MilitaryAcademy.init) MilitaryAcademy.init(_scene, _camera); } catch (e) {}
+    try { if (window.NeonDistrict && NeonDistrict.init) NeonDistrict.init(_scene, _camera); } catch (e) {}
+    try { if (window.UnderwaterTemple && UnderwaterTemple.init) UnderwaterTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpacePrison && SpacePrison.init) SpacePrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.PirateGalleon && PirateGalleon.init) PirateGalleon.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedChurch && AbandonedChurch.init) AbandonedChurch.init(_scene, _camera); } catch (e) {}
+    try { if (window.GreekRuins && GreekRuins.init) GreekRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.CoalMine && CoalMine.init) CoalMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.MountainFortress && MountainFortress.init) MountainFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArmoredTrain && ArmoredTrain.init) ArmoredTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.TeslaLab && TeslaLab.init) TeslaLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenCastle && FrozenCastle.init) FrozenCastle.init(_scene, _camera); } catch (e) {}
+    try { if (window.VampireLair && VampireLair.init) VampireLair.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineGraveyard && SubmarineGraveyard.init) SubmarineGraveyard.init(_scene, _camera); } catch (e) {}
+    try { if (window.ScorchedEarth && ScorchedEarth.init) ScorchedEarth.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrystalCaves && CrystalCaves.init) CrystalCaves.init(_scene, _camera); } catch (e) {}
+    try { if (window.BioDome && BioDome.init) BioDome.init(_scene, _camera); } catch (e) {}
+    try { if (window.WartimeFactory && WartimeFactory.init) WartimeFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.SpaceHangar && SpaceHangar.init) SpaceHangar.init(_scene, _camera); } catch (e) {}
+    try { if (window.AmusementPark && AmusementPark.init) AmusementPark.init(_scene, _camera); } catch (e) {}
+    try { if (window.AtlantisRuins && AtlantisRuins.init) AtlantisRuins.init(_scene, _camera); } catch (e) {}
+    try { if (window.QuantumLab && QuantumLab.init) QuantumLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.BurningVillage && BurningVillage.init) BurningVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.AbandonedSchool && AbandonedSchool.init) AbandonedSchool.init(_scene, _camera); } catch (e) {}
+    try { if (window.OrbitalWeapons && OrbitalWeapons.init) OrbitalWeapons.init(_scene, _camera); } catch (e) {}
+    try { if (window.WastelandTown && WastelandTown.init) WastelandTown.init(_scene, _camera); } catch (e) {}
+    try { if (window.OilRefinery && OilRefinery.init) OilRefinery.init(_scene, _camera); } catch (e) {}
+    try { if (window.ColosseumSiege && ColosseumSiege.init) ColosseumSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenDestroyer && SunkenDestroyer.init) SunkenDestroyer.init(_scene, _camera); } catch (e) {}
+    try { if (window.MoonOutpost && MoonOutpost.init) MoonOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberFortress && CyberFortress.init) CyberFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.PharaohTomb && PharaohTomb.init) PharaohTomb.init(_scene, _camera); } catch (e) {}
+    try { if (window.LavaCaves && LavaCaves.init) LavaCaves.init(_scene, _camera); } catch (e) {}
+    try { if (window.StormCarrier && StormCarrier.init) StormCarrier.init(_scene, _camera); } catch (e) {}
+    try { if (window.DroneWarfare && DroneWarfare.init) DroneWarfare.init(_scene, _camera); } catch (e) {}
+    try { if (window.CathedralSiege && CathedralSiege.init) CathedralSiege.init(_scene, _camera); } catch (e) {}
+    try { if (window.SalvageYard && SalvageYard.init) SalvageYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.BioweaponLab && BioweaponLab.init) BioweaponLab.init(_scene, _camera); } catch (e) {}
+    try { if (window.NavalDockyard && NavalDockyard.init) NavalDockyard.init(_scene, _camera); } catch (e) {}
+    try { if (window.SniperTower && SniperTower.init) SniperTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.CursedVillage && CursedVillage.init) CursedVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.TankerShip && TankerShip.init) TankerShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.IronMine && IronMine.init) IronMine.init(_scene, _camera); } catch (e) {}
+    try { if (window.ShantyTown && ShantyTown.init) ShantyTown.init(_scene, _camera); } catch (e) {}
+    try { if (window.AztecTemple && AztecTemple.init) AztecTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.CircusTent && CircusTent.init) CircusTent.init(_scene, _camera); } catch (e) {}
+    try { if (window.WeatherStation && WeatherStation.init) WeatherStation.init(_scene, _camera); } catch (e) {}
+    try { if (window.LaserFacility && LaserFacility.init) LaserFacility.init(_scene, _camera); } catch (e) {}
+    try { if (window.SubmarineBay && SubmarineBay.init) SubmarineBay.init(_scene, _camera); } catch (e) {}
+    try { if (window.HeistVault && HeistVault.init) HeistVault.init(_scene, _camera); } catch (e) {}
+    try { if (window.Catacombs && Catacombs.init) Catacombs.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrashedTrain && CrashedTrain.init) CrashedTrain.init(_scene, _camera); } catch (e) {}
+    try { if (window.CrystalPalace && CrystalPalace.init) CrystalPalace.init(_scene, _camera); } catch (e) {}
+    try { if (window.DeltaForce && DeltaForce.init) DeltaForce.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonTower && PrisonTower.init) PrisonTower.init(_scene, _camera); } catch (e) {}
+    try { if (window.RobotFactory && RobotFactory.init) RobotFactory.init(_scene, _camera); } catch (e) {}
+    try { if (window.WarMemorial && WarMemorial.init) WarMemorial.init(_scene, _camera); } catch (e) {}
+    try { if (window.PrisonYard && PrisonYard.init) PrisonYard.init(_scene, _camera); } catch (e) {}
+    try { if (window.MineShaft && MineShaft.init) MineShaft.init(_scene, _camera); } catch (e) {}
+    try { if (window.CargoTerminal && CargoTerminal.init) CargoTerminal.init(_scene, _camera); } catch (e) {}
+    try { if (window.MilitaryParade && MilitaryParade.init) MilitaryParade.init(_scene, _camera); } catch (e) {}
+    try { if (window.GasPlatform && GasPlatform.init) GasPlatform.init(_scene, _camera); } catch (e) {}
+    try { if (window.Monorail && Monorail.init) Monorail.init(_scene, _camera); } catch (e) {}
+    try { if (window.ArchaeologicalDig && ArchaeologicalDig.init) ArchaeologicalDig.init(_scene, _camera); } catch (e) {}
+    try { if (window.CaveNetwork && CaveNetwork.init) CaveNetwork.init(_scene, _camera); } catch (e) {}
+    try { if (window.RooftopChase && RooftopChase.init) RooftopChase.init(_scene, _camera); } catch (e) {}
+    try { if (window.TyphoonDeck && TyphoonDeck.init) TyphoonDeck.init(_scene, _camera); } catch (e) {}
+    try { if (window.SwampOutpost && SwampOutpost.init) SwampOutpost.init(_scene, _camera); } catch (e) {}
+    try { if (window.SunkenTemple && SunkenTemple.init) SunkenTemple.init(_scene, _camera); } catch (e) {}
+    try { if (window.SalvageBarge && SalvageBarge.init) SalvageBarge.init(_scene, _camera); } catch (e) {}
+    try { if (window.FrozenHarbor && FrozenHarbor.init) FrozenHarbor.init(_scene, _camera); } catch (e) {}
+    try { if (window.IceFortress && IceFortress.init) IceFortress.init(_scene, _camera); } catch (e) {}
+    try { if (window.MerchantShip && MerchantShip.init) MerchantShip.init(_scene, _camera); } catch (e) {}
+    try { if (window.HarborCrane && HarborCrane.init) HarborCrane.init(_scene, _camera); } catch (e) {}
+    try { if (window.RacingTrack && RacingTrack.init) RacingTrack.init(_scene, _camera); } catch (e) {}
+    try { if (window.TortureChamber && TortureChamber.init) TortureChamber.init(_scene, _camera); } catch (e) {}
+    try { if (window.PlagueVillage && PlagueVillage.init) PlagueVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.CyberYacht && CyberYacht.init) CyberYacht.init(_scene, _camera); } catch (e) {}
+    try { if (window.FortressPrison && FortressPrison.init) FortressPrison.init(_scene, _camera); } catch (e) {}
+    try { if (window.BattleStadium && BattleStadium.init) BattleStadium.init(_scene, _camera); } catch (e) {}
+    try { if (window.HauntedLighthouse && HauntedLighthouse.init) HauntedLighthouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.CanyonAssault && CanyonAssault.init) CanyonAssault.init(_scene, _camera); } catch (e) {}
+    try { if (window.DemolitionSite && DemolitionSite.init) DemolitionSite.init(_scene, _camera); } catch (e) {}
+    try { if (window.AirshipRaid && AirshipRaid.init) AirshipRaid.init(_scene, _camera); } catch (e) {}
+    try { if (window.TempleRun && TempleRun.init) TempleRun.init(_scene, _camera); } catch (e) {}
+    try { if (window.AsteroidBase && AsteroidBase.init) AsteroidBase.init(_scene, _camera); } catch (e) {}
+    try { if (window.FishingVillage && FishingVillage.init) FishingVillage.init(_scene, _camera); } catch (e) {}
+    try { if (window.OperaHouse && OperaHouse.init) OperaHouse.init(_scene, _camera); } catch (e) {}
+    try { if (window.CityHall && CityHall.init) CityHall.init(_scene, _camera); } catch (e) {}
+    try { if (window.VolcanoSummit && VolcanoSummit.init) VolcanoSummit.init(_scene, _camera); } catch (e) {}
+      try { if (window.FloatingFortress && FloatingFortress.init) FloatingFortress.init(_scene, _camera); } catch (e) {}
+      try { if (window.Slaughterhouse && Slaughterhouse.init) Slaughterhouse.init(_scene, _camera); } catch (e) {}
+      try { if (window.TrainGraveyard && TrainGraveyard.init) TrainGraveyard.init(_scene, _camera); } catch (e) {}
+      try { if (window.SewagePlant && SewagePlant.init) SewagePlant.init(_scene, _camera); } catch (e) {}
+      try { if (window.UniversityRaid && UniversityRaid.init) UniversityRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.RefugeeCamp && RefugeeCamp.init) RefugeeCamp.init(_scene, _camera); } catch (e) {}
+      try { if (window.NuclearConvoy && NuclearConvoy.init) NuclearConvoy.init(_scene, _camera); } catch (e) {}
+      try { if (window.PowerSubstation && PowerSubstation.init) PowerSubstation.init(_scene, _camera); } catch (e) {}
+      try { if (window.SubmarinePen && SubmarinePen.init) SubmarinePen.init(_scene, _camera); } catch (e) {}
+      try { if (window.TorpedoFactory && TorpedoFactory.init) TorpedoFactory.init(_scene, _camera); } catch (e) {}
+      try { if (window.MunitionsDepot && MunitionsDepot.init) MunitionsDepot.init(_scene, _camera); } catch (e) {}
+      try { if (window.AbandonedMall && AbandonedMall.init) AbandonedMall.init(_scene, _camera); } catch (e) {}
+      try { if (window.GoldVault && GoldVault.init) GoldVault.init(_scene, _camera); } catch (e) {}
+      try { if (window.CustomsPost && CustomsPost.init) CustomsPost.init(_scene, _camera); } catch (e) {}
+      try { if (window.JungleLab && JungleLab.init) JungleLab.init(_scene, _camera); } catch (e) {}
+      try { if (window.SatelliteStation && SatelliteStation.init) SatelliteStation.init(_scene, _camera); } catch (e) {}
+      try { if (window.DestroyerEscort && DestroyerEscort.init) DestroyerEscort.init(_scene, _camera); } catch (e) {}
+      try { if (window.CoastalBattery && CoastalBattery.init) CoastalBattery.init(_scene, _camera); } catch (e) {}
+      try { if (window.PrisonColony && PrisonColony.init) PrisonColony.init(_scene, _camera); } catch (e) {}
+      try { if (window.AsteroidField && AsteroidField.init) AsteroidField.init(_scene, _camera); } catch (e) {}
+      try { if (window.VolcanoLair && VolcanoLair.init) VolcanoLair.init(_scene, _camera); } catch (e) {}
+      try { if (window.SeaFort && SeaFort.init) SeaFort.init(_scene, _camera); } catch (e) {}
+      try { if (window.FuelDepot && FuelDepot.init) FuelDepot.init(_scene, _camera); } catch (e) {}
+      try { if (window.DerelictTown && DerelictTown.init) DerelictTown.init(_scene, _camera); } catch (e) {}
+      try { if (window.MethLab && MethLab.init) MethLab.init(_scene, _camera); } catch (e) {}
+      try { if (window.CargoFreighter && CargoFreighter.init) CargoFreighter.init(_scene, _camera); } catch (e) {}
+      try { if (window.IceFortressInterior && IceFortressInterior.init) IceFortressInterior.init(_scene, _camera); } catch (e) {}
+      try { if (window.ReactorCore && ReactorCore.init) ReactorCore.init(_scene, _camera); } catch (e) {}
+      try { if (window.GladiatorPit && GladiatorPit.init) GladiatorPit.init(_scene, _camera); } catch (e) {}
+      try { if (window.JungleShrine && JungleShrine.init) JungleShrine.init(_scene, _camera); } catch (e) {}
+      try { if (window.LaserGrid && LaserGrid.init) LaserGrid.init(_scene, _camera); } catch (e) {}
+      try { if (window.DeathMarch && DeathMarch.init) DeathMarch.init(_scene, _camera); } catch (e) {}
+      try { if (window.BankRobbery && BankRobbery.init) BankRobbery.init(_scene, _camera); } catch (e) {}
+      try { if (window.UndergroundArena && UndergroundArena.init) UndergroundArena.init(_scene, _camera); } catch (e) {}
+      try { if (window.AirfieldAssault && AirfieldAssault.init) AirfieldAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.OilPlatformFire && OilPlatformFire.init) OilPlatformFire.init(_scene, _camera); } catch (e) {}
+      try { if (window.DamControl && DamControl.init) DamControl.init(_scene, _camera); } catch (e) {}
+      try { if (window.ConcertHall && ConcertHall.init) ConcertHall.init(_scene, _camera); } catch (e) {}
+      try { if (window.SewerEscape && SewerEscape.init) SewerEscape.init(_scene, _camera); } catch (e) {}
+      try { if (window.HauntedGalleon && HauntedGalleon.init) HauntedGalleon.init(_scene, _camera); } catch (e) {}
+      try { if (window.AvalancheZone && AvalancheZone.init) AvalancheZone.init(_scene, _camera); } catch (e) {}
+      try { if (window.MountainRescue && MountainRescue.init) MountainRescue.init(_scene, _camera); } catch (e) {}
+      try { if (window.ShoppingDistrict && ShoppingDistrict.init) ShoppingDistrict.init(_scene, _camera); } catch (e) {}
+      try { if (window.SnowfieldBattle && SnowfieldBattle.init) SnowfieldBattle.init(_scene, _camera); } catch (e) {}
+      try { if (window.ZooBreakout && ZooBreakout.init) ZooBreakout.init(_scene, _camera); } catch (e) {}
+      try { if (window.HospitalSiege && HospitalSiege.init) HospitalSiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.RacingPit && RacingPit.init) RacingPit.init(_scene, _camera); } catch (e) {}
+      try { if (window.WarehouseDistrict && WarehouseDistrict.init) WarehouseDistrict.init(_scene, _camera); } catch (e) {}
+      try { if (window.CyberCity && CyberCity.init) CyberCity.init(_scene, _camera); } catch (e) {}
+      try { if (window.PirateHarbor && PirateHarbor.init) PirateHarbor.init(_scene, _camera); } catch (e) {}
+      try { if (window.SpaceStationAttack && SpaceStationAttack.init) SpaceStationAttack.init(_scene, _camera); } catch (e) {}
+      try { if (window.DustBowl && DustBowl.init) DustBowl.init(_scene, _camera); } catch (e) {}
+      try { if (window.SwampAssault && SwampAssault.init) SwampAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.FactoryTakeover && FactoryTakeover.init) FactoryTakeover.init(_scene, _camera); } catch (e) {}
+      try { if (window.HarborSiege && HarborSiege.init) HarborSiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.MetroAssault && MetroAssault.init) MetroAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.EmbassyTakeover && EmbassyTakeover.init) EmbassyTakeover.init(_scene, _camera); } catch (e) {}
+      try { if (window.CemeterySiege && CemeterySiege.init) CemeterySiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.BridgeBattle && BridgeBattle.init) BridgeBattle.init(_scene, _camera); } catch (e) {}
+      try { if (window.SatelliteCrash && SatelliteCrash.init) SatelliteCrash.init(_scene, _camera); } catch (e) {}
+      try { if (window.PyramidRaid && PyramidRaid.init) PyramidRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.SalvageMission && SalvageMission.init) SalvageMission.init(_scene, _camera); } catch (e) {}
+      try { if (window.LaboratoryRaid && LaboratoryRaid.init) LaboratoryRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.DamBreak && DamBreak.init) DamBreak.init(_scene, _camera); } catch (e) {}
+      try { if (window.ColiseumBattle && ColiseumBattle.init) ColiseumBattle.init(_scene, _camera); } catch (e) {}
+      try { if (window.TornadoAlley && TornadoAlley.init) TornadoAlley.init(_scene, _camera); } catch (e) {}
+      try { if (window.BiohazardZone && BiohazardZone.init) BiohazardZone.init(_scene, _camera); } catch (e) {}
+      try { if (window.PirateCoveRaid && PirateCoveRaid.init) PirateCoveRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.GhostTownSiege && GhostTownSiege.init) GhostTownSiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.MansionHeist && MansionHeist.init) MansionHeist.init(_scene, _camera); } catch (e) {}
+      try { if (window.ClocktowerRaid && ClocktowerRaid.init) ClocktowerRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.ShipyardAssault && ShipyardAssault.init) ShipyardAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.TankFactory && TankFactory.init) TankFactory.init(_scene, _camera); } catch (e) {}
+      try { if (window.SpyCompound && SpyCompound.init) SpyCompound.init(_scene, _camera); } catch (e) {}
+      try { if (window.RocketLaunch && RocketLaunch.init) RocketLaunch.init(_scene, _camera); } catch (e) {}
+      try { if (window.MineshaftCollapse && MineshaftCollapse.init) MineshaftCollapse.init(_scene, _camera); } catch (e) {}
+      try { if (window.AirbaseDefense && AirbaseDefense.init) AirbaseDefense.init(_scene, _camera); } catch (e) {}
+      try { if (window.HelicopterCrash && HelicopterCrash.init) HelicopterCrash.init(_scene, _camera); } catch (e) {}
+      try { if (window.SmugglersDen && SmugglersDen.init) SmugglersDen.init(_scene, _camera); } catch (e) {}
+      try { if (window.EarthquakeZone && EarthquakeZone.init) EarthquakeZone.init(_scene, _camera); } catch (e) {}
+      try { if (window.WarlordFortress && WarlordFortress.init) WarlordFortress.init(_scene, _camera); } catch (e) {}
+      try { if (window.CombatHospital && CombatHospital.init) CombatHospital.init(_scene, _camera); } catch (e) {}
+      try { if (window.WinterWarfare && WinterWarfare.init) WinterWarfare.init(_scene, _camera); } catch (e) {}
+      try { if (window.ArmoredConvoy && ArmoredConvoy.init) ArmoredConvoy.init(_scene, _camera); } catch (e) {}
+      try { if (window.CatacombsAssault && CatacombsAssault.init) CatacombsAssault.init(_scene, _camera); } catch (e) {}
+      try { if (window.OilPlatformRaid && OilPlatformRaid.init) OilPlatformRaid.init(_scene, _camera); } catch (e) {}
+      try { if (window.DesertConvoy && DesertConvoy.init) DesertConvoy.init(_scene, _camera); } catch (e) {}
+      try { if (window.TrenchWarfare && TrenchWarfare.init) TrenchWarfare.init(_scene, _camera); } catch (e) {}
+      try { if (window.SunkenCity && SunkenCity.init) SunkenCity.init(_scene, _camera); } catch (e) {}
+      try { if (window.SpaceBattle && SpaceBattle.init) SpaceBattle.init(_scene, _camera); } catch (e) {}
+      try { if (window.SubmarineBase && SubmarineBase.init) SubmarineBase.init(_scene, _camera); } catch (e) {}
+      try { if (window.RebelOutpost && RebelOutpost.init) RebelOutpost.init(_scene, _camera); } catch (e) {}
+      try { if (window.FortressSiege && FortressSiege.init) FortressSiege.init(_scene, _camera); } catch (e) {}
+      try { if (window.BattleshipDeck && BattleshipDeck.init) BattleshipDeck.init(_scene, _camera); } catch (e) {}
+      try { if (window.StadiumRiot && StadiumRiot.init) StadiumRiot.init(_scene, _camera); } catch (e) {}
+      try { if (window.TradingPost && TradingPost.init) TradingPost.init(_scene, _camera); } catch (e) {}
+    // Daily challenges panel
+    try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
     // Create weapons
     Weapons.createGunMesh(_camera);
@@ -1541,36 +3016,14 @@ const GameManager = (function () {
     });
     Weapons.setOnTerrainShot(function (x, y, z, blockType) {
       onTerrainDestroyed(x, y, z, blockType);
-      // Red Faction-style: unsupported column above falls as debris
-      if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.onBlockDestroyed) {
-        try { CollapsePhysics.onBlockDestroyed(_scene, x, y, z); } catch (eCP) {}
+      // ── Fuel Barrel explosion: shooting a barrel triggers chain detonation ──
+      if (blockType === 12) {
+        _barrelExplosionDepth = 0;
+        detonateBarrel(x, y, z);
+        return;
       }
       // ── B29: Destructible environment — explosive weapons destroy blocks ──
       var wType = Weapons.getCurrentType();
-      // Flashbang grenade: stun nearby enemies for 4s via the existing stunInRadius system
-      if (wType === 'FLASHBANG') {
-        var _fbRadius = Weapons.getBlastRadius() || 8;
-        if (typeof Enemies !== 'undefined' && Enemies.stunInRadius) {
-          Enemies.stunInRadius(new THREE.Vector3(x, y, z), _fbRadius, 4.0);
-        }
-        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💥 FLASHBANG — enemies stunned!', '#ffff44');
-      }
-      // Smoke grenade: create a detection-blocking smoke zone at impact
-      if (wType === 'SMOKE') {
-        addSmokeZone(x, z, Weapons.getBlastRadius() || 6, 18);
-        if (typeof Tracers !== 'undefined' && Tracers.spawnSmoke) {
-          for (var _si2 = 0; _si2 < 12; _si2++) {
-            (function(_sii) {
-              setTimeout(function() {
-                try {
-                  Tracers.spawnSmoke(new THREE.Vector3(x + (Math.random()-0.5)*4, y + 0.3, z + (Math.random()-0.5)*4));
-                } catch(e) {}
-              }, _sii * 200);
-            })(_si2);
-          }
-        }
-        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💨 SMOKE DEPLOYED — enemies blinded!', '#888888');
-      }
       var isExpl = ['AT', 'ATGM', 'AT_HEAVY', 'AT_LIGHT', 'GRENADE', 'INCENDIARY', 'THERMOBARIC'].indexOf(wType) >= 0;
       if (isExpl && typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
         var bRadius = Weapons.getBlastRadius() || 3;
@@ -1611,21 +3064,17 @@ const GameManager = (function () {
           if (HUD.showToast) HUD.showToast('🛬 RECON COMPLETE — returning to ground combat', 3000, '#44ff88');
         }
       } catch (_edr) {}
-      if (reward > 0) {
-        if (typeof Economy !== 'undefined' && Economy.addCurrency) Economy.addCurrency(reward);
-        if (typeof Marketplace !== 'undefined') {
-          if (Marketplace.awardCustomOKC) {
-            Marketplace.awardCustomOKC(reward, 'mission_complete', {
-              missionName: mission && mission.name ? mission.name : null,
-              missionType: mission && mission.type ? mission.type : null,
-            }).then(function () {
-              if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
-            });
-          } else {
-            Marketplace.addOKC(reward);
-          }
+      if (reward > 0 && typeof Marketplace !== 'undefined') {
+        if (Marketplace.awardCustomOKC) {
+          Marketplace.awardCustomOKC(reward, 'mission_complete', {
+            missionName: mission && mission.name ? mission.name : null,
+            missionType: mission && mission.type ? mission.type : null,
+          }).then(function () {
+            if (HUD && HUD.updateOKC) HUD.updateOKC(Marketplace.getOKC());
+          });
+        } else {
+          Marketplace.addOKC(reward);
         }
-        if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
       }
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
@@ -1647,8 +3096,13 @@ const GameManager = (function () {
       }, 10000);
     });
 
-    // Set player spawn on terrain — search outward if (0,0) lands in water
+    // Set player spawn on terrain — prefer the level's validated spawn point
+    // (clearance-checked candidates + spiral fallback inside voxel-world).
     var sx = 0, sz = 0, spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
+    if (window.VoxelWorld.getSpawnPoint) {
+      var _vsp = window.VoxelWorld.getSpawnPoint();
+      if (_vsp && typeof _vsp.x === 'number') { sx = _vsp.x; sz = _vsp.z; spawnH = _vsp.y; }
+    }
     var BLOCK_WATER = 8;
     function _isWaterCol(x, z, h) {
       var b = window.VoxelWorld.getBlock ? window.VoxelWorld.getBlock(Math.floor(x), Math.floor(h), Math.floor(z)) : 0;
@@ -1749,6 +3203,30 @@ const GameManager = (function () {
       if (e.code === 'KeyG' && e.ctrlKey && e.shiftKey) {
         e.preventDefault();
         toggleGodMode();
+        return;
+      }
+
+      // Shift+D: toggle daily challenges panel
+      if (e.code === 'KeyD' && e.shiftKey && !e.ctrlKey) {
+        if (typeof DailyChallenges !== 'undefined') DailyChallenges.togglePanel();
+        return;
+      }
+
+      // Shift+G (without Ctrl): cycle grenade type FRAG → SMOKE → FLASHBANG → FRAG
+      if (e.code === 'KeyG' && e.shiftKey && !e.ctrlKey) {
+        e.preventDefault();
+        if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
+          if (player.grenadeType === 'FRAG') {
+            player.grenadeType = 'SMOKE';
+            HUD.notifyPickup('💨 GRENADE: SMOKE [' + (player.smokeGrenades || 0) + ']', '#aaaaaa');
+          } else if (player.grenadeType === 'SMOKE') {
+            player.grenadeType = 'FLASHBANG';
+            HUD.notifyPickup('⚡ GRENADE: FLASHBANG [' + (player.flashGrenades || 0) + ']', '#ffff88');
+          } else {
+            player.grenadeType = 'FRAG';
+            HUD.notifyPickup('💣 GRENADE: FRAG [' + (player.godMode ? '∞' : (player.grenades || 0)) + ']', '#ffaa00');
+          }
+        }
         return;
       }
 
@@ -1925,10 +3403,47 @@ const GameManager = (function () {
                   HUD.notifyPickup('🚗 ENTERED VEHICLE', '#44ff44');
                 }
               } else {
-                // No nearby vehicle: fall back to throwing a hand grenade
-                throwHandGrenade();
+                // No nearby vehicle: place IED if available, else throw grenade
+                if (window.TripwireIED) {
+                  TripwireIED.placeIED(player.position, _camera.rotation.y);
+                } else {
+                  throwHandGrenade();
+                }
               }
             }
+          }
+        }
+
+        if (e.key === 'z' || e.key === 'Z') {
+            if (window.SpecialGrenades && SpecialGrenades.getSmokeCount() > 0) {
+                SpecialGrenades.throwSmoke(player.position, _camera);
+            } else { if (window.HUD && HUD.showToast) HUD.showToast('No smoke grenades'); }
+        }
+        if (e.key === 'x' || e.key === 'X') {
+            if (window.SpecialGrenades && SpecialGrenades.getFlashCount() > 0) {
+                SpecialGrenades.throwFlash(player.position, _camera);
+            } else { if (window.HUD && HUD.showToast) HUD.showToast('No flashbangs'); }
+        }
+
+        // V key — melee knife attack
+        if (e.key === 'v' || e.key === 'V') {
+          if (window.MeleeKnife && gameState === STATE.PLAYING) {
+            var _allEnemiesForKnife = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
+            MeleeKnife.attack(player.position, _camera, _allEnemiesForKnife, function(enemy, dmg) {
+              Enemies.damageEnemy(enemy, dmg, 'knife');
+              player.kills++;
+              HUD.addKillFeedEntry('You', enemy.type || 'Enemy', '🔪');
+            });
+          }
+        }
+
+        // C key — place claymore mine
+        if (e.key === 'c' || e.key === 'C') {
+          if (window.ClaymoreMines && ClaymoreMines.getCount() > 0) {
+            ClaymoreMines.placeMine(player.position.clone(), CameraSystem.getForwardDir ? CameraSystem.getForwardDir() : new THREE.Vector3(0, 0, -1));
+            HUD.showToast('Claymore placed');
+          } else if (window.ClaymoreMines) {
+            HUD.showToast('No claymores!');
           }
         }
 
@@ -1965,11 +3480,24 @@ const GameManager = (function () {
             player.bleedTimer = 0;
             if (HUD.showBleed) HUD.showBleed(false);
             HUD.notifyPickup('🩹 BANDAGE APPLIED', '#22ff55');
+            try { if (typeof Achievements !== 'undefined' && Achievements.recordBandage) Achievements.recordBandage(); } catch (eAchB) {}
+          }
+        }
+
+        // Night Vision Goggles toggle (Shift+N)
+        if (e.code === 'KeyN' && e.shiftKey) {
+          window._nvgActive = !window._nvgActive;
+          var _nvgCanvas = document.getElementById('c') || document.querySelector('canvas');
+          if (_nvgCanvas) {
+            _nvgCanvas.style.filter = window._nvgActive ? 'brightness(0.3) contrast(3) hue-rotate(100deg) saturate(5) sepia(0.8)' : '';
+          }
+          if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+            HUD.notifyPickup(window._nvgActive ? '🟢 NVG ON' : 'NVG OFF', window._nvgActive ? '#00ff44' : '#888888');
           }
         }
 
         // Airdrop beacon
-        if (e.code === 'KeyN' && player.airdropCooldown <= 0) {
+        if (e.code === 'KeyN' && !e.shiftKey && player.airdropCooldown <= 0) {
           player.airdropCooldown = 45; // 45 second cooldown
           HUD.notifyPickup('📦 AIRDROP BEACON DEPLOYED!', '#44ff88');
           setTimeout(function () {
@@ -2037,7 +3565,7 @@ const GameManager = (function () {
         }
 
         // Cycle ammo type (C key)
-        if (e.code === 'KeyC') {
+        if (e.code === 'KeyC' && !e.shiftKey) {
           if (typeof CombatExtras !== 'undefined') {
             var ammoInfo = CombatExtras.cycleAmmoType();
             HUD.notifyPickup('🔄 AMMO: ' + ammoInfo.name, '#' + ammoInfo.color.toString(16).padStart(6, '0'));
@@ -2046,10 +3574,35 @@ const GameManager = (function () {
           }
         }
 
-        // Field bandage perk (H key)
+        // Companion drone toggle (Shift+C)
+        if (e.code === 'KeyC' && e.shiftKey) {
+          if (typeof CompanionDrone !== 'undefined') {
+            if (CompanionDrone.isActive()) {
+              CompanionDrone.recall();
+            } else {
+              CompanionDrone.deploy(player.position);
+            }
+          }
+        }
+
+        // H key — Ballistic Shield deploy/pickup (priority), else field bandage
         if (e.code === 'KeyH') {
-          if (typeof Perks !== 'undefined' && Perks.useBandage()) {
-            HUD.notifyPickup('🩹 FIELD BANDAGE APPLIED!', '#22ff55');
+          var _shieldHandled = false;
+          if (window.BallisticShield) {
+            if (BallisticShield.isDeployed()) {
+              BallisticShield.pickup(player.position);
+              _shieldHandled = true;
+            } else {
+              BallisticShield.deploy(player.position, _camera.rotation.y);
+              HUD.notifyPickup('🛡 SHIELD DEPLOYED', '#88ffaa');
+              _shieldHandled = true;
+            }
+          }
+          if (!_shieldHandled) {
+            if (typeof Perks !== 'undefined' && Perks.useBandage()) {
+              HUD.notifyPickup('🩹 FIELD BANDAGE APPLIED!', '#22ff55');
+              try { if (typeof Achievements !== 'undefined' && Achievements.recordBandage) Achievements.recordBandage(); } catch (eAchH) {}
+            }
           }
         }
 
@@ -2074,14 +3627,30 @@ const GameManager = (function () {
           }
         }
 
-        // Ping/mark system (M key)
+        // M key — MortarEmplacement deploy/undeploy (no shift), else Ping/Minimap
         if (e.code === 'KeyM' && gameState === STATE.PLAYING) {
-          if (typeof Feedback !== 'undefined') {
-            var pingPos = player.position.clone();
-            var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
-            pingPos.add(fwd.multiplyScalar(20));
-            Feedback.addPing(pingPos.x, pingPos.y, pingPos.z, 'MARK', '#ffff00');
-            HUD.notifyPickup('📍 POSITION MARKED', '#ffff00');
+          if (!e.shiftKey && window.MortarEmplacement) {
+            // Toggle mortar emplacement
+            if (MortarEmplacement.isDeployed()) {
+              MortarEmplacement.undeploy();
+            } else {
+              MortarEmplacement.deploy(player.position, _camera);
+            }
+          } else if (e.shiftKey) {
+            // Shift+M: toggle tactical minimap
+            if (typeof Minimap !== 'undefined' && Minimap.toggle) {
+              Minimap.toggle();
+              HUD.notifyPickup('🗺️ MINIMAP ' + (Minimap.isVisible ? 'ON' : 'OFF'), '#88aaff');
+            }
+          } else {
+            if (typeof Minimap !== 'undefined' && Minimap.toggle) Minimap.toggle();
+            if (typeof Feedback !== 'undefined') {
+              var pingPos = player.position.clone();
+              var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
+              pingPos.add(fwd.multiplyScalar(20));
+              Feedback.addPing(pingPos.x, pingPos.y, pingPos.z, 'MARK', '#ffff00');
+              HUD.notifyPickup('📍 POSITION MARKED', '#ffff00');
+            }
           }
         }
 
@@ -2096,6 +3665,15 @@ const GameManager = (function () {
               perksMenu.style.display = 'none';
             }
           }
+        }
+
+        // Weather cycle (Shift+W)
+        if (e.code === 'KeyW' && e.shiftKey) {
+          var weathers = ['clear', 'rain', 'snow', 'fog', 'sandstorm'];
+          var cur = (typeof Weather !== 'undefined') ? Weather.getCurrent() : 'clear';
+          var nextIdx = (weathers.indexOf(cur) + 1) % weathers.length;
+          if (typeof Weather !== 'undefined') Weather.setWeather(weathers[nextIdx]);
+          if (typeof HUD !== 'undefined' && HUD.notify) HUD.notify('🌦 Weather: ' + weathers[nextIdx].toUpperCase());
         }
 
         // War journal (Y key)
@@ -2133,16 +3711,6 @@ const GameManager = (function () {
           HUD.notifyPickup(blindOn ? '🔫 BLIND FIRE ON' : '🔫 BLIND FIRE OFF', blindOn ? '#bbb' : '#fff');
           var bfInd = document.getElementById('blindfire-indicator');
           if (bfInd) bfInd.style.display = blindOn ? 'block' : 'none';
-        }
-
-        // X key — use airstrike token if available
-        if (e.code === 'KeyX' && gameState === STATE.PLAYING) {
-          if (_airstrikeTokens > 0) {
-            useAirstrikeToken();
-            HUD.notifyPickup('✈ TOKEN USED (' + _airstrikeTokens + ' left)', '#aaddff');
-          } else {
-            HUD.notifyPickup('✈ NO AIRSTRIKE TOKENS', '#888888');
-          }
         }
 
         // ── B30: Combat Roll (double-tap A/D or Alt+A/D) ──
@@ -2213,6 +3781,22 @@ const GameManager = (function () {
           if (veh && VehicleSystem.honkHorn) VehicleSystem.honkHorn(veh.id);
         }
 
+        // Night Vision Goggles (NightVision module — N key, no modifiers, not in vehicle)
+        if (e.code === 'KeyN' && !e.shiftKey && !e.ctrlKey && !e.altKey && gameState === STATE.PLAYING) {
+          if (typeof NightVision !== 'undefined') NightVision.toggle();
+        }
+
+        // Gas Mask toggle (T key — only when not in drone/vehicle, normal gameplay)
+        if (e.code === 'KeyT' && !DroneSystem.isPossessing() && !VehicleSystem.isInVehicle() && gameState === STATE.PLAYING) {
+          if (window.GasMask) {
+            if (GasMask.isAvailable()) {
+              GasMask.isEquipped() ? GasMask.unequip() : GasMask.equip();
+            } else {
+              if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('No gas mask', '#888888');
+            }
+          }
+        }
+
         // Dolphin dive (Ctrl while sprinting)
         if (e.code === 'ControlLeft' && player.sprinting && typeof Traversal !== 'undefined') {
           var fwdDir = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
@@ -2256,22 +3840,97 @@ const GameManager = (function () {
           toggleInventory();
         }
 
-        // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9) — blocked during drone possession
-        if (!DroneSystem.isPossessing()) {
-          if (e.code === 'Digit1') Weapons.switchTo(0);
-          if (e.code === 'Digit2') Weapons.switchTo(1);
-          if (e.code === 'Digit3') Weapons.switchTo(2);
-          if (e.code === 'Digit4' && gameState === STATE.PLAYING) Weapons.switchTo(3);
-          if (e.code === 'Digit5' && gameState === STATE.PLAYING) Weapons.switchTo(4);
-          if (e.code === 'Digit6' && gameState === STATE.PLAYING) Weapons.switchTo(5);
-          if (e.code === 'Digit7' && gameState === STATE.PLAYING) Weapons.switchTo(6);
-          if (e.code === 'Digit8') Weapons.switchTo(7);
-          if (e.code === 'Digit9') Weapons.switchTo(8);
-          if (e.code === 'Digit0') Weapons.switchTo(9);
-          if (e.code === 'KeyQ' && !keys['AltLeft'])   Weapons.switchPrev();
-          if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) Weapons.switchNext();
+        // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9)
+        if (e.code === 'Digit1') Weapons.switchTo(0);
+        if (e.code === 'Digit2') Weapons.switchTo(1);
+        if (e.code === 'Digit3') Weapons.switchTo(2);
+        if (e.code === 'Digit4' && gameState === STATE.PLAYING) Weapons.switchTo(3);
+        if (e.code === 'Digit5' && gameState === STATE.PLAYING) Weapons.switchTo(4);
+        if (e.code === 'Digit6' && gameState === STATE.PLAYING) Weapons.switchTo(5);
+        if (e.code === 'Digit7' && gameState === STATE.PLAYING) Weapons.switchTo(6);
+        if (e.code === 'Digit8') Weapons.switchTo(7);
+        if (e.code === 'Digit9') Weapons.switchTo(8);
+        if (e.code === 'Digit0') Weapons.switchTo(9);
+        if (e.code === 'KeyQ' && !keys['AltLeft'] && gameState === STATE.PLAYING) {
+          if (!_weaponWheelHeld) {
+            _weaponWheelHeld = true;
+            // Build weapon list from unlocked weapons
+            var _wwWeapons = [];
+            var _wwUnlocked = Weapons.getUnlockedList ? Weapons.getUnlockedList() : [];
+            for (var _wi = 0; _wi < _wwUnlocked.length; _wi++) {
+              var _wwIdx = _wwUnlocked[_wi];
+              var _wwDef = Weapons.getWeaponDef ? Weapons.getWeaponDef(_wwIdx) : null;
+              var _wwState = Weapons.getWeaponState ? Weapons.getWeaponState(_wwIdx) : null;
+              if (_wwDef) {
+                _wwWeapons.push({
+                  name: _wwDef.name || ('Weapon ' + (_wwIdx + 1)),
+                  icon: '🔫',
+                  ammo: _wwState ? _wwState.clip : 0,
+                  maxAmmo: _wwDef.clipSize || 30,
+                  _origIdx: _wwIdx,
+                });
+              }
+            }
+            if (typeof HUD !== 'undefined' && HUD.showWeaponWheel) {
+              // Find position of current weapon in unlocked list
+              var _wwCurIdx = Weapons.getCurrentIdx ? Weapons.getCurrentIdx() : 0;
+              var _wwCurPos = 0;
+              for (var _wj = 0; _wj < _wwUnlocked.length; _wj++) {
+                if (_wwUnlocked[_wj] === _wwCurIdx) { _wwCurPos = _wj; break; }
+              }
+              HUD.showWeaponWheel(_wwWeapons, _wwCurPos);
+            }
+          }
+        }
+        if (e.code === 'KeyE' && !keys['AltLeft'] && gameState === STATE.PLAYING) {
+          // ── Grapple: Ctrl+E fires hook; E while attached releases ──
+          var _grappleHandled = false;
+          if (window.Grapple && !VehicleSystem.isInVehicle() && !DroneSystem.isPossessing()) {
+            if (Grapple.isActive()) {
+              Grapple.release();
+              _grappleHandled = true;
+            } else if (e.ctrlKey) {
+              Grapple.fire(player.position, _camera);
+              _grappleHandled = true;
+            }
+          }
+          if (!_grappleHandled) {
+            // Check for nearby scavenged weapon drop first (E key)
+            if (window.ScavengeSystem && player && ScavengeSystem.tryPickup(player.position)) {
+              // Pickup succeeded — skip further E-key actions
+            } else {
+            // Check for nearby attachment pickup first
+            var _atkPickedUp = false;
+            if (typeof Attachments !== 'undefined' && _scene && player) {
+              var _atkChildren = _scene.children;
+              for (var _ati = 0; _ati < _atkChildren.length; _ati++) {
+                var _atkMesh = _atkChildren[_ati];
+                if (!_atkMesh || !_atkMesh.userData || !_atkMesh.userData.isAttachmentPickup) continue;
+                var _atkDist = _atkMesh.position.distanceTo(player.position);
+                if (_atkDist <= 1.5) {
+                  var _atkId = _atkMesh.userData.attachmentId;
+                  var _atkSlot = Weapons.getCurrentIdx();
+                  Attachments.attach(_atkSlot, _atkId);
+                  _scene.remove(_atkMesh);
+                  if (_atkMesh.geometry) _atkMesh.geometry.dispose();
+                  if (_atkMesh.material) _atkMesh.material.dispose();
+                  // Refresh weapon HUD to show new attachment icon
+                  if (typeof HUD !== 'undefined' && HUD.setWeapon && Weapons.getCurrentName) {
+                    var _atkDef = Attachments.getAttached(_atkSlot);
+                    var _atkIcon = _atkDef ? ' ' + _atkDef.icon : '';
+                    HUD.setWeapon(Weapons.getCurrentName() + _atkIcon, _atkSlot);
+                  }
+                  _atkPickedUp = true;
+                  break;
+                }
+              }
+            }
+            if (!_atkPickedUp) Weapons.switchNext();
+            } // end else (no scavenge pickup)
+          }
         }
         if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
+        if (e.code === 'KeyR' && !e.shiftKey && !e.ctrlKey && !keys['KeyM'] && window.RadioSupport) { RadioSupport.openMenu(); }
 
         // Build mode: template selection
         if (gameState === STATE.BUILD_MODE) {
@@ -2317,6 +3976,7 @@ const GameManager = (function () {
           if (e.code === 'Space')     VehicleSystem.setVehicleKey('up', true);
           if (e.code === 'ShiftLeft') VehicleSystem.setVehicleKey('down', true);
         }
+        if (e.code === 'ShiftLeft') { if (window.StaminaSystem) StaminaSystem.startSprint(); }
       }
 
       // ── B26: FPS display toggle (F10) ──
@@ -2362,6 +4022,20 @@ const GameManager = (function () {
         CombatExtras.setLean(0);
       }
 
+      // Weapon wheel: release Q to confirm selection
+      if (e.code === 'KeyQ' && _weaponWheelHeld) {
+        _weaponWheelHeld = false;
+        var _wwSelected = (typeof HUD !== 'undefined' && HUD.hideWeaponWheel) ? HUD.hideWeaponWheel() : -1;
+        if (_wwSelected >= 0) {
+          // _wwSelected is position in unlocked list; resolve to actual weapon index
+          var _wwUnlockedOnUp = Weapons.getUnlockedList ? Weapons.getUnlockedList() : [];
+          var _wwTargetIdx = (_wwUnlockedOnUp[_wwSelected] !== undefined) ? _wwUnlockedOnUp[_wwSelected] : -1;
+          if (_wwTargetIdx >= 0 && _wwTargetIdx !== (Weapons.getCurrentIdx ? Weapons.getCurrentIdx() : 0)) {
+            Weapons.switchTo(_wwTargetIdx);
+          }
+        }
+      }
+
       if (CameraSystem.getMode() === CameraSystem.MODE.STRATEGIC) {
         if (e.code === 'ArrowUp'    || e.code === 'KeyW') CameraSystem.setRTSKey('up', false);
         if (e.code === 'ArrowDown'  || e.code === 'KeyS') CameraSystem.setRTSKey('down', false);
@@ -2384,6 +4058,7 @@ const GameManager = (function () {
         if (e.code === 'Space')     VehicleSystem.setVehicleKey('up', false);
         if (e.code === 'ShiftLeft') VehicleSystem.setVehicleKey('down', false);
       }
+      if (e.code === 'ShiftLeft') { if (window.StaminaSystem) StaminaSystem.stopSprint(); }
     });
 
     // Mobile audio unlock — resume Web Audio context on first touch (iOS/Android requirement)
@@ -2448,6 +4123,8 @@ const GameManager = (function () {
           handleMinecraftPlace();
         } else {
           Weapons.handleRightDown();
+          // ADS: aim down sights on right-click (non-melee, non-vehicle)
+          if (window.ADSSystem && ADSSystem.startADS) ADSSystem.startADS();
         }
       }
     });
@@ -2460,25 +4137,25 @@ const GameManager = (function () {
           VehicleSystem.setVehicleKey('mgFire', false);
         }
         Weapons.handleRightUp();
+        // ADS: exit aim-down-sights on right-click release
+        if (window.ADSSystem && ADSSystem.stopADS) ADSSystem.stopADS();
       }
     });
 
     document.addEventListener('mousemove', function (e) {
+      if (_weaponWheelHeld && typeof HUD !== 'undefined' && HUD.updateWeaponWheelMouse) {
+        HUD.updateWeaponWheelMouse(e.clientX, e.clientY);
+      }
       if (document.pointerLockElement) {
         var stunScale = GameManager._flashbangStun > 0 ? 0.15 : 1;
-        var sensScale = stunScale * _mouseSensitivity;
-        CameraSystem.handleMouseMove(e.movementX * sensScale, e.movementY * sensScale);
+        CameraSystem.handleMouseMove(e.movementX * stunScale, e.movementY * stunScale);
       }
     });
 
     document.addEventListener('wheel', function (e) {
       if (gameState === STATE.PLAYING) {
-        if (DroneSystem.isPossessing()) {
-          DroneSystem.cyclePayload(e.deltaY > 0 ? 1 : -1);
-        } else {
-          if (e.deltaY > 0) Weapons.switchNext();
-          else if (e.deltaY < 0) Weapons.switchPrev();
-        }
+        if (e.deltaY > 0) Weapons.switchNext();
+        else if (e.deltaY < 0) Weapons.switchPrev();
       } else {
         CameraSystem.handleWheel(e.deltaY);
       }
@@ -2834,8 +4511,6 @@ const GameManager = (function () {
     }
   }
 
-  var _payloadBarBound = false;
-
   function showDroneControlsHUD(droneType) {
     var hud = document.getElementById('drone-controls-hud');
     if (!hud) return;
@@ -2854,35 +4529,27 @@ const GameManager = (function () {
     var payloadDisp = document.getElementById('drone-payload-display');
     var modeEl = document.getElementById('drone-view-mode');
 
-    var names = {
-      fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER',
-      recon: 'RECON', incendiary: 'INCENDIARY', baba_yaga: 'BABA YAGA',
-      bayraktar: 'BAYRAKTAR TB2', kamikaze: 'KAMIKAZE',
-    };
+    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON' };
     if (typeLabel) typeLabel.textContent = '\u2014 ' + (names[droneType] || droneType.toUpperCase());
     if (modeEl) modeEl.textContent = 'EYE';
 
-    var hasFire = droneType === 'fpv_attack' || droneType === 'bomb' || droneType === 'incendiary' || droneType === 'baba_yaga' || droneType === 'kamikaze';
-    var actionLabels = { fpv_attack: 'Kamikaze', bomb: 'Drop Bomb', incendiary: 'Drop Fire', baba_yaga: 'Drop Thermite', kamikaze: 'Strike', surveillance: 'Use Payload', recon: 'Use Payload' };
-    if (actionText) actionText.textContent = actionLabels[droneType] || 'Action';
-    if (actionHint) actionHint.style.display = hasFire || droneType === 'surveillance' || droneType === 'recon' ? '' : 'none';
-    if (payloadDisp) payloadDisp.style.display = 'none';
-
-    // Wire payload \u25c4 \u25ba buttons once
-    if (!_payloadBarBound) {
-      _payloadBarBound = true;
-      var btnPL = document.getElementById('drone-payload-prev');
-      var btnPR = document.getElementById('drone-payload-next');
-      if (btnPL) btnPL.addEventListener('click', function(e) { e.stopPropagation(); DroneSystem.cyclePayload(-1); });
-      if (btnPR) btnPR.addEventListener('click', function(e) { e.stopPropagation(); DroneSystem.cyclePayload(1); });
+    if (droneType === 'fpv_attack') {
+      if (actionText) actionText.textContent = 'Kamikaze Dive';
+      if (actionHint) actionHint.style.display = '';
+      if (payloadDisp) payloadDisp.style.display = 'none';
+    } else if (droneType === 'bomb') {
+      if (actionText) actionText.textContent = 'Drop Bomb';
+      if (actionHint) actionHint.style.display = '';
+      if (payloadDisp) payloadDisp.style.display = '';
+    } else {
+      if (actionHint) actionHint.style.display = 'none';
+      if (payloadDisp) payloadDisp.style.display = 'none';
     }
   }
 
   function hideDroneControlsHUD() {
     var hud = document.getElementById('drone-controls-hud');
     if (hud) hud.style.display = 'none';
-    var bar = document.getElementById('drone-payload-bar');
-    if (bar) bar.style.display = 'none';
     _droneControlsVisible = false;
   }
 
@@ -3000,29 +4667,16 @@ const GameManager = (function () {
       }
     }
     if (payloadEl) {
-      if (drone.hasPayload) {
+      if (drone.type === 'bomb') {
         payloadEl.style.display = '';
-        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD READY';
-        payloadEl.style.color = '#ffaa00';
-      } else if (drone.type === 'bomb' || drone.type === 'incendiary' || drone.type === 'baba_yaga') {
+        payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
+        payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';
+      } else if (typeof drone.payloadCount === 'number') {
         payloadEl.style.display = '';
-        payloadEl.textContent = '\uD83D\uDCA3 PAYLOAD DROPPED';
-        payloadEl.style.color = '#666';
+        payloadEl.textContent = '\uD83C\uDFAF CHARGES [\u00D7' + drone.payloadCount + ']';
+        payloadEl.style.color = drone.payloadCount > 0 ? '#ffaa00' : '#666';
       } else {
         payloadEl.style.display = 'none';
-      }
-    }
-
-    // Payload selector bar \u2014 show when possessing any drone with payload options
-    var payloadBar = document.getElementById('drone-payload-bar');
-    var payloadLabel = document.getElementById('drone-payload-label');
-    if (payloadBar) {
-      var activePL = DroneSystem.getActivePayload ? DroneSystem.getActivePayload() : null;
-      if (activePL) {
-        payloadBar.style.display = 'flex';
-        if (payloadLabel) payloadLabel.textContent = (activePL.icon || '') + ' ' + activePL.name;
-      } else {
-        payloadBar.style.display = 'none';
       }
     }
 
@@ -3221,7 +4875,38 @@ const GameManager = (function () {
     player.hp = player.maxHp;
     player.score = 0;
     player.kills = 0;
+    if (typeof Perks !== 'undefined') Perks.reset();
+    if (typeof KillStreak !== 'undefined') KillStreak.reset();
+    if (window.BallisticShield) BallisticShield.reset();
+    if (window.TimeWarp) TimeWarp.reset();
+    if (window.ScavengeSystem) ScavengeSystem.reset();
+    if (window.TripwireIED) TripwireIED.reset();
+    if (window.LootDrops) LootDrops.reset();
+    if (window.WaveEvents) WaveEvents.reset();
+    if (window.MortarEmplacement && MortarEmplacement.reset) MortarEmplacement.reset();
+    if (window.BountySystem) BountySystem.reset();
+    if (window.Destructibles) Destructibles.reset();
+    if (window.VehicleEnemies) VehicleEnemies.reset();
+    if (window.StaminaSystem) StaminaSystem.reset();
+    if (window.Grapple) Grapple.reset();
+    if (window.ZiplineGrapple) ZiplineGrapple.reset();
+    if (window.Wingsuit) Wingsuit.reset();
+    if (window.CrouchSystem) CrouchSystem.reset();
+    if (window.SpecialGrenades) SpecialGrenades.reset();
+    if (window.BloodEffects) BloodEffects.reset();
+    if (window.MeleeKnife) MeleeKnife.reset();
+    if (window.ClaymoreMines) ClaymoreMines.reset();
+    if (window.RadioSupport) RadioSupport.reset();
+    if (typeof ArmorSystem !== 'undefined') ArmorSystem.reset();
+    if (window.GasMask) GasMask.reset();
+    if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
+    window._killstreakTimeScale = 1.0;
+    window._killstreakHealthRegen = 0;
+    window._killstreakAmmoRefill = 0;
     currentWave = 0;
+    _scoreChain = 1;
+    _chainTimer = 0;
+    _chainKills = 0;
     currentStage = 0;
     // Stage jump: QA harness override or player map selection from start menu
     if (typeof window !== 'undefined') {
@@ -3250,6 +4935,11 @@ const GameManager = (function () {
     player.distanceWalked = 0;
     player._lastPos = null;
     player.playStartTime = performance.now();
+    player.stageStartTime = performance.now();
+    _levelStartTime = Date.now();  // record when this level started
+    player.stageShots = 0;
+    player.stageHits = 0;
+    player.stageHeadshots = 0;
     player.buildMaterials = { wood: 0, stone: 0, metal: 0, dirt: 0, sand: 0, brick: 0 };
     // Clear desaturation filter
     if (_renderer && _renderer.domElement) _renderer.domElement.style.filter = '';
@@ -3267,6 +4957,7 @@ const GameManager = (function () {
 
     // Reset skills on new game (skills are designed to accrue per-run, not persist)
     if (typeof SkillSystem !== 'undefined' && SkillSystem.init) SkillSystem.init();
+    if (typeof Medals !== 'undefined') Medals.reset();
 
     // Preserve scalar god-mode effects across a new run.
     if (player.godMode) {
@@ -3311,10 +5002,12 @@ const GameManager = (function () {
     }
 
     // Apply the starting stage (normally 0; the QA stage-jump hook may have
-    // overridden currentStage above)
-    applyStage(currentStage);
+    // overridden currentStage above).
+    // Show level briefing before generating the level, if available.
+    var _proceedToLevel = function() {
+      applyStage(currentStage);
 
-    const spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
+    var spawnH = window.VoxelWorld.getTerrainHeight(0, 0);
     player.position.set(0, spawnH + player.height, 0);
 
     Weapons.reset();
@@ -3334,7 +5027,6 @@ const GameManager = (function () {
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined') Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
-    if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.clear) CollapsePhysics.clear(_scene);
     if (typeof Flags !== 'undefined' && Flags.clear) Flags.clear();
     if (typeof Environment !== 'undefined' && Environment.clear) Environment.clear();
     if (typeof WeatherSystem !== 'undefined' && WeatherSystem.clear) WeatherSystem.clear();
@@ -3400,13 +5092,7 @@ const GameManager = (function () {
     // Generate an initial mission. Stage-specific signature missions take priority.
     // droneOnly stages (stage 18 Refinery) handle missions entirely via RefineryStrike.
     if (!(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
-      // __forceMission: set by menu "data-mission" buttons (e.g. Bradley) to bypass random pick
-      var _forcedType = (typeof window !== 'undefined' && window.__forceMission) ? window.__forceMission : null;
-      if (_forcedType) {
-        window.__forceMission = null; // consume once
-        var _forceM = MissionSystem.generateMission(_forcedType);
-        _autoReconDroneForMission(_forceM);
-      } else if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
+      if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
         MissionSystem.generateMission('kyiv_defense');
       } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
         MissionSystem.generateMission('airborne_assault');
@@ -3414,6 +5100,13 @@ const GameManager = (function () {
         var _initMission = MissionSystem.generateRandom();
         _autoReconDroneForMission(_initMission);
       }
+    }
+    }; // end _proceedToLevel
+    var _stageName = STAGES[currentStage] ? STAGES[currentStage].name : '';
+    if (window.LevelBriefing && _stageName) {
+      LevelBriefing.showBriefing(_stageName, _proceedToLevel);
+    } else {
+      _proceedToLevel();
     }
     } catch (err) {
       console.error('Failed to initialize game:', err);
@@ -3514,11 +5207,39 @@ const GameManager = (function () {
     }
 
     // Generate level terrain and features
+    if (typeof Mines !== 'undefined') Mines.clear();
+    if (window.TimeWarp) TimeWarp.clear();
+    if (window.WaveEvents) WaveEvents.clear();
+    if (window.LootDrops) LootDrops.clear();
+    if (window.BountySystem) BountySystem.clear();
+    if (window.Destructibles) Destructibles.clear();
+    if (window.VehicleEnemies) VehicleEnemies.clear();
+    if (window.Grapple) Grapple.clear();
+    if (window.SpecialGrenades) SpecialGrenades.clear();
+    if (window.BloodEffects) BloodEffects.clear();
+    if (window.DamageNumbers) DamageNumbers.clear();
+    if (window.ClaymoreMines) ClaymoreMines.clear();
+    if (window.TripwireIED) TripwireIED.clear();
+    if (window.RadioSupport) RadioSupport.clear();
+    if (window.CompanionRadio && CompanionRadio.clear) CompanionRadio.clear();
+    if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
+    if (window.GasMask) GasMask.clear();
+    if (window.MeleeKnife) MeleeKnife.clear();
+    if (window.WeatherEffects) WeatherEffects.clear();
+    if (window.IntelPickups) IntelPickups.clear(_scene);
+    if (window.ScavengeSystem) ScavengeSystem.clear();
+    if (window.DogTags) DogTags.clear();
+    if (window.SurrenderSystem) SurrenderSystem.clear();
+    if (window.SuppressionSystem) SuppressionSystem.reset();
     window.VoxelWorld.generateLevel(stageIndex);
 
-    // Roadside war-scene set dressing (civilian + destroyed military vehicles)
-    if (typeof CityProps !== 'undefined' && CityProps.populate) {
-      try { CityProps.populate(_scene, stageIndex, stageDef); } catch (eCP) { if (typeof console !== 'undefined') console.warn('CityProps.populate failed:', eCP); }
+    // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
+    if (stageDef.id === 2 || stageDef.id === 3 || stageDef.id === 10 || stageDef.id === 16) {
+      var _minePositions = [[-15,0,-20],[15,0,-20],[0,0,-30],[25,0,10],[-25,0,10],[-10,0,15],[10,0,-15],[-30,0,-25],[30,0,25],[0,0,20]];
+      for (var _mi = 0; _mi < _minePositions.length; _mi++) {
+        if (typeof Mines !== 'undefined') Mines.placeMine(_minePositions[_mi][0], 0, _minePositions[_mi][2]);
+      }
+      HUD.notifyPickup('⚠️ MINEFIELD DETECTED', '#ffaa00');
     }
 
     // Capital defense (Kyiv): fresh city integrity + defense zone at Maidan.
@@ -3565,9 +5286,7 @@ const GameManager = (function () {
 
     // Start stage-specific environmental VFX
     if (typeof StageVFX !== 'undefined' && StageVFX.startStageEffects) {
-      // cityscape = war-torn city (Moscow/Kremlin) — always gets smoke + artillery flash
-      var _warzoneAtmo = !!stageDef.capitalDefense || stageDef.theme === 'cityscape';
-      StageVFX.startStageEffects(stageDef.theme, { warzone: _warzoneAtmo });
+      StageVFX.startStageEffects(stageDef.theme, { warzone: !!stageDef.capitalDefense });
     }
 
     // Spawn water bodies per stage
@@ -3616,9 +5335,59 @@ const GameManager = (function () {
         WorldFeatures.spawnWaterBody(wc[wi].cx, wc[wi].cz, wc[wi].rx, wc[wi].rz, wc[wi].d);
       }
     }
+
+    // Radio comms: map numeric stage id to named level key
+    if (typeof Radio !== 'undefined') {
+      var _radioLevelMap = {
+        3: 'BAKHMUT', 4: 'KHERSON', 5: 'MARIUPOL', 6: 'CRIMEA',
+        7: 'CHORNOBYL', 12: 'KREMLIN', 13: 'KYIV', 14: 'SNAKE',
+      };
+      Radio.init();
+      Radio.setLevel(_radioLevelMap[stageDef.id] || null);
+    }
+    if (typeof HazardZones !== 'undefined') HazardZones.setupForLevel(stageDef ? stageDef.id : null);
+    if (window.Destructibles) Destructibles.setupForLevel(stageDef ? stageDef.id : null, _scene);
+    if (window.IntelPickups) IntelPickups.spawnForLevel(stageDef ? stageDef.id : null, _scene);
+    if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.setupForLevel(stageDef ? stageDef.id : '');
+    if (window.WeatherEffects) {
+      var _weatherMap = { 13:'RAIN', 3:'RAIN', 5:'FOG_STORM', 7:'FOG_STORM', 6:'FOG_STORM', 8:'SNOW', 11:'SNOW', 12:'SNOW' };
+      WeatherEffects.setWeather(stageDef ? (_weatherMap[stageDef.id] || 'CLEAR') : 'CLEAR');
+    }
+    if (typeof SupplyCrate !== 'undefined') SupplyCrate.clear();
   }
 
   function getCurrentStage() { return STAGES[currentStage]; }
+
+  function showPrestigePrompt() {
+    var overlay = document.createElement('div');
+    overlay.id = 'prestige-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;color:#FFD700;';
+    var prestigeBonus = Math.round((window._prestigeLevel + 1) * 25);
+    overlay.innerHTML = '<h1 style="font-size:3em;margin:0 0 20px 0;">&#11088; PRESTIGE AVAILABLE &#11088;</h1>' +
+      '<p style="font-size:1.4em;color:#fff;margin:0 0 10px 0;">You completed all ' + STAGES.length + ' missions.</p>' +
+      '<p style="font-size:1.2em;color:#aaa;margin:0 0 30px 0;">Prestige level: <b style="color:#FFD700">' + window._prestigeLevel + '</b></p>' +
+      '<p style="font-size:1.1em;color:#7CFC00;margin:0 0 40px 0;">Prestige now &rarr; +' + prestigeBonus + '% permanent score bonus + 5% fire rate</p>' +
+      '<div style="display:flex;gap:20px;">' +
+      '<button id="prestige-yes" style="padding:15px 40px;font-size:1.3em;background:#FFD700;color:#000;border:none;cursor:pointer;border-radius:4px;">PRESTIGE NOW</button>' +
+      '<button id="prestige-no" style="padding:15px 40px;font-size:1.3em;background:#555;color:#fff;border:none;cursor:pointer;border-radius:4px;">Keep Playing</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    document.getElementById('prestige-yes').onclick = function() {
+      window._prestigeLevel++;
+      localStorage.setItem('okk_prestige', String(window._prestigeLevel));
+      window._prestigeScoreMult = 1 + (window._prestigeLevel * 0.25);
+      window._prestigeFireRate = 1 + (window._prestigeLevel * 0.05);
+      try { if (typeof Achievements !== 'undefined' && Achievements.recordPrestige) Achievements.recordPrestige(window._prestigeLevel); } catch (eAchP) {}
+      document.body.removeChild(overlay);
+      // Restart from level 0
+      currentStage = 0;
+      currentWave = 0;
+      startLevel();
+    };
+    document.getElementById('prestige-no').onclick = function() {
+      document.body.removeChild(overlay);
+    };
+  }
 
   function nextStage() {
     hideOverlays();
@@ -3626,15 +5395,13 @@ const GameManager = (function () {
     try {
     currentStage++;
     if (currentStage >= STAGES.length) {
-      // All stages done — win!
+      // All stages done — win! Show prestige prompt then win screen.
       gameState = STATE.WIN;
       showOverlay('win');
       var _ws = document.getElementById('win-score');  if (_ws) _ws.textContent = player.score;
       var _wk = document.getElementById('win-kills');  if (_wk) _wk.textContent = player.kills;
       var _wst = document.getElementById('win-stages'); if (_wst) _wst.textContent = STAGES.length;
-      var _winHS2 = document.getElementById('win-headshots'); if (_winHS2) _winHS2.textContent = player.totalHeadshots || 0;
-      var _winAcc2 = document.getElementById('win-accuracy'); if (_winAcc2) _winAcc2.textContent = player.totalShots > 0 ? Math.round((player.totalHits / player.totalShots) * 100) : 0;
-      var _winDmg2 = document.getElementById('win-damage'); if (_winDmg2) _winDmg2.textContent = Math.round(player.totalDamageTaken || 0);
+      showPrestigePrompt();
       return;
     }
 
@@ -3675,6 +5442,10 @@ const GameManager = (function () {
 
     // Reset wave count for new stage
     currentWave = 0;
+    _scoreChain = 1;
+    _chainTimer = 0;
+    _chainKills = 0;
+    _updateChainDisplay();
 
     // Heal player between stages (50% of missing HP restored)
     const missingHp = player.maxHp - player.hp;
@@ -3696,7 +5467,6 @@ const GameManager = (function () {
     if (typeof Tracers !== 'undefined' && Tracers.clear) Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
     if (typeof Environment !== 'undefined' && Environment.clear) Environment.clear();
-    if (typeof CollapsePhysics !== 'undefined' && CollapsePhysics.clear) CollapsePhysics.clear(_scene);
     if (typeof WorldFeatures !== 'undefined' && WorldFeatures.clear) WorldFeatures.clear();
     if (typeof CombatExtras !== 'undefined' && CombatExtras.reset) CombatExtras.reset();
     if (typeof Traversal !== 'undefined' && Traversal.reset) Traversal.reset();
@@ -3758,9 +5528,26 @@ const GameManager = (function () {
     HUD.setStage(stageDef.id, stageDef.name);
     HUD.setWave(0);
 
+    player.stageStartTime = performance.now();
+    _levelStartTime = Date.now();  // record when this stage started
+    player.stageShots = 0;
+    player.stageHits = 0;
+    player.stageHeadshots = 0;
     hideOverlays();
-    gameState = STATE.PLAYING;
-    requestPointerLock();
+
+    // ── Loadout selection before stage begins ──
+    if (typeof Loadout !== 'undefined') {
+      gameState = STATE.PAUSED;
+      Loadout.show(function(result) {
+        _loadoutResult = result;
+        if (typeof Loadout !== 'undefined') Loadout.applyLoadout(result, player);
+        gameState = STATE.PLAYING;
+        requestPointerLock();
+      });
+    } else {
+      gameState = STATE.PLAYING;
+      requestPointerLock();
+    }
 
     // Clear stale missions from prior stage and seed a fresh stage-appropriate one
     if (typeof MissionSystem !== 'undefined' && MissionSystem.init) MissionSystem.init();
@@ -3852,40 +5639,13 @@ const GameManager = (function () {
     var _battlePlan = (stageDef && stageDef.capitalDefense)
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
-    // Mobile enemy cap: reduce group count to keep frame rate manageable.
-    // Scale reduction by adaptive quality level — low-end devices get fewest enemies.
-    if (isMobile) {
-      if (!_battlePlan) _battlePlan = {};
-      var _mobileGroupCut = _perfLevel >= 3 ? -5 : (_perfLevel >= 2 ? -4 : -3);
-      _battlePlan.groupDelta = (_battlePlan.groupDelta || 0) + _mobileGroupCut;
-    }
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
-
-    // Infantry guarantee: if wave spawned zero ground enemies, force-spawn a minimum squad
-    setTimeout(function() {
-      try {
-        var _droneTypes = { DRONE_OP:1, KAMIKAZE_DRONE:1, SWARM_OP:1, EW_OPERATOR:1 };
-        var alive = Enemies.getAll ? Enemies.getAll().filter(function(e) {
-          return e && e.alive && e.typeName && !_droneTypes[e.typeName];
-        }) : [];
-        console.log('[Wave ' + w + '] Infantry alive after wave start: ' + alive.length + ' / total alive: ' + (Enemies.getAliveCount ? Enemies.getAliveCount() : '?'));
-        if (alive.length === 0) {
-          console.warn('[Wave ' + w + '] NO INFANTRY SPAWNED — forcing minimum squad');
-          var _gTypes = ['CONSCRIPT', 'STORMER', 'ENGINEER'];
-          var _spawnCount = 3 + w;
-          for (var _gi = 0; _gi < _spawnCount; _gi++) {
-            var _gt = _gTypes[_gi % _gTypes.length];
-            var _ga = (_gi / _spawnCount) * Math.PI * 2;
-            var _gr = 20 + Math.random() * 10;
-            Enemies.spawnSingle(_gt, {
-              x: player.position.x + Math.cos(_ga) * _gr,
-              z: player.position.z + Math.sin(_ga) * _gr
-            });
-          }
-        }
-      } catch (e) { console.error('[Wave] infantry-guarantee check failed:', e); }
-    }, 800);
-
+    if (window.BountySystem) BountySystem.markEnemy(Enemies ? Enemies.getAll() : []);
+    if (window.VehicleEnemies && currentWave && currentWave % 5 === 0) {
+      VehicleEnemies.spawnBTR(_scene, player.position.x + 20, player.position.z + 20);
+    }
+    if (typeof AllySoldiers !== 'undefined') AllySoldiers.spawnForWave(player.position, currentWave);
+    if (typeof SupplyCrate !== 'undefined') SupplyCrate.dropAtWave(currentWave);
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -3897,6 +5657,12 @@ const GameManager = (function () {
     var _sideObj = (typeof MissionSystem !== 'undefined' && MissionSystem.getSideObjective) ? MissionSystem.getSideObjective() : null;
     if (_sideObj && HUD.notifyPickup) HUD.notifyPickup('⭐ SIDE OBJ: ' + _sideObj.name + ' — ' + _sideObj.desc + ' (+' + _sideObj.reward + ' OKC)', '#ffcc00');
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
+    // 25% chance of weather event on wave 3+
+    if (currentWave >= 3 && Math.random() < 0.25 && typeof WeatherEvents !== 'undefined') {
+      WeatherEvents.triggerRandom();
+    }
+    // Random mid-wave events — trigger 'start' phase
+    if (window.WaveEvents) WaveEvents.triggerRandom(currentWave, 'start');
     // Show recommended weapons hint on wave 1 if stage defines them
     if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
       HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
@@ -3914,10 +5680,7 @@ const GameManager = (function () {
         // omit y so spawnOne() resolves terrain height itself
       });
       HUD.notifyPickup('⚠ BOSS INCOMING: ' + (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES && EnemyTypes.TYPES[bossType] ? EnemyTypes.TYPES[bossType].name : 'COMMANDER'), '#ff0000');
-      // Escalate to intense 140-BPM battle theme for boss fight
-      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playBossMusic) {
-        window.AudioSystem.playBossMusic();
-      }
+      if (window.CompanionRadio && CompanionRadio.onBossSpawn) CompanionRadio.onBossSpawn();
     }
 
     // ═══ Blood Moon effect on final 2 waves ═══
@@ -4716,10 +6479,14 @@ const GameManager = (function () {
     player._waveStartCount = Enemies.getAliveCount();
     // Re-announce with correct enemy count now that all spawning is complete
     HUD.announceWave(w, player._waveStartCount, stageDef.wavesPerStage);
+    if (window.CompanionRadio && CompanionRadio.onWaveStart) CompanionRadio.onWaveStart();
   }
 
   function onWaveComplete() {
     try {
+    if (typeof HUD !== 'undefined' && HUD.hideBossBar) HUD.hideBossBar();
+    if (window.CompanionRadio && CompanionRadio.onWaveComplete) CompanionRadio.onWaveComplete();
+    if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
     player.score += SCORE_WAVE_BONUS;
     HUD.setScore(player.score);
     MLSystem.onWaveComplete(currentWave, currentStage, player.hp / player.maxHp);
@@ -4795,6 +6562,22 @@ const GameManager = (function () {
       Progression.updateBounty('low_damage', Math.round(player.waveDamageTaken));
       Progression.save();
     }
+    // Achievements: record wave complete
+    try {
+      if (typeof Achievements !== 'undefined' && Achievements.recordWaveComplete) {
+        var _achLevelId = (typeof stageDef !== 'undefined' && stageDef) ? stageDef.id : null;
+        Achievements.recordWaveComplete(_achLevelId);
+        if (Achievements.recordSurvivor) Achievements.recordSurvivor(player.hp, player.maxHp || 100);
+      }
+    } catch (eAchW) {}
+    // Daily challenges: record wave + score
+    try {
+      if (typeof DailyChallenges !== 'undefined') {
+        DailyChallenges.recordWave();
+        DailyChallenges.recordScore(player.score);
+        if (player.waveDamageTaken === 0) DailyChallenges.recordNoDamageWave();
+      }
+    } catch (eDCW) {}
     // Radio chatter on wave clear
     if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_clear');
     // Achievement checks
@@ -4856,6 +6639,26 @@ const GameManager = (function () {
     var _snapWaveHits = player.waveHits;
     var _snapWaveDmg = player.waveDamageTaken;
     var _snapWaveTime = Math.round((performance.now() - (player.waveStartTime || performance.now())) / 1000);
+
+    // Show wave medals
+    if (typeof Medals !== 'undefined') {
+      var _medalStats = {
+        kills: _snapWaveKills || 0,
+        headshots: player.waveHeadshots || 0,
+        shots: _snapWaveShots || 0,
+        waveHits: _snapWaveHits || 0,
+        damageTaken: _snapWaveDmg || 0,
+        waveTime: _snapWaveTime || 0,
+        survived: player.hp > 0,
+        healsUsed: player.waveBandagesUsed || 0,
+        explosiveKills: player.waveExplosiveKills || 0,
+        vehicleKills: player.waveVehicleKills || 0,
+        hp: player.hp,
+        ammoUsed: _snapWaveShots || 0,
+      };
+      var _waveMedals = Medals.evaluateWave(_medalStats);
+      if (_waveMedals.length > 0) Medals.showWaveMedals(_waveMedals, currentWave);
+    }
 
     // Reset wave stats (AFTER all tracking above)
     player.waveKills = 0;
@@ -4971,41 +6774,97 @@ const GameManager = (function () {
         showOverlay('win');
         document.getElementById('win-score').textContent = player.score;
         document.getElementById('win-kills').textContent = player.kills;
-        var _winHS = document.getElementById('win-headshots'); if (_winHS) _winHS.textContent = player.totalHeadshots || 0;
-        var _winAcc = document.getElementById('win-accuracy'); if (_winAcc) _winAcc.textContent = player.totalShots > 0 ? Math.round((player.totalHits / player.totalShots) * 100) : 0;
-        var _winDmg = document.getElementById('win-damage'); if (_winDmg) _winDmg.textContent = Math.round(player.totalDamageTaken || 0);
         document.getElementById('win-stages').textContent = STAGES.length;
         return;
       }
 
-      // Show stage clear overlay
-      gameState = STATE.STAGE_CLEAR;
-      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playLevelComplete) window.AudioSystem.playLevelComplete();
-      showOverlay('stageclear');
-      var _scn = document.getElementById('stageclear-num');   if (_scn) _scn.textContent = stageDef.id;
-      var _scna = document.getElementById('stageclear-name'); if (_scna) _scna.textContent = stageDef.name;
-      var _scs = document.getElementById('stageclear-score'); if (_scs) _scs.textContent = player.score;
-      var _sck = document.getElementById('stageclear-kills'); if (_sck) _sck.textContent = player.kills;
-
-      // Show heal preview
-      const missingHp = player.maxHp - player.hp;
-      const healAmount = Math.ceil(missingHp * 0.5);
-      const healEl = document.getElementById('stageclear-heal');
-      if (healEl) {
-        healEl.textContent = healAmount > 0
-          ? '❤ +' + healAmount + ' HP will be restored'
-          : '❤ Full health!';
+      // Show level grade overlay
+      if (typeof HUD !== 'undefined' && HUD.showLevelGrade) {
+        var _gradeStats = {
+          levelName: stageDef ? stageDef.name : 'MISSION',
+          score: player.score || 0,
+          kills: player.kills || 0,
+          headshots: player.headshots || player.waveHeadshots || 0,
+          shots: player.shots || player.waveShots || 0,
+          damageTaken: player.totalDamageTaken || player.waveDamageTaken || 0,
+          wavesCompleted: currentWave || 0,
+          totalWaves: stageDef ? (stageDef.wavesPerLevel || stageDef.wavesPerStage || 7) : 7,
+          time: ((performance.now() - (player.stageStartTime || performance.now())) / 1000)
+        };
+        HUD.showLevelGrade(_gradeStats);
       }
 
-      const nextStageDef = STAGES[currentStage + 1];
-      var _scnn = document.getElementById('stageclear-next-name');   if (_scnn) _scnn.textContent = nextStageDef ? nextStageDef.name : 'VICTORY';
-      var _scnl = document.getElementById('stageclear-next-label');  if (_scnl) _scnl.style.display = nextStageDef ? '' : 'none';
-      // Defensive: ensure no lingering auto-countdown can bypass stage clear
-      if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
+      // Submit level record to leaderboard
+      if (typeof Leaderboard !== 'undefined' && Leaderboard.submitLevelRecord && stageDef) {
+        var _stageAcc = (player.stageShots || 0) > 0
+          ? Math.round(((player.stageHits || 0) / (player.stageShots || 1)) * 100) : 0;
+        Leaderboard.submitLevelRecord(stageDef.id, player.score, player.kills, currentWave, _stageAcc);
+      }
+
+      // Show stage clear overlay
+      gameState = STATE.STAGE_CLEAR;
+      if (typeof EnemyChatter !== 'undefined') EnemyChatter.clear();
+      if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.clear();
+      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playLevelComplete) window.AudioSystem.playLevelComplete();
+      // Daily challenges: record level complete
+      try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordLevel(); } catch (eDCL) {}
+
+      // ── Mission Debrief (shown before stage-clear overlay) ──────────────
+      var _debriefAcc = (player.stageShots || 0) > 0
+        ? Math.round(((player.stageHits || 0) / (player.stageShots || 1)) * 100) : 0;
+      var _debriefStats = {
+        levelName: stageDef ? stageDef.name : 'UNKNOWN',
+        kills: player.kills || 0,
+        totalEnemies: player.kills || 0,
+        headshots: player.stageHeadshots || player.totalHeadshots || 0,
+        accuracy: _debriefAcc,
+        timeSeconds: Math.floor((_levelStartTime ? (Date.now() - _levelStartTime) / 1000 : 0)),
+        score: player.score || 0,
+        medals: window._lastWaveMedals || []
+      };
+      function _showStageClearOverlay() {
+        showOverlay('stageclear');
+        var _scn = document.getElementById('stageclear-num');   if (_scn) _scn.textContent = stageDef.id;
+        var _scna = document.getElementById('stageclear-name'); if (_scna) _scna.textContent = stageDef.name;
+        var _scs = document.getElementById('stageclear-score'); if (_scs) _scs.textContent = player.score;
+        var _sck = document.getElementById('stageclear-kills'); if (_sck) _sck.textContent = player.kills;
+        // Show heal preview
+        var missingHp = player.maxHp - player.hp;
+        var healAmount = Math.ceil(missingHp * 0.5);
+        var healEl = document.getElementById('stageclear-heal');
+        if (healEl) {
+          healEl.textContent = healAmount > 0
+            ? '❤ +' + healAmount + ' HP will be restored'
+            : '❤ Full health!';
+        }
+        var nextStageDef = STAGES[currentStage + 1];
+        var _scnn = document.getElementById('stageclear-next-name');   if (_scnn) _scnn.textContent = nextStageDef ? nextStageDef.name : 'VICTORY';
+        var _scnl = document.getElementById('stageclear-next-label');  if (_scnl) _scnl.style.display = nextStageDef ? '' : 'none';
+        // Defensive: ensure no lingering auto-countdown can bypass stage clear
+        if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
+        // Show perk select overlay after stage clear (300ms delay so stage clear screen shows first)
+        if (typeof Perks !== 'undefined') {
+          setTimeout(function() {
+            if (typeof HUD !== 'undefined' && HUD.hide) HUD.hide(); // hide HUD temporarily
+            Perks.showPerkSelect(player, function(perkId) {
+              if (typeof HUD !== 'undefined' && HUD.show) HUD.show(); // restore HUD
+            });
+          }, 1800);
+        }
+      }
+      if (window.MissionDebrief) {
+        MissionDebrief.show(_debriefStats, function() {
+          _showStageClearOverlay();
+        });
+      } else {
+        // Fallback: original flow without debrief
+        _showStageClearOverlay();
+      }
       return;
     }
 
     gameState = STATE.WAVE_CLEAR;
+    if (typeof KillStreak !== 'undefined') KillStreak.onWaveClear();
     showOverlay('waveclear');
     var _wvn = document.getElementById('waveclear-num');   if (_wvn) _wvn.textContent = currentWave;
     var _wvt = document.getElementById('waveclear-total'); if (_wvt) _wvt.textContent = stageDef.wavesPerStage;
@@ -5031,22 +6890,6 @@ const GameManager = (function () {
       var nextCount = 3 + currentWave * 2;
       shopEnemies.textContent = nextCount + ' enemies incoming';
     }
-    // Show next wave enemy types preview
-    var shopNextThreat = document.getElementById('shop-next-threat');
-    if (shopNextThreat && typeof EnemyTypes !== 'undefined' && EnemyTypes.WAVE_COMPOSITIONS) {
-      var _nwComp = EnemyTypes.WAVE_COMPOSITIONS[Math.min(currentWave + 1, 24)];
-      if (_nwComp && _nwComp.types) {
-        var _threatIcons = { CONSCRIPT: '🪖', STORMER: '⚔', ARMORED: '🛡', SNIPER_ELITE: '🎯', BOMBER: '💣', TANK: '🚂', DRONE_OP: '📡', BTR: '🚗', SPETSNAZ: '🕶', MEDIC: '➕', WAGNER: '☠', BOSS: '👑', FLAMETHROWER: '🔥', KADYROVITE: '🐍', COMMISSAR: '📣', MORTAR: '💥', PARATROOP: '🪂', WAR_DOG: '🐕', KAMIKAZE_DRONE: '🚁', OFFICER: '🎖' };
-        var _seen = [];
-        for (var _ti = 0; _ti < _nwComp.types.length && _seen.length < 5; _ti++) {
-          var _tp = _nwComp.types[_ti];
-          if (_tp !== 'BOSS') { var _ic = _threatIcons[_tp] || '⚠'; if (_seen.indexOf(_ic) === -1) _seen.push(_ic); }
-        }
-        shopNextThreat.textContent = _seen.join(' ');
-      } else {
-        shopNextThreat.textContent = '';
-      }
-    }
     // Reset shop buttons
     var shopBtns = document.querySelectorAll('.shop-buy-btn');
     for (var si = 0; si < shopBtns.length; si++) {
@@ -5055,7 +6898,7 @@ const GameManager = (function () {
       shopBtns[si].style.color = '';
     }
     // Restore button text
-    var btnTexts = { health: '\u2764\uFE0F Health +50 \u00B7 40 OKC', armor: '\uD83D\uDEE1\uFE0F Armor Pack \u00B7 60 OKC', ammo: '\uD83D\uDD2B Full Ammo \u00B7 30 OKC', stim: '\uD83D\uDC89 Stim Pack \u00B7 50 OKC', dmgboost: '\uD83D\uDD25 Damage +25% \u00B7 60 OKC', airstrike_tok: '\u2708 Airstrike Token \u00B7 90 OKC' };
+    var btnTexts = { health: '\u2764\uFE0F Health +50 \u00B7 40 OKC', armor: '\uD83D\uDEE1\uFE0F Armor Pack \u00B7 60 OKC', ammo: '\uD83D\uDD2B Full Ammo \u00B7 30 OKC', stim: '\uD83D\uDC89 Stim Pack \u00B7 50 OKC' };
     for (var si2 = 0; si2 < shopBtns.length; si2++) {
       var itemId = shopBtns[si2].getAttribute('data-item');
       if (btnTexts[itemId]) shopBtns[si2].textContent = btnTexts[itemId];
@@ -5241,7 +7084,7 @@ const GameManager = (function () {
     if (isMoving) {
       moveDir.normalize();
       var wasSprinting = player.sprinting;
-      player.sprinting = !!keys['ShiftLeft'] || touch.sprinting;
+      player.sprinting = window.StaminaSystem ? StaminaSystem.isSprinting() : (!!keys['ShiftLeft'] || touch.sprinting);
       // Dismiss sprint tip on first sprint
       if (player.sprinting && !wasSprinting && typeof Feedback !== 'undefined' && Feedback.dismissTip) {
         Feedback.dismissTip('sprint');
@@ -5250,7 +7093,8 @@ const GameManager = (function () {
       if (player.sprinting && Weapons.isReloading()) {
         Weapons.cancelReload();
       }
-      let speed = MOVE_SPEED * (player.sprinting ? SPRINT_MULT : 1) * (player.prone ? 0.3 : 1);
+      var _sprintMult = window.StaminaSystem ? (StaminaSystem.isSprinting() ? 1.8 : 1.0) : (player.sprinting ? SPRINT_MULT : 1);
+      var speed = MOVE_SPEED * _sprintMult * (player.prone ? 0.3 : 1);
       // Stim boost: +60% speed while active
       if (player._stimTimer && player._stimTimer > 0) speed *= 1.6;
       // Kill momentum speed boost
@@ -5266,8 +7110,13 @@ const GameManager = (function () {
       if (typeof SkillSystem !== 'undefined' && SkillSystem.getPassiveBonus) {
         speed *= SkillSystem.getPassiveBonus('moveSpeed');
       }
-      // ── B24: Crouch speed reduction ──
-      if (player.isCrouching) speed *= 0.5;
+      // ── Loadout speed bonus ──
+      if (window._loadoutSpeedMult) speed *= window._loadoutSpeedMult;
+      // ── ADS speed reduction (0.65 while aiming down sights) ──
+      if (window._adsSpeedMult && window._adsSpeedMult !== 1.0) speed *= window._adsSpeedMult;
+      // ── B24: Crouch speed reduction (CrouchSystem overrides) ──
+      var _crouchMult = (window.CrouchSystem ? CrouchSystem.getSpeedMult() : (player.isCrouching ? 0.5 : 1.0));
+      speed *= _crouchMult;
       // ── B32: Blizzard slow ──
       if (player._blizzardSlow) speed *= player._blizzardSlow;
       // ── Landing impact slow ──
@@ -5275,6 +7124,8 @@ const GameManager = (function () {
         player._landSlowTimer -= delta;
         speed *= 0.4;
       }
+      // Grapple reduces WASD effectiveness to 30% while attached
+      if (window.Grapple && Grapple.isActive()) speed *= Grapple.movementMultiplier();
       moveDir.multiplyScalar(speed * delta);
 
       // Stamina drain on sprint
@@ -5294,16 +7145,6 @@ const GameManager = (function () {
     // Decay stim timer
     if (player._stimTimer && player._stimTimer > 0) {
       player._stimTimer -= delta;
-    }
-
-    // Damage boost decay
-    if (_dmgBoostTimer > 0) {
-      _dmgBoostTimer -= delta;
-      if (_dmgBoostTimer <= 0) {
-        _dmgBoostMult = 1.0;
-        _dmgBoostTimer = 0;
-        if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('🔥 Damage boost expired', '#888');
-      }
     }
 
     // ── B24: Crouch height + slide + cover detection ──
@@ -5329,8 +7170,11 @@ const GameManager = (function () {
       player.inCover = false;
     }
 
-    // Gravity
-    player.velocity.y -= GRAVITY * delta;
+    // Gravity (reduced while grapple or wingsuit is active)
+    var _gravMult = (window.Grapple && Grapple.isActive()) ? Grapple.gravityMultiplier()
+                  : (window.Wingsuit && Wingsuit.isActive()) ? Wingsuit.gravityMultiplier()
+                  : 1.0;
+    player.velocity.y -= GRAVITY * _gravMult * delta;
 
     // Jump (keyboard or touch)
     if ((keys['Space'] || touch.jumping) && player.onGround) {
@@ -5420,13 +7264,19 @@ const GameManager = (function () {
 
     player.position.copy(newPos);
 
+    // Grapple update — must run after player.position is committed
+    if (window.Grapple) Grapple.update(delta, player.position, _camera);
+    // ZiplineGrapple update — runs after physics
+    if (window.ZiplineGrapple) ZiplineGrapple.update(delta);
+    // Wingsuit update — runs after physics, passes player object and key state
+    if (window.Wingsuit) Wingsuit.update(delta, player, keys);
+
     // Update camera
     CameraSystem.update(delta, player.position, isMoving, player.onGround);
     // Update kill cam override (blocks mouse-look while active)
     if (CameraSystem.updateKillCam) CameraSystem.updateKillCam(delta);
-    // Update suppression visual and smoke zones
+    // Update suppression visual
     updateSuppression(delta);
-    updateSmokeZones(delta);
 
     // Player footstep sounds
     if (isMoving && player.onGround && typeof AudioSystem !== 'undefined') {
@@ -5452,10 +7302,20 @@ const GameManager = (function () {
 
   /* ── Combat ──────────────────────────────────────────────────────── */
   function updateCombat(delta) {
-    // Drone combat: LMB triggers drone action (only on new press, not held)
+    // Drone combat: LMB triggers drone action
     if (DroneSystem.isPossessing()) {
-      if (mouseNewPress && (mouseDown || touch.firing)) {
-        DroneSystem.useActivePayload();
+      if (mouseDown || touch.firing) {
+        const drone = DroneSystem.getPossessed();
+        if (drone) {
+          if (drone.type === 'fpv_attack') {
+            DroneSystem.fireAttack(drone.id);
+          } else if (drone.type === 'bomb' && drone.hasPayload) {
+            DroneSystem.dropPayload(drone.id);
+          } else if ((drone.type === 'incendiary' || drone.type === 'baba_yaga') && drone.hasPayload) {
+            DroneSystem.dropFire(drone.id);
+            if (drone.type === 'baba_yaga') HUD.notifyPickup('🔥 THERMITE DROPPED!', '#ff8800');
+          }
+        }
         mouseNewPress = false;
       }
       return;
@@ -5504,6 +7364,15 @@ const GameManager = (function () {
       // Map weapon type to audio sound type
       const audioMap = { MELEE: 'melee', PISTOL: 'pistol', ASSAULT: 'rifle', LMG: 'rifle', SNIPER: 'sniper', HMG: 'hmg', AT: 'launcher', ATGM: 'launcher', NATO: 'rifle', AT_HEAVY: 'launcher', AT_LIGHT: 'launcher', AA: 'launcher', GRENADE: 'launcher', NATO_HEAVY: 'rifle', HMG_HEAVY: 'hmg', INCENDIARY: 'launcher', MACHINEGUN: 'hmg', SMG: 'smg', AMR: 'heavy_sniper', MINIGUN: 'hmg', SILENT: 'silenced', THERMOBARIC: 'launcher', SHOTGUN: 'shotgun', MINE: 'explosive', SMOKE: 'launcher', FLASHBANG: 'launcher', EXPLOSIVE: 'explosive', GATLING: 'gatling' };
       Weapons.tryFire(_camera, targets, delta, function (hit) {
+        // ── Ballistic Shield: check if player's own bullet intersects the shield ──
+        if (window.BallisticShield && BallisticShield.isDeployed()) {
+          var _bsRayOrigin = _camera.position.clone();
+          var _bsRayDir = new THREE.Vector3();
+          _camera.getWorldDirection(_bsRayDir);
+          if (BallisticShield.checkBulletBlock(_bsRayOrigin, _bsRayDir)) {
+            return; // bullet stopped by own deployed shield
+          }
+        }
         // Check if hit a drone first (mesh hierarchy tagged with userData.droneId)
         var hitDrone = null;
         if (typeof DroneSystem !== 'undefined' && DroneSystem.findByMesh) {
@@ -5519,11 +7388,58 @@ const GameManager = (function () {
           if (!hitDrone.alive && hitDrone.faction === 'russian') {
             player.score += 50;
             player.kills += 1;
+            if (typeof KillStreak !== 'undefined') KillStreak.onKill();
             if (typeof HUD !== 'undefined' && HUD.addCombatLog) {
               HUD.addCombatLog('Enemy drone shot down (+50)', '#44ddff');
             }
           }
           return;
+        }
+        // ── Mine detonation: check if bullet hit a landmine mesh or passed near one ──
+        if (typeof Mines !== 'undefined') {
+          var _hitMineByMesh = hit.object && hit.object.userData && hit.object.userData.isMine;
+          if (_hitMineByMesh) {
+            Mines.checkBulletHit(hit.object.position.x, hit.object.position.y, hit.object.position.z, 0.8);
+            return;
+          }
+          if (hit.point) {
+            Mines.checkBulletHit(hit.point.x, hit.point.y, hit.point.z, 0.8);
+          }
+        }
+        // ── Explosive Barrels: raycast barrel hit check ──
+        if (typeof ExplosiveBarrels !== 'undefined') {
+          var _bOrigin = _camera.position;
+          var _bDir = new THREE.Vector3();
+          _camera.getWorldDirection(_bDir);
+          ExplosiveBarrels.checkBulletHit(_bOrigin, _bDir, 100);
+        }
+        // ── Destructibles: shootable crate/barrel/wall/glass hit check ──
+        if (window.Destructibles) {
+          var _dOrigin = _camera.position;
+          var _dDir = new THREE.Vector3();
+          _camera.getWorldDirection(_dDir);
+          var _dHit = Destructibles.checkBulletHit(_dOrigin, _dDir, 100);
+          if (_dHit.hit) Destructibles.damage(_dHit.object, Weapons.getDamage ? Weapons.getDamage() : 25);
+        }
+        // ── Vehicle Enemies: proximity hit check ──
+        if (window.VehicleEnemies) {
+          var _vehList = VehicleEnemies.getAll();
+          for (var _vi = 0; _vi < _vehList.length; _vi++) {
+            var _vehTarget = _vehList[_vi];
+            if (!_vehTarget || !_vehTarget.alive || !_vehTarget.mesh) continue;
+            var _vehBOrigin = _camera.position;
+            var _vehBDir    = new THREE.Vector3();
+            _camera.getWorldDirection(_vehBDir);
+            var _vehRay = new THREE.Raycaster(_vehBOrigin, _vehBDir, 0, 100);
+            var _vehHits = _vehRay.intersectObject(_vehTarget.mesh, true);
+            if (_vehHits.length > 0) {
+              var _vehDmg = (typeof Weapons !== 'undefined' && Weapons.getDamage) ? Weapons.getDamage() : 25;
+              VehicleEnemies.damageVehicle(_vehTarget, _vehDmg);
+              player.kills++;
+              if (typeof KillStreak !== 'undefined' && KillStreak.onKill) KillStreak.onKill();
+              if (typeof HUD !== 'undefined' && HUD.addCombatLog) HUD.addCombatLog('Vehicle hit! (' + Math.round(_vehDmg) + ' dmg)', '#ff8800');
+            }
+          }
         }
         // ── Friendly Fire: check if bullet hit a Ukrainian NPC ──
         var hitNPC = null;
@@ -5589,6 +7505,13 @@ const GameManager = (function () {
         MLSystem.onShot(weaponId);
         player.totalShots++;
         player.waveShots++;
+        player.stageShots = (player.stageShots || 0) + 1;
+        // Suppression system: notify of each shot fired
+        if (window._onShotFired && _camera) {
+          _gmTmp2.copy(_camera.position);
+          _camera.getWorldDirection(_gmTmp3);
+          window._onShotFired(_gmTmp2, _gmTmp3);
+        }
         // Register heat + maintenance per shot (not per hit, to avoid shotgun 8x issue)
         if (typeof CombatExtras !== 'undefined') {
           CombatExtras.registerShot();
@@ -5620,6 +7543,8 @@ const GameManager = (function () {
             CameraSystem.shake(0.02, 0.1);
           }
         }
+        // ── Muzzle flash PointLight burst in world-space (Task 2) ──
+        doMuzzleFlash();
       }
       mouseNewPress = false;
     }
@@ -5656,7 +7581,7 @@ const GameManager = (function () {
     MLSystem.trackCombatEngagement(engageRange < 10);
 
     const isHeadshot = hit.object === enemy.mesh.userData.headMesh;
-    let baseDmg = Math.round(Weapons.getDamage() * _dmgBoostMult);
+    let baseDmg = Weapons.getDamage();
 
     // ═══ NEW: Apply ammo type and perk damage modifiers ═══
     if (typeof CombatExtras !== 'undefined') {
@@ -5664,32 +7589,28 @@ const GameManager = (function () {
       baseDmg = Math.round(baseDmg * ammoMods.dmgMult);
     }
     // Dead eye crit check
+    var isCrit = false;
     if (typeof Perks !== 'undefined' && Perks.isDeadEyeShot()) {
       baseDmg = Math.round(baseDmg * Perks.getDeadEyeMult());
       HUD.notifyPickup('🎯 DEAD EYE CRIT!', '#ff4400');
-    }
-    // Marksman proc — previous headshot grants +30% to this shot
-    if (typeof Perks !== 'undefined' && Perks.getMarksmanMult() > 1.0) {
-      baseDmg = Math.round(baseDmg * Perks.getMarksmanMult());
-      Perks.consumeMarksman();
-      HUD.notifyPickup('🔭 MARKSMAN!', '#4488ff');
+      isCrit = true;
     }
     // Prestige damage bonus
     if (typeof Progression !== 'undefined') {
       var pBonuses = Progression.getPrestigeBonuses();
       baseDmg = Math.round(baseDmg * pBonuses.damageMult);
     }
-    // Per-weapon crit roll — precision weapons only, independent of headshot
-    var _wepCfgCrit = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent() : null;
-    if (_wepCfgCrit && _wepCfgCrit.critChance && !isHeadshot && Math.random() < _wepCfgCrit.critChance) {
-      baseDmg = Math.round(baseDmg * (_wepCfgCrit.critMult || 2.0));
-      HUD.notifyPickup('💥 CRITICAL HIT! ×' + (_wepCfgCrit.critMult || 2).toFixed(1), '#ff6600');
-      if (typeof AudioSystem !== 'undefined' && AudioSystem.playCriticalHit) AudioSystem.playCriticalHit();
-    }
     const dmg = isHeadshot ? baseDmg * 2 : baseDmg;
 
     var _wepType = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? Weapons.getCurrent().type : '';
     const remaining = Enemies.damage(enemy, dmg, isHeadshot, _wepType);
+
+    // Surrender check: low-HP enemies may raise hands
+    if (window.SurrenderSystem && remaining > 0) SurrenderSystem.checkSurrender(enemy);
+
+    if (window.BloodEffects && enemy && enemy.mesh) {
+      BloodEffects.onHit(enemy.mesh.position.clone());
+    }
 
     // Floating damage number on hit (not just kill)
     if (typeof Feedback !== 'undefined') {
@@ -5709,11 +7630,27 @@ const GameManager = (function () {
       } catch (eDN) {}
       Feedback.spawnDamageNumber(_dnX, _dnY, dmg, isHeadshot, false);
     }
+    // HUD floating damage number (supplemental 3D-projected number)
+    if (typeof HUD !== 'undefined' && HUD.showDamageNumber && enemy && enemy.mesh && _camera) {
+      var _dmgPos = enemy.mesh.position.clone();
+      _dmgPos.y += 1.5;
+      _dmgPos.project(_camera);
+      var _sx = (_dmgPos.x * 0.5 + 0.5) * window.innerWidth;
+      var _sy = (-_dmgPos.y * 0.5 + 0.5) * window.innerHeight;
+      HUD.showDamageNumber(_sx, _sy, dmg, isHeadshot);
+    }
+    // DamageNumbers: 3D-projected floating damage numbers above enemy head
+    if (window.DamageNumbers && enemy && enemy.mesh) {
+      DamageNumbers.spawnNumber(enemy.mesh.position, dmg, isHeadshot, isCrit);
+    }
+    // HitMarkers: crosshair flash feedback (normal / headshot / kill)
+    if (window.HitMarkers) HitMarkers.flash(isHeadshot, remaining <= 0);
 
     SkillSystem.onShoot(true, isHeadshot);
     HUD.flashHit(isHeadshot, remaining <= 0);
     player.totalHits++;
     player.waveHits++;
+    player.stageHits = (player.stageHits || 0) + 1;
 
     if (isHeadshot) {
       HUD.showHeadshot();
@@ -5721,7 +7658,9 @@ const GameManager = (function () {
       player.score += 50;
       player.totalHeadshots++;
       player.waveHeadshots++;
-      if (typeof Perks !== 'undefined' && Perks.onHeadshot) Perks.onHeadshot();
+      player.stageHeadshots = (player.stageHeadshots || 0) + 1;
+      // Daily challenges: record headshot
+      try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordHeadshot(); } catch (eDCH) {}
     }
 
     if (remaining <= 0) {
@@ -5754,15 +7693,66 @@ const GameManager = (function () {
       } catch (eUC) {}
       // Streak score multiplier: 3+ kills in chain = +10% per streak (capped at +150%)
       var _streakMult = 1 + Math.min(1.5, Math.max(0, player.killStreak - 1) * 0.1);
-      var _scoreGain = Math.round((enemy.scoreValue || 0) * _streakMult);
+      var _baseKillScore = Math.round((enemy.scoreValue || 0) * _streakMult * _killStreakMult * (window._prestigeScoreMult || 1));
+      // Score chain multiplier
+      _chainKills++;
+      _chainTimer = _chainExpiry;
+      if (_chainKills >= 10) _scoreChain = 5;
+      else if (_chainKills >= 6) _scoreChain = 4;
+      else if (_chainKills >= 3) _scoreChain = 3;
+      else if (_chainKills >= 2) _scoreChain = 2;
+      if (_scoreChain > 1 && typeof HUD !== 'undefined' && HUD.showToast) {
+        HUD.showToast('x' + _scoreChain + ' KILL CHAIN! +' + (_scoreChain * 10) + ' bonus', '#ffdd00');
+      }
+      _updateChainDisplay();
+      var _scoreGain = Math.round(_baseKillScore * _scoreChain);
       player.score += _scoreGain;
+      _killStreak++;
+      _killStreakTimer = 5.0;
+      var _streakNames = ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE', 'UNSTOPPABLE', 'GODLIKE'];
+      var _streakName = _streakNames[Math.min(_killStreak, _streakNames.length - 1)] || 'MASSACRE';
+      if (_killStreak >= 2) {
+        _killStreakMult = 1 + (_killStreak * 0.1);
+        if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+          HUD.notifyPickup('🔥 ' + _streakName + '! ×' + _killStreakMult.toFixed(1), '#ff8800');
+        }
+      }
       // Show floating multiplier text when meaningful (>= x1.2)
       if (_streakMult >= 1.2 && typeof Feedback !== 'undefined' && Feedback.showStreakMult) {
         try { Feedback.showStreakMult(_streakMult); } catch (eSM) {}
       }
       player.kills++;
+      if (window.BountySystem && enemy) {
+        var _bountyResult = BountySystem.checkKill(enemy);
+        if (_bountyResult) { player.score += 2000; if (typeof HUD !== 'undefined' && HUD.updateScore) HUD.updateScore(player.score); }
+      }
+      if (window.BloodEffects && enemy && enemy.mesh) {
+        BloodEffects.onDeath(enemy.mesh.position.clone(), isHeadshot || false);
+      }
+      if (window.RadioSupport) RadioSupport.onKill();
+      if (typeof ArmorSystem !== 'undefined' && enemy && enemy.mesh) ArmorSystem.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z);
+      if (window.GasMask && enemy && enemy.mesh) GasMask.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z, typeof STAGES !== 'undefined' && STAGES[currentStage] ? STAGES[currentStage].id : '');
+      if (window.LootDrops && enemy && enemy.mesh) LootDrops.spawnLoot(enemy.mesh.position, enemy.type);
+      if (typeof KillStreak !== 'undefined') KillStreak.onKill();
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
+      // Wave events: trigger 'mid' when 50% of wave enemies are killed
+      if (window.WaveEvents && player._waveStartCount > 0 &&
+          player.waveKills === Math.ceil(player._waveStartCount * 0.5)) {
+        WaveEvents.triggerRandom(currentWave, 'mid');
+      }
+      // Daily challenges: record kill
+      try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordKill(); } catch (eDCK) {}
+      // Achievements: record kill
+      try {
+        if (typeof Achievements !== 'undefined' && Achievements.recordKill) {
+          Achievements.recordKill({
+            headshot: isHeadshot,
+            isNvgActive: !!window._nvgActive,
+            isDroneKill: !!(typeof DroneSystem !== 'undefined' && DroneSystem.isPossessing && DroneSystem.isPossessing()),
+          });
+        }
+      } catch (eAchK) {}
       // Kill milestone banners — celebrate round numbers of total kills
       try {
         var _kMile = player.kills;
@@ -5783,6 +7773,20 @@ const GameManager = (function () {
       HUD.setKills(player.kills);
       RankSystem.onKill(isHeadshot);
       HUD.addKill(Weapons.getCurrentName(), enemy.typeCfg ? enemy.typeCfg.name : 'ENEMY', isHeadshot);
+      // HUD kill feed entry with weapon icon
+      if (typeof HUD !== 'undefined' && HUD.addKillFeedEntry) {
+        var _wepIcon = isHeadshot ? '🎯' : '🔫';
+        var _wepTyp = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? (Weapons.getCurrent().type || '') : '';
+        if (_wepTyp === 'grenade' || _wepTyp === 'explosive') _wepIcon = '💣';
+        else if (isHeadshot) _wepIcon = '🎯';
+        HUD.addKillFeedEntry('You', enemy.typeCfg ? enemy.typeCfg.name : 'Enemy', _wepIcon);
+      }
+      // KillFeed overlay hook — COD-style kill feed (kill-feed.js)
+      if (window._onKillForFeed) {
+        var _kfEnemyType = enemy.typeCfg ? enemy.typeCfg.name : (enemy.type || 'ENEMY');
+        var _kfWeapon = (typeof Weapons !== 'undefined' && Weapons.getCurrent) ? (Weapons.getCurrent().type || '') : '';
+        _onKillForFeed(_kfEnemyType, _kfWeapon, isHeadshot);
+      }
       // FOV kick: brief zoom-out punch on kill (bigger on headshot)
       _killFovKick = Math.max(_killFovKick, isHeadshot ? 4.5 : 2.5);
 
@@ -5938,17 +7942,7 @@ const GameManager = (function () {
       }
       // Perk: kill tracking & killstreaks
       if (typeof Perks !== 'undefined') {
-        var _streaksBefore = Perks.getAvailableStreaks().length;
         Perks.onKill();
-        // Notify new killstreak earned
-        var _streaksAfter = Perks.getAvailableStreaks().length;
-        if (_streaksAfter > _streaksBefore) {
-          var _newStreak = Perks.getAvailableStreaks()[_streaksAfter - 1];
-          if (typeof HUD !== 'undefined' && HUD.showToast) {
-            HUD.showToast(_newStreak.icon + ' KILLSTREAK: ' + _newStreak.name + ' READY!', 3000, '#ff8800');
-          }
-          if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
-        }
         // Scavenger auto-loot
         var scavRange = Perks.getScavengerRange();
         if (scavRange > 0) {
@@ -6017,7 +8011,10 @@ const GameManager = (function () {
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) {
         if (player.kills === 1) Feedback.radioChatter('first_blood');
         if (player.killStreak === 5 || player.killStreak === 10) Feedback.radioChatter('kill_streak');
+        if (window.CompanionRadio && CompanionRadio.onKillStreak) CompanionRadio.onKillStreak(player.killStreak);
       }
+      // TimeWarp: award bullet-time charge at streaks 10 and 20
+      if (window._onKillStreakForTimeWarp) _onKillStreakForTimeWarp(player.killStreak);
 
       // ── B30: Weapon Mastery tracking ──
       if (typeof CombatExtras !== 'undefined' && CombatExtras.addWeaponKill) {
@@ -6119,6 +8116,12 @@ const GameManager = (function () {
         }
       }
 
+      // Attachment drop: 10% chance on enemy death
+      if (typeof Attachments !== 'undefined' && _scene && enemy && enemy.mesh && Math.random() < 0.10) {
+        var _atkDropId = Attachments.getRandomAttachment();
+        Attachments.spawnPickup(_scene, enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z, _atkDropId);
+      }
+
       // Weapon unlock drop (pickup weapons 2-15)
       if (Math.random() < 0.12) {
         const candidates = [];
@@ -6131,6 +8134,16 @@ const GameManager = (function () {
           Weapons.unlockWeapon(idx);
           HUD.notifyPickup('WEAPON UNLOCKED: ' + Weapons.getWeaponName(idx), '#ff8800');
         }
+      }
+
+      // Dog tags drop on enemy death
+      if (window._onEnemyKillForDogTags) window._onEnemyKillForDogTags(enemy.mesh.position, enemy.type);
+
+      // Scavenge system — spawn a pickable weapon drop at enemy position
+      if (window.ScavengeSystem && enemy.mesh) {
+        var _scavType = (enemy.typeCfg && enemy.typeCfg.name) || null;
+        var _scavId   = enemy._weaponType || null;
+        ScavengeSystem.spawnWeaponDrop(enemy.mesh.position, _scavId, null);
       }
     }
   }
@@ -6160,10 +8173,81 @@ const GameManager = (function () {
     }
   }
 
+  var _barrelExplosionDepth = 0;
+  function detonateBarrel(bx, by, bz) {
+    if (_barrelExplosionDepth > 3) return;
+    _barrelExplosionDepth++;
+    try {
+      // Remove barrel
+      if (typeof VoxelWorld !== 'undefined' && VoxelWorld.setBlock) {
+        VoxelWorld.setBlock(bx, by, bz, 0); // AIR
+        VoxelWorld.setBlock(bx, by + 1, bz, 0); // clear above
+      }
+      // Explosion visual
+      var exPos = new THREE.Vector3(bx + 0.5, by + 0.5, bz + 0.5);
+      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+        Tracers.spawnExplosion(exPos, 2.5);
+      }
+      // Damage enemies in radius
+      if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+        var enemies = Enemies.getAll();
+        for (var ei = 0; ei < enemies.length; ei++) {
+          var ep = enemies[ei].position || (enemies[ei].mesh && enemies[ei].mesh.position);
+          if (!ep) continue;
+          var dx = ep.x - exPos.x, dy = ep.y - exPos.y, dz = ep.z - exPos.z;
+          var dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          if (dist < 6) {
+            var dmg = Math.round(120 * (1 - dist / 6));
+            if (Enemies.damage) Enemies.damage(enemies[ei], dmg, false, 'explosion');
+          }
+        }
+      }
+      // Chain reaction — check nearby barrels
+      for (var cx = bx - 4; cx <= bx + 4; cx++) {
+        for (var cy = by - 2; cy <= by + 2; cy++) {
+          for (var cz = bz - 4; cz <= bz + 4; cz++) {
+            if (cx === bx && cy === by && cz === bz) continue;
+            if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getBlock && VoxelWorld.getBlock(cx, cy, cz) === 12) {
+              var chainDist = Math.sqrt((cx-bx)*(cx-bx) + (cy-by)*(cy-by) + (cz-bz)*(cz-bz));
+              if (chainDist <= 4) {
+                setTimeout(function(x,y,z){ detonateBarrel(x,y,z); }.bind(null,cx,cy,cz), 150 + Math.random()*200);
+              }
+            }
+          }
+        }
+      }
+      if (typeof HUD !== 'undefined' && HUD.notifyPickup && _barrelExplosionDepth === 1) {
+        HUD.notifyPickup('💥 BARREL EXPLODED!', '#ff8800');
+      }
+      // Damage player if too close
+      if (typeof player !== 'undefined' && player.position) {
+        var pdx = player.position.x - exPos.x, pdy = player.position.y - exPos.y, pdz = player.position.z - exPos.z;
+        var pDist = Math.sqrt(pdx*pdx + pdy*pdy + pdz*pdz);
+        if (pDist < 5) {
+          var pDmg = Math.round(80 * (1 - pDist / 5));
+          player.hp = Math.max(0, player.hp - pDmg);
+          if (typeof HUD !== 'undefined' && HUD.flashDamage) HUD.flashDamage(pDmg);
+        }
+      }
+    } catch(e) {}
+    setTimeout(function() { if (_barrelExplosionDepth > 0) _barrelExplosionDepth = Math.max(0, _barrelExplosionDepth - 1); }, 500);
+  }
+
   function onPlayerHit(dmg, attackerPos) {
     if (gameState !== STATE.PLAYING) return; // can't take damage when dead/paused
     if (player.godMode) return; // God mode: immune to damage
     if (DroneSystem.isPossessing()) return; // player body is passive while piloting drone
+    // Ballistic Shield blocks bullet from attacker direction (full block)
+    if (window.BallisticShield && BallisticShield.isDeployed() && attackerPos) {
+      var _bsOrigin = attackerPos.clone ? attackerPos.clone() : new THREE.Vector3(attackerPos.x, attackerPos.y, attackerPos.z);
+      _bsOrigin.y += 1.0; // approx bullet height
+      var _bsTarget = player.position.clone();
+      _bsTarget.y += 0.8;
+      var _bsDir = new THREE.Vector3().subVectors(_bsTarget, _bsOrigin).normalize();
+      if (BallisticShield.checkBulletBlock(_bsOrigin, _bsDir)) {
+        return; // bullet fully blocked by shield
+      }
+    }
     // Shield absorbs damage
     if (player.shieldTimer > 0) {
       HUD.notifyPickup('🛡 SHIELDED!', '#ffd700');
@@ -6184,6 +8268,8 @@ const GameManager = (function () {
       var chalMods = Progression.getChallengeModifiers();
       if (chalMods.enemyDmgMult) dmg = Math.round(dmg * chalMods.enemyDmgMult);
     }
+    // ArmorSystem vest absorbs damage before player.armor
+    if (typeof ArmorSystem !== 'undefined') { dmg = ArmorSystem.absorbDamage(dmg); }
     // Armor absorbs up to 50% of incoming damage, capped by available armor points
     if (player.armor > 0) {
       var absorbed = Math.min(player.armor, dmg * 0.5);
@@ -6208,9 +8294,11 @@ const GameManager = (function () {
           if (_ad < _bestD) { _bestD = _ad; _bestE = _ae; }
         }
         if (_bestE && _bestD < 9 && Enemies.tagAttacker) Enemies.tagAttacker(_bestE);
+        if (_bestE && _bestD < 9 && typeof EnemyChatter !== 'undefined') EnemyChatter.say(_bestE, 'attack');
       }
     } catch (eAtk) {}
     MLSystem.onDamageTaken(dmg);
+    if (typeof Achievements !== 'undefined' && Achievements.onDamageTaken) Achievements.onDamageTaken();
     var _hpBefore = player.hp;
     player.hp = Math.max(0, player.hp - dmg);
     HUD.setHealth(player.hp, player.maxHp);
@@ -6247,6 +8335,7 @@ const GameManager = (function () {
     // Low HP radio chatter
     if (player.hp > 0 && player.hp <= player.maxHp * 0.25) {
       if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('low_hp');
+      if (window.CompanionRadio && CompanionRadio.onPlayerLowHealth) CompanionRadio.onPlayerLowHealth();
     }
     // Player-hit audio feedback
     if (typeof AudioSystem !== 'undefined' && AudioSystem.playHit) AudioSystem.playHit();
@@ -6309,6 +8398,7 @@ const GameManager = (function () {
         return;
       }
       gameState = STATE.DEAD;
+      if (typeof KillStreak !== 'undefined') KillStreak.onDeath();
       if (_waveStartTimer) { clearTimeout(_waveStartTimer); _waveStartTimer = null; }
       if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
       // Streak-end banner: show what was ended
@@ -6349,27 +8439,12 @@ const GameManager = (function () {
       var _dtEl = document.getElementById('dead-title');
       if (_dtEl) _dtEl.textContent = _defeatReason || 'YOU DIED';
       _defeatReason = null;
+      showOverlay('dead');
 
-      // Dramatic death flash — red vignette → black before overlay appears
-      var _deathFlashEl = document.getElementById('death-flash');
-      if (_deathFlashEl) {
-        _deathFlashEl.style.display = 'block';
-        _deathFlashEl.classList.remove('active');
-        // Force reflow so animation re-triggers
-        void _deathFlashEl.offsetWidth;
-        _deathFlashEl.classList.add('active');
-      }
-      // Flatline audio cue
-      if (window.AudioSystem && window.AudioSystem.playFlatline) window.AudioSystem.playFlatline();
-
-      // Delay death overlay by 1.2s for dramatic effect
-      setTimeout(function() {
-        if (_deathFlashEl) { _deathFlashEl.classList.remove('active'); _deathFlashEl.style.display = 'none'; }
-        showOverlay('dead');
-        var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
-        var _dsc = document.getElementById('dead-score');  if (_dsc) _dsc.textContent = player.score;
-        var _dk = document.getElementById('dead-kills');   if (_dk) _dk.textContent = player.kills;
-        var _dw = document.getElementById('dead-wave');    if (_dw) _dw.textContent = currentWave;
+      var _ds = document.getElementById('dead-stage');   if (_ds) _ds.textContent = STAGES[currentStage].id;
+      var _dsc = document.getElementById('dead-score');  if (_dsc) _dsc.textContent = player.score;
+      var _dk = document.getElementById('dead-kills');   if (_dk) _dk.textContent = player.kills;
+      var _dw = document.getElementById('dead-wave');    if (_dw) _dw.textContent = currentWave;
 
       // ── Gameplay Tip Overlay on Death ──
       var tips = [
@@ -6447,7 +8522,6 @@ const GameManager = (function () {
           distance: Math.round(player.distanceWalked),
         });
       }
-      }, 1200); // end of death overlay setTimeout
     }
   }
 
@@ -6462,8 +8536,7 @@ const GameManager = (function () {
   var _lowFpsStreak = 0;
   var _highFpsStreak = 0;
   var _baseFogFar = isMobile ? 55 : 120;
-  // Mobile renderer is always created without shadows; never re-enable them.
-  var _baseShadowsEnabled = !isMobile;
+  var _baseShadowsEnabled = true;
   var _basePixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.1 : 1.5);
 
   function _applyPerfLevel(level, fps) {
@@ -6472,10 +8545,9 @@ const GameManager = (function () {
     try {
       var pr, fogFar, shadows;
       if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled; _lowEndVFX = false; }
-      // Level 1: slightly reduced pixel ratio + tighter fog; no shadows on mobile.
-      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = !isMobile; _lowEndVFX = false; }
-      else if (_perfLevel === 2) { pr = isMobile ? 0.9 : 1.0; fogFar = isMobile ? 45 : 60; shadows = false; _lowEndVFX = false; }
-      else                       { pr = isMobile ? 0.75 : 0.7; fogFar = isMobile ? 35 : 45; shadows = false; _lowEndVFX = true; }
+      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = true; _lowEndVFX = false; }
+      else if (_perfLevel === 2) { pr = 1.0; fogFar = 60; shadows = false; _lowEndVFX = false; }
+      else                       { pr = 0.7; fogFar = 45; shadows = false; _lowEndVFX = true; }
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
       if (sunLight) sunLight.castShadow = shadows;
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
@@ -6503,24 +8575,27 @@ const GameManager = (function () {
     // Slow-mo: scale delta by slow-mo rate (triggered on multikills / wave clears)
     if (typeof Feedback !== 'undefined' && Feedback.getSlowMoRate) delta *= Feedback.getSlowMoRate();
 
+    // Killstreak bullet-time: scale delta by killstreak time scale
+    if (window._killstreakTimeScale && window._killstreakTimeScale < 1.0) {
+      delta *= window._killstreakTimeScale;
+    }
+
+    // TimeWarp bullet-time: update with raw delta, then scale game delta
+    if (window.TimeWarp) TimeWarp.update(rawDelta);
+    if (window._bulletTimeScale && window._bulletTimeScale !== 1.0) {
+      delta *= window._bulletTimeScale;
+    }
+
     // ── Adaptive auto-quality calibration (bi-directional) ───────────
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
-    // Mobile: check every 1.5s (react faster to low FPS); desktop: 2s
-    var _perfInterval = isMobile ? 1.5 : 2.0;
-    var _fpsDrop = isMobile ? 28 : 38;   // mobile starts downgrading at 28 FPS
-    var _fpsRecover = isMobile ? 50 : 65; // mobile recovers quality at 50 FPS
-    if (_perfCheckTimer > _perfInterval && _fpsSamples > 6) {
+    if (_perfCheckTimer > 2 && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
-      if (avgFps < _fpsDrop) { _lowFpsStreak++; _highFpsStreak = 0; }
-      else if (avgFps > _fpsRecover) { _highFpsStreak++; _lowFpsStreak = 0; }
+      if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
+      else if (avgFps > 65) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
-      // Fast-drop: mobile critically-low FPS (<20) skips the streak check and downgrades immediately.
-      if (isMobile && avgFps < 20 && _perfLevel < _PERF_MAX_LEVEL) {
-        _applyPerfLevel(_perfLevel + 1, avgFps);
-        _lowFpsStreak = 0;
-      } else if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
+      if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
       }
@@ -6545,7 +8620,11 @@ const GameManager = (function () {
     if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
       // Core systems
       TimeSystem.update(delta);
+      if (window.BloodEffects) BloodEffects.update(delta);
+      if (window.StaminaSystem) StaminaSystem.update(delta);
       WeatherSystem.update(delta);
+      if (typeof WeatherEvents !== 'undefined') WeatherEvents.update();
+      if (window.WaveEvents) WaveEvents.update(delta);
       MLSystem.trackFPS(delta);
       // AI Smart Learning: track player position for behavior profiling
       MLSystem.trackPlayerPosition(player.position.x, player.position.z, delta);
@@ -7137,6 +9216,44 @@ const GameManager = (function () {
       if (Weapons.setHolstered) Weapons.setHolstered(DroneSystem.isPossessing() || VehicleSystem.isInVehicle());
       Weapons.update(delta);
 
+      // ── ADS System update — FOV lerp, scope sway, breath control ──
+      window._playerVelocityLen = player.velocity ? player.velocity.length() : 0;
+      try {
+        if (window.ADSSystem && ADSSystem.update) {
+          // Notify ADSSystem of weapon type changes (detected once per frame)
+          var _adsWepType = (typeof Weapons !== 'undefined' && Weapons.getCurrentType) ? Weapons.getCurrentType() : '';
+          if (_adsWepType && _adsWepType !== window._adsLastWeaponType) {
+            window._adsLastWeaponType = _adsWepType;
+            ADSSystem.onWeaponChange(_adsWepType);
+          }
+          ADSSystem.update(delta);
+        }
+      } catch (eADSU) {}
+
+      // ── Task 1: Weapon idle sway — breathing motion accumulated in GM ────────
+      // _swayTime drives the breathing cycle; Weapons.js uses setPlayerSpeed to
+      // modulate walk sway; this accumulates the phase for any additional overlay.
+      var _isMoving = (Math.abs(player.velocity.x) > 0.1 || Math.abs(player.velocity.z) > 0.1);
+      var _swayFreq = _isMoving ? 8.0 : 1.5;
+      _swayTime += delta * _swayFreq;
+
+      // ── Task 3: Sniper scope overlay — show when zoomed with SNIPER/AMR ─────
+      try {
+        if (typeof Weapons !== 'undefined' && Weapons.isZoomed && Weapons.getCurrentType) {
+          var _curType = Weapons.getCurrentType();
+          var _isSniperWep = (_curType === 'SNIPER' || _curType === 'AMR');
+          var _shouldShowScope = Weapons.isZoomed() && _isSniperWep;
+          if (typeof HUD !== 'undefined' && HUD.showScope && HUD.hideScope) {
+            if (_shouldShowScope && !HUD.isScopeActive()) {
+              HUD.showScope(4.0);
+            } else if (!_shouldShowScope && HUD.isScopeActive()) {
+              HUD.hideScope();
+            }
+            if (typeof HUD.updateScope === 'function') HUD.updateScope(delta);
+          }
+        }
+      } catch (eSc) {}
+
       // ── Dynamic crosshair spread: widens with movement, sprint, jump, recent fire ──
       try {
         var _chSpread = 0;
@@ -7151,6 +9268,10 @@ const GameManager = (function () {
         // Immediate fire spread boost (frame-accurate)
         if (Weapons.didFire && Weapons.didFire()) _chSpread += 0.25;
         if (Weapons.isZoomed && Weapons.isZoomed()) _chSpread *= 0.25;
+        // ADS accuracy bonus: further tighten spread when aiming down sights
+        if (window._adsAccuracyBonus) _chSpread *= 0.5;
+        var _weatherAccPenalty = (typeof WeatherEvents !== 'undefined') ? WeatherEvents.getAccuracyPenalty() : 0;
+        if (_weatherAccPenalty > 0) _chSpread *= (1 + _weatherAccPenalty);
         if (HUD.setCrosshairSpread) HUD.setCrosshairSpread(_chSpread);
       } catch (eCh) {}
 
@@ -7186,7 +9307,7 @@ const GameManager = (function () {
 
       // ── FOV kick: sprint widens (+5), ADS narrows (weapons handles its own) ──
       if (!Weapons.isZoomed()) {
-        _targetFOV = _baseFOV + (player.sprinting ? 5 : 0) + _killFovKick;
+        _targetFOV = _baseFOV + (window._sprintFOVDelta || (player.sprinting ? 5 : 0)) + _killFovKick;
         _currentFOV += (_targetFOV - _currentFOV) * Math.min(1, delta * 10);
         _camera.fov = _currentFOV;
         _camera.updateProjectionMatrix();
@@ -7196,10 +9317,1511 @@ const GameManager = (function () {
       }
       // Decay kill FOV kick (~0.4s ease-back)
       if (_killFovKick > 0) _killFovKick = Math.max(0, _killFovKick - delta * 8);
+      // Decay kill streak timer
+      if (_killStreakTimer > 0) {
+        _killStreakTimer -= delta;
+        if (_killStreakTimer <= 0) { _killStreak = 0; _killStreakMult = 1; }
+      }
+      // Decay score chain timer
+      if (_scoreChain > 1) {
+        _chainTimer -= delta;
+        if (_chainTimer <= 0) {
+          _scoreChain = 1;
+          _chainKills = 0;
+          _updateChainDisplay();
+          if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('CHAIN BROKEN', '#ff6644');
+        }
+      }
 
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
         if (waveDone) onWaveComplete();
       });
+      // Boss health bar tracking
+      try {
+        var _bossE = null;
+        var _allEnemiesForBoss = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
+        for (var _bi = 0; _bi < _allEnemiesForBoss.length; _bi++) {
+          var _be = _allEnemiesForBoss[_bi];
+          if (_be && _be.hp > 0 && _be.type && _be.type.indexOf('BOSS') !== -1) {
+            _bossE = _be; break;
+          }
+        }
+        if (_bossE) {
+          if (typeof HUD !== 'undefined' && HUD.showBossBar) {
+            HUD.showBossBar(_bossE.type.replace(/_/g, ' '), _bossE.hp, _bossE.maxHp || _bossE.hp);
+          }
+        } else {
+          if (typeof HUD !== 'undefined' && HUD.hideBossBar && _bossBarShowing) {
+            HUD.hideBossBar();
+            _bossBarShowing = false;
+          }
+        }
+        _bossBarShowing = !!_bossE;
+      } catch (eBB) {}
+      if (typeof CompanionDrone !== 'undefined' && CompanionDrone.isActive()) {
+        var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
+        CompanionDrone.update(delta, player.position, _allEnemies);
+      } else if (typeof CompanionDrone !== 'undefined') {
+        CompanionDrone.update(delta, player.position, []);
+      }
+      if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
+      if (window.ClaymoreMines) { var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; ClaymoreMines.update(delta, player.position, _allEnemies); }
+      if (window.TripwireIED) { var _iedEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; TripwireIED.update(_iedEnemies, delta); }
+      if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
+      if (window.LootDrops) LootDrops.update(delta);
+      if (window.DogTags) DogTags.update(delta);
+      if (window.GasMask) GasMask.update(delta, player.position);
+      if (typeof NightVision !== 'undefined') NightVision.update(delta);
+      if (window.WeatherEffects) WeatherEffects.update(delta, player.position);
+      if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
+      if (typeof HazardZones !== 'undefined') {
+        var _preHazardHp = player.hp;
+        HazardZones.update(delta, player.position, player);
+        // Gas mask: if equipped and in gas zone, block damage and speed penalty
+        if (window.GasMask && GasMask.interceptGasDamage()) {
+          player.hp = _preHazardHp;
+          window._hazardSlowFactor = 1.0;
+        }
+      }
+      if (window.IntelPickups) IntelPickups.update(delta, player.position, player, _scene);
+      if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
+      if (window.SurrenderSystem) SurrenderSystem.update(delta);
+      if (window.SuppressionSystem) SuppressionSystem.update(delta, player);
+      if (window.FreezeGrenade) FreezeGrenade.update(delta);
+      if (window.KillCam) KillCam.update(delta);
+      if (window.ShieldBubble) ShieldBubble.update(delta);
+      if (window.TripwireTrap) TripwireTrap.update(delta);
+      if (window.BulletTime) BulletTime.update(delta);
+      if (window.MountedTurret) MountedTurret.update(delta);
+      if (window.DynamicWeather) DynamicWeather.update(delta);
+      if (window.ObjectiveSystem) ObjectiveSystem.update(delta);
+      if (window.ClusterBomb) ClusterBomb.update(delta);
+      if (window.TacticalMinimap) TacticalMinimap.update(delta);
+      if (window.KillFeedEvents) KillFeedEvents.update(delta);
+      if (window.BossFinalForm) BossFinalForm.update(delta);
+      if (window.RadarPulse) RadarPulse.update(delta);
+      if (window.WeaponWear) WeaponWear.update(delta);
+      if (window.Nanobots) Nanobots.update(delta);
+      if (window.AmmoTypes) AmmoTypes.update(delta);
+      if (window.PlayerCallouts) PlayerCallouts.update(delta);
+      if (window.DriveableCar) DriveableCar.update(delta);
+      if (window.FPVKamikaze) FPVKamikaze.update(delta);
+      if (window.EMPPulse) EMPPulse.update(delta);
+      if (window.InventorySystem) InventorySystem.update(delta);
+      if (window.MeleeSystem) MeleeSystem.update(delta);
+      if (window.SniperScope) SniperScope.update(delta);
+      if (window.ParachuteDrop) ParachuteDrop.update(delta);
+      if (window.LandmineField) LandmineField.update(delta);
+      if (window.SmokeLauncher) SmokeLauncher.update(delta);
+      if (window.AirStrike) AirStrike.update(delta);
+      if (window.WallBreach) WallBreach.update(delta);
+      if (window.CombatRoll) CombatRoll.update(delta);
+      if (window.DogTagCollector) DogTagCollector.update(delta);
+      if (window.EnemySniper) EnemySniper.update(delta);
+      if (window.VehicleWreck) VehicleWreck.update(delta);
+      if (window.SuppressorKit) SuppressorKit.update(delta);
+      if (window.BattlefieldPromotions) BattlefieldPromotions.update(delta);
+      if (window.HostageRescue) HostageRescue.update(delta);
+      if (window.GrenadeLauncherGL) GrenadeLauncherGL.update(delta);
+      if (window.PlayerDeathSequence) PlayerDeathSequence.update(delta);
+      if (window.TacticalReload) TacticalReload.update(delta);
+      if (window.ClaymoreDirectional) ClaymoreDirectional.update(delta);
+      if (window.NightAssault) NightAssault.update(delta);
+      if (window.VehicleTurret) VehicleTurret.update(delta);
+      if (window.IntelDocuments) IntelDocuments.update(delta);
+      if (window.BodyArmorVest) BodyArmorVest.update(delta);
+      if (window.ArtilleryBarrage) ArtilleryBarrage.update(delta);
+      if (window.RiotShieldPickup) RiotShieldPickup.update(delta);
+      if (window.ScoreMultiplier) ScoreMultiplier.update(delta);
+      if (window.HeliExtraction) HeliExtraction.update(delta);
+      if (window.ChemicalWarfare) ChemicalWarfare.update(delta);
+      if (window.EnemyTankDestroyer) EnemyTankDestroyer.update(delta);
+      if (window.FlashbangSystem) FlashbangSystem.update(delta);
+      if (window.EnemyEngineer) EnemyEngineer.update(delta);
+      if (window.RappellingSystem) RappellingSystem.update(delta);
+      if (window.BulletCam) BulletCam.update(delta);
+      if (window.ReconDrone) ReconDrone.update(delta);
+      if (window.BunkerBuster) BunkerBuster.update(delta);
+      if (window.TacticalMap) TacticalMap.update(delta);
+      // Wave 21
+      if (window.VehiclePhysics) VehiclePhysics.update(delta);
+      if (window.DecoyFlare) DecoyFlare.update(delta);
+      if (window.FortificationBuilder) FortificationBuilder.update(delta);
+      if (window.MortarStrikeSystem) MortarStrikeSystem.update(delta);
+      if (window.EnemyMedicNPC) EnemyMedicNPC.update(delta);
+      if (window.ExplosiveBarrelChain) ExplosiveBarrelChain.update(delta);
+      if (window.PowerupSystem) PowerupSystem.update(delta);
+      if (window.WaveAnnouncement) WaveAnnouncement.update(delta);
+      if (window.EnvironmentalHazards) EnvironmentalHazards.update(delta);
+      // Wave 22
+      if (window.CaptureZone) CaptureZone.update(delta);
+      if (window.AirdropSupply) AirdropSupply.update(delta);
+      if (window.StealthSystem) StealthSystem.update(delta);
+      if (window.EnemyCoordinator) EnemyCoordinator.update(delta);
+      if (window.HelicopterGunship) HelicopterGunship.update(delta);
+      if (window.JavelinLauncher) JavelinLauncher.update(delta);
+      if (window.TimedCharges) TimedCharges.update(delta);
+      if (window.SoldierSkillTree) SoldierSkillTree.update(delta);
+      if (window.ShieldGenerator) ShieldGenerator.update(delta);
+      if (window.CombatXPSystem) CombatXPSystem.update(delta);
+      if (window.LootSystem) LootSystem.update(delta);
+      if (window.ProximityMine) ProximityMine.update(delta);
+      if (window.TacticalShield) TacticalShield.update(delta);
+      // Wave 23
+      if (window.MineSweeper) MineSweeper.update(delta);
+      if (window.SniperNest) SniperNest.update(delta);
+      if (window.VehicleConvoy) VehicleConvoy.update(delta);
+      if (window.WeaponWorkshop) WeaponWorkshop.update(delta);
+      if (window.SquadTactics) SquadTactics.update(delta);
+      if (window.BattleReplay) BattleReplay.update(delta);
+      if (window.DynamicEvents) DynamicEvents.update(delta);
+      if (window.PropagandaSystem) PropagandaSystem.update(delta);
+      if (window.TankControls) TankControls.update(delta);
+      if (window.NBCProtection) NBCProtection.update(delta);
+      // Wave 24
+      if (window.ArtilleryBattery) ArtilleryBattery.update(delta);
+      if (window.UrbanDestruction) UrbanDestruction.update(delta);
+      if (window.MedicStation) MedicStation.update(delta);
+      if (window.WeatherSystem) WeatherSystem.update(delta);
+      if (window.ArmorSystem) ArmorSystem.update(delta);
+      if (window.BunkerAssault) BunkerAssault.update(delta);
+      if (window.SignalIntelligence) SignalIntelligence.update(delta);
+      if (window.ReconDrone) ReconDrone.update(delta);
+      if (window.NightVision) NightVision.update(delta);
+      if (window.AirSupport) AirSupport.update(delta);
+      // Wave 25
+      if (window.SatelliteUplink) SatelliteUplink.update(delta);
+      if (window.PrisonerRescue) PrisonerRescue.update(delta);
+      if (window.SiegeEngine) SiegeEngine.update(delta);
+      if (window.SmokeGrenade) SmokeGrenade.update(delta);
+      if (window.FortifiedOutpost) FortifiedOutpost.update(delta);
+      if (window.CombatKnife) CombatKnife.update(delta);
+      if (window.MinefieldMapper) MinefieldMapper.update(delta);
+      if (window.FieldComms) FieldComms.update(delta);
+      if (window.TrophySystem) TrophySystem.update(delta);
+      if (window.ExtractionZone) ExtractionZone.update(delta);
+      // Wave 26
+      if (window.AmphibiousAssault) AmphibiousAssault.update(delta);
+      if (window.SupplyChain) SupplyChain.update(delta);
+      if (window.RiotControl) RiotControl.update(delta);
+      if (window.ElectromagneticPulse) ElectromagneticPulse.update(delta);
+      if (window.HostageNegotiation) HostageNegotiation.update(delta);
+      if (window.CyberWarfare) CyberWarfare.update(delta);
+      if (window.AntiAir) AntiAir.update(delta);
+      if (window.BlackMarket) BlackMarket.update(delta);
+      if (window.BallisticCalculator) BallisticCalculator.update(delta);
+      if (window.TunnelSystem) TunnelSystem.update(delta);
+      if (window.VehicleRepair) VehicleRepair.update(delta);
+      if (window.GhostRecon) GhostRecon.update(delta);
+      if (window.LandslideEvent) LandslideEvent.update(delta);
+      if (window.WarCrimesDetector) WarCrimesDetector.update(delta);
+      if (window.CommandoRaid) CommandoRaid.update(delta);
+      if (window.IntelligenceBriefing) IntelligenceBriefing.update(delta);
+      if (window.ParachuteDrop) ParachuteDrop.update(delta);
+      if (window.RadioBeacon) RadioBeacon.update(delta);
+      if (window.BodyDrag) BodyDrag.update(delta);
+      if (window.PsyOps) PsyOps.update(delta);
+      if (window.AmbushSystem) AmbushSystem.update(delta);
+      if (window.FieldHospital) FieldHospital.update(delta);
+      if (window.ReconSatellite) ReconSatellite.update(delta);
+      if (window.FortificationBuilder) FortificationBuilder.update(delta);
+      if (window.NavalCombat) NavalCombat.update(delta);
+      if (window.CounterSniper) CounterSniper.update(delta);
+      if (window.ExplosiveOrdnance) ExplosiveOrdnance.update(delta);
+      if (window.ChainOfCommand) ChainOfCommand.update(delta);
+      if (window.WeatherEffects) WeatherEffects.update(delta);
+      if (window.ObjectiveTracker) ObjectiveTracker.update(delta);
+      if (window.BattleDamageAssessment) BattleDamageAssessment.update(delta);
+      if (window.PrisonerExchange) PrisonerExchange.update(delta);
+      if (window.TacticalRetreat) TacticalRetreat.update(delta);
+      if (window.KillHouse) KillHouse.update(delta);
+      if (window.MortarCalculator) MortarCalculator.update(delta);
+      if (window.LogisticsSystem) LogisticsSystem.update(delta);
+      if (window.StealthSystem) StealthSystem.update(delta);
+      if (window.UrbanPatrol) UrbanPatrol.update(delta);
+      if (window.ElectronicWarfare) ElectronicWarfare.update(delta);
+      if (window.VehicleConvoy) VehicleConvoy.update(delta);
+      if (window.BreachingCharges) BreachingCharges.update(delta);
+      if (window.CasualtyEvacuation) CasualtyEvacuation.update(delta);
+      if (window.NightVision) NightVision.update(delta);
+      if (window.FireSupport) FireSupport.update(delta);
+      if (window.ShieldSystem) ShieldSystem.update(delta);
+      if (window.MineField) MineField.update(delta);
+      if (window.TankCommander) TankCommander.update(delta);
+      if (window.CombatMedic) CombatMedic.update(delta);
+      if (window.SiegeWarfare) SiegeWarfare.update(delta);
+      if (window.SniperRifle) SniperRifle.update(delta);
+      if (window.RappellingSystem) RappellingSystem.update(delta);
+      if (window.GrenadeTypes) GrenadeTypes.update(delta);
+      if (window.SentryGun) SentryGun.update(delta);
+      if (window.BunkerAssault) BunkerAssault.update(delta);
+      if (window.AirAssault) AirAssault.update(delta);
+      if (window.WeatherAmbience) WeatherAmbience.update(delta);
+      if (window.ObjectiveCapture) ObjectiveCapture.update(delta);
+      if (window.TunnelNetwork) TunnelNetwork.update(delta);
+      if (window.MeleeCombat) MeleeCombat.update(delta);
+      if (window.VehicleDamage) VehicleDamage.update(delta);
+      if (window.SupplyDrop) SupplyDrop.update(delta);
+      if (window.HostageRescue) HostageRescue.update(delta);
+      if (window.MapSystem) MapSystem.update(delta);
+      if (window.DecoySystem) DecoySystem.update(delta);
+      if (window.CombatDrone) CombatDrone.update(delta);
+      if (window.ArmorSystem) ArmorSystem.update(delta);
+      if (window.FortifiedRetreat) FortifiedRetreat.update(delta);
+      if (window.WeatherStorm) WeatherStorm.update(delta);
+      if (window.SpecialForces) SpecialForces.update(delta);
+      if (window.CommandBunker) CommandBunker.update(delta);
+      if (window.CombatSwimming) CombatSwimming.update(delta);
+      if (window.AerialDogfight) AerialDogfight.update(delta);
+      if (window.ForwardObserver) ForwardObserver.update(delta);
+      if (window.CombatJump) CombatJump.update(delta);
+      if (window.CombatEngineering) CombatEngineering.update(delta);
+      if (window.IEDDisposal) IEDDisposal.update(delta);
+      if (window.BattlefieldTriage) BattlefieldTriage.update(delta);
+      if (window.FirebaseDefense) FirebaseDefense.update(delta);
+      if (window.IntelNetwork) IntelNetwork.update(delta);
+      if (window.NavalOperations) NavalOperations.update(delta);
+      if (window.ArcticWarfare) ArcticWarfare.update(delta);
+      if (window.JungleWarfare) JungleWarfare.update(delta);
+      if (window.CheckpointAssault) CheckpointAssault.update(delta);
+                    if (window.CommandVehicle) CommandVehicle.update(delta);
+      if (window.BallisticShieldOps) BallisticShieldOps.update(delta);
+      if (window.RiotResponse) RiotResponse.update(delta);
+      if (window.FactorySabotage) FactorySabotage.update(delta);
+      if (window.POWEscape) POWEscape.update(delta);
+      if (window.AmbushNetwork) AmbushNetwork.update(delta);
+      if (window.EscapeEvade) EscapeEvade.update(delta);
+      if (window.UrbanWarfare) UrbanWarfare.update(delta);
+      if (window.RescueDownedPilot) RescueDownedPilot.update(delta);
+      if (window.ConvoyEscort) ConvoyEscort.update(delta);
+      if (window.DeepRecon) DeepRecon.update(delta);
+      if (window.SupplyChainAttack) SupplyChainAttack.update(delta);
+      if (window.MassSurrender) MassSurrender.update(delta);
+      if (window.SiegeTower) SiegeTower.update(delta);
+      if (window.SniperHunt) SniperHunt.update(delta);
+      if (window.VehicleRecovery) VehicleRecovery.update(delta);
+      if (window.HostageStandoff) HostageStandoff.update(delta);
+      if (window.NightVisionOps) NightVisionOps.update(delta);
+      if (window.BridgeDemolition) BridgeDemolition.update(delta);
+      if (window.ArtilleryDuel) ArtilleryDuel.update(delta);
+      if (window.TunnelWarfare) TunnelWarfare.update(delta);
+      if (window.CarrierAssault) CarrierAssault.update(delta);
+      if (window.DroneSwarm) DroneSwarm.update(delta);
+      if (window.ChemBioResponse) ChemBioResponse.update(delta);
+      if (window.MedevacOps) MedevacOps.update(delta);
+      if (window.PrisonBreak) PrisonBreak.update(delta);
+      if (window.MountainAssault) MountainAssault.update(delta);
+      if (window.MechSuit) MechSuit.update(delta);
+      if (window.RiverCrossing) RiverCrossing.update(delta);
+      if (window.CyberWarfare) CyberWarfare.update(delta);
+      if (window.TrainAssault) TrainAssault.update(delta);
+      if (window.NuclearShutdown) NuclearShutdown.update(delta);
+      if (window.RadioTower) RadioTower.update(delta);
+      if (window.MortarBarrage) MortarBarrage.update(delta);
+      if (window.TankWarfare) TankWarfare.update(delta);
+      if (window.DesertStorm) DesertStorm.update(delta);
+      if (window.RefugeeConvoy) RefugeeConvoy.update(delta);
+      if (window.BlackOpsExtraction) BlackOpsExtraction.update(delta);
+      if (window.ZeroGravityCombat) ZeroGravityCombat.update(delta);
+      if (window.DroneRacing) DroneRacing.update(delta);
+      if (window.PirateShipBattle) PirateShipBattle.update(delta);
+      if (window.GladiatorArena) GladiatorArena.update(delta);
+      if (window.HeistPlanning) HeistPlanning.update(delta);
+      if (window.UnderwaterBase) UnderwaterBase.update(delta);
+      if (window.ZombieOutbreak) ZombieOutbreak.update(delta);
+      if (window.VolcanoEscape) VolcanoEscape.update(delta);
+      if (window.FactionStandoff) FactionStandoff.update(delta);
+      if (window.AncientSiege) AncientSiege.update(delta);
+      if (window.MechWarfare) MechWarfare.update(delta);
+      if (window.DrugLord) DrugLord.update(delta);
+      if (window.MoonBase) MoonBase.update(delta);
+      if (window.PrisonRiot) PrisonRiot.update(delta);
+      if (window.ArcticBase) ArcticBase.update(delta);
+      if (window.TimeHeist) TimeHeist.update(delta);
+      if (window.AlienInvasion) AlienInvasion.update(delta);
+      if (window.CyberHeist) CyberHeist.update(delta);
+      if (window.TrainRobbery) TrainRobbery.update(delta);
+      if (window.JungleTemple) JungleTemple.update(delta);
+      if (window.NuclearPlant) NuclearPlant.update(delta);
+      if (window.CasinoHeist) CasinoHeist.update(delta);
+      if (window.OilRig) OilRig.update(delta);
+      if (window.SkyFortress) SkyFortress.update(delta);
+      if (window.SubmarineWarfare) SubmarineWarfare.update(delta);
+      if (window.BioLab) BioLab.update(delta);
+      if (window.Assassination) Assassination.update(delta);
+      if (window.SiegeDefense) SiegeDefense.update(delta);
+      if (window.GhostMission) GhostMission.update(delta);
+      if (window.SpaceStation) SpaceStation.update(delta);
+      if (window.PirateCove) PirateCove.update(delta);
+      if (window.GladiatorColosseum) GladiatorColosseum.update(delta);
+      if (window.BunkerBreach) BunkerBreach.update(delta);
+      if (window.VolcanoAssault) VolcanoAssault.update(delta);
+      if (window.CargoShip) CargoShip.update(delta);
+      if (window.WarzoneHospital) WarzoneHospital.update(delta);
+      if (window.ArmsDealer) ArmsDealer.update(delta);
+      if (window.HostageCrisis) HostageCrisis.update(delta);
+      if (window.TankBattalion) TankBattalion.update(delta);
+      if (window.ZombieApocalypse) ZombieApocalypse.update(delta);
+      if (window.SamuraiDuel) SamuraiDuel.update(delta);
+      if (window.NuclearSubmarine) NuclearSubmarine.update(delta);
+      if (window.RebelUprising) RebelUprising.update(delta);
+      if (window.MiningDisaster) MiningDisaster.update(delta);
+      if (window.PrisonBreak) PrisonBreak.update(delta);
+      if (window.RacingCombat) RacingCombat.update(delta);
+      if (window.MedievalSiege) MedievalSiege.update(delta);
+      if (window.IslandAssault) IslandAssault.update(delta);
+      if (window.CyberpunkCity) CyberpunkCity.update(delta);
+      if (window.DeepJungle) DeepJungle.update(delta);
+      if (window.BattleRoyale) BattleRoyale.update(delta);
+      if (window.CultCompound) CultCompound.update(delta);
+      if (window.HelipadExtraction) HelipadExtraction.update(delta);
+      if (window.DesertWarfare) DesertWarfare.update(delta);
+      if (window.UrbanSniper) UrbanSniper.update(delta);
+      if (window.ConvoyAmbush) ConvoyAmbush.update(delta);
+      if (window.NukeDisarm) NukeDisarm.update(delta);
+      if (window.StormTheCastle) StormTheCastle.update(delta);
+      if (window.CorporateEspionage) CorporateEspionage.update(delta);
+      if (window.AlienMothership) AlienMothership.update(delta);
+      if (window.GoldRush) GoldRush.update(delta);
+      if (window.UnderwaterRuins) UnderwaterRuins.update(delta);
+      if (window.ArcticRescue) ArcticRescue.update(delta);
+      if (window.MobWar) MobWar.update(delta);
+      if (window.TempleOfDoom) TempleOfDoom.update(delta);
+      if (window.AirbaseRaid) AirbaseRaid.update(delta);
+      if (window.BlackSite) BlackSite.update(delta);
+      if (window.SpaceMarines) SpaceMarines.update(delta);
+      if (window.OilWar) OilWar.update(delta);
+      if (window.MechAssault) MechAssault.update(delta);
+      if (window.JungleAmbush) JungleAmbush.update(delta);
+      if (window.CultBunker) CultBunker.update(delta);
+      if (window.NuclearWinter) NuclearWinter.update(delta);
+      if (window.FortressAssault) FortressAssault.update(delta);
+      if (window.RobotUprising) RobotUprising.update(delta);
+      if (window.DrugCartel) DrugCartel.update(delta);
+      if (window.TimeHeist) TimeHeist.update(delta);
+      if (window.PirateIsland) PirateIsland.update(delta);
+      if (window.AvalancheEscape) AvalancheEscape.update(delta);
+      if (window.CyberWarfare) CyberWarfare.update(delta);
+      if (window.SiegeOfParis) SiegeOfParis.update(delta);
+      if (window.HauntedMansion) HauntedMansion.update(delta);
+      if (window.DiamondHeist) DiamondHeist.update(delta);
+      if (window.WarOf1812) WarOf1812.update(delta);
+      if (window.Jailbreak) Jailbreak.update(delta);
+      if (window.MeteorStrike) MeteorStrike.update(delta);
+      if (window.CloneWars) CloneWars.update(delta);
+      if (window.VolcanoEscape) VolcanoEscape.update(delta);
+      if (window.EmbassySiege) EmbassySiege.update(delta);
+      if (window.NightRaid) NightRaid.update(delta);
+      if (window.KungFuDojo) KungFuDojo.update(delta);
+      if (window.RefugeeConvoy) RefugeeConvoy.update(delta);
+      if (window.MarsColony) MarsColony.update(delta);
+      if (window.SharkAttack) SharkAttack.update(delta);
+      if (window.ColosseumBoss) ColosseumBoss.update(delta);
+      if (window.DeepCover) DeepCover.update(delta);
+      if (window.SpySatellite) SpySatellite.update(delta);
+      if (window.GladiatorArena) GladiatorArena.update(delta);
+      if (window.NukeLaunch) NukeLaunch.update(delta);
+      if (window.HostageTrain) HostageTrain.update(delta);
+      if (window.WaterCrisis) WaterCrisis.update(delta);
+      if (window.MidnightCoup) MidnightCoup.update(delta);
+      if (window.PlagueOutbreak) PlagueOutbreak.update(delta);
+      if (window.OrbitalDefense) OrbitalDefense.update(delta);
+      if (window.SunkenVessel) SunkenVessel.update(delta);
+      if (window.HighriseHostage) HighriseHostage.update(delta);
+      if (window.WarlordHunt) WarlordHunt.update(delta);
+      if (window.SupplyDepot) SupplyDepot.update(delta);
+      if (window.DesertAmbush) DesertAmbush.update(delta);
+      if (window.VolcanoFortress) VolcanoFortress.update(delta);
+      if (window.PirateRaid) PirateRaid.update(delta);
+      if (window.SubmarineHeist) SubmarineHeist.update(delta);
+      if (window.CasinoShootout) CasinoShootout.update(delta);
+      if (window.ArcticSiege) ArcticSiege.update(delta);
+      if (window.MuseumHeist) MuseumHeist.update(delta);
+      if (window.TrainHeist) TrainHeist.update(delta);
+      if (window.GhostTown) GhostTown.update(delta);
+      if (window.AncientTemple) AncientTemple.update(delta);
+      if (window.FootballStadium) FootballStadium.update(delta);
+      if (window.PrisonEscape) PrisonEscape.update(delta);
+      if (window.CyberpunkHeist) CyberpunkHeist.update(delta);
+      if (window.AvalancheRescue) AvalancheRescue.update(delta);
+      if (window.RomanConquest) RomanConquest.update(delta);
+      if (window.OilPlatform) OilPlatform.update(delta);
+      if (window.SamuraiSiege) SamuraiSiege.update(delta);
+      if (window.BloodDiamond) BloodDiamond.update(delta);
+      if (window.SpacePirates) SpacePirates.update(delta);
+      if (window.KungFuTemple) KungFuTemple.update(delta);
+      if (window.DeepSeaBase) DeepSeaBase.update(delta);
+      if (window.JungleTempleRaid) JungleTempleRaid.update(delta);
+      if (window.VikingLongship) VikingLongship.update(delta);
+      if (window.GuerrillaWar) GuerrillaWar.update(delta);
+      if (window.SkyscraperSiege) SkyscraperSiege.update(delta);
+      if (window.CargoPlane) CargoPlane.update(delta);
+      if (window.BankHeist) BankHeist.update(delta);
+      if (window.CyberEspionage) CyberEspionage.update(delta);
+      if (window.InsurgentCamp) InsurgentCamp.update(delta);
+      if (window.MoonbaseAssault) MoonbaseAssault.update(delta);
+      if (window.WitnessProtection) WitnessProtection.update(delta);
+      if (window.CartelCompound) CartelCompound.update(delta);
+      if (window.TokyoShowdown) TokyoShowdown.update(delta);
+    if (window.DoomsdayVault) DoomsdayVault.update(delta);
+    if (window.AztecRuins) AztecRuins.update(delta);
+    if (window.CiaSafehouse) CiaSafehouse.update(delta);
+    if (window.NeonArena) NeonArena.update(delta);
+    if (window.GhostOps) GhostOps.update(delta);
+    if (window.ArmsSmuggler) ArmsSmuggler.update(delta);
+    if (window.SpaceStationSiege) SpaceStationSiege.update(delta);
+    if (window.PrisonRiotResponse) PrisonRiotResponse.update(delta);
+    if (window.JungleCombat) JungleCombat.update(delta);
+    if (window.TrainHijack) TrainHijack.update(delta);
+    if (window.BountyHunter) BountyHunter.update(delta);
+    if (window.BioLabOutbreak) BioLabOutbreak.update(delta);
+    if (window.AntarcticStation) AntarcticStation.update(delta);
+    if (window.TimeParadox) TimeParadox.update(delta);
+    if (window.NightMarketRaid) NightMarketRaid.update(delta);
+    if (window.SubmarineHunter) SubmarineHunter.update(delta);
+    if (window.GlacierFortress) GlacierFortress.update(delta);
+    if (window.TempleGuardian) TempleGuardian.update(delta);
+    if (window.DrugLabTakedown) DrugLabTakedown.update(delta);
+    if (window.PowerPlantSiege) PowerPlantSiege.update(delta);
+    if (window.AbandonedAsylum) AbandonedAsylum.update(delta);
+    if (window.ArcticConvoy) ArcticConvoy.update(delta);
+    if (window.ChemicalFactory) ChemicalFactory.update(delta);
+    if (window.ColosseumBattle) ColosseumBattle.update(delta);
+    if (window.BlackMarketArms) BlackMarketArms.update(delta);
+    if (window.HarborBlockade) HarborBlockade.update(delta);
+    if (window.MountainPass) MountainPass.update(delta);
+    if (window.BankVault) BankVault.update(delta);
+    if (window.IslandFortress) IslandFortress.update(delta);
+    if (window.TrainStationSiege) TrainStationSiege.update(delta);
+    if (window.SewersEscape) SewersEscape.update(delta);
+    if (window.WeaponsFactory) WeaponsFactory.update(delta);
+    if (window.ResearchStation) ResearchStation.update(delta);
+    if (window.UndergroundFight) UndergroundFight.update(delta);
+    if (window.FortressBreach) FortressBreach.update(delta);
+    if (window.WetlandsAmbush) WetlandsAmbush.update(delta);
+    if (window.SpaceColony) SpaceColony.update(delta);
+    if (window.GlacierCave) GlacierCave.update(delta);
+    if (window.AbandonedCity) AbandonedCity.update(delta);
+    if (window.AirBaseAssault) AirBaseAssault.update(delta);
+    if (window.VolcanoTemple) VolcanoTemple.update(delta);
+    if (window.DiamondMine) DiamondMine.update(delta);
+    if (window.OilRigSiege) OilRigSiege.update(delta);
+    if (window.HauntedManor) HauntedManor.update(delta);
+    if (window.ArcticResearch) ArcticResearch.update(delta);
+    if (window.RooftopShowdown) RooftopShowdown.update(delta);
+    if (window.UnderwaterLab) UnderwaterLab.update(delta);
+    if (window.DesertFortress) DesertFortress.update(delta);
+    if (window.RacingCircuit) RacingCircuit.update(delta);
+    if (window.UndergroundBunker) UndergroundBunker.update(delta);
+    if (window.CarnivalChaos) CarnivalChaos.update(delta);
+    if (window.GlacierBase) GlacierBase.update(delta);
+    if (window.MetroStation) MetroStation.update(delta);
+    if (window.SwampVillage) SwampVillage.update(delta);
+    if (window.GhostShip) GhostShip.update(delta);
+    if (window.SatelliteDish) SatelliteDish.update(delta);
+    if (window.EmbassyRaid) EmbassyRaid.update(delta);
+    if (window.CruiseShip) CruiseShip.update(delta);
+    if (window.BunkerComplex) BunkerComplex.update(delta);
+    if (window.AirportSiege) AirportSiege.update(delta);
+    if (window.MountainVillage) MountainVillage.update(delta);
+    if (window.RefineryAssault) RefineryAssault.update(delta);
+    if (window.SpaceDebris) SpaceDebris.update(delta);
+    if (window.JungleAirstrip) JungleAirstrip.update(delta);
+    if (window.SunkenWreck) SunkenWreck.update(delta);
+    if (window.WarCrimesTrial) WarCrimesTrial.update(delta);
+    if (window.ToxicWasteland) ToxicWasteland.update(delta);
+    if (window.CargoTrain) CargoTrain.update(delta);
+    if (window.TempleRuins) TempleRuins.update(delta);
+    if (window.AbandonedMine) AbandonedMine.update(delta);
+    if (window.FrozenTundra) FrozenTundra.update(delta);
+    if (window.VolcanoIsland) VolcanoIsland.update(delta);
+    if (window.FloodedCity) FloodedCity.update(delta);
+    if (window.ChemicalPlant) ChemicalPlant.update(delta);
+    if (window.BorderCrossing) BorderCrossing.update(delta);
+    if (window.CrashedSatellite) CrashedSatellite.update(delta);
+    if (window.PowerGrid) PowerGrid.update(delta);
+    if (window.SubmarineDock) SubmarineDock.update(delta);
+    if (window.SewageTunnels) SewageTunnels.update(delta);
+    if (window.WarshipDeck) WarshipDeck.update(delta);
+    if (window.HauntedVillage) HauntedVillage.update(delta);
+    if (window.AircraftHangar) AircraftHangar.update(delta);
+    if (window.ClockTower) ClockTower.update(delta);
+    if (window.SpaceElevator) SpaceElevator.update(delta);
+    if (window.CitySewer) CitySewer.update(delta);
+    if (window.NuclearBunker) NuclearBunker.update(delta);
+    if (window.JungleCamp) JungleCamp.update(delta);
+    if (window.AuctionHouse) AuctionHouse.update(delta);
+    if (window.DamAssault) DamAssault.update(delta);
+    if (window.ArcticOutpost) ArcticOutpost.update(delta);
+    if (window.CourtroomSiege) CourtroomSiege.update(delta);
+    if (window.OilPipeline) OilPipeline.update(delta);
+    if (window.TechCampus) TechCampus.update(delta);
+    if (window.MedievalFortress) MedievalFortress.update(delta);
+    if (window.SkiResort) SkiResort.update(delta);
+    if (window.JungleRiver) JungleRiver.update(delta);
+    if (window.BunkerHill) BunkerHill.update(delta);
+    if (window.DataCenter) DataCenter.update(delta);
+    if (window.PirateFortress) PirateFortress.update(delta);
+    if (window.RooftopGarden) RooftopGarden.update(delta);
+    if (window.BurningCity) BurningCity.update(delta);
+    if (window.SwampLab) SwampLab.update(delta);
+    if (window.FloatingIsland) FloatingIsland.update(delta);
+    if (window.RuralAmbush) RuralAmbush.update(delta);
+    if (window.LookoutTower) LookoutTower.update(delta);
+    if (window.UndergroundMarket) UndergroundMarket.update(delta);
+    if (window.SkyPlatform) SkyPlatform.update(delta);
+    if (window.TrainDepot) TrainDepot.update(delta);
+    if (window.OrbitalStation) OrbitalStation.update(delta);
+    if (window.DesertOutpost) DesertOutpost.update(delta);
+    if (window.HarborAssault) HarborAssault.update(delta);
+    if (window.CanyonRaid) CanyonRaid.update(delta);
+    if (window.ShippingHub) ShippingHub.update(delta);
+    if (window.DowntownSiege) DowntownSiege.update(delta);
+    if (window.HighwayChase) HighwayChase.update(delta);
+    if (window.WaterfallAmbush) WaterfallAmbush.update(delta);
+    if (window.ShipwreckReef) ShipwreckReef.update(delta);
+    if (window.AncientRuins) AncientRuins.update(delta);
+    if (window.GeothermalPlant) GeothermalPlant.update(delta);
+    if (window.MissileSiloB) MissileSiloB.update(delta);
+    if (window.UnderwaterCave) UnderwaterCave.update(delta);
+    if (window.ForestAmbush) ForestAmbush.update(delta);
+    if (window.ArenaCombat) ArenaCombat.update(delta);
+    if (window.VolcanoObservatory) VolcanoObservatory.update(delta);
+    if (window.MiningColony) MiningColony.update(delta);
+    if (window.AirshipBattle) AirshipBattle.update(delta);
+    if (window.PrisonEscapeB) PrisonEscapeB.update(delta);
+    if (window.IslandBase) IslandBase.update(delta);
+    if (window.CyberVault) CyberVault.update(delta);
+    if (window.HelipadAssault) HelipadAssault.update(delta);
+    if (window.ChemicalDepot) ChemicalDepot.update(delta);
+    if (window.MonasteryRaid) MonasteryRaid.update(delta);
+    if (window.PipelineSabotage) PipelineSabotage.update(delta);
+    if (window.IceCave) IceCave.update(delta);
+    if (window.DroneFactory) DroneFactory.update(delta);
+    if (window.NightMarket) NightMarket.update(delta);
+    if (window.WetlandsPatrol) WetlandsPatrol.update(delta);
+    if (window.NuclearLab) NuclearLab.update(delta);
+    if (window.TankGraveyard) TankGraveyard.update(delta);
+    if (window.SatelliteBase) SatelliteBase.update(delta);
+    if (window.WarRoom) WarRoom.update(delta);
+    if (window.RescueMission) RescueMission.update(delta);
+    if (window.SandstormBase) SandstormBase.update(delta);
+    if (window.WarRuins) WarRuins.update(delta);
+    if (window.FogValley) FogValley.update(delta);
+    if (window.SwampFort) SwampFort.update(delta);
+    if (window.StormBeach) StormBeach.update(delta);
+    if (window.AshFields) AshFields.update(delta);
+    if (window.MidnightPort) MidnightPort.update(delta);
+    if (window.FireCamp) FireCamp.update(delta);
+    if (window.IronWall) IronWall.update(delta);
+    if (window.VaporZone) VaporZone.update(delta);
+    if (window.ToxicSwamp) ToxicSwamp.update(delta);
+    if (window.RadarHill) RadarHill.update(delta);
+    if (window.RebelCamp) RebelCamp.update(delta);
+    if (window.DeathRidge) DeathRidge.update(delta);
+    if (window.GhostFort) GhostFort.update(delta);
+    if (window.AcidMarsh) AcidMarsh.update(delta);
+    if (window.WarRelic) WarRelic.update(delta);
+    if (window.StormWall) StormWall.update(delta);
+    if (window.CyberGrid) CyberGrid.update(delta);
+    if (window.RustBelt) RustBelt.update(delta);
+    if (window.RockFortress) RockFortress.update(delta);
+    if (window.WireZone) WireZone.update(delta);
+    if (window.PlagueZone) PlagueZone.update(delta);
+    if (window.BlastCrater) BlastCrater.update(delta);
+    if (window.SteelCity) SteelCity.update(delta);
+    if (window.DarkHarbor) DarkHarbor.update(delta);
+    if (window.BloodTide) BloodTide.update(delta);
+    if (window.CaveFortress) CaveFortress.update(delta);
+    if (window.AshLake) AshLake.update(delta);
+    if (window.LavaRidge) LavaRidge.update(delta);
+    if (window.Oremine) Oremine.update(delta);
+    if (window.TrenchCity) TrenchCity.update(delta);
+    if (window.BombRange) BombRange.update(delta);
+    if (window.FrostKeep) FrostKeep.update(delta);
+        if (window.WarChapel) WarChapel.update(delta);
+        if (window.BrokenDam) BrokenDam.update(delta);
+        if (window.EchoValley) EchoValley.update(delta);
+        if (window.SlagHeap) SlagHeap.update(delta);
+        if (window.CryptKeep) CryptKeep.update(delta);
+        if (window.SkyCitadel) SkyCitadel.update(delta);
+        if (window.WarGallery) WarGallery.update(delta);
+        if (window.SaltMine) SaltMine.update(delta);
+        if (window.WarBunker) WarBunker.update(delta);
+        if (window.MachineShop) MachineShop.update(delta);
+        if (window.GlacierFort) GlacierFort.update(delta);
+        if (window.IronDepot) IronDepot.update(delta);
+        if (window.RustYard) RustYard.update(delta);
+        if (window.BogFort) BogFort.update(delta);
+        if (window.WireNest) WireNest.update(delta);
+        if (window.MudCity) MudCity.update(delta);
+        if (window.DarkMesa) DarkMesa.update(delta);
+        if (window.RuinPort) RuinPort.update(delta);
+        if (window.AshDock) AshDock.update(delta);
+        if (window.SwampGate) SwampGate.update(delta);
+        if (window.FireRidge) FireRidge.update(delta);
+        if (window.StormPort) StormPort.update(delta);
+        if (window.RiverGate) RiverGate.update(delta);
+        if (window.DustHarbor) DustHarbor.update(delta);
+        if (window.GrimYard) GrimYard.update(delta);
+        if (window.IronShore) IronShore.update(delta);
+        if (window.TarPit) TarPit.update(delta);
+        if (window.SaltLake) SaltLake.update(delta);
+        if (window.WarArch) WarArch.update(delta);
+        if (window.CragFort) CragFort.update(delta);
+        if (window.VoltDam) VoltDam.update(delta);
+        if (window.SootMill) SootMill.update(delta);
+        if (window.PipeYard) PipeYard.update(delta);
+        if (window.CoalRidge) CoalRidge.update(delta);
+        if (window.GunWharf) GunWharf.update(delta);
+        if (window.OrePit) OrePit.update(delta);
+        if (window.FogBase) FogBase.update(delta);
+        if (window.WaxFort) WaxFort.update(delta);
+        if (window.HexTown) HexTown.update(delta);
+        if (window.KeelYard) KeelYard.update(delta);
+        if (window.AshVale) AshVale.update(delta);
+        if (window.BogMill) BogMill.update(delta);
+        if (window.LavaKeep) LavaKeep.update(delta);
+        if (window.TideGate) TideGate.update(delta);
+        if (window.ZincMine) ZincMine.update(delta);
+        if (window.ClayFort) ClayFort.update(delta);
+        if (window.DuskCamp) DuskCamp.update(delta);
+        if (window.BoneRidge) BoneRidge.update(delta);
+        if (window.FogMill) FogMill.update(delta);
+        if (window.SaltFlat) SaltFlat.update(delta);
+        if (window.WarCove) WarCove.update(delta);
+        if (window.IronGrove) IronGrove.update(delta);
+        if (window.DustPit) DustPit.update(delta);
+        if (window.MudPass) MudPass.update(delta);
+        if (window.CoalBay) CoalBay.update(delta);
+        if (window.FlintWall) FlintWall.update(delta);
+        if (window.StormGate) StormGate.update(delta);
+        if (window.TarDock) TarDock.update(delta);
+        if (window.OilDrum) OilDrum.update(delta);
+        if (window.PineFort) PineFort.update(delta);
+        if (window.CragMill) CragMill.update(delta);
+        if (window.SiltBay) SiltBay.update(delta);
+        if (window.DuneFort) DuneFort.update(delta);
+        if (window.RockQuay) RockQuay.update(delta);
+        if (window.AshFort) AshFort.update(delta);
+        if (window.GrimPort) GrimPort.update(delta);
+        if (window.FenGate) FenGate.update(delta);
+        if (window.MossKeep) MossKeep.update(delta);
+        if (window.RustCamp) RustCamp.update(delta);
+        if (window.WireFort) WireFort.update(delta);
+        if (window.ChalkPit) ChalkPit.update(delta);
+        if (window.EmberVale) EmberVale.update(delta);
+        if (window.GlassDome) GlassDome.update(delta);
+        if (window.LochGate) LochGate.update(delta);
+        if (window.CokeYard) CokeYard.update(delta);
+        if (window.PeatBog) PeatBog.update(delta);
+        if (window.IronTomb) IronTomb.update(delta);
+        if (window.WeldYard) WeldYard.update(delta);
+        if (window.BileFort) BileFort.update(delta);
+        if (window.MastHill) MastHill.update(delta);
+    if (window.ClayDock) ClayDock.update(delta);
+    if (window.FrostCamp) FrostCamp.update(delta);
+    if (window.RockLab) RockLab.update(delta);
+    if (window.HempCamp) HempCamp.update(delta);
+    if (window.FumeGate) FumeGate.update(delta);
+    if (window.CoalDock) CoalDock.update(delta);
+    if (window.MudKeep) MudKeep.update(delta);
+    if (window.GustBase) GustBase.update(delta);
+    if (window.SlagPit) SlagPit.update(delta);
+    if (window.BoneKeep) BoneKeep.update(delta);
+    if (window.WireCamp) WireCamp.update(delta);
+    if (window.PeatFort) PeatFort.update(delta);
+    if (window.LimeDock) LimeDock.update(delta);
+    if (window.IronWharf) IronWharf.update(delta);
+    if (window.CragBase) CragBase.update(delta);
+    if (window.FlakTower) FlakTower.update(delta);
+    if (window.VoltKeep) VoltKeep.update(delta);
+    if (window.DuskForge) DuskForge.update(delta);
+    if (window.SandKeep) SandKeep.update(delta);
+    if (window.FenDock) FenDock.update(delta);
+    if (window.TarBase) TarBase.update(delta);
+    if (window.LochFort) LochFort.update(delta);
+    if (window.StoneBay) StoneBay.update(delta);
+    if (window.MireCamp) MireCamp.update(delta);
+    if (window.ZincKeep) ZincKeep.update(delta);
+    if (window.CrowBase) CrowBase.update(delta);
+    if (window.BarkCamp) BarkCamp.update(delta);
+    if (window.GaleFort) GaleFort.update(delta);
+    if (window.KeelDock) KeelDock.update(delta);
+    if (window.IronRidge) IronRidge.update(delta);
+    if (window.AshTower) AshTower.update(delta);
+    if (window.MudGate) MudGate.update(delta);
+    if (window.GrubCamp) GrubCamp.update(delta);
+    if (window.VineFort) VineFort.update(delta);
+    if (window.SeedBase) SeedBase.update(delta);
+    if (window.HornKeep) HornKeep.update(delta);
+    if (window.ReelDock) ReelDock.update(delta);
+    if (window.ClayRidge) ClayRidge.update(delta);
+    if (window.DriftCamp) DriftCamp.update(delta);
+    if (window.PikeGate) PikeGate.update(delta);
+    if (window.GoreKeep) GoreKeep.update(delta);
+    if (window.ThornBase) ThornBase.update(delta);
+    if (window.FellCamp) FellCamp.update(delta);
+    if (window.SootBase) SootBase.update(delta);
+    if (window.MossDock) MossDock.update(delta);
+    if (window.IceRidge) IceRidge.update(delta);
+    if (window.BrineGate) BrineGate.update(delta);
+    if (window.KelpCamp) KelpCamp.update(delta);
+        if (window.DuneCamp) DuneCamp.update(delta);
+        if (window.HazeFort) HazeFort.update(delta);
+        if (window.ArchCamp) ArchCamp.update(delta);
+        if (window.QuayKeep) QuayKeep.update(delta);
+        if (window.RustRidge) RustRidge.update(delta);
+        if (window.BileCamp) BileCamp.update(delta);
+        if (window.GritDock) GritDock.update(delta);
+        if (window.JadeFort) JadeFort.update(delta);
+        if (window.MesaPost) MesaPost.update(delta);
+        if (window.CoveBase) CoveBase.update(delta);
+        if (window.GlenFort) GlenFort.update(delta);
+        if (window.ValeCamp) ValeCamp.update(delta);
+        if (window.ReefKeep) ReefKeep.update(delta);
+        if (window.PeatDock) PeatDock.update(delta);
+        if (window.HolmCamp) HolmCamp.update(delta);
+        if (window.CragKeep) CragKeep.update(delta);
+        if (window.LochBase) LochBase.update(delta);
+        if (window.TarnKeep) TarnKeep.update(delta);
+        if (window.FossCamp) FossCamp.update(delta);
+        if (window.MireDock) MireDock.update(delta);
+        if (window.KnollPost) KnollPost.update(delta);
+        if (window.BraeFort) BraeFort.update(delta);
+        if (window.BurnCamp) BurnCamp.update(delta);
+        if (window.FellKeep) FellKeep.update(delta);
+        if (window.SumpBase) SumpBase.update(delta);
+        if (window.RiftCamp) RiftCamp.update(delta);
+        if (window.GustKeep) GustKeep.update(delta);
+        if (window.ScudPost) ScudPost.update(delta);
+        if (window.WoldCamp) WoldCamp.update(delta);
+        if (window.FenKeep) FenKeep.update(delta);
+        if (window.CistDock) CistDock.update(delta);
+        if (window.PikeFort) PikeFort.update(delta);
+        if (window.ShawCamp) ShawCamp.update(delta);
+        if (window.GillDock) GillDock.update(delta);
+        if (window.HoltKeep) HoltKeep.update(delta);
+        if (window.MerePost) MerePost.update(delta);
+        if (window.BeckFort) BeckFort.update(delta);
+        if (window.CloughBase) CloughBase.update(delta);
+        if (window.SykeCamp) SykeCamp.update(delta);
+        if (window.DaleKeep) DaleKeep.update(delta);
+        if (window.GladePost) GladePost.update(delta);
+        if (window.CombeKeep) CombeKeep.update(delta);
+        if (window.WickBase) WickBase.update(delta);
+        if (window.NookCamp) NookCamp.update(delta);
+        if (window.WealdFort) WealdFort.update(delta);
+        if (window.ChaseDock) ChaseDock.update(delta);
+        if (window.DenePost) DenePost.update(delta);
+        if (window.GroveKeep) GroveKeep.update(delta);
+        if (window.FenBase) FenBase.update(delta);
+        if (window.LeatCamp) LeatCamp.update(delta);
+        if (window.CarrKeep) CarrKeep.update(delta);
+        if (window.HoweFort) HoweFort.update(delta);
+        if (window.StrathPost) StrathPost.update(delta);
+        if (window.ShielDock) ShielDock.update(delta);
+        if (window.CroftCamp) CroftCamp.update(delta);
+        if (window.InchPost) InchPost.update(delta);
+        if (window.BreckBase) BreckBase.update(delta);
+        if (window.LinksCamp) LinksCamp.update(delta);
+        if (window.HeathKeep) HeathKeep.update(delta);
+        if (window.MossFort) MossFort.update(delta);
+        if (window.SladePost) SladePost.update(delta);
+        if (window.CoombDock) CoombDock.update(delta);
+        if (window.HangerCamp) HangerCamp.update(delta);
+        if (window.BoltKeep) BoltKeep.update(delta);
+        if (window.BieldBase) BieldBase.update(delta);
+        if (window.ScarpCamp) ScarpCamp.update(delta);
+        if (window.LoughPost) LoughPost.update(delta);
+        if (window.HaughKeep) HaughKeep.update(delta);
+        if (window.CleuchDock) CleuchDock.update(delta);
+        if (window.CarseFort) CarseFort.update(delta);
+        if (window.KnapBase) KnapBase.update(delta);
+        if (window.YairCamp) YairCamp.update(delta);
+    if (window.SlumWarfare) SlumWarfare.update(delta);
+    if (window.CliffOutpost) CliffOutpost.update(delta);
+    if (window.FortressGate) FortressGate.update(delta);
+    if (window.HighriseAssault) HighriseAssault.update(delta);
+    if (window.OvergrownShrine) OvergrownShrine.update(delta);
+    if (window.SignalTower) SignalTower.update(delta);
+    if (window.AmmoBunker) AmmoBunker.update(delta);
+    if (window.LootVault) LootVault.update(delta);
+    if (window.CoastalCliff) CoastalCliff.update(delta);
+    if (window.TacticalHub) TacticalHub.update(delta);
+    if (window.SubwayAssault) SubwayAssault.update(delta);
+    if (window.CargoDock) CargoDock.update(delta);
+    if (window.WinterVillage) WinterVillage.update(delta);
+    if (window.PrisonTowerB) PrisonTowerB.update(delta);
+    if (window.AirfieldRaid) AirfieldRaid.update(delta);
+    if (window.CyberBunker) CyberBunker.update(delta);
+    if (window.SwampFortress) SwampFortress.update(delta);
+    if (window.DuneFortress) DuneFortress.update(delta);
+    if (window.EvacuationZone) EvacuationZone.update(delta);
+    if (window.JunkyardWar) JunkyardWar.update(delta);
+    if (window.CasinoFloor) CasinoFloor.update(delta);
+    if (window.MetroHub) MetroHub.update(delta);
+    if (window.FactoryAssault) FactoryAssault.update(delta);
+    if (window.ArmoryRaid) ArmoryRaid.update(delta);
+    if (window.CommandPost) CommandPost.update(delta);
+    if (window.QuarantineZone) QuarantineZone.update(delta);
+    if (window.WaterTreatment) WaterTreatment.update(delta);
+    if (window.MountainShrine) MountainShrine.update(delta);
+    if (window.AirborneAssault) AirborneAssault.update(delta);
+    if (window.MineComplex) MineComplex.update(delta);
+    if (window.SatelliteLaunch) SatelliteLaunch.update(delta);
+    if (window.RuinsCity) RuinsCity.update(delta);
+    if (window.FuelStation) FuelStation.update(delta);
+    if (window.BeachLanding) BeachLanding.update(delta);
+    if (window.RooftopSniper) RooftopSniper.update(delta);
+    if (window.CrashedChopper) CrashedChopper.update(delta);
+    if (window.PalaceRaid) PalaceRaid.update(delta);
+    if (window.FloodZone) FloodZone.update(delta);
+    if (window.ScrapyardSiege) ScrapyardSiege.update(delta);
+    if (window.RadioBunker) RadioBunker.update(delta);
+    if (window.CoastalFortress) CoastalFortress.update(delta);
+    if (window.AncientFort) AncientFort.update(delta);
+    if (window.FrozenBase) FrozenBase.update(delta);
+    if (window.LavaFlow) LavaFlow.update(delta);
+    if (window.AbandonedPrison) AbandonedPrison.update(delta);
+    if (window.CanyonBase) CanyonBase.update(delta);
+    if (window.DarkMarket) DarkMarket.update(delta);
+    if (window.ShippingLane) ShippingLane.update(delta);
+    if (window.NuclearShelter) NuclearShelter.update(delta);
+    if (window.ChurchSiege) ChurchSiege.update(delta);
+    if (window.ResortSiege) ResortSiege.update(delta);
+    if (window.NightFactory) NightFactory.update(delta);
+    if (window.MountaintopBase) MountaintopBase.update(delta);
+    if (window.BunkerNetwork) BunkerNetwork.update(delta);
+    if (window.ReconPost) ReconPost.update(delta);
+    if (window.MuseumAssault) MuseumAssault.update(delta);
+    if (window.StagingArea) StagingArea.update(delta);
+    if (window.GhostVillage) GhostVillage.update(delta);
+    if (window.RiotZone) RiotZone.update(delta);
+    if (window.Colosseum) Colosseum.update(delta);
+    if (window.MazeFortress) MazeFortress.update(delta);
+    if (window.SpaceHub) SpaceHub.update(delta);
+    if (window.PolarStation) PolarStation.update(delta);
+    if (window.SunkenShip) SunkenShip.update(delta);
+    if (window.RadarDome) RadarDome.update(delta);
+    if (window.ShantyFortress) ShantyFortress.update(delta);
+    if (window.CliffSummit) CliffSummit.update(delta);
+    if (window.ToxicPlant) ToxicPlant.update(delta);
+    if (window.CraterWar) CraterWar.update(delta);
+    if (window.WarCamp) WarCamp.update(delta);
+    if (window.SnowFort) SnowFort.update(delta);
+    if (window.WarIsland) WarIsland.update(delta);
+    if (window.DeepBase) DeepBase.update(delta);
+    if (window.VoltBase) VoltBase.update(delta);
+    if (window.TempleRaid) TempleRaid.update(delta);
+    if (window.MagmaBase) MagmaBase.update(delta);
+    if (window.TundraBase) TundraBase.update(delta);
+    if (window.OrbitalPlatform) OrbitalPlatform.update(delta);
+    if (window.TrenchAssault) TrenchAssault.update(delta);
+    if (window.WaterfallBase) WaterfallBase.update(delta);
+    if (window.VaultRaid) VaultRaid.update(delta);
+    if (window.SpaceDock) SpaceDock.update(delta);
+    if (window.LavaCave) LavaCave.update(delta);
+    if (window.NeonCity) NeonCity.update(delta);
+    if (window.FortressPeak) FortressPeak.update(delta);
+    if (window.ThermalPlant) ThermalPlant.update(delta);
+    if (window.TidalBase) TidalBase.update(delta);
+    if (window.SkyBase) SkyBase.update(delta);
+    if (window.SewerNetwork) SewerNetwork.update(delta);
+    if (window.CaveAmbush) CaveAmbush.update(delta);
+    if (window.TowerSiege) TowerSiege.update(delta);
+    if (window.CyberDome) CyberDome.update(delta);
+    if (window.JungleVillage) JungleVillage.update(delta);
+    if (window.GlacierVault) GlacierVault.update(delta);
+    if (window.StormTower) StormTower.update(delta);
+    if (window.SubterraneanBase) SubterraneanBase.update(delta);
+    if (window.SiegeCamp) SiegeCamp.update(delta);
+    if (window.VolcanoRim) VolcanoRim.update(delta);
+    if (window.OutpostDelta) OutpostDelta.update(delta);
+    if (window.JungleRuin) JungleRuin.update(delta);
+    if (window.SkyCarrier) SkyCarrier.update(delta);
+    if (window.DesertRuins) DesertRuins.update(delta);
+    if (window.SnowValley) SnowValley.update(delta);
+    if (window.RuinedFort) RuinedFort.update(delta);
+    if (window.CoralReef) CoralReef.update(delta);
+    if (window.PirateBay) PirateBay.update(delta);
+    if (window.FortressUnderground) FortressUnderground.update(delta);
+    if (window.FloodedMall) FloodedMall.update(delta);
+    if (window.MountainMonastery) MountainMonastery.update(delta);
+    if (window.OceanPlatform) OceanPlatform.update(delta);
+    if (window.FrozenTemple) FrozenTemple.update(delta);
+    if (window.CargoFortress) CargoFortress.update(delta);
+    if (window.WarBridge) WarBridge.update(delta);
+    if (window.CyberTrain) CyberTrain.update(delta);
+    if (window.LavaBridge) LavaBridge.update(delta);
+    if (window.ToxicSewer) ToxicSewer.update(delta);
+    if (window.IceBridge) IceBridge.update(delta);
+    if (window.MesaFort) MesaFort.update(delta);
+    if (window.WarHospital) WarHospital.update(delta);
+    if (window.SandCastle) SandCastle.update(delta);
+    if (window.DamFortress) DamFortress.update(delta);
+    if (window.HauntedHouse) HauntedHouse.update(delta);
+    if (window.CrashedStation) CrashedStation.update(delta);
+    if (window.SeaCliff) SeaCliff.update(delta);
+    if (window.CliffVillage) CliffVillage.update(delta);
+    if (window.DroneBay) DroneBay.update(delta);
+    if (window.DeepBunker) DeepBunker.update(delta);
+    if (window.MineCart) MineCart.update(delta);
+    if (window.WaterTowerSiege) WaterTowerSiege.update(delta);
+    if (window.BioStation) BioStation.update(delta);
+    if (window.CrumblingCastle) CrumblingCastle.update(delta);
+    if (window.SkyTemple) SkyTemple.update(delta);
+    if (window.PrisonIsland) PrisonIsland.update(delta);
+    if (window.LightningBase) LightningBase.update(delta);
+    if (window.FrozenLab) FrozenLab.update(delta);
+    if (window.CrystalCave) CrystalCave.update(delta);
+    if (window.DataVault) DataVault.update(delta);
+    if (window.LavaFortress) LavaFortress.update(delta);
+    if (window.SandStorm) SandStorm.update(delta);
+    if (window.NuclearSilo) NuclearSilo.update(delta);
+    if (window.RuinedFactory) RuinedFactory.update(delta);
+    if (window.ScorchedCitadel) ScorchedCitadel.update(delta);
+    if (window.AcidPlant) AcidPlant.update(delta);
+    if (window.DesertLab) DesertLab.update(delta);
+    if (window.StormBunker) StormBunker.update(delta);
+    if (window.CargoPort) CargoPort.update(delta);
+    if (window.WarMarket) WarMarket.update(delta);
+    if (window.ShipGraveyard) ShipGraveyard.update(delta);
+    if (window.BlastedBridge) BlastedBridge.update(delta);
+    if (window.FortressRuins) FortressRuins.update(delta);
+    if (window.BattleDepot) BattleDepot.update(delta);
+    if (window.FrozenFortress) FrozenFortress.update(delta);
+    if (window.LavaTemple) LavaTemple.update(delta);
+    if (window.MagmaCave) MagmaCave.update(delta);
+    if (window.SkyStation) SkyStation.update(delta);
+    if (window.BloodArena) BloodArena.update(delta);
+    if (window.SnowFortress) SnowFortress.update(delta);
+    if (window.WinterBase) WinterBase.update(delta);
+    if (window.CyberStation) CyberStation.update(delta);
+    if (window.BurningTemple) BurningTemple.update(delta);
+    if (window.PlagueTown) PlagueTown.update(delta);
+    if (window.ShadowPalace) ShadowPalace.update(delta);
+    if (window.WarSubmarine) WarSubmarine.update(delta);
+    if (window.SteelCanyon) SteelCanyon.update(delta);
+    if (window.FireTemple) FireTemple.update(delta);
+    if (window.CrystalVault) CrystalVault.update(delta);
+    if (window.VolcanicCity) VolcanicCity.update(delta);
+    if (window.LightningTower) LightningTower.update(delta);
+    if (window.MidnightBase) MidnightBase.update(delta);
+    if (window.WreckedCity) WreckedCity.update(delta);
+    if (window.ShadowLab) ShadowLab.update(delta);
+    if (window.IronKeep) IronKeep.update(delta);
+    if (window.MetalMarsh) MetalMarsh.update(delta);
+    if (window.ThunderKeep) ThunderKeep.update(delta);
+    if (window.VolcanoPeak) VolcanoPeak.update(delta);
+    if (window.ToxicMarsh) ToxicMarsh.update(delta);
+    if (window.CitySiege) CitySiege.update(delta);
+    if (window.WarDocks) WarDocks.update(delta);
+    if (window.ToxicFacility) ToxicFacility.update(delta);
+    if (window.CrashedShip) CrashedShip.update(delta);
+    if (window.MoltenKeep) MoltenKeep.update(delta);
+    if (window.BurningBridge) BurningBridge.update(delta);
+    if (window.DarkCitadel) DarkCitadel.update(delta);
+    if (window.SmokeValley) SmokeValley.update(delta);
+    if (window.SpaceFortress) SpaceFortress.update(delta);
+    if (window.BattleArena) BattleArena.update(delta);
+    if (window.WarPort) WarPort.update(delta);
+    if (window.IronValley) IronValley.update(delta);
+    if (window.LavaArena) LavaArena.update(delta);
+    if (window.SunkenLab) SunkenLab.update(delta);
+    if (window.SeaFortress) SeaFortress.update(delta);
+    if (window.ShadowValley) ShadowValley.update(delta);
+    if (window.AshRuins) AshRuins.update(delta);
+    if (window.CrimsonKeep) CrimsonKeep.update(delta);
+    if (window.StormValley) StormValley.update(delta);
+    if (window.FrozenValley) FrozenValley.update(delta);
+    if (window.FallenTemple) FallenTemple.update(delta);
+    if (window.ScorchedLab) ScorchedLab.update(delta);
+    if (window.IronMarsh) IronMarsh.update(delta);
+    if (window.SpaceWreck) SpaceWreck.update(delta);
+    if (window.DustValley) DustValley.update(delta);
+    if (window.GhostFortress) GhostFortress.update(delta);
+    if (window.QuantumBase) QuantumBase.update(delta);
+    if (window.PlasmaTower) PlasmaTower.update(delta);
+    if (window.ToxicLab) ToxicLab.update(delta);
+    if (window.SteelDome) SteelDome.update(delta);
+    if (window.BuriedCity) BuriedCity.update(delta);
+    if (window.MagmaBridge) MagmaBridge.update(delta);
+    if (window.VaporStation) VaporStation.update(delta);
+    if (window.WarChurch) WarChurch.update(delta);
+    if (window.FrozenDock) FrozenDock.update(delta);
+    if (window.RustCanyon) RustCanyon.update(delta);
+    if (window.AcidBay) AcidBay.update(delta);
+    if (window.ConcreteMaze) ConcreteMaze.update(delta);
+    if (window.SkyPrison) SkyPrison.update(delta);
+    if (window.LavaCity) LavaCity.update(delta);
+    if (window.WarZoo) WarZoo.update(delta);
+    if (window.NukeCrater) NukeCrater.update(delta);
+    if (window.AmberRuins) AmberRuins.update(delta);
+    if (window.DeltaBase) DeltaBase.update(delta);
+    if (window.StormShip) StormShip.update(delta);
+    if (window.FrozenCrater) FrozenCrater.update(delta);
+    if (window.EmberFields) EmberFields.update(delta);
+    if (window.HauntedBay) HauntedBay.update(delta);
+    if (window.FlamePit) FlamePit.update(delta);
+    if (window.NanoLab) NanoLab.update(delta);
+    if (window.SunkenPalace) SunkenPalace.update(delta);
+    if (window.WarGarden) WarGarden.update(delta);
+    if (window.BattleCanyon) BattleCanyon.update(delta);
+    if (window.CliffBase) CliffBase.update(delta);
+    if (window.RustedBay) RustedBay.update(delta);
+    if (window.EngineRoom) EngineRoom.update(delta);
+    if (window.ChemPlant) ChemPlant.update(delta);
+    if (window.WarTower) WarTower.update(delta);
+    if (window.FungalCave) FungalCave.update(delta);
+    if (window.RadioStation) RadioStation.update(delta);
+    if (window.SniperHill) SniperHill.update(delta);
+    if (window.OrbitalDrop) OrbitalDrop.update(delta);
+    if (window.IceMine) IceMine.update(delta);
+    if (window.ToxicBay) ToxicBay.update(delta);
+    if (window.DeadSea) DeadSea.update(delta);
+    if (window.LavaTubes) LavaTubes.update(delta);
+    if (window.WarTrain) WarTrain.update(delta);
+    if (window.ShadowReef) ShadowReef.update(delta);
+    if (window.BoneYard) BoneYard.update(delta);
+    if (window.SteelMill) SteelMill.update(delta);
+    if (window.AcidMine) AcidMine.update(delta);
+    if (window.WarResort) WarResort.update(delta);
+    if (window.PlagueShip) PlagueShip.update(delta);
+    if (window.ThunderBase) ThunderBase.update(delta);
+    if (window.SkyBarge) SkyBarge.update(delta);
+    if (window.FrozenPalace) FrozenPalace.update(delta);
+    if (window.CyberSwamp) CyberSwamp.update(delta);
+    if (window.IceTower) IceTower.update(delta);
+    if (window.CursedShip) CursedShip.update(delta);
+    if (window.NeonSwamp) NeonSwamp.update(delta);
+    if (window.WarCathedral) WarCathedral.update(delta);
+    if (window.BloodSwamp) BloodSwamp.update(delta);
+    if (window.MechBay) MechBay.update(delta);
+    if (window.GravityWell) GravityWell.update(delta);
+    if (window.PoisonGrove) PoisonGrove.update(delta);
+    if (window.ArcticLab) ArcticLab.update(delta);
+    if (window.TrenchWar) TrenchWar.update(delta);
+    if (window.UnderseaDome) UnderseaDome.update(delta);
+    if (window.SolarForge) SolarForge.update(delta);
+    if (window.IronCitadel) IronCitadel.update(delta);
+    if (window.WarShrine) WarShrine.update(delta);
+    if (window.PlagueLab) PlagueLab.update(delta);
+    if (window.DeathValley) DeathValley.update(delta);
+    if (window.VoidStation) VoidStation.update(delta);
+    if (window.LavaDome) LavaDome.update(delta);
+    if (window.SandFortress) SandFortress.update(delta);
+    if (window.BoneTemple) BoneTemple.update(delta);
+    if (window.CyberRuins) CyberRuins.update(delta);
+    if (window.StormBase) StormBase.update(delta);
+    if (window.DeepBunker) DeepBunker.update(delta);
+    if (window.WarMuseum) WarMuseum.update(delta);
+    if (window.RustPalace) RustPalace.update(delta);
+    if (window.JungleFort) JungleFort.update(delta);
+    if (window.FlameShrine) FlameShrine.update(delta);
+    if (window.AcidCrater) AcidCrater.update(delta);
+    if (window.OrbitalBase) OrbitalBase.update(delta);
+    if (window.TarPits) TarPits.update(delta);
+    if (window.CrystalMine) CrystalMine.update(delta);
+    if (window.PlagueSwamp) PlagueSwamp.update(delta);
+    if (window.FrozenKeep) FrozenKeep.update(delta);
+    if (window.MunitionsPlant) MunitionsPlant.update(delta);
+    if (window.TriageZone) TriageZone.update(delta);
+    if (window.BlackOps) BlackOps.update(delta);
+    if (window.CraterCity) CraterCity.update(delta);
+    if (window.SunkenCarrier) SunkenCarrier.update(delta);
+    if (window.NanoCity) NanoCity.update(delta);
+    if (window.SiloComplex) SiloComplex.update(delta);
+    if (window.SkyGarden) SkyGarden.update(delta);
+    if (window.LavaTrench) LavaTrench.update(delta);
+    if (window.WraithShip) WraithShip.update(delta);
+    if (window.WarCemetery) WarCemetery.update(delta);
+    if (window.PlagueCove) PlagueCove.update(delta);
+    if (window.ArenaDome) ArenaDome.update(delta);
+    if (window.MesaOutpost) MesaOutpost.update(delta);
+    if (window.SpireCity) SpireCity.update(delta);
+    if (window.ShadowMarket) ShadowMarket.update(delta);
+    if (window.PolarSiege) PolarSiege.update(delta);
+    if (window.ForgottenLab) ForgottenLab.update(delta);
+    if (window.WarStation) WarStation.update(delta);
+    if (window.PlagueTower) PlagueTower.update(delta);
+    if (window.ToxicMine) ToxicMine.update(delta);
+    if (window.FrozenReactor) FrozenReactor.update(delta);
+    if (window.NeonBunker) NeonBunker.update(delta);
+    if (window.DesertFort) DesertFort.update(delta);
+    if (window.MagmaCore) MagmaCore.update(delta);
+    if (window.SkullFortress) SkullFortress.update(delta);
+    if (window.PlasmaOutpost) PlasmaOutpost.update(delta);
+    if (window.SiegePlatform) SiegePlatform.update(delta);
+    if (window.BloodChapel) BloodChapel.update(delta);
+    if (window.ToxicHarbor) ToxicHarbor.update(delta);
+    if (window.IronTower) IronTower.update(delta);
+    if (window.OrbitalRelay) OrbitalRelay.update(delta);
+    if (window.BattleConvoy) BattleConvoy.update(delta);
+    if (window.EchoStation) EchoStation.update(delta);
+    if (window.WarheadCache) WarheadCache.update(delta);
+    if (window.WarConvoy) WarConvoy.update(delta);
+    if (window.AshCitadel) AshCitadel.update(delta);
+    if (window.MoltenBridge) MoltenBridge.update(delta);
+    if (window.VoidLab) VoidLab.update(delta);
+    if (window.BlackMarch) BlackMarch.update(delta);
+    if (window.IceCarrier) IceCarrier.update(delta);
+    if (window.JungleRuins) JungleRuins.update(delta);
+    if (window.ThunderTower) ThunderTower.update(delta);
+    if (window.MidnightRaid) MidnightRaid.update(delta);
+    if (window.RustFactory) RustFactory.update(delta);
+    if (window.DustStorm) DustStorm.update(delta);
+    if (window.AssaultCamp) AssaultCamp.update(delta);
+    if (window.StoneQuarry) StoneQuarry.update(delta);
+    if (window.WarzoneMarket) WarzoneMarket.update(delta);
+    if (window.RidgeBase) RidgeBase.update(delta);
+    if (window.PoisonLake) PoisonLake.update(delta);
+    if (window.SkyDock) SkyDock.update(delta);
+    if (window.LavaCore) LavaCore.update(delta);
+    if (window.NeonSubway) NeonSubway.update(delta);
+    if (window.CopperMine) CopperMine.update(delta);
+    if (window.WastelandHub) WastelandHub.update(delta);
+    if (window.TrenchLine) TrenchLine.update(delta);
+    if (window.GlacierBunker) GlacierBunker.update(delta);
+    if (window.PalaceRuins) PalaceRuins.update(delta);
+    if (window.DamStation) DamStation.update(delta);
+    if (window.Shipyard) Shipyard.update(delta);
+    if (window.SpacePort) SpacePort.update(delta);
+    if (window.FrozenRiver) FrozenRiver.update(delta);
+    if (window.AvalanchePass) AvalanchePass.update(delta);
+    if (window.BunkerCity) BunkerCity.update(delta);
+    if (window.WarlordPalace) WarlordPalace.update(delta);
+    if (window.ScrapYard) ScrapYard.update(delta);
+    if (window.CommandShip) CommandShip.update(delta);
+    if (window.DesertBase) DesertBase.update(delta);
+    if (window.TrainWreck) TrainWreck.update(delta);
+    if (window.CaveTemple) CaveTemple.update(delta);
+    if (window.GhostFactory) GhostFactory.update(delta);
+    if (window.BombShelter) BombShelter.update(delta);
+    if (window.SandDunes) SandDunes.update(delta);
+    if (window.SwampRefinery) SwampRefinery.update(delta);
+    if (window.RooftopSiege) RooftopSiege.update(delta);
+    if (window.SunkenBase) SunkenBase.update(delta);
+    if (window.FloodCity) FloodCity.update(delta);
+    if (window.CoastGuard) CoastGuard.update(delta);
+    if (window.CanyonFort) CanyonFort.update(delta);
+    if (window.SniperRidge) SniperRidge.update(delta);
+    if (window.HarborFort) HarborFort.update(delta);
+    if (window.TundraCamp) TundraCamp.update(delta);
+    if (window.OilDepot) OilDepot.update(delta);
+    if (window.BattleCrater) BattleCrater.update(delta);
+    if (window.UrbanDecay) UrbanDecay.update(delta);
+    if (window.WarAirfield) WarAirfield.update(delta);
+    if (window.LavaBase) LavaBase.update(delta);
+    if (window.StormIsland) StormIsland.update(delta);
+    if (window.SaltFlats) SaltFlats.update(delta);
+    if (window.AshPlains) AshPlains.update(delta);
+    if (window.WarDepot) WarDepot.update(delta);
+    if (window.CommandCenter) CommandCenter.update(delta);
+    if (window.HighlandFort) HighlandFort.update(delta);
+    if (window.FloodDam) FloodDam.update(delta);
+    if (window.IceBreaker) IceBreaker.update(delta);
+    if (window.MissileBase) MissileBase.update(delta);
+    if (window.WreckYard) WreckYard.update(delta);
+    if (window.TankYard) TankYard.update(delta);
+    if (window.ForwardBase) ForwardBase.update(delta);
+    if (window.DeathSwamp) DeathSwamp.update(delta);
+    if (window.SteelFortress) SteelFortress.update(delta);
+    if (window.PoisonMarsh) PoisonMarsh.update(delta);
+    if (window.JungleMaze) JungleMaze.update(delta);
+    if (window.WarGate) WarGate.update(delta);
+    if (window.NeonRuins) NeonRuins.update(delta);
+    if (window.DarkWoods) DarkWoods.update(delta);
+    if (window.ShadowBase) ShadowBase.update(delta);
+    if (window.PlagueCity) PlagueCity.update(delta);
+    if (window.ThunderRidge) ThunderRidge.update(delta);
+    if (window.FloodPlains) FloodPlains.update(delta);
+    if (window.NuclearWaste) NuclearWaste.update(delta);
+    if (window.BloodRiver) BloodRiver.update(delta);
+    if (window.VoidBase) VoidBase.update(delta);
+    if (window.AcidLake) AcidLake.update(delta);
+    if (window.StormFortress) StormFortress.update(delta);
+    if (window.FrostHarbor) FrostHarbor.update(delta);
+    if (window.LavaRiver) LavaRiver.update(delta);
+    if (window.SiegeLines) SiegeLines.update(delta);
+    if (window.GhostRidge) GhostRidge.update(delta);
+    if (window.WarLab) WarLab.update(delta);
+    if (window.IceDock) IceDock.update(delta);
+    if (window.RubbleCity) RubbleCity.update(delta);
+    if (window.WinterAssault) WinterAssault.update(delta);
+    if (window.CryptBase) CryptBase.update(delta);
+    if (window.WarDome) WarDome.update(delta);
+    if (window.HarborRaid) HarborRaid.update(delta);
+    if (window.ReefBase) ReefBase.update(delta);
+    if (window.CanyonWar) CanyonWar.update(delta);
+    if (window.MagmaLab) MagmaLab.update(delta);
+    if (window.FireBase) FireBase.update(delta);
+    if (window.WarCrypt) WarCrypt.update(delta);
+    if (window.WarPrison) WarPrison.update(delta);
+    if (window.CoastLine) CoastLine.update(delta);
+    if (window.RockBase) RockBase.update(delta);
+    if (window.PoisonBase) PoisonBase.update(delta);
+    if (window.MoonGate) MoonGate.update(delta);
+    if (window.WarShip) WarShip.update(delta);
+    if (window.JadeTemple) JadeTemple.update(delta);
+    if (window.AncientColosseum) AncientColosseum.update(delta);
+    if (window.TundraVillage) TundraVillage.update(delta);
+    if (window.SolarFarm) SolarFarm.update(delta);
+    if (window.JungleFortress) JungleFortress.update(delta);
+    if (window.BridgeAssault) BridgeAssault.update(delta);
+    if (window.SpaceWreckage) SpaceWreckage.update(delta);
+    if (window.UndergroundLab) UndergroundLab.update(delta);
+    if (window.HospitalRaid) HospitalRaid.update(delta);
+    if (window.WeaponsDepot) WeaponsDepot.update(delta);
+    if (window.LavaCavern) LavaCavern.update(delta);
+    if (window.NavalBase) NavalBase.update(delta);
+    if (window.ChemFactory) ChemFactory.update(delta);
+    if (window.PalaceGardens) PalaceGardens.update(delta);
+    if (window.SubmarineHunt) SubmarineHunt.update(delta);
+    if (window.ArcticStation) ArcticStation.update(delta);
+    if (window.CityRooftop) CityRooftop.update(delta);
+    if (window.PowerPlant) PowerPlant.update(delta);
+    if (window.TrainStation) TrainStation.update(delta);
+    if (window.CanyonAmbush) CanyonAmbush.update(delta);
+    if (window.MissileSilo) MissileSilo.update(delta);
+    if (window.FloatingPlatform) FloatingPlatform.update(delta);
+    if (window.WarFactory) WarFactory.update(delta);
+    if (window.IcePalace) IcePalace.update(delta);
+    if (window.VolcanoBase) VolcanoBase.update(delta);
+    if (window.UndergroundCity) UndergroundCity.update(delta);
+    if (window.CoastalVillage) CoastalVillage.update(delta);
+    if (window.ResearchVessel) ResearchVessel.update(delta);
+    if (window.StormDrain) StormDrain.update(delta);
+    if (window.ThroneRoom) ThroneRoom.update(delta);
+    if (window.JungleOutpost) JungleOutpost.update(delta);
+    if (window.NavalYard) NavalYard.update(delta);
+    if (window.IceShelf) IceShelf.update(delta);
+    if (window.RuinsAssault) RuinsAssault.update(delta);
+    if (window.AircraftCarrier) AircraftCarrier.update(delta);
+    if (window.SportsStadium) SportsStadium.update(delta);
+    if (window.NukeTransport) NukeTransport.update(delta);
+    if (window.AbandonedFactory) AbandonedFactory.update(delta);
+  if (window.SwampBase) SwampBase.update(delta);
+  if (window.HauntedCastle) HauntedCastle.update(delta);
+  if (window.CliffFortress) CliffFortress.update(delta);
+  if (window.ServerFarm) ServerFarm.update(delta);
+  if (window.CityBank) CityBank.update(delta);
+  if (window.AncientPyramid) AncientPyramid.update(delta);
+  if (window.ToxicJungle) ToxicJungle.update(delta);
+  if (window.HarborDefense) HarborDefense.update(delta);
+  if (window.SpaceDerelict) SpaceDerelict.update(delta);
+  if (window.MedievalDungeon) MedievalDungeon.update(delta);
+  if (window.CyberLab) CyberLab.update(delta);
+  if (window.BorderFort) BorderFort.update(delta);
+  if (window.HauntedHotel) HauntedHotel.update(delta);
+  if (window.StormCoast) StormCoast.update(delta);
+  if (window.RadiationZone) RadiationZone.update(delta);
+  if (window.CrashedSpaceship) CrashedSpaceship.update(delta);
+  if (window.IceCavern) IceCavern.update(delta);
+  if (window.FloodedSubway) FloodedSubway.update(delta);
+  if (window.DesertTemple) DesertTemple.update(delta);
+  if (window.MilitaryAcademy) MilitaryAcademy.update(delta);
+  if (window.NeonDistrict) NeonDistrict.update(delta);
+  if (window.UnderwaterTemple) UnderwaterTemple.update(delta);
+  if (window.SpacePrison) SpacePrison.update(delta);
+  if (window.PirateGalleon) PirateGalleon.update(delta);
+  if (window.AbandonedChurch) AbandonedChurch.update(delta);
+  if (window.GreekRuins) GreekRuins.update(delta);
+  if (window.CoalMine) CoalMine.update(delta);
+  if (window.MountainFortress) MountainFortress.update(delta);
+  if (window.ArmoredTrain) ArmoredTrain.update(delta);
+  if (window.TeslaLab) TeslaLab.update(delta);
+  if (window.FrozenCastle) FrozenCastle.update(delta);
+  if (window.VampireLair) VampireLair.update(delta);
+  if (window.SubmarineGraveyard) SubmarineGraveyard.update(delta);
+  if (window.ScorchedEarth) ScorchedEarth.update(delta);
+  if (window.CrystalCaves) CrystalCaves.update(delta);
+  if (window.BioDome) BioDome.update(delta);
+  if (window.WartimeFactory) WartimeFactory.update(delta);
+  if (window.SpaceHangar) SpaceHangar.update(delta);
+  if (window.AmusementPark) AmusementPark.update(delta);
+  if (window.AtlantisRuins) AtlantisRuins.update(delta);
+  if (window.QuantumLab) QuantumLab.update(delta);
+  if (window.BurningVillage) BurningVillage.update(delta);
+  if (window.AbandonedSchool) AbandonedSchool.update(delta);
+  if (window.OrbitalWeapons) OrbitalWeapons.update(delta);
+  if (window.WastelandTown) WastelandTown.update(delta);
+  if (window.OilRefinery) OilRefinery.update(delta);
+  if (window.ColosseumSiege) ColosseumSiege.update(delta);
+  if (window.SunkenDestroyer) SunkenDestroyer.update(delta);
+  if (window.MoonOutpost) MoonOutpost.update(delta);
+  if (window.CyberFortress) CyberFortress.update(delta);
+  if (window.PharaohTomb) PharaohTomb.update(delta);
+  if (window.LavaCaves) LavaCaves.update(delta);
+  if (window.StormCarrier) StormCarrier.update(delta);
+  if (window.DroneWarfare) DroneWarfare.update(delta);
+  if (window.CathedralSiege) CathedralSiege.update(delta);
+  if (window.SalvageYard) SalvageYard.update(delta);
+  if (window.BioweaponLab) BioweaponLab.update(delta);
+  if (window.NavalDockyard) NavalDockyard.update(delta);
+  if (window.SniperTower) SniperTower.update(delta);
+  if (window.CursedVillage) CursedVillage.update(delta);
+  if (window.TankerShip) TankerShip.update(delta);
+  if (window.IronMine) IronMine.update(delta);
+  if (window.ShantyTown) ShantyTown.update(delta);
+  if (window.AztecTemple) AztecTemple.update(delta);
+  if (window.CircusTent) CircusTent.update(delta);
+  if (window.WeatherStation) WeatherStation.update(delta);
+  if (window.LaserFacility) LaserFacility.update(delta);
+  if (window.SubmarineBay) SubmarineBay.update(delta);
+  if (window.HeistVault) HeistVault.update(delta);
+  if (window.Catacombs) Catacombs.update(delta);
+  if (window.CrashedTrain) CrashedTrain.update(delta);
+  if (window.CrystalPalace) CrystalPalace.update(delta);
+  if (window.DeltaForce) DeltaForce.update(delta);
+  if (window.PrisonTower) PrisonTower.update(delta);
+  if (window.RobotFactory) RobotFactory.update(delta);
+  if (window.WarMemorial) WarMemorial.update(delta);
+  if (window.PrisonYard) PrisonYard.update(delta);
+  if (window.MineShaft) MineShaft.update(delta);
+  if (window.CargoTerminal) CargoTerminal.update(delta);
+  if (window.MilitaryParade) MilitaryParade.update(delta);
+  if (window.GasPlatform) GasPlatform.update(delta);
+  if (window.Monorail) Monorail.update(delta);
+  if (window.ArchaeologicalDig) ArchaeologicalDig.update(delta);
+  if (window.CaveNetwork) CaveNetwork.update(delta);
+  if (window.RooftopChase) RooftopChase.update(delta);
+  if (window.TyphoonDeck) TyphoonDeck.update(delta);
+  if (window.SwampOutpost) SwampOutpost.update(delta);
+  if (window.SunkenTemple) SunkenTemple.update(delta);
+  if (window.SalvageBarge) SalvageBarge.update(delta);
+  if (window.FrozenHarbor) FrozenHarbor.update(delta);
+  if (window.IceFortress) IceFortress.update(delta);
+  if (window.MerchantShip) MerchantShip.update(delta);
+  if (window.HarborCrane) HarborCrane.update(delta);
+  if (window.RacingTrack) RacingTrack.update(delta);
+  if (window.TortureChamber) TortureChamber.update(delta);
+  if (window.PlagueVillage) PlagueVillage.update(delta);
+  if (window.CyberYacht) CyberYacht.update(delta);
+  if (window.FortressPrison) FortressPrison.update(delta);
+  if (window.BattleStadium) BattleStadium.update(delta);
+  if (window.HauntedLighthouse) HauntedLighthouse.update(delta);
+  if (window.CanyonAssault) CanyonAssault.update(delta);
+  if (window.DemolitionSite) DemolitionSite.update(delta);
+  if (window.AirshipRaid) AirshipRaid.update(delta);
+  if (window.TempleRun) TempleRun.update(delta);
+  if (window.AsteroidBase) AsteroidBase.update(delta);
+  if (window.FishingVillage) FishingVillage.update(delta);
+  if (window.OperaHouse) OperaHouse.update(delta);
+  if (window.CityHall) CityHall.update(delta);
+  if (window.VolcanoSummit) VolcanoSummit.update(delta);
+      if (window.FloatingFortress) FloatingFortress.update(delta);
+      if (window.Slaughterhouse) Slaughterhouse.update(delta);
+      if (window.TrainGraveyard) TrainGraveyard.update(delta);
+      if (window.SewagePlant) SewagePlant.update(delta);
+      if (window.UniversityRaid) UniversityRaid.update(delta);
+      if (window.RefugeeCamp) RefugeeCamp.update(delta);
+      if (window.NuclearConvoy) NuclearConvoy.update(delta);
+      if (window.PowerSubstation) PowerSubstation.update(delta);
+      if (window.SubmarinePen) SubmarinePen.update(delta);
+      if (window.TorpedoFactory) TorpedoFactory.update(delta);
+      if (window.MunitionsDepot) MunitionsDepot.update(delta);
+      if (window.AbandonedMall) AbandonedMall.update(delta);
+      if (window.GoldVault) GoldVault.update(delta);
+      if (window.CustomsPost) CustomsPost.update(delta);
+      if (window.JungleLab) JungleLab.update(delta);
+      if (window.SatelliteStation) SatelliteStation.update(delta);
+      if (window.DestroyerEscort) DestroyerEscort.update(delta);
+      if (window.CoastalBattery) CoastalBattery.update(delta);
+      if (window.PrisonColony) PrisonColony.update(delta);
+      if (window.AsteroidField) AsteroidField.update(delta);
+      if (window.VolcanoLair) VolcanoLair.update(delta);
+      if (window.SeaFort) SeaFort.update(delta);
+      if (window.FuelDepot) FuelDepot.update(delta);
+      if (window.DerelictTown) DerelictTown.update(delta);
+      if (window.MethLab) MethLab.update(delta);
+      if (window.CargoFreighter) CargoFreighter.update(delta);
+      if (window.IceFortressInterior) IceFortressInterior.update(delta);
+      if (window.ReactorCore) ReactorCore.update(delta);
+      if (window.GladiatorPit) GladiatorPit.update(delta);
+      if (window.JungleShrine) JungleShrine.update(delta);
+      if (window.LaserGrid) LaserGrid.update(delta);
+      if (window.DeathMarch) DeathMarch.update(delta);
+      if (window.BankRobbery) BankRobbery.update(delta);
+      if (window.UndergroundArena) UndergroundArena.update(delta);
+      if (window.AirfieldAssault) AirfieldAssault.update(delta);
+      if (window.OilPlatformFire) OilPlatformFire.update(delta);
+      if (window.DamControl) DamControl.update(delta);
+      if (window.ConcertHall) ConcertHall.update(delta);
+      if (window.SewerEscape) SewerEscape.update(delta);
+      if (window.HauntedGalleon) HauntedGalleon.update(delta);
+      if (window.AvalancheZone) AvalancheZone.update(delta);
+      if (window.MountainRescue) MountainRescue.update(delta);
+      if (window.ShoppingDistrict) ShoppingDistrict.update(delta);
+      if (window.SnowfieldBattle) SnowfieldBattle.update(delta);
+      if (window.ZooBreakout) ZooBreakout.update(delta);
+      if (window.HospitalSiege) HospitalSiege.update(delta);
+      if (window.RacingPit) RacingPit.update(delta);
+      if (window.WarehouseDistrict) WarehouseDistrict.update(delta);
+      if (window.CyberCity) CyberCity.update(delta);
+      if (window.PirateHarbor) PirateHarbor.update(delta);
+      if (window.SpaceStationAttack) SpaceStationAttack.update(delta);
+      if (window.DustBowl) DustBowl.update(delta);
+      if (window.SwampAssault) SwampAssault.update(delta);
+      if (window.FactoryTakeover) FactoryTakeover.update(delta);
+      if (window.HarborSiege) HarborSiege.update(delta);
+      if (window.MetroAssault) MetroAssault.update(delta);
+      if (window.EmbassyTakeover) EmbassyTakeover.update(delta);
+      if (window.CemeterySiege) CemeterySiege.update(delta);
+      if (window.BridgeBattle) BridgeBattle.update(delta);
+      if (window.SatelliteCrash) SatelliteCrash.update(delta);
+      if (window.PyramidRaid) PyramidRaid.update(delta);
+      if (window.SalvageMission) SalvageMission.update(delta);
+      if (window.LaboratoryRaid) LaboratoryRaid.update(delta);
+      if (window.DamBreak) DamBreak.update(delta);
+      if (window.ColiseumBattle) ColiseumBattle.update(delta);
+      if (window.TornadoAlley) TornadoAlley.update(delta);
+      if (window.BiohazardZone) BiohazardZone.update(delta);
+      if (window.PirateCoveRaid) PirateCoveRaid.update(delta);
+      if (window.GhostTownSiege) GhostTownSiege.update(delta);
+      if (window.MansionHeist) MansionHeist.update(delta);
+      if (window.ClocktowerRaid) ClocktowerRaid.update(delta);
+      if (window.ShipyardAssault) ShipyardAssault.update(delta);
+      if (window.TankFactory) TankFactory.update(delta);
+      if (window.SpyCompound) SpyCompound.update(delta);
+      if (window.RocketLaunch) RocketLaunch.update(delta);
+      if (window.MineshaftCollapse) MineshaftCollapse.update(delta);
+      if (window.AirbaseDefense) AirbaseDefense.update(delta);
+      if (window.HelicopterCrash) HelicopterCrash.update(delta);
+      if (window.SmugglersDen) SmugglersDen.update(delta);
+      if (window.EarthquakeZone) EarthquakeZone.update(delta);
+      if (window.WarlordFortress) WarlordFortress.update(delta);
+      if (window.CombatHospital) CombatHospital.update(delta);
+      if (window.WinterWarfare) WinterWarfare.update(delta);
+      if (window.ArmoredConvoy) ArmoredConvoy.update(delta);
+      if (window.CatacombsAssault) CatacombsAssault.update(delta);
+      if (window.OilPlatformRaid) OilPlatformRaid.update(delta);
+      if (window.DesertConvoy) DesertConvoy.update(delta);
+      if (window.TrenchWarfare) TrenchWarfare.update(delta);
+      if (window.SunkenCity) SunkenCity.update(delta);
+      if (window.SpaceBattle) SpaceBattle.update(delta);
+      if (window.SubmarineBase) SubmarineBase.update(delta);
+      if (window.RebelOutpost) RebelOutpost.update(delta);
+      if (window.FortressSiege) FortressSiege.update(delta);
+      if (window.BattleshipDeck) BattleshipDeck.update(delta);
+      if (window.StadiumRiot) StadiumRiot.update(delta);
+      if (window.TradingPost) TradingPost.update(delta);
+      if (window.BountySystem) BountySystem.update(delta);
+      if (window.CrouchSystem) CrouchSystem.update(delta);
+      if (window.RadioSupport) RadioSupport.update(delta);
+      if (window.MeleeKnife) MeleeKnife.update(delta);
+      // Check if any enemy stepped on a landmine
+      if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
+        var _mineEnemies = Enemies.getAll();
+        for (var _mei = 0; _mei < _mineEnemies.length; _mei++) {
+          var _me = _mineEnemies[_mei];
+          if (!_me || !_me.alive || !_me.mesh) continue;
+          var _mineHit = Mines.checkTrigger(_me.mesh.position.x, _me.mesh.position.z, 0.5);
+          if (_mineHit) {
+            Enemies.damage(_me, 80);
+          }
+        }
+      }
       Pickups.update(delta, player.position, function (type, data) {
         AudioSystem.playPickup();
         MLSystem.onPickup();
@@ -7271,6 +10893,7 @@ const GameManager = (function () {
         HUD._updateNPCTextPositions(NPCSystem.getAll(), _camera, _renderer);
       }
       DroneSystem.update(delta);
+      if (typeof Weather !== 'undefined' && Weather.update) { Weather.update(delta, _camera ? _camera.position : null); }
       // Recon mission: check if possessed drone is near a scout target
       if (typeof MissionSystem !== 'undefined' && MissionSystem.onDroneScout && DroneSystem.getPossessed) {
         var _posDrone = DroneSystem.getPossessed();
@@ -7279,6 +10902,7 @@ const GameManager = (function () {
       if (typeof ConvoySystem !== 'undefined') ConvoySystem.update(delta);
       if (typeof EnemyArtillery !== 'undefined') EnemyArtillery.update(delta);
       VehicleSystem.update(delta);
+      if (window.VehicleEnemies) VehicleEnemies.update(delta, player.position);
       Automation.update(delta);
       MissionSystem.update(delta);
       if (typeof RefineryStrike !== 'undefined' && RefineryStrike.update) RefineryStrike.update(delta);
@@ -7340,6 +10964,32 @@ const GameManager = (function () {
       // Update loot particles
       updateLootParticles(delta);
 
+      // Animate attachment pickup meshes (bob + rotate) and show interaction prompt
+      try {
+        if (typeof Attachments !== 'undefined' && _scene && player) {
+          var _atkNow = performance.now() / 1000;
+          var _atkNearLabel = null;
+          var _atkSceneChildren = _scene.children;
+          for (var _atkAni = 0; _atkAni < _atkSceneChildren.length; _atkAni++) {
+            var _atkM = _atkSceneChildren[_atkAni];
+            if (!_atkM || !_atkM.userData || !_atkM.userData.isAttachmentPickup) continue;
+            // Rotate
+            _atkM.rotation.y += delta * 1.8;
+            // Bob up and down
+            var _atkBase = _atkM.userData.bobBase || 0.2;
+            _atkM.position.y = _atkBase + Math.sin(_atkNow * 2.2) * 0.12;
+            // Show pickup prompt if within 1.5 units
+            var _atkDist2 = _atkM.position.distanceTo(player.position);
+            if (_atkDist2 <= 1.5) {
+              _atkNearLabel = '[E] Pick up ' + (_atkM.userData.label || 'Attachment');
+            }
+          }
+          if (_atkNearLabel && HUD.showInteractionPrompt) {
+            HUD.showInteractionPrompt(_atkNearLabel);
+          }
+        }
+      } catch (eAtk) {}
+
       // Minecraft-style building: right-click with shovel to place blocks
       // (handled in mousedown handler below)
 
@@ -7354,6 +11004,24 @@ const GameManager = (function () {
           player.hp = Math.min(player.maxHp * 0.75, player.hp + 1 * delta);
         }
         HUD.setHealth(player.hp, player.maxHp);
+      }
+
+      // Killstreak health bonus
+      if (window._killstreakHealthRegen && window._killstreakHealthRegen > 0) {
+        player.hp = Math.min(player.maxHp || 100, player.hp + window._killstreakHealthRegen);
+        window._killstreakHealthRegen = 0;
+        HUD.setHealth(player.hp, player.maxHp);
+      }
+
+      // Killstreak ammo refill bonus
+      if (window._killstreakAmmoRefill && window._killstreakAmmoRefill > 0) {
+        var _ksWst = Weapons.getStatus ? Weapons.getStatus() : null;
+        var _ksWdef = Weapons.getCurrentDef ? Weapons.getCurrentDef() : null;
+        if (_ksWst && _ksWdef && _ksWdef.clipSize > 0 && !_ksWst.reloading) {
+          _ksWst.clip = Math.min(_ksWdef.clipSize, _ksWst.clip + Math.ceil(_ksWdef.clipSize * window._killstreakAmmoRefill));
+          HUD.setAmmo(_ksWst.clip, _ksWst.reserve, _ksWdef.clipSize);
+        }
+        window._killstreakAmmoRefill = 0;
       }
 
       // Armor HUD
@@ -7495,8 +11163,17 @@ const GameManager = (function () {
         var mmNPCs = (typeof NPCSystem !== 'undefined' && NPCSystem.getAll) ? NPCSystem.getAll() : [];
         var mmVehicles = (typeof VehicleSystem !== 'undefined' && VehicleSystem.getAll) ? VehicleSystem.getAll() : [];
         var mmDrones = (typeof DroneSystem !== 'undefined' && DroneSystem.getAll) ? DroneSystem.getAll() : [];
-        var mmOpts = { uav: (typeof Perks !== 'undefined' && Perks.isUAVActive && Perks.isUAVActive()) };
-        HUD.updateMinimap(player.position.x, player.position.z, CameraSystem.getYaw(), mmEnemies, mmNPCs, mmVehicles, mmDrones, null, mmOpts);
+        HUD.updateMinimap(player.position.x, player.position.z, CameraSystem.getYaw(), mmEnemies, mmNPCs, mmVehicles, mmDrones);
+      }
+
+      // Tactical minimap (window.Minimap module)
+      if (typeof Minimap !== 'undefined' && Minimap.update) {
+        var _mmTactEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : [];
+        Minimap.update(
+          player.position,
+          CameraSystem ? CameraSystem.getYaw() : 0,
+          _mmTactEnemies
+        );
       }
 
       // Targeting assistant (on-weapon enemy readout)
@@ -7520,17 +11197,23 @@ const GameManager = (function () {
         }
       }
 
+      // Scavenge system update (weapon drops, pickup prompt)
+      if (window.ScavengeSystem) ScavengeSystem.update(delta, player);
+
       // Update tracers
       if (typeof Tracers !== 'undefined') Tracers.update(delta, player.position);
+      if (typeof EnemyChatter !== 'undefined') EnemyChatter.update();
+      if (window.CompanionRadio && CompanionRadio.update) CompanionRadio.update(delta);
       if (typeof StageVFX !== 'undefined') StageVFX.update(delta);
       if (typeof Flags !== 'undefined' && Flags.update) Flags.update(delta);
       if (typeof Environment !== 'undefined' && Environment.update) Environment.update(delta);
-      // Birds / Mortar / Gyro per-frame
+      // Birds / Mortar / MortarEmplacement / Gyro per-frame
       try { if (window.Birds   && Birds.update)   Birds.update(delta); } catch (eBU) {}
       try { if (window.Mortar  && Mortar.update)  Mortar.update(delta); } catch (eMU) {}
+      try { if (window.MortarEmplacement && MortarEmplacement.update) MortarEmplacement.update(delta, typeof Enemies !== 'undefined' ? Enemies.getAll() : []); } catch (eMEU) {}
       try { if (window.Bradley && Bradley.update) Bradley.update(delta); } catch (eBV) {}
       try { if (window.Gyro    && Gyro.update)    Gyro.update(delta); } catch (eGU) {}
-      try { if (window.CollapsePhysics && CollapsePhysics.update) CollapsePhysics.update(_scene, delta); } catch (eCPU) {}
+      try { if (window.DamageNumbers) DamageNumbers.update(delta); } catch (eDNU) {}
 
       // ═══ NEW FEATURE SYSTEM UPDATES (59 features) ═══
 
@@ -7741,6 +11424,7 @@ const GameManager = (function () {
 
       // Hand-thrown grenades (player-thrown via KeyG when no nearby vehicle)
       updateHandGrenades(delta);
+      if (window.SpecialGrenades) SpecialGrenades.update(delta, player.position, typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []);
 
       // World features update (fires, trees, mines, airdrops, smoke)
       if (typeof WorldFeatures !== 'undefined') {
@@ -7825,6 +11509,9 @@ const GameManager = (function () {
           }
         }
       }
+
+      // Destructibles update
+      if (window.Destructibles) Destructibles.update(delta);
 
       // Perks update
       if (typeof Perks !== 'undefined') {
@@ -7987,10 +11674,8 @@ const GameManager = (function () {
                 } else if (typeof Marketplace !== 'undefined') {
                   Marketplace.addOKC(reward.okc);
                 }
-                if (typeof Economy !== 'undefined' && Economy.addCurrency) Economy.addCurrency(reward.okc);
                 if (typeof RankSystem !== 'undefined') RankSystem.addXP(reward.xp);
                 if (typeof Progression !== 'undefined') Progression.trackStat('wavesCleared', 0); // mission tracking
-                if (typeof AudioSystem !== 'undefined' && AudioSystem.playAchievementUnlock) AudioSystem.playAchievementUnlock();
               }
               mTracker.style.display = 'none';
             } else if (missionResult.state === 'FAILED') {
@@ -8089,10 +11774,17 @@ const GameManager = (function () {
       }
     }
 
+    // DeathCam update (uses rawDelta so camera animates even when game is paused/frozen)
+    if (window.DeathCam && DeathCam.isActive && DeathCam.isActive()) {
+      try { DeathCam.update(rawDelta); } catch (eDC) {}
+    }
+
     // Switch to mortar bird's-eye cam if deployed, or Bradley chase cam if driving
     var renderCam = _camera;
     try {
-      if (window.Bradley && window.Bradley.isActive && window.Bradley.isActive() && window.GameManager.__bradleyCam) {
+      if (window.DeathCam && DeathCam.isActive && DeathCam.isActive() && DeathCam.getCamera && DeathCam.getCamera()) {
+        renderCam = DeathCam.getCamera();
+      } else if (window.Bradley && window.Bradley.isActive && window.Bradley.isActive() && window.GameManager.__bradleyCam) {
         renderCam = window.GameManager.__bradleyCam;
       } else if (window.Mortar && window.Mortar.isDeployed && window.Mortar.isDeployed() && window.GameManager.__mortarCam) {
         renderCam = window.GameManager.__mortarCam;
@@ -8458,15 +12150,13 @@ const GameManager = (function () {
     const btnNext = document.getElementById('btn-weapon-next');
     btnPrev.addEventListener('touchstart', function (e) {
       e.preventDefault();
-      if (DroneSystem.isPossessing()) { DroneSystem.cyclePayload(-1); }
-      else { Weapons.switchPrev(); }
+      Weapons.switchPrev();
       btnPrev.classList.add('active');
     }, { passive: false });
     btnPrev.addEventListener('touchend', function () { btnPrev.classList.remove('active'); });
     btnNext.addEventListener('touchstart', function (e) {
       e.preventDefault();
-      if (DroneSystem.isPossessing()) { DroneSystem.cyclePayload(1); }
-      else { Weapons.switchNext(); }
+      Weapons.switchNext();
       btnNext.classList.add('active');
     }, { passive: false });
     btnNext.addEventListener('touchend', function () { btnNext.classList.remove('active'); });
@@ -8816,26 +12506,68 @@ const GameManager = (function () {
 
   function throwHandGrenade() {
     if (_handGrenadeCooldown > 0) return;
-    if (!player.godMode && (!player.grenades || player.grenades <= 0)) {
-      HUD.notifyPickup('🚫 NO GRENADES', '#ff6600');
-      return;
-    }
     if (!_scene || !_camera) return;
-    var geo = new THREE.SphereGeometry(0.10, 8, 6);
-    var mat = new THREE.MeshLambertMaterial({ color: 0x2a3018 });
-    var nade = new THREE.Mesh(geo, mat);
+
+    var gType = player.grenadeType || 'FRAG';
+
+    // Check ammo for the selected type
+    if (!player.godMode) {
+      if (gType === 'FRAG' && (!player.grenades || player.grenades <= 0)) {
+        HUD.notifyPickup('🚫 NO FRAG GRENADES', '#ff6600');
+        return;
+      }
+      if (gType === 'SMOKE' && (!player.smokeGrenades || player.smokeGrenades <= 0)) {
+        HUD.notifyPickup('🚫 NO SMOKE GRENADES', '#ff6600');
+        return;
+      }
+      if (gType === 'FLASHBANG' && (!player.flashGrenades || player.flashGrenades <= 0)) {
+        HUD.notifyPickup('🚫 NO FLASHBANGS', '#ff6600');
+        return;
+      }
+    }
+
     var origin = player.position.clone();
     origin.y -= 0.4;
-    nade.position.copy(origin);
-    _scene.add(nade);
     var fwd = _camera.getWorldDirection(new THREE.Vector3());
     var vel = new THREE.Vector3(fwd.x * 18, 6 + fwd.y * 14, fwd.z * 18);
-    var _nadeFuse = 2.5 - (typeof Perks !== 'undefined' && Perks.getGrenadeFuseSub ? Perks.getGrenadeFuseSub() : 0);
-    _handGrenades.push({ mesh: nade, vel: vel, fuse: _nadeFuse, spin: new THREE.Vector3(8, 6, 4) });
-    if (!player.godMode) player.grenades = Math.max(0, player.grenades - 1);
-    if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : player.grenades);
-    _handGrenadeCooldown = 0.45;
-    HUD.notifyPickup('💣 GRENADE OUT', '#ffaa00');
+
+    if (gType === 'SMOKE') {
+      // Smoke grenade: small grey sphere that lands and creates a smoke cloud
+      var sGeo = new THREE.SphereGeometry(0.10, 8, 6);
+      var sMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+      var sNade = new THREE.Mesh(sGeo, sMat);
+      sNade.position.copy(origin);
+      _scene.add(sNade);
+      _handGrenades.push({ mesh: sNade, vel: vel, fuse: 2.0, spin: new THREE.Vector3(6, 5, 3), type: 'SMOKE' });
+      if (!player.godMode) player.smokeGrenades = Math.max(0, player.smokeGrenades - 1);
+      _handGrenadeCooldown = 0.45;
+      HUD.notifyPickup('💨 SMOKE OUT', '#aaaaaa');
+
+    } else if (gType === 'FLASHBANG') {
+      // Flashbang: white sphere that blinds on detonation
+      var fGeo = new THREE.SphereGeometry(0.10, 8, 6);
+      var fMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+      var fNade = new THREE.Mesh(fGeo, fMat);
+      fNade.position.copy(origin);
+      _scene.add(fNade);
+      _handGrenades.push({ mesh: fNade, vel: vel, fuse: 2.0, spin: new THREE.Vector3(10, 8, 5), type: 'FLASHBANG' });
+      if (!player.godMode) player.flashGrenades = Math.max(0, player.flashGrenades - 1);
+      _handGrenadeCooldown = 0.45;
+      HUD.notifyPickup('⚡ FLASHBANG OUT', '#ffff88');
+
+    } else {
+      // FRAG (default)
+      var geo = new THREE.SphereGeometry(0.10, 8, 6);
+      var mat = new THREE.MeshLambertMaterial({ color: 0x2a3018 });
+      var nade = new THREE.Mesh(geo, mat);
+      nade.position.copy(origin);
+      _scene.add(nade);
+      _handGrenades.push({ mesh: nade, vel: vel, fuse: 2.5, spin: new THREE.Vector3(8, 6, 4), type: 'FRAG' });
+      if (!player.godMode) player.grenades = Math.max(0, player.grenades - 1);
+      if (HUD.setHandGrenades) HUD.setHandGrenades(player.godMode ? Infinity : player.grenades);
+      _handGrenadeCooldown = 0.45;
+      HUD.notifyPickup('💣 GRENADE OUT', '#ffaa00');
+    }
   }
 
   function updateHandGrenades(delta) {
@@ -8871,28 +12603,75 @@ const GameManager = (function () {
       }
       if (g.fuse <= 0) {
         var pos = g.mesh.position.clone();
-        if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(pos, 2.2);
-        if (window.AudioSystem && window.AudioSystem.playExplosion) {
-          try { window.AudioSystem.playExplosion(); } catch (e) {}
-        }
-        if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
-          var _explMult = (typeof Perks !== 'undefined' && Perks.getExplosiveDamageMult) ? Perks.getExplosiveDamageMult() : 1.0;
-          var _gRes = Enemies.damageInRadius(pos, 6.5, Math.round(110 * _explMult));
-          if (player && Array.isArray(_gRes)) {
-            var _gKills = 0;
-            for (var _gi = 0; _gi < _gRes.length; _gi++) if (_gRes[_gi].remaining <= 0) _gKills++;
-            if (_gKills > 0) player.waveMaxExplosiveKill = Math.max(player.waveMaxExplosiveKill || 0, _gKills);
+
+        if (g.type === 'SMOKE') {
+          // Smoke grenade: create semi-transparent sphere cloud, persist 8 seconds
+          var smokeGeo = new THREE.SphereGeometry(4, 12, 8);
+          var smokeMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+          smokeMat.transparent = true;
+          smokeMat.opacity = 0.35;
+          var smokeMesh = new THREE.Mesh(smokeGeo, smokeMat);
+          smokeMesh.position.copy(pos);
+          smokeMesh.position.y += 2;
+          if (_scene) _scene.add(smokeMesh);
+          window._smokePositions = window._smokePositions || [];
+          window._smokePositions.push({ x: pos.x, z: pos.z, expires: Date.now() + 8000, mesh: smokeMesh });
+          // Schedule smoke removal after 8 seconds
+          (function(sm) {
+            setTimeout(function() {
+              if (_scene) _scene.remove(sm);
+              if (sm.geometry) sm.geometry.dispose();
+              if (sm.material) sm.material.dispose();
+              // Clean up from _smokePositions
+              if (window._smokePositions) {
+                for (var _si = window._smokePositions.length - 1; _si >= 0; _si--) {
+                  if (window._smokePositions[_si].mesh === sm) {
+                    window._smokePositions.splice(_si, 1);
+                  }
+                }
+              }
+            }, 8000);
+          }(smokeMesh));
+
+        } else if (g.type === 'FLASHBANG') {
+          // Flashbang: white screen flash + AI blind state
+          window._flashTime = Date.now() + 3500;
+          var flashDiv = document.createElement('div');
+          flashDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;opacity:0.95;pointer-events:none;z-index:9999;transition:opacity 2s ease-out';
+          document.body.appendChild(flashDiv);
+          // Fade out: brief hold then fade
+          setTimeout(function() {
+            flashDiv.style.opacity = '0';
+            setTimeout(function() {
+              if (flashDiv.parentNode) flashDiv.parentNode.removeChild(flashDiv);
+            }, 2100);
+          }, 1500);
+
+        } else {
+          // FRAG (default): explosion damage
+          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(pos, 2.2);
+          if (window.AudioSystem && window.AudioSystem.playExplosion) {
+            try { window.AudioSystem.playExplosion(); } catch (e) {}
+          }
+          if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
+            var _gRes = Enemies.damageInRadius(pos, 6.5, 110);
+            if (player && Array.isArray(_gRes)) {
+              var _gKills = 0;
+              for (var _gi = 0; _gi < _gRes.length; _gi++) if (_gRes[_gi].remaining <= 0) _gKills++;
+              if (_gKills > 0) player.waveMaxExplosiveKill = Math.max(player.waveMaxExplosiveKill || 0, _gKills);
+            }
+          }
+          if (CameraSystem.shake) CameraSystem.shake(0.35, 0.4);
+          if (!player.godMode) {
+            var dx = player.position.x - pos.x, dy = player.position.y - pos.y, dz = player.position.z - pos.z;
+            var d2 = dx * dx + dy * dy + dz * dz;
+            if (d2 < 36) {
+              var falloff = 1 - Math.sqrt(d2) / 6;
+              onPlayerHit(60 * falloff, pos);
+            }
           }
         }
-        if (CameraSystem.shake) CameraSystem.shake(0.35, 0.4);
-        if (!player.godMode) {
-          var dx = player.position.x - pos.x, dy = player.position.y - pos.y, dz = player.position.z - pos.z;
-          var d2 = dx * dx + dy * dy + dz * dz;
-          if (d2 < 36) {
-            var falloff = 1 - Math.sqrt(d2) / 6;
-            onPlayerHit(60 * falloff, pos);
-          }
-        }
+
         if (_scene) _scene.remove(g.mesh);
         if (g.mesh.geometry) g.mesh.geometry.dispose();
         if (g.mesh.material) g.mesh.material.dispose();
@@ -8965,8 +12744,10 @@ const GameManager = (function () {
           });
         }
       } catch (e) {}
-      // Unlimited hand grenades
+      // Unlimited hand grenades (all types)
       player.grenades = Infinity;
+      player.smokeGrenades = Infinity;
+      player.flashGrenades = Infinity;
       if (HUD.setHandGrenades) HUD.setHandGrenades(Infinity);
       // Enable stealth (enemies can't see player)
       player.stealth = true;
@@ -8995,8 +12776,11 @@ const GameManager = (function () {
       Enemies.setPlayerStealth(false);
       var stInd = document.getElementById('stealth-indicator');
       if (stInd) stInd.style.display = 'none';
-      // Reset grenades to default 5
+      // Reset grenades to default 5 (all types)
       player.grenades = 5;
+      player.smokeGrenades = 2;
+      player.flashGrenades = 2;
+      player.grenadeType = 'FRAG';
       if (HUD.setHandGrenades) HUD.setHandGrenades(5);
       HUD.notifyPickup('⚡ GOD MODE DEACTIVATED', '#ff6600');
     }
@@ -9462,50 +13246,11 @@ const GameManager = (function () {
     if (CameraSystem.shake) CameraSystem.shake(0.4, 0.5);
 
     if (streak.id === 'ARTILLERY' || streak.id === 'AIRSTRIKE') {
+      // Damage enemies in area around player's aim point
       var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
-      var artTarget = player.position.clone().add(fwd.multiplyScalar(30));
-      var artRadius = streak.radius || 15;
-      var artDmg = streak.damage || 200;
-      var artShells = streak.id === 'AIRSTRIKE' ? 8 : 5;
-      if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 FIRE FOR EFFECT!', 2000, '#ff6600');
-      // Staggered shell impacts over 2 seconds
-      for (var ai = 0; ai < artShells; ai++) {
-        (function(_i, _cx, _cz) {
-          setTimeout(function() {
-            var shellPos = new THREE.Vector3(
-              _cx + (Math.random()-0.5) * artRadius,
-              0.5,
-              _cz + (Math.random()-0.5) * artRadius
-            );
-            Enemies.damageInRadius(shellPos, artRadius * 0.45, artDmg / artShells * 1.4);
-            if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
-              Tracers.spawnExplosion(shellPos, artRadius * 0.22);
-            }
-            if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
-              WorldFeatures.applyExplosionDamage(shellPos.x, shellPos.y, shellPos.z, artRadius * 0.3, artDmg * 0.5);
-            }
-            if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.5, 0.4);
-          }, 400 + _i * 220);
-        })(ai, artTarget.x, artTarget.z);
-      }
-    } else if (streak.id === 'UAV') {
-      // UAV scan: show enemies on minimap for 15s with pulsing indicator
-      if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📡 UAV ONLINE — SCANNING', 2000, '#00ffcc');
-      // Reveal all enemy positions in HUD via a sweep animation
-      (function() {
-        var sweepEl = document.getElementById('uav-sweep');
-        if (!sweepEl) {
-          sweepEl = document.createElement('div');
-          sweepEl.id = 'uav-sweep';
-          sweepEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:150;background:radial-gradient(ellipse 120% 120% at 50% 50%,rgba(0,255,150,0.06) 0%,transparent 70%);animation:uavSweep 1s ease-out forwards';
-          var style = document.createElement('style');
-          style.textContent = '@keyframes uavSweep{0%{opacity:0}20%{opacity:1}100%{opacity:0}}';
-          document.head.appendChild(style);
-          document.body.appendChild(sweepEl);
-        }
-        sweepEl.style.animation = 'none';
-        setTimeout(function() { sweepEl.style.animation = 'uavSweep 1s ease-out forwards'; }, 16);
-      })();
+      var target = player.position.clone().add(fwd.multiplyScalar(30));
+      Enemies.damageInRadius(target, streak.radius || 15, streak.damage || 200);
+      if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(target, (streak.radius || 15) * 0.3);
     } else if (streak.id === 'NUKE') {
       // Kill all enemies
       var allEn = Enemies.getAll();
@@ -9550,46 +13295,6 @@ const GameManager = (function () {
     if (HUD.notifyPickup) HUD.notifyPickup('💉 Speed Boost ' + duration + 's', '#ff8a65');
   }
 
-  var _dmgBoostMult = 1.0;
-  var _dmgBoostTimer = 0;
-  function addDamageBoost(pct, duration) {
-    _dmgBoostMult = 1 + pct;
-    _dmgBoostTimer = duration;
-  }
-  function getDamageBoostMult() { return _dmgBoostMult; }
-
-  var _airstrikeTokens = 0;
-  function addAirstrikeToken() { _airstrikeTokens++; }
-  function getAirstrikeTokens() { return _airstrikeTokens; }
-  function useAirstrikeToken() {
-    if (_airstrikeTokens <= 0) return false;
-    _airstrikeTokens--;
-    // Fire an airstrike at player's aimed position
-    if (!_camera) return true;
-    var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
-    var target = player.position.clone().add(fwd.multiplyScalar(35));
-    if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('✈ AIRSTRIKE ON THE WAY!', 2500, '#aaddff');
-    for (var _ati = 0; _ati < 7; _ati++) {
-      (function(_i3, _tx, _tz) {
-        setTimeout(function() {
-          var _asp = new THREE.Vector3(_tx + (Math.random()-0.5)*16, 0.5, _tz + (Math.random()-0.5)*8);
-          if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_asp, 3.5);
-          if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) Enemies.damageInRadius(_asp, 8, 220);
-          if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) WorldFeatures.applyExplosionDamage(_asp.x, _asp.y, _asp.z, 2.5, 100);
-          if (CameraSystem.shake) CameraSystem.shake(0.6, 0.3);
-        }, 2500 + _i3 * 220);
-      })(_ati, target.x, target.z);
-    }
-    return true;
-  }
-
-  function applyKnockback(dir, force) {
-    if (!player || !player.velocity) return;
-    player.velocity.x += dir.x * force;
-    player.velocity.y += Math.max(0.4, dir.y) * force * 0.5;
-    player.velocity.z += dir.z * force;
-  }
-
   /* ── Public API ──────────────────────────────────────────────────── */
   return {
     STATE,
@@ -9632,8 +13337,6 @@ const GameManager = (function () {
 
     getStageInfo:    function () { return STAGES[currentStage]; },
     isSprinting:     function () { return player.sprinting; },
-    getPerfLevel:    function () { return _perfLevel; },
-    isLowEndVFX:     function () { return _lowEndVFX || _perfLevel >= 2; },
     _activateStreak: _activateStreak,
     _openPerksMenu: _openPerksMenu,
     _openJournal: _openJournal,
@@ -9642,18 +13345,8 @@ const GameManager = (function () {
     healPlayer: healPlayer,
     addArmor: addArmor,
     addStimBuff: addStimBuff,
-    addDamageBoost: addDamageBoost,
-    getDamageBoostMult: getDamageBoostMult,
-    addAirstrikeToken: addAirstrikeToken,
-    getAirstrikeTokens: getAirstrikeTokens,
-    useAirstrikeToken: useAirstrikeToken,
-    applyKnockback: applyKnockback,
     addSuppression: addSuppression,
     requestFullscreenAndLockLandscape: requestFullscreenAndLockLandscape,
-    setMouseSensitivity: setMouseSensitivity,
-    setAudioVolume:      setAudioVolume,
-    getMouseSensitivity: function() { return _mouseSensitivity; },
-    getAudioVolume:      function() { return _audioVolume; },
     // Test helpers for headless Puppeteer (bypasses pointer lock requirement)
     _testFireStart:  function () { mouseDown = true; mouseNewPress = true; },
     _testFireStop:   function () { mouseDown = false; mouseNewPress = false; },

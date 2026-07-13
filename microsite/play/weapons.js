@@ -48,7 +48,6 @@ const Weapons = (() => {
       id: 'SVD', name: 'SVD Dragunov', damage: 115,
       fireRate: 0.85, clipSize: 10, maxReserve: 40, reloadTime: 3.5,
       spread: 0.004, auto: false, type: 'SNIPER', hasScope: true, recoilY: 0.040, recoilX: 0.010,
-      critChance: 0.20, critMult: 2.0,
     },
     {
       id: 'PKM', name: 'PKM', damage: 18,
@@ -123,7 +122,6 @@ const Weapons = (() => {
       id: 'BARRETTM82', name: 'Barrett M82', damage: 250,
       fireRate: 1.5, clipSize: 10, maxReserve: 30, reloadTime: 4.0,
       spread: 0.002, auto: false, type: 'AMR', hasScope: true, recoilY: 0.045, recoilX: 0.012,
-      critChance: 0.25, critMult: 2.5,
     },
     {
       id: 'MINIGUN', name: 'M134 Minigun', damage: 12,
@@ -134,7 +132,6 @@ const Weapons = (() => {
       id: 'CROSSBOW', name: 'Tactical Crossbow', damage: 130,
       fireRate: 1.2, clipSize: 1, maxReserve: 15, reloadTime: 1.8,
       spread: 0.006, auto: false, type: 'SILENT', recoilY: 0, recoilX: 0,
-      critChance: 0.30, critMult: 2.0,
     },
     {
       id: 'FLAMETHROWER', name: 'RPO-A Shmel', damage: 200,
@@ -197,7 +194,6 @@ const Weapons = (() => {
       id: 'VSS', name: 'VSS Vintorez', damage: 42,
       fireRate: 0.12, clipSize: 20, maxReserve: 80, reloadTime: 2.5,
       spread: 0.010, auto: true, type: 'SILENT', hasScope: true, recoilY: 0.012, recoilX: 0.005,
-      critChance: 0.12, critMult: 1.8,
     },
     {
       id: 'STINGER', name: 'FIM-92 Stinger', damage: 700,
@@ -208,7 +204,6 @@ const Weapons = (() => {
       id: 'THROWKNIFE', name: 'Throwing Knife', damage: 90,
       fireRate: 0.5, clipSize: 1, maxReserve: 8, reloadTime: 0.3,
       spread: 0.008, auto: false, type: 'SILENT', recoilY: 0, recoilX: 0,
-      critChance: 0.35, critMult: 2.5,
     },
     {
       id: 'C4', name: 'C4 Explosive', damage: 500,
@@ -748,19 +743,54 @@ const Weapons = (() => {
       homing: true, blastRadius: 18,
       description: "US Army Tactical Missile System — fires from standard HIMARS or M270 MLRS launchers. Ukraine secretly received ATACMS in late 2023; used them to strike Russian air bases in Crimea and Berdyansk port (sank landing ships). M39 variant carries 950 M74 submunitions; M57 variant has 227kg unitary warhead. Range 300km — reaches deep into Russian-controlled territory.",
     },
-    // ── M16A2 + RG-6 Inferno Drum (user-requested) ────────────────────────
+    // ── 8 new weapons ──────────────────────────────────────────
     {
-      id: 'M16A2', name: 'M16A2 (5.56mm Burst)', damage: 33,
-      fireRate: 0.095, clipSize: 30, maxReserve: 150, reloadTime: 2.5,
-      spread: 0.013, auto: false, type: 'NATO', hasScope: false, recoilY: 0.010, recoilX: 0.004,
-      critChance: 0.15, critMult: 1.6,
-      description: 'US M16A2 with 20" barrel, triangular A2 handguards, and adjustable A2 carry-handle rear sight. 3-round burst or semi-auto. Higher muzzle velocity and accuracy than the M4A1 carbine — 975 m/s vs 884 m/s. Standard US infantry rifle from 1983 through the 2010s. Thousands supplied to Ukrainian forces by the US plus captured from early-war Russian seizures of NATO stockpiles. Loved for its flat trajectory at 400m+ and reliability in Donbas winters.',
+      id: 'NLAW_MK1', name: 'NLAW (Next gen Light Anti-tank Weapon)', damage: 280,
+      fireRate: 0.2, clipSize: 1, maxReserve: 4, reloadTime: 4.0,
+      spread: 0, auto: false, type: 'AT', blastRadius: 4, recoilY: 0.060, recoilX: 0.020,
+      description: 'British-Swedish NLAW shoulder-fired ATGW supplied to Ukraine in thousands. Predicted Line Of Sight (PLOS) guidance — operator tracks target for 1 second, missile self-guides the rest. Fires a single missile with a top-attack overfly warhead. Effective at 20-600m. Most widely used man-portable AT weapon of the Ukraine war.',
     },
     {
-      id: 'RG6_FIRE', name: 'RG-6 "Inferno" Drum', damage: 95,
-      fireRate: 0.9, clipSize: 6, maxReserve: 24, reloadTime: 3.4,
-      spread: 0.022, auto: false, type: 'INCENDIARY', blastRadius: 5, recoilY: 0.028, recoilX: 0.010,
-      description: 'RG-6 "Gnome" 6-shot 40mm revolver drum grenade launcher loaded with RSP-30 incendiary/thermobaric rounds. Revolver action, shoulder-fired, 400m max range. Each round ignites a thermite-phosphorus splash on impact — inspired by Baba Yaga drone incendiary drop tactics. Ukrainian improvised incendiary rounds often use white phosphorus or RKhT thermite inserts. Devastating area denial — burning at 2,200°C, impossible to extinguish with water.',
+      id: 'UMP9', name: 'HK UMP-9 (9mm SMG)', damage: 28,
+      fireRate: 0.07, clipSize: 30, maxReserve: 150, reloadTime: 2.0,
+      spread: 0.04, auto: true, type: 'SMG', recoilY: 0.010, recoilX: 0.004,
+      description: 'German Heckler & Koch UMP-9 compact submachine gun. Polymer frame, folding stock, 30-round magazine. Fires 9×19mm at 600rpm — controllable full-auto. Excellent hip-fire stability. Used by German KSK special forces and police units; some examples supplied to Ukraine through various channels.',
+    },
+    {
+      id: 'VSS_SF', name: 'VSS Vintorez (SF suppressed rifle)', damage: 55,
+      fireRate: 4.5, clipSize: 20, maxReserve: 80, reloadTime: 2.5,
+      spread: 0.010, auto: true, type: 'SILENT', hasScope: true, recoilY: 0.012, recoilX: 0.005,
+      description: 'Russian VSS Vintorez ("Thread-cutter") with integral suppressor and 9×39mm subsonic SP-6 armour-piercing rounds. GRU/FSB special forces weapon — nearly silent at 200m+. Fires from 20-round straight magazine. Used by Russian Spetsnaz in counter-sniper and CQB roles throughout the Ukraine conflict. The suppressor is non-removable.',
+    },
+    {
+      id: 'PKP_HVY', name: 'PKP Pecheneg (sustained-fire MG)', damage: 48,
+      fireRate: 9.0, clipSize: 100, maxReserve: 200, reloadTime: 5.0,
+      spread: 0.05, auto: true, type: 'LMG', recoilY: 0.022, recoilX: 0.012,
+      description: 'Russian PKP Pecheneg belt-fed machine gun. Improved PKM with a heavy fixed barrel (no quick-change needed) and forced air cooling through the barrel jacket. 7.62×54mmR at 650rpm sustained. Heavy — slows movement but devastating in static defense. Used extensively by Russian forces in Donbas trench warfare.',
+    },
+    {
+      id: 'OTS33', name: 'OTs-33 Pernach (machine pistol)', damage: 20,
+      fireRate: 12.0, clipSize: 27, maxReserve: 108, reloadTime: 1.8,
+      spread: 0.065, auto: true, type: 'PISTOL', recoilY: 0.015, recoilX: 0.008,
+      description: 'Russian OTs-33 Pernach ("Mace") machine pistol. 9×18mm PM at ~1000rpm in full-auto. 27-round magazine feeds from the grip. Compact — fits in a holster despite full-auto capability. Issued to Russian MVD officers and vehicle crews. Near-uncontrollable in full-auto but devastating at room distance.',
+    },
+    {
+      id: 'RGD5_THROW', name: 'RGD-5 Grenade (throwable)', damage: 120,
+      fireRate: 0.5, clipSize: 1, maxReserve: 5, reloadTime: 1.0,
+      spread: 1.0, auto: false, type: 'GRENADE', blastRadius: 5, recoilY: 0.0, recoilX: 0.0,
+      description: 'Soviet RGD-5 offensive fragmentation grenade. Smooth plastic body with internal fragmentation liner. 3.2-second fuze after pull-ring release. Standard throw range ~30m. Both sides carry dozens — the most common grenade in the war. Effective blast radius ~5m, wounding radius ~20m. Both Ukrainian and Russian soldiers throw these daily in trench assaults.',
+    },
+    {
+      id: 'STUGNA_LG', name: 'Stugna-P (laser-guided ATGM)', damage: 350,
+      fireRate: 0.15, clipSize: 1, maxReserve: 3, reloadTime: 5.0,
+      spread: 0, auto: false, type: 'ATGM', hasScope: true, homing: true, blastRadius: 5, recoilY: 0.050, recoilX: 0.015,
+      description: "Ukrainian Stugna-P (Barrier-P) laser-guided anti-tank missile system. Luch Design Bureau, Kyiv. Remote-controlled from 50m away via cable — crew stays under cover while firing. 130mm tandem warhead penetrates 800mm RHA behind ERA. Domestic Ukrainian production ramped up during the war. Viral videos of Stugna destroying Russian T-72/T-80 tanks from ambush positions.",
+    },
+    {
+      id: 'AN94_BURST', name: 'AN-94 Abakan (2-round hyperburst)', damage: 47,
+      fireRate: 6.0, clipSize: 30, maxReserve: 120, reloadTime: 2.4,
+      spread: 0.015, auto: true, type: 'ASSAULT', recoilY: 0.018, recoilX: 0.006,
+      description: 'Russian AN-94 Abakan 5.45×39mm assault rifle with unique two-round burst hyperspeed mode firing both rounds at 1800rpm before recoil registers — effectively placing two rounds in the same hole. Designed by Nikonov in the 1990s to replace the AK-74. Unusual pulley-delay mechanism shifts the barrel and bolt group forward during firing. Used by Russian Spetsnaz and elite units in Ukraine.',
     },
   ];
 
@@ -802,7 +832,12 @@ const Weapons = (() => {
 
   function refreshWeaponHud() {
     if (typeof HUD === 'undefined' || !HUD.setWeapon) return;
-    HUD.setWeapon(cur().name, currentIdx);
+    var _wepDisplayName = cur().name;
+    if (typeof Attachments !== 'undefined' && Attachments.getAttached) {
+      var _wepAtk = Attachments.getAttached(currentIdx);
+      if (_wepAtk) _wepDisplayName = _wepDisplayName + ' ' + _wepAtk.icon;
+    }
+    HUD.setWeapon(_wepDisplayName, currentIdx);
     if (cur().type === 'MELEE') {
       HUD.setAmmo('∞', '—');
       if (HUD.showGrenadeSection) HUD.showGrenadeSection(true);
@@ -5055,6 +5090,123 @@ const Weapons = (() => {
       return g;
     },
 
+    // ── NLAW MK1 (British-Swedish shoulder-fired ATGW) ───────────────
+    nlaw_mk1: function () {
+      return _launcher({ len: 0.52, r: 0.026, tube: _pal.olive, rear: 'cone',
+        warhead: true, optic: true, sight: false });
+    },
+
+    // ── UMP-9 (HK compact submachine gun) ────────────────────────────
+    ump9: function () {
+      return _rifle({ hg: 'rail', hgColor: _pal.poly, stock: 'fixed', stockColor: _pal.poly,
+        mag: 'straight', magColor: _pal.poly, muzzle: 'flash', recvLen: 0.18, recvH: 0.040,
+        barLen: 0.10, barR: 0.009, recvColor: _pal.poly });
+    },
+
+    // ── VSS Vintorez SF (suppressed 9×39mm special-forces rifle) ─────
+    vss_sf: function () {
+      return _rifle({ hg: 'tube', hgColor: _pal.blk, stock: 'skel', stockColor: _pal.blk,
+        mag: 'straight', magColor: _pal.blk, muzzle: 'supp', recvLen: 0.22, recvH: 0.042,
+        barLen: 0.14, barR: 0.010, recvColor: _pal.blk, scope: true, sights: false });
+    },
+
+    // ── PKP Pecheneg (heavy sustained-fire belt-fed MG) ──────────────
+    pkp_hvy: function () {
+      return _rifle({ hg: 'wood', hgColor: _pal.wood, stock: 'wood', stockColor: _pal.wood,
+        mag: 'box', magColor: _pal.olive, muzzle: 'brake', recvLen: 0.30, recvH: 0.056,
+        barLen: 0.36, barR: 0.015, recvColor: _pal.gm, bipod: true, belt: true });
+    },
+
+    // ── OTs-33 Pernach (Russian machine pistol, 9×18mm) ──────────────
+    ots33: function () {
+      var g = new THREE.Group(); g.userData.selfContained = true;
+      var X = 0.17, Y = -0.125;
+      var blk = _pal.blk();
+      // Slide (compact, boxy)
+      var slide = new THREE.Group(); slide.name = '_slide';
+      slide.add(_P(_B(0.030, 0.036, 0.14, blk), X, Y + 0.018, -0.30));
+      slide.add(_P(_B(0.010, 0.007, 0.012, blk), X, Y + 0.038, -0.23)); // rear sight
+      slide.add(_P(_B(0.006, 0.007, 0.006, blk), X, Y + 0.038, -0.37)); // front sight
+      g.add(slide);
+      g.userData._anim = { slide: slide, slideHome: slide.position.z };
+      // Frame + rail
+      g.add(_P(_B(0.028, 0.018, 0.135, _pal.poly()), X, Y - 0.006, -0.300));
+      // Barrel
+      g.add(_P(_T(0.007, 0.026, _pal.steel(), 10), X, Y + 0.018, -0.383));
+      // Extended box magazine (27-round)
+      var mag = _P(_B(0.026, 0.090, 0.036, _pal.poly()), X, Y - 0.068, -0.280);
+      mag.rotation.x = 0.10; g.add(mag);
+      // Trigger guard
+      g.add(_P(_B(0.024, 0.005, 0.046, blk), X, Y - 0.040, -0.310));
+      g.add(_P(_B(0.024, 0.022, 0.006, blk), X, Y - 0.030, -0.333));
+      // Selector switch (right side)
+      g.add(_P(_B(0.004, 0.014, 0.014, _pal.steel()), X + 0.016, Y + 0.010, -0.285));
+      return g;
+    },
+
+    // ── RGD-5 Grenade (throwable, hand-held) ─────────────────────────
+    rgd5_throw: function () {
+      var g = new THREE.Group(); g.userData.selfContained = true;
+      var X = 0.17, Y = -0.10;
+      // Body — smooth olive plastic sphere (distinctive RGD-5 egg shape)
+      var body = new THREE.Mesh(
+        new THREE.SphereGeometry(0.035, 12, 10),
+        new THREE.MeshLambertMaterial({ color: 0x3a4228 }));
+      body.position.set(X, Y, -0.28); g.add(body);
+      // Top cap (fuze well)
+      g.add(_P(_T(0.014, 0.028, _pal.steel(), 8), X, Y + 0.032, -0.255));
+      // Safety lever (spoon — flat on side)
+      var lever = _P(_B(0.030, 0.008, 0.048, _pal.steel()), X + 0.018, Y + 0.010, -0.263);
+      lever.rotation.z = 0.20; g.add(lever);
+      // Pull ring
+      var ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.010, 0.002, 5, 10),
+        new THREE.MeshLambertMaterial({ color: 0xcccccc }));
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(X + 0.018, Y + 0.030, -0.245); g.add(ring);
+      // Hand grip (player hand position)
+      g.add(_P(_B(0.020, 0.070, 0.022, _pal.blk()), X, Y - 0.030, -0.280));
+      return g;
+    },
+
+    // ── Stugna-P (Ukrainian laser-guided ATGM) ────────────────────────
+    stugna_lg: function () {
+      var g = new THREE.Group(); g.userData.selfContained = true;
+      var X = 0.17, Y = -0.115;
+      // Launch tube (rectangular section — unique to Stugna)
+      g.add(_P(_B(0.052, 0.052, 0.55, _pal.olive()), X, Y, -0.22));
+      // Missile warhead (front cone)
+      g.add(_P(_T(0.024, 0.10, _M(0x3a3c30, 0.4, 0.6), 12), X, Y, -0.52));
+      var tip = new THREE.Mesh(
+        new THREE.ConeGeometry(0.024, 0.065, 10),
+        new THREE.MeshLambertMaterial({ color: 0x2a2a22 }));
+      tip.rotation.x = Math.PI / 2; tip.position.set(X, Y, -0.61); g.add(tip);
+      // Rear blast cone
+      var bcone = new THREE.Mesh(
+        new THREE.ConeGeometry(0.038, 0.055, 10),
+        new THREE.MeshLambertMaterial({ color: _pal.olive() }));
+      bcone.rotation.x = -Math.PI / 2; bcone.position.set(X, Y, 0.065); g.add(bcone);
+      // Remote control sight module (distinctive box mounted on top)
+      g.add(_P(_B(0.060, 0.048, 0.085, _pal.blk()), X, Y + 0.052, -0.05));
+      // Sight lens (front face)
+      g.add(_P(_B(0.036, 0.028, 0.006, _M(0x2244aa, 0.3, 0.8)), X, Y + 0.052, -0.093));
+      // Control cable connector (rear of sight box)
+      g.add(_P(_B(0.008, 0.008, 0.016, _pal.blk()), X + 0.020, Y + 0.030, 0.040));
+      // Pistol grip
+      var gp = _P(_B(0.032, 0.085, 0.038, _pal.poly()), X, Y - 0.070, -0.03);
+      gp.rotation.x = 0.14; g.add(gp);
+      // Trigger guard
+      g.add(_P(_B(0.026, 0.005, 0.048, _pal.blk()), X, Y - 0.040, -0.045));
+      return g;
+    },
+
+    // ── AN-94 Abakan (2-round hyperburst assault rifle) ───────────────
+    an94_burst: function () {
+      return _rifle({ hg: 'rail', hgColor: _pal.poly, stock: 'tube', stockColor: _pal.poly,
+        mag: 'curved', magColor: _pal.olive, muzzle: 'brake', recvLen: 0.24, recvH: 0.048,
+        barLen: 0.26, barR: 0.011, recvColor: _pal.gm, rail: true, sights: true });
+    },
+
   };
 
   const meshBuilders = [
@@ -5106,6 +5258,8 @@ const Weapons = (() => {
     NB.ak74m, NB.switchblade600, NB.pzh2000, NB.kh101,
     // 4 more (CAESAR 155mm, Brimstone 2, IRIS-T SLM, ATACMS)
     NB.caesar155, NB.brimstone2, NB.iristslm, NB.atacms,
+    // 8 new weapons (NLAW MK1, UMP-9, VSS SF, PKP Heavy, OTs-33, RGD-5 Throwable, Stugna-P LG, AN-94 Burst)
+    NB.nlaw_mk1, NB.ump9, NB.vss_sf, NB.pkp_hvy, NB.ots33, NB.rgd5_throw, NB.stugna_lg, NB.an94_burst,
   ];
 
   // Ensure meshBuilders matches WEAPONS length
@@ -5423,8 +5577,11 @@ const Weapons = (() => {
   function applyRecoil() {
     const w = cur();
     if (!w.recoilY && !w.recoilX) return;
-    const recoilMod = (typeof SkillSystem !== 'undefined' && typeof SkillSystem.getRecoilMod === 'function')
+    var recoilMod = (typeof SkillSystem !== 'undefined' && typeof SkillSystem.getRecoilMod === 'function')
       ? SkillSystem.getRecoilMod() : 1.0;
+    if (typeof Attachments !== 'undefined' && Attachments.getRecoilMulti) {
+      recoilMod *= Attachments.getRecoilMulti(currentIdx);
+    }
     var appliedYaw = (Math.random() - 0.5) * w.recoilX * 2 * recoilMod;
     if (typeof CameraSystem !== 'undefined') {
       CameraSystem.setPitch(CameraSystem.getPitch() + w.recoilY * recoilMod);
@@ -6198,18 +6355,14 @@ const Weapons = (() => {
       }
     }
 
-    var _skillSpreadMod = (typeof SkillSystem !== 'undefined' && SkillSystem.getSpreadMod) ? SkillSystem.getSpreadMod() : 1.0;
-    // Weather accuracy mod: lower accuracy = more spread (reciprocal)
-    var _weatherAcc = (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) ? (WeatherSystem.getModifiers().accuracyMod || 1.0) : 1.0;
-    var _effectiveSpread = wep.spread * _skillSpreadMod * (2.0 - _weatherAcc);
     spreadVec.set(
-      (Math.random() - 0.5) * _effectiveSpread * 2,
-      (Math.random() - 0.5) * _effectiveSpread * 2
+      (Math.random() - 0.5) * wep.spread * 2,
+      (Math.random() - 0.5) * wep.spread * 2
     );
     if (_aimSnapDir) {
       raycaster.ray.origin.copy(camera.getWorldPosition(new THREE.Vector3()));
       raycaster.ray.direction.copy(_aimSnapDir).add(
-        new THREE.Vector3((Math.random()-0.5)*_effectiveSpread, (Math.random()-0.5)*_effectiveSpread, (Math.random()-0.5)*_effectiveSpread)
+        new THREE.Vector3((Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread, (Math.random()-0.5)*wep.spread)
       ).normalize();
     } else {
       raycaster.setFromCamera(spreadVec, camera);
@@ -6252,7 +6405,8 @@ const Weapons = (() => {
       }
       if (!dropMiss) {
         var dropDmgMult = hits[0]._dropDamageMult || 1;
-        onHit(hits[0], Math.round(wep.damage * dropDmgMult));
+        var _atkDmgMult = (typeof Attachments !== 'undefined' && Attachments.getDamageMulti) ? Attachments.getDamageMulti(currentIdx) : 1.0;
+        onHit(hits[0], Math.round(wep.damage * dropDmgMult * _atkDmgMult));
       // Bullet penetration for high-caliber weapons — hit 2nd target at reduced damage
       var penTypes = ['SNIPER', 'LMG', 'HMG', 'HMG_HEAVY', 'MINIGUN', 'AMR', 'MACHINEGUN'];
       if (penTypes.indexOf(wep.type) >= 0 && hits.length > 1) {
@@ -6500,10 +6654,11 @@ const Weapons = (() => {
         swayX = Math.sin(walkSwayTime) * _playerSpeed * swayAmt;
         swayY = Math.sin(walkSwayTime * 2) * _playerSpeed * swayAmt * 0.6;
       } else {
-        // Idle micro-sway (breathing)
+        // Idle breathing sway — gentle weapon bob when standing still (Task 1)
         walkSwayTime += delta * 1.5;
-        swayX = Math.sin(walkSwayTime) * 0.0005;
-        swayY = Math.sin(walkSwayTime * 0.7) * 0.0003;
+        var _idleSwayAmt = zoomed ? 0.001 : 0.004;
+        swayX = Math.sin(walkSwayTime) * _idleSwayAmt;
+        swayY = Math.sin(walkSwayTime * 0.7) * _idleSwayAmt * 0.5;
       }
       // Scope sway (drift when zoomed, reduced when holding breath via Shift)
       if (zoomed) {
@@ -6770,10 +6925,6 @@ const Weapons = (() => {
         if (mesh) { mesh.rotation.x = _sprintLowerRotX; mesh.rotation.z = 0; }
         HUD.showReload(false);
         HUD.setAmmo(st.clip, st.reserve);
-        // Reload-ready audio cue (distinctive chambered click)
-        if (typeof AudioSystem !== 'undefined' && AudioSystem.playReloadReady) {
-          AudioSystem.playReloadReady();
-        }
       }
     }
   }
@@ -6980,8 +7131,8 @@ const Weapons = (() => {
   }
   function _curStats() { return _stats(currentIdx); }
   function effectiveClipSize(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.clipSize   : 0; }
-  function effectiveReloadTime(idx){ var s = _stats(idx == null ? currentIdx : idx); if (!s) return 0; var t = s.reloadTime; if (typeof Perks !== 'undefined' && Perks.getReloadMult) t *= Perks.getReloadMult(); return t; }
-  function effectiveFireRate(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.fireRate   : 0; }
+  function effectiveReloadTime(idx){ var s = _stats(idx == null ? currentIdx : idx); return s ? s.reloadTime : 0; }
+  function effectiveFireRate(idx)  { var s = _stats(idx == null ? currentIdx : idx); return s ? s.fireRate * (1 / (window._prestigeFireRate || 1)) : 0; }
   function effectiveDamage(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.damage     : 0; }
   function effectiveSpread(idx)    { var s = _stats(idx == null ? currentIdx : idx); return s ? s.spread     : 0; }
   function isSilenced(idx)         { var s = _stats(idx == null ? currentIdx : idx); return !!(s && s.silent); }

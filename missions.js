@@ -17,23 +17,20 @@ const MissionSystem = (function () {
 
   /* ── Templates ───────────────────────────────────────────────────── */
   const TEMPLATES = {
-            // ── Bradley IFV Assault (Ukrainian Treeline Doctrine) ──────────────────
-            // Ukrainian doctrine observed in 47th Mechanized Brigade + 33rd Mech:
-            //   1. Halt outside treeline at 400-600m — fire TOW at AT teams / AFVs first
-            //   2. Suppress treeline with 25mm HE-T (M792) rounds at 300m walking fire
-            //   3. Close to 150m and switch to AP-T (M791) for hard cover
-            //   4. Dismount infantry to clear remaining positions
-            // Press G to mount | T: TOW missile | LMB: M242 25mm | RMB: Coax | WASD drive | B exit
+            // Bradley IFV Assault — drive M2A3 Bradley, clear forest ambush
+            //   M242 Bushmaster 25mm chain gun (200 rpm cyclic, dual-feed HE/AP)
+            //   M240C 7.62mm coax. Press B to enter/exit. WASD drive, mouse aim turret.
             bradley_mission: {
-              name: 'Bradley Treeline Assault',
-              description: 'Ukrainian doctrine: halt at 500m, TOW suppression first. Then advance and sweep the treeline with 25mm Bushmaster. Dismount and clear.',
+              name: 'Bradley IFV Assault',
+              description: 'Forest ambush ahead. Bradley IFV recommended — 25mm Bushmaster and M240 coax will tear through their lines. Clear every occupant.',
               tier: 5,
               generate() {
-                var killTarget = 20 + Math.floor(Math.random() * 8); // 20-27 enemies
+                var killTarget = 18 + Math.floor(Math.random() * 7); // 18-24
                 var spawned = 0;
-                var spawnedEnemyIds = [];
                 var spawnPositions = [];
+                var spawnedEnemyIds = [];
                 try {
+                  // Find the player position via active camera
                   var playerPos = new THREE.Vector3(0, 0, 0);
                   try {
                     if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
@@ -41,70 +38,53 @@ const MissionSystem = (function () {
                       if (p && p.position) playerPos.copy(p.position);
                     }
                   } catch (e) {}
-
+                  // Forest ambush ahead of player (~80-130 units away)
                   var fwdAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw)
                     ? CameraSystem.getYaw() : Math.random() * Math.PI * 2;
                   var fwd = new THREE.Vector3(Math.sin(fwdAngle), 0, Math.cos(fwdAngle));
-                  var right = new THREE.Vector3(fwd.z, 0, -fwd.x);
-
-                  // PHASE 1: AT teams at 450-600m (TOW priority targets)
-                  // Real doctrine: Bradleys engage Russian AT assets at max standoff before closing
-                  var atTypes = ['SPETSNAZ', 'ENGINEER', 'STORMER'];
-                  var numAT = 4 + Math.floor(Math.random() * 3);
+                  var center = playerPos.clone().add(fwd.clone().multiplyScalar(105));
                   if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-                    for (var a = 0; a < numAT; a++) {
-                      var atDist = 450 + Math.random() * 150; // 450-600m
-                      var atLat  = (Math.random() - 0.5) * 60;
-                      var ax = playerPos.x + fwd.x * atDist + right.x * atLat;
-                      var az = playerPos.z + fwd.z * atDist + right.z * atLat;
-                      var ay = 0;
-                      try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ay = VoxelWorld.getTerrainHeight(ax, az) || 0; } catch (e2) {}
+                    var types = ['CONSCRIPT', 'STORMER', 'ENGINEER', 'SNIPER'];
+                    for (var i = 0; i < killTarget; i++) {
+                      // Scatter across an 80x40 forest strip
+                      var ux = (Math.random() - 0.5) * 80;
+                      var uz = (Math.random() - 0.5) * 40;
+                      // Rotate the strip to face the player axis
+                      var rx = ux * fwd.z + uz * fwd.x;
+                      var rz = -ux * fwd.x + uz * fwd.z;
+                      var ex = center.x + rx;
+                      var ez = center.z + rz;
+                      var ey = 0;
+                      try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ey = VoxelWorld.getTerrainHeight(ex, ez) || 0; } catch (e2) {}
                       try {
-                        var atType = atTypes[Math.floor(Math.random() * atTypes.length)];
-                        var se = Enemies.spawnSingle(atType, { x: ax, y: ay + 1, z: az });
-                        if (se) { spawnedEnemyIds.push(se.id); spawned++; spawnPositions.push({ x: ax, z: az }); }
+                        var tp = types[Math.floor(Math.random() * types.length)];
+                        var spawnedEnemy = Enemies.spawnSingle(tp, { x: ex, y: ey + 1, z: ez });
+                        if (spawnedEnemy) {
+                          spawnedEnemyIds.push(spawnedEnemy.id);
+                          spawned++;
+                        }
+                        spawnPositions.push({ x: ex, z: ez });
                       } catch (eS) {}
                     }
                   }
-
-                  // PHASE 2: Infantry line inside treeline at 100-250m wide strip at 300-480m
-                  // These are the treeline defenders — suppressed and then swept by Bushmaster
-                  var treeTypes = ['CONSCRIPT', 'STORMER', 'CONSCRIPT', 'CONSCRIPT', 'BOMBER'];
-                  var numTree = killTarget - numAT;
-                  if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
-                    for (var t = 0; t < numTree; t++) {
-                      var tDist = 300 + Math.random() * 180; // 300-480m
-                      var tLat  = (Math.random() - 0.5) * 100; // 100m wide treeline
-                      var tx = playerPos.x + fwd.x * tDist + right.x * tLat;
-                      var tz = playerPos.z + fwd.z * tDist + right.z * tLat;
-                      var ty = 0;
-                      try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) ty = VoxelWorld.getTerrainHeight(tx, tz) || 0; } catch (e2) {}
-                      try {
-                        var tType = treeTypes[Math.floor(Math.random() * treeTypes.length)];
-                        var se2 = Enemies.spawnSingle(tType, { x: tx, y: ty + 1, z: tz });
-                        if (se2) { spawnedEnemyIds.push(se2.id); spawned++; spawnPositions.push({ x: tx, z: tz }); }
-                      } catch (eS2) {}
-                    }
-                  }
-
-                  // Spawn Bradley right next to player and announce with doctrine brief
+                  // Auto-spawn the Bradley right next to the player and auto-mount
                   try {
                     if (typeof Bradley !== 'undefined' && Bradley.spawnAt) {
-                      var bx = playerPos.x + fwd.x * 4 - right.x * 2;
-                      var bz = playerPos.z + fwd.z * 4 - right.z * 2;
+                      var bx = playerPos.x + 4;
+                      var bz = playerPos.z;
                       var by = 0;
                       try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) by = VoxelWorld.getTerrainHeight(bx, bz) || 0; } catch (e3) {}
                       Bradley.spawnAt(new THREE.Vector3(bx, by, bz));
+                      // Auto-mount: player starts already in the Bradley
+                      setTimeout(function() {
+                        try { if (typeof Bradley !== 'undefined' && Bradley.enter) Bradley.enter(); } catch (eAE) {}
+                      }, 800);
                     }
                     setTimeout(function() {
-                      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F69B} BRADLEY IFV READY — Press G to mount', 4000, '#a0c878'); } catch (e) {}
-                    }, 400);
-                    setTimeout(function() {
-                      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F3AF} DOCTRINE: T = TOW missiles first (AT teams at 500m) → then LMB Bushmaster sweep', 6500, '#ffcc44'); } catch (e) {}
-                    }, 4800);
+                      try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F52D} Press V to toggle First/Third Person turret view', 4000, '#a0c878'); } catch (e) {}
+                    }, 1500);
                   } catch (eBR) {}
                 } catch (eAll) {}
-
                 return {
                   type: 'bradley_mission',
                   killTarget: killTarget,
@@ -113,31 +93,22 @@ const MissionSystem = (function () {
                   spawnedEnemyIds: spawnedEnemyIds,
                   spawnPositions: spawnPositions,
                   startTime: Date.now(),
-                  phase: 1,  // 1=TOW, 2=Bushmaster, 3=clear
-                  objectiveText: 'PHASE 1: Engage AT teams with TOW at 500m',
+                  objectiveText: 'Clear forest ambush ahead...',
                 };
               },
               check(mission) {
-                if (mission.spawned === 0) { mission.objectiveText = 'Treeline clear — Bradley mission complete'; return true; }
+                if (mission.spawned === 0) { mission.objectiveText = 'Clear forest ambush: complete'; return true; }
                 if (typeof Enemies === 'undefined' || !Enemies.getAll || !mission.spawnedEnemyIds) return false;
                 var aliveCount = 0;
                 var allEnemies = Enemies.getAll();
                 for (var id of mission.spawnedEnemyIds) {
-                  var found = allEnemies.find(function(e) { return e && e.id === id; });
-                  if (found && found.alive) aliveCount++;
+                  var found = allEnemies.find(e => e && e.id === id);
+                  if (found && found.alive) {
+                    aliveCount++;
+                  }
                 }
                 mission.kills = mission.spawned - aliveCount;
-                // Phase progression hints
-                var pct = mission.kills / mission.spawned;
-                if (pct >= 0.4 && mission.phase === 1) {
-                  mission.phase = 2;
-                  try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F525} PHASE 2: Advance and sweep treeline with 25mm Bushmaster', 5000, '#ff8833'); } catch(e) {}
-                }
-                if (pct >= 0.75 && mission.phase === 2) {
-                  mission.phase = 3;
-                  try { if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('\u{1F4A5} PHASE 3: Dismount and clear remaining positions', 4000, '#ff5555'); } catch(e) {}
-                }
-                mission.objectiveText = 'Treeline assault: ' + mission.kills + '/' + mission.spawned + ' killed (Phase ' + mission.phase + ')';
+                mission.objectiveText = `Clear forest ambush: ${mission.kills}/${mission.spawned} killed`;
                 return aliveCount === 0;
               },
             },
@@ -692,115 +663,6 @@ const MissionSystem = (function () {
         return aliveCount === 0;
       },
     },
-    // "Blow the Lid" — drone strike on Russian oil refinery (based on real June 2026 Ukrainian strikes)
-    // All-drone mission: FPV suicide drones + bombers, no infantry
-    blow_the_lid: {
-      name: 'Blow the Lid',
-      description: 'OPERATION: BLOW THE LID\n' +
-        'June 2026 — Ukrainian FPV swarms and Shahed-style bombers struck the Saratov oil refinery,\n' +
-        'blowing the pressure lid off a storage tank in a massive fireball seen for 40km.\n' +
-        'Your mission: fly drones into the refinery complex. No boots on ground.\n' +
-        'Destroy 3 fuel storage targets. Blow. The. Lid.',
-      tier: 5,
-      generate() {
-        var playerPos = new THREE.Vector3(0, 0, 0);
-        try {
-          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
-            var p = GameManager.getPlayer(); if (p && p.position) playerPos.copy(p.position);
-          }
-        } catch(e){}
-        var angle = Math.random() * Math.PI * 2;
-        var dist = 55 + Math.random() * 20;
-        var cx = playerPos.x + Math.sin(angle) * dist;
-        var cz = playerPos.z + Math.cos(angle) * dist;
-        var baseY = 0;
-        try { if (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) baseY = VoxelWorld.getTerrainHeight(cx, cz) || 0; } catch(e){}
-        var targets = [
-          { x: cx,      z: cz,      y: baseY, destroyed: false, label: 'Tank Alpha (main storage)' },
-          { x: cx + 9,  z: cz + 6,  y: baseY, destroyed: false, label: 'Tank Bravo (pressure vessel)' },
-          { x: cx - 7,  z: cz - 9,  y: baseY, destroyed: false, label: 'Refinery Column (distillation)' },
-        ];
-        if (typeof HUD !== 'undefined' && HUD.showToast) {
-          HUD.showToast('🛸 BLOW THE LID — 3 oil targets marked. Fly drones in. No ground troops!', 7000, '#ff8800');
-        }
-        // Chain explosion sequence to simulate refinery igniting
-        var scene = window._gameScene;
-        var delay1 = 4000 + Math.random() * 2000;
-        setTimeout(function() {
-          try {
-            if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
-              WorldFeatures.applyExplosionDamage(cx, baseY + 4, cz, 8, 120);
-            }
-            if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
-              AudioSystem.playExplosion({ x: cx, y: baseY + 4, z: cz }, 1.0);
-            }
-          } catch(e){}
-        }, delay1);
-        return {
-          type: 'blow_the_lid', targets: targets,
-          destroyed: 0, refCenter: { x: cx, y: baseY, z: cz },
-          chainFired: false, state: 'active',
-          objectiveText: '🛸 BLOW THE LID: approach targets to drone-strike — 0/3 destroyed',
-        };
-      },
-      update(mission, delta) {
-        if (mission.state !== 'active') return;
-        var playerPos = new THREE.Vector3(0, 0, 0);
-        try {
-          if (typeof GameManager !== 'undefined' && GameManager.getPlayer) {
-            var p = GameManager.getPlayer(); if (p && p.position) playerPos.copy(p.position);
-          }
-        } catch(e){}
-        for (var i = 0; i < mission.targets.length; i++) {
-          var t = mission.targets[i];
-          if (t.destroyed) continue;
-          var dx = playerPos.x - t.x, dz = playerPos.z - t.z;
-          if (dx * dx + dz * dz < 625) { // within 25 units
-            t.destroyed = true;
-            mission.destroyed++;
-            var tx = t.x, ty = t.y, tz = t.z;
-            try {
-              if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
-                WorldFeatures.applyExplosionDamage(tx, ty + 3, tz, 10 + i * 3, 180 + i * 40);
-              }
-              if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
-                AudioSystem.playExplosion({ x: tx, y: ty + 3, z: tz }, 1.4);
-              }
-            } catch(eEx){}
-            if (typeof HUD !== 'undefined' && HUD.showToast) {
-              HUD.showToast('💥 ' + t.label + ' DESTROYED — UKRAINE STRIKES BACK!', 3500, '#ff6600');
-            }
-            // Big chain explosion when 2nd or 3rd target hit
-            if (mission.destroyed >= 2 && !mission.chainFired) {
-              mission.chainFired = true;
-              var rc = mission.refCenter;
-              setTimeout(function() {
-                try {
-                  if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
-                    WorldFeatures.applyExplosionDamage(rc.x, rc.y + 10, rc.z, 22, 400);
-                    WorldFeatures.applyExplosionDamage(rc.x + 5, rc.y + 6, rc.z + 4, 15, 300);
-                  }
-                  if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
-                    AudioSystem.playExplosion({ x: rc.x, y: rc.y + 10, z: rc.z }, 2.0);
-                  }
-                  if (typeof HUD !== 'undefined' && HUD.showToast) {
-                    HUD.showToast('🔥🔥 THE LID BLOWS! REFINERY ENGULFED! UKRAINE CONFIRMS STRIKE!', 8000, '#ffaa00');
-                  }
-                } catch(e){}
-              }, 1200);
-            }
-          }
-        }
-        mission.objectiveText = '🛸 BLOW THE LID: ' + mission.destroyed + '/3 targets destroyed — approach each to strike';
-        if (mission.destroyed >= 3) {
-          mission.state = 'done';
-          if (typeof HUD !== 'undefined' && HUD.showToast) {
-            HUD.showToast('✅ BLOW THE LID — MISSION COMPLETE! All 3 refinery targets destroyed!', 7000, '#ffdd00');
-          }
-        }
-      },
-      check(mission) { return mission.state === 'done'; },
-    },
   };
 
   /* ── State ───────────────────────────────────────────────────────── */
@@ -866,7 +728,6 @@ const MissionSystem = (function () {
       'defense', 'defense', 'recon', 'recon',
       'escort', 'escort', 'infiltrate', 'infiltrate',
       'urban_breakout', 'urban_breakout', 'bradley_mission',
-      'blow_the_lid', 'airborne_assault',
     ];
     let pick = weighted[Math.floor(Math.random() * weighted.length)];
     if (!TEMPLATES[pick]) pick = Object.keys(TEMPLATES)[0];

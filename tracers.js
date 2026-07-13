@@ -2,37 +2,61 @@
  * tracers.js – Bullet tracer lines and flying projectile smoke trails
  * Depends on: Three.js global (THREE), VoxelWorld (optional)
  */
-const Tracers = (() => {
-  const _isMobileTR = (function() {
+var Tracers = (function() {
+  var _isMobileTR = (function() {
     try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
   })();
 
-  let _scene = null;
-  const tracers = [];
-  const trails = [];
-  const _activeIntervals = [];
+  var _scene = null;
+  var tracers = [];
+  var trails = [];
+  var _activeIntervals = [];
 
   // ── Shared geometries (GPU reuse) ───────────────────────
-  const _sphereGeo4 = new THREE.SphereGeometry(1, 4, 4);   // scale per-instance
-  const _sphereGeo3 = new THREE.SphereGeometry(1, 3, 3);   // blood (low poly)
-  const _boxGeoSpark = new THREE.BoxGeometry(0.03, 0.03, 0.08);
-  const _boxGeoImpact = new THREE.BoxGeometry(1, 1, 1);    // scale per-instance
-  const _planeGeoFlash = new THREE.PlaneGeometry(1, 1);     // scale per-instance
-  const _ringGeoShock = new THREE.RingGeometry(0.1, 0.3, 16);
-  const _sphereGeoFire = new THREE.SphereGeometry(1, 4, 4); // fire, scale per-instance
+  var _sphereGeo4 = new THREE.SphereGeometry(1, 4, 4);   // scale per-instance
+  var _sphereGeo3 = new THREE.SphereGeometry(1, 3, 3);   // blood (low poly)
+  var _boxGeoSpark = new THREE.BoxGeometry(0.03, 0.03, 0.08);
+  var _boxGeoImpact = new THREE.BoxGeometry(1, 1, 1);    // scale per-instance
+  var _planeGeoFlash = new THREE.PlaneGeometry(1, 1);     // scale per-instance
+  var _ringGeoShock = new THREE.RingGeometry(0.1, 0.3, 16);
+  var _sphereGeoFire = new THREE.SphereGeometry(1, 4, 4); // fire, scale per-instance
+  // Shared small sphere for impact sparks / dust
+  var _impactSphereGeo = new THREE.SphereGeometry(0.04, 4, 3);
+  var _dustSphereGeo = new THREE.SphereGeometry(0.15, 4, 3);
+  var _circleHoleGeo = new THREE.CircleGeometry(0.08, 6);
 
   // ── Pre-allocated tracer buffer ─────────────────────────
-  const _tracerPositions = new Float32Array(6);
-  const _tTmp = new THREE.Vector3();
-  const _tracerPool = [];  // recycled tracer line objects
+  var _tracerPositions = new Float32Array(6);
+  var _tTmp = new THREE.Vector3();
+  var _tracerPool = [];  // recycled tracer line objects
 
   function init(scene) { _scene = scene; }
 
-  function spawnTracer(origin, direction, color, speed) {
+  // ── Tracer color variants by weapon type ─────────────────
+  // weaponType: 'default' | 'heavy' | 'explosive' | 'tracer'
+  // Every 5th shot auto-upgrades to bright green tracer round
+  var _tracerShotCount = 0;
+  var TRACER_COLORS = {
+    'default':   0xffff99,
+    'heavy':     0xff8800,
+    'explosive': 0xff4400,
+    'tracer':    0x44ff44,
+  };
+
+  function _resolveTracerColor(weaponType) {
+    _tracerShotCount++;
+    if (_tracerShotCount % 5 === 0) return TRACER_COLORS['tracer'];
+    return TRACER_COLORS[weaponType] || TRACER_COLORS['default'];
+  }
+
+  // ── Tracer ghost trail (fading line left behind) ─────────
+  var _tracerGhosts = [];
+
+  function spawnTracer(origin, direction, color, speed, weaponType) {
     if (!_scene) return;
-    color = color || 0xffcc44;
+    color = color || _resolveTracerColor(weaponType || 'default');
     speed = speed || 120;
-    const len = speed * 0.07;
+    var len = speed * 0.07;
     // Build positions inline — no clone needed
     _tracerPositions[0] = origin.x;
     _tracerPositions[1] = origin.y;
@@ -68,16 +92,42 @@ const Tracers = (() => {
     entry.speed = speed;
     entry.life = 0.15;
     entry.maxLife = 0.15;
+    entry.color = color;
+
+    // Attach a travelling PointLight at the tracer head
+    var tLight = new THREE.PointLight(0xffee88, 0.5, 4);
+    tLight.position.set(
+      _tracerPositions[3],
+      _tracerPositions[4],
+      _tracerPositions[5]
+    );
+    _scene.add(tLight);
+    entry.tLight = tLight;
+
     tracers.push(entry);
+
+    // Spawn a ghost (brief fading line left at origin position for 0.15s)
+    var ghostPositions = new Float32Array(6);
+    ghostPositions[0] = _tracerPositions[0]; ghostPositions[1] = _tracerPositions[1]; ghostPositions[2] = _tracerPositions[2];
+    ghostPositions[3] = _tracerPositions[3]; ghostPositions[4] = _tracerPositions[4]; ghostPositions[5] = _tracerPositions[5];
+    var ghostGeom = new THREE.BufferGeometry();
+    ghostGeom.setAttribute('position', new THREE.BufferAttribute(ghostPositions, 3));
+    var ghostMat = new THREE.LineBasicMaterial({
+      color: color, transparent: true, opacity: 0.4,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    var ghostLine = new THREE.Line(ghostGeom, ghostMat);
+    _scene.add(ghostLine);
+    _tracerGhosts.push({ line: ghostLine, life: 0.15, maxLife: 0.15 });
   }
 
   function spawnSmoke(pos) {
     if (!_scene) return;
-    const mat = new THREE.MeshBasicMaterial({
+    var mat = new THREE.MeshBasicMaterial({
       color: 0x888888, transparent: true, opacity: 0.4,
       depthWrite: false,
     });
-    const m = new THREE.Mesh(_sphereGeo4, mat);
+    var m = new THREE.Mesh(_sphereGeo4, mat);
     m.scale.setScalar(0.08);
     m.position.copy(pos);
     _scene.add(m);
@@ -85,7 +135,7 @@ const Tracers = (() => {
   }
 
   /* ── Muzzle Flash ─────────────────────────────────────────────── */
-  const flashes = [];
+  var flashes = [];
 
   function spawnMuzzleFlash(pos, dir) {
     if (!_scene) return;
@@ -118,26 +168,26 @@ const Tracers = (() => {
   }
 
   /* ── Explosion Particles ────────────────────────────────────── */
-  const explosionParts = [];
+  var explosionParts = [];
 
   function spawnExplosion(pos, radius) {
     if (!_scene) return;
     radius = radius || 3;
-    const count = 12 + Math.floor(radius * 3);
-    for (let i = 0; i < count; i++) {
-      const size = 0.15 + Math.random() * 0.25;
-      const isFire = Math.random() < 0.6;
-      const mat = new THREE.MeshBasicMaterial({
+    var count = 12 + Math.floor(radius * 3);
+    for (var i = 0; i < count; i++) {
+      var size = 0.15 + Math.random() * 0.25;
+      var isFire = Math.random() < 0.6;
+      var mat = new THREE.MeshBasicMaterial({
         color: isFire ? (Math.random() < 0.5 ? 0xff6600 : 0xffaa00) : 0x444444,
         transparent: true, opacity: 0.85,
         blending: isFire ? THREE.AdditiveBlending : THREE.NormalBlending,
         depthWrite: false,
       });
-      const mesh = new THREE.Mesh(_sphereGeo4, mat);
+      var mesh = new THREE.Mesh(_sphereGeo4, mat);
       mesh.scale.setScalar(size);
       mesh.position.copy(pos);
       _scene.add(mesh);
-      const vel = new THREE.Vector3(
+      var vel = new THREE.Vector3(
         (Math.random() - 0.5) * radius * 2,
         Math.random() * radius * 1.5 + 1,
         (Math.random() - 0.5) * radius * 2
@@ -150,7 +200,7 @@ const Tracers = (() => {
       });
     }
     // Central flash light
-    const light = new THREE.PointLight(0xff6600, 5, radius * 4);
+    var light = new THREE.PointLight(0xff6600, 5, radius * 4);
     light.position.copy(pos);
     _scene.add(light);
     flashes.push({ mesh: null, light: light, life: 0.2 });
@@ -210,13 +260,13 @@ const Tracers = (() => {
     if (!_scene) return;
     var count = 8 + Math.floor(Math.random() * 5);
     var hasDir = !!(dir && typeof dir.x === 'number');
-    for (let i = 0; i < count; i++) {
+    for (var i = 0; i < count; i++) {
       var size = 0.06 + Math.random() * 0.06;
-      const mat = new THREE.MeshBasicMaterial({
+      var mat = new THREE.MeshBasicMaterial({
         color: Math.random() < 0.5 ? 0xcc0000 : 0x880000,
         transparent: true, opacity: 0.85, depthWrite: false,
       });
-      const mesh = new THREE.Mesh(_sphereGeo3, mat);
+      var mesh = new THREE.Mesh(_sphereGeo3, mat);
       mesh.scale.setScalar(size);
       mesh.position.copy(pos);
       _scene.add(mesh);
@@ -248,21 +298,27 @@ const Tracers = (() => {
   }
 
   function update(delta) {
-    for (let i = tracers.length - 1; i >= 0; i--) {
-      const t = tracers[i];
+    for (var i = tracers.length - 1; i >= 0; i--) {
+      var t = tracers[i];
       t.life -= delta;
       // Move the line forward
-      const positions = t.line.geometry.attributes.position.array;
-      const dx = t.dx * t.speed * delta;
-      const dy = t.dy * t.speed * delta;
-      const dz = t.dz * t.speed * delta;
+      var positions = t.line.geometry.attributes.position.array;
+      var dx = t.dx * t.speed * delta;
+      var dy = t.dy * t.speed * delta;
+      var dz = t.dz * t.speed * delta;
       positions[0] += dx; positions[1] += dy; positions[2] += dz;
       positions[3] += dx; positions[4] += dy; positions[5] += dz;
       t.line.geometry.attributes.position.needsUpdate = true;
       t.line.material.opacity = Math.max(0, t.life / t.maxLife * 0.8);
+      // Move the travelling point light to the tracer head
+      if (t.tLight) {
+        t.tLight.position.set(positions[3], positions[4], positions[5]);
+        t.tLight.intensity = Math.max(0, t.life / t.maxLife * 0.5);
+      }
       if (t.life <= 0) {
         _scene.remove(t.line);
         t.line.visible = false;
+        if (t.tLight) { _scene.remove(t.tLight); if (t.tLight.dispose) t.tLight.dispose(); t.tLight = null; }
         if (_tracerPool.length < 50) {
           _tracerPool.push(t);
         } else {
@@ -272,8 +328,20 @@ const Tracers = (() => {
         tracers.splice(i, 1);
       }
     }
-    for (let i = trails.length - 1; i >= 0; i--) {
-      const s = trails[i];
+    // Update tracer ghost trails
+    for (var i = _tracerGhosts.length - 1; i >= 0; i--) {
+      var g = _tracerGhosts[i];
+      g.life -= delta;
+      g.line.material.opacity = Math.max(0, g.life / g.maxLife * 0.4);
+      if (g.life <= 0) {
+        _scene.remove(g.line);
+        g.line.geometry.dispose();
+        g.line.material.dispose();
+        _tracerGhosts.splice(i, 1);
+      }
+    }
+    for (var i = trails.length - 1; i >= 0; i--) {
+      var s = trails[i];
       s.life -= delta;
       s.mesh.material.opacity = Math.max(0, s.life / 0.6 * 0.4);
       s.mesh.scale.setScalar(0.08 * (1 + (0.6 - s.life) * 2));
@@ -284,8 +352,8 @@ const Tracers = (() => {
       }
     }
     // Update muzzle flashes
-    for (let i = flashes.length - 1; i >= 0; i--) {
-      const f = flashes[i];
+    for (var i = flashes.length - 1; i >= 0; i--) {
+      var f = flashes[i];
       f.life -= delta;
       if (f.life <= 0) {
         if (f.mesh) { _scene.remove(f.mesh); f.mesh.material.dispose(); }
@@ -300,8 +368,8 @@ const Tracers = (() => {
       }
     }
     // Update explosion particles
-    for (let i = explosionParts.length - 1; i >= 0; i--) {
-      const p = explosionParts[i];
+    for (var i = explosionParts.length - 1; i >= 0; i--) {
+      var p = explosionParts[i];
       p.life -= delta;
       p.vel.y -= 9.8 * delta; // gravity
       p.mesh.position.addScaledVector(p.vel, delta);
@@ -317,30 +385,43 @@ const Tracers = (() => {
 
   function clear() {
     // Drain pool
-    for (const p of _tracerPool) {
-      p.line.geometry.dispose();
-      p.line.material.dispose();
+    for (var _ci = 0; _ci < _tracerPool.length; _ci++) {
+      var _cp = _tracerPool[_ci];
+      _cp.line.geometry.dispose();
+      _cp.line.material.dispose();
     }
     _tracerPool.length = 0;
-    for (const t of tracers) {
-      _scene.remove(t.line);
-      t.line.geometry.dispose();
-      t.line.material.dispose();
+    for (var _ti = 0; _ti < tracers.length; _ti++) {
+      var _t = tracers[_ti];
+      _scene.remove(_t.line);
+      _t.line.geometry.dispose();
+      _t.line.material.dispose();
+      if (_t.tLight) { _scene.remove(_t.tLight); if (_t.tLight.dispose) _t.tLight.dispose(); }
     }
     tracers.length = 0;
-    for (const s of trails) {
-      _scene.remove(s.mesh);
-      s.mesh.material.dispose();
+    for (var _gi = 0; _gi < _tracerGhosts.length; _gi++) {
+      var _g = _tracerGhosts[_gi];
+      _scene.remove(_g.line);
+      _g.line.geometry.dispose();
+      _g.line.material.dispose();
+    }
+    _tracerGhosts.length = 0;
+    for (var _tri = 0; _tri < trails.length; _tri++) {
+      var _s = trails[_tri];
+      _scene.remove(_s.mesh);
+      _s.mesh.material.dispose();
     }
     trails.length = 0;
-    for (const f of flashes) {
-      if (f.mesh) { _scene.remove(f.mesh); f.mesh.material.dispose(); }
-      if (f.light) { _scene.remove(f.light); f.light.dispose(); }
+    for (var _fi = 0; _fi < flashes.length; _fi++) {
+      var _f = flashes[_fi];
+      if (_f.mesh) { _scene.remove(_f.mesh); _f.mesh.material.dispose(); }
+      if (_f.light) { _scene.remove(_f.light); _f.light.dispose(); }
     }
     flashes.length = 0;
-    for (const p of explosionParts) {
-      _scene.remove(p.mesh);
-      p.mesh.material.dispose();
+    for (var _pi = 0; _pi < explosionParts.length; _pi++) {
+      var _p = explosionParts[_pi];
+      _scene.remove(_p.mesh);
+      _p.mesh.material.dispose();
     }
     explosionParts.length = 0;
     for (var ii = 0; ii < _activeIntervals.length; ii++) clearInterval(_activeIntervals[ii]);
@@ -373,24 +454,24 @@ const Tracers = (() => {
   }
 
   // ── Shell casing ejection ────────────────────────────────
-  const _casingGeo = new THREE.BoxGeometry(0.02, 0.012, 0.04);
-  const _casingMat = new THREE.MeshLambertMaterial({ color: 0xccaa44, emissive: 0x554400 });
-  const casings = [];
+  var _casingGeo = new THREE.BoxGeometry(0.02, 0.012, 0.04);
+  var _casingMat = new THREE.MeshLambertMaterial({ color: 0xccaa44, emissive: 0x554400 });
+  var casings = [];
 
-  const _casingTmpPos = new THREE.Vector3();
-  const _casingRight = new THREE.Vector3();
-  const _casingUp = new THREE.Vector3(0, 1, 0);
-  const _casingVel = new THREE.Vector3();
+  var _casingTmpPos = new THREE.Vector3();
+  var _casingRight = new THREE.Vector3();
+  var _casingUp = new THREE.Vector3(0, 1, 0);
+  var _casingVel = new THREE.Vector3();
 
   function spawnCasing(camera) {
     if (!_scene || !camera) return;
-    const mesh = new THREE.Mesh(_casingGeo, _casingMat);
+    var mesh = new THREE.Mesh(_casingGeo, _casingMat);
     camera.getWorldPosition(_casingTmpPos);
     _casingRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
     mesh.position.copy(_casingTmpPos).addScaledVector(_casingRight, 0.15).addScaledVector(_casingUp, -0.05);
     _scene.add(mesh);
     // Eject right + up + slight random
-    const vel = new THREE.Vector3(
+    var vel = new THREE.Vector3(
       _casingRight.x * (2 + Math.random()) + _casingUp.x * (1.5 + Math.random()) + (Math.random()-0.5)*0.5,
       _casingRight.y * (2 + Math.random()) + _casingUp.y * (1.5 + Math.random()),
       _casingRight.z * (2 + Math.random()) + _casingUp.z * (1.5 + Math.random()) + (Math.random()-0.5)*0.5
@@ -408,15 +489,15 @@ const Tracers = (() => {
   }
 
   // Metal impact sparks
-  const sparks = [];
+  var sparks = [];
   function spawnSparks(pos) {
     if (!_scene) return;
-    for (let i = 0; i < 6; i++) {
-      const mat = new THREE.MeshBasicMaterial({
+    for (var i = 0; i < 6; i++) {
+      var mat = new THREE.MeshBasicMaterial({
         color: 0xffdd44, transparent: true, opacity: 1,
         blending: THREE.AdditiveBlending, depthWrite: false,
       });
-      const m = new THREE.Mesh(_boxGeoSpark, mat);
+      var m = new THREE.Mesh(_boxGeoSpark, mat);
       m.position.copy(pos);
       _scene.add(m);
       sparks.push({
@@ -431,12 +512,12 @@ const Tracers = (() => {
   function spawnPickupBurst(pos, color) {
     if (!_scene) return;
     var col = color || 0xffffff;
-    for (let i = 0; i < 14; i++) {
-      const mat = new THREE.MeshBasicMaterial({
+    for (var i = 0; i < 14; i++) {
+      var mat = new THREE.MeshBasicMaterial({
         color: col, transparent: true, opacity: 1,
         blending: THREE.AdditiveBlending, depthWrite: false,
       });
-      const m = new THREE.Mesh(_boxGeoSpark, mat);
+      var m = new THREE.Mesh(_boxGeoSpark, mat);
       m.position.copy(pos);
       _scene.add(m);
       sparks.push({
@@ -448,8 +529,8 @@ const Tracers = (() => {
   }
 
   function updateSparks(delta) {
-    for (let i = sparks.length - 1; i >= 0; i--) {
-      const s = sparks[i];
+    for (var i = sparks.length - 1; i >= 0; i--) {
+      var s = sparks[i];
       s.vel.y -= 15 * delta;
       s.mesh.position.addScaledVector(s.vel, delta);
       s.life -= delta;
@@ -463,8 +544,8 @@ const Tracers = (() => {
   }
 
   function updateCasings(delta) {
-    for (let i = casings.length - 1; i >= 0; i--) {
-      const c = casings[i];
+    for (var i = casings.length - 1; i >= 0; i--) {
+      var c = casings[i];
       if (!c.settled) {
         c.vel.y -= 12 * delta; // gravity
         c.mesh.position.addScaledVector(c.vel, delta);
@@ -501,19 +582,19 @@ const Tracers = (() => {
   }
 
   // ── Bullet hole decals ───────────────────────────────────
-  const _bulletHoles = [];
-  const _holeGeo = new THREE.PlaneGeometry(0.18, 0.18);
-  const _scorchMarks = [];
-  const _scorchGeo = new THREE.PlaneGeometry(1, 1);
+  var _bulletHoles = [];
+  var _holeGeo = new THREE.PlaneGeometry(0.18, 0.18);
+  var _scorchMarks = [];
+  var _scorchGeo = new THREE.PlaneGeometry(1, 1);
   var MAX_SCORCH = _isMobileTR ? 12 : 40;
-  const _smokePillars = [];
-  const _holeMat = new THREE.MeshBasicMaterial({
+  var _smokePillars = [];
+  var _holeMat = new THREE.MeshBasicMaterial({
     color: 0x111111, transparent: true, opacity: 0.7,
     depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1
   });
   var MAX_HOLES = _isMobileTR ? 40 : 120;
   // Surface type → impact color for bullet holes
-  const _surfaceColors = {
+  var _surfaceColors = {
     5:  0xC0C0C0,  // METAL → bright silver
     9:  0x888888,  // CONCRETE → gray dust
     10: 0x8B3020,  // BRICK → reddish
@@ -524,25 +605,119 @@ const Tracers = (() => {
     1:  0x6B4410,  // DIRT → dark brown
     14: 0x404850,  // REINFORCED → dark steel
   };
+
+  // ── Enhanced Bullet Hole Decals ─────────────────────────
+  // spawnBulletHole(pos, normal, surfaceType)
+  // Flat CircleGeometry(0.08, 6) black, offset 0.01 along normal.
+  // 3-4 tiny grey chips around the hole. Persists 20s, fades over 2s. Max 80.
+  var MAX_BULLET_HOLES_V2 = _isMobileTR ? 30 : 80;
+  var _bulletHolesV2 = [];
+  var _chipGeo = new THREE.CircleGeometry(0.015, 4);
+
   function spawnBulletHole(pos, normal, surfaceType) {
+    if (!_scene) return;
+    // Main hole
+    var holeMat = new THREE.MeshBasicMaterial({
+      color: 0x111111, transparent: true, opacity: 0.85,
+      depthWrite: false, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -1,
+    });
+    var holeMesh = new THREE.Mesh(_circleHoleGeo, holeMat);
+    holeMesh.position.copy(pos).addScaledVector(normal, 0.01);
+    holeMesh.lookAt(
+      holeMesh.position.x + normal.x,
+      holeMesh.position.y + normal.y,
+      holeMesh.position.z + normal.z
+    );
+    _scene.add(holeMesh);
+
+    // 3-4 tiny grey chips around the hole
+    var numChips = 3 + Math.floor(Math.random() * 2);
+    var chipMeshes = [];
+    for (var c = 0; c < numChips; c++) {
+      var angle = (c / numChips) * Math.PI * 2 + Math.random() * 0.5;
+      var dist = 0.06 + Math.random() * 0.06;
+      var chipMat = new THREE.MeshBasicMaterial({
+        color: 0x888888, transparent: true, opacity: 0.65,
+        depthWrite: false, side: THREE.DoubleSide,
+        polygonOffset: true, polygonOffsetFactor: -1,
+      });
+      var chipMesh = new THREE.Mesh(_chipGeo, chipMat);
+      // Position chip relative to hole center in the plane of the surface
+      var tangent = new THREE.Vector3(normal.z, 0, -normal.x).normalize();
+      if (tangent.lengthSq() < 0.001) tangent.set(1, 0, 0);
+      var bitangent = new THREE.Vector3().crossVectors(normal, tangent).normalize();
+      chipMesh.position.copy(holeMesh.position)
+        .addScaledVector(tangent, Math.cos(angle) * dist)
+        .addScaledVector(bitangent, Math.sin(angle) * dist)
+        .addScaledVector(normal, 0.005);
+      chipMesh.lookAt(
+        chipMesh.position.x + normal.x,
+        chipMesh.position.y + normal.y,
+        chipMesh.position.z + normal.z
+      );
+      chipMesh.rotation.z = Math.random() * Math.PI * 2;
+      chipMesh.scale.set(0.5 + Math.random() * 0.8, 0.5 + Math.random() * 0.8, 1);
+      _scene.add(chipMesh);
+      chipMeshes.push({ mesh: chipMesh, mat: chipMat });
+    }
+
+    _bulletHolesV2.push({ mesh: holeMesh, mat: holeMat, chips: chipMeshes, life: 22.0, maxLife: 22.0 });
+    // Cap max
+    if (_bulletHolesV2.length > MAX_BULLET_HOLES_V2) {
+      var old = _bulletHolesV2.shift();
+      _scene.remove(old.mesh);
+      old.mat.dispose();
+      for (var ci = 0; ci < old.chips.length; ci++) {
+        _scene.remove(old.chips[ci].mesh);
+        old.chips[ci].mat.dispose();
+      }
+    }
+  }
+
+  function updateBulletHolesV2(delta) {
+    for (var i = _bulletHolesV2.length - 1; i >= 0; i--) {
+      var h = _bulletHolesV2[i];
+      h.life -= delta;
+      // Fade over last 2s
+      if (h.life < 2.0) {
+        var fadeFactor = h.life / 2.0;
+        h.mat.opacity = fadeFactor * 0.85;
+        for (var ci = 0; ci < h.chips.length; ci++) {
+          h.chips[ci].mat.opacity = fadeFactor * 0.65;
+        }
+      }
+      if (h.life <= 0) {
+        _scene.remove(h.mesh);
+        h.mat.dispose();
+        for (var ci = 0; ci < h.chips.length; ci++) {
+          _scene.remove(h.chips[ci].mesh);
+          h.chips[ci].mat.dispose();
+        }
+        _bulletHolesV2.splice(i, 1);
+      }
+    }
+  }
+
+  // Keep the old function that uses _bulletHoles (for backwards compat calls)
+  function _spawnBulletHoleLegacy(pos, normal, surfaceType) {
     if (!_scene) return;
     var holeColor = _surfaceColors[surfaceType] || 0x111111;
     var mat = _holeMat.clone();
     mat.color.set(holeColor);
     var mesh = new THREE.Mesh(_holeGeo, mat);
     mesh.position.copy(pos);
-    // Offset slightly along normal to prevent z-fighting
     mesh.position.addScaledVector(normal, 0.02);
     mesh.lookAt(pos.x + normal.x, pos.y + normal.y, pos.z + normal.z);
     _scene.add(mesh);
     _bulletHoles.push({ mesh: mesh, life: 20.0 });
-    // Cap max decals
     if (_bulletHoles.length > MAX_HOLES) {
       var old = _bulletHoles.shift();
       _scene.remove(old.mesh);
       old.mesh.material.dispose();
     }
   }
+
   function updateBulletHoles(delta) {
     for (var i = _bulletHoles.length - 1; i >= 0; i--) {
       var h = _bulletHoles[i];
@@ -555,6 +730,7 @@ const Tracers = (() => {
       }
     }
   }
+
   function updateScorchMarks(delta) {
     for (var i = _scorchMarks.length - 1; i >= 0; i--) {
       var s = _scorchMarks[i];
@@ -579,28 +755,213 @@ const Tracers = (() => {
         puffPos.x += (Math.random() - 0.5) * sp.radius * 0.4;
         puffPos.z += (Math.random() - 0.5) * sp.radius * 0.4;
         puffPos.y += sp.age * 2.5; // rises
-        if (typeof spawnSmoke === 'function') spawnSmoke(puffPos);
+        spawnSmoke(puffPos);
       }
       if (sp.age >= sp.dur) _smokePillars.splice(i, 1);
     }
   }
 
+  // ── spawnImpact ──────────────────────────────────────────
+  // spawnImpact(x, y, z, surfaceNormal, isFlesh)
+  // Spawns ricochet sparks, dust puff, and a brief impact flash light.
+  var _impactFlashes = [];
+
+  function spawnImpact(x, y, z, surfaceNormal, isFlesh) {
+    if (!_scene) return;
+    // Flesh impacts are handled by blood-effects.js
+    if (isFlesh) return;
+
+    var pos = new THREE.Vector3(x, y, z);
+    var norm = surfaceNormal || new THREE.Vector3(0, 1, 0);
+    var isDirt = (y < 0.2);
+
+    if (isDirt) {
+      // ── Dirt/Ground impact ─────────────────────────────
+      // 10 dirt particles, BROWN/TAN
+      for (var i = 0; i < 10; i++) {
+        var dirtMat = new THREE.MeshBasicMaterial({
+          color: Math.random() < 0.5 ? 0x8b6914 : 0xc49a3c,
+          transparent: true, opacity: 0.9, depthWrite: false,
+        });
+        var dirtMesh = new THREE.Mesh(_impactSphereGeo, dirtMat);
+        dirtMesh.scale.setScalar(0.5 + Math.random() * 0.5);
+        dirtMesh.position.copy(pos);
+        _scene.add(dirtMesh);
+
+        // Velocity biased along surface normal with lower speed
+        var vx = norm.x * (1 + Math.random() * 2) + (Math.random() - 0.5) * 2;
+        var vy = norm.y * (1 + Math.random() * 2) + Math.random() * 1.5 + 0.5;
+        var vz = norm.z * (1 + Math.random() * 2) + (Math.random() - 0.5) * 2;
+        sparks.push({
+          mesh: dirtMesh,
+          vel: new THREE.Vector3(vx, vy, vz),
+          life: 0.4 + Math.random() * 0.3,
+        });
+      }
+
+      // Expanding dust cloud for dirt
+      var dustMat = new THREE.MeshBasicMaterial({
+        color: 0xc49a3c, transparent: true, opacity: 0.6,
+        depthWrite: false, blending: THREE.NormalBlending,
+      });
+      var dustMesh = new THREE.Mesh(_dustSphereGeo, dustMat);
+      dustMesh.scale.setScalar(1.0); // starts at 0.1 radius (geo is 0.15 * scale)
+      dustMesh.position.copy(pos);
+      _scene.add(dustMesh);
+      _impactDust.push({ mesh: dustMesh, mat: dustMat, life: 0.5, maxLife: 0.5, startScale: 0.67, endScale: 5.3 });
+
+    } else {
+      // ── Metal/Concrete impact ──────────────────────────
+      var sparkCount = 8 + Math.floor(Math.random() * 5); // 8-12
+      for (var i = 0; i < sparkCount; i++) {
+        var sparkMat = new THREE.MeshBasicMaterial({
+          color: Math.random() < 0.6 ? 0xffee44 : 0xffffff,
+          transparent: true, opacity: 1.0,
+          blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        var sparkMesh = new THREE.Mesh(_impactSphereGeo, sparkMat);
+        sparkMesh.position.copy(pos);
+        _scene.add(sparkMesh);
+
+        // High velocity in cone around surface normal
+        var spread = 0.7;
+        var vx = norm.x * (4 + Math.random() * 8) + (Math.random() - 0.5) * spread * 12;
+        var vy = norm.y * (4 + Math.random() * 8) + (Math.random() - 0.5) * spread * 12 + Math.random() * 2;
+        var vz = norm.z * (4 + Math.random() * 8) + (Math.random() - 0.5) * spread * 12;
+        sparks.push({
+          mesh: sparkMesh,
+          vel: new THREE.Vector3(vx, vy, vz),
+          life: 0.15 + Math.random() * 0.12,
+        });
+      }
+
+      // PointLight flash: orange-yellow, fades over 0.08s
+      var impLight = new THREE.PointLight(0xffbb00, 6, 3);
+      impLight.position.copy(pos);
+      _scene.add(impLight);
+      _impactFlashes.push({ light: impLight, life: 0.08, maxLife: 0.08 });
+
+      // Dust puff: 3 semi-transparent white/grey spheres
+      for (var d = 0; d < 3; d++) {
+        var dustCol = Math.random() < 0.5 ? 0xffffff : 0xdddddd;
+        var puffMat = new THREE.MeshBasicMaterial({
+          color: dustCol, transparent: true, opacity: 0.45,
+          depthWrite: false,
+        });
+        var puffMesh = new THREE.Mesh(_dustSphereGeo, puffMat);
+        puffMesh.scale.setScalar(0.5 + Math.random() * 0.3);
+        puffMesh.position.copy(pos)
+          .addScaledVector(norm, 0.05)
+          .add(new THREE.Vector3((Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1));
+        _scene.add(puffMesh);
+        _impactDust.push({ mesh: puffMesh, mat: puffMat, life: 0.4, maxLife: 0.4, startScale: puffMesh.scale.x, endScale: puffMesh.scale.x * 5 });
+      }
+
+      // Ricochet sound: 30% chance, metallic ping via Web Audio
+      if (Math.random() < 0.3) {
+        try {
+          var ctx = window._audioCtx;
+          if (!ctx && typeof AudioContext !== 'undefined') {
+            ctx = new AudioContext();
+            window._audioCtx = ctx;
+          }
+          if (ctx) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.06);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.06);
+          }
+        } catch (eAudio) {}
+      }
+    }
+  }
+
+  // ── Impact dust & flash update arrays ──────────────────
+  var _impactDust = [];
+
+  function updateImpactEffects(delta) {
+    // Update impact flash lights
+    for (var i = _impactFlashes.length - 1; i >= 0; i--) {
+      var f = _impactFlashes[i];
+      f.life -= delta;
+      f.light.intensity = Math.max(0, f.life / f.maxLife * 6);
+      if (f.life <= 0) {
+        _scene.remove(f.light);
+        if (f.light.dispose) f.light.dispose();
+        _impactFlashes.splice(i, 1);
+      }
+    }
+    // Update dust puffs (expand and fade)
+    for (var i = _impactDust.length - 1; i >= 0; i--) {
+      var d = _impactDust[i];
+      d.life -= delta;
+      var t = 1.0 - d.life / d.maxLife;
+      var scl = d.startScale + (d.endScale - d.startScale) * t;
+      d.mesh.scale.setScalar(scl);
+      d.mat.opacity = Math.max(0, d.life / d.maxLife * (d.maxLife > 0.45 ? 0.6 : 0.45));
+      if (d.life <= 0) {
+        _scene.remove(d.mesh);
+        d.mat.dispose();
+        _impactDust.splice(i, 1);
+      }
+    }
+  }
+
+  // ── spawnSmokeTrail ──────────────────────────────────────
+  // RPG-style smoke trail along a path between two positions.
+  // spawnSmokeTrail(startPos, endPos)
+  function spawnSmokeTrail(startPos, endPos) {
+    if (!_scene) return;
+    var NUM_PUFFS = 8;
+    for (var i = 0; i < NUM_PUFFS; i++) {
+      var t = i / (NUM_PUFFS - 1);
+      var px = startPos.x + (endPos.x - startPos.x) * t;
+      var py = startPos.y + (endPos.y - startPos.y) * t;
+      var pz = startPos.z + (endPos.z - startPos.z) * t;
+      var smMat = new THREE.MeshBasicMaterial({
+        color: 0x444444, transparent: true, opacity: 0.5,
+        depthWrite: false,
+      });
+      var smMesh = new THREE.Mesh(_sphereGeo4, smMat);
+      smMesh.scale.setScalar(0.12);
+      smMesh.position.set(px, py, pz);
+      _scene.add(smMesh);
+      // Add slight random jitter
+      smMesh.position.x += (Math.random() - 0.5) * 0.12;
+      smMesh.position.y += (Math.random() - 0.5) * 0.12;
+      smMesh.position.z += (Math.random() - 0.5) * 0.12;
+      // Fade out over 1.2s
+      _impactDust.push({
+        mesh: smMesh, mat: smMat,
+        life: 1.2, maxLife: 1.2,
+        startScale: 0.12, endScale: 0.6,
+      });
+    }
+  }
+
   // ── Rain particle system ─────────────────────────────────
-  let _rainMesh = null;
-  let _rainActive = false;
-  const RAIN_COUNT = 2000;
+  var _rainMesh = null;
+  var _rainActive = false;
+  var RAIN_COUNT = 2000;
 
   function startRain(scene) {
     if (_rainMesh) return;
-    const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(RAIN_COUNT * 3);
-    for (let i = 0; i < RAIN_COUNT; i++) {
+    var geo = new THREE.BufferGeometry();
+    var pos = new Float32Array(RAIN_COUNT * 3);
+    for (var i = 0; i < RAIN_COUNT; i++) {
       pos[i * 3]     = (Math.random() - 0.5) * 80;
       pos[i * 3 + 1] = Math.random() * 40;
       pos[i * 3 + 2] = (Math.random() - 0.5) * 80;
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const mat = new THREE.PointsMaterial({
+    var mat = new THREE.PointsMaterial({
       color: 0xaaaacc, size: 0.08, transparent: true, opacity: 0.5,
       depthWrite: false, blending: THREE.AdditiveBlending,
     });
@@ -621,8 +982,8 @@ const Tracers = (() => {
 
   function updateRain(dt, playerPos) {
     if (!_rainMesh || !_rainActive) return;
-    const pos = _rainMesh.geometry.attributes.position.array;
-    for (let i = 0; i < RAIN_COUNT; i++) {
+    var pos = _rainMesh.geometry.attributes.position.array;
+    for (var i = 0; i < RAIN_COUNT; i++) {
       pos[i * 3 + 1] -= 25 * dt; // fall speed
       if (pos[i * 3 + 1] < 0) {
         pos[i * 3]     = (playerPos ? playerPos.x : 0) + (Math.random() - 0.5) * 80;
@@ -635,27 +996,27 @@ const Tracers = (() => {
   }
 
   // ── Shockwave ring effect ────────────────────────────────
-  const _shockwaves = [];
+  var _shockwaves = [];
 
   function spawnShockwave(pos, maxRadius, color) {
     if (!_scene) return;
-    const mat = new THREE.MeshBasicMaterial({
+    var mat = new THREE.MeshBasicMaterial({
       color: color || 0xff8800, transparent: true, opacity: 0.8,
       side: THREE.DoubleSide, depthWrite: false,
     });
-    const mesh = new THREE.Mesh(_ringGeoShock, mat);
+    var mesh = new THREE.Mesh(_ringGeoShock, mat);
     mesh.position.copy(pos);
     mesh.rotation.x = -Math.PI / 2;
     _scene.add(mesh);
-    _shockwaves.push({ mesh, life: 0.5, maxLife: 0.5, maxRadius: maxRadius || 8 });
+    _shockwaves.push({ mesh: mesh, life: 0.5, maxLife: 0.5, maxRadius: maxRadius || 8 });
   }
 
   function updateShockwaves(dt) {
-    for (let i = _shockwaves.length - 1; i >= 0; i--) {
-      const s = _shockwaves[i];
+    for (var i = _shockwaves.length - 1; i >= 0; i--) {
+      var s = _shockwaves[i];
       s.life -= dt;
-      const t = 1 - s.life / s.maxLife;
-      const scale = 1 + t * s.maxRadius;
+      var t = 1 - s.life / s.maxLife;
+      var scale = 1 + t * s.maxRadius;
       s.mesh.scale.set(scale, scale, 1);
       s.mesh.material.opacity = (1 - t) * 0.8;
       if (s.life <= 0) {
@@ -667,18 +1028,18 @@ const Tracers = (() => {
   }
 
   // ── Fire particle effect (for flamethrower, molotov, etc) ──
-  const _fireParticles = [];
+  var _fireParticles = [];
 
   function spawnFire(pos, radius, duration) {
     if (!_scene) return;
-    const count = 8;
-    for (let i = 0; i < count; i++) {
-      const size = 0.15 + Math.random() * 0.1;
-      const mat = new THREE.MeshBasicMaterial({
+    var count = 8;
+    for (var i = 0; i < count; i++) {
+      var size = 0.15 + Math.random() * 0.1;
+      var mat = new THREE.MeshBasicMaterial({
         color: Math.random() > 0.5 ? 0xff6600 : 0xffaa00,
         transparent: true, opacity: 0.7, depthWrite: false,
       });
-      const mesh = new THREE.Mesh(_sphereGeoFire, mat);
+      var mesh = new THREE.Mesh(_sphereGeoFire, mat);
       mesh.scale.setScalar(size);
       mesh.position.set(
         pos.x + (Math.random() - 0.5) * (radius || 2),
@@ -687,7 +1048,7 @@ const Tracers = (() => {
       );
       _scene.add(mesh);
       _fireParticles.push({
-        mesh, life: (duration || 2) + Math.random(),
+        mesh: mesh, life: (duration || 2) + Math.random(),
         vx: (Math.random() - 0.5) * 0.5,
         vy: 1 + Math.random(),
         vz: (Math.random() - 0.5) * 0.5,
@@ -696,8 +1057,8 @@ const Tracers = (() => {
   }
 
   function updateFire(dt) {
-    for (let i = _fireParticles.length - 1; i >= 0; i--) {
-      const p = _fireParticles[i];
+    for (var i = _fireParticles.length - 1; i >= 0; i--) {
+      var p = _fireParticles[i];
       p.life -= dt;
       p.mesh.position.x += p.vx * dt;
       p.mesh.position.y += p.vy * dt;
@@ -713,11 +1074,11 @@ const Tracers = (() => {
   }
 
   /* ── Bullet Projectiles (fast visible particles) ──────────── */
-  const bullets = [];
-  const _bulletPool = [];
-  const MAX_BULLETS = _isMobileTR ? 40 : 120;
+  var bullets = [];
+  var _bulletPool = [];
+  var MAX_BULLETS = _isMobileTR ? 40 : 120;
   // Stretched sphere reused for every bullet (streak look via scale.z)
-  const _bulletGeo = new THREE.SphereGeometry(1, 5, 4);
+  var _bulletGeo = new THREE.SphereGeometry(1, 5, 4);
 
   function spawnBullet(origin, direction, color, speed) {
     if (!_scene || !origin || !direction) return;
@@ -827,41 +1188,79 @@ const Tracers = (() => {
   }
 
   return {
-    init, spawnTracer, spawnSmoke, spawnMuzzleFlash, spawnExplosion, spawnBlood,
-    spawnBlockImpact, spawnCasing, spawnSparks, spawnPickupBurst, spawnBulletHole,
-    spawnShockwave, spawnFire, spawnBullet,
-    startRain, stopRain,
+    init: init,
+    spawnTracer: spawnTracer,
+    spawnSmoke: spawnSmoke,
+    spawnMuzzleFlash: spawnMuzzleFlash,
+    spawnExplosion: spawnExplosion,
+    spawnBlood: spawnBlood,
+    spawnBlockImpact: spawnBlockImpact,
+    spawnCasing: spawnCasing,
+    spawnSparks: spawnSparks,
+    spawnPickupBurst: spawnPickupBurst,
+    spawnBulletHole: spawnBulletHole,
+    spawnShockwave: spawnShockwave,
+    spawnFire: spawnFire,
+    spawnBullet: spawnBullet,
+    spawnImpact: spawnImpact,
+    spawnSmokeTrail: spawnSmokeTrail,
+    startRain: startRain,
+    stopRain: stopRain,
+    TRACER_COLORS: TRACER_COLORS,
     update: function(delta, playerPos) {
       update(delta);
       updateCasings(delta);
       updateSparks(delta);
       updateBulletHoles(delta);
+      updateBulletHolesV2(delta);
       updateShockwaves(delta);
       updateFire(delta);
       updateRain(delta, playerPos);
       updateScorchMarks(delta);
       updateSmokePillars(delta);
       updateBullets(delta);
+      updateImpactEffects(delta);
     },
     clear: function() {
       clear();
       stopRain();
-      _shockwaves.forEach(s => { if (_scene) _scene.remove(s.mesh); s.mesh.material.dispose(); });
+      for (var _si = 0; _si < _shockwaves.length; _si++) {
+        if (_scene) _scene.remove(_shockwaves[_si].mesh);
+        _shockwaves[_si].mesh.material.dispose();
+      }
       _shockwaves.length = 0;
-      _fireParticles.forEach(f => { if (_scene) _scene.remove(f.mesh); f.mesh.material.dispose(); });
+      for (var _fpi = 0; _fpi < _fireParticles.length; _fpi++) {
+        if (_scene) _scene.remove(_fireParticles[_fpi].mesh);
+        _fireParticles[_fpi].mesh.material.dispose();
+      }
       _fireParticles.length = 0;
       // Clean casings, sparks, bullet holes (GPU leak fix)
-      casings.forEach(c => { if (_scene) _scene.remove(c.mesh); });
+      for (var _casI = 0; _casI < casings.length; _casI++) { if (_scene) _scene.remove(casings[_casI].mesh); }
       casings.length = 0;
-      sparks.forEach(s => { if (_scene) _scene.remove(s.mesh); s.mesh.material.dispose(); });
+      for (var _spkI = 0; _spkI < sparks.length; _spkI++) { if (_scene) _scene.remove(sparks[_spkI].mesh); sparks[_spkI].mesh.material.dispose(); }
       sparks.length = 0;
-      _bulletHoles.forEach(h => { if (_scene) _scene.remove(h.mesh); h.mesh.material.dispose(); });
+      for (var _bhI = 0; _bhI < _bulletHoles.length; _bhI++) { if (_scene) _scene.remove(_bulletHoles[_bhI].mesh); _bulletHoles[_bhI].mesh.material.dispose(); }
       _bulletHoles.length = 0;
-      _scorchMarks.forEach(s => { if (_scene) _scene.remove(s.mesh); s.mat.dispose(); });
+      for (var _bh2I = 0; _bh2I < _bulletHolesV2.length; _bh2I++) {
+        var _bh2 = _bulletHolesV2[_bh2I];
+        if (_scene) _scene.remove(_bh2.mesh);
+        _bh2.mat.dispose();
+        for (var _bci = 0; _bci < _bh2.chips.length; _bci++) {
+          if (_scene) _scene.remove(_bh2.chips[_bci].mesh);
+          _bh2.chips[_bci].mat.dispose();
+        }
+      }
+      _bulletHolesV2.length = 0;
+      for (var _smI = 0; _smI < _scorchMarks.length; _smI++) { if (_scene) _scene.remove(_scorchMarks[_smI].mesh); _scorchMarks[_smI].mat.dispose(); }
       _scorchMarks.length = 0;
+      // Clean impact effects
+      for (var _ifI = 0; _ifI < _impactFlashes.length; _ifI++) { if (_scene) _scene.remove(_impactFlashes[_ifI].light); if (_impactFlashes[_ifI].light.dispose) _impactFlashes[_ifI].light.dispose(); }
+      _impactFlashes.length = 0;
+      for (var _idI = 0; _idI < _impactDust.length; _idI++) { if (_scene) _scene.remove(_impactDust[_idI].mesh); _impactDust[_idI].mat.dispose(); }
+      _impactDust.length = 0;
       clearBullets();
     }
   };
-})();
+}());
 
 if (typeof window !== 'undefined') window.Tracers = Tracers;

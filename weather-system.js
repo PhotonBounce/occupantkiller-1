@@ -1,667 +1,744 @@
-/* ───────────────────────────────────────────────────────────
-   WEATHER SYSTEM — Dynamic weather effects with particles
-   ─────────────────────────────────────────────────────────── */
-const WeatherSystem = (function () {
+/* ───────────────────────────────────────────────────────────────────────────
+   WEATHER SYSTEM — Dynamic weather effects for Three.js FPS game
+   States: CLEAR, OVERCAST, RAIN, HEAVY_RAIN, SANDSTORM
+   Auto-cycles with smooth transitions, particles, fog, lightning, puddles, HUD
+   ─────────────────────────────────────────────────────────────────────────── */
+window.WeatherSystem = (function () {
   'use strict';
 
-  var WEATHER = Object.freeze({
-    CLEAR: 'clear',
-    OVERCAST: 'overcast',
-    RAIN: 'rain',
-    HEAVY_RAIN: 'heavy_rain',
-    SNOW: 'snow',
-    FOG: 'fog',
-  });
+  /* ── Weather state constants ─────────────────────────────────────── */
+  var STATES = {
+    CLEAR:      'CLEAR',
+    OVERCAST:   'OVERCAST',
+    RAIN:       'RAIN',
+    HEAVY_RAIN: 'HEAVY_RAIN',
+    SANDSTORM:  'SANDSTORM'
+  };
 
+  /* ── Per-state fog config ────────────────────────────────────────── */
+  var FOG_CONFIG = {
+    CLEAR:      { color: 0xc8d0e0, near: 80,  far: 350 },
+    OVERCAST:   { color: 0x7a8090, near: 60,  far: 250 },
+    RAIN:       { color: 0x6a7080, near: 40,  far: 180 },
+    HEAVY_RAIN: { color: 0x4a5060, near: 20,  far: 90  },
+    SANDSTORM:  { color: 0xc8a040, near: 2,   far: 15  }
+  };
+
+  /* ── Per-state ambient light intensity ──────────────────────────── */
+  var AMBIENT_CONFIG = {
+    CLEAR:      1.0,
+    OVERCAST:   0.3,
+    RAIN:       0.55,
+    HEAVY_RAIN: 0.45,
+    SANDSTORM:  0.6
+  };
+
+  /* ── Per-state gameplay modifiers ───────────────────────────────── */
+  var MODIFIER_CONFIG = {
+    CLEAR:      { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0    },
+    OVERCAST:   { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0    },
+    RAIN:       { speedMult: 1.0,   weaponSway: 1.0,  windX: 0.5,  windZ: 0.1  },
+    HEAVY_RAIN: { speedMult: 0.85,  weaponSway: 1.2,  windX: 1.2,  windZ: 0.3  },
+    SANDSTORM:  { speedMult: 0.75,  weaponSway: 1.8,  windX: 2.0,  windZ: 0.8  }
+  };
+
+  /* ── HUD icons ───────────────────────────────────────────────────── */
+  var HUD_ICONS = {
+    CLEAR:      '☀️',
+    OVERCAST:   '⛅',
+    RAIN:       '🌧️',
+    HEAVY_RAIN: '⛈️',
+    SANDSTORM:  '🌪️'
+  };
+
+  /* ── Module state ────────────────────────────────────────────────── */
   var _scene = null;
   var _camera = null;
-  var currentWeather = WEATHER.CLEAR;
-  var particles = null;
-  var particleCount = 0;
-  var weatherTimer = 0;
-  var weatherDuration = 120; // seconds between weather changes
-  var targetFogDensity = 0;
+  var _currentState = STATES.CLEAR;
+  var _previousState = STATES.CLEAR;
+  var _transitionProgress = 1.0;   // 0=start of transition, 1=fully in new state
+  var _stateDuration = 120;
+  var _stateTimer = 0;
+  var _transitionDuration = 15.0;  // seconds for smooth transition
+
+  /* ── Particle system (LineSegments for rain, Points for sandstorm) ── */
+  var _rainLines = null;           // THREE.LineSegments for rain/heavy_rain
+  var _sandParticles = null;       // THREE.Points for sandstorm
+  var _rainPositions = null;       // Float32Array, paired [start, end] for line segs
+  var _sandPositions = null;       // Float32Array
+  var _sandVelocities = null;      // Float32Array
+  var RAIN_COUNT = 800;
+  var HEAVY_RAIN_COUNT = 2000;
+  var SAND_COUNT = 1500;
+  var _activeParticleCount = 0;
+
+  /* ── Fog lerp state ──────────────────────────────────────────────── */
+  var _fogColor = new THREE.Color(0xc8d0e0);
+  var _fogNear = 80;
+  var _fogFar = 350;
+  var _fogColorTarget = new THREE.Color(0xc8d0e0);
+  var _fogNearTarget = 80;
+  var _fogFarTarget = 350;
+
+  /* ── Ambient light ───────────────────────────────────────────────── */
+  var _ambientLight = null;
+  var _ambientIntensity = 1.0;
+  var _ambientTarget = 1.0;
+
+  /* ── Lightning ───────────────────────────────────────────────────── */
   var _lightningTimer = 0;
-  var _lightningFlash = null;
+  var _lightningInterval = 12;
+  var _lightningFlashTime = 0;
+  var _thunderDelay = 0;
+  var _thunderPending = false;
+  var _thunderTimer = 0;
+  var _audioCtx = null;
 
-  // ── Cloud layer (drifting billboard sprites high above world) ──
-  var _cloudGroup = null;
-  var _clouds = [];          // [{ sprite, baseScale }]
-  var _cloudWind = { x: -2.5, z: 0.6 }; // m/s
-  var _cloudTargetOpacity = 0.85;
-  var _cloudTargetTint = new THREE.Color(1, 1, 1);
-  var CLOUD_COUNT = 56;
-  var CLOUD_HEIGHT = 130;
-  var CLOUD_RADIUS = 260;
+  /* ── Puddles ─────────────────────────────────────────────────────── */
+  var _puddles = [];
+  var PUDDLE_COUNT = 5;
+  var _puddleGroup = null;
 
-  // ── Snow ground accumulation ──
-  var _snowCover = null;     // InstancedMesh of small white discs on terrain top
-  var _snowDummy = null;
-  var _snowAccumulation = 0; // 0..1 — drives instance opacity
-  var _snowAccumulationTarget = 0;
-  var SNOW_PATCH_COUNT = 220;
-  var SNOW_PATCH_RADIUS = 90; // m around camera
-  var _hemiLight = null;
-  var _ambLight = null;
-  var _baseHemiSky = null;
-  var _baseAmbColor = null;
+  /* ── Wind ────────────────────────────────────────────────────────── */
+  var _windX = 0;
+  var _windZ = 0;
+  var _windSpeedKmh = 0;
 
+  /* ── Footstep splash timing ──────────────────────────────────────── */
+  var _splashTimer = 0;
+  var _splashInterval = 0.4;  // seconds between splashes
+
+  /* ── HUD elements ────────────────────────────────────────────────── */
+  var _hudEl = null;
+  var _hudIcon = null;
+  var _hudWind = null;
+
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  INIT                                                               */
+  /* ─────────────────────────────────────────────────────────────────── */
   function init(scene, camera) {
     _scene = scene;
     _camera = camera;
-    createParticleSystem();
-    createCloudLayer();
-    createSnowCover();
-    // Cache lights for snow tint
-    if (_scene) {
-      _scene.traverse(function (o) {
-        if (o.isHemisphereLight && !_hemiLight) {
-          _hemiLight = o;
-          _baseHemiSky = o.color.clone();
-        } else if (o.isAmbientLight && !_ambLight) {
-          _ambLight = o;
-          _baseAmbColor = o.color.clone();
-        }
-      });
-    }
-    // Start with clear weather
-    setWeather(WEATHER.CLEAR);
+
+    _setupFog();
+    _createAmbientLight();
+    _createRainSystem();
+    _createSandSystem();
+    _createPuddleGroup();
+    _createHUD();
+    _setState(STATES.CLEAR, true);
   }
 
-  /* ── Cloud layer ─────────────────────────────────────────────── */
-  function _makeCloudTexture() {
-    var c = document.createElement('canvas');
-    c.width = c.height = 128;
-    var ctx = c.getContext('2d');
-    // Draw 6-8 overlapping radial-gradient puffs to make a fluffy blob.
-    var puffs = 7;
-    for (var p = 0; p < puffs; p++) {
-      var px = 64 + (Math.random() - 0.5) * 70;
-      var py = 64 + (Math.random() - 0.5) * 50;
-      var pr = 28 + Math.random() * 18;
-      var g = ctx.createRadialGradient(px, py, 1, px, py, pr);
-      g.addColorStop(0, 'rgba(255,255,255,0.95)');
-      g.addColorStop(0.6, 'rgba(255,255,255,0.55)');
-      g.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, 128, 128);
-    }
-    var tex = new THREE.CanvasTexture(c);
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    return tex;
-  }
-
-  function createCloudLayer() {
-    if (!_scene) return;
-    var tex = _makeCloudTexture();
-    _cloudGroup = new THREE.Group();
-    _cloudGroup.name = 'cloud-layer';
-    for (var i = 0; i < CLOUD_COUNT; i++) {
-      var mat = new THREE.SpriteMaterial({
-        map: tex,
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.85,
-        depthWrite: false,
-        fog: false,
-      });
-      var s = new THREE.Sprite(mat);
-      var scale = 30 + Math.random() * 50;
-      s.scale.set(scale, scale * 0.55, 1);
-      s.position.set(
-        (Math.random() - 0.5) * CLOUD_RADIUS * 2,
-        CLOUD_HEIGHT + (Math.random() - 0.5) * 30,
-        (Math.random() - 0.5) * CLOUD_RADIUS * 2
-      );
-      _cloudGroup.add(s);
-      _clouds.push({ sprite: s, baseScale: scale });
-    }
-    _scene.add(_cloudGroup);
-  }
-
-  function _setCloudWeather(weather) {
-    switch (weather) {
-      case WEATHER.CLEAR:
-        _cloudTargetOpacity = 0.45;
-        _cloudTargetTint.setRGB(1.0, 1.0, 1.0);
-        _cloudWind.x = -2.5; _cloudWind.z = 0.6;
-        break;
-      case WEATHER.OVERCAST:
-        _cloudTargetOpacity = 0.95;
-        _cloudTargetTint.setRGB(0.78, 0.80, 0.86);
-        _cloudWind.x = -3.5; _cloudWind.z = 0.8;
-        break;
-      case WEATHER.RAIN:
-        _cloudTargetOpacity = 1.0;
-        _cloudTargetTint.setRGB(0.55, 0.58, 0.66);
-        _cloudWind.x = -5.0; _cloudWind.z = 1.2;
-        break;
-      case WEATHER.HEAVY_RAIN:
-        _cloudTargetOpacity = 1.0;
-        _cloudTargetTint.setRGB(0.36, 0.38, 0.46);
-        _cloudWind.x = -8.0; _cloudWind.z = 1.8;
-        break;
-      case WEATHER.SNOW:
-        _cloudTargetOpacity = 0.95;
-        _cloudTargetTint.setRGB(0.86, 0.88, 0.93);
-        _cloudWind.x = -1.5; _cloudWind.z = 0.4;
-        break;
-      case WEATHER.FOG:
-        _cloudTargetOpacity = 0.6;
-        _cloudTargetTint.setRGB(0.85, 0.85, 0.85);
-        _cloudWind.x = -1.0; _cloudWind.z = 0.3;
-        break;
-    }
-  }
-
-  function _updateClouds(delta) {
-    if (!_cloudGroup || !_camera) return;
-    var camX = _camera.position.x, camZ = _camera.position.z;
-    for (var i = 0; i < _clouds.length; i++) {
-      var c = _clouds[i];
-      var p = c.sprite.position;
-      p.x += _cloudWind.x * delta;
-      p.z += _cloudWind.z * delta;
-      // Recycle clouds that drift too far from camera (wrap to the other side).
-      var dx = p.x - camX, dz = p.z - camZ;
-      if (Math.abs(dx) > CLOUD_RADIUS) p.x = camX - Math.sign(dx) * CLOUD_RADIUS + (Math.random() - 0.5) * 40;
-      if (Math.abs(dz) > CLOUD_RADIUS) p.z = camZ - Math.sign(dz) * CLOUD_RADIUS + (Math.random() - 0.5) * 40;
-      // Lerp tint + opacity toward weather targets.
-      var m = c.sprite.material;
-      m.opacity += (_cloudTargetOpacity - m.opacity) * Math.min(1, delta * 0.4);
-      m.color.lerp(_cloudTargetTint, Math.min(1, delta * 0.4));
-    }
-  }
-
-  /* ── Snow ground accumulation ────────────────────────────────── */
-  function _makeSnowPatchTexture() {
-    var c = document.createElement('canvas');
-    c.width = c.height = 64;
-    var ctx = c.getContext('2d');
-    var g = ctx.createRadialGradient(32, 32, 1, 32, 32, 30);
-    g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(0.7, 'rgba(245,250,255,0.7)');
-    g.addColorStop(1, 'rgba(220,230,240,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 64, 64);
-    var t = new THREE.CanvasTexture(c);
-    t.minFilter = THREE.LinearFilter;
-    t.magFilter = THREE.LinearFilter;
-    return t;
-  }
-
-  function createSnowCover() {
-    if (!_scene) return;
-    var geo = new THREE.PlaneGeometry(3.6, 3.6);
-    geo.rotateX(-Math.PI / 2);
-    var mat = new THREE.MeshBasicMaterial({
-      map: _makeSnowPatchTexture(),
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0,
-      depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -1,
-      polygonOffsetUnits: -1,
-    });
-    _snowCover = new THREE.InstancedMesh(geo, mat, SNOW_PATCH_COUNT);
-    _snowCover.frustumCulled = false;
-    _snowCover.name = 'snow-cover';
-    _snowCover.visible = false;
-    _snowDummy = new THREE.Object3D();
-    // Initial scatter; will be re-snapped to terrain when snow starts.
-    for (var i = 0; i < SNOW_PATCH_COUNT; i++) {
-      _snowDummy.position.set(0, -1000, 0);
-      _snowDummy.updateMatrix();
-      _snowCover.setMatrixAt(i, _snowDummy.matrix);
-    }
-    _snowCover.instanceMatrix.needsUpdate = true;
-    _scene.add(_snowCover);
-  }
-
-  function _resnapSnowPatches() {
-    if (!_snowCover || !_camera) return;
-    var camX = _camera.position.x, camZ = _camera.position.z;
-    for (var i = 0; i < SNOW_PATCH_COUNT; i++) {
-      var ang = Math.random() * Math.PI * 2;
-      var r = Math.sqrt(Math.random()) * SNOW_PATCH_RADIUS;
-      var x = camX + Math.cos(ang) * r;
-      var z = camZ + Math.sin(ang) * r;
-      var y = 0.05;
-      if (window.VoxelWorld && typeof window.VoxelWorld.getHeight === 'function') {
-        try { y = window.VoxelWorld.getHeight(x, z) + 0.06; } catch (e) {}
-      }
-      var rot = Math.random() * Math.PI * 2;
-      var sc = 0.7 + Math.random() * 0.9;
-      _snowDummy.position.set(x, y, z);
-      _snowDummy.rotation.set(0, rot, 0);
-      _snowDummy.scale.set(sc, 1, sc);
-      _snowDummy.updateMatrix();
-      _snowCover.setMatrixAt(i, _snowDummy.matrix);
-    }
-    _snowCover.instanceMatrix.needsUpdate = true;
-  }
-
-  function _updateSnowCover(delta) {
-    if (!_snowCover) return;
-    // Accumulate during SNOW; melt otherwise. Lerp constant 0.35 ≈ 3s to peak.
-    _snowAccumulation += (_snowAccumulationTarget - _snowAccumulation) * Math.min(1, delta * 0.35);
-    var op = Math.max(0, Math.min(0.95, _snowAccumulation));
-    if (_snowCover.material) _snowCover.material.opacity = op;
-    _snowCover.visible = op > 0.02;
-
-    // Tint scene lights toward cool white during snow accumulation.
-    if (_hemiLight && _baseHemiSky) {
-      _hemiLight.color.copy(_baseHemiSky).lerp(new THREE.Color(0xc8d8ff), op * 0.5);
-    }
-    if (_ambLight && _baseAmbColor) {
-      _ambLight.color.copy(_baseAmbColor).lerp(new THREE.Color(0xeaf0ff), op * 0.4);
-    }
-  }
-
-  function createParticleSystem() {
-    var _isMobileWx = (function() {
-      try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
-    })();
-    var maxParticles = _isMobileWx ? 600 : 3000;
-    var geometry = new THREE.BufferGeometry();
-    var positions = new Float32Array(maxParticles * 3);
-    var velocities = new Float32Array(maxParticles * 3);
-
-    for (var i = 0; i < maxParticles; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 80;
-      positions[i * 3 + 1] = Math.random() * 40;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
-      velocities[i * 3] = 0;
-      velocities[i * 3 + 1] = 0;
-      velocities[i * 3 + 2] = 0;
-    }
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.userData.velocities = velocities;
-
-    var material = new THREE.PointsMaterial({
-      color: 0xcccccc,
-      size: 0.15,
-      transparent: true,
-      opacity: 0.6,
-      depthWrite: false,
-    });
-
-    particles = new THREE.Points(geometry, material);
-    particles.visible = false;
-    _scene.add(particles);
-    particleCount = maxParticles;
-  }
-
-  function setWeather(weather) {
-    currentWeather = weather;
-    _setCloudWeather(weather);
-    // Snow accumulation: ramp up during SNOW, melt back to 0 otherwise.
-    if (weather === WEATHER.SNOW) {
-      _snowAccumulationTarget = 0.85;
-      _resnapSnowPatches();
-    } else {
-      _snowAccumulationTarget = 0;
-    }
-
-    switch (weather) {
-      case WEATHER.CLEAR:
-        particles.visible = false;
-        targetFogDensity = 0;
-        break;
-      case WEATHER.OVERCAST:
-        particles.visible = false;
-        targetFogDensity = 0.01;
-        break;
-      case WEATHER.RAIN:
-        particles.visible = true;
-        particles.material.color.setHex(0x8888cc);
-        particles.material.size = 0.1;
-        particles.material.opacity = 0.4;
-        targetFogDensity = 0.015;
-        setParticleVelocities(0.5, -12, 0.3); // light rain
-        break;
-      case WEATHER.HEAVY_RAIN:
-        particles.visible = true;
-        particles.material.color.setHex(0x6666aa);
-        particles.material.size = 0.15;
-        particles.material.opacity = 0.5;
-        targetFogDensity = 0.025;
-        setParticleVelocities(1.0, -18, 0.5); // heavy rain
-        break;
-      case WEATHER.SNOW:
-        particles.visible = true;
-        particles.material.color.setHex(0xffffff);
-        particles.material.size = 0.2;
-        particles.material.opacity = 0.7;
-        targetFogDensity = 0.02;
-        setParticleVelocities(0.3, -2, 0.3); // slow falling snow
-        break;
-      case WEATHER.FOG:
-        particles.visible = false;
-        targetFogDensity = 0.04;
-        break;
-    }
-  }
-
-  function setParticleVelocities(windX, fallSpeed, windZ) {
-    var vels = particles.geometry.userData.velocities;
-    for (var i = 0; i < particleCount; i++) {
-      vels[i * 3] = windX + (Math.random() - 0.5) * 0.5;
-      vels[i * 3 + 1] = fallSpeed + (Math.random() - 0.5) * 2;
-      vels[i * 3 + 2] = windZ + (Math.random() - 0.5) * 0.5;
-    }
-  }
-
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  UPDATE                                                             */
+  /* ─────────────────────────────────────────────────────────────────── */
   function update(delta) {
     if (!_scene || !_camera) return;
 
-    _updateClouds(delta);
-    _updateSnowCover(delta);
+    _updateCycle(delta);
+    _updateTransition(delta);
+    _updateFog(delta);
+    _updateAmbient(delta);
+    _updateRain(delta);
+    _updateSand(delta);
+    _updateLightning(delta);
+    _updatePuddles(delta);
+    _updateFootstepSplash(delta);
+    _updateHUD();
+  }
 
-    // Weather transition timer
-    weatherTimer += delta;
-    if (weatherTimer > weatherDuration) {
-      weatherTimer = 0;
-      weatherDuration = 60 + Math.random() * 180; // 1-4 minutes
-      // Random weather change
-      var weathers = Object.values(WEATHER);
-      var newWeather = weathers[Math.floor(Math.random() * weathers.length)];
-      setWeather(newWeather);
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  STATE CYCLE                                                        */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _updateCycle(delta) {
+    _stateTimer += delta;
+    if (_stateTimer >= _stateDuration) {
+      _stateTimer = 0;
+      _stateDuration = 60 + Math.random() * 120;
+      var states = Object.keys(STATES);
+      var next = states[Math.floor(Math.random() * states.length)];
+      _setState(next, false);
     }
+  }
 
-    // Update fog
-    if (_scene.fog) {
-      var currentDensity = _scene.fog.far ? (1 / _scene.fog.far * 50) : 0;
-      var newDensity = currentDensity + (targetFogDensity - currentDensity) * delta * 0.5;
-      if (newDensity > 0.001) {
-        _scene.fog.far = 50 / newDensity;
-        _scene.fog.near = _scene.fog.far * 0.3;
-      } else {
-        _scene.fog.far = 200;
-        _scene.fog.near = 0.1;
-      }
-    }
+  function _setState(state, immediate) {
+    if (state === _currentState && !immediate) return;
+    _previousState = _currentState;
+    _currentState = state;
+    _transitionProgress = immediate ? 1.0 : 0.0;
 
-    // Lightning during heavy rain
-    if (currentWeather === WEATHER.HEAVY_RAIN) {
-      _lightningTimer -= delta;
-      if (_lightningTimer <= 0) {
-        _lightningTimer = 3 + Math.random() * 8; // every 3-11 seconds
-        // Flash the scene bright
-        if (!_lightningFlash) {
-          _lightningFlash = new THREE.PointLight(0xffffff, 0, 200);
-          _lightningFlash.position.set(0, 50, 0);
-          _scene.add(_lightningFlash);
-        }
-        _lightningFlash.intensity = 8;
-        _lightningFlash.position.set(
-          _camera.position.x + (Math.random() - 0.5) * 40,
-          40,
-          _camera.position.z + (Math.random() - 0.5) * 40
-        );
-        // Thunder sound
-        if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) {
-          setTimeout(function () { AudioSystem.playExplosion(); }, 300 + Math.random() * 1500);
-        }
-        // Screen shake
-        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) {
-          setTimeout(function () { CameraSystem.shake(0.015, 0.3); }, 300 + Math.random() * 1500);
-        }
-      }
-      // Decay lightning flash
-      if (_lightningFlash && _lightningFlash.intensity > 0) {
-        _lightningFlash.intensity *= Math.max(0, 1 - delta * 12);
-        if (_lightningFlash.intensity < 0.1) _lightningFlash.intensity = 0;
-      }
+    /* Choose new wind direction per cycle */
+    var mod = MODIFIER_CONFIG[state];
+    var angle = Math.random() * Math.PI * 2;
+    var spd = Math.sqrt(mod.windX * mod.windX + mod.windZ * mod.windZ);
+    _windX = Math.cos(angle) * spd;
+    _windZ = Math.sin(angle) * spd;
+    _windSpeedKmh = Math.round(spd * 3.6 * 10) / 10;
+
+    /* Fog targets */
+    var fc = FOG_CONFIG[state];
+    _fogColorTarget.setHex(fc.color);
+    _fogNearTarget = fc.near;
+    _fogFarTarget = fc.far;
+
+    /* Ambient target */
+    _ambientTarget = AMBIENT_CONFIG[state];
+
+    /* Lightning timer */
+    _lightningTimer = 8 + Math.random() * 12;
+
+    /* Show/hide particle systems */
+    _updateParticleVisibility(state);
+
+    /* Puddles */
+    if (state === STATES.RAIN || state === STATES.HEAVY_RAIN) {
+      _spawnPuddles();
     } else {
-      if (_lightningFlash) _lightningFlash.intensity = 0;
+      _removePuddles();
     }
 
-    // Update particles
-    if (particles && particles.visible) {
-      var positions = particles.geometry.attributes.position.array;
-      var velocities = particles.geometry.userData.velocities;
-      var camPos = _camera.position;
-
-      for (var i = 0; i < particleCount; i++) {
-        var idx = i * 3;
-        positions[idx] += velocities[idx] * delta;
-        positions[idx + 1] += velocities[idx + 1] * delta;
-        positions[idx + 2] += velocities[idx + 2] * delta;
-
-        // Re-center particles around camera
-        if (positions[idx + 1] < 0) {
-          positions[idx] = camPos.x + (Math.random() - 0.5) * 80;
-          positions[idx + 1] = camPos.y + 20 + Math.random() * 20;
-          positions[idx + 2] = camPos.z + (Math.random() - 0.5) * 80;
-        }
-
-        // Keep particles near camera horizontally
-        var dx = positions[idx] - camPos.x;
-        var dz = positions[idx + 2] - camPos.z;
-        if (Math.abs(dx) > 40 || Math.abs(dz) > 40) {
-          positions[idx] = camPos.x + (Math.random() - 0.5) * 60;
-          positions[idx + 2] = camPos.z + (Math.random() - 0.5) * 60;
-        }
-      }
-
-      particles.geometry.attributes.position.needsUpdate = true;
+    if (immediate) {
+      _fogColor.copy(_fogColorTarget);
+      _fogNear = _fogNearTarget;
+      _fogFar = _fogFarTarget;
+      _ambientIntensity = _ambientTarget;
+      _applyFog();
+      _applyAmbient();
     }
   }
 
-  function getWeather() { return currentWeather; }
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  TRANSITION LERP                                                    */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _updateTransition(delta) {
+    if (_transitionProgress >= 1.0) return;
+    _transitionProgress = Math.min(1.0, _transitionProgress + delta / _transitionDuration);
+  }
 
-  /** Get gameplay modifiers based on current weather */
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  FOG                                                                */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _setupFog() {
+    if (!_scene) return;
+    _scene.fog = new THREE.Fog(FOG_CONFIG.CLEAR.color, FOG_CONFIG.CLEAR.near, FOG_CONFIG.CLEAR.far);
+    _fogColor.setHex(FOG_CONFIG.CLEAR.color);
+    _fogNear = FOG_CONFIG.CLEAR.near;
+    _fogFar = FOG_CONFIG.CLEAR.far;
+  }
+
+  function _updateFog(delta) {
+    var t = Math.min(1.0, delta * 0.8);
+    _fogColor.lerp(_fogColorTarget, t);
+    _fogNear += (_fogNearTarget - _fogNear) * t;
+    _fogFar  += (_fogFarTarget  - _fogFar)  * t;
+    _applyFog();
+  }
+
+  function _applyFog() {
+    if (!_scene || !_scene.fog) return;
+    _scene.fog.color.copy(_fogColor);
+    _scene.fog.near = _fogNear;
+    _scene.fog.far  = _fogFar;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  AMBIENT LIGHT                                                      */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _createAmbientLight() {
+    if (!_scene) return;
+    /* Reuse any existing ambient light if present */
+    _scene.traverse(function (o) {
+      if (!_ambientLight && o.isAmbientLight) _ambientLight = o;
+    });
+    if (!_ambientLight) {
+      _ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+      _scene.add(_ambientLight);
+    }
+    _ambientIntensity = _ambientLight.intensity;
+  }
+
+  function _updateAmbient(delta) {
+    _ambientIntensity += (_ambientTarget - _ambientIntensity) * Math.min(1.0, delta * 0.5);
+    _applyAmbient();
+  }
+
+  function _applyAmbient() {
+    if (_ambientLight) _ambientLight.intensity = _ambientIntensity;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  RAIN — LineSegments                                                */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _createRainSystem() {
+    if (!_scene) return;
+
+    /* Allocate for HEAVY_RAIN max (2000 segments = 4000 vertices) */
+    var maxCount = HEAVY_RAIN_COUNT;
+    var geo = new THREE.BufferGeometry();
+    /* Each segment: 2 vertices × 3 floats */
+    _rainPositions = new Float32Array(maxCount * 6);
+    for (var i = 0; i < maxCount; i++) {
+      var ix = i * 6;
+      _rainPositions[ix]     = (Math.random() - 0.5) * 60;
+      _rainPositions[ix + 1] = Math.random() * 35;
+      _rainPositions[ix + 2] = (Math.random() - 0.5) * 60;
+      /* End vertex offset (diagonal direction of fall) */
+      _rainPositions[ix + 3] = _rainPositions[ix]     + 0.15;
+      _rainPositions[ix + 4] = _rainPositions[ix + 1] - 0.6;
+      _rainPositions[ix + 5] = _rainPositions[ix + 2] + 0.05;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(_rainPositions, 3));
+    /* Draw only the desired count by setting draw range */
+    geo.setDrawRange(0, RAIN_COUNT * 2);
+
+    var mat = new THREE.LineBasicMaterial({
+      color: 0xeeeeff,
+      transparent: true,
+      opacity: 0.45,
+      depthWrite: false
+    });
+
+    _rainLines = new THREE.LineSegments(geo, mat);
+    _rainLines.frustumCulled = false;
+    _rainLines.visible = false;
+    _scene.add(_rainLines);
+  }
+
+  function _updateParticleVisibility(state) {
+    if (_rainLines) {
+      _rainLines.visible = (state === STATES.RAIN || state === STATES.HEAVY_RAIN);
+      if (state === STATES.RAIN) {
+        _rainLines.geometry.setDrawRange(0, RAIN_COUNT * 2);
+        _rainLines.material.opacity = 0.45;
+        _activeParticleCount = RAIN_COUNT;
+      } else if (state === STATES.HEAVY_RAIN) {
+        _rainLines.geometry.setDrawRange(0, HEAVY_RAIN_COUNT * 2);
+        _rainLines.material.opacity = 0.55;
+        _activeParticleCount = HEAVY_RAIN_COUNT;
+      }
+    }
+    if (_sandParticles) {
+      _sandParticles.visible = (state === STATES.SANDSTORM);
+    }
+  }
+
+  function _updateRain(delta) {
+    if (!_rainLines || !_rainLines.visible || !_camera) return;
+
+    var state = _currentState;
+    var fallSpeed = (state === STATES.HEAVY_RAIN) ? 22 : 14;
+    var diagX     = (state === STATES.HEAVY_RAIN) ? 3.5 : 1.8;
+    var diagZ     = (state === STATES.HEAVY_RAIN) ? 0.8 : 0.4;
+    var spread    = 60;
+    var height    = 35;
+    var camX = _camera.position.x;
+    var camY = _camera.position.y;
+    var camZ = _camera.position.z;
+    var count = _activeParticleCount;
+    var pos = _rainPositions;
+
+    for (var i = 0; i < count; i++) {
+      var ix = i * 6;
+      /* Move start vertex */
+      pos[ix]     += (diagX + _windX * 0.3) * delta;
+      pos[ix + 1] -= fallSpeed * delta;
+      pos[ix + 2] += (diagZ + _windZ * 0.3) * delta;
+
+      /* Loop when hitting ground */
+      if (pos[ix + 1] < camY - 2) {
+        pos[ix]     = camX + (Math.random() - 0.5) * spread;
+        pos[ix + 1] = camY + height * (0.5 + Math.random() * 0.5);
+        pos[ix + 2] = camZ + (Math.random() - 0.5) * spread;
+      }
+      /* Keep near camera horizontally */
+      if (Math.abs(pos[ix] - camX) > spread * 0.6) {
+        pos[ix] = camX + (Math.random() - 0.5) * spread;
+        pos[ix + 2] = camZ + (Math.random() - 0.5) * spread;
+      }
+      if (Math.abs(pos[ix + 2] - camZ) > spread * 0.6) {
+        pos[ix]     = camX + (Math.random() - 0.5) * spread;
+        pos[ix + 2] = camZ + (Math.random() - 0.5) * spread;
+      }
+
+      /* Sync end vertex (segment tip) */
+      pos[ix + 3] = pos[ix]     + diagX * 0.07;
+      pos[ix + 4] = pos[ix + 1] - 0.55;
+      pos[ix + 5] = pos[ix + 2] + diagZ * 0.07;
+    }
+    _rainLines.geometry.attributes.position.needsUpdate = true;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  SANDSTORM — Points                                                 */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _createSandSystem() {
+    if (!_scene) return;
+
+    var geo = new THREE.BufferGeometry();
+    _sandPositions  = new Float32Array(SAND_COUNT * 3);
+    _sandVelocities = new Float32Array(SAND_COUNT * 3);
+
+    for (var i = 0; i < SAND_COUNT; i++) {
+      var ix = i * 3;
+      var angle = Math.random() * Math.PI * 2;
+      var r     = Math.random() * 30;
+      _sandPositions[ix]     = Math.cos(angle) * r;
+      _sandPositions[ix + 1] = Math.random() * 12;
+      _sandPositions[ix + 2] = Math.sin(angle) * r;
+      /* Swirling vels: tangential + upward bias + drift */
+      _sandVelocities[ix]     = -Math.sin(angle) * (3 + Math.random() * 4) + (Math.random() - 0.5) * 2;
+      _sandVelocities[ix + 1] = (Math.random() - 0.3) * 2;
+      _sandVelocities[ix + 2] =  Math.cos(angle) * (3 + Math.random() * 4) + (Math.random() - 0.5) * 2;
+    }
+
+    geo.setAttribute('position', new THREE.BufferAttribute(_sandPositions, 3));
+
+    /* Brownish-tan color */
+    var mat = new THREE.PointsMaterial({
+      color: 0xc8a050,
+      size: 0.18,
+      transparent: true,
+      opacity: 0.75,
+      depthWrite: false
+    });
+
+    _sandParticles = new THREE.Points(geo, mat);
+    _sandParticles.frustumCulled = false;
+    _sandParticles.visible = false;
+    _scene.add(_sandParticles);
+  }
+
+  function _updateSand(delta) {
+    if (!_sandParticles || !_sandParticles.visible || !_camera) return;
+
+    var camX = _camera.position.x;
+    var camY = _camera.position.y;
+    var camZ = _camera.position.z;
+    var pos  = _sandPositions;
+    var vel  = _sandVelocities;
+    var radius = 30;
+
+    for (var i = 0; i < SAND_COUNT; i++) {
+      var ix = i * 3;
+      pos[ix]     += (vel[ix]     + _windX * 0.5) * delta;
+      pos[ix + 1] += vel[ix + 1] * delta;
+      pos[ix + 2] += (vel[ix + 2] + _windZ * 0.5) * delta;
+
+      /* Swirl: nudge velocity tangentially to add rotation */
+      var dx = pos[ix] - camX;
+      var dz = pos[ix + 2] - camZ;
+      var dist = Math.sqrt(dx * dx + dz * dz) + 0.001;
+      var swirl = 0.4 * delta;
+      vel[ix]     += (-dz / dist) * swirl - vel[ix] * 0.02 * delta;
+      vel[ix + 2] += ( dx / dist) * swirl - vel[ix + 2] * 0.02 * delta;
+
+      /* Vertical bounce */
+      if (pos[ix + 1] < camY - 1 || pos[ix + 1] > camY + 14) {
+        pos[ix + 1] = camY + Math.random() * 10;
+        vel[ix + 1] = (Math.random() - 0.5) * 2;
+      }
+
+      /* Recycle out-of-radius particles */
+      if (dist > radius + 5) {
+        var ang = Math.random() * Math.PI * 2;
+        pos[ix]     = camX + Math.cos(ang) * radius * Math.random();
+        pos[ix + 2] = camZ + Math.sin(ang) * radius * Math.random();
+        pos[ix + 1] = camY + Math.random() * 10;
+      }
+    }
+    _sandParticles.geometry.attributes.position.needsUpdate = true;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  LIGHTNING                                                          */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _updateLightning(delta) {
+    if (_currentState !== STATES.HEAVY_RAIN) {
+      /* Restore ambient if a flash was in progress */
+      if (_lightningFlashTime > 0) {
+        _lightningFlashTime = 0;
+        _applyAmbient();
+      }
+      if (_thunderPending) {
+        _thunderPending = false;
+        _thunderTimer = 0;
+      }
+      return;
+    }
+
+    /* Count down to next strike */
+    _lightningTimer -= delta;
+    if (_lightningTimer <= 0) {
+      _lightningTimer = 8 + Math.random() * 12;
+      _lightningFlashTime = 0.1;
+
+      /* Schedule thunder after 1-3s */
+      _thunderPending = true;
+      _thunderDelay = 1 + Math.random() * 2;
+      _thunderTimer = _thunderDelay;
+    }
+
+    /* Flash: spike ambient to 3.0, hold for 0.1s then revert */
+    if (_lightningFlashTime > 0) {
+      _lightningFlashTime -= delta;
+      if (_ambientLight) _ambientLight.intensity = 3.0;
+      if (_lightningFlashTime <= 0) {
+        _lightningFlashTime = 0;
+        _ambientIntensity = _ambientTarget;
+        _applyAmbient();
+      }
+    }
+
+    /* Thunder rumble */
+    if (_thunderPending) {
+      _thunderTimer -= delta;
+      if (_thunderTimer <= 0) {
+        _thunderPending = false;
+        _playThunder();
+      }
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  PUDDLES                                                            */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _createPuddleGroup() {
+    if (!_scene) return;
+    _puddleGroup = new THREE.Group();
+    _puddleGroup.name = 'weather-puddles';
+    _scene.add(_puddleGroup);
+  }
+
+  function _spawnPuddles() {
+    if (!_puddleGroup || !_camera) return;
+    _removePuddles();
+
+    var geo = new THREE.CylinderGeometry(1.2, 1.2, 0.02, 16);
+    var mat = new THREE.MeshStandardMaterial({
+      color: 0x334455,
+      metalness: 0.9,
+      roughness: 0.05,
+      transparent: true,
+      opacity: 0.75
+    });
+
+    for (var i = 0; i < PUDDLE_COUNT; i++) {
+      var mesh = new THREE.Mesh(geo, mat);
+      var angle = (i / PUDDLE_COUNT) * Math.PI * 2 + Math.random();
+      var r = 5 + Math.random() * 12;
+      var px = _camera.position.x + Math.cos(angle) * r;
+      var pz = _camera.position.z + Math.sin(angle) * r;
+      var py = 0.01;
+      if (window.VoxelWorld && typeof window.VoxelWorld.getHeight === 'function') {
+        try { py = window.VoxelWorld.getHeight(px, pz) + 0.02; } catch (e) {}
+      }
+      mesh.position.set(px, py, pz);
+      _puddleGroup.add(mesh);
+      _puddles.push(mesh);
+    }
+  }
+
+  function _removePuddles() {
+    for (var i = 0; i < _puddles.length; i++) {
+      _puddleGroup.remove(_puddles[i]);
+      if (_puddles[i].geometry) _puddles[i].geometry.dispose();
+      if (_puddles[i].material) _puddles[i].material.dispose();
+    }
+    _puddles = [];
+  }
+
+  function _updatePuddles(delta) {
+    /* Subtle ripple: scale oscillation */
+    var t = Date.now() * 0.001;
+    for (var i = 0; i < _puddles.length; i++) {
+      var s = 1.0 + Math.sin(t * 1.5 + i * 1.3) * 0.04;
+      _puddles[i].scale.set(s, 1, s);
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  FOOTSTEP SPLASH (Web Audio white-noise burst ~2kHz)               */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _ensureAudioCtx() {
+    if (_audioCtx) return _audioCtx;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) _audioCtx = new AC();
+    } catch (e) {}
+    return _audioCtx;
+  }
+
+  function _playThunder() {
+    var ctx = _ensureAudioCtx();
+    if (!ctx) return;
+    try {
+      var buf = ctx.createBuffer(1, ctx.sampleRate * 1.5, ctx.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.max(0, 1 - i / (ctx.sampleRate * 0.8));
+      }
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      var bpf = ctx.createBiquadFilter();
+      bpf.type = 'lowpass';
+      bpf.frequency.value = 120;
+      bpf.Q.value = 0.5;
+      var gain = ctx.createGain();
+      gain.gain.value = 0.6;
+      src.connect(bpf);
+      bpf.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+    } catch (e) {}
+  }
+
+  function _playFootstepSplash() {
+    var ctx = _ensureAudioCtx();
+    if (!ctx) return;
+    try {
+      var duration = 0.06;
+      var buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * duration), ctx.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      }
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      var bpf = ctx.createBiquadFilter();
+      bpf.type = 'bandpass';
+      bpf.frequency.value = 2000;
+      bpf.Q.value = 1.5;
+      var gain = ctx.createGain();
+      gain.gain.value = 0.25;
+      src.connect(bpf);
+      bpf.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+    } catch (e) {}
+  }
+
+  function _updateFootstepSplash(delta) {
+    var needsSplash = (_currentState === STATES.RAIN || _currentState === STATES.HEAVY_RAIN);
+    if (!needsSplash) return;
+
+    /* Detect player movement via camera position change (approximate) */
+    if (!_camera) return;
+    _splashTimer += delta;
+    if (_splashTimer >= _splashInterval) {
+      _splashTimer = 0;
+      _playFootstepSplash();
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  HUD                                                                */
+  /* ─────────────────────────────────────────────────────────────────── */
+  function _createHUD() {
+    if (typeof document === 'undefined') return;
+
+    _hudEl = document.createElement('div');
+    _hudEl.id = 'weather-hud';
+    _hudEl.style.cssText = [
+      'position:fixed',
+      'top:12px',
+      'left:12px',
+      'z-index:9999',
+      'background:rgba(0,0,0,0.45)',
+      'color:#fff',
+      'font-family:sans-serif',
+      'font-size:18px',
+      'padding:6px 10px',
+      'border-radius:6px',
+      'pointer-events:none',
+      'user-select:none',
+      'line-height:1.4'
+    ].join(';');
+
+    _hudIcon = document.createElement('span');
+    _hudIcon.textContent = HUD_ICONS.CLEAR;
+
+    _hudWind = document.createElement('span');
+    _hudWind.style.cssText = 'font-size:12px;margin-left:6px;opacity:0.8;vertical-align:middle';
+    _hudWind.textContent = '0 km/h';
+
+    _hudEl.appendChild(_hudIcon);
+    _hudEl.appendChild(_hudWind);
+    document.body.appendChild(_hudEl);
+  }
+
+  function _updateHUD() {
+    if (!_hudIcon || !_hudWind) return;
+    _hudIcon.textContent = HUD_ICONS[_currentState] || HUD_ICONS.CLEAR;
+    _hudWind.textContent = _windSpeedKmh + ' km/h';
+  }
+
+  /* ─────────────────────────────────────────────────────────────────── */
+  /*  PUBLIC API                                                         */
+  /* ─────────────────────────────────────────────────────────────────── */
+
+  /**
+   * Apply bullet wind drift: modifies a THREE.Vector3 velocity in-place.
+   * Call per projectile update: WeatherSystem.applyWindDrift(velocity, distanceTravelled)
+   */
+  function applyWindDrift(velocityVec, distanceMetres) {
+    if (!velocityVec) return;
+    var drift = 0.002;
+    velocityVec.x += _windX * drift * distanceMetres;
+    velocityVec.z += _windZ * drift * distanceMetres;
+  }
+
+  function forceWeather(state) {
+    if (!STATES[state]) {
+      var valid = Object.keys(STATES).join(', ');
+      console.warn('[WeatherSystem] Unknown state "' + state + '". Valid: ' + valid);
+      return;
+    }
+    _stateTimer = 0;
+    _stateDuration = 60 + Math.random() * 120;
+    _setState(state, false);
+  }
+
+  function getCurrentWeather() {
+    return _currentState;
+  }
+
+  /**
+   * Returns per-state gameplay modifiers so other systems can read them.
+   * {
+   *   speedMult    : number  — multiply player move speed by this
+   *   weaponSway   : number  — weapon sway scale multiplier
+   *   windX, windZ : number  — world-space wind m/s
+   * }
+   */
   function getModifiers() {
-    switch (currentWeather) {
-      case WEATHER.RAIN:
-        return { accuracyMod: 0.9, speedMod: 1.0, visionRange: 0.85, label: '🌧 Rain' };
-      case WEATHER.HEAVY_RAIN:
-        return { accuracyMod: 0.75, speedMod: 0.95, visionRange: 0.65, label: '⛈ Storm' };
-      case WEATHER.SNOW:
-        return { accuracyMod: 0.95, speedMod: 0.85, visionRange: 0.75, label: '🌨 Snow' };
-      case WEATHER.FOG:
-        return { accuracyMod: 1.0, speedMod: 1.0, visionRange: 0.4, label: '🌫 Fog' };
-      case WEATHER.OVERCAST:
-        return { accuracyMod: 1.0, speedMod: 1.0, visionRange: 0.95, label: '☁ Overcast' };
-      default:
-        return { accuracyMod: 1.0, speedMod: 1.0, visionRange: 1.0, label: '☀ Clear' };
-    }
+    return MODIFIER_CONFIG[_currentState];
   }
 
-  /* ── Extreme Weather Events ──────────────────────────────────────── */
-  var EXTREME_EVENTS = {
-    blizzard:     { label: 'Blizzard',     visionMod: 0.05, speedMod: 0.5,  dmgPerSec: 0, duration: 30 },
-    sandstorm:    { label: 'Sandstorm',    visionMod: 0.15, speedMod: 0.7,  dmgPerSec: 2, duration: 25 },
-    tornado:      { label: 'Tornado',      visionMod: 0.3,  speedMod: 0.4,  dmgPerSec: 0, duration: 20, windForce: 30 },
-    hailstorm:    { label: 'Hailstorm',    visionMod: 0.5,  speedMod: 0.85, dmgPerSec: 3, duration: 20 },
-    thunderstorm: { label: 'Thunderstorm', visionMod: 0.35, speedMod: 0.9,  dmgPerSec: 0, duration: 30, lightning: true },
-  };
-
-  var _extremeEvent = null;
-  var _extremeTimer = 0;
-
-  function triggerExtremeEvent(type) {
-    var ev = EXTREME_EVENTS[type];
-    if (!ev) return false;
-    _extremeEvent = { type: type, config: ev, elapsed: 0 };
-    _extremeTimer = ev.duration;
-    return true;
-  }
-
-  function updateExtremeEvent(delta) {
-    if (!_extremeEvent) return null;
-    _extremeEvent.elapsed += delta;
-    _extremeTimer -= delta;
-    if (_extremeTimer <= 0) {
-      var finished = _extremeEvent;
-      _extremeEvent = null;
-      _extremeTimer = 0;
-      return finished;
-    }
-    // Apply periodic damage
-    var cfg = _extremeEvent.config;
-    if (cfg.dmgPerSec > 0 && typeof GameManager !== 'undefined') {
-      var p = GameManager.getPlayer();
-      if (p) p.hp -= cfg.dmgPerSec * delta;
-    }
-    // Lightning strikes during thunderstorm kill nearby enemies
-    if (cfg.lightning && Math.random() < delta * 0.3) {
-      if (typeof Enemies !== 'undefined' && Enemies.getAll) {
-        var enemies = Enemies.getAll();
-        if (enemies.length > 0) {
-          var target = enemies[Math.floor(Math.random() * enemies.length)];
-          if (target.alive) {
-            Enemies.damage(target, 999);
-            if (typeof AudioSystem !== 'undefined' && AudioSystem.playExplosion) AudioSystem.playExplosion();
-          }
-        }
-      }
-    }
-    return _extremeEvent;
-  }
-
-  function getExtremeEvent() {
-    return _extremeEvent;
-  }
-
-  /* ── Weather Forecast ────────────────────────────────────────────── */
-  var _forecast = [];
-
-  function generateForecast() {
-    _forecast = [];
-    var weathers = Object.values(WEATHER);
-    for (var i = 0; i < 3; i++) {
-      _forecast.push({
-        weather: weathers[Math.floor(Math.random() * weathers.length)],
-        timeUntil: (i + 1) * (60 + Math.floor(Math.random() * 120)),
-      });
-    }
-    return _forecast;
-  }
-
-  function getForecast() {
-    if (_forecast.length === 0) generateForecast();
-    return _forecast.slice();
-  }
-
-  /* ── Temperature System ──────────────────────────────────────────── */
-  var _temperature = 20; // Celsius
-
-  function updateTemperature(timeOfDay, season) {
-    // timeOfDay: 0-24 hours, season: 'spring'|'summer'|'autumn'|'winter'
-    var baseTemps = {
-      spring: 15, summer: 28, autumn: 12, winter: -5,
-    };
-    var base = baseTemps[season] || 20;
-    // Cooler at night (0-6, 18-24), warmer midday (10-14)
-    var hourFactor = 0;
-    if (timeOfDay >= 10 && timeOfDay <= 14) {
-      hourFactor = 8;
-    } else if (timeOfDay >= 0 && timeOfDay < 6) {
-      hourFactor = -6;
-    } else if (timeOfDay >= 18) {
-      hourFactor = -4;
-    }
-    _temperature = base + hourFactor + (Math.random() - 0.5) * 2;
-    return _temperature;
-  }
-
-  function getTemperature() {
-    return _temperature;
-  }
-
-  function getTemperatureEffects() {
-    var staminaDrain = 1.0;
-    var healRate = 1.0;
-    if (_temperature > 35) {
-      staminaDrain = 1.5;  // heat exhaustion
-      healRate = 0.8;
-    } else if (_temperature < 0) {
-      staminaDrain = 1.3;  // cold saps energy
-      healRate = 0.7;
-    } else if (_temperature >= 18 && _temperature <= 25) {
-      staminaDrain = 0.9;  // comfortable
-      healRate = 1.1;
-    }
-    return { staminaDrain: staminaDrain, healRate: healRate };
-  }
-
-  function clear() {
-    if (particles) {
-      if (_scene) _scene.remove(particles);
-      if (particles.geometry) particles.geometry.dispose();
-      if (particles.material) particles.material.dispose();
-      particles = null;
-    }
-    if (_lightningFlash) {
-      if (_scene) _scene.remove(_lightningFlash);
-      _lightningFlash.dispose();
-      _lightningFlash = null;
-    }
-    if (_cloudGroup) {
-      for (var ci = 0; ci < _clouds.length; ci++) {
-        var sm = _clouds[ci].sprite.material;
-        if (sm.map) sm.map.dispose();
-        sm.dispose();
-      }
-      if (_scene) _scene.remove(_cloudGroup);
-      _cloudGroup = null;
-      _clouds.length = 0;
-    }
-    if (_snowCover) {
-      if (_scene) _scene.remove(_snowCover);
-      if (_snowCover.geometry) _snowCover.geometry.dispose();
-      if (_snowCover.material) {
-        if (_snowCover.material.map) _snowCover.material.map.dispose();
-        _snowCover.material.dispose();
-      }
-      _snowCover = null;
-      _snowDummy = null;
-    }
-    // Restore light tints
-    if (_hemiLight && _baseHemiSky) _hemiLight.color.copy(_baseHemiSky);
-    if (_ambLight && _baseAmbColor) _ambLight.color.copy(_baseAmbColor);
-    _hemiLight = null; _ambLight = null;
-    _baseHemiSky = null; _baseAmbColor = null;
-    _snowAccumulation = 0;
-    _snowAccumulationTarget = 0;
-    particleCount = 0;
-    currentWeather = WEATHER.CLEAR;
-    weatherTimer = 0;
-    targetFogDensity = 0;
-    _lightningTimer = 0;
-    _extremeEvent = null;
-    _extremeTimer = 0;
-    _forecast = [];
-    _temperature = 20;
+  function reset() {
+    _setState(STATES.CLEAR, true);
+    _stateTimer = 0;
+    _stateDuration = 120;
+    _transitionProgress = 1.0;
+    _lightningTimer = 8 + Math.random() * 12;
+    _lightningFlashTime = 0;
+    _thunderPending = false;
+    _splashTimer = 0;
+    _windX = 0;
+    _windZ = 0;
+    _windSpeedKmh = 0;
+    _removePuddles();
+    if (_rainLines)     _rainLines.visible = false;
+    if (_sandParticles) _sandParticles.visible = false;
   }
 
   return {
-    WEATHER: WEATHER,
-    init: init,
-    update: update,
-    clear: clear,
-    setWeather: setWeather,
-    getWeather: getWeather,
-    getModifiers: getModifiers,
-    // Extreme Weather Events
-    EXTREME_EVENTS: EXTREME_EVENTS,
-    triggerExtremeEvent: triggerExtremeEvent,
-    updateExtremeEvent: updateExtremeEvent,
-    getExtremeEvent: getExtremeEvent,
-    // Weather Forecast
-    generateForecast: generateForecast,
-    getForecast: getForecast,
-    // Temperature System
-    updateTemperature: updateTemperature,
-    getTemperature: getTemperature,
-    getTemperatureEffects: getTemperatureEffects,
+    STATES: STATES,
+    init:              init,
+    update:            update,
+    reset:             reset,
+    forceWeather:      forceWeather,
+    getCurrentWeather: getCurrentWeather,
+    getModifiers:      getModifiers,
+    applyWindDrift:    applyWindDrift
   };
 })();
-
-// Expose globally so other modules and test harnesses can access it.
-if (typeof window !== 'undefined') window.WeatherSystem = WeatherSystem;

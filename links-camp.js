@@ -1,0 +1,136 @@
+window.LinksCamp = (function() {
+    'use strict';
+    var scene = null;
+    var camera = null;
+    var objects = [];
+    var lights = [];
+    function init(sceneRef, cameraRef) {
+        scene = sceneRef; camera = cameraRef;
+        objects = []; lights = [];
+        buildCamp();
+    }
+    function buildCamp() {
+        var material1 = new THREE.MeshLambertMaterial({ color: 0xcd853f });
+        var material2 = new THREE.MeshLambertMaterial({ color: 0x8b7355 });
+        var material3 = new THREE.MeshLambertMaterial({ color: 0x556b2f });
+        var material4 = new THREE.MeshLambertMaterial({ color: 0x696969 });
+        var material5 = new THREE.MeshLambertMaterial({ color: 0x2f4f4f });
+        var material6 = new THREE.MeshLambertMaterial({ color: 0x32cd32 });
+        var bunker1 = new THREE.Mesh(new THREE.BoxGeometry(8, 2, 8), material1);
+        bunker1.position.set(-25, 1, -20);
+        scene.add(bunker1);
+        objects.push(bunker1);
+        var bunker2 = new THREE.Mesh(new THREE.BoxGeometry(10, 2, 6), material1);
+        bunker2.position.set(20, 1, 15);
+        scene.add(bunker2);
+        objects.push(bunker2);
+        var bunker3 = new THREE.Mesh(new THREE.BoxGeometry(6, 2, 10), material1);
+        bunker3.position.set(0, 1, 25);
+        scene.add(bunker3);
+        objects.push(bunker3);
+        var pole1 = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 12, 8), material4);
+        pole1.position.set(-20, 6, -15);
+        scene.add(pole1);
+        objects.push(pole1);
+        var platform1 = new THREE.Mesh(new THREE.BoxGeometry(4, 1, 4), material2);
+        platform1.position.set(-20, 12, -15);
+        scene.add(platform1);
+        objects.push(platform1);
+        var pole2 = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 14, 8), material4);
+        pole2.position.set(15, 7, 20);
+        scene.add(pole2);
+        objects.push(pole2);
+        var platform2 = new THREE.Mesh(new THREE.BoxGeometry(4, 1, 4), material2);
+        platform2.position.set(15, 14, 20);
+        scene.add(platform2);
+        objects.push(platform2);
+        var clubhouse = new THREE.Mesh(new THREE.BoxGeometry(16, 8, 12), material4);
+        clubhouse.position.set(-5, 4, -28);
+        scene.add(clubhouse);
+        objects.push(clubhouse);
+        var crenelation1 = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 2), material4);
+        crenelation1.position.set(-12, 10, -34);
+        scene.add(crenelation1);
+        objects.push(crenelation1);
+        var crenelation2 = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 2), material4);
+        crenelation2.position.set(2, 10, -34);
+        scene.add(crenelation2);
+        objects.push(crenelation2);
+        var sandbag1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1, 1.5), material2);
+        sandbag1.position.set(-30, 0.5, -8);
+        scene.add(sandbag1);
+        objects.push(sandbag1);
+        var sandbag2 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1, 1.5), material2);
+        sandbag2.position.set(-30, 1.5, -8);
+        scene.add(sandbag2);
+        objects.push(sandbag2);
+        var sandbag3 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1, 1.5), material2);
+        sandbag3.position.set(28, 0.5, 5);
+        scene.add(sandbag3);
+        objects.push(sandbag3);
+        var sandbag4 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1, 1.5), material2);
+        sandbag4.position.set(28, 1.5, 5);
+        scene.add(sandbag4);
+        objects.push(sandbag4);
+        var greenMound = new THREE.Mesh(new THREE.SphereGeometry(5, 12, 8), material6);
+        greenMound.position.set(8, 3, 8);
+        scene.add(greenMound);
+        objects.push(greenMound);
+        var cartBody = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 5), material5);
+        cartBody.position.set(-15, 1, 5);
+        scene.add(cartBody);
+        objects.push(cartBody);
+        var wheel1 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.5, 8), material4);
+        wheel1.position.set(-16.5, 1.2, 3);
+        scene.add(wheel1);
+        objects.push(wheel1);
+        var wheel2 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.5, 8), material4);
+        wheel2.position.set(-13.5, 1.2, 3);
+        scene.add(wheel2);
+        objects.push(wheel2);
+        var wheel3 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.5, 8), material4);
+        wheel3.position.set(-16.5, 1.2, 7);
+        scene.add(wheel3);
+        objects.push(wheel3);
+        var wheel4 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.5, 8), material4);
+        wheel4.position.set(-13.5, 1.2, 7);
+        scene.add(wheel4);
+        objects.push(wheel4);
+        var post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 3, 8), material5);
+        post1.position.set(-22, 1.5, 10);
+        scene.add(post1);
+        objects.push(post1);
+        var post2 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 3, 8), material5);
+        post2.position.set(-18, 1.5, 10);
+        scene.add(post2);
+        objects.push(post2);
+        var wirePoints = [
+            new THREE.Vector3(-22, 2, 10),
+            new THREE.Vector3(-18, 2, 10)
+        ];
+        var wireGeometry = new THREE.BufferGeometry().setFromPoints(wirePoints);
+        var wireMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+        var tripwire = new THREE.LineSegments(wireGeometry, wireMaterial);
+        scene.add(tripwire);
+        objects.push(tripwire);
+        var light1 = new THREE.PointLight(0xffffff, 1, 50);
+        light1.position.set(-5, 10, -28);
+        scene.add(light1);
+        lights.push(light1);
+        var light2 = new THREE.PointLight(0xffffcc, 0.8, 60);
+        light2.position.set(10, 8, 10);
+        scene.add(light2);
+        lights.push(light2);
+    }
+    function update(delta) {
+    }
+    function reset() {
+        for (var i = 0; i < objects.length; i++) scene.remove(objects[i]);
+        for (var i = 0; i < lights.length; i++) scene.remove(lights[i]);
+        objects = [];
+        lights = [];
+        scene = null;
+        camera = null;
+    }
+    return { init: init, update: update, reset: reset };
+}());

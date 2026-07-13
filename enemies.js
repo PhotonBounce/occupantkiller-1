@@ -9,10 +9,6 @@
 
 const Enemies = (() => {
 
-  const _isMobileEn = (function() {
-    try { return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0; } catch(e) { return false; }
-  })();
-
   const MAX_CLIMBABLE_HEIGHT = 2; // Max terrain height difference enemies can climb
   const bloodParticles = [];
   // Persistent blood-pool decals on the ground (fade out over time)
@@ -27,6 +23,31 @@ const Enemies = (() => {
 
   // ── Floating damage numbers ────────────────────────────────
   const _dmgNumbers = [];
+
+  // ── Suspicious "?" icon shared texture ───────────────────
+  var _suspiciousTexture = null;
+  function getSuspiciousTexture() {
+    if (_suspiciousTexture) return _suspiciousTexture;
+    var c = document.createElement('canvas');
+    c.width = 32; c.height = 32;
+    var ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, 32, 32);
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath(); ctx.arc(16, 16, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.font = 'bold 24px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#000000';
+    ctx.fillText('?', 16, 16);
+    _suspiciousTexture = new THREE.CanvasTexture(c);
+    return _suspiciousTexture;
+  }
+  function buildSuspiciousIcon() {
+    var mat = new THREE.SpriteMaterial({ map: getSuspiciousTexture(), depthTest: false, transparent: true });
+    var sprite = new THREE.Sprite(mat);
+    sprite.scale.set(0.45, 0.45, 1);
+    sprite.visible = false;
+    return sprite;
+  }
 
   // ── Alert icon shared texture ("!" above enemy) ───────────
   let _alertTexture = null;
@@ -120,9 +141,34 @@ const Enemies = (() => {
     charge:    'УРААА!',
     hurt:      'Он ранен!',
     reinforce: 'Подкрепление!',
-    spotted:   'Вижу его!',
+    spotted:   'Вижу його!',
   };
   var _lastAlertTime = 0;
+
+  // ── Enemy Taunts System ───────────────────────────────────
+  var _enemyTauntTimer = {};
+  var ENEMY_TAUNTS = {
+    DEFAULT:   ['FOR RUSSIA!', 'DIE FOR PUTIN!', 'COVER ME!', 'GRENADE OUT!', 'FLANKING!'],
+    SPETSNAZ:  ['SPETSNAZ NEVER RETREATS!', 'FOR THE MOTHERLAND!', 'БАНДЕРОВЕЦЬ!'],
+    WAGNER:    ['WAGNER NEVER DIES!', 'PRIGOZHIN LIVES IN US!', 'COOK THE BAKHMUT!'],
+    COMMISSAR: ['COWARDS WILL BE SHOT!', 'NO RETREAT BY ORDER!', 'FORWARD, DOGS!'],
+    TANK:      ['TARGET ACQUIRED!', 'ARMOR IS INDESTRUCTIBLE!', 'T-72 UNSTOPPABLE!'],
+    BOMBER:    ['ALLAHU AKBAR!', 'I DIE FOR RUSSIA!', 'BOOM!'],
+  };
+  function maybeTaunt(enemy) {
+    var now = performance.now();
+    var key = enemy.id || (enemy.x + ',' + enemy.z);
+    if (!_enemyTauntTimer[key] || now - _enemyTauntTimer[key] > 8000 + Math.random() * 12000) {
+      _enemyTauntTimer[key] = now;
+      var type = (enemy.typeCfg && enemy.typeCfg.id) ? enemy.typeCfg.id : 'DEFAULT';
+      var taunts = ENEMY_TAUNTS[type] || ENEMY_TAUNTS.DEFAULT;
+      var taunt = taunts[Math.floor(Math.random() * taunts.length)];
+      if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+        HUD.notifyPickup('☭ ' + taunt, '#cc4444');
+      }
+    }
+  }
+
   function spawnBarkText(pos, barkType) {
     if (!scene) return;
     var text = _BARK_TEXTS[barkType] || barkType;
@@ -614,11 +660,10 @@ const Enemies = (() => {
     },
     BOSS_KREMLIN: {
       name: 'BOSS_KREMLIN', hpBase: 5000, speedBase: 1.5, scale: 3.0,
-      camoVariant: 'dark', bodyColor: 0x3a0a6a, headColor: 0x8aaa78,
-      limbColor: 0x280850, helmetColor: 0x1a0538, eyeColor: 0xff0000,
+      camoVariant: 'dark', bodyColor: 0xcc0000, headColor: 0xd0b090,
+      limbColor: 0xaa0000, helmetColor: 0x880000, eyeColor: 0xff0000,
       attackDmg: 100, attackRate: 1.0, scoreValue: 25000, dropChance: 1.0,
       role: 'boss', range: 20, rangedDmg: 250, rangedRate: 2.5, accuracy: 0.7,
-      baldHead: true, zombie: true,
     },
     BOSS_KYIV: {
       name: 'BOSS_KYIV', hpBase: 1800, speedBase: 1.8, scale: 2.2,
@@ -654,6 +699,83 @@ const Enemies = (() => {
       limbColor: 0x1a3318, helmetColor: 0x112211, eyeColor: 0x44ff44,
       attackDmg: 55, attackRate: 1.0, scoreValue: 11000, dropChance: 1.0,
       role: 'boss', range: 16, rangedDmg: 55, rangedRate: 1.2, accuracy: 0.55,
+    },
+    // ── New enemy types ─────────────────────────────────────
+    DRONE_OPERATOR: {
+      name:        'DRONE_OPERATOR',
+      hpBase:      80,
+      speedBase:   1.5,
+      scale:       1.0,
+      camoVariant: 'light',
+      bodyColor:   0x9a8a6a,   // tan uniform
+      headColor:   0xc8a882,
+      limbColor:   EMR_CAMO.dark,
+      helmetColor: 0x3a3a2a,
+      eyeColor:    0x00ccff,
+      attackDmg:   15,
+      attackRate:  1.5,
+      scoreValue:  60,
+      dropChance:  0.40,
+      role:        'drone_operator',
+      range: 45, rangedDmg: 15, rangedRate: 1.5, accuracy: 0.35,
+    },
+    SNIPER_OP: {
+      name:        'SNIPER_OP',
+      hpBase:      70,
+      speedBase:   1.2,
+      scale:       1.0,
+      camoVariant: 'dark',
+      bodyColor:   0x3a5a2a,   // green ghillie base
+      headColor:   0xa09070,
+      limbColor:   0x2a4a1a,
+      helmetColor: 0x2a3a1a,
+      eyeColor:    0xff6600,
+      attackDmg:   85,
+      attackRate:  4.0,
+      scoreValue:  80,
+      dropChance:  0.55,
+      role:        'sniper_op',
+      range: 80, rangedDmg: 85, rangedRate: 4.0, accuracy: 0.75,
+    },
+    TANK_CREW: {
+      name:        'TANK_CREW',
+      hpBase:      120,
+      speedBase:   3.5,
+      scale:       1.0,
+      camoVariant: 'dark',
+      bodyColor:   0x1a1a1a,   // dark jumpsuit
+      headColor:   0xb09070,
+      limbColor:   0x111111,
+      helmetColor: 0x1a1a1a,
+      eyeColor:    0xff4400,
+      attackDmg:   25,
+      attackRate:  1.0,
+      scoreValue:  45,
+      dropChance:  0.35,
+      role:        'tank_crew',
+      range: 20, rangedDmg: 25, rangedRate: 1.2, accuracy: 0.4,
+    },
+    // ── Field Commander enemy types ─────────────────────────────
+    GENERAL_KOZLOV: {
+      name: 'GENERAL_KOZLOV', hpBase: 800, speedBase: 2.5, scale: 1.3,
+      camoVariant: 'dark', bodyColor: 0x1a1a2a, headColor: 0xb09070,
+      limbColor: 0x111122, helmetColor: 0x1a1a1a, eyeColor: 0xff0000,
+      attackDmg: 50, attackRate: 1.0, scoreValue: 5000, dropChance: 1.0,
+      role: 'general', range: 25, rangedDmg: 45, rangedRate: 1.2, accuracy: 0.75,
+    },
+    COLONEL_VADIM: {
+      name: 'COLONEL_VADIM', hpBase: 450, speedBase: 3.5, scale: 1.2,
+      camoVariant: 'dark', bodyColor: 0x2a1a0a, headColor: 0xb09070,
+      limbColor: 0x221100, helmetColor: 0x1a0a0a, eyeColor: 0xff4400,
+      attackDmg: 35, attackRate: 0.8, scoreValue: 3000, dropChance: 1.0,
+      role: 'colonel', range: 20, rangedDmg: 30, rangedRate: 1.0, accuracy: 0.70,
+    },
+    CAPTAIN_IGOR: {
+      name: 'CAPTAIN_IGOR', hpBase: 200, speedBase: 5.0, scale: 1.15,
+      camoVariant: 'dark', bodyColor: 0x1a2a1a, headColor: 0xb09070,
+      limbColor: 0x112211, helmetColor: 0x0a1a0a, eyeColor: 0x00ff44,
+      attackDmg: 25, attackRate: 0.6, scoreValue: 1500, dropChance: 0.90,
+      role: 'captain', range: 15, rangedDmg: 22, rangedRate: 0.9, accuracy: 0.65,
     },
   };
 
@@ -697,6 +819,223 @@ const Enemies = (() => {
       }
     }
     return bestPos ? bestPos.clone() : null;
+  }
+
+  // ── Squad Tactics Helper Functions ─────────────────────
+
+  // Alert nearby allies when this enemy first spots the player
+  function _alertNearbyAllies(e, all) {
+    for (var _ani = 0; _ani < all.length; _ani++) {
+      var ally = all[_ani];
+      if (!ally || ally === e || !ally.alive) continue;
+      var _adx = ally.mesh.position.x - e.mesh.position.x;
+      var _adz = ally.mesh.position.z - e.mesh.position.z;
+      if (_adx*_adx + _adz*_adz < 225) { // 15 unit radius
+        if (ally.alertLevel !== undefined) ally.alertLevel = Math.max(ally.alertLevel || 0, 0.7);
+        if (ally.spotLevel !== undefined) ally.spotLevel = Math.max(ally.spotLevel || 0, ally.spotLevel + 0.4);
+        ally._squadAlertTimer = 1.5; // rapid alert from squad communication
+      }
+    }
+  }
+
+  // Fire suppression burst at a position with wide spread
+  function _fireAtPosition(e, targetPos, spread, playerPos, onPlayerHit) {
+    if (!e || !e.mesh || !targetPos) return;
+    // Add random spread to the target position
+    var spreadX = (Math.random() - 0.5) * spread;
+    var spreadZ = (Math.random() - 0.5) * spread;
+    var aimX = targetPos.x + spreadX;
+    var aimZ = targetPos.z + spreadZ;
+    // Spawn tracer toward spread position
+    if (typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
+      var _ftOrigin = e.mesh.position.clone();
+      _ftOrigin.y += 1.2;
+      var _ftDir = new THREE.Vector3(aimX - e.mesh.position.x, 0, aimZ - e.mesh.position.z);
+      _ftDir.y = (targetPos.y || e.mesh.position.y) - e.mesh.position.y + 0.8;
+      if (_ftDir.lengthSq() > 0.001) {
+        _ftDir.normalize();
+        Tracers.spawnTracer(_ftOrigin, _ftDir, 0xff4400, 80);
+        if (Tracers.spawnMuzzleFlash) Tracers.spawnMuzzleFlash(_ftOrigin, _ftDir);
+      }
+    }
+    // Suppression audio
+    if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playSpatialGunshot && playerPos) {
+      var _camAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : 0;
+      window.AudioSystem.playSpatialGunshot('rifle', e.mesh.position, playerPos, _camAngle);
+    }
+    // Near-miss suppression effect on player if aim is close
+    if (playerPos) {
+      var _spdx = aimX - playerPos.x, _spdz = aimZ - playerPos.z;
+      var _spDist = Math.sqrt(_spdx*_spdx + _spdz*_spdz);
+      if (_spDist < 2.5) {
+        if (typeof GameManager !== 'undefined' && GameManager.addSuppression) {
+          GameManager.addSuppression(0.08);
+        }
+        if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playBulletSnap) {
+          window.AudioSystem.playBulletSnap(0);
+        }
+      }
+    }
+  }
+
+  // Get a position for a bounding enemy to rush forward toward
+  function _getAdvancePosition(e, targetPos) {
+    if (!e || !e.mesh || !targetPos) return null;
+    var _toTarget = new THREE.Vector3(targetPos.x - e.mesh.position.x, 0, targetPos.z - e.mesh.position.z);
+    var _tdist = _toTarget.length();
+    if (_tdist < 0.1) return null;
+    _toTarget.normalize();
+    var _rushDist = 4 + Math.random() * 2;
+    return new THREE.Vector3(
+      e.mesh.position.x + _toTarget.x * _rushDist,
+      e.mesh.position.y,
+      e.mesh.position.z + _toTarget.z * _rushDist
+    );
+  }
+
+  // ── Squad-Level Flanking and Suppressive Fire Tactics ───────
+  // Called once per frame per enemy to apply squad-coordinated behaviors.
+  // Groups of 3 (by index): leader alerts allies, suppressor pins player,
+  // flanker maneuvers 90° around to attack from the side.
+  function _updateSquadTactics(e, player, dt) {
+    if (!e || !e.mesh || !e.alive) return;
+    if (e.squadId === undefined || e.squadId === null) return;
+    if (!e._squadTacticRole) return;
+    // Don't override death or standard retreat
+    if (!e.alive || e.retreating || e.surrendered) return;
+
+    var toPlayer = new THREE.Vector3(
+      player.x - e.mesh.position.x,
+      0,
+      player.z - e.mesh.position.z
+    );
+    var distToPlayer = toPlayer.length();
+
+    if (e._squadTacticRole === 'suppressor' && distToPlayer < 35) {
+      // Suppressor stays put and fires rapidly, pinning the player
+      if (!e._suppressorActive) {
+        e._suppressorActive = true;
+        // Halve fire cooldown permanently while in suppressor role
+        if (e.typeCfg && e._rangedTimer === undefined) e._rangedTimer = 0;
+        e._suppressorRateBoost = true;
+      }
+      e._suppressingPlayer = true;
+      // Back off suppressor if critically hurt or out of range
+      if (distToPlayer > 50 || e.hp < e.maxHp * 0.3) {
+        e._suppressingPlayer = false;
+        e._suppressorActive = false;
+      }
+    } else {
+      e._suppressingPlayer = false;
+    }
+
+    if (e._squadTacticRole === 'flanker' && distToPlayer < 40) {
+      // Flanker moves 90° around the player to attack from the side
+      if (!e._flankTarget && !e.retreating) {
+        var perpDir = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).normalize();
+        // Alternate flank side by squadId parity
+        var flankSign = (e.squadId % 2 === 0) ? 1 : -1;
+        e._flankTarget = new THREE.Vector3(
+          player.x + perpDir.x * flankSign * 15,
+          e.mesh.position.y,
+          player.z + perpDir.z * flankSign * 15
+        );
+      }
+      // Cancel flank if badly hurt
+      if (e.hp < e.maxHp * 0.25) {
+        e._flankTarget = null;
+      }
+    } else if (distToPlayer >= 40) {
+      // Out of range — reset so we recalculate on next approach
+      e._flankTarget = null;
+    }
+
+    if (e._squadTacticRole === 'leader' && distToPlayer < 30) {
+      // Leader coordinates: alerts nearby allies to player position
+      if (!e._coordinateCooldown || e._coordinateCooldown <= 0) {
+        e._coordinateCooldown = 8.0;
+        _alertNearbyAllies(e, enemies);
+        triggerBark(e, 'spotted');
+      }
+    }
+
+    if (e._coordinateCooldown && e._coordinateCooldown > 0) {
+      e._coordinateCooldown -= dt;
+      if (e._coordinateCooldown < 0) e._coordinateCooldown = 0;
+    }
+  }
+
+  // ── Dynamic squad flanking/suppression orders ──
+  function _issueSquadOrders() {
+    if (!_playerPos) return;
+    // Find a "leader" — closest alive enemy to the player that isn't retreating
+    var leader = null, best = Infinity;
+    for (var i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      if (!e || !e.alive || e.retreating) continue;
+      var d = e.mesh.position.distanceTo(_playerPos);
+      if (d < best) { best = d; leader = e; }
+    }
+    if (!leader) return;
+
+    // Build candidate list (all alive, non-leader enemies)
+    var candidates = [];
+    for (var ci = 0; ci < enemies.length; ci++) {
+      var ce = enemies[ci];
+      if (ce && ce.alive && ce !== leader) candidates.push(ce);
+    }
+
+    // Pick 1-2 flankers
+    var numFlankers = Math.min(2, Math.floor(candidates.length / 3));
+    for (var fi = 0; fi < numFlankers; fi++) {
+      if (candidates.length === 0) break;
+      var ridx = Math.floor(Math.random() * candidates.length);
+      var flanker = candidates[ridx];
+      candidates.splice(ridx, 1);
+      if (!flanker || flanker._flanking) continue;
+      flanker._flanking = true;
+      flanker._flankAngle = (Math.PI / 3) * (fi === 0 ? 1 : -1) + (Math.random() - 0.5) * 0.4;
+      flanker._flankTimer = 3.5 + Math.random() * 2;
+      if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playEnemyBark) {
+        window.AudioSystem.playEnemyBark('spot');
+      }
+    }
+
+    // Pick 1 suppressor from remaining candidates
+    if (candidates.length > 0) {
+      var sidx = Math.floor(Math.random() * candidates.length);
+      var suppressor = candidates[sidx];
+      if (suppressor && !suppressor._suppressing) {
+        suppressor._suppressing = true;
+        suppressor._suppressTimer = 2.5 + Math.random() * 1.5;
+        if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playEnemyBark) {
+          window.AudioSystem.playEnemyBark('suppress');
+        }
+      }
+    }
+  }
+
+  // ── Flanking Role Assignment ──────────────────────────────
+  // Distributes approach angles across a group so they surround the player
+  // rather than all rushing from the same direction. Only activates when 3+
+  // enemies are alerted simultaneously.
+  function _assignFlankRoles(group, playerPos) {
+    if (!group || group.length === 0) return;
+    var n = group.length;
+    for (var i = 0; i < n; i++) {
+      var baseAngle = Math.atan2(
+        group[i].mesh.position.z - playerPos.z,
+        group[i].mesh.position.x - playerPos.x
+      );
+      var spread = (Math.PI * 2) / Math.max(n, 3);
+      group[i]._flankAngle = baseAngle + (i - Math.floor(n / 2)) * spread * 0.5;
+      group[i]._flankAssigned = true;
+      group[i]._flankUpdateTimer = 0;
+      group[i]._flankTargetX = undefined;
+      group[i]._flankTargetZ = undefined;
+      group[i]._flankDx = undefined;
+      group[i]._flankDz = undefined;
+    }
   }
 
   // ── Enemy Roles for Assault Groups ──────────────────────
@@ -872,9 +1211,10 @@ const Enemies = (() => {
   let _disguiseBlown = false;   // becomes true once player attacks anyone
   let _aiStrategy = null; // ML counter-strategy for this wave
   let _adaptiveMult = 1.0; // B25: adaptive difficulty multiplier
-  // Corpses that stay in-world as permanent walkable obstacles (max 60)
-  let _persistentCorpses = [];
-  if (typeof window !== 'undefined') window._corpseObstacles = _persistentCorpses;
+
+  // ── Dynamic squad flanking/suppression ──
+  var _squadTimer = 0;        // counts down to next squad command
+  var SQUAD_INTERVAL = 4.0;   // seconds between squad tactical decisions
 
   const ARENA_SIZE = 24;
   const DETECTION_RANGE = 14;   // enemies detect player within this range
@@ -917,7 +1257,7 @@ const Enemies = (() => {
     scene.add(mesh);
     _enemyGrenades.push({ mesh: mesh, vx: vx, vy: vy, vz: vz, life: t + 0.5, dmg: 35, radius: 4, _trailT: 0, _beaconMat: beaconMat });
   }
-  function updateEnemyGrenades(delta, playerPos) {
+  function updateEnemyGrenades(delta, playerPos, onPlayerHit) {
     var _nearestG = Infinity;
     for (var i = _enemyGrenades.length - 1; i >= 0; i--) {
       var g = _enemyGrenades[i];
@@ -974,14 +1314,14 @@ const Enemies = (() => {
     2: { bias: 0.45, pool: ['CONSCRIPT','STORMER','ENGINEER','ARMORED','SNIPER'] },                // Avdiivka — defenders + snipers as per objective
     3: { bias: 0.50, pool: ['STORMER','MORTAR','ARMORED','SABOTEUR','WAGNER'] },                    // Bakhmut — Wagner meat-grinder + heavy mortar
     4: { bias: 0.45, pool: ['CONSCRIPT','SNIPER','BTR','STORMER','ARMORED'] },                      // Kherson — river crossing + armor drowned in Dnipro
-    5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER'] },       // Mariupol — CQB in steelworks
+    5: { bias: 0.55, pool: ['FLAMETHROWER','SHIELD_BEARER','STORMER','ARMORED','ENGINEER','CAPTAIN_IGOR'] },       // Mariupol — CQB in steelworks
     6: { bias: 0.50, pool: ['DRONE_OP','KAMIKAZE_DRONE','PARATROOP','SNIPER','SNIPER_ELITE'] },     // Crimea — naval marines landing + air+sea drones
     7: { bias: 0.55, pool: ['WAR_DOG','BOMBER','WAGNER','SABOTEUR','SPETSNAZ'] },                   // Chornobyl — feral+mutant+Spetsnaz (objective says "Spetsnaz")
-    8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER'] }, // Moscow — elite FSB
+    8: { bias: 0.50, pool: ['SPETSNAZ','SNIPER_ELITE','EW_OPERATOR','COMMISSAR','SHIELD_BEARER','COLONEL_VADIM'] }, // Moscow — elite FSB
     9: { bias: 0.55, pool: ['BTR','DRONE_OP','HEAVY_SNIPER','STORMER','MORTAR'] },                  // Sevastopol — naval base
     10:{ bias: 0.60, pool: ['KADYROVITE','WAGNER','COMMISSAR','MORTAR','ARMORED'] },                 // Donbas — entrenched
     11:{ bias: 0.60, pool: ['SPETSNAZ','THERMOBARIC','ASSAULT_MECH','HEAVY_SNIPER','BTR'] },          // Belgorod — mechanized (VehicleSystem handles tank visuals)
-    12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR'] },    // Kremlin — everything
+    12:{ bias: 0.65, pool: ['SPETSNAZ','ASSAULT_MECH','THERMOBARIC','SWARM_OP','EW_OPERATOR','GENERAL_KOZLOV'] },    // Kremlin — everything
     13:{ bias: 0.60, pool: ['CONSCRIPT','STORMER','PARATROOP','DRONE_OP','SPETSNAZ'] },             // Kyiv — column escort infantry (armor comes from ConvoySystem)
     14:{ bias: 0.55, pool: ['DRONE_OP','BTR','SABOTEUR','BOMBER','MORTAR'] },                      // Snake Island — naval commandos + bombardment
     15:{ bias: 0.55, pool: ['PARATROOP','DRONE_OP','SPETSNAZ','KAMIKAZE_DRONE','SNIPER_ELITE'] },   // Saky Airbase — airborne raiders
@@ -1024,6 +1364,9 @@ const Enemies = (() => {
     if (w >= 14 && r < 0.13) return 'SWARM_OP';
     if (w >= 14 && r < 0.16) return 'EW_OPERATOR';
     if (w >= 12 && r < 0.19) return 'COMMISSAR';
+    if (w >= 12 && r < 0.205) return 'GENERAL_KOZLOV';
+    if (w >= 8 && r < 0.215) return 'COLONEL_VADIM';
+    if (w >= 5 && r < 0.225) return 'CAPTAIN_IGOR';
     // Mid-game types
     if (w >= 7 && r < 0.22) return 'MORTAR';
     if (w >= 7 && r < 0.25) return 'SNIPER_ELITE';
@@ -1120,6 +1463,7 @@ const Enemies = (() => {
   function buildMesh(typeCfg) {
     const group = new THREE.Group();
     const s     = typeCfg.scale;
+    const typeName = typeCfg.name; // type key, e.g. 'OFFICER' — used by elite gear blocks below
 
     // Generate EMR Digital Flora camo texture for this unit (cached by variant)
     const camoTex = getCachedTex('camo_' + (typeCfg.camoVariant || 'light'), function() {
@@ -1172,17 +1516,7 @@ const Enemies = (() => {
     );
     helmetCw.position.set(0, 1.55 * s, -0.22 * s);
     const helmet = helmetShell; // backward-compat reference
-    if (!typeCfg.baldHead) {
-      group.add(helmetShell, helmetCrown, helmetBrim, helmetNape, helmetCw);
-    } else {
-      // Bald zombie president — no helmet, just a shiny pate
-      const baldPate = new THREE.Mesh(
-        new THREE.BoxGeometry(0.30 * s, 0.03 * s, 0.28 * s),
-        new THREE.MeshLambertMaterial({ color: 0xaabb98 })
-      );
-      baldPate.position.set(0, 1.58 * s, 0);
-      group.add(baldPate);
-    }
+    group.add(helmetShell, helmetCrown, helmetBrim, helmetNape, helmetCw);
 
     // ── Legs (camo textured, darker variant) ──────────────
     const legCamo = getCachedTex('camo_dark', function() {
@@ -1328,53 +1662,14 @@ const Enemies = (() => {
     group.add(flagWhite, flagBlue, flagRed);
 
     // ── Balaclava (face covering) for elite/special units ──
-    if (typeCfg.name === 'OFFICER' || typeCfg.name === 'SABOTEUR' ||
-        typeCfg.name === 'SNIPER_ELITE' || typeCfg.name === 'WAGNER') {
+    if (typeName === 'OFFICER' || typeName === 'SABOTEUR' ||
+        typeName === 'SNIPER_ELITE' || typeName === 'WAGNER') {
       const bala = new THREE.Mesh(
         new THREE.BoxGeometry(0.36 * s, 0.18 * s, 0.36 * s),
         new THREE.MeshLambertMaterial({ color: 0x111111 })
       );
       bala.position.y = 1.36 * s;
       group.add(bala);
-    }
-
-    // ── Zombie Boss (BOSS_KREMLIN) — dark purple suit, red tie, decay patches ──
-    if (typeCfg.zombie) {
-      // Suit jacket overlay (covers camo torso)
-      const suitJacket = new THREE.Mesh(
-        new THREE.BoxGeometry(0.58 * s, 0.74 * s, 0.32 * s),
-        new THREE.MeshLambertMaterial({ color: typeCfg.bodyColor })
-      );
-      suitJacket.position.y = 0.86 * s;
-      group.add(suitJacket);
-      // White dress shirt visible at collar
-      const shirt = new THREE.Mesh(
-        new THREE.BoxGeometry(0.20 * s, 0.10 * s, 0.34 * s),
-        new THREE.MeshLambertMaterial({ color: 0xeeeedd })
-      );
-      shirt.position.set(0, 1.22 * s, 0);
-      group.add(shirt);
-      // Red power tie
-      const tie = new THREE.Mesh(
-        new THREE.BoxGeometry(0.07 * s, 0.42 * s, 0.05 * s),
-        new THREE.MeshLambertMaterial({ color: 0xcc0000 })
-      );
-      tie.position.set(0, 0.85 * s, 0.17 * s);
-      group.add(tie);
-      // Suit trousers (dark purple legs)
-      const trouserMat = new THREE.MeshLambertMaterial({ color: 0x2a0850 });
-      const trouserL = new THREE.Mesh(new THREE.BoxGeometry(0.22 * s, 0.56 * s, 0.22 * s), trouserMat);
-      trouserL.position.set(-0.14 * s, 0.28 * s, 0);
-      const trouserR = trouserL.clone();
-      trouserR.position.set(0.14 * s, 0.28 * s, 0);
-      group.add(trouserL, trouserR);
-      // Zombie decay patches on face
-      const decayMat = new THREE.MeshLambertMaterial({ color: 0x2a4422 });
-      [[-0.11, 1.45, 0.17], [0.09, 1.38, 0.17], [0.0, 1.52, 0.14]].forEach(function(pos) {
-        const d = new THREE.Mesh(new THREE.BoxGeometry(0.09 * s, 0.07 * s, 0.02 * s), decayMat);
-        d.position.set(pos[0] * s, pos[1] * s, pos[2] * s);
-        group.add(d);
-      });
     }
 
     // Eye glow
@@ -1456,7 +1751,8 @@ const Enemies = (() => {
       BOSS_VUHLEDAR:1, BOSS_ANTONOV:1,
       WAR_DOG:1, KAMIKAZE_DRONE:1, ASSAULT_MECH:1, TANK:1, BTR:1,
       MORTAR:1, HEAVY_SNIPER:1, SNIPER_ELITE:1, SNIPER:1, BOMBER:1,
-      EW_OPERATOR:1, DRONE_OP:1 };
+      EW_OPERATOR:1, DRONE_OP:1, DRONE_OPERATOR:1, SNIPER_OP:1, TANK_CREW:1,
+      GENERAL_KOZLOV:1, COLONEL_VADIM:1, CAPTAIN_IGOR:1 };
     if (!_wvSkip[typeCfg.name] && Math.random() < 0.06) {
       try {
         var wv = Math.floor(Math.random() * 4); // 0=donkey 1=wheelchair 2=crutches 3=crawling
@@ -1606,6 +1902,101 @@ const Enemies = (() => {
       } catch (e) {}
     }
 
+    // ── Special mesh parts for new enemy types ──────────────
+    var _typeName = typeCfg.name;
+    switch (_typeName) {
+      case 'DRONE_OPERATOR': {
+        // Hunched pose: lower torso slightly to simulate crouching
+        torso.position.y = 0.65 * s;
+        head.position.y  = 1.18 * s;
+        // Backpack with antenna
+        var _dpPack = new THREE.Mesh(
+          new THREE.BoxGeometry(0.30 * s, 0.36 * s, 0.12 * s),
+          new THREE.MeshLambertMaterial({ color: 0x3a3a2a })
+        );
+        _dpPack.position.set(0, 0.82 * s, -0.18 * s);
+        group.add(_dpPack);
+        var _dpAntenna = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.015 * s, 0.015 * s, 0.32 * s, 6),
+          new THREE.MeshLambertMaterial({ color: 0x888888 })
+        );
+        _dpAntenna.position.set(0.06 * s, 1.10 * s, -0.18 * s);
+        group.add(_dpAntenna);
+        // Controller box (flat METAL box held in both hands)
+        var _dpCtrl = new THREE.Mesh(
+          new THREE.BoxGeometry(0.22 * s, 0.08 * s, 0.12 * s),
+          new THREE.MeshLambertMaterial({ color: 0x444444 })
+        );
+        _dpCtrl.position.set(0, 0.68 * s, 0.16 * s);
+        group.add(_dpCtrl);
+        break;
+      }
+      case 'SNIPER_OP': {
+        // Ghillie suit: irregular green chunks on torso + arms
+        var _ghillieMat = new THREE.MeshLambertMaterial({ color: 0x2a4a18 });
+        var _ghilliePositions = [
+          [0, 0.92 * s, 0.14 * s, 0.18 * s, 0.12 * s, 0.06 * s],
+          [-0.14 * s, 0.88 * s, 0.10 * s, 0.12 * s, 0.10 * s, 0.05 * s],
+          [0.16 * s, 0.78 * s, 0.12 * s, 0.10 * s, 0.14 * s, 0.04 * s],
+          [0, 1.02 * s, 0.08 * s, 0.20 * s, 0.08 * s, 0.05 * s],
+        ];
+        for (var _gi = 0; _gi < _ghilliePositions.length; _gi++) {
+          var _gp = _ghilliePositions[_gi];
+          var _ghunk = new THREE.Mesh(
+            new THREE.BoxGeometry(_gp[3], _gp[4], _gp[5]),
+            _ghillieMat
+          );
+          _ghunk.position.set(_gp[0], _gp[1], _gp[2]);
+          _ghunk.rotation.z = (Math.random() - 0.5) * 0.3;
+          group.add(_ghunk);
+        }
+        // Long rifle barrel extending 0.4 units in +Z
+        var _sniperBarrel = new THREE.Mesh(
+          new THREE.BoxGeometry(0.04 * s, 0.04 * s, 0.40 * s),
+          new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
+        );
+        _sniperBarrel.position.set(0.35 * s, 0.72 * s, 0.30 * s);
+        group.add(_sniperBarrel);
+        // Bipod
+        var _bpL = new THREE.Mesh(
+          new THREE.BoxGeometry(0.005 * s, 0.10 * s, 0.005 * s),
+          new THREE.MeshLambertMaterial({ color: 0x222222 })
+        );
+        _bpL.position.set(0.33 * s, 0.64 * s, 0.44 * s);
+        _bpL.rotation.z = 0.25;
+        var _bpR = _bpL.clone();
+        _bpR.position.x = 0.37 * s;
+        _bpR.rotation.z = -0.25;
+        group.add(_bpL, _bpR);
+        break;
+      }
+      case 'TANK_CREW': {
+        // Black tanker helmet (sphere cap) replacing standard helmet
+        // Remove doesn't work easily; overlay a sphere on top of head
+        var _tankHelmet = new THREE.Mesh(
+          new THREE.SphereGeometry(0.20 * s, 8, 6),
+          new THREE.MeshLambertMaterial({ color: 0x111111 })
+        );
+        _tankHelmet.position.y = 1.56 * s;
+        group.add(_tankHelmet);
+        // Dark jumpsuit overlay (covers the torso + legs area)
+        var _jumpsuit = new THREE.Mesh(
+          new THREE.BoxGeometry(0.54 * s, 0.80 * s, 0.28 * s),
+          new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
+        );
+        _jumpsuit.position.y = 0.80 * s;
+        group.add(_jumpsuit);
+        // Pistol (short barrel in right hand)
+        var _pistolBody = new THREE.Mesh(
+          new THREE.BoxGeometry(0.05 * s, 0.08 * s, 0.10 * s),
+          new THREE.MeshLambertMaterial({ color: 0x222222 })
+        );
+        _pistolBody.position.set(0.35 * s, 0.70 * s, 0.10 * s);
+        group.add(_pistolBody);
+        break;
+      }
+    }
+
     return group;
   }
 
@@ -1627,13 +2018,17 @@ const Enemies = (() => {
     WAR_DOG:       { len: 0,    color: 0x000000, name: 'Teeth' },
     SHIELD_BEARER: { len: 0.16, color: 0x2a2a2a, name: 'Makarov PM' },
     MORTAR:        { len: 0.24, color: 0x444422, name: '2B14 Podnos' },
-    SNIPER_ELITE:  { len: 0.32, color: 0x2a3a2a, name: 'ORSIS T-5000' },
+    SNIPER_ELITE:   { len: 0.32, color: 0x2a3a2a, name: 'ORSIS T-5000' },
+    DRONE_OPERATOR: { len: 0.12, color: 0x2a2a2a, name: 'Makarov PM' },
+    SNIPER_OP:      { len: 0.38, color: 0x3a3a2a, name: 'SV-98 Ghillie' },
+    TANK_CREW:      { len: 0.12, color: 0x333333, name: 'MP-443 Grach' },
   };
 
   function attachWeaponVisual(mesh, typeCfg) {
     const wInfo = ENEMY_WEAPON_VISUALS[typeCfg.name];
     if (!wInfo) return;
     const s = typeCfg.scale;
+    const typeName = typeCfg.name; // type key — used by optic/bipod blocks below
     if (wInfo.len <= 0) return; // melee/explosive vest — no weapon mesh
 
     // ── Weapon barrel ──
@@ -1675,8 +2070,8 @@ const Enemies = (() => {
     grip.position.set(0.35 * s, 0.65 * s, 0.02 * s);
     mesh.add(grip);
     // ── Optic (Kobra/PSO) for officers, snipers, elites ──
-    const hasOptic = (typeCfg.name === 'OFFICER' || typeCfg.name === 'SNIPER' ||
-                      typeCfg.name === 'SNIPER_ELITE' || typeCfg.name === 'SABOTEUR');
+    const hasOptic = (typeName === 'OFFICER' || typeName === 'SNIPER' ||
+                      typeName === 'SNIPER_ELITE' || typeName === 'SABOTEUR');
     if (hasOptic) {
       const optic = new THREE.Mesh(
         new THREE.BoxGeometry(0.04 * s, 0.06 * s, 0.10 * s),
@@ -1693,7 +2088,7 @@ const Enemies = (() => {
       mesh.add(lens);
     }
     // ── Bipod for snipers / MGs ──
-    if (typeCfg.name === 'SNIPER_ELITE' || typeCfg.name === 'BOSS' || typeCfg.name === 'ARMORED') {
+    if (typeName === 'SNIPER_ELITE' || typeName === 'BOSS' || typeName === 'ARMORED') {
       const bipodL = new THREE.Mesh(
         new THREE.BoxGeometry(0.005 * s, 0.10 * s, 0.005 * s),
         new THREE.MeshLambertMaterial({ color: 0x222222 })
@@ -1709,36 +2104,52 @@ const Enemies = (() => {
 
   // ── Floating HP bar (lives in scene, follows enemy) ───────
   function buildHpBar() {
-    const group = new THREE.Group();
+    var group = new THREE.Group();
 
-    const bgMesh = new THREE.Mesh(
+    // Thin black outline behind everything (slightly wider/taller)
+    var outlineMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.76, 0.13),
+      new THREE.MeshBasicMaterial({
+        color:       0x000000,
+        side:        THREE.DoubleSide,
+        depthTest:   true,
+        depthWrite:  false,
+        transparent: true,
+        opacity:     0.92,
+      })
+    );
+    outlineMesh.position.z = -0.001;
+
+    // Gray background track (full width, always visible)
+    var bgMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.7, 0.09),
       new THREE.MeshBasicMaterial({
-        color:      0x330000,
-        side:       THREE.DoubleSide,
-        depthTest:  true,
-        depthWrite: false,
+        color:       0x444444,
+        side:        THREE.DoubleSide,
+        depthTest:   true,
+        depthWrite:  false,
         transparent: true,
-        opacity:    0.85,
+        opacity:     0.85,
       })
     );
 
-    const fgMesh = new THREE.Mesh(
+    // Foreground fill (color updated per-frame based on HP%)
+    var fgMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.7, 0.09),
       new THREE.MeshBasicMaterial({
-        color:      0x44ff44,
-        side:       THREE.DoubleSide,
-        depthTest:  true,
-        depthWrite: false,
+        color:       0x00ff44,
+        side:        THREE.DoubleSide,
+        depthTest:   true,
+        depthWrite:  false,
         transparent: true,
-        opacity:    0.9,
+        opacity:     0.95,
       })
     );
     fgMesh.position.z = 0.002;
 
-    group.add(bgMesh, fgMesh);
+    group.add(outlineMesh, bgMesh, fgMesh);
     if (scene) scene.add(group);
-    return { group, fg: fgMesh };
+    return { group, fg: fgMesh, _flashTimer: 0 };
   }
 
   // ── Spawn one enemy ───────────────────────────────────────
@@ -1834,6 +2245,11 @@ const Enemies = (() => {
     _alertIcon.position.set(0, 1.75 * typeCfg.scale + 0.6, 0);
     mesh.add(_alertIcon);
 
+    // Build suspicious "?" icon (shown during patrol suspicious state)
+    var _suspIcon = buildSuspiciousIcon();
+    _suspIcon.position.set(0, 1.75 * typeCfg.scale + 0.6, 0);
+    mesh.add(_suspIcon);
+
     const waveHpBonus    = (1 + (wave - 1) * 0.22) * stageMult * _adaptiveMult;
     const waveSpeedBonus = (1 + (wave - 1) * 0.06) * (1 + (stageMult - 1) * 0.3);
     const hp             = typeCfg.hpBase * waveHpBonus * rank.hpMult;
@@ -1843,17 +2259,14 @@ const Enemies = (() => {
     if (typeCfg.role === 'medic') squadRole = SQUAD_ROLE.MEDIC;
     else if (typeCfg.role === 'officer') squadRole = SQUAD_ROLE.OFFICER;
 
-    // Boss intro: dramatic banner + screen shake when a boss-role enemy spawns.
-    // Prefer the dramatic display name from EnemyTypes (e.g. "The Zombie President")
-    // over the internal ID (e.g. "BOSS_KREMLIN").
+    // Boss intro: dramatic banner + screen shake when a boss-role enemy spawns
     if (typeCfg.role === 'boss') {
       try {
-        var _introName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
-          EnemyTypes.TYPES[typeName] && EnemyTypes.TYPES[typeName].name)
-          ? EnemyTypes.TYPES[typeName].name : (typeCfg.name || typeName);
-        if (typeof HUD !== 'undefined' && HUD.showBossIntro) HUD.showBossIntro(_introName);
+        if (typeof HUD !== 'undefined' && HUD.showBossIntro) HUD.showBossIntro(typeCfg.name || typeName);
         if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.4, 0.6);
         if (typeof Feedback !== 'undefined' && Feedback.triggerSlowMo) Feedback.triggerSlowMo(0.55, 0.25);
+        // Show epic boss HP bar at bottom of screen
+        _showBossHPBar(typeCfg.name || typeName, hp);
       } catch (eBI) {}
     }
 
@@ -1903,6 +2316,26 @@ const Enemies = (() => {
       _alertedTimer: 0,   // counts down after losing sight; returns to post when 0
       // Per-enemy ML brain (session-scoped, in-memory only)
       _ml: (typeof NPCML !== 'undefined' && NPCML.createBrain) ? NPCML.createBrain({ typeName: typeName }) : null,
+      // Squad-level flanking/suppression tactics (groups of 3)
+      squadId: Math.floor(enemies.length / 3),
+      _squadTacticRole: (enemies.length % 3 === 0) ? 'leader' : (enemies.length % 3 === 1) ? 'suppressor' : 'flanker',
+      _flankTarget: null,
+      _coordinateCooldown: 0,
+      // ── Patrol route AI ──────────────────────────────────────
+      // Default: 4-waypoint square around spawn position (±8 units in X/Z)
+      _patrolRoute: [
+        {x: sx + 8, y: 0, z: sz},
+        {x: sx + 8, y: 0, z: sz + 8},
+        {x: sx - 8, y: 0, z: sz + 8},
+        {x: sx - 8, y: 0, z: sz}
+      ],
+      _patrolIndex: 0,
+      _patrolDir:   1,
+      _patrolPause: 0,
+      _patrolState: 'patrol',
+      _detectedPlayer: false,
+      _suspiciousTimer: 0,
+      _suspIcon: _suspIcon,
     });
     return idx;
   }
@@ -1970,22 +2403,14 @@ const Enemies = (() => {
 
     // Spawn each member at their formation offset
     // Note: no y in fpos — spawnOne computes terrain height via getTopSolidY
-    // Each spawn is wrapped so one bad mesh build can't abort the whole squad
-    // (root cause of "no infantry in game" — a single throw killed the loop).
     for (var fi = 0; fi < _formOrder.length; fi++) {
-      try {
-        var foff = getFormationWorldPos(group, fi, _formOrder.length);
-        var fpos = { x: center.x + foff.x, z: center.z + foff.z };
-        var fidx = spawnOne(_formOrder[fi].type, groupId, fpos);
-        if (fidx >= 0 && enemies[fidx]) {
-          enemies[fidx].squadRole = _formOrder[fi].role;
-          group.members.push(fidx);
-          if (_formOrder[fi].type === 'OFFICER') group.hasOfficer = true;
-          if (_formOrder[fi].type === 'MEDIC') group.hasMedic = true;
-        }
-      } catch (eSpawn) {
-        console.error('[Enemies] spawnOne failed for type', _formOrder[fi] && _formOrder[fi].type, '-', eSpawn);
-      }
+      var foff = getFormationWorldPos(group, fi, _formOrder.length);
+      var fpos = { x: center.x + foff.x, z: center.z + foff.z };
+      var fidx = spawnOne(_formOrder[fi].type, groupId, fpos);
+      enemies[fidx].squadRole = _formOrder[fi].role;
+      group.members.push(fidx);
+      if (_formOrder[fi].type === 'OFFICER') group.hasOfficer = true;
+      if (_formOrder[fi].type === 'MEDIC') group.hasMedic = true;
     }
 
     assaultGroups.push(group);
@@ -2025,13 +2450,8 @@ const Enemies = (() => {
     try { if (typeof GameManager !== 'undefined' && GameManager.getPlayer && GameManager.getPlayer().role !== 'brigade') _soloScale = 0.6; } catch (eSS) {}
     var stageGroupCount = Math.max(2, Math.round((NUM_ASSAULT_GROUPS + Math.floor((_stageId || 1) / 3) + planGroupDelta) * _soloScale));
     for (let g = 0; g < stageGroupCount; g++) {
-      try {
-        spawnAssaultGroup(g, sc, playerPos);
-      } catch (eGroup) {
-        console.error('[Enemies] spawnAssaultGroup', g, 'failed -', eGroup);
-      }
+      spawnAssaultGroup(g, sc, playerPos);
     }
-    console.log('[Enemies] startWave', w, 'stage', _stageId, '— spawned', enemies.length, 'enemies across', stageGroupCount, 'groups');
 
     if (battlePlan && battlePlan.initialTypes && battlePlan.initialTypes.length) {
       for (var pi = 0; pi < battlePlan.initialTypes.length; pi++) {
@@ -2055,6 +2475,33 @@ const Enemies = (() => {
     spawnQueue  = Array.from({ length: extraCount }, () => pickTypeForPlan(w, battlePlan));
     var spawnIntervalMultiplier = battlePlan && isFinite(battlePlan.spawnIntervalMultiplier) ? battlePlan.spawnIntervalMultiplier : 1;
     spawnTimer  = (Math.max(0.3, 2.0 - stageNum * 0.15) + Math.random() * 1.5) * spawnIntervalMultiplier;
+  }
+
+  // ── Time-of-day aware detection helper ───────────────────
+  // weatherAdjustedBase is optional; if provided it overrides DETECTION_RANGE for the range check
+  function _canDetectPlayer(e, playerPos, dist) {
+    var mods = (window.TimeOfDay && TimeOfDay.getCombatModifiers) ? TimeOfDay.getCombatModifiers() : { enemyDetectRange: 1.0, nightVision: false };
+    var wMod = 1.0;
+    if (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) {
+      wMod = WeatherSystem.getModifiers().visionRange || 1.0;
+    }
+    var baseRange = DETECTION_RANGE * wMod;
+
+    if (mods.nightVision) {
+      // Night: enemies use flashlights — narrow cone, limited range
+      if (dist > 20) return false; // flashlight max range
+      // Check angle: player must be within ~14° of enemy forward direction
+      var toPlayer = new THREE.Vector3().subVectors(playerPos, e.mesh.position).normalize();
+      var facingDir = new THREE.Vector3(Math.sin(e.mesh.rotation.y), 0, Math.cos(e.mesh.rotation.y));
+      var dot = facingDir.dot(toPlayer);
+      if (dot > 0.97) return true; // inside flashlight cone
+      // Outside cone: very short ambient detection range
+      return dist < 8;
+    }
+
+    // Silencer from shop reduces enemy detection range by 35%
+    var silencerMod = window._silencerEquipped ? 0.65 : 1.0;
+    return dist < baseRange * mods.enemyDetectRange * silencerMod;
   }
 
   // ── Per-frame update ──────────────────────────────────────
@@ -2126,7 +2573,7 @@ const Enemies = (() => {
     updateBarkSprites(delta);
 
     // Update enemy grenades
-    updateEnemyGrenades(delta, playerPos);
+    updateEnemyGrenades(delta, playerPos, onPlayerHit);
 
     // Corpse cap: if too many corpses linger, accelerate fade on oldest to keep perf stable
     var _corpseCount = 0;
@@ -2161,6 +2608,13 @@ const Enemies = (() => {
     // Update assault groups
     updateAssaultGroups(delta, playerPos);
 
+    // ── Dynamic squad flanking/suppression ──
+    _squadTimer -= delta;
+    if (_squadTimer <= 0 && enemies.length >= 3) {
+      _squadTimer = SQUAD_INTERVAL + Math.random() * 2;
+      _issueSquadOrders();
+    }
+
     // Get friendly NPCs for NPC-vs-NPC combat
     const friendlyNPCs = (typeof NPCSystem !== 'undefined' && NPCSystem.getAll)
       ? NPCSystem.getAll() : [];
@@ -2186,24 +2640,41 @@ const Enemies = (() => {
           e.mesh.rotation.x = Math.max(-1.8, Math.min(1.8, e.mesh.rotation.x));
         }
         // Directional knockback movement
-        if (e._deathVelX !== undefined && e.deathTimer > 0.8) {
+        if (e._deathVelX !== undefined) {
           e.mesh.position.x += e._deathVelX * delta;
           e.mesh.position.z += e._deathVelZ * delta;
-          // Friction decay
-          e._deathVelX *= (1 - 3 * delta);
-          e._deathVelZ *= (1 - 3 * delta);
+          // Friction decay (slower when airborne)
+          var _onGround = e.mesh.position.y <= 0;
+          e._deathVelX *= _onGround ? (1 - 5 * delta) : (1 - 1 * delta);
+          e._deathVelZ *= _onGround ? (1 - 5 * delta) : (1 - 1 * delta);
         }
         // Spin on Y axis
         if (e._deathSpinY) {
           e.mesh.rotation.y += e._deathSpinY * delta;
           e._deathSpinY *= (1 - 2 * delta);
         }
-        // Upward pop then sink
+        // Upward pop then gravity sink
         if (e._deathPopY !== undefined) {
           e._deathPopY -= 12 * delta; // gravity on corpse
           e.mesh.position.y += e._deathPopY * delta;
+          // Ground clamp — stop below-floor sinking
+          if (e.mesh.position.y < 0) {
+            e.mesh.position.y = 0;
+            e._deathPopY = 0;
+          }
         }
-        // Keep corpse at ground level (no sink to avoid z-fighting flicker)
+        // Ragdoll fade-out in the final 1.5 s of the 6 s timer
+        if (e.deathTimer <= 1.5 && e.mesh) {
+          var _fadeAlpha = Math.max(0, e.deathTimer / 1.5);
+          try {
+            e.mesh.traverse(function(c) {
+              if (c.isMesh && c.material) {
+                c.material.transparent = true;
+                c.material.opacity = _fadeAlpha;
+              }
+            });
+          } catch (_fe) {}
+        }
         if (e.deathTimer <= 0) {
           // Clean up sniper laser line
           if (e._laserLine) {
@@ -2212,22 +2683,12 @@ const Enemies = (() => {
             if (scene) scene.remove(e._laserLine);
             e._laserLine = null;
           }
+          disposeMeshTree(e.mesh);
+          if (scene) scene.remove(e.mesh);
           if (e.hpBar) {
             disposeMeshTree(e.hpBar.group);
             if (scene) scene.remove(e.hpBar.group);
             e.hpBar = null;
-          }
-          // Freeze corpse flat on the ground and keep as walkable obstacle
-          if (e.mesh) {
-            e.mesh.rotation.x = -Math.PI / 2;
-            e.mesh.rotation.z = (e.mesh.rotation.z || 0) + (Math.random() - 0.5) * 0.4;
-            e.mesh.position.y = e._groundY !== undefined ? e._groundY : e.mesh.position.y;
-            _persistentCorpses.push({ x: e.mesh.position.x, y: e.mesh.position.y, z: e.mesh.position.z, mesh: e.mesh });
-            // Cap: oldest corpse beyond limit gets removed from scene (mobile: 15; desktop: 60).
-            if (_persistentCorpses.length > (_isMobileEn ? 15 : 60)) {
-              var _oldest = _persistentCorpses.shift();
-              if (_oldest.mesh && scene) { disposeMeshTree(_oldest.mesh); scene.remove(_oldest.mesh); }
-            }
           }
           enemies[i] = null;
           _cacheFrame = -1; // force cache rebuild
@@ -2236,6 +2697,9 @@ const Enemies = (() => {
       }
 
       alive++;
+
+      // ── Lifetime accumulator (used by limping gait wobble) ──
+      e._lifeTime = (e._lifeTime || 0) + delta;
 
       // Reset hit-flash colour
       if (e.flashTimer > 0) {
@@ -2281,6 +2745,113 @@ const Enemies = (() => {
         }
       }
 
+      // ── Hit stagger: brief directional jerk + body tilt on damage ──
+      if (e._staggerTime && e._staggerTime > 0) {
+        e._staggerTime -= delta;
+        if (e._staggerDir) {
+          e.mesh.position.x += e._staggerDir.x * 0.8 * delta;
+          e.mesh.position.z += e._staggerDir.z * 0.8 * delta;
+        }
+        e.mesh.rotation.z = Math.sin(e._staggerTime * 30) * 0.15 * (e._staggerTime / 0.25);
+        if (e._staggerTime <= 0) {
+          e.mesh.rotation.z = 0;
+        }
+      }
+
+      // ── Red emissive hit flash ──
+      if (e._hitFlashTime && e._hitFlashTime > 0) {
+        e._hitFlashTime -= delta;
+        if (e._hitFlashTime <= 0) {
+          // Reset emissive to black on all mesh children
+          e.mesh.traverse(function (child) {
+            if (child.isMesh && child.material && child.material.emissive) {
+              child.material.emissive.setHex(0x000000);
+            }
+          });
+        }
+      }
+
+      // ── Near-miss suppression window timer ──
+      if (e._nearMissTimer && e._nearMissTimer > 0) {
+        e._nearMissTimer -= delta;
+        if (e._nearMissTimer <= 0) {
+          e._nearMissCount = 0;
+          e._nearMissTimer = 0;
+        }
+      }
+
+      // ── Player-fired suppression system (near-miss based) ──
+      if (e._suppressionActive && e._suppressionTimer > 0) {
+        e._suppressionTimer -= delta;
+        if (e._suppressionTimer <= 0) {
+          // Release suppression
+          e._suppressionActive = false;
+          e._nearMissCount = 0;
+          e._accuracyPenalty = 0;
+          // Restore Y position from crouching
+          if (e._suppressedOffset) {
+            e.mesh.position.y += e._suppressedOffset;
+            e._suppressedOffset = 0;
+          }
+          window._enemySuppressed = false;
+        } else {
+          // While suppressed: sway, hold position, accuracy penalty already set
+          e.mesh.rotation.y += Math.sin(Date.now() * 0.003) * 0.02;
+        }
+      }
+
+      // ── Wounded limping: triggered once when HP crosses 30% threshold ──
+      if (!e._limpingChecked && e.hp <= e.maxHp * 0.3 && e.hp > 0) {
+        e._limpingChecked = true;
+        if (!e._limping) {
+          e._limping = true;
+          e._speedMult = (e._speedMult || 1.0) * 0.55;
+        }
+      }
+      // ── Critical state: triggered once at 20% HP ──
+      if (!e._criticalChecked && e.hp <= e.maxHp * 0.2 && e.hp > 0) {
+        e._criticalChecked = true;
+        if (!e._critical) {
+          e._critical = true;
+          e._criticalPauseTimer = 0;
+        }
+      }
+      // ── Critical pause update ──
+      if (e._critical && e.hp > 0) {
+        e._criticalPauseTimer = (e._criticalPauseTimer || 0) + delta;
+        if (!e._criticalPausing && e._criticalPauseTimer >= 3.0) {
+          e._criticalPausing = true;
+          e._criticalPauseTimer = 0;
+          e._criticalPauseDur = 0.5;
+        }
+        if (e._criticalPausing) {
+          e._criticalPauseDur -= delta;
+          e.mesh.rotation.y += Math.sin(Date.now() * 0.003) * 0.02;
+          if (e._criticalPauseDur <= 0) {
+            e._criticalPausing = false;
+          }
+        }
+      }
+
+      // ── Suppression fire: recently-hit enemy fires rapidly at last known player pos ──
+      if (e._suppressedTimer > 0) {
+        e._suppressedTimer -= delta;
+        if (e._suppressedTimer > 0 && e._lastKnownPlayerPos) {
+          if (!e._suppressFireCool) e._suppressFireCool = 0;
+          e._suppressFireCool -= delta;
+          if (e._suppressFireCool <= 0 && e.typeCfg && e.typeCfg.rangedDmg > 0) {
+            e._suppressFireCool = 0.4 + Math.random() * 0.3;
+            _fireAtPosition(e, e._lastKnownPlayerPos, 8.0, playerPos, onPlayerHit);
+          }
+        }
+      }
+
+      // ── Squad alert timer: boost spotLevel from squad communication ──
+      if (e._squadAlertTimer > 0) {
+        e._squadAlertTimer -= delta;
+        e.spotLevel = Math.min(SPOT_TIME + 0.5, (e.spotLevel || 0) + delta * 2.0);
+      }
+
       // Stun timer (flashbang): skip all AI while stunned
       if (e._stunTimer && e._stunTimer > 0) {
         e._stunTimer -= delta;
@@ -2310,6 +2881,117 @@ const Enemies = (() => {
         e.mesh.position.y = (window.VoxelWorld.getTopSolidY ? window.VoxelWorld.getTopSolidY(e.mesh.position.x, e.mesh.position.z) : window.VoxelWorld.getTerrainHeight(e.mesh.position.x, e.mesh.position.z) + 1);
       }
 
+      // ── Patrol route AI ──────────────────────────────────────
+      // Enemies without a detected player follow defined patrol paths.
+      // On spotting the player they transition through 'suspicious' then 'combat'.
+      if (e._patrolState !== 'combat' && !e._detectedPlayer) {
+        // Compute distance and forward-arc to player for detection checks
+        var _pdx = playerPos.x - e.mesh.position.x;
+        var _pdz = playerPos.z - e.mesh.position.z;
+        var _pDist = Math.sqrt(_pdx * _pdx + _pdz * _pdz);
+
+        // Extended detection range when shots fired nearby
+        var _patrolDetectRange = 18;
+        if (window._shotFiredPos) {
+          var _sfx = window._shotFiredPos.x - e.mesh.position.x;
+          var _sfz = window._shotFiredPos.z - e.mesh.position.z;
+          var _sfDist = Math.sqrt(_sfx * _sfx + _sfz * _sfz);
+          if (_sfDist < 20) _patrolDetectRange = 30;
+        }
+
+        // Check 120deg forward arc: dot product of facing direction vs dir-to-player
+        var _facingX = Math.sin(e.mesh.rotation.y);
+        var _facingZ = Math.cos(e.mesh.rotation.y);
+        var _pDistInv = _pDist > 0.001 ? 1 / _pDist : 0;
+        var _dotToPlayer = (_facingX * _pdx + _facingZ * _pdz) * _pDistInv;
+        // cos(60deg) = 0.5 => dot > 0.5 means within 120deg arc (60deg each side)
+        var _inFrontArc = _dotToPlayer > 0.5;
+        var _inDetectRange = _pDist < _patrolDetectRange;
+
+        // Update suspicious/detection logic
+        if (_inDetectRange && _inFrontArc && !_playerStealth) {
+          e._suspiciousTimer = (e._suspiciousTimer || 0) + delta;
+          // Show "?" sprite during suspicious state
+          if (e._suspIcon) e._suspIcon.visible = true;
+          if (e.alertIcon) e.alertIcon.visible = false;
+          // Head tilt slightly toward player for suspicious look
+          if (e.mesh) e.mesh.rotation.x = Math.min(0.15, e._suspiciousTimer * 0.1);
+
+          if (e._suspiciousTimer >= 1.5) {
+            // Alert! Transition to combat
+            e._patrolState = 'combat';
+            e._detectedPlayer = true;
+            // Replace "?" with "!" sprite
+            if (e._suspIcon) e._suspIcon.visible = false;
+            if (e.alertIcon) e.alertIcon.visible = true;
+            // Reset head tilt
+            if (e.mesh) e.mesh.rotation.x = 0;
+            // Play alert SFX if available
+            if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playEnemyAlert) {
+              var _alertNowP = performance.now();
+              if (!_lastAlertTime || _alertNowP - _lastAlertTime > 1200) {
+                window.AudioSystem.playEnemyAlert();
+                _lastAlertTime = _alertNowP;
+              }
+            }
+            spawnBarkText(e.mesh.position, 'spotted');
+            _alertNearbyAllies(e, enemies);
+          }
+        } else {
+          // Player moved out of arc or range -- reset suspicious timer
+          if (e._suspiciousTimer > 0) {
+            e._suspiciousTimer = Math.max(0, e._suspiciousTimer - delta * 2);
+            if (e._suspiciousTimer <= 0) {
+              if (e._suspIcon) e._suspIcon.visible = false;
+              if (e.mesh) e.mesh.rotation.x = 0;
+            }
+          }
+        }
+
+        // Patrol movement: move toward current waypoint
+        if (e._patrolState === 'patrol' && e._patrolRoute && e._patrolRoute.length > 0) {
+          var _wp = e._patrolRoute[e._patrolIndex];
+          var _wdx = _wp.x - e.mesh.position.x;
+          var _wdz = _wp.z - e.mesh.position.z;
+          var _wDist = Math.sqrt(_wdx * _wdx + _wdz * _wdz);
+          if (_wDist < 0.8) {
+            // Arrived at waypoint -- pause then advance
+            e._patrolPause = (e._patrolPause || 0) + delta;
+            if (e._patrolPause >= 1.5) {
+              e._patrolPause = 0;
+              e._patrolIndex = (e._patrolIndex + 1) % e._patrolRoute.length;
+            }
+          } else {
+            // Slow patrol walk toward waypoint
+            var _patrolSpeed = 1.8;
+            if (e._suspiciousTimer > 0) _patrolSpeed = 0.8; // slow when suspicious
+            e.mesh.position.x += (_wdx / _wDist) * _patrolSpeed * delta;
+            e.mesh.position.z += (_wdz / _wDist) * _patrolSpeed * delta;
+            e.mesh.lookAt(new THREE.Vector3(_wp.x, e.mesh.position.y, _wp.z));
+            e.mesh.rotation.y += Math.PI; // face forward
+            // Subtle leg animation while patrolling
+            e.legAngle += e.legDir * (_patrolSpeed / 2.2) * 4 * delta;
+            if (Math.abs(e.legAngle) > 0.45) e.legDir *= -1;
+            var _pParts = e.mesh.userData.parts;
+            if (_pParts) {
+              if (_pParts[3]) _pParts[3].rotation.x =  e.legAngle;
+              if (_pParts[4]) _pParts[4].rotation.x = -e.legAngle;
+              if (_pParts[5]) _pParts[5].rotation.x = -e.legAngle * 0.5;
+              if (_pParts[6]) _pParts[6].rotation.x =  e.legAngle * 0.5;
+            }
+          }
+          // Update HP bar during patrol
+          updateHpBar(e, playerPos, delta);
+          continue; // skip remainder of combat AI while patrolling
+        }
+      }
+
+      // Sync patrol combat state to playerSpotted so existing combat AI fires
+      if (e._detectedPlayer) {
+        e.playerSpotted = true;
+        e.spotLevel = SPOT_TIME + 0.5;
+      }
+
       // ── Detection system: enemies must spot the player ──
       const dirToPlayer = _tmpVec3
         .subVectors(playerPos, e.mesh.position).setY(0);
@@ -2319,7 +3001,7 @@ const Enemies = (() => {
       if (e.squadRole === SQUAD_ROLE.MEDIC && !e.playerSpotted) {
         const healed = updateMedicBehavior(e, delta);
         if (healed) {
-          updateHpBar(e, playerPos);
+          updateHpBar(e, playerPos, delta);
           continue;
         }
       }
@@ -2342,33 +3024,17 @@ const Enemies = (() => {
       }
 
 
-      // Player detection: only spot if not stealthed and within weather-modified detection range/angle
-      let weatherVisionMod = 1.0;
-      if (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) {
-        weatherVisionMod = WeatherSystem.getModifiers().visionRange || 1.0;
-      }
-      // Smoke zone: player hiding in active smoke dramatically reduces detection range
-      var _smokeVisionMod = 1.0;
-      if (window._activeSmokeZones && window._activeSmokeZones.length > 0 && _playerPos) {
-        for (var _szi = 0; _szi < window._activeSmokeZones.length; _szi++) {
-          var _sz = window._activeSmokeZones[_szi];
-          var _szDx = _playerPos.x - _sz.x, _szDz = _playerPos.z - _sz.z;
-          if (Math.sqrt(_szDx*_szDx + _szDz*_szDz) < _sz.radius) {
-            _smokeVisionMod = 0.12; // 88% detection range reduction through smoke
-            break;
-          }
-        }
-      }
-      const effectiveDetectionRange = DETECTION_RANGE * weatherVisionMod * _smokeVisionMod;
+      // Player detection: only spot if not stealthed.
+      // _canDetectPlayer handles weather + time-of-day multipliers and night-vision cone.
       // ── DISGUISE: Russian uniform fools enemies until disguise is blown.
       //    Even disguised, point-blank stares (<1.5m) and active fire break it.
-      const _disguisedSafe = _playerDisguised && !_disguiseBlown;
+      var _disguisedSafe = _playerDisguised && !_disguiseBlown;
       if (_disguisedSafe && distToPlayer >= 1.6) {
         e.spotLevel = Math.max(0, e.spotLevel - delta * 1.5);
-      } else if (!_playerStealth && distToPlayer < effectiveDetectionRange) {
+      } else if (!_playerStealth && _canDetectPlayer(e, playerPos, distToPlayer)) {
         // Check if player is roughly in front of enemy (FOV cone)
-        const facingDir = _tmpVec3d.set(0, 0, -1).applyQuaternion(e.mesh.quaternion);
-        const angleToPlayer = facingDir.angleTo(_tmpVec3e.copy(dirToPlayer).normalize());
+        var facingDir = _tmpVec3d.set(0, 0, -1).applyQuaternion(e.mesh.quaternion);
+        var angleToPlayer = facingDir.angleTo(_tmpVec3e.copy(dirToPlayer).normalize());
         if (angleToPlayer < DETECTION_ANGLE || distToPlayer < 4) {
           e.spotLevel = Math.min(SPOT_TIME + 0.5, e.spotLevel + delta);
         } else {
@@ -2392,6 +3058,20 @@ const Enemies = (() => {
         }
         // Visual exclamation bark
         if (typeof spawnBarkText === 'function') spawnBarkText(e.mesh.position, 'spotted');
+        if (typeof EnemyChatter !== 'undefined') EnemyChatter.say(e, 'spot');
+        // Squad alert propagation: alert nearby allies faster
+        _alertNearbyAllies(e, enemies);
+        // Assign flanking roles when 3+ enemies are alerted together
+        var _alertedGroup = [];
+        for (var _fi = 0; _fi < enemies.length; _fi++) {
+          var _fe = enemies[_fi];
+          if (_fe && _fe.playerSpotted && _fe.hp > 0 && _fe.alive) {
+            _alertedGroup.push(_fe);
+          }
+        }
+        if (_alertedGroup.length >= 3) {
+          _assignFlankRoles(_alertedGroup, playerPos);
+        }
       } else if (!e.playerSpotted) {
         e._wasSpotted = false;
       }
@@ -2404,6 +3084,13 @@ const Enemies = (() => {
         }
         if (!e.playerSpotted) triggerBark(e, 'attack');
         e.playerSpotted = true;
+        // If shot while patrolling, immediately enter combat
+        if (e._patrolState !== 'combat') {
+          e._patrolState = 'combat';
+          e._detectedPlayer = true;
+          if (e._suspIcon) e._suspIcon.visible = false;
+          if (e.mesh) e.mesh.rotation.x = 0;
+        }
       }
 
       // Alert icon visibility
@@ -2572,6 +3259,12 @@ const Enemies = (() => {
         if (e._coverTimer > 0) e._coverTimer -= delta;
       }
 
+      // ── Boss berserker phase 1: always charge player directly ──
+      if (e._berserker && playerPos && e.mesh) {
+        moveTarget = playerPos;
+        targetDist = e.mesh.position.distanceTo(playerPos);
+      }
+
       // ── Movement toward target with obstacle avoidance + strategic flanking ──
       // Enemies with ranged weapons hold position at firing distance instead of rushing
       var engageDist = 1.0; // default: close to melee
@@ -2662,6 +3355,80 @@ const Enemies = (() => {
           }
         }
 
+        // ── Group flanking: enemies assigned a flank angle approach from offset positions ──
+        if (e._flankAssigned && !e.retreating && e.playerSpotted && !targetIsNPC) {
+          e._flankUpdateTimer = (e._flankUpdateTimer || 0) + delta;
+          // Recalculate flank target every 2 seconds
+          if (e._flankUpdateTimer > 2.0 || e._flankTargetX === undefined) {
+            e._flankUpdateTimer = 0;
+            var flankRadius = 3.0;
+            e._flankTargetX = playerPos.x + Math.cos(e._flankAngle) * flankRadius;
+            e._flankTargetZ = playerPos.z + Math.sin(e._flankAngle) * flankRadius;
+          }
+          // Blend flank direction (60%) with direct approach (40%)
+          var fdx = e._flankTargetX - e.mesh.position.x;
+          var fdz = e._flankTargetZ - e.mesh.position.z;
+          var fdist = Math.sqrt(fdx * fdx + fdz * fdz);
+          if (fdist > 1.5) {
+            var directDx = playerPos.x - e.mesh.position.x;
+            var directDz = playerPos.z - e.mesh.position.z;
+            var directDist = Math.sqrt(directDx * directDx + directDz * directDz);
+            if (directDist > 0) {
+              var blendedDx = (fdx / fdist) * 0.6 + (directDx / directDist) * 0.4;
+              var blendedDz = (fdz / fdist) * 0.6 + (directDz / directDist) * 0.4;
+              var blendedLen = Math.sqrt(blendedDx * blendedDx + blendedDz * blendedDz);
+              if (blendedLen > 0) {
+                dir.x = blendedDx / blendedLen;
+                dir.z = blendedDz / blendedLen;
+                dir.y = 0;
+              }
+            }
+          }
+        }
+
+        // ── Bounding overwatch: STORMER/SPETSNAZ pairs alternate fire and advance ──
+        if (e.playerSpotted && !targetIsNPC && targetDist > 4) {
+          var _bTypeName = e.typeCfg.name;
+          if (_bTypeName === 'STORMER' || _bTypeName === 'SPETSNAZ') {
+            // Find a bound partner (nearby ally of same type who is firing)
+            if (!e._boundPartner || e._boundPartner.dead || !e._boundPartner.alive) {
+              e._boundPartner = null;
+              for (var _bpi = 0; _bpi < enemies.length; _bpi++) {
+                var _bally = enemies[_bpi];
+                if (!_bally || _bally === e || !_bally.alive) continue;
+                if (_bally.typeCfg && _bally.typeCfg.name === _bTypeName) {
+                  var _bpdx = _bally.mesh.position.x - e.mesh.position.x;
+                  var _bpdz = _bally.mesh.position.z - e.mesh.position.z;
+                  if (_bpdx*_bpdx + _bpdz*_bpdz < 144) { // 12 unit radius
+                    e._boundPartner = _bally;
+                    break;
+                  }
+                }
+              }
+            }
+            if (e._boundPartner && e._boundPartner.alive && e._boundPartner._isFiring) {
+              // Partner is covering — rush forward
+              e._rushing = true;
+              if (!e._rushTarget || e.mesh.position.distanceTo(e._rushTarget) < 1.5) {
+                e._rushTarget = _getAdvancePosition(e, moveTarget);
+              }
+            }
+            // Mark this enemy as firing if it has recently fired (rangedTimer near 0)
+            e._isFiring = e._rangedTimer !== undefined && e._rangedTimer < 0.3;
+            // Apply rush: override dir toward rush target
+            if (e._rushing && e._rushTarget) {
+              var _rDir = new THREE.Vector3(e._rushTarget.x - e.mesh.position.x, 0, e._rushTarget.z - e.mesh.position.z);
+              if (_rDir.lengthSq() > 0.01) {
+                _rDir.normalize();
+                dir.copy(_rDir);
+              }
+              if (e.mesh.position.distanceTo(e._rushTarget) < 1.5) {
+                e._rushing = false;
+              }
+            }
+          }
+        }
+
         // ── Squad separation (anti-swarm) ──────────────────────────────
         // Push apart from nearby squadmates so a squad spreads into a spaced
         // formation/arc instead of stacking into a blob ("swarm"). Cheap: only
@@ -2695,6 +3462,11 @@ const Enemies = (() => {
         var speedMult = 1;
         if (e._officerBuffSpd) { speedMult *= e._officerBuffSpd; e._officerBuffSpd = 0; }
         if (e._rallyBuff && !e._officerBuffDmg) { speedMult *= e._rallyBuff; } // rally also boosts speed
+        if (e._speedMult) speedMult *= e._speedMult; // wounded limping speed reduction
+        // Suppressed: hold position or slowly retreat
+        if (e._suppressionActive) speedMult = 0;
+        // Critical pause: freeze movement
+        if (e._criticalPausing) speedMult = 0;
         const stepDist = e.speed * speedMult * delta * (e._staggerTimer > 0 ? 0 : 1);
         const nextX = e.mesh.position.x + dir.x * stepDist * 2;
         const nextZ = e.mesh.position.z + dir.z * stepDist * 2;
@@ -2717,8 +3489,9 @@ const Enemies = (() => {
           e.mesh.position.addScaledVector(dir, stepDist);
         }
 
-        // Face toward target
+        // Face toward target (+PI because model is built facing +Z; lookAt aligns -Z)
         e.mesh.lookAt(moveTarget.x, e.mesh.position.y, moveTarget.z);
+        e.mesh.rotation.y += Math.PI;
 
         // Leg swing animation
         var prevLeg = e.legAngle;
@@ -2744,6 +3517,7 @@ const Enemies = (() => {
         var sStep = e.speed * 0.4 * delta;
         e.mesh.position.addScaledVector(strafe, sStep);
         e.mesh.lookAt(playerPos.x, e.mesh.position.y, playerPos.z);
+        e.mesh.rotation.y += Math.PI;
         // Subtle leg animation at half speed
         e.legAngle += e.legDir * (e.speed / 4.4) * 4 * delta;
         if (Math.abs(e.legAngle) > 0.3) e.legDir *= -1;
@@ -2758,9 +3532,9 @@ const Enemies = (() => {
         if (parts[6]) parts[6].rotation.x =  e.legAngle * 0.5;
         // Torso bob
         if (parts[0]) parts[0].rotation.z = Math.sin(e.legAngle) * 0.04;
-        // Wounded limp — readable wobble + subtle red rim-tint at low HP
+        // Wounded limp — readable wobble + gait wobble + subtle red rim-tint at low HP
         if (e.hp < e.maxHp * 0.3 && e.mesh && e.mesh.userData.woundedVariant !== 'crawling') {
-          e.mesh.rotation.z = Math.sin(e.legAngle * 0.6) * 0.06;
+          e.mesh.rotation.z = Math.sin(e.legAngle * 0.6) * 0.06 + Math.sin((e._lifeTime || 0) * 14) * 0.04;
           var _woundedParts = e.mesh.userData.parts;
           if (_woundedParts && _woundedParts[0] && _woundedParts[0].material && _woundedParts[0].material.color) {
             _woundedParts[0].material.color.r = Math.min(1, _woundedParts[0].material.color.r + 0.04);
@@ -2784,6 +3558,10 @@ const Enemies = (() => {
         if (Math.random() < 0.15 * delta) {
           e.retreating = true;
           e._retreatTimer = 3 + Math.random() * 2; // retreat for 3-5 seconds
+          // Clear flank assignment so retreating enemies stop flanking
+          e._flankAssigned = false;
+          e._flankDx = undefined;
+          e._flankDz = undefined;
         }
       }
       if (e.retreating) {
@@ -2797,10 +3575,11 @@ const Enemies = (() => {
             e.mesh.position.y = (window.VoxelWorld.getTopSolidY ? window.VoxelWorld.getTopSolidY(e.mesh.position.x, e.mesh.position.z) : window.VoxelWorld.getTerrainHeight(e.mesh.position.x, e.mesh.position.z) + 1);
           }
           e.mesh.lookAt(e.mesh.position.x + awayDir.x, e.mesh.position.y, e.mesh.position.z + awayDir.z);
+          e.mesh.rotation.y += Math.PI;
         }
         if (e._retreatTimer <= 0) e.retreating = false;
         // Update HP bar and continue
-        updateHpBar(e, playerPos);
+        updateHpBar(e, playerPos, delta);
         continue;
       }
 
@@ -2846,6 +3625,11 @@ const Enemies = (() => {
         continue;
       }
 
+      // ── Enemy taunts when in combat range ──
+      if (e.playerSpotted && !targetIsNPC && distToPlayer < 15 && Math.random() < 0.05) {
+        maybeTaunt(e);
+      }
+
       // ── Combat: ranged attack on player if spotted ──
       if (e.playerSpotted && !targetIsNPC && e.typeCfg.range > 0) {
         if (distToPlayer < e.typeCfg.range && distToPlayer > 2.5) {
@@ -2853,7 +3637,8 @@ const Enemies = (() => {
           e._rangedTimer -= delta;
 
           // AI Smart Learning: faster fire rate during player's reload window
-          var fireRateMod = 1.0;
+          // Also incorporate dynamic squad suppression fire rate modifier
+          var fireRateMod = (e._fireRateMod !== undefined) ? e._fireRateMod : 1.0;
           if (_aiStrategy && _aiStrategy.attackDuringReload && typeof MLSystem !== 'undefined') {
             // Dynamically compute reload window instead of using stale strategy value
             var mlBehavior = MLSystem.getBehavior();
@@ -2870,19 +3655,29 @@ const Enemies = (() => {
             fireRateMod = Math.min(fireRateMod, 0.7);
           }
 
+          // Boss burst fire: drain remaining burst shots rapidly
+          if (e._burstFire && e._burstRemaining > 0) {
+            e._burstTimer = (e._burstTimer || 0) - delta;
+            if (e._burstTimer <= 0) {
+              e._burstRemaining--;
+              e._burstTimer = 0.12; // 120ms between burst shots
+              // Re-enter the fire block by setting timer to 0 for next iteration
+              e._rangedTimer = 0;
+            }
+          }
+
           if (e._rangedTimer <= 0) {
             // Apply boss rage multiplier (faster attacks when low HP)
             var rageMod = e._rageMult || 1.0;
             e._rangedTimer = e.typeCfg.rangedRate * fireRateMod / rageMod;
+            // Boss burst fire: queue additional shots
+            if (e._burstFire && !(e._burstRemaining > 0)) {
+              e._burstRemaining = 2; // 2 follow-up shots after the first
+              e._burstTimer = 0.12;
+            }
 
-            // Grenade chance scales with wave number; elite types throw more
-            var _grenBase = Math.min(0.18, 0.04 + wave * 0.012);
-            var _grenTN = e.typeCfg ? e.typeCfg.name : '';
-            var _grenElite = (_grenTN === 'SPETSNAZ' || _grenTN === 'OFFICER' ||
-                              _grenTN === 'STORMER'  || _grenTN === 'SABOTEUR' ||
-                              _grenTN === 'WAGNER')  ? 0.10 : 0;
-            var _grenChance = _grenBase + _grenElite;
-            if (distToPlayer > 8 && distToPlayer < 22 && Math.random() < _grenChance) {
+            // Chance to throw grenade instead of shooting (8% when dist 8-20)
+            if (distToPlayer > 8 && distToPlayer < 20 && Math.random() < 0.08) {
               throwEnemyGrenade(e.mesh.position, playerPos);
               triggerBark(e, 'grenade');
             } else {
@@ -2891,6 +3686,10 @@ const Enemies = (() => {
             // AI Smart Learning: slight accuracy boost when countering
             if (_aiStrategy && _aiStrategy.adaptationLevel >= 2) {
               hitChance = Math.min(0.85, hitChance * 1.15);
+            }
+            // Suppression penalty: reduce accuracy while player pins enemy
+            if (e._suppressionActive && e._accuracyPenalty) {
+              hitChance = Math.max(0, hitChance - e._accuracyPenalty);
             }
             if (Math.random() < hitChance) {
               var eDmg = e.typeCfg.rangedDmg;
@@ -3039,7 +3838,6 @@ const Enemies = (() => {
               if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playExplosion();
               if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(e.mesh.position, 3);
               e.hp = 0; e.alive = false; e.deathTimer = 6.0;
-              if (e.mesh) e._groundY = e.mesh.position.y - (e.height || 1.8);
               e._deathTiltX = -1.5; e._deathPopY = 2;
             }
             // Bomber beep warning: flash body red
@@ -3158,565 +3956,79 @@ const Enemies = (() => {
                   spawnQueue.push(_sType);
                 }
               }
-              // Nuclear briefcase strike (BOSS_KREMLIN)
-              if (etResult.nuclearStrike) {
-                var _nk = etResult.nuclearStrike;
-                var _nkTargetPos = { x: _nk.targetX, y: _nk.targetY, z: _nk.targetZ };
-                var _nkDmg = _nk.damage;
-                var _nkRad = _nk.radius;
-                // Warning toast + camera shake on launch
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('☢️ NUCLEAR LAUNCH — SEEK COVER!', 3000, '#ff2200');
-                }
-                if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.45, 0.6);
-                // Detonation after 3-second flight time
-                (function(_pos, _dmg, _rad) {
-                  setTimeout(function() {
-                    var _nkVec = new THREE.Vector3(_pos.x, _pos.y, _pos.z);
-                    // Primary explosion VFX
-                    if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
-                      Tracers.spawnExplosion(_nkVec, _rad * 0.7);
-                      // Secondary blast wave
-                      for (var ni = 0; ni < 5; ni++) {
-                        Tracers.spawnExplosion(new THREE.Vector3(
-                          _pos.x + (Math.random()-0.5)*_rad,
-                          _pos.y,
-                          _pos.z + (Math.random()-0.5)*_rad
-                        ), _rad * 0.4);
-                      }
-                    }
-                    // Voxel building damage
-                    if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
-                      WorldFeatures.applyExplosionDamage(_pos.x, _pos.y, _pos.z, _rad * 0.6, _dmg);
-                    }
-                    // Damage player with distance falloff (uses live playerPos captured by closure)
-                    if (typeof onPlayerHit === 'function') {
-                      var _pdx = playerPos.x - _pos.x;
-                      var _pdz = playerPos.z - _pos.z;
-                      var _pdist = Math.sqrt(_pdx*_pdx + _pdz*_pdz);
-                      if (_pdist < _rad * 1.5) {
-                        var _falloff = Math.max(0, 1 - _pdist / (_rad * 1.5));
-                        onPlayerHit(Math.round(_dmg * _falloff), _nkVec);
-                      }
-                    }
-                    // Heavy detonation shake
-                    if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(1.8, 1.4);
-                  }, 3000);
-                })(_nkTargetPos, _nkDmg, _nkRad);
-              }
-              // Bunker shield state changes (BOSS_KREMLIN)
-              if (etResult.bunkerShieldOn) {
-                e._invincible = true;
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('🛡️ BUNKER SHIELD ACTIVE — FIND COVER!', 2500, '#00aaff');
-                }
-              }
-              if (etResult.bunkerShieldOff) {
-                e._invincible = false;
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('⚡ SHIELD DOWN — FIRE!', 1500, '#ffcc00');
-                }
-              }
-              // Body doubles (BOSS_KREMLIN) — spawn decoy bosses at 25% HP
-              if (etResult.bodyDoubles) {
-                var _bd = etResult.bodyDoubles;
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('☠️ BODY DOUBLES DEPLOYED — IDENTIFY THE REAL TARGET!', 4000, '#cc44ff');
-                }
-                for (var bdi = 0; bdi < _bd.count; bdi++) {
-                  var _bdAngle = (bdi / _bd.count) * Math.PI * 2;
-                  var _bdPos = { x: _bd.x + Math.cos(_bdAngle) * 8, z: _bd.z + Math.sin(_bdAngle) * 8 };
-                  // Spawn as generic BOSS (no nuclear/shield abilities) with reduced HP
-                  var _bdIdx = spawnOne('BOSS', -1, _bdPos);
-                  if (_bdIdx >= 0 && enemies[_bdIdx]) {
-                    enemies[_bdIdx].hp = Math.round(e.maxHp * 0.18);
-                    enemies[_bdIdx].maxHp = Math.round(e.maxHp * 0.18);
-                  }
-                }
-              }
-              // Flame aura (BOSS_MARIUPOL) — continuous burn when player is nearby
-              if (etResult.flameBurn && typeof onPlayerHit === 'function') {
-                var _fb = etResult.flameBurn;
-                var _fbFalloff = Math.max(0, 1 - _fb.dist / _fb.radius);
-                onPlayerHit(_fb.dps * delta * _fbFalloff, e.mesh ? e.mesh.position : null);
-                // Spawn fire particles at intervals
-                if (typeof Tracers !== 'undefined' && Tracers.spawnFire && Math.random() < delta * 3) {
-                  Tracers.spawnFire(e.mesh.position, 0.5, 0.8);
-                }
-              }
-              // Radiation aura (BOSS_CHORNOBYL) — continuous radiation when nearby
-              if (etResult.radBurn && typeof onPlayerHit === 'function') {
-                var _rb = etResult.radBurn;
-                var _rbFalloff = Math.max(0, 1 - _rb.dist / _rb.radius);
-                onPlayerHit(_rb.dps * delta * _rbFalloff, e.mesh ? e.mesh.position : null);
-                if (typeof HUD !== 'undefined' && HUD.showToast && !e._radWarnCooldown) {
-                  HUD.showToast('☢️ RADIATION EXPOSURE!', 1200, '#44ff22');
-                  e._radWarnCooldown = 5;
-                }
-              }
-              if (e._radWarnCooldown) e._radWarnCooldown -= delta;
-              // Naval barrage (BOSS_CRIMEA) — staggered shells at player position
-              if (etResult.navalBarrage) {
-                var _nba = etResult.navalBarrage;
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('⚓ NAVAL BARRAGE INCOMING!', 2000, '#2244aa');
-                }
-                for (var nbi = 0; nbi < 4; nbi++) {
-                  (function(_ti, _nx, _nz, _ndmg, _nrad) {
-                    setTimeout(function() {
-                      var _nPos = new THREE.Vector3(
-                        _nx + (Math.random()-0.5) * _nrad * 1.2,
-                        0.5,
-                        _nz + (Math.random()-0.5) * _nrad * 1.2
-                      );
-                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_nPos, _nrad * 0.3);
-                      if (typeof onPlayerHit === 'function') {
-                        var _npx = playerPos.x - _nPos.x, _npz = playerPos.z - _nPos.z;
-                        var _nd = Math.sqrt(_npx*_npx + _npz*_npz);
-                        if (_nd < _nrad * 1.5) onPlayerHit(Math.round(_ndmg * Math.max(0, 1 - _nd/(_nrad*1.5))), _nPos);
-                      }
-                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.6, 0.4);
-                    }, 600 + _ti * 350);
-                  })(nbi, _nba.targetX, _nba.targetZ, _nba.damage, _nba.radius);
-                }
-              }
-              // Reset regen timer when boss takes damage (handled via external damage flag)
-              if (etResult.regen && e.mesh && e.mesh.material) {
-                // Subtle green glow on regeneration (if material accessible)
-                try {
-                  if (e.mesh.userData.parts) {
-                    e.mesh.userData.parts.forEach(function(p) {
-                      if (p.material) p.material.emissive && p.material.emissive.setHex(0x00aa00);
-                    });
-                    e._regenGlowTimer = 0.3;
-                  }
-                } catch(_) {}
-              }
-              // Flashbang salvo (BOSS_MOSCOW)
-              if (etResult.flashbangSalvo) {
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('🕶️ FLASHBANG SALVO!', 1500, '#ffffff');
-                }
-                // Apply flashbang effect on player (stun vision + HUD flash)
-                if (window.GameManager && window.GameManager._flashbangStun !== undefined) {
-                  window.GameManager._flashbangStun = Math.min(4, (window.GameManager._flashbangStun || 0) + 1.8);
-                }
-                if (typeof AudioSystem !== 'undefined' && AudioSystem.playFlashbang) AudioSystem.playFlashbang();
-                // VFX: spawn a couple of flash explosions near player
-                var _fbPos = new THREE.Vector3(etResult.flashbangSalvo.targetX, 1.5, etResult.flashbangSalvo.targetZ);
-                if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_fbPos, 1.2);
-              }
-              // Cruise missile (BOSS_SEVASTOPOL) — big 4-second inbound warning
-              if (etResult.cruiseMissile) {
-                var _cm = etResult.cruiseMissile;
-                var _cmPos = { x: _cm.targetX, z: _cm.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('🚀 CRUISE MISSILE INBOUND — 4 SECONDS!', 3500, '#ff4400');
-                }
-                if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.3, 0.5);
-                (function(_p, _d, _r) {
-                  setTimeout(function() {
-                    var _cv = new THREE.Vector3(_p.x, 0.5, _p.z);
-                    // Huge explosion
-                    if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
-                      Tracers.spawnExplosion(_cv, _r * 0.8);
-                      Tracers.spawnExplosion(new THREE.Vector3(_p.x + (Math.random()-0.5)*_r*0.5, 1, _p.z + (Math.random()-0.5)*_r*0.5), _r * 0.4);
-                    }
-                    if (typeof WorldFeatures !== 'undefined' && WorldFeatures.applyExplosionDamage) {
-                      WorldFeatures.applyExplosionDamage(_p.x, 0, _p.z, _r * 0.7, _d);
-                    }
-                    if (typeof onPlayerHit === 'function') {
-                      var _mx = playerPos.x - _p.x, _mz = playerPos.z - _p.z;
-                      var _md = Math.sqrt(_mx*_mx + _mz*_mz);
-                      if (_md < _r * 1.8) onPlayerHit(Math.round(_d * Math.max(0, 1 - _md/(_r*1.8))), _cv);
-                    }
-                    if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(2.0, 1.5);
-                  }, 4000);
-                })(_cmPos, _cm.damage, _cm.radius);
-              }
-              // Artillery call (BOSS_DONBAS) — rapid volley at player with 2s warning
-              if (etResult.artilleryCall) {
-                var _ac = etResult.artilleryCall;
-                var _acPos = { x: _ac.targetX, z: _ac.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('💀 ARTILLERY CALLED — MOVE!', 2000, '#553322');
-                }
-                var _acShells = 5;
-                for (var aci = 0; aci < _acShells; aci++) {
-                  (function(_i2, _p2, _d2, _r2) {
-                    setTimeout(function() {
-                      var _sv = new THREE.Vector3(
-                        _p2.x + (Math.random()-0.5) * _r2 * 2.5,
-                        0.5,
-                        _p2.z + (Math.random()-0.5) * _r2 * 2.5
-                      );
-                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_sv, _r2 * 0.3);
-                      if (typeof onPlayerHit === 'function') {
-                        var _apx = playerPos.x - _sv.x, _apz = playerPos.z - _sv.z;
-                        var _apd = Math.sqrt(_apx*_apx + _apz*_apz);
-                        if (_apd < _r2 * 1.5) onPlayerHit(Math.round(_d2 * Math.max(0, 1 - _apd/(_r2*1.5))), _sv);
-                      }
-                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.55, 0.3);
-                    }, 2000 + _i2 * 280);
-                  })(aci, _acPos, _ac.damage, _ac.radius);
-                }
-              }
-              // Rocket salvo (BOSS_BELGOROD) — burst of rockets spread around player
-              if (etResult.rocketSalvo) {
-                var _rs = etResult.rocketSalvo;
-                var _rsPos = { x: _rs.targetX, z: _rs.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('🚀 ROCKET SALVO INCOMING!', 1500, '#884422');
-                }
-                for (var rsi = 0; rsi < _rs.count; rsi++) {
-                  (function(_ri, _rp, _rd) {
-                    setTimeout(function() {
-                      var _rv = new THREE.Vector3(
-                        _rp.x + (Math.random()-0.5) * 10,
-                        0.5,
-                        _rp.z + (Math.random()-0.5) * 10
-                      );
-                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_rv, 2.2);
-                      if (typeof onPlayerHit === 'function') {
-                        var _rrx = playerPos.x - _rv.x, _rrz = playerPos.z - _rv.z;
-                        var _rrd = Math.sqrt(_rrx*_rrx + _rrz*_rrz);
-                        if (_rrd < 6) onPlayerHit(Math.round(_rd * Math.max(0, 1 - _rrd/6)), _rv);
-                      }
-                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.7, 0.25);
-                    }, 300 + _ri * 200);
-                  })(rsi, _rsPos, _rs.damage);
-                }
-              }
-              // Drone swarm (BOSS_SAKY) — spawns several kamikaze enemies near boss
-              if (etResult.droneSwarm) {
-                var _ds = etResult.droneSwarm;
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('🚁 DRONE SWARM DEPLOYED!', 2000, '#226644');
-                }
-                var _bossPos3 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
-                for (var dsi = 0; dsi < (_ds.count || 4); dsi++) {
-                  (function(_di, _bp) {
-                    setTimeout(function() {
-                      var _spawnType = 'FPV_ATTACK';
-                      var _swarmPos = new THREE.Vector3(
-                        _bp.x + (Math.random()-0.5) * 12,
-                        _bp.y + 3 + Math.random() * 4,
-                        _bp.z + (Math.random()-0.5) * 12
-                      );
-                      if (typeof spawnOne === 'function') spawnOne(_spawnType, -1, _swarmPos);
-                    }, _di * 400);
-                  })(dsi, _bossPos3);
-                }
-              }
-              // Mortar screen (BOSS_ANTONOV) — dense mortar barrage scattered around player
-              if (etResult.mortarScreen) {
-                var _ms = etResult.mortarScreen;
-                var _msPos = { x: _ms.targetX, z: _ms.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) {
-                  HUD.showToast('💥 MORTAR SCREEN — TAKE COVER!', 2000, '#776633');
-                }
-                var _msShelCount = 9;
-                for (var msi = 0; msi < _msShelCount; msi++) {
-                  (function(_mi, _mp, _md2) {
-                    setTimeout(function() {
-                      var _mv = new THREE.Vector3(
-                        _mp.x + (Math.random()-0.5) * 18,
-                        0.5,
-                        _mp.z + (Math.random()-0.5) * 18
-                      );
-                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_mv, 2.0);
-                      if (typeof onPlayerHit === 'function') {
-                        var _mxd = playerPos.x - _mv.x, _mzd = playerPos.z - _mv.z;
-                        var _mdd = Math.sqrt(_mxd*_mxd + _mzd*_mzd);
-                        if (_mdd < 5) onPlayerHit(Math.round(_md2 * Math.max(0, 1 - _mdd/5)), _mv);
-                      }
-                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.5, 0.2);
-                    }, 200 + _mi * 220);
-                  })(msi, _msPos, _ms.damage);
-                }
-              }
-              // call_armor (BOSS_KYIV) — summons armored vehicles near boss
-              if (etResult.callArmor) {
-                var _ca = etResult.callArmor;
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛡️ ARMOR CALLED IN!', 2000, '#880000');
-                var _bossPos4 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
-                for (var cai = 0; cai < (_ca.count || 2); cai++) {
-                  (function(_cai2, _bp4, _types) {
-                    setTimeout(function() {
-                      var _t = _types[Math.floor(Math.random() * _types.length)];
-                      var _sp = new THREE.Vector3(_bp4.x + (Math.random()-0.5)*16, 0, _bp4.z + (Math.random()-0.5)*16);
-                      if (typeof spawnOne === 'function') spawnOne(_t, -1, _sp);
-                    }, _cai2 * 600);
-                  })(cai, _bossPos4, _ca.types || ['BTR']);
-                }
-              }
-              // artillery_strike (BOSS_KYIV) — targeted strike with 3s warning
-              if (etResult.artilleryStrike) {
-                var _as2 = etResult.artilleryStrike;
-                var _as2Pos = { x: _as2.targetX, z: _as2.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 ARTILLERY STRIKE — 3 SECONDS!', 2500, '#882200');
-                for (var asi = 0; asi < 5; asi++) {
-                  (function(_ai, _ap, _ad, _ar) {
-                    setTimeout(function() {
-                      var _av = new THREE.Vector3(_ap.x + (Math.random()-0.5)*_ar*2, 0.5, _ap.z + (Math.random()-0.5)*_ar*2);
-                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_av, _ar*0.3);
-                      if (typeof onPlayerHit === 'function') {
-                        var _adx = playerPos.x - _av.x, _adz = playerPos.z - _av.z;
-                        var _add = Math.sqrt(_adx*_adx + _adz*_adz);
-                        if (_add < _ar*1.5) onPlayerHit(Math.round(_ad * Math.max(0, 1 - _add/(_ar*1.5))), _av);
-                      }
-                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.6, 0.3);
-                    }, 3000 + _ai * 300);
-                  })(asi, _as2Pos, _as2.damage, _as2.radius);
-                }
-              }
-              // conscript_wave (BOSS_KYIV) — floods zone with conscripts
-              if (etResult.conscriptWave) {
-                var _cw = etResult.conscriptWave;
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🪖 CONSCRIPTS INBOUND!', 1800, '#664422');
-                var _bossPos5 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
-                for (var cwi = 0; cwi < (_cw.count || 5); cwi++) {
-                  (function(_cwi2, _bp5) {
-                    setTimeout(function() {
-                      var _cwSp = new THREE.Vector3(_bp5.x + (Math.random()-0.5)*20, 0, _bp5.z + (Math.random()-0.5)*20);
-                      if (typeof spawnOne === 'function') spawnOne('CONSCRIPT', -1, _cwSp);
-                    }, _cwi2 * 250);
-                  })(cwi, _bossPos5);
-                }
-              }
-              // depth_charge (BOSS_SNAKE_ISLAND) — 4 AoE blasts in expanding ring
-              if (etResult.depthCharge) {
-                var _dc2 = etResult.depthCharge;
-                var _dcPos = { x: _dc2.targetX, z: _dc2.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💣 DEPTH CHARGES DROPPING!', 1800, '#113355');
-                for (var dci = 0; dci < (_dc2.count || 4); dci++) {
-                  (function(_dci2, _dp, _dd, _dr) {
-                    setTimeout(function() {
-                      var _angle = (_dci2 / 4) * Math.PI * 2;
-                      var _dist = 4 + _dci2 * 2;
-                      var _dv = new THREE.Vector3(_dp.x + Math.cos(_angle)*_dist, 0.5, _dp.z + Math.sin(_angle)*_dist);
-                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_dv, _dr*0.35);
-                      if (typeof onPlayerHit === 'function') {
-                        var _ddx = playerPos.x - _dv.x, _ddz = playerPos.z - _dv.z;
-                        var _ddd = Math.sqrt(_ddx*_ddx + _ddz*_ddz);
-                        if (_ddd < _dr) onPlayerHit(Math.round(_dd * Math.max(0, 1 - _ddd/_dr)), _dv);
-                      }
-                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.8, 0.35);
-                    }, 400 + _dci2 * 350);
-                  })(dci, _dcPos, _dc2.damage, _dc2.radius);
-                }
-              }
-              // marine_drop (BOSS_SNAKE_ISLAND) — airdrop marines
-              if (etResult.marineDrop) {
-                var _md3 = etResult.marineDrop;
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('⚓ MARINES LANDING!', 1800, '#1a3a5a');
-                var _bossPos6 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
-                for (var mdi = 0; mdi < (_md3.count || 3); mdi++) {
-                  (function(_mdi2, _bp6) {
-                    setTimeout(function() {
-                      var _marineSp = new THREE.Vector3(_bp6.x + (Math.random()-0.5)*18, 0, _bp6.z + (Math.random()-0.5)*18);
-                      var _marineType = Math.random() < 0.5 ? 'SPETSNAZ' : 'PARATROOP';
-                      if (typeof spawnOne === 'function') spawnOne(_marineType, -1, _marineSp);
-                    }, _mdi2 * 500);
-                  })(mdi, _bossPos6);
-                }
-              }
-              // airstrike_call (BOSS_SAKY) — carpet bomb run across player position
-              if (etResult.airstrikeCall) {
-                var _asc = etResult.airstrikeCall;
-                var _ascPos = { x: _asc.targetX, z: _asc.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('✈ AIRSTRIKE INBOUND — 4 SECONDS!', 3500, '#2a2a4a');
-                for (var asci = 0; asci < (_asc.bombCount || 6); asci++) {
-                  (function(_bi, _abp, _ad2, _ar2) {
-                    setTimeout(function() {
-                      var _bv = new THREE.Vector3(_abp.x + (_bi - 3) * 4, 0.5, _abp.z + (Math.random()-0.5)*6);
-                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_bv, _ar2*0.4);
-                      if (typeof onPlayerHit === 'function') {
-                        var _abx = playerPos.x - _bv.x, _abz = playerPos.z - _bv.z;
-                        var _abd = Math.sqrt(_abx*_abx + _abz*_abz);
-                        if (_abd < _ar2*1.2) onPlayerHit(Math.round(_ad2 * Math.max(0, 1 - _abd/(_ar2*1.2))), _bv);
-                      }
-                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.65, 0.3);
-                    }, 4000 + _bi * 250);
-                  })(asci, _ascPos, _asc.damage, _asc.radius);
-                }
-              }
-              // scramble_jets (BOSS_SAKY) — strafing run deals rapid light damage
-              if (etResult.scrambleJets) {
-                var _sj = etResult.scrambleJets;
-                var _sjPos = { x: _sj.targetX, z: _sj.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛩 JETS STRAFING!', 1500, '#223344');
-                for (var sji = 0; sji < (_sj.strafePasses || 3) * 3; sji++) {
-                  (function(_si2, _ssp, _sbd) {
-                    setTimeout(function() {
-                      var _ssv = new THREE.Vector3(_ssp.x + (Math.random()-0.5)*14, 0.5, _ssp.z + (Math.random()-0.5)*8);
-                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_ssv, 1.2);
-                      if (typeof onPlayerHit === 'function') {
-                        var _ssx = playerPos.x - _ssv.x, _ssz = playerPos.z - _ssv.z;
-                        if (Math.sqrt(_ssx*_ssx + _ssz*_ssz) < 4) onPlayerHit(_sbd, _ssv);
-                      }
-                    }, 2000 + _si2 * 180);
-                  })(sji, _sjPos, _sj.damage);
-                }
-              }
-              // tank_column (BOSS_VUHLEDAR) — spawns tanks near the boss
-              if (etResult.tankColumn) {
-                var _tc = etResult.tankColumn;
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🚂 TANK COLUMN ADVANCING!', 2000, '#3a2800');
-                var _bossPos7 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
-                for (var tci = 0; tci < (_tc.count || 2); tci++) {
-                  (function(_tci2, _bp7) {
-                    setTimeout(function() {
-                      var _tankSp = new THREE.Vector3(_bp7.x + (Math.random()-0.5)*14, 0, _bp7.z + (Math.random()-0.5)*14);
-                      if (typeof spawnOne === 'function') spawnOne('TANK', -1, _tankSp);
-                    }, _tci2 * 700);
-                  })(tci, _bossPos7);
-                }
-              }
-              // artillery_prep (BOSS_VUHLEDAR) — heavy bombardment before infantry push
-              if (etResult.artilleryPrep) {
-                var _ap2 = etResult.artilleryPrep;
-                var _apPos = { x: _ap2.targetX, z: _ap2.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💢 ARTILLERY PREP — INCOMING!', 2000, '#554400');
-                for (var api = 0; api < (_ap2.shellCount || 7); api++) {
-                  (function(_ai3, _app, _apd, _apr) {
-                    setTimeout(function() {
-                      var _apv = new THREE.Vector3(_app.x + (Math.random()-0.5)*_apr*2, 0.5, _app.z + (Math.random()-0.5)*_apr*2);
-                      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_apv, _apr*0.3);
-                      if (typeof onPlayerHit === 'function') {
-                        var _apx2 = playerPos.x - _apv.x, _apz2 = playerPos.z - _apv.z;
-                        var _apd2 = Math.sqrt(_apx2*_apx2 + _apz2*_apz2);
-                        if (_apd2 < _apr*1.5) onPlayerHit(Math.round(_apd * Math.max(0, 1 - _apd2/(_apr*1.5))), _apv);
-                      }
-                      if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.55, 0.25);
-                    }, 2500 + _ai3 * 260);
-                  })(api, _apPos, _ap2.damage, _ap2.radius);
-                }
-              }
-              // minefield_advance (BOSS_VUHLEDAR) — scatters proximity mines
-              if (etResult.minefieldAdvance) {
-                var _mf = etResult.minefieldAdvance;
-                var _mfPos = { x: _mf.targetX, z: _mf.targetZ };
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('⚠ MINES DEPLOYED!', 2000, '#445500');
-                for (var mfi = 0; mfi < (_mf.mineCount || 6); mfi++) {
-                  (function(_mfi2, _mfp, _mfd) {
-                    setTimeout(function() {
-                      var _mfAngle = Math.random() * Math.PI * 2;
-                      var _mfDist = 5 + Math.random() * _mf.spreadRadius;
-                      var _mfv = new THREE.Vector3(_mfp.x + Math.cos(_mfAngle)*_mfDist, 0.5, _mfp.z + Math.sin(_mfAngle)*_mfDist);
-                      // Mines detonate 1.5s after placement if player is nearby
-                      setTimeout(function() {
-                        if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_mfv, 2.5);
-                        if (typeof onPlayerHit === 'function') {
-                          var _mfx = playerPos.x - _mfv.x, _mfz = playerPos.z - _mfv.z;
-                          if (Math.sqrt(_mfx*_mfx + _mfz*_mfz) < 4) onPlayerHit(_mfd, _mfv);
-                        }
-                        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.4, 0.2);
-                      }, 1500);
-                    }, _mfi2 * 300);
-                  })(mfi, _mfPos, _mf.mineDamage);
-                }
-              }
-              // supply_drop (BOSS_ANTONOV) — heals nearby enemy allies
-              if (etResult.supplyDrop) {
-                var _supDrop = etResult.supplyDrop;
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('📦 SUPPLY DROP — ENEMIES HEALING!', 2000, '#2a4a2a');
-                // Heal all nearby enemies
-                var _healPos = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
-                for (var _sei = 0; _sei < enemies.length; _sei++) {
-                  var _se = enemies[_sei];
-                  if (!_se || _se.dead || !_se.mesh) continue;
-                  var _sedx = _se.mesh.position.x - _healPos.x, _sedz = _se.mesh.position.z - _healPos.z;
-                  if (Math.sqrt(_sedx*_sedx + _sedz*_sedz) <= (_supDrop.healRadius || 15)) {
-                    _se.hp = Math.min(_se.maxHp || _se.hp, _se.hp + (_supDrop.healAmount || 80));
-                  }
-                }
-                if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
-                  var _sdVfx = e.mesh ? e.mesh.position.clone() : new THREE.Vector3(0,5,0);
-                  _sdVfx.y = 5;
-                  Tracers.spawnExplosion(_sdVfx, 1.0);
-                }
-              }
-              // repair_team (BOSS_ANTONOV) — spawns engineers
-              if (etResult.repairTeam) {
-                var _rt = etResult.repairTeam;
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🔧 REPAIR TEAM DEPLOYED!', 1800, '#335533');
-                var _bossPos8 = e.mesh ? e.mesh.position : new THREE.Vector3(0,0,0);
-                for (var rti = 0; rti < (_rt.count || 2); rti++) {
-                  (function(_rti2, _bp8) {
-                    setTimeout(function() {
-                      var _rtSp = new THREE.Vector3(_bp8.x + (Math.random()-0.5)*10, 0, _bp8.z + (Math.random()-0.5)*10);
-                      if (typeof spawnOne === 'function') spawnOne('ENGINEER', -1, _rtSp);
-                    }, _rti2 * 500);
-                  })(rti, _bossPos8);
-                }
-              }
-              // fortify (BOSS_DONBAS) — barrier activation/expiry notifications
-              if (etResult.fortify) {
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛡️ WARLORD FORTIFIES! BREAK THE BARRIER!', 2500, '#882288');
-              }
-              if (etResult.fortifyExpired) {
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('⚡ BARRIER EXPIRED — HIT HIM NOW!', 1500, '#ffaa00');
-              }
-              // armor_plates (BOSS_BELGOROD) — heavy armor activation window
-              if (etResult.armorPlates) {
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🛡️ IRON GENERAL REINFORCED! AIM FOR THE REAR!', 3000, '#334433');
-              }
-              if (etResult.armorPlatesExpired) {
-                if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 ARMOR CRACKED — VULNERABLE!', 1500, '#88ff44');
-              }
-              // torpedo_salvo (BOSS_SEVASTOPOL) — 5 staggered underwater blasts in fan
-              if (etResult.torpedoSalvo) {
-                (function(_ts, _bpTs) {
-                  var _tsSpread = _ts.spread || 10;
-                  var _tsAngle = Math.atan2(_bpTs.z - (e.mesh ? e.mesh.position.z : 0), _bpTs.x - (e.mesh ? e.mesh.position.x : 0));
-                  if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('🌊 TORPEDO SALVO — HIT THE DECK!', 1800, '#2255aa');
-                  for (var tsi = 0; tsi < (_ts.count || 5); tsi++) {
-                    (function(_ti, _ta, _td, _tr) {
-                      setTimeout(function() {
-                        var _fanOff = (_ti - 2) * 0.35;
-                        var _tAngle = _ta + _fanOff;
-                        var _tDist = 8 + Math.random() * _tsSpread;
-                        var _tv = new THREE.Vector3(
-                          _bpTs.x + Math.cos(_tAngle) * _tDist,
-                          0.2,
-                          _bpTs.z + Math.sin(_tAngle) * _tDist
-                        );
-                        if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(_tv, 2.2);
-                        if (typeof onPlayerHit === 'function') {
-                          var _txd = playerPos.x - _tv.x, _tzd = playerPos.z - _tv.z;
-                          var _tdd = Math.sqrt(_txd*_txd + _tzd*_tzd);
-                          if (_tdd < _tr) onPlayerHit(Math.round(_td * Math.max(0, 1 - _tdd / _tr)), _tv);
-                        }
-                        if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(0.4, 0.18);
-                      }, 350 + _ti * 280);
-                    })(tsi, _tsAngle, _ts.damage, _ts.radius);
-                  }
-                })(etResult.torpedoSalvo, playerPos);
-              }
-              // shield_bash (generic BOSS) — melee slam knocks player back
-              if (etResult.shieldBash) {
-                (function(_sb) {
-                  if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 SHIELD BASH!', 900, '#cc3300');
-                  if (typeof onPlayerHit === 'function') onPlayerHit(_sb.damage, e.mesh ? e.mesh.position : playerPos);
-                  if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) CameraSystem.shake(1.0, 0.4);
-                  // Apply pushback via GameManager if available
-                  if (typeof GameManager !== 'undefined' && GameManager.applyKnockback) {
-                    var _sbDir = new THREE.Vector3(
-                      playerPos.x - (e.mesh ? e.mesh.position.x : playerPos.x),
-                      0.4,
-                      playerPos.z - (e.mesh ? e.mesh.position.z : playerPos.z)
-                    ).normalize();
-                    GameManager.applyKnockback(_sbDir, _sb.pushback || 8);
-                  }
-                })(etResult.shieldBash);
-              }
               // B22: Update boss health bar — prefer display name from EnemyTypes
               if (typeof HUD !== 'undefined' && HUD.showBossBar) {
                 var _bossDisplayName = (typeof EnemyTypes !== 'undefined' && EnemyTypes.TYPES &&
                   EnemyTypes.TYPES[e.typeName] && EnemyTypes.TYPES[e.typeName].name)
                   ? EnemyTypes.TYPES[e.typeName].name : (e.typeCfg.name || 'BOSS');
                 HUD.showBossBar(_bossDisplayName, e.hp, e.maxHp);
+              }
+              // Boss phase transitions — dramatic announcements
+              var _tn2 = e.typeName || '';
+              if ((_tn2 === 'BOSS' || _tn2.startsWith('BOSS_')) && e.maxHp > 0) {
+                var _bPhasePct = e.hp / e.maxHp;
+                var _bPhaseKey = '_bossPhase_' + (e.id || 0);
+                var _lastPhase = window[_bPhaseKey] || 1.0;
+                if (_lastPhase > 0.75 && _bPhasePct <= 0.75) {
+                  window[_bPhaseKey] = 0.75;
+                  if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('⚠ BOSS PHASE 2 — ENEMY ENRAGED!', '#ff4400');
+                  if (typeof AudioSystem !== 'undefined' && AudioSystem.playBossPhase) AudioSystem.playBossPhase();
+                } else if (_lastPhase > 0.50 && _bPhasePct <= 0.50) {
+                  window[_bPhaseKey] = 0.50;
+                  if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('💀 BOSS PHASE 3 — MAXIMUM DANGER!', '#ff0000');
+                  if (typeof AudioSystem !== 'undefined' && AudioSystem.playBossPhase) AudioSystem.playBossPhase();
+                } else if (_lastPhase > 0.25 && _bPhasePct <= 0.25) {
+                  window[_bPhaseKey] = 0.25;
+                  if (typeof HUD !== 'undefined' && HUD.notifyPickup) HUD.notifyPickup('☠ BOSS FINAL PHASE — HE\'S GOING ALL OUT!', '#ff00ff');
+                  if (typeof Feedback !== 'undefined' && Feedback.triggerSlowMo) Feedback.triggerSlowMo(0.2, 0.5);
+                }
+              }
+
+              // ── Boss phase visual feedback (per-frame) ──
+
+              // Phase transition flash: alternate red/white emissive
+              if (e._phaseTransition && e._phaseTransition > 0) {
+                e._phaseTransition -= delta;
+                var _flashOn = Math.floor(e._phaseTransition * 10) % 2 === 0;
+                if (e.mesh) {
+                  e.mesh.traverse(function (_ptChild) {
+                    if (_ptChild.isMesh && _ptChild.material && _ptChild.material.emissive) {
+                      _ptChild.material.emissive.setHex(_flashOn ? 0xff0000 : 0xffffff);
+                    }
+                  });
+                }
+                if (e._phaseTransition <= 0) {
+                  // Reset emissive when flash expires
+                  if (e.mesh) {
+                    e.mesh.traverse(function (_ptReset) {
+                      if (_ptReset.isMesh && _ptReset.material && _ptReset.material.emissive) {
+                        _ptReset.material.emissive.setHex(0x000000);
+                      }
+                    });
+                  }
+                }
+              }
+
+              // Phase 2: red point light on boss body
+              if (e._phase <= 2 && !e._phaseLight && e.mesh && scene) {
+                var _bPL = new THREE.PointLight(0xff2200, 1.5, 8);
+                _bPL.position.copy(e.mesh.position);
+                _bPL.position.y += 1.5;
+                scene.add(_bPL);
+                e._phaseLight = _bPL;
+              }
+              // Track phase light with boss position
+              if (e._phaseLight && e.mesh) {
+                e._phaseLight.position.copy(e.mesh.position);
+                e._phaseLight.position.y += 1.5;
+              }
+
+              // Phase 1: berserker charge — override AI target each frame
+              if (e._berserker && e.mesh && playerPos) {
+                e._chargeTarget = playerPos;
+                // Force playerSpotted so movement AI keeps chasing
+                e.playerSpotted = true;
+                e.spotLevel = 99;
               }
             }
             break;
@@ -3947,6 +4259,189 @@ const Enemies = (() => {
               if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playEnemyBark) window.AudioSystem.playEnemyBark();
             }
             break;
+          // ── New enemy type AI behaviors ──────────────────────────
+          case 'DRONE_OPERATOR': {
+            // Stay stationary in cover; sends FPV drone at player every 8s
+            if (!e._doTimer) e._doTimer = 8.0;
+            e._doTimer -= delta;
+            if (e._doTimer <= 0) {
+              e._doTimer = 8.0;
+              var _doDist = e.mesh.position.distanceTo(playerPos);
+              if (_doDist < 60) {
+                // Spawn FPV drone (small orange box) that flies toward player
+                if (scene) {
+                  var _fpvGeo = new THREE.BoxGeometry(0.25, 0.10, 0.25);
+                  var _fpvMat = new THREE.MeshLambertMaterial({ color: 0xff6600 });
+                  var _fpvMesh = new THREE.Mesh(_fpvGeo, _fpvMat);
+                  _fpvMesh.position.set(
+                    e.mesh.position.x,
+                    e.mesh.position.y + 3,
+                    e.mesh.position.z
+                  );
+                  scene.add(_fpvMesh);
+                  // Capture target position at launch time
+                  var _fpvTargetX = playerPos.x;
+                  var _fpvTargetZ = playerPos.z;
+                  var _fpvSpeed = 12;
+                  var _fpvLife = 6.0;
+                  // Store drone state on the array for update
+                  if (!e._fpvDrones) e._fpvDrones = [];
+                  e._fpvDrones.push({
+                    mesh: _fpvMesh,
+                    tx: _fpvTargetX,
+                    tz: _fpvTargetZ,
+                    speed: _fpvSpeed,
+                    life: _fpvLife,
+                  });
+                }
+                triggerBark(e, 'attack');
+              }
+            }
+            // Update active FPV drones for this operator
+            if (e._fpvDrones && e._fpvDrones.length > 0) {
+              for (var _fdi = e._fpvDrones.length - 1; _fdi >= 0; _fdi--) {
+                var _fpv = e._fpvDrones[_fdi];
+                var _fdx = _fpv.tx - _fpv.mesh.position.x;
+                var _fdz = _fpv.tz - _fpv.mesh.position.z;
+                var _fdLen = Math.sqrt(_fdx * _fdx + _fdz * _fdz);
+                _fpv.life -= delta;
+                if (_fdLen < 3 || _fpv.life <= 0) {
+                  // Explode: damage player if within 3 units of player position
+                  var _fdPlayerDx = _fpv.mesh.position.x - playerPos.x;
+                  var _fdPlayerDz = _fpv.mesh.position.z - playerPos.z;
+                  var _fdPlayerDist = Math.sqrt(_fdPlayerDx * _fdPlayerDx + _fdPlayerDz * _fdPlayerDz);
+                  if (_fdPlayerDist < 3 && typeof window.GameManager !== 'undefined' && window.GameManager.damagePlayer) {
+                    window.GameManager.damagePlayer(40);
+                  } else if (_fdPlayerDist < 3 && onPlayerHit) {
+                    onPlayerHit(40, _fpv.mesh.position);
+                  }
+                  if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) {
+                    Tracers.spawnExplosion(_fpv.mesh.position, 1.5);
+                  }
+                  if (scene) scene.remove(_fpv.mesh);
+                  if (_fpv.mesh.geometry) _fpv.mesh.geometry.dispose();
+                  if (_fpv.mesh.material) _fpv.mesh.material.dispose();
+                  e._fpvDrones.splice(_fdi, 1);
+                } else {
+                  // Fly toward target
+                  var _fpvDirX = _fdx / _fdLen;
+                  var _fpvDirZ = _fdz / _fdLen;
+                  _fpv.mesh.position.x += _fpvDirX * _fpv.speed * delta;
+                  _fpv.mesh.position.z += _fpvDirZ * _fpv.speed * delta;
+                  // Hover at fixed altitude
+                  var _fpvTerrY = (typeof window.VoxelWorld !== 'undefined' && window.VoxelWorld.getTerrainHeight)
+                    ? window.VoxelWorld.getTerrainHeight(_fpv.mesh.position.x, _fpv.mesh.position.z) : 0;
+                  _fpv.mesh.position.y = _fpvTerrY + 2.5;
+                }
+              }
+            }
+            break;
+          }
+          case 'SNIPER_OP': {
+            // Finds high ground: check terrain and stay prone, fires once per 4s
+            if (!e._sopTimer) e._sopTimer = 4.0;
+            e._sopTimer -= delta;
+            if (e._sopTimer <= 0 && e.playerSpotted) {
+              e._sopTimer = 4.0;
+              // High-ground preference: bias Y upward position each frame
+              if (typeof window.VoxelWorld !== 'undefined' && window.VoxelWorld.getTerrainHeight) {
+                var _bestH = -Infinity, _bestX = e.mesh.position.x, _bestZ = e.mesh.position.z;
+                for (var _sa = 0; _sa < 8; _sa++) {
+                  var _sang = _sa * Math.PI / 4;
+                  var _ssx = e.mesh.position.x + Math.cos(_sang) * 4;
+                  var _ssz = e.mesh.position.z + Math.sin(_sang) * 4;
+                  var _ssh = window.VoxelWorld.getTerrainHeight(_ssx, _ssz);
+                  if (_ssh > _bestH) { _bestH = _ssh; _bestX = _ssx; _bestZ = _ssz; }
+                }
+                // Nudge toward highest ground
+                var _sgnx = _bestX - e.mesh.position.x;
+                var _sgnz = _bestZ - e.mesh.position.z;
+                var _sgnl = Math.sqrt(_sgnx * _sgnx + _sgnz * _sgnz);
+                if (_sgnl > 0.5) {
+                  e.mesh.position.x += (_sgnx / _sgnl) * 0.5;
+                  e.mesh.position.z += (_sgnz / _sgnl) * 0.5;
+                }
+              }
+              // Precision shot: use Raycaster for line-of-sight check
+              var _sopRay = new THREE.Raycaster();
+              var _sopOrigin = e.mesh.position.clone();
+              _sopOrigin.y += 1.2;
+              var _sopDir = new THREE.Vector3(
+                playerPos.x - _sopOrigin.x,
+                playerPos.y + 0.8 - _sopOrigin.y,
+                playerPos.z - _sopOrigin.z
+              ).normalize();
+              _sopRay.set(_sopOrigin, _sopDir);
+              var _sopDist = e.mesh.position.distanceTo(playerPos);
+              // Only fire if within range and player in LOS (raycaster finds no obstacles)
+              if (_sopDist < e.typeCfg.range) {
+                var _sopHit = true;
+                // Spawn tracer visual
+                if (typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
+                  Tracers.spawnTracer(_sopOrigin, _sopDir, 0xffcc00, 200);
+                }
+                // Damage player
+                if (_sopHit && onPlayerHit) {
+                  onPlayerHit(e.typeCfg.rangedDmg, e.mesh.position);
+                }
+                if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playSpatialGunshot) {
+                  var _sopYaw = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : 0;
+                  window.AudioSystem.playSpatialGunshot('sniper', e.mesh.position, playerPos, _sopYaw);
+                }
+              }
+            }
+            // Prone behavior: stay still after first spot
+            if (e.playerSpotted && !e._sopProne) {
+              e._sopProne = true;
+              if (e.mesh) e.mesh.position.y -= 0.3;
+            }
+            break;
+          }
+          case 'TANK_CREW': {
+            // Aggressive rush; throws grenade when within 15 units every 12s
+            if (!e._tcGrenTimer) e._tcGrenTimer = 12.0;
+            e._tcGrenTimer -= delta;
+            var _tcDist = e.mesh.position.distanceTo(playerPos);
+            if (e._tcGrenTimer <= 0 && e.playerSpotted && _tcDist < 15) {
+              e._tcGrenTimer = 12.0;
+              throwEnemyGrenade(e.mesh.position, playerPos);
+              triggerBark(e, 'grenade');
+            }
+            break;
+          }
+          case 'GENERAL_KOZLOV':
+          case 'COLONEL_VADIM':
+          case 'CAPTAIN_IGOR': {
+            // Field commander AI: approach player, then call reinforcements on timer
+            // Movement: use spetsnaz-style approach
+            etResult = EnemyTypes.updateSpetsnaz ? EnemyTypes.updateSpetsnaz(e, playerPos, delta) : null;
+            // Commander reinforcement timer
+            if (e.role === 'general' || e.role === 'colonel' || e.role === 'captain') {
+              var _cmdInterval = e.role === 'general' ? 15 : (e.role === 'colonel' ? 20 : 25);
+              e._commanderTimer = (e._commanderTimer !== undefined ? e._commanderTimer : _cmdInterval);
+              e._commanderTimer -= delta;
+              if (e._commanderTimer <= 0) {
+                e._commanderTimer = _cmdInterval;
+                try {
+                  if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+                    HUD.notifyPickup('📡 ' + (e.typeName || 'COMMANDER') + ' CALLING REINFORCEMENTS!', '#ff4400');
+                  }
+                  // Spawn 2-3 infantry around commander
+                  var _rCount = 2 + Math.floor(Math.random() * 2);
+                  for (var _ri = 0; _ri < _rCount; _ri++) {
+                    var _ra = Math.random() * Math.PI * 2;
+                    var _rDist = 8 + Math.random() * 6;
+                    if (typeof Enemies !== 'undefined' && Enemies.spawnSingle) {
+                      Enemies.spawnSingle('INFANTRY', { x: e.mesh.position.x + Math.cos(_ra) * _rDist, z: e.mesh.position.z + Math.sin(_ra) * _rDist });
+                    }
+                  }
+                } catch (_cmdErr) {
+                  // Suppress spawn errors to avoid crashes from recursive spawnSingle
+                }
+              }
+            }
+            break;
+          }
         }
         // Sync position writes back to mesh
         e.mesh.position.x = e.x; e.mesh.position.y = e.y; e.mesh.position.z = e.z;
@@ -3978,8 +4473,91 @@ const Enemies = (() => {
         }
       }
 
+      // ── Squad tactics: SUPPRESSING and FLANKING state behaviors ──────
+      // Suppressor: hold position, face player, fire at boosted rate
+      if (e._suppressingPlayer && e.playerSpotted) {
+        var _suppTarget = new THREE.Vector3(playerPos.x, e.mesh.position.y, playerPos.z);
+        e.mesh.lookAt(_suppTarget);
+        e.mesh.rotation.y += Math.PI;
+        // Fire at twice the normal rate (boost handled by halving _rangedTimer recharge)
+        if (e.typeCfg && e.typeCfg.rangedDmg > 0) {
+          if (!e._suppressRateTimer) e._suppressRateTimer = 0;
+          e._suppressRateTimer -= delta;
+          if (e._suppressRateTimer <= 0 && distToPlayer < e.typeCfg.range) {
+            e._suppressRateTimer = (e.typeCfg.rangedRate || 1.5) * 0.5;
+            _fireAtPosition(e, playerPos, 5.0, playerPos, onPlayerHit);
+          }
+        }
+      }
+
+      // Flanker: move to flank position, then switch to normal approach
+      if (e._flankTarget && !e.retreating && !e.surrendered) {
+        var _toFlank = new THREE.Vector3(
+          e._flankTarget.x - e.mesh.position.x,
+          0,
+          e._flankTarget.z - e.mesh.position.z
+        );
+        var _distToFlank = _toFlank.length();
+        if (_distToFlank > 1.5) {
+          _toFlank.normalize();
+          e.mesh.position.x += _toFlank.x * e.speed * delta;
+          e.mesh.position.z += _toFlank.z * e.speed * delta;
+          e.mesh.lookAt(e._flankTarget.x, e.mesh.position.y, e._flankTarget.z);
+          e.mesh.rotation.y += Math.PI;
+          // Bark when starting a flank run (once per flank)
+          if (!e._flankBarkDone) {
+            e._flankBarkDone = true;
+            triggerBark(e, 'flank');
+          }
+        } else {
+          // Reached flank position — resume normal pursuit
+          e._flankTarget = null;
+          e._flankBarkDone = false;
+        }
+        // Abort flank if enemy is point-blank or critically hurt
+        if (distToPlayer < 6 || e.hp < e.maxHp * 0.25) {
+          e._flankTarget = null;
+          e._flankBarkDone = false;
+        }
+      }
+
+      // Apply per-frame squad tactic logic (role assignment, leader alerts, flank target calc)
+      _updateSquadTactics(e, playerPos, delta);
+
+      // ── Dynamic squad flanking movement ──
+      if (e._flanking && e._flankTimer > 0) {
+        e._flankTimer -= delta;
+        var _dynToPlayer = new THREE.Vector3(
+          playerPos.x - e.mesh.position.x,
+          0,
+          playerPos.z - e.mesh.position.z
+        ).normalize();
+        var _dynPerp = new THREE.Vector3(-_dynToPlayer.z, 0, _dynToPlayer.x);
+        var _tanFA = Math.tan(e._flankAngle || 0);
+        var _dynDir = new THREE.Vector3(
+          _dynToPlayer.x + _dynPerp.x * _tanFA,
+          0,
+          _dynToPlayer.z + _dynPerp.z * _tanFA
+        ).normalize();
+        e.mesh.position.x += _dynDir.x * (e.speed || 3) * delta * 1.15;
+        e.mesh.position.z += _dynDir.z * (e.speed || 3) * delta * 1.15;
+        if (e._flankTimer <= 0) { e._flanking = false; }
+      }
+
+      // ── Dynamic squad suppressive fire ──
+      if (e._suppressing && e._suppressTimer > 0) {
+        e._suppressTimer -= delta;
+        e._fireRateMod = 0.45;
+        if (e._suppressTimer <= 0) {
+          e._suppressing = false;
+          e._fireRateMod = 1.0;
+        }
+      } else if (!e._suppressing) {
+        if (e._fireRateMod !== undefined && e._fireRateMod !== 1.0) e._fireRateMod = 1.0;
+      }
+
       // Update floating HP bar
-      updateHpBar(e, playerPos);
+      updateHpBar(e, playerPos, delta);
       // Attacker tag pulse fade
       if (e._attackerTag) _updateAttackerTag(e, delta);
       // Bleeding from low HP: periodic small blood drip on the ground
@@ -4074,21 +4652,31 @@ const Enemies = (() => {
   }
 
   // ── Update HP bar helper ──────────────────────────────────
-  function updateHpBar(e, playerPos) {
+  function updateHpBar(e, playerPos, delta) {
     if (e.hpBar) {
-      const pct    = e.hp / e.maxHp;
-      e.hpBar.fg.scale.x     = pct;
-      e.hpBar.fg.position.x  = -0.35 * (1 - pct);
-      let hpColor = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffaa00 : 0xff2222;
-      // Pulse red when nearly dead — telegraphs the kill shot
-      if (pct < 0.18) {
-        var _pNow = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-        var _pulse = (Math.sin(_pNow * 0.018) * 0.5 + 0.5);
-        hpColor = _pulse > 0.5 ? 0xff5555 : 0xff0000;
-      }
-      e.hpBar.fg.material.color.setHex(hpColor);
+      var pct    = e.hp / e.maxHp;
+      var barWidth = 0.7;
+      e.hpBar.fg.scale.x    = pct;
+      // Left-align the fill: shift left by half the missing width
+      e.hpBar.fg.position.x = -(1 - pct) * barWidth / 2;
 
-      const barY = e.mesh.position.y + 1.75 * e.typeCfg.scale + 0.35;
+      // White flash on HP change: tick down flash timer, then apply color
+      if (e.hpBar._flashTimer > 0) {
+        e.hpBar._flashTimer -= (delta || 0.016);
+        e.hpBar.fg.material.color.setHex(0xffffff);
+      } else {
+        // Color transitions: green > 60%, yellow > 30%, red <= 30%
+        var hpColor = pct > 0.6 ? 0x00ff44 : pct > 0.3 ? 0xffcc00 : 0xff2200;
+        // Pulse red when nearly dead — telegraphs the kill shot
+        if (pct < 0.18) {
+          var _pNow = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+          var _pulse = (Math.sin(_pNow * 0.018) * 0.5 + 0.5);
+          hpColor = _pulse > 0.5 ? 0xff5555 : 0xff0000;
+        }
+        e.hpBar.fg.material.color.setHex(hpColor);
+      }
+
+      var barY = e.mesh.position.y + 1.75 * e.typeCfg.scale + 0.35;
       e.hpBar.group.position.set(e.mesh.position.x, barY, e.mesh.position.z);
       e.hpBar.group.lookAt(playerPos.x, barY, playerPos.z);
     }
@@ -4114,6 +4702,7 @@ const Enemies = (() => {
       _tmpVec3e.subVectors(wounded.mesh.position, medic.mesh.position).setY(0).normalize();
       medic.mesh.position.addScaledVector(_tmpVec3e, medic.speed * 1.2 * delta);
       medic.mesh.lookAt(wounded.mesh.position.x, medic.mesh.position.y, wounded.mesh.position.z);
+      medic.mesh.rotation.y += Math.PI;
     } else {
       // Heal
       wounded.hp = Math.min(wounded.maxHp, wounded.hp + 8 * delta);
@@ -4341,46 +4930,6 @@ const Enemies = (() => {
   // ── Apply damage, return remaining HP ─────────────────────
   function damage(enemy, amount, isHeadshot, weaponType) {
     if (!enemy.alive) return 0;
-    // Bunker shield invincibility (BOSS_KREMLIN)
-    if (enemy._invincible) return enemy.hp;
-    // Tactical dodge (BOSS_MOSCOW and other nimble bosses)
-    var _dodgeCfg = enemy.typeCfg;
-    if (_dodgeCfg && _dodgeCfg.abilities && _dodgeCfg.abilities.indexOf('tactical_dodge') !== -1 && _dodgeCfg.dodgeChance) {
-      if (!isHeadshot && Math.random() < _dodgeCfg.dodgeChance) {
-        if (typeof HUD !== 'undefined' && HUD.showToast && !enemy._dodgeWarnCool) {
-          HUD.showToast('🕶️ COLONEL DODGED!', 800, '#88ddff');
-          enemy._dodgeWarnCool = 4;
-        }
-        if (enemy._dodgeWarnCool) enemy._dodgeWarnCool -= 0.016; // rough dt
-        return enemy.hp;
-      }
-    }
-    if (enemy._dodgeWarnCool) enemy._dodgeWarnCool = Math.max(0, enemy._dodgeWarnCool - 0.016);
-    // Fortify barrier (BOSS_DONBAS) — absorbs damage until depleted
-    if (enemy._fortifyActive && enemy._fortifyShieldHP > 0) {
-      enemy._fortifyShieldHP -= amount;
-      if (typeof HUD !== 'undefined' && HUD.showToast && !enemy._fortifyHitCool) {
-        HUD.showToast('🛡️ BARRIER ABSORBS!', 600, '#aa44ff');
-        enemy._fortifyHitCool = 1.5;
-      }
-      if (enemy._fortifyHitCool) enemy._fortifyHitCool = Math.max(0, enemy._fortifyHitCool - 0.016);
-      if (enemy._fortifyShieldHP <= 0) {
-        enemy._fortifyActive = false;
-        if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('💥 BARRIER BROKEN!', 1500, '#cc66ff');
-        var _fortifyOverflow = -enemy._fortifyShieldHP;
-        enemy._fortifyShieldHP = 0;
-        if (_fortifyOverflow <= 0) return enemy.hp;
-        amount = _fortifyOverflow;
-      } else {
-        return enemy.hp;
-      }
-    }
-    // Armor plates (BOSS_BELGOROD) — 60% damage reduction during active window
-    if (enemy._armorPlatesActive) {
-      amount = Math.max(1, Math.round(amount * 0.4));
-    }
-    // Reset regen cooldown timer (BOSS_CHORNOBYL) on any damage
-    if (enemy._regenTimer !== undefined) enemy._regenTimer = 0;
 
     // INFILTRATION: any damage dealt by player blows the disguise instantly.
     if (_playerDisguised && !_disguiseBlown) {
@@ -4401,6 +4950,12 @@ const Enemies = (() => {
         srcDir = { x: _playerPos.x - enemy.mesh.position.x, z: _playerPos.z - enemy.mesh.position.z };
       }
       NPCML.onDamaged(enemy._ml, amount, srcDir, weaponType || null);
+    }
+
+    // Armor piercing (shop upgrade): boost damage vs armored enemy types before reduction
+    var _apTyped = ['SHIELD_BEARER', 'TANK', 'ARMORED', 'ASSAULT_MECH', 'HEAVY_GUNNER'];
+    if (window._armorPierceMultiplier && _apTyped.indexOf(enemy.typeName) >= 0) {
+      amount = Math.round(amount * window._armorPierceMultiplier);
     }
 
     // Shield bearer: route damage through EnemyTypes shield check
@@ -4425,6 +4980,26 @@ const Enemies = (() => {
     }
 
     enemy.hp = Math.max(0, enemy.hp - amount);
+
+    // Trigger HP bar white flash on hit
+    if (enemy.hpBar) { enemy.hpBar._flashTimer = 0.12; }
+
+    // Update boss screen-edge HP bar on hit
+    if (enemy.alive && enemy.maxHp > 0 &&
+        (enemy.isBoss || (enemy.typeCfg && enemy.typeCfg.role === 'boss') ||
+         (enemy.typeName && enemy.typeName.indexOf('BOSS_') === 0) || enemy.typeName === 'BOSS')) {
+      _updateBossHPBar(enemy.hp);
+    }
+
+    // Boss phase transitions: check thresholds on each damage event
+    if (enemy.alive && enemy.maxHp > 0 &&
+        (enemy.isBoss || (enemy.typeName && enemy.typeName.indexOf('BOSS_') === 0) || enemy.typeName === 'BOSS')) {
+      var _hpPct = enemy.hp / enemy.maxHp;
+      if (!enemy._phase) enemy._phase = 4; // start at phase 4 (full health)
+      if (_hpPct <= 0.25 && enemy._phase > 1) { _triggerBossPhase(enemy, 1); }
+      else if (_hpPct <= 0.50 && enemy._phase > 2) { _triggerBossPhase(enemy, 2); }
+      else if (_hpPct <= 0.75 && enemy._phase > 3) { _triggerBossPhase(enemy, 3); }
+    }
 
     // Wound grunt (bass-heavy) on non-fatal hit
     try {
@@ -4452,6 +5027,16 @@ const Enemies = (() => {
       }
     }
     enemy.flashTimer = 0.08;
+    // Enemy hurt chatter (non-fatal hits only)
+    if (enemy.hp > 0 && typeof EnemyChatter !== 'undefined') EnemyChatter.say(enemy, 'hurt');
+
+    // Suppression fire: enemy who takes damage fires rapidly at last known player pos
+    if (_playerPos) {
+      enemy._suppressedTimer = 3.0;
+      if (!enemy._lastKnownPlayerPos) enemy._lastKnownPlayerPos = new THREE.Vector3();
+      enemy._lastKnownPlayerPos.copy(_playerPos);
+      enemy._suppressFireCool = 0; // fire immediately on next update
+    }
 
     // Hit flinch: push enemy backward from damage source
     if (_playerPos && enemy.mesh) {
@@ -4473,6 +5058,20 @@ const Enemies = (() => {
       } else if (amount > 15) {
         enemy._staggerTimer = 0.12;
       }
+    }
+
+    // Hit stagger: directional visual shake (separate from flinch, more wobble)
+    enemy._staggerTime = 0.25;
+    enemy._staggerDir = { x: (Math.random() - 0.5) * 2, z: (Math.random() - 0.5) * 2 };
+
+    // Red emissive hit flash
+    if (enemy.mesh) {
+      enemy.mesh.traverse(function (child) {
+        if (child.isMesh && child.material && child.material.emissive) {
+          child.material.emissive.setHex(0xff0000);
+        }
+      });
+      enemy._hitFlashTime = 0.12;
     }
 
     // Spawn blood voxel particles (shared geometry + materials)
@@ -4513,8 +5112,11 @@ const Enemies = (() => {
     if (enemy.hp <= 0) {
       enemy.alive      = false;
       enemy.deathTimer = 6.0;
-      // Record ground Y now so frozen corpse snaps to ground when timer expires
-      if (enemy.mesh) enemy._groundY = enemy.mesh.position.y - (enemy.height || 1.8);
+      // Hide boss HP bar when boss dies
+      if (enemy.isBoss || (enemy.typeCfg && enemy.typeCfg.role === 'boss') ||
+          (enemy.typeName && enemy.typeName.indexOf('BOSS_') === 0) || enemy.typeName === 'BOSS') {
+        try { _hideBossHPBar(); } catch (eBH) {}
+      }
       // Spatial death grunt
       if (typeof window !== 'undefined' && window.AudioSystem && window.AudioSystem.playEnemyDeath && _playerPos && enemy.mesh) {
         var _ddx = enemy.mesh.position.x - _playerPos.x;
@@ -4567,8 +5169,9 @@ const Enemies = (() => {
             life: 2.2 + Math.random() * 1.8, gravity: 12,
           });
         }
-        // Safety cap: bound total blood particles (mobile: 50; desktop: 260).
-        while (bloodParticles.length > (_isMobileEn ? 50 : 260)) {
+        // Safety cap: bound total blood particles so mass deaths can't spike
+        // particle count on low-end PCs (retire the oldest).
+        while (bloodParticles.length > 260) {
           var _old = bloodParticles.shift();
           if (_old && _old.mesh) { scene.remove(_old.mesh); }
         }
@@ -4621,6 +5224,117 @@ const Enemies = (() => {
       _cacheFrame = -1; // invalidate cache on death
     }
     return enemy.hp;
+  }
+
+  // ── Boss phase helpers ─────────────────────────────────────
+
+  function _spawnBossReinforcements(boss, count) {
+    var bossX = boss.mesh ? boss.mesh.position.x : 0;
+    var bossZ = boss.mesh ? boss.mesh.position.z : 0;
+    var reinforceTypes = ['ASSAULT', 'INFANTRY'];
+    for (var _ri = 0; _ri < count; _ri++) {
+      var _rAngle = (_ri / count) * Math.PI * 2 + Math.random() * 0.8;
+      var _rDist  = 4 + Math.random() * 4; // 4-8 units from boss
+      var _rSpawn = {
+        x: bossX + Math.cos(_rAngle) * _rDist,
+        y: 0,
+        z: bossZ + Math.sin(_rAngle) * _rDist,
+      };
+      var _rType = reinforceTypes[_ri % reinforceTypes.length];
+      var _rIdx = spawnOne(_rType, 0, _rSpawn);
+      // Mark as alerted immediately
+      if (typeof _rIdx === 'number' && enemies[_rIdx]) {
+        enemies[_rIdx].playerSpotted = true;
+        enemies[_rIdx].spotLevel = 99;
+        if (_playerPos) {
+          if (!enemies[_rIdx]._lastKnownPlayerPos) {
+            enemies[_rIdx]._lastKnownPlayerPos = new THREE.Vector3();
+          }
+          enemies[_rIdx]._lastKnownPlayerPos.copy(_playerPos);
+        }
+      }
+    }
+  }
+
+  // ── Boss screen-edge HP bar (DOM) ─────────────────────────
+  function _showBossHPBar(bossName, maxHp) {
+    var el = document.getElementById('bossHPBar');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'bossHPBar';
+      el.innerHTML = '<div id="bossHPName"></div>' +
+        '<div id="bossHPTrack"><div id="bossHPFill"></div><div id="bossHPShield"></div></div>' +
+        '<div id="bossHPPhase">PHASE 1</div>';
+      el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);' +
+        'width:60%;background:#0a0a0a;border:1px solid #cc2200;padding:8px;' +
+        'font-family:monospace;z-index:800;box-shadow:0 0 18px #cc000088;';
+      document.body.appendChild(el);
+    }
+    document.getElementById('bossHPName').textContent = '☠ ' + bossName;
+    document.getElementById('bossHPName').style.cssText = 'color:#ff4444;font-size:16px;font-weight:bold;margin-bottom:4px;text-shadow:0 0 8px #ff0000;';
+    document.getElementById('bossHPTrack').style.cssText = 'width:100%;height:18px;background:#1a0000;border:1px solid #660000;position:relative;';
+    document.getElementById('bossHPFill').style.cssText = 'width:100%;height:100%;background:linear-gradient(90deg,#cc0000,#ff4400);transition:width 0.15s ease-out;';
+    document.getElementById('bossHPShield').style.cssText = 'position:absolute;top:0;left:0;width:0%;height:100%;background:rgba(100,200,255,0.4);';
+    _bossMaxHp = maxHp;
+    _bossEl = el;
+    el.style.display = 'block';
+  }
+
+  function _updateBossHPBar(currentHp) {
+    if (!_bossEl) return;
+    var pct = Math.max(0, currentHp / _bossMaxHp);
+    var fillEl = document.getElementById('bossHPFill');
+    if (fillEl) fillEl.style.width = (pct * 100) + '%';
+    // Phase display
+    var phaseEl = document.getElementById('bossHPPhase');
+    if (phaseEl) {
+      if (pct > 0.75) phaseEl.textContent = 'PHASE 1';
+      else if (pct > 0.50) phaseEl.textContent = '⚡ PHASE 2 — ENRAGED';
+      else if (pct > 0.25) phaseEl.textContent = '\u{1F480} PHASE 3 — BERSERK';
+      else phaseEl.textContent = '☠ PHASE 4 — LAST STAND';
+      phaseEl.style.cssText = 'color:#ff8800;font-size:12px;margin-top:3px;';
+    }
+    // Flash red border when hit
+    var track = document.getElementById('bossHPTrack');
+    if (track) {
+      track.style.borderColor = '#ff0000';
+      clearTimeout(_bossFlashTimer);
+      _bossFlashTimer = setTimeout(function() { track.style.borderColor = '#660000'; }, 150);
+    }
+  }
+
+  function _hideBossHPBar() {
+    if (_bossEl) _bossEl.style.display = 'none';
+  }
+
+  function _triggerBossPhase(boss, phase) {
+    boss._phase = phase;
+    boss._phaseTransition = 0.8; // seconds of transition effect
+
+    if (phase === 3) {
+      // 75% HP: Speed increase
+      boss._speedMult = (boss._speedMult || 1.0) * 1.3;
+      boss._rageMult  = (boss._rageMult  || 1.0) * 1.2; // faster fire rate via existing rageMod
+      _spawnBossReinforcements(boss, 2);
+      window._bossPhaseEvent = { phase: 3, msg: 'ENRAGED!' };
+    }
+    if (phase === 2) {
+      // 50% HP: More aggressive
+      boss._speedMult = (boss._speedMult || 1.0) * 1.5;
+      boss._rageMult  = (boss._rageMult  || 1.0) * 1.5;
+      boss._burstFire = true;
+      _spawnBossReinforcements(boss, 3);
+      window._bossPhaseEvent = { phase: 2, msg: 'BERSERK!' };
+    }
+    if (phase === 1) {
+      // 25% HP: Desperate last stand
+      boss._speedMult = (boss._speedMult || 1.0) * 2.0;
+      boss._rageMult  = (boss._rageMult  || 1.0) * 2.0;
+      boss._berserker = true;
+      boss._burstFire = true;
+      _spawnBossReinforcements(boss, 4);
+      window._bossPhaseEvent = { phase: 1, msg: 'LAST STAND!' };
+    }
   }
 
   // ── Find enemy by intersected mesh (walk hierarchy) ───────
@@ -4682,12 +5396,6 @@ const Enemies = (() => {
       if (dec.material && dec.material.dispose) dec.material.dispose();
     });
     bloodDecals.length = 0;
-
-    // Remove all persistent frozen corpses from scene
-    _persistentCorpses.forEach(function (pc) {
-      if (pc.mesh && scene) { disposeMeshTree(pc.mesh); scene.remove(pc.mesh); }
-    });
-    _persistentCorpses.length = 0;
 
     // Clean up spawn dust puffs
     _spawnDusts.forEach(sd => {
@@ -4785,6 +5493,41 @@ const Enemies = (() => {
     return enemies.filter(e => e && e.alive && e.surrendered).length;
   }
 
+  // ── Suppression: called when a player bullet misses but passes within 2m of an enemy ──
+  // bulletPos: THREE.Vector3 of the bullet's closest point to the enemy
+  function notifyNearMiss(bulletPos) {
+    if (!bulletPos) return;
+    for (var _nmi = 0; _nmi < enemies.length; _nmi++) {
+      var _nme = enemies[_nmi];
+      if (!_nme || !_nme.alive || !_nme.mesh) continue;
+      var _nmdx = _nme.mesh.position.x - bulletPos.x;
+      var _nmdz = _nme.mesh.position.z - bulletPos.z;
+      var _nmDist = Math.sqrt(_nmdx * _nmdx + _nmdz * _nmdz);
+      if (_nmDist > 2) continue; // only within 2 metres counts
+      // Start or refresh the 0.5s window
+      if (!_nme._nearMissTimer || _nme._nearMissTimer <= 0) {
+        _nme._nearMissCount = 0;
+        _nme._nearMissTimer = 0.5;
+      }
+      _nme._nearMissCount = (_nme._nearMissCount || 0) + 1;
+      // 3+ near misses within window triggers suppression
+      if (_nme._nearMissCount >= 3 && !_nme._suppressionActive) {
+        _nme._suppressionActive = true;
+        _nme._suppressionTimer = 1.5;
+        _nme._accuracyPenalty = 0.4;
+        _nme._nearMissCount = 0;
+        _nme._nearMissTimer = 0;
+        // Crouch by lowering Y
+        if (!_nme._suppressedOffset) {
+          _nme.mesh.position.y -= 0.35;
+          _nme._suppressedOffset = 0.35;
+        }
+        // Signal HUD
+        window._enemySuppressed = true;
+      }
+    }
+  }
+
   return {
     startWave,
     update,
@@ -4805,6 +5548,7 @@ const Enemies = (() => {
     blowDisguise,
     tagAttacker,
     getSurrenderCount,
+    notifyNearMiss,
     spawnSingle: function (typeName, pos, opts) {
       var idx = spawnOne(typeName, -1, pos, opts);
       return enemies[idx];
@@ -4819,6 +5563,9 @@ const Enemies = (() => {
     },
     RANKS,
     UNITS,
+    showBossHPBar:   _showBossHPBar,
+    updateBossHPBar: _updateBossHPBar,
+    hideBossHPBar:   _hideBossHPBar,
   };
 })();
 

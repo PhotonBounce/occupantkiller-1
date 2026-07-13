@@ -1,0 +1,114 @@
+[
+  {
+    "test": "terrain/HOSTOMEL",
+    "idx": 0,
+    "expect": "blue grass (UA)",
+    "spawn": {
+      "x": 10,
+      "y": 11,
+      "z": -22
+    },
+    "embeddedFeet": false,
+    "embeddedHead": false,
+    "buildings": 14,
+    "grassColor": "0x5BBB",
+    "dirtColor": "0x7A5A3A",
+    "errors": 1,
+    "errSample": [
+      "CON:Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    ]
+  },
+  {
+    "test": "terrain/MOSCOW",
+    "idx": 7,
+    "expect": "red-purple grass (RU)",
+    "spawn": {
+      "x": 0,
+      "y": 11,
+      "z": 0
+    },
+    "embeddedFeet": false,
+    "embeddedHead": false,
+    "buildings": 18,
+    "grassColor": "0x8B1A4A",
+    "dirtColor": "0x5C2A3A",
+    "errors": 1,
+    "errSample": [
+      "CON:Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    ]
+  },
+  {
+    "test": "terrain/BELGOROD",
+    "idx": 10,
+    "expect": "red-purple grass (RU)",
+    "spawn": {
+      "x": -12,
+      "y": 10,
+      "z": -12
+    },
+    "embeddedFeet": false,
+    "embeddedHead": false,
+    "buildings": 10,
+    "grassColor": "0x8B1A4A",
+    "dirtColor": "0x5C2A3A",
+    "errors": 1,
+    "errSample": [
+      "CON:Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    ]
+  },
+  {
+    "test": "terrain/KREMLIN",
+    "idx": 11,
+    "expect": "red-purple grass (RU)",
+    "spawn": {
+      "x": -18,
+      "y": 8,
+      "z": 52
+    },
+    "embeddedFeet": false,
+    "embeddedHead": false,
+    "buildings": 13,
+    "grassColor": "0x8B1A4A",
+    "dirtColor": "0x5C2A3A",
+    "errors": 1,
+    "errSample": [
+      "CON:Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    ]
+  },
+  {
+    "test": "bradley-mission",
+    "idx": 7,
+    "bradleyAfterStart": true,
+    "bradleyExists": true,
+    "bradleyPos": {
+      "x": 2,
+      "z": -4
+    },
+    "errors": 1,
+    "errSample": [
+      "CON:Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    ]
+  },
+  {
+    "test": "drone-payload-hud",
+    "idx": 0,
+    "launched": true,
+    "possessing": true,
+    "payloadLabel": "💥 FPV Charge [×99]",
+    "payloadDisplay": "💣 PAYLOAD READY ×99",
+    "payloadCount": 99,
+    "errors": 1,
+    "errSample": [
+      "CON:Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    ]
+  },
+  {
+    "test": "enemy-facing",
+    "idx": 2,
+    "alive": 88,
+    "errors": 1,
+    "errSample": [
+      "CON:Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    ]
+  }
+]
