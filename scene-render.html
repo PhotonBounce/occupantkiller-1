@@ -1,0 +1,72 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#9ec5e8;overflow:hidden}</style></head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<script>window.WORLD_CHUNKS = 3; window.CHUNK_SIZE = 32; window.CHUNK_HEIGHT = 64;</script>
+<script src="three.min.js"></script>
+<script src="voxel-world.js"></script>
+<script src="bradley.js"></script>
+<script src="weapons-data.js"></script>
+<script src="enemies.js"></script>
+<script>
+(function(){
+  var THREE=window.THREE, VW=window.VoxelWorld, B=VW.BLOCK;
+  var qs=new URLSearchParams(location.search); var scene_id=qs.get('scene')||'bradley';
+  var canvas=document.getElementById('c');
+  var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,preserveDrawingBuffer:true});
+  renderer.setSize(1280,720,false); renderer.setClearColor(0x9ec5e8,1);
+  var scene=new THREE.Scene(); scene.background=new THREE.Color(0x9ec5e8);
+  scene.fog=new THREE.Fog(0x9ec5e8, 70, 170);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x556b2f,1.05));
+  var sun=new THREE.DirectionalLight(0xfff2d0,1.15); sun.position.set(40,90,30); scene.add(sun);
+  var cam=new THREE.PerspectiveCamera(72,1280/720,0.1,700);
+
+  function drainMesh(){ VW.rebuildAll(); for(var f=0;f<800;f++) VW.updateDirtyChunks(null); }
+
+  if(scene_id==='bradley'){
+    VW.init(scene); VW.generateLevel(99); var gy=VW.getTerrainHeight(0,0);
+    function tree(tx,tz){ var h=VW.getTerrainHeight(tx,tz); for(var t=1;t<=4;t++)VW.setBlock(tx,h+t,tz,B.WOOD);
+      for(var dx=-2;dx<=2;dx++)for(var dz=-2;dz<=2;dz++)for(var dy=4;dy<=7;dy++) if(Math.abs(dx)+Math.abs(dz)+Math.abs(dy-5)<=4) VW.setBlock(tx+dx,h+dy,tz+dz,B.PARK_TREE); }
+    for(var r=0;r<3;r++)for(var tx=-30;tx<=30;tx+=5) tree(tx+(r%2?2:0),26+r*6+((tx*7)%3));
+    drainMesh();
+    window._gameScene=scene; Bradley.init(scene,cam); var veh=Bradley.spawnAt({x:0,y:gy+1,z:0});
+    if(veh&&veh.turret) try{veh.turret.rotation.y=0;}catch(e){}
+    var by=gy+3.2;
+    var fa=new THREE.Mesh(new THREE.SphereGeometry(0.55,12,12),new THREE.MeshBasicMaterial({color:0xffe066})); fa.position.set(0,by,5.4); scene.add(fa);
+    var fl=new THREE.PointLight(0xffcc66,4,40); fl.position.set(0,by,5.4); scene.add(fl);
+    for(var tr=0;tr<7;tr++){ var tc=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,2.6,6),new THREE.MeshBasicMaterial({color:0xfff2a0})); tc.position.set(tr*0.12,by-tr*0.03,8+tr*3.2); tc.rotation.x=Math.PI/2; scene.add(tc); }
+    cam.position.set(0,gy+3.55,-7.6); cam.lookAt(new THREE.Vector3(0,gy+4.0,30));
+  }
+  else if(scene_id==='enemies'){
+    // Isolated close-up of the enemy soldier models (proves enemies spawn/render)
+    var gy=1;
+    var ground=new THREE.Mesh(new THREE.BoxGeometry(80,2,80), new THREE.MeshLambertMaterial({color:0x5a7a3a}));
+    ground.position.set(0,gy-1,10); scene.add(ground);
+    var EN=window.Enemies; var ppos=new THREE.Vector3(0,gy+2,-3.5);
+    EN.startWave(1, scene, 1.2, null, 'HOSTOMEL', null, ppos); // sets internal scene
+    // place a firing line of soldiers right in front of the camera
+    var types=['CONSCRIPT','STORMER','OFFICER','CONSCRIPT','ENGINEER','SNIPER'];
+    for(var e=0;e<types.length;e++){
+      try{ EN.spawnSingle(types[e], {x:(e-2.5)*3.0, y:gy, z:8+((e%2)*2)}); }catch(err){}
+    }
+    for(var f=0;f<25;f++) EN.update(0.016, ppos, function(){}, function(){});
+    try{ var all=EN.getAll(); for(var q=0;q<all.length;q++){ if(all[q]&&all[q].mesh){ all[q].mesh.visible=true; all[q].mesh.traverse(function(o){o.visible=true;}); } } }catch(er){}
+    cam.position.set(0,gy+2.6,-3.5); cam.lookAt(new THREE.Vector3(0,gy+1.6,9));
+  }
+  else if(scene_id==='kremlin'){
+    VW.init(scene); VW.generateLevel(12); drainMesh(); var gy=VW.getTerrainHeight(0,0);
+    cam.position.set(-46,gy+30,-52); cam.lookAt(new THREE.Vector3(0,gy+6,20));
+  }
+  else if(scene_id==='kyiv'){
+    VW.init(scene); VW.generateLevel(13); drainMesh(); var gy=VW.getTerrainHeight(0,0);
+    cam.position.set(-42,gy+26,-48); cam.lookAt(new THREE.Vector3(0,gy+6,10));
+  }
+  else if(scene_id==='mariupol'){
+    VW.init(scene); VW.generateLevel(4); drainMesh(); var gy=VW.getTerrainHeight(0,0);
+    cam.position.set(-40,gy+24,-46); cam.lookAt(new THREE.Vector3(0,gy+6,8));
+  }
+
+  renderer.render(scene,cam);
+  requestAnimationFrame(function(){ renderer.render(scene,cam); window.__RENDERED=true; });
+})();
+</script>
+</body></html>
