@@ -1492,11 +1492,25 @@ window.SpaceColony = (function () {
     }
   }
 
-  // Auto-init when script loads
+  // Do NOT hijack the main game on load. This Mars easter-egg stays dormant and
+  // invisible until the player presses S then C (within 400ms); only then does it
+  // build its scene/HUD and start. (Previously it auto-init'd on every page load,
+  // covering the real OccupantKiller start screen.)
+  var _egBuilt = false;
+  function _armEasterEgg() {
+    var _sT = 0, _waitC = false;
+    document.addEventListener('keydown', function (e) {
+      if (_egBuilt) return;
+      if (e.key === 's' || e.key === 'S') { _sT = Date.now(); _waitC = true; }
+      else if ((e.key === 'c' || e.key === 'C') && _waitC && (Date.now() - _sT) <= 400) {
+        _waitC = false; _egBuilt = true; init(); startGame();
+      } else { _waitC = false; }
+    });
+  }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', _armEasterEgg);
   } else {
-    init();
+    _armEasterEgg();
   }
 
   return {
