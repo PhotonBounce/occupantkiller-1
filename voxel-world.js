@@ -23831,6 +23831,8 @@ window.VoxelWorld = (function () {
         generateDroneNest(48, -48);
         generateDroneNest(-48, 48);
       } else if (cityName === 'Bucha') {
+        // Signature landmark — Church of St Andrew — beside the mass-grave memorial site
+        generateBuchaChurch(66, 24);
         // Bucha suburb of Kyiv — site of documented Russian war crimes March 2022
         // Residential neighbourhood: villas with gardens, Soviet-era apartment rows
         generateLuxuryVilla(-8, -12, 8, 6);    // Irpin'ska Street villas (suburb)
@@ -23910,6 +23912,8 @@ window.VoxelWorld = (function () {
         generateDroneNest(-48, -48);
         generateDroneNest(0, 48);
       } else if (cityName === 'Severodonetsk') {
+        // Signature landmark — Azot chemical plant — the defining battle site (May–June 2022)
+        generateSeverodonetskAzot(-66, 24);
         // Severodonetsk — industrial twin city of Lysychansk, chemical plant city
         // Destroyed May–June 2022 in the longest single-city siege of the war
         generateIndustrialComplex(0, 0);        // Azot chemical plant — largest nitrogen plant in Ukraine
@@ -24041,6 +24045,8 @@ window.VoxelWorld = (function () {
         generateDroneNest(-48, 48);
         generateDroneNest(0, 48);
       } else if (cityName === 'Kupyansk') {
+        // Signature landmark — Kupyansk railway junction — the strategic logistics hub
+        generateKupyanskRailHub(-66, -24);
         // Kupyansk — railway junction city in Kharkiv Oblast, key logistics hub
         // Occupied Feb 2022, liberated Sep 2022, contested again 2024
         generateTrainStation(0, 0);             // Kupyansk-Uzlovyi major railway junction
@@ -24401,6 +24407,8 @@ window.VoxelWorld = (function () {
         generateDroneNest(-48, -48);
         generateDroneNest(0, -48);
       } else if (cityName === 'Sumy') {
+        // Signature landmark — Sumy Assumption Cathedral — the old-town landmark
+        generateSumyAssumptionCathedral(66, -24);
         // Sumy — northeastern Ukraine, 30km from Russian border
         // Completely surrounded briefly in March 2022; daily shelling 2022-2024
         // Home to: Sumy State University, Sumykhimprom chemical plant
@@ -24817,6 +24825,8 @@ window.VoxelWorld = (function () {
         generateDroneNest(48, -48);
         generateDroneNest(-48, 48);
       } else if (cityName === 'Melitopol') {
+        // Signature landmark — occupied City Hall — site of the 2022 civilian protests
+        generateMelitopolCityHall(24, 66);
         // Melitopol — Russian-occupied since March 1 2022; became capital of occupied Zaporizhzhia Oblast
         // Mayor Ivan Fedorov kidnapped by FSB March 11 2022 — one of first documented civilian kidnappings
         // Key deportation hub; Russia moved 200,000+ Ukrainians through occupation filtration checkpoints
@@ -24863,6 +24873,8 @@ window.VoxelWorld = (function () {
         generateDroneNest(48, -48);
         generateDroneNest(-48, 48);
       } else if (cityName === 'Berdiansk') {
+        // Signature landmark — Berdiansk lighthouse — the Azov Sea port landmark
+        generateBerdianskyLighthouse(66, 66);
         // Berdiansk — Azov Sea port, Russian-occupied since March 1 2022 (bloodlessly at first)
         // March 24 2022: Ukrainian TB-2 drones struck Russian landing ship Orsk and ammunition depot
         // Russia uses port for Zaporizhzhia supply chain; Ukraine strikes it repeatedly with drones/ATACMS
@@ -24906,6 +24918,8 @@ window.VoxelWorld = (function () {
         generateDroneNest(48, -48);
         generateDroneNest(-48, 48);
       } else if (cityName === 'Zhytomyr') {
+        // Signature landmark — Zhytomyr Transfiguration Cathedral — city-centre landmark
+        generateZhytomyrCathedral(-24, 66);
         // Zhytomyr — northwest Ukraine, 140km west of Kyiv; early war airstrikes Feb-March 2022
         // Russian cruise missiles targeted the regional administration and military installations
         // Key logistics city; Antonov helicopter production base nearby; Polish border transit hub
@@ -25003,6 +25017,8 @@ window.VoxelWorld = (function () {
         generateDroneNest(48, -48);
         generateDroneNest(-48, 48);
       } else if (cityName === 'Pokrovsk') {
+        // Signature landmark — Pokrovsk railway station — the front-line logistics hub
+        generatePokrovskRailStation(-66, 66);
         // Pokrovsk — critical Ukrainian logistics hub in western Donetsk Oblast
         // Protecting Pokrovsk is existential for the entire front; main supply artery 2024
         // Previously Krasnoarmiisk (renamed 2016); coal mining and chemical production
