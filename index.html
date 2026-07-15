@@ -1085,8 +1085,12 @@
     var ipadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
     var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     var isMobile = uaMobile || ipadOS || (touch && Math.min(window.innerWidth, window.innerHeight) < 900);
-    if (isMobile && typeof window.WORLD_CHUNKS === 'undefined') {
-      window.WORLD_CHUNKS = 14;
+    if (typeof window.WORLD_CHUNKS === 'undefined') {
+      // The default 32-chunk world (~1 km^2) exhausts GPU memory and loses the
+      // WebGL context on both phones AND many desktop GPUs. Combat happens within
+      // ~120 units; 12 chunks span +/-192 (mobile), 18 span +/-288 (desktop) —
+      // all structures stay in bounds while GPU/CPU memory drops ~3-7x.
+      window.WORLD_CHUNKS = isMobile ? 12 : 18;
     }
   } catch (e) {}
 })();
