@@ -1074,6 +1074,24 @@
         onerror="console.warn('[BOOT] ethers CDN failed; web3 features disabled');"></script>
 
 <!-- Core modules (order matters: dependencies first) -->
+<script>
+// Mobile GPU protection: shrink the voxel world BEFORE voxel-world.js reads
+// WORLD_CHUNKS, so phones don't exhaust GPU memory building a 32x32-chunk world
+// and lose the WebGL context ("STARTUP ERROR: WebGL context was lost"). Combat
+// happens within ~120 units; 14 chunks span +/-224, keeping all structures in bounds.
+(function () {
+  try {
+    var uaMobile = /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|PlayBook|BB10|Opera Mini/i.test(navigator.userAgent);
+    var ipadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    var isMobile = uaMobile || ipadOS || (touch && Math.min(window.innerWidth, window.innerHeight) < 900);
+    if (isMobile && typeof window.WORLD_CHUNKS === 'undefined') {
+      window.WORLD_CHUNKS = 14;
+    }
+  } catch (e) {}
+})();
+</script>
+
 <script src="voxel-world.js?v=20260715a"></script>
 <script src="camera-system.js?v=20260715a"></script>
 <script src="time-system.js?v=20260715a"></script>
