@@ -72931,6 +72931,7 @@ window.CounterSniper = (function () {
   }
 
   function _updateTriangle() {
+    if (!_triangleEl) return;
     if (!_triVisible || !_triTarget || !_camera) {
       _triangleEl.style.display = 'none';
       return;
