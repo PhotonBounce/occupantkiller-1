@@ -45,20 +45,37 @@ async function runCycle(browser, n) {
     });
     result.started = true;
     // 4) let it build + render several frames
-    await pg.waitForTimeout(6000);
-    // 5) assertions after playing
+    await pg.waitForTimeout(4000);
+    // 4b) simulate the WASD combo (S+D) that used to launch SamuraiDuel/DeepSeaBase
+    try {
+      await pg.keyboard.down('s'); await pg.keyboard.down('d');
+      await pg.waitForTimeout(1500);
+      await pg.keyboard.up('s'); await pg.keyboard.up('d');
+      await pg.waitForTimeout(1500);
+    } catch(_){}
+    // 5) assertions after playing + combo
+    const EMBED_RE = /DEEP SEA BASE|BUSHIDO|BIOWEAPON|OPERATOR DOWN|SAMURAI|CYBERPUNK|GLADIATOR|MOON ?BASE|PRISON BREAK|HEIST|COLOSSEUM/i;
     const post = await pg.evaluate(() => {
       var e=document.getElementById('error-overlay');
       var errShown = (e && e.style.display!=='none') ? (e.textContent||'').slice(0,200) : null;
-      var canvas = document.querySelector('#game-container canvas');
-      var st = null; try { st = (window.GameManager && GameManager.getState) ? GameManager.getState() : (window.GameManager && GameManager.STATE ? 'has-state' : null); } catch(_){}
-      return { errShown: errShown, canvas: !!canvas, canvasW: canvas?canvas.width:0, state: st };
+      var canvases = document.querySelectorAll('canvas');
+      var main = document.querySelector('#game-container canvas');
+      // scan visible text for embedded mini-game HUDs
+      var bodyText = (document.body.innerText || '').slice(0, 20000);
+      var st = null; try { st = (window.GameManager && GameManager.getState) ? GameManager.getState() : null; } catch(_){}
+      return { errShown: errShown, canvasCount: canvases.length, main: !!main, mainW: main?main.width:0, bodyText: bodyText, state: st };
     });
     result.errOverlay = post.errShown;
-    result.canvas = post.canvas && post.canvasW > 0;
+    result.canvas = post.main && post.mainW > 0;
+    result.canvasCount = post.canvasCount;
     result.state = post.state;
-    if (post.errShown) throw new Error('error overlay after START: '+post.errShown);
+    const embedMatch = (post.bodyText.match(EMBED_RE) || [])[0] || null;
+    result.embeddedHud = embedMatch;
+    if (post.errShown) throw new Error('error overlay: '+post.errShown);
     if (!result.canvas) throw new Error('no rendered canvas after START');
+    // main game has 1 game canvas + tiny HUD canvases (minimap 180x180, tacmap 400x400).
+    // A leaked mini-game renderer appends a FULL-SIZE extra canvas → flag >1 large canvas.
+    if (embedMatch) throw new Error('embedded mini-game HUD visible: '+embedMatch);
   } catch (e) {
     result.error = e.message.slice(0,160);
   }
@@ -66,7 +83,7 @@ async function runCycle(browser, n) {
   const realPageErrors = pageErrors.filter(m => !/ethers|jsdelivr|ERR_TUNNEL|net::/i.test(m));
   result.pageErrors = realPageErrors.length;
   if (realPageErrors.length) result.pageErrorSample = realPageErrors.slice(0,3);
-  result.ok = result.booted && result.started && result.canvas && !result.errOverlay && result.pageErrors===0 && !result.error;
+  result.ok = result.booted && result.started && result.canvas && !result.errOverlay && !result.embeddedHud && result.pageErrors===0 && !result.error;
   await ctx.close();
   return result;
 }
@@ -80,6 +97,7 @@ server.listen(PORT, async () => {
     if (!r.ok) allOk = false;
     console.log('cycle '+i+': '+(r.ok?'PASS':'FAIL')+
       ' | booted='+r.booted+' WORLD_CHUNKS='+r.worldChunks+' started='+r.started+' canvas='+r.canvas+
+      ' canvasCount='+r.canvasCount+' embeddedHud='+(r.embeddedHud?JSON.stringify(r.embeddedHud):'none')+
       ' state='+JSON.stringify(r.state)+' errOverlay='+(r.errOverlay?JSON.stringify(r.errOverlay):'none')+
       ' pageErrors='+r.pageErrors+(r.error?' err='+r.error:'')+(r.pageErrorSample?' '+JSON.stringify(r.pageErrorSample):''));
   }

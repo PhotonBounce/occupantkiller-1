@@ -1249,6 +1249,18 @@ const GameManager = (function () {
 
   /* ── Init ────────────────────────────────────────────────────────── */
   function init() {
+    // Neutralize auto-launching standalone mini-games (DeepSeaBase, SamuraiDuel, ...).
+    // Bundled into the build, they ignored (_scene,_camera), spun up their own
+    // WebGLRenderer + HUD and rendered over the main game. init() is gated at source;
+    // here we also no-op init/update so the blind boot+render batches below can't
+    // activate or crash on them. Legit feature systems are intentionally NOT listed.
+    try {
+      var __EMBEDDED_GAMES = ['PrisonBreak','GladiatorArena','UnderwaterBase','MoonBase','ArcticBase','TimeHeist','OilRig','GladiatorColosseum','CargoShip','SamuraiDuel','UnderwaterRuins','BlackSite','PirateIsland','SiegeOfParis','DiamondHeist','Jailbreak','KungFuDojo','MarsColony','ColosseumBoss','DeepCover','SunkenVessel','SubmarineHeist','ArcticSiege','MuseumHeist','PrisonEscape','CyberpunkHeist','RomanConquest','OilPlatform','SamuraiSiege','BloodDiamond','SpacePirates','KungFuTemple','DeepSeaBase','CyberEspionage','MoonbaseAssault','AztecRuins','NeonArena','SpaceStationSiege','TrainHijack','BountyHunter','AntarcticStation','TimeParadox','GlacierFortress','ArcticConvoy','ColosseumBattle','BlackMarketArms','ResearchStation','FortressBreach','SpaceColony','GlacierCave','VolcanoLair','RacingPit'];
+      for (var __gi = 0; __gi < __EMBEDDED_GAMES.length; __gi++) {
+        var __g = window[__EMBEDDED_GAMES[__gi]];
+        if (__g) { __g.init = function () {}; __g.update = function () {}; }
+      }
+    } catch (_e) {}
     _clearBootTimeout(); // Boot succeeded, clear timeout
     // Keep the start-screen badge in sync with the real stage count so it
     // never drifts from STAGES (was hardcoded "12" while STAGES has grown).

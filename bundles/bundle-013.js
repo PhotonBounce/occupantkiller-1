@@ -56499,6 +56499,8 @@ window.VolcanoLair = (function() {
   var camera1, camera2, cameraActive = 'camera1';
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
     scene.fog = new THREE.Fog(0x1a1a2e, 300, 1500);
@@ -73373,6 +73375,8 @@ window.RacingPit = (function() {
   var lastRTime = 0;
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     // Three.js setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a1a);
