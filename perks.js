@@ -91,3 +91,30 @@ window.Perks = (function() {
 
   return { showPerkSelect: showPerkSelect, reset: reset, getUnlocked: getUnlocked, PERKS: PERKS };
 })();
+
+// ── Compatibility shim ─────────────────────────────────────────────────────
+// game-manager.js (enhanced build) calls a richer Perks API than this module
+// exports (update, getSpeedMult, activateStreak, …). Add safe neutral defaults
+// for any missing methods so those ~18 call sites cannot throw and crash the
+// per-frame game loop. Existing methods are left untouched.
+(function () {
+  var P = window.Perks; if (!P) return;
+  function def(n, fn) { if (typeof P[n] !== "function") P[n] = fn; }
+  def("update", function () { return { healThisTick: 0, gunshipDPS: 0 }; });
+  def("onKill", function () {});
+  def("useBandage", function () { return false; });
+  def("activateStreak", function () { return false; });
+  def("equipPerk", function () { return false; });
+  def("unequipPerk", function () { return false; });
+  def("resetStreak", function () {});
+  def("getAvailableStreaks", function () { return []; });
+  def("getEquipped", function () { return []; });
+  def("getSpeedMult", function () { return 1; });
+  def("getDamageTakenMult", function () { return 1; });
+  def("getDeadEyeMult", function () { return 1; });
+  def("getScavengerAmmo", function () { return 0; });
+  def("getScavengerRange", function () { return 0; });
+  def("hasPerk", function () { return false; });
+  def("isDeadEyeShot", function () { return false; });
+  def("isUAVActive", function () { return false; });
+})();

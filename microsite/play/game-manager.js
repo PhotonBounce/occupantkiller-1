@@ -8591,6 +8591,7 @@ const GameManager = (function () {
 
   function update() {
     requestAnimationFrame(update);
+    try {
 
     const now = performance.now();
     const rawDelta = Math.min((now - prevTime) / 1000, 0.1);
@@ -11819,6 +11820,8 @@ const GameManager = (function () {
       }
     } catch (eMR) {}
     _renderer.render(_scene, renderCam);
+  
+    } catch (_updLoopErr) { if (typeof console !== "undefined" && console.error) console.error("[update loop caught]", _updLoopErr); }
   }
 
   /* ── Extended HUD Updates ────────────────────────────────────────── */
