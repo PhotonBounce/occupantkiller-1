@@ -16,7 +16,10 @@ const server = http.createServer((q,s)=>{
 });
 const MOBILE_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36';
 
-async function runCycle(browser, n) {
+async function runCycle(n) {
+  // Fresh browser per cycle: a swiftshader/page crash in one cycle must not
+  // poison the rest of the run.
+  const browser = await chromium.launch({ headless:true, args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] });
   const ctx = await browser.newContext(MOBILE ? { userAgent: MOBILE_UA, viewport:{width:412,height:915}, isMobile:true, hasTouch:true } : { viewport:{width:1280,height:720} });
   const pg = await ctx.newPage();
   const pageErrors = [], consoleErrors = [];
@@ -84,16 +87,16 @@ async function runCycle(browser, n) {
   result.pageErrors = realPageErrors.length;
   if (realPageErrors.length) result.pageErrorSample = realPageErrors.slice(0,3);
   result.ok = result.booted && result.started && result.canvas && !result.errOverlay && !result.embeddedHud && result.pageErrors===0 && !result.error;
-  await ctx.close();
+  try { await ctx.close(); } catch(_){}
+  try { await browser.close(); } catch(_){}
   return result;
 }
 
 server.listen(PORT, async () => {
-  const browser = await chromium.launch({ headless:true, args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] });
   let allOk = true;
   console.log('=== QA boot+play: '+CYCLES+' cycles, '+(MOBILE?'MOBILE':'DESKTOP')+' ===');
   for (let i=1;i<=CYCLES;i++) {
-    let r; try { r = await runCycle(browser, i); } catch(e){ r = { cycle:i, ok:false, error:'cycle threw: '+e.message.slice(0,120) }; }
+    let r; try { r = await runCycle(i); } catch(e){ r = { cycle:i, ok:false, error:'cycle threw: '+e.message.slice(0,120) }; }
     if (!r.ok) allOk = false;
     console.log('cycle '+i+': '+(r.ok?'PASS':'FAIL')+
       ' | booted='+r.booted+' WORLD_CHUNKS='+r.worldChunks+' started='+r.started+' canvas='+r.canvas+
@@ -102,6 +105,5 @@ server.listen(PORT, async () => {
       ' pageErrors='+r.pageErrors+(r.error?' err='+r.error:'')+(r.pageErrorSample?' '+JSON.stringify(r.pageErrorSample):''));
   }
   console.log('=== RESULT: '+(allOk?'ALL '+CYCLES+' CYCLES CLEAN':'FAILURES ABOVE')+' ===');
-  try { await browser.close(); } catch(_){}
   server.close(); process.exit(allOk?0:1);
 });

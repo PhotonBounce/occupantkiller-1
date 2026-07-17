@@ -73282,6 +73282,13 @@ window.CounterSniper = (function () {
   var _POLL_INT  = 0.1;  /* poll enemy states every 100ms */
 
   function update(delta) {
+    // Self-heal + null-safety: game-manager calls update() every frame, but its
+    // init() call is wrapped in a silent try/catch and the overlay can also be torn
+    // down on START. If the HUD isn't built, rebuild it once; if it still isn't
+    // ready, skip this frame instead of crashing the whole game loop on a null .style.
+    if (!_overlay) { try { _buildOverlay(); _bindKeys(); } catch (e) {} }
+    if (!_shotNotifEl || !_triangleEl || !_thermalHudEl) return;
+
     var dt = delta || 0.016;
 
     _pollTimer += dt;
