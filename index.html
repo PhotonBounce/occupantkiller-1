@@ -51,7 +51,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
   <title>OccupantKiller — Hybrid Voxel Warfare</title>
-  <link rel="stylesheet" href="style.css?v=20260715b" />
+  <link rel="stylesheet" href="style.css?v=20260715c" />
 </head>
   <body>
     <!-- ── Boot Preloader (gates GameManager.init until everything is ready) ── -->
@@ -74,7 +74,7 @@
       <!-- Retry button injected by JS if needed -->
     </div>
     <div id="conn-status" style="position:fixed;top:4px;right:8px;z-index:9999;font-family:monospace;font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(34,34,34,0.7);color:#fff;border:1px solid rgba(68,68,68,0.5);">Srv <span id="conn-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle;"></span></div>
-    <script src="page-prelude.js?v=20260715b"></script>
+    <script src="page-prelude.js?v=20260715c"></script>
     <script>
     // Loader percentage updater — always show and update percent
     window.__bootProgress = function(pct, label, detail) {
@@ -1064,7 +1064,7 @@
 </div>
 
 <!-- Three.js r137 (local copy, patched for CVE XSS < 0.137.0) -->
-<script src="three.min.js?v=20260715b"></script>
+<script src="three.min.js?v=20260715c"></script>
 
 <!-- ethers v6 (CDN — used by blockchain.js for contract calls).
      async + onerror so a slow/blocked CDN can't stall game boot.
@@ -1096,112 +1096,112 @@
 })();
 </script>
 
-<script src="voxel-world.js?v=20260715b"></script>
-<script src="camera-system.js?v=20260715b"></script>
-<script src="time-system.js?v=20260715b"></script>
-<script src="economy.js?v=20260715b"></script>
-<script src="api-client.js?v=20260715b"></script>
-<script src="blockchain.js?v=20260715b"></script>
-<script src="marketplace.js?v=20260715b"></script>
-<script src="skills.js?v=20260715b"></script>
-<script src="ranks.js?v=20260715b"></script>
-<script src="building.js?v=20260715b"></script>
-<script src="npc-system.js?v=20260715b"></script>
-<script src="drone-system.js?v=20260715b"></script>
-<script src="vehicles.js?v=20260715b"></script>
-<script src="automation.js?v=20260715b"></script>
-<script src="missions.js?v=20260715b"></script>
-<script src="pickups.js?v=20260715b"></script>
-<script src="hud.js?v=20260715b"></script>
+<script src="voxel-world.js?v=20260715c"></script>
+<script src="camera-system.js?v=20260715c"></script>
+<script src="time-system.js?v=20260715c"></script>
+<script src="economy.js?v=20260715c"></script>
+<script src="api-client.js?v=20260715c"></script>
+<script src="blockchain.js?v=20260715c"></script>
+<script src="marketplace.js?v=20260715c"></script>
+<script src="skills.js?v=20260715c"></script>
+<script src="ranks.js?v=20260715c"></script>
+<script src="building.js?v=20260715c"></script>
+<script src="npc-system.js?v=20260715c"></script>
+<script src="drone-system.js?v=20260715c"></script>
+<script src="vehicles.js?v=20260715c"></script>
+<script src="automation.js?v=20260715c"></script>
+<script src="missions.js?v=20260715c"></script>
+<script src="pickups.js?v=20260715c"></script>
+<script src="hud.js?v=20260715c"></script>
 <script>window.__bootProgress&&window.__bootProgress(12,'loading core systems','');</script>
-    <script src="hud-extras.js?v=20260715b"></script>
-    <script src="hud-extras2.js?v=20260715b"></script>
-    <script src="hud-extras3.js?v=20260715b"></script>
-    <script src="hud-extras4.js?v=20260715b"></script>
-    <script src="fx-extras.js?v=20260715b"></script>
-    <script src="extras-panel.js?v=20260715b"></script>
-    <script src="match-stats.js?v=20260715b"></script>
-<script src="shop.js?v=20260715b"></script>
-<script src="weapon-details.js?v=20260715b"></script>
-<script src="weapons.js?v=20260715b"></script>
-<script src="enemies.js?v=20260715b"></script>
+    <script src="hud-extras.js?v=20260715c"></script>
+    <script src="hud-extras2.js?v=20260715c"></script>
+    <script src="hud-extras3.js?v=20260715c"></script>
+    <script src="hud-extras4.js?v=20260715c"></script>
+    <script src="fx-extras.js?v=20260715c"></script>
+    <script src="extras-panel.js?v=20260715c"></script>
+    <script src="match-stats.js?v=20260715c"></script>
+<script src="shop.js?v=20260715c"></script>
+<script src="weapon-details.js?v=20260715c"></script>
+<script src="weapons.js?v=20260715c"></script>
+<script src="enemies.js?v=20260715c"></script>
 <script>window.__bootProgress&&window.__bootProgress(24,'loading combat','');</script>
-<script src="convoy-system.js?v=20260715b"></script>
-<script src="audio-system.js?v=20260715b"></script>
-<script src="jukebox.js?v=20260715b"></script>
-<script src="birds.js?v=20260715b"></script>
-<script src="premium.js?v=20260715b"></script>
-<script src="lottery.js?v=20260715b"></script>
-<script src="mortar.js?v=20260715b"></script>
-<script src="bradley.js?v=20260715b"></script>
-<script src="t72.js?v=20260715b"></script>
-<script src="btr80.js?v=20260715b"></script>
-<script src="gyro.js?v=20260715b"></script>
-<script src="weather-system.js?v=20260715b"></script>
-<script src="ml-system.js?v=20260715b"></script>
-<script src="npc-ml.js?v=20260715b"></script>
-<script src="tokenomics.js?v=20260715b"></script>
-<script src="tracers.js?v=20260715b"></script>
-<script src="tracer-system.js?v=20260715b"></script>
-<script src="stage-vfx.js?v=20260715b"></script>
-<script src="flags.js?v=20260715b"></script>
-<script src="environment.js?v=20260715b"></script>
+<script src="convoy-system.js?v=20260715c"></script>
+<script src="audio-system.js?v=20260715c"></script>
+<script src="jukebox.js?v=20260715c"></script>
+<script src="birds.js?v=20260715c"></script>
+<script src="premium.js?v=20260715c"></script>
+<script src="lottery.js?v=20260715c"></script>
+<script src="mortar.js?v=20260715c"></script>
+<script src="bradley.js?v=20260715c"></script>
+<script src="t72.js?v=20260715c"></script>
+<script src="btr80.js?v=20260715c"></script>
+<script src="gyro.js?v=20260715c"></script>
+<script src="weather-system.js?v=20260715c"></script>
+<script src="ml-system.js?v=20260715c"></script>
+<script src="npc-ml.js?v=20260715c"></script>
+<script src="tokenomics.js?v=20260715c"></script>
+<script src="tracers.js?v=20260715c"></script>
+<script src="tracer-system.js?v=20260715c"></script>
+<script src="stage-vfx.js?v=20260715c"></script>
+<script src="flags.js?v=20260715c"></script>
+<script src="environment.js?v=20260715c"></script>
 <script>window.__bootProgress&&window.__bootProgress(38,'loading world systems','');</script>
 
 <!-- New feature modules (59 features) -->
-<script src="combat-extras.js?v=20260715b"></script>
-<script src="traversal.js?v=20260715b"></script>
-<script src="enemy-types.js?v=20260715b"></script>
-<script src="world-features.js?v=20260715b"></script>
-<script src="perks.js?v=20260715b"></script>
-<script src="mission-types.js?v=20260715b"></script>
-<script src="feedback.js?v=20260715b"></script>
-<script src="progression.js?v=20260715b"></script>
-<script src="refinery-strike.js?v=20260715b"></script>
-<script src="enemy-artillery.js?v=20260715b"></script>
-<script src="enemy-tank-destroyer.js?v=20260715b"></script>
-<script src="enemy-airstrike.js?v=20260715b"></script>
-<script src="loot.js?v=20260715b"></script>
-<script src="airdrop.js?v=20260715b"></script>
-<script src="attachments.js?v=20260715b"></script>
-<script src="city-props.js?v=20260715b"></script>
-<script src="collapse-physics.js?v=20260715b"></script>
+<script src="combat-extras.js?v=20260715c"></script>
+<script src="traversal.js?v=20260715c"></script>
+<script src="enemy-types.js?v=20260715c"></script>
+<script src="world-features.js?v=20260715c"></script>
+<script src="perks.js?v=20260715c"></script>
+<script src="mission-types.js?v=20260715c"></script>
+<script src="feedback.js?v=20260715c"></script>
+<script src="progression.js?v=20260715c"></script>
+<script src="refinery-strike.js?v=20260715c"></script>
+<script src="enemy-artillery.js?v=20260715c"></script>
+<script src="enemy-tank-destroyer.js?v=20260715c"></script>
+<script src="enemy-airstrike.js?v=20260715c"></script>
+<script src="loot.js?v=20260715c"></script>
+<script src="airdrop.js?v=20260715c"></script>
+<script src="attachments.js?v=20260715c"></script>
+<script src="city-props.js?v=20260715c"></script>
+<script src="collapse-physics.js?v=20260715c"></script>
 <script>window.__bootProgress&&window.__bootProgress(52,'loading features','');</script>
 
 
-    <script src="bundles/bundle-001.js?v=20260715b" async></script>
-<script src="achievements.js?v=20260715b"></script>
-    <script src="bundles/bundle-002.js?v=20260715b" async></script>
+    <script src="bundles/bundle-001.js?v=20260715c" async></script>
+<script src="achievements.js?v=20260715c"></script>
+    <script src="bundles/bundle-002.js?v=20260715c" async></script>
 <script src="ambient-zones.js"></script><script src="scavenge-system.js"></script>
-<script src="replay-system.js?v=20260715b"></script>
+<script src="replay-system.js?v=20260715c"></script>
 <script src="weapon-mastery.js"></script>
-<script src="explosion-chain.js?v=20260715b"></script>
+<script src="explosion-chain.js?v=20260715c"></script>
 <script src="slide-system.js"></script>
 <script src="rank-insignia.js"></script>
-<script src="enemy-commander.js?v=20260715b"></script>
+<script src="enemy-commander.js?v=20260715c"></script>
 <script src="minefield-system.js"></script>
 <script src="enemy-morale.js"></script>
-<script src="fortification-system.js?v=20260715b"></script>
-    <script src="bundles/bundle-003.js?v=20260715b" async></script>
-<script src="signal-flare.js?v=20260715b"></script>
-    <script src="bundles/bundle-004.js?v=20260715b" async></script>
-<script src="enemy-voices.js?v=20260715b"></script>
-    <script src="bundles/bundle-005.js?v=20260715b" async></script>
-    <script src="enemy-tank.js?v=20260715b"></script>
+<script src="fortification-system.js?v=20260715c"></script>
+    <script src="bundles/bundle-003.js?v=20260715c" async></script>
+<script src="signal-flare.js?v=20260715c"></script>
+    <script src="bundles/bundle-004.js?v=20260715c" async></script>
+<script src="enemy-voices.js?v=20260715c"></script>
+    <script src="bundles/bundle-005.js?v=20260715c" async></script>
+    <script src="enemy-tank.js?v=20260715c"></script>
 
-    <script src="bundles/bundle-006.js?v=20260715b" async></script>
-<script src="bullet-parry.js?v=20260715b"></script>
-    <script src="bundles/bundle-007.js?v=20260715b" async></script>
-<script src="ammo-types.js?v=20260715b"></script>
-    <script src="bundles/bundle-008.js?v=20260715b" async></script>
-<script src="game-manager.js?v=20260715b-static"></script>
+    <script src="bundles/bundle-006.js?v=20260715c" async></script>
+<script src="bullet-parry.js?v=20260715c"></script>
+    <script src="bundles/bundle-007.js?v=20260715c" async></script>
+<script src="ammo-types.js?v=20260715c"></script>
+    <script src="bundles/bundle-008.js?v=20260715c" async></script>
+<script src="game-manager.js?v=20260715c-static"></script>
 <script>window.__bootProgress&&window.__bootProgress(70,'loading game manager','');</script>
-    <script src="bundles/bundle-009.js?v=20260715b" async></script>
+    <script src="bundles/bundle-009.js?v=20260715c" async></script>
 
-    <script src="bundles/bundle-010.js?v=20260715b" async></script>
-    <script src="bundles/bundle-011.js?v=20260715b" async></script>
-    <script src="bundles/bundle-012.js?v=20260715b" async></script>
-    <script src="bundles/bundle-013.js?v=20260715b" async></script>
+    <script src="bundles/bundle-010.js?v=20260715c" async></script>
+    <script src="bundles/bundle-011.js?v=20260715c" async></script>
+    <script src="bundles/bundle-012.js?v=20260715c" async></script>
+    <script src="bundles/bundle-013.js?v=20260715c" async></script>
 <script>window.__bootProgress&&window.__bootProgress(80,'finalizing modules','');</script>
 <!-- Defensive global export for VoxelWorld and AudioSystem -->
 <script>

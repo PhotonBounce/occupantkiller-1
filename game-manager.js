@@ -1045,9 +1045,12 @@ const GameManager = (function () {
   }
 
   function getPreferredPixelRatio() {
+    // Cap at 1.0 device-pixel: on hi-DPI displays a 1.5x ratio makes the WebGL
+    // framebuffer ~2.25x larger, which pushes weaker/pressured GPUs past their
+    // memory budget and loses the context at boot. 1.0 roughly halves that memory.
     var dpr = window.devicePixelRatio || 1;
     if (_rendererProfile === 'compatibility') return 1;
-    return Math.min(dpr, isMobile ? 1.1 : 1.5);
+    return Math.min(dpr, 1.0);
   }
 
   function createRendererWithFallback() {
@@ -1111,8 +1114,23 @@ const GameManager = (function () {
         renderer.domElement.style.touchAction = 'none';
         renderer.domElement.addEventListener('webglcontextlost', function (e) {
           e.preventDefault();
-          showStartupError('WebGL context was lost. Reload the page or close background tabs and try again.');
+          var tries = 0;
+          try { tries = parseInt(sessionStorage.getItem('ok_gllost_retries') || '0', 10) || 0; } catch (_e) {}
+          if (tries < 1) {
+            try { sessionStorage.setItem('ok_gllost_retries', String(tries + 1)); } catch (_e) {}
+            showStartupError('WebGL context was lost — auto-recovering…');
+            setTimeout(function () { try { location.reload(); } catch (_e) {} }, 1200);
+          } else {
+            showStartupError('WebGL context was lost — your GPU ran out of memory. Close other browser tabs and heavy apps, then reload. Updating your graphics driver and turning on hardware acceleration in the browser also helps.');
+          }
         }, false);
+        renderer.domElement.addEventListener('webglcontextrestored', function () {
+          try { sessionStorage.removeItem('ok_gllost_retries'); } catch (_e) {}
+          try { location.reload(); } catch (_e) {}
+        }, false);
+        // If boot survives 8s without a context loss, clear the retry guard so a
+        // future genuine hiccup gets its one free auto-recovery again.
+        setTimeout(function () { try { sessionStorage.removeItem('ok_gllost_retries'); } catch (_e) {} }, 8000);
         container.appendChild(renderer.domElement);
         return renderer;
       } catch (err) {
