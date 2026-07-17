@@ -72931,6 +72931,7 @@ window.CounterSniper = (function () {
   }
 
   function _updateTriangle() {
+    if (!_triangleEl) return;
     if (!_triVisible || !_triTarget || !_camera) {
       _triangleEl.style.display = 'none';
       return;
@@ -73281,6 +73282,13 @@ window.CounterSniper = (function () {
   var _POLL_INT  = 0.1;  /* poll enemy states every 100ms */
 
   function update(delta) {
+    // Self-heal + null-safety: game-manager calls update() every frame, but its
+    // init() call is wrapped in a silent try/catch and the overlay can also be torn
+    // down on START. If the HUD isn't built, rebuild it once; if it still isn't
+    // ready, skip this frame instead of crashing the whole game loop on a null .style.
+    if (!_overlay) { try { _buildOverlay(); _bindKeys(); } catch (e) {} }
+    if (!_shotNotifEl || !_triangleEl || !_thermalHudEl) return;
+
     var dt = delta || 0.016;
 
     _pollTimer += dt;
@@ -153048,7 +153056,9 @@ window.PrisonBreak = (function () {
   }
 
   // ── Public API ────────────────────────────────────────────────────────────────
-  function init() { _init(); }
+  function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+ _init(); }
 
   function update(dt) { /* external hook – loop is self-driven */ }
 
@@ -172781,6 +172791,8 @@ window.GladiatorArena = (function () {
   //  PUBLIC API
   // ─────────────────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('keyup', handleKeyup);
   }
@@ -174015,6 +174027,8 @@ window.UnderwaterBase = (function () {
   var keysDown = {};
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -182409,6 +182423,8 @@ window.MoonBase = (function () {
   // ── init / destroy ────────────────────────────────────────────────────────
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -184817,6 +184833,8 @@ window.ArcticBase = (function () {
   var FUEL_TANK_COLOR = 0x332244;
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -187031,6 +187049,8 @@ window.TimeHeist = (function () {
 
   // ─── Init ─────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) { reset(); return; }
 
     // Listen for activation outside active state
@@ -195403,6 +195423,8 @@ window.OilRig = (function () {
   var CRANE_KILL_RADIUS = 3;
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -209080,6 +209102,8 @@ window.GladiatorColosseum = (function () {
 
   // ─── Init key listeners ───────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
   }
@@ -211096,6 +211120,8 @@ window.CargoShip = (function () {
   };
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -219674,6 +219700,8 @@ window.SamuraiDuel = (function () {
 
   // ─── Init key listeners for activation ───────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
   }
@@ -223990,7 +224018,9 @@ window.PrisonBreak = (function () {
   }
 
   // ── Public API ────────────────────────────────────────────────────────────────
-  function init() { _init(); }
+  function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+ _init(); }
 
   function update(dt) { /* external hook – loop is self-driven */ }
 
@@ -244004,6 +244034,8 @@ window.UnderwaterRuins = (function () {
 
   // ─── Init / Destroy ───────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -252452,7 +252484,9 @@ window.BlackSite = (function () {
   }
 
   // ── Public API ────────────────────────────────────────────────────────────────
-  function init() { _init(); }
+  function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+ _init(); }
 
   function update() { /* loop is self-driven */ }
 
@@ -266922,6 +266956,8 @@ window.TimeHeist = (function () {
 
   // ─── Init ─────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) { reset(); return; }
 
     // Listen for activation outside active state
@@ -268639,6 +268675,8 @@ window.PirateIsland = (function () {
 
   // ─── Public API ───────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup',   onKeyUp);
     window.addEventListener('mousemove', onMouseMove);
@@ -272998,6 +273036,8 @@ window.SiegeOfParis = (function () {
   // ──────────────────────────────────────────────────────────────────────────
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     document.addEventListener('keydown', _onKeyDown);
     document.addEventListener('keyup', _onKeyUp);
   }
@@ -275686,6 +275726,8 @@ window.DiamondHeist = (function () {
 
   // ─── Init / Reset ─────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -279011,7 +279053,9 @@ window.Jailbreak = (function () {
   }
 
   // ── Public API ────────────────────────────────────────────────────────────────
-  function init() { _init(); }
+  function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+ _init(); }
 
   function update(dt) { /* external hook — loop is self-driven */ }
 
@@ -287421,7 +287465,9 @@ window.KungFuDojo = (function () {
   });
 
   // ─── Public API ───────────────────────────────────────────────────────────
-  function init()  { /* activation via K+F keypress */ }
+  function init()  {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+ /* activation via K+F keypress */ }
   function reset() { stopGame(); resetState(); }
 
   return { init: init, update: update, reset: reset };
@@ -289463,6 +289509,8 @@ window.MarsColony = (function () {
   // ── init / destroy / reset ────────────────────────────────────────────────
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -293662,6 +293710,8 @@ window.ColosseumBoss = (function () {
      PUBLIC API
   ══════════════════════════════════════════════════════════════════════════════ */
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     bindEvents();
   }
 
@@ -295146,6 +295196,8 @@ window.DeepCover = (function () {
 
   // ─── Public API ────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     setupInput();
   }
 
@@ -298170,6 +298222,8 @@ window.GladiatorArena = (function () {
   //  PUBLIC API
   // ─────────────────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('keyup', handleKeyup);
   }
@@ -309286,6 +309340,8 @@ window.SunkenVessel = (function () {
   // ── public API ─────────────────────────────────────────────────────────────
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -320086,6 +320142,8 @@ window.SubmarineHeist = (function () {
 
   // ─── Init ─────────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) { return; }
     state.active = true;
 
@@ -322473,6 +322531,8 @@ window.ArcticSiege = (function () {
   // Init
   // ------------------------------------------------------------------
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -325573,6 +325633,8 @@ window.MuseumHeist = (function () {
 
   // ─── Public API ───────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     // Wire activation key listeners at page load (passive, low overhead)
     var initKeydown = function (e) {
       var k = e.key.toLowerCase();
@@ -334054,7 +334116,9 @@ window.PrisonEscape = (function () {
   }
 
   // ── Public API ────────────────────────────────────────────────────────────────
-  function init() { _init(); }
+  function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+ _init(); }
 
   function update(dt) { /* loop is self-driven via requestAnimationFrame */ }
 

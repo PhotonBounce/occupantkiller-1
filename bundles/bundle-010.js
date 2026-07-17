@@ -1587,6 +1587,8 @@ window.CyberpunkHeist = (function () {
 
   // ─── Public: init (alias for external call) ─────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     initGame();
   }
 
@@ -4867,6 +4869,8 @@ window.RomanConquest = (function () {
   //  PUBLIC API
   // ─────────────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     window.addEventListener('keydown', onKeyDown);
   }
 
@@ -5002,6 +5006,8 @@ window.OilPlatform = (function () {
   // Init / Reset / Destroy
   // -----------------------------------------------------------------------
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     if (typeof THREE === 'undefined') {
       console.warn('[OilPlatform] THREE.js not loaded');
@@ -8189,6 +8195,8 @@ window.SamuraiSiege = (function () {
   // PUBLIC API
   // =========================================================================
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     // Register key listeners once
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
@@ -9900,6 +9908,8 @@ window.BloodDiamond = (function () {
   // ─── Public API ───────────────────────────────────────────────────────────────
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     // Already handled in activate
   }
 
@@ -11294,6 +11304,8 @@ window.SpacePirates = (function () {
 
   // ─── Public API ──────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     // already wired via keydown listener at module load
   }
 
@@ -13016,7 +13028,9 @@ window.KungFuTemple = (function () {
   window.addEventListener('resize', onResize);
 
   // ─── Public API ───────────────────────────────────────────────────────────
-  function init()  { /* activated via K+T simultaneous keypress */ }
+  function init()  {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+ /* activated via K+T simultaneous keypress */ }
   function reset() { stopGame(); }
 
   return { init: init, update: update, reset: reset };
@@ -14888,6 +14902,8 @@ window.DeepSeaBase = (function () {
   ════════════════════════════════════════════════════════════════════════ */
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (_active) return;
     _active = true;
 
@@ -22707,6 +22723,8 @@ window.CyberEspionage = (function () {
   // ─── Public API ─────────────────────────────────────────────────────────────
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     // Reset activation keys so fresh C->E sequence works
     state.cDown = false;
     state.cDownTime = 0;
@@ -24997,6 +25015,8 @@ window.MoonbaseAssault = (function () {
   }
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -31757,7 +31777,9 @@ window.AztecRuins = (function() {
     loop();
   }
 
-  function init() {}
+  function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+}
 
   function update(delta) {
     var now = performance.now();
@@ -32830,7 +32852,9 @@ window.NeonArena = (function() {
     loop();
   }
 
-  function init() {}
+  function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+}
   function update() {}
   function reset() {
     _enemies = []; _projectiles = []; _powerUps = []; _platforms = [];
@@ -37672,6 +37696,8 @@ window.SpaceStationSiege = (function() {
 
   // ─── Init ─────────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     container = document.createElement('div');
     container.id = 'sss-container';
     container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:50;';
@@ -40998,6 +41024,8 @@ window.TrainHijack = (function () {
   }
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     document.addEventListener('keydown', function (e) {
       if (e.code === 'KeyT') _lastTTime = performance.now();
       if (e.code === 'KeyH') {
@@ -41908,6 +41936,8 @@ window.BountyHunter = (function () {
 
   // ─── Init / Reset / Update ────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
 
     // Renderer
@@ -44254,6 +44284,8 @@ window.AntarcticStation = (function () {
   // ── Init / Reset ──────────────────────────────────────────────────────────
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     if (typeof THREE === 'undefined') {
       console.warn('[' + MODULE_NAME + '] THREE not loaded');
@@ -45107,6 +45139,8 @@ window.TimeParadox = (function () {
 
   // ── Init ──────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (_active) return;
     _active = true;
 
@@ -50417,6 +50451,8 @@ window.GlacierFortress = (function () {
      LIFECYCLE
      ════════════════════════════════════════════════════════════════════════════ */
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (_active) return;
     _active = true;
     _won    = false;
@@ -56963,6 +56999,8 @@ window.ArcticConvoy = (function () {
 
   // ── public init (called on page load to register key listener) ────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     window.addEventListener('keydown', onKeyDown);
   }
 
@@ -60143,6 +60181,8 @@ window.ColosseumBattle = (function () {
 
   // ── Public: init ─────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     window.addEventListener('keydown', _onKeyDown);
     window.addEventListener('keyup', _onKeyUp);
     window.addEventListener('mousemove', _onMouseMove);
@@ -61049,6 +61089,8 @@ window.BlackMarketArms = (function () {
 
   // ── init ──────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     reset();
     active = true;
 
@@ -71949,6 +71991,8 @@ window.ResearchStation = (function () {
   //  INIT
   // ═══════════════════════════════════════════════════════════════════════════
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -77429,6 +77473,8 @@ window.FortressBreach = (function () {
   // ------- Public API -------
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (active) return;
     active = true;
 
@@ -80629,6 +80675,8 @@ window.SpaceColony = (function () {
   }
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     createHUD();
     createScene();
     setupInput();
@@ -80870,6 +80918,8 @@ window.GlacierCave = (function () {
   // ─── INIT / DESTROY ────────────────────────────────────────────────────────
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 

@@ -1249,6 +1249,18 @@ const GameManager = (function () {
 
   /* ── Init ────────────────────────────────────────────────────────── */
   function init() {
+    // Neutralize auto-launching standalone mini-games (DeepSeaBase, SamuraiDuel, ...).
+    // Bundled into the build, they ignored (_scene,_camera), spun up their own
+    // WebGLRenderer + HUD and rendered over the main game. init() is gated at source;
+    // here we also no-op init/update so the blind boot+render batches below can't
+    // activate or crash on them. Legit feature systems are intentionally NOT listed.
+    try {
+      var __EMBEDDED_GAMES = ['PrisonBreak','GladiatorArena','UnderwaterBase','MoonBase','ArcticBase','TimeHeist','OilRig','GladiatorColosseum','CargoShip','SamuraiDuel','UnderwaterRuins','BlackSite','PirateIsland','SiegeOfParis','DiamondHeist','Jailbreak','KungFuDojo','MarsColony','ColosseumBoss','DeepCover','SunkenVessel','SubmarineHeist','ArcticSiege','MuseumHeist','PrisonEscape','CyberpunkHeist','RomanConquest','OilPlatform','SamuraiSiege','BloodDiamond','SpacePirates','KungFuTemple','DeepSeaBase','CyberEspionage','MoonbaseAssault','AztecRuins','NeonArena','SpaceStationSiege','TrainHijack','BountyHunter','AntarcticStation','TimeParadox','GlacierFortress','ArcticConvoy','ColosseumBattle','BlackMarketArms','ResearchStation','FortressBreach','SpaceColony','GlacierCave','VolcanoLair','RacingPit'];
+      for (var __gi = 0; __gi < __EMBEDDED_GAMES.length; __gi++) {
+        var __g = window[__EMBEDDED_GAMES[__gi]];
+        if (__g) { __g.init = function () {}; __g.update = function () {}; }
+      }
+    } catch (_e) {}
     _clearBootTimeout(); // Boot succeeded, clear timeout
     // Keep the start-screen badge in sync with the real stage count so it
     // never drifts from STAGES (was hardcoded "12" while STAGES has grown).
@@ -7267,7 +7279,7 @@ const GameManager = (function () {
     // Grapple update — must run after player.position is committed
     if (window.Grapple) Grapple.update(delta, player.position, _camera);
     // ZiplineGrapple update — runs after physics
-    if (window.ZiplineGrapple) ZiplineGrapple.update(delta);
+    if (window.ZiplineGrapple) { try { ZiplineGrapple.update(delta); } catch (_e) {} }
     // Wingsuit update — runs after physics, passes player object and key state
     if (window.Wingsuit) Wingsuit.update(delta, player, keys);
 
@@ -8620,11 +8632,11 @@ const GameManager = (function () {
     if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
       // Core systems
       TimeSystem.update(delta);
-      if (window.BloodEffects) BloodEffects.update(delta);
-      if (window.StaminaSystem) StaminaSystem.update(delta);
+      if (window.BloodEffects) { try { BloodEffects.update(delta); } catch (_e) {} }
+      if (window.StaminaSystem) { try { StaminaSystem.update(delta); } catch (_e) {} }
       WeatherSystem.update(delta);
       if (typeof WeatherEvents !== 'undefined') WeatherEvents.update();
-      if (window.WaveEvents) WaveEvents.update(delta);
+      if (window.WaveEvents) { try { WaveEvents.update(delta); } catch (_e) {} }
       MLSystem.trackFPS(delta);
       // AI Smart Learning: track player position for behavior profiling
       MLSystem.trackPlayerPosition(player.position.x, player.position.z, delta);
@@ -9368,8 +9380,8 @@ const GameManager = (function () {
       if (window.ClaymoreMines) { var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; ClaymoreMines.update(delta, player.position, _allEnemies); }
       if (window.TripwireIED) { var _iedEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; TripwireIED.update(_iedEnemies, delta); }
       if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
-      if (window.LootDrops) LootDrops.update(delta);
-      if (window.DogTags) DogTags.update(delta);
+      if (window.LootDrops) { try { LootDrops.update(delta); } catch (_e) {} }
+      if (window.DogTags) { try { DogTags.update(delta); } catch (_e) {} }
       if (window.GasMask) GasMask.update(delta, player.position);
       if (typeof NightVision !== 'undefined') NightVision.update(delta);
       if (window.WeatherEffects) WeatherEffects.update(delta, player.position);
@@ -9385,1431 +9397,1431 @@ const GameManager = (function () {
       }
       if (window.IntelPickups) IntelPickups.update(delta, player.position, player, _scene);
       if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
-      if (window.SurrenderSystem) SurrenderSystem.update(delta);
+      if (window.SurrenderSystem) { try { SurrenderSystem.update(delta); } catch (_e) {} }
       if (window.SuppressionSystem) SuppressionSystem.update(delta, player);
-      if (window.FreezeGrenade) FreezeGrenade.update(delta);
-      if (window.KillCam) KillCam.update(delta);
-      if (window.ShieldBubble) ShieldBubble.update(delta);
-      if (window.TripwireTrap) TripwireTrap.update(delta);
-      if (window.BulletTime) BulletTime.update(delta);
-      if (window.MountedTurret) MountedTurret.update(delta);
-      if (window.DynamicWeather) DynamicWeather.update(delta);
-      if (window.ObjectiveSystem) ObjectiveSystem.update(delta);
-      if (window.ClusterBomb) ClusterBomb.update(delta);
-      if (window.TacticalMinimap) TacticalMinimap.update(delta);
-      if (window.KillFeedEvents) KillFeedEvents.update(delta);
-      if (window.BossFinalForm) BossFinalForm.update(delta);
-      if (window.RadarPulse) RadarPulse.update(delta);
-      if (window.WeaponWear) WeaponWear.update(delta);
-      if (window.Nanobots) Nanobots.update(delta);
-      if (window.AmmoTypes) AmmoTypes.update(delta);
-      if (window.PlayerCallouts) PlayerCallouts.update(delta);
-      if (window.DriveableCar) DriveableCar.update(delta);
-      if (window.FPVKamikaze) FPVKamikaze.update(delta);
-      if (window.EMPPulse) EMPPulse.update(delta);
-      if (window.InventorySystem) InventorySystem.update(delta);
-      if (window.MeleeSystem) MeleeSystem.update(delta);
-      if (window.SniperScope) SniperScope.update(delta);
-      if (window.ParachuteDrop) ParachuteDrop.update(delta);
-      if (window.LandmineField) LandmineField.update(delta);
-      if (window.SmokeLauncher) SmokeLauncher.update(delta);
-      if (window.AirStrike) AirStrike.update(delta);
-      if (window.WallBreach) WallBreach.update(delta);
-      if (window.CombatRoll) CombatRoll.update(delta);
-      if (window.DogTagCollector) DogTagCollector.update(delta);
-      if (window.EnemySniper) EnemySniper.update(delta);
-      if (window.VehicleWreck) VehicleWreck.update(delta);
-      if (window.SuppressorKit) SuppressorKit.update(delta);
-      if (window.BattlefieldPromotions) BattlefieldPromotions.update(delta);
-      if (window.HostageRescue) HostageRescue.update(delta);
-      if (window.GrenadeLauncherGL) GrenadeLauncherGL.update(delta);
-      if (window.PlayerDeathSequence) PlayerDeathSequence.update(delta);
-      if (window.TacticalReload) TacticalReload.update(delta);
-      if (window.ClaymoreDirectional) ClaymoreDirectional.update(delta);
-      if (window.NightAssault) NightAssault.update(delta);
-      if (window.VehicleTurret) VehicleTurret.update(delta);
-      if (window.IntelDocuments) IntelDocuments.update(delta);
-      if (window.BodyArmorVest) BodyArmorVest.update(delta);
-      if (window.ArtilleryBarrage) ArtilleryBarrage.update(delta);
-      if (window.RiotShieldPickup) RiotShieldPickup.update(delta);
-      if (window.ScoreMultiplier) ScoreMultiplier.update(delta);
-      if (window.HeliExtraction) HeliExtraction.update(delta);
-      if (window.ChemicalWarfare) ChemicalWarfare.update(delta);
-      if (window.EnemyTankDestroyer) EnemyTankDestroyer.update(delta);
-      if (window.FlashbangSystem) FlashbangSystem.update(delta);
-      if (window.EnemyEngineer) EnemyEngineer.update(delta);
-      if (window.RappellingSystem) RappellingSystem.update(delta);
-      if (window.BulletCam) BulletCam.update(delta);
-      if (window.ReconDrone) ReconDrone.update(delta);
-      if (window.BunkerBuster) BunkerBuster.update(delta);
-      if (window.TacticalMap) TacticalMap.update(delta);
+      if (window.FreezeGrenade) { try { FreezeGrenade.update(delta); } catch (_e) {} }
+      if (window.KillCam) { try { KillCam.update(delta); } catch (_e) {} }
+      if (window.ShieldBubble) { try { ShieldBubble.update(delta); } catch (_e) {} }
+      if (window.TripwireTrap) { try { TripwireTrap.update(delta); } catch (_e) {} }
+      if (window.BulletTime) { try { BulletTime.update(delta); } catch (_e) {} }
+      if (window.MountedTurret) { try { MountedTurret.update(delta); } catch (_e) {} }
+      if (window.DynamicWeather) { try { DynamicWeather.update(delta); } catch (_e) {} }
+      if (window.ObjectiveSystem) { try { ObjectiveSystem.update(delta); } catch (_e) {} }
+      if (window.ClusterBomb) { try { ClusterBomb.update(delta); } catch (_e) {} }
+      if (window.TacticalMinimap) { try { TacticalMinimap.update(delta); } catch (_e) {} }
+      if (window.KillFeedEvents) { try { KillFeedEvents.update(delta); } catch (_e) {} }
+      if (window.BossFinalForm) { try { BossFinalForm.update(delta); } catch (_e) {} }
+      if (window.RadarPulse) { try { RadarPulse.update(delta); } catch (_e) {} }
+      if (window.WeaponWear) { try { WeaponWear.update(delta); } catch (_e) {} }
+      if (window.Nanobots) { try { Nanobots.update(delta); } catch (_e) {} }
+      if (window.AmmoTypes) { try { AmmoTypes.update(delta); } catch (_e) {} }
+      if (window.PlayerCallouts) { try { PlayerCallouts.update(delta); } catch (_e) {} }
+      if (window.DriveableCar) { try { DriveableCar.update(delta); } catch (_e) {} }
+      if (window.FPVKamikaze) { try { FPVKamikaze.update(delta); } catch (_e) {} }
+      if (window.EMPPulse) { try { EMPPulse.update(delta); } catch (_e) {} }
+      if (window.InventorySystem) { try { InventorySystem.update(delta); } catch (_e) {} }
+      if (window.MeleeSystem) { try { MeleeSystem.update(delta); } catch (_e) {} }
+      if (window.SniperScope) { try { SniperScope.update(delta); } catch (_e) {} }
+      if (window.ParachuteDrop) { try { ParachuteDrop.update(delta); } catch (_e) {} }
+      if (window.LandmineField) { try { LandmineField.update(delta); } catch (_e) {} }
+      if (window.SmokeLauncher) { try { SmokeLauncher.update(delta); } catch (_e) {} }
+      if (window.AirStrike) { try { AirStrike.update(delta); } catch (_e) {} }
+      if (window.WallBreach) { try { WallBreach.update(delta); } catch (_e) {} }
+      if (window.CombatRoll) { try { CombatRoll.update(delta); } catch (_e) {} }
+      if (window.DogTagCollector) { try { DogTagCollector.update(delta); } catch (_e) {} }
+      if (window.EnemySniper) { try { EnemySniper.update(delta); } catch (_e) {} }
+      if (window.VehicleWreck) { try { VehicleWreck.update(delta); } catch (_e) {} }
+      if (window.SuppressorKit) { try { SuppressorKit.update(delta); } catch (_e) {} }
+      if (window.BattlefieldPromotions) { try { BattlefieldPromotions.update(delta); } catch (_e) {} }
+      if (window.HostageRescue) { try { HostageRescue.update(delta); } catch (_e) {} }
+      if (window.GrenadeLauncherGL) { try { GrenadeLauncherGL.update(delta); } catch (_e) {} }
+      if (window.PlayerDeathSequence) { try { PlayerDeathSequence.update(delta); } catch (_e) {} }
+      if (window.TacticalReload) { try { TacticalReload.update(delta); } catch (_e) {} }
+      if (window.ClaymoreDirectional) { try { ClaymoreDirectional.update(delta); } catch (_e) {} }
+      if (window.NightAssault) { try { NightAssault.update(delta); } catch (_e) {} }
+      if (window.VehicleTurret) { try { VehicleTurret.update(delta); } catch (_e) {} }
+      if (window.IntelDocuments) { try { IntelDocuments.update(delta); } catch (_e) {} }
+      if (window.BodyArmorVest) { try { BodyArmorVest.update(delta); } catch (_e) {} }
+      if (window.ArtilleryBarrage) { try { ArtilleryBarrage.update(delta); } catch (_e) {} }
+      if (window.RiotShieldPickup) { try { RiotShieldPickup.update(delta); } catch (_e) {} }
+      if (window.ScoreMultiplier) { try { ScoreMultiplier.update(delta); } catch (_e) {} }
+      if (window.HeliExtraction) { try { HeliExtraction.update(delta); } catch (_e) {} }
+      if (window.ChemicalWarfare) { try { ChemicalWarfare.update(delta); } catch (_e) {} }
+      if (window.EnemyTankDestroyer) { try { EnemyTankDestroyer.update(delta); } catch (_e) {} }
+      if (window.FlashbangSystem) { try { FlashbangSystem.update(delta); } catch (_e) {} }
+      if (window.EnemyEngineer) { try { EnemyEngineer.update(delta); } catch (_e) {} }
+      if (window.RappellingSystem) { try { RappellingSystem.update(delta); } catch (_e) {} }
+      if (window.BulletCam) { try { BulletCam.update(delta); } catch (_e) {} }
+      if (window.ReconDrone) { try { ReconDrone.update(delta); } catch (_e) {} }
+      if (window.BunkerBuster) { try { BunkerBuster.update(delta); } catch (_e) {} }
+      if (window.TacticalMap) { try { TacticalMap.update(delta); } catch (_e) {} }
       // Wave 21
-      if (window.VehiclePhysics) VehiclePhysics.update(delta);
-      if (window.DecoyFlare) DecoyFlare.update(delta);
-      if (window.FortificationBuilder) FortificationBuilder.update(delta);
-      if (window.MortarStrikeSystem) MortarStrikeSystem.update(delta);
-      if (window.EnemyMedicNPC) EnemyMedicNPC.update(delta);
-      if (window.ExplosiveBarrelChain) ExplosiveBarrelChain.update(delta);
-      if (window.PowerupSystem) PowerupSystem.update(delta);
-      if (window.WaveAnnouncement) WaveAnnouncement.update(delta);
-      if (window.EnvironmentalHazards) EnvironmentalHazards.update(delta);
+      if (window.VehiclePhysics) { try { VehiclePhysics.update(delta); } catch (_e) {} }
+      if (window.DecoyFlare) { try { DecoyFlare.update(delta); } catch (_e) {} }
+      if (window.FortificationBuilder) { try { FortificationBuilder.update(delta); } catch (_e) {} }
+      if (window.MortarStrikeSystem) { try { MortarStrikeSystem.update(delta); } catch (_e) {} }
+      if (window.EnemyMedicNPC) { try { EnemyMedicNPC.update(delta); } catch (_e) {} }
+      if (window.ExplosiveBarrelChain) { try { ExplosiveBarrelChain.update(delta); } catch (_e) {} }
+      if (window.PowerupSystem) { try { PowerupSystem.update(delta); } catch (_e) {} }
+      if (window.WaveAnnouncement) { try { WaveAnnouncement.update(delta); } catch (_e) {} }
+      if (window.EnvironmentalHazards) { try { EnvironmentalHazards.update(delta); } catch (_e) {} }
       // Wave 22
-      if (window.CaptureZone) CaptureZone.update(delta);
-      if (window.AirdropSupply) AirdropSupply.update(delta);
-      if (window.StealthSystem) StealthSystem.update(delta);
-      if (window.EnemyCoordinator) EnemyCoordinator.update(delta);
-      if (window.HelicopterGunship) HelicopterGunship.update(delta);
-      if (window.JavelinLauncher) JavelinLauncher.update(delta);
-      if (window.TimedCharges) TimedCharges.update(delta);
-      if (window.SoldierSkillTree) SoldierSkillTree.update(delta);
-      if (window.ShieldGenerator) ShieldGenerator.update(delta);
-      if (window.CombatXPSystem) CombatXPSystem.update(delta);
-      if (window.LootSystem) LootSystem.update(delta);
-      if (window.ProximityMine) ProximityMine.update(delta);
-      if (window.TacticalShield) TacticalShield.update(delta);
+      if (window.CaptureZone) { try { CaptureZone.update(delta); } catch (_e) {} }
+      if (window.AirdropSupply) { try { AirdropSupply.update(delta); } catch (_e) {} }
+      if (window.StealthSystem) { try { StealthSystem.update(delta); } catch (_e) {} }
+      if (window.EnemyCoordinator) { try { EnemyCoordinator.update(delta); } catch (_e) {} }
+      if (window.HelicopterGunship) { try { HelicopterGunship.update(delta); } catch (_e) {} }
+      if (window.JavelinLauncher) { try { JavelinLauncher.update(delta); } catch (_e) {} }
+      if (window.TimedCharges) { try { TimedCharges.update(delta); } catch (_e) {} }
+      if (window.SoldierSkillTree) { try { SoldierSkillTree.update(delta); } catch (_e) {} }
+      if (window.ShieldGenerator) { try { ShieldGenerator.update(delta); } catch (_e) {} }
+      if (window.CombatXPSystem) { try { CombatXPSystem.update(delta); } catch (_e) {} }
+      if (window.LootSystem) { try { LootSystem.update(delta); } catch (_e) {} }
+      if (window.ProximityMine) { try { ProximityMine.update(delta); } catch (_e) {} }
+      if (window.TacticalShield) { try { TacticalShield.update(delta); } catch (_e) {} }
       // Wave 23
-      if (window.MineSweeper) MineSweeper.update(delta);
-      if (window.SniperNest) SniperNest.update(delta);
-      if (window.VehicleConvoy) VehicleConvoy.update(delta);
-      if (window.WeaponWorkshop) WeaponWorkshop.update(delta);
-      if (window.SquadTactics) SquadTactics.update(delta);
-      if (window.BattleReplay) BattleReplay.update(delta);
-      if (window.DynamicEvents) DynamicEvents.update(delta);
-      if (window.PropagandaSystem) PropagandaSystem.update(delta);
-      if (window.TankControls) TankControls.update(delta);
-      if (window.NBCProtection) NBCProtection.update(delta);
+      if (window.MineSweeper) { try { MineSweeper.update(delta); } catch (_e) {} }
+      if (window.SniperNest) { try { SniperNest.update(delta); } catch (_e) {} }
+      if (window.VehicleConvoy) { try { VehicleConvoy.update(delta); } catch (_e) {} }
+      if (window.WeaponWorkshop) { try { WeaponWorkshop.update(delta); } catch (_e) {} }
+      if (window.SquadTactics) { try { SquadTactics.update(delta); } catch (_e) {} }
+      if (window.BattleReplay) { try { BattleReplay.update(delta); } catch (_e) {} }
+      if (window.DynamicEvents) { try { DynamicEvents.update(delta); } catch (_e) {} }
+      if (window.PropagandaSystem) { try { PropagandaSystem.update(delta); } catch (_e) {} }
+      if (window.TankControls) { try { TankControls.update(delta); } catch (_e) {} }
+      if (window.NBCProtection) { try { NBCProtection.update(delta); } catch (_e) {} }
       // Wave 24
-      if (window.ArtilleryBattery) ArtilleryBattery.update(delta);
-      if (window.UrbanDestruction) UrbanDestruction.update(delta);
-      if (window.MedicStation) MedicStation.update(delta);
-      if (window.WeatherSystem) WeatherSystem.update(delta);
-      if (window.ArmorSystem) ArmorSystem.update(delta);
-      if (window.BunkerAssault) BunkerAssault.update(delta);
-      if (window.SignalIntelligence) SignalIntelligence.update(delta);
-      if (window.ReconDrone) ReconDrone.update(delta);
-      if (window.NightVision) NightVision.update(delta);
-      if (window.AirSupport) AirSupport.update(delta);
+      if (window.ArtilleryBattery) { try { ArtilleryBattery.update(delta); } catch (_e) {} }
+      if (window.UrbanDestruction) { try { UrbanDestruction.update(delta); } catch (_e) {} }
+      if (window.MedicStation) { try { MedicStation.update(delta); } catch (_e) {} }
+      if (window.WeatherSystem) { try { WeatherSystem.update(delta); } catch (_e) {} }
+      if (window.ArmorSystem) { try { ArmorSystem.update(delta); } catch (_e) {} }
+      if (window.BunkerAssault) { try { BunkerAssault.update(delta); } catch (_e) {} }
+      if (window.SignalIntelligence) { try { SignalIntelligence.update(delta); } catch (_e) {} }
+      if (window.ReconDrone) { try { ReconDrone.update(delta); } catch (_e) {} }
+      if (window.NightVision) { try { NightVision.update(delta); } catch (_e) {} }
+      if (window.AirSupport) { try { AirSupport.update(delta); } catch (_e) {} }
       // Wave 25
-      if (window.SatelliteUplink) SatelliteUplink.update(delta);
-      if (window.PrisonerRescue) PrisonerRescue.update(delta);
-      if (window.SiegeEngine) SiegeEngine.update(delta);
-      if (window.SmokeGrenade) SmokeGrenade.update(delta);
-      if (window.FortifiedOutpost) FortifiedOutpost.update(delta);
-      if (window.CombatKnife) CombatKnife.update(delta);
-      if (window.MinefieldMapper) MinefieldMapper.update(delta);
-      if (window.FieldComms) FieldComms.update(delta);
-      if (window.TrophySystem) TrophySystem.update(delta);
-      if (window.ExtractionZone) ExtractionZone.update(delta);
+      if (window.SatelliteUplink) { try { SatelliteUplink.update(delta); } catch (_e) {} }
+      if (window.PrisonerRescue) { try { PrisonerRescue.update(delta); } catch (_e) {} }
+      if (window.SiegeEngine) { try { SiegeEngine.update(delta); } catch (_e) {} }
+      if (window.SmokeGrenade) { try { SmokeGrenade.update(delta); } catch (_e) {} }
+      if (window.FortifiedOutpost) { try { FortifiedOutpost.update(delta); } catch (_e) {} }
+      if (window.CombatKnife) { try { CombatKnife.update(delta); } catch (_e) {} }
+      if (window.MinefieldMapper) { try { MinefieldMapper.update(delta); } catch (_e) {} }
+      if (window.FieldComms) { try { FieldComms.update(delta); } catch (_e) {} }
+      if (window.TrophySystem) { try { TrophySystem.update(delta); } catch (_e) {} }
+      if (window.ExtractionZone) { try { ExtractionZone.update(delta); } catch (_e) {} }
       // Wave 26
-      if (window.AmphibiousAssault) AmphibiousAssault.update(delta);
-      if (window.SupplyChain) SupplyChain.update(delta);
-      if (window.RiotControl) RiotControl.update(delta);
-      if (window.ElectromagneticPulse) ElectromagneticPulse.update(delta);
-      if (window.HostageNegotiation) HostageNegotiation.update(delta);
-      if (window.CyberWarfare) CyberWarfare.update(delta);
-      if (window.AntiAir) AntiAir.update(delta);
-      if (window.BlackMarket) BlackMarket.update(delta);
-      if (window.BallisticCalculator) BallisticCalculator.update(delta);
-      if (window.TunnelSystem) TunnelSystem.update(delta);
-      if (window.VehicleRepair) VehicleRepair.update(delta);
-      if (window.GhostRecon) GhostRecon.update(delta);
-      if (window.LandslideEvent) LandslideEvent.update(delta);
-      if (window.WarCrimesDetector) WarCrimesDetector.update(delta);
-      if (window.CommandoRaid) CommandoRaid.update(delta);
-      if (window.IntelligenceBriefing) IntelligenceBriefing.update(delta);
-      if (window.ParachuteDrop) ParachuteDrop.update(delta);
-      if (window.RadioBeacon) RadioBeacon.update(delta);
-      if (window.BodyDrag) BodyDrag.update(delta);
-      if (window.PsyOps) PsyOps.update(delta);
-      if (window.AmbushSystem) AmbushSystem.update(delta);
-      if (window.FieldHospital) FieldHospital.update(delta);
-      if (window.ReconSatellite) ReconSatellite.update(delta);
-      if (window.FortificationBuilder) FortificationBuilder.update(delta);
-      if (window.NavalCombat) NavalCombat.update(delta);
-      if (window.CounterSniper) CounterSniper.update(delta);
-      if (window.ExplosiveOrdnance) ExplosiveOrdnance.update(delta);
-      if (window.ChainOfCommand) ChainOfCommand.update(delta);
-      if (window.WeatherEffects) WeatherEffects.update(delta);
-      if (window.ObjectiveTracker) ObjectiveTracker.update(delta);
-      if (window.BattleDamageAssessment) BattleDamageAssessment.update(delta);
-      if (window.PrisonerExchange) PrisonerExchange.update(delta);
-      if (window.TacticalRetreat) TacticalRetreat.update(delta);
-      if (window.KillHouse) KillHouse.update(delta);
-      if (window.MortarCalculator) MortarCalculator.update(delta);
-      if (window.LogisticsSystem) LogisticsSystem.update(delta);
-      if (window.StealthSystem) StealthSystem.update(delta);
-      if (window.UrbanPatrol) UrbanPatrol.update(delta);
-      if (window.ElectronicWarfare) ElectronicWarfare.update(delta);
-      if (window.VehicleConvoy) VehicleConvoy.update(delta);
-      if (window.BreachingCharges) BreachingCharges.update(delta);
-      if (window.CasualtyEvacuation) CasualtyEvacuation.update(delta);
-      if (window.NightVision) NightVision.update(delta);
-      if (window.FireSupport) FireSupport.update(delta);
-      if (window.ShieldSystem) ShieldSystem.update(delta);
-      if (window.MineField) MineField.update(delta);
-      if (window.TankCommander) TankCommander.update(delta);
-      if (window.CombatMedic) CombatMedic.update(delta);
-      if (window.SiegeWarfare) SiegeWarfare.update(delta);
-      if (window.SniperRifle) SniperRifle.update(delta);
-      if (window.RappellingSystem) RappellingSystem.update(delta);
-      if (window.GrenadeTypes) GrenadeTypes.update(delta);
-      if (window.SentryGun) SentryGun.update(delta);
-      if (window.BunkerAssault) BunkerAssault.update(delta);
-      if (window.AirAssault) AirAssault.update(delta);
-      if (window.WeatherAmbience) WeatherAmbience.update(delta);
-      if (window.ObjectiveCapture) ObjectiveCapture.update(delta);
-      if (window.TunnelNetwork) TunnelNetwork.update(delta);
-      if (window.MeleeCombat) MeleeCombat.update(delta);
-      if (window.VehicleDamage) VehicleDamage.update(delta);
-      if (window.SupplyDrop) SupplyDrop.update(delta);
-      if (window.HostageRescue) HostageRescue.update(delta);
-      if (window.MapSystem) MapSystem.update(delta);
-      if (window.DecoySystem) DecoySystem.update(delta);
-      if (window.CombatDrone) CombatDrone.update(delta);
-      if (window.ArmorSystem) ArmorSystem.update(delta);
-      if (window.FortifiedRetreat) FortifiedRetreat.update(delta);
-      if (window.WeatherStorm) WeatherStorm.update(delta);
-      if (window.SpecialForces) SpecialForces.update(delta);
-      if (window.CommandBunker) CommandBunker.update(delta);
-      if (window.CombatSwimming) CombatSwimming.update(delta);
-      if (window.AerialDogfight) AerialDogfight.update(delta);
-      if (window.ForwardObserver) ForwardObserver.update(delta);
-      if (window.CombatJump) CombatJump.update(delta);
-      if (window.CombatEngineering) CombatEngineering.update(delta);
-      if (window.IEDDisposal) IEDDisposal.update(delta);
-      if (window.BattlefieldTriage) BattlefieldTriage.update(delta);
-      if (window.FirebaseDefense) FirebaseDefense.update(delta);
-      if (window.IntelNetwork) IntelNetwork.update(delta);
-      if (window.NavalOperations) NavalOperations.update(delta);
-      if (window.ArcticWarfare) ArcticWarfare.update(delta);
-      if (window.JungleWarfare) JungleWarfare.update(delta);
-      if (window.CheckpointAssault) CheckpointAssault.update(delta);
-                    if (window.CommandVehicle) CommandVehicle.update(delta);
-      if (window.BallisticShieldOps) BallisticShieldOps.update(delta);
-      if (window.RiotResponse) RiotResponse.update(delta);
-      if (window.FactorySabotage) FactorySabotage.update(delta);
-      if (window.POWEscape) POWEscape.update(delta);
-      if (window.AmbushNetwork) AmbushNetwork.update(delta);
-      if (window.EscapeEvade) EscapeEvade.update(delta);
-      if (window.UrbanWarfare) UrbanWarfare.update(delta);
-      if (window.RescueDownedPilot) RescueDownedPilot.update(delta);
-      if (window.ConvoyEscort) ConvoyEscort.update(delta);
-      if (window.DeepRecon) DeepRecon.update(delta);
-      if (window.SupplyChainAttack) SupplyChainAttack.update(delta);
-      if (window.MassSurrender) MassSurrender.update(delta);
-      if (window.SiegeTower) SiegeTower.update(delta);
-      if (window.SniperHunt) SniperHunt.update(delta);
-      if (window.VehicleRecovery) VehicleRecovery.update(delta);
-      if (window.HostageStandoff) HostageStandoff.update(delta);
-      if (window.NightVisionOps) NightVisionOps.update(delta);
-      if (window.BridgeDemolition) BridgeDemolition.update(delta);
-      if (window.ArtilleryDuel) ArtilleryDuel.update(delta);
-      if (window.TunnelWarfare) TunnelWarfare.update(delta);
-      if (window.CarrierAssault) CarrierAssault.update(delta);
-      if (window.DroneSwarm) DroneSwarm.update(delta);
-      if (window.ChemBioResponse) ChemBioResponse.update(delta);
-      if (window.MedevacOps) MedevacOps.update(delta);
-      if (window.PrisonBreak) PrisonBreak.update(delta);
-      if (window.MountainAssault) MountainAssault.update(delta);
-      if (window.MechSuit) MechSuit.update(delta);
-      if (window.RiverCrossing) RiverCrossing.update(delta);
-      if (window.CyberWarfare) CyberWarfare.update(delta);
-      if (window.TrainAssault) TrainAssault.update(delta);
-      if (window.NuclearShutdown) NuclearShutdown.update(delta);
-      if (window.RadioTower) RadioTower.update(delta);
-      if (window.MortarBarrage) MortarBarrage.update(delta);
-      if (window.TankWarfare) TankWarfare.update(delta);
-      if (window.DesertStorm) DesertStorm.update(delta);
-      if (window.RefugeeConvoy) RefugeeConvoy.update(delta);
-      if (window.BlackOpsExtraction) BlackOpsExtraction.update(delta);
-      if (window.ZeroGravityCombat) ZeroGravityCombat.update(delta);
-      if (window.DroneRacing) DroneRacing.update(delta);
-      if (window.PirateShipBattle) PirateShipBattle.update(delta);
-      if (window.GladiatorArena) GladiatorArena.update(delta);
-      if (window.HeistPlanning) HeistPlanning.update(delta);
-      if (window.UnderwaterBase) UnderwaterBase.update(delta);
-      if (window.ZombieOutbreak) ZombieOutbreak.update(delta);
-      if (window.VolcanoEscape) VolcanoEscape.update(delta);
-      if (window.FactionStandoff) FactionStandoff.update(delta);
-      if (window.AncientSiege) AncientSiege.update(delta);
-      if (window.MechWarfare) MechWarfare.update(delta);
-      if (window.DrugLord) DrugLord.update(delta);
-      if (window.MoonBase) MoonBase.update(delta);
-      if (window.PrisonRiot) PrisonRiot.update(delta);
-      if (window.ArcticBase) ArcticBase.update(delta);
-      if (window.TimeHeist) TimeHeist.update(delta);
-      if (window.AlienInvasion) AlienInvasion.update(delta);
-      if (window.CyberHeist) CyberHeist.update(delta);
-      if (window.TrainRobbery) TrainRobbery.update(delta);
-      if (window.JungleTemple) JungleTemple.update(delta);
-      if (window.NuclearPlant) NuclearPlant.update(delta);
-      if (window.CasinoHeist) CasinoHeist.update(delta);
-      if (window.OilRig) OilRig.update(delta);
-      if (window.SkyFortress) SkyFortress.update(delta);
-      if (window.SubmarineWarfare) SubmarineWarfare.update(delta);
-      if (window.BioLab) BioLab.update(delta);
-      if (window.Assassination) Assassination.update(delta);
-      if (window.SiegeDefense) SiegeDefense.update(delta);
-      if (window.GhostMission) GhostMission.update(delta);
-      if (window.SpaceStation) SpaceStation.update(delta);
-      if (window.PirateCove) PirateCove.update(delta);
-      if (window.GladiatorColosseum) GladiatorColosseum.update(delta);
-      if (window.BunkerBreach) BunkerBreach.update(delta);
-      if (window.VolcanoAssault) VolcanoAssault.update(delta);
-      if (window.CargoShip) CargoShip.update(delta);
-      if (window.WarzoneHospital) WarzoneHospital.update(delta);
-      if (window.ArmsDealer) ArmsDealer.update(delta);
-      if (window.HostageCrisis) HostageCrisis.update(delta);
-      if (window.TankBattalion) TankBattalion.update(delta);
-      if (window.ZombieApocalypse) ZombieApocalypse.update(delta);
-      if (window.SamuraiDuel) SamuraiDuel.update(delta);
-      if (window.NuclearSubmarine) NuclearSubmarine.update(delta);
-      if (window.RebelUprising) RebelUprising.update(delta);
-      if (window.MiningDisaster) MiningDisaster.update(delta);
-      if (window.PrisonBreak) PrisonBreak.update(delta);
-      if (window.RacingCombat) RacingCombat.update(delta);
-      if (window.MedievalSiege) MedievalSiege.update(delta);
-      if (window.IslandAssault) IslandAssault.update(delta);
-      if (window.CyberpunkCity) CyberpunkCity.update(delta);
-      if (window.DeepJungle) DeepJungle.update(delta);
-      if (window.BattleRoyale) BattleRoyale.update(delta);
-      if (window.CultCompound) CultCompound.update(delta);
-      if (window.HelipadExtraction) HelipadExtraction.update(delta);
-      if (window.DesertWarfare) DesertWarfare.update(delta);
-      if (window.UrbanSniper) UrbanSniper.update(delta);
-      if (window.ConvoyAmbush) ConvoyAmbush.update(delta);
-      if (window.NukeDisarm) NukeDisarm.update(delta);
-      if (window.StormTheCastle) StormTheCastle.update(delta);
-      if (window.CorporateEspionage) CorporateEspionage.update(delta);
-      if (window.AlienMothership) AlienMothership.update(delta);
-      if (window.GoldRush) GoldRush.update(delta);
-      if (window.UnderwaterRuins) UnderwaterRuins.update(delta);
-      if (window.ArcticRescue) ArcticRescue.update(delta);
-      if (window.MobWar) MobWar.update(delta);
-      if (window.TempleOfDoom) TempleOfDoom.update(delta);
-      if (window.AirbaseRaid) AirbaseRaid.update(delta);
-      if (window.BlackSite) BlackSite.update(delta);
-      if (window.SpaceMarines) SpaceMarines.update(delta);
-      if (window.OilWar) OilWar.update(delta);
-      if (window.MechAssault) MechAssault.update(delta);
-      if (window.JungleAmbush) JungleAmbush.update(delta);
-      if (window.CultBunker) CultBunker.update(delta);
-      if (window.NuclearWinter) NuclearWinter.update(delta);
-      if (window.FortressAssault) FortressAssault.update(delta);
-      if (window.RobotUprising) RobotUprising.update(delta);
-      if (window.DrugCartel) DrugCartel.update(delta);
-      if (window.TimeHeist) TimeHeist.update(delta);
-      if (window.PirateIsland) PirateIsland.update(delta);
-      if (window.AvalancheEscape) AvalancheEscape.update(delta);
-      if (window.CyberWarfare) CyberWarfare.update(delta);
-      if (window.SiegeOfParis) SiegeOfParis.update(delta);
-      if (window.HauntedMansion) HauntedMansion.update(delta);
-      if (window.DiamondHeist) DiamondHeist.update(delta);
-      if (window.WarOf1812) WarOf1812.update(delta);
-      if (window.Jailbreak) Jailbreak.update(delta);
-      if (window.MeteorStrike) MeteorStrike.update(delta);
-      if (window.CloneWars) CloneWars.update(delta);
-      if (window.VolcanoEscape) VolcanoEscape.update(delta);
-      if (window.EmbassySiege) EmbassySiege.update(delta);
-      if (window.NightRaid) NightRaid.update(delta);
-      if (window.KungFuDojo) KungFuDojo.update(delta);
-      if (window.RefugeeConvoy) RefugeeConvoy.update(delta);
-      if (window.MarsColony) MarsColony.update(delta);
-      if (window.SharkAttack) SharkAttack.update(delta);
-      if (window.ColosseumBoss) ColosseumBoss.update(delta);
-      if (window.DeepCover) DeepCover.update(delta);
-      if (window.SpySatellite) SpySatellite.update(delta);
-      if (window.GladiatorArena) GladiatorArena.update(delta);
-      if (window.NukeLaunch) NukeLaunch.update(delta);
-      if (window.HostageTrain) HostageTrain.update(delta);
-      if (window.WaterCrisis) WaterCrisis.update(delta);
-      if (window.MidnightCoup) MidnightCoup.update(delta);
-      if (window.PlagueOutbreak) PlagueOutbreak.update(delta);
-      if (window.OrbitalDefense) OrbitalDefense.update(delta);
-      if (window.SunkenVessel) SunkenVessel.update(delta);
-      if (window.HighriseHostage) HighriseHostage.update(delta);
-      if (window.WarlordHunt) WarlordHunt.update(delta);
-      if (window.SupplyDepot) SupplyDepot.update(delta);
-      if (window.DesertAmbush) DesertAmbush.update(delta);
-      if (window.VolcanoFortress) VolcanoFortress.update(delta);
-      if (window.PirateRaid) PirateRaid.update(delta);
-      if (window.SubmarineHeist) SubmarineHeist.update(delta);
-      if (window.CasinoShootout) CasinoShootout.update(delta);
-      if (window.ArcticSiege) ArcticSiege.update(delta);
-      if (window.MuseumHeist) MuseumHeist.update(delta);
-      if (window.TrainHeist) TrainHeist.update(delta);
-      if (window.GhostTown) GhostTown.update(delta);
-      if (window.AncientTemple) AncientTemple.update(delta);
-      if (window.FootballStadium) FootballStadium.update(delta);
-      if (window.PrisonEscape) PrisonEscape.update(delta);
-      if (window.CyberpunkHeist) CyberpunkHeist.update(delta);
-      if (window.AvalancheRescue) AvalancheRescue.update(delta);
-      if (window.RomanConquest) RomanConquest.update(delta);
-      if (window.OilPlatform) OilPlatform.update(delta);
-      if (window.SamuraiSiege) SamuraiSiege.update(delta);
-      if (window.BloodDiamond) BloodDiamond.update(delta);
-      if (window.SpacePirates) SpacePirates.update(delta);
-      if (window.KungFuTemple) KungFuTemple.update(delta);
-      if (window.DeepSeaBase) DeepSeaBase.update(delta);
-      if (window.JungleTempleRaid) JungleTempleRaid.update(delta);
-      if (window.VikingLongship) VikingLongship.update(delta);
-      if (window.GuerrillaWar) GuerrillaWar.update(delta);
-      if (window.SkyscraperSiege) SkyscraperSiege.update(delta);
-      if (window.CargoPlane) CargoPlane.update(delta);
-      if (window.BankHeist) BankHeist.update(delta);
-      if (window.CyberEspionage) CyberEspionage.update(delta);
-      if (window.InsurgentCamp) InsurgentCamp.update(delta);
-      if (window.MoonbaseAssault) MoonbaseAssault.update(delta);
-      if (window.WitnessProtection) WitnessProtection.update(delta);
-      if (window.CartelCompound) CartelCompound.update(delta);
-      if (window.TokyoShowdown) TokyoShowdown.update(delta);
-    if (window.DoomsdayVault) DoomsdayVault.update(delta);
-    if (window.AztecRuins) AztecRuins.update(delta);
-    if (window.CiaSafehouse) CiaSafehouse.update(delta);
-    if (window.NeonArena) NeonArena.update(delta);
-    if (window.GhostOps) GhostOps.update(delta);
-    if (window.ArmsSmuggler) ArmsSmuggler.update(delta);
-    if (window.SpaceStationSiege) SpaceStationSiege.update(delta);
-    if (window.PrisonRiotResponse) PrisonRiotResponse.update(delta);
-    if (window.JungleCombat) JungleCombat.update(delta);
-    if (window.TrainHijack) TrainHijack.update(delta);
-    if (window.BountyHunter) BountyHunter.update(delta);
-    if (window.BioLabOutbreak) BioLabOutbreak.update(delta);
-    if (window.AntarcticStation) AntarcticStation.update(delta);
-    if (window.TimeParadox) TimeParadox.update(delta);
-    if (window.NightMarketRaid) NightMarketRaid.update(delta);
-    if (window.SubmarineHunter) SubmarineHunter.update(delta);
-    if (window.GlacierFortress) GlacierFortress.update(delta);
-    if (window.TempleGuardian) TempleGuardian.update(delta);
-    if (window.DrugLabTakedown) DrugLabTakedown.update(delta);
-    if (window.PowerPlantSiege) PowerPlantSiege.update(delta);
-    if (window.AbandonedAsylum) AbandonedAsylum.update(delta);
-    if (window.ArcticConvoy) ArcticConvoy.update(delta);
-    if (window.ChemicalFactory) ChemicalFactory.update(delta);
-    if (window.ColosseumBattle) ColosseumBattle.update(delta);
-    if (window.BlackMarketArms) BlackMarketArms.update(delta);
-    if (window.HarborBlockade) HarborBlockade.update(delta);
-    if (window.MountainPass) MountainPass.update(delta);
-    if (window.BankVault) BankVault.update(delta);
-    if (window.IslandFortress) IslandFortress.update(delta);
-    if (window.TrainStationSiege) TrainStationSiege.update(delta);
-    if (window.SewersEscape) SewersEscape.update(delta);
-    if (window.WeaponsFactory) WeaponsFactory.update(delta);
-    if (window.ResearchStation) ResearchStation.update(delta);
-    if (window.UndergroundFight) UndergroundFight.update(delta);
-    if (window.FortressBreach) FortressBreach.update(delta);
-    if (window.WetlandsAmbush) WetlandsAmbush.update(delta);
-    if (window.SpaceColony) SpaceColony.update(delta);
-    if (window.GlacierCave) GlacierCave.update(delta);
-    if (window.AbandonedCity) AbandonedCity.update(delta);
-    if (window.AirBaseAssault) AirBaseAssault.update(delta);
-    if (window.VolcanoTemple) VolcanoTemple.update(delta);
-    if (window.DiamondMine) DiamondMine.update(delta);
-    if (window.OilRigSiege) OilRigSiege.update(delta);
-    if (window.HauntedManor) HauntedManor.update(delta);
-    if (window.ArcticResearch) ArcticResearch.update(delta);
-    if (window.RooftopShowdown) RooftopShowdown.update(delta);
-    if (window.UnderwaterLab) UnderwaterLab.update(delta);
-    if (window.DesertFortress) DesertFortress.update(delta);
-    if (window.RacingCircuit) RacingCircuit.update(delta);
-    if (window.UndergroundBunker) UndergroundBunker.update(delta);
-    if (window.CarnivalChaos) CarnivalChaos.update(delta);
-    if (window.GlacierBase) GlacierBase.update(delta);
-    if (window.MetroStation) MetroStation.update(delta);
-    if (window.SwampVillage) SwampVillage.update(delta);
-    if (window.GhostShip) GhostShip.update(delta);
-    if (window.SatelliteDish) SatelliteDish.update(delta);
-    if (window.EmbassyRaid) EmbassyRaid.update(delta);
-    if (window.CruiseShip) CruiseShip.update(delta);
-    if (window.BunkerComplex) BunkerComplex.update(delta);
-    if (window.AirportSiege) AirportSiege.update(delta);
-    if (window.MountainVillage) MountainVillage.update(delta);
-    if (window.RefineryAssault) RefineryAssault.update(delta);
-    if (window.SpaceDebris) SpaceDebris.update(delta);
-    if (window.JungleAirstrip) JungleAirstrip.update(delta);
-    if (window.SunkenWreck) SunkenWreck.update(delta);
-    if (window.WarCrimesTrial) WarCrimesTrial.update(delta);
-    if (window.ToxicWasteland) ToxicWasteland.update(delta);
-    if (window.CargoTrain) CargoTrain.update(delta);
-    if (window.TempleRuins) TempleRuins.update(delta);
-    if (window.AbandonedMine) AbandonedMine.update(delta);
-    if (window.FrozenTundra) FrozenTundra.update(delta);
-    if (window.VolcanoIsland) VolcanoIsland.update(delta);
-    if (window.FloodedCity) FloodedCity.update(delta);
-    if (window.ChemicalPlant) ChemicalPlant.update(delta);
-    if (window.BorderCrossing) BorderCrossing.update(delta);
-    if (window.CrashedSatellite) CrashedSatellite.update(delta);
-    if (window.PowerGrid) PowerGrid.update(delta);
-    if (window.SubmarineDock) SubmarineDock.update(delta);
-    if (window.SewageTunnels) SewageTunnels.update(delta);
-    if (window.WarshipDeck) WarshipDeck.update(delta);
-    if (window.HauntedVillage) HauntedVillage.update(delta);
-    if (window.AircraftHangar) AircraftHangar.update(delta);
-    if (window.ClockTower) ClockTower.update(delta);
-    if (window.SpaceElevator) SpaceElevator.update(delta);
-    if (window.CitySewer) CitySewer.update(delta);
-    if (window.NuclearBunker) NuclearBunker.update(delta);
-    if (window.JungleCamp) JungleCamp.update(delta);
-    if (window.AuctionHouse) AuctionHouse.update(delta);
-    if (window.DamAssault) DamAssault.update(delta);
-    if (window.ArcticOutpost) ArcticOutpost.update(delta);
-    if (window.CourtroomSiege) CourtroomSiege.update(delta);
-    if (window.OilPipeline) OilPipeline.update(delta);
-    if (window.TechCampus) TechCampus.update(delta);
-    if (window.MedievalFortress) MedievalFortress.update(delta);
-    if (window.SkiResort) SkiResort.update(delta);
-    if (window.JungleRiver) JungleRiver.update(delta);
-    if (window.BunkerHill) BunkerHill.update(delta);
-    if (window.DataCenter) DataCenter.update(delta);
-    if (window.PirateFortress) PirateFortress.update(delta);
-    if (window.RooftopGarden) RooftopGarden.update(delta);
-    if (window.BurningCity) BurningCity.update(delta);
-    if (window.SwampLab) SwampLab.update(delta);
-    if (window.FloatingIsland) FloatingIsland.update(delta);
-    if (window.RuralAmbush) RuralAmbush.update(delta);
-    if (window.LookoutTower) LookoutTower.update(delta);
-    if (window.UndergroundMarket) UndergroundMarket.update(delta);
-    if (window.SkyPlatform) SkyPlatform.update(delta);
-    if (window.TrainDepot) TrainDepot.update(delta);
-    if (window.OrbitalStation) OrbitalStation.update(delta);
-    if (window.DesertOutpost) DesertOutpost.update(delta);
-    if (window.HarborAssault) HarborAssault.update(delta);
-    if (window.CanyonRaid) CanyonRaid.update(delta);
-    if (window.ShippingHub) ShippingHub.update(delta);
-    if (window.DowntownSiege) DowntownSiege.update(delta);
-    if (window.HighwayChase) HighwayChase.update(delta);
-    if (window.WaterfallAmbush) WaterfallAmbush.update(delta);
-    if (window.ShipwreckReef) ShipwreckReef.update(delta);
-    if (window.AncientRuins) AncientRuins.update(delta);
-    if (window.GeothermalPlant) GeothermalPlant.update(delta);
-    if (window.MissileSiloB) MissileSiloB.update(delta);
-    if (window.UnderwaterCave) UnderwaterCave.update(delta);
-    if (window.ForestAmbush) ForestAmbush.update(delta);
-    if (window.ArenaCombat) ArenaCombat.update(delta);
-    if (window.VolcanoObservatory) VolcanoObservatory.update(delta);
-    if (window.MiningColony) MiningColony.update(delta);
-    if (window.AirshipBattle) AirshipBattle.update(delta);
-    if (window.PrisonEscapeB) PrisonEscapeB.update(delta);
-    if (window.IslandBase) IslandBase.update(delta);
-    if (window.CyberVault) CyberVault.update(delta);
-    if (window.HelipadAssault) HelipadAssault.update(delta);
-    if (window.ChemicalDepot) ChemicalDepot.update(delta);
-    if (window.MonasteryRaid) MonasteryRaid.update(delta);
-    if (window.PipelineSabotage) PipelineSabotage.update(delta);
-    if (window.IceCave) IceCave.update(delta);
-    if (window.DroneFactory) DroneFactory.update(delta);
-    if (window.NightMarket) NightMarket.update(delta);
-    if (window.WetlandsPatrol) WetlandsPatrol.update(delta);
-    if (window.NuclearLab) NuclearLab.update(delta);
-    if (window.TankGraveyard) TankGraveyard.update(delta);
-    if (window.SatelliteBase) SatelliteBase.update(delta);
-    if (window.WarRoom) WarRoom.update(delta);
-    if (window.RescueMission) RescueMission.update(delta);
-    if (window.SandstormBase) SandstormBase.update(delta);
-    if (window.WarRuins) WarRuins.update(delta);
-    if (window.FogValley) FogValley.update(delta);
-    if (window.SwampFort) SwampFort.update(delta);
-    if (window.StormBeach) StormBeach.update(delta);
-    if (window.AshFields) AshFields.update(delta);
-    if (window.MidnightPort) MidnightPort.update(delta);
-    if (window.FireCamp) FireCamp.update(delta);
-    if (window.IronWall) IronWall.update(delta);
-    if (window.VaporZone) VaporZone.update(delta);
-    if (window.ToxicSwamp) ToxicSwamp.update(delta);
-    if (window.RadarHill) RadarHill.update(delta);
-    if (window.RebelCamp) RebelCamp.update(delta);
-    if (window.DeathRidge) DeathRidge.update(delta);
-    if (window.GhostFort) GhostFort.update(delta);
-    if (window.AcidMarsh) AcidMarsh.update(delta);
-    if (window.WarRelic) WarRelic.update(delta);
-    if (window.StormWall) StormWall.update(delta);
-    if (window.CyberGrid) CyberGrid.update(delta);
-    if (window.RustBelt) RustBelt.update(delta);
-    if (window.RockFortress) RockFortress.update(delta);
-    if (window.WireZone) WireZone.update(delta);
-    if (window.PlagueZone) PlagueZone.update(delta);
-    if (window.BlastCrater) BlastCrater.update(delta);
-    if (window.SteelCity) SteelCity.update(delta);
-    if (window.DarkHarbor) DarkHarbor.update(delta);
-    if (window.BloodTide) BloodTide.update(delta);
-    if (window.CaveFortress) CaveFortress.update(delta);
-    if (window.AshLake) AshLake.update(delta);
-    if (window.LavaRidge) LavaRidge.update(delta);
-    if (window.Oremine) Oremine.update(delta);
-    if (window.TrenchCity) TrenchCity.update(delta);
-    if (window.BombRange) BombRange.update(delta);
-    if (window.FrostKeep) FrostKeep.update(delta);
-        if (window.WarChapel) WarChapel.update(delta);
-        if (window.BrokenDam) BrokenDam.update(delta);
-        if (window.EchoValley) EchoValley.update(delta);
-        if (window.SlagHeap) SlagHeap.update(delta);
-        if (window.CryptKeep) CryptKeep.update(delta);
-        if (window.SkyCitadel) SkyCitadel.update(delta);
-        if (window.WarGallery) WarGallery.update(delta);
-        if (window.SaltMine) SaltMine.update(delta);
-        if (window.WarBunker) WarBunker.update(delta);
-        if (window.MachineShop) MachineShop.update(delta);
-        if (window.GlacierFort) GlacierFort.update(delta);
-        if (window.IronDepot) IronDepot.update(delta);
-        if (window.RustYard) RustYard.update(delta);
-        if (window.BogFort) BogFort.update(delta);
-        if (window.WireNest) WireNest.update(delta);
-        if (window.MudCity) MudCity.update(delta);
-        if (window.DarkMesa) DarkMesa.update(delta);
-        if (window.RuinPort) RuinPort.update(delta);
-        if (window.AshDock) AshDock.update(delta);
-        if (window.SwampGate) SwampGate.update(delta);
-        if (window.FireRidge) FireRidge.update(delta);
-        if (window.StormPort) StormPort.update(delta);
-        if (window.RiverGate) RiverGate.update(delta);
-        if (window.DustHarbor) DustHarbor.update(delta);
-        if (window.GrimYard) GrimYard.update(delta);
-        if (window.IronShore) IronShore.update(delta);
-        if (window.TarPit) TarPit.update(delta);
-        if (window.SaltLake) SaltLake.update(delta);
-        if (window.WarArch) WarArch.update(delta);
-        if (window.CragFort) CragFort.update(delta);
-        if (window.VoltDam) VoltDam.update(delta);
-        if (window.SootMill) SootMill.update(delta);
-        if (window.PipeYard) PipeYard.update(delta);
-        if (window.CoalRidge) CoalRidge.update(delta);
-        if (window.GunWharf) GunWharf.update(delta);
-        if (window.OrePit) OrePit.update(delta);
-        if (window.FogBase) FogBase.update(delta);
-        if (window.WaxFort) WaxFort.update(delta);
-        if (window.HexTown) HexTown.update(delta);
-        if (window.KeelYard) KeelYard.update(delta);
-        if (window.AshVale) AshVale.update(delta);
-        if (window.BogMill) BogMill.update(delta);
-        if (window.LavaKeep) LavaKeep.update(delta);
-        if (window.TideGate) TideGate.update(delta);
-        if (window.ZincMine) ZincMine.update(delta);
-        if (window.ClayFort) ClayFort.update(delta);
-        if (window.DuskCamp) DuskCamp.update(delta);
-        if (window.BoneRidge) BoneRidge.update(delta);
-        if (window.FogMill) FogMill.update(delta);
-        if (window.SaltFlat) SaltFlat.update(delta);
-        if (window.WarCove) WarCove.update(delta);
-        if (window.IronGrove) IronGrove.update(delta);
-        if (window.DustPit) DustPit.update(delta);
-        if (window.MudPass) MudPass.update(delta);
-        if (window.CoalBay) CoalBay.update(delta);
-        if (window.FlintWall) FlintWall.update(delta);
-        if (window.StormGate) StormGate.update(delta);
-        if (window.TarDock) TarDock.update(delta);
-        if (window.OilDrum) OilDrum.update(delta);
-        if (window.PineFort) PineFort.update(delta);
-        if (window.CragMill) CragMill.update(delta);
-        if (window.SiltBay) SiltBay.update(delta);
-        if (window.DuneFort) DuneFort.update(delta);
-        if (window.RockQuay) RockQuay.update(delta);
-        if (window.AshFort) AshFort.update(delta);
-        if (window.GrimPort) GrimPort.update(delta);
-        if (window.FenGate) FenGate.update(delta);
-        if (window.MossKeep) MossKeep.update(delta);
-        if (window.RustCamp) RustCamp.update(delta);
-        if (window.WireFort) WireFort.update(delta);
-        if (window.ChalkPit) ChalkPit.update(delta);
-        if (window.EmberVale) EmberVale.update(delta);
-        if (window.GlassDome) GlassDome.update(delta);
-        if (window.LochGate) LochGate.update(delta);
-        if (window.CokeYard) CokeYard.update(delta);
-        if (window.PeatBog) PeatBog.update(delta);
-        if (window.IronTomb) IronTomb.update(delta);
-        if (window.WeldYard) WeldYard.update(delta);
-        if (window.BileFort) BileFort.update(delta);
-        if (window.MastHill) MastHill.update(delta);
-    if (window.ClayDock) ClayDock.update(delta);
-    if (window.FrostCamp) FrostCamp.update(delta);
-    if (window.RockLab) RockLab.update(delta);
-    if (window.HempCamp) HempCamp.update(delta);
-    if (window.FumeGate) FumeGate.update(delta);
-    if (window.CoalDock) CoalDock.update(delta);
-    if (window.MudKeep) MudKeep.update(delta);
-    if (window.GustBase) GustBase.update(delta);
-    if (window.SlagPit) SlagPit.update(delta);
-    if (window.BoneKeep) BoneKeep.update(delta);
-    if (window.WireCamp) WireCamp.update(delta);
-    if (window.PeatFort) PeatFort.update(delta);
-    if (window.LimeDock) LimeDock.update(delta);
-    if (window.IronWharf) IronWharf.update(delta);
-    if (window.CragBase) CragBase.update(delta);
-    if (window.FlakTower) FlakTower.update(delta);
-    if (window.VoltKeep) VoltKeep.update(delta);
-    if (window.DuskForge) DuskForge.update(delta);
-    if (window.SandKeep) SandKeep.update(delta);
-    if (window.FenDock) FenDock.update(delta);
-    if (window.TarBase) TarBase.update(delta);
-    if (window.LochFort) LochFort.update(delta);
-    if (window.StoneBay) StoneBay.update(delta);
-    if (window.MireCamp) MireCamp.update(delta);
-    if (window.ZincKeep) ZincKeep.update(delta);
-    if (window.CrowBase) CrowBase.update(delta);
-    if (window.BarkCamp) BarkCamp.update(delta);
-    if (window.GaleFort) GaleFort.update(delta);
-    if (window.KeelDock) KeelDock.update(delta);
-    if (window.IronRidge) IronRidge.update(delta);
-    if (window.AshTower) AshTower.update(delta);
-    if (window.MudGate) MudGate.update(delta);
-    if (window.GrubCamp) GrubCamp.update(delta);
-    if (window.VineFort) VineFort.update(delta);
-    if (window.SeedBase) SeedBase.update(delta);
-    if (window.HornKeep) HornKeep.update(delta);
-    if (window.ReelDock) ReelDock.update(delta);
-    if (window.ClayRidge) ClayRidge.update(delta);
-    if (window.DriftCamp) DriftCamp.update(delta);
-    if (window.PikeGate) PikeGate.update(delta);
-    if (window.GoreKeep) GoreKeep.update(delta);
-    if (window.ThornBase) ThornBase.update(delta);
-    if (window.FellCamp) FellCamp.update(delta);
-    if (window.SootBase) SootBase.update(delta);
-    if (window.MossDock) MossDock.update(delta);
-    if (window.IceRidge) IceRidge.update(delta);
-    if (window.BrineGate) BrineGate.update(delta);
-    if (window.KelpCamp) KelpCamp.update(delta);
-        if (window.DuneCamp) DuneCamp.update(delta);
-        if (window.HazeFort) HazeFort.update(delta);
-        if (window.ArchCamp) ArchCamp.update(delta);
-        if (window.QuayKeep) QuayKeep.update(delta);
-        if (window.RustRidge) RustRidge.update(delta);
-        if (window.BileCamp) BileCamp.update(delta);
-        if (window.GritDock) GritDock.update(delta);
-        if (window.JadeFort) JadeFort.update(delta);
-        if (window.MesaPost) MesaPost.update(delta);
-        if (window.CoveBase) CoveBase.update(delta);
-        if (window.GlenFort) GlenFort.update(delta);
-        if (window.ValeCamp) ValeCamp.update(delta);
-        if (window.ReefKeep) ReefKeep.update(delta);
-        if (window.PeatDock) PeatDock.update(delta);
-        if (window.HolmCamp) HolmCamp.update(delta);
-        if (window.CragKeep) CragKeep.update(delta);
-        if (window.LochBase) LochBase.update(delta);
-        if (window.TarnKeep) TarnKeep.update(delta);
-        if (window.FossCamp) FossCamp.update(delta);
-        if (window.MireDock) MireDock.update(delta);
-        if (window.KnollPost) KnollPost.update(delta);
-        if (window.BraeFort) BraeFort.update(delta);
-        if (window.BurnCamp) BurnCamp.update(delta);
-        if (window.FellKeep) FellKeep.update(delta);
-        if (window.SumpBase) SumpBase.update(delta);
-        if (window.RiftCamp) RiftCamp.update(delta);
-        if (window.GustKeep) GustKeep.update(delta);
-        if (window.ScudPost) ScudPost.update(delta);
-        if (window.WoldCamp) WoldCamp.update(delta);
-        if (window.FenKeep) FenKeep.update(delta);
-        if (window.CistDock) CistDock.update(delta);
-        if (window.PikeFort) PikeFort.update(delta);
-        if (window.ShawCamp) ShawCamp.update(delta);
-        if (window.GillDock) GillDock.update(delta);
-        if (window.HoltKeep) HoltKeep.update(delta);
-        if (window.MerePost) MerePost.update(delta);
-        if (window.BeckFort) BeckFort.update(delta);
-        if (window.CloughBase) CloughBase.update(delta);
-        if (window.SykeCamp) SykeCamp.update(delta);
-        if (window.DaleKeep) DaleKeep.update(delta);
-        if (window.GladePost) GladePost.update(delta);
-        if (window.CombeKeep) CombeKeep.update(delta);
-        if (window.WickBase) WickBase.update(delta);
-        if (window.NookCamp) NookCamp.update(delta);
-        if (window.WealdFort) WealdFort.update(delta);
-        if (window.ChaseDock) ChaseDock.update(delta);
-        if (window.DenePost) DenePost.update(delta);
-        if (window.GroveKeep) GroveKeep.update(delta);
-        if (window.FenBase) FenBase.update(delta);
-        if (window.LeatCamp) LeatCamp.update(delta);
-        if (window.CarrKeep) CarrKeep.update(delta);
-        if (window.HoweFort) HoweFort.update(delta);
-        if (window.StrathPost) StrathPost.update(delta);
-        if (window.ShielDock) ShielDock.update(delta);
-        if (window.CroftCamp) CroftCamp.update(delta);
-        if (window.InchPost) InchPost.update(delta);
-        if (window.BreckBase) BreckBase.update(delta);
-        if (window.LinksCamp) LinksCamp.update(delta);
-        if (window.HeathKeep) HeathKeep.update(delta);
-        if (window.MossFort) MossFort.update(delta);
-        if (window.SladePost) SladePost.update(delta);
-        if (window.CoombDock) CoombDock.update(delta);
-        if (window.HangerCamp) HangerCamp.update(delta);
-        if (window.BoltKeep) BoltKeep.update(delta);
-        if (window.BieldBase) BieldBase.update(delta);
-        if (window.ScarpCamp) ScarpCamp.update(delta);
-        if (window.LoughPost) LoughPost.update(delta);
-        if (window.HaughKeep) HaughKeep.update(delta);
-        if (window.CleuchDock) CleuchDock.update(delta);
-        if (window.CarseFort) CarseFort.update(delta);
-        if (window.KnapBase) KnapBase.update(delta);
-        if (window.YairCamp) YairCamp.update(delta);
-    if (window.SlumWarfare) SlumWarfare.update(delta);
-    if (window.CliffOutpost) CliffOutpost.update(delta);
-    if (window.FortressGate) FortressGate.update(delta);
-    if (window.HighriseAssault) HighriseAssault.update(delta);
-    if (window.OvergrownShrine) OvergrownShrine.update(delta);
-    if (window.SignalTower) SignalTower.update(delta);
-    if (window.AmmoBunker) AmmoBunker.update(delta);
-    if (window.LootVault) LootVault.update(delta);
-    if (window.CoastalCliff) CoastalCliff.update(delta);
-    if (window.TacticalHub) TacticalHub.update(delta);
-    if (window.SubwayAssault) SubwayAssault.update(delta);
-    if (window.CargoDock) CargoDock.update(delta);
-    if (window.WinterVillage) WinterVillage.update(delta);
-    if (window.PrisonTowerB) PrisonTowerB.update(delta);
-    if (window.AirfieldRaid) AirfieldRaid.update(delta);
-    if (window.CyberBunker) CyberBunker.update(delta);
-    if (window.SwampFortress) SwampFortress.update(delta);
-    if (window.DuneFortress) DuneFortress.update(delta);
-    if (window.EvacuationZone) EvacuationZone.update(delta);
-    if (window.JunkyardWar) JunkyardWar.update(delta);
-    if (window.CasinoFloor) CasinoFloor.update(delta);
-    if (window.MetroHub) MetroHub.update(delta);
-    if (window.FactoryAssault) FactoryAssault.update(delta);
-    if (window.ArmoryRaid) ArmoryRaid.update(delta);
-    if (window.CommandPost) CommandPost.update(delta);
-    if (window.QuarantineZone) QuarantineZone.update(delta);
-    if (window.WaterTreatment) WaterTreatment.update(delta);
-    if (window.MountainShrine) MountainShrine.update(delta);
-    if (window.AirborneAssault) AirborneAssault.update(delta);
-    if (window.MineComplex) MineComplex.update(delta);
-    if (window.SatelliteLaunch) SatelliteLaunch.update(delta);
-    if (window.RuinsCity) RuinsCity.update(delta);
-    if (window.FuelStation) FuelStation.update(delta);
-    if (window.BeachLanding) BeachLanding.update(delta);
-    if (window.RooftopSniper) RooftopSniper.update(delta);
-    if (window.CrashedChopper) CrashedChopper.update(delta);
-    if (window.PalaceRaid) PalaceRaid.update(delta);
-    if (window.FloodZone) FloodZone.update(delta);
-    if (window.ScrapyardSiege) ScrapyardSiege.update(delta);
-    if (window.RadioBunker) RadioBunker.update(delta);
-    if (window.CoastalFortress) CoastalFortress.update(delta);
-    if (window.AncientFort) AncientFort.update(delta);
-    if (window.FrozenBase) FrozenBase.update(delta);
-    if (window.LavaFlow) LavaFlow.update(delta);
-    if (window.AbandonedPrison) AbandonedPrison.update(delta);
-    if (window.CanyonBase) CanyonBase.update(delta);
-    if (window.DarkMarket) DarkMarket.update(delta);
-    if (window.ShippingLane) ShippingLane.update(delta);
-    if (window.NuclearShelter) NuclearShelter.update(delta);
-    if (window.ChurchSiege) ChurchSiege.update(delta);
-    if (window.ResortSiege) ResortSiege.update(delta);
-    if (window.NightFactory) NightFactory.update(delta);
-    if (window.MountaintopBase) MountaintopBase.update(delta);
-    if (window.BunkerNetwork) BunkerNetwork.update(delta);
-    if (window.ReconPost) ReconPost.update(delta);
-    if (window.MuseumAssault) MuseumAssault.update(delta);
-    if (window.StagingArea) StagingArea.update(delta);
-    if (window.GhostVillage) GhostVillage.update(delta);
-    if (window.RiotZone) RiotZone.update(delta);
-    if (window.Colosseum) Colosseum.update(delta);
-    if (window.MazeFortress) MazeFortress.update(delta);
-    if (window.SpaceHub) SpaceHub.update(delta);
-    if (window.PolarStation) PolarStation.update(delta);
-    if (window.SunkenShip) SunkenShip.update(delta);
-    if (window.RadarDome) RadarDome.update(delta);
-    if (window.ShantyFortress) ShantyFortress.update(delta);
-    if (window.CliffSummit) CliffSummit.update(delta);
-    if (window.ToxicPlant) ToxicPlant.update(delta);
-    if (window.CraterWar) CraterWar.update(delta);
-    if (window.WarCamp) WarCamp.update(delta);
-    if (window.SnowFort) SnowFort.update(delta);
-    if (window.WarIsland) WarIsland.update(delta);
-    if (window.DeepBase) DeepBase.update(delta);
-    if (window.VoltBase) VoltBase.update(delta);
-    if (window.TempleRaid) TempleRaid.update(delta);
-    if (window.MagmaBase) MagmaBase.update(delta);
-    if (window.TundraBase) TundraBase.update(delta);
-    if (window.OrbitalPlatform) OrbitalPlatform.update(delta);
-    if (window.TrenchAssault) TrenchAssault.update(delta);
-    if (window.WaterfallBase) WaterfallBase.update(delta);
-    if (window.VaultRaid) VaultRaid.update(delta);
-    if (window.SpaceDock) SpaceDock.update(delta);
-    if (window.LavaCave) LavaCave.update(delta);
-    if (window.NeonCity) NeonCity.update(delta);
-    if (window.FortressPeak) FortressPeak.update(delta);
-    if (window.ThermalPlant) ThermalPlant.update(delta);
-    if (window.TidalBase) TidalBase.update(delta);
-    if (window.SkyBase) SkyBase.update(delta);
-    if (window.SewerNetwork) SewerNetwork.update(delta);
-    if (window.CaveAmbush) CaveAmbush.update(delta);
-    if (window.TowerSiege) TowerSiege.update(delta);
-    if (window.CyberDome) CyberDome.update(delta);
-    if (window.JungleVillage) JungleVillage.update(delta);
-    if (window.GlacierVault) GlacierVault.update(delta);
-    if (window.StormTower) StormTower.update(delta);
-    if (window.SubterraneanBase) SubterraneanBase.update(delta);
-    if (window.SiegeCamp) SiegeCamp.update(delta);
-    if (window.VolcanoRim) VolcanoRim.update(delta);
-    if (window.OutpostDelta) OutpostDelta.update(delta);
-    if (window.JungleRuin) JungleRuin.update(delta);
-    if (window.SkyCarrier) SkyCarrier.update(delta);
-    if (window.DesertRuins) DesertRuins.update(delta);
-    if (window.SnowValley) SnowValley.update(delta);
-    if (window.RuinedFort) RuinedFort.update(delta);
-    if (window.CoralReef) CoralReef.update(delta);
-    if (window.PirateBay) PirateBay.update(delta);
-    if (window.FortressUnderground) FortressUnderground.update(delta);
-    if (window.FloodedMall) FloodedMall.update(delta);
-    if (window.MountainMonastery) MountainMonastery.update(delta);
-    if (window.OceanPlatform) OceanPlatform.update(delta);
-    if (window.FrozenTemple) FrozenTemple.update(delta);
-    if (window.CargoFortress) CargoFortress.update(delta);
-    if (window.WarBridge) WarBridge.update(delta);
-    if (window.CyberTrain) CyberTrain.update(delta);
-    if (window.LavaBridge) LavaBridge.update(delta);
-    if (window.ToxicSewer) ToxicSewer.update(delta);
-    if (window.IceBridge) IceBridge.update(delta);
-    if (window.MesaFort) MesaFort.update(delta);
-    if (window.WarHospital) WarHospital.update(delta);
-    if (window.SandCastle) SandCastle.update(delta);
-    if (window.DamFortress) DamFortress.update(delta);
-    if (window.HauntedHouse) HauntedHouse.update(delta);
-    if (window.CrashedStation) CrashedStation.update(delta);
-    if (window.SeaCliff) SeaCliff.update(delta);
-    if (window.CliffVillage) CliffVillage.update(delta);
-    if (window.DroneBay) DroneBay.update(delta);
-    if (window.DeepBunker) DeepBunker.update(delta);
-    if (window.MineCart) MineCart.update(delta);
-    if (window.WaterTowerSiege) WaterTowerSiege.update(delta);
-    if (window.BioStation) BioStation.update(delta);
-    if (window.CrumblingCastle) CrumblingCastle.update(delta);
-    if (window.SkyTemple) SkyTemple.update(delta);
-    if (window.PrisonIsland) PrisonIsland.update(delta);
-    if (window.LightningBase) LightningBase.update(delta);
-    if (window.FrozenLab) FrozenLab.update(delta);
-    if (window.CrystalCave) CrystalCave.update(delta);
-    if (window.DataVault) DataVault.update(delta);
-    if (window.LavaFortress) LavaFortress.update(delta);
-    if (window.SandStorm) SandStorm.update(delta);
-    if (window.NuclearSilo) NuclearSilo.update(delta);
-    if (window.RuinedFactory) RuinedFactory.update(delta);
-    if (window.ScorchedCitadel) ScorchedCitadel.update(delta);
-    if (window.AcidPlant) AcidPlant.update(delta);
-    if (window.DesertLab) DesertLab.update(delta);
-    if (window.StormBunker) StormBunker.update(delta);
-    if (window.CargoPort) CargoPort.update(delta);
-    if (window.WarMarket) WarMarket.update(delta);
-    if (window.ShipGraveyard) ShipGraveyard.update(delta);
-    if (window.BlastedBridge) BlastedBridge.update(delta);
-    if (window.FortressRuins) FortressRuins.update(delta);
-    if (window.BattleDepot) BattleDepot.update(delta);
-    if (window.FrozenFortress) FrozenFortress.update(delta);
-    if (window.LavaTemple) LavaTemple.update(delta);
-    if (window.MagmaCave) MagmaCave.update(delta);
-    if (window.SkyStation) SkyStation.update(delta);
-    if (window.BloodArena) BloodArena.update(delta);
-    if (window.SnowFortress) SnowFortress.update(delta);
-    if (window.WinterBase) WinterBase.update(delta);
-    if (window.CyberStation) CyberStation.update(delta);
-    if (window.BurningTemple) BurningTemple.update(delta);
-    if (window.PlagueTown) PlagueTown.update(delta);
-    if (window.ShadowPalace) ShadowPalace.update(delta);
-    if (window.WarSubmarine) WarSubmarine.update(delta);
-    if (window.SteelCanyon) SteelCanyon.update(delta);
-    if (window.FireTemple) FireTemple.update(delta);
-    if (window.CrystalVault) CrystalVault.update(delta);
-    if (window.VolcanicCity) VolcanicCity.update(delta);
-    if (window.LightningTower) LightningTower.update(delta);
-    if (window.MidnightBase) MidnightBase.update(delta);
-    if (window.WreckedCity) WreckedCity.update(delta);
-    if (window.ShadowLab) ShadowLab.update(delta);
-    if (window.IronKeep) IronKeep.update(delta);
-    if (window.MetalMarsh) MetalMarsh.update(delta);
-    if (window.ThunderKeep) ThunderKeep.update(delta);
-    if (window.VolcanoPeak) VolcanoPeak.update(delta);
-    if (window.ToxicMarsh) ToxicMarsh.update(delta);
-    if (window.CitySiege) CitySiege.update(delta);
-    if (window.WarDocks) WarDocks.update(delta);
-    if (window.ToxicFacility) ToxicFacility.update(delta);
-    if (window.CrashedShip) CrashedShip.update(delta);
-    if (window.MoltenKeep) MoltenKeep.update(delta);
-    if (window.BurningBridge) BurningBridge.update(delta);
-    if (window.DarkCitadel) DarkCitadel.update(delta);
-    if (window.SmokeValley) SmokeValley.update(delta);
-    if (window.SpaceFortress) SpaceFortress.update(delta);
-    if (window.BattleArena) BattleArena.update(delta);
-    if (window.WarPort) WarPort.update(delta);
-    if (window.IronValley) IronValley.update(delta);
-    if (window.LavaArena) LavaArena.update(delta);
-    if (window.SunkenLab) SunkenLab.update(delta);
-    if (window.SeaFortress) SeaFortress.update(delta);
-    if (window.ShadowValley) ShadowValley.update(delta);
-    if (window.AshRuins) AshRuins.update(delta);
-    if (window.CrimsonKeep) CrimsonKeep.update(delta);
-    if (window.StormValley) StormValley.update(delta);
-    if (window.FrozenValley) FrozenValley.update(delta);
-    if (window.FallenTemple) FallenTemple.update(delta);
-    if (window.ScorchedLab) ScorchedLab.update(delta);
-    if (window.IronMarsh) IronMarsh.update(delta);
-    if (window.SpaceWreck) SpaceWreck.update(delta);
-    if (window.DustValley) DustValley.update(delta);
-    if (window.GhostFortress) GhostFortress.update(delta);
-    if (window.QuantumBase) QuantumBase.update(delta);
-    if (window.PlasmaTower) PlasmaTower.update(delta);
-    if (window.ToxicLab) ToxicLab.update(delta);
-    if (window.SteelDome) SteelDome.update(delta);
-    if (window.BuriedCity) BuriedCity.update(delta);
-    if (window.MagmaBridge) MagmaBridge.update(delta);
-    if (window.VaporStation) VaporStation.update(delta);
-    if (window.WarChurch) WarChurch.update(delta);
-    if (window.FrozenDock) FrozenDock.update(delta);
-    if (window.RustCanyon) RustCanyon.update(delta);
-    if (window.AcidBay) AcidBay.update(delta);
-    if (window.ConcreteMaze) ConcreteMaze.update(delta);
-    if (window.SkyPrison) SkyPrison.update(delta);
-    if (window.LavaCity) LavaCity.update(delta);
-    if (window.WarZoo) WarZoo.update(delta);
-    if (window.NukeCrater) NukeCrater.update(delta);
-    if (window.AmberRuins) AmberRuins.update(delta);
-    if (window.DeltaBase) DeltaBase.update(delta);
-    if (window.StormShip) StormShip.update(delta);
-    if (window.FrozenCrater) FrozenCrater.update(delta);
-    if (window.EmberFields) EmberFields.update(delta);
-    if (window.HauntedBay) HauntedBay.update(delta);
-    if (window.FlamePit) FlamePit.update(delta);
-    if (window.NanoLab) NanoLab.update(delta);
-    if (window.SunkenPalace) SunkenPalace.update(delta);
-    if (window.WarGarden) WarGarden.update(delta);
-    if (window.BattleCanyon) BattleCanyon.update(delta);
-    if (window.CliffBase) CliffBase.update(delta);
-    if (window.RustedBay) RustedBay.update(delta);
-    if (window.EngineRoom) EngineRoom.update(delta);
-    if (window.ChemPlant) ChemPlant.update(delta);
-    if (window.WarTower) WarTower.update(delta);
-    if (window.FungalCave) FungalCave.update(delta);
-    if (window.RadioStation) RadioStation.update(delta);
-    if (window.SniperHill) SniperHill.update(delta);
-    if (window.OrbitalDrop) OrbitalDrop.update(delta);
-    if (window.IceMine) IceMine.update(delta);
-    if (window.ToxicBay) ToxicBay.update(delta);
-    if (window.DeadSea) DeadSea.update(delta);
-    if (window.LavaTubes) LavaTubes.update(delta);
-    if (window.WarTrain) WarTrain.update(delta);
-    if (window.ShadowReef) ShadowReef.update(delta);
-    if (window.BoneYard) BoneYard.update(delta);
-    if (window.SteelMill) SteelMill.update(delta);
-    if (window.AcidMine) AcidMine.update(delta);
-    if (window.WarResort) WarResort.update(delta);
-    if (window.PlagueShip) PlagueShip.update(delta);
-    if (window.ThunderBase) ThunderBase.update(delta);
-    if (window.SkyBarge) SkyBarge.update(delta);
-    if (window.FrozenPalace) FrozenPalace.update(delta);
-    if (window.CyberSwamp) CyberSwamp.update(delta);
-    if (window.IceTower) IceTower.update(delta);
-    if (window.CursedShip) CursedShip.update(delta);
-    if (window.NeonSwamp) NeonSwamp.update(delta);
-    if (window.WarCathedral) WarCathedral.update(delta);
-    if (window.BloodSwamp) BloodSwamp.update(delta);
-    if (window.MechBay) MechBay.update(delta);
-    if (window.GravityWell) GravityWell.update(delta);
-    if (window.PoisonGrove) PoisonGrove.update(delta);
-    if (window.ArcticLab) ArcticLab.update(delta);
-    if (window.TrenchWar) TrenchWar.update(delta);
-    if (window.UnderseaDome) UnderseaDome.update(delta);
-    if (window.SolarForge) SolarForge.update(delta);
-    if (window.IronCitadel) IronCitadel.update(delta);
-    if (window.WarShrine) WarShrine.update(delta);
-    if (window.PlagueLab) PlagueLab.update(delta);
-    if (window.DeathValley) DeathValley.update(delta);
-    if (window.VoidStation) VoidStation.update(delta);
-    if (window.LavaDome) LavaDome.update(delta);
-    if (window.SandFortress) SandFortress.update(delta);
-    if (window.BoneTemple) BoneTemple.update(delta);
-    if (window.CyberRuins) CyberRuins.update(delta);
-    if (window.StormBase) StormBase.update(delta);
-    if (window.DeepBunker) DeepBunker.update(delta);
-    if (window.WarMuseum) WarMuseum.update(delta);
-    if (window.RustPalace) RustPalace.update(delta);
-    if (window.JungleFort) JungleFort.update(delta);
-    if (window.FlameShrine) FlameShrine.update(delta);
-    if (window.AcidCrater) AcidCrater.update(delta);
-    if (window.OrbitalBase) OrbitalBase.update(delta);
-    if (window.TarPits) TarPits.update(delta);
-    if (window.CrystalMine) CrystalMine.update(delta);
-    if (window.PlagueSwamp) PlagueSwamp.update(delta);
-    if (window.FrozenKeep) FrozenKeep.update(delta);
-    if (window.MunitionsPlant) MunitionsPlant.update(delta);
-    if (window.TriageZone) TriageZone.update(delta);
-    if (window.BlackOps) BlackOps.update(delta);
-    if (window.CraterCity) CraterCity.update(delta);
-    if (window.SunkenCarrier) SunkenCarrier.update(delta);
-    if (window.NanoCity) NanoCity.update(delta);
-    if (window.SiloComplex) SiloComplex.update(delta);
-    if (window.SkyGarden) SkyGarden.update(delta);
-    if (window.LavaTrench) LavaTrench.update(delta);
-    if (window.WraithShip) WraithShip.update(delta);
-    if (window.WarCemetery) WarCemetery.update(delta);
-    if (window.PlagueCove) PlagueCove.update(delta);
-    if (window.ArenaDome) ArenaDome.update(delta);
-    if (window.MesaOutpost) MesaOutpost.update(delta);
-    if (window.SpireCity) SpireCity.update(delta);
-    if (window.ShadowMarket) ShadowMarket.update(delta);
-    if (window.PolarSiege) PolarSiege.update(delta);
-    if (window.ForgottenLab) ForgottenLab.update(delta);
-    if (window.WarStation) WarStation.update(delta);
-    if (window.PlagueTower) PlagueTower.update(delta);
-    if (window.ToxicMine) ToxicMine.update(delta);
-    if (window.FrozenReactor) FrozenReactor.update(delta);
-    if (window.NeonBunker) NeonBunker.update(delta);
-    if (window.DesertFort) DesertFort.update(delta);
-    if (window.MagmaCore) MagmaCore.update(delta);
-    if (window.SkullFortress) SkullFortress.update(delta);
-    if (window.PlasmaOutpost) PlasmaOutpost.update(delta);
-    if (window.SiegePlatform) SiegePlatform.update(delta);
-    if (window.BloodChapel) BloodChapel.update(delta);
-    if (window.ToxicHarbor) ToxicHarbor.update(delta);
-    if (window.IronTower) IronTower.update(delta);
-    if (window.OrbitalRelay) OrbitalRelay.update(delta);
-    if (window.BattleConvoy) BattleConvoy.update(delta);
-    if (window.EchoStation) EchoStation.update(delta);
-    if (window.WarheadCache) WarheadCache.update(delta);
-    if (window.WarConvoy) WarConvoy.update(delta);
-    if (window.AshCitadel) AshCitadel.update(delta);
-    if (window.MoltenBridge) MoltenBridge.update(delta);
-    if (window.VoidLab) VoidLab.update(delta);
-    if (window.BlackMarch) BlackMarch.update(delta);
-    if (window.IceCarrier) IceCarrier.update(delta);
-    if (window.JungleRuins) JungleRuins.update(delta);
-    if (window.ThunderTower) ThunderTower.update(delta);
-    if (window.MidnightRaid) MidnightRaid.update(delta);
-    if (window.RustFactory) RustFactory.update(delta);
-    if (window.DustStorm) DustStorm.update(delta);
-    if (window.AssaultCamp) AssaultCamp.update(delta);
-    if (window.StoneQuarry) StoneQuarry.update(delta);
-    if (window.WarzoneMarket) WarzoneMarket.update(delta);
-    if (window.RidgeBase) RidgeBase.update(delta);
-    if (window.PoisonLake) PoisonLake.update(delta);
-    if (window.SkyDock) SkyDock.update(delta);
-    if (window.LavaCore) LavaCore.update(delta);
-    if (window.NeonSubway) NeonSubway.update(delta);
-    if (window.CopperMine) CopperMine.update(delta);
-    if (window.WastelandHub) WastelandHub.update(delta);
-    if (window.TrenchLine) TrenchLine.update(delta);
-    if (window.GlacierBunker) GlacierBunker.update(delta);
-    if (window.PalaceRuins) PalaceRuins.update(delta);
-    if (window.DamStation) DamStation.update(delta);
-    if (window.Shipyard) Shipyard.update(delta);
-    if (window.SpacePort) SpacePort.update(delta);
-    if (window.FrozenRiver) FrozenRiver.update(delta);
-    if (window.AvalanchePass) AvalanchePass.update(delta);
-    if (window.BunkerCity) BunkerCity.update(delta);
-    if (window.WarlordPalace) WarlordPalace.update(delta);
-    if (window.ScrapYard) ScrapYard.update(delta);
-    if (window.CommandShip) CommandShip.update(delta);
-    if (window.DesertBase) DesertBase.update(delta);
-    if (window.TrainWreck) TrainWreck.update(delta);
-    if (window.CaveTemple) CaveTemple.update(delta);
-    if (window.GhostFactory) GhostFactory.update(delta);
-    if (window.BombShelter) BombShelter.update(delta);
-    if (window.SandDunes) SandDunes.update(delta);
-    if (window.SwampRefinery) SwampRefinery.update(delta);
-    if (window.RooftopSiege) RooftopSiege.update(delta);
-    if (window.SunkenBase) SunkenBase.update(delta);
-    if (window.FloodCity) FloodCity.update(delta);
-    if (window.CoastGuard) CoastGuard.update(delta);
-    if (window.CanyonFort) CanyonFort.update(delta);
-    if (window.SniperRidge) SniperRidge.update(delta);
-    if (window.HarborFort) HarborFort.update(delta);
-    if (window.TundraCamp) TundraCamp.update(delta);
-    if (window.OilDepot) OilDepot.update(delta);
-    if (window.BattleCrater) BattleCrater.update(delta);
-    if (window.UrbanDecay) UrbanDecay.update(delta);
-    if (window.WarAirfield) WarAirfield.update(delta);
-    if (window.LavaBase) LavaBase.update(delta);
-    if (window.StormIsland) StormIsland.update(delta);
-    if (window.SaltFlats) SaltFlats.update(delta);
-    if (window.AshPlains) AshPlains.update(delta);
-    if (window.WarDepot) WarDepot.update(delta);
-    if (window.CommandCenter) CommandCenter.update(delta);
-    if (window.HighlandFort) HighlandFort.update(delta);
-    if (window.FloodDam) FloodDam.update(delta);
-    if (window.IceBreaker) IceBreaker.update(delta);
-    if (window.MissileBase) MissileBase.update(delta);
-    if (window.WreckYard) WreckYard.update(delta);
-    if (window.TankYard) TankYard.update(delta);
-    if (window.ForwardBase) ForwardBase.update(delta);
-    if (window.DeathSwamp) DeathSwamp.update(delta);
-    if (window.SteelFortress) SteelFortress.update(delta);
-    if (window.PoisonMarsh) PoisonMarsh.update(delta);
-    if (window.JungleMaze) JungleMaze.update(delta);
-    if (window.WarGate) WarGate.update(delta);
-    if (window.NeonRuins) NeonRuins.update(delta);
-    if (window.DarkWoods) DarkWoods.update(delta);
-    if (window.ShadowBase) ShadowBase.update(delta);
-    if (window.PlagueCity) PlagueCity.update(delta);
-    if (window.ThunderRidge) ThunderRidge.update(delta);
-    if (window.FloodPlains) FloodPlains.update(delta);
-    if (window.NuclearWaste) NuclearWaste.update(delta);
-    if (window.BloodRiver) BloodRiver.update(delta);
-    if (window.VoidBase) VoidBase.update(delta);
-    if (window.AcidLake) AcidLake.update(delta);
-    if (window.StormFortress) StormFortress.update(delta);
-    if (window.FrostHarbor) FrostHarbor.update(delta);
-    if (window.LavaRiver) LavaRiver.update(delta);
-    if (window.SiegeLines) SiegeLines.update(delta);
-    if (window.GhostRidge) GhostRidge.update(delta);
-    if (window.WarLab) WarLab.update(delta);
-    if (window.IceDock) IceDock.update(delta);
-    if (window.RubbleCity) RubbleCity.update(delta);
-    if (window.WinterAssault) WinterAssault.update(delta);
-    if (window.CryptBase) CryptBase.update(delta);
-    if (window.WarDome) WarDome.update(delta);
-    if (window.HarborRaid) HarborRaid.update(delta);
-    if (window.ReefBase) ReefBase.update(delta);
-    if (window.CanyonWar) CanyonWar.update(delta);
-    if (window.MagmaLab) MagmaLab.update(delta);
-    if (window.FireBase) FireBase.update(delta);
-    if (window.WarCrypt) WarCrypt.update(delta);
-    if (window.WarPrison) WarPrison.update(delta);
-    if (window.CoastLine) CoastLine.update(delta);
-    if (window.RockBase) RockBase.update(delta);
-    if (window.PoisonBase) PoisonBase.update(delta);
-    if (window.MoonGate) MoonGate.update(delta);
-    if (window.WarShip) WarShip.update(delta);
-    if (window.JadeTemple) JadeTemple.update(delta);
-    if (window.AncientColosseum) AncientColosseum.update(delta);
-    if (window.TundraVillage) TundraVillage.update(delta);
-    if (window.SolarFarm) SolarFarm.update(delta);
-    if (window.JungleFortress) JungleFortress.update(delta);
-    if (window.BridgeAssault) BridgeAssault.update(delta);
-    if (window.SpaceWreckage) SpaceWreckage.update(delta);
-    if (window.UndergroundLab) UndergroundLab.update(delta);
-    if (window.HospitalRaid) HospitalRaid.update(delta);
-    if (window.WeaponsDepot) WeaponsDepot.update(delta);
-    if (window.LavaCavern) LavaCavern.update(delta);
-    if (window.NavalBase) NavalBase.update(delta);
-    if (window.ChemFactory) ChemFactory.update(delta);
-    if (window.PalaceGardens) PalaceGardens.update(delta);
-    if (window.SubmarineHunt) SubmarineHunt.update(delta);
-    if (window.ArcticStation) ArcticStation.update(delta);
-    if (window.CityRooftop) CityRooftop.update(delta);
-    if (window.PowerPlant) PowerPlant.update(delta);
-    if (window.TrainStation) TrainStation.update(delta);
-    if (window.CanyonAmbush) CanyonAmbush.update(delta);
-    if (window.MissileSilo) MissileSilo.update(delta);
-    if (window.FloatingPlatform) FloatingPlatform.update(delta);
-    if (window.WarFactory) WarFactory.update(delta);
-    if (window.IcePalace) IcePalace.update(delta);
-    if (window.VolcanoBase) VolcanoBase.update(delta);
-    if (window.UndergroundCity) UndergroundCity.update(delta);
-    if (window.CoastalVillage) CoastalVillage.update(delta);
-    if (window.ResearchVessel) ResearchVessel.update(delta);
-    if (window.StormDrain) StormDrain.update(delta);
-    if (window.ThroneRoom) ThroneRoom.update(delta);
-    if (window.JungleOutpost) JungleOutpost.update(delta);
-    if (window.NavalYard) NavalYard.update(delta);
-    if (window.IceShelf) IceShelf.update(delta);
-    if (window.RuinsAssault) RuinsAssault.update(delta);
-    if (window.AircraftCarrier) AircraftCarrier.update(delta);
-    if (window.SportsStadium) SportsStadium.update(delta);
-    if (window.NukeTransport) NukeTransport.update(delta);
-    if (window.AbandonedFactory) AbandonedFactory.update(delta);
-  if (window.SwampBase) SwampBase.update(delta);
-  if (window.HauntedCastle) HauntedCastle.update(delta);
-  if (window.CliffFortress) CliffFortress.update(delta);
-  if (window.ServerFarm) ServerFarm.update(delta);
-  if (window.CityBank) CityBank.update(delta);
-  if (window.AncientPyramid) AncientPyramid.update(delta);
-  if (window.ToxicJungle) ToxicJungle.update(delta);
-  if (window.HarborDefense) HarborDefense.update(delta);
-  if (window.SpaceDerelict) SpaceDerelict.update(delta);
-  if (window.MedievalDungeon) MedievalDungeon.update(delta);
-  if (window.CyberLab) CyberLab.update(delta);
-  if (window.BorderFort) BorderFort.update(delta);
-  if (window.HauntedHotel) HauntedHotel.update(delta);
-  if (window.StormCoast) StormCoast.update(delta);
-  if (window.RadiationZone) RadiationZone.update(delta);
-  if (window.CrashedSpaceship) CrashedSpaceship.update(delta);
-  if (window.IceCavern) IceCavern.update(delta);
-  if (window.FloodedSubway) FloodedSubway.update(delta);
-  if (window.DesertTemple) DesertTemple.update(delta);
-  if (window.MilitaryAcademy) MilitaryAcademy.update(delta);
-  if (window.NeonDistrict) NeonDistrict.update(delta);
-  if (window.UnderwaterTemple) UnderwaterTemple.update(delta);
-  if (window.SpacePrison) SpacePrison.update(delta);
-  if (window.PirateGalleon) PirateGalleon.update(delta);
-  if (window.AbandonedChurch) AbandonedChurch.update(delta);
-  if (window.GreekRuins) GreekRuins.update(delta);
-  if (window.CoalMine) CoalMine.update(delta);
-  if (window.MountainFortress) MountainFortress.update(delta);
-  if (window.ArmoredTrain) ArmoredTrain.update(delta);
-  if (window.TeslaLab) TeslaLab.update(delta);
-  if (window.FrozenCastle) FrozenCastle.update(delta);
-  if (window.VampireLair) VampireLair.update(delta);
-  if (window.SubmarineGraveyard) SubmarineGraveyard.update(delta);
-  if (window.ScorchedEarth) ScorchedEarth.update(delta);
-  if (window.CrystalCaves) CrystalCaves.update(delta);
-  if (window.BioDome) BioDome.update(delta);
-  if (window.WartimeFactory) WartimeFactory.update(delta);
-  if (window.SpaceHangar) SpaceHangar.update(delta);
-  if (window.AmusementPark) AmusementPark.update(delta);
-  if (window.AtlantisRuins) AtlantisRuins.update(delta);
-  if (window.QuantumLab) QuantumLab.update(delta);
-  if (window.BurningVillage) BurningVillage.update(delta);
-  if (window.AbandonedSchool) AbandonedSchool.update(delta);
-  if (window.OrbitalWeapons) OrbitalWeapons.update(delta);
-  if (window.WastelandTown) WastelandTown.update(delta);
-  if (window.OilRefinery) OilRefinery.update(delta);
-  if (window.ColosseumSiege) ColosseumSiege.update(delta);
-  if (window.SunkenDestroyer) SunkenDestroyer.update(delta);
-  if (window.MoonOutpost) MoonOutpost.update(delta);
-  if (window.CyberFortress) CyberFortress.update(delta);
-  if (window.PharaohTomb) PharaohTomb.update(delta);
-  if (window.LavaCaves) LavaCaves.update(delta);
-  if (window.StormCarrier) StormCarrier.update(delta);
-  if (window.DroneWarfare) DroneWarfare.update(delta);
-  if (window.CathedralSiege) CathedralSiege.update(delta);
-  if (window.SalvageYard) SalvageYard.update(delta);
-  if (window.BioweaponLab) BioweaponLab.update(delta);
-  if (window.NavalDockyard) NavalDockyard.update(delta);
-  if (window.SniperTower) SniperTower.update(delta);
-  if (window.CursedVillage) CursedVillage.update(delta);
-  if (window.TankerShip) TankerShip.update(delta);
-  if (window.IronMine) IronMine.update(delta);
-  if (window.ShantyTown) ShantyTown.update(delta);
-  if (window.AztecTemple) AztecTemple.update(delta);
-  if (window.CircusTent) CircusTent.update(delta);
-  if (window.WeatherStation) WeatherStation.update(delta);
-  if (window.LaserFacility) LaserFacility.update(delta);
-  if (window.SubmarineBay) SubmarineBay.update(delta);
-  if (window.HeistVault) HeistVault.update(delta);
-  if (window.Catacombs) Catacombs.update(delta);
-  if (window.CrashedTrain) CrashedTrain.update(delta);
-  if (window.CrystalPalace) CrystalPalace.update(delta);
-  if (window.DeltaForce) DeltaForce.update(delta);
-  if (window.PrisonTower) PrisonTower.update(delta);
-  if (window.RobotFactory) RobotFactory.update(delta);
-  if (window.WarMemorial) WarMemorial.update(delta);
-  if (window.PrisonYard) PrisonYard.update(delta);
-  if (window.MineShaft) MineShaft.update(delta);
-  if (window.CargoTerminal) CargoTerminal.update(delta);
-  if (window.MilitaryParade) MilitaryParade.update(delta);
-  if (window.GasPlatform) GasPlatform.update(delta);
-  if (window.Monorail) Monorail.update(delta);
-  if (window.ArchaeologicalDig) ArchaeologicalDig.update(delta);
-  if (window.CaveNetwork) CaveNetwork.update(delta);
-  if (window.RooftopChase) RooftopChase.update(delta);
-  if (window.TyphoonDeck) TyphoonDeck.update(delta);
-  if (window.SwampOutpost) SwampOutpost.update(delta);
-  if (window.SunkenTemple) SunkenTemple.update(delta);
-  if (window.SalvageBarge) SalvageBarge.update(delta);
-  if (window.FrozenHarbor) FrozenHarbor.update(delta);
-  if (window.IceFortress) IceFortress.update(delta);
-  if (window.MerchantShip) MerchantShip.update(delta);
-  if (window.HarborCrane) HarborCrane.update(delta);
-  if (window.RacingTrack) RacingTrack.update(delta);
-  if (window.TortureChamber) TortureChamber.update(delta);
-  if (window.PlagueVillage) PlagueVillage.update(delta);
-  if (window.CyberYacht) CyberYacht.update(delta);
-  if (window.FortressPrison) FortressPrison.update(delta);
-  if (window.BattleStadium) BattleStadium.update(delta);
-  if (window.HauntedLighthouse) HauntedLighthouse.update(delta);
-  if (window.CanyonAssault) CanyonAssault.update(delta);
-  if (window.DemolitionSite) DemolitionSite.update(delta);
-  if (window.AirshipRaid) AirshipRaid.update(delta);
-  if (window.TempleRun) TempleRun.update(delta);
-  if (window.AsteroidBase) AsteroidBase.update(delta);
-  if (window.FishingVillage) FishingVillage.update(delta);
-  if (window.OperaHouse) OperaHouse.update(delta);
-  if (window.CityHall) CityHall.update(delta);
-  if (window.VolcanoSummit) VolcanoSummit.update(delta);
-      if (window.FloatingFortress) FloatingFortress.update(delta);
-      if (window.Slaughterhouse) Slaughterhouse.update(delta);
-      if (window.TrainGraveyard) TrainGraveyard.update(delta);
-      if (window.SewagePlant) SewagePlant.update(delta);
-      if (window.UniversityRaid) UniversityRaid.update(delta);
-      if (window.RefugeeCamp) RefugeeCamp.update(delta);
-      if (window.NuclearConvoy) NuclearConvoy.update(delta);
-      if (window.PowerSubstation) PowerSubstation.update(delta);
-      if (window.SubmarinePen) SubmarinePen.update(delta);
-      if (window.TorpedoFactory) TorpedoFactory.update(delta);
-      if (window.MunitionsDepot) MunitionsDepot.update(delta);
-      if (window.AbandonedMall) AbandonedMall.update(delta);
-      if (window.GoldVault) GoldVault.update(delta);
-      if (window.CustomsPost) CustomsPost.update(delta);
-      if (window.JungleLab) JungleLab.update(delta);
-      if (window.SatelliteStation) SatelliteStation.update(delta);
-      if (window.DestroyerEscort) DestroyerEscort.update(delta);
-      if (window.CoastalBattery) CoastalBattery.update(delta);
-      if (window.PrisonColony) PrisonColony.update(delta);
-      if (window.AsteroidField) AsteroidField.update(delta);
-      if (window.VolcanoLair) VolcanoLair.update(delta);
-      if (window.SeaFort) SeaFort.update(delta);
-      if (window.FuelDepot) FuelDepot.update(delta);
-      if (window.DerelictTown) DerelictTown.update(delta);
-      if (window.MethLab) MethLab.update(delta);
-      if (window.CargoFreighter) CargoFreighter.update(delta);
-      if (window.IceFortressInterior) IceFortressInterior.update(delta);
-      if (window.ReactorCore) ReactorCore.update(delta);
-      if (window.GladiatorPit) GladiatorPit.update(delta);
-      if (window.JungleShrine) JungleShrine.update(delta);
-      if (window.LaserGrid) LaserGrid.update(delta);
-      if (window.DeathMarch) DeathMarch.update(delta);
-      if (window.BankRobbery) BankRobbery.update(delta);
-      if (window.UndergroundArena) UndergroundArena.update(delta);
-      if (window.AirfieldAssault) AirfieldAssault.update(delta);
-      if (window.OilPlatformFire) OilPlatformFire.update(delta);
-      if (window.DamControl) DamControl.update(delta);
-      if (window.ConcertHall) ConcertHall.update(delta);
-      if (window.SewerEscape) SewerEscape.update(delta);
-      if (window.HauntedGalleon) HauntedGalleon.update(delta);
-      if (window.AvalancheZone) AvalancheZone.update(delta);
-      if (window.MountainRescue) MountainRescue.update(delta);
-      if (window.ShoppingDistrict) ShoppingDistrict.update(delta);
-      if (window.SnowfieldBattle) SnowfieldBattle.update(delta);
-      if (window.ZooBreakout) ZooBreakout.update(delta);
-      if (window.HospitalSiege) HospitalSiege.update(delta);
-      if (window.RacingPit) RacingPit.update(delta);
-      if (window.WarehouseDistrict) WarehouseDistrict.update(delta);
-      if (window.CyberCity) CyberCity.update(delta);
-      if (window.PirateHarbor) PirateHarbor.update(delta);
-      if (window.SpaceStationAttack) SpaceStationAttack.update(delta);
-      if (window.DustBowl) DustBowl.update(delta);
-      if (window.SwampAssault) SwampAssault.update(delta);
-      if (window.FactoryTakeover) FactoryTakeover.update(delta);
-      if (window.HarborSiege) HarborSiege.update(delta);
-      if (window.MetroAssault) MetroAssault.update(delta);
-      if (window.EmbassyTakeover) EmbassyTakeover.update(delta);
-      if (window.CemeterySiege) CemeterySiege.update(delta);
-      if (window.BridgeBattle) BridgeBattle.update(delta);
-      if (window.SatelliteCrash) SatelliteCrash.update(delta);
-      if (window.PyramidRaid) PyramidRaid.update(delta);
-      if (window.SalvageMission) SalvageMission.update(delta);
-      if (window.LaboratoryRaid) LaboratoryRaid.update(delta);
-      if (window.DamBreak) DamBreak.update(delta);
-      if (window.ColiseumBattle) ColiseumBattle.update(delta);
-      if (window.TornadoAlley) TornadoAlley.update(delta);
-      if (window.BiohazardZone) BiohazardZone.update(delta);
-      if (window.PirateCoveRaid) PirateCoveRaid.update(delta);
-      if (window.GhostTownSiege) GhostTownSiege.update(delta);
-      if (window.MansionHeist) MansionHeist.update(delta);
-      if (window.ClocktowerRaid) ClocktowerRaid.update(delta);
-      if (window.ShipyardAssault) ShipyardAssault.update(delta);
-      if (window.TankFactory) TankFactory.update(delta);
-      if (window.SpyCompound) SpyCompound.update(delta);
-      if (window.RocketLaunch) RocketLaunch.update(delta);
-      if (window.MineshaftCollapse) MineshaftCollapse.update(delta);
-      if (window.AirbaseDefense) AirbaseDefense.update(delta);
-      if (window.HelicopterCrash) HelicopterCrash.update(delta);
-      if (window.SmugglersDen) SmugglersDen.update(delta);
-      if (window.EarthquakeZone) EarthquakeZone.update(delta);
-      if (window.WarlordFortress) WarlordFortress.update(delta);
-      if (window.CombatHospital) CombatHospital.update(delta);
-      if (window.WinterWarfare) WinterWarfare.update(delta);
-      if (window.ArmoredConvoy) ArmoredConvoy.update(delta);
-      if (window.CatacombsAssault) CatacombsAssault.update(delta);
-      if (window.OilPlatformRaid) OilPlatformRaid.update(delta);
-      if (window.DesertConvoy) DesertConvoy.update(delta);
-      if (window.TrenchWarfare) TrenchWarfare.update(delta);
-      if (window.SunkenCity) SunkenCity.update(delta);
-      if (window.SpaceBattle) SpaceBattle.update(delta);
-      if (window.SubmarineBase) SubmarineBase.update(delta);
-      if (window.RebelOutpost) RebelOutpost.update(delta);
-      if (window.FortressSiege) FortressSiege.update(delta);
-      if (window.BattleshipDeck) BattleshipDeck.update(delta);
-      if (window.StadiumRiot) StadiumRiot.update(delta);
-      if (window.TradingPost) TradingPost.update(delta);
-      if (window.BountySystem) BountySystem.update(delta);
-      if (window.CrouchSystem) CrouchSystem.update(delta);
-      if (window.RadioSupport) RadioSupport.update(delta);
-      if (window.MeleeKnife) MeleeKnife.update(delta);
+      if (window.AmphibiousAssault) { try { AmphibiousAssault.update(delta); } catch (_e) {} }
+      if (window.SupplyChain) { try { SupplyChain.update(delta); } catch (_e) {} }
+      if (window.RiotControl) { try { RiotControl.update(delta); } catch (_e) {} }
+      if (window.ElectromagneticPulse) { try { ElectromagneticPulse.update(delta); } catch (_e) {} }
+      if (window.HostageNegotiation) { try { HostageNegotiation.update(delta); } catch (_e) {} }
+      if (window.CyberWarfare) { try { CyberWarfare.update(delta); } catch (_e) {} }
+      if (window.AntiAir) { try { AntiAir.update(delta); } catch (_e) {} }
+      if (window.BlackMarket) { try { BlackMarket.update(delta); } catch (_e) {} }
+      if (window.BallisticCalculator) { try { BallisticCalculator.update(delta); } catch (_e) {} }
+      if (window.TunnelSystem) { try { TunnelSystem.update(delta); } catch (_e) {} }
+      if (window.VehicleRepair) { try { VehicleRepair.update(delta); } catch (_e) {} }
+      if (window.GhostRecon) { try { GhostRecon.update(delta); } catch (_e) {} }
+      if (window.LandslideEvent) { try { LandslideEvent.update(delta); } catch (_e) {} }
+      if (window.WarCrimesDetector) { try { WarCrimesDetector.update(delta); } catch (_e) {} }
+      if (window.CommandoRaid) { try { CommandoRaid.update(delta); } catch (_e) {} }
+      if (window.IntelligenceBriefing) { try { IntelligenceBriefing.update(delta); } catch (_e) {} }
+      if (window.ParachuteDrop) { try { ParachuteDrop.update(delta); } catch (_e) {} }
+      if (window.RadioBeacon) { try { RadioBeacon.update(delta); } catch (_e) {} }
+      if (window.BodyDrag) { try { BodyDrag.update(delta); } catch (_e) {} }
+      if (window.PsyOps) { try { PsyOps.update(delta); } catch (_e) {} }
+      if (window.AmbushSystem) { try { AmbushSystem.update(delta); } catch (_e) {} }
+      if (window.FieldHospital) { try { FieldHospital.update(delta); } catch (_e) {} }
+      if (window.ReconSatellite) { try { ReconSatellite.update(delta); } catch (_e) {} }
+      if (window.FortificationBuilder) { try { FortificationBuilder.update(delta); } catch (_e) {} }
+      if (window.NavalCombat) { try { NavalCombat.update(delta); } catch (_e) {} }
+      if (window.CounterSniper) { try { CounterSniper.update(delta); } catch (_e) {} }
+      if (window.ExplosiveOrdnance) { try { ExplosiveOrdnance.update(delta); } catch (_e) {} }
+      if (window.ChainOfCommand) { try { ChainOfCommand.update(delta); } catch (_e) {} }
+      if (window.WeatherEffects) { try { WeatherEffects.update(delta); } catch (_e) {} }
+      if (window.ObjectiveTracker) { try { ObjectiveTracker.update(delta); } catch (_e) {} }
+      if (window.BattleDamageAssessment) { try { BattleDamageAssessment.update(delta); } catch (_e) {} }
+      if (window.PrisonerExchange) { try { PrisonerExchange.update(delta); } catch (_e) {} }
+      if (window.TacticalRetreat) { try { TacticalRetreat.update(delta); } catch (_e) {} }
+      if (window.KillHouse) { try { KillHouse.update(delta); } catch (_e) {} }
+      if (window.MortarCalculator) { try { MortarCalculator.update(delta); } catch (_e) {} }
+      if (window.LogisticsSystem) { try { LogisticsSystem.update(delta); } catch (_e) {} }
+      if (window.StealthSystem) { try { StealthSystem.update(delta); } catch (_e) {} }
+      if (window.UrbanPatrol) { try { UrbanPatrol.update(delta); } catch (_e) {} }
+      if (window.ElectronicWarfare) { try { ElectronicWarfare.update(delta); } catch (_e) {} }
+      if (window.VehicleConvoy) { try { VehicleConvoy.update(delta); } catch (_e) {} }
+      if (window.BreachingCharges) { try { BreachingCharges.update(delta); } catch (_e) {} }
+      if (window.CasualtyEvacuation) { try { CasualtyEvacuation.update(delta); } catch (_e) {} }
+      if (window.NightVision) { try { NightVision.update(delta); } catch (_e) {} }
+      if (window.FireSupport) { try { FireSupport.update(delta); } catch (_e) {} }
+      if (window.ShieldSystem) { try { ShieldSystem.update(delta); } catch (_e) {} }
+      if (window.MineField) { try { MineField.update(delta); } catch (_e) {} }
+      if (window.TankCommander) { try { TankCommander.update(delta); } catch (_e) {} }
+      if (window.CombatMedic) { try { CombatMedic.update(delta); } catch (_e) {} }
+      if (window.SiegeWarfare) { try { SiegeWarfare.update(delta); } catch (_e) {} }
+      if (window.SniperRifle) { try { SniperRifle.update(delta); } catch (_e) {} }
+      if (window.RappellingSystem) { try { RappellingSystem.update(delta); } catch (_e) {} }
+      if (window.GrenadeTypes) { try { GrenadeTypes.update(delta); } catch (_e) {} }
+      if (window.SentryGun) { try { SentryGun.update(delta); } catch (_e) {} }
+      if (window.BunkerAssault) { try { BunkerAssault.update(delta); } catch (_e) {} }
+      if (window.AirAssault) { try { AirAssault.update(delta); } catch (_e) {} }
+      if (window.WeatherAmbience) { try { WeatherAmbience.update(delta); } catch (_e) {} }
+      if (window.ObjectiveCapture) { try { ObjectiveCapture.update(delta); } catch (_e) {} }
+      if (window.TunnelNetwork) { try { TunnelNetwork.update(delta); } catch (_e) {} }
+      if (window.MeleeCombat) { try { MeleeCombat.update(delta); } catch (_e) {} }
+      if (window.VehicleDamage) { try { VehicleDamage.update(delta); } catch (_e) {} }
+      if (window.SupplyDrop) { try { SupplyDrop.update(delta); } catch (_e) {} }
+      if (window.HostageRescue) { try { HostageRescue.update(delta); } catch (_e) {} }
+      if (window.MapSystem) { try { MapSystem.update(delta); } catch (_e) {} }
+      if (window.DecoySystem) { try { DecoySystem.update(delta); } catch (_e) {} }
+      if (window.CombatDrone) { try { CombatDrone.update(delta); } catch (_e) {} }
+      if (window.ArmorSystem) { try { ArmorSystem.update(delta); } catch (_e) {} }
+      if (window.FortifiedRetreat) { try { FortifiedRetreat.update(delta); } catch (_e) {} }
+      if (window.WeatherStorm) { try { WeatherStorm.update(delta); } catch (_e) {} }
+      if (window.SpecialForces) { try { SpecialForces.update(delta); } catch (_e) {} }
+      if (window.CommandBunker) { try { CommandBunker.update(delta); } catch (_e) {} }
+      if (window.CombatSwimming) { try { CombatSwimming.update(delta); } catch (_e) {} }
+      if (window.AerialDogfight) { try { AerialDogfight.update(delta); } catch (_e) {} }
+      if (window.ForwardObserver) { try { ForwardObserver.update(delta); } catch (_e) {} }
+      if (window.CombatJump) { try { CombatJump.update(delta); } catch (_e) {} }
+      if (window.CombatEngineering) { try { CombatEngineering.update(delta); } catch (_e) {} }
+      if (window.IEDDisposal) { try { IEDDisposal.update(delta); } catch (_e) {} }
+      if (window.BattlefieldTriage) { try { BattlefieldTriage.update(delta); } catch (_e) {} }
+      if (window.FirebaseDefense) { try { FirebaseDefense.update(delta); } catch (_e) {} }
+      if (window.IntelNetwork) { try { IntelNetwork.update(delta); } catch (_e) {} }
+      if (window.NavalOperations) { try { NavalOperations.update(delta); } catch (_e) {} }
+      if (window.ArcticWarfare) { try { ArcticWarfare.update(delta); } catch (_e) {} }
+      if (window.JungleWarfare) { try { JungleWarfare.update(delta); } catch (_e) {} }
+      if (window.CheckpointAssault) { try { CheckpointAssault.update(delta); } catch (_e) {} }
+                    if (window.CommandVehicle) { try { CommandVehicle.update(delta); } catch (_e) {} }
+      if (window.BallisticShieldOps) { try { BallisticShieldOps.update(delta); } catch (_e) {} }
+      if (window.RiotResponse) { try { RiotResponse.update(delta); } catch (_e) {} }
+      if (window.FactorySabotage) { try { FactorySabotage.update(delta); } catch (_e) {} }
+      if (window.POWEscape) { try { POWEscape.update(delta); } catch (_e) {} }
+      if (window.AmbushNetwork) { try { AmbushNetwork.update(delta); } catch (_e) {} }
+      if (window.EscapeEvade) { try { EscapeEvade.update(delta); } catch (_e) {} }
+      if (window.UrbanWarfare) { try { UrbanWarfare.update(delta); } catch (_e) {} }
+      if (window.RescueDownedPilot) { try { RescueDownedPilot.update(delta); } catch (_e) {} }
+      if (window.ConvoyEscort) { try { ConvoyEscort.update(delta); } catch (_e) {} }
+      if (window.DeepRecon) { try { DeepRecon.update(delta); } catch (_e) {} }
+      if (window.SupplyChainAttack) { try { SupplyChainAttack.update(delta); } catch (_e) {} }
+      if (window.MassSurrender) { try { MassSurrender.update(delta); } catch (_e) {} }
+      if (window.SiegeTower) { try { SiegeTower.update(delta); } catch (_e) {} }
+      if (window.SniperHunt) { try { SniperHunt.update(delta); } catch (_e) {} }
+      if (window.VehicleRecovery) { try { VehicleRecovery.update(delta); } catch (_e) {} }
+      if (window.HostageStandoff) { try { HostageStandoff.update(delta); } catch (_e) {} }
+      if (window.NightVisionOps) { try { NightVisionOps.update(delta); } catch (_e) {} }
+      if (window.BridgeDemolition) { try { BridgeDemolition.update(delta); } catch (_e) {} }
+      if (window.ArtilleryDuel) { try { ArtilleryDuel.update(delta); } catch (_e) {} }
+      if (window.TunnelWarfare) { try { TunnelWarfare.update(delta); } catch (_e) {} }
+      if (window.CarrierAssault) { try { CarrierAssault.update(delta); } catch (_e) {} }
+      if (window.DroneSwarm) { try { DroneSwarm.update(delta); } catch (_e) {} }
+      if (window.ChemBioResponse) { try { ChemBioResponse.update(delta); } catch (_e) {} }
+      if (window.MedevacOps) { try { MedevacOps.update(delta); } catch (_e) {} }
+      if (window.PrisonBreak) { try { PrisonBreak.update(delta); } catch (_e) {} }
+      if (window.MountainAssault) { try { MountainAssault.update(delta); } catch (_e) {} }
+      if (window.MechSuit) { try { MechSuit.update(delta); } catch (_e) {} }
+      if (window.RiverCrossing) { try { RiverCrossing.update(delta); } catch (_e) {} }
+      if (window.CyberWarfare) { try { CyberWarfare.update(delta); } catch (_e) {} }
+      if (window.TrainAssault) { try { TrainAssault.update(delta); } catch (_e) {} }
+      if (window.NuclearShutdown) { try { NuclearShutdown.update(delta); } catch (_e) {} }
+      if (window.RadioTower) { try { RadioTower.update(delta); } catch (_e) {} }
+      if (window.MortarBarrage) { try { MortarBarrage.update(delta); } catch (_e) {} }
+      if (window.TankWarfare) { try { TankWarfare.update(delta); } catch (_e) {} }
+      if (window.DesertStorm) { try { DesertStorm.update(delta); } catch (_e) {} }
+      if (window.RefugeeConvoy) { try { RefugeeConvoy.update(delta); } catch (_e) {} }
+      if (window.BlackOpsExtraction) { try { BlackOpsExtraction.update(delta); } catch (_e) {} }
+      if (window.ZeroGravityCombat) { try { ZeroGravityCombat.update(delta); } catch (_e) {} }
+      if (window.DroneRacing) { try { DroneRacing.update(delta); } catch (_e) {} }
+      if (window.PirateShipBattle) { try { PirateShipBattle.update(delta); } catch (_e) {} }
+      if (window.GladiatorArena) { try { GladiatorArena.update(delta); } catch (_e) {} }
+      if (window.HeistPlanning) { try { HeistPlanning.update(delta); } catch (_e) {} }
+      if (window.UnderwaterBase) { try { UnderwaterBase.update(delta); } catch (_e) {} }
+      if (window.ZombieOutbreak) { try { ZombieOutbreak.update(delta); } catch (_e) {} }
+      if (window.VolcanoEscape) { try { VolcanoEscape.update(delta); } catch (_e) {} }
+      if (window.FactionStandoff) { try { FactionStandoff.update(delta); } catch (_e) {} }
+      if (window.AncientSiege) { try { AncientSiege.update(delta); } catch (_e) {} }
+      if (window.MechWarfare) { try { MechWarfare.update(delta); } catch (_e) {} }
+      if (window.DrugLord) { try { DrugLord.update(delta); } catch (_e) {} }
+      if (window.MoonBase) { try { MoonBase.update(delta); } catch (_e) {} }
+      if (window.PrisonRiot) { try { PrisonRiot.update(delta); } catch (_e) {} }
+      if (window.ArcticBase) { try { ArcticBase.update(delta); } catch (_e) {} }
+      if (window.TimeHeist) { try { TimeHeist.update(delta); } catch (_e) {} }
+      if (window.AlienInvasion) { try { AlienInvasion.update(delta); } catch (_e) {} }
+      if (window.CyberHeist) { try { CyberHeist.update(delta); } catch (_e) {} }
+      if (window.TrainRobbery) { try { TrainRobbery.update(delta); } catch (_e) {} }
+      if (window.JungleTemple) { try { JungleTemple.update(delta); } catch (_e) {} }
+      if (window.NuclearPlant) { try { NuclearPlant.update(delta); } catch (_e) {} }
+      if (window.CasinoHeist) { try { CasinoHeist.update(delta); } catch (_e) {} }
+      if (window.OilRig) { try { OilRig.update(delta); } catch (_e) {} }
+      if (window.SkyFortress) { try { SkyFortress.update(delta); } catch (_e) {} }
+      if (window.SubmarineWarfare) { try { SubmarineWarfare.update(delta); } catch (_e) {} }
+      if (window.BioLab) { try { BioLab.update(delta); } catch (_e) {} }
+      if (window.Assassination) { try { Assassination.update(delta); } catch (_e) {} }
+      if (window.SiegeDefense) { try { SiegeDefense.update(delta); } catch (_e) {} }
+      if (window.GhostMission) { try { GhostMission.update(delta); } catch (_e) {} }
+      if (window.SpaceStation) { try { SpaceStation.update(delta); } catch (_e) {} }
+      if (window.PirateCove) { try { PirateCove.update(delta); } catch (_e) {} }
+      if (window.GladiatorColosseum) { try { GladiatorColosseum.update(delta); } catch (_e) {} }
+      if (window.BunkerBreach) { try { BunkerBreach.update(delta); } catch (_e) {} }
+      if (window.VolcanoAssault) { try { VolcanoAssault.update(delta); } catch (_e) {} }
+      if (window.CargoShip) { try { CargoShip.update(delta); } catch (_e) {} }
+      if (window.WarzoneHospital) { try { WarzoneHospital.update(delta); } catch (_e) {} }
+      if (window.ArmsDealer) { try { ArmsDealer.update(delta); } catch (_e) {} }
+      if (window.HostageCrisis) { try { HostageCrisis.update(delta); } catch (_e) {} }
+      if (window.TankBattalion) { try { TankBattalion.update(delta); } catch (_e) {} }
+      if (window.ZombieApocalypse) { try { ZombieApocalypse.update(delta); } catch (_e) {} }
+      if (window.SamuraiDuel) { try { SamuraiDuel.update(delta); } catch (_e) {} }
+      if (window.NuclearSubmarine) { try { NuclearSubmarine.update(delta); } catch (_e) {} }
+      if (window.RebelUprising) { try { RebelUprising.update(delta); } catch (_e) {} }
+      if (window.MiningDisaster) { try { MiningDisaster.update(delta); } catch (_e) {} }
+      if (window.PrisonBreak) { try { PrisonBreak.update(delta); } catch (_e) {} }
+      if (window.RacingCombat) { try { RacingCombat.update(delta); } catch (_e) {} }
+      if (window.MedievalSiege) { try { MedievalSiege.update(delta); } catch (_e) {} }
+      if (window.IslandAssault) { try { IslandAssault.update(delta); } catch (_e) {} }
+      if (window.CyberpunkCity) { try { CyberpunkCity.update(delta); } catch (_e) {} }
+      if (window.DeepJungle) { try { DeepJungle.update(delta); } catch (_e) {} }
+      if (window.BattleRoyale) { try { BattleRoyale.update(delta); } catch (_e) {} }
+      if (window.CultCompound) { try { CultCompound.update(delta); } catch (_e) {} }
+      if (window.HelipadExtraction) { try { HelipadExtraction.update(delta); } catch (_e) {} }
+      if (window.DesertWarfare) { try { DesertWarfare.update(delta); } catch (_e) {} }
+      if (window.UrbanSniper) { try { UrbanSniper.update(delta); } catch (_e) {} }
+      if (window.ConvoyAmbush) { try { ConvoyAmbush.update(delta); } catch (_e) {} }
+      if (window.NukeDisarm) { try { NukeDisarm.update(delta); } catch (_e) {} }
+      if (window.StormTheCastle) { try { StormTheCastle.update(delta); } catch (_e) {} }
+      if (window.CorporateEspionage) { try { CorporateEspionage.update(delta); } catch (_e) {} }
+      if (window.AlienMothership) { try { AlienMothership.update(delta); } catch (_e) {} }
+      if (window.GoldRush) { try { GoldRush.update(delta); } catch (_e) {} }
+      if (window.UnderwaterRuins) { try { UnderwaterRuins.update(delta); } catch (_e) {} }
+      if (window.ArcticRescue) { try { ArcticRescue.update(delta); } catch (_e) {} }
+      if (window.MobWar) { try { MobWar.update(delta); } catch (_e) {} }
+      if (window.TempleOfDoom) { try { TempleOfDoom.update(delta); } catch (_e) {} }
+      if (window.AirbaseRaid) { try { AirbaseRaid.update(delta); } catch (_e) {} }
+      if (window.BlackSite) { try { BlackSite.update(delta); } catch (_e) {} }
+      if (window.SpaceMarines) { try { SpaceMarines.update(delta); } catch (_e) {} }
+      if (window.OilWar) { try { OilWar.update(delta); } catch (_e) {} }
+      if (window.MechAssault) { try { MechAssault.update(delta); } catch (_e) {} }
+      if (window.JungleAmbush) { try { JungleAmbush.update(delta); } catch (_e) {} }
+      if (window.CultBunker) { try { CultBunker.update(delta); } catch (_e) {} }
+      if (window.NuclearWinter) { try { NuclearWinter.update(delta); } catch (_e) {} }
+      if (window.FortressAssault) { try { FortressAssault.update(delta); } catch (_e) {} }
+      if (window.RobotUprising) { try { RobotUprising.update(delta); } catch (_e) {} }
+      if (window.DrugCartel) { try { DrugCartel.update(delta); } catch (_e) {} }
+      if (window.TimeHeist) { try { TimeHeist.update(delta); } catch (_e) {} }
+      if (window.PirateIsland) { try { PirateIsland.update(delta); } catch (_e) {} }
+      if (window.AvalancheEscape) { try { AvalancheEscape.update(delta); } catch (_e) {} }
+      if (window.CyberWarfare) { try { CyberWarfare.update(delta); } catch (_e) {} }
+      if (window.SiegeOfParis) { try { SiegeOfParis.update(delta); } catch (_e) {} }
+      if (window.HauntedMansion) { try { HauntedMansion.update(delta); } catch (_e) {} }
+      if (window.DiamondHeist) { try { DiamondHeist.update(delta); } catch (_e) {} }
+      if (window.WarOf1812) { try { WarOf1812.update(delta); } catch (_e) {} }
+      if (window.Jailbreak) { try { Jailbreak.update(delta); } catch (_e) {} }
+      if (window.MeteorStrike) { try { MeteorStrike.update(delta); } catch (_e) {} }
+      if (window.CloneWars) { try { CloneWars.update(delta); } catch (_e) {} }
+      if (window.VolcanoEscape) { try { VolcanoEscape.update(delta); } catch (_e) {} }
+      if (window.EmbassySiege) { try { EmbassySiege.update(delta); } catch (_e) {} }
+      if (window.NightRaid) { try { NightRaid.update(delta); } catch (_e) {} }
+      if (window.KungFuDojo) { try { KungFuDojo.update(delta); } catch (_e) {} }
+      if (window.RefugeeConvoy) { try { RefugeeConvoy.update(delta); } catch (_e) {} }
+      if (window.MarsColony) { try { MarsColony.update(delta); } catch (_e) {} }
+      if (window.SharkAttack) { try { SharkAttack.update(delta); } catch (_e) {} }
+      if (window.ColosseumBoss) { try { ColosseumBoss.update(delta); } catch (_e) {} }
+      if (window.DeepCover) { try { DeepCover.update(delta); } catch (_e) {} }
+      if (window.SpySatellite) { try { SpySatellite.update(delta); } catch (_e) {} }
+      if (window.GladiatorArena) { try { GladiatorArena.update(delta); } catch (_e) {} }
+      if (window.NukeLaunch) { try { NukeLaunch.update(delta); } catch (_e) {} }
+      if (window.HostageTrain) { try { HostageTrain.update(delta); } catch (_e) {} }
+      if (window.WaterCrisis) { try { WaterCrisis.update(delta); } catch (_e) {} }
+      if (window.MidnightCoup) { try { MidnightCoup.update(delta); } catch (_e) {} }
+      if (window.PlagueOutbreak) { try { PlagueOutbreak.update(delta); } catch (_e) {} }
+      if (window.OrbitalDefense) { try { OrbitalDefense.update(delta); } catch (_e) {} }
+      if (window.SunkenVessel) { try { SunkenVessel.update(delta); } catch (_e) {} }
+      if (window.HighriseHostage) { try { HighriseHostage.update(delta); } catch (_e) {} }
+      if (window.WarlordHunt) { try { WarlordHunt.update(delta); } catch (_e) {} }
+      if (window.SupplyDepot) { try { SupplyDepot.update(delta); } catch (_e) {} }
+      if (window.DesertAmbush) { try { DesertAmbush.update(delta); } catch (_e) {} }
+      if (window.VolcanoFortress) { try { VolcanoFortress.update(delta); } catch (_e) {} }
+      if (window.PirateRaid) { try { PirateRaid.update(delta); } catch (_e) {} }
+      if (window.SubmarineHeist) { try { SubmarineHeist.update(delta); } catch (_e) {} }
+      if (window.CasinoShootout) { try { CasinoShootout.update(delta); } catch (_e) {} }
+      if (window.ArcticSiege) { try { ArcticSiege.update(delta); } catch (_e) {} }
+      if (window.MuseumHeist) { try { MuseumHeist.update(delta); } catch (_e) {} }
+      if (window.TrainHeist) { try { TrainHeist.update(delta); } catch (_e) {} }
+      if (window.GhostTown) { try { GhostTown.update(delta); } catch (_e) {} }
+      if (window.AncientTemple) { try { AncientTemple.update(delta); } catch (_e) {} }
+      if (window.FootballStadium) { try { FootballStadium.update(delta); } catch (_e) {} }
+      if (window.PrisonEscape) { try { PrisonEscape.update(delta); } catch (_e) {} }
+      if (window.CyberpunkHeist) { try { CyberpunkHeist.update(delta); } catch (_e) {} }
+      if (window.AvalancheRescue) { try { AvalancheRescue.update(delta); } catch (_e) {} }
+      if (window.RomanConquest) { try { RomanConquest.update(delta); } catch (_e) {} }
+      if (window.OilPlatform) { try { OilPlatform.update(delta); } catch (_e) {} }
+      if (window.SamuraiSiege) { try { SamuraiSiege.update(delta); } catch (_e) {} }
+      if (window.BloodDiamond) { try { BloodDiamond.update(delta); } catch (_e) {} }
+      if (window.SpacePirates) { try { SpacePirates.update(delta); } catch (_e) {} }
+      if (window.KungFuTemple) { try { KungFuTemple.update(delta); } catch (_e) {} }
+      if (window.DeepSeaBase) { try { DeepSeaBase.update(delta); } catch (_e) {} }
+      if (window.JungleTempleRaid) { try { JungleTempleRaid.update(delta); } catch (_e) {} }
+      if (window.VikingLongship) { try { VikingLongship.update(delta); } catch (_e) {} }
+      if (window.GuerrillaWar) { try { GuerrillaWar.update(delta); } catch (_e) {} }
+      if (window.SkyscraperSiege) { try { SkyscraperSiege.update(delta); } catch (_e) {} }
+      if (window.CargoPlane) { try { CargoPlane.update(delta); } catch (_e) {} }
+      if (window.BankHeist) { try { BankHeist.update(delta); } catch (_e) {} }
+      if (window.CyberEspionage) { try { CyberEspionage.update(delta); } catch (_e) {} }
+      if (window.InsurgentCamp) { try { InsurgentCamp.update(delta); } catch (_e) {} }
+      if (window.MoonbaseAssault) { try { MoonbaseAssault.update(delta); } catch (_e) {} }
+      if (window.WitnessProtection) { try { WitnessProtection.update(delta); } catch (_e) {} }
+      if (window.CartelCompound) { try { CartelCompound.update(delta); } catch (_e) {} }
+      if (window.TokyoShowdown) { try { TokyoShowdown.update(delta); } catch (_e) {} }
+    if (window.DoomsdayVault) { try { DoomsdayVault.update(delta); } catch (_e) {} }
+    if (window.AztecRuins) { try { AztecRuins.update(delta); } catch (_e) {} }
+    if (window.CiaSafehouse) { try { CiaSafehouse.update(delta); } catch (_e) {} }
+    if (window.NeonArena) { try { NeonArena.update(delta); } catch (_e) {} }
+    if (window.GhostOps) { try { GhostOps.update(delta); } catch (_e) {} }
+    if (window.ArmsSmuggler) { try { ArmsSmuggler.update(delta); } catch (_e) {} }
+    if (window.SpaceStationSiege) { try { SpaceStationSiege.update(delta); } catch (_e) {} }
+    if (window.PrisonRiotResponse) { try { PrisonRiotResponse.update(delta); } catch (_e) {} }
+    if (window.JungleCombat) { try { JungleCombat.update(delta); } catch (_e) {} }
+    if (window.TrainHijack) { try { TrainHijack.update(delta); } catch (_e) {} }
+    if (window.BountyHunter) { try { BountyHunter.update(delta); } catch (_e) {} }
+    if (window.BioLabOutbreak) { try { BioLabOutbreak.update(delta); } catch (_e) {} }
+    if (window.AntarcticStation) { try { AntarcticStation.update(delta); } catch (_e) {} }
+    if (window.TimeParadox) { try { TimeParadox.update(delta); } catch (_e) {} }
+    if (window.NightMarketRaid) { try { NightMarketRaid.update(delta); } catch (_e) {} }
+    if (window.SubmarineHunter) { try { SubmarineHunter.update(delta); } catch (_e) {} }
+    if (window.GlacierFortress) { try { GlacierFortress.update(delta); } catch (_e) {} }
+    if (window.TempleGuardian) { try { TempleGuardian.update(delta); } catch (_e) {} }
+    if (window.DrugLabTakedown) { try { DrugLabTakedown.update(delta); } catch (_e) {} }
+    if (window.PowerPlantSiege) { try { PowerPlantSiege.update(delta); } catch (_e) {} }
+    if (window.AbandonedAsylum) { try { AbandonedAsylum.update(delta); } catch (_e) {} }
+    if (window.ArcticConvoy) { try { ArcticConvoy.update(delta); } catch (_e) {} }
+    if (window.ChemicalFactory) { try { ChemicalFactory.update(delta); } catch (_e) {} }
+    if (window.ColosseumBattle) { try { ColosseumBattle.update(delta); } catch (_e) {} }
+    if (window.BlackMarketArms) { try { BlackMarketArms.update(delta); } catch (_e) {} }
+    if (window.HarborBlockade) { try { HarborBlockade.update(delta); } catch (_e) {} }
+    if (window.MountainPass) { try { MountainPass.update(delta); } catch (_e) {} }
+    if (window.BankVault) { try { BankVault.update(delta); } catch (_e) {} }
+    if (window.IslandFortress) { try { IslandFortress.update(delta); } catch (_e) {} }
+    if (window.TrainStationSiege) { try { TrainStationSiege.update(delta); } catch (_e) {} }
+    if (window.SewersEscape) { try { SewersEscape.update(delta); } catch (_e) {} }
+    if (window.WeaponsFactory) { try { WeaponsFactory.update(delta); } catch (_e) {} }
+    if (window.ResearchStation) { try { ResearchStation.update(delta); } catch (_e) {} }
+    if (window.UndergroundFight) { try { UndergroundFight.update(delta); } catch (_e) {} }
+    if (window.FortressBreach) { try { FortressBreach.update(delta); } catch (_e) {} }
+    if (window.WetlandsAmbush) { try { WetlandsAmbush.update(delta); } catch (_e) {} }
+    if (window.SpaceColony) { try { SpaceColony.update(delta); } catch (_e) {} }
+    if (window.GlacierCave) { try { GlacierCave.update(delta); } catch (_e) {} }
+    if (window.AbandonedCity) { try { AbandonedCity.update(delta); } catch (_e) {} }
+    if (window.AirBaseAssault) { try { AirBaseAssault.update(delta); } catch (_e) {} }
+    if (window.VolcanoTemple) { try { VolcanoTemple.update(delta); } catch (_e) {} }
+    if (window.DiamondMine) { try { DiamondMine.update(delta); } catch (_e) {} }
+    if (window.OilRigSiege) { try { OilRigSiege.update(delta); } catch (_e) {} }
+    if (window.HauntedManor) { try { HauntedManor.update(delta); } catch (_e) {} }
+    if (window.ArcticResearch) { try { ArcticResearch.update(delta); } catch (_e) {} }
+    if (window.RooftopShowdown) { try { RooftopShowdown.update(delta); } catch (_e) {} }
+    if (window.UnderwaterLab) { try { UnderwaterLab.update(delta); } catch (_e) {} }
+    if (window.DesertFortress) { try { DesertFortress.update(delta); } catch (_e) {} }
+    if (window.RacingCircuit) { try { RacingCircuit.update(delta); } catch (_e) {} }
+    if (window.UndergroundBunker) { try { UndergroundBunker.update(delta); } catch (_e) {} }
+    if (window.CarnivalChaos) { try { CarnivalChaos.update(delta); } catch (_e) {} }
+    if (window.GlacierBase) { try { GlacierBase.update(delta); } catch (_e) {} }
+    if (window.MetroStation) { try { MetroStation.update(delta); } catch (_e) {} }
+    if (window.SwampVillage) { try { SwampVillage.update(delta); } catch (_e) {} }
+    if (window.GhostShip) { try { GhostShip.update(delta); } catch (_e) {} }
+    if (window.SatelliteDish) { try { SatelliteDish.update(delta); } catch (_e) {} }
+    if (window.EmbassyRaid) { try { EmbassyRaid.update(delta); } catch (_e) {} }
+    if (window.CruiseShip) { try { CruiseShip.update(delta); } catch (_e) {} }
+    if (window.BunkerComplex) { try { BunkerComplex.update(delta); } catch (_e) {} }
+    if (window.AirportSiege) { try { AirportSiege.update(delta); } catch (_e) {} }
+    if (window.MountainVillage) { try { MountainVillage.update(delta); } catch (_e) {} }
+    if (window.RefineryAssault) { try { RefineryAssault.update(delta); } catch (_e) {} }
+    if (window.SpaceDebris) { try { SpaceDebris.update(delta); } catch (_e) {} }
+    if (window.JungleAirstrip) { try { JungleAirstrip.update(delta); } catch (_e) {} }
+    if (window.SunkenWreck) { try { SunkenWreck.update(delta); } catch (_e) {} }
+    if (window.WarCrimesTrial) { try { WarCrimesTrial.update(delta); } catch (_e) {} }
+    if (window.ToxicWasteland) { try { ToxicWasteland.update(delta); } catch (_e) {} }
+    if (window.CargoTrain) { try { CargoTrain.update(delta); } catch (_e) {} }
+    if (window.TempleRuins) { try { TempleRuins.update(delta); } catch (_e) {} }
+    if (window.AbandonedMine) { try { AbandonedMine.update(delta); } catch (_e) {} }
+    if (window.FrozenTundra) { try { FrozenTundra.update(delta); } catch (_e) {} }
+    if (window.VolcanoIsland) { try { VolcanoIsland.update(delta); } catch (_e) {} }
+    if (window.FloodedCity) { try { FloodedCity.update(delta); } catch (_e) {} }
+    if (window.ChemicalPlant) { try { ChemicalPlant.update(delta); } catch (_e) {} }
+    if (window.BorderCrossing) { try { BorderCrossing.update(delta); } catch (_e) {} }
+    if (window.CrashedSatellite) { try { CrashedSatellite.update(delta); } catch (_e) {} }
+    if (window.PowerGrid) { try { PowerGrid.update(delta); } catch (_e) {} }
+    if (window.SubmarineDock) { try { SubmarineDock.update(delta); } catch (_e) {} }
+    if (window.SewageTunnels) { try { SewageTunnels.update(delta); } catch (_e) {} }
+    if (window.WarshipDeck) { try { WarshipDeck.update(delta); } catch (_e) {} }
+    if (window.HauntedVillage) { try { HauntedVillage.update(delta); } catch (_e) {} }
+    if (window.AircraftHangar) { try { AircraftHangar.update(delta); } catch (_e) {} }
+    if (window.ClockTower) { try { ClockTower.update(delta); } catch (_e) {} }
+    if (window.SpaceElevator) { try { SpaceElevator.update(delta); } catch (_e) {} }
+    if (window.CitySewer) { try { CitySewer.update(delta); } catch (_e) {} }
+    if (window.NuclearBunker) { try { NuclearBunker.update(delta); } catch (_e) {} }
+    if (window.JungleCamp) { try { JungleCamp.update(delta); } catch (_e) {} }
+    if (window.AuctionHouse) { try { AuctionHouse.update(delta); } catch (_e) {} }
+    if (window.DamAssault) { try { DamAssault.update(delta); } catch (_e) {} }
+    if (window.ArcticOutpost) { try { ArcticOutpost.update(delta); } catch (_e) {} }
+    if (window.CourtroomSiege) { try { CourtroomSiege.update(delta); } catch (_e) {} }
+    if (window.OilPipeline) { try { OilPipeline.update(delta); } catch (_e) {} }
+    if (window.TechCampus) { try { TechCampus.update(delta); } catch (_e) {} }
+    if (window.MedievalFortress) { try { MedievalFortress.update(delta); } catch (_e) {} }
+    if (window.SkiResort) { try { SkiResort.update(delta); } catch (_e) {} }
+    if (window.JungleRiver) { try { JungleRiver.update(delta); } catch (_e) {} }
+    if (window.BunkerHill) { try { BunkerHill.update(delta); } catch (_e) {} }
+    if (window.DataCenter) { try { DataCenter.update(delta); } catch (_e) {} }
+    if (window.PirateFortress) { try { PirateFortress.update(delta); } catch (_e) {} }
+    if (window.RooftopGarden) { try { RooftopGarden.update(delta); } catch (_e) {} }
+    if (window.BurningCity) { try { BurningCity.update(delta); } catch (_e) {} }
+    if (window.SwampLab) { try { SwampLab.update(delta); } catch (_e) {} }
+    if (window.FloatingIsland) { try { FloatingIsland.update(delta); } catch (_e) {} }
+    if (window.RuralAmbush) { try { RuralAmbush.update(delta); } catch (_e) {} }
+    if (window.LookoutTower) { try { LookoutTower.update(delta); } catch (_e) {} }
+    if (window.UndergroundMarket) { try { UndergroundMarket.update(delta); } catch (_e) {} }
+    if (window.SkyPlatform) { try { SkyPlatform.update(delta); } catch (_e) {} }
+    if (window.TrainDepot) { try { TrainDepot.update(delta); } catch (_e) {} }
+    if (window.OrbitalStation) { try { OrbitalStation.update(delta); } catch (_e) {} }
+    if (window.DesertOutpost) { try { DesertOutpost.update(delta); } catch (_e) {} }
+    if (window.HarborAssault) { try { HarborAssault.update(delta); } catch (_e) {} }
+    if (window.CanyonRaid) { try { CanyonRaid.update(delta); } catch (_e) {} }
+    if (window.ShippingHub) { try { ShippingHub.update(delta); } catch (_e) {} }
+    if (window.DowntownSiege) { try { DowntownSiege.update(delta); } catch (_e) {} }
+    if (window.HighwayChase) { try { HighwayChase.update(delta); } catch (_e) {} }
+    if (window.WaterfallAmbush) { try { WaterfallAmbush.update(delta); } catch (_e) {} }
+    if (window.ShipwreckReef) { try { ShipwreckReef.update(delta); } catch (_e) {} }
+    if (window.AncientRuins) { try { AncientRuins.update(delta); } catch (_e) {} }
+    if (window.GeothermalPlant) { try { GeothermalPlant.update(delta); } catch (_e) {} }
+    if (window.MissileSiloB) { try { MissileSiloB.update(delta); } catch (_e) {} }
+    if (window.UnderwaterCave) { try { UnderwaterCave.update(delta); } catch (_e) {} }
+    if (window.ForestAmbush) { try { ForestAmbush.update(delta); } catch (_e) {} }
+    if (window.ArenaCombat) { try { ArenaCombat.update(delta); } catch (_e) {} }
+    if (window.VolcanoObservatory) { try { VolcanoObservatory.update(delta); } catch (_e) {} }
+    if (window.MiningColony) { try { MiningColony.update(delta); } catch (_e) {} }
+    if (window.AirshipBattle) { try { AirshipBattle.update(delta); } catch (_e) {} }
+    if (window.PrisonEscapeB) { try { PrisonEscapeB.update(delta); } catch (_e) {} }
+    if (window.IslandBase) { try { IslandBase.update(delta); } catch (_e) {} }
+    if (window.CyberVault) { try { CyberVault.update(delta); } catch (_e) {} }
+    if (window.HelipadAssault) { try { HelipadAssault.update(delta); } catch (_e) {} }
+    if (window.ChemicalDepot) { try { ChemicalDepot.update(delta); } catch (_e) {} }
+    if (window.MonasteryRaid) { try { MonasteryRaid.update(delta); } catch (_e) {} }
+    if (window.PipelineSabotage) { try { PipelineSabotage.update(delta); } catch (_e) {} }
+    if (window.IceCave) { try { IceCave.update(delta); } catch (_e) {} }
+    if (window.DroneFactory) { try { DroneFactory.update(delta); } catch (_e) {} }
+    if (window.NightMarket) { try { NightMarket.update(delta); } catch (_e) {} }
+    if (window.WetlandsPatrol) { try { WetlandsPatrol.update(delta); } catch (_e) {} }
+    if (window.NuclearLab) { try { NuclearLab.update(delta); } catch (_e) {} }
+    if (window.TankGraveyard) { try { TankGraveyard.update(delta); } catch (_e) {} }
+    if (window.SatelliteBase) { try { SatelliteBase.update(delta); } catch (_e) {} }
+    if (window.WarRoom) { try { WarRoom.update(delta); } catch (_e) {} }
+    if (window.RescueMission) { try { RescueMission.update(delta); } catch (_e) {} }
+    if (window.SandstormBase) { try { SandstormBase.update(delta); } catch (_e) {} }
+    if (window.WarRuins) { try { WarRuins.update(delta); } catch (_e) {} }
+    if (window.FogValley) { try { FogValley.update(delta); } catch (_e) {} }
+    if (window.SwampFort) { try { SwampFort.update(delta); } catch (_e) {} }
+    if (window.StormBeach) { try { StormBeach.update(delta); } catch (_e) {} }
+    if (window.AshFields) { try { AshFields.update(delta); } catch (_e) {} }
+    if (window.MidnightPort) { try { MidnightPort.update(delta); } catch (_e) {} }
+    if (window.FireCamp) { try { FireCamp.update(delta); } catch (_e) {} }
+    if (window.IronWall) { try { IronWall.update(delta); } catch (_e) {} }
+    if (window.VaporZone) { try { VaporZone.update(delta); } catch (_e) {} }
+    if (window.ToxicSwamp) { try { ToxicSwamp.update(delta); } catch (_e) {} }
+    if (window.RadarHill) { try { RadarHill.update(delta); } catch (_e) {} }
+    if (window.RebelCamp) { try { RebelCamp.update(delta); } catch (_e) {} }
+    if (window.DeathRidge) { try { DeathRidge.update(delta); } catch (_e) {} }
+    if (window.GhostFort) { try { GhostFort.update(delta); } catch (_e) {} }
+    if (window.AcidMarsh) { try { AcidMarsh.update(delta); } catch (_e) {} }
+    if (window.WarRelic) { try { WarRelic.update(delta); } catch (_e) {} }
+    if (window.StormWall) { try { StormWall.update(delta); } catch (_e) {} }
+    if (window.CyberGrid) { try { CyberGrid.update(delta); } catch (_e) {} }
+    if (window.RustBelt) { try { RustBelt.update(delta); } catch (_e) {} }
+    if (window.RockFortress) { try { RockFortress.update(delta); } catch (_e) {} }
+    if (window.WireZone) { try { WireZone.update(delta); } catch (_e) {} }
+    if (window.PlagueZone) { try { PlagueZone.update(delta); } catch (_e) {} }
+    if (window.BlastCrater) { try { BlastCrater.update(delta); } catch (_e) {} }
+    if (window.SteelCity) { try { SteelCity.update(delta); } catch (_e) {} }
+    if (window.DarkHarbor) { try { DarkHarbor.update(delta); } catch (_e) {} }
+    if (window.BloodTide) { try { BloodTide.update(delta); } catch (_e) {} }
+    if (window.CaveFortress) { try { CaveFortress.update(delta); } catch (_e) {} }
+    if (window.AshLake) { try { AshLake.update(delta); } catch (_e) {} }
+    if (window.LavaRidge) { try { LavaRidge.update(delta); } catch (_e) {} }
+    if (window.Oremine) { try { Oremine.update(delta); } catch (_e) {} }
+    if (window.TrenchCity) { try { TrenchCity.update(delta); } catch (_e) {} }
+    if (window.BombRange) { try { BombRange.update(delta); } catch (_e) {} }
+    if (window.FrostKeep) { try { FrostKeep.update(delta); } catch (_e) {} }
+        if (window.WarChapel) { try { WarChapel.update(delta); } catch (_e) {} }
+        if (window.BrokenDam) { try { BrokenDam.update(delta); } catch (_e) {} }
+        if (window.EchoValley) { try { EchoValley.update(delta); } catch (_e) {} }
+        if (window.SlagHeap) { try { SlagHeap.update(delta); } catch (_e) {} }
+        if (window.CryptKeep) { try { CryptKeep.update(delta); } catch (_e) {} }
+        if (window.SkyCitadel) { try { SkyCitadel.update(delta); } catch (_e) {} }
+        if (window.WarGallery) { try { WarGallery.update(delta); } catch (_e) {} }
+        if (window.SaltMine) { try { SaltMine.update(delta); } catch (_e) {} }
+        if (window.WarBunker) { try { WarBunker.update(delta); } catch (_e) {} }
+        if (window.MachineShop) { try { MachineShop.update(delta); } catch (_e) {} }
+        if (window.GlacierFort) { try { GlacierFort.update(delta); } catch (_e) {} }
+        if (window.IronDepot) { try { IronDepot.update(delta); } catch (_e) {} }
+        if (window.RustYard) { try { RustYard.update(delta); } catch (_e) {} }
+        if (window.BogFort) { try { BogFort.update(delta); } catch (_e) {} }
+        if (window.WireNest) { try { WireNest.update(delta); } catch (_e) {} }
+        if (window.MudCity) { try { MudCity.update(delta); } catch (_e) {} }
+        if (window.DarkMesa) { try { DarkMesa.update(delta); } catch (_e) {} }
+        if (window.RuinPort) { try { RuinPort.update(delta); } catch (_e) {} }
+        if (window.AshDock) { try { AshDock.update(delta); } catch (_e) {} }
+        if (window.SwampGate) { try { SwampGate.update(delta); } catch (_e) {} }
+        if (window.FireRidge) { try { FireRidge.update(delta); } catch (_e) {} }
+        if (window.StormPort) { try { StormPort.update(delta); } catch (_e) {} }
+        if (window.RiverGate) { try { RiverGate.update(delta); } catch (_e) {} }
+        if (window.DustHarbor) { try { DustHarbor.update(delta); } catch (_e) {} }
+        if (window.GrimYard) { try { GrimYard.update(delta); } catch (_e) {} }
+        if (window.IronShore) { try { IronShore.update(delta); } catch (_e) {} }
+        if (window.TarPit) { try { TarPit.update(delta); } catch (_e) {} }
+        if (window.SaltLake) { try { SaltLake.update(delta); } catch (_e) {} }
+        if (window.WarArch) { try { WarArch.update(delta); } catch (_e) {} }
+        if (window.CragFort) { try { CragFort.update(delta); } catch (_e) {} }
+        if (window.VoltDam) { try { VoltDam.update(delta); } catch (_e) {} }
+        if (window.SootMill) { try { SootMill.update(delta); } catch (_e) {} }
+        if (window.PipeYard) { try { PipeYard.update(delta); } catch (_e) {} }
+        if (window.CoalRidge) { try { CoalRidge.update(delta); } catch (_e) {} }
+        if (window.GunWharf) { try { GunWharf.update(delta); } catch (_e) {} }
+        if (window.OrePit) { try { OrePit.update(delta); } catch (_e) {} }
+        if (window.FogBase) { try { FogBase.update(delta); } catch (_e) {} }
+        if (window.WaxFort) { try { WaxFort.update(delta); } catch (_e) {} }
+        if (window.HexTown) { try { HexTown.update(delta); } catch (_e) {} }
+        if (window.KeelYard) { try { KeelYard.update(delta); } catch (_e) {} }
+        if (window.AshVale) { try { AshVale.update(delta); } catch (_e) {} }
+        if (window.BogMill) { try { BogMill.update(delta); } catch (_e) {} }
+        if (window.LavaKeep) { try { LavaKeep.update(delta); } catch (_e) {} }
+        if (window.TideGate) { try { TideGate.update(delta); } catch (_e) {} }
+        if (window.ZincMine) { try { ZincMine.update(delta); } catch (_e) {} }
+        if (window.ClayFort) { try { ClayFort.update(delta); } catch (_e) {} }
+        if (window.DuskCamp) { try { DuskCamp.update(delta); } catch (_e) {} }
+        if (window.BoneRidge) { try { BoneRidge.update(delta); } catch (_e) {} }
+        if (window.FogMill) { try { FogMill.update(delta); } catch (_e) {} }
+        if (window.SaltFlat) { try { SaltFlat.update(delta); } catch (_e) {} }
+        if (window.WarCove) { try { WarCove.update(delta); } catch (_e) {} }
+        if (window.IronGrove) { try { IronGrove.update(delta); } catch (_e) {} }
+        if (window.DustPit) { try { DustPit.update(delta); } catch (_e) {} }
+        if (window.MudPass) { try { MudPass.update(delta); } catch (_e) {} }
+        if (window.CoalBay) { try { CoalBay.update(delta); } catch (_e) {} }
+        if (window.FlintWall) { try { FlintWall.update(delta); } catch (_e) {} }
+        if (window.StormGate) { try { StormGate.update(delta); } catch (_e) {} }
+        if (window.TarDock) { try { TarDock.update(delta); } catch (_e) {} }
+        if (window.OilDrum) { try { OilDrum.update(delta); } catch (_e) {} }
+        if (window.PineFort) { try { PineFort.update(delta); } catch (_e) {} }
+        if (window.CragMill) { try { CragMill.update(delta); } catch (_e) {} }
+        if (window.SiltBay) { try { SiltBay.update(delta); } catch (_e) {} }
+        if (window.DuneFort) { try { DuneFort.update(delta); } catch (_e) {} }
+        if (window.RockQuay) { try { RockQuay.update(delta); } catch (_e) {} }
+        if (window.AshFort) { try { AshFort.update(delta); } catch (_e) {} }
+        if (window.GrimPort) { try { GrimPort.update(delta); } catch (_e) {} }
+        if (window.FenGate) { try { FenGate.update(delta); } catch (_e) {} }
+        if (window.MossKeep) { try { MossKeep.update(delta); } catch (_e) {} }
+        if (window.RustCamp) { try { RustCamp.update(delta); } catch (_e) {} }
+        if (window.WireFort) { try { WireFort.update(delta); } catch (_e) {} }
+        if (window.ChalkPit) { try { ChalkPit.update(delta); } catch (_e) {} }
+        if (window.EmberVale) { try { EmberVale.update(delta); } catch (_e) {} }
+        if (window.GlassDome) { try { GlassDome.update(delta); } catch (_e) {} }
+        if (window.LochGate) { try { LochGate.update(delta); } catch (_e) {} }
+        if (window.CokeYard) { try { CokeYard.update(delta); } catch (_e) {} }
+        if (window.PeatBog) { try { PeatBog.update(delta); } catch (_e) {} }
+        if (window.IronTomb) { try { IronTomb.update(delta); } catch (_e) {} }
+        if (window.WeldYard) { try { WeldYard.update(delta); } catch (_e) {} }
+        if (window.BileFort) { try { BileFort.update(delta); } catch (_e) {} }
+        if (window.MastHill) { try { MastHill.update(delta); } catch (_e) {} }
+    if (window.ClayDock) { try { ClayDock.update(delta); } catch (_e) {} }
+    if (window.FrostCamp) { try { FrostCamp.update(delta); } catch (_e) {} }
+    if (window.RockLab) { try { RockLab.update(delta); } catch (_e) {} }
+    if (window.HempCamp) { try { HempCamp.update(delta); } catch (_e) {} }
+    if (window.FumeGate) { try { FumeGate.update(delta); } catch (_e) {} }
+    if (window.CoalDock) { try { CoalDock.update(delta); } catch (_e) {} }
+    if (window.MudKeep) { try { MudKeep.update(delta); } catch (_e) {} }
+    if (window.GustBase) { try { GustBase.update(delta); } catch (_e) {} }
+    if (window.SlagPit) { try { SlagPit.update(delta); } catch (_e) {} }
+    if (window.BoneKeep) { try { BoneKeep.update(delta); } catch (_e) {} }
+    if (window.WireCamp) { try { WireCamp.update(delta); } catch (_e) {} }
+    if (window.PeatFort) { try { PeatFort.update(delta); } catch (_e) {} }
+    if (window.LimeDock) { try { LimeDock.update(delta); } catch (_e) {} }
+    if (window.IronWharf) { try { IronWharf.update(delta); } catch (_e) {} }
+    if (window.CragBase) { try { CragBase.update(delta); } catch (_e) {} }
+    if (window.FlakTower) { try { FlakTower.update(delta); } catch (_e) {} }
+    if (window.VoltKeep) { try { VoltKeep.update(delta); } catch (_e) {} }
+    if (window.DuskForge) { try { DuskForge.update(delta); } catch (_e) {} }
+    if (window.SandKeep) { try { SandKeep.update(delta); } catch (_e) {} }
+    if (window.FenDock) { try { FenDock.update(delta); } catch (_e) {} }
+    if (window.TarBase) { try { TarBase.update(delta); } catch (_e) {} }
+    if (window.LochFort) { try { LochFort.update(delta); } catch (_e) {} }
+    if (window.StoneBay) { try { StoneBay.update(delta); } catch (_e) {} }
+    if (window.MireCamp) { try { MireCamp.update(delta); } catch (_e) {} }
+    if (window.ZincKeep) { try { ZincKeep.update(delta); } catch (_e) {} }
+    if (window.CrowBase) { try { CrowBase.update(delta); } catch (_e) {} }
+    if (window.BarkCamp) { try { BarkCamp.update(delta); } catch (_e) {} }
+    if (window.GaleFort) { try { GaleFort.update(delta); } catch (_e) {} }
+    if (window.KeelDock) { try { KeelDock.update(delta); } catch (_e) {} }
+    if (window.IronRidge) { try { IronRidge.update(delta); } catch (_e) {} }
+    if (window.AshTower) { try { AshTower.update(delta); } catch (_e) {} }
+    if (window.MudGate) { try { MudGate.update(delta); } catch (_e) {} }
+    if (window.GrubCamp) { try { GrubCamp.update(delta); } catch (_e) {} }
+    if (window.VineFort) { try { VineFort.update(delta); } catch (_e) {} }
+    if (window.SeedBase) { try { SeedBase.update(delta); } catch (_e) {} }
+    if (window.HornKeep) { try { HornKeep.update(delta); } catch (_e) {} }
+    if (window.ReelDock) { try { ReelDock.update(delta); } catch (_e) {} }
+    if (window.ClayRidge) { try { ClayRidge.update(delta); } catch (_e) {} }
+    if (window.DriftCamp) { try { DriftCamp.update(delta); } catch (_e) {} }
+    if (window.PikeGate) { try { PikeGate.update(delta); } catch (_e) {} }
+    if (window.GoreKeep) { try { GoreKeep.update(delta); } catch (_e) {} }
+    if (window.ThornBase) { try { ThornBase.update(delta); } catch (_e) {} }
+    if (window.FellCamp) { try { FellCamp.update(delta); } catch (_e) {} }
+    if (window.SootBase) { try { SootBase.update(delta); } catch (_e) {} }
+    if (window.MossDock) { try { MossDock.update(delta); } catch (_e) {} }
+    if (window.IceRidge) { try { IceRidge.update(delta); } catch (_e) {} }
+    if (window.BrineGate) { try { BrineGate.update(delta); } catch (_e) {} }
+    if (window.KelpCamp) { try { KelpCamp.update(delta); } catch (_e) {} }
+        if (window.DuneCamp) { try { DuneCamp.update(delta); } catch (_e) {} }
+        if (window.HazeFort) { try { HazeFort.update(delta); } catch (_e) {} }
+        if (window.ArchCamp) { try { ArchCamp.update(delta); } catch (_e) {} }
+        if (window.QuayKeep) { try { QuayKeep.update(delta); } catch (_e) {} }
+        if (window.RustRidge) { try { RustRidge.update(delta); } catch (_e) {} }
+        if (window.BileCamp) { try { BileCamp.update(delta); } catch (_e) {} }
+        if (window.GritDock) { try { GritDock.update(delta); } catch (_e) {} }
+        if (window.JadeFort) { try { JadeFort.update(delta); } catch (_e) {} }
+        if (window.MesaPost) { try { MesaPost.update(delta); } catch (_e) {} }
+        if (window.CoveBase) { try { CoveBase.update(delta); } catch (_e) {} }
+        if (window.GlenFort) { try { GlenFort.update(delta); } catch (_e) {} }
+        if (window.ValeCamp) { try { ValeCamp.update(delta); } catch (_e) {} }
+        if (window.ReefKeep) { try { ReefKeep.update(delta); } catch (_e) {} }
+        if (window.PeatDock) { try { PeatDock.update(delta); } catch (_e) {} }
+        if (window.HolmCamp) { try { HolmCamp.update(delta); } catch (_e) {} }
+        if (window.CragKeep) { try { CragKeep.update(delta); } catch (_e) {} }
+        if (window.LochBase) { try { LochBase.update(delta); } catch (_e) {} }
+        if (window.TarnKeep) { try { TarnKeep.update(delta); } catch (_e) {} }
+        if (window.FossCamp) { try { FossCamp.update(delta); } catch (_e) {} }
+        if (window.MireDock) { try { MireDock.update(delta); } catch (_e) {} }
+        if (window.KnollPost) { try { KnollPost.update(delta); } catch (_e) {} }
+        if (window.BraeFort) { try { BraeFort.update(delta); } catch (_e) {} }
+        if (window.BurnCamp) { try { BurnCamp.update(delta); } catch (_e) {} }
+        if (window.FellKeep) { try { FellKeep.update(delta); } catch (_e) {} }
+        if (window.SumpBase) { try { SumpBase.update(delta); } catch (_e) {} }
+        if (window.RiftCamp) { try { RiftCamp.update(delta); } catch (_e) {} }
+        if (window.GustKeep) { try { GustKeep.update(delta); } catch (_e) {} }
+        if (window.ScudPost) { try { ScudPost.update(delta); } catch (_e) {} }
+        if (window.WoldCamp) { try { WoldCamp.update(delta); } catch (_e) {} }
+        if (window.FenKeep) { try { FenKeep.update(delta); } catch (_e) {} }
+        if (window.CistDock) { try { CistDock.update(delta); } catch (_e) {} }
+        if (window.PikeFort) { try { PikeFort.update(delta); } catch (_e) {} }
+        if (window.ShawCamp) { try { ShawCamp.update(delta); } catch (_e) {} }
+        if (window.GillDock) { try { GillDock.update(delta); } catch (_e) {} }
+        if (window.HoltKeep) { try { HoltKeep.update(delta); } catch (_e) {} }
+        if (window.MerePost) { try { MerePost.update(delta); } catch (_e) {} }
+        if (window.BeckFort) { try { BeckFort.update(delta); } catch (_e) {} }
+        if (window.CloughBase) { try { CloughBase.update(delta); } catch (_e) {} }
+        if (window.SykeCamp) { try { SykeCamp.update(delta); } catch (_e) {} }
+        if (window.DaleKeep) { try { DaleKeep.update(delta); } catch (_e) {} }
+        if (window.GladePost) { try { GladePost.update(delta); } catch (_e) {} }
+        if (window.CombeKeep) { try { CombeKeep.update(delta); } catch (_e) {} }
+        if (window.WickBase) { try { WickBase.update(delta); } catch (_e) {} }
+        if (window.NookCamp) { try { NookCamp.update(delta); } catch (_e) {} }
+        if (window.WealdFort) { try { WealdFort.update(delta); } catch (_e) {} }
+        if (window.ChaseDock) { try { ChaseDock.update(delta); } catch (_e) {} }
+        if (window.DenePost) { try { DenePost.update(delta); } catch (_e) {} }
+        if (window.GroveKeep) { try { GroveKeep.update(delta); } catch (_e) {} }
+        if (window.FenBase) { try { FenBase.update(delta); } catch (_e) {} }
+        if (window.LeatCamp) { try { LeatCamp.update(delta); } catch (_e) {} }
+        if (window.CarrKeep) { try { CarrKeep.update(delta); } catch (_e) {} }
+        if (window.HoweFort) { try { HoweFort.update(delta); } catch (_e) {} }
+        if (window.StrathPost) { try { StrathPost.update(delta); } catch (_e) {} }
+        if (window.ShielDock) { try { ShielDock.update(delta); } catch (_e) {} }
+        if (window.CroftCamp) { try { CroftCamp.update(delta); } catch (_e) {} }
+        if (window.InchPost) { try { InchPost.update(delta); } catch (_e) {} }
+        if (window.BreckBase) { try { BreckBase.update(delta); } catch (_e) {} }
+        if (window.LinksCamp) { try { LinksCamp.update(delta); } catch (_e) {} }
+        if (window.HeathKeep) { try { HeathKeep.update(delta); } catch (_e) {} }
+        if (window.MossFort) { try { MossFort.update(delta); } catch (_e) {} }
+        if (window.SladePost) { try { SladePost.update(delta); } catch (_e) {} }
+        if (window.CoombDock) { try { CoombDock.update(delta); } catch (_e) {} }
+        if (window.HangerCamp) { try { HangerCamp.update(delta); } catch (_e) {} }
+        if (window.BoltKeep) { try { BoltKeep.update(delta); } catch (_e) {} }
+        if (window.BieldBase) { try { BieldBase.update(delta); } catch (_e) {} }
+        if (window.ScarpCamp) { try { ScarpCamp.update(delta); } catch (_e) {} }
+        if (window.LoughPost) { try { LoughPost.update(delta); } catch (_e) {} }
+        if (window.HaughKeep) { try { HaughKeep.update(delta); } catch (_e) {} }
+        if (window.CleuchDock) { try { CleuchDock.update(delta); } catch (_e) {} }
+        if (window.CarseFort) { try { CarseFort.update(delta); } catch (_e) {} }
+        if (window.KnapBase) { try { KnapBase.update(delta); } catch (_e) {} }
+        if (window.YairCamp) { try { YairCamp.update(delta); } catch (_e) {} }
+    if (window.SlumWarfare) { try { SlumWarfare.update(delta); } catch (_e) {} }
+    if (window.CliffOutpost) { try { CliffOutpost.update(delta); } catch (_e) {} }
+    if (window.FortressGate) { try { FortressGate.update(delta); } catch (_e) {} }
+    if (window.HighriseAssault) { try { HighriseAssault.update(delta); } catch (_e) {} }
+    if (window.OvergrownShrine) { try { OvergrownShrine.update(delta); } catch (_e) {} }
+    if (window.SignalTower) { try { SignalTower.update(delta); } catch (_e) {} }
+    if (window.AmmoBunker) { try { AmmoBunker.update(delta); } catch (_e) {} }
+    if (window.LootVault) { try { LootVault.update(delta); } catch (_e) {} }
+    if (window.CoastalCliff) { try { CoastalCliff.update(delta); } catch (_e) {} }
+    if (window.TacticalHub) { try { TacticalHub.update(delta); } catch (_e) {} }
+    if (window.SubwayAssault) { try { SubwayAssault.update(delta); } catch (_e) {} }
+    if (window.CargoDock) { try { CargoDock.update(delta); } catch (_e) {} }
+    if (window.WinterVillage) { try { WinterVillage.update(delta); } catch (_e) {} }
+    if (window.PrisonTowerB) { try { PrisonTowerB.update(delta); } catch (_e) {} }
+    if (window.AirfieldRaid) { try { AirfieldRaid.update(delta); } catch (_e) {} }
+    if (window.CyberBunker) { try { CyberBunker.update(delta); } catch (_e) {} }
+    if (window.SwampFortress) { try { SwampFortress.update(delta); } catch (_e) {} }
+    if (window.DuneFortress) { try { DuneFortress.update(delta); } catch (_e) {} }
+    if (window.EvacuationZone) { try { EvacuationZone.update(delta); } catch (_e) {} }
+    if (window.JunkyardWar) { try { JunkyardWar.update(delta); } catch (_e) {} }
+    if (window.CasinoFloor) { try { CasinoFloor.update(delta); } catch (_e) {} }
+    if (window.MetroHub) { try { MetroHub.update(delta); } catch (_e) {} }
+    if (window.FactoryAssault) { try { FactoryAssault.update(delta); } catch (_e) {} }
+    if (window.ArmoryRaid) { try { ArmoryRaid.update(delta); } catch (_e) {} }
+    if (window.CommandPost) { try { CommandPost.update(delta); } catch (_e) {} }
+    if (window.QuarantineZone) { try { QuarantineZone.update(delta); } catch (_e) {} }
+    if (window.WaterTreatment) { try { WaterTreatment.update(delta); } catch (_e) {} }
+    if (window.MountainShrine) { try { MountainShrine.update(delta); } catch (_e) {} }
+    if (window.AirborneAssault) { try { AirborneAssault.update(delta); } catch (_e) {} }
+    if (window.MineComplex) { try { MineComplex.update(delta); } catch (_e) {} }
+    if (window.SatelliteLaunch) { try { SatelliteLaunch.update(delta); } catch (_e) {} }
+    if (window.RuinsCity) { try { RuinsCity.update(delta); } catch (_e) {} }
+    if (window.FuelStation) { try { FuelStation.update(delta); } catch (_e) {} }
+    if (window.BeachLanding) { try { BeachLanding.update(delta); } catch (_e) {} }
+    if (window.RooftopSniper) { try { RooftopSniper.update(delta); } catch (_e) {} }
+    if (window.CrashedChopper) { try { CrashedChopper.update(delta); } catch (_e) {} }
+    if (window.PalaceRaid) { try { PalaceRaid.update(delta); } catch (_e) {} }
+    if (window.FloodZone) { try { FloodZone.update(delta); } catch (_e) {} }
+    if (window.ScrapyardSiege) { try { ScrapyardSiege.update(delta); } catch (_e) {} }
+    if (window.RadioBunker) { try { RadioBunker.update(delta); } catch (_e) {} }
+    if (window.CoastalFortress) { try { CoastalFortress.update(delta); } catch (_e) {} }
+    if (window.AncientFort) { try { AncientFort.update(delta); } catch (_e) {} }
+    if (window.FrozenBase) { try { FrozenBase.update(delta); } catch (_e) {} }
+    if (window.LavaFlow) { try { LavaFlow.update(delta); } catch (_e) {} }
+    if (window.AbandonedPrison) { try { AbandonedPrison.update(delta); } catch (_e) {} }
+    if (window.CanyonBase) { try { CanyonBase.update(delta); } catch (_e) {} }
+    if (window.DarkMarket) { try { DarkMarket.update(delta); } catch (_e) {} }
+    if (window.ShippingLane) { try { ShippingLane.update(delta); } catch (_e) {} }
+    if (window.NuclearShelter) { try { NuclearShelter.update(delta); } catch (_e) {} }
+    if (window.ChurchSiege) { try { ChurchSiege.update(delta); } catch (_e) {} }
+    if (window.ResortSiege) { try { ResortSiege.update(delta); } catch (_e) {} }
+    if (window.NightFactory) { try { NightFactory.update(delta); } catch (_e) {} }
+    if (window.MountaintopBase) { try { MountaintopBase.update(delta); } catch (_e) {} }
+    if (window.BunkerNetwork) { try { BunkerNetwork.update(delta); } catch (_e) {} }
+    if (window.ReconPost) { try { ReconPost.update(delta); } catch (_e) {} }
+    if (window.MuseumAssault) { try { MuseumAssault.update(delta); } catch (_e) {} }
+    if (window.StagingArea) { try { StagingArea.update(delta); } catch (_e) {} }
+    if (window.GhostVillage) { try { GhostVillage.update(delta); } catch (_e) {} }
+    if (window.RiotZone) { try { RiotZone.update(delta); } catch (_e) {} }
+    if (window.Colosseum) { try { Colosseum.update(delta); } catch (_e) {} }
+    if (window.MazeFortress) { try { MazeFortress.update(delta); } catch (_e) {} }
+    if (window.SpaceHub) { try { SpaceHub.update(delta); } catch (_e) {} }
+    if (window.PolarStation) { try { PolarStation.update(delta); } catch (_e) {} }
+    if (window.SunkenShip) { try { SunkenShip.update(delta); } catch (_e) {} }
+    if (window.RadarDome) { try { RadarDome.update(delta); } catch (_e) {} }
+    if (window.ShantyFortress) { try { ShantyFortress.update(delta); } catch (_e) {} }
+    if (window.CliffSummit) { try { CliffSummit.update(delta); } catch (_e) {} }
+    if (window.ToxicPlant) { try { ToxicPlant.update(delta); } catch (_e) {} }
+    if (window.CraterWar) { try { CraterWar.update(delta); } catch (_e) {} }
+    if (window.WarCamp) { try { WarCamp.update(delta); } catch (_e) {} }
+    if (window.SnowFort) { try { SnowFort.update(delta); } catch (_e) {} }
+    if (window.WarIsland) { try { WarIsland.update(delta); } catch (_e) {} }
+    if (window.DeepBase) { try { DeepBase.update(delta); } catch (_e) {} }
+    if (window.VoltBase) { try { VoltBase.update(delta); } catch (_e) {} }
+    if (window.TempleRaid) { try { TempleRaid.update(delta); } catch (_e) {} }
+    if (window.MagmaBase) { try { MagmaBase.update(delta); } catch (_e) {} }
+    if (window.TundraBase) { try { TundraBase.update(delta); } catch (_e) {} }
+    if (window.OrbitalPlatform) { try { OrbitalPlatform.update(delta); } catch (_e) {} }
+    if (window.TrenchAssault) { try { TrenchAssault.update(delta); } catch (_e) {} }
+    if (window.WaterfallBase) { try { WaterfallBase.update(delta); } catch (_e) {} }
+    if (window.VaultRaid) { try { VaultRaid.update(delta); } catch (_e) {} }
+    if (window.SpaceDock) { try { SpaceDock.update(delta); } catch (_e) {} }
+    if (window.LavaCave) { try { LavaCave.update(delta); } catch (_e) {} }
+    if (window.NeonCity) { try { NeonCity.update(delta); } catch (_e) {} }
+    if (window.FortressPeak) { try { FortressPeak.update(delta); } catch (_e) {} }
+    if (window.ThermalPlant) { try { ThermalPlant.update(delta); } catch (_e) {} }
+    if (window.TidalBase) { try { TidalBase.update(delta); } catch (_e) {} }
+    if (window.SkyBase) { try { SkyBase.update(delta); } catch (_e) {} }
+    if (window.SewerNetwork) { try { SewerNetwork.update(delta); } catch (_e) {} }
+    if (window.CaveAmbush) { try { CaveAmbush.update(delta); } catch (_e) {} }
+    if (window.TowerSiege) { try { TowerSiege.update(delta); } catch (_e) {} }
+    if (window.CyberDome) { try { CyberDome.update(delta); } catch (_e) {} }
+    if (window.JungleVillage) { try { JungleVillage.update(delta); } catch (_e) {} }
+    if (window.GlacierVault) { try { GlacierVault.update(delta); } catch (_e) {} }
+    if (window.StormTower) { try { StormTower.update(delta); } catch (_e) {} }
+    if (window.SubterraneanBase) { try { SubterraneanBase.update(delta); } catch (_e) {} }
+    if (window.SiegeCamp) { try { SiegeCamp.update(delta); } catch (_e) {} }
+    if (window.VolcanoRim) { try { VolcanoRim.update(delta); } catch (_e) {} }
+    if (window.OutpostDelta) { try { OutpostDelta.update(delta); } catch (_e) {} }
+    if (window.JungleRuin) { try { JungleRuin.update(delta); } catch (_e) {} }
+    if (window.SkyCarrier) { try { SkyCarrier.update(delta); } catch (_e) {} }
+    if (window.DesertRuins) { try { DesertRuins.update(delta); } catch (_e) {} }
+    if (window.SnowValley) { try { SnowValley.update(delta); } catch (_e) {} }
+    if (window.RuinedFort) { try { RuinedFort.update(delta); } catch (_e) {} }
+    if (window.CoralReef) { try { CoralReef.update(delta); } catch (_e) {} }
+    if (window.PirateBay) { try { PirateBay.update(delta); } catch (_e) {} }
+    if (window.FortressUnderground) { try { FortressUnderground.update(delta); } catch (_e) {} }
+    if (window.FloodedMall) { try { FloodedMall.update(delta); } catch (_e) {} }
+    if (window.MountainMonastery) { try { MountainMonastery.update(delta); } catch (_e) {} }
+    if (window.OceanPlatform) { try { OceanPlatform.update(delta); } catch (_e) {} }
+    if (window.FrozenTemple) { try { FrozenTemple.update(delta); } catch (_e) {} }
+    if (window.CargoFortress) { try { CargoFortress.update(delta); } catch (_e) {} }
+    if (window.WarBridge) { try { WarBridge.update(delta); } catch (_e) {} }
+    if (window.CyberTrain) { try { CyberTrain.update(delta); } catch (_e) {} }
+    if (window.LavaBridge) { try { LavaBridge.update(delta); } catch (_e) {} }
+    if (window.ToxicSewer) { try { ToxicSewer.update(delta); } catch (_e) {} }
+    if (window.IceBridge) { try { IceBridge.update(delta); } catch (_e) {} }
+    if (window.MesaFort) { try { MesaFort.update(delta); } catch (_e) {} }
+    if (window.WarHospital) { try { WarHospital.update(delta); } catch (_e) {} }
+    if (window.SandCastle) { try { SandCastle.update(delta); } catch (_e) {} }
+    if (window.DamFortress) { try { DamFortress.update(delta); } catch (_e) {} }
+    if (window.HauntedHouse) { try { HauntedHouse.update(delta); } catch (_e) {} }
+    if (window.CrashedStation) { try { CrashedStation.update(delta); } catch (_e) {} }
+    if (window.SeaCliff) { try { SeaCliff.update(delta); } catch (_e) {} }
+    if (window.CliffVillage) { try { CliffVillage.update(delta); } catch (_e) {} }
+    if (window.DroneBay) { try { DroneBay.update(delta); } catch (_e) {} }
+    if (window.DeepBunker) { try { DeepBunker.update(delta); } catch (_e) {} }
+    if (window.MineCart) { try { MineCart.update(delta); } catch (_e) {} }
+    if (window.WaterTowerSiege) { try { WaterTowerSiege.update(delta); } catch (_e) {} }
+    if (window.BioStation) { try { BioStation.update(delta); } catch (_e) {} }
+    if (window.CrumblingCastle) { try { CrumblingCastle.update(delta); } catch (_e) {} }
+    if (window.SkyTemple) { try { SkyTemple.update(delta); } catch (_e) {} }
+    if (window.PrisonIsland) { try { PrisonIsland.update(delta); } catch (_e) {} }
+    if (window.LightningBase) { try { LightningBase.update(delta); } catch (_e) {} }
+    if (window.FrozenLab) { try { FrozenLab.update(delta); } catch (_e) {} }
+    if (window.CrystalCave) { try { CrystalCave.update(delta); } catch (_e) {} }
+    if (window.DataVault) { try { DataVault.update(delta); } catch (_e) {} }
+    if (window.LavaFortress) { try { LavaFortress.update(delta); } catch (_e) {} }
+    if (window.SandStorm) { try { SandStorm.update(delta); } catch (_e) {} }
+    if (window.NuclearSilo) { try { NuclearSilo.update(delta); } catch (_e) {} }
+    if (window.RuinedFactory) { try { RuinedFactory.update(delta); } catch (_e) {} }
+    if (window.ScorchedCitadel) { try { ScorchedCitadel.update(delta); } catch (_e) {} }
+    if (window.AcidPlant) { try { AcidPlant.update(delta); } catch (_e) {} }
+    if (window.DesertLab) { try { DesertLab.update(delta); } catch (_e) {} }
+    if (window.StormBunker) { try { StormBunker.update(delta); } catch (_e) {} }
+    if (window.CargoPort) { try { CargoPort.update(delta); } catch (_e) {} }
+    if (window.WarMarket) { try { WarMarket.update(delta); } catch (_e) {} }
+    if (window.ShipGraveyard) { try { ShipGraveyard.update(delta); } catch (_e) {} }
+    if (window.BlastedBridge) { try { BlastedBridge.update(delta); } catch (_e) {} }
+    if (window.FortressRuins) { try { FortressRuins.update(delta); } catch (_e) {} }
+    if (window.BattleDepot) { try { BattleDepot.update(delta); } catch (_e) {} }
+    if (window.FrozenFortress) { try { FrozenFortress.update(delta); } catch (_e) {} }
+    if (window.LavaTemple) { try { LavaTemple.update(delta); } catch (_e) {} }
+    if (window.MagmaCave) { try { MagmaCave.update(delta); } catch (_e) {} }
+    if (window.SkyStation) { try { SkyStation.update(delta); } catch (_e) {} }
+    if (window.BloodArena) { try { BloodArena.update(delta); } catch (_e) {} }
+    if (window.SnowFortress) { try { SnowFortress.update(delta); } catch (_e) {} }
+    if (window.WinterBase) { try { WinterBase.update(delta); } catch (_e) {} }
+    if (window.CyberStation) { try { CyberStation.update(delta); } catch (_e) {} }
+    if (window.BurningTemple) { try { BurningTemple.update(delta); } catch (_e) {} }
+    if (window.PlagueTown) { try { PlagueTown.update(delta); } catch (_e) {} }
+    if (window.ShadowPalace) { try { ShadowPalace.update(delta); } catch (_e) {} }
+    if (window.WarSubmarine) { try { WarSubmarine.update(delta); } catch (_e) {} }
+    if (window.SteelCanyon) { try { SteelCanyon.update(delta); } catch (_e) {} }
+    if (window.FireTemple) { try { FireTemple.update(delta); } catch (_e) {} }
+    if (window.CrystalVault) { try { CrystalVault.update(delta); } catch (_e) {} }
+    if (window.VolcanicCity) { try { VolcanicCity.update(delta); } catch (_e) {} }
+    if (window.LightningTower) { try { LightningTower.update(delta); } catch (_e) {} }
+    if (window.MidnightBase) { try { MidnightBase.update(delta); } catch (_e) {} }
+    if (window.WreckedCity) { try { WreckedCity.update(delta); } catch (_e) {} }
+    if (window.ShadowLab) { try { ShadowLab.update(delta); } catch (_e) {} }
+    if (window.IronKeep) { try { IronKeep.update(delta); } catch (_e) {} }
+    if (window.MetalMarsh) { try { MetalMarsh.update(delta); } catch (_e) {} }
+    if (window.ThunderKeep) { try { ThunderKeep.update(delta); } catch (_e) {} }
+    if (window.VolcanoPeak) { try { VolcanoPeak.update(delta); } catch (_e) {} }
+    if (window.ToxicMarsh) { try { ToxicMarsh.update(delta); } catch (_e) {} }
+    if (window.CitySiege) { try { CitySiege.update(delta); } catch (_e) {} }
+    if (window.WarDocks) { try { WarDocks.update(delta); } catch (_e) {} }
+    if (window.ToxicFacility) { try { ToxicFacility.update(delta); } catch (_e) {} }
+    if (window.CrashedShip) { try { CrashedShip.update(delta); } catch (_e) {} }
+    if (window.MoltenKeep) { try { MoltenKeep.update(delta); } catch (_e) {} }
+    if (window.BurningBridge) { try { BurningBridge.update(delta); } catch (_e) {} }
+    if (window.DarkCitadel) { try { DarkCitadel.update(delta); } catch (_e) {} }
+    if (window.SmokeValley) { try { SmokeValley.update(delta); } catch (_e) {} }
+    if (window.SpaceFortress) { try { SpaceFortress.update(delta); } catch (_e) {} }
+    if (window.BattleArena) { try { BattleArena.update(delta); } catch (_e) {} }
+    if (window.WarPort) { try { WarPort.update(delta); } catch (_e) {} }
+    if (window.IronValley) { try { IronValley.update(delta); } catch (_e) {} }
+    if (window.LavaArena) { try { LavaArena.update(delta); } catch (_e) {} }
+    if (window.SunkenLab) { try { SunkenLab.update(delta); } catch (_e) {} }
+    if (window.SeaFortress) { try { SeaFortress.update(delta); } catch (_e) {} }
+    if (window.ShadowValley) { try { ShadowValley.update(delta); } catch (_e) {} }
+    if (window.AshRuins) { try { AshRuins.update(delta); } catch (_e) {} }
+    if (window.CrimsonKeep) { try { CrimsonKeep.update(delta); } catch (_e) {} }
+    if (window.StormValley) { try { StormValley.update(delta); } catch (_e) {} }
+    if (window.FrozenValley) { try { FrozenValley.update(delta); } catch (_e) {} }
+    if (window.FallenTemple) { try { FallenTemple.update(delta); } catch (_e) {} }
+    if (window.ScorchedLab) { try { ScorchedLab.update(delta); } catch (_e) {} }
+    if (window.IronMarsh) { try { IronMarsh.update(delta); } catch (_e) {} }
+    if (window.SpaceWreck) { try { SpaceWreck.update(delta); } catch (_e) {} }
+    if (window.DustValley) { try { DustValley.update(delta); } catch (_e) {} }
+    if (window.GhostFortress) { try { GhostFortress.update(delta); } catch (_e) {} }
+    if (window.QuantumBase) { try { QuantumBase.update(delta); } catch (_e) {} }
+    if (window.PlasmaTower) { try { PlasmaTower.update(delta); } catch (_e) {} }
+    if (window.ToxicLab) { try { ToxicLab.update(delta); } catch (_e) {} }
+    if (window.SteelDome) { try { SteelDome.update(delta); } catch (_e) {} }
+    if (window.BuriedCity) { try { BuriedCity.update(delta); } catch (_e) {} }
+    if (window.MagmaBridge) { try { MagmaBridge.update(delta); } catch (_e) {} }
+    if (window.VaporStation) { try { VaporStation.update(delta); } catch (_e) {} }
+    if (window.WarChurch) { try { WarChurch.update(delta); } catch (_e) {} }
+    if (window.FrozenDock) { try { FrozenDock.update(delta); } catch (_e) {} }
+    if (window.RustCanyon) { try { RustCanyon.update(delta); } catch (_e) {} }
+    if (window.AcidBay) { try { AcidBay.update(delta); } catch (_e) {} }
+    if (window.ConcreteMaze) { try { ConcreteMaze.update(delta); } catch (_e) {} }
+    if (window.SkyPrison) { try { SkyPrison.update(delta); } catch (_e) {} }
+    if (window.LavaCity) { try { LavaCity.update(delta); } catch (_e) {} }
+    if (window.WarZoo) { try { WarZoo.update(delta); } catch (_e) {} }
+    if (window.NukeCrater) { try { NukeCrater.update(delta); } catch (_e) {} }
+    if (window.AmberRuins) { try { AmberRuins.update(delta); } catch (_e) {} }
+    if (window.DeltaBase) { try { DeltaBase.update(delta); } catch (_e) {} }
+    if (window.StormShip) { try { StormShip.update(delta); } catch (_e) {} }
+    if (window.FrozenCrater) { try { FrozenCrater.update(delta); } catch (_e) {} }
+    if (window.EmberFields) { try { EmberFields.update(delta); } catch (_e) {} }
+    if (window.HauntedBay) { try { HauntedBay.update(delta); } catch (_e) {} }
+    if (window.FlamePit) { try { FlamePit.update(delta); } catch (_e) {} }
+    if (window.NanoLab) { try { NanoLab.update(delta); } catch (_e) {} }
+    if (window.SunkenPalace) { try { SunkenPalace.update(delta); } catch (_e) {} }
+    if (window.WarGarden) { try { WarGarden.update(delta); } catch (_e) {} }
+    if (window.BattleCanyon) { try { BattleCanyon.update(delta); } catch (_e) {} }
+    if (window.CliffBase) { try { CliffBase.update(delta); } catch (_e) {} }
+    if (window.RustedBay) { try { RustedBay.update(delta); } catch (_e) {} }
+    if (window.EngineRoom) { try { EngineRoom.update(delta); } catch (_e) {} }
+    if (window.ChemPlant) { try { ChemPlant.update(delta); } catch (_e) {} }
+    if (window.WarTower) { try { WarTower.update(delta); } catch (_e) {} }
+    if (window.FungalCave) { try { FungalCave.update(delta); } catch (_e) {} }
+    if (window.RadioStation) { try { RadioStation.update(delta); } catch (_e) {} }
+    if (window.SniperHill) { try { SniperHill.update(delta); } catch (_e) {} }
+    if (window.OrbitalDrop) { try { OrbitalDrop.update(delta); } catch (_e) {} }
+    if (window.IceMine) { try { IceMine.update(delta); } catch (_e) {} }
+    if (window.ToxicBay) { try { ToxicBay.update(delta); } catch (_e) {} }
+    if (window.DeadSea) { try { DeadSea.update(delta); } catch (_e) {} }
+    if (window.LavaTubes) { try { LavaTubes.update(delta); } catch (_e) {} }
+    if (window.WarTrain) { try { WarTrain.update(delta); } catch (_e) {} }
+    if (window.ShadowReef) { try { ShadowReef.update(delta); } catch (_e) {} }
+    if (window.BoneYard) { try { BoneYard.update(delta); } catch (_e) {} }
+    if (window.SteelMill) { try { SteelMill.update(delta); } catch (_e) {} }
+    if (window.AcidMine) { try { AcidMine.update(delta); } catch (_e) {} }
+    if (window.WarResort) { try { WarResort.update(delta); } catch (_e) {} }
+    if (window.PlagueShip) { try { PlagueShip.update(delta); } catch (_e) {} }
+    if (window.ThunderBase) { try { ThunderBase.update(delta); } catch (_e) {} }
+    if (window.SkyBarge) { try { SkyBarge.update(delta); } catch (_e) {} }
+    if (window.FrozenPalace) { try { FrozenPalace.update(delta); } catch (_e) {} }
+    if (window.CyberSwamp) { try { CyberSwamp.update(delta); } catch (_e) {} }
+    if (window.IceTower) { try { IceTower.update(delta); } catch (_e) {} }
+    if (window.CursedShip) { try { CursedShip.update(delta); } catch (_e) {} }
+    if (window.NeonSwamp) { try { NeonSwamp.update(delta); } catch (_e) {} }
+    if (window.WarCathedral) { try { WarCathedral.update(delta); } catch (_e) {} }
+    if (window.BloodSwamp) { try { BloodSwamp.update(delta); } catch (_e) {} }
+    if (window.MechBay) { try { MechBay.update(delta); } catch (_e) {} }
+    if (window.GravityWell) { try { GravityWell.update(delta); } catch (_e) {} }
+    if (window.PoisonGrove) { try { PoisonGrove.update(delta); } catch (_e) {} }
+    if (window.ArcticLab) { try { ArcticLab.update(delta); } catch (_e) {} }
+    if (window.TrenchWar) { try { TrenchWar.update(delta); } catch (_e) {} }
+    if (window.UnderseaDome) { try { UnderseaDome.update(delta); } catch (_e) {} }
+    if (window.SolarForge) { try { SolarForge.update(delta); } catch (_e) {} }
+    if (window.IronCitadel) { try { IronCitadel.update(delta); } catch (_e) {} }
+    if (window.WarShrine) { try { WarShrine.update(delta); } catch (_e) {} }
+    if (window.PlagueLab) { try { PlagueLab.update(delta); } catch (_e) {} }
+    if (window.DeathValley) { try { DeathValley.update(delta); } catch (_e) {} }
+    if (window.VoidStation) { try { VoidStation.update(delta); } catch (_e) {} }
+    if (window.LavaDome) { try { LavaDome.update(delta); } catch (_e) {} }
+    if (window.SandFortress) { try { SandFortress.update(delta); } catch (_e) {} }
+    if (window.BoneTemple) { try { BoneTemple.update(delta); } catch (_e) {} }
+    if (window.CyberRuins) { try { CyberRuins.update(delta); } catch (_e) {} }
+    if (window.StormBase) { try { StormBase.update(delta); } catch (_e) {} }
+    if (window.DeepBunker) { try { DeepBunker.update(delta); } catch (_e) {} }
+    if (window.WarMuseum) { try { WarMuseum.update(delta); } catch (_e) {} }
+    if (window.RustPalace) { try { RustPalace.update(delta); } catch (_e) {} }
+    if (window.JungleFort) { try { JungleFort.update(delta); } catch (_e) {} }
+    if (window.FlameShrine) { try { FlameShrine.update(delta); } catch (_e) {} }
+    if (window.AcidCrater) { try { AcidCrater.update(delta); } catch (_e) {} }
+    if (window.OrbitalBase) { try { OrbitalBase.update(delta); } catch (_e) {} }
+    if (window.TarPits) { try { TarPits.update(delta); } catch (_e) {} }
+    if (window.CrystalMine) { try { CrystalMine.update(delta); } catch (_e) {} }
+    if (window.PlagueSwamp) { try { PlagueSwamp.update(delta); } catch (_e) {} }
+    if (window.FrozenKeep) { try { FrozenKeep.update(delta); } catch (_e) {} }
+    if (window.MunitionsPlant) { try { MunitionsPlant.update(delta); } catch (_e) {} }
+    if (window.TriageZone) { try { TriageZone.update(delta); } catch (_e) {} }
+    if (window.BlackOps) { try { BlackOps.update(delta); } catch (_e) {} }
+    if (window.CraterCity) { try { CraterCity.update(delta); } catch (_e) {} }
+    if (window.SunkenCarrier) { try { SunkenCarrier.update(delta); } catch (_e) {} }
+    if (window.NanoCity) { try { NanoCity.update(delta); } catch (_e) {} }
+    if (window.SiloComplex) { try { SiloComplex.update(delta); } catch (_e) {} }
+    if (window.SkyGarden) { try { SkyGarden.update(delta); } catch (_e) {} }
+    if (window.LavaTrench) { try { LavaTrench.update(delta); } catch (_e) {} }
+    if (window.WraithShip) { try { WraithShip.update(delta); } catch (_e) {} }
+    if (window.WarCemetery) { try { WarCemetery.update(delta); } catch (_e) {} }
+    if (window.PlagueCove) { try { PlagueCove.update(delta); } catch (_e) {} }
+    if (window.ArenaDome) { try { ArenaDome.update(delta); } catch (_e) {} }
+    if (window.MesaOutpost) { try { MesaOutpost.update(delta); } catch (_e) {} }
+    if (window.SpireCity) { try { SpireCity.update(delta); } catch (_e) {} }
+    if (window.ShadowMarket) { try { ShadowMarket.update(delta); } catch (_e) {} }
+    if (window.PolarSiege) { try { PolarSiege.update(delta); } catch (_e) {} }
+    if (window.ForgottenLab) { try { ForgottenLab.update(delta); } catch (_e) {} }
+    if (window.WarStation) { try { WarStation.update(delta); } catch (_e) {} }
+    if (window.PlagueTower) { try { PlagueTower.update(delta); } catch (_e) {} }
+    if (window.ToxicMine) { try { ToxicMine.update(delta); } catch (_e) {} }
+    if (window.FrozenReactor) { try { FrozenReactor.update(delta); } catch (_e) {} }
+    if (window.NeonBunker) { try { NeonBunker.update(delta); } catch (_e) {} }
+    if (window.DesertFort) { try { DesertFort.update(delta); } catch (_e) {} }
+    if (window.MagmaCore) { try { MagmaCore.update(delta); } catch (_e) {} }
+    if (window.SkullFortress) { try { SkullFortress.update(delta); } catch (_e) {} }
+    if (window.PlasmaOutpost) { try { PlasmaOutpost.update(delta); } catch (_e) {} }
+    if (window.SiegePlatform) { try { SiegePlatform.update(delta); } catch (_e) {} }
+    if (window.BloodChapel) { try { BloodChapel.update(delta); } catch (_e) {} }
+    if (window.ToxicHarbor) { try { ToxicHarbor.update(delta); } catch (_e) {} }
+    if (window.IronTower) { try { IronTower.update(delta); } catch (_e) {} }
+    if (window.OrbitalRelay) { try { OrbitalRelay.update(delta); } catch (_e) {} }
+    if (window.BattleConvoy) { try { BattleConvoy.update(delta); } catch (_e) {} }
+    if (window.EchoStation) { try { EchoStation.update(delta); } catch (_e) {} }
+    if (window.WarheadCache) { try { WarheadCache.update(delta); } catch (_e) {} }
+    if (window.WarConvoy) { try { WarConvoy.update(delta); } catch (_e) {} }
+    if (window.AshCitadel) { try { AshCitadel.update(delta); } catch (_e) {} }
+    if (window.MoltenBridge) { try { MoltenBridge.update(delta); } catch (_e) {} }
+    if (window.VoidLab) { try { VoidLab.update(delta); } catch (_e) {} }
+    if (window.BlackMarch) { try { BlackMarch.update(delta); } catch (_e) {} }
+    if (window.IceCarrier) { try { IceCarrier.update(delta); } catch (_e) {} }
+    if (window.JungleRuins) { try { JungleRuins.update(delta); } catch (_e) {} }
+    if (window.ThunderTower) { try { ThunderTower.update(delta); } catch (_e) {} }
+    if (window.MidnightRaid) { try { MidnightRaid.update(delta); } catch (_e) {} }
+    if (window.RustFactory) { try { RustFactory.update(delta); } catch (_e) {} }
+    if (window.DustStorm) { try { DustStorm.update(delta); } catch (_e) {} }
+    if (window.AssaultCamp) { try { AssaultCamp.update(delta); } catch (_e) {} }
+    if (window.StoneQuarry) { try { StoneQuarry.update(delta); } catch (_e) {} }
+    if (window.WarzoneMarket) { try { WarzoneMarket.update(delta); } catch (_e) {} }
+    if (window.RidgeBase) { try { RidgeBase.update(delta); } catch (_e) {} }
+    if (window.PoisonLake) { try { PoisonLake.update(delta); } catch (_e) {} }
+    if (window.SkyDock) { try { SkyDock.update(delta); } catch (_e) {} }
+    if (window.LavaCore) { try { LavaCore.update(delta); } catch (_e) {} }
+    if (window.NeonSubway) { try { NeonSubway.update(delta); } catch (_e) {} }
+    if (window.CopperMine) { try { CopperMine.update(delta); } catch (_e) {} }
+    if (window.WastelandHub) { try { WastelandHub.update(delta); } catch (_e) {} }
+    if (window.TrenchLine) { try { TrenchLine.update(delta); } catch (_e) {} }
+    if (window.GlacierBunker) { try { GlacierBunker.update(delta); } catch (_e) {} }
+    if (window.PalaceRuins) { try { PalaceRuins.update(delta); } catch (_e) {} }
+    if (window.DamStation) { try { DamStation.update(delta); } catch (_e) {} }
+    if (window.Shipyard) { try { Shipyard.update(delta); } catch (_e) {} }
+    if (window.SpacePort) { try { SpacePort.update(delta); } catch (_e) {} }
+    if (window.FrozenRiver) { try { FrozenRiver.update(delta); } catch (_e) {} }
+    if (window.AvalanchePass) { try { AvalanchePass.update(delta); } catch (_e) {} }
+    if (window.BunkerCity) { try { BunkerCity.update(delta); } catch (_e) {} }
+    if (window.WarlordPalace) { try { WarlordPalace.update(delta); } catch (_e) {} }
+    if (window.ScrapYard) { try { ScrapYard.update(delta); } catch (_e) {} }
+    if (window.CommandShip) { try { CommandShip.update(delta); } catch (_e) {} }
+    if (window.DesertBase) { try { DesertBase.update(delta); } catch (_e) {} }
+    if (window.TrainWreck) { try { TrainWreck.update(delta); } catch (_e) {} }
+    if (window.CaveTemple) { try { CaveTemple.update(delta); } catch (_e) {} }
+    if (window.GhostFactory) { try { GhostFactory.update(delta); } catch (_e) {} }
+    if (window.BombShelter) { try { BombShelter.update(delta); } catch (_e) {} }
+    if (window.SandDunes) { try { SandDunes.update(delta); } catch (_e) {} }
+    if (window.SwampRefinery) { try { SwampRefinery.update(delta); } catch (_e) {} }
+    if (window.RooftopSiege) { try { RooftopSiege.update(delta); } catch (_e) {} }
+    if (window.SunkenBase) { try { SunkenBase.update(delta); } catch (_e) {} }
+    if (window.FloodCity) { try { FloodCity.update(delta); } catch (_e) {} }
+    if (window.CoastGuard) { try { CoastGuard.update(delta); } catch (_e) {} }
+    if (window.CanyonFort) { try { CanyonFort.update(delta); } catch (_e) {} }
+    if (window.SniperRidge) { try { SniperRidge.update(delta); } catch (_e) {} }
+    if (window.HarborFort) { try { HarborFort.update(delta); } catch (_e) {} }
+    if (window.TundraCamp) { try { TundraCamp.update(delta); } catch (_e) {} }
+    if (window.OilDepot) { try { OilDepot.update(delta); } catch (_e) {} }
+    if (window.BattleCrater) { try { BattleCrater.update(delta); } catch (_e) {} }
+    if (window.UrbanDecay) { try { UrbanDecay.update(delta); } catch (_e) {} }
+    if (window.WarAirfield) { try { WarAirfield.update(delta); } catch (_e) {} }
+    if (window.LavaBase) { try { LavaBase.update(delta); } catch (_e) {} }
+    if (window.StormIsland) { try { StormIsland.update(delta); } catch (_e) {} }
+    if (window.SaltFlats) { try { SaltFlats.update(delta); } catch (_e) {} }
+    if (window.AshPlains) { try { AshPlains.update(delta); } catch (_e) {} }
+    if (window.WarDepot) { try { WarDepot.update(delta); } catch (_e) {} }
+    if (window.CommandCenter) { try { CommandCenter.update(delta); } catch (_e) {} }
+    if (window.HighlandFort) { try { HighlandFort.update(delta); } catch (_e) {} }
+    if (window.FloodDam) { try { FloodDam.update(delta); } catch (_e) {} }
+    if (window.IceBreaker) { try { IceBreaker.update(delta); } catch (_e) {} }
+    if (window.MissileBase) { try { MissileBase.update(delta); } catch (_e) {} }
+    if (window.WreckYard) { try { WreckYard.update(delta); } catch (_e) {} }
+    if (window.TankYard) { try { TankYard.update(delta); } catch (_e) {} }
+    if (window.ForwardBase) { try { ForwardBase.update(delta); } catch (_e) {} }
+    if (window.DeathSwamp) { try { DeathSwamp.update(delta); } catch (_e) {} }
+    if (window.SteelFortress) { try { SteelFortress.update(delta); } catch (_e) {} }
+    if (window.PoisonMarsh) { try { PoisonMarsh.update(delta); } catch (_e) {} }
+    if (window.JungleMaze) { try { JungleMaze.update(delta); } catch (_e) {} }
+    if (window.WarGate) { try { WarGate.update(delta); } catch (_e) {} }
+    if (window.NeonRuins) { try { NeonRuins.update(delta); } catch (_e) {} }
+    if (window.DarkWoods) { try { DarkWoods.update(delta); } catch (_e) {} }
+    if (window.ShadowBase) { try { ShadowBase.update(delta); } catch (_e) {} }
+    if (window.PlagueCity) { try { PlagueCity.update(delta); } catch (_e) {} }
+    if (window.ThunderRidge) { try { ThunderRidge.update(delta); } catch (_e) {} }
+    if (window.FloodPlains) { try { FloodPlains.update(delta); } catch (_e) {} }
+    if (window.NuclearWaste) { try { NuclearWaste.update(delta); } catch (_e) {} }
+    if (window.BloodRiver) { try { BloodRiver.update(delta); } catch (_e) {} }
+    if (window.VoidBase) { try { VoidBase.update(delta); } catch (_e) {} }
+    if (window.AcidLake) { try { AcidLake.update(delta); } catch (_e) {} }
+    if (window.StormFortress) { try { StormFortress.update(delta); } catch (_e) {} }
+    if (window.FrostHarbor) { try { FrostHarbor.update(delta); } catch (_e) {} }
+    if (window.LavaRiver) { try { LavaRiver.update(delta); } catch (_e) {} }
+    if (window.SiegeLines) { try { SiegeLines.update(delta); } catch (_e) {} }
+    if (window.GhostRidge) { try { GhostRidge.update(delta); } catch (_e) {} }
+    if (window.WarLab) { try { WarLab.update(delta); } catch (_e) {} }
+    if (window.IceDock) { try { IceDock.update(delta); } catch (_e) {} }
+    if (window.RubbleCity) { try { RubbleCity.update(delta); } catch (_e) {} }
+    if (window.WinterAssault) { try { WinterAssault.update(delta); } catch (_e) {} }
+    if (window.CryptBase) { try { CryptBase.update(delta); } catch (_e) {} }
+    if (window.WarDome) { try { WarDome.update(delta); } catch (_e) {} }
+    if (window.HarborRaid) { try { HarborRaid.update(delta); } catch (_e) {} }
+    if (window.ReefBase) { try { ReefBase.update(delta); } catch (_e) {} }
+    if (window.CanyonWar) { try { CanyonWar.update(delta); } catch (_e) {} }
+    if (window.MagmaLab) { try { MagmaLab.update(delta); } catch (_e) {} }
+    if (window.FireBase) { try { FireBase.update(delta); } catch (_e) {} }
+    if (window.WarCrypt) { try { WarCrypt.update(delta); } catch (_e) {} }
+    if (window.WarPrison) { try { WarPrison.update(delta); } catch (_e) {} }
+    if (window.CoastLine) { try { CoastLine.update(delta); } catch (_e) {} }
+    if (window.RockBase) { try { RockBase.update(delta); } catch (_e) {} }
+    if (window.PoisonBase) { try { PoisonBase.update(delta); } catch (_e) {} }
+    if (window.MoonGate) { try { MoonGate.update(delta); } catch (_e) {} }
+    if (window.WarShip) { try { WarShip.update(delta); } catch (_e) {} }
+    if (window.JadeTemple) { try { JadeTemple.update(delta); } catch (_e) {} }
+    if (window.AncientColosseum) { try { AncientColosseum.update(delta); } catch (_e) {} }
+    if (window.TundraVillage) { try { TundraVillage.update(delta); } catch (_e) {} }
+    if (window.SolarFarm) { try { SolarFarm.update(delta); } catch (_e) {} }
+    if (window.JungleFortress) { try { JungleFortress.update(delta); } catch (_e) {} }
+    if (window.BridgeAssault) { try { BridgeAssault.update(delta); } catch (_e) {} }
+    if (window.SpaceWreckage) { try { SpaceWreckage.update(delta); } catch (_e) {} }
+    if (window.UndergroundLab) { try { UndergroundLab.update(delta); } catch (_e) {} }
+    if (window.HospitalRaid) { try { HospitalRaid.update(delta); } catch (_e) {} }
+    if (window.WeaponsDepot) { try { WeaponsDepot.update(delta); } catch (_e) {} }
+    if (window.LavaCavern) { try { LavaCavern.update(delta); } catch (_e) {} }
+    if (window.NavalBase) { try { NavalBase.update(delta); } catch (_e) {} }
+    if (window.ChemFactory) { try { ChemFactory.update(delta); } catch (_e) {} }
+    if (window.PalaceGardens) { try { PalaceGardens.update(delta); } catch (_e) {} }
+    if (window.SubmarineHunt) { try { SubmarineHunt.update(delta); } catch (_e) {} }
+    if (window.ArcticStation) { try { ArcticStation.update(delta); } catch (_e) {} }
+    if (window.CityRooftop) { try { CityRooftop.update(delta); } catch (_e) {} }
+    if (window.PowerPlant) { try { PowerPlant.update(delta); } catch (_e) {} }
+    if (window.TrainStation) { try { TrainStation.update(delta); } catch (_e) {} }
+    if (window.CanyonAmbush) { try { CanyonAmbush.update(delta); } catch (_e) {} }
+    if (window.MissileSilo) { try { MissileSilo.update(delta); } catch (_e) {} }
+    if (window.FloatingPlatform) { try { FloatingPlatform.update(delta); } catch (_e) {} }
+    if (window.WarFactory) { try { WarFactory.update(delta); } catch (_e) {} }
+    if (window.IcePalace) { try { IcePalace.update(delta); } catch (_e) {} }
+    if (window.VolcanoBase) { try { VolcanoBase.update(delta); } catch (_e) {} }
+    if (window.UndergroundCity) { try { UndergroundCity.update(delta); } catch (_e) {} }
+    if (window.CoastalVillage) { try { CoastalVillage.update(delta); } catch (_e) {} }
+    if (window.ResearchVessel) { try { ResearchVessel.update(delta); } catch (_e) {} }
+    if (window.StormDrain) { try { StormDrain.update(delta); } catch (_e) {} }
+    if (window.ThroneRoom) { try { ThroneRoom.update(delta); } catch (_e) {} }
+    if (window.JungleOutpost) { try { JungleOutpost.update(delta); } catch (_e) {} }
+    if (window.NavalYard) { try { NavalYard.update(delta); } catch (_e) {} }
+    if (window.IceShelf) { try { IceShelf.update(delta); } catch (_e) {} }
+    if (window.RuinsAssault) { try { RuinsAssault.update(delta); } catch (_e) {} }
+    if (window.AircraftCarrier) { try { AircraftCarrier.update(delta); } catch (_e) {} }
+    if (window.SportsStadium) { try { SportsStadium.update(delta); } catch (_e) {} }
+    if (window.NukeTransport) { try { NukeTransport.update(delta); } catch (_e) {} }
+    if (window.AbandonedFactory) { try { AbandonedFactory.update(delta); } catch (_e) {} }
+  if (window.SwampBase) { try { SwampBase.update(delta); } catch (_e) {} }
+  if (window.HauntedCastle) { try { HauntedCastle.update(delta); } catch (_e) {} }
+  if (window.CliffFortress) { try { CliffFortress.update(delta); } catch (_e) {} }
+  if (window.ServerFarm) { try { ServerFarm.update(delta); } catch (_e) {} }
+  if (window.CityBank) { try { CityBank.update(delta); } catch (_e) {} }
+  if (window.AncientPyramid) { try { AncientPyramid.update(delta); } catch (_e) {} }
+  if (window.ToxicJungle) { try { ToxicJungle.update(delta); } catch (_e) {} }
+  if (window.HarborDefense) { try { HarborDefense.update(delta); } catch (_e) {} }
+  if (window.SpaceDerelict) { try { SpaceDerelict.update(delta); } catch (_e) {} }
+  if (window.MedievalDungeon) { try { MedievalDungeon.update(delta); } catch (_e) {} }
+  if (window.CyberLab) { try { CyberLab.update(delta); } catch (_e) {} }
+  if (window.BorderFort) { try { BorderFort.update(delta); } catch (_e) {} }
+  if (window.HauntedHotel) { try { HauntedHotel.update(delta); } catch (_e) {} }
+  if (window.StormCoast) { try { StormCoast.update(delta); } catch (_e) {} }
+  if (window.RadiationZone) { try { RadiationZone.update(delta); } catch (_e) {} }
+  if (window.CrashedSpaceship) { try { CrashedSpaceship.update(delta); } catch (_e) {} }
+  if (window.IceCavern) { try { IceCavern.update(delta); } catch (_e) {} }
+  if (window.FloodedSubway) { try { FloodedSubway.update(delta); } catch (_e) {} }
+  if (window.DesertTemple) { try { DesertTemple.update(delta); } catch (_e) {} }
+  if (window.MilitaryAcademy) { try { MilitaryAcademy.update(delta); } catch (_e) {} }
+  if (window.NeonDistrict) { try { NeonDistrict.update(delta); } catch (_e) {} }
+  if (window.UnderwaterTemple) { try { UnderwaterTemple.update(delta); } catch (_e) {} }
+  if (window.SpacePrison) { try { SpacePrison.update(delta); } catch (_e) {} }
+  if (window.PirateGalleon) { try { PirateGalleon.update(delta); } catch (_e) {} }
+  if (window.AbandonedChurch) { try { AbandonedChurch.update(delta); } catch (_e) {} }
+  if (window.GreekRuins) { try { GreekRuins.update(delta); } catch (_e) {} }
+  if (window.CoalMine) { try { CoalMine.update(delta); } catch (_e) {} }
+  if (window.MountainFortress) { try { MountainFortress.update(delta); } catch (_e) {} }
+  if (window.ArmoredTrain) { try { ArmoredTrain.update(delta); } catch (_e) {} }
+  if (window.TeslaLab) { try { TeslaLab.update(delta); } catch (_e) {} }
+  if (window.FrozenCastle) { try { FrozenCastle.update(delta); } catch (_e) {} }
+  if (window.VampireLair) { try { VampireLair.update(delta); } catch (_e) {} }
+  if (window.SubmarineGraveyard) { try { SubmarineGraveyard.update(delta); } catch (_e) {} }
+  if (window.ScorchedEarth) { try { ScorchedEarth.update(delta); } catch (_e) {} }
+  if (window.CrystalCaves) { try { CrystalCaves.update(delta); } catch (_e) {} }
+  if (window.BioDome) { try { BioDome.update(delta); } catch (_e) {} }
+  if (window.WartimeFactory) { try { WartimeFactory.update(delta); } catch (_e) {} }
+  if (window.SpaceHangar) { try { SpaceHangar.update(delta); } catch (_e) {} }
+  if (window.AmusementPark) { try { AmusementPark.update(delta); } catch (_e) {} }
+  if (window.AtlantisRuins) { try { AtlantisRuins.update(delta); } catch (_e) {} }
+  if (window.QuantumLab) { try { QuantumLab.update(delta); } catch (_e) {} }
+  if (window.BurningVillage) { try { BurningVillage.update(delta); } catch (_e) {} }
+  if (window.AbandonedSchool) { try { AbandonedSchool.update(delta); } catch (_e) {} }
+  if (window.OrbitalWeapons) { try { OrbitalWeapons.update(delta); } catch (_e) {} }
+  if (window.WastelandTown) { try { WastelandTown.update(delta); } catch (_e) {} }
+  if (window.OilRefinery) { try { OilRefinery.update(delta); } catch (_e) {} }
+  if (window.ColosseumSiege) { try { ColosseumSiege.update(delta); } catch (_e) {} }
+  if (window.SunkenDestroyer) { try { SunkenDestroyer.update(delta); } catch (_e) {} }
+  if (window.MoonOutpost) { try { MoonOutpost.update(delta); } catch (_e) {} }
+  if (window.CyberFortress) { try { CyberFortress.update(delta); } catch (_e) {} }
+  if (window.PharaohTomb) { try { PharaohTomb.update(delta); } catch (_e) {} }
+  if (window.LavaCaves) { try { LavaCaves.update(delta); } catch (_e) {} }
+  if (window.StormCarrier) { try { StormCarrier.update(delta); } catch (_e) {} }
+  if (window.DroneWarfare) { try { DroneWarfare.update(delta); } catch (_e) {} }
+  if (window.CathedralSiege) { try { CathedralSiege.update(delta); } catch (_e) {} }
+  if (window.SalvageYard) { try { SalvageYard.update(delta); } catch (_e) {} }
+  if (window.BioweaponLab) { try { BioweaponLab.update(delta); } catch (_e) {} }
+  if (window.NavalDockyard) { try { NavalDockyard.update(delta); } catch (_e) {} }
+  if (window.SniperTower) { try { SniperTower.update(delta); } catch (_e) {} }
+  if (window.CursedVillage) { try { CursedVillage.update(delta); } catch (_e) {} }
+  if (window.TankerShip) { try { TankerShip.update(delta); } catch (_e) {} }
+  if (window.IronMine) { try { IronMine.update(delta); } catch (_e) {} }
+  if (window.ShantyTown) { try { ShantyTown.update(delta); } catch (_e) {} }
+  if (window.AztecTemple) { try { AztecTemple.update(delta); } catch (_e) {} }
+  if (window.CircusTent) { try { CircusTent.update(delta); } catch (_e) {} }
+  if (window.WeatherStation) { try { WeatherStation.update(delta); } catch (_e) {} }
+  if (window.LaserFacility) { try { LaserFacility.update(delta); } catch (_e) {} }
+  if (window.SubmarineBay) { try { SubmarineBay.update(delta); } catch (_e) {} }
+  if (window.HeistVault) { try { HeistVault.update(delta); } catch (_e) {} }
+  if (window.Catacombs) { try { Catacombs.update(delta); } catch (_e) {} }
+  if (window.CrashedTrain) { try { CrashedTrain.update(delta); } catch (_e) {} }
+  if (window.CrystalPalace) { try { CrystalPalace.update(delta); } catch (_e) {} }
+  if (window.DeltaForce) { try { DeltaForce.update(delta); } catch (_e) {} }
+  if (window.PrisonTower) { try { PrisonTower.update(delta); } catch (_e) {} }
+  if (window.RobotFactory) { try { RobotFactory.update(delta); } catch (_e) {} }
+  if (window.WarMemorial) { try { WarMemorial.update(delta); } catch (_e) {} }
+  if (window.PrisonYard) { try { PrisonYard.update(delta); } catch (_e) {} }
+  if (window.MineShaft) { try { MineShaft.update(delta); } catch (_e) {} }
+  if (window.CargoTerminal) { try { CargoTerminal.update(delta); } catch (_e) {} }
+  if (window.MilitaryParade) { try { MilitaryParade.update(delta); } catch (_e) {} }
+  if (window.GasPlatform) { try { GasPlatform.update(delta); } catch (_e) {} }
+  if (window.Monorail) { try { Monorail.update(delta); } catch (_e) {} }
+  if (window.ArchaeologicalDig) { try { ArchaeologicalDig.update(delta); } catch (_e) {} }
+  if (window.CaveNetwork) { try { CaveNetwork.update(delta); } catch (_e) {} }
+  if (window.RooftopChase) { try { RooftopChase.update(delta); } catch (_e) {} }
+  if (window.TyphoonDeck) { try { TyphoonDeck.update(delta); } catch (_e) {} }
+  if (window.SwampOutpost) { try { SwampOutpost.update(delta); } catch (_e) {} }
+  if (window.SunkenTemple) { try { SunkenTemple.update(delta); } catch (_e) {} }
+  if (window.SalvageBarge) { try { SalvageBarge.update(delta); } catch (_e) {} }
+  if (window.FrozenHarbor) { try { FrozenHarbor.update(delta); } catch (_e) {} }
+  if (window.IceFortress) { try { IceFortress.update(delta); } catch (_e) {} }
+  if (window.MerchantShip) { try { MerchantShip.update(delta); } catch (_e) {} }
+  if (window.HarborCrane) { try { HarborCrane.update(delta); } catch (_e) {} }
+  if (window.RacingTrack) { try { RacingTrack.update(delta); } catch (_e) {} }
+  if (window.TortureChamber) { try { TortureChamber.update(delta); } catch (_e) {} }
+  if (window.PlagueVillage) { try { PlagueVillage.update(delta); } catch (_e) {} }
+  if (window.CyberYacht) { try { CyberYacht.update(delta); } catch (_e) {} }
+  if (window.FortressPrison) { try { FortressPrison.update(delta); } catch (_e) {} }
+  if (window.BattleStadium) { try { BattleStadium.update(delta); } catch (_e) {} }
+  if (window.HauntedLighthouse) { try { HauntedLighthouse.update(delta); } catch (_e) {} }
+  if (window.CanyonAssault) { try { CanyonAssault.update(delta); } catch (_e) {} }
+  if (window.DemolitionSite) { try { DemolitionSite.update(delta); } catch (_e) {} }
+  if (window.AirshipRaid) { try { AirshipRaid.update(delta); } catch (_e) {} }
+  if (window.TempleRun) { try { TempleRun.update(delta); } catch (_e) {} }
+  if (window.AsteroidBase) { try { AsteroidBase.update(delta); } catch (_e) {} }
+  if (window.FishingVillage) { try { FishingVillage.update(delta); } catch (_e) {} }
+  if (window.OperaHouse) { try { OperaHouse.update(delta); } catch (_e) {} }
+  if (window.CityHall) { try { CityHall.update(delta); } catch (_e) {} }
+  if (window.VolcanoSummit) { try { VolcanoSummit.update(delta); } catch (_e) {} }
+      if (window.FloatingFortress) { try { FloatingFortress.update(delta); } catch (_e) {} }
+      if (window.Slaughterhouse) { try { Slaughterhouse.update(delta); } catch (_e) {} }
+      if (window.TrainGraveyard) { try { TrainGraveyard.update(delta); } catch (_e) {} }
+      if (window.SewagePlant) { try { SewagePlant.update(delta); } catch (_e) {} }
+      if (window.UniversityRaid) { try { UniversityRaid.update(delta); } catch (_e) {} }
+      if (window.RefugeeCamp) { try { RefugeeCamp.update(delta); } catch (_e) {} }
+      if (window.NuclearConvoy) { try { NuclearConvoy.update(delta); } catch (_e) {} }
+      if (window.PowerSubstation) { try { PowerSubstation.update(delta); } catch (_e) {} }
+      if (window.SubmarinePen) { try { SubmarinePen.update(delta); } catch (_e) {} }
+      if (window.TorpedoFactory) { try { TorpedoFactory.update(delta); } catch (_e) {} }
+      if (window.MunitionsDepot) { try { MunitionsDepot.update(delta); } catch (_e) {} }
+      if (window.AbandonedMall) { try { AbandonedMall.update(delta); } catch (_e) {} }
+      if (window.GoldVault) { try { GoldVault.update(delta); } catch (_e) {} }
+      if (window.CustomsPost) { try { CustomsPost.update(delta); } catch (_e) {} }
+      if (window.JungleLab) { try { JungleLab.update(delta); } catch (_e) {} }
+      if (window.SatelliteStation) { try { SatelliteStation.update(delta); } catch (_e) {} }
+      if (window.DestroyerEscort) { try { DestroyerEscort.update(delta); } catch (_e) {} }
+      if (window.CoastalBattery) { try { CoastalBattery.update(delta); } catch (_e) {} }
+      if (window.PrisonColony) { try { PrisonColony.update(delta); } catch (_e) {} }
+      if (window.AsteroidField) { try { AsteroidField.update(delta); } catch (_e) {} }
+      if (window.VolcanoLair) { try { VolcanoLair.update(delta); } catch (_e) {} }
+      if (window.SeaFort) { try { SeaFort.update(delta); } catch (_e) {} }
+      if (window.FuelDepot) { try { FuelDepot.update(delta); } catch (_e) {} }
+      if (window.DerelictTown) { try { DerelictTown.update(delta); } catch (_e) {} }
+      if (window.MethLab) { try { MethLab.update(delta); } catch (_e) {} }
+      if (window.CargoFreighter) { try { CargoFreighter.update(delta); } catch (_e) {} }
+      if (window.IceFortressInterior) { try { IceFortressInterior.update(delta); } catch (_e) {} }
+      if (window.ReactorCore) { try { ReactorCore.update(delta); } catch (_e) {} }
+      if (window.GladiatorPit) { try { GladiatorPit.update(delta); } catch (_e) {} }
+      if (window.JungleShrine) { try { JungleShrine.update(delta); } catch (_e) {} }
+      if (window.LaserGrid) { try { LaserGrid.update(delta); } catch (_e) {} }
+      if (window.DeathMarch) { try { DeathMarch.update(delta); } catch (_e) {} }
+      if (window.BankRobbery) { try { BankRobbery.update(delta); } catch (_e) {} }
+      if (window.UndergroundArena) { try { UndergroundArena.update(delta); } catch (_e) {} }
+      if (window.AirfieldAssault) { try { AirfieldAssault.update(delta); } catch (_e) {} }
+      if (window.OilPlatformFire) { try { OilPlatformFire.update(delta); } catch (_e) {} }
+      if (window.DamControl) { try { DamControl.update(delta); } catch (_e) {} }
+      if (window.ConcertHall) { try { ConcertHall.update(delta); } catch (_e) {} }
+      if (window.SewerEscape) { try { SewerEscape.update(delta); } catch (_e) {} }
+      if (window.HauntedGalleon) { try { HauntedGalleon.update(delta); } catch (_e) {} }
+      if (window.AvalancheZone) { try { AvalancheZone.update(delta); } catch (_e) {} }
+      if (window.MountainRescue) { try { MountainRescue.update(delta); } catch (_e) {} }
+      if (window.ShoppingDistrict) { try { ShoppingDistrict.update(delta); } catch (_e) {} }
+      if (window.SnowfieldBattle) { try { SnowfieldBattle.update(delta); } catch (_e) {} }
+      if (window.ZooBreakout) { try { ZooBreakout.update(delta); } catch (_e) {} }
+      if (window.HospitalSiege) { try { HospitalSiege.update(delta); } catch (_e) {} }
+      if (window.RacingPit) { try { RacingPit.update(delta); } catch (_e) {} }
+      if (window.WarehouseDistrict) { try { WarehouseDistrict.update(delta); } catch (_e) {} }
+      if (window.CyberCity) { try { CyberCity.update(delta); } catch (_e) {} }
+      if (window.PirateHarbor) { try { PirateHarbor.update(delta); } catch (_e) {} }
+      if (window.SpaceStationAttack) { try { SpaceStationAttack.update(delta); } catch (_e) {} }
+      if (window.DustBowl) { try { DustBowl.update(delta); } catch (_e) {} }
+      if (window.SwampAssault) { try { SwampAssault.update(delta); } catch (_e) {} }
+      if (window.FactoryTakeover) { try { FactoryTakeover.update(delta); } catch (_e) {} }
+      if (window.HarborSiege) { try { HarborSiege.update(delta); } catch (_e) {} }
+      if (window.MetroAssault) { try { MetroAssault.update(delta); } catch (_e) {} }
+      if (window.EmbassyTakeover) { try { EmbassyTakeover.update(delta); } catch (_e) {} }
+      if (window.CemeterySiege) { try { CemeterySiege.update(delta); } catch (_e) {} }
+      if (window.BridgeBattle) { try { BridgeBattle.update(delta); } catch (_e) {} }
+      if (window.SatelliteCrash) { try { SatelliteCrash.update(delta); } catch (_e) {} }
+      if (window.PyramidRaid) { try { PyramidRaid.update(delta); } catch (_e) {} }
+      if (window.SalvageMission) { try { SalvageMission.update(delta); } catch (_e) {} }
+      if (window.LaboratoryRaid) { try { LaboratoryRaid.update(delta); } catch (_e) {} }
+      if (window.DamBreak) { try { DamBreak.update(delta); } catch (_e) {} }
+      if (window.ColiseumBattle) { try { ColiseumBattle.update(delta); } catch (_e) {} }
+      if (window.TornadoAlley) { try { TornadoAlley.update(delta); } catch (_e) {} }
+      if (window.BiohazardZone) { try { BiohazardZone.update(delta); } catch (_e) {} }
+      if (window.PirateCoveRaid) { try { PirateCoveRaid.update(delta); } catch (_e) {} }
+      if (window.GhostTownSiege) { try { GhostTownSiege.update(delta); } catch (_e) {} }
+      if (window.MansionHeist) { try { MansionHeist.update(delta); } catch (_e) {} }
+      if (window.ClocktowerRaid) { try { ClocktowerRaid.update(delta); } catch (_e) {} }
+      if (window.ShipyardAssault) { try { ShipyardAssault.update(delta); } catch (_e) {} }
+      if (window.TankFactory) { try { TankFactory.update(delta); } catch (_e) {} }
+      if (window.SpyCompound) { try { SpyCompound.update(delta); } catch (_e) {} }
+      if (window.RocketLaunch) { try { RocketLaunch.update(delta); } catch (_e) {} }
+      if (window.MineshaftCollapse) { try { MineshaftCollapse.update(delta); } catch (_e) {} }
+      if (window.AirbaseDefense) { try { AirbaseDefense.update(delta); } catch (_e) {} }
+      if (window.HelicopterCrash) { try { HelicopterCrash.update(delta); } catch (_e) {} }
+      if (window.SmugglersDen) { try { SmugglersDen.update(delta); } catch (_e) {} }
+      if (window.EarthquakeZone) { try { EarthquakeZone.update(delta); } catch (_e) {} }
+      if (window.WarlordFortress) { try { WarlordFortress.update(delta); } catch (_e) {} }
+      if (window.CombatHospital) { try { CombatHospital.update(delta); } catch (_e) {} }
+      if (window.WinterWarfare) { try { WinterWarfare.update(delta); } catch (_e) {} }
+      if (window.ArmoredConvoy) { try { ArmoredConvoy.update(delta); } catch (_e) {} }
+      if (window.CatacombsAssault) { try { CatacombsAssault.update(delta); } catch (_e) {} }
+      if (window.OilPlatformRaid) { try { OilPlatformRaid.update(delta); } catch (_e) {} }
+      if (window.DesertConvoy) { try { DesertConvoy.update(delta); } catch (_e) {} }
+      if (window.TrenchWarfare) { try { TrenchWarfare.update(delta); } catch (_e) {} }
+      if (window.SunkenCity) { try { SunkenCity.update(delta); } catch (_e) {} }
+      if (window.SpaceBattle) { try { SpaceBattle.update(delta); } catch (_e) {} }
+      if (window.SubmarineBase) { try { SubmarineBase.update(delta); } catch (_e) {} }
+      if (window.RebelOutpost) { try { RebelOutpost.update(delta); } catch (_e) {} }
+      if (window.FortressSiege) { try { FortressSiege.update(delta); } catch (_e) {} }
+      if (window.BattleshipDeck) { try { BattleshipDeck.update(delta); } catch (_e) {} }
+      if (window.StadiumRiot) { try { StadiumRiot.update(delta); } catch (_e) {} }
+      if (window.TradingPost) { try { TradingPost.update(delta); } catch (_e) {} }
+      if (window.BountySystem) { try { BountySystem.update(delta); } catch (_e) {} }
+      if (window.CrouchSystem) { try { CrouchSystem.update(delta); } catch (_e) {} }
+      if (window.RadioSupport) { try { RadioSupport.update(delta); } catch (_e) {} }
+      if (window.MeleeKnife) { try { MeleeKnife.update(delta); } catch (_e) {} }
       // Check if any enemy stepped on a landmine
       if (typeof Mines !== 'undefined' && typeof Enemies !== 'undefined' && Enemies.getAll) {
         var _mineEnemies = Enemies.getAll();
@@ -11511,7 +11523,7 @@ const GameManager = (function () {
       }
 
       // Destructibles update
-      if (window.Destructibles) Destructibles.update(delta);
+      if (window.Destructibles) { try { Destructibles.update(delta); } catch (_e) {} }
 
       // Perks update
       if (typeof Perks !== 'undefined') {
