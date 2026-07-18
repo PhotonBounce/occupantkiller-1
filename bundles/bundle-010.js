@@ -20234,6 +20234,8 @@ window.SkyscraperSiege = (function () {
   // ---- Public API ----
 
   function init(mountScene, mountCamera, mountRenderer) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Register input handlers
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
@@ -25291,6 +25293,8 @@ window.WitnessProtection = (function () {
      INIT
   ───────────────────────────────────────────────────────────────────────── */
   function init(cont) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     container = cont;
     _createMaterials();
     _createScene();
@@ -31856,6 +31860,8 @@ window.CiaSafehouse = (function() {
 
   // --- Init ---
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (!activated) return;
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
@@ -36120,6 +36126,8 @@ window.ArmsSmuggler = (function () {
   ════════════════════════════════════════════════════════════════════════ */
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     _container = container;
 
     /* Scene */
@@ -39952,6 +39960,8 @@ window.JungleCombat = (function () {
 
   // ── Main init/update/reset ─────────────────────────────────────────────────
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     _container = container || document.body;
 
     _scene = new THREE.Scene();
@@ -68323,6 +68333,8 @@ window.SewersEscape = (function () {
     //  INIT
     // ══════════════════════════════════════════════════════════════════════════
     function init(parentContainer) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
         container = parentContainer || document.body;
 
         // Renderer
@@ -75633,6 +75645,8 @@ window.UndergroundFight = (function () {
 
   // ── INIT ─────────────────────────────────────────────────────────────────────
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (!container) container = document.body;
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -92703,6 +92717,8 @@ window.UnderwaterLab = (function () {
   // ═════════════════════════════════════════════════════════════════════════════
 
   function init(scene, camera) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (_active) return;
     _active = true;
 
@@ -101459,6 +101475,8 @@ window.CruiseShip = (function () {
   // -------------------------------------------------------
 
   function init(scene, camera) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -108720,6 +108738,8 @@ window.SunkenWreck = (function () {
 
   // ── public init ───────────────────────────────────────────────────────────
   function init(sceneRef, cameraRef) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (active) return;
 
     if (typeof THREE === 'undefined') {

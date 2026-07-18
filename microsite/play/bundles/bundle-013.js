@@ -54125,6 +54125,8 @@ window.DestroyerEscort = (function() {
   };
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0d1929);
     scene.fog = new THREE.Fog(0x0d1929, 500, 1000);
@@ -55138,6 +55140,8 @@ window.CoastalBattery = (function() {
 	}
 
 	function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
 		if (!window.THREE) {
 			console.error('THREE.js not loaded');
 			return false;
@@ -55220,6 +55224,8 @@ window.PrisonColony = (function() {
   var lastPKey = 0;
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Scene setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
@@ -55942,6 +55948,8 @@ window.AsteroidField = (function() {
   }
 
   function init(containerElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     canvas = document.createElement('canvas');
     canvas.width = containerElement.clientWidth;
     canvas.height = containerElement.clientHeight;
@@ -57135,6 +57143,8 @@ window.SeaFort = (function() { 'use strict';
   var hudVisible = false;
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87CEEB);
     scene.fog = new THREE.Fog(0x87CEEB, 150, 300);
@@ -58292,6 +58302,8 @@ window.DerelictTown = (function() {
   var animations = { craters: [], windmill: null, fighters: [], mutants: [], signs: [] };
 
   function init(containerId) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     var container = document.getElementById(containerId);
     if (!container) return;
 
@@ -58887,6 +58899,8 @@ window.MethLab = (function() {
   var clock = new THREE.Clock();
 
   function init(containerElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     canvas = containerElement;
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
@@ -59418,6 +59432,8 @@ window.CargoFreighter = (function() {
   };
 
   function init(canvasElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     canvas = canvasElement;
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
@@ -60142,6 +60158,8 @@ window.IceFortressInterior = (function() {
   var THEME_COLOR_EMISSIVE = 0x7fbfff;
 
   function init(canvasElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a4d7a);
     scene.fog = new THREE.Fog(0x1a4d7a, 100, 500);
@@ -60858,6 +60876,8 @@ window.ReactorCore = (function() {
   var objectsToDispose;
 
   function init(containerId) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     objectsToDispose = [];
 
     // Setup 3D scene
@@ -61407,6 +61427,8 @@ window.GladiatorPit = (function() {
 	var keybindTimeout;
 
 	function init(containerId) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
 		var container = document.getElementById(containerId);
 		if (!container) {
 			console.error('Container not found: ' + containerId);
@@ -62093,6 +62115,8 @@ var hudCanvas, hudCtx;
 var hudVisible = true;
 
 function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a1a0f);
   scene.fog = new THREE.Fog(0x1a1a0f, 100, 200);
@@ -63375,6 +63399,8 @@ window.DeathMarch = (function() {
   };
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Three.js scene setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x4a6fa5); // Winter sky blue
@@ -64084,6 +64110,8 @@ window.BankRobbery = (function() {
   var hudVisible = false;
 
   function init(containerElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
 
@@ -64720,6 +64748,8 @@ window.UndergroundArena = (function() {
   var lastKeyTime = 0;
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Scene setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0a);
@@ -65473,6 +65503,8 @@ window.AirfieldAssault = (function() {
   var sceneObjects = [];
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
     scene.fog = new THREE.Fog(0x87ceeb, 500, 1000);
@@ -66219,6 +66251,8 @@ window.OilPlatformFire = (function() {
     var smokeHeight = 0;
 
     function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
         // Scene setup
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x333333);
@@ -66814,6 +66848,8 @@ window.DamControl = (function() {
   var lineSegments = [];
 
   function init(containerElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
     scene.fog = new THREE.Fog(0x87ceeb, 2000, 4000);
@@ -67373,6 +67409,8 @@ window.ConcertHall = (function() {
   }
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
     scene.fog = new THREE.Fog(0x000000, 100, 200);
@@ -67751,6 +67789,8 @@ window.SewerEscape = (function() {
   };
 
   function init(containerElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Scene setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0a);
@@ -68489,6 +68529,8 @@ window.HauntedGalleon = (function() {
   var animations = [];
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Scene setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0a);
@@ -69231,6 +69273,8 @@ window.AvalancheZone = (function() {
   var keyComboPendingTimeout = null;
 
   function init(containerId) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     canvas = document.getElementById(containerId);
 
     // Scene setup
@@ -69939,6 +69983,8 @@ window.MountainRescue = (function() {
   };
 
   function init(containerElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     clock = new THREE.Clock();
 
     // Scene setup
@@ -70623,6 +70669,8 @@ var colors = {
 };
 
 function init(width, height) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color(0x87ceeb);
 	scene.fog = new THREE.Fog(0x87ceeb, 500, 1000);
@@ -71347,6 +71395,8 @@ window.SnowfieldBattle = (function() {
   var lastSKeyTime = 0;
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Scene setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xb0d0e0);
@@ -71962,6 +72012,8 @@ window.ZooBreakout = (function() {
 	var lastZPress = 0;
 
 	function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
 		// Scene setup
 		scene = new THREE.Scene();
 		scene.background = new THREE.Color(0x87CEEB);
@@ -72715,6 +72767,8 @@ window.HospitalSiege = (function() {
 	var hsState = { H: false, S: false, lastHTime: 0 };
 
 	function init(containerElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
 		// Scene setup
 		scene = new THREE.Scene();
 		scene.background = new THREE.Color(0x111111);
@@ -74185,6 +74239,8 @@ window.WarehouseDistrict = (function() {
   var deaSafe = 4;
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x4a4a4a);
     scene.fog = new THREE.Fog(0x4a4a4a, 500, 1000);
@@ -75973,6 +76029,8 @@ window.PirateHarbor = (function () {
 
   // ── init ───────────────────────────────────────────────────────────────────
   function init(opts) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     opts = opts || {};
     container = opts.container || document.body;
 
@@ -77294,6 +77352,8 @@ window.DustBowl = (function () {
   // ─── public API ────────────────────────────────────────────────────────────
 
   function init(cfg) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     cfg = cfg || {};
     scene = cfg.scene || new THREE.Scene();
     scene.background = new THREE.Color(0x8b6a30);
@@ -79436,6 +79496,8 @@ window.HarborSiege = (function () {
 
   // ── init ──────────────────────────────────────────────────────────────────────
   function init(cfg) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     container = (cfg && cfg.container) ? cfg.container : document.body;
 
     scene = new THREE.Scene();

@@ -108208,6 +108208,8 @@ window.CombatDrone = (function () {
 
   // ── Init ─────────────────────────────────────────────────────────────────────
   function init(scene, camera, playerRef) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     _scene      = scene;
     _mainCamera = camera;
     _playerRef  = playerRef || null;
@@ -163958,6 +163960,8 @@ window.TankWarfare = (function () {
 
   // ── public API ─────────────────────────────────────────────────────────────
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // optional container
     if (container && renderer) {
       container.appendChild(renderer.domElement);
@@ -221883,6 +221887,8 @@ window.RebelUprising = (function () {
 
   // ── init / reset ──────────────────────────────────────────────────────────────
   function init(scene, camera) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     _scene = scene || window._gameScene;
     _camera = camera || window._camera;
     _active = false;
@@ -284584,6 +284590,8 @@ window.EmbassySiege = (function () {
 
   // ── Init (called externally) ───────────────────────────────────
   function init(sc, cam, ren) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (sc)  scene    = sc;
     if (cam) camera   = cam;
     if (ren) renderer = ren;
@@ -306468,6 +306476,8 @@ window.PlagueOutbreak = (function () {
   ═══════════════════════════════════════════════════════════════════════════*/
 
   function init(scene, camera, renderer) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     /* Register key listener for activation — called by host page */
     window.addEventListener('keydown', _onKeyDown);
     window.addEventListener('keyup',   _onKeyUp);
@@ -311123,6 +311133,8 @@ window.HighriseHostage = (function () {
   }
 
   function init(sc, cam, ren) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene    = sc    || scene;
     camera   = cam  || camera;
     renderer = ren  || renderer;
