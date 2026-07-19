@@ -19331,6 +19331,8 @@ try {
  * IIFE pattern, all var.
  */
 window.WeaponCodex = (function () {
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var _overlay = null;
   var _visible = false;
