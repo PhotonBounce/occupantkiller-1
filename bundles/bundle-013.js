@@ -54470,7 +54470,7 @@ window.DestroyerEscort = (function() {
   function animate() {
     animationFrameId = requestAnimationFrame(animate);
     update();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function update() {
@@ -55136,7 +55136,7 @@ window.CoastalBattery = (function() {
 		if (hudCanvas) {
 			updateHUD(hudCanvas);
 		}
-		renderer.render(scene, camera);
+		if (renderer) renderer.render(scene, camera);
 	}
 
 	function init() {
@@ -55791,7 +55791,7 @@ window.PrisonColony = (function() {
     }
 
     // Render
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
 
     // Draw HUD
     if (showHUD) {
@@ -56419,7 +56419,7 @@ window.AsteroidField = (function() {
       }
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
     updateHUD();
   }
 
@@ -57064,7 +57064,7 @@ window.VolcanoLair = (function() {
       guard.head.position.x = guard.x + offset;
     });
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function onWindowResize() {
@@ -57623,7 +57623,7 @@ window.SeaFort = (function() { 'use strict';
       drawHUD();
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function onWindowResize() {
@@ -58796,7 +58796,7 @@ window.DerelictTown = (function() {
     }
 
     if (renderer) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 
@@ -59358,7 +59358,7 @@ window.MethLab = (function() {
     updateHUD();
 
     if (renderer && canvas) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 
@@ -59939,7 +59939,7 @@ window.CargoFreighter = (function() {
     updateNavigationLights(deltaTime);
     updateShipRocking(deltaTime);
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function updateCraneBooms(deltaTime) {
@@ -60002,7 +60002,7 @@ window.CargoFreighter = (function() {
 
   function update(deltaTime) {
     if (renderer) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 
@@ -60815,7 +60815,7 @@ window.IceFortressInterior = (function() {
 
     updateHUD();
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {
@@ -61319,7 +61319,7 @@ window.ReactorCore = (function() {
     }
 
     // Render 3D
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
 
     // Render 2D HUD
     if (hudVisible) {
@@ -62070,7 +62070,7 @@ window.GladiatorPit = (function() {
 	function animate() {
 		requestAnimationFrame(animate);
 		update(0.016);
-		renderer.render(scene, camera);
+		if (renderer) renderer.render(scene, camera);
 	}
 
 	return {
@@ -62177,7 +62177,7 @@ function init(container) {
   document.addEventListener('keyup', handleKeyUp);
 
   // Initial render
-  renderer.render(scene, camera);
+  if (renderer) renderer.render(scene, camera);
 }
 
 function setupHUD(container) {
@@ -62813,7 +62813,7 @@ function update() {
   // Update HUD
   updateHUD();
 
-  renderer.render(scene, camera);
+  if (renderer) renderer.render(scene, camera);
 }
 
 function reset() {
@@ -64052,7 +64052,7 @@ window.DeathMarch = (function() {
       ctx2d.fillText('ESCAPE WINDOW: ' + (animationState.escapeWindowOpen ? 'OPEN' : 'CLOSED'), 10, 90);
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {
@@ -64638,7 +64638,7 @@ window.BankRobbery = (function() {
   function animate() {
     animationId = requestAnimationFrame(animate);
     update();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function update() {
@@ -65425,7 +65425,7 @@ window.UndergroundArena = (function() {
     });
 
     drawHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function update(deltaTime) {
@@ -66176,7 +66176,7 @@ window.AirfieldAssault = (function() {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {
@@ -66794,7 +66794,7 @@ window.OilPlatformFire = (function() {
             sceneObjects[sprinklerIdx].rotation.z += deltaTime * 2;
         }
 
-        renderer.render(scene, camera);
+        if (renderer) renderer.render(scene, camera);
     }
 
     function reset() {
@@ -67244,7 +67244,7 @@ window.DamControl = (function() {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function animate() {
@@ -67716,7 +67716,7 @@ window.ConcertHall = (function() {
       obj.rotation.z = Math.cos(time * 2) * 0.05;
     });
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {
@@ -68455,7 +68455,7 @@ window.SewerEscape = (function() {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function update(deltaTime) {
@@ -69204,7 +69204,7 @@ window.HauntedGalleon = (function() {
       }
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function setNestedProperty(obj, prop, value) {
@@ -69925,7 +69925,7 @@ window.AvalancheZone = (function() {
       }
     });
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function update() {
@@ -70054,7 +70054,7 @@ window.MountainRescue = (function() {
     function animate() {
       requestAnimationFrame(animate);
       update(clock.getDelta());
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
     animate();
   }
@@ -71316,7 +71316,7 @@ function update(delta) {
 	updateThreatStatus();
 	updateHUD();
 
-	renderer.render(scene, camera);
+	if (renderer) renderer.render(scene, camera);
 }
 
 function reset() {
@@ -71950,7 +71950,7 @@ window.SnowfieldBattle = (function() {
       }
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {
@@ -74128,7 +74128,7 @@ window.RacingPit = (function() {
 
     updateHUD();
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function onKeyDown(event) {
@@ -74664,7 +74664,7 @@ window.WarehouseDistrict = (function() {
     });
 
     drawHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function onWindowResize() {
@@ -74679,7 +74679,7 @@ window.WarehouseDistrict = (function() {
 
   function update() {
     if (renderer) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 
@@ -76068,7 +76068,7 @@ window.PirateHarbor = (function () {
     renderer.setAnimationLoop(function () {
       var delta = clock.getDelta();
       update(delta);
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     });
   }
 
@@ -77346,7 +77346,7 @@ window.DustBowl = (function () {
     }
 
     drawHUD(elapsed);
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── public API ────────────────────────────────────────────────────────────
@@ -79481,7 +79481,7 @@ window.HarborSiege = (function () {
       explosionCluster.position.y = 12 + Math.sin(explosionPulse * 0.7) * 1.5;
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ── resize ───────────────────────────────────────────────────────────────────

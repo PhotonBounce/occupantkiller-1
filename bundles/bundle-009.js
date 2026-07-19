@@ -163955,7 +163955,7 @@ window.TankWarfare = (function () {
     updateResupplyTruck(dt);
     updateHUD();
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ── public API ─────────────────────────────────────────────────────────────
@@ -172696,7 +172696,7 @@ window.GladiatorArena = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -208523,7 +208523,7 @@ window.GladiatorColosseum = (function () {
   }
 
   function renderScene() {
-    if (renderer && scene && camera) renderer.render(scene, camera);
+    if (renderer && scene && camera) if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Player update ────────────────────────────────────────────────────────────
@@ -219194,7 +219194,7 @@ window.SamuraiDuel = (function () {
     updateCamera();
     updateHUD();
 
-    if (renderer && scene && camera) renderer.render(scene, camera);
+    if (renderer && scene && camera) if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Player update ────────────────────────────────────────────────────────────
@@ -256539,7 +256539,7 @@ window.MechAssault = (function () {
     updateHUD();
 
     // Render
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Init ─────────────────────────────────────────────────────────────────
@@ -284636,7 +284636,7 @@ window.EmbassySiege = (function () {
     shootCooldown = Math.max(0, shootCooldown - dt);
 
     if (renderer && scene && camera) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 
@@ -287370,7 +287370,7 @@ window.KungFuDojo = (function () {
     );
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
     animFrameId = requestAnimationFrame(update);
   }
 
@@ -293328,7 +293328,7 @@ window.ColosseumBoss = (function () {
 
     if (gameState === 'won' || gameState === 'lost') {
       updateHUD();
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
       return;
     }
 
@@ -293496,7 +293496,7 @@ window.ColosseumBoss = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   /* ══════════════════════════════════════════════════════════════════════════════
@@ -298131,7 +298131,7 @@ window.GladiatorArena = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -311228,7 +311228,7 @@ window.HighriseHostage = (function () {
         dt = Math.min(dt, 0.05); // cap delta
         if (active) {
           update(dt);
-          renderer.render(scene, camera);
+          if (renderer) renderer.render(scene, camera);
         }
       }());
     }

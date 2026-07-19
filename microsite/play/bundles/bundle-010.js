@@ -8188,7 +8188,7 @@ window.SamuraiSiege = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // =========================================================================
@@ -12780,7 +12780,7 @@ window.KungFuTemple = (function () {
 
     if (gameOver || gameWon) {
       updateHUD();
-      if (renderer && scene && camera) renderer.render(scene, camera);
+      if (renderer && scene && camera) if (renderer) renderer.render(scene, camera);
       animFrameId = requestAnimationFrame(update);
       return;
     }
@@ -12904,7 +12904,7 @@ window.KungFuTemple = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
     animFrameId = requestAnimationFrame(update);
   }
 
@@ -20228,7 +20228,7 @@ window.SkyscraperSiege = (function () {
     if (shootCooldown > 0) shootCooldown -= dt;
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ---- Public API ----
@@ -25715,7 +25715,7 @@ window.WitnessProtection = (function () {
     _updateHUD();
 
     if (!active || gameOver) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
       return;
     }
 
@@ -25727,7 +25727,7 @@ window.WitnessProtection = (function () {
     if (timerSeconds <= 0) {
       timerSeconds = 0;
       _triggerLose('TIMER EXPIRED — WITNESS LEFT BEHIND');
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
       return;
     }
 
@@ -25771,7 +25771,7 @@ window.WitnessProtection = (function () {
     /* camera follow */
     _updateCamera();
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   /* ── Player movement ───────────────────────────────────────────────────── */
@@ -29578,7 +29578,7 @@ window.TokyoShowdown = (function () {
 
     updateHUD();
     drawMinimap();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Resize handler ───────────────────────────────────────────────────────────
@@ -32242,7 +32242,7 @@ window.CiaSafehouse = (function() {
     updateFlashbang(dt);
     checkWaveEnd();
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function updatePlayer(dt) {
@@ -37691,7 +37691,7 @@ window.SpaceStationSiege = (function() {
       updateHUD(dt);
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Window Resize ────────────────────────────────────────────────────────────
@@ -42027,7 +42027,7 @@ window.BountyHunter = (function () {
       var dt = Math.min((now - state.lastTime) / 1000, 0.05);
       state.lastTime = now;
       update(dt);
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
     state.animFrameId = requestAnimationFrame(loop);
 
@@ -56957,7 +56957,7 @@ window.ArcticConvoy = (function () {
     }
 
     if (renderer && scene && camera) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 
@@ -61094,7 +61094,7 @@ window.BlackMarketArms = (function () {
       if (shootCooldown > 0) { shootCooldown -= dt; }
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ── init ──────────────────────────────────────────────────────────────────
@@ -68991,7 +68991,7 @@ window.SewersEscape = (function () {
 
         if (gameLost || gameWon) {
             drawHUD(dt);
-            renderer.render(scene, camera);
+            if (renderer) renderer.render(scene, camera);
             return;
         }
 
@@ -69006,7 +69006,7 @@ window.SewersEscape = (function () {
         checkWinLoss();
         drawHUD(dt);
 
-        renderer.render(scene, camera);
+        if (renderer) renderer.render(scene, camera);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -75640,7 +75640,7 @@ window.UndergroundFight = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ── INIT ─────────────────────────────────────────────────────────────────────
@@ -77475,7 +77475,7 @@ window.FortressBreach = (function () {
       }
 
       updateHUD();
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
 
       if ((gameOver || gameWon) && !document.getElementById('fortress-breach-end')) {
         showEndScreen(gameWon);
@@ -80674,7 +80674,7 @@ window.SpaceColony = (function () {
       updateHUD(dt);
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Start / Reset ────────────────────────────────────────────────────────────
@@ -80791,7 +80791,7 @@ window.SpaceColony = (function () {
       updateBullets(dt);
       updateDoors(dt);
       updateHUD(dt);
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 

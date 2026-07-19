@@ -33493,7 +33493,7 @@ var ArcticLab = (function() {
 		updateEmergencyLights();
 
 		if (renderer) {
-			renderer.render(scene, camera);
+			if (renderer) renderer.render(scene, camera);
 		}
 	}
 
@@ -34033,7 +34033,7 @@ window.TrenchWar = (function() {
     camera.position.x = Math.sin(time * 0.3) * 0.3;
     camera.position.y = 3 + Math.sin(time * 0.25) * 0.1;
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {
