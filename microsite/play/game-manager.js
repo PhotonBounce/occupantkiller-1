@@ -1084,7 +1084,7 @@ const GameManager = (function () {
           depth: true,
           stencil: false,
           premultipliedAlpha: false,
-          preserveDrawingBuffer: false,
+          preserveDrawingBuffer: true,
           powerPreference: profile.powerPreference,
           failIfMajorPerformanceCaveat: false,
         };
@@ -1100,7 +1100,7 @@ const GameManager = (function () {
           depth: true,
           stencil: false,
           premultipliedAlpha: false,
-          preserveDrawingBuffer: false,
+          preserveDrawingBuffer: true,
           powerPreference: profile.powerPreference,
           precision: profile.precision,
         });
