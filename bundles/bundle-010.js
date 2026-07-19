@@ -8188,7 +8188,7 @@ window.SamuraiSiege = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // =========================================================================
@@ -12780,7 +12780,7 @@ window.KungFuTemple = (function () {
 
     if (gameOver || gameWon) {
       updateHUD();
-      if (renderer && scene && camera) renderer.render(scene, camera);
+      if (renderer && scene && camera) if (renderer) renderer.render(scene, camera);
       animFrameId = requestAnimationFrame(update);
       return;
     }
@@ -12904,7 +12904,7 @@ window.KungFuTemple = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
     animFrameId = requestAnimationFrame(update);
   }
 
@@ -20228,12 +20228,14 @@ window.SkyscraperSiege = (function () {
     if (shootCooldown > 0) shootCooldown -= dt;
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ---- Public API ----
 
   function init(mountScene, mountCamera, mountRenderer) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Register input handlers
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
@@ -25291,6 +25293,8 @@ window.WitnessProtection = (function () {
      INIT
   ───────────────────────────────────────────────────────────────────────── */
   function init(cont) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     container = cont;
     _createMaterials();
     _createScene();
@@ -25711,7 +25715,7 @@ window.WitnessProtection = (function () {
     _updateHUD();
 
     if (!active || gameOver) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
       return;
     }
 
@@ -25723,7 +25727,7 @@ window.WitnessProtection = (function () {
     if (timerSeconds <= 0) {
       timerSeconds = 0;
       _triggerLose('TIMER EXPIRED — WITNESS LEFT BEHIND');
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
       return;
     }
 
@@ -25767,7 +25771,7 @@ window.WitnessProtection = (function () {
     /* camera follow */
     _updateCamera();
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   /* ── Player movement ───────────────────────────────────────────────────── */
@@ -29574,7 +29578,7 @@ window.TokyoShowdown = (function () {
 
     updateHUD();
     drawMinimap();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Resize handler ───────────────────────────────────────────────────────────
@@ -31856,6 +31860,8 @@ window.CiaSafehouse = (function() {
 
   // --- Init ---
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (!activated) return;
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
@@ -32236,7 +32242,7 @@ window.CiaSafehouse = (function() {
     updateFlashbang(dt);
     checkWaveEnd();
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function updatePlayer(dt) {
@@ -36120,6 +36126,8 @@ window.ArmsSmuggler = (function () {
   ════════════════════════════════════════════════════════════════════════ */
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     _container = container;
 
     /* Scene */
@@ -37683,7 +37691,7 @@ window.SpaceStationSiege = (function() {
       updateHUD(dt);
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Window Resize ────────────────────────────────────────────────────────────
@@ -39952,6 +39960,8 @@ window.JungleCombat = (function () {
 
   // ── Main init/update/reset ─────────────────────────────────────────────────
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     _container = container || document.body;
 
     _scene = new THREE.Scene();
@@ -42017,7 +42027,7 @@ window.BountyHunter = (function () {
       var dt = Math.min((now - state.lastTime) / 1000, 0.05);
       state.lastTime = now;
       update(dt);
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
     state.animFrameId = requestAnimationFrame(loop);
 
@@ -56947,7 +56957,7 @@ window.ArcticConvoy = (function () {
     }
 
     if (renderer && scene && camera) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 
@@ -61084,7 +61094,7 @@ window.BlackMarketArms = (function () {
       if (shootCooldown > 0) { shootCooldown -= dt; }
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ── init ──────────────────────────────────────────────────────────────────
@@ -68323,6 +68333,8 @@ window.SewersEscape = (function () {
     //  INIT
     // ══════════════════════════════════════════════════════════════════════════
     function init(parentContainer) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
         container = parentContainer || document.body;
 
         // Renderer
@@ -68979,7 +68991,7 @@ window.SewersEscape = (function () {
 
         if (gameLost || gameWon) {
             drawHUD(dt);
-            renderer.render(scene, camera);
+            if (renderer) renderer.render(scene, camera);
             return;
         }
 
@@ -68994,7 +69006,7 @@ window.SewersEscape = (function () {
         checkWinLoss();
         drawHUD(dt);
 
-        renderer.render(scene, camera);
+        if (renderer) renderer.render(scene, camera);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -75628,11 +75640,13 @@ window.UndergroundFight = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ── INIT ─────────────────────────────────────────────────────────────────────
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (!container) container = document.body;
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -77461,7 +77475,7 @@ window.FortressBreach = (function () {
       }
 
       updateHUD();
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
 
       if ((gameOver || gameWon) && !document.getElementById('fortress-breach-end')) {
         showEndScreen(gameWon);
@@ -80660,7 +80674,7 @@ window.SpaceColony = (function () {
       updateHUD(dt);
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Start / Reset ────────────────────────────────────────────────────────────
@@ -80777,7 +80791,7 @@ window.SpaceColony = (function () {
       updateBullets(dt);
       updateDoors(dt);
       updateHUD(dt);
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 
@@ -92703,6 +92717,8 @@ window.UnderwaterLab = (function () {
   // ═════════════════════════════════════════════════════════════════════════════
 
   function init(scene, camera) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (_active) return;
     _active = true;
 
@@ -101459,6 +101475,8 @@ window.CruiseShip = (function () {
   // -------------------------------------------------------
 
   function init(scene, camera) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (state.active) return;
     state.active = true;
 
@@ -108720,6 +108738,8 @@ window.SunkenWreck = (function () {
 
   // ── public init ───────────────────────────────────────────────────────────
   function init(sceneRef, cameraRef) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (active) return;
 
     if (typeof THREE === 'undefined') {

@@ -1273,7 +1273,7 @@ const GameManager = (function () {
     // here we also no-op init/update so the blind boot+render batches below can't
     // activate or crash on them. Legit feature systems are intentionally NOT listed.
     try {
-      var __EMBEDDED_GAMES = ['PrisonBreak','GladiatorArena','UnderwaterBase','MoonBase','ArcticBase','TimeHeist','OilRig','GladiatorColosseum','CargoShip','SamuraiDuel','UnderwaterRuins','BlackSite','PirateIsland','SiegeOfParis','DiamondHeist','Jailbreak','KungFuDojo','MarsColony','ColosseumBoss','DeepCover','SunkenVessel','SubmarineHeist','ArcticSiege','MuseumHeist','PrisonEscape','CyberpunkHeist','RomanConquest','OilPlatform','SamuraiSiege','BloodDiamond','SpacePirates','KungFuTemple','DeepSeaBase','CyberEspionage','MoonbaseAssault','AztecRuins','NeonArena','SpaceStationSiege','TrainHijack','BountyHunter','AntarcticStation','TimeParadox','GlacierFortress','ArcticConvoy','ColosseumBattle','BlackMarketArms','ResearchStation','FortressBreach','SpaceColony','GlacierCave','VolcanoLair','RacingPit'];
+      var __EMBEDDED_GAMES = ['AirfieldAssault','AncientSiege','AntarcticStation','ArcticBase','ArcticConvoy','ArcticSiege','ArmsSmuggler','AsteroidField','AvalancheZone','AztecRuins','BankRobbery','BattleRoyale','BlackMarketArms','BlackSite','BloodDiamond','BountyHunter','CargoFreighter','CargoShip','CiaSafehouse','CoastalBattery','ColosseumBattle','ColosseumBoss','ConcertHall','CorporateEspionage','CruiseShip','CyberEspionage','CyberpunkHeist','DamControl','DeathMarch','DeepCover','DeepSeaBase','DerelictTown','DestroyerEscort','DiamondHeist','DustBowl','EmbassySiege','FortressBreach','GlacierCave','GlacierFortress','GladiatorArena','GladiatorColosseum','GladiatorPit','HarborSiege','HauntedGalleon','HighriseHostage','HospitalSiege','IceFortressInterior','Jailbreak','JungleCombat','JungleShrine','KungFuDojo','KungFuTemple','MarsColony','MechBay','MedievalSiege','MethLab','MoonBase','MoonbaseAssault','MountainRescue','MuseumHeist','NeonArena','OilPlatform','OilPlatformFire','OilRig','PirateHarbor','PirateIsland','PlagueOutbreak','PoisonGrove','PrisonBreak','PrisonColony','PrisonEscape','RacingPit','ReactorCore','RebelUprising','ResearchStation','RomanConquest','SamuraiDuel','SamuraiSiege','SeaFort','SewerEscape','SewersEscape','ShoppingDistrict','SiegeOfParis','SkyscraperSiege','SnowfieldBattle','SpaceColony','SpacePirates','SpaceStationSiege','SubmarineHeist','SunkenVessel','SunkenWreck','TankWarfare','TimeHeist','TimeParadox','TrainHijack','TrenchWar','UndergroundArena','UndergroundFight','UnderwaterBase','UnderwaterLab','UnderwaterRuins','VolcanoLair','WarCathedral','WarehouseDistrict','WeaponCodex','WitnessProtection','ZooBreakout'];
       for (var __gi = 0; __gi < __EMBEDDED_GAMES.length; __gi++) {
         var __g = window[__EMBEDDED_GAMES[__gi]];
         if (__g) { __g.init = function () {}; __g.update = function () {}; }
@@ -8593,6 +8593,7 @@ const GameManager = (function () {
 
   function update() {
     requestAnimationFrame(update);
+    try {
 
     const now = performance.now();
     const rawDelta = Math.min((now - prevTime) / 1000, 0.1);
@@ -11821,6 +11822,8 @@ const GameManager = (function () {
       }
     } catch (eMR) {}
     _renderer.render(_scene, renderCam);
+  
+    } catch (_updLoopErr) { if (typeof console !== "undefined" && console.error) console.error("[update loop caught]", _updLoopErr); }
   }
 
   /* ── Extended HUD Updates ────────────────────────────────────────── */

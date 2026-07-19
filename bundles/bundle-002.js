@@ -20070,6 +20070,8 @@ window.WeaponCodex = (function () {
   }
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer */
+
     document.addEventListener('keydown', handleKeyDown);
     // Pre-create overlay silently in background if DOM ready
     if (document.readyState === 'complete' || document.readyState === 'interactive') {

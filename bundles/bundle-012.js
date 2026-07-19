@@ -30243,6 +30243,8 @@ window.WarCathedral = (function() {
   var organSmoke = [];
 
   function init(canvasElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
     scene.fog = new THREE.Fog(0x1a1a2e, 150, 200);
@@ -32565,6 +32567,8 @@ window.PoisonGrove = (function() {
   var sporeEmitters = [];
 
   function init(sceneRef, cameraRef, rendererRef) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer */
+
     scene = sceneRef;
     camera = cameraRef;
     renderer = rendererRef;
@@ -33489,7 +33493,7 @@ var ArcticLab = (function() {
 		updateEmergencyLights();
 
 		if (renderer) {
-			renderer.render(scene, camera);
+			if (renderer) renderer.render(scene, camera);
 		}
 	}
 
@@ -33981,6 +33985,8 @@ window.TrenchWar = (function() {
   }
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87CEEB);
     scene.fog = new THREE.Fog(0x87CEEB, 150, 300);
@@ -34027,7 +34033,7 @@ window.TrenchWar = (function() {
     camera.position.x = Math.sin(time * 0.3) * 0.3;
     camera.position.y = 3 + Math.sin(time * 0.25) * 0.1;
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {

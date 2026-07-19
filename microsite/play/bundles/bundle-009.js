@@ -108208,6 +108208,8 @@ window.CombatDrone = (function () {
 
   // ── Init ─────────────────────────────────────────────────────────────────────
   function init(scene, camera, playerRef) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     _scene      = scene;
     _mainCamera = camera;
     _playerRef  = playerRef || null;
@@ -163953,11 +163955,13 @@ window.TankWarfare = (function () {
     updateResupplyTruck(dt);
     updateHUD();
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ── public API ─────────────────────────────────────────────────────────────
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // optional container
     if (container && renderer) {
       container.appendChild(renderer.domElement);
@@ -172692,7 +172696,7 @@ window.GladiatorArena = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -208519,7 +208523,7 @@ window.GladiatorColosseum = (function () {
   }
 
   function renderScene() {
-    if (renderer && scene && camera) renderer.render(scene, camera);
+    if (renderer && scene && camera) if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Player update ────────────────────────────────────────────────────────────
@@ -219190,7 +219194,7 @@ window.SamuraiDuel = (function () {
     updateCamera();
     updateHUD();
 
-    if (renderer && scene && camera) renderer.render(scene, camera);
+    if (renderer && scene && camera) if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Player update ────────────────────────────────────────────────────────────
@@ -221883,6 +221887,8 @@ window.RebelUprising = (function () {
 
   // ── init / reset ──────────────────────────────────────────────────────────────
   function init(scene, camera) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     _scene = scene || window._gameScene;
     _camera = camera || window._camera;
     _active = false;
@@ -256533,7 +256539,7 @@ window.MechAssault = (function () {
     updateHUD();
 
     // Render
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Init ─────────────────────────────────────────────────────────────────
@@ -284584,6 +284590,8 @@ window.EmbassySiege = (function () {
 
   // ── Init (called externally) ───────────────────────────────────
   function init(sc, cam, ren) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (sc)  scene    = sc;
     if (cam) camera   = cam;
     if (ren) renderer = ren;
@@ -284628,7 +284636,7 @@ window.EmbassySiege = (function () {
     shootCooldown = Math.max(0, shootCooldown - dt);
 
     if (renderer && scene && camera) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 
@@ -287362,7 +287370,7 @@ window.KungFuDojo = (function () {
     );
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
     animFrameId = requestAnimationFrame(update);
   }
 
@@ -293320,7 +293328,7 @@ window.ColosseumBoss = (function () {
 
     if (gameState === 'won' || gameState === 'lost') {
       updateHUD();
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
       return;
     }
 
@@ -293488,7 +293496,7 @@ window.ColosseumBoss = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   /* ══════════════════════════════════════════════════════════════════════════════
@@ -298123,7 +298131,7 @@ window.GladiatorArena = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -306468,6 +306476,8 @@ window.PlagueOutbreak = (function () {
   ═══════════════════════════════════════════════════════════════════════════*/
 
   function init(scene, camera, renderer) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     /* Register key listener for activation — called by host page */
     window.addEventListener('keydown', _onKeyDown);
     window.addEventListener('keyup',   _onKeyUp);
@@ -311123,6 +311133,8 @@ window.HighriseHostage = (function () {
   }
 
   function init(sc, cam, ren) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene    = sc    || scene;
     camera   = cam  || camera;
     renderer = ren  || renderer;
@@ -311216,7 +311228,7 @@ window.HighriseHostage = (function () {
         dt = Math.min(dt, 0.05); // cap delta
         if (active) {
           update(dt);
-          renderer.render(scene, camera);
+          if (renderer) renderer.render(scene, camera);
         }
       }());
     }
