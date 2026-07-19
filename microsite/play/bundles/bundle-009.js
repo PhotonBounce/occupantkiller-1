@@ -107616,6 +107616,8 @@ try {
 
 window.CombatDrone = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── Constants ────────────────────────────────────────────────────────────────
   var BATTERY_MAX      = 90;    // seconds of flight time
@@ -152023,6 +152025,8 @@ try {
 ;
 window.PrisonBreak = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── State ─────────────────────────────────────────────────────────────────────
   var _scene, _camera, _renderer, _clock;
@@ -162874,6 +162878,8 @@ try {
 ;
 window.TankWarfare = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── state ──────────────────────────────────────────────────────────────────
   var scene, camera, renderer, clock;
@@ -171415,6 +171421,8 @@ try {
 ;
 window.GladiatorArena = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── Activation key tracking (G + A within 400ms) ────────────────────────────
   var keysDown = {};
@@ -173970,6 +173978,8 @@ try {
 ;
 window.UnderwaterBase = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'UnderwaterBase';
   var ACTIVATION_KEY_U = 85;
@@ -178622,6 +178632,8 @@ try {
 ;
 window.AncientSiege = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── Activation state ─────────────────────────────────────────────────────
   var _active = false;
@@ -182292,6 +182304,8 @@ try {
 ;
 window.MoonBase = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'MoonBase';
   var ACTIVATION_KEY_M = 77;
@@ -184767,6 +184781,8 @@ try {
 ;
 window.ArcticBase = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'ArcticBase';
   var ACTIVATION_KEY_A = 65;
@@ -185796,6 +185812,8 @@ try {
 ;
 window.TimeHeist = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── Constants ────────────────────────────────────────────────────────────
   var ACTIVATION_WINDOW = 400;
@@ -195351,6 +195369,8 @@ try {
 ;
 window.OilRig = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'OilRig';
   var ACTIVATION_KEY_O = 79;
@@ -207384,6 +207404,8 @@ try {
 ;
 window.GladiatorColosseum = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── Activation key tracking ─────────────────────────────────────────────────
   var keysDown = {};
@@ -211044,6 +211066,8 @@ try {
 ;
 window.CargoShip = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'CargoShip';
   var ACTIVATION_KEY_C = 67;
@@ -218185,6 +218209,8 @@ try {
 ;
 window.SamuraiDuel = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── Activation key tracking ──────────────────────────────────────────────────
   var keysDown = {};
@@ -220989,6 +221015,8 @@ try {
 ;
 window.RebelUprising = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── state ────────────────────────────────────────────────────────────────────
   var _scene = null;
@@ -222989,6 +223017,8 @@ try {
 ;
 window.PrisonBreak = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── State ─────────────────────────────────────────────────────────────────────
   var _scene, _camera, _renderer, _clock;
@@ -225529,6 +225559,8 @@ try {
 ;
 window.MedievalSiege = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'MedievalSiege';
   var ACTIVATION_WINDOW = 400;
@@ -230140,6 +230172,8 @@ try {
  * ============================================================ */
 window.BattleRoyale = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   /* ── Config ──────────────────────────────────────────────── */
   var CFG = {
@@ -239781,6 +239815,8 @@ try {
 // All var, no let/const, pure browser JS, THREE global assumed
 
 window.CorporateEspionage = (function (window) {
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
   'use strict';
 
   // ─── Constants ─────────────────────────────────────────────────────────────
@@ -243935,6 +243971,8 @@ try {
 ;
 window.UnderwaterRuins = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'UnderwaterRuins';
   var ACTIVATION_KEY_U = 85;
@@ -251245,6 +251283,8 @@ try {
 ;
 window.BlackSite = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── State ─────────────────────────────────────────────────────────────────────
   var _scene, _camera, _renderer, _clock;
@@ -265705,6 +265745,8 @@ try {
 ;
 window.TimeHeist = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── Constants ────────────────────────────────────────────────────────────
   var ACTIVATION_WINDOW = 400;
@@ -267086,6 +267128,8 @@ try {
 ;
 window.PirateIsland = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── State ────────────────────────────────────────────────────────────────
   var state = {
@@ -271352,6 +271396,8 @@ try {
  * ============================================================ */
 window.SiegeOfParis = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── Activation ──────────────────────────────────────────────────────────────
   var _active = false;
@@ -274448,6 +274494,8 @@ try {
 ;
 window.DiamondHeist = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── State ──────────────────────────────────────────────────────────────────
   var state = {
@@ -277294,6 +277342,8 @@ try {
 ;
 window.Jailbreak = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── State ─────────────────────────────────────────────────────────────────────
   var _scene, _camera, _renderer, _clock;
@@ -283296,6 +283346,8 @@ try {
 // ============================================================
 window.EmbassySiege = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── Constants ─────────────────────────────────────────────────
   var TOTAL_HOSTAGES        = 6;
@@ -286159,6 +286211,8 @@ try {
 ;
 window.KungFuDojo = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── Activation key tracking ──────────────────────────────────────────────
   var keysDown = {};
@@ -289297,6 +289351,8 @@ try {
 ;
 window.MarsColony = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── constants ─────────────────────────────────────────────────────────────
 
@@ -291882,6 +291938,8 @@ try {
    ───────────────────────────────────────────────────────────────────────────── */
 window.ColosseumBoss = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   /* ── activation key tracking ──────────────────────────────────────────────── */
   var keysDown   = {};
@@ -293745,6 +293803,8 @@ try {
 ;
 window.DeepCover = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── State ─────────────────────────────────────────────────────────────────
   var state = {
@@ -296850,6 +296910,8 @@ try {
 ;
 window.GladiatorArena = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── Activation key tracking (G + A within 400ms) ────────────────────────────
   var keysDown = {};
@@ -304823,6 +304885,8 @@ try {
 
 window.PlagueOutbreak = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   /* ── Activation ──────────────────────────────────────────────────────── */
   var _pTime = 0;
@@ -308015,6 +308079,8 @@ try {
 ;
 window.SunkenVessel = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var ACTIVATION_KEY_S = 83;
   var ACTIVATION_KEY_V = 86;
@@ -309513,6 +309579,8 @@ try {
 // ============================================================
 window.HighriseHostage = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── Constants ────────────────────────────────────────────────
   var TOTAL_FLOORS         = 20;
@@ -318844,6 +318912,8 @@ try {
 ;
 window.SubmarineHeist = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── State ──────────────────────────────────────────────────────────────────
   var state = {
@@ -322352,6 +322422,8 @@ try {
 ;
 window.ArcticSiege = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'ArcticSiege';
   var ACTIVATION_KEY_A = 65;
@@ -323867,6 +323939,8 @@ try {
 ;
 window.MuseumHeist = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── State ────────────────────────────────────────────────────────────────────
   var state = {
@@ -332697,6 +332771,8 @@ try {
 ;
 window.PrisonEscape = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── State ─────────────────────────────────────────────────────────────────────
   var _scene, _camera, _renderer, _clock;

@@ -54105,6 +54105,8 @@ try {
 ;
 window.DestroyerEscort = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var sceneObjects = [];
@@ -54582,6 +54584,8 @@ try {
 ;
 window.CoastalBattery = (function() {
 	'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
 	var scene, camera, renderer, canvas;
 	var sceneObjects = [];
@@ -55210,6 +55214,8 @@ try {
 ;
 window.PrisonColony = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas, ctx, raycaster, mouse;
   var sceneObjects = [];
@@ -55886,6 +55892,8 @@ try {
 ;
 window.AsteroidField = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas, hudCanvas;
   var mainAsteroid, mediumAsteroid1, mediumAsteroid2;
@@ -56494,6 +56502,8 @@ try {
 ;
 window.VolcanoLair = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var objects = [];
@@ -57120,6 +57130,8 @@ window.VolcanoLair = (function() {
 try {
 ;
 window.SeaFort = (function() { 'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas2d, ctx2d;
   var seaFortObjects = [];
@@ -58293,6 +58305,8 @@ try {
 ;
 window.DerelictTown = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var materials = {}, geometries = {}, meshes = [], lights = [];
@@ -58883,6 +58897,8 @@ try {
 ;
 window.MethLab = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var objects = [];
@@ -59407,6 +59423,8 @@ try {
 ;
 window.CargoFreighter = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var shipObjects = [];
@@ -60137,6 +60155,8 @@ try {
 ;
 window.IceFortressInterior = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene = null;
   var camera = null;
@@ -60869,6 +60889,8 @@ try {
 ;
 window.ReactorCore = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas2d, ctx2d;
   var reactor, controlRods, steamParticles, saboteurs, guards, scientists;
@@ -61405,6 +61427,8 @@ try {
 ;
 window.GladiatorPit = (function() {
 	'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
 	var scene, camera, renderer, canvas;
 	var objects = [];
@@ -62086,6 +62110,8 @@ window.GladiatorPit = (function() {
 try {
 ;
 window.JungleShrine = (function() { 'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
 var scene, camera, renderer, canvas;
 var sceneObjects = [];
@@ -63385,6 +63411,8 @@ try {
 ;
 window.DeathMarch = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas2d, ctx2d;
   var sceneObjects = [];
@@ -64093,6 +64121,8 @@ try {
 ;
 window.BankRobbery = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var objects = [];
@@ -64732,6 +64762,8 @@ try {
 ;
 window.UndergroundArena = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer;
   var fighters = [];
@@ -65486,6 +65518,8 @@ try {
 ;
 window.AirfieldAssault = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer;
   var radarDish, runwayLights = [];
@@ -66230,6 +66264,8 @@ try {
 ;
 window.OilPlatformFire = (function() {
     'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
     var scene, camera, renderer, canvas, context2d;
     var sceneObjects = [];
@@ -66829,6 +66865,8 @@ try {
 ;
 window.DamControl = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas2d, ctx2d;
   var damWall, spillways, turbineHall, powerTowers, controlBuilding;
@@ -67359,6 +67397,8 @@ try {
 ;
 window.ConcertHall = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer;
   var objects = [];
@@ -67772,6 +67812,8 @@ try {
 ;
 window.SewerEscape = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var objects = [];
@@ -68516,6 +68558,8 @@ try {
 ;
 window.HauntedGalleon = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var ship, ghostCrew = [], fogSpheres = [], emissiveObjects = [];
@@ -69260,6 +69304,8 @@ try {
 ;
 window.AvalancheZone = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var objects = [];
@@ -69968,6 +70014,8 @@ try {
 ;
 window.MountainRescue = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, clock;
   var sceneObjects = [];
@@ -70634,6 +70682,8 @@ window.MountainRescue = (function() {
 try {
 ;
 window.ShoppingDistrict = (function() { 'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
 var scene, camera, renderer, canvas, stats;
 var sceneObjects = [];
@@ -71374,6 +71424,8 @@ try {
 ;
 window.SnowfieldBattle = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer;
   var tanks = [];
@@ -71996,6 +72048,8 @@ try {
 ;
 window.ZooBreakout = (function() {
 	'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
 	var scene, camera, renderer, canvas, context;
 	var clock = new THREE.Clock();
@@ -72754,6 +72808,8 @@ try {
 ;
 window.HospitalSiege = (function() {
 	'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
 	var scene, camera, renderer, canvas;
 	var hospitalObjects = [];
@@ -73403,6 +73459,8 @@ try {
 ;
 window.RacingPit = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer;
   var racingPitObjects = [];
@@ -74225,6 +74283,8 @@ try {
 ;
 window.WarehouseDistrict = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, controls;
   var sceneObjects = [];
@@ -75483,6 +75543,8 @@ try {
 ;
 window.PirateHarbor = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── state ──────────────────────────────────────────────────────────────────
   var scene, camera, renderer, clock;
@@ -76836,6 +76898,8 @@ try {
 ;
 window.DustBowl = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, animationId;
   var clock;
@@ -78828,6 +78892,8 @@ try {
 ;
 window.HarborSiege = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── state ───────────────────────────────────────────────────────────────────
   var scene, camera, renderer, clock;
