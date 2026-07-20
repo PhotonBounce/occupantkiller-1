@@ -146,7 +146,9 @@
           var dx = cam.position.x - _lastPos.x, dy = cam.position.y - _lastPos.y, dz = cam.position.z - _lastPos.z;
           var dt = 1 / 60;
           var inst = Math.sqrt(dx * dx + dy * dy + dz * dz) / dt;
+          if (!isFinite(inst)) inst = 0; // guard: a NaN camera pos for one frame otherwise poisons the smoothed value forever (SPD NaN)
           _spdSmooth += (inst - _spdSmooth) * 0.2;
+          if (!isFinite(_spdSmooth)) _spdSmooth = 0;
         }
         _lastPos = { x: cam.position.x, y: cam.position.y, z: cam.position.z };
       }

@@ -328,6 +328,7 @@ const GameManager = (function () {
 
   /* ── Wave State ──────────────────────────────────────────────────── */
   let currentWave = 0;
+  let _waveSpawned = false; // true once a wave's enemies are actually spawned; gates wave-complete so it can't fire at wave 0 (premature 'WAVE CLEAR' overlay pile) or between waves
   const SCORE_WAVE_BONUS = 500;
 
   /* ── Stamina Config ──────────────────────────────────────────────── */
@@ -1084,7 +1085,7 @@ const GameManager = (function () {
           depth: true,
           stencil: false,
           premultipliedAlpha: false,
-          preserveDrawingBuffer: false,
+          preserveDrawingBuffer: true,
           powerPreference: profile.powerPreference,
           failIfMajorPerformanceCaveat: false,
         };
@@ -1100,7 +1101,7 @@ const GameManager = (function () {
           depth: true,
           stencil: false,
           premultipliedAlpha: false,
-          preserveDrawingBuffer: false,
+          preserveDrawingBuffer: true,
           powerPreference: profile.powerPreference,
           precision: profile.precision,
         });
@@ -5622,6 +5623,7 @@ const GameManager = (function () {
       if (gameState !== STATE.PLAYING && gameState !== STATE.BUILD_MODE) return;
     }
     currentWave = w;
+    _waveSpawned = true;
     player._waveStartCount = 0; // reset before any early-return path (droneOnly etc.)
     // Remove flag meshes from previous wave (they accumulate otherwise)
     for (var _rfi = 0; _rfi < _rfFlagObjects.length; _rfi++) {
@@ -9365,7 +9367,7 @@ const GameManager = (function () {
       }
 
       Enemies.update(delta, player.position, onPlayerHit, function (waveDone) {
-        if (waveDone) onWaveComplete();
+        if (waveDone && _waveSpawned) { _waveSpawned = false; onWaveComplete(); }
       });
       // Boss health bar tracking
       try {
