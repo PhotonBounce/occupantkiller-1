@@ -916,6 +916,22 @@ const GameManager = (function () {
       description:  'Pilot a one-way FPV drone deep into a Russian oil refinery. No respawns at the wheel — only at the launch pad.',
       objective:    'FPV drone mission. Fly into the refinery. Blow the fuel tanks. One wave, one chance.',
     },
+    {
+      id:           19,
+      name:         'BRADLEY DUEL — STEPOVE',
+      theme:        'snowfield',
+      wavesPerStage: 1,
+      difficulty:   1.7,
+      fogColor:     0xb8c4cc,
+      bgColor:      0xaeb9c2,
+      sunColor:     0xe8f0ff,
+      sunIntensity: 0.9,
+      exposure:     0.9,
+      bradleyDuel:  true,
+      levelId:      'TREELINE',
+      description:  'Jan 2024, Stepove. One Bradley, one T-90M, fifty meters. Blind it, break it, and let the FPV finish the job.',
+      objective:    'Gun the Bradley. Kill its optics with 25mm, shred the tracks, break the crew — then finish the wreck.',
+    },
   ];
 
   let currentStage = 0;  // 0-based index into STAGES
@@ -1532,6 +1548,8 @@ const GameManager = (function () {
     });
     _bootStep('drones');
     _safeInit('refinery', function () { if (typeof RefineryStrike !== 'undefined' && RefineryStrike.init) RefineryStrike.init(_scene); });
+    _safeInit('stepove', function () { if (typeof StepoveDuel !== 'undefined' && StepoveDuel.init) StepoveDuel.init(_scene); });
+    _safeInit('voicelines', function () { if (typeof VoiceLines !== 'undefined' && VoiceLines.init) VoiceLines.init(); });
     _safeInit('vehicles', function () { if (VehicleSystem && typeof VehicleSystem.init === 'function') VehicleSystem.init(_scene); });
     _bootStep('vehicles');
     _safeInit('economy', function () { if (Economy && typeof Economy.init === 'function') Economy.init(); });
@@ -3109,7 +3127,7 @@ const GameManager = (function () {
       }
       // Replenish: generate a new mission after 10s
       setTimeout(function () {
-        if (gameState === STATE.PLAYING && !(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
+        if (gameState === STATE.PLAYING && !(STAGES[currentStage] && (STAGES[currentStage].droneOnly || STAGES[currentStage].bradleyDuel))) {
           var _newM;
           if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
             _newM = MissionSystem.generateMission('kyiv_defense');
@@ -4897,9 +4915,10 @@ const GameManager = (function () {
     if (window.AudioSystem && typeof window.AudioSystem.resume === 'function') {
       window.AudioSystem.resume();
     }
-    // Start battle music
-    if (window.AudioSystem.playMusic) window.AudioSystem.playMusic('battle');
-    if (window.AudioSystem.resetFirstBlood) window.AudioSystem.resetFirstBlood();
+    // Start battle music (AudioSystem may be absent if its init failed — never
+    // let that abort game start, which silently ate the stage selection too)
+    if (window.AudioSystem && window.AudioSystem.playMusic) window.AudioSystem.playMusic('battle');
+    if (window.AudioSystem && window.AudioSystem.resetFirstBlood) window.AudioSystem.resetFirstBlood();
     gameState = STATE.PLAYING;
     // Reset input tips so fresh session shows tutorials again
     try { if (typeof Feedback !== 'undefined' && Feedback.resetTips) Feedback.resetTips(); } catch (_e) {}
@@ -4927,7 +4946,12 @@ const GameManager = (function () {
     if (window.BloodEffects) BloodEffects.reset();
     if (window.MeleeKnife) MeleeKnife.reset();
     if (window.ClaymoreMines) ClaymoreMines.reset();
-    if (window.RadioSupport) RadioSupport.reset();
+    // RadioSupport has no reset() — calling it threw inside startGame's big
+    // try/catch and silently killed stage selection + terrain generation for
+    // every run where the module had loaded. Guard the method, and close the
+    // menu state that reset was presumably meant to clear.
+    if (window.RadioSupport && RadioSupport.reset) RadioSupport.reset();
+    else if (window.RadioSupport && RadioSupport.closeMenu) { try { RadioSupport.closeMenu(); } catch (_rs) {} }
     if (typeof ArmorSystem !== 'undefined') ArmorSystem.reset();
     if (window.GasMask) GasMask.reset();
     if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
@@ -5053,6 +5077,10 @@ const GameManager = (function () {
     VehicleSystem.clear();
     DroneSystem.clear();
     if (typeof Bradley !== 'undefined' && Bradley.clear) Bradley.clear();
+    // Scripted stage modules must not leak into a fresh run (restart mid-duel
+    // left a live T-90 + stale onWaveComplete callback on the new stage).
+    if (typeof StepoveDuel !== 'undefined' && StepoveDuel.clear) StepoveDuel.clear();
+    if (typeof RefineryStrike !== 'undefined' && RefineryStrike.clear) RefineryStrike.clear();
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
@@ -5121,8 +5149,9 @@ const GameManager = (function () {
     }, 3200);
 
     // Generate an initial mission. Stage-specific signature missions take priority.
-    // droneOnly stages (stage 18 Refinery) handle missions entirely via RefineryStrike.
-    if (!(STAGES[currentStage] && STAGES[currentStage].droneOnly)) {
+    // droneOnly stages (stage 18 Refinery) handle missions entirely via RefineryStrike;
+    // the Stepove Bradley duel (stage 19) likewise runs its own scripted objective.
+    if (!(STAGES[currentStage] && (STAGES[currentStage].droneOnly || STAGES[currentStage].bradleyDuel))) {
       if (STAGES[currentStage] && STAGES[currentStage].capitalDefense) {
         MissionSystem.generateMission('kyiv_defense');
       } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
@@ -5262,7 +5291,7 @@ const GameManager = (function () {
     if (window.DogTags) DogTags.clear();
     if (window.SurrenderSystem) SurrenderSystem.clear();
     if (window.SuppressionSystem) SuppressionSystem.reset();
-    window.VoxelWorld.generateLevel(stageIndex);
+    window.VoxelWorld.generateLevel(stageDef.levelId || stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
     if (stageDef.id === 2 || stageDef.id === 3 || stageDef.id === 10 || stageDef.id === 16) {
@@ -5494,6 +5523,7 @@ const GameManager = (function () {
     DroneSystem.clear();
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
     if (typeof RefineryStrike !== 'undefined' && RefineryStrike.clear) RefineryStrike.clear();
+    if (typeof StepoveDuel !== 'undefined' && StepoveDuel.clear) StepoveDuel.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
     if (typeof Tracers !== 'undefined' && Tracers.clear) Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
@@ -5582,7 +5612,7 @@ const GameManager = (function () {
 
     // Clear stale missions from prior stage and seed a fresh stage-appropriate one
     if (typeof MissionSystem !== 'undefined' && MissionSystem.init) MissionSystem.init();
-    if (typeof MissionSystem !== 'undefined' && !stageDef.droneOnly) {
+    if (typeof MissionSystem !== 'undefined' && !stageDef.droneOnly && !stageDef.bradleyDuel) {
       if (stageDef.capitalDefense) {
         MissionSystem.generateMission('kyiv_defense');
       } else if (stageDef.id === 1) {
@@ -5652,6 +5682,10 @@ const GameManager = (function () {
     // Skip enemy spawning entirely; instead launch the FPV drone mission.
     // Wave clears when all refinery targets destroyed.
     if (stageDef.droneOnly && typeof RefineryStrike !== 'undefined' && RefineryStrike.startMission) {
+      // No infantry spawn on this stage: with _waveSpawned left true, the
+      // Enemies.update empty-wave callback fires onWaveComplete instantly.
+      // Completion is driven solely by the mission module's onComplete.
+      _waveSpawned = false;
       window.AudioSystem.playWaveStart();
       HUD.setWave(w, stageDef.wavesPerStage);
       HUD.announceWave(w, 0, stageDef.wavesPerStage);
@@ -5659,6 +5693,22 @@ const GameManager = (function () {
       RefineryStrike.startMission({
         onComplete: function () {
           // Treat refinery destruction as wave complete -> stage clear
+          onWaveComplete();
+        }
+      });
+      return;
+    }
+
+    // ═══ Bradley duel stage (Stepove) ═══
+    // No infantry waves: one scripted T-90M engagement, gunned from the Bradley.
+    if (stageDef.bradleyDuel && typeof StepoveDuel !== 'undefined' && StepoveDuel.startMission) {
+      _waveSpawned = false; // same instant-complete guard as droneOnly above
+      window.AudioSystem.playWaveStart();
+      HUD.setWave(w, stageDef.wavesPerStage);
+      HUD.announceWave(w, 0, stageDef.wavesPerStage);
+      if (typeof Feedback !== 'undefined' && Feedback.radioChatter) Feedback.radioChatter('wave_start');
+      StepoveDuel.startMission({
+        onComplete: function () {
           onWaveComplete();
         }
       });
@@ -6802,7 +6852,10 @@ const GameManager = (function () {
       if (currentStage >= STAGES.length - 1) {
         // Final stage cleared — win!
         gameState = STATE.WIN;
-        if (window.AudioSystem.playMusic) window.AudioSystem.playMusic('victory');
+        // The duel is the final stage: drop its objective banner and boss bar
+        // so they don't float above the victory screen.
+        if (typeof StepoveDuel !== 'undefined' && StepoveDuel.clear) StepoveDuel.clear();
+        if (window.AudioSystem && window.AudioSystem.playMusic) window.AudioSystem.playMusic('victory');
         showOverlay('win');
         document.getElementById('win-score').textContent = player.score;
         document.getElementById('win-kills').textContent = player.kills;
@@ -10939,6 +10992,8 @@ const GameManager = (function () {
       Automation.update(delta);
       MissionSystem.update(delta);
       if (typeof RefineryStrike !== 'undefined' && RefineryStrike.update) RefineryStrike.update(delta);
+      if (typeof StepoveDuel !== 'undefined' && StepoveDuel.update) StepoveDuel.update(delta);
+      if (typeof VoiceLines !== 'undefined' && VoiceLines.update) VoiceLines.update(delta);
 
       // Update drone controls HUD
       updateDroneControlsHUD();
