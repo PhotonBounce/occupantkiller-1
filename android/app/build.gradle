@@ -18,14 +18,23 @@ android {
     // is signed and installable. This is NOT a Play Store upload key.
     signingConfigs {
         release {
-            def ksPath = System.getenv('OK_KEYSTORE') ?: "${rootDir}/ok-release.keystore"
-            def ksFile = file(ksPath)
+            // A relative OK_KEYSTORE (e.g. "ok-release.keystore") must resolve
+            // against the Gradle root dir (android/), NOT this app module dir
+            // (android/app/), which is where a bare file() would look. The CI
+            // keytool step writes the keystore to android/ok-release.keystore.
+            def ksPath = System.getenv('OK_KEYSTORE') ?: 'ok-release.keystore'
+            def ksFile = new File(ksPath)
+            if (!ksFile.isAbsolute()) {
+                ksFile = new File(rootProject.projectDir, ksPath)
+            }
             if (ksFile.exists()) {
                 storeFile ksFile
                 storePassword System.getenv('OK_KEYSTORE_PASS') ?: 'occupant'
                 keyAlias System.getenv('OK_KEY_ALIAS') ?: 'occupant'
                 keyPassword System.getenv('OK_KEY_PASS') ?: 'occupant'
             }
+            // If absent, storeFile stays unset so debug/other tasks still
+            // configure; the CI 'Verify keystore' step guards assembleRelease.
         }
     }
 

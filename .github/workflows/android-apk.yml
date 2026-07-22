@@ -56,6 +56,10 @@ jobs:
             -storepass occupant -keypass occupant \
             -dname "CN=Occupant Killer, OU=Game, O=OccupantKiller, C=UA"
 
+      - name: Verify keystore exists
+        working-directory: android
+        run: test -f ok-release.keystore || { echo "keystore missing"; exit 1; }
+
       - name: Build release APK
         working-directory: android
         env:
