@@ -20868,6 +20868,14 @@ window.VoxelWorld = (function () {
   }
 
   function generateLevel(index) {
+    // Direct level-id addressing: callers (e.g. the Stepove duel stage) can pass
+    // a LEVELS id string instead of a positional index.
+    if (typeof index === 'string') {
+      var wantedId = index; index = 0;
+      for (var lif = 0; lif < LEVELS.length; lif++) {
+        if (LEVELS[lif].id === wantedId) { index = lif; break; }
+      }
+    }
     // Live curated build compatibility: its 20-stage menu uses the classic stage
     // order. When the deploy flag is set, remap menu indices onto this file's ids.
     if (typeof window !== 'undefined' && window.__LIVE_STAGE_ORDER && index >= 0 && index < 20) {

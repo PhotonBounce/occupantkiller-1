@@ -343,6 +343,11 @@ window.Bradley = (function () {
           if (window.Tracers && window.Tracers.spawnExplosion) window.Tracers.spawnExplosion(hitPos, BUSH_AOE * 1.3);
           if (window.Enemies && window.Enemies.damageInRadius) window.Enemies.damageInRadius(hitPos, BUSH_AOE, BUSH_DMG_HE, 'EXPLOSIVE');
         }
+        // HE resolves via the Enemies.damageInRadius tap in stepove-duel.js;
+        // AP is hitscan-only (no AoE call), so notify the duel directly.
+        if (!isHE && window.StepoveDuel && window.StepoveDuel.notifyImpact) {
+          window.StepoveDuel.notifyImpact(hitPos, BUSH_DMG_AP, 'AP');
+        }
       } catch (e) {}
     }
     // Audio
@@ -432,7 +437,23 @@ window.Bradley = (function () {
       if (perp > 1.4) continue; // ~enemy radius
       if (t < bestT) { bestT = t; best = e; bestPos = e.mesh.position.clone(); }
     }
-    if (best) return bestPos;
+    // Stepove duel: the T-90M is a scene prop, not an Enemies entity —
+    // ray-test its hull sphere so 25mm/coax/TOW connect with it.
+    try {
+      if (window.StepoveDuel && window.StepoveDuel.isTankTargetable && window.StepoveDuel.isTankTargetable()) {
+        var tg = window.StepoveDuel.getT90().group.position;
+        var tc = new THREE.Vector3(tg.x, tg.y + 1.4, tg.z).sub(origin);
+        var tt = tc.dot(dir);
+        if (tt > 0 && tt < maxDist) {
+          var tPerp = tc.clone().sub(dir.clone().multiplyScalar(tt)).length();
+          if (tPerp < 2.6 && tt < bestT) {
+            bestT = tt;
+            bestPos = origin.clone().add(dir.clone().multiplyScalar(tt));
+          }
+        }
+      }
+    } catch (eT) {}
+    if (bestPos) return bestPos;
     // Otherwise return point at maxDist (for AOE on dirt — skip)
     return null;
   }
@@ -696,6 +717,15 @@ window.Bradley = (function () {
     init: init, update: update, clear: clear,
     spawnAt: spawnAt, enter: enter, exit: exit,
     isActive: isActive, getHealth: getHealth, getVehicle: getVehicle,
+    // Headless QA hooks (same pattern as GameManager._testFireStart):
+    // aim the turret at exact angles and drive the triggers without
+    // pointer-lock mouse input.
+    _testAim: function (yaw, pitch) {
+      _camYaw = yaw;
+      if (typeof pitch === 'number') _camPitch = Math.max(-0.55, Math.min(0.45, pitch));
+    },
+    _testFire: function (bush, coax) { _firingBush = !!bush; _firingCoax = !!coax; },
+    _testTOW: function () { _fireTOW(); },
     takeDamage: takeDamage,
     toggleViewMode: toggleViewMode, getActiveCamera: getActiveCamera,
     isFPV: function() { return _fpvMode; }
