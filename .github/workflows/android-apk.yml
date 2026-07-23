@@ -1,0 +1,87 @@
+name: Build Android APK
+
+# Wraps the deployed browser game in a full-screen WebView and produces an
+# installable, signed APK. Runs on GitHub-hosted runners because they have the
+# Android SDK + full network access (the dev sandbox cannot reach dl.google.com).
+#
+# Trigger manually (Actions tab -> "Build Android APK" -> Run workflow) or on
+# any push that touches the android/ project. The APK is uploaded as a build
+# artifact you can download from the run summary.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-apk.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Generate signing keystore
+        working-directory: android
+        run: |
+          # Self-signed keystore so the release APK is installable (sideload).
+          # This is NOT a Play Store upload key; regenerate for a store release.
+          keytool -genkeypair -v \
+            -keystore ok-release.keystore \
+            -alias occupant \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass occupant -keypass occupant \
+            -dname "CN=Occupant Killer, OU=Game, O=OccupantKiller, C=UA"
+
+      - name: Verify keystore exists
+        working-directory: android
+        run: test -f ok-release.keystore || { echo "keystore missing"; exit 1; }
+
+      - name: Build release APK
+        working-directory: android
+        env:
+          OK_KEYSTORE: ok-release.keystore
+          OK_KEYSTORE_PASS: occupant
+          OK_KEY_ALIAS: occupant
+          OK_KEY_PASS: occupant
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Locate APK
+        id: apk
+        working-directory: android
+        run: |
+          APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
+          echo "path=android/$APK" >> "$GITHUB_OUTPUT"
+          echo "Built: $APK"
+          ls -la "$APK"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: occupant-killer-apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
