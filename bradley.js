@@ -30,6 +30,12 @@ window.Bradley = (function () {
   var _chaseCam = null;         // 3rd-person camera
   var _camYaw = 0, _camPitch = -0.18;
   var _turretYaw = 0, _turretPitch = 0;
+  // Recoil screen-shake state. These were assigned in _fireTOW() without ever
+  // being declared, so firing a TOW under this module's 'use strict' threw
+  // "ReferenceError: _shakeTimer is not defined" (caught by the game loop, but
+  // it aborted the rest of the fire routine). Declared here and consumed in the
+  // chase-cam update so the shake actually reads on screen.
+  var _shakeTimer = 0, _shakeAmount = 0;
   var _shoulderSide = 1;        // +1 right, -1 left
   var _fpvMode = false;       // true = first-person turret view, false = third-person chase
   var _fpvOverlay = null;     // turret-sight crosshair DOM element
@@ -321,6 +327,9 @@ window.Bradley = (function () {
   function _fireBushmaster() {
     if (_bushCool > 0 || !_vehicle) return;
     _bushCool = BUSH_RPM_INTERVAL;
+    // Light per-shot recoil shake (TOW sets a bigger one).
+    _shakeTimer = Math.max(_shakeTimer, 0.06);
+    _shakeAmount = 0.03;
     var origin = _muzzleWorld();
     var dir = _aimDirWorld();
     var isHE = (_heAp++ % 2 === 0);
@@ -572,6 +581,13 @@ window.Bradley = (function () {
         _vehicle.group.position.z - off.x * s + off.z * c
       );
       cam.position.lerp(camPos, 0.25);
+      // Recoil shake: jitter the cam while _shakeTimer is active.
+      if (_shakeTimer > 0) {
+        _shakeTimer = Math.max(0, _shakeTimer - dt);
+        var k = _shakeAmount * (_shakeTimer > 0 ? 1 : 0);
+        cam.position.x += (Math.sin(_shakeTimer * 97.1) ) * k;
+        cam.position.y += (Math.sin(_shakeTimer * 131.7)) * k;
+      }
       var look = new THREE.Vector3(_vehicle.group.position.x, _vehicle.group.position.y + 1.6, _vehicle.group.position.z);
       cam.lookAt(look);
       cam.updateProjectionMatrix();
