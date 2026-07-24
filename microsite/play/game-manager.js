@@ -646,6 +646,7 @@ const GameManager = (function () {
     {
       id:           1,
       name:         'HOSTOMEL AIRPORT',
+      levelId:      'HOSTOMEL',
       theme:        'grassland',
       wavesPerStage: 7,
       difficulty:   0.8,
@@ -661,6 +662,7 @@ const GameManager = (function () {
     {
       id:           2,
       name:         'AVDIIVKA SECTOR',
+      levelId:      'AVDIIVKA',
       theme:        'urban',
       wavesPerStage: 7,
       difficulty:   1.0,
@@ -676,6 +678,7 @@ const GameManager = (function () {
     {
       id:           3,
       name:         'BAKHMUT RUINS',
+      levelId:      'BAKHMUT',
       theme:        'urban',
       wavesPerStage: 7,
       difficulty:   1.4,
@@ -691,6 +694,7 @@ const GameManager = (function () {
     {
       id:           4,
       name:         'KHERSON CROSSING',
+      levelId:      'KHERSON',
       theme:        'grassland',
       wavesPerStage: 7,
       difficulty:   1.8,
@@ -706,6 +710,7 @@ const GameManager = (function () {
     {
       id:           5,
       name:         'MARIUPOL STEELWORKS',
+      levelId:      'MARIUPOL',
       theme:        'industrial',
       wavesPerStage: 7,
       difficulty:   2.2,
@@ -721,6 +726,7 @@ const GameManager = (function () {
     {
       id:           6,
       name:         'CRIMEA BRIDGE',
+      levelId:      'CRIMEA',
       theme:        'coastal',
       wavesPerStage: 7,
       difficulty:   2.5,
@@ -736,6 +742,7 @@ const GameManager = (function () {
     {
       id:           7,
       name:         'CHORNOBYL ZONE',
+      levelId:      'CHORNOBYL',
       theme:        'wasteland',
       wavesPerStage: 7,
       difficulty:   2.8,
@@ -751,6 +758,7 @@ const GameManager = (function () {
     {
       id:           8,
       name:         'OUTER MOSCOW',
+      levelId:      'MOSCOW',
       theme:        'cityscape',
       wavesPerStage: 9,
       difficulty:   3.5,
@@ -766,6 +774,7 @@ const GameManager = (function () {
     {
       id:           9,
       name:         'SEVASTOPOL NAVAL BASE',
+      levelId:      'SEVASTOPOL',
       theme:        'coastal',
       wavesPerStage: 7,
       difficulty:   3.8,
@@ -781,6 +790,7 @@ const GameManager = (function () {
     {
       id:           10,
       name:         'DONBAS FINAL PUSH',
+      levelId:      'DONBAS',
       theme:        'urban',
       wavesPerStage: 8,
       difficulty:   4.2,
@@ -796,6 +806,7 @@ const GameManager = (function () {
     {
       id:           11,
       name:         'BELGOROD OFFENSIVE',
+      levelId:      'BELGOROD',
       theme:        'grassland',
       wavesPerStage: 8,
       difficulty:   4.6,
@@ -811,6 +822,7 @@ const GameManager = (function () {
     {
       id:           12,
       name:         'KREMLIN SHOWDOWN',
+      levelId:      'KREMLIN',
       theme:        'cityscape',
       wavesPerStage: 10,
       difficulty:   5.0,
@@ -826,6 +838,7 @@ const GameManager = (function () {
     {
       id:           13,
       name:         'BATTLE OF KYIV',
+      levelId:      'KYIV',
       theme:        'urban',
       wavesPerStage: 8,
       difficulty:   1.5,
@@ -843,6 +856,7 @@ const GameManager = (function () {
     {
       id:           14,
       name:         'SNAKE ISLAND DEFENSE',
+      levelId:      'SNAKE',
       theme:        'coastal',
       wavesPerStage: 6,
       difficulty:   1.4,
@@ -858,6 +872,7 @@ const GameManager = (function () {
     {
       id:           15,
       name:         'SAKY AIRBASE STRIKE',
+      levelId:      'SAKY',
       theme:        'coastal',
       wavesPerStage: 7,
       difficulty:   1.7,
@@ -873,6 +888,7 @@ const GameManager = (function () {
     {
       id:           16,
       name:         'VUHLEDAR TANK GRAVEYARD',
+      levelId:      'VUHLEDAR',
       theme:        'wasteland',
       wavesPerStage: 8,
       difficulty:   1.9,
@@ -890,6 +906,7 @@ const GameManager = (function () {
       hintWeapons:  ['SV-98 Precision Sniper Rifle','Barrett M82','SVD Dragunov'],
       id:           17,
       name:         'ANTONOV BRIDGE STRIKE',
+      levelId:      'ANTONOV',
       theme:        'urban',
       wavesPerStage: 7,
       difficulty:   2.0,
