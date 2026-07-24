@@ -3453,8 +3453,10 @@ const GameManager = (function () {
                 }
               } else {
                 // No nearby vehicle: place IED if available, else throw grenade
-                if (window.TripwireIED) {
-                  TripwireIED.placeIED(player.position, _camera.rotation.y);
+                // (module exposes place(); it reads scene/camera from globals.
+                //  There is no placeIED(), so the old call threw "not a function".)
+                if (window.TripwireIED && TripwireIED.place) {
+                  TripwireIED.place();
                 } else {
                   throwHandGrenade();
                 }
@@ -8354,7 +8356,10 @@ const GameManager = (function () {
       if (chalMods.enemyDmgMult) dmg = Math.round(dmg * chalMods.enemyDmgMult);
     }
     // ArmorSystem vest absorbs damage before player.armor
-    if (typeof ArmorSystem !== 'undefined') { dmg = ArmorSystem.absorbDamage(dmg); }
+    // (module exposes applyDamage(raw, hitLocation, hitDir) -> reduced damage;
+    //  there is no absorbDamage(), so the old call threw "not a function" and
+    //  aborted the rest of the hit handler.)
+    if (typeof ArmorSystem !== 'undefined' && ArmorSystem.applyDamage) { dmg = ArmorSystem.applyDamage(dmg); }
     // Armor absorbs up to 50% of incoming damage, capped by available armor points
     if (player.armor > 0) {
       var absorbed = Math.min(player.armor, dmg * 0.5);
