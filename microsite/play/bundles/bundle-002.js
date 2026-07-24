@@ -9617,6 +9617,32 @@ window.RadioSupport = (function () {
     if (_backdropEl) _backdropEl.style.display = 'none';
   }
 
+  // ── Public: clear / reset (stage transitions) ───────────────────────────
+  function clear() {
+    hide();
+    _targetingMode = false;
+    if (_targetCursorEl) _targetCursorEl.style.display = "none";
+    if (_reconOverlayEl) _reconOverlayEl.style.display = "none";
+    _reconTimer = 0;
+    try { _clearReconMarkers(); } catch (e) {}
+    try {
+      for (var vi = _vfx.length - 1; vi >= 0; vi--) {
+        var v = _vfx[vi];
+        if (_scene && v) {
+          ["sphere", "smoke", "wave", "light", "cyl"].forEach(function (k) {
+            if (v[k]) { try { _scene.remove(v[k]); } catch (e) {} }
+          });
+        }
+      }
+    } catch (e) {}
+    _vfx = [];
+    _cooldowns.artillery = 0;
+    _cooldowns.recon = 0;
+    _cooldowns.airstrike = 0;
+    _cooldowns.extraction = 0;
+  }
+  function onKill() { /* reserved */ }
+
   // Legacy compat
   function openMenu() { toggle(); }
   function closeMenu() { hide(); }
@@ -9718,7 +9744,10 @@ window.RadioSupport = (function () {
     hide: hide,
     update: update,
     openMenu: openMenu,
-    closeMenu: closeMenu
+    closeMenu: closeMenu,
+    clear: clear,
+    reset: clear,
+    onKill: onKill
   };
 
 })();

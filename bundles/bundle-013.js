@@ -76767,9 +76767,15 @@ window.SpaceStationAttack = (function () {
   }
 
   // ── Core Loop ────────────────────────────────────────────────────────────
-  function _loop() {
-    _frameId = requestAnimationFrame(_loop);
-    var dt = _clock.getDelta();
+  // Drives all per-frame animation. This module decorates the MAIN game scene,
+  // so it must NOT run its own render loop — the GameManager render loop already
+  // renders _scene every frame. Animation is pumped via the update(dt) hook
+  // that GameManager calls. (A prior version ran a private rAF loop that called
+  // _renderer.render(); because init() is only ever passed (scene, camera) — no
+  // renderer — that produced an uncaught "reading 'render' of undefined" crash.)
+  function _step(dt) {
+    if (!_active) return;
+    if (!dt || dt <= 0 || dt > 0.25) dt = 1 / 60; // clamp stalls / bad deltas
     _time += dt;
 
     _animateAliens(dt);
@@ -76781,7 +76787,6 @@ window.SpaceStationAttack = (function () {
     _animateExplosionVent();
 
     _drawHUD();
-    _renderer.render(_scene, _camera);
   }
 
   // ── Keyboard handling ────────────────────────────────────────────────────
@@ -76819,11 +76824,11 @@ window.SpaceStationAttack = (function () {
     _buildHUD();
 
     document.addEventListener('keydown', _onKeyDown);
-    _loop();
+    // No private render loop: animation is pumped by update(dt) below.
   }
 
   function update(dt) {
-    // External update hook if needed; internal loop handles animation
+    _step(dt);
   }
 
   function reset() {

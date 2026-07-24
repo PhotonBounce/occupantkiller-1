@@ -1373,6 +1373,9 @@ window.OrbitalDefense = (function () {
   // ── Render Loop ───────────────────────────────────────────────────────────────
   function _renderLoop() {
     if (!_active) return;
+    // Only ever init'd with (scene, camera) — no renderer — so bail rather than
+    // throw on .render() if the renderer never arrived.
+    if (!_renderer || !_scene || !_camera) { _active = false; return; }
     requestAnimationFrame(_renderLoop);
     var dt = Math.min(_clock.getDelta(), 0.05);
     update(dt);

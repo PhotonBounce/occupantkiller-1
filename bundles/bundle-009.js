@@ -194441,6 +194441,9 @@ window.CasinoHeist = (function() {
 
   function _tick(ts) {
     if (!_active) return;
+    // This mini-game is only ever init'd with (scene, camera) — no renderer — so
+    // if _renderer never arrived, stop the loop instead of throwing on .render().
+    if (!_renderer || !_scene || !_camera) { _active = false; return; }
     _animId = requestAnimationFrame(_tick);
 
     var dt = Math.min((ts - _lastTime) / 1000, 0.05);
@@ -307195,6 +307198,9 @@ window.OrbitalDefense = (function () {
   // ── Render Loop ───────────────────────────────────────────────────────────────
   function _renderLoop() {
     if (!_active) return;
+    // Only ever init'd with (scene, camera) — no renderer — so bail rather than
+    // throw on .render() if the renderer never arrived.
+    if (!_renderer || !_scene || !_camera) { _active = false; return; }
     requestAnimationFrame(_renderLoop);
     var dt = Math.min(_clock.getDelta(), 0.05);
     update(dt);
