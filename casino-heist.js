@@ -1324,6 +1324,9 @@ window.CasinoHeist = (function() {
 
   function _tick(ts) {
     if (!_active) return;
+    // This mini-game is only ever init'd with (scene, camera) — no renderer — so
+    // if _renderer never arrived, stop the loop instead of throwing on .render().
+    if (!_renderer || !_scene || !_camera) { _active = false; return; }
     _animId = requestAnimationFrame(_tick);
 
     var dt = Math.min((ts - _lastTime) / 1000, 0.05);

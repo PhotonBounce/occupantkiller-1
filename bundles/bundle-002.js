@@ -9617,6 +9617,40 @@ window.RadioSupport = (function () {
     if (_backdropEl) _backdropEl.style.display = 'none';
   }
 
+  // ── Public: clear / reset (stage transitions) ───────────────────────────
+  // game-manager.js calls RadioSupport.clear() in applyStage() and
+  // RadioSupport.reset() in startGame(). Neither existed, so under the callers'
+  // truthy-only guard they threw "not a function" and aborted the rest of
+  // stage setup / game start. Tear down transient UI + scene VFX and reset
+  // cooldowns so a fresh stage starts clean.
+  function clear() {
+    hide();
+    _targetingMode = false;
+    if (_targetCursorEl) _targetCursorEl.style.display = "none";
+    if (_reconOverlayEl) _reconOverlayEl.style.display = "none";
+    _reconTimer = 0;
+    try { _clearReconMarkers(); } catch (e) {}
+    try {
+      for (var vi = _vfx.length - 1; vi >= 0; vi--) {
+        var v = _vfx[vi];
+        if (_scene && v) {
+          ["sphere", "smoke", "wave", "light", "cyl"].forEach(function (k) {
+            if (v[k]) { try { _scene.remove(v[k]); } catch (e) {} }
+          });
+        }
+      }
+    } catch (e) {}
+    _vfx = [];
+    _cooldowns.artillery = 0;
+    _cooldowns.recon = 0;
+    _cooldowns.airstrike = 0;
+    _cooldowns.extraction = 0;
+  }
+
+  // onKill: hook the game calls on every enemy kill. No radio behavior is tied
+  // to kills yet — keep it a safe no-op so the kill path never throws.
+  function onKill() { /* reserved for kill-driven radio chatter */ }
+
   // Legacy compat
   function openMenu() { toggle(); }
   function closeMenu() { hide(); }
@@ -9718,7 +9752,10 @@ window.RadioSupport = (function () {
     hide: hide,
     update: update,
     openMenu: openMenu,
-    closeMenu: closeMenu
+    closeMenu: closeMenu,
+    clear: clear,
+    reset: clear,
+    onKill: onKill
   };
 
 })();
