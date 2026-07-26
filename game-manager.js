@@ -1324,32 +1324,32 @@ const GameManager = (function () {
       _renderer = createRendererWithFallback();
         // Create scene — dynamic background/fog per stage
         _scene = new THREE.Scene();
-        if (typeof Mines !== 'undefined') Mines.init(_scene);
-        if (window.TripwireIED) TripwireIED.init(_scene, _camera);
-        if (window.LootDrops) LootDrops.init(_scene);
-        if (window.WaveEvents) WaveEvents.init(_scene);
-        if (window.BountySystem) BountySystem.init(_scene);
-        if (window.VehicleEnemies) VehicleEnemies.init(_scene);
+        if (typeof Mines !== 'undefined' && Mines.init) Mines.init(_scene);
+        if (window.TripwireIED && TripwireIED.init) TripwireIED.init(_scene, _camera);
+        if (window.LootDrops && LootDrops.init) LootDrops.init(_scene);
+        if (window.WaveEvents && WaveEvents.init) WaveEvents.init(_scene);
+        if (window.BountySystem && BountySystem.init) BountySystem.init(_scene);
+        if (window.VehicleEnemies && VehicleEnemies.init) VehicleEnemies.init(_scene);
         window._takeVehicleRamDamage = function(dmg) { onPlayerHit(dmg, null); };
         window._takeBTRDamage        = function(dmg) { onPlayerHit(dmg, null); };
         window._takeDamageFromWaveEvent = function(dmg) { onPlayerHit(dmg, null); };
-        if (window.Destructibles) Destructibles.init(_scene);
-        if (window.StaminaSystem) StaminaSystem.init();
-        if (window.Grapple) Grapple.init(_scene, _camera);
-        if (window.ZiplineGrapple) ZiplineGrapple.init(_scene, _camera);
-        if (window.Wingsuit) Wingsuit.init(_scene, _camera);
-        if (window.ScavengeSystem) ScavengeSystem.init(_scene, _camera);
-        if (window.CrouchSystem) CrouchSystem.init();
-        if (window.SpecialGrenades) SpecialGrenades.init(_scene, _camera, function(enemyCallback) {
+        if (window.Destructibles && Destructibles.init) Destructibles.init(_scene);
+        if (window.StaminaSystem && StaminaSystem.init) StaminaSystem.init();
+        if (window.Grapple && Grapple.init) Grapple.init(_scene, _camera);
+        if (window.ZiplineGrapple && ZiplineGrapple.init) ZiplineGrapple.init(_scene, _camera);
+        if (window.Wingsuit && Wingsuit.init) Wingsuit.init(_scene, _camera);
+        if (window.ScavengeSystem && ScavengeSystem.init) ScavengeSystem.init(_scene, _camera);
+        if (window.CrouchSystem && CrouchSystem.init) CrouchSystem.init();
+        if (window.SpecialGrenades && SpecialGrenades.init) SpecialGrenades.init(_scene, _camera, function(enemyCallback) {
             var enemies = Enemies ? Enemies.getAll() : [];
             for (var i = 0; i < enemies.length; i++) {
                 if (enemies[i] && !enemies[i].dead) enemyCallback(enemies[i]);
             }
         });
-        if (window.BloodEffects) BloodEffects.init(_scene, _camera);
-        if (window.BallisticShield) BallisticShield.init(_scene, _camera);
-        if (window.MeleeKnife) MeleeKnife.init(_scene, _camera);
-        if (window.RadioSupport) RadioSupport.init(_scene, function(pos, radius, callback) {
+        if (window.BloodEffects && BloodEffects.init) BloodEffects.init(_scene, _camera);
+        if (window.BallisticShield && BallisticShield.init) BallisticShield.init(_scene, _camera);
+        if (window.MeleeKnife && MeleeKnife.init) MeleeKnife.init(_scene, _camera);
+        if (window.RadioSupport && RadioSupport.init) RadioSupport.init(_scene, function(pos, radius, callback) {
           var enemies = (typeof Enemies !== 'undefined' && Enemies.getAll) ? Enemies.getAll() : [];
           for (var _rsi = 0; _rsi < enemies.length; _rsi++) {
             var _rse = enemies[_rsi];
@@ -1363,16 +1363,16 @@ const GameManager = (function () {
           }
           if (callback) callback();
         });
-        if (window.ClaymoreMines) ClaymoreMines.init(_scene, function(pos, isPlayer) {
+        if (window.ClaymoreMines && ClaymoreMines.init) ClaymoreMines.init(_scene, function(pos, isPlayer) {
           if (isPlayer) { _takeDamage(45); }
         });
-        if (typeof ArmorSystem !== 'undefined') ArmorSystem.init(_scene);
-        if (window.GasMask) GasMask.init(_scene);
-        if (typeof HazardZones !== 'undefined') HazardZones.init(_scene);
-        if (typeof AllySoldiers !== 'undefined') AllySoldiers.init(_scene, _camera);
-        if (typeof SupplyCrate !== 'undefined') SupplyCrate.init(_scene);
-        if (typeof NightVision !== 'undefined') NightVision.init(_renderer.domElement, _scene);
-        if (window.WeatherEffects) WeatherEffects.init(_scene);
+        if (typeof ArmorSystem !== 'undefined' && ArmorSystem.init) ArmorSystem.init(_scene);
+        if (window.GasMask && GasMask.init) GasMask.init(_scene);
+        if (typeof HazardZones !== 'undefined' && HazardZones.init) HazardZones.init(_scene);
+        if (typeof AllySoldiers !== 'undefined' && AllySoldiers.init) AllySoldiers.init(_scene, _camera);
+        if (typeof SupplyCrate !== 'undefined' && SupplyCrate.init) SupplyCrate.init(_scene);
+        if (typeof NightVision !== 'undefined' && NightVision.init) NightVision.init(_renderer.domElement, _scene);
+        if (window.WeatherEffects && WeatherEffects.init) WeatherEffects.init(_scene);
         if (typeof ExplosiveBarrels !== 'undefined') {
           ExplosiveBarrels.init(_scene, function(x, y, z, radius, damage) {
             // AoE damage to enemies in radius
@@ -1446,7 +1446,7 @@ const GameManager = (function () {
     // isn't sliced open by near-clipping (player was seeing inside the guns).
     _camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.02, isMobile ? 140 : 200);
 
-    if (typeof CompanionDrone !== 'undefined') CompanionDrone.init(_scene, _camera);
+    if (typeof CompanionDrone !== 'undefined' && CompanionDrone.init) CompanionDrone.init(_scene, _camera);
 
     // Lighting — Ukrainian theme
     ambLight = new THREE.AmbientLight(0x888866, 0.8);
@@ -1631,7 +1631,7 @@ const GameManager = (function () {
     try { if (window.LevelBriefing && LevelBriefing.init) LevelBriefing.init(); } catch (e) {}
     try { if (window.Gyro    && Gyro.init)    Gyro.init(_camera); } catch (e) {}
     if (typeof EnemyChatter !== 'undefined' && _camera) EnemyChatter.init(_camera);
-    try { if (window.DamageNumbers) DamageNumbers.init(_scene, _camera); } catch (e) {}
+    try { if (window.DamageNumbers && DamageNumbers.init) DamageNumbers.init(_scene, _camera); } catch (e) {}
     // ADS (Aim Down Sights) system
     try { if (window.ADSSystem && ADSSystem.init) ADSSystem.init(_scene, _camera); } catch (eADS) { console.warn('[ADSSystem] init failed', eADS); }
     // Companion radio tactical chatter
@@ -1639,9 +1639,9 @@ const GameManager = (function () {
     // Bullet-time power-up
     try { if (window.TimeWarp && TimeWarp.init) TimeWarp.init(); } catch (eTW) { console.warn('[TimeWarp] init failed', eTW); }
     // Surrender system
-    try { if (window.SurrenderSystem) SurrenderSystem.init(_scene); } catch (eSS) { console.warn('[SurrenderSystem] init failed', eSS); }
+    try { if (window.SurrenderSystem && SurrenderSystem.init) SurrenderSystem.init(_scene); } catch (eSS) { console.warn('[SurrenderSystem] init failed', eSS); }
     // Suppression system
-    try { if (window.SuppressionSystem) SuppressionSystem.init(_scene, _camera); } catch (eSup) { console.warn('[SuppressionSystem] init failed', eSup); }
+    try { if (window.SuppressionSystem && SuppressionSystem.init) SuppressionSystem.init(_scene, _camera); } catch (eSup) { console.warn('[SuppressionSystem] init failed', eSup); }
     // Freeze grenade
     try { if (window.FreezeGrenade && FreezeGrenade.init) FreezeGrenade.init(_scene, _camera); } catch (eFG) { console.warn('[FreezeGrenade] init failed', eFG); }
     try { if (window.KillCam && KillCam.init) KillCam.init(_scene, _camera); } catch (e) {}
@@ -3070,7 +3070,7 @@ const GameManager = (function () {
       try { if (window.StadiumRiot && StadiumRiot.init) StadiumRiot.init(_scene, _camera); } catch (e) {}
       try { if (window.TradingPost && TradingPost.init) TradingPost.init(_scene, _camera); } catch (e) {}
     // Daily challenges panel
-    try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.showDailyChallenges(); } catch (eDC) {}
+    try { if (typeof DailyChallenges !== 'undefined' && DailyChallenges.showDailyChallenges) DailyChallenges.showDailyChallenges(); } catch (eDC) {}
 
     // Create weapons
     Weapons.createGunMesh(_camera);
@@ -3274,7 +3274,7 @@ const GameManager = (function () {
 
       // Shift+D: toggle daily challenges panel
       if (e.code === 'KeyD' && e.shiftKey && !e.ctrlKey) {
-        if (typeof DailyChallenges !== 'undefined') DailyChallenges.togglePanel();
+        if (typeof DailyChallenges !== 'undefined' && DailyChallenges.togglePanel) DailyChallenges.togglePanel();
         return;
       }
 
@@ -3621,15 +3621,15 @@ const GameManager = (function () {
 
         // Tactical lean (Q/E override when not switching weapons in non-build mode)
         if (e.code === 'KeyQ' && !VehicleSystem.isInVehicle() && !DroneSystem.isPossessing() && keys['AltLeft']) {
-          if (typeof CombatExtras !== 'undefined') CombatExtras.setLean(-1);
+          if (typeof CombatExtras !== 'undefined' && CombatExtras.setLean) CombatExtras.setLean(-1);
         }
         if (e.code === 'KeyE' && !VehicleSystem.isInVehicle() && !DroneSystem.isPossessing() && keys['AltLeft']) {
-          if (typeof CombatExtras !== 'undefined') CombatExtras.setLean(1);
+          if (typeof CombatExtras !== 'undefined' && CombatExtras.setLean) CombatExtras.setLean(1);
         }
 
         // Weapon inspect (hold V - only if not in vehicle)
         if (e.code === 'KeyV' && !VehicleSystem.isInVehicle() && keys['ShiftLeft']) {
-          if (typeof CombatExtras !== 'undefined') CombatExtras.startInspect();
+          if (typeof CombatExtras !== 'undefined' && CombatExtras.startInspect) CombatExtras.startInspect();
         }
 
         // Cycle ammo type (C key)
@@ -3740,7 +3740,7 @@ const GameManager = (function () {
           var weathers = ['clear', 'rain', 'snow', 'fog', 'sandstorm'];
           var cur = (typeof Weather !== 'undefined') ? Weather.getCurrent() : 'clear';
           var nextIdx = (weathers.indexOf(cur) + 1) % weathers.length;
-          if (typeof Weather !== 'undefined') Weather.setWeather(weathers[nextIdx]);
+          if (typeof Weather !== 'undefined' && Weather.setWeather) Weather.setWeather(weathers[nextIdx]);
           if (typeof HUD !== 'undefined' && HUD.notify) HUD.notify('🌦 Weather: ' + weathers[nextIdx].toUpperCase());
         }
 
@@ -3851,7 +3851,7 @@ const GameManager = (function () {
 
         // Night Vision Goggles (NightVision module — N key, no modifiers, not in vehicle)
         if (e.code === 'KeyN' && !e.shiftKey && !e.ctrlKey && !e.altKey && gameState === STATE.PLAYING) {
-          if (typeof NightVision !== 'undefined') NightVision.toggle();
+          if (typeof NightVision !== 'undefined' && NightVision.toggle) NightVision.toggle();
         }
 
         // Gas Mask toggle (T key — only when not in drone/vehicle, normal gameplay)
@@ -4044,7 +4044,7 @@ const GameManager = (function () {
           if (e.code === 'Space')     VehicleSystem.setVehicleKey('up', true);
           if (e.code === 'ShiftLeft') VehicleSystem.setVehicleKey('down', true);
         }
-        if (e.code === 'ShiftLeft') { if (window.StaminaSystem) StaminaSystem.startSprint(); }
+        if (e.code === 'ShiftLeft') { if (window.StaminaSystem && StaminaSystem.startSprint) StaminaSystem.startSprint(); }
       }
 
       // ── B26: FPS display toggle (F10) ──
@@ -4126,7 +4126,7 @@ const GameManager = (function () {
         if (e.code === 'Space')     VehicleSystem.setVehicleKey('up', false);
         if (e.code === 'ShiftLeft') VehicleSystem.setVehicleKey('down', false);
       }
-      if (e.code === 'ShiftLeft') { if (window.StaminaSystem) StaminaSystem.stopSprint(); }
+      if (e.code === 'ShiftLeft') { if (window.StaminaSystem && StaminaSystem.stopSprint) StaminaSystem.stopSprint(); }
     });
 
     // Mobile audio unlock — resume Web Audio context on first touch (iOS/Android requirement)
@@ -4944,36 +4944,36 @@ const GameManager = (function () {
     player.hp = player.maxHp;
     player.score = 0;
     player.kills = 0;
-    if (typeof Perks !== 'undefined') Perks.reset();
-    if (typeof KillStreak !== 'undefined') KillStreak.reset();
-    if (window.BallisticShield) BallisticShield.reset();
-    if (window.TimeWarp) TimeWarp.reset();
-    if (window.ScavengeSystem) ScavengeSystem.reset();
-    if (window.TripwireIED) TripwireIED.reset();
-    if (window.LootDrops) LootDrops.reset();
-    if (window.WaveEvents) WaveEvents.reset();
+    if (typeof Perks !== 'undefined' && Perks.reset) Perks.reset();
+    if (typeof KillStreak !== 'undefined' && KillStreak.reset) KillStreak.reset();
+    if (window.BallisticShield && BallisticShield.reset) BallisticShield.reset();
+    if (window.TimeWarp && TimeWarp.reset) TimeWarp.reset();
+    if (window.ScavengeSystem && ScavengeSystem.reset) ScavengeSystem.reset();
+    if (window.TripwireIED && TripwireIED.reset) TripwireIED.reset();
+    if (window.LootDrops && LootDrops.reset) LootDrops.reset();
+    if (window.WaveEvents && WaveEvents.reset) WaveEvents.reset();
     if (window.MortarEmplacement && MortarEmplacement.reset) MortarEmplacement.reset();
-    if (window.BountySystem) BountySystem.reset();
-    if (window.Destructibles) Destructibles.reset();
-    if (window.VehicleEnemies) VehicleEnemies.reset();
-    if (window.StaminaSystem) StaminaSystem.reset();
-    if (window.Grapple) Grapple.reset();
-    if (window.ZiplineGrapple) ZiplineGrapple.reset();
-    if (window.Wingsuit) Wingsuit.reset();
-    if (window.CrouchSystem) CrouchSystem.reset();
-    if (window.SpecialGrenades) SpecialGrenades.reset();
-    if (window.BloodEffects) BloodEffects.reset();
-    if (window.MeleeKnife) MeleeKnife.reset();
-    if (window.ClaymoreMines) ClaymoreMines.reset();
+    if (window.BountySystem && BountySystem.reset) BountySystem.reset();
+    if (window.Destructibles && Destructibles.reset) Destructibles.reset();
+    if (window.VehicleEnemies && VehicleEnemies.reset) VehicleEnemies.reset();
+    if (window.StaminaSystem && StaminaSystem.reset) StaminaSystem.reset();
+    if (window.Grapple && Grapple.reset) Grapple.reset();
+    if (window.ZiplineGrapple && ZiplineGrapple.reset) ZiplineGrapple.reset();
+    if (window.Wingsuit && Wingsuit.reset) Wingsuit.reset();
+    if (window.CrouchSystem && CrouchSystem.reset) CrouchSystem.reset();
+    if (window.SpecialGrenades && SpecialGrenades.reset) SpecialGrenades.reset();
+    if (window.BloodEffects && BloodEffects.reset) BloodEffects.reset();
+    if (window.MeleeKnife && MeleeKnife.reset) MeleeKnife.reset();
+    if (window.ClaymoreMines && ClaymoreMines.reset) ClaymoreMines.reset();
     // RadioSupport has no reset() — calling it threw inside startGame's big
     // try/catch and silently killed stage selection + terrain generation for
     // every run where the module had loaded. Guard the method, and close the
     // menu state that reset was presumably meant to clear.
     if (window.RadioSupport && RadioSupport.reset) RadioSupport.reset();
     else if (window.RadioSupport && RadioSupport.closeMenu) { try { RadioSupport.closeMenu(); } catch (_rs) {} }
-    if (typeof ArmorSystem !== 'undefined') ArmorSystem.reset();
-    if (window.GasMask) GasMask.reset();
-    if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
+    if (typeof ArmorSystem !== 'undefined' && ArmorSystem.reset) ArmorSystem.reset();
+    if (window.GasMask && GasMask.reset) GasMask.reset();
+    if (typeof AllySoldiers !== 'undefined' && AllySoldiers.clear) AllySoldiers.clear();
     window._killstreakTimeScale = 1.0;
     window._killstreakHealthRegen = 0;
     window._killstreakAmmoRefill = 0;
@@ -5031,7 +5031,7 @@ const GameManager = (function () {
 
     // Reset skills on new game (skills are designed to accrue per-run, not persist)
     if (typeof SkillSystem !== 'undefined' && SkillSystem.init) SkillSystem.init();
-    if (typeof Medals !== 'undefined') Medals.reset();
+    if (typeof Medals !== 'undefined' && Medals.reset) Medals.reset();
 
     // Preserve scalar god-mode effects across a new run.
     if (player.godMode) {
@@ -5049,12 +5049,12 @@ const GameManager = (function () {
       }
     }
     // Reset new feature systems on game start
-    if (typeof CombatExtras !== 'undefined') CombatExtras.reset();
-    if (typeof Traversal !== 'undefined') Traversal.reset();
-    if (typeof WorldFeatures !== 'undefined') WorldFeatures.clear();
-    if (typeof Perks !== 'undefined') Perks.reset();
-    if (typeof MissionTypes !== 'undefined') MissionTypes.clear();
-    if (typeof Feedback !== 'undefined') Feedback.clear();
+    if (typeof CombatExtras !== 'undefined' && CombatExtras.reset) CombatExtras.reset();
+    if (typeof Traversal !== 'undefined' && Traversal.reset) Traversal.reset();
+    if (typeof WorldFeatures !== 'undefined' && WorldFeatures.clear) WorldFeatures.clear();
+    if (typeof Perks !== 'undefined' && Perks.reset) Perks.reset();
+    if (typeof MissionTypes !== 'undefined' && MissionTypes.clear) MissionTypes.clear();
+    if (typeof Feedback !== 'undefined' && Feedback.clear) Feedback.clear();
     if (typeof Marketplace !== 'undefined') {
       if (typeof ApiClient === 'undefined') {
         Marketplace.setOKC(0);
@@ -5103,7 +5103,7 @@ const GameManager = (function () {
     if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.clear) EnemyArtillery.clear();
     if (typeof NPCSystem !== 'undefined' && NPCSystem.clear) NPCSystem.clear();
     if (typeof Building !== 'undefined' && Building.clear) Building.clear();
-    if (typeof Tracers !== 'undefined') Tracers.clear();
+    if (typeof Tracers !== 'undefined' && Tracers.clear) Tracers.clear();
     if (typeof StageVFX !== 'undefined' && StageVFX.clear) StageVFX.clear();
     if (typeof Flags !== 'undefined' && Flags.clear) Flags.clear();
     if (typeof Environment !== 'undefined' && Environment.clear) Environment.clear();
@@ -5286,37 +5286,37 @@ const GameManager = (function () {
     }
 
     // Generate level terrain and features
-    if (typeof Mines !== 'undefined') Mines.clear();
-    if (window.TimeWarp) TimeWarp.clear();
-    if (window.WaveEvents) WaveEvents.clear();
-    if (window.LootDrops) LootDrops.clear();
-    if (window.BountySystem) BountySystem.clear();
-    if (window.Destructibles) Destructibles.clear();
-    if (window.VehicleEnemies) VehicleEnemies.clear();
-    if (window.Grapple) Grapple.clear();
-    if (window.SpecialGrenades) SpecialGrenades.clear();
-    if (window.BloodEffects) BloodEffects.clear();
-    if (window.DamageNumbers) DamageNumbers.clear();
-    if (window.ClaymoreMines) ClaymoreMines.clear();
-    if (window.TripwireIED) TripwireIED.clear();
-    if (window.RadioSupport) RadioSupport.clear();
+    if (typeof Mines !== 'undefined' && Mines.clear) Mines.clear();
+    if (window.TimeWarp && TimeWarp.clear) TimeWarp.clear();
+    if (window.WaveEvents && WaveEvents.clear) WaveEvents.clear();
+    if (window.LootDrops && LootDrops.clear) LootDrops.clear();
+    if (window.BountySystem && BountySystem.clear) BountySystem.clear();
+    if (window.Destructibles && Destructibles.clear) Destructibles.clear();
+    if (window.VehicleEnemies && VehicleEnemies.clear) VehicleEnemies.clear();
+    if (window.Grapple && Grapple.clear) Grapple.clear();
+    if (window.SpecialGrenades && SpecialGrenades.clear) SpecialGrenades.clear();
+    if (window.BloodEffects && BloodEffects.clear) BloodEffects.clear();
+    if (window.DamageNumbers && DamageNumbers.clear) DamageNumbers.clear();
+    if (window.ClaymoreMines && ClaymoreMines.clear) ClaymoreMines.clear();
+    if (window.TripwireIED && TripwireIED.clear) TripwireIED.clear();
+    if (window.RadioSupport && RadioSupport.clear) RadioSupport.clear();
     if (window.CompanionRadio && CompanionRadio.clear) CompanionRadio.clear();
-    if (typeof ArmorSystem !== 'undefined') ArmorSystem.clear();
-    if (window.GasMask) GasMask.clear();
-    if (window.MeleeKnife) MeleeKnife.clear();
-    if (window.WeatherEffects) WeatherEffects.clear();
-    if (window.IntelPickups) IntelPickups.clear(_scene);
-    if (window.ScavengeSystem) ScavengeSystem.clear();
-    if (window.DogTags) DogTags.clear();
-    if (window.SurrenderSystem) SurrenderSystem.clear();
-    if (window.SuppressionSystem) SuppressionSystem.reset();
+    if (typeof ArmorSystem !== 'undefined' && ArmorSystem.clear) ArmorSystem.clear();
+    if (window.GasMask && GasMask.clear) GasMask.clear();
+    if (window.MeleeKnife && MeleeKnife.clear) MeleeKnife.clear();
+    if (window.WeatherEffects && WeatherEffects.clear) WeatherEffects.clear();
+    if (window.IntelPickups && IntelPickups.clear) IntelPickups.clear(_scene);
+    if (window.ScavengeSystem && ScavengeSystem.clear) ScavengeSystem.clear();
+    if (window.DogTags && DogTags.clear) DogTags.clear();
+    if (window.SurrenderSystem && SurrenderSystem.clear) SurrenderSystem.clear();
+    if (window.SuppressionSystem && SuppressionSystem.reset) SuppressionSystem.reset();
     window.VoxelWorld.generateLevel(stageDef.levelId || stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
     if (stageDef.id === 2 || stageDef.id === 3 || stageDef.id === 10 || stageDef.id === 16) {
       var _minePositions = [[-15,0,-20],[15,0,-20],[0,0,-30],[25,0,10],[-25,0,10],[-10,0,15],[10,0,-15],[-30,0,-25],[30,0,25],[0,0,20]];
       for (var _mi = 0; _mi < _minePositions.length; _mi++) {
-        if (typeof Mines !== 'undefined') Mines.placeMine(_minePositions[_mi][0], 0, _minePositions[_mi][2]);
+        if (typeof Mines !== 'undefined' && Mines.placeMine) Mines.placeMine(_minePositions[_mi][0], 0, _minePositions[_mi][2]);
       }
       HUD.notifyPickup('⚠️ MINEFIELD DETECTED', '#ffaa00');
     }
@@ -5424,15 +5424,15 @@ const GameManager = (function () {
       Radio.init();
       Radio.setLevel(_radioLevelMap[stageDef.id] || null);
     }
-    if (typeof HazardZones !== 'undefined') HazardZones.setupForLevel(stageDef ? stageDef.id : null);
-    if (window.Destructibles) Destructibles.setupForLevel(stageDef ? stageDef.id : null, _scene);
-    if (window.IntelPickups) IntelPickups.spawnForLevel(stageDef ? stageDef.id : null, _scene);
-    if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.setupForLevel(stageDef ? stageDef.id : '');
+    if (typeof HazardZones !== 'undefined' && HazardZones.setupForLevel) HazardZones.setupForLevel(stageDef ? stageDef.id : null);
+    if (window.Destructibles && Destructibles.setupForLevel) Destructibles.setupForLevel(stageDef ? stageDef.id : null, _scene);
+    if (window.IntelPickups && IntelPickups.spawnForLevel) IntelPickups.spawnForLevel(stageDef ? stageDef.id : null, _scene);
+    if (typeof ExplosiveBarrels !== 'undefined' && ExplosiveBarrels.setupForLevel) ExplosiveBarrels.setupForLevel(stageDef ? stageDef.id : '');
     if (window.WeatherEffects) {
       var _weatherMap = { 13:'RAIN', 3:'RAIN', 5:'FOG_STORM', 7:'FOG_STORM', 6:'FOG_STORM', 8:'SNOW', 11:'SNOW', 12:'SNOW' };
       WeatherEffects.setWeather(stageDef ? (_weatherMap[stageDef.id] || 'CLEAR') : 'CLEAR');
     }
-    if (typeof SupplyCrate !== 'undefined') SupplyCrate.clear();
+    if (typeof SupplyCrate !== 'undefined' && SupplyCrate.clear) SupplyCrate.clear();
   }
 
   function getCurrentStage() { return STAGES[currentStage]; }
@@ -5620,7 +5620,7 @@ const GameManager = (function () {
       gameState = STATE.PAUSED;
       Loadout.show(function(result) {
         _loadoutResult = result;
-        if (typeof Loadout !== 'undefined') Loadout.applyLoadout(result, player);
+        if (typeof Loadout !== 'undefined' && Loadout.applyLoadout) Loadout.applyLoadout(result, player);
         gameState = STATE.PLAYING;
         requestPointerLock();
       });
@@ -5741,12 +5741,12 @@ const GameManager = (function () {
       ? { groupDelta: -1, extraMultiplier: 0.6 }
       : null;
     Enemies.startWave(w, _scene, stageDef.difficulty * mlDiff, aiStrategy, stageDef.id, _battlePlan, player.position);
-    if (window.BountySystem) BountySystem.markEnemy(Enemies ? Enemies.getAll() : []);
+    if (window.BountySystem && BountySystem.markEnemy) BountySystem.markEnemy(Enemies ? Enemies.getAll() : []);
     if (window.VehicleEnemies && currentWave && currentWave % 5 === 0) {
       VehicleEnemies.spawnBTR(_scene, player.position.x + 20, player.position.z + 20);
     }
-    if (typeof AllySoldiers !== 'undefined') AllySoldiers.spawnForWave(player.position, currentWave);
-    if (typeof SupplyCrate !== 'undefined') SupplyCrate.dropAtWave(currentWave);
+    if (typeof AllySoldiers !== 'undefined' && AllySoldiers.spawnForWave) AllySoldiers.spawnForWave(player.position, currentWave);
+    if (typeof SupplyCrate !== 'undefined' && SupplyCrate.dropAtWave) SupplyCrate.dropAtWave(currentWave);
     window.AudioSystem.playWaveStart();
     HUD.setWave(w, stageDef.wavesPerStage);
     HUD.announceWave(w, Enemies.getAliveCount(), stageDef.wavesPerStage);
@@ -5763,7 +5763,7 @@ const GameManager = (function () {
       WeatherEvents.triggerRandom();
     }
     // Random mid-wave events — trigger 'start' phase
-    if (window.WaveEvents) WaveEvents.triggerRandom(currentWave, 'start');
+    if (window.WaveEvents && WaveEvents.triggerRandom) WaveEvents.triggerRandom(currentWave, 'start');
     // Show recommended weapons hint on wave 1 if stage defines them
     if (w === 1 && stageDef.hintWeapons && stageDef.hintWeapons.length && HUD.notifyPickup) {
       HUD.notifyPickup('💡 RECOMMENDED: ' + stageDef.hintWeapons.slice(0, 3).join(' · '), '#88ccff');
@@ -6587,7 +6587,7 @@ const GameManager = (function () {
     try {
     if (typeof HUD !== 'undefined' && HUD.hideBossBar) HUD.hideBossBar();
     if (window.CompanionRadio && CompanionRadio.onWaveComplete) CompanionRadio.onWaveComplete();
-    if (typeof AllySoldiers !== 'undefined') AllySoldiers.clear();
+    if (typeof AllySoldiers !== 'undefined' && AllySoldiers.clear) AllySoldiers.clear();
     player.score += SCORE_WAVE_BONUS;
     HUD.setScore(player.score);
     MLSystem.onWaveComplete(currentWave, currentStage, player.hp / player.maxHp);
@@ -6907,11 +6907,11 @@ const GameManager = (function () {
 
       // Show stage clear overlay
       gameState = STATE.STAGE_CLEAR;
-      if (typeof EnemyChatter !== 'undefined') EnemyChatter.clear();
-      if (typeof ExplosiveBarrels !== 'undefined') ExplosiveBarrels.clear();
+      if (typeof EnemyChatter !== 'undefined' && EnemyChatter.clear) EnemyChatter.clear();
+      if (typeof ExplosiveBarrels !== 'undefined' && ExplosiveBarrels.clear) ExplosiveBarrels.clear();
       if (typeof window.AudioSystem !== 'undefined' && window.AudioSystem.playLevelComplete) window.AudioSystem.playLevelComplete();
       // Daily challenges: record level complete
-      try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordLevel(); } catch (eDCL) {}
+      try { if (typeof DailyChallenges !== 'undefined' && DailyChallenges.recordLevel) DailyChallenges.recordLevel(); } catch (eDCL) {}
 
       // ── Mission Debrief (shown before stage-clear overlay) ──────────────
       var _debriefAcc = (player.stageShots || 0) > 0
@@ -6968,7 +6968,7 @@ const GameManager = (function () {
     }
 
     gameState = STATE.WAVE_CLEAR;
-    if (typeof KillStreak !== 'undefined') KillStreak.onWaveClear();
+    if (typeof KillStreak !== 'undefined' && KillStreak.onWaveClear) KillStreak.onWaveClear();
     showOverlay('waveclear');
     var _wvn = document.getElementById('waveclear-num');   if (_wvn) _wvn.textContent = currentWave;
     var _wvt = document.getElementById('waveclear-total'); if (_wvt) _wvt.textContent = stageDef.wavesPerStage;
@@ -7369,11 +7369,11 @@ const GameManager = (function () {
     player.position.copy(newPos);
 
     // Grapple update — must run after player.position is committed
-    if (window.Grapple) Grapple.update(delta, player.position, _camera);
+    if (window.Grapple && Grapple.update) Grapple.update(delta, player.position, _camera);
     // ZiplineGrapple update — runs after physics
     if (window.ZiplineGrapple) { try { ZiplineGrapple.update(delta); } catch (_e) {} }
     // Wingsuit update — runs after physics, passes player object and key state
-    if (window.Wingsuit) Wingsuit.update(delta, player, keys);
+    if (window.Wingsuit && Wingsuit.update) Wingsuit.update(delta, player, keys);
 
     // Update camera
     CameraSystem.update(delta, player.position, isMoving, player.onGround);
@@ -7492,7 +7492,7 @@ const GameManager = (function () {
           if (!hitDrone.alive && hitDrone.faction === 'russian') {
             player.score += 50;
             player.kills += 1;
-            if (typeof KillStreak !== 'undefined') KillStreak.onKill();
+            if (typeof KillStreak !== 'undefined' && KillStreak.onKill) KillStreak.onKill();
             if (typeof HUD !== 'undefined' && HUD.addCombatLog) {
               HUD.addCombatLog('Enemy drone shot down (+50)', '#44ddff');
             }
@@ -7511,7 +7511,7 @@ const GameManager = (function () {
           }
         }
         // ── Explosive Barrels: raycast barrel hit check ──
-        if (typeof ExplosiveBarrels !== 'undefined') {
+        if (typeof ExplosiveBarrels !== 'undefined' && ExplosiveBarrels.checkBulletHit) {
           var _bOrigin = _camera.position;
           var _bDir = new THREE.Vector3();
           _camera.getWorldDirection(_bDir);
@@ -7748,7 +7748,7 @@ const GameManager = (function () {
       DamageNumbers.spawnNumber(enemy.mesh.position, dmg, isHeadshot, isCrit);
     }
     // HitMarkers: crosshair flash feedback (normal / headshot / kill)
-    if (window.HitMarkers) HitMarkers.flash(isHeadshot, remaining <= 0);
+    if (window.HitMarkers && HitMarkers.flash) HitMarkers.flash(isHeadshot, remaining <= 0);
 
     SkillSystem.onShoot(true, isHeadshot);
     HUD.flashHit(isHeadshot, remaining <= 0);
@@ -7764,7 +7764,7 @@ const GameManager = (function () {
       player.waveHeadshots++;
       player.stageHeadshots = (player.stageHeadshots || 0) + 1;
       // Daily challenges: record headshot
-      try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordHeadshot(); } catch (eDCH) {}
+      try { if (typeof DailyChallenges !== 'undefined' && DailyChallenges.recordHeadshot) DailyChallenges.recordHeadshot(); } catch (eDCH) {}
     }
 
     if (remaining <= 0) {
@@ -7833,11 +7833,11 @@ const GameManager = (function () {
       if (window.BloodEffects && enemy && enemy.mesh) {
         BloodEffects.onDeath(enemy.mesh.position.clone(), isHeadshot || false);
       }
-      if (window.RadioSupport) RadioSupport.onKill();
-      if (typeof ArmorSystem !== 'undefined' && enemy && enemy.mesh) ArmorSystem.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z);
+      if (window.RadioSupport && RadioSupport.onKill) RadioSupport.onKill();
+      if (typeof ArmorSystem !== 'undefined' && ArmorSystem.tryDrop && enemy && enemy.mesh) ArmorSystem.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z);
       if (window.GasMask && enemy && enemy.mesh) GasMask.tryDrop(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z, typeof STAGES !== 'undefined' && STAGES[currentStage] ? STAGES[currentStage].id : '');
       if (window.LootDrops && enemy && enemy.mesh) LootDrops.spawnLoot(enemy.mesh.position, enemy.type);
-      if (typeof KillStreak !== 'undefined') KillStreak.onKill();
+      if (typeof KillStreak !== 'undefined' && KillStreak.onKill) KillStreak.onKill();
       player.waveKills++;
       if (player.waveKills === 1) player.waveFirstKillTime = (performance.now() - player.waveStartTime) / 1000;
       // Wave events: trigger 'mid' when 50% of wave enemies are killed
@@ -7846,7 +7846,7 @@ const GameManager = (function () {
         WaveEvents.triggerRandom(currentWave, 'mid');
       }
       // Daily challenges: record kill
-      try { if (typeof DailyChallenges !== 'undefined') DailyChallenges.recordKill(); } catch (eDCK) {}
+      try { if (typeof DailyChallenges !== 'undefined' && DailyChallenges.recordKill) DailyChallenges.recordKill(); } catch (eDCK) {}
       // Achievements: record kill
       try {
         if (typeof Achievements !== 'undefined' && Achievements.recordKill) {
@@ -8505,7 +8505,7 @@ const GameManager = (function () {
         return;
       }
       gameState = STATE.DEAD;
-      if (typeof KillStreak !== 'undefined') KillStreak.onDeath();
+      if (typeof KillStreak !== 'undefined' && KillStreak.onDeath) KillStreak.onDeath();
       if (_waveStartTimer) { clearTimeout(_waveStartTimer); _waveStartTimer = null; }
       if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
       // Streak-end banner: show what was ended
@@ -8533,7 +8533,7 @@ const GameManager = (function () {
         Progression.save();
       }
       // Reset perk streak on death
-      if (typeof Perks !== 'undefined') Perks.resetStreak();
+      if (typeof Perks !== 'undefined' && Perks.resetStreak) Perks.resetStreak();
       // AI Smart Learning: classify combat style on death and track death context
       MLSystem.classifyCombatStyle();
       if (attackerPos) {
@@ -8689,7 +8689,7 @@ const GameManager = (function () {
     }
 
     // TimeWarp bullet-time: update with raw delta, then scale game delta
-    if (window.TimeWarp) TimeWarp.update(rawDelta);
+    if (window.TimeWarp && TimeWarp.update) TimeWarp.update(rawDelta);
     if (window._bulletTimeScale && window._bulletTimeScale !== 1.0) {
       delta *= window._bulletTimeScale;
     }
@@ -8731,7 +8731,7 @@ const GameManager = (function () {
       if (window.BloodEffects) { try { BloodEffects.update(delta); } catch (_e) {} }
       if (window.StaminaSystem) { try { StaminaSystem.update(delta); } catch (_e) {} }
       WeatherSystem.update(delta);
-      if (typeof WeatherEvents !== 'undefined') WeatherEvents.update();
+      if (typeof WeatherEvents !== 'undefined' && WeatherEvents.update) WeatherEvents.update();
       if (window.WaveEvents) { try { WaveEvents.update(delta); } catch (_e) {} }
       MLSystem.trackFPS(delta);
       // AI Smart Learning: track player position for behavior profiling
@@ -9472,15 +9472,15 @@ const GameManager = (function () {
       } else if (typeof CompanionDrone !== 'undefined') {
         CompanionDrone.update(delta, player.position, []);
       }
-      if (typeof SupplyCrate !== 'undefined') SupplyCrate.update(delta, player.position, player);
+      if (typeof SupplyCrate !== 'undefined' && SupplyCrate.update) SupplyCrate.update(delta, player.position, player);
       if (window.ClaymoreMines) { var _allEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; ClaymoreMines.update(delta, player.position, _allEnemies); }
       if (window.TripwireIED) { var _iedEnemies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; TripwireIED.update(_iedEnemies, delta); }
-      if (typeof ArmorSystem !== 'undefined') ArmorSystem.update(delta, player.position);
+      if (typeof ArmorSystem !== 'undefined' && ArmorSystem.update) ArmorSystem.update(delta, player.position);
       if (window.LootDrops) { try { LootDrops.update(delta); } catch (_e) {} }
       if (window.DogTags) { try { DogTags.update(delta); } catch (_e) {} }
-      if (window.GasMask) GasMask.update(delta, player.position);
-      if (typeof NightVision !== 'undefined') NightVision.update(delta);
-      if (window.WeatherEffects) WeatherEffects.update(delta, player.position);
+      if (window.GasMask && GasMask.update) GasMask.update(delta, player.position);
+      if (typeof NightVision !== 'undefined' && NightVision.update) NightVision.update(delta);
+      if (window.WeatherEffects && WeatherEffects.update) WeatherEffects.update(delta, player.position);
       if (typeof AllySoldiers !== 'undefined') { var _allEnemiesForAllies = typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []; AllySoldiers.update(delta, player.position, _allEnemiesForAllies); }
       if (typeof HazardZones !== 'undefined') {
         var _preHazardHp = player.hp;
@@ -9491,10 +9491,10 @@ const GameManager = (function () {
           window._hazardSlowFactor = 1.0;
         }
       }
-      if (window.IntelPickups) IntelPickups.update(delta, player.position, player, _scene);
-      if (typeof KillStreak !== 'undefined') KillStreak.update(delta);
+      if (window.IntelPickups && IntelPickups.update) IntelPickups.update(delta, player.position, player, _scene);
+      if (typeof KillStreak !== 'undefined' && KillStreak.update) KillStreak.update(delta);
       if (window.SurrenderSystem) { try { SurrenderSystem.update(delta); } catch (_e) {} }
-      if (window.SuppressionSystem) SuppressionSystem.update(delta, player);
+      if (window.SuppressionSystem && SuppressionSystem.update) SuppressionSystem.update(delta, player);
       if (window.FreezeGrenade) { try { FreezeGrenade.update(delta); } catch (_e) {} }
       if (window.KillCam) { try { KillCam.update(delta); } catch (_e) {} }
       if (window.ShieldBubble) { try { ShieldBubble.update(delta); } catch (_e) {} }
@@ -11007,10 +11007,10 @@ const GameManager = (function () {
         var _posDrone = DroneSystem.getPossessed();
         if (_posDrone && _posDrone.alive && _posDrone.position) MissionSystem.onDroneScout(_posDrone.position);
       }
-      if (typeof ConvoySystem !== 'undefined') ConvoySystem.update(delta);
-      if (typeof EnemyArtillery !== 'undefined') EnemyArtillery.update(delta);
+      if (typeof ConvoySystem !== 'undefined' && ConvoySystem.update) ConvoySystem.update(delta);
+      if (typeof EnemyArtillery !== 'undefined' && EnemyArtillery.update) EnemyArtillery.update(delta);
       VehicleSystem.update(delta);
-      if (window.VehicleEnemies) VehicleEnemies.update(delta, player.position);
+      if (window.VehicleEnemies && VehicleEnemies.update) VehicleEnemies.update(delta, player.position);
       Automation.update(delta);
       MissionSystem.update(delta);
       if (typeof RefineryStrike !== 'undefined' && RefineryStrike.update) RefineryStrike.update(delta);
@@ -11308,13 +11308,13 @@ const GameManager = (function () {
       }
 
       // Scavenge system update (weapon drops, pickup prompt)
-      if (window.ScavengeSystem) ScavengeSystem.update(delta, player);
+      if (window.ScavengeSystem && ScavengeSystem.update) ScavengeSystem.update(delta, player);
 
       // Update tracers
-      if (typeof Tracers !== 'undefined') Tracers.update(delta, player.position);
-      if (typeof EnemyChatter !== 'undefined') EnemyChatter.update();
+      if (typeof Tracers !== 'undefined' && Tracers.update) Tracers.update(delta, player.position);
+      if (typeof EnemyChatter !== 'undefined' && EnemyChatter.update) EnemyChatter.update();
       if (window.CompanionRadio && CompanionRadio.update) CompanionRadio.update(delta);
-      if (typeof StageVFX !== 'undefined') StageVFX.update(delta);
+      if (typeof StageVFX !== 'undefined' && StageVFX.update) StageVFX.update(delta);
       if (typeof Flags !== 'undefined' && Flags.update) Flags.update(delta);
       if (typeof Environment !== 'undefined' && Environment.update) Environment.update(delta);
       // Birds / Mortar / MortarEmplacement / Gyro per-frame
@@ -11323,7 +11323,7 @@ const GameManager = (function () {
       try { if (window.MortarEmplacement && MortarEmplacement.update) MortarEmplacement.update(delta, typeof Enemies !== 'undefined' ? Enemies.getAll() : []); } catch (eMEU) {}
       try { if (window.Bradley && Bradley.update) Bradley.update(delta); } catch (eBV) {}
       try { if (window.Gyro    && Gyro.update)    Gyro.update(delta); } catch (eGU) {}
-      try { if (window.DamageNumbers) DamageNumbers.update(delta); } catch (eDNU) {}
+      try { if (window.DamageNumbers && DamageNumbers.update) DamageNumbers.update(delta); } catch (eDNU) {}
 
       // ═══ NEW FEATURE SYSTEM UPDATES (59 features) ═══
 
@@ -11534,7 +11534,7 @@ const GameManager = (function () {
 
       // Hand-thrown grenades (player-thrown via KeyG when no nearby vehicle)
       updateHandGrenades(delta);
-      if (window.SpecialGrenades) SpecialGrenades.update(delta, player.position, typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []);
+      if (window.SpecialGrenades && SpecialGrenades.update) SpecialGrenades.update(delta, player.position, typeof Enemies !== 'undefined' && Enemies.getAll ? Enemies.getAll() : []);
 
       // World features update (fires, trees, mines, airdrops, smoke)
       if (typeof WorldFeatures !== 'undefined') {
@@ -11569,7 +11569,7 @@ const GameManager = (function () {
           for (var mi = 0; mi < wfResult.mineExplosions.length; mi++) {
             var me = wfResult.mineExplosions[mi];
             if (window.AudioSystem && window.AudioSystem.playExplosion) window.AudioSystem.playExplosion();
-            if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(new THREE.Vector3(me.x, me.y, me.z), me.radius * 0.5);
+            if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(new THREE.Vector3(me.x, me.y, me.z), me.radius * 0.5);
             if (CameraSystem.shake) CameraSystem.shake(0.3, 0.5);
             if (me.target === 'player') {
               onPlayerHit(me.damage, new THREE.Vector3(me.x, me.y, me.z));
@@ -11784,8 +11784,8 @@ const GameManager = (function () {
                 } else if (typeof Marketplace !== 'undefined') {
                   Marketplace.addOKC(reward.okc);
                 }
-                if (typeof RankSystem !== 'undefined') RankSystem.addXP(reward.xp);
-                if (typeof Progression !== 'undefined') Progression.trackStat('wavesCleared', 0); // mission tracking
+                if (typeof RankSystem !== 'undefined' && RankSystem.addXP) RankSystem.addXP(reward.xp);
+                if (typeof Progression !== 'undefined' && Progression.trackStat) Progression.trackStat('wavesCleared', 0); // mission tracking
               }
               mTracker.style.display = 'none';
             } else if (missionResult.state === 'FAILED') {
@@ -13362,19 +13362,19 @@ const GameManager = (function () {
       var fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(_camera.quaternion);
       var target = player.position.clone().add(fwd.multiplyScalar(30));
       Enemies.damageInRadius(target, streak.radius || 15, streak.damage || 200);
-      if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(target, (streak.radius || 15) * 0.3);
+      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(target, (streak.radius || 15) * 0.3);
     } else if (streak.id === 'NUKE') {
       // Kill all enemies
       var allEn = Enemies.getAll();
       for (var i = 0; i < allEn.length; i++) {
         if (allEn[i].alive) Enemies.damage(allEn[i], 99999);
       }
-      if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(player.position, 10);
+      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(player.position, 10);
       HUD.notifyPickup('☢️ TACTICAL NUKE DEPLOYED!', '#ff0000');
     } else if (streak.id === 'ORBITAL') {
       // Massive area damage
       Enemies.damageInRadius(player.position, streak.radius || 20, streak.damage || 500);
-      if (typeof Tracers !== 'undefined') Tracers.spawnExplosion(player.position, 8);
+      if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(player.position, 8);
     }
     // Refresh killstreak panel
     var ksList = document.getElementById('killstreak-list');

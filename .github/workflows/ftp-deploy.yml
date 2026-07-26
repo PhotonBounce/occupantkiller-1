@@ -1,0 +1,58 @@
+name: Deploy to photon-bounce.com (FTP)
+
+# Mirrors the game to your shared hosting at ftp.photon-bounce.com under /ok.
+# Runs on GitHub's runners (open internet), which CAN reach your FTP — this
+# session's sandbox cannot (its egress policy blocks FTP + the site's HTTPS).
+#
+# ONE-TIME SETUP (required): add the FTP password as a repo secret so it is
+# never stored in the repository:
+#   Repo → Settings → Secrets and variables → Actions → New repository secret
+#   Name: FTP_PASSWORD   Value: <your ftp password>
+# (Optional overrides via secrets: FTP_SERVER, FTP_USERNAME, FTP_DIR.)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+concurrency:
+  group: ftp-deploy
+  cancel-in-progress: true
+
+jobs:
+  ftp-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Guard — require FTP_PASSWORD secret
+        env:
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -z "$FTP_PASSWORD" ]; then
+            echo "::error::FTP_PASSWORD secret is not set. Add it under Settings → Secrets and variables → Actions, then re-run."
+            exit 1
+          fi
+
+      - name: Assemble lean site (game files only)
+        run: |
+          mkdir -p _site
+          rsync -a \
+            --exclude '.git' --exclude '.github' --exclude '_site' \
+            --exclude 'node_modules' --exclude 'android' --exclude 'microsite' \
+            --exclude 'tools' --exclude 'screenshots' --exclude '*.md' \
+            ./ _site/
+          touch _site/.nojekyll
+          echo "Deploying $(find _site -type f | wc -l) files"
+
+      - name: FTP upload to /ok
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER || 'ftp.photon-bounce.com' }}
+          username: ${{ secrets.FTP_USERNAME || 'photonb' }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./_site/
+          server-dir: ${{ secrets.FTP_DIR || '/ok/' }}
+          protocol: ftp
+          timeout: 120000
