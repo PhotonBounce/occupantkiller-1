@@ -2238,8 +2238,19 @@ body:not(.game-active) #mortar-btn,
 body:not(.game-active) #bradley-btn,
 body:not(.game-active) #mission-board-btn,
 body:not(.game-active) #tacmap-btn,
+body:not(.game-active) #screenshot-btn,
 body:not(.game-active) #mobile-controls {
   display: none !important;
+}
+
+/* Screenshot button stays visible in-game on mobile too (top-left, clear of
+   the top HUD bar and the right-side action stack). */
+body.game-active #screenshot-btn { display: block !important; }
+html.is-mobile #screenshot-btn {
+  top: calc(var(--mobile-safe-top, 0px) + 4px);
+  left: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
 }
 
 /* Start menu must fully occlude anything behind it (belt-and-suspenders) */

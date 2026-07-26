@@ -51,7 +51,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
   <title>OccupantKiller — Hybrid Voxel Warfare</title>
-  <link rel="stylesheet" href="style.css?v=20260726c" />
+  <link rel="stylesheet" href="style.css?v=20260726e" />
 </head>
   <body>
     <!-- ── Boot Preloader (gates GameManager.init until everything is ready) ── -->
@@ -328,6 +328,9 @@
 
     <!-- Inventory Button (always visible) -->
     <button id="inventory-btn" style="position:fixed;top:4px;right:72px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer" title="Open Inventory (I key)">📦 INV</button>
+
+    <!-- Screenshot Button (captures exact rendered frame; works even where OS screenshots of WebGL come out black) -->
+    <button id="screenshot-btn" style="position:fixed;top:4px;left:8px;background:rgba(0,0,0,0.55);border:1px solid rgba(120,255,180,0.55);color:#7fffaa;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:240;cursor:pointer;text-shadow:0 0 6px #0f8" title="Save a screenshot of the game (P key)">📷 SHOT</button>
 
     <!-- In-game God Mode toggle (always visible) -->
     <button id="hud-god-mode-btn" style="position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">⚡ GOD</button>
@@ -912,6 +915,20 @@
           <span style="color:#aaa;font-size:13px">ROLE:</span>
           <button class="btn" id="role-brigade-btn" style="font-size:12px;padding:4px 12px;border-color:#0af;color:#0af;display:inline-block;margin:0 4px">🎖 ASSAULT BRIGADE</button>
           <button class="btn" id="role-lonewolf-btn" style="font-size:12px;padding:4px 12px;border-color:#fa0;color:#fa0;display:inline-block;margin:0 4px">🐺 LONE WOLF</button>
+        </div>
+
+        <!-- Field Ops (mobile access to features that are keyboard/top-bar-only on desktop) -->
+        <div id="mobile-fieldops" style="display:none;background:rgba(0,20,10,0.4);border:1px solid #2a6;border-radius:6px;padding:10px;margin:10px 0">
+          <h3 style="margin:0 0 8px 0;color:#7fffaa;font-size:14px">🎮 FIELD OPS</h3>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
+            <button class="btn fieldop-btn" data-op="missions" style="font-size:12px;padding:6px;border-color:#ffd24a;color:#ffd24a">📋 Missions</button>
+            <button class="btn fieldop-btn" data-op="bradley" style="font-size:12px;padding:6px;border-color:#a0c878;color:#a0c878">🚛 Bradley IFV</button>
+            <button class="btn fieldop-btn" data-op="mortar" style="font-size:12px;padding:6px;border-color:#ffaa66;color:#ffaa66">🎯 Mortar</button>
+            <button class="btn fieldop-btn" data-op="gyro" style="font-size:12px;padding:6px;border-color:#88ddff;color:#88ddff">🎮 Gyro Aim</button>
+            <button class="btn fieldop-btn" data-op="jukebox" style="font-size:12px;padding:6px;border-color:#ffd500;color:#ffd500">🎵 Jukebox</button>
+            <button class="btn fieldop-btn" data-op="god" style="font-size:12px;padding:6px;border-color:#ff0;color:#ff0">⚡ God Mode</button>
+          </div>
+          <p style="color:#688;font-size:10px;margin:6px 0 0">Tap to activate, then Resume. On desktop use the top bar or hotkeys (B / M / G / J).</p>
         </div>
 
         <!-- Materials / Resources Section -->
@@ -2203,6 +2220,159 @@ document.addEventListener('DOMContentLoaded', function () {
     var result = Marketplace.convertGoldToOKC(1000);
     if (result > 0) { GameManager.refreshMarketplaceUI('shop'); }
   });
+
+  // ── In-game screenshot (📷) ────────────────────────────
+  // Captures the exact rendered WebGL frame. The renderer is created with
+  // preserveDrawingBuffer:true so canvas.toDataURL() is valid at any time —
+  // no render-loop hook needed. This guarantees a real capture on devices
+  // where an OS screenshot of a WebGL surface comes out black.
+  (function () {
+    function toast(msg, ok) {
+      var t = document.getElementById('__shot-toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = '__shot-toast';
+        t.style.cssText = 'position:fixed;left:50%;bottom:18%;transform:translateX(-50%);' +
+          'background:rgba(0,0,0,0.85);color:#7fffaa;border:1px solid #0f8;border-radius:6px;' +
+          'padding:8px 16px;font:12px monospace;z-index:99999;pointer-events:none;' +
+          'text-shadow:0 0 6px #0f8;transition:opacity .3s';
+        document.body.appendChild(t);
+      }
+      t.style.color = ok ? '#7fffaa' : '#ff8080';
+      t.style.borderColor = ok ? '#0f8' : '#f66';
+      t.textContent = msg;
+      t.style.opacity = '1';
+      clearTimeout(t.__timer);
+      t.__timer = setTimeout(function () { t.style.opacity = '0'; }, 1800);
+    }
+    function showPreview(url, name) {
+      var ov = document.getElementById('__shot-preview');
+      if (!ov) {
+        ov = document.createElement('div');
+        ov.id = '__shot-preview';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.92);' +
+          'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px';
+        ov.innerHTML =
+          '<div style="color:#7fffaa;font:13px monospace;text-align:center;text-shadow:0 0 6px #0f8">' +
+          '📷 Screenshot ready — <b>long-press the image → “Save Image”</b>,<br>or tap ⬇ Download below.</div>' +
+          '<img id="__shot-img" style="max-width:92vw;max-height:66vh;border:2px solid #0f8;border-radius:6px;box-shadow:0 0 20px rgba(0,255,136,0.4)"/>' +
+          '<div style="display:flex;gap:12px">' +
+          '<a id="__shot-dl" style="background:#0f8;color:#001;font:bold 13px monospace;padding:8px 18px;border-radius:6px;text-decoration:none">⬇ DOWNLOAD</a>' +
+          '<button id="__shot-close" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid #888;font:bold 13px monospace;padding:8px 18px;border-radius:6px;cursor:pointer">✕ CLOSE</button>' +
+          '</div>';
+        document.body.appendChild(ov);
+        ov.querySelector('#__shot-close').addEventListener('click', function () { ov.style.display = 'none'; });
+        ov.addEventListener('click', function (e) { if (e.target === ov) ov.style.display = 'none'; });
+      }
+      ov.style.display = 'flex';
+      ov.querySelector('#__shot-img').src = url;
+      var dl = ov.querySelector('#__shot-dl');
+      dl.href = url; dl.download = name;
+    }
+    function capture() {
+      try {
+        var canvas = document.querySelector('#game-container canvas') || document.querySelector('canvas');
+        if (!canvas) { toast('No game canvas yet', false); return; }
+        var url;
+        try { url = canvas.toDataURL('image/png'); }
+        catch (e) { toast('Capture blocked: ' + (e.message || e), false); return; }
+        if (!url || url.length < 100) { toast('Empty frame — try in-game', false); return; }
+        var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        var name = 'occupant-killer-' + stamp + '.png';
+        // Try a direct download (desktop + Android Chrome honour this)...
+        try {
+          var a = document.createElement('a');
+          a.href = url; a.download = name;
+          document.body.appendChild(a); a.click();
+          setTimeout(function () { a.remove(); }, 100);
+        } catch (e) { /* ignore — preview covers every browser */ }
+        // ...and always show a preview so iOS/any browser can long-press to save.
+        showPreview(url, name);
+        toast('📷 Captured', true);
+      } catch (err) {
+        toast('Screenshot failed: ' + (err.message || err), false);
+      }
+    }
+    var btn = document.getElementById('screenshot-btn');
+    if (btn) {
+      btn.addEventListener('click', function (e) { e.preventDefault(); capture(); });
+      btn.addEventListener('touchend', function (e) { e.preventDefault(); capture(); }, { passive: false });
+    }
+    // P key on desktop
+    document.addEventListener('keydown', function (e) {
+      if ((e.key === 'p' || e.key === 'P') && !e.repeat) {
+        var tag = (e.target && e.target.tagName) || '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        capture();
+      }
+    });
+  })();
+
+  // ── Mobile Field Ops (Bradley / Mortar / Gyro / Missions / etc.) ──────
+  // On mobile the desktop top-bar buttons are hidden and there is no keyboard,
+  // so these features had no entry point. Surface them inside the pause menu.
+  (function () {
+    var isMobile = document.documentElement.classList.contains('is-mobile') ||
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+      ('ontouchstart' in window && (navigator.maxTouchPoints || 0) > 0);
+    var fo = document.getElementById('mobile-fieldops');
+    if (fo && isMobile) fo.style.display = 'block';
+    function resumeGame() {
+      var inv = document.getElementById('inventory-overlay');
+      if (inv) inv.style.display = 'none';
+      var pb = document.getElementById('btn-pause');
+      // btn-pause toggles pause↔play; dispatch only if still paused
+      try {
+        if (window.GameManager && GameManager.getState && GameManager.getState() === 'paused' && pb) {
+          pb.dispatchEvent(new Event('touchstart'));
+        } else if (window.GameManager && GameManager.hideOverlays) { GameManager.hideOverlays(); }
+      } catch (e) {}
+    }
+    function fireKey(k) {
+      var down = new KeyboardEvent('keydown', { key: k, code: 'Key' + k.toUpperCase(), bubbles: true });
+      document.dispatchEvent(down);
+    }
+    document.querySelectorAll('.fieldop-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        var op = btn.dataset.op;
+        try {
+          switch (op) {
+            case 'missions':
+              var mb = document.getElementById('mission-board-btn');
+              resumeGame();
+              if (mb) setTimeout(function () { mb.click(); }, 60);
+              break;
+            case 'bradley':
+              resumeGame();
+              setTimeout(function () {
+                var bb = document.getElementById('bradley-btn');
+                if (bb) bb.click(); else fireKey('b');
+              }, 60);
+              break;
+            case 'mortar':
+              resumeGame();
+              setTimeout(function () {
+                var mo = document.getElementById('mortar-btn');
+                if (mo) mo.click(); else fireKey('m');
+              }, 60);
+              break;
+            case 'gyro':
+              var g = document.getElementById('gyro-btn');
+              if (g) g.click(); else fireKey('g');
+              break;
+            case 'jukebox':
+              var j = document.getElementById('jukebox-btn');
+              if (j) j.click();
+              break;
+            case 'god':
+              if (window.GameManager && GameManager.toggleGodMode) GameManager.toggleGodMode();
+              break;
+          }
+        } catch (err) { /* non-fatal */ }
+      });
+    });
+  })();
 
 });
 </script>
