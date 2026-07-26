@@ -4474,11 +4474,16 @@ const GameManager = (function () {
     }
     var el = document.getElementById('overlay-' + name);
     if (el) el.style.display = 'flex';
+    // HUD chrome (speed/ammo/xp/rank/crosshair/buttons) must not bleed onto the
+    // START menu. game-active gates all HUD visibility via CSS; the start screen
+    // is the only overlay that means "not in game".
+    try { document.body.classList.toggle('game-active', name !== 'start'); } catch (_e) {}
     _releaseMouseForUI();
   }
 
   function hideOverlays() {
     document.querySelectorAll('.overlay').forEach(function (el) { el.style.display = 'none'; });
+    try { document.body.classList.add('game-active'); } catch (_e) {}
     // Release any stuck mobile look touch when overlays change
     touch.lookTouchId = null;
     touch.lookActive = false;

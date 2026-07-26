@@ -2197,3 +2197,60 @@ html:not(.is-mobile) #bradley-btn:hover {
   opacity: 1;
   transform: scale(1);
 }
+
+/* ============================================================
+   HUD visibility gating — the in-game HUD chrome (speed, ammo,
+   XP/rank bars, crosshair, killstreak, and all the fixed action
+   buttons) must ONLY appear during active play, never bleeding
+   onto the START menu. game-active is toggled in showOverlay/
+   hideOverlays (game-manager.js). Default (no class) = menu = hidden.
+   ============================================================ */
+body:not(.game-active) #hud,
+body:not(.game-active) #top-bar,
+body:not(.game-active) #extended-top-bar,
+body:not(.game-active) #vehicle-hud,
+body:not(.game-active) #build-hud,
+body:not(.game-active) #build-materials-hud,
+body:not(.game-active) #crosshair,
+body:not(.game-active) #tactical-compass,
+body:not(.game-active) #role-indicator,
+body:not(.game-active) #weather-indicator,
+body:not(.game-active) #prestige-indicator,
+body:not(.game-active) #npc-morale-hud,
+body:not(.game-active) #perk-display,
+body:not(.game-active) #combat-log,
+body:not(.game-active) #stamina-bar-container,
+body:not(.game-active) #armor-bar-container,
+body:not(.game-active) #heat-bar-container,
+body:not(.game-active) #ammo-type-indicator,
+body:not(.game-active) #hud-okc-bar,
+body:not(.game-active) #killstreak-panel,
+body:not(.game-active) #level-badge,
+body:not(.game-active) #minimap-canvas,
+body:not(.game-active) #skill-hud-btn,
+body:not(.game-active) #inventory-btn,
+body:not(.game-active) #hud-god-mode-btn,
+body:not(.game-active) #jukebox-btn,
+body:not(.game-active) #lottery-btn,
+body:not(.game-active) #premium-btn,
+body:not(.game-active) #gyro-btn,
+body:not(.game-active) #mortar-btn,
+body:not(.game-active) #bradley-btn,
+body:not(.game-active) #mission-board-btn,
+body:not(.game-active) #tacmap-btn,
+body:not(.game-active) #mobile-controls {
+  display: none !important;
+}
+
+/* Start menu must fully occlude anything behind it (belt-and-suspenders) */
+#overlay-start {
+  background: #0b0d10 !important;
+  z-index: 99990 !important;  /* above all HUD; below boot-preloader(99998)/error(99999) */
+}
+
+/* Mobile: strip desktop-only keyboard-shortcut hints and desktop-only buttons */
+body.is-mobile .desktop-only,
+body.is-mobile .key-hint,
+body.is-mobile kbd {
+  display: none !important;
+}
