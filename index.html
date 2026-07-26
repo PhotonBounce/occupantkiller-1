@@ -51,7 +51,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
   <title>OccupantKiller — Hybrid Voxel Warfare</title>
-  <link rel="stylesheet" href="style.css?v=20260724a" />
+  <link rel="stylesheet" href="style.css?v=20260726c" />
 </head>
   <body>
     <!-- ── Boot Preloader (gates GameManager.init until everything is ready) ── -->
@@ -570,9 +570,9 @@
         <p class="start-tagline">Ukraine. Voxel world. Build. Command. Fight.</p>
         <div id="session-stamp" style="font-family:monospace;font-size:11px;color:#7fd4ff;letter-spacing:0.5px;margin-top:4px;text-shadow:0 0 6px rgba(127,212,255,0.35)">SESSION —</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px;font-size:10px;color:#888;font-family:monospace">
-          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🏆 LEADERBOARD [TAB]</span>
-          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🌦 WEATHER [Shift+W]</span>
-          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🟢 NIGHT VISION [Shift+N]</span>
+          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🏆 LEADERBOARD <span class="key-hint">[TAB]</span></span>
+          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🌦 WEATHER <span class="key-hint">[Shift+W]</span></span>
+          <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🟢 NIGHT VISION <span class="key-hint">[Shift+N]</span></span>
           <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">🔥 KILL STREAKS</span>
           <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">💥 EXPLOSIVE BARRELS</span>
           <span style="border:1px solid #333;padding:2px 6px;border-radius:3px">⭐ PRESTIGE SYSTEM</span>
@@ -1097,6 +1097,8 @@
     var ipadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
     var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     var isMobile = uaMobile || ipadOS || (touch && Math.min(window.innerWidth, window.innerHeight) < 900);
+    window.__IS_MOBILE = isMobile;
+    try { if (isMobile && document.body) document.body.classList.add('is-mobile'); else if (isMobile) document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('is-mobile'); }); } catch (e) {}
     if (typeof window.WORLD_CHUNKS === 'undefined') {
       // The default 32-chunk world (~1 km^2) exhausts GPU memory and loses the
       // WebGL context on both phones AND many desktop GPUs. Combat happens within
@@ -1105,6 +1107,24 @@
       window.WORLD_CHUNKS = isMobile ? 12 : 18;
     }
   } catch (e) {}
+})();
+
+// Authoritative HUD-visibility gate: the 3D scene runs BEHIND the start menu, so
+// we must hide all in-game HUD chrome whenever the START overlay is visible.
+// game-active === "start menu is NOT showing". CSS (style.css) keys HUD display
+// off body.game-active. A cheap poll keeps it correct regardless of how the menu
+// is shown/hidden (default CSS, showOverlay, hideOverlays).
+(function () {
+  function syncGameActive() {
+    try {
+      var os = document.getElementById('overlay-start');
+      var menuUp = os && getComputedStyle(os).display !== 'none';
+      document.body.classList.toggle('game-active', !menuUp);
+    } catch (e) {}
+  }
+  function start() { syncGameActive(); setInterval(syncGameActive, 200); }
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
 
@@ -1208,7 +1228,7 @@
     <script src="bundles/bundle-007.js?v=20260724a" async></script>
 <script src="ammo-types.js?v=20260724a"></script>
     <script src="bundles/bundle-008.js?v=20260724a" async></script>
-<script src="game-manager.js?v=20260726a-static"></script>
+<script src="game-manager.js?v=20260726b-static"></script>
 <script>window.__bootProgress&&window.__bootProgress(70,'loading game manager','');</script>
     <script src="bundles/bundle-009.js?v=20260724a" async></script>
 
