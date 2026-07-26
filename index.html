@@ -633,6 +633,18 @@
             <button class="btn pill map-btn"            data-stage="4"  style="border-color:#888;color:#888">⚙ MARIUPOL</button>
             <button class="btn pill map-btn"            data-stage="5"  style="border-color:#888;color:#888">🌊 CRIMEA</button>
             <button class="btn pill map-btn"            data-stage="6"  style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
+            <button class="btn pill map-btn"            data-stage="3"  style="border-color:#888;color:#888">🚤 KHERSON</button>
+            <button class="btn pill map-btn"            data-stage="7"  style="border-color:#888;color:#888">🏙 OUTER MOSCOW</button>
+            <button class="btn pill map-btn"            data-stage="8"  style="border-color:#888;color:#888">⚓ SEVASTOPOL</button>
+            <button class="btn pill map-btn"            data-stage="9"  style="border-color:#888;color:#888">🏭 DONBAS</button>
+            <button class="btn pill map-btn"            data-stage="10" style="border-color:#888;color:#888">🌾 BELGOROD</button>
+            <button class="btn pill map-btn"            data-stage="11" style="border-color:#888;color:#888">⭐ KREMLIN</button>
+            <button class="btn pill map-btn"            data-stage="13" style="border-color:#888;color:#888">🐍 SNAKE ISLAND</button>
+            <button class="btn pill map-btn"            data-stage="14" style="border-color:#888;color:#888">✈ SAKY AIRBASE</button>
+            <button class="btn pill map-btn"            data-stage="15" style="border-color:#888;color:#888">🛢 VUHLEDAR</button>
+            <button class="btn pill map-btn"            data-stage="16" style="border-color:#888;color:#888">🌉 ANTONOV BRIDGE</button>
+            <button class="btn pill map-btn"            data-stage="17" style="border-color:#888;color:#888">🚁 REFINERY (DRONE)</button>
+            <button class="btn pill map-btn"            data-stage="18" style="border-color:#888;color:#888">🎯 BRADLEY DUEL</button>
           </div>
           <p id="map-desc" class="start-section-desc">Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
         </section>
@@ -1196,7 +1208,7 @@
     <script src="bundles/bundle-007.js?v=20260724a" async></script>
 <script src="ammo-types.js?v=20260724a"></script>
     <script src="bundles/bundle-008.js?v=20260724a" async></script>
-<script src="game-manager.js?v=20260724c-static"></script>
+<script src="game-manager.js?v=20260726a-static"></script>
 <script>window.__bootProgress&&window.__bootProgress(70,'loading game manager','');</script>
     <script src="bundles/bundle-009.js?v=20260724a" async></script>
 
@@ -1413,6 +1425,18 @@ document.addEventListener('DOMContentLoaded', function () {
       '4':  'Mariupol Steelworks — Azovstal last stand. Fire deals constant damage. No retreat.',
       '5':  'Crimea Bridge — Strike the strategic crossing before it can be reinforced.',
       '6':  'Chornobyl Zone — Irradiated exclusion zone. Abandoned buildings, radiation damage.',
+      '3':  'Kherson Crossing — Force the Dnipro and liberate the bridgehead.',
+      '7':  'Outer Moscow — Break through the outer defensive ring. FSB & Rosgvardiya elite.',
+      '8':  'Sevastopol Naval Base — Destroy the Black Sea Fleet. Ship artillery incoming.',
+      '9':  'Donbas Final Push — Break the last occupied stronghold. Wagner, mortars, trenches.',
+      '10': 'Belgorod Offensive — Cross into enemy territory. Mechanized counter-attacks.',
+      '11': 'Kremlin Showdown — The final assault. Red Square, St. Basil\'s, maximum difficulty.',
+      '13': 'Snake Island Defense — Hold the Black Sea outpost. "Russian warship, go f*** yourself."',
+      '14': 'Saky Airbase Strike — Ground every Su-24 on the Crimean airbase.',
+      '15': 'Vuhledar Tank Graveyard — Bury the 155th Brigade in the minefield.',
+      '16': 'Antonov Bridge Strike — HIMARS the supply line into Kherson.',
+      '17': 'Refinery Strike — FPV drone mission. Fly the loitering munition onto target.',
+      '18': 'Bradley Duel (Stepove) — M2 Bradley vs T-90M. Rake it with 25mm, kill its optics.',
     };
     var mapBtns = document.querySelectorAll('.map-btn');
     function setActiveMap(stage) {
