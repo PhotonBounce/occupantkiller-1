@@ -12079,11 +12079,18 @@ const GameManager = (function () {
       touch.moveMaxDist = (currentBaseSize - currentThumbSize) / 2;
     }, { passive: false });
 
-    joystickZone.addEventListener('touchmove', function (e) {
-      e.preventDefault();
+    // Track the move on DOCUMENT, not just the zone: a real thumb drag routinely
+    // leaves the small 130px pad, and touchmove only fires on the element the
+    // touch STARTED on — so a zone-scoped listener is fine, but binding to
+    // document as well guarantees we keep updating even as the finger roams and
+    // never miss the stream. Filtered by moveTouchId so it ignores aim/fire touches.
+    document.addEventListener('touchmove', function (e) {
+      if (touch.moveTouchId === null) return;
+      let handled = false;
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         if (t.identifier === touch.moveTouchId) {
+          handled = true;
           let dx = t.clientX - touch.moveStartX;
           let dy = t.clientY - touch.moveStartY;
           const maxDist = touch.moveMaxDist || 32;
@@ -12102,6 +12109,7 @@ const GameManager = (function () {
           joystickThumb.style.top  = (currentBaseSize / 2 - currentThumbSize / 2 + dy) + 'px';
         }
       }
+      if (handled && e.cancelable) e.preventDefault();
     }, { passive: false });
 
     function resetJoystick() {
