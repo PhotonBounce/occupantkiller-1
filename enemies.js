@@ -1681,12 +1681,17 @@ const Enemies = (() => {
     eyeR.position.set(0.08 * s, 1.42 * s, 0.18 * s);
     group.add(eyeL, eyeR);
 
-    // Invisible hitbox — use transparent+opacity:0 so Raycaster still detects it
+    // Invisible hitbox. colorWrite:false guarantees zero visible pixels on EVERY
+    // GPU (some mobile GL drivers still faintly render an opacity:0 MeshBasicMaterial,
+    // which showed up as a "collision container" box around NPCs). Raycasting is
+    // unaffected — Three.js r137 Mesh.raycast reads geometry only, never colorWrite/
+    // opacity — so hit detection still works. depthWrite:false so it never occludes.
     const hitbox = new THREE.Mesh(
       new THREE.BoxGeometry(0.6 * s, 1.75 * s, 0.4 * s),
-      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, colorWrite: false, depthWrite: false })
     );
     hitbox.position.y = 0.87 * s;
+    hitbox.renderOrder = -1;
     group.add(hitbox);
 
     group.userData.headMesh = head;
