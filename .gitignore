@@ -23,6 +23,10 @@ srverr.log
 # Capture outputs (large, regenerable) — gallery ships under microsite/, not here
 tools/screenshots/
 tools/_*.js
+# Transient diag/capture outputs (regenerable by the diag-*.js harnesses)
+tools/*.log
+tools/gameplay-*.png
+tools/combat-*.png
 changes.diff
 .claude/
 
