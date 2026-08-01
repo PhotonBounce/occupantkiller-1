@@ -14,6 +14,7 @@
   function mmss(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
 
   var root = el('div', 'position:fixed;inset:0;pointer-events:none;z-index:949;display:none;font-family:"JetBrains Mono",monospace;');
+  root.id = 'match-stats-root';  // so CSS can declutter the mid-left MATCH panel on mobile
 
   /* 1. Live stats readout ---------------------------------------------------- */
   var box = el('div',

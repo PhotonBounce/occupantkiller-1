@@ -2342,3 +2342,21 @@ html.is-mobile #joystick-base {
   box-shadow: 0 0 14px rgba(0,0,0,0.5) !important;
 }
 html.is-mobile #joystick-thumb { background: rgba(255,255,255,0.6) !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   G. MOBILE IN-GAME DECLUTTER.  Device testing showed the phone screen
+   buried under secondary info panels (a 2nd bottom-left minimap sitting ON
+   the joystick, daily-challenges, live match-stats, verbose top text
+   strips).  Hide the non-essential ones in gameplay — all remain on desktop
+   and reachable via menus/Field Ops.  Keeps: top-left minimap, health/ammo/
+   armor, wave+hostiles, weapon, compass, sticks, action buttons, screenshot.
+   ══════════════════════════════════════════════════════════════════════ */
+html.is-mobile #minimap-container { display: none !important; }   /* 2nd radar over the move stick; top-left #minimap-canvas kept */
+html.is-mobile #daily-challenges-panel { display: none !important; }
+html.is-mobile #match-stats-root { display: none !important; }
+html.is-mobile #extended-top-bar { display: none !important; }    /* time/day/season/rank/mode text strip */
+html.is-mobile #resource-bar { display: none !important; }        /* build-mode resource counts */
+html.is-mobile #top-bar {
+  font-size: 9px !important; gap: 5px !important; padding: 1px 6px !important;
+  top: 0 !important; opacity: 0.9;
+}
