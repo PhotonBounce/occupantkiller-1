@@ -2392,6 +2392,8 @@ const Enemies = (() => {
 
     var roster = STAGE_ROSTER[stageNum];
     var rifleCt = 2 + Math.floor(Math.random() * 3) + Math.floor(stageNum / 4);
+    // Mobile: keep groups small (3 formation + 1 rifleman) to hold the frame rate.
+    if (window.__IS_MOBILE) rifleCt = Math.min(rifleCt, 1);
     for (var ri = 0; ri < rifleCt; ri++) {
       var rtyp;
       if (roster && Math.random() < 0.5) {
@@ -2454,11 +2456,18 @@ const Enemies = (() => {
     var _soloScale = 1;
     try { if (typeof GameManager !== 'undefined' && GameManager.getPlayer && GameManager.getPlayer().role !== 'brigade') _soloScale = 0.6; } catch (eSS) {}
     var stageGroupCount = Math.max(2, Math.round((NUM_ASSAULT_GROUPS + Math.floor((_stageId || 1) / 3) + planGroupDelta) * _soloScale));
+    // Mobile: 8+ assault groups (~50 concurrent NPCs) drove phones to ~1 FPS.
+    // Cap the initial wave to 2 small groups (2 × 4 = 8 NPCs); reinforcements
+    // drip in under a hard concurrent cap (see spawn-queue release below), so
+    // the fight stays full but the framebuffer/AI load is a fraction of desktop.
+    if (window.__IS_MOBILE) stageGroupCount = Math.min(stageGroupCount, 2);
     for (let g = 0; g < stageGroupCount; g++) {
       spawnAssaultGroup(g, sc, playerPos);
     }
 
-    if (battlePlan && battlePlan.initialTypes && battlePlan.initialTypes.length) {
+    // Extra "initial types" batch is a desktop luxury — skip it on mobile so the
+    // opening burst stays under the concurrent cap.
+    if (!window.__IS_MOBILE && battlePlan && battlePlan.initialTypes && battlePlan.initialTypes.length) {
       for (var pi = 0; pi < battlePlan.initialTypes.length; pi++) {
         spawnOne(battlePlan.initialTypes[pi]);
       }
@@ -2476,7 +2485,11 @@ const Enemies = (() => {
     var stageNum = (typeof _stageId === 'number') ? _stageId : 1;
     const baseExtra = 18 + (w - 1) * 8 + stageNum * 3;
     var extraMultiplier = battlePlan && isFinite(battlePlan.extraMultiplier) ? battlePlan.extraMultiplier : 1;
-    const extraCount = Math.max(4, Math.floor(baseExtra * (1 + (stageMult - 1) * 0.5) * extraMultiplier));
+    var extraCount = Math.max(4, Math.floor(baseExtra * (1 + (stageMult - 1) * 0.5) * extraMultiplier));
+    // Mobile: hard-bound the reinforcement queue so the TOTAL wave (2 groups ≈ 8
+    // + this queue) can never swarm the phone even if the concurrent-cap gate
+    // lags. The drip + concurrent cap still pace arrivals; this bounds the sum.
+    if (window.__IS_MOBILE) extraCount = Math.min(extraCount, 6);
     spawnQueue  = Array.from({ length: extraCount }, () => pickTypeForPlan(w, battlePlan));
     var spawnIntervalMultiplier = battlePlan && isFinite(battlePlan.spawnIntervalMultiplier) ? battlePlan.spawnIntervalMultiplier : 1;
     spawnTimer  = (Math.max(0.3, 2.0 - stageNum * 0.15) + Math.random() * 1.5) * spawnIntervalMultiplier;
@@ -2596,12 +2609,21 @@ const Enemies = (() => {
       }
     }
 
-    // Spawn reinforcements from queue (drip every 1.5-3.5s for denser waves)
-    if (spawnQueue.length > 0) {
+    // Spawn reinforcements from queue (drip every 1.5-3.5s for denser waves).
+    // Mobile: never let concurrent live enemies exceed MOBILE_ENEMY_CAP — the
+    // queue simply waits until kills free up slots, so the wave still fully
+    // arrives over time but the phone never has to render/simulate a swarm.
+    // NOTE: getAliveCount() includes the pending queue, so gate on LIVE enemies
+    // only (getAliveCount - queue) — otherwise the cap compares against the wrong
+    // number and either never drips or over-spawns.
+    var _mobEnemyCap = window.__IS_MOBILE ? 12 : Infinity;
+    var _liveNow = getAliveCount() - spawnQueue.length;
+    if (spawnQueue.length > 0 && _liveNow < _mobEnemyCap) {
       spawnTimer -= delta;
       if (spawnTimer <= 0) {
         var aliveNow = getAliveCount();
         var burst = (aliveNow < 5) ? 2 : 1;
+        if (window.__IS_MOBILE) burst = 1;
         for (var bi = 0; bi < burst && spawnQueue.length > 0; bi++) {
           spawnOne(spawnQueue.pop());
         }

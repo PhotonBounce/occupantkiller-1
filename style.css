@@ -2316,3 +2316,47 @@ html.is-mobile #killstreak-panel {
   left: max(6px, env(safe-area-inset-left)) !important;
   top: 46% !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   F. MOVEMENT JOYSTICK RESCUE (mobile).  The bottom-left corner — where the
+   move stick lives — was buried under the TACMAP radar (#tacmap-overlay,
+   z951) and the opaque rank badge (#rankBadge, z9999), so there was no
+   visible/usable way to drive.  Reserve the corner for the stick.
+   ══════════════════════════════════════════════════════════════════════ */
+/* Redundant on mobile: the top-left minimap already handles navigation. */
+html.is-mobile #tacmap-overlay { display: none !important; }
+/* Lift the rank badge out of the joystick zone to the top-left strip. */
+html.is-mobile #rankBadge {
+  bottom: auto !important;
+  top: calc(var(--mobile-safe-top, 0px) + 128px) !important;
+  left: max(6px, env(safe-area-inset-left)) !important;
+  font-size: 10px !important; padding: 3px 8px !important; border-width: 1px !important;
+}
+/* Raise BOTH thumb sticks above every HUD layer so touches always land on
+   them, and make the move stick clearly visible. */
+html.is-mobile #joystick-zone,
+html.is-mobile #aim-joystick-zone { z-index: 962 !important; }
+html.is-mobile #joystick-base {
+  background: rgba(255,255,255,0.20) !important;
+  border: 2px solid rgba(255,255,255,0.55) !important;
+  box-shadow: 0 0 14px rgba(0,0,0,0.5) !important;
+}
+html.is-mobile #joystick-thumb { background: rgba(255,255,255,0.6) !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   G. MOBILE IN-GAME DECLUTTER.  Device testing showed the phone screen
+   buried under secondary info panels (a 2nd bottom-left minimap sitting ON
+   the joystick, daily-challenges, live match-stats, verbose top text
+   strips).  Hide the non-essential ones in gameplay — all remain on desktop
+   and reachable via menus/Field Ops.  Keeps: top-left minimap, health/ammo/
+   armor, wave+hostiles, weapon, compass, sticks, action buttons, screenshot.
+   ══════════════════════════════════════════════════════════════════════ */
+html.is-mobile #minimap-container { display: none !important; }   /* 2nd radar over the move stick; top-left #minimap-canvas kept */
+html.is-mobile #daily-challenges-panel { display: none !important; }
+html.is-mobile #match-stats-root { display: none !important; }
+html.is-mobile #extended-top-bar { display: none !important; }    /* time/day/season/rank/mode text strip */
+html.is-mobile #resource-bar { display: none !important; }        /* build-mode resource counts */
+html.is-mobile #top-bar {
+  font-size: 9px !important; gap: 5px !important; padding: 1px 6px !important;
+  top: 0 !important; opacity: 0.9;
+}
