@@ -2286,11 +2286,19 @@ html.is-mobile #mobile-jukebox-bar {
   top: calc(var(--mobile-safe-top, 0px) + 84px) !important;
 }
 
-/* C. Stamina / armor / heat bars: lift them above BOTH thumb-stick zones so
-   they stop sitting under the aim joystick (bottom-right). Keep the stack. */
-html.is-mobile #heat-bar-container    { bottom: 188px !important; }
-html.is-mobile #stamina-bar-container { bottom: 196px !important; }
-html.is-mobile #armor-bar-container   { bottom: 204px !important; }
+/* C. Stamina / armor / heat bars: move them to TOP-center, stacked just under
+   the compass. The bottom of a phone screen is fully claimed by the two thumb
+   sticks, the action buttons, and the mode panels (build/vehicle HUD) — so the
+   only spot that stays clear in EVERY mode is up top. */
+html.is-mobile #heat-bar-container,
+html.is-mobile #stamina-bar-container,
+html.is-mobile #armor-bar-container {
+  bottom: auto !important;
+  width: 116px !important;
+}
+html.is-mobile #heat-bar-container    { top: calc(var(--mobile-safe-top, 0px) + 30px) !important; }
+html.is-mobile #stamina-bar-container { top: calc(var(--mobile-safe-top, 0px) + 38px) !important; }
+html.is-mobile #armor-bar-container   { top: calc(var(--mobile-safe-top, 0px) + 48px) !important; }
 
 /* D. MISSIONS button: move it clear of the top-left minimap (they were 66%
    overlapped). Sits just below the minimap; still one tap, no clutter. */
