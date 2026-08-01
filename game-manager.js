@@ -8651,7 +8651,7 @@ const GameManager = (function () {
   var _baseShadowsEnabled = true;
   var _basePixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.1 : 1.5);
 
-  function _applyPerfLevel(level, fps) {
+  function _applyPerfLevel(level, fps, silent) {
     _perfLevel = Math.max(0, Math.min(level, _PERF_MAX_LEVEL));
     _qualityReduced = _perfLevel > 0;
     try {
@@ -8665,13 +8665,18 @@ const GameManager = (function () {
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
       if (_scene && _scene.fog) _scene.fog.far = fogFar;
       var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW'][_perfLevel] || 'L' + _perfLevel;
-      if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
+      if (!silent && typeof HUD !== 'undefined' && HUD.notifyPickup) {
         HUD.notifyPickup('⚙ Quality: ' + _qlabel + ' (auto-calibrated, FPS≈' + (fps ? fps.toFixed(0) : '?') + ')', '#88ccff');
       }
       console.log('[PERF] quality -> ' + _qlabel + ' (fps≈' + (fps ? fps.toFixed(0) : '?') + ')');
     } catch (e) {}
   }
   var _lowEndVFX = false;
+  // Mobile starts at MEDIUM (shadows off, tighter fog) so the game is smooth from
+  // the first frame instead of stuttering at ULTRA for ~4s before auto-calibration
+  // kicks in. If the device proves it has headroom, the bi-directional calibrator
+  // climbs it back toward HIGH/ULTRA. Applied once, silently, when the scene exists.
+  var _mobilePerfInit = false;
 
   function update() {
     requestAnimationFrame(update);
@@ -8700,6 +8705,11 @@ const GameManager = (function () {
     }
 
     // ── Adaptive auto-quality calibration (bi-directional) ───────────
+    // One-time mobile floor: begin at MEDIUM so the first seconds are smooth.
+    if (isMobile && !_mobilePerfInit && _scene) {
+      _mobilePerfInit = true;
+      _applyPerfLevel(2, 0, true);
+    }
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
@@ -8708,7 +8718,9 @@ const GameManager = (function () {
       if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
       else if (avgFps > 65) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
-      if (_lowFpsStreak >= 2 && _perfLevel < _PERF_MAX_LEVEL) {
+      // Mobile drops a tier after a single bad sample (react fast); climbs back
+      // conservatively (needs a sustained high-FPS streak, handled below).
+      if (_lowFpsStreak >= (isMobile ? 1 : 2) && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
       }
