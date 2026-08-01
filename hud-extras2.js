@@ -34,6 +34,9 @@
   var root = el('div',
     'position:fixed;inset:0;pointer-events:none;z-index:951;display:none;'
     + 'font-family:"JetBrains Mono",monospace;');
+  root.id = 'tacmap-overlay';  // so CSS can hide the bottom-left radar on mobile
+                               // (the top-left minimap already covers navigation,
+                               // and this radar sat on top of the movement joystick)
 
   /* 1. Minimap --------------------------------------------------------------- */
   var MM = 140, RANGE = 70, _sweep = 0;
