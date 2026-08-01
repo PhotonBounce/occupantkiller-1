@@ -2265,3 +2265,46 @@ body.is-mobile .key-hint,
 body.is-mobile kbd {
   display: none !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Mobile in-game HUD de-overlap (measured with hud-overlap.mjs detector).
+   Fixes genuine always-co-visible collisions found on a 390×844 phone:
+   compass↔corner-buttons, status-bars↔aim-joystick, minimap↔MISSIONS,
+   floating jukebox↔top-bar, killstreak-panel↔action-buttons.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* A. Tactical compass: narrow it so it fits BETWEEN the top corner buttons
+   (📷 SHOT on the left, 📦 INV on the right) instead of spanning under them. */
+html.is-mobile #tactical-compass {
+  width: min(52vw, 190px) !important;
+  top: 6px !important;
+}
+
+/* B. Floating mobile jukebox bar: drop it below the compass strip so it no
+   longer collides with the top bar / compass (music is also in Field Ops). */
+html.is-mobile #mobile-jukebox-bar {
+  top: calc(var(--mobile-safe-top, 0px) + 84px) !important;
+}
+
+/* C. Stamina / armor / heat bars: lift them above BOTH thumb-stick zones so
+   they stop sitting under the aim joystick (bottom-right). Keep the stack. */
+html.is-mobile #heat-bar-container    { bottom: 188px !important; }
+html.is-mobile #stamina-bar-container { bottom: 196px !important; }
+html.is-mobile #armor-bar-container   { bottom: 204px !important; }
+
+/* D. MISSIONS button: move it clear of the top-left minimap (they were 66%
+   overlapped). Sits just below the minimap; still one tap, no clutter. */
+html.is-mobile #mission-board-btn {
+  top: 210px !important;
+  left: max(6px, env(safe-area-inset-left)) !important;
+  font-size: 11px !important;
+  padding: 4px 9px !important;
+}
+
+/* E. Killstreak panel (transient): show it on the LEFT mid-edge on mobile so
+   it never lands on the right-side action buttons when a streak fires. */
+html.is-mobile #killstreak-panel {
+  right: auto !important;
+  left: max(6px, env(safe-area-inset-left)) !important;
+  top: 46% !important;
+}
