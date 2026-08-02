@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OCCUPANT KILLER — Media Gallery | Screenshots &amp; Slideshow</title>
+<meta name="description" content="Screenshot gallery for Occupant Killer — a browser-native tactical FPS. Real in-game frames: 39 weapons, armored vehicles, FPV drones and 18 war-torn stages. Browse the slideshow." />
+<meta name="keywords" content="occupant killer screenshots, voxel fps gallery, browser fps media, ukraine war game screenshots, OKC game slideshow" />
+<meta property="og:title" content="OCCUPANT KILLER — Media Gallery" />
+<meta property="og:description" content="Real in-game frames from Occupant Killer. 39 weapons, drones, vehicles, 18 stages. Browse the slideshow." />
+<meta property="og:image" content="shots/media-01.jpg" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="OCCUPANT KILLER — Media Gallery" />
+<meta name="twitter:image" content="shots/media-01.jpg" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0a0a'/><text y='25' x='5' font-size='24' fill='%23ff4444'>▲</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+<style>
+/* ═══ Self-contained theme (mirrors microsite/assets/site.css) ═══ */
+:root{
+  --bg:#080b0d; --bg2:#0e1315; --panel:#131a1c; --panel2:#192023;
+  --line:#1e2d30; --line2:#2a3d41;
+  --red:#ff4444; --red2:#cc2222; --orange:#ff8800; --gold:#ffcc00;
+  --grn:#44ff88; --grn2:#88cc44; --blue:#44aaff; --blue2:#88d4ff;
+  --txt:#ccd8d4; --txt2:#a0b4ae; --mut:#5a706a;
+  --mono:'Share Tech Mono',monospace; --disp:'Rajdhani','Share Tech Mono',sans-serif;
+  --radius:6px; --trans:.16s;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:var(--disp);line-height:1.55;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block}
+button{cursor:pointer;font-family:inherit}
+b{color:#fff}
+
+.scanlines{
+  position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);
+  mix-blend-mode:multiply;opacity:.45;
+}
+.grid-bg{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(circle at 50% -5%,rgba(255,68,68,.08) 0%,transparent 50%),
+    radial-gradient(circle at 90% 80%,rgba(68,170,255,.06) 0%,transparent 40%),
+    linear-gradient(transparent 94%,rgba(68,255,136,.04) 94%) 0 0/100% 40px,
+    linear-gradient(90deg,transparent 94%,rgba(68,255,136,.04) 94%) 0 0/40px 100%;
+}
+section,header,footer,main{position:relative;z-index:1}
+
+@keyframes pulse{0%,100%{box-shadow:0 6px 28px rgba(255,68,68,.35)}50%{box-shadow:0 6px 36px rgba(255,68,68,.6)}}
+
+.nav{
+  position:sticky;top:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 28px;background:rgba(6,9,10,.88);
+  backdrop-filter:blur(12px) saturate(1.4);border-bottom:1px solid var(--line);
+  transition:background var(--trans);
+}
+.nav.scrolled{background:rgba(6,9,10,.97)}
+.brand{font-family:var(--mono);font-size:18px;letter-spacing:3px;font-weight:700;display:flex;align-items:center;gap:8px}
+.brand-mark{color:var(--red);font-size:22px;line-height:1}
+.brand em{color:var(--red);font-style:normal}
+.nav-links{display:flex;gap:20px;align-items:center;font-family:var(--mono);font-size:12px;letter-spacing:1.5px}
+.nav-links a{color:var(--mut);transition:color var(--trans)}
+.nav-links a:hover,.nav-links a.active{color:var(--grn)}
+.btn-play-sm{
+  background:linear-gradient(95deg,var(--red),var(--orange));color:#fff !important;
+  padding:9px 16px;border-radius:var(--radius);font-weight:700;letter-spacing:1px;
+}
+.btn-play-sm:hover{filter:brightness(1.2)}
+.btn-play{
+  background:linear-gradient(95deg,var(--red),var(--orange));
+  color:#fff;font-family:var(--mono);font-weight:700;letter-spacing:1.5px;
+  padding:15px 28px;border-radius:var(--radius);font-size:14px;
+  transition:transform .12s,box-shadow .12s,filter .12s;
+  box-shadow:0 6px 28px rgba(255,68,68,.35);display:inline-block;animation:pulse 2.5s infinite;
+}
+.btn-play:hover{transform:translateY(-3px);filter:brightness(1.1);animation:none}
+.btn-play.big{font-size:18px;padding:17px 40px}
+
+/* ── Media page layout ── */
+.media-main{max-width:1180px;margin:0 auto;padding:70px 20px 80px}
+.media-head{text-align:center;margin-bottom:30px}
+.media-kicker{font-family:var(--mono);font-size:11px;letter-spacing:2.5px;color:var(--grn);text-transform:uppercase}
+.media-head h1{font-family:var(--disp);font-weight:700;font-size:clamp(30px,6vw,52px);letter-spacing:1px;margin:8px 0 6px;line-height:1.05}
+.media-head h1 em{color:var(--red);font-style:normal}
+.media-head p{color:var(--txt2);max-width:640px;margin:0 auto;font-size:15px}
+
+.stage{position:relative;background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius);
+  overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.stage-frame{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden}
+.stage-frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;
+  transition:opacity .5s ease;cursor:zoom-in}
+.stage-frame img.on{opacity:1}
+.stage-frame::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.72) 100%)}
+.cap{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:20px 22px;pointer-events:none}
+.cap .idx{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--gold)}
+.cap .t{font-family:var(--disp);font-weight:700;font-size:clamp(18px,3.4vw,26px);color:#fff;line-height:1.15;margin-top:2px}
+.cap .c{font-family:var(--mono);font-size:12px;color:var(--txt2);margin-top:4px;max-width:80%}
+.stage-prog{position:absolute;left:0;top:0;height:3px;width:0;z-index:4;
+  background:linear-gradient(90deg,var(--red),var(--orange));box-shadow:0 0 8px var(--red)}
+.arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:46px;height:46px;
+  display:grid;place-items:center;background:rgba(8,11,13,.6);border:1px solid var(--line2);
+  border-radius:50%;color:#fff;font-size:22px;backdrop-filter:blur(4px);transition:all var(--trans)}
+.arrow:hover{background:var(--red);border-color:var(--red);transform:translateY(-50%) scale(1.08)}
+.arrow.prev{left:14px} .arrow.next{right:14px}
+.stage-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 14px;background:var(--panel2);border-top:1px solid var(--line)}
+.stage-bar .counter{font-family:var(--mono);font-size:12px;letter-spacing:2px;color:var(--txt2)}
+.stage-bar .counter b{color:var(--gold)}
+.stage-bar .tools{display:flex;gap:8px}
+.mbtn{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--txt2);
+  background:transparent;border:1px solid var(--line2);border-radius:var(--radius);padding:7px 12px;
+  transition:all var(--trans);text-transform:uppercase}
+.mbtn:hover{color:var(--grn);border-color:rgba(68,255,136,.5);background:rgba(68,255,136,.06)}
+.mbtn.on{color:var(--red);border-color:var(--red)}
+
+.thumbs{display:flex;gap:8px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin;scroll-behavior:smooth}
+.thumbs::-webkit-scrollbar{height:7px}
+.thumbs::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
+.thumb{flex:0 0 auto;width:118px;aspect-ratio:16/9;border:1px solid var(--line);border-radius:4px;
+  overflow:hidden;opacity:.5;transition:all var(--trans);position:relative;background:#000}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb:hover{opacity:.85}
+.thumb.on{opacity:1;border-color:var(--red);box-shadow:0 0 0 1px var(--red)}
+
+.media-foot{text-align:center;margin-top:44px}
+.media-foot .note{font-family:var(--mono);font-size:11px;color:var(--mut);margin-top:16px;letter-spacing:1px}
+
+.lb{position:fixed;inset:0;z-index:100;background:rgba(4,6,7,.95);display:none;
+  align-items:center;justify-content:center;flex-direction:column;padding:30px}
+.lb.open{display:flex}
+.lb img{max-width:96vw;max-height:82vh;object-fit:contain;border:1px solid var(--line2);
+  box-shadow:0 20px 80px rgba(0,0,0,.7)}
+.lb .lb-cap{font-family:var(--mono);font-size:12px;color:var(--txt2);margin-top:14px;text-align:center;max-width:800px}
+.lb .lb-cap b{color:#fff;font-family:var(--disp);font-size:16px;letter-spacing:.5px}
+.lb .lb-close{position:absolute;top:18px;right:22px;font-size:30px;color:var(--txt2);background:none;border:none;line-height:1}
+.lb .lb-close:hover{color:var(--red)}
+.lb .arrow{background:rgba(20,26,28,.8)}
+
+.media-msg{font-family:var(--mono);font-size:13px;color:var(--txt2);text-align:center;padding:60px 20px}
+.media-msg.err{color:var(--red)}
+
+@media(max-width:640px){
+  .nav{padding:10px 16px}
+  .nav-links{gap:12px;font-size:11px}
+  .media-main{padding:56px 12px 60px}
+  .cap .c{display:none}
+  .thumb{width:92px}
+  .arrow{width:38px;height:38px;font-size:18px}
+}
+</style>
+</head>
+<body>
+
+<div class="scanlines" aria-hidden="true"></div>
+<div class="grid-bg"   aria-hidden="true"></div>
+
+<header class="nav" role="banner">
+  <a class="brand" href="https://photon-bounce.com/ok/" aria-label="Play Occupant Killer">
+    <span class="brand-mark" aria-hidden="true">▲</span>
+    OCCUPANT<em>KILLER</em>
+  </a>
+  <nav class="nav-links" role="navigation" aria-label="Main">
+    <a href="./" class="active">Media</a>
+    <a href="https://photon-bounce.com/ok/" class="btn-play-sm">▶ PLAY FREE</a>
+  </nav>
+</header>
+
+<main class="media-main">
+  <div class="media-head">
+    <div class="media-kicker">Field Footage · Real In-Game Frames</div>
+    <h1>MEDIA <em>GALLERY</em></h1>
+    <p>Captured straight from the battlefield — 39 authentic weapons, armored vehicles, FPV drones and 18 war-torn stages. Use the arrows or your keyboard, tap a frame to enlarge.</p>
+  </div>
+
+  <section class="stage" id="stage" aria-label="Screenshot slideshow" hidden>
+    <div class="stage-frame" id="frame">
+      <div class="stage-prog" id="prog"></div>
+      <button class="arrow prev" id="prev" aria-label="Previous screenshot">‹</button>
+      <button class="arrow next" id="next" aria-label="Next screenshot">›</button>
+      <div class="cap" id="cap" aria-live="polite"></div>
+    </div>
+    <div class="stage-bar">
+      <span class="counter" id="counter"><b>01</b> / 01</span>
+      <div class="tools">
+        <button class="mbtn on" id="playpause" aria-label="Toggle autoplay">⏸ AUTO</button>
+        <button class="mbtn" id="expand" aria-label="Open fullscreen">⛶ FULLSCREEN</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="thumbs" id="thumbs" aria-label="Thumbnails"></div>
+
+  <div class="media-msg" id="msg">Loading field footage…</div>
+
+  <div class="media-foot">
+    <a class="btn-play big" href="https://photon-bounce.com/ok/">▶ PLAY FREE IN BROWSER</a>
+    <div class="note" id="foot-note"></div>
+  </div>
+</main>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Enlarged screenshot">
+  <button class="lb-close" id="lb-close" aria-label="Close">✕</button>
+  <button class="arrow prev" id="lb-prev" aria-label="Previous">‹</button>
+  <img id="lb-img" alt="" />
+  <button class="arrow next" id="lb-next" aria-label="Next">›</button>
+  <div class="lb-cap" id="lb-cap"></div>
+</div>
+
+<script>
+(function(){
+  var SHOTS = [];
+  var i = 0, playing = true, timer = null, progRAF = null, progStart = 0;
+  var DUR = 4200;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var stage=$('stage'), frame=$('frame'), cap=$('cap'), counter=$('counter'),
+      prog=$('prog'), thumbs=$('thumbs'), msg=$('msg'), footNote=$('foot-note'),
+      playpause=$('playpause');
+  var lb=$('lb'), lbImg=$('lb-img'), lbCap=$('lb-cap');
+  var imgs = [];
+
+  function pad(n){ return (n<10?'0':'')+n; }
+  function esc(x){ var d=document.createElement('div'); d.textContent=x==null?'':x; return d.innerHTML; }
+
+  function build(){
+    SHOTS.forEach(function(s, idx){
+      var im = document.createElement('img');
+      im.src = 'shots/' + s.file;
+      im.alt = s.title || ('Screenshot ' + (idx+1));
+      im.loading = idx < 2 ? 'eager' : 'lazy';
+      im.addEventListener('click', function(){ openLB(idx); });
+      frame.insertBefore(im, cap);
+      imgs.push(im);
+      var t = document.createElement('button');
+      t.className = 'thumb';
+      t.setAttribute('aria-label', 'Go to ' + (s.title || ('screenshot ' + (idx+1))));
+      var ti = document.createElement('img');
+      ti.src = 'shots/' + s.file; ti.alt=''; ti.loading='lazy';
+      t.appendChild(ti);
+      t.addEventListener('click', function(){ go(idx); });
+      thumbs.appendChild(t);
+    });
+    msg.style.display = 'none';
+    stage.hidden = false;
+    footNote.textContent = SHOTS.length + ' frames · captured in-engine';
+    show(0, true);
+    if (playing) startAuto();
+  }
+
+  function show(n, instant){
+    i = (n + SHOTS.length) % SHOTS.length;
+    imgs.forEach(function(im, idx){ im.classList.toggle('on', idx===i); });
+    Array.prototype.forEach.call(thumbs.children, function(t, idx){
+      var on = idx===i; t.classList.toggle('on', on);
+      if (on) t.scrollIntoView({block:'nearest', inline:'center'});
+    });
+    var s = SHOTS[i];
+    cap.innerHTML = '<div class="idx">FRAME '+pad(i+1)+'</div>'+
+                    '<div class="t">'+esc(s.title||'')+'</div>'+
+                    '<div class="c">'+esc(s.caption||'')+'</div>';
+    counter.innerHTML = '<b>'+pad(i+1)+'</b> / '+pad(SHOTS.length);
+    if (lb.classList.contains('open')) syncLB();
+    if (playing && !instant) restartAuto();
+  }
+
+  function go(n){ show(n); if(playing) restartAuto(); }
+  function nextS(){ show(i+1); }
+  function prevS(){ show(i-1); }
+
+  function startAuto(){ playing=true; playpause.textContent='⏸ AUTO'; playpause.classList.add('on'); restartAuto(); }
+  function stopAuto(){ playing=false; playpause.textContent='▶ PLAY'; playpause.classList.remove('on');
+    clearTimeout(timer); cancelAnimationFrame(progRAF); prog.style.width='0'; }
+  function restartAuto(){
+    clearTimeout(timer); cancelAnimationFrame(progRAF);
+    if(!playing) return;
+    timer = setTimeout(nextS, DUR);
+    progStart = performance.now();
+    (function tick(now){
+      var p = Math.min(1, (now - progStart)/DUR);
+      prog.style.width = (p*100).toFixed(1)+'%';
+      if(p<1 && playing) progRAF = requestAnimationFrame(tick);
+    })(progStart);
+  }
+
+  function openLB(n){ show(n); lb.classList.add('open'); stopAuto(); syncLB(); document.body.style.overflow='hidden'; }
+  function closeLB(){ lb.classList.remove('open'); document.body.style.overflow=''; }
+  function syncLB(){ var s=SHOTS[i]; lbImg.src='shots/'+s.file; lbImg.alt=s.title||'';
+    lbCap.innerHTML='<b>'+esc(s.title||'')+'</b><br>'+esc(s.caption||'')+' &nbsp;·&nbsp; '+pad(i+1)+' / '+pad(SHOTS.length); }
+
+  $('next').addEventListener('click', function(){ nextS(); });
+  $('prev').addEventListener('click', function(){ prevS(); });
+  $('lb-next').addEventListener('click', function(){ nextS(); });
+  $('lb-prev').addEventListener('click', function(){ prevS(); });
+  $('lb-close').addEventListener('click', closeLB);
+  $('expand').addEventListener('click', function(){ openLB(i); });
+  lb.addEventListener('click', function(e){ if(e.target===lb) closeLB(); });
+  playpause.addEventListener('click', function(){ playing ? stopAuto() : startAuto(); });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key==='ArrowRight') nextS();
+    else if(e.key==='ArrowLeft') prevS();
+    else if(e.key==='Escape' && lb.classList.contains('open')) closeLB();
+    else if(e.key===' '){ e.preventDefault(); playing?stopAuto():startAuto(); }
+  });
+
+  var tx=0;
+  frame.addEventListener('touchstart', function(e){ tx=e.changedTouches[0].clientX; }, {passive:true});
+  frame.addEventListener('touchend', function(e){
+    var dx=e.changedTouches[0].clientX-tx;
+    if(Math.abs(dx)>40){ dx<0?nextS():prevS(); }
+  }, {passive:true});
+
+  frame.addEventListener('mouseenter', function(){ if(playing){ clearTimeout(timer); cancelAnimationFrame(progRAF); } });
+  frame.addEventListener('mouseleave', function(){ if(playing) restartAuto(); });
+
+  window.addEventListener('scroll', function(){
+    document.querySelector('.nav').classList.toggle('scrolled', window.scrollY>10);
+  });
+
+  fetch('shots/manifest.json', {cache:'no-cache'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      if(!Array.isArray(data) || !data.length) throw new Error('empty manifest');
+      SHOTS = data; build();
+    })
+    .catch(function(err){
+      msg.className='media-msg err';
+      msg.textContent='Could not load the gallery manifest ('+err.message+'). Screenshots may still be uploading.';
+    });
+})();
+</script>
+</body>
+</html>
