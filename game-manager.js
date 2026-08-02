@@ -7373,6 +7373,21 @@ const GameManager = (function () {
 
     player.position.copy(newPos);
 
+    // ── Self-heal (blank-world defence) ─────────────────────────────────
+    // If physics still produced a non-finite position, the camera would
+    // follow it to NaN and the entire 3D world would render blank. Restore
+    // the last good position instead of shipping a black/grey screen.
+    if (!isFinite(player.position.x) || !isFinite(player.position.y) || !isFinite(player.position.z)) {
+      if (window.console) console.warn('[HEALTH] non-finite player position — restoring last good');
+      window.__healthPosResets = (window.__healthPosResets || 0) + 1;
+      if (player._lastGoodPos) player.position.copy(player._lastGoodPos);
+      else player.position.set(0, (player.height || 1.7), 0);
+      if (player.velocity && player.velocity.set) player.velocity.set(0, 0, 0);
+    } else {
+      if (!player._lastGoodPos) player._lastGoodPos = new THREE.Vector3();
+      player._lastGoodPos.copy(player.position);
+    }
+
     // Grapple update — must run after player.position is committed
     if (window.Grapple && Grapple.update) Grapple.update(delta, player.position, _camera);
     // ZiplineGrapple update — runs after physics
@@ -8702,6 +8717,17 @@ const GameManager = (function () {
     if (window.TimeWarp && TimeWarp.update) TimeWarp.update(rawDelta);
     if (window._bulletTimeScale && window._bulletTimeScale !== 1.0) {
       delta *= window._bulletTimeScale;
+    }
+
+    // ── NaN guard (root defence for the "blank world" bug) ──────────────
+    // A single non-finite time-scale (slow-mo / bullet-time / killstreak)
+    // poisons every physics step this frame → player & camera positions go
+    // NaN → three.js draws nothing but the clear colour (a blank grey screen,
+    // with "NaN" leaking into HUD readouts). Never let a bad delta through.
+    if (!isFinite(delta) || delta < 0) {
+      if (window.console && !window.__deltaNaNLogged) { window.__deltaNaNLogged = true; console.warn('[HEALTH] non-finite frame delta clamped to 0'); }
+      window.__healthDeltaResets = (window.__healthDeltaResets || 0) + 1;
+      delta = 0;
     }
 
     // ── Adaptive auto-quality calibration (bi-directional) ───────────
@@ -13468,6 +13494,7 @@ const GameManager = (function () {
     setState:        function (s) { gameState = s; updateMobileControlsVisibility(); },
     getPlayer:       function () { return player; },
     getScene:        function () { return _scene; },
+    getRenderer:     function () { return _renderer; },
     getCamera:       function () { return _camera; },
     getCurrentWave:  function () { return currentWave; },
     getCurrentStage: function () { return currentStage; },
