@@ -55,25 +55,20 @@ server.listen(PORT,async()=>{
     // ── World-render + state sampling ──
     const probe=await pg.evaluate(()=>{
       var out={};
-      // pick the largest canvas = the 3D game canvas
-      var cs=Array.prototype.slice.call(document.querySelectorAll('canvas'));
-      var gc=cs.sort((a,b)=>(b.width*b.height)-(a.width*a.height))[0]||null;
-      out.canvasCount=cs.length; out.gcW=gc?gc.width:0; out.gcH=gc?gc.height:0;
-      if(gc){
-        try{
-          var tc=document.createElement('canvas'); tc.width=80; tc.height=45;
-          var cx=tc.getContext('2d'); cx.drawImage(gc,0,0,80,45);
-          var d=cx.getImageData(0,0,80,45).data;
-          var n=d.length/4, sum=0, sum2=0; var colors={};
-          for(var i=0;i<d.length;i+=4){
-            var l=(d[i]+d[i+1]+d[i+2])/3; sum+=l; sum2+=l*l;
-            colors[(d[i]>>4)+'-'+(d[i+1]>>4)+'-'+(d[i+2]>>4)]=1;
-          }
-          var mean=sum/n; out.luma=Math.round(mean);
-          out.lumaStd=+(Math.sqrt(Math.max(0,sum2/n-mean*mean)).toFixed(1));
-          out.distinctColors=Object.keys(colors).length; // out of ~4096 buckets
-        }catch(e){out.sampleErr=e.message;}
-      }
+      out.canvasCount=document.querySelectorAll('canvas').length;
+      // Engine-truth: did the world build, and did the renderer actually draw it?
+      // (pixel readback of a WebGL canvas is unreliable headlessly; ask the engine)
+      try{
+        var sc=(window.GameManager&&GameManager.getScene)?GameManager.getScene():null;
+        var meshes=0, visMeshes=0;
+        if(sc&&sc.traverse){sc.traverse(function(o){ if(o.isMesh&&o.geometry){meshes++; if(o.visible)visMeshes++;} });}
+        out.sceneMeshes=meshes; out.visibleMeshes=visMeshes;
+      }catch(e){out.sceneErr=e.message;}
+      try{
+        var rd=(window.GameManager&&GameManager.getRenderer)?GameManager.getRenderer():null;
+        if(rd&&rd.info&&rd.info.render){out.triangles=rd.info.render.triangles; out.drawCalls=rd.info.render.calls;}
+        if(rd&&rd.getContext){try{var gl=rd.getContext();var dbg=gl.getExtension('WEBGL_debug_renderer_info');out.glRenderer=dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):(''+gl.getParameter(gl.RENDERER));}catch(_){}}
+      }catch(e){out.rendErr=e.message;}
       // player/camera NaN check
       try{
         var p=(window.GameManager&&GameManager.getPlayer)?GameManager.getPlayer():null;
@@ -89,9 +84,12 @@ server.listen(PORT,async()=>{
       return out;
     });
     Object.assign(res,probe);
-    // ── Verdicts ──
-    // World considered BLANK if very low colour diversity AND low luma variance.
-    res.worldBlank = (probe.distinctColors!=null) && (probe.distinctColors < 40 || probe.lumaStd < 6);
+    // ── Verdicts (engine truth) ──
+    // World is BLANK if the renderer drew ~no geometry last frame, or the scene
+    // has almost no visible meshes. triangles is the definitive "pixels drawn".
+    res.worldBlank = (probe.triangles!=null)
+      ? (probe.triangles < 500 || probe.drawCalls < 3)
+      : ((probe.visibleMeshes||0) < 5);
     res.playable = res.fps>=20 && !res.worldBlank && !probe.playerPosNaN && !probe.hudHasNaN;
     log('RESULT '+JSON.stringify(res));
     await pg.screenshot({path:OUT});
