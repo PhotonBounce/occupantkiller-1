@@ -1,7 +1,7 @@
 name: Deploy Media Gallery to photon-bounce FTP
 
-# Uploads the microsite/media/ screenshot slideshow to the user's website over
-# FTP, publishing it at https://photon-bounce.com/games/ .
+# Uploads the microsite/occupantkiller/ screenshot slideshow to the user's
+# website over FTP, publishing it at https://photon-bounce.com/occupantkiller/ .
 # Claude's sandbox blocks outbound FTP, but GitHub's runners can reach it, so
 # the page is published from CI (mirrors ftp-gallery.yml).
 #
@@ -17,7 +17,7 @@ on:
       - main
       - claude/peaceful-cannon-oqez4t
     paths:
-      - 'microsite/media/**'
+      - 'microsite/occupantkiller/**'
       - '.github/workflows/ftp-media.yml'
   workflow_dispatch:
 
@@ -48,17 +48,17 @@ jobs:
             echo "::warning::FTP_PASSWORD secret not set — skipping upload. Add it in Settings → Secrets and variables → Actions to publish the media gallery to photon-bounce.com."
           fi
 
-      - name: Upload microsite/media to ftp.photon-bounce.com /games
+      - name: Upload microsite/occupantkiller to ftp.photon-bounce.com /occupantkiller
         if: steps.gate.outputs.ready == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ftp.photon-bounce.com
           username: photonb
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./microsite/media/
-          server-dir: /games/
+          local-dir: ./microsite/occupantkiller/
+          server-dir: /occupantkiller/
           dangerous-clean-slate: false
 
       - name: Summary
         if: steps.gate.outputs.ready == 'true'
-        run: echo "Media gallery published → https://photon-bounce.com/games/"
+        run: echo "Media gallery published → https://photon-bounce.com/occupantkiller/"
