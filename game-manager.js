@@ -8659,7 +8659,7 @@ const GameManager = (function () {
   var _perfCheckTimer = 0;
   var _qualityReduced = false;
   var _perfLevel = 0;            // current auto-optimization tier (0 = full quality)
-  var _PERF_MAX_LEVEL = 3;
+  var _PERF_MAX_LEVEL = 5;       // deeper tiers so weak devices (2 FPS) can actually recover
   var _lowFpsStreak = 0;
   var _highFpsStreak = 0;
   var _baseFogFar = isMobile ? 55 : 120;
@@ -8670,16 +8670,34 @@ const GameManager = (function () {
     _perfLevel = Math.max(0, Math.min(level, _PERF_MAX_LEVEL));
     _qualityReduced = _perfLevel > 0;
     try {
-      var pr, fogFar, shadows;
-      if (_perfLevel === 0)      { pr = _basePixelRatio; fogFar = _baseFogFar; shadows = _baseShadowsEnabled; _lowEndVFX = false; }
-      else if (_perfLevel === 1) { pr = Math.min(_basePixelRatio, 1.0); fogFar = isMobile ? 50 : 90; shadows = true; _lowEndVFX = false; }
-      else if (_perfLevel === 2) { pr = 1.0; fogFar = 60; shadows = false; _lowEndVFX = false; }
-      else                       { pr = 0.7; fogFar = 45; shadows = false; _lowEndVFX = true; }
+      // Each tier cuts BOTH GPU cost (pixelRatio/shadows/fog) and CPU/draw-call
+      // cost (view distance → fewer visible chunks & props, effect/enemy density).
+      // pr=pixelRatio, ff=fogFar, sh=shadows, vfx=lowEndVFX, dd=drawDistance,
+      // fx=effectScale, en=enemyScale.
+      var TIERS = [
+        { pr:_basePixelRatio,              ff:_baseFogFar,     sh:_baseShadowsEnabled, vfx:false, dd:(isMobile?90:180), fx:1.0,  en:1.0  }, // 0 full
+        { pr:Math.min(_basePixelRatio,1.0),ff:isMobile?50:90,  sh:true,                vfx:false, dd:(isMobile?80:120), fx:1.0,  en:1.0  }, // 1
+        { pr:1.0,                          ff:60,              sh:false,               vfx:false, dd:70,                fx:0.8,  en:0.85 }, // 2
+        { pr:0.75,                         ff:45,              sh:false,               vfx:true,  dd:52,                fx:0.6,  en:0.7  }, // 3
+        { pr:0.6,                          ff:35,              sh:false,               vfx:true,  dd:40,                fx:0.4,  en:0.55 }, // 4
+        { pr:0.5,                          ff:28,              sh:false,               vfx:true,  dd:30,                fx:0.25, en:0.4  }  // 5 potato
+      ];
+      var t = TIERS[_perfLevel] || TIERS[TIERS.length - 1];
+      var pr = t.pr, fogFar = t.ff, shadows = t.sh; _lowEndVFX = t.vfx;
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
       if (sunLight) sunLight.castShadow = shadows;
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
-      if (_scene && _scene.fog) _scene.fog.far = fogFar;
-      var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW'][_perfLevel] || 'L' + _perfLevel;
+      if (_scene && _scene.fog) { _scene.fog.far = fogFar; if (_scene.fog.near > fogFar - 6) _scene.fog.near = Math.max(8, fogFar - 20); }
+      // View-distance cull: nothing past the fog is worth drawing. Tightening the
+      // camera frustum's far plane is the CPU/draw-call lever (fewer chunks/props
+      // submitted) — the one that actually matters when a device is at 2 FPS.
+      if (_camera && _camera.isPerspectiveCamera) { _camera.far = fogFar + 15; _camera.updateProjectionMatrix(); }
+      // Global scalars other systems read to thin out effects / spawns.
+      window._perfDrawDistance = t.dd;
+      window._perfEffectScale  = t.fx;
+      window._perfEnemyScale   = t.en;
+      window._perfLevel        = _perfLevel;
+      var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW','MINIMAL','POTATO'][_perfLevel] || 'L' + _perfLevel;
       if (!silent && typeof HUD !== 'undefined' && HUD.notifyPickup) {
         HUD.notifyPickup('⚙ Quality: ' + _qlabel + ' (auto-calibrated, FPS≈' + (fps ? fps.toFixed(0) : '?') + ')', '#88ccff');
       }
@@ -8734,13 +8752,29 @@ const GameManager = (function () {
     // One-time mobile floor: begin at MEDIUM so the first seconds are smooth.
     if (isMobile && !_mobilePerfInit && _scene) {
       _mobilePerfInit = true;
-      _applyPerfLevel(2, 0, true);
+      // Device-aware starting floor: weak phones (low RAM / few cores) begin
+      // deeper so the FIRST frames are already optimized instead of freezing at
+      // 2 FPS until calibration reacts. The bi-directional calibrator climbs
+      // back up if the device proves it has headroom.
+      var _mem = navigator.deviceMemory || 4;
+      var _cores = navigator.hardwareConcurrency || 4;
+      var _floor = 2;
+      if (_mem <= 3 || _cores <= 4) _floor = 4;
+      else if (_mem <= 4 || _cores <= 6) _floor = 3;
+      _applyPerfLevel(_floor, 0, true);
     }
     _fpsAccum += delta;
     _fpsSamples++;
     _perfCheckTimer += delta;
     if (_perfCheckTimer > 2 && _fpsSamples > 8) {
       var avgFps = _fpsSamples / _fpsAccum;
+      // Emergency: a catastrophically low FPS (e.g. 2 FPS on a weak phone) should
+      // NOT crawl down one tier every few seconds — jump straight to the deepest
+      // tier so the device gets full relief in one step.
+      if (avgFps < 15 && _perfLevel < _PERF_MAX_LEVEL) {
+        _applyPerfLevel(_PERF_MAX_LEVEL, avgFps);
+        _lowFpsStreak = 0; _highFpsStreak = 0;
+      } else {
       if (avgFps < 38) { _lowFpsStreak++; _highFpsStreak = 0; }
       else if (avgFps > 65) { _highFpsStreak++; _lowFpsStreak = 0; }
       else { _lowFpsStreak = 0; _highFpsStreak = 0; }
@@ -8749,6 +8783,7 @@ const GameManager = (function () {
       if (_lowFpsStreak >= (isMobile ? 1 : 2) && _perfLevel < _PERF_MAX_LEVEL) {
         _applyPerfLevel(_perfLevel + 1, avgFps);
         _lowFpsStreak = 0;
+      }
       }
       if (_highFpsStreak >= 3 && _perfLevel > 0) {
         _applyPerfLevel(_perfLevel - 1, avgFps);
