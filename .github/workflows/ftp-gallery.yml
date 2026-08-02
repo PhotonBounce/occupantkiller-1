@@ -49,7 +49,7 @@ jobs:
             echo "::warning::FTP_PASSWORD secret not set — skipping upload. Add it in Settings → Secrets and variables → Actions to publish the gallery to photon-bounce.com."
           fi
 
-      - name: Upload qa-gallery to ftp.photon-bounce.com /occupantkiller
+      - name: Upload qa-gallery to ftp.photon-bounce.com /occupantkiller-qa
         if: steps.gate.outputs.ready == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -57,9 +57,9 @@ jobs:
           username: photonb
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./qa-gallery/
-          server-dir: /occupantkiller/
+          server-dir: /occupantkiller-qa/
           dangerous-clean-slate: false
 
       - name: Summary
         if: steps.gate.outputs.ready == 'true'
-        run: echo "Gallery published → https://photon-bounce.com/occupantkiller/"
+        run: echo "QA gallery published → https://photon-bounce.com/occupantkiller-qa/ (marketing media gallery owns /occupantkiller/)"

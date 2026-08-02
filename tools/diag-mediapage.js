@@ -14,7 +14,7 @@ server.listen(PORT,async()=>{
   const pg=await (await b.newContext({viewport:{width:1280,height:900}})).newPage();
   const errs=[];pg.on('pageerror',e=>{errs.push(e.message);log('PAGEERROR: '+e.message.slice(0,140));});
   try{
-    await pg.goto('http://localhost:'+PORT+'/microsite/media/index.html',{waitUntil:'networkidle',timeout:20000});
+    await pg.goto('http://localhost:'+PORT+'/microsite/occupantkiller/index.html',{waitUntil:'networkidle',timeout:20000});
     log('loaded');
     await pg.waitForSelector('#stage:not([hidden])',{timeout:8000});
     const info=await pg.evaluate(()=>{
