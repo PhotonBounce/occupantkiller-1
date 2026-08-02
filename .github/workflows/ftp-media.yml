@@ -1,0 +1,64 @@
+name: Deploy Media Gallery to photon-bounce FTP
+
+# Uploads the microsite/media/ screenshot slideshow to the user's website over
+# FTP, publishing it at https://photon-bounce.com/games/ .
+# Claude's sandbox blocks outbound FTP, but GitHub's runners can reach it, so
+# the page is published from CI (mirrors ftp-gallery.yml).
+#
+# ── SETUP (repo owner) ─────────────────────────────────────────────────────
+# Reuses the same FTP_PASSWORD repo secret as ftp-gallery.yml:
+#   Settings → Secrets and variables → Actions → FTP_PASSWORD
+#     Value: <your ftp.photon-bounce.com password for user "photonb">
+# Without the secret the upload step skips cleanly with a warning — CI stays green.
+
+on:
+  push:
+    branches:
+      - main
+      - claude/peaceful-cannon-oqez4t
+    paths:
+      - 'microsite/media/**'
+      - '.github/workflows/ftp-media.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ftp-media
+  cancel-in-progress: true
+
+jobs:
+  ftp-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check FTP secret presence
+        id: gate
+        env:
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -n "$FTP_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "FTP_PASSWORD secret found — will upload."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FTP_PASSWORD secret not set — skipping upload. Add it in Settings → Secrets and variables → Actions to publish the media gallery to photon-bounce.com."
+          fi
+
+      - name: Upload microsite/media to ftp.photon-bounce.com /games
+        if: steps.gate.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftp.photon-bounce.com
+          username: photonb
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./microsite/media/
+          server-dir: /games/
+          dangerous-clean-slate: false
+
+      - name: Summary
+        if: steps.gate.outputs.ready == 'true'
+        run: echo "Media gallery published → https://photon-bounce.com/games/"
