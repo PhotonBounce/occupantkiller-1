@@ -35,3 +35,6 @@ occupantkiller-microsite.zip
 tools/mediapage.png
 tools/qa-real-*.png
 tools/qa-real-*.log
+
+# CI-generated offline game bundle (copied into the APK at build time)
+android/app/src/main/assets/www/

@@ -1,27 +1,35 @@
 name: Build Android APK
 
-# Wraps the deployed browser game in a full-screen WebView and produces an
-# installable, signed APK. Runs on GitHub-hosted runners because they have the
-# Android SDK + full network access (the dev sandbox cannot reach dl.google.com).
+# Builds a SELF-CONTAINED, OFFLINE Occupant Killer APK: the whole browser game is
+# bundled into the app's assets and served over a real https origin by
+# WebViewAssetLoader, so it runs with no internet. The APK is uploaded as a build
+# artifact AND published to a permanent public GitHub Release (tag: android-latest)
+# for a login-free, non-expiring download link.
 #
-# Trigger manually (Actions tab -> "Build Android APK" -> Run workflow) or on
-# any push that touches the android/ project. The APK is uploaded as a build
-# artifact you can download from the run summary.
+# Runs on GitHub-hosted runners because they have the Android SDK + full network
+# access (the dev sandbox cannot reach dl.google.com).
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
     paths:
+      # Rebuild when the Android project OR the bundled game content changes.
       - 'android/**'
       - '.github/workflows/android-apk.yml'
+      - 'index.html'
+      - '**/*.js'
+      - 'bundles/**'
+      - 'css/**'
+      - 'gamemusic/**'
   pull_request:
+    # Keep PR builds narrow (android project only) — no full 90 MB game rebuild per PR.
     paths:
       - 'android/**'
       - '.github/workflows/android-apk.yml'
 
 permissions:
-  contents: read
+  contents: write   # needed to publish the GitHub Release
 
 jobs:
   build:
@@ -44,17 +52,49 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Generate signing keystore
-        working-directory: android
+      - name: Bundle game into APK assets
         run: |
-          # Self-signed keystore so the release APK is installable (sideload).
-          # This is NOT a Play Store upload key; regenerate for a store release.
-          keytool -genkeypair -v \
-            -keystore ok-release.keystore \
-            -alias occupant \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass occupant -keypass occupant \
-            -dname "CN=Occupant Killer, OU=Game, O=OccupantKiller, C=UA"
+          # Copy the ROOT browser game into the app's assets so it ships INSIDE
+          # the APK (offline). Mirrors deploy.yml's exclude set, plus dirs the
+          # root index.html never loads (android/microsite/screencaptures/etc.)
+          # to keep the payload ~90 MB instead of ~330 MB.
+          mkdir -p android/app/src/main/assets/www
+          rsync -a \
+            --exclude '.git' --exclude '.github' --exclude '.devcontainer' \
+            --exclude '.vscode' --exclude '_site' --exclude 'tools' \
+            --exclude 'backend' --exclude 'contracts' --exclude 'admin' \
+            --exclude 'reference' --exclude 'memories' \
+            --exclude 'supergame_extracted' --exclude 'node_modules' \
+            --exclude 'microsite' --exclude '*.zip' --exclude '*.db' \
+            --exclude '*.log' --exclude 'android' \
+            --exclude 'screencaptures' --exclude 'qa-gallery' --exclude 'deploy' \
+            ./ android/app/src/main/assets/www/
+          echo "── Bundled payload size ──"
+          du -sh android/app/src/main/assets/www
+          test -f android/app/src/main/assets/www/index.html \
+            || { echo "index.html not bundled"; exit 1; }
+
+      - name: Provide signing keystore
+        working-directory: android
+        env:
+          OK_KEYSTORE_B64: ${{ secrets.OK_KEYSTORE_B64 }}
+        run: |
+          # Prefer a STABLE keystore stored as a base64 secret (OK_KEYSTORE_B64) so
+          # every release is signed with the same key → in-place updates work. If
+          # the secret is absent, fall back to a fresh self-signed keystore (still
+          # installable, but updating requires uninstalling the previous version).
+          if [ -n "$OK_KEYSTORE_B64" ]; then
+            echo "$OK_KEYSTORE_B64" | base64 -d > ok-release.keystore
+            echo "Using stable keystore from OK_KEYSTORE_B64 secret."
+          else
+            echo "::warning::OK_KEYSTORE_B64 not set — generating a throwaway keystore. Each build is signed differently, so users must uninstall the old app before updating. Add OK_KEYSTORE_B64 for stable in-place updates."
+            keytool -genkeypair -v \
+              -keystore ok-release.keystore \
+              -alias occupant \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass occupant -keypass occupant \
+              -dname "CN=Occupant Killer, OU=Game, O=OccupantKiller, C=UA"
+          fi
 
       - name: Verify keystore exists
         working-directory: android
@@ -64,9 +104,9 @@ jobs:
         working-directory: android
         env:
           OK_KEYSTORE: ok-release.keystore
-          OK_KEYSTORE_PASS: occupant
-          OK_KEY_ALIAS: occupant
-          OK_KEY_PASS: occupant
+          OK_KEYSTORE_PASS: ${{ secrets.OK_KEYSTORE_PASS || 'occupant' }}
+          OK_KEY_ALIAS: ${{ secrets.OK_KEY_ALIAS || 'occupant' }}
+          OK_KEY_PASS: ${{ secrets.OK_KEY_PASS || 'occupant' }}
         run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Locate APK
@@ -78,6 +118,14 @@ jobs:
           echo "Built: $APK"
           ls -la "$APK"
 
+      - name: Verify assets bundled in APK
+        run: |
+          APK="${{ steps.apk.outputs.path }}"
+          echo "APK size:"; ls -la "$APK"
+          unzip -l "$APK" | grep -q 'assets/www/index.html' \
+            || { echo "index.html missing from APK — offline bundle failed"; exit 1; }
+          echo "Confirmed: assets/www/index.html is inside the APK (offline build)."
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -85,3 +133,26 @@ jobs:
           path: ${{ steps.apk.outputs.path }}
           if-no-files-found: error
           retention-days: 30
+
+      - name: Prepare release asset
+        if: github.event_name != 'pull_request'
+        run: cp "${{ steps.apk.outputs.path }}" occupant-killer.apk
+
+      - name: Publish to GitHub Release (stable tag)
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: Occupant Killer (Android, offline)
+          body: |
+            Self-contained **offline** Occupant Killer APK — the whole game is bundled
+            inside; no internet required. Built from ${{ github.sha }}.
+
+            **Download:** occupant-killer.apk below, or the permanent link:
+            https://github.com/${{ github.repository }}/releases/download/android-latest/occupant-killer.apk
+
+            Install: enable "install unknown apps" for your browser/files app, then open the APK.
+            _If updating and you hit "app not installed", uninstall the previous version first
+            (fixed permanently once an OK_KEYSTORE_B64 signing secret is set)._
+          files: occupant-killer.apk
+          make_latest: false

@@ -11,11 +11,14 @@ import android.view.WindowManager;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+
+import androidx.webkit.WebViewAssetLoader;
 
 /**
  * Full-screen immersive WebView shell for Occupant Killer.
@@ -27,9 +30,15 @@ import android.widget.Toast;
  */
 public class MainActivity extends Activity {
 
-    // The deployed game. Override at build time with -PgameUrl=... if the Pages
-    // path ever changes; the workflow wires that into BuildConfig-free resources.
-    private static final String GAME_URL = "https://photonbounce.github.io/occupantkiller-1/";
+    // Offline, self-contained build: the whole game is bundled under
+    // app/src/main/assets/www/ and served over a real https origin by
+    // WebViewAssetLoader (NOT file://, which would break fetch/localStorage/WebGL).
+    private static final String GAME_URL =
+            "https://appassets.androidplatform.net/assets/www/index.html";
+    // Online fallback if this is ever reverted to a thin wrapper:
+    // "https://photonbounce.github.io/occupantkiller-1/"
+    private static final String ONLINE_FALLBACK_URL =
+            "https://photonbounce.github.io/occupantkiller-1/";
 
     private WebView web;
 
@@ -64,13 +73,25 @@ public class MainActivity extends Activity {
             web.getSettings().setSafeBrowsingEnabled(false);
         }
 
+        // Serves app/src/main/assets/** under https://appassets.androidplatform.net/assets/**
+        final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
         web.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                // Route bundled-asset requests (appassets host) to the local assets.
+                return assetLoader.shouldInterceptRequest(req.getUrl());
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 Uri u = req.getUrl();
                 String host = u.getHost();
                 // Keep game navigation inside the WebView; hand external links to the OS.
-                if (host != null && (host.endsWith("github.io") || host.endsWith("occupantkiller.io"))) {
+                if (host != null && (host.equals("appassets.androidplatform.net")
+                        || host.endsWith("github.io") || host.endsWith("occupantkiller.io"))) {
                     return false;
                 }
                 try {
@@ -82,10 +103,12 @@ public class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest req,
                                         android.webkit.WebResourceError err) {
+                // Offline build: only warn if the MAIN document fails to load. Missing
+                // sub-resources (e.g. optional CDN fonts with no network) are expected
+                // and must not trigger a false "failed to load" toast.
                 if (req.isForMainFrame()) {
                     Toast.makeText(MainActivity.this,
-                            "No connection — Occupant Killer needs internet to load.",
-                            Toast.LENGTH_LONG).show();
+                            "Game failed to load.", Toast.LENGTH_LONG).show();
                 }
             }
         });
