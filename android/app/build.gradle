@@ -52,6 +52,9 @@ android {
 }
 
 dependencies {
-    // No runtime deps: MainActivity uses only the platform android.webkit.*
-    // WebView and extends android.app.Activity with a platform Material theme.
+    // androidx.webkit gives us WebViewAssetLoader, which serves the bundled game
+    // (app/src/main/assets/www/) over a real https origin
+    // (https://appassets.androidplatform.net/assets/...) instead of file:// —
+    // so fetch()/localStorage/DOMStorage/WebGL behave exactly as on the web.
+    implementation 'androidx.webkit:webkit:1.11.0'
 }
