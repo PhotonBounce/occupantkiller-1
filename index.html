@@ -51,7 +51,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
   <title>OccupantKiller — Hybrid Voxel Warfare</title>
-  <link rel="stylesheet" href="style.css?v=20260801b" />
+  <link rel="stylesheet" href="style.css?v=20260806a" />
 </head>
   <body>
     <!-- ── Boot Preloader (gates GameManager.init until everything is ready) ── -->
@@ -331,6 +331,8 @@
 
     <!-- Screenshot Button (captures exact rendered frame; works even where OS screenshots of WebGL come out black) -->
     <button id="screenshot-btn" style="position:fixed;top:4px;left:8px;background:rgba(0,0,0,0.55);border:1px solid rgba(120,255,180,0.55);color:#7fffaa;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:240;cursor:pointer;text-shadow:0 0 6px #0f8" title="Save a screenshot of the game (P key)">📷 SHOT</button>
+    <!-- Global audio mute toggle (also silences the ambient beds) -->
+    <button id="mute-btn" style="position:fixed;top:4px;left:84px;background:rgba(0,0,0,0.55);border:1px solid rgba(120,255,180,0.55);color:#7fffaa;padding:2px 8px;border-radius:4px;font-size:13px;font-family:monospace;z-index:240;cursor:pointer" title="Mute / unmute all audio">🔊</button>
 
     <!-- In-game God Mode toggle (always visible) -->
     <button id="hud-god-mode-btn" style="position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">⚡ GOD</button>
@@ -1145,7 +1147,7 @@
 })();
 </script>
 
-<script src="voxel-world.js?v=20260724a"></script>
+<script src="voxel-world.js?v=20260806a"></script>
 <script src="camera-system.js?v=20260724a"></script>
 <script src="time-system.js?v=20260724a"></script>
 <script src="economy.js?v=20260724a"></script>
@@ -1173,7 +1175,7 @@
 <script src="shop.js?v=20260724a"></script>
 <script src="weapon-details.js?v=20260724a"></script>
 <script src="weapons.js?v=20260724a"></script>
-<script src="enemies.js?v=20260801a"></script>
+<script src="enemies.js?v=20260806a"></script>
 <script>window.__bootProgress&&window.__bootProgress(24,'loading combat','');</script>
 <script src="convoy-system.js?v=20260724a"></script>
 <script src="audio-system.js?v=20260724a"></script>
@@ -1223,7 +1225,7 @@
     <script src="bundles/bundle-001.js?v=20260724a" async></script>
 <script src="achievements.js?v=20260724a"></script>
     <script src="bundles/bundle-002.js?v=20260724a" async></script>
-<script src="ambient-zones.js"></script><script src="scavenge-system.js"></script>
+<script src="ambient-zones.js?v=20260806a"></script><script src="scavenge-system.js"></script>
 <script src="replay-system.js?v=20260724a"></script>
 <script src="weapon-mastery.js"></script>
 <script src="explosion-chain.js?v=20260724a"></script>
@@ -1245,7 +1247,7 @@
     <script src="bundles/bundle-007.js?v=20260724a" async></script>
 <script src="ammo-types.js?v=20260724a"></script>
     <script src="bundles/bundle-008.js?v=20260724a" async></script>
-<script src="game-manager.js?v=20260801a-static"></script>
+<script src="game-manager.js?v=20260806a-static"></script>
     <script src="render-health.js?v=20260802a"></script>
 <script>window.__bootProgress&&window.__bootProgress(70,'loading game manager','');</script>
     <script src="bundles/bundle-009.js?v=20260724a" async></script>
@@ -2221,6 +2223,26 @@ document.addEventListener('DOMContentLoaded', function () {
     var result = Marketplace.convertGoldToOKC(1000);
     if (result > 0) { GameManager.refreshMarketplaceUI('shop'); }
   });
+
+  // ── Global audio mute (🔊/🔇) ──────────────────────────
+  (function () {
+    var KEY = 'ok_muted';
+    function isMuted() { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
+    function apply(m) {
+      try { if (window.AudioSystem && AudioSystem.setVolume) AudioSystem.setVolume(m ? 0 : 1); } catch (e) {}
+      // Only force the ambient beds OFF when muting; never turn them back on —
+      // the constant background drone stays removed by default on unmute.
+      if (m) { try { if (window.AmbientZones && AmbientZones.setMuted) AmbientZones.setMuted(true); } catch (e) {} }
+      var b = document.getElementById('mute-btn'); if (b) b.textContent = m ? '🔇' : '🔊';
+    }
+    function set(m) { try { localStorage.setItem(KEY, m ? '1' : '0'); } catch (e) {} apply(m); }
+    var btn = document.getElementById('mute-btn');
+    if (btn) btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); set(!isMuted()); });
+    // Apply persisted state now, and again after the first gesture (AudioSystem /
+    // its context may not exist at load; setVolume must run once it does).
+    apply(isMuted());
+    window.addEventListener('pointerdown', function () { apply(isMuted()); }, { once: true });
+  })();
 
   // ── In-game screenshot (📷) ────────────────────────────
   // Captures the exact rendered WebGL frame. The renderer is created with
