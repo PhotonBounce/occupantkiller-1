@@ -1033,6 +1033,26 @@ const GameManager = (function () {
     try { document.documentElement.classList.add('is-mobile'); } catch (e) {}
   }
 
+  // ── HUD scale ─────────────────────────────────────────────────────
+  // Drive the CSS --hud-scale off the ACTUAL viewport so the HUD fits any
+  // device — including phones with a large OS "Display size" (which shrinks the
+  // CSS viewport and otherwise made the fixed-px HUD huge and overlapping).
+  function _applyHudScale() {
+    try {
+      var m = Math.min(window.innerWidth, window.innerHeight);
+      // ~1 on a normal landscape phone (short side ~400+), shrinking on very
+      // small / large-display viewports; never below 0.6 (still legible).
+      var s = Math.max(0.6, Math.min(1, m / 430));
+      var hud = document.getElementById('hud');
+      if (hud) hud.style.setProperty('--hud-scale', s.toFixed(3));
+    } catch (e) {}
+  }
+  if (isMobile) {
+    _applyHudScale();
+    window.addEventListener('resize', _applyHudScale, { passive: true });
+    window.addEventListener('orientationchange', _applyHudScale, { passive: true });
+  }
+
   /* ── Input State ─────────────────────────────────────────────────── */
   const keys = {};
   let mouseDown = false;
@@ -8716,7 +8736,8 @@ const GameManager = (function () {
     try {
 
     const now = performance.now();
-    const rawDelta = Math.min((now - prevTime) / 1000, 0.1);
+    const _wallDelta = (now - prevTime) / 1000;   // UNCAPPED wall time — used for true FPS measurement
+    const rawDelta = Math.min(_wallDelta, 0.1);
     prevTime = now;
 
     // Hitstop: update timer with real time, zero delta while frozen
@@ -8761,12 +8782,24 @@ const GameManager = (function () {
       var _floor = 2;
       if (_mem <= 3 || _cores <= 4) _floor = 4;
       else if (_mem <= 4 || _cores <= 6) _floor = 3;
+      // Mobile GPUs (Mali/Adreno/PowerVR/Apple) are fill-rate & draw-call limited.
+      // deviceMemory/cores lie (a Mali-G715 phone reports 8/8), so read the actual
+      // GL renderer string and start DEEP immediately instead of waiting seconds
+      // for the calibrator to fall while the player suffers at 2 FPS.
+      try {
+        var _gl = _renderer && _renderer.getContext && _renderer.getContext();
+        var _dbg = _gl && _gl.getExtension('WEBGL_debug_renderer_info');
+        var _gpu = _dbg ? String(_gl.getParameter(_dbg.UNMASKED_RENDERER_WEBGL)) : '';
+        if (/Mali|Adreno|PowerVR|Apple GPU|Apple A[0-9]/i.test(_gpu)) _floor = Math.max(_floor, 4);
+      } catch (e) {}
       _applyPerfLevel(_floor, 0, true);
     }
-    _fpsAccum += delta;
+    // Accumulate UNCAPPED wall time (not the 0.1-capped, slow-mo-scaled `delta`),
+    // otherwise avgFps saturates at 10 and can never see a true 2 FPS freeze.
+    _fpsAccum += _wallDelta;
     _fpsSamples++;
-    _perfCheckTimer += delta;
-    if (_perfCheckTimer > 2 && _fpsSamples > 8) {
+    _perfCheckTimer += _wallDelta;
+    if (_perfCheckTimer > 2 && _fpsSamples > 6) {
       var avgFps = _fpsSamples / _fpsAccum;
       // Emergency: a catastrophically low FPS (e.g. 2 FPS on a weak phone) should
       // NOT crawl down one tier every few seconds — jump straight to the deepest

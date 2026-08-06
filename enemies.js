@@ -2460,7 +2460,10 @@ const Enemies = (() => {
     // Cap the initial wave to 2 small groups (2 × 4 = 8 NPCs); reinforcements
     // drip in under a hard concurrent cap (see spawn-queue release below), so
     // the fight stays full but the framebuffer/AI load is a fraction of desktop.
-    if (window.__IS_MOBILE) stageGroupCount = Math.min(stageGroupCount, 2);
+    if (window.__IS_MOBILE) {
+      var _egScale = (typeof window !== 'undefined' && window._perfEnemyScale) || 1;
+      stageGroupCount = Math.max(1, Math.min(stageGroupCount, Math.round(2 * _egScale)));
+    }
     for (let g = 0; g < stageGroupCount; g++) {
       spawnAssaultGroup(g, sc, playerPos);
     }
@@ -2616,7 +2619,14 @@ const Enemies = (() => {
     // NOTE: getAliveCount() includes the pending queue, so gate on LIVE enemies
     // only (getAliveCount - queue) — otherwise the cap compares against the wrong
     // number and either never drips or over-spawns.
-    var _mobEnemyCap = window.__IS_MOBILE ? 12 : Infinity;
+    // Concurrent-NPC cap is the single biggest mobile-FPS lever (fewer live
+    // enemies = fewer draw calls + AI/physics cost). Scale it with the auto-
+    // optimization tier: a struggling Mali-class phone holds as few as ~5.
+    var _mobEnemyCap = Infinity;
+    if (window.__IS_MOBILE) {
+      var _ecs = (typeof window !== 'undefined' && window._perfEnemyScale) || 1;
+      _mobEnemyCap = Math.max(4, Math.round(12 * _ecs));
+    }
     var _liveNow = getAliveCount() - spawnQueue.length;
     if (spawnQueue.length > 0 && _liveNow < _mobEnemyCap) {
       spawnTimer -= delta;

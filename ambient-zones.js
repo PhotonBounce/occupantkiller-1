@@ -36,7 +36,11 @@ window.AmbientZones = (function () {
       if (!AC) return false;
       _ctx = new AC();
       _masterGain = _ctx.createGain();
-      _masterGain.gain.value = 0.7;
+      // The per-zone ambient beds are continuous low-frequency sine drones +
+      // looping wind noise that never stop — on a static level they are heard as
+      // a constant background "tone". Default them OFF (the reported bug); the
+      // global mute/unmute toggle can restore atmospheric ambience if wanted.
+      _masterGain.gain.value = (typeof window !== 'undefined' && window.__AMBIENT_ZONES_GAIN != null) ? window.__AMBIENT_ZONES_GAIN : 0;
       _masterGain.connect(_ctx.destination);
       return true;
     } catch (e) {
@@ -702,7 +706,10 @@ window.AmbientZones = (function () {
     init: init,
     update: update,
     setLevel: setLevel,
-    clear: clear
+    clear: clear,
+    // Global mute hook (the ambient beds are off by default; this lets a settings
+    // toggle silence or restore them alongside the main AudioSystem bus).
+    setMuted: function (m) { try { if (_masterGain) _masterGain.gain.value = m ? 0 : 0.5; } catch (e) {} }
   };
 
 })();

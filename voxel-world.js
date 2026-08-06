@@ -25536,6 +25536,24 @@ window.VoxelWorld = (function () {
   }
 
   function getLODScale(distance) {
+    // On deep auto-optimization tiers (weak mobile GPUs at low FPS) pull the max
+    // build distance WAY in and thin the mid/far band harder — but keep the
+    // immediate chunks at full detail so the ground/walls never develop holes.
+    // Combined with the tightened fog + camera far-plane this reads as intentional
+    // fog-out, not pop-in, and slashes the chunk count (draw calls) a Mali-class
+    // GPU chokes on.
+    var pl = (typeof window !== 'undefined' && window._perfLevel) || 0;
+    if (pl >= 5) {                    // POTATO
+      if (distance >= 44) return 0;
+      if (distance >= 24) return 3;
+      return 1;
+    }
+    if (pl >= 4) {                    // MINIMAL
+      if (distance >= 64) return 0;
+      if (distance >= 40) return 3;
+      if (distance >= 22) return 2;
+      return 1;
+    }
     if (distance >= 120) return 0;  // too far: don't rebuild
     if (distance >= 80) return 3;   // far: ~33% density (skip every 3rd)
     if (distance >= 40) return 2;   // medium: 50% density (skip every 2nd)
