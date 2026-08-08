@@ -38,3 +38,10 @@ tools/qa-real-*.log
 
 # CI-generated offline game bundle (copied into the APK at build time)
 android/app/src/main/assets/www/
+
+# Transient QA harness outputs (regenerable)
+tools/qa-*.png
+tools/qa-*.json
+tools/qa-*.log
+tools/*.out
+tools/qa-*mobile*
