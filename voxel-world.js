@@ -1115,6 +1115,15 @@ window.VoxelWorld = (function () {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.userData.isVoxelTerrain = true;
+      // A level holds thousands of static chunk meshes (an airport map is ~6k).
+      // They NEVER move once placed, so paying for a matrix recompose on every
+      // one, every frame, is pure waste — and on a weak mobile CPU it is the
+      // dominant cost (the GPU only draws the ~350 the frustum keeps). Bake the
+      // world matrix once and tell three.js to stop auto-updating it.
+      mesh.matrixAutoUpdate = false;
+      mesh.updateMatrix();
+      mesh.matrixWorldAutoUpdate = false;
+      mesh.updateMatrixWorld(true);
 
       if (scene) scene.add(mesh);
       else console.warn('[VoxelWorld] Skipped mesh add: scene is null', mesh);
@@ -1138,6 +1147,10 @@ window.VoxelWorld = (function () {
       });
       const wMesh = new THREE.Mesh(wGeo, wMat);
       wMesh.position.set(ox * BLOCK_SIZE, 0, oz * BLOCK_SIZE);
+      wMesh.matrixAutoUpdate = false;
+      wMesh.updateMatrix();
+      wMesh.matrixWorldAutoUpdate = false;
+      wMesh.updateMatrixWorld(true);
       if (scene) scene.add(wMesh);
       else console.warn('[VoxelWorld] Skipped water mesh add: scene is null', wMesh);
       chunk.waterMesh = wMesh;
