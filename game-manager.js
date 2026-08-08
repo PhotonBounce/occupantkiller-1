@@ -8677,6 +8677,7 @@ const GameManager = (function () {
   var _fpsAccum = 0;
   var _fpsSamples = 0;
   var _perfCheckTimer = 0;
+  var _cullChunkTimer = 999; // force a cull on the first frame
   var _qualityReduced = false;
   var _perfLevel = 0;            // current auto-optimization tier (0 = full quality)
   var _PERF_MAX_LEVEL = 5;       // deeper tiers so weak devices (2 FPS) can actually recover
@@ -11179,8 +11180,23 @@ const GameManager = (function () {
         }
       }
 
-      // Voxel chunk rebuilds
-      VoxelWorld.updateDirtyChunks();
+      // Voxel chunk rebuilds — pass the camera so the built-in distance/frustum
+      // culling of the rebuild queue actually runs (it was a no-op before, since
+      // the camera was never handed in).
+      VoxelWorld.updateDirtyChunks(_camera);
+
+      // Hide chunks past the draw distance. A level holds thousands of static
+      // chunk meshes; without this every one stays visible and three.js runs a
+      // frustum test on all of them EVERY frame — a real CPU cost on weak mobile
+      // GPUs (the actual cause of the 2 FPS, not the triangle count). Chunks
+      // don't move, only the player does, so throttle it. Combined with
+      // matrixAutoUpdate=false on the chunk meshes this is the mobile-CPU fix.
+      _cullChunkTimer += rawDelta;
+      if (_cullChunkTimer >= 0.4 && VoxelWorld.cullChunks && player && player.position) {
+        _cullChunkTimer = 0;
+        var _cd = window._perfDrawDistance || (isMobile ? 70 : 150);
+        VoxelWorld.cullChunks(player.position.x, player.position.z, _cd);
+      }
 
       // Update loot particles
       updateLootParticles(delta);

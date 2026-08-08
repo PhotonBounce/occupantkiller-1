@@ -1388,16 +1388,32 @@ html.is-mobile #tank-hud {
     width: min(22vh, 120px);
     height: min(22vh, 120px);
   }
-  html.is-mobile #mobile-actions {
-    right: max(14px, env(safe-area-inset-right));
-    bottom: 125px;
-    grid-template-columns: repeat(3, auto);
-    gap: 6px;
+  /* Landscape phones are SHORT (~340-412px tall). The old layout stacked the
+     action grid 240px tall on a fixed bottom:125 offset, which pushed the FIRE
+     button off the top of the screen (the boss "couldn't find the fire button").
+     Fix: pin FIRE as its own fixed bottom-right element (always under the right
+     thumb, can never overflow), and lay the small action buttons in a compact
+     grid just to its left, also anchored to the bottom. */
+  html.is-mobile #btn-fire {
+    position: fixed !important;
+    bottom: max(18px, env(safe-area-inset-bottom)) !important;
+    right: max(18px, env(safe-area-inset-right)) !important;
+    width: 92px !important; height: 92px !important;
+    font-size: 34px !important;
+    margin: 0 !important;
+    grid-column: auto !important;
+    z-index: 32 !important;
   }
-  html.is-mobile .mobile-btn { width: 56px; height: 56px; font-size: 22px; }
-  html.is-mobile .mobile-btn.sm { width: 44px; height: 44px; font-size: 16px; }
-  /* Override base #mobile-actions #btn-fire with equal-or-higher specificity */
-  html.is-mobile #mobile-actions #btn-fire { width: 84px; height: 84px; font-size: 30px; }
+  html.is-mobile #mobile-actions {
+    right: calc(max(18px, env(safe-area-inset-right)) + 104px);
+    bottom: max(18px, env(safe-area-inset-bottom));
+    grid-template-columns: repeat(3, 48px);
+    gap: 6px;
+    justify-items: center;
+    align-items: end;
+  }
+  html.is-mobile .mobile-btn { width: 52px; height: 52px; font-size: 20px; }
+  html.is-mobile .mobile-btn.sm { width: 48px; height: 48px; font-size: 18px; }
   html.is-mobile #mobile-utility {
     /* Single horizontal strip along the top-right edge — keeps the secondary
        utility buttons clear of the bottom-right primary action cluster (they
