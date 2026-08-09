@@ -89,6 +89,18 @@ window.showAudioWarning = function (msg) {
   }
 
   window.addEventListener('error', function (event) {
+    // Ignore benign non-fatal errors that must NOT trip the fatal overlay:
+    //  • Opaque cross-origin script errors: browsers report these as the literal
+    //    "Script error." with no file/line/stack. Offline, the ethers CDN <script>
+    //    produces exactly this — harmless (web3 is optional and degrades), but it
+    //    was painting a full "[FATAL JS ERROR]" panel over the game.
+    //  • Resource load failures (a <script>/<img>/<link> that 404s): event.target
+    //    is the element and there's no event.error/message.
+    try {
+      var msg = event && event.message;
+      if (!msg || msg === 'Script error.' || msg === 'Script error') return;
+      if (event.target && event.target !== window && (event.target.src || event.target.href) && !event.error) return;
+    } catch (e) {}
     showError(event.message, event.filename, event.lineno, event.colno, event.error);
   });
 
