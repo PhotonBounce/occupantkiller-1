@@ -44,6 +44,96 @@
         }
       })();
     </script>
+    <script>
+      /* ── BOOT DIAGNOSTIC ─────────────────────────────────────────────────
+         render-health.js only speaks once the game is already "playing", so a
+         failure DURING startup (no WebGL on the device, a script that 404s in
+         the offline APK bundle, or a fatal early error) leaves a totally black,
+         silent screen — exactly the bug we couldn't see. This runs from the
+         very first line, traps load/JS/WebGL failures, and if the game hasn't
+         come up it paints an unmissable readable panel naming the cause so it
+         can be screenshotted. Dependency-free and fully defensive. */
+      (function () {
+        if (typeof window === 'undefined') return;
+        var errs = [];
+        window.__bootDiag = { errs: errs };
+        window.addEventListener('error', function (e) {
+          try {
+            var m = e && e.message;
+            if (e && e.target && (e.target.src || e.target.href) && !m) {
+              errs.push('FAILED TO LOAD: ' + String(e.target.src || e.target.href).split('/').slice(-1)[0]);
+            } else if (m) {
+              errs.push(String(m).slice(0, 140) + (e.filename ? (' @ ' + String(e.filename).split('/').slice(-1)[0] + ':' + (e.lineno || '?')) : ''));
+            }
+          } catch (_) {}
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+          try { errs.push('PROMISE: ' + String((e && e.reason && (e.reason.message || e.reason)) || '?').slice(0, 140)); } catch (_) {}
+        });
+        // Probe WebGL exactly ONCE (creating GL contexts repeatedly would exhaust
+        // the device's context budget and break the game's own renderer).
+        var wg = null;
+        function webgl() {
+          if (wg) return wg;
+          try {
+            var c = document.createElement('canvas');
+            var gl = c.getContext('webgl2') || c.getContext('webgl') || c.getContext('experimental-webgl');
+            if (!gl) { wg = { ok: false, gpu: '', ver: '' }; return wg; }
+            var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+            wg = { ok: true, gpu: dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER) || ''), ver: String(gl.getParameter(gl.VERSION) || '') };
+            var lc = gl.getExtension('WEBGL_lose_context'); if (lc) lc.loseContext();
+          } catch (e) { wg = { ok: false, gpu: '', ver: '', err: (e && e.message) || '' }; }
+          return wg;
+        }
+        function gameOk() {
+          try {
+            var cv = document.querySelector('#game-container canvas') || document.querySelector('canvas');
+            if (!cv || cv.width < 4 || cv.height < 4) return false;
+            if (typeof window.GameManager === 'undefined') return false;
+            var st = window.GameManager.getState ? window.GameManager.getState() : '';
+            return st === 'menu' || st === 'playing' || st === 'preWave' || st === 'briefing' || document.body.classList.contains('game-active');
+          } catch (e) { return false; }
+        }
+        var box = null;
+        function show(reason) {
+          if (box) return;
+          try {
+            var g = webgl();
+            box = document.createElement('div');
+            box.id = 'boot-diag-overlay';
+            box.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0b0b12;color:#fff;'
+              + 'font-family:monospace;font-size:14px;line-height:1.5;padding:18px;overflow:auto;-webkit-text-size-adjust:100%;';
+            var h = '<div style="font-size:20px;color:#ff5555;font-weight:bold;margin-bottom:8px">⚠ OCCUPANT KILLER — DIAGNOSTIC</div>'
+              + '<div style="color:#ffd200;margin-bottom:10px">' + reason + '</div>'
+              + '<div style="color:#8fffa8">WebGL: ' + (g.ok ? ('YES — ' + (g.gpu || '?')) : 'NO — 3D not available on this device/WebView') + '</div>'
+              + '<div style="color:#8fffa8">WebGL ver: ' + (g.ver || '-') + '</div>'
+              + '<div style="color:#99bbdd">GameManager: ' + (typeof window.GameManager !== 'undefined' ? 'yes' : 'MISSING')
+              + ' · THREE: ' + (typeof window.THREE !== 'undefined' ? 'yes' : 'MISSING')
+              + ' · canvas: ' + (document.querySelector('canvas') ? 'yes' : 'MISSING') + '</div>'
+              + '<div style="color:#99bbdd">boot: ' + (((document.getElementById('boot-progress-label') || {}).textContent) || '-') + '</div>';
+            if (errs.length) { h += '<div style="color:#ff8888;margin-top:10px">ERRORS (' + errs.length + '):</div>';
+              for (var i = 0; i < Math.min(errs.length, 8); i++) h += '<div style="color:#ffb3b3">• ' + String(errs[i]).slice(0, 160) + '</div>';
+            } else { h += '<div style="color:#888;margin-top:10px">no JS errors captured</div>'; }
+            h += '<div style="color:#666;margin-top:10px;font-size:11px">' + String(navigator.userAgent || '').slice(0, 130) + '</div>'
+              + '<div style="margin-top:14px;font-size:16px;color:#ffd200;font-weight:bold">📸 SCREENSHOT THIS AND SEND IT</div>';
+            box.innerHTML = h;
+            (document.body || document.documentElement).appendChild(box);
+          } catch (_) {}
+        }
+        var start = Date.now();
+        var iv = setInterval(function () {
+          try {
+            if (gameOk()) { if (box) { box.remove(); box = null; } clearInterval(iv); return; }
+            var secs = (Date.now() - start) / 1000;
+            if (secs > 8 && (!webgl().ok || errs.length)) {
+              show(!webgl().ok ? 'The 3D engine could not start on this device (no WebGL).' : 'A required file failed to load or crashed during startup.');
+            } else if (secs > 22) {
+              show('The game did not finish loading (boot stalled).');
+            }
+          } catch (_) {}
+        }, 1000);
+      })();
+    </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
