@@ -1235,7 +1235,15 @@ window.VoxelWorld = (function () {
       _projMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
       frustum = new THREE.Frustum().setFromProjectionMatrix(_projMatrix);
     }
-    const maxRebuildDist = 150; // world units
+    // On mobile, NEVER mesh chunks past the (small) draw distance. Meshing the
+    // whole level up front peaks at ~1M tris / ~100+ MB and OOM-crashes the
+    // WebView renderer (black screen). Bound the built area so peak memory stays
+    // low from the very first frames — cullChunks then frees anything that drifts
+    // out of range. Desktop keeps the generous radius.
+    const _isMobile = (typeof window !== 'undefined' && window.__IS_MOBILE);
+    const maxRebuildDist = _isMobile
+      ? ((typeof window !== 'undefined' && window._perfDrawDistance ? window._perfDrawDistance : 70) + 30)
+      : 150; // world units
 
     // Process queued rebuilds first (from rebuildAll)
     while (_chunkRebuildQueue.length > 0 && count < _rebuildBudget) {
@@ -25525,25 +25533,56 @@ window.VoxelWorld = (function () {
 
   // IDEA 21: Evacuation bus/civilian vehicles
 
-  function cullChunks(camX, camZ, dist) {
+  function _disposeChunkMesh(mesh) {
+    if (!mesh) return;
+    try {
+      if (scene) scene.remove(mesh);
+      if (mesh.geometry) mesh.geometry.dispose();
+      var mat = mesh.material;
+      if (mat) { if (Array.isArray(mat)) mat.forEach(function (mm) { mm && mm.dispose && mm.dispose(); }); else if (mat.dispose) mat.dispose(); }
+    } catch (e) {}
+  }
+
+  // dispose=true FREES the buffers of out-of-range chunks instead of merely
+  // hiding them. This is essential on mobile: a level meshes ~1,000,000 tris
+  // (~100+ MB of GPU/JS buffers) and a WebView renderer's memory ceiling is far
+  // lower than a browser tab's, so keeping them all resident OOM-crashes the
+  // renderer (FATAL:memory.cc "Out of memory") → the app dies → black screen.
+  // Disposed chunks are marked so they rebuild if the player returns to them.
+  function cullChunks(camX, camZ, dist, dispose) {
     if (!dist || dist <= 0 || typeof chunks !== 'object' || !chunks.values) return;
     const keep = dist + 24;
     const keep2 = keep * keep;
     const half = CHUNK_SIZE * BLOCK_SIZE * 0.5;
     for (const chunk of chunks.values()) {
-      const m = chunk.mesh;
-      if (!m) continue;
       const cx = chunk.cx * CHUNK_SIZE + half;
       const cz = chunk.cz * CHUNK_SIZE + half;
       const dx = cx - camX;
       const dz = cz - camZ;
       const far = (dx * dx + dz * dz) > keep2;
+      const m = chunk.mesh;
       if (far) {
-        if (m.visible) m.visible = false;
-        if (chunk.waterMesh && chunk.waterMesh.visible) chunk.waterMesh.visible = false;
+        if (dispose && (m || chunk.waterMesh)) {
+          // Free the memory (not just hide). Mark for rebuild if we come back.
+          _disposeChunkMesh(m);
+          _disposeChunkMesh(chunk.waterMesh);
+          chunk.mesh = null;
+          chunk.waterMesh = null;
+          chunk.dirty = false;
+          chunk._culledOut = true;
+        } else if (m) {
+          if (m.visible) m.visible = false;
+          if (chunk.waterMesh && chunk.waterMesh.visible) chunk.waterMesh.visible = false;
+        }
       } else {
-        if (!m.visible) m.visible = true;
-        if (chunk.waterMesh && !chunk.waterMesh.visible) chunk.waterMesh.visible = true;
+        if (m) {
+          if (!m.visible) m.visible = true;
+          if (chunk.waterMesh && !chunk.waterMesh.visible) chunk.waterMesh.visible = true;
+        } else if (chunk._culledOut) {
+          // Back in range after being freed — queue a rebuild.
+          chunk._culledOut = false;
+          chunk.dirty = true;
+        }
       }
     }
   }

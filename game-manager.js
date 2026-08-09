@@ -1029,6 +1029,10 @@ const GameManager = (function () {
   const _isIpadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
   const _isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   const isMobile = _uaIsMobile || _isIpadOS || (_isTouch && Math.min(window.innerWidth, window.innerHeight) < 900);
+  // Publish the mobile flag GLOBALLY. enemies.js (concurrent-NPC caps) and
+  // voxel-world.js (bounded chunk-build radius, the OOM fix) both gate on
+  // window.__IS_MOBILE — it was never set, so those mobile safeguards never ran.
+  try { window.__IS_MOBILE = isMobile; } catch (e) {}
   if (isMobile) {
     try { document.documentElement.classList.add('is-mobile'); } catch (e) {}
   }
@@ -11195,7 +11199,10 @@ const GameManager = (function () {
       if (_cullChunkTimer >= 0.4 && VoxelWorld.cullChunks && player && player.position) {
         _cullChunkTimer = 0;
         var _cd = window._perfDrawDistance || (isMobile ? 70 : 150);
-        VoxelWorld.cullChunks(player.position.x, player.position.z, _cd);
+        // On mobile, DISPOSE far chunks (free their buffers) rather than only
+        // hiding them — a WebView renderer OOM-crashes if the whole ~1M-tri level
+        // stays resident. On desktop, hide only (plenty of memory, avoids rebuild churn).
+        VoxelWorld.cullChunks(player.position.x, player.position.z, _cd, isMobile);
       }
 
       // Update loot particles
