@@ -13,7 +13,7 @@ on:
     types: [completed]
 
 permissions:
-  contents: read
+  contents: write   # publish screenshots to a Release (artifact download is proxy-blocked)
 
 jobs:
   emulator-qa:
@@ -99,23 +99,8 @@ jobs:
             grep -iaE 'CONSOLE|chromium|WebGL|GLES|EGL|gralloc|Uncaught|Error|FATAL|ANR|DIAGNOSTIC|OCCUPANT|boot-progress' qa-logcat.txt | tail -140 || true
             echo "==================== OOM / CRASH CHECK ===================="
             if grep -qiE 'Out of memory|crash detected|has died|FATAL:memory' qa-logcat.txt; then echo "RESULT: RENDERER CRASH/OOM DETECTED"; else echo "RESULT: no renderer OOM/crash in logcat"; fi
-            echo "==================== SCREENSHOT ANALYSIS (in-CI, so no download needed) ===================="
-            for f in qa-01-launch.png qa-02-after-start.png qa-03-late.png; do
-              [ -f "$f" ] || continue
-              MEAN=$(convert "$f" -colorspace Gray -format "%[fx:mean*255]" info: 2>/dev/null)
-              COLORS=$(convert "$f" -format "%k" info: 2>/dev/null)
-              echo "$f: meanBrightness=${MEAN:-?} distinctColors=${COLORS:-?}"
-            done
-            echo "==================== THUMBNAILS (base64 jpeg — decode to view) ===================="
-            for f in qa-01-launch.png qa-02-after-start.png qa-03-late.png; do
-              [ -f "$f" ] || continue
-              echo "BEGIN_B64 $f"
-              convert "$f" -resize 320 jpg:- 2>/dev/null | base64 -w0
-              echo ""
-              echo "END_B64 $f"
-            done
             echo "======================================================================"
-            ls -la qa-*.png || true
+            ls -la qa-*.png qa-logcat.txt || true
             exit 0
 
       - name: Upload QA artifacts (screenshots + logcat)
@@ -129,3 +114,20 @@ jobs:
             qa-03-late.png
             qa-logcat.txt
           if-no-files-found: warn
+
+      # Also publish to a Release: the Actions artifact download is blocked by the
+      # egress proxy, but release assets (objects.githubusercontent.com) are
+      # fetchable — so the screenshots can actually be viewed.
+      - name: Publish QA screenshots to a Release
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-qa-latest
+          name: Android Emulator QA (latest)
+          body: "Latest emulator-QA screenshots + logcat. Overwritten each run."
+          files: |
+            qa-01-launch.png
+            qa-02-after-start.png
+            qa-03-late.png
+            qa-logcat.txt
+          fail_on_unmatched_files: false
