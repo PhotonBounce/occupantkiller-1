@@ -87,12 +87,16 @@ jobs:
               adb shell monkey -p io.occupantkiller.app 1 || true
             sleep 30
             adb exec-out screencap -p > qa-01-launch.png || true
-            # Blind taps to dismiss menu / start a mission (a few common spots)
-            adb shell input tap 1280 720 || true; sleep 2
-            adb shell input tap 1280 950 || true; sleep 2
-            adb shell input tap 640 360  || true; sleep 20
+            # Press QUICK START (centre of the 2340x1080 landscape frame), then
+            # dismiss any briefing and let the 3D world build.
+            adb shell input tap 1170 520 || true; sleep 3
+            adb shell input tap 983 505 || true; sleep 3
+            adb shell input keyevent 62 || true       # space (dismiss briefing)
+            adb shell input tap 1170 540 || true; sleep 25
             adb exec-out screencap -p > qa-02-after-start.png || true
-            sleep 15
+            # A couple of taps on the right half = look/shoot, then settle
+            adb shell input tap 1600 540 || true; sleep 2
+            adb shell input tap 1900 540 || true; sleep 18
             adb exec-out screencap -p > qa-03-late.png || true
             adb logcat -d > qa-logcat.txt || true
             echo "==================== WEBVIEW CONSOLE / GL / ERRORS ===================="
