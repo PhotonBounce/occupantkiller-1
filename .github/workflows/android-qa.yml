@@ -74,30 +74,32 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -camera-front none
           script: |
             set +e
-            PKG=io.occupantkiller.app
-            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-            adb logcat -c
-            # Force landscape (the game is landscape-only) and launch
-            adb shell settings put system accelerometer_rotation 0
-            adb shell settings put system user_rotation 1
-            adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1
-            sleep 25
-            adb exec-out screencap -p > qa-01-launch.png
-            # Blind taps to dismiss menu / start a mission (center + common start spots)
-            adb shell input tap 1280 720
-            sleep 2
-            adb shell input tap 1280 900
-            sleep 2
-            adb shell input tap 640 360
-            sleep 20
-            adb exec-out screencap -p > qa-02-after-start.png
+            # Every command is non-fatal (|| true) so a screenshot is ALWAYS
+            # captured even if a prior step hiccups — the screenshot + logcat are
+            # the whole point of this job.
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk || true
+            adb logcat -c || true
+            adb shell settings put system accelerometer_rotation 0 || true
+            adb shell settings put system user_rotation 1 || true
+            # Launch the activity explicitly (the $PKG-variable form silently
+            # expanded to empty last run and broke monkey).
+            adb shell am start -W -n io.occupantkiller.app/.MainActivity || \
+              adb shell monkey -p io.occupantkiller.app 1 || true
+            sleep 30
+            adb exec-out screencap -p > qa-01-launch.png || true
+            # Blind taps to dismiss menu / start a mission (a few common spots)
+            adb shell input tap 1280 720 || true; sleep 2
+            adb shell input tap 1280 950 || true; sleep 2
+            adb shell input tap 640 360  || true; sleep 20
+            adb exec-out screencap -p > qa-02-after-start.png || true
             sleep 15
-            adb exec-out screencap -p > qa-03-late.png
-            adb logcat -d > qa-logcat.txt
+            adb exec-out screencap -p > qa-03-late.png || true
+            adb logcat -d > qa-logcat.txt || true
             echo "==================== WEBVIEW CONSOLE / GL / ERRORS ===================="
-            grep -iaE 'CONSOLE|chromium|WebGL|GLES|EGL|gralloc|Uncaught|Error|FATAL|ANR|DIAGNOSTIC|OCCUPANT' qa-logcat.txt | tail -120
+            grep -iaE 'CONSOLE|chromium|WebGL|GLES|EGL|gralloc|Uncaught|Error|FATAL|ANR|DIAGNOSTIC|OCCUPANT|boot-progress' qa-logcat.txt | tail -140 || true
             echo "======================================================================"
-            ls -la qa-*.png
+            ls -la qa-*.png || true
+            exit 0
 
       - name: Upload QA artifacts (screenshots + logcat)
         if: always()
