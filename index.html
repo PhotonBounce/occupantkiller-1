@@ -1337,7 +1337,7 @@
     <script src="bundles/bundle-007.js?v=20260724a" async></script>
 <script src="ammo-types.js?v=20260724a"></script>
     <script src="bundles/bundle-008.js?v=20260724a" async></script>
-<script src="game-manager.js?v=20260810a-static"></script>
+<script src="game-manager.js?v=20260810b-static"></script>
     <script src="render-health.js?v=20260802a"></script>
 <script>window.__bootProgress&&window.__bootProgress(70,'loading game manager','');</script>
     <script src="bundles/bundle-009.js?v=20260724a" async></script>
@@ -2335,9 +2335,10 @@ document.addEventListener('DOMContentLoaded', function () {
   })();
 
   // ── In-game screenshot (📷) ────────────────────────────
-  // Captures the exact rendered WebGL frame. The renderer is created with
-  // preserveDrawingBuffer:true so canvas.toDataURL() is valid at any time —
-  // no render-loop hook needed. This guarantees a real capture on devices
+  // Captures the exact rendered WebGL frame. To avoid the heavy always-on
+  // preserveDrawingBuffer cost, GameManager.captureFrame() renders one fresh
+  // frame synchronously and reads it back in the same tick (raw canvas
+  // toDataURL is the fallback). This guarantees a real capture on devices
   // where an OS screenshot of a WebGL surface comes out black.
   (function () {
     function toast(msg, ok) {
@@ -2387,8 +2388,15 @@ document.addEventListener('DOMContentLoaded', function () {
         var canvas = document.querySelector('#game-container canvas') || document.querySelector('canvas');
         if (!canvas) { toast('No game canvas yet', false); return; }
         var url;
-        try { url = canvas.toDataURL('image/png'); }
-        catch (e) { toast('Capture blocked: ' + (e.message || e), false); return; }
+        // Preferred: render one fresh frame on demand so we don't pay the
+        // preserveDrawingBuffer perf tax every frame just to keep the buffer.
+        try {
+          if (window.GameManager && GameManager.captureFrame) url = GameManager.captureFrame();
+        } catch (e) { /* fall through to raw canvas read */ }
+        if (!url) {
+          try { url = canvas.toDataURL('image/png'); }
+          catch (e) { toast('Capture blocked: ' + (e.message || e), false); return; }
+        }
         if (!url || url.length < 100) { toast('Empty frame — try in-game', false); return; }
         var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         var name = 'occupant-killer-' + stamp + '.png';
