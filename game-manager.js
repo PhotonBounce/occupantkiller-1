@@ -1142,7 +1142,12 @@ const GameManager = (function () {
           depth: true,
           stencil: false,
           premultipliedAlpha: false,
-          preserveDrawingBuffer: true,
+          // preserveDrawingBuffer stays FALSE: on ANGLE/D3D11 (Windows Chrome +
+          // AMD/Intel iGPUs) forcing it true copies the whole framebuffer every
+          // frame and defeats buffer-swap, dropping even an empty scene to a few
+          // FPS. The 📷 screenshot instead renders one fresh frame on demand
+          // (GameManager.captureFrame) right before toDataURL().
+          preserveDrawingBuffer: false,
           powerPreference: profile.powerPreference,
           failIfMajorPerformanceCaveat: false,
         };
@@ -1158,7 +1163,7 @@ const GameManager = (function () {
           depth: true,
           stencil: false,
           premultipliedAlpha: false,
-          preserveDrawingBuffer: true,
+          preserveDrawingBuffer: false, // see note above — perf-critical on ANGLE/D3D11
           powerPreference: profile.powerPreference,
           precision: profile.precision,
         });
@@ -13590,6 +13595,16 @@ const GameManager = (function () {
     getScene:        function () { return _scene; },
     getRenderer:     function () { return _renderer; },
     getCamera:       function () { return _camera; },
+    // Screenshot support without the always-on preserveDrawingBuffer perf cost:
+    // render one fresh frame synchronously, then the canvas is readable in this
+    // same tick. Returns a PNG data URL, or null if nothing is renderable yet.
+    captureFrame:    function () {
+      try {
+        if (!_renderer || !_scene || !_camera) return null;
+        _renderer.render(_scene, _camera);
+        return _renderer.domElement.toDataURL('image/png');
+      } catch (e) { return null; }
+    },
     getCurrentWave:  function () { return currentWave; },
     getCurrentStage: function () { return currentStage; },
 
