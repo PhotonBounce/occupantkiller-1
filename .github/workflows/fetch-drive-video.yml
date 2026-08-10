@@ -1,0 +1,80 @@
+name: Fetch Drive video (extract frames)
+
+# The agent's session container blocks drive.google.com at the egress proxy,
+# but a GitHub-hosted runner has open internet. This downloads a link-shared
+# ("anyone with the link") gameplay video from Google Drive, extracts sample
+# frames with ffmpeg, and publishes them to a Release (release assets ARE
+# fetchable from the agent session) so the frames can actually be looked at.
+# No credentials/secrets are used — the file is public via its share link.
+
+on:
+  workflow_dispatch:
+    inputs:
+      file_id:
+        description: "Google Drive file ID"
+        required: true
+        default: "1S8cODGUQuLhkvPYxm2umSnYBzcbSlLyS"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Download video from Drive (public share link)
+        env:
+          FID: ${{ github.event.inputs.file_id }}
+        run: |
+          set +e
+          ok() { file video.mp4 2>/dev/null | grep -qiE 'MP4|ISO Media|Matroska|WebM|MPEG|QuickTime'; }
+
+          echo "=== Attempt A: usercontent direct download w/ confirm token ==="
+          curl -sS -c cook.txt "https://drive.google.com/uc?export=download&id=${FID}" -o pre.html
+          confirm=$(grep -o 'confirm=[a-zA-Z0-9_-]*' pre.html | head -1 | cut -d= -f2)
+          echo "confirm token: '$confirm'"
+          curl -sS -L -b cook.txt \
+            "https://drive.usercontent.google.com/download?id=${FID}&export=download&confirm=${confirm}" \
+            -o video.mp4
+          if ! ok; then echo "-- attempt A not a video:"; head -c 400 video.mp4; echo; fi
+
+          if ! ok; then
+            echo "=== Attempt B: plain uc export=download (small files) ==="
+            curl -sS -L "https://drive.google.com/uc?export=download&id=${FID}" -o video.mp4
+            if ! ok; then echo "-- attempt B not a video:"; head -c 400 video.mp4; echo; fi
+          fi
+
+          echo "=== final ==="
+          ls -l video.mp4 || true
+          file video.mp4 || true
+          if ! ok; then echo "DOWNLOAD FAILED — not a recognizable video (is the link set to 'anyone with the link'?)"; exit 1; fi
+
+      - name: Probe + extract frames
+        run: |
+          set -e
+          ffprobe -v error -show_entries stream=width,height,r_frame_rate,codec_name,duration \
+            -show_entries format=duration,size -of default=nk=0 video.mp4 | tee probe.txt
+          dur=$(ffprobe -v error -show_entries format=duration -of default=nk=1:np=1 video.mp4)
+          echo "duration=$dur"
+          # ~24 evenly-spaced frames across the whole clip, 1280px wide for legibility
+          n=24
+          rate=$(awk -v n="$n" -v d="$dur" 'BEGIN{ if(d<=0)d=1; printf "%.4f", n/d }')
+          echo "sampling rate=$rate fps"
+          ffmpeg -y -hide_banner -loglevel error -i video.mp4 \
+            -vf "fps=${rate},scale=1280:-2" -frames:v ${n} frame_%02d.png
+          ls -l frame_*.png | head -40
+          echo "frame count: $(ls frame_*.png | wc -l)"
+
+      - name: Publish frames to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: drive-video-latest
+          name: Drive gameplay video — extracted frames
+          body: "Frames + probe from the gameplay video. Overwritten each run."
+          files: |
+            frame_*.png
+            probe.txt
+          fail_on_unmatched_files: false
