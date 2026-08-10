@@ -8704,9 +8704,12 @@ const GameManager = (function () {
         { pr:Math.min(_basePixelRatio,1.0),ff:isMobile?50:90,  sh:true,                vfx:false, dd:(isMobile?80:120), fx:1.0,  en:1.0  }, // 1
         { pr:1.0,                          ff:60,              sh:false,               vfx:false, dd:70,                fx:0.8,  en:0.85 }, // 2
         { pr:0.75,                         ff:45,              sh:false,               vfx:true,  dd:52,                fx:0.6,  en:0.7  }, // 3
-        { pr:0.6,                          ff:35,              sh:false,               vfx:true,  dd:40,                fx:0.4,  en:0.55 }, // 4
-        { pr:0.5,                          ff:28,              sh:false,               vfx:true,  dd:30,                fx:0.25, en:0.4  }  // 5 potato
+        { pr:0.55,                         ff:32,              sh:false,               vfx:true,  dd:36,                fx:0.3,  en:0.5  }, // 4
+        { pr:0.4,                          ff:26,              sh:false,               vfx:true,  dd:26,                fx:0.18, en:0.35 }  // 5 potato
       ];
+      // Fill-rate is THE bottleneck on weak mobile GPUs (Adreno 6xx): a lower
+      // pixelRatio (fewer fragments) is the single biggest lever, so the deepest
+      // tiers render at ~0.4x resolution (upscaled). Kept above 0.35 to stay legible.
       var t = TIERS[_perfLevel] || TIERS[TIERS.length - 1];
       var pr = t.pr, fogFar = t.ff, shadows = t.sh; _lowEndVFX = t.vfx;
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
