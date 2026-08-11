@@ -1033,6 +1033,18 @@ window.VoxelWorld = (function () {
           const col = new THREE.Color(BLOCK_COLORS[bt] || 0xFF00FF);
           const isWater = (bt === BLOCK.WATER);
 
+          // Per-voxel tonal jitter: every face of a block type used to get ONE
+          // identical flat color (only AO varied), so big surfaces — ground,
+          // roads, walls, factory slabs — looked like flat untextured planes.
+          // A small deterministic per-voxel brightness break-up (stable by world
+          // position) makes those surfaces read as real material/texture. Cheap:
+          // no extra draw calls, just vertex-colour variation. Water stays flat.
+          if (!isWater) {
+            let _vh = Math.sin(wx * 127.1 + ly * 311.7 + wz * 74.7) * 43758.5453;
+            _vh = _vh - Math.floor(_vh);            // 0..1 hash
+            col.multiplyScalar(0.86 + 0.14 * _vh);  // 0.86..1.00 brightness
+          }
+
           for (const face of _faceNormals) {
             const fnx = face.dir[0], fny = face.dir[1], fnz = face.dir[2];
             const nbx = wx + fnx;
