@@ -26,7 +26,10 @@ async function loadStage(ctx,idx){
   const out={idx};
   try{
     await pg.goto('http://localhost:'+PORT+'/index.html',{waitUntil:'commit',timeout:20000});
-    await pg.waitForFunction(()=>{var r=['THREE','VoxelWorld','Weapons','Enemies','HUD','GameManager'];var f=document.getElementById('boot-progress-bar-fill');return r.every(m=>typeof window[m]!=='undefined')&&f&&f.style.width==='100%';},{timeout:60000});
+    // Readiness: all core globals defined AND startGame available. (The old
+    // boot-progress-bar element is REMOVED once boot completes, so gating on its
+    // width==='100%' race-timed-out — that was the harness bug, not the game.)
+    await pg.waitForFunction(()=>['THREE','VoxelWorld','Weapons','Enemies','HUD','GameManager'].every(m=>typeof window[m]!=='undefined')&&!!(window.GameManager&&window.GameManager.startGame),{timeout:60000});
     await pg.evaluate((i)=>{window.__chosenStartStage=i;if(window.GameManager&&GameManager.startGame)GameManager.startGame();},idx);
     await pg.waitForTimeout(2500);
     try{await pg.keyboard.press('Space');}catch(_){}

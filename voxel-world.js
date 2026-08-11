@@ -384,7 +384,7 @@ window.VoxelWorld = (function () {
   // Moved BLOCK_COLORS inside IIFE
   const BLOCK_COLORS = {
     [BLOCK.DIRT]:       0x7A5A3A,
-    [BLOCK.GRASS]:      0x005BBB,
+    [BLOCK.GRASS]:      0x4E7A34,
     [BLOCK.STONE]:      0x7F7F86,
     [BLOCK.WOOD]:       0x8B5A2B,
     [BLOCK.METAL]:      0x6F7C85,
@@ -408,7 +408,7 @@ window.VoxelWorld = (function () {
     [BLOCK.WALLPAPER]:  0xC7C19E,
     [BLOCK.CERAMIC]:    0xD9DDD8,
     [BLOCK.SHINGLE]:    0x4D535C,
-    [BLOCK.BUSH]:       0x0057A0,
+    [BLOCK.BUSH]:       0x3C6B2A,
     [BLOCK.LIGHT]:      0xFFE8A3,
     [BLOCK.CAR]:        0x2C4B7C,
     [BLOCK.DOOR]:       0x6B4627,
@@ -1032,6 +1032,18 @@ window.VoxelWorld = (function () {
           const wz = oz + lz;
           const col = new THREE.Color(BLOCK_COLORS[bt] || 0xFF00FF);
           const isWater = (bt === BLOCK.WATER);
+
+          // Per-voxel tonal jitter: every face of a block type used to get ONE
+          // identical flat color (only AO varied), so big surfaces — ground,
+          // roads, walls, factory slabs — looked like flat untextured planes.
+          // A small deterministic per-voxel brightness break-up (stable by world
+          // position) makes those surfaces read as real material/texture. Cheap:
+          // no extra draw calls, just vertex-colour variation. Water stays flat.
+          if (!isWater) {
+            let _vh = Math.sin(wx * 127.1 + ly * 311.7 + wz * 74.7) * 43758.5453;
+            _vh = _vh - Math.floor(_vh);            // 0..1 hash
+            col.multiplyScalar(0.86 + 0.14 * _vh);  // 0.86..1.00 brightness
+          }
 
           for (const face of _faceNormals) {
             const fnx = face.dir[0], fny = face.dir[1], fnz = face.dir[2];
@@ -20911,15 +20923,17 @@ window.VoxelWorld = (function () {
     setTheme(level.theme);
     _theme.seed = index * 3137;
 
-    // Russian-territory levels get red-purple-white terrain palette instead of Ukrainian blue
+    // Ground colour: realistic natural terrain so levels read like the real
+    // places (was flag-blue grass on Ukrainian ground / rose-red on Russian
+    // ground — striking but nothing on Earth looks like that, which is why the
+    // world looked "off"). National symbolism stays in flags/banners/UI, not the
+    // dirt. Russian-territory levels get a slightly drier khaki-green tint.
     var RUSSIAN_LEVELS = ['MOSCOW', 'KREMLIN', 'BELGOROD', 'KURSK'];
-    // reset to Ukrainian/default colors
-    BLOCK_COLORS[BLOCK.GRASS] = 0x005BBB;  // restore Ukrainian blue
-    BLOCK_COLORS[BLOCK.DIRT]  = 0x7A5A3A;  // restore normal dirt
-    // override for Russian territory
+    BLOCK_COLORS[BLOCK.GRASS] = 0x4E7A34;  // natural field green
+    BLOCK_COLORS[BLOCK.DIRT]  = 0x7A5A3A;  // earth brown
     if (RUSSIAN_LEVELS.indexOf(level.id) !== -1) {
-      BLOCK_COLORS[BLOCK.GRASS] = 0x8B2252;  // dark rose-red for Russian territory
-      BLOCK_COLORS[BLOCK.DIRT]  = 0x5C1A38;  // darker reddish dirt
+      BLOCK_COLORS[BLOCK.GRASS] = 0x5A6E38;  // drier khaki-green steppe
+      BLOCK_COLORS[BLOCK.DIRT]  = 0x6E5537;  // slightly greyer earth
     }
 
     regenerate();
