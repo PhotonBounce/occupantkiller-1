@@ -951,6 +951,31 @@ const GameManager = (function () {
     },
   ];
 
+  // Per-stage mission template. Previously every stage except Hostomel (id 1) and
+  // Kyiv (capitalDefense) drew from one level-agnostic random pool, so Avdiivka,
+  // Bakhmut, Kherson, Mariupol… all felt like the same mission. This maps each
+  // stage to a mission type that fits the place, so missions read as distinct.
+  function _stageMissionTemplate(id) {
+    var MAP = {
+      2:  'defense',         // AVDIIVKA SECTOR — trench survival
+      3:  'urban_breakout',  // BAKHMUT RUINS — fight out of the rubble
+      4:  'escort',          // KHERSON CROSSING — river logistics
+      5:  'clear_building',  // MARIUPOL STEELWORKS — clear the plant
+      6:  'bradley_mission', // CRIMEA BRIDGE — armored assault
+      7:  'recon',           // CHORNOBYL ZONE — recon the exclusion zone
+      8:  'infiltrate',      // OUTER MOSCOW — slip in
+      9:  'clear_building',  // SEVASTOPOL NAVAL BASE
+      10: 'bradley_mission', // DONBAS FINAL PUSH
+      11: 'urban_breakout',  // BELGOROD OFFENSIVE
+      12: 'infiltrate',      // KREMLIN SHOWDOWN
+      14: 'defense',         // SNAKE ISLAND DEFENSE
+      15: 'clear_building',  // SAKY AIRBASE STRIKE
+      16: 'bradley_mission', // VUHLEDAR TANK GRAVEYARD
+      17: 'escort',          // ANTONOV BRIDGE STRIKE
+    };
+    return MAP[id] || 'infiltrate';
+  }
+
   let currentStage = 0;  // 0-based index into STAGES
 
   /* ── Last-kill camera tracking ───────────────────────────────── */
@@ -1474,6 +1499,25 @@ const GameManager = (function () {
     // Near plane lowered 0.1 -> 0.02 so the close first-person weapon model
     // isn't sliced open by near-clipping (player was seeing inside the guns).
     _camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.02, isMobile ? 140 : 200);
+
+    // Publish scene/camera/renderer to the shared globals that the standalone
+    // special-mission modules (DESERT WARFARE, OIL WAR, hostage-rescue, etc.)
+    // reach for. These were never wired up, so every such module aborted with
+    // "<NAME>: no scene found" and left the current campaign level on screen —
+    // which is why triggering those missions looked like "the same level".
+    // Getters so they always reflect the live values across restarts.
+    try {
+      if (!window.GAME || !Object.getOwnPropertyDescriptor(window.GAME, 'scene')) {
+        window.GAME = window.GAME || {};
+        Object.defineProperty(window.GAME, 'scene',    { get: function () { return _scene; },    configurable: true });
+        Object.defineProperty(window.GAME, 'camera',   { get: function () { return _camera; },   configurable: true });
+        Object.defineProperty(window.GAME, 'renderer', { get: function () { return _renderer; }, configurable: true });
+      }
+      if (!Object.getOwnPropertyDescriptor(window, 'scene')) {
+        Object.defineProperty(window, 'scene',  { get: function () { return _scene; },  set: function () {}, configurable: true });
+        Object.defineProperty(window, 'camera', { get: function () { return _camera; }, set: function () {}, configurable: true });
+      }
+    } catch (e) {}
 
     if (typeof CompanionDrone !== 'undefined' && CompanionDrone.init) CompanionDrone.init(_scene, _camera);
 
@@ -3180,7 +3224,7 @@ const GameManager = (function () {
           } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
             _newM = MissionSystem.generateMission('airborne_assault');
           } else {
-            _newM = MissionSystem.generateRandom();
+            _newM = MissionSystem.generateMission(_stageMissionTemplate(STAGES[currentStage] && STAGES[currentStage].id));
             _autoReconDroneForMission(_newM);
           }
           var active = MissionSystem.getActive();
@@ -5210,7 +5254,7 @@ const GameManager = (function () {
       } else if (STAGES[currentStage] && STAGES[currentStage].id === 1) {
         MissionSystem.generateMission('airborne_assault');
       } else {
-        var _initMission = MissionSystem.generateRandom();
+        var _initMission = MissionSystem.generateMission(_stageMissionTemplate(STAGES[currentStage] && STAGES[currentStage].id));
         _autoReconDroneForMission(_initMission);
       }
     }
@@ -5671,7 +5715,7 @@ const GameManager = (function () {
       } else if (stageDef.id === 1) {
         MissionSystem.generateMission('airborne_assault');
       } else {
-        var _nsM = MissionSystem.generateRandom();
+        var _nsM = MissionSystem.generateMission(_stageMissionTemplate(stageDef.id));
         _autoReconDroneForMission(_nsM);
       }
     }

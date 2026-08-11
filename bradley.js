@@ -206,7 +206,18 @@ window.Bradley = (function () {
 
   function _spawnVehicle(pos) {
     var built = _build();
-    built.group.position.copy(pos || new THREE.Vector3(0, 0, 0));
+    var p = pos || new THREE.Vector3(0, 0, 0);
+    built.group.position.copy(p);
+    // Snap to the ground at spawn. The per-frame terrain follow in update() only
+    // runs while the Bradley is being driven (_active), so an idle-spawned hull
+    // would otherwise keep whatever Y the caller passed (often 0) and sink into
+    // sloped terrain. The mesh origin is at the wheel-bottom, so ground Y is exact.
+    try {
+      if (window.VoxelWorld && VoxelWorld.getTerrainHeight) {
+        var gy = VoxelWorld.getTerrainHeight(p.x, p.z);
+        if (typeof gy === 'number' && !isNaN(gy)) built.group.position.y = gy;
+      }
+    } catch (e) {}
     _scene.add(built.group);
     _vehicle = {
       group: built.group, turret: built.turret, gunMount: built.gunMount,
