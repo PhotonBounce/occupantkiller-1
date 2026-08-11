@@ -236,7 +236,16 @@ window.T72 = (function () {
 
   function _spawnVehicle(pos) {
     var built = _build();
-    built.group.position.copy(pos || new THREE.Vector3(0, 0, 0));
+    var p = pos || new THREE.Vector3(0, 0, 0);
+    built.group.position.copy(p);
+    // Ground-snap at spawn: per-frame terrain follow only runs while driven, so
+    // an idle-spawned tank would otherwise keep a wrong/zero Y and sink.
+    try {
+      if (window.VoxelWorld && VoxelWorld.getTerrainHeight) {
+        var gy = VoxelWorld.getTerrainHeight(p.x, p.z);
+        if (typeof gy === 'number' && !isNaN(gy)) built.group.position.y = gy;
+      }
+    } catch (e) {}
     _scene.add(built.group);
     _vehicle = {
       group: built.group,
