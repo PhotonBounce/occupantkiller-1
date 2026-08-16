@@ -34,6 +34,18 @@ const server = http.createServer((q, s) => {
 function BOT_SRC() {
   window.__botKills = 0; window.__botTargets = 0;
   window.__botPrevAlive = null;
+  // Headless has no real pointer lock, and the game deliberately swallows any
+  // click made while unlocked ("don't fire on the lock-acquiring click") — so
+  // without this the bot could never fire a single shot. Report the canvas as
+  // the locked element so input is treated as in-game.
+  try {
+    var _cv = document.querySelector('#game-container canvas') || document.querySelector('canvas');
+    Object.defineProperty(document, 'pointerLockElement', { configurable: true, get: function () { return _cv; } });
+  } catch (e) { }
+  // Cycle weapons through the real API (digit keys are unreliable headless).
+  window.__wpnSwap = setInterval(function () {
+    try { if (window.Weapons && Weapons.switchNext) Weapons.switchNext(); } catch (e) { }
+  }, 2500);
   window.__bot = setInterval(function () {
     try {
       var cam = window.GameManager && GameManager.getCamera && GameManager.getCamera();
