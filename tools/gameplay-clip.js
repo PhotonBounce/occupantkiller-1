@@ -42,9 +42,27 @@ function BOT_SRC() {
     var _cv = document.querySelector('#game-container canvas') || document.querySelector('canvas');
     Object.defineProperty(document, 'pointerLockElement', { configurable: true, get: function () { return _cv; } });
   } catch (e) { }
-  // Cycle weapons through the real API (digit keys are unreliable headless).
+  // Cycle only through weapons that can actually kill infantry. switchNext()
+  // walks all 125 entries, so the bot spent most of each clip holding an Army
+  // Shovel, an Igla anti-air missile or a Makarov — hence 0 kills on levels
+  // with 95+ enemies alive.
+  window.__goodW = [];
+  try {
+    var GOOD = /^(ASSAULT|RIFLE|LMG|SMG|HMG|HMG_HEAVY|SNIPER|SHOTGUN|SILENT|NATO)$/;
+    var wn = (window.Weapons && Weapons.getWeaponCount) ? Weapons.getWeaponCount() : 0;
+    for (var wi = 0; wi < wn; wi++) {
+      var wd = Weapons.getWeaponDef ? Weapons.getWeaponDef(wi) : null;
+      if (wd && GOOD.test(String(wd.type || ''))) window.__goodW.push(wi);
+    }
+  } catch (e) { }
+  window.__wIdx = 0;
+  try { if (window.__goodW.length && Weapons.switchTo) Weapons.switchTo(window.__goodW[0]); } catch (e) { }
   window.__wpnSwap = setInterval(function () {
-    try { if (window.Weapons && Weapons.switchNext) Weapons.switchNext(); } catch (e) { }
+    try {
+      if (!window.__goodW.length || !Weapons.switchTo) return;
+      window.__wIdx = (window.__wIdx + 1) % window.__goodW.length;
+      Weapons.switchTo(window.__goodW[window.__wIdx]);
+    } catch (e) { }
   }, 2500);
   window.__bot = setInterval(function () {
     try {
@@ -140,6 +158,7 @@ function BOT_SRC() {
         aliveNow: window.__botTargets || 0,
         stageName: stage ? stage.trim() : null,
         weapon: (window.Weapons && Weapons.getCurrentName) ? Weapons.getCurrentName() : null,
+        goodWeapons: (window.__goodW || []).length,
         god: !!(window.GameManager && GameManager.isGodMode && GameManager.isGodMode())
       };
     });
