@@ -1,0 +1,93 @@
+name: Gameplay clips (per level)
+
+# Records a real gameplay clip for each level: god mode on, an auto-aim bot
+# killing enemies, weapons switching throughout, plus a screenshot every 5s.
+# Runs one job per level in parallel on GitHub runners — the agent's own
+# container has no GPU and cannot render these levels in reasonable time.
+# Everything is published to a Release so the clips are fetchable.
+
+on:
+  workflow_dispatch:
+    inputs:
+      stages:
+        description: 'Comma-separated stage indices (default: all 19)'
+        required: false
+        default: '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18'
+      secs:
+        description: 'Seconds of gameplay per level'
+        required: false
+        default: '30'
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: |
+          IN="${{ github.event.inputs.stages }}"
+          [ -z "$IN" ] && IN="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"
+          JSON=$(python3 -c "import json,sys; print(json.dumps([int(x) for x in sys.argv[1].split(',') if x.strip()!='']))" "$IN")
+          echo "matrix=$JSON" >> "$GITHUB_OUTPUT"
+          echo "stages: $JSON"
+
+  clip:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        stage: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install playwright + ffmpeg
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm i --no-save playwright@1.47.2
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Record gameplay
+        env:
+          STAGE: ${{ matrix.stage }}
+          SECS: ${{ github.event.inputs.secs || '30' }}
+          PORT: '4500'
+          OUT: ${{ github.workspace }}/clips
+        run: |
+          set +e
+          node tools/gameplay-clip.js
+          echo "--- produced ---"
+          ls -la "$OUT" || true
+
+      - name: Convert to mp4
+        run: |
+          cd "${{ github.workspace }}/clips" || exit 0
+          for f in *.webm; do
+            [ -e "$f" ] || continue
+            ffmpeg -y -hide_banner -loglevel error -i "$f" -c:v libx264 -pix_fmt yuv420p -movflags +faststart "${f%.webm}.mp4" || true
+          done
+          ls -la
+
+      - name: Publish clip + screenshots to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: gameplay-clips
+          name: Gameplay clips (per level)
+          body: "Per-level gameplay clips (god mode, auto-aim kill bot, weapon switching) plus a screenshot every 5s. Overwritten each run."
+          files: |
+            clips/*.mp4
+            clips/*.webm
+            clips/*.png
+            clips/*-stats.json
+          fail_on_unmatched_files: false
