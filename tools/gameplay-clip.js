@@ -52,14 +52,20 @@ function BOT_SRC() {
       if (!cam || !window.Enemies || !Enemies.getAll) return;
       var all = Enemies.getAll() || [];
       var alive = 0, best = null, bd = 1e12;
+      if (!window.__tv) window.__tv = new THREE.Vector3();
+      var cw = cam.getWorldPosition(window.__tv2 || (window.__tv2 = new THREE.Vector3()));
       for (var i = 0; i < all.length; i++) {
         var e = all[i]; if (!e || e.alive === false) continue;
         var m = e.mesh || e.group; if (!m || !m.position) continue;
         alive++;
-        var dx = m.position.x - cam.position.x;
-        var dy = (m.position.y + 1.0) - cam.position.y;
-        var dz = m.position.z - cam.position.z;
+        // World position — enemy meshes hang off parent groups, so the local
+        // .position aimed the camera at empty sky.
+        var wp = m.getWorldPosition(window.__tv);
+        var dx = wp.x - cw.x;
+        var dy = (wp.y + 1.1) - cw.y;   // chest height
+        var dz = wp.z - cw.z;
         var d2 = dx * dx + dz * dz;
+        if (d2 > 90 * 90) continue;      // ignore anything absurdly far
         if (d2 < bd) { bd = d2; best = { dx: dx, dy: dy, dz: dz }; }
       }
       // Falling alive-count across ticks is the kill signal.
