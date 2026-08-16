@@ -3178,6 +3178,13 @@ const Weapons = (() => {
     const recv = o.recvColor ? o.recvColor() : _pal.gm();
     const recvBack = -0.10, recvFront = recvBack - recvLen, recvCz = recvBack - recvLen / 2;
     g.add(_P(_B(0.05, 0.072, recvLen, recv), X, Y, recvCz));               // receiver runs along Z
+    // Reciprocating charging handle + ejection-port cover: these are tagged so
+    // the per-frame moving-parts pass cycles them on every shot (the arsenal had
+    // no animated parts at all — the whole gun just slid back as one rigid lump).
+    const chg = _P(_B(0.056, 0.014, 0.030, _pal.steel()), X, Y + 0.030, recvBack - 0.045);
+    chg.userData.wpnAnim = 'bolt'; chg.userData.homeZ = chg.position.z; g.add(chg);
+    const ejp = _P(_B(0.006, 0.026, 0.046, _pal.blk()), X + 0.026, Y + 0.014, recvBack - 0.075);
+    ejp.userData.wpnAnim = 'ejport'; ejp.userData.homeY = ejp.position.y; g.add(ejp);
     // barrel + muzzle
     const muzZ = recvFront - barLen;
     g.add(_P(_T(barR, barLen, _pal.steel(), 12), X, Y + 0.008, recvFront - barLen / 2));
@@ -6829,6 +6836,36 @@ const Weapons = (() => {
       mesh.position.z = recoilOffsetZ + recoilOffset + _sprintLowerZ + _fireKickZ + _adsOff.z;
       mesh.position.y = recoilOffsetY + switchY + swayY + _sprintLowerY + _inertiaY + _adsLerp * 0.03 + _adsOff.y;
       mesh.rotation.x = reloadAnimAngle + _sprintLowerRotX - _fireKickRot;
+    }
+
+    // ── Moving parts ──────────────────────────────────────────────────
+    // Drive the tagged sub-parts (charging handle / bolt, ejection-port cover,
+    // trigger) off the shot impulse so the gun visibly cycles instead of sliding
+    // back as one rigid lump. Parts are cached on the mesh on first use.
+    if (mesh) {
+      try {
+        if (!mesh.userData._mvParts) {
+          const parts = [];
+          mesh.traverse(function (o) { if (o.userData && o.userData.wpnAnim) parts.push(o); });
+          mesh.userData._mvParts = parts;
+        }
+        const mv = mesh.userData._mvParts;
+        if (mv && mv.length) {
+          // 1 right after a shot, decaying to 0 — recoilOffset is set per shot.
+          const k = Math.max(0, Math.min(1, recoilOffset / 0.04));
+          for (let mi = 0; mi < mv.length; mi++) {
+            const p = mv[mi], kind = p.userData.wpnAnim;
+            if (kind === 'bolt' && p.userData.homeZ != null) {
+              p.position.z = p.userData.homeZ + k * 0.030;       // cycles rearward
+            } else if (kind === 'trigger' && p.userData.homeZ != null) {
+              p.position.z = p.userData.homeZ + k * 0.006;       // trigger pull
+            } else if (kind === 'ejport' && p.userData.homeY != null) {
+              p.position.y = p.userData.homeY + k * 0.010;       // port cover flips open
+              p.rotation.x = -k * 0.9;
+            }
+          }
+        }
+      } catch (e) { /* cosmetic only — never break firing */ }
     }
 
     // Weapon inspect animation
