@@ -3099,6 +3099,66 @@ const Weapons = (() => {
   function _T(r, len, mat, seg) { const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, seg || 16), mat); o.rotation.x = Math.PI / 2; return o; }
   function _CONE(r, len, mat, seg) { const o = new THREE.Mesh(new THREE.ConeGeometry(r, len, seg || 16), mat); o.rotation.x = -Math.PI / 2; return o; }
   function _P(o, x, y, z) { o.position.set(x, y, z); return o; }
+  // ── Procedural weapon textures ─────────────────────────────────────
+  // Every weapon part used to be a single flat colour, which is why guns read
+  // as untextured plastic. These build small cached canvas textures: worn//
+  // scratched metal, moulded polymer, and a stencilled ordnance panel (the
+  // white lettering & yellow band you see on real AT launcher tubes).
+  const _texCache = {};
+  function _canvasTex(key, w, h, draw, repX, repY) {
+    if (_texCache[key]) return _texCache[key];
+    let tex = null;
+    try {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d'); draw(x, w, h);
+      tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(repX || 1, repY || 1);
+      tex.anisotropy = 4;
+    } catch (e) { tex = null; }
+    _texCache[key] = tex; return tex;
+  }
+  function _rnd(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+  // Worn metal / painted tube: base tone + scratches, speckle and grime streaks.
+  function _texWorn(base, seed) {
+    return _canvasTex('worn' + base + (seed || 0), 128, 128, (x, w, h) => {
+      const R = _rnd(seed || 7);
+      x.fillStyle = '#' + ('000000' + base.toString(16)).slice(-6); x.fillRect(0, 0, w, h);
+      for (let i = 0; i < 900; i++) {                       // speckle grain
+        const a = R() * 0.16;
+        x.fillStyle = (R() > 0.5 ? 'rgba(255,255,255,' : 'rgba(0,0,0,') + a.toFixed(3) + ')';
+        x.fillRect(R() * w, R() * h, 1 + R() * 2, 1 + R());
+      }
+      for (let i = 0; i < 26; i++) {                        // scratches / wear
+        x.strokeStyle = 'rgba(255,255,255,' + (0.05 + R() * 0.13).toFixed(3) + ')';
+        x.lineWidth = R() < 0.7 ? 1 : 2;
+        x.beginPath(); const sx = R() * w, sy = R() * h;
+        x.moveTo(sx, sy); x.lineTo(sx + (R() - 0.5) * 46, sy + (R() - 0.5) * 14); x.stroke();
+      }
+      for (let i = 0; i < 7; i++) {                         // grime streaks
+        x.fillStyle = 'rgba(0,0,0,' + (0.05 + R() * 0.09).toFixed(3) + ')';
+        x.fillRect(R() * w, 0, 2 + R() * 7, h);
+      }
+    }, 2, 1);
+  }
+  // Ordnance stencil band: yellow ID ring + white block lettering, as on real
+  // AT4 / M72 / NLAW tubes. Applied around the launcher tube.
+  function _texStencil(base) {
+    return _canvasTex('stencil' + base, 256, 64, (x, w, h) => {
+      const R = _rnd(31);
+      x.fillStyle = '#' + ('000000' + base.toString(16)).slice(-6); x.fillRect(0, 0, w, h);
+      for (let i = 0; i < 500; i++) { x.fillStyle = 'rgba(0,0,0,' + (R() * 0.12).toFixed(3) + ')'; x.fillRect(R() * w, R() * h, 2, 2); }
+      x.fillStyle = '#c8b23c'; x.fillRect(0, 6, w, 7);            // yellow band
+      x.fillStyle = '#d8d8d2';                                    // stencil blocks
+      for (let i = 0; i < 9; i++) x.fillRect(14 + i * 24, 26, 15, 12);
+      x.fillStyle = 'rgba(255,255,255,0.75)'; x.fillRect(0, 50, w, 3);
+    }, 1, 1);
+  }
+  function _MT(c, m, r, tex) {
+    const mat = _M(c, m, r);
+    if (tex) { mat.map = tex; mat.color.set(0xffffff); }
+    return mat;
+  }
   const _pal = {
     gm: () => _M(0x2b2d31, 0.55, 0.45), blk: () => _M(0x191a1d, 0.45, 0.5),
     steel: () => _M(0x52555b, 0.7, 0.35), wood: () => _M(0x4a3018, 0.1, 0.85),
@@ -3118,6 +3178,13 @@ const Weapons = (() => {
     const recv = o.recvColor ? o.recvColor() : _pal.gm();
     const recvBack = -0.10, recvFront = recvBack - recvLen, recvCz = recvBack - recvLen / 2;
     g.add(_P(_B(0.05, 0.072, recvLen, recv), X, Y, recvCz));               // receiver runs along Z
+    // Reciprocating charging handle + ejection-port cover: these are tagged so
+    // the per-frame moving-parts pass cycles them on every shot (the arsenal had
+    // no animated parts at all — the whole gun just slid back as one rigid lump).
+    const chg = _P(_B(0.056, 0.014, 0.030, _pal.steel()), X, Y + 0.030, recvBack - 0.045);
+    chg.userData.wpnAnim = 'bolt'; chg.userData.homeZ = chg.position.z; g.add(chg);
+    const ejp = _P(_B(0.006, 0.026, 0.046, _pal.blk()), X + 0.026, Y + 0.014, recvBack - 0.075);
+    ejp.userData.wpnAnim = 'ejport'; ejp.userData.homeY = ejp.position.y; g.add(ejp);
     // barrel + muzzle
     const muzZ = recvFront - barLen;
     g.add(_P(_T(barR, barLen, _pal.steel(), 12), X, Y + 0.008, recvFront - barLen / 2));
@@ -3195,21 +3262,83 @@ const Weapons = (() => {
 
   // Shoulder-fired launcher / MANPADS / ATGM. o = { len, r, tube, rear, warhead,
   // hs (heat shields), optic, sight, clu (command unit), cluColor, grip2 }
+  // Shoulder-fired launcher (AT4 / NLAW / M72 / Javelin / Stinger / RPO / MILAN…).
+  // These were 3-part placeholders — a bare tube plus a grip stub — which is why
+  // every AT weapon in the arsenal looked unfinished. Real launchers are built
+  // from a textured tube with reinforcing rings, a firing mechanism housing,
+  // pistol grip + trigger inside a guard, a shoulder rest, sights and sling
+  // swivels. All of that is now standard on every launcher.
   function _launcher(o) {
     o = o || {};
     const g = new THREE.Group(); g.userData.selfContained = true;
     const X = 0.17, Y = -0.115;
-    const len = o.len || 0.55, r = o.r || 0.03, tube = (o.tube || _pal.tube)();
+    const len = o.len || 0.55, r = o.r || 0.03;
+    const baseCol = o.tubeColor || 0x39402f;
+    const tube = o.tube ? o.tube() : _MT(baseCol, 0.35, 0.62, _texWorn(baseCol, o.seed || 3));
     const cz = -0.24, front = cz - len / 2, back = cz + len / 2;
-    g.add(_P(_T(r, len, tube, 18), X, Y, cz));
-    if (o.rear === 'cone') { const c = _CONE(r * 1.5, 0.10, tube, 18); c.rotation.x = Math.PI / 2; g.add(_P(c, X, Y, back + 0.04)); }
-    if (o.warhead) { const wm = _M(0x4a4233, 0.4, 0.6); g.add(_P(_T(0.034, 0.10, wm, 16), X, Y, front - 0.05)); g.add(_P(_CONE(0.034, 0.09, wm, 16), X, Y, front - 0.135)); }
+    const metal = () => _MT(0x4a4d52, 0.72, 0.36, _texWorn(0x4a4d52, 11));
+    const poly  = () => _MT(0x202024, 0.25, 0.6, _texWorn(0x202024, 5));
+
+    // ── Launch tube + stencilled ID band ──
+    g.add(_P(_T(r, len, tube, 20), X, Y, cz));
+    const band = _texStencil(baseCol);
+    if (band) g.add(_P(_T(r * 1.035, len * 0.20, _MT(0xffffff, 0.3, 0.65, band), 20), X, Y, cz + len * 0.20));
+    // Reinforcing rings front/rear + muzzle crown
+    g.add(_P(_T(r * 1.13, 0.022, metal(), 20), X, Y, front + 0.03));
+    g.add(_P(_T(r * 1.13, 0.022, metal(), 20), X, Y, back - 0.05));
+    g.add(_P(_T(r * 1.06, 0.014, _pal.blk(), 20), X, Y, front + 0.005));
+
+    // ── Rear venturi / blast cone ──
+    if (o.rear === 'cone') { const c = _CONE(r * 1.5, 0.10, tube, 20); c.rotation.x = Math.PI / 2; g.add(_P(c, X, Y, back + 0.04)); }
+    else { g.add(_P(_T(r * 1.18, 0.03, metal(), 20), X, Y, back + 0.012)); }
+
+    // ── Warhead / projectile nose ──
+    if (o.warhead) {
+      const wm = _MT(0x4a4233, 0.45, 0.55, _texWorn(0x4a4233, 17));
+      g.add(_P(_T(0.034, 0.10, wm, 16), X, Y, front - 0.05));
+      g.add(_P(_CONE(0.034, 0.09, wm, 16), X, Y, front - 0.135));
+      g.add(_P(_T(0.036, 0.012, _pal.blk(), 16), X, Y, front - 0.10));   // seam ring
+      for (let i = 0; i < 4; i++) {                                       // stabiliser fins
+        const fin = _P(_B(0.004, 0.030, 0.032, metal()), X, Y, front - 0.02);
+        fin.rotation.z = i * Math.PI / 2; g.add(fin);
+      }
+    }
+    // ── Heat shield wraps ──
     if (o.hs) { g.add(_P(_T(r * 1.45, 0.08, _pal.wood(), 16), X, Y, cz - 0.08)); g.add(_P(_T(r * 1.45, 0.08, _pal.wood(), 16), X, Y, cz + 0.06)); }
-    if (o.optic) { g.add(_P(_B(0.05, 0.05, 0.07, _pal.blk()), X, Y + 0.055, cz + 0.02)); }
-    else if (o.sight) { g.add(_P(_B(0.016, 0.05, 0.016, _pal.blk()), X, Y + 0.052, front + 0.10)); }
-    if (o.clu) { g.add(_P(_B(0.085, 0.10, 0.10, (o.cluColor || _pal.tan)()), X, Y + 0.005, back - 0.06)); }
-    const gp = _P(_B(0.035, 0.085, 0.04, _pal.poly()), X, Y - 0.07, cz + 0.04); gp.rotation.x = 0.12; g.add(gp);
-    if (o.grip2) { const g2 = _P(_B(0.03, 0.07, 0.035, _pal.poly()), X, Y - 0.055, cz - 0.10); g2.rotation.x = -0.12; g.add(g2); }
+
+    // ── Firing mechanism housing (on top of tube) ──
+    g.add(_P(_B(0.045, 0.032, 0.13, poly()), X, Y + r + 0.014, cz + 0.03));
+    g.add(_P(_B(0.012, 0.020, 0.024, _M(0xb03028, 0.4, 0.5)), X, Y + r + 0.034, cz + 0.075)); // safety/arming lever
+
+    // ── Optics ──
+    if (o.optic) {
+      g.add(_P(_B(0.05, 0.05, 0.07, _pal.blk()), X, Y + 0.055, cz + 0.02));
+      g.add(_P(_T(0.019, 0.012, _M(0x2a6a86, 0.2, 0.15), 16), X, Y + 0.055, cz - 0.018)); // lens
+    } else if (o.sight !== false) {
+      g.add(_P(_B(0.006, 0.030, 0.006, _pal.blk()), X, Y + r + 0.030, front + 0.10));      // front post
+      g.add(_P(_B(0.022, 0.018, 0.006, _pal.blk()), X, Y + r + 0.026, cz + 0.10));         // rear aperture
+      g.add(_P(_B(0.026, 0.005, 0.010, metal()), X, Y + r + 0.014, cz + 0.10));            // sight base
+    }
+    // ── Command launch unit (Javelin) ──
+    if (o.clu) {
+      g.add(_P(_B(0.085, 0.10, 0.10, (o.cluColor || _pal.tan)()), X, Y + 0.005, back - 0.06));
+      g.add(_P(_B(0.055, 0.042, 0.006, _M(0x101a12, 0.3, 0.35)), X, Y + 0.022, back - 0.112)); // screen
+      g.add(_P(_T(0.011, 0.020, _pal.blk(), 12), X, Y - 0.028, back - 0.115));                 // eyepiece
+    }
+
+    // ── Pistol grip + trigger + guard (moving trigger) ──
+    const gp = _P(_B(0.035, 0.085, 0.04, poly()), X, Y - 0.07, cz + 0.04); gp.rotation.x = 0.12; g.add(gp);
+    const guard = _P(_T(0.026, 0.006, metal(), 12), X, Y - 0.036, cz + 0.012);
+    guard.rotation.x = 0; guard.rotation.z = Math.PI / 2; g.add(guard);
+    const trg = _P(_B(0.007, 0.024, 0.008, metal()), X, Y - 0.036, cz + 0.016);
+    trg.userData.wpnAnim = 'trigger'; trg.userData.homeZ = trg.position.z; g.add(trg);
+    if (o.grip2) { const g2 = _P(_B(0.03, 0.07, 0.035, poly()), X, Y - 0.055, cz - 0.10); g2.rotation.x = -0.12; g.add(g2); }
+
+    // ── Shoulder rest + sling swivels ──
+    const rest = _P(_B(0.030, 0.052, 0.030, poly()), X, Y - r - 0.014, back - 0.10);
+    rest.rotation.x = 0.25; g.add(rest);
+    g.add(_P(_T(0.005, 0.016, metal(), 8), X, Y - r - 0.008, front + 0.12));
+    g.add(_P(_T(0.005, 0.016, metal(), 8), X, Y - r - 0.008, back - 0.16));
     return g;
   }
 
@@ -6707,6 +6836,36 @@ const Weapons = (() => {
       mesh.position.z = recoilOffsetZ + recoilOffset + _sprintLowerZ + _fireKickZ + _adsOff.z;
       mesh.position.y = recoilOffsetY + switchY + swayY + _sprintLowerY + _inertiaY + _adsLerp * 0.03 + _adsOff.y;
       mesh.rotation.x = reloadAnimAngle + _sprintLowerRotX - _fireKickRot;
+    }
+
+    // ── Moving parts ──────────────────────────────────────────────────
+    // Drive the tagged sub-parts (charging handle / bolt, ejection-port cover,
+    // trigger) off the shot impulse so the gun visibly cycles instead of sliding
+    // back as one rigid lump. Parts are cached on the mesh on first use.
+    if (mesh) {
+      try {
+        if (!mesh.userData._mvParts) {
+          const parts = [];
+          mesh.traverse(function (o) { if (o.userData && o.userData.wpnAnim) parts.push(o); });
+          mesh.userData._mvParts = parts;
+        }
+        const mv = mesh.userData._mvParts;
+        if (mv && mv.length) {
+          // 1 right after a shot, decaying to 0 — recoilOffset is set per shot.
+          const k = Math.max(0, Math.min(1, recoilOffset / 0.04));
+          for (let mi = 0; mi < mv.length; mi++) {
+            const p = mv[mi], kind = p.userData.wpnAnim;
+            if (kind === 'bolt' && p.userData.homeZ != null) {
+              p.position.z = p.userData.homeZ + k * 0.030;       // cycles rearward
+            } else if (kind === 'trigger' && p.userData.homeZ != null) {
+              p.position.z = p.userData.homeZ + k * 0.006;       // trigger pull
+            } else if (kind === 'ejport' && p.userData.homeY != null) {
+              p.position.y = p.userData.homeY + k * 0.010;       // port cover flips open
+              p.rotation.x = -k * 0.9;
+            }
+          }
+        }
+      } catch (e) { /* cosmetic only — never break firing */ }
     }
 
     // Weapon inspect animation

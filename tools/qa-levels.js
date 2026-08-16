@@ -11,7 +11,7 @@ const http=require('http'),fs=require('fs'),path=require('path'),crypto=require(
 const {chromium}=require('/opt/node22/lib/node_modules/playwright');
 const ROOT='/home/user/occupantkiller-1';
 const OUTDIR='/tmp/claude-0/-home-user-occupantkiller-1/935a3386-bf68-508b-961f-b5a7bf15988c/scratchpad';
-const PORT=4193;
+const PORT=parseInt(process.env.PORT||'4193',10);
 const STAGES=(process.argv[2]||'0,2,4,5,11').split(',').map(s=>parseInt(s,10));
 const LOG=path.join(OUTDIR,'qa-levels.log');
 try{fs.unlinkSync(LOG);}catch(_){}
