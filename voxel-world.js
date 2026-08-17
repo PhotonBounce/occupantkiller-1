@@ -148,6 +148,12 @@ window.VoxelWorld = (function () {
     PARADE_VEHICLE: 63,
     BLUE_TILE:   64,
     WHITE_TILE:  65,
+    // Landmark dome materials. The Kremlin Senate (the Russian presidential
+    // residence) has a green copper dome under the tricolor, and the Kremlin /
+    // Kyiv cathedrals have gilded onion domes. Neither colour existed, so the
+    // hero landmarks were being built out of grey METAL.
+    DOME_GREEN:  66,
+    DOME_GOLD:   67,
   });
   if (typeof window !== 'undefined') window.BLOCK = BLOCK;
 
@@ -444,6 +450,8 @@ window.VoxelWorld = (function () {
     [BLOCK.SANDBOX]:    0xFFF8DC,  // sand color
     [BLOCK.BLUE_TILE]:  0x0057B8,  // Ukrainian blue tile (hallways)
     [BLOCK.WHITE_TILE]: 0xF0F0F0,  // white tile (upper hallway walls)
+    [BLOCK.DOME_GREEN]: 0x2E6B4F,  // oxidised copper — Kremlin Senate dome
+    [BLOCK.DOME_GOLD]:  0xD4AF37,  // gilded onion dome (cathedrals, Lavra)
   };
   // Expose BLOCK_COLORS globally for legacy/stray references
   if (typeof window !== 'undefined') window.BLOCK_COLORS = BLOCK_COLORS;
@@ -2454,14 +2462,17 @@ window.VoxelWorld = (function () {
       for (var dx = -r; dx <= r; dx++) {
         for (var dz2 = -r; dz2 <= r; dz2++) {
           if (dx * dx + dz2 * dz2 <= r * r + 1) {
-            var blockT = (dy < 2) ? BLOCK.CONCRETE : BLOCK.METAL;
+            // Pale drum, then the green copper dome — the Senate is the
+            // Russian presidential residence: pale neoclassical block, green
+            // dome, tricolor on top. It was being built in grey METAL.
+            var blockT = (dy < 2) ? BLOCK.PLASTER : BLOCK.DOME_GREEN;
             setBlock(ox + dx, h + ph + dy + 1, oz + dz2, blockT);
           }
         }
       }
     }
-    // Dome spire / flag
-    setBlock(ox, h + ph + 9, oz, BLOCK.METAL);
+    // Gilded finial + flagpole flying the tricolor
+    setBlock(ox, h + ph + 9, oz, BLOCK.DOME_GOLD);
     setBlock(ox, h + ph + 10, oz, BLOCK.METAL);
     setBlock(ox, h + ph + 11, oz, BLOCK.FLAG);
     // Red star on front gable
@@ -2803,7 +2814,7 @@ window.VoxelWorld = (function () {
       }
       // Golden finial + orthodox cross
       var topY = baseY + 2 + profile.length;
-      setBlock(cx, topY, cz, BLOCK.BUS);          // gold ball
+      setBlock(cx, topY, cz, BLOCK.DOME_GOLD);          // gold ball
       setBlock(cx, topY + 1, cz, BLOCK.METAL);    // cross post
       setBlock(cx, topY + 2, cz, BLOCK.METAL);
       setBlock(cx - 1, topY + 1, cz, BLOCK.METAL); // cross arms
@@ -2841,19 +2852,19 @@ window.VoxelWorld = (function () {
 
     // Central tent-roof tower (tallest, gold dome)
     var cTowerH = 16;
-    _chapel(ox, oz, cTowerH, 3, BLOCK.BUS, 3);
+    _chapel(ox, oz, cTowerH, 3, BLOCK.DOME_GOLD, 3);
     // Tent-roof red ring just below the central drum for the signature silhouette
     _disc(ox, h + cTowerH + 1, oz, 4, BLOCK.BANNER);
 
     // Eight surrounding chapels — alternating bold dome colours like the real cathedral
     // Cardinal chapels (taller, larger domes)
-    var cardinalColors = [BLOCK.STREET_SIGN, BLOCK.BLUE_TILE, BLOCK.BANNER, BLOCK.BUS]; // green, blue, red, gold
+    var cardinalColors = [BLOCK.STREET_SIGN, BLOCK.BLUE_TILE, BLOCK.BANNER, BLOCK.DOME_GOLD]; // green, blue, red, gold
     var cardinals = [[0, -9], [9, 0], [0, 9], [-9, 0]];
     for (var ci = 0; ci < cardinals.length; ci++) {
       _chapel(ox + cardinals[ci][0], oz + cardinals[ci][1], 11, 2.6, cardinalColors[ci], 2);
     }
     // Diagonal chapels (shorter, smaller domes, contrasting colours)
-    var diagColors = [BLOCK.BLUE_TILE, BLOCK.BANNER, BLOCK.BUS, BLOCK.STREET_SIGN];
+    var diagColors = [BLOCK.BLUE_TILE, BLOCK.BANNER, BLOCK.DOME_GOLD, BLOCK.STREET_SIGN];
     var diagonals = [[-7, -7], [7, -7], [7, 7], [-7, 7]];
     for (var di = 0; di < diagonals.length; di++) {
       _chapel(ox + diagonals[di][0], oz + diagonals[di][1], 8, 2.0, diagColors[di], 2);
@@ -18730,13 +18741,14 @@ window.VoxelWorld = (function () {
         setBlock(bx + 11, bh + i, z, BLOCK.GLASS);
       }
     }
-    // GOLD (LIGHT) dome on palace
+    // Gilded dome on palace (was BLOCK.LIGHT, a pale lamp yellow standing in
+    // for gold; DOME_GOLD is the real gilded tone)
     bh = getHeight(bx + 5, bz + 7);
     for (var dy = 1; dy <= 5; dy++) {
       var dr = 3 - Math.floor(dy / 2);
       for (x = bx + 5 - dr; x <= bx + 5 + dr; x++) {
         for (z = bz + 7 - dr; z <= bz + 7 + dr; z++) {
-          setBlock(x, bh + 10 + dy, z, BLOCK.LIGHT);
+          setBlock(x, bh + 10 + dy, z, BLOCK.DOME_GOLD);
         }
       }
     }
