@@ -46,7 +46,7 @@ jobs:
   clip:
     needs: plan
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       max-parallel: 4

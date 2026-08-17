@@ -108,15 +108,36 @@ function BOT_SRC() {
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, recordVideo: { dir: OUT, size: { width: W, height: H } } });
   const pg = await ctx.newPage();
   const tag = 'stage-' + String(STAGE).padStart(2, '0');
+
+  // Hard watchdog. A level that never finishes building blocks inside the page,
+  // so the run would sit there until the whole CI job was killed — that is what
+  // stalled 19 levels behind one bad level. Salvage the video and move on.
+  const HARD = parseInt(process.env.HARD_MS || '270000', 10);
+  let finished = false;
+  const watchdog = setTimeout(async () => {
+    if (finished) return;
+    console.log('[' + tag + '] HARD TIMEOUT after ' + el() + ' — salvaging');
+    try { const v = pg.video(); await ctx.close(); if (v) { const p = await v.path(); fs.renameSync(p, path.join(OUT, tag + '.webm')); } } catch (e) { }
+    try { await browser.close(); } catch (e) { }
+    try { server.close(); } catch (e) { }
+    process.exit(0);
+  }, HARD);
   try {
     await pg.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'commit', timeout: 30000 });
-    await pg.waitForFunction(() => ['THREE', 'VoxelWorld', 'Weapons', 'Enemies', 'HUD', 'GameManager'].every(m => typeof window[m] !== 'undefined') && !!window.GameManager.startGame, { timeout: 180000 });
+    await pg.waitForFunction(() => ['THREE', 'VoxelWorld', 'Weapons', 'Enemies', 'HUD', 'GameManager'].every(m => typeof window[m] !== 'undefined') && !!window.GameManager.startGame, { timeout: 90000 });
     console.log('[' + tag + '] booted ' + el());
 
-    await pg.evaluate((i) => { window.__chosenStartStage = i; GameManager.startGame(); }, STAGE);
+    // Kick off asynchronously: a heavy level build blocks synchronously inside
+    // startGame(), and awaiting that evaluate hung the whole job.
+    await pg.evaluate((i) => { window.__chosenStartStage = i; setTimeout(function () { try { GameManager.startGame(); } catch (e) { } }, 0); }, STAGE);
     await pg.waitForTimeout(2500);
     try { await pg.mouse.click(W / 2, H / 2); } catch (e) { }
-    await pg.waitForTimeout(4000);
+    // Wait for actual gameplay rather than a fixed sleep, so we never record a
+    // loading screen — but bounded, so a slow level can't stall the job.
+    try {
+      await pg.waitForFunction(() => window.GameManager && GameManager.getState && GameManager.getState() === 'playing', { timeout: 150000 });
+    } catch (e) { console.log('[' + tag + '] not in PLAYING state in time — recording anyway'); }
+    await pg.waitForTimeout(1500);
     // God mode: invincible + every weapon unlocked.
     try { await pg.keyboard.press('Control+Shift+G'); } catch (e) { }
     await pg.waitForTimeout(500);
@@ -167,6 +188,7 @@ function BOT_SRC() {
   } catch (e) {
     console.log('[' + tag + '] EXCEPTION ' + (e.message || e).slice(0, 200));
   }
+  finished = true; clearTimeout(watchdog);
   const vid = pg.video();
   await ctx.close();                       // finalises the video file
   try {
