@@ -37,7 +37,7 @@ jobs:
           JSON=$(python3 -c "
           import json,sys
           xs=[x.strip() for x in sys.argv[1].split(',') if x.strip()!='']
-          n=5
+          n=3
           print(json.dumps([','.join(xs[i:i+n]) for i in range(0,len(xs),n)]))
           " "$IN")
           echo "matrix=$JSON" >> "$GITHUB_OUTPUT"
@@ -76,7 +76,7 @@ jobs:
           IFS=',' read -ra STAGES <<< "$CHUNK"
           for s in "${STAGES[@]}"; do
             echo "::group::stage $s"
-            STAGE="$s" PORT=$((4500 + s)) OUT="$OUT" SECS="$SECS" HARD_MS=420000 node tools/gameplay-clip.js
+            STAGE="$s" PORT=$((4500 + s)) OUT="$OUT" SECS="$SECS" HARD_MS=600000 node tools/gameplay-clip.js
             echo "::endgroup::"
           done
           # A level that never finished leaves a 0-byte video behind, and the
