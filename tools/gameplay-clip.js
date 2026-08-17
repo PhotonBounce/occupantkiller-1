@@ -92,10 +92,16 @@ function BOT_SRC() {
       }
       window.__botPrevAlive = alive;
       window.__botTargets = alive;
+      window.__nearestD = best ? Math.round(Math.sqrt(bd)) : -1;
+      window.__hasCam = !!(window.CameraSystem && CameraSystem.setYaw);
       if (best && window.CameraSystem && CameraSystem.setYaw) {
         var horiz = Math.sqrt(best.dx * best.dx + best.dz * best.dz);
         CameraSystem.setYaw(Math.atan2(-best.dx, -best.dz));
         CameraSystem.setPitch(Math.atan2(best.dy, horiz));
+        window.__camYaw = CameraSystem.getYaw ? +CameraSystem.getYaw().toFixed(2) : null;
+        // Close the distance: enemies often spawn beyond the fog, so standing
+        // still produced empty grey footage and no kills.
+        window.__wantAdvance = Math.sqrt(bd) > 9;
       }
     } catch (e) { }
   }, 80);
@@ -147,8 +153,15 @@ function BOT_SRC() {
     const shots = [];
     const digits = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0'];
     const end = Date.now() + SECS * 1000;
-    let tick = 0, nextShot = Date.now(), shotN = 0;
+    let tick = 0, nextShot = Date.now(), shotN = 0, advancing = false;
     while (Date.now() < end) {
+      // Walk toward the target when it's far — enemies spawn beyond the fog, so
+      // standing still gave empty grey footage and no kills.
+      try {
+        const want = await pg.evaluate(() => !!window.__wantAdvance);
+        if (want && !advancing) { await pg.keyboard.down('KeyW'); advancing = true; }
+        else if (!want && advancing) { await pg.keyboard.up('KeyW'); advancing = false; }
+      } catch (e) { }
       // fire in bursts
       try { await pg.mouse.down(); } catch (e) { }
       await pg.waitForTimeout(320);
@@ -169,6 +182,7 @@ function BOT_SRC() {
       }
       tick++;
     }
+    try { if (advancing) await pg.keyboard.up('KeyW'); } catch (e) { }
     const stats = await pg.evaluate(() => {
       var txt = document.body.innerText || '';
       var kills = (txt.match(/KILLS[:\s]*([0-9]+)/) || [])[1];
@@ -180,6 +194,9 @@ function BOT_SRC() {
         stageName: stage ? stage.trim() : null,
         weapon: (window.Weapons && Weapons.getCurrentName) ? Weapons.getCurrentName() : null,
         goodWeapons: (window.__goodW || []).length,
+        nearestDist: window.__nearestD,
+        camYaw: window.__camYaw,
+        hasCameraSystem: !!window.__hasCam,
         god: !!(window.GameManager && GameManager.isGodMode && GameManager.isGodMode())
       };
     });
