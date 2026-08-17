@@ -76,9 +76,13 @@ jobs:
           IFS=',' read -ra STAGES <<< "$CHUNK"
           for s in "${STAGES[@]}"; do
             echo "::group::stage $s"
-            STAGE="$s" PORT=$((4500 + s)) OUT="$OUT" SECS="$SECS" node tools/gameplay-clip.js
+            STAGE="$s" PORT=$((4500 + s)) OUT="$OUT" SECS="$SECS" HARD_MS=420000 node tools/gameplay-clip.js
             echo "::endgroup::"
           done
+          # A level that never finished leaves a 0-byte video behind, and the
+          # release API rejects empty assets ("size must be >= 1"), failing the
+          # whole upload — including the levels that DID record. Drop them.
+          find "$OUT" -type f -size 0 -print -delete || true
           echo "--- produced ---"
           ls -la "$OUT" || true
 
@@ -87,8 +91,10 @@ jobs:
           cd "${{ github.workspace }}/clips" || exit 0
           for f in *.webm; do
             [ -e "$f" ] || continue
+            [ -s "$f" ] || { echo "skip empty $f"; continue; }
             ffmpeg -y -hide_banner -loglevel error -i "$f" -c:v libx264 -pix_fmt yuv420p -movflags +faststart "${f%.webm}.mp4" || true
           done
+          find . -type f -size 0 -print -delete || true
           ls -la
 
       - name: Publish clip + screenshots to Release
