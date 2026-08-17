@@ -93,12 +93,16 @@ function BOT_SRC() {
       window.__botPrevAlive = alive;
       window.__botTargets = alive;
       window.__nearestD = best ? Math.round(Math.sqrt(bd)) : -1;
-      window.__hasCam = !!(window.CameraSystem && CameraSystem.setYaw);
-      if (best && window.CameraSystem && CameraSystem.setYaw) {
+      // CameraSystem is declared as a script-scope `const`, so it is NOT a
+      // property of window — window.CameraSystem was undefined and the aim was
+      // silently never applied, which is why clips showed empty scenery.
+      var CS = (typeof CameraSystem !== 'undefined') ? CameraSystem : (window.CameraSystem || null);
+      window.__hasCam = !!(CS && CS.setYaw);
+      if (best && CS && CS.setYaw) {
         var horiz = Math.sqrt(best.dx * best.dx + best.dz * best.dz);
-        CameraSystem.setYaw(Math.atan2(-best.dx, -best.dz));
-        CameraSystem.setPitch(Math.atan2(best.dy, horiz));
-        window.__camYaw = CameraSystem.getYaw ? +CameraSystem.getYaw().toFixed(2) : null;
+        CS.setYaw(Math.atan2(-best.dx, -best.dz));
+        CS.setPitch(Math.atan2(best.dy, horiz));
+        window.__camYaw = CS.getYaw ? +CS.getYaw().toFixed(2) : null;
         // Close the distance: enemies often spawn beyond the fog, so standing
         // still produced empty grey footage and no kills.
         window.__wantAdvance = Math.sqrt(bd) > 9;
