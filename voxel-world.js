@@ -1231,7 +1231,24 @@ window.VoxelWorld = (function () {
   }
 
   let _chunkRebuildQueue = [];
-  let _rebuildBudget = 2;
+  // Chunk meshing is spread over frames so a level never stalls in one frame.
+  // The budget used to be a flat 2 chunks/frame regardless of how fast frames
+  // actually were: a city level has hundreds of in-range chunks, so the world
+  // took hundreds of frames to appear — seconds on a fast machine, but minutes
+  // on a slow/software renderer, which reads as a hang at stage start.
+  // Now it is time-sliced against the measured frame time: always at least 2,
+  // but as many as fit in a quarter of the current frame. Slow machines (long
+  // frames) get a proportionally larger slice, so the world finishes building
+  // in far fewer frames without making any single frame noticeably worse.
+  let _rebuildBudget = 2;                 // guaranteed minimum per frame
+  const _rebuildBudgetMax = 96;           // hard ceiling per frame
+  let _rebuildLastT = 0, _rebuildSliceMs = 4, _rebuildFrameT = 0;
+  function _nowMs() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+  function _rebuildHasBudget(count) {
+    if (count >= _rebuildBudgetMax) return false;
+    if (count < _rebuildBudget) return true;          // always do the minimum
+    return (_nowMs() - _rebuildFrameT) < _rebuildSliceMs;
+  }
   function rebuildAll(cameraPos) {
     // Queue all dirty chunks and process them incrementally via updateDirtyChunks
     // to avoid a single-frame stall that freezes the game for seconds.
@@ -1244,6 +1261,12 @@ window.VoxelWorld = (function () {
 
   function updateDirtyChunks(camera) {
     let count = 0;
+    // Measure the real frame interval and size this frame's meshing slice from
+    // it (clamped), so slow renderers build the world in fewer frames.
+    _rebuildFrameT = _nowMs();
+    const _dt = _rebuildLastT ? Math.min(1000, _rebuildFrameT - _rebuildLastT) : 16;
+    _rebuildLastT = _rebuildFrameT;
+    _rebuildSliceMs = Math.max(4, Math.min(120, _dt * 0.25));
     if (typeof chunks !== 'object' || !chunks.values) {
       console.warn('[VoxelWorld] updateDirtyChunks called with invalid context:', this);
       return {};
@@ -1266,7 +1289,7 @@ window.VoxelWorld = (function () {
       : 150; // world units
 
     // Process queued rebuilds first (from rebuildAll)
-    while (_chunkRebuildQueue.length > 0 && count < _rebuildBudget) {
+    while (_chunkRebuildQueue.length > 0 && _rebuildHasBudget(count)) {
       const chunk = _chunkRebuildQueue.shift();
       if (!chunk || !chunk.dirty) continue;
       // Skip chunks too far from camera
@@ -1349,7 +1372,7 @@ window.VoxelWorld = (function () {
       }
       buildChunkMesh(chunk, _scene, camPos);
       count++;
-      if (count >= _rebuildBudget) break;
+      if (!_rebuildHasBudget(count)) break;
     }
     // Update city events/disasters
     if (typeof updateCityEvents === 'function') updateCityEvents(1 / 60);
