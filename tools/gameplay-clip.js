@@ -145,7 +145,7 @@ function BOT_SRC() {
     // Wait for actual gameplay rather than a fixed sleep, so we never record a
     // loading screen — but bounded, so a slow level can't stall the job.
     try {
-      await pg.waitForFunction(() => window.GameManager && GameManager.getState && GameManager.getState() === 'playing', { timeout: 420000 });
+      await pg.waitForFunction(() => window.GameManager && GameManager.getState && GameManager.getState() === 'playing', { timeout: 180000 });
     } catch (e) { console.log('[' + tag + '] not in PLAYING state in time — recording anyway'); }
     await pg.waitForTimeout(1500);
     // God mode: invincible + every weapon unlocked.
