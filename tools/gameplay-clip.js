@@ -158,6 +158,7 @@ function BOT_SRC() {
     const digits = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0'];
     const end = Date.now() + SECS * 1000;
     let tick = 0, nextShot = Date.now(), shotN = 0, advancing = false;
+    const frameScores = [];
     while (Date.now() < end) {
       // Walk toward the target when it's far — enemies spawn beyond the fog, so
       // standing still gave empty grey footage and no kills.
@@ -176,6 +177,34 @@ function BOT_SRC() {
       // switch weapons often so the clip shows the arsenal
       if (tick % 3 === 2) { try { await pg.keyboard.press(digits[(tick / 3 | 0) % digits.length]); } catch (e) { } }
       await pg.waitForTimeout(120);
+      // Objective content check: sample the rendered frame and measure luma
+      // spread. A flat frame (empty sky/fog, camera pointed at nothing) has a
+      // near-zero stdev. Without this, clips were being judged by the kill
+      // counter alone and empty footage shipped as if it were gameplay.
+      try {
+        const sc = await Promise.race([
+          pg.evaluate(() => {
+            try {
+              const r = GameManager.getRenderer && GameManager.getRenderer();
+              if (!r || !r.domElement) return null;
+              if (GameManager.captureFrame) GameManager.captureFrame();
+              const c = document.createElement('canvas'); c.width = 64; c.height = 36;
+              const x = c.getContext('2d'); x.drawImage(r.domElement, 0, 0, 64, 36);
+              const d = x.getImageData(0, 0, 64, 36).data;
+              let n = 0, sum = 0, sum2 = 0;
+              for (let i = 0; i < d.length; i += 4) {
+                const l = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+                sum += l; sum2 += l * l; n++;
+              }
+              const mean = sum / n;
+              return Math.sqrt(Math.max(0, sum2 / n - mean * mean));
+            } catch (e) { return null; }
+          }),
+          new Promise(r => setTimeout(() => r(null), 4000)),
+        ]);
+        if (typeof sc === 'number') { frameScores.push(+sc.toFixed(1)); }
+      } catch (e) { }
+
       // screenshot every 5s
       if (Date.now() >= nextShot) {
         nextShot += 5000; shotN++;
@@ -208,7 +237,19 @@ function BOT_SRC() {
       };
     });
     console.log('[' + tag + '] RESULT ' + JSON.stringify(stats) + ' shots=' + shots.length + ' ' + el());
-    fs.writeFileSync(path.join(OUT, tag + '-stats.json'), JSON.stringify({ stage: STAGE, secs: SECS, shots: shots, stats: stats }, null, 1));
+    // Verdict: was there anything actually on screen? A flat frame scores near
+    // zero. Anything under ~10 is empty sky/fog and must not be presented as
+    // gameplay footage.
+    const avgScore = frameScores.length ? +(frameScores.reduce((a, b) => a + b, 0) / frameScores.length).toFixed(1) : null;
+    const peakScore = frameScores.length ? Math.max.apply(null, frameScores) : null;
+    const verdict = (avgScore == null) ? 'unknown'
+      : (avgScore >= 18 ? 'GOOD' : (avgScore >= 10 ? 'WEAK' : 'EMPTY'));
+    console.log('[' + tag + '] CONTENT ' + verdict + ' avg=' + avgScore + ' peak=' + peakScore + ' kills=' + stats.botKills);
+    fs.writeFileSync(path.join(OUT, tag + '-stats.json'), JSON.stringify({
+      stage: STAGE, secs: SECS, shots: shots, stats: stats,
+      contentAvg: avgScore, contentPeak: peakScore, verdict: verdict,
+      recordedAt: new Date().toISOString(),
+    }, null, 1));
   } catch (e) {
     console.log('[' + tag + '] EXCEPTION ' + (e.message || e).slice(0, 200));
   }
