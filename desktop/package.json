@@ -2,18 +2,27 @@
   "name": "occupant-killer-desktop",
   "productName": "OccupantKiller",
   "version": "1.0.0",
-  "description": "Occupant Killer — desktop edition",
+  "description": "Occupant Killer \u2014 desktop edition",
   "main": "main.js",
   "author": "PhotonBounce",
   "license": "UNLICENSED",
   "build": {
     "appId": "com.photonbounce.occupantkiller",
     "productName": "OccupantKiller",
-    "files": ["main.js", "app/**/*"],
+    "files": [
+      "main.js",
+      "app/**/*"
+    ],
     "win": {
-      "target": ["portable", "dir"],
+      "target": [
+        "portable",
+        "dir"
+      ],
       "artifactName": "OccupantKiller-${version}-portable.exe"
     },
-    "portable": { "artifactName": "OccupantKiller-${version}-portable.exe" }
+    "portable": {
+      "artifactName": "OccupantKiller-${version}-portable.exe"
+    },
+    "npmRebuild": false
   }
 }
