@@ -7308,6 +7308,13 @@ const GameManager = (function () {
       }
       // Grapple reduces WASD effectiveness to 30% while attached
       if (window.Grapple && Grapple.isActive()) speed *= Grapple.movementMultiplier();
+      // HARD CAP. The multipliers above (sprint, stim, kill-momentum, skills,
+      // loadout, grapple…) compound multiplicatively and nothing bounded the
+      // product — a real-hardware screenshot showed SPD 858 m/s, which also
+      // thrashes chunk LOD every frame (the player crosses the map per frame)
+      // and drags the frame rate down with it. No legitimate mechanic should
+      // exceed 3x base run speed.
+      speed = Math.min(speed, MOVE_SPEED * 3);
       moveDir.multiplyScalar(speed * delta);
 
       // Stamina drain on sprint

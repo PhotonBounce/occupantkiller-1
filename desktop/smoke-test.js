@@ -27,6 +27,33 @@ const fs = require('fs'), path = require('path');
   console.log('state: playing');
   await page.waitForTimeout(6000);
 
+  // 10-second performance window on this Windows/ANGLE-D3D11 stack — the same
+  // driver family as the reported 1-FPS machine. Continuous shader-program
+  // growth here would reproduce that bug's signature directly in CI.
+  const perf0 = await page.evaluate(() => {
+    window.__pfFrames = 0;
+    (function lp() { window.__pfFrames++; requestAnimationFrame(lp); })();
+    const r = GameManager.getRenderer();
+    return { progs: r && r.info && r.info.programs ? r.info.programs.length : null };
+  });
+  await page.waitForTimeout(10000);
+  const perf1 = await page.evaluate(() => {
+    const r = GameManager.getRenderer();
+    const h = window.__renderHealth || {};
+    return {
+      frames: window.__pfFrames,
+      progs: r && r.info && r.info.programs ? r.info.programs.length : null,
+      renderMs: h.renderMs, drawCalls: h.drawCalls,
+      textures: h.textures, geometries: h.geometries,
+      canvasesGl: h.canvasesGl, canvases2d: h.canvases2d,
+    };
+  });
+  const fps = +(perf1.frames / 10).toFixed(1);
+  console.log('PERF fps=' + fps + ' gpu.render=' + perf1.renderMs + 'ms draw=' + perf1.drawCalls
+    + ' progs=' + perf0.progs + '->' + perf1.progs
+    + ' tex=' + perf1.textures + ' geo=' + perf1.geometries
+    + ' canvases=' + perf1.canvasesGl + 'gl/' + perf1.canvases2d + '2d');
+
   const probe = await page.evaluate(() => {
     const out = { state: GameManager.getState() };
     try { const r = GameManager.getRenderer(); if (r && r.info) { out.tris = r.info.render.triangles; out.calls = r.info.render.calls; } } catch (e) {}

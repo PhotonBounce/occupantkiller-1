@@ -87,11 +87,30 @@
     return o;
   }
 
+  // ── Frame-cost instrumentation ──
+  // Times the main renderer.render() call and watches the shader-program count.
+  // On ANGLE/D3D11 a program compile costs tens of ms, so a system that keeps
+  // creating new material variants recompiles shaders continuously and pins the
+  // game at ~1 FPS regardless of scene size — the banner now shows exactly that.
+  var _patchedRenderer = null, _renderMsSum = 0, _renderMsN = 0, _lastProgCount = -1, _progGrowth = 0;
+  function instrumentRenderer(r) {
+    if (!r || r === _patchedRenderer || !r.render) return;
+    var orig = r.render.bind(r);
+    r.render = function (sc, cam) {
+      var t = performance.now();
+      var out = orig(sc, cam);
+      _renderMsSum += performance.now() - t; _renderMsN++;
+      return out;
+    };
+    _patchedRenderer = r;
+  }
+
   function sample() {
     try {
       bindContextLoss();
       var g = gm();
       var r = g && g.getRenderer && g.getRenderer();
+      instrumentRenderer(r);
       var sc = g && g.getScene && g.getScene();
       var tris = null, calls = null, vis = 0;
       if (r && r.info && r.info.render) { tris = r.info.render.triangles; calls = r.info.render.calls; }
@@ -107,9 +126,32 @@
       }
       var status = reason ? 'FAIL' : (live && _fps > 0 && _fps < 20 ? 'WARN' : 'OK');
 
+      // frame-cost readings for this 1s window
+      var renderMs = _renderMsN ? +( _renderMsSum / _renderMsN ).toFixed(1) : null;
+      _renderMsSum = 0; _renderMsN = 0;
+      var progs = null, geos = null, texs = null;
+      try {
+        if (r && r.info) {
+          progs = r.info.programs ? r.info.programs.length : null;
+          if (r.info.memory) { geos = r.info.memory.geometries; texs = r.info.memory.textures; }
+        }
+      } catch (e2) {}
+      _progGrowth = (_lastProgCount >= 0 && progs != null) ? (progs - _lastProgCount) : 0;
+      if (progs != null) _lastProgCount = progs;
+      var canv2d = 0, canvGl = 0;
+      try {
+        var cvs = document.querySelectorAll('canvas');
+        for (var ci = 0; ci < cvs.length; ci++) {
+          // getContext returns the existing context (or null if another type owns it)
+          if (cvs[ci].getContext('2d')) canv2d++; else canvGl++;
+        }
+      } catch (e3) {}
+
       var health = {
         status: status, reason: reason, fps: _fps,
         triangles: tris, drawCalls: calls, visibleMeshes: vis,
+        renderMs: renderMs, programs: progs, programGrowth: _progGrowth,
+        geometries: geos, textures: texs, canvases2d: canv2d, canvasesGl: canvGl,
         contextLost: ctxLost, gpu: gpuName(r), playing: live, t: Date.now()
       };
       window.__renderHealth = health;
@@ -117,9 +159,15 @@
       var b = ensureBanner();
       if (status === 'FAIL') {
         b.style.display = 'block';
-        b.textContent = '⚠ RENDER FAULT: ' + reason + '  ·  ' + _fps + ' FPS  ·  '
-          + (tris != null ? tris + ' tris' : '? tris') + '  ·  GPU: ' + (health.gpu || 'unknown')
-          + '   — please screenshot this';
+        b.textContent = '⚠ RENDER FAULT: ' + reason + ' · ' + _fps + ' FPS · '
+          + (tris != null ? tris + ' tris' : '? tris')
+          + ' · draw ' + (calls != null ? calls : '?')
+          + ' · gpu.render ' + (renderMs != null ? renderMs + 'ms' : '?')
+          + ' · progs ' + (progs != null ? progs : '?') + (_progGrowth > 0 ? '(+' + _progGrowth + '/s!)' : '')
+          + ' · tex ' + (texs != null ? texs : '?') + ' geo ' + (geos != null ? geos : '?')
+          + ' · cv ' + canvGl + 'gl/' + canv2d + '2d'
+          + ' · ' + (health.gpu || 'unknown')
+          + ' — please screenshot this';
       } else {
         b.style.display = 'none';
       }
