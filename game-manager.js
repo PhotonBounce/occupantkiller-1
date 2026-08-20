@@ -993,27 +993,39 @@ const GameManager = (function () {
   setInterval(function () {
     try {
       if (gameState !== STATE.PLAYING || !_scene) return;
-      var dyn = [];
+      // Track point and spot lights SEPARATELY. three.js keys shaders on each
+      // light type's count independently, so holding only the TOTAL steady
+      // still recompiled everything whenever the split moved (measured: the
+      // churning cache keys differed exactly in these fields — 5,11 -> 5,2 ->
+      // 6,0 — while the total stayed flat).
+      var dynP = [], dynS = [];
       _scene.traverse(function (o) {
-        if (o.isLight && (o.isPointLight || o.isSpotLight) && !(o.userData && o.userData.keepLight)) dyn.push(o);
+        if (!o.isLight || (o.userData && o.userData.keepLight)) return;
+        if (o.isPointLight) dynP.push(o); else if (o.isSpotLight) dynS.push(o);
       });
+      var dyn = dynP.concat(dynS);
       if (_lwStage !== currentStage || _lwBaseline < 0) {
         _lwStage = currentStage; _lwBaseline = dyn.length;
-        window.__lwPad = [];   // scene was rebuilt; old pad refs are stale
+        window.__lwPadP = []; window.__lwPadS = [];  // scene rebuilt; refs stale
         return;
       }
       var _head = (window._lwHeadroom != null) ? window._lwHeadroom : 10;
       var _cap  = (window._lwCap != null) ? window._lwCap : 99;
       var budget = Math.min(_lwBaseline, _cap) + _head;
 
-      // Trim anything above budget (oldest first, scene-graph order).
-      if (dyn.length > budget) {
-        var kill = dyn.slice(0, dyn.length - budget);
+      // Per-type budgets: split the allowance so each type has a fixed target.
+      var pBudget = Math.max(1, Math.round(budget * 0.75));
+      var sBudget = Math.max(0, budget - pBudget);
+      function trim(list, cap) {
+        if (list.length <= cap) return list;
+        var kill = list.slice(0, list.length - cap);   // oldest first
         for (var i = 0; i < kill.length; i++) {
           try { if (kill[i].parent) kill[i].parent.remove(kill[i]); } catch (e2) {}
         }
-        dyn.length = budget;
+        return list.slice(list.length - cap);
       }
+      dynP = trim(dynP, pBudget);
+      dynS = trim(dynS, sBudget);
 
       // HOLD THE COUNT CONSTANT. three.js bakes the light counts into every
       // shader's cache key, so ANY change to the number of point/spot lights
@@ -1022,18 +1034,22 @@ const GameManager = (function () {
       // (measured 9 -> 14 with programs climbing 20 -> 86 in 16s). Pad with
       // parked zero-intensity lights so the total is always exactly `budget`:
       // the count stops changing, the program cache saturates, recompiles stop.
-      if (!window.__lwPad) window.__lwPad = [];
-      var pad = window.__lwPad;
-      while (dyn.length + pad.length < budget) {
-        var pl = new THREE.PointLight(0xffffff, 0, 0.001);
-        pl.userData.keepLight = true; pl.userData.lwPad = true;
-        pl.position.set(0, -9999, 0);
-        _scene.add(pl); pad.push(pl);
+      if (!window.__lwPadP) window.__lwPadP = [];
+      if (!window.__lwPadS) window.__lwPadS = [];
+      function pad(list, padArr, target, make) {
+        while (list.length + padArr.length < target) {
+          var L = make();
+          L.userData.keepLight = true; L.userData.lwPad = true;
+          L.position.set(0, -9999, 0);
+          _scene.add(L); padArr.push(L);
+        }
+        while (padArr.length > 0 && list.length + padArr.length > target) {
+          var rm = padArr.pop();
+          try { if (rm.parent) rm.parent.remove(rm); } catch (e3) {}
+        }
       }
-      while (pad.length > 0 && dyn.length + pad.length > budget) {
-        var rm = pad.pop();
-        try { if (rm.parent) rm.parent.remove(rm); } catch (e3) {}
-      }
+      pad(dynP, window.__lwPadP, pBudget, function () { return new THREE.PointLight(0xffffff, 0, 0.001); });
+      pad(dynS, window.__lwPadS, sBudget, function () { var sl = new THREE.SpotLight(0xffffff, 0, 0.001); sl.castShadow = false; return sl; });
     } catch (e) { /* must never break the game */ }
   }, 500);
 
