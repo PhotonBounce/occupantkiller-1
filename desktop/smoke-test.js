@@ -34,7 +34,8 @@ const fs = require('fs'), path = require('path');
     window.__pfFrames = 0;
     (function lp() { window.__pfFrames++; requestAnimationFrame(lp); })();
     const r = GameManager.getRenderer();
-    return { progs: r && r.info && r.info.programs ? r.info.programs.length : null };
+    let lights = 0; try { GameManager.getScene().traverse(o => { if (o.isLight) lights++; }); } catch (e) {}
+    return { progs: r && r.info && r.info.programs ? r.info.programs.length : null, lights };
   });
   await page.waitForTimeout(10000);
   const perf1 = await page.evaluate(() => {
@@ -46,11 +47,13 @@ const fs = require('fs'), path = require('path');
       renderMs: h.renderMs, drawCalls: h.drawCalls,
       textures: h.textures, geometries: h.geometries,
       canvasesGl: h.canvasesGl, canvases2d: h.canvases2d,
+      lights: (() => { let n = 0; try { GameManager.getScene().traverse(o => { if (o.isLight) n++; }); } catch (e) {} return n; })(),
     };
   });
   const fps = +(perf1.frames / 10).toFixed(1);
   console.log('PERF fps=' + fps + ' gpu.render=' + perf1.renderMs + 'ms draw=' + perf1.drawCalls
     + ' progs=' + perf0.progs + '->' + perf1.progs
+    + ' lights=' + perf0.lights + '->' + perf1.lights
     + ' tex=' + perf1.textures + ' geo=' + perf1.geometries
     + ' canvases=' + perf1.canvasesGl + 'gl/' + perf1.canvases2d + '2d');
 

@@ -138,6 +138,17 @@
       } catch (e2) {}
       _progGrowth = (_lastProgCount >= 0 && progs != null) ? (progs - _lastProgCount) : 0;
       if (progs != null) _lastProgCount = progs;
+      // Light census: every add/remove of a light changes the shader cache key
+      // (recompile on D3D11 = tens/hundreds of ms), and every LIVE point light
+      // is evaluated per-fragment — dozens of leaked lights alone explain a
+      // 600ms render. Count them.
+      var lights = 0, lightTypes = {};
+      try {
+        var sc2 = g && g.getScene && g.getScene();
+        if (sc2 && sc2.traverse) sc2.traverse(function (o) {
+          if (o.isLight) { lights++; lightTypes[o.type] = (lightTypes[o.type] || 0) + 1; }
+        });
+      } catch (e4) {}
       var canv2d = 0, canvGl = 0;
       try {
         var cvs = document.querySelectorAll('canvas');
@@ -151,6 +162,7 @@
         status: status, reason: reason, fps: _fps,
         triangles: tris, drawCalls: calls, visibleMeshes: vis,
         renderMs: renderMs, programs: progs, programGrowth: _progGrowth,
+        lights: lights, lightTypes: lightTypes,
         geometries: geos, textures: texs, canvases2d: canv2d, canvasesGl: canvGl,
         contextLost: ctxLost, gpu: gpuName(r), playing: live, t: Date.now()
       };
@@ -164,6 +176,7 @@
           + ' · draw ' + (calls != null ? calls : '?')
           + ' · gpu.render ' + (renderMs != null ? renderMs + 'ms' : '?')
           + ' · progs ' + (progs != null ? progs : '?') + (_progGrowth > 0 ? '(+' + _progGrowth + '/s!)' : '')
+          + ' · lights ' + lights
           + ' · tex ' + (texs != null ? texs : '?') + ' geo ' + (geos != null ? geos : '?')
           + ' · cv ' + canvGl + 'gl/' + canv2d + '2d'
           + ' · ' + (health.gpu || 'unknown')
