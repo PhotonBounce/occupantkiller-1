@@ -132,6 +132,48 @@ function BOT() {
     };
     console.log('STAGE ' + stage + ' ' + JSON.stringify(st));
     report.stages.push(st);
+    // ── Draw-call census ──────────────────────────────────────────────
+    // Group every VISIBLE mesh by what it is, so the biggest contributors to
+    // the draw-call count are named rather than guessed at.
+    try {
+      const census = await page.evaluate(() => {
+        const sc = GameManager.getScene(); const cam = GameManager.getCamera();
+        if (!sc || !cam) return null;
+        const frustum = new THREE.Frustum();
+        frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+        const box = new THREE.Box3();
+        const buckets = {}; let visible = 0, inFrustum = 0, instanced = 0, tinyMeshes = 0;
+        sc.traverse(o => {
+          if (!o.isMesh && !o.isInstancedMesh) return;
+          if (!o.visible) return;
+          let p = o, hidden = false;
+          while (p) { if (!p.visible) { hidden = true; break; } p = p.parent; }
+          if (hidden) return;
+          visible++;
+          if (o.isInstancedMesh) instanced++;
+          // name it: nearest named ancestor, else geometry+material type
+          let label = '', node = o, hops = 0;
+          while (node && hops < 5) { if (node.name) { label = node.name; break; } node = node.parent; hops++; }
+          if (!label) label = (o.geometry && o.geometry.type || '?') + '/' + ((Array.isArray(o.material) ? o.material[0] : o.material) || {}).type;
+          buckets[label] = (buckets[label] || 0) + 1;
+          try {
+            box.setFromObject(o);
+            if (frustum.intersectsBox(box)) inFrustum++;
+            const sz = box.getSize(new THREE.Vector3());
+            if (sz.length() < 1.5) tinyMeshes++;
+          } catch (e) {}
+        });
+        const top = Object.entries(buckets).sort((a, b) => b[1] - a[1]).slice(0, 14);
+        return { visible, inFrustum, instanced, tinyMeshes, top };
+      });
+      if (census) {
+        console.log('CENSUS stage ' + stage + ' visible=' + census.visible + ' inFrustum=' + census.inFrustum
+          + ' instanced=' + census.instanced + ' tiny(<1.5m)=' + census.tinyMeshes);
+        census.top.forEach(([k, v]) => console.log('   ' + String(v).padStart(5) + '  ' + k.slice(0, 70)));
+        st.census = census;
+      }
+    } catch (e) { console.log('census failed: ' + e.message); }
+
     try { await page.screenshot({ path: path.join(OUT, 'play-stage-' + String(stage).padStart(2, '0') + '.png') }); } catch (e) {}
   }
 
