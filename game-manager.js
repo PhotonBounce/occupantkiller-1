@@ -989,7 +989,7 @@ const GameManager = (function () {
   // count at stage start and strip the OLDEST unkept point/spot lights above
   // baseline+10. Persistent lights (sun, muzzle flash, flashbang pool) are
   // tagged userData.keepLight and never touched.
-  var _lwBaseline = -1, _lwStage = -1;
+  var _lwBaseline = -1, _lwStage = -1, _lwBaseP = 0, _lwBaseS = 0;
   setInterval(function () {
     try {
       if (gameState !== STATE.PLAYING || !_scene) return;
@@ -1006,6 +1006,7 @@ const GameManager = (function () {
       var dyn = dynP.concat(dynS);
       if (_lwStage !== currentStage || _lwBaseline < 0) {
         _lwStage = currentStage; _lwBaseline = dyn.length;
+        _lwBaseP = dynP.length; _lwBaseS = dynS.length;
         window.__lwPadP = []; window.__lwPadS = [];  // scene rebuilt; refs stale
         return;
       }
@@ -1013,9 +1014,13 @@ const GameManager = (function () {
       var _cap  = (window._lwCap != null) ? window._lwCap : 99;
       var budget = Math.min(_lwBaseline, _cap) + _head;
 
-      // Per-type budgets: split the allowance so each type has a fixed target.
-      var pBudget = Math.max(1, Math.round(budget * 0.75));
-      var sBudget = Math.max(0, budget - pBudget);
+      // Per-type budgets anchored to THIS LEVEL'S OWN baseline. An earlier
+      // attempt split the allowance 75/25 and padded with synthetic spot
+      // lights — that introduced spot-light shading on levels that had none
+      // and made the churn worse (measured: stage 2 went 35 -> 78 new programs).
+      // Never invent a light type the level didn't already use.
+      var pBudget = Math.min(_lwBaseP, _cap) + _head;
+      var sBudget = _lwBaseS;   // pin spots exactly at baseline; never add more
       function trim(list, cap) {
         if (list.length <= cap) return list;
         var kill = list.slice(0, list.length - cap);   // oldest first
@@ -1049,7 +1054,7 @@ const GameManager = (function () {
         }
       }
       pad(dynP, window.__lwPadP, pBudget, function () { return new THREE.PointLight(0xffffff, 0, 0.001); });
-      pad(dynS, window.__lwPadS, sBudget, function () { var sl = new THREE.SpotLight(0xffffff, 0, 0.001); sl.castShadow = false; return sl; });
+      if (sBudget > 0) pad(dynS, window.__lwPadS, sBudget, function () { var sl = new THREE.SpotLight(0xffffff, 0, 0.001); sl.castShadow = false; return sl; });
     } catch (e) { /* must never break the game */ }
   }, 500);
 
