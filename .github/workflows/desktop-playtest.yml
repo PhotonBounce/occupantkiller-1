@@ -1,0 +1,74 @@
+name: Desktop playtest (Windows)
+
+# Plays the PACKAGED .exe on a real Windows machine for several minutes across
+# multiple levels — god mode, auto-aim kill bot, weapon cycling — and reports
+# early-vs-late FPS (does it degrade?), GPU frame time, draw calls, light count,
+# kills, JS errors, and the cache keys of newly compiled shader programs (which
+# names the remaining recompile-churn source).
+#
+# Note: GitHub Windows runners have no discrete GPU, so absolute FPS here is a
+# software-rasterizer floor, NOT a prediction for real hardware. The useful
+# signals are the RATIOS and TRENDS: fps early vs late, program growth, leaks.
+
+on:
+  workflow_dispatch:
+    inputs:
+      stages:
+        description: 'Stage indices to play'
+        required: false
+        default: '0,2,4'
+      secs:
+        description: 'Seconds per stage'
+        required: false
+        default: '45'
+
+permissions:
+  contents: write
+
+jobs:
+  playtest:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Stage game files into the app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force desktop/app | Out-Null
+          Copy-Item *.html, *.js -Destination desktop/app/ -ErrorAction SilentlyContinue
+          Copy-Item *.css, *.png, *.ico, *.svg -Destination desktop/app/ -ErrorAction SilentlyContinue
+          Copy-Item bundles -Destination desktop/app/bundles -Recurse
+          Remove-Item desktop/app/smoke-test.js, desktop/app/play-session.js, desktop/app/package.json, desktop/app/package-lock.json -ErrorAction SilentlyContinue
+
+      - name: Install Electron + builder
+        shell: pwsh
+        working-directory: desktop
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm install --no-save electron@31.7.7 electron-builder@24.13.3 playwright@1.47.2
+
+      - name: Build app
+        shell: pwsh
+        working-directory: desktop
+        run: npx electron-builder --win dir --publish never
+
+      - name: Play the game
+        shell: pwsh
+        working-directory: desktop
+        run: node play-session.js "dist\win-unpacked\OccupantKiller.exe" "${{ github.event.inputs.secs || '45' }}" "${{ github.event.inputs.stages || '0,2,4' }}"
+
+      - name: Publish playtest report
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-playtest
+          name: Desktop playtest report
+          body: "Autonomous play session against the packaged Windows build: per-stage early/late FPS, GPU frame time, draw calls, lights, kills, JS errors, and new shader-program cache keys. Overwritten each run."
+          files: |
+            desktop/play-report.json
+            desktop/play-stage-*.png
+          fail_on_unmatched_files: false
