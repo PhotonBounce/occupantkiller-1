@@ -1000,7 +1000,12 @@ const GameManager = (function () {
       var all = (window.Enemies && Enemies.getAll) ? (Enemies.getAll() || []) : [];
       for (var i = 0; i < all.length; i++) { var m = all[i] && (all[i].mesh || all[i].group); if (m) skip.add(m); }
     } catch (e) {}
+    try {
+      var npcs = (window.NPCSystem && NPCSystem.getAll) ? (NPCSystem.getAll() || []) : [];
+      for (var n = 0; n < npcs.length; n++) { var nm = npcs[n] && (npcs[n].mesh || npcs[n].group); if (nm) skip.add(nm); }
+    } catch (e) {}
     if (_camera) skip.add(_camera);
+    if (player && player.mesh) skip.add(player.mesh);
     if (!_tpTmp) _tpTmp = { box: new THREE.Box3(), v: new THREE.Vector3() };
     (function walk(node) {
       if (!node || skip.has(node)) return;                 // never touch enemies/weapon
@@ -1010,8 +1015,9 @@ const GameManager = (function () {
           var sz = _tpTmp.box.getSize(_tpTmp.v);
           if (sz.length() < 1.5) {
             node.userData.tpManaged = true;
-            node.getWorldPosition(_tpTmp.v);
-            _tpList.push({ m: node, x: _tpTmp.v.x, y: _tpTmp.v.y, z: _tpTmp.v.z });
+            node.updateWorldMatrix(true, false);
+            var el = node.matrixWorld.elements;
+            _tpList.push({ m: node, x: el[12], y: el[13], z: el[14] });
             return;                                        // don't descend into props
           }
         } catch (e) {}
@@ -1033,6 +1039,17 @@ const GameManager = (function () {
       for (var i = 0; i < _tpList.length; i++) {
         var p = _tpList[i], m = p.m;
         if (!m.userData.tpManaged) continue;
+        // SAFETY: props are static. If a mesh has moved since the list was
+        // built it belongs to something alive (enemy, ally NPC, vehicle,
+        // projectile) that was missed by the skip-set — release it permanently
+        // and make sure it is visible. A stage-4 run scored only 4 kills after
+        // culling went in, which is exactly what hiding entity meshes looks
+        // like; this makes that class of mistake impossible rather than
+        // relying on the skip list being exhaustive.
+        var e = m.matrixWorld.elements;
+        if (Math.abs(e[12] - p.x) > 0.05 || Math.abs(e[13] - p.y) > 0.05 || Math.abs(e[14] - p.z) > 0.05) {
+          m.userData.tpManaged = false; m.visible = true; continue;
+        }
         var dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
         var want = (dx * dx + dy * dy + dz * dz) <= cut2;
         if (m.visible !== want) m.visible = want;
