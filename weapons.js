@@ -6204,6 +6204,7 @@ const Weapons = (() => {
     // per-throw add/remove was a measurable part of the 1 FPS combat stalls.
     if (!window.__fbLight) {
       window.__fbLight = new THREE.PointLight(0xffffff, 0, 60);
+      window.__fbLight.userData.keepLight = true;
       _scene.add(window.__fbLight);
     }
     var flashLight = window.__fbLight;

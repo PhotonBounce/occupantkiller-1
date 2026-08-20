@@ -174,6 +174,7 @@ const GameManager = (function () {
   function doMuzzleFlash() {
     if (!_muzzleFlash && typeof THREE !== 'undefined' && _scene) {
       _muzzleFlash = new THREE.PointLight(0xffffaa, 8, 4);
+      _muzzleFlash.userData.keepLight = true;
       _scene.add(_muzzleFlash);
     }
     if (_muzzleFlash && _camera) {
@@ -977,6 +978,36 @@ const GameManager = (function () {
   }
 
   let currentStage = 0;  // 0-based index into STAGES
+
+  // ── Light warden ────────────────────────────────────────────────────
+  // CI on the ANGLE/D3D11 stack reproduced the 1-FPS report and measured the
+  // cause: dynamic lights LEAK during combat (20 -> 38 in 16s). Every change in
+  // light count is a new shader cache key (full HLSL recompile inside render()),
+  // and every live point light is evaluated per fragment — so the game gets
+  // slower the longer you fight, on every backend. Rather than patch hundreds
+  // of effect call sites, enforce a budget: remember the level's baseline light
+  // count at stage start and strip the OLDEST unkept point/spot lights above
+  // baseline+10. Persistent lights (sun, muzzle flash, flashbang pool) are
+  // tagged userData.keepLight and never touched.
+  var _lwBaseline = -1, _lwStage = -1;
+  setInterval(function () {
+    try {
+      if (gameState !== STATE.PLAYING || !_scene) return;
+      var dyn = [];
+      _scene.traverse(function (o) {
+        if (o.isLight && (o.isPointLight || o.isSpotLight) && !(o.userData && o.userData.keepLight)) dyn.push(o);
+      });
+      if (_lwStage !== currentStage || _lwBaseline < 0) { _lwStage = currentStage; _lwBaseline = dyn.length; return; }
+      var budget = _lwBaseline + 10;
+      if (dyn.length > budget) {
+        var kill = dyn.slice(0, dyn.length - budget); // oldest first (scene-graph order)
+        for (var i = 0; i < kill.length; i++) {
+          try { if (kill[i].parent) kill[i].parent.remove(kill[i]); } catch (e2) {}
+        }
+        if (window.__lightWardenLog !== false) console.log('[LightWarden] removed ' + kill.length + ' leaked lights (now ' + budget + ', baseline ' + _lwBaseline + ')');
+      }
+    } catch (e) { /* must never break the game */ }
+  }, 2000);
 
   /* ── Last-kill camera tracking ───────────────────────────────── */
   var _lastKillPos = null;  // position of most recent enemy kill
