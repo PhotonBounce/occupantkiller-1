@@ -1,0 +1,64 @@
+name: Desktop EXE (Windows)
+
+# Packages the game into a Windows desktop app (Electron) and produces a single
+# portable .exe. Built AND smoke-tested on a Windows runner: the packaged binary
+# is launched, the game must boot, start stage 1, reach the PLAYING state and
+# render a non-empty frame — otherwise the build fails and nothing is published.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Stage game files into the app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force desktop/app | Out-Null
+          Copy-Item *.html, *.js -Destination desktop/app/ -ErrorAction SilentlyContinue
+          Copy-Item *.css, *.json, *.png, *.ico, *.svg -Destination desktop/app/ -ErrorAction SilentlyContinue
+          Copy-Item bundles -Destination desktop/app/bundles -Recurse
+          # The desktop tooling itself must not ship inside the app payload
+          Remove-Item desktop/app/smoke-test.js -ErrorAction SilentlyContinue
+          "app file count: $((Get-ChildItem -Recurse desktop/app | Measure-Object).Count)"
+
+      - name: Install Electron + builder
+        shell: pwsh
+        working-directory: desktop
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm install --no-save electron@31.7.7 electron-builder@24.13.3 playwright@1.47.2
+
+      - name: Build portable exe
+        shell: pwsh
+        working-directory: desktop
+        run: |
+          npx electron-builder --win --publish never
+          Get-ChildItem dist | Select-Object Name, Length
+
+      - name: Smoke test the packaged app
+        shell: pwsh
+        working-directory: desktop
+        run: node smoke-test.js "dist\win-unpacked\OccupantKiller.exe"
+
+      - name: Publish exe + smoke screenshot
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-exe
+          name: Occupant Killer — Windows desktop
+          body: "Portable Windows build (no install: download and double-click). Smoke-tested in CI: boots, starts stage 1, reaches PLAYING, renders a verified non-empty frame. Overwritten each run."
+          files: |
+            desktop/dist/OccupantKiller-*-portable.exe
+            desktop/desktop-smoke.png
+          fail_on_unmatched_files: true
