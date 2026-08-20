@@ -997,19 +997,45 @@ const GameManager = (function () {
       _scene.traverse(function (o) {
         if (o.isLight && (o.isPointLight || o.isSpotLight) && !(o.userData && o.userData.keepLight)) dyn.push(o);
       });
-      if (_lwStage !== currentStage || _lwBaseline < 0) { _lwStage = currentStage; _lwBaseline = dyn.length; return; }
+      if (_lwStage !== currentStage || _lwBaseline < 0) {
+        _lwStage = currentStage; _lwBaseline = dyn.length;
+        window.__lwPad = [];   // scene was rebuilt; old pad refs are stale
+        return;
+      }
       var _head = (window._lwHeadroom != null) ? window._lwHeadroom : 10;
       var _cap  = (window._lwCap != null) ? window._lwCap : 99;
       var budget = Math.min(_lwBaseline, _cap) + _head;
+
+      // Trim anything above budget (oldest first, scene-graph order).
       if (dyn.length > budget) {
-        var kill = dyn.slice(0, dyn.length - budget); // oldest first (scene-graph order)
+        var kill = dyn.slice(0, dyn.length - budget);
         for (var i = 0; i < kill.length; i++) {
           try { if (kill[i].parent) kill[i].parent.remove(kill[i]); } catch (e2) {}
         }
-        if (window.__lightWardenLog !== false) console.log('[LightWarden] removed ' + kill.length + ' leaked lights (now ' + budget + ', baseline ' + _lwBaseline + ')');
+        dyn.length = budget;
+      }
+
+      // HOLD THE COUNT CONSTANT. three.js bakes the light counts into every
+      // shader's cache key, so ANY change to the number of point/spot lights
+      // recompiles EVERY material in the scene — on D3D11 that is a stall
+      // inside render(). Trimming alone still let the count oscillate
+      // (measured 9 -> 14 with programs climbing 20 -> 86 in 16s). Pad with
+      // parked zero-intensity lights so the total is always exactly `budget`:
+      // the count stops changing, the program cache saturates, recompiles stop.
+      if (!window.__lwPad) window.__lwPad = [];
+      var pad = window.__lwPad;
+      while (dyn.length + pad.length < budget) {
+        var pl = new THREE.PointLight(0xffffff, 0, 0.001);
+        pl.userData.keepLight = true; pl.userData.lwPad = true;
+        pl.position.set(0, -9999, 0);
+        _scene.add(pl); pad.push(pl);
+      }
+      while (pad.length > 0 && dyn.length + pad.length > budget) {
+        var rm = pad.pop();
+        try { if (rm.parent) rm.parent.remove(rm); } catch (e3) {}
       }
     } catch (e) { /* must never break the game */ }
-  }, 2000);
+  }, 500);
 
   /* ── Last-kill camera tracking ───────────────────────────────── */
   var _lastKillPos = null;  // position of most recent enemy kill
