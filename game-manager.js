@@ -998,7 +998,9 @@ const GameManager = (function () {
         if (o.isLight && (o.isPointLight || o.isSpotLight) && !(o.userData && o.userData.keepLight)) dyn.push(o);
       });
       if (_lwStage !== currentStage || _lwBaseline < 0) { _lwStage = currentStage; _lwBaseline = dyn.length; return; }
-      var budget = _lwBaseline + 10;
+      var _head = (window._lwHeadroom != null) ? window._lwHeadroom : 10;
+      var _cap  = (window._lwCap != null) ? window._lwCap : 99;
+      var budget = Math.min(_lwBaseline, _cap) + _head;
       if (dyn.length > budget) {
         var kill = dyn.slice(0, dyn.length - budget); // oldest first (scene-graph order)
         for (var i = 0; i < kill.length; i++) {
@@ -8787,18 +8789,23 @@ const GameManager = (function () {
       // pr=pixelRatio, ff=fogFar, sh=shadows, vfx=lowEndVFX, dd=drawDistance,
       // fx=effectScale, en=enemyScale.
       var TIERS = [
-        { pr:_basePixelRatio,              ff:_baseFogFar,     sh:_baseShadowsEnabled, vfx:false, dd:(isMobile?90:180), fx:1.0,  en:1.0  }, // 0 full
-        { pr:Math.min(_basePixelRatio,1.0),ff:isMobile?50:90,  sh:true,                vfx:false, dd:(isMobile?80:120), fx:1.0,  en:1.0  }, // 1
-        { pr:1.0,                          ff:60,              sh:false,               vfx:false, dd:70,                fx:0.8,  en:0.85 }, // 2
-        { pr:0.75,                         ff:45,              sh:false,               vfx:true,  dd:52,                fx:0.6,  en:0.7  }, // 3
-        { pr:0.55,                         ff:32,              sh:false,               vfx:true,  dd:36,                fx:0.3,  en:0.5  }, // 4
-        { pr:0.4,                          ff:26,              sh:false,               vfx:true,  dd:26,                fx:0.18, en:0.35 }  // 5 potato
+        // lwCap/lwHead: dynamic point/spot light budget for the light warden —
+        // cap on the baseline it will honour, plus headroom for effects. Each
+        // live point light is per-fragment cost and each COUNT change is a
+        // shader recompile, so struggling GPUs shed lights aggressively.
+        { pr:_basePixelRatio,              ff:_baseFogFar,     sh:_baseShadowsEnabled, vfx:false, dd:(isMobile?90:180), fx:1.0,  en:1.0,  lwCap:99, lwHead:10 }, // 0 full
+        { pr:Math.min(_basePixelRatio,1.0),ff:isMobile?50:90,  sh:true,                vfx:false, dd:(isMobile?80:120), fx:1.0,  en:1.0,  lwCap:99, lwHead:10 }, // 1
+        { pr:1.0,                          ff:60,              sh:false,               vfx:false, dd:70,                fx:0.8,  en:0.85, lwCap:24, lwHead:6  }, // 2
+        { pr:0.75,                         ff:45,              sh:false,               vfx:true,  dd:52,                fx:0.6,  en:0.7,  lwCap:16, lwHead:4  }, // 3
+        { pr:0.55,                         ff:32,              sh:false,               vfx:true,  dd:36,                fx:0.3,  en:0.5,  lwCap:10, lwHead:2  }, // 4
+        { pr:0.4,                          ff:26,              sh:false,               vfx:true,  dd:26,                fx:0.18, en:0.35, lwCap:6,  lwHead:0  }  // 5 potato
       ];
       // Fill-rate is THE bottleneck on weak mobile GPUs (Adreno 6xx): a lower
       // pixelRatio (fewer fragments) is the single biggest lever, so the deepest
       // tiers render at ~0.4x resolution (upscaled). Kept above 0.35 to stay legible.
       var t = TIERS[_perfLevel] || TIERS[TIERS.length - 1];
       var pr = t.pr, fogFar = t.ff, shadows = t.sh; _lowEndVFX = t.vfx;
+      window._lwCap = t.lwCap; window._lwHeadroom = t.lwHead;
       if (_renderer) { _renderer.setPixelRatio(pr); _renderer.shadowMap.enabled = shadows; }
       if (sunLight) sunLight.castShadow = shadows;
       if (_perfLevel >= 2 && _scene) _scene.environment = null;
