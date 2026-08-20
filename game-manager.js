@@ -979,6 +979,67 @@ const GameManager = (function () {
 
   let currentStage = 0;  // 0-based index into STAGES
 
+  // ── Tiny-prop distance culler ───────────────────────────────────────
+  // Measured on the packaged build: a level renders 3,400-5,900 visible meshes
+  // of which 3,200-5,650 are TINY (<1.5m) and ZERO are instanced — thousands of
+  // individual little boxes, one draw call each (Mariupol peaked near 3,900
+  // draw calls/frame). Merging them all is a large refactor; culling the distant
+  // ones is not, and it scales with the quality tier so weak GPUs shed the most.
+  //
+  // Only world props are managed: the candidate list is built by walking the
+  // scene and SKIPPING the subtrees of enemies, the player and anything
+  // parented to the camera (the weapon), so gameplay-critical meshes are never
+  // touched. Objects an effect explicitly hid stay hidden (we only ever manage
+  // meshes we ourselves marked).
+  var _tpStage = -1, _tpList = [], _tpTmp = null;
+  function _tpRebuild() {
+    _tpList = [];
+    if (!_scene) return;
+    var skip = new Set();
+    try {
+      var all = (window.Enemies && Enemies.getAll) ? (Enemies.getAll() || []) : [];
+      for (var i = 0; i < all.length; i++) { var m = all[i] && (all[i].mesh || all[i].group); if (m) skip.add(m); }
+    } catch (e) {}
+    if (_camera) skip.add(_camera);
+    if (!_tpTmp) _tpTmp = { box: new THREE.Box3(), v: new THREE.Vector3() };
+    (function walk(node) {
+      if (!node || skip.has(node)) return;                 // never touch enemies/weapon
+      if (node.isMesh && node.visible) {
+        try {
+          _tpTmp.box.setFromObject(node);
+          var sz = _tpTmp.box.getSize(_tpTmp.v);
+          if (sz.length() < 1.5) {
+            node.userData.tpManaged = true;
+            node.getWorldPosition(_tpTmp.v);
+            _tpList.push({ m: node, x: _tpTmp.v.x, y: _tpTmp.v.y, z: _tpTmp.v.z });
+            return;                                        // don't descend into props
+          }
+        } catch (e) {}
+      }
+      var ch = node.children;
+      for (var i = 0; i < ch.length; i++) walk(ch[i]);
+    })(_scene);
+  }
+  setInterval(function () {
+    try {
+      if (gameState !== STATE.PLAYING || !_scene || !_camera) return;
+      if (_tpStage !== currentStage) { _tpStage = currentStage; _tpRebuild(); return; }
+      if (!_tpList.length) return;
+      // Distance budget: generous at full quality, aggressive when struggling.
+      var dd = window._perfDrawDistance || 120;
+      var cut = Math.max(18, Math.min(120, dd * 0.55));
+      var cut2 = cut * cut;
+      var cx = _camera.position.x, cy = _camera.position.y, cz = _camera.position.z;
+      for (var i = 0; i < _tpList.length; i++) {
+        var p = _tpList[i], m = p.m;
+        if (!m.userData.tpManaged) continue;
+        var dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
+        var want = (dx * dx + dy * dy + dz * dz) <= cut2;
+        if (m.visible !== want) m.visible = want;
+      }
+    } catch (e) { /* cosmetic only */ }
+  }, 400);
+
   // ── Light warden ────────────────────────────────────────────────────
   // CI on the ANGLE/D3D11 stack reproduced the 1-FPS report and measured the
   // cause: dynamic lights LEAK during combat (20 -> 38 in 16s). Every change in
