@@ -27,10 +27,13 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force desktop/app | Out-Null
           Copy-Item *.html, *.js -Destination desktop/app/ -ErrorAction SilentlyContinue
-          Copy-Item *.css, *.json, *.png, *.ico, *.svg -Destination desktop/app/ -ErrorAction SilentlyContinue
+          Copy-Item *.css, *.png, *.ico, *.svg -Destination desktop/app/ -ErrorAction SilentlyContinue
           Copy-Item bundles -Destination desktop/app/bundles -Recurse
-          # The desktop tooling itself must not ship inside the app payload
-          Remove-Item desktop/app/smoke-test.js -ErrorAction SilentlyContinue
+          # The desktop tooling itself must not ship inside the app payload, and
+          # the repo's package.json must NOT land in app/ — electron-builder
+          # would treat it as a nested package and try to npm-install its native
+          # deps (canvas/tfjs) on the runner, which is what failed run #1.
+          Remove-Item desktop/app/smoke-test.js, desktop/app/package.json, desktop/app/package-lock.json -ErrorAction SilentlyContinue
           "app file count: $((Get-ChildItem -Recurse desktop/app | Measure-Object).Count)"
 
       - name: Install Electron + builder
