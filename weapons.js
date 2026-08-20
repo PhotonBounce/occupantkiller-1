@@ -6198,11 +6198,19 @@ const Weapons = (() => {
     }
     // 3) Audio
     if (typeof AudioSystem !== 'undefined' && AudioSystem.playFlashbang) AudioSystem.playFlashbang();
-    // 4) Bright flash light
-    var flashLight = new THREE.PointLight(0xffffff, 8, radius * 3);
+    // 4) Bright flash light — one persistent reused light, intensity-toggled.
+    // Adding/removing a light changes the scene's light count, which forces a
+    // full shader recompile on ANGLE/D3D11 (tens-hundreds of ms per program):
+    // per-throw add/remove was a measurable part of the 1 FPS combat stalls.
+    if (!window.__fbLight) {
+      window.__fbLight = new THREE.PointLight(0xffffff, 0, 60);
+      _scene.add(window.__fbLight);
+    }
+    var flashLight = window.__fbLight;
+    flashLight.distance = radius * 3;
+    flashLight.intensity = 8;
     flashLight.position.copy(pos);
-    _scene.add(flashLight);
-    setTimeout(function () { _scene.remove(flashLight); }, 200);
+    setTimeout(function () { flashLight.intensity = 0; }, 200);
   }
 
   // ── Shovel swing animation state ──────────────────────────
