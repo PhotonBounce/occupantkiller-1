@@ -100,6 +100,37 @@ const fs = require('fs');
       + ', meshesInScene: ' + results.wildlife.wildlifeMeshesInScene + ')');
   }
 
+  // ── 2b. does in-game time keep up with wall time? ───────────────────────
+  // The frame loop clamps delta to 0.1s, so on a machine that renders slowly
+  // the world clock advances slower than real time — every timed system (the
+  // day/night cycle, weather, spawn cadences) stretches with it. That is a
+  // candidate explanation for "I don't see day-night changes", so measure the
+  // ratio rather than argue about it.
+  const t0 = await page.evaluate(() => {
+    try { return { clock: TimeSystem.getInfo().timeOfDay, ticks: window.__npcUpdateTicks || 0 }; }
+    catch (e) { return null; }
+  });
+  const wallStart = Date.now();
+  await page.waitForTimeout(20000);
+  const t1 = await page.evaluate(() => {
+    try { return { clock: TimeSystem.getInfo().timeOfDay, ticks: window.__npcUpdateTicks || 0 }; }
+    catch (e) { return null; }
+  });
+  if (t0 && t1) {
+    const wallSec = (Date.now() - wallStart) / 1000;
+    // timeOfDay is 0..1 over TimeSystem.DAY_DURATION seconds of GAME time.
+    const dayLen = await page.evaluate(() => { try { return TimeSystem.getDayDuration(); } catch (e) { return 600; } });
+    let d = t1.clock - t0.clock; if (d < 0) d += 1;          // handle midnight wrap
+    const gameSec = d * dayLen;
+    results.timeRate = {
+      wallSec: +wallSec.toFixed(1),
+      gameSec: +gameSec.toFixed(1),
+      ratio: +(gameSec / wallSec).toFixed(3),   // 1.0 == game time tracks real time
+      framesInWindow: t1.ticks - t0.ticks,
+      fpsInWindow: +((t1.ticks - t0.ticks) / wallSec).toFixed(1)
+    };
+  }
+
   // ── 3. winter / night visuals ───────────────────────────────────────────
   await page.evaluate(() => {
     try { TimeSystem.setSeason('Winter'); TimeSystem.setHour(23); } catch (e) {}
