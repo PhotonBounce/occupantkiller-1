@@ -1505,10 +1505,21 @@ function buildCivilianMesh(npc) {
     return WILDLIFE_SETS.rural;
   }
 
+  // Records why a spawn attempt produced nothing. Silent early returns are how
+  // this feature stayed broken for so long: the first bug threw and was
+  // swallowed by a bare catch, and the second returned quietly with no error at
+  // all, so both looked identical from outside — no animals, no explanation.
+  function _wlStatus(why, extra) {
+    try {
+      window.__wildlifeStatus = Object.assign({ why: why, at: Math.round(_wlClock) }, extra || {});
+    } catch (e) {}
+  }
+  var _wlClock = 0;
+
   function _spawnWildlifeNearPlayer() {
-    if (!_scene) return;
+    if (!_scene) { _wlStatus('no scene'); return; }
     var pl = (window.GameManager && GameManager.getPlayer) ? GameManager.getPlayer() : null;
-    if (!pl || !pl.position) return;
+    if (!pl || !pl.position) { _wlStatus('no player', { hasGM: !!window.GameManager }); return; }
 
     // Count and cull in one pass.
     var alive = 0, i, n;
@@ -1523,10 +1534,11 @@ function buildCivilianMesh(npc) {
       }
       alive++;
     }
-    if (alive >= WILDLIFE_CAP) return;
+    if (alive >= WILDLIFE_CAP) { _wlStatus('at cap', { alive: alive }); return; }
 
     var set = _wildlifeSetForLevel();
     var want = Math.min(2, WILDLIFE_CAP - alive);
+    var spawned = 0;
     for (i = 0; i < want; i++) {
       var type = set[Math.floor(Math.random() * set.length)];
       // Ring around the player: far enough not to pop in, close enough to see.
@@ -1549,7 +1561,9 @@ function buildCivilianMesh(npc) {
         var mate = createWildlifeNPC(type, sx + (Math.random() - 0.5) * 6, sy, sz + (Math.random() - 0.5) * 6);
         npcs.push(mate); _npcById[mate.id] = mate; _scene.add(mate.mesh);
       }
+      spawned += 1 + herd;
     }
+    _wlStatus('spawned', { spawned: spawned, aliveBefore: alive, set: set.join(',') });
   }
 
   function update(delta, timeInfo) {
@@ -1560,6 +1574,8 @@ function buildCivilianMesh(npc) {
     // player. Capped and rate-limited: this runs at most a few times a minute
     // and never holds more than WILDLIFE_CAP animals, so it cannot become a
     // per-frame cost no matter how long a mission runs.
+    _wlClock += delta;
+    try { window.__npcUpdateTicks = (window.__npcUpdateTicks || 0) + 1; } catch (e) {}
     _wildlifeTimer = (_wildlifeTimer || 0) - delta;
     if (_wildlifeTimer <= 0) {
       _wildlifeTimer = 9 + Math.random() * 9;

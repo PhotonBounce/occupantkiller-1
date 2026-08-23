@@ -71,11 +71,23 @@ const fs = require('fs');
       const all = NPCSystem.getAll ? NPCSystem.getAll() : [];
       all.forEach(n => { if (n && n.wild && n.alive) o.byType[n.type] = (o.byType[n.type] || 0) + 1; });
       o.total = Object.keys(o.byType).reduce((a, k) => a + o.byType[k], 0);
+      o.allNpcs = all.length;
+      o.status = window.__wildlifeStatus || null;   // why a spawn produced nothing
+      o.updateTicks = window.__npcUpdateTicks || 0; // proof NPCSystem.update runs
+      // Count wildlife meshes straight off the scene too, in case they exist but
+      // are not reachable through getAll().
+      let inScene = 0;
+      try { GameManager.getScene().traverse(x => { if (x.userData && x.userData.faction === 'wildlife') inScene++; }); } catch (e) {}
+      o.wildlifeMeshesInScene = inScene;
     } catch (e) { o.readErr = String(e).slice(0, 200); }
     return o;
   });
   if (results.wildlife.err) results.fail.push('wildlife spawner error: ' + results.wildlife.err);
-  if (!results.wildlife.total) results.fail.push('no wildlife spawned after 45s');
+  if (!results.wildlife.total) {
+    results.fail.push('no wildlife spawned after 45s (status: '
+      + JSON.stringify(results.wildlife.status) + ', updateTicks: ' + results.wildlife.updateTicks
+      + ', meshesInScene: ' + results.wildlife.wildlifeMeshesInScene + ')');
+  }
 
   // ── 3. winter / night visuals ───────────────────────────────────────────
   await page.evaluate(() => {
