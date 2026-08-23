@@ -59,7 +59,9 @@ const fs = require('fs');
   if (!results.drone.launched) results.fail.push('bomber drone did not launch from the loadout');
   if (results.drone.type !== 'bomb') results.fail.push('possessed drone is not the bomber (' + results.drone.type + ')');
   if (results.drone.payloadBefore !== true) results.fail.push('bomber spawned with no payload');
-  if (results.drone.dropped !== true) results.fail.push('dropPayload did not report a drop');
+  // dropPayload returns the drop descriptor ({position, damage}), not a boolean.
+  if (!results.drone.dropped) results.fail.push('dropPayload did not report a drop');
+  else if (!(results.drone.dropped.damage > 0)) results.fail.push('drop carried no damage');
   if (results.drone.payloadAfter !== false) results.fail.push('payload not consumed by the drop');
 
   // ── 2. wildlife ─────────────────────────────────────────────────────────
@@ -106,14 +108,14 @@ const fs = require('fs');
   try {
     const durl = await page.evaluate(() => { try { return GameManager.captureFrame(); } catch (e) { return null; } });
     if (durl && durl.indexOf('data:image/png;base64,') === 0) {
-      fs.writeFileSync('desktop/verify-winter-night.png', Buffer.from(durl.split(',')[1], 'base64'));
-      console.log('captured desktop/verify-winter-night.png');
+      fs.writeFileSync('verify-winter-night.png', Buffer.from(durl.split(',')[1], 'base64'));
+      console.log('captured verify-winter-night.png');
     }
   } catch (e) {}
 
   results.pageErrors = errs.slice(0, 8);
   console.log(JSON.stringify(results, null, 1));
-  fs.writeFileSync('desktop/verify-features.json', JSON.stringify(results, null, 1));
+  fs.writeFileSync('verify-features.json', JSON.stringify(results, null, 1));
   await app.close();
   if (results.fail.length) { console.log('VERIFY FAIL: ' + results.fail.join(' | ')); process.exit(1); }
   console.log('VERIFY PASS');

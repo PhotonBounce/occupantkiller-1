@@ -1,3 +1,174 @@
+/* ───────────────────────────────────────────────────────────────────────
+   NPC SIMULATION SYSTEM — Sims-like agents with needs, jobs, AI
+   ─────────────────────────────────────────────────────────────────────── */
+const NPCSystem = (function () {
+  'use strict';
+
+  /* ── NPC Ranks ───────────────────────────────────────────────────── */
+  const NPC_RANK = Object.freeze({
+    CIVILIAN:   'civilian',
+    TRAINEE:    'trainee',
+    INFANTRY:   'infantry',
+    SPECIALIST: 'specialist',
+    VETERAN:    'veteran',
+    ELITE:      'elite',
+  });
+
+  const RANK_ORDER = [
+    NPC_RANK.CIVILIAN, NPC_RANK.TRAINEE, NPC_RANK.INFANTRY,
+    NPC_RANK.SPECIALIST, NPC_RANK.VETERAN, NPC_RANK.ELITE
+  ];
+
+  /* ── Job Types ───────────────────────────────────────────────────── */
+  const JOB = Object.freeze({
+    IDLE:       'idle',
+    GATHER:     'gather',
+    BUILD:      'build',
+    GUARD:      'guard',
+    PATROL:     'patrol',
+    CRAFT:      'craft',
+    TRAIN:      'train',
+    REPAIR:     'repair',
+    DRONE_OP:   'drone_op',
+    SCOUT:      'scout',
+    REST:       'rest',
+    MEDIC:      'medic',
+    EVAC:       'evac',
+    ASSAULT:    'assault',
+    WANDER:     'wander',
+    FLEE:       'flee',
+    SHOPKEEPER: 'shopkeeper',
+    HIDE:       'hide'
+  });
+
+// ── Civilian Mesh Variant ──
+function buildCivilianMesh(npc) {
+  const group = new THREE.Group();
+  // Simple body (random civilian color)
+  const colors = [0xC2B280, 0x8B7355, 0xB0E0E6, 0xA0522D, 0xD2B48C];
+  const bodyColor = colors[npc.id % colors.length];
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.38, 0.7, 0.28),
+    new THREE.MeshLambertMaterial({ color: bodyColor })
+  );
+  body.position.y = 0.75;
+  group.add(body);
+  // Head
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.17, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0xEEC9A1 })
+  );
+  head.position.y = 1.22;
+  group.add(head);
+  // Arms
+  for (let side = -1; side <= 1; side += 2) {
+    const arm = new THREE.Mesh(
+      new THREE.BoxGeometry(0.10, 0.48, 0.10),
+      new THREE.MeshLambertMaterial({ color: bodyColor })
+    );
+    arm.position.set(side * 0.22, 0.85, 0);
+    group.add(arm);
+  }
+  // Legs
+  for (let side = -1; side <= 1; side += 2) {
+    const leg = new THREE.Mesh(
+      new THREE.BoxGeometry(0.11, 0.45, 0.11),
+      new THREE.MeshLambertMaterial({ color: 0x444444 })
+    );
+    leg.position.set(side * 0.10, 0.23, 0);
+    group.add(leg);
+  }
+  group.userData.npcId = npc.id;
+  group.userData.faction = 'civilian';
+  group.castShadow = true;
+  return group;
+}
+
+  /* ── Friendly Assault Group System ─────────────────────────────── */
+  const NUM_FRIENDLY_GROUPS = 4;
+  const friendlyGroups = [];
+
+  const FGROUP_STATE = Object.freeze({
+    STAGING:    'staging',
+    ADVANCING:  'advancing',
+    ENGAGING:   'engaging',
+    DEFENDING:  'defending',
+    RETREATING: 'retreating',
+    REGROUPING: 'regrouping',
+  });
+
+  // Reusable temp vectors to avoid per-frame allocations
+  var _nTmp1 = new THREE.Vector3();
+  var _nTmp2 = new THREE.Vector3();
+  var _nTmp3 = new THREE.Vector3();
+
+  // ── NPC Dialogue / Voice Lines ───────────────────────────────────
+  const _NPC_VOICE = {
+    spot:   ['Ось вони!','Ворог!','Там! Там!','Контакт!','Виділяю ціль!'],
+    attack: ['Вогонь!','Поцілюю!','Тримай!','За Україну!','Вперед!'],
+    hit:    ['Влучив!','Точно в ціль!','Гарний постріл!','Є контакт!'],
+    retreat:['Відходимо!','Назад!','Перегрупування!','Захист!'],
+    medic:  ['Потрібен медик!','Поранений!','Допоможіть!','Як багато крові!'],
+    rally:  ['Тримати лінію!','Разом!','Не відступати!','Слава Україні!'],
+    win:    ['Героям слава!','Ми це зробили!','Перемога!','Ворог відступає!'],
+    idle:   ['Чекаю наказів.','Все чисто.','Сканую сектор.','Тихо поки що.'],
+  };
+  var _npcDialogueTimers = new Map(); // npcId -> nextSpeakTime
+
+  function showNPCDialogue(npc, category, duration) {
+    if (!npc || !npc.alive) return;
+    var now = performance.now() / 1000;
+    var next = _npcDialogueTimers.get(npc.id);
+    if (next && now < next) return;
+    _npcDialogueTimers.set(npc.id, now + 4 + Math.random() * 4);
+    var lines = _NPC_VOICE[category] || _NPC_VOICE.idle;
+    var text = lines[Math.floor(Math.random() * lines.length)];
+    if (typeof HUD !== 'undefined' && HUD.showNPCText) {
+      HUD.showNPCText(npc, text, duration || 2.5);
+    }
+  }
+
+  function createFriendlyGroup(id) {
+    const angle = (id / NUM_FRIENDLY_GROUPS) * Math.PI * 2 + 0.4;
+    const dist = 4 + Math.random() * 6;
+    const pos = new THREE.Vector3(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+
+    // Defensive objective (guard point)
+    const defAngle = angle + (Math.random() - 0.5) * 0.6;
+    const defDist = 8 + Math.random() * 8;
+
+    return {
+      id: id,
+      state: FGROUP_STATE.STAGING,
+      stateTimer: 2 + Math.random() * 3,
+      rallyPoint: pos.clone(),
+      guardPoint: new THREE.Vector3(Math.cos(defAngle) * defDist, 0, Math.sin(defAngle) * defDist),
+      members: [],       // npc ids
+      morale: 85 + Math.random() * 15,
+      hasMedic: false,
+      formation: FORMATION.WEDGE,
+      _formYaw: defAngle,
+    };
+  }
+
+  /* ── State ───────────────────────────────────────────────────────── */
+  const npcs = [];
+  var _npcById = {};  // id → npc lookup for O(1) access
+  var _aliveGrpBuf = [];  // reusable buffer for alive group members
+  let _scene = null;
+  let nextId = 1;
+  let _mlAssistStrategy = null; // ML-guided NPC assistance strategy
+  let _strayPetTimer = 8; // first stray pet ~8s into play
+
+  /* ── Wildlife ──────────────────────────────────────────────────────
+     This block used to sit ABOVE the module IIFE, at file scope. Its
+     function declarations still became globals, so update() could call
+     createWildlifeNPC() — but the function body references nextId, npcs,
+     _npcById and _scene, which are declared with let/const INSIDE this
+     IIFE and are invisible from file scope. Every wildlife spawn therefore
+     threw "nextId is not defined" and was swallowed by a bare catch, which
+     is why no animals ever appeared: not the stray dogs and cats, not the
+     birds, nothing. Moved inside the module so it can see that state. */
     // --- Wildlife Types ---
     const WILDLIFE_TYPE = Object.freeze({
       BIRD:   'bird',
@@ -443,167 +614,6 @@
   // Expose for scenario use
   window.UkrainianTactics = { hostomel: ukrainianTacticsHostomel, kyiv: ukrainianTacticsKyiv };
   window.RussianTactics = { hostomel: russianTacticsHostomel, kyiv: russianTacticsKyiv };
-/* ───────────────────────────────────────────────────────────────────────
-   NPC SIMULATION SYSTEM — Sims-like agents with needs, jobs, AI
-   ─────────────────────────────────────────────────────────────────────── */
-const NPCSystem = (function () {
-  'use strict';
-
-  /* ── NPC Ranks ───────────────────────────────────────────────────── */
-  const NPC_RANK = Object.freeze({
-    CIVILIAN:   'civilian',
-    TRAINEE:    'trainee',
-    INFANTRY:   'infantry',
-    SPECIALIST: 'specialist',
-    VETERAN:    'veteran',
-    ELITE:      'elite',
-  });
-
-  const RANK_ORDER = [
-    NPC_RANK.CIVILIAN, NPC_RANK.TRAINEE, NPC_RANK.INFANTRY,
-    NPC_RANK.SPECIALIST, NPC_RANK.VETERAN, NPC_RANK.ELITE
-  ];
-
-  /* ── Job Types ───────────────────────────────────────────────────── */
-  const JOB = Object.freeze({
-    IDLE:       'idle',
-    GATHER:     'gather',
-    BUILD:      'build',
-    GUARD:      'guard',
-    PATROL:     'patrol',
-    CRAFT:      'craft',
-    TRAIN:      'train',
-    REPAIR:     'repair',
-    DRONE_OP:   'drone_op',
-    SCOUT:      'scout',
-    REST:       'rest',
-    MEDIC:      'medic',
-    EVAC:       'evac',
-    ASSAULT:    'assault',
-    WANDER:     'wander',
-    FLEE:       'flee',
-    SHOPKEEPER: 'shopkeeper',
-    HIDE:       'hide'
-  });
-
-// ── Civilian Mesh Variant ──
-function buildCivilianMesh(npc) {
-  const group = new THREE.Group();
-  // Simple body (random civilian color)
-  const colors = [0xC2B280, 0x8B7355, 0xB0E0E6, 0xA0522D, 0xD2B48C];
-  const bodyColor = colors[npc.id % colors.length];
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.38, 0.7, 0.28),
-    new THREE.MeshLambertMaterial({ color: bodyColor })
-  );
-  body.position.y = 0.75;
-  group.add(body);
-  // Head
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.17, 8, 8),
-    new THREE.MeshLambertMaterial({ color: 0xEEC9A1 })
-  );
-  head.position.y = 1.22;
-  group.add(head);
-  // Arms
-  for (let side = -1; side <= 1; side += 2) {
-    const arm = new THREE.Mesh(
-      new THREE.BoxGeometry(0.10, 0.48, 0.10),
-      new THREE.MeshLambertMaterial({ color: bodyColor })
-    );
-    arm.position.set(side * 0.22, 0.85, 0);
-    group.add(arm);
-  }
-  // Legs
-  for (let side = -1; side <= 1; side += 2) {
-    const leg = new THREE.Mesh(
-      new THREE.BoxGeometry(0.11, 0.45, 0.11),
-      new THREE.MeshLambertMaterial({ color: 0x444444 })
-    );
-    leg.position.set(side * 0.10, 0.23, 0);
-    group.add(leg);
-  }
-  group.userData.npcId = npc.id;
-  group.userData.faction = 'civilian';
-  group.castShadow = true;
-  return group;
-}
-
-  /* ── Friendly Assault Group System ─────────────────────────────── */
-  const NUM_FRIENDLY_GROUPS = 4;
-  const friendlyGroups = [];
-
-  const FGROUP_STATE = Object.freeze({
-    STAGING:    'staging',
-    ADVANCING:  'advancing',
-    ENGAGING:   'engaging',
-    DEFENDING:  'defending',
-    RETREATING: 'retreating',
-    REGROUPING: 'regrouping',
-  });
-
-  // Reusable temp vectors to avoid per-frame allocations
-  var _nTmp1 = new THREE.Vector3();
-  var _nTmp2 = new THREE.Vector3();
-  var _nTmp3 = new THREE.Vector3();
-
-  // ── NPC Dialogue / Voice Lines ───────────────────────────────────
-  const _NPC_VOICE = {
-    spot:   ['Ось вони!','Ворог!','Там! Там!','Контакт!','Виділяю ціль!'],
-    attack: ['Вогонь!','Поцілюю!','Тримай!','За Україну!','Вперед!'],
-    hit:    ['Влучив!','Точно в ціль!','Гарний постріл!','Є контакт!'],
-    retreat:['Відходимо!','Назад!','Перегрупування!','Захист!'],
-    medic:  ['Потрібен медик!','Поранений!','Допоможіть!','Як багато крові!'],
-    rally:  ['Тримати лінію!','Разом!','Не відступати!','Слава Україні!'],
-    win:    ['Героям слава!','Ми це зробили!','Перемога!','Ворог відступає!'],
-    idle:   ['Чекаю наказів.','Все чисто.','Сканую сектор.','Тихо поки що.'],
-  };
-  var _npcDialogueTimers = new Map(); // npcId -> nextSpeakTime
-
-  function showNPCDialogue(npc, category, duration) {
-    if (!npc || !npc.alive) return;
-    var now = performance.now() / 1000;
-    var next = _npcDialogueTimers.get(npc.id);
-    if (next && now < next) return;
-    _npcDialogueTimers.set(npc.id, now + 4 + Math.random() * 4);
-    var lines = _NPC_VOICE[category] || _NPC_VOICE.idle;
-    var text = lines[Math.floor(Math.random() * lines.length)];
-    if (typeof HUD !== 'undefined' && HUD.showNPCText) {
-      HUD.showNPCText(npc, text, duration || 2.5);
-    }
-  }
-
-  function createFriendlyGroup(id) {
-    const angle = (id / NUM_FRIENDLY_GROUPS) * Math.PI * 2 + 0.4;
-    const dist = 4 + Math.random() * 6;
-    const pos = new THREE.Vector3(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
-
-    // Defensive objective (guard point)
-    const defAngle = angle + (Math.random() - 0.5) * 0.6;
-    const defDist = 8 + Math.random() * 8;
-
-    return {
-      id: id,
-      state: FGROUP_STATE.STAGING,
-      stateTimer: 2 + Math.random() * 3,
-      rallyPoint: pos.clone(),
-      guardPoint: new THREE.Vector3(Math.cos(defAngle) * defDist, 0, Math.sin(defAngle) * defDist),
-      members: [],       // npc ids
-      morale: 85 + Math.random() * 15,
-      hasMedic: false,
-      formation: FORMATION.WEDGE,
-      _formYaw: defAngle,
-    };
-  }
-
-  /* ── State ───────────────────────────────────────────────────────── */
-  const npcs = [];
-  var _npcById = {};  // id → npc lookup for O(1) access
-  var _aliveGrpBuf = [];  // reusable buffer for alive group members
-  let _scene = null;
-  let nextId = 1;
-  let _mlAssistStrategy = null; // ML-guided NPC assistance strategy
-  let _strayPetTimer = 8; // first stray pet ~8s into play
 
   /* ── Rank-based Weapon Assignment ────────────────────────────────── */
   // Maps NPC rank to weapon: name, damage, fire rate, range, sound type
