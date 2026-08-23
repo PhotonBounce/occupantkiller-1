@@ -154,7 +154,13 @@ var Tracers = (function() {
      The pool is created once, added once, and never removed; a "free" light is
      just one parked below the world at zero intensity. Light COUNT is constant,
      so no shader ever recompiles again. */
-  var LIGHT_POOL_SIZE = 12;
+  // Kept deliberately small. Measured on the Windows runner: a 12-light pool cut
+  // shader-program growth (42 -> 32 new programs in the same window) but pushed
+  // the scene from 18 to 32 permanent point lights, and gpu.render went 662ms ->
+  // 838ms — every fragment pays for every light, forever, so the steady cost
+  // outweighed the compile saving. Four covers concurrent 0.14s flashes with a
+  // fraction of the per-pixel cost.
+  var LIGHT_POOL_SIZE = 4;
   var _lightPool = [];
   var _lightPoolInit = false;
 

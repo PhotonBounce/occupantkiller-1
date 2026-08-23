@@ -79,6 +79,70 @@ window.NPCWeapons = (function () {
   }
   function _box(w, h, d, mat) { return new THREE.Mesh(_geo(w, h, d), mat); }
 
+
+  /* ── Bake a weapon into one mesh ───────────────────────────────────
+     A weapon is 9-16 boxes. At ~64 armed characters that is up to a thousand
+     extra draw calls, and the Windows runner measured draw calls rising
+     1110 -> 1264 when weapons were added as loose parts. Every part is opaque
+     and rigid relative to the others, so they are merged into a single
+     vertex-coloured geometry with one shared material: one draw call per
+     weapon instead of a dozen, with no visual change.
+     three.min.js is the core build, which does not ship BufferGeometryUtils,
+     so the merge is done by hand here. */
+  var _bakedMat = null;
+  function _bakedMaterial() {
+    if (!_bakedMat) _bakedMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    return _bakedMat;
+  }
+
+  var _bakeM = new THREE.Matrix4();
+  var _bakeC = new THREE.Color();
+  function _bake(group) {
+    var pos = [], nrm = [], col = [], idx = [], base = 0;
+    group.updateMatrixWorld(true);
+    var parts = [];
+    group.traverse(function (o) { if (o.isMesh && o.geometry) parts.push(o); });
+    for (var i = 0; i < parts.length; i++) {
+      var m = parts[i];
+      var g = m.geometry;
+      var p = g.getAttribute('position');
+      var n = g.getAttribute('normal');
+      if (!p) continue;
+      // Part transform relative to the weapon root.
+      _bakeM.copy(m.matrixWorld);
+      _bakeM.premultiply(new THREE.Matrix4().copy(group.matrixWorld).invert());
+      var nMat = new THREE.Matrix3().getNormalMatrix(_bakeM);
+      var mat = Array.isArray(m.material) ? m.material[0] : m.material;
+      _bakeC.copy(mat && mat.color ? mat.color : new THREE.Color(0xffffff));
+      // An unlit part (the optic lens) has no lighting to brighten it once it
+      // joins a lambert material, so lift its vertex colour instead.
+      if (mat && mat.isMeshBasicMaterial) _bakeC.multiplyScalar(1.6);
+
+      var v = new THREE.Vector3();
+      for (var k = 0; k < p.count; k++) {
+        v.fromBufferAttribute(p, k).applyMatrix4(_bakeM);
+        pos.push(v.x, v.y, v.z);
+        if (n) { v.fromBufferAttribute(n, k).applyMatrix3(nMat).normalize(); nrm.push(v.x, v.y, v.z); }
+        else nrm.push(0, 1, 0);
+        col.push(_bakeC.r, _bakeC.g, _bakeC.b);
+      }
+      var index = g.getIndex();
+      if (index) { for (var j = 0; j < index.count; j++) idx.push(index.getX(j) + base); }
+      else { for (var j2 = 0; j2 < p.count; j2++) idx.push(j2 + base); }
+      base += p.count;
+    }
+    var out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    out.setAttribute('normal',   new THREE.Float32BufferAttribute(nrm, 3));
+    out.setAttribute('color',    new THREE.Float32BufferAttribute(col, 3));
+    out.setIndex(idx);
+    out.computeBoundingSphere();
+    var mesh = new THREE.Mesh(out, _bakedMaterial());
+    mesh.userData.npcWeaponKind = group.userData.npcWeaponKind;
+    mesh.userData.muzzle = group.userData.muzzle;
+    return mesh;
+  }
+
   function build(kind, scale) {
     var s = scale || 1;
     var M = _mats();
@@ -147,11 +211,29 @@ window.NPCWeapons = (function () {
       p = _box(0.042, 0.090, 0.048, M.polyBlack); p.position.set(0, -0.075, 0.01); p.rotation.x = 0.18; g.add(p);
     }
 
-    if (s !== 1) g.scale.setScalar(s);
     g.userData.npcWeaponKind = kind;
     // The muzzle in weapon-local space, for flash/smoke/bullet origin.
     g.userData.muzzle = new THREE.Vector3(0, 0.005, kind === KIND.PISTOL ? -0.24 : (kind === KIND.SNIPER ? -0.90 : -0.82));
-    return g;
+    // Merge to one draw call. Scale is applied AFTER baking so the cache below
+    // can share a single baked geometry across every character of this kind.
+    var baked = _bakeCached(kind, g);
+    if (s !== 1) baked.scale.setScalar(s);
+    return baked;
+  }
+
+  // Every character of a given weapon kind bakes to identical geometry, so bake
+  // once and share the buffer; each character still gets its own Mesh.
+  var _bakedGeo = Object.create(null);
+  function _bakeCached(kind, group) {
+    var hit = _bakedGeo[kind];
+    if (!hit) {
+      var m = _bake(group);
+      _bakedGeo[kind] = hit = { geo: m.geometry, muzzle: group.userData.muzzle };
+    }
+    var mesh = new THREE.Mesh(hit.geo, _bakedMaterial());
+    mesh.userData.npcWeaponKind = kind;
+    mesh.userData.muzzle = hit.muzzle;
+    return mesh;
   }
 
   /* ── Mounting ──────────────────────────────────────────────────────
