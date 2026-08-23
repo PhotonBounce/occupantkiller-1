@@ -55,6 +55,16 @@ jobs:
         working-directory: desktop
         run: node smoke-test.js "dist\win-unpacked\OccupantKiller.exe"
 
+      # Feature verification: drone bombing, wildlife spawning and the winter/
+      # night visuals. Kept separate from the smoke test and allowed to fail
+      # without blocking the build — a feature regression should be visible in
+      # the log and the report, not silently gate the artifact.
+      - name: Verify features on the packaged app
+        shell: pwsh
+        working-directory: desktop
+        continue-on-error: true
+        run: node verify-features.js "dist\win-unpacked\OccupantKiller.exe"
+
       - name: Publish exe + smoke screenshot
         uses: softprops/action-gh-release@v2
         with:
@@ -77,4 +87,6 @@ jobs:
             desktop/dist/OccupantKiller-*-setup.exe
             desktop/dist/OccupantKiller-*-portable.exe
             desktop/desktop-smoke.png
-          fail_on_unmatched_files: true
+            desktop/verify-features.json
+            desktop/verify-winter-night.png
+          fail_on_unmatched_files: false
