@@ -65,7 +65,19 @@ window.NPCWeapons = (function () {
      The M16 and the AK are deliberately readable apart at a glance: the M16
      has a carry handle and a straight box magazine; the AK has wood furniture
      and a strongly curved magazine. */
-  function _box(w, h, d, mat) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); }
+  // Geometry cache. A level holds ~100 armed characters and each weapon is
+  // ~12 boxes, so building fresh BoxGeometry per part per character means well
+  // over a thousand redundant buffers. The dimensions repeat constantly, so
+  // they are shared — meshes still have their own transform, and nothing here
+  // ever mutates a geometry.
+  var _geoCache = Object.create(null);
+  function _geo(w, h, d) {
+    var k = w + '|' + h + '|' + d;
+    var g = _geoCache[k];
+    if (!g) { g = new THREE.BoxGeometry(w, h, d); _geoCache[k] = g; }
+    return g;
+  }
+  function _box(w, h, d, mat) { return new THREE.Mesh(_geo(w, h, d), mat); }
 
   function build(kind, scale) {
     var s = scale || 1;

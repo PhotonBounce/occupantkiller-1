@@ -179,12 +179,25 @@ window.VoxelWorld = (function () {
     mat.color.setRGB(1 + (_snowTint.r - 1) * k, 1 + (_snowTint.g - 1) * k, 1 + (_snowTint.b - 1) * k);
     if (mat.emissive) mat.emissive.setRGB(0.30 * k, 0.32 * k, 0.38 * k);
   }
+  // Water freezes over as the cover deepens: paler, brighter, and less
+  // transparent, so a frozen river reads as ice rather than as summer water
+  // with snow beside it.
+  function _applyIceToMaterial(mat) {
+    if (!mat || !mat.color) return;
+    var k = _snowCover;
+    mat.color.setRGB(1 + (0.86 - 1) * k, 1 + (0.92 - 1) * k, 1 + (1.0 - 1) * k * 0.2);
+    if (mat.emissive) mat.emissive.setRGB(0.26 * k, 0.30 * k, 0.36 * k);
+    mat.opacity = 0.55 + 0.38 * k;
+  }
+
   function setSnowCover(k) {
     k = Math.max(0, Math.min(1, parseFloat(k) || 0));
     if (k === _snowCover) return;
     _snowCover = k;
     chunks.forEach(function (c) {
-      if (c && c.mesh && c.mesh.material) _applySnowToMaterial(c.mesh.material);
+      if (!c) return;
+      if (c.mesh && c.mesh.material) _applySnowToMaterial(c.mesh.material);
+      if (c.waterMesh && c.waterMesh.material) _applyIceToMaterial(c.waterMesh.material);
     });
   }
   function getSnowCover() { return _snowCover; }
@@ -1197,6 +1210,7 @@ window.VoxelWorld = (function () {
         depthWrite: false,
         side: THREE.DoubleSide
       });
+      _applyIceToMaterial(wMat);
       const wMesh = new THREE.Mesh(wGeo, wMat);
       wMesh.position.set(ox * BLOCK_SIZE, 0, oz * BLOCK_SIZE);
       wMesh.matrixAutoUpdate = false;
