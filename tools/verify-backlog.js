@@ -10,6 +10,8 @@ const ROOT='/home/user/occupantkiller-1';
 const OUT='/tmp/claude-0/-home-user-occupantkiller-1/935a3386-bf68-508b-961f-b5a7bf15988c/scratchpad';
 const PORT=parseInt(process.env.PORT||'4730',10);
 const STAGE=parseInt(process.argv[2]||'0',10);
+// Level build is synchronous and slow under software rendering; give it room.
+const BUILD_WAIT_MS=parseInt(process.env.BUILD_WAIT_MS||'150000',10);
 const MIME={'.js':'text/javascript','.html':'text/html','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.json':'application/json','.mp3':'audio/mpeg','.ogg':'audio/ogg','.wav':'audio/wav','.svg':'image/svg+xml','.ico':'image/x-icon'};
 const server=http.createServer((q,s)=>{let p=decodeURIComponent(q.url.split('?')[0]);if(p==='/')p='/index.html';const fp=path.join(ROOT,p);if(!fp.startsWith(ROOT)){s.writeHead(403);return s.end();}fs.readFile(fp,(e,d)=>{if(e){s.writeHead(404);return s.end('404');}s.writeHead(200,{'Content-Type':MIME[path.extname(fp)]||'application/octet-stream'});s.end(d);});});
 const log=m=>{console.log(m);};
@@ -34,21 +36,18 @@ server.listen(PORT,async()=>{
   await pg.waitForFunction(()=>typeof window.GameManager!=='undefined'&&!!GameManager.startGame);
   log('globals ready');
   await pg.evaluate(i=>{window.__chosenStartStage=i;setTimeout(()=>{try{GameManager.startGame();}catch(e){}},0);},STAGE);
-  // Poll on a TIMER, not on requestAnimationFrame (playwright's default). The
-  // page's rAF can stall in headless while a level builds, so an rAF-based poll
-  // never fires even though the game is fine — which reads exactly like a hung
-  // game. (Also: waitForFunction's 2nd arg is `arg`, not options, so an options
-  // object there is ignored and the 30s default silently applies.)
-  let _playing=false;
-  for(let i=0;i<60;i++){
-    await pg.waitForTimeout(3000);
-    const st=await pg.evaluate(()=>{try{return GameManager.getState?GameManager.getState():'?';}catch(e){return 'err';}});
-    if(st==='playing'){_playing=true;break;}
-    if(i%5===0) log('  waiting, state='+st);
-  }
-  if(!_playing){ log('never reached playing'); await b.close(); server.close(); process.exit(1); }
+  // Do NOT poll from node while the level builds. Level generation is one long
+  // SYNCHRONOUS block on the page's main thread, so every page.evaluate() issued
+  // during it simply queues until it ends — which reads as a hung harness even
+  // though the game is fine. Wait out the build with a driver-side timeout
+  // (which does not touch the page), then probe once.
+  log('  building level (synchronous; waiting it out)...');
+  await pg.waitForTimeout(BUILD_WAIT_MS);
+  const st0=await pg.evaluate(()=>{try{return GameManager.getState?GameManager.getState():'?';}catch(e){return 'err';}});
+  log('  state after build wait: '+st0);
+  if(st0!=='playing'){ log('never reached playing'); await b.close(); server.close(); process.exit(1); }
   log('playing');
-  await pg.waitForTimeout(26000);   // let the wave spawn and wildlife tick
+  await pg.waitForTimeout(30000);   // let the wave spawn and wildlife tick
   await pg.evaluate(()=>{try{Object.defineProperty(document,'pointerLockElement',{get:()=>document.body,configurable:true});}catch(e){}});
 
   await shot(pg,'wide');
