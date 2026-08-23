@@ -32,7 +32,7 @@ server.listen(PORT,async()=>{
   await pg.evaluate(i=>{window.__chosenStartStage=i;setTimeout(()=>{try{GameManager.startGame();}catch(e){}},0);},STAGE);
   await pg.waitForFunction(()=>{try{return GameManager.getState&&GameManager.getState()==='playing';}catch(e){return false;}},{timeout:120000});
   log('playing');
-  await pg.waitForTimeout(6000);
+  await pg.waitForTimeout(26000);   // let the wave spawn and wildlife tick
   await pg.evaluate(()=>{try{Object.defineProperty(document,'pointerLockElement',{get:()=>document.body,configurable:true});}catch(e){}});
 
   await shot(pg,'wide');
@@ -57,12 +57,29 @@ server.listen(PORT,async()=>{
     await shot(pg,who);
   }
 
+  // Exercise the drone loadout: pick the bomber and drop on something.
+  const drone=await pg.evaluate(async()=>{
+    const out={};
+    try{
+      out.before=GameManager.getDroneLoadout().map(d=>d.type+':'+d.ammo);
+      out.launched=GameManager.launchDroneFromLoadout('bomb');
+      out.possessing=DroneSystem.isPossessing();
+      const d=DroneSystem.getPossessed();
+      out.type=d&&d.type; out.hasPayload=d&&d.hasPayload;
+      if(d){ out.dropped=DroneSystem.dropPayload(d.id); out.payloadAfter=d.hasPayload; }
+      out.after=GameManager.getDroneLoadout().map(x=>x.type+':'+x.ammo);
+      DroneSystem.release&&DroneSystem.release();
+    }catch(e){out.err=String(e).slice(0,160);}
+    return out;
+  });
+  log('  drone: '+JSON.stringify(drone));
+
   // Force winter weather so snow, fog and ground cover can be seen at all.
   await pg.evaluate(()=>{ try{
     if(window.TimeSystem){TimeSystem.setSeason('Winter');TimeSystem.setHour(21.0);}
     if(window.WeatherSystem)WeatherSystem.forceWeather('SNOW');
   }catch(e){} });
-  await pg.waitForTimeout(4000);
+  await pg.waitForTimeout(22000);   // snow needs ~20s to lay a full cover
   await shot(pg,'night-snow');
 
   const r=await pg.evaluate(()=>{
@@ -111,6 +128,8 @@ server.listen(PORT,async()=>{
       if(rd&&rd.info){o.draws=rd.info.render.calls;o.tris=rd.info.render.triangles;o.programs=rd.info.programs?rd.info.programs.length:null;}}catch(e){}
     return o;
   });
+  r.drone=drone;
+  r.wildErr=await pg.evaluate(()=>window.__wildlifeErr||null);
   r.pageErrors=errs.slice(0,12);
   console.log('\n=== VERIFY stage '+STAGE+' ===');
   console.log(JSON.stringify(r,null,1));

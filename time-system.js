@@ -181,6 +181,13 @@ const TimeSystem = (function () {
       _hemisphereLight.intensity = 0.2 + sunIntensity * 0.4;
     }
 
+    // Resolve the scene's CURRENT fog every frame. This used to be cached at
+    // init, but WeatherSystem replaces scene.fog with a new THREE.Fog in its own
+    // init — so whichever ran second left the other writing to an orphan fog
+    // object that was no longer in the scene. Symptom: the sky darkened at night
+    // but the fog stayed at its daytime colour.
+    if (_scene && _scene.fog) _fog = _scene.fog;
+
     // Fog color shifts
     const nightFog = 0x101018;
     const dayFog = tint.fog;
