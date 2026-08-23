@@ -55,16 +55,6 @@ jobs:
         working-directory: desktop
         run: node smoke-test.js "dist\win-unpacked\OccupantKiller.exe"
 
-      # Feature verification: drone bombing, wildlife spawning and the winter/
-      # night visuals. Kept separate from the smoke test and allowed to fail
-      # without blocking the build — a feature regression should be visible in
-      # the log and the report, not silently gate the artifact.
-      - name: Verify features on the packaged app
-        shell: pwsh
-        working-directory: desktop
-        continue-on-error: true
-        run: node verify-features.js "dist\win-unpacked\OccupantKiller.exe"
-
       - name: Publish exe + smoke screenshot
         uses: softprops/action-gh-release@v2
         with:
@@ -87,6 +77,26 @@ jobs:
             desktop/dist/OccupantKiller-*-setup.exe
             desktop/dist/OccupantKiller-*-portable.exe
             desktop/desktop-smoke.png
+          fail_on_unmatched_files: true
+
+      # Feature verification runs AFTER publishing, and is NOT continue-on-error.
+      # It used to run before, with continue-on-error, and that combination is
+      # actively misleading: the jobs API reports such a step's conclusion as
+      # "success" even when it exited non-zero, so a run where two of three
+      # feature checks failed looked green from the outside. Publishing first
+      # means the artifact still ships when a feature regresses; failing here
+      # means the run goes red and says so.
+      - name: Verify features on the packaged app
+        shell: pwsh
+        working-directory: desktop
+        run: node verify-features.js "dist\win-unpacked\OccupantKiller.exe"
+
+      - name: Attach feature verification report
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-exe
+          files: |
             desktop/verify-features.json
             desktop/verify-winter-night.png
           fail_on_unmatched_files: false
