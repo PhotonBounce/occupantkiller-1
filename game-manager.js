@@ -5547,6 +5547,7 @@ const GameManager = (function () {
     if (window.SurrenderSystem && SurrenderSystem.clear) SurrenderSystem.clear();
     if (window.SuppressionSystem && SuppressionSystem.reset) SuppressionSystem.reset();
     window.VoxelWorld.generateLevel(stageDef.levelId || stageIndex);
+    _applyStageTimeAndSeason(stageDef, stageIndex);
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
     if (stageDef.id === 2 || stageDef.id === 3 || stageDef.id === 10 || stageDef.id === 16) {
@@ -5702,6 +5703,39 @@ const GameManager = (function () {
     document.getElementById('prestige-no').onclick = function() {
       document.body.removeChild(overlay);
     };
+  }
+
+  // Every mission used to open at 07:12 in Spring because TimeSystem.init()
+  // hard-coded both, so the player never saw a different time of day or a
+  // season. A stage can now declare startHour/season; otherwise one is derived
+  // from the stage id so the campaign walks through dawn, day, dusk and night
+  // and through the year, deterministically (the same stage always looks the
+  // same, which matters for the mission briefings and for reproducing bugs).
+  var _STAGE_HOURS   = [6.5, 9.0, 13.5, 17.5, 21.0, 2.0, 11.0, 19.0];
+  var _STAGE_SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
+  function _applyStageTimeAndSeason(stageDef, stageIndex) {
+    if (typeof TimeSystem === 'undefined' || !TimeSystem.setHour) return;
+    var id = (stageDef && stageDef.id != null) ? stageDef.id : (stageIndex || 0);
+    var hour   = (stageDef && stageDef.startHour != null) ? stageDef.startHour : _STAGE_HOURS[id % _STAGE_HOURS.length];
+    var season = (stageDef && stageDef.season) ? stageDef.season : _STAGE_SEASONS[(id >> 1) % _STAGE_SEASONS.length];
+    try {
+      TimeSystem.setSeason(season);
+      TimeSystem.setHour(hour);
+    } catch (e) {}
+    // Give the weather a matching opening state instead of always CLEAR.
+    try {
+      if (typeof WeatherSystem !== 'undefined' && WeatherSystem.forceWeather) {
+        if (season === 'Winter') WeatherSystem.forceWeather(id % 3 === 0 ? 'SNOW' : (id % 3 === 1 ? 'OVERCAST' : 'BLIZZARD'));
+        else if (season === 'Autumn') WeatherSystem.forceWeather(id % 3 === 0 ? 'FOG' : (id % 3 === 1 ? 'RAIN' : 'OVERCAST'));
+        else if (season === 'Spring') WeatherSystem.forceWeather(id % 2 === 0 ? 'CLEAR' : 'RAIN');
+        else WeatherSystem.forceWeather('CLEAR');
+      }
+    } catch (e) {}
+    try {
+      if (HUD && HUD.notifyPickup) {
+        HUD.notifyPickup('🕐 ' + TimeSystem.getFormattedTime() + '  ·  ' + season, '#cfe6ff');
+      }
+    } catch (e) {}
   }
 
   function nextStage() {

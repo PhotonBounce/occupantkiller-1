@@ -1,5 +1,7 @@
 window.KungFuDojo = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── Activation key tracking ──────────────────────────────────────────────
   var keysDown = {};
@@ -1211,7 +1213,7 @@ window.KungFuDojo = (function () {
     );
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
     animFrameId = requestAnimationFrame(update);
   }
 
@@ -1314,7 +1316,9 @@ window.KungFuDojo = (function () {
   });
 
   // ─── Public API ───────────────────────────────────────────────────────────
-  function init()  { /* activation via K+F keypress */ }
+  function init()  {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+ /* activation via K+F keypress */ }
   function reset() { stopGame(); resetState(); }
 
   return { init: init, update: update, reset: reset };

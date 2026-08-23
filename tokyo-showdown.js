@@ -1654,7 +1654,7 @@ window.TokyoShowdown = (function () {
 
     updateHUD();
     drawMinimap();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Resize handler ───────────────────────────────────────────────────────────
