@@ -9227,7 +9227,16 @@ const GameManager = (function () {
 
     if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
       // Core systems
-      TimeSystem.update(delta);
+      // The world clock advances on WALL time, not the clamped physics delta.
+      // rawDelta is capped at 0.1s so a frame spike cannot tunnel the player
+      // through geometry — correct for movement, wrong for a clock. Below 10fps
+      // that cap made in-game time run slower than reality: measured on the
+      // Windows runner at 3fps, a 20.3s wall interval advanced the world clock
+      // by 6.1s, a ratio of 0.30. That is why a player on weak hardware reported
+      // never seeing the day/night cycle move — it was running at a third speed
+      // or worse, not broken. Still bounded, so returning from an alt-tab
+      // advances the clock by a few seconds rather than jumping a whole day.
+      TimeSystem.update(Math.min(_wallDelta, 5));
       if (window.BloodEffects) { try { BloodEffects.update(delta); } catch (_e) {} }
       if (window.StaminaSystem) { try { StaminaSystem.update(delta); } catch (_e) {} }
       WeatherSystem.update(delta);
