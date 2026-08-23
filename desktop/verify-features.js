@@ -68,9 +68,20 @@ const fs = require('fs');
   results.wildlife = await page.evaluate(() => {
     const o = { err: window.__wildlifeErr || null, byType: {} };
     try {
+      // Count ALL wildlife, not just the `wild` ones. `wild` distinguishes
+      // countryside animals from befriendable strays; on a built-up level the
+      // set is crow/rabbit/cat/dog, and cats and dogs are pets, so a wild-only
+      // count reported zero while animals were plainly spawning. "Are there
+      // animals" is a question about faction, not about temperament.
       const all = NPCSystem.getAll ? NPCSystem.getAll() : [];
-      all.forEach(n => { if (n && n.wild && n.alive) o.byType[n.type] = (o.byType[n.type] || 0) + 1; });
+      all.forEach(n => {
+        if (!n || !n.alive) return;
+        const isAnimal = n.rank === 'wildlife' || n.wild ||
+          (n.mesh && n.mesh.userData && n.mesh.userData.faction === 'wildlife');
+        if (isAnimal) o.byType[n.type] = (o.byType[n.type] || 0) + 1;
+      });
       o.total = Object.keys(o.byType).reduce((a, k) => a + o.byType[k], 0);
+      o.wildOnly = all.filter(n => n && n.alive && n.wild).length;
       o.allNpcs = all.length;
       o.status = window.__wildlifeStatus || null;   // why a spawn produced nothing
       o.updateTicks = window.__npcUpdateTicks || 0; // proof NPCSystem.update runs
