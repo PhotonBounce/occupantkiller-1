@@ -1813,6 +1813,7 @@ const GameManager = (function () {
 
     // Tracers system
     _safeInit('tracers', function () { if (typeof Tracers !== 'undefined' && Tracers && typeof Tracers.init === 'function') Tracers.init(_scene); });
+    _safeInit('npc weapons', function () { if (window.NPCWeapons && NPCWeapons.init) NPCWeapons.init(_scene); });
     _bootStep('tracers');
 
     // Audio, Weather & ML systems
@@ -3562,6 +3563,22 @@ const GameManager = (function () {
         }
 
         // F key priority chain: 1) drone release  2) mission interact  3) drone possess  4) quick melee
+        // Drone picker owns the number keys while it is open, so choosing a
+        // drone cannot also switch the player's weapon underneath it.
+        if (_dronePickerOpen) {
+          if (e.code === 'Escape') { closeDronePicker(); return; }
+          var _dpIdx = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
+          if (_dpIdx >= 0) {
+            var _dpList = getDroneLoadout();
+            if (_dpList[_dpIdx]) {
+              if (launchDroneFromLoadout(_dpList[_dpIdx].type)) closeDronePicker();
+              else _renderDronePicker();
+            }
+            e.preventDefault();
+            return;
+          }
+        }
+
         if (e.code === 'KeyF') {
           var fHandled = false;
           // Priority 1: release drone if possessing
@@ -3615,11 +3632,25 @@ const GameManager = (function () {
             }
             } // end mt && mt.config
           }
-          // Priority 3: possess nearest drone or launch one
+          // Priority 3: link to a drone already in the air, otherwise open the
+          // loadout picker so the player chooses which drone to send up.
           if (!fHandled) {
-            var linkedDrone = connectOrLaunchDrone('recon');
-            if (linkedDrone) {
+            if (_dronePickerOpen) {
+              closeDronePicker();
               fHandled = true;
+            } else {
+              var nearAir = getNearestFriendlyDrone(100);
+              if (nearAir) {
+                DroneSystem.possess(nearAir.id);
+                showDroneControlsHUD(nearAir.type);
+                if (HUD && HUD.notifyPickup) {
+                  HUD.notifyPickup('REMOTE LINKED: ' + (nearAir.type || 'DRONE').toUpperCase() + ' [T] VIEW [F] EXIT', '#00ccff');
+                }
+                fHandled = true;
+              } else {
+                openDronePicker();
+                fHandled = true;
+              }
             }
           }
           // Priority 4: quick melee
@@ -4749,6 +4780,101 @@ const GameManager = (function () {
     return best;
   }
 
+  /* ── Drone loadout ────────────────────────────────────────────────
+     The player carries four drone types with their own ammo. [F] used to
+     hard-launch a 'recon' drone, which has no payload at all — so the bomb,
+     FPV and Baba Yaga drones existed in the code but were unreachable in
+     normal play, and "bombing" could never happen. */
+  var DRONE_LOADOUT_DEFAULT = [
+    { type: 'fpv_attack',   label: 'FPV STRIKE',   icon: '\u{1F3AF}', ammo: 3 },
+    { type: 'bomb',         label: 'BOMBER',       icon: '\u{1F4A3}', ammo: 2 },
+    { type: 'surveillance', label: 'SURVEILLANCE', icon: '\u{1F441}', ammo: 2 },
+    { type: 'baba_yaga',    label: 'BABA YAGA',    icon: '\u{1F525}', ammo: 1 }
+  ];
+  var _droneLoadout = null;
+  var _dronePickerEl = null;
+  var _dronePickerOpen = false;
+
+  function _resetDroneLoadout() {
+    _droneLoadout = DRONE_LOADOUT_DEFAULT.map(function (d) {
+      return { type: d.type, label: d.label, icon: d.icon, ammo: d.ammo, max: d.ammo };
+    });
+  }
+  function getDroneLoadout() { if (!_droneLoadout) _resetDroneLoadout(); return _droneLoadout; }
+
+  function _droneSlot(type) {
+    var L = getDroneLoadout();
+    for (var i = 0; i < L.length; i++) if (L[i].type === type) return L[i];
+    return null;
+  }
+
+  function _buildDronePicker() {
+    if (_dronePickerEl) return _dronePickerEl;
+    var el = document.createElement('div');
+    el.id = 'drone-picker';
+    el.style.cssText = [
+      'position:fixed;left:50%;bottom:16%;transform:translateX(-50%);',
+      'display:none;z-index:60;pointer-events:none;',
+      'font-family:inherit;color:#dff;text-align:center;'
+    ].join('');
+    document.body.appendChild(el);
+    _dronePickerEl = el;
+    return el;
+  }
+
+  function _renderDronePicker() {
+    var el = _buildDronePicker();
+    var L = getDroneLoadout();
+    var rows = '';
+    for (var i = 0; i < L.length; i++) {
+      var d = L[i];
+      var out = d.ammo <= 0;
+      rows += '<div style="display:inline-block;margin:0 6px;padding:8px 12px;border-radius:6px;'
+        + 'background:rgba(0,20,30,' + (out ? '0.55' : '0.82') + ');'
+        + 'border:1px solid ' + (out ? '#334' : '#0cf') + ';opacity:' + (out ? '0.45' : '1') + ';">'
+        + '<div style="font-size:20px">' + d.icon + '</div>'
+        + '<div style="font-size:11px;letter-spacing:1px">[' + (i + 1) + '] ' + d.label + '</div>'
+        + '<div style="font-size:12px;color:' + (out ? '#a55' : '#8fd') + '">' + d.ammo + ' / ' + d.max + '</div>'
+        + '</div>';
+    }
+    el.innerHTML = '<div style="margin-bottom:6px;font-size:12px;letter-spacing:2px;color:#8fd">'
+      + 'SELECT DRONE &nbsp;·&nbsp; [F] CANCEL</div>' + rows;
+  }
+
+  function openDronePicker() {
+    _renderDronePicker();
+    _dronePickerEl.style.display = 'block';
+    _dronePickerOpen = true;
+  }
+  function closeDronePicker() {
+    if (_dronePickerEl) _dronePickerEl.style.display = 'none';
+    _dronePickerOpen = false;
+  }
+  function isDronePickerOpen() { return _dronePickerOpen; }
+
+  // Launch the chosen drone and spend one of that type. Returns true if a
+  // drone actually went up.
+  function launchDroneFromLoadout(type) {
+    var slot = _droneSlot(type);
+    if (!slot) return false;
+    if (slot.ammo <= 0) {
+      if (HUD && HUD.notifyPickup) HUD.notifyPickup('\u274C NO ' + slot.label + ' DRONES LEFT', '#ff6666');
+      return false;
+    }
+    var d = launchAndPossessDrone(type);
+    if (!d) {
+      if (HUD && HUD.notifyPickup) HUD.notifyPickup('\u26A0 DRONE LAUNCH FAILED', '#ffaa00');
+      return false;
+    }
+    slot.ammo--;
+    if (HUD && HUD.notifyPickup) {
+      var hint = (type === 'bomb' || type === 'baba_yaga') ? '[LMB] DROP  [T] VIEW  [F] EXIT'
+               : (type === 'fpv_attack' ? '[LMB] STRIKE  [T] VIEW  [F] EXIT' : '[T] VIEW  [F] EXIT');
+      HUD.notifyPickup(slot.icon + ' ' + slot.label + ' AIRBORNE \u00B7 ' + hint, '#00ccff');
+    }
+    return true;
+  }
+
   function launchAndPossessDrone(droneType) {
     if (typeof DroneSystem === 'undefined' || !DroneSystem.spawn || !DroneSystem.possess) return null;
     var spawnH = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
@@ -5548,6 +5674,8 @@ const GameManager = (function () {
     if (window.SuppressionSystem && SuppressionSystem.reset) SuppressionSystem.reset();
     window.VoxelWorld.generateLevel(stageDef.levelId || stageIndex);
     _applyStageTimeAndSeason(stageDef, stageIndex);
+    _resetDroneLoadout();
+    closeDronePicker();
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
     if (stageDef.id === 2 || stageDef.id === 3 || stageDef.id === 10 || stageDef.id === 16) {
@@ -11702,6 +11830,18 @@ const GameManager = (function () {
 
       // Update tracers
       if (typeof Tracers !== 'undefined' && Tracers.update) Tracers.update(delta, player.position);
+      // NPC bullets and muzzle smoke: one flat pass over fixed-size pools, so
+      // the cost does not scale with how many characters are shooting.
+      if (window.NPCWeapons && NPCWeapons.update) {
+        NPCWeapons.update(delta, {
+          playerPos: player.position,
+          camera: _camera,
+          onHitPlayer: function (dmg) { if (dmg > 0) onPlayerHit(dmg, null); },
+          onHitTarget: function (t, dmg) {
+            if (dmg > 0 && typeof Enemies !== 'undefined' && Enemies.damage) Enemies.damage(t, dmg);
+          }
+        });
+      }
       if (typeof EnemyChatter !== 'undefined' && EnemyChatter.update) EnemyChatter.update();
       if (window.CompanionRadio && CompanionRadio.update) CompanionRadio.update(delta);
       if (typeof StageVFX !== 'undefined' && StageVFX.update) StageVFX.update(delta);
@@ -13855,6 +13995,15 @@ const GameManager = (function () {
     },
     getCurrentWave:  function () { return currentWave; },
     getCurrentStage: function () { return currentStage; },
+    getDroneLoadout: getDroneLoadout,
+    launchDroneFromLoadout: launchDroneFromLoadout,
+    isDronePickerOpen: isDronePickerOpen,
+    // Name/theme of the stage in play, for systems that dress the world to
+    // match it (wildlife, ambience) without reaching into the STAGES table.
+    getCurrentStageInfo: function () {
+      var d = STAGES[currentStage];
+      return d ? { id: d.id, name: d.name, levelId: d.levelId, season: d.season || null } : null;
+    },
 
     getStageInfo:    function () { return STAGES[currentStage]; },
     isSprinting:     function () { return player.sprinting; },

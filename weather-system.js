@@ -278,18 +278,25 @@ window.WeatherSystem = (function () {
   }
 
   var _fogTmp = new THREE.Color();
+  var _fogClear = new THREE.Color(FOG_CONFIG.CLEAR.color);
   function _applyFog() {
     if (!_scene || !_scene.fog) return;
     var base = _timeBase();
     if (base) {
-      // Weather tints and shortens the day/night fog rather than replacing it,
-      // so dusk still reads as dusk while it is raining.
+      // Weather is a RELATIVE tint on the day/night fog colour, not a blend
+      // toward it. Blending pulled a midnight sky 60% back toward the weather
+      // table's daylight grey, so night rendered as bright overcast noon. Using
+      // the ratio against CLEAR means CLEAR weather leaves the time-of-day
+      // colour untouched and rain/fog/snow darken or cool it from there.
       _fogTmp.setHex(base.fogColor);
-      _fogTmp.lerp(_fogColor, 0.6);
+      _fogTmp.r *= Math.min(1.6, _fogColor.r / Math.max(0.02, _fogClear.r));
+      _fogTmp.g *= Math.min(1.6, _fogColor.g / Math.max(0.02, _fogClear.g));
+      _fogTmp.b *= Math.min(1.6, _fogColor.b / Math.max(0.02, _fogClear.b));
       _scene.fog.color.copy(_fogTmp);
       if (_scene.background && _scene.background.isColor) _scene.background.copy(_fogTmp);
     } else {
       _scene.fog.color.copy(_fogColor);
+      if (_scene.background && _scene.background.isColor) _scene.background.copy(_fogColor);
     }
     _scene.fog.near = _fogNear;
     _scene.fog.far  = _fogFar;
@@ -549,9 +556,16 @@ window.WeatherSystem = (function () {
       _seasonIsWinter = (season === 'Winter');
       if (_seasonIsWinter) target = 0.35;
     }
-    /* Melts far slower than it falls. */
-    var rate = (target > _groundSnow) ? 0.03 : 0.008;
-    _groundSnow += Math.sign(target - _groundSnow) * Math.min(Math.abs(target - _groundSnow), rate * delta * 60 * 0.016);
+    /* Per SECOND, not per frame: ~20s to lay a full cover, and melting takes
+       several minutes. The previous expression multiplied delta by both 60 and
+       0.016, which made accumulation frame-rate dependent and about 60x too
+       slow — snow fell for a whole mission and the ground never changed. */
+    var rate = (target > _groundSnow) ? 0.05 : 0.006;
+    var diff = target - _groundSnow;
+    if (diff !== 0) {
+      var stepAmt = rate * delta;
+      _groundSnow += (diff > 0 ? 1 : -1) * Math.min(Math.abs(diff), stepAmt);
+    }
     _groundSnow = Math.max(0, Math.min(1, _groundSnow));
     var step = Math.round(_groundSnow * 8) / 8;
     if (step === _groundSnowApplied) return;

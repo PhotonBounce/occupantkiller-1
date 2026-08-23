@@ -43,7 +43,7 @@ jobs:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
         run: npm install --no-save electron@31.7.7 electron-builder@24.13.3 playwright@1.47.2
 
-      - name: Build portable exe
+      - name: Build installer + portable exe
         shell: pwsh
         working-directory: desktop
         run: |
@@ -60,8 +60,21 @@ jobs:
         with:
           tag_name: desktop-exe
           name: Occupant Killer — Windows desktop
-          body: "Portable Windows build (no install: download and double-click). Smoke-tested in CI: boots, starts stage 1, reaches PLAYING, renders a verified non-empty frame. Overwritten each run."
+          body: |
+            Two Windows builds, same game — the difference is only how it is delivered.
+
+            * **OccupantKiller-*-setup.exe** — installer. Unpacks once, adds Start
+              Menu and desktop shortcuts, and can be uninstalled from Settings.
+              Start-up is faster because nothing has to be extracted each launch.
+            * **OccupantKiller-*-portable.exe** — single file, no install. It
+              extracts itself to a temp folder on every launch, which is why it is
+              slower to start. Otherwise identical: same code, same performance,
+              same save data.
+
+            Smoke-tested in CI: boots, starts stage 1, reaches PLAYING, renders a
+            verified non-empty frame. Overwritten each run.
           files: |
+            desktop/dist/OccupantKiller-*-setup.exe
             desktop/dist/OccupantKiller-*-portable.exe
             desktop/desktop-smoke.png
           fail_on_unmatched_files: true

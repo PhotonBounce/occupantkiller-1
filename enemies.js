@@ -2029,12 +2029,31 @@ const Enemies = (() => {
     TANK_CREW:      { len: 0.12, color: 0x333333, name: 'MP-443 Grach' },
   };
 
+  // Russian forces carry the AK family by default; marksman, MG and sidearm
+  // roles keep their own weapon. The mapping is by role, not by hard-coding a
+  // model per enemy type, so a new type gets a sane weapon automatically.
+  const ENEMY_WEAPON_ROLE = {
+    MEDIC: 'PISTOL', DRONE_OP: 'PISTOL', DRONE_OPERATOR: 'PISTOL',
+    SHIELD_BEARER: 'PISTOL', TANK_CREW: 'PISTOL',
+    SNIPER: 'SNIPER', SNIPER_ELITE: 'SNIPER', SNIPER_OP: 'SNIPER',
+    ARMORED: 'LMG', BOSS: 'LMG'
+  };
+
   function attachWeaponVisual(mesh, typeCfg) {
     const wInfo = ENEMY_WEAPON_VISUALS[typeCfg.name];
     if (!wInfo) return;
     const s = typeCfg.scale;
     const typeName = typeCfg.name; // type key — used by optic/bipod blocks below
     if (wInfo.len <= 0) return; // melee/explosive vest — no weapon mesh
+
+    // Mount on an aimable shoulder pivot when the shared weapon module is
+    // available. The loose parts below are fixed to the body and can only ever
+    // point straight ahead, which is why enemies never appeared to aim.
+    if (window.NPCWeapons) {
+      const kind = NPCWeapons.forFaction('occupant', ENEMY_WEAPON_ROLE[typeName] || null);
+      NPCWeapons.mount(mesh, kind, s);
+      return;
+    }
 
     // ── Weapon barrel ──
     const barrel = new THREE.Mesh(
@@ -3555,6 +3574,10 @@ const Enemies = (() => {
         e.mesh.position.addScaledVector(strafe, sStep);
         e.mesh.lookAt(playerPos.x, e.mesh.position.y, playerPos.z);
         e.mesh.rotation.y += Math.PI;
+        // Keep the muzzle on the player, not just the body.
+        if (window.NPCWeapons && e.mesh.userData.weaponPivot) {
+          NPCWeapons.aimAt(e.mesh, _tmpVec3b.set(playerPos.x, playerPos.y + 0.8, playerPos.z));
+        }
         // Subtle leg animation at half speed
         e.legAngle += e.legDir * (e.speed / 4.4) * 4 * delta;
         if (Math.abs(e.legAngle) > 0.3) e.legDir *= -1;
@@ -3776,25 +3799,38 @@ const Enemies = (() => {
               eParts[6].rotation.x = -0.6;
               e._fireArmTimer = 0.15;
             }
-            // Spawn tracer toward player
-            if (typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
-              var tOrigin = _tmpVec3d.copy(e.mesh.position);
-              tOrigin.y += 1.2;
-              var tDir = _tmpVec3e.set(playerPos.x, playerPos.y + 0.8, playerPos.z).sub(tOrigin).normalize();
-              Tracers.spawnTracer(tOrigin, tDir, 0xff4400, 80);
-              if (Tracers.spawnBullet) Tracers.spawnBullet(tOrigin, tDir, 0xff5522, 160);
-              // Enemy muzzle flash so player can SEE where shots come from
-              if (Tracers.spawnMuzzleFlash) {
-                Tracers.spawnMuzzleFlash(tOrigin, tDir);
+            // Fire through the shared weapon module: the flash, fire and smoke
+            // come from the barrel, and the weapon can jam or (rarely) backfire.
+            // Damage was already resolved above, so the round carries none.
+            var _firedByModule = false;
+            if (window.NPCWeapons && e.mesh.userData.weaponPivot) {
+              var _eAim = _tmpVec3e.set(playerPos.x, playerPos.y + 0.8, playerPos.z);
+              NPCWeapons.aimAt(e.mesh, _eAim);
+              var _eRes = NPCWeapons.fire(e.mesh, _eAim, {
+                damage: 0, canHitPlayer: false, tracerColor: 0xff4400, faction: 'occupant'
+              });
+              _firedByModule = (_eRes === 'fired' || _eRes === 'backfire');
+              if (_eRes === 'backfire') {
+                e.hp = Math.max(1, e.hp - 15);
+                e.shootCooldown = Math.max(e.shootCooldown || 0, 3.2);
               }
             }
-            // Enemy gunshot audio (spatial panning)
-            if (typeof window.AudioSystem !== 'undefined') {
-              if (window.AudioSystem.playSpatialGunshot) {
-                var camAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : 0;
-                window.AudioSystem.playSpatialGunshot('rifle', e.mesh.position, playerPos, camAngle);
-              } else if (window.AudioSystem.playGunshot) {
-                window.AudioSystem.playGunshot('rifle');
+            if (!_firedByModule) {
+              if (typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
+                var tOrigin = _tmpVec3d.copy(e.mesh.position);
+                tOrigin.y += 1.2;
+                var tDir = _tmpVec3e.set(playerPos.x, playerPos.y + 0.8, playerPos.z).sub(tOrigin).normalize();
+                Tracers.spawnTracer(tOrigin, tDir, 0xff4400, 80);
+                if (Tracers.spawnBullet) Tracers.spawnBullet(tOrigin, tDir, 0xff5522, 160);
+                if (Tracers.spawnMuzzleFlash) Tracers.spawnMuzzleFlash(tOrigin, tDir);
+              }
+              if (typeof window.AudioSystem !== 'undefined') {
+                if (window.AudioSystem.playSpatialGunshot) {
+                  var camAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : 0;
+                  window.AudioSystem.playSpatialGunshot('rifle', e.mesh.position, playerPos, camAngle);
+                } else if (window.AudioSystem.playGunshot) {
+                  window.AudioSystem.playGunshot('rifle');
+                }
               }
             }
             }

@@ -102,6 +102,22 @@ server.listen(PORT,async()=>{
     try{o.playerPos=window.GAME&&GAME.camera?GAME.camera.position.toArray().map(v=>+v.toFixed(1)):null;}catch(e){}
     // --- 6. drone ----------------------------------------------------------
     try{ o.droneApi = window.DroneSystem?Object.keys(window.DroneSystem):null; }catch(e){}
+    // NPC weapon wiring: are weapons mounted, aimable, and firing?
+    try{
+      const wp=[];let mounted=0,total=0;
+      if(sc) sc.traverse(x=>{ const u=x.userData||{};
+        if(u.faction&&(u.faction==='ukrainian'||u.faction==='occupant')){ total++;
+          if(u.weaponPivot){mounted++; if(wp.length<4) wp.push({faction:u.faction,kind:u.weaponKind,
+            pivotRot:[+u.weaponPivot.rotation.x.toFixed(2),+u.weaponPivot.rotation.y.toFixed(2)]});} } });
+      o.npcWeapons={characters:total,withWeapon:mounted,sample:wp};
+    }catch(e){o.npcWeaponsErr=String(e).slice(0,120);}
+    o.hasNPCWeapons=!!window.NPCWeapons;
+    try{o.season=window.TimeSystem&&TimeSystem.getSeason?TimeSystem.getSeason():null;
+        o.clock=window.TimeSystem&&TimeSystem.getFormattedTime?TimeSystem.getFormattedTime():null;
+        o.tsPhase=window.TimeSystem&&TimeSystem.getInfo?TimeSystem.getInfo().phase:null;}catch(e){}
+    try{o.weather=window.WeatherSystem&&WeatherSystem.getCurrentWeather?WeatherSystem.getCurrentWeather():null;
+        o.groundSnow=window.WeatherSystem&&WeatherSystem.getGroundSnow?WeatherSystem.getGroundSnow():null;}catch(e){}
+    try{o.ambientIntensity=(function(){let a=null;if(sc)sc.traverse(x=>{if(x.isAmbientLight&&a===null)a=+x.intensity.toFixed(3);});return a;})();}catch(e){}
     o.errs=(window.__pageErrs||[]);
     return o;
   });
