@@ -23,7 +23,11 @@ for(let i=1;i<=12;i++)KEYS.push({name:'F'+i,label:'F'+i});
 
 server.listen(PORT,async()=>{
   const b=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--mute-audio']});
-  const pg=await (await b.newContext({viewport:{width:960,height:600}})).newPage();
+  const _ctx=await b.newContext({viewport:{width:960,height:600}});
+  // waitForFunction's 2nd arg is `arg`, not options — an options object there
+  // is ignored and the 30s default applies. Set the real budget on the context.
+  _ctx.setDefaultTimeout(240000);
+  const pg=await _ctx.newPage();
   const errs=[];
   pg.on('pageerror',e=>errs.push(String(e.message||e)));
   await pg.goto('http://localhost:'+PORT+'/index.html',{waitUntil:'commit',timeout:30000});

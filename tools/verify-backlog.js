@@ -23,14 +23,30 @@ async function shot(pg,name){
 
 server.listen(PORT,async()=>{
   const b=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--mute-audio']});
-  const pg=await (await b.newContext({viewport:{width:1024,height:640}})).newPage();
+  const _ctx=await b.newContext({viewport:{width:720,height:450}});
+  // waitForFunction's 2nd arg is `arg`, not options — an options object there
+  // is ignored and the 30s default applies. Set the real budget on the context.
+  _ctx.setDefaultTimeout(240000);
+  const pg=await _ctx.newPage();
   const errs=[];pg.on('pageerror',e=>errs.push(String(e.message||e)));
   log('booting stage '+STAGE+'...');
   await pg.goto('http://localhost:'+PORT+'/index.html',{waitUntil:'commit',timeout:30000});
-  await pg.waitForFunction(()=>['THREE','VoxelWorld','GameManager'].every(m=>typeof window[m]!=='undefined')&&!!(window.GameManager&&window.GameManager.startGame),{timeout:120000});
+  await pg.waitForFunction(()=>typeof window.GameManager!=='undefined'&&!!GameManager.startGame);
   log('globals ready');
   await pg.evaluate(i=>{window.__chosenStartStage=i;setTimeout(()=>{try{GameManager.startGame();}catch(e){}},0);},STAGE);
-  await pg.waitForFunction(()=>{try{return GameManager.getState&&GameManager.getState()==='playing';}catch(e){return false;}},{timeout:120000});
+  // Poll on a TIMER, not on requestAnimationFrame (playwright's default). The
+  // page's rAF can stall in headless while a level builds, so an rAF-based poll
+  // never fires even though the game is fine — which reads exactly like a hung
+  // game. (Also: waitForFunction's 2nd arg is `arg`, not options, so an options
+  // object there is ignored and the 30s default silently applies.)
+  let _playing=false;
+  for(let i=0;i<60;i++){
+    await pg.waitForTimeout(3000);
+    const st=await pg.evaluate(()=>{try{return GameManager.getState?GameManager.getState():'?';}catch(e){return 'err';}});
+    if(st==='playing'){_playing=true;break;}
+    if(i%5===0) log('  waiting, state='+st);
+  }
+  if(!_playing){ log('never reached playing'); await b.close(); server.close(); process.exit(1); }
   log('playing');
   await pg.waitForTimeout(26000);   // let the wave spawn and wildlife tick
   await pg.evaluate(()=>{try{Object.defineProperty(document,'pointerLockElement',{get:()=>document.body,configurable:true});}catch(e){}});

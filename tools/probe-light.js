@@ -10,7 +10,11 @@ const MIME={'.js':'text/javascript','.html':'text/html','.css':'text/css','.png'
 const server=http.createServer((q,s)=>{let p=decodeURIComponent(q.url.split('?')[0]);if(p==='/')p='/index.html';const fp=path.join(ROOT,p);if(!fp.startsWith(ROOT)){s.writeHead(403);return s.end();}fs.readFile(fp,(e,d)=>{if(e){s.writeHead(404);return s.end('404');}s.writeHead(200,{'Content-Type':MIME[path.extname(fp)]||'application/octet-stream'});s.end(d);});});
 server.listen(PORT,async()=>{
   const b=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--mute-audio']});
-  const pg=await (await b.newContext({viewport:{width:768,height:480}})).newPage();
+  const _ctx=await b.newContext({viewport:{width:768,height:480}});
+  // waitForFunction's 2nd arg is `arg`, not options — an options object there
+  // is ignored and the 30s default applies. Set the real budget on the context.
+  _ctx.setDefaultTimeout(240000);
+  const pg=await _ctx.newPage();
   const errs=[];pg.on('pageerror',e=>errs.push(String(e.message||e)));
   await pg.goto('http://localhost:'+PORT+'/index.html',{waitUntil:'commit',timeout:30000});
   await pg.waitForFunction(()=>['THREE','VoxelWorld','GameManager'].every(m=>typeof window[m]!=='undefined')&&!!(window.GameManager&&window.GameManager.startGame),{timeout:120000});
