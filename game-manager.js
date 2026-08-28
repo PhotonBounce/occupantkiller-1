@@ -4805,6 +4805,7 @@ const GameManager = (function () {
     { type: 'surveillance', label: 'SURVEILLANCE', icon: '\u{1F441}', ammo: 2 },
     { type: 'baba_yaga',    label: 'BABA YAGA',    icon: '\u{1F525}', ammo: 1 }
   ];
+  var _droneFireCd = 0;   // seconds until the possessed drone may release again
   var _droneLoadout = null;
   var _dronePickerEl = null;
   var _dronePickerOpen = false;
@@ -4876,6 +4877,7 @@ const GameManager = (function () {
       return false;
     }
     var d = launchAndPossessDrone(type);
+    _droneFireCd = 0;
     if (!d) {
       if (HUD && HUD.notifyPickup) HUD.notifyPickup('\u26A0 DRONE LAUNCH FAILED', '#ffaa00');
       return false;
@@ -4973,14 +4975,23 @@ const GameManager = (function () {
     var payloadDisp = document.getElementById('drone-payload-display');
     var modeEl = document.getElementById('drone-view-mode');
 
-    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON' };
+    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON',
+                  baba_yaga: 'BABA YAGA', incendiary: 'INCENDIARY' };
     if (typeLabel) typeLabel.textContent = '\u2014 ' + (names[droneType] || droneType.toUpperCase());
     if (modeEl) modeEl.textContent = 'EYE';
 
     if (droneType === 'fpv_attack') {
-      if (actionText) actionText.textContent = 'Kamikaze Dive';
+      // It fires charges now and only rams once dry, so "Kamikaze Dive" was
+      // describing the last resort as if it were the whole aircraft.
+      if (actionText) actionText.textContent = 'Fire Charge';
       if (actionHint) actionHint.style.display = '';
-      if (payloadDisp) payloadDisp.style.display = 'none';
+      if (payloadDisp) payloadDisp.style.display = '';
+    } else if (droneType === 'baba_yaga' || droneType === 'incendiary') {
+      // Fell through to the no-attack branch, so the one aircraft whose whole
+      // point is dropping thermite never told the pilot which button does it.
+      if (actionText) actionText.textContent = 'Drop Thermite';
+      if (actionHint) actionHint.style.display = '';
+      if (payloadDisp) payloadDisp.style.display = '';
     } else if (droneType === 'bomb') {
       if (actionText) actionText.textContent = 'Drop Bomb';
       if (actionHint) actionHint.style.display = '';
@@ -7847,18 +7858,27 @@ const GameManager = (function () {
 
   /* ── Combat ──────────────────────────────────────────────────────── */
   function updateCombat(delta) {
-    // Drone combat: LMB triggers drone action
+    // Drone combat: LMB triggers drone action.
+    // Gated by a release interval. This ran once per FRAME while the button was
+    // held, so a drone emptied its whole load in a few hundredths of a second
+    // into a single spot — six FPV charges, or the bomber's whole bay — and the
+    // pilot never saw the ammo they were given. One gate here covers all three
+    // aircraft; AI drones have their own timers and are untouched.
     if (DroneSystem.isPossessing()) {
-      if (mouseDown || touch.firing) {
+      _droneFireCd = Math.max(0, _droneFireCd - delta);
+      if ((mouseDown || touch.firing) && _droneFireCd <= 0) {
         const drone = DroneSystem.getPossessed();
         if (drone) {
           if (drone.type === 'fpv_attack') {
             DroneSystem.fireAttack(drone.id);
+            _droneFireCd = 0.5;
           } else if (drone.type === 'bomb' && drone.hasPayload) {
             DroneSystem.dropPayload(drone.id);
+            _droneFireCd = 1.2;   // bombs need separation to land apart
           } else if ((drone.type === 'incendiary' || drone.type === 'baba_yaga') && drone.hasPayload) {
             DroneSystem.dropFire(drone.id);
             if (drone.type === 'baba_yaga') HUD.notifyPickup('🔥 THERMITE DROPPED!', '#ff8800');
+            _droneFireCd = 1.0;
           }
         }
         mouseNewPress = false;
