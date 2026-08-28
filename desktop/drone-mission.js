@@ -148,15 +148,16 @@ async function shot(page, name) {
           } catch (e) {}
           return t;
         }
+        // Always the FIRST standing structure, not the nearest. A tank has 250hp
+        // against an 80-damage warhead, so spreading four passes across four
+        // different tanks leaves all four standing and the objective reads 0/6 —
+        // indistinguishable from damage not landing at all. Concentrating fire
+        // makes the difference visible.
         function nearestStructure() {
           try {
             const ts = (RefineryStrike.getTargets() || []).filter(t => t.alive);
             if (!ts.length) return null;
-            let t = ts[0], best = 1e9;
-            for (const c of ts) {
-              const dd = (c.x - d.position.x) ** 2 + (c.z - d.position.z) ** 2;
-              if (dd < best) { best = dd; t = c; }
-            }
+            const t = ts[0];
             return { x: t.x, y: t.y + 3 * t.scale, z: t.z, kind: 'structure' };
           } catch (e) { return null; }
         }
@@ -197,6 +198,10 @@ async function shot(page, name) {
       const o = {};
       try { o.enemiesAfter = Enemies.getAliveCount(); } catch (e) {}
       try { o.targetsAfter = RefineryStrike.getProgress(); } catch (e) {}
+      try {
+        o.structureHp = (RefineryStrike.getTargets() || [])
+          .map(t => t.name.replace(/[^A-Z0-9]/gi, '').slice(0, 10) + ':' + Math.round(t.hp) + '/' + t.maxHp);
+      } catch (e) {}
       try { const d = DroneSystem.getPossessed(); o.ammo = d ? d.payloadCount : null; } catch (e) {}
       return o;
     });
