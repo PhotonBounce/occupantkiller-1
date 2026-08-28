@@ -34,11 +34,22 @@ async function shot(page, name) {
 
   await page.waitForFunction(() => typeof window.GameManager !== 'undefined' && !!GameManager.startGame, null, { timeout: 180000 });
 
-  // Stage 18 is the drone-only Refinery Strike.
-  await page.evaluate(() => {
-    window.__chosenStartStage = 18;
-    setTimeout(() => { try { GameManager.startGame(); } catch (e) {} }, 0);
-  });
+  // __chosenStartStage is an INDEX into STAGES, not a stage id: the drone-only
+  // "REFINERY STRIKE" is id 18, which lives at index 17. And index.html resets
+  // the value to 0 from a load-time IIFE, so setting it before the page has
+  // finished loading gets silently clobbered — which is exactly what happened:
+  // an earlier run launched Hostomel and captured ten frames of ordinary
+  // infantry gameplay while reporting success. Wait for load, then set it in
+  // the same tick as the call.
+  await page.waitForLoadState('load').catch(() => {});
+  await page.waitForFunction(() => document.readyState === 'complete', null, { timeout: 60000 }).catch(() => {});
+  const REFINERY_INDEX = 17;
+  await page.evaluate((idx) => {
+    setTimeout(() => {
+      window.__chosenStartStage = idx;
+      try { GameManager.startGame(); } catch (e) {}
+    }, 0);
+  }, REFINERY_INDEX);
   await page.waitForFunction(() => window.GameManager && GameManager.getState && GameManager.getState() === 'playing',
     null, { timeout: 240000 });
   console.log('state: playing (stage 18)');
@@ -59,6 +70,23 @@ async function shot(page, name) {
     return o;
   });
   console.log('setup: ' + JSON.stringify(setup));
+
+  // Refuse to produce screenshots of the wrong thing. The previous run captured
+  // ten frames of the wrong stage and still exited 0; a capture script whose
+  // output will be shown to someone has to fail loudly when it is not filming
+  // what it claims to film.
+  const wrongStage = !setup.stage || setup.stage.id !== 18;
+  const noMission  = !setup.missionActive || !(setup.targets && setup.targets.total > 0);
+  const noDrone    = !setup.possessing || setup.droneType !== 'fpv_attack';
+  if (wrongStage || noMission || noDrone) {
+    console.log('ABORT — not the drone mission: '
+      + (wrongStage ? 'stage=' + JSON.stringify(setup.stage) + ' ' : '')
+      + (noMission ? 'missionActive=' + setup.missionActive + ' targets=' + JSON.stringify(setup.targets) + ' ' : '')
+      + (noDrone ? 'possessing=' + setup.possessing + ' droneType=' + setup.droneType : ''));
+    fs.writeFileSync('drone-mission.json', JSON.stringify({ aborted: true, setup: setup }, null, 1));
+    await app.close();
+    process.exit(1);
+  }
   await shot(page, '01-launch');
 
   // Fly the mission. Each pass: aim at the nearest live target or enemy, close
