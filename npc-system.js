@@ -1488,7 +1488,7 @@ function buildCivilianMesh(npc) {
   // an empty field and sees their first animal a quarter-minute later concludes
   // there are no animals, and by then they have usually moved on.
   var _wildlifeTimer = 0.5;
-  var _wildlifeSeeded = false;
+  var _wildlifeSeeding = 3;   // fast spawner ticks before settling to the normal cadence
   var _wildlifeErrShown = false;
 
   var WILDLIFE_SETS = {
@@ -1604,10 +1604,11 @@ function buildCivilianMesh(npc) {
       // instead of filling in two animals at a time over the first minute.
       try {
         _spawnWildlifeNearPlayer();
-        if (!_wildlifeSeeded) {
-          _wildlifeSeeded = true;
-          for (var _sd = 0; _sd < 3; _sd++) _spawnWildlifeNearPlayer();
-        }
+        // Fill the world quickly at the start, but over several ticks rather
+        // than in one frame: seeding the whole population at once builds a few
+        // dozen meshes in a single frame, and a hitch at stage start is the
+        // last thing the slow machines this is meant to help need.
+        if (_wildlifeSeeding > 0) { _wildlifeSeeding--; _wildlifeTimer = 1.5; }
       }
       catch (e) {
         if (!_wildlifeErrShown) {
