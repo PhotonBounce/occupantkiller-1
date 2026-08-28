@@ -423,7 +423,13 @@ const DroneSystem = (function () {
       // FPV carries a real, finite munition load. It used to read 99 while
       // fireAttack ignored the count entirely and destroyed the drone on the
       // first shot — the HUD advertised ammo the drone did not actually have.
-      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5 : (type === DRONE_TYPE.FPV_ATTACK ? (6 + (window._dronePayloadBonus || 0)) : undefined),
+      // The bomber used to carry no count at all: one drop set hasPayload
+      // false and the drone was gone. A bomber that drops a single bomb and
+      // dies is a kamikaze with extra steps, and the loadout screen offers
+      // it as a distinct aircraft. Give it a real bomb bay.
+      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5
+                  : type === DRONE_TYPE.FPV_ATTACK ? (6 + (window._dronePayloadBonus || 0))
+                  : (type === DRONE_TYPE.BOMB ? 4 : undefined),
       missiles: (type === DRONE_TYPE.BAYRAKTAR) ? TB2_MISSILES : undefined,
       _babaDropCooldown: 0,
       // Bomber survival chance after payload drop (real-world based)
@@ -1311,10 +1317,25 @@ const DroneSystem = (function () {
   function dropPayload(droneId) {
     const drone = drones.find(d => d.id === droneId);
     if (!drone || !drone.hasPayload) return false;
-    drone.hasPayload = false;
-    // Remove payload mesh
+    // Spend one bomb rather than the whole aircraft. Drones with no declared
+    // count (enemy bombers, scripted one-shots) keep the old behaviour.
+    var _hadCount = (typeof drone.payloadCount === 'number');
+    if (_hadCount) {
+      drone.payloadCount--;
+      if (drone.payloadCount <= 0) drone.hasPayload = false;
+    } else {
+      drone.hasPayload = false;
+    }
+    // Remove payload mesh — one bomb per drop when the bay is counted, so the
+    // model visibly empties out instead of clearing every rack on the first run.
+    var _bombHidden = false;
     drone.mesh.children.forEach(child => {
-      if (child.userData.isPayload) child.visible = false;
+      if (!child.userData.isPayload) return;
+      if (_hadCount) {
+        if (!_bombHidden && child.visible) { child.visible = false; _bombHidden = true; }
+      } else {
+        child.visible = false;
+      }
     });
     // Bomb falls to ground level before exploding
     const dropPos = drone.position.clone();
@@ -1326,11 +1347,17 @@ const DroneSystem = (function () {
     if (typeof Enemies !== 'undefined') {
       Enemies.damageInRadius(dropPos, 6, drone.damage);
     }
+    // Mission structures are not enemies and were taking nothing from a bomb
+    // landing on them: on the refinery stage the bomber and Baba Yaga could
+    // not touch the objective at all, only the men standing next to it.
+    try { if (window.RefineryStrike && RefineryStrike.damageAt) RefineryStrike.damageAt(dropPos, 6, drone.damage); } catch (e) {}
     createDroneExplosion(dropPos);
     if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playGunshot('launcher');
     // Bomber survival probability — real-war based (30% default for heavy bombers)
     var survChance = drone._survivalChance || 0.0;
-    if (Math.random() < survChance) {
+    if (drone.hasPayload) {
+      // Bombs left in the bay — the aircraft flies on for another run.
+    } else if (Math.random() < survChance) {
       if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('✈️ BOMBER SURVIVED — RETURNING', 2500, '#00ff88');
     } else {
       // Drone lost — destroy it
@@ -1363,6 +1390,7 @@ const DroneSystem = (function () {
     if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
       Enemies.damageInRadius(dropPos, 8, drone.damage);
     }
+    try { if (window.RefineryStrike && RefineryStrike.damageAt) RefineryStrike.damageAt(dropPos, 8, drone.damage); } catch (e) {}
     // Spawn fire VFX
     if (typeof Tracers !== 'undefined') {
       if (Tracers.spawnFire) Tracers.spawnFire(dropPos, 8);

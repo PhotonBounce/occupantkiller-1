@@ -5097,7 +5097,14 @@ const GameManager = (function () {
       }
     }
     if (payloadEl) {
-      if (drone.type === 'bomb') {
+      // Count first: the bomber now carries a real bomb bay, and its old
+      // branch reported a binary READY/DROPPED that read "DROPPED" with three
+      // bombs still racked.
+      if (drone.type === 'bomb' && typeof drone.payloadCount === 'number') {
+        payloadEl.style.display = '';
+        payloadEl.textContent = '\uD83D\uDCA3 BOMBS [\u00D7' + drone.payloadCount + ']';
+        payloadEl.style.color = drone.payloadCount > 0 ? '#ffaa00' : '#666';
+      } else if (drone.type === 'bomb') {
         payloadEl.style.display = '';
         payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
         payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';

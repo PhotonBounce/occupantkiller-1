@@ -5994,7 +5994,7 @@ window.AllySoldiers = (function() {
     var canvas = document.createElement('canvas');
     canvas.width = 64; canvas.height = 8;
     var ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#00ff44';
+    ctx.fillStyle = '#3fd0ff';
     ctx.fillRect(0, 0, 64, 8);
     var tex = new THREE.CanvasTexture(canvas);
     var geo = new THREE.PlaneGeometry(0.8, 0.1);
@@ -6008,12 +6008,20 @@ window.AllySoldiers = (function() {
   }
 
   function _updateHPBar(bar, pct) {
+    // Repaint only when the bar would actually look different. This redrew the
+    // canvas and re-uploaded the texture to the GPU every frame for every ally,
+    // whether or not anyone had taken a scratch of damage.
+    var step = Math.round(Math.max(0, Math.min(1, pct)) * 32);
+    if (bar._lastStep === step) return;
+    bar._lastStep = step;
     var ctx = bar._ctx;
     ctx.clearRect(0, 0, 64, 8);
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = '#16222c';
     ctx.fillRect(0, 0, 64, 8);
-    ctx.fillStyle = pct > 0.5 ? '#00ff44' : pct > 0.25 ? '#ffaa00' : '#ff2200';
-    ctx.fillRect(0, 0, 64 * pct, 8);
+    // Friendly bars are deliberately COOL-coloured. Hostiles now show a red,
+    // pulsing bar, so friend and foe must never share a palette.
+    ctx.fillStyle = pct > 0.5 ? '#3fd0ff' : pct > 0.25 ? '#7fa8ff' : '#b07fff';
+    ctx.fillRect(0, 0, 64 * (step / 32), 8);
     bar._tex.needsUpdate = true;
   }
 
