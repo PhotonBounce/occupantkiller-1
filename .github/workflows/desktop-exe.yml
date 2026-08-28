@@ -29,6 +29,17 @@ jobs:
           Copy-Item *.html, *.js -Destination desktop/app/ -ErrorAction SilentlyContinue
           Copy-Item *.css, *.png, *.ico, *.svg -Destination desktop/app/ -ErrorAction SilentlyContinue
           Copy-Item bundles -Destination desktop/app/bundles -Recurse
+          # Runtime asset directories. The staging list was root files plus
+          # bundles/, so gamemusic/ never made it into the package and the
+          # desktop build shipped with no music at all — the only sign was a
+          # bare "ERR_FILE_NOT_FOUND" in the console that named no file.
+          Copy-Item gamemusic -Destination desktop/app/gamemusic -Recurse
+          if (-not (Test-Path desktop/app/gamemusic/manifest.json)) {
+            throw "gamemusic/manifest.json missing from the staged app - the build would ship silent"
+          }
+          $tracks = (Get-ChildItem desktop/app/gamemusic -Filter *.mp3 | Measure-Object).Count
+          if ($tracks -lt 1) { throw "no music tracks staged into the app" }
+          "staged $tracks music track(s)"
           # The desktop tooling itself must not ship inside the app payload, and
           # the repo's package.json must NOT land in app/ — electron-builder
           # would treat it as a nested package and try to npm-install its native
