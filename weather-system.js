@@ -175,8 +175,18 @@ window.WeatherSystem = (function () {
   /* ─────────────────────────────────────────────────────────────────── */
   /*  STATE CYCLE                                                        */
   /* ─────────────────────────────────────────────────────────────────── */
+  var _cycleLast = null;
   function _updateCycle(delta) {
-    _stateTimer += delta;
+    // Wall time, not the clamped physics delta. A state lasts 60-180 seconds,
+    // and delta is capped at 0.1s so a frame spike cannot tunnel the player —
+    // which on a machine running at 3fps stretched every weather state to
+    // between three and nine real MINUTES. Weather was changing; nobody was
+    // playing long enough in one sitting to see it.
+    var now = (typeof performance !== 'undefined' && performance.now)
+      ? performance.now() / 1000 : Date.now() / 1000;
+    var real = (_cycleLast === null) ? (delta || 0) : Math.min(now - _cycleLast, 5);
+    _cycleLast = now;
+    _stateTimer += real;
     if (_stateTimer >= _stateDuration) {
       _stateTimer = 0;
       _stateDuration = 60 + Math.random() * 120;

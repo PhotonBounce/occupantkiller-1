@@ -1618,8 +1618,10 @@ function buildCivilianMesh(npc) {
       }
     }
 
-    // Stray pet spawner — periodically drop a dog/cat near the player
-    _strayPetTimer = (_strayPetTimer || 0) - delta;
+    // Stray pet spawner — periodically drop a dog/cat near the player.
+    // Wall time for the same reason as the wildlife spawner above: on the
+    // clamped delta this 25-50s timer ran to several real minutes.
+    _strayPetTimer = (_strayPetTimer || 0) - _wlReal;
     if (_strayPetTimer <= 0) {
       _strayPetTimer = 25 + Math.random() * 25; // every 25-50s
       try {
