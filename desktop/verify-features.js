@@ -50,7 +50,21 @@ const fs = require('fs');
       const d = DroneSystem.getPossessed();
       o.type = d && d.type;
       o.payloadBefore = d && d.hasPayload;
-      if (d) { o.dropped = DroneSystem.dropPayload(d.id); o.payloadAfter = d.hasPayload; }
+      o.bombsBefore = d && d.payloadCount;
+      if (d) {
+        o.dropped = DroneSystem.dropPayload(d.id);
+        o.payloadAfter = d.hasPayload;
+        o.bombsAfter = d.payloadCount;
+        // Empty the rest of the bay one bomb at a time and check the aircraft
+        // goes dry exactly when it runs out, not before and not never.
+        o.dropsToEmpty = 1;
+        for (let g = 0; g < 12 && d.hasPayload; g++) {
+          if (!DroneSystem.dropPayload(d.id)) break;
+          o.dropsToEmpty++;
+        }
+        o.payloadWhenEmpty = d.hasPayload;
+        o.bombsWhenEmpty = d.payloadCount;
+      }
       o.after = GameManager.getDroneLoadout().map(x => x.type + ':' + x.ammo);
       try { DroneSystem.release && DroneSystem.release(); } catch (e) {}
     } catch (e) { o.err = String(e && e.message || e).slice(0, 200); }
@@ -62,7 +76,30 @@ const fs = require('fs');
   // dropPayload returns the drop descriptor ({position, damage}), not a boolean.
   if (!results.drone.dropped) results.fail.push('dropPayload did not report a drop');
   else if (!(results.drone.dropped.damage > 0)) results.fail.push('drop carried no damage');
-  if (results.drone.payloadAfter !== false) results.fail.push('payload not consumed by the drop');
+  // The bomber carries a real bomb bay now, so one drop must spend ONE bomb and
+  // leave the aircraft armed. The old assertion — hasPayload false after a
+  // single drop — described the one-shot bomber and would now pass only if the
+  // bay were being dumped all at once, which is the bug it looks like a check
+  // against. Assert the whole contract instead: the count goes down by one, the
+  // aircraft stays armed while bombs remain, and it goes dry exactly on empty.
+  const dr = results.drone;
+  if (typeof dr.bombsBefore !== 'number' || dr.bombsBefore < 2) {
+    results.fail.push('bomber carries no bomb bay (payloadCount=' + dr.bombsBefore + ')');
+  } else {
+    if (dr.bombsAfter !== dr.bombsBefore - 1) {
+      results.fail.push('one drop did not spend exactly one bomb ('
+        + dr.bombsBefore + ' -> ' + dr.bombsAfter + ')');
+    }
+    if (dr.payloadAfter !== true) {
+      results.fail.push('bomber went dry with ' + dr.bombsAfter + ' bombs still loaded');
+    }
+    if (dr.dropsToEmpty !== dr.bombsBefore) {
+      results.fail.push('bay of ' + dr.bombsBefore + ' took ' + dr.dropsToEmpty + ' drops to empty');
+    }
+    if (dr.payloadWhenEmpty !== false) {
+      results.fail.push('bomber still reports a payload with an empty bay');
+    }
+  }
 
   // ── 2. wildlife ─────────────────────────────────────────────────────────
   results.wildlife = await page.evaluate(() => {
