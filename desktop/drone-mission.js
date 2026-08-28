@@ -124,29 +124,45 @@ async function shot(page, name) {
   // is what the flight controls do anyway — this is a pilot, not a physics test.
   const passes = [];
   for (let i = 0; i < 8; i++) {
-    const step = await page.evaluate(() => {
+    // Alternate: odd passes hunt the garrison, even passes hit the refinery.
+    // Purely preferring enemies meant the structures were never shot while any
+    // defender lived, so a run finished 0/6 on the actual mission objective and
+    // the captures only ever showed half the job.
+    const wantStructure = (i % 2 === 1);
+    const step = await page.evaluate((preferStructure) => {
       const out = {};
       try {
         const d = DroneSystem.getPossessed();
         if (!d) { out.err = 'no drone'; return out; }
 
-        // Prefer a live enemy; fall back to a standing structure.
-        let tgt = null, best = 1e9;
-        try {
-          const es = Enemies.getAll() || [];
-          for (const e of es) {
-            if (!e || !e.mesh || e.alive === false) continue;
-            const p = e.mesh.position;
-            const dd = (p.x - d.position.x) ** 2 + (p.z - d.position.z) ** 2;
-            if (dd < best) { best = dd; tgt = { x: p.x, y: p.y + 1.0, z: p.z, kind: 'enemy' }; }
-          }
-        } catch (e) {}
-        if (!tgt) {
+        function nearestEnemy() {
+          let t = null, best = 1e9;
+          try {
+            const es = Enemies.getAll() || [];
+            for (const e of es) {
+              if (!e || !e.mesh || e.alive === false) continue;
+              const p = e.mesh.position;
+              const dd = (p.x - d.position.x) ** 2 + (p.z - d.position.z) ** 2;
+              if (dd < best) { best = dd; t = { x: p.x, y: p.y + 1.0, z: p.z, kind: 'enemy' }; }
+            }
+          } catch (e) {}
+          return t;
+        }
+        function nearestStructure() {
           try {
             const ts = (RefineryStrike.getTargets() || []).filter(t => t.alive);
-            if (ts.length) { const t = ts[0]; tgt = { x: t.x, y: t.y + 3 * t.scale, z: t.z, kind: 'structure' }; }
-          } catch (e) {}
+            if (!ts.length) return null;
+            let t = ts[0], best = 1e9;
+            for (const c of ts) {
+              const dd = (c.x - d.position.x) ** 2 + (c.z - d.position.z) ** 2;
+              if (dd < best) { best = dd; t = c; }
+            }
+            return { x: t.x, y: t.y + 3 * t.scale, z: t.z, kind: 'structure' };
+          } catch (e) { return null; }
         }
+
+        let tgt = preferStructure ? (nearestStructure() || nearestEnemy())
+                                  : (nearestEnemy() || nearestStructure());
         if (!tgt) { out.err = 'no target'; return out; }
 
         // Stand off ~30m and 14m up, looking down the dive. At 14m the drone was
@@ -170,7 +186,7 @@ async function shot(page, name) {
         out.droneAlive = !!after;
       } catch (e) { out.err = String(e && e.message || e).slice(0, 160); }
       return out;
-    });
+    }, wantStructure);
     // Catch the detonation. The old 1.4s wait filmed the aftermath, by which
     // time the flash had already faded out of the frame.
     await page.waitForTimeout(120);
