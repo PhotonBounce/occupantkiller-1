@@ -288,16 +288,42 @@ async function shot(page, name) {
         if (!d) { o.err = 'not possessed after launch'; return o; }
         o.droneType = d.type;
         o.ammoBefore = d.payloadCount;
-        // Directly overhead: both of these drop, they do not fire forward.
-        d.position.set(t.x, t.y + 10 * t.scale, t.z);
+        // Offset and above, not straight overhead. These two drop rather than
+        // fire forward, so the drone has to be over the target — but parked
+        // directly on top of it looking straight down, the capture came back as
+        // a near-black frame of dust with no refinery in it at all. Four metres
+        // out keeps the tank in shot and still lands inside the blast radius.
+        d.position.set(t.x + 4, t.y + 12 * t.scale, t.z + 4);
+        if (d.velocity && d.velocity.set) d.velocity.set(0, 0, 0);
         if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(t.x, t.y, t.z); }
-        o.dropped = !!DroneSystem[sp.drop](d.id);
-        const after = DroneSystem.getPossessed();
-        o.ammoAfter = after ? after.payloadCount : null;
-        o.droneSurvived = !!after;
+        o.placed = { x: d.position.x, y: d.position.y, z: d.position.z };
       } catch (e) { o.err = String(e && e.message || e).slice(0, 160); }
       return o;
     }, spec);
+
+    // Same settle as the strike passes, and the same re-aim after it.
+    if (!r.skipped && !r.err) {
+      await page.waitForTimeout(300);
+      const dropRes = await page.evaluate((sp) => {
+        const out = {};
+        try {
+          const d = DroneSystem.getPossessed();
+          if (!d) { out.err = 'drone gone before drop'; return out; }
+          const t = (RefineryStrike.getTargets() || []).filter(x => x.alive)[0];
+          if (t) {
+            d.position.set(t.x + 4, t.y + 12 * t.scale, t.z + 4);
+            if (d.velocity && d.velocity.set) d.velocity.set(0, 0, 0);
+            if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(t.x, t.y, t.z); }
+          }
+          out.dropped = !!DroneSystem[sp.drop](d.id);
+          const after = DroneSystem.getPossessed();
+          out.ammoAfter = after ? after.payloadCount : null;
+          out.droneSurvived = !!after;
+        } catch (e) { out.err = String(e && e.message || e).slice(0, 160); }
+        return out;
+      }, spec);
+      Object.assign(r, dropRes);
+    }
     await page.waitForTimeout(60);
     if (!r.skipped) await shot(page, '90-' + spec.type);
     // Read the hp back AFTER the blast has been applied.
