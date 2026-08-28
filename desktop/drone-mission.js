@@ -241,7 +241,11 @@ async function shot(page, name) {
       console.log('  *** structure ' + doneAfter + '/6 destroyed');
     }
     prevDone = doneAfter;
-    if (doneAfter >= 6) { console.log('ALL SIX STRUCTURES DESTROYED at pass ' + (i + 1)); break; }
+    // Hand over at 5/6, not 6/6. The bomber and Baba Yaga fly next and they
+    // need something left to hit — running the FPV all the way to a levelled
+    // refinery meant their phase always skipped itself and proved nothing.
+    // The FPV finisher below takes the last structure and the stage clear.
+    if (doneAfter >= 5) { console.log('FIVE OF SIX DOWN at pass ' + (i + 1) + ' — handing over to the other aircraft'); break; }
 
     // Out of munitions: rearm at the pad the way the mission intends.
     if (step.ammo === 0) {
@@ -295,6 +299,49 @@ async function shot(page, name) {
       ? (r.hpAfter < r.hpBefore) : null;
     aircraft.push(r);
     console.log(spec.type + ': ' + JSON.stringify(r));
+  }
+
+  // ── Phase 3: finish the mission ───────────────────────────────────────
+  // Whatever is still standing after the bomber and Baba Yaga runs gets taken
+  // by the FPV, so the report ends on the real question: does the stage clear.
+  for (let f = 0; f < 12; f++) {
+    const done = await page.evaluate(() => {
+      try { return RefineryStrike.getProgress().done; } catch (e) { return 6; }
+    });
+    if (done >= 6) break;
+    const st = await page.evaluate(() => {
+      const o = {};
+      try {
+        let d = DroneSystem.getPossessed();
+        if (!d || d.type !== 'fpv_attack') {
+          try { if (DroneSystem.isPossessing()) DroneSystem.release && DroneSystem.release(); } catch (e) {}
+          GameManager.launchDroneFromLoadout('fpv_attack');
+          d = DroneSystem.getPossessed();
+        }
+        if (!d) { o.err = 'no fpv'; return o; }
+        if (!d.payloadCount) { d.payloadCount = 6; d.hasPayload = true; }
+        const alive = (RefineryStrike.getTargets() || []).filter(t => t.alive);
+        if (!alive.length) { o.done = true; return o; }
+        const t = alive[0];
+        o.structure = t.name; o.hp = t.hp;
+        const dx = d.position.x - t.x, dz = d.position.z - t.z;
+        const len = Math.hypot(dx, dz) || 1;
+        d.position.set(t.x + (dx / len) * 19, t.y + 3 * t.scale + 7, t.z + (dz / len) * 19);
+        if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(t.x, t.y, t.z); }
+      } catch (e) { o.err = String(e && e.message || e).slice(0, 160); }
+      return o;
+    });
+    if (st.done) break;
+    await page.waitForTimeout(260);
+    await page.evaluate(() => {
+      try { const d = DroneSystem.getPossessed(); if (d) DroneSystem.fireAttack(d.id); } catch (e) {}
+    });
+    await page.waitForTimeout(60);
+    const after = await page.evaluate(() => {
+      try { return RefineryStrike.getProgress().done; } catch (e) { return null; }
+    });
+    if (after > done) await shot(page, '95-finish' + after);
+    console.log('finisher ' + (f + 1) + ': ' + JSON.stringify(st) + ' -> ' + after + '/6');
   }
 
   await page.waitForTimeout(4000);   // let the mission's onComplete settle
