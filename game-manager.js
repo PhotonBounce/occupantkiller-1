@@ -3510,6 +3510,20 @@ const GameManager = (function () {
         return;
       }
 
+      // Shift+F: open the drone loadout directly.
+      // Plain F prefers linking to a friendly drone already within 100m and
+      // only falls through to the picker when there is nothing in the air.
+      // Drones patrol close to the player, so in practice something almost
+      // always was, and the four-drone loadout could not be reached at all.
+      if (e.code === 'KeyF' && e.shiftKey && !e.ctrlKey) {
+        e.preventDefault();
+        if (gameState === STATE.PLAYING) {
+          if (_dronePickerOpen) closeDronePicker();
+          else openDronePicker();
+        }
+        return;
+      }
+
       // Shift+G (without Ctrl): cycle grenade type FRAG → SMOKE → FLASHBANG → FRAG
       if (e.code === 'KeyG' && e.shiftKey && !e.ctrlKey) {
         e.preventDefault();
@@ -3644,7 +3658,7 @@ const GameManager = (function () {
                 DroneSystem.possess(nearAir.id);
                 showDroneControlsHUD(nearAir.type);
                 if (HUD && HUD.notifyPickup) {
-                  HUD.notifyPickup('REMOTE LINKED: ' + (nearAir.type || 'DRONE').toUpperCase() + ' [T] VIEW [F] EXIT', '#00ccff');
+                  HUD.notifyPickup('REMOTE LINKED: ' + (nearAir.type || 'DRONE').toUpperCase() + ' [T] VIEW [F] EXIT [\u21E7F] SWAP', '#00ccff');
                 }
                 fHandled = true;
               } else {
