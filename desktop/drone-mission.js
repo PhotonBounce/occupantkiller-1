@@ -123,7 +123,12 @@ async function shot(page, name) {
   // the distance, fire. Movement is done by writing the drone transform, which
   // is what the flight controls do anyway — this is a pilot, not a physics test.
   const passes = [];
-  for (let i = 0; i < 8; i++) {
+  // Enough passes to actually finish the job: six structures totalling 1430hp
+  // against an 80-damage warhead needs ~18 hits on target, so 40 alternating
+  // passes leaves margin. Captures are limited to the opening passes and to the
+  // moments a structure actually dies, so this does not upload 80 screenshots.
+  let prevDone = 0;
+  for (let i = 0; i < 40; i++) {
     // Alternate: odd passes hunt the garrison, even passes hit the refinery.
     // Purely preferring enemies meant the structures were never shot while any
     // defender lived, so a run finished 0/6 on the actual mission objective and
@@ -192,8 +197,10 @@ async function shot(page, name) {
     // Catch the detonation. The old 1.4s wait filmed the aftermath, by which
     // time the flash had already faded out of the frame.
     await page.waitForTimeout(60);
-    await shot(page, String(i + 2).padStart(2, '0') + '-impact' + (i + 1));
-    await page.waitForTimeout(1300);
+    const doneNow = (step.targetsBefore && step.targetsBefore.done) || 0;
+    const worthShot = (i < 6) || (doneNow > prevDone);
+    if (worthShot) await shot(page, String(i + 2).padStart(2, '0') + '-impact' + (i + 1));
+    await page.waitForTimeout(700);
     const post = await page.evaluate(() => {
       const o = {};
       try { o.enemiesAfter = Enemies.getAliveCount(); } catch (e) {}
@@ -208,7 +215,13 @@ async function shot(page, name) {
     Object.assign(step, post);
     passes.push(step);
     console.log('pass ' + (i + 1) + ': ' + JSON.stringify(step));
-    await shot(page, String(i + 2).padStart(2, '0') + '-after' + (i + 1));
+    const doneAfter = (post.targetsAfter && post.targetsAfter.done) || 0;
+    if (doneAfter > prevDone) {
+      await shot(page, 'kill' + doneAfter + '-structure');
+      console.log('  *** structure ' + doneAfter + '/6 destroyed');
+    }
+    prevDone = doneAfter;
+    if (doneAfter >= 6) { console.log('ALL SIX STRUCTURES DESTROYED at pass ' + (i + 1)); break; }
 
     // Out of munitions: rearm at the pad the way the mission intends.
     if (step.ammo === 0) {
@@ -217,8 +230,11 @@ async function shot(page, name) {
     }
   }
 
+  await page.waitForTimeout(4000);   // let the mission's onComplete settle
   const final = await page.evaluate(() => {
     const o = {};
+    try { o.missionStillActive = RefineryStrike.isActive(); } catch (e) {}
+    try { o.gameState = GameManager.getState(); } catch (e) {}
     try { o.enemiesAlive = Enemies.getAliveCount(); } catch (e) {}
     try { o.targets = RefineryStrike.getProgress(); } catch (e) {}
     try { const d = DroneSystem.getPossessed(); o.ammo = d ? d.payloadCount : null; o.droneAlive = !!d; } catch (e) {}
