@@ -348,13 +348,19 @@ const DroneSystem = (function () {
 
     // Payload indicator for bomb drone
     if (type === DRONE_TYPE.BOMB) {
-      const payload = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.08, 0.06, 0.2, 8),
-        new THREE.MeshLambertMaterial({ color: 0x666622 })
-      );
-      payload.position.set(0, -0.15, 0);
-      payload.userData.isPayload = true;
-      group.add(payload);
+      // Four bombs on the rack because the bomber now carries four. It used to
+      // model a single bomb, so after the first drop the HUD would report three
+      // still loaded above an aircraft that visibly had none. Geometry and
+      // material are shared across the rack — four bombs, one of each.
+      const bombGeo = new THREE.CylinderGeometry(0.08, 0.06, 0.2, 8);
+      const bombMat = new THREE.MeshLambertMaterial({ color: 0x666622 });
+      const rack = [[-0.11, -0.14], [0.11, -0.14], [-0.11, 0.14], [0.11, 0.14]];
+      for (let bi = 0; bi < rack.length; bi++) {
+        const payload = new THREE.Mesh(bombGeo, bombMat);
+        payload.position.set(rack[bi][0], -0.15, rack[bi][1]);
+        payload.userData.isPayload = true;
+        group.add(payload);
+      }
     }
 
     // Incendiary drone: red payload + flame glow
