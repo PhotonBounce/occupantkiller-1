@@ -112,11 +112,13 @@ async function shot(page, name) {
     try {
       const d = DroneSystem.getPossessed();
       if (!d) return;
-      d.position.set(0, 30, 46);
-      if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(0, 2, 0); }
+      // Closer and lower than before: from 46m back at 30m up the refinery sat
+      // as two thin columns against a wall of fog with the tanks lost in it.
+      d.position.set(0, 18, 40);
+      if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(0, 3, 5); }
     } catch (e) {}
   });
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(1200);   // camera eases toward the drone; let it land
   await shot(page, '01b-overview');
 
   // Fly the mission. Each pass: aim at the nearest live target or enemy, close
@@ -184,6 +186,22 @@ async function shot(page, name) {
           d.mesh.lookAt(tgt.x, tgt.y, tgt.z);
         }
         out.target = tgt;
+      } catch (e) { out.err = String(e && e.message || e).slice(0, 160); }
+      return out;
+    }, wantStructure);
+
+    // Let the camera arrive before firing. The drone view eases toward the
+    // aircraft rather than snapping to it, so firing in the same tick as a
+    // 40m reposition photographed whatever the camera was still flying over —
+    // several of the structure-kill frames came back showing empty ground with
+    // the refinery out of shot entirely.
+    await page.waitForTimeout(260);
+
+    const fired = await page.evaluate(() => {
+      const out = {};
+      try {
+        const d = DroneSystem.getPossessed();
+        if (!d) { out.err = 'no drone'; return out; }
         out.ammoBefore = d.payloadCount;
         out.enemiesBefore = Enemies.getAliveCount();
         try { out.targetsBefore = RefineryStrike.getProgress(); } catch (e) {}
@@ -193,7 +211,9 @@ async function shot(page, name) {
         out.droneAlive = !!after;
       } catch (e) { out.err = String(e && e.message || e).slice(0, 160); }
       return out;
-    }, wantStructure);
+    });
+    Object.assign(step, fired);
+
     // Catch the detonation. The old 1.4s wait filmed the aftermath, by which
     // time the flash had already faded out of the frame.
     await page.waitForTimeout(60);
