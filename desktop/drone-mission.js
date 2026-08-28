@@ -178,9 +178,14 @@ async function shot(page, name) {
         // into a model under a lot of empty sky with the defenders as specks.
         // 19m out and 7m up keeps the target, the men around it and the blast in
         // the same frame.
-        const dx = d.position.x - tgt.x, dz = d.position.z - tgt.z;
-        const len = Math.hypot(dx, dz) || 1;
-        d.position.set(tgt.x + (dx / len) * 19, tgt.y + 7, tgt.z + (dz / len) * 19);
+        // Stand off on the OUTWARD radial from the refinery centre, not along
+        // whatever heading the drone happened to arrive on. Using the approach
+        // vector parked the camera inside a refinery wall on two of the six
+        // kill frames — a dark blue-grey rectangle where the explosion was.
+        // Outward always looks back across open ground into the plant.
+        const ox = tgt.x || 0.001, oz = tgt.z || 0.001;
+        const olen = Math.hypot(ox, oz) || 1;
+        d.position.set(tgt.x + (ox / olen) * 19, tgt.y + 9, tgt.z + (oz / olen) * 19);
         if (d.mesh) {
           d.mesh.position.copy(d.position);
           d.mesh.lookAt(tgt.x, tgt.y, tgt.z);
@@ -208,9 +213,9 @@ async function shot(page, name) {
         // from five structure kills in 28 passes to one in 40. Snapping it back
         // costs the camera nothing (it is already there) and restores the aim.
         if (tgt) {
-          const dx = d.position.x - tgt.x, dz = d.position.z - tgt.z;
-          const len = Math.hypot(dx, dz) || 1;
-          d.position.set(tgt.x + (dx / len) * 19, tgt.y + 7, tgt.z + (dz / len) * 19);
+          const ox = tgt.x || 0.001, oz = tgt.z || 0.001;
+          const olen = Math.hypot(ox, oz) || 1;
+          d.position.set(tgt.x + (ox / olen) * 19, tgt.y + 9, tgt.z + (oz / olen) * 19);
           if (d.velocity && d.velocity.set) d.velocity.set(0, 0, 0);
           if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(tgt.x, tgt.y, tgt.z); }
         }
@@ -362,9 +367,9 @@ async function shot(page, name) {
         if (!alive.length) { o.done = true; return o; }
         const t = alive[0];
         o.structure = t.name; o.hp = t.hp;
-        const dx = d.position.x - t.x, dz = d.position.z - t.z;
-        const len = Math.hypot(dx, dz) || 1;
-        d.position.set(t.x + (dx / len) * 19, t.y + 3 * t.scale + 7, t.z + (dz / len) * 19);
+        const ox = t.x || 0.001, oz = t.z || 0.001;
+        const olen = Math.hypot(ox, oz) || 1;
+        d.position.set(t.x + (ox / olen) * 19, t.y + 3 * t.scale + 9, t.z + (oz / olen) * 19);
         if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(t.x, t.y, t.z); }
       } catch (e) { o.err = String(e && e.message || e).slice(0, 160); }
       return o;
@@ -379,9 +384,9 @@ async function shot(page, name) {
         const alive = (RefineryStrike.getTargets() || []).filter(t => t.alive);
         if (alive.length) {
           const t = alive[0];
-          const dx = d.position.x - t.x, dz = d.position.z - t.z;
-          const len = Math.hypot(dx, dz) || 1;
-          d.position.set(t.x + (dx / len) * 19, t.y + 3 * t.scale + 7, t.z + (dz / len) * 19);
+          const ox = t.x || 0.001, oz = t.z || 0.001;
+          const olen = Math.hypot(ox, oz) || 1;
+          d.position.set(t.x + (ox / olen) * 19, t.y + 3 * t.scale + 9, t.z + (oz / olen) * 19);
           if (d.velocity && d.velocity.set) d.velocity.set(0, 0, 0);
           if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(t.x, t.y, t.z); }
         }
