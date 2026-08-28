@@ -53,7 +53,24 @@ async function shot(page, name) {
   await page.waitForFunction(() => window.GameManager && GameManager.getState && GameManager.getState() === 'playing',
     null, { timeout: 240000 });
   console.log('state: playing (stage 18)');
-  await page.waitForTimeout(9000);   // mission sets up: targets, garrison, drone
+
+  // Wait for the MISSION, not for a guessed number of seconds. The wave — and
+  // with it RefineryStrike.startMission, the garrison and the drone — starts on
+  // a timer after the stage loads, so a fixed 9s sleep aborted on a stage that
+  // was perfectly fine and simply had not begun yet.
+  let ready = false;
+  for (let w = 0; w < 40; w++) {
+    await page.waitForTimeout(3000);
+    const st = await page.evaluate(() => {
+      const o = {};
+      try { o.active = RefineryStrike.isActive(); o.targets = RefineryStrike.getProgress().total; } catch (e) {}
+      try { o.drone = DroneSystem.isPossessing(); } catch (e) {}
+      return o;
+    });
+    if (st.active && st.targets > 0 && st.drone) { ready = true; break; }
+    if (w % 4 === 0) console.log('  waiting for mission: ' + JSON.stringify(st));
+  }
+  console.log(ready ? 'mission live' : 'mission never started');
 
   const setup = await page.evaluate(() => {
     const o = {};
