@@ -24,6 +24,18 @@ const fs = require('fs');
   const page = await app.firstWindow();
   const errs = [];
   page.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 200)); });
+  // Console only says "Failed to load resource: net::ERR_FILE_NOT_FOUND" — it
+  // never names the file, so the packaged app has been reporting missing assets
+  // in a form nobody could act on. requestfailed carries the URL.
+  const missing = [];
+  page.on('requestfailed', r => {
+    try {
+      const u = r.url();
+      if (missing.length < 20 && !missing.some(x => x.url === u)) {
+        missing.push({ url: u.length > 160 ? u.slice(-160) : u, why: (r.failure() && r.failure().errorText) || '?' });
+      }
+    } catch (e) {}
+  });
 
   await page.waitForFunction(
     () => typeof window.GameManager !== 'undefined' && !!GameManager.startGame,
@@ -205,6 +217,7 @@ const fs = require('fs');
   } catch (e) {}
 
   results.pageErrors = errs.slice(0, 8);
+  results.missingResources = missing;
   console.log(JSON.stringify(results, null, 1));
   fs.writeFileSync('verify-features.json', JSON.stringify(results, null, 1));
   await app.close();
