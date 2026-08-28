@@ -110,5 +110,4 @@ jobs:
             desktop/verify-winter-night.png
             desktop/drone-mission.json
             desktop/drone-*.png
-            desktop/drone-01b-overview.png
           fail_on_unmatched_files: false

@@ -197,11 +197,23 @@ async function shot(page, name) {
     // the refinery out of shot entirely.
     await page.waitForTimeout(260);
 
-    const fired = await page.evaluate(() => {
+    const fired = await page.evaluate((tgt) => {
       const out = {};
       try {
         const d = DroneSystem.getPossessed();
         if (!d) { out.err = 'no drone'; return out; }
+        // Re-aim before firing. The settle above lets the camera catch up, but
+        // the drone keeps flying during it — 260ms of its own velocity and
+        // patrol steering was enough to walk it off target, and the FPV went
+        // from five structure kills in 28 passes to one in 40. Snapping it back
+        // costs the camera nothing (it is already there) and restores the aim.
+        if (tgt) {
+          const dx = d.position.x - tgt.x, dz = d.position.z - tgt.z;
+          const len = Math.hypot(dx, dz) || 1;
+          d.position.set(tgt.x + (dx / len) * 19, tgt.y + 7, tgt.z + (dz / len) * 19);
+          if (d.velocity && d.velocity.set) d.velocity.set(0, 0, 0);
+          if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(tgt.x, tgt.y, tgt.z); }
+        }
         out.ammoBefore = d.payloadCount;
         out.enemiesBefore = Enemies.getAliveCount();
         try { out.targetsBefore = RefineryStrike.getProgress(); } catch (e) {}
@@ -211,7 +223,7 @@ async function shot(page, name) {
         out.droneAlive = !!after;
       } catch (e) { out.err = String(e && e.message || e).slice(0, 160); }
       return out;
-    });
+    }, step.target);
     Object.assign(step, fired);
 
     // Catch the detonation. The old 1.4s wait filmed the aftermath, by which
@@ -334,7 +346,21 @@ async function shot(page, name) {
     if (st.done) break;
     await page.waitForTimeout(260);
     await page.evaluate(() => {
-      try { const d = DroneSystem.getPossessed(); if (d) DroneSystem.fireAttack(d.id); } catch (e) {}
+      try {
+        const d = DroneSystem.getPossessed();
+        if (!d) return;
+        // Re-aim for the same reason as the main loop above.
+        const alive = (RefineryStrike.getTargets() || []).filter(t => t.alive);
+        if (alive.length) {
+          const t = alive[0];
+          const dx = d.position.x - t.x, dz = d.position.z - t.z;
+          const len = Math.hypot(dx, dz) || 1;
+          d.position.set(t.x + (dx / len) * 19, t.y + 3 * t.scale + 7, t.z + (dz / len) * 19);
+          if (d.velocity && d.velocity.set) d.velocity.set(0, 0, 0);
+          if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(t.x, t.y, t.z); }
+        }
+        DroneSystem.fireAttack(d.id);
+      } catch (e) {}
     });
     await page.waitForTimeout(60);
     const after = await page.evaluate(() => {
