@@ -1483,6 +1483,26 @@ const DroneSystem = (function () {
       var gh = 0;
       try { if (window.VoxelWorld && VoxelWorld.getTerrainHeight) gh = VoxelWorld.getTerrainHeight(_munTmp.x, _munTmp.z) || 0; } catch (e) {}
       if (_munTmp.y <= gh) { _munTmp.y = gh + 0.1; hitPoint = _munTmp.clone(); break; }
+      // A standing mission structure stops it. Without this the warhead flew
+      // straight THROUGH the oil tank it was aimed at and detonated in the dirt
+      // ten-odd metres beyond, outside damageAt's radius — which is why a run
+      // that concentrated four passes on one tank left it at a clean 250/250.
+      try {
+        if (window.RefineryStrike && RefineryStrike.getTargets) {
+          var sts = RefineryStrike.getTargets() || [];
+          for (var si = 0; si < sts.length; si++) {
+            var st = sts[si];
+            if (!st || !st.alive) continue;
+            var sdx = st.x - _munTmp.x;
+            var sdy = (st.y + 3 * st.scale) - _munTmp.y;
+            var sdz = st.z - _munTmp.z;
+            var srr = 4.5 * st.scale;
+            if (sdx * sdx + sdy * sdy + sdz * sdz < srr * srr) { hitPoint = _munTmp.clone(); break; }
+          }
+        }
+      } catch (e3) {}
+      if (hitPoint) break;
+
       // A living enemy within the blast step stops it.
       try {
         if (typeof Enemies !== 'undefined' && Enemies.getAll) {
