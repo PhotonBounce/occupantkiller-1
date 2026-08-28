@@ -1484,7 +1484,11 @@ function buildCivilianMesh(npc) {
      crows and rabbits. Animals far behind the player are culled so the
      population moves with them instead of accumulating across the map. */
   var WILDLIFE_CAP = 10;
-  var _wildlifeTimer = 4;
+  // Seed on the first update rather than after a wait. A player who spawns into
+  // an empty field and sees their first animal a quarter-minute later concludes
+  // there are no animals, and by then they have usually moved on.
+  var _wildlifeTimer = 0.5;
+  var _wildlifeSeeded = false;
   var _wildlifeErrShown = false;
 
   var WILDLIFE_SETS = {
@@ -1509,12 +1513,17 @@ function buildCivilianMesh(npc) {
   // this feature stayed broken for so long: the first bug threw and was
   // swallowed by a bare catch, and the second returned quietly with no error at
   // all, so both looked identical from outside — no animals, no explanation.
+  var _wlTotalSpawned = 0, _wlCalls = 0;
   function _wlStatus(why, extra) {
     try {
-      window.__wildlifeStatus = Object.assign({ why: why, at: Math.round(_wlClock) }, extra || {});
+      if (extra && extra.spawned) _wlTotalSpawned += extra.spawned;
+      window.__wildlifeStatus = Object.assign(
+        { why: why, at: Math.round(_wlClock), totalSpawned: _wlTotalSpawned, calls: ++_wlCalls },
+        extra || {});
     } catch (e) {}
   }
   var _wlClock = 0;
+  var _wlLast = null;   // wall-clock stamp of the previous update, seconds
 
   function _spawnWildlifeNearPlayer() {
     if (!_scene) { _wlStatus('no scene'); return; }
@@ -1574,14 +1583,32 @@ function buildCivilianMesh(npc) {
     // player. Capped and rate-limited: this runs at most a few times a minute
     // and never holds more than WILDLIFE_CAP animals, so it cannot become a
     // per-frame cost no matter how long a mission runs.
-    _wlClock += delta;
+    // Cadence runs on WALL time, not on delta. delta is clamped to 0.1s so a
+    // frame spike cannot tunnel the player through geometry, which is right for
+    // physics and wrong for a schedule: at 3fps the clamp made every in-game
+    // second take three real ones, so a 9-18s spawn timer fired every two or
+    // three MINUTES. The animals were never missing, they were arriving at a
+    // tenth speed on exactly the slow hardware where the world looks emptiest.
+    var _wlNow = (typeof performance !== 'undefined' && performance.now)
+      ? performance.now() / 1000 : Date.now() / 1000;
+    var _wlReal = (_wlLast === null) ? 0 : Math.min(_wlNow - _wlLast, 5);
+    _wlLast = _wlNow;
+    _wlClock += _wlReal;
     try { window.__npcUpdateTicks = (window.__npcUpdateTicks || 0) + 1; } catch (e) {}
-    _wildlifeTimer = (_wildlifeTimer || 0) - delta;
+    _wildlifeTimer = (_wildlifeTimer || 0) - _wlReal;
     if (_wildlifeTimer <= 0) {
       _wildlifeTimer = 9 + Math.random() * 9;
       // Report a spawner failure once instead of swallowing it — a silent
       // catch here is what let the whole wildlife population quietly not exist.
-      try { _spawnWildlifeNearPlayer(); }
+      // The first pass runs several times over so the world starts populated
+      // instead of filling in two animals at a time over the first minute.
+      try {
+        _spawnWildlifeNearPlayer();
+        if (!_wildlifeSeeded) {
+          _wildlifeSeeded = true;
+          for (var _sd = 0; _sd < 3; _sd++) _spawnWildlifeNearPlayer();
+        }
+      }
       catch (e) {
         if (!_wildlifeErrShown) {
           _wildlifeErrShown = true;
