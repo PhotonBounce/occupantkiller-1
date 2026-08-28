@@ -931,8 +931,8 @@ const GameManager = (function () {
       sunIntensity: 0.6,
       exposure:     0.75,
       droneOnly:    true,
-      description:  'Pilot a one-way FPV drone deep into a Russian oil refinery. No respawns at the wheel — only at the launch pad.',
-      objective:    'FPV drone mission. Fly into the refinery. Blow the fuel tanks. One wave, one chance.',
+      description:  'Pilot an FPV strike drone into a defended Russian oil refinery. Six charges on the rail, rearm at the pad, and a garrison that shoots back. Ram it only when you are dry.',
+      objective:    'Drone mission. Kill the garrison and destroy all six refinery structures. [\u21E7F] switches aircraft: FPV, bomber, surveillance, Baba Yaga.',
     },
     {
       id:           19,
