@@ -1467,7 +1467,14 @@ const DroneSystem = (function () {
   var _munDir = new THREE.Vector3();
   function _fireDroneMunition(drone) {
     var STEP = 1.5, MAX = 90;
-    _munDir.set(0, 0, -1).applyQuaternion(drone.mesh ? drone.mesh.quaternion : drone.rotation ? new THREE.Quaternion().setFromEuler(drone.rotation) : new THREE.Quaternion());
+    // +Z is the drone's forward. The system sets mesh.rotation.y from
+    // atan2(velocity.x, velocity.z), which points +Z along the direction of
+    // travel, and Object3D.lookAt aims +Z at its target for a non-camera. Firing
+    // along -Z sent every warhead out of the BACK of the drone: a capture run
+    // aimed four passes at the refinery and finished 0/6, because those rounds
+    // detonated behind the aircraft. Enemies still died occasionally, which is
+    // what made it look like it was working.
+    _munDir.set(0, 0, 1).applyQuaternion(drone.mesh ? drone.mesh.quaternion : drone.rotation ? new THREE.Quaternion().setFromEuler(drone.rotation) : new THREE.Quaternion());
     _munTmp.copy(drone.position);
     var hitPoint = null;
     for (var d = STEP; d <= MAX; d += STEP) {
