@@ -106,6 +106,19 @@ async function shot(page, name) {
   }
   await shot(page, '01-launch');
 
+  // Establishing shot: pull up and back over the refinery so the whole target
+  // area, the tanks and the garrison are visible in one frame.
+  await page.evaluate(() => {
+    try {
+      const d = DroneSystem.getPossessed();
+      if (!d) return;
+      d.position.set(0, 46, 68);
+      if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(0, 2, 0); }
+    } catch (e) {}
+  });
+  await page.waitForTimeout(900);
+  await shot(page, '01b-overview');
+
   // Fly the mission. Each pass: aim at the nearest live target or enemy, close
   // the distance, fire. Movement is done by writing the drone transform, which
   // is what the flight controls do anyway — this is a pilot, not a physics test.
@@ -136,10 +149,13 @@ async function shot(page, name) {
         }
         if (!tgt) { out.err = 'no target'; return out; }
 
-        // Stand off ~14m, at a shallow dive, nose on the target.
+        // Stand off ~30m and 14m up, looking down the dive. At 14m the drone was
+        // nose-to-nose with an oil tank that filled the frame — the captures
+        // showed a wall of metal instead of the refinery, its defenders, or the
+        // strike. A gun-camera wants the target IN a scene, not pressed against it.
         const dx = d.position.x - tgt.x, dz = d.position.z - tgt.z;
         const len = Math.hypot(dx, dz) || 1;
-        d.position.set(tgt.x + (dx / len) * 14, tgt.y + 5, tgt.z + (dz / len) * 14);
+        d.position.set(tgt.x + (dx / len) * 30, tgt.y + 14, tgt.z + (dz / len) * 30);
         if (d.mesh) {
           d.mesh.position.copy(d.position);
           d.mesh.lookAt(tgt.x, tgt.y, tgt.z);
@@ -155,7 +171,11 @@ async function shot(page, name) {
       } catch (e) { out.err = String(e && e.message || e).slice(0, 160); }
       return out;
     });
-    await page.waitForTimeout(1400);
+    // Catch the detonation. The old 1.4s wait filmed the aftermath, by which
+    // time the flash had already faded out of the frame.
+    await page.waitForTimeout(120);
+    await shot(page, String(i + 2).padStart(2, '0') + '-impact' + (i + 1));
+    await page.waitForTimeout(1300);
     const post = await page.evaluate(() => {
       const o = {};
       try { o.enemiesAfter = Enemies.getAliveCount(); } catch (e) {}
@@ -166,7 +186,7 @@ async function shot(page, name) {
     Object.assign(step, post);
     passes.push(step);
     console.log('pass ' + (i + 1) + ': ' + JSON.stringify(step));
-    await shot(page, String(i + 2).padStart(2, '0') + '-pass' + (i + 1));
+    await shot(page, String(i + 2).padStart(2, '0') + '-after' + (i + 1));
 
     // Out of munitions: rearm at the pad the way the mission intends.
     if (step.ammo === 0) {
