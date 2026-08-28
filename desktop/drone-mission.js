@@ -112,7 +112,7 @@ async function shot(page, name) {
     try {
       const d = DroneSystem.getPossessed();
       if (!d) return;
-      d.position.set(0, 46, 68);
+      d.position.set(0, 30, 46);
       if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(0, 2, 0); }
     } catch (e) {}
   });
@@ -165,13 +165,14 @@ async function shot(page, name) {
                                   : (nearestEnemy() || nearestStructure());
         if (!tgt) { out.err = 'no target'; return out; }
 
-        // Stand off ~30m and 14m up, looking down the dive. At 14m the drone was
-        // nose-to-nose with an oil tank that filled the frame — the captures
-        // showed a wall of metal instead of the refinery, its defenders, or the
-        // strike. A gun-camera wants the target IN a scene, not pressed against it.
+        // Stand-off tuned by looking at the output: 14m put the drone nose-to-nose
+        // with an oil tank that filled the frame, 30m shrank the whole refinery
+        // into a model under a lot of empty sky with the defenders as specks.
+        // 19m out and 7m up keeps the target, the men around it and the blast in
+        // the same frame.
         const dx = d.position.x - tgt.x, dz = d.position.z - tgt.z;
         const len = Math.hypot(dx, dz) || 1;
-        d.position.set(tgt.x + (dx / len) * 30, tgt.y + 14, tgt.z + (dz / len) * 30);
+        d.position.set(tgt.x + (dx / len) * 19, tgt.y + 7, tgt.z + (dz / len) * 19);
         if (d.mesh) {
           d.mesh.position.copy(d.position);
           d.mesh.lookAt(tgt.x, tgt.y, tgt.z);
@@ -189,7 +190,7 @@ async function shot(page, name) {
     }, wantStructure);
     // Catch the detonation. The old 1.4s wait filmed the aftermath, by which
     // time the flash had already faded out of the frame.
-    await page.waitForTimeout(120);
+    await page.waitForTimeout(60);
     await shot(page, String(i + 2).padStart(2, '0') + '-impact' + (i + 1));
     await page.waitForTimeout(1300);
     const post = await page.evaluate(() => {
