@@ -230,6 +230,53 @@ async function shot(page, name) {
     }
   }
 
+  // ── Phase 2: the other two attack aircraft ────────────────────────────
+  // The loadout offers four drones and the ask was that all of them work, but
+  // phase 1 only ever flies the FPV. The bomber and Baba Yaga carried a
+  // separate bug — neither drop path damaged mission structures, only
+  // infantry — so "it launches" is not evidence either of them works. Fly each
+  // one at a standing structure and record the hp on both sides of the drop.
+  const aircraft = [];
+  for (const spec of [{ type: 'bomb', drop: 'dropPayload' }, { type: 'baba_yaga', drop: 'dropFire' }]) {
+    const r = await page.evaluate((sp) => {
+      const o = { type: sp.type };
+      try {
+        const alive = (RefineryStrike.getTargets() || []).filter(t => t.alive);
+        if (!alive.length) { o.skipped = 'refinery already levelled'; return o; }
+        const t = alive[0];
+        o.structure = t.name;
+        o.hpBefore = t.hp;
+        try { if (DroneSystem.isPossessing()) DroneSystem.release && DroneSystem.release(); } catch (e) {}
+        o.launched = GameManager.launchDroneFromLoadout(sp.type);
+        const d = DroneSystem.getPossessed();
+        if (!d) { o.err = 'not possessed after launch'; return o; }
+        o.droneType = d.type;
+        o.ammoBefore = d.payloadCount;
+        // Directly overhead: both of these drop, they do not fire forward.
+        d.position.set(t.x, t.y + 10 * t.scale, t.z);
+        if (d.mesh) { d.mesh.position.copy(d.position); d.mesh.lookAt(t.x, t.y, t.z); }
+        o.dropped = !!DroneSystem[sp.drop](d.id);
+        const after = DroneSystem.getPossessed();
+        o.ammoAfter = after ? after.payloadCount : null;
+        o.droneSurvived = !!after;
+      } catch (e) { o.err = String(e && e.message || e).slice(0, 160); }
+      return o;
+    }, spec);
+    await page.waitForTimeout(60);
+    if (!r.skipped) await shot(page, '90-' + spec.type);
+    // Read the hp back AFTER the blast has been applied.
+    r.hpAfter = await page.evaluate((name) => {
+      try {
+        const t = (RefineryStrike.getTargets() || []).find(x => x.name === name);
+        return t ? t.hp : null;
+      } catch (e) { return null; }
+    }, r.structure);
+    r.damagedStructure = (typeof r.hpBefore === 'number' && typeof r.hpAfter === 'number')
+      ? (r.hpAfter < r.hpBefore) : null;
+    aircraft.push(r);
+    console.log(spec.type + ': ' + JSON.stringify(r));
+  }
+
   await page.waitForTimeout(4000);   // let the mission's onComplete settle
   const final = await page.evaluate(() => {
     const o = {};
@@ -242,9 +289,10 @@ async function shot(page, name) {
   });
   await shot(page, '99-final');
 
-  const report = { setup, passes, final, shots: SHOTS, pageErrors: errs.slice(0, 8) };
+  const report = { setup, passes, aircraft, final, shots: SHOTS, pageErrors: errs.slice(0, 8) };
   fs.writeFileSync('drone-mission.json', JSON.stringify(report, null, 1));
-  console.log('\nFINAL: ' + JSON.stringify(final));
+  console.log('\nAIRCRAFT: ' + JSON.stringify(aircraft));
+  console.log('FINAL: ' + JSON.stringify(final));
   console.log('shots: ' + SHOTS.join(' '));
   await app.close();
   process.exit(0);
