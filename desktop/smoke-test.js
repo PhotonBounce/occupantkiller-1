@@ -52,6 +52,14 @@ const fs = require('fs'), path = require('path');
       // whether the compensation is running and whether it ran out of pads.
       lw: window.__lwStats || null,
       pads: (window.__lwPadP || []).length,
+      // Which adaptive quality tier the game settled on. Every quality lever
+      // (pixel ratio, shadows, fog distance, light cap) hangs off this, so if
+      // it is sitting at 0/1 while the frame rate is 3fps then the adaptive
+      // system is not adapting and that dwarfs anything else measured here.
+      perfLevel: window._perfLevel,
+      quality: window.__qualityLabel || null,
+      pixelRatio: (() => { try { return GameManager.getRenderer().getPixelRatio(); } catch (e) { return null; } })(),
+      shadows: (() => { try { return GameManager.getRenderer().shadowMap.enabled; } catch (e) { return null; } })(),
     };
   });
   const fps = +(perf1.frames / 10).toFixed(1);
@@ -60,7 +68,9 @@ const fs = require('fs'), path = require('path');
     + ' lights=' + perf0.lights + '->' + perf1.lights
     + ' tex=' + perf1.textures + ' geo=' + perf1.geometries
     + ' canvases=' + perf1.canvasesGl + 'gl/' + perf1.canvases2d + '2d'
-    + ' lw=' + JSON.stringify(perf1.lw) + ' pads=' + perf1.pads);
+    + ' lw=' + JSON.stringify(perf1.lw) + ' pads=' + perf1.pads
+    + ' tier=' + perf1.perfLevel + '/' + perf1.quality
+    + ' pxRatio=' + perf1.pixelRatio + ' shadows=' + perf1.shadows);
 
   const probe = await page.evaluate(() => {
     const out = { state: GameManager.getState() };

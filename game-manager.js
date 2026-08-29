@@ -9148,6 +9148,7 @@ const GameManager = (function () {
       window._perfEnemyScale   = t.en;
       window._perfLevel        = _perfLevel;
       var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW','MINIMAL','POTATO'][_perfLevel] || 'L' + _perfLevel;
+      window.__qualityLabel = _qlabel;   // read by the CI perf probe
       if (!silent && typeof HUD !== 'undefined' && HUD.notifyPickup) {
         HUD.notifyPickup('⚙ Quality: ' + _qlabel + ' (auto-calibrated, FPS≈' + (fps ? fps.toFixed(0) : '?') + ')', '#88ccff');
       }
