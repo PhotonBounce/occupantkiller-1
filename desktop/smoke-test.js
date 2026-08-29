@@ -107,6 +107,34 @@ const fs = require('fs'), path = require('path');
           return dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
         } catch (e) { return 'err'; }
       })(),
+      // WHAT IS GENERATING 124 SHADER PROGRAMS. three bakes material type, the
+      // per-type light counts, fog, vertex colours, maps and skinning into each
+      // program's cache key, so a scene with a handful of material *kinds* can
+      // still churn out a hundred programs. Program count is a COUNT — immune to
+      // the 34x timing noise this runner has — so it is the metric worth
+      // optimising against. Group the live materials by the properties that
+      // actually form the key, so the next change targets the real generator
+      // instead of the one I would have guessed.
+      matKinds: (() => {
+        try {
+          const seen = new Map(), ids = new Set();
+          GameManager.getScene().traverse(o => {
+            if (!o.isMesh && !o.isPoints && !o.isLine) return;
+            const ms = Array.isArray(o.material) ? o.material : [o.material];
+            for (const m of ms) {
+              if (!m || ids.has(m.uuid)) continue;
+              ids.add(m.uuid);
+              const k = [m.type, m.fog ? 'fog' : '-', m.vertexColors ? 'vc' : '-',
+                m.map ? 'map' : '-', m.transparent ? 'tr' : '-',
+                m.skinning ? 'skin' : '-', m.flatShading ? 'flat' : '-',
+                o.isInstancedMesh ? 'inst' : '-'].join('|');
+              seen.set(k, (seen.get(k) || 0) + 1);
+            }
+          });
+          return { distinctMaterials: ids.size,
+                   byKey: Object.fromEntries([...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12)) };
+        } catch (e) { return { err: String(e && e.message || e) }; }
+      })(),
       perfLevel: window._perfLevel,
       quality: window.__qualityLabel || null,
       pixelRatio: (() => { try { return GameManager.getRenderer().getPixelRatio(); } catch (e) { return null; } })(),
@@ -123,6 +151,7 @@ const fs = require('fs'), path = require('path');
     + ' gpu="' + perf1.gpu + '"'
     + ' tier=' + perf1.perfLevel + '/' + perf1.quality
     + ' pxRatio=' + perf1.pixelRatio + ' shadows=' + perf1.shadows);
+  console.log('MATERIALS ' + JSON.stringify(perf1.matKinds));
 
   const probe = await page.evaluate(() => {
     const out = { state: GameManager.getState() };
