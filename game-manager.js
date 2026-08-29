@@ -1136,67 +1136,6 @@ const GameManager = (function () {
     } catch (e) { /* must never break the game */ }
   }, 500);
 
-  // ── Light warden, part 2: hold the count constant BETWEEN ticks ──────
-  // The warden above restores the light count every 500ms, which fixes the
-  // steady state and misses the thing that actually costs. At 4.8fps that
-  // interval is two or three frames of free-for-all: an effect adds a light
-  // (count changes -> every material recompiles inside render()), the warden
-  // takes it away again (count changes -> recompiles again). Measured on the
-  // packaged .exe at stage 1: lights 21 -> 37 and the program cache 30 -> 60
-  // in ten seconds, i.e. a fresh HLSL build on roughly two frames in three.
-  // The transients ARE the stall; trimming after the fact cannot catch them.
-  //
-  // So compensate at the moment of the change instead. Every parked pad light
-  // is a slot: when a real point light joins the scene we retire one pad, and
-  // when it leaves we put one back. The total the renderer sees never moves,
-  // so the shader cache key never changes and the compiles stop. If the pads
-  // run dry the count simply behaves as it used to and the 500ms pass above
-  // re-pads it — this degrades to the old behaviour rather than breaking.
-  (function installLightSlotSwap() {
-    if (typeof THREE === 'undefined' || !THREE.Object3D || THREE.Object3D.prototype.__lwSwap) return;
-    var proto = THREE.Object3D.prototype;
-    proto.__lwSwap = true;
-    window.__lwStats = { borrowed: 0, returned: 0, dry: 0 };
-
-    function isDynamicPointLight(o) {
-      return !!(o && o.isPointLight && !(o.userData && (o.userData.keepLight || o.userData.lwPad)));
-    }
-    // A light parented into a detached group does not change the scene's count
-    // until that group is added, at which point this same hook runs for the
-    // group's own insertion — so compensating unconditionally still balances.
-    function borrowSlot() {
-      var pads = window.__lwPadP;
-      if (!pads || !pads.length) { window.__lwStats.dry++; return; }
-      var pad = pads.pop();
-      try { if (pad.parent) pad.parent.remove(pad); } catch (e) {}
-      window.__lwStats.borrowed++;
-    }
-    function returnSlot() {
-      var pads = window.__lwPadP;
-      if (!pads || !_scene) return;
-      var L = new THREE.PointLight(0xffffff, 0, 0.001);
-      L.userData.keepLight = true; L.userData.lwPad = true;
-      L.position.set(0, -9999, 0);
-      _scene.add(L); pads.push(L);
-      window.__lwStats.returned++;
-    }
-
-    var origAdd = proto.add, origRemove = proto.remove;
-    proto.add = function () {
-      var r = origAdd.apply(this, arguments);
-      for (var i = 0; i < arguments.length; i++) {
-        if (isDynamicPointLight(arguments[i])) borrowSlot();
-      }
-      return r;
-    };
-    proto.remove = function () {
-      for (var i = 0; i < arguments.length; i++) {
-        if (isDynamicPointLight(arguments[i])) returnSlot();
-      }
-      return origRemove.apply(this, arguments);
-    };
-  })();
-
   /* ── Last-kill camera tracking ───────────────────────────────── */
   var _lastKillPos = null;  // position of most recent enemy kill
   var _rfFlagObjects = [];  // Russian flag meshes placed each wave — cleared at wave start
