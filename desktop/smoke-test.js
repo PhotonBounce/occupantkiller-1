@@ -48,6 +48,10 @@ const fs = require('fs'), path = require('path');
       textures: h.textures, geometries: h.geometries,
       canvasesGl: h.canvasesGl, canvases2d: h.canvases2d,
       lights: (() => { let n = 0; try { GameManager.getScene().traverse(o => { if (o.isLight) n++; }); } catch (e) {} return n; })(),
+      // Light-slot swap accounting. progs climbing is the symptom; these say
+      // whether the compensation is running and whether it ran out of pads.
+      lw: window.__lwStats || null,
+      pads: (window.__lwPadP || []).length,
     };
   });
   const fps = +(perf1.frames / 10).toFixed(1);
@@ -55,7 +59,8 @@ const fs = require('fs'), path = require('path');
     + ' progs=' + perf0.progs + '->' + perf1.progs
     + ' lights=' + perf0.lights + '->' + perf1.lights
     + ' tex=' + perf1.textures + ' geo=' + perf1.geometries
-    + ' canvases=' + perf1.canvasesGl + 'gl/' + perf1.canvases2d + '2d');
+    + ' canvases=' + perf1.canvasesGl + 'gl/' + perf1.canvases2d + '2d'
+    + ' lw=' + JSON.stringify(perf1.lw) + ' pads=' + perf1.pads);
 
   const probe = await page.evaluate(() => {
     const out = { state: GameManager.getState() };
