@@ -135,6 +135,7 @@ const fs = require('fs'), path = require('path');
                    byKey: Object.fromEntries([...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12)) };
         } catch (e) { return { err: String(e && e.message || e) }; }
       })(),
+      pbrDowngraded: window.__pbrDowngraded || 0,
       perfLevel: window._perfLevel,
       quality: window.__qualityLabel || null,
       pixelRatio: (() => { try { return GameManager.getRenderer().getPixelRatio(); } catch (e) { return null; } })(),
@@ -149,6 +150,7 @@ const fs = require('fs'), path = require('path');
     + ' canvases=' + perf1.canvasesGl + 'gl/' + perf1.canvases2d + '2d'
     + ' lw=' + JSON.stringify(perf1.lw) + ' pads=' + perf1.pads
     + ' gpu="' + perf1.gpu + '"'
+    + ' pbrDowngraded=' + perf1.pbrDowngraded
     + ' tier=' + perf1.perfLevel + '/' + perf1.quality
     + ' pxRatio=' + perf1.pixelRatio + ' shadows=' + perf1.shadows);
   console.log('MATERIALS ' + JSON.stringify(perf1.matKinds));

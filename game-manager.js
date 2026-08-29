@@ -1057,6 +1057,55 @@ const GameManager = (function () {
     } catch (e) { /* cosmetic only */ }
   }, 400);
 
+  // ── PBR downgrade for low-end tiers ─────────────────────────────────
+  // Replaces MeshStandardMaterial with a Lambert carrying the same look-alike
+  // properties. Deliberately NOT shared/deduped: plenty of materials in this
+  // game are mutated per object at runtime (damage flashes, fading corpses,
+  // pulsing indicators), and collapsing them onto one shared instance would
+  // make every enemy in the level flash when one of them is hit. One cheap
+  // material per expensive material keeps that behaviour intact.
+  function _downgradePBRMaterials() {
+    if (!_scene) return 0;
+    var swapped = 0;
+    try {
+      _scene.traverse(function (o) {
+        if (!o || !o.material) return;
+        var list = Array.isArray(o.material) ? o.material : [o.material];
+        var out = [], changed = false;
+        for (var i = 0; i < list.length; i++) {
+          var m = list[i];
+          if (!m || m.type !== 'MeshStandardMaterial' || (m.userData && m.userData.noDowngrade)) {
+            out.push(m); continue;
+          }
+          var lam = new THREE.MeshLambertMaterial({
+            color: m.color ? m.color.clone() : undefined,
+            map: m.map || null,
+            emissive: m.emissive ? m.emissive.clone() : undefined,
+            emissiveMap: m.emissiveMap || null,
+            emissiveIntensity: m.emissiveIntensity,
+            transparent: m.transparent,
+            opacity: m.opacity,
+            alphaTest: m.alphaTest,
+            depthWrite: m.depthWrite,
+            depthTest: m.depthTest,
+            side: m.side,
+            vertexColors: m.vertexColors,
+            flatShading: m.flatShading,
+            fog: m.fog,
+            visible: m.visible
+          });
+          lam.userData = m.userData || {};
+          lam.userData.downgradedFrom = 'MeshStandardMaterial';
+          out.push(lam); changed = true; swapped++;
+          try { m.dispose(); } catch (e) {}
+        }
+        if (changed) o.material = Array.isArray(o.material) ? out : out[0];
+      });
+    } catch (e) { /* never break rendering over an optimisation */ }
+    window.__pbrDowngraded = (window.__pbrDowngraded || 0) + swapped;
+    return swapped;
+  }
+
   // ── Light warden ────────────────────────────────────────────────────
   // CI on the ANGLE/D3D11 stack reproduced the 1-FPS report and measured the
   // cause: dynamic lights LEAK during combat (20 -> 38 in 16s). Every change in
@@ -5705,6 +5754,10 @@ const GameManager = (function () {
     if (window.SurrenderSystem && SurrenderSystem.clear) SurrenderSystem.clear();
     if (window.SuppressionSystem && SuppressionSystem.reset) SuppressionSystem.reset();
     window.VoxelWorld.generateLevel(stageDef.levelId || stageIndex);
+    // A fresh level builds fresh PBR materials, so the tier's downgrade has to
+    // run again here — otherwise it only ever applied to whatever was standing
+    // at the moment the frame rate first collapsed.
+    if (_perfLevel >= 3) _downgradePBRMaterials();
     _applyStageTimeAndSeason(stageDef, stageIndex);
     _resetDroneLoadout();
     closeDronePicker();
@@ -9147,6 +9200,15 @@ const GameManager = (function () {
       window._perfEffectScale  = t.fx;
       window._perfEnemyScale   = t.en;
       window._perfLevel        = _perfLevel;
+      // Drop PBR shading on the low tiers. A census of the running game found
+      // 1,066 live MeshStandardMaterial instances — full metalness/roughness
+      // PBR, the most expensive material three ships — in a voxel game that by
+      // then had already been forced to 0.4x resolution with shadows off. The
+      // per-fragment cost of Standard over Lambert is exactly what a weak iGPU
+      // cannot pay, and at this tier the look is already heavily compromised.
+      // One-way on purpose: nothing converts back if the tier climbs, because
+      // the visual difference at POTATO is not worth a second traversal.
+      if (_perfLevel >= 3) _downgradePBRMaterials();
       var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW','MINIMAL','POTATO'][_perfLevel] || 'L' + _perfLevel;
       window.__qualityLabel = _qlabel;   // read by the CI perf probe
       if (!silent && typeof HUD !== 'undefined' && HUD.notifyPickup) {
