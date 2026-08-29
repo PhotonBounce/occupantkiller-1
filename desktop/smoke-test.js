@@ -93,6 +93,20 @@ const fs = require('fs'), path = require('path');
       // (pixel ratio, shadows, fog distance, light cap) hangs off this, so if
       // it is sitting at 0/1 while the frame rate is 3fps then the adaptive
       // system is not adapting and that dwarfs anything else measured here.
+      // WHAT IS ACTUALLY RENDERING. GitHub's Windows runners are GPU-less VMs,
+      // so Chromium may be falling back to WARP/SwiftShader software
+      // rasterization. If it is, then every frame-time number measured here
+      // describes a software rasterizer and predicts nothing about a real
+      // iGPU — which would make this harness unfit for the perf question it
+      // is being asked, and that has to be visible in the output rather than
+      // inferred later.
+      gpu: (() => {
+        try {
+          const gl = GameManager.getRenderer().getContext();
+          const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+          return dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
+        } catch (e) { return 'err'; }
+      })(),
       perfLevel: window._perfLevel,
       quality: window.__qualityLabel || null,
       pixelRatio: (() => { try { return GameManager.getRenderer().getPixelRatio(); } catch (e) { return null; } })(),
@@ -106,6 +120,7 @@ const fs = require('fs'), path = require('path');
     + ' tex=' + perf1.textures + ' geo=' + perf1.geometries
     + ' canvases=' + perf1.canvasesGl + 'gl/' + perf1.canvases2d + '2d'
     + ' lw=' + JSON.stringify(perf1.lw) + ' pads=' + perf1.pads
+    + ' gpu="' + perf1.gpu + '"'
     + ' tier=' + perf1.perfLevel + '/' + perf1.quality
     + ' pxRatio=' + perf1.pixelRatio + ' shadows=' + perf1.shadows);
 
