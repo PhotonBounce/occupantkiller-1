@@ -37,7 +37,44 @@ const fs = require('fs'), path = require('path');
     let lights = 0; try { GameManager.getScene().traverse(o => { if (o.isLight) lights++; }); } catch (e) {}
     return { progs: r && r.info && r.info.programs ? r.info.programs.length : null, lights };
   });
-  await page.waitForTimeout(10000);
+  // Sample repeatedly instead of once. A single 10s window on this runner
+  // reported 512ms, 859ms and 1183ms on three builds whose rendering code was
+  // effectively identical — a 2.3x spread that swamps any change worth making.
+  // One number here is not a measurement, it is a coin toss, and acting on it
+  // is how a revert got justified by noise.
+  const windows = [];
+  for (let w = 0; w < 4; w++) {
+    const t0 = Date.now();
+    const f0 = await page.evaluate(() => window.__pfFrames);
+    await page.waitForTimeout(5000);
+    const sample = await page.evaluate(() => {
+      const h = window.__renderHealth || {};
+      return { frames: window.__pfFrames, renderMs: h.renderMs, drawCalls: h.drawCalls };
+    });
+    const secs = (Date.now() - t0) / 1000;
+    windows.push({
+      fps: +((sample.frames - f0) / secs).toFixed(2),
+      renderMs: sample.renderMs, draw: sample.drawCalls,
+    });
+  }
+  const med = (xs) => {
+    const a = xs.filter(x => typeof x === 'number').sort((x, y) => x - y);
+    if (!a.length) return null;
+    const m = Math.floor(a.length / 2);
+    return +(a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2).toFixed(1);
+  };
+  const spread = (xs) => {
+    const a = xs.filter(x => typeof x === 'number');
+    return a.length ? +(Math.max(...a) / Math.max(1e-6, Math.min(...a))).toFixed(2) : null;
+  };
+  console.log('PERFWINDOWS ' + JSON.stringify(windows));
+  console.log('PERFMEDIAN renderMs=' + med(windows.map(w => w.renderMs))
+    + ' fps=' + med(windows.map(w => w.fps))
+    + ' draw=' + med(windows.map(w => w.draw))
+    + ' | spread renderMs x' + spread(windows.map(w => w.renderMs))
+    + ' fps x' + spread(windows.map(w => w.fps))
+    + '  <- treat a change smaller than the spread as no result');
+
   const perf1 = await page.evaluate(() => {
     const r = GameManager.getRenderer();
     const h = window.__renderHealth || {};
