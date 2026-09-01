@@ -7689,9 +7689,19 @@ const GameManager = (function () {
         player._killSpeedTimer -= delta;
         speed *= (1 + (player._killSpeedBoost || 0));
       }
-      // Weather speed modifier
+      // Weather speed modifier.
+      // This read `.speedMod`. WeatherSystem returns `.speedMult` — and has
+      // done in all eight weather states since it was written. The property
+      // did not exist, so this multiplied speed by undefined, which makes it
+      // NaN, which makes moveDir NaN, which the position NaN-guard then
+      // reverts. The player could not walk, on any level, ever. Nothing threw
+      // and nothing logged, which is how it survived every QA script and CI
+      // probe here: they all call the game's functions directly and none of
+      // them had pressed W.
       if (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) {
-        speed *= WeatherSystem.getModifiers().speedMod;
+        var _wMods = WeatherSystem.getModifiers();
+        var _wSpeed = _wMods && _wMods.speedMult;
+        if (typeof _wSpeed === 'number' && isFinite(_wSpeed)) speed *= _wSpeed;
       }
       // ── B31: Skill passive speed bonus ──
       if (typeof SkillSystem !== 'undefined' && SkillSystem.getPassiveBonus) {
@@ -7720,6 +7730,20 @@ const GameManager = (function () {
       // and drags the frame rate down with it. No legitimate mechanic should
       // exceed 3x base run speed.
       speed = Math.min(speed, MOVE_SPEED * 3);
+      // Last line of defence. speed is the product of eight independent
+      // systems' multipliers; any one of them returning undefined or NaN
+      // silently pins the player in place with no error anywhere, which is
+      // exactly the failure this function just shipped. Never let a bad
+      // multiplier cost the player their legs — fall back to base speed and
+      // say so once.
+      if (!isFinite(speed) || speed <= 0) {
+        if (!window.__speedNaNLogged) {
+          window.__speedNaNLogged = true;
+          if (window.console && console.warn) console.warn('[HEALTH] player speed was ' + speed + ' — a movement multiplier is undefined; falling back to base speed');
+        }
+        window.__speedNaNResets = (window.__speedNaNResets || 0) + 1;
+        speed = MOVE_SPEED;
+      }
       moveDir.multiplyScalar(speed * delta);
 
       // Stamina drain on sprint
