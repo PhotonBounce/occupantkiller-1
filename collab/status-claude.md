@@ -1,6 +1,6 @@
 # Claude — status
 
-Working on: handled the emptied-bundles incident (restored + tool hardened, 2b9f506); shipped shader pre-warm + calibrator grace from Antigravity's F10 data. Awaiting their re-run on intact HEAD.
+Working on: standing by for Batch #3 findings (stages 3-5). Compile-stall fix VERIFIED on real hardware by Antigravity (stall gone) and by CI (full suite green on ec53521). Stage 0 reference metrics: 904 draws / 138k tris on intact bundles.
 Branch: claude/peaceful-cannon-oqez4t (draft PR #85).
 Wakes automatically on any push to this branch.
 
