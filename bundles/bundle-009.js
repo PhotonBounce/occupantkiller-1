@@ -110152,12 +110152,30 @@ window.WeatherStorm = (function () {
 
     delta = delta || 0.016;
 
-    // Auto-cycle countdown
+    // Auto-cycle countdown.
+    // This used to rotate blindly through every storm type on a timer while
+    // WeatherSystem — which owns the HUD banner and the gameplay modifiers —
+    // ran its own independent climate. The result was two weathers at once: a
+    // real-hardware screenshot showed heavy rain falling under a banner
+    // reading "CLEAR — Wind SW 9 kph". A storm is now only auto-triggered as
+    // an INTENSIFIER of what WeatherSystem already says is happening, so the
+    // sky, the banner and the modifiers always tell one story. Manual storm
+    // triggers (the W+S debug cycle) are untouched.
     if (_activeStorm === STORM_NONE) {
       _autoCycleTimer -= delta;
       if (_autoCycleTimer <= 0) {
-        _selectedStormIdx = (_selectedStormIdx + 1) % STORM_TYPES.length;
-        _triggerStorm(STORM_TYPES[_selectedStormIdx]);
+        var _ambient = null;
+        try { _ambient = window.WeatherSystem && WeatherSystem.getCurrentWeather && WeatherSystem.getCurrentWeather(); } catch (e) {}
+        var _match = (_ambient === 'HEAVY_RAIN') ? STORM_THUNDERSTORM
+                   : (_ambient === 'BLIZZARD')   ? STORM_BLIZZARD
+                   : (_ambient === 'SANDSTORM')  ? STORM_SANDSTORM
+                   : null;
+        if (_match) {
+          _triggerStorm(_match);
+        } else {
+          // Calm ambient weather: no storm; check again in a while.
+          _autoCycleTimer = AUTO_CYCLE_INTERVAL / 3;
+        }
       }
     }
 

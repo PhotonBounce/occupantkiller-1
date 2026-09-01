@@ -2259,8 +2259,15 @@ const HUD = (() => {
   (function initFPSCounter() {
     _fpsEl = document.createElement('div');
     _fpsEl.id = 'fps-counter';
-    _fpsEl.style.cssText = 'position:fixed;top:4px;left:4px;color:#0f0;font:bold 14px monospace;' +
-      'z-index:9999;pointer-events:none;text-shadow:1px 1px 2px #000;display:none;';
+    // Mid-left with an opaque plate. The old top-left spot put the diagnostic
+    // text straight over the minimap and rank plate — a committed real-hardware
+    // screenshot shows the two interleaved and both unreadable. Bottom-left is
+    // taken too (armor cluster + speedometer). The band below the MISSIONS
+    // button is the one reliably empty region on that screenshot, and the
+    // plate keeps the text legible over any scene.
+    _fpsEl.style.cssText = 'position:fixed;top:44%;left:8px;color:#0f0;font:bold 13px monospace;' +
+      'z-index:9999;pointer-events:none;background:rgba(0,0,0,0.72);padding:6px 9px;' +
+      'border-radius:4px;border:1px solid rgba(0,255,0,0.25);display:none;';
     document.body.appendChild(_fpsEl);
   })();
   function toggleFPS() {

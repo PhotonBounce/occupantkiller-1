@@ -12,9 +12,10 @@ Last verified this session (FACTs, own evidence):
 - Boot unaffected by the movement fix (bar 100% in 2.9s, A/B vs parent commit).
 
 Known open items:
-- (closed) Release .exe rebuilt from 44fe8d1 — carries the WASD fix.
-- (closed by Antigravity) visionRange added to weather modifiers; verified
-  live, both files load directly, no bundle rebuild needed.
+- FPS discrepancy on Vega 11 (their capture shows 3fps, reports say 33-38) — asked.
+- Possible touch-emulation in their capture browser (mobile UI visible on
+  desktop) — would asterisk all tier data; asked for a plain-desktop run.
+- Cosmetic: white untextured NPC heads; pre-game drone selector missing
+  Baba Yaga vs in-game 4-aircraft loadout.
 - Level generation is one long synchronous main-thread block (multi-second
   freeze at stage start).
-- Real-hardware perf numbers needed; all cloud timings are SwiftShader noise.
