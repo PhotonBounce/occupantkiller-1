@@ -13,9 +13,22 @@
     node tools/qa-play.js [--stage N] [--secs N] [--shots N] [--out DIR] [--port N]
 */
 const http = require('http'), fs = require('fs'), path = require('path');
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+let chromium;
+try {
+  ({ chromium } = require('playwright'));
+} catch (e) {
+  try {
+    ({ chromium } = require('/opt/node22/lib/node_modules/playwright'));
+  } catch (e2) {
+    try {
+      ({ chromium } = require(path.join(process.env.USERPROFILE || process.env.HOME || '', 'AppData/Roaming/npm/node_modules/playwright')));
+    } catch (e3) {
+      console.error('Playwright required for qa-play.js');
+    }
+  }
+}
 
-const ROOT = '/home/user/occupantkiller-1';
+const ROOT = process.env.OK_ROOT || path.resolve(__dirname, '..');
 const arg = (k, d) => {
   const i = process.argv.indexOf('--' + k);
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : d;

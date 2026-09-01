@@ -45,14 +45,14 @@ window.WeatherSystem = (function () {
 
   /* ── Per-state gameplay modifiers ───────────────────────────────── */
   var MODIFIER_CONFIG = {
-    CLEAR:      { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0    },
-    OVERCAST:   { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0    },
-    RAIN:       { speedMult: 1.0,   weaponSway: 1.0,  windX: 0.5,  windZ: 0.1  },
-    HEAVY_RAIN: { speedMult: 0.85,  weaponSway: 1.2,  windX: 1.2,  windZ: 0.3  },
-    SANDSTORM:  { speedMult: 0.75,  weaponSway: 1.8,  windX: 2.0,  windZ: 0.8  },
-    SNOW:       { speedMult: 0.92,  weaponSway: 1.1,  windX: 0.4,  windZ: 0.2  },
-    BLIZZARD:   { speedMult: 0.7,   weaponSway: 1.6,  windX: 1.8,  windZ: 1.0  },
-    FOG:        { speedMult: 1.0,   weaponSway: 1.0,  windX: 0.1,  windZ: 0.05 }
+    CLEAR:      { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0,    visionRange: 1.0  },
+    OVERCAST:   { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0,    visionRange: 1.0  },
+    RAIN:       { speedMult: 1.0,   weaponSway: 1.0,  windX: 0.5,  windZ: 0.1,  visionRange: 0.85 },
+    HEAVY_RAIN: { speedMult: 0.85,  weaponSway: 1.2,  windX: 1.2,  windZ: 0.3,  visionRange: 0.65 },
+    SANDSTORM:  { speedMult: 0.75,  weaponSway: 1.8,  windX: 2.0,  windZ: 0.8,  visionRange: 0.40 },
+    SNOW:       { speedMult: 0.92,  weaponSway: 1.1,  windX: 0.4,  windZ: 0.2,  visionRange: 0.80 },
+    BLIZZARD:   { speedMult: 0.7,   weaponSway: 1.6,  windX: 1.8,  windZ: 1.0,  visionRange: 0.45 },
+    FOG:        { speedMult: 1.0,   weaponSway: 1.0,  windX: 0.1,  windZ: 0.05, visionRange: 0.35 }
   };
 
   /* ── HUD icons ───────────────────────────────────────────────────── */

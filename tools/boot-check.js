@@ -3,7 +3,7 @@
 // so a startup regression is distinguished from a slow software-rendered build.
 const http=require('http'),fs=require('fs'),path=require('path');
 let chromium; try{({chromium}=require('/opt/node22/lib/node_modules/playwright'));}catch(e){({chromium}=require('playwright'));}
-const ROOT='/home/user/occupantkiller-1';
+const ROOT=process.env.OK_ROOT||path.resolve(__dirname, '..');
 const PORT=parseInt(process.env.PORT||'4770',10);
 const STAGE=parseInt(process.argv[2]||'0',10);
 const MIME={'.js':'text/javascript','.html':'text/html','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.json':'application/json','.mp3':'audio/mpeg','.ogg':'audio/ogg','.wav':'audio/wav','.svg':'image/svg+xml','.ico':'image/x-icon'};
