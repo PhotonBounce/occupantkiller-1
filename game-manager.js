@@ -1090,7 +1090,6 @@ const GameManager = (function () {
             depthTest: m.depthTest,
             side: m.side,
             vertexColors: m.vertexColors,
-            flatShading: m.flatShading,
             fog: m.fog,
             visible: m.visible
           });
