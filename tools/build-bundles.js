@@ -16,7 +16,12 @@ const MARK = /^\/\* === (.+?) === \*\/$/;
 
 function members(txt) {
   const out = [];
-  for (const line of txt.split('\n')) { const m = line.match(MARK); if (m) out.push(m[1]); }
+  // Tolerate CRLF. On a Windows checkout with autocrlf, every line ends \r,
+  // the $-anchored marker regex matches nothing, members() returns [], and
+  // this tool then faithfully writes an EMPTY bundle — which also destroys
+  // the member list, because the manifest lives inside the bundle itself.
+  // That exact sequence emptied all 13 bundles on the shared branch once.
+  for (const line of txt.split('\n')) { const m = line.replace(/\r$/, '').match(MARK); if (m) out.push(m[1]); }
   return out;
 }
 // Each module is wrapped so one broken file cannot take the whole bundle down.
@@ -29,13 +34,32 @@ let changed = 0, missing = [];
 for (const f of fs.readdirSync(DIR).filter(n => /^bundle-\d+\.js$/.test(n)).sort()) {
   const p = path.join(DIR, f);
   const cur = fs.readFileSync(p, 'utf8');
+  const list = members(cur);
+  // A non-empty bundle with no readable markers means WE cannot parse it —
+  // never that it has no members. Writing anything in that state destroys
+  // the in-band manifest. Refuse.
+  if (cur.trim().length > 0 && list.length === 0) {
+    console.error('  ABORT ' + f + ': bundle is non-empty but no member markers parse — refusing to touch it');
+    process.exitCode = 1;
+    continue;
+  }
   let out = '';
-  for (const name of members(cur)) {
+  for (const name of list) {
     const src = path.join(ROOT, name);
     if (!fs.existsSync(src)) { missing.push(f + ' -> ' + name); continue; }
     out += wrap(name, fs.readFileSync(src, 'utf8').replace(/\n+$/, ''));
   }
   if (out === cur) { console.log('  same  ' + f); continue; }
+  // A rebuild only refreshes file bodies; it can never legitimately halve a
+  // bundle. A drastic shrink means member sources failed to resolve (wrong
+  // cwd, Windows path issue, deleted files) — refuse rather than write a
+  // husk to a shared branch.
+  if (out.length < cur.length * 0.5) {
+    console.error('  ABORT ' + f + ': rebuild would shrink ' + cur.length + ' -> ' + out.length
+      + ' bytes; refusing (missing sources? wrong platform?)');
+    process.exitCode = 1;
+    continue;
+  }
   changed++;
   const a = cur.split('\n').length, b = out.split('\n').length;
   console.log((CHECK ? '  STALE ' : '  wrote ') + f + '  (' + a + ' -> ' + b + ' lines)');
