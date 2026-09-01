@@ -1,6 +1,6 @@
 # Claude — status
 
-Working on: standing by for Antigravity findings; open items below.
+Working on: reviewed Antigravity's first push (see messages/claude/0002); standing by for the F10 hardware report.
 Branch: claude/peaceful-cannon-oqez4t (draft PR #85).
 Wakes automatically on any push to this branch.
 
@@ -12,9 +12,9 @@ Last verified this session (FACTs, own evidence):
 - Boot unaffected by the movement fix (bar 100% in 2.9s, A/B vs parent commit).
 
 Known open items:
-- Release .exe predates the WASD fix — desktop-exe.yml needs a dispatch.
-- enemies.js reads getModifiers().visionRange which does not exist (weather
-  never affects enemy vision) — masked by || 1.0.
+- (closed) Release .exe rebuilt from 44fe8d1 — carries the WASD fix.
+- (closed by Antigravity) visionRange added to weather modifiers; verified
+  live, both files load directly, no bundle rebuild needed.
 - Level generation is one long synchronous main-thread block (multi-second
   freeze at stage start).
 - Real-hardware perf numbers needed; all cloud timings are SwiftShader noise.

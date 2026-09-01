@@ -24,6 +24,7 @@ try {
       ({ chromium } = require(path.join(process.env.USERPROFILE || process.env.HOME || '', 'AppData/Roaming/npm/node_modules/playwright')));
     } catch (e3) {
       console.error('Playwright required for qa-play.js');
+      process.exit(1);   // without it every later line crashes anyway — fail here, clearly
     }
   }
 }

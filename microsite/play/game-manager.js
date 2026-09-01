@@ -7151,9 +7151,7 @@ const GameManager = (function () {
       }
       // Weather speed modifier
       if (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) {
-        var _wMods = WeatherSystem.getModifiers();
-        var _wSpeed = _wMods && _wMods.speedMult;
-        if (typeof _wSpeed === 'number' && isFinite(_wSpeed)) speed *= _wSpeed;
+        speed *= WeatherSystem.getModifiers().speedMod;
       }
       // ── B31: Skill passive speed bonus ──
       if (typeof SkillSystem !== 'undefined' && SkillSystem.getPassiveBonus) {
@@ -7175,19 +7173,6 @@ const GameManager = (function () {
       }
       // Grapple reduces WASD effectiveness to 30% while attached
       if (window.Grapple && Grapple.isActive()) speed *= Grapple.movementMultiplier();
-
-      // Cap sprint speed — anything faster glitches through voxel colliders
-      // and drags the frame rate down with it. No legitimate mechanic should
-      // exceed 3x base run speed.
-      speed = Math.min(speed, MOVE_SPEED * 3);
-      if (!isFinite(speed) || speed <= 0) {
-        if (!window.__speedNaNLogged) {
-          window.__speedNaNLogged = true;
-          if (window.console && console.warn) console.warn('[HEALTH] player speed was ' + speed + ' — a movement multiplier is undefined; falling back to base speed');
-        }
-        window.__speedNaNResets = (window.__speedNaNResets || 0) + 1;
-        speed = MOVE_SPEED;
-      }
       moveDir.multiplyScalar(speed * delta);
 
       // Stamina drain on sprint
