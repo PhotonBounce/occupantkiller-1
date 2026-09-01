@@ -5757,6 +5757,18 @@ const GameManager = (function () {
     // run again here — otherwise it only ever applied to whatever was standing
     // at the moment the frame rate first collapsed.
     if (_perfLevel >= 3) _downgradePBRMaterials();
+    // Pre-warm the shader programs while we are still in the loading phase.
+    // Real-hardware capture (Vega 11, D3D11): first spawn renders one frame at
+    // gpu.render=1225ms while ~114 programs compile, then play is smooth and
+    // the count plateaus at 119. Compiling here moves that stall into the
+    // loading bar where nobody can feel it.
+    try { if (_renderer && _renderer.compile && _scene && _camera) _renderer.compile(_scene, _camera); } catch (e) {}
+    // And give the auto-quality calibrator a grace window: that same stall
+    // reads as 1fps, which fires the emergency drop straight to POTATO — and
+    // climbing back needs sustained >65fps, so mid-tier machines get locked at
+    // 0.4x resolution forever by their own loading hiccup.
+    window.__perfGraceUntil = (typeof performance !== 'undefined' ? performance.now() : 0) + 8000;
+    _fpsAccum = 0; _fpsSamples = 0; _perfCheckTimer = 0;
     _applyStageTimeAndSeason(stageDef, stageIndex);
     _resetDroneLoadout();
     closeDronePicker();
@@ -9312,6 +9324,12 @@ const GameManager = (function () {
     }
     // Accumulate UNCAPPED wall time (not the 0.1-capped, slow-mo-scaled `delta`),
     // otherwise avgFps saturates at 10 and can never see a true 2 FPS freeze.
+    // Stage-start grace: frames rendered while the shader cache is cold are
+    // measurements of the compiler, not of the machine. Do not let them into
+    // the calibration window (see the pre-warm note at level generation).
+    if (window.__perfGraceUntil && typeof performance !== 'undefined' && performance.now() < window.__perfGraceUntil) {
+      _fpsAccum = 0; _fpsSamples = 0; _perfCheckTimer = 0;
+    }
     _fpsAccum += _wallDelta;
     _fpsSamples++;
     _perfCheckTimer += _wallDelta;

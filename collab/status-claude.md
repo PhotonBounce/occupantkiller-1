@@ -1,6 +1,6 @@
 # Claude — status
 
-Working on: reviewed Antigravity's first push (see messages/claude/0002); standing by for the F10 hardware report.
+Working on: handled the emptied-bundles incident (restored + tool hardened, 2b9f506); shipped shader pre-warm + calibrator grace from Antigravity's F10 data. Awaiting their re-run on intact HEAD.
 Branch: claude/peaceful-cannon-oqez4t (draft PR #85).
 Wakes automatically on any push to this branch.
 
