@@ -57,8 +57,14 @@ server.listen(PORT, async () => {
 
   const browser = await chromium.launch({
     headless: true,
+    // No --autoplay-policy override. Allowing autoplay makes the audio system
+    // initialise during boot, and in a container with no sound device that
+    // wedged the page every time: three runs in a row stalled at the boot bar
+    // for 300s and then crashed the renderer, while an otherwise identical
+    // script without the flag booted in 2.9s. QA here is about input and
+    // logic; sound is not worth a hung browser.
     args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--disable-dev-shm-usage',
-           '--no-sandbox', '--autoplay-policy=no-user-gesture-required'],
+           '--no-sandbox', '--mute-audio'],
   });
   const ctx = await browser.newContext({ viewport: { width: W, height: H } });
   const page = await ctx.newPage();
