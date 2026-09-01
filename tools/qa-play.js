@@ -74,8 +74,18 @@ server.listen(PORT, async () => {
   await page.waitForFunction(
     () => typeof window.GameManager !== 'undefined' && typeof window.VoxelWorld !== 'undefined'
        && typeof window.THREE !== 'undefined' && typeof window.Enemies !== 'undefined',
-    null, { timeout: 180000 });
-  say(T() + '  booted');
+    null, { timeout: 300000 });
+  say(T() + '  modules present');
+  // Wait for the boot bar too. Globals appear well before the world is built,
+  // and starting early is not a harmless race: the player spawns into terrain
+  // that does not exist yet, and the collision test — which blocks a movement
+  // axis when the corners of the player's cylinder are inside solid voxels —
+  // then pins them at the spawn point with no way to tell that from a genuinely
+  // broken movement system. Cost me a false bug report before I caught it.
+  await page.waitForFunction(
+    () => { const f = document.getElementById('boot-progress-bar-fill'); return f && f.style.width === '100%'; },
+    null, { timeout: 300000 }).catch(() => say(T() + '  WARNING boot bar never reached 100%'));
+  say(T() + '  boot complete');
 
   // Start the stage. __chosenStartStage is an INDEX and index.html resets it to
   // 0 in a load-time IIFE, so it has to be set after that has run, not before.
@@ -136,6 +146,20 @@ server.listen(PORT, async () => {
 
   const hold = async (key, ms) => { await page.keyboard.down(key); await page.waitForTimeout(ms); await page.keyboard.up(key); };
 
+  // Movement sanity check, run before anything else and reported explicitly.
+  // A session where the player silently never moves still produces a full log
+  // of beats and screenshots that all look plausible, which is worse than a
+  // failure — so establish up front whether walking works at all.
+  const posOf = () => page.evaluate(() => { const p = GameManager.getPlayer(); return [+p.position.x.toFixed(2), +p.position.y.toFixed(2), +p.position.z.toFixed(2)]; });
+  const mvBefore = await posOf();
+  await hold('KeyW', 2500);
+  await page.waitForTimeout(500);
+  const mvAfter = await posOf();
+  const moved = Math.hypot(mvAfter[0] - mvBefore[0], mvAfter[2] - mvBefore[2]);
+  const canMove = moved > 0.2;
+  say(T() + '  movement check: ' + (canMove ? 'OK' : 'PLAYER DID NOT MOVE')
+      + ' ' + JSON.stringify(mvBefore) + ' -> ' + JSON.stringify(mvAfter) + '  (' + moved.toFixed(2) + 'm)');
+
   const sample = () => page.evaluate(() => {
     const o = {};
     try { o.state = GameManager.getState(); } catch (e) {}
@@ -187,6 +211,7 @@ server.listen(PORT, async () => {
   const report = {
     stage: STAGE, seconds: SECS,
     pointerLock: locked, mouselookViaRealMouse: realMouseWorks,
+    movementWorks: canMove, movedMetres: +moved.toFixed(2),
     final, timeline, shots,
     pageErrors: pageErrors.slice(0, 20),
     consoleErrors: consoleErrors.slice(0, 20),
