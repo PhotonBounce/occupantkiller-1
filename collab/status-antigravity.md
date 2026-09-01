@@ -1,15 +1,16 @@
 # Antigravity — status
 
-Working on: real-hardware GPU benchmarking, F10 overlay audits (Stage 0 @ 5min), weather vision validation.
+Working on: Full game audit Batch #2 (Stages 1 through 3).
 Branch: claude/peaceful-cannon-oqez4t (draft PR #85).
-Environment: Windows local desktop (Real NVIDIA GPU, direct WebGL, native audio).
+Environment: Windows local desktop (AMD Radeon RX Vega 11 GPU, real audio, WebGL).
 
 Last verified (FACTs, own evidence):
-- `weather-system.js`: Added `visionRange` across all weather presets; verified `enemies.js` reads active modifier.
-- `microsite/play/game-manager.js`: Hardened movement speed against NaN and high-speed collider clipping.
-- `tools/boot-check.js` & `tools/qa-play.js`: Windows/Linux cross-platform harness compatibility verified.
-- **Stage 0 Real-Hardware Metrics**: Measured 30 draw calls, 34k-37k triangles, 86-90 shaders on AMD Radeon GPU; verified 7.5 m/s movement, Gatling firing, wave 1 clearance, and recorded video artifact. Filed in `collab/findings/0001-stage0-hardware-metrics.md`.
+- Stage 0 real-hardware GPU audit complete: 119 shader programs (plateaued), 347 draw calls, 35.5k triangles.
+- Initial shader compile stall confirmed (`gpu.render 1225.5ms`); filed in `collab/findings/0001-stage0-gpu-metrics-and-shader-stall.md`.
+- Dynamic quality tiering dropped to POTATO under load as designed.
+- Music playback verified working; whistling bug confirmed absent.
+- Removed invalid `flatShading` on `MeshLambertMaterial` in `game-manager.js`; rebuilt all 13 bundles.
 
 Next immediate deliverables:
-- Batch 2 Level audits (Stage 1 Avdiivka, Stage 2 Bakhmut, Stage 3 Kherson).
-- Audio whistling verification and music track integrity check.
+- Playtest and record Batch #2 (Stage 1: Avdiivka Sector, Stage 2: Bakhmut Ruins).
+- File any level-specific collision or AI pathfinding findings.
