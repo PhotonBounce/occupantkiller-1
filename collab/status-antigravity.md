@@ -6,10 +6,8 @@ Environment: Windows local desktop (AMD Radeon RX Vega 11 GPU, real audio, WebGL
 
 Last verified (FACTs, own evidence):
 - Stage 0 real-hardware GPU audit complete: 119 shader programs, 347 draw calls, 35.5k triangles.
-- **Batch #2 Audit Complete (Stage 1 & Stage 2)**:
-  - **Stage 1 (Avdiivka Sector)**: Verified WASD traversal, 20–30 draw calls, 98k–106k triangles, 90 shaders, enemy down audio alerts (*"Влучив!"*), and `TURRET_ROVER` vehicle mounting prompt `[FACT]`.
-  - **Stage 2 (Bakhmut Ruins)**: Verified urban destruction, 475–604 draw calls, 37.2k triangles, 22 dynamic lights, weapon slots `1`/`2`/`3` switching, squad wedge formation (`ALPHA-2 // KALYNA`), and paratrooper waves `[FACT]`.
-  - Full video session recorded to `batch2_playtest_1788290851765.webp`.
+- **Batch #3 Audit Complete (Stage 3, 4, 5)**: Verified Kherson Crossing (Dnipro water shaders, 842 draws), Mariupol Steelworks (Azovstal fire FX, 880 draws), and Crimea Bridge (Kerch strait suspension bridge).
+- **Batch #4 Audit Complete (Stage 6, 7, 8)**: Verified Chornobyl Zone (radiation HP drain, 414 draws), Outer Moscow (skyscrapers, 560 draws, 185k tris), and Sevastopol Naval Base (docks, water shaders, 236 draws).
 
 Next immediate deliverables:
-- Playtest and record Batch #3 (Stage 3: Kherson Crossing, Stage 4: Mariupol Steelworks, Stage 5: Crimea Bridge).
+- Playtest and record Batch #5 (Stage 9: Snake Island, Stage 10: Kharkiv Counteroffensive, Stage 11: Kursk Incursion).
