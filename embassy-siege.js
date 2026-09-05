@@ -19,6 +19,8 @@
 // ============================================================
 window.EmbassySiege = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── Constants ─────────────────────────────────────────────────
   var TOTAL_HOSTAGES        = 6;
@@ -1313,6 +1315,8 @@ window.EmbassySiege = (function () {
 
   // ── Init (called externally) ───────────────────────────────────
   function init(sc, cam, ren) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (sc)  scene    = sc;
     if (cam) camera   = cam;
     if (ren) renderer = ren;
@@ -1357,7 +1361,7 @@ window.EmbassySiege = (function () {
     shootCooldown = Math.max(0, shootCooldown - dt);
 
     if (renderer && scene && camera) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 

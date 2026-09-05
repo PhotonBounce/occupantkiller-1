@@ -6,6 +6,8 @@
    ───────────────────────────────────────────────────────────────────────────── */
 window.ColosseumBoss = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   /* ── activation key tracking ──────────────────────────────────────────────── */
   var keysDown   = {};
@@ -1452,7 +1454,7 @@ window.ColosseumBoss = (function () {
 
     if (gameState === 'won' || gameState === 'lost') {
       updateHUD();
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
       return;
     }
 
@@ -1620,7 +1622,7 @@ window.ColosseumBoss = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   /* ══════════════════════════════════════════════════════════════════════════════
@@ -1842,6 +1844,8 @@ window.ColosseumBoss = (function () {
      PUBLIC API
   ══════════════════════════════════════════════════════════════════════════════ */
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     bindEvents();
   }
 

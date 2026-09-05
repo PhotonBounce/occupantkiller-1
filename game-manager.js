@@ -931,8 +931,8 @@ const GameManager = (function () {
       sunIntensity: 0.6,
       exposure:     0.75,
       droneOnly:    true,
-      description:  'Pilot a one-way FPV drone deep into a Russian oil refinery. No respawns at the wheel — only at the launch pad.',
-      objective:    'FPV drone mission. Fly into the refinery. Blow the fuel tanks. One wave, one chance.',
+      description:  'Pilot an FPV strike drone into a defended Russian oil refinery. Six charges on the rail, rearm at the pad, and a garrison that shoots back. Ram it only when you are dry.',
+      objective:    'Drone mission. Kill the garrison and destroy all six refinery structures. [\u21E7F] switches aircraft: FPV, bomber, surveillance, Baba Yaga.',
     },
     {
       id:           19,
@@ -1056,6 +1056,54 @@ const GameManager = (function () {
       }
     } catch (e) { /* cosmetic only */ }
   }, 400);
+
+  // ── PBR downgrade for low-end tiers ─────────────────────────────────
+  // Replaces MeshStandardMaterial with a Lambert carrying the same look-alike
+  // properties. Deliberately NOT shared/deduped: plenty of materials in this
+  // game are mutated per object at runtime (damage flashes, fading corpses,
+  // pulsing indicators), and collapsing them onto one shared instance would
+  // make every enemy in the level flash when one of them is hit. One cheap
+  // material per expensive material keeps that behaviour intact.
+  function _downgradePBRMaterials() {
+    if (!_scene) return 0;
+    var swapped = 0;
+    try {
+      _scene.traverse(function (o) {
+        if (!o || !o.material) return;
+        var list = Array.isArray(o.material) ? o.material : [o.material];
+        var out = [], changed = false;
+        for (var i = 0; i < list.length; i++) {
+          var m = list[i];
+          if (!m || m.type !== 'MeshStandardMaterial' || (m.userData && m.userData.noDowngrade)) {
+            out.push(m); continue;
+          }
+          var lam = new THREE.MeshLambertMaterial({
+            color: m.color ? m.color.clone() : undefined,
+            map: m.map || null,
+            emissive: m.emissive ? m.emissive.clone() : undefined,
+            emissiveMap: m.emissiveMap || null,
+            emissiveIntensity: m.emissiveIntensity,
+            transparent: m.transparent,
+            opacity: m.opacity,
+            alphaTest: m.alphaTest,
+            depthWrite: m.depthWrite,
+            depthTest: m.depthTest,
+            side: m.side,
+            vertexColors: m.vertexColors,
+            fog: m.fog,
+            visible: m.visible
+          });
+          lam.userData = m.userData || {};
+          lam.userData.downgradedFrom = 'MeshStandardMaterial';
+          out.push(lam); changed = true; swapped++;
+          try { m.dispose(); } catch (e) {}
+        }
+        if (changed) o.material = Array.isArray(o.material) ? out : out[0];
+      });
+    } catch (e) { /* never break rendering over an optimisation */ }
+    window.__pbrDowngraded = (window.__pbrDowngraded || 0) + swapped;
+    return swapped;
+  }
 
   // ── Light warden ────────────────────────────────────────────────────
   // CI on the ANGLE/D3D11 stack reproduced the 1-FPS report and measured the
@@ -1211,7 +1259,17 @@ const GameManager = (function () {
   const _uaIsMobile = /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|PlayBook|BB10|Opera Mini/i.test(navigator.userAgent);
   const _isIpadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
   const _isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  const isMobile = _uaIsMobile || _isIpadOS || (_isTouch && Math.min(window.innerWidth, window.innerHeight) < 900);
+  // Touch CAPABILITY is not touch PRIMACY. The old rule — touch-capable AND
+  // min(viewport) < 900 — caught every touchscreen Windows laptop with a
+  // normally sized browser window: on a 1080p screen, browser chrome plus the
+  // taskbar routinely leaves innerHeight in the 800s (a real-hardware capture
+  // that exposed this was 1922x860). Those machines got the phone UI, the
+  // touch joystick, and the mobile quality floors while sitting at a desk
+  // with a mouse. `pointer: coarse` asks what the PRIMARY pointer is — a
+  // phone's finger is coarse, a touch-laptop's mouse/trackpad is fine — which
+  // is the question this flag was always trying to answer.
+  const _coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  const isMobile = _uaIsMobile || _isIpadOS || (_isTouch && _coarsePointer && Math.min(window.innerWidth, window.innerHeight) < 900);
   // Publish the mobile flag GLOBALLY. enemies.js (concurrent-NPC caps) and
   // voxel-world.js (bounded chunk-build radius, the OOM fix) both gate on
   // window.__IS_MOBILE — it was never set, so those mobile safeguards never ran.
@@ -1813,6 +1871,7 @@ const GameManager = (function () {
 
     // Tracers system
     _safeInit('tracers', function () { if (typeof Tracers !== 'undefined' && Tracers && typeof Tracers.init === 'function') Tracers.init(_scene); });
+    _safeInit('npc weapons', function () { if (window.NPCWeapons && NPCWeapons.init) NPCWeapons.init(_scene); });
     _bootStep('tracers');
 
     // Audio, Weather & ML systems
@@ -3509,6 +3568,20 @@ const GameManager = (function () {
         return;
       }
 
+      // Shift+F: open the drone loadout directly.
+      // Plain F prefers linking to a friendly drone already within 100m and
+      // only falls through to the picker when there is nothing in the air.
+      // Drones patrol close to the player, so in practice something almost
+      // always was, and the four-drone loadout could not be reached at all.
+      if (e.code === 'KeyF' && e.shiftKey && !e.ctrlKey) {
+        e.preventDefault();
+        if (gameState === STATE.PLAYING) {
+          if (_dronePickerOpen) closeDronePicker();
+          else openDronePicker();
+        }
+        return;
+      }
+
       // Shift+G (without Ctrl): cycle grenade type FRAG → SMOKE → FLASHBANG → FRAG
       if (e.code === 'KeyG' && e.shiftKey && !e.ctrlKey) {
         e.preventDefault();
@@ -3562,6 +3635,22 @@ const GameManager = (function () {
         }
 
         // F key priority chain: 1) drone release  2) mission interact  3) drone possess  4) quick melee
+        // Drone picker owns the number keys while it is open, so choosing a
+        // drone cannot also switch the player's weapon underneath it.
+        if (_dronePickerOpen) {
+          if (e.code === 'Escape') { closeDronePicker(); return; }
+          var _dpIdx = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
+          if (_dpIdx >= 0) {
+            var _dpList = getDroneLoadout();
+            if (_dpList[_dpIdx]) {
+              if (launchDroneFromLoadout(_dpList[_dpIdx].type)) closeDronePicker();
+              else _renderDronePicker();
+            }
+            e.preventDefault();
+            return;
+          }
+        }
+
         if (e.code === 'KeyF') {
           var fHandled = false;
           // Priority 1: release drone if possessing
@@ -3615,11 +3704,25 @@ const GameManager = (function () {
             }
             } // end mt && mt.config
           }
-          // Priority 3: possess nearest drone or launch one
+          // Priority 3: link to a drone already in the air, otherwise open the
+          // loadout picker so the player chooses which drone to send up.
           if (!fHandled) {
-            var linkedDrone = connectOrLaunchDrone('recon');
-            if (linkedDrone) {
+            if (_dronePickerOpen) {
+              closeDronePicker();
               fHandled = true;
+            } else {
+              var nearAir = getNearestFriendlyDrone(100);
+              if (nearAir) {
+                DroneSystem.possess(nearAir.id);
+                showDroneControlsHUD(nearAir.type);
+                if (HUD && HUD.notifyPickup) {
+                  HUD.notifyPickup('REMOTE LINKED: ' + (nearAir.type || 'DRONE').toUpperCase() + ' [T] VIEW [F] EXIT [\u21E7F] SWAP', '#00ccff');
+                }
+                fHandled = true;
+              } else {
+                openDronePicker();
+                fHandled = true;
+              }
             }
           }
           // Priority 4: quick melee
@@ -4749,6 +4852,103 @@ const GameManager = (function () {
     return best;
   }
 
+  /* ── Drone loadout ────────────────────────────────────────────────
+     The player carries four drone types with their own ammo. [F] used to
+     hard-launch a 'recon' drone, which has no payload at all — so the bomb,
+     FPV and Baba Yaga drones existed in the code but were unreachable in
+     normal play, and "bombing" could never happen. */
+  var DRONE_LOADOUT_DEFAULT = [
+    { type: 'fpv_attack',   label: 'FPV STRIKE',   icon: '\u{1F3AF}', ammo: 3 },
+    { type: 'bomb',         label: 'BOMBER',       icon: '\u{1F4A3}', ammo: 2 },
+    { type: 'surveillance', label: 'SURVEILLANCE', icon: '\u{1F441}', ammo: 2 },
+    { type: 'baba_yaga',    label: 'BABA YAGA',    icon: '\u{1F525}', ammo: 1 }
+  ];
+  var _droneFireCd = 0;   // seconds until the possessed drone may release again
+  var _droneLoadout = null;
+  var _dronePickerEl = null;
+  var _dronePickerOpen = false;
+
+  function _resetDroneLoadout() {
+    _droneLoadout = DRONE_LOADOUT_DEFAULT.map(function (d) {
+      return { type: d.type, label: d.label, icon: d.icon, ammo: d.ammo, max: d.ammo };
+    });
+  }
+  function getDroneLoadout() { if (!_droneLoadout) _resetDroneLoadout(); return _droneLoadout; }
+
+  function _droneSlot(type) {
+    var L = getDroneLoadout();
+    for (var i = 0; i < L.length; i++) if (L[i].type === type) return L[i];
+    return null;
+  }
+
+  function _buildDronePicker() {
+    if (_dronePickerEl) return _dronePickerEl;
+    var el = document.createElement('div');
+    el.id = 'drone-picker';
+    el.style.cssText = [
+      'position:fixed;left:50%;bottom:16%;transform:translateX(-50%);',
+      'display:none;z-index:60;pointer-events:none;',
+      'font-family:inherit;color:#dff;text-align:center;'
+    ].join('');
+    document.body.appendChild(el);
+    _dronePickerEl = el;
+    return el;
+  }
+
+  function _renderDronePicker() {
+    var el = _buildDronePicker();
+    var L = getDroneLoadout();
+    var rows = '';
+    for (var i = 0; i < L.length; i++) {
+      var d = L[i];
+      var out = d.ammo <= 0;
+      rows += '<div style="display:inline-block;margin:0 6px;padding:8px 12px;border-radius:6px;'
+        + 'background:rgba(0,20,30,' + (out ? '0.55' : '0.82') + ');'
+        + 'border:1px solid ' + (out ? '#334' : '#0cf') + ';opacity:' + (out ? '0.45' : '1') + ';">'
+        + '<div style="font-size:20px">' + d.icon + '</div>'
+        + '<div style="font-size:11px;letter-spacing:1px">[' + (i + 1) + '] ' + d.label + '</div>'
+        + '<div style="font-size:12px;color:' + (out ? '#a55' : '#8fd') + '">' + d.ammo + ' / ' + d.max + '</div>'
+        + '</div>';
+    }
+    el.innerHTML = '<div style="margin-bottom:6px;font-size:12px;letter-spacing:2px;color:#8fd">'
+      + 'SELECT DRONE &nbsp;·&nbsp; [F] CANCEL</div>' + rows;
+  }
+
+  function openDronePicker() {
+    _renderDronePicker();
+    _dronePickerEl.style.display = 'block';
+    _dronePickerOpen = true;
+  }
+  function closeDronePicker() {
+    if (_dronePickerEl) _dronePickerEl.style.display = 'none';
+    _dronePickerOpen = false;
+  }
+  function isDronePickerOpen() { return _dronePickerOpen; }
+
+  // Launch the chosen drone and spend one of that type. Returns true if a
+  // drone actually went up.
+  function launchDroneFromLoadout(type) {
+    var slot = _droneSlot(type);
+    if (!slot) return false;
+    if (slot.ammo <= 0) {
+      if (HUD && HUD.notifyPickup) HUD.notifyPickup('\u274C NO ' + slot.label + ' DRONES LEFT', '#ff6666');
+      return false;
+    }
+    var d = launchAndPossessDrone(type);
+    _droneFireCd = 0;
+    if (!d) {
+      if (HUD && HUD.notifyPickup) HUD.notifyPickup('\u26A0 DRONE LAUNCH FAILED', '#ffaa00');
+      return false;
+    }
+    slot.ammo--;
+    if (HUD && HUD.notifyPickup) {
+      var hint = (type === 'bomb' || type === 'baba_yaga') ? '[LMB] DROP  [T] VIEW  [F] EXIT'
+               : (type === 'fpv_attack' ? '[LMB] STRIKE  [T] VIEW  [F] EXIT' : '[T] VIEW  [F] EXIT');
+      HUD.notifyPickup(slot.icon + ' ' + slot.label + ' AIRBORNE \u00B7 ' + hint, '#00ccff');
+    }
+    return true;
+  }
+
   function launchAndPossessDrone(droneType) {
     if (typeof DroneSystem === 'undefined' || !DroneSystem.spawn || !DroneSystem.possess) return null;
     var spawnH = (typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight)
@@ -4833,14 +5033,23 @@ const GameManager = (function () {
     var payloadDisp = document.getElementById('drone-payload-display');
     var modeEl = document.getElementById('drone-view-mode');
 
-    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON' };
+    var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER', recon: 'RECON',
+                  baba_yaga: 'BABA YAGA', incendiary: 'INCENDIARY' };
     if (typeLabel) typeLabel.textContent = '\u2014 ' + (names[droneType] || droneType.toUpperCase());
     if (modeEl) modeEl.textContent = 'EYE';
 
     if (droneType === 'fpv_attack') {
-      if (actionText) actionText.textContent = 'Kamikaze Dive';
+      // It fires charges now and only rams once dry, so "Kamikaze Dive" was
+      // describing the last resort as if it were the whole aircraft.
+      if (actionText) actionText.textContent = 'Fire Charge';
       if (actionHint) actionHint.style.display = '';
-      if (payloadDisp) payloadDisp.style.display = 'none';
+      if (payloadDisp) payloadDisp.style.display = '';
+    } else if (droneType === 'baba_yaga' || droneType === 'incendiary') {
+      // Fell through to the no-attack branch, so the one aircraft whose whole
+      // point is dropping thermite never told the pilot which button does it.
+      if (actionText) actionText.textContent = 'Drop Thermite';
+      if (actionHint) actionHint.style.display = '';
+      if (payloadDisp) payloadDisp.style.display = '';
     } else if (droneType === 'bomb') {
       if (actionText) actionText.textContent = 'Drop Bomb';
       if (actionHint) actionHint.style.display = '';
@@ -4971,7 +5180,14 @@ const GameManager = (function () {
       }
     }
     if (payloadEl) {
-      if (drone.type === 'bomb') {
+      // Count first: the bomber now carries a real bomb bay, and its old
+      // branch reported a binary READY/DROPPED that read "DROPPED" with three
+      // bombs still racked.
+      if (drone.type === 'bomb' && typeof drone.payloadCount === 'number') {
+        payloadEl.style.display = '';
+        payloadEl.textContent = '\uD83D\uDCA3 BOMBS [\u00D7' + drone.payloadCount + ']';
+        payloadEl.style.color = drone.payloadCount > 0 ? '#ffaa00' : '#666';
+      } else if (drone.type === 'bomb') {
         payloadEl.style.display = '';
         payloadEl.textContent = drone.hasPayload ? '\uD83D\uDCA3 PAYLOAD READY' : '\uD83D\uDCA3 PAYLOAD DROPPED';
         payloadEl.style.color = drone.hasPayload ? '#ffaa00' : '#666';
@@ -5547,6 +5763,41 @@ const GameManager = (function () {
     if (window.SurrenderSystem && SurrenderSystem.clear) SurrenderSystem.clear();
     if (window.SuppressionSystem && SuppressionSystem.reset) SuppressionSystem.reset();
     window.VoxelWorld.generateLevel(stageDef.levelId || stageIndex);
+    // A fresh level builds fresh PBR materials, so the tier's downgrade has to
+    // run again here — otherwise it only ever applied to whatever was standing
+    // at the moment the frame rate first collapsed.
+    if (_perfLevel >= 3) _downgradePBRMaterials();
+    // Pre-warm the shader programs while we are still in the loading phase.
+    // Real-hardware capture (Vega 11, D3D11): first spawn renders one frame at
+    // gpu.render=1225ms while ~114 programs compile, then play is smooth and
+    // the count plateaus at 119. Compiling here moves that stall into the
+    // loading bar where nobody can feel it.
+    try { if (_renderer && _renderer.compile && _scene && _camera) _renderer.compile(_scene, _camera); } catch (e) {}
+    // Compile the COMBAT materials too. Real-hardware telemetry showed the
+    // program count climbing 68 -> 100 during the first firefight — every one
+    // of those a D3D11 compile stall in the middle of aiming. Explosions,
+    // smoke and fire instantiate their materials lazily on first use, so
+    // spawn one of each far below the world, compile, and let their own
+    // lifetimes clean them up. The player meets their first explosion with
+    // the shader already on the card.
+    try {
+      if (window.Tracers && _renderer && _renderer.compile) {
+        var _pwPos = new THREE.Vector3(0, -500, 0);
+        if (Tracers.spawnExplosion) Tracers.spawnExplosion(_pwPos, 1);
+        if (Tracers.spawnSmoke) Tracers.spawnSmoke(_pwPos);
+        if (Tracers.spawnFire) Tracers.spawnFire(_pwPos, 1, 0.5);
+        _renderer.compile(_scene, _camera);
+      }
+    } catch (e) {}
+    // And give the auto-quality calibrator a grace window: that same stall
+    // reads as 1fps, which fires the emergency drop straight to POTATO — and
+    // climbing back needs sustained >65fps, so mid-tier machines get locked at
+    // 0.4x resolution forever by their own loading hiccup.
+    window.__perfGraceUntil = (typeof performance !== 'undefined' ? performance.now() : 0) + 8000;
+    _fpsAccum = 0; _fpsSamples = 0; _perfCheckTimer = 0;
+    _applyStageTimeAndSeason(stageDef, stageIndex);
+    _resetDroneLoadout();
+    closeDronePicker();
 
     // Place landmines on high-attrition stages (Avdiivka=2, Bakhmut=3, Vuhledar=16, Donbas=10)
     if (stageDef.id === 2 || stageDef.id === 3 || stageDef.id === 10 || stageDef.id === 16) {
@@ -5702,6 +5953,39 @@ const GameManager = (function () {
     document.getElementById('prestige-no').onclick = function() {
       document.body.removeChild(overlay);
     };
+  }
+
+  // Every mission used to open at 07:12 in Spring because TimeSystem.init()
+  // hard-coded both, so the player never saw a different time of day or a
+  // season. A stage can now declare startHour/season; otherwise one is derived
+  // from the stage id so the campaign walks through dawn, day, dusk and night
+  // and through the year, deterministically (the same stage always looks the
+  // same, which matters for the mission briefings and for reproducing bugs).
+  var _STAGE_HOURS   = [6.5, 9.0, 13.5, 17.5, 21.0, 2.0, 11.0, 19.0];
+  var _STAGE_SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
+  function _applyStageTimeAndSeason(stageDef, stageIndex) {
+    if (typeof TimeSystem === 'undefined' || !TimeSystem.setHour) return;
+    var id = (stageDef && stageDef.id != null) ? stageDef.id : (stageIndex || 0);
+    var hour   = (stageDef && stageDef.startHour != null) ? stageDef.startHour : _STAGE_HOURS[id % _STAGE_HOURS.length];
+    var season = (stageDef && stageDef.season) ? stageDef.season : _STAGE_SEASONS[(id >> 1) % _STAGE_SEASONS.length];
+    try {
+      TimeSystem.setSeason(season);
+      TimeSystem.setHour(hour);
+    } catch (e) {}
+    // Give the weather a matching opening state instead of always CLEAR.
+    try {
+      if (typeof WeatherSystem !== 'undefined' && WeatherSystem.forceWeather) {
+        if (season === 'Winter') WeatherSystem.forceWeather(id % 3 === 0 ? 'SNOW' : (id % 3 === 1 ? 'OVERCAST' : 'BLIZZARD'));
+        else if (season === 'Autumn') WeatherSystem.forceWeather(id % 3 === 0 ? 'FOG' : (id % 3 === 1 ? 'RAIN' : 'OVERCAST'));
+        else if (season === 'Spring') WeatherSystem.forceWeather(id % 2 === 0 ? 'CLEAR' : 'RAIN');
+        else WeatherSystem.forceWeather('CLEAR');
+      }
+    } catch (e) {}
+    try {
+      if (HUD && HUD.notifyPickup) {
+        HUD.notifyPickup('🕐 ' + TimeSystem.getFormattedTime() + '  ·  ' + season, '#cfe6ff');
+      }
+    } catch (e) {}
   }
 
   function nextStage() {
@@ -7442,9 +7726,19 @@ const GameManager = (function () {
         player._killSpeedTimer -= delta;
         speed *= (1 + (player._killSpeedBoost || 0));
       }
-      // Weather speed modifier
+      // Weather speed modifier.
+      // This read `.speedMod`. WeatherSystem returns `.speedMult` — and has
+      // done in all eight weather states since it was written. The property
+      // did not exist, so this multiplied speed by undefined, which makes it
+      // NaN, which makes moveDir NaN, which the position NaN-guard then
+      // reverts. The player could not walk, on any level, ever. Nothing threw
+      // and nothing logged, which is how it survived every QA script and CI
+      // probe here: they all call the game's functions directly and none of
+      // them had pressed W.
       if (typeof WeatherSystem !== 'undefined' && WeatherSystem.getModifiers) {
-        speed *= WeatherSystem.getModifiers().speedMod;
+        var _wMods = WeatherSystem.getModifiers();
+        var _wSpeed = _wMods && _wMods.speedMult;
+        if (typeof _wSpeed === 'number' && isFinite(_wSpeed)) speed *= _wSpeed;
       }
       // ── B31: Skill passive speed bonus ──
       if (typeof SkillSystem !== 'undefined' && SkillSystem.getPassiveBonus) {
@@ -7473,6 +7767,20 @@ const GameManager = (function () {
       // and drags the frame rate down with it. No legitimate mechanic should
       // exceed 3x base run speed.
       speed = Math.min(speed, MOVE_SPEED * 3);
+      // Last line of defence. speed is the product of eight independent
+      // systems' multipliers; any one of them returning undefined or NaN
+      // silently pins the player in place with no error anywhere, which is
+      // exactly the failure this function just shipped. Never let a bad
+      // multiplier cost the player their legs — fall back to base speed and
+      // say so once.
+      if (!isFinite(speed) || speed <= 0) {
+        if (!window.__speedNaNLogged) {
+          window.__speedNaNLogged = true;
+          if (window.console && console.warn) console.warn('[HEALTH] player speed was ' + speed + ' — a movement multiplier is undefined; falling back to base speed');
+        }
+        window.__speedNaNResets = (window.__speedNaNResets || 0) + 1;
+        speed = MOVE_SPEED;
+      }
       moveDir.multiplyScalar(speed * delta);
 
       // Stamina drain on sprint
@@ -7664,18 +7972,27 @@ const GameManager = (function () {
 
   /* ── Combat ──────────────────────────────────────────────────────── */
   function updateCombat(delta) {
-    // Drone combat: LMB triggers drone action
+    // Drone combat: LMB triggers drone action.
+    // Gated by a release interval. This ran once per FRAME while the button was
+    // held, so a drone emptied its whole load in a few hundredths of a second
+    // into a single spot — six FPV charges, or the bomber's whole bay — and the
+    // pilot never saw the ammo they were given. One gate here covers all three
+    // aircraft; AI drones have their own timers and are untouched.
     if (DroneSystem.isPossessing()) {
-      if (mouseDown || touch.firing) {
+      _droneFireCd = Math.max(0, _droneFireCd - delta);
+      if ((mouseDown || touch.firing) && _droneFireCd <= 0) {
         const drone = DroneSystem.getPossessed();
         if (drone) {
           if (drone.type === 'fpv_attack') {
             DroneSystem.fireAttack(drone.id);
+            _droneFireCd = 0.5;
           } else if (drone.type === 'bomb' && drone.hasPayload) {
             DroneSystem.dropPayload(drone.id);
+            _droneFireCd = 1.2;   // bombs need separation to land apart
           } else if ((drone.type === 'incendiary' || drone.type === 'baba_yaga') && drone.hasPayload) {
             DroneSystem.dropFire(drone.id);
             if (drone.type === 'baba_yaga') HUD.notifyPickup('🔥 THERMITE DROPPED!', '#ff8800');
+            _droneFireCd = 1.0;
           }
         }
         mouseNewPress = false;
@@ -8944,7 +9261,17 @@ const GameManager = (function () {
       window._perfEffectScale  = t.fx;
       window._perfEnemyScale   = t.en;
       window._perfLevel        = _perfLevel;
+      // Drop PBR shading on the low tiers. A census of the running game found
+      // 1,066 live MeshStandardMaterial instances — full metalness/roughness
+      // PBR, the most expensive material three ships — in a voxel game that by
+      // then had already been forced to 0.4x resolution with shadows off. The
+      // per-fragment cost of Standard over Lambert is exactly what a weak iGPU
+      // cannot pay, and at this tier the look is already heavily compromised.
+      // One-way on purpose: nothing converts back if the tier climbs, because
+      // the visual difference at POTATO is not worth a second traversal.
+      if (_perfLevel >= 3) _downgradePBRMaterials();
       var _qlabel = ['ULTRA','HIGH','MEDIUM','LOW','MINIMAL','POTATO'][_perfLevel] || 'L' + _perfLevel;
+      window.__qualityLabel = _qlabel;   // read by the CI perf probe
       if (!silent && typeof HUD !== 'undefined' && HUD.notifyPickup) {
         HUD.notifyPickup('⚙ Quality: ' + _qlabel + ' (auto-calibrated, FPS≈' + (fps ? fps.toFixed(0) : '?') + ')', '#88ccff');
       }
@@ -9023,6 +9350,12 @@ const GameManager = (function () {
     }
     // Accumulate UNCAPPED wall time (not the 0.1-capped, slow-mo-scaled `delta`),
     // otherwise avgFps saturates at 10 and can never see a true 2 FPS freeze.
+    // Stage-start grace: frames rendered while the shader cache is cold are
+    // measurements of the compiler, not of the machine. Do not let them into
+    // the calibration window (see the pre-warm note at level generation).
+    if (window.__perfGraceUntil && typeof performance !== 'undefined' && performance.now() < window.__perfGraceUntil) {
+      _fpsAccum = 0; _fpsSamples = 0; _perfCheckTimer = 0;
+    }
     _fpsAccum += _wallDelta;
     _fpsSamples++;
     _perfCheckTimer += _wallDelta;
@@ -9065,7 +9398,16 @@ const GameManager = (function () {
 
     if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
       // Core systems
-      TimeSystem.update(delta);
+      // The world clock advances on WALL time, not the clamped physics delta.
+      // rawDelta is capped at 0.1s so a frame spike cannot tunnel the player
+      // through geometry — correct for movement, wrong for a clock. Below 10fps
+      // that cap made in-game time run slower than reality: measured on the
+      // Windows runner at 3fps, a 20.3s wall interval advanced the world clock
+      // by 6.1s, a ratio of 0.30. That is why a player on weak hardware reported
+      // never seeing the day/night cycle move — it was running at a third speed
+      // or worse, not broken. Still bounded, so returning from an alt-tab
+      // advances the clock by a few seconds rather than jumping a whole day.
+      TimeSystem.update(Math.min(_wallDelta, 5));
       if (window.BloodEffects) { try { BloodEffects.update(delta); } catch (_e) {} }
       if (window.StaminaSystem) { try { StaminaSystem.update(delta); } catch (_e) {} }
       WeatherSystem.update(delta);
@@ -11668,6 +12010,18 @@ const GameManager = (function () {
 
       // Update tracers
       if (typeof Tracers !== 'undefined' && Tracers.update) Tracers.update(delta, player.position);
+      // NPC bullets and muzzle smoke: one flat pass over fixed-size pools, so
+      // the cost does not scale with how many characters are shooting.
+      if (window.NPCWeapons && NPCWeapons.update) {
+        NPCWeapons.update(delta, {
+          playerPos: player.position,
+          camera: _camera,
+          onHitPlayer: function (dmg) { if (dmg > 0) onPlayerHit(dmg, null); },
+          onHitTarget: function (t, dmg) {
+            if (dmg > 0 && typeof Enemies !== 'undefined' && Enemies.damage) Enemies.damage(t, dmg);
+          }
+        });
+      }
       if (typeof EnemyChatter !== 'undefined' && EnemyChatter.update) EnemyChatter.update();
       if (window.CompanionRadio && CompanionRadio.update) CompanionRadio.update(delta);
       if (typeof StageVFX !== 'undefined' && StageVFX.update) StageVFX.update(delta);
@@ -13821,6 +14175,15 @@ const GameManager = (function () {
     },
     getCurrentWave:  function () { return currentWave; },
     getCurrentStage: function () { return currentStage; },
+    getDroneLoadout: getDroneLoadout,
+    launchDroneFromLoadout: launchDroneFromLoadout,
+    isDronePickerOpen: isDronePickerOpen,
+    // Name/theme of the stage in play, for systems that dress the world to
+    // match it (wildlife, ambience) without reaching into the STAGES table.
+    getCurrentStageInfo: function () {
+      var d = STAGES[currentStage];
+      return d ? { id: d.id, name: d.name, levelId: d.levelId, season: d.season || null } : null;
+    },
 
     getStageInfo:    function () { return STAGES[currentStage]; },
     isSprinting:     function () { return player.sprinting; },

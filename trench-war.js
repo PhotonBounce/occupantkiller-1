@@ -1,5 +1,7 @@
 window.TrenchWar = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene;
   var camera;
@@ -461,6 +463,8 @@ window.TrenchWar = (function() {
   }
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87CEEB);
     scene.fog = new THREE.Fog(0x87CEEB, 150, 300);
@@ -507,7 +511,7 @@ window.TrenchWar = (function() {
     camera.position.x = Math.sin(time * 0.3) * 0.3;
     camera.position.y = 3 + Math.sin(time * 0.25) * 0.1;
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {

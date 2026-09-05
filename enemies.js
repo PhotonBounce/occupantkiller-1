@@ -74,22 +74,41 @@ const Enemies = (() => {
     return sprite;
   }
 
-  function spawnDmgNumber(pos, amount, isHeadshot) {
-    if (!scene) return;
-      var canvas = document.createElement('canvas');
-      canvas.width = 64; canvas.height = 32;
-      var ctx = canvas.getContext('2d');
-      if (!scene) {
-        console.error('[Enemies.startWave] scene is null! Wave:', w, 'Stage:', stageId);
-        throw new Error('[Enemies] scene is null in startWave!');
-      }
+  // Damage-number textures, cached by the text they show. Every hit used to
+  // build a fresh canvas AND a fresh GPU texture, then throw both away 0.8s
+  // later — dozens per second in a firefight. Damage values repeat constantly,
+  // so a small bounded cache removes nearly all of that churn. (A live HUD
+  // reading from the reporter's machine showed 132 2D canvases against 12 in a
+  // quiet test, which is this.)
+  var _dmgTexCache = Object.create(null);
+  var _dmgTexKeys = [];
+  var DMG_TEX_CACHE_MAX = 96;
+  function _dmgTexture(txt, isHeadshot) {
+    var key = (isHeadshot ? 'h' : 'n') + txt;
+    var hit = _dmgTexCache[key];
+    if (hit) return hit;
+    var canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 32;
+    var ctx = canvas.getContext('2d');
     ctx.font = 'bold 24px monospace';
     ctx.fillStyle = isHeadshot ? '#ff4444' : '#ffcc00';
     ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-    var txt = Math.round(amount).toString();
     ctx.strokeText(txt, 4, 24);
     ctx.fillText(txt, 4, 24);
-    var tex = new THREE.CanvasTexture(canvas);
+    var t = new THREE.CanvasTexture(canvas);
+    _dmgTexCache[key] = t;
+    _dmgTexKeys.push(key);
+    if (_dmgTexKeys.length > DMG_TEX_CACHE_MAX) {
+      var old = _dmgTexKeys.shift();
+      if (_dmgTexCache[old]) { _dmgTexCache[old].dispose(); delete _dmgTexCache[old]; }
+    }
+    return t;
+  }
+
+  function spawnDmgNumber(pos, amount, isHeadshot) {
+    if (!scene) return;
+    var txt = Math.round(amount).toString();
+    var tex = _dmgTexture(txt, isHeadshot);
     var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
     var sprite = new THREE.Sprite(mat);
     sprite.scale.set(1.2, 0.6, 1);
@@ -118,7 +137,8 @@ const Enemies = (() => {
       d.sprite.material.opacity = Math.max(0, d.life / 0.8);
       if (d.life <= 0) {
         if (scene) scene.remove(d.sprite);
-        if (d.sprite.material.map) d.sprite.material.map.dispose();
+        // The map is shared from the cache — disposing it here would blank
+        // every other number showing the same value. The cache evicts its own.
         d.sprite.material.dispose();
         _dmgNumbers[i] = null;
       }
@@ -2029,12 +2049,31 @@ const Enemies = (() => {
     TANK_CREW:      { len: 0.12, color: 0x333333, name: 'MP-443 Grach' },
   };
 
+  // Russian forces carry the AK family by default; marksman, MG and sidearm
+  // roles keep their own weapon. The mapping is by role, not by hard-coding a
+  // model per enemy type, so a new type gets a sane weapon automatically.
+  const ENEMY_WEAPON_ROLE = {
+    MEDIC: 'PISTOL', DRONE_OP: 'PISTOL', DRONE_OPERATOR: 'PISTOL',
+    SHIELD_BEARER: 'PISTOL', TANK_CREW: 'PISTOL',
+    SNIPER: 'SNIPER', SNIPER_ELITE: 'SNIPER', SNIPER_OP: 'SNIPER',
+    ARMORED: 'LMG', BOSS: 'LMG'
+  };
+
   function attachWeaponVisual(mesh, typeCfg) {
     const wInfo = ENEMY_WEAPON_VISUALS[typeCfg.name];
     if (!wInfo) return;
     const s = typeCfg.scale;
     const typeName = typeCfg.name; // type key — used by optic/bipod blocks below
     if (wInfo.len <= 0) return; // melee/explosive vest — no weapon mesh
+
+    // Mount on an aimable shoulder pivot when the shared weapon module is
+    // available. The loose parts below are fixed to the body and can only ever
+    // point straight ahead, which is why enemies never appeared to aim.
+    if (window.NPCWeapons) {
+      const kind = NPCWeapons.forFaction('occupant', ENEMY_WEAPON_ROLE[typeName] || null);
+      NPCWeapons.mount(mesh, kind, s);
+      return;
+    }
 
     // ── Weapon barrel ──
     const barrel = new THREE.Mesh(
@@ -2120,21 +2159,23 @@ const Enemies = (() => {
         depthTest:   true,
         depthWrite:  false,
         transparent: true,
-        opacity:     0.92,
+        opacity:     0.55,
       })
     );
     outlineMesh.position.z = -0.001;
 
     // Gray background track (full width, always visible)
+    // Dim, low-contrast track: the empty part of the bar should not read as a
+    // lit box of its own — only the red fill should draw the eye.
     var bgMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.7, 0.09),
       new THREE.MeshBasicMaterial({
-        color:       0x444444,
+        color:       0x2a1414,
         side:        THREE.DoubleSide,
         depthTest:   true,
         depthWrite:  false,
         transparent: true,
-        opacity:     0.85,
+        opacity:     0.5,
       })
     );
 
@@ -2142,7 +2183,7 @@ const Enemies = (() => {
     var fgMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.7, 0.09),
       new THREE.MeshBasicMaterial({
-        color:       0x00ff44,
+        color:       0xff2020,
         side:        THREE.DoubleSide,
         depthTest:   true,
         depthWrite:  false,
@@ -3555,6 +3596,10 @@ const Enemies = (() => {
         e.mesh.position.addScaledVector(strafe, sStep);
         e.mesh.lookAt(playerPos.x, e.mesh.position.y, playerPos.z);
         e.mesh.rotation.y += Math.PI;
+        // Keep the muzzle on the player, not just the body.
+        if (window.NPCWeapons && e.mesh.userData.weaponPivot) {
+          NPCWeapons.aimAt(e.mesh, _tmpVec3b.set(playerPos.x, playerPos.y + 0.8, playerPos.z));
+        }
         // Subtle leg animation at half speed
         e.legAngle += e.legDir * (e.speed / 4.4) * 4 * delta;
         if (Math.abs(e.legAngle) > 0.3) e.legDir *= -1;
@@ -3776,25 +3821,38 @@ const Enemies = (() => {
               eParts[6].rotation.x = -0.6;
               e._fireArmTimer = 0.15;
             }
-            // Spawn tracer toward player
-            if (typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
-              var tOrigin = _tmpVec3d.copy(e.mesh.position);
-              tOrigin.y += 1.2;
-              var tDir = _tmpVec3e.set(playerPos.x, playerPos.y + 0.8, playerPos.z).sub(tOrigin).normalize();
-              Tracers.spawnTracer(tOrigin, tDir, 0xff4400, 80);
-              if (Tracers.spawnBullet) Tracers.spawnBullet(tOrigin, tDir, 0xff5522, 160);
-              // Enemy muzzle flash so player can SEE where shots come from
-              if (Tracers.spawnMuzzleFlash) {
-                Tracers.spawnMuzzleFlash(tOrigin, tDir);
+            // Fire through the shared weapon module: the flash, fire and smoke
+            // come from the barrel, and the weapon can jam or (rarely) backfire.
+            // Damage was already resolved above, so the round carries none.
+            var _firedByModule = false;
+            if (window.NPCWeapons && e.mesh.userData.weaponPivot) {
+              var _eAim = _tmpVec3e.set(playerPos.x, playerPos.y + 0.8, playerPos.z);
+              NPCWeapons.aimAt(e.mesh, _eAim);
+              var _eRes = NPCWeapons.fire(e.mesh, _eAim, {
+                damage: 0, canHitPlayer: false, tracerColor: 0xff4400, faction: 'occupant'
+              });
+              _firedByModule = (_eRes === 'fired' || _eRes === 'backfire');
+              if (_eRes === 'backfire') {
+                e.hp = Math.max(1, e.hp - 15);
+                e.shootCooldown = Math.max(e.shootCooldown || 0, 3.2);
               }
             }
-            // Enemy gunshot audio (spatial panning)
-            if (typeof window.AudioSystem !== 'undefined') {
-              if (window.AudioSystem.playSpatialGunshot) {
-                var camAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : 0;
-                window.AudioSystem.playSpatialGunshot('rifle', e.mesh.position, playerPos, camAngle);
-              } else if (window.AudioSystem.playGunshot) {
-                window.AudioSystem.playGunshot('rifle');
+            if (!_firedByModule) {
+              if (typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
+                var tOrigin = _tmpVec3d.copy(e.mesh.position);
+                tOrigin.y += 1.2;
+                var tDir = _tmpVec3e.set(playerPos.x, playerPos.y + 0.8, playerPos.z).sub(tOrigin).normalize();
+                Tracers.spawnTracer(tOrigin, tDir, 0xff4400, 80);
+                if (Tracers.spawnBullet) Tracers.spawnBullet(tOrigin, tDir, 0xff5522, 160);
+                if (Tracers.spawnMuzzleFlash) Tracers.spawnMuzzleFlash(tOrigin, tDir);
+              }
+              if (typeof window.AudioSystem !== 'undefined') {
+                if (window.AudioSystem.playSpatialGunshot) {
+                  var camAngle = (typeof CameraSystem !== 'undefined' && CameraSystem.getYaw) ? CameraSystem.getYaw() : 0;
+                  window.AudioSystem.playSpatialGunshot('rifle', e.mesh.position, playerPos, camAngle);
+                } else if (window.AudioSystem.playGunshot) {
+                  window.AudioSystem.playGunshot('rifle');
+                }
               }
             }
             }
@@ -4697,20 +4755,29 @@ const Enemies = (() => {
       // Left-align the fill: shift left by half the missing width
       e.hpBar.fg.position.x = -(1 - pct) * barWidth / 2;
 
-      // White flash on HP change: tick down flash timer, then apply color
+      // This bar IS the enemy indicator — at any distance it is the small
+      // floating rectangle over each hostile, which is what reads in play as a
+      // "box around the NPC". It is red, and it pulses, so a hostile is never
+      // mistaken for scenery or for an allied soldier (whose bars are not red).
+      var _pNow = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+      var _pulse = Math.sin(_pNow * 0.006) * 0.5 + 0.5;   // 0..1, ~1Hz
+
       if (e.hpBar._flashTimer > 0) {
+        // White flash on HP change, so hits still register visually.
         e.hpBar._flashTimer -= (delta || 0.016);
         e.hpBar.fg.material.color.setHex(0xffffff);
+        e.hpBar.group.scale.setScalar(1);
       } else {
-        // Color transitions: green > 60%, yellow > 30%, red <= 30%
-        var hpColor = pct > 0.6 ? 0x00ff44 : pct > 0.3 ? 0xffcc00 : 0xff2200;
-        // Pulse red when nearly dead — telegraphs the kill shot
-        if (pct < 0.18) {
-          var _pNow = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-          var _pulse = (Math.sin(_pNow * 0.018) * 0.5 + 0.5);
-          hpColor = _pulse > 0.5 ? 0xff5555 : 0xff0000;
-        }
-        e.hpBar.fg.material.color.setHex(hpColor);
+        // Deep red at full health through to bright red when nearly dead, so
+        // the shade still carries how close the target is to going down.
+        var _lo = 0.55 + 0.45 * (1 - pct);              // brightness ramp
+        var _r = Math.min(1, _lo + _pulse * 0.25);
+        var _gb = pct > 0.6 ? 0.10 : (pct > 0.3 ? 0.05 : 0.0);
+        e.hpBar.fg.material.color.setRGB(_r, _gb, _gb * 0.6);
+        // Nearly dead: pulse harder and faster to telegraph the kill shot.
+        var _fastPulse = pct < 0.18 ? (Math.sin(_pNow * 0.018) * 0.5 + 0.5) : _pulse;
+        e.hpBar.group.scale.setScalar(1 + _fastPulse * (pct < 0.18 ? 0.18 : 0.07));
+        e.hpBar.fg.material.opacity = 0.75 + _fastPulse * 0.25;
       }
 
       var barY = e.mesh.position.y + 1.75 * e.typeCfg.scale + 0.35;

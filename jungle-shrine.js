@@ -1,4 +1,6 @@
 window.JungleShrine = (function() { 'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
 var scene, camera, renderer, canvas;
 var sceneObjects = [];
@@ -28,6 +30,8 @@ var hudCanvas, hudCtx;
 var hudVisible = true;
 
 function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a1a0f);
   scene.fog = new THREE.Fog(0x1a1a0f, 100, 200);
@@ -88,7 +92,7 @@ function init(container) {
   document.addEventListener('keyup', handleKeyUp);
 
   // Initial render
-  renderer.render(scene, camera);
+  if (renderer) renderer.render(scene, camera);
 }
 
 function setupHUD(container) {
@@ -724,7 +728,7 @@ function update() {
   // Update HUD
   updateHUD();
 
-  renderer.render(scene, camera);
+  if (renderer) renderer.render(scene, camera);
 }
 
 function reset() {

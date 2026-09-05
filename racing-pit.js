@@ -1,5 +1,7 @@
 window.RacingPit = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer;
   var racingPitObjects = [];
@@ -26,6 +28,8 @@ window.RacingPit = (function() {
   var lastRTime = 0;
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     // Three.js setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a1a);
@@ -723,7 +727,7 @@ window.RacingPit = (function() {
 
     updateHUD();
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function onKeyDown(event) {
