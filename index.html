@@ -1741,7 +1741,15 @@ document.addEventListener('DOMContentLoaded', function () {
   })();
 
   document.getElementById('next-stage-btn').addEventListener('click', function () {
-    GameManager.nextStage();
+    // Level generation is one long synchronous block. Called bare, the screen
+    // freezes on the last gameplay frame for several seconds and reads as a
+    // crash. Put the loading overlay up and yield ~90ms so it actually PAINTS
+    // before the main thread disappears into generation — same trick the
+    // initial QUICK START path already uses.
+    window.showLoading('GENERATING NEXT STAGE...');
+    setTimeout(function () {
+      try { GameManager.nextStage(); } finally { window.hideLoading(); }
+    }, 90);
   });
 
   function resumeFromPauseUI() {

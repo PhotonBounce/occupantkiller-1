@@ -1259,7 +1259,17 @@ const GameManager = (function () {
   const _uaIsMobile = /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|PlayBook|BB10|Opera Mini/i.test(navigator.userAgent);
   const _isIpadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
   const _isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  const isMobile = _uaIsMobile || _isIpadOS || (_isTouch && Math.min(window.innerWidth, window.innerHeight) < 900);
+  // Touch CAPABILITY is not touch PRIMACY. The old rule — touch-capable AND
+  // min(viewport) < 900 — caught every touchscreen Windows laptop with a
+  // normally sized browser window: on a 1080p screen, browser chrome plus the
+  // taskbar routinely leaves innerHeight in the 800s (a real-hardware capture
+  // that exposed this was 1922x860). Those machines got the phone UI, the
+  // touch joystick, and the mobile quality floors while sitting at a desk
+  // with a mouse. `pointer: coarse` asks what the PRIMARY pointer is — a
+  // phone's finger is coarse, a touch-laptop's mouse/trackpad is fine — which
+  // is the question this flag was always trying to answer.
+  const _coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  const isMobile = _uaIsMobile || _isIpadOS || (_isTouch && _coarsePointer && Math.min(window.innerWidth, window.innerHeight) < 900);
   // Publish the mobile flag GLOBALLY. enemies.js (concurrent-NPC caps) and
   // voxel-world.js (bounded chunk-build radius, the OOM fix) both gate on
   // window.__IS_MOBILE — it was never set, so those mobile safeguards never ran.
@@ -5763,6 +5773,22 @@ const GameManager = (function () {
     // the count plateaus at 119. Compiling here moves that stall into the
     // loading bar where nobody can feel it.
     try { if (_renderer && _renderer.compile && _scene && _camera) _renderer.compile(_scene, _camera); } catch (e) {}
+    // Compile the COMBAT materials too. Real-hardware telemetry showed the
+    // program count climbing 68 -> 100 during the first firefight — every one
+    // of those a D3D11 compile stall in the middle of aiming. Explosions,
+    // smoke and fire instantiate their materials lazily on first use, so
+    // spawn one of each far below the world, compile, and let their own
+    // lifetimes clean them up. The player meets their first explosion with
+    // the shader already on the card.
+    try {
+      if (window.Tracers && _renderer && _renderer.compile) {
+        var _pwPos = new THREE.Vector3(0, -500, 0);
+        if (Tracers.spawnExplosion) Tracers.spawnExplosion(_pwPos, 1);
+        if (Tracers.spawnSmoke) Tracers.spawnSmoke(_pwPos);
+        if (Tracers.spawnFire) Tracers.spawnFire(_pwPos, 1, 0.5);
+        _renderer.compile(_scene, _camera);
+      }
+    } catch (e) {}
     // And give the auto-quality calibrator a grace window: that same stall
     // reads as 1fps, which fires the emergency drop straight to POTATO — and
     // climbing back needs sustained >65fps, so mid-tier machines get locked at
