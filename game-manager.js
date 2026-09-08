@@ -4863,7 +4863,6 @@ const GameManager = (function () {
     { type: 'surveillance', label: 'SURVEILLANCE', icon: '\u{1F441}', ammo: 2 },
     { type: 'baba_yaga',    label: 'BABA YAGA',    icon: '\u{1F525}', ammo: 1 }
   ];
-  var _shaderErrorCheckRetired = false;  // see the prewarm block in applyStage
   var _droneFireCd = 0;   // seconds until the possessed drone may release again
   var _droneLoadout = null;
   var _dronePickerEl = null;
@@ -5808,23 +5807,17 @@ const GameManager = (function () {
         _renderer.compile(_scene, _camera);
       }
     } catch (e) {}
-    // Stop paying for the synchronous link check on every later program.
-    // three.js r137 calls getProgramInfoLog() immediately after linkProgram()
-    // whenever debug.checkShaderErrors is on, and it is on by default. That
-    // read forces the driver to finish the link inline instead of deferring
-    // or parallelising it, so every program compiled after loading — a new
-    // stage's materials, the first explosion of a firefight — stalls the main
-    // thread at the moment it is needed. Profiling a stage transition put
-    // 83% of the time in native program work and 11% in getProgramInfoLog
-    // itself. The first prewarm above still runs with checking ON, so a
-    // genuinely broken shader is still reported loudly, once, during loading;
-    // from here on the driver is free to schedule the work itself.
-    try {
-      if (_renderer && _renderer.debug && !_shaderErrorCheckRetired) {
-        _renderer.debug.checkShaderErrors = false;
-        _shaderErrorCheckRetired = true;
-      }
-    } catch (e) {}
+    // Do NOT try to save the link cost here by turning off
+    // renderer.debug.checkShaderErrors. It looks like an easy win — profiling a
+    // stage transition puts ~83% of the time in native program work and 11% in
+    // the getProgramInfoLog() call three.js makes right after linkProgram() —
+    // but it was measured and it does not work. With checking off,
+    // getProgramInfoLog drops 1405ms -> 67ms and getProgramParameter rises
+    // 9ms -> 1368ms: the synchronous flush simply moves to the next call that
+    // needs the link result, because three.js r137 reads uniform and attribute
+    // counts immediately afterwards and has no deferred or parallel compile
+    // path to fall back on. The work is not removed on any driver, and the
+    // cost is that genuinely broken shaders stop being reported.
     // And give the auto-quality calibrator a grace window: that same stall
     // reads as 1fps, which fires the emergency drop straight to POTATO — and
     // climbing back needs sustained >65fps, so mid-tier machines get locked at
