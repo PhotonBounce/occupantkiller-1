@@ -1725,6 +1725,20 @@ const Enemies = (() => {
         group.userData.parts.push(child);
       }
     });
+    // Record every part's true colour ONCE, here, while nothing has flashed yet.
+    // The colour-flash routines used to cache it lazily on first flash, which
+    // made the caches capture whatever colour was already showing: a flashbang
+    // whitened every part without caching anything, the restore pass skipped
+    // parts with no cached colour, and the next bullet hit then saved that
+    // white as the "original". Camo parts are map-only so tinting them white
+    // is invisible, but the head, vest, belt and eyes are solid colours — so a
+    // stunned soldier kept a white head for the rest of the mission. Caching at
+    // construction means no flash can ever capture another flash's colour.
+    group.userData.parts.forEach(function (p) {
+      if (p && p.material && p.material.color && p.userData.origColor === undefined) {
+        p.userData.origColor = p.material.color.getHex();
+      }
+    });
     group.userData.faction  = 'occupant';
 
     // Attach Russian Federation flag patch on back + shoulder

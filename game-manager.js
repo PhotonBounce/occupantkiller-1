@@ -4863,6 +4863,7 @@ const GameManager = (function () {
     { type: 'surveillance', label: 'SURVEILLANCE', icon: '\u{1F441}', ammo: 2 },
     { type: 'baba_yaga',    label: 'BABA YAGA',    icon: '\u{1F525}', ammo: 1 }
   ];
+  var _shaderErrorCheckRetired = false;  // see the prewarm block in applyStage
   var _droneFireCd = 0;   // seconds until the possessed drone may release again
   var _droneLoadout = null;
   var _dronePickerEl = null;
@@ -4872,6 +4873,22 @@ const GameManager = (function () {
     _droneLoadout = DRONE_LOADOUT_DEFAULT.map(function (d) {
       return { type: d.type, label: d.label, icon: d.icon, ammo: d.ammo, max: d.ammo };
     });
+    // Honour the aircraft picked on the start screen. That choice used to be
+    // written to window.__chosenDroneType and read by nothing on any code path
+    // the player can reach, so picking a drone before the mission did exactly
+    // nothing. It now sets the primary: slot [1], with extra ammo.
+    var _pick = (typeof window !== 'undefined') ? window.__chosenDroneType : '';
+    if (!_pick) return;
+    var _at = -1;
+    for (var _i = 0; _i < _droneLoadout.length; _i++) {
+      if (_droneLoadout[_i].type === _pick) { _at = _i; break; }
+    }
+    if (_at < 0) return;                       // unknown type: keep the default
+    var _primary = _droneLoadout.splice(_at, 1)[0];
+    _primary.ammo += 2;
+    _primary.max = _primary.ammo;
+    _primary.primary = true;
+    _droneLoadout.unshift(_primary);
   }
   function getDroneLoadout() { if (!_droneLoadout) _resetDroneLoadout(); return _droneLoadout; }
 
@@ -4906,7 +4923,8 @@ const GameManager = (function () {
         + 'background:rgba(0,20,30,' + (out ? '0.55' : '0.82') + ');'
         + 'border:1px solid ' + (out ? '#334' : '#0cf') + ';opacity:' + (out ? '0.45' : '1') + ';">'
         + '<div style="font-size:20px">' + d.icon + '</div>'
-        + '<div style="font-size:11px;letter-spacing:1px">[' + (i + 1) + '] ' + d.label + '</div>'
+        + '<div style="font-size:11px;letter-spacing:1px">[' + (i + 1) + '] ' + d.label
+        + (d.primary ? ' <span style="color:#ffcc44">★</span>' : '') + '</div>'
         + '<div style="font-size:12px;color:' + (out ? '#a55' : '#8fd') + '">' + d.ammo + ' / ' + d.max + '</div>'
         + '</div>';
     }
@@ -5002,7 +5020,8 @@ const GameManager = (function () {
     if (!drone) return;
 
     if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
-      var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER' };
+      var names = { fpv_attack: 'FPV ATTACK', surveillance: 'SURVEILLANCE', bomb: 'BOMBER',
+                    baba_yaga: 'BABA YAGA', incendiary: 'INCENDIARY', recon: 'RECON' };
       HUD.notifyPickup('\uD83D\uDEE9 ' + (names[droneType] || 'DRONE') + ' LAUNCHED! [T] VIEW [F] EXIT', '#00ccff');
     }
 
@@ -5789,6 +5808,23 @@ const GameManager = (function () {
         _renderer.compile(_scene, _camera);
       }
     } catch (e) {}
+    // Stop paying for the synchronous link check on every later program.
+    // three.js r137 calls getProgramInfoLog() immediately after linkProgram()
+    // whenever debug.checkShaderErrors is on, and it is on by default. That
+    // read forces the driver to finish the link inline instead of deferring
+    // or parallelising it, so every program compiled after loading — a new
+    // stage's materials, the first explosion of a firefight — stalls the main
+    // thread at the moment it is needed. Profiling a stage transition put
+    // 83% of the time in native program work and 11% in getProgramInfoLog
+    // itself. The first prewarm above still runs with checking ON, so a
+    // genuinely broken shader is still reported loudly, once, during loading;
+    // from here on the driver is free to schedule the work itself.
+    try {
+      if (_renderer && _renderer.debug && !_shaderErrorCheckRetired) {
+        _renderer.debug.checkShaderErrors = false;
+        _shaderErrorCheckRetired = true;
+      }
+    } catch (e) {}
     // And give the auto-quality calibrator a grace window: that same stall
     // reads as 1fps, which fires the emergency drop straight to POTATO — and
     // climbing back needs sustained >65fps, so mid-tier machines get locked at
@@ -5945,10 +5981,14 @@ const GameManager = (function () {
       window._prestigeFireRate = 1 + (window._prestigeLevel * 0.05);
       try { if (typeof Achievements !== 'undefined' && Achievements.recordPrestige) Achievements.recordPrestige(window._prestigeLevel); } catch (eAchP) {}
       document.body.removeChild(overlay);
-      // Restart from level 0
+      // Restart from level 0. This called startLevel(), which is defined
+      // nowhere in the build — so accepting a prestige reset banked the new
+      // prestige level, removed the overlay, then threw a ReferenceError and
+      // left the player looking at a finished game with no way back in.
+      // startGame() is what every other restart path uses.
       currentStage = 0;
       currentWave = 0;
-      startLevel();
+      startGame();
     };
     document.getElementById('prestige-no').onclick = function() {
       document.body.removeChild(overlay);
