@@ -244,6 +244,44 @@ const fs = require('fs');
     }
   } catch (e) {}
 
+  // ── The start-screen aircraft choice must actually reach the loadout ──────
+  // It used to reach nothing at all: __chosenDroneType was written by the
+  // picker and read only inside showDroneSelection(), which nothing on any
+  // reachable code path calls. Picking an aircraft before a mission had no
+  // effect whatsoever, and nothing would have caught that. Run last, because
+  // it advances the stage.
+  results.dronePick = await page.evaluate(async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const o = {};
+    try {
+      o.defaultFirst = GameManager.getDroneLoadout()[0].type;
+      window.__chosenDroneType = 'baba_yaga';
+      GameManager.nextStage();               // applyStage -> _resetDroneLoadout
+      await sleep(4000);
+      const L = GameManager.getDroneLoadout();
+      o.first = L[0] && L[0].type;
+      o.firstAmmo = L[0] && L[0].ammo;
+      o.primaryFlag = !!(L[0] && L[0].primary);
+      o.count = L.length;
+      o.types = L.map(d => d.type).sort();
+    } catch (e) { o.err = String(e); }
+    return o;
+  });
+  const dp = results.dronePick;
+  if (dp.err) {
+    results.fail.push('drone pick probe threw: ' + dp.err);
+  } else {
+    if (dp.first !== 'baba_yaga') {
+      results.fail.push('start-screen aircraft choice did not reach the loadout (slot 1 is '
+        + dp.first + ', expected baba_yaga)');
+    }
+    if (dp.firstAmmo !== 3) {
+      results.fail.push('chosen aircraft did not get its ammo bonus (ammo ' + dp.firstAmmo + ', expected 3)');
+    }
+    if (!dp.primaryFlag) results.fail.push('chosen aircraft is not flagged primary');
+    if (dp.count !== 4) results.fail.push('loadout lost an aircraft when reordered (' + dp.count + ' of 4)');
+  }
+
   results.pageErrors = errs.slice(0, 8);
   results.missingResources = missing;
   console.log(JSON.stringify(results, null, 1));
