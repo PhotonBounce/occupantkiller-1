@@ -1,5 +1,7 @@
 window.IceFortressInterior = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene = null;
   var camera = null;
@@ -21,6 +23,8 @@ window.IceFortressInterior = (function() {
   var THEME_COLOR_EMISSIVE = 0x7fbfff;
 
   function init(canvasElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a4d7a);
     scene.fog = new THREE.Fog(0x1a4d7a, 100, 500);
@@ -676,7 +680,7 @@ window.IceFortressInterior = (function() {
 
     updateHUD();
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {

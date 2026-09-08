@@ -1,5 +1,7 @@
 window.BountyHunter = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── State ────────────────────────────────────────────────────────────────
   var _lastBTime = 0;
@@ -880,6 +882,8 @@ window.BountyHunter = (function () {
 
   // ─── Init / Reset / Update ────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
 
     // Renderer
@@ -959,7 +963,7 @@ window.BountyHunter = (function () {
       var dt = Math.min((now - state.lastTime) / 1000, 0.05);
       state.lastTime = now;
       update(dt);
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
     state.animFrameId = requestAnimationFrame(loop);
 

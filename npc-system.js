@@ -1,287 +1,3 @@
-    // --- Wildlife Types ---
-    const WILDLIFE_TYPE = Object.freeze({
-      BIRD: 'bird',
-      DOG:  'dog',
-      CAT:  'cat',
-    });
-
-    // --- Wildlife NPC Template ---
-    function createWildlifeNPC(type, x, y, z) {
-      const id = nextId++;
-      let mesh;
-      if (type === WILDLIFE_TYPE.BIRD) {
-        mesh = new THREE.Mesh(
-          new THREE.SphereGeometry(0.12, 6, 6),
-          new THREE.MeshLambertMaterial({ color: 0x888888 })
-        );
-        mesh.position.y += 0.1;
-      } else if (type === WILDLIFE_TYPE.DOG) {
-        // Procedural dog: body + head + 4 legs + tail + ears
-        mesh = new THREE.Group();
-        const dogColors = [0x8B7355, 0x6B5335, 0x4A3826, 0xCFAE85, 0x2A2018];
-        const fur = dogColors[Math.floor(Math.random() * dogColors.length)];
-        const furMat  = new THREE.MeshLambertMaterial({ color: fur });
-        const darkMat = new THREE.MeshLambertMaterial({ color: 0x1a1010 });
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.30, 0.28), furMat);
-        body.position.y = 0.35; mesh.add(body);
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.26), furMat);
-        head.position.set(0.36, 0.42, 0); mesh.add(head);
-        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.14), darkMat);
-        snout.position.set(0.50, 0.36, 0); mesh.add(snout);
-        for (let ei = -1; ei <= 1; ei += 2) {
-          const ear = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, 0.04), furMat);
-          ear.position.set(0.30, 0.58, ei * 0.10); mesh.add(ear);
-        }
-        for (let lx = -1; lx <= 1; lx += 2) {
-          for (let lz = -1; lz <= 1; lz += 2) {
-            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.22, 0.07), furMat);
-            leg.position.set(lx * 0.18, 0.11, lz * 0.10); mesh.add(leg);
-          }
-        }
-        const dogTail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.22), furMat);
-        dogTail.position.set(-0.30, 0.40, 0); dogTail.rotation.x = -0.4; mesh.add(dogTail);
-        const eyeMatD = new THREE.MeshBasicMaterial({ color: 0x111111 });
-        for (let ex = -1; ex <= 1; ex += 2) {
-          const eye = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.03), eyeMatD);
-          eye.position.set(0.46, 0.46, ex * 0.07); mesh.add(eye);
-        }
-        mesh.userData._tail = dogTail;
-      } else if (type === WILDLIFE_TYPE.CAT) {
-        mesh = new THREE.Group();
-        const catColors = [0xB0B0B0, 0x2A2018, 0xD4A36A, 0xE8E0D0, 0x4A3826];
-        const fur = catColors[Math.floor(Math.random() * catColors.length)];
-        const furMat  = new THREE.MeshLambertMaterial({ color: fur });
-        const eyeMatC = new THREE.MeshBasicMaterial({ color: 0x44ff44 });
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.18, 0.18), furMat);
-        body.position.y = 0.22; mesh.add(body);
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.18), furMat);
-        head.position.set(0.26, 0.28, 0); mesh.add(head);
-        for (let ei = -1; ei <= 1; ei += 2) {
-          const ear = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), furMat);
-          ear.position.set(0.24, 0.40, ei * 0.06); mesh.add(ear);
-        }
-        for (let lx = -1; lx <= 1; lx += 2) {
-          for (let lz = -1; lz <= 1; lz += 2) {
-            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.05), furMat);
-            leg.position.set(lx * 0.14, 0.08, lz * 0.06); mesh.add(leg);
-          }
-        }
-        const catTail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.30), furMat);
-        catTail.position.set(-0.22, 0.28, 0); catTail.rotation.x = -0.6; mesh.add(catTail);
-        for (let ex = -1; ex <= 1; ex += 2) {
-          const eye = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.025), eyeMatC);
-          eye.position.set(0.34, 0.30, ex * 0.05); mesh.add(eye);
-        }
-        mesh.userData._tail = catTail;
-      }
-      mesh.castShadow = true;
-      mesh.userData.npcId = id;
-      mesh.userData.faction = 'wildlife';
-      const npc = {
-        id,
-        type,
-        rank: 'wildlife',
-        job: 'wander',
-        position: new THREE.Vector3(x, y, z),
-        mesh,
-        alive: true,
-        aiState: 'idle',
-        aiTimer: Math.random() * 2 + 1,
-        speed: (type === WILDLIFE_TYPE.BIRD) ? 2.2 : 1.8,
-        target: null,
-        // Pet befriending state (dogs/cats only)
-        trust: 0,             // 0..1 — grows when player is near & not shooting
-        bonded: false,        // becomes true once trust >= 1
-        attackCooldown: 0,
-        biteRange:  (type === WILDLIFE_TYPE.DOG) ? 1.4 : 1.0,
-        biteDamage: (type === WILDLIFE_TYPE.DOG) ? 18  : 6,
-        hp:         (type === WILDLIFE_TYPE.DOG) ? 60  : 35,
-      };
-      mesh.position.copy(npc.position);
-      return npc;
-    }
-
-    // --- Wildlife AI ---
-    function updateWildlifeAI(npc, delta) {
-      if (!npc.alive) return;
-      // Wag tail / idle bob for pets
-      if (npc.mesh && npc.mesh.userData && npc.mesh.userData._tail) {
-        npc.mesh.userData._tail.rotation.y = Math.sin(performance.now() * 0.005 + npc.id) * (npc.bonded ? 0.6 : 0.2);
-      }
-
-      const isPet = (npc.type === WILDLIFE_TYPE.DOG || npc.type === WILDLIFE_TYPE.CAT);
-      let player = null;
-      let playerDist = Infinity;
-      if (isPet && typeof window.GameManager !== 'undefined' && window.GameManager.getPlayer) {
-        player = window.GameManager.getPlayer();
-        if (player && player.position) playerDist = npc.position.distanceTo(player.position);
-      }
-
-      // ── Befriending: if player stays close (≤4m) without shooting at the pet, trust grows ──
-      if (isPet && player && playerDist < 4 && !npc.bonded) {
-        npc.trust += delta * (npc.type === WILDLIFE_TYPE.DOG ? 0.18 : 0.10); // dogs trust faster
-        if (npc.trust >= 1) {
-          npc.bonded = true;
-          npc.trust = 1;
-          // Brief notification
-          try {
-            if (typeof HUD !== 'undefined' && HUD.showToast) {
-              HUD.showToast((npc.type === WILDLIFE_TYPE.DOG ? '🐕' : '🐈') + ' A stray ' + npc.type + ' joined you!', 2500);
-            }
-          } catch (e) {}
-        }
-      }
-
-      // ── Bonded pets: follow player + attack nearest enemy ──
-      if (isPet && npc.bonded && player) {
-        npc.attackCooldown = Math.max(0, (npc.attackCooldown || 0) - delta);
-
-        // Find nearest enemy within ~12m
-        let nearestEnemy = null;
-        let nearestDist = 12;
-        if (typeof Enemies !== 'undefined' && Enemies.getAll) {
-          const enemies = Enemies.getAll();
-          for (let i = 0; i < enemies.length; i++) {
-            const e = enemies[i];
-            if (!e || !e.alive || !e.mesh) continue;
-            const d = npc.position.distanceTo(e.mesh.position);
-            if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
-          }
-        }
-
-        if (nearestEnemy) {
-          // Chase + bite
-          const enemyPos = nearestEnemy.mesh.position;
-          const dir = enemyPos.clone().sub(npc.position); dir.y = 0;
-          const dist = dir.length();
-          if (dist > 0.01) dir.normalize();
-          // Face enemy
-          if (npc.mesh) npc.mesh.rotation.y = Math.atan2(dir.x, dir.z) - Math.PI / 2;
-          if (dist > npc.biteRange) {
-            npc.position.addScaledVector(dir, npc.speed * 1.4 * delta);
-          } else if (npc.attackCooldown <= 0) {
-            // Bite!
-            if (typeof Enemies !== 'undefined' && Enemies.damage) {
-              try { Enemies.damage(nearestEnemy.id, npc.biteDamage); } catch (e) {}
-            }
-            npc.attackCooldown = (npc.type === WILDLIFE_TYPE.DOG) ? 0.8 : 1.6;
-            // Pounce forward
-            npc.position.addScaledVector(dir, 0.15);
-          }
-          npc.mesh.position.copy(npc.position);
-          return;
-        }
-
-        // No enemy → follow player
-        const followDist = 3.0;
-        if (playerDist > followDist) {
-          const dir = player.position.clone().sub(npc.position); dir.y = 0; dir.normalize();
-          if (npc.mesh) npc.mesh.rotation.y = Math.atan2(dir.x, dir.z) - Math.PI / 2;
-          npc.position.addScaledVector(dir, npc.speed * delta);
-          npc.mesh.position.copy(npc.position);
-        }
-        return;
-      }
-
-      // ── Unbonded wandering / fleeing (original behaviour) ──
-      npc.aiTimer -= delta;
-      if (npc.aiTimer <= 0) {
-        if (npc.aiState === 'idle') {
-          npc.target = npc.position.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 4, 0, (Math.random() - 0.5) * 4
-          ));
-          npc.aiState = 'wander';
-          npc.aiTimer = 2 + Math.random() * 3;
-        } else if (npc.aiState === 'wander') {
-          npc.aiState = 'idle';
-          npc.aiTimer = 1 + Math.random() * 2;
-        }
-      }
-      if (npc.aiState === 'wander' && npc.target) {
-        const dir = npc.target.clone().sub(npc.position);
-        const dist = dir.length();
-        if (dist > 0.1) {
-          dir.normalize();
-          npc.position.addScaledVector(dir, npc.speed * 0.6 * delta);
-          npc.mesh.position.copy(npc.position);
-        } else {
-          npc.aiState = 'idle';
-          npc.aiTimer = 1 + Math.random() * 2;
-        }
-      }
-      // Birds always flee close player; dogs/cats only flee if untrusting
-      if (player && playerDist < (npc.type === WILDLIFE_TYPE.BIRD ? 6 : 2.5) && npc.trust < 0.3) {
-        const away = npc.position.clone().sub(player.position).setY(0).normalize();
-        npc.target = npc.position.clone().addScaledVector(away, 8 + Math.random() * 4);
-        npc.aiState = 'flee';
-        npc.aiTimer = 2 + Math.random() * 2;
-      }
-    }
-
-    // --- Wildlife Spawning ---
-    function spawnWildlifeFromWorld() {
-      if (window._pendingWildlifeSpawns) {
-        for (const pos of window._pendingWildlifeSpawns) {
-          // Randomly pick wildlife type
-          // Only spawn birds here; cats/dogs are handled by WorldFeatures.spawnStrayAnimals
-          const types = [WILDLIFE_TYPE.BIRD];
-          for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
-            const t = types[Math.floor(Math.random() * types.length)];
-            const offset = new THREE.Vector3(
-              (Math.random() - 0.5) * 4,
-              0,
-              (Math.random() - 0.5) * 4
-            );
-            const npc = createWildlifeNPC(t, pos.x + offset.x, pos.y, pos.z + offset.z);
-            npcs.push(npc);
-            _npcById[npc.id] = npc;
-            if (_scene) _scene.add(npc.mesh);
-          }
-        }
-        window._pendingWildlifeSpawns.length = 0;
-      }
-    }
-  // NEW: Ukrainian AI Tactics (Hostomel, Kyiv)
-  function ukrainianTacticsHostomel(npc, context) {
-    // Mobile defense, use cover, counter-flank airborne
-    if (context.isAirborneAssault) {
-      npc.seekCover();
-      if (npc.canFlank()) npc.flankEnemy();
-      if (npc.canCallReinforcements) npc.callReinforcements();
-    }
-  }
-
-  function ukrainianTacticsKyiv(npc, context) {
-    // Urban defense, ambush, fallback, breakout
-    if (context.isUrbanBreakout) {
-      npc.ambushEnemy();
-      if (npc.isEncircled) npc.breakout();
-      if (npc.canRescueCivilians) npc.rescueCivilians();
-    }
-  }
-
-  // NEW: Russian AI Tactics (Hostomel, Kyiv)
-  function russianTacticsHostomel(npc, context) {
-    // Airborne drop, massed assault, attempt to seize runway
-    if (context.isAirborneAssault) {
-      npc.rushObjective();
-      if (npc.canSuppress) npc.suppressDefenders();
-      if (npc.canDeploySmoke) npc.deploySmoke();
-    }
-  }
-
-  function russianTacticsKyiv(npc, context) {
-    // Encirclement, urban push, block breakout
-    if (context.isUrbanBreakout) {
-      npc.blockEscapeRoutes();
-      if (npc.canCallArmor) npc.callArmorSupport();
-      if (npc.canLayMines) npc.layMines();
-    }
-  }
-
-  // Expose for scenario use
-  window.UkrainianTactics = { hostomel: ukrainianTacticsHostomel, kyiv: ukrainianTacticsKyiv };
-  window.RussianTactics = { hostomel: russianTacticsHostomel, kyiv: russianTacticsKyiv };
 /* ───────────────────────────────────────────────────────────────────────
    NPC SIMULATION SYSTEM — Sims-like agents with needs, jobs, AI
    ─────────────────────────────────────────────────────────────────────── */
@@ -443,6 +159,461 @@ function buildCivilianMesh(npc) {
   let nextId = 1;
   let _mlAssistStrategy = null; // ML-guided NPC assistance strategy
   let _strayPetTimer = 8; // first stray pet ~8s into play
+
+  /* ── Wildlife ──────────────────────────────────────────────────────
+     This block used to sit ABOVE the module IIFE, at file scope. Its
+     function declarations still became globals, so update() could call
+     createWildlifeNPC() — but the function body references nextId, npcs,
+     _npcById and _scene, which are declared with let/const INSIDE this
+     IIFE and are invisible from file scope. Every wildlife spawn therefore
+     threw "nextId is not defined" and was swallowed by a bare catch, which
+     is why no animals ever appeared: not the stray dogs and cats, not the
+     birds, nothing. Moved inside the module so it can see that state. */
+    // --- Wildlife Types ---
+    const WILDLIFE_TYPE = Object.freeze({
+      BIRD:   'bird',
+      DOG:    'dog',
+      CAT:    'cat',
+      // Countryside wildlife. Only strays and birds existed before, so rural
+      // levels were empty of anything living that was not shooting at you.
+      DEER:   'deer',
+      BOAR:   'boar',
+      RABBIT: 'rabbit',
+      CROW:   'crow',
+      COW:    'cow',
+      GOAT:   'goat',
+    });
+
+    // One config-driven quadruped builder covers deer/boar/cow/goat/rabbit, so
+    // adding an animal costs a table row rather than another 40 lines of boxes.
+    // body:[w,h,d]  legs:[w,h]  head:[w,h,d]
+    const QUADRUPED = {
+      deer:   { fur: [0x8a6239, 0x9c7448], body: [0.42, 0.52, 1.05], legs: [0.09, 0.72], head: [0.24, 0.28, 0.34], neck: 0.42, tail: 0.14, ears: true,  antlers: true,  speed: 5.4, hp: 70 },
+      boar:   { fur: [0x4a3a2c, 0x38291f], body: [0.48, 0.46, 0.95], legs: [0.11, 0.34], head: [0.26, 0.26, 0.42], neck: 0.10, tail: 0.10, ears: true,  tusks: true,   speed: 4.6, hp: 90 },
+      cow:    { fur: [0xd8d2c8, 0x2c2622], body: [0.62, 0.72, 1.40], legs: [0.13, 0.62], head: [0.32, 0.32, 0.42], neck: 0.20, tail: 0.34, ears: true,  horns: true,   speed: 2.0, hp: 140 },
+      goat:   { fur: [0xcfc6b4, 0x6b6055], body: [0.34, 0.40, 0.72], legs: [0.08, 0.40], head: [0.20, 0.22, 0.28], neck: 0.16, tail: 0.10, ears: true,  horns: true,   speed: 3.2, hp: 55 },
+      rabbit: { fur: [0x9c8f7c, 0x6f6357], body: [0.20, 0.20, 0.34], legs: [0.05, 0.13], head: [0.15, 0.15, 0.17], neck: 0.05, tail: 0.07, ears: 'long',               speed: 6.0, hp: 12 },
+    };
+
+    function _buildQuadruped(kind) {
+      const c = QUADRUPED[kind];
+      const g = new THREE.Group();
+      const fur = c.fur[Math.floor(Math.random() * c.fur.length)];
+      const furMat  = new THREE.MeshLambertMaterial({ color: fur });
+      const darkMat = new THREE.MeshLambertMaterial({ color: 0x1a1410 });
+      const boneMat = new THREE.MeshLambertMaterial({ color: 0xcdc4ad });
+      const legY = c.legs[1];
+      function box(w, h, d, m) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); }
+
+      const body = box(c.body[0], c.body[1], c.body[2], furMat);
+      body.position.y = legY + c.body[1] / 2;
+      g.add(body);
+
+      const head = box(c.head[0], c.head[1], c.head[2], furMat);
+      head.position.set(0, legY + c.body[1] * 0.85 + c.neck, -c.body[2] / 2 - c.head[2] * 0.35);
+      g.add(head);
+      g.userData._head = head;
+
+      if (c.neck > 0.12) {
+        const neck = box(c.head[0] * 0.7, c.neck, c.head[0] * 0.7, furMat);
+        neck.position.set(0, legY + c.body[1] * 0.8 + c.neck * 0.4, -c.body[2] / 2 + 0.02);
+        g.add(neck);
+      }
+
+      const legs = [];
+      for (let i = 0; i < 4; i++) {
+        const leg = box(c.legs[0], legY, c.legs[0], darkMat);
+        leg.position.set(
+          (i % 2 ? 1 : -1) * (c.body[0] / 2 - c.legs[0] * 0.6),
+          legY / 2,
+          (i < 2 ? -1 : 1) * (c.body[2] / 2 - c.legs[0])
+        );
+        g.add(leg);
+        legs.push(leg);
+      }
+      g.userData._legs = legs;
+
+      const tail = box(c.tail * 0.5, c.tail * 0.5, c.tail, furMat);
+      tail.position.set(0, legY + c.body[1] * 0.8, c.body[2] / 2 + c.tail / 2);
+      g.add(tail);
+      g.userData._tail = tail;
+
+      if (c.ears === 'long') {
+        for (let e = 0; e < 2; e++) {
+          const ear = box(0.03, 0.18, 0.03, furMat);
+          ear.position.set((e ? 1 : -1) * 0.04, head.position.y + 0.14, head.position.z + 0.02);
+          ear.rotation.z = (e ? -1 : 1) * 0.15;
+          g.add(ear);
+        }
+      } else if (c.ears) {
+        for (let e = 0; e < 2; e++) {
+          const ear = box(0.05, 0.08, 0.03, furMat);
+          ear.position.set((e ? 1 : -1) * c.head[0] * 0.4, head.position.y + c.head[1] * 0.55, head.position.z + 0.04);
+          g.add(ear);
+        }
+      }
+      if (c.horns || c.antlers) {
+        for (let h = 0; h < 2; h++) {
+          const horn = box(0.035, c.antlers ? 0.30 : 0.16, 0.035, boneMat);
+          horn.position.set((h ? 1 : -1) * c.head[0] * 0.32, head.position.y + c.head[1] * 0.6 + (c.antlers ? 0.15 : 0.08), head.position.z + 0.03);
+          horn.rotation.z = (h ? -1 : 1) * 0.35;
+          g.add(horn);
+          if (c.antlers) {
+            const tine = box(0.03, 0.16, 0.03, boneMat);
+            tine.position.set(horn.position.x + (h ? 0.07 : -0.07), horn.position.y + 0.10, horn.position.z);
+            tine.rotation.z = (h ? -1 : 1) * 0.8;
+            g.add(tine);
+          }
+        }
+      }
+      if (c.tusks) {
+        for (let t = 0; t < 2; t++) {
+          const tusk = box(0.025, 0.09, 0.025, boneMat);
+          tusk.position.set((t ? 1 : -1) * 0.07, head.position.y - 0.06, head.position.z - c.head[2] * 0.4);
+          tusk.rotation.x = -0.5;
+          g.add(tusk);
+        }
+      }
+      // Two eyes, so the animal reads as facing somewhere.
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x120c08 });
+      for (let e = 0; e < 2; e++) {
+        const eye = box(0.03, 0.03, 0.02, eyeMat);
+        eye.position.set((e ? 1 : -1) * c.head[0] * 0.32, head.position.y + 0.02, head.position.z - c.head[2] * 0.42);
+        g.add(eye);
+      }
+      return g;
+    }
+
+    // --- Wildlife NPC Template ---
+    function createWildlifeNPC(type, x, y, z) {
+      const id = nextId++;
+      let mesh;
+      if (QUADRUPED[type]) {
+        mesh = _buildQuadruped(type);
+      } else if (type === WILDLIFE_TYPE.CROW) {
+        // Crow: a small dark body with two wing planes that flap in the AI.
+        mesh = new THREE.Group();
+        const crowMat = new THREE.MeshLambertMaterial({ color: 0x14161a });
+        const cb = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.11, 0.24), crowMat);
+        mesh.add(cb);
+        const ch = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.10), crowMat);
+        ch.position.set(0, 0.05, -0.16); mesh.add(ch);
+        const beak = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.08),
+          new THREE.MeshLambertMaterial({ color: 0x3a3020 }));
+        beak.position.set(0, 0.04, -0.24); mesh.add(beak);
+        const wings = [];
+        for (let w = 0; w < 2; w++) {
+          const wing = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.02, 0.14), crowMat);
+          wing.position.set((w ? 1 : -1) * 0.17, 0.03, 0);
+          mesh.add(wing); wings.push(wing);
+        }
+        mesh.userData._wings = wings;
+        const ct = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.14), crowMat);
+        ct.position.set(0, 0.02, 0.18); mesh.add(ct);
+        mesh.userData._tail = ct;
+      } else if (type === WILDLIFE_TYPE.BIRD) {
+        mesh = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 6, 6),
+          new THREE.MeshLambertMaterial({ color: 0x888888 })
+        );
+        mesh.position.y += 0.1;
+      } else if (type === WILDLIFE_TYPE.DOG) {
+        // Procedural dog: body + head + 4 legs + tail + ears
+        mesh = new THREE.Group();
+        const dogColors = [0x8B7355, 0x6B5335, 0x4A3826, 0xCFAE85, 0x2A2018];
+        const fur = dogColors[Math.floor(Math.random() * dogColors.length)];
+        const furMat  = new THREE.MeshLambertMaterial({ color: fur });
+        const darkMat = new THREE.MeshLambertMaterial({ color: 0x1a1010 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.30, 0.28), furMat);
+        body.position.y = 0.35; mesh.add(body);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.26), furMat);
+        head.position.set(0.36, 0.42, 0); mesh.add(head);
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.14), darkMat);
+        snout.position.set(0.50, 0.36, 0); mesh.add(snout);
+        for (let ei = -1; ei <= 1; ei += 2) {
+          const ear = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, 0.04), furMat);
+          ear.position.set(0.30, 0.58, ei * 0.10); mesh.add(ear);
+        }
+        for (let lx = -1; lx <= 1; lx += 2) {
+          for (let lz = -1; lz <= 1; lz += 2) {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.22, 0.07), furMat);
+            leg.position.set(lx * 0.18, 0.11, lz * 0.10); mesh.add(leg);
+          }
+        }
+        const dogTail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.22), furMat);
+        dogTail.position.set(-0.30, 0.40, 0); dogTail.rotation.x = -0.4; mesh.add(dogTail);
+        const eyeMatD = new THREE.MeshBasicMaterial({ color: 0x111111 });
+        for (let ex = -1; ex <= 1; ex += 2) {
+          const eye = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.03), eyeMatD);
+          eye.position.set(0.46, 0.46, ex * 0.07); mesh.add(eye);
+        }
+        mesh.userData._tail = dogTail;
+      } else if (type === WILDLIFE_TYPE.CAT) {
+        mesh = new THREE.Group();
+        const catColors = [0xB0B0B0, 0x2A2018, 0xD4A36A, 0xE8E0D0, 0x4A3826];
+        const fur = catColors[Math.floor(Math.random() * catColors.length)];
+        const furMat  = new THREE.MeshLambertMaterial({ color: fur });
+        const eyeMatC = new THREE.MeshBasicMaterial({ color: 0x44ff44 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.18, 0.18), furMat);
+        body.position.y = 0.22; mesh.add(body);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.18), furMat);
+        head.position.set(0.26, 0.28, 0); mesh.add(head);
+        for (let ei = -1; ei <= 1; ei += 2) {
+          const ear = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), furMat);
+          ear.position.set(0.24, 0.40, ei * 0.06); mesh.add(ear);
+        }
+        for (let lx = -1; lx <= 1; lx += 2) {
+          for (let lz = -1; lz <= 1; lz += 2) {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.05), furMat);
+            leg.position.set(lx * 0.14, 0.08, lz * 0.06); mesh.add(leg);
+          }
+        }
+        const catTail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.30), furMat);
+        catTail.position.set(-0.22, 0.28, 0); catTail.rotation.x = -0.6; mesh.add(catTail);
+        for (let ex = -1; ex <= 1; ex += 2) {
+          const eye = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.025), eyeMatC);
+          eye.position.set(0.34, 0.30, ex * 0.05); mesh.add(eye);
+        }
+        mesh.userData._tail = catTail;
+      }
+      mesh.castShadow = true;
+      mesh.userData.npcId = id;
+      mesh.userData.faction = 'wildlife';
+      const npc = {
+        id,
+        type,
+        rank: 'wildlife',
+        job: 'wander',
+        position: new THREE.Vector3(x, y, z),
+        mesh,
+        alive: true,
+        aiState: 'idle',
+        aiTimer: Math.random() * 2 + 1,
+        speed: QUADRUPED[type] ? QUADRUPED[type].speed
+             : (type === WILDLIFE_TYPE.BIRD || type === WILDLIFE_TYPE.CROW) ? 2.2 : 1.8,
+        target: null,
+        // Pet befriending state (dogs/cats only)
+        trust: 0,             // 0..1 — grows when player is near & not shooting
+        bonded: false,        // becomes true once trust >= 1
+        attackCooldown: 0,
+        biteRange:  (type === WILDLIFE_TYPE.DOG) ? 1.4 : 1.0,
+        biteDamage: (type === WILDLIFE_TYPE.DOG) ? 18  : 6,
+        hp: QUADRUPED[type] ? QUADRUPED[type].hp : ((type === WILDLIFE_TYPE.DOG) ? 60 : 35),
+        // Wild animals never befriend and never attack; they just live there.
+        wild: !!QUADRUPED[type] || type === WILDLIFE_TYPE.CROW,
+      };
+      mesh.position.copy(npc.position);
+      return npc;
+    }
+
+    // --- Wildlife AI ---
+    function updateWildlifeAI(npc, delta) {
+      if (!npc.alive) return;
+      // Wag tail / idle bob for pets
+      if (npc.mesh && npc.mesh.userData && npc.mesh.userData._tail) {
+        npc.mesh.userData._tail.rotation.y = Math.sin(performance.now() * 0.005 + npc.id) * (npc.bonded ? 0.6 : 0.2);
+      }
+
+      const isPet = (npc.type === WILDLIFE_TYPE.DOG || npc.type === WILDLIFE_TYPE.CAT);
+      let player = null;
+      let playerDist = Infinity;
+      if (typeof window.GameManager !== 'undefined' && window.GameManager.getPlayer) {
+        player = window.GameManager.getPlayer();
+        if (player && player.position) playerDist = npc.position.distanceTo(player.position);
+      }
+
+      // ── Befriending: if player stays close (≤4m) without shooting at the pet, trust grows ──
+      if (isPet && player && playerDist < 4 && !npc.bonded) {
+        npc.trust += delta * (npc.type === WILDLIFE_TYPE.DOG ? 0.18 : 0.10); // dogs trust faster
+        if (npc.trust >= 1) {
+          npc.bonded = true;
+          npc.trust = 1;
+          // Brief notification
+          try {
+            if (typeof HUD !== 'undefined' && HUD.showToast) {
+              HUD.showToast((npc.type === WILDLIFE_TYPE.DOG ? '🐕' : '🐈') + ' A stray ' + npc.type + ' joined you!', 2500);
+            }
+          } catch (e) {}
+        }
+      }
+
+      // ── Bonded pets: follow player + attack nearest enemy ──
+      if (isPet && npc.bonded && player) {
+        npc.attackCooldown = Math.max(0, (npc.attackCooldown || 0) - delta);
+
+        // Find nearest enemy within ~12m
+        let nearestEnemy = null;
+        let nearestDist = 12;
+        if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+          const enemies = Enemies.getAll();
+          for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            if (!e || !e.alive || !e.mesh) continue;
+            const d = npc.position.distanceTo(e.mesh.position);
+            if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
+          }
+        }
+
+        if (nearestEnemy) {
+          // Chase + bite
+          const enemyPos = nearestEnemy.mesh.position;
+          const dir = enemyPos.clone().sub(npc.position); dir.y = 0;
+          const dist = dir.length();
+          if (dist > 0.01) dir.normalize();
+          // Face enemy
+          if (npc.mesh) npc.mesh.rotation.y = Math.atan2(dir.x, dir.z) - Math.PI / 2;
+          if (dist > npc.biteRange) {
+            npc.position.addScaledVector(dir, npc.speed * 1.4 * delta);
+          } else if (npc.attackCooldown <= 0) {
+            // Bite!
+            if (typeof Enemies !== 'undefined' && Enemies.damage) {
+              try { Enemies.damage(nearestEnemy.id, npc.biteDamage); } catch (e) {}
+            }
+            npc.attackCooldown = (npc.type === WILDLIFE_TYPE.DOG) ? 0.8 : 1.6;
+            // Pounce forward
+            npc.position.addScaledVector(dir, 0.15);
+          }
+          npc.mesh.position.copy(npc.position);
+          return;
+        }
+
+        // No enemy → follow player
+        const followDist = 3.0;
+        if (playerDist > followDist) {
+          const dir = player.position.clone().sub(npc.position); dir.y = 0; dir.normalize();
+          if (npc.mesh) npc.mesh.rotation.y = Math.atan2(dir.x, dir.z) - Math.PI / 2;
+          npc.position.addScaledVector(dir, npc.speed * delta);
+          npc.mesh.position.copy(npc.position);
+        }
+        return;
+      }
+
+      // ── Unbonded wandering / fleeing (original behaviour) ──
+      npc.aiTimer -= delta;
+      if (npc.aiTimer <= 0) {
+        if (npc.aiState === 'idle') {
+          npc.target = npc.position.clone().add(new THREE.Vector3(
+            (Math.random() - 0.5) * 4, 0, (Math.random() - 0.5) * 4
+          ));
+          npc.aiState = 'wander';
+          npc.aiTimer = 2 + Math.random() * 3;
+        } else if (npc.aiState === 'wander') {
+          npc.aiState = 'idle';
+          npc.aiTimer = 1 + Math.random() * 2;
+        }
+      }
+      if (npc.aiState === 'wander' && npc.target) {
+        const dir = npc.target.clone().sub(npc.position);
+        const dist = dir.length();
+        if (dist > 0.1) {
+          dir.normalize();
+          var _spd = npc.speed * (npc.aiState === 'flee' ? 1.6 : 0.6);
+          npc.position.addScaledVector(dir, _spd * delta);
+          // Walk on the ground rather than at whatever height it spawned at.
+          if (npc.wild && typeof VoxelWorld !== 'undefined' && VoxelWorld.getTerrainHeight) {
+            var _gy = VoxelWorld.getTerrainHeight(npc.position.x, npc.position.z);
+            if (typeof _gy === 'number' && !isNaN(_gy)) npc.position.y = _gy;
+          }
+          npc.mesh.position.copy(npc.position);
+          if (npc.wild) {
+            npc.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+            // Leg swing driven by distance travelled, so it matches the speed.
+            var _legs = npc.mesh.userData._legs;
+            if (_legs) {
+              npc._gait = (npc._gait || 0) + _spd * delta * 5;
+              var _sw = Math.sin(npc._gait) * 0.5;
+              _legs[0].rotation.x =  _sw; _legs[3].rotation.x =  _sw;
+              _legs[1].rotation.x = -_sw; _legs[2].rotation.x = -_sw;
+            }
+            var _wings = npc.mesh.userData._wings;
+            if (_wings) {
+              var _fl = Math.sin((npc._gait || 0) * 3) * 0.7;
+              _wings[0].rotation.z =  _fl; _wings[1].rotation.z = -_fl;
+            }
+          }
+        } else {
+          npc.aiState = 'idle';
+          npc.aiTimer = 1 + Math.random() * 2;
+        }
+      }
+      // Flight distance by animal: wild animals bolt long before a stray does.
+      var _fleeAt = 2.5;
+      if (npc.type === WILDLIFE_TYPE.BIRD || npc.type === WILDLIFE_TYPE.CROW) _fleeAt = 7;
+      else if (npc.type === WILDLIFE_TYPE.DEER || npc.type === WILDLIFE_TYPE.RABBIT) _fleeAt = 15;
+      else if (npc.type === WILDLIFE_TYPE.BOAR) _fleeAt = 9;
+      else if (npc.wild) _fleeAt = 6;
+      if (player && playerDist < _fleeAt && npc.trust < 0.3) {
+        const away = npc.position.clone().sub(player.position).setY(0).normalize();
+        npc.target = npc.position.clone().addScaledVector(away, 8 + Math.random() * 4);
+        npc.aiState = 'flee';
+        npc.aiTimer = 2 + Math.random() * 2;
+      }
+    }
+
+    // --- Wildlife Spawning ---
+    function spawnWildlifeFromWorld() {
+      if (window._pendingWildlifeSpawns) {
+        for (const pos of window._pendingWildlifeSpawns) {
+          // Randomly pick wildlife type
+          // Only spawn birds here; cats/dogs are handled by WorldFeatures.spawnStrayAnimals
+          const types = [WILDLIFE_TYPE.BIRD];
+          for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
+            const t = types[Math.floor(Math.random() * types.length)];
+            const offset = new THREE.Vector3(
+              (Math.random() - 0.5) * 4,
+              0,
+              (Math.random() - 0.5) * 4
+            );
+            const npc = createWildlifeNPC(t, pos.x + offset.x, pos.y, pos.z + offset.z);
+            npcs.push(npc);
+            _npcById[npc.id] = npc;
+            if (_scene) _scene.add(npc.mesh);
+          }
+        }
+        window._pendingWildlifeSpawns.length = 0;
+      }
+    }
+  // NEW: Ukrainian AI Tactics (Hostomel, Kyiv)
+  function ukrainianTacticsHostomel(npc, context) {
+    // Mobile defense, use cover, counter-flank airborne
+    if (context.isAirborneAssault) {
+      npc.seekCover();
+      if (npc.canFlank()) npc.flankEnemy();
+      if (npc.canCallReinforcements) npc.callReinforcements();
+    }
+  }
+
+  function ukrainianTacticsKyiv(npc, context) {
+    // Urban defense, ambush, fallback, breakout
+    if (context.isUrbanBreakout) {
+      npc.ambushEnemy();
+      if (npc.isEncircled) npc.breakout();
+      if (npc.canRescueCivilians) npc.rescueCivilians();
+    }
+  }
+
+  // NEW: Russian AI Tactics (Hostomel, Kyiv)
+  function russianTacticsHostomel(npc, context) {
+    // Airborne drop, massed assault, attempt to seize runway
+    if (context.isAirborneAssault) {
+      npc.rushObjective();
+      if (npc.canSuppress) npc.suppressDefenders();
+      if (npc.canDeploySmoke) npc.deploySmoke();
+    }
+  }
+
+  function russianTacticsKyiv(npc, context) {
+    // Encirclement, urban push, block breakout
+    if (context.isUrbanBreakout) {
+      npc.blockEscapeRoutes();
+      if (npc.canCallArmor) npc.callArmorSupport();
+      if (npc.canLayMines) npc.layMines();
+    }
+  }
+
+  // Expose for scenario use
+  window.UkrainianTactics = { hostomel: ukrainianTacticsHostomel, kyiv: ukrainianTacticsKyiv };
+  window.RussianTactics = { hostomel: russianTacticsHostomel, kyiv: russianTacticsKyiv };
 
   /* ── Rank-based Weapon Assignment ────────────────────────────────── */
   // Maps NPC rank to weapon: name, damage, fire rate, range, sound type
@@ -919,9 +1090,19 @@ function buildCivilianMesh(npc) {
     eyeR.position.set(0.06, 1.30, 0.14);
     group.add(eyeL, eyeR);
 
-    // ── Weapon mesh (attached to right arm, based on rank) ──
+    // ── Weapon (mounted on an aimable shoulder pivot) ──
+    // Ukrainian forces carry the M16 family; role weapons (marksman, MG,
+    // sidearm) still come from the rank table. Mounting on a pivot is what
+    // lets the NPC point the weapon at what it is shooting at — the old
+    // fixed-position prop could only ever face straight ahead.
     const weaponDef = RANK_WEAPONS[npc.rank] || null;
-    if (weaponDef) {
+    if (weaponDef && window.NPCWeapons) {
+      var _role = null;
+      if (weaponDef.soundType === 'pistol') _role = 'PISTOL';
+      else if (weaponDef.soundType === 'hmg') _role = 'LMG';
+      var _kind = NPCWeapons.forFaction('ukrainian', _role);
+      NPCWeapons.mount(group, _kind, 1);
+    } else if (weaponDef) {
       const weaponMesh = buildNPCWeaponMesh(weaponDef);
       if (weaponMesh) {
         weaponMesh.position.set(0.32, 0.65, -0.12);
@@ -1297,12 +1478,151 @@ function buildCivilianMesh(npc) {
   }
 
   /* ── Update All NPCs ─────────────────────────────────────────────── */
+  /* ── Wildlife population ───────────────────────────────────────────
+     What lives here depends on the ground the player is standing on: open
+     country gets grazers, woodland gets deer and boar, built-up areas get
+     crows and rabbits. Animals far behind the player are culled so the
+     population moves with them instead of accumulating across the map. */
+  var WILDLIFE_CAP = 10;
+  // Seed on the first update rather than after a wait. A player who spawns into
+  // an empty field and sees their first animal a quarter-minute later concludes
+  // there are no animals, and by then they have usually moved on.
+  var _wildlifeTimer = 0.5;
+  var _wildlifeSeeding = 3;   // fast spawner ticks before settling to the normal cadence
+  var _wildlifeErrShown = false;
+
+  var WILDLIFE_SETS = {
+    rural: ['deer', 'boar', 'rabbit', 'cow', 'goat', 'crow'],
+    urban: ['crow', 'rabbit', 'cat', 'dog'],
+    cold:  ['deer', 'rabbit', 'crow'],
+  };
+
+  function _wildlifeSetForLevel() {
+    try {
+      if (window.TimeSystem && TimeSystem.getSeason && TimeSystem.getSeason() === 'Winter') return WILDLIFE_SETS.cold;
+    } catch (e) {}
+    try {
+      var info = (window.GameManager && GameManager.getCurrentStageInfo) ? GameManager.getCurrentStageInfo() : null;
+      var name = ((info && info.name) || '') + '';
+      if (/city|urban|town|kyiv|mariupol|bakhmut|kherson|street|industrial|factory|plant|port/i.test(name)) return WILDLIFE_SETS.urban;
+    } catch (e) {}
+    return WILDLIFE_SETS.rural;
+  }
+
+  // Records why a spawn attempt produced nothing. Silent early returns are how
+  // this feature stayed broken for so long: the first bug threw and was
+  // swallowed by a bare catch, and the second returned quietly with no error at
+  // all, so both looked identical from outside — no animals, no explanation.
+  var _wlTotalSpawned = 0, _wlCalls = 0;
+  function _wlStatus(why, extra) {
+    try {
+      if (extra && extra.spawned) _wlTotalSpawned += extra.spawned;
+      window.__wildlifeStatus = Object.assign(
+        { why: why, at: Math.round(_wlClock), totalSpawned: _wlTotalSpawned, calls: ++_wlCalls },
+        extra || {});
+    } catch (e) {}
+  }
+  var _wlClock = 0;
+  var _wlLast = null;   // wall-clock stamp of the previous update, seconds
+
+  function _spawnWildlifeNearPlayer() {
+    if (!_scene) { _wlStatus('no scene'); return; }
+    var pl = (window.GameManager && GameManager.getPlayer) ? GameManager.getPlayer() : null;
+    if (!pl || !pl.position) { _wlStatus('no player', { hasGM: !!window.GameManager }); return; }
+
+    // Count and cull in one pass.
+    var alive = 0, i, n;
+    for (i = npcs.length - 1; i >= 0; i--) {
+      n = npcs[i];
+      if (!n || !n.wild || !n.alive) continue;
+      var dx = n.position.x - pl.position.x, dz = n.position.z - pl.position.z;
+      if (dx * dx + dz * dz > 120 * 120) {
+        n.alive = false;
+        if (n.mesh && n.mesh.parent) n.mesh.parent.remove(n.mesh);
+        continue;
+      }
+      alive++;
+    }
+    if (alive >= WILDLIFE_CAP) { _wlStatus('at cap', { alive: alive }); return; }
+
+    var set = _wildlifeSetForLevel();
+    var want = Math.min(2, WILDLIFE_CAP - alive);
+    var spawned = 0;
+    for (i = 0; i < want; i++) {
+      var type = set[Math.floor(Math.random() * set.length)];
+      // Ring around the player: far enough not to pop in, close enough to see.
+      var ang = Math.random() * Math.PI * 2;
+      var rad = 28 + Math.random() * 34;
+      var sx = pl.position.x + Math.cos(ang) * rad;
+      var sz = pl.position.z + Math.sin(ang) * rad;
+      var sy = pl.position.y;
+      try {
+        if (window.VoxelWorld && VoxelWorld.getTerrainHeight) {
+          var gy = VoxelWorld.getTerrainHeight(sx, sz);
+          if (typeof gy === 'number' && !isNaN(gy)) sy = gy;
+        }
+      } catch (e) {}
+      var animal = createWildlifeNPC(type, sx, sy, sz);
+      // Herd animals arrive in small groups; a lone cow looks wrong.
+      var herd = (type === 'cow' || type === 'goat' || type === 'deer') ? 1 + Math.floor(Math.random() * 3) : 0;
+      npcs.push(animal); _npcById[animal.id] = animal; _scene.add(animal.mesh);
+      for (var h = 0; h < herd && alive + h + 1 < WILDLIFE_CAP; h++) {
+        var mate = createWildlifeNPC(type, sx + (Math.random() - 0.5) * 6, sy, sz + (Math.random() - 0.5) * 6);
+        npcs.push(mate); _npcById[mate.id] = mate; _scene.add(mate.mesh);
+      }
+      spawned += 1 + herd;
+    }
+    _wlStatus('spawned', { spawned: spawned, aliveBefore: alive, set: set.join(',') });
+  }
+
   function update(delta, timeInfo) {
     // Update friendly assault group AI
     updateFriendlyGroups(delta);
 
-    // Stray pet spawner — periodically drop a dog/cat near the player
-    _strayPetTimer = (_strayPetTimer || 0) - delta;
+    // Wildlife spawner — keeps a small population of animals alive around the
+    // player. Capped and rate-limited: this runs at most a few times a minute
+    // and never holds more than WILDLIFE_CAP animals, so it cannot become a
+    // per-frame cost no matter how long a mission runs.
+    // Cadence runs on WALL time, not on delta. delta is clamped to 0.1s so a
+    // frame spike cannot tunnel the player through geometry, which is right for
+    // physics and wrong for a schedule: at 3fps the clamp made every in-game
+    // second take three real ones, so a 9-18s spawn timer fired every two or
+    // three MINUTES. The animals were never missing, they were arriving at a
+    // tenth speed on exactly the slow hardware where the world looks emptiest.
+    var _wlNow = (typeof performance !== 'undefined' && performance.now)
+      ? performance.now() / 1000 : Date.now() / 1000;
+    var _wlReal = (_wlLast === null) ? 0 : Math.min(_wlNow - _wlLast, 5);
+    _wlLast = _wlNow;
+    _wlClock += _wlReal;
+    try { window.__npcUpdateTicks = (window.__npcUpdateTicks || 0) + 1; } catch (e) {}
+    _wildlifeTimer = (_wildlifeTimer || 0) - _wlReal;
+    if (_wildlifeTimer <= 0) {
+      _wildlifeTimer = 9 + Math.random() * 9;
+      // Report a spawner failure once instead of swallowing it — a silent
+      // catch here is what let the whole wildlife population quietly not exist.
+      // The first pass runs several times over so the world starts populated
+      // instead of filling in two animals at a time over the first minute.
+      try {
+        _spawnWildlifeNearPlayer();
+        // Fill the world quickly at the start, but over several ticks rather
+        // than in one frame: seeding the whole population at once builds a few
+        // dozen meshes in a single frame, and a hitch at stage start is the
+        // last thing the slow machines this is meant to help need.
+        if (_wildlifeSeeding > 0) { _wildlifeSeeding--; _wildlifeTimer = 1.5; }
+      }
+      catch (e) {
+        if (!_wildlifeErrShown) {
+          _wildlifeErrShown = true;
+          window.__wildlifeErr = String(e && e.message || e);
+          if (window.console && console.warn) console.warn('[NPCSystem] wildlife spawn failed:', e);
+        }
+      }
+    }
+
+    // Stray pet spawner — periodically drop a dog/cat near the player.
+    // Wall time for the same reason as the wildlife spawner above: on the
+    // clamped delta this 25-50s timer ran to several real minutes.
+    _strayPetTimer = (_strayPetTimer || 0) - _wlReal;
     if (_strayPetTimer <= 0) {
       _strayPetTimer = 25 + Math.random() * 25; // every 25-50s
       try {
@@ -1659,8 +1979,18 @@ function buildCivilianMesh(npc) {
         npc.mesh.rotation.y = Math.atan2(lookDir.x, lookDir.z);
       }
 
+      // Point the weapon at the target. One lookAt on the pivot per engaged
+      // NPC per frame — it is a few flops, not AI.
+      if (window.NPCWeapons && npc.mesh.userData.weaponPivot) {
+        _nTmp3.copy(enemy.mesh.position); _nTmp3.y += 0.9;
+        NPCWeapons.aimAt(npc.mesh, _nTmp3);
+      }
+
       npc.combatCooldown -= delta;
-      if (npc.combatCooldown <= 0) {
+      if (window.NPCWeapons && NPCWeapons.isJammed(npc.mesh)) {
+        // Clearing a stoppage: no shot this frame, and no AI churn either.
+        npc.combatCooldown = Math.max(npc.combatCooldown, 0.2);
+      } else if (npc.combatCooldown <= 0) {
         npc.combatCooldown = Math.max(0.3, wep.fireRate - npc.skills.combat * 0.005);
         // ML decision: accuracy bonus from learned hit-rate + experience
         var mlDec = (npc._ml && typeof NPCML !== 'undefined') ? NPCML.getDecision(npc._ml) : null;
@@ -1689,17 +2019,33 @@ function buildCivilianMesh(npc) {
           }
         }
 
-        // NPC tracer VFX
-        if (typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
-          var muzzlePos = _nTmp3.copy(npc.position);
-          muzzlePos.y += 0.8;
-          var tracerDir = _nTmp1.subVectors(enemy.mesh.position, muzzlePos).normalize();
-          Tracers.spawnTracer(muzzlePos, tracerDir, 0xffcc44, 100);
-        }
-
-        // Play NPC gunshot sound
-        if (typeof AudioSystem !== 'undefined' && AudioSystem.playGunshot) {
-          AudioSystem.playGunshot(wep.soundType);
+        // Muzzle flash + fire + smoke + travelling round, from the actual
+        // barrel. Damage above already resolved the hit, so the round is
+        // spawned for its physics and visuals with no second damage pass.
+        if (window.NPCWeapons && npc.mesh.userData.weaponPivot) {
+          _nTmp3.copy(enemy.mesh.position); _nTmp3.y += 0.9;
+          var _res = NPCWeapons.fire(npc.mesh, _nTmp3, {
+            damage: 0,                 // damage already applied above
+            spreadMult: dmg > 0 ? 0.5 : 1.6,
+            tracerColor: 0xffcc44
+          });
+          if (_res === 'jam') showNPCDialogue(npc, 'hit', 1);
+          if (_res === 'backfire') {
+            // A backfire hurts the shooter and rattles them.
+            npc.health = Math.max(1, npc.health - 12);
+            npc.stress = Math.min(100, npc.stress + 20);
+            npc.combatCooldown = Math.max(npc.combatCooldown, 3.2);
+          }
+        } else {
+          if (typeof Tracers !== 'undefined' && Tracers.spawnTracer) {
+            var muzzlePos = _nTmp3.copy(npc.position);
+            muzzlePos.y += 0.8;
+            var tracerDir = _nTmp1.subVectors(enemy.mesh.position, muzzlePos).normalize();
+            Tracers.spawnTracer(muzzlePos, tracerDir, 0xffcc44, 100);
+          }
+          if (typeof AudioSystem !== 'undefined' && AudioSystem.playGunshot) {
+            AudioSystem.playGunshot(wep.soundType);
+          }
         }
 
         // Flash arms white when firing

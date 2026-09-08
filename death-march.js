@@ -1,5 +1,7 @@
 window.DeathMarch = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas2d, ctx2d;
   var sceneObjects = [];
@@ -14,6 +16,8 @@ window.DeathMarch = (function() {
   };
 
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Three.js scene setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x4a6fa5); // Winter sky blue
@@ -665,7 +669,7 @@ window.DeathMarch = (function() {
       ctx2d.fillText('ESCAPE WINDOW: ' + (animationState.escapeWindowOpen ? 'OPEN' : 'CLOSED'), 10, 90);
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function reset() {

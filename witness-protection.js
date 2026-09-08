@@ -14,6 +14,8 @@
 
 window.WitnessProtection = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   /* ── Scene / renderer references ──────────────────────────────────────── */
   var scene       = null;
@@ -177,6 +179,8 @@ window.WitnessProtection = (function () {
      INIT
   ───────────────────────────────────────────────────────────────────────── */
   function init(cont) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     container = cont;
     _createMaterials();
     _createScene();
@@ -597,7 +601,7 @@ window.WitnessProtection = (function () {
     _updateHUD();
 
     if (!active || gameOver) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
       return;
     }
 
@@ -609,7 +613,7 @@ window.WitnessProtection = (function () {
     if (timerSeconds <= 0) {
       timerSeconds = 0;
       _triggerLose('TIMER EXPIRED — WITNESS LEFT BEHIND');
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
       return;
     }
 
@@ -653,7 +657,7 @@ window.WitnessProtection = (function () {
     /* camera follow */
     _updateCamera();
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   /* ── Player movement ───────────────────────────────────────────────────── */

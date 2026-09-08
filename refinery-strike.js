@@ -130,9 +130,16 @@ const RefineryStrike = (function () {
       }
     }
 
+    var _garrison = spawnGarrison();
+
     // HUD
     if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
       HUD.notifyPickup('🚁 FPV STRIKE — DESTROY THE OIL REFINERY', '#ff8844');
+      if (_garrison > 0) {
+        setTimeout(function () {
+          if (HUD.notifyPickup) HUD.notifyPickup('⚔ ' + _garrison + ' DEFENDERS ON SITE — CLEAR THEM', '#ff6644');
+        }, 800);
+      }
       setTimeout(function () {
         if (HUD.notifyPickup) HUD.notifyPickup('🎯 ' + _targets.length + ' TARGETS LOCKED', '#ffcc44');
       }, 1500);
@@ -142,6 +149,48 @@ const RefineryStrike = (function () {
     }
 
     return true;
+  }
+
+  /* Radius damage at a world point — used by drone munitions, which detonate
+     away from the drone rather than at it. */
+  function damageAt(pos, radius, amount) {
+    if (!_active || !pos) return 0;
+    var hits = 0, r2 = (radius || 6) * (radius || 6);
+    for (var i = 0; i < _targets.length; i++) {
+      var t = _targets[i];
+      if (!t.alive) continue;
+      var dx = pos.x - t.x, dy = pos.y - (t.y + 3 * t.scale), dz = pos.z - t.z;
+      if (dx * dx + dy * dy + dz * dz <= r2 + (4.5 * t.scale) * (4.5 * t.scale)) {
+        damageTarget(i, amount || 100);
+        hits++;
+      }
+    }
+    return hits;
+  }
+
+  /* Refinery garrison. The mission shipped with six structures and nothing
+     alive in it, so a "drone strike" had no one to strike — the brief says fly
+     in and kill, and there was only scenery. These are the defenders. */
+  function spawnGarrison() {
+    if (typeof Enemies === 'undefined' || !Enemies.spawnSingle) return 0;
+    var kinds = ['CONSCRIPT', 'CONSCRIPT', 'STORMER', 'ENGINEER', 'OFFICER', 'ARMORED'];
+    var posts = [
+      [-24, -16], [24, -16], [-14, 4], [14, 4], [0, -22],
+      [-8, 22], [8, 22], [0, 36], [-26, 10], [26, 10], [0, 0], [-18, 28]
+    ];
+    var n = 0;
+    for (var i = 0; i < posts.length; i++) {
+      var gx = posts[i][0], gz = posts[i][1];
+      var gy = 0;
+      try {
+        if (window.VoxelWorld && VoxelWorld.getTerrainHeight) gy = VoxelWorld.getTerrainHeight(gx, gz) || 0;
+      } catch (e) {}
+      try {
+        var kind = kinds[i % kinds.length];
+        if (Enemies.spawnSingle(kind, { x: gx, y: gy, z: gz })) n++;
+      } catch (e) {}
+    }
+    return n;
   }
 
   /* Damage the nearest target if drone is close on impact */
@@ -345,7 +394,7 @@ const RefineryStrike = (function () {
   return {
     init, startMission, update, clear,
     isActive, getTargets, getProgress,
-    checkDroneImpact,
+    checkDroneImpact, damageAt, spawnGarrison,
   };
 })();
 

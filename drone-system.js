@@ -348,13 +348,19 @@ const DroneSystem = (function () {
 
     // Payload indicator for bomb drone
     if (type === DRONE_TYPE.BOMB) {
-      const payload = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.08, 0.06, 0.2, 8),
-        new THREE.MeshLambertMaterial({ color: 0x666622 })
-      );
-      payload.position.set(0, -0.15, 0);
-      payload.userData.isPayload = true;
-      group.add(payload);
+      // Four bombs on the rack because the bomber now carries four. It used to
+      // model a single bomb, so after the first drop the HUD would report three
+      // still loaded above an aircraft that visibly had none. Geometry and
+      // material are shared across the rack — four bombs, one of each.
+      const bombGeo = new THREE.CylinderGeometry(0.08, 0.06, 0.2, 8);
+      const bombMat = new THREE.MeshLambertMaterial({ color: 0x666622 });
+      const rack = [[-0.11, -0.14], [0.11, -0.14], [-0.11, 0.14], [0.11, 0.14]];
+      for (let bi = 0; bi < rack.length; bi++) {
+        const payload = new THREE.Mesh(bombGeo, bombMat);
+        payload.position.set(rack[bi][0], -0.15, rack[bi][1]);
+        payload.userData.isPayload = true;
+        group.add(payload);
+      }
     }
 
     // Incendiary drone: red payload + flame glow
@@ -420,7 +426,16 @@ const DroneSystem = (function () {
       alive:    true,
       active:   true,  // powered on
       hasPayload: type === DRONE_TYPE.BOMB || type === DRONE_TYPE.ENEMY_BOMBER || type === DRONE_TYPE.INCENDIARY || type === DRONE_TYPE.BABA_YAGA || type === DRONE_TYPE.FPV_ATTACK,
-      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5 : (type === DRONE_TYPE.FPV_ATTACK ? (99 + (window._dronePayloadBonus || 0)) : undefined),
+      // FPV carries a real, finite munition load. It used to read 99 while
+      // fireAttack ignored the count entirely and destroyed the drone on the
+      // first shot — the HUD advertised ammo the drone did not actually have.
+      // The bomber used to carry no count at all: one drop set hasPayload
+      // false and the drone was gone. A bomber that drops a single bomb and
+      // dies is a kamikaze with extra steps, and the loadout screen offers
+      // it as a distinct aircraft. Give it a real bomb bay.
+      payloadCount: type === DRONE_TYPE.BABA_YAGA ? 5
+                  : type === DRONE_TYPE.FPV_ATTACK ? (6 + (window._dronePayloadBonus || 0))
+                  : (type === DRONE_TYPE.BOMB ? 4 : undefined),
       missiles: (type === DRONE_TYPE.BAYRAKTAR) ? TB2_MISSILES : undefined,
       _babaDropCooldown: 0,
       // Bomber survival chance after payload drop (real-world based)
@@ -1308,10 +1323,25 @@ const DroneSystem = (function () {
   function dropPayload(droneId) {
     const drone = drones.find(d => d.id === droneId);
     if (!drone || !drone.hasPayload) return false;
-    drone.hasPayload = false;
-    // Remove payload mesh
+    // Spend one bomb rather than the whole aircraft. Drones with no declared
+    // count (enemy bombers, scripted one-shots) keep the old behaviour.
+    var _hadCount = (typeof drone.payloadCount === 'number');
+    if (_hadCount) {
+      drone.payloadCount--;
+      if (drone.payloadCount <= 0) drone.hasPayload = false;
+    } else {
+      drone.hasPayload = false;
+    }
+    // Remove payload mesh — one bomb per drop when the bay is counted, so the
+    // model visibly empties out instead of clearing every rack on the first run.
+    var _bombHidden = false;
     drone.mesh.children.forEach(child => {
-      if (child.userData.isPayload) child.visible = false;
+      if (!child.userData.isPayload) return;
+      if (_hadCount) {
+        if (!_bombHidden && child.visible) { child.visible = false; _bombHidden = true; }
+      } else {
+        child.visible = false;
+      }
     });
     // Bomb falls to ground level before exploding
     const dropPos = drone.position.clone();
@@ -1323,11 +1353,17 @@ const DroneSystem = (function () {
     if (typeof Enemies !== 'undefined') {
       Enemies.damageInRadius(dropPos, 6, drone.damage);
     }
+    // Mission structures are not enemies and were taking nothing from a bomb
+    // landing on them: on the refinery stage the bomber and Baba Yaga could
+    // not touch the objective at all, only the men standing next to it.
+    try { if (window.RefineryStrike && RefineryStrike.damageAt) RefineryStrike.damageAt(dropPos, 6, drone.damage); } catch (e) {}
     createDroneExplosion(dropPos);
     if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playGunshot('launcher');
     // Bomber survival probability — real-war based (30% default for heavy bombers)
     var survChance = drone._survivalChance || 0.0;
-    if (Math.random() < survChance) {
+    if (drone.hasPayload) {
+      // Bombs left in the bay — the aircraft flies on for another run.
+    } else if (Math.random() < survChance) {
       if (typeof HUD !== 'undefined' && HUD.showToast) HUD.showToast('✈️ BOMBER SURVIVED — RETURNING', 2500, '#00ff88');
     } else {
       // Drone lost — destroy it
@@ -1360,6 +1396,7 @@ const DroneSystem = (function () {
     if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) {
       Enemies.damageInRadius(dropPos, 8, drone.damage);
     }
+    try { if (window.RefineryStrike && RefineryStrike.damageAt) RefineryStrike.damageAt(dropPos, 8, drone.damage); } catch (e) {}
     // Spawn fire VFX
     if (typeof Tracers !== 'undefined') {
       if (Tracers.spawnFire) Tracers.spawnFire(dropPos, 8);
@@ -1394,7 +1431,19 @@ const DroneSystem = (function () {
   function fireAttack(droneId) {
     const drone = drones.find(d => d.id === droneId);
     if (!drone || drone.type !== DRONE_TYPE.FPV_ATTACK) return false;
-    // FPV kamikaze: damage enemies, player, NPCs, terrain at drone position, destroy drone
+
+    // With munitions left, the drone SHOOTS: the warhead flies out along the
+    // camera axis and detonates at the first thing it reaches. The drone lives,
+    // so a pilot can work a target list instead of trading the airframe for one
+    // kill. Only a dry drone rams, which is the real FPV endgame anyway.
+    if (drone.payloadCount > 0) {
+      drone.payloadCount--;
+      if (drone.payloadCount <= 0) drone.hasPayload = false;
+      _fireDroneMunition(drone);
+      return true;
+    }
+
+    // Out of munitions — one-way ram at the drone's own position.
     if (typeof Enemies !== 'undefined') {
       Enemies.damageInRadius(drone.position, 4, drone.damage);
     }
@@ -1442,6 +1491,76 @@ const DroneSystem = (function () {
     if (typeof window.AudioSystem !== 'undefined') window.AudioSystem.playGunshot('launcher');
     destroyDrone(drone);
     return true;
+  }
+
+  // Launches a warhead from the drone along its facing, steps it forward until
+  // it reaches something, then detonates. Stepping rather than raycasting keeps
+  // this O(range) with no scene traversal, which matters because a drone can be
+  // firing while dozens of characters are already being simulated.
+  var _munTmp = new THREE.Vector3();
+  var _munDir = new THREE.Vector3();
+  function _fireDroneMunition(drone) {
+    var STEP = 1.5, MAX = 90;
+    // +Z is the drone's forward. The system sets mesh.rotation.y from
+    // atan2(velocity.x, velocity.z), which points +Z along the direction of
+    // travel, and Object3D.lookAt aims +Z at its target for a non-camera. Firing
+    // along -Z sent every warhead out of the BACK of the drone: a capture run
+    // aimed four passes at the refinery and finished 0/6, because those rounds
+    // detonated behind the aircraft. Enemies still died occasionally, which is
+    // what made it look like it was working.
+    _munDir.set(0, 0, 1).applyQuaternion(drone.mesh ? drone.mesh.quaternion : drone.rotation ? new THREE.Quaternion().setFromEuler(drone.rotation) : new THREE.Quaternion());
+    _munTmp.copy(drone.position);
+    var hitPoint = null;
+    for (var d = STEP; d <= MAX; d += STEP) {
+      _munTmp.copy(drone.position).addScaledVector(_munDir, d);
+      // Ground stops it.
+      var gh = 0;
+      try { if (window.VoxelWorld && VoxelWorld.getTerrainHeight) gh = VoxelWorld.getTerrainHeight(_munTmp.x, _munTmp.z) || 0; } catch (e) {}
+      if (_munTmp.y <= gh) { _munTmp.y = gh + 0.1; hitPoint = _munTmp.clone(); break; }
+      // A standing mission structure stops it. Without this the warhead flew
+      // straight THROUGH the oil tank it was aimed at and detonated in the dirt
+      // ten-odd metres beyond, outside damageAt's radius — which is why a run
+      // that concentrated four passes on one tank left it at a clean 250/250.
+      try {
+        if (window.RefineryStrike && RefineryStrike.getTargets) {
+          var sts = RefineryStrike.getTargets() || [];
+          for (var si = 0; si < sts.length; si++) {
+            var st = sts[si];
+            if (!st || !st.alive) continue;
+            var sdx = st.x - _munTmp.x;
+            var sdy = (st.y + 3 * st.scale) - _munTmp.y;
+            var sdz = st.z - _munTmp.z;
+            var srr = 4.5 * st.scale;
+            if (sdx * sdx + sdy * sdy + sdz * sdz < srr * srr) { hitPoint = _munTmp.clone(); break; }
+          }
+        }
+      } catch (e3) {}
+      if (hitPoint) break;
+
+      // A living enemy within the blast step stops it.
+      try {
+        if (typeof Enemies !== 'undefined' && Enemies.getAll) {
+          var list = Enemies.getAll();
+          for (var i = 0; i < list.length; i++) {
+            var e = list[i];
+            if (!e || !e.mesh || e.alive === false) continue;
+            var ex = e.mesh.position.x - _munTmp.x, ey = e.mesh.position.y + 0.9 - _munTmp.y, ez = e.mesh.position.z - _munTmp.z;
+            if (ex * ex + ey * ey + ez * ez < 9) { hitPoint = _munTmp.clone(); break; }
+          }
+        }
+      } catch (e2) {}
+      if (hitPoint) break;
+    }
+    if (!hitPoint) hitPoint = drone.position.clone().addScaledVector(_munDir, MAX);
+
+    var dmg = drone.damage || 80;
+    try { if (typeof Enemies !== 'undefined' && Enemies.damageInRadius) Enemies.damageInRadius(hitPoint, 5, dmg); } catch (e) {}
+    // Mission structures (the refinery targets) take the hit too.
+    try { if (window.RefineryStrike && RefineryStrike.damageAt) RefineryStrike.damageAt(hitPoint, 6, dmg); } catch (e) {}
+    createDroneExplosion(hitPoint);
+    try { if (typeof Tracers !== 'undefined' && Tracers.spawnExplosion) Tracers.spawnExplosion(hitPoint, 3); } catch (e) {}
+    try { if (window.AudioSystem && AudioSystem.playExplosion) AudioSystem.playExplosion(0.5); } catch (e) {}
+    return hitPoint;
   }
 
   function createDroneExplosion(pos) {

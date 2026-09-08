@@ -746,7 +746,6 @@ window.GravityGrenade = (function () {
     reset: reset,
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail gravity-grenade.js",_e&&_e.message); }
 /* === poison-gas.js === */
@@ -1435,7 +1434,6 @@ window.PoisonGas = (function () {
 
   return { init: init, update: update, release: release, reset: reset, getZones: getZones };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail poison-gas.js",_e&&_e.message); }
 /* === ricochet-rounds.js === */
@@ -2092,7 +2090,6 @@ window.RicochetRounds = (function() {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail ricochet-rounds.js",_e&&_e.message); }
 /* === time-rewind.js === */
@@ -2306,7 +2303,6 @@ window.TimeRewind = (function() {
 
   return { init: init, update: update, activate: _activate, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail time-rewind.js",_e&&_e.message); }
 /* === speed-boost.js === */
@@ -2600,4 +2596,5 @@ window.SpeedBoost = (function() {
 
   return { init: init, update: update, activate: _activate, reset: reset };
 })();
+;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail speed-boost.js",_e&&_e.message); }

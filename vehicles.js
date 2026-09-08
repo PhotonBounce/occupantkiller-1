@@ -827,6 +827,7 @@ const VehicleSystem = (function () {
           v.position.y = terrainH;
         }
         v.velocity.y = 0;
+        v._conform = true;
         // Hard speed cap for AI vehicles to prevent erratic movement
         if (v !== _occupiedVehicle) {
           var hSpd = Math.sqrt(v.velocity.x * v.velocity.x + v.velocity.z * v.velocity.z);
@@ -853,6 +854,11 @@ const VehicleSystem = (function () {
       // Update mesh
       v.mesh.position.copy(v.position);
       v.mesh.rotation.copy(v.rotation);
+      // Sit the hull ON the slope rather than level-and-half-buried.
+      if (v._conform && !v.flying) {
+        alignToTerrain(v.mesh, v.halfLen || 2.2, v.halfWid || 1.3, v.rotation.y);
+        v.position.y = v.mesh.position.y;
+      }
 
       if (v.isTank) updateTankEffects(v, delta);
 
@@ -2269,7 +2275,47 @@ const VehicleSystem = (function () {
     return _fuelLevels[vehicleId];
   }
 
+  /* ── Terrain conforming ────────────────────────────────────────────
+     A ground vehicle used to sample terrain height at ONE point (its centre)
+     and keep its hull perfectly level. On any slope that puts half the hull
+     underground and the other half in the air, which is what reads in game as
+     "the vehicles drive off the terrain". Sampling the four corners of the
+     footprint gives both a contact height and a slope to sit on, for four
+     cheap height lookups per vehicle per frame. */
+  function alignToTerrain(obj, halfLen, halfWid, yawOverride) {
+    if (!obj) return;
+    var VW = window.VoxelWorld;
+    if (!VW || !VW.getTerrainHeight) return;
+    halfLen = halfLen || 2.4;
+    halfWid = halfWid || 1.4;
+    var yaw = (yawOverride != null) ? yawOverride : obj.rotation.y;
+    var cs = Math.cos(yaw), sn = Math.sin(yaw);
+    var px = obj.position.x, pz = obj.position.z;
+    function h(lx, lz) {
+      var wx = px + lx * cs + lz * sn;
+      var wz = pz - lx * sn + lz * cs;
+      var v = VW.getTerrainHeight(wx, wz);
+      return (typeof v === 'number' && !isNaN(v)) ? v : 0;
+    }
+    var fl = h(-halfWid,  halfLen), fr = h(halfWid,  halfLen);
+    var rl = h(-halfWid, -halfLen), rr = h(halfWid, -halfLen);
+    // Rest on the highest contact pair so tracks never sink through a rise.
+    obj.position.y = Math.max(Math.max(fl, fr), Math.max(rl, rr));
+    var front = (fl + fr) * 0.5, rear = (rl + rr) * 0.5;
+    var left  = (fl + rl) * 0.5, right = (fr + rr) * 0.5;
+    var pitch = Math.atan2(front - rear, halfLen * 2);
+    var roll  = Math.atan2(left - right, halfWid * 2);
+    // Clamp so a one-voxel step cannot flip the hull on its side.
+    var LIM = 0.45;
+    pitch = Math.max(-LIM, Math.min(LIM, pitch));
+    roll  = Math.max(-LIM, Math.min(LIM, roll));
+    obj.rotation.set(0, yaw, 0);
+    obj.rotateX(-pitch);
+    obj.rotateZ(roll);
+  }
+
   return {
+    alignToTerrain,
     VEHICLE_TYPE,
     VEHICLE_STATS,
     init,

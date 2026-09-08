@@ -1,5 +1,7 @@
 window.TimeParadox = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── State ────────────────────────────────────────────────────────────────
   var _active = false;
@@ -747,6 +749,8 @@ window.TimeParadox = (function () {
 
   // ── Init ──────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (_active) return;
     _active = true;
 

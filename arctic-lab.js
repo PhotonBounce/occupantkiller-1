@@ -396,7 +396,7 @@ var ArcticLab = (function() {
 		updateEmergencyLights();
 
 		if (renderer) {
-			renderer.render(scene, camera);
+			if (renderer) renderer.render(scene, camera);
 		}
 	}
 

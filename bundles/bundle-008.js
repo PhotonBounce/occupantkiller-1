@@ -750,7 +750,6 @@ window.Nanobots = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail nanobots.js",_e&&_e.message); }
 /* === enemy-riot-police.js === */
@@ -1533,7 +1532,6 @@ window.EnemyRiotPolice = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-riot-police.js",_e&&_e.message); }
 /* === spy-drone.js === */
@@ -2105,7 +2103,6 @@ window.SpyDrone = (function () {
     isDroneView: function () { return _state.droneView; }
   };
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail spy-drone.js",_e&&_e.message); }
 /* === boss-final-form.js === */
@@ -2911,7 +2908,6 @@ window.BossFinalForm = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail boss-final-form.js",_e&&_e.message); }
 /* === night-vision-goggles.js === */
@@ -3329,7 +3325,6 @@ window.NightVisionGoggles = (function() {
   return { init: init, update: update, toggle: toggle, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail night-vision-goggles.js",_e&&_e.message); }
 /* === shield-bubble.js === */
@@ -3898,7 +3893,6 @@ window.ShieldBubble = (function () {
 
   return { init: init, update: update, deploy: deploy, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail shield-bubble.js",_e&&_e.message); }
 /* === enemy-juggernaut.js === */
@@ -4806,7 +4800,6 @@ window.EnemyJuggernaut = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-juggernaut.js",_e&&_e.message); }
 /* === tripwire-trap.js === */
@@ -5242,7 +5235,6 @@ window.TripwireTrap = (function () {
 
   return { init: init, update: update, plant: plant, reset: reset, refill: refill };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail tripwire-trap.js",_e&&_e.message); }
 /* === zipline-grapple.js === */
@@ -5869,7 +5861,6 @@ window.ZiplineGrapple = (function () {
   return { init: init, update: update, fire: fire, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail zipline-grapple.js",_e&&_e.message); }
 /* === dynamic-weather.js === */
@@ -6547,7 +6538,6 @@ window.DynamicWeather = (function () {
 
   return { init: init, update: update, setWeather: setWeather, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail dynamic-weather.js",_e&&_e.message); }
 /* === enemy-suicide-bomber.js === */
@@ -7275,7 +7265,6 @@ window.EnemySuicideBomber = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-suicide-bomber.js",_e&&_e.message); }
 /* === mounted-turret.js === */
@@ -7888,7 +7877,6 @@ window.MountedTurret = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail mounted-turret.js",_e&&_e.message); }
 /* === vehicle-turret.js === */
@@ -8773,7 +8761,6 @@ window.VehicleTurret = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail vehicle-turret.js",_e&&_e.message); }
 /* === tactical-minimap.js === */
@@ -9109,7 +9096,6 @@ window.TacticalMinimap = (function() {
 
   return { init: init, update: update, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail tactical-minimap.js",_e&&_e.message); }
 /* === proximity-mine.js === */
@@ -9830,7 +9816,6 @@ window.ProximityMine = (function () {
   return { init: init, update: update, plant: plant, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail proximity-mine.js",_e&&_e.message); }
 /* === loot-system.js === */
@@ -10127,7 +10112,6 @@ window.LootSystem = (function() {
 
   return { init: init, update: update, spawnDrop: spawnDrop, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail loot-system.js",_e&&_e.message); }
 /* === tactical-shield.js === */
@@ -10471,4 +10455,5 @@ window.TacticalShield = (function() {
 
   return { init: init, update: update, equip: equip, absorbDamage: absorbDamage, reset: reset };
 })();
+;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail tactical-shield.js",_e&&_e.message); }

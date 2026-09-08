@@ -5545,7 +5545,12 @@ const Weapons = (() => {
   let muzzleTimer = 0;
   let _muzzleLight = null;
   let _weaponFlashlight = null;
+  // 'auto' follows the day/night cycle; 'on'/'off' are a manual override that
+  // lasts until the next phase change. It used to be a plain boolean forced to
+  // true at init, so the torch burned in broad daylight for the whole mission.
   let _flashlightOn = false;
+  let _flashlightMode = 'auto';
+  let _flashlightWasNight = false;
   // Lingering muzzle smoke puff (plane that fades + drifts up)
   let _muzzleSmoke = null;
   let _muzzleSmokeTimer = 0;
@@ -5586,7 +5591,8 @@ const Weapons = (() => {
     _weaponFlashlight.target.position.set(0, -0.08, -10);
     camera.add(_weaponFlashlight);
     camera.add(_weaponFlashlight.target);
-    _flashlightOn = true;
+    _flashlightMode = 'auto';
+    _flashlightOn = false;
 
     // Lingering smoke puff plane (additive grey, faces camera)
     var smokeGeo = new THREE.PlaneGeometry(0.18, 0.18);
@@ -5831,11 +5837,15 @@ const Weapons = (() => {
   }
 
   function toggleFlashlight() {
+    // L overrides whatever auto decided, until the next day/night transition.
     _flashlightOn = !_flashlightOn;
+    _flashlightMode = _flashlightOn ? 'on' : 'off';
     if (typeof HUD !== 'undefined' && HUD.notifyPickup) {
       HUD.notifyPickup(_flashlightOn ? '🔦 Flashlight ON' : '🔦 Flashlight OFF', _flashlightOn ? '#ffffaa' : '#888888');
     }
   }
+
+  function isFlashlightOn() { return _flashlightOn; }
 
   function handleRightDown() {
     rightMouseDown = true;
@@ -6712,17 +6722,22 @@ const Weapons = (() => {
       if (muzzleFlash) muzzleFlash.material.opacity = Math.max(0, muzzleTimer / 0.10);
       if (_muzzleLight) _muzzleLight.intensity = Math.max(0, (muzzleTimer / 0.10) * 2.5);
     }
-    // Weapon flashlight: on for suitable weapons, auto-off in daylight
+    // Weapon flashlight: auto-on at night only, unless the player pressed L.
     if (_weaponFlashlight) {
       var cw = cur();
       var hasLight = cw && ['MELEE','MINE','SMOKE','FLASHBANG','EXPLOSIVE'].indexOf(cw.type) < 0;
-      var isBright = false;
+      var isNight = false;
       try {
         if (typeof TimeSystem !== 'undefined' && TimeSystem.getInfo) {
-          isBright = TimeSystem.getInfo().phase === 'day';
+          isNight = TimeSystem.getInfo().phase === 'night';
         }
       } catch (e) {}
-      var targetInt = (_flashlightOn && hasLight && !isBright) ? 2.5 : 0;
+      if (isNight !== _flashlightWasNight) {
+        _flashlightWasNight = isNight;
+        _flashlightMode = 'auto';        // a new phase drops any manual override
+      }
+      if (_flashlightMode === 'auto') _flashlightOn = isNight;
+      var targetInt = (_flashlightOn && hasLight) ? 2.5 : 0;
       _weaponFlashlight.intensity += (targetInt - _weaponFlashlight.intensity) * Math.min(1, delta * 8);
     }
     // Lingering muzzle smoke puff: drift up & fade
@@ -7497,6 +7512,7 @@ const Weapons = (() => {
     exitZoom,
     isZoomed,
     toggleFlashlight,
+    isFlashlightOn,
     setPlayerSpeed: function(s) { _playerSpeed = s; },
     setHoldBreath,
     getRecoilAccum: function() { return _recoilPitchAccum; },

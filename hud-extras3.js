@@ -74,7 +74,7 @@
     + 'letter-spacing:1px;text-shadow:0 0 3px #000;', root);
   spd.innerHTML = '<span style="color:#5fcfff">SPD</span> <b data-spd>0.0</b> <span style="opacity:.6">m/s</span>';
   var spdVal = spd.querySelector('[data-spd]');
-  var _lastPos = null, _spdSmooth = 0;
+  var _lastPos = null, _spdSmooth = 0, _lastSpdT = 0;
 
   /* Read player health from the existing HUD text. */
   function readHealth() {
@@ -116,7 +116,7 @@
     var live = playing();
     var on = !(window.__OK_EXTRAS && window.__OK_EXTRAS.hud3 === false);
     root.style.display = (live && on) ? 'block' : 'none';
-    if (!live || !on) { _lastHealth = -1; _lastHostiles = -1; _lastPos = null; return; }
+    if (!live || !on) { _lastHealth = -1; _lastHostiles = -1; _lastPos = null; _lastSpdT = 0; return; }
 
     // Damage direction (health dropped)
     var hp = readHealth();
@@ -144,7 +144,18 @@
       if (cam && cam.position) {
         if (_lastPos) {
           var dx = cam.position.x - _lastPos.x, dy = cam.position.y - _lastPos.y, dz = cam.position.z - _lastPos.z;
-          var dt = 1 / 60;
+          // Measure the REAL interval. This assumed a fixed 1/60s tick, so on a
+          // machine running at 1-2 fps each tick covered most of a second but
+          // was still divided by 16ms — inflating the readout ~30-60x. That is
+          // where a reported "SPD 331.4 m/s" came from while the player was
+          // walking normally; the movement cap was never the problem.
+          var _tNow = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+          var dt = _lastSpdT ? (_tNow - _lastSpdT) / 1000 : (1 / 60);
+          _lastSpdT = _tNow;
+          // Clamp: a tab that was backgrounded produces a huge dt, and a
+          // sub-millisecond dt produces a huge speed.
+          if (!(dt > 0.004)) dt = 0.004;
+          if (dt > 0.5) dt = 0.5;
           var inst = Math.sqrt(dx * dx + dy * dy + dz * dz) / dt;
           if (!isFinite(inst)) inst = 0; // guard: a NaN camera pos for one frame otherwise poisons the smoothed value forever (SPD NaN)
           _spdSmooth += (inst - _spdSmooth) * 0.2;

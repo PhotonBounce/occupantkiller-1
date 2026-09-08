@@ -1,5 +1,7 @@
 window.AsteroidField = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas, hudCanvas;
   var mainAsteroid, mediumAsteroid1, mediumAsteroid2;
@@ -62,6 +64,8 @@ window.AsteroidField = (function() {
   }
 
   function init(containerElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     canvas = document.createElement('canvas');
     canvas.width = containerElement.clientWidth;
     canvas.height = containerElement.clientHeight;
@@ -531,7 +535,7 @@ window.AsteroidField = (function() {
       }
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
     updateHUD();
   }
 

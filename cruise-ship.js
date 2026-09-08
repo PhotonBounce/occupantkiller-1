@@ -1,5 +1,7 @@
 window.CruiseShip = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'CruiseShip';
   var ACTIVATION_KEY_C = 67;
@@ -54,6 +56,8 @@ window.CruiseShip = (function () {
   // -------------------------------------------------------
 
   function init(scene, camera) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (state.active) return;
     state.active = true;
 

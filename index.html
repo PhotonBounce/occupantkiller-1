@@ -701,8 +701,9 @@
             <button class="btn pill start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444">🎯 FPV Attack</button>
             <button class="btn pill start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff">👁 Surveillance</button>
             <button class="btn pill start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00">💣 Bomber</button>
+            <button class="btn pill start-drone-btn" data-drone="baba_yaga" style="border-color:#ff8800;color:#ff8800">🔥 Baba Yaga</button>
           </div>
-          <p id="start-drone-desc" class="start-section-desc">No drone — fight on foot (default).</p>
+          <p id="start-drone-desc" class="start-section-desc">Standard loadout — all four aircraft, balanced ammo.</p>
         </section>
 
         <section class="start-section start-section-wide">
@@ -1247,6 +1248,7 @@
 <script src="skills.js?v=20260724a"></script>
 <script src="ranks.js?v=20260724a"></script>
 <script src="building.js?v=20260724a"></script>
+<script src="npc-weapons.js?v=20260823a"></script>
 <script src="npc-system.js?v=20260724a"></script>
 <script src="drone-system.js?v=20260724a"></script>
 <script src="vehicles.js?v=20260724a"></script>
@@ -1472,11 +1474,15 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Inline drone choice on start screen (replaces second drone-select overlay) ──
   (function () {
     window.__chosenDroneType = ''; // empty = none
+    // These describe what the choice actually does: it sets your PRIMARY
+    // aircraft, which starts in slot [1] of the in-game loadout (Shift+F) and
+    // carries extra ammo. Every aircraft is still available either way.
     var droneDescs = {
-      '': 'No drone — fight on foot (default)',
-      fpv_attack: 'FPV Attack — kamikaze drone, dives into targets',
-      surveillance: 'Surveillance — scout battlefield, mark enemies',
-      bomb: 'Bomber — heavy payload, drop munitions on targets'
+      '': 'Standard loadout — all four aircraft, balanced ammo',
+      fpv_attack: 'FPV Attack — fires charges, rams when dry · primary, +2 ammo',
+      surveillance: 'Surveillance — scout battlefield, mark enemies · primary, +2 ammo',
+      bomb: 'Bomber — heavy payload, drop munitions on targets · primary, +2 ammo',
+      baba_yaga: 'Baba Yaga — drops thermite, burns out structures · primary, +2 ammo'
     };
     var btns = document.querySelectorAll('.start-drone-btn');
     var desc = document.getElementById('start-drone-desc');
@@ -1740,7 +1746,15 @@ document.addEventListener('DOMContentLoaded', function () {
   })();
 
   document.getElementById('next-stage-btn').addEventListener('click', function () {
-    GameManager.nextStage();
+    // Level generation is one long synchronous block. Called bare, the screen
+    // freezes on the last gameplay frame for several seconds and reads as a
+    // crash. Put the loading overlay up and yield ~90ms so it actually PAINTS
+    // before the main thread disappears into generation — same trick the
+    // initial QUICK START path already uses.
+    window.showLoading('GENERATING NEXT STAGE...');
+    setTimeout(function () {
+      try { GameManager.nextStage(); } finally { window.hideLoading(); }
+    }, 90);
   });
 
   function resumeFromPauseUI() {
