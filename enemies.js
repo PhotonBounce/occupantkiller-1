@@ -1714,8 +1714,9 @@ const Enemies = (() => {
     hitbox.renderOrder = -1;
     group.add(hitbox);
 
-    group.userData.headMesh = head;
-    group.userData.hitbox   = hitbox;
+    group.userData.headMesh   = head;
+    group.userData.helmetMesh = helmet;
+    group.userData.hitbox     = hitbox;
     // Include ALL mesh parts so raycaster can detect hits on vest, boots, equipment
     group.userData.parts    = [torso, head, helmet, legL, legR, armL, armR, hitbox,
                                vest, canteen, radio, belt, eyeL, eyeR];
@@ -3695,13 +3696,17 @@ const Enemies = (() => {
           }
           // Kneel: lower body slightly
           e.mesh.position.y -= 0.3;
-          // White flag: change helmet to white (parts[2] is helmet)
+          // White flag: whiten the helmet. This indexed parts[2] and held good
+          // only while the parts array literal kept its exact order — one
+          // insertion and the surrender flag would bleach a leg instead. The
+          // mesh is now looked up by name, with the index kept as a fallback.
           var parts = e.mesh.userData.parts;
-          if (parts && parts[2] && parts[2].material) {
-            parts[2].material = parts[2].material.clone();
-            parts[2].material.map = null;
-            parts[2].material.color.setHex(0xffffff);
-            parts[2].material.needsUpdate = true;
+          var helmetMesh = e.mesh.userData.helmetMesh || (parts && parts[2]);
+          if (helmetMesh && helmetMesh.material) {
+            helmetMesh.material = helmetMesh.material.clone();
+            helmetMesh.material.map = null;
+            helmetMesh.material.color.setHex(0xffffff);
+            helmetMesh.material.needsUpdate = true;
           }
         }
       }
