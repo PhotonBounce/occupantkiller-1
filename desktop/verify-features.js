@@ -57,6 +57,15 @@ const fs = require('fs');
     const o = {};
     try {
       o.before = GameManager.getDroneLoadout().map(d => d.type + ':' + d.ammo);
+      // The aircraft catalogue is written out by hand in two places — the
+      // start-screen buttons and DRONE_LOADOUT_DEFAULT — with no shared source.
+      // They had already drifted once: Baba Yaga was flyable in-game and absent
+      // from the start screen. Capture both so the drift cannot come back
+      // silently.
+      o.loadoutTypes = GameManager.getDroneLoadout().map(d => d.type).sort();
+      o.startScreenTypes = Array.prototype.map
+        .call(document.querySelectorAll('.start-drone-btn'), b => b.getAttribute('data-drone') || '')
+        .filter(Boolean).sort();
       o.launched = GameManager.launchDroneFromLoadout('bomb');
       o.possessing = DroneSystem.isPossessing();
       const d = DroneSystem.getPossessed();
@@ -110,6 +119,25 @@ const fs = require('fs');
     }
     if (dr.payloadWhenEmpty !== false) {
       results.fail.push('bomber still reports a payload with an empty bay');
+    }
+  }
+  // The start screen and the in-game loadout must offer the same aircraft.
+  // They are two hand-written lists with no shared source, and they had
+  // already drifted: Baba Yaga was flyable from the Shift+F loadout and simply
+  // absent from the start screen, so a player choosing an aircraft before the
+  // mission was choosing from three of the four.
+  if (!Array.isArray(dr.loadoutTypes) || !dr.loadoutTypes.length) {
+    results.fail.push('could not read the drone loadout');
+  } else if (!Array.isArray(dr.startScreenTypes) || !dr.startScreenTypes.length) {
+    results.fail.push('start screen offers no aircraft');
+  } else {
+    const missing = dr.loadoutTypes.filter(t => dr.startScreenTypes.indexOf(t) < 0);
+    const extra = dr.startScreenTypes.filter(t => dr.loadoutTypes.indexOf(t) < 0);
+    if (missing.length) {
+      results.fail.push('flyable in-game but missing from the start screen: ' + missing.join(', '));
+    }
+    if (extra.length) {
+      results.fail.push('offered on the start screen but not in the loadout: ' + extra.join(', '));
     }
   }
 
