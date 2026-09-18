@@ -1,0 +1,160 @@
+name: Showcase Gallery
+
+# Captures the public gameplay gallery: every mission played in god mode with
+# frames N seconds apart, plus every weapon in live fire, then builds the
+# gallery page and publishes it to the website.
+#
+# Runs here rather than in the dev sandbox because the sandbox cannot boot the
+# game reliably enough for an unattended run of this size, and cannot reach FTP.
+#
+# Publishes to: ftp.photon-bounce.com  ->  /occupantkiller/gallery/
+# (needs the same FTP_PASSWORD secret the other ftp-* workflows use; without it
+# the upload step skips cleanly and the gallery is still downloadable as an
+# artifact.)
+
+on:
+  workflow_dispatch:
+    inputs:
+      frames:
+        description: 'Gameplay frames per mission'
+        default: '10'
+      interval_ms:
+        description: 'Milliseconds between frames'
+        default: '5000'
+      publish:
+        description: 'Upload to the website over FTP'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: showcase-gallery
+  cancel-in-progress: true
+
+jobs:
+  missions:
+    name: mission ${{ matrix.stage }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        stage: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Capture mission ${{ matrix.stage }}
+        env:
+          MODE: stage
+          STAGE: ${{ matrix.stage }}
+          FRAMES: ${{ github.event.inputs.frames || '10' }}
+          INTERVAL_MS: ${{ github.event.inputs.interval_ms || '5000' }}
+          PORT: 4900
+          OUT: showcase-out
+          SHARD: s${{ matrix.stage }}
+        run: node tools/capture-showcase.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shots-stage-${{ matrix.stage }}
+          path: showcase-out/
+          retention-days: 7
+
+  arsenal:
+    name: weapons ${{ matrix.wstart }}-${{ matrix.wend }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - { wstart: 0,   wend: 24 }
+          - { wstart: 25,  wend: 49 }
+          - { wstart: 50,  wend: 74 }
+          - { wstart: 75,  wend: 99 }
+          - { wstart: 100, wend: 124 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Capture weapons ${{ matrix.wstart }}-${{ matrix.wend }}
+        env:
+          MODE: weapons
+          STAGE: 0
+          WSTART: ${{ matrix.wstart }}
+          WEND: ${{ matrix.wend }}
+          PORT: 4900
+          OUT: showcase-out
+          SHARD: w${{ matrix.wstart }}
+        run: node tools/capture-showcase.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shots-weapons-${{ matrix.wstart }}
+          path: showcase-out/
+          retention-days: 7
+
+  publish:
+    name: build + publish gallery
+    needs: [missions, arsenal]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Collect every shard
+        uses: actions/download-artifact@v4
+        with:
+          pattern: shots-*
+          path: collected
+          merge-multiple: true
+      - name: Show what landed
+        run: |
+          echo "images: $(find collected -name '*.jpg' | wc -l)"
+          echo "manifests: $(find collected -name 'manifest-*.json' | wc -l)"
+      - name: Build gallery
+        env:
+          IN: collected
+          OUT: showcase-gallery
+          INTERVAL_MS: ${{ github.event.inputs.interval_ms || '5000' }}
+        run: node tools/build-showcase-gallery.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: showcase-gallery
+          path: showcase-gallery/
+          retention-days: 30
+
+      - name: Check FTP secret presence
+        id: gate
+        env:
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -n "$FTP_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FTP_PASSWORD not set — gallery built but not published. Download the showcase-gallery artifact instead."
+          fi
+
+      - name: Publish to photon-bounce.com /occupantkiller/gallery/
+        if: steps.gate.outputs.ready == 'true' && (github.event.inputs.publish != 'false')
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftp.photon-bounce.com
+          username: photonb
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./showcase-gallery/
+          server-dir: /occupantkiller/gallery/
+          dangerous-clean-slate: true
+
+      - name: Link
+        if: steps.gate.outputs.ready == 'true'
+        run: echo "Gallery published -> https://photon-bounce.com/occupantkiller/gallery/"

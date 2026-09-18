@@ -2476,9 +2476,13 @@ function buildCivilianMesh(npc) {
   function getByRank(r)  { return npcs.filter(n => n.alive && n.rank === r); }
 
   function getAverageMorale() {
-    const alive = getAll();
-    if (alive.length === 0) return 0;
-    return alive.reduce((s, n) => s + n.morale, 0) / alive.length;
+    // Wildlife and stray pets live in the same npcs[] array as soldiers but
+    // have no morale — they are animals. Summing them produced undefined and
+    // the HUD printed "Morale: NaN%" on screen for the whole mission. Average
+    // only over entities that actually carry a numeric morale.
+    const withMorale = getAll().filter(n => n && typeof n.morale === 'number' && isFinite(n.morale));
+    if (withMorale.length === 0) return 0;
+    return withMorale.reduce((s, n) => s + n.morale, 0) / withMorale.length;
   }
 
   /* ── Cleanup ─────────────────────────────────────────────────────── */
