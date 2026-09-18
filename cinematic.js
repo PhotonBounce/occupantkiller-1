@@ -13,9 +13,9 @@
  * Why this hides things at runtime rather than with a stylesheet: several of
  * the busiest panels (DECOYS, BREACH, TACMAP, the match-stats block) are built
  * in JavaScript and never appear in index.html, so there is no stable id to
- * write a rule against. Walking the live DOM catches them, and re-walking on a
- * timer catches the ones that appear later — toasts and banners spawn mid-fight
- * and would otherwise pop back into an otherwise clean frame.
+ * write a rule against. One walk of the live DOM catches them; a MutationObserver
+ * catches the toasts and banners that spawn mid-fight, touching only the nodes
+ * that were actually added.
  */
 (function () {
   'use strict';
@@ -35,7 +35,21 @@
   var NEVER_HIDE_TAGS = { CANVAS: 1, HTML: 1, BODY: 1 };
 
   var on = false;
-  var timer = null;
+  var observer = null;
+
+  // Hide a single element if it qualifies. Split out so the observer can treat
+  // newly added nodes without re-walking the whole document.
+  function hideIfOverlay(el, keep) {
+    if (!el || el.nodeType !== 1) return;
+    if (keep.has(el) || NEVER_HIDE_TAGS[el.tagName]) return;
+    if (el.hasAttribute('data-okcin')) return;
+    var cs;
+    try { cs = getComputedStyle(el); } catch (e) { return; }
+    if (cs.position !== 'fixed' && cs.position !== 'absolute') return;
+    if (cs.display === 'none') return;
+    el.setAttribute('data-okcin', '1');
+    el.style.setProperty('display', 'none', 'important');
+  }
 
   function keepSet() {
     var keep = new Set();
@@ -70,17 +84,7 @@
       }
     }
     var all = document.querySelectorAll('body *');
-    for (var i = 0; i < all.length; i++) {
-      var el = all[i];
-      if (keep.has(el) || NEVER_HIDE_TAGS[el.tagName]) continue;
-      if (el.hasAttribute('data-okcin')) continue;         // already hidden by us
-      var cs;
-      try { cs = getComputedStyle(el); } catch (e) { continue; }
-      if (cs.position !== 'fixed' && cs.position !== 'absolute') continue;
-      if (cs.display === 'none') continue;                  // leave already-hidden alone
-      el.setAttribute('data-okcin', '1');
-      el.style.setProperty('display', 'none', 'important');
-    }
+    for (var i = 0; i < all.length; i++) hideIfOverlay(all[i], keep);
   }
 
   function restore() {
@@ -97,10 +101,31 @@
     on = v;
     if (on) {
       apply();
-      // Panels spawn during play; re-sweep so they do not pop into a clean shot.
-      timer = setInterval(apply, 700);
+      // Panels spawn mid-fight, so new ones have to be caught too — but a full
+      // re-walk of the document on a timer is far too expensive here. Sweeping
+      // ~370 elements with getComputedStyle several times a second kept the
+      // page permanently busy, which is exactly the condition that makes
+      // Playwright's screenshot stall on "waiting for fonts to load": capture
+      // jobs went from 2 minutes to 30. Watch for added nodes instead and touch
+      // only those — O(added) per mutation rather than O(document) per tick.
+      try {
+        observer = new MutationObserver(function (records) {
+          var keep = null;
+          for (var i = 0; i < records.length; i++) {
+            var added = records[i].addedNodes;
+            for (var j = 0; j < added.length; j++) {
+              if (added[j].nodeType !== 1) continue;
+              if (!keep) keep = keepSet();          // computed at most once per batch
+              hideIfOverlay(added[j], keep);
+              var kids = added[j].querySelectorAll ? added[j].querySelectorAll('*') : [];
+              for (var k = 0; k < kids.length; k++) hideIfOverlay(kids[k], keep);
+            }
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      } catch (e) { /* no observer: the one-shot sweep above still applies */ }
     } else {
-      if (timer) { clearInterval(timer); timer = null; }
+      if (observer) { observer.disconnect(); observer = null; }
       restore();
     }
     try {

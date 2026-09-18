@@ -163,7 +163,7 @@ server.listen(PORT, async () => {
     // to the renderer and cannot stall on page lifecycle.
     let ok = false;
     try {
-      await pg.screenshot({ path: dest, type: 'jpeg', quality: 82, timeout: 20000, animations: 'disabled' });
+      await pg.screenshot({ path: dest, type: 'jpeg', quality: 82, timeout: 8000, animations: 'disabled' });
       ok = true;
     } catch (e) {
       console.log('  [screenshot timed out, using captureFrame] ' + file);
