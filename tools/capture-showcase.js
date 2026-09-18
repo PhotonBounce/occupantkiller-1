@@ -21,6 +21,7 @@
     WSTART / WEND        weapon index range         (weapons mode)
     OUT=dir              output directory
     VW / VH              viewport                   (default 1280x720)
+    CLEAN_HUD=0          keep the full HUD (default strips it)
     PORT=N               static server port
 
   Writes <OUT>/*.jpg plus <OUT>/manifest-<shard>.json describing each shot.
@@ -41,6 +42,8 @@ const VW = parseInt(process.env.VW || '1280', 10);
 const VH = parseInt(process.env.VH || '720', 10);
 const PORT = parseInt(process.env.PORT || '4801', 10);
 const OUT = process.env.OUT || path.join(ROOT, 'showcase-out');
+// Clean HUD is on by default: these images are the game's shop window.
+const CLEAN_HUD = process.env.CLEAN_HUD !== '0';
 const SHARD = process.env.SHARD || (MODE === 'weapons' ? `w${WSTART}-${WEND}` : `s${STAGE}`);
 
 fs.mkdirSync(OUT, { recursive: true });
@@ -93,7 +96,7 @@ server.listen(PORT, async () => {
     .catch(() => console.log('[warn] state never reached playing'));
   await pg.waitForTimeout(6000);   // let the world settle and shaders prewarm
 
-  const setup = await pg.evaluate(() => {
+  const setup = await pg.evaluate((cleanHud) => {
     const o = {};
     try {
       if (!GameManager.isGodMode()) GameManager.toggleGodMode();
@@ -103,9 +106,13 @@ server.listen(PORT, async () => {
       try { Weapons.refillAllAmmo(); } catch (e) {}
       o.stage = GameManager.getCurrentStage();
       o.stageName = (GameManager.getCurrentStageInfo && GameManager.getCurrentStageInfo().name) || null;
+      // Strip the HUD down to crosshair/health/ammo/weapon. With the full HUD
+      // up, roughly twenty overlapping panels cover the frame and the shot
+      // shows interface instead of game.
+      if (cleanHud && window.Cinematic) o.cleanHud = window.Cinematic.set(true);
     } catch (e) { o.err = String(e); }
     return o;
-  });
+  }, CLEAN_HUD);
   console.log('setup: ' + JSON.stringify(setup));
 
   // One combined per-frame step: keep enemies on the field, aim at the nearest
