@@ -172,24 +172,39 @@ server.listen(PORT, async () => {
   async function snap(name, meta) {
     const file = `${name}.jpg`;
     const dest = path.join(OUT, file);
-    // Playwright's screenshot blocks on "waiting for fonts to load", which on a
-    // software rasteriser running the game at a few fps can outlast any sane
-    // timeout. Fall back to the game's own canvas capture, which goes straight
-    // to the renderer and cannot stall on page lifecycle.
     let ok = false;
+    // The game's own canvas capture is the primary path. Playwright's
+    // page.screenshot() blocks on font readiness before it will shoot, and in
+    // this environment that stall hits essentially every frame — measured
+    // locally as "waiting for fonts to load" and consistent with capture jobs
+    // running 4x longer than the work in them. captureFrame() reads the
+    // renderer directly and does not touch the page lifecycle.
     try {
-      await pg.screenshot({ path: dest, type: 'jpeg', quality: 82, timeout: 8000, animations: 'disabled' });
-      ok = true;
-    } catch (e) {
-      console.log('  [screenshot timed out, using captureFrame] ' + file);
-      try {
-        const durl = await pg.evaluate(() => { try { return GameManager.captureFrame(); } catch (e) { return null; } });
-        if (durl && durl.indexOf('data:image/') === 0) {
-          fs.writeFileSync(dest, Buffer.from(durl.split(',')[1], 'base64'));
-          meta.via = 'captureFrame';
-          ok = true;
+      // Take JPEG straight off the renderer. GameManager.captureFrame() does the
+      // same render but returns PNG, and 315 lossless 720p frames make a gallery
+      // far too heavy to serve; this is the same pixels at a fraction of the size.
+      const durl = await pg.evaluate(() => {
+        try {
+          const r = GameManager.getRenderer(), sc = GameManager.getScene(), cam = GameManager.getCamera();
+          if (!r || !sc || !cam) return GameManager.captureFrame();
+          r.render(sc, cam);
+          return r.domElement.toDataURL('image/jpeg', 0.82);
+        } catch (e) {
+          try { return GameManager.captureFrame(); } catch (e2) { return null; }
         }
-      } catch (e2) { /* fall through to the skip below */ }
+      });
+      if (durl && durl.indexOf('data:image/') === 0) {
+        fs.writeFileSync(dest, Buffer.from(durl.split(',')[1], 'base64'));
+        ok = true;
+      }
+    } catch (e) { /* fall through */ }
+    if (!ok) {
+      // Only if the renderer refused. Kept short so a bad frame cannot dominate.
+      try {
+        await pg.screenshot({ path: dest, type: 'jpeg', quality: 82, timeout: 8000, animations: 'disabled' });
+        meta.via = 'screenshot';
+        ok = true;
+      } catch (e) { /* skipped below */ }
     }
     if (!ok) { console.log('  [SKIPPED] ' + file); return; }
     shots.push(Object.assign({ file }, meta));
