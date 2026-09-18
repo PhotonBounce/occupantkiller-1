@@ -26,6 +26,10 @@
     'health-section', 'health-bar-container', 'health-bar', 'health-value', 'health-label',
     'ammo-section', 'ammo-display', 'ammo-reserve', 'ammo-label',
     'weapon-section', 'weapon-name-display', 'weapon-label',
+    // Touch controls are input, not HUD. They are positioned like everything
+    // else, so without this a player who turns Clean HUD on, on mobile, loses the
+    // only way to move or shoot — a softlock, not a tidier screen.
+    'mobile-controls', 'mobile-look-zone', 'mobile-actions', 'mobile-utility', 'mobile-fieldops',
   ];
   // Never touch these regardless of position — hiding them hides the game.
   var NEVER_HIDE_TAGS = { CANVAS: 1, HTML: 1, BODY: 1 };
