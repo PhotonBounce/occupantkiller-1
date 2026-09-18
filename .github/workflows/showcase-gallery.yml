@@ -13,6 +13,16 @@ name: Showcase Gallery
 # artifact.)
 
 on:
+  # workflow_dispatch only becomes available once this file reaches the default
+  # branch, so until #85 merges the capture is driven by pushes that actually
+  # change the capture itself — not by every commit, which would re-run a
+  # 24-job matrix for an unrelated one-line fix.
+  push:
+    branches: [ claude/peaceful-cannon-oqez4t ]
+    paths:
+      - 'tools/capture-showcase.js'
+      - 'tools/build-showcase-gallery.js'
+      - '.github/workflows/showcase-gallery.yml'
   workflow_dispatch:
     inputs:
       frames:
