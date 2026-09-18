@@ -7,6 +7,11 @@ name: Showcase Gallery
 # Runs here rather than in the dev sandbox because the sandbox cannot boot the
 # game reliably enough for an unattended run of this size, and cannot reach FTP.
 #
+# Deliberately a handful of long jobs rather than a wide matrix: a 24-job
+# fan-out exceeded the runner concurrency available and most shards sat waiting
+# instead of running — two finished in 35 minutes. One job now covers several
+# missions from a single boot.
+#
 # Publishes to: ftp.photon-bounce.com  ->  /occupantkiller/gallery/
 # (needs the same FTP_PASSWORD secret the other ftp-* workflows use; without it
 # the upload step skips cleanly and the gallery is still downloadable as an
@@ -15,8 +20,7 @@ name: Showcase Gallery
 on:
   # workflow_dispatch only becomes available once this file reaches the default
   # branch, so until #85 merges the capture is driven by pushes that actually
-  # change the capture itself — not by every commit, which would re-run a
-  # 24-job matrix for an unrelated one-line fix.
+  # change the capture itself — not by every commit to the branch.
   push:
     branches: [ claude/peaceful-cannon-oqez4t ]
     paths:
@@ -31,10 +35,6 @@ on:
       interval_ms:
         description: 'Milliseconds between frames'
         default: '5000'
-      publish:
-        description: 'Upload to the website over FTP'
-        type: boolean
-        default: true
 
 permissions:
   contents: read
@@ -45,50 +45,48 @@ concurrency:
 
 jobs:
   missions:
-    name: mission ${{ matrix.stage }}
+    name: missions ${{ matrix.label }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
-      max-parallel: 10
       matrix:
-        stage: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+        include:
+          - { label: '0-6',   stages: '0,1,2,3,4,5,6' }
+          - { label: '7-12',  stages: '7,8,9,10,11,12' }
+          - { label: '13-18', stages: '13,14,15,16,17,18' }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       - name: Install Playwright
         run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
-      - name: Capture mission ${{ matrix.stage }}
+      - name: Capture missions ${{ matrix.label }}
         env:
           MODE: stage
-          STAGE: ${{ matrix.stage }}
+          STAGES: ${{ matrix.stages }}
           FRAMES: ${{ github.event.inputs.frames || '10' }}
           INTERVAL_MS: ${{ github.event.inputs.interval_ms || '5000' }}
-          PORT: 4900
+          PORT: '4900'
           OUT: showcase-out
-          SHARD: s${{ matrix.stage }}
+          SHARD: m${{ matrix.label }}
         run: node tools/capture-showcase.js
       - uses: actions/upload-artifact@v4
         with:
-          name: shots-stage-${{ matrix.stage }}
+          name: shots-missions-${{ matrix.label }}
           path: showcase-out/
           retention-days: 7
 
   arsenal:
     name: weapons ${{ matrix.wstart }}-${{ matrix.wend }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
-      max-parallel: 6
       matrix:
         include:
-          - { wstart: 0,   wend: 24 }
-          - { wstart: 25,  wend: 49 }
-          - { wstart: 50,  wend: 74 }
-          - { wstart: 75,  wend: 99 }
-          - { wstart: 100, wend: 124 }
+          - { wstart: 0,  wend: 62 }
+          - { wstart: 63, wend: 124 }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -98,10 +96,10 @@ jobs:
       - name: Capture weapons ${{ matrix.wstart }}-${{ matrix.wend }}
         env:
           MODE: weapons
-          STAGE: 0
+          STAGE: '0'
           WSTART: ${{ matrix.wstart }}
           WEND: ${{ matrix.wend }}
-          PORT: 4900
+          PORT: '4900'
           OUT: showcase-out
           SHARD: w${{ matrix.wstart }}
         run: node tools/capture-showcase.js
@@ -155,7 +153,7 @@ jobs:
           fi
 
       - name: Publish to photon-bounce.com /occupantkiller/gallery/
-        if: steps.gate.outputs.ready == 'true' && (github.event.inputs.publish != 'false')
+        if: steps.gate.outputs.ready == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ftp.photon-bounce.com

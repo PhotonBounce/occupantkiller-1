@@ -16,6 +16,7 @@
   Env:
     MODE=stage|weapons   what to capture            (default stage)
     STAGE=N              stage index to play        (default 0)
+    STAGES=a,b,c         several missions in one run (overrides STAGE)
     FRAMES=N             frames for stage mode      (default 12)
     INTERVAL_MS=N        wall-clock gap per frame   (default 5000)
     WSTART / WEND        weapon index range         (weapons mode)
@@ -34,6 +35,10 @@ catch (e) { ({ chromium } = require('playwright')); }
 const ROOT = process.env.OK_ROOT || path.resolve(__dirname, '..');
 const MODE = process.env.MODE || 'stage';
 const STAGE = parseInt(process.env.STAGE || '0', 10);
+// A list lets one job cover several missions from a single boot. The 24-job
+// fan-out this replaced exceeded the runner concurrency available, so most
+// shards sat waiting rather than running.
+const STAGES = (process.env.STAGES || '').split(',').map(x => x.trim()).filter(Boolean).map(Number);
 const FRAMES = parseInt(process.env.FRAMES || '12', 10);
 const INTERVAL_MS = parseInt(process.env.INTERVAL_MS || '5000', 10);
 const WSTART = parseInt(process.env.WSTART || '0', 10);
@@ -87,33 +92,43 @@ server.listen(PORT, async () => {
   }, { timeout: 240000 }).catch(() => console.log('[warn] boot bar wait timed out; continuing'));
   console.log('booted in ' + ((Date.now() - t0) / 1000).toFixed(1) + 's');
 
-  // Jump straight to the stage under test and arm god mode.
-  await pg.evaluate((stage) => {
-    window.__chosenStartStage = stage;
-    try { GameManager.startGame(); } catch (e) { window.__startErr = String(e); }
-  }, STAGE);
-  await pg.waitForFunction(() => GameManager.getState && GameManager.getState() === 'playing', { timeout: 120000 })
-    .catch(() => console.log('[warn] state never reached playing'));
-  await pg.waitForTimeout(6000);   // let the world settle and shaders prewarm
+  // Jump straight to a mission and arm god mode + clean HUD. Re-run per stage,
+  // because startGame() resets the loadout and the HUD along with the world.
+  async function enterStage(stage) {
+    await pg.evaluate((s) => {
+      window.__chosenStartStage = s;
+      try { GameManager.startGame(); } catch (e) { window.__startErr = String(e); }
+    }, stage);
+    await pg.waitForFunction(() => GameManager.getState && GameManager.getState() === 'playing', { timeout: 120000 })
+      .catch(() => console.log('[warn] stage ' + stage + ': state never reached playing'));
+    await pg.waitForTimeout(6000);   // let the world settle and shaders prewarm
 
-  const setup = await pg.evaluate((cleanHud) => {
-    const o = {};
-    try {
-      if (!GameManager.isGodMode()) GameManager.toggleGodMode();
-      o.god = GameManager.isGodMode();
-      o.weaponCount = Weapons.getWeaponCount();
-      for (let i = 0; i < o.weaponCount; i++) { try { Weapons.unlockWeapon(i); } catch (e) {} }
-      try { Weapons.refillAllAmmo(); } catch (e) {}
-      o.stage = GameManager.getCurrentStage();
-      o.stageName = (GameManager.getCurrentStageInfo && GameManager.getCurrentStageInfo().name) || null;
-      // Strip the HUD down to crosshair/health/ammo/weapon. With the full HUD
-      // up, roughly twenty overlapping panels cover the frame and the shot
-      // shows interface instead of game.
-      if (cleanHud && window.Cinematic) o.cleanHud = window.Cinematic.set(true);
-    } catch (e) { o.err = String(e); }
-    return o;
-  }, CLEAN_HUD);
-  console.log('setup: ' + JSON.stringify(setup));
+    const info = await pg.evaluate((cleanHud) => {
+      const o = {};
+      try {
+        if (!GameManager.isGodMode()) GameManager.toggleGodMode();
+        o.god = GameManager.isGodMode();
+        o.weaponCount = Weapons.getWeaponCount();
+        for (let i = 0; i < o.weaponCount; i++) { try { Weapons.unlockWeapon(i); } catch (e) {} }
+        try { Weapons.refillAllAmmo(); } catch (e) {}
+        o.stage = GameManager.getCurrentStage();
+        o.stageName = (GameManager.getCurrentStageInfo && GameManager.getCurrentStageInfo().name) || null;
+        // Strip the HUD down to crosshair/health/ammo/weapon. With the full HUD
+        // up, roughly twenty overlapping panels cover the frame and the shot
+        // shows interface instead of game.
+        if (cleanHud && window.Cinematic) {
+          window.Cinematic.set(false);   // reset across stages, then re-apply
+          o.cleanHud = window.Cinematic.set(true);
+        }
+      } catch (e) { o.err = String(e); }
+      return o;
+    }, CLEAN_HUD);
+    console.log('stage ' + stage + ' ready: ' + JSON.stringify(info));
+    return info;
+  }
+
+  const stageList = STAGES.length ? STAGES : [STAGE];
+  let setup = await enterStage(stageList[0]);
 
   // One combined per-frame step: keep enemies on the field, aim at the nearest
   // one and pull the real trigger, so muzzle flash and impacts are genuine.
@@ -204,15 +219,20 @@ server.listen(PORT, async () => {
         });
       }
     } else {
-      for (let f = 0; f < FRAMES; f++) {
-        const r = await beat(300);
-        if (r.err) console.log('  [beat] ' + r.err);
-        await snap(`stage-${pad(STAGE)}-${slug(setup.stageName || 'stage')}-f${pad(f)}`, {
-          kind: 'stage', stage: setup.stage, stageName: setup.stageName,
-          frame: f, tSec: f * (INTERVAL_MS / 1000),
-          weapon: r.weapon, enemies: r.enemies, beatErr: r.err,
-        });
-        if (f < FRAMES - 1) await pg.waitForTimeout(INTERVAL_MS);
+      for (let si = 0; si < stageList.length; si++) {
+        // The first stage was entered before the loop so a single-stage run
+        // behaves exactly as before; the rest re-enter from the same boot.
+        if (si > 0) setup = await enterStage(stageList[si]);
+        for (let f = 0; f < FRAMES; f++) {
+          const r = await beat(300);
+          if (r.err) console.log('  [beat] ' + r.err);
+          await snap(`stage-${pad(stageList[si])}-${slug(setup.stageName || 'stage')}-f${pad(f)}`, {
+            kind: 'stage', stage: setup.stage, stageName: setup.stageName,
+            frame: f, tSec: f * (INTERVAL_MS / 1000),
+            weapon: r.weapon, enemies: r.enemies, beatErr: r.err,
+          });
+          if (f < FRAMES - 1) await pg.waitForTimeout(INTERVAL_MS);
+        }
       }
     }
   } catch (e) {
