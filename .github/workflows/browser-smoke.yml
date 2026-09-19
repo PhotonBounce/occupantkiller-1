@@ -25,13 +25,24 @@ permissions:
 
 jobs:
   smoke:
-    name: flags=${{ matrix.flags }}
+    name: ${{ matrix.mode }} / ${{ matrix.flags }}
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        flags: [ current, noblocklist, angle, plain, bare ]
+        include:
+          # Baseline: a bare launch. Already measured at 0.1s with these exact
+          # flags, so anything slower below is caused by what the mode adds.
+          - { flags: current, mode: blank,  secs: 240 }
+          # The one structural difference between the passing smoke test and
+          # the hanging capture tools: the static server is started first and
+          # the browser is launched from inside its listen callback.
+          - { flags: current, mode: server, secs: 240 }
+          # Server + the real game page, to time an actual boot.
+          - { flags: current, mode: game,   secs: 600 }
+          # Same, on ANGLE, in case the game's WebGL use is what stalls.
+          - { flags: angle,   mode: game,   secs: 600 }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,19 +54,21 @@ jobs:
           echo "--- disk ---";    df -h / /dev/shm || true
       - name: Install Playwright
         run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
-      - name: Smoke — ${{ matrix.flags }}
+      - name: Smoke — ${{ matrix.mode }} / ${{ matrix.flags }}
         env:
           FLAGS: ${{ matrix.flags }}
+          MODE: ${{ matrix.mode }}
+          PORT: '4955'
         # A hard external kill at 4 minutes. `timeout` is a separate process, so
         # it still fires when the node process is wedged and its own timers are
         # not running. Exit 124 means it was killed — reported, not swallowed.
         run: |
           set +e
-          timeout --signal=KILL 240 node tools/browser-smoke.js
+          timeout --signal=KILL ${{ matrix.secs }} node tools/browser-smoke.js
           rc=$?
           echo "exit=$rc"
           if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
-            echo "::warning::variant ${{ matrix.flags }} HUNG — killed at 240s"
+            echo "::warning::${{ matrix.mode }}/${{ matrix.flags }} HUNG — killed at ${{ matrix.secs }}s"
           fi
           echo "--- memory after ---"; free -m
           exit 0

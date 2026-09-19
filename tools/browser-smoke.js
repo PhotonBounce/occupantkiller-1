@@ -40,23 +40,78 @@ const name = process.env.FLAGS || 'current';
 const args = VARIANTS[name];
 if (!args) { console.log('unknown FLAGS=' + name); process.exit(2); }
 
+/* MODE adds back, one at a time, what the real capture tools do around the
+   launch — because a bare launch with these exact flags takes 0.1s here while
+   the capture tools hang at the same call for tens of minutes.
+
+     blank   launch, about:blank                       (the passing baseline)
+     server  start the static server FIRST and launch
+             from inside its listen callback, as the
+             capture tools do                           <- prime suspect
+     game    server + launch + load the real game page
+
+   Whichever mode first stops finishing is the cause. */
+const MODE = process.env.MODE || 'blank';
+const PORT = parseInt(process.env.PORT || '4955', 10);
+
+const http = require('http'), fs = require('fs'), path = require('path');
+const ROOT = path.resolve(__dirname, '..');
+const MIME = { '.js': 'text/javascript', '.html': 'text/html', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
+
 const t0 = Date.now();
 const el = () => ((Date.now() - t0) / 1000).toFixed(1) + 's';
+const say = m => { console.log('[' + el() + '] ' + m); };
 
-(async () => {
-  console.log('[' + el() + '] variant=' + name + '  args=' + args.join(' '));
+function startServer() {
+  return new Promise(resolve => {
+    const server = http.createServer((q, s) => {
+      let p = decodeURIComponent(q.url.split('?')[0]); if (p === '/') p = '/index.html';
+      const fp = path.join(ROOT, p);
+      if (!fp.startsWith(ROOT)) { s.writeHead(403); return s.end(); }
+      fs.readFile(fp, (e, d) => {
+        if (e) { s.writeHead(404); return s.end('404'); }
+        s.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'application/octet-stream' }); s.end(d);
+      });
+    });
+    server.listen(PORT, () => resolve(server));
+  });
+}
+
+async function run() {
+  say('variant=' + name + ' mode=' + MODE + '  args=' + args.join(' '));
+
+  let server = null;
+  if (MODE !== 'blank') {
+    server = await startServer();
+    say('static server listening on :' + PORT);
+  }
+
   const b = await chromium.launch({ headless: true, args, timeout: 60000 });
-  console.log('[' + el() + '] launched: ' + b.version());
+  say('launched: ' + b.version());
   const ctx = await b.newContext({ viewport: { width: 1280, height: 720 } });
-  console.log('[' + el() + '] context');
+  say('context');
   const pg = await ctx.newPage();
-  console.log('[' + el() + '] page');
-  await pg.goto('about:blank');
-  console.log('[' + el() + '] about:blank');
+  say('page');
+
+  if (MODE === 'game') {
+    pg.on('pageerror', e => say('  pageerror: ' + e.message));
+    await pg.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'commit', timeout: 60000 });
+    say('navigated to the game');
+    await pg.waitForFunction(() => typeof window.GameManager !== 'undefined', { timeout: 240000 })
+      .then(() => say('GameManager present'))
+      .catch(() => say('[warn] GameManager never appeared'));
+    await pg.waitForFunction(() => {
+      const p = document.getElementById('boot-preloader');
+      return !p || p.style.opacity === '0' || getComputedStyle(p).display === 'none';
+    }, { timeout: 240000 }).then(() => say('boot bar finished')).catch(() => say('[warn] boot bar never finished'));
+  } else {
+    await pg.goto('about:blank');
+    say('about:blank');
+  }
 
   // Does WebGL actually come up? This is what the game needs and what a
   // software rasteriser is most likely to stall on.
-  const gl = await pg.evaluate(() => {
+  const gl = MODE === 'game' ? { skipped: true } : await pg.evaluate(() => {
     try {
       const c = document.createElement('canvas');
       const g = c.getContext('webgl2') || c.getContext('webgl');
@@ -68,9 +123,12 @@ const el = () => ((Date.now() - t0) / 1000).toFixed(1) + 's';
   console.log('[' + el() + '] webgl: ' + JSON.stringify(gl));
 
   await b.close();
-  console.log('[' + el() + '] PASS variant=' + name);
+  if (server) server.close();
+  say('PASS variant=' + name + ' mode=' + MODE);
   process.exit(0);
-})().catch(e => {
-  console.log('[' + el() + '] FAIL variant=' + name + ': ' + e.message);
+}
+
+run().catch(e => {
+  say('FAIL variant=' + name + ' mode=' + MODE + ': ' + e.message);
   process.exit(1);
 });
