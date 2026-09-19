@@ -169,15 +169,42 @@ async function bringUp(attempt) {
 
   // Wait for the boot bar to actually finish. Starting on globals alone races
   // the world build and yields a frozen-looking first frame.
+  //
+  // A boot that never finishes is a FAILED bring-up, not something to carry
+  // on from. Measured: on a good browser instance the boot bar finishes in
+  // about 4s, but on some instances it never finishes at all, and continuing
+  // anyway just moves the stall into startGame() — which then blocked for the
+  // full 240s and lost the shard. A fresh browser usually boots fine, so
+  // throw and let the retry get one.
+  let booted = true;
   await pg.waitForFunction(() => {
     const p = document.getElementById('boot-preloader');
     return !p || p.style.opacity === '0' || getComputedStyle(p).display === 'none';
-  }, null, { timeout: 240000 }).catch(() => log('[warn] boot bar wait timed out; continuing'));
+  }, null, { timeout: 240000 }).catch(() => { booted = false; });
+
+  if (!booted) {
+    // Say where boot got stuck instead of only that it did.
+    const diag = await pg.evaluate(() => {
+      const p = document.getElementById('boot-preloader');
+      const bars = Array.from(document.querySelectorAll('[id*="boot"],[class*="boot"]'))
+        .slice(0, 6)
+        .map(el => ({ id: el.id || el.className, w: el.style.width || null }));
+      return {
+        preloader: p ? { display: getComputedStyle(p).display, opacity: p.style.opacity } : 'absent',
+        text: p ? (p.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 160) : null,
+        bars,
+        state: (window.GameManager && GameManager.getState) ? GameManager.getState() : null,
+      };
+    }).catch(e => ({ diagErr: e.message }));
+    log('boot never finished: ' + JSON.stringify(diag));
+    if (errs.length) log('page errors so far: ' + errs.slice(0, 3).join(' | '));
+    throw new Error('boot bar never finished');
+  }
   log('booted');
 }
 
 async function bringUpWithRetry() {
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
     try {
       await bringUp(attempt);
       return;
@@ -185,7 +212,7 @@ async function bringUpWithRetry() {
       log('bring-up failed: ' + e.message);
       try { if (browser) await deadline(browser.close(), 10000, 'close after failure'); } catch (e2) {}
       browser = null; pg = null;
-      if (attempt === 3) throw e;
+      if (attempt === 5) throw e;
     }
   }
 }
