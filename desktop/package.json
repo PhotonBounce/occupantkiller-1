@@ -15,14 +15,25 @@
     ],
     "win": {
       "target": [
+        "nsis",
         "portable",
         "dir"
       ],
-      "artifactName": "OccupantKiller-${version}-portable.exe"
+      "artifactName": "OccupantKiller-${version}-${target}.${ext}"
     },
     "portable": {
       "artifactName": "OccupantKiller-${version}-portable.exe"
     },
-    "npmRebuild": false
+    "npmRebuild": false,
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Occupant Killer",
+      "artifactName": "OccupantKiller-${version}-setup.exe",
+      "deleteAppDataOnUninstall": false
+    }
   }
 }

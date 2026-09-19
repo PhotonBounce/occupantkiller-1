@@ -761,7 +761,6 @@ window.GrenadeSelector = (function() {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail grenade-selector.js",_e&&_e.message); }
 /* === combo-system.js === */
@@ -1343,7 +1342,6 @@ window.ComboSystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail combo-system.js",_e&&_e.message); }
 /* === enemy-squads.js === */
@@ -1982,7 +1980,6 @@ window.EnemySquads = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-squads.js",_e&&_e.message); }
 /* === recoil-system.js === */
@@ -2233,7 +2230,6 @@ window.RecoilSystem = (function () {
     reset:  reset
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail recoil-system.js",_e&&_e.message); }
 /* === blood-trail.js === */
@@ -2818,7 +2814,6 @@ window.BloodTrail = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail blood-trail.js",_e&&_e.message); }
 /* === enemy-reinforcements.js === */
@@ -3454,7 +3449,6 @@ window.EnemyReinforcements = (function () {
 })();
 
 if (typeof window !== 'undefined') window.EnemyReinforcements = window.EnemyReinforcements;
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-reinforcements.js",_e&&_e.message); }
 /* === capture-points.js === */
@@ -3993,7 +3987,6 @@ window.CapturePoints = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail capture-points.js",_e&&_e.message); }
 /* === magazine-system.js === */
@@ -4424,7 +4417,6 @@ window.MagazineSystem = (function () {
     reset:          reset,
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail magazine-system.js",_e&&_e.message); }
 /* === tactical-reload.js === */
@@ -4918,4 +4910,5 @@ window.TacticalReload = (function() {
     };
 
 })();
+;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail tactical-reload.js",_e&&_e.message); }

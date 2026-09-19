@@ -852,6 +852,32 @@ window.AudioSystem = (function () {
     return g;
   }
 
+  // Helper: bird chirp. A bird is a SHORT frequency SWEEP with a fast envelope.
+  // The old "bird" was a constant-pitch sine gated on/off by a square LFO, which
+  // is the acoustic definition of a whistle — that is what players were hearing
+  // as a permanent whistling in the background. Sweeping the pitch and keeping
+  // each call under ~90ms removes the tonal character entirely.
+  function _ambientChirp(baseFreq, intervalMs, jitterMs, vol) {
+    return _ambientPeriodicShot(intervalMs, jitterMs, function () {
+      var n = 2 + Math.floor(Math.random() * 3);   // a short phrase of notes
+      for (var i = 0; i < n; i++) {
+        var t0 = ctx.currentTime + i * 0.11;
+        var f0 = baseFreq * (0.85 + Math.random() * 0.3);
+        var osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f0, t0);
+        osc.frequency.exponentialRampToValueAtTime(f0 * (1.3 + Math.random() * 0.5), t0 + 0.05);
+        osc.frequency.exponentialRampToValueAtTime(f0 * 0.9, t0 + 0.08);
+        var g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.085);
+        osc.connect(g); g.connect(masterGain);
+        osc.start(t0); osc.stop(t0 + 0.1);
+      }
+    });
+  }
+
   // Helper: continuous oscillator
   function _ambientOsc(freq, oscType, vol) {
     var osc = ctx.createOscillator();
@@ -883,10 +909,9 @@ window.AudioSystem = (function () {
 
     if (theme === 'grassland') {
       // ── Grassland ──────────────────────────────────────
-      // Bird chirps: high sine blips, LFO-gated at ~0.4 Hz
-      _ambientTone(3800, 'sine', 0.4, 0.010);
-      // Second bird, slightly detuned, slower cadence
-      _ambientTone(4400, 'sine', 0.25, 0.007);
+      // Bird chirps: short swept phrases, sparse. Never a sustained tone.
+      _ambientChirp(3200, 11000, 9000, 0.010);
+      _ambientChirp(4000, 17000, 12000, 0.007);
       // Rustling: bandpassed noise pulsing via LFO
       _ambientNoise(6, 'bandpass', 2200, 1.5, 0.015);
 
@@ -912,8 +937,8 @@ window.AudioSystem = (function () {
       waveLfo.start();
       _ambientSources.push(waveSrc, waveLfo);
       _ambientNodes.push(waveVol, waveAmp, waveFilter);
-      // Seagulls: high sine chirps, intermittent
-      _ambientTone(2800, 'sine', 0.3, 0.008);
+      // Seagulls: swept calls, intermittent. Never a sustained tone.
+      _ambientChirp(2400, 14000, 10000, 0.009);
       // Wind is already in base layer, boost it slightly for coast
       _ambientNoise(8, 'bandpass', 350, 0.5, 0.02);
 

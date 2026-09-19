@@ -12,7 +12,10 @@ window.WeatherSystem = (function () {
     OVERCAST:   'OVERCAST',
     RAIN:       'RAIN',
     HEAVY_RAIN: 'HEAVY_RAIN',
-    SANDSTORM:  'SANDSTORM'
+    SANDSTORM:  'SANDSTORM',
+    SNOW:       'SNOW',
+    BLIZZARD:   'BLIZZARD',
+    FOG:        'FOG'
   };
 
   /* ── Per-state fog config ────────────────────────────────────────── */
@@ -21,25 +24,35 @@ window.WeatherSystem = (function () {
     OVERCAST:   { color: 0x7a8090, near: 60,  far: 250 },
     RAIN:       { color: 0x6a7080, near: 40,  far: 180 },
     HEAVY_RAIN: { color: 0x4a5060, near: 20,  far: 90  },
-    SANDSTORM:  { color: 0xc8a040, near: 2,   far: 15  }
+    SANDSTORM:  { color: 0xc8a040, near: 2,   far: 15  },
+    SNOW:       { color: 0xb8c2d0, near: 30,  far: 140 },
+    BLIZZARD:   { color: 0xd8dee8, near: 6,   far: 45  },
+    FOG:        { color: 0xa8b0b8, near: 3,   far: 38  }
   };
 
   /* ── Per-state ambient light intensity ──────────────────────────── */
+  /* Multipliers applied ON TOP of the day/night ambient level, not absolutes. */
   var AMBIENT_CONFIG = {
     CLEAR:      1.0,
-    OVERCAST:   0.3,
-    RAIN:       0.55,
-    HEAVY_RAIN: 0.45,
-    SANDSTORM:  0.6
+    OVERCAST:   0.62,
+    RAIN:       0.72,
+    HEAVY_RAIN: 0.6,
+    SANDSTORM:  0.7,
+    SNOW:       0.85,
+    BLIZZARD:   0.65,
+    FOG:        0.75
   };
 
   /* ── Per-state gameplay modifiers ───────────────────────────────── */
   var MODIFIER_CONFIG = {
-    CLEAR:      { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0    },
-    OVERCAST:   { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0    },
-    RAIN:       { speedMult: 1.0,   weaponSway: 1.0,  windX: 0.5,  windZ: 0.1  },
-    HEAVY_RAIN: { speedMult: 0.85,  weaponSway: 1.2,  windX: 1.2,  windZ: 0.3  },
-    SANDSTORM:  { speedMult: 0.75,  weaponSway: 1.8,  windX: 2.0,  windZ: 0.8  }
+    CLEAR:      { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0,    visionRange: 1.0  },
+    OVERCAST:   { speedMult: 1.0,   weaponSway: 1.0,  windX: 0,    windZ: 0,    visionRange: 1.0  },
+    RAIN:       { speedMult: 1.0,   weaponSway: 1.0,  windX: 0.5,  windZ: 0.1,  visionRange: 0.85 },
+    HEAVY_RAIN: { speedMult: 0.85,  weaponSway: 1.2,  windX: 1.2,  windZ: 0.3,  visionRange: 0.65 },
+    SANDSTORM:  { speedMult: 0.75,  weaponSway: 1.8,  windX: 2.0,  windZ: 0.8,  visionRange: 0.40 },
+    SNOW:       { speedMult: 0.92,  weaponSway: 1.1,  windX: 0.4,  windZ: 0.2,  visionRange: 0.80 },
+    BLIZZARD:   { speedMult: 0.7,   weaponSway: 1.6,  windX: 1.8,  windZ: 1.0,  visionRange: 0.45 },
+    FOG:        { speedMult: 1.0,   weaponSway: 1.0,  windX: 0.1,  windZ: 0.05, visionRange: 0.35 }
   };
 
   /* ── HUD icons ───────────────────────────────────────────────────── */
@@ -48,7 +61,10 @@ window.WeatherSystem = (function () {
     OVERCAST:   '⛅',
     RAIN:       '🌧️',
     HEAVY_RAIN: '⛈️',
-    SANDSTORM:  '🌪️'
+    SANDSTORM:  '🌪️',
+    SNOW:       '🌨️',
+    BLIZZARD:   '❄️',
+    FOG:        '🌫️'
   };
 
   /* ── Module state ────────────────────────────────────────────────── */
@@ -67,6 +83,12 @@ window.WeatherSystem = (function () {
   var _rainPositions = null;       // Float32Array, paired [start, end] for line segs
   var _sandPositions = null;       // Float32Array
   var _sandVelocities = null;      // Float32Array
+  var _snowParticles = null;       // THREE.Points for snow/blizzard
+  var _snowPositions = null;       // Float32Array
+  var _snowPhase = null;           // Float32Array, per-flake sway phase
+  var SNOW_COUNT = 1400;
+  var _groundSnow = 0;             // 0..1 accumulation, drives world whitening
+  var _groundSnowApplied = -1;
   var RAIN_COUNT = 800;
   var HEAVY_RAIN_COUNT = 2000;
   var SAND_COUNT = 1500;
@@ -124,6 +146,7 @@ window.WeatherSystem = (function () {
     _createAmbientLight();
     _createRainSystem();
     _createSandSystem();
+    _createSnowSystem();
     _createPuddleGroup();
     _createHUD();
     _setState(STATES.CLEAR, true);
@@ -141,6 +164,8 @@ window.WeatherSystem = (function () {
     _updateAmbient(delta);
     _updateRain(delta);
     _updateSand(delta);
+    _updateSnow(delta);
+    _updateGroundSnow(delta);
     _updateLightning(delta);
     _updatePuddles(delta);
     _updateFootstepSplash(delta);
@@ -150,15 +175,43 @@ window.WeatherSystem = (function () {
   /* ─────────────────────────────────────────────────────────────────── */
   /*  STATE CYCLE                                                        */
   /* ─────────────────────────────────────────────────────────────────── */
+  var _cycleLast = null;
   function _updateCycle(delta) {
-    _stateTimer += delta;
+    // Wall time, not the clamped physics delta. A state lasts 60-180 seconds,
+    // and delta is capped at 0.1s so a frame spike cannot tunnel the player —
+    // which on a machine running at 3fps stretched every weather state to
+    // between three and nine real MINUTES. Weather was changing; nobody was
+    // playing long enough in one sitting to see it.
+    var now = (typeof performance !== 'undefined' && performance.now)
+      ? performance.now() / 1000 : Date.now() / 1000;
+    var real = (_cycleLast === null) ? (delta || 0) : Math.min(now - _cycleLast, 5);
+    _cycleLast = now;
+    _stateTimer += real;
     if (_stateTimer >= _stateDuration) {
       _stateTimer = 0;
       _stateDuration = 60 + Math.random() * 120;
-      var states = Object.keys(STATES);
-      var next = states[Math.floor(Math.random() * states.length)];
-      _setState(next, false);
+      _setState(_pickState(), false);
     }
+  }
+
+  /* Weather is drawn from a season-weighted table. A uniform pick over every
+     state meant snow in July and a sandstorm every third cycle everywhere. */
+  var SEASON_WEIGHTS = {
+    Spring: { CLEAR: 34, OVERCAST: 22, RAIN: 24, HEAVY_RAIN: 8,  FOG: 10, SNOW: 2,  BLIZZARD: 0,  SANDSTORM: 0 },
+    Summer: { CLEAR: 52, OVERCAST: 16, RAIN: 12, HEAVY_RAIN: 6,  FOG: 6,  SNOW: 0,  BLIZZARD: 0,  SANDSTORM: 8 },
+    Autumn: { CLEAR: 26, OVERCAST: 26, RAIN: 22, HEAVY_RAIN: 8,  FOG: 16, SNOW: 2,  BLIZZARD: 0,  SANDSTORM: 0 },
+    Winter: { CLEAR: 16, OVERCAST: 22, RAIN: 4,  HEAVY_RAIN: 0,  FOG: 14, SNOW: 30, BLIZZARD: 14, SANDSTORM: 0 }
+  };
+  function _pickState() {
+    var season = 'Summer';
+    try { if (window.TimeSystem && TimeSystem.getSeason) season = TimeSystem.getSeason(); } catch (e) {}
+    _seasonIsWinter = (season === 'Winter');
+    var w = SEASON_WEIGHTS[season] || SEASON_WEIGHTS.Summer;
+    var total = 0, k;
+    for (k in w) total += w[k];
+    var r = Math.random() * total;
+    for (k in w) { r -= w[k]; if (r <= 0) return k; }
+    return STATES.CLEAR;
   }
 
   function _setState(state, immediate) {
@@ -234,9 +287,27 @@ window.WeatherSystem = (function () {
     _applyFog();
   }
 
+  var _fogTmp = new THREE.Color();
+  var _fogClear = new THREE.Color(FOG_CONFIG.CLEAR.color);
   function _applyFog() {
     if (!_scene || !_scene.fog) return;
-    _scene.fog.color.copy(_fogColor);
+    var base = _timeBase();
+    if (base) {
+      // Weather is a RELATIVE tint on the day/night fog colour, not a blend
+      // toward it. Blending pulled a midnight sky 60% back toward the weather
+      // table's daylight grey, so night rendered as bright overcast noon. Using
+      // the ratio against CLEAR means CLEAR weather leaves the time-of-day
+      // colour untouched and rain/fog/snow darken or cool it from there.
+      _fogTmp.setHex(base.fogColor);
+      _fogTmp.r *= Math.min(1.6, _fogColor.r / Math.max(0.02, _fogClear.r));
+      _fogTmp.g *= Math.min(1.6, _fogColor.g / Math.max(0.02, _fogClear.g));
+      _fogTmp.b *= Math.min(1.6, _fogColor.b / Math.max(0.02, _fogClear.b));
+      _scene.fog.color.copy(_fogTmp);
+      if (_scene.background && _scene.background.isColor) _scene.background.copy(_fogTmp);
+    } else {
+      _scene.fog.color.copy(_fogColor);
+      if (_scene.background && _scene.background.isColor) _scene.background.copy(_fogColor);
+    }
     _scene.fog.near = _fogNear;
     _scene.fog.far  = _fogFar;
   }
@@ -263,7 +334,21 @@ window.WeatherSystem = (function () {
   }
 
   function _applyAmbient() {
-    if (_ambientLight) _ambientLight.intensity = _ambientIntensity;
+    if (!_ambientLight) return;
+    // _ambientIntensity is a per-weather FACTOR, not an absolute. TimeSystem
+    // sets the day/night baseline first each frame; assigning here instead of
+    // multiplying was overwriting it, so the world stayed equally lit at 03:00
+    // and at noon. Clamped so a dark weather state can never black the level out.
+    var base = _timeBase();
+    var lit = (base ? base.ambient : 0.65) * _ambientIntensity;
+    _ambientLight.intensity = Math.max(0.06, Math.min(3.0, lit));
+  }
+
+  function _timeBase() {
+    try {
+      if (window.TimeSystem && TimeSystem.getLightingBase) return TimeSystem.getLightingBase();
+    } catch (e) {}
+    return null;
   }
 
   /* ─────────────────────────────────────────────────────────────────── */
@@ -319,6 +404,10 @@ window.WeatherSystem = (function () {
     }
     if (_sandParticles) {
       _sandParticles.visible = (state === STATES.SANDSTORM);
+    }
+    if (_snowParticles) {
+      _snowParticles.visible = (state === STATES.SNOW || state === STATES.BLIZZARD);
+      _snowParticles.material.opacity = (state === STATES.BLIZZARD) ? 0.95 : 0.85;
     }
   }
 
@@ -407,6 +496,95 @@ window.WeatherSystem = (function () {
     _sandParticles.visible = false;
     _scene.add(_sandParticles);
   }
+
+  /* ── SNOW ──────────────────────────────────────────────────────────
+     Same Points-based approach as sand, but flakes fall slowly and sway,
+     and they respawn in a box that follows the camera so the field never
+     runs out no matter how far the player walks. */
+  function _createSnowSystem() {
+    if (!_scene) return;
+    var geo = new THREE.BufferGeometry();
+    _snowPositions = new Float32Array(SNOW_COUNT * 3);
+    _snowPhase     = new Float32Array(SNOW_COUNT * 2);
+    for (var i = 0; i < SNOW_COUNT; i++) {
+      var ix = i * 3;
+      _snowPositions[ix]     = (Math.random() - 0.5) * 70;
+      _snowPositions[ix + 1] = Math.random() * 30;
+      _snowPositions[ix + 2] = (Math.random() - 0.5) * 70;
+      _snowPhase[i * 2]     = Math.random() * Math.PI * 2;   // sway phase
+      _snowPhase[i * 2 + 1] = 0.6 + Math.random() * 0.9;     // fall speed factor
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(_snowPositions, 3));
+    var mat = new THREE.PointsMaterial({
+      color: 0xffffff, size: 0.16, transparent: true, opacity: 0.9, depthWrite: false
+    });
+    _snowParticles = new THREE.Points(geo, mat);
+    _snowParticles.frustumCulled = false;
+    _snowParticles.visible = false;
+    _scene.add(_snowParticles);
+  }
+
+  function _updateSnow(delta) {
+    if (!_snowParticles || !_snowParticles.visible || !_camera) return;
+    var heavy = (_currentState === STATES.BLIZZARD);
+    var fall  = heavy ? 6.5 : 2.4;
+    var sway  = heavy ? 2.2 : 1.0;
+    var span  = 35;
+    var cx = _camera.position.x, cy = _camera.position.y, cz = _camera.position.z;
+    var t = (_snowClock += delta);
+    var count = heavy ? SNOW_COUNT : (SNOW_COUNT * 0.5) | 0;
+    for (var i = 0; i < count; i++) {
+      var ix = i * 3;
+      _snowPositions[ix + 1] -= fall * _snowPhase[i * 2 + 1] * delta;
+      _snowPositions[ix]     += Math.sin(t * 0.9 + _snowPhase[i * 2]) * sway * delta + _windX * delta * 0.35;
+      _snowPositions[ix + 2] += Math.cos(t * 0.7 + _snowPhase[i * 2]) * sway * delta + _windZ * delta * 0.35;
+      /* Recycle into a box centred on the camera. */
+      if (_snowPositions[ix + 1] < cy - 4) {
+        _snowPositions[ix]     = cx + (Math.random() - 0.5) * span * 2;
+        _snowPositions[ix + 1] = cy + 22 + Math.random() * 8;
+        _snowPositions[ix + 2] = cz + (Math.random() - 0.5) * span * 2;
+      }
+      if (Math.abs(_snowPositions[ix] - cx) > span) _snowPositions[ix] = cx - (_snowPositions[ix] - cx);
+      if (Math.abs(_snowPositions[ix + 2] - cz) > span) _snowPositions[ix + 2] = cz - (_snowPositions[ix + 2] - cz);
+    }
+    _snowParticles.geometry.setDrawRange(0, count);
+    _snowParticles.geometry.attributes.position.needsUpdate = true;
+  }
+  var _snowClock = 0;
+
+  /* Ground snow. Rebuilding world geometry to add a snow layer would be far too
+     expensive, so accumulation is expressed as a whitening of the existing
+     terrain material colours — one pass over the world materials whenever the
+     depth changes by a visible step, not per frame. */
+  function _updateGroundSnow(delta) {
+    var target = 0;
+    if (_currentState === STATES.SNOW) target = 0.55;
+    else if (_currentState === STATES.BLIZZARD) target = 1.0;
+    else {
+      var season = 'Summer';
+      try { if (window.TimeSystem && TimeSystem.getSeason) season = TimeSystem.getSeason(); } catch (e) {}
+      _seasonIsWinter = (season === 'Winter');
+      if (_seasonIsWinter) target = 0.35;
+    }
+    /* Per SECOND, not per frame: ~20s to lay a full cover, and melting takes
+       several minutes. The previous expression multiplied delta by both 60 and
+       0.016, which made accumulation frame-rate dependent and about 60x too
+       slow — snow fell for a whole mission and the ground never changed. */
+    var rate = (target > _groundSnow) ? 0.05 : 0.006;
+    var diff = target - _groundSnow;
+    if (diff !== 0) {
+      var stepAmt = rate * delta;
+      _groundSnow += (diff > 0 ? 1 : -1) * Math.min(Math.abs(diff), stepAmt);
+    }
+    _groundSnow = Math.max(0, Math.min(1, _groundSnow));
+    var step = Math.round(_groundSnow * 8) / 8;
+    if (step === _groundSnowApplied) return;
+    _groundSnowApplied = step;
+    if (window.VoxelWorld && VoxelWorld.setSnowCover) {
+      try { VoxelWorld.setSnowCover(step); } catch (e) {}
+    }
+  }
+  var _seasonIsWinter = false;
 
   function _updateSand(delta) {
     if (!_sandParticles || !_sandParticles.visible || !_camera) return;
@@ -739,6 +917,7 @@ window.WeatherSystem = (function () {
     forceWeather:      forceWeather,
     getCurrentWeather: getCurrentWeather,
     getModifiers:      getModifiers,
+    getGroundSnow:     function () { return _groundSnow; },
     applyWindDrift:    applyWindDrift
   };
 })();

@@ -312,7 +312,8 @@ window.T72 = (function () {
     }
     _active = true;
     _fpvMode = false;
-    _camYaw = _vehicle.group.rotation.y;
+    // group.rotation now carries terrain pitch/roll too, so read the authoritative yaw.
+    _camYaw = (_vehicle.yaw != null) ? _vehicle.yaw : _vehicle.group.rotation.y;
     _camPitch = -0.18;
     _turretYaw = 0; _turretPitch = 0;
     _ensureChaseCam();
@@ -586,9 +587,14 @@ window.T72 = (function () {
     _vehicle.group.position.x += _vehicle.vx * dt;
     _vehicle.group.position.z += _vehicle.vz * dt;
 
-    // Snap to terrain
+    // Conform to terrain. A single centre height sample kept the hull level on
+    // slopes, burying one end and floating the other — the "vehicles drive
+    // off-terrain" report. alignToTerrain samples the footprint corners and
+    // sets both the contact height and the pitch/roll to match the ground.
     try {
-      if (window.VoxelWorld && VoxelWorld.getTerrainHeight) {
+      if (window.Vehicles && Vehicles.alignToTerrain) {
+        Vehicles.alignToTerrain(_vehicle.group, 3.3, 1.7, _vehicle.yaw);
+      } else if (window.VoxelWorld && VoxelWorld.getTerrainHeight) {
         var th = VoxelWorld.getTerrainHeight(_vehicle.group.position.x, _vehicle.group.position.z);
         if (typeof th === 'number') _vehicle.group.position.y = th;
       }

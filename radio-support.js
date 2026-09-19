@@ -701,16 +701,15 @@ window.RadioSupport = (function () {
   function clear() {
     hide();
     _targetingMode = false;
-    if (_targetCursorEl) _targetCursorEl.style.display = 'none';
-    if (_reconOverlayEl) _reconOverlayEl.style.display = 'none';
+    if (_targetCursorEl) _targetCursorEl.style.display = "none";
+    if (_reconOverlayEl) _reconOverlayEl.style.display = "none";
     _reconTimer = 0;
     try { _clearReconMarkers(); } catch (e) {}
-    // Remove any active VFX objects from the scene
     try {
       for (var vi = _vfx.length - 1; vi >= 0; vi--) {
         var v = _vfx[vi];
         if (_scene && v) {
-          ['sphere', 'smoke', 'wave', 'light', 'cyl'].forEach(function (k) {
+          ["sphere", "smoke", "wave", "light", "cyl"].forEach(function (k) {
             if (v[k]) { try { _scene.remove(v[k]); } catch (e) {} }
           });
         }

@@ -109,11 +109,46 @@ jobs:
             --exclude 'supergame_extracted' \
             --exclude 'node_modules' \
             --exclude 'microsite/gallery' \
+            --exclude 'microsite/play' \
             --exclude '*.zip' \
             --exclude '*.db' \
             --exclude '*.log' \
             ./ _site/
           touch _site/.nojekyll
+          # ── /microsite/play/ is GENERATED, never copied ──────────────────
+          # The microsite iframes and links play/index.html as the playable
+          # build. It used to be a hand-copied duplicate of the game checked
+          # into the repo, which silently rotted: the published copy was 12
+          # days behind the real game and still served the fatal keydown crash
+          # long after that was fixed at the root. Nobody updates a copy they
+          # don't remember exists. So the copy is excluded above and rebuilt
+          # here from the same files the root game is served from, which makes
+          # the two impossible to drift apart.
+          mkdir -p _site/microsite/play
+          rsync -a \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.devcontainer' \
+            --exclude '.vscode' \
+            --exclude '_site' \
+            --exclude 'tools' \
+            --exclude 'backend' \
+            --exclude 'contracts' \
+            --exclude 'admin' \
+            --exclude 'reference' \
+            --exclude 'memories' \
+            --exclude 'supergame_extracted' \
+            --exclude 'node_modules' \
+            --exclude 'desktop' \
+            --exclude 'microsite' \
+            --exclude '*.zip' \
+            --exclude '*.db' \
+            --exclude '*.log' \
+            ./ _site/microsite/play/
+          # Fail the deploy rather than publish a microsite whose play button
+          # 404s or whose game is a different build from the root one.
+          cmp _site/index.html _site/microsite/play/index.html
+          echo "microsite/play regenerated from live game ($(find _site/microsite/play -type f | wc -l) files)"
           echo "── Published site size ──"
           du -sh _site
           echo "── Top-level entries ──"

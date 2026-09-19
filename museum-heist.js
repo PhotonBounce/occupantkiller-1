@@ -1,5 +1,7 @@
 window.MuseumHeist = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── State ────────────────────────────────────────────────────────────────────
   var state = {
@@ -1778,6 +1780,8 @@ window.MuseumHeist = (function () {
 
   // ─── Public API ───────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     // Wire activation key listeners at page load (passive, low overhead)
     var initKeydown = function (e) {
       var k = e.key.toLowerCase();

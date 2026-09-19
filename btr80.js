@@ -286,7 +286,8 @@ window.BTR80 = (function () {
     }
     _active = true;
     _fpvMode = false;
-    _camYaw = _vehicle.group.rotation.y;
+    // group.rotation now carries terrain pitch/roll too, so read the authoritative yaw.
+    _camYaw = (_vehicle.yaw != null) ? _vehicle.yaw : _vehicle.group.rotation.y;
     _camPitch = -0.18;
     _turretYaw = 0; _turretPitch = 0;
     _ensureChaseCam();
@@ -571,14 +572,16 @@ window.BTR80 = (function () {
     _vehicle.group.position.x += _vehicle.vx * dt;
     _vehicle.group.position.z += _vehicle.vz * dt;
 
-    // Snap to terrain (BTR-80 is amphibious — accepts crossing water)
+    // Conform to terrain (BTR-80 is amphibious — accepts crossing water).
+    // A single centre sample kept the hull level on slopes, burying one end and
+    // floating the other; alignToTerrain uses the footprint corners instead.
     try {
-      if (window.VoxelWorld && VoxelWorld.getTerrainHeight) {
+      if (window.Vehicles && Vehicles.alignToTerrain) {
+        Vehicles.alignToTerrain(_vehicle.group, 3.4, 1.5, _vehicle.yaw);
+        if (_vehicle.group.position.y < 0) _vehicle.group.position.y = 0; // float
+      } else if (window.VoxelWorld && VoxelWorld.getTerrainHeight) {
         var th = VoxelWorld.getTerrainHeight(_vehicle.group.position.x, _vehicle.group.position.z);
-        if (typeof th === 'number') {
-          // Amphibious: float at water level (y=0) if terrain is below
-          _vehicle.group.position.y = Math.max(0, th);
-        }
+        if (typeof th === 'number') _vehicle.group.position.y = Math.max(0, th);
       }
     } catch (e) {}
 

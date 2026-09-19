@@ -29,6 +29,17 @@ jobs:
           Copy-Item *.html, *.js -Destination desktop/app/ -ErrorAction SilentlyContinue
           Copy-Item *.css, *.png, *.ico, *.svg -Destination desktop/app/ -ErrorAction SilentlyContinue
           Copy-Item bundles -Destination desktop/app/bundles -Recurse
+          # Runtime asset directories. The staging list was root files plus
+          # bundles/, so gamemusic/ never made it into the package and the
+          # desktop build shipped with no music at all — the only sign was a
+          # bare "ERR_FILE_NOT_FOUND" in the console that named no file.
+          Copy-Item gamemusic -Destination desktop/app/gamemusic -Recurse
+          if (-not (Test-Path desktop/app/gamemusic/manifest.json)) {
+            throw "gamemusic/manifest.json missing from the staged app - the build would ship silent"
+          }
+          $tracks = (Get-ChildItem desktop/app/gamemusic -Filter *.mp3 | Measure-Object).Count
+          if ($tracks -lt 1) { throw "no music tracks staged into the app" }
+          "staged $tracks music track(s)"
           # The desktop tooling itself must not ship inside the app payload, and
           # the repo's package.json must NOT land in app/ — electron-builder
           # would treat it as a nested package and try to npm-install its native
@@ -43,7 +54,7 @@ jobs:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
         run: npm install --no-save electron@31.7.7 electron-builder@24.13.3 playwright@1.47.2
 
-      - name: Build portable exe
+      - name: Build installer + portable exe
         shell: pwsh
         working-directory: desktop
         run: |
@@ -60,8 +71,54 @@ jobs:
         with:
           tag_name: desktop-exe
           name: Occupant Killer — Windows desktop
-          body: "Portable Windows build (no install: download and double-click). Smoke-tested in CI: boots, starts stage 1, reaches PLAYING, renders a verified non-empty frame. Overwritten each run."
+          body: |
+            Two Windows builds, same game — the difference is only how it is delivered.
+
+            * **OccupantKiller-*-setup.exe** — installer. Unpacks once, adds Start
+              Menu and desktop shortcuts, and can be uninstalled from Settings.
+              Start-up is faster because nothing has to be extracted each launch.
+            * **OccupantKiller-*-portable.exe** — single file, no install. It
+              extracts itself to a temp folder on every launch, which is why it is
+              slower to start. Otherwise identical: same code, same performance,
+              same save data.
+
+            Smoke-tested in CI: boots, starts stage 1, reaches PLAYING, renders a
+            verified non-empty frame. Overwritten each run.
           files: |
+            desktop/dist/OccupantKiller-*-setup.exe
             desktop/dist/OccupantKiller-*-portable.exe
             desktop/desktop-smoke.png
           fail_on_unmatched_files: true
+
+      # Feature verification runs AFTER publishing, and is NOT continue-on-error.
+      # It used to run before, with continue-on-error, and that combination is
+      # actively misleading: the jobs API reports such a step's conclusion as
+      # "success" even when it exited non-zero, so a run where two of three
+      # feature checks failed looked green from the outside. Publishing first
+      # means the artifact still ships when a feature regresses; failing here
+      # means the run goes red and says so.
+      - name: Verify features on the packaged app
+        shell: pwsh
+        working-directory: desktop
+        run: node verify-features.js "dist\win-unpacked\OccupantKiller.exe"
+
+      # Flies the FPV drone mission and captures the run, so the drone gameplay
+      # can be looked at rather than asserted. Allowed to fail without blocking:
+      # its job is to produce evidence, and the feature gate above is the gate.
+      - name: Fly the drone mission and capture it
+        shell: pwsh
+        working-directory: desktop
+        continue-on-error: true
+        run: node drone-mission.js "dist\win-unpacked\OccupantKiller.exe"
+
+      - name: Attach feature verification report
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-exe
+          files: |
+            desktop/verify-features.json
+            desktop/verify-winter-night.png
+            desktop/drone-mission.json
+            desktop/drone-*.png
+          fail_on_unmatched_files: false

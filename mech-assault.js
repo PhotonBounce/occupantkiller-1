@@ -1226,7 +1226,7 @@ window.MechAssault = (function () {
     updateHUD();
 
     // Render
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Init ─────────────────────────────────────────────────────────────────

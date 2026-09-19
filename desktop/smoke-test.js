@@ -37,7 +37,44 @@ const fs = require('fs'), path = require('path');
     let lights = 0; try { GameManager.getScene().traverse(o => { if (o.isLight) lights++; }); } catch (e) {}
     return { progs: r && r.info && r.info.programs ? r.info.programs.length : null, lights };
   });
-  await page.waitForTimeout(10000);
+  // Sample repeatedly instead of once. A single 10s window on this runner
+  // reported 512ms, 859ms and 1183ms on three builds whose rendering code was
+  // effectively identical — a 2.3x spread that swamps any change worth making.
+  // One number here is not a measurement, it is a coin toss, and acting on it
+  // is how a revert got justified by noise.
+  const windows = [];
+  for (let w = 0; w < 4; w++) {
+    const t0 = Date.now();
+    const f0 = await page.evaluate(() => window.__pfFrames);
+    await page.waitForTimeout(5000);
+    const sample = await page.evaluate(() => {
+      const h = window.__renderHealth || {};
+      return { frames: window.__pfFrames, renderMs: h.renderMs, drawCalls: h.drawCalls };
+    });
+    const secs = (Date.now() - t0) / 1000;
+    windows.push({
+      fps: +((sample.frames - f0) / secs).toFixed(2),
+      renderMs: sample.renderMs, draw: sample.drawCalls,
+    });
+  }
+  const med = (xs) => {
+    const a = xs.filter(x => typeof x === 'number').sort((x, y) => x - y);
+    if (!a.length) return null;
+    const m = Math.floor(a.length / 2);
+    return +(a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2).toFixed(1);
+  };
+  const spread = (xs) => {
+    const a = xs.filter(x => typeof x === 'number');
+    return a.length ? +(Math.max(...a) / Math.max(1e-6, Math.min(...a))).toFixed(2) : null;
+  };
+  console.log('PERFWINDOWS ' + JSON.stringify(windows));
+  console.log('PERFMEDIAN renderMs=' + med(windows.map(w => w.renderMs))
+    + ' fps=' + med(windows.map(w => w.fps))
+    + ' draw=' + med(windows.map(w => w.draw))
+    + ' | spread renderMs x' + spread(windows.map(w => w.renderMs))
+    + ' fps x' + spread(windows.map(w => w.fps))
+    + '  <- treat a change smaller than the spread as no result');
+
   const perf1 = await page.evaluate(() => {
     const r = GameManager.getRenderer();
     const h = window.__renderHealth || {};
@@ -48,6 +85,61 @@ const fs = require('fs'), path = require('path');
       textures: h.textures, geometries: h.geometries,
       canvasesGl: h.canvasesGl, canvases2d: h.canvases2d,
       lights: (() => { let n = 0; try { GameManager.getScene().traverse(o => { if (o.isLight) n++; }); } catch (e) {} return n; })(),
+      // Light-slot swap accounting. progs climbing is the symptom; these say
+      // whether the compensation is running and whether it ran out of pads.
+      lw: window.__lwStats || null,
+      pads: (window.__lwPadP || []).length,
+      // Which adaptive quality tier the game settled on. Every quality lever
+      // (pixel ratio, shadows, fog distance, light cap) hangs off this, so if
+      // it is sitting at 0/1 while the frame rate is 3fps then the adaptive
+      // system is not adapting and that dwarfs anything else measured here.
+      // WHAT IS ACTUALLY RENDERING. GitHub's Windows runners are GPU-less VMs,
+      // so Chromium may be falling back to WARP/SwiftShader software
+      // rasterization. If it is, then every frame-time number measured here
+      // describes a software rasterizer and predicts nothing about a real
+      // iGPU — which would make this harness unfit for the perf question it
+      // is being asked, and that has to be visible in the output rather than
+      // inferred later.
+      gpu: (() => {
+        try {
+          const gl = GameManager.getRenderer().getContext();
+          const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+          return dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
+        } catch (e) { return 'err'; }
+      })(),
+      // WHAT IS GENERATING 124 SHADER PROGRAMS. three bakes material type, the
+      // per-type light counts, fog, vertex colours, maps and skinning into each
+      // program's cache key, so a scene with a handful of material *kinds* can
+      // still churn out a hundred programs. Program count is a COUNT — immune to
+      // the 34x timing noise this runner has — so it is the metric worth
+      // optimising against. Group the live materials by the properties that
+      // actually form the key, so the next change targets the real generator
+      // instead of the one I would have guessed.
+      matKinds: (() => {
+        try {
+          const seen = new Map(), ids = new Set();
+          GameManager.getScene().traverse(o => {
+            if (!o.isMesh && !o.isPoints && !o.isLine) return;
+            const ms = Array.isArray(o.material) ? o.material : [o.material];
+            for (const m of ms) {
+              if (!m || ids.has(m.uuid)) continue;
+              ids.add(m.uuid);
+              const k = [m.type, m.fog ? 'fog' : '-', m.vertexColors ? 'vc' : '-',
+                m.map ? 'map' : '-', m.transparent ? 'tr' : '-',
+                m.skinning ? 'skin' : '-', m.flatShading ? 'flat' : '-',
+                o.isInstancedMesh ? 'inst' : '-'].join('|');
+              seen.set(k, (seen.get(k) || 0) + 1);
+            }
+          });
+          return { distinctMaterials: ids.size,
+                   byKey: Object.fromEntries([...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12)) };
+        } catch (e) { return { err: String(e && e.message || e) }; }
+      })(),
+      pbrDowngraded: window.__pbrDowngraded || 0,
+      perfLevel: window._perfLevel,
+      quality: window.__qualityLabel || null,
+      pixelRatio: (() => { try { return GameManager.getRenderer().getPixelRatio(); } catch (e) { return null; } })(),
+      shadows: (() => { try { return GameManager.getRenderer().shadowMap.enabled; } catch (e) { return null; } })(),
     };
   });
   const fps = +(perf1.frames / 10).toFixed(1);
@@ -55,7 +147,13 @@ const fs = require('fs'), path = require('path');
     + ' progs=' + perf0.progs + '->' + perf1.progs
     + ' lights=' + perf0.lights + '->' + perf1.lights
     + ' tex=' + perf1.textures + ' geo=' + perf1.geometries
-    + ' canvases=' + perf1.canvasesGl + 'gl/' + perf1.canvases2d + '2d');
+    + ' canvases=' + perf1.canvasesGl + 'gl/' + perf1.canvases2d + '2d'
+    + ' lw=' + JSON.stringify(perf1.lw) + ' pads=' + perf1.pads
+    + ' gpu="' + perf1.gpu + '"'
+    + ' pbrDowngraded=' + perf1.pbrDowngraded
+    + ' tier=' + perf1.perfLevel + '/' + perf1.quality
+    + ' pxRatio=' + perf1.pixelRatio + ' shadows=' + perf1.shadows);
+  console.log('MATERIALS ' + JSON.stringify(perf1.matKinds));
 
   const probe = await page.evaluate(() => {
     const out = { state: GameManager.getState() };

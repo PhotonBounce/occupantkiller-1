@@ -70,13 +70,38 @@ const TimeSystem = (function () {
     _ambientLight = ambientLight;
     _hemisphereLight = hemisphereLight;
     _fog = scene.fog;
-    timeOfDay = 0.3; // start at morning
+    // Callers set the start hour and season per mission (see setTimeOfDay /
+    // setSeason). Defaults are only a fallback for anything that inits blind.
+    timeOfDay = 0.3; // 07:12
     dayNumber = 1;
     weekNumber = 1;
-    seasonIdx = 0;
     speed = 1;
     isPaused = false;
+    updateLighting();
   }
+
+  /* ── Per-mission time & season ───────────────────────────────────── */
+  // Every mission used to open at exactly 07:12 in Spring, because init()
+  // hard-set both and the season only advanced after 28 in-game days (over 4
+  // hours of continuous play). These let a stage pick its own.
+  function setHour(h) {
+    h = parseFloat(h);
+    if (isNaN(h)) return;
+    timeOfDay = (((h % 24) + 24) % 24) / 24;
+    updateLighting();
+  }
+  function setSeason(name) {
+    const i = SEASONS.indexOf(name);
+    if (i < 0) return;
+    seasonIdx = i;
+    updateLighting();
+  }
+  function getSeason() { return SEASONS[seasonIdx]; }
+  // A day is 10 real minutes by default; a mission that wants to visibly move
+  // from dusk into night can shorten it.
+  let _dayDuration = DAY_DURATION;
+  function setDayDuration(sec) { if (sec > 30) _dayDuration = sec; }
+  function getDayDuration() { return _dayDuration; }
 
   /* ── Update ──────────────────────────────────────────────────────── */
   function update(delta) {
@@ -86,7 +111,7 @@ const TimeSystem = (function () {
     const prevDay = dayNumber;
 
     // Advance time
-    timeOfDay += (delta * speed) / DAY_DURATION;
+    timeOfDay += (delta * speed) / _dayDuration;
 
     // Day rollover (while loop handles large delta from ALT-TAB or lag spikes)
     while (timeOfDay >= 1.0) {
@@ -156,14 +181,34 @@ const TimeSystem = (function () {
       _hemisphereLight.intensity = 0.2 + sunIntensity * 0.4;
     }
 
+    // Resolve the scene's CURRENT fog every frame. This used to be cached at
+    // init, but WeatherSystem replaces scene.fog with a new THREE.Fog in its own
+    // init — so whichever ran second left the other writing to an orphan fog
+    // object that was no longer in the scene. Symptom: the sky darkened at night
+    // but the fog stayed at its daytime colour.
+    if (_scene && _scene.fog) _fog = _scene.fog;
+
     // Fog color shifts
+    const nightFog = 0x101018;
+    const dayFog = tint.fog;
+    const fogHex = lerpColor(nightFog, dayFog, sunIntensity);
     if (_fog) {
-      const nightFog = 0x101018;
-      const dayFog = tint.fog;
-      _fog.color.setHex(lerpColor(nightFog, dayFog, sunIntensity));
+      _fog.color.setHex(fogHex);
       _scene.background = _fog.color;
     }
+
+    // Publish the day/night baseline. WeatherSystem runs after this every frame
+    // and used to ASSIGN ambient intensity and fog from its own per-state table,
+    // which silently erased the whole day/night cycle — the sun moved but the
+    // scene never got darker. Weather now reads this and modulates it instead.
+    _lightingBase.ambient    = _ambientLight ? _ambientLight.intensity : 0.5;
+    _lightingBase.fogColor   = fogHex;
+    _lightingBase.sunIntensity = sunIntensity;
+    _lightingBase.season     = season;
   }
+
+  const _lightingBase = { ambient: 0.65, fogColor: 0xc8d0e0, sunIntensity: 1, season: 'Spring' };
+  function getLightingBase() { return _lightingBase; }
 
   /* ── Speed Controls ──────────────────────────────────────────────── */
   function setSpeed(s) {
@@ -205,6 +250,12 @@ const TimeSystem = (function () {
   return {
     init,
     update,
+    setHour,
+    setSeason,
+    getSeason,
+    setDayDuration,
+    getDayDuration,
+    getLightingBase,
     setSpeed,
     pause,
     resume,
@@ -222,3 +273,7 @@ const TimeSystem = (function () {
     SEASONS,
   };
 })();
+
+// `const` at script scope does NOT create a window property, so modules that
+// feature-detect via window.TimeSystem were silently seeing nothing.
+try { window.TimeSystem = TimeSystem; } catch (e) {}

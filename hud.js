@@ -2259,20 +2259,72 @@ const HUD = (() => {
   (function initFPSCounter() {
     _fpsEl = document.createElement('div');
     _fpsEl.id = 'fps-counter';
-    _fpsEl.style.cssText = 'position:fixed;top:4px;left:4px;color:#0f0;font:bold 14px monospace;' +
-      'z-index:9999;pointer-events:none;text-shadow:1px 1px 2px #000;display:none;';
+    // Mid-left with an opaque plate. The old top-left spot put the diagnostic
+    // text straight over the minimap and rank plate — a committed real-hardware
+    // screenshot shows the two interleaved and both unreadable. Bottom-left is
+    // taken too (armor cluster + speedometer). The band below the MISSIONS
+    // button is the one reliably empty region on that screenshot, and the
+    // plate keeps the text legible over any scene.
+    _fpsEl.style.cssText = 'position:fixed;top:44%;left:8px;color:#0f0;font:bold 13px monospace;' +
+      'z-index:9999;pointer-events:none;background:rgba(0,0,0,0.72);padding:6px 9px;' +
+      'border-radius:4px;border:1px solid rgba(0,255,0,0.25);display:none;';
     document.body.appendChild(_fpsEl);
   })();
   function toggleFPS() {
     _fpsVisible = !_fpsVisible;
     if (_fpsEl) _fpsEl.style.display = _fpsVisible ? 'block' : 'none';
   }
+  // Cached because the GPU string never changes and the extension lookup is
+  // not free. Read once, on the first frame the overlay is actually shown.
+  var _diagGpu = null, _diagNext = 0;
+
   function updateFPS() {
     if (!_fpsVisible || !_fpsEl) return;
     var now = performance.now();
     _fpsTimes.push(now);
     while (_fpsTimes.length > 0 && _fpsTimes[0] <= now - 1000) _fpsTimes.shift();
-    _fpsEl.textContent = _fpsTimes.length + ' FPS';
+    var fps = _fpsTimes.length;
+
+    // Diagnostic readout. CI runs on SwiftShader — a software rasteriser — so
+    // frame times measured there describe a CPU and predict nothing about a
+    // real GPU. This overlay is how the numbers get read off the machine that
+    // actually matters: press F10, screenshot, and the counts below say which
+    // of draw calls, shader compiles or quality tier is the problem there.
+    // Throttled to 2Hz; the renderer counters are per-frame values so sampling
+    // them slower costs nothing and keeps the overlay itself off the profile.
+    if (now < _diagNext) { return; }
+    _diagNext = now + 500;
+
+    var line = fps + ' FPS';
+    try {
+      var r = (typeof GameManager !== 'undefined' && GameManager.getRenderer) ? GameManager.getRenderer() : null;
+      if (r && r.info) {
+        if (_diagGpu === null) {
+          try {
+            var gl = r.getContext();
+            var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+            _diagGpu = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
+          } catch (e) { _diagGpu = 'unknown'; }
+        }
+        line += '\ndraw ' + r.info.render.calls
+              + '  tri ' + Math.round(r.info.render.triangles / 1000) + 'k'
+              + '\nshaders ' + (r.info.programs ? r.info.programs.length : '?')
+              + '  geo ' + r.info.memory.geometries
+              + '  tex ' + r.info.memory.textures;
+      }
+      var lvl = window._perfLevel;
+      if (typeof lvl === 'number') {
+        line += '\nquality ' + (window.__qualityLabel || lvl)
+              + '  x' + (r ? r.getPixelRatio().toFixed(2) : '?')
+              + (window.__pbrDowngraded ? '  pbr-' + window.__pbrDowngraded : '');
+      }
+      if (_diagGpu) line += '\n' + _diagGpu.slice(0, 64);
+    } catch (e) { /* the overlay must never break the frame */ }
+
+    _fpsEl.style.whiteSpace = 'pre';
+    _fpsEl.style.textAlign = 'left';
+    _fpsEl.style.lineHeight = '1.35';
+    _fpsEl.textContent = line;
   }
 
   // ── B26: Settings Panel ──

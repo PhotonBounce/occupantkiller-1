@@ -1,0 +1,324 @@
+name: Showcase Gallery
+
+# Captures the public gameplay gallery: every mission played in god mode with
+# frames N seconds apart, plus every weapon in live fire, then builds the
+# gallery page and publishes it to the website.
+#
+# Runs here rather than in the dev sandbox because the sandbox cannot boot the
+# game reliably enough for an unattended run of this size, and cannot reach FTP.
+#
+# Deliberately a handful of long jobs rather than a wide matrix: a 24-job
+# fan-out exceeded the runner concurrency available and most shards sat waiting
+# instead of running — two finished in 35 minutes. One job now covers several
+# missions from a single boot.
+#
+# Publishes to: ftp.photon-bounce.com  ->  /occupantkiller/gallery/
+# (needs the same FTP_PASSWORD secret the other ftp-* workflows use; without it
+# the upload step skips cleanly and the gallery is still downloadable as an
+# artifact.)
+
+on:
+  # workflow_dispatch only becomes available once this file reaches the default
+  # branch, so until #85 merges the capture is driven by pushes that actually
+  # change the capture itself — not by every commit to the branch.
+  push:
+    branches: [ claude/peaceful-cannon-oqez4t ]
+    paths:
+      - 'tools/capture-showcase.js'
+      - 'tools/build-showcase-gallery.js'
+      - '.github/workflows/showcase-gallery.yml'
+  workflow_dispatch:
+    inputs:
+      frames:
+        description: 'Gameplay frames per mission'
+        default: '10'
+      interval_ms:
+        description: 'Milliseconds between frames'
+        default: '5000'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: showcase-gallery
+  cancel-in-progress: true
+
+jobs:
+  missions:
+    name: missions ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    # 50, not 60, with the script budgeted to stop at 40: a job killed at the
+    # runner limit uploads nothing, so the capture has to give up on its own
+    # terms while there is still time to hand back the frames it took.
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: '0-6',   stages: '0,1,2,3,4,5,6' }
+          - { label: '7-12',  stages: '7,8,9,10,11,12' }
+          - { label: '13-18', stages: '13,14,15,16,17,18' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Capture missions ${{ matrix.label }}
+        env:
+          MODE: stage
+          STAGES: ${{ matrix.stages }}
+          FRAMES: ${{ github.event.inputs.frames || '10' }}
+          INTERVAL_MS: ${{ github.event.inputs.interval_ms || '5000' }}
+          PORT: '4900'
+          OUT: showcase-out
+          SHARD: m${{ matrix.label }}
+          # Inside the 720s external kill, so the script stops on its own
+          # terms and writes its manifest rather than being killed mid-frame.
+          BUDGET_MS: '660000'
+        run: |
+          # Retry the whole PROCESS, not just inside it.
+          #
+          # Two different hangs have shown up here. One is recoverable from
+          # inside (the boot bar never finishes) and capture-showcase.js
+          # retries that itself. The other is not: the process goes silent at
+          # chromium.launch() and NO timer fires — not our deadline, not
+          # Playwright's own — so no in-process retry can ever run. The only
+          # thing that reliably clears it is a new process.
+          #
+          # `timeout` is a separate process, so it fires when node's timers do
+          # not. Frames accumulate in showcase-out across attempts and filenames
+          # are deterministic, so a second attempt adds to the first rather than
+          # starting over.
+          set +e
+          for i in 1 2 3; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 720 node tools/capture-showcase.js
+            rc=$?
+            echo "attempt $i exit=$rc"
+            [ $rc -eq 0 ] && break
+            if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+              echo "::warning::attempt $i went silent — killed externally at 720s"
+            fi
+          done
+          n=$(ls showcase-out/*.jpg 2>/dev/null | wc -l)
+          echo "images captured: $n"
+          # Fail honestly on an empty shard. Uploads run on !cancelled(), so a
+          # partial shard still hands back what it got, and the gallery merges
+          # it with what earlier runs captured.
+          if [ "$n" -eq 0 ]; then echo "::error::no frames captured after 3 attempts"; exit 1; fi
+          exit 0
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: shots-missions-${{ matrix.label }}
+          path: showcase-out/
+          retention-days: 7
+
+  arsenal:
+    name: weapons ${{ matrix.wstart }}-${{ matrix.wend }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { wstart: 0,  wend: 62 }
+          - { wstart: 63, wend: 124 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Capture weapons ${{ matrix.wstart }}-${{ matrix.wend }}
+        env:
+          MODE: weapons
+          STAGE: '0'
+          WSTART: ${{ matrix.wstart }}
+          WEND: ${{ matrix.wend }}
+          PORT: '4900'
+          OUT: showcase-out
+          SHARD: w${{ matrix.wstart }}
+          # Inside the 720s external kill, so the script stops on its own
+          # terms and writes its manifest rather than being killed mid-frame.
+          BUDGET_MS: '660000'
+        run: |
+          # Retry the whole PROCESS, not just inside it.
+          #
+          # Two different hangs have shown up here. One is recoverable from
+          # inside (the boot bar never finishes) and capture-showcase.js
+          # retries that itself. The other is not: the process goes silent at
+          # chromium.launch() and NO timer fires — not our deadline, not
+          # Playwright's own — so no in-process retry can ever run. The only
+          # thing that reliably clears it is a new process.
+          #
+          # `timeout` is a separate process, so it fires when node's timers do
+          # not. Frames accumulate in showcase-out across attempts and filenames
+          # are deterministic, so a second attempt adds to the first rather than
+          # starting over.
+          set +e
+          for i in 1 2 3; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 720 node tools/capture-showcase.js
+            rc=$?
+            echo "attempt $i exit=$rc"
+            [ $rc -eq 0 ] && break
+            if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+              echo "::warning::attempt $i went silent — killed externally at 720s"
+            fi
+          done
+          n=$(ls showcase-out/*.jpg 2>/dev/null | wc -l)
+          echo "images captured: $n"
+          # Fail honestly on an empty shard. Uploads run on !cancelled(), so a
+          # partial shard still hands back what it got, and the gallery merges
+          # it with what earlier runs captured.
+          if [ "$n" -eq 0 ]; then echo "::error::no frames captured after 3 attempts"; exit 1; fi
+          exit 0
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: shots-weapons-${{ matrix.wstart }}
+          path: showcase-out/
+          retention-days: 7
+
+  publish:
+    name: build + publish gallery
+    needs: [missions, arsenal]
+    # Needs write access to push the generated gallery to its own branch.
+    permissions:
+      contents: write
+    # Not always(): on a cancelled run there are no artifacts to collect, and
+    # this job then "failed" on a red check that was really just the cancel.
+    # !cancelled() still publishes whatever the shards that DID finish produced.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Collect every shard
+        uses: actions/download-artifact@v4
+        with:
+          pattern: shots-*
+          path: collected
+          merge-multiple: true
+      - name: Show what landed
+        run: |
+          echo "images: $(find collected -name '*.jpg' 2>/dev/null | wc -l)"
+          echo "manifests: $(find collected -name 'manifest-*.json' 2>/dev/null | wc -l)"
+
+      # Fetch what previous runs captured, so this run ADDS to the gallery
+      # instead of replacing it. Shards fail independently — one bad run must
+      # not delete frames an earlier run captured.
+      - name: Fetch the existing gallery
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          REMOTE="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          if git clone --quiet --depth 1 --branch gallery-build "$REMOTE" prev 2>/dev/null; then
+            echo "existing gallery: $(find prev/gallery/shots -name '*.jpg' 2>/dev/null | wc -l) images"
+          else
+            echo "no gallery-build branch yet — this is the first run"
+            mkdir -p prev/gallery
+          fi
+
+      # One source directory holding every frame and manifest ever captured,
+      # with this run's copies winning. The gallery is then built ONCE from
+      # that, so index.html and manifest.json describe everything present
+      # rather than only what this run happened to capture.
+      - name: Merge this run into the existing gallery
+        run: |
+          set -e
+          mkdir -p merged
+          [ -d prev/gallery/shots ] && cp -a prev/gallery/shots/. merged/ || true
+          [ -d prev/gallery/_src ]  && cp -a prev/gallery/_src/.  merged/ || true
+          [ -d collected ]          && cp -a collected/.          merged/ || true
+          echo "merged: $(find merged -name '*.jpg' | wc -l) images, $(find merged -name 'manifest-*.json' | wc -l) manifests"
+
+      - name: Build gallery
+        env:
+          IN: merged
+          OUT: showcase-gallery
+          INTERVAL_MS: ${{ github.event.inputs.interval_ms || '5000' }}
+        run: node tools/build-showcase-gallery.js
+
+      - name: What the gallery contains
+        run: |
+          echo "missions: $(ls showcase-gallery/shots/ | grep -c '^stage-' || true)"
+          echo "weapons:  $(ls showcase-gallery/shots/ | grep -c '^wpn-' || true)"
+          ls showcase-gallery/shots/ | grep '^stage-' | sed 's/-f[0-9]*\.jpg//' | sort -u || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: showcase-gallery
+          path: showcase-gallery/
+          retention-days: 30
+
+      # The dev container cannot download Actions artifacts: their URLs
+      # redirect to productionresultssa*.blob.core.windows.net, which the
+      # network policy blocks. Putting the gallery on a branch makes it
+      # reachable over plain git, reviewable in the PR, and durable past the
+      # 30-day artifact retention.
+      #
+      # Its own branch rather than this one: the capture runs on every push to
+      # the feature branch, and a CI commit landing there would race whatever
+      # is being pushed by hand at the time.
+      - name: Commit the gallery to the gallery-build branch
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if [ ! -d showcase-gallery ]; then echo "no gallery to publish"; exit 0; fi
+          REMOTE="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          WORK=$(mktemp -d)
+          if ! git clone --quiet --depth 1 --branch gallery-build "$REMOTE" "$WORK" 2>/dev/null; then
+            echo "creating gallery-build branch"
+            git clone --quiet --depth 1 "$REMOTE" "$WORK"
+            git -C "$WORK" checkout --quiet --orphan gallery-build
+            git -C "$WORK" rm -rqf .
+          fi
+          # Safe to replace wholesale: `merged` already contains everything the
+          # old branch held, so nothing is lost.
+          rm -rf "$WORK/gallery"
+          mkdir -p "$WORK/gallery/_src"
+          cp -a showcase-gallery/. "$WORK/gallery/"
+          cp -a merged/manifest-*.json "$WORK/gallery/_src/" 2>/dev/null || true
+          git -C "$WORK" config user.name  "github-actions[bot]"
+          git -C "$WORK" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$WORK" add -A gallery
+          if git -C "$WORK" diff --cached --quiet; then
+            echo "gallery unchanged — nothing to push"
+          else
+            git -C "$WORK" commit -qm "Showcase gallery built from ${{ github.sha }}"
+            git -C "$WORK" push -q origin gallery-build
+            echo "pushed gallery-build: $(find showcase-gallery -name '*.jpg' | wc -l) images"
+          fi
+
+      - name: Check FTP secret presence
+        id: gate
+        env:
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -n "$FTP_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FTP_PASSWORD not set — gallery built but not published. Download the showcase-gallery artifact instead."
+          fi
+
+      - name: Publish to photon-bounce.com /occupantkiller/gallery/
+        if: steps.gate.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftp.photon-bounce.com
+          username: photonb
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./showcase-gallery/
+          server-dir: /occupantkiller/gallery/
+          dangerous-clean-slate: true
+
+      - name: Link
+        if: steps.gate.outputs.ready == 'true'
+        run: echo "Gallery published -> https://photon-bounce.com/occupantkiller/gallery/"

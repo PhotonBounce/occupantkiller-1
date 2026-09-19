@@ -699,7 +699,6 @@ window.PerkSystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail perk-system.js",_e&&_e.message); }
 /* === ground-fissure.js === */
@@ -1218,7 +1217,6 @@ window.GroundFissure = (function() {
 
   return { init: init, update: update, trigger: trigger, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail ground-fissure.js",_e&&_e.message); }
 /* === weapon-wear.js === */
@@ -1766,7 +1764,6 @@ window.WeaponWear = (function () {
     reset:  reset
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail weapon-wear.js",_e&&_e.message); }
 /* === radar-pulse.js === */
@@ -2161,7 +2158,6 @@ window.RadarPulse = (function() {
 
   return { init: init, update: update, pulse: pulse, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail radar-pulse.js",_e&&_e.message); }
 /* === kill-feed-events.js === */
@@ -2570,4 +2566,5 @@ window.KillFeedEvents = (function () {
   return { init: init, update: update, addKill: addKill, addEvent: addEvent, reset: reset };
 
 })();
+;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail kill-feed-events.js",_e&&_e.message); }

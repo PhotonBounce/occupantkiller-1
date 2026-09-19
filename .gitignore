@@ -45,3 +45,8 @@ tools/qa-*.json
 tools/qa-*.log
 tools/*.out
 tools/qa-*mobile*
+
+# qa-play.js writes screenshots and a JSON report here on every run; it is
+# output, not source.
+tools/qa-play-out/
+collab/.budget-state.json

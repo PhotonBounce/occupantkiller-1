@@ -15,6 +15,8 @@
 // ============================================================
 window.HighriseHostage = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── Constants ────────────────────────────────────────────────
   var TOTAL_FLOORS         = 20;
@@ -1635,6 +1637,8 @@ window.HighriseHostage = (function () {
   }
 
   function init(sc, cam, ren) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     scene    = sc    || scene;
     camera   = cam  || camera;
     renderer = ren  || renderer;
@@ -1728,7 +1732,7 @@ window.HighriseHostage = (function () {
         dt = Math.min(dt, 0.05); // cap delta
         if (active) {
           update(dt);
-          renderer.render(scene, camera);
+          if (renderer) renderer.render(scene, camera);
         }
       }());
     }
