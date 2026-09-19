@@ -96,19 +96,19 @@ server.listen(PORT, async () => {
     const tNav = Date.now();
     await deadline(pg.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'commit', timeout: 60000 }), 75000, 'goto');
     await pg.waitForFunction(() => typeof window.GameManager !== 'undefined' && typeof window.Weapons !== 'undefined',
-      { timeout: 180000 }).catch(() => log('[warn] globals never appeared'));
+      null, { timeout: 180000 }).catch(() => log('[warn] globals never appeared'));
     await pg.waitForFunction(() => {
       const p = document.getElementById('boot-preloader');
       return !p || p.style.opacity === '0' || getComputedStyle(p).display === 'none';
-    }, { timeout: 240000 }).catch(() => log('[warn] boot bar wait timed out'));
+    }, null, { timeout: 240000 }).catch(() => log('[warn] boot bar wait timed out'));
     log('booted');
 
     await deadline(pg.evaluate((s) => {
       window.__chosenStartStage = s;
       try { GameManager.startGame(); } catch (e) { window.__startErr = String(e); }
-    }, STAGE), 30000, 'startGame');
+    }, STAGE), 240000, 'startGame');
     await pg.waitForFunction(() => GameManager.getState && GameManager.getState() === 'playing',
-      { timeout: 120000 }).catch(() => log('[warn] never reached playing'));
+      null, { timeout: 120000 }).catch(() => log('[warn] never reached playing'));
     const bootMs = Date.now() - tNav;
 
     // Let the HUD fully populate. Several of the busiest panels (streaks,

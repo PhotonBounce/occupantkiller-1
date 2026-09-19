@@ -164,7 +164,7 @@ async function bringUp(attempt) {
 
   await pg.waitForFunction(
     () => typeof window.GameManager !== 'undefined' && typeof window.Weapons !== 'undefined' && typeof window.Enemies !== 'undefined',
-    { timeout: 180000 }).catch(() => log('[warn] game globals never appeared; continuing'));
+    null, { timeout: 180000 }).catch(() => log('[warn] game globals never appeared; continuing'));
   log('globals up');
 
   // Wait for the boot bar to actually finish. Starting on globals alone races
@@ -172,7 +172,7 @@ async function bringUp(attempt) {
   await pg.waitForFunction(() => {
     const p = document.getElementById('boot-preloader');
     return !p || p.style.opacity === '0' || getComputedStyle(p).display === 'none';
-  }, { timeout: 240000 }).catch(() => log('[warn] boot bar wait timed out; continuing'));
+  }, null, { timeout: 240000 }).catch(() => log('[warn] boot bar wait timed out; continuing'));
   log('booted');
 }
 
@@ -196,9 +196,9 @@ async function enterStage(stage) {
   await deadline(pg.evaluate((s) => {
     window.__chosenStartStage = s;
     try { GameManager.startGame(); } catch (e) { window.__startErr = String(e); }
-  }, stage), 30000, 'startGame stage ' + stage);
+  }, stage), 240000, 'startGame stage ' + stage);
 
-  await pg.waitForFunction(() => GameManager.getState && GameManager.getState() === 'playing', { timeout: 120000 })
+  await pg.waitForFunction(() => GameManager.getState && GameManager.getState() === 'playing', null, { timeout: 120000 })
     .catch(() => log('[warn] stage ' + stage + ': state never reached playing'));
   await pg.waitForTimeout(6000);   // let the world settle and shaders prewarm
 
@@ -221,7 +221,7 @@ async function enterStage(stage) {
       }
     } catch (e) { o.err = String(e); }
     return o;
-  }, CLEAN_HUD), 60000, 'arm stage ' + stage);
+  }, CLEAN_HUD), 120000, 'arm stage ' + stage);
 
   stageName = info.stageName || stageName;
   log('stage ' + stage + ' ready: ' + JSON.stringify(info));
@@ -264,7 +264,7 @@ async function beat(fireMs) {
       out.hp = GameManager.getPlayer ? GameManager.getPlayer().health : null;
     } catch (e) { out.err = String(e); }
     return out;
-  }, fireMs), 30000, 'beat').catch(e => ({ err: e.message }));
+  }, fireMs), 90000, 'beat').catch(e => ({ err: e.message }));
 }
 
 async function snap(name, meta) {
@@ -287,7 +287,7 @@ async function snap(name, meta) {
       } catch (e) {
         try { return GameManager.captureFrame(); } catch (e2) { return null; }
       }
-    }), 30000, 'renderer capture');
+    }), 90000, 'renderer capture');
     if (durl && durl.indexOf('data:image/') === 0) {
       fs.writeFileSync(dest, Buffer.from(durl.split(',')[1], 'base64'));
       ok = true;

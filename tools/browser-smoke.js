@@ -97,13 +97,13 @@ async function run() {
     pg.on('pageerror', e => say('  pageerror: ' + e.message));
     await pg.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'commit', timeout: 60000 });
     say('navigated to the game');
-    await pg.waitForFunction(() => typeof window.GameManager !== 'undefined', { timeout: 240000 })
+    await pg.waitForFunction(() => typeof window.GameManager !== 'undefined', null, { timeout: 240000 })
       .then(() => say('GameManager present'))
       .catch(() => say('[warn] GameManager never appeared'));
     await pg.waitForFunction(() => {
       const p = document.getElementById('boot-preloader');
       return !p || p.style.opacity === '0' || getComputedStyle(p).display === 'none';
-    }, { timeout: 240000 }).then(() => say('boot bar finished')).catch(() => say('[warn] boot bar never finished'));
+    }, null, { timeout: 240000 }).then(() => say('boot bar finished')).catch(() => say('[warn] boot bar never finished'));
   } else {
     await pg.goto('about:blank');
     say('about:blank');
