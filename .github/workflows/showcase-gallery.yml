@@ -47,7 +47,10 @@ jobs:
   missions:
     name: missions ${{ matrix.label }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # 50, not 60, with the script budgeted to stop at 40: a job killed at the
+    # runner limit uploads nothing, so the capture has to give up on its own
+    # terms while there is still time to hand back the frames it took.
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       matrix:
@@ -70,8 +73,10 @@ jobs:
           PORT: '4900'
           OUT: showcase-out
           SHARD: m${{ matrix.label }}
+          BUDGET_MS: '2400000'
         run: node tools/capture-showcase.js
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
           name: shots-missions-${{ matrix.label }}
           path: showcase-out/
@@ -80,7 +85,7 @@ jobs:
   arsenal:
     name: weapons ${{ matrix.wstart }}-${{ matrix.wend }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       matrix:
@@ -102,8 +107,10 @@ jobs:
           PORT: '4900'
           OUT: showcase-out
           SHARD: w${{ matrix.wstart }}
+          BUDGET_MS: '2400000'
         run: node tools/capture-showcase.js
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
           name: shots-weapons-${{ matrix.wstart }}
           path: showcase-out/
@@ -112,7 +119,10 @@ jobs:
   publish:
     name: build + publish gallery
     needs: [missions, arsenal]
-    if: always()
+    # Not always(): on a cancelled run there are no artifacts to collect, and
+    # this job then "failed" on a red check that was really just the cancel.
+    # !cancelled() still publishes whatever the shards that DID finish produced.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

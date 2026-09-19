@@ -18,6 +18,13 @@ const INTERVAL = parseInt(process.env.INTERVAL_MS || '5000', 10) / 1000;
 
 fs.mkdirSync(path.join(OUT, 'shots'), { recursive: true });
 
+// When every capture shard fails or is cancelled, download-artifact creates no
+// directory at all and this used to die on an ENOENT stack trace, which reads
+// like a bug in the gallery rather than what it is: nothing was captured.
+if (!fs.existsSync(IN)) {
+  console.error('no capture output at ' + IN + ' — every capture shard failed or was cancelled, so there is nothing to build a gallery from.');
+  process.exit(1);
+}
 const manifests = fs.readdirSync(IN).filter(f => /^manifest-.*\.json$/.test(f));
 if (!manifests.length) { console.error('no manifests in ' + IN); process.exit(1); }
 
