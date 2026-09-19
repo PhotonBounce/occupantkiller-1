@@ -80,8 +80,19 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   `undefined` multiplier = NaN = player silently frozen. There is now a guard,
   but treat any `getModifiers()`-style cross-module read with suspicion:
   the `speedMod` vs `speedMult` typo made WASD dead for every player and no
-  test caught it for the project's entire history. (`enemies.js` still reads a
-  nonexistent `.visionRange` — masked by `|| 1.0`, open item.)
+  test caught it for the project's entire history.
+- **The `.visionRange` open item listed here was wrong; it is closed.**
+  `enemies.js:2563` reads `WeatherSystem.getModifiers().visionRange`, and that
+  property does exist: all 8 entries of `MODIFIER_CONFIG` in `weather-system.js`
+  define it. `getModifiers()` returns `MODIFIER_CONFIG[_currentState]`, and every
+  one of the five `_setState()` call sites passes a valid key (`forceWeather()`
+  validates against `STATES` and warns; `_pickState()` falls back to `CLEAR`), so
+  it cannot return undefined. Nothing to fix. Note the `|| 1.0` would NOT have
+  masked the bug as described — if `getModifiers()` ever did return undefined,
+  that line would throw, not fall back.
+- A closer relative of the NaN class was real and is fixed: `npc-system.js`
+  averaged `morale` over `npcs[]`, which also holds wildlife and stray pets that
+  carry no morale, so the HUD printed `Morale: NaN%` on screen for whole missions.
 
 ## Desktop build
 
