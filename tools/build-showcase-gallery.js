@@ -25,8 +25,8 @@ if (!fs.existsSync(IN)) {
   console.error('no capture output at ' + IN + ' — every capture shard failed or was cancelled, so there is nothing to build a gallery from.');
   process.exit(1);
 }
-const manifests = fs.readdirSync(IN).filter(f => /^manifest-.*\.json$/.test(f));
-if (!manifests.length) { console.error('no manifests in ' + IN); process.exit(1); }
+const entries = fs.readdirSync(IN);
+const manifests = entries.filter(f => /^manifest-.*\.json$/.test(f));
 
 let all = [];
 for (const m of manifests) {
@@ -35,6 +35,48 @@ for (const m of manifests) {
     (j.shots || []).forEach(s => all.push(s));
   } catch (e) { console.error('bad manifest ' + m + ': ' + e.message); }
 }
+
+/* Recover frames that no manifest describes.
+ *
+ * The gallery is rebuilt from every frame ever captured, merged across runs,
+ * but frames and manifests have not always been kept together — 182 images
+ * from earlier runs exist with no manifest at all. Building from manifests
+ * alone silently dropped all of them and produced a gallery of three images,
+ * which is exactly the sort of quiet loss that looks like it worked.
+ *
+ * The filenames are structured, so the metadata can be rebuilt from them:
+ *   stage-007-outer-moscow-f003.jpg  ->  stage 7, frame 3
+ *   wpn-065-bgm-71-tow-atgm.jpg      ->  weapon 65
+ * The display name is reconstructed from the slug, so it is close to the
+ * original rather than exactly it. Words containing a digit, and short words,
+ * are upper-cased, because weapon names are mostly models and acronyms.
+ */
+const described = new Set(all.map(s => path.basename(s.file)));
+const prettify = slug => slug.split('-').filter(Boolean).map(w =>
+  (/\d/.test(w) || w.length <= 3) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)
+).join(' ');
+
+let recovered = 0;
+for (const f of entries) {
+  if (!/\.jpg$/i.test(f) || described.has(f)) continue;
+  let m = f.match(/^stage-(\d+)-(.+)-f(\d+)\.jpg$/i);
+  if (m) {
+    const frame = parseInt(m[3], 10);
+    all.push({ file: f, kind: 'stage', stage: parseInt(m[1], 10), stageName: prettify(m[2]),
+               frame, tSec: frame * INTERVAL, recovered: true });
+    recovered++; continue;
+  }
+  m = f.match(/^wpn-(\d+)-(.+)\.jpg$/i);
+  if (m) {
+    all.push({ file: f, kind: 'weapon', weaponIdx: parseInt(m[1], 10), weapon: prettify(m[2]),
+               recovered: true });
+    recovered++; continue;
+  }
+  console.error('unrecognised image name, skipped: ' + f);
+}
+if (recovered) console.log('  recovered ' + recovered + ' frame(s) from filenames (no manifest)');
+
+if (!all.length) { console.error('no shots found in ' + IN); process.exit(1); }
 // Copy the images that actually exist; a shard that died mid-run must not
 // leave the gallery pointing at files that were never written.
 const kept = [];

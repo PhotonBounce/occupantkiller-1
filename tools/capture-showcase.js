@@ -49,6 +49,13 @@ const PORT = parseInt(process.env.PORT || '4801', 10);
 const OUT = process.env.OUT || path.join(ROOT, 'showcase-out');
 // Clean HUD is on by default: these images are the game's shop window.
 const CLEAN_HUD = process.env.CLEAN_HUD !== '0';
+// Hour of the in-game day to capture at. CAPTURE_HOUR=keep leaves the world
+// clock alone; anything else is parsed as an hour. Default midday, because the
+// first full run came back too dark to show anyone.
+const CAPTURE_HOUR = (process.env.CAPTURE_HOUR === 'keep') ? null
+  : (isNaN(parseFloat(process.env.CAPTURE_HOUR)) ? 13 : parseFloat(process.env.CAPTURE_HOUR));
+// Empty means leave the weather as the game chose it, which keeps variety.
+const CAPTURE_WEATHER = process.env.CAPTURE_WEATHER || '';
 const SHARD = process.env.SHARD || (MODE === 'weapons' ? `w${WSTART}-${WEND}` : `s${STAGE}`);
 
 fs.mkdirSync(OUT, { recursive: true });
@@ -229,7 +236,8 @@ async function enterStage(stage) {
     .catch(() => log('[warn] stage ' + stage + ': state never reached playing'));
   await pg.waitForTimeout(6000);   // let the world settle and shaders prewarm
 
-  const info = await deadline(pg.evaluate((cleanHud) => {
+  const info = await deadline(pg.evaluate((cfg) => {
+    const cleanHud = cfg.cleanHud;
     const o = {};
     try {
       if (!GameManager.isGodMode()) GameManager.toggleGodMode();
@@ -239,6 +247,23 @@ async function enterStage(stage) {
       try { Weapons.refillAllAmmo(); } catch (e) {}
       o.stage = GameManager.getCurrentStage();
       o.stageName = (GameManager.getCurrentStageInfo && GameManager.getCurrentStageInfo().name) || null;
+      // Put the sun up. Missions inherit the world clock, and the first full
+      // capture came back almost entirely dark — night and dusk across most of
+      // stages 7-18, with the game barely legible. The weapon shots, which all
+      // run on stage 0 in daylight, look like a different game. Nothing is
+      // wrong with the night lighting; it is just the wrong thing to show
+      // someone deciding whether to buy this.
+      //
+      // Weather is deliberately left alone: rain and fog give the gallery
+      // variety, and at midday they read as atmosphere instead of as murk.
+      if (cfg.hour !== null) {
+        try { if (window.TimeOfDay && TimeOfDay.setHour) TimeOfDay.setHour(cfg.hour); } catch (e) {}
+      }
+      if (cfg.weather) {
+        try { if (window.WeatherSystem && WeatherSystem.forceWeather) WeatherSystem.forceWeather(cfg.weather); } catch (e) {}
+      }
+      try { o.hour = window.TimeOfDay && TimeOfDay.getTimeString ? TimeOfDay.getTimeString() : null; } catch (e) {}
+      try { o.weather = window.WeatherSystem && WeatherSystem.getCurrentWeather ? WeatherSystem.getCurrentWeather() : null; } catch (e) {}
       // Strip the HUD down to crosshair/health/ammo/weapon. With the full HUD
       // up, roughly twenty overlapping panels cover the frame and the shot
       // shows interface instead of game.
@@ -248,7 +273,7 @@ async function enterStage(stage) {
       }
     } catch (e) { o.err = String(e); }
     return o;
-  }, CLEAN_HUD), 120000, 'arm stage ' + stage);
+  }, { cleanHud: CLEAN_HUD, hour: CAPTURE_HOUR, weather: CAPTURE_WEATHER }), 120000, 'arm stage ' + stage);
 
   stageName = info.stageName || stageName;
   log('stage ' + stage + ' ready: ' + JSON.stringify(info));
@@ -366,6 +391,12 @@ async function captureStages(stageList, setup) {
       // The first stage was entered before the loop so a single-stage run
       // behaves exactly as before; the rest re-enter from the same boot.
       if (si > 0) setup = await enterStage(stageList[si]);
+      // One discarded beat before the first frame. f000 was consistently the
+      // worst shot of every stage — taken the instant the world finished
+      // building, before any enemy had spawned for the camera to aim at, so it
+      // framed a blank wall. This spawns them and points the camera first.
+      await beat(200);
+      await pg.waitForTimeout(1200);
       for (let f = 0; f < FRAMES; f++) {
         const r = await beat(300);
         if (r.err) log('  [beat] ' + r.err);

@@ -177,25 +177,62 @@ jobs:
           merge-multiple: true
       - name: Show what landed
         run: |
-          echo "images: $(find collected -name '*.jpg' | wc -l)"
-          echo "manifests: $(find collected -name 'manifest-*.json' | wc -l)"
+          echo "images: $(find collected -name '*.jpg' 2>/dev/null | wc -l)"
+          echo "manifests: $(find collected -name 'manifest-*.json' 2>/dev/null | wc -l)"
+
+      # Fetch what previous runs captured, so this run ADDS to the gallery
+      # instead of replacing it. Shards fail independently — one bad run must
+      # not delete frames an earlier run captured.
+      - name: Fetch the existing gallery
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          REMOTE="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          if git clone --quiet --depth 1 --branch gallery-build "$REMOTE" prev 2>/dev/null; then
+            echo "existing gallery: $(find prev/gallery/shots -name '*.jpg' 2>/dev/null | wc -l) images"
+          else
+            echo "no gallery-build branch yet — this is the first run"
+            mkdir -p prev/gallery
+          fi
+
+      # One source directory holding every frame and manifest ever captured,
+      # with this run's copies winning. The gallery is then built ONCE from
+      # that, so index.html and manifest.json describe everything present
+      # rather than only what this run happened to capture.
+      - name: Merge this run into the existing gallery
+        run: |
+          set -e
+          mkdir -p merged
+          [ -d prev/gallery/shots ] && cp -a prev/gallery/shots/. merged/ || true
+          [ -d prev/gallery/_src ]  && cp -a prev/gallery/_src/.  merged/ || true
+          [ -d collected ]          && cp -a collected/.          merged/ || true
+          echo "merged: $(find merged -name '*.jpg' | wc -l) images, $(find merged -name 'manifest-*.json' | wc -l) manifests"
+
       - name: Build gallery
         env:
-          IN: collected
+          IN: merged
           OUT: showcase-gallery
           INTERVAL_MS: ${{ github.event.inputs.interval_ms || '5000' }}
         run: node tools/build-showcase-gallery.js
+
+      - name: What the gallery contains
+        run: |
+          echo "missions: $(ls showcase-gallery/shots/ | grep -c '^stage-' || true)"
+          echo "weapons:  $(ls showcase-gallery/shots/ | grep -c '^wpn-' || true)"
+          ls showcase-gallery/shots/ | grep '^stage-' | sed 's/-f[0-9]*\.jpg//' | sort -u || true
+
       - uses: actions/upload-artifact@v4
         with:
           name: showcase-gallery
           path: showcase-gallery/
           retention-days: 30
 
-      # The dev container cannot download Actions artifacts: their URLs redirect
-      # to productionresultssa*.blob.core.windows.net, which the network policy
-      # blocks. Putting the gallery on a branch makes it reachable over plain
-      # git, so it can be reviewed in the PR and fetched without the artifact
-      # store — and it keeps a copy that outlives the 30-day retention.
+      # The dev container cannot download Actions artifacts: their URLs
+      # redirect to productionresultssa*.blob.core.windows.net, which the
+      # network policy blocks. Putting the gallery on a branch makes it
+      # reachable over plain git, reviewable in the PR, and durable past the
+      # 30-day artifact retention.
       #
       # Its own branch rather than this one: the capture runs on every push to
       # the feature branch, and a CI commit landing there would race whatever
@@ -205,19 +242,21 @@ jobs:
           TOKEN: ${{ github.token }}
         run: |
           set -e
-          SRC="$PWD/showcase-gallery"
-          if [ ! -d "$SRC" ]; then echo "no gallery to publish"; exit 0; fi
-          WORK=$(mktemp -d)
+          if [ ! -d showcase-gallery ]; then echo "no gallery to publish"; exit 0; fi
           REMOTE="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          WORK=$(mktemp -d)
           if ! git clone --quiet --depth 1 --branch gallery-build "$REMOTE" "$WORK" 2>/dev/null; then
-            echo "gallery-build branch does not exist yet — creating it"
+            echo "creating gallery-build branch"
             git clone --quiet --depth 1 "$REMOTE" "$WORK"
             git -C "$WORK" checkout --quiet --orphan gallery-build
             git -C "$WORK" rm -rqf .
           fi
+          # Safe to replace wholesale: `merged` already contains everything the
+          # old branch held, so nothing is lost.
           rm -rf "$WORK/gallery"
-          mkdir -p "$WORK/gallery"
-          cp -r "$SRC"/. "$WORK/gallery/"
+          mkdir -p "$WORK/gallery/_src"
+          cp -a showcase-gallery/. "$WORK/gallery/"
+          cp -a merged/manifest-*.json "$WORK/gallery/_src/" 2>/dev/null || true
           git -C "$WORK" config user.name  "github-actions[bot]"
           git -C "$WORK" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C "$WORK" add -A gallery
@@ -226,7 +265,7 @@ jobs:
           else
             git -C "$WORK" commit -qm "Showcase gallery built from ${{ github.sha }}"
             git -C "$WORK" push -q origin gallery-build
-            echo "pushed to gallery-build: $(find "$SRC" -name '*.jpg' | wc -l) images"
+            echo "pushed gallery-build: $(find showcase-gallery -name '*.jpg' | wc -l) images"
           fi
 
       - name: Check FTP secret presence
