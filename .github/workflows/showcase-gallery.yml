@@ -157,6 +157,9 @@ jobs:
   publish:
     name: build + publish gallery
     needs: [missions, arsenal]
+    # Needs write access to push the generated gallery to its own branch.
+    permissions:
+      contents: write
     # Not always(): on a cancelled run there are no artifacts to collect, and
     # this job then "failed" on a red check that was really just the cancel.
     # !cancelled() still publishes whatever the shards that DID finish produced.
@@ -187,6 +190,44 @@ jobs:
           name: showcase-gallery
           path: showcase-gallery/
           retention-days: 30
+
+      # The dev container cannot download Actions artifacts: their URLs redirect
+      # to productionresultssa*.blob.core.windows.net, which the network policy
+      # blocks. Putting the gallery on a branch makes it reachable over plain
+      # git, so it can be reviewed in the PR and fetched without the artifact
+      # store — and it keeps a copy that outlives the 30-day retention.
+      #
+      # Its own branch rather than this one: the capture runs on every push to
+      # the feature branch, and a CI commit landing there would race whatever
+      # is being pushed by hand at the time.
+      - name: Commit the gallery to the gallery-build branch
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          SRC="$PWD/showcase-gallery"
+          if [ ! -d "$SRC" ]; then echo "no gallery to publish"; exit 0; fi
+          WORK=$(mktemp -d)
+          REMOTE="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          if ! git clone --quiet --depth 1 --branch gallery-build "$REMOTE" "$WORK" 2>/dev/null; then
+            echo "gallery-build branch does not exist yet — creating it"
+            git clone --quiet --depth 1 "$REMOTE" "$WORK"
+            git -C "$WORK" checkout --quiet --orphan gallery-build
+            git -C "$WORK" rm -rqf .
+          fi
+          rm -rf "$WORK/gallery"
+          mkdir -p "$WORK/gallery"
+          cp -r "$SRC"/. "$WORK/gallery/"
+          git -C "$WORK" config user.name  "github-actions[bot]"
+          git -C "$WORK" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$WORK" add -A gallery
+          if git -C "$WORK" diff --cached --quiet; then
+            echo "gallery unchanged — nothing to push"
+          else
+            git -C "$WORK" commit -qm "Showcase gallery built from ${{ github.sha }}"
+            git -C "$WORK" push -q origin gallery-build
+            echo "pushed to gallery-build: $(find "$SRC" -name '*.jpg' | wc -l) images"
+          fi
 
       - name: Check FTP secret presence
         id: gate
