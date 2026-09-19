@@ -62,18 +62,24 @@ jobs:
           PORT: '4933'
           OUT: usability-out
         run: |
-          # External kill — see showcase-gallery.yml. An in-process timeout
-          # cannot fire when the event loop is blocked, which is how these
-          # jobs have been failing.
+          # Retry the whole PROCESS. The job has gone silent at
+          # chromium.launch() with no timer firing — not ours, not
+          # Playwright's — so an in-process retry never gets to run and only a
+          # new process clears it. `timeout` is separate, so it still fires.
           set +e
-          timeout --signal=KILL 900 node tools/qa-usability.js
-          rc=$?
-          echo "exit=$rc"
-          if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
-            echo "::warning::HUNG — killed externally at 900s"
-            exit 1
-          fi
-          exit $rc
+          ok=0
+          for i in 1 2 3; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 400 node tools/qa-usability.js
+            rc=$?
+            echo "attempt $i exit=$rc"
+            if [ $rc -eq 0 ]; then ok=1; break; fi
+            if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+              echo "::warning::attempt $i went silent — killed externally at 400s"
+            fi
+          done
+          if [ $ok -ne 1 ]; then echo "::error::no measurement after 3 attempts"; exit 1; fi
+          exit 0
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:

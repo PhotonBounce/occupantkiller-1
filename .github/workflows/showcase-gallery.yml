@@ -73,26 +73,40 @@ jobs:
           PORT: '4900'
           OUT: showcase-out
           SHARD: m${{ matrix.label }}
-          BUDGET_MS: '2400000'
+          # Inside the 720s external kill, so the script stops on its own
+          # terms and writes its manifest rather than being killed mid-frame.
+          BUDGET_MS: '660000'
         run: |
-          # An EXTERNAL kill, because an internal one cannot be trusted here.
-          # Jobs have hung inside chromium.launch() with both our own deadline
-          # and Playwright's internal launch timeout failing to fire — two
-          # independent timers that never fire means the node event loop is
-          # blocked, and no in-process guard survives that. `timeout` is a
-          # separate process, so it still fires.
+          # Retry the whole PROCESS, not just inside it.
+          #
+          # Two different hangs have shown up here. One is recoverable from
+          # inside (the boot bar never finishes) and capture-showcase.js
+          # retries that itself. The other is not: the process goes silent at
+          # chromium.launch() and NO timer fires — not our deadline, not
+          # Playwright's own — so no in-process retry can ever run. The only
+          # thing that reliably clears it is a new process.
+          #
+          # `timeout` is a separate process, so it fires when node's timers do
+          # not. Frames accumulate in showcase-out across attempts and filenames
+          # are deterministic, so a second attempt adds to the first rather than
+          # starting over.
           set +e
-          timeout --signal=KILL 2100 node tools/capture-showcase.js
-          rc=$?
-          echo "exit=$rc"
-          if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
-            echo "::warning::HUNG — killed externally at 2100s"
-          fi
+          for i in 1 2 3; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 720 node tools/capture-showcase.js
+            rc=$?
+            echo "attempt $i exit=$rc"
+            [ $rc -eq 0 ] && break
+            if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+              echo "::warning::attempt $i went silent — killed externally at 720s"
+            fi
+          done
           n=$(ls showcase-out/*.jpg 2>/dev/null | wc -l)
           echo "images captured: $n"
-          # Fail honestly on an empty shard. The upload runs on !cancelled(),
-          # so a partial shard still hands back what it got.
-          if [ "$n" -eq 0 ]; then echo "::error::no frames captured"; exit 1; fi
+          # Fail honestly on an empty shard. Uploads run on !cancelled(), so a
+          # partial shard still hands back what it got, and the gallery merges
+          # it with what earlier runs captured.
+          if [ "$n" -eq 0 ]; then echo "::error::no frames captured after 3 attempts"; exit 1; fi
           exit 0
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
@@ -126,26 +140,40 @@ jobs:
           PORT: '4900'
           OUT: showcase-out
           SHARD: w${{ matrix.wstart }}
-          BUDGET_MS: '2400000'
+          # Inside the 720s external kill, so the script stops on its own
+          # terms and writes its manifest rather than being killed mid-frame.
+          BUDGET_MS: '660000'
         run: |
-          # An EXTERNAL kill, because an internal one cannot be trusted here.
-          # Jobs have hung inside chromium.launch() with both our own deadline
-          # and Playwright's internal launch timeout failing to fire — two
-          # independent timers that never fire means the node event loop is
-          # blocked, and no in-process guard survives that. `timeout` is a
-          # separate process, so it still fires.
+          # Retry the whole PROCESS, not just inside it.
+          #
+          # Two different hangs have shown up here. One is recoverable from
+          # inside (the boot bar never finishes) and capture-showcase.js
+          # retries that itself. The other is not: the process goes silent at
+          # chromium.launch() and NO timer fires — not our deadline, not
+          # Playwright's own — so no in-process retry can ever run. The only
+          # thing that reliably clears it is a new process.
+          #
+          # `timeout` is a separate process, so it fires when node's timers do
+          # not. Frames accumulate in showcase-out across attempts and filenames
+          # are deterministic, so a second attempt adds to the first rather than
+          # starting over.
           set +e
-          timeout --signal=KILL 2100 node tools/capture-showcase.js
-          rc=$?
-          echo "exit=$rc"
-          if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
-            echo "::warning::HUNG — killed externally at 2100s"
-          fi
+          for i in 1 2 3; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 720 node tools/capture-showcase.js
+            rc=$?
+            echo "attempt $i exit=$rc"
+            [ $rc -eq 0 ] && break
+            if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+              echo "::warning::attempt $i went silent — killed externally at 720s"
+            fi
+          done
           n=$(ls showcase-out/*.jpg 2>/dev/null | wc -l)
           echo "images captured: $n"
-          # Fail honestly on an empty shard. The upload runs on !cancelled(),
-          # so a partial shard still hands back what it got.
-          if [ "$n" -eq 0 ]; then echo "::error::no frames captured"; exit 1; fi
+          # Fail honestly on an empty shard. Uploads run on !cancelled(), so a
+          # partial shard still hands back what it got, and the gallery merges
+          # it with what earlier runs captured.
+          if [ "$n" -eq 0 ]; then echo "::error::no frames captured after 3 attempts"; exit 1; fi
           exit 0
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
