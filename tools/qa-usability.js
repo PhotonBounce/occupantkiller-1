@@ -75,8 +75,12 @@ function deadline(p, ms, label) {
 
 server.listen(PORT, async () => {
   let browser = null;
-  try {
-    log('launching');
+  // Bring the browser up and boot the game, retrying with a FRESH browser if
+  // boot does not finish. Measured: boot completes in about 4s on a good
+  // browser instance and never completes at all on roughly half of them, and
+  // carrying on regardless only moves the stall into startGame(). A new
+  // browser process is the one thing known to clear it.
+  async function bringUp() {
     browser = await deadline(chromium.launch({
       headless: true,
       // ANGLE over SwiftShader, NOT raw --use-gl=swiftshader. Measured, not
@@ -97,11 +101,44 @@ server.listen(PORT, async () => {
     await deadline(pg.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'commit', timeout: 60000 }), 75000, 'goto');
     await pg.waitForFunction(() => typeof window.GameManager !== 'undefined' && typeof window.Weapons !== 'undefined',
       null, { timeout: 180000 }).catch(() => log('[warn] globals never appeared'));
+
+    let booted = true;
     await pg.waitForFunction(() => {
       const p = document.getElementById('boot-preloader');
       return !p || p.style.opacity === '0' || getComputedStyle(p).display === 'none';
-    }, null, { timeout: 240000 }).catch(() => log('[warn] boot bar wait timed out'));
+    }, null, { timeout: 240000 }).catch(() => { booted = false; });
+    if (!booted) {
+      const diag = await pg.evaluate(() => {
+        const p = document.getElementById('boot-preloader');
+        return {
+          preloader: p ? { display: getComputedStyle(p).display, opacity: p.style.opacity } : 'absent',
+          text: p ? (p.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 160) : null,
+          state: (window.GameManager && GameManager.getState) ? GameManager.getState() : null,
+        };
+      }).catch(e => ({ diagErr: e.message }));
+      log('boot never finished: ' + JSON.stringify(diag));
+      if (pageErrors.length) log('page errors so far: ' + pageErrors.slice(0, 3).join(' | '));
+      throw new Error('boot bar never finished');
+    }
     log('booted');
+    return { pg, pageErrors, tNav };
+  }
+
+  try {
+    let up = null;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        log('attempt ' + attempt + ': launching');
+        up = await bringUp();
+        break;
+      } catch (e) {
+        log('bring-up failed: ' + e.message);
+        try { if (browser) await deadline(browser.close(), 10000, 'close after failure'); } catch (e2) {}
+        browser = null;
+        if (attempt === 5) throw e;
+      }
+    }
+    const pg = up.pg, pageErrors = up.pageErrors, tNav = up.tNav;
 
     await deadline(pg.evaluate((s) => {
       window.__chosenStartStage = s;
