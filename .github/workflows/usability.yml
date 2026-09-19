@@ -1,0 +1,70 @@
+name: Usability Measurement
+
+# Measures how the game READS to a new player: how much of the screen its own
+# HUD covers, how much of the aiming box is left clear, how many panels pile up
+# on top of each other, and whether anything is printing NaN on screen.
+#
+# Exists because functional QA passed this game while it was nearly unplayable
+# to look at. "state === playing and a canvas exists" cannot see an interface
+# covering the game, and that is the thing a buyer sees first.
+#
+# Runs the same stage four ways so the HUD argument is settled with numbers:
+# default HUD vs Clean HUD (F8), at desktop and at phone width.
+#
+# Counts are trusted; timings are not — CI renders via SwiftShader (AGENTS.md).
+
+on:
+  push:
+    branches: [ claude/peaceful-cannon-oqez4t ]
+    paths:
+      - 'tools/qa-usability.js'
+      - '.github/workflows/usability.yml'
+      - 'cinematic.js'
+      - 'hud.js'
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Stage index to measure'
+        default: '0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: usability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: 'desktop default HUD', vw: 1280, vh: 720,  clean: '0' }
+          - { label: 'desktop clean HUD',   vw: 1280, vh: 720,  clean: '1' }
+          - { label: 'phone default HUD',   vw: 390,  vh: 844,  clean: '0' }
+          - { label: 'phone clean HUD',     vw: 390,  vh: 844,  clean: '1' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Measure — ${{ matrix.label }}
+        env:
+          STAGE: ${{ github.event.inputs.stage || '0' }}
+          VW: ${{ matrix.vw }}
+          VH: ${{ matrix.vh }}
+          CLEAN_HUD: ${{ matrix.clean }}
+          PORT: '4933'
+          OUT: usability-out
+        run: node tools/qa-usability.js
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: usability-${{ matrix.vw }}x${{ matrix.vh }}-clean${{ matrix.clean }}
+          path: usability-out/
+          retention-days: 14
