@@ -74,7 +74,26 @@ jobs:
           OUT: showcase-out
           SHARD: m${{ matrix.label }}
           BUDGET_MS: '2400000'
-        run: node tools/capture-showcase.js
+        run: |
+          # An EXTERNAL kill, because an internal one cannot be trusted here.
+          # Jobs have hung inside chromium.launch() with both our own deadline
+          # and Playwright's internal launch timeout failing to fire — two
+          # independent timers that never fire means the node event loop is
+          # blocked, and no in-process guard survives that. `timeout` is a
+          # separate process, so it still fires.
+          set +e
+          timeout --signal=KILL 2100 node tools/capture-showcase.js
+          rc=$?
+          echo "exit=$rc"
+          if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+            echo "::warning::HUNG — killed externally at 2100s"
+          fi
+          n=$(ls showcase-out/*.jpg 2>/dev/null | wc -l)
+          echo "images captured: $n"
+          # Fail honestly on an empty shard. The upload runs on !cancelled(),
+          # so a partial shard still hands back what it got.
+          if [ "$n" -eq 0 ]; then echo "::error::no frames captured"; exit 1; fi
+          exit 0
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -108,7 +127,26 @@ jobs:
           OUT: showcase-out
           SHARD: w${{ matrix.wstart }}
           BUDGET_MS: '2400000'
-        run: node tools/capture-showcase.js
+        run: |
+          # An EXTERNAL kill, because an internal one cannot be trusted here.
+          # Jobs have hung inside chromium.launch() with both our own deadline
+          # and Playwright's internal launch timeout failing to fire — two
+          # independent timers that never fire means the node event loop is
+          # blocked, and no in-process guard survives that. `timeout` is a
+          # separate process, so it still fires.
+          set +e
+          timeout --signal=KILL 2100 node tools/capture-showcase.js
+          rc=$?
+          echo "exit=$rc"
+          if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+            echo "::warning::HUNG — killed externally at 2100s"
+          fi
+          n=$(ls showcase-out/*.jpg 2>/dev/null | wc -l)
+          echo "images captured: $n"
+          # Fail honestly on an empty shard. The upload runs on !cancelled(),
+          # so a partial shard still hands back what it got.
+          if [ "$n" -eq 0 ]; then echo "::error::no frames captured"; exit 1; fi
+          exit 0
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:

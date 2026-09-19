@@ -1,0 +1,61 @@
+name: Browser Smoke
+
+# Answers one question in under a minute: can a browser start on this runner?
+#
+# Capture and usability jobs have hung inside chromium.launch() for 24-59
+# minutes printing nothing, with BOTH a 120s deadline of ours and Playwright's
+# own 30s launch timeout failing to fire. Two independent timers that never
+# fire means the event loop is blocked, so nothing in-script can rescue it and
+# nothing about the GAME can be concluded — the browser never reached it.
+#
+# Five flag variants in parallel, each wrapped in a hard shell `timeout` so a
+# blocked Node loop cannot outlive its step, plus the runner's memory and disk
+# at launch time. Whichever variants pass tell the capture tools what to use.
+
+on:
+  push:
+    branches: [ claude/peaceful-cannon-oqez4t ]
+    paths:
+      - 'tools/browser-smoke.js'
+      - '.github/workflows/browser-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: flags=${{ matrix.flags }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        flags: [ current, noblocklist, angle, plain, bare ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Runner resources
+        run: |
+          echo "--- memory ---";  free -m
+          echo "--- cpus ---";    nproc
+          echo "--- disk ---";    df -h / /dev/shm || true
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Smoke — ${{ matrix.flags }}
+        env:
+          FLAGS: ${{ matrix.flags }}
+        # A hard external kill at 4 minutes. `timeout` is a separate process, so
+        # it still fires when the node process is wedged and its own timers are
+        # not running. Exit 124 means it was killed — reported, not swallowed.
+        run: |
+          set +e
+          timeout --signal=KILL 240 node tools/browser-smoke.js
+          rc=$?
+          echo "exit=$rc"
+          if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+            echo "::warning::variant ${{ matrix.flags }} HUNG — killed at 240s"
+          fi
+          echo "--- memory after ---"; free -m
+          exit 0

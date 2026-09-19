@@ -61,7 +61,19 @@ jobs:
           CLEAN_HUD: ${{ matrix.clean }}
           PORT: '4933'
           OUT: usability-out
-        run: node tools/qa-usability.js
+        run: |
+          # External kill — see showcase-gallery.yml. An in-process timeout
+          # cannot fire when the event loop is blocked, which is how these
+          # jobs have been failing.
+          set +e
+          timeout --signal=KILL 900 node tools/qa-usability.js
+          rc=$?
+          echo "exit=$rc"
+          if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+            echo "::warning::HUNG — killed externally at 900s"
+            exit 1
+          fi
+          exit $rc
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
