@@ -140,7 +140,13 @@ async function bringUp(attempt) {
   log('attempt ' + attempt + ': launching chromium');
   browser = await deadline(chromium.launch({
     headless: true,
-    args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--disable-dev-shm-usage', '--mute-audio', '--no-sandbox'],
+    // ANGLE over SwiftShader, NOT raw --use-gl=swiftshader. Measured, not
+      // guessed: with '--use-gl=swiftshader --ignore-gpu-blocklist' the game
+      // page deadlocks creating its WebGL context and the process hangs
+      // forever — no timeout fires, not ours and not Playwright's own. With
+      // ANGLE the identical page boots in 4.1s. A bare about:blank WebGL probe
+      // passes on BOTH, so only the real context exposes it.
+      args: ['--use-gl=angle', '--use-angle=swiftshader', '--disable-dev-shm-usage', '--mute-audio', '--no-sandbox'],
   }), 120000, 'chromium.launch');
   log('browser up');
 

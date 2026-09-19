@@ -63,6 +63,15 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
 
 ## Facts about the environments (hard-won; do not re-learn these)
 
+- **Launch headless Chromium with `--use-gl=angle --use-angle=swiftshader`,
+  never `--use-gl=swiftshader`.** With the raw GL passthrough (and
+  `--ignore-gpu-blocklist`) the game page deadlocks while creating its WebGL
+  context: the process hangs indefinitely and NO timeout fires — not
+  Playwright's own 30s launch timeout, not an explicit deadline around the
+  call. With ANGLE the identical page boots in 4.1s. This cost several CI jobs
+  an hour each, silently, and three wrong diagnoses. Note a bare `about:blank`
+  WebGL probe passes on BOTH flag sets, so only loading the real game exposes
+  it — `tools/browser-smoke.js` (MODE=blank|server|game) is the bisect harness.
 - GitHub CI runners and Claude's cloud container render via **SwiftShader**
   (software rasterizer, confirmed from the renderer string). Frame-time numbers
   from those environments are meaningless — observed 34–62x spread on identical
