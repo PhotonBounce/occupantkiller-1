@@ -129,6 +129,10 @@ server.listen(PORT, async () => {
       const centreArea = cw * ch;
 
       const panels = [];
+      // Positioned elements that are visible but paint nothing — transparent
+      // effect layers. Reported so the number stays honest about what was
+      // excluded rather than quietly dropping them.
+      let layersOnly = 0;
       document.querySelectorAll('body *').forEach(el => {
         let cs; try { cs = getComputedStyle(el); } catch (e) { return; }
         if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.05) return;
@@ -140,7 +144,39 @@ server.listen(PORT, async () => {
         // Report leaf-ish panels only: a wrapper and its child would otherwise
         // both count and double the coverage figure.
         const text = (el.innerText || '').trim().replace(/\s+/g, ' ');
-        if (el.children.length > 0 && !text) return;
+        // Count only elements that actually PAINT something.
+        //
+        // The first version of this counted any positioned element carrying
+        // text, and reported 100% coverage with 0% of the centre clear. That
+        // was the metric's fault, not the game's: innerText on a container
+        // returns all of its descendants' text, so full-viewport transparent
+        // layers — #hud, #hitMarkerContainer, #flash-overlay, #damage-numbers,
+        // #hit-indicators, #radar-pulse-flash — each counted as a panel
+        // covering the entire screen. They cover nothing; they are empty
+        // layers waiting for a hit marker or a damage number.
+        //
+        // An element is painted if it has a visible background, a background
+        // image, a border, a shadow, or text of its OWN (direct text-node
+        // children, not inherited from descendants).
+        let ownText = '';
+        for (let n = 0; n < el.childNodes.length; n++) {
+          if (el.childNodes[n].nodeType === 3) ownText += el.childNodes[n].nodeValue;
+        }
+        ownText = ownText.trim();
+        let bgAlpha = 0;
+        const bgm = (cs.backgroundColor || '').match(/rgba?\(([^)]+)\)/);
+        if (bgm) {
+          const parts = bgm[1].split(',').map(function (x) { return parseFloat(x); });
+          bgAlpha = parts.length > 3 ? parts[3] : 1;
+        }
+        const hasBorder = ['borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth']
+          .some(function (k) { return parseFloat(cs[k]) > 0; });
+        const isPainted = bgAlpha > 0.02
+          || (cs.backgroundImage && cs.backgroundImage !== 'none')
+          || hasBorder
+          || (cs.boxShadow && cs.boxShadow !== 'none')
+          || ownText.length > 0;
+        if (!isPainted) { layersOnly++; return; }
         panels.push({
           id: el.id || null,
           cls: (typeof el.className === 'string' && el.className) ? el.className.split(' ')[0] : null,
@@ -199,6 +235,7 @@ server.listen(PORT, async () => {
         hudCoveragePct: +(covered / (GX * GY) * 100).toFixed(1),
         centreClearPct: +(100 - (centreCovered / Math.max(1, centreCells) * 100)).toFixed(1),
         panelCount: panels.length,
+        transparentLayers: layersOnly,
         overlaps, nanOnScreen, tinyText, engine,
         biggest: panels.slice().sort((a, b) => b.pct - a.pct).slice(0, 15),
         panels,
@@ -229,7 +266,7 @@ server.listen(PORT, async () => {
     log('USABILITY — stage ' + STAGE + (CLEAN_HUD ? ' (CLEAN HUD)' : ' (default HUD)') + ' @ ' + rep.viewport.vw + 'x' + rep.viewport.vh);
     log('  HUD covers          ' + rep.hudCoveragePct + '% of the screen');
     log('  centre box clear    ' + rep.centreClearPct + '%   (where the player aims)');
-    log('  visible panels      ' + rep.panelCount);
+    log('  painted panels      ' + rep.panelCount + '   (+ ' + rep.transparentLayers + ' transparent effect layers, not counted)');
     log('  overlapping pairs   ' + rep.overlaps);
     log('  NaN/undefined shown ' + rep.nanOnScreen.length);
     rep.nanOnScreen.forEach(n => log('      ! ' + (n.id || '?') + '  "' + n.text + '"'));
