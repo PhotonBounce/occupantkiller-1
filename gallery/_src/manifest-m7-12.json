@@ -2,7 +2,603 @@
  "shard": "m7-12",
  "mode": "stage",
  "stage": 0,
- "stageName": null,
- "shots": [],
+ "stageName": "BATTLE OF KYIV",
+ "shots": [
+  {
+   "file": "stage-007-outer-moscow-f000.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 0,
+   "tSec": 0,
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+  },
+  {
+   "file": "stage-007-outer-moscow-f001.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 1,
+   "tSec": 5,
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+  },
+  {
+   "file": "stage-007-outer-moscow-f002.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 2,
+   "tSec": 10,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 86
+  },
+  {
+   "file": "stage-007-outer-moscow-f003.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 3,
+   "tSec": 15,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 85
+  },
+  {
+   "file": "stage-007-outer-moscow-f004.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 4,
+   "tSec": 20,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 84
+  },
+  {
+   "file": "stage-007-outer-moscow-f005.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 5,
+   "tSec": 25,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 83
+  },
+  {
+   "file": "stage-007-outer-moscow-f006.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 6,
+   "tSec": 30,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 82
+  },
+  {
+   "file": "stage-007-outer-moscow-f007.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 7,
+   "tSec": 35,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 83
+  },
+  {
+   "file": "stage-007-outer-moscow-f008.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 8,
+   "tSec": 40,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 82
+  },
+  {
+   "file": "stage-007-outer-moscow-f009.jpg",
+   "kind": "stage",
+   "stage": 7,
+   "stageName": "OUTER MOSCOW",
+   "frame": 9,
+   "tSec": 45,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 82
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f000.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 0,
+   "tSec": 0,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 80
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f001.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 1,
+   "tSec": 5,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 16
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f002.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 2,
+   "tSec": 10,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 90
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f003.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 3,
+   "tSec": 15,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 91
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f004.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 4,
+   "tSec": 20,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 92
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f005.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 5,
+   "tSec": 25,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 92
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f006.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 6,
+   "tSec": 30,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 91
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f007.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 7,
+   "tSec": 35,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 90
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f008.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 8,
+   "tSec": 40,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 90
+  },
+  {
+   "file": "stage-008-sevastopol-naval-base-f009.jpg",
+   "kind": "stage",
+   "stage": 8,
+   "stageName": "SEVASTOPOL NAVAL BASE",
+   "frame": 9,
+   "tSec": 45,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 90
+  },
+  {
+   "file": "stage-009-donbas-final-push-f000.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 0,
+   "tSec": 0,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 91
+  },
+  {
+   "file": "stage-009-donbas-final-push-f001.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 1,
+   "tSec": 5,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 24
+  },
+  {
+   "file": "stage-009-donbas-final-push-f002.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 2,
+   "tSec": 10,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 98
+  },
+  {
+   "file": "stage-009-donbas-final-push-f003.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 3,
+   "tSec": 15,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 98
+  },
+  {
+   "file": "stage-009-donbas-final-push-f004.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 4,
+   "tSec": 20,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 99
+  },
+  {
+   "file": "stage-009-donbas-final-push-f005.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 5,
+   "tSec": 25,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 99
+  },
+  {
+   "file": "stage-009-donbas-final-push-f006.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 6,
+   "tSec": 30,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 101
+  },
+  {
+   "file": "stage-009-donbas-final-push-f007.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 7,
+   "tSec": 35,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 100
+  },
+  {
+   "file": "stage-009-donbas-final-push-f008.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 8,
+   "tSec": 40,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 101
+  },
+  {
+   "file": "stage-009-donbas-final-push-f009.jpg",
+   "kind": "stage",
+   "stage": 9,
+   "stageName": "DONBAS FINAL PUSH",
+   "frame": 9,
+   "tSec": 45,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 102
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f000.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 0,
+   "tSec": 0,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 103
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f001.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 1,
+   "tSec": 5,
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f002.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 2,
+   "tSec": 10,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 96
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f003.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 3,
+   "tSec": 15,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 96
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f004.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 4,
+   "tSec": 20,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 97
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f005.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 5,
+   "tSec": 25,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 96
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f006.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 6,
+   "tSec": 30,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 96
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f007.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 7,
+   "tSec": 35,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 97
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f008.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 8,
+   "tSec": 40,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 98
+  },
+  {
+   "file": "stage-010-belgorod-offensive-f009.jpg",
+   "kind": "stage",
+   "stage": 10,
+   "stageName": "BELGOROD OFFENSIVE",
+   "frame": 9,
+   "tSec": 45,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 96
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f000.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 0,
+   "tSec": 0,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 95
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f001.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 1,
+   "tSec": 5,
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f002.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 2,
+   "tSec": 10,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 115
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f003.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 3,
+   "tSec": 15,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 115
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f004.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 4,
+   "tSec": 20,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 116
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f005.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 5,
+   "tSec": 25,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 116
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f006.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 6,
+   "tSec": 30,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 116
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f007.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 7,
+   "tSec": 35,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 117
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f008.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 8,
+   "tSec": 40,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 116
+  },
+  {
+   "file": "stage-011-kremlin-showdown-f009.jpg",
+   "kind": "stage",
+   "stage": 11,
+   "stageName": "KREMLIN SHOWDOWN",
+   "frame": 9,
+   "tSec": 45,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 115
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f000.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 0,
+   "tSec": 0,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 115
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f001.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 1,
+   "tSec": 5,
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f002.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 2,
+   "tSec": 10,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 108
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f003.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 3,
+   "tSec": 15,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 107
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f004.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 4,
+   "tSec": 20,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 108
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f005.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 5,
+   "tSec": 25,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 106
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f006.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 6,
+   "tSec": 30,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 105
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f007.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 7,
+   "tSec": 35,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 103
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f008.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 8,
+   "tSec": 40,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 94
+  },
+  {
+   "file": "stage-012-battle-of-kyiv-f009.jpg",
+   "kind": "stage",
+   "stage": 12,
+   "stageName": "BATTLE OF KYIV",
+   "frame": 9,
+   "tSec": 45,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 87
+  }
+ ],
  "pageErrors": []
 }
