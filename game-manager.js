@@ -1994,6 +1994,10 @@ const GameManager = (function () {
     // defers its AudioContext until a user gesture, so this is safe to start
     // here and cannot trip the autoplay stall documented in AGENTS.md.
     try { if (window.AmbientZones && AmbientZones.init) AmbientZones.init(); } catch (e) {}
+    // enemy-voices.js is loaded and, like the ambience, was never called from
+    // anywhere — 1 reference in the whole repo, its own definition. Enemies
+    // have had callouts written for them the entire time and never used them.
+    try { if (window.EnemyVoices && EnemyVoices.init) EnemyVoices.init(_camera); } catch (e) {}
     try { if (window.ClusterBomb && ClusterBomb.init) ClusterBomb.init(_scene, _camera); } catch (e) {}
     try { if (window.TacticalMinimap && TacticalMinimap.init) TacticalMinimap.init(_scene, _camera); } catch (e) {}
     try { if (window.KillFeedEvents && KillFeedEvents.init) KillFeedEvents.init(); } catch (e) {}
@@ -10292,6 +10296,15 @@ const GameManager = (function () {
       if (window.ObjectiveSystem) { try { ObjectiveSystem.update(delta); } catch (_e) {} }
       // Spatial ambience needs a per-frame tick to cross-fade between zones.
       if (window.AmbientZones) { try { AmbientZones.update(delta); } catch (_e) {} }
+      // Enemy callouts. Needs the live enemy list and the player position; it
+      // rate-limits itself internally.
+      if (window.EnemyVoices && EnemyVoices.update) {
+        try {
+          EnemyVoices.update(delta,
+            (typeof Enemies !== 'undefined' && Enemies.getAll) ? Enemies.getAll() : null,
+            player && player.position);
+        } catch (_e) {}
+      }
       if (window.ClusterBomb) { try { ClusterBomb.update(delta); } catch (_e) {} }
       if (window.TacticalMinimap) { try { TacticalMinimap.update(delta); } catch (_e) {} }
       if (window.KillFeedEvents) { try { KillFeedEvents.update(delta); } catch (_e) {} }
