@@ -222,8 +222,17 @@ window.WeatherEffects = (function () {
   // ─── HUD ─────────────────────────────────────────────────────────────────
   function buildHUD() {
     if (typeof document === 'undefined') return;
+    // Distinct id: this collided with the one weather-system.js creates, so
+    // two different modules were fighting over #weather-hud. Hidden by
+    // default — weather-system.js already shows the canonical readout, and
+    // four separate weather displays (this, weather-system, dynamic-weather,
+    // weather-gameplay) is an accident of four modules each adding one, not a
+    // design. Set window.__showWeatherFxHud = true to bring it back.
+    hudEl = document.getElementById('weather-fx-hud');
+    if (hudEl) return;
     hudEl = document.createElement('div');
-    hudEl.id = 'weather-hud';
+    hudEl.id = 'weather-fx-hud';
+    if (!window.__showWeatherFxHud) hudEl.style.display = 'none';
     hudEl.style.position      = 'fixed';
     hudEl.style.top           = '12px';
     hudEl.style.left          = '50%';

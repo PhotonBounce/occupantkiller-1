@@ -814,6 +814,12 @@ window.WeatherSystem = (function () {
   function _createHUD() {
     if (typeof document === 'undefined') return;
 
+    // Reuse rather than stack. Nothing here guarded against an existing
+    // element, so every re-init added another copy — a live capture found
+    // THREE #weather-hud elements on screen at once (a duplicate id, which is
+    // invalid, and three identical readouts drawn on top of each other).
+    _hudEl = document.getElementById('weather-hud');
+    if (_hudEl) return;
     _hudEl = document.createElement('div');
     _hudEl.id = 'weather-hud';
     _hudEl.style.cssText = [
