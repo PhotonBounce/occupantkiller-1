@@ -722,25 +722,27 @@
         <section class="start-section start-section-wide">
           <div class="start-section-title">🗺 SELECT MAP</div>
           <div id="map-select" class="start-section-row" style="flex-wrap:wrap;gap:6px">
-            <button class="btn pill map-btn active-map" data-stage="0"  style="border-color:#0af;color:#0af">✈ HOSTOMEL</button>
-            <button class="btn pill map-btn"            data-stage="12" style="border-color:#888;color:#888">🏛 KYIV</button>
-            <button class="btn pill map-btn"            data-stage="1"  style="border-color:#888;color:#888">🔥 AVDIIVKA</button>
-            <button class="btn pill map-btn"            data-stage="2"  style="border-color:#888;color:#888">💀 BAKHMUT</button>
-            <button class="btn pill map-btn"            data-stage="4"  style="border-color:#888;color:#888">⚙ MARIUPOL</button>
-            <button class="btn pill map-btn"            data-stage="5"  style="border-color:#888;color:#888">🌊 CRIMEA</button>
-            <button class="btn pill map-btn"            data-stage="6"  style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
-            <button class="btn pill map-btn"            data-stage="3"  style="border-color:#888;color:#888">🚤 KHERSON</button>
-            <button class="btn pill map-btn"            data-stage="7"  style="border-color:#888;color:#888">🏙 OUTER MOSCOW</button>
-            <button class="btn pill map-btn"            data-stage="8"  style="border-color:#888;color:#888">⚓ SEVASTOPOL</button>
-            <button class="btn pill map-btn"            data-stage="9"  style="border-color:#888;color:#888">🏭 DONBAS</button>
-            <button class="btn pill map-btn"            data-stage="10" style="border-color:#888;color:#888">🌾 BELGOROD</button>
-            <button class="btn pill map-btn"            data-stage="11" style="border-color:#888;color:#888">⭐ KREMLIN</button>
-            <button class="btn pill map-btn"            data-stage="13" style="border-color:#888;color:#888">🐍 SNAKE ISLAND</button>
-            <button class="btn pill map-btn"            data-stage="14" style="border-color:#888;color:#888">✈ SAKY AIRBASE</button>
-            <button class="btn pill map-btn"            data-stage="15" style="border-color:#888;color:#888">🛢 VUHLEDAR</button>
-            <button class="btn pill map-btn"            data-stage="16" style="border-color:#888;color:#888">🌉 ANTONOV BRIDGE</button>
-            <button class="btn pill map-btn"            data-stage="17" style="border-color:#888;color:#888">🚁 REFINERY (DRONE)</button>
-            <button class="btn pill map-btn"            data-stage="18" style="border-color:#888;color:#888">🎯 BRADLEY DUEL</button>
+            <div class="map-group-label" style="flex-basis:100%;margin:6px 0 2px;font-size:11px;letter-spacing:.14em;color:#7f8a72">CAMPAIGN · 12 MISSIONS · HOSTOMEL → KREMLIN</div>
+            <button class="btn pill map-btn active-map" data-stage="0" style="border-color:#0af;color:#0af">✈ HOSTOMEL</button>
+            <button class="btn pill map-btn" data-stage="1" style="border-color:#888;color:#888">🔥 AVDIIVKA</button>
+            <button class="btn pill map-btn" data-stage="2" style="border-color:#888;color:#888">💀 BAKHMUT</button>
+            <button class="btn pill map-btn" data-stage="3" style="border-color:#888;color:#888">🚤 KHERSON</button>
+            <button class="btn pill map-btn" data-stage="4" style="border-color:#888;color:#888">⚙ MARIUPOL</button>
+            <button class="btn pill map-btn" data-stage="5" style="border-color:#888;color:#888">🌊 CRIMEA</button>
+            <button class="btn pill map-btn" data-stage="6" style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
+            <button class="btn pill map-btn" data-stage="7" style="border-color:#888;color:#888">🏙 OUTER MOSCOW</button>
+            <button class="btn pill map-btn" data-stage="8" style="border-color:#888;color:#888">⚓ SEVASTOPOL</button>
+            <button class="btn pill map-btn" data-stage="9" style="border-color:#888;color:#888">🏭 DONBAS</button>
+            <button class="btn pill map-btn" data-stage="10" style="border-color:#888;color:#888">🌾 BELGOROD</button>
+            <button class="btn pill map-btn" data-stage="11" style="border-color:#888;color:#888">⭐ KREMLIN</button>
+            <div class="map-group-label" style="flex-basis:100%;margin:6px 0 2px;font-size:11px;letter-spacing:.14em;color:#7f8a72">OPERATIONS · STANDALONE SET PIECES</div>
+            <button class="btn pill map-btn" data-stage="12" style="border-color:#888;color:#888">🏛 KYIV</button>
+            <button class="btn pill map-btn" data-stage="13" style="border-color:#888;color:#888">🐍 SNAKE ISLAND</button>
+            <button class="btn pill map-btn" data-stage="14" style="border-color:#888;color:#888">✈ SAKY AIRBASE</button>
+            <button class="btn pill map-btn" data-stage="15" style="border-color:#888;color:#888">🛢 VUHLEDAR</button>
+            <button class="btn pill map-btn" data-stage="16" style="border-color:#888;color:#888">🌉 ANTONOV BRIDGE</button>
+            <button class="btn pill map-btn" data-stage="17" style="border-color:#888;color:#888">🚁 REFINERY (DRONE)</button>
+            <button class="btn pill map-btn" data-stage="18" style="border-color:#888;color:#888">🎯 BRADLEY DUEL</button>
           </div>
           <p id="map-desc" class="start-section-desc">Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
         </section>
@@ -963,11 +965,11 @@
 
   <!-- Win screen -->
   <div id="overlay-win" class="overlay" style="display:none">
-    <h1>VICTORY!</h1>
-    <p>All stages cleared. All occupants eliminated.</p>
+    <h1 id="win-title">VICTORY!</h1>
+    <p id="win-sub">All stages cleared. All occupants eliminated.</p>
     <p class="stat">FINAL SCORE: <span id="win-score">0</span></p>
     <p class="stat">TOTAL KILLS: <span id="win-kills">0</span></p>
-    <p class="stat">STAGES COMPLETED: <span id="win-stages">18</span></p>
+    <p class="stat">MISSIONS COMPLETED: <span id="win-stages">12</span></p>
     <button class="btn" id="play-again-btn">PLAY AGAIN</button>
   </div>
 

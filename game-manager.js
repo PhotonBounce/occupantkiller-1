@@ -838,6 +838,7 @@ const GameManager = (function () {
     },
     {
       id:           13,
+      block:        'operation',
       name:         'BATTLE OF KYIV',
       levelId:      'KYIV',
       theme:        'urban',
@@ -856,6 +857,7 @@ const GameManager = (function () {
     },
     {
       id:           14,
+      block:        'operation',
       name:         'SNAKE ISLAND DEFENSE',
       levelId:      'SNAKE',
       theme:        'coastal',
@@ -872,6 +874,7 @@ const GameManager = (function () {
     },
     {
       id:           15,
+      block:        'operation',
       name:         'SAKY AIRBASE STRIKE',
       levelId:      'SAKY',
       theme:        'coastal',
@@ -888,6 +891,7 @@ const GameManager = (function () {
     },
     {
       id:           16,
+      block:        'operation',
       name:         'VUHLEDAR TANK GRAVEYARD',
       levelId:      'VUHLEDAR',
       theme:        'wasteland',
@@ -906,6 +910,7 @@ const GameManager = (function () {
     {
       hintWeapons:  ['SV-98 Precision Sniper Rifle','Barrett M82','SVD Dragunov'],
       id:           17,
+      block:        'operation',
       name:         'ANTONOV BRIDGE STRIKE',
       levelId:      'ANTONOV',
       theme:        'urban',
@@ -921,6 +926,7 @@ const GameManager = (function () {
     },
     {
       id:           18,
+      block:        'operation',
       name:         'REFINERY STRIKE — FPV DRONE',
       theme:        'industrial',
       wavesPerStage: 1,
@@ -936,6 +942,7 @@ const GameManager = (function () {
     },
     {
       id:           19,
+      block:        'operation',
       name:         'BRADLEY DUEL — STEPOVE',
       theme:        'snowfield',
       wavesPerStage: 1,
@@ -951,6 +958,26 @@ const GameManager = (function () {
       objective:    'Gun the Bradley. Kill its optics with 25mm, shred the tracks, break the crew — then finish the wreck.',
     },
   ];
+
+  // The campaign is the first block of stages; the rest are standalone
+  // operations reachable from the menu.
+  //
+  // These are not a campaign that loses its nerve — they are set pieces added
+  // later (Snake Island, the Antonov bridge, the FPV refinery strike, the
+  // Stepove Bradley duel) and tuned as one-offs at difficulty 1.4-2.0. Chaining
+  // them onto the end of a curve that climbs 0.8 -> 5.0 meant the player hit
+  // KREMLIN SHOWDOWN — "Final assault. Maximum difficulty." — as mission 12 of
+  // 19 and then played seven missions easier than mission 5. The campaign
+  // peaked in the middle and trailed off, which is the single clearest reason
+  // it did not feel finished.
+  //
+  // Re-tuning them up was the wrong fix: difficulty multiplies enemy HP, speed
+  // AND reinforcement count, so 5.0 is already punishing and 6.0 on a mission
+  // designed for 1.7 would not be a climax, just unfair. They are good missions
+  // at the difficulty they were built for. So the campaign now ENDS at its
+  // climax, and these stand on their own where their tuning makes sense.
+  const CAMPAIGN_COUNT = STAGES.filter(function (st) { return st.block !== 'operation'; }).length;
+
 
   // Per-stage mission template. Previously every stage except Hostomel (id 1) and
   // Kyiv (capitalDefense) drew from one level-agnostic random pool, so Avdiivka,
@@ -6025,15 +6052,31 @@ const GameManager = (function () {
     hideOverlays();
     if (window._shopCountdownId) { clearInterval(window._shopCountdownId); window._shopCountdownId = null; }
     try {
+    // An operation is a single mission, not a link in a chain: finishing one
+    // used to advance into whatever stage happened to sit at the next index.
+    var _finished = STAGES[currentStage];
+    var _wasOperation = !!(_finished && _finished.block === 'operation');
     currentStage++;
-    if (currentStage >= STAGES.length) {
-      // All stages done — win! Show prestige prompt then win screen.
+    if (_wasOperation || currentStage >= CAMPAIGN_COUNT) {
+      // Campaign complete at its climax, or a standalone operation finished.
       gameState = STATE.WIN;
       showOverlay('win');
       var _ws = document.getElementById('win-score');  if (_ws) _ws.textContent = player.score;
       var _wk = document.getElementById('win-kills');  if (_wk) _wk.textContent = player.kills;
-      var _wst = document.getElementById('win-stages'); if (_wst) _wst.textContent = STAGES.length;
-      showPrestigePrompt();
+      var _wst = document.getElementById('win-stages'); if (_wst) _wst.textContent = _wasOperation ? 1 : CAMPAIGN_COUNT;
+      var _wt = document.getElementById('win-title');
+      var _wsub = document.getElementById('win-sub');
+      if (_wasOperation) {
+        if (_wt) _wt.textContent = 'OPERATION COMPLETE';
+        if (_wsub) _wsub.textContent = (_finished.name || 'Operation') + ' — objective met.';
+      } else {
+        if (_wt) _wt.textContent = 'CAMPAIGN COMPLETE';
+        if (_wsub) _wsub.textContent = 'Hostomel to the Kremlin. ' + CAMPAIGN_COUNT +
+          ' missions cleared — and ' + (STAGES.length - CAMPAIGN_COUNT) +
+          ' standalone operations waiting in the menu.';
+      }
+      // Prestige belongs to finishing the campaign, not to clearing a one-off.
+      if (!_wasOperation) showPrestigePrompt();
       return;
     }
 
