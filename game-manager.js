@@ -1987,6 +1987,13 @@ const GameManager = (function () {
     try { if (window.MountedTurret && MountedTurret.init) MountedTurret.init(_scene, _camera); } catch (e) {}
     try { if (window.DynamicWeather && DynamicWeather.init) DynamicWeather.init(_scene); } catch (e) {}
     try { if (window.ObjectiveSystem && ObjectiveSystem.init) ObjectiveSystem.init(_scene, _camera); } catch (e) {}
+    // ambient-zones.js is 715 lines of spatial ambience — wind, urban, indoor,
+    // underground, water, fire and combat beds that cross-fade as the player
+    // moves — and nothing outside that file ever called it. It was loaded and
+    // inert, so the game ran in silence apart from weapons and music. It
+    // defers its AudioContext until a user gesture, so this is safe to start
+    // here and cannot trip the autoplay stall documented in AGENTS.md.
+    try { if (window.AmbientZones && AmbientZones.init) AmbientZones.init(); } catch (e) {}
     try { if (window.ClusterBomb && ClusterBomb.init) ClusterBomb.init(_scene, _camera); } catch (e) {}
     try { if (window.TacticalMinimap && TacticalMinimap.init) TacticalMinimap.init(_scene, _camera); } catch (e) {}
     try { if (window.KillFeedEvents && KillFeedEvents.init) KillFeedEvents.init(); } catch (e) {}
@@ -5827,6 +5834,11 @@ const GameManager = (function () {
     if (window.SurrenderSystem && SurrenderSystem.clear) SurrenderSystem.clear();
     if (window.SuppressionSystem && SuppressionSystem.reset) SuppressionSystem.reset();
     window.VoxelWorld.generateLevel(stageDef.levelId || stageIndex);
+    // Tell the ambience which world it is in, so a naval base sounds different
+    // from a steelworks interior.
+    try {
+      if (window.AmbientZones && AmbientZones.setLevel) AmbientZones.setLevel(stageDef.levelId);
+    } catch (e) {}
     // A fresh level builds fresh PBR materials, so the tier's downgrade has to
     // run again here — otherwise it only ever applied to whatever was standing
     // at the moment the frame rate first collapsed.
@@ -10278,6 +10290,8 @@ const GameManager = (function () {
       if (window.MountedTurret) { try { MountedTurret.update(delta); } catch (_e) {} }
       if (window.DynamicWeather) { try { DynamicWeather.update(delta); } catch (_e) {} }
       if (window.ObjectiveSystem) { try { ObjectiveSystem.update(delta); } catch (_e) {} }
+      // Spatial ambience needs a per-frame tick to cross-fade between zones.
+      if (window.AmbientZones) { try { AmbientZones.update(delta); } catch (_e) {} }
       if (window.ClusterBomb) { try { ClusterBomb.update(delta); } catch (_e) {} }
       if (window.TacticalMinimap) { try { TacticalMinimap.update(delta); } catch (_e) {} }
       if (window.KillFeedEvents) { try { KillFeedEvents.update(delta); } catch (_e) {} }

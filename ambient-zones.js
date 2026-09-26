@@ -536,7 +536,26 @@ window.AmbientZones = (function () {
   }
 
   // Per-level base zone assignment
+  // Every level the campaign and the operations actually use. Only MOSCOW,
+  // KREMLIN, BELGOROD, FOREST* and TUNNEL* were listed, so 15 of the game's 18
+  // levels fell through to no base zone and would have played silent even once
+  // this module was driven.
   var _LEVEL_ZONES = {
+    'HOSTOMEL':   OUTDOOR_OPEN,    // airfield, open ground
+    'AVDIIVKA':   OUTDOOR_URBAN,   // coking plant, industrial ruins
+    'BAKHMUT':    OUTDOOR_URBAN,   // city ruins
+    'KHERSON':    WATER_NEARBY,    // the Dnipro crossing
+    'MARIUPOL':   INDOOR_LARGE,    // steelworks interior
+    'CRIMEA':     WATER_NEARBY,    // Kerch strait bridge
+    'CHORNOBYL':  OUTDOOR_OPEN,    // exclusion zone
+    'SEVASTOPOL': WATER_NEARBY,    // naval base
+    'DONBAS':     OUTDOOR_URBAN,
+    'KYIV':       OUTDOOR_URBAN,
+    'SNAKE':      WATER_NEARBY,    // island under naval bombardment
+    'SAKY':       OUTDOOR_OPEN,    // airbase
+    'VUHLEDAR':   OUTDOOR_OPEN,    // tank graveyard, open steppe
+    'ANTONOV':    WATER_NEARBY,    // river bridge
+    'TREELINE':   OUTDOOR_OPEN,    // snowfield at Stepove
     'MOSCOW':     OUTDOOR_URBAN,
     'KREMLIN':    OUTDOOR_URBAN,
     'BELGOROD':   OUTDOOR_URBAN,
