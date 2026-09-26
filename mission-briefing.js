@@ -246,6 +246,25 @@ window.MissionBriefing = (function() {
     };
   }
 
+  function _briefingFromStage() {
+    try {
+      var gm = window.GameManager;
+      var info = gm && gm.getCurrentStageInfo && gm.getCurrentStageInfo();
+      if (!info || !info.name || !info.objective) return null;
+      var intel = [];
+      if (info.description) intel.push(info.description);
+      if (info.wavesPerStage) intel.push(info.wavesPerStage + ' wave' + (info.wavesPerStage === 1 ? '' : 's') + ' expected');
+      if (info.hintWeapons && info.hintWeapons.length) intel.push('Recommended: ' + info.hintWeapons.join(', '));
+      if (!intel.length) return null;
+      return {
+        name: info.name,
+        objective: info.objective,
+        intel: intel,
+        threats: DEFAULT_BRIEFING.threats
+      };
+    } catch (e) { return null; }
+  }
+
   // ── Public: show ─────────────────────────────────────────────────────────────
   function show(levelId, onComplete) {
     _injectStyles();
@@ -258,7 +277,13 @@ window.MissionBriefing = (function() {
     }
 
     var key = (levelId || '').toString().toUpperCase();
-    var data = BRIEFINGS[key] || DEFAULT_BRIEFING;
+    // BRIEFINGS only covers KYIV, KHARKIV, KREMLIN and FINAL_SIEGE — and two of
+    // those are not levels in this game. Seventeen of nineteen missions would
+    // have opened on "CLASSIFIED OPERATION · Eliminate all enemy combatants",
+    // which reads cheaper than no briefing at all. Every stage already carries
+    // a real name, objective, description and suggested loadout, so build the
+    // briefing from those and keep the hand-written ones where they exist.
+    var data = BRIEFINGS[key] || _briefingFromStage() || DEFAULT_BRIEFING;
     _onComplete = onComplete || null;
     _deployShown = false;
     _intelDone = false;

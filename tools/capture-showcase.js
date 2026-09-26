@@ -228,6 +228,9 @@ async function bringUpWithRetry() {
 // because startGame() resets the loadout and the HUD along with the world.
 async function enterStage(stage) {
   await deadline(pg.evaluate((s) => {
+    // Unattended: the mission briefing waits for Enter or a click, so the
+    // capture must declare itself before starting a stage.
+    window.__QA_MODE = true;
     window.__chosenStartStage = s;
     try { GameManager.startGame(); } catch (e) { window.__startErr = String(e); }
   }, stage), 240000, 'startGame stage ' + stage);

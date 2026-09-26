@@ -1998,6 +1998,7 @@ const GameManager = (function () {
     // anywhere — 1 reference in the whole repo, its own definition. Enemies
     // have had callouts written for them the entire time and never used them.
     try { if (window.EnemyVoices && EnemyVoices.init) EnemyVoices.init(_camera); } catch (e) {}
+    try { if (window.MissionBriefing && MissionBriefing.init) MissionBriefing.init(); } catch (e) {}
     try { if (window.ClusterBomb && ClusterBomb.init) ClusterBomb.init(_scene, _camera); } catch (e) {}
     try { if (window.TacticalMinimap && TacticalMinimap.init) TacticalMinimap.init(_scene, _camera); } catch (e) {}
     try { if (window.KillFeedEvents && KillFeedEvents.init) KillFeedEvents.init(); } catch (e) {}
@@ -5842,6 +5843,18 @@ const GameManager = (function () {
     // from a steelworks interior.
     try {
       if (window.AmbientZones && AmbientZones.setLevel) AmbientZones.setLevel(stageDef.levelId);
+    } catch (e) {}
+    // Mission briefing. mission-briefing.js was another module nothing ever
+    // called, so missions simply began with no framing at all.
+    //
+    // Skipped under __QA_MODE: the briefing waits for Enter or a click (its
+    // 3s "safety timeout" only reveals the deploy prompt, it does not dismiss
+    // itself), so an unattended capture or probe would sit on it forever. The
+    // game keeps running behind the overlay, so this does not gate play.
+    try {
+      if (!window.__QA_MODE && window.MissionBriefing && MissionBriefing.show) {
+        MissionBriefing.show(stageDef.levelId);
+      }
     } catch (e) {}
     // A fresh level builds fresh PBR materials, so the tier's downgrade has to
     // run again here — otherwise it only ever applied to whatever was standing
@@ -14311,7 +14324,8 @@ const GameManager = (function () {
       return d ? {
         id: d.id, name: d.name, levelId: d.levelId, season: d.season || null,
         block: d.block || 'campaign', objectiveTypes: d.objectiveTypes || null,
-        objective: d.objective || null, wavesPerStage: d.wavesPerStage || null
+        objective: d.objective || null, wavesPerStage: d.wavesPerStage || null,
+        description: d.description || null, hintWeapons: d.hintWeapons || null
       } : null;
     },
 
