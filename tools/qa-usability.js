@@ -311,8 +311,16 @@ server.listen(PORT, async () => {
     log('  boot to playable    ' + (rep.bootMs / 1000).toFixed(1) + 's   (SwiftShader — indicative only)');
     log('  engine              ' + JSON.stringify(rep.engine));
     log('');
-    log('  biggest panels:');
-    rep.biggest.forEach(p => log('    ' + String(p.pct).padStart(6) + '%  ' + ('#' + (p.id || p.cls || '?')).padEnd(28) + (p.text ? '"' + p.text.slice(0, 44) + '"' : '')));
+    // Every painted panel, not just the biggest. Deciding which of ~88 panels
+    // a player actually needs mid-fight cannot be done from a top-15 list, and
+    // hiding the wrong one (a wave counter, an objective) is worse than a busy
+    // screen. This is the list that decision gets made from.
+    log('  all painted panels (' + rep.panels.length + '):');
+    rep.panels.slice().sort((a, b) => b.pct - a.pct).forEach(p => log(
+      '    ' + String(p.pct).padStart(6) + '%  ' +
+      (String(p.w) + 'x' + String(p.h)).padStart(9) + '  ' +
+      ('#' + (p.id || ('.' + p.cls) || '?')).padEnd(30) +
+      (p.text ? '"' + p.text.slice(0, 40) + '"' : '')));
     log('');
     // Verdicts, not gates. A human decides what is acceptable; this just says
     // plainly when a number is bad enough to hurt the game commercially.
