@@ -425,7 +425,15 @@
     <button id="mute-btn" style="position:fixed;top:4px;left:84px;background:rgba(0,0,0,0.55);border:1px solid rgba(120,255,180,0.55);color:#7fffaa;padding:2px 8px;border-radius:4px;font-size:13px;font-family:monospace;z-index:240;cursor:pointer" title="Mute / unmute all audio">🔊</button>
 
     <!-- In-game God Mode toggle (always visible) -->
-    <button id="hud-god-mode-btn" style="position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">⚡ GOD</button>
+    <!-- Hidden during normal play. A permanently visible "all weapons +
+         invincible" button on the HUD undoes every bit of progression and
+         difficulty the campaign builds, one mis-tap away, and tells anyone
+         evaluating the game that they are looking at a dev build. God mode
+         itself is untouched and still reachable three other ways: the start
+         screen button, the pause menu, and Ctrl+Shift+G. Add ?diag=1 to put
+         this back on the HUD for QA, the same switch the render-health
+         diagnostic uses. -->
+    <button id="hud-god-mode-btn" style="display:none;position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">⚡ GOD</button>
 
     <!-- Jukebox (MP3 + Procedural) -->
     <button id="jukebox-btn" style="position:fixed;top:4px;right:224px;background:rgba(0,0,0,0.5);border:1px solid rgba(0,90,255,0.5);color:#ffd500;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #005abd" title="Jukebox — Game Music (J key)">🎵 JUKEBOX</button>
@@ -2248,6 +2256,13 @@ document.addEventListener('DOMContentLoaded', function () {
     GameManager.toggleGodMode();
     updateGodModeButtons();
   });
+  // QA keeps the on-screen toggle with ?diag=1; players do not see it.
+  try {
+    if (/[?&]diag=1\b/.test(location.search)) {
+      var _gdiag = document.getElementById('hud-god-mode-btn');
+      if (_gdiag) _gdiag.style.display = '';
+    }
+  } catch (e) {}
   var _hudGod = document.getElementById('hud-god-mode-btn');
   if (_hudGod) _hudGod.addEventListener('click', function (e) {
     e.stopPropagation();
