@@ -20,7 +20,8 @@
    "stageName": "SNAKE ISLAND DEFENSE",
    "frame": 1,
    "tSec": 5,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 117
   },
   {
    "file": "stage-013-snake-island-defense-f002.jpg",
@@ -30,7 +31,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 117
+   "enemies": 116
   },
   {
    "file": "stage-013-snake-island-defense-f003.jpg",
@@ -40,7 +41,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 113
+   "enemies": 115
   },
   {
    "file": "stage-013-snake-island-defense-f004.jpg",
@@ -50,7 +51,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 112
+   "enemies": 115
   },
   {
    "file": "stage-013-snake-island-defense-f005.jpg",
@@ -80,7 +81,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 87
   },
   {
    "file": "stage-013-snake-island-defense-f008.jpg",
@@ -90,7 +91,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 95
+   "enemies": 85
   },
   {
    "file": "stage-013-snake-island-defense-f009.jpg",
@@ -100,7 +101,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 82
   },
   {
    "file": "stage-014-saky-airbase-strike-f000.jpg",
@@ -110,7 +111,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 78
+   "enemies": 73
   },
   {
    "file": "stage-014-saky-airbase-strike-f001.jpg",
@@ -120,7 +121,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 14
+   "enemies": 15
   },
   {
    "file": "stage-014-saky-airbase-strike-f002.jpg",
@@ -130,7 +131,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 126
+   "enemies": 120
   },
   {
    "file": "stage-014-saky-airbase-strike-f003.jpg",
@@ -140,7 +141,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 124
+   "enemies": 120
   },
   {
    "file": "stage-014-saky-airbase-strike-f004.jpg",
@@ -150,7 +151,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 122
+   "enemies": 119
   },
   {
    "file": "stage-014-saky-airbase-strike-f005.jpg",
@@ -160,7 +161,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 122
+   "enemies": 118
   },
   {
    "file": "stage-014-saky-airbase-strike-f006.jpg",
@@ -170,7 +171,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 121
+   "enemies": 115
   },
   {
    "file": "stage-014-saky-airbase-strike-f007.jpg",
@@ -180,7 +181,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 120
+   "enemies": 115
   },
   {
    "file": "stage-014-saky-airbase-strike-f008.jpg",
@@ -190,7 +191,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 116
+   "enemies": 111
   },
   {
    "file": "stage-014-saky-airbase-strike-f009.jpg",
@@ -200,7 +201,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 114
+   "enemies": 107
   },
   {
    "file": "stage-015-vuhledar-tank-graveyard-f000.jpg",
@@ -210,7 +211,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 107
+   "enemies": 96
   },
   {
    "file": "stage-015-vuhledar-tank-graveyard-f001.jpg",
@@ -220,7 +221,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 18
+   "enemies": 23
   },
   {
    "file": "stage-015-vuhledar-tank-graveyard-f002.jpg",
@@ -230,7 +231,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 144
+   "enemies": 139
   },
   {
    "file": "stage-015-vuhledar-tank-graveyard-f003.jpg",
@@ -240,7 +241,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 142
+   "enemies": 140
   },
   {
    "file": "stage-015-vuhledar-tank-graveyard-f004.jpg",
@@ -250,7 +251,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 143
+   "enemies": 141
   },
   {
    "file": "stage-015-vuhledar-tank-graveyard-f005.jpg",
@@ -260,7 +261,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 141
+   "enemies": 142
   },
   {
    "file": "stage-015-vuhledar-tank-graveyard-f006.jpg",
@@ -280,7 +281,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 141
+   "enemies": 140
   },
   {
    "file": "stage-015-vuhledar-tank-graveyard-f008.jpg",
@@ -300,7 +301,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 141
+   "enemies": 140
   },
   {
    "file": "stage-016-antonov-bridge-strike-f000.jpg",
@@ -309,8 +310,7 @@
    "stageName": "ANTONOV BRIDGE STRIKE",
    "frame": 0,
    "tSec": 0,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 140
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "stage-016-antonov-bridge-strike-f001.jpg",
@@ -319,7 +319,8 @@
    "stageName": "ANTONOV BRIDGE STRIKE",
    "frame": 1,
    "tSec": 5,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 137
   },
   {
    "file": "stage-016-antonov-bridge-strike-f002.jpg",
@@ -329,7 +330,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 140
+   "enemies": 135
   },
   {
    "file": "stage-016-antonov-bridge-strike-f003.jpg",
@@ -339,7 +340,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 140
+   "enemies": 133
   },
   {
    "file": "stage-016-antonov-bridge-strike-f004.jpg",
@@ -349,7 +350,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 141
+   "enemies": 131
   },
   {
    "file": "stage-016-antonov-bridge-strike-f005.jpg",
@@ -359,7 +360,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 139
+   "enemies": 130
   },
   {
    "file": "stage-016-antonov-bridge-strike-f006.jpg",
@@ -369,7 +370,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 136
+   "enemies": 128
   },
   {
    "file": "stage-016-antonov-bridge-strike-f007.jpg",
@@ -379,7 +380,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 136
+   "enemies": 123
   },
   {
    "file": "stage-016-antonov-bridge-strike-f008.jpg",
@@ -389,7 +390,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 132
+   "enemies": 117
   },
   {
    "file": "stage-016-antonov-bridge-strike-f009.jpg",
@@ -399,7 +400,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 128
+   "enemies": 108
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f000.jpg",
@@ -408,8 +409,7 @@
    "stageName": "REFINERY STRIKE — FPV DRONE",
    "frame": 0,
    "tSec": 0,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 119
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f001.jpg",
@@ -418,7 +418,8 @@
    "stageName": "REFINERY STRIKE — FPV DRONE",
    "frame": 1,
    "tSec": 5,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 21
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f002.jpg",
@@ -428,7 +429,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 22
+   "enemies": 21
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f003.jpg",
@@ -438,7 +439,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 21
+   "enemies": 20
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f004.jpg",
@@ -448,7 +449,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 21
+   "enemies": 19
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f005.jpg",
@@ -458,7 +459,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 21
+   "enemies": 19
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f006.jpg",
@@ -468,7 +469,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 20
+   "enemies": 18
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f007.jpg",
@@ -478,7 +479,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 20
+   "enemies": 18
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f008.jpg",
@@ -488,7 +489,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 20
+   "enemies": 18
   },
   {
    "file": "stage-017-refinery-strike-fpv-drone-f009.jpg",
@@ -498,7 +499,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 19
+   "enemies": 16
   },
   {
    "file": "stage-018-bradley-duel-stepove-f000.jpg",
@@ -508,7 +509,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 17
+   "enemies": 15
   },
   {
    "file": "stage-018-bradley-duel-stepove-f001.jpg",
@@ -518,7 +519,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 17
+   "enemies": 15
   },
   {
    "file": "stage-018-bradley-duel-stepove-f002.jpg",
@@ -528,7 +529,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 16
+   "enemies": 14
   },
   {
    "file": "stage-018-bradley-duel-stepove-f003.jpg",
@@ -538,7 +539,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 16
+   "enemies": 14
   },
   {
    "file": "stage-018-bradley-duel-stepove-f004.jpg",
@@ -548,7 +549,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 16
+   "enemies": 14
   },
   {
    "file": "stage-018-bradley-duel-stepove-f005.jpg",
@@ -557,8 +558,7 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 5,
    "tSec": 25,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 16
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "stage-018-bradley-duel-stepove-f006.jpg",
@@ -567,8 +567,7 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 6,
    "tSec": 30,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 15
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "stage-018-bradley-duel-stepove-f007.jpg",
@@ -577,8 +576,7 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 7,
    "tSec": 35,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 14
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "stage-018-bradley-duel-stepove-f008.jpg",
@@ -587,8 +585,7 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 8,
    "tSec": 40,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 14
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "stage-018-bradley-duel-stepove-f009.jpg",
@@ -597,8 +594,7 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 9,
    "tSec": 45,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 14
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   }
  ],
  "pageErrors": [

@@ -29,7 +29,7 @@
    "weapon": "Makarov PM",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 38
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "wpn-003-ak-74m.jpg",
@@ -38,7 +38,7 @@
    "weapon": "AK-74M",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 36
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "wpn-004-rpk-74.jpg",
@@ -47,7 +47,7 @@
    "weapon": "RPK-74",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 30
+   "enemies": 39
   },
   {
    "file": "wpn-005-svd-dragunov.jpg",
@@ -56,7 +56,7 @@
    "weapon": "SVD Dragunov",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 28
+   "enemies": 33
   },
   {
    "file": "wpn-006-pkm.jpg",
@@ -65,7 +65,7 @@
    "weapon": "PKM",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 28
+   "enemies": 27
   },
   {
    "file": "wpn-007-nlaw.jpg",
@@ -74,7 +74,7 @@
    "weapon": "NLAW",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 26
+   "enemies": 24
   },
   {
    "file": "wpn-008-stugna-p.jpg",
@@ -83,7 +83,7 @@
    "weapon": "Stugna-P",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 25
+   "enemies": 24
   },
   {
    "file": "wpn-009-m4a1.jpg",
@@ -92,7 +92,7 @@
    "weapon": "M4A1",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 25
+   "enemies": 23
   },
   {
    "file": "wpn-010-fgm-148-javelin.jpg",
@@ -101,7 +101,7 @@
    "weapon": "FGM-148 Javelin",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 20
+   "enemies": 19
   },
   {
    "file": "wpn-011-rpg-7.jpg",
@@ -110,7 +110,7 @@
    "weapon": "RPG-7",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 20
+   "enemies": 19
   },
   {
    "file": "wpn-012-igla-manpads.jpg",
@@ -119,7 +119,7 @@
    "weapon": "Igla MANPADS",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 18
+   "enemies": 19
   },
   {
    "file": "wpn-013-gp-25-grenade-launcher.jpg",
@@ -128,7 +128,7 @@
    "weapon": "GP-25 Grenade Launcher",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 18
+   "enemies": 14
   },
   {
    "file": "wpn-014-fn-scar-h.jpg",
@@ -137,7 +137,7 @@
    "weapon": "FN SCAR-H",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 17
+   "enemies": 14
   },
   {
    "file": "wpn-015-dshk.jpg",
@@ -146,7 +146,7 @@
    "weapon": "DShK",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 17
+   "enemies": 14
   },
   {
    "file": "wpn-016-molotov-cocktail.jpg",
@@ -155,7 +155,7 @@
    "weapon": "Molotov Cocktail",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 16
+   "enemies": 13
   },
   {
    "file": "wpn-017-mg3-machine-gun.jpg",
@@ -164,7 +164,7 @@
    "weapon": "MG3 Machine Gun",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 15
+   "enemies": 12
   },
   {
    "file": "wpn-018-mp5-smg.jpg",
@@ -173,7 +173,7 @@
    "weapon": "MP5 SMG",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 15
+   "enemies": 12
   },
   {
    "file": "wpn-019-barrett-m82.jpg",
@@ -182,7 +182,7 @@
    "weapon": "Barrett M82",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 11
   },
   {
    "file": "wpn-020-m134-minigun.jpg",
@@ -191,7 +191,7 @@
    "weapon": "M134 Minigun",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 11
   },
   {
    "file": "wpn-021-tactical-crossbow.jpg",
@@ -200,7 +200,7 @@
    "weapon": "Tactical Crossbow",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 15
+   "enemies": 10
   },
   {
    "file": "wpn-022-rpo-a-shmel.jpg",
@@ -209,7 +209,7 @@
    "weapon": "RPO-A Shmel",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 9
   },
   {
    "file": "wpn-023-izh-43-shotgun.jpg",
@@ -218,7 +218,7 @@
    "weapon": "IZH-43 Shotgun",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 12
+   "enemies": 10
   },
   {
    "file": "wpn-024-m18-claymore-mine.jpg",
@@ -227,7 +227,7 @@
    "weapon": "M18 Claymore Mine",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 11
+   "enemies": 17
   },
   {
    "file": "wpn-025-smoke-grenade.jpg",
@@ -236,7 +236,7 @@
    "weapon": "Smoke Grenade",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 11
+   "enemies": 17
   },
   {
    "file": "wpn-026-m84-flashbang.jpg",
@@ -245,7 +245,7 @@
    "weapon": "M84 Flashbang",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 10
+   "enemies": 16
   },
   {
    "file": "wpn-027-ak-12.jpg",
@@ -254,7 +254,7 @@
    "weapon": "AK-12",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 9
+   "enemies": 13
   },
   {
    "file": "wpn-028-fn-p90.jpg",
@@ -263,7 +263,7 @@
    "weapon": "FN P90",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 9
+   "enemies": 12
   },
   {
    "file": "wpn-029-at4-launcher.jpg",
@@ -272,7 +272,7 @@
    "weapon": "AT4 Launcher",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 9
+   "enemies": 11
   },
   {
    "file": "wpn-030-glock-17.jpg",
@@ -281,7 +281,7 @@
    "weapon": "Glock 17",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 9
+   "enemies": 10
   },
   {
    "file": "wpn-031-ks-23-shotgun.jpg",
@@ -290,7 +290,7 @@
    "weapon": "KS-23 Shotgun",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 7
+   "enemies": 10
   },
   {
    "file": "wpn-032-ags-17-grenade-mg.jpg",
@@ -299,7 +299,7 @@
    "weapon": "AGS-17 Grenade MG",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 8
+   "enemies": 9
   },
   {
    "file": "wpn-033-vss-vintorez.jpg",
@@ -308,7 +308,7 @@
    "weapon": "VSS Vintorez",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 7
+   "enemies": 8
   },
   {
    "file": "wpn-034-fim-92-stinger.jpg",
@@ -317,7 +317,7 @@
    "weapon": "FIM-92 Stinger",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 7
+   "enemies": 8
   },
   {
    "file": "wpn-035-throwing-knife.jpg",
@@ -326,7 +326,7 @@
    "weapon": "Throwing Knife",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 5
+   "enemies": 8
   },
   {
    "file": "wpn-036-c4-explosive.jpg",
@@ -335,7 +335,7 @@
    "weapon": "C4 Explosive",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 4
+   "enemies": 8
   },
   {
    "file": "wpn-037-drone-jammer-rifle.jpg",
@@ -344,7 +344,7 @@
    "weapon": "Drone Jammer Rifle",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 16
+   "enemies": 6
   },
   {
    "file": "wpn-038-combat-axe.jpg",
@@ -353,7 +353,7 @@
    "weapon": "Combat Axe",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 16
+   "enemies": 7
   },
   {
    "file": "wpn-039-aks-74u-krinkov.jpg",
@@ -362,7 +362,7 @@
    "weapon": "AKS-74U (Krinkov)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 16
+   "enemies": 6
   },
   {
    "file": "wpn-040-m72-law.jpg",
@@ -371,7 +371,7 @@
    "weapon": "M72 LAW",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 16
+   "enemies": 6
   },
   {
    "file": "wpn-041-panzerfaust-3.jpg",
@@ -380,7 +380,7 @@
    "weapon": "Panzerfaust 3",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 15
+   "enemies": 4
   },
   {
    "file": "wpn-042-nsv-utyes-12-7mm.jpg",
@@ -389,7 +389,7 @@
    "weapon": "NSV/Utyes 12.7mm",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 4
   },
   {
    "file": "wpn-043-fort-500-ukrainian.jpg",
@@ -398,7 +398,7 @@
    "weapon": "Fort-500 (Ukrainian)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 15
   },
   {
    "file": "wpn-044-malyuk-vulcan-bullpup.jpg",
@@ -407,7 +407,7 @@
    "weapon": "Malyuk (Vulcan) Bullpup",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 13
   },
   {
    "file": "wpn-045-carl-gustaf-m3-maaws.jpg",
@@ -416,7 +416,7 @@
    "weapon": "Carl Gustaf M3 (MAAWS)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "wpn-046-m240b-gpmg-7-62mm.jpg",
@@ -425,7 +425,7 @@
    "weapon": "M240B GPMG (7.62mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "wpn-047-pkp-pecheneg-7-62mm-mg.jpg",
@@ -434,7 +434,7 @@
    "weapon": "PKP Pecheneg (7.62mm MG)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "wpn-048-spg-9-kopye-73mm.jpg",
@@ -443,7 +443,7 @@
    "weapon": "SPG-9 Kopye (73mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "wpn-049-hk416-a5.jpg",
@@ -452,7 +452,7 @@
    "weapon": "HK416 A5",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "wpn-050-rgd-5-frag-grenade.jpg",
@@ -533,7 +533,7 @@
    "weapon": "9M133 Kornet ATGM",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 21
   },
   {
    "file": "wpn-059-rpg-26-aglen-disposable.jpg",
@@ -542,7 +542,7 @@
    "weapon": "RPG-26 Aglen (disposable)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 21
   },
   {
    "file": "wpn-060-m142-himars-gmlrs-strike.jpg",
@@ -551,7 +551,7 @@
    "weapon": "M142 HIMARS (GMLRS Strike)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 21
   },
   {
    "file": "wpn-061-f-1-limonka-grenade.jpg",
@@ -560,7 +560,7 @@
    "weapon": "F-1 \"Limonka\" Grenade",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 19
+   "enemies": 13
   },
   {
    "file": "wpn-062-maxim-m1910-7-62mm.jpg",
@@ -569,7 +569,7 @@
    "weapon": "Maxim M1910 (7.62mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 19
+   "enemies": 13
   }
  ],
  "pageErrors": []
