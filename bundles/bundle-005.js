@@ -752,7 +752,6 @@ window.HotZones = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail hot-zones.js",_e&&_e.message); }
 /* === enemy-snipers.js === */
@@ -1322,7 +1321,6 @@ window.EnemySnipers = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-snipers.js",_e&&_e.message); }
 /* === body-drag.js === */
@@ -2136,7 +2134,6 @@ window.BodyDrag = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail body-drag.js",_e&&_e.message); }
 /* === killstreak-rewards.js === */
@@ -2346,7 +2343,6 @@ window.KillstreakRewards = (function() {
 
   return { init: init, update: update, onKill: onKill, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail killstreak-rewards.js",_e&&_e.message); }
 /* === zipline-system.js === */
@@ -2822,7 +2818,6 @@ window.ZiplineSystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail zipline-system.js",_e&&_e.message); }
 /* === night-vision-gen3.js === */
@@ -3272,7 +3267,6 @@ window.NightVisionGen3 = (function() {
     createBatteryPickupMesh: createBatteryPickupMesh
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail night-vision-gen3.js",_e&&_e.message); }
 /* === field-ration.js === */
@@ -3939,7 +3933,6 @@ window.FieldRation = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail field-ration.js",_e&&_e.message); }
 /* === knife-kill.js === */
@@ -4541,7 +4534,6 @@ window.KnifeKill = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail knife-kill.js",_e&&_e.message); }
 /* === achievement-system.js === */
@@ -4941,7 +4933,6 @@ window.AchievementSystem = (function() {
 
   return { init: init, check: check, unlock: unlock, showAll: showAll, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail achievement-system.js",_e&&_e.message); }
 /* === enemy-dogs.js === */
@@ -5393,7 +5384,6 @@ window.EnemyDogs = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-dogs.js",_e&&_e.message); }
 /* === bipod-system.js === */
@@ -5770,7 +5760,6 @@ window.BipodSystem = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail bipod-system.js",_e&&_e.message); }
 /* === laser-sight.js === */
@@ -6200,7 +6189,6 @@ window.LaserSight = (function() {
     isEnabled:           function() { return _enabled; }
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail laser-sight.js",_e&&_e.message); }
 /* === footstep-audio.js === */
@@ -6489,7 +6477,6 @@ window.FootstepAudio = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail footstep-audio.js",_e&&_e.message); }
 /* === killcam-system.js === */
@@ -6958,7 +6945,6 @@ window.KillcamSystem = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail killcam-system.js",_e&&_e.message); }
 /* === hit-indicators.js === */
@@ -7313,7 +7299,6 @@ window.HitIndicators = (function () {
     reset: reset
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail hit-indicators.js",_e&&_e.message); }
 /* === riot-shield-enemy.js === */
@@ -7671,7 +7656,6 @@ window.RiotShieldEnemy = (function() {
 
   return { init: init, update: update, spawnRiotShield: spawnRiotShield, reset: reset, takeDamage: takeDamage };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail riot-shield-enemy.js",_e&&_e.message); }
 /* === dodge-roll.js === */
@@ -8230,7 +8214,6 @@ window.DodgeRoll = (function () {
 
   return { init: init, update: update, roll: roll, reset: reset };
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail dodge-roll.js",_e&&_e.message); }
 /* === burning-system.js === */
@@ -8806,7 +8789,6 @@ window.BurningSystem = (function () {
     reset: reset
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail burning-system.js",_e&&_e.message); }
 /* === camouflage-system.js === */
@@ -9461,7 +9443,6 @@ window.CamouflageSystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail camouflage-system.js",_e&&_e.message); }
 /* === weapon-degradation.js === */
@@ -9751,7 +9732,6 @@ window.WeaponDegradation = (function () {
 
   return { init: init, update: update, onShot: onShot, clearJam: clearJam, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail weapon-degradation.js",_e&&_e.message); }
 /* === mortar-deploy.js === */
@@ -9802,7 +9782,6 @@ window.MortarDeploy = (function () {
   function reset(){_exitFDC(true);var i;for(i=0;i<_shells.length;i++){if(_scene&&_shells[i].mesh)_scene.remove(_shells[i].mesh);}_shells=[];if(_scene&&_mortarGroup)_scene.remove(_mortarGroup);_mortarGroup=null;_tubemesh=null;_baseplate=null;_bipod1=null;_bipod2=null;for(i=0;i<_rangeRings.length;i++){if(_scene)_scene.remove(_rangeRings[i]);}_rangeRings=[];if(_scene&&_groundPlane)_scene.remove(_groundPlane);if(_scene&&_cursorMesh)_scene.remove(_cursorMesh);for(i=0;i<_previewDots.length;i++){if(_scene)_scene.remove(_previewDots[i]);}_previewDots=[];_groundPlane=null;_cursorMesh=null;if(_fdcHud&&_fdcHud.parentNode)_fdcHud.parentNode.removeChild(_fdcHud);_fdcHud=null;_fdcAmmoEl=null;_fdcWindEl=null;_fdcGridCanvas=null;_fdcFireLabel=null;if(_boundKeyDown)window.removeEventListener('keydown',_boundKeyDown,true);if(_boundKeyUp)window.removeEventListener('keyup',_boundKeyUp,false);if(_boundMouseMove)window.removeEventListener('mousemove',_boundMouseMove,false);if(_boundClick)window.removeEventListener('mousedown',_boundClick,false);_boundKeyDown=_boundKeyUp=_boundMouseMove=_boundClick=null;_state='idle';_ammo=MAX_AMMO;_hp=MORTAR_HP;_mortarPos=null;_savedCamPos=null;_savedCamTarget=null;_fireCooldown=0;_setupTimer=0;_packTimer=0;window._mortarDeployed=false;window._mortarShells=0;}
   return{init:init,update:update,deploy:deploy,fire:fire,pack:pack,reset:reset,damage:damage};
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail mortar-deploy.js",_e&&_e.message); }
 /* === scorch-marks.js === */
@@ -10205,7 +10184,6 @@ window.ScorchMarks = (function () {
     reset: reset
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail scorch-marks.js",_e&&_e.message); }
 /* === enemy-helicopter.js === */
@@ -11274,7 +11252,6 @@ window.EnemyHelicopter = (function () {
 
   return { init: init, update: update, spawn: spawn, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-helicopter.js",_e&&_e.message); }
 /* === intel-overlay.js === */
@@ -11713,7 +11690,6 @@ window.IntelOverlay = (function () {
   return { init: init, open: open, close: close, toggle: toggle, isVisible: isVisible };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail intel-overlay.js",_e&&_e.message); }
 /* === intel-documents.js === */
@@ -12376,7 +12352,6 @@ window.IntelDocuments = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail intel-documents.js",_e&&_e.message); }
 /* === player-callouts.js === */
@@ -12538,7 +12513,6 @@ window.PlayerCallouts = (function() {
 
   return { init: init, update: update, callout: callout, toggle: toggle, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail player-callouts.js",_e&&_e.message); }
 /* === airdrop-system.js === */
@@ -13244,7 +13218,6 @@ window.AirdropSystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail airdrop-system.js",_e&&_e.message); }
 /* === deployable-turret.js === */
@@ -13801,7 +13774,6 @@ window.DeployableTurret = (function () {
 
   return { init: init, update: update, deploy: deploy, reset: reset, damageTurret: damageTurret, getTurretsForDamage: getTurretsForDamage };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail deployable-turret.js",_e&&_e.message); }
 /* === parachute-insert.js === */
@@ -14351,7 +14323,6 @@ window.ParachuteInsert = (function () {
 
   return { init: init, trigger: trigger, update: update, reset: reset };
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail parachute-insert.js",_e&&_e.message); }
 /* === parachute-drop.js === */
@@ -15380,7 +15351,6 @@ window.ParachuteDrop = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail parachute-drop.js",_e&&_e.message); }
 /* === lean-system.js === */
@@ -15563,7 +15533,6 @@ window.LeanSystem = (function () {
 
   return { init: init, update: update, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail lean-system.js",_e&&_e.message); }
 /* === vehicle-repair.js === */
@@ -16369,7 +16338,6 @@ window.VehicleRepair = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail vehicle-repair.js",_e&&_e.message); }
 /* === explosive-drone.js === */
@@ -16822,7 +16790,6 @@ window.ExplosiveDrone = (function () {
     getDrones:      function () { return _drones; },
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail explosive-drone.js",_e&&_e.message); }
 /* === wall-run.js === */
@@ -17111,7 +17078,6 @@ window.WallRun = (function () {
 
   return { init: init, update: update, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail wall-run.js",_e&&_e.message); }
 /* === sonar-pulse.js === */
@@ -17686,7 +17652,6 @@ window.SonarPulse = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail sonar-pulse.js",_e&&_e.message); }
 /* === grenade-cooking.js === */
@@ -18347,7 +18312,6 @@ window.GrenadeCooking = (function () {
     reset:              reset
   };
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail grenade-cooking.js",_e&&_e.message); }
 /* === decoy-grenade.js === */
@@ -18995,7 +18959,6 @@ window.DecoyGrenade = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail decoy-grenade.js",_e&&_e.message); }
 /* === flashlight-system.js === */
@@ -19445,7 +19408,6 @@ window.FlashlightSystem = (function () {
   return { init: init, update: update, toggle: toggle, reset: reset };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail flashlight-system.js",_e&&_e.message); }
 /* === ammo-crafter.js === */
@@ -20038,7 +20000,6 @@ window.AmmoCrafter = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail ammo-crafter.js",_e&&_e.message); }
 /* === silencer-system.js === */
@@ -20415,7 +20376,6 @@ window.SilencerSystem = (function () {
   return { init: init, update: update, attachSilencer: attachSilencer, detachSilencer: detachSilencer, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail silencer-system.js",_e&&_e.message); }
 /* === blood-moon.js === */
@@ -20801,7 +20761,6 @@ window.BloodMoon = (function() {
     getPlayerDamageMult: getPlayerDamageMult
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail blood-moon.js",_e&&_e.message); }
 /* === enemy-mortar-team.js === */
@@ -21625,7 +21584,6 @@ window.EnemyMortarTeam = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-mortar-team.js",_e&&_e.message); }
 /* === smart-cover.js === */
@@ -22115,7 +22073,6 @@ window.SmartCover = (function () {
     reset:  reset
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail smart-cover.js",_e&&_e.message); }
 /* === bullet-drop.js === */
@@ -22433,7 +22390,6 @@ window.BulletDrop = (function () {
   return { init: init, update: update, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail bullet-drop.js",_e&&_e.message); }
 /* === smoke-screen.js === */
@@ -22709,7 +22665,6 @@ window.SmokeScreen = (function() {
 
   return { init: init, update: update, throw: _throwGrenade, isInSmoke: _isInSmoke, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail smoke-screen.js",_e&&_e.message); }
 /* === enemy-ambush.js === */
@@ -23084,7 +23039,6 @@ window.EnemyAmbush = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-ambush.js",_e&&_e.message); }
 /* === ghost-decoy.js === */
@@ -23543,7 +23497,6 @@ window.GhostDecoy = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail ghost-decoy.js",_e&&_e.message); }
 /* === decoy-flare.js === */
@@ -24009,7 +23962,6 @@ window.DecoyFlare = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail decoy-flare.js",_e&&_e.message); }
 /* === rappel-system.js === */
@@ -24535,7 +24487,6 @@ window.RappelSystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail rappel-system.js",_e&&_e.message); }
 /* === rappelling-system.js === */
@@ -25300,7 +25251,6 @@ window.RappellingSystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail rappelling-system.js",_e&&_e.message); }
 /* === counter-uav.js === */
@@ -25835,7 +25785,6 @@ window.CounterUAV = (function () {
     reset:  reset
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail counter-uav.js",_e&&_e.message); }
 /* === bomb-defuse.js === */
@@ -26460,7 +26409,6 @@ window.BombDefuse = (function () {
   return { init: init, update: update, spawnBomb: spawnBomb, reset: reset };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail bomb-defuse.js",_e&&_e.message); }
 /* === destruction-scoring.js === */
@@ -26707,7 +26655,6 @@ window.DestructionScoring = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail destruction-scoring.js",_e&&_e.message); }
 /* === oxygen-system.js === */
@@ -27114,7 +27061,6 @@ window.OxygenSystem = (function () {
   return { init: init, update: update, reset: reset };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail oxygen-system.js",_e&&_e.message); }
 /* === rope-swing.js === */
@@ -27642,7 +27588,6 @@ window.RopeSwing = (function () {
     reset: reset,
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail rope-swing.js",_e&&_e.message); }
 /* === electric-trap.js === */
@@ -28094,7 +28039,6 @@ window.ElectricTrap = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail electric-trap.js",_e&&_e.message); }
 /* === map-events.js === */
@@ -28929,7 +28873,6 @@ window.MapEvents = (function () {
   /* ── public surface ──────────────────────────────────────────────────────── */
   return { init: init, update: update, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail map-events.js",_e&&_e.message); }
 /* === landmine-detector.js === */
@@ -29101,7 +29044,6 @@ window.LandmineDetector = (function() {
 
   return { init: init, update: update, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail landmine-detector.js",_e&&_e.message); }
 /* === tank-control.js === */
@@ -29515,7 +29457,6 @@ window.TankControl = (function() {
 
   return { init: init, update: update, damageTank: damageTank, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail tank-control.js",_e&&_e.message); }
 /* === buddy-ai.js === */
@@ -29968,7 +29909,6 @@ window.BuddyAI = (function () {
   return { init: init, update: update, spawn: spawn, reset: reset };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail buddy-ai.js",_e&&_e.message); }
 /* === lore-props.js === */
@@ -30851,7 +30791,6 @@ window.LoreProps = (function () {
   return { init: init, update: update, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail lore-props.js",_e&&_e.message); }
 /* === flashbang.js === */
@@ -31154,7 +31093,6 @@ window.Flashbang = (function() {
 
   return { init: init, update: update, throw: _throwGrenade, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail flashbang.js",_e&&_e.message); }
 /* === shield-powerup.js === */
@@ -31640,7 +31578,6 @@ window.ShieldPowerup = (function () {
     getShieldHP:  function () { return _shieldHP; }
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail shield-powerup.js",_e&&_e.message); }
 /* === lightning-storm.js === */
@@ -32081,7 +32018,6 @@ window.LightningStorm = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail lightning-storm.js",_e&&_e.message); }
 /* === suicide-bomber.js === */
@@ -32615,7 +32551,6 @@ window.SuicideBomber = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail suicide-bomber.js",_e&&_e.message); }
 /* === checkpoint-system.js === */
@@ -32975,7 +32910,6 @@ window.CheckpointSystem = (function () {
   return { init: init, update: update, save: save, restore: restore, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail checkpoint-system.js",_e&&_e.message); }
 /* === claymore-directional.js === */
@@ -33652,7 +33586,6 @@ window.ClaymoreDirectional = (function () {
     reset:       reset,
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail claymore-directional.js",_e&&_e.message); }
 /* === crowd-panic.js === */
@@ -33910,7 +33843,6 @@ window.CrowdPanic = (function() {
 
   return { init: init, update: update, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail crowd-panic.js",_e&&_e.message); }
 /* === earthquake-event.js === */
@@ -34134,7 +34066,6 @@ window.EarthquakeEvent = (function() {
 
   return { init: init, update: update, trigger: trigger, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail earthquake-event.js",_e&&_e.message); }
 /* === gravity-field.js === */
@@ -34719,7 +34650,6 @@ window.GravityField = (function () {
   return { init: init, update: update, activate: activate, reset: reset };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail gravity-field.js",_e&&_e.message); }
 /* === chemical-warfare.js === */
@@ -35421,7 +35351,6 @@ window.ChemicalWarfare = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail chemical-warfare.js",_e&&_e.message); }
 /* === adrenaline-shot.js === */
@@ -36213,7 +36142,6 @@ window.AdrenalineShot = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail adrenaline-shot.js",_e&&_e.message); }
 /* === enemy-stalker.js === */
@@ -36854,7 +36782,6 @@ window.EnemyStalker = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-stalker.js",_e&&_e.message); }
 /* === trophy-system.js === */
@@ -37630,7 +37557,6 @@ window.TrophySystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail trophy-system.js",_e&&_e.message); }
 /* === supply-run.js === */
@@ -38198,7 +38124,6 @@ window.SupplyRun = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail supply-run.js",_e&&_e.message); }
 /* === patrol-commander.js === */
@@ -38981,7 +38906,6 @@ window.PatrolCommander = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail patrol-commander.js",_e&&_e.message); }
 /* === recon-drone.js === */
@@ -39878,7 +39802,6 @@ window.ReconDrone = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail recon-drone.js",_e&&_e.message); }
 /* === base-fortify.js === */
@@ -40539,7 +40462,6 @@ window.BaseFortify = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail base-fortify.js",_e&&_e.message); }
 /* === prone-system.js === */
@@ -40838,7 +40760,6 @@ window.ProneSystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail prone-system.js",_e&&_e.message); }
 /* === hazard-acid.js === */
@@ -41323,7 +41244,6 @@ window.HazardAcid = (function () {
     checkBarrelHit: checkBarrelHit,
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail hazard-acid.js",_e&&_e.message); }
 /* === berserk-mode.js === */
@@ -41864,7 +41784,6 @@ window.BerserkMode = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail berserk-mode.js",_e&&_e.message); }
 /* === freeze-grenade.js === */
@@ -42513,7 +42432,6 @@ window.FreezeGrenade = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail freeze-grenade.js",_e&&_e.message); }
 /* === laser-fence.js === */
@@ -42990,7 +42908,6 @@ window.LaserFence = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail laser-fence.js",_e&&_e.message); }
 /* === orbital-strike.js === */
@@ -43561,7 +43478,6 @@ window.OrbitalStrike = (function () {
 
   return { init: init, update: update, call: call, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail orbital-strike.js",_e&&_e.message); }
 /* === wingsuit.js === */
@@ -43968,7 +43884,6 @@ window.Wingsuit = (function () {
     gravityMultiplier: gravityMultiplier,
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail wingsuit.js",_e&&_e.message); }
 /* === jump-pad.js === */
@@ -44349,7 +44264,6 @@ window.JumpPad = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail jump-pad.js",_e&&_e.message); }
 /* === poison-dart.js === */
@@ -44999,7 +44913,6 @@ window.PoisonDart = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail poison-dart.js",_e&&_e.message); }
 /* === chain-lightning.js === */
@@ -45392,7 +45305,6 @@ window.ChainLightning = (function () {
   return { init: init, update: update, activate: activate, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail chain-lightning.js",_e&&_e.message); }
 /* === riot-shield.js === */
@@ -45926,7 +45838,6 @@ window.RiotShield = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail riot-shield.js",_e&&_e.message); }
 /* === teleporter-pad.js === */
@@ -46437,7 +46348,6 @@ window.TeleporterPad = (function () {
     reset:  reset
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail teleporter-pad.js",_e&&_e.message); }
 /* === capture-the-flag.js === */
@@ -47041,7 +46951,6 @@ window.CaptureTheFlag = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail capture-the-flag.js",_e&&_e.message); }
 /* === enemy-medic-team.js === */
@@ -47848,7 +47757,6 @@ window.EnemyMedicTeam = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-medic-team.js",_e&&_e.message); }
 /* === enemy-medic-npc.js === */
@@ -48945,7 +48853,6 @@ window.EnemyMedicNPC = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-medic-npc.js",_e&&_e.message); }
 /* === sniper-nest.js === */
@@ -49839,7 +49746,6 @@ window.SniperNest = (function () {
   return { init: init, update: update, spawnNest: spawnNest, reset: reset };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail sniper-nest.js",_e&&_e.message); }
 /* === scatter-mine.js === */
@@ -50457,7 +50363,6 @@ window.ScatterMine = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail scatter-mine.js",_e&&_e.message); }
 /* === bullet-time.js === */
@@ -50901,7 +50806,6 @@ window.BulletTime = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail bullet-time.js",_e&&_e.message); }
 /* === bullet-cam.js === */
@@ -51385,7 +51289,6 @@ window.BulletCam = (function () {
         reset: reset
     };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail bullet-cam.js",_e&&_e.message); }
 /* === grapple-hook.js === */
@@ -52104,7 +52007,6 @@ window.GrappleHook = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail grapple-hook.js",_e&&_e.message); }
 /* === airdrop-supply.js === */
@@ -52816,7 +52718,6 @@ window.AirdropSupply = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail airdrop-supply.js",_e&&_e.message); }
 /* === nuke-strike.js === */
@@ -53201,7 +53102,6 @@ window.NukeStrike = (function() {
 
   return { init: init, update: update, launch: launch, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail nuke-strike.js",_e&&_e.message); }
 /* === enemy-hacker-drone.js === */
@@ -53752,7 +53652,6 @@ window.EnemyHackerDrone = (function () {
     takeDamage: takeDamage
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-hacker-drone.js",_e&&_e.message); }
 /* === enemy-shield-gen.js === */
@@ -54369,7 +54268,6 @@ window.EnemyShieldGen = (function () {
     takeDamage: takeDamage
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-shield-gen.js",_e&&_e.message); }
 /* === double-jump.js === */
@@ -54926,7 +54824,6 @@ window.DoubleJump = (function () {
     onLevelStart: onLevelStart
   };
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail double-jump.js",_e&&_e.message); }
 /* === stealth-cloak.js === */
@@ -55546,7 +55443,6 @@ window.StealthCloak = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail stealth-cloak.js",_e&&_e.message); }
 /* === auto-sentry.js === */
@@ -56235,7 +56131,6 @@ window.AutoSentry = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail auto-sentry.js",_e&&_e.message); }
 /* === hologram-decoy.js === */
@@ -56918,7 +56813,6 @@ window.HologramDecoy = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail hologram-decoy.js",_e&&_e.message); }
 /* === heat-vision.js === */
@@ -57309,7 +57203,6 @@ window.HeatVision = (function () {
   return { init: init, update: update, activate: activate, deactivate: deactivate, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail heat-vision.js",_e&&_e.message); }
 /* === mine-sweeper-tool.js === */
@@ -57929,7 +57822,6 @@ window.MineSweeperTool = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail mine-sweeper-tool.js",_e&&_e.message); }
 /* === enemy-berserker.js === */
@@ -58771,7 +58663,6 @@ window.EnemyBerserker = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-berserker.js",_e&&_e.message); }
 /* === enemy-sniper.js === */
@@ -59534,7 +59425,6 @@ window.EnemySniper = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-sniper.js",_e&&_e.message); }
 /* === economy-shop.js === */
@@ -59940,7 +59830,6 @@ window.EconomyShop = (function () {
     reset: reset
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail economy-shop.js",_e&&_e.message); }
 /* === rain-system.js === */
@@ -60465,7 +60354,6 @@ window.RainSystem = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail rain-system.js",_e&&_e.message); }
 /* === wind-physics.js === */
@@ -60905,7 +60793,6 @@ window.WindPhysics = (function () {
   };
 
 }());
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail wind-physics.js",_e&&_e.message); }
 /* === warcry-buff.js === */
@@ -61543,7 +61430,6 @@ window.WarcryBuff = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail warcry-buff.js",_e&&_e.message); }
 /* === air-support-radio.js === */
@@ -62416,7 +62302,6 @@ window.AirSupportRadio = (function () {
 
   return { init: init, update: update, call: call, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail air-support-radio.js",_e&&_e.message); }
 /* === plasma-rifle.js === */
@@ -63342,7 +63227,6 @@ window.PlasmaRifle = (function () {
 
   return { init: init, update: update, fire: fire, reset: reset };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail plasma-rifle.js",_e&&_e.message); }
 /* === medkit-station.js === */
@@ -64114,7 +63998,6 @@ window.MedkitStation = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail medkit-station.js",_e&&_e.message); }
 /* === minefield-area.js === */
@@ -64722,7 +64605,6 @@ window.MinefieldArea = (function () {
   return { init: init, update: update, deploy: deploy, reset: reset, getMines: getMines };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail minefield-area.js",_e&&_e.message); }
 /* === supply-cache.js === */
@@ -65396,7 +65278,6 @@ window.SupplyCache = (function () {
   return { init: init, update: update, reset: reset };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail supply-cache.js",_e&&_e.message); }
 /* === breaching-charge.js === */
@@ -66195,7 +66076,6 @@ window.BreachingCharge = (function () {
     reset:  reset,
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail breaching-charge.js",_e&&_e.message); }
 /* === enemy-engineer.js === */
@@ -67146,7 +67026,6 @@ window.EnemyEngineer = (function () {
   };
 
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail enemy-engineer.js",_e&&_e.message); }
 /* === headshot-system.js === */
@@ -67344,7 +67223,6 @@ window.HeadshotSystem = (function() {
 
   return { init: init, update: update, reset: reset, registerHeadshot: registerHeadshot, registerKill: registerKill, onBulletHit: onBulletHit, getStats: getStats };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail headshot-system.js",_e&&_e.message); }
 /* === combo-multiplier.js === */
@@ -67571,7 +67449,6 @@ window.ComboMultiplier = (function() {
 
   return { init: init, update: update, addKill: addKill, breakCombo: breakCombo, getMultiplier: getMultiplier, reset: reset, getStats: getStats };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail combo-multiplier.js",_e&&_e.message); }
 /* === time-bomb.js === */
@@ -68342,4 +68219,5 @@ window.TimeBomb = (function () {
     reset: reset,
   };
 })();
+;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail time-bomb.js",_e&&_e.message); }

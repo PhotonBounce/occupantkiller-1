@@ -1,5 +1,7 @@
 window.ReactorCore = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas2d, ctx2d;
   var reactor, controlRods, steamParticles, saboteurs, guards, scientists;
@@ -7,6 +9,8 @@ window.ReactorCore = (function() {
   var objectsToDispose;
 
   function init(containerId) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     objectsToDispose = [];
 
     // Setup 3D scene
@@ -448,7 +452,7 @@ window.ReactorCore = (function() {
     }
 
     // Render 3D
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
 
     // Render 2D HUD
     if (hudVisible) {

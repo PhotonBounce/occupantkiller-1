@@ -1,5 +1,7 @@
 window.AvalancheZone = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var objects = [];
@@ -13,6 +15,8 @@ window.AvalancheZone = (function() {
   var keyComboPendingTimeout = null;
 
   function init(containerId) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     canvas = document.getElementById(containerId);
 
     // Scene setup
@@ -663,7 +667,7 @@ window.AvalancheZone = (function() {
       }
     });
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function update() {

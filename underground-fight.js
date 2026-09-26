@@ -1,5 +1,7 @@
 window.UndergroundFight = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ── state ────────────────────────────────────────────────────────────────────
   var scene, camera, renderer, clock;
@@ -1692,11 +1694,13 @@ window.UndergroundFight = (function () {
     }
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ── INIT ─────────────────────────────────────────────────────────────────────
   function init(container) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     if (!container) container = document.body;
 
     renderer = new THREE.WebGLRenderer({ antialias: true });

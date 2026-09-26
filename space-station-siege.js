@@ -1,5 +1,7 @@
 window.SpaceStationSiege = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // ─── State ───────────────────────────────────────────────────────────────────
   var scene, camera, renderer, clock;
@@ -1326,7 +1328,7 @@ window.SpaceStationSiege = (function() {
       updateHUD(dt);
     }
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ─── Window Resize ────────────────────────────────────────────────────────────
@@ -1339,6 +1341,8 @@ window.SpaceStationSiege = (function() {
 
   // ─── Init ─────────────────────────────────────────────────────────────────────
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     container = document.createElement('div');
     container.id = 'sss-container';
     container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:50;';

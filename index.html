@@ -425,7 +425,15 @@
     <button id="mute-btn" style="position:fixed;top:4px;left:84px;background:rgba(0,0,0,0.55);border:1px solid rgba(120,255,180,0.55);color:#7fffaa;padding:2px 8px;border-radius:4px;font-size:13px;font-family:monospace;z-index:240;cursor:pointer" title="Mute / unmute all audio">🔊</button>
 
     <!-- In-game God Mode toggle (always visible) -->
-    <button id="hud-god-mode-btn" style="position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">⚡ GOD</button>
+    <!-- Hidden during normal play. A permanently visible "all weapons +
+         invincible" button on the HUD undoes every bit of progression and
+         difficulty the campaign builds, one mis-tap away, and tells anyone
+         evaluating the game that they are looking at a dev build. God mode
+         itself is untouched and still reachable three other ways: the start
+         screen button, the pause menu, and Ctrl+Shift+G. Add ?diag=1 to put
+         this back on the HUD for QA, the same switch the render-health
+         diagnostic uses. -->
+    <button id="hud-god-mode-btn" style="display:none;position:fixed;top:4px;right:148px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,0,0.5);color:#ff0;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #ff0" title="Toggle God Mode (all weapons + invincible)">⚡ GOD</button>
 
     <!-- Jukebox (MP3 + Procedural) -->
     <button id="jukebox-btn" style="position:fixed;top:4px;right:224px;background:rgba(0,0,0,0.5);border:1px solid rgba(0,90,255,0.5);color:#ffd500;padding:2px 10px;border-radius:4px;font-size:11px;font-family:monospace;z-index:210;cursor:pointer;text-shadow:0 0 6px #005abd" title="Jukebox — Game Music (J key)">🎵 JUKEBOX</button>
@@ -701,8 +709,9 @@
             <button class="btn pill start-drone-btn" data-drone="fpv_attack" style="border-color:#ff4444;color:#ff4444">🎯 FPV Attack</button>
             <button class="btn pill start-drone-btn" data-drone="surveillance" style="border-color:#00ccff;color:#00ccff">👁 Surveillance</button>
             <button class="btn pill start-drone-btn" data-drone="bomb" style="border-color:#ffaa00;color:#ffaa00">💣 Bomber</button>
+            <button class="btn pill start-drone-btn" data-drone="baba_yaga" style="border-color:#ff8800;color:#ff8800">🔥 Baba Yaga</button>
           </div>
-          <p id="start-drone-desc" class="start-section-desc">No drone — fight on foot (default).</p>
+          <p id="start-drone-desc" class="start-section-desc">Standard loadout — all four aircraft, balanced ammo.</p>
         </section>
 
         <section class="start-section start-section-wide">
@@ -721,25 +730,27 @@
         <section class="start-section start-section-wide">
           <div class="start-section-title">🗺 SELECT MAP</div>
           <div id="map-select" class="start-section-row" style="flex-wrap:wrap;gap:6px">
-            <button class="btn pill map-btn active-map" data-stage="0"  style="border-color:#0af;color:#0af">✈ HOSTOMEL</button>
-            <button class="btn pill map-btn"            data-stage="12" style="border-color:#888;color:#888">🏛 KYIV</button>
-            <button class="btn pill map-btn"            data-stage="1"  style="border-color:#888;color:#888">🔥 AVDIIVKA</button>
-            <button class="btn pill map-btn"            data-stage="2"  style="border-color:#888;color:#888">💀 BAKHMUT</button>
-            <button class="btn pill map-btn"            data-stage="4"  style="border-color:#888;color:#888">⚙ MARIUPOL</button>
-            <button class="btn pill map-btn"            data-stage="5"  style="border-color:#888;color:#888">🌊 CRIMEA</button>
-            <button class="btn pill map-btn"            data-stage="6"  style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
-            <button class="btn pill map-btn"            data-stage="3"  style="border-color:#888;color:#888">🚤 KHERSON</button>
-            <button class="btn pill map-btn"            data-stage="7"  style="border-color:#888;color:#888">🏙 OUTER MOSCOW</button>
-            <button class="btn pill map-btn"            data-stage="8"  style="border-color:#888;color:#888">⚓ SEVASTOPOL</button>
-            <button class="btn pill map-btn"            data-stage="9"  style="border-color:#888;color:#888">🏭 DONBAS</button>
-            <button class="btn pill map-btn"            data-stage="10" style="border-color:#888;color:#888">🌾 BELGOROD</button>
-            <button class="btn pill map-btn"            data-stage="11" style="border-color:#888;color:#888">⭐ KREMLIN</button>
-            <button class="btn pill map-btn"            data-stage="13" style="border-color:#888;color:#888">🐍 SNAKE ISLAND</button>
-            <button class="btn pill map-btn"            data-stage="14" style="border-color:#888;color:#888">✈ SAKY AIRBASE</button>
-            <button class="btn pill map-btn"            data-stage="15" style="border-color:#888;color:#888">🛢 VUHLEDAR</button>
-            <button class="btn pill map-btn"            data-stage="16" style="border-color:#888;color:#888">🌉 ANTONOV BRIDGE</button>
-            <button class="btn pill map-btn"            data-stage="17" style="border-color:#888;color:#888">🚁 REFINERY (DRONE)</button>
-            <button class="btn pill map-btn"            data-stage="18" style="border-color:#888;color:#888">🎯 BRADLEY DUEL</button>
+            <div class="map-group-label" style="flex-basis:100%;margin:6px 0 2px;font-size:11px;letter-spacing:.14em;color:#7f8a72">CAMPAIGN · 12 MISSIONS · HOSTOMEL → KREMLIN</div>
+            <button class="btn pill map-btn active-map" data-stage="0" style="border-color:#0af;color:#0af">✈ HOSTOMEL</button>
+            <button class="btn pill map-btn" data-stage="1" style="border-color:#888;color:#888">🔥 AVDIIVKA</button>
+            <button class="btn pill map-btn" data-stage="2" style="border-color:#888;color:#888">💀 BAKHMUT</button>
+            <button class="btn pill map-btn" data-stage="3" style="border-color:#888;color:#888">🚤 KHERSON</button>
+            <button class="btn pill map-btn" data-stage="4" style="border-color:#888;color:#888">⚙ MARIUPOL</button>
+            <button class="btn pill map-btn" data-stage="5" style="border-color:#888;color:#888">🌊 CRIMEA</button>
+            <button class="btn pill map-btn" data-stage="6" style="border-color:#888;color:#888">🌲 CHORNOBYL</button>
+            <button class="btn pill map-btn" data-stage="7" style="border-color:#888;color:#888">🏙 OUTER MOSCOW</button>
+            <button class="btn pill map-btn" data-stage="8" style="border-color:#888;color:#888">⚓ SEVASTOPOL</button>
+            <button class="btn pill map-btn" data-stage="9" style="border-color:#888;color:#888">🏭 DONBAS</button>
+            <button class="btn pill map-btn" data-stage="10" style="border-color:#888;color:#888">🌾 BELGOROD</button>
+            <button class="btn pill map-btn" data-stage="11" style="border-color:#888;color:#888">⭐ KREMLIN</button>
+            <div class="map-group-label" style="flex-basis:100%;margin:6px 0 2px;font-size:11px;letter-spacing:.14em;color:#7f8a72">OPERATIONS · STANDALONE SET PIECES</div>
+            <button class="btn pill map-btn" data-stage="12" style="border-color:#888;color:#888">🏛 KYIV</button>
+            <button class="btn pill map-btn" data-stage="13" style="border-color:#888;color:#888">🐍 SNAKE ISLAND</button>
+            <button class="btn pill map-btn" data-stage="14" style="border-color:#888;color:#888">✈ SAKY AIRBASE</button>
+            <button class="btn pill map-btn" data-stage="15" style="border-color:#888;color:#888">🛢 VUHLEDAR</button>
+            <button class="btn pill map-btn" data-stage="16" style="border-color:#888;color:#888">🌉 ANTONOV BRIDGE</button>
+            <button class="btn pill map-btn" data-stage="17" style="border-color:#888;color:#888">🚁 REFINERY (DRONE)</button>
+            <button class="btn pill map-btn" data-stage="18" style="border-color:#888;color:#888">🎯 BRADLEY DUEL</button>
           </div>
           <p id="map-desc" class="start-section-desc">Hostomel Airport — Stop the Russian VDV airborne assault. Feb 24, 2022.</p>
         </section>
@@ -960,13 +971,27 @@
     <button class="btn" id="next-stage-btn" style="border-color:#44ff88;color:#44ff88">NEXT STAGE →</button>
   </div>
 
+  <style>
+    /* Two progression systems were on screen at once, showing different
+       numbers for "how far along am I": the Ukrainian rank ladder
+       (#xpProgressBar + its three labels + #rankBadge, driven by RankSystem
+       via onWaveComplete/onBuild) and a separate combat level bar
+       (#combat-xp-bar-wrap + label + badge). Eight elements, two answers.
+       The rank ladder is the one the game actually drives and the one with
+       any identity, so the combat-level DISPLAY is hidden — the system keeps
+       running, nothing is unhooked. */
+    #combat-xp-bar-wrap, #combat-xp-label, #combat-level-badge { display: none !important; }
+    /* The enemy-voice toggle now rides on the existing 🔊 mute button. */
+    #enemy-voice-toggle { display: none !important; }
+  </style>
+
   <!-- Win screen -->
   <div id="overlay-win" class="overlay" style="display:none">
-    <h1>VICTORY!</h1>
-    <p>All stages cleared. All occupants eliminated.</p>
+    <h1 id="win-title">VICTORY!</h1>
+    <p id="win-sub">All stages cleared. All occupants eliminated.</p>
     <p class="stat">FINAL SCORE: <span id="win-score">0</span></p>
     <p class="stat">TOTAL KILLS: <span id="win-kills">0</span></p>
-    <p class="stat">STAGES COMPLETED: <span id="win-stages">18</span></p>
+    <p class="stat">MISSIONS COMPLETED: <span id="win-stages">12</span></p>
     <button class="btn" id="play-again-btn">PLAY AGAIN</button>
   </div>
 
@@ -1207,7 +1232,23 @@
     var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     var isMobile = uaMobile || ipadOS || (touch && Math.min(window.innerWidth, window.innerHeight) < 900);
     window.__IS_MOBILE = isMobile;
-    try { if (isMobile && document.body) document.body.classList.add('is-mobile'); else if (isMobile) document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('is-mobile'); }); } catch (e) {}
+    // Mark BOTH <html> and <body>. This set the class on body only, while
+    // every reader checks documentElement — feedback.js gates its onboarding
+    // on it (twice), and index.html's own later check does too. The only code
+    // marking <html> is game-manager, under a STRICTER test that also demands
+    // a coarse pointer, so on any touch device where that extra condition does
+    // not hold, the readers saw "not mobile" and a touch player was told to
+    // press W A S D and click the mouse. <html> exists immediately, so it does
+    // not need the DOMContentLoaded dance that body does.
+    try {
+      if (isMobile) {
+        document.documentElement.classList.add('is-mobile');
+        if (document.body) document.body.classList.add('is-mobile');
+        else document.addEventListener('DOMContentLoaded', function () {
+          try { document.body.classList.add('is-mobile'); } catch (e) {}
+        });
+      }
+    } catch (e) {}
     if (typeof window.WORLD_CHUNKS === 'undefined') {
       // The default 32-chunk world (~1 km^2) exhausts GPU memory and loses the
       // WebGL context on both phones AND many desktop GPUs. Combat happens within
@@ -1247,6 +1288,7 @@
 <script src="skills.js?v=20260724a"></script>
 <script src="ranks.js?v=20260724a"></script>
 <script src="building.js?v=20260724a"></script>
+<script src="npc-weapons.js?v=20260823a"></script>
 <script src="npc-system.js?v=20260724a"></script>
 <script src="drone-system.js?v=20260724a"></script>
 <script src="vehicles.js?v=20260724a"></script>
@@ -1254,6 +1296,7 @@
 <script src="missions.js?v=20260724a"></script>
 <script src="pickups.js?v=20260724a"></script>
 <script src="hud.js?v=20260724a"></script>
+<script src="cinematic.js?v=20260918a"></script>
 <script>window.__bootProgress&&window.__bootProgress(12,'loading core systems','');</script>
     <script src="hud-extras.js?v=20260724a"></script>
     <script src="hud-extras2.js?v=20260801a"></script>
@@ -1337,6 +1380,12 @@
     <script src="bundles/bundle-007.js?v=20260724a" async></script>
 <script src="ammo-types.js?v=20260724a"></script>
     <script src="bundles/bundle-008.js?v=20260724a" async></script>
+<script src="objective-system.js?v=20260926a"></script>
+<!-- objective-system.js was written, guarded for in game-manager (init and
+     update both call it behind a window.ObjectiveSystem check) and then never
+     loaded by anything — not here, not in any bundle. Every one of those
+     guards silently did nothing, which is why all 19 missions played as the
+     same wave defence regardless of their briefing. -->
 <script src="game-manager.js?v=20260820h-static"></script>
     <script src="render-health.js?v=20260820b"></script>
 <script>window.__bootProgress&&window.__bootProgress(70,'loading game manager','');</script>
@@ -1472,11 +1521,15 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Inline drone choice on start screen (replaces second drone-select overlay) ──
   (function () {
     window.__chosenDroneType = ''; // empty = none
+    // These describe what the choice actually does: it sets your PRIMARY
+    // aircraft, which starts in slot [1] of the in-game loadout (Shift+F) and
+    // carries extra ammo. Every aircraft is still available either way.
     var droneDescs = {
-      '': 'No drone — fight on foot (default)',
-      fpv_attack: 'FPV Attack — kamikaze drone, dives into targets',
-      surveillance: 'Surveillance — scout battlefield, mark enemies',
-      bomb: 'Bomber — heavy payload, drop munitions on targets'
+      '': 'Standard loadout — all four aircraft, balanced ammo',
+      fpv_attack: 'FPV Attack — fires charges, rams when dry · primary, +2 ammo',
+      surveillance: 'Surveillance — scout battlefield, mark enemies · primary, +2 ammo',
+      bomb: 'Bomber — heavy payload, drop munitions on targets · primary, +2 ammo',
+      baba_yaga: 'Baba Yaga — drops thermite, burns out structures · primary, +2 ammo'
     };
     var btns = document.querySelectorAll('.start-drone-btn');
     var desc = document.getElementById('start-drone-desc');
@@ -1740,7 +1793,15 @@ document.addEventListener('DOMContentLoaded', function () {
   })();
 
   document.getElementById('next-stage-btn').addEventListener('click', function () {
-    GameManager.nextStage();
+    // Level generation is one long synchronous block. Called bare, the screen
+    // freezes on the last gameplay frame for several seconds and reads as a
+    // crash. Put the loading overlay up and yield ~90ms so it actually PAINTS
+    // before the main thread disappears into generation — same trick the
+    // initial QUICK START path already uses.
+    window.showLoading('GENERATING NEXT STAGE...');
+    setTimeout(function () {
+      try { GameManager.nextStage(); } finally { window.hideLoading(); }
+    }, 90);
   });
 
   function resumeFromPauseUI() {
@@ -2209,6 +2270,13 @@ document.addEventListener('DOMContentLoaded', function () {
     GameManager.toggleGodMode();
     updateGodModeButtons();
   });
+  // QA keeps the on-screen toggle with ?diag=1; players do not see it.
+  try {
+    if (/[?&]diag=1\b/.test(location.search)) {
+      var _gdiag = document.getElementById('hud-god-mode-btn');
+      if (_gdiag) _gdiag.style.display = '';
+    }
+  } catch (e) {}
   var _hudGod = document.getElementById('hud-god-mode-btn');
   if (_hudGod) _hudGod.addEventListener('click', function (e) {
     e.stopPropagation();
@@ -2323,6 +2391,8 @@ document.addEventListener('DOMContentLoaded', function () {
       // Only force the ambient beds OFF when muting; never turn them back on —
       // the constant background drone stays removed by default on unmute.
       if (m) { try { if (window.AmbientZones && AmbientZones.setMuted) AmbientZones.setMuted(true); } catch (e) {} }
+      // Enemy callouts follow the same control rather than needing their own.
+      try { if (window.EnemyVoices && EnemyVoices.setEnabled) EnemyVoices.setEnabled(!m); } catch (e) {}
       var b = document.getElementById('mute-btn'); if (b) b.textContent = m ? '🔇' : '🔊';
     }
     function set(m) { try { localStorage.setItem(KEY, m ? '1' : '0'); } catch (e) {} apply(m); }

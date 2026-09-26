@@ -159,6 +159,50 @@ window.VoxelWorld = (function () {
 
   const chunks = new Map();
 
+  /* ── Snow cover ────────────────────────────────────────────────────
+     Terrain is vertex-coloured, so there is no free way to paint a white
+     layer onto up-facing voxel faces without re-meshing every chunk — far
+     too expensive mid-mission. Instead the whole terrain material is pushed
+     toward a cold, bright reading: a desaturating multiply on .color plus a
+     white .emissive lift. MeshLambertMaterial always compiles emissive into
+     its shader, so changing it costs no program recompile. */
+  let _snowCover = 0;
+  const _snowTint = { r: 0.78, g: 0.82, b: 0.90 };   // cool grey at full cover
+  function _applySnowToMaterial(mat) {
+    if (!mat || !mat.color) return;
+    const k = _snowCover;
+    if (k <= 0) {
+      mat.color.setRGB(1, 1, 1);
+      if (mat.emissive) mat.emissive.setRGB(0, 0, 0);
+      return;
+    }
+    mat.color.setRGB(1 + (_snowTint.r - 1) * k, 1 + (_snowTint.g - 1) * k, 1 + (_snowTint.b - 1) * k);
+    if (mat.emissive) mat.emissive.setRGB(0.30 * k, 0.32 * k, 0.38 * k);
+  }
+  // Water freezes over as the cover deepens: paler, brighter, and less
+  // transparent, so a frozen river reads as ice rather than as summer water
+  // with snow beside it.
+  function _applyIceToMaterial(mat) {
+    if (!mat || !mat.color) return;
+    var k = _snowCover;
+    mat.color.setRGB(1 + (0.86 - 1) * k, 1 + (0.92 - 1) * k, 1 + (1.0 - 1) * k * 0.2);
+    if (mat.emissive) mat.emissive.setRGB(0.26 * k, 0.30 * k, 0.36 * k);
+    mat.opacity = 0.55 + 0.38 * k;
+  }
+
+  function setSnowCover(k) {
+    k = Math.max(0, Math.min(1, parseFloat(k) || 0));
+    if (k === _snowCover) return;
+    _snowCover = k;
+    chunks.forEach(function (c) {
+      if (!c) return;
+      if (c.mesh && c.mesh.material) _applySnowToMaterial(c.mesh.material);
+      if (c.waterMesh && c.waterMesh.material) _applyIceToMaterial(c.waterMesh.material);
+    });
+  }
+  function getSnowCover() { return _snowCover; }
+
+
   function chunkKey(cx, cz) {
     return cx + ',' + cz;
   }
@@ -1130,6 +1174,7 @@ window.VoxelWorld = (function () {
       geo.computeBoundingSphere();
 
       const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+      _applySnowToMaterial(mat);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(ox * BLOCK_SIZE, 0, oz * BLOCK_SIZE);
       mesh.castShadow = true;
@@ -1165,6 +1210,7 @@ window.VoxelWorld = (function () {
         depthWrite: false,
         side: THREE.DoubleSide
       });
+      _applyIceToMaterial(wMat);
       const wMesh = new THREE.Mesh(wGeo, wMat);
       wMesh.position.set(ox * BLOCK_SIZE, 0, oz * BLOCK_SIZE);
       wMesh.matrixAutoUpdate = false;
@@ -25670,6 +25716,8 @@ window.VoxelWorld = (function () {
 
 
   return {
+    setSnowCover,
+    getSnowCover,
     BLOCK,
     BLOCK_COLORS,
     BLOCK_HARDNESS,

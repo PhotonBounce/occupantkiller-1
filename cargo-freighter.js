@@ -1,5 +1,7 @@
 window.CargoFreighter = (function() {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var scene, camera, renderer, canvas;
   var shipObjects = [];
@@ -25,6 +27,8 @@ window.CargoFreighter = (function() {
   };
 
   function init(canvasElement) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     canvas = canvasElement;
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
@@ -530,7 +534,7 @@ window.CargoFreighter = (function() {
     updateNavigationLights(deltaTime);
     updateShipRocking(deltaTime);
 
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   function updateCraneBooms(deltaTime) {
@@ -593,7 +597,7 @@ window.CargoFreighter = (function() {
 
   function update(deltaTime) {
     if (renderer) {
-      renderer.render(scene, camera);
+      if (renderer) renderer.render(scene, camera);
     }
   }
 

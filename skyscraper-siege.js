@@ -1,5 +1,7 @@
 window.SkyscraperSiege = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   // --- State ---
   var active = false;
@@ -1072,12 +1074,14 @@ window.SkyscraperSiege = (function () {
     if (shootCooldown > 0) shootCooldown -= dt;
 
     updateHUD();
-    renderer.render(scene, camera);
+    if (renderer) renderer.render(scene, camera);
   }
 
   // ---- Public API ----
 
   function init(mountScene, mountCamera, mountRenderer) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
     // Register input handlers
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);

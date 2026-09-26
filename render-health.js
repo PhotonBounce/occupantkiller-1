@@ -168,8 +168,19 @@
       };
       window.__renderHealth = health;
 
+      // Only ever shown with ?diag=1. This is a developer readout — draw
+      // calls, shader program counts, texture and geometry counts, the GPU
+      // string, "please screenshot this" — and it was rendering for real
+      // players across the top of the screen (1280x52, 7% of the viewport)
+      // any time FPS dropped below 3. On a phone, which is exactly where this
+      // game is slowest, the game's own crash diagnostics WERE the game.
+      //
+      // Detection is unchanged and window.__renderHealth is still published
+      // every second, which is what the QA probes actually read; the game also
+      // already drops itself to the POTATO quality tier below 15 FPS, so the
+      // condition is handled rather than merely announced.
       var b = ensureBanner();
-      if (status === 'FAIL') {
+      if (status === 'FAIL' && VERBOSE) {
         b.style.display = 'block';
         b.textContent = '⚠ RENDER FAULT: ' + reason + ' · ' + _fps + ' FPS · '
           + (tris != null ? tris + ' tris' : '? tris')

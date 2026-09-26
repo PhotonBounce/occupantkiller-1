@@ -30,7 +30,14 @@ var Tracers = (function() {
   var _tTmp = new THREE.Vector3();
   var _tracerPool = [];  // recycled tracer line objects
 
-  function init(scene) { _scene = scene; }
+  function init(scene) {
+    _scene = scene;
+    // Build the FX light pool up front so the scene's light count is settled
+    // before the first shot, instead of stepping once on the first muzzle flash.
+    _lightPoolInit = false;
+    _lightPool.length = 0;
+    _initLightPool();
+  }
 
   // ── Tracer color variants by weapon type ─────────────────
   // weaponType: 'default' | 'heavy' | 'explosive' | 'tracer'
@@ -137,6 +144,66 @@ var Tracers = (function() {
   /* ── Muzzle Flash ─────────────────────────────────────────────── */
   var flashes = [];
 
+  /* ── Pooled dynamic lights ──────────────────────────────────────────
+     Every gunshot and explosion used to scene.add() a fresh PointLight and
+     remove it ~0.15s later. three.js bakes the per-type light COUNT into every
+     material's shader program cache key, so each add/remove forced a full
+     recompile of every material in the scene, mid-render. In a firefight that
+     is dozens of recompiles a second — measured on the reporter's machine as
+     "progs 70 (+11/s)" with 1.3-second frames.
+     The pool is created once, added once, and never removed; a "free" light is
+     just one parked below the world at zero intensity. Light COUNT is constant,
+     so no shader ever recompiles again. */
+  // Kept deliberately small. Measured on the Windows runner: a 12-light pool cut
+  // shader-program growth (42 -> 32 new programs in the same window) but pushed
+  // the scene from 18 to 32 permanent point lights, and gpu.render went 662ms ->
+  // 838ms — every fragment pays for every light, forever, so the steady cost
+  // outweighed the compile saving. Four covers concurrent 0.14s flashes with a
+  // fraction of the per-pixel cost.
+  var LIGHT_POOL_SIZE = 4;
+  var _lightPool = [];
+  var _lightPoolInit = false;
+
+  function _initLightPool() {
+    if (_lightPoolInit || !_scene) return;
+    for (var i = 0; i < LIGHT_POOL_SIZE; i++) {
+      var L = new THREE.PointLight(0xffaa22, 0, 6);
+      L.position.set(0, -9999, 0);
+      L.userData.keepLight = true;   // the light warden must not trim these
+      L.userData.fxPool = true;
+      L.visible = true;
+      _scene.add(L);
+      _lightPool.push({ light: L, busy: false });
+    }
+    _lightPoolInit = true;
+  }
+
+  // Returns a pooled light positioned and lit, or null when all are in use.
+  // Running out simply means one fewer flash is lit — never a stall, and never
+  // a new light object.
+  function _acquireLight(pos, color, intensity, distance) {
+    _initLightPool();
+    for (var i = 0; i < _lightPool.length; i++) {
+      var slot = _lightPool[i];
+      if (slot.busy) continue;
+      slot.busy = true;
+      slot.light.position.copy(pos);
+      slot.light.color.setHex(color);
+      slot.light.intensity = intensity;
+      slot.light.distance = distance;
+      return slot;
+    }
+    return null;
+  }
+
+  function _releaseLight(slot) {
+    if (!slot) return;
+    slot.busy = false;
+    slot.light.intensity = 0;
+    slot.light.position.set(0, -9999, 0);
+  }
+
+
   function spawnMuzzleFlash(pos, dir) {
     if (!_scene) return;
     // Visible flash size — 67% smaller per design feedback (was blocking view)
@@ -160,11 +227,9 @@ var Tracers = (function() {
     flash2.lookAt(_tTmp);
     flash2.rotation.z = flash.rotation.z + Math.PI / 2;
     _scene.add(flash2);
-    // Bright point light for illumination
-    var light = new THREE.PointLight(0xffaa22, 2.5, 6);
-    light.position.copy(flash.position);
-    _scene.add(light);
-    flashes.push({ mesh: flash, light: light, life: 0.14, mesh2: flash2 });
+    // Bright point light for illumination — from the fixed pool, never a new one.
+    var slot = _acquireLight(flash.position, 0xffaa22, 2.5, 6);
+    flashes.push({ mesh: flash, slot: slot, life: 0.14, mesh2: flash2, peak: 2.5 });
   }
 
   /* ── Explosion Particles ────────────────────────────────────── */
@@ -199,11 +264,9 @@ var Tracers = (function() {
         isFire: isFire, _baseSize: size,
       });
     }
-    // Central flash light
-    var light = new THREE.PointLight(0xff6600, 5, radius * 4);
-    light.position.copy(pos);
-    _scene.add(light);
-    flashes.push({ mesh: null, light: light, life: 0.2 });
+    // Central flash light — pooled, so the scene light count never changes.
+    var eSlot = _acquireLight(pos, 0xff6600, 5, radius * 4);
+    flashes.push({ mesh: null, slot: eSlot, life: 0.2, peak: 5 });
     // Shake camera — falls off with distance from player so distant booms feel distant
     if (typeof CameraSystem !== 'undefined' && CameraSystem.shake) {
       var _shakeAmt = radius * 0.06;
@@ -358,13 +421,13 @@ var Tracers = (function() {
       if (f.life <= 0) {
         if (f.mesh) { _scene.remove(f.mesh); f.mesh.material.dispose(); }
         if (f.mesh2) { _scene.remove(f.mesh2); f.mesh2.material.dispose(); }
-        if (f.light) { _scene.remove(f.light); f.light.dispose(); }
+        _releaseLight(f.slot);
         flashes.splice(i, 1);
       } else {
         var op = Math.min(1, f.life / 0.08);
         if (f.mesh) f.mesh.material.opacity = op;
         if (f.mesh2) f.mesh2.material.opacity = op * 0.8;
-        if (f.light) f.light.intensity = op * 2.5;
+        if (f.slot) f.slot.light.intensity = op * (f.peak || 2.5);
       }
     }
     // Update explosion particles
@@ -415,7 +478,9 @@ var Tracers = (function() {
     for (var _fi = 0; _fi < flashes.length; _fi++) {
       var _f = flashes[_fi];
       if (_f.mesh) { _scene.remove(_f.mesh); _f.mesh.material.dispose(); }
-      if (_f.light) { _scene.remove(_f.light); _f.light.dispose(); }
+      if (_f.mesh2) { _scene.remove(_f.mesh2); _f.mesh2.material.dispose(); }
+      // Pool lights are never removed from the scene — releasing just parks them.
+      _releaseLight(_f.slot);
     }
     flashes.length = 0;
     for (var _pi = 0; _pi < explosionParts.length; _pi++) {

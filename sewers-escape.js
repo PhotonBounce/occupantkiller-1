@@ -4,6 +4,8 @@
 
 window.SewersEscape = (function () {
     'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
     // ─── Core references ─────────────────────────────────────────────────────
     var scene, camera, renderer, clock;
@@ -84,6 +86,8 @@ window.SewersEscape = (function () {
     //  INIT
     // ══════════════════════════════════════════════════════════════════════════
     function init(parentContainer) {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer, was crashing/launching over the main game */
+
         container = parentContainer || document.body;
 
         // Renderer
@@ -740,7 +744,7 @@ window.SewersEscape = (function () {
 
         if (gameLost || gameWon) {
             drawHUD(dt);
-            renderer.render(scene, camera);
+            if (renderer) renderer.render(scene, camera);
             return;
         }
 
@@ -755,7 +759,7 @@ window.SewersEscape = (function () {
         checkWinLoss();
         drawHUD(dt);
 
-        renderer.render(scene, camera);
+        if (renderer) renderer.render(scene, camera);
     }
 
     // ══════════════════════════════════════════════════════════════════════════

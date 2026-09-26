@@ -225,15 +225,61 @@ window.ObjectiveSystem = (function() {
     setTimeout(function() { _pickNextObjective(); }, 12000);
   }
 
-  function _pickNextObjective() {
+  /* Objective types this mission is about.
+   *
+   * Every mission used to draw from the same three-type pool at random, so
+   * 17 of the 19 played identically no matter what their briefing said — the
+   * one that tells you to hold the coking plant handed out the same random
+   * "reach the waypoint" as the one that tells you to raid an airbase. Each
+   * stage now declares its own rhythm in STAGES.objectiveTypes, matched to the
+   * objective text it already showed the player.
+   */
+  function _stageObjectiveTypes() {
+    try {
+      var info = window.GameManager && window.GameManager.getCurrentStageInfo &&
+                 window.GameManager.getCurrentStageInfo();
+      if (info && info.objectiveTypes && info.objectiveTypes.length) {
+        var out = [];
+        for (var i = 0; i < info.objectiveTypes.length; i++) {
+          var t = OBJ_TYPES[info.objectiveTypes[i]];
+          if (t) out.push(t);
+        }
+        if (out.length) return out;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function _pickNextObjective(forceType) {
     var wave = (window.GameManager && window.GameManager.getCurrentWave) ?
       window.GameManager.getCurrentWave() : (window._waveNum || 1);
 
-    var types = [OBJ_TYPES.ELIMINATE, OBJ_TYPES.SURVIVE, OBJ_TYPES.REACH];
-    if (wave >= 4) types.push(OBJ_TYPES.CAPTURE);
-    if (wave >= 6) types.push(OBJ_TYPES.DEFEND);
+    var types = _stageObjectiveTypes();
+    // CAPTURE, REACH and DEFEND build THREE geometry (a capture zone, a
+    // waypoint marker). This module has never run before now, so if the scene
+    // is missing for any reason, fall back to the two types that need none
+    // rather than throwing inside the frame loop every tick.
+    var _canDrawWorld = !!(_scene && typeof THREE !== 'undefined');
+    if (!types) {
+      // No profile (a stage that predates this, or the menu): old behaviour.
+      types = [OBJ_TYPES.ELIMINATE, OBJ_TYPES.SURVIVE, OBJ_TYPES.REACH];
+      if (wave >= 4) types.push(OBJ_TYPES.CAPTURE);
+      if (wave >= 6) types.push(OBJ_TYPES.DEFEND);
+    }
 
-    var type = types[Math.floor(Math.random() * types.length)];
+    if (!_canDrawWorld) {
+      var flat = [];
+      for (var fi = 0; fi < types.length; fi++) {
+        if (types[fi] === OBJ_TYPES.ELIMINATE || types[fi] === OBJ_TYPES.SURVIVE) flat.push(types[fi]);
+      }
+      types = flat.length ? flat : [OBJ_TYPES.ELIMINATE];
+    }
+
+    var type = (forceType && OBJ_TYPES[forceType]) ? OBJ_TYPES[forceType]
+             : types[Math.floor(Math.random() * types.length)];
+    if (!_canDrawWorld && type !== OBJ_TYPES.ELIMINATE && type !== OBJ_TYPES.SURVIVE) {
+      type = OBJ_TYPES.ELIMINATE;
+    }
     var obj = {
       type: type,
       killCount: 0,
@@ -410,13 +456,16 @@ window.ObjectiveSystem = (function() {
     }
   }
 
+  // Takes a type and honours it. It accepted both arguments and ignored them,
+  // so a caller asking for a DEFEND objective got a random one instead —
+  // which is a large part of why nothing ever called it.
   function triggerObjective(type, config) {
     if (_activeObjective) {
       if (_activeObjective.zone) _destroyCaptureZone(_activeObjective.zone);
       _destroyWaypointMarker();
     }
     _activeObjective = null;
-    _pickNextObjective();
+    _pickNextObjective(type);
   }
 
   function reset() {

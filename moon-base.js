@@ -1,5 +1,7 @@
 window.MoonBase = (function () {
   'use strict';
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var MODULE_NAME = 'MoonBase';
   var ACTIVATION_KEY_M = 77;
@@ -70,6 +72,11 @@ window.MoonBase = (function () {
     }
     state.keysDown[k] = true;
 
+    // This listener is bound for the whole page lifetime so the M+B activation
+    // combo works from anywhere. Everything below it touches state.scene, which
+    // only exists while the module is running, so bail out until then.
+    if (!state.active || !state.scene) { checkActivationCombo(k, now); return; }
+
     if (k === 32) { // SPACE
       state.spaceHeld = true;
       if (state.onGround) {
@@ -100,6 +107,7 @@ window.MoonBase = (function () {
   function onKeyUp(e) {
     var k = e.keyCode;
     state.keysDown[k] = false;
+    if (!state.active || !state.scene) return;
     if (k === 32) {
       state.spaceHeld = false;
       state.hangTimer = 0;
@@ -135,6 +143,8 @@ window.MoonBase = (function () {
   // ── init / destroy ────────────────────────────────────────────────────────
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: was auto-launching over the main game */
+
     if (state.active) return;
     state.active = true;
 

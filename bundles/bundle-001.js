@@ -141,7 +141,6 @@ window.PerformanceScaler = (function() {
     unlock: unlock,
   };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail performance-scaler.js",_e&&_e.message); }
 /* === leaderboard.js === */
@@ -422,7 +421,6 @@ window.Leaderboard = (function() {
 
   return { submitScore: submitScore, getEntries: getEntries, clear: clear, show: show, hide: hide, toggle: toggle, submitLevelRecord: submitLevelRecord, getLevelRecord: getLevelRecord, getAllRecords: getAllRecords };
 })();
-
 ;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail leaderboard.js",_e&&_e.message); }
 /* === weather.js === */
@@ -529,4 +527,5 @@ window.Weather = (function() {
 
   return { init: init, setWeather: setWeather, update: update, getCurrent: getCurrent };
 })();
+;
 } catch(_e){ if(window.console&&console.warn)console.warn("mod fail weather.js",_e&&_e.message); }

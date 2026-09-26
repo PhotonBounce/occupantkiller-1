@@ -4,6 +4,8 @@
  * IIFE pattern, all var.
  */
 window.WeaponCodex = (function () {
+  var requestAnimationFrame = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.requestAnimationFrame.bind(window) : function () { return 0; };
+  var setTimeout = (typeof window !== 'undefined' && window.__ALLOW_EMBEDDED_MINIGAMES) ? window.setTimeout.bind(window) : function () { return 0; };
 
   var _overlay = null;
   var _visible = false;
@@ -743,6 +745,8 @@ window.WeaponCodex = (function () {
   }
 
   function init() {
+    if (typeof window !== 'undefined' && !window.__ALLOW_EMBEDDED_MINIGAMES) return; /* standalone mini-game disabled: own renderer */
+
     document.addEventListener('keydown', handleKeyDown);
     // Pre-create overlay silently in background if DOM ready
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
