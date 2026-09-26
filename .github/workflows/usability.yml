@@ -21,6 +21,17 @@ on:
       - '.github/workflows/usability.yml'
       - 'cinematic.js'
       - 'hud.js'
+      # Anything that puts pixels on the HUD belongs here. The render-health
+      # banner and the duplicated weather readouts were both fixed without
+      # this workflow noticing, because neither file was in the trigger list
+      # — so the measurement that found them did not re-run to confirm them.
+      - 'render-health.js'
+      - 'weather-system.js'
+      - 'weather-effects.js'
+      - 'dynamic-weather.js'
+      - 'game-manager.js'
+      - 'objective-system.js'
+      - 'ambient-zones.js'
   workflow_dispatch:
     inputs:
       stage:
