@@ -1210,7 +1210,23 @@
     var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     var isMobile = uaMobile || ipadOS || (touch && Math.min(window.innerWidth, window.innerHeight) < 900);
     window.__IS_MOBILE = isMobile;
-    try { if (isMobile && document.body) document.body.classList.add('is-mobile'); else if (isMobile) document.addEventListener('DOMContentLoaded', function(){ document.body.classList.add('is-mobile'); }); } catch (e) {}
+    // Mark BOTH <html> and <body>. This set the class on body only, while
+    // every reader checks documentElement — feedback.js gates its onboarding
+    // on it (twice), and index.html's own later check does too. The only code
+    // marking <html> is game-manager, under a STRICTER test that also demands
+    // a coarse pointer, so on any touch device where that extra condition does
+    // not hold, the readers saw "not mobile" and a touch player was told to
+    // press W A S D and click the mouse. <html> exists immediately, so it does
+    // not need the DOMContentLoaded dance that body does.
+    try {
+      if (isMobile) {
+        document.documentElement.classList.add('is-mobile');
+        if (document.body) document.body.classList.add('is-mobile');
+        else document.addEventListener('DOMContentLoaded', function () {
+          try { document.body.classList.add('is-mobile'); } catch (e) {}
+        });
+      }
+    } catch (e) {}
     if (typeof window.WORLD_CHUNKS === 'undefined') {
       // The default 32-chunk world (~1 km^2) exhausts GPU memory and loses the
       // WebGL context on both phones AND many desktop GPUs. Combat happens within
