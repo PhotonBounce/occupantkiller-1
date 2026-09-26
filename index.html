@@ -971,6 +971,20 @@
     <button class="btn" id="next-stage-btn" style="border-color:#44ff88;color:#44ff88">NEXT STAGE →</button>
   </div>
 
+  <style>
+    /* Two progression systems were on screen at once, showing different
+       numbers for "how far along am I": the Ukrainian rank ladder
+       (#xpProgressBar + its three labels + #rankBadge, driven by RankSystem
+       via onWaveComplete/onBuild) and a separate combat level bar
+       (#combat-xp-bar-wrap + label + badge). Eight elements, two answers.
+       The rank ladder is the one the game actually drives and the one with
+       any identity, so the combat-level DISPLAY is hidden — the system keeps
+       running, nothing is unhooked. */
+    #combat-xp-bar-wrap, #combat-xp-label, #combat-level-badge { display: none !important; }
+    /* The enemy-voice toggle now rides on the existing 🔊 mute button. */
+    #enemy-voice-toggle { display: none !important; }
+  </style>
+
   <!-- Win screen -->
   <div id="overlay-win" class="overlay" style="display:none">
     <h1 id="win-title">VICTORY!</h1>
@@ -2377,6 +2391,8 @@ document.addEventListener('DOMContentLoaded', function () {
       // Only force the ambient beds OFF when muting; never turn them back on —
       // the constant background drone stays removed by default on unmute.
       if (m) { try { if (window.AmbientZones && AmbientZones.setMuted) AmbientZones.setMuted(true); } catch (e) {} }
+      // Enemy callouts follow the same control rather than needing their own.
+      try { if (window.EnemyVoices && EnemyVoices.setEnabled) EnemyVoices.setEnabled(!m); } catch (e) {}
       var b = document.getElementById('mute-btn'); if (b) b.textContent = m ? '🔇' : '🔊';
     }
     function set(m) { try { localStorage.setItem(KEY, m ? '1' : '0'); } catch (e) {} apply(m); }

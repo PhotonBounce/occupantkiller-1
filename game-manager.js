@@ -1999,6 +1999,13 @@ const GameManager = (function () {
     // have had callouts written for them the entire time and never used them.
     try { if (window.EnemyVoices && EnemyVoices.init) EnemyVoices.init(_camera); } catch (e) {}
     try { if (window.MissionBriefing && MissionBriefing.init) MissionBriefing.init(); } catch (e) {}
+    // hit-indicators.js reads window.camera for the player's facing, and
+    // nothing ever set it, so the directional arrows could not have pointed
+    // anywhere even if the module had been running.
+    try { window.camera = _camera; } catch (e) {}
+    try { if (window.FootstepAudio && FootstepAudio.init) FootstepAudio.init(); } catch (e) {}
+    try { if (window.BloodTrail && BloodTrail.init) BloodTrail.init(_scene, _camera); } catch (e) {}
+    try { if (window.HitIndicators && HitIndicators.init) HitIndicators.init(); } catch (e) {}
     try { if (window.ClusterBomb && ClusterBomb.init) ClusterBomb.init(_scene, _camera); } catch (e) {}
     try { if (window.TacticalMinimap && TacticalMinimap.init) TacticalMinimap.init(_scene, _camera); } catch (e) {}
     try { if (window.KillFeedEvents && KillFeedEvents.init) KillFeedEvents.init(); } catch (e) {}
@@ -9109,6 +9116,27 @@ const GameManager = (function () {
     player.hp = Math.max(0, player.hp - dmg);
     HUD.setHealth(player.hp, player.maxHp);
     HUD.flashDamage();
+    // Directional damage indicator. hit-indicators.js exposes
+    // window._onPlayerHitForIndicator(damage, attackerWorldPos) and nothing
+    // ever called it, so a player being shot got a red flash with no idea
+    // which direction it came from.
+    try {
+      if (window._onPlayerHitForIndicator) {
+        var _src = null;
+        var _all = (typeof Enemies !== 'undefined' && Enemies.getAll) ? Enemies.getAll() : null;
+        if (_all && player && player.position) {
+          var _bd = 1e9, _be = null;
+          for (var _hi = 0; _hi < _all.length; _hi++) {
+            var _he = _all[_hi];
+            if (!_he || !_he.alive || !_he.mesh) continue;
+            var _hd = _he.mesh.position.distanceTo(player.position);
+            if (_hd < _bd) { _bd = _hd; _be = _he; }
+          }
+          if (_be) _src = { x: _be.mesh.position.x, z: _be.mesh.position.z };
+        }
+        window._onPlayerHitForIndicator(dmg, _src);
+      }
+    } catch (_e) {}
     // Close-call slow-mo: hit drops HP from > 30% into critical (< 18%) in one shot
     var _critFrac = 0.18, _safeFrac = 0.30;
     if (player.maxHp > 0 && _hpBefore > player.maxHp * _safeFrac && player.hp > 0 && player.hp < player.maxHp * _critFrac) {
@@ -10309,6 +10337,24 @@ const GameManager = (function () {
       if (window.ObjectiveSystem) { try { ObjectiveSystem.update(delta); } catch (_e) {} }
       // Spatial ambience needs a per-frame tick to cross-fade between zones.
       if (window.AmbientZones) { try { AmbientZones.update(delta); } catch (_e) {} }
+      // footstep-audio.js reads its world through six window globals —
+      // _playerMoving, _playerSprinting, _crouching, _prone, _playerPos,
+      // _currentSurface — and NOT ONE of them was ever assigned anywhere in
+      // the codebase. Switching the module on by itself would have produced
+      // silence; it needs to be told what the player is doing.
+      try {
+        var _vx = player.velocity ? player.velocity.x : 0;
+        var _vz = player.velocity ? player.velocity.z : 0;
+        window._playerMoving     = Math.sqrt(_vx * _vx + _vz * _vz) > 0.6 && !!player.onGround;
+        window._playerSprinting  = !!player.sprinting;
+        window._prone            = !!player.prone;
+        window._crouching        = !!player.crouching;
+        window._playerPos        = player.position;
+      } catch (_e) {}
+      if (window.FootstepAudio) { try { FootstepAudio.update(delta); } catch (_e) {} }
+      if (window.BloodTrail)    { try { BloodTrail.update(delta); } catch (_e) {} }
+      if (window.HitIndicators) { try { HitIndicators.update(delta); } catch (_e) {} }
+
       // Enemy callouts. Needs the live enemy list and the player position; it
       // rate-limits itself internally.
       if (window.EnemyVoices && EnemyVoices.update) {

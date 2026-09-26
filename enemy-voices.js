@@ -418,7 +418,17 @@ window.EnemyVoices = (function () {
   }
 
   /* ── Public API ─────────────────────────────────────────── */
+  // Exposed so the game's single 🔊 mute control owns this too. Wiring this
+  // module in added a second, cryptic "[V]" button to a HUD that already had
+  // one mute button and ~57 panels; one audio control is enough.
+  function setEnabled(v) {
+    _enabled = !!v;
+    try { localStorage.setItem(CFG.STORAGE_KEY, _enabled ? 'on' : 'off'); } catch (_e) {}
+    if (_toggleBtn) _toggleBtn.style.color = _enabled ? '#aaffaa' : '#888';
+  }
+
   return {
+    setEnabled: setEnabled,
     init:              init,
     update:            update,
     playVoiceLine:     playVoiceLine,
