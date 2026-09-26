@@ -1342,6 +1342,12 @@
     <script src="bundles/bundle-007.js?v=20260724a" async></script>
 <script src="ammo-types.js?v=20260724a"></script>
     <script src="bundles/bundle-008.js?v=20260724a" async></script>
+<script src="objective-system.js?v=20260926a"></script>
+<!-- objective-system.js was written, guarded for in game-manager (init and
+     update both call it behind a window.ObjectiveSystem check) and then never
+     loaded by anything — not here, not in any bundle. Every one of those
+     guards silently did nothing, which is why all 19 missions played as the
+     same wave defence regardless of their briefing. -->
 <script src="game-manager.js?v=20260820h-static"></script>
     <script src="render-health.js?v=20260820b"></script>
 <script>window.__bootProgress&&window.__bootProgress(70,'loading game manager','');</script>

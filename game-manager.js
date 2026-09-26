@@ -646,6 +646,7 @@ const GameManager = (function () {
   const STAGES = [
     {
       id:           1,
+      objectiveTypes: ['REACH', 'CAPTURE', 'ELIMINATE'],   // seize the airfield
       name:         'HOSTOMEL AIRPORT',
       levelId:      'HOSTOMEL',
       theme:        'grassland',
@@ -662,6 +663,7 @@ const GameManager = (function () {
     },
     {
       id:           2,
+      objectiveTypes: ['DEFEND', 'SURVIVE'],   // hold the coking plant
       name:         'AVDIIVKA SECTOR',
       levelId:      'AVDIIVKA',
       theme:        'urban',
@@ -678,6 +680,7 @@ const GameManager = (function () {
     },
     {
       id:           3,
+      objectiveTypes: ['SURVIVE', 'ELIMINATE'],   // attacked from all angles
       name:         'BAKHMUT RUINS',
       levelId:      'BAKHMUT',
       theme:        'urban',
@@ -694,6 +697,7 @@ const GameManager = (function () {
     },
     {
       id:           4,
+      objectiveTypes: ['CAPTURE', 'DEFEND'],   // secure the crossing
       name:         'KHERSON CROSSING',
       levelId:      'KHERSON',
       theme:        'grassland',
@@ -710,6 +714,7 @@ const GameManager = (function () {
     },
     {
       id:           5,
+      objectiveTypes: ['SURVIVE', 'REACH'],   // the steelworks is burning
       name:         'MARIUPOL STEELWORKS',
       levelId:      'MARIUPOL',
       theme:        'industrial',
@@ -726,6 +731,7 @@ const GameManager = (function () {
     },
     {
       id:           6,
+      objectiveTypes: ['DEFEND', 'ELIMINATE'],   // repel the naval landing
       name:         'CRIMEA BRIDGE',
       levelId:      'CRIMEA',
       theme:        'coastal',
@@ -742,6 +748,7 @@ const GameManager = (function () {
     },
     {
       id:           7,
+      objectiveTypes: ['REACH', 'ELIMINATE'],   // keep moving, radiation drains HP
       name:         'CHORNOBYL ZONE',
       levelId:      'CHORNOBYL',
       theme:        'wasteland',
@@ -758,6 +765,7 @@ const GameManager = (function () {
     },
     {
       id:           8,
+      objectiveTypes: ['CAPTURE', 'REACH'],   // break through the defensive ring
       name:         'OUTER MOSCOW',
       levelId:      'MOSCOW',
       theme:        'cityscape',
@@ -774,6 +782,7 @@ const GameManager = (function () {
     },
     {
       id:           9,
+      objectiveTypes: ['ELIMINATE', 'DEFEND'],   // destroy the fleet defenders
       name:         'SEVASTOPOL NAVAL BASE',
       levelId:      'SEVASTOPOL',
       theme:        'coastal',
@@ -790,6 +799,7 @@ const GameManager = (function () {
     },
     {
       id:           10,
+      objectiveTypes: ['CAPTURE', 'ELIMINATE'],   // break the Donbas line
       name:         'DONBAS FINAL PUSH',
       levelId:      'DONBAS',
       theme:        'urban',
@@ -806,6 +816,7 @@ const GameManager = (function () {
     },
     {
       id:           11,
+      objectiveTypes: ['CAPTURE', 'DEFEND'],   // invade and hold against counter-attack
       name:         'BELGOROD OFFENSIVE',
       levelId:      'BELGOROD',
       theme:        'grassland',
@@ -822,6 +833,7 @@ const GameManager = (function () {
     },
     {
       id:           12,
+      objectiveTypes: ['ELIMINATE', 'DEFEND', 'SURVIVE', 'CAPTURE', 'REACH'],   // the finale: every objective type
       name:         'KREMLIN SHOWDOWN',
       levelId:      'KREMLIN',
       theme:        'cityscape',
@@ -838,6 +850,7 @@ const GameManager = (function () {
     },
     {
       id:           13,
+      objectiveTypes: ['DEFEND', 'SURVIVE'],   // stop the armoured columns
       block:        'operation',
       name:         'BATTLE OF KYIV',
       levelId:      'KYIV',
@@ -857,6 +870,7 @@ const GameManager = (function () {
     },
     {
       id:           14,
+      objectiveTypes: ['SURVIVE', 'DEFEND'],   // hold the island under bombardment
       block:        'operation',
       name:         'SNAKE ISLAND DEFENSE',
       levelId:      'SNAKE',
@@ -874,6 +888,7 @@ const GameManager = (function () {
     },
     {
       id:           15,
+      objectiveTypes: ['REACH', 'ELIMINATE'],   // airbase raid
       block:        'operation',
       name:         'SAKY AIRBASE STRIKE',
       levelId:      'SAKY',
@@ -891,6 +906,7 @@ const GameManager = (function () {
     },
     {
       id:           16,
+      objectiveTypes: ['ELIMINATE', 'SURVIVE'],   // armour everywhere
       block:        'operation',
       name:         'VUHLEDAR TANK GRAVEYARD',
       levelId:      'VUHLEDAR',
@@ -910,6 +926,7 @@ const GameManager = (function () {
     {
       hintWeapons:  ['SV-98 Precision Sniper Rifle','Barrett M82','SVD Dragunov'],
       id:           17,
+      objectiveTypes: ['REACH', 'CAPTURE'],   // take and hold the bridge
       block:        'operation',
       name:         'ANTONOV BRIDGE STRIKE',
       levelId:      'ANTONOV',
@@ -926,6 +943,7 @@ const GameManager = (function () {
     },
     {
       id:           18,
+      objectiveTypes: ['ELIMINATE'],   // drone strike: kill the garrison
       block:        'operation',
       name:         'REFINERY STRIKE — FPV DRONE',
       theme:        'industrial',
@@ -942,6 +960,7 @@ const GameManager = (function () {
     },
     {
       id:           19,
+      objectiveTypes: ['ELIMINATE'],   // one target, one Bradley
       block:        'operation',
       name:         'BRADLEY DUEL — STEPOVE',
       theme:        'snowfield',
@@ -14258,7 +14277,15 @@ const GameManager = (function () {
     // match it (wildlife, ambience) without reaching into the STAGES table.
     getCurrentStageInfo: function () {
       var d = STAGES[currentStage];
-      return d ? { id: d.id, name: d.name, levelId: d.levelId, season: d.season || null } : null;
+      // objectiveTypes and block are exposed because callers outside this
+      // module steer off them: ObjectiveSystem picks this mission's objective
+      // rhythm from objectiveTypes, and a filtered copy that dropped them made
+      // that lookup silently find nothing.
+      return d ? {
+        id: d.id, name: d.name, levelId: d.levelId, season: d.season || null,
+        block: d.block || 'campaign', objectiveTypes: d.objectiveTypes || null,
+        objective: d.objective || null, wavesPerStage: d.wavesPerStage || null
+      } : null;
     },
 
     getStageInfo:    function () { return STAGES[currentStage]; },
