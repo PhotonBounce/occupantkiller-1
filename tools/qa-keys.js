@@ -243,6 +243,38 @@ server.listen(PORT, async () => {
   await page.waitForTimeout(500);
   if (!(await probe()).locked) say(T() + '  WARNING pointer lock never engaged — results below are weaker');
 
+  // Event-order trace for the Escape bug. The 120/500/1400ms samples showed
+  // the game never reading as 'playing' after Escape, yet pointer lock being
+  // re-requested — which only the PAUSED->PLAYING branch does. So that
+  // branch runs and is undone in under a frame. This logs, with timestamps:
+  // the state as Escape arrives (capture phase, before game-manager's
+  // handler), the state one macrotask after it, every pointerlockchange,
+  // every exitPointerLock()/requestPointerLock() call, and every write to
+  // the inventory overlay's display. Relayed via console so it lands in the
+  // job log; only Escape-related lines are kept.
+  page.on('console', m => { const t = m.text(); if (t.startsWith('[trace]')) say(T() + '    ' + t); });
+  await page.evaluate(() => {
+    const st = () => { try { return GameManager.getState(); } catch (e) { return '?'; } };
+    const now = () => performance.now().toFixed(1);
+    const log = (m) => console.log('[trace] ' + now() + 'ms ' + m + ' state=' + st() + ' lock=' + !!document.pointerLockElement);
+    document.addEventListener('keydown', (e) => {
+      if (e.code !== 'Escape') return;
+      log('keydown Escape (capture, before handlers)');
+      setTimeout(() => log('  macrotask after Escape handlers'), 0);
+      requestAnimationFrame(() => log('  next frame after Escape'));
+    }, true);
+    document.addEventListener('pointerlockchange', () => log('pointerlockchange'));
+    const ex = document.exitPointerLock.bind(document);
+    document.exitPointerLock = function () { log('exitPointerLock() called from ' + (new Error().stack || '').split('\n')[2].trim().slice(0, 90)); return ex(); };
+    const el = document.getElementById('inventory-overlay');
+    if (el) new MutationObserver(() => log('inventory-overlay display=' + el.style.display)).observe(el, { attributes: true, attributeFilter: ['style'] });
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      const rq = canvas.requestPointerLock.bind(canvas);
+      canvas.requestPointerLock = function () { log('requestPointerLock() called'); return rq(); };
+    }
+  });
+
   const results = [], unrecovered = [];
   for (const key of KEYS) {
     let before = await probe();
