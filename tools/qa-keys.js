@@ -156,6 +156,7 @@ server.listen(PORT, async () => {
   // playing again. That cost 12 of 43 keys their verdict in two runs, in CI
   // and locally, with identical results. Lock is re-acquired best-effort
   // because mouselook is nice to have, not because a verdict needs it.
+  let escTraces = 0;   // how many Escape transitions have been traced in full
   const recover = async () => {
     for (let i = 0; i < 8; i++) {
       const p = await probe();
@@ -180,13 +181,25 @@ server.listen(PORT, async () => {
         // lock loss during PLAYING as "player opened a menu" and pauses
         // again. Sample the state either side of the press so the next run
         // shows the transition instead of just the end state.
-        const t0e = Date.now();
+        // Sample the transition, but only for the first couple of Escapes in
+        // the whole run. Doing it after every press cost three extra probes
+        // per iteration, up to eight iterations per recovery, a dozen
+        // recoveries — the sweep went from about four minutes to over
+        // fifteen and was heading for its timeout. Two traces answer the
+        // question; forty just make the job time out.
         await page.keyboard.press('Escape');
-        for (const ms of [120, 500, 1400]) {
-          await page.waitForTimeout(ms - (Date.now() - t0e) > 0 ? ms - (Date.now() - t0e) : 0);
-          const q = await probe();
-          say(T() + '    esc+' + ms + 'ms: state=' + q.state + ' lock=' + q.locked
-              + ' overlay=' + (q.overlay.join(',') || 'none'));
+        if (escTraces < 2) {
+          escTraces++;
+          const t0e = Date.now();
+          for (const ms of [120, 500, 1400]) {
+            const left = ms - (Date.now() - t0e);
+            if (left > 0) await page.waitForTimeout(left);
+            const q = await probe();
+            say(T() + '    esc+' + ms + 'ms: state=' + q.state + ' lock=' + q.locked
+                + ' overlay=' + (q.overlay.join(',') || 'none'));
+          }
+        } else {
+          await page.waitForTimeout(400);
         }
         continue;
       }
