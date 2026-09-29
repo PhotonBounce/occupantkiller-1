@@ -24,7 +24,7 @@ async function shot(pg,name){
 }
 
 server.listen(PORT,async()=>{
-  const b=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--mute-audio']});
+  const b=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--mute-audio']});
   const _ctx=await b.newContext({viewport:{width:720,height:450}});
   // waitForFunction's 2nd arg is `arg`, not options — an options object there
   // is ignored and the 30s default applies. Set the real budget on the context.

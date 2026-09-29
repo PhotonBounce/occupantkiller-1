@@ -1,0 +1,83 @@
+name: Gameplay QA
+
+# Plays the game with REAL input — keyboard and mouse through Playwright —
+# across the campaign, and FAILS when the player cannot move, cannot aim, or
+# the page throws.
+#
+# This did not exist. The repo has 23 qa-*.js harnesses and not one of them
+# ran in CI; every automated check on a push measured the HUD or captured
+# screenshots. Meanwhile tools/qa-play.js — the only harness that touches the
+# input path, per AGENTS.md — launched with '--use-gl=swiftshader
+# --ignore-gpu-blocklist', the flag pair that deadlocks this game's WebGL
+# context, so it could not have run at all; and it ended in process.exit(0)
+# regardless of what it found, so it could not have failed if it had.
+#
+# Both are fixed. The class of bug this is here to catch is the speedMod /
+# speedMult typo that left WASD dead for every player and went unnoticed for
+# the project's entire history.
+
+on:
+  push:
+    branches: [ main, claude/peaceful-cannon-oqez4t ]
+    paths:
+      - '**.js'
+      - 'index.html'
+      - '.github/workflows/gameplay-qa.yml'
+  workflow_dispatch:
+    inputs:
+      secs:
+        description: 'Seconds of play per stage'
+        default: '40'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gameplay-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  play:
+    name: play stage ${{ matrix.stage }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # A spread across the campaign and both standalone set pieces, rather
+        # than stage 0 forever: an early defence, a mid urban fight, the
+        # finale, an operation, the drone mission and the tank duel. These
+        # differ in level geometry, enemy mix and control scheme.
+        stage: [0, 5, 11, 12, 17, 18]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Play stage ${{ matrix.stage }}
+        run: |
+          # External kill and retry: a wedged browser instance is survivable,
+          # a hung job is not. See showcase-gallery.yml for the full history.
+          set +e
+          ok=0
+          for i in 1 2 3; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 480 node tools/qa-play.js \
+              --stage ${{ matrix.stage }} \
+              --secs ${{ github.event.inputs.secs || '40' }} \
+              --shots 4 --out qa-out-${{ matrix.stage }} --port 49${{ matrix.stage }}0
+            rc=$?
+            echo "attempt $i exit=$rc"
+            if [ $rc -eq 0 ]; then ok=1; break; fi
+            # rc=1 is a real verdict failure — report it, do not retry it away.
+            if [ $rc -eq 1 ]; then echo "::error::stage ${{ matrix.stage }} FAILED gameplay QA"; break; fi
+            echo "::warning::attempt $i hung or crashed (exit $rc)"
+          done
+          exit $([ $ok -eq 1 ] && echo 0 || echo 1)
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: qa-play-stage-${{ matrix.stage }}
+          path: qa-out-${{ matrix.stage }}/
+          retention-days: 14

@@ -24,7 +24,7 @@ const MOBILE_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (
 
 server.listen(PORT, async () => {
   log('server up on ' + PORT);
-  const browser = await chromium.launch({ headless:true, args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] });
+  const browser = await chromium.launch({ headless:true, args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] });
   log('browser launched');
   const ctx = await browser.newContext({ userAgent: MOBILE_UA, viewport:{width:412,height:915}, isMobile:true, hasTouch:true });
   const pg = await ctx.newPage();

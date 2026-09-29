@@ -22,7 +22,7 @@ for(let i=1;i<=12;i++)KEYS.push({name:'F'+i,label:'F'+i});
  .forEach(n=>KEYS.push({name:n,label:n}));
 
 server.listen(PORT,async()=>{
-  const b=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--mute-audio']});
+  const b=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--mute-audio']});
   const _ctx=await b.newContext({viewport:{width:960,height:600}});
   // waitForFunction's 2nd arg is `arg`, not options — an options object there
   // is ignored and the 30s default applies. Set the real budget on the context.

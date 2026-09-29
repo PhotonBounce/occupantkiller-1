@@ -8,7 +8,7 @@ const MIME={'.js':'text/javascript','.html':'text/html','.css':'text/css','.png'
 const server=http.createServer((q,s)=>{let p=decodeURIComponent(q.url.split('?')[0]);if(p==='/')p='/index.html';const fp=path.join(ROOT,p);if(!fp.startsWith(ROOT)){s.writeHead(403);return s.end();}fs.readFile(fp,(e,d)=>{if(e){s.writeHead(404);return s.end('404');}s.writeHead(200,{'Content-Type':MIME[path.extname(fp)]||'application/octet-stream'});s.end(d);});});
 setTimeout(()=>{console.log('HARD TIMEOUT');process.exit(2);},70000);
 server.listen(PORT, async ()=>{
-  const br=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist']});
+  const br=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist']});
   const pg=await br.newPage({viewport:{width:1280,height:720}});
   const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
   try{await pg.goto('http://localhost:'+PORT+PAGE,{waitUntil:'load',timeout:30000});}catch(e){console.log('goto',e.message.slice(0,60));}

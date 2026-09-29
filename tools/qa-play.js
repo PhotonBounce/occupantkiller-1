@@ -77,7 +77,7 @@ server.listen(PORT, async () => {
     // for 300s and then crashed the renderer, while an otherwise identical
     // script without the flag booted in 2.9s. QA here is about input and
     // logic; sound is not worth a hung browser.
-    args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--disable-dev-shm-usage',
+    args: ['--use-gl=angle', '--use-angle=swiftshader', '--disable-dev-shm-usage',
            '--no-sandbox', '--mute-audio'],
   });
   const ctx = await browser.newContext({ viewport: { width: W, height: H } });
@@ -242,5 +242,33 @@ server.listen(PORT, async () => {
   say('pageErrors: ' + (pageErrors.length ? pageErrors.length : 'none'));
   pageErrors.slice(0, 8).forEach(e => say('   ! ' + e));
   fs.writeFileSync(path.join(OUT, 'qa-play.log'), log.join('\n'));
-  await browser.close(); server.close(); process.exit(0);
+
+  /* Turn what was already measured into a verdict.
+   *
+   * This harness collected pointer lock, real-mouse look, whether the player
+   * could move at all, and every page error — and then exited 0 no matter
+   * what any of them said. A check that cannot fail is not a check, and this
+   * is the one harness that exercises the input path, which is exactly where
+   * the worst bug in this project's history lived: a speedMod/speedMult typo
+   * left WASD dead for every player and no test caught it for the project's
+   * entire history.
+   */
+  const failures = [];
+  if (!canMove)        failures.push('PLAYER CANNOT MOVE — WASD produced no displacement (moved ' + moved.toFixed(2) + 'm)');
+  if (!locked)         failures.push('POINTER LOCK NEVER ENGAGED — the player cannot aim');
+  if (!realMouseWorks) failures.push('MOUSELOOK DEAD — real mouse movement did not turn the camera');
+  if (pageErrors.length) failures.push(pageErrors.length + ' uncaught page error(s) during play: ' + pageErrors[0].slice(0, 120));
+
+  say('');
+  if (failures.length) {
+    failures.forEach(f => say('  FAIL: ' + f));
+    say('  stage ' + STAGE + ' VERDICT: FAIL (' + failures.length + ')');
+  } else {
+    say('  stage ' + STAGE + ' VERDICT: PASS — moved ' + moved.toFixed(2) + 'm, pointer lock ok, mouselook ok, no page errors');
+  }
+  fs.writeFileSync(path.join(OUT, 'qa-play.log'), log.join('\n'));
+  fs.writeFileSync(path.join(OUT, 'verdict.json'), JSON.stringify({ stage: STAGE, pass: !failures.length, failures }, null, 1));
+
+  await browser.close(); server.close();
+  process.exit(failures.length ? 1 : 0);
 });

@@ -114,7 +114,7 @@ function BOT_SRC() {
 (async () => {
   await new Promise(r => server.listen(PORT, r));
   const t0 = Date.now(); const el = () => ((Date.now() - t0) / 1000).toFixed(1) + 's';
-  const browser = await chromium.launch({ headless: true, args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--disable-dev-shm-usage', '--mute-audio'] });
+  const browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--disable-dev-shm-usage', '--mute-audio'] });
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, recordVideo: { dir: OUT, size: { width: W, height: H } } });
   const pg = await ctx.newPage();
   const tag = 'stage-' + String(STAGE).padStart(2, '0');

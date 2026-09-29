@@ -24,7 +24,7 @@ function fail(label, detail) { failed++; errors.push(`${label}: ${detail}`); con
       headless: 'new',
       args: [
         '--no-sandbox', '--disable-setuid-sandbox',
-        '--enable-webgl', '--use-gl=swiftshader',
+        '--enable-webgl', '--use-gl=angle', '--use-angle=swiftshader',
         '--disable-software-rasterizer',
         '--ignore-gpu-blocklist',
         '--enable-gpu-rasterization'

@@ -16,7 +16,7 @@ const server=http.createServer((q,s)=>{let p=decodeURIComponent(q.url.split('?')
 const EMBED_RE=/DEEP SEA BASE|BUSHIDO|BIOWEAPON|OPERATOR DOWN|SAMURAI|CYBERPUNK|GLADIATOR|MOON ?BASE|PRISON BREAK|HEIST|COLOSSEUM/i;
 
 async function attempt(n){
-  const browser=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--js-flags=--max-old-space-size=4096']});
+  const browser=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--js-flags=--max-old-space-size=4096']});
   const pg=await browser.newPage({viewport:{width:1000,height:600}});
   const perr=[]; pg.on('pageerror',e=>perr.push(e.message.slice(0,140))); pg.on('crash',()=>perr.push('PAGE_CRASHED'));
   const r={n,klass:'infra',booted:false,started:false,fatal:null,embed:null,canvas:false,perr:0};

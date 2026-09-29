@@ -10,7 +10,7 @@ const MIME={'.js':'text/javascript','.html':'text/html','.css':'text/css','.png'
 const server=http.createServer((q,s)=>{let p=decodeURIComponent(q.url.split('?')[0]);if(p==='/')p='/index.html';const fp=path.join(ROOT,p);if(!fp.startsWith(ROOT)){s.writeHead(403);return s.end();}fs.readFile(fp,(e,d)=>{if(e){s.writeHead(404);return s.end('404');}s.writeHead(200,{'Content-Type':MIME[path.extname(fp)]||'application/octet-stream'});s.end(d);});});
 server.listen(PORT,async()=>{
   log('server up');
-  const b=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--disable-dev-shm-usage']});
+  const b=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--disable-dev-shm-usage']});
   const pg=await (await b.newContext({viewport:{width:1280,height:900}})).newPage();
   const errs=[];pg.on('pageerror',e=>{errs.push(e.message);log('PAGEERROR: '+e.message.slice(0,140));});
   try{

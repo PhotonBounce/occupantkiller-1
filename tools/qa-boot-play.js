@@ -19,7 +19,7 @@ const MOBILE_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (
 async function runCycle(n) {
   // Fresh browser per cycle: a swiftshader/page crash in one cycle must not
   // poison the rest of the run.
-  const browser = await chromium.launch({ headless:true, args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] });
+  const browser = await chromium.launch({ headless:true, args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] });
   const ctx = await browser.newContext(MOBILE ? { userAgent: MOBILE_UA, viewport:{width:412,height:915}, isMobile:true, hasTouch:true } : { viewport:{width:1280,height:720} });
   const pg = await ctx.newPage();
   const pageErrors = [], consoleErrors = [];

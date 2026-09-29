@@ -27,7 +27,7 @@ const MOBILE_UA='Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KH
 
 server.listen(PORT,async()=>{
   log('server up ('+MODE+')');
-  const browser=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
+  const browser=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
   const ctx=await browser.newContext(MOBILE
     ? {userAgent:MOBILE_UA,viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:2}
     : {viewport:{width:1280,height:720}});

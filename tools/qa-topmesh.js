@@ -8,7 +8,7 @@ const PORT=parseInt(process.argv[2]||'4292',10);
 const server=http.createServer((q,s)=>{let p=decodeURIComponent(q.url.split('?')[0]);if(p==='/')p='/index.html';const fp=path.join(ROOT,p);if(!fp.startsWith(ROOT)){s.writeHead(403);return s.end();}fs.readFile(fp,(e,d)=>{if(e){s.writeHead(404);return s.end('404');}s.end(d);});});
 const UA='Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36';
 server.listen(PORT,async()=>{
-  const browser=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
+  const browser=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
   const ctx=await browser.newContext({userAgent:UA,viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:2});
   const pg=await ctx.newPage();
   pg.on('pageerror',e=>console.log('PAGEERR',e.message.slice(0,120)));
