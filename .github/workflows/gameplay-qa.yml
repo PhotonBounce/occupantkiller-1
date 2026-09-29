@@ -70,9 +70,15 @@ jobs:
             rc=$?
             echo "attempt $i exit=$rc"
             if [ $rc -eq 0 ]; then ok=1; break; fi
-            # rc=1 is a real verdict failure — report it, do not retry it away.
-            if [ $rc -eq 1 ]; then echo "::error::stage ${{ matrix.stage }} FAILED gameplay QA"; break; fi
-            echo "::warning::attempt $i hung or crashed (exit $rc)"
+            # Exit 1 means either a real verdict failure or an uncaught crash,
+            # and those need opposite handling. The verdict file is what tells
+            # them apart: qa-play writes it only after reaching a judgement.
+            # Stage 12's first run crashed on a 300s boot wait and was treated
+            # as a verdict, so a wedged browser got reported as a broken game.
+            if [ -f qa-out-${{ matrix.stage }}/verdict.json ]; then
+              echo "::error::stage ${{ matrix.stage }} FAILED gameplay QA"; break
+            fi
+            echo "::warning::attempt $i crashed or hung before reaching a verdict (exit $rc) — retrying"
           done
           exit $([ $ok -eq 1 ] && echo 0 || echo 1)
       - uses: actions/upload-artifact@v4

@@ -164,6 +164,20 @@ server.listen(PORT, async () => {
     }
   };
 
+  // Whether mouselook WORKS, by whichever path this environment supports.
+  // realMouseWorks above is an environment capability, not a game property:
+  // headless Chromium often reports movementX as 0 under pointer lock, which
+  // is exactly why the fallback below this exists. Failing a build on it
+  // reports a broken game when the game is fine. What matters is that looking
+  // turns the camera — so measure that, through look() itself.
+  const yawPre = await readYaw();
+  await look(200, 0);
+  await page.waitForTimeout(200);
+  const yawPost = await readYaw();
+  const mouselookWorks = yawPre !== null && yawPost !== null && yawPre !== yawPost;
+  say(T() + '  mouselook (' + (realMouseWorks ? 'real mouse' : 'synthesised') + '): '
+      + (mouselookWorks ? 'WORKS' : 'DEAD (yaw ' + yawPre + ' -> ' + yawPost + ')'));
+
   const hold = async (key, ms) => { await page.keyboard.down(key); await page.waitForTimeout(ms); await page.keyboard.up(key); };
 
   // Movement sanity check, run before anything else and reported explicitly.
@@ -230,7 +244,10 @@ server.listen(PORT, async () => {
 
   const report = {
     stage: STAGE, seconds: SECS,
-    pointerLock: locked, mouselookViaRealMouse: realMouseWorks,
+    pointerLock: locked,
+    // Environment capability, reported not asserted.
+    mouselookViaRealMouse: realMouseWorks,
+    mouselookWorks: mouselookWorks,
     movementWorks: canMove, movedMetres: +moved.toFixed(2),
     final, timeline, shots,
     pageErrors: pageErrors.slice(0, 20),
@@ -256,7 +273,7 @@ server.listen(PORT, async () => {
   const failures = [];
   if (!canMove)        failures.push('PLAYER CANNOT MOVE — WASD produced no displacement (moved ' + moved.toFixed(2) + 'm)');
   if (!locked)         failures.push('POINTER LOCK NEVER ENGAGED — the player cannot aim');
-  if (!realMouseWorks) failures.push('MOUSELOOK DEAD — real mouse movement did not turn the camera');
+  if (!mouselookWorks) failures.push('MOUSELOOK DEAD — looking did not turn the camera (yaw unchanged)');
   if (pageErrors.length) failures.push(pageErrors.length + ' uncaught page error(s) during play: ' + pageErrors[0].slice(0, 120));
 
   say('');
