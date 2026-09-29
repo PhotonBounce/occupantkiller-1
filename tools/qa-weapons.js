@@ -143,8 +143,41 @@ server.listen(PORT, async () => {
     let frame = null; try { frame = GameManager.getRenderer().info.render.frame; } catch (e) {}
     return { idx: i, id: d.id, name: d.name, type: d.type, clipSize: d.clipSize || 0,
              clip: Weapons.getClip(), reserve: Weapons.getReserve(),
-             reloading: !!Weapons.isReloading(), state: GameManager.getState(), frame };
+             reloading: !!Weapons.isReloading(), state: GameManager.getState(), frame,
+             locked: !!document.pointerLockElement };
   });
+
+  // Log every release of pointer lock with its caller, so a row that could
+  // not fire says who took the lock away.
+  await page.evaluate(() => {
+    if (window.__lockTraced) return; window.__lockTraced = true;
+    const orig = document.exitPointerLock.bind(document);
+    document.exitPointerLock = function () {
+      const who = (new Error().stack || '').split('\n')[2] || '';
+      console.log('[lock] exitPointerLock() from ' + who.trim().slice(0, 140) + ' state=' + GameManager.getState());
+      return orig();
+    };
+  });
+  page.on('console', m => { const t = m.text(); if (t.startsWith('[lock]')) say(T() + '    ' + t); });
+
+  // The left button only fires while the pointer is locked: game-manager's
+  // mousedown handler treats a click without lock as the click that ASKS for
+  // lock, requests it and returns without firing. The second weapons run
+  // reported 46 of 51 guns unable to fire; every one of those rows was
+  // pressed with no lock held. So: check the lock before every trigger pull,
+  // re-acquire it with a click if it is gone (Chrome throttles re-locking
+  // for ~1s after a release, hence the wait), and if it still cannot be had,
+  // say so instead of blaming the weapon.
+  const ensureLock = async () => {
+    let cur = await readCur();
+    if (cur.locked) return true;
+    await page.mouse.click(Math.floor(W / 2), Math.floor(H / 2));
+    const r = await until(c => c.locked, 12, 4000);
+    if (r.ok) return true;
+    await page.waitForTimeout(1200);
+    await page.mouse.click(Math.floor(W / 2), Math.floor(H / 2));
+    return (await until(c => c.locked, 12, 4000)).ok;
+  };
 
   // Wait until pred(cur) holds, or a budget of RENDERED FRAMES runs out.
   //
@@ -181,7 +214,7 @@ server.listen(PORT, async () => {
     if (k === 0) { before = await readCur(); switched = true; }
     else {
       await page.mouse.wheel(0, 120);     // one notch down = Weapons.switchNext()
-      const sw = await until(c => c.idx !== prevIdx, 40, 8000);
+      const sw = await until(c => c.idx !== prevIdx, 40, 20000);
       before = sw.cur; switched = sw.ok; swFrames = sw.frames;
     }
     if (before.state !== 'playing') {
@@ -192,12 +225,18 @@ server.listen(PORT, async () => {
     const measurable = before.clipSize > 0;
 
     let fired = null, reloaded = null, afterFire = before, afterReload = before, fireFrames = null, reloadFrames = null;
+    let lockHeld = null;
     if (switched) {
       // Fire: hold the trigger until the clip drops or a dry-fire reload
       // starts, within a frame budget generous enough for a spin-up.
+      lockHeld = await ensureLock();
       await page.mouse.down();
-      if (measurable) {
-        const fr = await until(c => c.clip < before.clip || c.reloading, 30, 8000);
+      if (!lockHeld) {
+        // Not a verdict on the weapon: without lock the click cannot fire.
+        const fr = await until(() => false, 2, 800);
+        afterFire = fr.cur;
+      } else if (measurable) {
+        const fr = await until(c => c.clip < before.clip || c.reloading, 30, 20000);
         afterFire = fr.cur; fired = fr.ok; fireFrames = fr.frames;
       } else {
         const fr = await until(() => false, 4, 1500);   // melee: swing a few frames, nothing to measure
@@ -209,7 +248,7 @@ server.listen(PORT, async () => {
       // up, again within a frame budget.
       await page.keyboard.press('KeyR');
       if (measurable) {
-        const rl = await until(c => c.reloading || c.clip > afterFire.clip || c.clip === before.clipSize, 30, 8000);
+        const rl = await until(c => c.reloading || c.clip > afterFire.clip || c.clip === before.clipSize, 30, 20000);
         afterReload = rl.cur; reloaded = rl.ok; reloadFrames = rl.frames;
       }
     }
@@ -218,17 +257,18 @@ server.listen(PORT, async () => {
     const row = {
       k, idx: before.idx, id: before.id, name: before.name, type: before.type,
       clipSize: before.clipSize, clipBefore: before.clip, clipAfterFire: afterFire.clip,
-      switched, swFrames, fired, fireFrames, reloaded, reloadFrames, errors: errs,
+      switched, swFrames, lockHeld, fired, fireFrames, reloaded, reloadFrames, errors: errs,
     };
     rows.push(row);
     const flag = (!switched ? ' <-- DID NOT SWITCH (idx still ' + before.idx + ' after ' + swFrames + ' frames)' : '')
+      + (lockHeld === false ? ' <-- NO POINTER LOCK (fire not measurable)' : '')
       + (fired === false ? ' <-- DID NOT FIRE in ' + fireFrames + ' frames' : '')
       + (reloaded === false ? ' <-- DID NOT RELOAD in ' + reloadFrames + ' frames' : '')
       + (errs.length ? ' <-- ' + errs.length + ' PAGE ERROR(S): ' + errs[0].slice(0, 90) : '');
     say(T() + '  #' + String(before.idx).padStart(3) + ' ' + String(before.name).padEnd(30).slice(0, 30)
         + ' ' + String(before.type || '').padEnd(9)
         + ' clip ' + String(before.clip).padStart(3) + '->' + String(afterFire.clip).padStart(3)
-        + '  fire=' + (fired === null ? 'n/a ' : fired ? 'ok  ' : 'NO  ')
+        + '  fire=' + (fired === null ? 'n/a ' : fired ? 'ok  ' : 'NO  ') + (lockHeld === false ? '(nolock)' : '')
         + ' reload=' + (reloaded === null ? 'n/a' : reloaded ? 'ok ' : 'NO ') + flag);
     if (k % 12 === 0 || flag) await shot('wpn-' + String(before.idx).padStart(3, '0') + '-' + String(before.id || 'x').toLowerCase());
     if (k % 10 === 0) flush();
@@ -240,18 +280,20 @@ server.listen(PORT, async () => {
   const notFired    = rows.filter(r => r.fired === false);
   const notReloaded = rows.filter(r => r.reloaded === false);
   const withErrors  = rows.filter(r => r.errors.length);
-  const unmeasurable = rows.filter(r => r.fired === null).length;
+  const noLock = rows.filter(r => r.lockHeld === false);
+  const unmeasurable = rows.filter(r => r.fired === null && r.lockHeld !== false).length;
 
   const failures = [];
   if (setup.unlocked < setup.count) failures.push('SETUP: only ' + setup.unlocked + ' of ' + setup.count + ' weapons could be unlocked');
   if (coverage < total)   failures.push('COVERAGE: the wheel reached ' + coverage + ' of ' + total + ' weapons (' + notSwitched.length + ' ticks did not change weapon)');
   if (notFired.length)    failures.push(notFired.length + ' weapon(s) did not fire: ' + notFired.slice(0, 6).map(r => '#' + r.idx + ' ' + r.name).join(', ') + (notFired.length > 6 ? ', …' : ''));
   if (notReloaded.length) failures.push(notReloaded.length + ' weapon(s) did not reload: ' + notReloaded.slice(0, 6).map(r => '#' + r.idx + ' ' + r.name).join(', ') + (notReloaded.length > 6 ? ', …' : ''));
+  if (noLock.length)      failures.push('HARNESS: ' + noLock.length + ' row(s) could not get pointer lock, fire not measured: ' + noLock.slice(0, 6).map(r => '#' + r.idx + ' ' + r.name).join(', ') + (noLock.length > 6 ? ', …' : ''));
   if (withErrors.length)  failures.push(withErrors.length + ' weapon(s) threw page errors: ' + withErrors.slice(0, 4).map(r => '#' + r.idx + ' ' + r.name + ' (' + r.errors[0].slice(0, 70) + ')').join('; '));
 
   say('');
   say('  weapons: ' + total + ' total, ' + coverage + ' reached, '
-      + (rows.length - notFired.length - unmeasurable) + ' fired, ' + unmeasurable + ' melee/no-clip (fire not measurable), '
+      + (rows.length - notFired.length - unmeasurable - noLock.length) + ' fired, ' + unmeasurable + ' melee/no-clip (fire not measurable), ' + noLock.length + ' without pointer lock (not measured), '
       + (rows.length - notReloaded.length - unmeasurable) + ' reloaded, ' + withErrors.length + ' with page errors');
   if (failures.length) { failures.forEach(f => say('  FAIL: ' + f)); say('  WEAPONS: FAIL (' + failures.length + ')'); }
   else say('  WEAPONS: PASS — every weapon switched in, fired (where measurable) and reloaded, no page errors');

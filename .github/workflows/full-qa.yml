@@ -89,7 +89,7 @@ jobs:
     name: every weapon
     if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.only == 'all' || github.event.inputs.only == 'weapons') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 95
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -100,9 +100,9 @@ jobs:
         run: |
           set +e
           ok=0
-          for i in 1 2 3; do
+          for i in 1 2; do
             echo "--- attempt $i ---"
-            timeout --signal=KILL 1500 node tools/qa-weapons.js --stage 0 --out qa-out --port 4581
+            timeout --signal=KILL 2700 node tools/qa-weapons.js --stage 0 --out qa-out --port 4581
             rc=$?
             echo "attempt $i exit=$rc"
             if [ $rc -eq 0 ]; then ok=1; break; fi
