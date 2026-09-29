@@ -18,6 +18,9 @@ on:
       only:
         description: 'Which job to run: all, play, weapons, keys, usability'
         default: 'all'
+      stages:
+        description: 'JSON array of stage indices for the play job'
+        default: '[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]'
   # GitHub does not register a dispatch-only workflow that exists only on a
   # feature branch — the API answers 404 for it by name. A push trigger
   # scoped to this one file keeps it registered; every job is guarded to
@@ -43,8 +46,9 @@ jobs:
       fail-fast: false
       matrix:
         # STAGES indices 0..18: 0-12 campaign, 13-16 operations, 17 the FPV
-        # drone mission, 18 the Bradley duel.
-        stage: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+        # drone mission, 18 the Bradley duel. Overridable per dispatch so a
+        # single stage can be re-run without the other eighteen.
+        stage: ${{ fromJSON(github.event.inputs.stages || '[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

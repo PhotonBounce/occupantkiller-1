@@ -162,10 +162,47 @@ server.listen(PORT, async () => {
   if (!startedByClick) await page.evaluate(() => GameManager.startGame());
   say(T() + '  start requested (' + (startedByClick ? 'clicked QUICK START' : 'startGame()') + ')');
 
-  try {
-    await page.waitForFunction(() => GameManager.getState() === 'playing', null, { timeout: 120000 });
-  } catch (e) {
-    say(T() + '  NEVER REACHED PLAYING — state=' + await page.evaluate(() => GameManager.getState()));
+  // Wait for play with a heartbeat, not a silent waitForFunction. Stage 14
+  // hung here three times out of three in the full sweep while eighteen
+  // other stages passed beside it, and all the log had was "boot complete"
+  // followed by a KILL eight minutes later — no way to tell a renderer that
+  // died from a state machine that never advanced. Each probe is raced
+  // against its own timeout so a dead renderer shows up as "unresponsive"
+  // rather than as a hang, and the heap and frame counter say whether the
+  // page is still doing anything.
+  const heartbeat = () => Promise.race([
+    page.evaluate(() => {
+      let heapMB = null; try { heapMB = Math.round(performance.memory.usedJSHeapSize / 1048576); } catch (e) {}
+      let frame = null; try { frame = GameManager.getRenderer().info.render.frame; } catch (e) {}
+      const bar = document.getElementById('boot-progress-bar-fill');
+      let state = null; try { state = GameManager.getState(); } catch (e) {}
+      return { state, heapMB, frame, boot: bar ? bar.style.width : null,
+               overlays: Array.from(document.querySelectorAll('.overlay')).filter(el => getComputedStyle(el).display !== 'none').map(el => el.id).slice(0, 4) };
+    }),
+    new Promise(res => setTimeout(() => res({ unresponsive: true }), 8000)),
+  ]);
+  const PLAY_WAIT_MS = +(process.env.QA_PLAY_WAIT_MS || 150000);
+  const hbLog = [];
+  let reached = false, lastHb = null;
+  for (const w0 = Date.now(); Date.now() - w0 < PLAY_WAIT_MS;) {
+    const hb = await heartbeat().catch(e => ({ error: String(e.message).split('\n')[0].slice(0, 100) }));
+    hb.t = +((Date.now() - w0) / 1000).toFixed(1);
+    hbLog.push(hb); lastHb = hb;
+    if (hb.state === 'playing') { reached = true; break; }
+    if (hbLog.length === 1 || hbLog.length % 3 === 0 || hb.unresponsive || hb.error) {
+      say(T() + '  waiting for play: ' + JSON.stringify(hb));
+    }
+    await page.waitForTimeout(5000);
+  }
+  if (!reached) {
+    say(T() + '  NEVER REACHED PLAYING after ' + (PLAY_WAIT_MS / 1000) + 's — last: ' + JSON.stringify(lastHb));
+    fs.writeFileSync(path.join(OUT, 'start-wedge.json'), JSON.stringify({ stage: STAGE, heartbeats: hbLog }, null, 1));
+    await shot(page, '00-start-wedge');
+    fs.writeFileSync(path.join(OUT, 'qa-play.log'), log.join('\n'));
+    // No verdict.json: this is a start failure the workflow retries and the
+    // report lists as "no verdict", with start-wedge.json saying why.
+    await browser.close(); server.close();
+    process.exit(1);
   }
   say(T() + '  state=' + await page.evaluate(() => GameManager.getState()));
   await shot(page, '00-start');
