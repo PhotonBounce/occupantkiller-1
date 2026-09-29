@@ -269,10 +269,37 @@ server.listen(PORT, async () => {
     const p = GameManager.getPlayer().position;
     return [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)];
   });
+  // Hold W until the subject has plainly moved, or a frame budget runs out.
+  //
+  // This was a flat 2.5s hold against a 0.2m gate, and that is a wall-clock
+  // measurement of a thing that advances per frame. Physics delta is clamped
+  // to 0.1s, so on a CI runner rendering through SwiftShader at 2-3 fps those
+  // 2.5 seconds buy well under a second of simulated movement. Stage 11
+  // passed twice and then failed at 0.19m — 0.01m under the gate — with the
+  // same code. A check that swings on runner load is worse than no check,
+  // because it teaches everyone to ignore it.
+  const frameNo = () => page.evaluate(() => {
+    try { return GameManager.getRenderer().info.render.frame; } catch (e) { return null; }
+  });
+  const MOVE_TARGET = 0.5, FRAME_BUDGET = 90, WALL_CAP_MS = 20000;
   const sBefore = await subjectOf(), bBefore = await bodyOf();
-  await hold('KeyW', 2500);
-  await page.waitForTimeout(500);
-  const sAfter = await subjectOf(), bAfter = await bodyOf();
+  const f0 = await frameNo(), w0 = Date.now();
+  let sAfter = sBefore, bAfter = bBefore, framesUsed = 0;
+  await page.keyboard.down('KeyW');
+  while (Date.now() - w0 < WALL_CAP_MS) {
+    await page.waitForTimeout(400);
+    sAfter = await subjectOf(); bAfter = await bodyOf();
+    const f = await frameNo();
+    framesUsed = (f !== null && f0 !== null) ? f - f0 : 0;
+    const d = sAfter.kind === 'drone'
+      ? Math.hypot(sAfter.pos[0] - sBefore.pos[0], sAfter.pos[1] - sBefore.pos[1], sAfter.pos[2] - sBefore.pos[2])
+      : Math.hypot(sAfter.pos[0] - sBefore.pos[0], sAfter.pos[2] - sBefore.pos[2]);
+    if (d > MOVE_TARGET) break;
+    if (framesUsed >= FRAME_BUDGET) break;
+  }
+  await page.keyboard.up('KeyW');
+  await page.waitForTimeout(300);
+  sAfter = await subjectOf(); bAfter = await bodyOf();
   const subject = sAfter.kind;
   const mvBefore = sBefore.pos, mvAfter = sAfter.pos;
   // A drone climbs and dives, so its forward run is a 3D displacement; a
@@ -282,15 +309,25 @@ server.listen(PORT, async () => {
     : Math.hypot(mvAfter[0] - mvBefore[0], mvAfter[2] - mvBefore[2]);
   const canMove = moved > 0.2;
   say(T() + '  movement check [' + subject + ']: ' + (canMove ? 'OK' : subject.toUpperCase() + ' DID NOT MOVE')
-      + ' ' + JSON.stringify(mvBefore) + ' -> ' + JSON.stringify(mvAfter) + '  (' + moved.toFixed(2) + 'm)');
+      + ' ' + JSON.stringify(mvBefore) + ' -> ' + JSON.stringify(mvAfter)
+      + '  (' + moved.toFixed(2) + 'm over ' + framesUsed + ' frames, '
+      + ((Date.now() - w0) / 1000).toFixed(1) + 's wall)');
   if (sBefore.kind !== sAfter.kind) say(T() + '  note: control subject changed mid-check: ' + sBefore.kind + ' -> ' + sAfter.kind);
 
   // Riding something means the body rides with it.
   const bodyMoved = Math.hypot(bAfter[0] - bBefore[0], bAfter[2] - bBefore[2]);
   const gap = Math.hypot(bAfter[0] - mvAfter[0], bAfter[2] - mvAfter[2]);
-  const desynced = subject !== 'player' && gap > 6;
+  // Only for things the player is INSIDE. A drone is flown remotely — the
+  // pilot stands at the launch point and the aircraft flies away, which is
+  // the whole premise of the mission and is what game-manager means by
+  // "player body is passive while piloting drone". Asserting co-location
+  // there failed stage 17 for working exactly as designed; that was my
+  // mistake, not the game's.
+  const RIDDEN = new Set(['bradley', 'vehicle']);
+  const desynced = RIDDEN.has(subject) && gap > 6;
   if (subject !== 'player') {
-    say(T() + '  body-vs-' + subject + ': body ' + JSON.stringify(bAfter)
+    say(T() + '  body-vs-' + subject + (RIDDEN.has(subject) ? '' : ' (remote — gap expected)')
+        + ': body ' + JSON.stringify(bAfter)
         + ' vs ' + subject + ' ' + JSON.stringify(mvAfter) + '  gap ' + gap.toFixed(2) + 'm'
         + ' (body walked ' + bodyMoved.toFixed(2) + 'm)');
   }
