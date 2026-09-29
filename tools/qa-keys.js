@@ -169,8 +169,25 @@ server.listen(PORT, async () => {
       }
 
       if (await anyOverlayUp()) {
+        // Escape pauses the game reliably but does not appear to un-pause it:
+        // every probe so far ends at paused + inventory-overlay no matter how
+        // many times Escape is pressed. The handler
+        // (game-manager.js, the pause toggle) looks correct and is not gated,
+        // getState() returns gameState directly, and nothing calls
+        // stopImmediatePropagation — so the cause is something that happens
+        // AFTER the handler runs. Leading suspect: Escape also makes the
+        // browser exit pointer lock, and the pointerlockchange handler treats
+        // lock loss during PLAYING as "player opened a menu" and pauses
+        // again. Sample the state either side of the press so the next run
+        // shows the transition instead of just the end state.
+        const t0e = Date.now();
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(400);
+        for (const ms of [120, 500, 1400]) {
+          await page.waitForTimeout(ms - (Date.now() - t0e) > 0 ? ms - (Date.now() - t0e) : 0);
+          const q = await probe();
+          say(T() + '    esc+' + ms + 'ms: state=' + q.state + ' lock=' + q.locked
+              + ' overlay=' + (q.overlay.join(',') || 'none'));
+        }
         continue;
       }
 
