@@ -33,7 +33,11 @@ const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i >= 0 
 const STAGE = parseInt(arg('stage', '0'), 10);
 const PORT  = parseInt(arg('port', '4579'), 10);
 const OUT   = arg('out', path.join(ROOT, 'tools', 'qa-keys-out'));
-const W = parseInt(arg('w', '480'), 10), H = parseInt(arg('h', '270'), 10);
+// 320x180. Under SwiftShader every texture and render target is host memory,
+// and a boot at 480x270 took total Chromium RSS to ~7.9 GB before the
+// renderer was killed; the one probe that survived three crashes did so at
+// this size. The sweep cares about key handling, not pixels.
+const W = parseInt(arg('w', '320'), 10), H = parseInt(arg('h', '180'), 10);
 
 fs.mkdirSync(OUT, { recursive: true });
 const log = [];
@@ -120,35 +124,57 @@ server.listen(PORT, async () => {
   });
 
   // Put the player back in the game after a key that took them out of it.
-  // Clicking the middle of the screen is wrong here: every overlay this is
-  // recovering from is centred, so the click lands on the panel and toggles
-  // one of its settings instead of re-locking. Click the canvas near its
-  // corner, and press Escape twice — the offending panel and the game's own
-  // pause both listen for it, and each consumes one press.
+  //
+  // The previous version clicked the canvas corner to re-acquire pointer
+  // lock. Every overlay it recovers from is full-screen, so "the canvas
+  // corner" is really whatever element happens to be painted there — and in
+  // CI one of those clicks hit something that quit to the main menu. From
+  // STATE.MENU nothing recovers, so the sweep declared 39 of 43 keys
+  // unjudged and the run told us nothing. A recovery routine that can lose
+  // the game is worse than one that gives up early.
+  //
+  // So: never click blind. Escape to dismiss, and if that leaves us at the
+  // main menu, restart the stage outright. Pointer lock is re-acquired by
+  // clicking the canvas ONLY when no overlay is painted over it.
+  const anyOverlayUp = () => page.evaluate(() =>
+    Array.from(document.querySelectorAll('.overlay, #inventory-overlay'))
+      .some(el => getComputedStyle(el).display !== 'none'));
+
+  const restartStage = async () => {
+    await page.evaluate((s) => {
+      window.__QA_MODE = true; window.__QA_START_STAGE = s; window.__chosenStartStage = s;
+      try { GameManager.startGame(); } catch (e) {}
+    }, STAGE);
+    await page.waitForFunction(() => GameManager.getState() === 'playing', null, { timeout: 120000 }).catch(() => {});
+    await page.waitForTimeout(800);
+  };
+
   const recover = async () => {
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       const p = await probe();
       if (p.state === 'playing' && p.locked) return true;
-      // ONE Escape. The game's Escape is a toggle, so pressing it twice
-      // unpaused and then re-paused — which is how a clean recovery looked
-      // like a game that could not be un-paused, and cost seven keys their
-      // verdict in the first sweep.
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(350);
-      if ((await probe()).state === 'playing') {
-        try {
-          const c = await page.$('canvas');
-          if (c) await c.click({ position: { x: 6, y: 6 }, force: true });
-        } catch (e) {}
+
+      // Lost to the main menu (or the run ended) — only a restart comes back.
+      if (p.state === 'menu' || p.state === 'dead' || p.state === 'gameover') {
+        say(T() + '  recovery: game is at "' + p.state + '" — restarting stage ' + STAGE);
+        await restartStage();
+        continue;
+      }
+
+      if (await anyOverlayUp()) {
+        await page.keyboard.press('Escape');
         await page.waitForTimeout(400);
         continue;
       }
-      try {
-        const canvas = await page.$('canvas');
-        if (canvas) await canvas.click({ position: { x: 6, y: 6 }, force: true });
-        else await page.mouse.click(8, 8);
-      } catch (e) { await page.mouse.click(8, 8); }
-      await page.waitForTimeout(450);
+
+      // No overlay in the way: safe to click the canvas for pointer lock.
+      if (!p.locked) {
+        try {
+          const c = await page.$('canvas');
+          if (c) await c.click({ position: { x: 6, y: 6 } });
+        } catch (e) {}
+        await page.waitForTimeout(400);
+      }
     }
     return false;
   };
