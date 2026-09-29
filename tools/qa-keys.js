@@ -168,22 +168,39 @@ server.listen(PORT, async () => {
     const after = await probe();
     const tookOver = after.state !== 'playing' || (before.locked && !after.locked);
     const expected = MENU_KEYS.has(key);
-    results.push({ key, state: after.state, locked: after.locked, overlay: after.overlay, tookOver, expected,
+    // A menu is allowed to take the screen; it is not allowed to sit on a
+    // screen that is still being played. J left the shop display:flex with
+    // the game back in 'playing' and the pointer re-locked — painted over a
+    // live fight and unclickable. That is a failure for every key, menu keys
+    // included, and no allowlist excuses it.
+    const strandedMenu = after.state === 'playing' && after.overlay.length > 0;
+    results.push({ key, state: after.state, locked: after.locked, overlay: after.overlay, tookOver, expected, strandedMenu,
                    trustworthy: before.state === 'playing' && before.locked });
     say(T() + '  ' + key.padEnd(11) + ' state=' + String(after.state).padEnd(8) + ' lock=' + String(after.locked).padEnd(5)
-        + (tookOver ? '  <-- TOOK OVER' + (expected ? ' (expected)' : '') + (after.overlay.length ? ' overlay=' + after.overlay.join(',') : '') : ''));
-    if (tookOver) await recover();
+        + (tookOver ? '  <-- TOOK OVER' + (expected ? ' (expected)' : '') + (after.overlay.length ? ' overlay=' + after.overlay.join(',') : '') : '')
+        + (strandedMenu ? '  <-- MENU STRANDED OVER LIVE PLAY overlay=' + after.overlay.join(',') : ''));
+    if (tookOver || strandedMenu) await recover();
   }
 
-  const offenders = results.filter(r => r.tookOver && !r.expected && r.trustworthy);
+  const offenders = results.filter(r => r.trustworthy && (r.strandedMenu || (r.tookOver && !r.expected)));
   const unjudged = results.filter(r => !r.trustworthy).map(r => r.key);
+  // A sweep that could not get the player back into the game before a fifth
+  // of the keyboard has not swept the keyboard, and reporting PASS for it
+  // overstates what was checked. The first CI run did exactly that: "PASS —
+  // 39 keys" with seven of them never judged.
+  const missed = unjudged.length + unrecovered.length ? unjudged.length : 0;
   fs.writeFileSync(path.join(OUT, 'qa-keys.json'), JSON.stringify({ stage: STAGE, results, offenders, unjudged, unrecovered, pageErrors }, null, 1));
 
   say('');
-  if (offenders.length) {
-    offenders.forEach(o => say('  FAIL: ' + o.key + ' interrupted play (state=' + o.state + ', lock=' + o.locked
-        + (o.overlay.length ? ', overlay=' + o.overlay.join(',') : '') + ') — a combat key must not take the screen'));
-    say('  stage ' + STAGE + ' KEY SWEEP: FAIL (' + offenders.length + ' of ' + results.length + ')');
+  if (missed) say('  ' + missed + ' of ' + results.length + ' keys could not be judged — see below');
+  if (offenders.length || missed) {
+    offenders.forEach(o => say('  FAIL: ' + o.key + (o.strandedMenu
+        ? ' left ' + o.overlay.join(',') + ' on screen while the game kept playing (lock=' + o.locked
+          + ') — an open menu means the game is paused, or it is a wall the player cannot click through'
+        : ' interrupted play (state=' + o.state + ', lock=' + o.locked
+          + (o.overlay.length ? ', overlay=' + o.overlay.join(',') : '') + ') — a combat key must not take the screen')));
+    say('  stage ' + STAGE + ' KEY SWEEP: FAIL (' + offenders.length + ' offending, '
+        + missed + ' unjudged, of ' + results.length + ')');
   } else {
     say('  stage ' + STAGE + ' KEY SWEEP: PASS — ' + results.length + ' keys, none interrupted play');
   }
@@ -192,5 +209,5 @@ server.listen(PORT, async () => {
   fs.writeFileSync(path.join(OUT, 'qa-keys.log'), log.join('\n'));
 
   await browser.close(); server.close();
-  process.exit(offenders.length ? 1 : 0);
+  process.exit(offenders.length || missed ? 1 : 0);
 });

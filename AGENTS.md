@@ -94,6 +94,24 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   register window-level keydown listeners, so assume nothing about a key being
   free. `tools/qa-keys.js` presses every key and fails if a non-menu key takes
   the screen; run it after touching any input code.
+- **Open, and the worst one found so far: `Tab` cannot close the inventory.**
+  From a clean playing state, pressing Tab leaves the game in `playing` with
+  `#inventory-overlay` at `display:flex` — the inventory painted over a live
+  fight with the pointer unlocked — and no further Tab or Escape ever closes
+  it. Measured, repeatedly, not inferred. `Tab` is bound in at least four
+  loaded places: `game-manager.js` (`toggleInventory`), `weapon-skins.js:349`
+  (skin selector), `objective-tracker.js:707` (objective board, only when
+  `IntelligenceBriefing` is absent) and `intelligence-briefing.js:1240`, whose
+  `_openPanel()` also calls `document.exitPointerLock()`. `J` (shop) lands in
+  the same state. What has NOT been established is which path flips the state
+  back to `playing` while leaving the overlay up — a MutationObserver on the
+  overlay, a wrapped `requestPointerLock` and a `console.log` on all 13
+  `gameState = STATE.PLAYING` sites all lost their run to the renderer OOM
+  above before the trace landed. Do not "fix" this by hiding the overlay
+  whenever the state is `playing`: that was tried, and A/B'd against the same
+  probe without it — it makes Tab and J silently do nothing instead, which is
+  worse. Fix the duplicate bindings, or make overlay visibility derive from
+  the state instead of a dozen imperative writes.
 - GitHub CI runners and Claude's cloud container render via **SwiftShader**
   (software rasterizer, confirmed from the renderer string). Frame-time numbers
   from those environments are meaningless — observed 34–62x spread on identical
