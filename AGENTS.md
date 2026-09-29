@@ -131,10 +131,13 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   not these two bugs. What these two caused, and what is fixed, is that the
   inventory would not CLOSE — which reproduces with or without the flag.
 
-  One more datum for the OOM above: that run only completed at a 320x180
-  viewport, after three consecutive crashes at 480x270. One observation, not
-  a law — but if a probe keeps losing its renderer, shrink the window before
-  assuming the page is at fault.
+  On viewport size and the OOM above: one probe completed at 320x180 after
+  three crashes at 480x270, which looked like a mitigation. It is not —
+  a later sweep at 320x180 lost its renderer on all three attempts, on an
+  idle container with 15 GB free and no leftover processes. So the crash is
+  a burst during world build rather than accumulated pressure, and window
+  size does not reliably decide it. Retry; do not expect a smaller window to
+  save a run.
 - **The old note, kept for the history:**
   From a clean playing state, pressing Tab leaves the game in `playing` with
   `#inventory-overlay` at `display:flex` — the inventory painted over a live
