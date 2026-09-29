@@ -149,10 +149,17 @@ server.listen(PORT, async () => {
     await page.waitForTimeout(800);
   };
 
+  // "Restored" means the game is being played again with no menu in the way.
+  // It does NOT mean pointer lock came back: Chrome throttles re-locking for
+  // about a second after exitPointerLock(), so insisting on it made recovery
+  // burn every iteration and report failure on a game that was already
+  // playing again. That cost 12 of 43 keys their verdict in two runs, in CI
+  // and locally, with identical results. Lock is re-acquired best-effort
+  // because mouselook is nice to have, not because a verdict needs it.
   const recover = async () => {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const p = await probe();
-      if (p.state === 'playing' && p.locked) return true;
+      if (p.state === 'playing' && !(await anyOverlayUp())) return true;
 
       // Lost to the main menu (or the run ended) — only a restart comes back.
       if (p.state === 'menu' || p.state === 'dead' || p.state === 'gameover') {
@@ -168,7 +175,9 @@ server.listen(PORT, async () => {
       }
 
       // No overlay in the way: safe to click the canvas for pointer lock.
+      // Give Chrome's post-Escape lock throttle time to lapse first.
       if (!p.locked) {
+        await page.waitForTimeout(1200);
         try {
           const c = await page.$('canvas');
           if (c) await c.click({ position: { x: 6, y: 6 } });
@@ -207,7 +216,9 @@ server.listen(PORT, async () => {
     // included, and no allowlist excuses it.
     const strandedMenu = after.state === 'playing' && after.overlay.length > 0;
     results.push({ key, state: after.state, locked: after.locked, overlay: after.overlay, tookOver, expected, strandedMenu,
-                   trustworthy: before.state === 'playing' && before.locked });
+                   // A verdict needs the game to have been in play and clear of
+                   // menus before the press. Pointer lock is not part of that.
+                   trustworthy: before.state === 'playing' });
     say(T() + '  ' + key.padEnd(11) + ' state=' + String(after.state).padEnd(8) + ' lock=' + String(after.locked).padEnd(5)
         + (tookOver ? '  <-- TOOK OVER' + (expected ? ' (expected)' : '') + (after.overlay.length ? ' overlay=' + after.overlay.join(',') : '') : '')
         + (strandedMenu ? '  <-- MENU STRANDED OVER LIVE PLAY overlay=' + after.overlay.join(',') : ''));
