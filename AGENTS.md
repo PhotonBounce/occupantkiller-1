@@ -138,6 +138,27 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   a burst during world build rather than accumulated pressure, and window
   size does not reliably decide it. Retry; do not expect a smaller window to
   save a run.
+- **Escape could not resume a paused game — two causes, both fixed and
+  measured.** (1) game-manager's Escape handler put its fullscreen guard
+  (`if (e.isTrusted && document.fullscreenElement) return`) in front of the
+  resume branch, and every desktop start requests fullscreen, so from PAUSED
+  every trusted Escape was dropped. The guard now applies to the pause
+  direction only. (2) `pause-menu.js` (bundled) also bound bare Escape with
+  an unguarded toggle whose `show()` exits pointer lock and `hide()`
+  requests it; its binding is removed, its API kept. The way this was found
+  is the way to find the next one: instrument the handler with console.log
+  at ENTER and at the branch, run a real-input probe, read the order. Three
+  rounds of reading the code guessed wrong first.
+- **The mouse does not fire without pointer lock.** game-manager's mousedown
+  handler treats a left click with no lock held as the click that REQUESTS
+  lock, and returns without firing. Any harness that measures firing must
+  hold the lock before every trigger pull and re-acquire it after anything
+  that could release it (see `tools/qa-weapons.js`'s `ensureLock`). The
+  second weapons run blamed 46 of 51 guns for this.
+- **Every stage opens on the mission briefing, which waits for Enter.** A
+  measurement taken before Enter is pressed is a measurement of the briefing
+  screen (100% coverage, 0% centre clear). `tools/qa-usability.js` presses
+  it the way the player does; `__QA_MODE` skips the briefing entirely.
 - **The old note, kept for the history:**
   From a clean playing state, pressing Tab leaves the game in `playing` with
   `#inventory-overlay` at `display:flex` — the inventory painted over a live
