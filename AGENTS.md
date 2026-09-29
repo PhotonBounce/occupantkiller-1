@@ -94,7 +94,21 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   register window-level keydown listeners, so assume nothing about a key being
   free. `tools/qa-keys.js` presses every key and fails if a non-menu key takes
   the screen; run it after touching any input code.
-- **Open, and the worst one found so far: `Tab` cannot close the inventory.**
+- **`Tab` could not close the inventory — two causes, both fixed; verify on
+  real hardware.** First, `intelligence-briefing.js` also bound bare Tab and
+  its `_openPanel()` calls `document.exitPointerLock()`, so one press opened
+  the inventory AND the briefing and dropped the lock twice; the inventory
+  ended up on screen with the game still in `playing`. Removing that binding
+  (F1 still opens the briefing) was measured to fix it: `Tab open` went from
+  `playing + flex` to `paused + flex`. Second, the Tab handler itself sat
+  inside `if (gameState === PLAYING || BUILD_MODE)` while
+  `toggleInventory()`'s close branch requires `PAUSED` — so once Tab paused
+  the game, the block was skipped and the close path was unreachable by
+  construction. Tab now sits beside the pause toggle, which was never gated
+  for the same reason. Keep `Tab` in `tools/qa-keys.js`'s press list: the
+  first sweep allowlisted it as a menu key and never pressed it, which is
+  why the sweep could not catch this.
+- **The old note, kept for the history:**
   From a clean playing state, pressing Tab leaves the game in `playing` with
   `#inventory-overlay` at `display:flex` — the inventory painted over a live
   fight with the pointer unlocked — and no further Tab or Escape ever closes

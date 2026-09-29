@@ -4311,12 +4311,6 @@ const GameManager = (function () {
           if (shopTab) shopTab.click();
         }
 
-        // Inventory/Tab toggle
-        if (e.code === 'Tab') {
-          e.preventDefault();
-          toggleInventory();
-        }
-
         // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9)
         if (e.code === 'Digit1') Weapons.switchTo(0);
         if (e.code === 'Digit2') Weapons.switchTo(1);
@@ -4475,6 +4469,23 @@ const GameManager = (function () {
       if (e.code === 'F9') {
         e.preventDefault();
         if (HUD.toggleSettings) HUD.toggleSettings();
+      }
+
+      // Inventory / Tab toggle.
+      //
+      // This lived inside the `gameState === PLAYING || BUILD_MODE` block
+      // above, and toggleInventory() pauses the game when it opens the
+      // inventory. So the first Tab opened it and every Tab after that hit a
+      // block the paused game no longer enters: the close branch of
+      // toggleInventory() was unreachable from the key that is supposed to
+      // reach it, and the inventory could not be shut. Measured: Tab, Tab,
+      // Tab, Tab from a clean start left it open every time. It belongs out
+      // here with the pause toggle, which was never gated for the same
+      // reason — a key that opens a menu has to work while that menu is up.
+      if (e.code === 'Tab'
+          && (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE || gameState === STATE.PAUSED)) {
+        e.preventDefault();
+        toggleInventory();
       }
 
       // Pause toggle — skip if we just exited fullscreen (browser ESC exits fullscreen first)

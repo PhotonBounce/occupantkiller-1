@@ -56,6 +56,12 @@ const MENU_KEYS = new Set(['Escape', 'Tab', 'F9', 'KeyB', 'KeyJ']);
 // Movement and fire are covered by qa-play.js; this is about the rest of the
 // keyboard, which no test has ever pressed.
 const KEYS = [
+  // The menu keys go first and are pressed like any other. The first CI sweep
+  // allowlisted Tab, Escape, F9 and B as "expected to open a menu" and then
+  // never pressed one of them — so the check that would have caught Tab
+  // leaving the inventory stranded could not fire. An allowlist for keys the
+  // sweep does not press is not an allowlist, it is a blind spot.
+  'Tab', 'Escape', 'F9', 'KeyB',
   'KeyE', 'KeyQ', 'KeyF', 'KeyG', 'KeyH', 'KeyI', 'KeyJ', 'KeyK', 'KeyL',
   'KeyM', 'KeyN', 'KeyO', 'KeyP', 'KeyR', 'KeyT', 'KeyU', 'KeyV', 'KeyX',
   'KeyY', 'KeyZ', 'KeyC',
