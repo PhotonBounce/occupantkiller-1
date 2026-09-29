@@ -4083,8 +4083,9 @@ const GameManager = (function () {
           }
         }
 
-        // Killstreak activation (K key - toggles panel)
-        if (e.code === 'KeyK') {
+        // Killstreak activation (K key - toggles panel). Alt+K belongs to the
+        // weapon attachments menu; without the modifier check both opened.
+        if (e.code === 'KeyK' && !e.altKey) {
           var ksPanel = document.getElementById('killstreak-panel');
           if (ksPanel) {
             ksPanel.style.display = ksPanel.style.display === 'none' ? 'block' : 'none';

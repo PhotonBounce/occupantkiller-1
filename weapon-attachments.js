@@ -1,6 +1,7 @@
 /* ───────────────────────────────────────────────────────────────────────────
    WEAPON-ATTACHMENTS.JS — Full weapon attachment system for OccupantKiller
-   Ukraine conflict theme. Press K to open the attachment menu.
+   Ukraine conflict theme. Press Alt+K to open the attachment menu (bare K is
+   the killstreak panel in game-manager; this module used to take it too).
    Slots: optic / muzzle / grip / ammo. Persists to localStorage.
    Applies global bonus flags read by game-manager and weapons.js.
    ─────────────────────────────────────────────────────────────────────────── */
@@ -47,6 +48,7 @@ window.WeaponAttachments = (function () {
   // ── State ──────────────────────────────────────────────────────────────────
   var _STORAGE_KEY = 'okk_attachments_v1';
   var _menuVisible = false;
+  var _pausedGame = false;   // did show() pause the game (so hide() resumes it)
   var _overlay = null;
   var _selectedWeaponId = null;
   var _selectedAttachKey = null;   // key in ATTACHMENTS, for preview
@@ -643,6 +645,20 @@ window.WeaponAttachments = (function () {
     _menuVisible = true;
     window._inputBlocked = true;
 
+    // Pause the game BEFORE releasing the pointer. game-manager's
+    // pointerlockchange handler treats any lock loss during PLAYING as the
+    // player opening a menu and paints the inventory/pause overlay on top
+    // — measured by the key sweep: K gave "paused, inventory-overlay" with
+    // this menu underneath. Paused first, the lock loss is expected and the
+    // handler stays out of it; hide() resumes what it paused.
+    _pausedGame = false;
+    try {
+      if (window.GameManager && GameManager.getState && GameManager.getState() === 'playing') {
+        GameManager.setState('paused');
+        _pausedGame = true;
+      }
+    } catch (e) {}
+
     // Pointer lock release
     if (document.exitPointerLock) {
       try { document.exitPointerLock(); } catch (e) {}
@@ -653,17 +669,29 @@ window.WeaponAttachments = (function () {
     if (_overlay) _overlay.style.display = 'none';
     _menuVisible = false;
     window._inputBlocked = false;
+    if (_pausedGame) {
+      _pausedGame = false;
+      try {
+        if (window.GameManager && GameManager.getState && GameManager.getState() === 'paused') {
+          GameManager.setState('playing');
+          var canvas = document.querySelector('canvas');
+          if (canvas && canvas.requestPointerLock) canvas.requestPointerLock();
+        }
+      } catch (e) {}
+    }
   }
 
   function toggle() {
     if (_menuVisible) { hide(); } else { show(); }
   }
 
-  // ── K key binding ─────────────────────────────────────────────────────────
+  // ── Alt+K key binding ─────────────────────────────────────────────────────
+  // Not bare K: game-manager binds that to the killstreak panel, and two
+  // handlers on one key is the collision class that paused the game on R.
   function _bindKeys() {
     document.addEventListener('keydown', function (e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-      if (e.code === 'KeyK' || e.key === 'k' || e.key === 'K') {
+      if (e.code === 'KeyK' && e.altKey && !e.ctrlKey && !e.shiftKey) {
         // Don't open if another blocking menu is visible
         if (!_menuVisible && window._inputBlocked) return;
         e.preventDefault();
