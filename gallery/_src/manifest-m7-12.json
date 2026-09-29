@@ -21,7 +21,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 88
+   "enemies": 84
   },
   {
    "file": "stage-007-outer-moscow-f002.jpg",
@@ -31,7 +31,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 83
   },
   {
    "file": "stage-007-outer-moscow-f003.jpg",
@@ -41,7 +41,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 83
   },
   {
    "file": "stage-007-outer-moscow-f004.jpg",
@@ -51,7 +51,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 86
+   "enemies": 83
   },
   {
    "file": "stage-007-outer-moscow-f005.jpg",
@@ -61,7 +61,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 86
+   "enemies": 82
   },
   {
    "file": "stage-007-outer-moscow-f006.jpg",
@@ -71,7 +71,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 82
   },
   {
    "file": "stage-007-outer-moscow-f007.jpg",
@@ -81,7 +81,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 82
   },
   {
    "file": "stage-007-outer-moscow-f008.jpg",
@@ -91,7 +91,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 80
   },
   {
    "file": "stage-007-outer-moscow-f009.jpg",
@@ -101,7 +101,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 79
   },
   {
    "file": "stage-008-sevastopol-naval-base-f000.jpg",
@@ -111,7 +111,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 78
   },
   {
    "file": "stage-008-sevastopol-naval-base-f001.jpg",
@@ -121,7 +121,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 18
+   "enemies": 14
   },
   {
    "file": "stage-008-sevastopol-naval-base-f002.jpg",
@@ -131,7 +131,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 96
   },
   {
    "file": "stage-008-sevastopol-naval-base-f003.jpg",
@@ -141,7 +141,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 95
   },
   {
    "file": "stage-008-sevastopol-naval-base-f004.jpg",
@@ -151,7 +151,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 94
   },
   {
    "file": "stage-008-sevastopol-naval-base-f005.jpg",
@@ -161,7 +161,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 97
+   "enemies": 93
   },
   {
    "file": "stage-008-sevastopol-naval-base-f006.jpg",
@@ -171,7 +171,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 92
   },
   {
    "file": "stage-008-sevastopol-naval-base-f007.jpg",
@@ -181,7 +181,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 90
   },
   {
    "file": "stage-008-sevastopol-naval-base-f008.jpg",
@@ -191,7 +191,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 95
+   "enemies": 91
   },
   {
    "file": "stage-008-sevastopol-naval-base-f009.jpg",
@@ -201,7 +201,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 94
+   "enemies": 92
   },
   {
    "file": "stage-009-donbas-final-push-f000.jpg",
@@ -211,7 +211,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 95
+   "enemies": 91
   },
   {
    "file": "stage-009-donbas-final-push-f001.jpg",
@@ -221,7 +221,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 23
+   "enemies": 19
   },
   {
    "file": "stage-009-donbas-final-push-f002.jpg",
@@ -231,7 +231,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 96
+   "enemies": 101
   },
   {
    "file": "stage-009-donbas-final-push-f003.jpg",
@@ -241,7 +241,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 97
+   "enemies": 101
   },
   {
    "file": "stage-009-donbas-final-push-f004.jpg",
@@ -251,7 +251,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 101
   },
   {
    "file": "stage-009-donbas-final-push-f005.jpg",
@@ -261,7 +261,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 99
+   "enemies": 102
   },
   {
    "file": "stage-009-donbas-final-push-f006.jpg",
@@ -271,7 +271,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 99
+   "enemies": 102
   },
   {
    "file": "stage-009-donbas-final-push-f007.jpg",
@@ -281,7 +281,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 100
+   "enemies": 103
   },
   {
    "file": "stage-009-donbas-final-push-f008.jpg",
@@ -291,7 +291,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 100
+   "enemies": 102
   },
   {
    "file": "stage-009-donbas-final-push-f009.jpg",
@@ -301,7 +301,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 100
+   "enemies": 101
   },
   {
    "file": "stage-010-belgorod-offensive-f000.jpg",
@@ -330,7 +330,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 101
+   "enemies": 104
   },
   {
    "file": "stage-010-belgorod-offensive-f003.jpg",
@@ -340,7 +340,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 101
+   "enemies": 104
   },
   {
    "file": "stage-010-belgorod-offensive-f004.jpg",
@@ -350,7 +350,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 100
+   "enemies": 104
   },
   {
    "file": "stage-010-belgorod-offensive-f005.jpg",
@@ -360,7 +360,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 99
+   "enemies": 105
   },
   {
    "file": "stage-010-belgorod-offensive-f006.jpg",
@@ -370,7 +370,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 99
+   "enemies": 106
   },
   {
    "file": "stage-010-belgorod-offensive-f007.jpg",
@@ -380,7 +380,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 105
   },
   {
    "file": "stage-010-belgorod-offensive-f008.jpg",
@@ -390,7 +390,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 105
   },
   {
    "file": "stage-010-belgorod-offensive-f009.jpg",
@@ -400,7 +400,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 93
+   "enemies": 104
   },
   {
    "file": "stage-011-kremlin-showdown-f000.jpg",
@@ -410,7 +410,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 93
+   "enemies": 105
   },
   {
    "file": "stage-011-kremlin-showdown-f001.jpg",
@@ -449,7 +449,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 118
+   "enemies": 119
   },
   {
    "file": "stage-011-kremlin-showdown-f005.jpg",
@@ -459,7 +459,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 117
+   "enemies": 120
   },
   {
    "file": "stage-011-kremlin-showdown-f006.jpg",
@@ -469,7 +469,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 118
+   "enemies": 120
   },
   {
    "file": "stage-011-kremlin-showdown-f007.jpg",
@@ -489,7 +489,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 118
+   "enemies": 119
   },
   {
    "file": "stage-011-kremlin-showdown-f009.jpg",
@@ -499,7 +499,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 119
+   "enemies": 118
   },
   {
    "file": "stage-012-battle-of-kyiv-f000.jpg",
@@ -509,7 +509,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 121
+   "enemies": 119
   },
   {
    "file": "stage-012-battle-of-kyiv-f001.jpg",
@@ -528,7 +528,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 111
+   "enemies": 104
   },
   {
    "file": "stage-012-battle-of-kyiv-f003.jpg",
@@ -538,7 +538,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 109
+   "enemies": 102
   },
   {
    "file": "stage-012-battle-of-kyiv-f004.jpg",
@@ -548,7 +548,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 108
+   "enemies": 98
   },
   {
    "file": "stage-012-battle-of-kyiv-f005.jpg",
@@ -558,7 +558,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 104
+   "enemies": 92
   },
   {
    "file": "stage-012-battle-of-kyiv-f006.jpg",
@@ -568,7 +568,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 94
+   "enemies": 82
   },
   {
    "file": "stage-012-battle-of-kyiv-f007.jpg",
@@ -578,7 +578,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 79
   },
   {
    "file": "stage-012-battle-of-kyiv-f008.jpg",
@@ -588,7 +588,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 84
+   "enemies": 76
   },
   {
    "file": "stage-012-battle-of-kyiv-f009.jpg",
@@ -598,7 +598,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 78
+   "enemies": 71
   }
  ],
  "pageErrors": []

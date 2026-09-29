@@ -20,7 +20,8 @@
    "stageName": "HOSTOMEL AIRPORT",
    "frame": 1,
    "tSec": 5,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 46
   },
   {
    "file": "stage-000-hostomel-airport-f002.jpg",
@@ -30,7 +31,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 43
+   "enemies": 46
   },
   {
    "file": "stage-000-hostomel-airport-f003.jpg",
@@ -40,7 +41,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 37
+   "enemies": 41
   },
   {
    "file": "stage-000-hostomel-airport-f004.jpg",
@@ -50,7 +51,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 37
+   "enemies": 33
   },
   {
    "file": "stage-000-hostomel-airport-f005.jpg",
@@ -60,7 +61,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 23
+   "enemies": 22
   },
   {
    "file": "stage-000-hostomel-airport-f006.jpg",
@@ -70,7 +71,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 22
+   "enemies": 19
   },
   {
    "file": "stage-000-hostomel-airport-f007.jpg",
@@ -80,7 +81,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 19
+   "enemies": 18
   },
   {
    "file": "stage-000-hostomel-airport-f008.jpg",
@@ -90,7 +91,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 18
+   "enemies": 15
   },
   {
    "file": "stage-000-hostomel-airport-f009.jpg",
@@ -100,7 +101,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 16
+   "enemies": 12
   },
   {
    "file": "stage-001-avdiivka-sector-f000.jpg",
@@ -109,7 +110,8 @@
    "stageName": "AVDIIVKA SECTOR",
    "frame": 0,
    "tSec": 0,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 9
   },
   {
    "file": "stage-001-avdiivka-sector-f001.jpg",
@@ -119,7 +121,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 44
+   "enemies": 45
   },
   {
    "file": "stage-001-avdiivka-sector-f002.jpg",
@@ -129,7 +131,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 38
+   "enemies": 33
   },
   {
    "file": "stage-001-avdiivka-sector-f003.jpg",
@@ -139,7 +141,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 21
+   "enemies": 26
   },
   {
    "file": "stage-001-avdiivka-sector-f004.jpg",
@@ -149,7 +151,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 17
+   "enemies": 23
   },
   {
    "file": "stage-001-avdiivka-sector-f005.jpg",
@@ -159,7 +161,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 16
+   "enemies": 19
   },
   {
    "file": "stage-001-avdiivka-sector-f006.jpg",
@@ -169,7 +171,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 15
+   "enemies": 17
   },
   {
    "file": "stage-001-avdiivka-sector-f007.jpg",
@@ -179,7 +181,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 22
+   "enemies": 23
   },
   {
    "file": "stage-001-avdiivka-sector-f008.jpg",
@@ -199,7 +201,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 18
+   "enemies": 17
   },
   {
    "file": "stage-002-bakhmut-ruins-f000.jpg",
@@ -218,7 +220,8 @@
    "stageName": "BAKHMUT RUINS",
    "frame": 1,
    "tSec": 5,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 56
   },
   {
    "file": "stage-002-bakhmut-ruins-f002.jpg",
@@ -228,7 +231,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 51
+   "enemies": 52
   },
   {
    "file": "stage-002-bakhmut-ruins-f003.jpg",
@@ -238,7 +241,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 47
+   "enemies": 46
   },
   {
    "file": "stage-002-bakhmut-ruins-f004.jpg",
@@ -248,7 +251,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 44
+   "enemies": 42
   },
   {
    "file": "stage-002-bakhmut-ruins-f005.jpg",
@@ -258,7 +261,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 40
+   "enemies": 37
   },
   {
    "file": "stage-002-bakhmut-ruins-f006.jpg",
@@ -268,7 +271,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 33
+   "enemies": 30
   },
   {
    "file": "stage-002-bakhmut-ruins-f007.jpg",
@@ -278,7 +281,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 28
+   "enemies": 29
   },
   {
    "file": "stage-002-bakhmut-ruins-f008.jpg",
@@ -298,7 +301,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 25
+   "enemies": 33
   },
   {
    "file": "stage-003-kherson-crossing-f000.jpg",
@@ -308,7 +311,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 31
+   "enemies": 26
   },
   {
    "file": "stage-003-kherson-crossing-f001.jpg",
@@ -327,7 +330,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 64
+   "enemies": 61
   },
   {
    "file": "stage-003-kherson-crossing-f003.jpg",
@@ -337,7 +340,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 59
+   "enemies": 58
   },
   {
    "file": "stage-003-kherson-crossing-f004.jpg",
@@ -347,7 +350,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 54
+   "enemies": 58
   },
   {
    "file": "stage-003-kherson-crossing-f005.jpg",
@@ -357,7 +360,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 46
+   "enemies": 53
   },
   {
    "file": "stage-003-kherson-crossing-f006.jpg",
@@ -367,7 +370,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 44
+   "enemies": 48
   },
   {
    "file": "stage-003-kherson-crossing-f007.jpg",
@@ -377,7 +380,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 41
+   "enemies": 48
   },
   {
    "file": "stage-003-kherson-crossing-f008.jpg",
@@ -387,7 +390,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 39
+   "enemies": 43
   },
   {
    "file": "stage-003-kherson-crossing-f009.jpg",
@@ -397,7 +400,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 34
+   "enemies": 41
   },
   {
    "file": "stage-004-mariupol-steelworks-f000.jpg",
@@ -407,7 +410,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 31
+   "enemies": 36
   },
   {
    "file": "stage-004-mariupol-steelworks-f001.jpg",
@@ -417,7 +420,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 6
+   "enemies": 8
   },
   {
    "file": "stage-004-mariupol-steelworks-f002.jpg",
@@ -427,7 +430,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 71
+   "enemies": 72
   },
   {
    "file": "stage-004-mariupol-steelworks-f003.jpg",
@@ -437,7 +440,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 70
+   "enemies": 69
   },
   {
    "file": "stage-004-mariupol-steelworks-f004.jpg",
@@ -447,7 +450,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 67
+   "enemies": 69
   },
   {
    "file": "stage-004-mariupol-steelworks-f005.jpg",
@@ -457,7 +460,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 64
+   "enemies": 67
   },
   {
    "file": "stage-004-mariupol-steelworks-f006.jpg",
@@ -467,7 +470,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 60
+   "enemies": 63
   },
   {
    "file": "stage-004-mariupol-steelworks-f007.jpg",
@@ -477,7 +480,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 56
+   "enemies": 60
   },
   {
    "file": "stage-004-mariupol-steelworks-f008.jpg",
@@ -487,7 +490,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 53
+   "enemies": 52
   },
   {
    "file": "stage-004-mariupol-steelworks-f009.jpg",
@@ -497,7 +500,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 47
+   "enemies": 50
   },
   {
    "file": "stage-005-crimea-bridge-f000.jpg",
@@ -507,7 +510,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 38
+   "enemies": 41
   },
   {
    "file": "stage-005-crimea-bridge-f001.jpg",
@@ -517,7 +520,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 24
+   "enemies": 20
   },
   {
    "file": "stage-005-crimea-bridge-f002.jpg",
@@ -527,7 +530,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 76
+   "enemies": 75
   },
   {
    "file": "stage-005-crimea-bridge-f003.jpg",
@@ -537,7 +540,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 74
+   "enemies": 73
   },
   {
    "file": "stage-005-crimea-bridge-f004.jpg",
@@ -547,7 +550,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 73
+   "enemies": 69
   },
   {
    "file": "stage-005-crimea-bridge-f005.jpg",
@@ -557,7 +560,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 72
+   "enemies": 62
   },
   {
    "file": "stage-005-crimea-bridge-f006.jpg",
@@ -567,7 +570,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 68
+   "enemies": 54
   },
   {
    "file": "stage-005-crimea-bridge-f007.jpg",
@@ -577,7 +580,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 62
+   "enemies": 49
   },
   {
    "file": "stage-005-crimea-bridge-f008.jpg",
@@ -587,7 +590,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 54
+   "enemies": 45
   },
   {
    "file": "stage-005-crimea-bridge-f009.jpg",
@@ -597,7 +600,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 45
+   "enemies": 41
   },
   {
    "file": "stage-006-chornobyl-zone-f000.jpg",
@@ -607,7 +610,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 35
+   "enemies": 38
   },
   {
    "file": "stage-006-chornobyl-zone-f001.jpg",
@@ -626,7 +629,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 71
+   "enemies": 79
   },
   {
    "file": "stage-006-chornobyl-zone-f003.jpg",
@@ -636,7 +639,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 65
+   "enemies": 76
   },
   {
    "file": "stage-006-chornobyl-zone-f004.jpg",
@@ -646,7 +649,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 61
+   "enemies": 69
   },
   {
    "file": "stage-006-chornobyl-zone-f005.jpg",
@@ -656,7 +659,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 56
+   "enemies": 66
   },
   {
    "file": "stage-006-chornobyl-zone-f006.jpg",
@@ -666,7 +669,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 54
+   "enemies": 60
   },
   {
    "file": "stage-006-chornobyl-zone-f007.jpg",
@@ -676,7 +679,27 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 48
+   "enemies": 58
+  },
+  {
+   "file": "stage-006-chornobyl-zone-f008.jpg",
+   "kind": "stage",
+   "stage": 6,
+   "stageName": "CHORNOBYL ZONE",
+   "frame": 8,
+   "tSec": 40,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 57
+  },
+  {
+   "file": "stage-006-chornobyl-zone-f009.jpg",
+   "kind": "stage",
+   "stage": 6,
+   "stageName": "CHORNOBYL ZONE",
+   "frame": 9,
+   "tSec": 45,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 55
   }
  ],
  "pageErrors": []

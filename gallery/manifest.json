@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-26T05:15:08.259Z",
+ "generated": "2026-09-29T18:59:20.186Z",
  "missions": 19,
  "frames": 190,
  "weapons": 125,
@@ -22,7 +22,8 @@
    "stageName": "HOSTOMEL AIRPORT",
    "frame": 1,
    "tSec": 5,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 46
   },
   {
    "file": "shots/stage-000-hostomel-airport-f002.jpg",
@@ -32,7 +33,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 43
+   "enemies": 46
   },
   {
    "file": "shots/stage-000-hostomel-airport-f003.jpg",
@@ -42,7 +43,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 37
+   "enemies": 41
   },
   {
    "file": "shots/stage-000-hostomel-airport-f004.jpg",
@@ -52,7 +53,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 37
+   "enemies": 33
   },
   {
    "file": "shots/stage-000-hostomel-airport-f005.jpg",
@@ -62,7 +63,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 23
+   "enemies": 22
   },
   {
    "file": "shots/stage-000-hostomel-airport-f006.jpg",
@@ -72,7 +73,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 22
+   "enemies": 19
   },
   {
    "file": "shots/stage-000-hostomel-airport-f007.jpg",
@@ -82,7 +83,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 19
+   "enemies": 18
   },
   {
    "file": "shots/stage-000-hostomel-airport-f008.jpg",
@@ -92,7 +93,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 18
+   "enemies": 15
   },
   {
    "file": "shots/stage-000-hostomel-airport-f009.jpg",
@@ -102,7 +103,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 16
+   "enemies": 12
   },
   {
    "file": "shots/stage-001-avdiivka-sector-f000.jpg",
@@ -111,7 +112,8 @@
    "stageName": "AVDIIVKA SECTOR",
    "frame": 0,
    "tSec": 0,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 9
   },
   {
    "file": "shots/stage-001-avdiivka-sector-f001.jpg",
@@ -121,7 +123,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 44
+   "enemies": 45
   },
   {
    "file": "shots/stage-001-avdiivka-sector-f002.jpg",
@@ -131,7 +133,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 38
+   "enemies": 33
   },
   {
    "file": "shots/stage-001-avdiivka-sector-f003.jpg",
@@ -141,7 +143,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 21
+   "enemies": 26
   },
   {
    "file": "shots/stage-001-avdiivka-sector-f004.jpg",
@@ -151,7 +153,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 17
+   "enemies": 23
   },
   {
    "file": "shots/stage-001-avdiivka-sector-f005.jpg",
@@ -161,7 +163,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 16
+   "enemies": 19
   },
   {
    "file": "shots/stage-001-avdiivka-sector-f006.jpg",
@@ -171,7 +173,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 15
+   "enemies": 17
   },
   {
    "file": "shots/stage-001-avdiivka-sector-f007.jpg",
@@ -181,7 +183,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 22
+   "enemies": 23
   },
   {
    "file": "shots/stage-001-avdiivka-sector-f008.jpg",
@@ -201,7 +203,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 18
+   "enemies": 17
   },
   {
    "file": "shots/stage-002-bakhmut-ruins-f000.jpg",
@@ -220,7 +222,8 @@
    "stageName": "BAKHMUT RUINS",
    "frame": 1,
    "tSec": 5,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 56
   },
   {
    "file": "shots/stage-002-bakhmut-ruins-f002.jpg",
@@ -230,7 +233,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 51
+   "enemies": 52
   },
   {
    "file": "shots/stage-002-bakhmut-ruins-f003.jpg",
@@ -240,7 +243,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 47
+   "enemies": 46
   },
   {
    "file": "shots/stage-002-bakhmut-ruins-f004.jpg",
@@ -250,7 +253,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 44
+   "enemies": 42
   },
   {
    "file": "shots/stage-002-bakhmut-ruins-f005.jpg",
@@ -260,7 +263,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 40
+   "enemies": 37
   },
   {
    "file": "shots/stage-002-bakhmut-ruins-f006.jpg",
@@ -270,7 +273,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 33
+   "enemies": 30
   },
   {
    "file": "shots/stage-002-bakhmut-ruins-f007.jpg",
@@ -280,7 +283,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 28
+   "enemies": 29
   },
   {
    "file": "shots/stage-002-bakhmut-ruins-f008.jpg",
@@ -300,7 +303,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 25
+   "enemies": 33
   },
   {
    "file": "shots/stage-003-kherson-crossing-f000.jpg",
@@ -310,7 +313,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 31
+   "enemies": 26
   },
   {
    "file": "shots/stage-003-kherson-crossing-f001.jpg",
@@ -329,7 +332,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 64
+   "enemies": 61
   },
   {
    "file": "shots/stage-003-kherson-crossing-f003.jpg",
@@ -339,7 +342,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 59
+   "enemies": 58
   },
   {
    "file": "shots/stage-003-kherson-crossing-f004.jpg",
@@ -349,7 +352,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 54
+   "enemies": 58
   },
   {
    "file": "shots/stage-003-kherson-crossing-f005.jpg",
@@ -359,7 +362,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 46
+   "enemies": 53
   },
   {
    "file": "shots/stage-003-kherson-crossing-f006.jpg",
@@ -369,7 +372,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 44
+   "enemies": 48
   },
   {
    "file": "shots/stage-003-kherson-crossing-f007.jpg",
@@ -379,7 +382,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 41
+   "enemies": 48
   },
   {
    "file": "shots/stage-003-kherson-crossing-f008.jpg",
@@ -389,7 +392,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 39
+   "enemies": 43
   },
   {
    "file": "shots/stage-003-kherson-crossing-f009.jpg",
@@ -399,7 +402,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 34
+   "enemies": 41
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f000.jpg",
@@ -409,7 +412,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 31
+   "enemies": 36
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f001.jpg",
@@ -419,7 +422,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 6
+   "enemies": 8
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f002.jpg",
@@ -429,7 +432,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 71
+   "enemies": 72
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f003.jpg",
@@ -439,7 +442,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 70
+   "enemies": 69
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f004.jpg",
@@ -449,7 +452,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 67
+   "enemies": 69
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f005.jpg",
@@ -459,7 +462,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 64
+   "enemies": 67
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f006.jpg",
@@ -469,7 +472,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 60
+   "enemies": 63
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f007.jpg",
@@ -479,7 +482,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 56
+   "enemies": 60
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f008.jpg",
@@ -489,7 +492,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 53
+   "enemies": 52
   },
   {
    "file": "shots/stage-004-mariupol-steelworks-f009.jpg",
@@ -499,7 +502,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 47
+   "enemies": 50
   },
   {
    "file": "shots/stage-005-crimea-bridge-f000.jpg",
@@ -509,7 +512,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 38
+   "enemies": 41
   },
   {
    "file": "shots/stage-005-crimea-bridge-f001.jpg",
@@ -519,7 +522,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 24
+   "enemies": 20
   },
   {
    "file": "shots/stage-005-crimea-bridge-f002.jpg",
@@ -529,7 +532,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 76
+   "enemies": 75
   },
   {
    "file": "shots/stage-005-crimea-bridge-f003.jpg",
@@ -539,7 +542,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 74
+   "enemies": 73
   },
   {
    "file": "shots/stage-005-crimea-bridge-f004.jpg",
@@ -549,7 +552,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 73
+   "enemies": 69
   },
   {
    "file": "shots/stage-005-crimea-bridge-f005.jpg",
@@ -559,7 +562,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 72
+   "enemies": 62
   },
   {
    "file": "shots/stage-005-crimea-bridge-f006.jpg",
@@ -569,7 +572,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 68
+   "enemies": 54
   },
   {
    "file": "shots/stage-005-crimea-bridge-f007.jpg",
@@ -579,7 +582,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 62
+   "enemies": 49
   },
   {
    "file": "shots/stage-005-crimea-bridge-f008.jpg",
@@ -589,7 +592,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 54
+   "enemies": 45
   },
   {
    "file": "shots/stage-005-crimea-bridge-f009.jpg",
@@ -599,7 +602,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 45
+   "enemies": 41
   },
   {
    "file": "shots/stage-006-chornobyl-zone-f000.jpg",
@@ -609,7 +612,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 35
+   "enemies": 38
   },
   {
    "file": "shots/stage-006-chornobyl-zone-f001.jpg",
@@ -628,7 +631,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 71
+   "enemies": 79
   },
   {
    "file": "shots/stage-006-chornobyl-zone-f003.jpg",
@@ -638,7 +641,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 65
+   "enemies": 76
   },
   {
    "file": "shots/stage-006-chornobyl-zone-f004.jpg",
@@ -648,7 +651,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 61
+   "enemies": 69
   },
   {
    "file": "shots/stage-006-chornobyl-zone-f005.jpg",
@@ -658,7 +661,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 56
+   "enemies": 66
   },
   {
    "file": "shots/stage-006-chornobyl-zone-f006.jpg",
@@ -668,7 +671,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 54
+   "enemies": 60
   },
   {
    "file": "shots/stage-006-chornobyl-zone-f007.jpg",
@@ -678,7 +681,27 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 48
+   "enemies": 58
+  },
+  {
+   "file": "shots/stage-006-chornobyl-zone-f008.jpg",
+   "kind": "stage",
+   "stage": 6,
+   "stageName": "CHORNOBYL ZONE",
+   "frame": 8,
+   "tSec": 40,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 57
+  },
+  {
+   "file": "shots/stage-006-chornobyl-zone-f009.jpg",
+   "kind": "stage",
+   "stage": 6,
+   "stageName": "CHORNOBYL ZONE",
+   "frame": 9,
+   "tSec": 45,
+   "weapon": "Gatling Machine Gun",
+   "enemies": 55
   },
   {
    "file": "shots/stage-013-snake-island-defense-f000.jpg",
@@ -696,8 +719,7 @@
    "stageName": "SNAKE ISLAND DEFENSE",
    "frame": 1,
    "tSec": 5,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 117
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "shots/stage-013-snake-island-defense-f002.jpg",
@@ -707,7 +729,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 116
+   "enemies": 112
   },
   {
    "file": "shots/stage-013-snake-island-defense-f003.jpg",
@@ -717,7 +739,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 115
+   "enemies": 109
   },
   {
    "file": "shots/stage-013-snake-island-defense-f004.jpg",
@@ -727,7 +749,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 115
+   "enemies": 109
   },
   {
    "file": "shots/stage-013-snake-island-defense-f005.jpg",
@@ -737,7 +759,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 109
+   "enemies": 106
   },
   {
    "file": "shots/stage-013-snake-island-defense-f006.jpg",
@@ -757,7 +779,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 100
   },
   {
    "file": "shots/stage-013-snake-island-defense-f008.jpg",
@@ -767,7 +789,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 85
+   "enemies": 96
   },
   {
    "file": "shots/stage-013-snake-island-defense-f009.jpg",
@@ -777,7 +799,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 82
+   "enemies": 93
   },
   {
    "file": "shots/stage-014-saky-airbase-strike-f000.jpg",
@@ -787,7 +809,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 73
+   "enemies": 85
   },
   {
    "file": "shots/stage-014-saky-airbase-strike-f001.jpg",
@@ -807,7 +829,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 120
+   "enemies": 121
   },
   {
    "file": "shots/stage-014-saky-airbase-strike-f003.jpg",
@@ -817,7 +839,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 120
+   "enemies": 119
   },
   {
    "file": "shots/stage-014-saky-airbase-strike-f004.jpg",
@@ -827,7 +849,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 119
+   "enemies": 116
   },
   {
    "file": "shots/stage-014-saky-airbase-strike-f005.jpg",
@@ -837,7 +859,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 118
+   "enemies": 114
   },
   {
    "file": "shots/stage-014-saky-airbase-strike-f006.jpg",
@@ -847,7 +869,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 115
+   "enemies": 110
   },
   {
    "file": "shots/stage-014-saky-airbase-strike-f007.jpg",
@@ -857,7 +879,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 115
+   "enemies": 108
   },
   {
    "file": "shots/stage-014-saky-airbase-strike-f008.jpg",
@@ -867,7 +889,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 111
+   "enemies": 107
   },
   {
    "file": "shots/stage-014-saky-airbase-strike-f009.jpg",
@@ -877,7 +899,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 107
+   "enemies": 105
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f000.jpg",
@@ -887,7 +909,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 96
+   "enemies": 95
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f001.jpg",
@@ -897,7 +919,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 23
+   "enemies": 22
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f002.jpg",
@@ -907,7 +929,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 139
+   "enemies": 138
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f003.jpg",
@@ -917,7 +939,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 140
+   "enemies": 135
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f004.jpg",
@@ -927,7 +949,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 141
+   "enemies": 135
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f005.jpg",
@@ -937,7 +959,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 142
+   "enemies": 136
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f006.jpg",
@@ -947,7 +969,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 141
+   "enemies": 136
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f007.jpg",
@@ -957,7 +979,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 140
+   "enemies": 137
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f008.jpg",
@@ -967,7 +989,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 141
+   "enemies": 138
   },
   {
    "file": "shots/stage-015-vuhledar-tank-graveyard-f009.jpg",
@@ -977,7 +999,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 140
+   "enemies": 139
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f000.jpg",
@@ -986,7 +1008,8 @@
    "stageName": "ANTONOV BRIDGE STRIKE",
    "frame": 0,
    "tSec": 0,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 141
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f001.jpg",
@@ -995,8 +1018,7 @@
    "stageName": "ANTONOV BRIDGE STRIKE",
    "frame": 1,
    "tSec": 5,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 137
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f002.jpg",
@@ -1006,7 +1028,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 135
+   "enemies": 142
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f003.jpg",
@@ -1016,7 +1038,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 133
+   "enemies": 141
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f004.jpg",
@@ -1026,7 +1048,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 131
+   "enemies": 139
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f005.jpg",
@@ -1036,7 +1058,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 130
+   "enemies": 137
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f006.jpg",
@@ -1046,7 +1068,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 128
+   "enemies": 133
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f007.jpg",
@@ -1056,7 +1078,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 123
+   "enemies": 129
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f008.jpg",
@@ -1066,7 +1088,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 117
+   "enemies": 127
   },
   {
    "file": "shots/stage-016-antonov-bridge-strike-f009.jpg",
@@ -1076,7 +1098,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 108
+   "enemies": 120
   },
   {
    "file": "shots/stage-017-refinery-strike-fpv-drone-f000.jpg",
@@ -1085,7 +1107,8 @@
    "stageName": "REFINERY STRIKE — FPV DRONE",
    "frame": 0,
    "tSec": 0,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 105
   },
   {
    "file": "shots/stage-017-refinery-strike-fpv-drone-f001.jpg",
@@ -1094,8 +1117,7 @@
    "stageName": "REFINERY STRIKE — FPV DRONE",
    "frame": 1,
    "tSec": 5,
-   "weapon": "Gatling Machine Gun",
-   "enemies": 21
+   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
   },
   {
    "file": "shots/stage-017-refinery-strike-fpv-drone-f002.jpg",
@@ -1105,7 +1127,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 21
+   "enemies": 22
   },
   {
    "file": "shots/stage-017-refinery-strike-fpv-drone-f003.jpg",
@@ -1115,7 +1137,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 20
+   "enemies": 21
   },
   {
    "file": "shots/stage-017-refinery-strike-fpv-drone-f004.jpg",
@@ -1125,7 +1147,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 19
+   "enemies": 20
   },
   {
    "file": "shots/stage-017-refinery-strike-fpv-drone-f005.jpg",
@@ -1145,7 +1167,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 18
+   "enemies": 19
   },
   {
    "file": "shots/stage-017-refinery-strike-fpv-drone-f007.jpg",
@@ -1175,7 +1197,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 16
+   "enemies": 18
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f000.jpg",
@@ -1185,7 +1207,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 15
+   "enemies": 17
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f001.jpg",
@@ -1195,7 +1217,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 15
+   "enemies": 17
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f002.jpg",
@@ -1205,7 +1227,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 14
+   "enemies": 17
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f003.jpg",
@@ -1215,7 +1237,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 14
+   "enemies": 16
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f004.jpg",
@@ -1225,7 +1247,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 14
+   "enemies": 15
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f005.jpg",
@@ -1234,7 +1256,8 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 5,
    "tSec": 25,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 15
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f006.jpg",
@@ -1243,7 +1266,8 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 6,
    "tSec": 30,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 15
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f007.jpg",
@@ -1252,7 +1276,8 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 7,
    "tSec": 35,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 15
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f008.jpg",
@@ -1261,7 +1286,8 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 8,
    "tSec": 40,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 15
   },
   {
    "file": "shots/stage-018-bradley-duel-stepove-f009.jpg",
@@ -1270,7 +1296,8 @@
    "stageName": "BRADLEY DUEL — STEPOVE",
    "frame": 9,
    "tSec": 45,
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "weapon": "Gatling Machine Gun",
+   "enemies": 15
   },
   {
    "file": "shots/stage-007-outer-moscow-f000.jpg",
@@ -1289,7 +1316,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 88
+   "enemies": 84
   },
   {
    "file": "shots/stage-007-outer-moscow-f002.jpg",
@@ -1299,7 +1326,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 83
   },
   {
    "file": "shots/stage-007-outer-moscow-f003.jpg",
@@ -1309,7 +1336,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 83
   },
   {
    "file": "shots/stage-007-outer-moscow-f004.jpg",
@@ -1319,7 +1346,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 86
+   "enemies": 83
   },
   {
    "file": "shots/stage-007-outer-moscow-f005.jpg",
@@ -1329,7 +1356,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 86
+   "enemies": 82
   },
   {
    "file": "shots/stage-007-outer-moscow-f006.jpg",
@@ -1339,7 +1366,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 82
   },
   {
    "file": "shots/stage-007-outer-moscow-f007.jpg",
@@ -1349,7 +1376,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 82
   },
   {
    "file": "shots/stage-007-outer-moscow-f008.jpg",
@@ -1359,7 +1386,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 80
   },
   {
    "file": "shots/stage-007-outer-moscow-f009.jpg",
@@ -1369,7 +1396,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 79
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f000.jpg",
@@ -1379,7 +1406,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 78
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f001.jpg",
@@ -1389,7 +1416,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 18
+   "enemies": 14
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f002.jpg",
@@ -1399,7 +1426,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 96
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f003.jpg",
@@ -1409,7 +1436,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 95
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f004.jpg",
@@ -1419,7 +1446,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 94
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f005.jpg",
@@ -1429,7 +1456,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 97
+   "enemies": 93
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f006.jpg",
@@ -1439,7 +1466,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 92
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f007.jpg",
@@ -1449,7 +1476,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 90
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f008.jpg",
@@ -1459,7 +1486,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 95
+   "enemies": 91
   },
   {
    "file": "shots/stage-008-sevastopol-naval-base-f009.jpg",
@@ -1469,7 +1496,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 94
+   "enemies": 92
   },
   {
    "file": "shots/stage-009-donbas-final-push-f000.jpg",
@@ -1479,7 +1506,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 95
+   "enemies": 91
   },
   {
    "file": "shots/stage-009-donbas-final-push-f001.jpg",
@@ -1489,7 +1516,7 @@
    "frame": 1,
    "tSec": 5,
    "weapon": "Gatling Machine Gun",
-   "enemies": 23
+   "enemies": 19
   },
   {
    "file": "shots/stage-009-donbas-final-push-f002.jpg",
@@ -1499,7 +1526,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 96
+   "enemies": 101
   },
   {
    "file": "shots/stage-009-donbas-final-push-f003.jpg",
@@ -1509,7 +1536,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 97
+   "enemies": 101
   },
   {
    "file": "shots/stage-009-donbas-final-push-f004.jpg",
@@ -1519,7 +1546,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 101
   },
   {
    "file": "shots/stage-009-donbas-final-push-f005.jpg",
@@ -1529,7 +1556,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 99
+   "enemies": 102
   },
   {
    "file": "shots/stage-009-donbas-final-push-f006.jpg",
@@ -1539,7 +1566,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 99
+   "enemies": 102
   },
   {
    "file": "shots/stage-009-donbas-final-push-f007.jpg",
@@ -1549,7 +1576,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 100
+   "enemies": 103
   },
   {
    "file": "shots/stage-009-donbas-final-push-f008.jpg",
@@ -1559,7 +1586,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 100
+   "enemies": 102
   },
   {
    "file": "shots/stage-009-donbas-final-push-f009.jpg",
@@ -1569,7 +1596,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 100
+   "enemies": 101
   },
   {
    "file": "shots/stage-010-belgorod-offensive-f000.jpg",
@@ -1598,7 +1625,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 101
+   "enemies": 104
   },
   {
    "file": "shots/stage-010-belgorod-offensive-f003.jpg",
@@ -1608,7 +1635,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 101
+   "enemies": 104
   },
   {
    "file": "shots/stage-010-belgorod-offensive-f004.jpg",
@@ -1618,7 +1645,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 100
+   "enemies": 104
   },
   {
    "file": "shots/stage-010-belgorod-offensive-f005.jpg",
@@ -1628,7 +1655,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 99
+   "enemies": 105
   },
   {
    "file": "shots/stage-010-belgorod-offensive-f006.jpg",
@@ -1638,7 +1665,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 99
+   "enemies": 106
   },
   {
    "file": "shots/stage-010-belgorod-offensive-f007.jpg",
@@ -1648,7 +1675,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 105
   },
   {
    "file": "shots/stage-010-belgorod-offensive-f008.jpg",
@@ -1658,7 +1685,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 98
+   "enemies": 105
   },
   {
    "file": "shots/stage-010-belgorod-offensive-f009.jpg",
@@ -1668,7 +1695,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 93
+   "enemies": 104
   },
   {
    "file": "shots/stage-011-kremlin-showdown-f000.jpg",
@@ -1678,7 +1705,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 93
+   "enemies": 105
   },
   {
    "file": "shots/stage-011-kremlin-showdown-f001.jpg",
@@ -1717,7 +1744,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 118
+   "enemies": 119
   },
   {
    "file": "shots/stage-011-kremlin-showdown-f005.jpg",
@@ -1727,7 +1754,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 117
+   "enemies": 120
   },
   {
    "file": "shots/stage-011-kremlin-showdown-f006.jpg",
@@ -1737,7 +1764,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 118
+   "enemies": 120
   },
   {
    "file": "shots/stage-011-kremlin-showdown-f007.jpg",
@@ -1757,7 +1784,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 118
+   "enemies": 119
   },
   {
    "file": "shots/stage-011-kremlin-showdown-f009.jpg",
@@ -1767,7 +1794,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 119
+   "enemies": 118
   },
   {
    "file": "shots/stage-012-battle-of-kyiv-f000.jpg",
@@ -1777,7 +1804,7 @@
    "frame": 0,
    "tSec": 0,
    "weapon": "Gatling Machine Gun",
-   "enemies": 121
+   "enemies": 119
   },
   {
    "file": "shots/stage-012-battle-of-kyiv-f001.jpg",
@@ -1796,7 +1823,7 @@
    "frame": 2,
    "tSec": 10,
    "weapon": "Gatling Machine Gun",
-   "enemies": 111
+   "enemies": 104
   },
   {
    "file": "shots/stage-012-battle-of-kyiv-f003.jpg",
@@ -1806,7 +1833,7 @@
    "frame": 3,
    "tSec": 15,
    "weapon": "Gatling Machine Gun",
-   "enemies": 109
+   "enemies": 102
   },
   {
    "file": "shots/stage-012-battle-of-kyiv-f004.jpg",
@@ -1816,7 +1843,7 @@
    "frame": 4,
    "tSec": 20,
    "weapon": "Gatling Machine Gun",
-   "enemies": 108
+   "enemies": 98
   },
   {
    "file": "shots/stage-012-battle-of-kyiv-f005.jpg",
@@ -1826,7 +1853,7 @@
    "frame": 5,
    "tSec": 25,
    "weapon": "Gatling Machine Gun",
-   "enemies": 104
+   "enemies": 92
   },
   {
    "file": "shots/stage-012-battle-of-kyiv-f006.jpg",
@@ -1836,7 +1863,7 @@
    "frame": 6,
    "tSec": 30,
    "weapon": "Gatling Machine Gun",
-   "enemies": 94
+   "enemies": 82
   },
   {
    "file": "shots/stage-012-battle-of-kyiv-f007.jpg",
@@ -1846,7 +1873,7 @@
    "frame": 7,
    "tSec": 35,
    "weapon": "Gatling Machine Gun",
-   "enemies": 87
+   "enemies": 79
   },
   {
    "file": "shots/stage-012-battle-of-kyiv-f008.jpg",
@@ -1856,7 +1883,7 @@
    "frame": 8,
    "tSec": 40,
    "weapon": "Gatling Machine Gun",
-   "enemies": 84
+   "enemies": 76
   },
   {
    "file": "shots/stage-012-battle-of-kyiv-f009.jpg",
@@ -1866,574 +1893,7 @@
    "frame": 9,
    "tSec": 45,
    "weapon": "Gatling Machine Gun",
-   "enemies": 78
-  },
-  {
-   "file": "shots/wpn-000-gatling-machine-gun.jpg",
-   "kind": "weapon",
-   "weaponIdx": 0,
-   "weapon": "Gatling Machine Gun",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-001-army-shovel-50.jpg",
-   "kind": "weapon",
-   "weaponIdx": 1,
-   "weapon": "Army Shovel (МПЛ-50)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-002-makarov-pm.jpg",
-   "kind": "weapon",
-   "weaponIdx": 2,
-   "weapon": "Makarov PM",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-003-ak-74m.jpg",
-   "kind": "weapon",
-   "weaponIdx": 3,
-   "weapon": "AK-74M",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-004-rpk-74.jpg",
-   "kind": "weapon",
-   "weaponIdx": 4,
-   "weapon": "RPK-74",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 39
-  },
-  {
-   "file": "shots/wpn-005-svd-dragunov.jpg",
-   "kind": "weapon",
-   "weaponIdx": 5,
-   "weapon": "SVD Dragunov",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 33
-  },
-  {
-   "file": "shots/wpn-006-pkm.jpg",
-   "kind": "weapon",
-   "weaponIdx": 6,
-   "weapon": "PKM",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 27
-  },
-  {
-   "file": "shots/wpn-007-nlaw.jpg",
-   "kind": "weapon",
-   "weaponIdx": 7,
-   "weapon": "NLAW",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 24
-  },
-  {
-   "file": "shots/wpn-008-stugna-p.jpg",
-   "kind": "weapon",
-   "weaponIdx": 8,
-   "weapon": "Stugna-P",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 24
-  },
-  {
-   "file": "shots/wpn-009-m4a1.jpg",
-   "kind": "weapon",
-   "weaponIdx": 9,
-   "weapon": "M4A1",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 23
-  },
-  {
-   "file": "shots/wpn-010-fgm-148-javelin.jpg",
-   "kind": "weapon",
-   "weaponIdx": 10,
-   "weapon": "FGM-148 Javelin",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 19
-  },
-  {
-   "file": "shots/wpn-011-rpg-7.jpg",
-   "kind": "weapon",
-   "weaponIdx": 11,
-   "weapon": "RPG-7",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 19
-  },
-  {
-   "file": "shots/wpn-012-igla-manpads.jpg",
-   "kind": "weapon",
-   "weaponIdx": 12,
-   "weapon": "Igla MANPADS",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 19
-  },
-  {
-   "file": "shots/wpn-013-gp-25-grenade-launcher.jpg",
-   "kind": "weapon",
-   "weaponIdx": 13,
-   "weapon": "GP-25 Grenade Launcher",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
-  },
-  {
-   "file": "shots/wpn-014-fn-scar-h.jpg",
-   "kind": "weapon",
-   "weaponIdx": 14,
-   "weapon": "FN SCAR-H",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
-  },
-  {
-   "file": "shots/wpn-015-dshk.jpg",
-   "kind": "weapon",
-   "weaponIdx": 15,
-   "weapon": "DShK",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
-  },
-  {
-   "file": "shots/wpn-016-molotov-cocktail.jpg",
-   "kind": "weapon",
-   "weaponIdx": 16,
-   "weapon": "Molotov Cocktail",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
-  },
-  {
-   "file": "shots/wpn-017-mg3-machine-gun.jpg",
-   "kind": "weapon",
-   "weaponIdx": 17,
-   "weapon": "MG3 Machine Gun",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 12
-  },
-  {
-   "file": "shots/wpn-018-mp5-smg.jpg",
-   "kind": "weapon",
-   "weaponIdx": 18,
-   "weapon": "MP5 SMG",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 12
-  },
-  {
-   "file": "shots/wpn-019-barrett-m82.jpg",
-   "kind": "weapon",
-   "weaponIdx": 19,
-   "weapon": "Barrett M82",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 11
-  },
-  {
-   "file": "shots/wpn-020-m134-minigun.jpg",
-   "kind": "weapon",
-   "weaponIdx": 20,
-   "weapon": "M134 Minigun",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 11
-  },
-  {
-   "file": "shots/wpn-021-tactical-crossbow.jpg",
-   "kind": "weapon",
-   "weaponIdx": 21,
-   "weapon": "Tactical Crossbow",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 10
-  },
-  {
-   "file": "shots/wpn-022-rpo-a-shmel.jpg",
-   "kind": "weapon",
-   "weaponIdx": 22,
-   "weapon": "RPO-A Shmel",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 9
-  },
-  {
-   "file": "shots/wpn-023-izh-43-shotgun.jpg",
-   "kind": "weapon",
-   "weaponIdx": 23,
-   "weapon": "IZH-43 Shotgun",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 10
-  },
-  {
-   "file": "shots/wpn-024-m18-claymore-mine.jpg",
-   "kind": "weapon",
-   "weaponIdx": 24,
-   "weapon": "M18 Claymore Mine",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 17
-  },
-  {
-   "file": "shots/wpn-025-smoke-grenade.jpg",
-   "kind": "weapon",
-   "weaponIdx": 25,
-   "weapon": "Smoke Grenade",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 17
-  },
-  {
-   "file": "shots/wpn-026-m84-flashbang.jpg",
-   "kind": "weapon",
-   "weaponIdx": 26,
-   "weapon": "M84 Flashbang",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 16
-  },
-  {
-   "file": "shots/wpn-027-ak-12.jpg",
-   "kind": "weapon",
-   "weaponIdx": 27,
-   "weapon": "AK-12",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
-  },
-  {
-   "file": "shots/wpn-028-fn-p90.jpg",
-   "kind": "weapon",
-   "weaponIdx": 28,
-   "weapon": "FN P90",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 12
-  },
-  {
-   "file": "shots/wpn-029-at4-launcher.jpg",
-   "kind": "weapon",
-   "weaponIdx": 29,
-   "weapon": "AT4 Launcher",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 11
-  },
-  {
-   "file": "shots/wpn-030-glock-17.jpg",
-   "kind": "weapon",
-   "weaponIdx": 30,
-   "weapon": "Glock 17",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 10
-  },
-  {
-   "file": "shots/wpn-031-ks-23-shotgun.jpg",
-   "kind": "weapon",
-   "weaponIdx": 31,
-   "weapon": "KS-23 Shotgun",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 10
-  },
-  {
-   "file": "shots/wpn-032-ags-17-grenade-mg.jpg",
-   "kind": "weapon",
-   "weaponIdx": 32,
-   "weapon": "AGS-17 Grenade MG",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 9
-  },
-  {
-   "file": "shots/wpn-033-vss-vintorez.jpg",
-   "kind": "weapon",
-   "weaponIdx": 33,
-   "weapon": "VSS Vintorez",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 8
-  },
-  {
-   "file": "shots/wpn-034-fim-92-stinger.jpg",
-   "kind": "weapon",
-   "weaponIdx": 34,
-   "weapon": "FIM-92 Stinger",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 8
-  },
-  {
-   "file": "shots/wpn-035-throwing-knife.jpg",
-   "kind": "weapon",
-   "weaponIdx": 35,
-   "weapon": "Throwing Knife",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 8
-  },
-  {
-   "file": "shots/wpn-036-c4-explosive.jpg",
-   "kind": "weapon",
-   "weaponIdx": 36,
-   "weapon": "C4 Explosive",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 8
-  },
-  {
-   "file": "shots/wpn-037-drone-jammer-rifle.jpg",
-   "kind": "weapon",
-   "weaponIdx": 37,
-   "weapon": "Drone Jammer Rifle",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 6
-  },
-  {
-   "file": "shots/wpn-038-combat-axe.jpg",
-   "kind": "weapon",
-   "weaponIdx": 38,
-   "weapon": "Combat Axe",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 7
-  },
-  {
-   "file": "shots/wpn-039-aks-74u-krinkov.jpg",
-   "kind": "weapon",
-   "weaponIdx": 39,
-   "weapon": "AKS-74U (Krinkov)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 6
-  },
-  {
-   "file": "shots/wpn-040-m72-law.jpg",
-   "kind": "weapon",
-   "weaponIdx": 40,
-   "weapon": "M72 LAW",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 6
-  },
-  {
-   "file": "shots/wpn-041-panzerfaust-3.jpg",
-   "kind": "weapon",
-   "weaponIdx": 41,
-   "weapon": "Panzerfaust 3",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 4
-  },
-  {
-   "file": "shots/wpn-042-nsv-utyes-12-7mm.jpg",
-   "kind": "weapon",
-   "weaponIdx": 42,
-   "weapon": "NSV/Utyes 12.7mm",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 4
-  },
-  {
-   "file": "shots/wpn-043-fort-500-ukrainian.jpg",
-   "kind": "weapon",
-   "weaponIdx": 43,
-   "weapon": "Fort-500 (Ukrainian)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 15
-  },
-  {
-   "file": "shots/wpn-044-malyuk-vulcan-bullpup.jpg",
-   "kind": "weapon",
-   "weaponIdx": 44,
-   "weapon": "Malyuk (Vulcan) Bullpup",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
-  },
-  {
-   "file": "shots/wpn-045-carl-gustaf-m3-maaws.jpg",
-   "kind": "weapon",
-   "weaponIdx": 45,
-   "weapon": "Carl Gustaf M3 (MAAWS)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-046-m240b-gpmg-7-62mm.jpg",
-   "kind": "weapon",
-   "weaponIdx": 46,
-   "weapon": "M240B GPMG (7.62mm)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-047-pkp-pecheneg-7-62mm-mg.jpg",
-   "kind": "weapon",
-   "weaponIdx": 47,
-   "weapon": "PKP Pecheneg (7.62mm MG)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-048-spg-9-kopye-73mm.jpg",
-   "kind": "weapon",
-   "weaponIdx": 48,
-   "weapon": "SPG-9 Kopye (73mm)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-049-hk416-a5.jpg",
-   "kind": "weapon",
-   "weaponIdx": 49,
-   "weapon": "HK416 A5",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-050-rgd-5-frag-grenade.jpg",
-   "kind": "weapon",
-   "weaponIdx": 50,
-   "weapon": "RGD-5 Frag Grenade",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-051-spike-lr-atgm.jpg",
-   "kind": "weapon",
-   "weaponIdx": 51,
-   "weapon": "Spike LR ATGM",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-052-milan-atgm.jpg",
-   "kind": "weapon",
-   "weaponIdx": 52,
-   "weapon": "MILAN ATGM",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-053-hk-mp7a2.jpg",
-   "kind": "weapon",
-   "weaponIdx": 53,
-   "weapon": "HK MP7A2",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-054-kord-12-7mm-hmg.jpg",
-   "kind": "weapon",
-   "weaponIdx": 54,
-   "weapon": "Kord 12.7mm HMG",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-055-m2hb-browning-50cal.jpg",
-   "kind": "weapon",
-   "weaponIdx": 55,
-   "weapon": "M2HB Browning .50cal",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-056-zu-23-2-23mm-aa-autocannon.jpg",
-   "kind": "weapon",
-   "weaponIdx": 56,
-   "weapon": "ZU-23-2 (23mm AA Autocannon)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-057-fpv-kamikaze-drone.jpg",
-   "kind": "weapon",
-   "weaponIdx": 57,
-   "weapon": "FPV Kamikaze Drone",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
-  },
-  {
-   "file": "shots/wpn-058-9m133-kornet-atgm.jpg",
-   "kind": "weapon",
-   "weaponIdx": 58,
-   "weapon": "9M133 Kornet ATGM",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 21
-  },
-  {
-   "file": "shots/wpn-059-rpg-26-aglen-disposable.jpg",
-   "kind": "weapon",
-   "weaponIdx": 59,
-   "weapon": "RPG-26 Aglen (disposable)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 21
-  },
-  {
-   "file": "shots/wpn-060-m142-himars-gmlrs-strike.jpg",
-   "kind": "weapon",
-   "weaponIdx": 60,
-   "weapon": "M142 HIMARS (GMLRS Strike)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 21
-  },
-  {
-   "file": "shots/wpn-061-f-1-limonka-grenade.jpg",
-   "kind": "weapon",
-   "weaponIdx": 61,
-   "weapon": "F-1 \"Limonka\" Grenade",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
-  },
-  {
-   "file": "shots/wpn-062-maxim-m1910-7-62mm.jpg",
-   "kind": "weapon",
-   "weaponIdx": 62,
-   "weapon": "Maxim M1910 (7.62mm)",
-   "stage": 0,
-   "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "enemies": 71
   },
   {
    "file": "shots/wpn-063-bm-21-grad-mlrs-call-fire.jpg",
@@ -2451,7 +1911,7 @@
    "weapon": "IWI Tavor X95 (5.56mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 42
   },
   {
    "file": "shots/wpn-065-bgm-71-tow-atgm.jpg",
@@ -2460,7 +1920,7 @@
    "weapon": "BGM-71 TOW ATGM",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 34
   },
   {
    "file": "shots/wpn-066-rpg-29-vampir-tandem.jpg",
@@ -2469,7 +1929,7 @@
    "weapon": "RPG-29 Vampir (tandem)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 43
+   "enemies": 27
   },
   {
    "file": "shots/wpn-067-starstreak-hvm-uk.jpg",
@@ -2478,7 +1938,7 @@
    "weapon": "Starstreak HVM (UK)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 31
+   "enemies": 24
   },
   {
    "file": "shots/wpn-068-akm-ak-47-7-62-39mm.jpg",
@@ -2487,7 +1947,7 @@
    "weapon": "AKM/AK-47 (7.62×39mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 30
+   "enemies": 23
   },
   {
    "file": "shots/wpn-069-an-94-abakan-5-45mm.jpg",
@@ -2496,7 +1956,7 @@
    "weapon": "AN-94 Abakan (5.45mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 25
+   "enemies": 20
   },
   {
    "file": "shots/wpn-070-m67-frag-grenade-nato.jpg",
@@ -2505,7 +1965,7 @@
    "weapon": "M67 Frag Grenade (NATO)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 22
+   "enemies": 19
   },
   {
    "file": "shots/wpn-071-switchblade-300-loitering.jpg",
@@ -2514,7 +1974,7 @@
    "weapon": "Switchblade 300 (loitering)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 22
+   "enemies": 18
   },
   {
    "file": "shots/wpn-072-saiga-12-combat-shotgun.jpg",
@@ -2523,7 +1983,7 @@
    "weapon": "Saiga-12 Combat Shotgun",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 21
+   "enemies": 18
   },
   {
    "file": "shots/wpn-073-rpg-18-mukha-64mm-disposable.jpg",
@@ -2532,7 +1992,7 @@
    "weapon": "RPG-18 Mukha (64mm disposable)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 19
+   "enemies": 16
   },
   {
    "file": "shots/wpn-074-2b14-podnos-82mm-mortar.jpg",
@@ -2541,7 +2001,7 @@
    "weapon": "2B14 Podnos 82mm Mortar",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 19
+   "enemies": 13
   },
   {
    "file": "shots/wpn-075-ots-14-groza-spetsnaz-bullpup.jpg",
@@ -2550,7 +2010,7 @@
    "weapon": "OTs-14 Groza (Spetsnaz bullpup)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 16
+   "enemies": 12
   },
   {
    "file": "shots/wpn-076-pp-19-bizon-64-round-helical.jpg",
@@ -2559,7 +2019,7 @@
    "weapon": "PP-19 Bizon (64-round helical)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 15
+   "enemies": 12
   },
   {
    "file": "shots/wpn-077-fab-500-glide-bomb-umpk-kit.jpg",
@@ -2568,7 +2028,7 @@
    "weapon": "FAB-500 Glide Bomb (UMPK kit)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "enemies": 10
   },
   {
    "file": "shots/wpn-078-m777-155mm-howitzer-call-fire.jpg",
@@ -2577,7 +2037,7 @@
    "weapon": "M777 155mm Howitzer (Call Fire)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "enemies": 10
   },
   {
    "file": "shots/wpn-079-strela-2m-sa-7-manpads.jpg",
@@ -2586,7 +2046,7 @@
    "weapon": "Strela-2M (SA-7 MANPADS)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "enemies": 8
   },
   {
    "file": "shots/wpn-080-commercial-drop-drone-vog-25.jpg",
@@ -2595,7 +2055,7 @@
    "weapon": "Commercial Drop Drone (VOG-25)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "enemies": 8
   },
   {
    "file": "shots/wpn-081-bayraktar-tb2-strike-drone.jpg",
@@ -2604,7 +2064,7 @@
    "weapon": "Bayraktar TB2 (Strike Drone)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "enemies": 7
   },
   {
    "file": "shots/wpn-082-tos-1a-buratino-thermobaric-mlrs.jpg",
@@ -2613,7 +2073,7 @@
    "weapon": "TOS-1A Buratino (Thermobaric MLRS)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "enemies": 7
   },
   {
    "file": "shots/wpn-083-dp-27-28-degtyarev-lmg.jpg",
@@ -2622,7 +2082,7 @@
    "weapon": "DP-27/28 \"Degtyarev\" LMG",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 12
+   "enemies": 7
   },
   {
    "file": "shots/wpn-084-sv-98-precision-sniper-rifle.jpg",
@@ -2631,7 +2091,7 @@
    "weapon": "SV-98 Precision Sniper Rifle",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 11
+   "enemies": 7
   },
   {
    "file": "shots/wpn-085-lancet-3-zala-loitering-munition.jpg",
@@ -2640,7 +2100,7 @@
    "weapon": "Lancet-3 (Zala loitering munition)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 11
+   "enemies": 7
   },
   {
    "file": "shots/wpn-086-storm-shadow-scalp-eg-cruise-missile.jpg",
@@ -2649,7 +2109,7 @@
    "weapon": "Storm Shadow/SCALP-EG Cruise Missile",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 10
+   "enemies": 6
   },
   {
    "file": "shots/wpn-087-as-val-9-39mm-suppressed.jpg",
@@ -2658,7 +2118,7 @@
    "weapon": "AS Val (9×39mm suppressed)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 10
+   "enemies": 6
   },
   {
    "file": "shots/wpn-088-osv-96-12-7mm-anti-material.jpg",
@@ -2667,7 +2127,7 @@
    "weapon": "OSV-96 12.7mm Anti-Material",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 10
+   "enemies": 5
   },
   {
    "file": "shots/wpn-089-neptune-r-360-anti-ship-missile.jpg",
@@ -2676,7 +2136,7 @@
    "weapon": "Neptune R-360 Anti-Ship Missile",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 10
+   "enemies": 5
   },
   {
    "file": "shots/wpn-090-metis-m1-9m131-atgm.jpg",
@@ -2685,7 +2145,7 @@
    "weapon": "Metis-M1 (9M131) ATGM",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 11
+   "enemies": 6
   },
   {
    "file": "shots/wpn-091-m249-saw-fn-minimi-5-56mm.jpg",
@@ -2694,7 +2154,7 @@
    "weapon": "M249 SAW (FN Minimi 5.56mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 8
+   "enemies": 4
   },
   {
    "file": "shots/wpn-092-rpg-30-kryuk-precursor-rocket.jpg",
@@ -2703,7 +2163,7 @@
    "weapon": "RPG-30 Kryuk (precursor rocket)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 7
+   "enemies": 4
   },
   {
    "file": "shots/wpn-093-shahed-136-geranium-2-drone.jpg",
@@ -2712,7 +2172,7 @@
    "weapon": "Shahed-136 / Geranium-2 Drone",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 7
+   "enemies": 4
   },
   {
    "file": "shots/wpn-094-agm-88-harm-anti-radiation-missile.jpg",
@@ -2721,7 +2181,7 @@
    "weapon": "AGM-88 HARM (Anti-Radiation Missile)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 6
+   "enemies": 3
   },
   {
    "file": "shots/wpn-095-rgo-78-defensive-frag-grenade.jpg",
@@ -2730,7 +2190,7 @@
    "weapon": "RGO-78 Defensive Frag Grenade",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 6
+   "enemies": 9
   },
   {
    "file": "shots/wpn-096-gepard-flakpanzer-35mm-aa.jpg",
@@ -2739,7 +2199,7 @@
    "weapon": "Gepard Flakpanzer (35mm AA)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 6
+   "enemies": 9
   },
   {
    "file": "shots/wpn-097-ptrd-41-anti-tank-rifle-14-5mm.jpg",
@@ -2748,7 +2208,7 @@
    "weapon": "PTRD-41 Anti-Tank Rifle (14.5mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 6
+   "enemies": 9
   },
   {
    "file": "shots/wpn-098-9m113-konkurs-atgm.jpg",
@@ -2757,7 +2217,7 @@
    "weapon": "9M113 Konkurs ATGM",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 6
+   "enemies": 9
   },
   {
    "file": "shots/wpn-099-m32a1-mgl-6-shot-grenade-launcher.jpg",
@@ -2766,7 +2226,7 @@
    "weapon": "M32A1 MGL (6-shot Grenade Launcher)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 5
+   "enemies": 9
   },
   {
    "file": "shots/wpn-100-ppsh-41-7-62mm-submachine-gun.jpg",
@@ -2775,7 +2235,7 @@
    "weapon": "PPSh-41 (7.62mm Submachine Gun)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 4
+   "enemies": 8
   },
   {
    "file": "shots/wpn-101-ai-axmc-338-lapua-precision-rifle.jpg",
@@ -2784,7 +2244,7 @@
    "weapon": "AI AXMC .338 Lapua Precision Rifle",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 4
+   "enemies": 8
   },
   {
    "file": "shots/wpn-102-9m14-malyutka-at-3-sagger-atgm.jpg",
@@ -2793,7 +2253,7 @@
    "weapon": "9M14 Malyutka (AT-3 Sagger) ATGM",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 4
+   "enemies": 8
   },
   {
    "file": "shots/wpn-103-9k333-verba-manpads.jpg",
@@ -2802,7 +2262,7 @@
    "weapon": "9K333 Verba MANPADS",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 3
+   "enemies": 8
   },
   {
    "file": "shots/wpn-104-rgn-86-offensive-grenade.jpg",
@@ -2811,7 +2271,7 @@
    "weapon": "RGN-86 Offensive Grenade",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 3
+   "enemies": 8
   },
   {
    "file": "shots/wpn-105-rpg-32-hashim-reusable-at-launcher.jpg",
@@ -2820,7 +2280,7 @@
    "weapon": "RPG-32 Hashim (reusable AT launcher)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 7
   },
   {
    "file": "shots/wpn-106-hk-g36c-5-56mm-nato.jpg",
@@ -2829,7 +2289,7 @@
    "weapon": "HK G36C (5.56mm NATO)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 7
   },
   {
    "file": "shots/wpn-107-2b9-vasilek-82mm-auto-mortar.jpg",
@@ -2838,7 +2298,7 @@
    "weapon": "2B9 Vasilek (82mm Auto Mortar)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 7
   },
   {
    "file": "shots/wpn-108-b-10-recoilless-rifle-82mm.jpg",
@@ -2847,7 +2307,7 @@
    "weapon": "B-10 Recoilless Rifle (82mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 7
   },
   {
    "file": "shots/wpn-109-ak-74m-5-45-39mm.jpg",
@@ -2856,7 +2316,7 @@
    "weapon": "AK-74M (5.45×39mm)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 14
+   "enemies": 7
   },
   {
    "file": "shots/wpn-110-switchblade-600-anti-armor-loitering-munition.jpg",
@@ -2865,7 +2325,7 @@
    "weapon": "Switchblade 600 (anti-armor loitering munition)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "enemies": 7
   },
   {
    "file": "shots/wpn-111-panzerhaubitze-2000-155mm-sph.jpg",
@@ -2874,7 +2334,7 @@
    "weapon": "Panzerhaubitze 2000 (155mm SPH)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "enemies": 13
+   "enemies": 7
   },
   {
    "file": "shots/wpn-112-kh-101-cruise-missile.jpg",
@@ -2883,7 +2343,7 @@
    "weapon": "Kh-101 Cruise Missile",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-113-caesar-155mm-sph-call-fire.jpg",
@@ -2892,7 +2352,7 @@
    "weapon": "CAESAR 155mm SPH (Call Fire)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-114-brimstone-2-uk-precision-atgm.jpg",
@@ -2901,7 +2361,7 @@
    "weapon": "Brimstone 2 (UK Precision ATGM)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-115-iris-t-slm-german-air-defense.jpg",
@@ -2910,7 +2370,7 @@
    "weapon": "IRIS-T SLM (German Air Defense)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-116-mgm-140-atacms-us-ballistic-missile.jpg",
@@ -2919,7 +2379,7 @@
    "weapon": "MGM-140 ATACMS (US Ballistic Missile)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-117-nlaw-next-gen-light-anti-tank-weapon.jpg",
@@ -2928,7 +2388,7 @@
    "weapon": "NLAW (Next gen Light Anti-tank Weapon)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-118-hk-ump-9-9mm-smg.jpg",
@@ -2937,7 +2397,7 @@
    "weapon": "HK UMP-9 (9mm SMG)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-119-vss-vintorez-sf-suppressed-rifle.jpg",
@@ -2946,7 +2406,7 @@
    "weapon": "VSS Vintorez (SF suppressed rifle)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-120-pkp-pecheneg-sustained-fire-mg.jpg",
@@ -2955,7 +2415,7 @@
    "weapon": "PKP Pecheneg (sustained-fire MG)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-121-ots-33-pernach-machine-pistol.jpg",
@@ -2964,7 +2424,7 @@
    "weapon": "OTs-33 Pernach (machine pistol)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-122-rgd-5-grenade-throwable.jpg",
@@ -2973,7 +2433,7 @@
    "weapon": "RGD-5 Grenade (throwable)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-123-stugna-p-laser-guided-atgm.jpg",
@@ -2982,7 +2442,7 @@
    "weapon": "Stugna-P (laser-guided ATGM)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
    "file": "shots/wpn-124-an-94-abakan-2-round-hyperburst.jpg",
@@ -2991,24 +2451,447 @@
    "weapon": "AN-94 Abakan (2-round hyperburst)",
    "stage": 0,
    "stageName": "HOSTOMEL AIRPORT",
-   "beatErr": "TypeError: Cannot read properties of null (reading 'mesh')"
+   "enemies": 7
   },
   {
-   "file": "shots/stage-006-chornobyl-zone-f008.jpg",
-   "kind": "stage",
-   "stage": 6,
-   "stageName": "Chornobyl Zone",
-   "frame": 8,
-   "tSec": 40,
+   "file": "shots/wpn-000-gatling-machine-gun.jpg",
+   "kind": "weapon",
+   "weaponIdx": 0,
+   "weapon": "Gatling Machine GUN",
    "recovered": true
   },
   {
-   "file": "shots/stage-006-chornobyl-zone-f009.jpg",
-   "kind": "stage",
-   "stage": 6,
-   "stageName": "Chornobyl Zone",
-   "frame": 9,
-   "tSec": 45,
+   "file": "shots/wpn-001-army-shovel-50.jpg",
+   "kind": "weapon",
+   "weaponIdx": 1,
+   "weapon": "Army Shovel 50",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-002-makarov-pm.jpg",
+   "kind": "weapon",
+   "weaponIdx": 2,
+   "weapon": "Makarov PM",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-003-ak-74m.jpg",
+   "kind": "weapon",
+   "weaponIdx": 3,
+   "weapon": "AK 74M",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-004-rpk-74.jpg",
+   "kind": "weapon",
+   "weaponIdx": 4,
+   "weapon": "RPK 74",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-005-svd-dragunov.jpg",
+   "kind": "weapon",
+   "weaponIdx": 5,
+   "weapon": "SVD Dragunov",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-006-pkm.jpg",
+   "kind": "weapon",
+   "weaponIdx": 6,
+   "weapon": "PKM",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-007-nlaw.jpg",
+   "kind": "weapon",
+   "weaponIdx": 7,
+   "weapon": "Nlaw",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-008-stugna-p.jpg",
+   "kind": "weapon",
+   "weaponIdx": 8,
+   "weapon": "Stugna P",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-009-m4a1.jpg",
+   "kind": "weapon",
+   "weaponIdx": 9,
+   "weapon": "M4A1",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-010-fgm-148-javelin.jpg",
+   "kind": "weapon",
+   "weaponIdx": 10,
+   "weapon": "FGM 148 Javelin",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-011-rpg-7.jpg",
+   "kind": "weapon",
+   "weaponIdx": 11,
+   "weapon": "RPG 7",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-012-igla-manpads.jpg",
+   "kind": "weapon",
+   "weaponIdx": 12,
+   "weapon": "Igla Manpads",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-013-gp-25-grenade-launcher.jpg",
+   "kind": "weapon",
+   "weaponIdx": 13,
+   "weapon": "GP 25 Grenade Launcher",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-014-fn-scar-h.jpg",
+   "kind": "weapon",
+   "weaponIdx": 14,
+   "weapon": "FN Scar H",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-015-dshk.jpg",
+   "kind": "weapon",
+   "weaponIdx": 15,
+   "weapon": "Dshk",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-016-molotov-cocktail.jpg",
+   "kind": "weapon",
+   "weaponIdx": 16,
+   "weapon": "Molotov Cocktail",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-017-mg3-machine-gun.jpg",
+   "kind": "weapon",
+   "weaponIdx": 17,
+   "weapon": "MG3 Machine GUN",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-018-mp5-smg.jpg",
+   "kind": "weapon",
+   "weaponIdx": 18,
+   "weapon": "MP5 SMG",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-019-barrett-m82.jpg",
+   "kind": "weapon",
+   "weaponIdx": 19,
+   "weapon": "Barrett M82",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-020-m134-minigun.jpg",
+   "kind": "weapon",
+   "weaponIdx": 20,
+   "weapon": "M134 Minigun",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-021-tactical-crossbow.jpg",
+   "kind": "weapon",
+   "weaponIdx": 21,
+   "weapon": "Tactical Crossbow",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-022-rpo-a-shmel.jpg",
+   "kind": "weapon",
+   "weaponIdx": 22,
+   "weapon": "RPO A Shmel",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-023-izh-43-shotgun.jpg",
+   "kind": "weapon",
+   "weaponIdx": 23,
+   "weapon": "IZH 43 Shotgun",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-024-m18-claymore-mine.jpg",
+   "kind": "weapon",
+   "weaponIdx": 24,
+   "weapon": "M18 Claymore Mine",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-025-smoke-grenade.jpg",
+   "kind": "weapon",
+   "weaponIdx": 25,
+   "weapon": "Smoke Grenade",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-026-m84-flashbang.jpg",
+   "kind": "weapon",
+   "weaponIdx": 26,
+   "weapon": "M84 Flashbang",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-027-ak-12.jpg",
+   "kind": "weapon",
+   "weaponIdx": 27,
+   "weapon": "AK 12",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-028-fn-p90.jpg",
+   "kind": "weapon",
+   "weaponIdx": 28,
+   "weapon": "FN P90",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-029-at4-launcher.jpg",
+   "kind": "weapon",
+   "weaponIdx": 29,
+   "weapon": "AT4 Launcher",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-030-glock-17.jpg",
+   "kind": "weapon",
+   "weaponIdx": 30,
+   "weapon": "Glock 17",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-031-ks-23-shotgun.jpg",
+   "kind": "weapon",
+   "weaponIdx": 31,
+   "weapon": "KS 23 Shotgun",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-032-ags-17-grenade-mg.jpg",
+   "kind": "weapon",
+   "weaponIdx": 32,
+   "weapon": "AGS 17 Grenade MG",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-033-vss-vintorez.jpg",
+   "kind": "weapon",
+   "weaponIdx": 33,
+   "weapon": "VSS Vintorez",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-034-fim-92-stinger.jpg",
+   "kind": "weapon",
+   "weaponIdx": 34,
+   "weapon": "FIM 92 Stinger",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-035-throwing-knife.jpg",
+   "kind": "weapon",
+   "weaponIdx": 35,
+   "weapon": "Throwing Knife",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-036-c4-explosive.jpg",
+   "kind": "weapon",
+   "weaponIdx": 36,
+   "weapon": "C4 Explosive",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-037-drone-jammer-rifle.jpg",
+   "kind": "weapon",
+   "weaponIdx": 37,
+   "weapon": "Drone Jammer Rifle",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-038-combat-axe.jpg",
+   "kind": "weapon",
+   "weaponIdx": 38,
+   "weapon": "Combat AXE",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-039-aks-74u-krinkov.jpg",
+   "kind": "weapon",
+   "weaponIdx": 39,
+   "weapon": "AKS 74U Krinkov",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-040-m72-law.jpg",
+   "kind": "weapon",
+   "weaponIdx": 40,
+   "weapon": "M72 LAW",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-041-panzerfaust-3.jpg",
+   "kind": "weapon",
+   "weaponIdx": 41,
+   "weapon": "Panzerfaust 3",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-042-nsv-utyes-12-7mm.jpg",
+   "kind": "weapon",
+   "weaponIdx": 42,
+   "weapon": "NSV Utyes 12 7MM",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-043-fort-500-ukrainian.jpg",
+   "kind": "weapon",
+   "weaponIdx": 43,
+   "weapon": "Fort 500 Ukrainian",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-044-malyuk-vulcan-bullpup.jpg",
+   "kind": "weapon",
+   "weaponIdx": 44,
+   "weapon": "Malyuk Vulcan Bullpup",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-045-carl-gustaf-m3-maaws.jpg",
+   "kind": "weapon",
+   "weaponIdx": 45,
+   "weapon": "Carl Gustaf M3 Maaws",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-046-m240b-gpmg-7-62mm.jpg",
+   "kind": "weapon",
+   "weaponIdx": 46,
+   "weapon": "M240B Gpmg 7 62MM",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-047-pkp-pecheneg-7-62mm-mg.jpg",
+   "kind": "weapon",
+   "weaponIdx": 47,
+   "weapon": "PKP Pecheneg 7 62MM MG",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-048-spg-9-kopye-73mm.jpg",
+   "kind": "weapon",
+   "weaponIdx": 48,
+   "weapon": "SPG 9 Kopye 73MM",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-049-hk416-a5.jpg",
+   "kind": "weapon",
+   "weaponIdx": 49,
+   "weapon": "HK416 A5",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-050-rgd-5-frag-grenade.jpg",
+   "kind": "weapon",
+   "weaponIdx": 50,
+   "weapon": "RGD 5 Frag Grenade",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-051-spike-lr-atgm.jpg",
+   "kind": "weapon",
+   "weaponIdx": 51,
+   "weapon": "Spike LR Atgm",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-052-milan-atgm.jpg",
+   "kind": "weapon",
+   "weaponIdx": 52,
+   "weapon": "Milan Atgm",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-053-hk-mp7a2.jpg",
+   "kind": "weapon",
+   "weaponIdx": 53,
+   "weapon": "HK MP7A2",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-054-kord-12-7mm-hmg.jpg",
+   "kind": "weapon",
+   "weaponIdx": 54,
+   "weapon": "Kord 12 7MM HMG",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-055-m2hb-browning-50cal.jpg",
+   "kind": "weapon",
+   "weaponIdx": 55,
+   "weapon": "M2HB Browning 50CAL",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-056-zu-23-2-23mm-aa-autocannon.jpg",
+   "kind": "weapon",
+   "weaponIdx": 56,
+   "weapon": "ZU 23 2 23MM AA Autocannon",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-057-fpv-kamikaze-drone.jpg",
+   "kind": "weapon",
+   "weaponIdx": 57,
+   "weapon": "FPV Kamikaze Drone",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-058-9m133-kornet-atgm.jpg",
+   "kind": "weapon",
+   "weaponIdx": 58,
+   "weapon": "9M133 Kornet Atgm",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-059-rpg-26-aglen-disposable.jpg",
+   "kind": "weapon",
+   "weaponIdx": 59,
+   "weapon": "RPG 26 Aglen Disposable",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-060-m142-himars-gmlrs-strike.jpg",
+   "kind": "weapon",
+   "weaponIdx": 60,
+   "weapon": "M142 Himars Gmlrs Strike",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-061-f-1-limonka-grenade.jpg",
+   "kind": "weapon",
+   "weaponIdx": 61,
+   "weapon": "F 1 Limonka Grenade",
+   "recovered": true
+  },
+  {
+   "file": "shots/wpn-062-maxim-m1910-7-62mm.jpg",
+   "kind": "weapon",
+   "weaponIdx": 62,
+   "weapon": "Maxim M1910 7 62MM",
    "recovered": true
   }
  ]
