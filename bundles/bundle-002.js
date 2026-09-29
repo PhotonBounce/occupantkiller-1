@@ -20140,7 +20140,8 @@ window.WeaponCodex = (function () {
 try {
 ;
 /* pause-menu.js — In-game pause menu for OccupantKiller Three.js FPS
- * Escape key pauses/resumes. Self-initializing IIFE.
+ * Pause menu overlay (settings / controls / quit). Not key-bound — see init().
+ * Self-initializing IIFE.
  * All var, no let/const.
  */
 window.PauseMenu = (function () {
@@ -20888,7 +20889,17 @@ window.PauseMenu = (function () {
     window._musicVolume    = s.musicVolume  / 100;
     window._shadowsEnabled = s.shadows;
 
-    document.addEventListener('keydown', _onKeyDown, false);
+    // No key binding. This module used to take bare Escape as well, with an
+    // unguarded toggle: every press flipped its own overlay regardless of
+    // what game-manager's Escape handler (the pause that actually stops the
+    // game and shows the unified inventory/pause menu) was doing, and its
+    // show() drops pointer lock while its hide() requests it back. Traced
+    // in a running browser: Escape, Escape, Escape from a paused game gave
+    // this overlay on, off, on over the inventory while the state stayed
+    // PAUSED throughout. Nothing else calls PauseMenu.*; the same settings
+    // are reachable from the HUD settings panel. The API stays for anyone
+    // who wants to open it deliberately.
+    void _onKeyDown;
   }
 
   // Auto-init when DOM is ready

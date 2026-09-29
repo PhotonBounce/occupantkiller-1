@@ -4488,13 +4488,30 @@ const GameManager = (function () {
         toggleInventory();
       }
 
-      // Pause toggle — skip if we just exited fullscreen (browser ESC exits fullscreen first)
+      // Pause toggle.
+      //
+      // The fullscreen guard below used to sit in front of BOTH directions,
+      // and every desktop start goes fullscreen (index.html requests it on
+      // QUICK START / START / RESTART). Traced in a running browser: with
+      // document.fullscreenElement set, every trusted Escape entered this
+      // handler, reached this branch and returned here — so from PAUSED the
+      // game could never be resumed by the key that paused it. The guard
+      // exists so that an Escape the browser is using to leave fullscreen
+      // does not ALSO pause a live game; there is no reason it should ever
+      // refuse a resume. It now covers the pause direction only.
       if (e.code === 'Escape') {
-        if (e.isTrusted && (document.fullscreenElement || document.webkitFullscreenElement || _skipNextEsc)) {
-          _skipNextEsc = false;
-          return; // Let the browser handle fullscreen exit without toggling pause
-        }
-        if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
+        var _escFromFullscreen = e.isTrusted
+          && (document.fullscreenElement || document.webkitFullscreenElement || _skipNextEsc);
+        _skipNextEsc = false;
+        if (gameState === STATE.PAUSED) {
+          gameState = STATE.PLAYING;
+          var invOv = document.getElementById('inventory-overlay');
+          if (invOv) invOv.style.display = 'none';
+          hideOverlays();
+          requestPointerLock();
+        } else if (_escFromFullscreen) {
+          // Let the browser handle fullscreen exit without toggling pause.
+        } else if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
           gameState = STATE.PAUSED;
           var invOv = document.getElementById('inventory-overlay');
           if (invOv) {
@@ -4502,12 +4519,6 @@ const GameManager = (function () {
             invOv.style.display = 'flex';
           }
           _releaseMouseForUI();
-        } else if (gameState === STATE.PAUSED) {
-          gameState = STATE.PLAYING;
-          var invOv = document.getElementById('inventory-overlay');
-          if (invOv) invOv.style.display = 'none';
-          hideOverlays();
-          requestPointerLock();
         }
       }
     });
