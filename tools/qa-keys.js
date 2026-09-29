@@ -136,10 +136,6 @@ server.listen(PORT, async () => {
   // So: never click blind. Escape to dismiss, and if that leaves us at the
   // main menu, restart the stage outright. Pointer lock is re-acquired by
   // clicking the canvas ONLY when no overlay is painted over it.
-  const anyOverlayUp = () => page.evaluate(() =>
-    Array.from(document.querySelectorAll('.overlay, #inventory-overlay'))
-      .some(el => getComputedStyle(el).display !== 'none'));
-
   const restartStage = async () => {
     await page.evaluate((s) => {
       window.__QA_MODE = true; window.__QA_START_STAGE = s; window.__chosenStartStage = s;
@@ -185,7 +181,7 @@ server.listen(PORT, async () => {
         await forceResume();
       }
       const p = await probe();
-      if (p.state === 'playing' && !(await anyOverlayUp())) return true;
+      if (p.state === 'playing' && p.overlay.length === 0) return true;
 
       // Lost to the main menu (or the run ended) — only a restart comes back.
       if (p.state === 'menu' || p.state === 'dead' || p.state === 'gameover') {
@@ -194,7 +190,7 @@ server.listen(PORT, async () => {
         continue;
       }
 
-      if (await anyOverlayUp()) {
+      if (p.overlay.length > 0) {
         // Escape pauses the game reliably but does not appear to un-pause it:
         // every probe so far ends at paused + inventory-overlay no matter how
         // many times Escape is pressed. The handler
@@ -260,7 +256,7 @@ server.listen(PORT, async () => {
       before = await probe();
     }
     await page.keyboard.press(key);
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(250);
     const after = await probe();
     const tookOver = after.state !== 'playing' || (before.locked && !after.locked);
     const expected = MENU_KEYS.has(key);
