@@ -107,7 +107,19 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   construction. Tab now sits beside the pause toggle, which was never gated
   for the same reason. Keep `Tab` in `tools/qa-keys.js`'s press list: the
   first sweep allowlisted it as a menu key and never pressed it, which is
-  why the sweep could not catch this.
+  why the sweep could not catch this. Both causes are now confirmed in a
+  running browser, not just from the code:
+
+      baseline  : playing, overlay none, locked
+      Tab open  : paused,  overlay flex, unlocked
+      Tab close : playing, overlay none, locked
+      Tab open2 : paused,  overlay flex, unlocked
+      Tab close2: playing, overlay none, locked
+
+  One more datum for the OOM above: that run only completed at a 320x180
+  viewport, after three consecutive crashes at 480x270. One observation, not
+  a law — but if a probe keeps losing its renderer, shrink the window before
+  assuming the page is at fault.
 - **The old note, kept for the history:**
   From a clean playing state, pressing Tab leaves the game in `playing` with
   `#inventory-overlay` at `display:flex` — the inventory painted over a live

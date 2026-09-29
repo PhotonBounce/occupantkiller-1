@@ -50,3 +50,8 @@ tools/qa-*mobile*
 # output, not source.
 tools/qa-play-out/
 collab/.budget-state.json
+
+# Throwaway browser probes written to the repo root during debugging (they
+# live here only so `require('playwright')` resolves against node_modules).
+# They are deleted by the command that creates them; this is the backstop.
+probe-*.tmp.js
