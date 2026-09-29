@@ -15,10 +15,13 @@ on:
       secs:
         description: 'Seconds of play per stage'
         default: '40'
+      only:
+        description: 'Which job to run: all, play, weapons, keys, usability'
+        default: 'all'
   # GitHub does not register a dispatch-only workflow that exists only on a
   # feature branch — the API answers 404 for it by name. A push trigger
-  # scoped to this one file gets it registered (and runs it once when the
-  # file changes), after which workflow_dispatch works by name on any ref.
+  # scoped to this one file keeps it registered; every job is guarded to
+  # run on workflow_dispatch only, so a push to this file runs nothing.
   push:
     branches: [ main, claude/peaceful-cannon-oqez4t ]
     paths: [ '.github/workflows/full-qa.yml' ]
@@ -33,6 +36,7 @@ concurrency:
 jobs:
   play:
     name: play stage ${{ matrix.stage }}
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.only == 'all' || github.event.inputs.only == 'play') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -77,6 +81,7 @@ jobs:
 
   weapons:
     name: every weapon
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.only == 'all' || github.event.inputs.only == 'weapons') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -110,6 +115,7 @@ jobs:
 
   keys:
     name: key sweep
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.only == 'all' || github.event.inputs.only == 'keys') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -143,6 +149,7 @@ jobs:
 
   usability:
     name: usability, every stage
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.only == 'all' || github.event.inputs.only == 'usability') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -180,7 +187,9 @@ jobs:
     name: report
     runs-on: ubuntu-latest
     needs: [play, weapons, keys, usability]
-    if: ${{ always() }}
+    # always(): a failed or skipped upstream job must still produce a report
+    # line, not hide the whole table. Skipped jobs show as "no verdict".
+    if: ${{ always() && github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/setup-node@v4
         with: { node-version: '22' }

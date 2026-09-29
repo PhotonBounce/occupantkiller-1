@@ -140,10 +140,34 @@ server.listen(PORT, async () => {
   const readCur = () => page.evaluate(() => {
     const i = Weapons.getCurrentIdx();
     const d = Weapons.getWeaponDef(i) || {};
+    let frame = null; try { frame = GameManager.getRenderer().info.render.frame; } catch (e) {}
     return { idx: i, id: d.id, name: d.name, type: d.type, clipSize: d.clipSize || 0,
              clip: Weapons.getClip(), reserve: Weapons.getReserve(),
-             reloading: !!Weapons.isReloading(), state: GameManager.getState() };
+             reloading: !!Weapons.isReloading(), state: GameManager.getState(), frame };
   });
+
+  // Wait until pred(cur) holds, or a budget of RENDERED FRAMES runs out.
+  //
+  // The first version of this harness waited fixed milliseconds after every
+  // action, and its verdict was nonsense: the same weapon measured twice on
+  // consecutive rows, clips going UP during "fire" because the before-read
+  // came from one weapon and the after-read from the next, and the Gatling
+  // reported as unable to fire because its 0.3s spin-up is longer than 650ms
+  // of wall clock buys at 2-3 fps with delta clamped to 0.1s per frame. The
+  // game advances per frame; on a software renderer wall time says nothing
+  // about how far it has advanced. Same lesson as the movement check.
+  const until = async (pred, frames, wallMs) => {
+    const first = await readCur();
+    const f0 = first.frame, w0 = Date.now();
+    let cur = first;
+    for (;;) {
+      if (pred(cur)) return { ok: true, cur, frames: cur.frame != null && f0 != null ? cur.frame - f0 : null };
+      const used = cur.frame != null && f0 != null ? cur.frame - f0 : null;
+      if ((used != null && used >= frames) || Date.now() - w0 > wallMs) return { ok: false, cur, frames: used };
+      await page.waitForTimeout(120);
+      cur = await readCur();
+    }
+  };
 
   // ── The loop: wheel to each weapon, fire it, reload it ─────────────────
   const rows = [];
@@ -152,45 +176,54 @@ server.listen(PORT, async () => {
   let errIdx = pageErrors.length;
 
   for (let k = 0; k < total; k++) {
-    if (k > 0) {
+    const prevIdx = rows.length ? rows[rows.length - 1].idx : null;
+    let before, switched, swFrames = 0;
+    if (k === 0) { before = await readCur(); switched = true; }
+    else {
       await page.mouse.wheel(0, 120);     // one notch down = Weapons.switchNext()
-      await page.waitForTimeout(250);
+      const sw = await until(c => c.idx !== prevIdx, 40, 8000);
+      before = sw.cur; switched = sw.ok; swFrames = sw.frames;
     }
-    const before = await readCur();
     if (before.state !== 'playing') {
-      // A weapon switch must never leave play. Note it, try to get back, go on.
       say(T() + '  !! state=' + before.state + ' after switching to #' + before.idx + ' ' + before.name);
       await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     }
-    const switched = k === 0 ? true : !seen.has(before.idx);
     seen.add(before.idx);
-
-    // Fire: hold the trigger. Auto weapons stream, semi-auto get one round.
-    await page.mouse.down(); await page.waitForTimeout(HOLD); await page.mouse.up();
-    await page.waitForTimeout(150);
-    const afterFire = await readCur();
     const measurable = before.clipSize > 0;
-    // Firing dry starts a reload, which is also proof the trigger worked.
-    const fired = !measurable ? null
-      : (afterFire.clip < before.clip || (before.clip === 0 && afterFire.reloading) || afterFire.reloading);
 
-    // Reload: press R, then look for the reload in progress or the clip back up.
-    await page.keyboard.press('KeyR');
-    await page.waitForTimeout(300);
-    const afterReload = await readCur();
-    const reloaded = !measurable ? null
-      : (afterReload.reloading || afterReload.clip > afterFire.clip || afterReload.clip === before.clipSize);
+    let fired = null, reloaded = null, afterFire = before, afterReload = before, fireFrames = null, reloadFrames = null;
+    if (switched) {
+      // Fire: hold the trigger until the clip drops or a dry-fire reload
+      // starts, within a frame budget generous enough for a spin-up.
+      await page.mouse.down();
+      if (measurable) {
+        const fr = await until(c => c.clip < before.clip || c.reloading, 30, 8000);
+        afterFire = fr.cur; fired = fr.ok; fireFrames = fr.frames;
+      } else {
+        const fr = await until(() => false, 4, 1500);   // melee: swing a few frames, nothing to measure
+        afterFire = fr.cur;
+      }
+      await page.mouse.up();
+
+      // Reload: press R, then look for a reload in progress or the clip back
+      // up, again within a frame budget.
+      await page.keyboard.press('KeyR');
+      if (measurable) {
+        const rl = await until(c => c.reloading || c.clip > afterFire.clip || c.clip === before.clipSize, 30, 8000);
+        afterReload = rl.cur; reloaded = rl.ok; reloadFrames = rl.frames;
+      }
+    }
 
     const errs = pageErrors.slice(errIdx); errIdx = pageErrors.length;
     const row = {
       k, idx: before.idx, id: before.id, name: before.name, type: before.type,
       clipSize: before.clipSize, clipBefore: before.clip, clipAfterFire: afterFire.clip,
-      switched, fired, reloaded, errors: errs,
+      switched, swFrames, fired, fireFrames, reloaded, reloadFrames, errors: errs,
     };
     rows.push(row);
-    const flag = (!switched ? ' <-- DID NOT SWITCH' : '')
-      + (fired === false ? ' <-- DID NOT FIRE' : '')
-      + (reloaded === false ? ' <-- DID NOT RELOAD' : '')
+    const flag = (!switched ? ' <-- DID NOT SWITCH (idx still ' + before.idx + ' after ' + swFrames + ' frames)' : '')
+      + (fired === false ? ' <-- DID NOT FIRE in ' + fireFrames + ' frames' : '')
+      + (reloaded === false ? ' <-- DID NOT RELOAD in ' + reloadFrames + ' frames' : '')
       + (errs.length ? ' <-- ' + errs.length + ' PAGE ERROR(S): ' + errs[0].slice(0, 90) : '');
     say(T() + '  #' + String(before.idx).padStart(3) + ' ' + String(before.name).padEnd(30).slice(0, 30)
         + ' ' + String(before.type || '').padEnd(9)
