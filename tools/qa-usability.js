@@ -148,6 +148,43 @@ server.listen(PORT, async () => {
       null, { timeout: 120000 }).catch(() => log('[warn] never reached playing'));
     const bootMs = Date.now() - tNav;
 
+    // Every stage opens on the mission briefing, which waits for Enter (or a
+    // click) once its "[ PRESS ENTER TO DEPLOY ]" prompt is up. Measuring with
+    // it still showing reported the briefing screen, not the HUD: one
+    // 1280x720 opaque panel, coverage 100%, centre 0% clear. Do what the
+    // player does — wait for the prompt, press Enter — and record it.
+    // The overlay is created by applyStage, which runs after the level build,
+    // so on a slow renderer it can appear 20-30s after the state first reads
+    // 'playing' (locally: absent at 15s, present at 36s). Wait long enough.
+    const briefing = { shown: false, dismissed: false, ms: null, appearedMs: null };
+    const tBrief = Date.now();
+    // Interval polling, not the default requestAnimationFrame polling: on a
+    // renderer producing one frame a second, rAF polling samples once a
+    // second and the timeouts below are wall-clock.
+    const POLL = { polling: 250 };
+    await pg.waitForFunction(() => !!document.getElementById('mission-briefing-overlay'), null, { timeout: 45000, ...POLL })
+      .then(() => { briefing.shown = true; briefing.appearedMs = Date.now() - tBrief; }).catch(() => {});
+    if (briefing.shown) {
+      // The prompt is revealed with style.display='block' (it blinks, so its
+      // opacity is not a usable signal). Enter before it is shown is ignored.
+      await pg.waitForFunction(() => {
+        const d = document.querySelector('#mission-briefing-overlay .mb-deploy');
+        return d && d.style.display === 'block';
+      }, null, { timeout: 15000, ...POLL }).catch(() => log('[warn] deploy prompt never appeared'));
+      await pg.keyboard.press('Enter');
+      // _complete() drops the visible class at once and removes the element
+      // on a 380ms timer, which a busy main thread can hold for many seconds.
+      await pg.waitForFunction(() => {
+        const o = document.getElementById('mission-briefing-overlay');
+        return !o || !o.classList.contains('mb-visible');
+      }, null, { timeout: 20000, ...POLL })
+        .then(() => { briefing.dismissed = true; }).catch(() => {});
+      briefing.ms = Date.now() - tBrief;
+      log('briefing: appeared at +' + briefing.appearedMs + 'ms, ' + (briefing.dismissed ? 'dismissed by Enter at +' + briefing.ms + 'ms' : 'STILL UP after Enter (+' + briefing.ms + 'ms)'));
+    } else {
+      log('briefing: none shown');
+    }
+
     // Let the HUD fully populate. Several of the busiest panels (streaks,
     // challenges, bounties) only appear once play is genuinely under way, so
     // measuring immediately would flatter the result.
@@ -170,6 +207,7 @@ server.listen(PORT, async () => {
       // effect layers. Reported so the number stays honest about what was
       // excluded rather than quietly dropping them.
       let layersOnly = 0;
+      const fullScreenLayers = [];
       document.querySelectorAll('body *').forEach(el => {
         let cs; try { cs = getComputedStyle(el); } catch (e) { return; }
         if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.05) return;
@@ -214,6 +252,25 @@ server.listen(PORT, async () => {
           || (cs.boxShadow && cs.boxShadow !== 'none')
           || ownText.length > 0;
         if (!isPainted) { layersOnly++; return; }
+        // Full-viewport painted layers are screen EFFECTS, not panels: the
+        // briefing scanline gradient, vignettes, tint washes. Stage 11 counted
+        // two of them (#mission-briefing-scanlines and an anonymous 1280x720
+        // div) as 100% panels, which made coverage 100%, centre 0% clear and
+        // every real panel "overlap" them. Report them separately unless the
+        // layer is actually opaque, in which case it really does hide the
+        // world and stays a panel.
+        const frac = (r.width * r.height) / screenArea;
+        if (frac >= cfg.fullScreenFrac && bgAlpha < 0.5 && ownText.length === 0) {
+          fullScreenLayers.push({
+            id: el.id || null,
+            cls: (typeof el.className === 'string' && el.className) ? el.className.split(' ')[0] : null,
+            pct: +(frac * 100).toFixed(1),
+            bgAlpha: +bgAlpha.toFixed(2),
+            bgImage: (cs.backgroundImage && cs.backgroundImage !== 'none') ? cs.backgroundImage.slice(0, 40) : null,
+            border: hasBorder, shadow: !!(cs.boxShadow && cs.boxShadow !== 'none'),
+          });
+          return;
+        }
         panels.push({
           id: el.id || null,
           cls: (typeof el.className === 'string' && el.className) ? el.className.split(' ')[0] : null,
@@ -273,13 +330,15 @@ server.listen(PORT, async () => {
         centreClearPct: +(100 - (centreCovered / Math.max(1, centreCells) * 100)).toFixed(1),
         panelCount: panels.length,
         transparentLayers: layersOnly,
+        fullScreenLayers,
         overlaps, nanOnScreen, tinyText, engine,
         biggest: panels.slice().sort((a, b) => b.pct - a.pct).slice(0, 15),
         panels,
       };
-    }, { centreFrac: CENTRE_FRAC }), 60000, 'measure');
+    }, { centreFrac: CENTRE_FRAC, fullScreenFrac: 0.85 }), 60000, 'measure');
 
     rep.bootMs = bootMs;
+    rep.briefing = briefing;
     rep.cleanHud = CLEAN_HUD;
     rep.stage = STAGE;
     rep.pageErrors = pageErrors.slice(0, 8);
@@ -305,6 +364,11 @@ server.listen(PORT, async () => {
     log('  centre box clear    ' + rep.centreClearPct + '%   (where the player aims)');
     log('  painted panels      ' + rep.panelCount + '   (+ ' + rep.transparentLayers + ' transparent effect layers, not counted)');
     log('  overlapping pairs   ' + rep.overlaps);
+    if (rep.fullScreenLayers.length) {
+      log('  full-screen effect layers (not counted as panels): ' + rep.fullScreenLayers.map(function (l) {
+        return (l.id ? '#' + l.id : '.' + l.cls) + ' ' + l.pct + '%' + (l.bgImage ? ' bgImage' : '') + (l.bgAlpha ? ' bg=' + l.bgAlpha : '');
+      }).join(', '));
+    }
     log('  NaN/undefined shown ' + rep.nanOnScreen.length);
     rep.nanOnScreen.forEach(n => log('      ! ' + (n.id || '?') + '  "' + n.text + '"'));
     log('  text under 11px     ' + rep.tinyText.length);
@@ -326,6 +390,7 @@ server.listen(PORT, async () => {
     // plainly when a number is bad enough to hurt the game commercially.
     const v = [];
     if (rep.hudCoveragePct > 35) v.push('HUD COVERAGE ' + rep.hudCoveragePct + '% — the interface, not the game, is most of the screen');
+    if (rep.briefing.shown && !rep.briefing.dismissed) v.push('BRIEFING STUCK — Enter did not dismiss the mission briefing');
     if (rep.centreClearPct < 85) v.push('CENTRE OBSTRUCTED — only ' + rep.centreClearPct + '% of the aiming box is clear');
     if (rep.nanOnScreen.length) v.push('BROKEN VALUES ON SCREEN — ' + rep.nanOnScreen.length + ' panel(s) printing NaN/undefined');
     if (rep.overlaps > 12) v.push('PANEL PILE-UP — ' + rep.overlaps + ' overlapping pairs');
