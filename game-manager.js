@@ -6347,8 +6347,16 @@ const GameManager = (function () {
     if (typeof window !== 'undefined') {
       console.log('[QA] beginWave called, __QA_MODE:', window.__QA_MODE, 'gameState:', gameState);
     }
-    if (typeof window !== 'undefined' && window.__QA_MODE) {
-      // In QA mode, always allow wave start
+    if (typeof window !== 'undefined' && window.__QA_MODE && gameState !== STATE.PAUSED) {
+      // QA mode exists so a harness can start a wave without sitting through
+      // the briefing, so it overrides the menu/dead guard below. It must NOT
+      // override an explicit pause. It used to, and the effect was that every
+      // wave start yanked the game back to PLAYING with whatever menu the
+      // harness had opened still on screen — which the key sweep then
+      // reported as "menu stranded over a live game". That state is
+      // reachable only with __QA_MODE set: a real player's beginWave() takes
+      // the else branch and returns while paused. I reported it as a
+      // player-facing bug before tracing it here; it was my own harness.
       gameState = STATE.PLAYING;
     } else {
       if (gameState !== STATE.PLAYING && gameState !== STATE.BUILD_MODE) return;

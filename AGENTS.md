@@ -94,6 +94,16 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   register window-level keydown listeners, so assume nothing about a key being
   free. `tools/qa-keys.js` presses every key and fails if a non-menu key takes
   the screen; run it after touching any input code.
+- **`__QA_MODE` forces `gameState = PLAYING` at every wave start, which fakes
+  a bug.** `beginWave()` used to do this unconditionally under `__QA_MODE`,
+  overriding an explicit pause. Since `tools/qa-play.js` and
+  `tools/qa-keys.js` both set that flag, every wave start yanked the game
+  back to PLAYING with whatever menu the harness had opened still on screen
+  — and the sweep duly reported "menu stranded over a live game". No player
+  can reach that state: with the flag unset, `beginWave()` returns early
+  while paused. I reported it as a player-facing bug before tracing it. QA
+  mode now overrides the menu/dead guard but not an explicit pause. If a
+  harness finding depends on `__QA_MODE`, it is not a finding.
 - **`Tab` could not close the inventory — two causes, both fixed; verify on
   real hardware.** First, `intelligence-briefing.js` also bound bare Tab and
   its `_openPanel()` calls `document.exitPointerLock()`, so one press opened
@@ -115,6 +125,11 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
       Tab close : playing, overlay none, locked
       Tab open2 : paused,  overlay flex, unlocked
       Tab close2: playing, overlay none, locked
+
+  Note what is NOT part of this: the "inventory on screen while the game is
+  playing" half of the original report was the `__QA_MODE` artifact above,
+  not these two bugs. What these two caused, and what is fixed, is that the
+  inventory would not CLOSE — which reproduces with or without the flag.
 
   One more datum for the OOM above: that run only completed at a 320x180
   viewport, after three consecutive crashes at 480x270. One observation, not
