@@ -32,9 +32,11 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: full-qa-${{ github.ref }}
-  cancel-in-progress: true
+# No concurrency group. The first version cancelled in-progress runs per
+# ref, and that cancelled the full sweep's usability job from a push that
+# only touched this file (a run every job guard turns into a no-op), then
+# had each `only:` dispatch cancel the previous one. Runs of this workflow
+# are independent experiments; none should be able to kill another.
 
 jobs:
   play:
