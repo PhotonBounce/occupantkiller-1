@@ -184,15 +184,54 @@ server.listen(PORT, async () => {
   // A session where the player silently never moves still produces a full log
   // of beats and screenshots that all look plausible, which is worse than a
   // failure — so establish up front whether walking works at all.
-  const posOf = () => page.evaluate(() => { const p = GameManager.getPlayer(); return [+p.position.x.toFixed(2), +p.position.y.toFixed(2), +p.position.z.toFixed(2)]; });
-  const mvBefore = await posOf();
+  //
+  // Not every stage is walked. Stage index 17 (REFINERY STRIKE) possesses an
+  // FPV drone at mission start and stage index 18 (BRADLEY DUEL) crews a
+  // Bradley; in both, game-manager's updatePlayer() returns early
+  // (game-manager.js:7728) and WASD is routed to the drone/vehicle instead
+  // (game-manager.js:4429, bradley.js:637). Measuring the player body on
+  // those stages reports "PLAYER CANNOT MOVE" for a game that is behaving
+  // exactly as designed. So ask the page what the player is actually
+  // driving, and measure THAT — which keeps the check real on drone and
+  // vehicle missions instead of exempting them.
+  const subjectOf = () => page.evaluate(() => {
+    const v3 = (o) => [+o.x.toFixed(2), +o.y.toFixed(2), +o.z.toFixed(2)];
+    try {
+      if (typeof DroneSystem !== 'undefined' && DroneSystem.isPossessing && DroneSystem.isPossessing()) {
+        const d = DroneSystem.getPossessed && DroneSystem.getPossessed();
+        if (d && d.position) return { kind: 'drone', pos: v3(d.position) };
+      }
+    } catch (e) {}
+    try {
+      if (typeof Bradley !== 'undefined' && Bradley.isActive && Bradley.isActive()) {
+        const b = Bradley.getVehicle && Bradley.getVehicle();
+        if (b && b.group && b.group.position) return { kind: 'bradley', pos: v3(b.group.position) };
+      }
+    } catch (e) {}
+    try {
+      if (typeof VehicleSystem !== 'undefined' && VehicleSystem.isInVehicle && VehicleSystem.isInVehicle()) {
+        const v = VehicleSystem.getOccupied ? VehicleSystem.getOccupied() : null;
+        const g = v && (v.position ? v : (v.group || v.mesh));
+        if (g && g.position) return { kind: 'vehicle', pos: v3(g.position) };
+      }
+    } catch (e) {}
+    return { kind: 'player', pos: v3(GameManager.getPlayer().position) };
+  });
+  const sBefore = await subjectOf();
   await hold('KeyW', 2500);
   await page.waitForTimeout(500);
-  const mvAfter = await posOf();
-  const moved = Math.hypot(mvAfter[0] - mvBefore[0], mvAfter[2] - mvBefore[2]);
+  const sAfter = await subjectOf();
+  const subject = sAfter.kind;
+  const mvBefore = sBefore.pos, mvAfter = sAfter.pos;
+  // A drone climbs and dives, so its forward run is a 3D displacement; a
+  // walker's Y is gravity and stairs, which is noise here.
+  const moved = subject === 'drone'
+    ? Math.hypot(mvAfter[0] - mvBefore[0], mvAfter[1] - mvBefore[1], mvAfter[2] - mvBefore[2])
+    : Math.hypot(mvAfter[0] - mvBefore[0], mvAfter[2] - mvBefore[2]);
   const canMove = moved > 0.2;
-  say(T() + '  movement check: ' + (canMove ? 'OK' : 'PLAYER DID NOT MOVE')
+  say(T() + '  movement check [' + subject + ']: ' + (canMove ? 'OK' : subject.toUpperCase() + ' DID NOT MOVE')
       + ' ' + JSON.stringify(mvBefore) + ' -> ' + JSON.stringify(mvAfter) + '  (' + moved.toFixed(2) + 'm)');
+  if (sBefore.kind !== sAfter.kind) say(T() + '  note: control subject changed mid-check: ' + sBefore.kind + ' -> ' + sAfter.kind);
 
   const sample = () => page.evaluate(() => {
     const o = {};
@@ -248,6 +287,7 @@ server.listen(PORT, async () => {
     // Environment capability, reported not asserted.
     mouselookViaRealMouse: realMouseWorks,
     mouselookWorks: mouselookWorks,
+    controlSubject: subject,
     movementWorks: canMove, movedMetres: +moved.toFixed(2),
     final, timeline, shots,
     pageErrors: pageErrors.slice(0, 20),
@@ -271,7 +311,7 @@ server.listen(PORT, async () => {
    * entire history.
    */
   const failures = [];
-  if (!canMove)        failures.push('PLAYER CANNOT MOVE — WASD produced no displacement (moved ' + moved.toFixed(2) + 'm)');
+  if (!canMove)        failures.push(subject.toUpperCase() + ' CANNOT MOVE — WASD produced no displacement (moved ' + moved.toFixed(2) + 'm)');
   if (!locked)         failures.push('POINTER LOCK NEVER ENGAGED — the player cannot aim');
   if (!mouselookWorks) failures.push('MOUSELOOK DEAD — looking did not turn the camera (yaw unchanged)');
   if (pageErrors.length) failures.push(pageErrors.length + ' uncaught page error(s) during play: ' + pageErrors[0].slice(0, 120));
@@ -281,10 +321,10 @@ server.listen(PORT, async () => {
     failures.forEach(f => say('  FAIL: ' + f));
     say('  stage ' + STAGE + ' VERDICT: FAIL (' + failures.length + ')');
   } else {
-    say('  stage ' + STAGE + ' VERDICT: PASS — moved ' + moved.toFixed(2) + 'm, pointer lock ok, mouselook ok, no page errors');
+    say('  stage ' + STAGE + ' VERDICT: PASS — ' + subject + ' moved ' + moved.toFixed(2) + 'm, pointer lock ok, mouselook ok, no page errors');
   }
   fs.writeFileSync(path.join(OUT, 'qa-play.log'), log.join('\n'));
-  fs.writeFileSync(path.join(OUT, 'verdict.json'), JSON.stringify({ stage: STAGE, pass: !failures.length, failures }, null, 1));
+  fs.writeFileSync(path.join(OUT, 'verdict.json'), JSON.stringify({ stage: STAGE, pass: !failures.length, subject, movedMetres: +moved.toFixed(2), failures }, null, 1));
 
   await browser.close(); server.close();
   process.exit(failures.length ? 1 : 0);
