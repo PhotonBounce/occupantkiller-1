@@ -157,8 +157,33 @@ server.listen(PORT, async () => {
   // and locally, with identical results. Lock is re-acquired best-effort
   // because mouselook is nice to have, not because a verdict needs it.
   let escTraces = 0;   // how many Escape transitions have been traced in full
+  // Recovery is not under test — only the measurement is. The verdict for a
+  // key is recorded from real keyboard input before recovery runs, so
+  // recovery is free to use the page API to get back to a known state. That
+  // matters because Escape does not un-pause this game (the open bug this
+  // sweep is chasing), so pressing it eight times per recovery, a dozen
+  // times a run, was taking the job from four minutes to fifteen and toward
+  // its timeout. Try Escape twice, then just set the state.
+  const forceResume = async () => {
+    await page.evaluate(() => {
+      try {
+        document.querySelectorAll('.overlay, #inventory-overlay').forEach(el => {
+          if (getComputedStyle(el).display !== 'none') el.style.display = 'none';
+        });
+      } catch (e) {}
+      try { GameManager.setState('playing'); } catch (e) {}
+    });
+    await page.waitForTimeout(300);
+  };
+
   const recover = async () => {
     for (let i = 0; i < 8; i++) {
+      // Two honest attempts with Escape, then stop paying for a key that
+      // does not work and put the game back programmatically.
+      if (i === 2) {
+        say(T() + '  recovery: Escape did not clear it in two tries — restoring state directly');
+        await forceResume();
+      }
       const p = await probe();
       if (p.state === 'playing' && !(await anyOverlayUp())) return true;
 
