@@ -15,6 +15,13 @@ on:
       secs:
         description: 'Seconds of play per stage'
         default: '40'
+  # GitHub does not register a dispatch-only workflow that exists only on a
+  # feature branch — the API answers 404 for it by name. A push trigger
+  # scoped to this one file gets it registered (and runs it once when the
+  # file changes), after which workflow_dispatch works by name on any ref.
+  push:
+    branches: [ main, claude/peaceful-cannon-oqez4t ]
+    paths: [ '.github/workflows/full-qa.yml' ]
 
 permissions:
   contents: read
