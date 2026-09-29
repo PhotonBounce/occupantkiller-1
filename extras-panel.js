@@ -3,8 +3,8 @@
    Lets the player toggle every added overlay/FX on or off, persisted to
    localStorage, plus a clean-view mode and a controls cheatsheet. This makes the
    12 added features curatable instead of all-on clutter.
-     H  — open/close the Extras settings panel (releases pointer lock to click)
-     K  — clean view: hide ALL extras instantly (for screenshots)
+     Shift+H  — open/close the Extras settings panel (releases pointer lock to click)
+     Shift+K  — clean view: hide ALL extras instantly (for screenshots)
      ?  — controls cheatsheet
    Reads/sets window.__OK_EXTRAS (honored by hud-extras 1/2/3) and FXExtras.
    ========================================================================== */
@@ -70,7 +70,7 @@
     rows[c[0]] = box;
   });
   var note = el('div', 'margin-top:10px;font-size:10px;opacity:.6;line-height:1.5;', panel);
-  note.innerHTML = 'K = clean view (hide all) · ? = controls<br>Settings are saved on this device.';
+  note.innerHTML = 'Shift+K = clean view (hide all) · ? = controls<br>Settings are saved on this device.';
 
   function render() {
     CONFIG.forEach(function (c) {
@@ -103,8 +103,8 @@
     + 'font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.9;box-shadow:0 10px 40px rgba(0,0,0,.6);');
   sheet.innerHTML =
     '<div style="font-size:14px;font-weight:700;letter-spacing:2px;color:#ffd400;margin-bottom:10px">CONTROLS</div>'
-    + '<div><b style="color:#7fd5ff">H</b> — HUD Extras settings</div>'
-    + '<div><b style="color:#7fd5ff">K</b> — clean view (hide all extras)</div>'
+    + '<div><b style="color:#7fd5ff">Shift+H</b> — HUD Extras settings</div>'
+    + '<div><b style="color:#7fd5ff">Shift+K</b> — clean view (hide all extras)</div>'
     + '<div><b style="color:#7fd5ff">C</b> — cinematic mode</div>'
     + '<div><b style="color:#7fd5ff">V</b> — atmosphere particles</div>'
     + '<div><b style="color:#7fd5ff">P</b> — skill progression</div>'
@@ -114,11 +114,17 @@
   function cheatsheet(o) { sheetOpen = (typeof o === 'boolean') ? o : !sheetOpen; sheet.style.display = sheetOpen ? 'block' : 'none'; }
 
   /* Keys --------------------------------------------------------------------- */
+  // Bare H and K belong to the game: H deploys the ballistic shield or uses a
+  // field bandage, K toggles the killstreak panel (game-manager.js:4056 and
+  // :4077). This panel was taking both, and openPanel() releases pointer lock,
+  // which the game reads as the player opening a menu — so pressing H in a
+  // firefight paused the game instead of putting a shield up. A cosmetic
+  // settings panel does not get to outrank a combat key: Shift+H and Shift+K.
   window.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     var k = e.key;
-    if (k === 'h' || k === 'H') { openPanel(); e.preventDefault(); }
-    else if (k === 'k' || k === 'K') { cleanView(); e.preventDefault(); }
+    if (e.shiftKey && (k === 'h' || k === 'H')) { openPanel(); e.preventDefault(); }
+    else if (e.shiftKey && (k === 'k' || k === 'K')) { cleanView(); e.preventDefault(); }
     else if (k === '?' || (k === '/' && e.shiftKey)) { cheatsheet(); e.preventDefault(); }
     else if (k === 'Escape') { if (panelOpen) openPanel(false); if (sheetOpen) cheatsheet(false); }
   });
@@ -131,7 +137,7 @@
       + 'padding:10px 16px;border-radius:10px;background:rgba(8,12,22,.93);border:1px solid rgba(0,216,255,.5);'
       + 'color:#dff1ff;font-family:"JetBrains Mono",monospace;font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.5);'
       + 'opacity:0;transition:opacity .4s;');
-    tip.innerHTML = '✨ HUD Extras installed — press <b style="color:#7fd5ff">H</b> to customize · <b style="color:#7fd5ff">?</b> for controls';
+    tip.innerHTML = '✨ HUD Extras installed — press <b style="color:#7fd5ff">Shift+H</b> to customize · <b style="color:#7fd5ff">?</b> for controls';
     requestAnimationFrame(function () { tip.style.opacity = '1'; });
     setTimeout(function () { tip.style.opacity = '0'; }, 8000);
     setTimeout(function () { if (tip.parentNode) tip.parentNode.removeChild(tip); }, 8500);

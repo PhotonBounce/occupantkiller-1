@@ -87,3 +87,41 @@ jobs:
           name: qa-play-stage-${{ matrix.stage }}
           path: qa-out-${{ matrix.stage }}/
           retention-days: 14
+
+  keys:
+    name: key sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      # R was bound to both RELOAD and the radio support radial, and the
+      # radial exits pointer lock, which the game reads as "player opened a
+      # menu" and pauses. Reloading paused the game for the project's entire
+      # history because nothing ever pressed a key and then asked whether the
+      # player was still in the game. This does exactly that, for every key.
+      - name: Key sweep
+        run: |
+          set +e
+          ok=0
+          for i in 1 2 3; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 900 node tools/qa-keys.js --stage 0 --out qa-keys-out --port 4979
+            rc=$?
+            echo "attempt $i exit=$rc"
+            if [ $rc -eq 0 ]; then ok=1; break; fi
+            if [ -f qa-keys-out/qa-keys.json ]; then
+              echo "::error::key sweep FAILED — a combat key interrupted play"; break
+            fi
+            echo "::warning::attempt $i crashed or hung before reaching a verdict (exit $rc) — retrying"
+          done
+          exit $([ $ok -eq 1 ] && echo 0 || echo 1)
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: qa-keys
+          path: qa-keys-out/
+          retention-days: 14

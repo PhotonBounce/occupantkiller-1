@@ -1,0 +1,196 @@
+#!/usr/bin/env node
+/*
+  qa-keys.js — press every key a player can reach during combat and check that
+  none of them takes the game away from them.
+
+  Written after finding that R was bound to both RELOAD and the radio support
+  radial (game-manager.js:4399 and :4400). The radial calls
+  document.exitPointerLock(), and the pointerlockchange handler treats any lock
+  loss during play as "the player opened a menu": STATE.PAUSED plus the
+  inventory overlay. So reloading paused the game. That collision survived the
+  project's entire history because nothing ever pressed a key and then asked
+  whether the game was still being played.
+
+  This presses each key in turn and records the state and pointer-lock status
+  after it. Keys whose whole job is to open something (Escape, Tab, F9, B) are
+  expected to; everything else must leave the player in the game. Where a key
+  does pause, the run recovers (Escape, re-click, re-lock) before the next one,
+  so one bad binding does not poison every result after it.
+
+  Usage:
+    node tools/qa-keys.js [--stage N] [--out DIR] [--port N]
+*/
+const http = require('http'), fs = require('fs'), path = require('path');
+let chromium;
+try { ({ chromium } = require('playwright')); }
+catch (e) {
+  try { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
+  catch (e2) { console.error('Playwright required for qa-keys.js'); process.exit(1); }
+}
+
+const ROOT = process.env.OK_ROOT || path.resolve(__dirname, '..');
+const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
+const STAGE = parseInt(arg('stage', '0'), 10);
+const PORT  = parseInt(arg('port', '4579'), 10);
+const OUT   = arg('out', path.join(ROOT, 'tools', 'qa-keys-out'));
+const W = parseInt(arg('w', '480'), 10), H = parseInt(arg('h', '270'), 10);
+
+fs.mkdirSync(OUT, { recursive: true });
+const log = [];
+const say = (m) => { console.log(m); log.push(m); };
+
+const server = http.createServer((q, s) => {
+  let p = decodeURIComponent(q.url.split('?')[0]);
+  if (p === '/') p = '/index.html';
+  const fp = path.join(ROOT, p);
+  if (!fp.startsWith(ROOT)) { s.writeHead(403); return s.end(); }
+  fs.readFile(fp, (e, d) => { if (e) { s.writeHead(404); return s.end('404'); } s.end(d); });
+});
+
+// Keys that are SUPPOSED to take over the screen. Everything else is a combat
+// action and must leave the player in the game.
+// Escape pauses, Tab and J open the inventory / shop, F9 opens settings, B is
+// build mode. Those are menus on purpose.
+const MENU_KEYS = new Set(['Escape', 'Tab', 'F9', 'KeyB', 'KeyJ']);
+
+// Movement and fire are covered by qa-play.js; this is about the rest of the
+// keyboard, which no test has ever pressed.
+const KEYS = [
+  'KeyE', 'KeyQ', 'KeyF', 'KeyG', 'KeyH', 'KeyI', 'KeyJ', 'KeyK', 'KeyL',
+  'KeyM', 'KeyN', 'KeyO', 'KeyP', 'KeyR', 'KeyT', 'KeyU', 'KeyV', 'KeyX',
+  'KeyY', 'KeyZ', 'KeyC',
+  'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7',
+  'Digit8', 'Digit9', 'Digit0',
+  'Comma', 'Period', 'Backquote', 'Home',
+  'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+];
+
+server.listen(PORT, async () => {
+  const t0 = Date.now();
+  const T = () => ((Date.now() - t0) / 1000).toFixed(1).padStart(5) + 's';
+
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath: process.env.QA_CHROMIUM || undefined,
+    args: ['--use-gl=angle', '--use-angle=swiftshader', '--disable-dev-shm-usage',
+           '--no-sandbox', '--mute-audio'],
+  });
+  const ctx = await browser.newContext({ viewport: { width: W, height: H } });
+  const page = await ctx.newPage();
+  const pageErrors = [];
+  page.on('pageerror', e => {
+    const frame = String(e.stack || '').split('\n').find(l => /\.js:\d+/.test(l)) || '';
+    pageErrors.push(String(e.message).slice(0, 160) + (frame ? '  @' + frame.trim().slice(0, 120) : ''));
+  });
+
+  await page.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'commit', timeout: 30000 });
+  const BOOT_WAIT = +(process.env.QA_BOOT_WAIT_MS || 120000);
+  await page.waitForFunction(
+    () => typeof window.GameManager !== 'undefined' && typeof window.VoxelWorld !== 'undefined'
+       && typeof window.THREE !== 'undefined' && typeof window.Enemies !== 'undefined',
+    null, { timeout: BOOT_WAIT });
+  await page.waitForFunction(
+    () => { const f = document.getElementById('boot-progress-bar-fill'); return f && f.style.width === '100%'; },
+    null, { timeout: BOOT_WAIT }).catch(() => say(T() + '  WARNING boot bar never reached 100%'));
+  say(T() + '  boot complete');
+
+  await page.evaluate((s) => { window.__QA_MODE = true; window.__QA_START_STAGE = s; window.__chosenStartStage = s; }, STAGE);
+  const clicked = await page.evaluate(() => {
+    const b = document.getElementById('quick-start-btn');
+    if (b && b.offsetParent !== null) { b.click(); return true; }
+    return false;
+  });
+  if (!clicked) await page.evaluate(() => GameManager.startGame());
+  await page.waitForFunction(() => GameManager.getState() === 'playing', null, { timeout: 120000 });
+  say(T() + '  stage ' + STAGE + ' playing');
+
+  const probe = () => page.evaluate(() => {
+    let state = null;
+    try { state = GameManager.getState(); } catch (e) {}
+    const overlay = Array.from(document.querySelectorAll('.overlay, #inventory-overlay'))
+      .filter(el => getComputedStyle(el).display !== 'none')
+      .map(el => el.id || el.className).slice(0, 3);
+    return { state, locked: !!document.pointerLockElement, overlay };
+  });
+
+  // Put the player back in the game after a key that took them out of it.
+  // Clicking the middle of the screen is wrong here: every overlay this is
+  // recovering from is centred, so the click lands on the panel and toggles
+  // one of its settings instead of re-locking. Click the canvas near its
+  // corner, and press Escape twice — the offending panel and the game's own
+  // pause both listen for it, and each consumes one press.
+  const recover = async () => {
+    for (let i = 0; i < 4; i++) {
+      const p = await probe();
+      if (p.state === 'playing' && p.locked) return true;
+      // ONE Escape. The game's Escape is a toggle, so pressing it twice
+      // unpaused and then re-paused — which is how a clean recovery looked
+      // like a game that could not be un-paused, and cost seven keys their
+      // verdict in the first sweep.
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(350);
+      if ((await probe()).state === 'playing') {
+        try {
+          const c = await page.$('canvas');
+          if (c) await c.click({ position: { x: 6, y: 6 }, force: true });
+        } catch (e) {}
+        await page.waitForTimeout(400);
+        continue;
+      }
+      try {
+        const canvas = await page.$('canvas');
+        if (canvas) await canvas.click({ position: { x: 6, y: 6 }, force: true });
+        else await page.mouse.click(8, 8);
+      } catch (e) { await page.mouse.click(8, 8); }
+      await page.waitForTimeout(450);
+    }
+    return false;
+  };
+
+  await page.mouse.click(Math.floor(W / 2), Math.floor(H / 2));
+  await page.waitForTimeout(500);
+  if (!(await probe()).locked) say(T() + '  WARNING pointer lock never engaged — results below are weaker');
+
+  const results = [], unrecovered = [];
+  for (const key of KEYS) {
+    let before = await probe();
+    if (before.state !== 'playing' || !before.locked) {
+      if (!(await recover())) {
+        // One key that cannot be recovered from must not hide the other
+        // thirty-odd. Record it and keep pressing.
+        say(T() + '  could not restore play before ' + key + ' — its result is not trustworthy');
+        unrecovered.push(key);
+      }
+      before = await probe();
+    }
+    await page.keyboard.press(key);
+    await page.waitForTimeout(450);
+    const after = await probe();
+    const tookOver = after.state !== 'playing' || (before.locked && !after.locked);
+    const expected = MENU_KEYS.has(key);
+    results.push({ key, state: after.state, locked: after.locked, overlay: after.overlay, tookOver, expected,
+                   trustworthy: before.state === 'playing' && before.locked });
+    say(T() + '  ' + key.padEnd(11) + ' state=' + String(after.state).padEnd(8) + ' lock=' + String(after.locked).padEnd(5)
+        + (tookOver ? '  <-- TOOK OVER' + (expected ? ' (expected)' : '') + (after.overlay.length ? ' overlay=' + after.overlay.join(',') : '') : ''));
+    if (tookOver) await recover();
+  }
+
+  const offenders = results.filter(r => r.tookOver && !r.expected && r.trustworthy);
+  const unjudged = results.filter(r => !r.trustworthy).map(r => r.key);
+  fs.writeFileSync(path.join(OUT, 'qa-keys.json'), JSON.stringify({ stage: STAGE, results, offenders, unjudged, unrecovered, pageErrors }, null, 1));
+
+  say('');
+  if (offenders.length) {
+    offenders.forEach(o => say('  FAIL: ' + o.key + ' interrupted play (state=' + o.state + ', lock=' + o.locked
+        + (o.overlay.length ? ', overlay=' + o.overlay.join(',') : '') + ') — a combat key must not take the screen'));
+    say('  stage ' + STAGE + ' KEY SWEEP: FAIL (' + offenders.length + ' of ' + results.length + ')');
+  } else {
+    say('  stage ' + STAGE + ' KEY SWEEP: PASS — ' + results.length + ' keys, none interrupted play');
+  }
+  if (unjudged.length) say('  NOT JUDGED (play could not be restored first): ' + unjudged.join(' '));
+  if (pageErrors.length) { say('  page errors: ' + pageErrors.length); pageErrors.slice(0, 8).forEach(e => say('   ! ' + e)); }
+  fs.writeFileSync(path.join(OUT, 'qa-keys.log'), log.join('\n'));
+
+  await browser.close(); server.close();
+  process.exit(offenders.length ? 1 : 0);
+});

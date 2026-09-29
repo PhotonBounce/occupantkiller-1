@@ -261,10 +261,18 @@ server.listen(PORT, async () => {
     } catch (e) {}
     return { kind: 'player', pos: v3(GameManager.getPlayer().position) };
   });
-  const sBefore = await subjectOf();
+  // The player's body, always, whatever they are driving. When the two
+  // disagree the player is in two places at once, which is how the Bradley
+  // desync looked from the outside: the view rode the hull while the
+  // collision box, the audio listener and every enemy's target walked away.
+  const bodyOf = () => page.evaluate(() => {
+    const p = GameManager.getPlayer().position;
+    return [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)];
+  });
+  const sBefore = await subjectOf(), bBefore = await bodyOf();
   await hold('KeyW', 2500);
   await page.waitForTimeout(500);
-  const sAfter = await subjectOf();
+  const sAfter = await subjectOf(), bAfter = await bodyOf();
   const subject = sAfter.kind;
   const mvBefore = sBefore.pos, mvAfter = sAfter.pos;
   // A drone climbs and dives, so its forward run is a 3D displacement; a
@@ -276,6 +284,16 @@ server.listen(PORT, async () => {
   say(T() + '  movement check [' + subject + ']: ' + (canMove ? 'OK' : subject.toUpperCase() + ' DID NOT MOVE')
       + ' ' + JSON.stringify(mvBefore) + ' -> ' + JSON.stringify(mvAfter) + '  (' + moved.toFixed(2) + 'm)');
   if (sBefore.kind !== sAfter.kind) say(T() + '  note: control subject changed mid-check: ' + sBefore.kind + ' -> ' + sAfter.kind);
+
+  // Riding something means the body rides with it.
+  const bodyMoved = Math.hypot(bAfter[0] - bBefore[0], bAfter[2] - bBefore[2]);
+  const gap = Math.hypot(bAfter[0] - mvAfter[0], bAfter[2] - mvAfter[2]);
+  const desynced = subject !== 'player' && gap > 6;
+  if (subject !== 'player') {
+    say(T() + '  body-vs-' + subject + ': body ' + JSON.stringify(bAfter)
+        + ' vs ' + subject + ' ' + JSON.stringify(mvAfter) + '  gap ' + gap.toFixed(2) + 'm'
+        + ' (body walked ' + bodyMoved.toFixed(2) + 'm)');
+  }
 
   const sample = () => page.evaluate(() => {
     const o = {};
@@ -339,7 +357,7 @@ server.listen(PORT, async () => {
     // Environment capability, reported not asserted.
     mouselookViaRealMouse: realMouseWorks,
     mouselookWorks: mouselookWorks,
-    controlSubject: subject,
+    controlSubject: subject, bodyGapMetres: +gap.toFixed(2), bodyDesynced: desynced,
     pauseEpisodes, pausedBeats, beatsPlayed: timeline.length, shotFailures,
     movementWorks: canMove, movedMetres: +moved.toFixed(2),
     final, timeline, shots,
@@ -367,6 +385,9 @@ server.listen(PORT, async () => {
   if (!canMove)        failures.push(subject.toUpperCase() + ' CANNOT MOVE — WASD produced no displacement (moved ' + moved.toFixed(2) + 'm)');
   if (!locked)         failures.push('POINTER LOCK NEVER ENGAGED — the player cannot aim');
   if (!mouselookWorks) failures.push('MOUSELOOK DEAD — looking did not turn the camera (yaw unchanged)');
+  if (desynced)        failures.push('PLAYER IS IN TWO PLACES — riding the ' + subject + ' at ' + JSON.stringify(mvAfter)
+                                     + ' while the body stands at ' + JSON.stringify(bAfter) + ' (' + gap.toFixed(1) + 'm apart); '
+                                     + 'enemies, audio and collision all track the body, not the view');
   if (pauseEpisodes)   failures.push('GAME PAUSED ITSELF ' + pauseEpisodes + 'x DURING PLAY — ' + pausedBeats + ' of '
                                      + timeline.length + ' beats ran with the game paused (nothing the player did should pause it)');
   if (pageErrors.length) failures.push(pageErrors.length + ' uncaught page error(s) during play: ' + pageErrors[0].slice(0, 160));

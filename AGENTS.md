@@ -72,6 +72,28 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   an hour each, silently, and three wrong diagnoses. Note a bare `about:blank`
   WebGL probe passes on BOTH flag sets, so only loading the real game exposes
   it — `tools/browser-smoke.js` (MODE=blank|server|game) is the bisect harness.
+- **Boots wedge because the renderer runs out of memory, not because it hangs.**
+  Watching total Chromium RSS through a boot in Claude's container: it climbs
+  to **7.9 GB** during world build, the renderer is killed, and the page is
+  left with the boot bar stuck below 100%. Playwright then reports either
+  `Target crashed` or a timeout on whatever it was waiting for, which reads
+  like a deadlock and is not one. Two of six stages in one Gameplay QA run
+  lost all three attempts to this. Retry, keep the viewport small (qa-play
+  uses 480x270 for exactly this reason), and do not run two harnesses at once
+  in the same container. Under SwiftShader every texture and render target is
+  host memory, so this number is not what a machine with a real GPU would
+  use — but it is why CI is flaky, and it is worth measuring on real hardware
+  before assuming players are fine.
+- **Keys collide, and a collision can pause the game.** Bare `R` was bound to
+  both RELOAD and the radio support radial; the radial calls
+  `document.exitPointerLock()`, and the `pointerlockchange` handler
+  (`game-manager.js`) treats any lock loss during play as the player opening a
+  menu — `STATE.PAUSED` plus the inventory overlay. So reloading paused the
+  game. `extras-panel.js` had taken bare `H` and `K` the same way, on top of
+  the ballistic shield and the killstreak panel. Around 180 bolt-on modules
+  register window-level keydown listeners, so assume nothing about a key being
+  free. `tools/qa-keys.js` presses every key and fails if a non-menu key takes
+  the screen; run it after touching any input code.
 - GitHub CI runners and Claude's cloud container render via **SwiftShader**
   (software rasterizer, confirmed from the renderer string). Frame-time numbers
   from those environments are meaningless — observed 34–62x spread on identical
