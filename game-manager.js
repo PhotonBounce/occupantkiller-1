@@ -4396,8 +4396,18 @@ const GameManager = (function () {
             } // end else (no scavenge pickup)
           }
         }
-        if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
-        if (e.code === 'KeyR' && !e.shiftKey && !e.ctrlKey && !keys['KeyM'] && window.RadioSupport) { RadioSupport.openMenu(); }
+        if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'] && !keys['AltLeft'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
+        // Radio support was on bare R — the same key as RELOAD, one line above.
+        // Every reload therefore also opened the support radial, which calls
+        // document.exitPointerLock() (radio-support.js:683); the
+        // pointerlockchange handler below then set STATE.PAUSED and threw up
+        // the inventory overlay. Reloading — the second-most-pressed key in
+        // the game — paused the game and dumped the player into a menu, and a
+        // second R toggled the radial shut again, so it read as the game
+        // randomly freezing. Alt+R keeps the mnemonic and matches the Alt+Q /
+        // Alt+E convention already used in this handler.
+        if (e.code === 'KeyR' && keys['AltLeft'] && !keys['KeyM'] && window.RadioSupport
+            && gameState === STATE.PLAYING) { e.preventDefault(); RadioSupport.openMenu(); }
 
         // Build mode: template selection
         if (gameState === STATE.BUILD_MODE) {

@@ -62,15 +62,30 @@ server.listen(PORT, async () => {
   const t0 = Date.now();
   const T = () => ((Date.now() - t0) / 1000).toFixed(1).padStart(5) + 's';
   const shots = [];
+  // A screenshot is evidence, not a check. On a loaded CI runner rendering
+  // through SwiftShader, page.screenshot() blows its default 30s timeout and
+  // the uncaught rejection killed the whole session — stage 5 of run 2 lost
+  // three attempts to it after playing fine for 95s. Give it room, and if it
+  // still will not come, record the miss and keep playing.
+  let shotFailures = 0;
   const shot = async (pg, name) => {
     const f = path.join(OUT, name + '.png');
-    await pg.screenshot({ path: f });
-    shots.push(name + '.png');
-    say(T() + '  shot ' + name);
+    try {
+      await pg.screenshot({ path: f, timeout: 120000, animations: 'disabled' });
+      shots.push(name + '.png');
+      say(T() + '  shot ' + name);
+    } catch (e) {
+      shotFailures++;
+      say(T() + '  shot ' + name + ' FAILED: ' + String(e.message).split('\n')[0].slice(0, 100));
+    }
   };
 
+  // Lets a container with a pre-installed Chromium that does not match this
+  // Playwright's pinned build run the harness without re-downloading one.
+  const EXE = process.env.QA_CHROMIUM || undefined;
   const browser = await chromium.launch({
     headless: true,
+    executablePath: EXE,
     // No --autoplay-policy override. Allowing autoplay makes the audio system
     // initialise during boot, and in a container with no sound device that
     // wedged the page every time: three runs in a row stalled at the boot bar
@@ -87,14 +102,43 @@ server.listen(PORT, async () => {
   // the ones that matter — a thrown exception in a handler silently kills that
   // feature for the rest of the session.
   const pageErrors = [], consoleErrors = [];
-  page.on('pageerror', e => pageErrors.push(String(e.message).slice(0, 200)));
+  page.on('pageerror', e => {
+    // The message alone ("Cannot read properties of null") names no file and
+    // no function, which makes a real fault unactionable. Keep the top frame.
+    const frame = String(e.stack || '').split('\n').find(l => /\.js:\d+/.test(l)) || '';
+    pageErrors.push((String(e.message).slice(0, 160) + (frame ? '  @' + frame.trim().slice(0, 120) : '')));
+  });
   page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 200)); });
 
   await page.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'commit', timeout: 30000 });
-  await page.waitForFunction(
-    () => typeof window.GameManager !== 'undefined' && typeof window.VoxelWorld !== 'undefined'
-       && typeof window.THREE !== 'undefined' && typeof window.Enemies !== 'undefined',
-    null, { timeout: 300000 });
+  // 300s here bought nothing: every healthy boot in CI reached this in under
+  // 10s, and the only runs that ever hit the ceiling were wedged ones — which
+  // then burned five minutes each before the workflow could retry them. Two of
+  // six stages in run 2 lost all three attempts that way. 120s is still more
+  // than ten times the slowest healthy boot observed.
+  const BOOT_WAIT = +(process.env.QA_BOOT_WAIT_MS || 120000);
+  try {
+    await page.waitForFunction(
+      () => typeof window.GameManager !== 'undefined' && typeof window.VoxelWorld !== 'undefined'
+         && typeof window.THREE !== 'undefined' && typeof window.Enemies !== 'undefined',
+      null, { timeout: BOOT_WAIT });
+  } catch (e) {
+    // Say which of them is missing rather than "timeout", and leave a frame
+    // behind — a wedge that produces no evidence gets diagnosed by guesswork,
+    // which has already cost this project several wrong answers.
+    let missing = 'unknown (page unreachable)';
+    try {
+      missing = await page.evaluate(() => ['GameManager', 'VoxelWorld', 'THREE', 'Enemies']
+        .filter(n => typeof window[n] === 'undefined').join(', ') || 'none');
+    } catch (_) {}
+    say(T() + '  BOOT WEDGED — missing globals after ' + (BOOT_WAIT / 1000) + 's: ' + missing);
+    await shot(page, '00-boot-wedge');
+    fs.writeFileSync(path.join(OUT, 'qa-play.log'), log.join('\n'));
+    // No verdict.json: this is a harness/environment wedge, not a judgement on
+    // the game, and the workflow retries exactly on that distinction.
+    await browser.close(); server.close();
+    process.exit(1);
+  }
   say(T() + '  modules present');
   // Wait for the boot bar too. Globals appear well before the world is built,
   // and starting early is not a harmless race: the player spawns into terrain
@@ -104,7 +148,7 @@ server.listen(PORT, async () => {
   // broken movement system. Cost me a false bug report before I caught it.
   await page.waitForFunction(
     () => { const f = document.getElementById('boot-progress-bar-fill'); return f && f.style.width === '100%'; },
-    null, { timeout: 300000 }).catch(() => say(T() + '  WARNING boot bar never reached 100%'));
+    null, { timeout: BOOT_WAIT }).catch(() => say(T() + '  WARNING boot bar never reached 100%'));
   say(T() + '  boot complete');
 
   // Start the stage. __chosenStartStage is an INDEX and index.html resets it to
@@ -242,6 +286,7 @@ server.listen(PORT, async () => {
     try { o.weapon = Weapons.getCurrent && Weapons.getCurrent().name; } catch (e) {}
     try { const r = GameManager.getRenderer(); o.draw = r.info.render.calls; o.progs = r.info.programs ? r.info.programs.length : null; } catch (e) {}
     try { o.wave = window.__hudWave || null; } catch (e) {}
+    try { o.locked = !!document.pointerLockElement; } catch (e) {}
     return o;
   });
 
@@ -262,6 +307,9 @@ server.listen(PORT, async () => {
     { name: 'grenade',      run: async () => { await page.keyboard.press('KeyG'); await page.waitForTimeout(600); } },
   ];
 
+  // A session that pauses plays out as a full log of plausible-looking beats
+  // in which nothing moves, and the old verdict passed it. Track it.
+  let pausedBeats = 0, pauseEpisodes = 0, wasPaused = false;
   const timeline = [];
   const deadline = Date.now() + SECS * 1000;
   const shotEvery = Math.max(1, Math.floor((SECS * 1000) / Math.max(1, SHOTS)));
@@ -272,8 +320,12 @@ server.listen(PORT, async () => {
     const before = await sample();
     try { await b.run(); } catch (e) { say(T() + '  beat ' + b.name + ' THREW: ' + e.message.slice(0, 100)); }
     const after = await sample();
+    const nowPaused = after.state === 'paused';
+    if (nowPaused) { pausedBeats++; if (!wasPaused) { pauseEpisodes++; say(T() + '  !! GAME PAUSED during "' + b.name + '" (lock=' + after.locked + ')'); } }
+    wasPaused = nowPaused;
     timeline.push({ t: +((Date.now() - t0) / 1000).toFixed(1), beat: b.name, before, after });
-    say(T() + '  ' + b.name.padEnd(14) + ' hp=' + after.hp + ' enemies=' + after.enemies
+    say(T() + '  ' + b.name.padEnd(14) + ' state=' + after.state + ' lock=' + after.locked
+        + ' hp=' + after.hp + ' enemies=' + after.enemies
         + ' weapon=' + after.weapon + ' pos=' + JSON.stringify(after.pos));
     if (Date.now() >= nextShot && shotN <= SHOTS) { await shot(page, String(shotN).padStart(2, '0') + '-' + b.name); shotN++; nextShot = Date.now() + shotEvery; }
   }
@@ -288,6 +340,7 @@ server.listen(PORT, async () => {
     mouselookViaRealMouse: realMouseWorks,
     mouselookWorks: mouselookWorks,
     controlSubject: subject,
+    pauseEpisodes, pausedBeats, beatsPlayed: timeline.length, shotFailures,
     movementWorks: canMove, movedMetres: +moved.toFixed(2),
     final, timeline, shots,
     pageErrors: pageErrors.slice(0, 20),
@@ -314,7 +367,9 @@ server.listen(PORT, async () => {
   if (!canMove)        failures.push(subject.toUpperCase() + ' CANNOT MOVE — WASD produced no displacement (moved ' + moved.toFixed(2) + 'm)');
   if (!locked)         failures.push('POINTER LOCK NEVER ENGAGED — the player cannot aim');
   if (!mouselookWorks) failures.push('MOUSELOOK DEAD — looking did not turn the camera (yaw unchanged)');
-  if (pageErrors.length) failures.push(pageErrors.length + ' uncaught page error(s) during play: ' + pageErrors[0].slice(0, 120));
+  if (pauseEpisodes)   failures.push('GAME PAUSED ITSELF ' + pauseEpisodes + 'x DURING PLAY — ' + pausedBeats + ' of '
+                                     + timeline.length + ' beats ran with the game paused (nothing the player did should pause it)');
+  if (pageErrors.length) failures.push(pageErrors.length + ' uncaught page error(s) during play: ' + pageErrors[0].slice(0, 160));
 
   say('');
   if (failures.length) {
@@ -324,7 +379,7 @@ server.listen(PORT, async () => {
     say('  stage ' + STAGE + ' VERDICT: PASS — ' + subject + ' moved ' + moved.toFixed(2) + 'm, pointer lock ok, mouselook ok, no page errors');
   }
   fs.writeFileSync(path.join(OUT, 'qa-play.log'), log.join('\n'));
-  fs.writeFileSync(path.join(OUT, 'verdict.json'), JSON.stringify({ stage: STAGE, pass: !failures.length, subject, movedMetres: +moved.toFixed(2), failures }, null, 1));
+  fs.writeFileSync(path.join(OUT, 'verdict.json'), JSON.stringify({ stage: STAGE, pass: !failures.length, subject, movedMetres: +moved.toFixed(2), pauseEpisodes, pausedBeats, beatsPlayed: timeline.length, failures }, null, 1));
 
   await browser.close(); server.close();
   process.exit(failures.length ? 1 : 0);
