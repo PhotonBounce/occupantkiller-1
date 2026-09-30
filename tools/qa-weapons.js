@@ -137,6 +137,19 @@ server.listen(PORT, async () => {
     say(T() + '  state after god-mode toggle: ' + setup.state);
   }
 
+  // Count shots the way the game does. God mode — which this harness turns
+  // on to unlock every weapon — makes gun ammo infinite (`if (!_isGod)
+  // st.clip--` in weapons.js), so "the clip dropped" can never be the fire
+  // signal here; three runs blamed the guns for that before the code was
+  // read. Weapons.didFire() is the game's own per-frame shot flag; sampled
+  // once per rendered frame (our rAF callback is registered after the game
+  // loop's, so it sees the flag the loop set) it becomes a shot counter.
+  await page.evaluate(() => {
+    if (window.__shotsInstalled) return; window.__shotsInstalled = true;
+    window.__shots = 0;
+    (function sample() { try { if (Weapons.didFire && Weapons.didFire()) window.__shots++; } catch (e) {} requestAnimationFrame(sample); })();
+  });
+
   const readCur = () => page.evaluate(() => {
     const i = Weapons.getCurrentIdx();
     const d = Weapons.getWeaponDef(i) || {};
@@ -144,7 +157,7 @@ server.listen(PORT, async () => {
     return { idx: i, id: d.id, name: d.name, type: d.type, clipSize: d.clipSize || 0,
              clip: Weapons.getClip(), reserve: Weapons.getReserve(),
              reloading: !!Weapons.isReloading(), state: GameManager.getState(), frame,
-             locked: !!document.pointerLockElement };
+             locked: !!document.pointerLockElement, shots: window.__shots || 0 };
   });
 
   // Log every release of pointer lock with its caller, so a row that could
@@ -236,7 +249,7 @@ server.listen(PORT, async () => {
         const fr = await until(() => false, 2, 800);
         afterFire = fr.cur;
       } else if (measurable) {
-        const fr = await until(c => c.clip < before.clip || c.reloading, 30, 20000);
+        const fr = await until(c => c.shots > before.shots || c.clip < before.clip || c.reloading, 30, 20000);
         afterFire = fr.cur; fired = fr.ok; fireFrames = fr.frames;
       } else {
         const fr = await until(() => false, 4, 1500);   // melee: swing a few frames, nothing to measure
@@ -257,6 +270,7 @@ server.listen(PORT, async () => {
     const row = {
       k, idx: before.idx, id: before.id, name: before.name, type: before.type,
       clipSize: before.clipSize, clipBefore: before.clip, clipAfterFire: afterFire.clip,
+      shots: (afterFire.shots || 0) - (before.shots || 0),
       switched, swFrames, lockHeld, fired, fireFrames, reloaded, reloadFrames, errors: errs,
     };
     rows.push(row);
@@ -268,6 +282,7 @@ server.listen(PORT, async () => {
     say(T() + '  #' + String(before.idx).padStart(3) + ' ' + String(before.name).padEnd(30).slice(0, 30)
         + ' ' + String(before.type || '').padEnd(9)
         + ' clip ' + String(before.clip).padStart(3) + '->' + String(afterFire.clip).padStart(3)
+        + ' shots+' + String((afterFire.shots || 0) - (before.shots || 0)).padEnd(3)
         + '  fire=' + (fired === null ? 'n/a ' : fired ? 'ok  ' : 'NO  ') + (lockHeld === false ? '(nolock)' : '')
         + ' reload=' + (reloaded === null ? 'n/a' : reloaded ? 'ok ' : 'NO ') + flag);
     if (k % 12 === 0 || flag) await shot('wpn-' + String(before.idx).padStart(3, '0') + '-' + String(before.id || 'x').toLowerCase());
