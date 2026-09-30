@@ -1,5 +1,7 @@
 // radio-support.js — Radio Support radial menu (Artillery, Extraction, Recon, Airstrike)
-// Key: R (already wired in game-manager.js line 2497)
+// Key: Alt+R (game-manager.js keydown handler). Bare R is RELOAD; sharing it
+// meant every reload opened this radial, which exits pointer lock and so
+// paused the game.
 // All var — no let/const. IIFE pattern.
 
 window.RadioSupport = (function () {

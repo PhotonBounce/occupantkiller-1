@@ -20,7 +20,7 @@ const server = http.createServer((q, s) => {
   });
 });
 server.listen(PORT, async () => {
-  const b = await chromium.launch({ headless: true, args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--disable-dev-shm-usage'] });
+  const b = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--disable-dev-shm-usage'] });
   const pg = await (await b.newContext({ viewport: { width: 400, height: 300 } })).newPage();
   await pg.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'commit', timeout: 30000 });
   await pg.waitForFunction(() => typeof window.VoxelWorld !== 'undefined' && !!VoxelWorld.generateLevel && typeof window.GameManager !== 'undefined', { timeout: 90000 });

@@ -1491,6 +1491,7 @@ const GameManager = (function () {
   }
 
   function shouldSkipGroundSnap() {
+    if (typeof Bradley !== 'undefined' && Bradley.isActive && Bradley.isActive()) return true;
     if (typeof DroneSystem !== 'undefined' && DroneSystem.isPossessing && DroneSystem.isPossessing()) return true;
     if (typeof VehicleSystem !== 'undefined' && VehicleSystem.isInVehicle && VehicleSystem.isInVehicle()) return true;
     if (typeof Traversal !== 'undefined') {
@@ -3818,7 +3819,16 @@ const GameManager = (function () {
         if (e.code === 'KeyG') {
           // Bradley IFV: check exit first so pilot can always dismount.
           if (typeof Bradley !== 'undefined' && Bradley.isActive && Bradley.isActive()) {
+            // Bradley.exit() sets the camera, which CameraSystem overwrites
+            // from the player on the very next frame. Move the player, as the
+            // VehicleSystem branch below does.
+            var _bvx = Bradley.getVehicle && Bradley.getVehicle();
             Bradley.exit();
+            if (_bvx && _bvx.group) {
+              player.position.set(_bvx.group.position.x + 3,
+                                  _bvx.group.position.y + player.height,
+                                  _bvx.group.position.z);
+            }
             HUD.notifyPickup('🚛 DISMOUNTED BRADLEY', '#a0c878');
           } else if (VehicleSystem.isHijacking()) {
             // Cancel hijack if pressing G again during hijack
@@ -4073,8 +4083,9 @@ const GameManager = (function () {
           }
         }
 
-        // Killstreak activation (K key - toggles panel)
-        if (e.code === 'KeyK') {
+        // Killstreak activation (K key - toggles panel). Alt+K belongs to the
+        // weapon attachments menu; without the modifier check both opened.
+        if (e.code === 'KeyK' && !e.altKey) {
           var ksPanel = document.getElementById('killstreak-panel');
           if (ksPanel) {
             ksPanel.style.display = ksPanel.style.display === 'none' ? 'block' : 'none';
@@ -4301,12 +4312,6 @@ const GameManager = (function () {
           if (shopTab) shopTab.click();
         }
 
-        // Inventory/Tab toggle
-        if (e.code === 'Tab') {
-          e.preventDefault();
-          toggleInventory();
-        }
-
         // Weapon switching (1-9 = weapons 0-8, 0 = weapon 9)
         if (e.code === 'Digit1') Weapons.switchTo(0);
         if (e.code === 'Digit2') Weapons.switchTo(1);
@@ -4396,8 +4401,18 @@ const GameManager = (function () {
             } // end else (no scavenge pickup)
           }
         }
-        if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
-        if (e.code === 'KeyR' && !e.shiftKey && !e.ctrlKey && !keys['KeyM'] && window.RadioSupport) { RadioSupport.openMenu(); }
+        if (e.code === 'KeyR' && !(Weapons.isJammed && Weapons.isJammed()) && !keys['KeyM'] && !keys['AltLeft'])   { Weapons.forceReload(); if (window.AudioSystem && window.AudioSystem.playReload) window.AudioSystem.playReload(); MLSystem.onReload(); MLSystem.trackReload(); }
+        // Radio support was on bare R — the same key as RELOAD, one line above.
+        // Every reload therefore also opened the support radial, which calls
+        // document.exitPointerLock() (radio-support.js:683); the
+        // pointerlockchange handler below then set STATE.PAUSED and threw up
+        // the inventory overlay. Reloading — the second-most-pressed key in
+        // the game — paused the game and dumped the player into a menu, and a
+        // second R toggled the radial shut again, so it read as the game
+        // randomly freezing. Alt+R keeps the mnemonic and matches the Alt+Q /
+        // Alt+E convention already used in this handler.
+        if (e.code === 'KeyR' && keys['AltLeft'] && !keys['KeyM'] && window.RadioSupport
+            && gameState === STATE.PLAYING) { e.preventDefault(); RadioSupport.openMenu(); }
 
         // Build mode: template selection
         if (gameState === STATE.BUILD_MODE) {
@@ -4457,13 +4472,47 @@ const GameManager = (function () {
         if (HUD.toggleSettings) HUD.toggleSettings();
       }
 
-      // Pause toggle — skip if we just exited fullscreen (browser ESC exits fullscreen first)
+      // Inventory / Tab toggle.
+      //
+      // This lived inside the `gameState === PLAYING || BUILD_MODE` block
+      // above, and toggleInventory() pauses the game when it opens the
+      // inventory. So the first Tab opened it and every Tab after that hit a
+      // block the paused game no longer enters: the close branch of
+      // toggleInventory() was unreachable from the key that is supposed to
+      // reach it, and the inventory could not be shut. Measured: Tab, Tab,
+      // Tab, Tab from a clean start left it open every time. It belongs out
+      // here with the pause toggle, which was never gated for the same
+      // reason — a key that opens a menu has to work while that menu is up.
+      if (e.code === 'Tab'
+          && (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE || gameState === STATE.PAUSED)) {
+        e.preventDefault();
+        toggleInventory();
+      }
+
+      // Pause toggle.
+      //
+      // The fullscreen guard below used to sit in front of BOTH directions,
+      // and every desktop start goes fullscreen (index.html requests it on
+      // QUICK START / START / RESTART). Traced in a running browser: with
+      // document.fullscreenElement set, every trusted Escape entered this
+      // handler, reached this branch and returned here — so from PAUSED the
+      // game could never be resumed by the key that paused it. The guard
+      // exists so that an Escape the browser is using to leave fullscreen
+      // does not ALSO pause a live game; there is no reason it should ever
+      // refuse a resume. It now covers the pause direction only.
       if (e.code === 'Escape') {
-        if (e.isTrusted && (document.fullscreenElement || document.webkitFullscreenElement || _skipNextEsc)) {
-          _skipNextEsc = false;
-          return; // Let the browser handle fullscreen exit without toggling pause
-        }
-        if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
+        var _escFromFullscreen = e.isTrusted
+          && (document.fullscreenElement || document.webkitFullscreenElement || _skipNextEsc);
+        _skipNextEsc = false;
+        if (gameState === STATE.PAUSED) {
+          gameState = STATE.PLAYING;
+          var invOv = document.getElementById('inventory-overlay');
+          if (invOv) invOv.style.display = 'none';
+          hideOverlays();
+          requestPointerLock();
+        } else if (_escFromFullscreen) {
+          // Let the browser handle fullscreen exit without toggling pause.
+        } else if (gameState === STATE.PLAYING || gameState === STATE.BUILD_MODE) {
           gameState = STATE.PAUSED;
           var invOv = document.getElementById('inventory-overlay');
           if (invOv) {
@@ -4471,12 +4520,6 @@ const GameManager = (function () {
             invOv.style.display = 'flex';
           }
           _releaseMouseForUI();
-        } else if (gameState === STATE.PAUSED) {
-          gameState = STATE.PLAYING;
-          var invOv = document.getElementById('inventory-overlay');
-          if (invOv) invOv.style.display = 'none';
-          hideOverlays();
-          requestPointerLock();
         }
       }
     });
@@ -6316,8 +6359,16 @@ const GameManager = (function () {
     if (typeof window !== 'undefined') {
       console.log('[QA] beginWave called, __QA_MODE:', window.__QA_MODE, 'gameState:', gameState);
     }
-    if (typeof window !== 'undefined' && window.__QA_MODE) {
-      // In QA mode, always allow wave start
+    if (typeof window !== 'undefined' && window.__QA_MODE && gameState !== STATE.PAUSED) {
+      // QA mode exists so a harness can start a wave without sitting through
+      // the briefing, so it overrides the menu/dead guard below. It must NOT
+      // override an explicit pause. It used to, and the effect was that every
+      // wave start yanked the game back to PLAYING with whatever menu the
+      // harness had opened still on screen — which the key sweep then
+      // reported as "menu stranded over a live game". That state is
+      // reachable only with __QA_MODE set: a real player's beginWave() takes
+      // the else branch and returns while paused. I reported it as a
+      // player-facing bug before tracing it here; it was my own harness.
       gameState = STATE.PLAYING;
     } else {
       if (gameState !== STATE.PLAYING && gameState !== STATE.BUILD_MODE) return;
@@ -7724,8 +7775,10 @@ const GameManager = (function () {
       touch.gyroDY = 0;
     }
 
-    // Skip if in drone or vehicle
+    // Skip if in drone or vehicle — or crewing the Bradley, which is its own
+    // module and was missing from this list, so its driver also walked.
     if (DroneSystem.isPossessing() || VehicleSystem.isInVehicle()) return;
+    if (typeof Bradley !== 'undefined' && Bradley.isActive && Bradley.isActive()) return;
     if (CameraSystem.getMode() === CameraSystem.MODE.STRATEGIC) return;
     // Gyro auto-assist: when gyro is on, gently pull crosshair toward nearest enemy
     if (isMobile && touch.gyroEnabled && touch.gyroAutoAssist && typeof Enemies !== 'undefined' && Enemies.getAll) {
@@ -12213,6 +12266,25 @@ const GameManager = (function () {
       try { if (window.Mortar  && Mortar.update)  Mortar.update(delta); } catch (eMU) {}
       try { if (window.MortarEmplacement && MortarEmplacement.update) MortarEmplacement.update(delta, typeof Enemies !== 'undefined' ? Enemies.getAll() : []); } catch (eMEU) {}
       try { if (window.Bradley && Bradley.update) Bradley.update(delta); } catch (eBV) {}
+      // Crewing the Bradley has to move the player, not just the camera.
+      // updatePlayer() skipped only DroneSystem and VehicleSystem, and the
+      // Bradley is neither, so WASD drove the hull AND walked the body at the
+      // same time: the view rode the tank while the player's collision box,
+      // audio listener and every enemy's target strolled off across the map.
+      // Gameplay QA caught it on stage 5, where a bradley_mission auto-mounts
+      // the player (missions.js:80) — the hull crawled 0.14m while the body
+      // walked away from it. Pin the body to the hull for as long as it is
+      // crewed; updatePlayer() now returns early, so nothing fights this.
+      try {
+        if (window.Bradley && Bradley.isActive && Bradley.isActive()) {
+          var _bvh = Bradley.getVehicle && Bradley.getVehicle();
+          if (_bvh && _bvh.group) {
+            player.position.set(_bvh.group.position.x,
+                                _bvh.group.position.y + 1.7,
+                                _bvh.group.position.z);
+          }
+        }
+      } catch (eBP) {}
       try { if (window.Gyro    && Gyro.update)    Gyro.update(delta); } catch (eGU) {}
       try { if (window.DamageNumbers && DamageNumbers.update) DamageNumbers.update(delta); } catch (eDNU) {}
 

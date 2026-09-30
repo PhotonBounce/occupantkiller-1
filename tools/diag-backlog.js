@@ -16,7 +16,7 @@ const MIME={'.js':'text/javascript','.html':'text/html','.css':'text/css','.png'
 const server=http.createServer((q,s)=>{let p=decodeURIComponent(q.url.split('?')[0]);if(p==='/')p='/index.html';const fp=path.join(ROOT,p);if(!fp.startsWith(ROOT)){s.writeHead(403);return s.end();}fs.readFile(fp,(e,d)=>{if(e){s.writeHead(404);return s.end('404');}s.writeHead(200,{'Content-Type':MIME[path.extname(fp)]||'application/octet-stream'});s.end(d);});});
 
 server.listen(PORT,async()=>{
-  const b=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--mute-audio']});
+  const b=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--mute-audio']});
   const _ctx=await b.newContext({viewport:{width:960,height:600}});
   // waitForFunction's 2nd arg is `arg`, not options — an options object there
   // is ignored and the 30s default applies. Set the real budget on the context.

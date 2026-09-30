@@ -1,0 +1,288 @@
+name: Full QA
+
+# One complete pass, on demand: every mission played with real input, every
+# weapon switched to / fired / reloaded, every key pressed, and a usability
+# measurement of every stage's screen. Ends with a single report job that
+# prints one table for the whole run, so the result can be read from one log
+# rather than nineteen.
+#
+# gameplay-qa.yml is the fast per-push spread (six stages). This is the full
+# sweep, and it is manual because it costs ~25 runner-jobs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      secs:
+        description: 'Seconds of play per stage'
+        default: '40'
+      only:
+        description: 'Which job to run: all, play, weapons, keys, usability'
+        default: 'all'
+      stages:
+        description: 'JSON array of stage indices for the play job'
+        default: '[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]'
+  # GitHub does not register a dispatch-only workflow that exists only on a
+  # feature branch — the API answers 404 for it by name. A push trigger
+  # scoped to this one file keeps it registered; every job is guarded to
+  # run on workflow_dispatch only, so a push to this file runs nothing.
+  push:
+    branches: [ main, claude/peaceful-cannon-oqez4t ]
+    paths: [ '.github/workflows/full-qa.yml' ]
+
+permissions:
+  contents: read
+
+# No concurrency group. The first version cancelled in-progress runs per
+# ref, and that cancelled the full sweep's usability job from a push that
+# only touched this file (a run every job guard turns into a no-op), then
+# had each `only:` dispatch cancel the previous one. Runs of this workflow
+# are independent experiments; none should be able to kill another.
+
+jobs:
+  play:
+    name: play stage ${{ matrix.stage }}
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.only == 'all' || github.event.inputs.only == 'play') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # STAGES indices 0..18: 0-12 campaign, 13-16 operations, 17 the FPV
+        # drone mission, 18 the Bradley duel. Overridable per dispatch so a
+        # single stage can be re-run without the other eighteen.
+        stage: ${{ fromJSON(github.event.inputs.stages || '[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Play stage ${{ matrix.stage }}
+        run: |
+          set +e
+          ok=0
+          for i in 1 2 3; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 480 node tools/qa-play.js \
+              --stage ${{ matrix.stage }} \
+              --secs ${{ github.event.inputs.secs || '40' }} \
+              --shots 4 --out qa-out --port 49${{ matrix.stage }}1
+            rc=$?
+            echo "attempt $i exit=$rc"
+            if [ $rc -eq 0 ]; then ok=1; break; fi
+            # verdict.json is written only after a judgement; its absence
+            # means the browser wedged, which is retried, not reported.
+            if [ -f qa-out/verdict.json ]; then
+              echo "::error::stage ${{ matrix.stage }} FAILED gameplay QA"; break
+            fi
+            echo "::warning::attempt $i crashed or hung before reaching a verdict (exit $rc) — retrying"
+          done
+          exit $([ $ok -eq 1 ] && echo 0 || echo 1)
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: full-qa-stage-${{ matrix.stage }}
+          path: qa-out/
+          retention-days: 14
+
+  weapons:
+    name: every weapon
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.only == 'all' || github.event.inputs.only == 'weapons') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Switch to, fire and reload all weapons
+        run: |
+          set +e
+          ok=0
+          for i in 1 2; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 2700 node tools/qa-weapons.js --stage 0 --out qa-out --port 4581
+            rc=$?
+            echo "attempt $i exit=$rc"
+            if [ $rc -eq 0 ]; then ok=1; break; fi
+            if [ -f qa-out/verdict.json ]; then
+              echo "::error::weapons check FAILED"; break
+            fi
+            echo "::warning::attempt $i crashed or hung before reaching a verdict (exit $rc) — retrying"
+          done
+          exit $([ $ok -eq 1 ] && echo 0 || echo 1)
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: full-qa-weapons
+          path: qa-out/
+          retention-days: 14
+
+  keys:
+    name: key sweep
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.only == 'all' || github.event.inputs.only == 'keys') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Key sweep
+        run: |
+          set +e
+          ok=0
+          for i in 1 2 3; do
+            echo "--- attempt $i ---"
+            timeout --signal=KILL 900 node tools/qa-keys.js --stage 0 --out qa-out --port 4979
+            rc=$?
+            echo "attempt $i exit=$rc"
+            if [ $rc -eq 0 ]; then ok=1; break; fi
+            if [ -f qa-out/qa-keys.json ]; then
+              echo "::error::key sweep FAILED"; break
+            fi
+            echo "::warning::attempt $i crashed or hung before reaching a verdict (exit $rc) — retrying"
+          done
+          exit $([ $ok -eq 1 ] && echo 0 || echo 1)
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: full-qa-keys
+          path: qa-out/
+          retention-days: 14
+
+  usability:
+    name: usability, every stage
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.only == 'all' || github.event.inputs.only == 'usability') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install Playwright
+        run: npm i -D playwright@1.47.2 && npx playwright install --with-deps chromium
+      # qa-usability.js is a measuring instrument, not a gate: it exits
+      # non-zero only when it could not measure. One retry per stage for a
+      # wedged browser; a stage that still cannot be measured is recorded as
+      # such in the report rather than failing the job.
+      - name: Measure every stage
+        run: |
+          set +e
+          for s in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18; do
+            for i in 1 2; do
+              echo "--- stage $s attempt $i ---"
+              STAGE=$s OUT=qa-out/stage-$s PORT=4933 SETTLE_MS=12000 VW=1280 VH=720 \
+                timeout --signal=KILL 300 node tools/qa-usability.js
+              rc=$?
+              echo "stage $s attempt $i exit=$rc"
+              if [ -f qa-out/stage-$s/usability.json ]; then break; fi
+            done
+          done
+          exit 0
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: full-qa-usability
+          path: qa-out/
+          retention-days: 14
+
+  report:
+    name: report
+    runs-on: ubuntu-latest
+    needs: [play, weapons, keys, usability]
+    # always(): a failed or skipped upstream job must still produce a report
+    # line, not hide the whole table. Skipped jobs show as "no verdict".
+    if: ${{ always() && github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: full-qa-*
+          path: qa-out
+      - name: Build the report
+        run: |
+          cat > report.js <<'EOF'
+          const fs = require('fs'), path = require('path');
+          const NAMES = ['HOSTOMEL AIRPORT','AVDIIVKA SECTOR','BAKHMUT RUINS','KHERSON CROSSING','MARIUPOL STEELWORKS',
+            'CRIMEA BRIDGE','CHORNOBYL ZONE','OUTER MOSCOW','SEVASTOPOL NAVAL BASE','DONBAS FINAL PUSH','BELGOROD OFFENSIVE',
+            'KREMLIN SHOWDOWN','BATTLE OF KYIV','SNAKE ISLAND DEFENSE','SAKY AIRBASE STRIKE','VUHLEDAR TANK GRAVEYARD',
+            'ANTONOV BRIDGE STRIKE','REFINERY STRIKE (FPV drone)','BRADLEY DUEL (Stepove)'];
+          const J = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return null; } };
+          const out = [];
+          const L = (s) => out.push(s);
+
+          L('# Full QA report'); L('');
+          L('## Missions (real input, ' + (process.env.SECS || '40') + 's each)'); L('');
+          L('| # | Stage | Verdict | Drove | Moved | Paused | Failures |');
+          L('|---|---|---|---|---|---|---|');
+          let pass = 0, fail = 0, none = 0;
+          for (let s = 0; s < 19; s++) {
+            const v = J('qa-out/full-qa-stage-' + s + '/verdict.json');
+            if (!v) { none++; L('| ' + s + ' | ' + NAMES[s] + ' | NO VERDICT (browser wedged 3x) | | | | |'); continue; }
+            v.pass ? pass++ : fail++;
+            L('| ' + s + ' | ' + NAMES[s] + ' | ' + (v.pass ? 'PASS' : '**FAIL**') + ' | ' + (v.subject || '') + ' | '
+              + (v.movedMetres != null ? v.movedMetres + 'm' : '') + ' | ' + (v.pauseEpisodes || 0) + ' | '
+              + (v.failures || []).join('; ').replace(/\|/g, '/') + ' |');
+          }
+          L(''); L('**' + pass + ' pass, ' + fail + ' fail, ' + none + ' no verdict** of 19.'); L('');
+
+          L('## Weapons'); L('');
+          const w = J('qa-out/full-qa-weapons/verdict.json');
+          const wj = J('qa-out/full-qa-weapons/weapons.json');
+          if (!w) L('No verdict (browser wedged 3x).');
+          else {
+            L((w.pass ? 'PASS' : '**FAIL**') + ' — ' + w.total + ' weapons, ' + w.coverage + ' reached by the wheel, '
+              + w.fired + ' fired, ' + w.unmeasurable + ' melee/no-clip (fire not measurable), ' + w.reloaded + ' reloaded, '
+              + (w.withErrors || []).length + ' threw page errors.');
+            if (wj && wj.setupPath) L(''), L('Setup: ' + wj.setupPath + '.');
+            (w.failures || []).forEach(f => L('- ' + f));
+            if (wj && wj.rows) {
+              const bad = wj.rows.filter(r => !r.switched || r.fired === false || r.reloaded === false || r.errors.length);
+              if (bad.length) {
+                L(''); L('| idx | Weapon | Type | Clip | Switched | Fired | Reloaded | Error |'); L('|---|---|---|---|---|---|---|---|');
+                bad.forEach(r => L('| ' + r.idx + ' | ' + r.name + ' | ' + r.type + ' | ' + r.clipBefore + '->' + r.clipAfterFire + ' | '
+                  + r.switched + ' | ' + r.fired + ' | ' + r.reloaded + ' | ' + (r.errors[0] || '').replace(/\|/g, '/').slice(0, 90) + ' |'));
+              }
+            }
+          }
+          L('');
+
+          L('## Key sweep'); L('');
+          const k = J('qa-out/full-qa-keys/qa-keys.json');
+          if (!k) L('No verdict (browser wedged 3x).');
+          else {
+            const off = (k.offenders || []), unj = (k.unjudged || []);
+            L((off.length || unj.length ? '**FAIL**' : 'PASS') + ' — ' + (k.results || []).length + ' keys pressed, '
+              + off.length + ' offending, ' + unj.length + ' unjudged.');
+            off.forEach(o => L('- ' + o.key + ': ' + (o.strandedMenu ? 'left ' + o.overlay.join(',') + ' on screen while playing' : 'took the screen (state=' + o.state + ')')));
+            if (unj.length) L('- unjudged: ' + unj.join(' '));
+          }
+          L('');
+
+          L('## Usability (1280x720, default HUD)'); L('');
+          L('| # | Stage | HUD cover | Centre clear | Panels | Overlaps | NaN on screen | Verdicts |');
+          L('|---|---|---|---|---|---|---|---|');
+          for (let s = 0; s < 19; s++) {
+            const u = J('qa-out/full-qa-usability/stage-' + s + '/usability.json');
+            if (!u) { L('| ' + s + ' | ' + NAMES[s] + ' | not measured | | | | | |'); continue; }
+            const v = [];
+            if (u.hudCoveragePct > 35) v.push('HUD ' + u.hudCoveragePct + '%');
+            if (u.centreClearPct < 85) v.push('centre ' + u.centreClearPct + '%');
+            if ((u.nanOnScreen || []).length) v.push('NaN x' + u.nanOnScreen.length);
+            if (u.overlaps > 12) v.push('overlaps ' + u.overlaps);
+            L('| ' + s + ' | ' + NAMES[s] + ' | ' + u.hudCoveragePct + '% | ' + u.centreClearPct + '% | ' + (u.panelCount ?? '') + ' | '
+              + (u.overlaps ?? '') + ' | ' + (u.nanOnScreen || []).length + ' | ' + (v.join(', ') || 'ok') + ' |');
+          }
+          fs.writeFileSync('qa-report.md', out.join('\n') + '\n');
+          console.log(out.join('\n'));
+          EOF
+          SECS="${{ github.event.inputs.secs || '40' }}" node report.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: full-qa-report
+          path: qa-report.md
+          retention-days: 30

@@ -87,7 +87,7 @@ async function loadStage(ctx,idx){
 
 server.listen(PORT,async()=>{
   log('server up; stages='+STAGES.join(','));
-  const browser=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
+  const browser=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
   const ctx=await browser.newContext({viewport:{width:1280,height:720}});
   const results=[];
   for(const idx of STAGES){results.push(await loadStage(ctx,idx));}

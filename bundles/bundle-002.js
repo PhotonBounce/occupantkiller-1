@@ -8909,7 +8909,9 @@ window.ArmorTiers = (function() {
 try {
 ;
 // radio-support.js — Radio Support radial menu (Artillery, Extraction, Recon, Airstrike)
-// Key: R (already wired in game-manager.js line 2497)
+// Key: Alt+R (game-manager.js keydown handler). Bare R is RELOAD; sharing it
+// meant every reload opened this radial, which exits pointer lock and so
+// paused the game.
 // All var — no let/const. IIFE pattern.
 
 window.RadioSupport = (function () {
@@ -20138,7 +20140,8 @@ window.WeaponCodex = (function () {
 try {
 ;
 /* pause-menu.js — In-game pause menu for OccupantKiller Three.js FPS
- * Escape key pauses/resumes. Self-initializing IIFE.
+ * Pause menu overlay (settings / controls / quit). Not key-bound — see init().
+ * Self-initializing IIFE.
  * All var, no let/const.
  */
 window.PauseMenu = (function () {
@@ -20886,7 +20889,17 @@ window.PauseMenu = (function () {
     window._musicVolume    = s.musicVolume  / 100;
     window._shadowsEnabled = s.shadows;
 
-    document.addEventListener('keydown', _onKeyDown, false);
+    // No key binding. This module used to take bare Escape as well, with an
+    // unguarded toggle: every press flipped its own overlay regardless of
+    // what game-manager's Escape handler (the pause that actually stops the
+    // game and shows the unified inventory/pause menu) was doing, and its
+    // show() drops pointer lock while its hide() requests it back. Traced
+    // in a running browser: Escape, Escape, Escape from a paused game gave
+    // this overlay on, off, on over the inventory while the state stayed
+    // PAUSED throughout. Nothing else calls PauseMenu.*; the same settings
+    // are reachable from the HUD settings panel. The API stays for anyone
+    // who wants to open it deliberately.
+    void _onKeyDown;
   }
 
   // Auto-init when DOM is ready
@@ -25853,7 +25866,8 @@ try {
 ;
 /* ───────────────────────────────────────────────────────────────────────────
    WEAPON-ATTACHMENTS.JS — Full weapon attachment system for OccupantKiller
-   Ukraine conflict theme. Press K to open the attachment menu.
+   Ukraine conflict theme. Press Alt+K to open the attachment menu (bare K is
+   the killstreak panel in game-manager; this module used to take it too).
    Slots: optic / muzzle / grip / ammo. Persists to localStorage.
    Applies global bonus flags read by game-manager and weapons.js.
    ─────────────────────────────────────────────────────────────────────────── */
@@ -25900,6 +25914,7 @@ window.WeaponAttachments = (function () {
   // ── State ──────────────────────────────────────────────────────────────────
   var _STORAGE_KEY = 'okk_attachments_v1';
   var _menuVisible = false;
+  var _pausedGame = false;   // did show() pause the game (so hide() resumes it)
   var _overlay = null;
   var _selectedWeaponId = null;
   var _selectedAttachKey = null;   // key in ATTACHMENTS, for preview
@@ -26496,6 +26511,20 @@ window.WeaponAttachments = (function () {
     _menuVisible = true;
     window._inputBlocked = true;
 
+    // Pause the game BEFORE releasing the pointer. game-manager's
+    // pointerlockchange handler treats any lock loss during PLAYING as the
+    // player opening a menu and paints the inventory/pause overlay on top
+    // — measured by the key sweep: K gave "paused, inventory-overlay" with
+    // this menu underneath. Paused first, the lock loss is expected and the
+    // handler stays out of it; hide() resumes what it paused.
+    _pausedGame = false;
+    try {
+      if (window.GameManager && GameManager.getState && GameManager.getState() === 'playing') {
+        GameManager.setState('paused');
+        _pausedGame = true;
+      }
+    } catch (e) {}
+
     // Pointer lock release
     if (document.exitPointerLock) {
       try { document.exitPointerLock(); } catch (e) {}
@@ -26506,17 +26535,29 @@ window.WeaponAttachments = (function () {
     if (_overlay) _overlay.style.display = 'none';
     _menuVisible = false;
     window._inputBlocked = false;
+    if (_pausedGame) {
+      _pausedGame = false;
+      try {
+        if (window.GameManager && GameManager.getState && GameManager.getState() === 'paused') {
+          GameManager.setState('playing');
+          var canvas = document.querySelector('canvas');
+          if (canvas && canvas.requestPointerLock) canvas.requestPointerLock();
+        }
+      } catch (e) {}
+    }
   }
 
   function toggle() {
     if (_menuVisible) { hide(); } else { show(); }
   }
 
-  // ── K key binding ─────────────────────────────────────────────────────────
+  // ── Alt+K key binding ─────────────────────────────────────────────────────
+  // Not bare K: game-manager binds that to the killstreak panel, and two
+  // handlers on one key is the collision class that paused the game on R.
   function _bindKeys() {
     document.addEventListener('keydown', function (e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-      if (e.code === 'KeyK' || e.key === 'k' || e.key === 'K') {
+      if (e.code === 'KeyK' && e.altKey && !e.ctrlKey && !e.shiftKey) {
         // Don't open if another blocking menu is visible
         if (!_menuVisible && window._inputBlocked) return;
         e.preventDefault();

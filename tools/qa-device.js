@@ -29,7 +29,7 @@ const MOBILE_UA='Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KH
 
 server.listen(PORT,async()=>{
   log('server up; stage='+STAGE);
-  const browser=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
+  const browser=await chromium.launch({headless:true,args:['--use-gl=angle', '--use-angle=swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
   const ctx=await browser.newContext({userAgent:MOBILE_UA,viewport:{width:VW,height:VH},isMobile:true,hasTouch:true,deviceScaleFactor:2});
   const pg=await ctx.newPage();
   const perr=[];pg.on('pageerror',e=>{perr.push(e.message);log('PAGEERROR: '+e.message.slice(0,160));});

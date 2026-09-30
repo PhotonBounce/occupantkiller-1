@@ -72,6 +72,111 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   an hour each, silently, and three wrong diagnoses. Note a bare `about:blank`
   WebGL probe passes on BOTH flag sets, so only loading the real game exposes
   it — `tools/browser-smoke.js` (MODE=blank|server|game) is the bisect harness.
+- **Boots wedge because the renderer runs out of memory, not because it hangs.**
+  Watching total Chromium RSS through a boot in Claude's container: it climbs
+  to **7.9 GB** during world build, the renderer is killed, and the page is
+  left with the boot bar stuck below 100%. Playwright then reports either
+  `Target crashed` or a timeout on whatever it was waiting for, which reads
+  like a deadlock and is not one. Two of six stages in one Gameplay QA run
+  lost all three attempts to this. Retry, keep the viewport small (qa-play
+  uses 480x270 for exactly this reason), and do not run two harnesses at once
+  in the same container. Under SwiftShader every texture and render target is
+  host memory, so this number is not what a machine with a real GPU would
+  use — but it is why CI is flaky, and it is worth measuring on real hardware
+  before assuming players are fine.
+- **Keys collide, and a collision can pause the game.** Bare `R` was bound to
+  both RELOAD and the radio support radial; the radial calls
+  `document.exitPointerLock()`, and the `pointerlockchange` handler
+  (`game-manager.js`) treats any lock loss during play as the player opening a
+  menu — `STATE.PAUSED` plus the inventory overlay. So reloading paused the
+  game. `extras-panel.js` had taken bare `H` and `K` the same way, on top of
+  the ballistic shield and the killstreak panel. Around 180 bolt-on modules
+  register window-level keydown listeners, so assume nothing about a key being
+  free. `tools/qa-keys.js` presses every key and fails if a non-menu key takes
+  the screen; run it after touching any input code.
+- **`__QA_MODE` forces `gameState = PLAYING` at every wave start, which fakes
+  a bug.** `beginWave()` used to do this unconditionally under `__QA_MODE`,
+  overriding an explicit pause. Since `tools/qa-play.js` and
+  `tools/qa-keys.js` both set that flag, every wave start yanked the game
+  back to PLAYING with whatever menu the harness had opened still on screen
+  — and the sweep duly reported "menu stranded over a live game". No player
+  can reach that state: with the flag unset, `beginWave()` returns early
+  while paused. I reported it as a player-facing bug before tracing it. QA
+  mode now overrides the menu/dead guard but not an explicit pause. If a
+  harness finding depends on `__QA_MODE`, it is not a finding.
+- **`Tab` could not close the inventory — two causes, both fixed; verify on
+  real hardware.** First, `intelligence-briefing.js` also bound bare Tab and
+  its `_openPanel()` calls `document.exitPointerLock()`, so one press opened
+  the inventory AND the briefing and dropped the lock twice; the inventory
+  ended up on screen with the game still in `playing`. Removing that binding
+  (F1 still opens the briefing) was measured to fix it: `Tab open` went from
+  `playing + flex` to `paused + flex`. Second, the Tab handler itself sat
+  inside `if (gameState === PLAYING || BUILD_MODE)` while
+  `toggleInventory()`'s close branch requires `PAUSED` — so once Tab paused
+  the game, the block was skipped and the close path was unreachable by
+  construction. Tab now sits beside the pause toggle, which was never gated
+  for the same reason. Keep `Tab` in `tools/qa-keys.js`'s press list: the
+  first sweep allowlisted it as a menu key and never pressed it, which is
+  why the sweep could not catch this. Both causes are now confirmed in a
+  running browser, not just from the code:
+
+      baseline  : playing, overlay none, locked
+      Tab open  : paused,  overlay flex, unlocked
+      Tab close : playing, overlay none, locked
+      Tab open2 : paused,  overlay flex, unlocked
+      Tab close2: playing, overlay none, locked
+
+  Note what is NOT part of this: the "inventory on screen while the game is
+  playing" half of the original report was the `__QA_MODE` artifact above,
+  not these two bugs. What these two caused, and what is fixed, is that the
+  inventory would not CLOSE — which reproduces with or without the flag.
+
+  On viewport size and the OOM above: one probe completed at 320x180 after
+  three crashes at 480x270, which looked like a mitigation. It is not —
+  a later sweep at 320x180 lost its renderer on all three attempts, on an
+  idle container with 15 GB free and no leftover processes. So the crash is
+  a burst during world build rather than accumulated pressure, and window
+  size does not reliably decide it. Retry; do not expect a smaller window to
+  save a run.
+- **Escape could not resume a paused game — two causes, both fixed and
+  measured.** (1) game-manager's Escape handler put its fullscreen guard
+  (`if (e.isTrusted && document.fullscreenElement) return`) in front of the
+  resume branch, and every desktop start requests fullscreen, so from PAUSED
+  every trusted Escape was dropped. The guard now applies to the pause
+  direction only. (2) `pause-menu.js` (bundled) also bound bare Escape with
+  an unguarded toggle whose `show()` exits pointer lock and `hide()`
+  requests it; its binding is removed, its API kept. The way this was found
+  is the way to find the next one: instrument the handler with console.log
+  at ENTER and at the branch, run a real-input probe, read the order. Three
+  rounds of reading the code guessed wrong first.
+- **The mouse does not fire without pointer lock.** game-manager's mousedown
+  handler treats a left click with no lock held as the click that REQUESTS
+  lock, and returns without firing. Any harness that measures firing must
+  hold the lock before every trigger pull and re-acquire it after anything
+  that could release it (see `tools/qa-weapons.js`'s `ensureLock`). The
+  second weapons run blamed 46 of 51 guns for this.
+- **Every stage opens on the mission briefing, which waits for Enter.** A
+  measurement taken before Enter is pressed is a measurement of the briefing
+  screen (100% coverage, 0% centre clear). `tools/qa-usability.js` presses
+  it the way the player does; `__QA_MODE` skips the briefing entirely.
+- **The old note, kept for the history:**
+  From a clean playing state, pressing Tab leaves the game in `playing` with
+  `#inventory-overlay` at `display:flex` — the inventory painted over a live
+  fight with the pointer unlocked — and no further Tab or Escape ever closes
+  it. Measured, repeatedly, not inferred. `Tab` is bound in at least four
+  loaded places: `game-manager.js` (`toggleInventory`), `weapon-skins.js:349`
+  (skin selector), `objective-tracker.js:707` (objective board, only when
+  `IntelligenceBriefing` is absent) and `intelligence-briefing.js:1240`, whose
+  `_openPanel()` also calls `document.exitPointerLock()`. `J` (shop) lands in
+  the same state. What has NOT been established is which path flips the state
+  back to `playing` while leaving the overlay up — a MutationObserver on the
+  overlay, a wrapped `requestPointerLock` and a `console.log` on all 13
+  `gameState = STATE.PLAYING` sites all lost their run to the renderer OOM
+  above before the trace landed. Do not "fix" this by hiding the overlay
+  whenever the state is `playing`: that was tried, and A/B'd against the same
+  probe without it — it makes Tab and J silently do nothing instead, which is
+  worse. Fix the duplicate bindings, or make overlay visibility derive from
+  the state instead of a dozen imperative writes.
 - GitHub CI runners and Claude's cloud container render via **SwiftShader**
   (software rasterizer, confirmed from the renderer string). Frame-time numbers
   from those environments are meaningless — observed 34–62x spread on identical
@@ -102,6 +207,14 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
 - A closer relative of the NaN class was real and is fixed: `npc-system.js`
   averaged `morale` over `npcs[]`, which also holds wildlife and stray pets that
   carry no morale, so the HUD printed `Morale: NaN%` on screen for whole missions.
+
+## QA budget (owner's instruction, 2026-09-30)
+
+**Two QA cycles and one usability pass per change set — no more.** A cycle is
+one run of the play sweep / weapons check / key sweep; a runner-VM wedge
+retried inside the same run is not a new cycle, a re-dispatch after a harness
+fix is. When the budget is spent, write up what was measured and what was
+not, and stop. Do not keep re-dispatching to chase a green table.
 
 ## Desktop build
 

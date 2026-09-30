@@ -63147,15 +63147,30 @@ window.IntelligenceBriefing = (function() {
   function _onKeyDown(e) {
     _keysDown[e.code] = true;
 
-    // Tab (no shift) or F1 — toggle panel
-    if ((e.code === 'Tab' && !e.shiftKey) || e.code === 'F1') {
+    // F1 — toggle panel.
+    //
+    // Bare Tab used to do this too, and bare Tab belongs to the inventory
+    // (game-manager.js toggleInventory). One press therefore opened the
+    // inventory AND this briefing, and _openPanel() calls
+    // document.exitPointerLock() on top of the inventory's own release — two
+    // lock drops and two panels from one key. Measured result: the inventory
+    // ends up on screen over a live game and never closes again. This panel
+    // no longer opens on Tab; Tab only dismisses it when it is already up, so
+    // a player who has it open can still close it the way they expect.
+    if (e.code === 'F1') {
       e.preventDefault();
       if (_open) { _closePanel(); } else { _openPanel(); }
       return;
     }
 
-    // Shift+Tab — copy brief to clipboard
-    if (e.code === 'Tab' && e.shiftKey) {
+    if (e.code === 'Tab' && !e.shiftKey && _open) {
+      e.preventDefault();
+      _closePanel();
+      return;
+    }
+
+    // Shift+Tab — copy brief to clipboard, only while the brief is open.
+    if (e.code === 'Tab' && e.shiftKey && _open) {
       e.preventDefault();
       _copyBriefToClipboard();
       return;
