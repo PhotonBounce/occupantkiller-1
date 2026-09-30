@@ -208,6 +208,14 @@ Serve the repo root over HTTP (any static server) and open `index.html`.
   averaged `morale` over `npcs[]`, which also holds wildlife and stray pets that
   carry no morale, so the HUD printed `Morale: NaN%` on screen for whole missions.
 
+## QA budget (owner's instruction, 2026-09-30)
+
+**Two QA cycles and one usability pass per change set — no more.** A cycle is
+one run of the play sweep / weapons check / key sweep; a runner-VM wedge
+retried inside the same run is not a new cycle, a re-dispatch after a harness
+fix is. When the budget is spent, write up what was measured and what was
+not, and stop. Do not keep re-dispatching to chase a green table.
+
 ## Desktop build
 
 `.github/workflows/desktop-exe.yml` (manual dispatch) packages Electron,
